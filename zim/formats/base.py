@@ -2,12 +2,19 @@
 
 '''Base classes for parsers and parse trees
 
+For format modules it is safe to import '*' from this module.
+
 NOTE: To avoid confusion: "headers" refers to meta data, usually in the 
 form of rfc822 headers at the top of a page. But "heading" refers to a title 
 or subtitle in the document.
 '''
 
 import re
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 
 class Node:
@@ -109,8 +116,25 @@ class SyntaxError(Exception):
 
 
 
-class Parser:
-	"""Base class for parsers"""
+class ParserClass:
+	"""Base class for parsers
+
+	Each format that can be used natively should define a class 'Parser'
+	which inherits from this base class.
+	"""
+
+	def parse_file(self, path):
+		'''returns a tree of contents read from path'''
+		file = open(path, 'r')
+		tree = self.parse(file)
+		file.close()
+		return tree
+
+	def parse_string(self, string):
+		'''parse from string'''
+		file = StringIO(string)
+		tree = self.parse(file)
+		return tree
 
 	header_re = re.compile('^([\w\-]+):\s+(.*)')
 	not_headers_re = re.compile('^(?!\Z|\s+|[\w\-]+:\s+)', re.M)
@@ -173,5 +197,25 @@ class Parser:
 					pass
 		return l
 
+
+
+class DumperClass:
+	'''Base class for dumper classes.
+
+	Each format that can be used natively should define a class 'Dumper'
+	which inherits from this base class.
+	'''
+
+	def dump_file(self, tree, path):
+		'''Dump to file'''
+		file = open(path, 'w')
+		self.dump(tree, file)
+		file.close()
+
+	def dump_string(self, tree):
+		'''Returns string with dump of tree'''
+		file = StringIO()
+		self.dump(tree, file)
+		return file.getvalue()
 
 # vim: tabstop=4

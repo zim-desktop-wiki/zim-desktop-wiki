@@ -3,7 +3,7 @@ import re
 
 from base import *
 
-class WikiParser(Parser):
+class Parser(ParserClass):
 
 	def parse(self, file):
 		# Read the file and divide into paragraphs on the fly.

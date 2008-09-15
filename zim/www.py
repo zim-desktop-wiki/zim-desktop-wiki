@@ -1,14 +1,8 @@
 
 import BaseHTTPServer
 
-from zim.parser.wiki import WikiParser
-from zim.parser.html import HTMLDumper
-from zim.parser.base import ParserError
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from zim.formats import wiki, html
+from zim.formats.base import ParserError
 
 class HTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
@@ -16,29 +10,25 @@ class HTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 		path = '/home/pardus/code/zim.debug/Home.txt'
 		
 		try:
-			file = open(path, 'r')
-			tree = WikiParser().parse(file)
-			file.close()
+			tree = wiki.Parser().parse_file(path)
 		except ParserError, error:
 			self.send_error(500, 'BUG in parser:\n'+str(error))
 			return
 		
 		try:
-			file = StringIO()
-			HTMLDumper().dump(tree,file)
-			html = file.getvalue()
+			content = html.Dumper().dump_string(tree)
 		except ParserError, error:
 			self.send_error(500, 'BUG in dumper:\n'+str(error))
 			return
 
 		self.send_response(200) # OK
 		self.send_header('Content-Type', 'text/html')
-		self.send_header('Content-Length', str(len(html)))
+		self.send_header('Content-Length', str(len(content)))
 		# Last-Modified
 		# etc.
 		self.end_headers()
 		
-		for line in html.splitlines():
+		for line in content.splitlines():
 			self.wfile.write(line)
 
 

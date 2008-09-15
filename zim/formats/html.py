@@ -1,7 +1,7 @@
 
 from base import *
 
-class HTMLDumper:
+class Dumper(DumperClass):
 
 	tags = {
 		'Verbatim': 'pre',
