@@ -4,8 +4,8 @@
 
 For format modules it is safe to import '*' from this module.
 
-NOTE: To avoid confusion: "headers" refers to meta data, usually in the 
-form of rfc822 headers at the top of a page. But "heading" refers to a title 
+NOTE: To avoid confusion: "headers" refers to meta data, usually in the
+form of rfc822 headers at the top of a page. But "heading" refers to a title
 or subtitle in the document.
 '''
 
@@ -45,8 +45,8 @@ class NodeList(list, Node):
 class NodeTree(NodeList):
 	'''Top level element of a parse tree
 
-	This is also a list of parse nodes like NodeList, but adds meta data
-	that applies to the whole tree.
+	This is also a list of parse nodes like NodeList, but adds meta
+	data that applies to the whole tree.
 	'''
 
 	def __init__(self):
@@ -79,7 +79,7 @@ class TextNode(Node):
 
 class LinkNode(TextNode):
 	'''Class for link objects'''
-	
+
 	def __init__(self, string, link=None):
 		self.string = string
 		self.link = link
@@ -175,8 +175,8 @@ class ParserClass:
 
 	def walk_list(self, list, split_re, func):
 		"""Convenience function to process a list of strings and Node objects.
-		Node objects will be ignored, but strings are splitted using regex 
-		'split_re'.  Each part matched by the regex is than replaced by the 
+		Node objects will be ignored, but strings are splitted using regex
+		'split_re'.  Each part matched by the regex is than replaced by the
 		results of 'func(match)'.  The list is expanded this way into more
 		strings and objects and returned.  This function can be called multiple
 		time to match exclusive pieces of formatting.

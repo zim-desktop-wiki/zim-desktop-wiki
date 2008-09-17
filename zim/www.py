@@ -4,7 +4,18 @@ import BaseHTTPServer
 from zim.formats import wiki, html
 from zim.formats.base import ParserError
 
-class HTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+# TODO:
+# Handler class that does all the action
+# method cgi() that runs in cgi mode
+#	check path info etc. and call proper handler actions
+# method serve() that runs in stand alone mode
+# 	import inside method is autoloading !
+#	see pydoc.py for example
+#	needs options like
+#		-p --port INT	set port number
+#		-P --public 	allow connections from outside
+
+class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 	def do_GET(self):
 		path = '/home/pardus/code/zim.debug/Home.txt'
