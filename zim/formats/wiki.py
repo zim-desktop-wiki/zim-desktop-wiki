@@ -99,11 +99,16 @@ class Parser(ParserClass):
 						lambda match: TextNode(match, style='verbatim') )
 
 		def parse_link(match):
-			(link, text) = match.split('|', 2)
+			parts = match.split('|', 2)
+			link = parts[0]
+			if len(parts) > 1:
+				text = parts[1]
+			else:
+				text = link
 			if len(link) == 0: # [[|link]] bug
 					link = text
-			if self.email_re.match(link) and not link.startswith('mailto:'):
-					link = 'mailto:'+link
+			#if email_re.match(link) and not link.startswith('mailto:'):
+			#		link = 'mailto:'+link
 			return LinkNode(text, link=link)
 
 		list = self.walk_list(list, re.compile('\[\[(?!\[)(.+?)\]\]'), parse_link)
