@@ -24,50 +24,61 @@ class Store(StoreClass):
 		'''
 		if not file:
 			file = self.get_file(name)
-
 		source = Source(file, self.format)
-		return Page(name, self, source=source)
+		page = Page(name, self, source=source)
 
+		dir = self.get_dir(name)
+		if os.path.exists(dir):
+			page.children = PageList(name, self)
+			print "page", page.name, '\n', page.children
+
+		return page
 
 	def list_pages(self, namespace):
-		'''...'''
-		# TODO need to add more logic to pair files in dirs
+		'''Generator function to iterate over pages in a namespace'''
+		# TODO need to add more logic to pair files and dirs
 		path = self.get_dir(namespace)
 		for file in os.listdir(path):
 			if file.startswith('.'):
 				continue
 			elif file.endswith('.txt'):
+				#print "file", file
 				name = namespace + ':' + file[:-4]
 				file = path + '/' + file
 				yield self.get_page(name, file=path)
 			else:
+				#print "dir", file
 				name = namespace + ':' + file
-				page = Page(name, self)
-				page.children = PageList(name, self)
-				yield page
+				yield self.get_page(name)
 
 	def get_file(self, name):
-		'''...'''
+		'''Returns a file path for a page name'''
 		relname = self.relname(name)
-		path = '/'.join( relname.split(':') )
+		path = relname.replace(':', '/')
 		return self.dir + '/' + path + '.txt'
 
 	def get_dir(self, name):
-		'''...'''
+		'''Returns a dir path for a page name'''
 		relname = self.relname(name)
-		path = '/'.join( relname.split(':') )
+		path = relname.replace(':', '/')
 		return self.dir + '/' + path
 
 class Source():
 	'''Class to wrap file objects and attach a format'''
 
 	def __init__(self, path, format):
-		'''...'''
+		'''Constructor needs a file path and a format module'''
 		self.path = path
 		self.format = format
 
+	def exists(self):
+		'''Returns true is file exists'''
+		return os.path.exists(self.path)
+
 	def parse(self):
-		'''...'''
+		'''Returns a parse tree from file or None'''
+		if not os.path.exists(self.path):
+			return None
 		parser = self.format.Parser()
 		file = open(self.path, 'r')
 		tree = parser.parse(file)
@@ -75,7 +86,7 @@ class Source():
 		return tree
 
 	def dump(self, tree):
-		'''...'''
+		'''Dump the parse tree to file'''
 		dumper = self.format.Dumper()
 		file = open(self.path, 'w')
 		dumper.dump(file, tree)

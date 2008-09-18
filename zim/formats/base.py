@@ -17,7 +17,7 @@ except ImportError:
     from StringIO import StringIO
 
 
-class Node:
+class Node(object):
 	'''Base class for all parse tree nodes
 
 	Currently empty, but used for instance checking
@@ -67,6 +67,7 @@ class TextNode(Node):
 	'''Parse tree node containing atomical piece of text'''
 
 	def __init__(self, string, style=None):
+		'''Constructor needs at least a piece of text'''
 		self.string = string
 		self.style = style
 
@@ -81,6 +82,7 @@ class LinkNode(TextNode):
 	'''Class for link objects'''
 
 	def __init__(self, string, link=None):
+		'''Constructor needs at leas a piece of text'''
 		self.string = string
 		self.link = link
 
@@ -116,12 +118,12 @@ class SyntaxError(Exception):
 
 
 
-class ParserClass:
-	"""Base class for parsers
+class ParserClass(object):
+	'''Base class for parsers
 
-	Each format that can be used natively should define a class 'Parser'
-	which inherits from this base class.
-	"""
+	Each format that can be used natively should define a class
+	'Parser' which inherits from this base class.
+	'''
 
 	def parse_file(self, path):
 		'''returns a tree of contents read from path'''
@@ -153,10 +155,10 @@ class ParserClass:
 			return True
 
 	def parse_headers(self, text):
-		"""Returns a dictonary with the headers defined in 'text'.
+		'''Returns a dictonary with the headers defined in 'text'.
 		Uses rfc822 style header syntax including continuation lines.
 		All headers are made case insesitive using string.title().
-		"""
+		'''
 		headers = {}
 		header = None
 		if not self.matches_headers(text):
@@ -174,13 +176,14 @@ class ParserClass:
 		return headers
 
 	def walk_list(self, list, split_re, func):
-		"""Convenience function to process a list of strings and Node objects.
-		Node objects will be ignored, but strings are splitted using regex
-		'split_re'.  Each part matched by the regex is than replaced by the
-		results of 'func(match)'.  The list is expanded this way into more
-		strings and objects and returned.  This function can be called multiple
-		time to match exclusive pieces of formatting.
-		"""
+		'''Convenience function to process a list of strings and Node
+		objects.  Node objects will be ignored, but strings are
+		splitted using regex 'split_re'.  Each part matched by the
+		regex is than replaced by the results of 'func(match)'.
+		The list is expanded this way into more strings and objects
+		and returned.  This function can be called multiple times to
+		match exclusive pieces of formatting.
+		'''
 		l = []
 		for item in list:
 			if isinstance(item, Node):
@@ -199,11 +202,11 @@ class ParserClass:
 
 
 
-class DumperClass:
+class DumperClass(object):
 	'''Base class for dumper classes.
 
-	Each format that can be used natively should define a class 'Dumper'
-	which inherits from this base class.
+	Each format that can be used natively should define a class
+	'Dumper' which inherits from this base class.
 	'''
 
 	def dump_file(self, tree, path):

@@ -10,9 +10,11 @@ the 'stores' namespace.
 
 import weakref
 
-class Notebook():
+class Notebook(object):
+	'''FIXME'''
 
 	def __init__(self, path):
+		'''Constructor needs at least the path to the notebook'''
 		self.namespaces = []
 		self.stores = {}
 		self.page_cache = weakref.WeakValueDictionary()
@@ -23,7 +25,7 @@ class Notebook():
 
 	def __iter__(self):
 		'''Same as list_root()'''
-		return self.list_root
+		return self.get_root().__iter__()
 
 	def add_store(self, namespace, store, **args):
 		'''Add a store to the notebook
@@ -44,12 +46,14 @@ class Notebook():
 
 
 	def get_store(self, pagename):
+		'''Returns the store object to handle a specific page'''
 		for namespace in self.namespaces:
 			# longest match first because of reverse sorting
 			if pagename.startswith(namespace):
 				return self.stores[namespace]
 
 	def get_page(self, pagename):
+		'''Returns a Page object'''
 		#assert _is_pagename(pagename)
 		if pagename in self.page_cache:
 			return self.page_cache[pagename]
@@ -65,7 +69,8 @@ class Notebook():
 		return PageList('', mystore)
 
 
-class Page():
+class Page(object):
+	'''FIXME'''
 
 	def __init__(self, name, store, source=None):
 		'''Construct Page object.
@@ -79,17 +84,47 @@ class Page():
 		self.source   = source
 		self._tree    = None
 
+
+	def get_basename(self):
+		i = self.name.rfind(':') + 1
+		return self.name[i:]
+
+	def raise_set():
+		# TODO raise ro property
+		pass
+
+	basename = property(get_basename, raise_set)
+
+	def isempty(self):
+		'''Returns True if this page has no content'''
+		if self.source:
+			return not self.source.exists()
+		else:
+			return not self._tree
+
 	def get_parse_tree(self):
+		'''Returns contents as a parse tree or None'''
 		if self.source:
 			return self.source.parse()
 		else:
 			return self._tree
 
 	def set_parse_tree(self, tree):
+		'''Save a parse tree to page source'''
 		if self.source:
 			self.source.dump(tree)
 		else:
 			self._tree = tree
+
+	def get_text(self, format='wiki'):
+		'''Returns contents as string'''
+		tree = self.get_parse_tree()
+		if tree:
+			import zim.formats
+			dumper = zim.formats.get_format(format).Dumper()
+			return dumper.dump_string(tree)
+		else:
+			return ''
 
 	def path(self):
 		'''Generator function for parent names
@@ -107,16 +142,16 @@ class Page():
 
 
 
-class PageList():
-	'''...'''
+class PageList(object):
+	'''Iterable object for namespaces'''
 
 	def __init__(self, namespace, store):
-		'''...'''
+		'''Constructor needs a namespace and a store object'''
 		self.name = namespace
 		self.store = store
 
 	def __iter__(self):
-		'''...'''
+		'''Calls the store.listpages generator function'''
 		return self.store.list_pages( self.name )
 
 	def walk(self):

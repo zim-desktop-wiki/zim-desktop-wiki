@@ -29,6 +29,9 @@ class Dumper(DumperClass):
 				file.write('<p>')
 				self.dump(node, file) # recurs
 				file.write('</p>')
+			elif isinstance(node, LinkNode):
+				href = node.link
+				file.write('<a href="%s">%s</a>' % (href, node.string))
 			elif isinstance(node, TextNode):
 				style = node.style
 				if style:
