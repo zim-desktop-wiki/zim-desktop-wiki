@@ -1,3 +1,6 @@
+# -*- coding: utf8 -*-
+
+# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 from base import *
 
@@ -31,18 +34,20 @@ class Dumper(DumperClass):
 				file.write('</p>')
 			elif isinstance(node, LinkNode):
 				href = node.link
+				# TODO html encode text
 				file.write('<a href="%s">%s</a>' % (href, node.string))
+			elif isinstance(node, ImageNode):
+				# TODO dump image
+				pass
 			elif isinstance(node, TextNode):
 				style = node.style
 				if style:
 					tag = self.tags[style]
+					# TODO html encode text
 					file.write('<'+tag+'>'+node.string+'</'+tag+'>')
 				else:
+					# TODO html encode text
 					file.write(node.string)
-			elif isinstance(node, LinkNode):
-				pass
-			elif isinstance(node, ImageNode):
-				pass
 			#else:
 			#	raise ...
 

@@ -1,4 +1,6 @@
-#!/usr/bin/python
+# -*- coding: utf8 -*-
+
+# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 '''Base classes for parsers and parse trees
 
@@ -22,7 +24,6 @@ class Node(object):
 
 	Currently empty, but used for instance checking
 	'''
-	pass
 
 
 
@@ -33,12 +34,12 @@ class NodeList(list, Node):
 	paragraphs.
 	'''
 
-	def dump(self, level=0):
-		'''Dump contents to stdout, used for debugging parse trees'''
-		print "\t"*level, '('
+	def __str__(self, level=0):
+		txt = "\t"*level + '('
 		for item in self:
-			item.dump(level=level+1)
-		print "\t"*level, ')'
+			txt += item.__str__(level=level+1)
+		txt += "\t"*level + ')'
+		return txt
 
 
 
@@ -52,14 +53,14 @@ class NodeTree(NodeList):
 	def __init__(self):
 		self.headers = {}
 
-	def dump(self, level=0):
-		'''Dump contents to stdout, used for debugging parse trees'''
-		print "\t"*level, '>>> NodeTree'
-		print "\t"*level, 'Headers:'
+	def __str__(self, level=0):
+		txt = "\t"*level + '>>> NodeTree'
+		txt += "\t"*level + 'Headers:'
 		for k, v in self.headers.iteritems():
-			print "\t"*(level+1), k, '=', v
-		NodeList.dump(self, level=level) # parent class
-		print "\t"*level, '<<<'
+			txt += "\t"*(level+1) + k + ' = ' + v
+		txt += NodeList.__str__(self, level=level) # parent class
+		txt += "\t"*level + '<<<'
+		return txt
 
 
 
@@ -71,10 +72,9 @@ class TextNode(Node):
 		self.string = string
 		self.style = style
 
-	def dump(self, level=0):
-		'''Dump contents to stdout, used for debugging parse trees'''
+	def __str__(self, level=0):
 		style = self.style or 'normal'
-		print "\t"*level, style, ':', self.string
+		return "\t"*level + style + ': ' + self.string
 
 
 
@@ -86,9 +86,8 @@ class LinkNode(TextNode):
 		self.string = string
 		self.link = link
 
-	def dump(self, level=0):
-		'''Dump contents to stdout, used for debugging parse trees'''
-		pass
+	def __str__(self, level=0):
+		return "\t"*level + 'link: ' + self.link + ' | ' + self.string
 
 class ImageNode(Node):
 	'''Class for image objects'''

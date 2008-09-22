@@ -1,3 +1,6 @@
+# -*- coding: utf8 -*-
+
+# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 import re
 
@@ -26,9 +29,9 @@ class Parser(ParserClass):
 					# We are in a block that is not closed yet
 					return False
 			# Else append empty paragraph to start new para
-			paras.append('') 
+			paras.append('')
 			return True
-		
+
 		para_isspace = False
 		for line in file:
 			# Try start new para when switching between text and empty lines or back
@@ -127,5 +130,5 @@ class Parser(ParserClass):
 				list[i] = TextNode(v)
 
 		return NodeList(list)
-		
+
 # vim: tabstop=4

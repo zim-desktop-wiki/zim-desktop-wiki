@@ -1,3 +1,6 @@
+# -*- coding: utf8 -*-
+
+# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 from base import *
 from zim.notebook import Page, PageList
@@ -30,7 +33,7 @@ class Store(StoreClass):
 		dir = self.get_dir(name)
 		if os.path.exists(dir):
 			page.children = PageList(name, self)
-			print "page", page.name, '\n', page.children
+			#print "page", page.name, '\n', page.children
 
 		return page
 
@@ -46,10 +49,12 @@ class Store(StoreClass):
 				name = namespace + ':' + file[:-4]
 				file = path + '/' + file
 				yield self.get_page(name, file=path)
-			else:
+			elif os.path.isdir(file):
 				#print "dir", file
 				name = namespace + ':' + file
 				yield self.get_page(name)
+			else:
+				pass # unknown file type
 
 	def get_file(self, name):
 		'''Returns a file path for a page name'''

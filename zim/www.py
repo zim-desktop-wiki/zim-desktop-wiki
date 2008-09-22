@@ -1,3 +1,8 @@
+# -*- coding: utf8 -*-
+
+# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+
+
 # TODO:
 # Handler class that does all the action
 # method cgi() that runs in cgi mode
@@ -19,7 +24,7 @@ class WWW(object):
 		'''Returns the url to page'''
 		path = page.name.replace(':', '/')
 		if not path.startswith('/'): path = '/'+path
-		print "href", page.name, '>', path
+		# "href", page.name, '>', path
 		return self.url + path
 
 	def do_GET_index(self, namespace=None):
