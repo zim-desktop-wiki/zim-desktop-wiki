@@ -144,7 +144,7 @@ class Template(object):
 	def _process(self, tree, output):
 		'''FIXME'''
 		for token in tree:
-			if isinstance(tuple):
+			if isinstance(token, tuple):
 				if token[0] == 'IF':
 					if self._get_param(token[1]): # IF
 						self._process(token[2], output) #recurs
@@ -155,7 +155,8 @@ class Template(object):
 				elif token[0] == 'GET':
 					output.write( self._get_param(token[1]) )
 				elif token[0] == 'SET':
-					self._set_param(token[1], token[2])
+					pass
+					#self._set_param(token[1], token[2])
 			else:
 				# If it is not a token, it is a piece of text
 				output.write(token)
