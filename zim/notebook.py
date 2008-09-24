@@ -14,6 +14,8 @@ the 'stores' namespace.
 import os
 import weakref
 
+from zim.fs import *
+import zim.stores
 
 def get_notebook(notebook):
 	'''Takes a path or name and returns a notebook object'''
@@ -29,20 +31,21 @@ class Notebook(object):
 
 	def __init__(self, path):
 		'''Constructor needs at least the path to the notebook'''
+		self.dir = Dir(path)
 		self.namespaces = []
 		self.stores = {}
 		self.page_cache = weakref.WeakValueDictionary()
 
 		## TODO: load namespaces and stores from config ##
-		import stores.files
-		self.add_store('', stores.files, dir=path) # set root
+		self.add_store('', 'files', dir=path) # set root
 
 	def add_store(self, namespace, store, **args):
-		'''Add a store to the notebook
-		Store is the package for the store type
+		'''Add a store to the notebook under a specific namespace.
+
 		All other args will be passed to the store
 		'''
-		mystore = store.Store(
+		mod = zim.stores.get_store(store)
+		mystore = mod.Store(
 			notebook=self,
 			namespace=namespace,
 			**args

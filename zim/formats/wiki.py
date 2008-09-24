@@ -2,11 +2,13 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-# TODO: add docstring
+'''FIXME'''
 
 import re
 
 from base import *
+
+__format__ = 'wiki'
 
 class Parser(ParserClass):
 

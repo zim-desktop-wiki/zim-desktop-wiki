@@ -2,9 +2,11 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-# TODO: add docstring
+'''FIXME'''
 
 from base import *
+
+__format__ = 'html'
 
 class Dumper(DumperClass):
 

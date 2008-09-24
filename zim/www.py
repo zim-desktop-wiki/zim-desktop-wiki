@@ -2,15 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-
-# TODO:
-# Handler class that does all the action
-# method cgi() that runs in cgi mode
-#	check path info etc. and call proper handler actions
-# method serve() that runs in stand alone mode
-# 	import inside method is autoloading !
-#	see pydoc.py for example
-#	needs options like
+# TODO needs more options like
 #		-p --port INT	set port number
 #		-P --public 	allow connections from outside
 # TODO need template class
