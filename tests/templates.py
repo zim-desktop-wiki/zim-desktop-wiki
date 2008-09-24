@@ -21,13 +21,23 @@ class TestTemplate(unittest.TestCase):
 [% SET false = ""     %]
 <b>[% test %]</b>
 [% IF true %]OK[% ELSE %]NOK[% END %]
+---
+[% IF false %]
+OK
+[% ELSE %]
+NOK
+[% END %]
 ''')
 		result = '''
 <b>foo</b>
 OK
+---
+NOK
 '''
 		test = StringIO()
 		tmpl = templates.Template(file, 'html')
+		#import pprint
+		#pprint.pprint( tmpl.tokens )
 		tmpl.process(None, test)
 		self.assertEqual(test.getvalue(), result)
 

@@ -11,7 +11,18 @@ noetbook.  As a backend it uses one of more packages from
 the 'stores' namespace.
 '''
 
+import os
 import weakref
+
+
+def get_notebook(notebook):
+	'''Takes a path or name and returns a notebook object'''
+	# TODO check notebook list if notebook is not a path
+	if os.path.isdir(notebook):
+		return Notebook(notebook)
+	else:
+		raise Exception, 'no such notebook: %s' % notebook
+
 
 class Notebook(object):
 	'''FIXME'''
@@ -25,10 +36,6 @@ class Notebook(object):
 		## TODO: load namespaces and stores from config ##
 		import stores.files
 		self.add_store('', stores.files, dir=path) # set root
-
-	def __iter__(self):
-		'''Same as list_root()'''
-		return self.get_root().__iter__()
 
 	def add_store(self, namespace, store, **args):
 		'''Add a store to the notebook
@@ -165,4 +172,3 @@ class PageList(object):
 				for page in page.children.walk(): # recurs
 					yield page
 
-# vim: tabstop=4

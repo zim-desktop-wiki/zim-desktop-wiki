@@ -79,9 +79,15 @@ class WWW(object):
 				# TODO raise error 404
 				self.reply(200, 'Page not found: %s' % pagename)
 				return
-
-		html = page.get_text(format='html')
-		self.reply(200, html)
+		else:
+			from StringIO import StringIO
+			if self.template:
+				output = StringIO()
+				self.template.process(page, output)
+				html = output.getvalue()
+			else:
+				html = page.get_text(format='html')
+			self.reply(200, html)
 
 
 	def reply(self, response, html):
@@ -98,7 +104,7 @@ class WWW(object):
 			self.wfile.write(line)
 
 
-def serve(port, notebook=None):
+def serve(port, notebook=None, template=None):
 	'''Run a server based on BaseHTTPServer'''
 	import BaseHTTPServer
 
@@ -111,9 +117,14 @@ def serve(port, notebook=None):
 				page = self.path.replace('/', ':')
 				self.do_GET_page(page)
 
+	if not template is None:
+		import zim.templates
+		template = zim.templates.get_template('html', template)
+
 	# start the server
 	Handler.notebook = notebook # FIXME using class attribute here
 	Handler.url = 'http://localhost:%d' % port # FIXME using class attribute here
+	Handler.template = template # FIXME using class attribute here
 	server_address = ('', port)
 	httpd = BaseHTTPServer.HTTPServer(server_address, Handler)
 	sa = httpd.socket.getsockname()

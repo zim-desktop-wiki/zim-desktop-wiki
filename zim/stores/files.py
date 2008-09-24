@@ -43,13 +43,13 @@ class Store(StoreClass):
 		path = self.get_dir(namespace)
 		for file in os.listdir(path):
 			if file.startswith('.'):
-				continue
+				continue # no hidden files in our page list
 			elif file.endswith('.txt'):
 				#print "file", file
 				name = namespace + ':' + file[:-4]
 				file = path + '/' + file
 				yield self.get_page(name, file=path)
-			elif os.path.isdir(file):
+			elif os.path.isdir( os.path.join(path, file) ):
 				#print "dir", file
 				name = namespace + ':' + file
 				yield self.get_page(name)

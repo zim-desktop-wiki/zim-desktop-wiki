@@ -30,6 +30,7 @@ for 'page' are defined in the PageProxy class.
 '''
 
 import os
+import re
 import xdg.BaseDirectory
 
 import zim
@@ -54,7 +55,7 @@ def get_template(format, name):
 			# TODO: add extension
 			return Template(path, format)
 
-class TemplateError:
+class TemplateError(Exception):
 	'''Error class for errors in templates'''
 
 class Template(object):
@@ -66,11 +67,11 @@ class Template(object):
 		if isinstance(file, basestring):
 			file = open(file)
 		self.count = 0
-		try:
-			self._tokenize(file)
-		except Exception, error:
+#		try:
+		self._tokenize(file)
 #		except TemplateError, error:
-			print error, 'Error at %s line %i\n' % (file, self.count)
+#			print error
+#			print 'Error at %s line %i\n' % (file, self.count)
 
 	def _tokenize(self, file):
 		'''Loops trough lines to break it up in text and tokens.'''
@@ -79,19 +80,25 @@ class Template(object):
 
 		def append_text(text):
 			if not text: return
-			if self.stack[-1] and isinstance(self.stack[-1][-1], basestring):
+			if ( self.stack[-1] and
+			     isinstance(self.stack[-1][-1], basestring) ):
 				self.stack[-1][-1] += text
 			else:
 				self.stack[-1].append(text)
 
 		for line in file:
 			self.count += 1
+			linestart = True
 
 			while line.find('[%') >= 0:
 				(pre, sep, line) = line.partition('[%')
 				(cmd, sep, line) = line.partition('%]')
 				append_text(pre)
-				self._append_token(cmd)
+				expand = self._append_token(cmd)
+				if linestart and not expand:
+					 # remove end of line to make blocks look better
+					if line.isspace(): line = ''
+				linestart = False
 
 			append_text(line)
 
@@ -99,40 +106,76 @@ class Template(object):
 			del self.stack # clean up
 
 	def _append_token(self, string):
-		'''Process a single token and put an action in the token list'''
+		'''Process a single token and put an action in the token list
+		Returns True if this token will expand to a value.'''
 		string = string.strip()
-		if not string: return
+		if not string: return False
+
 		if string.startswith('SET'):
-			string = string[3:].lstrip()
-			# TODO check valid param
-			self.stack[-1].append( ('SET', string) )
+			(var, sep, val) = string[3:].partition('=')
+			var = self._param(var)
+			val = self._args(val)
+			if len(val) == 1: val = val[0]
+			self.stack[-1].append( ('SET', var, val) )
 		elif string.startswith('IF'):
-			string = string[2:].lstrip()
-			# TODO check valid param
-			token = ('IF', string, [], [])
+			var = self._param(string[2:])
+			token = ('IF', var, [], [])
 			self.stack[-1].append(token)
 			self.stack.append(token[2])
 		elif string.startswith('ELSE'):
 			self.stack.pop()
-			token = self.stack[-1][-1]
-			if token[0] != 'IF':
+			try:
+				token = self.stack[-1][-1]
+				assert token[0] == 'IF'
+			except:
 				raise TemplateError, 'ELSE clause outside IF block'
 			self.stack.append(token[3])
 		elif string.startswith('FOREACH'):
-			string = string[7:].lstrip()
-			# TODO check param assignment
-			token = ('FOREACH', string, [])
+			(var, sep, val) = string[3:].partition('=')
+			var = self._param(var)
+			val = self._param(val)
+			token = ('FOREACH', var, val, [])
 			self.stack[-1].append(token)
-			self.stack.append(token[2])
+			self.stack.append(token[-1])
 		elif string.startswith('END'):
 			self.stack.pop()
 		else:
-			if string.startswith('GET'):
-				string = string[3:].lstrip()
-				string.lstrip()
-			# check string is param or function
-			# check valid syntax
-			self.stack[-1].append( ('GET', string) )
+			if string.startswith('GET'): string = string[3:].lstrip()
+			if string.find('(') > 0:
+				assert False, 'TODO parse function'
+			else:
+				var = self._param(string)
+				self.stack[-1].append( ('GET', var) )
+			return True
+
+		return False # SET and all flow control tokens do not expand
+
+	_param_re = re.compile('\A\w[\w\.]*\w\Z')
+
+	def _param(self, string):
+		'''Verify string is a valid parameter name'''
+		string = string.strip()
+		if not self._param_re.match(string):
+			raise TemplateError, 'not a valid parameter: %s' % string
+		return string
+
+	_args_re = re.compile('''
+		^(
+			(?P<quot>['"]).*?(?P=quot) |  # quoted string
+			\w[\w\.]*\w                   # or param
+		)	[\s\,]*                       # followed by seperators
+	''', re.X)
+
+	def _args(self, string):
+		'''Parse simple list of quoted words and param names'''
+		args = []
+		def get_arg(match):
+			args.append( match.group(0).strip('\'\"') )
+			return ''
+		string = self._args_re.sub( get_arg, string.strip('() ') )
+		if string:
+			raise TemplateError, 'invalid syntax: >>%s<<' % string
+		return args
 
 	def process(self, page, output):
 		'''FIXME'''
@@ -146,22 +189,23 @@ class Template(object):
 		for token in tree:
 			if isinstance(token, tuple):
 				if token[0] == 'IF':
-					if self._get_param(token[1]): # IF
+					if self.get_param(token[1]): # IF
 						self._process(token[2], output) #recurs
 					elif len(token) > 3: # ELSE
 						self._process(token[3], output) #recurs
 				elif token[0] == 'FOREACH':
 					pass # TODO
 				elif token[0] == 'GET':
-					output.write( self._get_param(token[1]) )
+					val = self.get_param(token[1])
+					if val: output.write( val )
 				elif token[0] == 'SET':
-					pass
-					#self._set_param(token[1], token[2])
+					self.set_param(token[1], token[2])
 			else:
 				# If it is not a token, it is a piece of text
 				output.write(token)
 
-	def _get_param(self, key):
+	def get_param(self, key):
+		'''Used during processing to get a template parameter'''
 		val = self.dict
 		for k in key.split('.'):
 			if k.startswith('_'):
@@ -178,7 +222,8 @@ class Template(object):
 				raise TemplateError, 'No such parameter: %s' % key
 		return val
 
-	def _set_param(self, key, val):
+	def set_param(self, key, val):
+		'''Used during processing to set a parameter'''
 		if key.find('.') >= 0 or key == 'page' or key == 'zim':
 			# do not allow overwriting defaults or nested keys
 			raise TemplateError, 'Could not set parameter: %s' % key
@@ -189,7 +234,7 @@ class TemplateFunctions(object):
 	'''This class contains functions that can be called from a template.'''
 
 	@staticmethod
-	def strftime(format, timestamp):
+	def strftime(template, format, timestamp):
 		'''FIXME'''
 		pass # TODO
 
@@ -203,20 +248,22 @@ class PageProxy(object):
 		self._page = page
 		self._format = format
 
-	@property
-	def name(self): self._page.name
+	is_index = False
 
 	@property
-	def basename(self): self._page.basename
+	def name(self): return self._page.name
 
 	@property
-	def namespace(self): self._page.namespace
+	def basename(self): return self._page.basename
 
 	@property
-	def title(self): pass # TODO
+	def namespace(self): return self._page.namespace
 
 	@property
-	def heading(self): pass # TODO
+	def title(self): return '' # TODO
+
+	@property
+	def heading(self): return '' # TODO
 
 	@property
 	def links(self): pass # TODO
@@ -234,7 +281,7 @@ class PageProxy(object):
 	def index(self): pass # TODO
 
 	@property
-	def body(self): self._page.get_text(format=self._format)
+	def body(self): return self._page.get_text(format=self._format)
 
 
 if __name__ == '__main__':

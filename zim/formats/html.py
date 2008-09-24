@@ -2,6 +2,8 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
+# TODO: add docstring
+
 from base import *
 
 class Dumper(DumperClass):
@@ -20,13 +22,6 @@ class Dumper(DumperClass):
 	}
 
 	def dump(self, tree, file):
-		if isinstance(tree, NodeTree):
-				file.write('<html>\n<head>\n')
-				file.write('\t<title>Foo</title>\n')
-				# TODO: need title
-				# TODO: dump headers
-				file.write('</head>\n<body>\n')
-
 		for node in tree:
 			if isinstance(node, NodeList):
 				file.write('<p>')
@@ -50,9 +45,3 @@ class Dumper(DumperClass):
 					file.write(node.string)
 			#else:
 			#	raise ...
-
-		if isinstance(tree, NodeTree):
-			file.write('</body>\n</html>\n')
-
-
-# vim: tabstop=4
