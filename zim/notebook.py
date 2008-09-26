@@ -4,14 +4,13 @@
 
 '''
 This package contains the main Notebook class together
-with basic classed like Page and PageList.
+with basic classed like Page and Namespace.
 
 This package defines the public interface towards the
 noetbook.  As a backend it uses one of more packages from
 the 'stores' namespace.
 '''
 
-import os
 import weakref
 
 from zim.fs import *
@@ -20,7 +19,8 @@ import zim.stores
 def get_notebook(notebook):
 	'''Takes a path or name and returns a notebook object'''
 	# TODO check notebook list if notebook is not a path
-	if os.path.isdir(notebook):
+	if not isinstance(notebook, Dir): notebook = Dir(notebook)
+	if notebook.exists():
 		return Notebook(notebook)
 	else:
 		raise Exception, 'no such notebook: %s' % notebook
@@ -29,15 +29,16 @@ def get_notebook(notebook):
 class Notebook(object):
 	'''FIXME'''
 
-	def __init__(self, path):
+	def __init__(self, dir):
 		'''Constructor needs at least the path to the notebook'''
-		self.dir = Dir(path)
+		assert isinstance(dir, Dir)
+		self.dir = dir
 		self.namespaces = []
 		self.stores = {}
 		self.page_cache = weakref.WeakValueDictionary()
 
 		## TODO: load namespaces and stores from config ##
-		self.add_store('', 'files', dir=path) # set root
+		self.add_store('', 'files') # set root
 
 	def add_store(self, namespace, store, **args):
 		'''Add a store to the notebook under a specific namespace.
@@ -77,24 +78,26 @@ class Notebook(object):
 			return page
 
 	def get_root(self):
-		'''Returns a PageList for root namespace'''
+		'''Returns a Namespace object for root namespace'''
 		mystore = self.stores[''] # root
-		return PageList('', mystore)
+		return Namespace('', mystore)
 
 
 class Page(object):
 	'''FIXME'''
 
-	def __init__(self, name, store, source=None):
+	def __init__(self, name, store, source=None, format=None):
 		'''Construct Page object.
 		Needs at least a name and a store object.
-		Setting a source object is optional.
+		The source object and format module are optional but go together.
 		'''
 		#assert name is valid
+		assert source ^ format # these should come as a pair
 		self.name     = name
 		self.store    = store
 		self.children = None
 		self.source   = source
+		self.format   = format
 		self._tree    = None
 
 
@@ -102,7 +105,7 @@ class Page(object):
 		i = self.name.rfind(':') + 1
 		return self.name[i:]
 
-	def raise_set():
+	def raise_set(self):
 		# TODO raise ro property
 		pass
 
@@ -118,14 +121,23 @@ class Page(object):
 	def get_parse_tree(self):
 		'''Returns contents as a parse tree or None'''
 		if self.source:
-			return self.source.parse()
+			if not self.exists():
+				return None
+			parser = self.format.Parser()
+			file = self.source.open()
+			tree = parser.parse(file)
+			file.close()
+			return tree
 		else:
 			return self._tree
 
 	def set_parse_tree(self, tree):
 		'''Save a parse tree to page source'''
 		if self.source:
-			self.source.dump(tree)
+			dumper = self.format.Dumper()
+			file = self.source.open('w')
+			dumper.dump(file, tree)
+			file.close()
 		else:
 			self._tree = tree
 
@@ -154,8 +166,7 @@ class Page(object):
 			yield Namespace(namespace, self.store)
 
 
-
-class PageList(object):
+class Namespace(object):
 	'''Iterable object for namespaces'''
 
 	def __init__(self, namespace, store):

@@ -8,18 +8,19 @@ import os
 import sys
 import unittest
 
+import tests
+
+# TODO overload one of the unittest classes to preserve test order and add file name
 
 def main(argv=None):
-	'''FIXME'''
+	'''Run either all tests, or those specified in argv'''
 	if argv is None:
 		argv = sys.argv
 
 	if argv[1:]:
 		modules = [ 'tests.'+name for name in argv[1:] ]
 	else:
-		modules = [ 'tests.'+file[:-3]
-			for file in os.listdir('tests') if file.endswith('.py') ]
-		modules.pop( modules.index('tests.__init__') )
+		modules = [ 'tests.'+name for name in tests.__all__ ]
 
 	suite = unittest.TestSuite()
 
@@ -27,7 +28,7 @@ def main(argv=None):
 		test = unittest.defaultTestLoader.loadTestsFromName(name)
 		suite.addTest(test)
 
-	unittest.TextTestRunner().run(suite)
+	unittest.TextTestRunner(verbosity=3).run(suite)
 
 
 if __name__ == '__main__':

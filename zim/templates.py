@@ -35,6 +35,7 @@ import xdg.BaseDirectory
 
 import zim
 
+# TODO incorporate BaseDir methods in fs
 
 def list_templates(format):
 	'''FIXME'''

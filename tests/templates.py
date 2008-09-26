@@ -15,6 +15,7 @@ class TestTemplate(unittest.TestCase):
 #		self.template = ...
 
 	def testprocess(self):
+		'''Test Template processing simple statements without page'''
 		file = StringIO('''
 [% SET test  = "foo"  %]
 [% SET true  = "true" %]
@@ -42,6 +43,7 @@ NOK
 		self.assertEqual(test.getvalue(), result)
 
 	def testraise(self):
+		'''Test Template invalid syntax raises TemplateError'''
 		file = StringIO('foo[% ELSE %]bar')
 		self.assertRaises(templates.TemplateError,
 								templates.Template, file, 'html')

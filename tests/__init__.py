@@ -3,3 +3,5 @@
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 '''Zim test suite'''
+
+__all__ = ['fs', 'templates']
