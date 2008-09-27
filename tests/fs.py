@@ -23,6 +23,12 @@ class TestFS(unittest.TestCase):
 		# TODO test Path('file:///foo/bar') => '/foo/bar'
 		# TODO test Path('file://localhost/foo/bar') => '/foo/bar'
 
+		path = Path('/foo//bar/baz/')
+		self.assertEqual(path.split(), ['foo', 'bar', 'baz'])
+		dirs = []
+		for d in path: dirs.append(d)
+		self.assertEqual(dirs, ['/foo', '/foo/bar', '/foo/bar/baz'])
+
 	def testFile(self):
 		'''Test File object'''
 		file = File('/foo/bar')

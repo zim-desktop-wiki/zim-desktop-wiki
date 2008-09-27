@@ -66,21 +66,26 @@ class Notebook(object):
 			if pagename.startswith(namespace):
 				return self.stores[namespace]
 
-	def get_page(self, pagename):
+	def norm_pagename(self, name):
+		'''FIXME'''
+		name = name.strip(':')
+		parts = [p for p in name.split(':') if p]
+		return ':'+':'.join(parts)
+
+	def get_page(self, name):
 		'''Returns a Page object'''
-		#assert _is_pagename(pagename)
-		if pagename in self.page_cache:
-			return self.page_cache[pagename]
+		name = self.norm_pagename(name)
+		if name in self.page_cache:
+			return self.page_cache[name]
 		else:
-			store = self.get_store(pagename)
-			page = store.get_page(pagename)
-			self.page_cache[pagename] = page
+			store = self.get_store(name)
+			page = store.get_page(name)
+			self.page_cache[name] = page
 			return page
 
 	def get_root(self):
 		'''Returns a Namespace object for root namespace'''
-		mystore = self.stores[''] # root
-		return Namespace('', mystore)
+		return self.stores[''].get_root()
 
 
 class Page(object):
@@ -92,7 +97,7 @@ class Page(object):
 		The source object and format module are optional but go together.
 		'''
 		#assert name is valid
-		assert source ^ format # these should come as a pair
+		assert not (source and format is None) # these should come as a pair
 		self.name     = name
 		self.store    = store
 		self.children = None
@@ -136,7 +141,7 @@ class Page(object):
 		if self.source:
 			dumper = self.format.Dumper()
 			file = self.source.open('w')
-			dumper.dump(file, tree)
+			dumper.dump(tree, file)
 			file.close()
 		else:
 			self._tree = tree

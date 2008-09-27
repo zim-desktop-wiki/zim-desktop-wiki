@@ -35,6 +35,7 @@ class Store(StoreClass):
 		If 'vivificate is True nodes are created on the fly.
 		'''
 		name = self.relname(name)
+		assert name # can not get node for root namespace
 		path = name.split(':')  # list with names
 		namespace = self.pages  # list of page nodes
 		while path:
@@ -51,7 +52,7 @@ class Store(StoreClass):
 				else:
 					return None
 			if path: # more items to go
-				namespace = n[2]
+				namespace = node[2]
 			else:
 				return node
 		assert False, '!? we should never get here'
@@ -76,7 +77,7 @@ class Store(StoreClass):
 
 		source = Buffer(text, on_write=self._on_write)
 		source.pagename = name
-		page = Page(name, self, source=file, format=self.format)
+		page = Page(name, self, source=source, format=self.format)
 
 		if not _node is None and _node[2]:
 			page.children = Namespace(name, self)
@@ -85,8 +86,12 @@ class Store(StoreClass):
 
 	def list_pages(self, namespace):
 		'''Generator function to iterate over pages in a namespace'''
-		node = self._get_node(namespace)
-		for child in node[2]:
+		if namespace:
+			node = self._get_node(namespace)
+			children = node[2]
+		else:
+			children = self.pages
+		for child in children:
 			name = namespace+':'+child[0]
 			yield self.get_page(name, _node=child)
 

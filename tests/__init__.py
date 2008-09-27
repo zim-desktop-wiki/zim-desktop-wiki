@@ -4,4 +4,4 @@
 
 '''Zim test suite'''
 
-__all__ = ['fs', 'templates']
+__all__ = ['fs', 'templates', 'stores']

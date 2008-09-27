@@ -135,4 +135,9 @@ class Parser(ParserClass):
 
 		return NodeList(list)
 
-# vim: tabstop=4
+class Dumper(DumperClass):
+	'''FIXME'''
+
+	def dump(self, tree, file):
+		'''FIXME'''
+		print >>file, 'TODO'

@@ -10,7 +10,7 @@ import unittest
 
 import tests
 
-# TODO overload one of the unittest classes to preserve test order and add file name
+# TODO overload one of the unittest classes to test add file names 
 
 def main(argv=None):
 	'''Run either all tests, or those specified in argv'''

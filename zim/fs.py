@@ -10,6 +10,7 @@ Used as a base library for most other zim modules.
 # TODO - use weakref ?
 
 import os
+import errno
 from StringIO import StringIO
 
 
@@ -28,6 +29,12 @@ class Path(object):
 			path = path.path
 		self.path = os.path.abspath(path)
 
+	def __iter__(self):
+		parts = self.split()
+		for i in range(1, len(parts)+1):
+			path = os.path.join('/', *parts[0:i]) # FIXME posix specific
+			yield path
+
 	@property
 	def basename(self):
 		'''Basename property'''
@@ -42,6 +49,18 @@ class Path(object):
 		'''Abstract method'''
 		raise NotImplementedError
 
+	def split(self):
+		'''FIXME'''
+		path = self.path
+		parts = []
+		while path:
+			path, part = os.path.split(path)
+			if part	:
+				parts.insert(0, part)
+			if path == '/': # FIXME: posix specific
+				break
+		return parts
+
 
 class Dir(Path):
 	'''OO wrapper for directories'''
@@ -53,6 +72,17 @@ class Dir(Path):
 	def list(self):
 		return os.listdir(self.path)
 
+	def touch(self):
+		'''FIXME'''
+		try:
+			os.makedirs(self.path)
+		except OSError, e:
+			if e.errno != errno.EEXIST:
+				raise
+
+	def cleanup(self):
+		'''FIXME'''
+		os.removedirs(self.path)
 
 class File(Path):
 	'''OO wrapper for files'''
@@ -62,8 +92,33 @@ class File(Path):
 		return os.path.isfile(self.path)
 
 	def open(self, mode='r'):
-		'''Returns an io object for reading or writing.'''
+		'''Returns an io object for reading or writing.
+		Opening a non-exisiting file for writing will cause the whole path
+		to this file to be created on the fly.
+		'''
+		if not self.exists():
+			self.dir().touch()
 		return open(self.path, mode)
+
+	def dir(self):
+		'''FIXME'''
+		path = os.path.dirname(self.path)
+		return Dir(path)
+
+	def touch(self):
+		'''FIXME'''
+		if self.exists():
+			return
+		else:
+			io = self.open('w')
+			io.write('')
+			io.close()
+
+	def cleanup(self):
+		'''FIXME'''
+		os.remove(self.path)
+		self.dir().cleanup()
+
 
 
 class Buffer(StringIO):

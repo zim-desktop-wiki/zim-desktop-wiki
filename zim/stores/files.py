@@ -27,9 +27,11 @@ class Store(StoreClass):
 	def __init__(self, **args):
 		'''Contruct a files store.
 		Pass args needed for StoreClass init.
-		Pass at least a directory.
+		Optionally pass a 'dir' attribute.
 		'''
 		StoreClass.__init__(self, **args)
+		if 'dir' in args:
+			self.dir = args['dir']
 		assert self.has_dir()
 		self.format = formats.get_format('wiki') # TODO make configable
 
@@ -75,8 +77,8 @@ class Store(StoreClass):
 			if file.startswith('.'):
 				continue # no hidden files in our page list
 			elif file.endswith('.txt'): # TODO: do not hard code extension
-				file = File([dir, file])
 				name = namespace + ':' + file[:-4]
+				file = File([dir, file])
 				yield self.get_page(name, _file=file)
 			elif os.path.isdir( os.path.join(dir.path, file) ):
 				#print "dir", file
