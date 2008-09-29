@@ -31,13 +31,18 @@ class TestFS(unittest.TestCase):
 
 	def testFile(self):
 		'''Test File object'''
-		file = File('/foo/bar')
+		file = File('tmp/foo/bar/baz.txt')
 		assert not file.exists()
-		# TODO: real test here
+		file.touch()
+		self.assertTrue(os.path.isfile('./tmp/foo/bar/baz.txt'))
+		file.cleanup()
+		self.assertFalse(os.path.isfile('./tmp/foo/bar/baz.txt'))
+		self.assertFalse(os.path.isdir('./tmp/foo'))
+		# TODO: more test here
 
 	def testDir(self):
 		'''Test Dir object'''
-		dir = Dir('/foo/bar')
+		dir = Dir('tmp/foo/bar')
 		assert not dir.exists()
 		# TODO: real test here
 
@@ -66,7 +71,3 @@ class TestFS(unittest.TestCase):
 		print >> io, 'check !'
 		io.close()
 		self.assertTrue(buf.called)
-
-
-if __name__ == '__main__':
-	unittest.main()

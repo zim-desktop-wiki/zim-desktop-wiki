@@ -4,7 +4,7 @@
 
 '''FIXME'''
 
-from base import *
+from zim.formats import *
 
 __format__ = 'html'
 

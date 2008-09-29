@@ -1,0 +1,4 @@
+include CHANGELOG LICENSE TRANSLATORS
+include test.py
+include tests/*
+prune tests/*.pyc

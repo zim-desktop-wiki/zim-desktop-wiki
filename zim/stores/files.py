@@ -4,6 +4,8 @@
 
 '''Basic store module for storing pages as files.
 
+See StoreClass in zim.stores for the API documentation.
+
 Each page maps to a single text file in a normal directory structure.
 Page names map almost one on one to the relative directory path.
 Sub-namespaces are contained in directories of the same basename as
@@ -14,10 +16,10 @@ When doing a lookup we try to be case insensitive, but preserve case
 once we have it resolved.
 '''
 
-from base import *
 from zim.fs import *
 from zim import formats
 from zim.notebook import Page, Namespace
+from zim.stores import StoreClass
 
 __store__ = 'files'
 
@@ -26,8 +28,8 @@ class Store(StoreClass):
 
 	def __init__(self, **args):
 		'''Contruct a files store.
-		Pass args needed for StoreClass init.
-		Optionally pass a 'dir' attribute.
+
+		Takes an optional 'dir' attribute.
 		'''
 		StoreClass.__init__(self, **args)
 		if 'dir' in args:
@@ -71,18 +73,29 @@ class Store(StoreClass):
 	def list_pages(self, namespace):
 		'''Generator function to iterate over pages in a namespace'''
 		import os # using os directly here for efficiency
-		# TODO need to add more logic to pair files and dirs
 		dir = self._get_dir(namespace)
+		pages = set() # collide files and dirs with same name
 		for file in dir.list():
 			if file.startswith('.'):
 				continue # no hidden files in our page list
 			elif file.endswith('.txt'): # TODO: do not hard code extension
-				name = namespace + ':' + file[:-4]
-				file = File([dir, file])
-				yield self.get_page(name, _file=file)
+				pages.add(file[:-4])
 			elif os.path.isdir( os.path.join(dir.path, file) ):
-				#print "dir", file
-				name = namespace + ':' + file
-				yield self.get_page(name)
+				pages.add(file)
 			else:
 				pass # unknown file type
+		for name in pages:
+			yield self.get_page(namespace+':'+name)
+
+	#~ def move_page(self, name, newname):
+		#~ '''FIXME'''
+
+	#~ def copy_page(self, name, newname):
+		#~ '''FIXME'''
+
+	#~ def del_page(self, name):
+		#~ '''FIXME'''
+
+	#~ def search(self):
+		#~ '''FIXME'''
+		#~ pass # TODO search code

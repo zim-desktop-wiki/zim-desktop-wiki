@@ -6,7 +6,7 @@
 
 import re
 
-from base import *
+from zim.formats import *
 
 __format__ = 'wiki'
 

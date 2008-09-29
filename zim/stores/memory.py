@@ -2,11 +2,17 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''Store module that keeps a tree of pages in memory.
 
-from base import *
+See StoreClass in zim.stores for the API documentation.
+
+FIXME
+'''
+
 from zim import formats
+from zim.fs import Buffer
 from zim.notebook import Page, Namespace
+from zim.stores import StoreClass
 
 __store__ = 'memory'
 
@@ -88,10 +94,25 @@ class Store(StoreClass):
 		'''Generator function to iterate over pages in a namespace'''
 		if namespace:
 			node = self._get_node(namespace)
-			children = node[2]
+			if node is None:
+				children = []
+			else:
+				children = node[2]
 		else:
 			children = self.pages
 		for child in children:
 			name = namespace+':'+child[0]
 			yield self.get_page(name, _node=child)
 
+	#~ def move_page(self, name, newname):
+		#~ '''FIXME'''
+
+	#~ def copy_page(self, name, newname):
+		#~ '''FIXME'''
+
+	#~ def del_page(self, name):
+		#~ '''FIXME'''
+
+	#~ def search(self):
+		#~ '''FIXME'''
+		#~ pass # TODO search code

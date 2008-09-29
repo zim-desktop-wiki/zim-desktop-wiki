@@ -70,7 +70,11 @@ class Dir(Path):
 		return os.path.isdir(self.path)
 
 	def list(self):
-		return os.listdir(self.path)
+		'''FIXME'''
+		if self.exists():
+			return os.listdir(self.path)
+		else:
+			return []
 
 	def touch(self):
 		'''FIXME'''

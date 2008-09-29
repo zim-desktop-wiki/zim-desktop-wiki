@@ -9,21 +9,17 @@ import unittest
 from zim.fs import *
 from zim.notebook import *
 
-class TestTemplate(unittest.TestCase):
+class TestNotebook(unittest.TestCase):
 
 #	def setUp(self):
 #		self.template = ...
 
-	def testNormPagename(self):
+	def testNormalizeName(self):
+		'''Test normalizing page names'''
 		notebook = Notebook(Dir('.'))
 		for name, norm in (
 			('foo:::bar', ':foo:bar'),
 			('::foo:bar:', ':foo:bar'),
 			('foo', ':foo'),
 		):
-			self.assertEqual(notebook.norm_pagename(name), norm)
-
-if __name__ == '__main__':
-	unittest.main()
-
-
+			self.assertEqual(notebook.normalize_name(name), norm)

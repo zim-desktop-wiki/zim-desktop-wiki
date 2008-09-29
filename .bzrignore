@@ -1,3 +1,5 @@
 ./build
 ./dist
 ./tmp
+./.coverage
+*,cover

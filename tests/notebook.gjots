@@ -1,0 +1,33 @@
+Some test file in gjots format
+
+By me
+\NewEntry
+
+Front page without title
+\NewEntry
+Pages
+\NewFolder
+\NewEntry
+Foo
+
+FooBaR!
+\NewEntry
+Bar
+
+Dusss
+\EndFolder
+\NewEntry
+Some toplevel page
+\NewEntry
+More Pages
+\NewFolder
+level1
+\NewFolder
+level2
+\NewEntry
+Hmmm
+
+dus
+\EndFolder
+\EndFolder
+
