@@ -154,8 +154,9 @@ class StoreClass():
 		Clones will not be exact copies, but should be close.
 		'''
 		assert not page.isempty()
-		mypage = self.get_page( name )
-		mypage.set_parse_tree( page.get_parse_tree )
+		mypage = self.get_page(name)
+		tree = page.get_parse_tree()
+		mypage.set_parse_tree(tree)
 
 	def del_page(self, page):
 		'''FIXME'''

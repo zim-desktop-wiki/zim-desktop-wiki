@@ -247,4 +247,17 @@ class DumperClass(object):
 		self.dump(tree, file)
 		return file.getvalue()
 
+	def dump_headers(self, headers):
+		'''FIXME'''
+		assert isinstance(headers, dict)
+		# TODO figure out how to keep headers in proper order
+		text = u''
+		for k, v in headers.items():
+			v = v.strip()
+			v = '\n\t'.join( v.split('\n') )
+			text += k+': '+v+'\n'
+		if text:
+			text += '\n' # empty line at end of headers
+		return text
+
 # vim: tabstop=4

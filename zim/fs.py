@@ -11,6 +11,7 @@ Used as a base library for most other zim modules.
 
 import os
 import errno
+import codecs
 from StringIO import StringIO
 
 
@@ -102,7 +103,7 @@ class File(Path):
 		'''
 		if not self.exists():
 			self.dir().touch()
-		return open(self.path, mode)
+		return codecs.open(self.path, mode=mode, encoding='utf8')
 
 	def dir(self):
 		'''FIXME'''

@@ -16,6 +16,10 @@ class TestTextFormat(unittest.TestCase):
 
 	def testRoundtrip(self):
 		text='''\
+====== Head1 ======
+
+===== Head 2 =====
+
 Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
 eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
 ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
@@ -27,6 +31,7 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 	Some indented
 	paragraphs go here ...
 
+Let's try these **bold**, //italic//, __underline__ and ~~strike~~
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 
 And some utf8 bullet items
@@ -39,14 +44,16 @@ That's all ...
 '''
 		tree = self.format.Parser().parse_string(text)
 		self.assertTrue( isinstance(tree, zim.formats.NodeTree) )
+		#~ print '\n', tree
 		output = self.format.Dumper().dump_string(tree)
+		#~ print '\n', '='*10, '\n', self.format, '\n', '-'*10, '\n', output
 		self.assertEqual(output, text)
 
 
-#~ class TestWikiFormat(TestTextFormat):
+class TestWikiFormat(TestTextFormat):
 
-	#~ def SetUp(self):
-		#~ self.format = zim.formats.get_format('wiki')
+	def setUp(self):
+		self.format = zim.formats.get_format('wiki')
 
 
 #~ class TestHtmlFormat(TestTextFormat):

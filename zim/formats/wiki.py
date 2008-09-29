@@ -10,6 +10,14 @@ from zim.formats import *
 
 __format__ = 'wiki'
 
+tags = {
+	'italic':    '/',
+	'bold':      '*',
+	'underline': '_',
+	'strike':    '~',
+	'verbatim':  "'",
+}
+
 class Parser(ParserClass):
 
 	def parse(self, file):
@@ -79,24 +87,18 @@ class Parser(ParserClass):
 		m = re.match("\A(==+)\s+(.*?)(\s+==+)?\s*\Z", head)
 		if not m:
 			raise ParserError(head, 'does not match a heading')
-		level = 7 - len( m.group(1) )
+		level = 7 - min(6, len(m.group(1)))
 		head = m.group(2)
-		return TextNode(head, style='head'+str(level))
-
-	tags = {
-		'italic':    '/',
-		'bold':      '*',
-		'underline': '_',
-		'strike':    '~',
-		'verbatim':  "'",
-	}
+		node = TextNode(head, style='head')
+		node.level = level
+		return node
 
 	def parse_para(self, para):
 		if para.isspace():
 			return TextNode(para)
 
 		def style_re(style):
-			t = self.tags[style]
+			t = tags[style]
 			return re.compile(('\\'+t)*2+'(?!\\'+t+')(.+?)'+('\\'+t)*2)
 
 		list = [para]
@@ -140,4 +142,26 @@ class Dumper(DumperClass):
 
 	def dump(self, tree, file):
 		'''FIXME'''
-		print >>file, 'TODO'
+		assert isinstance(tree, NodeTree)
+		file.write( self.dump_headers(tree.headers) )
+		for node in tree.walk():
+			if isinstance(node, LinkNode):
+				if node.link == node.string:
+					file.write('[['+node.link+']]')
+				else:
+					file.write('[['+node.link+'|'+node.string+']]')
+			elif isinstance(node, TextNode):
+				if node.style is None:
+					file.write(node.string)
+				elif node.style == 'Verbatim':
+					file.write("'''\n"+node.string+"'''\n")
+				elif node.style == 'head':
+					lvl = node.level
+					tag = '='*(7-lvl)
+					file.write(tag+' '+node.string+' '+tag+'\n')
+				else:
+					tag = tags[node.style]
+					file.write(tag*2+node.string+tag*2)
+			else:
+				assert False, 'Unknown node type'
+

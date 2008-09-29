@@ -8,20 +8,20 @@ from zim.formats import *
 
 __format__ = 'html'
 
-class Dumper(DumperClass):
+tags = {
+	'Verbatim': 'pre',
+	'italic': 'i',
+	'bold': 'b',
+	'underline': 'u',
+	'verbatim': 'tt',
+	'head1': 'h1',
+	'head2': 'h2',
+	'head3': 'h3',
+	'head4': 'h4',
+	'head5': 'h5',
+}
 
-	tags = {
-		'Verbatim': 'pre',
-		'italic': 'i',
-		'bold': 'b',
-		'underline': 'u',
-		'verbatim': 'tt',
-		'head1': 'h1',
-		'head2': 'h2',
-		'head3': 'h3',
-		'head4': 'h4',
-		'head5': 'h5',
-	}
+class Dumper(DumperClass):
 
 	def dump(self, tree, file):
 		for node in tree:
@@ -39,7 +39,9 @@ class Dumper(DumperClass):
 			elif isinstance(node, TextNode):
 				style = node.style
 				if style:
-					tag = self.tags[style]
+					if style == 'head':
+						style += str(node.level)
+					tag = tags[style]
 					# TODO html encode text
 					file.write('<'+tag+'>'+node.string+'</'+tag+'>')
 				else:
