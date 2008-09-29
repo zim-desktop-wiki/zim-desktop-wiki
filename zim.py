@@ -130,6 +130,11 @@ def server(opts, args):
 	import zim.www
 	import zim.notebook
 
+	print '''\
+WARNING: Serving zim notes as a webserver. Unless you have some
+kind of firewall your notes are now open to the whole wide world.
+'''
+
 	port = 8888
 	template=None
 	for o, a in opts:

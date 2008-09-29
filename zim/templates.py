@@ -4,10 +4,11 @@
 
 '''This module contains classes for template processing.
 
-The main class is Template, which wraps and pre-compiles a template file. Each
-page that can be dumped using the template is wrapped with a PageProxy object,
-which exposes attributes and functions to be used in the template. This module
-is most efficient when you want to dump many pages with one template.
+The main class is Template, which wraps and pre-compiles a template
+file. Each page that can be dumped using the template is wrapped with
+a PageProxy object, which exposes attributes and functions to be used
+in the template. This module is most efficient when you want to dump
+many pages with one template.
 
 Usage:
 	import zim.templates
@@ -15,18 +16,36 @@ Usage:
 	for page in notebook.get_root():
 		tmpl.process(page, sys.stdout)
 
-Template files are expected to be in a path XDG_DATA/zim/templates/FORMAT/
+Template files are expected to be in a path
+XDG_DATA/zim/templates/FORMAT/
 
-The following syntax is supported:
+Syntax is loosely based on the syntax of the perl Template Toolkit
+(http://template-toolkit.org). The following syntax is supported:
 
 	[% GET page.name %] or just [% page.name %]
-	[% SET foo %]
+	[% SET foo = 'Foo !' %] or just [ foo = 'Foo !' ]
 	[% IF param %] ... [% ELSE %] ... [% END %]
-	[% FOREACH name = param %] ... [% name %] ... [% END %]
+	[% FOREACH name IN param %] ... [% name %] ... [% END %]
+	or [% FOREACH name = param %] ...
+	or [% FOREACH name IN ['foo', 'bar', 'baz'] %] ...
 	[% strftime('%c', param) %]
 
-Available parameters are 'zim.version' and 'page', all available attributes
-for 'page' are defined in the PageProxy class.
+Available parameters are 'zim.version' and 'page', all available
+attributes for 'page' are defined in the PageProxy class.
+
+Syntax errors in the template will cause an exception when the object
+is constructed. Errors while processing a template only print warnings
+to stderr (e.g. for unknown parameters).
+
+We try to minimize to possibilities to actually execute
+arbitrary code from templates. It should be save to download them.
+
+Therefore:
+* Function calls are only allowed for functions defined in
+  class TemplateFunctions
+* It is not allowed to call object methods
+* We only allow strings as arguments, no aritrary expressions
+* There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
 
 import os
@@ -36,6 +55,9 @@ import xdg.BaseDirectory
 import zim
 
 # TODO incorporate BaseDir methods in fs
+
+# TODO add a directive [% INCLUDE template_name %]
+# TODO support functions in GET, like strftime()
 
 def list_templates(format):
 	'''FIXME'''
@@ -56,7 +78,7 @@ def get_template(format, name):
 			# TODO: add extension
 			return Template(path, format)
 
-class TemplateError(Exception):
+class TemplateSyntaxError(Exception):
 	'''Error class for errors in templates'''
 
 class Template(object):
@@ -70,9 +92,12 @@ class Template(object):
 		self.count = 0
 #		try:
 		self._tokenize(file)
-#		except TemplateError, error:
+#		except TemplateSyntaxError, error:
 #			print error
 #			print 'Error at %s line %i\n' % (file, self.count)
+
+
+	# Methods for parsing the template
 
 	def _tokenize(self, file):
 		'''Loops trough lines to break it up in text and tokens.'''
@@ -94,7 +119,10 @@ class Template(object):
 			while line.find('[%') >= 0:
 				(pre, sep, line) = line.partition('[%')
 				(cmd, sep, line) = line.partition('%]')
+				if not sep:
+					raise TemplateSyntaxError, "unmatched '[%'"
 				append_text(pre)
+				cmd = cmd.strip('-') # allow [%- ... -%] for blocks
 				expand = self._append_token(cmd)
 				if linestart and not expand:
 					 # remove end of line to make blocks look better
@@ -111,14 +139,9 @@ class Template(object):
 		Returns True if this token will expand to a value.'''
 		string = string.strip()
 		if not string: return False
+		#~ print "TOKEN >>>%s<<<" % string
 
-		if string.startswith('SET'):
-			(var, sep, val) = string[3:].partition('=')
-			var = self._param(var)
-			val = self._args(val)
-			if len(val) == 1: val = val[0]
-			self.stack[-1].append( ('SET', var, val) )
-		elif string.startswith('IF'):
+		if string.startswith('IF'):
 			var = self._param(string[2:])
 			token = ('IF', var, [], [])
 			self.stack[-1].append(token)
@@ -129,19 +152,29 @@ class Template(object):
 				token = self.stack[-1][-1]
 				assert token[0] == 'IF'
 			except:
-				raise TemplateError, 'ELSE clause outside IF block'
+				raise TemplateSyntaxError, 'ELSE clause outside IF block'
 			self.stack.append(token[3])
 		elif string.startswith('FOREACH'):
-			(var, sep, val) = string[3:].partition('=')
-			var = self._param(var)
-			val = self._param(val)
+			(var, val) = self._expr(string[7:], opp='FOREACH')
 			token = ('FOREACH', var, val, [])
 			self.stack[-1].append(token)
 			self.stack.append(token[-1])
 		elif string.startswith('END'):
 			self.stack.pop()
-		else:
-			if string.startswith('GET'): string = string[3:].lstrip()
+		elif string.startswith('SET'):
+			(var, val) = self._expr(string[3:])
+			self.stack[-1].append( ('SET', var, val) )
+		elif string.startswith('GET'):
+			if string.find('(') > 0:
+				assert False, 'TODO parse function'
+			else:
+				var = self._param(string[3:])
+				self.stack[-1].append( ('GET', var) )
+			return True
+		elif string.find('=') >= 0:	# imlpicite SET
+			(var, val) = self._expr(string)
+			self.stack[-1].append( ('SET', var, val) )
+		else:  # imlicite GET
 			if string.find('(') > 0:
 				assert False, 'TODO parse function'
 			else:
@@ -151,32 +184,63 @@ class Template(object):
 
 		return False # SET and all flow control tokens do not expand
 
-	_param_re = re.compile('\A\w[\w\.]*\w\Z')
+	_param_re = re.compile('\A\w[\w\.]*(?<=\w)\Z')
 
 	def _param(self, string):
-		'''Verify string is a valid parameter name'''
+		'''Verify string is a valid parameter name.'''
 		string = string.strip()
+		#~ print '  PARAM >>%s<<' % string
 		if not self._param_re.match(string):
-			raise TemplateError, 'not a valid parameter: %s' % string
+			raise TemplateSyntaxError, 'not a valid parameter: %s' % string
 		return string
 
 	_args_re = re.compile('''
-		^(
-			(?P<quot>['"]).*?(?P=quot) |  # quoted string
-			\w[\w\.]*\w                   # or param
-		)	[\s\,]*                       # followed by seperators
+		(	\s*
+			(?P<quot>['"])(.*?)(?P=quot) |  # quoted string
+			#~ \w[\w\.]*(?<=\w)              # or param
+		)	[\s\,]*                         # followed by seperators
 	''', re.X)
 
 	def _args(self, string):
-		'''Parse simple list of quoted words and param names'''
+		'''Parse simple list of quoted words and param names.'''
+		#~ print '  ARGS >>%s<<' % string
 		args = []
 		def get_arg(match):
-			args.append( match.group(0).strip('\'\"') )
+			args.append( match.group(3) )
 			return ''
-		string = self._args_re.sub( get_arg, string.strip('() ') )
+		string = self._args_re.sub(get_arg, string)
 		if string:
-			raise TemplateError, 'invalid syntax: >>%s<<' % string
+			raise TemplateSyntaxError, 'invalid syntax: >>%s<<' % string
 		return args
+
+	def _expr(self, string, opp='SET'):
+		'''Parse an assignment expression.'''
+		(var, sep, val) = string.partition('=')
+		if not sep and opp == 'FOREACH':
+			# alternative syntax for FOREACH
+			(var, sep, val) = string.partition('IN')
+		if not sep:
+			raise TemplateSyntaxError, 'invalid expression: %s' % string
+		# left-hand side is always a var
+		var = self._param(var)
+		val = val.strip()
+		if val.startswith('[') and val.endswith(']'):
+			# [...] must be list
+			val = self._args(val[1:-1])
+		elif opp == 'FOREACH':
+			# FOREACH allows list or parameter
+			val = self._param(val)
+		else:
+			# SET allows list or string
+			val = self._args(val)
+			if len(val) == 1:
+				val = val[0]
+			else:
+				raise TemplateSyntaxError, 'invalid expression: %s' % string
+		return (var, val)
+
+
+	# Methods for processing data
 
 	def process(self, page, output):
 		'''FIXME'''
@@ -195,7 +259,14 @@ class Template(object):
 					elif len(token) > 3: # ELSE
 						self._process(token[3], output) #recurs
 				elif token[0] == 'FOREACH':
-					pass # TODO
+					(var, val) = token[1:3]
+					if not isinstance(val, list):
+						val = self.get_param(val)
+					if not isinstance(val, list):
+						continue # TODO warn ??
+					for item in val:
+						self.set_param(var, item)
+						self._process(token[3], output) #recurs
 				elif token[0] == 'GET':
 					val = self.get_param(token[1])
 					if val: output.write( val )
@@ -211,25 +282,31 @@ class Template(object):
 		for k in key.split('.'):
 			if k.startswith('_'):
 				# shield private attributes
-				raise TemplateError, 'No such parameter: %s' % key
+				return self._warn('No such parameter: %s' % key)
 			elif isinstance(val, PageProxy):
 				if hasattr(val, k):
 					val = getattr(val, k)
 				else:
-					raise TemplateError, 'No such parameter: %s' % key
+					return self._warn('No such parameter: %s' % key)
 			elif isinstance(val, dict):
 				val = val.get(k, '')
 			else:
-				raise TemplateError, 'No such parameter: %s' % key
+				return self._warn('No such parameter: %s' % key)
 		return val
 
 	def set_param(self, key, val):
 		'''Used during processing to set a parameter'''
 		if key.find('.') >= 0 or key == 'page' or key == 'zim':
 			# do not allow overwriting defaults or nested keys
-			raise TemplateError, 'Could not set parameter: %s' % key
-		self.dict[key] = val
+			self._warn('Could not set parameter: %s' % key)
+		else:
+			self.dict[key] = val
 
+	def _warn(self, msg):
+		import sys
+		# TODO add file name and line number
+		print >>sys.stderr, 'WARNING: %s' % msg
+		return None
 
 class TemplateFunctions(object):
 	'''This class contains functions that can be called from a template.'''
@@ -267,19 +344,19 @@ class PageProxy(object):
 	def heading(self): return '' # TODO
 
 	@property
-	def links(self): pass # TODO
+	def links(self): return [] # TODO
 
 	@property
-	def backlinks(self): pass # TODO
+	def backlinks(self): return [] # TODO
 
 	@property
-	def prev(self): pass # TODO
+	def prev(self): return None # TODO
 
 	@property
-	def next(self): pass # TODO
+	def next(self): return None # TODO
 
 	@property
-	def index(self): pass # TODO
+	def index(self): return None # TODO
 
 	@property
 	def body(self): return self._page.get_text(format=self._format)
