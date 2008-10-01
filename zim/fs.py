@@ -133,7 +133,7 @@ class Buffer(StringIO):
 	function is called when the io handle is closed after writing.
 	'''
 
-	def __init__(self, text='', on_write=None):
+	def __init__(self, text=u'', on_write=None):
 		if not on_write is None:
 			assert callable(on_write)
 		self.on_write = on_write

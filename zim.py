@@ -164,7 +164,7 @@ def dump_page(opts, args):
 	notebook = zim.notebook.get_notebook(args[0])
 	page = notebook.get_page(args[1])
 
-	print page.get_parse_tree()
+	print page.get_parse_tree().__str__().encode('utf8')
 
 
 

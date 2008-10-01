@@ -246,9 +246,7 @@ class Page(object):
 			if self.isempty():
 				return None
 			parser = self.format.Parser()
-			file = self.source.open()
-			tree = parser.parse(file)
-			file.close()
+			tree = parser.parse(self.source)
 			return tree
 		else:
 			return self._tree
@@ -257,9 +255,7 @@ class Page(object):
 		'''Save a parse tree to page source'''
 		if self.source:
 			dumper = self.format.Dumper()
-			file = self.source.open('w')
-			dumper.dump(tree, file)
-			file.close()
+			dumper.dump(tree, self.source)
 		else:
 			self._tree = tree
 
@@ -269,7 +265,9 @@ class Page(object):
 		if tree:
 			import zim.formats
 			dumper = zim.formats.get_format(format).Dumper()
-			return dumper.dump_string(tree)
+			output = Buffer()
+			dumper.dump(tree, output)
+			return output.getvalue()
 		else:
 			return ''
 

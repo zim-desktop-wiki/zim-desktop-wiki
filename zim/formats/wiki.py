@@ -6,11 +6,29 @@
 
 import re
 
+from zim.fs import *
 from zim.formats import *
 
 __format__ = 'wiki'
 
-tags = {
+parser_re = {
+	'blockstart': re.compile("\A(''')\s*?\n"),
+	'Verbatim':   re.compile("\A'''\s*?(^.*?)^'''\s*\Z", re.M | re.S),
+	'splithead':  re.compile('^(==+\s+\S.*?\n)', re.M),
+	'heading':    re.compile("\A((==+)\s+(.*?)(\s+==+)?\s*)\Z"),
+
+	# All the experssions below will match the inner pair of
+	# delimiters if there are more then two characters in a row.
+	'link':       re.compile('\[\[(?!\[)(.+?)\]\]'),
+	'image':      re.compile('\{\{(?!\{)(.+?)\}\}'),
+	'italic':     re.compile('//(?!/)(.+?)//'),
+	'bold':       re.compile('\*\*(?!\*)(.+?)\*\*'),
+	'underline':  re.compile('__(?!_)(.+?)__'),
+	'strike':     re.compile('~~(?!~)(.+?)~~'),
+	'verbatim':   re.compile("''(?!')(.+?)''"),
+}
+
+dumper_tags = {
 	'italic':    '/',
 	'bold':      '*',
 	'underline': '_',
@@ -20,20 +38,20 @@ tags = {
 
 class Parser(ParserClass):
 
-	def parse(self, file):
+	def parse(self, input):
 		# Read the file and divide into paragraphs on the fly.
 		# Blocks of empty lines are also treated as paragraphs for now.
 		# We also check for blockquotes here and avoid splitting them up.
+		assert isinstance(input, (File, Buffer))
+		file = input.open('r')
 
 		paras = ['']
-		blockstart = re.compile("\A(''')\s*?\n")
-
 		def para_start():
 			# This function is called when we suspect the start of a new paragraph.
 			# Returns boolean for success
 			if len(paras[-1]) == 0:
 				return False
-			blockmatch = blockstart.search(paras[-1])
+			blockmatch = parser_re['blockstart'].search(paras[-1])
 			if blockmatch:
 				quote = blockmatch.group()
 				blockend = re.search('\n'+quote+'\s*\Z', paras[-1])
@@ -62,12 +80,11 @@ class Parser(ParserClass):
 
 		# Then continue with all other contents
 		# Headings can still be in the middle of a para, so get them out.
-		heading = re.compile('^(==+\s+\S.*?\n)', re.M)
 		for para in paras:
-			if blockstart.search(para):
+			if parser_re['blockstart'].search(para):
 				tree.append( self.parse_block(para) )
 			else:
-				parts = heading.split(para)
+				parts = parser_re['splithead'].split(para)
 				for i, p in enumerate(parts):
 					if i % 2:
 						# odd elements in the list are headings after split
@@ -75,37 +92,30 @@ class Parser(ParserClass):
 					elif len(p) > 0:
 						tree.append( self.parse_para(p) )
 
+		file.close()
 		return tree
 
 	def parse_block(self, block):
-		m = re.match("\A'''\s*?(^.*?)^'''\s*\Z", block, re.M | re.S)
-		if not m:
-			raise ParserError(block, 'does not match Verbatim')
+		m = parser_re['Verbatim'].match(block)
+		assert m, 'Block does not match Verbatim'
 		return TextNode(m.group(1), style='Verbatim')
 
 	def parse_head(self, head):
-		m = re.match("\A(==+)\s+(.*?)(\s+==+)?\s*\Z", head)
-		if not m:
-			raise ParserError(head, 'does not match a heading')
-		level = 7 - min(6, len(m.group(1)))
-		head = m.group(2)
-		node = TextNode(head, style='head')
-		node.level = level
+		m = parser_re['heading'].match(head)
+		assert m, 'Line does not match a heading: '+head
+		level = 7 - min(6, len(m.group(2)))
+		head = m.group(3)
+		node = HeadingNode(level, head)
 		return node
 
 	def parse_para(self, para):
 		if para.isspace():
 			return TextNode(para)
 
-		def style_re(style):
-			t = tags[style]
-			return re.compile(('\\'+t)*2+'(?!\\'+t+')(.+?)'+('\\'+t)*2)
-
 		list = [para]
-
 		list = self.walk_list(
-						list, style_re('verbatim'),
-						lambda match: TextNode(match, style='verbatim') )
+				list, parser_re['verbatim'],
+				lambda match: TextNode(match, style='verbatim') )
 
 		def parse_link(match):
 			parts = match.split('|', 2)
@@ -120,14 +130,17 @@ class Parser(ParserClass):
 			#		link = 'mailto:'+link
 			return LinkNode(text, link=link)
 
-		list = self.walk_list(list, re.compile('\[\[(?!\[)(.+?)\]\]'), parse_link)
+		list = self.walk_list(list, parser_re['link'], parse_link)
 
-		# TODO: images
+		def parse_image(match):
+			return ImageNode(link=match)
+
+		list = self.walk_list(list, parser_re['image'], parse_image)
 
 		for style in 'italic', 'bold', 'underline', 'strike':
 			list = self.walk_list(
-						list, style_re(style),
-						lambda match: TextNode(match, style=style) )
+					list, parser_re[style],
+					lambda match: TextNode(match, style=style) )
 
 		# TODO: urls
 
@@ -137,15 +150,24 @@ class Parser(ParserClass):
 
 		return NodeList(list)
 
+
 class Dumper(DumperClass):
 	'''FIXME'''
 
-	def dump(self, tree, file):
+	def dump(self, tree, output):
 		'''FIXME'''
 		assert isinstance(tree, NodeTree)
+		assert isinstance(output, (File, Buffer))
+		file = output.open('w')
+
 		file.write( self.dump_headers(tree.headers) )
 		for node in tree.walk():
-			if isinstance(node, LinkNode):
+			if isinstance(node, HeadingNode):
+				tag = '='*(7-node.level)
+				file.write(tag+' '+node.string+' '+tag+'\n')
+			elif isinstance(node, ImageNode):
+				file.write('{{'+node.link+'}}')
+			elif isinstance(node, LinkNode):
 				if node.link == node.string:
 					file.write('[['+node.link+']]')
 				else:
@@ -155,13 +177,11 @@ class Dumper(DumperClass):
 					file.write(node.string)
 				elif node.style == 'Verbatim':
 					file.write("'''\n"+node.string+"'''\n")
-				elif node.style == 'head':
-					lvl = node.level
-					tag = '='*(7-lvl)
-					file.write(tag+' '+node.string+' '+tag+'\n')
 				else:
-					tag = tags[node.style]
+					tag = dumper_tags[node.style]
 					file.write(tag*2+node.string+tag*2)
 			else:
-				assert False, 'Unknown node type'
+				assert False, 'Unknown node type: '+node.__str__()
+
+		file.close()
 

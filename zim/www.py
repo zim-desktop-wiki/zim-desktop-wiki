@@ -92,8 +92,9 @@ class WWW(object):
 		# etc.
 		self.end_headers()
 
+		html = html.encode('utf8')
 		for line in html.splitlines():
-			self.wfile.write(line)
+			self.wfile.write(line+'\n')
 
 
 def serve(port, notebook=None, template=None):
