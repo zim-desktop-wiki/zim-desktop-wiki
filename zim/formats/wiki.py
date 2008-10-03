@@ -133,7 +133,13 @@ class Parser(ParserClass):
 		list = self.walk_list(list, parser_re['link'], parse_link)
 
 		def parse_image(match):
-			return ImageNode(link=match)
+			parts = match.split('|', 2)
+			src = parts[0]
+			if len(parts) > 1:
+				text = parts[1]
+			else:
+				text = None
+			return ImageNode(src, text=text)
 
 		list = self.walk_list(list, parser_re['image'], parse_image)
 
@@ -166,7 +172,10 @@ class Dumper(DumperClass):
 				tag = '='*(7-node.level)
 				file.write(tag+' '+node.string+' '+tag+'\n')
 			elif isinstance(node, ImageNode):
-				file.write('{{'+node.link+'}}')
+				if node.string:
+					file.write('{{'+node.src+'|'+node.string+'}}')
+				else:
+					file.write('{{'+node.src+'}}')
 			elif isinstance(node, LinkNode):
 				if node.link == node.string:
 					file.write('[['+node.link+']]')

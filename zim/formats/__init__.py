@@ -133,10 +133,13 @@ class LinkNode(TextNode):
 
 	__slots__ = ('link',)
 
-	def __init__(self, text='', link=None):
-		'''Constructor needs at leas a piece of text'''
-		self.string = text
-		self.link = link
+	def __init__(self, text=None, link=None):
+		'''FIXME'''
+		self.string = text or link
+		if link:
+			self.link = link
+		else:
+			self.link = text
 
 	def __str__(self):
 		return u'<link href="%s">%s</link>\n' % (self.link, self.string)
@@ -145,7 +148,13 @@ class LinkNode(TextNode):
 class ImageNode(LinkNode):
 	'''Class for image objects'''
 
-	__slots__ = []
+	__slots__ = ('src',)
+
+	def __init__(self, src, text='', link=None):
+		'''FIXME'''
+		self.src = src
+		self.string = text
+		self.link = link   # no default link like in LinkNode
 
 	def __str__(self):
 		return u'<img href="%s">%s</img>\n' % (self.link, self.string)

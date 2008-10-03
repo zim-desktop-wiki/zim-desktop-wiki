@@ -4,9 +4,12 @@
 
 '''Zim test suite'''
 
+import unittest
 import codecs
 
 __all__ = ['fs', 'formats', 'templates', 'stores', 'notebook']
+
+__unittest = 1 # needed to get stack trace OK for class TestCase
 
 def get_notebook_data(format):
 	'''Generator function for test data'''
@@ -32,3 +35,32 @@ def	get_test_notebook(format='wiki'):
 	for name, text in get_notebook_data(format):
 			store._set_node(name, text)
 	return notebook
+
+class TestCase(unittest.TestCase):
+	'''FIXME'''
+
+	def assertEqualDiff(self, first, second, msg=None):
+		'''Fail if the two strings are unequal as determined by
+		the '==' operator. On failure shows a diff of both strings.
+		'''
+		if msg is None:
+			msg = u'Strings differ:'
+		else:
+			msg = unicode(msg)
+		if not first == second:
+			#~ print '>>>>\n'+first+'=====\n'+second+'<<<<\n'
+			if not first:
+				msg += ' first string is empty'
+			elif not second:
+				msg += ' second string is empty'
+			elif not type(first) == type(second):
+				types = type(first), type(second)
+				msg += ' types differ, %s and %s' % types
+			else:
+				from difflib import Differ
+				diff = Differ().compare(
+					first.splitlines(), second.splitlines() )
+				msg += '\n' + '\n'.join(diff)
+			raise self.failureException, msg.encode('utf8')
+
+

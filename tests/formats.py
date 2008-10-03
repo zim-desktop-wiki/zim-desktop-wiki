@@ -4,12 +4,12 @@
 
 '''Test cases for the zim.formats module.'''
 
-import unittest
+from tests import TestCase
 
 from zim.fs import *
 from zim.formats import *
 
-wikitext = u'''\
+wikitext = u"""\
 ====== Head1 ======
 
 ===== Head 2 =====
@@ -22,7 +22,14 @@ reprehenderit in voluptate velit esse cillum dolore eu fugiat
 nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum.
 
-IMAGE: {{../my-image.png}}
+'''
+Some Verbatim here
+
+	Indented and all: //foo//
+'''
+
+IMAGE: {{../my-image.png|Foo Bar}}
+LINKS: [[:foo:bar]] [[./file.png]] [[file:///etc/passwd]]
 
 	Some indented
 	paragraphs go here ...
@@ -37,9 +44,9 @@ And some utf8 bullet items
 • baz
 
 That's all ...
-'''
+"""
 
-class TestTextFormat(unittest.TestCase):
+class TestTextFormat(TestCase):
 
 	def setUp(self):
 		self.format = get_format('plain')
@@ -51,7 +58,7 @@ class TestTextFormat(unittest.TestCase):
 		output = Buffer()
 		self.format.Dumper().dump(tree, output)
 		#~ print '\n', '='*10, '\n', self.format, '\n', '-'*10, '\n', output
-		self.assertEqual(output.getvalue(), wikitext)
+		self.assertEqualDiff(output.getvalue(), wikitext)
 
 
 class TestWikiFormat(TestTextFormat):
@@ -77,9 +84,21 @@ nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum.
 ''' )] ),
 			TextNode('\n'),
+			TextNode('''\
+Some Verbatim here
+
+	Indented and all: //foo//
+''', style='Verbatim' ),
+			TextNode('\n'),
 			NodeList( [
 				TextNode('IMAGE: '),
-				ImageNode(link='../my-image.png'),
+				ImageNode('../my-image.png', text='Foo Bar'),
+				TextNode('\nLINKS: '),
+				LinkNode(':foo:bar', link=':foo:bar'),
+				TextNode(' '),
+				LinkNode('./file.png', link='./file.png'),
+				TextNode(' '),
+				LinkNode('file:///etc/passwd', link='file:///etc/passwd'),
 				TextNode('\n'),
 			] ),
 			TextNode('\n'),
@@ -112,24 +131,15 @@ And some utf8 bullet items
 			NodeList([ TextNode('''That's all ...\n''') ])
 		] )
 		t = self.format.Parser().parse( Buffer(wikitext) )
-		#~ self.diff(t.__str__(), tree.__str__())
-		self.assertEqual(t.__str__(), tree.__str__())
-
-	def diff(self, text1, text2):
-		'''FIXME'''
-		from difflib import Differ
-		text1 = text1.splitlines()
-		text2 = text2.splitlines()
-		for line in Differ().compare(text1, text2):
-			print line
+		self.assertEqualDiff(t.__str__(), tree.__str__())
 
 
-class TestHtmlFormat(unittest.TestCase):
+class TestHtmlFormat(TestCase):
 
 	def setUp(self):
 		self.format = get_format('html')
 
-	def testHtml(self):
+	def testEncoding(self):
 		'''Test HTML encoding'''
 		text = '<foo>"foo" & "bar"</foo>'
 		encode = '&lt;foo&gt;&quot;foo&quot; &amp; &quot;bar&quot;&lt;/foo&gt;'
@@ -138,3 +148,58 @@ class TestHtmlFormat(unittest.TestCase):
 		self.format.Dumper().dump(tree, html)
 		self.assertEqual(html.getvalue(), encode)
 
+	def testExport(self):
+		'''Test exporting wiki format to Html'''
+		wiki = Buffer(wikitext)
+		output = Buffer()
+		tree = get_format('wiki').Parser().parse(wiki)
+		self.format.Dumper().dump(tree, output)
+		html = u'''\
+<h1>Head1</h1>
+<h2>Head 2</h2>
+<p>
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat. Duis aute irure dolor in
+reprehenderit in voluptate velit esse cillum dolore eu fugiat
+nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
+sunt in culpa qui officia deserunt mollit anim id est laborum.
+</p>
+
+<pre>
+Some Verbatim here
+
+	Indented and all: //foo//
+</pre>
+
+<p>
+IMAGE: <img src="../my-image.png" alt="Foo Bar">
+LINKS: <a href=":foo:bar">:foo:bar</a> <a href="./file.png">./file.png</a> <a href="file:///etc/passwd">file:///etc/passwd</a>
+</p>
+
+<p>
+	Some indented
+	paragraphs go here ...
+</p>
+
+<p>
+Let's try these <b>bold</b>, <i>italic</i>, <u>underline</u> and <strike>strike</strike>
+And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
+</p>
+
+<p>
+And some utf8 bullet items
+• foo
+• bar
+</p>
+
+<p>
+• baz
+</p>
+
+<p>
+That's all ...
+</p>
+'''
+		self.assertEqualDiff(output.getvalue(), html)

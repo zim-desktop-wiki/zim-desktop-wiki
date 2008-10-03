@@ -2,7 +2,16 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''FIXME
+
+We do not put pagebreaks in normal paragraphs. Use the following
+CSS in your template if you want to preserve tabs and linebreaks.
+
+	<style>
+		p {white-space:pre;}
+	</style>
+
+'''
 
 from zim.fs import *
 from zim.formats import *
@@ -10,7 +19,6 @@ from zim.formats import *
 __format__ = 'html'
 
 tags = {
-	'Verbatim': 'pre',
 	'italic': 'i',
 	'bold': 'b',
 	'underline': 'u',
@@ -44,22 +52,25 @@ class Dumper(DumperClass):
 		self.dump_nodelist(tree, file)
 		file.close()
 
-	def dump_nodelist(self, tree, file):
+	def dump_nodelist(self, list, file):
 		'''FIXME'''
-		for node in tree:
+		for node in list:
 			if isinstance(node, NodeList):
-				file.write('<p>')
+				file.write('<p>\n')
 				self.dump_nodelist(node, file) # recurs
-				file.write('</p>')
+				file.write('</p>\n')
 			elif isinstance(node, HeadingNode):
 				style = 'head%i'% node.level
 				tag = tags[style]
 				text = self.html_encode(node.string)
 				file.write('<'+tag+'>'+text+'</'+tag+'>')
 			elif isinstance(node, ImageNode):
-				href = self.url_encode(node.link)
-				text = self.html_encode(node.string)
-				file.write('<img src="%s" alt="%s">' % (href, text))
+				src = self.url_encode(node.src)
+				if node.string:
+					text = self.html_encode(node.string)
+				else:
+					text = ''
+				file.write('<img src="%s" alt="%s">' % (src, text))
 				pass
 			elif isinstance(node, LinkNode):
 				href = self.url_encode(node.link)
@@ -68,12 +79,12 @@ class Dumper(DumperClass):
 			elif isinstance(node, TextNode):
 				style = node.style
 				text = self.html_encode(node.string)
-				if not text.isspace() and style != 'Verbatim':
-					text = text.replace('\n', '<br>\n')
-				if style:
+				if not style:
+					file.write(text)
+				elif style == 'Verbatim':
+					file.write('<pre>\n'+text+'</pre>\n')
+				else:
 					tag = tags[style]
 					file.write('<'+tag+'>'+text+'</'+tag+'>')
-				else:
-					file.write(text)
 			else:
 				assert False, 'Unknown node type: '+node.__str__()
