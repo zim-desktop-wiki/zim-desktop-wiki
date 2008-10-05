@@ -75,7 +75,7 @@ class Store(StoreClass):
 		(_node is a private argument)
 		'''
 		if _node is None:
-			_node = self._get_page(name)
+			_node = self._get_node(name)
 
 		text = None
 		if not _node is None:

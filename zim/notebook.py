@@ -14,6 +14,7 @@ the 'stores' namespace.
 import weakref
 
 from zim.fs import *
+from zim.utils import Re
 import zim.stores
 
 def get_notebook(notebook):
@@ -245,7 +246,7 @@ class Page(object):
 		if self.source:
 			if self.isempty():
 				return None
-			parser = self.format.Parser()
+			parser = self.format.Parser(self)
 			tree = parser.parse(self.source)
 			return tree
 		else:
@@ -254,7 +255,7 @@ class Page(object):
 	def set_parse_tree(self, tree):
 		'''Save a parse tree to page source'''
 		if self.source:
-			dumper = self.format.Dumper()
+			dumper = self.format.Dumper(self)
 			dumper.dump(tree, self.source)
 		else:
 			self._tree = tree
@@ -264,7 +265,7 @@ class Page(object):
 		tree = self.get_parse_tree()
 		if tree:
 			import zim.formats
-			dumper = zim.formats.get_format(format).Dumper()
+			dumper = zim.formats.get_format(format).Dumper(self)
 			output = Buffer()
 			dumper.dump(tree, output)
 			return output.getvalue()
@@ -284,6 +285,42 @@ class Page(object):
 		while len(path) > 0:
 			namespace = path.join(':')
 			yield Namespace(namespace, self.store)
+
+	interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
+	url_re = Re('^(\w+[\w\+\-\.]+)://')
+	mailto_re = Re('^mailto:|^\S+\@\S+\.\w+$')
+
+	def resolve_link(self, link, page=None):
+		'''FIXME'''
+		if interwiki_re.match(link):
+			# interwiki aliases, works as a pass through
+			l = self.store.notebook.lookup_interwiki(link)
+			if not l is None:
+				link = l
+
+		if url_re.match(link):
+			# URLs of any kind
+			proto = url_re.get().group(1)
+			if proto == 'file':
+				link = self.store.resolve_file(link, page)
+			return (proto, link)
+		elif mailto_re.match(link):
+			# email adresses and mailto: URIs
+			if not link.startswith('mailto:'):
+				link = 'mailto:'+link
+			return ('mailto', link)
+		elif intwerwiki_re.match(link):
+			# special type in interwiki syntax, e.g. man?ls(1)
+			m = interwiki_re.get()
+			return (m.group(1), m.group(2))
+		elif link.find('/') >= 0:
+			# if it matches a '/' it must be a file path
+			link = self.store.resolve_file(link, page)
+			return ('file', link)
+		else:
+			# if nothing else matches, must be a page name
+			link = self.store.resolve_name(link, namespace=page.namespace)
+			return ('page', link)
 
 
 class Namespace(object):

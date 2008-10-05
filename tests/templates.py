@@ -4,13 +4,15 @@
 
 '''Test cases for the zim.templates module.'''
 
-import unittest
+from tests import TestCase
+
+import os
 from StringIO import StringIO
 
 import zim
-from zim import templates
+from zim.templates import *
 
-class TestTemplate(unittest.TestCase):
+class TestTemplate(TestCase):
 
 #	def setUp(self):
 #		self.template = ...
@@ -59,7 +61,7 @@ NOK
 ---
 ''' % zim.__version__
 		test = StringIO()
-		tmpl = templates.Template(file, 'html')
+		tmpl = Template(file, 'html')
 		#~ import pprint
 		#~ pprint.pprint( tmpl.tokens )
 		tmpl.process(None, test)
@@ -69,11 +71,21 @@ NOK
 	def testRaise(self):
 		'''Test Template invalid syntax raises TemplateError'''
 		file = StringIO('foo[% ELSE %]bar')
-		self.assertRaises(templates.TemplateSyntaxError,
-								templates.Template, file, 'html')
+		self.assertRaises(TemplateSyntaxError, Template, file, 'html')
+
 		file = StringIO('foo[% FOREACH foo = ("1", "2", "3") %]bar')
-		self.assertRaises(templates.TemplateSyntaxError,
-								templates.Template, file, 'html')
+		self.assertRaises(TemplateSyntaxError, Template, file, 'html')
+
 		file = StringIO('foo[% `echo /etc/passwd` %]bar')
-		self.assertRaises(templates.TemplateSyntaxError,
-								templates.Template, file, 'html')
+		self.assertRaises(TemplateSyntaxError, Template, file, 'html')
+
+	def testTemplateSet(self):
+		'''Load all shipped templates for syntax check'''
+		for dir, dirs, files in os.walk('./data/templates'):
+			format = os.path.basename(dir)
+			for file in files:
+				file = os.path.join(dir, file)
+				tmpl = Template(file, format)
+				# Syntax errors will be raised during init
+				# TODO parameter check for these templates
+				#      ... run them with raise instead of param = None

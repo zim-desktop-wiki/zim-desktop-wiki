@@ -73,9 +73,9 @@ class Parser(ParserClass):
 		# Now all text is read, start wrapping it into a document tree.
 		# First check for meta data at the top of the file
 		tree = NodeTree()
-		if self.matches_headers(paras[0]):
+		if self.matches_rfc822_headers(paras[0]):
 			headers = paras.pop(0)
-			tree.headers = self.parse_headers( headers )
+			tree.headers = self.parse_rfc822_headers( headers )
 			if paras[0].isspace: paras.pop(0)
 
 		# Then continue with all other contents
@@ -166,7 +166,7 @@ class Dumper(DumperClass):
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
 
-		file.write( self.dump_headers(tree.headers) )
+		file.write( self.dump_rfc822_headers(tree.headers) )
 		for node in tree.walk():
 			if isinstance(node, HeadingNode):
 				tag = '='*(7-node.level)

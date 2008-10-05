@@ -1,0 +1,111 @@
+
+====== Classes ======
+
+Each class has inline documentation, use pydoc to view it.
+
+zim					# Command line parsing and application class
+|-- Application()
+|-- gui				# Gtk interface - TODO
+|   |-- GUI(Application)
+|   `-- ...
+|-- www				# WWW interface for server / cgi-bin
+|   `-- WWW(Application)
+|-- notebook		# Interface to a single notebook
+|   |-- Notebook()
+|   |-- Page()
+|   `-- Namespace()
+|-- stores			# Data backends for notebooks
+|   |-- files
+|   |-- gjots
+|   `-- memory
+|-- templates
+|   `-- Template()
+|-- formats			# Parsers for various source formats
+|   |-- html
+|   |-- plain
+|   `-- wiki
+|-- fs				# File system objects
+|   |-- Path()
+|   |-- File(Path)
+|   |-- Dir(Path)
+|   `-- Buffer(StringIO)
+`-- utils			# Coding utilities
+
+Both gui and www inherit from the application class defined in zim.
+This class takes care of loading configuration files, plugins etc.
+The Notebook object takes care of accessing and storing pages and
+other data in the notebook. Each notebook can consist of one or more
+store objects which implement the actual data backend.
+
+
+====== TODO ======
+
+**Grep for TODO and FIXME tags in the code**
+
+== General health ==
+
+* In setup.py and zim.py check for python >= 2.5
+* move zim.py code to zim/__init__.py
+* Make zim.py also accept files as notebook types (e.g. gjots, .tar.gz etc)
+* Wrapper for coverage.py to generate dir with html highlighting
+* Object that acts as dict but keeps order of items
+   	* Needed e.g. for writing headers of wiki page
+
+== Getting server up and running ==
+
+* Resolving files
+	* Implement lookup logic in StoreClass
+	* Server only serves data from notebook or data dir, use file:// uris for the rest
+	* Same goes for images
+* Resolving pages
+	* Add test for Notebook.resolve_page() with lots of scenarios
+* Templates need setting to remove title from tree
+	* Used e.g. in Presentation template to put title in separate bar
+* Templates need setting to change the heading level
+* Need to look into S5 mode in html output
+* In template rename page.body to page.content ?
+* Base class for both gui and www which takes care of config, plugins etc.
+	* Also use this in zim.py when exporting etc.
+	* Have objects for config sets like preferences and notebook state
+	* Does a method like "data_dirs" also belong here ?
+* Event framework, both for application and notebook - needed for plugins
+* Check client hostname and add a --public option (default localhost only)
+* Implement editing from www (default is read-only)
+* Search interface ?
+
+== Towards full capabilities ==
+
+* Implement moving pages
+	* Logic for updating links
+	* Include sub pages and attachments
+* PluginManager class
+    * Plugins get notebook and gui as parameters to the constructor
+    * The gui object can either be gtk or www or not present
+    * Each plugin object should have a method unplug()
+    * The PluginManager keeps references to the plugin objects
+* Backward compatibility with older zim versions
+    * Wiki pages without headers use indented paragraphs for Verbatim
+* Txt2tags Parser (and Dumper ?) class
+    * Plugin to use txt2tags for multitude of output formats
+* Notebook cache based on sqlite
+    * Make sure to test all store backends both with and without cache
+    * Make sure not to auto-vivicate cache to quickly
+* Store type for reading from .tar.gz files
+
+
+====== Changes from zim < 0.60 ======
+
+== Config files ==
+
+* ...
+* Backward compatibility with files like notebook.list / repositories.list ?
+
+== Formats ==
+
+* Html output does no longer use "<br>" elements
+
+== Templates ==
+
+* Templates now use "[%-" and "-%]" to remove linebreaks around tags
+* Templates no longer have a "page.heading" variable
+* Html templates need css "p { white-space: pre }" to render same as zim

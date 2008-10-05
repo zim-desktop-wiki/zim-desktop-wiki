@@ -1,4 +1,4 @@
-include CHANGELOG LICENSE TRANSLATORS
-include test.py
-include tests/*
+include *.txt
+include test.py tests/*.py tests/data/*
+recursive-include data/ *
 prune tests/*.pyc

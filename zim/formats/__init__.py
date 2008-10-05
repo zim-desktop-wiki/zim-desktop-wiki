@@ -167,6 +167,10 @@ class ParserClass(object):
 	'Parser' which inherits from this base class.
 	'''
 
+	def __init__(self, page):
+		'''FIXME'''
+		self.page = page
+
 	def parse(self, file):
 		'''FIXME'''
 		raise NotImplementedError
@@ -174,10 +178,10 @@ class ParserClass(object):
 	header_re = re.compile('^([\w\-]+):\s+(.*)')
 	not_headers_re = re.compile('^(?!\Z|\s+|[\w\-]+:\s+)', re.M)
 
-	def matches_headers(self, text):
-		"""Checks if 'text' is a rfc822 stle header block.
-		If this returns True, 'text' can be parsed by parse_headers().
-		"""
+	def matches_rfc822_headers(self, text):
+		'''Checks if 'text' is a rfc822 stle header block. If this
+		returns True, 'text' can be parsed by parse_rfc822_headers().
+		'''
 		if not self.header_re.match(text):
 			# first line is not a header
 			return False
@@ -187,14 +191,14 @@ class ParserClass(object):
 		else:
 			return True
 
-	def parse_headers(self, text):
+	def parse_rfc822_headers(self, text):
 		'''Returns a dictonary with the headers defined in 'text'.
 		Uses rfc822 style header syntax including continuation lines.
 		All headers are made case insesitive using string.title().
 		'''
 		headers = {}
 		header = None
-		assert self.matches_headers(text), 'Not a header block'
+		assert self.matches_rfc822_headers(text), 'Not a header block'
 		for line in text.splitlines():
 			if line.isspace(): break
 			is_header = self.header_re.match(line)
@@ -241,11 +245,15 @@ class DumperClass(object):
 	'Dumper' which inherits from this base class.
 	'''
 
+	def __init__(self, page):
+		'''FIXME'''
+		self.page = page
+
 	def dump(self, tree, file):
 		'''FIXME'''
 		raise NotImplementedError
 
-	def dump_headers(self, headers):
+	def dump_rfc822_headers(self, headers):
 		'''FIXME'''
 		assert isinstance(headers, dict)
 		# TODO figure out how to keep headers in proper order

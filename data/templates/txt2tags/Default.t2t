@@ -1,0 +1,14 @@
+[% page.title %]
+[% user %]
+[% date %]
+
+%!postproc(html):  ~~(.*?)~~  <strike>\1</strike>
+
+[% IF page.is_index %]
+= Document Index =
+[% ELSE %]
+= [% page.heading %] =
+[% END %]
+
+[% page.body %]
+

@@ -108,6 +108,10 @@ class StoreClass():
 		else:
 			return None
 
+	def resolve_file(self, link, page):
+		'''FIXME'''
+
+
 	def get_page(self, name):
 		'''ABSTRACT METHOD, needs to be implemented in sub-class.
 

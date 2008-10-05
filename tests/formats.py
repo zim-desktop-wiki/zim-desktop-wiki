@@ -4,7 +4,7 @@
 
 '''Test cases for the zim.formats module.'''
 
-from tests import TestCase
+from tests import TestCase, get_test_page
 
 from zim.fs import *
 from zim.formats import *
@@ -50,13 +50,14 @@ class TestTextFormat(TestCase):
 
 	def setUp(self):
 		self.format = get_format('plain')
+		self.page = get_test_page()
 
 	def testRoundtrip(self):
-		tree = self.format.Parser().parse( Buffer(wikitext) )
+		tree = self.format.Parser(self.page).parse( Buffer(wikitext) )
 		self.assertTrue(isinstance(tree, NodeTree))
 		#~ print '\n', tree
 		output = Buffer()
-		self.format.Dumper().dump(tree, output)
+		self.format.Dumper(self.page).dump(tree, output)
 		#~ print '\n', '='*10, '\n', self.format, '\n', '-'*10, '\n', output
 		self.assertEqualDiff(output.getvalue(), wikitext)
 
@@ -66,6 +67,7 @@ class TestWikiFormat(TestTextFormat):
 	def setUp(self):
 		#~ TestTextFormat.setUp(self)
 		self.format = get_format('wiki')
+		self.page = get_test_page()
 
 	def testParsing(self):
 		'''Test wiki parse tree generation.'''
@@ -130,7 +132,7 @@ And some utf8 bullet items
 			TextNode('\n'),
 			NodeList([ TextNode('''That's all ...\n''') ])
 		] )
-		t = self.format.Parser().parse( Buffer(wikitext) )
+		t = self.format.Parser(self.page).parse( Buffer(wikitext) )
 		self.assertEqualDiff(t.__str__(), tree.__str__())
 
 
@@ -138,6 +140,7 @@ class TestHtmlFormat(TestCase):
 
 	def setUp(self):
 		self.format = get_format('html')
+		self.page = get_test_page()
 
 	def testEncoding(self):
 		'''Test HTML encoding'''
@@ -145,15 +148,15 @@ class TestHtmlFormat(TestCase):
 		encode = '&lt;foo&gt;&quot;foo&quot; &amp; &quot;bar&quot;&lt;/foo&gt;'
 		tree = NodeTree([ TextNode(text) ])
 		html = Buffer()
-		self.format.Dumper().dump(tree, html)
+		self.format.Dumper(self.page).dump(tree, html)
 		self.assertEqual(html.getvalue(), encode)
 
 	def testExport(self):
 		'''Test exporting wiki format to Html'''
 		wiki = Buffer(wikitext)
 		output = Buffer()
-		tree = get_format('wiki').Parser().parse(wiki)
-		self.format.Dumper().dump(tree, output)
+		tree = get_format('wiki').Parser(self.page).parse(wiki)
+		self.format.Dumper(self.page).dump(tree, output)
 		html = u'''\
 <h1>Head1</h1>
 <h2>Head 2</h2>

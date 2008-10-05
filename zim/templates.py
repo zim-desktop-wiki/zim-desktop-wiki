@@ -48,38 +48,40 @@ Therefore:
 * There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
 
-import os
 import re
-import xdg.BaseDirectory
 
 import zim
+from zim.utils import data_dirs
 
-# TODO incorporate BaseDir methods in fs
-
+# TODO enforce [%- and -%] to remove line endings
 # TODO add a directive [% INCLUDE template_name %]
 # TODO support functions in GET, like strftime()
 
 def list_templates(format):
 	'''FIXME'''
-	templates = []
-	for dir in xdg.BaseDirectory.load_data_paths('zim', 'templates', format):
-		if not os.path.isdir(dir): continue
-		templates.extend( os.listdir(dir) )
-	# TODO: remove extension
+	templates = {}
+	for dir in data_dirs('templates', format):
+		for file in dir.list():
+			i = file.rfind('.') # match begin of file extension
+			if i >= 0:
+				#~ templates[file[0:i]] = dir.file(file) FIXME
+				import os
+				templates[file[0:i]] = os.path.join(dir.path, file)
 	return templates
 
 
 def get_template(format, name):
 	'''FIXME'''
-	for dir in xdg.BaseDirectory.load_data_paths('zim', 'templates', format):
-		if not os.path.isdir(dir): continue
-		path = os.path.join(dir, name)
-		if os.path.exists(path):
-			# TODO: add extension
-			return Template(path, format)
+	templates = list_templates(format)
+	#~ if not name in templates: FIXME exception type
+		#~ raise
+	file = templates[name]
+	return Template(file, format)
+
 
 class TemplateSyntaxError(Exception):
 	'''Error class for errors in templates'''
+
 
 class Template(object):
 	'''Template object, maps to a single template file.'''
@@ -339,9 +341,6 @@ class PageProxy(object):
 
 	@property
 	def title(self): return '' # TODO
-
-	@property
-	def heading(self): return '' # TODO
 
 	@property
 	def links(self): return [] # TODO
