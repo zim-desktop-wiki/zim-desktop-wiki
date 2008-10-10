@@ -14,6 +14,9 @@ import errno
 import codecs
 from StringIO import StringIO
 
+class PathLookupError(Exception):
+	'''FIXME'''
+
 
 class Path(object):
 	'''Parent class for Dir and File objects'''
@@ -21,6 +24,7 @@ class Path(object):
 	def __init__(self, path):
 		assert not isinstance(path, tuple)
 		# TODO keep link to parent dir if first arg is Dir object
+		#      but only if there is no '../' after that arg
 		if isinstance(path, list):
 			for i in range(0, len(path)):
 				if isinstance(path[i], Path):
@@ -28,6 +32,12 @@ class Path(object):
 			path = os.path.join(*path)
 		elif isinstance(path, Path):
 			path = path.path
+
+		if path.startswith('file:/'):
+			assert False, 'TODO convert file url to path'
+		elif path.startswith('~'):
+			path = os.path.expanduser(path)
+
 		self.path = os.path.abspath(path)
 
 	def __iter__(self):
@@ -35,6 +45,13 @@ class Path(object):
 		for i in range(1, len(parts)+1):
 			path = os.path.join('/', *parts[0:i]) # FIXME posix specific
 			yield path
+
+	def __str__(self):
+		return self.path
+
+	def __repr__(self):
+		return '<%s: %>' % (self.__class__.__name__, self.path)
+
 
 	@property
 	def basename(self):
@@ -88,6 +105,29 @@ class Dir(Path):
 	def cleanup(self):
 		'''FIXME'''
 		os.removedirs(self.path)
+
+	def file(self, path):
+		'''FIXME'''
+		if isinstance(path, File):
+			file = path
+		else:
+			file = File(path)
+		if not file.path.startswith(self.path):
+			raise PathLookupError, '%s is not below %s' % (file, self)
+		# TODO set parent dir on file
+		return file
+
+	def subdir(self, path):
+		'''FIXME'''
+		if isinstance(path, Dir):
+			dir = path
+		else:
+			dir = Dir(path)
+		if not dir.path.startswith(self.path):
+			raise PathLookupError, '%s is not below %s' % (dir, self)
+		# TODO set parent dir on file
+		return file
+
 
 class File(Path):
 	'''OO wrapper for files'''

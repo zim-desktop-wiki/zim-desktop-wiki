@@ -4,19 +4,19 @@
 
 '''Base class for store modules.
 
-This module contains a base class for store modules.
-It contains a number of convenience methods that can be shared by
-all implementations. But most of the methods defined here are
-abstract and will raise a NotImplementedError when called.
-These definitions are there as documentation for module authors
-implementing sub-classes.
+This module contains a base class for store modules. It implements
+some common methods and provides API documentation for the store
+modules.
 
 Each store module should implement a class named "Store" which
-inherits from StoreClass. Also each module should define a variable
-'__store__' with it's own name.
+inherits from StoreClass. All methods marked with "ABSTRACT" need to
+be implemented in the sub class. When called directly they will raise
+a NotImplementedError. Overloading other methods is optional. Also
+each module should define a variable '__store__' with it's own name.
 '''
 
 from zim.fs import *
+from zim.utils import is_url_re
 
 
 def get_store(name):
@@ -108,9 +108,74 @@ class StoreClass():
 		else:
 			return None
 
-	def resolve_file(self, link, page):
-		'''FIXME'''
+	def document_dir(self, page=None):
+		'''Returns the attachments dir for page, or the main
+		attachments dir for the notebook if page is None.
+		'''
+		if page is None:
+			return self.notebook.dir
+		else:
+			path = page.name.split(':')
+			return self.notebook.dir.subdir(path)
 
+	def resolve_file(self, link, page=None):
+		'''Returns a File object for a file link.
+
+		In case 'link' is an url or a path starting with '~/' it is
+		considered an absolute paths. "file://" urls are converted
+		to for other urls an exception is thrown.
+
+		In case 'link' is a path starting with './' or '../' it is
+		resolved relative to the document dir for 'page'. If 'page'
+		is None the top level document dir is used.
+
+		In case 'link' is a path starting with '/' the document root
+		is used. This can be the toplevel document dir but may also
+		be some other dir. If no document root is set, the file system
+		root is used.
+		'''
+		# TODO security argument for www interface
+		#		- turn everything outside notebook into file:// urls
+		#		- do not leek info on existence of files etc.
+		# TODO convert win32 to unix style path ?
+		# TODO should we handle smb:// URLs here ?
+
+		def dirs():
+			# Generator for dir path needed below
+			if not page is None:
+				yield self.document_dir(page)
+			yield self.document_dir()
+			yield self.notebook.document_root
+			# TODO add VCS dir
+
+		if link.startswith('/'):
+			# path below document root or filesystem root
+			if self.notebook.document_root:
+				file = self.notebook.document_root.file(link)
+			else:
+				file = File(link)
+		elif link.startswith('~'):
+			# absolute path
+			file = File(link)
+		elif is_url_re.match(link):
+			# absolute path
+			assert is_url_re[1] == 'file', 'Not a file:// URL'
+			file = File(link)
+		else:
+			# relative to document dir for page or notebook
+			# TODO for BACKWARD compat check one level up
+			dir = self.document_dir(page)
+			file = File([dir, link])
+
+		if file.parent:
+			# File is nested already below a dir
+			return file
+		else:
+			# Try nesting below any of the standard dirs
+			for dir in dirs():
+				if not dir is None and file.path.startswith(dir.path):
+					return dir.file(file)
+			return file
 
 	def get_page(self, name):
 		'''ABSTRACT METHOD, needs to be implemented in sub-class.
@@ -144,11 +209,18 @@ class StoreClass():
 		raise NotImplementedError
 
 	def move_page(self, old, new):
-		'''FIXME'''
+		'''ABSTRACT METHOD, needs to be implemented in sub-class.
+
+		Move content from page object "old" to object "new".
+		Should result in 'old.isempty()' returning True if succesfull.
+		'''
 		raise NotImplementedError
 
 	def copy_page(self, old, new):
-		'''FIXME'''
+		'''ABSTRACT METHOD, needs to be implemented in sub-class.
+
+		Copy content from page object "old" to object "new".
+		'''
 		raise NotImplementedError
 
 	def clone_page(self, name, page):
@@ -163,11 +235,15 @@ class StoreClass():
 		mypage.set_parse_tree(tree)
 
 	def del_page(self, page):
-		'''FIXME'''
+		'''ABSTRACT METHOD, needs to be implemented in sub-class.
+
+		Deletes a page. Should result in 'page.isempty()' returning
+		True if succesfull.
+		'''
 		raise NotImplementedError
 
 	def search(self):
-		'''FIXME'''
+		'''FIXME interface not yet defined'''
 		raise NotImplementedError
 
 
@@ -188,7 +264,7 @@ class StoreClass():
 			return False
 
 	def relname(self, name):
-		'''Remove our namespace from a page name'''
+		'''Removes our namespace from a page name.'''
 		if self.namespace:
 			assert name.startswith(self.namespace)
 			i = len(self.namespace)

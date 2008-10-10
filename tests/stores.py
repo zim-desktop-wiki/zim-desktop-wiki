@@ -75,6 +75,9 @@ class TestStoresMemory(unittest.TestCase):
 			#~ print 'RESULT %s' % r
 			self.assertEqual(r, name)
 
+	def testResolveFile(self):
+		'''Test store.resolve_file()'''
+
 
 	# TODO test move, delete, read, write
 

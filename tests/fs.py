@@ -45,6 +45,8 @@ class TestFS(unittest.TestCase):
 		dir = Dir('tmp/foo/bar')
 		assert not dir.exists()
 		# TODO: real test here
+		# TODO - test file(), + test exception
+		# TODO - test subdir(), + test excepion
 
 	def testBuffer(self):
 		'''Test Buffer object'''

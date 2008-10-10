@@ -54,15 +54,15 @@ store objects which implement the actual data backend.
 == Getting server up and running ==
 
 * Resolving files
-	* Implement lookup logic in StoreClass
-	* Server only serves data from notebook or data dir, use file:// uris for the rest
-	* Same goes for images
+	* Needs testing + testing for new FS methods
+	* Needs security mode for www
 * Resolving pages
-	* Add test for Notebook.resolve_page() with lots of scenarios
+	* Need test for Notebook.resolve_page() with lots of scenarios
 * Templates need setting to remove title from tree
 	* Used e.g. in Presentation template to put title in separate bar
 * Templates need setting to change the heading level
-* Need to look into S5 mode in html output
+* For S5 template need to split body on H1 or HR
+	* FOREACH slide IN page.parts
 * In template rename page.body to page.content ?
 * Base class for both gui and www which takes care of config, plugins etc.
 	* Also use this in zim.py when exporting etc.
@@ -75,6 +75,7 @@ store objects which implement the actual data backend.
 
 == Towards full capabilities ==
 
+* parse List nodes into parse tree
 * Implement moving pages
 	* Logic for updating links
 	* Include sub pages and attachments

@@ -30,14 +30,15 @@ def data_dirs(*path):
 
 class Re(object):
 	'''Wrapper around regex pattern objects which memorizes the
-	last match object. See module re for regex docs.
+	last match object and gives list access to it's capturing groups.
+	See module re for regex docs.
 
 	Usage:
 
 		my_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
 
 		if my_re.match(string):
-			print my_re.m.groups()
+			print my_re[1], my_re[2]
 	'''
 
 	__slots__ = ('p', 'm') # pattern and match objects
@@ -47,12 +48,31 @@ class Re(object):
 		self.p = re.compile(pattern, flags)
 		self.m = None
 
+	# We could implement __eq__ here to get more Perlish syntax
+	# for matching. However that would make code using this class
+	# less readable for Python adepts. Therefore keep using
+	# match() and search() and do not go for to much overloading.
+
+	def __len__(self):
+		if self.m is None:
+			return 0
+		return len(self.m.groups())
+
+	def __getitem__(self, i):
+		if self.m is None:
+			raise IndexError
+		return self.m.group(i)
+
 	def match(self, string):
 		'''Same as re.match()'''
-		self.m = self.r.match(string)
+		self.m = self.p.match(string)
 		return self.m
 
 	def search(self, string):
 		'''Same as re.search()'''
-		self.m = self.r.search(string)
+		self.m = self.p.search(string)
 		return self.m
+
+# Some often used regexes
+is_url_re   = Re('^(\w[\w\+\-\.]+)://')
+is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')

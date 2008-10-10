@@ -43,7 +43,7 @@ arbitrary code from templates. It should be save to download them.
 Therefore:
 * Function calls are only allowed for functions defined in
   class TemplateFunctions
-* It is not allowed to call object methods
+* It is not allowed to call object methods (use '@property')
 * We only allow strings as arguments, no aritrary expressions
 * There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
@@ -168,7 +168,7 @@ class Template(object):
 			self.stack[-1].append( ('SET', var, val) )
 		elif string.startswith('GET'):
 			if string.find('(') > 0:
-				assert False, 'TODO parse function'
+				assert False, 'TODO parse function: '+string
 			else:
 				var = self._param(string[3:])
 				self.stack[-1].append( ('GET', var) )
@@ -178,7 +178,7 @@ class Template(object):
 			self.stack[-1].append( ('SET', var, val) )
 		else:  # imlicite GET
 			if string.find('(') > 0:
-				assert False, 'TODO parse function'
+				assert False, 'TODO parse function: '+string
 			else:
 				var = self._param(string)
 				self.stack[-1].append( ('GET', var) )

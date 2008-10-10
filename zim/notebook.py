@@ -14,7 +14,7 @@ the 'stores' namespace.
 import weakref
 
 from zim.fs import *
-from zim.utils import Re
+from zim.utils import Re, is_url_re, is_email_re
 import zim.stores
 
 def get_notebook(notebook):
@@ -39,6 +39,7 @@ class Notebook(object):
 		self.namespaces = []
 		self.stores = {}
 		self.page_cache = weakref.WeakValueDictionary()
+		self.dir = None
 
 		if isinstance(path, Dir):
 			self.dir = path
@@ -223,6 +224,11 @@ class Page(object):
 		self.format   = format
 		self._tree    = None
 
+	def __str__(self):
+		return self.name
+
+	def __repr__(self):
+		return '<%s: %>' % (self.__class__.__name__, self.name)
 
 	def get_basename(self):
 		i = self.name.rfind(':') + 1
@@ -286,33 +292,30 @@ class Page(object):
 			namespace = path.join(':')
 			yield Namespace(namespace, self.store)
 
-	interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
-	url_re = Re('^(\w+[\w\+\-\.]+)://')
-	mailto_re = Re('^mailto:|^\S+\@\S+\.\w+$')
+	is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
 
 	def resolve_link(self, link, page=None):
 		'''FIXME'''
-		if interwiki_re.match(link):
+		if is_interwiki_re.match(link):
 			# interwiki aliases, works as a pass through
 			l = self.store.notebook.lookup_interwiki(link)
 			if not l is None:
 				link = l
 
-		if url_re.match(link):
+		if is_url_re.match(link):
 			# URLs of any kind
-			proto = url_re.get().group(1)
+			proto = is_url_re[1]
 			if proto == 'file':
 				link = self.store.resolve_file(link, page)
 			return (proto, link)
-		elif mailto_re.match(link):
+		elif is_email_re.match(link):
 			# email adresses and mailto: URIs
 			if not link.startswith('mailto:'):
 				link = 'mailto:'+link
 			return ('mailto', link)
-		elif intwerwiki_re.match(link):
+		elif is_intwerwiki_re.match(link):
 			# special type in interwiki syntax, e.g. man?ls(1)
-			m = interwiki_re.get()
-			return (m.group(1), m.group(2))
+			return (is_intwerwiki_re[1], is_intwerwiki_re[2])
 		elif link.find('/') >= 0:
 			# if it matches a '/' it must be a file path
 			link = self.store.resolve_file(link, page)
