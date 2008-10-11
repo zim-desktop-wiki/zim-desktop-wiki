@@ -20,31 +20,31 @@ class TestTemplate(TestCase):
 	def testSyntax(self):
 		'''Test Template processing simple statements without page'''
 		file = StringIO('''
-[% SET test  = "foo"  %]
-[% SET true  = "true" %]
-[% SET false = ""     %]
+[%- SET test  = "foo"  -%]
+[%- SET true  = "true" -%]
+[%- SET false = ""     -%]
 ---
 <b>[% test %]</b>
 ---
 [% IF true %]OK[% ELSE %]NOK[% END %]
-[% IF false %]
+[% IF false -%]
 OK
-[% ELSE %]
+[%- ELSE -%]
 NOK
-[% END %]
+[%- END %]
 ---
 [% zim.version %]
 ---
 [% FOREACH name = [ 'foo', 'bar', 'baz' ] -%]
 	NAME = [% GET name %]
-[%- END %]
+[% END -%]
 ---
-[% numbers = ['1', '2', '3'] %]
+[% numbers = ['1', '2', '3'] -%]
 [% FOREACH n IN numbers %][% n %]...[% END %]
 ---
 ''')
 
-		result = '''
+		result = '''\
 ---
 <b>foo</b>
 ---
@@ -66,10 +66,13 @@ NOK
 		#~ pprint.pprint( tmpl.tokens )
 		tmpl.process(None, test)
 		#~ print test.getvalue()
-		self.assertEqual(test.getvalue(), result)
+		self.assertEqualDiff(test.getvalue(), result)
 
 	def testRaise(self):
 		'''Test Template invalid syntax raises TemplateError'''
+		#~ file = StringIO('foo[% ELSE %]bar')
+		#~ try: Template(file, 'html')
+		#~ except TemplateSyntaxError, error: print error
 		file = StringIO('foo[% ELSE %]bar')
 		self.assertRaises(TemplateSyntaxError, Template, file, 'html')
 

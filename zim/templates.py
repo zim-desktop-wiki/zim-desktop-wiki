@@ -44,21 +44,21 @@ Therefore:
 * Function calls are only allowed for functions defined in
   class TemplateFunctions
 * It is not allowed to call object methods (use '@property')
-* We only allow strings as arguments, no aritrary expressions
+* We only allow strings as arguments, no arbitrary expressions
 * There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
 
 import re
 
 import zim
-from zim.utils import data_dirs
+from zim.utils import data_dirs, Re, split_quoted_strings, unescape_quoted_string
 
-# TODO enforce [%- and -%] to remove line endings
 # TODO add a directive [% INCLUDE template_name %]
-# TODO support functions in GET, like strftime()
+
+__all__ = ['list_templates', 'get_template', 'Template', 'TemplateSyntaxError']
 
 def list_templates(format):
-	'''FIXME'''
+	'''Returns a dict mapping template names to file paths.'''
 	templates = {}
 	for dir in data_dirs('templates', format):
 		for file in dir.list():
@@ -71,7 +71,7 @@ def list_templates(format):
 
 
 def get_template(format, name):
-	'''FIXME'''
+	'''Returns a Template object.'''
 	templates = list_templates(format)
 	#~ if not name in templates: FIXME exception type
 		#~ raise
@@ -80,31 +80,52 @@ def get_template(format, name):
 
 
 class TemplateSyntaxError(Exception):
-	'''Error class for errors in templates'''
+	'''Exception used for syntax errors while parsing templates.
+	Will print file path and line number together with the message.
+	'''
+
+	def __init__(self, msg):
+		self.msg = msg
+		self.file = '<unknown file>'
+		self.line = 0
+
+	def __str__(self):
+		return 'Syntax error at "%s" line %i: %s' % \
+						(self.file, self.line, self.msg)
 
 
 class Template(object):
 	'''Template object, maps to a single template file.'''
 
-	def __init__(self, file, format):
-		'''FIXME'''
+	def __init__(self, input, format):
+		'''Constuctor takes a file path or an opened file handle and format.'''
 		self.format = format
-		if isinstance(file, basestring):
-			file = open(file)
-		self.count = 0
-#		try:
-		self._tokenize(file)
-#		except TemplateSyntaxError, error:
-#			print error
-#			print 'Error at %s line %i\n' % (file, self.count)
-
-
-	# Methods for parsing the template
-
-	def _tokenize(self, file):
-		'''Loops trough lines to break it up in text and tokens.'''
+		if isinstance(input, basestring):
+			self.name = input
+			input = open(input)
+		else:
+			self.name = '<open file>'
+		self.lineno = 0
 		self.tokens = []
 		self.stack = [ self.tokens ]
+		self._parse(input)
+
+	def process(self, page, output):
+		'''Ouput 'page' to a file path or file handle using this template.'''
+		if isinstance(output, basestring):
+			output = open(output, 'w')
+
+		dict = TemplateDict();
+		dict['zim'] = { 'version': zim.__version__ }
+		dict['page'] = PageProxy(page, self.format)
+
+		for token in self.tokens:
+			if isinstance(token, TemplateToken):
+				token.process(dict, output)
+			else:
+				output.write(token)
+
+	def _parse(self, input):
 
 		def append_text(text):
 			if not text: return
@@ -114,201 +135,249 @@ class Template(object):
 			else:
 				self.stack[-1].append(text)
 
-		for line in file:
-			self.count += 1
-			linestart = True
+		def append_token(string):
+			string = string.strip()
+			if not string: return False
+			#~ print "TOKEN >>>%s<<<" % string
 
-			while line.find('[%') >= 0:
-				(pre, sep, line) = line.partition('[%')
-				(cmd, sep, line) = line.partition('%]')
-				if not sep:
-					raise TemplateSyntaxError, "unmatched '[%'"
-				append_text(pre)
-				cmd = cmd.strip('-') # allow [%- ... -%] for blocks
-				expand = self._append_token(cmd)
-				if linestart and not expand:
-					 # remove end of line to make blocks look better
-					if line.isspace(): line = ''
-				linestart = False
-
-			append_text(line)
-
-		if len(self.stack) == 1:
-			del self.stack # clean up
-
-	def _append_token(self, string):
-		'''Process a single token and put an action in the token list
-		Returns True if this token will expand to a value.'''
-		string = string.strip()
-		if not string: return False
-		#~ print "TOKEN >>>%s<<<" % string
-
-		if string.startswith('IF'):
-			var = self._param(string[2:])
-			token = ('IF', var, [], [])
-			self.stack[-1].append(token)
-			self.stack.append(token[2])
-		elif string.startswith('ELSE'):
-			self.stack.pop()
-			try:
-				token = self.stack[-1][-1]
-				assert token[0] == 'IF'
-			except:
-				raise TemplateSyntaxError, 'ELSE clause outside IF block'
-			self.stack.append(token[3])
-		elif string.startswith('FOREACH'):
-			(var, val) = self._expr(string[7:], opp='FOREACH')
-			token = ('FOREACH', var, val, [])
-			self.stack[-1].append(token)
-			self.stack.append(token[-1])
-		elif string.startswith('END'):
-			self.stack.pop()
-		elif string.startswith('SET'):
-			(var, val) = self._expr(string[3:])
-			self.stack[-1].append( ('SET', var, val) )
-		elif string.startswith('GET'):
-			if string.find('(') > 0:
-				assert False, 'TODO parse function: '+string
+			if string.startswith('IF'):
+				token = IFToken(string[2:])
+				self.stack[-1].append(token)
+				self.stack.append(token.if_block)
+			elif string.startswith('ELSE'):
+				self.stack.pop()
+				try:
+					token = self.stack[-1][-1]
+					assert isinstance(token, IFToken)
+				except:
+					raise TemplateSyntaxError, 'ELSE outside IF block'
+				self.stack.append(token.else_block)
+			elif string.startswith('FOREACH'):
+				token = FOREACHToken(string[7:])
+				self.stack[-1].append(token)
+				self.stack.append(token.foreach_block)
+			elif string.startswith('END'):
+				if not len(self.stack) > 1:
+					raise TemplateSyntaxError, 'END outside block'
+				self.stack.pop()
 			else:
-				var = self._param(string[3:])
-				self.stack[-1].append( ('GET', var) )
-			return True
-		elif string.find('=') >= 0:	# imlpicite SET
-			(var, val) = self._expr(string)
-			self.stack[-1].append( ('SET', var, val) )
-		else:  # imlicite GET
-			if string.find('(') > 0:
-				assert False, 'TODO parse function: '+string
-			else:
-				var = self._param(string)
-				self.stack[-1].append( ('GET', var) )
-			return True
+				if string.startswith('SET'):
+					token = SETToken(string[3:])
+				elif string.startswith('GET'):
+					token = GETToken(string[3:])
+				elif string.find('=') >= 0:	# imlpicite SET
+					token = SETToken(string)
+				else:  # imlicite GET
+					token = GETToken(string)
+				self.stack[-1].append(token)
 
-		return False # SET and all flow control tokens do not expand
+		try:
+			for line in input:
+				self.lineno += 1
 
-	_param_re = re.compile('\A\w[\w\.]*(?<=\w)\Z')
+				while line.find('[%') >= 0:
+					(pre, sep, line) = line.partition('[%')
+					(cmd, sep, line) = line.partition('%]')
+					if not sep:
+						raise TemplateSyntaxError, "unmatched '[%'"
+					append_text(pre)
+					if cmd.startswith('-'): # '[%-'
+						if isinstance(self.stack[-1][-1], basestring):
+							self.stack[-1][-1] = self.stack[-1][-1].rstrip()
+					if cmd.endswith('-'): # '-%]'
+						line = line.lstrip()
+					cmd = cmd.strip('-')
+					append_token(cmd)
+				append_text(line)
+		except TemplateSyntaxError, error:
+			error.file = self.name
+			error.line = self.lineno
+			raise error
 
-	def _param(self, string):
-		'''Verify string is a valid parameter name.'''
+
+# Private Classes
+
+class TemplateToken(object):
+
+	def parse_expr(self, string):
 		string = string.strip()
-		#~ print '  PARAM >>%s<<' % string
-		if not self._param_re.match(string):
-			raise TemplateSyntaxError, 'not a valid parameter: %s' % string
-		return string
 
-	_args_re = re.compile('''
-		(	\s*
-			(?P<quot>['"])(.*?)(?P=quot) |  # quoted string
-			#~ \w[\w\.]*(?<=\w)              # or param
-		)	[\s\,]*                         # followed by seperators
-	''', re.X)
+		def parse_list(string):
+			list = []
+			for i, w in enumerate(
+				split_quoted_strings(string, unescape=False) ):
+				if i % 2:
+					if w != ',':
+						raise TemplateSyntaxError, string
+				elif w.startswith('"') or w.startswith("'"):
+					list.append(unescape_quoted_string(w))
+				else:
+					list.append(TemplateParam(w))
+			return list
 
-	def _args(self, string):
-		'''Parse simple list of quoted words and param names.'''
-		#~ print '  ARGS >>%s<<' % string
-		args = []
-		def get_arg(match):
-			args.append( match.group(3) )
-			return ''
-		string = self._args_re.sub(get_arg, string)
-		if string:
-			raise TemplateSyntaxError, 'invalid syntax: >>%s<<' % string
-		return args
+		if string.startswith('[') and string.endswith(']'):
+			# list like ['foo', 'bar', page.title]
+			return parse_list(string[1:-1])
+		elif string.startswith('"') or string.startswith("'"):
+			# quoted string
+			return unescape_quoted_string(string)
+		elif string.find('(') > 0:
+			# function like foo('bar', page.title)
+			i = string.find('(')
+			name = string[:i]
+			expr = parse_list(string[i+1:-1])
+			return TemplateFunction(name, expr)
+		else:
+			return TemplateParam(string)
 
-	def _expr(self, string, opp='SET'):
-		'''Parse an assignment expression.'''
+	def process_expr(self, expr, dict):
+		if isinstance(expr, TemplateParam):
+			return dict.get_param(expr)
+		elif isinstance(expr, list):
+			return [self.process_expr(w, dict) for w in expr] # recurs
+		elif isinstance(expr, TemplateFunction):
+			args = self.process_expr(expr.expr, dict) # recurs
+			return expr(args)
+		else: # simple string
+			return expr
+
+	def process_block(self, dict, out, tokens):
+		for token in tokens:
+			if isinstance(token, TemplateToken):
+				token.process(dict, out)
+			else:
+				out.write(token)
+
+
+class GETToken(TemplateToken):
+
+	def __init__(self, string):
+		self.expr = self.parse_expr(string)
+
+	def process(self, dict, out):
+		value = self.process_expr(self.expr, dict)
+		out.write(value)
+
+
+class SETToken(TemplateToken):
+
+	def __init__(self, string):
 		(var, sep, val) = string.partition('=')
-		if not sep and opp == 'FOREACH':
-			# alternative syntax for FOREACH
+		if not sep:
+			raise TemplateSyntaxError, string
+		self.param = TemplateParam(var.strip())
+		self.expr = self.parse_expr(val)
+
+
+	def process(self, dict, out):
+		value = self.process_expr(self.expr, dict)
+		dict.set_param(self.param, value)
+
+
+class IFToken(TemplateToken):
+
+	def __init__(self, string):
+		self.expr = self.parse_expr(string)
+		self.if_block = []
+		self.else_block = []
+
+	def process(self, dict, out):
+		value = self.process_expr(self.expr, dict)
+		if value:
+			self.process_block(dict, out, self.if_block)
+		else:
+			self.process_block(dict, out, self.else_block)
+
+
+class FOREACHToken(TemplateToken):
+
+	def __init__(self, string):
+		(var, sep, val) = string.partition('=')
+		if not sep:
 			(var, sep, val) = string.partition('IN')
 		if not sep:
-			raise TemplateSyntaxError, 'invalid expression: %s' % string
-		# left-hand side is always a var
-		var = self._param(var)
-		val = val.strip()
-		if val.startswith('[') and val.endswith(']'):
-			# [...] must be list
-			val = self._args(val[1:-1])
-		elif opp == 'FOREACH':
-			# FOREACH allows list or parameter
-			val = self._param(val)
-		else:
-			# SET allows list or string
-			val = self._args(val)
-			if len(val) == 1:
-				val = val[0]
-			else:
-				raise TemplateSyntaxError, 'invalid expression: %s' % string
-		return (var, val)
+			raise TemplateSyntaxError, string
+		self.param = TemplateParam(var.strip())
+		self.expr = self.parse_expr(val)
+		self.foreach_block = []
+
+	def process(self, dict, out):
+		values = self.process_expr(self.expr, dict)
+		if not isinstance(values, list):
+			return # TODO warn ?
+		for value in values:
+			dict.set_param(self.param, value)
+			self.process_block(dict, out, self.foreach_block)
 
 
-	# Methods for processing data
+class TemplateParam(object):
 
-	def process(self, page, output):
-		'''FIXME'''
-		self.dict = { 'zim': { 'version': zim.__version__ } }
-		self.dict['page'] = PageProxy(page, self.format)
-		self._process(self.tokens, output)
-		del self.dict # cleanup
+	param_re = re.compile('\A\w[\w]*\Z') # \w includes alnum and "_"
 
-	def _process(self, tree, output):
-		'''FIXME'''
-		for token in tree:
-			if isinstance(token, tuple):
-				if token[0] == 'IF':
-					if self.get_param(token[1]): # IF
-						self._process(token[2], output) #recurs
-					elif len(token) > 3: # ELSE
-						self._process(token[3], output) #recurs
-				elif token[0] == 'FOREACH':
-					(var, val) = token[1:3]
-					if not isinstance(val, list):
-						val = self.get_param(val)
-					if not isinstance(val, list):
-						continue # TODO warn ??
-					for item in val:
-						self.set_param(var, item)
-						self._process(token[3], output) #recurs
-				elif token[0] == 'GET':
-					val = self.get_param(token[1])
-					if val: output.write( val )
-				elif token[0] == 'SET':
-					self.set_param(token[1], token[2])
-			else:
-				# If it is not a token, it is a piece of text
-				output.write(token)
+	def __init__(self, name):
+		self.keys = name.split('.')
+		for k in self.keys:
+			if not self.param_re.match(k):
+				raise TemplateSyntaxError, 'invalid parameter: '+name
 
-	def get_param(self, key):
+
+class TemplateDict(dict):
+
+	def get_param(self, param):
 		'''Used during processing to get a template parameter'''
-		val = self.dict
-		for k in key.split('.'):
-			if k.startswith('_'):
-				# shield private attributes
-				return self._warn('No such parameter: %s' % key)
-			elif isinstance(val, PageProxy):
-				if hasattr(val, k):
-					val = getattr(val, k)
+		assert isinstance(param, TemplateParam)
+		value = self
+		for key in param.keys:
+			if isinstance(value, dict):
+				value = value.get(key, None)
+			elif isinstance(value, object):
+				if hasattr(value, key):
+					val = getattr(val, key)
 				else:
-					return self._warn('No such parameter: %s' % key)
-			elif isinstance(val, dict):
-				val = val.get(k, '')
+					self._warn('No such parameter: %s' % key)
+					return None
 			else:
-				return self._warn('No such parameter: %s' % key)
-		return val
+				self._warn('No such parameter: %s' % key)
+				return None
+		return value
 
-	def set_param(self, key, val):
+	def set_param(self, param, value):
 		'''Used during processing to set a parameter'''
-		if key.find('.') >= 0 or key == 'page' or key == 'zim':
-			# do not allow overwriting defaults or nested keys
-			self._warn('Could not set parameter: %s' % key)
+		assert isinstance(param, TemplateParam)
+		table = self
+		for key in param.keys[0:-1]:
+			if isinstance(table, dict):
+				if not key in table:
+					table[key] = {}
+				table = table[key]
+			else:
+				self._warn('Could not set parameter: %s' % key)
+				return
+		if isinstance(table, dict):
+			table[param.keys[-1]] = value
 		else:
-			self.dict[key] = val
+			self._warn('Could not set parameter: %s' % key)
+			return
 
 	def _warn(self, msg):
 		import sys
 		# TODO add file name and line number
 		print >>sys.stderr, 'WARNING: %s' % msg
-		return None
+		#~ from pprint import pprint
+		#~ pprint(self)
+
+
+class TemplateFunction(object):
+
+	def __init__(self, name, expr):
+		if not hasattr(TemplateFunctions, name):
+			raise TemplateSyntaxError, 'invalid function: '+name
+		self.func = getattr(TemplateFunctions, name)
+		self.expr = expr
+
+	def __call__(self, args):
+		return self.func(*args)
+
 
 class TemplateFunctions(object):
 	'''This class contains functions that can be called from a template.'''
@@ -359,18 +428,3 @@ class PageProxy(object):
 
 	@property
 	def body(self): return self._page.get_text(format=self._format)
-
-
-if __name__ == '__main__':
-	# Some debug code to list and dump templates
-	import sys
-	import pprint
-	if len(sys.argv) == 3:
-		(format, template) = sys.argv[1:3]
-		tmpl = get_template(format, template)
-		pprint.pprint( tmpl.tokens )
-	elif len(sys.argv) == 2:
-		format = sys.argv[1]
-		pprint.pprint( list_templates(format) )
-	else:
-		print 'usage: %s FORMAT [TEMPLATE]' % __file__

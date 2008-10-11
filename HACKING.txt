@@ -63,7 +63,6 @@ store objects which implement the actual data backend.
 * Templates need setting to change the heading level
 * For S5 template need to split body on H1 or HR
 	* FOREACH slide IN page.parts
-* In template rename page.body to page.content ?
 * Base class for both gui and www which takes care of config, plugins etc.
 	* Also use this in zim.py when exporting etc.
 	* Have objects for config sets like preferences and notebook state

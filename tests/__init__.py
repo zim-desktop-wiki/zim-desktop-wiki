@@ -9,7 +9,7 @@ import codecs
 
 from zim.notebook import Notebook
 
-__all__ = ['fs', 'formats', 'templates', 'stores', 'notebook']
+__all__ = ['utils', 'fs', 'formats', 'templates', 'stores', 'notebook']
 
 __unittest = 1 # needed to get stack trace OK for class TestCase
 
@@ -70,7 +70,9 @@ class TestCase(unittest.TestCase):
 			else:
 				from difflib import Differ
 				diff = Differ().compare(
-					first.splitlines(), second.splitlines() )
+					second.splitlines(), first.splitlines() )
+				# switching first and second, because usually second
+				# is the reference we are testing against
 				msg += '\n' + '\n'.join(diff)
 			raise self.failureException, msg.encode('utf8')
 
