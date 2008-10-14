@@ -125,6 +125,8 @@ class Template(object):
 			else:
 				output.write(token)
 
+	_token_re = Re(r'^([A-Z]+)(\s|$)')
+
 	def _parse(self, input):
 
 		def append_text(text):
@@ -165,6 +167,8 @@ class Template(object):
 					token = SETToken(string[3:])
 				elif string.startswith('GET'):
 					token = GETToken(string[3:])
+				elif self._token_re.match(string):
+					raise TemplateSyntaxError, 'Unknown directive: %s' % self._token_re[1]
 				elif string.find('=') >= 0:	# imlpicite SET
 					token = SETToken(string)
 				else:  # imlicite GET
@@ -256,7 +260,11 @@ class GETToken(TemplateToken):
 
 	def process(self, dict, out):
 		value = self.process_expr(self.expr, dict)
-		out.write(value)
+		if not value is None:
+			if isinstance(value, basestring):
+				out.write(value.encode('utf8'))
+			else:
+				out.write(str(value))
 
 
 class SETToken(TemplateToken):
@@ -332,7 +340,7 @@ class TemplateDict(dict):
 				value = value.get(key, None)
 			elif isinstance(value, object):
 				if hasattr(value, key):
-					val = getattr(val, key)
+					value = getattr(value, key)
 				else:
 					self._warn('No such parameter: %s' % key)
 					return None

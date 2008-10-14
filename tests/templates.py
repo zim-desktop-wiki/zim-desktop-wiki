@@ -7,9 +7,9 @@
 from tests import TestCase
 
 import os
-from StringIO import StringIO
 
 import zim
+from zim.fs import *
 from zim.templates import *
 
 class TestTemplate(TestCase):
@@ -25,6 +25,7 @@ class TestTemplate(TestCase):
 [%- SET false = ""     -%]
 ---
 <b>[% test %]</b>
+<i>[% some_none_existing_parameter %]</i>
 ---
 [% IF true %]OK[% ELSE %]NOK[% END %]
 [% IF false -%]
@@ -47,6 +48,7 @@ NOK
 		result = '''\
 ---
 <b>foo</b>
+<i></i>
 ---
 OK
 NOK
@@ -60,7 +62,7 @@ NOK
 1...2...3...
 ---
 ''' % zim.__version__
-		test = StringIO()
+		test = Buffer()
 		tmpl = Template(file, 'html')
 		#~ import pprint
 		#~ pprint.pprint( tmpl.tokens )

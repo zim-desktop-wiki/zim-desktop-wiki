@@ -121,8 +121,12 @@ def export(opts, args):
 		print page.get_text(format=format)
 	else:
 		import zim.templates
-		tmpl = zim.templates.get_template(format, template)
-		tmpl.process(page, sys.stdout)
+		try:
+			tmpl = zim.templates.get_template(format, template)
+		except zim.templates.TemplateSyntaxError, error:
+			print error
+		else:
+			tmpl.process(page, sys.stdout)
 
 
 def server(opts, args):

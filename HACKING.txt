@@ -85,6 +85,7 @@ store objects which implement the actual data backend.
     * The PluginManager keeps references to the plugin objects
 * Backward compatibility with older zim versions
     * Wiki pages without headers use indented paragraphs for Verbatim
+	* Resolve file should also check same dir as page source
 * Txt2tags Parser (and Dumper ?) class
     * Plugin to use txt2tags for multitude of output formats
 * Notebook cache based on sqlite

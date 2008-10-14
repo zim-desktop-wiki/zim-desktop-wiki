@@ -9,6 +9,8 @@
 # TODO check client host for security
 # TODO wrap all calls to notebook in try: except: blocks
 
+from zim.fs import *
+
 class WWW(object):
 	'''Object to handle the WWW interface for zim notebooks'''
 
@@ -21,6 +23,7 @@ class WWW(object):
 
 	def do_GET_index(self, namespace=None):
 		'''Serve the index page'''
+		# TODO wrap index into a page so we can use the same template
 		html = '''
 <html>
 <head>
@@ -72,9 +75,8 @@ class WWW(object):
 				self.reply(200, 'Page not found: %s' % pagename)
 				return
 		else:
-			from StringIO import StringIO
 			if self.template:
-				output = StringIO()
+				output = Buffer()
 				self.template.process(page, output)
 				html = output.getvalue()
 			else:

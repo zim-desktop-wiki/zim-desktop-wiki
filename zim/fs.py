@@ -171,6 +171,10 @@ class Buffer(StringIO):
 
 	The constructor takes an optional callback function. This
 	function is called when the io handle is closed after writing.
+
+	Unlike StringIO we assume everything to be encoded in utf8.
+	Also unlike StringIO objects these objects can be opened and
+	closed multiple times; and getvalue() still works after close.
 	'''
 
 	def __init__(self, text=u'', on_write=None):
@@ -179,6 +183,11 @@ class Buffer(StringIO):
 		self.on_write = on_write
 		self.mode = None
 		StringIO.__init__(self, text)
+
+	def write(self, s):
+		if not isinstance(s, unicode):
+			s = s.decode('utf8')
+		StringIO.write(self, s)
 
 	def exists(self):
 		'''Returns True if the buffer contains any text'''
