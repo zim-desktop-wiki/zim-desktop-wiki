@@ -203,6 +203,8 @@ class Template(object):
 
 class TemplateToken(object):
 
+	__slots__ = []
+
 	def parse_expr(self, string):
 		string = string.strip()
 
@@ -255,6 +257,8 @@ class TemplateToken(object):
 
 class GETToken(TemplateToken):
 
+	__slots__ = ('expr')
+
 	def __init__(self, string):
 		self.expr = self.parse_expr(string)
 
@@ -268,6 +272,8 @@ class GETToken(TemplateToken):
 
 
 class SETToken(TemplateToken):
+
+	__slots__ = ('expr', 'param')
 
 	def __init__(self, string):
 		(var, sep, val) = string.partition('=')
@@ -284,6 +290,8 @@ class SETToken(TemplateToken):
 
 class IFToken(TemplateToken):
 
+	__slots__ = ('expr', 'if_block', 'else_block')
+
 	def __init__(self, string):
 		self.expr = self.parse_expr(string)
 		self.if_block = []
@@ -298,6 +306,8 @@ class IFToken(TemplateToken):
 
 
 class FOREACHToken(TemplateToken):
+
+	__slots__ = ('expr', 'param', 'foreach_block')
 
 	def __init__(self, string):
 		(var, sep, val) = string.partition('=')
@@ -319,6 +329,8 @@ class FOREACHToken(TemplateToken):
 
 
 class TemplateParam(object):
+
+	__slots__ = ('keys')
 
 	param_re = re.compile('\A\w[\w]*\Z') # \w includes alnum and "_"
 
@@ -376,6 +388,8 @@ class TemplateDict(dict):
 
 
 class TemplateFunction(object):
+
+	__slots__ = ('func', 'expr')
 
 	def __init__(self, name, expr):
 		if not hasattr(TemplateFunctions, name):

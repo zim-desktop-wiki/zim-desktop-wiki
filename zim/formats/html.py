@@ -40,7 +40,6 @@ class Dumper(DumperClass):
 
 	def html_encode(self, text):
 		text = text.replace('&', '&amp;')
-		text = text.replace('"', '&quot;')
 		text = text.replace('<', '&lt;')
 		text = text.replace('>', '&gt;')
 		return text

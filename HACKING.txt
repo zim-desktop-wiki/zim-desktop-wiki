@@ -62,11 +62,11 @@ store objects which implement the actual data backend.
 	* Used e.g. in Presentation template to put title in separate bar
 * Templates need setting to change the heading level
 * For S5 template need to split body on H1 or HR
-	* FOREACH slide IN page.parts
+	* FOREACH slide IN page.sections
 * Base class for both gui and www which takes care of config, plugins etc.
 	* Also use this in zim.py when exporting etc.
 	* Have objects for config sets like preferences and notebook state
-	* Does a method like "data_dirs" also belong here ?
+	* Does a method like "data_dirs" also belong here ? No - control through env
 * Event framework, both for application and notebook - needed for plugins
 * Check client hostname and add a --public option (default localhost only)
 * Implement editing from www (default is read-only)

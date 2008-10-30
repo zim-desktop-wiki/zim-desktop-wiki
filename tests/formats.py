@@ -145,7 +145,7 @@ class TestHtmlFormat(TestCase):
 	def testEncoding(self):
 		'''Test HTML encoding'''
 		text = '<foo>"foo" & "bar"</foo>'
-		encode = '&lt;foo&gt;&quot;foo&quot; &amp; &quot;bar&quot;&lt;/foo&gt;'
+		encode = '&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;'
 		tree = NodeTree([ TextNode(text) ])
 		html = Buffer()
 		self.format.Dumper(self.page).dump(tree, html)

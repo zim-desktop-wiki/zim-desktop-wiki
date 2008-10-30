@@ -89,8 +89,8 @@ class TestFiles(TestStoresMemory):
 		TestStoresMemory.__init__(self, *args, **opts)
 		self.dir = Dir(['tmp', 'store-files'])
 		if self.dir.exists():
-			print 'WARNING: Data not cleaned up after previous run'
 			shutil.rmtree(self.dir.path)
+			assert not self.dir.exists(), 'Data is cleaned up'
 		self.mem = self.store
 		store = zim.stores.get_store('files')
 		self.store = store.Store(
@@ -100,8 +100,5 @@ class TestFiles(TestStoresMemory):
 			if page.isempty():
 				continue
 			self.store.clone_page(page.name, page)
-
-	#~ def __del__(self):
-		#~ shutil.rmtree(self.dir.path)
 
 	# TODO test move, delete, read, write

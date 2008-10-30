@@ -152,7 +152,7 @@ kind of firewall your notes are now open to the whole wide world.
 			raise OptionError, 'can not use %s with --server' % o
 
 	if not len(args) == 1:
-		raise UsageError, '--serve NOTEBOOK'
+		raise UsageError, '--server NOTEBOOK'
 
 	notebook = zim.notebook.get_notebook(args[0])
 	zim.www.serve(port, notebook=notebook, template=template)
