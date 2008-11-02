@@ -75,6 +75,7 @@ store objects which implement the actual data backend.
 == Towards full capabilities ==
 
 * parse List nodes into parse tree
+	* Implement checkbox lists
 * Implement moving pages
 	* Logic for updating links
 	* Include sub pages and attachments
@@ -93,6 +94,18 @@ store objects which implement the actual data backend.
     * Make sure not to auto-vivicate cache to quickly
 * Store type for reading from .tar.gz files
 
+=== file links for www ===
+
+When serving:
+* attachments should be served - link needs to be from server root
+* files under doc root (if any) should be served - idem
+* all other files get linked as file:/// urls
+
+When exporting:
+* attachments should be copied - link should be reative file path from html file
+* doc root never needs to be copied, absolute path or use doc_root url setting
+* other files maybe copied or linked with absolute path
+
 
 ====== Changes from zim < 0.60 ======
 
@@ -110,3 +123,44 @@ store objects which implement the actual data backend.
 * Templates now use "[%-" and "-%]" to remove linebreaks around tags
 * Templates no longer have a "page.heading" variable
 * Html templates need css "p { white-space: pre }" to render same as zim
+
+====== Parse Tree ======
+
+Parse trees are build using the (c)ElementTree module (included in
+python 2.5 as xml.etree.ElementTree). It is basically a xml structure
+supporting a subset of "html like" tags.
+
+Supported tags:
+
+* page root element for grouping paragraphs
+* p for paragraphs
+* h	for heading, level attribute can be 1..6
+* pre for verbatim paragraphs (no further parsing in these blocks)
+* em for emphasis, rendered italic by default
+* strong for strong emphasis, rendered bold by default
+* mark for highlighted text, renderd with background color or underlined
+* strike for text that is removed, usually renderd as strike through
+* code for inline verbatim text
+* ul for bullet lists
+* .. for checkbox lists
+* li for list items
+* a for links, attribute href gives the target
+* img for images, attributes src, width, height an optionally href
+	* any text set on these elements should be rendered as alt
+	* class can be used to control plugin functionality, e.g. class=latex-equation
+
+Unless html we respect line breaks and other whitespace as is.
+When rendering as html use the "white-space: pre" CSS definition to
+get the same effect.
+
+Since elements are based on the functional markup instead of visual
+markup it is not allowed to nest elements in arbitrary ways.
+
+TODO: allow links to be nested in other elements
+TODO: allow strike to have sub elements
+TODO: allow classes to set hints for visual rendering and other interaction
+TODO: add HR element
+TODO: ol for numbered lists
+
+If a page starts with a h1 this heading is considered the page title,
+else we can fall back to the page name as title.

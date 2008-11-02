@@ -9,6 +9,8 @@
 # TODO check client host for security
 # TODO wrap all calls to notebook in try: except: blocks
 
+# TODO setting for doc_root_url when running in CGI mode
+
 from zim.fs import *
 
 class WWW(object):

@@ -10,7 +10,7 @@ import unittest
 
 import tests
 
-# TODO overload one of the unittest classes to test add file names 
+# TODO overload one of the unittest classes to test add file names
 
 def main(argv=None):
 	'''Run either all tests, or those specified in argv'''
@@ -25,6 +25,7 @@ def main(argv=None):
 	suite = unittest.TestSuite()
 
 	for name in modules:
+		print ">>> %s" % name
 		test = unittest.defaultTestLoader.loadTestsFromName(name)
 		suite.addTest(test)
 

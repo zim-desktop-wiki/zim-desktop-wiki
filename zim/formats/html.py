@@ -16,74 +16,73 @@ CSS in your template if you want to preserve tabs and linebreaks.
 from zim.fs import *
 from zim.formats import *
 
-__format__ = 'html'
-
-tags = {
-	'italic': 'i',
-	'bold': 'b',
-	'underline': 'u',
-	'strike': 'strike',
-	'verbatim': 'tt',
-	'head1': 'h1',
-	'head2': 'h2',
-	'head3': 'h3',
-	'head4': 'h4',
-	'head5': 'h5',
+meta = {
+	'name':  'Html',
+	'mime':  'text/html',
+	'read':	  False,
+	'write':  False,
+	'import': False,
+	'export': True,
 }
 
-class Dumper(DumperClass):
 
-	def url_encode(self, link):
+def url_encode(link):
+	if not link is None:
 		link.replace(' ', '%20')
 		# FIXME what other chars do we need ?
 		return link
+	else:
+		return ''
 
-	def html_encode(self, text):
+
+def html_encode(text):
+	if not text is None:
 		text = text.replace('&', '&amp;')
 		text = text.replace('<', '&lt;')
 		text = text.replace('>', '&gt;')
 		return text
+	else:
+		return ''
+
+
+class Dumper(DumperClass):
 
 	def dump(self, tree, output):
-		assert isinstance(tree, NodeTree)
+		assert isinstance(tree, ElementTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
-		self.dump_nodelist(tree, file)
+		self.dump_children(tree.getroot(), file, top=True)
 		file.close()
 
-	def dump_nodelist(self, list, file):
+	def dump_children(self, list, file, top=False):
 		'''FIXME'''
-		for node in list:
-			if isinstance(node, NodeList):
+		for element in list.getchildren():
+			text = html_encode(element.text)
+
+			if element.tag == 'p':
 				file.write('<p>\n')
-				self.dump_nodelist(node, file) # recurs
-				file.write('</p>\n')
-			elif isinstance(node, HeadingNode):
-				style = 'head%i'% node.level
-				tag = tags[style]
-				text = self.html_encode(node.string)
-				file.write('<'+tag+'>'+text+'</'+tag+'>')
-			elif isinstance(node, ImageNode):
-				src = self.url_encode(node.src)
-				if node.string:
-					text = self.html_encode(node.string)
-				else:
-					text = ''
-				file.write('<img src="%s" alt="%s">' % (src, text))
-				pass
-			elif isinstance(node, LinkNode):
-				href = self.url_encode(node.link)
-				text = self.html_encode(node.string)
-				file.write('<a href="%s">%s</a>' % (href, text))
-			elif isinstance(node, TextNode):
-				style = node.style
-				text = self.html_encode(node.string)
-				if not style:
+				if text:
 					file.write(text)
-				elif style == 'Verbatim':
-					file.write('<pre>\n'+text+'</pre>\n')
-				else:
-					tag = tags[style]
-					file.write('<'+tag+'>'+text+'</'+tag+'>')
+				self.dump_children(element, file) # recurs
+				file.write('</p>\n')
+			elif element.tag == 'h':
+				tag = 'h' + str(element.attrib['level'])
+				file.write('<'+tag+'>'+text+'</'+tag+'>')
+			elif element.tag == 'pre':
+				file.write('<pre>\n'+text+'</pre>\n')
+			elif element.tag == 'img':
+				src = url_encode(element.attrib['src'])
+				file.write('<img src="%s" alt="%s">' % (src, text))
+			elif element.tag == 'a':
+				href = url_encode(element.attrib['href'])
+				file.write('<a href="%s">%s</a>' % (href, text))
+			elif element.tag in ['em', 'strong', 'mark', 'strike', 'code']:
+				if element.tag == 'mark': tag = 'u'
+				else: tag = element.tag
+				file.write('<'+tag+'>'+text+'</'+tag+'>')
 			else:
 				assert False, 'Unknown node type: '+node.__str__()
+
+			if not element.tail is None:
+				tail = html_encode(element.tail)
+				file.write(tail)

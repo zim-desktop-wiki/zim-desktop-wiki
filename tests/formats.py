@@ -35,6 +35,7 @@ LINKS: [[:foo:bar]] [[./file.png]] [[file:///etc/passwd]]
 	paragraphs go here ...
 
 Let's try these **bold**, //italic//, __underline__ and ~~strike~~
+And some ''//verbatim//''
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 
 And some utf8 bullet items
@@ -42,6 +43,10 @@ And some utf8 bullet items
 • bar
 
 • baz
+
+----
+
+====
 
 That's all ...
 """
@@ -54,11 +59,11 @@ class TestTextFormat(TestCase):
 
 	def testRoundtrip(self):
 		tree = self.format.Parser(self.page).parse( Buffer(wikitext) )
-		self.assertTrue(isinstance(tree, NodeTree))
-		#~ print '\n', tree
+		self.assertTrue(isinstance(tree, ElementTree))
+		self.assertTrue(tree.getroot().tag == 'page')
+		#~ print '>>>\n'+serialize_tree(tree)+'\n<<<\n'
 		output = Buffer()
 		self.format.Dumper(self.page).dump(tree, output)
-		#~ print '\n', '='*10, '\n', self.format, '\n', '-'*10, '\n', output
 		self.assertEqualDiff(output.getvalue(), wikitext)
 
 
@@ -71,69 +76,46 @@ class TestWikiFormat(TestTextFormat):
 
 	def testParsing(self):
 		'''Test wiki parse tree generation.'''
-		tree = NodeTree( [
-			HeadingNode(1, 'Head1'),
-			TextNode('\n'),
-			HeadingNode(2, 'Head 2'),
-			TextNode('\n'),
-			NodeList( [TextNode('''\
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+		tree = u'''\
+<?xml version='1.0' encoding='utf8'?>
+<page><h level="1">Head1</h>
+<h level="2">Head 2</h>
+<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
 eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
 ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
 aliquip ex ea commodo consequat. Duis aute irure dolor in
 reprehenderit in voluptate velit esse cillum dolore eu fugiat
 nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum.
-''' )] ),
-			TextNode('\n'),
-			TextNode('''\
-Some Verbatim here
+</p>
+<pre>Some Verbatim here
 
 	Indented and all: //foo//
-''', style='Verbatim' ),
-			TextNode('\n'),
-			NodeList( [
-				TextNode('IMAGE: '),
-				ImageNode('../my-image.png', text='Foo Bar'),
-				TextNode('\nLINKS: '),
-				LinkNode(':foo:bar', link=':foo:bar'),
-				TextNode(' '),
-				LinkNode('./file.png', link='./file.png'),
-				TextNode(' '),
-				LinkNode('file:///etc/passwd', link='file:///etc/passwd'),
-				TextNode('\n'),
-			] ),
-			TextNode('\n'),
-			NodeList( [TextNode('''\
-	Some indented
+</pre>
+<p>IMAGE: <img src="../my-image.png">Foo Bar</img>
+LINKS: <a href=":foo:bar">:foo:bar</a> <a href="./file.png">./file.png</a> <a href="file:///etc/passwd">file:///etc/passwd</a>
+</p>
+<p>	Some indented
 	paragraphs go here ...
-''' )] ),
-			TextNode('\n'),
-			NodeList( [
-				TextNode('''Let's try these '''),
-				TextNode('bold', style='bold'),
-				TextNode(', '),
-				TextNode('italic', style='italic'),
-				TextNode(', '),
-				TextNode('underline', style='underline'),
-				TextNode(' and '),
-				TextNode('strike', style='strike'),
-				TextNode('''\nAnd don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_\n'''),
-			] ),
-			TextNode('\n'),
-			NodeList( [
-				TextNode(u'''\
-And some utf8 bullet items
+</p>
+<p>Let's try these <strong>bold</strong>, <em>italic</em>, <mark>underline</mark> and <strike>strike</strike>
+And some <code>//verbatim//</code>
+And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
+</p>
+<p>And some utf8 bullet items
 • foo
 • bar
-''' ) ] ),
-			TextNode('\n'),
-			NodeList([ TextNode(u'• baz\n') ]),
-			TextNode('\n'),
-			NodeList([ TextNode('''That's all ...\n''') ])
-		] )
+</p>
+<p>• baz
+</p>
+<p>----
+</p>
+<p>====
+</p>
+<p>That's all ...
+</p></page>'''
 		t = self.format.Parser(self.page).parse( Buffer(wikitext) )
-		self.assertEqualDiff(t.__str__(), tree.__str__())
+		self.assertEqualDiff(serialize_tree(t), tree)
 
 
 class TestHtmlFormat(TestCase):
@@ -144,12 +126,14 @@ class TestHtmlFormat(TestCase):
 
 	def testEncoding(self):
 		'''Test HTML encoding'''
-		text = '<foo>"foo" & "bar"</foo>'
-		encode = '&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;'
-		tree = NodeTree([ TextNode(text) ])
+		page = Element('page')
+		para = SubElement(page, 'p')
+		para.text = '<foo>"foo" & "bar"</foo>'
+		tree = ElementTree(page)
 		html = Buffer()
 		self.format.Dumper(self.page).dump(tree, html)
-		self.assertEqual(html.getvalue(), encode)
+		self.assertEqual(html.getvalue(),
+			'<p>\n&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;</p>\n' )
 
 	def testExport(self):
 		'''Test exporting wiki format to Html'''
@@ -187,7 +171,8 @@ LINKS: <a href=":foo:bar">:foo:bar</a> <a href="./file.png">./file.png</a> <a hr
 </p>
 
 <p>
-Let's try these <b>bold</b>, <i>italic</i>, <u>underline</u> and <strike>strike</strike>
+Let's try these <strong>bold</strong>, <em>italic</em>, <u>underline</u> and <strike>strike</strike>
+And some <code>//verbatim//</code>
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 </p>
 
@@ -199,6 +184,14 @@ And some utf8 bullet items
 
 <p>
 • baz
+</p>
+
+<p>
+----
+</p>
+
+<p>
+====
 </p>
 
 <p>

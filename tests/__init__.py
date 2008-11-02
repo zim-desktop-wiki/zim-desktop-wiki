@@ -17,6 +17,19 @@ def get_notebook_data(format):
 	'''Generator function for test data'''
 	assert format == 'wiki' # No other formats available for now
 	file = codecs.open('tests/data/notebook-wiki.txt', encoding='utf8')
+
+	# Read manifest
+	manifest = []
+	for line in file:
+		if line.isspace(): break
+		manifest.append(line.strip())
+
+	i = 0
+	def check_manifest(name):
+		print "%i: %s\n" % (i, name)
+		assert manifest[i] == name
+		i += 1
+
 	pagename = None
 	buffer = u''
 	for line in file:
@@ -25,6 +38,7 @@ def get_notebook_data(format):
 			if not pagename is None:
 				yield (pagename, buffer)
 			pagename = line.strip('% \n')
+			#~ check_manifest(pagename)
 			buffer = u''
 		else:
 			buffer += line

@@ -183,3 +183,5 @@ if __name__ == '__main__':
 		sys.exit(1)
 	else:
 		sys.exit(0)
+else:
+	raise ImportError, "The zim script can not be imported"

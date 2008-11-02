@@ -9,37 +9,45 @@ import re
 from zim.fs import *
 from zim.formats import *
 
-__format__ = 'plain'
+meta = {
+	'name':  'Plain text',
+	'mime':  'text/plain',
+	'read':	  True,
+	'write':  True,
+	'import': True,
+	'export': True,
+}
 
 
 class Parser(ParserClass):
 
 	# TODO parse constructs like *bold* and /italic/ same as in email,
 	# but do not remove the "*" and "/", just display text 1:1
+	# idem for linking urls etc.
 
 	def parse(self, input):
 		'''FIXME'''
 		assert isinstance(input, (File, Buffer))
+		page = Element('page')
+		para = SubElement(page, 'p')
+
 		file = input.open('r')
-
-		text = file.read()
-		tree = NodeTree()
-		tree.append( TextNode(text) )
-
+		para.text = file.read()
 		file.close()
-		return tree
+
+		return ElementTree(page)
 
 
 class Dumper(DumperClass):
 
 	def dump(self, tree, output):
 		'''FIXME'''
-		assert isinstance(tree, NodeTree)
+		assert isinstance(tree, ElementTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
 
-		for node in tree.walk():
-			assert isinstance(node, TextNode)
-			file.write(node.string)
+		for element in tree.getiterator():
+			if not element.text is None:
+				file.write(element.text)
 
 		file.close()

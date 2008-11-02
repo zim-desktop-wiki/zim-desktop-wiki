@@ -1,3 +1,9 @@
+:Test:foo
+:Test:foo:bar
+:Test:wiki
+:TODOList:bar
+:TODOList:foo
+
 %%%% :Test:wiki %%%%
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26

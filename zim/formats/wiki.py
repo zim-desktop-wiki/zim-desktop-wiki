@@ -13,27 +13,27 @@ __format__ = 'wiki'
 
 parser_re = {
 	'blockstart': re.compile("\A(''')\s*?\n"),
-	'Verbatim':   re.compile("\A'''\s*?(^.*?)^'''\s*\Z", re.M | re.S),
+	'pre':        re.compile("\A'''\s*?(^.*?)^'''\s*\Z", re.M | re.S),
 	'splithead':  re.compile('^(==+\s+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)\s+(.*?)(\s+==+)?\s*)\Z"),
 
 	# All the experssions below will match the inner pair of
 	# delimiters if there are more then two characters in a row.
-	'link':       re.compile('\[\[(?!\[)(.+?)\]\]'),
-	'image':      re.compile('\{\{(?!\{)(.+?)\}\}'),
-	'italic':     re.compile('//(?!/)(.+?)//'),
-	'bold':       re.compile('\*\*(?!\*)(.+?)\*\*'),
-	'underline':  re.compile('__(?!_)(.+?)__'),
-	'strike':     re.compile('~~(?!~)(.+?)~~'),
-	'verbatim':   re.compile("''(?!')(.+?)''"),
+	'a':      re.compile('\[\[(?!\[)(.+?)\]\]'),
+	'img':    re.compile('\{\{(?!\{)(.+?)\}\}'),
+	'em':     re.compile('//(?!/)(.+?)//'),
+	'strong': re.compile('\*\*(?!\*)(.+?)\*\*'),
+	'mark':   re.compile('__(?!_)(.+?)__'),
+	'strike': re.compile('~~(?!~)(.+?)~~'),
+	'code':   re.compile("''(?!')(.+?)''"),
 }
 
 dumper_tags = {
-	'italic':    '/',
-	'bold':      '*',
-	'underline': '_',
-	'strike':    '~',
-	'verbatim':  "'",
+	'em':     '//',
+	'strong': '**',
+	'mark':   '__',
+	'strike': '~~',
+	'code':   "''",
 }
 
 class Parser(ParserClass):
@@ -69,53 +69,59 @@ class Parser(ParserClass):
 				if para_start():
 					para_isspace = line.isspace() # decide type of new para
 			paras[-1] += line
+		file.close()
 
 		# Now all text is read, start wrapping it into a document tree.
 		# First check for meta data at the top of the file
-		tree = NodeTree()
+		builder = TreeBuilder()
 		if self.matches_rfc822_headers(paras[0]):
-			headers = paras.pop(0)
-			tree.headers = self.parse_rfc822_headers( headers )
+			headers = self.parse_rfc822_headers( paras.pop(0) )
 			if paras[0].isspace: paras.pop(0)
+			builder.start('page', headers)
+		else:
+			builder.start('page')
 
 		# Then continue with all other contents
 		# Headings can still be in the middle of a para, so get them out.
 		for para in paras:
 			if parser_re['blockstart'].search(para):
-				tree.append( self.parse_block(para) )
+				self._parse_block(builder, para)
 			else:
 				parts = parser_re['splithead'].split(para)
 				for i, p in enumerate(parts):
 					if i % 2:
 						# odd elements in the list are headings after split
-						tree.append( self.parse_head(p) )
+						self._parse_head(builder, p)
 					elif len(p) > 0:
-						tree.append( self.parse_para(p) )
+						self._parse_para(builder, p)
 
-		file.close()
-		return tree
+		builder.end('page')
+		return ElementTree(builder.close())
 
-	def parse_block(self, block):
-		m = parser_re['Verbatim'].match(block)
-		assert m, 'Block does not match Verbatim'
-		return TextNode(m.group(1), style='Verbatim')
+	def _parse_block(self, builder, block):
+		m = parser_re['pre'].match(block)
+		assert m, 'Block does not match pre'
+		builder.start('pre')
+		builder.data(m.group(1))
+		builder.end('pre')
 
-	def parse_head(self, head):
+	def _parse_head(self, builder, head):
 		m = parser_re['heading'].match(head)
 		assert m, 'Line does not match a heading: '+head
 		level = 7 - min(6, len(m.group(2)))
-		head = m.group(3)
-		node = HeadingNode(level, head)
-		return node
+		builder.start('h', {'level': level})
+		builder.data(m.group(3))
+		builder.end('h')
 
-	def parse_para(self, para):
+	def _parse_para(self, builder, para):
 		if para.isspace():
-			return TextNode(para)
+			builder.data(para)
+			return
 
 		list = [para]
 		list = self.walk_list(
-				list, parser_re['verbatim'],
-				lambda match: TextNode(match, style='verbatim') )
+				list, parser_re['code'],
+				lambda match: ('code', {}, match) )
 
 		def parse_link(match):
 			parts = match.split('|', 2)
@@ -128,9 +134,9 @@ class Parser(ParserClass):
 					link = text
 			#if email_re.match(link) and not link.startswith('mailto:'):
 			#		link = 'mailto:'+link
-			return LinkNode(text, link=link)
+			return ('a', {'href':link}, text)
 
-		list = self.walk_list(list, parser_re['link'], parse_link)
+		list = self.walk_list(list, parser_re['a'], parse_link)
 
 		def parse_image(match):
 			parts = match.split('|', 2)
@@ -139,22 +145,26 @@ class Parser(ParserClass):
 				text = parts[1]
 			else:
 				text = None
-			return ImageNode(src, text=text)
+			return ('img', {'src':src}, text)
 
-		list = self.walk_list(list, parser_re['image'], parse_image)
+		list = self.walk_list(list, parser_re['img'], parse_image)
 
-		for style in 'italic', 'bold', 'underline', 'strike':
+		for style in 'em', 'strong', 'mark', 'strike':
 			list = self.walk_list(
 					list, parser_re[style],
-					lambda match: TextNode(match, style=style) )
+					lambda match: (style, {}, match) )
 
 		# TODO: urls
 
-		for i, v in enumerate(list):
-			if not isinstance(v, TextNode):
-				list[i] = TextNode(v)
-
-		return NodeList(list)
+		builder.start('p')
+		for part in list:
+			if isinstance(part, tuple):
+				builder.start(part[0], part[1])
+				builder.data(part[2])
+				builder.end(part[0])
+			else:
+				builder.data(part)
+		builder.end('p')
 
 
 class Dumper(DumperClass):
@@ -162,35 +172,47 @@ class Dumper(DumperClass):
 
 	def dump(self, tree, output):
 		'''FIXME'''
-		assert isinstance(tree, NodeTree)
+		assert isinstance(tree, ElementTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
+		headers = self.dump_rfc822_headers(tree.getroot().attrib)
+		file.write(headers)
+		self.dump_children(tree.getroot(), file)
+		file.close()
 
-		file.write( self.dump_rfc822_headers(tree.headers) )
-		for node in tree.walk():
-			if isinstance(node, HeadingNode):
-				tag = '='*(7-node.level)
-				file.write(tag+' '+node.string+' '+tag+'\n')
-			elif isinstance(node, ImageNode):
-				if node.string:
-					file.write('{{'+node.src+'|'+node.string+'}}')
+	def dump_children(self, list, file):
+		'''FIXME'''
+
+		for element in list.getchildren():
+			if element.tag in ['page', 'p']:
+				if element.text:
+					file.write(element.text)
+				self.dump_children(element, file) # recurs
+			elif element.tag == 'h':
+				tag = '='*(7-int(element.attrib['level']))
+				file.write(tag+' '+element.text+' '+tag+'\n')
+			elif element.tag == 'pre':
+				file.write("'''\n"+element.text+"'''\n")
+			elif element.tag == 'img':
+				src = element.attrib['src']
+				if element.text:
+					file.write('{{'+src+'|'+element.text+'}}')
 				else:
-					file.write('{{'+node.src+'}}')
-			elif isinstance(node, LinkNode):
-				if node.link == node.string:
-					file.write('[['+node.link+']]')
+					file.write('{{'+src+'}}')
+			elif element.tag == 'a':
+				href = element.attrib['href']
+				if href == element.text:
+					file.write('[['+href+']]')
 				else:
-					file.write('[['+node.link+'|'+node.string+']]')
-			elif isinstance(node, TextNode):
-				if node.style is None:
-					file.write(node.string)
-				elif node.style == 'Verbatim':
-					file.write("'''\n"+node.string+"'''\n")
-				else:
-					tag = dumper_tags[node.style]
-					file.write(tag*2+node.string+tag*2)
+					file.write('[['+href+'|'+element.text+']]')
+			elif element.tag in dumper_tags:
+				tag = dumper_tags[element.tag]
+				file.write(tag+element.text+tag)
 			else:
 				assert False, 'Unknown node type: '+node.__str__()
 
-		file.close()
+			if element.tail:
+				file.write(element.tail)
+
+
 
