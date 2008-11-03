@@ -44,12 +44,9 @@ store objects which implement the actual data backend.
 
 == General health ==
 
-* In setup.py and zim.py check for python >= 2.5
-* move zim.py code to zim/__init__.py
+* how to pacakge zim executable (zim.py) and zim/ directory ?
 * Make zim.py also accept files as notebook types (e.g. gjots, .tar.gz etc)
 * Wrapper for coverage.py to generate dir with html highlighting
-* Object that acts as dict but keeps order of items
-   	* Needed e.g. for writing headers of wiki page
 
 == Getting server up and running ==
 
@@ -61,8 +58,10 @@ store objects which implement the actual data backend.
 * Templates need setting to remove title from tree
 	* Used e.g. in Presentation template to put title in separate bar
 * Templates need setting to change the heading level
+	* need test for ParseTree.cleanup_headings()
 * For S5 template need to split body on H1 or HR
 	* FOREACH slide IN page.sections
+	* want to be able to cleanup headings per slide...
 * Base class for both gui and www which takes care of config, plugins etc.
 	* Also use this in zim.py when exporting etc.
 	* Have objects for config sets like preferences and notebook state

@@ -96,7 +96,7 @@ class Parser(ParserClass):
 						self._parse_para(builder, p)
 
 		builder.end('page')
-		return ElementTree(builder.close())
+		return ParseTree(builder.close())
 
 	def _parse_block(self, builder, block):
 		m = parser_re['pre'].match(block)
@@ -112,6 +112,7 @@ class Parser(ParserClass):
 		builder.start('h', {'level': level})
 		builder.data(m.group(3))
 		builder.end('h')
+		builder.data('\n')
 
 	def _parse_para(self, builder, para):
 		if para.isspace():
@@ -172,7 +173,7 @@ class Dumper(DumperClass):
 
 	def dump(self, tree, output):
 		'''FIXME'''
-		assert isinstance(tree, ElementTree)
+		assert isinstance(tree, ParseTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
 		headers = self.dump_rfc822_headers(tree.getroot().attrib)
@@ -189,8 +190,11 @@ class Dumper(DumperClass):
 					file.write(element.text)
 				self.dump_children(element, file) # recurs
 			elif element.tag == 'h':
-				tag = '='*(7-int(element.attrib['level']))
-				file.write(tag+' '+element.text+' '+tag+'\n')
+				level = int(element.attrib['level'])
+				if level < 1:   level = 1
+				elif level > 5: level = 5
+				tag = '='*(7 - level)
+				file.write(tag+' '+element.text+' '+tag)
 			elif element.tag == 'pre':
 				file.write("'''\n"+element.text+"'''\n")
 			elif element.tag == 'img':

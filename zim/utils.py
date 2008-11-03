@@ -106,3 +106,18 @@ class Re(object):
 # Some often used regexes
 is_url_re   = Re('^(\w[\w\+\-\.]+)://')
 is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')
+
+class ListDict(dict):
+	'''Class that behaves like a dict but keeps items in same order'''
+
+	def __init__(self):
+		self.order = []
+
+	def __setitem__(self, k, v):
+		dict.__setitem__(self, k, v)
+		if not k in self.order:
+			self.order.append(k)
+
+	def items(self):
+		for k in self.order:
+			yield (k, self[k])

@@ -9,32 +9,22 @@ For format modules it is safe to import '*' from this module.
 NOTE: To avoid confusion: "headers" refers to meta data, usually in
 the form of rfc822 headers at the top of a page. But "heading" refers
 to a title or subtitle in the document.
-
-----
-Top level parse tree must be of type NodeTree. Each Item in NodeTree
-can be either a NodeList to group a paragraph, a TextNode containing
-whitespace between the paragraphs, a HeaderNode or an ImageNode.
-
-Each nodelist should exists of one or more TextNode, LinkNode or
-ImageNode items. HeaderNodes are not allowed here, also no nested
-ListNodes.
-
-Each TextNode has exactly one style property.
 '''
 
 import re
 
 try:
-	import xml.etree.cElementTree as ETree
+	import xml.etree.cElementTree as ElementTreeModule
 	from xml.etree.cElementTree import \
-		ElementTree, Element, SubElement, TreeBuilder
+		Element, SubElement, TreeBuilder
 except:
 	#~ debug("Failed loading cElementTree, fall back to ElementTree")
-	import xml.etree.ElementTree as ETree
+	import xml.etree.ElementTree as ElementTreeModule
 	from xml.etree.ElementTree import \
-		ElementTree, Element, SubElement, TreeBuilder
+		Element, SubElement, TreeBuilder
 
 from zim.fs import Buffer
+from zim.utils import ListDict
 
 
 def get_format(name):
@@ -45,12 +35,44 @@ def get_format(name):
 	mod = getattr(mod, name)
 	return mod
 
-def serialize_tree(tree):
-	for element in tree.getiterator('h'):
-		element.attrib['level'] = str(element.attrib['level'])
-	output = Buffer()
-	tree.write(output, 'utf8')
-	return output.getvalue()
+
+class ParseTree(ElementTreeModule.ElementTree):
+	'''Wrapper for zim parse trees, derives from ElementTree.'''
+
+	def fromstring(self, string):
+		'''Set the contents of this tree from XML representation.'''
+		input = Buffer(string)
+		return self.parse(input) # Replaces current tree if any
+
+	def tostring(self):
+		'''Serialize the tree to a XML representation.'''
+		output = Buffer()
+		self.write(output)
+		return output.getvalue()
+
+	def write(self, file, encoding='utf8'):
+		'''Write XML representation to file'''
+		# Parent dies when we have attributes that are not a string
+		for heading in self.getiterator('h'):
+			heading.attrib['level'] = str(heading.attrib['level'])
+		return ElementTreeModule.ElementTree.write(self, file, encoding)
+
+	def cleanup_headings(self, offset=0, max=6):
+		path = []
+		for heading in self.getiterator('h'):
+			level = int(heading.attrib['level'])
+			# find parent header in path using old level
+			while path and path[-1][0] >= level:
+				path.pop()
+			if not path:
+				newlevel = offset+1
+			else:
+				newlevel = path[-1][1] + 1
+			if newlevel > max:
+				newlevel = max
+			heading.level = newlevel
+			path.append((level, newlevel))
+
 
 class ParserClass(object):
 	'''Base class for parsers
@@ -88,7 +110,7 @@ class ParserClass(object):
 		Uses rfc822 style header syntax including continuation lines.
 		All headers are made case insesitive using string.title().
 		'''
-		headers = {}
+		headers = ListDict()
 		header = None
 		assert self.matches_rfc822_headers(text), 'Not a header block'
 		for line in text.splitlines():

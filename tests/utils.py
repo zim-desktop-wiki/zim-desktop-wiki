@@ -27,3 +27,11 @@ class testUtils(TestCase):
 			self.assertEquals(re[2], 'bar')
 		else:
 			assert False, 'fail'
+
+	def testListDict(self):
+		keys = ['foo', 'bar', 'baz']
+		mydict = ListDict()
+		for k in keys:
+			mydict[k] = 'dusss'
+		mykeys = [k for k, v in mydict.items()]
+		self.assertEquals(mykeys, keys)

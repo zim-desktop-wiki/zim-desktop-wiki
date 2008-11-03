@@ -25,7 +25,6 @@ def main(argv=None):
 	suite = unittest.TestSuite()
 
 	for name in modules:
-		print ">>> %s" % name
 		test = unittest.defaultTestLoader.loadTestsFromName(name)
 		suite.addTest(test)
 

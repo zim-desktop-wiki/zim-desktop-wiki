@@ -26,6 +26,14 @@ import sys
 import getopt
 
 
+try:
+	version_info = sys.version_info
+	assert version_info >= (2, 5)
+except:
+	print >> sys.stderror, 'zim needs python >= 2.5'
+	sys.exit(1)
+
+
 class OptionError(Exception):
 
 	def __init__(self, msg=None):

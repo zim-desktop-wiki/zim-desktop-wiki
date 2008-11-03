@@ -35,14 +35,14 @@ class Parser(ParserClass):
 		para.text = file.read()
 		file.close()
 
-		return ElementTree(page)
+		return ParseTree(page)
 
 
 class Dumper(DumperClass):
 
 	def dump(self, tree, output):
 		'''FIXME'''
-		assert isinstance(tree, ElementTree)
+		assert isinstance(tree, ParseTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
 

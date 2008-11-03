@@ -48,7 +48,7 @@ def html_encode(text):
 class Dumper(DumperClass):
 
 	def dump(self, tree, output):
-		assert isinstance(tree, ElementTree)
+		assert isinstance(tree, ParseTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
 		self.dump_children(tree.getroot(), file, top=True)
