@@ -5,25 +5,54 @@
 # TODO needs more options like
 #		-p --port INT	set port number
 #		-P --public 	allow connections from outside
-# TODO need template class
 # TODO check client host for security
-# TODO wrap all calls to notebook in try: except: blocks
-
 # TODO setting for doc_root_url when running in CGI mode
+
+from zim import Application
 
 from zim.fs import *
 
-class WWW(object):
+class Error(Exception):
+	'''FIXME'''
+
+	def __init__(self, code, msg):
+		'''FIXME'''
+		self.code = code
+		self.msg = msg
+
+
+class WWW(Application):
 	'''Object to handle the WWW interface for zim notebooks'''
 
-	def href(self, page):
-		'''Returns the url to page'''
-		path = page.name.replace(':', '/')
-		if not path.startswith('/'): path = '/'+path
-		# "href", page.name, '>', path
-		return self.url + path
+	def __init__(self):
+		Application.__init__(self)
+		self.file = None
 
-	def do_GET_index(self, namespace=None):
+	def serve(self, file, path):
+		'''Main function for handling a single request. Arguments are the file
+		handle to write the output to and the path to serve. Any exceptions
+		will result in a error response being written.
+		'''
+		# TODO: add argument post=None for handling posted forms
+		# TODO: first path element could be notebook name
+		assert self.file is None
+		self.file = file
+		try:
+			if path == '/':
+				self.serve_index()
+			elif path.startswith('/+docs/'):
+				pass # TODO document root
+			elif path.startswith('/+file/'):
+				pass # TODO attachment or raw source
+			else:
+				pagename = path.replace('/', ':')
+				self.serve_page(pagename)
+		except Exception, error:
+			self.write_error(error)
+
+		self.file = None
+
+	def serve_index(self, namespace=None):
 		'''Serve the index page'''
 		# TODO wrap index into a page so we can use the same template
 		html = '''
@@ -63,19 +92,17 @@ class WWW(object):
 </body>
 </html>
 '''
-		self.reply(200, html)
+		self.write_headers(200)
+		self.file.write(html.encode('utf8'))
 
-
-	def do_GET_page(self, pagename):
+	def serve_page(self, pagename):
 		'''Serve a single page from the notebook'''
 		page = self.notebook.get_page(pagename)
 		if page.isempty():
 			if page.children:
-				return self.do_GET_index(page.name)
+				return self.serve_index(page.name)
 			else:
-				# TODO raise error 404
-				self.reply(200, 'Page not found: %s' % pagename)
-				return
+				raise Error, (404, 'Page not found: %s' % pagename)
 		else:
 			if self.template:
 				output = Buffer()
@@ -83,51 +110,90 @@ class WWW(object):
 				html = output.getvalue()
 			else:
 				html = page.get_text(format='html')
-			self.reply(200, html)
+			self.write_headers(200)
+			self.file.write(html.encode('utf8'))
 
+	def href(self, page):
+		'''Returns the url to page'''
+		path = page.name.replace(':', '/')
+		if not path.startswith('/'): path = '/'+path
+		return self.url + path
 
-	def reply(self, response, html):
-		'''Send a piece of html to the browser'''
-		#print 'sending\n'+html
-		self.send_response(response)
-		self.send_header('Content-Type', 'text/html')
-		self.send_header('Content-Length', str(len(html)))
+	def write_headers(self, response, headers=None):
+		'''FIXME'''
+		if headers is None: headers = {}
+
+		# Send HTTP response
+		self.file.write("HTTP/1.0 %d\r\n" % response)
+
+  		# Set default headers
+		#~ headers['Server'] = 'zim %.2f' % zim.__version__
+		#~ headers['Date'] = '1-1-00' # FIXME
+		headers.setdefault('Content-Type', 'text/html;charset=utf-8')
 		# Last-Modified
 		# etc.
-		self.end_headers()
 
-		html = html.encode('utf8')
-		for line in html.splitlines():
-			self.wfile.write(line+'\n')
+		# Write headers
+		for k, v in headers.items():
+			self.file.write("%s: %s\r\n" % (k, v))
+		self.file.write("\r\n") # end of headers
+
+	def write_error(self, error):
+		'''FIXME'''
+		if isinstance(error, Error):
+			code = error.code
+			msg = error.msg
+		else:
+			code = 500
+			msg = error.__str__()
+		self.write_headers(code)
+		self.file.write(msg.encode('utf8'))
 
 
-def serve(port, notebook=None, template=None):
+class Server(WWW):
 	'''Run a server based on BaseHTTPServer'''
-	import BaseHTTPServer
 
-	class Handler(BaseHTTPServer.BaseHTTPRequestHandler, WWW):
+	def __init__(self, port, notebook=None, template=None):
+		'''FIXME'''
+		WWW.__init__(self)
+		self.template = template
+		self.port = port
+		self.url = 'http://localhost:%d' % port
 
-		def do_GET(self):
-			if self.path == '/':
-				self.do_GET_index()
-			else:
-				page = self.path.replace('/', ':')
-				self.do_GET_page(page)
+	def main(self):
+		'''FIXME'''
+		import BaseHTTPServer
 
-	if not template is None:
-		import zim.templates
-		template = zim.templates.get_template('html', template)
+		# Define custom handler class and bind the class to our object.
+		# Each request will pop a new instance of this class while we
+		# are persistent and all instances should dipatch to us.
+		class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-	# start the server
-	Handler.notebook = notebook # FIXME using class attribute here
-	Handler.url = 'http://localhost:%d' % port # FIXME using class attribute here
-	Handler.template = template # FIXME using class attribute here
-	server_address = ('', port)
-	httpd = BaseHTTPServer.HTTPServer(server_address, Handler)
-	sa = httpd.socket.getsockname()
-	print "Serving HTTP on", sa[0], "port", sa[1], "..."
-	httpd.serve_forever()
+			protocol_version = 'HTTP/1.0'
+			zim_server = self # class attribute
 
-def cgi():
-	'''Run as a cgi script'''
-	pass
+			def do_GET(self):
+				self.zim_server.serve(self.wfile, self.path)
+
+			def do_HEAD(self):
+				pass # TODO
+
+			def do_POST(self):
+				pass # TODO
+
+		# start the server
+		server_address = ('', self.port)
+		server = BaseHTTPServer.HTTPServer(server_address, MyHandler)
+		sa = server.socket.getsockname()
+		print "Serving HTTP on", sa[0], "port", sa[1], "..."
+		server.serve_forever()
+
+
+class CGI(object):
+	'''FIXME'''
+
+	def main():
+		'''FIXME'''
+		import sys
+		path = foo # TODO: get pathinfo
+		self.serve(sys.stdout, path)

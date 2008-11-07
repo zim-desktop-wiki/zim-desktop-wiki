@@ -123,6 +123,13 @@ When exporting:
 * Templates no longer have a "page.heading" variable
 * Html templates need css "p { white-space: pre }" to render same as zim
 
+====== GLib and Gtk ======
+
+Both the zim application object and the notebook objects derive from gobject
+and use the gobject signal system. Only the GUI classes use gtk. So pygtk is
+only a dependency when running the GUI, however python-gobject is also required 
+when only running the server.
+
 ====== Parse Tree ======
 
 Parse trees are build using the (c)ElementTree module (included in
@@ -133,7 +140,7 @@ Supported tags:
 
 * page root element for grouping paragraphs
 * p for paragraphs
-* h	for heading, level attribute can be 1..6
+* h for heading, level attribute can be 1..6
 * pre for verbatim paragraphs (no further parsing in these blocks)
 * em for emphasis, rendered italic by default
 * strong for strong emphasis, rendered bold by default
@@ -143,7 +150,7 @@ Supported tags:
 * ul for bullet lists
 * .. for checkbox lists
 * li for list items
-* a for links, attribute href gives the target
+* link for links, attribute href gives the target
 * img for images, attributes src, width, height an optionally href
 	* any text set on these elements should be rendered as alt
 	* class can be used to control plugin functionality, e.g. class=latex-equation

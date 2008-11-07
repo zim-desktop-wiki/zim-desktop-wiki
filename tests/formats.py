@@ -52,6 +52,7 @@ And some utf8 bullet items
 ----
 
 ====
+This is not a header
 
 That's all ...
 """
@@ -116,7 +117,7 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 	Indented and all: //foo//
 </pre>
 <p>IMAGE: <img src="../my-image.png">Foo Bar</img>
-LINKS: <a href=":foo:bar">:foo:bar</a> <a href="./file.png">./file.png</a> <a href="file:///etc/passwd">file:///etc/passwd</a>
+LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
 </p>
 <p>	Some indented
 	paragraphs go here ...
@@ -136,6 +137,7 @@ And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 <p>----
 </p>
 <p>====
+This is not a header
 </p>
 <p>That's all ...
 </p></page>'''
@@ -189,7 +191,7 @@ Some Verbatim here
 
 <p>
 IMAGE: <img src="../my-image.png" alt="Foo Bar">
-LINKS: <a href=":foo:bar">:foo:bar</a> <a href="./file.png">./file.png</a> <a href="file:///etc/passwd">file:///etc/passwd</a>
+LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
 </p>
 
 <p>
@@ -221,6 +223,7 @@ And some utf8 bullet items
 
 <p>
 ====
+This is not a header
 </p>
 
 <p>

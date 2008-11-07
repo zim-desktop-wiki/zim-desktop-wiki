@@ -140,7 +140,6 @@ def export(opts, args):
 def server(opts, args):
 	'''Process server options'''
 	import zim.www
-	import zim.notebook
 
 	print '''\
 WARNING: Serving zim notes as a webserver. Unless you have some
@@ -162,8 +161,13 @@ kind of firewall your notes are now open to the whole wide world.
 	if not len(args) == 1:
 		raise UsageError, '--server NOTEBOOK'
 
-	notebook = zim.notebook.get_notebook(args[0])
-	zim.www.serve(port, notebook=notebook, template=template)
+	if not template is None:
+		import zim.templates
+		template = zim.templates.get_template('html', template)
+
+	server = zim.www.Server(port, template=template)
+	server.open_notebook(args[0])
+	server.main()
 
 
 def dump_page(opts, args):
@@ -176,7 +180,7 @@ def dump_page(opts, args):
 	notebook = zim.notebook.get_notebook(args[0])
 	page = notebook.get_page(args[1])
 
-	print page.get_parse_tree().__str__().encode('utf8')
+	print page.get_parsetree().write(sys.stdout)
 
 
 

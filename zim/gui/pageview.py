@@ -4,9 +4,8 @@
 
 '''FIXME'''
 
-# TODO: figure out how to connect signals for self
-#       connecting do_insert_text in create_tags() seems wrong
 
+import gobject
 import gtk
 import pango
 
@@ -16,8 +15,23 @@ class TextView(gtk.TextView):
 
 
 class TextBuffer(gtk.TextBuffer):
-	'''FIXME'''
+	'''Zim subclass of gtk.TextBuffer.
 
+	This class manages the contents of a TextView widget. It can load a zim
+	parsetree and after editing return a new parsetree. It manages images,
+	links, bullet lists etc.
+
+	TODO: manage undo stack
+	TODO: manage rich copy-paste
+	'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'insert-text': 'override',
+		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
+	}
+
+	# text tags supported by the editor and default stylesheet
 	tag_styles = {
 		'h1':     {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
 		'h2':     {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
@@ -34,11 +48,11 @@ class TextBuffer(gtk.TextBuffer):
 		'a':      {'foreground': 'blue'},
 	}
 
-	def create_tags(self):
+	def __init__(self):
 		'''FIXME'''
+		gtk.TextBuffer.__init__(self)
 		for k, v in self.tag_styles.items():
 			self.create_tag(k, **v)
-		self.connect_after('insert-text', self.do_insert_text)
 
 	def clear(self):
 		'''FIXME'''
@@ -55,12 +69,17 @@ class TextBuffer(gtk.TextBuffer):
 
 	def insert_parsetree(self, iter, tree):
 		'''FIXME'''
-		# Remember cursor position and restore afterwards
-		mark = self.create_mark(
-			'zim-insert-parsetree-orig-insert',
+		self._place_cursor(iter)
+		self.insert_parsetree_at_cursor(tree)
+		self._restore_cursor()
+
+	def _place_cursor(self, iter=None):
+		self.create_mark('zim-textbuffer-orig-insert',
 			self.get_iter_at_mark(self.get_insert()), True)
 		self.place_cursor(iter)
-		self.insert_parsetree_at_cursor(tree)
+
+	def _restore_cursor(self):
+		mark = self.get_mark('zim-textbuffer-orig-insert')
 		self.place_cursor(self.get_iter_at_mark(mark))
 		self.delete_mark(mark)
 
@@ -69,28 +88,59 @@ class TextBuffer(gtk.TextBuffer):
 		self._insert_element_children(tree.getroot())
 
 	def _insert_element_children(self, node):
+		# FIXME: should block textstyle-changed here for performance
 		for element in node.getchildren():
-			# set mode
-			if element.tag == 'p':
-				self._insert_element_children(element) # recurs
-			elif element.tag == 'h':
-				tag = 'h'+str(element.attrib['level'])
-				self.set_textstyle(tag)
-			elif element.tag == 'a':
-				pass
-			elif element.tag == 'img':
-				#~ self.insert_image(element.attrib)
-				continue # do not insert text
-			elif element.tag in self.tag_styles:
-				self.set_textstyle(element.tag)
+			if element.tag in ('p', 'a', 'img'):
+				# Blocks and object
+				if element.tag == 'p':
+					if element.text:
+						self.insert_at_cursor(element.text)
+					self._insert_element_children(element) # recurs
+				elif element.tag == 'a':
+					self.insert_link_at_cursor(element.attrib, element.text)
+				elif element.tag == 'img':
+					self.insert_image_at_cursor(element.attrib, element.text)
+				
+				if element.tail:
+					self.insert_at_cursor(element.tail)
 			else:
-				assert False, 'Unknown tag: %s' % element.tag
+				# Text styles
+				if element.tag == 'h':
+					tag = 'h'+str(element.attrib['level'])
+					self.set_textstyle(tag)
+				elif element.tag in self.tag_styles:
+					self.set_textstyle(element.tag)
+				else:
+					assert False, 'Unknown tag: %s' % element.tag
 
-			if element.text:
-				self.insert_at_cursor(element.text)
-			self.set_textstyle(None)
-			if element.tail:
-				self.insert_at_cursor(element.tail)
+				if element.text:
+					self.insert_at_cursor(element.text)
+				self.set_textstyle(None)
+				if element.tail:
+					self.insert_at_cursor(element.tail)
+
+	def insert_link(self, iter, attrib, text):
+		'''FIXME'''
+		self._place_cursor(iter)
+		self.insert_link_at_cursor(attrib, text)
+		self._restore_cursor()
+
+	def insert_link_at_cursor(self, attrib, text):
+		'''FIXME'''
+		# TODO generate anonymous tags for links
+		self.set_textstyle('a')
+		self.insert_at_cursor(text)
+		self.set_textstyle(None)
+
+	def insert_image(self, iter, attrib, text):
+		'''FIXME'''
+		self._place_cursor(iter)
+		self.insert_image_at_cursor(attrib, text)
+		self._restore_cursor()
+
+	def insert_image_at_cursor(self, attrib, text):
+		'''FIXME'''
+		# TODO support for images
 
 	def set_textstyle(self, style):
 		'''FIXME'''
@@ -100,42 +150,58 @@ class TextBuffer(gtk.TextBuffer):
 			assert self.textstyle_tag
 		else:
 			self.textstyle_tag = None
-		# TODO: emit signal edit-mode-changed
+		self.emit('textstyle-changed')
 
-	def do_insert_text(self, buffer, end, string, length):
+	def do_insert_text(self, end, string, length):
 		'''Signal handler for insert-text signal'''
+		# First call parent for the actual insert
+		gtk.TextBuffer.do_insert_text(self, end, string, length)
+		
 		# Apply current text style
 		if not self.textstyle_tag is None:
 			start = end.copy()
 			start.backward_chars(len(string))
 			self.remove_all_tags(start, end)
 			self.apply_tag(self.textstyle_tag, start, end)
+		
 		# TODO: record undo step
+
+
+# Need to register classes defining gobject signals
+gobject.type_register(TextBuffer)
+gobject.type_register(TextView)
+
+
+class PageView(object):
+	'''FIXME'''
+
+	def __init__(self):
+		self.view = TextView()
+		self.widget = gtk.ScrolledWindow()
+		self.widget.add(self.view)
+
+	def set_page(self, page):
+		tree = page.get_parsetree()
+		buffer = TextBuffer()
+		buffer.set_parsetree(tree)
+		self.view.set_buffer(buffer)
 
 
 if __name__ == '__main__':
 	import sys
-	import zim.formats.wiki as format
 	from zim.fs import *
+	from zim.notebook import Page
+	from zim.formats import wiki
 
 	file = File(sys.argv[1])
-	parser = format.Parser({})
-	tree = parser.parse(file)
-
-	buffer = TextBuffer()
-	buffer.create_tags()
-	buffer.set_parsetree(tree)
-
-	view = TextView()
-	view.set_buffer(buffer)
-
-	scrolled = gtk.ScrolledWindow()
-	scrolled.add(view)
+	page = Page('foo', None, source=file, format=wiki)
+	view = PageView()
+	view.set_page(page)
 
 	window = gtk.Window()
 	window.set_default_size(500, 500)
 	window.connect('delete-event', gtk.main_quit)
-	window.add(scrolled)
-
+	window.add(view.widget)
 	window.show_all()
+
 	gtk.main()

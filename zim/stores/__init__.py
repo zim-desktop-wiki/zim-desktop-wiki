@@ -231,8 +231,8 @@ class StoreClass():
 		'''
 		assert not page.isempty()
 		mypage = self.get_page(name)
-		tree = page.get_parse_tree()
-		mypage.set_parse_tree(tree)
+		tree = page.get_parsetree()
+		mypage.set_parsetree(tree)
 
 	def del_page(self, page):
 		'''ABSTRACT METHOD, needs to be implemented in sub-class.

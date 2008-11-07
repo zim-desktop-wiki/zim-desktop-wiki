@@ -73,9 +73,9 @@ class Dumper(DumperClass):
 			elif element.tag == 'img':
 				src = url_encode(element.attrib['src'])
 				file.write('<img src="%s" alt="%s">' % (src, text))
-			elif element.tag == 'a':
+			elif element.tag == 'link':
 				href = url_encode(element.attrib['href'])
-				file.write('<a href="%s">%s</a>' % (href, text))
+				file.write('<link href="%s">%s</link>' % (href, text))
 			elif element.tag in ['em', 'strong', 'mark', 'strike', 'code']:
 				if element.tag == 'mark': tag = 'u'
 				else: tag = element.tag

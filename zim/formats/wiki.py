@@ -14,12 +14,12 @@ __format__ = 'wiki'
 parser_re = {
 	'blockstart': re.compile("\A(''')\s*?\n"),
 	'pre':        re.compile("\A'''\s*?(^.*?)^'''\s*\Z", re.M | re.S),
-	'splithead':  re.compile('^(==+\s+\S.*?\n)', re.M),
+	'splithead':  re.compile('^(==+[^\n\S]+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)\s+(.*?)(\s+==+)?\s*)\Z"),
 
 	# All the experssions below will match the inner pair of
 	# delimiters if there are more then two characters in a row.
-	'a':      re.compile('\[\[(?!\[)(.+?)\]\]'),
+	'link':   re.compile('\[\[(?!\[)(.+?)\]\]'),
 	'img':    re.compile('\{\{(?!\{)(.+?)\}\}'),
 	'em':     re.compile('//(?!/)(.+?)//'),
 	'strong': re.compile('\*\*(?!\*)(.+?)\*\*'),
@@ -135,9 +135,9 @@ class Parser(ParserClass):
 					link = text
 			#if email_re.match(link) and not link.startswith('mailto:'):
 			#		link = 'mailto:'+link
-			return ('a', {'href':link}, text)
+			return ('link', {'href':link}, text)
 
-		list = self.walk_list(list, parser_re['a'], parse_link)
+		list = self.walk_list(list, parser_re['link'], parse_link)
 
 		def parse_image(match):
 			parts = match.split('|', 2)
@@ -203,7 +203,7 @@ class Dumper(DumperClass):
 					file.write('{{'+src+'|'+element.text+'}}')
 				else:
 					file.write('{{'+src+'}}')
-			elif element.tag == 'a':
+			elif element.tag == 'link':
 				href = element.attrib['href']
 				if href == element.text:
 					file.write('[['+href+']]')

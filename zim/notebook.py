@@ -247,7 +247,7 @@ class Page(object):
 		else:
 			return not self._tree
 
-	def get_parse_tree(self):
+	def get_parsetree(self):
 		'''Returns contents as a parse tree or None'''
 		if self.source:
 			if self.isempty():
@@ -258,7 +258,7 @@ class Page(object):
 		else:
 			return self._tree
 
-	def set_parse_tree(self, tree):
+	def set_parsetree(self, tree):
 		'''Save a parse tree to page source'''
 		if self.source:
 			dumper = self.format.Dumper(self)
@@ -268,7 +268,7 @@ class Page(object):
 
 	def get_text(self, format='wiki'):
 		'''Returns contents as string'''
-		tree = self.get_parse_tree()
+		tree = self.get_parsetree()
 		if tree:
 			import zim.formats
 			dumper = zim.formats.get_format(format).Dumper(self)
