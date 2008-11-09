@@ -30,7 +30,7 @@ class Application(gobject.GObject):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-notebook': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-			(gobject.TYPE_OBJECT,) ),
+			(gobject.TYPE_PYOBJECT,) ),
 	}
 
 	def __init__(self):
@@ -60,6 +60,10 @@ class Application(gobject.GObject):
 		'''FIXME'''
 		import zim.notebook
 		notebook = zim.notebook.get_notebook(notebook)
+		self.emit('open-notebook', notebook)
+
+	def do_open_notebook(self, notebook):
+		'''FIXME'''
 		self.notebook = notebook
 
 

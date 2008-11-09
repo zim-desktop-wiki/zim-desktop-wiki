@@ -5,23 +5,31 @@
 '''FIXME'''
 
 import gtk
+import pageview
 
 class MainWindow(object):
 	'''FIXME'''
 
-	def __init__(self):
-		self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+	def __init__(self, app):
+		'''FIXME'''
+		app.connect('open-page', self.do_open_page)
+
+		self.window = gtk.Window()
+		self.window.set_default_size(500, 500)
 		self.window.connect("destroy", self.destroy)
-		self.window.set_border_width(10)
-		b = gtk.Button("hello world")
-		b.connect('clicked', s.hello, None)
-		self.window.add(b)
+		self.pageview = pageview.PageView()
+		self.window.add(self.pageview.widget)
+
+	def show(self):
+		'''FIXME'''
 		self.window.show_all()
 
 	def destroy(self, widget, data=None):
-		"""window is being destroyed"""
+		'''FIXME'''
 		# really destructive
 		gtk.main_quit()
 
-	def hello (self, widget, data=None):
-		print "Hello World"
+	def do_open_page(self, app, page):
+		'''FIXME'''
+		self.pageview.set_page(page)
+

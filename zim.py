@@ -92,7 +92,17 @@ def main(argv=None):
 
 def gui(opts, args):
 	'''Start graphical interface'''
-	assert False, 'TODO: gui interface'
+	import zim.gui
+
+	if len(args) == 0 or len(args) > 2:
+		raise UsageError, 'NOTEBOOK [PAGE]'
+
+	gui = zim.gui.GtkApplication()
+	gui.open_notebook(args[0])
+
+	if len(args) == 2:
+		gui.open_page(args[1])
+	gui.main()
 
 
 def export(opts, args):

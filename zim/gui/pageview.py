@@ -45,7 +45,7 @@ class TextBuffer(gtk.TextBuffer):
 		'strike': {'strikethrough': 'true', 'foreground': 'grey'},
 		'code':   {'family': 'monospace'},
 		'pre':    {'family': 'monospace', 'wrap-mode': 'none'},
-		'a':      {'foreground': 'blue'},
+		'link':   {'foreground': 'blue'},
 	}
 
 	def __init__(self):
@@ -90,17 +90,17 @@ class TextBuffer(gtk.TextBuffer):
 	def _insert_element_children(self, node):
 		# FIXME: should block textstyle-changed here for performance
 		for element in node.getchildren():
-			if element.tag in ('p', 'a', 'img'):
+			if element.tag in ('p', 'link', 'img'):
 				# Blocks and object
 				if element.tag == 'p':
 					if element.text:
 						self.insert_at_cursor(element.text)
 					self._insert_element_children(element) # recurs
-				elif element.tag == 'a':
+				elif element.tag == 'link':
 					self.insert_link_at_cursor(element.attrib, element.text)
 				elif element.tag == 'img':
 					self.insert_image_at_cursor(element.attrib, element.text)
-				
+
 				if element.tail:
 					self.insert_at_cursor(element.tail)
 			else:
@@ -128,7 +128,7 @@ class TextBuffer(gtk.TextBuffer):
 	def insert_link_at_cursor(self, attrib, text):
 		'''FIXME'''
 		# TODO generate anonymous tags for links
-		self.set_textstyle('a')
+		self.set_textstyle('link')
 		self.insert_at_cursor(text)
 		self.set_textstyle(None)
 
@@ -156,14 +156,14 @@ class TextBuffer(gtk.TextBuffer):
 		'''Signal handler for insert-text signal'''
 		# First call parent for the actual insert
 		gtk.TextBuffer.do_insert_text(self, end, string, length)
-		
+
 		# Apply current text style
 		if not self.textstyle_tag is None:
 			start = end.copy()
 			start.backward_chars(len(string))
 			self.remove_all_tags(start, end)
 			self.apply_tag(self.textstyle_tag, start, end)
-		
+
 		# TODO: record undo step
 
 
@@ -185,23 +185,3 @@ class PageView(object):
 		buffer = TextBuffer()
 		buffer.set_parsetree(tree)
 		self.view.set_buffer(buffer)
-
-
-if __name__ == '__main__':
-	import sys
-	from zim.fs import *
-	from zim.notebook import Page
-	from zim.formats import wiki
-
-	file = File(sys.argv[1])
-	page = Page('foo', None, source=file, format=wiki)
-	view = PageView()
-	view.set_page(page)
-
-	window = gtk.Window()
-	window.set_default_size(500, 500)
-	window.connect('delete-event', gtk.main_quit)
-	window.add(view.widget)
-	window.show_all()
-
-	gtk.main()
