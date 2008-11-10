@@ -29,7 +29,7 @@ from zim.utils import ListDict
 
 def get_format(name):
 	'''Returns the module object for a specific format.'''
-	# __import__ has some quirks, soo the reference manual
+	# __import__ has some quirks, see the reference manual
 	mod = __import__('zim.formats.'+name)
 	mod = getattr(mod, 'formats')
 	mod = getattr(mod, name)

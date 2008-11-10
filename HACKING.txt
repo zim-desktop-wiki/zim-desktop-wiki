@@ -10,6 +10,8 @@ zim					# Command line parsing and application class
 |   `-- ...
 |-- www				# WWW interface for server / cgi-bin
 |   `-- WWW(Application)
+|-- exporter		# Code for commandline export
+|   `-- Exporter(Application)
 |-- notebook		# Interface to a single notebook
 |   |-- Notebook()
 |   |-- Page()
@@ -127,7 +129,7 @@ When exporting:
 
 Both the zim application object and the notebook objects derive from gobject
 and use the gobject signal system. Only the GUI classes use gtk. So pygtk is
-only a dependency when running the GUI, however python-gobject is also required 
+only a dependency when running the GUI, however python-gobject is also required
 when only running the server.
 
 ====== Parse Tree ======
@@ -170,3 +172,12 @@ TODO: ol for numbered lists
 
 If a page starts with a h1 this heading is considered the page title,
 else we can fall back to the page name as title.
+
+====== Coding style ======
+
+See the python style guide for best practices. Some items to keep in mind:
+
+* Have a look at zim.utils for common code snippets
+* All signal handlers have a method name starting with "do_"
+* Use "assert" for checks that could be removed when code is stable
+* Do not rely on __doc__, could be optimized away

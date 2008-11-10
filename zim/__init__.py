@@ -33,8 +33,10 @@ class Application(gobject.GObject):
 			(gobject.TYPE_PYOBJECT,) ),
 	}
 
-	def __init__(self):
+	def __init__(self, **opts):
 		gobject.GObject.__init__(self)
+		# TODO use opts['verbose']
+		# TODO use opts['debug']
 		self.load_config()
 		self.load_plugins()
 
@@ -47,10 +49,10 @@ class Application(gobject.GObject):
 		for plugin in plugins:
 			self.load_plugin(plugin)
 
-	def load_plugin(self, plugin):
+	def load_plugin(self, pluginname):
 		'''FIXME'''
-		pluginclass = zim.plugins.get_plugin(plugin)
-		plugin = pluginclass(self)
+		klass = zim.plugins.get_plugin(pluginname)
+		plugin = klass(self)
 		self.plugins.append(plugin)
 
 	def unload_plugin(self, plugin):

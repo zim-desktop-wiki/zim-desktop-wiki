@@ -9,7 +9,14 @@ import re
 from zim.fs import *
 from zim.formats import *
 
-__format__ = 'wiki'
+info = {
+	'name':  'Wiki text',
+	'mime':  'text/x-zim-wiki',
+	'read':	  True,
+	'write':  True,
+	'import': True,
+	'export': True,
+}
 
 parser_re = {
 	'blockstart': re.compile("\A(''')\s*?\n"),

@@ -19,12 +19,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301, USA.
 
-'''FIXME doc string with usage'''
-
+'''FIXME'''
 
 import sys
-import getopt
-
+from getopt import gnu_getopt, GetoptError
 
 try:
 	version_info = sys.version_info
@@ -34,176 +32,136 @@ except:
 	sys.exit(1)
 
 
-class OptionError(Exception):
+longopts = ('verbose', 'debug')
+cmdopts = ('help', 'version', 'server', 'export')
+guiopts = ()
+serveropts = ('port=')
+exportopts = ('format=', 'template=', 'output=')
+shortopts = {
+	'v': 'version', 'h': 'help',
+	'V': 'verbose', 'D': 'debug',
+}
 
-	def __init__(self, msg=None):
-		if msg: msg = '%s: %s\n' % (__file__, msg)
-		self.msg = msg
+helptext = '''\
+Usage: %s [OPTIONS] [NOTEBOOK] [PAGE]
 
-	def __str__(self):
-		if self.msg is None: return __doc__
-		tryhelp = 'Try `%s --help` for more information' % __file__
-		return self.msg + tryhelp
+Options: FIXME
 
+Server Options: FIXME
 
-class UsageError(OptionError):
+Export Options: FIXME
 
-	def __init__(self, msg=None):
-		if msg: msg =  'Usage: %s %s\n' % (__file__, msg)
-		self.msg = msg
-
-
-
-def main(argv=None):
-	'''Run the main program.'''
-	if argv is None: argv = sys.argv[1:]
-
-	short  = 'hv'
-	long   = ['help', 'version']
-	long  += ['export', 'format=', 'template=', 'output=']
-	long  += ['server', 'port=']
-	long  += ['dump-page']
-
-	try:
-		opts, args = getopt.gnu_getopt(argv, short, long)
-	except getopt.GetoptError, err:
-		raise OptionError, err.__str__()
-
-	for o, a in opts:
-		if o in ('-v', '--version'):
-			import zim
-			print "zim %s\n" % zim.__version__
-			print zim.__copyright__
-			return
-		elif o in ('-h', '--help'):
-			print __doc__
-			return
-		elif o == '--export':
-			return export(opts, args)
-		elif o == '--server':
-			return server(opts, args)
-		elif o == '--dump-page':
-			return dump_page(opts, args)
-		else:
-			continue
-
-	return gui(opts, args)
-
-
-def gui(opts, args):
-	'''Start graphical interface'''
-	import zim.gui
-
-	if len(args) == 0 or len(args) > 2:
-		raise UsageError, 'NOTEBOOK [PAGE]'
-
-	gui = zim.gui.GtkApplication()
-	gui.open_notebook(args[0])
-
-	if len(args) == 2:
-		gui.open_page(args[1])
-	gui.main()
-
-
-def export(opts, args):
-	'''Process export options'''
-	import zim.notebook
-
-	format = None
-	template = None
-	output = None
-	for o, a in opts:
-		if   o == '--export': pass
-		elif o == '--format': format = a
-		elif o == '--template': template = a
-		elif o == '--output': output = a
-		else:
-			raise OptionError, 'can not use %s with --export' % o
-
-	if format is None:
-		raise OptionError, '--export needs at least --format'
-	elif not output is None:
-		assert False, 'TODO: output to file not implemented'
-
-	if len(args) == 0 or len(args) > 2:
-		raise UsageError, '--export NOTEBOOK [PAGE]'
-	elif len(args) == 1:
-		if output is None:
-			raise OptionError, '--export needs --output for multiple pages'
-		assert False, 'TODO: export whole notebook'
-
-	notebook = zim.notebook.get_notebook(args[0])
-	page = notebook.get_page(args[1])
-
-	if template is None:
-		print page.get_text(format=format)
-	else:
-		import zim.templates
-		try:
-			tmpl = zim.templates.get_template(format, template)
-		except zim.templates.TemplateSyntaxError, error:
-			print error
-		else:
-			tmpl.process(page, sys.stdout)
-
-
-def server(opts, args):
-	'''Process server options'''
-	import zim.www
-
-	print '''\
-WARNING: Serving zim notes as a webserver. Unless you have some
-kind of firewall your notes are now open to the whole wide world.
 '''
 
-	port = 8888
-	template=None
+progname = 'zim'
+
+class UsageError(Exception):
+	'''FIXME'''
+
+	def __init__(self, msg):
+		'''FIXME'''
+		self.msg = 'Usage: %s %s' % (progname, msg)
+
+
+def main(argv):
+	'''Run the main program.'''
+	progname = argv[0]
+
+	# Let getopt parse the option list
+	short = ''.join(shortopts.keys())
+	long = list(longopts)
+	long.extend(cmdopts)
+	long.extend(guiopts)
+	long.extend(serveropts)
+	long.extend(exportopts)
+
+	opts, args = gnu_getopt(argv[1:], short, long)
+
+	# First figure out which command to execute
+	try:
+		cmd = opts[0][0].lstrip('-')
+		if cmd in shortopts:
+			cmd = shortopts[cmd]
+		assert cmd in cmdopts
+		opts.pop(0)
+	except:
+		cmd = 'gui' # default command
+
+	# 'version' and 'help' are simple commands
+	if cmd == 'version':
+		import zim
+		print "zim %s\n" % zim.__version__
+		print zim.__copyright__
+		return
+	elif cmd == 'help':
+		print helptext % progname
+		return
+
+	# Now figure out which options are allowed for this command
+	allowedopts = list(longopts)
+	if cmd == 'server':
+		allowedopts.extend(serveropts)
+	elif cmd == 'export':
+		allowedopts.extend(exportopts)
+	else:
+		assert cmd == 'gui'
+		allowedopts.extend(guiopts)
+
+	# Convert options into a proper dict
+	optsdict = {}
 	for o, a in opts:
-		if o == '--server': pass
-		elif o == '--port':
-			try: port = int(a)
-			except ValueError:
-				raise OptionError, "--port takes an integer argument"
-		elif o == '--template': template = a
+		o = o.lstrip('-')
+		if o in shortopts:
+			o = shortopts[o]
+
+		if o+'=' in allowedopts:
+			optsdict[o] = a
+		elif o in allowedopts:
+			optsdict[0] = True
 		else:
-			raise OptionError, 'can not use %s with --server' % o
+			raise GetoptError, ("--%s no allowed in combination with --%s" % (o, cmd), o)
 
-	if not len(args) == 1:
-		raise UsageError, '--server NOTEBOOK'
+	for o in allowedopts:
+		o = o.rstrip('=')
+		optsdict.setdefault(o, None)
 
-	if not template is None:
-		import zim.templates
-		template = zim.templates.get_template('html', template)
+	if 'port' in optsdict and not opts['port'] is None:
+		try:
+			optsdict['port'] = int(optsdict['port'])
+		except ValueError:
+			raise GetoptError, ("--port takes an integer argument", 'port')
 
-	server = zim.www.Server(port, template=template)
-	server.open_notebook(args[0])
-	server.main()
+	# Check arguments
+	if len(args) > 2:
+		raise UsageError, 'zim [OPTIONS] [NOTEBOOK] [PAGE]'
 
+	# And finally create an Application object
+	if cmd == 'gui':
+		import zim.gui
+		app = zim.gui.GtkApplication(**optsdict)
+	elif cmd == 'server':
+		import zim.www
+		app = zim.www.Server(**optsdict)
+	elif cmd == 'export':
+		import zim.exporter
+		app = zim.exporter.Exporter(**optsdict)
 
-def dump_page(opts, args):
-	'''Debug routing to dump the parse tree for a page.'''
-	import zim.notebook
+	if args:
+		app.open_notebook(args[0])
+		if len(args) == 2:
+			app.open_page(args[1])
 
-	if len(args) != 2:
-		raise UsageError, '--dump-page NOTEBOOK PAGE'
-
-	notebook = zim.notebook.get_notebook(args[0])
-	page = notebook.get_page(args[1])
-
-	print page.get_parsetree().write(sys.stdout)
-
+	app.main()
 
 
 if __name__ == '__main__':
 	try:
-		main()
-	except OptionError, err:
-		print >> sys.stderr, err
+		main(sys.argv)
+	except (GetoptError, UsageError), err:
+		print >> sys.stderr, progname+':', err
 		sys.exit(1)
 	except KeyboardInterrupt: # e.g. <Ctrl>C while --server
 		print >> sys.stderr, 'Interrupt'
 		sys.exit(1)
 	else:
 		sys.exit(0)
-else:
-	raise ImportError, "The zim script can not be imported"

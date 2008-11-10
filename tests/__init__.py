@@ -9,7 +9,12 @@ import codecs
 
 from zim.notebook import Notebook
 
-__all__ = ['utils', 'fs', 'formats', 'templates', 'stores', 'notebook']
+__all__ = [
+	'utils', 'fs',
+	'formats', 'templates',
+	'stores', 'notebook',
+	'plugins'
+]
 
 __unittest = 1 # needed to get stack trace OK for class TestCase
 

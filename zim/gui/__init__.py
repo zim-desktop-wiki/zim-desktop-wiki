@@ -19,15 +19,21 @@ class GtkApplication(Application):
 			(gobject.TYPE_PYOBJECT,) ),
 	}
 
-	def __init__(self):
+	def __init__(self, **opts):
 		'''FIXME'''
-		Application.__init__(self)
+		Application.__init__(self, **opts)
 		self.mainwindow = mainwindow.MainWindow(self)
 
 	def main(self):
 		'''FIXME'''
+		# TODO run NotebookDialog first if no notebook defined
 		self.mainwindow.show()
 		gtk.main()
+
+	def do_open_notebook(self, notebook):
+		'''FIXME'''
+		self.notebook = notebook
+		# TODO load history and set intial page
 
 	def open_page(self, pagename):
 		'''FIXME'''

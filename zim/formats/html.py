@@ -16,7 +16,7 @@ CSS in your template if you want to preserve tabs and linebreaks.
 from zim.fs import *
 from zim.formats import *
 
-meta = {
+info = {
 	'name':  'Html',
 	'mime':  'text/html',
 	'read':	  False,

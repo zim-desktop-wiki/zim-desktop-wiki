@@ -9,7 +9,7 @@ import re
 from zim.fs import *
 from zim.formats import *
 
-meta = {
+info = {
 	'name':  'Plain text',
 	'mime':  'text/plain',
 	'read':	  True,
