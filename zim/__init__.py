@@ -35,6 +35,8 @@ class Application(gobject.GObject):
 
 	def __init__(self, **opts):
 		gobject.GObject.__init__(self)
+		self.notebook = None
+		self.plugins = []
 		# TODO use opts['verbose']
 		# TODO use opts['debug']
 		self.load_config()

@@ -5,6 +5,7 @@
 '''FIXME'''
 
 import gtk
+
 import pageview
 
 class MainWindow(object):

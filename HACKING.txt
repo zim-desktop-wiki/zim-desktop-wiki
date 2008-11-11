@@ -80,11 +80,6 @@ store objects which implement the actual data backend.
 * Implement moving pages
 	* Logic for updating links
 	* Include sub pages and attachments
-* PluginManager class
-    * Plugins get notebook and gui as parameters to the constructor
-    * The gui object can either be gtk or www or not present
-    * Each plugin object should have a method unplug()
-    * The PluginManager keeps references to the plugin objects
 * Backward compatibility with older zim versions
     * Wiki pages without headers use indented paragraphs for Verbatim
 	* Resolve file should also check same dir as page source
@@ -94,6 +89,10 @@ store objects which implement the actual data backend.
     * Make sure to test all store backends both with and without cache
     * Make sure not to auto-vivicate cache to quickly
 * Store type for reading from .tar.gz files
+
+* Get rid of profiles
+	* use different XDG dirs if needed
+	* have default config files for notebooks to choose from
 
 === file links for www ===
 
@@ -181,3 +180,7 @@ See the python style guide for best practices. Some items to keep in mind:
 * All signal handlers have a method name starting with "do_"
 * Use "assert" for checks that could be removed when code is stable
 * Do not rely on __doc__, could be optimized away
+
+Other general guidelines:
+* Wait with loading modules and constructing widgets untill they are
+  really needed

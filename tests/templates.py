@@ -19,7 +19,7 @@ class TestTemplate(TestCase):
 
 	def testSyntax(self):
 		'''Test Template processing simple statements without page'''
-		file = StringIO('''
+		file = Buffer('''
 [%- SET test  = "foo"  -%]
 [%- SET true  = "true" -%]
 [%- SET false = ""     -%]
@@ -72,16 +72,16 @@ NOK
 
 	def testRaise(self):
 		'''Test Template invalid syntax raises TemplateError'''
-		#~ file = StringIO('foo[% ELSE %]bar')
+		#~ file = Buffer('foo[% ELSE %]bar')
 		#~ try: Template(file, 'html')
 		#~ except TemplateSyntaxError, error: print error
-		file = StringIO('foo[% ELSE %]bar')
+		file = Buffer('foo[% ELSE %]bar')
 		self.assertRaises(TemplateSyntaxError, Template, file, 'html')
 
-		file = StringIO('foo[% FOREACH foo = ("1", "2", "3") %]bar')
+		file = Buffer('foo[% FOREACH foo = ("1", "2", "3") %]bar')
 		self.assertRaises(TemplateSyntaxError, Template, file, 'html')
 
-		file = StringIO('foo[% `echo /etc/passwd` %]bar')
+		file = Buffer('foo[% `echo /etc/passwd` %]bar')
 		self.assertRaises(TemplateSyntaxError, Template, file, 'html')
 
 	def testTemplateSet(self):

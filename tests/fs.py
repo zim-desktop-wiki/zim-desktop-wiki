@@ -7,23 +7,25 @@
 import unittest
 import os
 
+from zim import fs
 from zim.fs import *
+
 
 class TestFS(unittest.TestCase):
 
 	def testPath(self):
 		'''Test Path constructor'''
-		path = Path(['foo', 'bar'])
+		path = fs.Path(['foo', 'bar'])
 		test = os.path.abspath( os.path.join('foo', 'bar') )
 		self.assertEqual(path.path, test)
 
-		path = Path('/foo/bar')
+		path = fs.Path('/foo/bar')
 		self.assertEqual(path.uri, 'file:///foo/bar')
 
 		# TODO test Path('file:///foo/bar') => '/foo/bar'
 		# TODO test Path('file://localhost/foo/bar') => '/foo/bar'
 
-		path = Path('/foo//bar/baz/')
+		path = fs.Path('/foo//bar/baz/')
 		self.assertEqual(path.split(), ['foo', 'bar', 'baz'])
 		dirs = []
 		for d in path: dirs.append(d)

@@ -4,6 +4,7 @@
 
 from tests import TestCase
 
+from zim.fs import Buffer
 from zim.utils import *
 
 class testUtils(TestCase):
@@ -35,3 +36,24 @@ class testUtils(TestCase):
 			mydict[k] = 'dusss'
 		mykeys = [k for k, v in mydict.items()]
 		self.assertEquals(mykeys, keys)
+
+	def testConfigList(self):
+		input = u'''\
+foo	bar
+	dusss ja
+# comments get taken out
+some\ space he\ re # even here
+'''
+		output = u'''\
+foo\tbar
+dusss\tja
+some\ space\the\ re
+'''
+		keys = ['foo', 'dusss', 'some space']
+		mydict = ConfigList()
+		mydict.read(Buffer(input))
+		mykeys = [k for k, v in mydict.items()]
+		self.assertEquals(mykeys, keys)
+		result = Buffer()
+		mydict.write(result)
+		self.assertEquals(result.getvalue(), output)

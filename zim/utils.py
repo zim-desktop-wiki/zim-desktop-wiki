@@ -6,6 +6,7 @@
 
 import re
 import sys
+import os
 
 from zim.fs import *
 
@@ -23,10 +24,20 @@ def data_dirs(*path):
 	# TODO prepend XDG data home - env or default
 	# TODO append XDG data dirs - check env or use default
 	for dir in _data_dirs:
-		dir = os.path.join(dir, *path)
+		if path:
+			dir = os.path.join(dir, *path)
 		if os.path.isdir(dir):
 			yield Dir(dir)
 
+def data_file(filename):
+	for dir in data_dirs():
+		file = os.path.join(dir.path, filename)
+		if os.path.isfile(file):
+			return File(file)
+
+def config_file(filename):
+	# TODO XDG logic
+	return File([os.environ['HOME'], '.config', 'zim', filename])
 
 def split_quoted_strings(string, unescape=True):
 	'''Split a word list respecting quotes.'''
@@ -121,3 +132,47 @@ class ListDict(dict):
 	def items(self):
 		for k in self.order:
 			yield (k, self[k])
+
+
+class ConfigList(ListDict):
+	'''FIXME'''
+
+	fields_re = re.compile(r'(?:\\.|\S)+') # match escaped char or non-whitespace
+	escaped_re = re.compile(r'\\(.)') # match single escaped char
+	escape_re = re.compile(r'([\s\\])') # match chars to escape
+
+	def read(self, file):
+		'''FIXME'''
+		fh = file.open('r')
+		for line in fh:
+			line = line.strip()
+			if line.isspace() or line.startswith('#'):
+				continue
+			cols = self.fields_re.findall(line)
+			for i in range(0, 2):
+				cols[i] = self.escaped_re.sub(r'\1', cols[i])
+			self[cols[0]] = cols[1]
+		fh.close()
+
+	def write(self, file):
+		'''FIXME'''
+		fh = file.open('w')
+		for k, v in self.items():
+			k = self.escape_re.sub(r'\\\1', k)
+			v = self.escape_re.sub(r'\\\1', v)
+			fh.write("%s\t%s\n" % (k, v))
+		fh.close()
+
+
+class ConfigDict(ListDict):
+	'''Config object which wraps a dict of dicts.
+	These are represented as INI files.
+	'''
+
+	def read(self, file):
+		'''FIXME'''
+		# TODO parse INI style config
+
+	def write(self, file):
+		'''FIXME'''
+		# TODO write INI style config

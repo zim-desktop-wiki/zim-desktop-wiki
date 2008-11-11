@@ -14,6 +14,9 @@ import errno
 import codecs
 from StringIO import StringIO
 
+__all__ = ['Dir', 'File', 'Buffer']
+
+
 class PathLookupError(Exception):
 	'''FIXME'''
 
