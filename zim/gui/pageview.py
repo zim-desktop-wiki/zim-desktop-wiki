@@ -172,13 +172,16 @@ gobject.type_register(TextBuffer)
 gobject.type_register(TextView)
 
 
-class PageView(object):
+class PageView(gtk.VBox):
 	'''FIXME'''
 
 	def __init__(self):
+		gtk.VBox.__init__(self)
 		self.view = TextView()
-		self.widget = gtk.ScrolledWindow()
-		self.widget.add(self.view)
+		swindow = gtk.ScrolledWindow()
+		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		swindow.add(self.view)
+		self.add(swindow)
 
 	def set_page(self, page):
 		tree = page.get_parsetree()

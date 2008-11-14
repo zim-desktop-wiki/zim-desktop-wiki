@@ -10,6 +10,9 @@ import gtk
 from zim import Application
 from zim.utils import data_file
 
+def debug(msg):
+	print '# '+msg
+
 class GtkApplication(Application):
 	'''FIXME'''
 
@@ -30,14 +33,16 @@ class GtkApplication(Application):
 
 	def main(self):
 		'''FIXME'''
-		# check which notebook to open
 		if self.notebook is None:
+			debug('No notebook given, starting notebookdialog')
 			import notebookdialog
 			notebookdialog.NotebookDialog(self).run()
-			# notebookdialog should have triggered open_notebook()
+			# notebookdialog should trigger open_notebook()
 
 		if self.notebook is None:
-			return # close application
+			# Close application. Either the user cancelled the notebook dialog,
+			# or the notebook was opened in a different process.
+			return
 
 		self.mainwindow.show()
 		gtk.main()
@@ -52,11 +57,16 @@ class GtkApplication(Application):
 		self.window = self.mainwindow.window
 
 		# TODO load history and set intial page
+		self.open_page(notebook.get_home_page())
 
-	def open_page(self, pagename):
+	def open_page(self, page):
 		'''FIXME'''
 		assert self.notebook
-		page = self.notebook.get_page(pagename)
+		if isinstance(page, basestring):
+			debug('Open page: %s' % page)
+			page = self.notebook.get_page(page)
+		else:
+			debug('Open page: %s (object)' % page.name)
 		self.emit('open-page', page)
 
 	def do_open_page(self, page):

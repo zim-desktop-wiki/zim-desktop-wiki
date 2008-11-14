@@ -4,7 +4,7 @@
 
 '''FIXME'''
 
-import gobject
+
 import gtk
 
 from zim.utils import data_file, config_file, ConfigList
@@ -43,7 +43,7 @@ class NotebookDialog(object):
 		# add notebook list
 		# TODO need helper class to wrap treeviews - my own SimpleTreeView
 		# TODO: add logic to flag open notebook italic - needs daemon
-		self.treemodel = gtk.ListStore(gobject.TYPE_STRING)
+		self.treemodel = gtk.ListStore(str) # 1 column
 		self.treeview = gtk.TreeView(self.treemodel)
 		cell_renderer = gtk.CellRendererText()
 		column = gtk.TreeViewColumn('Notebook', cell_renderer, text=0)
@@ -73,7 +73,7 @@ class NotebookDialog(object):
 				model, iter = self.treeview.get_selection().get_selected()
 				if iter is None:
 					return True
-				name = model.get_value(iter, 0)
+				name = model[iter][0]
 				self.app.open_notebook(name)
 				return False
 			elif id == 9: # Help

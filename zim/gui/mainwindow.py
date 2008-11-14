@@ -6,6 +6,7 @@
 
 import gtk
 
+import pageindex
 import pageview
 
 class MainWindow(object):
@@ -20,14 +21,21 @@ class MainWindow(object):
 		self.window.set_default_size(500, 500)
 		self.window.connect("destroy", self.destroy)
 		# TODO menubar and toolbar
-		# TODO side pane
+		hpane = gtk.HPaned()
+		self.window.add(hpane)
+		self.pageindex = pageindex.PageIndex()
+		hpane.add1(self.pageindex)
 		# TODO pathbar
 		self.pageview = pageview.PageView()
+		hpane.add2(self.pageview)
 		# TODO statusbar
-		self.window.add(self.pageview.widget)
+
+		self.pageindex.connect('page-activated',
+			lambda index, pagename: self.app.open_page(pagename) )
 
 	def show(self):
 		'''FIXME'''
+		self.pageindex.set_pages( self.app.notebook.get_root() )
 		self.window.show_all()
 
 	def destroy(self, widget, data=None):

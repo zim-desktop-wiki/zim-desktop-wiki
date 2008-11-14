@@ -183,6 +183,10 @@ class Notebook(object):
 			self.page_cache[name] = page
 			return page
 
+	def get_home_page(self):
+		'''Returns a page object for the home page.'''
+		return self.get_page(':Home') # TODO: make this configable
+
 	def get_root(self):
 		'''Returns a Namespace object for root namespace.'''
 		return self.stores[''].get_root()
