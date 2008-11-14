@@ -5,9 +5,16 @@ Each class has inline documentation, use pydoc to view it.
 
 zim					# Command line parsing and application class
 |-- Application()
+|-- Component()
 |-- gui				# Gtk interface - TODO
-|   |-- GUI(Application)
-|   `-- ...
+|   |-- GtkApplication(Application)
+|   |-- gtkutils
+|   |-- pageview
+|   |   |-- PageView(Component)
+|   |   |-- TextView
+|   |   `-- TextBuffer
+|   `-- pageindex
+|       ` PageIndex(Component)
 |-- www				# WWW interface for server / cgi-bin
 |   `-- WWW(Application)
 |-- exporter		# Code for commandline export

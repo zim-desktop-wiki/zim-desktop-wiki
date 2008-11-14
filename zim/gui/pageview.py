@@ -9,9 +9,17 @@ import gobject
 import gtk
 import pango
 
+from zim import Component
+
 
 class TextView(gtk.TextView):
 	'''FIXME'''
+
+	def __init__(self):
+		'''FIXME'''
+		gtk.TextView.__init__(self)
+		self.set_left_margin(10)
+		self.set_right_margin(5)
 
 
 class TextBuffer(gtk.TextBuffer):
@@ -164,15 +172,14 @@ class TextBuffer(gtk.TextBuffer):
 			self.remove_all_tags(start, end)
 			self.apply_tag(self.textstyle_tag, start, end)
 
-		# TODO: record undo step
-
+		# TODO: record undo steps
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextBuffer)
 gobject.type_register(TextView)
 
 
-class PageView(gtk.VBox):
+class PageView(gtk.VBox, Component):
 	'''FIXME'''
 
 	def __init__(self):
@@ -180,6 +187,7 @@ class PageView(gtk.VBox):
 		self.view = TextView()
 		swindow = gtk.ScrolledWindow()
 		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		swindow.set_shadow_type(gtk.SHADOW_IN)
 		swindow.add(self.view)
 		self.add(swindow)
 

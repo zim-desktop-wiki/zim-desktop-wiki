@@ -24,7 +24,17 @@ import gobject
 #import zim.plugins
 
 
-class Application(gobject.GObject):
+class Component(object):
+	'''FIXME'''
+
+	def __init__(self, app):
+		self.app = app
+
+	def debug(self, msg):
+		print '# '+msg
+
+
+class Application(gobject.GObject, Component):
 	'''FIXME'''
 
 	# define signals we want to use - (closure type, return type and arg types)

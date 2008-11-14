@@ -8,8 +8,10 @@
 import gobject
 import gtk
 
+from gtkutils import SingleClickTreeView
+from zim import Component
 
-class PageIndex(gtk.ScrolledWindow):
+class PageIndex(gtk.ScrolledWindow, Component):
 	'''FIXME'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -25,7 +27,7 @@ class PageIndex(gtk.ScrolledWindow):
 		self.set_shadow_type(gtk.SHADOW_IN)
 
 		self.treemodel = gtk.TreeStore(str, str) # 2 columns
-		self.treeview = gtk.TreeView(self.treemodel)
+		self.treeview = SingleClickTreeView(self.treemodel)
 		self.add(self.treeview)
 
 		cell_renderer = gtk.CellRendererText()

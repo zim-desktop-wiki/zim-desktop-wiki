@@ -1,0 +1,130 @@
+<ui>
+	<menubar name='MenuBar'>
+		<menu action='FileMenu'>
+			<menuitem action='NewPage'/>
+			<menuitem action='OpenNotebook'/>
+			<separator/>
+			<menuitem action='Save'/>
+			<menuitem action='SaveVersion'/>
+			<menuitem action='Versions'/>
+			<separator/>
+			<menuitem action='Export'/>
+			<placeholder name='PrintActions'/>
+			<menuitem action='EmailPage'/>
+			<separator/>
+			<placeholder name='PageMods'/>
+			<separator/>
+			<menuitem action='Props'/>
+			<separator/>
+			<menuitem action='Close'/>
+			<menuitem action='Quit'/>
+		</menu>
+		<menu action='EditMenu'>
+			<placeholder name='EditPage'/>
+			<separator/>
+			<menuitem action='CopyLocation'/>
+			<separator/>
+			<menuitem action='Prefs'/>
+		</menu>
+		<menu action='ViewMenu'>
+			<menuitem action='TToolBar'/>
+			<menuitem action='TStatusBar'/>
+			<menuitem action='TPane'/>
+			<menu action='PathBarMenu'>
+				<menuitem action='PBRecent'/>
+				<menuitem action='PBHistory'/>
+				<menuitem action='PBNamespace'/>
+				<menuitem action='PBHidden'/>
+			</menu>
+			<separator/>
+			<placeholder name='PluginItems'/>
+			<separator/>
+			<menuitem action='Reload'/>
+		</menu>
+		<menu action='InsertMenu'>
+		</menu>
+		<menu action='FormatMenu'></menu>
+		<menu action='SearchMenu'>
+			<placeholder name='FindItems'/>
+			<separator/>
+			<menuitem action='Search'/>
+			<menuitem action='SearchBL'/>
+		</menu>
+		<menu action='ToolsMenu'>
+			<placeholder name='PageTools'/>
+			<separator/>
+			<menuitem action='EditSource'/>
+			<menuitem action='AttachFile'/>
+			<menuitem action='OpenFolder'/>
+			<menuitem action='OpenRootFolder'/>
+			<separator/>
+			<menuitem action='RBIndex'/>
+		</menu>
+		<placeholder name='PluginMenus'/>
+		<menu action='GoMenu'>
+			<menuitem action='GoBack'/>
+			<menuitem action='GoForward'/>
+			<separator/>
+			<menuitem action='GoParent'/>
+			<menuitem action='GoChild'/>
+			<menuitem action='GoNext'/>
+			<menuitem action='GoPrev'/>
+			<separator/>
+			<placeholder name='PluginItems'/>
+			<separator/>
+			<menuitem action='GoHome'/>
+			<menuitem action='JumpTo'/>
+		</menu>
+		<menu action='HelpMenu'>
+			<menuitem action='ShowHelp'/>
+			<menuitem action='ShowHelpFAQ'/>
+			<menuitem action='ShowHelpKeys'/>
+			<menuitem action='ShowHelpBugs'/>
+			<separator/>
+			<menuitem action='About'/>
+		</menu>
+	</menubar>
+	<toolbar name='ToolBar'>
+		<placeholder name='File'/>
+		<separator/>
+		<placeholder name='Edit'/>
+		<separator/>
+		<placeholder name='View'>
+			<toolitem action='TPane'/>
+		</placeholder>
+		<separator/>
+		<placeholder name='Go'>
+			<toolitem action='GoHome'/>
+			<toolitem action='GoBack'/>
+			<toolitem action='GoForward'/>
+		</placeholder>
+		<separator/>
+		<placeholder name='Search'/>
+		<separator/>
+		<placeholder name='Format'/>
+		<separator/>
+		<placeholder name='Tools'>
+			<toolitem action='AttachFile'/>
+		</placeholder>
+	</toolbar>
+	<popup name='PagePopup'>
+		<menuitem action='popup_NewPage'/>
+		<menuitem action='popup_CopyPage'/>
+		<menuitem action='popup_RenamePage'/>
+		<menuitem action='popup_DeletePage'/>
+	</popup>
+</ui>
+
+<!--
+<ui>
+	<menubar name='MenuBar'>
+			<menu action='FileMenu'>
+				<placeholder name='PageMods'>
+					<menuitem action='CopyPage'/>
+					<menuitem action='RenamePage'/>
+					<menuitem action='DeletePage'/>
+				</placeholder>
+			</menu>
+	</menubar>
+</ui>
+-->
