@@ -2,17 +2,24 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module contains a class to display an index of pages.
+This widget is used primarily in the side pane of the main window,
+but also e.g. for the page lists in the search dialog.
+'''
 
 
 import gobject
 import gtk
+import pango
 
-from gtkutils import SingleClickTreeView
 from zim import Component
+from zim.gui import gtkutils
+
+NAME_COL = 0  # column with short page name (page.basename)
+PAGE_COL = 1  # column with the full page name (page.name)
 
 class PageIndex(gtk.ScrolledWindow, Component):
-	'''FIXME'''
+	'''Wrapper for a TreeView showing a list of pages.'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -21,19 +28,19 @@ class PageIndex(gtk.ScrolledWindow, Component):
 	}
 
 	def __init__(self):
-		'''FIXME'''
+		'''Simple constructor'''
 		gtk.ScrolledWindow.__init__(self)
-		self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		self.set_shadow_type(gtk.SHADOW_IN)
 
-		self.treemodel = gtk.TreeStore(str, str) # 2 columns
-		self.treeview = SingleClickTreeView(self.treemodel)
+		self.treemodel = gtk.TreeStore(str, str) # NAME_COL, PAGE_COL
+		self.treeview = gtkutils.BrowserTreeView(self.treemodel)
 		self.add(self.treeview)
 
 		cell_renderer = gtk.CellRendererText()
-		column = gtk.TreeViewColumn('_pages_', cell_renderer, text=0)
+		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
+		column = gtk.TreeViewColumn('_pages_', cell_renderer, text=NAME_COL)
 		self.treeview.append_column(column)
-		self.treeview.get_selection().set_mode(gtk.SELECTION_BROWSE)
 		self.treeview.set_headers_visible(False)
 		#~ self.treeview.set_search_column(1)
 		#~ self.treeview.set_search_equal_func(...)
@@ -50,11 +57,13 @@ class PageIndex(gtk.ScrolledWindow, Component):
 		self.treeview.connect('row-activated', do_row_activated)
 
 	def set_pages(self, pagelist):
+		'''Set the page list. This can by e.g. a Namespace object.'''
 		# TODO clear model
 		# TODO use idle loop to delay loading long lists
 
 		def add_page(parent, page):
-			iter = self.treemodel.append(parent, row=(page.basename, page.name))
+			row = (page.basename, page.name)
+			iter = self.treemodel.append(parent, row)
 			if page.children:
 				for child in page.children:
 					add_page(iter, child) # recurs

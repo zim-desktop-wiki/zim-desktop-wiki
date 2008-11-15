@@ -119,7 +119,10 @@ is_url_re   = Re('^(\w[\w\+\-\.]+)://')
 is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')
 
 class ListDict(dict):
-	'''Class that behaves like a dict but keeps items in same order'''
+	'''Class that behaves like a dict but keeps items in same order.
+	Used as base class for e.g. for config objects were writing should be
+	in a predictable order.
+	'''
 
 	def __init__(self):
 		self.order = []
@@ -133,29 +136,73 @@ class ListDict(dict):
 		for k in self.order:
 			yield (k, self[k])
 
+	def set_order(self, order):
+		'''Change the order in which items are listed by setting a list
+		of keys. Keys not in the list are moved to the end. Keys that are in
+		the list but not in the dict will be ignored.
+		'''
+		oldorder = set(self.order)
+		neworder = set(order)
+		for k in neworder - oldorder: # keys not in the dict
+			order.remove(k)
+		for k in oldorder - neworder: # keys not in the list
+			order.append(k)
+		neworder = set(order)
+		assert neworder == oldorder
+		self.order = order
+
 
 class ConfigList(ListDict):
-	'''FIXME'''
+	'''This class supports config files that exist of two columns separated
+	by whitespace. It inherits from ListDict to ensure the list remain in
+	the same order when it is written to file again. When a file path is set
+	for this object it will be used to try reading from any from the config
+	and data directories while using the config home directory for writing.
+	'''
 
 	fields_re = re.compile(r'(?:\\.|\S)+') # match escaped char or non-whitespace
 	escaped_re = re.compile(r'\\(.)') # match single escaped char
 	escape_re = re.compile(r'([\s\\])') # match chars to escape
 
-	def read(self, file):
+	def __init__(self, path=None, read_all=False):
+		'''Constructor calls read() directly if 'path' is given'''
+		ListDict.__init__(self)
+		if not path is None:
+			assert read_all is False, 'TODO'
+			self.path = path
+			self.read()
+
+	def read(self, file=None):
 		'''FIXME'''
+		if file is None and self.path:
+			# TODO - include data dirs for default config
+			# TODO - support read_all options
+			file = config_file(self.path)
+		assert isinstance(file, (File, Buffer))
+
 		fh = file.open('r')
 		for line in fh:
 			line = line.strip()
 			if line.isspace() or line.startswith('#'):
 				continue
 			cols = self.fields_re.findall(line)
+			if len(cols) == 1:
+				cols[1] = None # empty string in second column
+			else:
+				assert len(cols) >= 2
+				if len(cols) > 2 and not cols[2].startswith('#'):
+					print 'WARNING: trailing data' # FIXME better warning
 			for i in range(0, 2):
 				cols[i] = self.escaped_re.sub(r'\1', cols[i])
 			self[cols[0]] = cols[1]
 		fh.close()
 
-	def write(self, file):
+	def write(self, file=None):
 		'''FIXME'''
+		if file is None and self.path:
+			file = config_file(self.path)
+		assert isinstance(file, (File, Buffer))
+
 		fh = file.open('w')
 		for k, v in self.items():
 			k = self.escape_re.sub(r'\\\1', k)

@@ -14,17 +14,49 @@ the 'stores' namespace.
 import weakref
 
 from zim.fs import *
-from zim.utils import Re, is_url_re, is_email_re
+from zim.utils import Re, is_url_re, is_email_re, ConfigList, config_file
 import zim.stores
+
 
 def get_notebook(notebook):
 	'''Takes a path or name and returns a notebook object'''
-	# TODO check notebook list if notebook is not a path
-	if not isinstance(notebook, Dir): notebook = Dir(notebook)
+	if not isinstance(notebook, Dir):
+		# We are not sure if it is a name or a path, try lookup
+		table = get_notebook_table()
+		notebook = unicode(notebook)
+		if notebook in table:
+			if notebook == '_default_' and table['_default_'] in table:
+				# default is not set to a path, but to another notebook name
+				notebook = table[table[notebook]]
+			else:
+				notebook = table[notebook]
+		elif notebook == '_doc_':
+			print 'TODO: get path for user manual'
+
+		notebook = Dir(notebook)
+
 	if notebook.exists():
 		return Notebook(path=notebook)
 	else:
 		raise Exception, 'no such notebook: %s' % notebook
+
+
+notebook_table_ref = lambda: None
+
+def get_notebook_table():
+	'''FIXME'''
+	table = notebook_table_ref()
+	if table is None:
+		table = ConfigList('notebooks.list')
+		_notebook_table_ref = weakref.ref(table)
+	return table
+
+
+def set_notebooks_dict(notebooks):
+	'''FIXME'''
+	assert isinstance(notebooks, ConfigList)
+	file = config_file('notebooks.list')
+	notebooks.write(file)
 
 
 class LookupError(Exception):

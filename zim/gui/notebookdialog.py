@@ -2,19 +2,29 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
-
+'''This module contains the notebook dialog which is used for the
+"open another notebook" action and which is shown if you start zim without
+argument. The dialog directly modifies the notebook table obtained from
+zim.notebook.get_notebook_table(). It re-uses the properties dialog to
+modify the notebook properties. A special dropdown allows settign the special
+entry for _default_ which will be openend directly the next time zim is
+started without arguments.
+'''
 
 import gtk
+import pango
 
-from zim.utils import data_file, config_file, ConfigList
-from zim import Component
+from zim import Component, notebook
+from zim.utils import data_file
+from zim.gui import gtkutils
+
+
+NAME_COL = 0  # column with notebook name
+OPEN_COL = 1  # column with boolean if notebook is open alreadys
 
 class NotebookDialog(gtk.Dialog, Component):
-	'''FIXME'''
 
 	def __init__(self, app):
-		'''FIXME'''
 		self.app = app
 
 		# FIXME have helper for creating dialogs
@@ -38,30 +48,87 @@ class NotebookDialog(gtk.Dialog, Component):
 		image = gtk.image_new_from_file(path)
 		align = gtk.Alignment(0,0.5, 0,0)
 		align.add(image)
-		self.vbox.pack_start(align, expand=False)
+		self.vbox.pack_start(align, False)
+
+		# split between treeview and vbuttonbox
+		hbox = gtk.HBox(spacing=12)
+		self.vbox.add(hbox)
 
 		# add notebook list
-		# TODO need helper class to wrap treeviews - my own SimpleTreeView
 		# TODO: add logic to flag open notebook italic - needs daemon
-		self.treemodel = gtk.ListStore(str) # 1 column
-		self.treeview = gtk.TreeView(self.treemodel)
+		self.treemodel = gtk.ListStore(str, bool) # NAME_COL, OPEN_COL
+		self.treeview = gtkutils.BrowserTreeView(self.treemodel)
+		self.treeview.set_rules_hint(True)
+		self.treeview.set_reorderable(True)
+
 		cell_renderer = gtk.CellRendererText()
-		column = gtk.TreeViewColumn('Notebook', cell_renderer, text=0)
+		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
+		column = gtk.TreeViewColumn('Notebook', cell_renderer, text=NAME_COL)
+		column.set_sort_column_id(NAME_COL)
 		self.treeview.append_column(column)
-		self.treeview.get_selection().set_mode(gtk.SELECTION_BROWSE)
+
+		# when the list is re-ordered we save it
+		id = self.treemodel.connect_after('row-inserted', self.save_notebook_list)
+		self.row_inserted_handler = id
+
+		# open notebook on clicking a row
+		self.treeview.connect('row-activated', lambda *a: self.response(42))
 
 		swindow = gtk.ScrolledWindow()
-		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		swindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		swindow.set_shadow_type(gtk.SHADOW_IN)
 		swindow.add(self.treeview)
-		self.vbox.add(swindow)
+		hbox.add(swindow)
 
-		def do_row_activated(*args):
-			self.response(42) # Open notebook
-		self.treeview.connect('row-activated', do_row_activated)
+		# add buttons for modifying the treeview
+		vbbox = gtk.VButtonBox()
+		vbbox.set_layout(gtk.BUTTONBOX_START)
+		hbox.pack_start(vbbox, False)
+		add_button = gtk.Button(stock='gtk-add')
+		add_button.connect('clicked', self.add_notebook)
+		ch_button = gtkutils.button('gtk-properties', 'Cha_nge')
+		ch_button.connect('clicked', self.change_notebook)
+		rm_button = gtk.Button(stock='gtk-remove')
+		rm_button.connect('clicked', self.remove_notebook)
+		for b in (add_button, ch_button, rm_button):
+			b.set_alignment(0.0, 0.5)
+			vbbox.add(b)
+
+		# add dropdown to select default
+		self.combobox = gtk.ComboBox(model=self.treemodel)
+		cell_renderer = gtk.CellRendererText()
+		self.combobox.pack_start(cell_renderer, False)
+		self.combobox.set_attributes(cell_renderer, text=0)
+
+		def on_set_default(*a):
+			i = self.combobox.get_active()
+			if i >= 0:
+				default = self.treemodel[i][NAME_COL]
+				self.notebooks['_default_'] = default
+			else:
+				self.notebooks['_default_'] = None
+			self.save_notebook_list()
+
+		id = self.combobox.connect('changed', on_set_default)
+		self.combobox_changed_handler = id
+
+		# clear button de-selects any item in the combobox
+		clear_button = gtkutils.small_button('gtk-clear')
+		clear_button.connect('clicked', lambda *a: self.combobox.set_active(-1))
+
+		hbox = gtk.HBox(spacing=5)
+		hbox.pack_start(gtk.Label('Default notebook:'), False)
+		hbox.pack_start(self.combobox, False)
+		hbox.pack_start(clear_button, False)
+		self.vbox.pack_start(hbox, False)
 
 	def main(self):
-		'''FIXME'''
+		'''Run the dialog.
+
+		Before this method returns the widget is destroyed, so you can not
+		re-use the object after this. Does not have a return value, actions
+		are called directly on the application object.
+		'''
 		self.load_notebook_list()
 		self.show_all()
 		self.treeview.grab_focus()
@@ -87,19 +154,54 @@ class NotebookDialog(gtk.Dialog, Component):
 
 		self.destroy()
 
+	def _set_combobox(self):
+		# Set the combobox to display the correct row, assume the default
+		# is set to the name of one of the other notebooks.
+		self.combobox.handler_block(self.combobox_changed_handler)
+		default = self.notebooks.get('_default_')
+		if default is None:
+			self.combobox.set_active(-1)
+		else:
+			for row in self.treemodel:
+				if row[NAME_COL] == default:
+					self.combobox.set_active_iter(row.iter)
+					break
+		self.combobox.handler_unblock(self.combobox_changed_handler)
+
 	def load_notebook_list(self):
-		'''FIXME'''
-		self.notebooks = ConfigList()
-		self.notebooks.read(config_file('notebooks.list'))
-		#~ print self.notebooks
+		self.treemodel.handler_block(self.row_inserted_handler)
+		self.notebooks = notebook.get_notebook_table()
 		for name, path in self.notebooks.items():
 			if not (name.startswith('_') and name.endswith('_')):
-				self.treemodel.append((name,))
+				self.treemodel.append((name, False))
+		self._set_combobox()
+		self.treemodel.handler_unblock(self.row_inserted_handler)
 
-	def save_notebook_list(self):
-		'''FIXME'''
-		# TODO
+	def save_notebook_list(self, *a):
+		self._set_combobox() # probably the model has changed
+		notebooks = [unicode(row[NAME_COL]) for row in self.treemodel]
+		self.notebooks.set_order(notebooks)
+		print 'SAVE', self.notebooks
+		#~ self.notebooks.write()
+
+	def add_notebook(self, *a):
+		# TODO: add "new" notebook in list and select it
+		self.change_notebook()
+
+	def change_notebook(self, *a):
+		model, iter = self.treeview.get_selection().get_selected()
+		if iter is None: return
+		notebook = self.notebooks[model[iter][NAME_COL]]
+		print 'TODO: run properties dialog'
+		self.save_notebook_list() # directory could have changed
+
+	def remove_notebook(self, *a):
+		model, iter = self.treeview.get_selection().get_selected()
+		if iter is None: return
+		print 'DEL', model[iter][NAME_COL]
+		#~ del model[iter]
+		self.save_notebook_list()
 
 	def show_help(self):
-		'''FIXME'''
+		pass
 		# TODO: open help window

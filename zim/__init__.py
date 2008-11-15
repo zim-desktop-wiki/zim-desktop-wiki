@@ -30,8 +30,9 @@ class Component(object):
 	def __init__(self, app):
 		self.app = app
 
-	def debug(self, msg):
-		print '# '+msg
+	def debug(self, *msg):
+		msg = map(unicode, msg)
+		print '# '+' '.join(msg).encode('utf8')
 
 
 class Application(gobject.GObject, Component):

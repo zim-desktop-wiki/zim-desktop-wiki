@@ -2,17 +2,19 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module contains the Gtk user interface for zim.
+The main components and dialogs are seperated out in sub-modules.
+Included here are the application class for the zim GUI and the main window.
+'''
 
-
+import sys
+import os
 import gobject
 import gtk
 
 from zim import Application, Component
 from zim.utils import data_file, config_file
-
-import pageindex
-import pageview
+from zim.gui import pageindex, pageview
 
 
 menu_actions = (
@@ -88,7 +90,9 @@ radio_actions = (
 
 
 class GtkApplication(Application, Component):
-	'''FIXME'''
+	'''Appliction object for the zim GUI. This object wraps a single notebook
+	and provides actions to manipulate and access this notebook.
+	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -97,7 +101,7 @@ class GtkApplication(Application, Component):
 	}
 
 	def __init__(self, **opts):
-		'''FIXME'''
+		'''Constructor'''
 		Application.__init__(self, **opts)
 		self.window = None
 
@@ -106,7 +110,7 @@ class GtkApplication(Application, Component):
 		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
 
 	def main(self):
-		'''FIXME'''
+		'''Wrapper for gtk.main(); does not return untill program has ended.'''
 		if self.notebook is None:
 			self.debug('No notebook given, starting notebookdialog')
 			import notebookdialog
@@ -121,8 +125,20 @@ class GtkApplication(Application, Component):
 		self.mainwindow.show_all()
 		gtk.main()
 
+	def open_notebook(self, notebook):
+		'''Open a new notebook. If this is the first notebook the open-notebook
+		signal is emitted and the notebook is opened in this process. Otherwise
+		we let another instance handle it.'''
+		if self.notebook is None:
+			Application.open_notebook(self, notebook)
+		else:
+			# TODO get rid of sys here - put argv[0] in Application object
+			# TODO put this in the same package as the daemon code
+			self.debug('Spawning new process: %s %s' % (sys.argv[0], notebook))
+			os.spawnlp(os.P_NOWAIT, sys.argv[0], sys.argv[0], notebook)
+
 	def do_open_notebook(self, notebook):
-		'''FIXME'''
+		'''Signal handler for open-notebook. Initializes the main window.'''
 		self.notebook = notebook
 
 		# construct main window to show this notebook
@@ -133,7 +149,9 @@ class GtkApplication(Application, Component):
 		self.open_page(notebook.get_home_page())
 
 	def open_page(self, page):
-		'''FIXME'''
+		'''Emit the open-page signal.
+		'page' can either be a page object or a page name
+		'''
 		assert self.notebook
 		if isinstance(page, basestring):
 			self.debug('Open page: %s' % page)
@@ -143,25 +161,200 @@ class GtkApplication(Application, Component):
 		self.emit('open-page', page)
 
 	def do_open_page(self, page):
-		'''FIXME'''
+		'''Signal handler for open-page.'''
 		self.page = page
+
+	def dispatch_action(self, action):
+		'''FIXME'''
+		if isinstance(action, gtk.Action):
+			action = action.get_property('name')
+		else:
+			assert isinstance(action, basestring)
+
+		if action.endswith('Menu'):
+			return # these occur when opening a menu, ignore silently
+		else:
+			self.debug('ACTION: ', action)
+			try:
+				method = getattr(self, action)
+			except AttributeError:
+				self.debug('No handler defined for action %s' % action)
+			else:
+				method()
+
+	def NewPage(self):
+		'''FIXME'''
+
+
+	def OpenNotebook(self):
+		'''FIXME'''
+		import notebookdialog
+		notebookdialog.NotebookDialog(self).main()
+
+	def Save(self):
+		'''FIXME'''
+
+
+	def SaveVersion(self):
+		'''FIXME'''
+
+
+	def Versions(self):
+		'''FIXME'''
+
+
+	def Export(self):
+		'''FIXME'''
+
+
+	def EmailPage(self):
+		'''FIXME'''
+
+
+	def CopyPage(self):
+		'''FIXME'''
+
+
+	def RenamePage(self):
+		'''FIXME'''
+
+
+	def DeletePage(self):
+		'''FIXME'''
+
+
+	def Props(self):
+		'''FIXME'''
+
+
+	def Close(self):
+		'''FIXME'''
+		self.Quit()
+
+	def Quit(self):
+		'''FIXME'''
+		self.mainwindow.destroy()
+		gtk.main_quit()
+
+	def Search(self):
+		'''FIXME'''
+
+
+	def SearchBL(self):
+		'''FIXME'''
+
+
+	def CopyLocation(self):
+		'''FIXME'''
+
+
+	def Prefs(self):
+		'''FIXME'''
+
+
+	def Reload(self):
+		'''FIXME'''
+
+
+	def OpenFolder(self):
+		'''FIXME'''
+
+
+	def OpenRootFolder(self):
+		'''FIXME'''
+
+
+	def AttachFile(self):
+		'''FIXME'''
+
+
+	def EditSource(self):
+		'''FIXME'''
+
+
+	def RBIndex(self):
+		'''FIXME'''
+
+
+	def GoBack(self):
+		'''FIXME'''
+
+
+	def GoForward(self):
+		'''FIXME'''
+
+
+	def GoParent(self):
+		'''FIXME'''
+
+
+	def GoChild(self):
+		'''FIXME'''
+
+
+	def GoPrev(self):
+		'''FIXME'''
+
+
+	def GoNext(self):
+		'''FIXME'''
+
+
+	def GoHome(self):
+		'''FIXME'''
+
+
+	def JumpTo(self):
+		'''FIXME'''
+
+
+	def ShowHelp(self):
+		'''FIXME'''
+
+
+	def ShowHelpFAQ(self):
+		'''FIXME'''
+
+
+	def ShowHelpKeys(self):
+		'''FIXME'''
+
+
+	def ShowHelpBugs(self):
+		'''FIXME'''
+
+
+	def About(self):
+		'''FIXME'''
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(GtkApplication)
 
 
 class MainWindow(gtk.Window, Component):
-	'''FIXME'''
+	'''Main window of the application, showing the page index in the side
+	pane and a pageview with the current page. Alse includes the menubar,
+	toolbar, statusbar etc.
+	'''
 
 	def __init__(self, app):
-		'''FIXME'''
+		'''Constructor'''
 		gtk.Window.__init__(self)
 
 		self.app = app
 		app.connect('open-page', self.do_open_page)
 
+		# Catching this signal prevents the window to actually be destroyed
+		# when the user tries to close it. The action for close should either
+		# hide or destroy the window.
+		def do_delete_event(*a):
+			self.debug('ACTION: Close (delete-event)')
+			self.app.Close()
+			return True
+		self.connect('delete-event', do_delete_event)
+
 		self.set_default_size(600, 450)
-		self.connect("destroy", self.destroy)
 		vbox = gtk.VBox()
 		self.add(vbox)
 
@@ -174,6 +367,9 @@ class MainWindow(gtk.Window, Component):
 		actions.add_toggle_actions(toggle_actions)
 		actions.add_radio_actions(radio_actions)
 		uimanager.insert_action_group(actions, 0)
+
+		for action in actions.list_actions():
+				action.connect('activate', self.app.dispatch_action)
 
 		uimanager.add_ui_from_file(data_file('menubar.xml').path)
 		menubar = uimanager.get_widget('/MenuBar')
@@ -204,12 +400,6 @@ class MainWindow(gtk.Window, Component):
 		# TODO label current style
 		# TODO event box backlinks
 
-
-	def destroy(self, widget, data=None):
-		'''FIXME'''
-		# really destructive
-		gtk.main_quit()
-
 	def do_open_page(self, app, page):
-		'''FIXME'''
+		'''Signal handler for open-page, updates the pageview'''
 		self.pageview.set_page(page)
