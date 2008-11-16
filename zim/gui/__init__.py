@@ -7,13 +7,12 @@ The main components and dialogs are seperated out in sub-modules.
 Included here are the application class for the zim GUI and the main window.
 '''
 
-import sys
-import os
 import gobject
 import gtk
 
+import zim
 from zim import Application, Component
-from zim.utils import data_file, config_file
+from zim.utils import data_file, config_file, is_url_re, is_email_re
 from zim.gui import pageindex, pageview
 
 # First we define all menu items specifying icons, labels and keybindings.
@@ -33,7 +32,6 @@ ui_actions = (
 
 	# name, stock id, label, accelerator, tooltip
 	('new_page',  'gtk-new', '_New Page', '<ctrl>N', 'New page'),
-	('popup_new_page', 'gtk-new', '_New Page', None, 'New page'),
 	('open_notebook', 'gtk-open', '_Open Another Notebook...', '<ctrl>O', 'Open notebook'),
 	('save_page', 'gtk-save', '_Save', '<ctrl>S', 'Save page'),
 	('save_version', 'gtk-save-as', 'S_ave Version...', '<ctrl><shift>S', 'Save Version'),
@@ -41,11 +39,8 @@ ui_actions = (
 	('show_export',  None, 'E_xport...', None, 'Export'),
 	('email_page', None, '_Send To...', None, 'Mail page'),
 	('copy_page', None, '_Copy Page...', None, 'Copy page'),
-	('popup_copy_page', None, '_Copy Page...', None, 'Copy page'),
 	('rename_page', None, '_Rename Page...', 'F2', 'Rename page'),
-	('popup_rename_page', None, '_Rename Page...', None, 'Rename page'),
 	('delete_page', None, '_Delete Page', None, 'Delete page'),
-	('popup_delete_page', None, '_Delete Page', None, 'Delete page'),
 	('show_properties',  'gtk-properties', 'Proper_ties', None, 'Properties dialog'),
 	('close',  'gtk-close', '_Close', '<ctrl>W', 'Close window'),
 	('quit',  'gtk-quit', '_Quit', '<ctrl>Q', 'Quit'),
@@ -58,6 +53,7 @@ ui_actions = (
 	('open_documents_folder', 'gtk-open', 'Open Document _Root', None, 'Open document root'),
 	('attach_file', 'mail-attachment', 'Attach _File', None, 'Attach external file'),
 	('edit_page_source', 'gtk-edit', 'Edit _Source', None, 'Open source'),
+	('show_server_gui', None, 'Start _Web Server', None, 'Start web server'),
 	('reload_index', None, 'Re-build Index', None, 'Rebuild index'),
 	('go_page_back', 'gtk-go-back', '_Back', '<alt>Left', 'Go page back'),
 	('go_page_forward', 'gtk-go-forward', '_Forward', '<alt>Right', 'Go page forward'),
@@ -102,9 +98,8 @@ class GtkApplication(Application, Component):
 	}
 
 	def __init__(self, **opts):
-		'''Constructor'''
 		Application.__init__(self, **opts)
-		self.window = None
+		self.mainwindow = None
 
 		# set default icon for all windows
 		icon = data_file('zim.png').path
@@ -165,10 +160,8 @@ class GtkApplication(Application, Component):
 			Application.open_notebook(self, notebook)
 		else:
 			# We are already intialized, let another process handle it
-			# TODO get rid of sys here - put argv[0] in Application object
 			# TODO put this in the same package as the daemon code
-			self.debug('Spawning new process: %s %s' % (sys.argv[0], notebook))
-			os.spawnlp(os.P_NOWAIT, sys.argv[0], sys.argv[0], notebook)
+			self.spawn('zim', notebook)
 
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook. Initializes the main window.'''
@@ -176,15 +169,24 @@ class GtkApplication(Application, Component):
 
 		# construct main window to show this notebook
 		self.mainwindow = MainWindow(self)
-		self.window = self.mainwindow.window
 
 		# TODO load history and set intial page
 		self.open_page(notebook.get_home_page())
 
+	def open_link(self, link):
+		'''Open either a page, file, dir or url'''
+		# TODO handle paths, urls and email addresses
+		if is_url_re.match(link) or is_email_re.match(link):
+			print 'TODO: handlers for urls and email'
+		# TODO is_path_re
+		else: # must be a page
+			name = self.notebook.resolve_name(link, self.page.namespace)
+			self.open_page(name)
+
 	def open_page(self, page=None):
 		'''Emit the open-page signal. The argument 'page' can either be a page
-		object or a page name. If 'page' is None a dialog is shown to
-		specify the page.
+		object or an absolute page name. If 'page' is None a dialog is shown
+		to specify the page.
 		'''
 		assert self.notebook
 		if page is None:
@@ -205,9 +207,6 @@ class GtkApplication(Application, Component):
 	def new_page(self):
 		pass
 
-	def popup_new_page(self):
-		pass
-
 	def save_page(self):
 		pass
 
@@ -226,19 +225,10 @@ class GtkApplication(Application, Component):
 	def copy_page(self):
 		pass
 
-	def popup_copy_page(self):
-		pass
-
 	def rename_page(self):
 		pass
 
-	def popup_rename_page(self):
-		pass
-
 	def delete_page(self):
-		pass
-
-	def popup_delete_page(self):
 		pass
 
 	def show_properties(self):
@@ -271,8 +261,12 @@ class GtkApplication(Application, Component):
 	def edit_page_source(self):
 		pass
 
+	def show_server_gui(self):
+		self.spawn('zim', '--server', '--gui', self.notebook.name)
+
 	def reload_index(self):
-		pass
+		# TODO flush cache
+		self.mainwindow.pageindex.set_pages(self.notebook.get_root())
 
 	def go_page_back(self):
 		pass
@@ -295,21 +289,35 @@ class GtkApplication(Application, Component):
 	def go_page_home(self):
 		pass
 
-	def show_help(self):
-		pass
+	def show_help(self, page=None):
+		if page:
+			self.spawn('zim', '--doc', page)
+		else:
+			self.spawn('zim', '--doc')
 
 	def show_help_faq(self):
-		pass
+		self.show_help(':FAQ')
 
 	def show_help_keys(self):
-		pass
+		self.show_help(':Usage:Keybindings')
 
 	def show_help_bugs(self):
-		pass
+		self.show_help(':Bugs')
 
 	def show_about(self):
-		pass
-
+		gtk.about_dialog_set_url_hook(lambda d, l: self.open_link(l))
+		gtk.about_dialog_set_email_hook(lambda d, l: self.open_link(l))
+		dialog = gtk.AboutDialog()
+		dialog.set_program_name('Zim')
+		dialog.set_version(zim.__version__)
+		dialog.set_comments('A desktop wiki')
+		dialog.set_copyright(zim.__copyright__)
+		dialog.set_license(zim.__license__)
+		dialog.set_authors([zim.__author__])
+		#~ dialog.set_translator_credits(_('translator-credits')) # FIXME
+		dialog.set_website(zim.__url__)
+		dialog.run()
+		dialog.destroy()
 
 # Need to register classes defining gobject signals
 gobject.type_register(GtkApplication)
@@ -360,28 +368,50 @@ class MainWindow(gtk.Window, Component):
 		vbox.pack_start(menubar, False)
 		vbox.pack_start(toolbar, False)
 
-		# construct side pane and editor
+		# split window in side pane and editor
 		hpane = gtk.HPaned()
 		hpane.set_position(175)
 		vbox.add(hpane)
-		self.pageindex = pageindex.PageIndex()
+		self.pageindex = pageindex.PageIndex(self.app)
 		hpane.add1(self.pageindex)
 
 		self.pageindex.connect('page-activated',
 			lambda index, pagename: self.app.open_page(pagename) )
-
 		self.pageindex.set_pages( self.app.notebook.get_root() )
+
+		vbox2 = gtk.VBox()
+		hpane.add2(vbox2)
 
 		# TODO pathbar
 
-		self.pageview = pageview.PageView()
-		hpane.add2(self.pageview)
+		self.pageview = pageview.PageView(self.app)
+		vbox2.add(self.pageview)
 
 		# create statusbar
-		statusbar = gtk.Statusbar()
-		vbox.pack_start(statusbar, False, True, False)
-		# TODO label current style
-		# TODO event box backlinks
+		self.statusbar = gtk.Statusbar()
+		self.statusbar.push(0, '<page>')
+		vbox.pack_start(self.statusbar, False, True, False)
+
+		def statusbar_element(string, size, eventbox=False):
+			frame = gtk.Frame()
+			frame.set_shadow_type(gtk.SHADOW_IN)
+			self.statusbar.pack_end(frame, False)
+			label = gtk.Label(string)
+			label.set_size_request(size, 10)
+			label.set_alignment(0.1, 0.5)
+			if eventbox:
+				box = gtk.EventBox()
+				box.add(label)
+				frame.add(box)
+			else:
+				frame.add(label)
+			return label
+
+		# specify statusbar elements right-to-left
+		self.style_label = statusbar_element('<style>', 100)
+		self.insert_label = statusbar_element('INS', 60)
+		self.backlinks_label = statusbar_element('<backlinks>', 120, True)
+
 
 	def do_open_page(self, app, page):
 		'''Signal handler for open-page, updates the pageview'''

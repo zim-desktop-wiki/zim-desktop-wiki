@@ -97,6 +97,8 @@ store objects which implement the actual data backend.
     * Make sure not to auto-vivicate cache to quickly
 * Store type for reading from .tar.gz files
 
+* GUI to control server, access from tools menu
+
 * Get rid of profiles
 	* use different XDG dirs if needed
 	* have default config files for notebooks to choose from
@@ -115,6 +117,8 @@ When exporting:
 
 
 ====== Changes from zim < 0.60 ======
+
+We depend on Gtk+ >= 2.6 instead of >= 2.4
 
 == Config files ==
 

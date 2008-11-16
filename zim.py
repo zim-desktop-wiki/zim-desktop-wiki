@@ -19,7 +19,9 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301, USA.
 
-'''FIXME'''
+'''This script parses commandline options for zim and hands them off
+to the apropriate application object.
+'''
 
 import sys
 from getopt import gnu_getopt, GetoptError
@@ -31,17 +33,22 @@ except:
 	print >> sys.stderror, 'zim needs python >= 2.5'
 	sys.exit(1)
 
+# Used in error messages and is passed on the the app as
+# the command to call to spawn a new instance.
+executable = 'zim'
 
+# All commandline options in various groups
 longopts = ('verbose', 'debug')
-cmdopts = ('help', 'version', 'server', 'export')
+cmdopts = ('help', 'version', 'gui', 'server', 'export', 'doc')
 guiopts = ()
-serveropts = ('port=')
+serveropts = ('port=', 'template=', 'gui')
 exportopts = ('format=', 'template=', 'output=')
 shortopts = {
 	'v': 'version', 'h': 'help',
 	'V': 'verbose', 'D': 'debug',
 }
 
+# Inline help - do not use __doc__ for this !
 helptext = '''\
 Usage: %s [OPTIONS] [NOTEBOOK] [PAGE]
 
@@ -51,21 +58,18 @@ Server Options: FIXME
 
 Export Options: FIXME
 
+Try 'zim --doc' for more help.
 '''
 
-progname = 'zim'
-
 class UsageError(Exception):
-	'''FIXME'''
 
 	def __init__(self, msg):
-		'''FIXME'''
-		self.msg = 'Usage: %s %s' % (progname, msg)
+		Exception.__init__(self, 'Usage: %s %s' % (executable, msg))
 
 
 def main(argv):
 	'''Run the main program.'''
-	progname = argv[0]
+	executable = argv[0]
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
@@ -87,15 +91,29 @@ def main(argv):
 	except:
 		cmd = 'gui' # default command
 
-	# 'version' and 'help' are simple commands
+	# If it is a simple command execute it and return
 	if cmd == 'version':
 		import zim
-		print "zim %s\n" % zim.__version__
-		print zim.__copyright__
+		print 'zim %s\n' % zim.__version__
+		print zim.__copyright__, '\n'
+		print zim.__license__
 		return
 	elif cmd == 'help':
-		print helptext % progname
+		print helptext % executable
 		return
+
+	# Otherwise check the number of arguments
+	if cmd == 'server' and len(args) > 1:
+		raise UsageError, 'zim --server [OPTIONS] [NOTEBOOK]'
+	elif cmd == 'doc' and len(args) > 1:
+		raise UsageError, 'zim --doc [OPTIONS] [PAGE]'
+	elif len(args) > 2:
+		raise UsageError, 'zim --%s [OPTIONS] [NOTEBOOK [PAGE]]' % cmd
+
+	if cmd == 'doc':
+		# --doc is an alias for --gui _doc_
+		cmd = 'gui'
+		args.insert(0, '_doc_')
 
 	# Now figure out which options are allowed for this command
 	allowedopts = list(longopts)
@@ -104,11 +122,11 @@ def main(argv):
 	elif cmd == 'export':
 		allowedopts.extend(exportopts)
 	else:
-		assert cmd == 'gui'
+		assert cmd == 'gui' or cmd == 'doc'
 		allowedopts.extend(guiopts)
 
 	# Convert options into a proper dict
-	optsdict = {}
+	optsdict = {'executable': executable}
 	for o, a in opts:
 		o = o.lstrip('-')
 		if o in shortopts:
@@ -117,40 +135,38 @@ def main(argv):
 		if o+'=' in allowedopts:
 			optsdict[o] = a
 		elif o in allowedopts:
-			optsdict[0] = True
+			optsdict[o] = True
 		else:
 			raise GetoptError, ("--%s no allowed in combination with --%s" % (o, cmd), o)
 
-	for o in allowedopts:
-		o = o.rstrip('=')
-		optsdict.setdefault(o, None)
-
-	if 'port' in optsdict and not opts['port'] is None:
+	# --port is the only option that is not of type string
+	if 'port' in optsdict and not optsdict['port'] is None:
 		try:
 			optsdict['port'] = int(optsdict['port'])
 		except ValueError:
 			raise GetoptError, ("--port takes an integer argument", 'port')
 
-	# Check arguments
-	if len(args) > 2:
-		raise UsageError, 'zim [OPTIONS] [NOTEBOOK] [PAGE]'
-
-	# And finally create an Application object
+	# Now we can create an Application object
 	if cmd == 'gui':
 		import zim.gui
 		app = zim.gui.GtkApplication(**optsdict)
 	elif cmd == 'server':
-		import zim.www
-		app = zim.www.Server(**optsdict)
+		if 'gui' in optsdict and optsdict['gui']:
+			import zim.gui.www
+			app = zim.gui.www.GtkWWWAplication(**optsdict)
+		else:
+			import zim.www
+			app = zim.www.Server(**optsdict)
 	elif cmd == 'export':
 		import zim.exporter
 		app = zim.exporter.Exporter(**optsdict)
 
 	if args:
 		app.open_notebook(args[0])
-		if len(args) == 2:
+		if len(args) == 2 and not cmd == 'server':
 			app.open_page(args[1])
 
+	# and start the application ...
 	app.main()
 
 
@@ -158,7 +174,7 @@ if __name__ == '__main__':
 	try:
 		main(sys.argv)
 	except (GetoptError, UsageError), err:
-		print >> sys.stderr, progname+':', err
+		print >> sys.stderr, executable+':', err
 		sys.exit(1)
 	except KeyboardInterrupt: # e.g. <Ctrl>C while --server
 		print >> sys.stderr, 'Interrupt'

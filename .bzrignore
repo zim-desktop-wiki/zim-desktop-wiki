@@ -4,3 +4,4 @@
 ./.coverage
 *,cover
 config
+*.bak

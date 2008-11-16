@@ -4,11 +4,12 @@
 
 '''FIXME'''
 
-__version__ = '0.60'
+# Bunch of meta data, used at least in the about dialog
+__version__ = '0.42'
+__url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <pardus@cpan.org>'
-__copyright__ = '''\
-Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
-
+__copyright__ = 'Copyright 2008 Jaap Karssenberg <pardus@cpan.org>'
+__license__='''\
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
@@ -45,10 +46,11 @@ class Application(gobject.GObject, Component):
 			(gobject.TYPE_PYOBJECT,) ),
 	}
 
-	def __init__(self, **opts):
+	def __init__(self, executable='zim'):
 		gobject.GObject.__init__(self)
 		self.app = self # make Component methods work
 		self.pid = os.getpid()
+		self.executable = executable
 		self.notebook = None
 		self.plugins = []
 		# TODO use opts['verbose']
@@ -83,6 +85,15 @@ class Application(gobject.GObject, Component):
 	def do_open_notebook(self, notebook):
 		'''FIXME'''
 		self.notebook = notebook
+
+	def spawn(self, *argv):
+		'''FIXME'''
+		argv = list(argv)
+		if argv[0] == 'zim':
+			argv[0] = self.executable
+		self.debug('Spawn process: '+' '.join(['"%s"' % a for a in argv]))
+		pid = os.spawnvp(os.P_NOWAIT, argv[0], argv)
+		self.debug('New process: %i' % pid)
 
 
 # Need to register classes defining gobject signals

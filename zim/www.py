@@ -153,31 +153,23 @@ class WWW(Application):
 class Server(WWW):
 	'''Run a server based on BaseHTTPServer'''
 
-	def __init__(self, **opts):
+	def __init__(self, port=8080, template='Default', **opts):
 		'''FIXME'''
 		WWW.__init__(self, **opts)
+		assert isinstance(port, int)
+		if isinstance(template, basestring):
+			from zim.templates import get_template
+			template = get_template('html', template)
+		self.template = template
+		self.port = port
+		self.url = 'http://localhost:%d' % self.port
 
+	def main(self):
+		import BaseHTTPServer
 		print '''\
 WARNING: Serving zim notes as a webserver. Unless you have some
 kind of firewall your notes are now open to the whole wide world.
 '''
-
-		opts.setdefault('template', 'Default')
-		opts.setdefault('port', 8888)
-		if isinstance(opts['template'], basestring):
-			from zim.templates import get_template
-			opts['template'] = get_template('html', opts['template'])
-
-		assert isinstance(opts['port'], int)
-
-		self.template = opts['template']
-		self.port = opts['port']
-		self.url = 'http://localhost:%d' % self.port
-
-	def main(self):
-		'''FIXME'''
-		import BaseHTTPServer
-
 		# Define custom handler class and bind the class to our object.
 		# Each request will pop a new instance of this class while we
 		# are persistent and all instances should dipatch to us.

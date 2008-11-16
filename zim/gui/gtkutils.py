@@ -20,9 +20,9 @@ def button(stock, label):
 	return button
 
 
-def small_button(stock):
+def icon_button(stock, small_size=False):
 	'''Creates a button with only an icon and no label'''
-	icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_SMALL_TOOLBAR)
+	icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
 	button = gtk.Button()
 	button.add(icon)
 	button.set_alignment(0.5, 0.5)

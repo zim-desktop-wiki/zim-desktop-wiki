@@ -22,6 +22,7 @@ from zim.gui import gtkutils
 NAME_COL = 0  # column with notebook name
 OPEN_COL = 1  # column with boolean if notebook is open alreadys
 
+
 class NotebookDialog(gtk.Dialog, Component):
 
 	def __init__(self, app):
@@ -30,7 +31,7 @@ class NotebookDialog(gtk.Dialog, Component):
 		# FIXME have helper for creating dialogs
 		gtk.Dialog.__init__(self,
 			title  = 'Open Notebook - Zim',
-			parent = app.window,
+			parent = app.mainwindow,
 			flags= gtk.DIALOG_NO_SEPARATOR,
 		)
 		self.set_default_size(500, 400)
@@ -114,7 +115,7 @@ class NotebookDialog(gtk.Dialog, Component):
 		self.combobox_changed_handler = id
 
 		# clear button de-selects any item in the combobox
-		clear_button = gtkutils.small_button('gtk-clear')
+		clear_button = gtkutils.icon_button('gtk-clear')
 		clear_button.connect('clicked', lambda *a: self.combobox.set_active(-1))
 
 		hbox = gtk.HBox(spacing=5)
@@ -145,7 +146,7 @@ class NotebookDialog(gtk.Dialog, Component):
 				self.app.open_notebook(name)
 				return False
 			elif id == 9: # Help
-				self.show_help()
+				self.app.show_help(':Usage:Notebooks')
 				return True
 			else: # Close or destroy
 				return False
@@ -203,6 +204,3 @@ class NotebookDialog(gtk.Dialog, Component):
 		#~ del model[iter]
 		self._save_notebook_list()
 
-	def show_help(self):
-		pass
-		# TODO: open help window

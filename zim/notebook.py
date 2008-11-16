@@ -22,6 +22,7 @@ def get_notebook(notebook):
 	'''Takes a path or name and returns a notebook object'''
 	if not isinstance(notebook, Dir):
 		# We are not sure if it is a name or a path, try lookup
+		name = notebook
 		table = get_notebook_table()
 		notebook = unicode(notebook)
 		if notebook in table:
@@ -34,9 +35,11 @@ def get_notebook(notebook):
 			print 'TODO: get path for user manual'
 
 		notebook = Dir(notebook)
+	else:
+		name = notebook.path
 
 	if notebook.exists():
-		return Notebook(path=notebook)
+		return Notebook(path=notebook, name=name)
 	else:
 		raise Exception, 'no such notebook: %s' % notebook
 
@@ -66,12 +69,13 @@ class LookupError(Exception):
 class Notebook(object):
 	'''FIXME'''
 
-	def __init__(self, path=None, config=None):
+	def __init__(self, path=None, name=None, config=None):
 		'''FIXME'''
 		self.namespaces = []
 		self.stores = {}
 		self.page_cache = weakref.WeakValueDictionary()
 		self.dir = None
+		self.name = name
 
 		if isinstance(path, Dir):
 			self.dir = path

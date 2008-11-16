@@ -58,6 +58,8 @@
 			<menuitem action='open_attachments_folder'/>
 			<menuitem action='open_documents_folder'/>
 			<separator/>
+			<menuitem action='show_server_gui'/>
+			<separator/>
 			<menuitem action='reload_index'/>
 		</menu>
 		<placeholder name='plugin_menus'/>
@@ -107,12 +109,14 @@
 			<toolitem action='attach_file'/>
 		</placeholder>
 	</toolbar>
+<!--
 	<popup name='page_popup'>
 		<menuitem action='popup_new_page'/>
 		<menuitem action='popup_copy_page'/>
 		<menuitem action='popup_rename_page'/>
 		<menuitem action='popup_delete_page'/>
 	</popup>
+-->
 </ui>
 
 <!--

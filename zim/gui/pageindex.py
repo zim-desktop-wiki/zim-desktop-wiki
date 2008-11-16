@@ -27,8 +27,9 @@ class PageIndex(gtk.ScrolledWindow, Component):
 			(gobject.TYPE_STRING,) ),
 	}
 
-	def __init__(self):
+	def __init__(self, app):
 		'''Simple constructor'''
+		self.app = app
 		gtk.ScrolledWindow.__init__(self)
 		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		self.set_shadow_type(gtk.SHADOW_IN)
@@ -58,8 +59,12 @@ class PageIndex(gtk.ScrolledWindow, Component):
 
 	def set_pages(self, pagelist):
 		'''Set the page list. This can by e.g. a Namespace object.'''
-		# TODO clear model
 		# TODO use idle loop to delay loading long lists
+
+		if len(self.treemodel):
+			self.debug('Flush index')
+			self.treemodel = gtk.TreeStore(str, str) # NAME_COL, PAGE_COL
+			self.treeview.set_model(self.treemodel)
 
 		def add_page(parent, page):
 			row = (page.basename, page.name)

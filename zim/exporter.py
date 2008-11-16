@@ -11,19 +11,17 @@ from zim import Application
 class Exporter(Application):
 	'''FIXME'''
 
-	def __init__(self, **opts):
+	def __init__(self, template='Default', format='html', output=None, **opts):
 		'''FIXME'''
 		Application.__init__(self, **opts)
 
-		assert opts['format']
-
-		if isinstance(opts['template'], basestring):
+		assert format
+		if isinstance(template, basestring):
 			from zim.templates import get_template
-			opts['template'] = get_template(opts['format'], opts['template'])
-
-		self.template = opts['template']
-		self.format = opts['format']
-		self.output = opts['output']
+			template = get_template(format, template)
+		self.template = template
+		self.format = format
+		self.output = output
 
 	def open_page(self, pagename):
 		'''FIXME'''

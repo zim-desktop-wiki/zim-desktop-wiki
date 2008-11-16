@@ -189,7 +189,8 @@ gobject.type_register(TextView)
 class PageView(gtk.VBox, Component):
 	'''FIXME'''
 
-	def __init__(self):
+	def __init__(self, app):
+		self.app = app
 		gtk.VBox.__init__(self)
 		self.view = TextView()
 		swindow = gtk.ScrolledWindow()
