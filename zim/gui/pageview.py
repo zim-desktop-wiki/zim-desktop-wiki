@@ -29,6 +29,11 @@ class TextBuffer(gtk.TextBuffer):
 	parsetree and after editing return a new parsetree. It manages images,
 	links, bullet lists etc.
 
+	The styles supported are given in the dict 'tag_styles'. Although the
+	actual tag names as used in the buffer are prefixed with 'style-' to avoid
+	collisions with other use of tags (e.g. spell checking, search highligting,
+	etc.)
+
 	TODO: manage undo stack
 	TODO: manage rich copy-paste
 	'''
@@ -60,7 +65,8 @@ class TextBuffer(gtk.TextBuffer):
 		'''FIXME'''
 		gtk.TextBuffer.__init__(self)
 		for k, v in self.tag_styles.items():
-			self.create_tag(k, **v)
+			tag = 'style-'+k
+			self.create_tag(tag, **v)
 
 	def clear(self):
 		'''FIXME'''
@@ -154,7 +160,8 @@ class TextBuffer(gtk.TextBuffer):
 		'''FIXME'''
 		self.textstyle = style
 		if not style is None:
-			self.textstyle_tag = self.get_tag_table().lookup(style)
+			tag = 'style-'+style
+			self.textstyle_tag = self.get_tag_table().lookup(tag)
 			assert self.textstyle_tag
 		else:
 			self.textstyle_tag = None

@@ -19,6 +19,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 '''
 
+import os
 
 import gobject
 #import zim.plugins
@@ -32,7 +33,7 @@ class Component(object):
 
 	def debug(self, *msg):
 		msg = map(unicode, msg)
-		print '# '+' '.join(msg).encode('utf8')
+		print '# %i %s' % (self.app.pid, ' '.join(msg).encode('utf8'))
 
 
 class Application(gobject.GObject, Component):
@@ -46,6 +47,8 @@ class Application(gobject.GObject, Component):
 
 	def __init__(self, **opts):
 		gobject.GObject.__init__(self)
+		self.app = self # make Component methods work
+		self.pid = os.getpid()
 		self.notebook = None
 		self.plugins = []
 		# TODO use opts['verbose']

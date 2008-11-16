@@ -1,128 +1,128 @@
 <ui>
-	<menubar name='MenuBar'>
-		<menu action='FileMenu'>
-			<menuitem action='NewPage'/>
-			<menuitem action='OpenNotebook'/>
+	<menubar name='menubar'>
+		<menu action='file_menu'>
+			<menuitem action='new_page'/>
+			<menuitem action='open_notebook'/>
 			<separator/>
-			<menuitem action='Save'/>
-			<menuitem action='SaveVersion'/>
-			<menuitem action='Versions'/>
+			<menuitem action='save_page'/>
+			<menuitem action='save_version'/>
+			<menuitem action='show_versions'/>
 			<separator/>
-			<menuitem action='Export'/>
-			<placeholder name='PrintActions'/>
-			<menuitem action='EmailPage'/>
+			<menuitem action='show_export'/>
+			<placeholder name='print_actions'/>
+			<menuitem action='email_page'/>
 			<separator/>
-			<placeholder name='PageMods'/>
+			<placeholder name='page_mods'/>
 			<separator/>
-			<menuitem action='Props'/>
+			<menuitem action='show_properties'/>
 			<separator/>
-			<menuitem action='Close'/>
-			<menuitem action='Quit'/>
+			<menuitem action='close'/>
+			<menuitem action='quit'/>
 		</menu>
-		<menu action='EditMenu'>
-			<placeholder name='EditPage'/>
+		<menu action='edit_menu'>
+			<placeholder name='edit_page'/>
 			<separator/>
-			<menuitem action='CopyLocation'/>
+			<menuitem action='copy_location'/>
 			<separator/>
-			<menuitem action='Prefs'/>
+			<menuitem action='show_preferences'/>
 		</menu>
-		<menu action='ViewMenu'>
-			<menuitem action='TToolBar'/>
-			<menuitem action='TStatusBar'/>
-			<menuitem action='TPane'/>
-			<menu action='PathBarMenu'>
-				<menuitem action='PBRecent'/>
-				<menuitem action='PBHistory'/>
-				<menuitem action='PBNamespace'/>
-				<menuitem action='PBHidden'/>
+		<menu action='view_menu'>
+			<menuitem action='toggle_toolbar'/>
+			<menuitem action='toggle_statusbar'/>
+			<menuitem action='toggle_sidepane'/>
+			<menu action='path_bar_menu'>
+				<menuitem action='set_pathbar_recent'/>
+				<menuitem action='set_pathbar_history'/>
+				<menuitem action='set_pathbar_namespace'/>
+				<menuitem action='set_pathbar_hidden'/>
 			</menu>
 			<separator/>
-			<placeholder name='PluginItems'/>
+			<placeholder name='plugin_items'/>
 			<separator/>
-			<menuitem action='Reload'/>
+			<menuitem action='reload_page'/>
 		</menu>
-		<menu action='InsertMenu'>
+		<menu action='insert_menu'>
 		</menu>
-		<menu action='FormatMenu'></menu>
-		<menu action='SearchMenu'>
-			<placeholder name='FindItems'/>
+		<menu action='format_menu'></menu>
+		<menu action='search_menu'>
+			<placeholder name='find_items'/>
 			<separator/>
-			<menuitem action='Search'/>
-			<menuitem action='SearchBL'/>
+			<menuitem action='show_search'/>
+			<menuitem action='show_search_backlinks'/>
 		</menu>
-		<menu action='ToolsMenu'>
-			<placeholder name='PageTools'/>
+		<menu action='tools_menu'>
+			<placeholder name='page_tools'/>
 			<separator/>
-			<menuitem action='EditSource'/>
-			<menuitem action='AttachFile'/>
-			<menuitem action='OpenFolder'/>
-			<menuitem action='OpenRootFolder'/>
+			<menuitem action='edit_page_source'/>
+			<menuitem action='attach_file'/>
+			<menuitem action='open_attachments_folder'/>
+			<menuitem action='open_documents_folder'/>
 			<separator/>
-			<menuitem action='RBIndex'/>
+			<menuitem action='reload_index'/>
 		</menu>
-		<placeholder name='PluginMenus'/>
-		<menu action='GoMenu'>
-			<menuitem action='GoBack'/>
-			<menuitem action='GoForward'/>
+		<placeholder name='plugin_menus'/>
+		<menu action='go_menu'>
+			<menuitem action='go_page_back'/>
+			<menuitem action='go_page_forward'/>
 			<separator/>
-			<menuitem action='GoParent'/>
-			<menuitem action='GoChild'/>
-			<menuitem action='GoNext'/>
-			<menuitem action='GoPrev'/>
+			<menuitem action='go_page_parent'/>
+			<menuitem action='go_page_child'/>
+			<menuitem action='go_page_next'/>
+			<menuitem action='go_page_prev'/>
 			<separator/>
-			<placeholder name='PluginItems'/>
+			<placeholder name='plugin_items'/>
 			<separator/>
-			<menuitem action='GoHome'/>
-			<menuitem action='JumpTo'/>
+			<menuitem action='go_page_home'/>
+			<menuitem action='open_page'/>
 		</menu>
-		<menu action='HelpMenu'>
-			<menuitem action='ShowHelp'/>
-			<menuitem action='ShowHelpFAQ'/>
-			<menuitem action='ShowHelpKeys'/>
-			<menuitem action='ShowHelpBugs'/>
+		<menu action='help_menu'>
+			<menuitem action='show_help'/>
+			<menuitem action='show_help_faq'/>
+			<menuitem action='show_help_keys'/>
+			<menuitem action='show_help_bugs'/>
 			<separator/>
-			<menuitem action='About'/>
+			<menuitem action='show_about'/>
 		</menu>
 	</menubar>
-	<toolbar name='ToolBar'>
-		<placeholder name='File'/>
+	<toolbar name='toolbar'>
+		<placeholder name='file'/>
 		<separator/>
-		<placeholder name='Edit'/>
+		<placeholder name='edit'/>
 		<separator/>
-		<placeholder name='View'>
-			<toolitem action='TPane'/>
+		<placeholder name='view'>
+			<toolitem action='toggle_sidepane'/>
 		</placeholder>
 		<separator/>
-		<placeholder name='Go'>
-			<toolitem action='GoHome'/>
-			<toolitem action='GoBack'/>
-			<toolitem action='GoForward'/>
+		<placeholder name='go'>
+			<toolitem action='go_page_home'/>
+			<toolitem action='go_page_back'/>
+			<toolitem action='go_page_forward'/>
 		</placeholder>
 		<separator/>
-		<placeholder name='Search'/>
+		<placeholder name='search'/>
 		<separator/>
-		<placeholder name='Format'/>
+		<placeholder name='format'/>
 		<separator/>
-		<placeholder name='Tools'>
-			<toolitem action='AttachFile'/>
+		<placeholder name='tools'>
+			<toolitem action='attach_file'/>
 		</placeholder>
 	</toolbar>
-	<popup name='PagePopup'>
-		<menuitem action='popup_NewPage'/>
-		<menuitem action='popup_CopyPage'/>
-		<menuitem action='popup_RenamePage'/>
-		<menuitem action='popup_DeletePage'/>
+	<popup name='page_popup'>
+		<menuitem action='popup_new_page'/>
+		<menuitem action='popup_copy_page'/>
+		<menuitem action='popup_rename_page'/>
+		<menuitem action='popup_delete_page'/>
 	</popup>
 </ui>
 
 <!--
 <ui>
-	<menubar name='MenuBar'>
-			<menu action='FileMenu'>
-				<placeholder name='PageMods'>
-					<menuitem action='CopyPage'/>
-					<menuitem action='RenamePage'/>
-					<menuitem action='DeletePage'/>
+	<menubar name='menu_bar'>
+			<menu action='file_menu'>
+				<placeholder name='page_mods'>
+					<menuitem action='copy_page'/>
+					<menuitem action='rename_page'/>
+					<menuitem action='delete_page'/>
 				</placeholder>
 			</menu>
 	</menubar>

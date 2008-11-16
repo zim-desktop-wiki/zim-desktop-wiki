@@ -37,7 +37,8 @@ def data_file(filename):
 
 def config_file(filename):
 	# TODO XDG logic
-	return File([os.environ['HOME'], '.config', 'zim', filename])
+	#~ return File([os.environ['HOME'], '.config', 'zim', filename])
+	return File([sys.path[0], 'config', filename])
 
 def split_quoted_strings(string, unescape=True):
 	'''Split a word list respecting quotes.'''

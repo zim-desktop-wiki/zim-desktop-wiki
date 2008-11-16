@@ -33,7 +33,7 @@ class NotebookDialog(gtk.Dialog, Component):
 			parent = app.window,
 			flags= gtk.DIALOG_NO_SEPARATOR,
 		)
-		self.set_default_size(500, 350)
+		self.set_default_size(500, 400)
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 		help = self.add_button(gtk.STOCK_HELP, 9)
@@ -68,7 +68,7 @@ class NotebookDialog(gtk.Dialog, Component):
 		self.treeview.append_column(column)
 
 		# when the list is re-ordered we save it
-		id = self.treemodel.connect_after('row-inserted', self.save_notebook_list)
+		id = self.treemodel.connect_after('row-inserted', self._save_notebook_list)
 		self.row_inserted_handler = id
 
 		# open notebook on clicking a row
@@ -85,14 +85,15 @@ class NotebookDialog(gtk.Dialog, Component):
 		vbbox.set_layout(gtk.BUTTONBOX_START)
 		hbox.pack_start(vbbox, False)
 		add_button = gtk.Button(stock='gtk-add')
-		add_button.connect('clicked', self.add_notebook)
-		ch_button = gtkutils.button('gtk-properties', 'Cha_nge')
-		ch_button.connect('clicked', self.change_notebook)
+		add_button.connect('clicked', self.do_add_notebook)
+		edit_button = gtk.Button(stock='gtk-edit')
+		edit_button.connect('clicked', self.do_edit_notebook)
 		rm_button = gtk.Button(stock='gtk-remove')
-		rm_button.connect('clicked', self.remove_notebook)
-		for b in (add_button, ch_button, rm_button):
+		rm_button.connect('clicked', self.do_remove_notebook)
+		for b in (add_button, edit_button, rm_button):
 			b.set_alignment(0.0, 0.5)
 			vbbox.add(b)
+		# FIXME buttons for "up" and "down" ?
 
 		# add dropdown to select default
 		self.combobox = gtk.ComboBox(model=self.treemodel)
@@ -107,7 +108,7 @@ class NotebookDialog(gtk.Dialog, Component):
 				self.notebooks['_default_'] = default
 			else:
 				self.notebooks['_default_'] = None
-			self.save_notebook_list()
+			self._save_notebook_list()
 
 		id = self.combobox.connect('changed', on_set_default)
 		self.combobox_changed_handler = id
@@ -129,7 +130,7 @@ class NotebookDialog(gtk.Dialog, Component):
 		re-use the object after this. Does not have a return value, actions
 		are called directly on the application object.
 		'''
-		self.load_notebook_list()
+		self._load_notebook_list()
 		self.show_all()
 		self.treeview.grab_focus()
 
@@ -154,6 +155,22 @@ class NotebookDialog(gtk.Dialog, Component):
 
 		self.destroy()
 
+	def _load_notebook_list(self):
+		self.treemodel.handler_block(self.row_inserted_handler)
+		self.notebooks = notebook.get_notebook_table()
+		for name, path in self.notebooks.items():
+			if not (name.startswith('_') and name.endswith('_')):
+				self.treemodel.append((name, False))
+		self._set_combobox()
+		self.treemodel.handler_unblock(self.row_inserted_handler)
+
+	def _save_notebook_list(self, *a):
+		self._set_combobox() # probably the model has changed
+		notebooks = [unicode(row[NAME_COL]) for row in self.treemodel]
+		self.notebooks.set_order(notebooks)
+		print 'SAVE', self.notebooks
+		#~ self.notebooks.write()
+
 	def _set_combobox(self):
 		# Set the combobox to display the correct row, assume the default
 		# is set to the name of one of the other notebooks.
@@ -168,39 +185,23 @@ class NotebookDialog(gtk.Dialog, Component):
 					break
 		self.combobox.handler_unblock(self.combobox_changed_handler)
 
-	def load_notebook_list(self):
-		self.treemodel.handler_block(self.row_inserted_handler)
-		self.notebooks = notebook.get_notebook_table()
-		for name, path in self.notebooks.items():
-			if not (name.startswith('_') and name.endswith('_')):
-				self.treemodel.append((name, False))
-		self._set_combobox()
-		self.treemodel.handler_unblock(self.row_inserted_handler)
-
-	def save_notebook_list(self, *a):
-		self._set_combobox() # probably the model has changed
-		notebooks = [unicode(row[NAME_COL]) for row in self.treemodel]
-		self.notebooks.set_order(notebooks)
-		print 'SAVE', self.notebooks
-		#~ self.notebooks.write()
-
-	def add_notebook(self, *a):
+	def do_add_notebook(self, *a):
 		# TODO: add "new" notebook in list and select it
-		self.change_notebook()
+		self.edit_notebook()
 
-	def change_notebook(self, *a):
+	def do_edit_notebook(self, *a):
 		model, iter = self.treeview.get_selection().get_selected()
 		if iter is None: return
 		notebook = self.notebooks[model[iter][NAME_COL]]
 		print 'TODO: run properties dialog'
-		self.save_notebook_list() # directory could have changed
+		self._save_notebook_list() # directory could have changed
 
-	def remove_notebook(self, *a):
+	def do_remove_notebook(self, *a):
 		model, iter = self.treeview.get_selection().get_selected()
 		if iter is None: return
 		print 'DEL', model[iter][NAME_COL]
 		#~ del model[iter]
-		self.save_notebook_list()
+		self._save_notebook_list()
 
 	def show_help(self):
 		pass
