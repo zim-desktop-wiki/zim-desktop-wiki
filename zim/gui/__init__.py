@@ -308,7 +308,10 @@ class GtkApplication(Application, Component):
 		gtk.about_dialog_set_url_hook(lambda d, l: self.open_link(l))
 		gtk.about_dialog_set_email_hook(lambda d, l: self.open_link(l))
 		dialog = gtk.AboutDialog()
-		dialog.set_program_name('Zim')
+		try: # since gtk 2.12
+			dialog.set_program_name('Zim')
+		except AttributeError:
+			pass
 		dialog.set_version(zim.__version__)
 		dialog.set_comments('A desktop wiki')
 		dialog.set_copyright(zim.__copyright__)

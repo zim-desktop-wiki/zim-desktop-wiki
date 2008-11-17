@@ -1,4 +1,4 @@
+# All installed files are included automatically
+# need to specify distribution meta files here
 include *.txt
 include test.py tests/*.py tests/data/*
-recursive-include data/ *
-prune tests/*.pyc

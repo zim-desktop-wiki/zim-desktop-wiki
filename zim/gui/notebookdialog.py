@@ -46,7 +46,8 @@ class NotebookDialog(gtk.Dialog, Component):
 
 		# show some art work in an otherwise boring dialog
 		path = data_file('globe_banner_small.png').path
-		image = gtk.image_new_from_file(path)
+		image = gtk.Image()
+		image.set_from_file(path) # new_from_file not in 2.6
 		align = gtk.Alignment(0,0.5, 0,0)
 		align.add(image)
 		self.vbox.pack_start(align, False)

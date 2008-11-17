@@ -5,3 +5,4 @@
 *,cover
 config
 *.bak
+zim/_version.py

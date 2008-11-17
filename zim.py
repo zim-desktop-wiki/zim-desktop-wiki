@@ -49,27 +49,42 @@ shortopts = {
 }
 
 # Inline help - do not use __doc__ for this !
-helptext = '''\
-Usage: %s [OPTIONS] [NOTEBOOK] [PAGE]
+usagehelp = '''\
+usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
+   or: zim --export [OPTIONS] [NOTEBOOK [PAGE]]
+   or: zim --server [OPTIONS] [NOTEBOOK]
+   or: zim --doc [OPTIONS] [PAGE]
+   or: zim --help
+'''
+optionhelp = '''\
+General Options:
+  --gui       run the editor (this is the default)
+  --server    run the web server
+  --export    export to a different format
+  --doc       open the user manual
+  --verbose   print information to terminal
+  --debug     print debug messages
+  --version   print version and exit
+  --help      print this text
 
-Options: FIXME
-
-Server Options: FIXME
+Server Options:
+  --port      port to use (defaults to 8080)
+  --template  name of the template to use
+  --gui       run the gui wrapper for the server
 
 Export Options: FIXME
+  --format    format to use (defaults to 'html')
+  --template  name of the template to use
+  --output    output file or directory
 
 Try 'zim --doc' for more help.
 '''
 
 class UsageError(Exception):
-
-	def __init__(self, msg):
-		Exception.__init__(self, 'Usage: %s %s' % (executable, msg))
-
+	pass
 
 def main(argv):
 	'''Run the main program.'''
-	executable = argv[0]
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
@@ -99,16 +114,14 @@ def main(argv):
 		print zim.__license__
 		return
 	elif cmd == 'help':
-		print helptext % executable
+		print usagehelp.replace('zim', executable)
+		print optionhelp
 		return
 
 	# Otherwise check the number of arguments
-	if cmd == 'server' and len(args) > 1:
-		raise UsageError, 'zim --server [OPTIONS] [NOTEBOOK]'
-	elif cmd == 'doc' and len(args) > 1:
-		raise UsageError, 'zim --doc [OPTIONS] [PAGE]'
-	elif len(args) > 2:
-		raise UsageError, 'zim --%s [OPTIONS] [NOTEBOOK [PAGE]]' % cmd
+	if (cmd == 'server' and len(args) > 1) or \
+	   (cmd == 'doc' and len(args) > 1) or (len(args) > 2):
+		raise UsageError
 
 	if cmd == 'doc':
 		# --doc is an alias for --gui _doc_
@@ -171,13 +184,17 @@ def main(argv):
 
 
 if __name__ == '__main__':
+	executable = sys.argv[0]
 	try:
 		main(sys.argv)
-	except (GetoptError, UsageError), err:
-		print >> sys.stderr, executable+':', err
+	except GetoptError, err:
+		print >>sys.stderr, executable+':', err
+		sys.exit(1)
+	except UsageError, err:
+		print >>sys.stderr, usagehelp.replace('zim', executable)
 		sys.exit(1)
 	except KeyboardInterrupt: # e.g. <Ctrl>C while --server
-		print >> sys.stderr, 'Interrupt'
+		print >>sys.stderr, 'Interrupt'
 		sys.exit(1)
 	else:
 		sys.exit(0)

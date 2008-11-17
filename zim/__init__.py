@@ -34,8 +34,11 @@ class Component(object):
 
 	def debug(self, *msg):
 		msg = map(unicode, msg)
-		print '# %i %s' % (self.app.pid, ' '.join(msg).encode('utf8'))
+		lines = ' '.join(msg).encode('utf8').strip().split('\n')
+		for line in lines:
+			print '# %i %s' % (self.app.pid, line.strip())
 
+	info = debug # TODO separate logging for verbose messages
 
 class Application(gobject.GObject, Component):
 	'''FIXME'''
@@ -46,15 +49,25 @@ class Application(gobject.GObject, Component):
 			(gobject.TYPE_PYOBJECT,) ),
 	}
 
-	def __init__(self, executable='zim'):
+	def __init__(self, executable='zim', verbose=False, debug=False):
 		gobject.GObject.__init__(self)
 		self.app = self # make Component methods work
 		self.pid = os.getpid()
 		self.executable = executable
 		self.notebook = None
 		self.plugins = []
-		# TODO use opts['verbose']
-		# TODO use opts['debug']
+
+		if verbose or debug:
+			self.info('This is zim %s' % __version__)
+			try:
+				from zim._version import version_info
+				self.debug(
+					'branch: %(branch_nick)s\n'
+					'revision: %(revno)d %(revision_id)s\n'
+					'date: %(date)s\n'
+						% version_info )
+			except:
+				self.debug('No bzr version-info found')
 		self.load_config()
 		self.load_plugins()
 
@@ -92,7 +105,12 @@ class Application(gobject.GObject, Component):
 		if argv[0] == 'zim':
 			argv[0] = self.executable
 		self.debug('Spawn process: '+' '.join(['"%s"' % a for a in argv]))
-		pid = os.spawnvp(os.P_NOWAIT, argv[0], argv)
+		try:
+			pid = os.spawnvp(os.P_NOWAIT, argv[0], argv)
+		except AttributeError:
+			# spawnvp is not available on windows
+			# TODO path lookup ?
+			pid = os.spawnv(os.P_NOWAIT, argv[0], argv)
 		self.debug('New process: %i' % pid)
 
 

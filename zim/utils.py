@@ -179,6 +179,8 @@ class ConfigList(ListDict):
 			# TODO - include data dirs for default config
 			# TODO - support read_all options
 			file = config_file(self.path)
+			if not file.exists():
+				return
 		assert isinstance(file, (File, Buffer))
 
 		fh = file.open('r')
