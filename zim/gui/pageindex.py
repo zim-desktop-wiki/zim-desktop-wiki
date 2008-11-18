@@ -23,8 +23,7 @@ class PageIndex(gtk.ScrolledWindow, Component):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'page-activated': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-			(gobject.TYPE_STRING,) ),
+		'page-activated': (gobject.SIGNAL_RUN_LAST, None, (str,)),
 	}
 
 	def __init__(self, app):

@@ -3,8 +3,9 @@
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 '''This module contains the Gtk user interface for zim.
-The main components and dialogs are seperated out in sub-modules.
-Included here are the application class for the zim GUI and the main window.
+The main widgets and dialogs are seperated out in sub-modules.
+Included here are the application class for the zim GUI, which
+contains most action handlers and the main window class.
 '''
 
 import gobject
@@ -12,8 +13,9 @@ import gtk
 
 import zim
 from zim import Application, Component
-from zim.utils import data_file, config_file, is_url_re, is_email_re
+from zim.utils import data_file, config_file, is_url_re, is_email_re, is_path_re
 from zim.gui import pageindex, pageview
+
 
 # First we define all menu items specifying icons, labels and keybindings.
 # For each of these items (except the one ending in _menu) a like named method
@@ -55,13 +57,13 @@ ui_actions = (
 	('edit_page_source', 'gtk-edit', 'Edit _Source', None, 'Open source'),
 	('show_server_gui', None, 'Start _Web Server', None, 'Start web server'),
 	('reload_index', None, 'Re-build Index', None, 'Rebuild index'),
-	('go_page_back', 'gtk-go-back', '_Back', '<alt>Left', 'Go page back'),
-	('go_page_forward', 'gtk-go-forward', '_Forward', '<alt>Right', 'Go page forward'),
-	('go_page_parent', 'gtk-go-up', '_Parent', '<alt>Up', 'Go to parent page'),
-	('go_page_child', 'gtk-go-down', '_Child', '<alt>Down', 'Go to child page'),
-	('go_page_prev', None, '_Previous in index', '<alt>Page_Up', 'Go to previous page'),
-	('go_page_next', None, '_Next in index', '<alt>Page_Down', 'Go to next page'),
-	('go_page_home', 'gtk-home', '_Home', '<alt>Home', 'Go home'),
+	('open_page_back', 'gtk-go-back', '_Back', '<alt>Left', 'Go page back'),
+	('open_page_forward', 'gtk-go-forward', '_Forward', '<alt>Right', 'Go page forward'),
+	('open_page_parent', 'gtk-go-up', '_Parent', '<alt>Up', 'Go to parent page'),
+	('open_page_child', 'gtk-go-down', '_Child', '<alt>Down', 'Go to child page'),
+	('open_page_prev', None, '_Previous in index', '<alt>Page_Up', 'Go to previous page'),
+	('open_page_next', None, '_Next in index', '<alt>Page_Down', 'Go to next page'),
+	('open_page_home', 'gtk-home', '_Home', '<alt>Home', 'Go home'),
 	('open_page', 'gtk-jump-to', '_Jump To...', '<ctrl>J', 'Jump to page'),
 	('show_help', 'gtk-help', '_Contents', 'F1', 'Help contents'),
 	('show_help_faq', None, '_FAQ', None, 'FAQ'),
@@ -93,8 +95,7 @@ class GtkApplication(Application, Component):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'open-page': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-			(gobject.TYPE_PYOBJECT,) ),
+		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object,))
 	}
 
 	def __init__(self, **opts):
@@ -171,15 +172,18 @@ class GtkApplication(Application, Component):
 		self.mainwindow = MainWindow(self)
 
 		# TODO load history and set intial page
-		self.open_page(notebook.get_home_page())
+		self.open_page_home()
 
 	def open_link(self, link):
 		'''Open either a page, file, dir or url'''
 		# TODO handle paths, urls and email addresses
-		if is_url_re.match(link) or is_email_re.match(link):
-			print 'TODO: handlers for urls and email'
-		# TODO is_path_re
-		else: # must be a page
+		if is_url_re.match(link):
+			print 'TODO: handler for urls'
+		elif is_email_re.match(link):
+			print 'TODO: handler for email'
+		elif is_path_re.match(link):
+			print 'TODO: handler for file paths'
+		else: # must be a page then
 			name = self.notebook.resolve_name(link, self.page.namespace)
 			self.open_page(name)
 
@@ -204,7 +208,34 @@ class GtkApplication(Application, Component):
 		'''Signal handler for open-page.'''
 		self.page = page
 
+	def open_page_back(self):
+		pass
+
+	def open_page_forward(self):
+		pass
+
+	def open_page_parent(self):
+		pass
+
+	def open_page_child(self):
+		pass
+
+	def open_page_prev(self):
+		pass
+
+	def open_page_next(self):
+		pass
+
+	def open_page_home(self):
+		self.open_page(self.notebook.get_home_page())
+
 	def new_page(self):
+		'''opens a dialog like 'open_page(None)'. Subtle difference is
+		that this page is saved directly, so it is pesistent if the user
+		navigates away without first adding content. Though subtle this
+		is expected for users not yet fully aware of the automatic
+		create/save/delete behavior in zim.
+		'''
 		pass
 
 	def save_page(self):
@@ -249,13 +280,13 @@ class GtkApplication(Application, Component):
 	def reload_page(self):
 		pass
 
+	def attach_file(self):
+		pass
+
 	def open_attachments_folder(self):
 		pass
 
 	def open_documents_folder(self):
-		pass
-
-	def attach_file(self):
 		pass
 
 	def edit_page_source(self):
@@ -267,27 +298,6 @@ class GtkApplication(Application, Component):
 	def reload_index(self):
 		# TODO flush cache
 		self.mainwindow.pageindex.set_pages(self.notebook.get_root())
-
-	def go_page_back(self):
-		pass
-
-	def go_page_forward(self):
-		pass
-
-	def go_page_parent(self):
-		pass
-
-	def go_page_child(self):
-		pass
-
-	def go_page_prev(self):
-		pass
-
-	def go_page_next(self):
-		pass
-
-	def go_page_home(self):
-		pass
 
 	def show_help(self, page=None):
 		if page:
@@ -391,9 +401,13 @@ class MainWindow(gtk.Window, Component):
 		vbox2.add(self.pageview)
 
 		# create statusbar
+		hbox = gtk.HBox(spacing=0)
+		vbox.pack_start(hbox, False, True, False)
+
 		self.statusbar = gtk.Statusbar()
+		#~ self.statusbar.set_has_resize_grip(False)
 		self.statusbar.push(0, '<page>')
-		vbox.pack_start(self.statusbar, False, True, False)
+		hbox.add(self.statusbar)
 
 		def statusbar_element(string, size, eventbox=False):
 			frame = gtk.Frame()
@@ -414,6 +428,12 @@ class MainWindow(gtk.Window, Component):
 		self.style_label = statusbar_element('<style>', 100)
 		self.insert_label = statusbar_element('INS', 60)
 		self.backlinks_label = statusbar_element('<backlinks>', 120, True)
+
+		# add a second statusbar widget - somehow the corner grip
+		# does not render properly after the pack_end for the first one
+		#~ statusbar2 = gtk.Statusbar()
+		#~ statusbar2.set_size_request(25, 10)
+		#~ hbox.pack_end(statusbar2, False)
 
 
 	def do_open_page(self, app, page):

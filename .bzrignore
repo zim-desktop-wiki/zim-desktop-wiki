@@ -6,3 +6,4 @@
 config
 *.bak
 zim/_version.py
+MANIFEST

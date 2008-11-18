@@ -64,17 +64,17 @@
 		</menu>
 		<placeholder name='plugin_menus'/>
 		<menu action='go_menu'>
-			<menuitem action='go_page_back'/>
-			<menuitem action='go_page_forward'/>
+			<menuitem action='open_page_back'/>
+			<menuitem action='open_page_forward'/>
 			<separator/>
-			<menuitem action='go_page_parent'/>
-			<menuitem action='go_page_child'/>
-			<menuitem action='go_page_next'/>
-			<menuitem action='go_page_prev'/>
+			<menuitem action='open_page_parent'/>
+			<menuitem action='open_page_child'/>
+			<menuitem action='open_page_next'/>
+			<menuitem action='open_page_prev'/>
 			<separator/>
 			<placeholder name='plugin_items'/>
 			<separator/>
-			<menuitem action='go_page_home'/>
+			<menuitem action='open_page_home'/>
 			<menuitem action='open_page'/>
 		</menu>
 		<menu action='help_menu'>
@@ -96,9 +96,9 @@
 		</placeholder>
 		<separator/>
 		<placeholder name='go'>
-			<toolitem action='go_page_home'/>
-			<toolitem action='go_page_back'/>
-			<toolitem action='go_page_forward'/>
+			<toolitem action='open_page_home'/>
+			<toolitem action='open_page_back'/>
+			<toolitem action='open_page_forward'/>
 		</placeholder>
 		<separator/>
 		<placeholder name='search'/>

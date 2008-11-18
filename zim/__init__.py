@@ -45,8 +45,7 @@ class Application(gobject.GObject, Component):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'open-notebook': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-			(gobject.TYPE_PYOBJECT,) ),
+		'open-notebook': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	def __init__(self, executable='zim', verbose=False, debug=False):

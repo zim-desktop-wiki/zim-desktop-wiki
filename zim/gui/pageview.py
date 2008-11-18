@@ -12,16 +12,6 @@ import pango
 from zim import Component
 
 
-class TextView(gtk.TextView):
-	'''FIXME'''
-
-	def __init__(self):
-		'''FIXME'''
-		gtk.TextView.__init__(self)
-		self.set_left_margin(10)
-		self.set_right_margin(5)
-
-
 class TextBuffer(gtk.TextBuffer):
 	'''Zim subclass of gtk.TextBuffer.
 
@@ -29,19 +19,20 @@ class TextBuffer(gtk.TextBuffer):
 	parsetree and after editing return a new parsetree. It manages images,
 	links, bullet lists etc.
 
-	The styles supported are given in the dict 'tag_styles'. Although the
-	actual tag names as used in the buffer are prefixed with 'style-' to avoid
-	collisions with other use of tags (e.g. spell checking, search highligting,
-	etc.)
+	The styles supported are given in the dict 'tag_styles'. These map to
+	like named TextTags. For links anonymous TextTags are used. Not all tags
+	are styles though, e.g. gtkspell uses it's own tags and tags may also
+	be used to highlight search results etc.
 
-	TODO: manage undo stack
-	TODO: manage rich copy-paste
+	TODO: manage undo stack - group by memorizing offsets and get/set trees
+	TODO: manage rich copy-paste based on zim formats
+	      use serialization API if gtk >= 2.10 ?
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'insert-text': 'override',
-		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
+		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	# text tags supported by the editor and default stylesheet
@@ -65,8 +56,9 @@ class TextBuffer(gtk.TextBuffer):
 		'''FIXME'''
 		gtk.TextBuffer.__init__(self)
 		for k, v in self.tag_styles.items():
-			tag = 'style-'+k
-			self.create_tag(tag, **v)
+			tag = self.create_tag('style-'+k, **v)
+			tag.zim_type = 'style'
+			tag.zim_style = k
 
 	def clear(self):
 		'''FIXME'''
@@ -142,9 +134,17 @@ class TextBuffer(gtk.TextBuffer):
 	def insert_link_at_cursor(self, attrib, text):
 		'''FIXME'''
 		# TODO generate anonymous tags for links
-		self.set_textstyle('link')
+		tag = self.create_tag(None, **self.tag_styles['link'])
+		tag.zim_type = 'link'
+		tag.zim_attrib = attrib
+		self.set_textstyle('link', tag=tag)
 		self.insert_at_cursor(text)
 		self.set_textstyle(None)
+
+	def get_link_data(self, tag):
+		'''Returns the dict with link properties.'''
+		# TODO when target=None read text span
+		return tag.zim_attrib
 
 	def insert_image(self, iter, attrib, text):
 		'''FIXME'''
@@ -156,13 +156,21 @@ class TextBuffer(gtk.TextBuffer):
 		'''FIXME'''
 		# TODO support for images
 
-	def set_textstyle(self, style):
-		'''FIXME'''
+	def set_textstyle(self, style, tag=None):
+		'''Sets the current text style. This style will be applied
+		to text inserted at the cursor. Use 'set_textstyle(None)' to
+		reset to normal text.
+
+		If tag is given it shoul dbe a TextTag object to be used.
+		This is used for styles that use anonymous tags, e.g. links.
+		'''
 		self.textstyle = style
 		if not style is None:
-			tag = 'style-'+style
-			self.textstyle_tag = self.get_tag_table().lookup(tag)
-			assert self.textstyle_tag
+			if tag is None:
+				tagname = 'style-'+style
+				tag = self.get_tag_table().lookup(tagname)
+			assert isinstance(tag, gtk.TextTag)
+			self.textstyle_tag = tag
 		else:
 			self.textstyle_tag = None
 		self.emit('textstyle-changed')
@@ -181,8 +189,147 @@ class TextBuffer(gtk.TextBuffer):
 
 		# TODO: record undo steps
 
+	def get_parsetree(self, bounds=None):
+		'''FIXME'''
+		if bounds is None:
+			start, end = self.get_bounds()
+		else:
+			start, end = bounds
+
 # Need to register classes defining gobject signals
 gobject.type_register(TextBuffer)
+
+
+class TextView(gtk.TextView):
+	'''FIXME'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		# New signals
+		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+
+		# Override clipboard interaction
+		#~ 'copy-clipboard': 'override',
+		#~ 'cut-clipboard': 'override',
+		#~ 'paste-clipboard': 'override',
+
+		# And some events we want to connect to
+		'motion-notify-event': 'override',
+		'visibility-notify-event': 'override',
+		'button-release-event': 'override',
+		#~ 'key-press-event': 'override',
+
+	}
+
+	cursors = {
+		'text':  gtk.gdk.Cursor(gtk.gdk.XTERM),
+		'link':  gtk.gdk.Cursor(gtk.gdk.HAND2),
+		'arrow': gtk.gdk.Cursor(gtk.gdk.LEFT_PTR),
+	}
+
+	def __init__(self):
+		'''FIXME'''
+		gtk.TextView.__init__(self)
+		self.cursor = 'text'
+		self.set_left_margin(10)
+		self.set_right_margin(5)
+		self.set_wrap_mode(gtk.WRAP_WORD)
+
+	def do_motion_notify_event(self, event):
+		'''Event handler that triggers check_cursor_type()
+		when the mouse moves
+		'''
+		cont = gtk.TextView.do_motion_notify_event(self, event)
+		x, y = event.get_coords()
+		x, y = int(x), int(y) # avoid some strange DeprecationWarning
+		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
+		self.check_cursor_type(self.get_iter_at_location(x, y))
+		return cont # continue emit ?
+
+	def do_visibility_notify_event(self, event):
+		'''Event handler that triggers check_cursor_type()
+		when the window becomes visible
+		'''
+		self.check_cursor_type(self.get_iter_at_pointer())
+		return False # continue emit
+
+	def do_button_release_event(self, event):
+		'''FIXME'''
+		cont = gtk.TextView.do_button_release_event(self, event)
+		selection = self.get_buffer().get_selection_bounds()
+		if not selection:
+			iter = self.get_iter_at_pointer()
+			if event.button == 1:
+				self.click_link(iter)
+			elif event.button == 3:
+				pass # TODO alternative click on checkbox
+		return cont # continue emit ?
+
+	#~ def do_key_press_event(self, event):
+		#~ '''FIXME'''
+		#~ cont = gtk.TextView.do_key_press_event(self, event)
+		#~ print 'key press'
+		#~ return cont # continue emit ?
+
+	def get_iter_at_pointer(self):
+		'''Returns the TextIter that is under the mouse'''
+		x, y = self.get_pointer()
+		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
+		return self.get_iter_at_location(x, y)
+
+	def check_cursor_type(self, iter):
+		'''Set the mouse cursor image according to content at 'iter'.
+		E.g. set a "hand" cursor when hovering over a link. Also emits
+		the link-enter and link-leave signals when apropriate.
+		'''
+		link = None
+		for tag in iter.get_tags():
+			try:
+				if tag.zim_type == 'link':
+					link = self.get_buffer().get_link_data(tag)
+					break
+			except AttributeError:
+				pass
+
+		if not link:
+			pass # TODO check for pixbufs that are clickable
+
+		if link: cursor = 'link'
+		else:    cursor = 'text'
+
+		if cursor != self.cursor:
+			window = self.get_window(gtk.TEXT_WINDOW_TEXT)
+			window.set_cursor(self.cursors[cursor])
+
+		# Check if we need to emit any events for hovering
+		# TODO: do we need similar events for images ?
+		if self.cursor == 'link': # was over link before
+			if cursor == 'link':
+				pass
+				#~ print 'TODO: check we are still over same link'
+			else:
+				self.emit('link-leave', link)
+		elif cursor == 'link': # was not over link, but is now
+			self.emit('link-enter', link)
+
+		self.cursor = cursor
+
+	def click_link(self, iter):
+		'''Emits the link-clicked signal if there is a link at iter.
+		Returns True for success, returns False if no link was found.
+		'''
+		for tag in iter.get_tags():
+			try:
+				if tag.zim_type == 'link':
+					link = self.get_buffer().get_link_data(tag)
+					self.emit('link-clicked', link)
+					break
+			except AttributeError:
+				pass
+
+# Need to register classes defining gobject signals
 gobject.type_register(TextView)
 
 
@@ -199,8 +346,21 @@ class PageView(gtk.VBox, Component):
 		swindow.add(self.view)
 		self.add(swindow)
 
+		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
+		self.view.connect_object('link-clicked', PageView.do_link_enter, self)
+		self.view.connect_object('link-clicked', PageView.do_link_leave, self)
+
 	def set_page(self, page):
 		tree = page.get_parsetree()
 		buffer = TextBuffer()
 		buffer.set_parsetree(tree)
 		self.view.set_buffer(buffer)
+
+	def do_link_enter(self, link):
+		pass # TODO set statusbar
+
+	def do_link_leave(self, link):
+		pass # TODO set statusbar
+
+	def do_link_clicked(self, link):
+		print "Link clicked !", link
