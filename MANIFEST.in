@@ -2,5 +2,5 @@
 # need to specify additional ditribution files here
 include *.txt
 include test.py tests/*.py
-recursive-include tests/data/*
+recursive-include tests/data/ *
 recursive-include data/ *

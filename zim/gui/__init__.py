@@ -175,8 +175,15 @@ class GtkApplication(Application, Component):
 		self.open_page_home()
 
 	def open_link(self, link):
-		'''Open either a page, file, dir or url'''
-		# TODO handle paths, urls and email addresses
+		'''Open either a page, file, dir or url. The link can be either a
+		string or a dict with lin kattribute (as used in the parse tree).
+		'''
+		if isinstance(link, dict):
+			link = link['href']
+			self.debug('LINK CLICKED: %s (dict)' % link)
+		else:
+			self.debug('LINK CLICKED: %s' % link)
+
 		if is_url_re.match(link):
 			print 'TODO: handler for urls'
 		elif is_email_re.match(link):
@@ -301,9 +308,9 @@ class GtkApplication(Application, Component):
 
 	def show_help(self, page=None):
 		if page:
-			self.spawn('zim', '--doc', page)
+			self.spawn('zim', '--manual', page)
 		else:
-			self.spawn('zim', '--doc')
+			self.spawn('zim', '--manual')
 
 	def show_help_faq(self):
 		self.show_help(':FAQ')

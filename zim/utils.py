@@ -31,9 +31,15 @@ def data_dirs(*path):
 
 def data_file(filename):
 	for dir in data_dirs():
-		file = os.path.join(dir.path, filename)
-		if os.path.isfile(file):
-			return File(file)
+		path = os.path.join(dir.path, filename)
+		if os.path.isfile(path):
+			return File(path)
+
+def data_dir(filename):
+	for dir in data_dirs():
+		path = os.path.join(dir.path, filename)
+		if os.path.isdir(path):
+			return Dir(path)
 
 def config_file(filename):
 	# TODO XDG logic

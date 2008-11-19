@@ -14,7 +14,7 @@ the 'stores' namespace.
 import weakref
 
 from zim.fs import *
-from zim.utils import Re, is_url_re, is_email_re, ConfigList, config_file
+from zim.utils import Re, is_url_re, is_email_re, ConfigList, config_file, data_dir
 import zim.stores
 
 
@@ -31,10 +31,11 @@ def get_notebook(notebook):
 				notebook = table[table[notebook]]
 			else:
 				notebook = table[notebook]
-		elif notebook == '_doc_':
-			print 'TODO: get path for user manual'
-
-		notebook = Dir(notebook)
+			notebook = Dir(notebook)
+		elif notebook == '_manual_':
+			notebook = data_dir('manual')
+		else:
+			notebook = Dir(notebook) # maybe it's a path after all
 	else:
 		name = notebook.path
 
@@ -270,15 +271,19 @@ class Page(object):
 	def __repr__(self):
 		return '<%s: %>' % (self.__class__.__name__, self.name)
 
-	def get_basename(self):
+	@property
+	def namespace(self):
+		i = self.name.rfind(':')
+		return self.name[:i]
+
+	@property
+	def basename(self):
 		i = self.name.rfind(':') + 1
 		return self.name[i:]
 
 	def raise_set(self):
 		# TODO raise ro property
 		pass
-
-	basename = property(get_basename, raise_set)
 
 	def isempty(self):
 		'''Returns True if this page has no content'''

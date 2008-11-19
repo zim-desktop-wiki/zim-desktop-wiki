@@ -39,7 +39,7 @@ executable = 'zim'
 
 # All commandline options in various groups
 longopts = ('verbose', 'debug')
-cmdopts = ('help', 'version', 'gui', 'server', 'export', 'doc')
+cmdopts = ('help', 'version', 'gui', 'server', 'export', 'manual')
 guiopts = ()
 serveropts = ('port=', 'template=', 'gui')
 exportopts = ('format=', 'template=', 'output=')
@@ -53,7 +53,7 @@ usagehelp = '''\
 usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
    or: zim --export [OPTIONS] [NOTEBOOK [PAGE]]
    or: zim --server [OPTIONS] [NOTEBOOK]
-   or: zim --doc [OPTIONS] [PAGE]
+   or: zim --manual [OPTIONS] [PAGE]
    or: zim --help
 '''
 optionhelp = '''\
@@ -61,7 +61,7 @@ General Options:
   --gui       run the editor (this is the default)
   --server    run the web server
   --export    export to a different format
-  --doc       open the user manual
+  --manual    open the user manual
   --verbose   print information to terminal
   --debug     print debug messages
   --version   print version and exit
@@ -77,7 +77,7 @@ Export Options: FIXME
   --template  name of the template to use
   --output    output file or directory
 
-Try 'zim --doc' for more help.
+Try 'zim --manual' for more help.
 '''
 
 class UsageError(Exception):
@@ -120,13 +120,13 @@ def main(argv):
 
 	# Otherwise check the number of arguments
 	if (cmd == 'server' and len(args) > 1) or \
-	   (cmd == 'doc' and len(args) > 1) or (len(args) > 2):
+	   (cmd == 'manual' and len(args) > 1) or (len(args) > 2):
 		raise UsageError
 
-	if cmd == 'doc':
-		# --doc is an alias for --gui _doc_
+	if cmd == 'manual':
+		# --manual is an alias for --gui _manual_
 		cmd = 'gui'
-		args.insert(0, '_doc_')
+		args.insert(0, '_manual_')
 
 	# Now figure out which options are allowed for this command
 	allowedopts = list(longopts)
@@ -135,7 +135,7 @@ def main(argv):
 	elif cmd == 'export':
 		allowedopts.extend(exportopts)
 	else:
-		assert cmd == 'gui' or cmd == 'doc'
+		assert cmd == 'gui' or cmd == 'manual'
 		allowedopts.extend(guiopts)
 
 	# Convert options into a proper dict

@@ -141,10 +141,41 @@ class TextBuffer(gtk.TextBuffer):
 		self.insert_at_cursor(text)
 		self.set_textstyle(None)
 
-	def get_link_data(self, tag):
-		'''Returns the dict with link properties.'''
-		# TODO when target=None read text span
-		return tag.zim_attrib
+	def get_link_data(self, iter):
+		'''Returns the dict with link properties for a link at iter.
+		Fails silently and returns None when there is no link at iter.
+		'''
+		for tag in iter.get_tags():
+			try:
+				if tag.zim_type == 'link':
+					break
+			except AttributeError:
+				pass
+		else:
+			tag = None
+
+		if tag:
+			link = tag.zim_attrib.copy()
+			if link['href'] is None:
+				print 'TODO get tag text and use as href'
+			return link
+		else:
+			return False
+
+	def set_link_data(self, iter, attrib):
+		'''Set the link properties for a link at iter. Will throw an exception
+		if there is no link at iter.
+		'''
+		for tag in iter.get_tags():
+			try:
+				if tag.zim_type == 'link':
+					# TODO check if href needs to be set to None again
+					tag.zim_attrib = attrib
+					break
+			except AttributeError:
+				pass
+		else:
+			raise Exception, 'No link at iter'
 
 	def insert_image(self, iter, attrib, text):
 		'''FIXME'''
@@ -284,14 +315,7 @@ class TextView(gtk.TextView):
 		E.g. set a "hand" cursor when hovering over a link. Also emits
 		the link-enter and link-leave signals when apropriate.
 		'''
-		link = None
-		for tag in iter.get_tags():
-			try:
-				if tag.zim_type == 'link':
-					link = self.get_buffer().get_link_data(tag)
-					break
-			except AttributeError:
-				pass
+		link = self.get_buffer().get_link_data(iter)
 
 		if not link:
 			pass # TODO check for pixbufs that are clickable
@@ -320,14 +344,12 @@ class TextView(gtk.TextView):
 		'''Emits the link-clicked signal if there is a link at iter.
 		Returns True for success, returns False if no link was found.
 		'''
-		for tag in iter.get_tags():
-			try:
-				if tag.zim_type == 'link':
-					link = self.get_buffer().get_link_data(tag)
-					self.emit('link-clicked', link)
-					break
-			except AttributeError:
-				pass
+		link = self.get_buffer().get_link_data(iter)
+		if link:
+			self.emit('link-clicked', link)
+			return True
+		else:
+			return False
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)
@@ -363,4 +385,4 @@ class PageView(gtk.VBox, Component):
 		pass # TODO set statusbar
 
 	def do_link_clicked(self, link):
-		print "Link clicked !", link
+		self.app.open_link(link)
