@@ -7,6 +7,7 @@
 import os
 import sys
 import unittest
+import getopt
 
 import tests
 
@@ -17,8 +18,21 @@ def main(argv=None):
 	if argv is None:
 		argv = sys.argv
 
-	if argv[1:]:
-		modules = [ 'tests.'+name for name in argv[1:] ]
+	opts, args = getopt.gnu_getopt(argv[1:], '', ['cover'])
+	if '--cover' in [o[0] for o in opts]:
+		try:
+			import coverage
+		except ImportError:
+			print >>sys.stderr, '''\
+Can not run test coverage without module coverage.
+On Ubuntu or Debian install package 'python-coverage'.
+'''
+			sys.exit(1)
+		tests.coverage = coverage
+		tests.coverage.erase()
+
+	if args:
+		modules = [ 'tests.'+name for name in args ]
 	else:
 		modules = [ 'tests.'+name for name in tests.__all__ ]
 
@@ -29,6 +43,13 @@ def main(argv=None):
 		suite.addTest(test)
 
 	unittest.TextTestRunner(verbosity=3).run(suite)
+	
+	if tests.coverage:
+		pyfiles = []
+		for dir, dirs, files in os.walk('zim'):
+			pyfiles.extend([dir+'/'+f for f in files if f.endswith('.py')])
+		tests.coverage.report(pyfiles, show_missing=False)
+		print '\nTODO: detailed html coverage'
 
 
 if __name__ == '__main__':

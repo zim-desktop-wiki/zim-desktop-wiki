@@ -18,6 +18,8 @@ __all__ = [
 
 __unittest = 1 # needed to get stack trace OK for class TestCase
 
+coverage = None
+
 def get_notebook_data(format):
 	'''Generator function for test data'''
 	assert format == 'wiki' # No other formats available for now
@@ -68,6 +70,14 @@ def get_test_page(name=':Foo'):
 
 class TestCase(unittest.TestCase):
 	'''FIXME'''
+
+	def run(self, *args):
+		if not coverage is None:
+			coverage.start()
+			unittest.TestCase.run(self, *args)
+			coverage.stop()
+		else:
+			unittest.TestCase.run(self, *args)
 
 	def assertEqualDiff(self, first, second, msg=None):
 		'''Fail if the two strings are unequal as determined by
