@@ -21,7 +21,7 @@ class PathLookupError(Exception):
 	'''FIXME'''
 
 
-class Path(object):
+class UnixPath(object):
 	'''Parent class for Dir and File objects'''
 
 	def __init__(self, path):
@@ -55,7 +55,6 @@ class Path(object):
 	def __repr__(self):
 		return '<%s: %>' % (self.__class__.__name__, self.path)
 
-
 	@property
 	def basename(self):
 		'''Basename property'''
@@ -81,6 +80,31 @@ class Path(object):
 			if path == '/': # FIXME: posix specific
 				break
 		return parts
+
+
+class WindowsPath(UnixPath):
+    
+    @property
+    def uri(self):
+        '''File uri property with win32 logic'''
+        # win32 paths do not start with '/', so add another one
+        return 'file:///'+self.canonpath
+
+    @property
+    def canonpath(self):
+        path = self.path.replace('\\', '/')
+        return path
+
+
+# Determine which base class to use for classes below
+if os.name == 'posix':
+    Path = UnixPath
+elif os.name == 'nt':
+    Path = WindowsPath
+else:
+    import sys
+    print >>sys.stderr, 'WARNING: os name "%s", falling back to posix' % os.name
+    Path = UnixPath
 
 
 class Dir(Path):

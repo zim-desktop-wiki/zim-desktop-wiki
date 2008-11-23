@@ -8,3 +8,4 @@ config
 zim/_version.py
 MANIFEST
 **/.zim
+coverage
