@@ -6,6 +6,47 @@
 
 For format modules it is safe to import '*' from this module.
 
+
+Parse trees are build using the (c)ElementTree module (included in
+python 2.5 as xml.etree.ElementTree). It is basically a xml structure
+supporting a subset of "html like" tags.
+
+Supported tags:
+
+* page root element for grouping paragraphs
+* p for paragraphs
+* h for heading, level attribute can be 1..6
+* pre for verbatim paragraphs (no further parsing in these blocks)
+* em for emphasis, rendered italic by default
+* strong for strong emphasis, rendered bold by default
+* mark for highlighted text, renderd with background color or underlined
+* strike for text that is removed, usually renderd as strike through
+* code for inline verbatim text
+* ul for bullet lists
+* .. for checkbox lists
+* li for list items
+* link for links, attribute href gives the target
+* img for images, attributes src, width, height an optionally href
+	* any text set on these elements should be rendered as alt
+	* class can be used to control plugin functionality, e.g. class=latex-equation
+
+Unless html we respect line breaks and other whitespace as is.
+When rendering as html use the "white-space: pre" CSS definition to
+get the same effect.
+
+Since elements are based on the functional markup instead of visual
+markup it is not allowed to nest elements in arbitrary ways.
+
+TODO: allow links to be nested in other elements
+TODO: allow strike to have sub elements
+TODO: allow classes to set hints for visual rendering and other interaction
+TODO: add HR element
+TODO: ol for numbered lists
+
+If a page starts with a h1 this heading is considered the page title,
+else we can fall back to the page name as title.
+
+
 NOTE: To avoid confusion: "headers" refers to meta data, usually in
 the form of rfc822 headers at the top of a page. But "heading" refers
 to a title or subtitle in the document.
@@ -17,8 +58,7 @@ try:
 	import xml.etree.cElementTree as ElementTreeModule
 	from xml.etree.cElementTree import \
 		Element, SubElement, TreeBuilder
-except:
-	#~ debug("Failed loading cElementTree, fall back to ElementTree")
+except:  # pragma: no cover
 	import xml.etree.ElementTree as ElementTreeModule
 	from xml.etree.ElementTree import \
 		Element, SubElement, TreeBuilder
@@ -41,23 +81,38 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 	def fromstring(self, string):
 		'''Set the contents of this tree from XML representation.'''
-		input = Buffer(string)
-		return self.parse(input) # Replaces current tree if any
+		parser = ElementTreeModule.XMLTreeBuilder()
+		parser.feed(string)
+		root = parser.close()
+		self._setroot(root)
+		return self # allow ParseTree().fromstring(..)
 
 	def tostring(self):
 		'''Serialize the tree to a XML representation.'''
-		output = Buffer()
-		self.write(output)
-		return output.getvalue()
 
-	def write(self, file, encoding='utf8'):
-		'''Write XML representation to file'''
 		# Parent dies when we have attributes that are not a string
 		for heading in self.getiterator('h'):
 			heading.attrib['level'] = str(heading.attrib['level'])
-		return ElementTreeModule.ElementTree.write(self, file, encoding)
+
+		xml = Buffer()
+		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")
+		ElementTreeModule.ElementTree.write(self, xml, 'utf-8')
+		return xml.getvalue()
+
+	def write(*a):
+		'''Writing to file is not implemented, use tostring() instead'''
+		raise NotImplementedError
+
+	def parse(*a):
+		'''Parsing from file is not implemented, use fromstring() instead'''
+		raise NotImplementedError
 
 	def cleanup_headings(self, offset=0, max=6):
+		'''Change the heading levels throughout the tree. This makes sure that
+		al headings are nested directly under their parent (no gaps in the
+		levels of the headings). Also you can set an offset for the top level
+		and a max depth.
+		'''
 		path = []
 		for heading in self.getiterator('h'):
 			level = int(heading.attrib['level'])
@@ -70,7 +125,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 				newlevel = path[-1][1] + 1
 			if newlevel > max:
 				newlevel = max
-			heading.level = newlevel
+			heading.attrib['level'] = newlevel
 			path.append((level, newlevel))
 
 

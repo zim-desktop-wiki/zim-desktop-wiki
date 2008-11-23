@@ -7,8 +7,6 @@
 import unittest
 import codecs
 
-from zim.notebook import Notebook
-
 __all__ = [
 	'utils', 'fs',
 	'formats', 'templates',
@@ -53,6 +51,7 @@ def get_notebook_data(format):
 
 def	get_test_notebook(format='wiki'):
 	'''Returns a notebook with a memory store and some test data'''
+	from zim.notebook import Notebook
 	notebook = Notebook()
 	store = notebook.add_store('', 'memory')
 	for name, text in get_notebook_data(format):
@@ -62,6 +61,7 @@ def	get_test_notebook(format='wiki'):
 
 def get_test_page(name=':Foo'):
 	'''FIXME'''
+	from zim.notebook import Notebook
 	notebook = Notebook()
 	notebook.add_store('', 'memory')
 	return notebook.get_page(name)

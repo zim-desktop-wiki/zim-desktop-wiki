@@ -13,6 +13,10 @@ import tests
 
 # TODO overload one of the unittest classes to test add file names
 
+pyfiles = []
+for dir, dirs, files in os.walk('zim'):
+	pyfiles.extend([dir+'/'+f for f in files if f.endswith('.py')])
+
 
 def main(argv=None):
 	'''Run either all tests, or those specified in argv'''
@@ -45,20 +49,19 @@ On Ubuntu or Debian install package 'python-coverage'.
 				sys.exit(1)
 			coverage = coverage_module
 			coverage.erase() # clean up old date set
-			coverage.exclude('assert') 
-				# exclude assertions from coverage
+			coverage.exclude('assert')
+			coverage.exclude('raise NotImplementedError')
 			coverage.start()
 		else:
 			assert False
 
-	# Collect the test modules
+	# Collect the test cases
+	suite = unittest.TestSuite()
 	if args:
 		modules = [ 'tests.'+name for name in args ]
 	else:
+		suite.addTest(TestCompileAll())
 		modules = [ 'tests.'+name for name in tests.__all__ ]
-
-	suite = unittest.TestSuite()
-
 	for name in modules:
 		test = unittest.defaultTestLoader.loadTestsFromName(name)
 		suite.addTest(test)
@@ -70,13 +73,10 @@ On Ubuntu or Debian install package 'python-coverage'.
 		coverage.stop()
 		report_coverage(coverage)
 
-def report_coverage(coverage):
-	# Test coverage reporting
-	pyfiles = []
-	for dir, dirs, files in os.walk('zim'):
-		pyfiles.extend([dir+'/'+f for f in files if f.endswith('.py')])
 
+def report_coverage(coverage):
 	# print summary
+	print ''
 	coverage.report(pyfiles, show_missing=False)
 
 	# Detailed report in html
@@ -96,7 +96,7 @@ def report_coverage(coverage):
 <style>
 	.code { white-space: pre; font-family: monospace }
 	.executed { background-color: #9f9 }
-	.excluded { background-color: #ff9 }
+	.excluded { background-color: #ccc }
 	.missing  { background-color: #f99 }
 	.comment  { }
 </style>
@@ -104,6 +104,10 @@ def report_coverage(coverage):
 <body>
 <h1>Coverage report for %s</h1>
 <table width="100%%">
+<tr><td class="executed">&nbsp;</td><td>Executed statement</td></tr>
+<tr><td class="missing">&nbsp;</td><td>Untested statement</td></tr>
+<tr><td class="excluded">&nbsp;</td><td>Ignored statement</td></tr>
+<tr><td>&nbsp</td><td>&nbsp</td></tr>
 ''' % (path, path))
 
 
@@ -129,7 +133,7 @@ def report_coverage(coverage):
 </body>
 </html>
 ''')
-	
+
 	# Index for detailed reports
 	html = open('coverage/index.html', 'w')
 	html.write('''\
@@ -140,7 +144,7 @@ def report_coverage(coverage):
 	.good  { background-color: #9f9; text-align: right }
 	.close { background-color: #ff9; text-align: right }
 	.bad   { background-color: #f99; text-align: right }
-	.int   { text-aling: right }
+	.int   { text-align: right }
 </style>
 </head>
 <body>
@@ -175,6 +179,18 @@ def report_coverage(coverage):
 </body>
 </html>
 ''')
+
+	print '\nDetailed coverage report can be found in ./coverage/'
+
+
+class TestCompileAll(unittest.TestCase):
+
+	def runTest(self):
+		'''Test if all modules compile'''
+		for file in pyfiles:
+			module = file[:-3].replace('/', '.')
+			assert __import__(module)
+
 
 if __name__ == '__main__':
 	main()

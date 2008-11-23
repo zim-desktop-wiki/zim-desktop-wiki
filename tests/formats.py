@@ -57,6 +57,51 @@ This is not a header
 That's all ...
 """
 
+class TestParseTree(TestCase):
+
+	def setUp(self):
+		self.xml = u'''\
+<?xml version='1.0' encoding='utf-8'?>
+<page>
+<h level="1">Head 1</h>
+<h level="2">Head 2</h>
+<h level="3">Head 3</h>
+<h level="2">Head 4</h>
+<h level="5">Head 5</h>
+<h level="4">Head 6</h>
+<h level="5">Head 7</h>
+<h level="6">Head 8</h>
+</page>'''
+
+	def teststring(self):
+		'''Test ParseTree.fromstring() and .tostring()'''
+		tree = ParseTree()
+		r = tree.fromstring(self.xml)
+		self.assertEqual(id(r), id(tree)) # check return value
+		e = tree.getroot()
+		self.assertEqual(e.tag, 'page') # check content
+		text = tree.tostring()
+		self.assertEqualDiff(text, self.xml)
+
+	def testcleanup_headings(self):
+		'''Test ParseTree.cleanup_headings()'''
+		tree = ParseTree().fromstring(self.xml)
+		wanted = u'''\
+<?xml version='1.0' encoding='utf-8'?>
+<page>
+<h level="2">Head 1</h>
+<h level="3">Head 2</h>
+<h level="4">Head 3</h>
+<h level="3">Head 4</h>
+<h level="4">Head 5</h>
+<h level="4">Head 6</h>
+<h level="4">Head 7</h>
+<h level="4">Head 8</h>
+</page>'''
+		tree.cleanup_headings(offset=1, max=4)
+		text = tree.tostring()
+		self.assertEqualDiff(text, wanted)
+
 class TestTextFormat(TestCase):
 
 	def setUp(self):
@@ -99,7 +144,7 @@ foo bar
 	def testParsing(self):
 		'''Test wiki parse tree generation.'''
 		tree = u'''\
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <page><h level="1">Head1</h>
 
 <h level="2">Head 2</h>
