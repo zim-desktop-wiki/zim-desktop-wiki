@@ -595,7 +595,7 @@ class ParseError(Exception):
 
     def __str__(self):
         return ':'.join([str(part) for part in (self.filename, self.line, self.col, self.msg) if part != None])
-        
+
 
 class Scanner:
     """Stateless scanner."""
@@ -734,9 +734,9 @@ class Parser:
     def match(self, type):
         if self.lookahead.type != type:
             raise ParseError(
-                msg = 'unexpected token %r' % self.lookahead.text, 
-                filename = self.lexer.filename, 
-                line = self.lookahead.line, 
+                msg = 'unexpected token %r' % self.lookahead.text,
+                filename = self.lexer.filename,
+                line = self.lookahead.line,
                 col = self.lookahead.col)
 
     def skip(self, type):
@@ -839,7 +839,7 @@ class DotLexer(Lexer):
             text = text.replace('\\\r\n', '')
             text = text.replace('\\\r', '')
             text = text.replace('\\\n', '')
-            
+
             text = text.replace('\\r', '\r')
             text = text.replace('\\n', '\n')
             text = text.replace('\\t', '\t')
@@ -980,7 +980,7 @@ class XDotParser(DotParser):
     def __init__(self, xdotcode):
         lexer = DotLexer(buf = xdotcode)
         DotParser.__init__(self, lexer)
-        
+
         self.nodes = []
         self.edges = []
         self.node_by_name = {}
@@ -1030,7 +1030,7 @@ class XDotParser(DotParser):
             pos = attrs['pos']
         except KeyError:
             return
-        
+
         points = self.parse_edge_pos(pos)
         shapes = []
         for attr in ("_draw_", "_ldraw_", "_hdraw_", "_tdraw_", "_hldraw_", "_tldraw_"):
@@ -1311,14 +1311,26 @@ class DotWidget(gtk.DrawingArea):
         self.filter = filter
 
     def set_dotcode(self, dotcode, filename='<stdin>'):
+        if isinstance(dotcode, unicode):
+            dotcode = dotcode.encode('utf8')
         p = subprocess.Popen(
             [self.filter, '-Txdot'],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             shell=False,
             universal_newlines=True
         )
         xdotcode = p.communicate(dotcode)[0]
+        if p.returncode != 0:
+            dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
+                                       message_format=xdotcode,
+                                       buttons=gtk.BUTTONS_OK)
+            dialog.set_title('Dot Viewer')
+            dialog.run()
+            dialog.destroy()
+            return False
+
         try:
             self.set_xdotcode(xdotcode)
         except ParseError, ex:

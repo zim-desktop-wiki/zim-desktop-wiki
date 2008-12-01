@@ -41,7 +41,8 @@ class Component(object):
 	info = debug # TODO separate logging for verbose messages
 
 class Application(gobject.GObject, Component):
-	'''FIXME'''
+	'''Application objects provide the interface to a single notebook.
+	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -67,20 +68,19 @@ class Application(gobject.GObject, Component):
 						% version_info )
 			except:
 				self.debug('No bzr version-info found')
-		self.load_config()
-		self.load_plugins()
 
 	def load_config(self):
 		'''FIXME'''
 
 	def load_plugins(self):
 		'''FIXME'''
-		plugins = []
+		plugins = ['linkmap'] # FIXME: get from config
 		for plugin in plugins:
 			self.load_plugin(plugin)
 
 	def load_plugin(self, pluginname):
 		'''FIXME'''
+		import zim.plugins
 		klass = zim.plugins.get_plugin(pluginname)
 		plugin = klass(self)
 		self.plugins.append(plugin)

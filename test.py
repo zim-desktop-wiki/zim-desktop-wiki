@@ -166,7 +166,8 @@ def report_coverage(coverage):
 
 	for report in index:
 		pyfile, htmlfile, statements, executed = report
-		percentage = float(executed) / statements * 100
+		if statements: percentage = float(executed) / statements * 100
+		else: percentage = 100
 		if percentage > 99.7: type = 'good'
 		elif percentage > 80: type = 'close'
 		else: type = 'bad'

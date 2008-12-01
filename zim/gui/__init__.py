@@ -89,7 +89,7 @@ ui_radio_actions = (
 
 
 class GtkApplication(Application, Component):
-	'''Appliction object for the zim GUI. This object wraps a single notebook
+	'''Application object for the zim GUI. This object wraps a single notebook
 	and provides actions to manipulate and access this notebook.
 	'''
 
@@ -100,24 +100,29 @@ class GtkApplication(Application, Component):
 
 	def __init__(self, **opts):
 		Application.__init__(self, **opts)
-		self.mainwindow = None
 
-		# set default icon for all windows
 		icon = data_file('zim.png').path
 		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
 
-	def dispatch_action(self, action):
+		self.mainwindow = MainWindow(self)
+		self.load_config()
+		self.load_plugins()
+
+	def dispatch_action(self, action, object=None):
 		'''Default handler for ui actions. Argument should be a gtk.Action
 		object. Will call the like named method on this object.
 		'''
 		assert isinstance(action, gtk.Action)
+		if object is None:
+			object = self
+		# FIXME FIXME get rid of the object attribute
 		action = action.get_property('name')
 		if action.endswith('_menu'):
 			pass # these occur when opening a menu, ignore silently
 		else:
 			self.debug('ACTION: ', action)
 			try:
-				method = getattr(self, action)
+				method = getattr(object, action)
 			except AttributeError:
 				self.debug('BUG: No handler defined for action %s' % action)
 			else:
@@ -165,11 +170,8 @@ class GtkApplication(Application, Component):
 			self.spawn('zim', notebook)
 
 	def do_open_notebook(self, notebook):
-		'''Signal handler for open-notebook. Initializes the main window.'''
+		'''Signal handler for open-notebook.'''
 		self.notebook = notebook
-
-		# construct main window to show this notebook
-		self.mainwindow = MainWindow(self)
 
 		# TODO load history and set intial page
 		self.open_page_home()
@@ -354,6 +356,7 @@ class MainWindow(gtk.Window, Component):
 		gtk.Window.__init__(self)
 
 		self.app = app
+		app.connect('open-notebook', self.do_open_notebook)
 		app.connect('open-page', self.do_open_page)
 
 		# Catching this signal prevents the window to actually be destroyed
@@ -370,21 +373,21 @@ class MainWindow(gtk.Window, Component):
 		self.add(vbox)
 
 		# setup menubar and toolbar
-		uimanager = gtk.UIManager()
-		self.add_accel_group(uimanager.get_accel_group())
+		self.uimanager = gtk.UIManager()
+		self.add_accel_group(self.uimanager.get_accel_group())
 
-		actions = gtk.ActionGroup('Foo') # FIXME
-		actions.add_actions(ui_actions)
-		actions.add_toggle_actions(ui_toggle_actions)
-		actions.add_radio_actions(ui_radio_actions)
-		uimanager.insert_action_group(actions, 0)
+		self.actions = gtk.ActionGroup('Foo') # FIXME
+		self.actions.add_actions(ui_actions)
+		self.actions.add_toggle_actions(ui_toggle_actions)
+		self.actions.add_radio_actions(ui_radio_actions)
+		self.uimanager.insert_action_group(self.actions, 0)
 
-		for action in actions.list_actions():
+		for action in self.actions.list_actions():
 				action.connect('activate', self.app.dispatch_action)
 
-		uimanager.add_ui_from_file(data_file('menubar.xml').path)
-		menubar = uimanager.get_widget('/menubar')
-		toolbar = uimanager.get_widget('/toolbar')
+		self.uimanager.add_ui_from_file(data_file('menubar.xml').path)
+		menubar = self.uimanager.get_widget('/menubar')
+		toolbar = self.uimanager.get_widget('/toolbar')
 		vbox.pack_start(menubar, False)
 		vbox.pack_start(toolbar, False)
 
@@ -397,7 +400,6 @@ class MainWindow(gtk.Window, Component):
 
 		self.pageindex.connect('page-activated',
 			lambda index, pagename: self.app.open_page(pagename) )
-		self.pageindex.set_pages( self.app.notebook.get_root() )
 
 		vbox2 = gtk.VBox()
 		hpane.add2(vbox2)
@@ -442,6 +444,8 @@ class MainWindow(gtk.Window, Component):
 		#~ statusbar2.set_size_request(25, 10)
 		#~ hbox.pack_end(statusbar2, False)
 
+	def do_open_notebook(self, app, notebook):
+		self.pageindex.set_pages( notebook.get_root() )
 
 	def do_open_page(self, app, page):
 		'''Signal handler for open-page, updates the pageview'''
