@@ -28,10 +28,9 @@ class LinkMapPlugin(PluginClass):
 
 	def __init__(self, app):
 		PluginClass.__init__(self, app)
-		#~ if app.type == 'GtkApplication':
-			# Hook LinkMapDialog into the application
-		self.add_actions(ui_actions)
-		self.add_ui(ui)
+		if app.ui_type == 'gtk':
+			self.add_actions(ui_actions)
+			self.add_ui(ui)
 		# TODO similar for www ?
 
 	def show_linkmap(self):

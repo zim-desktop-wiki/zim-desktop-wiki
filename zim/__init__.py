@@ -42,12 +42,18 @@ class Component(object):
 
 class Application(gobject.GObject, Component):
 	'''Application objects provide the interface to a single notebook.
+
+	Subclasses can prove a class attribute "ui_type" to tell plugins what
+	interface they support. This can be "gtk" or "html". If "ui_type" is None
+	we run without interface (e.g. commandline export).
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-notebook': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
+
+	ui_type = None
 
 	def __init__(self, executable='zim', verbose=False, debug=False):
 		gobject.GObject.__init__(self)

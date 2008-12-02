@@ -8,6 +8,27 @@
 # TODO check client host for security
 # TODO setting for doc_root_url when running in CGI mode
 
+'''FIXME
+
+A simple cgi-bin script to serve a zim notebook can look like this:
+
+	#!/usr/bin/python
+
+	import zim.www
+	cgi = zim.www.Handler(
+		notebook='./foobar/',      # [1]
+		template='./mytheme.html'  # [2]
+	)
+	cgi.main()
+
+[1] If you do not set the notebook the script will be able to serve all
+notebooks.
+[2] Without template "Default.html" will be used from the zim data directory.
+'''
+
+import sys
+import os
+
 from zim import Application
 
 from zim.fs import *
@@ -21,22 +42,32 @@ class Error(Exception):
 		self.msg = msg
 
 
-class WWW(Application):
+class WWWApplication(Application):
 	'''Object to handle the WWW interface for zim notebooks'''
 
-	def __init__(self, **opts):
-		Application.__init__(self, **opts)
-		self.file = None
+	ui_type = 'html'
 
-	def serve(self, file, path):
+	def __init__(self, notebook=None, template='Default', **opts):
+		Application.__init__(self, **opts)
+		assert not notebook is None, 'Need to specify a notebook'
+		self.output = None
+		if isinstance(template, basestring):
+			from zim.templates import get_template
+			template = get_template('html', template)
+		self.template = template
+		self.load_config()
+		self.load_plugins()
+		self.open_notebook(notebook)
+
+	def serve(self, path, file):
 		'''Main function for handling a single request. Arguments are the file
 		handle to write the output to and the path to serve. Any exceptions
 		will result in a error response being written.
 		'''
 		# TODO: add argument post=None for handling posted forms
 		# TODO: first path element could be notebook name
-		assert self.file is None
-		self.file = file
+		assert self.output is None
+		self.output = file
 		try:
 			if path == '/':
 				self.serve_index()
@@ -50,7 +81,7 @@ class WWW(Application):
 		except Exception, error:
 			self.write_error(error)
 
-		self.file = None
+		self.output = None
 
 	def serve_index(self, namespace=None):
 		'''Serve the index page'''
@@ -93,7 +124,7 @@ class WWW(Application):
 </html>
 '''
 		self.write_headers(200)
-		self.file.write(html.encode('utf8'))
+		self.output.write(html.encode('utf8'))
 
 	def serve_page(self, pagename):
 		'''Serve a single page from the notebook'''
@@ -111,20 +142,21 @@ class WWW(Application):
 			else:
 				html = page.get_text(format='html')
 			self.write_headers(200)
-			self.file.write(html.encode('utf8'))
+			self.output.write(html.encode('utf8'))
 
 	def href(self, page):
 		'''Returns the url to page'''
 		path = page.name.replace(':', '/')
 		if not path.startswith('/'): path = '/'+path
-		return self.url + path
+		#~ return self.url + path
+		return path
 
 	def write_headers(self, response, headers=None):
 		'''FIXME'''
 		if headers is None: headers = {}
 
 		# Send HTTP response
-		self.file.write("HTTP/1.0 %d\r\n" % response)
+		self.output.write("HTTP/1.0 %d\r\n" % response)
 
   		# Set default headers
 		#~ headers['Server'] = 'zim %.2f' % zim.__version__
@@ -135,8 +167,8 @@ class WWW(Application):
 
 		# Write headers
 		for k, v in headers.items():
-			self.file.write("%s: %s\r\n" % (k, v))
-		self.file.write("\r\n") # end of headers
+			self.output.write("%s: %s\r\n" % (k, v))
+		self.output.write("\r\n") # end of headers
 
 	def write_error(self, error):
 		'''FIXME'''
@@ -147,20 +179,48 @@ class WWW(Application):
 			code = 500
 			msg = error.__str__()
 		self.write_headers(code)
-		self.file.write(msg.encode('utf8'))
+		self.output.write(msg.encode('utf8'))
 
 
-class Server(WWW):
+class Handler(object):
+	'''FIXME'''
+
+	def __init__(self, notebook=None, **opts):
+		self.opts = opts
+		if not notebook is None:
+			self.notebook = WWWApplication(notebook=notebook, **opts)
+		else:
+			self.notebook = None
+			self.notebooks = {}
+
+	def main(self):
+		'''FIXME'''
+		path = os.environ['PATH_INFO'] or '/'
+		self.serve(path, sys.stdout)
+
+	def serve(self, path, file):
+		'''FIXME'''
+		if self.notebook is None:
+			# if not path or path == '/':
+			#	serve index page
+			# else:
+			# 	i = path.find('/')
+			#	name = path[:i]
+			#	if not name in self.notebooks
+			#		self.notebooks[name] = WWWApplication(name, **self.opts)
+			#	self.notebooks[notebook].serve(path[i:], file)
+			assert False, 'TODO dispatch multiple notebooks'
+		else:
+			# we only serve a single notebook
+			return self.notebook.serve(path, file)
+
+class Server(Handler):
 	'''Run a server based on BaseHTTPServer'''
 
-	def __init__(self, port=8080, template='Default', **opts):
+	def __init__(self, notebook=None, port=8080, **opts):
 		'''FIXME'''
-		WWW.__init__(self, **opts)
-		assert isinstance(port, int)
-		if isinstance(template, basestring):
-			from zim.templates import get_template
-			template = get_template('html', template)
-		self.template = template
+		Handler.__init__(self, notebook, **opts)
+		assert isinstance(port, int), port
 		self.port = port
 		self.url = 'http://localhost:%d' % self.port
 
@@ -179,7 +239,7 @@ kind of firewall your notes are now open to the whole wide world.
 			zim_server = self # class attribute
 
 			def do_GET(self):
-				self.zim_server.serve(self.wfile, self.path)
+				self.zim_server.serve(self.path, self.wfile)
 
 			def do_HEAD(self):
 				pass # TODO
@@ -193,13 +253,3 @@ kind of firewall your notes are now open to the whole wide world.
 		sa = server.socket.getsockname()
 		print "Serving HTTP on", sa[0], "port", sa[1], "..."
 		server.serve_forever()
-
-
-class CGI(object):
-	'''FIXME'''
-
-	def main():
-		'''FIXME'''
-		import sys
-		path = foo # TODO: get pathinfo
-		self.serve(sys.stdout, path)

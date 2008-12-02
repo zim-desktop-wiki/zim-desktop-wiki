@@ -98,7 +98,9 @@ class GtkApplication(Application, Component):
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object,))
 	}
 
-	def __init__(self, **opts):
+	ui_type = 'gtk'
+
+	def __init__(self, notebook=None, page=None, **opts):
 		Application.__init__(self, **opts)
 
 		icon = data_file('zim.png').path
@@ -107,6 +109,13 @@ class GtkApplication(Application, Component):
 		self.mainwindow = MainWindow(self)
 		self.load_config()
 		self.load_plugins()
+
+		if not notebook is None:
+			self.open_notebook(notebook)
+
+		if not page is None:
+			assert notebook, 'Can not open page without notebook'
+			self.open_page(page)
 
 	def dispatch_action(self, action, object=None):
 		'''Default handler for ui actions. Argument should be a gtk.Action

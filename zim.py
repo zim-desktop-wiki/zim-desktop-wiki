@@ -119,8 +119,7 @@ def main(argv):
 		return
 
 	# Otherwise check the number of arguments
-	if (cmd == 'server' and len(args) > 1) or \
-	   (cmd == 'manual' and len(args) > 1) or (len(args) > 2):
+	if (cmd in ('server', 'manual') and len(args) > 1) or (len(args) > 2):
 		raise UsageError
 
 	if cmd == 'manual':
@@ -159,28 +158,26 @@ def main(argv):
 		except ValueError:
 			raise GetoptError, ("--port takes an integer argument", 'port')
 
-	# Now we can create an Application object
+	# Now we determine the class to handle this command
 	if cmd == 'gui':
 		import zim.gui
-		app = zim.gui.GtkApplication(**optsdict)
+		klass = zim.gui.GtkApplication
+		# TODO use daemon handler instead
 	elif cmd == 'server':
 		if 'gui' in optsdict and optsdict['gui']:
 			import zim.gui.www
-			app = zim.gui.www.GtkWWWAplication(**optsdict)
+			klass = zim.gui.www.GtkWWWAplication
+			# TODO different name for this app
 		else:
 			import zim.www
-			app = zim.www.Server(**optsdict)
+			klass = zim.www.Server
 	elif cmd == 'export':
 		import zim.exporter
-		app = zim.exporter.Exporter(**optsdict)
-
-	if args:
-		app.open_notebook(args[0])
-		if len(args) == 2 and not cmd == 'server':
-			app.open_page(args[1])
+		klass = zim.exporter.Exporter
 
 	# and start the application ...
-	app.main()
+	handler = klass(*args, **optsdict)
+	handler.main()
 
 
 if __name__ == '__main__':
