@@ -1,0 +1,55 @@
+digraph g {
+	/* starting points */
+	main [ label="main()\nzim.py" shape = box]
+	cgibin [label = "zim.cgi" shape = box]
+	{ rank=same; main; cgibin }
+
+	parseargv [ lable = "parse argv" shape = diamond ]
+	dispatch [ shape = diamond ]
+	usageerror [label = "Usage Error" ]
+
+	/* main loops */
+	gtkmain [label = "gtk.main()" peripheries = 2]
+	gtkmain1 [label = "gtk.main()" peripheries = 2]
+	wwwloop [ label = "server_forever()\nBasehHTTPServer" peripheries = 2]
+	{ rank=same; gtkmain; gtkmain1; wwwloop }
+
+	/* other steps */
+	guimain [label = "GtkApplication.main()\nzim.gui"]
+	gtksignal [label ="gtk.signal_emit()" ]
+	gtksignal1 [label ="gtk.signal_emit()" ]
+	wwwmain [ label = "Server.main()\nzim.www" ]
+	wwwserve [ label = "WWWApplication.serve(request)"]
+	exporter [ label = "ExporterApplication.main()\nzim.exporter"]
+	wwwguimain [ label = "WWWGtkApplication.main()\nzim.gui.www"]
+	wwwcgi [label = "Handler.main()\nzim.www" ]
+
+	/* primary flow from start to main loop */
+	main -> parseargv
+	parseargv -> dispatch
+	parseargv -> usageerror [minlen = 0]
+	dispatch -> guimain [label="--gui (default)"]
+	dispatch -> wwwmain [label="--server"]
+	dispatch -> exporter [label="--export"]
+	dispatch -> wwwguimain [label="--server --gui"]
+	guimain -> gtkmain
+	wwwmain -> wwwloop
+	wwwguimain -> gtkmain1
+
+	/* flow cgi-bin */
+	cgibin -> wwwcgi
+	wwwcgi -> wwwserve
+
+	/* actions spawned by main loop */
+	gtkmain -> gtksignal [style = dotted]
+	gtksignal -> "dispatch_action()" [style = dotted]
+	"dispatch_action()" -> "open_notebook()" [style = dotted]
+	"open_notebook()" -> main [style = dotted label ="--gui"]
+	"dispatch_action()" -> "start_server()" [style = dotted]
+	"start_server()" -> main [style = dotted label ="--server --gui"]
+	"dispatch_action()" -> "show_help()" [style = dotted]
+	"show_help()" -> main [style = dotted label ="--doc"]
+	wwwloop -> wwwserve [style = dotted]
+	gtkmain1 -> gtksignal1 [style = dotted]
+	gtksignal1 -> main [style = dotted label="--server"]
+}
