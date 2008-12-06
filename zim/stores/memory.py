@@ -71,9 +71,7 @@ class Store(StoreClass):
 	# Public interface
 
 	def get_page(self, name, _node=None):
-		'''Returns a Page object for 'name'.
-		(_node is a private argument)
-		'''
+		'''Returns a Page object for 'name' (_node is a private argument)'''
 		if _node is None:
 			_node = self._get_node(name)
 

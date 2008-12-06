@@ -128,8 +128,8 @@ class Notebook(object):
 
 	def get_stores(self, name):
 		'''Returns a list of (path, store) for all stores in
-		the path to a secific page. The 'path' item in the result is
-		the maximum part of the ath handled by that store.
+		the path to a specific page. The 'path' item in the result is
+		the maximum part of the path handled by that store.
 		'''
 		stores = []
 		path = name
@@ -192,11 +192,13 @@ class Notebook(object):
 		else:
 			# first check if we see an explicit match in the path
 			anchor = name.split(':')[1].lower()
-			path = reversed( namespace.lower().split(':')[1:] )
+			path = namespace.lower().split(':')[1:]
 			if anchor in path:
 				# ok, so we can shortcut to an absolute path
+				path.reverse() # why is there no rindex or rfind ?
 				i = path.index(anchor) + 1
-				path = reversed(path[i:])
+				path = path[i:]
+				path.reverse()
 				path.append( name.lstrip(':') )
 				name = ':'.join(path)
 				return resolve_abs(name)
@@ -206,8 +208,9 @@ class Notebook(object):
 				for path, store in stores:
 					n = store.resolve_name(name, namespace=path)
 					if not n is None: return n
+
 				# name not found, keep case as is
-				return namespace+':'+name
+				return namespace+name
 
 	def get_page(self, name):
 		'''Returns a Page object'''
@@ -232,7 +235,7 @@ class Notebook(object):
 		'''Returns a Namespace object for 'namespace'.'''
 		namespace = self.normalize_name(namespace)
 		store = self.get_store(namespace)
-		return store.get_namespace(namesace)
+		return store.get_namespace(namespace)
 
 	#~ def move_page(self, name, newname):
 		#~ '''FIXME'''
@@ -247,9 +250,54 @@ class Notebook(object):
 		#~ '''FIXME'''
 		#~ pass # TODO search code
 
+	def resolve_file(file, page):
+		'''Resolves a file or directory path relative to a page and returns.
+
+		File urls and paths that start with '~/' or '~user/' are considered
+		absolute paths and are returned unmodified.
+
+		In case the file path starts with '/' the the path is taken relative
+		to the document root of the notebook is used. This can be the dir
+		where pages are stored, or some other dir.
+
+		Other paths are considered attachments and are resolved relative
+		to the page.
+		'''
+		# TODO security argument for www interface
+		#	- turn everything outside notebook into file:// urls
+		#	- do not leak info on existence of files etc.
+		# TODO should we handle smb:// URLs here ?
+
+		if file.startswith('~') or file.startswith('file://'):
+			return file
+		elif file.startswith('/'):
+			pass # TODO get_document_dir
+		else:
+			filepath = [p for p in path.split('/') if len(p)]
+			pagepath = page.name.split(':')
+			filename = filepath.pop()
+			for part in filepath[:]:
+				if part == '.':
+					filepath.pop(0)
+				elif part == '..':
+					# TODO if not pagepath -> document root ??
+					filepath.pop(0)
+					pagepath.pop(0)
+				else:
+					break
+			pagename = ':'+':'.join(pagepath, filepath)
+			if pagename == page.name:
+				store = page.store
+			else:
+				store = self.get_store(pagename)
+			dir = store.get_attachments_dir(pagename)
+			return dir.file(filename)
 
 class Page(object):
 	'''FIXME'''
+
+	# Page objects should never need to access self.store.notebook,
+	# they are purely intended as references to data in the store.
 
 	def __init__(self, name, store, source=None, format=None):
 		'''Construct Page object.
@@ -265,9 +313,6 @@ class Page(object):
 		self.format   = format
 		self._tree    = None
 
-	def __str__(self):
-		return self.name
-
 	def __repr__(self):
 		return '<%s: %>' % (self.__class__.__name__, self.name)
 
@@ -280,10 +325,6 @@ class Page(object):
 	def basename(self):
 		i = self.name.rfind(':') + 1
 		return self.name[i:]
-
-	def raise_set(self):
-		# TODO raise ro property
-		pass
 
 	def isempty(self):
 		'''Returns True if this page has no content'''
@@ -324,8 +365,8 @@ class Page(object):
 			return ''
 
 	def path(self):
-		'''Generator function for parent names
-		can be used for:
+		'''Generator function for parent namespaces
+		can be used like:
 
 			for namespace in page.path():
 				if namespace.page('foo').exists:
@@ -337,47 +378,25 @@ class Page(object):
 			namespace = path.join(':')
 			yield Namespace(namespace, self.store)
 
-	is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
-
-	def resolve_link(self, link, page=None):
-		'''FIXME'''
-		if is_interwiki_re.match(link):
-			# interwiki aliases, works as a pass through
-			l = self.store.notebook.lookup_interwiki(link)
-			if not l is None:
-				link = l
-
-		if is_url_re.match(link):
-			# URLs of any kind
-			proto = is_url_re[1]
-			if proto == 'file':
-				link = self.store.resolve_file(link, page)
-			return (proto, link)
-		elif is_email_re.match(link):
-			# email adresses and mailto: URIs
-			if not link.startswith('mailto:'):
-				link = 'mailto:'+link
-			return ('mailto', link)
-		elif is_intwerwiki_re.match(link):
-			# special type in interwiki syntax, e.g. man?ls(1)
-			return (is_intwerwiki_re[1], is_intwerwiki_re[2])
-		elif link.find('/') >= 0:
-			# if it matches a '/' it must be a file path
-			link = self.store.resolve_file(link, page)
-			return ('file', link)
-		else:
-			# if nothing else matches, must be a page name
-			link = self.store.resolve_name(link, namespace=page.namespace)
-			return ('page', link)
-
 
 class Namespace(object):
-	'''Iterable object for namespaces'''
+	'''Iterable object for namespaces, which functions as a wrapper for the
+	result of store.list_pages(). The advantage being that list_pages()
+	does not actually is called untill you start iterating the namespace
+	object, which prevents a lot of objects to be created prematurely.
+	By setting a Namespace object or not the store tells users of the Page
+	object whether the page has children or not, but testing this property
+	does not necesitate actually constructing objects, this is delayed untill
+	iteration.
+	'''
 
 	def __init__(self, namespace, store):
 		'''Constructor needs a namespace and a store object'''
 		self.name = namespace
 		self.store = store
+
+	def __repr__(self):
+		return '<%s: %>' % (self.__class__.__name__, self.name)
 
 	def __iter__(self):
 		'''Calls the store.listpages generator function'''

@@ -8,6 +8,7 @@ import re
 
 from zim.fs import *
 from zim.formats import *
+from zim.utils import is_url_re, is_email_re, is_path_re, is_interwiki_re
 
 info = {
 	'name':  'Wiki text',
@@ -140,9 +141,12 @@ class Parser(ParserClass):
 				text = link
 			if len(link) == 0: # [[|link]] bug
 					link = text
-			#if email_re.match(link) and not link.startswith('mailto:'):
-			#		link = 'mailto:'+link
-			return ('link', {'href':link}, text)
+			if is_url_re.match(link): type = is_url_re[1]
+			elif is_email_re.match(link): type = 'mailto'
+			elif is_path_re.match(link): type = 'file'
+			else: type = 'page'
+			# TODO how about interwiki ?
+			return ('link', {'type':type, 'href':link}, text)
 
 		list = self.walk_list(list, parser_re['link'], parse_link)
 

@@ -4,14 +4,16 @@
 
 '''Test cases for the zim.fs module.'''
 
-import unittest
+import tests
+
 import os
 
+import tests
 from zim import fs
 from zim.fs import *
 
 
-class TestFS(unittest.TestCase):
+class TestFS(tests.TestCase):
 
 	def testPath(self):
 		'''Test Path constructor'''
@@ -33,18 +35,23 @@ class TestFS(unittest.TestCase):
 
 	def testFile(self):
 		'''Test File object'''
-		file = File('tmp/foo/bar/baz.txt')
+		tmpdir = tests.create_tmp_dir('fs_testFile')
+		file = File(tmpdir+'/foo/bar/baz.txt')
 		assert not file.exists()
 		file.touch()
-		self.assertTrue(os.path.isfile('./tmp/foo/bar/baz.txt'))
+		self.assertTrue(os.path.isfile(tmpdir+'/foo/bar/baz.txt'))
+		File(tmpdir+'/anotherfile.txt').touch()
 		file.cleanup()
-		self.assertFalse(os.path.isfile('./tmp/foo/bar/baz.txt'))
-		self.assertFalse(os.path.isdir('./tmp/foo'))
+		self.assertTrue(os.path.isfile(tmpdir+'/anotherfile.txt'))
+		self.assertTrue(os.path.isdir(tmpdir))
+		self.assertFalse(os.path.isfile(tmpdir+'/foo/bar/baz.txt'))
+		self.assertFalse(os.path.isdir(tmpdir+'/foo'))
 		# TODO: more test here
 
 	def testDir(self):
 		'''Test Dir object'''
-		dir = Dir('tmp/foo/bar')
+		tmpdir = tests.create_tmp_dir('fs_testDir')
+		dir = Dir(tmpdir+'/foo/bar')
 		assert not dir.exists()
 		# TODO: real test here
 		# TODO - test file(), + test exception

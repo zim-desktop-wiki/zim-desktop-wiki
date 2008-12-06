@@ -185,26 +185,6 @@ class GtkApplication(Application, Component):
 		# TODO load history and set intial page
 		self.open_page_home()
 
-	def open_link(self, link):
-		'''Open either a page, file, dir or url. The link can be either a
-		string or a dict with lin kattribute (as used in the parse tree).
-		'''
-		if isinstance(link, dict):
-			link = link['href']
-			self.debug('LINK CLICKED: %s (dict)' % link)
-		else:
-			self.debug('LINK CLICKED: %s' % link)
-
-		if is_url_re.match(link):
-			print 'TODO: handler for urls'
-		elif is_email_re.match(link):
-			print 'TODO: handler for email'
-		elif is_path_re.match(link):
-			print 'TODO: handler for file paths'
-		else: # must be a page then
-			name = self.notebook.resolve_name(link, self.page.namespace)
-			self.open_page(name)
-
 	def open_page(self, page=None):
 		'''Emit the open-page signal. The argument 'page' can either be a page
 		object or an absolute page name. If 'page' is None a dialog is shown
@@ -333,8 +313,8 @@ class GtkApplication(Application, Component):
 		self.show_help(':Bugs')
 
 	def show_about(self):
-		gtk.about_dialog_set_url_hook(lambda d, l: self.open_link(l))
-		gtk.about_dialog_set_email_hook(lambda d, l: self.open_link(l))
+		gtk.about_dialog_set_url_hook(lambda d, l: self.open_url(l))
+		gtk.about_dialog_set_email_hook(lambda d, l: self.open_url(l))
 		dialog = gtk.AboutDialog()
 		try: # since gtk 2.12
 			dialog.set_program_name('Zim')

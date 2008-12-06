@@ -385,4 +385,19 @@ class PageView(gtk.VBox, Component):
 		pass # TODO set statusbar
 
 	def do_link_clicked(self, link):
-		self.app.open_link(link)
+		'''Handler for the link-clicked signal'''
+		assert isinstance(link, dict)
+		self.debug('Link clinked: %(type)s: %(href)s' % link)
+
+		if link['type'] == 'page':
+			name = self.app.notebook.resolve_name(
+				link['href'], self.app.page.namespace)
+			self.app.open_page(name)
+		elif link['type'] == 'file':
+			path = self.app.notebook.resolve_file(
+				link['href'], self.app.page)
+			print 'TODO: open_file(path)'
+			#~ self.app.open_file(path)
+		else:
+			print 'TODO: open_url(url)'
+

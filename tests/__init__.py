@@ -4,6 +4,8 @@
 
 '''Zim test suite'''
 
+import os
+import shutil
 import unittest
 import codecs
 
@@ -17,6 +19,19 @@ __all__ = [
 __unittest = 1 # needed to get stack trace OK for class TestCase
 
 
+def create_tmp_dir(name):
+	'''Returns a path to a tmp dir for tests to store dump data.
+	The dir is removed and recreated empty every time this function
+	is called.
+	'''
+	dir = os.path.join('tests', 'tmp', name)
+	if os.path.exists(dir):
+		shutil.rmtree(dir)
+	assert not os.path.exists(dir) # make real sure
+	os.makedirs(dir)
+	assert os.path.exists(dir) # make real sure
+	return dir
+
 def get_notebook_data(format):
 	'''Generator function for test data'''
 	assert format == 'wiki' # No other formats available for now
@@ -28,36 +43,48 @@ def get_notebook_data(format):
 		if line.isspace(): break
 		manifest.append(line.strip())
 
-	i = 0
-	def check_manifest(name):
-		print "%i: %s\n" % (i, name)
-		assert manifest[i] == name
-		i += 1
-
 	pagename = None
 	buffer = u''
+	i = -1
 	for line in file:
 		if line.startswith('%%%%'):
 			# new page start, yield previous page
 			if not pagename is None:
 				yield (pagename, buffer)
 			pagename = line.strip('% \n')
-			#~ check_manifest(pagename)
+			i += 1
+			assert manifest[i] == pagename, \
+				'got page %s, expected %s' % (pagename, manifest[i])
 			buffer = u''
 		else:
 			buffer += line
 	yield (pagename, buffer)
 
 
-def	get_test_notebook(format='wiki'):
+def get_test_notebook(format='wiki'):
 	'''Returns a notebook with a memory store and some test data'''
 	from zim.notebook import Notebook
 	notebook = Notebook()
 	store = notebook.add_store('', 'memory')
+	manifest = []
 	for name, text in get_notebook_data(format):
+			manifest.append(name)
 			store._set_node(name, text)
+	notebook.testdata_manifest = _expand_manifest(manifest)
 	return notebook
 
+def _expand_manifest(names):
+	'''Build a set of all pages names and all namespaces that need to
+	exist to host those page names.
+	'''
+	manifest = set()
+	for name in names:
+		manifest.add(name)
+		while name.rfind(':') > 0:
+			i = name.rfind(':')
+			name = name[:i]
+			manifest.add(name)
+	return manifest
 
 def get_test_page(name=':Foo'):
 	'''FIXME'''

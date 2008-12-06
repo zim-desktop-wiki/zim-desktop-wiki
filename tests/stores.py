@@ -4,21 +4,18 @@
 
 '''Test cases for basic stores modules.'''
 
-import unittest
-import shutil
-
 import tests
+
 from zim.fs import *
 from zim.notebook import Notebook
 import zim.stores
 
 
-class TestStoresMemory(unittest.TestCase):
+class TestStoresMemory(tests.TestCase):
 	'''Test the store.memory module'''
 
-	def __init__(self, *args, **opts):
+	def setUp(self):
 		'''Initialise a fresh notebook'''
-		unittest.TestCase.__init__(self, *args, **opts)
 		store = zim.stores.get_store('memory')
 		self.store = store.Store(namespace='', notebook=Notebook())
 		self.index = set()
@@ -75,22 +72,21 @@ class TestStoresMemory(unittest.TestCase):
 			#~ print 'RESULT %s' % r
 			self.assertEqual(r, name)
 
-	def testResolveFile(self):
-		'''Test store.resolve_file()'''
+	#~ def testResolveFile(self):
+		#~ '''Test store.resolve_file()'''
 
-
+	# TODO test getting a non-existing page
+	# TODO test if children uses namespace objects
 	# TODO test move, delete, read, write
 
 
 class TestFiles(TestStoresMemory):
 	'''Test the store.files module'''
 
-	def __init__(self, *args, **opts):
-		TestStoresMemory.__init__(self, *args, **opts)
-		self.dir = Dir(['tmp', 'store-files'])
-		if self.dir.exists():
-			shutil.rmtree(self.dir.path)
-			assert not self.dir.exists(), 'Data is cleaned up'
+	def setUp(self):
+		TestStoresMemory.setUp(self)
+		tmpdir = tests.create_tmp_dir('stores_TestFiles')
+		self.dir = Dir([tmpdir, 'store-files'])
 		self.mem = self.store
 		store = zim.stores.get_store('files')
 		self.store = store.Store(

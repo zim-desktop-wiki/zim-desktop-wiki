@@ -122,9 +122,11 @@ class Re(object):
 		return self.m
 
 # Some often used regexes
-is_url_re   = Re('^(\w[\w\+\-\.]+)://')
+is_url_re = Re('^(\w[\w\+\-\.]+)://')
 is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')
-is_path_re  = Re('/') # FIXME - any better check ?
+is_path_re = Re('.*/') # FIXME - any better check ?
+is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
+
 
 class ListDict(dict):
 	'''Class that behaves like a dict but keeps items in same order.

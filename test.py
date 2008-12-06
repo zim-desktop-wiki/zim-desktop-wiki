@@ -6,6 +6,7 @@
 
 import os
 import sys
+import shutil
 import unittest
 import getopt
 
@@ -16,6 +17,7 @@ import tests
 pyfiles = []
 for dir, dirs, files in os.walk('zim'):
 	pyfiles.extend([dir+'/'+f for f in files if f.endswith('.py')])
+pyfiles.sort()
 
 
 def main(argv=None):
@@ -23,6 +25,7 @@ def main(argv=None):
 	if argv is None:
 		argv = sys.argv
 
+	# parse options
 	coverage = None
 	opts, args = getopt.gnu_getopt(argv[1:], 'h', ['help', 'coverage'])
 	for o, a in opts:
@@ -75,9 +78,9 @@ On Ubuntu or Debian install package 'python-coverage'.
 
 
 def report_coverage(coverage):
-	# print summary
 	print ''
-	coverage.report(pyfiles, show_missing=False)
+	print 'Writing detailed coverage reports...'
+	#~ coverage.report(pyfiles, show_missing=False)
 
 	# Detailed report in html
 	if os.path.exists('coverage/'):
@@ -155,8 +158,8 @@ def report_coverage(coverage):
 
 	total_stat = reduce(int.__add__, [r[2] for r in index])
 	total_exec = reduce(int.__add__, [r[3] for r in index])
-	total_perc = float(total_exec) / total_stat * 100
-	if total_perc > 99.7: type = 'good'
+	total_perc = int( float(total_exec) / total_stat * 100 )
+	if total_perc == 100: type = 'good'
 	elif total_perc > 80: type = 'close'
 	else: type = 'bad'
 	html.write('<tr><td><b>Total</b></td>'
@@ -166,9 +169,9 @@ def report_coverage(coverage):
 
 	for report in index:
 		pyfile, htmlfile, statements, executed = report
-		if statements: percentage = float(executed) / statements * 100
+		if statements: percentage = int( float(executed) / statements * 100 )
 		else: percentage = 100
-		if percentage > 99.7: type = 'good'
+		if percentage == 100: type = 'good'
 		elif percentage > 80: type = 'close'
 		else: type = 'bad'
 		html.write('<tr><td><a href="%s">%s</a></td>'
@@ -181,7 +184,7 @@ def report_coverage(coverage):
 </html>
 ''')
 
-	print '\nDetailed coverage report can be found in ./coverage/'
+	print '\nDetailed coverage reports can be found in ./coverage/'
 
 
 class TestCompileAll(unittest.TestCase):

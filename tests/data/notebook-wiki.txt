@@ -4,6 +4,17 @@
 :TODOList:bar
 :TODOList:foo
 
+%%%% :Test:foo %%%%
+====== Foo ======
+
+bar baz
+%%%% :Test:foo:bar %%%%
+= FOO =
+
+[[wIKi]]
+
+•• Search Me ••
+
 %%%% :Test:wiki %%%%
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
@@ -97,17 +108,13 @@ fsdfds
 123 test
 
 sdffdsfds
-%%%% :Test:foo:bar %%%%
-= FOO =
 
-[[wIKi]]
+%%%% :TODOList:bar %%%%
+TODO: test 123 test !!
 
-•• Search Me ••
-
-%%%% :Test:foo %%%%
-====== Foo ======
-
-bar baz
+* foo ! - TODO
+* bar ! - TODO
+* baz - TODO
 
 %%%% :TODOList:foo %%%%
 TODO: fix 1 !!!
@@ -115,9 +122,4 @@ TODO: fix 1 !!!
 TODO:
 * fix 2 24/3/08 !!
 * fix 3 !
-%%%% :TODOList:bar %%%%
-TODO: test 123 test !!
 
-* foo ! - TODO
-* bar ! - TODO
-* baz - TODO

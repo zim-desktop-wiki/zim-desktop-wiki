@@ -2,6 +2,8 @@
 ====== Classes ======
 
 Each class has inline documentation, use pydoc to view it.
+The tree below is only a summary, run "dev/class_tree.py" to see
+the full tree.
 
 zim					# Command line parsing and application class
 |-- Application()
@@ -40,8 +42,10 @@ zim					# Command line parsing and application class
 |   `-- Buffer(StringIO)
 `-- utils			# Coding utilities
 
-Both gui and www inherit from the application class defined in zim.
-This class takes care of loading configuration files, plugins etc.
+Both gtk and www interfaces inherit from the application class defined
+in zim. This class takes care of loading configuration files, plugins etc.
+The objects that make up the interface can inherit from Component. This
+class provides some common functions like logging.
 
 The Notebook object takes care of accessing and storing pages and
 other data in the notebook. Each notebook can consist of one or more
@@ -61,13 +65,16 @@ when only running the server.
 
 See the python style guide for best practices. Some items to keep in mind:
 
-* Have a look at zim.utils for common code snippets
-* All signal handlers have a method name starting with "do_"
+* GUI classes are only allowed to construct widgets and wire signals.
+  Any actual manipulation of pages, notebooks etc. should go elsewhere.
+* Signal handlers have a method name starting with "do_"
 * Use "assert" for checks that could be removed when code is stable
 * Do not rely on __doc__ on run time, this data could be optimized away
+* Have a look at zim.utils for common code snippets
 
 Other general guidelines:
-* Writing test cases is good, full test coverage is better - try ./test.py --cover
+* Writing test cases is good, full test coverage is better.
+  Run "./test.py --cover" to get a coverage report.
 * Wait with loading modules and constructing widgets untill they are
   really needed, this should keep startup speed reasonable
 * Try to do slow operations in the gui using the idle event, e.g loading
@@ -98,11 +105,7 @@ Other general guidelines:
 * For S5 template need to split body on H1 or HR
 	* FOREACH slide IN page.sections
 	* want to be able to cleanup headings per slide...
-* Base class for both gui and www which takes care of config, plugins etc.
-	* Also use this in zim.py when exporting etc.
-	* Have objects for config sets like preferences and notebook state
-	* Does a method like "data_dirs" also belong here ? No - control through env
-* Event framework, both for application and notebook - needed for plugins
+* More events, both for application and notebook - needed for plugins
 * Check client hostname and add a --public option (default localhost only)
 * Implement editing from www (default is read-only)
 * Search interface ?

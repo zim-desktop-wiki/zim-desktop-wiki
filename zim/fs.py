@@ -77,13 +77,13 @@ class UnixPath(object):
 			path, part = os.path.split(path)
 			if part	:
 				parts.insert(0, part)
-			if path == '/': # FIXME: posix specific
+			if path == '/':
 				break
 		return parts
 
 
 class WindowsPath(UnixPath):
-    
+
     @property
     def uri(self):
         '''File uri property with win32 logic'''

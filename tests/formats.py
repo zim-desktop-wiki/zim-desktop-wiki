@@ -162,7 +162,7 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 	Indented and all: //foo//
 </pre>
 <p>IMAGE: <img src="../my-image.png">Foo Bar</img>
-LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
+LINKS: <link href=":foo:bar" type="page">:foo:bar</link> <link href="./file.png" type="file">./file.png</link> <link href="file:///etc/passwd" type="file">file:///etc/passwd</link>
 </p>
 <p>	Some indented
 	paragraphs go here ...

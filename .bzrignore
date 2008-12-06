@@ -1,7 +1,7 @@
-./build
-./dist
-./tmp
-./.coverage
+build
+dist
+tmp*
+.coverage
 *,cover
 config
 *.bak
@@ -9,3 +9,4 @@ zim/_version.py
 MANIFEST
 **/.zim
 coverage
+tests/tmp

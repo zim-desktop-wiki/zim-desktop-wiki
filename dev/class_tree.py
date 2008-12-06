@@ -1,66 +1,76 @@
 
 import os
 
-modules = {}
+class TextTree(object):
 
-def find_classes(file):
-	classes = []
-	if file.endswith('__init__.py'):
-		module = file[:-12].replace('/', '.')
-	else:
-		module = file[:-3].replace('/', '.')
-	for line in open(file):
-		line = line.strip()
-		if line.startswith('class') and line.endswith(':'):
-			classes.append(line[5:-1].strip())
-	modules[module] = classes
+	name = '<tree>'
 
-for dir, dirs, files in os.walk('zim'):
-	if '/_' in dir: 
-		continue # skip zim/_lib 
-	files = [f for f in files if f.endswith('.py')
-			and (f == '__init__.py' or not f.startswith('_'))]
-	for file in files:
-		find_classes(dir+'/'+file)
+	def tostring(self):
+		strings = self.tostrings()
+		return ''.join(strings)
 
-tree = {}
-for module in modules.keys():
-	path = module.split('.')
-	branch = tree
-	for part in path:
-		if part not in branch:
-			branch[part] = {}
-		branch = branch[part]
+	def tostrings(self):
+		strings = [self.name + '\n']
 
-def print_module(module, branch, prefix):
-	children = branch.keys()
-	children.sort()
-	if module in modules:
-		classes = modules[module]
-		for i in range(len(classes)-1):
-			print prefix+'|-- %s' % classes[i]
-		if children:
-			print prefix+'|-- %s' % classes[-1]
-		else:
-			print prefix+'`-- %s' % classes[-1]
-	if children:
-		for i in range(len(children)-1):
-			child = children[i]
-			print prefix+'|-- %s' % child
-			print_module(
-				module+'.'+child, 
-				branch[child], 
-				prefix+'|   '
-			)
-		child = children[-1]
-		print prefix+'`-- %s' % child
-		print_module(
-			module+'.'+child, 
-			branch[child], 
-			prefix+'    '
-		)
+		def add_item(item, ps1, ps2):
+			if isinstance(item, basestring):
+				strings.append(ps1 + item + '\n')
+			else:
+				substrings = item.tostrings()
+				strings.append(ps1 + substrings.pop(0))
+				strings.extend([ps2 + s for s in substrings])
 
-for module in tree.keys():
-	print module
-	print_module(module, tree[module], '')
+		items = self.items()
+		for i in range(len(items)-1):
+			add_item(items[i], '|-- ', '|   ')
+		add_item(items[-1], '`-- ', '    ')
 
+		return strings
+
+	def items(self):
+		raise NotImplementedError
+
+
+class ModuleFile(TextTree):
+
+	def __init__(self, file):
+		assert os.path.isfile(file), 'Could not find file: %s' % file
+		self.file = file
+		self.name = os.path.basename(file)[:-3]
+
+		self.classes = []
+		for line in open(self.file):
+			line = line.strip()
+			if line.startswith('class') and line.endswith(':'):
+				self.classes.append(line[5:-1].strip())
+
+	def items(self):
+		return self.classes[:]
+
+
+class ModuleDir(ModuleFile):
+
+	def __init__(self, dir):
+		assert os.path.isdir(dir), 'Could not find dir: %s' % dir
+		ModuleFile.__init__(self, dir+'/__init__.py')
+		self.dir = dir
+		self.name = os.path.basename(dir)
+		self.modules = []
+
+		paths = [dir+'/'+p for p in os.listdir(dir) if not p.startswith('_')]
+		for file in [f for f in paths if f.endswith('.py')]:
+			self.modules.append(ModuleFile(file))
+		for subdir in [d for d in paths if os.path.isdir(d)]:
+			self.modules.append(ModuleDir(subdir))
+
+		self.modules.sort(key=lambda m: m.name)
+
+	def items(self):
+		items = ModuleFile.items(self)
+		items.extend(self.modules)
+		return items
+
+
+if __name__ == '__main__':
+	tree = ModuleDir('./zim')
+	print tree.tostring()
