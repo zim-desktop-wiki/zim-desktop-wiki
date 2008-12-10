@@ -65,6 +65,13 @@ class UnixPath(object):
 		'''File uri property'''
 		return 'file://'+self.path
 
+	@property
+	def dir(self):
+		'''FIXME'''
+		path = os.path.dirname(self.path)
+		# TODO make this persistent - weakref ?
+		return Dir(path)
+
 	def exists(self):
 		'''Abstract method'''
 		raise NotImplementedError
@@ -168,14 +175,23 @@ class File(Path):
 		Opening a non-exisiting file for writing will cause the whole path
 		to this file to be created on the fly.
 		'''
-		if not self.exists():
+		if not self.exists() and mode == 'w':
 			self.dir().touch()
 		return codecs.open(self.path, mode=mode, encoding='utf8')
 
-	def dir(self):
-		'''FIXME'''
-		path = os.path.dirname(self.path)
-		return Dir(path)
+	def read(self):
+		if not self.exists():
+			return ''
+		else:
+			file = self.open('r')
+			return file.read()
+
+	def readlines(self):
+		if not self.exists():
+			return []
+		else:
+			file = self.open('r')
+			return file.readlines()
 
 	def touch(self):
 		'''FIXME'''

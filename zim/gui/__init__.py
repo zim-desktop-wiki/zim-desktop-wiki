@@ -10,10 +10,11 @@ contains most action handlers and the main window class.
 
 import gobject
 import gtk
+import gtk.keysyms
 
 import zim
 from zim import Application, Component
-from zim.utils import data_file, config_file, is_url_re, is_email_re, is_path_re
+from zim.utils import data_file, config_file
 from zim.gui import pageindex, pageview
 
 
@@ -88,7 +89,50 @@ ui_radio_actions = (
 )
 
 
-class GtkApplication(Application, Component):
+class GtkComponent(Component):
+	'''FIXME'''
+
+	@property
+	def actiongroup(self):
+		if not hasattr(self, '_actiongroup') or self._actiongroup is None:
+			name = self.__class__.__name__
+			self._actiongroup = gtk.ActionGroup(name)
+			self.app.mainwindow.uimanager.insert_action_group(self._actiongroup, 0)
+		return self._actiongroup
+
+	def add_actions(self, actions):
+		'''Wrapper for gtk.ActionGroup.add_actions(actions)'''
+		self.actiongroup.add_actions(actions)
+		self._connect_actions(actions)
+
+	def add_toggle_actions(self, actions):
+		'''Wrapper for gtk.ActionGroup.add_toggle_actions(actions)'''
+		self.actiongroup.add_toggle_actions(actions)
+		self._connect_actions(actions)
+
+	def add_radio_actions(self, actions):
+		'''Wrapper for gtk.ActionGroup.add_radio_actions(actions)'''
+		self.actiongroup.add_radio_actions(actions)
+		self._connect_actions(actions)
+
+	def _connect_actions(self, actions):
+		for name in [a[0] for a in actions if not a[0].endswith('_menu')]:
+			action = self._actiongroup.get_action(name)
+			assert hasattr(self, name), 'No method defined for action %s' % name
+			method = getattr(self.__class__, name)
+			action.connect('activate', lambda a: self.debug('Action: %s' % name)) # FIXME only connect when debugging in effect
+			action.connect_object('activate', method, self)
+
+	def add_ui(self, xml):
+		'''Wrapper for gtk.UIManager.add_ui_from_string(xml)'''
+		self.app.mainwindow.uimanager.add_ui_from_string(xml)
+
+	def disconnect(self):
+		'''Removes all actions from the application'''
+		# TODO remove action group
+		# TODO remove ui
+
+class GtkApplication(Application, GtkComponent):
 	'''Application object for the zim GUI. This object wraps a single notebook
 	and provides actions to manipulate and access this notebook.
 	'''
@@ -107,6 +151,11 @@ class GtkApplication(Application, Component):
 		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
 
 		self.mainwindow = MainWindow(self)
+		self.add_actions(ui_actions)
+		self.add_toggle_actions(ui_toggle_actions)
+		self.add_radio_actions(ui_radio_actions)
+		self.add_ui(data_file('menubar.xml').read())
+
 		self.load_config()
 		self.load_plugins()
 
@@ -116,26 +165,6 @@ class GtkApplication(Application, Component):
 		if not page is None:
 			assert notebook, 'Can not open page without notebook'
 			self.open_page(page)
-
-	def dispatch_action(self, action, object=None):
-		'''Default handler for ui actions. Argument should be a gtk.Action
-		object. Will call the like named method on this object.
-		'''
-		assert isinstance(action, gtk.Action)
-		if object is None:
-			object = self
-		# FIXME FIXME get rid of the object attribute
-		action = action.get_property('name')
-		if action.endswith('_menu'):
-			pass # these occur when opening a menu, ignore silently
-		else:
-			self.debug('ACTION: ', action)
-			try:
-				method = getattr(object, action)
-			except AttributeError:
-				self.debug('BUG: No handler defined for action %s' % action)
-			else:
-				method()
 
 	def main(self):
 		'''Wrapper for gtk.main(); does not return untill program has ended.'''
@@ -147,6 +176,7 @@ class GtkApplication(Application, Component):
 				return
 
 		self.mainwindow.show_all()
+		self.mainwindow.pageview.grab_focus()
 		gtk.main()
 
 	def close(self):
@@ -156,6 +186,20 @@ class GtkApplication(Application, Component):
 	def quit(self):
 		self.mainwindow.destroy()
 		gtk.main_quit()
+
+	def toggle_toolbar(self): self.mainwindow.toggle_toolbar()
+
+	def toggle_statusbar(self): self.mainwindow.toggle_statusbar()
+
+	def toggle_sidepane(self): self.mainwindow.toggle_sidepane()
+
+	def set_pathbar_recent(self): pass
+
+	def set_pathbar_history(self): pass
+
+	def set_pathbar_namespace(self): pass
+
+	def set_pathbar_hidden(self): pass
 
 	def open_notebook(self, notebook=None):
 		'''Open a new notebook. If this is the first notebook the open-notebook
@@ -352,7 +396,7 @@ class MainWindow(gtk.Window, Component):
 		# when the user tries to close it. The action for close should either
 		# hide or destroy the window.
 		def do_delete_event(*a):
-			self.debug('ACTION: close (delete-event)')
+			self.debug('Action: close (delete-event)')
 			self.app.close()
 			return True
 		self.connect('delete-event', do_delete_event)
@@ -364,17 +408,14 @@ class MainWindow(gtk.Window, Component):
 		# setup menubar and toolbar
 		self.uimanager = gtk.UIManager()
 		self.add_accel_group(self.uimanager.get_accel_group())
-
-		self.actions = gtk.ActionGroup('Foo') # FIXME
-		self.actions.add_actions(ui_actions)
-		self.actions.add_toggle_actions(ui_toggle_actions)
-		self.actions.add_radio_actions(ui_radio_actions)
-		self.uimanager.insert_action_group(self.actions, 0)
-
-		for action in self.actions.list_actions():
-				action.connect('activate', self.app.dispatch_action)
-
-		self.uimanager.add_ui_from_file(data_file('menubar.xml').path)
+		self.uimanager.add_ui_from_string('''
+		<ui>
+			<menubar name="menubar">
+			</menubar>
+			<toolbar name="toolbar">
+			</toolbar>
+		</ui>
+		''')
 		menubar = self.uimanager.get_widget('/menubar')
 		toolbar = self.uimanager.get_widget('/toolbar')
 		vbox.pack_start(menubar, False)
@@ -387,8 +428,9 @@ class MainWindow(gtk.Window, Component):
 		self.pageindex = pageindex.PageIndex(self.app)
 		hpane.add1(self.pageindex)
 
-		self.pageindex.connect('page-activated',
-			lambda index, pagename: self.app.open_page(pagename) )
+		self.pageindex.connect('key-press-event',
+			lambda o, event: event.keyval == gtk.keysyms.Escape
+				and self.debug('TODO: hide side pane'))
 
 		vbox2 = gtk.VBox()
 		hpane.add2(vbox2)
@@ -433,8 +475,32 @@ class MainWindow(gtk.Window, Component):
 		#~ statusbar2.set_size_request(25, 10)
 		#~ hbox.pack_end(statusbar2, False)
 
+	def toggle_toolbar(self):
+		pass
+
+	def toggle_statusbar(self):
+		pass
+
+	def toggle_sidepane(self):
+		if self.pageindex.get_property('visible'):
+			self.hide_sidepane()
+		else:
+			self.show_sidepane()
+
+	def show_sidepane(self):
+		self.pageindex.show_all()
+		# TODO restore pane position
+		self.pageindex.grab_focus()
+		# TODO action_show_active('toggle_sidepane', True)
+
+	def hide_sidepane(self):
+		# TODO save pane position
+		self.pageindex.hide_all()
+		self.pageview.grab_focus()
+		# TODO action_show_active('toggle_sidepane', False)
+
 	def do_open_notebook(self, app, notebook):
-		self.pageindex.set_pages( notebook.get_root() )
+		self.pageindex.treeview.set_pages( notebook.get_root() )
 
 	def do_open_page(self, app, page):
 		'''Signal handler for open-page, updates the pageview'''

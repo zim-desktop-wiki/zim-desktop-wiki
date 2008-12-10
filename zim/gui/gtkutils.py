@@ -41,3 +41,32 @@ class BrowserTreeView(gtk.TreeView):
 		self.get_selection().set_mode(gtk.SELECTION_BROWSE)
 
 	# TODO actual implement single click behavior
+
+	def do_key_press_event(self, event):
+
+		if event.keyval == gtk.keysyms.Left:
+			model, iter = self.get_selection().get_selected()
+			if not iter is None:
+				path = model.get_path(iter)
+				self.collapse_row(path)
+			return True
+		elif event.keyval == gtk.keysyms.Right:
+			model, iter = self.get_selection().get_selected()
+			if not iter is None:
+				path = model.get_path(iter)
+				self.expand_row(path, 0)
+			return True
+
+		try:
+			key = chr(event.keyval)
+		except ValueError:
+			return False
+
+		if key == '\\':
+			self.collapse_all()
+			return True
+		elif key == '*':
+			self.expand_all()
+			return True
+		else:
+			return False

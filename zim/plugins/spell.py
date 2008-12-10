@@ -5,9 +5,37 @@
 '''FIXME'''
 
 from zim.plugins import PluginClass
+from zim.gui import GtkComponent
 
+try:
+	import gtkspell
+except:
+	gtkspell = None
 
-class SpellPlugin(PluginClass):
+ui = '''
+<ui>
+	<menubar name='menubar'>
+		<menu action='tools_menu'>
+			<placeholder name='page_tools'>
+				<menuitem action='toggle_spellcheck'/>
+			</placeholder>
+		</menu>
+	</menubar>
+	<toolbar name='toolbar'>
+		<placeholder name='tools'>
+			<toolitem action='toggle_spellcheck'/>
+		</placeholder>
+	</toolbar>
+</ui>
+'''
+
+ui_actions = (
+	# name, stock id, label, accelerator, tooltip
+	('toggle_spellcheck', 'gtk-spell-check', 'Check _spelling', 'F7', 'Spell check'),
+
+)
+
+class SpellPlugin(PluginClass, GtkComponent):
 	'''FIXME'''
 
 	info = {
@@ -15,3 +43,51 @@ class SpellPlugin(PluginClass):
 		'author': 'Jaap Karssenberg <pardus@cpan.org>',
 		'description': 'Adds spell checking support',
 	}
+
+	def __init__(self, app):
+		PluginClass.__init__(self, app)
+		self.spell = None
+		self.enabled = False
+		if app.ui_type == 'gtk':
+			self.add_actions(ui_actions)
+			self.add_ui(ui)
+			# TODO use setting to control behavior
+			self.app.connect_after('open-page', self.do_open_page)
+
+	@classmethod
+	def check(cls):
+		if gtkspell is None:
+			return False, 'Could not load gtkspell'
+		else:
+			return True
+
+	def toggle_spellcheck(self):
+		if not self.enabled:
+			self.enable_spellcheck()
+		else:
+			self.disable_spellcheck()
+
+	def enable_spellcheck(self):
+		# TODO check language in page / notebook / default
+		self.enabled = True
+		if self.spell is None:
+			textview = self.app.mainwindow.pageview.view
+			self.spell = gtkspell.Spell(textview)
+			textview.gtkspell = self.spell # used by hardcoded hook
+		# TODO action_show_active
+
+	def disable_spellcheck(self):
+		self.enabled = False
+		if not self.spell is None:
+			textview = self.app.mainwindow.pageview.view
+			textview.gtkspell = None
+			self.spell.detach()
+			self.spell = None
+		# TODO action_show_active
+
+	def do_open_page(self, app, page):
+		# Assume the old object is detached by hard coded
+		# hook in TextView, just attach a new one.
+		self.spell = None
+		if self.enabled:
+			self.enable_spellcheck()

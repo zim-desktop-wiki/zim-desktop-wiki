@@ -80,7 +80,7 @@ class Application(gobject.GObject, Component):
 
 	def load_plugins(self):
 		'''FIXME'''
-		plugins = ['linkmap'] # FIXME: get from config
+		plugins = ['spell', 'linkmap'] # FIXME: get from config
 		for plugin in plugins:
 			self.load_plugin(plugin)
 

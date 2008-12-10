@@ -76,7 +76,9 @@ class Store(StoreClass):
 		dir = self._get_dir(namespace)
 		pages = set() # collide files and dirs with same name
 		for file in dir.list():
-			if file.endswith('.txt'): # TODO: do not hard code extension
+			if file.startswith('.'):
+				continue # no hidden files or directories
+			elif file.endswith('.txt'): # TODO: do not hard code extension
 				pages.add(file[:-4])
 			elif os.path.isdir( os.path.join(dir.path, file) ):
 				pages.add(file)

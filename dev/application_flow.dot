@@ -1,4 +1,7 @@
 digraph g {
+	/* comment */
+	comment [ label="This graph shows the execution flow\nfrom application start to the main loop.\nFor completeness some of the commands\nthat can spawn a new instance are\nshown as well. For a running application\nall the work is done in the main loop." shape=note]
+
 	/* starting points */
 	main [ label="main()\nzim.py" shape = box]
 	cgibin [label = "zim.cgi" shape = box]
@@ -42,12 +45,11 @@ digraph g {
 
 	/* actions spawned by main loop */
 	gtkmain -> gtksignal [style = dotted]
-	gtksignal -> "dispatch_action()" [style = dotted]
-	"dispatch_action()" -> "open_notebook()" [style = dotted]
+	gtksignal -> "open_notebook()" [style = dotted]
 	"open_notebook()" -> main [style = dotted label ="--gui"]
-	"dispatch_action()" -> "start_server()" [style = dotted]
+	gtksignal -> "start_server()" [style = dotted]
 	"start_server()" -> main [style = dotted label ="--server --gui"]
-	"dispatch_action()" -> "show_help()" [style = dotted]
+	gtksignal -> "show_help()" [style = dotted]
 	"show_help()" -> main [style = dotted label ="--doc"]
 	wwwloop -> wwwserve [style = dotted]
 	gtkmain1 -> gtksignal1 [style = dotted]

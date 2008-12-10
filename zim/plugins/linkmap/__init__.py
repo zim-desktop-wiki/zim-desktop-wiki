@@ -6,38 +6,20 @@
 
 from zim.plugins import PluginClass
 
-ui = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='view_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='show_linkmap'/>
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
-
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('show_linkmap', None, 'Show Link Map', None, 'Show Link Map'),
-)
-
 class LinkMapPlugin(PluginClass):
 	'''FIXME'''
 
 	def __init__(self, app):
 		PluginClass.__init__(self, app)
 		if app.ui_type == 'gtk':
-			self.add_actions(ui_actions)
-			self.add_ui(ui)
-		# TODO similar for www ?
+			import gui
+			self.ui = gui.GtkLinkMap(self.app)
+		else:
+			self.ui = False
 
-	def show_linkmap(self):
-		from gui import LinkMapDialog
-		linkmap = LinkMap(self.app.notebook)
-		dialog = LinkMapDialog(linkmap)
-		dialog.show_all()
+	def disconnect(self):
+		if self.ui:
+			self.ui.disconnect
 
 class LinkMap(object):
 	'''FIXME'''

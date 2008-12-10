@@ -264,9 +264,18 @@ class TextView(gtk.TextView):
 		'''FIXME'''
 		gtk.TextView.__init__(self)
 		self.cursor = 'text'
+		self.gtkspell = None
 		self.set_left_margin(10)
 		self.set_right_margin(5)
 		self.set_wrap_mode(gtk.WRAP_WORD)
+
+	def set_buffer(self, buffer):
+		if not self.gtkspell is None:
+			# Hardcoded hook because usign signals here
+			# seems to introduce lag
+			self.gtkspell.detach()
+			self.gtkspell = None
+		gtk.TextView.set_buffer(self, buffer)
 
 	def do_motion_notify_event(self, event):
 		'''Event handler that triggers check_cursor_type()
@@ -372,11 +381,15 @@ class PageView(gtk.VBox, Component):
 		self.view.connect_object('link-clicked', PageView.do_link_enter, self)
 		self.view.connect_object('link-clicked', PageView.do_link_leave, self)
 
+	def grab_focus(self):
+		self.view.grab_focus()
+
 	def set_page(self, page):
 		tree = page.get_parsetree()
 		buffer = TextBuffer()
 		buffer.set_parsetree(tree)
 		self.view.set_buffer(buffer)
+		buffer.place_cursor(buffer.get_iter_at_offset(0)) # FIXME
 
 	def do_link_enter(self, link):
 		pass # TODO set statusbar
