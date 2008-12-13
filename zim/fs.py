@@ -176,7 +176,7 @@ class File(Path):
 		to this file to be created on the fly.
 		'''
 		if not self.exists() and mode == 'w':
-			self.dir().touch()
+			self.dir.touch()
 		return codecs.open(self.path, mode=mode, encoding='utf8')
 
 	def read(self):
@@ -205,7 +205,7 @@ class File(Path):
 	def cleanup(self):
 		'''FIXME'''
 		os.remove(self.path)
-		self.dir().cleanup()
+		self.dir.cleanup()
 
 
 

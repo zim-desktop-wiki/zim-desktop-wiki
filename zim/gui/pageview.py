@@ -4,12 +4,13 @@
 
 '''FIXME'''
 
-
+import logging
 import gobject
 import gtk
 import pango
 
-from zim import Component
+
+logger = logging.getLogger('zim.gui.pageview')
 
 
 class TextBuffer(gtk.TextBuffer):
@@ -364,7 +365,7 @@ class TextView(gtk.TextView):
 gobject.type_register(TextView)
 
 
-class PageView(gtk.VBox, Component):
+class PageView(gtk.VBox):
 	'''FIXME'''
 
 	def __init__(self, app):
@@ -400,7 +401,7 @@ class PageView(gtk.VBox, Component):
 	def do_link_clicked(self, link):
 		'''Handler for the link-clicked signal'''
 		assert isinstance(link, dict)
-		self.debug('Link clinked: %(type)s: %(href)s' % link)
+		logger.debug('Link clinked: %(type)s: %(href)s' % link)
 
 		if link['type'] == 'page':
 			name = self.app.notebook.resolve_name(

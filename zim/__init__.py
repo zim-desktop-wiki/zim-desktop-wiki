@@ -21,27 +21,15 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 '''
 
 import os
-
+import logging
 import gobject
-#import zim.plugins
 
 
-class Component(object):
-	'''FIXME'''
+logger = logging.getLogger('zim')
 
-	def __init__(self, app):
-		self.app = app
 
-	def debug(self, *msg):
-		msg = map(unicode, msg)
-		lines = ' '.join(msg).encode('utf8').strip().split('\n')
-		for line in lines:
-			print '# %i %s' % (self.app.pid, line.strip())
-
-	info = debug # TODO separate logging for verbose messages
-
-class Application(gobject.GObject, Component):
-	'''Application objects provide the interface to a single notebook.
+class Interface(gobject.GObject):
+	'''FIXME
 
 	Subclasses can prove a class attribute "ui_type" to tell plugins what
 	interface they support. This can be "gtk" or "html". If "ui_type" is None
@@ -55,25 +43,22 @@ class Application(gobject.GObject, Component):
 
 	ui_type = None
 
-	def __init__(self, executable='zim', verbose=False, debug=False):
+	def __init__(self, executable='zim'):
 		gobject.GObject.__init__(self)
-		self.app = self # make Component methods work
-		self.pid = os.getpid()
-		self.executable = executable
+		self.executable = executable # FIXME get rid of this parameter
 		self.notebook = None
 		self.plugins = []
 
-		if verbose or debug:
-			self.info('This is zim %s' % __version__)
-			try:
-				from zim._version import version_info
-				self.debug(
-					'branch: %(branch_nick)s\n'
-					'revision: %(revno)d %(revision_id)s\n'
-					'date: %(date)s\n'
-						% version_info )
-			except:
-				self.debug('No bzr version-info found')
+		logger.info('This is zim %s', __version__)
+		try:
+			from zim._version import version_info
+			logger.debug(
+				'branch: %(branch_nick)s\n'
+				'revision: %(revno)d %(revision_id)s\n'
+				'date: %(date)s\n',
+				version_info )
+		except ImportError:
+			logger.debug('No bzr version-info found')
 
 	def load_config(self):
 		'''FIXME'''
@@ -109,16 +94,16 @@ class Application(gobject.GObject, Component):
 		argv = list(argv)
 		if argv[0] == 'zim':
 			argv[0] = self.executable
-		self.debug('Spawn process: '+' '.join(['"%s"' % a for a in argv]))
+		logger.info('Spawn process: %s', ' '.join(['"%s"' % a for a in argv]))
 		try:
 			pid = os.spawnvp(os.P_NOWAIT, argv[0], argv)
 		except AttributeError:
 			# spawnvp is not available on windows
 			# TODO path lookup ?
 			pid = os.spawnv(os.P_NOWAIT, argv[0], argv)
-		self.debug('New process: %i' % pid)
+		logger.debug('New process: %i', pid)
 
 
 # Need to register classes defining gobject signals
-gobject.type_register(Application)
+gobject.type_register(Interface)
 

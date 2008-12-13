@@ -29,7 +29,7 @@ notebooks.
 import sys
 import os
 
-from zim import Application
+from zim import Interface
 
 from zim.fs import *
 
@@ -42,13 +42,13 @@ class Error(Exception):
 		self.msg = msg
 
 
-class WWWApplication(Application):
-	'''Object to handle the WWW interface for zim notebooks'''
+class WWWInterface(Interface):
+	'''Class to handle the WWW interface for zim notebooks'''
 
 	ui_type = 'html'
 
 	def __init__(self, notebook=None, template='Default', **opts):
-		Application.__init__(self, **opts)
+		Interface.__init__(self, **opts)
 		assert not notebook is None, 'Need to specify a notebook'
 		self.output = None
 		if isinstance(template, basestring):
@@ -188,7 +188,7 @@ class Handler(object):
 	def __init__(self, notebook=None, **opts):
 		self.opts = opts
 		if not notebook is None:
-			self.notebook = WWWApplication(notebook=notebook, **opts)
+			self.notebook = WWWInterface(notebook=notebook, **opts)
 		else:
 			self.notebook = None
 			self.notebooks = {}
@@ -207,7 +207,7 @@ class Handler(object):
 			# 	i = path.find('/')
 			#	name = path[:i]
 			#	if not name in self.notebooks
-			#		self.notebooks[name] = WWWApplication(name, **self.opts)
+			#		self.notebooks[name] = WWWInterface(name, **self.opts)
 			#	self.notebooks[notebook].serve(path[i:], file)
 			assert False, 'TODO dispatch multiple notebooks'
 		else:

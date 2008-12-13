@@ -4,23 +4,24 @@
 
 '''This module contains the Gtk user interface for zim.
 The main widgets and dialogs are seperated out in sub-modules.
-Included here are the application class for the zim GUI, which
+Included here are the main class for the zim GUI, which
 contains most action handlers and the main window class.
+
+TODO document UIManager / Action usage
 '''
 
+import logging
 import gobject
 import gtk
 import gtk.keysyms
 
 import zim
-from zim import Application, Component
+from zim import Interface
 from zim.utils import data_file, config_file
 from zim.gui import pageindex, pageview
 
+logger = logging.getLogger('zim.gui')
 
-# First we define all menu items specifying icons, labels and keybindings.
-# For each of these items (except the one ending in _menu) a like named method
-# should be defined in the main application object.
 ui_actions = (
 	('file_menu', None, '_File'),
 	('edit_menu', None, '_Edit'),
@@ -89,52 +90,9 @@ ui_radio_actions = (
 )
 
 
-class GtkComponent(Component):
-	'''FIXME'''
-
-	@property
-	def actiongroup(self):
-		if not hasattr(self, '_actiongroup') or self._actiongroup is None:
-			name = self.__class__.__name__
-			self._actiongroup = gtk.ActionGroup(name)
-			self.app.mainwindow.uimanager.insert_action_group(self._actiongroup, 0)
-		return self._actiongroup
-
-	def add_actions(self, actions):
-		'''Wrapper for gtk.ActionGroup.add_actions(actions)'''
-		self.actiongroup.add_actions(actions)
-		self._connect_actions(actions)
-
-	def add_toggle_actions(self, actions):
-		'''Wrapper for gtk.ActionGroup.add_toggle_actions(actions)'''
-		self.actiongroup.add_toggle_actions(actions)
-		self._connect_actions(actions)
-
-	def add_radio_actions(self, actions):
-		'''Wrapper for gtk.ActionGroup.add_radio_actions(actions)'''
-		self.actiongroup.add_radio_actions(actions)
-		self._connect_actions(actions)
-
-	def _connect_actions(self, actions):
-		for name in [a[0] for a in actions if not a[0].endswith('_menu')]:
-			action = self._actiongroup.get_action(name)
-			assert hasattr(self, name), 'No method defined for action %s' % name
-			method = getattr(self.__class__, name)
-			action.connect('activate', lambda a: self.debug('Action: %s' % name)) # FIXME only connect when debugging in effect
-			action.connect_object('activate', method, self)
-
-	def add_ui(self, xml):
-		'''Wrapper for gtk.UIManager.add_ui_from_string(xml)'''
-		self.app.mainwindow.uimanager.add_ui_from_string(xml)
-
-	def disconnect(self):
-		'''Removes all actions from the application'''
-		# TODO remove action group
-		# TODO remove ui
-
-class GtkApplication(Application, GtkComponent):
-	'''Application object for the zim GUI. This object wraps a single notebook
-	and provides actions to manipulate and access this notebook.
+class GtkInterface(Interface):
+	'''Main class for the zim Gtk interface. This object wraps a single
+	notebook and provides actions to manipulate and access this notebook.
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -145,18 +103,27 @@ class GtkApplication(Application, GtkComponent):
 	ui_type = 'gtk'
 
 	def __init__(self, notebook=None, page=None, **opts):
-		Application.__init__(self, **opts)
+		Interface.__init__(self, **opts)
+		self.load_config()
 
 		icon = data_file('zim.png').path
 		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
 
-		self.mainwindow = MainWindow(self)
-		self.add_actions(ui_actions)
-		self.add_toggle_actions(ui_toggle_actions)
-		self.add_radio_actions(ui_radio_actions)
-		self.add_ui(data_file('menubar.xml').read())
+		self.uimanager = gtk.UIManager()
+		self.uimanager.add_ui_from_string('''
+		<ui>
+			<menubar name="menubar">
+			</menubar>
+			<toolbar name="toolbar">
+			</toolbar>
+		</ui>
+		''')
+		self.add_actions(ui_actions, self)
+		self.add_toggle_actions(ui_toggle_actions, self)
+		self.add_radio_actions(ui_radio_actions, self)
+		self.add_ui(data_file('menubar.xml').read(), self)
 
-		self.load_config()
+		self.mainwindow = MainWindow(self)
 		self.load_plugins()
 
 		if not notebook is None:
@@ -187,6 +154,55 @@ class GtkApplication(Application, GtkComponent):
 		self.mainwindow.destroy()
 		gtk.main_quit()
 
+	def add_actions(self, actions, handler):
+		'''Wrapper for gtk.ActionGroup.add_actions(actions),
+		"handler" is the object that has the methods for these actions.
+		'''
+		group = self._get_actiongroup(handler)
+		group.add_actions(actions)
+		self._connect_actions(actions, group, handler)
+
+	def add_toggle_actions(self, actions, handler):
+		'''Wrapper for gtk.ActionGroup.add_toggle_actions(actions),
+		"handler" is the object that has the methods for these actions.
+		'''
+		group = self._get_actiongroup(handler)
+		group.add_toggle_actions(actions)
+		self._connect_actions(actions, group, handler)
+
+	def add_radio_actions(self, actions, handler):
+		'''Wrapper for gtk.ActionGroup.add_radio_actions(actions),
+		"handler" is the object that has the methods for these actions.
+		'''
+		group = self._get_actiongroup(handler)
+		group.add_radio_actions(actions)
+		self._connect_actions(actions, group, handler)
+
+	def _get_actiongroup(self, handler):
+		if not hasattr(handler, '_actiongroup') or handler._actiongroup is None:
+			name = handler.__class__.__name__
+			handler._actiongroup = gtk.ActionGroup(name)
+			self.uimanager.insert_action_group(handler._actiongroup, 0)
+		return handler._actiongroup
+
+	def _connect_actions(self, actions, group, handler):
+		for name in [a[0] for a in actions if not a[0].endswith('_menu')]:
+			action = group.get_action(name)
+			assert hasattr(handler, name), 'No method defined for action %s' % name
+			method = getattr(handler.__class__, name)
+			action.connect('activate',
+				lambda a: logger.debug('Action: %s' % name))
+			action.connect_object('activate', method, handler)
+
+	def add_ui(self, xml, handler):
+		'''Wrapper for gtk.UIManager.add_ui_from_string(xml)'''
+		self.uimanager.add_ui_from_string(xml)
+
+	def remove_actions(handler):
+		'''Removes all ui actions for a specific handler'''
+		# TODO remove action group
+		# TODO remove ui
+
 	def toggle_toolbar(self): self.mainwindow.toggle_toolbar()
 
 	def toggle_statusbar(self): self.mainwindow.toggle_statusbar()
@@ -209,14 +225,14 @@ class GtkApplication(Application, GtkComponent):
 		if notebook is None:
 			# Handle menu item for open_notebook, prompt user. The notebook
 			# dialog will call this method again after a selection is made.
-			self.debug('No notebook given, showing notebookdialog')
+			logger.debug('No notebook given, showing notebookdialog')
 			import notebookdialog
 			notebookdialog.NotebookDialog(self).main()
 		elif self.notebook is None:
 			# No notebook has been set, so we open this notebook ourselfs
 			# TODO also check if notebook was open through demon before going here
-			self.debug('Open notebook:', notebook)
-			Application.open_notebook(self, notebook)
+			logger.debug('Open notebook: %s', notebook)
+			Interface.open_notebook(self, notebook)
 		else:
 			# We are already intialized, let another process handle it
 			# TODO put this in the same package as the daemon code
@@ -240,10 +256,10 @@ class GtkApplication(Application, GtkComponent):
 			return
 
 		if isinstance(page, basestring):
-			self.debug('Open page: %s' % page)
+			logger.debug('Open page: %s', page)
 			page = self.notebook.get_page(page)
 		else:
-			self.debug('Open page: %s (object)' % page.name)
+			logger.debug('Open page: %s (object)', page.name)
 		self.emit('open-page', page)
 
 	def do_open_page(self, page):
@@ -375,29 +391,28 @@ class GtkApplication(Application, GtkComponent):
 		dialog.destroy()
 
 # Need to register classes defining gobject signals
-gobject.type_register(GtkApplication)
+gobject.type_register(GtkInterface)
 
 
-class MainWindow(gtk.Window, Component):
+class MainWindow(gtk.Window):
 	'''Main window of the application, showing the page index in the side
 	pane and a pageview with the current page. Alse includes the menubar,
 	toolbar, statusbar etc.
 	'''
 
-	def __init__(self, app):
+	def __init__(self, ui):
 		'''Constructor'''
 		gtk.Window.__init__(self)
 
-		self.app = app
-		app.connect('open-notebook', self.do_open_notebook)
-		app.connect('open-page', self.do_open_page)
+		ui.connect('open-notebook', self.do_open_notebook)
+		ui.connect('open-page', self.do_open_page)
 
 		# Catching this signal prevents the window to actually be destroyed
 		# when the user tries to close it. The action for close should either
 		# hide or destroy the window.
 		def do_delete_event(*a):
-			self.debug('Action: close (delete-event)')
-			self.app.close()
+			logger.debug('Action: close (delete-event)')
+			ui.close()
 			return True
 		self.connect('delete-event', do_delete_event)
 
@@ -406,18 +421,9 @@ class MainWindow(gtk.Window, Component):
 		self.add(vbox)
 
 		# setup menubar and toolbar
-		self.uimanager = gtk.UIManager()
-		self.add_accel_group(self.uimanager.get_accel_group())
-		self.uimanager.add_ui_from_string('''
-		<ui>
-			<menubar name="menubar">
-			</menubar>
-			<toolbar name="toolbar">
-			</toolbar>
-		</ui>
-		''')
-		menubar = self.uimanager.get_widget('/menubar')
-		toolbar = self.uimanager.get_widget('/toolbar')
+		self.add_accel_group(ui.uimanager.get_accel_group())
+		menubar = ui.uimanager.get_widget('/menubar')
+		toolbar = ui.uimanager.get_widget('/toolbar')
 		vbox.pack_start(menubar, False)
 		vbox.pack_start(toolbar, False)
 
@@ -425,19 +431,19 @@ class MainWindow(gtk.Window, Component):
 		hpane = gtk.HPaned()
 		hpane.set_position(175)
 		vbox.add(hpane)
-		self.pageindex = pageindex.PageIndex(self.app)
+		self.pageindex = pageindex.PageIndex(ui)
 		hpane.add1(self.pageindex)
 
 		self.pageindex.connect('key-press-event',
 			lambda o, event: event.keyval == gtk.keysyms.Escape
-				and self.debug('TODO: hide side pane'))
+				and logger.debug('TODO: hide side pane'))
 
 		vbox2 = gtk.VBox()
 		hpane.add2(vbox2)
 
 		# TODO pathbar
 
-		self.pageview = pageview.PageView(self.app)
+		self.pageview = pageview.PageView(ui)
 		vbox2.add(self.pageview)
 
 		# create statusbar
@@ -499,9 +505,9 @@ class MainWindow(gtk.Window, Component):
 		self.pageview.grab_focus()
 		# TODO action_show_active('toggle_sidepane', False)
 
-	def do_open_notebook(self, app, notebook):
+	def do_open_notebook(self, ui, notebook):
 		self.pageindex.treeview.set_pages( notebook.get_root() )
 
-	def do_open_page(self, app, page):
+	def do_open_page(self, ui, page):
 		'''Signal handler for open-page, updates the pageview'''
 		self.pageview.set_page(page)

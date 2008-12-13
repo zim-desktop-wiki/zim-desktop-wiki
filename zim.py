@@ -20,10 +20,12 @@
 # MA 02110-1301, USA.
 
 '''This script parses commandline options for zim and hands them off
-to the apropriate application object.
+to the apropriate class to run the application.
 '''
 
 import sys
+import logging
+
 from getopt import gnu_getopt, GetoptError
 
 try:
@@ -32,6 +34,10 @@ try:
 except:
 	print >> sys.stderror, 'zim needs python >= 2.5'
 	sys.exit(1)
+
+
+logger = logging.getLogger('zim')
+
 
 # Used in error messages and is passed on the the app as
 # the command to call to spawn a new instance.
@@ -97,14 +103,15 @@ def main(argv):
 	opts, args = gnu_getopt(argv[1:], short, long)
 
 	# First figure out which command to execute
-	try:
-		cmd = opts[0][0].lstrip('-')
-		if cmd in shortopts:
-			cmd = shortopts[cmd]
-		assert cmd in cmdopts
-		opts.pop(0)
-	except:
-		cmd = 'gui' # default command
+	cmd = 'gui' # default
+	if opts:
+		o = opts[0][0].lstrip('-')
+		if o in shortopts:
+			o = shortopts[o]
+		if o in cmdopts:
+			opts.pop(0)
+			cmd = o
+
 
 	# If it is a simple command execute it and return
 	if cmd == 'version':
@@ -158,24 +165,26 @@ def main(argv):
 		except ValueError:
 			raise GetoptError, ("--port takes an integer argument", 'port')
 
+	# set loggin output level for logging root
+	level = logging.WARNING
+	if optsdict.pop('verbose', False): level = logging.INFO
+	if optsdict.pop('debug', False): level = logging.DEBUG # no "elif" !
+	logging.basicConfig(level=level, format='%(message)s')
+
 	# Now we determine the class to handle this command
 	if cmd == 'gui':
 		import zim.gui
-		klass = zim.gui.GtkApplication
+		klass = zim.gui.GtkInterface
 		# TODO use daemon handler instead
 	elif cmd == 'server':
-		if 'gui' in optsdict and optsdict['gui']:
-			import zim.gui.www
-			klass = zim.gui.www.GtkWWWAplication
-			# TODO different name for this app
-		else:
-			import zim.www
-			klass = zim.www.Server
+		import zim.www
+		klass = zim.www.Server
 	elif cmd == 'export':
-		import zim.exporter
-		klass = zim.exporter.Exporter
+		import zim.command
+		klass = zim.command.CommandInterface
 
 	# and start the application ...
+	logger.debug('application class: %s', klass.__name__)
 	handler = klass(*args, **optsdict)
 	handler.main()
 

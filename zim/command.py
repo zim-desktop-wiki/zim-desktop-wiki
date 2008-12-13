@@ -5,15 +5,15 @@
 '''Commandline exporter for zim notebooks'''
 
 
-from zim import Application
+from zim import Interface
 
 
-class Exporter(Application):
+class CommandInterface(Interface):
 	'''FIXME'''
 
 	def __init__(self, template='Default', format='html', output=None, **opts):
 		'''FIXME'''
-		Application.__init__(self, **opts)
+		Interface.__init__(self, **opts)
 
 		assert format
 		if isinstance(template, basestring):
@@ -27,8 +27,7 @@ class Exporter(Application):
 		'''FIXME'''
 		# TODO: use selection instead
 		assert self.notebook
-		page = self.notebook.get_page(pagename)
-		self.page = page
+		self.page = self.notebook.get_page(pagename)
 
 	def main(self):
 		'''Process export options'''

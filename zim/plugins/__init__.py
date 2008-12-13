@@ -25,10 +25,10 @@ class PluginClass(object):
 
 	info = {}
 
-	def __init__(self, application):
-		self.app = application
+	def __init__(self, ui):
+		self.ui = ui
 		# TODO: assert self.info['name'] ['author'] etc.
 
 	def disconnect(self):
 		'''FIXME'''
-		pass
+		self.ui.remove_actions(self)

@@ -9,17 +9,17 @@ from zim.plugins import PluginClass
 class LinkMapPlugin(PluginClass):
 	'''FIXME'''
 
-	def __init__(self, app):
-		PluginClass.__init__(self, app)
-		if app.ui_type == 'gtk':
+	def __init__(self, ui):
+		PluginClass.__init__(self, ui)
+		if self.ui.ui_type == 'gtk':
 			import gui
-			self.ui = gui.GtkLinkMap(self.app)
+			self.gui = gui.GtkLinkMap(self.ui)
 		else:
-			self.ui = False
+			self.gui = False
 
 	def disconnect(self):
-		if self.ui:
-			self.ui.disconnect
+		if self.gui:
+			self.gui.disconnect
 
 class LinkMap(object):
 	'''FIXME'''

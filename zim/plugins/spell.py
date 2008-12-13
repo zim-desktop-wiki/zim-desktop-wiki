@@ -5,14 +5,13 @@
 '''FIXME'''
 
 from zim.plugins import PluginClass
-from zim.gui import GtkComponent
 
 try:
 	import gtkspell
 except:
 	gtkspell = None
 
-ui = '''
+ui_xml = '''
 <ui>
 	<menubar name='menubar'>
 		<menu action='tools_menu'>
@@ -35,7 +34,7 @@ ui_actions = (
 
 )
 
-class SpellPlugin(PluginClass, GtkComponent):
+class SpellPlugin(PluginClass):
 	'''FIXME'''
 
 	info = {
@@ -44,15 +43,15 @@ class SpellPlugin(PluginClass, GtkComponent):
 		'description': 'Adds spell checking support',
 	}
 
-	def __init__(self, app):
-		PluginClass.__init__(self, app)
+	def __init__(self, ui):
+		PluginClass.__init__(self, ui)
 		self.spell = None
 		self.enabled = False
-		if app.ui_type == 'gtk':
-			self.add_actions(ui_actions)
-			self.add_ui(ui)
+		if self.ui.ui_type == 'gtk':
+			self.ui.add_actions(ui_actions, self)
+			self.ui.add_ui(ui_xml, self)
 			# TODO use setting to control behavior
-			self.app.connect_after('open-page', self.do_open_page)
+			self.ui.connect_after('open-page', self.do_open_page)
 
 	@classmethod
 	def check(cls):
@@ -71,7 +70,7 @@ class SpellPlugin(PluginClass, GtkComponent):
 		# TODO check language in page / notebook / default
 		self.enabled = True
 		if self.spell is None:
-			textview = self.app.mainwindow.pageview.view
+			textview = self.ui.mainwindow.pageview.view
 			self.spell = gtkspell.Spell(textview)
 			textview.gtkspell = self.spell # used by hardcoded hook
 		# TODO action_show_active
@@ -79,13 +78,13 @@ class SpellPlugin(PluginClass, GtkComponent):
 	def disable_spellcheck(self):
 		self.enabled = False
 		if not self.spell is None:
-			textview = self.app.mainwindow.pageview.view
+			textview = self.ui.mainwindow.pageview.view
 			textview.gtkspell = None
 			self.spell.detach()
 			self.spell = None
 		# TODO action_show_active
 
-	def do_open_page(self, app, page):
+	def do_open_page(self, ui, page):
 		# Assume the old object is detached by hard coded
 		# hook in TextView, just attach a new one.
 		self.spell = None

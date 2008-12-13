@@ -13,18 +13,15 @@ digraph g {
 
 	/* main loops */
 	gtkmain [label = "gtk.main()" peripheries = 2]
-	gtkmain1 [label = "gtk.main()" peripheries = 2]
 	wwwloop [ label = "server_forever()\nBasehHTTPServer" peripheries = 2]
-	{ rank=same; gtkmain; gtkmain1; wwwloop }
+	{ rank=same; gtkmain; wwwloop }
 
 	/* other steps */
-	guimain [label = "GtkApplication.main()\nzim.gui"]
+	guimain [label = "GtkInterface.main()\nzim.gui"]
 	gtksignal [label ="gtk.signal_emit()" ]
-	gtksignal1 [label ="gtk.signal_emit()" ]
 	wwwmain [ label = "Server.main()\nzim.www" ]
-	wwwserve [ label = "WWWApplication.serve(request)"]
-	exporter [ label = "ExporterApplication.main()\nzim.exporter"]
-	wwwguimain [ label = "WWWGtkApplication.main()\nzim.gui.www"]
+	wwwserve [ label = "WWWInterface.serve(request)"]
+	exporter [ label = "CommandInterface.export()\nzim.command"]
 	wwwcgi [label = "Handler.main()\nzim.www" ]
 
 	/* primary flow from start to main loop */
@@ -34,10 +31,8 @@ digraph g {
 	dispatch -> guimain [label="--gui (default)"]
 	dispatch -> wwwmain [label="--server"]
 	dispatch -> exporter [label="--export"]
-	dispatch -> wwwguimain [label="--server --gui"]
 	guimain -> gtkmain
 	wwwmain -> wwwloop
-	wwwguimain -> gtkmain1
 
 	/* flow cgi-bin */
 	cgibin -> wwwcgi
@@ -52,6 +47,4 @@ digraph g {
 	gtksignal -> "show_help()" [style = dotted]
 	"show_help()" -> main [style = dotted label ="--doc"]
 	wwwloop -> wwwserve [style = dotted]
-	gtkmain1 -> gtksignal1 [style = dotted]
-	gtksignal1 -> main [style = dotted label="--server"]
 }

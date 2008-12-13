@@ -90,6 +90,7 @@ def report_coverage(coverage):
 
 	index = []
 	for path in pyfiles:
+		if '_lib' in path or '_version' in path: continue
 		htmlfile = path[:-3].replace('/', '.')+'.html'
 		html = open('coverage/'+htmlfile, 'w')
 		html.write('''\

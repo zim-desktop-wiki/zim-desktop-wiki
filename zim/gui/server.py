@@ -2,32 +2,21 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module stands apart from the rest of the gui modules as it is not
+part from the main Gtk interface. It defines a Gtk interface that can be
+used to start/stop the WWW server.
+'''
 
 import gtk
 
-from zim import Application, Component
 from zim.utils import data_file
 from zim.gui import gtkutils
 
-class GtkWWWAplication(Application):
+
+class ServerWindow(gtk.Window):
 	'''FIXME'''
 
-	def __init__(self, **opts):
-		# FIXME proper way would be to filter out server options and pass on the dict
-		Application.__init__(self, executable=opts['executable'])
-
-	def main(self):
-		'''FIXME'''
-		self.mainwindow = MainWindow(self)
-		self.mainwindow.show_all()
-		gtk.main()
-
-
-class MainWindow(gtk.Window, Component):
-	'''FIXME'''
-
-	def __init__(self, app):
+	def __init__(self):
 		gtk.Window.__init__(self)
 
 		vbox = gtk.VBox()
@@ -69,3 +58,8 @@ class MainWindow(gtk.Window, Component):
 
 		vbox.add(gtk.Label('TODO: open browser button'))
 		vbox.add(gtk.Label('TODO: expander for server log'))
+
+if __name__ == '__main__':
+	window = ServerWindow()
+	window.show_all()
+	gtk.main()

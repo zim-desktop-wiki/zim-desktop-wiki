@@ -32,6 +32,12 @@ def icon_button(stock, small_size=False):
 class BrowserTreeView(gtk.TreeView):
 	'''TreeView subclass intended for lists that are in "browser" mode.
 	Default behavior will be single click navigation for these lists.
+
+	Extra keybindings that are added here:
+		<Left>   Collapse sub-items
+		<Right>  Expand sub-items
+		\        Collapse whole tree
+		*        Expand whole tree
 	'''
 
 	# TODO some global option to restore to double click navigation ?
@@ -40,10 +46,8 @@ class BrowserTreeView(gtk.TreeView):
 		gtk.TreeView.__init__(self, *arg)
 		self.get_selection().set_mode(gtk.SELECTION_BROWSE)
 
-	# TODO actual implement single click behavior
-
 	def do_key_press_event(self, event):
-
+		'''Handler for key-press-event, adds extra key bindings'''
 		if event.keyval == gtk.keysyms.Left:
 			model, iter = self.get_selection().get_selected()
 			if not iter is None:
@@ -70,3 +74,14 @@ class BrowserTreeView(gtk.TreeView):
 			return True
 		else:
 			return False
+
+	def do_button_release_event(self, event):
+		'''Handler for button-release-event, implements single click navigation'''
+		if event.button == 1:
+			x, y = map(int, event.get_coords())
+				# map to int to surpress deprecation warning :S
+			path, column, x, y = self.get_path_at_pos(x, y)
+			#if not self.get_selection().path_is_selected(path):
+			self.row_activated(path, column)
+
+		return gtk.TreeView.do_button_release_event(self, event)

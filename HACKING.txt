@@ -5,47 +5,45 @@ Each class has inline documentation, use pydoc to view it.
 The tree below is only a summary, run "dev/class_tree.py" to see
 the full tree.
 
-zim					# Command line parsing and application class
-|-- Application()
-|-- Component()
-|-- gui				# Gtk interface - TODO
-|   |-- GtkApplication(Application)
+zim
+|-- Interface()
+|-- gui             # Gtk interface
+|   |-- GtkInterface(Interface)
 |   |-- gtkutils
 |   |-- pageview
-|   |   |-- PageView(Component)
+|   |   |-- PageView()
 |   |   |-- TextView
 |   |   `-- TextBuffer
 |   `-- pageindex
-|       ` PageIndex(Component)
-|-- www				# WWW interface for server / cgi-bin
-|   `-- WWW(Application)
-|-- exporter		# Code for commandline export
-|   `-- Exporter(Application)
-|-- notebook		# Interface to a single notebook
+|       ` PageIndex()
+|-- www             # WWW interface, both server and cgi-bin
+|   |-- WWWInterface(Interface)
+|	`-- Server()
+|-- command         # Code for commandline export etc.
+|   `-- CommandInterface(Interface)
+|-- notebook
 |   |-- Notebook()
 |   |-- Page()
 |   `-- Namespace()
-|-- stores			# Data backends for notebooks
+|-- stores          # Data backends for notebooks
 |   |-- files
 |   |-- gjots
 |   `-- memory
 |-- templates
 |   `-- Template()
-|-- formats			# Parsers for various source formats
+|-- formats         # Parsers for various source formats
 |   |-- html
 |   |-- plain
 |   `-- wiki
-|-- fs				# File system objects
+|-- fs              # File system objects
 |   |-- Path()
 |   |-- File(Path)
 |   |-- Dir(Path)
 |   `-- Buffer(StringIO)
 `-- utils			# Coding utilities
 
-Both gtk and www interfaces inherit from the application class defined
+Both gtk and www interfaces inherit from the Interface class defined
 in zim. This class takes care of loading configuration files, plugins etc.
-The objects that make up the interface can inherit from Component. This
-class provides some common functions like logging.
 
 The Notebook object takes care of accessing and storing pages and
 other data in the notebook. Each notebook can consist of one or more
@@ -56,7 +54,7 @@ Parsing of wiki syntax and other import / export formats is handled by
 modules in the 'formats' directory. These use a common parse tree structure
 to represent a single page.
 
-Both the zim application object and the notebook objects derive from gobject
+Both the zim interface class and the notebook class derive from gobject
 and use the gobject signal system. Only the GUI classes use gtk. So pygtk is
 only a dependency when running the GUI, however python-gobject is also required
 when only running the server.
@@ -164,3 +162,23 @@ We depend on Gtk+ >= 2.6 instead of >= 2.4
 * Templates now use "[%-" and "-%]" to remove linebreaks around tags
 * Templates no longer have a "page.heading" variable
 * Html templates need css "p { white-space: pre }" to render same as zim
+
+---------------
+
+== Locking ==
+
+For files do atomic write by write tmp + rename
+If tmp exists, time out for x seconds, if it still exists (not again) overwrite
+Check modifiction on disk with regular interfalls
+If changed and modified allow "save copy" -> not as page, but as file
+Else prompt user and reload
+
+Maybe additional locking is needed for write access to the cache
+SQLite does some locking, but not enough for network access etc.
+
+== Daemon ==
+
+Same daemon architecture as we have now. However need to maintain interface
+type for clients, so server and gui can have same notebook open.
+Need daemonclient object class and interfaceclient class.
+Also need a stub daemon class for stand alone and testing.

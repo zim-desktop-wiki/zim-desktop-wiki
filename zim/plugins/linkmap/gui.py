@@ -6,12 +6,11 @@
 
 import gtk
 
-from zim.gui import GtkComponent
 from zim._lib import xdot
 
 from zim.plugins.linkmap import LinkMap
 
-ui = '''
+ui_xml = '''
 <ui>
 	<menubar name='menubar'>
 		<menu action='view_menu'>
@@ -29,15 +28,15 @@ ui_actions = (
 )
 
 
-class GtkLinkMap(GtkComponent):
+class GtkLinkMap():
 
-	def __init__(self, app):
-		GtkComponent.__init__(self, app)
-		self.add_actions(ui_actions)
-		self.add_ui(ui)
+	def __init__(self, ui):
+		self.ui = ui
+		self.ui.add_actions(ui_actions, self)
+		self.ui.add_ui(ui_xml, self)
 
 	def show_linkmap(self):
-		linkmap = LinkMap(self.app.notebook)
+		linkmap = LinkMap(self.ui.notebook)
 		dialog = LinkMapDialog(linkmap)
 		dialog.show_all()
 

@@ -14,7 +14,7 @@ started without arguments.
 import gtk
 import pango
 
-from zim import Component, notebook
+from zim import notebook
 from zim.utils import data_file
 from zim.gui import gtkutils
 
@@ -23,7 +23,7 @@ NAME_COL = 0  # column with notebook name
 OPEN_COL = 1  # column with boolean if notebook is open alreadys
 
 
-class NotebookDialog(gtk.Dialog, Component):
+class NotebookDialog(gtk.Dialog):
 
 	def __init__(self, app):
 		self.app = app

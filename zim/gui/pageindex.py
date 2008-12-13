@@ -11,7 +11,6 @@ import gobject
 import gtk
 import pango
 
-from zim import Component
 from zim.gui import gtkutils
 
 NAME_COL = 0  # column with short page name (page.basename)
@@ -61,7 +60,7 @@ class PageTreeStore(gtk.TreeStore):
 		return self[iter][PAGE_COL]
 
 
-class PageTreeView(gtkutils.BrowserTreeView, Component):
+class PageTreeView(gtkutils.BrowserTreeView):
 	'''Wrapper for a TreeView showing a list of pages.'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -120,6 +119,18 @@ class PageTreeView(gtkutils.BrowserTreeView, Component):
 		else:
 			return False
 
+	def do_button_release_event(self, event):
+		'''Handler for button-release-event, triggers popup menu'''
+		if event.button == 3:
+			self.emit('popup-menu')# FIXME do we need to pass x/y and button ?
+			return True
+		else:
+			return gtkutils.BrowserTreeView.do_button_release_event(self, event)
+
+	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
+		print 'TODO: trigger popup for page'
+		return True
+
 	def select_page(self, page):
 		'''Select a page in the treeview, connected to the open-page signal'''
 		model, iter = self.get_selection().get_selected()
@@ -145,7 +156,7 @@ class PageTreeView(gtkutils.BrowserTreeView, Component):
 gobject.type_register(PageTreeView)
 
 
-class PageIndex(gtk.ScrolledWindow, Component):
+class PageIndex(gtk.ScrolledWindow):
 
 	def __init__(self, app):
 		gtk.ScrolledWindow.__init__(self)
