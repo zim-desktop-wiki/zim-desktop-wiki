@@ -7,8 +7,11 @@
 import re
 import sys
 import os
+import logging
 
 from zim.fs import *
+
+logger = logging.getLogger('zim')
 
 # scan python module path for dirs called "data"
 # FIXME limit to zim specific part of the path ?
@@ -203,7 +206,7 @@ class ConfigList(ListDict):
 			else:
 				assert len(cols) >= 2
 				if len(cols) > 2 and not cols[2].startswith('#'):
-					print 'WARNING: trailing data' # FIXME better warning
+					logger.warn('trailing data') # FIXME better warning
 			for i in range(0, 2):
 				cols[i] = self.escaped_re.sub(r'\1', cols[i])
 			self[cols[0]] = cols[1]

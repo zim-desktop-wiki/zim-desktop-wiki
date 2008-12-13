@@ -28,9 +28,12 @@ notebooks.
 
 import sys
 import os
+import socket
+import logging
+import glib
 
 from zim import Interface
-
+from zim.utils import rfc822headers
 from zim.fs import *
 
 class Error(Exception):
@@ -166,8 +169,7 @@ class WWWInterface(Interface):
 		# etc.
 
 		# Write headers
-		for k, v in headers.items():
-			self.output.write("%s: %s\r\n" % (k, v))
+		self.output.write(rfc822headers.format(headers, strict=True))
 		self.output.write("\r\n") # end of headers
 
 	def write_error(self, error):
@@ -200,6 +202,7 @@ class Handler(object):
 
 	def serve(self, path, file):
 		'''FIXME'''
+		# TODO: decode path %xx -> char(xx)
 		if self.notebook is None:
 			# if not path or path == '/':
 			#	serve index page
@@ -217,39 +220,75 @@ class Handler(object):
 class Server(Handler):
 	'''Run a server based on BaseHTTPServer'''
 
-	def __init__(self, notebook=None, port=8080, **opts):
+	logger = logging.getLogger('zim.www.server')
+
+	def __init__(self, notebook=None, port=8080, gui=False, **opts):
 		'''FIXME'''
 		Handler.__init__(self, notebook, **opts)
 		assert isinstance(port, int), port
 		self.port = port
-		self.url = 'http://localhost:%d' % self.port
+		#~ self.url = 'http://localhost:%d' % self.port
+		self.socket = None
+		if gui:
+			import zim.gui.server
+			self.window = zim.gui.server.ServerWindow()
+			self.use_gtk = True
+		else:
+			self.use_gtk = False
+
+	def bind(self):
+		#~ logger.warn('''\
+#~ WARNING: Serving zim notes as a webserver. Unless you have some
+#~ kind of firewall your notes are now open to the whole wide world.
+#~ ''')
+
+		# open sockets for connections
+		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.socket.bind(("localhost", self.port)) # TODO use socket.gethostname() for public server
+		self.socket.listen(5)
+
+		glib.io_add_watch(self.socket, glib.IO_IN,
+			lambda *a: self.do_accept_request())
 
 	def main(self):
-		import BaseHTTPServer
-		print '''\
-WARNING: Serving zim notes as a webserver. Unless you have some
-kind of firewall your notes are now open to the whole wide world.
-'''
-		# Define custom handler class and bind the class to our object.
-		# Each request will pop a new instance of this class while we
-		# are persistent and all instances should dipatch to us.
-		class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+		if self.socket is None:
+			self.bind()
+		if self.use_gtk:
+			import gtk
+			self.window.show_all()
+			gtk.main()
+		else:
+			glib.MainLoop().run()
 
-			protocol_version = 'HTTP/1.0'
-			zim_server = self # class attribute
+	def do_accept_request(self):
+		# set up handler for new connection
+		clientsocket, address = self.socket.accept() # TODO timeout ?
+		self.logger.debug('got request from %s', address[0])
 
-			def do_GET(self):
-				self.zim_server.serve(self.path, self.wfile)
+		# read data
+		rfile = clientsocket.makefile('rb')
+		requestline = rfile.readline()
+		command, path, version = requestline.split()
+		assert version.startswith('HTTP/') # TODO return + log error
+		assert command in ('GET', 'HEAD') # TODO return + log error
+		if version[5:] != 0.9: # HTTP/0.9 does not do headers
+			headerlines = []
+			while True:
+				line = rfile.readline()
+				if not line or line.isspace():
+					break
+				else:
+					headerlines.append(line)
+			#~ headers = rfc822headers.parse(''.join(headerlines))
+		#~ else:
+			#~ headers = {}
+		# assume no body since we do not supprot POST (yet)
+		rfile.close()
 
-			def do_HEAD(self):
-				pass # TODO
-
-			def do_POST(self):
-				pass # TODO
-
-		# start the server
-		server_address = ('', self.port)
-		server = BaseHTTPServer.HTTPServer(server_address, MyHandler)
-		sa = server.socket.getsockname()
-		print "Serving HTTP on", sa[0], "port", sa[1], "..."
-		server.serve_forever()
+		wfile = clientsocket.makefile('wb')
+		#~ wfile.write("HTTP/1.0 %d\r\n" % 500)
+		self.serve(path, wfile)
+		wfile.flush()
+		wfile.close()
+		clientsocket.close()
+		return True # else io watch gets deleted

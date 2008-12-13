@@ -144,42 +144,6 @@ class ParserClass(object):
 		'''FIXME'''
 		raise NotImplementedError
 
-	header_re = re.compile('^([\w\-]+):\s+(.*)')
-	not_headers_re = re.compile('^(?!\Z|\s+|[\w\-]+:\s+)', re.M)
-
-	def matches_rfc822_headers(self, text):
-		'''Checks if 'text' is a rfc822 stle header block. If this
-		returns True, 'text' can be parsed by parse_rfc822_headers().
-		'''
-		if not self.header_re.match(text):
-			# first line is not a header
-			return False
-		elif self.not_headers_re.search(text):
-			# some line is not a header or a continuation of a header
-			return False
-		else:
-			return True
-
-	def parse_rfc822_headers(self, text):
-		'''Returns a dictonary with the headers defined in 'text'.
-		Uses rfc822 style header syntax including continuation lines.
-		All headers are made case insesitive using string.title().
-		'''
-		headers = ListDict()
-		header = None
-		assert self.matches_rfc822_headers(text), 'Not a header block'
-		for line in text.splitlines():
-			if line.isspace(): break
-			is_header = self.header_re.match(line)
-			if is_header:
-				header = is_header.group(1).title()
-					# using title() to make header names case insensitive
-				value  = is_header.group(2).strip()
-				headers[header] = value
-			else:
-				headers[header] += line.strip()
-		return headers
-
 	def walk_list(self, list, split_re, func):
 		'''Convenience function to process a list of strings and Node
 		objects.  Node objects will be ignored, but strings are
@@ -218,18 +182,3 @@ class DumperClass(object):
 	def dump(self, tree, file):
 		'''FIXME'''
 		raise NotImplementedError
-
-	def dump_rfc822_headers(self, headers):
-		'''FIXME'''
-		assert isinstance(headers, dict)
-		# TODO figure out how to keep headers in proper order
-		text = u''
-		for k, v in headers.items():
-			v = v.strip()
-			v = '\n\t'.join( v.split('\n') )
-			text += k+': '+v+'\n'
-		if text:
-			text += '\n' # empty line at end of headers
-		return text
-
-# vim: tabstop=4

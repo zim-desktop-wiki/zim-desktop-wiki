@@ -16,7 +16,6 @@ from StringIO import StringIO
 
 __all__ = ['Dir', 'File', 'Buffer']
 
-
 class PathLookupError(Exception):
 	'''FIXME'''
 
@@ -105,13 +104,14 @@ class WindowsPath(UnixPath):
 
 # Determine which base class to use for classes below
 if os.name == 'posix':
-    Path = UnixPath
+	Path = UnixPath
 elif os.name == 'nt':
-    Path = WindowsPath
+	Path = WindowsPath
 else:
-    import sys
-    print >>sys.stderr, 'WARNING: os name "%s", falling back to posix' % os.name
-    Path = UnixPath
+	import logging
+	logger = logging.getLogger('zim')
+	logger.critical('os name "%s" unknown, falling back to posix', os.name)
+	Path = UnixPath
 
 
 class Dir(Path):

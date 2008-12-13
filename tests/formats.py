@@ -13,6 +13,8 @@ if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
 
 wikitext = u"""\
+Content-Type: text/x-zim-wiki
+
 ====== Head1 ======
 
 ===== Head 2 =====
@@ -145,7 +147,7 @@ foo bar
 		'''Test wiki parse tree generation.'''
 		tree = u'''\
 <?xml version='1.0' encoding='utf-8'?>
-<page><h level="1">Head1</h>
+<page Content-Type="text/x-zim-wiki"><h level="1">Head1</h>
 
 <h level="2">Head 2</h>
 

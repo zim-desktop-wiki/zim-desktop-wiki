@@ -9,6 +9,7 @@ import re
 from zim.fs import *
 from zim.formats import *
 from zim.utils import is_url_re, is_email_re, is_path_re, is_interwiki_re
+from zim.utils import rfc822headers
 
 info = {
 	'name':  'Wiki text',
@@ -82,8 +83,8 @@ class Parser(ParserClass):
 		# Now all text is read, start wrapping it into a document tree.
 		# First check for meta data at the top of the file
 		builder = TreeBuilder()
-		if self.matches_rfc822_headers(paras[0]):
-			headers = self.parse_rfc822_headers( paras.pop(0) )
+		if rfc822headers.match(paras[0]):
+			headers = rfc822headers.parse(paras.pop(0))
 			if paras[0].isspace: paras.pop(0)
 			builder.start('page', headers)
 		else:
@@ -187,8 +188,9 @@ class Dumper(DumperClass):
 		assert isinstance(tree, ParseTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
-		headers = self.dump_rfc822_headers(tree.getroot().attrib)
+		headers = rfc822headers.format(tree.getroot().attrib)
 		file.write(headers)
+		file.write('\n') # empty line to separate headers and data
 		self.dump_children(tree.getroot(), file)
 		file.close()
 

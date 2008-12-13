@@ -6,6 +6,7 @@ from tests import TestCase
 
 from zim.fs import Buffer
 from zim.utils import *
+from zim.utils import rfc822headers
 
 class testUtils(TestCase):
 
@@ -57,3 +58,38 @@ some\ space\the\ re
 		result = Buffer()
 		mydict.write(result)
 		self.assertEquals(result.getvalue(), output)
+
+class TestHeaders(TestCase):
+
+	def runTest(self):
+		# normal operation
+		text='''\
+Foobar: 123
+More-Lines: test
+	1234
+	test
+Aaa: foobar
+'''
+		self.assertTrue(rfc822headers.match(text))
+		headers = rfc822headers.parse(text)
+		self.assertTrue(isinstance(headers, ListDict))
+		self.assertEqual(headers['Foobar'], '123')
+		self.assertEqual(headers['More-Lines'], 'test\n1234\ntest')
+		self.assertEqualDiff(rfc822headers.format(headers), text)
+
+		# error tolerance and case insensitivity
+		text = '''\
+more-lines: test
+1234
+test
+'''
+		self.assertFalse(rfc822headers.match(text))
+		text = '''\
+fooo
+more-lines: test
+1234
+test
+'''
+		self.assertFalse(rfc822headers.match(text))
+		header = rfc822headers.parse(text)
+		self.assertEqual(headers['More-Lines'], 'test\n1234\ntest')

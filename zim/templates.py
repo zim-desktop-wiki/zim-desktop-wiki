@@ -49,9 +49,12 @@ Therefore:
 '''
 
 import re
+import logging
 
 import zim
 from zim.utils import data_dirs, Re, split_quoted_strings, unescape_quoted_string
+
+logger = logging.getLogger('zim.templates')
 
 # TODO add a directive [% INCLUDE template_name %]
 
@@ -354,10 +357,10 @@ class TemplateDict(dict):
 				if hasattr(value, key):
 					value = getattr(value, key)
 				else:
-					self._warn('No such parameter: %s' % key)
+					logger.warn('No such parameter: %s', key)
 					return None
 			else:
-				self._warn('No such parameter: %s' % key)
+				logger.warn('No such parameter: %s', key)
 				return None
 		return value
 
@@ -371,20 +374,13 @@ class TemplateDict(dict):
 					table[key] = {}
 				table = table[key]
 			else:
-				self._warn('Could not set parameter: %s' % key)
+				logger.warn('Could not set parameter: %s', key)
 				return
 		if isinstance(table, dict):
 			table[param.keys[-1]] = value
 		else:
-			self._warn('Could not set parameter: %s' % key)
+			logger.warn('Could not set parameter: %s', key)
 			return
-
-	def _warn(self, msg):
-		import sys
-		# TODO add file name and line number
-		print >>sys.stderr, 'WARNING: %s' % msg
-		#~ from pprint import pprint
-		#~ pprint(self)
 
 
 class TemplateFunction(object):
