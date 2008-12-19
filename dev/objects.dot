@@ -1,0 +1,23 @@
+digraph g {
+
+node [shape = box]
+
+main [shape = diamond]
+cgibin [label = "cgi-bin" shape = diamond]
+
+main -> GUIClient
+GUIClient -> GUIDeamon -> GtkInterface
+GtkInterface -> Notebook
+Notebook -> Page
+Notebook -> Namespace
+GtkInterface -> MainWindow
+MainWindow -> PageView
+MainWindow -> PageIndex
+
+main -> Server [label = "--server"]
+cgibin -> Handler -> WWWInterface
+Server -> WWWInterface
+WWWInterface -> Notebook
+Server -> ServerWindow [label ="--gui"]
+
+}

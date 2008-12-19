@@ -91,6 +91,7 @@ Other general guidelines:
 
 == Getting server up and running ==
 
+* Finish GUI for stopping / starting the server
 * Resolving files
 	* Needs testing + testing for new FS methods
 	* Needs security mode for www
@@ -103,33 +104,13 @@ Other general guidelines:
 * For S5 template need to split body on H1 or HR
 	* FOREACH slide IN page.sections
 	* want to be able to cleanup headings per slide...
-* More events, both for application and notebook - needed for plugins
-* Check client hostname and add a --public option (default localhost only)
-* Implement editing from www (default is read-only)
-* Search interface ?
-
-== Towards full capabilities ==
-
 * parse List nodes into parse tree
 	* Implement checkbox lists
-* Implement moving pages
-	* Logic for updating links
-	* Include sub pages and attachments
 * Backward compatibility with older zim versions
     * Wiki pages without headers use indented paragraphs for Verbatim
 	* Resolve file should also check same dir as page source
-* Txt2tags Parser (and Dumper ?) class
-    * Plugin to use txt2tags for multitude of output formats
-* Notebook cache based on sqlite
-    * Make sure to test all store backends both with and without cache
-    * Make sure not to auto-vivicate cache to quickly
-* Store type for reading from .tar.gz files
-
-* GUI to control server, access from tools menu
-
-* Get rid of profiles
-	* use different XDG dirs if needed
-	* have default config files for notebooks to choose from
+* Check client hostname and add a --public option (default localhost only)
+* Search interface ?
 
 === file links for www ===
 
@@ -143,8 +124,21 @@ When exporting:
 * doc root never needs to be copied, absolute path or use doc_root url setting
 * other files maybe copied or linked with absolute path
 
+== Towards full capabilities ==
 
-====== Changes from zim < 0.60 ======
+* Finish main GUI
+* Implement moving pages
+	* Logic for updating links
+	* Include sub pages and attachments
+* Txt2tags Parser (and Dumper ?) class
+    * Plugin to use txt2tags for multitude of output formats
+* Notebook cache based on sqlite
+    * Make sure to test all store backends both with and without cache
+    * Make sure not to auto-vivicate cache to quickly
+* Store type for reading from .tar.gz files
+
+
+====== Changes from zim < 0.42 ======
 
 We depend on Gtk+ >= 2.6 instead of >= 2.4
 
@@ -152,6 +146,7 @@ We depend on Gtk+ >= 2.6 instead of >= 2.4
 
 * ...
 * Backward compatibility with files like notebook.list / repositories.list ?
+* Removed profile options - use different XDG dirs if needed
 
 == Formats ==
 
@@ -182,3 +177,9 @@ Same daemon architecture as we have now. However need to maintain interface
 type for clients, so server and gui can have same notebook open.
 Need daemonclient object class and interfaceclient class.
 Also need a stub daemon class for stand alone and testing.
+
+== Network ==
+
+If we want to run a network version and decide to fix all the related
+concurency and authentication stuff the proper way would be to add
+an XML-RPC interface to the server.

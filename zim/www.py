@@ -31,6 +31,7 @@ import os
 import socket
 import logging
 import glib
+import gobject
 
 from zim import Interface
 from zim.utils import rfc822headers
@@ -184,16 +185,19 @@ class WWWInterface(Interface):
 		self.output.write(msg.encode('utf8'))
 
 
-class Handler(object):
+class Handler(gobject.GObject):
 	'''FIXME'''
 
 	def __init__(self, notebook=None, **opts):
+		gobject.GObject.__init__(self)
 		self.opts = opts
+		self.notebook = None
+		self.notebooks = {}
 		if not notebook is None:
-			self.notebook = WWWInterface(notebook=notebook, **opts)
-		else:
-			self.notebook = None
-			self.notebooks = {}
+			self.set_notebook(notebook)
+
+	def set_notebook(self, notebook):
+		self.notebook = WWWInterface(notebook=notebook, **self.opts)
 
 	def main(self):
 		'''FIXME'''
@@ -220,23 +224,41 @@ class Handler(object):
 class Server(Handler):
 	'''Run a server based on BaseHTTPServer'''
 
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'started': (gobject.SIGNAL_RUN_LAST, None, []),
+		'stopped': (gobject.SIGNAL_RUN_LAST, None, [])
+	}
+
 	logger = logging.getLogger('zim.www.server')
 
 	def __init__(self, notebook=None, port=8080, gui=False, **opts):
 		'''FIXME'''
 		Handler.__init__(self, notebook, **opts)
-		assert isinstance(port, int), port
-		self.port = port
-		#~ self.url = 'http://localhost:%d' % self.port
 		self.socket = None
+		self.running = False
+		self.set_port(port)
 		if gui:
 			import zim.gui.server
-			self.window = zim.gui.server.ServerWindow()
+			self.window = zim.gui.server.ServerWindow(self)
 			self.use_gtk = True
 		else:
 			self.use_gtk = False
 
-	def bind(self):
+	def set_port(self, port):
+		assert not self.running
+		assert isinstance(port, int), port
+		self.port = port
+
+	def start(self):
+		'''Open a socket and start listening. If we are already, first calls
+		stop() to close the old socket, causing a restart. Emits the 'started'
+		signal upon success.
+		'''
+		if self.running:
+			self.stop()
+
+		self.logger.info('Server starting')
 		#~ logger.warn('''\
 #~ WARNING: Serving zim notes as a webserver. Unless you have some
 #~ kind of firewall your notes are now open to the whole wide world.
@@ -250,15 +272,34 @@ class Server(Handler):
 		glib.io_add_watch(self.socket, glib.IO_IN,
 			lambda *a: self.do_accept_request())
 
+		self.running = True
+		self.emit('started')
+
+	def stop(self):
+		'''Close the socket and stop listening, emits the 'stopped' signal'''
+		if not self.running:
+			return # ignore silently
+
+		try:
+			self.socket.close()
+		except Exception, error:
+			self.logger.error(error)
+		self.socket = None
+
+		self.logger.info('Server stopped')
+		self.running = False
+		self.emit('stopped')
+
 	def main(self):
-		if self.socket is None:
-			self.bind()
 		if self.use_gtk:
 			import gtk
 			self.window.show_all()
 			gtk.main()
 		else:
+			if not self.running:
+				self.start()
 			glib.MainLoop().run()
+		self.stop()
 
 	def do_accept_request(self):
 		# set up handler for new connection
@@ -292,3 +333,6 @@ class Server(Handler):
 		wfile.close()
 		clientsocket.close()
 		return True # else io watch gets deleted
+
+# Need to register classes defining gobject signals
+gobject.type_register(Server)

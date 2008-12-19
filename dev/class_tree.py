@@ -22,9 +22,10 @@ class TextTree(object):
 				strings.extend([ps2 + s for s in substrings])
 
 		items = self.items()
-		for i in range(len(items)-1):
-			add_item(items[i], '|-- ', '|   ')
-		add_item(items[-1], '`-- ', '    ')
+		if items:
+			for i in range(len(items)-1):
+				add_item(items[i], '|-- ', '|   ')
+			add_item(items[-1], '`-- ', '    ')
 
 		return strings
 
