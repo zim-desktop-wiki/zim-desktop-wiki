@@ -51,7 +51,7 @@ class NotebookTreeModel(gtk.ListStore):
 
 	def get_default(self):
 		'''Returns a TreeIter for the default notebook or None'''
-		default = self.notebooks['_default_']
+		default = self.notebooks.get('_default_')
 		if not default is None:
 			return self.get_iter_from_notebook(default)
 		else:
@@ -111,6 +111,14 @@ class NotebookComboBox(gtk.ComboBox):
 		cell_renderer = gtk.CellRendererText()
 		self.pack_start(cell_renderer, False)
 		self.set_attributes(cell_renderer, text=0)
+		self.set_active_default()
+
+	def set_active_default(self):
+		iter = self.get_model().get_default()
+		if iter is None:
+			self.set_active(-1)
+		else:
+			self.set_active_iter(iter)
 
 	def set_notebook(self, notebook):
 		iter = self.get_model().get_iter_from_notebook(notebook)
@@ -151,11 +159,7 @@ class DefaultNotebookComboBox(NotebookComboBox):
 		# is set to the name of one of the other notebooks.
 		# This needs to be done everytime the model changes
 		self._block_changed = True
-		iter = model.get_default()
-		if iter is None:
-			self.set_active(-1)
-		else:
-			self.set_active_iter(iter)
+		self.set_active_default()
 		self._block_changed = False
 
 

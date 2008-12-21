@@ -138,6 +138,16 @@ When exporting:
 * Store type for reading from .tar.gz files
 
 
+== Get a self hosting documentation browser ==
+
+For example './zim.py zim/' should show all modules and classes in the treeview
+clicking a page should show API documentation. Using the xdot view should show
+relations between classes.
+
+* Store that generates pydoc like output for a python source file
+* Link types to distinguise inheritance and collaboration
+
+
 ====== Changes from zim < 0.42 ======
 
 We depend on Gtk+ >= 2.6 instead of >= 2.4

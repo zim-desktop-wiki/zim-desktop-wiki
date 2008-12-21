@@ -34,11 +34,7 @@ class ServerWindow(gtk.Window):
 		self.server.connect_after('started', self.do_server_started)
 		self.server.connect_after('stopped', self.do_server_stopped)
 
-		def _start(*a):
-			if self.server.notebook is None:
-				print "TODO: handle multiple notebooks"
-			else:
-				self.server.start()
+		def _start(*a): self.server.start()
 
 		def _stop(*a): self.server.stop()
 

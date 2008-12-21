@@ -27,7 +27,6 @@ notebooks.
 '''
 
 import sys
-import os
 import socket
 import logging
 import glib
@@ -37,23 +36,40 @@ from zim import Interface
 from zim.utils import rfc822headers
 from zim.fs import *
 
-class Error(Exception):
+
+class WWWError(Exception):
 	'''FIXME'''
 
-	def __init__(self, code, msg):
+	def __init__(self, status='500 Internal Server Error', msg='Internal Server Error'):
 		'''FIXME'''
-		self.code = code
-		self.msg = msg
+		self.status = status
+		self.content = msg
+
+
+class NoConfigError(WWWError):
+
+	def __init__(self):
+		WWWError.__init__(self, msg='Server was not configured properly, please provide a notebook first.')
+
+
+class PageNotFoundError(WWWError):
+
+	def __init__(self, page):
+		WWWError.__init__(self, '404 Not Found', msg='No such page: %s' % page.name)
 
 
 class WWWInterface(Interface):
-	'''Class to handle the WWW interface for zim notebooks'''
+	'''Class to handle the WWW interface for zim notebooks.
+
+	Objects of this class are callable, so they can be used as application
+	objects within a WSGI compatible framework. See PEP 333 for details
+	( http://www.python.org/dev/peps/pep-0333/ ).
+	'''
 
 	ui_type = 'html'
 
 	def __init__(self, notebook=None, template='Default', **opts):
 		Interface.__init__(self, **opts)
-		assert not notebook is None, 'Need to specify a notebook'
 		self.output = None
 		if isinstance(template, basestring):
 			from zim.templates import get_template
@@ -61,83 +77,92 @@ class WWWInterface(Interface):
 		self.template = template
 		self.load_config()
 		self.load_plugins()
-		self.open_notebook(notebook)
+		if not notebook is None:
+			self.open_notebook(notebook)
 
-	def serve(self, path, file):
+	def __call__(self, environ, start_response):
 		'''Main function for handling a single request. Arguments are the file
 		handle to write the output to and the path to serve. Any exceptions
 		will result in a error response being written.
 		'''
-		# TODO: add argument post=None for handling posted forms
-		# TODO: first path element could be notebook name
-		assert self.output is None
-		self.output = file
+		path = environ.get('PATH_INFO', '/')
 		try:
-			if path == '/':
-				self.serve_index()
+			if self.notebook is None:
+				raise NoConfigError
+			elif len(path) == 0 or path == '/':
+				content = self.render_index()
 			elif path.startswith('/+docs/'):
 				pass # TODO document root
 			elif path.startswith('/+file/'):
 				pass # TODO attachment or raw source
 			else:
 				pagename = path.replace('/', ':')
-				self.serve_page(pagename)
+				content = self.render_page(pagename)
+		except WWWError, error:
+			header = [('Content-Type', 'text/plain')]
+			start_response(error.status, header)
+			return error.content
 		except Exception, error:
-			self.write_error(error)
+			sys.excepthook(*sys.exc_info())
+			#~ environ['wsgi.errors'].write(str(error)+'\n') # FIXME also print stack trace
+			start_response('500 Internal Server Error', [])
+			return []
+		else:
+			header = [('Content-Type', 'text/html;charset=utf-8')]
+			start_response('200 OK', header)
+			return [string.encode('utf8') for string in content]
 
-		self.output = None
-
-	def serve_index(self, namespace=None):
+	def render_index(self, namespace=None):
 		'''Serve the index page'''
 		# TODO wrap index into a page so we can use the same template
-		html = '''
+		html = ['''\
 <html>
 <head>
 	<title>Notebook index - zim</title>
 </head>
 <body>
-'''
+''']
 		if namespace:
-			html += '<h1>%s</h1>' % namespace
+			html.append('<h1>%s</h1>\n' % namespace)
 		else:
-			html += '<h1>Notebook index</h1>'
+			html.append('<h1>Notebook index</h1>\n')
 
-		html += '<ul>\n'
+		html.append('<ul>\n')
 
 		def add_page(page):
 			href = self.href(page)
 			text = page.basename
-			myhtml = '<li><a href="%s">%s</a></li>\n' % (href, text)
+			myhtml = ['<li><a href="%s">%s</a></li>\n' % (href, text)]
 			if page.children:
-				myhtml += '<ul>\n'
+				myhtml.append('<ul>\n')
 				for page in page.children:
-					myhtml += add_page(page) # recurs
-				myhtml += '</ul>\n'
+					myhtml.extend(add_page(page)) # recurs
+				myhtml.append('</ul>\n')
 			return myhtml
 
-		pagelist = self.notebook.get_root()
-		if namespace:
+		if namespace is None:
+			pagelist = self.notebook.get_root()
+		else:
 			pagelist = self.notebook.get_page(namespace).children
 
 		for page in pagelist:
-			html += add_page(page)
+			html.extend(add_page(page))
 
-		html += '''
+		html.append('''\
 </ul>
 </body>
 </html>
-'''
-		self.write_headers(200)
-		self.output.write(html.encode('utf8'))
+''')
+		return html
 
-	def serve_page(self, pagename):
+	def render_page(self, pagename):
 		'''Serve a single page from the notebook'''
 		page = self.notebook.get_page(pagename)
 		if page.isempty():
 			if page.children:
-				return self.serve_index(page.name)
+				return self.render_index(page.name)
 			else:
-				raise Error, (404, 'Page not found: %s' % pagename)
+				raise PageNotFoundError(page)
 		else:
 			if self.template:
 				output = Buffer()
@@ -145,8 +170,7 @@ class WWWInterface(Interface):
 				html = output.getvalue()
 			else:
 				html = page.get_text(format='html')
-			self.write_headers(200)
-			self.output.write(html.encode('utf8'))
+			return [html]
 
 	def href(self, page):
 		'''Returns the url to page'''
@@ -155,74 +179,9 @@ class WWWInterface(Interface):
 		#~ return self.url + path
 		return path
 
-	def write_headers(self, response, headers=None):
-		'''FIXME'''
-		if headers is None: headers = {}
 
-		# Send HTTP response
-		self.output.write("HTTP/1.0 %d\r\n" % response)
-
-  		# Set default headers
-		#~ headers['Server'] = 'zim %.2f' % zim.__version__
-		#~ headers['Date'] = '1-1-00' # FIXME
-		headers.setdefault('Content-Type', 'text/html;charset=utf-8')
-		# Last-Modified
-		# etc.
-
-		# Write headers
-		self.output.write(rfc822headers.format(headers, strict=True))
-		self.output.write("\r\n") # end of headers
-
-	def write_error(self, error):
-		'''FIXME'''
-		if isinstance(error, Error):
-			code = error.code
-			msg = error.msg
-		else:
-			code = 500
-			msg = error.__str__()
-		self.write_headers(code)
-		self.output.write(msg.encode('utf8'))
-
-
-class Handler(gobject.GObject):
-	'''FIXME'''
-
-	def __init__(self, notebook=None, **opts):
-		gobject.GObject.__init__(self)
-		self.opts = opts
-		self.notebook = None
-		self.notebooks = {}
-		if not notebook is None:
-			self.set_notebook(notebook)
-
-	def set_notebook(self, notebook):
-		self.notebook = WWWInterface(notebook=notebook, **self.opts)
-
-	def main(self):
-		'''FIXME'''
-		path = os.environ['PATH_INFO'] or '/'
-		self.serve(path, sys.stdout)
-
-	def serve(self, path, file):
-		'''FIXME'''
-		# TODO: decode path %xx -> char(xx)
-		if self.notebook is None:
-			# if not path or path == '/':
-			#	serve index page
-			# else:
-			# 	i = path.find('/')
-			#	name = path[:i]
-			#	if not name in self.notebooks
-			#		self.notebooks[name] = WWWInterface(name, **self.opts)
-			#	self.notebooks[notebook].serve(path[i:], file)
-			assert False, 'TODO dispatch multiple notebooks'
-		else:
-			# we only serve a single notebook
-			return self.notebook.serve(path, file)
-
-class Server(Handler):
-	'''Run a server based on BaseHTTPServer'''
+class Server(gobject.GObject):
+	'''Webserver based on glib'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -234,10 +193,15 @@ class Server(Handler):
 
 	def __init__(self, notebook=None, port=8080, gui=False, **opts):
 		'''FIXME'''
-		Handler.__init__(self, notebook, **opts)
+		gobject.GObject.__init__(self)
 		self.socket = None
 		self.running = False
 		self.set_port(port)
+
+		import wsgiref.handlers
+		self.handlerclass = wsgiref.handlers.SimpleHandler
+		self.interface = WWWInterface(notebook, **opts)
+
 		if gui:
 			import zim.gui.server
 			self.window = zim.gui.server.ServerWindow(self)
@@ -250,19 +214,26 @@ class Server(Handler):
 		assert isinstance(port, int), port
 		self.port = port
 
+	def main(self):
+		if self.use_gtk:
+			import gtk
+			self.window.show_all()
+			gtk.main()
+		else:
+			if not self.running:
+				self.start()
+			glib.MainLoop().run()
+		self.stop()
+
 	def start(self):
-		'''Open a socket and start listening. If we are already, first calls
-		stop() to close the old socket, causing a restart. Emits the 'started'
-		signal upon success.
+		'''Open a socket and start listening. If we are running already, first
+		calls stop() to close the old socket, causing a restart. Emits the
+		'started' signal upon success.
 		'''
 		if self.running:
 			self.stop()
 
-		self.logger.info('Server starting')
-		#~ logger.warn('''\
-#~ WARNING: Serving zim notes as a webserver. Unless you have some
-#~ kind of firewall your notes are now open to the whole wide world.
-#~ ''')
+		self.logger.info('Server starting at port %i', self.port)
 
 		# open sockets for connections
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -290,17 +261,6 @@ class Server(Handler):
 		self.running = False
 		self.emit('stopped')
 
-	def main(self):
-		if self.use_gtk:
-			import gtk
-			self.window.show_all()
-			gtk.main()
-		else:
-			if not self.running:
-				self.start()
-			glib.MainLoop().run()
-		self.stop()
-
 	def do_accept_request(self):
 		# set up handler for new connection
 		clientsocket, address = self.socket.accept() # TODO timeout ?
@@ -323,16 +283,25 @@ class Server(Handler):
 			#~ headers = rfc822headers.parse(''.join(headerlines))
 		#~ else:
 			#~ headers = {}
-		# assume no body since we do not supprot POST (yet)
-		rfile.close()
 
 		wfile = clientsocket.makefile('wb')
-		#~ wfile.write("HTTP/1.0 %d\r\n" % 500)
-		self.serve(path, wfile)
+		environ = {
+			'REQUEST_METHOD': 'GET',
+			'SCRIPT_NAME': '',
+			'PATH_INFO': path,
+			'QUERY_STRING': '',
+			'SERVER_NAME': 'localhost',
+			'SERVER_PORT': str(self.port),
+			'SERVER_PROTOCOL': version
+		}
+		handler = self.handlerclass(rfile, wfile, None, environ) # TODO stderr
+		handler.run(self.interface)
+		rfile.close()
 		wfile.flush()
 		wfile.close()
 		clientsocket.close()
 		return True # else io watch gets deleted
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(Server)

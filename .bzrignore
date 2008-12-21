@@ -10,3 +10,4 @@ MANIFEST
 **/.zim
 coverage
 tests/tmp
+doxygen

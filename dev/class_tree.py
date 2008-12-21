@@ -4,24 +4,22 @@ import os
 
 class TextTree(object):
 
-	name = '<tree>'
-
-	def tostring(self):
-		strings = self.tostrings()
+	def tostring(self, object):
+		strings = self.tostrings(object)
 		return ''.join(strings)
 
-	def tostrings(self):
-		strings = [self.name + '\n']
+	def tostrings(self, object):
+		strings = [object.name + '\n']
 
 		def add_item(item, ps1, ps2):
 			if isinstance(item, basestring):
 				strings.append(ps1 + item + '\n')
 			else:
-				substrings = item.tostrings()
+				substrings = self.tostrings(item) # recurs
 				strings.append(ps1 + substrings.pop(0))
 				strings.extend([ps2 + s for s in substrings])
 
-		items = self.items()
+		items = object.items()
 		if items:
 			for i in range(len(items)-1):
 				add_item(items[i], '|-- ', '|   ')
@@ -29,11 +27,9 @@ class TextTree(object):
 
 		return strings
 
-	def items(self):
-		raise NotImplementedError
 
 
-class ModuleFile(TextTree):
+class ModuleFile(object):
 
 	def __init__(self, file):
 		assert os.path.isfile(file), 'Could not find file: %s' % file
@@ -74,5 +70,5 @@ class ModuleDir(ModuleFile):
 
 
 if __name__ == '__main__':
-	tree = ModuleDir('./zim')
-	print tree.tostring()
+	dir = ModuleDir('./zim')
+	print TextTree().tostring(dir)
