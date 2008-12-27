@@ -39,10 +39,6 @@ except:
 logger = logging.getLogger('zim')
 
 
-# Used in error messages and is passed on the the app as
-# the command to call to spawn a new instance.
-executable = 'zim'
-
 # All commandline options in various groups
 longopts = ('verbose', 'debug')
 cmdopts = ('help', 'version', 'gui', 'server', 'export', 'manual')
@@ -92,6 +88,9 @@ class UsageError(Exception):
 def main(argv):
 	'''Run the main program.'''
 
+	import zim
+	zim.executable = argv[0]
+
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
 	long = list(longopts)
@@ -115,13 +114,12 @@ def main(argv):
 
 	# If it is a simple command execute it and return
 	if cmd == 'version':
-		import zim
 		print 'zim %s\n' % zim.__version__
 		print zim.__copyright__, '\n'
 		print zim.__license__
 		return
 	elif cmd == 'help':
-		print usagehelp.replace('zim', executable)
+		print usagehelp.replace('zim', zim.executable)
 		print optionhelp
 		return
 
@@ -145,7 +143,7 @@ def main(argv):
 		allowedopts.extend(guiopts)
 
 	# Convert options into a proper dict
-	optsdict = {'executable': executable}
+	optsdict = {}
 	for o, a in opts:
 		o = o.lstrip('-')
 		if o in shortopts:
@@ -172,32 +170,31 @@ def main(argv):
 	logging.basicConfig(level=level, format='%(message)s')
 
 	# Now we determine the class to handle this command
-	if cmd == 'gui':
+	# and start the application ...
+	logger.debug('run command: %s', cmd)
+	if cmd == 'export':
+		handler = zim.NotebookInterface(notebook=args[0])
+		if len(args) == 2:
+			optsdict['page'] = args[1]
+		handler.export(**optsdict)
+	elif cmd == 'gui':
 		import zim.gui
-		klass = zim.gui.GtkInterface
-		# TODO use daemon handler instead
+		handler = zim.gui.GtkInterface(*args, **optsdict)
+		handler.main()
 	elif cmd == 'server':
 		import zim.www
-		klass = zim.www.Server
-	elif cmd == 'export':
-		import zim.command
-		klass = zim.command.CommandInterface
-
-	# and start the application ...
-	logger.debug('application class: %s', klass.__name__)
-	handler = klass(*args, **optsdict)
-	handler.main()
+		handler = zim.www.Server(*args, **optsdict)
+		handler.main()
 
 
 if __name__ == '__main__':
-	executable = sys.argv[0]
 	try:
 		main(sys.argv)
 	except GetoptError, err:
-		print >>sys.stderr, executable+':', err
+		print >>sys.stderr, sys.argv[0]+':', err
 		sys.exit(1)
 	except UsageError, err:
-		print >>sys.stderr, usagehelp.replace('zim', executable)
+		print >>sys.stderr, usagehelp.replace('zim', sys.argv[0])
 		sys.exit(1)
 	except KeyboardInterrupt: # e.g. <Ctrl>C while --server
 		print >>sys.stderr, 'Interrupt'

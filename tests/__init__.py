@@ -13,7 +13,7 @@ __all__ = [
 	'utils', 'fs',
 	'formats', 'templates',
 	'stores', 'notebook',
-	'plugins'
+	'history', 'plugins'
 ]
 
 __unittest = 1 # needed to get stack trace OK for class TestCase

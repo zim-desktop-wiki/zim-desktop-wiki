@@ -32,7 +32,7 @@ import logging
 import glib
 import gobject
 
-from zim import Interface
+from zim import NotebookInterface
 from zim.utils import rfc822headers
 from zim.fs import *
 
@@ -58,7 +58,7 @@ class PageNotFoundError(WWWError):
 		WWWError.__init__(self, '404 Not Found', msg='No such page: %s' % page.name)
 
 
-class WWWInterface(Interface):
+class WWWInterface(NotebookInterface):
 	'''Class to handle the WWW interface for zim notebooks.
 
 	Objects of this class are callable, so they can be used as application
@@ -69,7 +69,7 @@ class WWWInterface(Interface):
 	ui_type = 'html'
 
 	def __init__(self, notebook=None, template='Default', **opts):
-		Interface.__init__(self, **opts)
+		NotebookInterface.__init__(self, **opts)
 		self.output = None
 		if isinstance(template, basestring):
 			from zim.templates import get_template

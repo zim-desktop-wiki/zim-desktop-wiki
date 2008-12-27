@@ -24,8 +24,9 @@ def collect_packages():
 	packages = []
 	for dir, dirs, files in os.walk('zim'):
 		if '__init__.py' in files:
-			package = '.'.join( os.path.split(dir) )
+			package = '.'.join(dir.split(os.sep))
 			packages.append(package)
+	#~ print 'Pakages: ', packages
 	return packages
 
 

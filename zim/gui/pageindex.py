@@ -71,7 +71,7 @@ class PageTreeView(gtkutils.BrowserTreeView):
 	def __init__(self, app):
 		gtkutils.BrowserTreeView.__init__(self)
 		self.app = app
-		self.app.connect('open-page', lambda o, p: self.select_page(p))
+		self.app.connect('open-page', lambda o, p, r: self.select_page(p))
 
 		self.set_model(PageTreeStore())
 		cell_renderer = gtk.CellRendererText()

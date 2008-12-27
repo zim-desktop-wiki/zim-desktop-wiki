@@ -84,7 +84,7 @@ class SpellPlugin(PluginClass):
 			self.spell = None
 		# TODO action_show_active
 
-	def do_open_page(self, ui, page):
+	def do_open_page(self, ui, page, record):
 		# Assume the old object is detached by hard coded
 		# hook in TextView, just attach a new one.
 		self.spell = None

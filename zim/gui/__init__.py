@@ -16,7 +16,7 @@ import gtk
 import gtk.keysyms
 
 import zim
-from zim import Interface
+from zim import NotebookInterface
 from zim.utils import data_file, config_file
 from zim.gui import pageindex, pageview
 
@@ -90,20 +90,24 @@ ui_radio_actions = (
 )
 
 
-class GtkInterface(Interface):
+class GtkInterface(NotebookInterface):
 	'''Main class for the zim Gtk interface. This object wraps a single
 	notebook and provides actions to manipulate and access this notebook.
+
+	Signals:
+	* open-page (page, historyrecord)
+	  Called when opening another page, see open_page() for details
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object,))
+		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object))
 	}
 
 	ui_type = 'gtk'
 
 	def __init__(self, notebook=None, page=None, **opts):
-		Interface.__init__(self, **opts)
+		NotebookInterface.__init__(self, **opts)
 		self.load_config()
 
 		icon = data_file('zim.png').path
@@ -232,7 +236,7 @@ class GtkInterface(Interface):
 			# No notebook has been set, so we open this notebook ourselfs
 			# TODO also check if notebook was open through demon before going here
 			logger.debug('Open notebook: %s', notebook)
-			Interface.open_notebook(self, notebook)
+			NotebookInterface.open_notebook(self, notebook)
 		else:
 			# We are already intialized, let another process handle it
 			# TODO put this in the same package as the daemon code
@@ -241,14 +245,17 @@ class GtkInterface(Interface):
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook.'''
 		self.notebook = notebook
+		self.history = notebook.get_history()
 
 		# TODO load history and set intial page
 		self.open_page_home()
 
-	def open_page(self, page=None):
+	def open_page(self, page=None, historyrecord=None):
 		'''Emit the open-page signal. The argument 'page' can either be a page
 		object or an absolute page name. If 'page' is None a dialog is shown
-		to specify the page.
+		to specify the page. The 'historyrecord' argument is used to pass a
+		position in the history for the page, if this is None the page will be
+		appended to the history.
 		'''
 		assert self.notebook
 		if page is None:
@@ -260,17 +267,25 @@ class GtkInterface(Interface):
 			page = self.notebook.get_page(page)
 		else:
 			logger.debug('Open page: %s (object)', page.name)
-		self.emit('open-page', page)
+		self.emit('open-page', page, historyrecord)
 
-	def do_open_page(self, page):
+	def do_open_page(self, page, historyrecord):
 		'''Signal handler for open-page.'''
 		self.page = page
+		if historyrecord is None:
+			self.history.append(page)
+		else:
+			self.history.set_current(historyrecord)
 
 	def open_page_back(self):
-		pass
+		record = self.history.get_previous()
+		if not record is None:
+			self.open_page(record.name, record)
 
 	def open_page_forward(self):
-		pass
+		record = self.history.get_next()
+		if not record is None:
+			self.open_page(record.name, record)
 
 	def open_page_parent(self):
 		pass
@@ -508,6 +523,6 @@ class MainWindow(gtk.Window):
 	def do_open_notebook(self, ui, notebook):
 		self.pageindex.treeview.set_pages( notebook.get_root() )
 
-	def do_open_page(self, ui, page):
+	def do_open_page(self, ui, page, record):
 		'''Signal handler for open-page, updates the pageview'''
 		self.pageview.set_page(page)

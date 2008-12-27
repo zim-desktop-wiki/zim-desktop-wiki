@@ -16,7 +16,7 @@ import weakref
 from zim.fs import *
 from zim.utils import Re, is_url_re, is_email_re, ConfigList, config_file, data_dir
 import zim.stores
-
+import zim.history
 
 def get_notebook(notebook):
 	'''Takes a path or name and returns a notebook object'''
@@ -144,6 +144,9 @@ class Notebook(object):
 				path = store.namespace[:i]
 		return stores
 
+	def get_history(self):
+		return zim.history.History(self) # FIXME
+
 	def normalize_name(self, name):
 		'''Normalizes a page name to a valid form.
 		Raises a LookupError if name is empty.
@@ -153,9 +156,6 @@ class Notebook(object):
 			raise LookupError, 'Empty page name'
 		parts = [p for p in name.split(':') if p]
 		return ':'+':'.join(parts)
-
-
-	# Public interface
 
 	def resolve_name(self, name, namespace=''):
 		'''Returns a proper page name from links or user input.
@@ -314,7 +314,7 @@ class Page(object):
 		self._tree    = None
 
 	def __repr__(self):
-		return '<%s: %>' % (self.__class__.__name__, self.name)
+		return '<%s: %s>' % (self.__class__.__name__, self.name)
 
 	@property
 	def namespace(self):
@@ -396,7 +396,7 @@ class Namespace(object):
 		self.store = store
 
 	def __repr__(self):
-		return '<%s: %>' % (self.__class__.__name__, self.name)
+		return '<%s: %s>' % (self.__class__.__name__, self.name)
 
 	def __iter__(self):
 		'''Calls the store.listpages generator function'''

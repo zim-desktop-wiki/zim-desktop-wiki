@@ -6,9 +6,9 @@ The tree below is only a summary, run "dev/class_tree.py" to see
 the full tree.
 
 zim
-|-- Interface()
+|-- NotebookInterface() # Code for commandline export etc.
 |-- gui             # Gtk interface
-|   |-- GtkInterface(Interface)
+|   |-- GtkInterface(NotebookInterface)
 |   |-- gtkutils
 |   |-- pageview
 |   |   |-- PageView()
@@ -17,10 +17,8 @@ zim
 |   `-- pageindex
 |       ` PageIndex()
 |-- www             # WWW interface, both server and cgi-bin
-|   |-- WWWInterface(Interface)
+|   |-- WWWInterface(NotebookInterface)
 |	`-- Server()
-|-- command         # Code for commandline export etc.
-|   `-- CommandInterface(Interface)
 |-- notebook
 |   |-- Notebook()
 |   |-- Page()
@@ -172,14 +170,13 @@ We depend on Gtk+ >= 2.6 instead of >= 2.4
 
 == Locking ==
 
-For files do atomic write by write tmp + rename
-If tmp exists, time out for x seconds, if it still exists (not again) overwrite
-Check modifiction on disk with regular interfalls
-If changed and modified allow "save copy" -> not as page, but as file
-Else prompt user and reload
+Do not use mtime or lock, even mtime fails on network drives.
+Use lock directory (similar to bzr) and if locked prompt user
+to break lock or open read-only. If detected that other
+process broke lock, warn user and switch to read-only.
 
-Maybe additional locking is needed for write access to the cache
-SQLite does some locking, but not enough for network access etc.
+Assume single user usage, so this is only prevention.
+For multi-user setups need network client etc.
 
 == Daemon ==
 
@@ -188,8 +185,9 @@ type for clients, so server and gui can have same notebook open.
 Need daemonclient object class and interfaceclient class.
 Also need a stub daemon class for stand alone and testing.
 
-== Network ==
+== Network client ==
 
 If we want to run a network version and decide to fix all the related
-concurency and authentication stuff the proper way would be to add
-an XML-RPC interface to the server.
+concurency and authentication stuff the proper way would be to extend the
+server with the needed interfaces. E.g. plain source pages and an SQL
+query interface with some plain text result page.

@@ -263,7 +263,7 @@ class TextView(gtk.TextView):
 
 	def __init__(self):
 		'''FIXME'''
-		gtk.TextView.__init__(self)
+		gtk.TextView.__init__(self, TextBuffer())
 		self.cursor = 'text'
 		self.gtkspell = None
 		self.set_left_margin(10)

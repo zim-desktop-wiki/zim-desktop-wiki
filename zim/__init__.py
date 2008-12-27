@@ -26,9 +26,9 @@ import gobject
 
 
 logger = logging.getLogger('zim')
+executable = 'zim'
 
-
-class Interface(gobject.GObject):
+class NotebookInterface(gobject.GObject):
 	'''FIXME
 
 	Subclasses can prove a class attribute "ui_type" to tell plugins what
@@ -43,9 +43,8 @@ class Interface(gobject.GObject):
 
 	ui_type = None
 
-	def __init__(self, executable='zim'):
+	def __init__(self, notebook=None):
 		gobject.GObject.__init__(self)
-		self.executable = executable # FIXME get rid of this parameter
 		self.notebook = None
 		self.plugins = []
 
@@ -59,6 +58,9 @@ class Interface(gobject.GObject):
 				version_info )
 		except ImportError:
 			logger.debug('No bzr version-info found')
+
+		if not notebook is None:
+			self.open_notebook(notebook)
 
 	def load_config(self):
 		'''FIXME'''
@@ -89,11 +91,30 @@ class Interface(gobject.GObject):
 		'''FIXME'''
 		self.notebook = notebook
 
+	def export(self, format='html', template=None, page=None, output=None):
+		'''FIXME'''
+		if page is None:
+			assert False, 'TODO: export whole notebook'
+		if not output is None:
+			assert False, 'TODO: output other than stdout'
+
+		if isinstance(page,basestring):
+			page = self.notebook.get_page(page)
+
+		if template is None:
+			print page.get_text(format=format).encode('utf8')
+		else:
+			import sys
+			if isinstance(template, basestring):
+				from zim.templates import get_template
+				template = get_template(format, template)
+			template.process(page, sys.stdout)
+
 	def spawn(self, *argv):
 		'''FIXME'''
 		argv = list(argv)
 		if argv[0] == 'zim':
-			argv[0] = self.executable
+			argv[0] = executable
 		logger.info('Spawn process: %s', ' '.join(['"%s"' % a for a in argv]))
 		try:
 			pid = os.spawnvp(os.P_NOWAIT, argv[0], argv)
@@ -105,5 +126,4 @@ class Interface(gobject.GObject):
 
 
 # Need to register classes defining gobject signals
-gobject.type_register(Interface)
-
+gobject.type_register(NotebookInterface)
