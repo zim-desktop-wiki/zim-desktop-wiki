@@ -10,6 +10,7 @@ from zim.fs import *
 from zim.notebook import Notebook
 import zim.stores
 
+# TODO test if store implements get_root() and get_namespace() correctly
 
 class TestStoresMemory(tests.TestCase):
 	'''Test the store.memory module'''
@@ -61,10 +62,10 @@ class TestStoresMemory(tests.TestCase):
 		# function in store, so path "anchor" does not work, search
 		# is strictly right to left through the namespace, if any
 		for link, namespace, name in (
-			('BAR',':Test:foo',':Test:foo:bar'),
-			('test',None,':Test'),
-			('test',':Test:foo:bar',':Test'),
-			('FOO:Dus',':Test:foo:bar',':Test:foo:Dus'),
+			('BAR','Test:foo','Test:foo:bar'),
+			('test',None,'Test'),
+			('test','Test:foo:bar','Test'),
+			('FOO:Dus','Test:foo:bar','Test:foo:Dus'),
 			# FIXME more ambigous test data
 		):
 			#~ print '-'*10+'\nLINK %s (%s)' % (link, namespace)

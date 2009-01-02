@@ -31,14 +31,12 @@ def get_store(name):
 
 class StoreClass():
 
-	def __init__(self, **args):
+	def __init__(self, notebook, namespace=''):
 		'''Constructor for stores.
 		At least pass a notebook and a namespace.
 		'''
-		assert 'notebook' in args
-		assert 'namespace' in args
-		self.notebook = args['notebook']
-		self.namespace = args['namespace']
+		self.notebook = notebook
+		self.namespace = namespace
 
 
 	# Public interface
@@ -65,11 +63,14 @@ class StoreClass():
 			name = self.relname(name)
 			return self._resolve_name(self.namespace, name)
 		else:
+			mynamespace = self.namespace
+			if len(mynamespace):
+				mynamespace += ':'
 			namespace = self.relname(namespace)
 			path = namespace.split(':')
 			while path:
 				# iterate backwards through the namespace path
-				ns = self.namespace+':'+':'.join(path)
+				ns = self.namespace+':'.join(path)
 				n = self._resolve_name(ns, name)
 				if n is None:
 					path.pop()
@@ -82,11 +83,13 @@ class StoreClass():
 		Return None if the first part of name does not exist.
 		'''
 		#~ print "=> TEST '%s', '%s'" % (namespace, name)
+		if len(namespace):
+			namespace += ':'
 		parts = name.split(':')
 		case = []
 		while parts:
 			# iterate forward through the page name parts
-			ns = namespace+':'+':'.join(case)
+			ns = namespace+':'.join(case)
 			ns = ns.rstrip(':')
 			pl = parts[0].lower()
 			#~ print "LIST", [p.basename for p in self.list_pages(ns)]
@@ -104,7 +107,7 @@ class StoreClass():
 				break
 		if case:
 			case.extend(parts)
-			return namespace+':'+':'.join(case)
+			return namespace+':'.join(case)
 		else:
 			return None
 
@@ -177,15 +180,12 @@ class StoreClass():
 		'''FIXME interface not yet defined'''
 		raise NotImplementedError
 
-
-	# Interface for sub-classes
-
 	def has_dir(self):
 		'''Returns True if we have a directory attribute.
 		Auto-vivicates the dir based on namespace if needed.
 		Intended to be used in an 'assert' statement by subclasses.
 		'''
-		if hasattr(self, 'dir'):
+		if hasattr(self, 'dir') and not self.dir is None:
 			return isinstance(self.dir, Dir)
 		elif hasattr(self.notebook, 'dir'):
 			path = self.namespace.replace(':', '/')

@@ -29,14 +29,22 @@ class HistoryRecord(object):
 		self.i = i
 
 	@property
-	def name(self): return self.history[self.i][PAGE_COL]
+	def name(self):
+		return self.history[self.i][PAGE_COL]
 
 	@property
-	def cursor(self): return self.history[self.i][CURSOR_COL]
+	def cursor(self):
+		return self.history[self.i][CURSOR_COL]
 
 	@property
-	def scroll(self): return self.history[self.i][SCROLL_COL]
+	def scroll(self):
+		return self.history[self.i][SCROLL_COL]
 
+	def is_first(self):
+		return self.i == 0
+
+	def is_last(self):
+		return self.i == len(self.history)-1
 
 class History(object):
 	'''FIXME'''
@@ -84,6 +92,20 @@ class History(object):
 		else:
 			return None
 
+	def get_child(self, page):
+		'''FIXME'''
+		namespace = page.name + ':'
+		for i in range(self.current):
+			j = self.current - i
+			if self.history[j][PAGE_COL].startswith(namespace):
+				return HistoryRecord(self.history, j)
+		else:
+			return None
+
 	def get_recent(self):
 		'''Generator function that yields unique records'''
-		# TODO
+		# TODO get recent
+
+	def get_namespace(self):
+		'''Generator function that yields records in same namespace path'''
+		# TODO get namespace

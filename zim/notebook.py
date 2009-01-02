@@ -63,6 +63,10 @@ def set_notebooks_dict(notebooks):
 	notebooks.write(file)
 
 
+class PageNameError(Exception):
+	pass
+
+
 class LookupError(Exception):
 	pass
 
@@ -77,6 +81,7 @@ class Notebook(object):
 		self.page_cache = weakref.WeakValueDictionary()
 		self.dir = None
 		self.name = name
+		self._history_ref = lambda: None
 
 		if isinstance(path, Dir):
 			self.dir = path
@@ -112,18 +117,19 @@ class Notebook(object):
 
 	def get_store(self, name, resolve=False):
 		'''Returns the store object to handle a page or namespace.'''
-		if resolve:
-			# check case insensitive
-			lname = name.lower()
-			for namespace in self.namespaces:
-				# longest match first because of reverse sorting
-				if lname.startswith( namespace.lower() ):
-					return self.stores[namespace]
-		else:
-			for namespace in self.namespaces:
-				# longest match first because of reverse sorting
-				if name.startswith(namespace):
-					return self.stores[namespace]
+		for namespace in self.namespaces:
+			# longest match first because of reverse sorting
+			if name.startswith(namespace):
+				return self.stores[namespace]
+		raise LookupError, 'Could not find store for: %s' % name
+
+	def resolve_store(self, name):
+		'''Case insensitive version of get_store()'''
+		lname = name.lower()
+		for namespace in self.namespaces:
+			# longest match first because of reverse sorting
+			if lname.startswith( namespace.lower() ):
+				return self.stores[namespace]
 		raise LookupError, 'Could not find store for: %s' % name
 
 	def get_stores(self, name):
@@ -145,17 +151,30 @@ class Notebook(object):
 		return stores
 
 	def get_history(self):
-		return zim.history.History(self) # FIXME
+		history = self._history_ref()
+		if history is None:
+			history = zim.history.History(self)
+			self._history_ref = weakref.ref(history)
+		return history
 
 	def normalize_name(self, name):
 		'''Normalizes a page name to a valid form.
-		Raises a LookupError if name is empty.
+		Raises a PageNameError if name is empty.
 		'''
 		name = name.strip(':')
 		if not name:
-			raise LookupError, 'Empty page name'
+			raise PageNameError, 'Empty page name'
 		parts = [p for p in name.split(':') if p]
-		return ':'+':'.join(parts)
+		return ':'.join(parts)
+
+	def normalize_namespace(self, name):
+		'''Normalizes a namespace name to a valid form.'''
+		name = name.strip(':')
+		# TODO remove / encode chars that are not allowed
+		if not name:
+			return ''
+		parts = [p for p in name.split(':') if p]
+		return ':'.join(parts)
 
 	def resolve_name(self, name, namespace=''):
 		'''Returns a proper page name from links or user input.
@@ -183,7 +202,7 @@ class Notebook(object):
 		def resolve_abs(name):
 			# only resolve case for absolute name
 			# keep case as is when not found
-			store = self.get_store(name, resolve=True)
+			store = self.resolve_store(name)
 			n = store.resolve_name(name)
 			return n or name
 
@@ -191,7 +210,7 @@ class Notebook(object):
 			return resolve_abs(name)
 		else:
 			# first check if we see an explicit match in the path
-			anchor = name.split(':')[1].lower()
+			anchor = name.split(':')[0].lower()
 			path = namespace.lower().split(':')[1:]
 			if anchor in path:
 				# ok, so we can shortcut to an absolute path
@@ -233,7 +252,7 @@ class Notebook(object):
 
 	def get_namespace(self, namespace):
 		'''Returns a Namespace object for 'namespace'.'''
-		namespace = self.normalize_name(namespace)
+		namespace = self.normalize_namespace(namespace)
 		store = self.get_store(namespace)
 		return store.get_namespace(namespace)
 
@@ -318,8 +337,15 @@ class Page(object):
 
 	@property
 	def namespace(self):
+		'''Gives the namespace name for the parent namespace.
+		Gives empty string for the top level namespace.
+		Use 'notebook.get_namespace(page.namespace)' to get a namespace object.
+		'''
 		i = self.name.rfind(':')
-		return self.name[:i]
+		if i > 0:
+			return self.name[:i]
+		else:
+			return ''
 
 	@property
 	def basename(self):
@@ -401,6 +427,15 @@ class Namespace(object):
 	def __iter__(self):
 		'''Calls the store.listpages generator function'''
 		return self.store.list_pages( self.name )
+
+	def __getitem__(self, item):
+		# TODO: optimize querying a specific page in a namespace
+		i = 0
+		for page in self:
+			if i == item:
+				return page
+			else:
+				i += 1
 
 	def walk(self):
 		'''Generator to walk page tree recursively'''

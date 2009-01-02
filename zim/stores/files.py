@@ -26,14 +26,13 @@ __store__ = 'files'
 
 class Store(StoreClass):
 
-	def __init__(self, **args):
+	def __init__(self, dir=None, **args):
 		'''Contruct a files store.
 
 		Takes an optional 'dir' attribute.
 		'''
 		StoreClass.__init__(self, **args)
-		if 'dir' in args:
-			self.dir = args['dir']
+		self.dir = dir
 		assert self.has_dir()
 		self.format = formats.get_format('wiki') # TODO make configable
 

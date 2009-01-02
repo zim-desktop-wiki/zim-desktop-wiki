@@ -28,12 +28,13 @@ class TextBuffer(gtk.TextBuffer):
 	TODO: manage undo stack - group by memorizing offsets and get/set trees
 	TODO: manage rich copy-paste based on zim formats
 	      use serialization API if gtk >= 2.10 ?
+	TODO: emit textstyle-changed when cursor moved
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'insert-text': 'override',
-		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (str,)),
 	}
 
 	# text tags supported by the editor and default stylesheet
@@ -205,7 +206,7 @@ class TextBuffer(gtk.TextBuffer):
 			self.textstyle_tag = tag
 		else:
 			self.textstyle_tag = None
-		self.emit('textstyle-changed')
+		self.emit('textstyle-changed', style or '')
 
 	def do_insert_text(self, end, string, length):
 		'''Signal handler for insert-text signal'''

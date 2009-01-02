@@ -28,8 +28,6 @@ class ServerWindow(gtk.Window):
 		self.set_border_width(10)
 		self.connect('destroy', lambda a: gtk.main_quit())
 
-		self.mainwindow = self # FIXME needed to trick NotebookDialog
-
 		self.server = server
 		self.server.connect_after('started', self.do_server_started)
 		self.server.connect_after('stopped', self.do_server_stopped)
@@ -89,7 +87,7 @@ class ServerWindow(gtk.Window):
 		table.attach(self.notebookcombobox, 1,2, 0,1)
 
 		open_button = gtkutils.icon_button('gtk-index')
-		open_button.connect('clicked', lambda *a: NotebookDialog(self).main())
+		open_button.connect('clicked', lambda *a: NotebookDialog(self).run())
 		table.attach(open_button, 2,3, 0,1)
 
 		table.attach(gtk.Label('Port:'), 0,1, 1,2)

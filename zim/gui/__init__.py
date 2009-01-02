@@ -17,6 +17,7 @@ import gtk.keysyms
 
 import zim
 from zim import NotebookInterface
+from zim.notebook import PageNameError
 from zim.utils import data_file, config_file
 from zim.gui import pageindex, pageview
 
@@ -63,7 +64,7 @@ ui_actions = (
 	('open_page_forward', 'gtk-go-forward', '_Forward', '<alt>Right', 'Go page forward'),
 	('open_page_parent', 'gtk-go-up', '_Parent', '<alt>Up', 'Go to parent page'),
 	('open_page_child', 'gtk-go-down', '_Child', '<alt>Down', 'Go to child page'),
-	('open_page_prev', None, '_Previous in index', '<alt>Page_Up', 'Go to previous page'),
+	('open_page_previous', None, '_Previous in index', '<alt>Page_Up', 'Go to previous page'),
 	('open_page_next', None, '_Next in index', '<alt>Page_Down', 'Go to next page'),
 	('open_page_home', 'gtk-home', '_Home', '<alt>Home', 'Go home'),
 	('open_page', 'gtk-jump-to', '_Jump To...', '<ctrl>J', 'Jump to page'),
@@ -75,10 +76,10 @@ ui_actions = (
 )
 
 ui_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('toggle_toolbar', None, '_Toolbar',  None, 'Show toolbar'),
-	('toggle_statusbar', None, '_Statusbar', None, 'Show statusbar'),
-	('toggle_sidepane',  'gtk-index', '_Index', 'F9', 'Show index'),
+	# name, stock id, label, accelerator, tooltip, None, initial state
+	('toggle_toolbar', None, '_Toolbar',  None, 'Show toolbar', None, True),
+	('toggle_statusbar', None, '_Statusbar', None, 'Show statusbar', None, True),
+	('toggle_sidepane',  'gtk-index', '_Index', 'F9', 'Show index', None, False),
 )
 
 ui_radio_actions = (
@@ -108,6 +109,7 @@ class GtkInterface(NotebookInterface):
 
 	def __init__(self, notebook=None, page=None, **opts):
 		NotebookInterface.__init__(self, **opts)
+		self.page = None
 		self.load_config()
 
 		icon = data_file('zim.png').path
@@ -122,12 +124,14 @@ class GtkInterface(NotebookInterface):
 			</toolbar>
 		</ui>
 		''')
-		self.add_actions(ui_actions, self)
-		self.add_toggle_actions(ui_toggle_actions, self)
-		self.add_radio_actions(ui_radio_actions, self)
-		self.add_ui(data_file('menubar.xml').read(), self)
 
 		self.mainwindow = MainWindow(self)
+
+		self.add_actions(ui_actions, self)
+		self.add_toggle_actions(ui_toggle_actions, self.mainwindow)
+		self.add_radio_actions(ui_radio_actions, self.mainwindow)
+		self.add_ui(data_file('menubar.xml').read(), self)
+
 		self.load_plugins()
 
 		if not notebook is None:
@@ -161,41 +165,60 @@ class GtkInterface(NotebookInterface):
 	def add_actions(self, actions, handler):
 		'''Wrapper for gtk.ActionGroup.add_actions(actions),
 		"handler" is the object that has the methods for these actions.
+
+		Each action is mapped to a like named method of the handler object.
+		If the object not yet has an actiongroup this is created first,
+		attached to the uimanager and put in the "actiongroup" attribute.
 		'''
-		group = self._get_actiongroup(handler)
+		group = self._init_actiongroup(handler)
 		group.add_actions(actions)
 		self._connect_actions(actions, group, handler)
 
 	def add_toggle_actions(self, actions, handler):
 		'''Wrapper for gtk.ActionGroup.add_toggle_actions(actions),
 		"handler" is the object that has the methods for these actions.
+
+		Differs for add-actions() in that in the mapping from action name
+		to method name is prefixed with "do_". The reason for this is that
+		in order to keep the state of toolbar andmenubar widgets stays in
+		sync with the internal state. Therefore the method of the same name
+		as the action should just call activate() on the action, while the
+		actual logic is implamented in the handler which is prefixed with
+		"do_".
 		'''
-		group = self._get_actiongroup(handler)
+		group = self._init_actiongroup(handler)
 		group.add_toggle_actions(actions)
-		self._connect_actions(actions, group, handler)
+		self._connect_actions(actions, group, handler, is_toggle=True)
 
 	def add_radio_actions(self, actions, handler):
 		'''Wrapper for gtk.ActionGroup.add_radio_actions(actions),
 		"handler" is the object that has the methods for these actions.
 		'''
-		group = self._get_actiongroup(handler)
+		group = self._init_actiongroup(handler)
 		group.add_radio_actions(actions)
 		self._connect_actions(actions, group, handler)
 
-	def _get_actiongroup(self, handler):
-		if not hasattr(handler, '_actiongroup') or handler._actiongroup is None:
+	def _init_actiongroup(self, handler):
+		'''Initializes the actiongroup for handler if it does not already
+		exist and returns the actiongroup.
+		'''
+		if not hasattr(handler, 'actiongroup') or handler.actiongroup is None:
 			name = handler.__class__.__name__
-			handler._actiongroup = gtk.ActionGroup(name)
-			self.uimanager.insert_action_group(handler._actiongroup, 0)
-		return handler._actiongroup
+			handler.actiongroup = gtk.ActionGroup(name)
+			self.uimanager.insert_action_group(handler.actiongroup, 0)
+		return handler.actiongroup
 
-	def _connect_actions(self, actions, group, handler):
+	def _connect_actions(self, actions, group, handler, is_toggle=False):
+		def log_action(action):
+			logger.debug('Action: %s', action.get_name())
+
 		for name in [a[0] for a in actions if not a[0].endswith('_menu')]:
 			action = group.get_action(name)
+			if is_toggle:
+				name = 'do_' + name
 			assert hasattr(handler, name), 'No method defined for action %s' % name
 			method = getattr(handler.__class__, name)
-			action.connect('activate',
-				lambda a: logger.debug('Action: %s' % name))
+			action.connect('activate', log_action)
 			action.connect_object('activate', method, handler)
 
 	def add_ui(self, xml, handler):
@@ -207,20 +230,6 @@ class GtkInterface(NotebookInterface):
 		# TODO remove action group
 		# TODO remove ui
 
-	def toggle_toolbar(self): self.mainwindow.toggle_toolbar()
-
-	def toggle_statusbar(self): self.mainwindow.toggle_statusbar()
-
-	def toggle_sidepane(self): self.mainwindow.toggle_sidepane()
-
-	def set_pathbar_recent(self): pass
-
-	def set_pathbar_history(self): pass
-
-	def set_pathbar_namespace(self): pass
-
-	def set_pathbar_hidden(self): pass
-
 	def open_notebook(self, notebook=None):
 		'''Open a new notebook. If this is the first notebook the open-notebook
 		signal is emitted and the notebook is opened in this process. Otherwise
@@ -231,7 +240,12 @@ class GtkInterface(NotebookInterface):
 			# dialog will call this method again after a selection is made.
 			logger.debug('No notebook given, showing notebookdialog')
 			import notebookdialog
-			notebookdialog.NotebookDialog(self).main()
+			if self.mainwindow.get_property('visible'):
+				# this dialog does not need to run modal
+				notebookdialog.NotebookDialog(self).show_all()
+			else:
+				# main loop not yet started
+				notebookdialog.NotebookDialog(self).run()
 		elif self.notebook is None:
 			# No notebook has been set, so we open this notebook ourselfs
 			# TODO also check if notebook was open through demon before going here
@@ -259,8 +273,8 @@ class GtkInterface(NotebookInterface):
 		'''
 		assert self.notebook
 		if page is None:
-			print 'TODO: show JumpTo dialog'
-			return
+			# the dialog will call us in turn with an argument
+			return OpenPageDialog(self).run()
 
 		if isinstance(page, basestring):
 			logger.debug('Open page: %s', page)
@@ -271,11 +285,25 @@ class GtkInterface(NotebookInterface):
 
 	def do_open_page(self, page, historyrecord):
 		'''Signal handler for open-page.'''
+		is_first_page = self.page is None
 		self.page = page
+
+		back = self.actiongroup.get_action('open_page_back')
+		forward = self.actiongroup.get_action('open_page_forward')
+		parent = self.actiongroup.get_action('open_page_parent')
+		child = self.actiongroup.get_action('open_page_child')
+
 		if historyrecord is None:
 			self.history.append(page)
+			back.set_sensitive(not is_first_page)
+			forward.set_sensitive(False)
 		else:
 			self.history.set_current(historyrecord)
+			back.set_sensitive(not historyrecord.is_first())
+			forward.set_sensitive(not historyrecord.is_last())
+
+		parent.set_sensitive(len(page.namespace) > 0)
+		child.set_sensitive(not page.children is None)
 
 	def open_page_back(self):
 		record = self.history.get_previous()
@@ -288,16 +316,30 @@ class GtkInterface(NotebookInterface):
 			self.open_page(record.name, record)
 
 	def open_page_parent(self):
-		pass
+		namespace = self.page.namespace
+		if len(namespace) > 1: # not just ":"
+			self.open_page(namespace)
 
 	def open_page_child(self):
-		pass
+		if not self.page.children:
+			return
 
-	def open_page_prev(self):
-		pass
+		record = self.history.get_child(self.page)
+		if not record is None:
+			self.open_page(record.name, record)
+		else:
+			child = self.page.children[0]
+			self.open_page(child)
+
+	def open_page_previous(self):
+		page = self.notebook.get_previous(self.page)
+		if not page is None:
+			self.open_page(page)
 
 	def open_page_next(self):
-		pass
+		page = self.notebook.get_next(self.page)
+		if not page is None:
+			self.open_page(page)
 
 	def open_page_home(self):
 		self.open_page(self.notebook.get_home_page())
@@ -306,22 +348,31 @@ class GtkInterface(NotebookInterface):
 		'''opens a dialog like 'open_page(None)'. Subtle difference is
 		that this page is saved directly, so it is pesistent if the user
 		navigates away without first adding content. Though subtle this
-		is expected for users not yet fully aware of the automatic
+		is expected behavior for users not yet fully aware of the automatic
 		create/save/delete behavior in zim.
 		'''
-		pass
+		NewPageDialog(self).run()
 
 	def save_page(self):
+		self.save_page_if_modified()
+		text = page.get_text(format='wiki')
+		# TODO url encoding - replace \W with sprintf('%%%02x')
+		url = 'mailto:?subject=%s&body=%s' % (page.name, text)
+		# TODO open url
+
+	def save_page_if_modified(self):
 		pass
 
 	def save_version(self):
 		pass
 
 	def show_versions(self):
-		pass
+		import zim.gui.versionsdialog
+		zim.gui.versionsdialog.VersionDialog(self).run()
 
 	def show_export(self):
-		pass
+		import zim.gui.exportdialog
+		zim.gui.exportdialog.ExportDialog(self).run()
 
 	def email_page(self):
 		pass
@@ -336,22 +387,27 @@ class GtkInterface(NotebookInterface):
 		pass
 
 	def show_properties(self):
-		pass
+		import zim.gui.propertiesdialog
+		zim.gui.propertiesdialog.PropertiesDialog(self).run()
 
-	def show_search(self):
-		pass
+	def show_search(self, query=None):
+		import zim.gui.searchdialog
+		zim.gui.searchdialog.SearchDialog(self).main(query)
 
 	def show_search_backlinks(self):
-		pass
+		query = 'LinksTo: "%s"' % self.page.name
+		self.show_search(query)
 
 	def copy_location(self):
 		pass
 
 	def show_preferences(self):
-		pass
+		import zim.gui.preferencesdialog
+		zim.gui.preferencesdialog.PreferencesDialog(self).run()
 
 	def reload_page(self):
-		pass
+		self.save_page_if_modified()
+		self.open_page(self.page.name)
 
 	def attach_file(self):
 		pass
@@ -379,13 +435,13 @@ class GtkInterface(NotebookInterface):
 			self.spawn('zim', '--manual')
 
 	def show_help_faq(self):
-		self.show_help(':FAQ')
+		self.show_help('FAQ')
 
 	def show_help_keys(self):
-		self.show_help(':Usage:Keybindings')
+		self.show_help('Usage:KeyBindings')
 
 	def show_help_bugs(self):
-		self.show_help(':Bugs')
+		self.show_help('Bugs')
 
 	def show_about(self):
 		gtk.about_dialog_set_url_hook(lambda d, l: self.open_url(l))
@@ -437,10 +493,10 @@ class MainWindow(gtk.Window):
 
 		# setup menubar and toolbar
 		self.add_accel_group(ui.uimanager.get_accel_group())
-		menubar = ui.uimanager.get_widget('/menubar')
-		toolbar = ui.uimanager.get_widget('/toolbar')
-		vbox.pack_start(menubar, False)
-		vbox.pack_start(toolbar, False)
+		self.menubar = ui.uimanager.get_widget('/menubar')
+		self.toolbar = ui.uimanager.get_widget('/toolbar')
+		vbox.pack_start(self.menubar, False)
+		vbox.pack_start(self.toolbar, False)
 
 		# split window in side pane and editor
 		hpane = gtk.HPaned()
@@ -448,6 +504,7 @@ class MainWindow(gtk.Window):
 		vbox.add(hpane)
 		self.pageindex = pageindex.PageIndex(ui)
 		hpane.add1(self.pageindex)
+		# TODO start with hidden path index, fill data only when needed
 
 		self.pageindex.connect('key-press-event',
 			lambda o, event: event.keyval == gtk.keysyms.Escape
@@ -459,6 +516,8 @@ class MainWindow(gtk.Window):
 		# TODO pathbar
 
 		self.pageview = pageview.PageView(ui)
+		self.pageview.view.connect(
+			'toggle-overwrite', self.do_textview_toggle_overwrite)
 		vbox2.add(self.pageview)
 
 		# create statusbar
@@ -497,16 +556,39 @@ class MainWindow(gtk.Window):
 		#~ hbox.pack_end(statusbar2, False)
 
 	def toggle_toolbar(self):
-		pass
+		self.actiongroup.get_action('toggle_toolbar').activate()
+
+	def do_toggle_toolbar(self):
+		if self.toolbar.get_property('visible'):
+			self.toolbar.hide()
+		else:
+			self.toolbar.show()
 
 	def toggle_statusbar(self):
-		pass
+		self.actiongroup.get_action('toggle_statusbar').activate()
+
+	def do_toggle_statusbar(self):
+		if self.statusbar.get_property('visible'):
+			self.statusbar.hide()
+		else:
+			self.statusbar.show()
 
 	def toggle_sidepane(self):
+		self.actiongroup.get_action('toggle_sidepane').activate()
+
+	def do_toggle_sidepane(self):
 		if self.pageindex.get_property('visible'):
 			self.hide_sidepane()
 		else:
 			self.show_sidepane()
+
+	def set_pathbar_recent(self): pass
+
+	def set_pathbar_history(self): pass
+
+	def set_pathbar_namespace(self): pass
+
+	def set_pathbar_hidden(self): pass
 
 	def show_sidepane(self):
 		self.pageindex.show_all()
@@ -526,3 +608,180 @@ class MainWindow(gtk.Window):
 	def do_open_page(self, ui, page, record):
 		'''Signal handler for open-page, updates the pageview'''
 		self.pageview.set_page(page)
+
+		self.statusbar.pop(0)
+		self.statusbar.push(0, page.name)
+		# TODO set backlinks label
+
+		self.pageview.view.get_buffer().connect(
+			'textstyle-changed', lambda o, s: self.style_label.set_text(s))
+
+	def do_textview_toggle_overwrite(self, view):
+		state = view.get_overwrite()
+		if state: text = 'OVR'
+		else: text = 'INS'
+		self.insert_label.set_text(text)
+
+
+def _get_window(ui):
+	if isinstance(ui, gtk.Window):
+		return ui
+	elif hasattr(ui, 'mainwindow'):
+		return ui.mainwindow
+	else:
+		return None
+
+
+class ErrorDialog(gtk.MessageDialog):
+
+	def __init__(self, ui, error):
+		'''Constructor. 'ui' can either be the main application or some
+		other dialog from which the error originates. 'error' is the error
+		object.
+		'''
+		self.error = error
+		gtk.MessageDialog.__init__(
+			self, parent=_get_window(ui),
+			type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_CLOSE,
+			message_format=unicode(self.error)
+		)
+		# TODO set_secondary_text with details from error ?
+
+	def run(self):
+		'''Runs the dialog and destroys it directly.'''
+		logger.error(self.error)
+		gtk.MessageDialog.run(self)
+		self.destroy()
+
+
+class Dialog(gtk.Dialog):
+	'''Wrapper around gtk.Dialog used for most zim dialogs.
+	It adds a number of convenience routines to build dialogs.
+	The default behavior is modified in such a way that dialogs are
+	destroyed on response if the response handler returns True.
+	'''
+
+	def __init__(self, ui, title, buttons=gtk.BUTTONS_OK_CANCEL):
+		'''Constructor. 'ui' can either be the main application or some
+		other dialog from which this dialog is spwaned. 'title' is the dialog
+		title.
+		'''
+		assert not title.lower().endswith(' zim')
+		self.ui = ui
+		self.inputs = {}
+		gtk.Dialog.__init__(
+			self, parent=_get_window(self.ui),
+			title='%s - Zim' % title,
+			flags=gtk.DIALOG_NO_SEPARATOR,
+		)
+		self.set_border_width(10)
+		self.vbox.set_spacing(5)
+
+		if buttons is None or buttons == gtk.BUTTONS_NONE:
+			pass
+		elif buttons == gtk.BUTTONS_OK_CANCEL:
+			self.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+			self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+		else:
+			assert False, 'TODO - parse different button types'
+
+	def set_help(self, pagename):
+		'''Set the name of the manual page with help for this dialog.
+		Setting this will add a "help" button to the dialog.
+		'''
+		self.help_page = pagename
+		button = gtk.Button(stock=gtk.STOCK_HELP)
+		button.connect('clicked', lambda o: self.ui.show_help(self.help_page))
+		self.action_area.add(button)
+		self.action_area.set_child_secondary(button, True)
+
+	def add_text(self, text):
+		label = gtk.Label()
+		label.set_markup('<i>%s</i>' % text)
+		self.vbox.add(label)
+
+	def add_fields(self, fields, table=None):
+		if table is None:
+			table = gtk.Table()
+			table.set_border_width(5)
+			table.set_row_spacings(5)
+			table.set_col_spacings(12)
+			self.vbox.add(table)
+		i = table.get_property('n-rows')
+
+		for field in fields:
+			name, type, label, value = field
+			label = gtk.Label(label+':')
+			label.set_alignment(0.0, 0.5)
+			table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
+			entry = gtk.Entry()
+			if not value is None:
+				entry.set_text(value)
+			self.inputs[name] = entry
+			table.attach(entry, 1,2, i,i+1)
+			i += 1
+
+		return table
+
+	def get_fields(self):
+		'''Returns a dict with values of the fields.'''
+		values = {}
+		for name, entry in self.inputs.items():
+			values[name] = entry.get_text()
+		return values
+
+	def run(self):
+		self.show_all()
+		gtk.Dialog.run(self)
+
+	def show_all(self):
+		logger.debug('Opening dialog "%s"', self.title[:-6])
+		gtk.Dialog.show_all(self)
+
+	def do_response(self, id):
+		if id == gtk.RESPONSE_OK:
+			logger.debug('Dialog response OK')
+			close = self.do_response_ok()
+		else:
+			close = True
+
+		if close:
+			self.destroy()
+			logger.debug('Closed dialog "%s"', self.title[:-6])
+
+# Need to register classes defining gobject signals
+gobject.type_register(Dialog)
+
+
+class OpenPageDialog(Dialog):
+
+	def __init__(self, ui):
+		Dialog.__init__(self, ui, 'Jump to')
+		self.add_fields([('name', 'page', 'Jump to Page', None)])
+		# TODO custom "jump to" button
+
+	def do_response_ok(self):
+		try:
+			name = self.get_fields()['name']
+			name = self.ui.notebook.resolve_name(name)
+		except PageNameError, error:
+			ErrorDialog(self, error).run()
+			return False
+		else:
+			self.ui.open_page(name)
+			return True
+
+
+class NewPageDialog(OpenPageDialog):
+
+	def __init__(self, ui):
+		Dialog.__init__(self, ui, 'New Page')
+		self.add_text('Please note that linking to a non-existing page\nalso creates a new page automatically.')
+		self.add_fields([('name', 'page', 'Page Name', None)])
+		self.set_help(':Usage:Pages')
+
+	def do_response_ok(self):
+		ok = OpenPageDialog.do_response_ok(self)
+		if ok and not self.ui.page.exists():
+			self.ui.save_page()
+		return ok

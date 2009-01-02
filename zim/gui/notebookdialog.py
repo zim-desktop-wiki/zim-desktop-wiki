@@ -17,7 +17,7 @@ import pango
 from zim import notebook
 from zim.utils import data_file
 from zim.gui import gtkutils
-
+from zim.gui import Dialog
 
 NAME_COL = 0  # column with notebook name
 OPEN_COL = 1  # column with boolean if notebook is open alreadys
@@ -163,26 +163,13 @@ class DefaultNotebookComboBox(NotebookComboBox):
 		self._block_changed = False
 
 
-class NotebookDialog(gtk.Dialog):
+class NotebookDialog(Dialog):
 
-	def __init__(self, app):
-		self.app = app
-
-		# FIXME have helper for creating dialogs
-		gtk.Dialog.__init__(self,
-			title  = 'Open Notebook - Zim',
-			parent = app.mainwindow,
-			flags= gtk.DIALOG_NO_SEPARATOR,
-		)
+	def __init__(self, ui):
+		Dialog.__init__(self, ui, 'Open Notebook')
+		# TODO set button to "OPEN" instead of "OK"
 		self.set_default_size(500, 400)
-		self.set_border_width(10)
-		self.vbox.set_spacing(5)
-		help = self.add_button(gtk.STOCK_HELP, 9)
-		self.add_buttons(
-			gtk.STOCK_CANCEL, 0,
-			gtk.STOCK_OPEN, 42,
-		)
-		self.action_area.set_child_secondary(help, True)
+		self.set_help(':Usage:Notebooks')
 
 		# show some art work in an otherwise boring dialog
 		path = data_file('globe_banner_small.png').path
@@ -198,7 +185,8 @@ class NotebookDialog(gtk.Dialog):
 
 		# add notebook list - open notebook on clicking a row
 		self.treeview = NotebookTreeView()
-		self.treeview.connect('row-activated', lambda *a: self.response(42))
+		self.treeview.connect(
+			'row-activated', lambda *a: self.response(gtk.RESPONSE_OK))
 
 		swindow = gtk.ScrolledWindow()
 		swindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
@@ -234,33 +222,19 @@ class NotebookDialog(gtk.Dialog):
 		hbox.pack_start(clear_button, False)
 		self.vbox.pack_start(hbox, False)
 
-	def main(self):
-		'''Show and run the dialog. Does not have a return value, actions
-		are called directly on the application object.
-		'''
-		self.show_all()
+	def show_all(self):
+		# We focus on the treeview so that the user can start typing the
+		# notebook name directly when the dialog opens.
+		Dialog.show_all(self)
 		self.treeview.grab_focus()
 
-		def do_run():
-			id = self.run()
-			if id == 42: # Open
-				# TODO get notebook selection
-				model, iter = self.treeview.get_selection().get_selected()
-				if iter is None:
-					return True
-				name = model[iter][0]
-				self.app.open_notebook(name)
-				return False
-			elif id == 9: # Help
-				self.app.show_help(':Usage:Notebooks')
-				return True
-			else: # Close or destroy
-				return False
-
-		while do_run():
-			pass
-
-		self.hide()
+	def do_response_ok(self):
+		model, iter = self.treeview.get_selection().get_selected()
+		if iter is None:
+			return False
+		name = model[iter][0]
+		self.ui.open_notebook(name)
+		return True
 
 	def do_add_notebook(self, *a):
 		# TODO: add "new" notebook in list and select it

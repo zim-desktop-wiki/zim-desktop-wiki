@@ -167,7 +167,7 @@ def main(argv):
 	level = logging.WARNING
 	if optsdict.pop('verbose', False): level = logging.INFO
 	if optsdict.pop('debug', False): level = logging.DEBUG # no "elif" !
-	logging.basicConfig(level=level, format='%(message)s')
+	logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
 
 	# Now we determine the class to handle this command
 	# and start the application ...

@@ -38,20 +38,25 @@ class TestNotebook(tests.TestCase):
 	def testNormalizeName(self):
 		'''Test normalizing page names'''
 		for name, norm in (
-			('foo:::bar', ':foo:bar'),
-			('::foo:bar:', ':foo:bar'),
-			('foo', ':foo'),
-		): self.assertEqual(
+			('foo:::bar', 'foo:bar'),
+			('::foo:bar:', 'foo:bar'),
+			(':foo', 'foo'),
+		):
+			self.assertEqual(
 				self.notebook.normalize_name(name), norm)
-		self.assertRaises(LookupError, self.notebook.normalize_name, '')
+			self.assertEqual(
+				self.notebook.normalize_namespace(name), norm)
+		self.assertRaises(PageNameError, self.notebook.normalize_name, '')
+		self.assertEqual(
+			self.notebook.normalize_namespace(':'), '')
 
 	def testResolveName(self):
 		'''Test notebook.resolve_name()'''
 		for name, ns, wanted in (
-			('foo:bar', ':Test', ':Test:foo:bar'),
-			('Test', ':Test', ':Test'),
-			('foo', ':Test', ':Test:foo'),
-			(':Bar', None, ':Bar'),
+			('foo:bar', ':Test', 'Test:foo:bar'),
+			('Test', ':Test', 'Test'),
+			('foo', ':Test', 'Test:foo'),
+			(':Bar', None, 'Bar'),
 			# TODO more ambigous test cases
 		): self.assertEqual(self.notebook.resolve_name(name, ns), wanted)
 
@@ -73,6 +78,29 @@ class TestNotebook(tests.TestCase):
 #		): self.assertEqual(self.notebook.resolve_link(link, page), wanted)
 
 
+class Testpage(tests.TestCase):
+
+	def runTest(self):
+		'''Test page object'''
+		notebook = tests.get_test_notebook()
+
+		for name, nsname, basename in [
+			('Test:foo', 'Test', 'foo'),
+			('Test', '', 'Test'),
+		]:
+			page = notebook.get_page(name)
+			namespace = notebook.get_namespace(nsname)
+
+			# test basic properties
+			self.assertEqual(page.name, name)
+			self.assertEqual(page.basename, basename)
+			self.assertEqual(page.namespace, namespace.name)
+			self.assertTrue(page.name in page.__repr__())
+
+	# TODO test path()
+	# TODO test get / set parse tree with and without source
+
+
 class TestNamespace(tests.TestCase):
 
 	def runTest(self):
@@ -80,6 +108,7 @@ class TestNamespace(tests.TestCase):
 		notebook = tests.get_test_notebook()
 		namespace = notebook.get_root()
 		self.assertTrue(isinstance(namespace, Namespace))
+		self.assertEqual(namespace.name, '')
 
 		# first test the __iter__
 		wanted = [name for name in notebook.testdata_manifest if name.rfind(':') == 0]
@@ -98,13 +127,4 @@ class TestNamespace(tests.TestCase):
 		# test if we are actually used as advertised
 		namespace = notebook.get_page(':Test').children
 		self.assertTrue(isinstance(namespace, Namespace))
-
-
-#~ class Testpage(tests.TestCase):
-
-	#~ def __init__(self, *args, **opts):
-		#~ tests.TestCase.__init__(self, *args, **opts)
-		#~ self.notebook = tests.get_test_notebook()
-
-	# TODO exercise the page object a bit more...
 

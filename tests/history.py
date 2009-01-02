@@ -36,17 +36,21 @@ class TestHistory(TestCase):
 			prev = history.get_previous()
 			self.assertFalse(prev is None)
 			self.assertEqual(prev.name, self.pages[-i].name)
+			self.assertFalse(prev.is_last())
 			history.set_current(prev)
 
 		self._assertCurrent(history, self.pages[0])
 		self.assertTrue(history.get_previous() is None)
+		self.assertTrue(prev.is_first())
 
 		# walk forward
 		for i in range(1, len(self.pages)):
 			next = history.get_next()
 			self.assertFalse(next is None)
 			self.assertEqual(next.name, self.pages[i].name)
+			self.assertFalse(next.is_first())
 			history.set_current(next)
 
 		self._assertCurrent(history, self.pages[-1])
 		self.assertTrue(history.get_next() is None)
+		self.assertTrue(history.get_current().is_last())

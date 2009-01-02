@@ -70,7 +70,7 @@
 			<menuitem action='open_page_parent'/>
 			<menuitem action='open_page_child'/>
 			<menuitem action='open_page_next'/>
-			<menuitem action='open_page_prev'/>
+			<menuitem action='open_page_previous'/>
 			<separator/>
 			<placeholder name='plugin_items'/>
 			<separator/>
