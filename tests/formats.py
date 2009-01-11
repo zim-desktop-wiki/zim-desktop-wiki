@@ -45,11 +45,10 @@ Let's try these **bold**, //italic//, __underline__ and ~~strike~~
 And some ''//verbatim//''
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 
-And some utf8 bullet items
-• foo
-• bar
-
-• baz
+A list
+* foo
+	* bar
+	* baz
 
 ----
 
@@ -175,12 +174,8 @@ LINKS: <link href=":foo:bar" type="page">:foo:bar</link> <link href="./file.png"
 And some <code>//verbatim//</code>
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 </p>
-<p>And some utf8 bullet items
-• foo
-• bar
-</p>
-<p>• baz
-</p>
+<p>A list
+<ul level="0"><li>foo</li><ul level="1"><li>bar</li><li>baz</li></ul></ul></p>
 <p>----
 </p>
 <p>====
@@ -191,6 +186,28 @@ This is not a header
 		t = self.format.Parser(self.page).parse( Buffer(wikitext) )
 		self.assertEqualDiff(t.tostring(), tree)
 
+
+	def testUnicodeBullet(self):
+		input = u'''\
+Content-Type: text/x-zim-wiki
+
+A list
+• foo
+	• bar
+	• baz
+'''
+		text = u'''\
+Content-Type: text/x-zim-wiki
+
+A list
+* foo
+	* bar
+	* baz
+'''
+		tree = self.format.Parser(self.page).parse( Buffer(input) )
+		output = Buffer()
+		self.format.Dumper(self.page).dump(tree, output)
+		self.assertEqualDiff(output.getvalue(), text)
 
 class TestHtmlFormat(TestCase):
 
@@ -255,13 +272,14 @@ And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 </p>
 
 <p>
-And some utf8 bullet items
-• foo
-• bar
-</p>
-
-<p>
-• baz
+A list
+<ul>
+<li>foo</li>
+<ul>
+<li>bar</li>
+<li>baz</li>
+</ul>
+</ul>
 </p>
 
 <p>

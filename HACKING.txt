@@ -102,8 +102,7 @@ Other general guidelines:
 * For S5 template need to split body on H1 or HR
 	* FOREACH slide IN page.sections
 	* want to be able to cleanup headings per slide...
-* parse List nodes into parse tree
-	* Implement checkbox lists
+* Implement checkbox lists
 * Backward compatibility with older zim versions
     * Wiki pages without headers use indented paragraphs for Verbatim
 	* Resolve file should also check same dir as page source

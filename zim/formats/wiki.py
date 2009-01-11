@@ -20,11 +20,16 @@ info = {
 	'export': True,
 }
 
+TABSTOP = 4
+BULLET = u'[\\*\u2022]'
+
 parser_re = {
 	'blockstart': re.compile("\A(''')\s*?\n"),
 	'pre':        re.compile("\A'''\s*?(^.*?)^'''\s*\Z", re.M | re.S),
 	'splithead':  re.compile('^(==+[^\n\S]+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)\s+(.*?)(\s+==+)?\s*)\Z"),
+	'splitlist':  re.compile("((?:^\s*%s\s+.*\n?)+)" % BULLET, re.M),
+	'listitem':   re.compile("^(\s*)(%s)\s+(.*\n?)" % BULLET),
 
 	# All the experssions below will match the inner pair of
 	# delimiters if there are more then two characters in a row.
@@ -44,6 +49,7 @@ dumper_tags = {
 	'strike': '~~',
 	'code':   "''",
 }
+
 
 class Parser(ParserClass):
 
@@ -108,6 +114,7 @@ class Parser(ParserClass):
 		return ParseTree(builder.close())
 
 	def _parse_block(self, builder, block):
+		'''Parse a block, like a verbatim paragraph'''
 		m = parser_re['pre'].match(block)
 		assert m, 'Block does not match pre'
 		builder.start('pre')
@@ -115,8 +122,9 @@ class Parser(ParserClass):
 		builder.end('pre')
 
 	def _parse_head(self, builder, head):
+		'''Parse a heading'''
 		m = parser_re['heading'].match(head)
-		assert m, 'Line does not match a heading: '+head
+		assert m, 'Line does not match a heading: %s' % head
 		level = 7 - min(6, len(m.group(2)))
 		builder.start('h', {'level': level})
 		builder.data(m.group(3))
@@ -124,11 +132,54 @@ class Parser(ParserClass):
 		builder.data('\n')
 
 	def _parse_para(self, builder, para):
+		'''Parse a normal paragraph'''
 		if para.isspace():
 			builder.data(para)
-			return
+		else:
+			builder.start('p')
+			parts = parser_re['splitlist'].split(para)
+			for i, p in enumerate(parts):
+				if i % 2:
+					# odd elements in the list are lists after split
+					self._parse_list(builder, p)
+				elif len(p) > 0:
+					self._parse_text(builder, p)
+			builder.end('p')
 
-		list = [para]
+	def _parse_list(self, builder, list):
+		'''Parse a bullet list'''
+		#~ m = parser_re['listitem'].match(list)
+		#~ assert m, 'Line does not match a list item: %s' % line
+		#~ prefix = m.group(1)
+		#~ level = prefix.replace(' '*TABSTOP, '\t').count('\t')
+		level = 0
+		for i in range(-1, level):
+			builder.start('ul', {'level': i+1})
+
+		for line in list.splitlines():
+			m = parser_re['listitem'].match(line)
+			assert m, 'Line does not match a list item: %s' % line
+			prefix, bullet, text = m.groups()
+
+			mylevel = prefix.replace(' '*TABSTOP, '\t').count('\t')
+			if mylevel > level:
+				for i in range(level, mylevel):
+					builder.start('ul', {'level': i+1})
+			elif mylevel < level:
+				for i in range(mylevel, level):
+					builder.end('ul')
+			level = mylevel
+
+			builder.start('li')
+			self._parse_text(builder, text)
+			builder.end('li')
+
+		for i in range(-1, level):
+			builder.end('ul')
+
+	def _parse_text(self, builder, text):
+		'''Parse a piece of rich text, handles all inline formatting'''
+		list = [text]
 		list = self.walk_list(
 				list, parser_re['code'],
 				lambda match: ('code', {}, match) )
@@ -137,17 +188,17 @@ class Parser(ParserClass):
 			parts = match.split('|', 2)
 			link = parts[0]
 			if len(parts) > 1:
-				text = parts[1]
+				mytext = parts[1]
 			else:
-				text = link
+				mytext = link
 			if len(link) == 0: # [[|link]] bug
-					link = text
+					link = mytext
 			if is_url_re.match(link): type = is_url_re[1]
 			elif is_email_re.match(link): type = 'mailto'
 			elif is_path_re.match(link): type = 'file'
 			else: type = 'page'
 			# TODO how about interwiki ?
-			return ('link', {'type':type, 'href':link}, text)
+			return ('link', {'type':type, 'href':link}, mytext)
 
 		list = self.walk_list(list, parser_re['link'], parse_link)
 
@@ -155,10 +206,10 @@ class Parser(ParserClass):
 			parts = match.split('|', 2)
 			src = parts[0]
 			if len(parts) > 1:
-				text = parts[1]
+				mytext = parts[1]
 			else:
-				text = None
-			return ('img', {'src':src}, text)
+				mytext = None
+			return ('img', {'src':src}, mytext)
 
 		list = self.walk_list(list, parser_re['img'], parse_image)
 
@@ -169,7 +220,6 @@ class Parser(ParserClass):
 
 		# TODO: urls
 
-		builder.start('p')
 		for part in list:
 			if isinstance(part, tuple):
 				builder.start(part[0], part[1])
@@ -177,7 +227,6 @@ class Parser(ParserClass):
 				builder.end(part[0])
 			else:
 				builder.data(part)
-		builder.end('p')
 
 
 class Dumper(DumperClass):
@@ -194,20 +243,28 @@ class Dumper(DumperClass):
 		self.dump_children(tree.getroot(), file)
 		file.close()
 
-	def dump_children(self, list, file):
+	def dump_children(self, list, file, list_level=0):
 		'''FIXME'''
 
+		if list.text:
+			file.write(list.text)
+
 		for element in list.getchildren():
-			if element.tag in ['page', 'p']:
-				if element.text:
-					file.write(element.text)
+			if element.tag == 'p':
 				self.dump_children(element, file) # recurs
+			elif element.tag == 'ul':
+				list_level = element.attrib['level']
+				self.dump_children(element, file, list_level=list_level) # recurs
 			elif element.tag == 'h':
 				level = int(element.attrib['level'])
 				if level < 1:   level = 1
 				elif level > 5: level = 5
 				tag = '='*(7 - level)
 				file.write(tag+' '+element.text+' '+tag)
+			elif element.tag == 'li':
+				file.write('\t'*list_level+'* ')
+				self.dump_children(element, file, list_level=list_level) # recurs
+				file.write('\n')
 			elif element.tag == 'pre':
 				file.write("'''\n"+element.text+"'''\n")
 			elif element.tag == 'img':
@@ -226,7 +283,7 @@ class Dumper(DumperClass):
 				tag = dumper_tags[element.tag]
 				file.write(tag+element.text+tag)
 			else:
-				assert False, 'Unknown node type: '+node.__str__()
+				assert False, 'Unknown node type: %s' % element
 
 			if element.tail:
 				file.write(element.tail)

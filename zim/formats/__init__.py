@@ -91,8 +91,9 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''Serialize the tree to a XML representation.'''
 
 		# Parent dies when we have attributes that are not a string
-		for heading in self.getiterator('h'):
-			heading.attrib['level'] = str(heading.attrib['level'])
+		for tag in ('h', 'ul'):
+			for element in self.getiterator(tag):
+				element.attrib['level'] = str(element.attrib['level'])
 
 		xml = Buffer()
 		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")

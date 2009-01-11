@@ -51,20 +51,23 @@ class Dumper(DumperClass):
 		assert isinstance(tree, ParseTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
-		self.dump_children(tree.getroot(), file, top=True)
+		self.dump_children(tree.getroot(), file)
 		file.close()
 
-	def dump_children(self, list, file, top=False):
+	def dump_children(self, list, file):
 		'''FIXME'''
 		for element in list.getchildren():
 			text = html_encode(element.text)
 
-			if element.tag == 'p':
-				file.write('<p>\n')
+			if element.tag in ('p', 'ul', 'li'):
+				if element.tag == 'li':
+					file.write('<li>')
+				else:
+					file.write('<%s>\n' % element.tag)
 				if text:
 					file.write(text)
 				self.dump_children(element, file) # recurs
-				file.write('</p>\n')
+				file.write('</%s>\n' % element.tag)
 			elif element.tag == 'h':
 				tag = 'h' + str(element.attrib['level'])
 				file.write('<'+tag+'>'+text+'</'+tag+'>')
@@ -81,7 +84,7 @@ class Dumper(DumperClass):
 				else: tag = element.tag
 				file.write('<'+tag+'>'+text+'</'+tag+'>')
 			else:
-				assert False, 'Unknown node type: '+node.__str__()
+				assert False, 'Unknown node type: %s' % element
 
 			if not element.tail is None:
 				tail = html_encode(element.tail)

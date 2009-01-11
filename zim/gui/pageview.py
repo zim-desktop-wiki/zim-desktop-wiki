@@ -95,22 +95,26 @@ class TextBuffer(gtk.TextBuffer):
 		'''FIXME'''
 		self._insert_element_children(tree.getroot())
 
-	def _insert_element_children(self, node):
+	def _insert_element_children(self, node, list_level=0):
 		# FIXME: should block textstyle-changed here for performance
 		for element in node.getchildren():
-			if element.tag in ('p', 'link', 'img'):
-				# Blocks and object
-				if element.tag == 'p':
-					if element.text:
-						self.insert_at_cursor(element.text)
-					self._insert_element_children(element) # recurs
-				elif element.tag == 'link':
-					self.insert_link_at_cursor(element.attrib, element.text)
-				elif element.tag == 'img':
-					self.insert_image_at_cursor(element.attrib, element.text)
+			if element.tag in ('p', 'ul', 'li'):
+				if element.tag == 'ul':
+					list_level = element.attrib['level']
+				elif element.tag == 'li':
+					self.insert_at_cursor('\t'*list_level + u'\u2022 ')
+					if element.tail:
+						element.tail += '\n'
+					else:
+						element.tail = '\n'
 
-				if element.tail:
-					self.insert_at_cursor(element.tail)
+				if element.text:
+					self.insert_at_cursor(element.text)
+				self._insert_element_children(element, list_level=list_level) # recurs
+			elif element.tag == 'link':
+				self.insert_link_at_cursor(element.attrib, element.text)
+			elif element.tag == 'img':
+				self.insert_image_at_cursor(element.attrib, element.text)
 			else:
 				# Text styles
 				if element.tag == 'h':
@@ -124,8 +128,9 @@ class TextBuffer(gtk.TextBuffer):
 				if element.text:
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
-				if element.tail:
-					self.insert_at_cursor(element.tail)
+
+			if element.tail:
+				self.insert_at_cursor(element.tail)
 
 	def insert_link(self, iter, attrib, text):
 		'''FIXME'''
