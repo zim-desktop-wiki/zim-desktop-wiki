@@ -8,23 +8,7 @@
 # TODO check client host for security
 # TODO setting for doc_root_url when running in CGI mode
 
-'''FIXME
-
-A simple cgi-bin script to serve a zim notebook can look like this:
-
-	#!/usr/bin/python
-
-	import zim.www
-	cgi = zim.www.Handler(
-		notebook='./foobar/',      # [1]
-		template='./mytheme.html'  # [2]
-	)
-	cgi.main()
-
-[1] If you do not set the notebook the script will be able to serve all
-notebooks.
-[2] Without template "Default.html" will be used from the zim data directory.
-'''
+'''FIXME'''
 
 import sys
 import socket
@@ -33,9 +17,10 @@ import glib
 import gobject
 
 from zim import NotebookInterface
+from zim.notebook import Page
 from zim.utils import rfc822headers
 from zim.fs import *
-
+from zim.formats import ParseTree, TreeBuilder
 
 class WWWError(Exception):
 	'''FIXME'''
@@ -55,7 +40,9 @@ class NoConfigError(WWWError):
 class PageNotFoundError(WWWError):
 
 	def __init__(self, page):
-		WWWError.__init__(self, '404 Not Found', msg='No such page: %s' % page.name)
+		if not isinstance(page, basestring):
+			page = page.name
+		WWWError.__init__(self, '404 Not Found', msg='No such page: %s' % page)
 
 
 class WWWInterface(NotebookInterface):
@@ -64,6 +51,9 @@ class WWWInterface(NotebookInterface):
 	Objects of this class are callable, so they can be used as application
 	objects within a WSGI compatible framework. See PEP 333 for details
 	( http://www.python.org/dev/peps/pep-0333/ ).
+
+	For basic handlers to run this interface see the wsgiref package that comes
+	with python.
 	'''
 
 	ui_type = 'html'
@@ -84,20 +74,46 @@ class WWWInterface(NotebookInterface):
 		'''Main function for handling a single request. Arguments are the file
 		handle to write the output to and the path to serve. Any exceptions
 		will result in a error response being written.
+
+		First argument is a dictionary with environment variables and some special
+		variables. See the PEP for expected variables. The second argument is a
+		function that can be called for example like:
+
+			start_response(200, [('Content-Type', 'text/plain')])
+
+		This method is supposed to take care of sending the response line and
+		the headers.
+
+		The return value of this call is a list of lines with the content to
+		be served.
 		'''
 		path = environ.get('PATH_INFO', '/')
 		try:
 			if self.notebook is None:
 				raise NoConfigError
-			elif len(path) == 0 or path == '/':
+			elif path == '' or path == '/':
 				content = self.render_index()
 			elif path.startswith('/+docs/'):
 				pass # TODO document root
 			elif path.startswith('/+file/'):
 				pass # TODO attachment or raw source
 			else:
-				pagename = path.replace('/', ':')
-				content = self.render_page(pagename)
+				# Must be a page or a namespace (html file or directory path)
+				if path.endswith('.html'):
+					pagename = path[:-5].replace('/', ':')
+				elif path.endswith('/'):
+					pagename = path[:-1].replace('/', ':')
+				else:
+					raise PageNotFoundError(path)
+
+				page = self.notebook.get_page(pagename)
+				if page.isempty():
+					if page.children:
+						content = self.render_index(pagename)
+					else:
+						raise PageNotFoundError(page)
+				else:
+					content = self.render_page(pagename)
 		except WWWError, error:
 			header = [('Content-Type', 'text/plain')]
 			start_response(error.status, header)
@@ -113,71 +129,62 @@ class WWWInterface(NotebookInterface):
 			return [string.encode('utf8') for string in content]
 
 	def render_index(self, namespace=None):
-		'''Serve the index page'''
-		# TODO wrap index into a page so we can use the same template
-		html = ['''\
-<html>
-<head>
-	<title>Notebook index - zim</title>
-</head>
-<body>
-''']
-		if namespace:
-			html.append('<h1>%s</h1>\n' % namespace)
-		else:
-			html.append('<h1>Notebook index</h1>\n')
-
-		html.append('<ul>\n')
-
-		def add_page(page):
-			href = self.href(page)
-			text = page.basename
-			myhtml = ['<li><a href="%s">%s</a></li>\n' % (href, text)]
-			if page.children:
-				myhtml.append('<ul>\n')
-				for page in page.children:
-					myhtml.extend(add_page(page)) # recurs
-				myhtml.append('</ul>\n')
-			return myhtml
-
+		'''Serve an index page'''
 		if namespace is None:
-			pagelist = self.notebook.get_root()
-		else:
-			pagelist = self.notebook.get_page(namespace).children
+			namespace = self.notebook.get_root()
+		elif isinstance(namespace, basestring):
+			namespace = self.notebook.get_namespace(namespace)
 
-		for page in pagelist:
-			html.extend(add_page(page))
+		page = IndexPage(namespace)
+		return self.render_page(page)
 
-		html.append('''\
-</ul>
-</body>
-</html>
-''')
-		return html
-
-	def render_page(self, pagename):
+	def render_page(self, page):
 		'''Serve a single page from the notebook'''
-		page = self.notebook.get_page(pagename)
-		if page.isempty():
-			if page.children:
-				return self.render_index(page.name)
-			else:
-				raise PageNotFoundError(page)
-		else:
-			if self.template:
-				output = Buffer()
-				self.template.process(page, output)
-				html = output.getvalue()
-			else:
-				html = page.get_text(format='html')
-			return [html]
+		if isinstance(page, basestring):
+			page = self.notebook.get_page(page)
 
-	def href(self, page):
-		'''Returns the url to page'''
-		path = page.name.replace(':', '/')
-		if not path.startswith('/'): path = '/'+path
-		#~ return self.url + path
-		return path
+		if self.template:
+			output = Buffer()
+			self.template.process(page, output)
+			html = output.getvalue()
+		else:
+			html = page.get_text(format='html')
+
+		return [html]
+
+
+class IndexPage(Page):
+	'''Page displaying a Namespace index'''
+
+	def __init__(self, namespace, recurs=True):
+		'''Constructor takes a namespace object'''
+		Page.__init__(self, namespace.name, namespace.store)
+		self._index_namespace = namespace
+		self._index_recurs = recurs
+		self.properties['readonly'] = True
+		self.properties['isindex'] = True
+
+	def isempty(self): return False
+
+	def get_parsetree(self):
+		builder = TreeBuilder()
+
+		def add_namespace(namespace):
+			builder.start('ul')
+			for page in namespace:
+				builder.start('li')
+				builder.start('link', {'type': 'page', 'href': page.name})
+				builder.data(page.basename)
+				builder.end('link')
+				builder.end('li')
+				if page.children and self._index_recurs:
+					add_namespace(page.children) # recurs
+			builder.end('ul')
+
+		builder.start('page')
+		add_namespace(self._index_namespace)
+		builder.end('page')
+		return ParseTree(builder.close())
 
 
 class Server(gobject.GObject):

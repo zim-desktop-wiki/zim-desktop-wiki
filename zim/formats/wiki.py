@@ -154,7 +154,7 @@ class Parser(ParserClass):
 		#~ level = prefix.replace(' '*TABSTOP, '\t').count('\t')
 		level = 0
 		for i in range(-1, level):
-			builder.start('ul', {'level': i+1})
+			builder.start('ul')
 
 		for line in list.splitlines():
 			m = parser_re['listitem'].match(line)
@@ -164,7 +164,7 @@ class Parser(ParserClass):
 			mylevel = prefix.replace(' '*TABSTOP, '\t').count('\t')
 			if mylevel > level:
 				for i in range(level, mylevel):
-					builder.start('ul', {'level': i+1})
+					builder.start('ul')
 			elif mylevel < level:
 				for i in range(mylevel, level):
 					builder.end('ul')
@@ -243,7 +243,7 @@ class Dumper(DumperClass):
 		self.dump_children(tree.getroot(), file)
 		file.close()
 
-	def dump_children(self, list, file, list_level=0):
+	def dump_children(self, list, file, list_level=-1):
 		'''FIXME'''
 
 		if list.text:
@@ -253,8 +253,7 @@ class Dumper(DumperClass):
 			if element.tag == 'p':
 				self.dump_children(element, file) # recurs
 			elif element.tag == 'ul':
-				list_level = element.attrib['level']
-				self.dump_children(element, file, list_level=list_level) # recurs
+				self.dump_children(element, file, list_level=list_level+1) # recurs
 			elif element.tag == 'h':
 				level = int(element.attrib['level'])
 				if level < 1:   level = 1

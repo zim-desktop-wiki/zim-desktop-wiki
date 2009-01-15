@@ -175,7 +175,7 @@ And some <code>//verbatim//</code>
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 </p>
 <p>A list
-<ul level="0"><li>foo</li><ul level="1"><li>bar</li><li>baz</li></ul></ul></p>
+<ul><li>foo</li><ul><li>bar</li><li>baz</li></ul></ul></p>
 <p>----
 </p>
 <p>====
@@ -255,7 +255,7 @@ Some Verbatim here
 
 <p>
 IMAGE: <img src="../my-image.png" alt="Foo Bar">
-LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
+LINKS: <a href="/foo/bar.html">:foo:bar</a> <a href="./file.png">./file.png</a> <a href="file:///etc/passwd">file:///etc/passwd</a>
 </p>
 
 <p>

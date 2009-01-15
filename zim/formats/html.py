@@ -51,10 +51,10 @@ class Dumper(DumperClass):
 		assert isinstance(tree, ParseTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
-		self.dump_children(tree.getroot(), file)
+		self._dump_children(tree.getroot(), file)
 		file.close()
 
-	def dump_children(self, list, file):
+	def _dump_children(self, list, file):
 		'''FIXME'''
 		for element in list.getchildren():
 			text = html_encode(element.text)
@@ -66,7 +66,7 @@ class Dumper(DumperClass):
 					file.write('<%s>\n' % element.tag)
 				if text:
 					file.write(text)
-				self.dump_children(element, file) # recurs
+				self._dump_children(element, file) # recurs
 				file.write('</%s>\n' % element.tag)
 			elif element.tag == 'h':
 				tag = 'h' + str(element.attrib['level'])
@@ -74,11 +74,11 @@ class Dumper(DumperClass):
 			elif element.tag == 'pre':
 				file.write('<pre>\n'+text+'</pre>\n')
 			elif element.tag == 'img':
-				src = url_encode(element.attrib['src'])
+				src = self.href('file', element.attrib['src'])
 				file.write('<img src="%s" alt="%s">' % (src, text))
 			elif element.tag == 'link':
-				href = url_encode(element.attrib['href'])
-				file.write('<link href="%s">%s</link>' % (href, text))
+				href = self.href(element.attrib['type'], element.attrib['href'])
+				file.write('<a href="%s">%s</a>' % (href, text))
 			elif element.tag in ['em', 'strong', 'mark', 'strike', 'code']:
 				if element.tag == 'mark': tag = 'u'
 				else: tag = element.tag
@@ -89,3 +89,20 @@ class Dumper(DumperClass):
 			if not element.tail is None:
 				tail = html_encode(element.tail)
 				file.write(tail)
+
+	def href(self, type, href):
+		# TODO need a way to set a base url
+		if type == 'page':
+			href = href.replace(':', '/') + '.html'
+			if not href.startswith('/'):
+				href = '/' + href
+		elif type == 'file':
+			pass # TODO parse file links for html output
+		elif type == 'mailto':
+			if not href.startswith('mailto:'):
+				href = 'mailto:' + link
+		else:
+			pass # I dunno, some url ?
+
+		return url_encode(href)
+

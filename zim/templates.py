@@ -335,7 +335,8 @@ class TemplateParam(object):
 
 	__slots__ = ('keys')
 
-	param_re = re.compile('\A\w[\w]*\Z') # \w includes alnum and "_"
+	param_re = re.compile('\A[^_\W][\w]*\Z')
+		# matches names that do not start with '_'
 
 	def __init__(self, name):
 		self.keys = name.split('.')

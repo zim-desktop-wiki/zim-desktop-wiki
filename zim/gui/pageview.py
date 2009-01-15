@@ -95,21 +95,30 @@ class TextBuffer(gtk.TextBuffer):
 		'''FIXME'''
 		self._insert_element_children(tree.getroot())
 
-	def _insert_element_children(self, node, list_level=0):
+	def _insert_element_children(self, node, list_level=-1):
 		# FIXME: should block textstyle-changed here for performance
+		# FIXME should load list_level from cursor position
 		for element in node.getchildren():
-			if element.tag in ('p', 'ul', 'li'):
-				if element.tag == 'ul':
-					list_level = element.attrib['level']
-				elif element.tag == 'li':
-					self.insert_at_cursor('\t'*list_level + u'\u2022 ')
-					if element.tail:
-						element.tail += '\n'
-					else:
-						element.tail = '\n'
+			if element.tag == 'p':
+				if element.text:
+					self.insert_at_cursor(element.text)
+
+				self._insert_element_children(element, list_level=list_level) # recurs
+			elif element.tag == 'ul':
+				if element.text:
+					self.insert_at_cursor(element.text)
+
+				self._insert_element_children(element, list_level=list_level+1) # recurs
+			elif element.tag == 'li':
+				self.insert_at_cursor('\t'*list_level + u'\u2022 ')
+				if element.tail:
+					element.tail += '\n'
+				else:
+					element.tail = '\n'
 
 				if element.text:
 					self.insert_at_cursor(element.text)
+
 				self._insert_element_children(element, list_level=list_level) # recurs
 			elif element.tag == 'link':
 				self.insert_link_at_cursor(element.attrib, element.text)

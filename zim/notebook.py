@@ -331,6 +331,7 @@ class Page(object):
 		self.source   = source
 		self.format   = format
 		self._tree    = None
+		self.properties = {}
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)
@@ -372,6 +373,9 @@ class Page(object):
 
 	def set_parsetree(self, tree):
 		'''Save a parse tree to page source'''
+		if 'readonly' in self.properties and self.properties['readonly']:
+			raise Exception, 'Can not store data in a read-only Page'
+
 		if self.source:
 			dumper = self.format.Dumper(self)
 			dumper.dump(tree, self.source)
