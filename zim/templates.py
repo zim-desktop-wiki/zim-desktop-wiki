@@ -48,6 +48,9 @@ Therefore:
 * There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
 
+# TODO add a directive [% INCLUDE template_name %]
+# TODO put token classes in a dict to allow extension by subclasses
+
 import re
 import logging
 
@@ -55,8 +58,6 @@ import zim
 from zim.utils import data_dirs, Re, split_quoted_strings, unescape_quoted_string
 
 logger = logging.getLogger('zim.templates')
-
-# TODO add a directive [% INCLUDE template_name %]
 
 __all__ = ['list_templates', 'get_template', 'Template', 'TemplateSyntaxError']
 
@@ -406,6 +407,16 @@ class TemplateFunctions(object):
 		'''FIXME'''
 		pass # TODO
 
+	@staticmethod
+	def url(pagename):
+		return pagename # FIXME page to url function
+
+
+class ReadOnlyDict(dict):
+
+	def setitem(self, key, value):
+		raise TemplateSyntaxError, 'trying to assign to read-only param'
+
 
 class PageProxy(object):
 	'''Exposes a single page object to the template.'''
@@ -416,7 +427,8 @@ class PageProxy(object):
 		self._page = page
 		self._format = format
 
-	is_index = False
+	@property
+	def properties(self): return ReadOnlyDict(self._page.properties)
 
 	@property
 	def name(self): return self._page.name
@@ -428,7 +440,10 @@ class PageProxy(object):
 	def namespace(self): return self._page.namespace
 
 	@property
-	def title(self): return '' # TODO
+	def title(self): self.heading or self._page.name
+
+	@property
+	def heading(self): return 'TODO heading goes here'
 
 	@property
 	def links(self): return [] # TODO
@@ -437,7 +452,7 @@ class PageProxy(object):
 	def backlinks(self): return [] # TODO
 
 	@property
-	def prev(self): return None # TODO
+	def previous(self): return None # TODO
 
 	@property
 	def next(self): return None # TODO

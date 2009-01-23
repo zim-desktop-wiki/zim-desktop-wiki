@@ -91,7 +91,7 @@ class Dumper(DumperClass):
 				file.write(tail)
 
 	def href(self, type, href):
-		# TODO need a way to set a base url
+		# TODO need a way to set a base url (+ seperate base for files for www server)
 		if type == 'page':
 			href = href.replace(':', '/') + '.html'
 			if not href.startswith('/'):

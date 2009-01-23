@@ -28,16 +28,16 @@
 
 <!-- Header -->
 
-[% IF prev -%]
-	[ <a href='[% prev.file %]'>Prev</a> ]
+[% IF page.previous -%]
+	[ <a href='[% url( page.previous ) %]'>Prev</a> ]
 [%- ELSE -%]
 	[ <span class='insen'>Prev</span> ]
 [%- END %]
 
-	[ <a href='[% index.file  %]'>Index</a> ]
+	[ <a href='/'>Index</a> ]
 
-[% IF next -%]
-	[ <a href='[% next.file %]'>Next</a> ]
+[% IF page.next -%]
+	[ <a href='[% url( page.next ) %]'>Next</a> ]
 [%- ELSE -%]
 	[ <span class='insen'>Next</span> ]
 [%- END %]
@@ -48,8 +48,10 @@
 
 <!-- Wiki content -->
 
-[% IF page.is_index -%]
+[% IF page.properties.isindex -%]
 <h1>Document Index</h1>
+[%- ELSE -%]
+<h1>[% page.heading %]</h1>
 [%- END %]
 
 [% page.body %]

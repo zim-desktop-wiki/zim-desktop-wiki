@@ -22,13 +22,18 @@ from zim.utils import rfc822headers
 from zim.fs import *
 from zim.formats import ParseTree, TreeBuilder
 
+
+logger = logging.getLogger('zim.www')
+
+
 class WWWError(Exception):
 	'''FIXME'''
 
 	def __init__(self, status='500 Internal Server Error', msg='Internal Server Error'):
 		'''FIXME'''
 		self.status = status
-		self.content = msg
+		self.msg = msg
+		self.logmsg = msg
 
 
 class NoConfigError(WWWError):
@@ -115,12 +120,16 @@ class WWWInterface(NotebookInterface):
 				else:
 					content = self.render_page(pagename)
 		except WWWError, error:
+			logger.error(error.logmsg)
 			header = [('Content-Type', 'text/plain')]
 			start_response(error.status, header)
-			return error.content
+			return error.msg
+		# TODO also handle template errors as special here
 		except Exception, error:
+			# Unexpected error - maybe a bug, do not expose output on bugs
+			# to the outside world
+			logger.error("%s: %s", error.__class__.__name__, str(error))
 			sys.excepthook(*sys.exc_info())
-			#~ environ['wsgi.errors'].write(str(error)+'\n') # FIXME also print stack trace
 			start_response('500 Internal Server Error', [])
 			return []
 		else:
@@ -158,7 +167,7 @@ class IndexPage(Page):
 
 	def __init__(self, namespace, recurs=True):
 		'''Constructor takes a namespace object'''
-		Page.__init__(self, namespace.name, namespace.store)
+		Page.__init__(self, namespace.name or '<root>', namespace.store)
 		self._index_namespace = namespace
 		self._index_recurs = recurs
 		self.properties['readonly'] = True
@@ -182,6 +191,9 @@ class IndexPage(Page):
 			builder.end('ul')
 
 		builder.start('page')
+		builder.start('h', {'level':1})
+		builder.data('Index of %s' % self.name)
+		builder.end('h')
 		add_namespace(self._index_namespace)
 		builder.end('page')
 		return ParseTree(builder.close())
@@ -195,8 +207,6 @@ class Server(gobject.GObject):
 		'started': (gobject.SIGNAL_RUN_LAST, None, []),
 		'stopped': (gobject.SIGNAL_RUN_LAST, None, [])
 	}
-
-	logger = logging.getLogger('zim.www.server')
 
 	def __init__(self, notebook=None, port=8080, gui=False, **opts):
 		'''FIXME'''
@@ -240,7 +250,7 @@ class Server(gobject.GObject):
 		if self.running:
 			self.stop()
 
-		self.logger.info('Server starting at port %i', self.port)
+		logger.info('Server starting at port %i', self.port)
 
 		# open sockets for connections
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -261,17 +271,17 @@ class Server(gobject.GObject):
 		try:
 			self.socket.close()
 		except Exception, error:
-			self.logger.error(error)
+			logger.error(error)
 		self.socket = None
 
-		self.logger.info('Server stopped')
+		logger.info('Server stopped')
 		self.running = False
 		self.emit('stopped')
 
 	def do_accept_request(self):
 		# set up handler for new connection
 		clientsocket, address = self.socket.accept() # TODO timeout ?
-		self.logger.debug('got request from %s', address[0])
+		logger.debug('got request from %s', address[0])
 
 		# read data
 		rfile = clientsocket.makefile('rb')

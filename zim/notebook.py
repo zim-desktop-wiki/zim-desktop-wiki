@@ -323,7 +323,7 @@ class Page(object):
 		Needs at least a name and a store object.
 		The source object and format module are optional but go together.
 		'''
-		#assert name is valid
+		assert len(name), 'Page needs a name' # FIXME assert name is valid
 		assert not (source and format is None) # these should come as a pair
 		self.name     = name
 		self.store    = store
@@ -387,8 +387,8 @@ class Page(object):
 		tree = self.get_parsetree()
 		if tree:
 			import zim.formats
-			dumper = zim.formats.get_format(format).Dumper(self)
 			output = Buffer()
+			dumper = zim.formats.get_format(format).Dumper(self)
 			dumper.dump(tree, output)
 			return output.getvalue()
 		else:

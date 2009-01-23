@@ -12,6 +12,19 @@ import zim
 from zim.fs import *
 from zim.templates import *
 
+class TestTemplateParam(TestCase):
+
+	def runTest(self):
+		TemplateParam = zim.templates.TemplateParam
+
+		param = TemplateParam('xxx.yyy.zzz')
+		self.assertEquals(param.keys, ['xxx', 'yyy', 'zzz'])
+
+		self.assertRaises(TemplateSyntaxError, TemplateParam, '_settings.foo')
+		self.assertRaises(TemplateSyntaxError, TemplateParam, 'xxx._yyy.zzz')
+		self.assertRaises(TemplateSyntaxError, TemplateParam, 'xxx.y-y.zzz')
+
+
 class TestTemplate(TestCase):
 
 #	def setUp(self):
@@ -89,6 +102,8 @@ NOK
 		for dir, dirs, files in os.walk('./data/templates'):
 			format = os.path.basename(dir)
 			for file in files:
+				if file.startswith('.'):
+					continue
 				file = os.path.join(dir, file)
 				tmpl = Template(file, format)
 				# Syntax errors will be raised during init
