@@ -26,7 +26,7 @@ cgi-bin directory and edit the script to set the configuration.
 '''
 
 config = {
-	'notebook': None,
+	'notebook': '_manual_',
 	#~ 'template': 'Default.html',
 }
 

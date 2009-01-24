@@ -16,6 +16,7 @@ import gtk
 import gtk.keysyms
 
 import zim
+import zim.fs
 from zim import NotebookInterface
 from zim.notebook import PageNameError
 from zim.utils import data_file, config_file
@@ -38,12 +39,14 @@ ui_actions = (
 	# name, stock id, label, accelerator, tooltip
 	('new_page',  'gtk-new', '_New Page', '<ctrl>N', 'New page'),
 	('open_notebook', 'gtk-open', '_Open Another Notebook...', '<ctrl>O', 'Open notebook'),
+	('import_page', None, '_Import Page', None, 'Import a file as a page'),
 	('save_page', 'gtk-save', '_Save', '<ctrl>S', 'Save page'),
+	('save_copy', None, 'Save a _Copy...', None, 'Save a copy'),
 	('save_version', 'gtk-save-as', 'S_ave Version...', '<ctrl><shift>S', 'Save Version'),
 	('show_versions', None, '_Versions...', None, 'Versions'),
 	('show_export',  None, 'E_xport...', None, 'Export'),
 	('email_page', None, '_Send To...', None, 'Mail page'),
-	('copy_page', None, '_Copy Page...', None, 'Copy page'),
+	('move_page', None, '_Move Page...', None, 'Move page'),
 	('rename_page', None, '_Rename Page...', 'F2', 'Rename page'),
 	('delete_page', None, '_Delete Page', None, 'Delete page'),
 	('show_properties',  'gtk-properties', 'Proper_ties', None, 'Properties dialog'),
@@ -354,14 +357,16 @@ class GtkInterface(NotebookInterface):
 		NewPageDialog(self).run()
 
 	def save_page(self):
-		self.save_page_if_modified()
-		text = page.get_text(format='wiki')
-		# TODO url encoding - replace \W with sprintf('%%%02x')
-		url = 'mailto:?subject=%s&body=%s' % (page.name, text)
-		# TODO open url
+		pass
 
 	def save_page_if_modified(self):
 		pass
+
+	def save_copy(self):
+		'''Offer to save a copy of a page in the source format, so it can be
+		imported again later. Subtly different from export.
+		'''
+		SaveCopyDialog(self).run()
 
 	def save_version(self):
 		pass
@@ -375,16 +380,27 @@ class GtkInterface(NotebookInterface):
 		zim.gui.exportdialog.ExportDialog(self).run()
 
 	def email_page(self):
-		pass
+		self.save_page_if_modified()
+		text = page.get_text(format='wiki')
+		# TODO url encoding - replace \W with sprintf('%%%02x')
+		url = 'mailto:?subject=%s&body=%s' % (page.name, text)
+		# TODO open url
 
-	def copy_page(self):
-		pass
+	def import_page(self):
+		'''Import a file from outside the notebook as a new page.'''
+		ImportPageDialog(self).run()
 
-	def rename_page(self):
-		pass
+	def move_page(self, page=None):
+		MovePageDialog(self, page=page).run()
 
-	def delete_page(self):
-		pass
+	def rename_page(self, page=None):
+		RenamePageDialog(self, page=page).run()
+
+	def delete_page(self, page=None):
+		if page is None:
+			page = self.page
+		# TODO confirmation dialog is MessageDialog style
+		#~ self.notebook.delete_page(page)
 
 	def show_properties(self):
 		import zim.gui.propertiesdialog
@@ -399,7 +415,9 @@ class GtkInterface(NotebookInterface):
 		self.show_search(query)
 
 	def copy_location(self):
-		pass
+		'''Puts the name of the current page on the clipboard.'''
+		import zim.gui.clipboard
+		zim.gui.clipboard.Clipboard().set_pagelink(self.page)
 
 	def show_preferences(self):
 		import zim.gui.preferencesdialog
@@ -623,13 +641,22 @@ class MainWindow(gtk.Window):
 		self.insert_label.set_text(text)
 
 
-def _get_window(ui):
+def get_window(ui):
+	'''Returns a gtk.Window object or None. Used to find the parent window
+	for dialogs.
+	'''
 	if isinstance(ui, gtk.Window):
 		return ui
 	elif hasattr(ui, 'mainwindow'):
 		return ui.mainwindow
 	else:
 		return None
+
+
+def format_title(title):
+	'''Formats a window title (in fact just adds " - Zim" to the end).'''
+	assert not title.lower().endswith(' zim')
+	return '%s - Zim' % title
 
 
 class ErrorDialog(gtk.MessageDialog):
@@ -641,7 +668,7 @@ class ErrorDialog(gtk.MessageDialog):
 		'''
 		self.error = error
 		gtk.MessageDialog.__init__(
-			self, parent=_get_window(ui),
+			self, parent=get_window(ui),
 			type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_CLOSE,
 			message_format=unicode(self.error)
 		)
@@ -666,12 +693,11 @@ class Dialog(gtk.Dialog):
 		other dialog from which this dialog is spwaned. 'title' is the dialog
 		title.
 		'''
-		assert not title.lower().endswith(' zim')
 		self.ui = ui
 		self.inputs = {}
 		gtk.Dialog.__init__(
-			self, parent=_get_window(self.ui),
-			title='%s - Zim' % title,
+			self, parent=get_window(self.ui),
+			title=format_title(title),
 			flags=gtk.DIALOG_NO_SEPARATOR,
 		)
 		self.set_border_width(10)
@@ -696,11 +722,27 @@ class Dialog(gtk.Dialog):
 		self.action_area.set_child_secondary(button, True)
 
 	def add_text(self, text):
+		'''Adds a label in italics. Intended for informational text at the
+		top of the dialog.
+		'''
 		label = gtk.Label()
 		label.set_markup('<i>%s</i>' % text)
 		self.vbox.add(label)
 
 	def add_fields(self, fields, table=None):
+		'''Add a number of fields to the dialog, convenience method to
+		construct simple forms. The argument 'fields' should be a list of
+		field definitions; each definition is a tupple of:
+
+			* The field name
+			* The field type (e.g. 'page')
+			* The label to put in front of the input field
+			* The initial value of the field
+
+		If 'table' is specified the fields are added to that table, otherwise
+		a new table is constructed and added to the dialog. Returns the table
+		to allow building a form in multiple calls.
+		'''
 		if table is None:
 			table = gtk.Table()
 			table.set_border_width(5)
@@ -721,7 +763,13 @@ class Dialog(gtk.Dialog):
 			table.attach(entry, 1,2, i,i+1)
 			i += 1
 
+		# TODO: hook last field to call response 'Ok' on activate
+
 		return table
+
+	def get_field(name):
+		'''Returns the value of a single field'''
+		return self.get_fields()[name]
 
 	def get_fields(self):
 		'''Returns a dict with values of the fields.'''
@@ -731,14 +779,25 @@ class Dialog(gtk.Dialog):
 		return values
 
 	def run(self):
+		'''Calls show_all() followed by gtk.Dialog.run()'''
 		self.show_all()
 		gtk.Dialog.run(self)
 
 	def show_all(self):
+		'''Logs debug info and calls gtk.Dialog.show_all()'''
 		logger.debug('Opening dialog "%s"', self.title[:-6])
 		gtk.Dialog.show_all(self)
 
+	def response_ok(self):
+		'''Trigger the response signal with an 'Ok' response type.'''
+		self.response(gtk.RESPONSE_OK)
+
 	def do_response(self, id):
+		'''Handler for the response signal, dispatches to do_response_ok()
+		if response was positive and destroys the dialog if that function
+		returns True. If response was negative just closes the dialog without
+		further action.
+		'''
 		if id == gtk.RESPONSE_OK:
 			logger.debug('Dialog response OK')
 			close = self.do_response_ok()
@@ -749,11 +808,48 @@ class Dialog(gtk.Dialog):
 			self.destroy()
 			logger.debug('Closed dialog "%s"', self.title[:-6])
 
+	def do_response_ok(self):
+		'''Function to be overloaded in child classes. Called when the
+		user clicks the 'Ok' button or the equivalent of such a button.
+		'''
+		raise NotImplementedError
+
 # Need to register classes defining gobject signals
 gobject.type_register(Dialog)
 
 
+class FileDialog(Dialog):
+	'''File chooser dialog, adds a filechooser widget to Dialog.'''
+
+	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN, **opts):
+		Dialog.__init__(self, ui, title, **opts)
+		self.filechooser = gtk.FileChooserWidget(action=action)
+		self.filechooser.connect('file-activated', lambda o: self.response_ok())
+		self.vbox.add(self.filechooser)
+		# FIXME hook to expander to resize window
+
+
+class OpenFileDialog(FileDialog):
+
+	def __init__(self, ui, title='Select File'):
+		FileDialog.__init__(self, ui, title)
+
+	def get_filename(self):
+		'''Run the dialog and return the filename directly.'''
+		response = self.run()
+		if response == gtk.RESPONSE_OK:
+			return self.filechooser.get_filename()
+		else:
+			return None
+
+	def do_response_ok(self):
+		return True
+
+
 class OpenPageDialog(Dialog):
+	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.
+	Prompts for a page name and navigate to that page on 'Ok'.
+	'''
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, 'Jump to')
@@ -762,7 +858,7 @@ class OpenPageDialog(Dialog):
 
 	def do_response_ok(self):
 		try:
-			name = self.get_fields()['name']
+			name = self.get_field('name')
 			name = self.ui.notebook.resolve_name(name)
 		except PageNameError, error:
 			ErrorDialog(self, error).run()
@@ -773,6 +869,10 @@ class OpenPageDialog(Dialog):
 
 
 class NewPageDialog(OpenPageDialog):
+	'''Dialog used to create a new page, functionally it is almost the same
+	as the OpenPageDialog except that the page is saved directly in order
+	to create it.
+	'''
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, 'New Page')
@@ -785,3 +885,62 @@ class NewPageDialog(OpenPageDialog):
 		if ok and not self.ui.page.exists():
 			self.ui.save_page()
 		return ok
+
+
+class SaveCopyDialog(FileDialog):
+
+	def __init__(self, ui):
+		FileDialog.__init__(self, ui, 'Save Copy', gtk.FILE_CHOOSER_ACTION_SAVE)
+		self.filechooser.set_current_name(self.ui.page.name + '.txt')
+		# TODO add droplist with native formats to choose + hook filters
+		# TODO change "Ok" button to "Save"
+
+	def do_response_ok(self):
+		self.ui.save_page_if_modified()
+		path = self.filechooser.get_filename()
+		format = 'wiki'
+		logger.info("Saving a copy at %s using format '%s'", path, format)
+		text = self.ui.page.get_text(format)
+		file = zim.fs.File(path)
+		file.write(text)
+		return True
+
+
+class ImportPageDialog(Dialog):
+
+	def __init__(self, ui):
+		Dialog.__init__(self, ui, 'Import Page')
+		# TODO add input for filename, pagename, namespace, file type
+
+	# TODO trigger file selection menu directly on run()
+
+
+class MovePageDialog(Dialog):
+
+	def __init__(self, ui, page=None):
+		Dialog.__init__(self, ui, 'Move Page')
+		if page is None:
+			self.page = self.ui.page
+		else:
+			self.page = page
+		# TODO Add namespace selector
+
+	def do_response_ok(self):
+		namespace = self.get_field('namespace')
+		self.ui.notebook.move_page(self.page, namespace)
+
+
+class RenamePageDialog(Dialog):
+
+	def __init__(self, ui, page=None):
+		Dialog.__init__(self, ui, 'Rename Page')
+		if page is None:
+			self.page = self.ui.page
+		else:
+			self.page = page
+		# TODO add name input
+
+	def do_response_ok(self):
+		name = self.get_field('name')
+		self.ui.notebook.rename_page(self.page, name)
+

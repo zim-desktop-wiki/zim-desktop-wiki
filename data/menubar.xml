@@ -3,8 +3,10 @@
 		<menu action='file_menu'>
 			<menuitem action='new_page'/>
 			<menuitem action='open_notebook'/>
+			<menuitem action='import_page'/>
 			<separator/>
 			<menuitem action='save_page'/>
+			<menuitem action='save_copy'/>
 			<menuitem action='save_version'/>
 			<menuitem action='show_versions'/>
 			<separator/>
@@ -112,7 +114,7 @@
 <!--
 	<popup name='page_popup'>
 		<menuitem action='popup_new_page'/>
-		<menuitem action='popup_copy_page'/>
+		<menuitem action='popup_move_page'/>
 		<menuitem action='popup_rename_page'/>
 		<menuitem action='popup_delete_page'/>
 	</popup>

@@ -97,8 +97,10 @@ Other general guidelines:
 	* Need test for Notebook.resolve_page() with lots of scenarios
 * Templates need setting to remove title from tree
 	* Used e.g. in Presentation template to put title in separate bar
+* Templates need setting for line-ending with/without <br>
 * Templates need setting to change the heading level
 	* need test for ParseTree.cleanup_headings()
+* Expose page properties in template and set a pagetype property for index pages
 * For S5 template need to split body on H1 or HR
 	* FOREACH slide IN page.sections
 	* want to be able to cleanup headings per slide...
@@ -127,6 +129,7 @@ When exporting:
 * Implement moving pages
 	* Logic for updating links
 	* Include sub pages and attachments
+* Latex Dumper
 * Txt2tags Parser (and Dumper ?) class
     * Plugin to use txt2tags for multitude of output formats
 * Notebook cache based on sqlite

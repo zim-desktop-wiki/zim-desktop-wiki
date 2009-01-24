@@ -193,6 +193,11 @@ class File(Path):
 			file = self.open('r')
 			return file.readlines()
 
+	def write(self, text):
+		file = self.open('w')
+		file.write(text)
+		file.close()
+
 	def touch(self):
 		'''FIXME'''
 		if self.exists():
