@@ -64,7 +64,6 @@ except:  # pragma: no cover
 		Element, SubElement, TreeBuilder
 
 from zim.fs import Buffer
-from zim.utils import ListDict
 
 
 def get_format(name):

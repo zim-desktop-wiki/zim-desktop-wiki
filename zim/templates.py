@@ -55,7 +55,8 @@ import re
 import logging
 
 import zim
-from zim.utils import data_dirs, Re, split_quoted_strings, unescape_quoted_string
+from zim.config import data_dirs
+from zim.parsing import Re, split_quoted_strings, unescape_quoted_string
 
 logger = logging.getLogger('zim.templates')
 

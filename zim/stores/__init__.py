@@ -16,7 +16,7 @@ each module should define a variable '__store__' with it's own name.
 '''
 
 from zim.fs import *
-from zim.utils import is_url_re
+from zim.parsing import is_url_re
 
 
 def get_store(name):

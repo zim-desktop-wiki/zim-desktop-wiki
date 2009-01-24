@@ -15,8 +15,8 @@ import gtk
 import pango
 
 from zim import notebook
-from zim.utils import data_file
-from zim.gui import gtkutils
+from zim.config import data_file
+from zim.gui.widgets import BrowserTreeView, IconButton
 from zim.gui import Dialog
 
 NAME_COL = 0  # column with notebook name
@@ -81,13 +81,13 @@ class NotebookTreeModel(gtk.ListStore):
 		# TODO: self.notebooks.write()
 
 
-class NotebookTreeView(gtkutils.BrowserTreeView):
+class NotebookTreeView(BrowserTreeView):
 
 	def __init__(self, model=None):
 		# TODO: add logic to flag open notebook italic - needs daemon
 		if model is None:
 			model = NotebookTreeModel()
-		gtkutils.BrowserTreeView.__init__(self, model)
+		BrowserTreeView.__init__(self, model)
 		self.set_rules_hint(True)
 		self.set_reorderable(True)
 
@@ -213,7 +213,7 @@ class NotebookDialog(Dialog):
 		self.combobox = DefaultNotebookComboBox(self.treeview.get_model())
 
 		# clear button de-selects any item in the combobox
-		clear_button = gtkutils.icon_button('gtk-clear')
+		clear_button = IconButton('gtk-clear')
 		clear_button.connect('clicked', lambda o: self.combobox.set_active(-1))
 
 		hbox = gtk.HBox(spacing=5)

@@ -18,7 +18,6 @@ import gobject
 
 from zim import NotebookInterface
 from zim.notebook import Page
-from zim.utils import rfc822headers
 from zim.fs import *
 from zim.formats import ParseTree, TreeBuilder
 
@@ -297,7 +296,7 @@ class Server(gobject.GObject):
 					break
 				else:
 					headerlines.append(line)
-			#~ headers = rfc822headers.parse(''.join(headerlines))
+			#~ headers = HeadersDict(''.join(headerlines))
 		#~ else:
 			#~ headers = {}
 

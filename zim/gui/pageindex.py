@@ -11,7 +11,7 @@ import gobject
 import gtk
 import pango
 
-from zim.gui import gtkutils
+from zim.gui.widgets import BrowserTreeView
 
 NAME_COL = 0  # column with short page name (page.basename)
 PAGE_COL = 1  # column with the full page name (page.name)
@@ -60,7 +60,7 @@ class PageTreeStore(gtk.TreeStore):
 		return self[iter][PAGE_COL]
 
 
-class PageTreeView(gtkutils.BrowserTreeView):
+class PageTreeView(BrowserTreeView):
 	'''Wrapper for a TreeView showing a list of pages.'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -69,7 +69,7 @@ class PageTreeView(gtkutils.BrowserTreeView):
 	}
 
 	def __init__(self, app):
-		gtkutils.BrowserTreeView.__init__(self)
+		BrowserTreeView.__init__(self)
 		self.app = app
 		self.app.connect('open-page', lambda o, p, r: self.select_page(p))
 
@@ -101,7 +101,7 @@ class PageTreeView(gtkutils.BrowserTreeView):
 
 	def do_key_press_event(self, event):
 		'''Handler for key presses'''
-		if gtkutils.BrowserTreeView.do_key_press_event(self, event):
+		if BrowserTreeView.do_key_press_event(self, event):
 			return True
 
 		try:
@@ -125,7 +125,7 @@ class PageTreeView(gtkutils.BrowserTreeView):
 			self.emit('popup-menu')# FIXME do we need to pass x/y and button ?
 			return True
 		else:
-			return gtkutils.BrowserTreeView.do_button_release_event(self, event)
+			return BrowserTreeView.do_button_release_event(self, event)
 
 	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
 		print 'TODO: trigger popup for page'

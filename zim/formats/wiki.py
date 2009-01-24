@@ -8,8 +8,9 @@ import re
 
 from zim.fs import *
 from zim.formats import *
-from zim.utils import is_url_re, is_email_re, is_path_re, is_interwiki_re
-from zim.utils import rfc822headers
+from zim.parsing import is_url_re, is_email_re, is_path_re, \
+                        is_interwiki_re, ParsingError
+from zim.config import HeadersDict
 
 info = {
 	'name':  'Wiki text',
@@ -89,12 +90,15 @@ class Parser(ParserClass):
 		# Now all text is read, start wrapping it into a document tree.
 		# First check for meta data at the top of the file
 		builder = TreeBuilder()
-		if rfc822headers.match(paras[0]):
-			headers = rfc822headers.parse(paras.pop(0))
-			if paras[0].isspace: paras.pop(0)
-			builder.start('page', headers)
-		else:
+		try:
+			headers = HeadersDict(paras[0])
+		except ParsingError:
 			builder.start('page')
+		else:
+			paras.pop(0)
+			if paras[0].isspace:
+				paras.pop(0)
+			builder.start('page', headers)
 
 		# Then continue with all other contents
 		# Headings can still be in the middle of a para, so get them out.
@@ -237,9 +241,10 @@ class Dumper(DumperClass):
 		assert isinstance(tree, ParseTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
-		headers = rfc822headers.format(tree.getroot().attrib)
-		file.write(headers)
-		file.write('\n') # empty line to separate headers and data
+		headers = tree.getroot().attrib
+		if isinstance(headers, HeadersDict):
+			file.write(headers.tostring())
+			file.write('\n') # empty line to separate headers and data
 		self.dump_children(tree.getroot(), file)
 		file.close()
 

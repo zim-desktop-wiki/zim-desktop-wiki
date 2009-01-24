@@ -10,7 +10,7 @@ import unittest
 import codecs
 
 __all__ = [
-	'utils', 'fs',
+	'parsing', 'fs', 'config',
 	'formats', 'templates',
 	'stores', 'notebook',
 	'history', 'plugins'

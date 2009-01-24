@@ -14,7 +14,8 @@ the 'stores' namespace.
 import weakref
 
 from zim.fs import *
-from zim.utils import Re, is_url_re, is_email_re, ConfigList, config_file, data_dir
+from zim.config import ConfigList, config_file, data_dir
+from zim.parsing import Re, is_url_re, is_email_re
 import zim.stores
 import zim.history
 

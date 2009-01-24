@@ -19,7 +19,7 @@ import zim
 import zim.fs
 from zim import NotebookInterface
 from zim.notebook import PageNameError
-from zim.utils import data_file, config_file
+from zim.config import data_file, config_file
 from zim.gui import pageindex, pageview
 
 logger = logging.getLogger('zim.gui')

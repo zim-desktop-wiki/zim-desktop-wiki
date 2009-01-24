@@ -10,8 +10,8 @@ used to start/stop the WWW server.
 import gtk
 import webbrowser # FIXME replace with XDG aware method
 
-from zim.utils import data_file
-from zim.gui import gtkutils
+from zim.config import data_file
+from zim.gui.widgets import IconButton
 from zim.gui.notebookdialog import NotebookComboBox, NotebookDialog
 
 stock_started = ('gtk-yes', gtk.ICON_SIZE_DIALOG)
@@ -66,10 +66,10 @@ class ServerWindow(gtk.Window):
 		gtk.link_button_set_uri_hook(lambda o, url: webbrowser.open(url))
 		table.attach(self.link_button, 4,5, 1,2)
 
-		start_button = gtkutils.icon_button('gtk-media-play')
+		start_button = IconButton('gtk-media-play')
 		start_button.connect('clicked', _start)
 		table.attach(start_button, 2,3, 0,1)
-		stop_button = gtkutils.icon_button('gtk-media-stop')
+		stop_button = IconButton('gtk-media-stop')
 		stop_button.connect('clicked', _stop)
 		table.attach(stop_button, 3,4, 0,1)
 
@@ -86,7 +86,7 @@ class ServerWindow(gtk.Window):
 			lambda o: self.server.set_notebook(self.notebookcombobox.get_notebook()))
 		table.attach(self.notebookcombobox, 1,2, 0,1)
 
-		open_button = gtkutils.icon_button('gtk-index')
+		open_button = IconButton('gtk-index')
 		open_button.connect('clicked', lambda *a: NotebookDialog(self).run())
 		table.attach(open_button, 2,3, 0,1)
 

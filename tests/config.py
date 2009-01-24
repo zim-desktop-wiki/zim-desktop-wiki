@@ -5,30 +5,10 @@
 from tests import TestCase
 
 from zim.fs import Buffer
-from zim.utils import *
-from zim.utils import rfc822headers
+from zim.config import *
+
 
 class testUtils(TestCase):
-
-	def testSplitWords(self):
-		string = r'''"foo bar", "\"foooo bar\"" dusss ja'''
-		list = ['foo bar', ',', '"foooo bar"', 'dusss', 'ja']
-		result = split_quoted_strings(string)
-		self.assertEquals(result, list)
-		list = ['"foo bar"', ',', r'"\"foooo bar\""', 'dusss', 'ja']
-		result = split_quoted_strings(string, unescape=False)
-		self.assertEquals(result, list)
-
-	def testRe(self):
-		string = 'foo bar baz';
-		re = Re('f(oo)\s*(bar)')
-		if re.match(string):
-			self.assertEquals(len(re), 3)
-			self.assertEquals(re[0], 'foo bar')
-			self.assertEquals(re[1], 'oo')
-			self.assertEquals(re[2], 'bar')
-		else:
-			assert False, 'fail'
 
 	def testListDict(self):
 		keys = ['foo', 'bar', 'baz']
@@ -70,12 +50,10 @@ More-Lines: test
 	test
 Aaa: foobar
 '''
-		self.assertTrue(rfc822headers.match(text))
-		headers = rfc822headers.parse(text)
-		self.assertTrue(isinstance(headers, ListDict))
+		headers = HeadersDict(text)
 		self.assertEqual(headers['Foobar'], '123')
 		self.assertEqual(headers['More-Lines'], 'test\n1234\ntest')
-		self.assertEqualDiff(rfc822headers.format(headers), text)
+		self.assertEqualDiff(headers.tostring(), text)
 
 		# error tolerance and case insensitivity
 		text = '''\
@@ -83,13 +61,17 @@ more-lines: test
 1234
 test
 '''
-		self.assertFalse(rfc822headers.match(text))
+		self.assertRaises(ParsingError, HeadersDict, text)
+
 		text = '''\
 fooo
 more-lines: test
 1234
 test
 '''
-		self.assertFalse(rfc822headers.match(text))
-		header = rfc822headers.parse(text)
-		self.assertEqual(headers['More-Lines'], 'test\n1234\ntest')
+		self.assertRaises(ParsingError, HeadersDict, text)
+
+		text = 'foo-bar: test'
+		headers = HeadersDict(text)
+		self.assertEqual(headers['Foo-Bar'], 'test')
+		self.assertEqual(headers.tostring(), 'Foo-Bar: test\n')

@@ -2,31 +2,42 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module contains a number of custom gtk widgets
+that are used in the zim gui modules.
+'''
 
 import gtk
 
-def button(stock, label):
-	'''Create a button with a stock icon, but different label'''
-	icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
-	label = gtk.Label(label)
-	label.set_use_underline(True)
-	hbox = gtk.HBox()
-	hbox.add(icon)
-	hbox.add(label)
-	button = gtk.Button()
-	button.add(hbox)
-	button.set_alignment(0.5, 0.5)
-	return button
+class Button(gtk.Button):
+	'''This class overloads the constructor of the default gtk.Button
+	class. The purpose is to change the behavior in such a way that stock
+	icon and label can be specified independently. If only stock or only
+	label is given, it falls back to the default behavior of gtk.Button .
+	'''
+
+	def __init__(self, label=None, stock=None, use_underline=True):
+		if label is None or label is None:
+			gtk.Button.__init__(self, label=label, stock=stock)
+		else:
+			gtk.Button.__init__(self)
+			icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
+			label = gtk.Label(label)
+			label.set_use_underline(use_underline)
+			hbox = gtk.HBox()
+			hbox.add(icon)
+			hbox.add(label)
+			self.add(hbox)
+			self.set_alignment(0.5, 0.5)
 
 
-def icon_button(stock, small_size=False):
-	'''Creates a button with only an icon and no label'''
-	icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
-	button = gtk.Button()
-	button.add(icon)
-	button.set_alignment(0.5, 0.5)
-	return button
+class IconButton(gtk.Button):
+	'''Button with a stock icon, but no label.'''
+
+	def __init__(self, stock):
+		gtk.Button.__init__(self)
+		icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
+		self.add(icon)
+		self.set_alignment(0.5, 0.5)
 
 
 class BrowserTreeView(gtk.TreeView):
