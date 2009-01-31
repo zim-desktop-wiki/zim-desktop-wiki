@@ -56,23 +56,36 @@ class Dumper(DumperClass):
 
 	def _dump_children(self, list, file):
 		'''FIXME'''
+
 		for element in list.getchildren():
 			text = html_encode(element.text)
 
-			if element.tag in ('p', 'ul', 'li'):
-				if element.tag == 'li':
-					file.write('<li>')
-				else:
-					file.write('<%s>\n' % element.tag)
-				if text:
-					file.write(text)
-				self._dump_children(element, file) # recurs
-				file.write('</%s>\n' % element.tag)
-			elif element.tag == 'h':
+			if element.tag == 'h':
 				tag = 'h' + str(element.attrib['level'])
-				file.write('<'+tag+'>'+text+'</'+tag+'>')
+				if self.isrtl(element):
+					file.write('<'+tag+' dir=\'rtl\'>'+text+'</'+tag+'>')
+				else:
+					file.write('<'+tag+'>'+text+'</'+tag+'>')
+			elif element.tag == 'p':
+				if self.isrtl(element):
+					file.write('<p dir=\'rtl\'>\n' + text)
+				else:
+					file.write('<p>\n' + text)
+				self._dump_children(element, file) # recurs
+				file.write('</p>\n')
 			elif element.tag == 'pre':
-				file.write('<pre>\n'+text+'</pre>\n')
+				if self.isrtl(element):
+					file.write('<pre dir=\'rtl\'>\n'+text+'</pre>\n')
+				else:
+					file.write('<pre>\n'+text+'</pre>\n')
+			elif element.tag is 'ul':
+				file.write('<ul>\n' + text)
+				self._dump_children(element, file) # recurs
+				file.write('</ul>\n')
+			elif element.tag == 'li':
+				file.write('<li>' + text)
+				self._dump_children(element, file) # recurs
+				file.write('</li>\n')
 			elif element.tag == 'img':
 				src = self.href('file', element.attrib['src'])
 				file.write('<img src="%s" alt="%s">' % (src, text))

@@ -28,11 +28,18 @@ logger = logging.getLogger('zim.www')
 class WWWError(Exception):
 	'''FIXME'''
 
-	def __init__(self, status='500 Internal Server Error', msg='Internal Server Error'):
+	statusstring = {
+		'404': 'Not Found',
+		'405': 'Method Not Allowed',
+		'500': 'Internal Server Error',
+	}
+
+	def __init__(self, status='500', headers=None, msg=None):
 		'''FIXME'''
-		self.status = status
+		self.status = '%s %s' % (status, self.statusstring[status])
+		self.headers = headers
 		self.msg = msg
-		self.logmsg = msg
+		self.logmsg = self.status + ' - ' + self.msg
 
 
 class NoConfigError(WWWError):
@@ -46,7 +53,7 @@ class PageNotFoundError(WWWError):
 	def __init__(self, page):
 		if not isinstance(page, basestring):
 			page = page.name
-		WWWError.__init__(self, '404 Not Found', msg='No such page: %s' % page)
+		WWWError.__init__(self, '404', msg='No such page: %s' % page)
 
 
 class WWWInterface(NotebookInterface):
@@ -93,6 +100,10 @@ class WWWInterface(NotebookInterface):
 		'''
 		path = environ.get('PATH_INFO', '/')
 		try:
+			methods = ('GET', 'HEAD')
+			if not environ['REQUEST_METHOD'] in methods:
+				raise WWWError('405', headers=[('Allow', ', '.join(methods))])
+
 			if self.notebook is None:
 				raise NoConfigError
 			elif path == '' or path == '/':
@@ -121,8 +132,13 @@ class WWWInterface(NotebookInterface):
 		except WWWError, error:
 			logger.error(error.logmsg)
 			header = [('Content-Type', 'text/plain')]
+			if error.headers:
+				header.extend(error.headers)
 			start_response(error.status, header)
-			return error.msg
+			if environ['REQUEST_METHOD'] == 'HEAD':
+				return []
+			else:
+				return error.msg
 		# TODO also handle template errors as special here
 		except Exception, error:
 			# Unexpected error - maybe a bug, do not expose output on bugs
@@ -134,7 +150,10 @@ class WWWInterface(NotebookInterface):
 		else:
 			header = [('Content-Type', 'text/html;charset=utf-8')]
 			start_response('200 OK', header)
-			return [string.encode('utf8') for string in content]
+			if environ['REQUEST_METHOD'] == 'HEAD':
+				return []
+			else:
+				return [string.encode('utf8') for string in content]
 
 	def render_index(self, namespace=None):
 		'''Serve an index page'''
@@ -279,15 +298,12 @@ class Server(gobject.GObject):
 
 	def do_accept_request(self):
 		# set up handler for new connection
-		clientsocket, address = self.socket.accept() # TODO timeout ?
-		logger.debug('got request from %s', address[0])
+		clientsocket, clientaddress = self.socket.accept() # TODO timeout ?
 
 		# read data
 		rfile = clientsocket.makefile('rb')
 		requestline = rfile.readline()
 		command, path, version = requestline.split()
-		assert version.startswith('HTTP/') # TODO return + log error
-		assert command in ('GET', 'HEAD') # TODO return + log error
 		if version[5:] != 0.9: # HTTP/0.9 does not do headers
 			headerlines = []
 			while True:
@@ -299,10 +315,11 @@ class Server(gobject.GObject):
 			#~ headers = HeadersDict(''.join(headerlines))
 		#~ else:
 			#~ headers = {}
+		logger.info('%s %s %s', clientaddress[0], command, path)
 
 		wfile = clientsocket.makefile('wb')
 		environ = {
-			'REQUEST_METHOD': 'GET',
+			'REQUEST_METHOD': command,
 			'SCRIPT_NAME': '',
 			'PATH_INFO': path,
 			'QUERY_STRING': '',
@@ -310,7 +327,7 @@ class Server(gobject.GObject):
 			'SERVER_PORT': str(self.port),
 			'SERVER_PROTOCOL': version
 		}
-		handler = self.handlerclass(rfile, wfile, None, environ) # TODO stderr
+		handler = self.handlerclass(rfile, wfile, sys.stderr, environ)
 		handler.run(self.interface)
 		rfile.close()
 		wfile.flush()

@@ -257,6 +257,12 @@ class Notebook(object):
 		store = self.get_store(namespace)
 		return store.get_namespace(namespace)
 
+	def get_previous(self, page):
+		'''Like Namespace.get_previous(page), but crosses namespace bounds'''
+
+	def get_next(self, page):
+		'''Like Namespace.get_next(page), but crosses namespace bounds'''
+
 	#~ def move_page(self, name, newname):
 		#~ '''FIXME'''
 
@@ -383,17 +389,23 @@ class Page(object):
 		else:
 			self._tree = tree
 
-	def get_text(self, format='wiki'):
+	def get_text(self, format):
 		'''Returns contents as string'''
 		tree = self.get_parsetree()
 		if tree:
 			import zim.formats
-			output = Buffer()
 			dumper = zim.formats.get_format(format).Dumper(self)
-			dumper.dump(tree, output)
-			return output.getvalue()
+			return dumper.tostring(tree)
 		else:
 			return ''
+
+	def set_text(self, format, text):
+		'''Convenience method that parses 'text' and sets the parse tree
+		for this page.
+		'''
+		import zim.formats
+		parser = zim.formats.get_format(format).Parser(self)
+		self.set_parsetree(parser.fromstring(text))
 
 	def path(self):
 		'''Generator function for parent namespaces
@@ -450,3 +462,8 @@ class Namespace(object):
 				for page in page.children.walk(): # recurs
 					yield page
 
+	def get_previous(self, page):
+		'''FIXME'''
+
+	def get_next(self, page):
+		'''FIXME'''

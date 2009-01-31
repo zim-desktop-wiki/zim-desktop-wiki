@@ -14,14 +14,13 @@ from zim.parsing import ParsingError
 
 logger = logging.getLogger('zim.config')
 
-
-# scan python module path for dirs called "data"
-# FIXME limit to zim specific part of the path ?
+# add "data" dir if it is in the same dir as zim.py
+# this allows running zim without installation
 _data_dirs = []
-for dir in sys.path:
-	dir = os.path.join(dir, 'data')
-	if os.path.isdir(dir):
-		_data_dirs.append(dir)
+_scriptdir = os.path.dirname(sys.argv[0])
+_data_dir = os.path.join(_scriptdir, 'data')
+if os.path.isdir(_data_dir):
+	_data_dirs.append(_data_dir)
 
 
 def data_dirs(*path):

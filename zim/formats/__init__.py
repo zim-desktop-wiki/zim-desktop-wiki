@@ -53,12 +53,26 @@ to a title or subtitle in the document.
 '''
 
 import re
+import logging
+
+from zim.fs import Buffer
+
+logger = logging.getLogger('zim.formats')
+
+# Needed to determine RTL, but may not be available
+# if gtk bindings are not installed
+try:
+	import pango
+except:
+	pango = None
+	logger.warn('Could not load pango - RTL scripts may look bad')
 
 try:
 	import xml.etree.cElementTree as ElementTreeModule
 	from xml.etree.cElementTree import \
 		Element, SubElement, TreeBuilder
 except:  # pragma: no cover
+	logger.warn('Could not load cElementTree, defaulting to ElementTree')
 	import xml.etree.ElementTree as ElementTreeModule
 	from xml.etree.ElementTree import \
 		Element, SubElement, TreeBuilder
@@ -143,28 +157,8 @@ class ParserClass(object):
 		'''FIXME'''
 		raise NotImplementedError
 
-	def walk_list(self, list, split_re, func):
-		'''Convenience function to process a list of strings and Node
-		objects.  Node objects will be ignored, but strings are
-		splitted using regex 'split_re'.  Each part matched by the
-		regex is than replaced by the results of 'func(match)'.
-		The list is expanded this way into more strings and objects
-		and returned.  This function can be called multiple times to
-		match exclusive pieces of formatting.
-		'''
-		l = []
-		for item in list:
-			if isinstance(item, basestring):
-				for i, p in enumerate( split_re.split(item) ):
-					if i%2:
-						l.append( func(p) )
-					elif len(p) > 0:
-						l.append( p )
-					else:
-						pass
-			else:
-				l.append(item)
-		return l
+	def fromstring(self, text):
+		return self.parse(Buffer(text))
 
 
 class DumperClass(object):
@@ -181,3 +175,39 @@ class DumperClass(object):
 	def dump(self, tree, file):
 		'''FIXME'''
 		raise NotImplementedError
+
+	def tostring(self, tree):
+		buffer = Buffer()
+		self.dump(tree, buffer)
+		return buffer.getvalue()
+
+	def isrtl(self, element):
+		'''Returns True if the parse tree below element starts with
+		characters in a RTL script. This is e.g. needed to produce correct
+		HTML output. Returns None if direction is not determined.
+		'''
+		if pango is None:
+			return None
+
+		# It seems the find_base_dir() function is not documented in the
+		# python language bindings. The Gtk C code shows the signature:
+		#
+		#     pango.find_base_dir(text, length)
+		#
+		# It either returns a direction, or NEUTRAL if e.g. text only
+		# contains punctuation but no real characters.
+
+		if element.text:
+			dir = pango.find_base_dir(element.text, len(element.text))
+			if not dir == pango.DIRECTION_NEUTRAL:
+				return dir == pango.DIRECTION_RTL
+		for child in element.getchildren():
+			rtl = self.isrtl(child)
+			if not rtl is None:
+				return rtl
+		if element.tail:
+			dir = pango.find_base_dir(element.tail, len(element.tail))
+			if not dir == pango.DIRECTION_NEUTRAL:
+				return dir == pango.DIRECTION_RTL
+
+		return None

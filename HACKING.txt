@@ -145,6 +145,7 @@ clicking a page should show API documentation. Using the xdot view should show
 relations between classes.
 
 * Store that generates pydoc like output for a python source file
+* Commandline option to force default store ?
 * Link types to distinguise inheritance and collaboration
 
 

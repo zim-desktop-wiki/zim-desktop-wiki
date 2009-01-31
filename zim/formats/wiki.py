@@ -8,8 +8,8 @@ import re
 
 from zim.fs import *
 from zim.formats import *
-from zim.parsing import is_url_re, is_email_re, is_path_re, \
-                        is_interwiki_re, ParsingError
+from zim.parsing import Re, ParsingError, \
+	is_url_re, is_email_re, is_path_re, is_interwiki_re
 from zim.config import HeadersDict
 
 info = {
@@ -34,13 +34,13 @@ parser_re = {
 
 	# All the experssions below will match the inner pair of
 	# delimiters if there are more then two characters in a row.
-	'link':   re.compile('\[\[(?!\[)(.+?)\]\]'),
-	'img':    re.compile('\{\{(?!\{)(.+?)\}\}'),
-	'em':     re.compile('//(?!/)(.+?)//'),
-	'strong': re.compile('\*\*(?!\*)(.+?)\*\*'),
-	'mark':   re.compile('__(?!_)(.+?)__'),
-	'strike': re.compile('~~(?!~)(.+?)~~'),
-	'code':   re.compile("''(?!')(.+?)''"),
+	'link':   Re('\[\[(?!\[)(.+?)\]\]'),
+	'img':    Re('\{\{(?!\{)(.+?)\}\}'),
+	'em':     Re('//(?!/)(.+?)//'),
+	'strong': Re('\*\*(?!\*)(.+?)\*\*'),
+	'mark':   Re('__(?!_)(.+?)__'),
+	'strike': Re('~~(?!~)(.+?)~~'),
+	'code':   Re("''(?!')(.+?)''"),
 }
 
 dumper_tags = {
@@ -184,12 +184,11 @@ class Parser(ParserClass):
 	def _parse_text(self, builder, text):
 		'''Parse a piece of rich text, handles all inline formatting'''
 		list = [text]
-		list = self.walk_list(
-				list, parser_re['code'],
-				lambda match: ('code', {}, match) )
+		list = parser_re['code'].sublist(
+				lambda match: ('code', {}, match[1]), list)
 
 		def parse_link(match):
-			parts = match.split('|', 2)
+			parts = match[1].split('|', 2)
 			link = parts[0]
 			if len(parts) > 1:
 				mytext = parts[1]
@@ -204,10 +203,10 @@ class Parser(ParserClass):
 			# TODO how about interwiki ?
 			return ('link', {'type':type, 'href':link}, mytext)
 
-		list = self.walk_list(list, parser_re['link'], parse_link)
+		list = parser_re['link'].sublist(parse_link, list)
 
 		def parse_image(match):
-			parts = match.split('|', 2)
+			parts = match[1].split('|', 2)
 			src = parts[0]
 			if len(parts) > 1:
 				mytext = parts[1]
@@ -215,12 +214,11 @@ class Parser(ParserClass):
 				mytext = None
 			return ('img', {'src':src}, mytext)
 
-		list = self.walk_list(list, parser_re['img'], parse_image)
+		list = parser_re['img'].sublist(parse_image, list)
 
 		for style in 'em', 'strong', 'mark', 'strike':
-			list = self.walk_list(
-					list, parser_re[style],
-					lambda match: (style, {}, match) )
+			list = parser_re[style].sublist(
+					lambda match: (style, {}, match[1]) , list)
 
 		# TODO: urls
 

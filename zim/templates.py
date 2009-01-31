@@ -41,26 +41,32 @@ We try to minimize to possibilities to actually execute
 arbitrary code from templates. It should be save to download them.
 
 Therefore:
-* Function calls are only allowed for functions defined in
-  class TemplateFunctions
-* It is not allowed to call object methods (use '@property')
-* We only allow strings as arguments, no arbitrary expressions
+* We only allow strings as function arguments, no arbitrary expressions
+* Functions that are allowed to be called from the template need to be
+  flagged explicitely by wrapping them in a TemplateFunction object.
 * There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
 
+# TODO pages.previous, pages.next, pages.home and pages.index
 # TODO add a directive [% INCLUDE template_name %]
 # TODO put token classes in a dict to allow extension by subclasses
+# TODO give plugins a way to access the TemplateDict before processing a page
 
 import re
 import logging
 
 import zim
+import zim.formats
 from zim.config import data_dirs
 from zim.parsing import Re, split_quoted_strings, unescape_quoted_string
 
 logger = logging.getLogger('zim.templates')
 
-__all__ = ['list_templates', 'get_template', 'Template', 'TemplateSyntaxError']
+__all__ = [
+	'list_templates', 'get_template', 'Template',
+	'TemplateError', 'TemplateSyntaxError', 'TemplateProcessError'
+]
+
 
 def list_templates(format):
 	'''Returns a dict mapping template names to file paths.'''
@@ -84,7 +90,11 @@ def get_template(format, name):
 	return Template(file, format)
 
 
-class TemplateSyntaxError(Exception):
+class TemplateError(Exception):
+	pass
+
+
+class TemplateSyntaxError(TemplateError):
 	'''Exception used for syntax errors while parsing templates.
 	Will print file path and line number together with the message.
 	'''
@@ -99,40 +109,43 @@ class TemplateSyntaxError(Exception):
 						(self.file, self.line, self.msg)
 
 
-class Template(object):
-	'''Template object, maps to a single template file.'''
+class TemplateProcessError(TemplateError):
+	pass
 
-	def __init__(self, input, format):
-		'''Constuctor takes a file path or an opened file handle and format.'''
-		self.format = format
+
+class GenericTemplate(object):
+	'''Base template class'''
+
+	def __init__(self, input):
+		'''Constuctor takes a file path or an opened file handle'''
 		if isinstance(input, basestring):
 			self.name = input
 			input = open(input)
 		else:
 			self.name = '<open file>'
 		self.lineno = 0
-		self.tokens = []
+		self.tokens = TemplateTokenList()
 		self.stack = [ self.tokens ]
 		self._parse(input)
 
-	def process(self, page, output):
-		'''Ouput 'page' to a file path or file handle using this template.'''
+	def process(self, dict, output):
+		'''Process the template and write to output.
+
+			dict is used to get / set template parameter
+			output should be a path or file-like object
+		'''
 		if isinstance(output, basestring):
 			output = open(output, 'w')
 
-		dict = TemplateDict();
-		dict['zim'] = { 'version': zim.__version__ }
-		dict['page'] = PageProxy(page, self.format)
+		if not isinstance(dict, TemplateDict):
+			dict = TemplateDict(dict)
 
-		for token in self.tokens:
-			if isinstance(token, TemplateToken):
-				token.process(dict, output)
-			else:
-				output.write(token)
+		self.tokens.process(dict, output)
 
 	_token_re = Re(r'^([A-Z]+)(\s|$)')
 
 	def _parse(self, input):
+		'''Read the template and build a list with tokens'''
 
 		def append_text(text):
 			if not text: return
@@ -204,24 +217,75 @@ class Template(object):
 			raise error
 
 
-# Private Classes
+class Template(GenericTemplate):
+	'''Template class that can process a zim Page object'''
+
+	def __init__(self, input, format):
+		if isinstance(format, basestring):
+			format = zim.formats.get_format(format)
+		self.format = format
+		GenericTemplate.__init__(self, input)
+
+	def process(self, page, output):
+		'''Output 'page' to a file path or file handle using this template'''
+		dict = {
+			'zim': { 'version': zim.__version__ },
+			'page': PageProxy(page, self.format),
+			'strftime': TemplateFunction(self.strftime),
+			'url': TemplateFunction(self.url)
+		}
+		GenericTemplate.process(self, dict, output)
+
+		# Caching last processed dict because any pages in the dict
+		# will be cached using a weakref dict. Assuming we process multiple
+		# pages after each other, and they share links like home / previous /
+		# next etc. this will is a cheap optimization.
+		self._last_dict = dict
+
+	@staticmethod
+	def strftime(dict, format, timestamp):
+		'''FIXME'''
+		pass # TODO
+
+	@staticmethod
+	def url(dict, pagename):
+		return pagename # FIXME page to url function
+
+
+class TemplateTokenList(list):
+	'''This class contains a list of TemplateToken objects and strings'''
+
+	def process(self, dict, output):
+		'''Recursively calls "process()" on the TemplateToken objects
+		and prints out any strings in the list.
+		'''
+		for token in self:
+			if isinstance(token, TemplateToken):
+				token.process(dict, output)
+			else:
+				output.write(token)
+
 
 class TemplateToken(object):
 
-	__slots__ = []
-
 	def parse_expr(self, string):
+		'''This method parses an expression and returns an object of either
+		class TemplateParam, TemplateParamList or TemplateFuntionParam or
+		a simple string. (All these classes have a method "evaluate()" which
+		takes an TemplateDict as argument and returns a value for the result
+		of the expression.)
+		'''
 		string = string.strip()
 
 		def parse_list(string):
-			list = []
+			list = TemplateParamList()
 			for i, w in enumerate(
 				split_quoted_strings(string, unescape=False) ):
 				if i % 2:
 					if w != ',':
 						raise TemplateSyntaxError, string
 				elif w.startswith('"') or w.startswith("'"):
-					list.append(unescape_quoted_string(w))
+					list.append(TemplateLiteral(unescape_quoted_string(w)))
 				else:
 					list.append(TemplateParam(w))
 			return list
@@ -231,54 +295,29 @@ class TemplateToken(object):
 			return parse_list(string[1:-1])
 		elif string.startswith('"') or string.startswith("'"):
 			# quoted string
-			return unescape_quoted_string(string)
+			return TemplateLiteral(unescape_quoted_string(string))
 		elif string.find('(') > 0:
 			# function like foo('bar', page.title)
 			i = string.find('(')
 			name = string[:i]
-			expr = parse_list(string[i+1:-1])
-			return TemplateFunction(name, expr)
+			args = parse_list(string[i+1:-1])
+			return TemplateFunctionParam(name, args)
 		else:
 			return TemplateParam(string)
 
-	def process_expr(self, expr, dict):
-		if isinstance(expr, TemplateParam):
-			return dict.get_param(expr)
-		elif isinstance(expr, list):
-			return [self.process_expr(w, dict) for w in expr] # recurs
-		elif isinstance(expr, TemplateFunction):
-			args = self.process_expr(expr.expr, dict) # recurs
-			return expr(args)
-		else: # simple string
-			return expr
-
-	def process_block(self, dict, out, tokens):
-		for token in tokens:
-			if isinstance(token, TemplateToken):
-				token.process(dict, out)
-			else:
-				out.write(token)
-
 
 class GETToken(TemplateToken):
-
-	__slots__ = ('expr')
 
 	def __init__(self, string):
 		self.expr = self.parse_expr(string)
 
 	def process(self, dict, out):
-		value = self.process_expr(self.expr, dict)
-		if not value is None:
-			if isinstance(value, basestring):
-				out.write(value.encode('utf8'))
-			else:
-				out.write(str(value))
+		value = self.expr.evaluate(dict)
+		if value:
+			out.write(unicode(value).encode('utf8'))
 
 
 class SETToken(TemplateToken):
-
-	__slots__ = ('expr', 'param')
 
 	def __init__(self, string):
 		(var, sep, val) = string.partition('=')
@@ -287,32 +326,25 @@ class SETToken(TemplateToken):
 		self.param = TemplateParam(var.strip())
 		self.expr = self.parse_expr(val)
 
-
 	def process(self, dict, out):
-		value = self.process_expr(self.expr, dict)
-		dict.set_param(self.param, value)
+		dict[self.param] = self.expr.evaluate(dict)
 
 
 class IFToken(TemplateToken):
 
-	__slots__ = ('expr', 'if_block', 'else_block')
-
 	def __init__(self, string):
 		self.expr = self.parse_expr(string)
-		self.if_block = []
-		self.else_block = []
+		self.if_block = TemplateTokenList()
+		self.else_block = TemplateTokenList()
 
 	def process(self, dict, out):
-		value = self.process_expr(self.expr, dict)
-		if value:
-			self.process_block(dict, out, self.if_block)
+		if self.expr.evaluate(dict):
+			self.if_block.process(dict, out)
 		else:
-			self.process_block(dict, out, self.else_block)
+			self.else_block.process(dict, out)
 
 
 class FOREACHToken(TemplateToken):
-
-	__slots__ = ('expr', 'param', 'foreach_block')
 
 	def __init__(self, string):
 		(var, sep, val) = string.partition('=')
@@ -322,101 +354,160 @@ class FOREACHToken(TemplateToken):
 			raise TemplateSyntaxError, string
 		self.param = TemplateParam(var.strip())
 		self.expr = self.parse_expr(val)
-		self.foreach_block = []
+		self.foreach_block = TemplateTokenList()
 
 	def process(self, dict, out):
-		values = self.process_expr(self.expr, dict)
-		if not isinstance(values, list):
-			return # TODO warn ?
+		values = self.expr.evaluate(dict)
+		# FIXME how to check if values is iterable ?
 		for value in values:
-			dict.set_param(self.param, value)
-			self.process_block(dict, out, self.foreach_block)
+			dict[self.param] = value
+			self.foreach_block.process(dict, out)
+
+
+class TemplateLiteral(unicode):
+
+	def evaluate(self, dict):
+		return self
 
 
 class TemplateParam(object):
+	'''Template params are namespaces using '.' as separator. This class maps
+	a parameter name to a tuple reflecting this namespace path. Used in
+	combination with TemplateDict to do get / set parameters from the
+	template. This class also enforces that parameter names only contain
+	alphanumeric characters and none of the path elements starts with a "_".
+	'''
 
-	__slots__ = ('keys')
+	# Tried to subclass directly from tuple, but seems it is not
+	# possible to set the value of the tuple from __init__, see used
+	# the 'path' attribute instead
 
-	param_re = re.compile('\A[^_\W][\w]*\Z')
+	_param_re = re.compile('\A[^_\W][\w]*\Z')
 		# matches names that do not start with '_'
 
 	def __init__(self, name):
-		self.keys = name.split('.')
-		for k in self.keys:
-			if not self.param_re.match(k):
-				raise TemplateSyntaxError, 'invalid parameter: '+name
+		self.name = name
+		parts = name.split('.')
+		for n in parts:
+			if not self._param_re.match(n):
+				raise TemplateSyntaxError, 'invalid parameter: %s' % name
+		self.path = parts[:-1]
+		self.key = parts[-1]
+
+	def __str__(self):
+		return self.name
+
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self.name)
+
+	def evaluate(self, dict):
+		return dict[self]
 
 
-class TemplateDict(dict):
+class TemplateFunctionParam(TemplateParam):
 
-	def get_param(self, param):
-		'''Used during processing to get a template parameter'''
-		assert isinstance(param, TemplateParam)
-		value = self
-		for key in param.keys:
-			if isinstance(value, dict):
-				value = value.get(key, None)
-			elif isinstance(value, object):
-				if hasattr(value, key):
-					value = getattr(value, key)
-				else:
-					logger.warn('No such parameter: %s', key)
-					return None
-			else:
-				logger.warn('No such parameter: %s', key)
-				return None
-		return value
+	def __init__(self, name, args):
+		TemplateParam.__init__(self, name)
+		assert isinstance(args, TemplateParamList)
+		self.args = args
 
-	def set_param(self, param, value):
-		'''Used during processing to set a parameter'''
-		assert isinstance(param, TemplateParam)
-		table = self
-		for key in param.keys[0:-1]:
-			if isinstance(table, dict):
-				if not key in table:
-					table[key] = {}
-				table = table[key]
-			else:
-				logger.warn('Could not set parameter: %s', key)
-				return
-		if isinstance(table, dict):
-			table[param.keys[-1]] = value
-		else:
-			logger.warn('Could not set parameter: %s', key)
-			return
+	def evaluate(self, dict):
+		func = dict[self]
+		args = self.args.evaluate(dict)
+		if not isinstance(func, TemplateFunction):
+			raise TemplateProcessError, 'No such function: %s' % self.name
+		return func(dict, *args)
+
+
+class TemplateParamList(list):
+
+	def evaluate(self, dict):
+		values = []
+		for item in self:
+			if isinstance(item, (TemplateParam, TemplateParamList)):
+				values.append(item.evaluate(dict))
+			else: # simple string
+				values.append(item)
+		return values
 
 
 class TemplateFunction(object):
+	'''Wrapper for a callable, all functions stored in the template dict
+	need to be stored wrapped in this class. This prevents the template
+	from executing functions that are not explicitly cleared as being
+	callable from the template. Template functions are called with the
+	TemplateDict as first argument, followed by whatever arguments were
+	given in the template.
+	'''
 
-	__slots__ = ('func', 'expr')
+	def __init__(self, function):
+		self.function = function
 
-	def __init__(self, name, expr):
-		if not hasattr(TemplateFunctions, name):
-			raise TemplateSyntaxError, 'invalid function: '+name
-		self.func = getattr(TemplateFunctions, name)
-		self.expr = expr
-
-	def __call__(self, args):
-		return self.func(*args)
-
-
-class TemplateFunctions(object):
-	'''This class contains functions that can be called from a template.'''
-
-	@staticmethod
-	def strftime(template, format, timestamp):
-		'''FIXME'''
-		pass # TODO
-
-	@staticmethod
-	def url(pagename):
-		return pagename # FIXME page to url function
+	def __call__(self, *args):
+		return self.function(*args)
 
 
-class ReadOnlyDict(dict):
+class TemplateDict(object):
+	'''Object behaving like a dict for storing values of template parameters.
+	It is initialized with a nested structure of dicts and objects which
+	contains the data used to fill in the template. When a lookup is done
+	using a TemplateParam object as key it uses the path to lookup the value
+	by going recursively through the nested data structures.
+	When a value is assigned to this dict it is stored in a separate data
+	structure, so the initial data structure is never overwritten. For
+	subsequent lookups the both data structures are checked so they look like
+	a single structure. This behavior should shield any internal structures
+	from being overwritten from a template.
+	'''
 
-	def setitem(self, key, value):
-		raise TemplateSyntaxError, 'trying to assign to read-only param'
+	def __init__(self, defaults=None):
+		self._default = defaults or {}
+		self._user = {}
+
+	def _lookup_branch(self, root, param, vivicate=False):
+		# recursive lookup a dict or object
+		branch = root
+		for name in param.path:
+			if isinstance(branch, dict):
+				if name in branch:
+					branch = branch[name]
+				elif vivicate:
+					branch[name] = {}
+					branch = branch[name]
+				else:
+					return None
+			elif isinstance(branch, object):
+				if hasattr(branch, name):
+					branch = getattr(branch, name)
+				else:
+					return None
+			else:
+				return None
+		return branch
+
+	def _lookup_key(self, root, param):
+		branch = self._lookup_branch(root, param)
+		if branch is None:
+			return None
+		elif isinstance(branch, dict):
+			if param.key in branch:
+				return branch[param.key]
+		elif isinstance(branch, object):
+			if hasattr(branch, param.key):
+				return getattr(branch, param.key)
+		return None
+
+	def __getitem__(self, param):
+		assert isinstance(param, TemplateParam)
+		item = self._lookup_key(self._user, param)
+		if item is None:
+			item = self._lookup_key(self._default, param)
+		return item
+
+	def __setitem__(self, param, value):
+		assert isinstance(param, TemplateParam)
+		user = self._lookup_branch(self._user, param, vivicate=True)
+		user[param.key] = value
 
 
 class PageProxy(object):
@@ -426,10 +517,18 @@ class PageProxy(object):
 		'''Constructor takes the page object to expose and a format.'''
 		# private attributes should be shielded by the template engine
 		self._page = page
+		self._notebook = page.store.notebook
 		self._format = format
+		self._treeproxy_obj = None
+
+	def _treeproxy(self):
+		if self._treeproxy_obj is None:
+			self._treeproxy_obj = \
+				ParseTreeProxy(self._page.get_parsetree(), self)
+		return self._treeproxy_obj
 
 	@property
-	def properties(self): return ReadOnlyDict(self._page.properties)
+	def properties(self): return self._page.properties
 
 	@property
 	def name(self): return self._page.name
@@ -441,25 +540,47 @@ class PageProxy(object):
 	def namespace(self): return self._page.namespace
 
 	@property
-	def title(self): self.heading or self._page.name
+	def title(self): return self.heading or self._page.name
 
 	@property
-	def heading(self): return 'TODO heading goes here'
+	def heading(self): return self._treeproxy().heading
 
 	@property
-	def links(self): return [] # TODO
+	def body(self):	return self._treeproxy().body
 
 	@property
-	def backlinks(self): return [] # TODO
+	def parts(self): return None # TODO split in parts and return ParseTreeProxy obejcts
 
 	@property
-	def previous(self): return None # TODO
+	def links(self):
+		return []
+		#~ for type, name in self._page.link():
+			#~ if type == 'page':
+				#~ page = self._notebook.get_page(name)
+				#~ yield PageProxy(page)
 
 	@property
-	def next(self): return None # TODO
+	def backlinks(self):
+		return []
+		#~ blinks = self._notebook.get_backlinks(self._page)
+		#~ for type, name in blinks:
+			#~ if type == 'page':
+				#~ page = self._notebook.get_page(name)
+				#~ yield PageProxy(page)
+
+
+class ParseTreeProxy(object):
+
+	def __init__(self, tree, pageproxy):
+		self._tree = tree
+		self._pageproxy = pageproxy
 
 	@property
-	def index(self): return None # TODO
+	def heading(self):
+		return None # TODO
 
 	@property
-	def body(self): return self._page.get_text(format=self._format)
+	def body(self):
+		format = self._pageproxy._format
+		page = self._pageproxy._page
+		return format.Dumper(page).tostring(self._tree)

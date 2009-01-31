@@ -110,6 +110,7 @@ class TestTextFormat(TestCase):
 		self.page = get_test_page()
 
 	def testRoundtrip(self):
+		# First using file interface
 		tree = self.format.Parser(self.page).parse( Buffer(wikitext) )
 		self.assertTrue(isinstance(tree, ParseTree))
 		self.assertTrue(tree.getroot().tag == 'page')
@@ -117,6 +118,14 @@ class TestTextFormat(TestCase):
 		output = Buffer()
 		self.format.Dumper(self.page).dump(tree, output)
 		self.assertEqualDiff(output.getvalue(), wikitext)
+
+		# Next the same test usiing string interface
+		tree = self.format.Parser(self.page).fromstring(wikitext)
+		self.assertTrue(isinstance(tree, ParseTree))
+		self.assertTrue(tree.getroot().tag == 'page')
+		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
+		output = self.format.Dumper(self.page).tostring(tree)
+		self.assertEqualDiff(output, wikitext)
 
 
 class TestWikiFormat(TestTextFormat):

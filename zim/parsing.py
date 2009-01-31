@@ -53,6 +53,9 @@ class Re(object):
 			print my_re[1], my_re[2]
 	'''
 
+	# TODO, mimic complete interface for regex object including
+	#       split, findall, finditer, etc.
+
 	__slots__ = ('p', 'm') # pattern and match objects
 
 	def __init__(self, pattern, flags=0):
@@ -84,6 +87,35 @@ class Re(object):
 		'''Same as re.search()'''
 		self.m = self.p.search(string)
 		return self.m
+
+	def sublist(self, repl, list):
+		'''This method is similar to "sub()" in that it substitutes regex
+		matches with the result of calling the argument "repl" with the
+		Re object as argument. The difference is that this function takes a
+		list as argument and executes the substitution for all strings in the
+		list while ignoring any non-string items. Also it does not substitute
+		the results in the string, but expands to a list where each part is
+		either a piece of the original string or the result of calling "repl".
+		This method is useful to build a tokenizer. The method "repl" can
+		return token objects and the resulting list of strings and tokens can
+		be fed through this method several times for different regexes.
+		'''
+		result = []
+		for item in list:
+			if isinstance(item, basestring):
+				pos = 0
+				for m in self.p.finditer(item):
+					start, end = m.span()
+					if start > pos:
+						result.append(item[pos:start])
+					pos = end
+					self.m = m
+					result.append(repl(self))
+				if pos < len(item):
+					result.append(item[pos:])
+			else:
+				result.append(item)
+		return result
 
 # Some often used regexes
 is_url_re = Re('^(\w[\w\+\-\.]+)://')

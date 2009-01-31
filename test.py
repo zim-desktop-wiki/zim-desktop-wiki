@@ -80,7 +80,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 def report_coverage(coverage):
 	print ''
 	print 'Writing detailed coverage reports...'
-	#~ coverage.report(pyfiles, show_missing=False)
+	coverage.report(pyfiles, show_missing=False)
 
 	# Detailed report in html
 	if os.path.exists('coverage/'):
