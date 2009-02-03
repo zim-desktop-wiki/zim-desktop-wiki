@@ -124,7 +124,7 @@ class Dir(Path):
 	def list(self):
 		'''FIXME'''
 		if self.exists():
-			return os.listdir(self.path)
+			return [f for f in os.listdir(self.path) if not f.startswith('.')]
 		else:
 			return []
 

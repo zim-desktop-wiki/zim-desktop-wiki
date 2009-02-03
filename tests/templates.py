@@ -169,7 +169,7 @@ class TestTemplate(TestCase):
 <h2></h2> FIXME
 <h1>Page Heading</h1>
 <p>
-<strong>foo bar !</strong>
+<strong>foo bar !</strong><br>
 </p>
 
 '''

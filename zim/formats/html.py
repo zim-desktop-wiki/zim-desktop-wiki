@@ -2,16 +2,11 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME
+'''FIXME'''
 
-We do not put pagebreaks in normal paragraphs. Use the following
-CSS in your template if you want to preserve tabs and linebreaks.
+# TODO paragraph indenting using margin CSS ?
 
-	<style>
-		p {white-space:pre;}
-	</style>
-
-'''
+import re
 
 from zim.fs import *
 from zim.formats import *
@@ -45,20 +40,38 @@ def html_encode(text):
 		return ''
 
 
+_indent_re = re.compile('^(\t+)', re.M)
+
+def _replace_indent(match):
+	return '&nbsp;' * len(match.group(1)) * 4
+
+def encode_whitespace(text):
+	if not text is None:
+		text = text.replace('\n', '<br>\n')
+		text = _indent_re.sub(_replace_indent, text)
+		return text
+	else:
+		return ''
+
+
 class Dumper(DumperClass):
 
 	def dump(self, tree, output):
 		assert isinstance(tree, ParseTree)
 		assert isinstance(output, (File, Buffer))
 		file = output.open('w')
-		self._dump_children(tree.getroot(), file)
+		self._dump_children(tree.getroot(), file, istoplevel=True)
 		file.close()
 
-	def _dump_children(self, list, file):
+	def _dump_children(self, list, file, istoplevel=False):
 		'''FIXME'''
 
 		for element in list.getchildren():
 			text = html_encode(element.text)
+			if not element.tag == 'pre':
+				# text that goes into the element
+				# always encode excepts for <pre></pre>
+				text = encode_whitespace(text)
 
 			if element.tag == 'h':
 				tag = 'h' + str(element.attrib['level'])
@@ -101,6 +114,10 @@ class Dumper(DumperClass):
 
 			if not element.tail is None:
 				tail = html_encode(element.tail)
+				if not (istoplevel and tail.isspace()):
+					# text in between elements, skip encoding
+					# for whitespace between headings, paras etc.
+					tail = encode_whitespace(tail)
 				file.write(tail)
 
 	def href(self, type, href):

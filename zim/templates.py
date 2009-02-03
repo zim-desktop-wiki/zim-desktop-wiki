@@ -37,11 +37,15 @@ Syntax errors in the template will cause an exception when the object
 is constructed. Errors while processing a template only print warnings
 to stderr (e.g. for unknown parameters).
 
-We try to minimize to possibilities to actually execute
-arbitrary code from templates. It should be save to download them.
+One crucial difference with most template imlpementations is that we do
+not trust our templates - it should be possible for non-programmers
+to download that template for a fancy presentations from the internet
+without worrying whether it may delete his or her notes.
+Therefore we try to minimize to possibilities to actually execute
+arbitrary code from templates.
 
-Therefore:
-* We only allow strings as function arguments, no arbitrary expressions
+* We only allow strings as function arguments from the tempalte,
+  no arbitrary expressions
 * Functions that are allowed to be called from the template need to be
   flagged explicitely by wrapping them in a TemplateFunction object.
 * There is no directive to evaluate code, like EVAL, PERL or PYTHON
@@ -333,12 +337,24 @@ class SETToken(TemplateToken):
 class IFToken(TemplateToken):
 
 	def __init__(self, string):
-		self.expr = self.parse_expr(string)
+		(var, sep, val) = string.partition('==')
+		self.expr = self.parse_expr(var)
+		if sep:
+			self.val = self.parse_expr(val)
+		else:
+			self.val = None
 		self.if_block = TemplateTokenList()
 		self.else_block = TemplateTokenList()
 
 	def process(self, dict, out):
-		if self.expr.evaluate(dict):
+		var = self.expr.evaluate(dict)
+		if not self.val is None:
+			val = self.val.evaluate(dict)
+			bool = var == val
+		else:
+			bool = var
+
+		if bool:
 			self.if_block.process(dict, out)
 		else:
 			self.else_block.process(dict, out)

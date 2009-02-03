@@ -247,13 +247,13 @@ class TestHtmlFormat(TestCase):
 <h2>Head 2</h2>
 
 <p>
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
-eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-aliquip ex ea commodo consequat. Duis aute irure dolor in
-reprehenderit in voluptate velit esse cillum dolore eu fugiat
-nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
-sunt in culpa qui officia deserunt mollit anim id est laborum.
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do<br>
+eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim<br>
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut<br>
+aliquip ex ea commodo consequat. Duis aute irure dolor in<br>
+reprehenderit in voluptate velit esse cillum dolore eu fugiat<br>
+nulla pariatur.  Excepteur sint occaecat cupidatat non proident,<br>
+sunt in culpa qui officia deserunt mollit anim id est laborum.<br>
 </p>
 
 <pre>
@@ -263,25 +263,25 @@ Some Verbatim here
 </pre>
 
 <p>
-IMAGE: <img src="../my-image.png" alt="Foo Bar">
-LINKS: <a href="/foo/bar.html">:foo:bar</a> <a href="./file.png">./file.png</a> <a href="file:///etc/passwd">file:///etc/passwd</a>
+IMAGE: <img src="../my-image.png" alt="Foo Bar"><br>
+LINKS: <a href="/foo/bar.html">:foo:bar</a> <a href="./file.png">./file.png</a> <a href="file:///etc/passwd">file:///etc/passwd</a><br>
 </p>
 
 <p>
-	Some indented
-	paragraphs go here ...
+&nbsp;&nbsp;&nbsp;&nbsp;Some indented<br>
+&nbsp;&nbsp;&nbsp;&nbsp;paragraphs go here ...<br>
 </p>
 
 
 
 <p>
-Let's try these <strong>bold</strong>, <em>italic</em>, <u>underline</u> and <strike>strike</strike>
-And some <code>//verbatim//</code>
-And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
+Let's try these <strong>bold</strong>, <em>italic</em>, <u>underline</u> and <strike>strike</strike><br>
+And some <code>//verbatim//</code><br>
+And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_<br>
 </p>
 
 <p>
-A list
+A list<br>
 <ul>
 <li>foo</li>
 <ul>
@@ -292,16 +292,16 @@ A list
 </p>
 
 <p>
-----
+----<br>
 </p>
 
 <p>
-====
-This is not a header
+====<br>
+This is not a header<br>
 </p>
 
 <p>
-That's all ...
+That's all ...<br>
 </p>
 '''
 		self.assertEqualDiff(output.getvalue(), html)

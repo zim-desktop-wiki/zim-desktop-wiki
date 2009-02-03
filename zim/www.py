@@ -189,7 +189,7 @@ class IndexPage(Page):
 		self._index_namespace = namespace
 		self._index_recurs = recurs
 		self.properties['readonly'] = True
-		self.properties['isindex'] = True
+		self.properties['type'] = 'namespace-index'
 
 	def isempty(self): return False
 

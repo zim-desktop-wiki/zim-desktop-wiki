@@ -5,7 +5,6 @@
 		<title>[% title %]</title>
 		<meta name='Generator' content='Zim [% zim.version %]'>
 		<style type='text/css'>
-			p          { white-space: pre           }
 			a          { text-decoration: none      }
 			a:hover    { text-decoration: underline }
 			a:active   { text-decoration: underline }
@@ -48,7 +47,7 @@
 
 <!-- Wiki content -->
 
-[% IF page.properties.isindex -%]
+[% IF page.properties.type == 'namespace-index' -%]
 <h1>Document Index</h1>
 [%- ELSE -%]
 <h1>[% page.heading %]</h1>

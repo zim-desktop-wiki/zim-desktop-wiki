@@ -159,10 +159,6 @@ We depend on Gtk+ >= 2.6 instead of >= 2.4
 * Backward compatibility with files like notebook.list / repositories.list ?
 * Removed profile options - use different XDG dirs if needed
 
-== Formats ==
-
-* Html output does no longer use "<br>" elements
-
 == Templates ==
 
 * Templates now use "[%-" and "-%]" to remove linebreaks around tags
