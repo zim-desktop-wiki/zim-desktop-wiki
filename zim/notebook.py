@@ -17,7 +17,7 @@ from zim.fs import *
 from zim.config import ConfigList, config_file, data_dir
 from zim.parsing import Re, is_url_re, is_email_re
 import zim.stores
-import zim.history
+
 
 def get_notebook(notebook):
 	'''Takes a path or name and returns a notebook object'''
@@ -82,7 +82,6 @@ class Notebook(object):
 		self.page_cache = weakref.WeakValueDictionary()
 		self.dir = None
 		self.name = name
-		self._history_ref = lambda: None
 
 		if isinstance(path, Dir):
 			self.dir = path
@@ -150,13 +149,6 @@ class Notebook(object):
 				i = store.namespace.rfind(':')
 				path = store.namespace[:i]
 		return stores
-
-	def get_history(self):
-		history = self._history_ref()
-		if history is None:
-			history = zim.history.History(self)
-			self._history_ref = weakref.ref(history)
-		return history
 
 	def normalize_name(self, name):
 		'''Normalizes a page name to a valid form.

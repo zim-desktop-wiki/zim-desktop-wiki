@@ -20,7 +20,11 @@ import zim.fs
 from zim import NotebookInterface
 from zim.notebook import PageNameError
 from zim.config import data_file, config_file
-from zim.gui import pageindex, pageview
+import zim.history
+import zim.gui.pathbar
+import zim.gui.pageindex
+import zim.gui.pageview
+
 
 logger = logging.getLogger('zim.gui')
 
@@ -113,6 +117,7 @@ class GtkInterface(NotebookInterface):
 	def __init__(self, notebook=None, page=None, **opts):
 		NotebookInterface.__init__(self, **opts)
 		self.page = None
+		self.history = None
 		self.load_config()
 
 		icon = data_file('zim.png').path
@@ -262,7 +267,7 @@ class GtkInterface(NotebookInterface):
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook.'''
 		self.notebook = notebook
-		self.history = notebook.get_history()
+		self.history = zim.history.History(notebook)
 
 		# TODO load history and set intial page
 		self.open_page_home()
@@ -493,7 +498,7 @@ class MainWindow(gtk.Window):
 		'''Constructor'''
 		gtk.Window.__init__(self)
 
-		ui.connect('open-notebook', self.do_open_notebook)
+		ui.connect_after('open-notebook', self.do_open_notebook)
 		ui.connect('open-page', self.do_open_page)
 
 		# Catching this signal prevents the window to actually be destroyed
@@ -520,7 +525,7 @@ class MainWindow(gtk.Window):
 		hpane = gtk.HPaned()
 		hpane.set_position(175)
 		vbox.add(hpane)
-		self.pageindex = pageindex.PageIndex(ui)
+		self.pageindex = zim.gui.pageindex.PageIndex(ui)
 		hpane.add1(self.pageindex)
 		# TODO start with hidden path index, fill data only when needed
 
@@ -531,9 +536,11 @@ class MainWindow(gtk.Window):
 		vbox2 = gtk.VBox()
 		hpane.add2(vbox2)
 
-		# TODO pathbar
+		self.pathbar = zim.gui.pathbar.RecentPathBar(ui, spacing=3)
+		self.pathbar.set_border_width(3)
+		vbox2.pack_start(self.pathbar, False)
 
-		self.pageview = pageview.PageView(ui)
+		self.pageview = zim.gui.pageview.PageView(ui)
 		self.pageview.view.connect(
 			'toggle-overwrite', self.do_textview_toggle_overwrite)
 		vbox2.add(self.pageview)
@@ -622,6 +629,7 @@ class MainWindow(gtk.Window):
 
 	def do_open_notebook(self, ui, notebook):
 		self.pageindex.treeview.set_pages( notebook.get_root() )
+		self.pathbar.set_history(ui.history)
 
 	def do_open_page(self, ui, page, record):
 		'''Signal handler for open-page, updates the pageview'''

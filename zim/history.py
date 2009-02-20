@@ -12,13 +12,16 @@ by navigating forward. The same page can occur multiple times in the list, each
 of these occurences should be a reference to the same record to keep
 the cursor and scroll position in sync.
 
-The list of recent pages is kind of a summary of the last X pages in the
-history without doubles.
+The history does not use the same database files as used by the index because
+there could be multiple histories for on the same notebook, e.g. for multiple
+users.
 '''
 
 PAGE_COL = 0
 CURSOR_COL = 1
 SCROLL_COL = 2
+
+import gobject
 
 
 class HistoryRecord(object):
@@ -31,6 +34,11 @@ class HistoryRecord(object):
 	@property
 	def name(self):
 		return self.history[self.i][PAGE_COL]
+
+	@property
+	def basename(self):
+		i = self.name.rfind(':') + 1
+		return self.name[i:]
 
 	@property
 	def cursor(self):
@@ -46,14 +54,24 @@ class HistoryRecord(object):
 	def is_last(self):
 		return self.i == len(self.history)-1
 
-class History(object):
-	'''FIXME'''
+
+class History(gobject.GObject):
+	'''FIXME
+
+	Signals:
+		* changed - emitted whenever something changes
+	'''
 	# TODO should inherit from the selection object
-	# TODO should use SQL storage
 	# TODO max length for list (?)
 	# TODO connect to notebook signals to stay in sync
 
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'changed': (gobject.SIGNAL_RUN_LAST, None, tuple())
+	}
+
 	def __init__(self, notebook):
+		gobject.GObject.__init__(self)
 		self.history = []
 		self.current = None
 
@@ -70,6 +88,8 @@ class History(object):
 			self.history.append(item)
 
 		self.current = len(self.history)-1
+
+		self.emit('changed')
 
 	def get_current(self):
 		if not self.current is None:
@@ -102,10 +122,17 @@ class History(object):
 		else:
 			return None
 
-	def get_recent(self):
+	def get_unique(self, max=None):
 		'''Generator function that yields unique records'''
-		# TODO get recent
+		seen = set()
+		for i in range(len(self.history)):
+			j = len(self.history) - 1 - i
+			if not self.history[j][PAGE_COL] in seen:
+				seen.add(self.history[j][PAGE_COL])
+				yield HistoryRecord(self.history, j)
 
 	def get_namespace(self):
 		'''Generator function that yields records in same namespace path'''
 		# TODO get namespace
+
+gobject.type_register(History)

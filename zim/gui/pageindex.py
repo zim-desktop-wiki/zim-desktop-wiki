@@ -146,10 +146,11 @@ class PageTreeView(BrowserTreeView):
 		# TODO temporary list new item if page does not exist
 
 		path = model.get_path_from_page(pagename)
-		self.expand_to_path(path)
-		self.get_selection().select_path(path)
-		self.set_cursor(path)
-		self.scroll_to_cell(path)
+		if not path is None:
+			self.expand_to_path(path)
+			self.get_selection().select_path(path)
+			self.set_cursor(path)
+			self.scroll_to_cell(path)
 
 
 # Need to register classes defining gobject signals
