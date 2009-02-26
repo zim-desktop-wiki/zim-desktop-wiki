@@ -306,7 +306,7 @@ class GtkInterface(NotebookInterface):
 			forward.set_sensitive(not historyrecord.is_last())
 
 		parent.set_sensitive(len(page.namespace) > 0)
-		child.set_sensitive(not page.children is None)
+		child.set_sensitive(page.haschildren)
 
 	def open_page_back(self):
 		record = self.history.get_previous()
@@ -324,23 +324,23 @@ class GtkInterface(NotebookInterface):
 			self.open_page(namespace)
 
 	def open_page_child(self):
-		if not self.page.children:
+		if not self.page.haschildren:
 			return
 
 		record = self.history.get_child(self.page)
 		if not record is None:
 			self.open_page(record.name, record)
 		else:
-			child = self.page.children[0]
+			child = self.notebook.index.get_pagelist(page)[0]
 			self.open_page(child)
 
 	def open_page_previous(self):
-		page = self.notebook.get_previous(self.page)
+		page = self.notebook.index.get_previous(self.page)
 		if not page is None:
 			self.open_page(page)
 
 	def open_page_next(self):
-		page = self.notebook.get_next(self.page)
+		page = self.notebook.index.get_next(self.page)
 		if not page is None:
 			self.open_page(page)
 
@@ -443,8 +443,7 @@ class GtkInterface(NotebookInterface):
 		self.spawn('zim', '--server', '--gui', self.notebook.name)
 
 	def reload_index(self):
-		# TODO flush cache
-		self.mainwindow.pageindex.set_pages(self.notebook.get_root())
+		pass # TODO flush cache
 
 	def show_help(self, page=None):
 		if page:
@@ -493,7 +492,7 @@ class MainWindow(gtk.Window):
 		'''Constructor'''
 		gtk.Window.__init__(self)
 
-		ui.connect('open-notebook', self.do_open_notebook)
+		#~ ui.connect('open-notebook', self.do_open_notebook)
 		ui.connect('open-page', self.do_open_page)
 
 		# Catching this signal prevents the window to actually be destroyed
@@ -619,9 +618,6 @@ class MainWindow(gtk.Window):
 		self.pageindex.hide_all()
 		self.pageview.grab_focus()
 		# TODO action_show_active('toggle_sidepane', False)
-
-	def do_open_notebook(self, ui, notebook):
-		self.pageindex.treeview.set_pages( notebook.get_root() )
 
 	def do_open_page(self, ui, page, record):
 		'''Signal handler for open-page, updates the pageview'''

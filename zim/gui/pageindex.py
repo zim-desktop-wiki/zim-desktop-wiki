@@ -14,50 +14,95 @@ import pango
 from zim.gui.widgets import BrowserTreeView
 
 NAME_COL = 0  # column with short page name (page.basename)
-PAGE_COL = 1  # column with the full page name (page.name)
 
-class PageTreeStore(gtk.TreeStore):
+class PageTreeStore(gtk.GenericTreeModel):
+	'''FIXME
 
-	def __init__(self):
-		gtk.TreeStore.__init__(self, str, str) # NAME_COL, PAGE_COL
+	Note: Be aware that in this interface there are two classes both referred
+	to as "paths". The first is gtk.TreePath and the second is
+	zim.notebook.Path . When a TreePath is intended the argument is called
+	explicitly "treepath", while arguments called "path" refer to a zim Path.
 
-	def add_pages(self, pagelist):
+	TODO see python gtk-2.0 tutorial for remarks about reference leaking !
+	'''
 
-		def add_page(parent, page):
-			row = (page.basename, page.name)
-			iter = self.append(parent, row)
-			if page.children:
-				for child in page.children:
-					add_page(iter, child) # recurs
+	def __init__(self, index):
+		gtk.GenericTreeModel.__init__(self)
+		self.index = index
 
-		for page in pagelist:
-			add_page(None, page)
+	def on_get_flags(self):
+		return 0 # no flags
 
-	def get_path_from_page(self, page):
-		'''Returns the treemodel path for a given page or page name'''
-		if not isinstance(page, basestring):
-			page = page.name
+	def on_get_n_columns(self):
+		return 1 # only one column
 
+	def on_get_column_type(self, index):
+		assert index == 0
+		return unicode
+
+	def on_get_iter(self, path):
 		iter = None
-		path = ''
-		for part in page.strip(':').split(':'):
-			path += ':'+part
-			iter = self.iter_children(iter)
-				# will give root iter when iter is None
-			if iter is None:
-				return None
+		for i in path:
+			iter = self.on_iter_nth_child(iter, i)
+		return iter
 
-			while self[iter][PAGE_COL] != path:
-				iter = self.iter_next(iter)
-				if iter is None:
-					return None
+	def get_treepath(self, path):
+		'''Returns a treepath for a given path'''
+		treepath = []
+		while path:
+			parent = self.index.get_parent(path)
+			pagelist = self.index.get_pagelist(parent)
+			treepath.append(pagelist.index(path))
+			path = parent
+		treepath.reverse()
+		return treepath
 
-		return self.get_path(iter)
+	on_get_path = get_treepath # alias for GenericTreeModel API
 
-	def get_page_from_path(self, path):
-		'''Returns the page name for a given path in the treemodel'''
-		iter = self.get_iter(path)
-		return self[iter][PAGE_COL]
+	def on_get_value(self, path, column):
+		assert column == 0
+		return path.name
+
+	def on_iter_next(self, path):
+		# Only within one namespace, so not the same as index.get_next()
+		if hasattr(path, '_pagelist'):
+			pagelist = path._pagelist
+			i = path._i
+		else:
+			parent = self.index.get_parent(path)
+			pagelist = self.index.get_pagelist(parent)
+			i = pagelist.index(path) + 1
+		try:
+			next = pagelist[i]
+			next._pagelist = pagelist
+			next._i = i
+			return next
+		except IndexError:
+			return None
+
+	def on_iter_children(self, path):
+		pagelist = self.index.get_pagelist(path)
+		child = pagelist[0]
+		child._pagelist = pagelist
+		child._i = 0
+		return child
+
+	def on_iter_has_child(self, path):
+		return path.haschildren
+
+	def on_iter_n_children(self, path):
+		pagelist = self.index.get_pagelist(path)
+		return len(pagelist)
+
+	def on_iter_nth_child(self, parent, n):
+		pagelist = self.index.get_pagelist(path)
+		try:
+			return pagelist[n]
+		except IndexError:
+			return None
+
+	def on_iter_parent(self, child):
+		return self.index.get_parent(child)
 
 
 class PageTreeView(BrowserTreeView):
@@ -82,13 +127,6 @@ class PageTreeView(BrowserTreeView):
 
 		# TODO drag & drop stuff
 		# TODO popup menu for pages
-
-	def set_pages(self, pagelist):
-		'''Set the page list. This can by e.g. a Namespace object.'''
-		# TODO delay init of actual page tree till it is shown
-		# TODO use idle loop to delay loading long lists
-		self.set_model(PageTreeStore()) # flush old list
-		self.get_model().add_pages(pagelist)
 
 	def do_row_activated(self, path, column):
 		'''Handler for the row-activated signal, emits page-activated'''
@@ -139,8 +177,8 @@ class PageTreeView(BrowserTreeView):
 		else:
 			pagename = page
 
-		if not iter is None and model[iter][PAGE_COL] == pagename:
-			return  # this page was selected already
+		#~ if not iter is None and model[iter][PAGE_COL] == pagename:
+			#~ return  # this page was selected already
 
 		# TODO unlist temporary listed items
 		# TODO temporary list new item if page does not exist

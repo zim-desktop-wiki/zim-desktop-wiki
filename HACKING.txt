@@ -167,6 +167,21 @@ We depend on Gtk+ >= 2.6 instead of >= 2.4
 
 ---------------
 
+== File format ==
+
+Header for mtime in pages causes conflicts when merging versions :S
+Get rid of all headers except the content-type line defining a zim version.
+
+Move to a new extension (.wkz ?) and assign the proper mimetype and icon.
+Move notebook.zim to hidden ".notebook.zim" (not in .zim dir - .zim should
+be ignored when versioning).
+Add zim format version to notebook as well. When we detect older version
+< 0.42, prompt user to upgrade the notebook to new format and move the files
+around. Do automated backup first! Do we need to keep backward compat mode ??
+
+( Code to store the tar.gz backup can be used as well for e.g. for a
+backup plugin, or to publish read-only notebooks. )
+
 == Locking ==
 
 Do not use mtime or lock, even mtime fails on network drives.
@@ -176,6 +191,19 @@ process broke lock, warn user and switch to read-only.
 
 Assume single user usage, so this is only prevention.
 For multi-user setups need network client etc.
+
+== mtime stuff ==
+
+After reading a page get the mtime and keep the original raw file in memory.
+When at writing timestamps do not match, calculate md5 of original in memory
+and of the file on disk. Only prompt user if md5 sums really do not match.
+This makes us more reliable for network file systems etc.
+
+== file buffers ==
+
+The idea to read /write diretly from and to files from e.g. a format was
+a pre-mature optimalization. Adapt the Buffer object to be a in-memory buffer
+of an existing file. Pass file data around in memory after reading.
 
 == Daemon ==
 
@@ -190,3 +218,4 @@ If we want to run a network version and decide to fix all the related
 concurency and authentication stuff the proper way would be to extend the
 server with the needed interfaces. E.g. plain source pages and an SQL
 query interface with some plain text result page.
+

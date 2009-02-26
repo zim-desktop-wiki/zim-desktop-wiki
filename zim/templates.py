@@ -230,11 +230,11 @@ class Template(GenericTemplate):
 		self.format = format
 		GenericTemplate.__init__(self, input)
 
-	def process(self, page, output):
+	def process(self, notebook, page, output):
 		'''Output 'page' to a file path or file handle using this template'''
 		dict = {
 			'zim': { 'version': zim.__version__ },
-			'page': PageProxy(page, self.format),
+			'page': PageProxy(notebook, page, self.format),
 			'strftime': TemplateFunction(self.strftime),
 			'url': TemplateFunction(self.url)
 		}
@@ -529,11 +529,11 @@ class TemplateDict(object):
 class PageProxy(object):
 	'''Exposes a single page object to the template.'''
 
-	def __init__(self, page, format):
+	def __init__(self, notebook, page, format):
 		'''Constructor takes the page object to expose and a format.'''
 		# private attributes should be shielded by the template engine
 		self._page = page
-		self._notebook = page.store.notebook
+		self._notebook = notebook
 		self._format = format
 		self._treeproxy_obj = None
 
@@ -569,20 +569,18 @@ class PageProxy(object):
 
 	@property
 	def links(self):
-		return []
-		#~ for type, name in self._page.link():
-			#~ if type == 'page':
-				#~ page = self._notebook.get_page(name)
-				#~ yield PageProxy(page)
+		for type, name in self._page.get_links():
+			if type == 'page':
+				page = self._notebook.get_page(name)
+				yield PageProxy(self._notebook, page)
 
 	@property
 	def backlinks(self):
-		return []
-		#~ blinks = self._notebook.get_backlinks(self._page)
-		#~ for type, name in blinks:
-			#~ if type == 'page':
-				#~ page = self._notebook.get_page(name)
-				#~ yield PageProxy(page)
+		blinks = self._notebook.index.list_backlinks(self._page)
+		for type, name in blinks:
+			if type == 'page':
+				page = self._notebook.get_page(name)
+				yield PageProxy(self._notebook, page)
 
 
 class ParseTreeProxy(object):

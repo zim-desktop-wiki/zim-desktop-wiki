@@ -1,21 +1,21 @@
-:Test:foo
-:Test:foo:bar
-:Test:wiki
-:TODOList:bar
-:TODOList:foo
+Test:foo
+Test:foo:bar
+Test:wiki
+TODOList:bar
+TODOList:foo
 
-%%%% :Test:foo %%%%
+%%%% Test:foo %%%%
 ====== Foo ======
 
 bar baz
-%%%% :Test:foo:bar %%%%
+%%%% Test:foo:bar %%%%
 = FOO =
 
 [[wIKi]]
 
 •• Search Me ••
 
-%%%% :Test:wiki %%%%
+%%%% Test:wiki %%%%
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 
@@ -109,14 +109,14 @@ fsdfds
 
 sdffdsfds
 
-%%%% :TODOList:bar %%%%
+%%%% TODOList:bar %%%%
 TODO: test 123 test !!
 
 * foo ! - TODO
 * bar ! - TODO
 * baz - TODO
 
-%%%% :TODOList:foo %%%%
+%%%% TODOList:foo %%%%
 TODO: fix 1 !!!
 
 TODO:

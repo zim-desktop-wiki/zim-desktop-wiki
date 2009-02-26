@@ -7,10 +7,19 @@
 import tests
 
 from zim.fs import *
-from zim.notebook import Notebook
+from zim.notebook import Notebook, Path
 import zim.stores
 
-# TODO test if store implements get_root() and get_namespace() correctly
+
+def walk(store, namespace=None):
+	if namespace == None:
+		namespace = Path(':')
+	for page in store.get_pagelist(namespace):
+		yield namespace, page
+		if page.haschildren:
+			for parent, child in walk(store, page): # recurs
+				yield parent, child
+
 
 class TestStoresMemory(tests.TestCase):
 	'''Test the store.memory module'''
@@ -18,10 +27,10 @@ class TestStoresMemory(tests.TestCase):
 	def setUp(self):
 		'''Initialise a fresh notebook'''
 		store = zim.stores.get_store('memory')
-		self.store = store.Store(namespace='', notebook=Notebook())
+		self.store = store.Store(path=Path(':'), notebook=Notebook())
 		self.index = set()
 		for name, text in tests.get_notebook_data('wiki'):
-			self.store._set_node(name, text)
+			self.store._set_node(Path(name), text)
 			self.index.add(name)
 		self.normalize_index()
 
@@ -31,47 +40,22 @@ class TestStoresMemory(tests.TestCase):
 		for name in pages:
 			parts = name.split(':')
 			parts.pop()
-			while len(parts) > 1:
+			while parts:
 				self.index.add(':'.join(parts))
 				parts.pop()
 
 	def testIndex(self):
 		'''Test we get a proper index'''
 		names = set()
-		for page in self.store.get_root().walk():
+		for parent, page in walk(self.store):
+			self.assertTrue(len(page.name) > 0)
+			self.assertTrue(len(page.basename) > 0)
+			self.assertTrue(page.namespace == parent.name)
 			names.add( page.name )
 		#import pprint
 		#pprint.pprint(self.index)
 		#pprint.pprint(names)
 		self.assertEqual(names, self.index)
-
-	def testResolveName(self):
-		'''Test store.resolve_name().'''
-		#~ print '\n'+'='*10+'\nSTORE: %s' % self.store
-
-		# First make sure basic list function is working
-		def list_pages(name):
-			for page in self.store.list_pages(name):
-				yield page.basename
-		self.assertTrue('Test' in list_pages(''))
-		self.assertTrue('foo' in list_pages(':Test'))
-		self.assertTrue('bar' in list_pages(':Test:foo'))
-		self.assertFalse('Dus' in list_pages(':Test:foo'))
-
-		# Now test the resolving algorithm - only testing low level
-		# function in store, so path "anchor" does not work, search
-		# is strictly right to left through the namespace, if any
-		for link, namespace, name in (
-			('BAR','Test:foo','Test:foo:bar'),
-			('test',None,'Test'),
-			('test','Test:foo:bar','Test'),
-			('FOO:Dus','Test:foo:bar','Test:foo:Dus'),
-			# FIXME more ambigous test data
-		):
-			#~ print '-'*10+'\nLINK %s (%s)' % (link, namespace)
-			r = self.store.resolve_name(link, namespace=namespace)
-			#~ print 'RESULT %s' % r
-			self.assertEqual(r, name)
 
 	#~ def testResolveFile(self):
 		#~ '''Test store.resolve_file()'''
@@ -91,11 +75,10 @@ class TestFiles(TestStoresMemory):
 		self.mem = self.store
 		store = zim.stores.get_store('files')
 		self.store = store.Store(
-			namespace='', notebook=Notebook(),
-			dir=self.dir )
-		for page in self.mem.get_root().walk():
-			if page.isempty():
-				continue
-			self.store.clone_page(page.name, page)
+			path=Path(':'), notebook=Notebook(), dir=self.dir )
+		for parent, page in walk(self.mem):
+			if page.hascontent:
+				mypage = self.store.get_page(page)
+				mypage.set_parsetree(page.get_parsetree())
 
 	# TODO test move, delete, read, write

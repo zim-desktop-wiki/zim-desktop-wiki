@@ -13,6 +13,7 @@ from zim.fs import *
 from zim.templates import *
 from zim.templates import GenericTemplate, \
 	TemplateParam, TemplateDict, TemplateFunction, PageProxy
+from zim.notebook import Notebook
 import zim.formats
 
 class TestTemplateParam(TestCase):
@@ -140,13 +141,13 @@ class TestTemplateSet(TestCase):
 class TestPageProxy(TestCase):
 
 	def runTest(self):
-		page = tests.get_test_page(':FooBar')
+		page = tests.get_test_page('FooBar')
 		page.set_text('wiki', '''\
 ====== Page Heading ======
 **foo bar !**
 ''')
 		self.assertTrue(len(page.get_text('html')) > 0)
-		proxy = PageProxy(page, zim.formats.get_format('html'))
+		proxy = PageProxy(Notebook(), page, zim.formats.get_format('html'))
 		self.assertEqual(proxy.name, page.name)
 		self.assertEqual(proxy.namespace, page.namespace)
 		self.assertEqual(proxy.basename, page.basename)
@@ -173,12 +174,12 @@ class TestTemplate(TestCase):
 </p>
 
 '''
-		page = tests.get_test_page(':FooBar')
+		page = tests.get_test_page('FooBar')
 		page.set_text('wiki', '''\
 ====== Page Heading ======
 **foo bar !**
 ''')
 		self.assertTrue(len(page.get_text('html')) > 0)
 		output = Buffer()
-		Template(file, 'html').process(page, output)
+		Template(file, 'html').process(Notebook(), page, output)
 		self.assertEqualDiff(output.getvalue(), result)

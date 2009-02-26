@@ -6,6 +6,7 @@
 
 from tests import TestCase, get_test_notebook
 
+from zim.notebook import Path
 from zim.history import History, HistoryRecord
 
 class TestHistory(TestCase):
@@ -13,7 +14,7 @@ class TestHistory(TestCase):
 
 	def setUp(self):
 		self.notebook = get_test_notebook()
-		self.pages = [self.notebook.get_page(name)
+		self.pages = [self.notebook.get_page(Path(name))
 			for name in self.notebook.testdata_manifest]
 
 	def _assertCurrent(self, history, page):

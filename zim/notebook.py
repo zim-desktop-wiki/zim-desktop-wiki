@@ -3,8 +3,7 @@
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 '''
-This package contains the main Notebook class together
-with basic classed like Page and Namespace.
+This package contains the main Notebook class and related classes.
 
 This package defines the public interface towards the
 noetbook.  As a backend it uses one of more packages from
@@ -18,6 +17,7 @@ from zim.config import ConfigList, config_file, data_dir
 from zim.parsing import Re, is_url_re, is_email_re
 import zim.stores
 import zim.history
+
 
 def get_notebook(notebook):
 	'''Takes a path or name and returns a notebook object'''
@@ -75,14 +75,21 @@ class LookupError(Exception):
 class Notebook(object):
 	'''FIXME'''
 
-	def __init__(self, path=None, name=None, config=None):
+	def __init__(self, path=None, name=None, config=None, index=None):
 		'''FIXME'''
-		self.namespaces = []
-		self.stores = {}
-		self.page_cache = weakref.WeakValueDictionary()
+		self._namespaces = []	# list used to resolve stores
+		self._stores = {}		# dict mapping namespaces to stores
+		self._page_cache = weakref.WeakValueDictionary()
 		self.dir = None
 		self.name = name
 		self._history_ref = lambda: None
+
+		if index is None:
+			import zim.index # circular import
+			self.index = zim.index.Index(notebook=self)
+		else:
+			self.index = index
+			self.index.set_notebook(self)
 
 		if isinstance(path, Dir):
 			self.dir = path
@@ -96,60 +103,32 @@ class Notebook(object):
 		elif not path is None:
 			assert False, 'path should be either File or Dir'
 
-	def add_store(self, namespace, store, **args):
-		'''Add a store to the notebook under a specific namespace.
-		All other args will be passed to the store.
-		Returns the store object.
+	def add_store(self, path, store, **args):
+		'''Add a store to the notebook to handle a specific path and all
+		it's sub-pages. Needs a Path and a store name, all other args will
+		be passed to the store. Returns the store object.
 		'''
 		mod = zim.stores.get_store(store)
-		mystore = mod.Store(
-			notebook=self,
-			namespace=namespace,
-			**args
-		)
-		self.stores[namespace] = mystore
-		self.namespaces.append(namespace)
+		assert not path.name in self._stores, 'Store for "%s" exists' % path
+		mystore = mod.Store(notebook=self, path=path, **args)
+		self._stores[path.name] = mystore
+		self._namespaces.append(path.name)
 
 		# keep order correct for lookup
-		self.namespaces.sort()
-		self.namespaces.reverse()
+		self._namespaces.sort(reverse=True)
 
 		return mystore
 
-	def get_store(self, name, resolve=False):
+	def get_store(self, path):
 		'''Returns the store object to handle a page or namespace.'''
-		for namespace in self.namespaces:
+		for namespace in self._namespaces:
 			# longest match first because of reverse sorting
-			if name.startswith(namespace):
-				return self.stores[namespace]
-		raise LookupError, 'Could not find store for: %s' % name
-
-	def resolve_store(self, name):
-		'''Case insensitive version of get_store()'''
-		lname = name.lower()
-		for namespace in self.namespaces:
-			# longest match first because of reverse sorting
-			if lname.startswith( namespace.lower() ):
-				return self.stores[namespace]
-		raise LookupError, 'Could not find store for: %s' % name
-
-	def get_stores(self, name):
-		'''Returns a list of (path, store) for all stores in
-		the path to a specific page. The 'path' item in the result is
-		the maximum part of the path handled by that store.
-		'''
-		stores = []
-		path = name
-		for namespace in self.namespaces:
-			# longest match first because of reverse sorting
-			if name.startswith(namespace):
-				store = self.stores[namespace]
-				stores.append( (path, store) )
-				# set path for next match to namespace part
-				# which is not covered by this store
-				i = store.namespace.rfind(':')
-				path = store.namespace[:i]
-		return stores
+			if namespace == ''			\
+			or page.name == namespace	\
+			or page.name.startswith(namespace+':'):
+				return self._stores[namespace]
+		else:
+			raise LookupError, 'Could not find store for: %s' % name
 
 	def get_history(self):
 		history = self._history_ref()
@@ -158,61 +137,56 @@ class Notebook(object):
 			self._history_ref = weakref.ref(history)
 		return history
 
-	def normalize_name(self, name):
-		'''Normalizes a page name to a valid form.
-		Raises a PageNameError if name is empty.
-		'''
-		name = name.strip(':')
-		if not name:
-			raise PageNameError, 'Empty page name'
-		parts = [p for p in name.split(':') if p]
-		return ':'.join(parts)
+	def resolve_path(self, name, namespace=None):
+		'''Returns a proper path name for page names given in links
+		or from user input. The optional argument 'namespace' is the
+		path for the parent namespace of the refering page, if any.
+		Or the path of the "current" namespace in the user interface.
 
-	def normalize_namespace(self, name):
-		'''Normalizes a namespace name to a valid form.'''
-		name = name.strip(':')
-		# TODO remove / encode chars that are not allowed
-		if not name:
-			return ''
-		parts = [p for p in name.split(':') if p]
-		return ':'.join(parts)
-
-	def resolve_name(self, name, namespace=''):
-		'''Returns a proper page name from links or user input.
-
-		'namespace' is the namespace of the refering page, if any.
-
-		If namespace is empty or if the page name starts with a ':'
-		the name is considered an absolute name and only case is
+		If no namespace path is given or if the page name starts with
+		a ':' the name is considered an absolute name and only case is
 		resolved. If the page does not exist the last part(s) of the
 		name will remain in the case as given.
 
-		If the name is relative to namespace we first look for a match
-		of the first part of the name in the path. If that fails we
-		do a search for the first part of the name through all
-		namespaces in the path. If no match was found we default to
-		the name relative to 'namespace'.
+		If the name is relative to the namespace path we first look for a
+		match of the first part of the name in the path. If that fails
+		we do a search for the first part of the name through all
+		namespaces in the path, starting with pages below the namespace
+		itself. If no existing page was found in this search we default to
+		a new page below this namespace.
+
+		So if we for exampel look for "baz" with as namespace ":foo:bar"
+		the following pages will be checked in a case insensitive way:
+
+			:foo:bar:baz
+			:foo:baz
+			:baz
+
+		And if none exist we default to ":foo:bar:baz"
+
+		However if for example we are looking for "bar:bud" with as namespace
+		":foo:bar:baz", we only try to resolve the case for ":foo:bar:bud"
+		and default to the given case if it does not yet exist.
+
+		This method will raise a PageNameError if the name resolves
+		to an empty string. Since all trailing ":" characters are removed
+		there is no way for the name to address the root path in this method -
+		and typically user input should not need to able to address this path.
 		'''
-		isabs = name.startswith(':') or not namespace
-		name = self.normalize_name(name)
-
-		# If I'm not mistaken each call to this method will
-		# result in exactly one call to the corresponding method
-		# for a specific store (but potentially for multiple stores).
-
-		def resolve_abs(name):
-			# only resolve case for absolute name
-			# keep case as is when not found
-			store = self.resolve_store(name)
-			n = store.resolve_name(name)
-			return n or name
+		isabs = name.startswith(':') or namespace == None
+		# normalize name
+		# TODO check for illegal characters in the name
+		name = ':'.join(filter(lambda n: len(n)>0, name.split(':')))
+		if not name or name.isspace():
+			raise PageNameError
 
 		if isabs:
-			return resolve_abs(name)
+			return self.index.resolve_case(name) or Path(name)
 		else:
 			# first check if we see an explicit match in the path
+			assert isinstance(namespace, Path)
 			anchor = name.split(':')[0].lower()
-			path = namespace.lower().split(':')[1:]
+			path = namespace.name.lower().split(':')
 			if anchor in path:
 				# ok, so we can shortcut to an absolute path
 				path.reverse() # why is there no rindex or rfind ?
@@ -221,47 +195,41 @@ class Notebook(object):
 				path.reverse()
 				path.append( name.lstrip(':') )
 				name = ':'.join(path)
-				return resolve_abs(name)
+				return self.index.resolve_case(name) or Path(name)
+				# FIXME use parent
+				# FIXME use short cut when the result is the parent
 			else:
-				# no luck, do a search through the whole path
-				stores = self.get_stores(namespace)
-				for path, store in stores:
-					n = store.resolve_name(name, namespace=path)
-					if not n is None: return n
+				# no luck, do a search through the whole path - including root
+				namespace = self.index.lookup_path(namespace) or namespace
+				for parent in namespace.parents():
+					candidate = self.index.resolve_case(name, namespace=parent)
+					if not candidate is None:
+						return candidate
+				else:
+					# name not found, keep case as is
+					return namespace+name
 
-				# name not found, keep case as is
-				return namespace+name
-
-	def get_page(self, name):
+	def get_page(self, path):
 		'''Returns a Page object'''
-		name = self.normalize_name(name)
-		if name in self.page_cache:
-			return self.page_cache[name]
+		assert isinstance(path, Path)
+		if path.name in self._page_cache:
+			return self._page_cache[path.name]
 		else:
-			store = self.get_store(name)
-			page = store.get_page(name)
-			self.page_cache[name] = page
+			store = self.get_store(path)
+			page = store.get_page(path)
+			# TODO - set haschildren if page maps to a store namespace
+			self._page_cache[path.name] = page
 			return page
 
 	def get_home_page(self):
 		'''Returns a page object for the home page.'''
-		return self.get_page(':Home') # TODO: make this configable
+		return self.get_page(Path('Home')) # TODO: make this configable
 
-	def get_root(self):
-		'''Returns a Namespace object for root namespace.'''
-		return self.stores[''].get_root()
-
-	def get_namespace(self, namespace):
-		'''Returns a Namespace object for 'namespace'.'''
-		namespace = self.normalize_namespace(namespace)
-		store = self.get_store(namespace)
-		return store.get_namespace(namespace)
-
-	def get_previous(self, page):
-		'''Like Namespace.get_previous(page), but crosses namespace bounds'''
-
-	def get_next(self, page):
-		'''Like Namespace.get_next(page), but crosses namespace bounds'''
+	def get_pagelist(self, path):
+		'''Returns a list of page objects.'''
+		store = self.get_store(path)
+		return store.get_pagelist(path)
+		# TODO: add sub-stores in this namespace if any
 
 	#~ def move_page(self, name, newname):
 		#~ '''FIXME'''
@@ -319,35 +287,72 @@ class Notebook(object):
 			dir = store.get_attachments_dir(pagename)
 			return dir.file(filename)
 
-class Page(object):
-	'''FIXME'''
-
-	# Page objects should never need to access self.store.notebook,
-	# they are purely intended as references to data in the store.
-
-	def __init__(self, name, store, source=None, format=None):
-		'''Construct Page object.
-		Needs at least a name and a store object.
-		The source object and format module are optional but go together.
+	def walk(self, path=None):
+		'''Generator function which iterates through all pages, depth first.
+		If a path is given, only iterates through sub-pages of that path.
 		'''
-		assert len(name), 'Page needs a name' # FIXME assert name is valid
-		assert not (source and format is None) # these should come as a pair
-		self.name     = name
-		self.store    = store
-		self.children = None
-		self.source   = source
-		self.format   = format
-		self._tree    = None
-		self.properties = {}
+		if path == None:
+			path = Path(':')
+		for page in self.get_pagelist(path):
+			yield page
+			if page.haschildren:
+				for child in self.walk(path=page): # recurs
+					yield child
+
+	def get_pagelist_indexkey(self, path):
+		raise NotImplementedError
+
+	def get_page_indexkey(self, path):
+		raise NotImplementedError
+
+class Path(object):
+	'''This is the parent class for the Page class. It contains the name
+	of the page and is used instead of the actual page object by methods
+	that only know the name of the page.
+	'''
+
+	__slots__ = ('name',)
+
+	def __init__(self, name):
+		'''Constructor. Takes an absolute page name in the right case.
+		The name ":" is used as a special case to construct a path for
+		the toplevel namespace in a notebook.
+
+		Note: This class does not do any checks for the sanity of the path
+		name. Never construct a path directly from user input, but always use
+		"Notebook.resolve_path()" for that.
+		'''
+		if name == ':': # root namespace
+			self.name = ''
+		else:
+			self.name = name
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)
 
+	def __eq__(self, other):
+		'''Paths are equal when their names are the same'''
+		if isinstance(other, Path):
+			return self.name == other.name
+		else: # e.g. path == None
+			return False
+
+	def __add__(self, name):
+		'''"path + name" returns a child path'''
+		if len(self.name):
+			return Path(self.name+':'+name)
+		else: # we are the top level root namespace
+			return Path(name)
+
+	@property
+	def basename(self):
+		i = self.name.rfind(':') + 1
+		return self.name[i:]
+
 	@property
 	def namespace(self):
-		'''Gives the namespace name for the parent namespace.
-		Gives empty string for the top level namespace.
-		Use 'notebook.get_namespace(page.namespace)' to get a namespace object.
+		'''Gives the name for the parent page.
+		Returns an empty string for the top level namespace.
 		'''
 		i = self.name.rfind(':')
 		if i > 0:
@@ -356,25 +361,83 @@ class Page(object):
 			return ''
 
 	@property
-	def basename(self):
-		i = self.name.rfind(':') + 1
-		return self.name[i:]
+	def isroot(self):
+		return self.name == ''
 
-	def isempty(self):
+	def relname(self, path):
+		'''Returns a relative name for this path compared to the reference.
+		Raises an error if this page is not below the given path.
+		'''
+		if path.name == '': # root path
+			return self.name
+		elif self.name.startswith(path.name + ':'):
+			i = len(path.name)+1
+			return self.name[i:]
+		else:
+			raise Exception, '"%s" is not below "%s"' % (self, path)
+
+	def parents(self):
+		'''Generator function for parent namespace paths including root'''
+		path = self.name.split(':')
+		path.pop()
+		while len(path) > 0:
+			namespace = ':'.join(path)
+			yield Path(namespace)
+			path.pop()
+		yield Path(':')
+
+
+class Page(Path):
+	'''FIXME
+
+	Page objects inherit from Path but contain store specific data about
+	how/where to get the page content. We try to keep Page objects unique
+	by hashing them in notebook.get_page(), Path object on the other hand
+	are cheap and can have multiple instances for the same logical path.
+	We ask for a path object instead of a name in the constructore to
+	encourage the use of Path objects over passsing around page names as
+	string. Also this allows some optimalizations by addind index pointers
+	to the Path instances.
+	'''
+
+	# Page objects should never need to access self.store.notebook,
+	# they are purely intended as references to data in the store.
+
+	def __init__(self, path, haschildren=False, source=None, format=None):
+		'''Construct Page object. Needs at least a path object, a store object
+		and a boolean to flag if the page has children. The source object and
+		format module are optional but need to go together.
+		'''
+		assert isinstance(path, Path)
+		assert not (source and format is None) # these should come as a pair
+		self.name = path.name
+		self.haschildren = haschildren
+		self.source = source
+		self.format = format
+		self._tree = None
+		self.properties = {}
+		if hasattr(path, '_indexpath'):
+			self._indexpath = path._indexpath
+			# Keeping this data around will speed things up when this page
+			# is used for index lookups
+
+	@property
+	def hascontent(self):
 		'''Returns True if this page has no content'''
 		if self.source:
-			return not self.source.exists()
+			return self.source.exists()
 		else:
-			return not self._tree
+			return self._tree
 
 	def get_parsetree(self):
 		'''Returns contents as a parse tree or None'''
 		if self.source:
-			if self.isempty():
+			if self.source.exists():
+				parser = self.format.Parser(self)
+				tree = parser.parse(self.source)
+				return tree
+			else:
 				return None
-			parser = self.format.Parser(self)
-			tree = parser.parse(self.source)
-			return tree
 		else:
 			return self._tree
 
@@ -390,7 +453,9 @@ class Page(object):
 			self._tree = tree
 
 	def get_text(self, format):
-		'''Returns contents as string'''
+		'''Convenience method that converts the parse tree to a particular
+		format.
+		'''
 		tree = self.get_parsetree()
 		if tree:
 			import zim.formats
@@ -407,63 +472,6 @@ class Page(object):
 		parser = zim.formats.get_format(format).Parser(self)
 		self.set_parsetree(parser.fromstring(text))
 
-	def path(self):
-		'''Generator function for parent namespaces
-		can be used like:
+	def get_links(self):
+		pass
 
-			for namespace in page.path():
-				if namespace.page('foo').exists:
-					# ...
-		'''
-		path = self.name.split(':')
-		path.pop(-1)
-		while len(path) > 0:
-			namespace = path.join(':')
-			yield Namespace(namespace, self.store)
-
-
-class Namespace(object):
-	'''Iterable object for namespaces, which functions as a wrapper for the
-	result of store.list_pages(). The advantage being that list_pages()
-	does not actually is called untill you start iterating the namespace
-	object, which prevents a lot of objects to be created prematurely.
-	By setting a Namespace object or not the store tells users of the Page
-	object whether the page has children or not, but testing this property
-	does not necesitate actually constructing objects, this is delayed untill
-	iteration.
-	'''
-
-	def __init__(self, namespace, store):
-		'''Constructor needs a namespace and a store object'''
-		self.name = namespace
-		self.store = store
-
-	def __repr__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self.name)
-
-	def __iter__(self):
-		'''Calls the store.listpages generator function'''
-		return self.store.list_pages( self.name )
-
-	def __getitem__(self, item):
-		# TODO: optimize querying a specific page in a namespace
-		i = 0
-		for page in self:
-			if i == item:
-				return page
-			else:
-				i += 1
-
-	def walk(self):
-		'''Generator to walk page tree recursively'''
-		for page in self:
-			yield page
-			if page.children:
-				for page in page.children.walk(): # recurs
-					yield page
-
-	def get_previous(self, page):
-		'''FIXME'''
-
-	def get_next(self, page):
-		'''FIXME'''

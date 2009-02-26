@@ -13,6 +13,55 @@ inherits from StoreClass. All methods marked with "ABSTRACT" need to
 be implemented in the sub class. When called directly they will raise
 a NotImplementedError. Overloading other methods is optional. Also
 each module should define a variable '__store__' with it's own name.
+
+=== Storage Model ===
+
+Stores handle content in terms of Page objects. How the data that is
+managed by the store is mapped to pages is up to the store implementation.
+For example in the default store each page is mapped to a text file,
+but there can also be store impementations that store many pages in the
+same file, or that use for example a database. The store is however
+expected to be consistent. So when a page is stored under a specific name
+it should also be retrievable under that name.
+
+Pages can be stored in a hierarchic way where each page can have sub-pages.
+Or, in other terms, each page has a like names namespace that can store
+sub pages. In the default store this structure is mapped to a directory
+structure where for each page there can be a like named directory which
+contains the files used to store sub-pages. The full page name for a page
+consists of the names of all it's parents plus it's own base name seperated
+with the ':' character. It is advised that each page should have a unique
+name. Symbolic links or aliases for pages should be handled on a different
+level. In the store interface page names are always assumed to be case
+sensitive. However the store is allowed to be not case sensitive if the storage
+backend does not support this (e.g. a file system that is not case sensitive).
+
+The store exposes it's content using Page objects and lists of Page objects.
+Each page object has two boolean attributes 'hascontent' and 'haschildren'.
+Typically in a page listing at least one of these attributes should be true,
+as a page either has content of it's own, or is used as a container for
+sub-pages, or both. However both attributed can be False for new pages, or
+for pages that have just been deleted.
+
+The index will cache page listings in order to speed up the performance,
+so it should not be necessary to do speed optializations in the store lookups.
+However for eficient caching, store objects should implement the
+'get_index_key()' method.
+
+The notebook will use Path objects when requesting a specific page. These
+paths just map to a specific page name but do not contain any information
+about the actual existence of the page etc.
+
+If a non-exising page is requested the store should check if we are allowed
+to create the page. If so, a new page object should be returned, but actually
+creating the page can be delayed untill content is stored in it. Creating
+the page also implicitly creates all of it's parents page, since it should
+be visible in the hierarchy of page listings. If we are not allowed to create
+the page (e.g. in case of a read-only notebook) no page object should be
+returned.
+
+If a page list for a non-existing path is requested, the store can just
+return an empty list.
 '''
 
 from zim.fs import *
@@ -31,159 +80,68 @@ def get_store(name):
 
 class StoreClass():
 
-	def __init__(self, notebook, namespace=''):
+	def __init__(self, notebook, path):
 		'''Constructor for stores.
-		At least pass a notebook and a namespace.
+		At least pass a notebook and the path for our namespace.
 		'''
 		self.notebook = notebook
-		self.namespace = namespace
+		self.namespace = path
 
-
-	# Public interface
-
-	def resolve_name(self, name, namespace=None):
-		'''Returns a page name in correct case or None.
-		Used by the resolve_name() method in Notebook.
-
-		If no namespace is given, check existence of at least part of
-		the name. If so, return the name in proper case, else return
-		None.
-
-		If 'namespace' is given, do the above for a page below
-		namespace or any of the parents of namespace that are handled
-		by this store. ( 'namespace' can be expected to be in the
-		correct case. )
-
-		The default implementation in this class will iterate through
-		each part of the namespace in turn, and tries to resolve the
-		page below them by looking through the results of list_pages().
-		'''
-		#~ print "RESOLVE '%s', '%s'" % (namespace or '', name)
-		if namespace is None:
-			name = self.relname(name)
-			return self._resolve_name(self.namespace, name)
-		else:
-			mynamespace = self.namespace
-			if len(mynamespace):
-				mynamespace += ':'
-			namespace = self.relname(namespace)
-			path = namespace.split(':')
-			while path:
-				# iterate backwards through the namespace path
-				ns = self.namespace+':'.join(path)
-				n = self._resolve_name(ns, name)
-				if n is None:
-					path.pop()
-				else:
-					return n
-			return self._resolve_name(self.namespace, name)
-
-	def _resolve_name(self, namespace, name):
-		'''Resolve the case of a page below a specific namespace.
-		Return None if the first part of name does not exist.
-		'''
-		#~ print "=> TEST '%s', '%s'" % (namespace, name)
-		if len(namespace):
-			namespace += ':'
-		parts = name.split(':')
-		case = []
-		while parts:
-			# iterate forward through the page name parts
-			ns = namespace+':'.join(case)
-			ns = ns.rstrip(':')
-			pl = parts[0].lower()
-			#~ print "LIST", [p.basename for p in self.list_pages(ns)]
-			matches = [ p.basename for p in self.list_pages(ns)
-				if p.basename.lower() == pl ]
-			#~ print 'MATCHES', matches
-			if matches:
-				if parts[0] in matches: # case was already ok
-					case.append(parts[0])
-				else:
-					matches.sort() # make it predictable
-					case.append(matches[0])
-				parts.pop(0)
-			else:
-				break
-		if case:
-			case.extend(parts)
-			return namespace+':'.join(case)
-		else:
-			return None
-
-	def get_page(self, name):
-		'''ABSTRACT METHOD, needs to be implemented in sub-class.
+	def get_page(self, path):
+		'''ABSTRACT METHOD, must be implemented in all sub-classes.
 
 		Return a Page object for page 'name'.
 		'''
 		raise NotImplementedError
 
-	def get_root(self):
-		'''Returns a Namespace object for our root namespace.'''
-		# import Namespace here to avoid circular import
-		from zim.notebook import Namespace
-		return Namespace(self.namespace, self)
+	def get_pagelist(self, path):
+		'''ABSTRACT METHOD, must be implemented in all sub-classes.
 
-	def get_namespace(self, namespace):
-		'''Returns a Namespace object for 'namespace'.'''
-		# import Namespace here to avoid circular import
-		from zim.notebook import Namespace
-		return Namespace(namespace, self)
-
-	def list_pages(self, namespace):
-		'''ABSTRACT METHOD, needs to be implemented in sub-class.
-
-		Returns an iterator for Page objects in a namespace.
-		This method is normally encapsuled by the Namespace object,
-		which will call this method to generate a page list.
-
-		Should return an iterator for an empty list when namespace
-		does not exist.
+		Should return a list (or iterator) of page objects below a specific
+		path. Used by the index to recursively find all pages in the store.
 		'''
 		raise NotImplementedError
 
-	def move_page(self, old, new):
-		'''ABSTRACT METHOD, needs to be implemented in sub-class.
+	def move_page(self, oldpath, newpath):
+		'''ABSTRACT METHOD, must be implemented in sub-class if store is
+		writable.
 
-		Move content from page object "old" to object "new".
-		Should result in 'old.isempty()' returning True if succesfull.
+		Move content from "oldpath" to "newpath". If oldpath is a Page
+		object this should result in 'page.hascontent' being False if
+		succesfull.
 		'''
 		raise NotImplementedError
 
-	def copy_page(self, old, new):
-		'''ABSTRACT METHOD, needs to be implemented in sub-class.
+	def copy_page(self, oldpath, newpath):
+		'''ABSTRACT METHOD, must be implemented in sub-class if store is
+		writable.
 
-		Copy content from page object "old" to object "new".
+		Copy content from "oldpath" to object "newpath".
 		'''
 		raise NotImplementedError
 
-	def clone_page(self, name, page):
-		'''Turn page 'name' into a clone of 'page'.
-		This method is used to export pages from one store to another,
-		or even from one notebook to another.
-		Clones will not be exact copies, but should be close.
-		'''
-		assert not page.isempty()
-		mypage = self.get_page(name)
-		tree = page.get_parsetree()
-		mypage.set_parsetree(tree)
+	def delete_page(self, path):
+		'''ABSTRACT METHOD, must be implemented in sub-class if store is
+		writable.
 
-	def del_page(self, page):
-		'''ABSTRACT METHOD, needs to be implemented in sub-class.
-
-		Deletes a page. Should result in 'page.isempty()' returning
-		True if succesfull.
+		Deletes a page. If path is a Page object this should result
+		in 'page.hascontent' being False if succesfull.
 		'''
 		raise NotImplementedError
 
-	def search(self):
-		'''FIXME interface not yet defined'''
+	def get_index_key(self, path):
+		'''Optional ABSTRACT METHOD, should be implemented in sub-class
+		to optimize indexing.
+
+		See documentation for zim.index for more details.
+		'''
 		raise NotImplementedError
 
-	def has_dir(self):
+	def store_has_dir(self):
 		'''Returns True if we have a directory attribute.
 		Auto-vivicates the dir based on namespace if needed.
-		Intended to be used in an 'assert' statement by subclasses.
+		Intended to be used in an 'assert' statement by subclasses that
+		require a directory to store their content.
 		'''
 		if hasattr(self, 'dir') and not self.dir is None:
 			return isinstance(self.dir, Dir)
@@ -194,10 +152,3 @@ class StoreClass():
 		else:
 			return False
 
-	def relname(self, name):
-		'''Removes our namespace from a page name.'''
-		if self.namespace:
-			assert name.startswith(self.namespace)
-			i = len(self.namespace)
-			name = name[i:]
-		return name.lstrip(':')

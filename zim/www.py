@@ -122,13 +122,12 @@ class WWWInterface(NotebookInterface):
 					raise PageNotFoundError(path)
 
 				page = self.notebook.get_page(pagename)
-				if page.isempty():
-					if page.children:
-						content = self.render_index(pagename)
-					else:
-						raise PageNotFoundError(page)
-				else:
+				if page.hascontent:
 					content = self.render_page(pagename)
+				elif page.haschildren:
+					content = self.render_index(pagename)
+				else:
+					raise PageNotFoundError(page)
 		except WWWError, error:
 			logger.error(error.logmsg)
 			header = [('Content-Type', 'text/plain')]
@@ -157,12 +156,12 @@ class WWWInterface(NotebookInterface):
 
 	def render_index(self, namespace=None):
 		'''Serve an index page'''
-		if namespace is None:
-			namespace = self.notebook.get_root()
-		elif isinstance(namespace, basestring):
-			namespace = self.notebook.get_namespace(namespace)
+		if namespace:
+			path = self.notebook.get_path(namespace)
+		else:
+			path = Path(':') # top level namespace
 
-		page = IndexPage(namespace)
+		page = IndexPage(notebook, path)
 		return self.render_page(page)
 
 	def render_page(self, page):
@@ -181,22 +180,24 @@ class WWWInterface(NotebookInterface):
 
 
 class IndexPage(Page):
-	'''Page displaying a Namespace index'''
+	'''Page displaying a namespace index'''
 
-	def __init__(self, namespace, recurs=True):
+	def __init__(self, notebook, path, recurs=True):
 		'''Constructor takes a namespace object'''
-		Page.__init__(self, namespace.name or '<root>', namespace.store)
-		self._index_namespace = namespace
-		self._index_recurs = recurs
+		Page.__init__(path, haschildren=True)
+		self.index_recurs = recurs
+		self.notebook = notebook
 		self.properties['readonly'] = True
 		self.properties['type'] = 'namespace-index'
 
-	def isempty(self): return False
+	@property
+	def hascontent(self): return True
 
 	def get_parsetree(self):
 		builder = TreeBuilder()
 
-		def add_namespace(namespace):
+		def add_namespace(path):
+			pagelist = self.notebook.index.get_pagelist(path)
 			builder.start('ul')
 			for page in namespace:
 				builder.start('li')
@@ -204,15 +205,15 @@ class IndexPage(Page):
 				builder.data(page.basename)
 				builder.end('link')
 				builder.end('li')
-				if page.children and self._index_recurs:
-					add_namespace(page.children) # recurs
+				if page.haschildren and self.index_recurs:
+					add_namespace(page) # recurs
 			builder.end('ul')
 
 		builder.start('page')
 		builder.start('h', {'level':1})
 		builder.data('Index of %s' % self.name)
 		builder.end('h')
-		add_namespace(self._index_namespace)
+		add_namespace(self)
 		builder.end('page')
 		return ParseTree(builder.close())
 

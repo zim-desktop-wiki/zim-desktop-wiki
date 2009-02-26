@@ -12,7 +12,7 @@ import codecs
 __all__ = [
 	'parsing', 'fs', 'config',
 	'formats', 'templates',
-	'stores', 'notebook',
+	'stores', 'index', 'notebook',
 	'history', 'plugins'
 ]
 
@@ -63,13 +63,14 @@ def get_notebook_data(format):
 
 def get_test_notebook(format='wiki'):
 	'''Returns a notebook with a memory store and some test data'''
-	from zim.notebook import Notebook
-	notebook = Notebook()
-	store = notebook.add_store('', 'memory')
+	from zim.notebook import Notebook, Path
+	from zim.index import Index
+	notebook = Notebook(index=Index(dbfile=':memory:'))
+	store = notebook.add_store(Path(':'), 'memory')
 	manifest = []
 	for name, text in get_notebook_data(format):
 			manifest.append(name)
-			store._set_node(name, text)
+			store._set_node(Path(name), text)
 	notebook.testdata_manifest = _expand_manifest(manifest)
 	return notebook
 
@@ -86,12 +87,12 @@ def _expand_manifest(names):
 			manifest.add(name)
 	return manifest
 
-def get_test_page(name=':Foo'):
+def get_test_page(name='Foo'):
 	'''FIXME'''
-	from zim.notebook import Notebook
+	from zim.notebook import Notebook, Path
 	notebook = Notebook()
-	notebook.add_store('', 'memory')
-	return notebook.get_page(name)
+	notebook.add_store(Path(':'), 'memory')
+	return notebook.get_page(Path(name))
 
 
 class TestCase(unittest.TestCase):

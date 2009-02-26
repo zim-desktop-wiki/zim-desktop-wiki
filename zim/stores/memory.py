@@ -11,7 +11,7 @@ FIXME
 
 from zim import formats
 from zim.fs import Buffer
-from zim.notebook import Page, Namespace
+from zim.notebook import Page
 from zim.stores import StoreClass
 
 __store__ = 'memory'
@@ -25,82 +25,68 @@ class Store(StoreClass):
 		'''
 		StoreClass.__init__(self, **args)
 		self.format = formats.get_format('wiki') # TODO make configable
-		self.pages = []
+		self._nodetree = []
 
-
-	# Private methods
-
-	def _set_node(self, name, text):
+	def _set_node(self, path, text):
 		'''Sets node for 'page' and return it.'''
-		node = self._get_node(name, vivificate=True)
+		node = self._get_node(path, vivificate=True)
 		node[1] = text
 		return node
 
-	def _get_node(self, name, vivificate=False):
+	def _get_node(self, path, vivificate=False):
 		'''Returns node for page 'name' or None.
 		If 'vivificate is True nodes are created on the fly.
 		'''
-		name = self.relname(name)
-		assert name # can not get node for root namespace
-		path = name.split(':')  # list with names
-		namespace = self.pages  # list of page nodes
-		while path:
-			p = path.pop(0) # get next item
+		assert path != self.namespace, 'Can not get node for root namespace'
+		name = path.relname(self.namespace)
+		names = name.split(':')  # list with names
+		branch = self._nodetree  # list of page nodes
+		while names:
+			n = names.pop(0) # get next item
 			node = None
-			for n in namespace:
-				if n[0] == p:
-					node = n
+			for leaf in branch:
+				if leaf[0] == n:
+					node = leaf
 					break
 			if node is None:
 				if vivificate:
-					node = [p, '', []]
-					namespace.append(node)
+					node = [n, '', []] # basename, text, children
+					branch.append(node)
 				else:
 					return None
-			if path: # more items to go
-				namespace = node[2]
-			else:
-				return node
-		assert False, '!? we should never get here'
+			branch = node[2]
 
-	def _on_write(self, buffer):
-		'''Hook called after a write to a Buffer object'''
-		self._set_node(buffer.pagename, buffer.getvalue())
+		return node
 
+	def get_page(self, path):
+		node = self._get_node(path)
+		return self._build_page(path, node)
 
-	# Public interface
-
-	def get_page(self, name, _node=None):
-		'''Returns a Page object for 'name' (_node is a private argument)'''
-		if _node is None:
-			_node = self._get_node(name)
-
-		text = None
-		if not _node is None:
-			text = _node[1]
-
-		source = Buffer(text, on_write=self._on_write)
-		source.pagename = name
-		page = Page(name, self, source=source, format=self.format)
-
-		if not _node is None and _node[2]:
-			page.children = Namespace(name, self)
-
-		return page
-
-	def list_pages(self, namespace):
-		'''Generator function to iterate over pages in a namespace'''
-		if namespace:
-			node = self._get_node(namespace)
-			if node is None:
-				children = []
-			else:
-				children = node[2]
+	def _build_page(self, path, node):
+		if node is None:
+			text = None
+			haschildren = False
 		else:
-			children = self.pages
-		for child in children:
-			name = namespace+':'+child[0]
-			yield self.get_page(name, _node=child)
+			text = node[1]
+			haschildren = len(node[2])
+
+		on_write = lambda b: self._set_node(path, b.getvalue())
+		source = Buffer(text, on_write=on_write)
+		return Page(path, haschildren, source=source, format=self.format)
+
+	def get_pagelist(self, path):
+		if path == self.namespace:
+			nodes = self._nodetree
+		else:
+			node = self._get_node(path)
+			if node is None:
+				return # implicit generate empty list
+			else:
+				nodes = node[2]
+
+		for node in nodes:
+			childpath = path + node[0]
+			yield self._build_page(childpath, node)
 
 	#~ def move_page(self, name, newname):
 		#~ '''FIXME'''
@@ -108,9 +94,5 @@ class Store(StoreClass):
 	#~ def copy_page(self, name, newname):
 		#~ '''FIXME'''
 
-	#~ def del_page(self, name):
+	#~ def delete_page(self, name):
 		#~ '''FIXME'''
-
-	#~ def search(self):
-		#~ '''FIXME'''
-		#~ pass # TODO search code

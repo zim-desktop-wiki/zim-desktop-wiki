@@ -14,51 +14,59 @@ from zim.notebook import *
 
 class TestNotebook(tests.TestCase):
 
-	def __init__(self, *args, **opts):
-		tests.TestCase.__init__(self, *args, **opts)
-		self.notebook = tests.get_test_notebook()
+	def setUp(self):
+		if not hasattr(self, 'notebook'):
+			self.notebook = tests.get_test_notebook()
+			self.notebook.index.update()
 
 	def testAPI(self):
 		'''Test various notebook methods'''
 		# TODO now do the same with multiple stores
 		self.assertEqual(
-			self.notebook.get_store(':foo'), self.notebook.stores[''])
-		self.assertEqual(
-			self.notebook.get_stores(':foo')[0], (':foo', self.notebook.stores['']))
-		self.assertTrue(
-			isinstance(self.notebook.get_namespace(':Test'), Namespace))
+			self.notebook.get_store(':foo'), self.notebook._stores[''])
+
 		self.assertTrue(
 			isinstance(self.notebook.get_home_page(), Page))
 
-		# check usage of weakref
-		page1 = self.notebook.get_page(':Tree:foo')
-		page2 = self.notebook.get_page(':Tree:foo')
-		self.assertTrue(id(page1) == id(page2))
+		page1 = self.notebook.get_page(Path('Tree:foo'))
+		page2 = self.notebook.get_page(Path('Tree:foo'))
+		self.assertTrue(id(page1) == id(page2)) # check usage of weakref
 
-	def testNormalizeName(self):
-		'''Test normalizing page names'''
-		for name, norm in (
+		pages = list(self.notebook.get_pagelist(Path(':')))
+		self.assertTrue(len(pages) > 0)
+		for page in pages:
+			self.assertTrue(isinstance(page, Page))
+
+		index = set()
+		for page in self.notebook.walk():
+			self.assertTrue(isinstance(page, Page))
+			index.add(page.name)
+		self.assertEqual(index, self.notebook.testdata_manifest)
+
+	def testResolvePath(self):
+		'''Test notebook.resolve_path()'''
+
+		# cleaning absolute paths
+		for name, wanted in (
 			('foo:::bar', 'foo:bar'),
 			('::foo:bar:', 'foo:bar'),
 			(':foo', 'foo'),
-		):
-			self.assertEqual(
-				self.notebook.normalize_name(name), norm)
-			self.assertEqual(
-				self.notebook.normalize_namespace(name), norm)
-		self.assertRaises(PageNameError, self.notebook.normalize_name, '')
-		self.assertEqual(
-			self.notebook.normalize_namespace(':'), '')
-
-	def testResolveName(self):
-		'''Test notebook.resolve_name()'''
-		for name, ns, wanted in (
-			('foo:bar', ':Test', 'Test:foo:bar'),
-			('Test', ':Test', 'Test'),
-			('foo', ':Test', 'Test:foo'),
-			(':Bar', None, 'Bar'),
+			(':Bar', 'Bar'),
 			# TODO more ambigous test cases
-		): self.assertEqual(self.notebook.resolve_name(name, ns), wanted)
+		): self.assertEqual(
+			self.notebook.resolve_path(name), Path(wanted) )
+
+		# resolving relative paths
+		for name, ns, wanted in (
+			('foo:bar', 'Test', 'Test:foo:bar'),
+			('test', 'Test', 'Test'),
+			('foo', 'Test', 'Test:foo'),
+			('Test', 'TODOList:bar', 'Test'),
+			('test:me', 'TODOList:bar', 'Test:me'),
+		): self.assertEqual(
+			self.notebook.resolve_path(name, Path(ns)), Path(wanted) )
+
+		self.assertRaises(PageNameError, self.notebook.resolve_path, ':::')
 
 #	def testResolveLink(self):
 #		'''Test page.resolve_link()'''
@@ -77,54 +85,63 @@ class TestNotebook(tests.TestCase):
 			#~ ('man?test', ('man', 'test')),
 #		): self.assertEqual(self.notebook.resolve_link(link, page), wanted)
 
+	#~ def testResolveName(self):
+		#~ '''Test store.resolve_name().'''
+		#~ print '\n'+'='*10+'\nSTORE: %s' % self.store
+#~
+		#~ # First make sure basic list function is working
+		#~ def list_pages(name):
+			#~ for page in self.store.get_pages(name):
+				#~ yield page.basename
+		#~ self.assertTrue('Test' in list_pages(''))
+		#~ self.assertTrue('foo' in list_pages(':Test'))
+		#~ self.assertTrue('bar' in list_pages(':Test:foo'))
+		#~ self.assertFalse('Dus' in list_pages(':Test:foo'))
+#~
+		#~ # Now test the resolving algorithm - only testing low level
+		#~ # function in store, so path "anchor" does not work, search
+		#~ # is strictly right to left through the namespace, if any
+		#~ for link, namespace, name in (
+			#~ ('BAR','Test:foo','Test:foo:bar'),
+			#~ ('test',None,'Test'),
+			#~ ('test','Test:foo:bar','Test'),
+			#~ ('FOO:Dus','Test:foo:bar','Test:foo:Dus'),
+			#~ # FIXME more ambigous test data
+		#~ ):
+			#~ print '-'*10+'\nLINK %s (%s)' % (link, namespace)
+			#~ r = self.store.resolve_name(link, namespace=namespace)
+			#~ print 'RESULT %s' % r
+			#~ self.assertEqual(r, name)
 
-class Testpage(tests.TestCase):
+
+class TestPath(tests.TestCase):
+	'''Test path object'''
+
+	def generator(self, name):
+		return Path(name)
 
 	def runTest(self):
-		'''Test page object'''
-		notebook = tests.get_test_notebook()
 
-		for name, nsname, basename in [
+		for name, namespace, basename in [
 			('Test:foo', 'Test', 'foo'),
 			('Test', '', 'Test'),
 		]:
-			page = notebook.get_page(name)
-			namespace = notebook.get_namespace(nsname)
+			path = self.generator(name)
 
 			# test basic properties
-			self.assertEqual(page.name, name)
-			self.assertEqual(page.basename, basename)
-			self.assertEqual(page.namespace, namespace.name)
-			self.assertTrue(page.name in page.__repr__())
+			self.assertEqual(path.name, name)
+			self.assertEqual(path.basename, basename)
+			self.assertEqual(path.namespace, namespace)
+			self.assertTrue(path.name in path.__repr__())
 
-	# TODO test path()
 	# TODO test get / set parse tree with and without source
 
 
-class TestNamespace(tests.TestCase):
+class TestPage(TestPath):
+	'''Test page object'''
 
-	def runTest(self):
-		'''Test namespace object'''
-		notebook = tests.get_test_notebook()
-		namespace = notebook.get_root()
-		self.assertTrue(isinstance(namespace, Namespace))
-		self.assertEqual(namespace.name, '')
+	def setUp(self):
+		self.notebook = tests.get_test_notebook()
 
-		# first test the __iter__
-		wanted = [name for name in notebook.testdata_manifest if name.rfind(':') == 0]
-		wanted.sort()
-		pages = [page.name for page in namespace]
-		pages.sort()
-		self.assertEqual(pages, wanted)
-
-		# now test walk()
-		wanted = [name for name in notebook.testdata_manifest]
-		wanted.sort()
-		pages = [page.name for page in namespace.walk()]
-		pages.sort()
-		self.assertEqual(pages, wanted)
-
-		# test if we are actually used as advertised
-		namespace = notebook.get_page(':Test').children
-		self.assertTrue(isinstance(namespace, Namespace))
-
+	def generator(self, name):
+		return self.notebook.get_page(Path(name))
