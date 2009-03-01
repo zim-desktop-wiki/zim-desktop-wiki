@@ -18,9 +18,10 @@ import gtk.keysyms
 import zim
 import zim.fs
 from zim import NotebookInterface
-from zim.notebook import PageNameError
+from zim.notebook import Path, Page, PageNameError
 from zim.config import data_file, config_file
 from zim.gui import pageindex, pageview
+from zim.history import HistoryRecord
 
 logger = logging.getLogger('zim.gui')
 
@@ -99,7 +100,7 @@ class GtkInterface(NotebookInterface):
 	notebook and provides actions to manipulate and access this notebook.
 
 	Signals:
-	* open-page (page, historyrecord)
+	* open-page (page, path)
 	  Called when opening another page, see open_page() for details
 	'''
 
@@ -264,29 +265,34 @@ class GtkInterface(NotebookInterface):
 		self.notebook = notebook
 		self.history = notebook.get_history()
 
+		#~ self.notebook.index.update(background=True)
+		self.notebook.index.update()
+
 		# TODO load history and set intial page
 		self.open_page_home()
 
-	def open_page(self, page=None, historyrecord=None):
-		'''Emit the open-page signal. The argument 'page' can either be a page
-		object or an absolute page name. If 'page' is None a dialog is shown
-		to specify the page. The 'historyrecord' argument is used to pass a
-		position in the history for the page, if this is None the page will be
-		appended to the history.
+	def open_page(self, path=None):
+		'''Emit the open-page signal. The argument 'path' can either be a Page
+		or a Path object. If 'page' is None a dialog is shown
+		to specify the page. If 'path' is a HistoryRecord we assume that this
+		call is the result of a history action and the page is not added to
+		the history. The original path object is given as the second argument
+		in the signal, so handlers can inspect how this method was called.
 		'''
 		assert self.notebook
-		if page is None:
+		if path is None:
 			# the dialog will call us in turn with an argument
 			return OpenPageDialog(self).run()
 
-		if isinstance(page, basestring):
-			logger.debug('Open page: %s', page)
-			page = self.notebook.get_page(page)
+		assert isinstance(path, Path)
+		logger.debug('Open page: %s', path)
+		if isinstance(path, Page):
+			page = path
 		else:
-			logger.debug('Open page: %s (object)', page.name)
-		self.emit('open-page', page, historyrecord)
+			page = self.notebook.get_page(path)
+		self.emit('open-page', page, path)
 
-	def do_open_page(self, page, historyrecord):
+	def do_open_page(self, page, path):
 		'''Signal handler for open-page.'''
 		is_first_page = self.page is None
 		self.page = page
@@ -296,14 +302,14 @@ class GtkInterface(NotebookInterface):
 		parent = self.actiongroup.get_action('open_page_parent')
 		child = self.actiongroup.get_action('open_page_child')
 
-		if historyrecord is None:
+		if isinstance(path, HistoryRecord):
+			self.history.set_current(path)
+			back.set_sensitive(not path.is_first())
+			forward.set_sensitive(not path.is_last())
+		else:
 			self.history.append(page)
 			back.set_sensitive(not is_first_page)
 			forward.set_sensitive(False)
-		else:
-			self.history.set_current(historyrecord)
-			back.set_sensitive(not historyrecord.is_first())
-			forward.set_sensitive(not historyrecord.is_last())
 
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
@@ -311,17 +317,17 @@ class GtkInterface(NotebookInterface):
 	def open_page_back(self):
 		record = self.history.get_previous()
 		if not record is None:
-			self.open_page(record.name, record)
+			self.open_page(record)
 
 	def open_page_forward(self):
 		record = self.history.get_next()
 		if not record is None:
-			self.open_page(record.name, record)
+			self.open_page(record)
 
 	def open_page_parent(self):
 		namespace = self.page.namespace
-		if len(namespace) > 1: # not just ":"
-			self.open_page(namespace)
+		if namespace:
+			self.open_page(Path(namespace))
 
 	def open_page_child(self):
 		if not self.page.haschildren:
@@ -329,20 +335,20 @@ class GtkInterface(NotebookInterface):
 
 		record = self.history.get_child(self.page)
 		if not record is None:
-			self.open_page(record.name, record)
+			self.open_page(record)
 		else:
 			child = self.notebook.index.get_pagelist(page)[0]
 			self.open_page(child)
 
 	def open_page_previous(self):
-		page = self.notebook.index.get_previous(self.page)
-		if not page is None:
-			self.open_page(page)
+		path = self.notebook.index.get_previous(self.page)
+		if not path is None:
+			self.open_page(path)
 
 	def open_page_next(self):
-		page = self.notebook.index.get_next(self.page)
-		if not page is None:
-			self.open_page(page)
+		path = self.notebook.index.get_next(self.page)
+		if not path is None:
+			self.open_page(path)
 
 	def open_page_home(self):
 		self.open_page(self.notebook.get_home_page())
@@ -425,7 +431,7 @@ class GtkInterface(NotebookInterface):
 
 	def reload_page(self):
 		self.save_page_if_modified()
-		self.open_page(self.page.name)
+		self.open_page(self.page)
 
 	def attach_file(self):
 		pass
@@ -521,7 +527,6 @@ class MainWindow(gtk.Window):
 		vbox.add(hpane)
 		self.pageindex = pageindex.PageIndex(ui)
 		hpane.add1(self.pageindex)
-		# TODO start with hidden path index, fill data only when needed
 
 		self.pageindex.connect('key-press-event',
 			lambda o, event: event.keyval == gtk.keysyms.Escape
@@ -619,7 +624,7 @@ class MainWindow(gtk.Window):
 		self.pageview.grab_focus()
 		# TODO action_show_active('toggle_sidepane', False)
 
-	def do_open_page(self, ui, page, record):
+	def do_open_page(self, ui, page, path):
 		'''Signal handler for open-page, updates the pageview'''
 		self.pageview.set_page(page)
 
@@ -855,12 +860,12 @@ class OpenPageDialog(Dialog):
 	def do_response_ok(self):
 		try:
 			name = self.get_field('name')
-			name = self.ui.notebook.resolve_name(name)
+			path = self.ui.notebook.resolve_path(name)
 		except PageNameError, error:
 			ErrorDialog(self, error).run()
 			return False
 		else:
-			self.ui.open_page(name)
+			self.ui.open_page(path)
 			return True
 
 

@@ -11,6 +11,7 @@ import gobject
 import gtk
 import pango
 
+from zim.index import IndexPath
 from zim.gui.widgets import BrowserTreeView
 
 NAME_COL = 0  # column with short page name (page.basename)
@@ -37,72 +38,112 @@ class PageTreeStore(gtk.GenericTreeModel):
 		return 1 # only one column
 
 	def on_get_column_type(self, index):
+		#~ print '>> on_get_column_type', index
 		assert index == 0
-		return unicode
+		return gobject.TYPE_STRING
 
-	def on_get_iter(self, path):
+	def on_get_iter(self, treepath):
+		'''Returns an IndexPath for a TreePath or raises ValueError'''
+		# Path (0,) is the first item in the root namespace
+		# Path (2, 4) is the 5th child of the 3rd item
+		#~ print '>> on_get_iter', treepath
 		iter = None
-		for i in path:
+		for i in treepath:
 			iter = self.on_iter_nth_child(iter, i)
+			if iter is None:
+				raise ValueError, 'Not a valid TreePath %s' % str(treepath)
 		return iter
 
 	def get_treepath(self, path):
-		'''Returns a treepath for a given path'''
+		'''Returns a TreePath for a given IndexPath'''
+		# There is no TreePath class in pygtk,just return tuple of integers
+		# FIXME this method looks quite inefficient, can we optimize it ?
+		if not isinstance(path, IndexPath):
+			path = self.index.lookup_path(path)
+			if path is None or path.isroot:
+				raise ValueError
 		treepath = []
-		while path:
-			parent = self.index.get_parent(path)
-			pagelist = self.index.get_pagelist(parent)
-			treepath.append(pagelist.index(path))
+		for parent in path.parents():
+			pagelist = self.index.list_pages(parent)
+			treepath.insert(0, pagelist.index(path))
 			path = parent
-		treepath.reverse()
-		return treepath
+		return tuple(treepath)
 
 	on_get_path = get_treepath # alias for GenericTreeModel API
 
+	def get_indexpath(self, iter):
+		'''Returns an IndexPath for a TreeIter'''
+		return self.get_user_data(iter)
+
 	def on_get_value(self, path, column):
+		'''Returns the data for a specific column'''
+		#~ print '>> on_get_value', path, column
 		assert column == 0
-		return path.name
+		return path.basename
 
 	def on_iter_next(self, path):
+		'''Returns the IndexPath for the next row on the same level or None'''
 		# Only within one namespace, so not the same as index.get_next()
+		#~ print '>> on_iter_next', path
 		if hasattr(path, '_pagelist'):
 			pagelist = path._pagelist
-			i = path._i
+			i = path._i + 1
 		else:
-			parent = self.index.get_parent(path)
-			pagelist = self.index.get_pagelist(parent)
+			pagelist = self.index.list_pages(path.get_parent())
 			i = pagelist.index(path) + 1
-		try:
-			next = pagelist[i]
-			next._pagelist = pagelist
-			next._i = i
-			return next
-		except IndexError:
+		if i >= len(pagelist):
 			return None
+		else:
+			next = pagelist[i]
+			#~ next._pagelist = pagelist
+			#~ next._i = i
+			return next
 
-	def on_iter_children(self, path):
-		pagelist = self.index.get_pagelist(path)
-		child = pagelist[0]
-		child._pagelist = pagelist
-		child._i = 0
-		return child
+	def on_iter_children(self, path=None):
+		'''Returns an indexPath for the first child below path or None.
+		If path is None returns the first top level IndexPath.
+		'''
+		#~ print '>> on_iter_children', path
+		pagelist = self.index.list_pages(path)
+		if pagelist:
+			child = pagelist[0]
+			#~ child._pagelist = pagelist
+			#~ child._i = 0
+			return child
+		else:
+			return None
 
 	def on_iter_has_child(self, path):
+		'''Returns True if indexPath path has children'''
+		if not path.hasdata:
+			path = self.index.lookup_path(path)
 		return path.haschildren
 
-	def on_iter_n_children(self, path):
-		pagelist = self.index.get_pagelist(path)
+	def on_iter_n_children(self, path=None):
+		'''Returns the number of children in a namespace. As a special case,
+		when page is None the number of pages in the root namespace is given.
+		'''
+		pagelist = self.index.list_pages(path)
 		return len(pagelist)
 
-	def on_iter_nth_child(self, parent, n):
-		pagelist = self.index.get_pagelist(path)
-		try:
-			return pagelist[n]
-		except IndexError:
+	def on_iter_nth_child(self, path, n):
+		'''Returns the nth child for a given IndexPath or None.
+		As a special case path can be None to get pages in the root namespace.
+		'''
+		#~ print '>> on_iter_nth_child', path, n
+		pagelist = self.index.list_pages(path)
+		if n >= len(pagelist):
 			return None
+		else:
+			return pagelist[n]
 
 	def on_iter_parent(self, child):
-		return self.index.get_parent(child)
+		'''Returns a IndexPath for parent node of child or None'''
+		parent = child.get_parent()
+		if parent.isroot:
+			return None
+		else:
+			return parent
 
 
 class PageTreeView(BrowserTreeView):
@@ -110,15 +151,18 @@ class PageTreeView(BrowserTreeView):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'page-activated': (gobject.SIGNAL_RUN_LAST, None, (str,)),
+		'page-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	def __init__(self, app):
 		BrowserTreeView.__init__(self)
+
 		self.app = app
 		self.app.connect('open-page', lambda o, p, r: self.select_page(p))
+		self.app.connect_after('open-notebook', self.do_set_notebook)
+		if not self.app.notebook is None:
+			self.do_set_notebook(self.app, self.app.notebook)
 
-		self.set_model(PageTreeStore())
 		cell_renderer = gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
 		column = gtk.TreeViewColumn('_pages_', cell_renderer, text=NAME_COL)
@@ -126,16 +170,23 @@ class PageTreeView(BrowserTreeView):
 		self.set_headers_visible(False)
 
 		# TODO drag & drop stuff
-		# TODO popup menu for pages
+		# TODO popup menu for pages - share with e.g. pathbar buttons
 
-	def do_row_activated(self, path, column):
+	def do_set_notebook(self, app, notebook):
+		self.set_model(PageTreeStore(notebook.index))
+		if not app.page is None:
+			self.select_page(app.page)
+
+	def do_row_activated(self, treepath, column):
 		'''Handler for the row-activated signal, emits page-activated'''
-		pagename = self.get_model().get_page_from_path(path)
-		self.emit('page-activated', pagename)
+		model = self.get_model()
+		iter = model.get_iter(treepath)
+		path = model.get_indexpath(iter)
+		self.emit('page-activated', path)
 
-	def do_page_activated(self, pagename):
+	def do_page_activated(self, path):
 		'''Handler for the page-activated signal, calls app.open_page()'''
-		self.app.open_page(pagename)
+		self.app.open_page(path)
 
 	def do_key_press_event(self, event):
 		'''Handler for key presses'''
@@ -169,25 +220,25 @@ class PageTreeView(BrowserTreeView):
 		print 'TODO: trigger popup for page'
 		return True
 
-	def select_page(self, page):
+	def select_page(self, path):
 		'''Select a page in the treeview, connected to the open-page signal'''
 		model, iter = self.get_selection().get_selected()
-		if not isinstance(page, basestring):
-			pagename = page.name
-		else:
-			pagename = page
-
+		if model is None:
+			return # index not yet initialized ...
 		#~ if not iter is None and model[iter][PAGE_COL] == pagename:
 			#~ return  # this page was selected already
 
 		# TODO unlist temporary listed items
 		# TODO temporary list new item if page does not exist
 
-		path = model.get_path_from_page(pagename)
-		self.expand_to_path(path)
-		self.get_selection().select_path(path)
-		self.set_cursor(path)
-		self.scroll_to_cell(path)
+		treepath = model.get_treepath(path)
+		if treepath is None:
+			pass # FIXME unset selection ?
+		else:
+			self.expand_to_path(treepath)
+			self.get_selection().select_path(treepath)
+			self.set_cursor(treepath)
+			self.scroll_to_cell(treepath)
 
 
 # Need to register classes defining gobject signals

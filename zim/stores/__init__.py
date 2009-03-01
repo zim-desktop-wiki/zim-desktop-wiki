@@ -146,7 +146,7 @@ class StoreClass():
 		if hasattr(self, 'dir') and not self.dir is None:
 			return isinstance(self.dir, Dir)
 		elif hasattr(self.notebook, 'dir'):
-			path = self.namespace.replace(':', '/')
+			path = self.namespace.name.replace(':', '/')
 			self.dir = Dir([self.notebook.dir, path])
 			return True
 		else:

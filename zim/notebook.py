@@ -16,7 +16,6 @@ from zim.fs import *
 from zim.config import ConfigList, config_file, data_dir
 from zim.parsing import Re, is_url_re, is_email_re
 import zim.stores
-import zim.history
 
 
 def get_notebook(notebook):
@@ -96,7 +95,7 @@ class Notebook(object):
 			if config is None:
 				pass # TODO: load config file from dir
 			# TODO check if config defined root namespace
-			self.add_store('', 'files') # set root
+			self.add_store(Path(':'), 'files') # set root
 			# TODO add other namespaces from config
 		elif isinstance(path, File):
 			assert False, 'TODO: support for single file notebooks'
@@ -131,6 +130,7 @@ class Notebook(object):
 			raise LookupError, 'Could not find store for: %s' % name
 
 	def get_history(self):
+		import zim.history
 		history = self._history_ref()
 		if history is None:
 			history = zim.history.History(self)
@@ -325,7 +325,7 @@ class Path(object):
 		if name == ':': # root namespace
 			self.name = ''
 		else:
-			self.name = name
+			self.name = name.strip(':')
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)
@@ -378,12 +378,13 @@ class Path(object):
 
 	def parents(self):
 		'''Generator function for parent namespace paths including root'''
-		path = self.name.split(':')
-		path.pop()
-		while len(path) > 0:
-			namespace = ':'.join(path)
-			yield Path(namespace)
+		if ':' in self.name:
+			path = self.name.split(':')
 			path.pop()
+			while len(path) > 0:
+				namespace = ':'.join(path)
+				yield Path(namespace)
+				path.pop()
 		yield Path(':')
 
 

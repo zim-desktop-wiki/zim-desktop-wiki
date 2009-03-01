@@ -16,21 +16,21 @@ The list of recent pages is kind of a summary of the last X pages in the
 history without doubles.
 '''
 
+from zim.notebook import Path
+
 PAGE_COL = 0
 CURSOR_COL = 1
 SCROLL_COL = 2
 
-
-class HistoryRecord(object):
+class HistoryRecord(Path):
 	'''This class functions as an iterator for the history list'''
 
+	__slots__ = ('history', 'i')
+
 	def __init__(self, history, i):
+		Path.__init__(self, history[i][PAGE_COL])
 		self.history = history
 		self.i = i
-
-	@property
-	def name(self):
-		return self.history[self.i][PAGE_COL]
 
 	@property
 	def cursor(self):
@@ -45,6 +45,7 @@ class HistoryRecord(object):
 
 	def is_last(self):
 		return self.i == len(self.history)-1
+
 
 class History(object):
 	'''FIXME'''

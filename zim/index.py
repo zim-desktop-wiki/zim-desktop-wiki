@@ -77,7 +77,13 @@ class IndexPath(Path):
 
 	__slots__ = ('_indexpath', '_row')
 
-	def __init__(self, name, indexpath, row):
+	def __init__(self, name, indexpath, row=None):
+		'''Constructore, needs at least a full path name and a tuple of index
+		ids pointing to this path in the index. Row is an optional sqlite3.Row
+		object and contains the actual data for this path. If row is given
+		all properties can be queried as attributes of the IndexPath object.
+		The property 'hasdata' is True when the IndexPath has row data.
+		'''
 		Path.__init__(self, name)
 		self._indexpath = tuple(indexpath)
 		self._row = row
@@ -85,11 +91,40 @@ class IndexPath(Path):
 	@property
 	def id(self): return self._indexpath[-1]
 
+	@property
+	def hasdata(self): return not self._row is None
+
 	def __getattr__(self, attr):
-		if attr in self._row:
-			return self._row[attr]
+		if self._row is None:
+			raise AttributeError, 'This IndexPath does not contain row data'
 		else:
-			raise AttributeError
+			try:
+				return self._row[attr]
+			except IndexError:
+				raise AttributeError, '%s has no attribute %s' % (self.__repr__, attr)
+
+	def get_parent(self):
+		'''Returns IndexPath for parent path'''
+		if self.namespace:
+			return IndexPath(self.namespace, self._indexpath[:-1])
+		elif self.isroot:
+			return None
+		else:
+			return IndexPath(':', (0,))
+
+	def parents(self):
+		'''Generator function for parent namespace IndexPaths including root'''
+		# version optimized to include indexpaths
+		if ':' in self.name:
+			path = self.name.split(':')
+			path.pop()
+			while len(path) > 0:
+				namespace = ':'.join(path)
+				indexpath = self._indexpath[:len(path)]
+				yield IndexPath(namespace, indexpath)
+				path.pop()
+		yield IndexPath(':', (0,))
+
 
 class Index(object):
 	'''FIXME'''
@@ -146,7 +181,7 @@ class Index(object):
 		behavior of treeviews displaying the index look more solid.
 		'''
 		if path is None or path.isroot:
-			path = IndexPath(':', (0,), {})
+			path = IndexPath(':', (0,))
 		else:
 			path = self.lookup_path(path)
 
@@ -189,13 +224,21 @@ class Index(object):
 		cleanup = set([r.basename for r in rows])
 
 		# check for new pages
+		seenchildren = False
 		for page in self.notebook.get_pagelist(path):
+			seenchildren = True
 			if page.basename in cleanup:
 				cleanup.remove(page.basename)
 			else:
 				self.db.execute(
 					'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
-					(page.basename, path.id, page.hascontent, page.haschildren))
+					(page.basename, path.id, page.hascontent, False))
+				# We set haschildren to False untill we have actualy seen those
+				# children. Failing to do so will cause trouble with the
+				# gtk.TreeModel interface to the database, which can not handle
+				# nodes that say they have children but fail to deliver when
+				# asked.
+
 				# TODO queue content check even if no fullcheck is done
 
 			if fullcheck or (recursive and page.haschildren):
@@ -212,6 +255,9 @@ class Index(object):
 			#~ self.db.execute(
 				#~ 'update pages set childrenkey = ? where id == ?',
 				#~ (path.id, current) )
+		self.db.execute(
+			'update pages set haschildren=? where id==?',
+			(seenchildren, path.id) )
 
 		return True
 
@@ -364,12 +410,26 @@ class Index(object):
 		return IndexPath(':'.join(found), indexpath, row)
 
 	def list_pages(self, path):
-		'''FIXME'''
-		path = self.lookup_path(path)
-		# for select id, key, name, ... from page where parent = path.indexdata['id']
-			# child = Path(path.name+':'+name)
-			# child.indexdata = {}
-			# yield child
+		'''Returns a list of IndexPath objects for the sub-pages of 'path', or,
+		if no path is given for the root namespace of the notebook.
+		'''
+		if path is None or path.isroot:
+			parentid = 0
+			name = ''
+			indexpath = ()
+		else:
+			path = self.lookup_path(path)
+			if path is None:
+				return []
+			parentid = path.id
+			name = path.name
+			indexpath = path._indexpath
+
+		cursor = self.db.cursor()
+		cursor.execute('select * from pages where parent==?', (parentid,))
+		return [
+			IndexPath(name+':'+r['basename'], indexpath+(r['id'],), r)
+				for r in cursor ]
 
 	def list_links(self, page, direction=LINK_DIR_FORWARD):
 		return []

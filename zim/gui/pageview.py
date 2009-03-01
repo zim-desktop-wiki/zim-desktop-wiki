@@ -9,6 +9,8 @@ import gobject
 import gtk
 import pango
 
+from zim.notebook import Path
+
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -403,7 +405,10 @@ class PageView(gtk.VBox):
 	def set_page(self, page):
 		tree = page.get_parsetree()
 		buffer = TextBuffer()
-		buffer.set_parsetree(tree)
+		if not tree is None:
+			buffer.set_parsetree(tree)
+		else:
+			print 'TODO get template'
 		self.view.set_buffer(buffer)
 		buffer.place_cursor(buffer.get_iter_at_offset(0)) # FIXME
 
@@ -419,9 +424,9 @@ class PageView(gtk.VBox):
 		logger.debug('Link clinked: %(type)s: %(href)s' % link)
 
 		if link['type'] == 'page':
-			name = self.app.notebook.resolve_name(
-				link['href'], self.app.page.namespace)
-			self.app.open_page(name)
+			path = self.app.notebook.resolve_path(
+				link['href'], Path(self.app.page.namespace))
+			self.app.open_page(path)
 		elif link['type'] == 'file':
 			path = self.app.notebook.resolve_file(
 				link['href'], self.app.page)
