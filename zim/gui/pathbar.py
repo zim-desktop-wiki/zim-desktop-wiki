@@ -410,7 +410,7 @@ class RecentPathBar(PathBar):
     # allready or not
 
     def get_paths(self):
-        return self.history.get_unique(10)
+        return reversed(list(self.history.get_unique(10)))
 
 
 class NamespacePathBar(PathBar):
@@ -436,7 +436,8 @@ class TestPathBar(PathBar):
 
     def __init__(self):
         PathBar.__init__(self, None, None)
-        self.set_history('XXX')
+        self.history = 'XXX'
+        self._update()
 
     def get_paths(self):
         for path in ('foo', 'bar', 'baz', 'looooooongggggggg item here', 'dus', 'ja', 'hmm'):
