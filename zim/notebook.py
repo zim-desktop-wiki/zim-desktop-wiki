@@ -81,7 +81,6 @@ class Notebook(object):
 		self._page_cache = weakref.WeakValueDictionary()
 		self.dir = None
 		self.name = name
-		self._history_ref = lambda: None
 
 		if index is None:
 			import zim.index # circular import
@@ -128,14 +127,6 @@ class Notebook(object):
 				return self._stores[namespace]
 		else:
 			raise LookupError, 'Could not find store for: %s' % name
-
-	def get_history(self):
-		import zim.history
-		history = self._history_ref()
-		if history is None:
-			history = zim.history.History(self)
-			self._history_ref = weakref.ref(history)
-		return history
 
 	def resolve_path(self, name, namespace=None):
 		'''Returns a proper path name for page names given in links
