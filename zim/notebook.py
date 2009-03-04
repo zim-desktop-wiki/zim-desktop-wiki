@@ -11,11 +11,15 @@ the 'stores' namespace.
 '''
 
 import weakref
+import logging
 
 from zim.fs import *
 from zim.config import ConfigList, config_file, data_dir
 from zim.parsing import Re, is_url_re, is_email_re
 import zim.stores
+
+
+logger = logging.getLogger('zim.notebook')
 
 
 def get_notebook(notebook):
@@ -80,17 +84,13 @@ class Notebook(object):
 		self._stores = {}		# dict mapping namespaces to stores
 		self._page_cache = weakref.WeakValueDictionary()
 		self.dir = None
+		self.cache_dir = None
 		self.name = name
-
-		if index is None:
-			import zim.index # circular import
-			self.index = zim.index.Index(notebook=self)
-		else:
-			self.index = index
-			self.index.set_notebook(self)
 
 		if isinstance(path, Dir):
 			self.dir = path
+			self.cache_dir = path.subdir('.zim')
+			logger.debug('Cache dir: %s', self.cache_dir)
 			if config is None:
 				pass # TODO: load config file from dir
 			# TODO check if config defined root namespace
@@ -100,6 +100,14 @@ class Notebook(object):
 			assert False, 'TODO: support for single file notebooks'
 		elif not path is None:
 			assert False, 'path should be either File or Dir'
+
+		if index is None:
+			import zim.index # circular import
+			self.index = zim.index.Index(notebook=self)
+		else:
+			self.index = index
+			self.index.set_notebook(self)
+
 
 	def add_store(self, path, store, **args):
 		'''Add a store to the notebook to handle a specific path and all

@@ -30,6 +30,18 @@ class PageTreeStore(gtk.GenericTreeModel):
 	def __init__(self, index):
 		gtk.GenericTreeModel.__init__(self)
 		self.index = index
+		index.connect('page-inserted',
+			lambda o, p: self.emit('row-inserted',
+				self.get_treepath(p), self.create_tree_iter(p)))
+		index.connect('page-updated',
+			lambda o, p: self.emit('row-changed',
+				self.get_treepath(p), self.create_tree_iter(p)))
+		index.connect('page-haschildren-toggled',
+			lambda o, p: self.emit('row-has-child-toggled',
+				self.get_treepath(p), self.create_tree_iter(p)))
+		#~ index.connect('page-dropped',
+			#~ lambda o, p: self.emit('row-deleted', self.get_treepath(p)))
+			# TODO: how to get treepath for a droped page ??
 
 	def on_get_flags(self):
 		return 0 # no flags
@@ -85,18 +97,19 @@ class PageTreeStore(gtk.GenericTreeModel):
 		'''Returns the IndexPath for the next row on the same level or None'''
 		# Only within one namespace, so not the same as index.get_next()
 		#~ print '>> on_iter_next', path
-		if hasattr(path, '_pagelist'):
-			pagelist = path._pagelist
-			i = path._i + 1
+		if not path._pagelist_ref is None:
+			pagelist = path._pagelist_ref
+			i = path._pagelist_index + 1
 		else:
 			pagelist = self.index.list_pages(path.get_parent())
 			i = pagelist.index(path) + 1
+
 		if i >= len(pagelist):
 			return None
 		else:
 			next = pagelist[i]
-			#~ next._pagelist = pagelist
-			#~ next._i = i
+			next._pagelist_ref = pagelist
+			next._pagelist_index = i
 			return next
 
 	def on_iter_children(self, path=None):
@@ -107,8 +120,8 @@ class PageTreeStore(gtk.GenericTreeModel):
 		pagelist = self.index.list_pages(path)
 		if pagelist:
 			child = pagelist[0]
-			#~ child._pagelist = pagelist
-			#~ child._i = 0
+			child._pagelist_ref = pagelist
+			child._pagelist_index = 0
 			return child
 		else:
 			return None
@@ -135,7 +148,10 @@ class PageTreeStore(gtk.GenericTreeModel):
 		if n >= len(pagelist):
 			return None
 		else:
-			return pagelist[n]
+			child = pagelist[n]
+			child._pagelist_ref = pagelist
+			child._pagelist_index = n
+			return child
 
 	def on_iter_parent(self, child):
 		'''Returns a IndexPath for parent node of child or None'''
@@ -231,10 +247,11 @@ class PageTreeView(BrowserTreeView):
 		# TODO unlist temporary listed items
 		# TODO temporary list new item if page does not exist
 
-		treepath = model.get_treepath(path)
-		if treepath is None:
-			pass # FIXME unset selection ?
+		path = self.app.notebook.index.lookup_path(path)
+		if path is None:
+			pass # TODO temporary list the thing in the index
 		else:
+			treepath = model.get_treepath(path)
 			self.expand_to_path(treepath)
 			self.get_selection().select_path(treepath)
 			self.set_cursor(treepath)

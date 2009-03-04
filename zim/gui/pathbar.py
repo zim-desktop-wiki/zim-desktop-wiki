@@ -8,321 +8,321 @@ DIR_BACKWARD = -1
 
 
 class ScrolledHBox(gtk.HBox):
-    '''This class provides a widget that behaves like a HBox when there is
-    enough space to render all child widgets. When space is limitted it
-    shows arrow buttons on the left and on the right to allow scrolling
-    through the widgets.
+	'''This class provides a widget that behaves like a HBox when there is
+	enough space to render all child widgets. When space is limitted it
+	shows arrow buttons on the left and on the right to allow scrolling
+	through the widgets.
 
-    Note that this class does not (yet?) support packing options like
-    'expand', 'fill' etc. All child widgets can just be added with 'add()'.
+	Note that this class does not (yet?) support packing options like
+	'expand', 'fill' etc. All child widgets can just be added with 'add()'.
 
-    TODO this class does not yet support homogenous spacing
-    '''
+	TODO this class does not yet support homogenous spacing
+	'''
 
-    # In order to display as many items as possible we use the following
-    # scrolling algorith:
-    #
-    # There is an attribute "anchor" which is a tuple of a direction and the index
-    # of a child item. This anchor represents the last scrolling action.
-    # We start filling the space by taking this anchor item as either left or right
-    # side of the visible range (depending on the given direction) and start adding
-    # other items from there. We can run out of items when we reach the end of the
-    # item list, or we can run out of space when the next item is larger than the
-    # space that is left.
-    # Next we check if we can show more items by adding items in the opposite
-    # direction. Possibly replacing our anchor as outer left or outer right item.
-    # Once we know which items can be shown we start allocating space to the widgets.
-    #
-    # The indices of the first and last visible items are put in the attributes
-    # "_first" and "_last". In subsequent scroll actions the new anchor item can be
-    # determined based on these indices.Keep in mind that whether the items are rendered
-    # left-to-right or right-to-left depends on the current locale. So the first and
-    # last items can either be on the left or on the right.
-    #
-    # Slide buttons are shown unless all children fit in the given space. So
-    # the space is calculated either with or without sliders. At the end we
-    # check if the sliders are really needed. We choose to hide the slider if
-    # it can't be used to scroll more instead of making it insensitive because
-    # the arrows do not show very clear when they are sensitive and when not.
-    # The space that is freed when a slider is hidden is not recycled because
-    # that would pose the risk of clicking on a button when the slider suddenly
-    # disappears
+	# In order to display as many items as possible we use the following
+	# scrolling algorith:
+	#
+	# There is an attribute "anchor" which is a tuple of a direction and the index
+	# of a child item. This anchor represents the last scrolling action.
+	# We start filling the space by taking this anchor item as either left or right
+	# side of the visible range (depending on the given direction) and start adding
+	# other items from there. We can run out of items when we reach the end of the
+	# item list, or we can run out of space when the next item is larger than the
+	# space that is left.
+	# Next we check if we can show more items by adding items in the opposite
+	# direction. Possibly replacing our anchor as outer left or outer right item.
+	# Once we know which items can be shown we start allocating space to the widgets.
+	#
+	# The indices of the first and last visible items are put in the attributes
+	# "_first" and "_last". In subsequent scroll actions the new anchor item can be
+	# determined based on these indices.Keep in mind that whether the items are rendered
+	# left-to-right or right-to-left depends on the current locale. So the first and
+	# last items can either be on the left or on the right.
+	#
+	# Slide buttons are shown unless all children fit in the given space. So
+	# the space is calculated either with or without sliders. At the end we
+	# check if the sliders are really needed. We choose to hide the slider if
+	# it can't be used to scroll more instead of making it insensitive because
+	# the arrows do not show very clear when they are sensitive and when not.
+	# The space that is freed when a slider is hidden is not recycled because
+	# that would pose the risk of clicking on a button when the slider suddenly
+	# disappears
 
-    # We also add the two scroll buttons to our child widgets, so when dealing
-    # with the widgets that are scrolled one should use "get_children()[2:]".
-    # Not sure if there is a cleaner way to do this
+	# We also add the two scroll buttons to our child widgets, so when dealing
+	# with the widgets that are scrolled one should use "get_children()[2:]".
+	# Not sure if there is a cleaner way to do this
 
-    # Actually wanted to inherit from gtk.Box instead of gtk.HBox, but seems
-    # we can not call gtk.Box.__init__() to instantiate the object.
+	# Actually wanted to inherit from gtk.Box instead of gtk.HBox, but seems
+	# we can not call gtk.Box.__init__() to instantiate the object.
 
-    __gsignals__ = {
-        'size-request': 'override',
-        'size-allocate': 'override',
-    }
+	__gsignals__ = {
+		'size-request': 'override',
+		'size-allocate': 'override',
+	}
 
-    initial_scroll_timeout = 300 # timeout before starting scrolling on button press
-    scroll_timeout = 150 # timeout between scroll steps
+	initial_scroll_timeout = 300 # timeout before starting scrolling on button press
+	scroll_timeout = 150 # timeout between scroll steps
 
-    def __init__(self, spacing=0, homogeneous=False):
-        gtk.HBox.__init__(self)
-        self.set_spacing(spacing)
-        self.set_homogeneous(homogeneous)
-        self._scroll_timeout = None
-        self._anchor = None # tuple of (direction, n) - used in allocate
-        self._first = None # int for first item - set in allocate
-        self._last = None # int for last item - set in allocate
-        self._forw_button = ScrollButton(DIR_FORWARD)
-        self._back_button = ScrollButton(DIR_BACKWARD)
-        for button in (self._forw_button, self._back_button):
-            self.add(button)
-            button.connect('button-press-event', self._on_button_press)
-            button.connect('button-release-event', self._on_button_release)
-            button.connect('clicked', self._on_button_clicked)
+	def __init__(self, spacing=0, homogeneous=False):
+		gtk.HBox.__init__(self)
+		self.set_spacing(spacing)
+		self.set_homogeneous(homogeneous)
+		self._scroll_timeout = None
+		self._anchor = None # tuple of (direction, n) - used in allocate
+		self._first = None # int for first item - set in allocate
+		self._last = None # int for last item - set in allocate
+		self._forw_button = ScrollButton(DIR_FORWARD)
+		self._back_button = ScrollButton(DIR_BACKWARD)
+		for button in (self._forw_button, self._back_button):
+			self.add(button)
+			button.connect('button-press-event', self._on_button_press)
+			button.connect('button-release-event', self._on_button_release)
+			button.connect('clicked', self._on_button_clicked)
 
-    def __del__(self):
-        self.stop_scrolling()
+	def __del__(self):
+		self.stop_scrolling()
 
-    def _on_button_press(self, button, event):
-        if event.button == 1:
-            self.start_scrolling(button.direction, initial_timeout=True)
+	def _on_button_press(self, button, event):
+		if event.button == 1:
+			self.start_scrolling(button.direction, initial_timeout=True)
 
-    def _on_button_release(self, button, event):
-        self.stop_scrolling()
+	def _on_button_release(self, button, event):
+		self.stop_scrolling()
 
-    def _on_button_clicked(self, button):
-        self.scroll(button.direction)
+	def _on_button_clicked(self, button):
+		self.scroll(button.direction)
 
-    def scroll(self, direction, n=1):
-        '''Scroll n items in either direction. Direction should be either
-        DIR_FORWARD or DIR_BACKWARD, while n should be integer.
-        Returns boolean for success.
-        '''
-        # returning boolean also controls timeout behavior
+	def scroll(self, direction, n=1):
+		'''Scroll n items in either direction. Direction should be either
+		DIR_FORWARD or DIR_BACKWARD, while n should be integer.
+		Returns boolean for success.
+		'''
+		# returning boolean also controls timeout behavior
 
-        index = None
-        max = len(self.get_children()[2:])-1
-        if direction == DIR_FORWARD:
-            if self._last == max:
-                return False
-            else:
-                index = self._last + n
-        elif direction == DIR_BACKWARD:
-            if self._first == 0:
-                return False
-            else:
-                index = self._first - n
-        else:
-            assert False
+		index = None
+		max = len(self.get_children()[2:])-1
+		if direction == DIR_FORWARD:
+			if self._last == max:
+				return False
+			else:
+				index = self._last + n
+		elif direction == DIR_BACKWARD:
+			if self._first == 0:
+				return False
+			else:
+				index = self._first - n
+		else:
+			assert False
 
-        if index > max: index = max
-        elif index < 0: index = 0
+		if index > max: index = max
+		elif index < 0: index = 0
 
-        self._anchor = (direction, index)
-        self.queue_resize()
-        return True
+		self._anchor = (direction, index)
+		self.queue_resize()
+		return True
 
-    def scroll_to_child(self, child):
-        i = self.get_children()[2:].index(child)
-        if i < self._first:
-            self.scroll(DIR_BACKWARDS, self._first - i)
-        elif i > self._last:
-            self.scroll(DIR_FORWARDS, i - self._last)
-        else:
-            pass # child was visible already
+	def scroll_to_child(self, child):
+		i = self.get_children()[2:].index(child)
+		if i < self._first:
+			self.scroll(DIR_BACKWARDS, self._first - i)
+		elif i > self._last:
+			self.scroll(DIR_FORWARDS, i - self._last)
+		else:
+			pass # child was visible already
 
-    def start_scrolling(self, direction, initial_timeout=False):
-        '''Start continues scrolling. Direction should be either
-        DIR_FORWARD or DIR_BACKWARD. If we were scrolling already, stops
-        this action before setting new scroll direction.
-        '''
-        self.stop_scrolling()
-        if initial_timeout:
-            self._scroll_timeout = \
-                gobject.timeout_add(self.initial_scroll_timeout, self.start_scrolling, direction)
-                # indirect recurs
-        else:
-            self._scroll_timeout = \
-                gobject.timeout_add(self.scroll_timeout, self.scroll, direction)
+	def start_scrolling(self, direction, initial_timeout=False):
+		'''Start continues scrolling. Direction should be either
+		DIR_FORWARD or DIR_BACKWARD. If we were scrolling already, stops
+		this action before setting new scroll direction.
+		'''
+		self.stop_scrolling()
+		if initial_timeout:
+			self._scroll_timeout = \
+				gobject.timeout_add(self.initial_scroll_timeout, self.start_scrolling, direction)
+				# indirect recurs
+		else:
+			self._scroll_timeout = \
+				gobject.timeout_add(self.scroll_timeout, self.scroll, direction)
 
-        return False # make sure we are only called once from a timeout
+		return False # make sure we are only called once from a timeout
 
-    def stop_scrolling(self):
-        '''Stop continues scrolling. Does not do anything if we were not
-        scrolling.
-        '''
-        if not self._scroll_timeout is None:
-            gobject.source_remove(self._scroll_timeout)
-            self._scroll_timeout = None
+	def stop_scrolling(self):
+		'''Stop continues scrolling. Does not do anything if we were not
+		scrolling.
+		'''
+		if not self._scroll_timeout is None:
+			gobject.source_remove(self._scroll_timeout)
+			self._scroll_timeout = None
 
-    def do_size_request(self, requisition):
-        # Determine minimum size needed and store it in requisition
-        # Minimum size should be enough to render the largest child with
-        # scroll buttons on both sides + spacing + border
+	def do_size_request(self, requisition):
+		# Determine minimum size needed and store it in requisition
+		# Minimum size should be enough to render the largest child with
+		# scroll buttons on both sides + spacing + border
 
-        child_wh_tuples = [c.size_request() for c in self.get_children()[2:]]
-        if child_wh_tuples:
-            width = max([c[0] for c in child_wh_tuples])
-            height = max([c[1] for c in child_wh_tuples])
-        else:
-            width = 0
-            height = 0
+		child_wh_tuples = [c.size_request() for c in self.get_children()[2:]]
+		if child_wh_tuples:
+			width = max([c[0] for c in child_wh_tuples])
+			height = max([c[1] for c in child_wh_tuples])
+		else:
+			width = 0
+			height = 0
 
-        spacing = self.get_spacing()
-        for button in (self._forw_button, self._back_button):
-            w, h = button.size_request()
-            if h > height:
-                height = h
-            width += w + spacing
+		spacing = self.get_spacing()
+		for button in (self._forw_button, self._back_button):
+			w, h = button.size_request()
+			if h > height:
+				height = h
+			width += w + spacing
 
-        border = self.get_border_width()
-        width += 2 * border
-        height += 2 * border
+		border = self.get_border_width()
+		width += 2 * border
+		height += 2 * border
 
-        #~ print "Requesting WxH: %i x %i" % (width, height)
-        requisition.height = height
-        requisition.width = width
+		#~ print "Requesting WxH: %i x %i" % (width, height)
+		requisition.height = height
+		requisition.width = width
 
-    def do_size_allocate(self, allocation):
-        # Assign the available space to the child widgets
-        # See discussion of allocation algorithm above
+	def do_size_allocate(self, allocation):
+		# Assign the available space to the child widgets
+		# See discussion of allocation algorithm above
 
-        #~ print "Allocated WxH: %i x %i" % (allocation.width, allocation.height)
-        #~ print "At X,Y: %i, %i" % (allocation.x, allocation.y)
-        children = self.get_children()[2:]
-        if not children:
-            return # nothing to render
+		#~ print "Allocated WxH: %i x %i" % (allocation.width, allocation.height)
+		#~ print "At X,Y: %i, %i" % (allocation.x, allocation.y)
+		children = self.get_children()[2:]
+		if not children:
+			return # nothing to render
 
-        direction, index = self._anchor or (DIR_FORWARD, len(children)-1)
-        assert 0 <= index <= len(children)
-        assert direction in (DIR_FORWARD, DIR_BACKWARD)
-            # default (DIR_FORWARD, -1) should show the last item (right most)
-            # and starts filling the space backward (to the left)
+		direction, index = self._anchor or (DIR_FORWARD, len(children)-1)
+		assert 0 <= index <= len(children)
+		assert direction in (DIR_FORWARD, DIR_BACKWARD)
+			# default (DIR_FORWARD, -1) should show the last item (right most)
+			# and starts filling the space backward (to the left)
 
-        spacing = self.get_spacing()
-        border = self.get_border_width()
+		spacing = self.get_spacing()
+		border = self.get_border_width()
 
-        widths = [c.get_child_requisition()[0] for c in children]
-        total = reduce(int.__add__, widths) + len(widths) * spacing + 2 * border
-        if total <= allocation.width:
-            show_scroll_buttons = False
-            first, last = 0, len(children)-1
-        else:
-            # determine which children to show
-            show_scroll_buttons = True
-            first, last = index, index
-            available = allocation.width - widths[index]
-            for button in (self._forw_button, self._back_button):
-                available -= button.get_child_requisition()[0] + spacing
-            if direction == DIR_FORWARD:
-                # fill items from the direction we came from with last scroll
-                for i in range(index-1, -1, -1):
-                    needed = widths[i] + spacing
-                    if needed > available:
-                        break
-                    else:
-                        first = i
-                        available -= needed
-                # see if there is any space to fill items on the other side
-                for i in range(index+1, len(children), 1):
-                    needed = widths[i] + spacing
-                    if needed > available:
-                        break
-                    else:
-                        last = i
-                        available -= needed
-            else: # DIR_BACKWARD
-                # fill items from the direction we came from with last scroll
-                for i in range(index+1, len(children)):
-                    needed = widths[i] + spacing
-                    if needed > available:
-                        break
-                    else:
-                        last = i
-                        available -= needed
-                # see if there is any space to fill items on the other side
-                for i in range(index-1, -1, -1):
-                    needed = widths[i] + spacing
-                    if needed > available:
-                        break
-                    else:
-                        first = i
-                        available -= needed
+		widths = [c.get_child_requisition()[0] for c in children]
+		total = reduce(int.__add__, widths) + len(widths) * spacing + 2 * border
+		if total <= allocation.width:
+			show_scroll_buttons = False
+			first, last = 0, len(children)-1
+		else:
+			# determine which children to show
+			show_scroll_buttons = True
+			first, last = index, index
+			available = allocation.width - widths[index]
+			for button in (self._forw_button, self._back_button):
+				available -= button.get_child_requisition()[0] + spacing
+			if direction == DIR_FORWARD:
+				# fill items from the direction we came from with last scroll
+				for i in range(index-1, -1, -1):
+					needed = widths[i] + spacing
+					if needed > available:
+						break
+					else:
+						first = i
+						available -= needed
+				# see if there is any space to fill items on the other side
+				for i in range(index+1, len(children), 1):
+					needed = widths[i] + spacing
+					if needed > available:
+						break
+					else:
+						last = i
+						available -= needed
+			else: # DIR_BACKWARD
+				# fill items from the direction we came from with last scroll
+				for i in range(index+1, len(children)):
+					needed = widths[i] + spacing
+					if needed > available:
+						break
+					else:
+						last = i
+						available -= needed
+				# see if there is any space to fill items on the other side
+				for i in range(index-1, -1, -1):
+					needed = widths[i] + spacing
+					if needed > available:
+						break
+					else:
+						first = i
+						available -= needed
 
-        self._first, self._last = first, last
+		self._first, self._last = first, last
 
-        # Allocate children
-        y = allocation.y + border
-        h = allocation.height - 2*border
-        child_allocation = gtk.gdk.Rectangle(y=y, height=h)
-            # y and height are the same for all
-        if not self.get_direction() == gtk.TEXT_DIR_RTL:
-            # Left to Right
-            child_allocation.x = allocation.x + border
+		# Allocate children
+		y = allocation.y + border
+		h = allocation.height - 2*border
+		child_allocation = gtk.gdk.Rectangle(y=y, height=h)
+			# y and height are the same for all
+		if not self.get_direction() == gtk.TEXT_DIR_RTL:
+			# Left to Right
+			child_allocation.x = allocation.x + border
 
-            if show_scroll_buttons and first != 0:
-                child_allocation.width = self._back_button.get_child_requisition()[0]
-                self._back_button.set_child_visible(True)
-                self._back_button.size_allocate(child_allocation)
-            else:
-                self._back_button.set_child_visible(False)
+			if show_scroll_buttons and first != 0:
+				child_allocation.width = self._back_button.get_child_requisition()[0]
+				self._back_button.set_child_visible(True)
+				self._back_button.size_allocate(child_allocation)
+			else:
+				self._back_button.set_child_visible(False)
 
-            if show_scroll_buttons:
-                # Reserve the space, even if hidden
-                child_allocation.x += self._back_button.get_child_requisition()[0] + spacing
+			if show_scroll_buttons:
+				# Reserve the space, even if hidden
+				child_allocation.x += self._back_button.get_child_requisition()[0] + spacing
 
-            for i in range(first, last+1):
-                child_allocation.width = widths[i]
-                children[i].set_child_visible(True)
-                children[i].size_allocate(child_allocation)
-                child_allocation.x += widths[i] + spacing # set x for next child
+			for i in range(first, last+1):
+				child_allocation.width = widths[i]
+				children[i].set_child_visible(True)
+				children[i].size_allocate(child_allocation)
+				child_allocation.x += widths[i] + spacing # set x for next child
 
-            if show_scroll_buttons and last != len(children)-1:
-                # reset x - there may be space between last button and scroll button
-                child_allocation.width = self._forw_button.get_child_requisition()[0]
-                child_allocation.x = allocation.x + allocation.width - child_allocation.width - border
-                self._forw_button.set_child_visible(True)
-                self._forw_button.size_allocate(child_allocation)
-            else:
-                # hide scroll button
-                self._forw_button.set_child_visible(False)
-        else:
-            # Right to Left
-            child_allocation.x = allocation.x + allocation.width - border
+			if show_scroll_buttons and last != len(children)-1:
+				# reset x - there may be space between last button and scroll button
+				child_allocation.width = self._forw_button.get_child_requisition()[0]
+				child_allocation.x = allocation.x + allocation.width - child_allocation.width - border
+				self._forw_button.set_child_visible(True)
+				self._forw_button.size_allocate(child_allocation)
+			else:
+				# hide scroll button
+				self._forw_button.set_child_visible(False)
+		else:
+			# Right to Left
+			child_allocation.x = allocation.x + allocation.width - border
 
-            if show_scroll_buttons and first != 0:
-                child_allocation.width = self._back_button.get_child_requisition()[0]
-                child_allocation.x -= child_allocation.width
-                self._back_button.set_child_visible(True)
-                self._back_button.size_allocate(child_allocation)
-                child_allocation.x -= spacing
-            else:
-                self._back_button.set_child_visible(False)
-                if show_scroll_buttons:
-                    # Reserve the space, even if hidden
-                    child_allocation.x = self._back_button.get_child_requisition()[0] + spacing
+			if show_scroll_buttons and first != 0:
+				child_allocation.width = self._back_button.get_child_requisition()[0]
+				child_allocation.x -= child_allocation.width
+				self._back_button.set_child_visible(True)
+				self._back_button.size_allocate(child_allocation)
+				child_allocation.x -= spacing
+			else:
+				self._back_button.set_child_visible(False)
+				if show_scroll_buttons:
+					# Reserve the space, even if hidden
+					child_allocation.x = self._back_button.get_child_requisition()[0] + spacing
 
-            for i in range(first, last+1):
-                child_allocation.width = widths[i]
-                child_allocation.x -= child_allocation.width
-                children[i].set_child_visible(True)
-                children[i].size_allocate(child_allocation)
-                child_allocation.x -= spacing # set x for next child
+			for i in range(first, last+1):
+				child_allocation.width = widths[i]
+				child_allocation.x -= child_allocation.width
+				children[i].set_child_visible(True)
+				children[i].size_allocate(child_allocation)
+				child_allocation.x -= spacing # set x for next child
 
-            if show_scroll_buttons and last != len(children)-1:
-                # reset x - there may be space between last button and scroll button
-                child_allocation.width = self._forw_button.get_child_requisition()[0]
-                child_allocation.x = allocation.x + border
-                self._forw_button.set_child_visible(True)
-                self._forw_button.size_allocate(child_allocation)
-            else:
-                # hide scroll button
-                self._forw_button.set_child_visible(False)
+			if show_scroll_buttons and last != len(children)-1:
+				# reset x - there may be space between last button and scroll button
+				child_allocation.width = self._forw_button.get_child_requisition()[0]
+				child_allocation.x = allocation.x + border
+				self._forw_button.set_child_visible(True)
+				self._forw_button.size_allocate(child_allocation)
+			else:
+				# hide scroll button
+				self._forw_button.set_child_visible(False)
 
-        # Hide remaining children
-        for child in children[0:first]:
-            child.set_child_visible(False)
-        for child in children[last+1:]:
-            child.set_child_visible(False)
+		# Hide remaining children
+		for child in children[0:first]:
+			child.set_child_visible(False)
+		for child in children[last+1:]:
+			child.set_child_visible(False)
 
 
 # Need to register classes defining gobject signals
@@ -330,97 +330,97 @@ gobject.type_register(ScrolledHBox)
 
 
 class ScrollButton(gtk.Button):
-    '''Arrow buttons used by ScrolledHBox'''
+	'''Arrow buttons used by ScrolledHBox'''
 
-    def __init__(self, direction):
-        gtk.Button.__init__(self)
-        self.direction = direction
-        if self.get_direction() != gtk.TEXT_DIR_RTL:
-            # Left to Right
-            if direction == DIR_FORWARD: arrow_dir = gtk.ARROW_RIGHT
-            else: arrow_dir = gtk.ARROW_LEFT
-        else:
-            # Right to Left
-            if direction == DIR_FORWARD: arrow_dir = gtk.ARROW_LEFT
-            else: arrow_dir = gtk.ARROW_RIGHT
+	def __init__(self, direction):
+		gtk.Button.__init__(self)
+		self.direction = direction
+		if self.get_direction() != gtk.TEXT_DIR_RTL:
+			# Left to Right
+			if direction == DIR_FORWARD: arrow_dir = gtk.ARROW_RIGHT
+			else: arrow_dir = gtk.ARROW_LEFT
+		else:
+			# Right to Left
+			if direction == DIR_FORWARD: arrow_dir = gtk.ARROW_LEFT
+			else: arrow_dir = gtk.ARROW_RIGHT
 
-        self.add(gtk.Arrow(arrow_dir, gtk.SHADOW_OUT))
-        self.set_relief(gtk.RELIEF_NONE)
+		self.add(gtk.Arrow(arrow_dir, gtk.SHADOW_OUT))
+		self.set_relief(gtk.RELIEF_NONE)
 
 
 class PathBar(ScrolledHBox):
-    '''Base class for pathbars in the zim GUI'''
+	'''Base class for pathbars in the zim GUI'''
 
-    def __init__(self, ui, history=None, spacing=0, homogeneous=False):
-        ScrolledHBox.__init__(self, spacing, homogeneous)
-        self.ui = ui
-        self.history = None
-        if history:
-            self.set_history(history)
+	def __init__(self, ui, history=None, spacing=0, homogeneous=False):
+		ScrolledHBox.__init__(self, spacing, homogeneous)
+		self.ui = ui
+		self.history = None
+		if history:
+			self.set_history(history)
 
-    def set_history(self, history):
-        self.history = history
-        self.history.connect('changed', lambda o: self._update())
-        self._update()
+	def set_history(self, history):
+		self.history = history
+		self.history.connect('changed', lambda o: self._update())
+		self._update()
 
-    def _update(self):
-        if self.history is None:
-            return
+	def _update(self):
+		if self.history is None:
+			return
 
-        for child in self.get_children()[2:]:
-            self.remove(child)
+		for child in self.get_children()[2:]:
+			self.remove(child)
 
-        tooltips = gtk.Tooltips()
-        for path in self.get_paths():
-            button = gtk.Button(label=path.basename)
-            button.connect('clicked', self.on_button_clicked, path)
-            # FIXME tooltips seem not to work - not sure why
-            tooltips.set_tip(button, path.name)
-            # TODO show context menu for pageson right click
-            # TODO Drag n drop support also nice to have
-            button.show()
-            self.add(button)
+		tooltips = gtk.Tooltips()
+		for path in self.get_paths():
+			button = gtk.Button(label=path.basename)
+			button.set_use_underline(False)
+			button.connect('clicked', self.on_button_clicked, path)
+			# FIXME tooltips seem not to work - not sure why
+			tooltips.set_tip(button, path.name)
+			# TODO show context menu for pageson right click
+			# TODO Drag n drop support also nice to have
+			button.show()
+			self.add(button)
 
-    def get_paths(self):
-        '''To be implemented by the sub class, should return a list
-        (or iterable) of notebook paths to show in the pathbar.
-        '''
-        raise NotImplemented
+	def get_paths(self):
+		'''To be implemented by the sub class, should return a list
+		(or iterable) of notebook paths to show in the pathbar.
+		'''
+		raise NotImplemented
 
-    def on_button_clicked(self, button, path):
-        page = self.ui.notebook.get_page(path.name)
-        self.ui.open_page(page)
+	def on_button_clicked(self, button, path):
+		self.ui.open_page(path)
 
 
 class HistoryPathBar(PathBar):
 
-    # Get last X paths from history, add buttons
-    # Clicking in the pathbar will always add another entry for that
-    # path to the last position
+	# Get last X paths from history, add buttons
+	# Clicking in the pathbar will always add another entry for that
+	# path to the last position
 
-    def get_paths(self):
-        return self.history.get(10) # FIXME what is API to get X records ?
+	def get_paths(self):
+		return self.history.get(10) # FIXME what is API to get X records ?
 
 
 class RecentPathBar(PathBar):
 
-    # Get last X unique paths from history, add buttons
-    # When a button is clicked we do not want to change the view
-    # So on open page we need to check if the page was in the list
-    # allready or not
+	# Get last X unique paths from history, add buttons
+	# When a button is clicked we do not want to change the view
+	# So on open page we need to check if the page was in the list
+	# allready or not
 
-    def get_paths(self):
-        return reversed(list(self.history.get_unique(10)))
+	def get_paths(self):
+		return reversed(list(self.history.get_unique(10)))
 
 
 class NamespacePathBar(PathBar):
 
-    # Add buttons for namespace up to and including current page
-    # Use history to query for sub-pages to show as well
-    # Clicking a button in the pathbar should not change the view
+	# Add buttons for namespace up to and including current page
+	# Use history to query for sub-pages to show as well
+	# Clicking a button in the pathbar should not change the view
 
-    def get_paths(self):
-        pass
+	def get_paths(self):
+		pass
 
 
 
@@ -428,24 +428,24 @@ class NamespacePathBar(PathBar):
 
 class TestPath(object):
 
-    def __init__(self, name):
-        self.name = name
-        self.basename = name
+	def __init__(self, name):
+		self.name = name
+		self.basename = name
 
 class TestPathBar(PathBar):
 
-    def __init__(self):
-        PathBar.__init__(self, None, None)
-        self.history = 'XXX'
-        self._update()
+	def __init__(self):
+		PathBar.__init__(self, None, None)
+		self.history = 'XXX'
+		self._update()
 
-    def get_paths(self):
-        for path in ('foo', 'bar', 'baz', 'looooooongggggggg item here', 'dus', 'ja', 'hmm'):
-            yield TestPath(path)
+	def get_paths(self):
+		for path in ('foo', 'bar', 'baz', 'looooooongggggggg item here', 'dus', 'ja', 'hmm'):
+			yield TestPath(path)
 
 if __name__ == '__main__':
-    window = gtk.Window()
-    window.connect('destroy', lambda o: gtk.main_quit())
-    window.add(TestPathBar())
-    window.show_all()
-    gtk.main()
+	window = gtk.Window()
+	window.connect('destroy', lambda o: gtk.main_quit())
+	window.add(TestPathBar())
+	window.show_all()
+	gtk.main()

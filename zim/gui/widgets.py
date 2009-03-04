@@ -92,7 +92,17 @@ class BrowserTreeView(gtk.TreeView):
 			x, y = map(int, event.get_coords())
 				# map to int to surpress deprecation warning :S
 			path, column, x, y = self.get_path_at_pos(x, y)
-			#if not self.get_selection().path_is_selected(path):
-			self.row_activated(path, column)
+			if self.get_selection().path_is_selected(path):
+				self.row_activated(path, column)
+				# This action is conditional on the path being selected
+				# because otherwise we can not toggle the folding state
+				# of a path without activating it. The assumption being
+				# that the path gets selected on button press and then
+				# gets activated on button release. Clicking the 
+				# expander in front of a path should not select the path.
+				# This logic is based on particulars of the C implementation
+				# and might not be future proof.
+		elif event.button == 3:
+			print 'TODO: context menu for page'
 
 		return gtk.TreeView.do_button_release_event(self, event)

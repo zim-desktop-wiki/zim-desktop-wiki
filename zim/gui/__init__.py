@@ -157,6 +157,8 @@ class GtkInterface(NotebookInterface):
 				# dialog, or the notebook was opened in a different process.
 				return
 
+		self.uimanager.ensure_update()
+			# prevent flashing when the toolbar is after showing the window
 		self.mainwindow.show_all()
 		self.mainwindow.pageview.grab_focus()
 		gtk.main()
@@ -268,8 +270,7 @@ class GtkInterface(NotebookInterface):
 		self.notebook = notebook
 		self.history = zim.history.History(notebook)
 
-		#~ self.notebook.index.update(background=True)
-		self.notebook.index.update()
+		self.notebook.index.update(background=True)
 
 		# TODO load history and set intial page
 		self.open_page_home()
@@ -452,7 +453,8 @@ class GtkInterface(NotebookInterface):
 		self.spawn('zim', '--server', '--gui', self.notebook.name)
 
 	def reload_index(self):
-		pass # TODO flush cache
+		self.notebook.index.update(fullcheck=True)
+		# TODO use callback argument to present a progressbar
 
 	def show_help(self, page=None):
 		if page:

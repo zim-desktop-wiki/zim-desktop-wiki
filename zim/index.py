@@ -21,6 +21,7 @@ as we need to do a seperate lookup for each parent. Open for future improvement.
 '''
 
 import sqlite3
+import gobject
 import logging
 
 from zim.notebook import Path
@@ -62,20 +63,13 @@ create table if not exists linktypes (
 );
 '''
 
-
-def find_database_file(notebook):
-	# Check notebook writable and not an a remote fs
-	# Else fall back to XDG_CACHE dir
-	# this logic should be in notebook.cache_dir
-	# if not cache dir return None
-	return None
-
+# TODO need better support for TreePaths, e.g. as signal arguments for Treemodel
 
 class IndexPath(Path):
 	'''Like Path but adds more attributes, functions as an iterator for
 	rows in the table with pages.'''
 
-	__slots__ = ('_indexpath', '_row')
+	__slots__ = ('_indexpath', '_row', '_pagelist_ref', '_pagelist_index')
 
 	def __init__(self, name, indexpath, row=None):
 		'''Constructore, needs at least a full path name and a tuple of index
@@ -87,6 +81,11 @@ class IndexPath(Path):
 		Path.__init__(self, name)
 		self._indexpath = tuple(indexpath)
 		self._row = row
+		self._pagelist_ref = None
+		self._pagelist_index = None
+		# The pagelist attributes are not used in this module, but the
+		# slot is reserved for usage in the PageTreeStore class to cache
+		# a pagelist instead of doing the same query over and over again.
 
 	@property
 	def id(self): return self._indexpath[-1]
@@ -126,17 +125,27 @@ class IndexPath(Path):
 		yield IndexPath(':', (0,))
 
 
-class Index(object):
+class Index(gobject.GObject):
 	'''FIXME'''
 
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'page-inserted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-updated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-haschildren-toggled': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-dropped': (gobject.SIGNAL_RUN_LAST, None, (object,))
+	}
+
 	def __init__(self, notebook=None, dbfile=None):
-		'''If no dbfile is given, the result of 'find_database_file(notebook)'
-		will be used. Main use of providing a dbfile here is to make the index
-		operate in memory by setting dbfile to ":memory:".
+		'''If no dbfile is given, the default file for this notebook will be
+		used will be used. Main use of providing a dbfile here is to make the
+		index operate in memory by setting dbfile to ":memory:".
 		'''
+		gobject.GObject.__init__(self)
 		self.dbfile = dbfile
 		self.db = None
 		self.notebook = None
+		self._updating= False
 		self._update_queue = []
 		if self.dbfile:
 			self._connect()
@@ -147,24 +156,45 @@ class Index(object):
 		self.notebook = notebook
 
 		if not self.dbfile:
-			self.dbfile = find_database_file(notebook)
-			if self.dbfile is None:
+			# TODO index for RO notebooks
+			#~ if notebook.isreadonly \
+			#~ and not notebook.dir is None \
+			#~ and notebook.dir.file('index.db').exists():
+				#~ self.dbfile = notebook.dir.file('index.db')
+			#~ else:
+			if notebook.cache_dir is None:
 				logger.debug('No cache dir found - loading index in memory')
 				self.dbfile = ':memory:'
+			else:
+				notebook.cache_dir.touch()
+				self.dbfile = notebook.cache_dir.file('index.db')
+				logger.debug('Index database file: %s', self.dbfile)
 			self._connect()
 
 		# TODO connect to notebook signals for pages being moved / deleted /
 		# modified
 
+	def do_save_page(self, page):
+		self.index_page(page)
+
+	def do_move_page(self, page):
+		pass # TODO index logic for moving page(s)
+
+	def do_delete_page(self, page):
+		self.drop_page(page)
+
 	def _connect(self):
 		self.db = sqlite3.connect(
-			self.dbfile, detect_types=sqlite3.PARSE_DECLTYPES)
+			str(self.dbfile), detect_types=sqlite3.PARSE_DECLTYPES)
 		self.db.row_factory = sqlite3.Row
 
-		# TODO verify database integrity
+		# TODO verify database integrity and zim version number
 		self.db.executescript(SQL_TABLES)
 
-	def update(self, path=None, recursive=True, background=False, fullcheck=False):
+	def update(self, path=None,
+		recursive=True, background=False, fullcheck=False,
+		callback=None
+	):
 		'''This method initiates a database update for a namespace, or, if no
 		path is given for the root namespace of the notebook.
 
@@ -177,37 +207,85 @@ class Index(object):
 		  and, when needed, re-index the page contents for all pages set
 		  "fullcheck" to True.
 
+		A callback method can be supplied that will be called after each
+		updated path. This can be used e.g. to display a progress bar.
+
 		Indexes are checked width first. This is important to make the visual
 		behavior of treeviews displaying the index look more solid.
 		'''
 		if path is None or path.isroot:
-			path = IndexPath(':', (0,))
+			indexpath = IndexPath(':', (0,))
 		else:
-			path = self.lookup_path(path)
+			indexpath = self.lookup_path(path)
+			if indexpath is None:
+				indexpath = self._touch(path)
 
-		if path is None:
-			assert False, 'TODO: create parent paths first'
+		self._update_queue.append((indexpath, recursive, fullcheck))
 
-		self._update_queue.append((path, recursive, fullcheck))
 		if background:
-			assert False, 'TODO: start time trigger'
+			if not self._updating:
+				logger.debug('Starting background index update')
+				self._updating = False
+				gobject.idle_add(self._do_update, callback)
 		else:
-			while self._update_queue:
-				self._do_update_one()
+			logger.debug('Updating index')
+			while self._do_update(callback):
+				continue
 
-	def _do_update_one(self):
-		'''This method unshifts one instruction for the queue and processes
-		it. Returns False if the queue is empty, True other wise, so it can
-		be called as an event handle.
-		'''
-		if not self._update_queue:
+	def _do_update(self, callback):
+		if self._update_queue:
+			self._update()
+			if not callback is None:
+				callback()
+			return True
+		else:
+			logger.debug('Background index update done')
+			self._updating = False
 			return False
-		else:
-			path, recursive, fullcheck = self._update_queue.pop(0)
 
+	def _touch(self, path):
+		'''This creates a path along with all it's parents'''
+		cursor = self.db.cursor()
+		names = path.split()
+		parentid = 0
+		indexpath = []
+		inserted = []
+		for i in range(len(names)):
+			p = self.lookup_path()
+			if p is None:
+				haschildren = i < (len(names) - 1)
+				cursor.execute(
+					'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
+					(names[i], parentid, False, haschildren))
+				parentid = cursor.lastrowid
+				indexpath.append(parentid)
+				inserted.append(IndexPath(':'.join(names[:i+1]), indexpath))
+			else:
+				# TODO check if haschildren is correct, update and emit has-children-toggled if not
+				parentid = p.id
+				indexpath.append(parentid)
+
+		self.db.commit()
+
+		for path in inserted:
+			self.emit('page-inserted', path)
+
+	def _update(self):
+		'''This method unshifts one instruction for the queue and processes
+		it.
+		'''
+		path, recursive, fullcheck = self._update_queue.pop(0)
+
+		# TODO implement fullcheck for page contents
 		#~ if fullcheck:
-			#~ self._check_page(self, path)
+			#~ try:
+				#~ current = self.notebook.get_page_indexkey(path)
+				#~ if current and path.indexkey == current:
+					#~ return # indexkey is not None and cache up to date
+			#~ except NotImplementedError:
+				#~ pass # we don't know
 
+		# TODO check index keys to optimize updating
 		#~ current = None
 		#~ try:
 			#~ current = self.notebook.get_pagelist_indexkey(path)
@@ -221,75 +299,80 @@ class Index(object):
 		cursor = self.db.cursor()
 		cursor.execute('select id, basename from pages where parent==?', (path.id,))
 		rows = cursor.fetchall()
-		cleanup = set([r.basename for r in rows])
+		cleanup = set([r['basename'] for r in rows])
 
 		# check for new pages
 		seenchildren = False
+		inserted = []
 		for page in self.notebook.get_pagelist(path):
 			seenchildren = True
 			if page.basename in cleanup:
 				cleanup.remove(page.basename)
 			else:
-				self.db.execute(
-					'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
-					(page.basename, path.id, page.hascontent, False))
 				# We set haschildren to False untill we have actualy seen those
 				# children. Failing to do so will cause trouble with the
 				# gtk.TreeModel interface to the database, which can not handle
 				# nodes that say they have children but fail to deliver when
 				# asked.
-
-				# TODO queue content check even if no fullcheck is done
+				cursor = self.db.cursor()
+				cursor.execute(
+					'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
+					(page.basename, path.id, page.hascontent, False))
+				indexpath = path._indexpath + (cursor.lastrowid,)
+				inserted.append(IndexPath(page.name, indexpath))
+				fullcheck = True # tree below does not yet exist - check fully
 
 			if fullcheck or (recursive and page.haschildren):
+				# FIXME get rid of this lookup_path()
 				child = self.lookup_path(page, parent=path)
 				assert not child is None
 				self._update_queue.append((child, recursive, fullcheck))
 
-		# cleanup remaining pages
+		# cleanup remaining pages - TODO
 		#~ for basename in cleanup:
-			#~ self._drop_page(records[basename])
+			#~ self.drop_page(records[basename])
 
-		# Update index key to reflect we did our updates
+		# Update index key to reflect we did our updates - TODO
 		#~ if not current is None:
 			#~ self.db.execute(
 				#~ 'update pages set childrenkey = ? where id == ?',
 				#~ (path.id, current) )
-		self.db.execute(
-			'update pages set haschildren=? where id==?',
-			(seenchildren, path.id) )
 
-		return True
+		if path.isroot:
+			self.db.commit()
+		else:
+			self.db.execute(
+				'update pages set haschildren=? where id==?',
+				(seenchildren, path.id) )
+			self.db.commit()
+			self.emit('page-haschildren-toggled', path)
 
-	def _check_page(self, page, record):
-		try:
-			current = self.notebook.get_page_indexkey(path)
-			if current and path.indexkey == current:
-				return # indexkey is not None and cache up to date
-		except NotImplementedError:
-			pass # we don't know
-
-		self._update_page(page)
-
-	def indexpage(self, page):
-		# check if path exists, if not call insert, else call update
-		pass
+		for path in inserted:
+			self.emit('page-inserted', path)
 
 
-	def _update_page(self, page, record):
-		'''Like insert, but re-use existing record'''
-
-	def _update_links(self, page):
+	def index_page(self, page):
+		'''Indexes page contents for page. Does not look at sub-pages etc.
+		use 'update()' for that.
+		'''
+		path = self.lookup_path(page)
+		if path is None:
+			self._touch(page)
+		# TODO index links and update
 		# do not care about double checking all links
 		# drop all links and insert new set
-		pass
+		self.db.commit()
+		self.emit('page-updated', path)
 
-	def _drop_page(self, path):
+	def drop_page(self, path):
 		'''Drop page plus sub-pages plus forward links'''
-		# TODO ...
+		# TODO actually drop a page + children + links
+		# TODO emit signal for dropped pages
+		path = self.lookup_path(path)
 		if path.haschildren:
 			self._drop_pagelist(path)
-
+		self.db.commit()
+		self.emit('page-dropped', path)
 
 	def lookup_path(self, path, parent=None):
 		'''Returns an IndexPath for path. This method is mostly intended
@@ -432,20 +515,17 @@ class Index(object):
 				for r in cursor ]
 
 	def list_links(self, page, direction=LINK_DIR_FORWARD):
-		return []
+		return [] # TODO list links - need Link object
 		# select name from join pages and links where drain = ?
 
-	def get_previous(self, page):
-		'''FIXME Like Namespace.get_previous(page), but crosses namespace bounds'''
+	def get_previous(self, path):
+		'''Returns the next page in the index, crossing namespaces'''
+		# TODO get_previous
 
-	def get_next(self, page):
-		'''FIXME Like Namespace.get_next(page), but crosses namespace bounds'''
+	def get_next(self, path):
+		'''Returns the next page in the index, crossing namespaces'''
+		# TODO get_next
 
-	def on_save_page(self, page):
-		pass
 
-	def on_move_page(self, page):
-		pass
-
-	def on_delete_page(self, page):
-		self._drop_page(page)
+# Need to register classes defining gobject signals
+gobject.type_register(Index)

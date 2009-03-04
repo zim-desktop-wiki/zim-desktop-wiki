@@ -24,13 +24,11 @@ class UnixPath(object):
 	'''Parent class for Dir and File objects'''
 
 	def __init__(self, path):
-		assert not isinstance(path, tuple)
 		# TODO keep link to parent dir if first arg is Dir object
 		#      but only if there is no '../' after that arg
-		if isinstance(path, list):
-			for i in range(0, len(path)):
-				if isinstance(path[i], Path):
-					path[i] = path[i].path
+		if isinstance(path, (list, tuple)):
+			path = map(str, path) 
+				# Any path objects in list will also be flattened
 			path = os.path.join(*path)
 		elif isinstance(path, Path):
 			path = path.path
@@ -145,7 +143,7 @@ class Dir(Path):
 		if isinstance(path, File):
 			file = path
 		else:
-			file = File(path)
+			file = File((self.path, path))
 		if not file.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (file, self)
 		# TODO set parent dir on file
@@ -156,11 +154,11 @@ class Dir(Path):
 		if isinstance(path, Dir):
 			dir = path
 		else:
-			dir = Dir(path)
+			dir = Dir((self.path, path))
 		if not dir.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (dir, self)
 		# TODO set parent dir on file
-		return file
+		return dir
 
 
 class File(Path):
