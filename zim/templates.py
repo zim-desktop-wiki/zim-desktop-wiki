@@ -215,6 +215,8 @@ class GenericTemplate(object):
 					cmd = cmd.strip('-')
 					append_token(cmd)
 				append_text(line)
+			if len(self.stack) > 1:
+				raise TemplateSyntaxError, 'open block at end of input - forgot END ?'
 		except TemplateSyntaxError, error:
 			error.file = self.name
 			error.line = self.lineno

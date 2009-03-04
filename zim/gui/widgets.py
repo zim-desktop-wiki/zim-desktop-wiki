@@ -6,7 +6,9 @@
 that are used in the zim gui modules.
 '''
 
+import gobject
 import gtk
+
 
 class Button(gtk.Button):
 	'''This class overloads the constructor of the default gtk.Button
@@ -106,3 +108,7 @@ class BrowserTreeView(gtk.TreeView):
 			print 'TODO: context menu for page'
 
 		return gtk.TreeView.do_button_release_event(self, event)
+
+
+# Need to register classes defining / overriding gobject signals
+gobject.type_register(BrowserTreeView)

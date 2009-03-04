@@ -5,7 +5,7 @@
 '''FIXME'''
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.42'
+__version__ = '0.42-alpha1'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <pardus@cpan.org>'
 __copyright__ = 'Copyright 2008 Jaap Karssenberg <pardus@cpan.org>'
@@ -67,7 +67,7 @@ class NotebookInterface(gobject.GObject):
 
 	def load_plugins(self):
 		'''FIXME'''
-		plugins = ['spell', 'linkmap'] # FIXME: get from config
+		plugins = ['spell', 'linkmap', 'printtobrowser'] # FIXME: get from config
 		for plugin in plugins:
 			self.load_plugin(plugin)
 

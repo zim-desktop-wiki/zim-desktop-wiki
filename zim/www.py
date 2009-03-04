@@ -171,7 +171,7 @@ class WWWInterface(NotebookInterface):
 
 		if self.template:
 			output = Buffer()
-			self.template.process(page, output)
+			self.template.process(self.notebook, page, output)
 			html = output.getvalue()
 		else:
 			html = page.get_text(format='html')
