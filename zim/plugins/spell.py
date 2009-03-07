@@ -4,6 +4,8 @@
 
 '''FIXME'''
 
+import gobject
+
 from zim.plugins import PluginClass
 
 try:
@@ -75,6 +77,8 @@ class SpellPlugin(PluginClass):
 			textview.gtkspell = self.spell # used by hardcoded hook
 		# TODO action_show_active
 
+		return False # we can be called from idle event
+
 	def disable_spellcheck(self):
 		self.enabled = False
 		if not self.spell is None:
@@ -87,6 +91,7 @@ class SpellPlugin(PluginClass):
 	def do_open_page(self, ui, page, record):
 		# Assume the old object is detached by hard coded
 		# hook in TextView, just attach a new one.
+		# Use idle timer to avoid lag in page loading.
 		self.spell = None
 		if self.enabled:
-			self.enable_spellcheck()
+			gobject.idle_add(self.enable_spellcheck)

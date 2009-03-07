@@ -9,6 +9,7 @@ from tests import TestCase
 
 import os
 
+import zim
 from zim.fs import *
 from zim.templates import *
 from zim.templates import GenericTemplate, \
@@ -159,12 +160,14 @@ class TestTemplate(TestCase):
 
 	def runTest(self):
 		file = Buffer(u'''\
+Version [% zim.version %]
 <title>[% page.title %]</title> FIXME
 <h1>[% page.name %]</h1>
 <h2>[% page.heading %]</h2> FIXME
 [% page.body %]
 ''' )
 		result = u'''\
+Version %s
 <title>FooBar</title> FIXME
 <h1>FooBar</h1>
 <h2></h2> FIXME
@@ -173,7 +176,7 @@ class TestTemplate(TestCase):
 <strong>foo bar !</strong><br>
 </p>
 
-'''
+''' % zim.__version__
 		page = tests.get_test_page('FooBar')
 		page.set_text('wiki', '''\
 ====== Page Heading ======

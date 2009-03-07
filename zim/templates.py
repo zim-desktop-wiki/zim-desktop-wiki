@@ -63,6 +63,7 @@ import zim
 import zim.formats
 from zim.config import data_dirs
 from zim.parsing import Re, split_quoted_strings, unescape_quoted_string
+from zim.index import LINK_DIR_BACKWARD
 
 logger = logging.getLogger('zim.templates')
 
@@ -578,7 +579,7 @@ class PageProxy(object):
 
 	@property
 	def backlinks(self):
-		blinks = self._notebook.index.list_backlinks(self._page)
+		blinks = self._notebook.index.list_links(self._page, LINK_DIR_BACKWARD)
 		for type, name in blinks:
 			if type == 'page':
 				page = self._notebook.get_page(name)

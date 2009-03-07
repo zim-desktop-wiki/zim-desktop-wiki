@@ -55,7 +55,7 @@ class PageTreeStore(gtk.GenericTreeModel):
 		return gobject.TYPE_STRING
 
 	def on_get_iter(self, treepath):
-		'''Returns an IndexPath for a TreePath or raises ValueError'''
+		'''Returns an IndexPath for a TreePath or None'''
 		# Path (0,) is the first item in the root namespace
 		# Path (2, 4) is the 5th child of the 3rd item
 		#~ print '>> on_get_iter', treepath
@@ -63,7 +63,7 @@ class PageTreeStore(gtk.GenericTreeModel):
 		for i in treepath:
 			iter = self.on_iter_nth_child(iter, i)
 			if iter is None:
-				raise ValueError, 'Not a valid TreePath %s' % str(treepath)
+				break
 		return iter
 
 	def get_treepath(self, path):

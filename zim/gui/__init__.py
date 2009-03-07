@@ -258,7 +258,7 @@ class GtkInterface(NotebookInterface):
 		elif self.notebook is None:
 			# No notebook has been set, so we open this notebook ourselfs
 			# TODO also check if notebook was open through demon before going here
-			logger.debug('Open notebook: %s', notebook)
+			logger.info('Open notebook: %s', notebook)
 			NotebookInterface.open_notebook(self, notebook)
 		else:
 			# We are already intialized, let another process handle it
@@ -289,7 +289,7 @@ class GtkInterface(NotebookInterface):
 			return OpenPageDialog(self).run()
 
 		assert isinstance(path, Path)
-		logger.debug('Open page: %s', path)
+		logger.info('Open page: %s', path)
 		if isinstance(path, Page):
 			page = path
 		else:

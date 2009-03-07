@@ -17,7 +17,7 @@ import glib
 import gobject
 
 from zim import NotebookInterface
-from zim.notebook import Page
+from zim.notebook import Page, Path
 from zim.fs import *
 from zim.formats import ParseTree, TreeBuilder
 
@@ -81,6 +81,10 @@ class WWWInterface(NotebookInterface):
 		if not notebook is None:
 			self.open_notebook(notebook)
 
+	#~ def open_notebook(self, notebook):
+		#~ NotebookInterface.open_notebook(self, notebook)
+		#~ self.notebook.index.update()
+
 	def __call__(self, environ, start_response):
 		'''Main function for handling a single request. Arguments are the file
 		handle to write the output to and the path to serve. Any exceptions
@@ -121,11 +125,12 @@ class WWWInterface(NotebookInterface):
 				else:
 					raise PageNotFoundError(path)
 
-				page = self.notebook.get_page(pagename)
+				path = self.notebook.resolve_path(pagename)
+				page = self.notebook.get_page(path)
 				if page.hascontent:
-					content = self.render_page(pagename)
+					content = self.render_page(page)
 				elif page.haschildren:
-					content = self.render_index(pagename)
+					content = self.render_index(page)
 				else:
 					raise PageNotFoundError(page)
 		except WWWError, error:
@@ -156,19 +161,14 @@ class WWWInterface(NotebookInterface):
 
 	def render_index(self, namespace=None):
 		'''Serve an index page'''
-		if namespace:
-			path = self.notebook.get_path(namespace)
-		else:
-			path = Path(':') # top level namespace
+		if namespace is None:
+			namespace = Path(':') # top level namespace
 
-		page = IndexPage(notebook, path)
+		page = IndexPage(self.notebook, namespace)
 		return self.render_page(page)
 
 	def render_page(self, page):
 		'''Serve a single page from the notebook'''
-		if isinstance(page, basestring):
-			page = self.notebook.get_page(page)
-
 		if self.template:
 			output = Buffer()
 			self.template.process(self.notebook, page, output)
@@ -184,7 +184,7 @@ class IndexPage(Page):
 
 	def __init__(self, notebook, path, recurs=True):
 		'''Constructor takes a namespace object'''
-		Page.__init__(path, haschildren=True)
+		Page.__init__(self, path, haschildren=True)
 		self.index_recurs = recurs
 		self.notebook = notebook
 		self.properties['readonly'] = True
@@ -197,9 +197,9 @@ class IndexPage(Page):
 		builder = TreeBuilder()
 
 		def add_namespace(path):
-			pagelist = self.notebook.index.get_pagelist(path)
+			pagelist = self.notebook.index.list_pages(path)
 			builder.start('ul')
-			for page in namespace:
+			for page in pagelist:
 				builder.start('li')
 				builder.start('link', {'type': 'page', 'href': page.name})
 				builder.data(page.basename)
@@ -215,6 +215,7 @@ class IndexPage(Page):
 		builder.end('h')
 		add_namespace(self)
 		builder.end('page')
+
 		return ParseTree(builder.close())
 
 
