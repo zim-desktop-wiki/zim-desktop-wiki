@@ -9,6 +9,22 @@ from zim.plugins import PluginClass
 class LinkMapPlugin(PluginClass):
 	'''FIXME'''
 
+	info = {
+		'name': 'Link Map',
+		'description': '''\
+This plugin provides a dialog with a grahical
+representation of the linking structure of the
+notebook. It can be used as a kind of "mind map"
+showing how pages relate.
+
+This plugin depends on GraphViz, please make
+sure it is installed.
+
+This is a core plugin shipping with zim.
+''',
+		'author': 'Jaap Karssenberg',
+	}
+
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
 		if self.ui.ui_type == 'gtk':

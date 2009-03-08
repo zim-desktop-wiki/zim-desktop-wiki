@@ -58,6 +58,7 @@ ui_actions = (
 	('show_search',  'gtk-find', '_Search...', '<shift><ctrl>F', 'Search'),
 	('show_search_backlinks', None, 'Search _Backlinks...', None, 'Search Back links'),
 	('copy_location', None, 'Copy Location', '<shift><ctrl>L', 'Copy location'),
+	('show_plugins',  None, 'P_lugins', None, 'Plugins dialog'),
 	('show_preferences',  'gtk-preferences', 'Pr_eferences', None, 'Preferences dialog'),
 	('reload_page',  'gtk-refresh', '_Reload', '<ctrl>R', 'Reload page'),
 	('open_attachments_folder', 'gtk-open', 'Open Document _Folder', None, 'Open document folder'),
@@ -429,6 +430,10 @@ class GtkInterface(NotebookInterface):
 		import zim.gui.clipboard
 		zim.gui.clipboard.Clipboard().set_pagelink(self.page)
 
+	def show_plugins(self):
+		import zim.gui.pluginsdialog
+		zim.gui.pluginsdialog.PluginsDialog(self).run()
+
 	def show_preferences(self):
 		import zim.gui.preferencesdialog
 		zim.gui.preferencesdialog.PreferencesDialog(self).run()
@@ -719,6 +724,8 @@ class Dialog(gtk.Dialog):
 		elif buttons == gtk.BUTTONS_OK_CANCEL:
 			self.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
 			self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+		if buttons == gtk.BUTTONS_CLOSE:
+			self.add_button(gtk.STOCK_CLOSE, gtk.RESPONSE_OK)
 		else:
 			assert False, 'TODO - parse different button types'
 

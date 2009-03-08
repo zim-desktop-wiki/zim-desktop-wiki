@@ -25,7 +25,7 @@ class Button(gtk.Button):
 			icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
 			label = gtk.Label(label)
 			label.set_use_underline(use_underline)
-			hbox = gtk.HBox()
+			hbox = gtk.HBox(spacing=2)
 			hbox.add(icon)
 			hbox.add(label)
 			self.add(hbox)

@@ -33,8 +33,16 @@ class SpellPlugin(PluginClass):
 
 	info = {
 		'name': 'Print to Browser',
-		'author': 'Jaap Karssenberg <pardus@cpan.org>',
-		'description': 'FIXME',
+		'description': '''\
+This plugin provides a workaround for the lack of
+printing support in zim. It exports the current page
+to html and opens a browser. Assuming the browser
+does have printing support this will get your
+data to the printer in two steps.
+
+This is a core plugin shipping with zim.
+''',
+		'author': 'Jaap Karssenberg',
 	}
 
 	def __init__(self, ui):

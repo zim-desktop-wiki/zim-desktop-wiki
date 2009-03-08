@@ -16,3 +16,9 @@ class testPlugins(TestCase):
 		plugin = zim.plugins.get_plugin('spell')
 		self.assertTrue(plugin.info['name'] == 'Spell')
 
+	def testListPlugins(self):
+		plugins = zim.plugins.list_plugins()
+		self.assertTrue(len(plugins) > 0)
+		self.assertTrue('spell' in plugins)
+		self.assertTrue('linkmap' in plugins)
+
