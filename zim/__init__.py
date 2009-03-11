@@ -84,15 +84,16 @@ class NotebookInterface(gobject.GObject):
 	def open_notebook(self, notebook):
 		'''FIXME'''
 		import zim.notebook
-		notebook = zim.notebook.get_notebook(notebook)
+		if isinstance(notebook, basestring):
+			notebook = zim.notebook.get_notebook(notebook)
 		self.emit('open-notebook', notebook)
 
 	def do_open_notebook(self, notebook):
 		'''FIXME'''
 		self.notebook = notebook
 
-	def export(self, format='html', template=None, page=None, output=None):
-		'''FIXME'''
+	def do_export(self, format='html', template=None, page=None, output=None):
+		'''Method called when doign a commandline export'''
 		if page is None:
 			assert False, 'TODO: export whole notebook'
 		if not output is None:
@@ -109,6 +110,16 @@ class NotebookInterface(gobject.GObject):
 				from zim.templates import get_template
 				template = get_template(format, template)
 			template.process(page, sys.stdout)
+
+	def do_index(self, output=None):
+		'''Method called when doing a commandline index re-build'''
+		if not output is None:
+			import zim.index
+			index = zim.index.Index(self.notebook, output)
+		else:
+			index = self.notebook.index
+		index.update(fullcheck=True,
+			callback=lambda p, q: logger.info('Indexed %s', p.name))
 
 	def spawn(self, *argv):
 		'''FIXME'''

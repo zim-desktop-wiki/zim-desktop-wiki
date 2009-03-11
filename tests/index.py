@@ -7,7 +7,7 @@
 import tests
 
 from zim.index import Index, IndexPath
-from zim.notebook import Path
+from zim.notebook import Path, Link
 from zim.gui.pageindex import PageTreeStore
 
 class TestIndex(tests.TestCase):
@@ -19,11 +19,12 @@ class TestIndex(tests.TestCase):
 		index.set_notebook(notebook)
 		index.update()
 
-		#~ cursor = index.db.cursor()
+		cursor = index.db.cursor()
 		#~ cursor.execute('select * from pages')
-		#~ print '\n==== DB ===='
-		#~ for row in cursor:
-		#~ 	print row
+		cursor.execute('select * from links')
+		print '\n==== DB ===='
+		for row in cursor:
+			print row
 
 		path = index.lookup_path(Path('Test:foo:bar'))
 		self.assertTrue(isinstance(path, IndexPath))
@@ -33,6 +34,11 @@ class TestIndex(tests.TestCase):
 
 		pagelist = index.list_pages(None)
 		self.assertTrue(len(pagelist) > 0)
+
+		linklist = list(index.list_links(Path('Test:foo:bar')))
+		self.assertTrue(len(linklist) > 0)
+		self.assertTrue(isinstance(linklist[0], Link))
+
 
 class TestPageTreeStore(tests.TestCase):
 
@@ -62,8 +68,7 @@ class TestPageTreeStore(tests.TestCase):
 		path2 = treestore.on_iter_children()
 		self.assertEqual(path2, path)
 
-		self.assertRaises(
-			ValueError, treestore.on_get_iter, (20,20,20,20,20))
+		self.assertTrue(treestore.on_get_iter((20,20,20,20,20)) is None)
 		self.assertRaises(
 			ValueError, treestore.get_treepath, Path('nonexisting'))
 

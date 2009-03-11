@@ -41,19 +41,28 @@ logger = logging.getLogger('zim')
 
 # All commandline options in various groups
 longopts = ('verbose', 'debug')
-cmdopts = ('help', 'version', 'gui', 'server', 'export', 'manual')
-guiopts = ()
-serveropts = ('port=', 'template=', 'gui')
-exportopts = ('format=', 'template=', 'output=')
+commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual')
+commandopts = {
+	'gui': (),
+	'server': ('port=', 'template=', 'gui'),
+	'export': ('format=', 'template=', 'output='),
+	'index': ('output=',),
+}
 shortopts = {
 	'v': 'version', 'h': 'help',
 	'V': 'verbose', 'D': 'debug',
+	'o': 'output'
+}
+maxargs = {
+	'gui': 2, 'server': 1, 'manual': 1,
+	'export': 2, 'index': 1
 }
 
 # Inline help - do not use __doc__ for this !
 usagehelp = '''\
 usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
-   or: zim --export [OPTIONS] [NOTEBOOK [PAGE]]
+   or: zim --export [OPTIONS] NOTEBOOK [PAGE]
+   or: zim --index  [OPTIONS] NOTEBOOK
    or: zim --server [OPTIONS] [NOTEBOOK]
    or: zim --manual [OPTIONS] [PAGE]
    or: zim --help
@@ -63,6 +72,7 @@ General Options:
   --gui       run the editor (this is the default)
   --server    run the web server
   --export    export to a different format
+  --index     build an index for a notebook
   --manual    open the user manual
   --verbose   print information to terminal
   --debug     print debug messages
@@ -74,10 +84,13 @@ Server Options:
   --template  name of the template to use
   --gui       run the gui wrapper for the server
 
-Export Options: FIXME
+Export Options:
   --format    format to use (defaults to 'html')
   --template  name of the template to use
   --output    output file or directory
+
+Index Options:
+  --output    output file
 
 Try 'zim --manual' for more help.
 '''
@@ -93,11 +106,9 @@ def main(argv):
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
-	long = list(longopts)
-	long.extend(cmdopts)
-	long.extend(guiopts)
-	long.extend(serveropts)
-	long.extend(exportopts)
+	long = list(longopts) + list(commands)
+	for opts in commandopts.values():
+		long.extend(opts)
 
 	opts, args = gnu_getopt(argv[1:], short, long)
 
@@ -107,10 +118,9 @@ def main(argv):
 		o = opts[0][0].lstrip('-')
 		if o in shortopts:
 			o = shortopts[o]
-		if o in cmdopts:
+		if o in commands:
 			opts.pop(0)
 			cmd = o
-
 
 	# If it is a simple command execute it and return
 	if cmd == 'version':
@@ -124,23 +134,17 @@ def main(argv):
 		return
 
 	# Otherwise check the number of arguments
-	if (cmd in ('server', 'manual') and len(args) > 1) or (len(args) > 2):
+	if len(args) > maxargs[cmd]:
 		raise UsageError
 
+	# --manual is an alias for --gui _manual_
 	if cmd == 'manual':
-		# --manual is an alias for --gui _manual_
 		cmd = 'gui'
 		args.insert(0, '_manual_')
 
 	# Now figure out which options are allowed for this command
 	allowedopts = list(longopts)
-	if cmd == 'server':
-		allowedopts.extend(serveropts)
-	elif cmd == 'export':
-		allowedopts.extend(exportopts)
-	else:
-		assert cmd == 'gui' or cmd == 'manual'
-		allowedopts.extend(guiopts)
+	allowedopts.extend(commandopts[cmd])
 
 	# Convert options into a proper dict
 	optsdict = {}
@@ -172,11 +176,13 @@ def main(argv):
 	# Now we determine the class to handle this command
 	# and start the application ...
 	logger.debug('run command: %s', cmd)
-	if cmd == 'export':
+	if cmd in ('export', 'index'):
+		if not len(args) >= 1:
+			raise UsageError
 		handler = zim.NotebookInterface(notebook=args[0])
-		if len(args) == 2:
-			optsdict['page'] = args[1]
-		handler.export(**optsdict)
+		if len(args) == 2: optsdict['page'] = args[1]
+		method = getattr(handler, 'do_' + cmd)
+		method(**optsdict)
 	elif cmd == 'gui':
 		import zim.gui
 		handler = zim.gui.GtkInterface(*args, **optsdict)

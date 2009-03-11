@@ -714,11 +714,15 @@ class Dialog(gtk.Dialog):
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 
+		self._no_ok_action = False
 		if buttons is None or buttons == gtk.BUTTONS_NONE:
-			pass
+			self._no_ok_action = True
 		elif buttons == gtk.BUTTONS_OK_CANCEL:
 			self.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
 			self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+		elif buttons == gtk.BUTTONS_CLOSE:
+			self.add_button(gtk.STOCK_CLOSE, gtk.RESPONSE_OK)
+			self._no_ok_action = True
 		else:
 			assert False, 'TODO - parse different button types'
 
@@ -823,7 +827,8 @@ class Dialog(gtk.Dialog):
 		'''Function to be overloaded in child classes. Called when the
 		user clicks the 'Ok' button or the equivalent of such a button.
 		'''
-		raise NotImplementedError
+		if not self._no_ok_action:
+			raise NotImplementedError
 
 # Need to register classes defining gobject signals
 gobject.type_register(Dialog)

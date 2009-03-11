@@ -8,6 +8,7 @@ from tests import TestCase, get_test_page
 
 from zim.fs import *
 from zim.formats import *
+from zim.notebook import Link
 
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
@@ -217,6 +218,17 @@ A list
 		output = Buffer()
 		self.format.Dumper(self.page).dump(tree, output)
 		self.assertEqualDiff(output.getvalue(), text)
+
+	def testLink(self):
+		text = '[[FooBar]]' # FIXME add link type
+		tree = self.format.Parser(self.page).parse( Buffer(text) )
+		done = False
+		for tag in tree.getiterator('link'):
+			link = Link(self.page, **tag.attrib)
+			self.assertEqual(tag.attrib['href'], link.href)
+			self.assertEqual(tag.attrib['type'], link.type)
+			done = True
+		self.assertTrue(done)
 
 class TestHtmlFormat(TestCase):
 

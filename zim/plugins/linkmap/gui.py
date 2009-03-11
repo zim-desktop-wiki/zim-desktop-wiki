@@ -7,6 +7,8 @@
 import gtk
 
 from zim._lib import xdot
+from zim.gui import Dialog
+from zim.gui.widgets import IconButton
 
 from zim.plugins.linkmap import LinkMap
 
@@ -37,17 +39,35 @@ class GtkLinkMap():
 
 	def show_linkmap(self):
 		linkmap = LinkMap(self.ui.notebook)
-		dialog = LinkMapDialog(linkmap)
+		dialog = LinkMapDialog(self.ui, linkmap)
 		dialog.show_all()
 
 
-class LinkMapDialog(gtk.Dialog):
+class LinkMapDialog(Dialog):
 	'''FIXME'''
 
-	def __init__(self, linkmap):
-		gtk.Dialog.__init__(self)
+	def __init__(self, ui, linkmap):
+		Dialog.__init__(self, ui, 'LinkMap', buttons=gtk.BUTTONS_CLOSE)
 		self.set_default_size(400, 400)
 		self.linkmap = linkmap
+
+		hbox = gtk.HBox(spacing=5)
+		self.vbox.add(hbox)
+
 		self.xdotview = xdot.DotWidget()
+		#~ self.xdotview.set_filter('neato')
 		self.xdotview.set_dotcode(linkmap.get_dotcode())
-		self.vbox.add(self.xdotview)
+		hbox.add(self.xdotview)
+
+		vbox = gtk.VBox()
+		hbox.pack_start(vbox, False)
+		for stock, method in (
+			(gtk.STOCK_ZOOM_IN,  self.xdotview.on_zoom_in ),
+			(gtk.STOCK_ZOOM_OUT, self.xdotview.on_zoom_out),
+			(gtk.STOCK_ZOOM_FIT, self.xdotview.on_zoom_fit),
+			(gtk.STOCK_ZOOM_100, self.xdotview.on_zoom_100),
+		):
+			button = IconButton(stock)
+			button.connect('clicked', method)
+			vbox.pack_start(button, False)
+

@@ -39,9 +39,9 @@ class PageTreeStore(gtk.GenericTreeModel):
 		index.connect('page-haschildren-toggled',
 			lambda o, p: self.emit('row-has-child-toggled',
 				self.get_treepath(p), self.create_tree_iter(p)))
-		#~ index.connect('page-dropped',
+		#~ index.connect('page-deleted',
 			#~ lambda o, p: self.emit('row-deleted', self.get_treepath(p)))
-			# TODO: how to get treepath for a droped page ??
+			# TODO: how to get treepath for a deleted page ??
 
 	def on_get_flags(self):
 		return 0 # no flags

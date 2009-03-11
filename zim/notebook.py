@@ -289,14 +289,15 @@ class Notebook(object):
 	def walk(self, path=None):
 		'''Generator function which iterates through all pages, depth first.
 		If a path is given, only iterates through sub-pages of that path.
+		
+		If you are only interested in the paths using Index.walk() will be
+		more efficient.
 		'''
 		if path == None:
 			path = Path(':')
-		for page in self.get_pagelist(path):
+		for p in self.index.walk(path):
+			page = self.get_page(p)
 			yield page
-			if page.haschildren:
-				for child in self.walk(path=page): # recurs
-					yield child
 
 	def get_pagelist_indexkey(self, path):
 		raise NotImplementedError
@@ -473,5 +474,17 @@ class Page(Path):
 		self.set_parsetree(parser.fromstring(text))
 
 	def get_links(self):
-		pass
+		tree = self.get_parsetree()
+		if tree:
+			for tag in tree.getiterator('link'):
+				yield Link(self, **tag.attrib)
 
+
+class Link(object):
+
+	__slots__ = ('source', 'href', 'type')
+
+	def __init__(self, source, href, type=None):
+		self.source = source
+		self.href = href
+		self.type = type

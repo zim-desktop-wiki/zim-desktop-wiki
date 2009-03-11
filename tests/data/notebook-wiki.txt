@@ -12,6 +12,7 @@ bar baz
 = FOO =
 
 [[wIKi]]
+[[Test:Foo]]
 
 •• Search Me ••
 
