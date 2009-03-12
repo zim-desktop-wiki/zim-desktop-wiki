@@ -38,7 +38,7 @@ class GtkLinkMap():
 		self.ui.add_ui(ui_xml, self)
 
 	def show_linkmap(self):
-		linkmap = LinkMap(self.ui.notebook)
+		linkmap = LinkMap(self.ui.notebook, self.ui.page)
 		dialog = LinkMapDialog(self.ui, linkmap)
 		dialog.show_all()
 
@@ -57,6 +57,7 @@ class LinkMapDialog(Dialog):
 		self.xdotview = xdot.DotWidget()
 		#~ self.xdotview.set_filter('neato')
 		self.xdotview.set_dotcode(linkmap.get_dotcode())
+		self.xdotview.connect('clicked', self.on_node_clicked)
 		hbox.add(self.xdotview)
 
 		vbox = gtk.VBox()
@@ -71,3 +72,5 @@ class LinkMapDialog(Dialog):
 			button.connect('clicked', method)
 			vbox.pack_start(button, False)
 
+	def on_node_clicked(self, *a):
+		print a

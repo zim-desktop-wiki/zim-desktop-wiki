@@ -36,12 +36,22 @@ class LinkMap(object):
 			for link in self.notebook.index.list_links(page):
 				yield link
 
-	def _links(self, path, depth):
+	def _links(self, path, depth, seen=None):
+		if seen is None:
+			seen = set()
+
 		for link in self.notebook.index.list_links(path, direction=LINK_DIR_BOTH):
-			yield link
-			if depth > 0:
-				for link in self._links(link.href, depth-1):
-					yield link
+			key = (link.source.name, link.href.name)
+
+			if not key in seen:
+				yield link
+				seen.add(key)
+
+				if link.source == path: other = link.href
+				else: other = link.source
+				if depth > 0:
+					for link in self._links(other, depth-1, seen):
+						yield link
 
 	def get_linkmap(self, format=None):
 		'''FIXME'''
@@ -53,7 +63,9 @@ class LinkMap(object):
 		dotcode = [
 			'digraph LINKS {',
 			'  size="6,6";',
-			'  node [color=lightblue2, style=filled];',
+			#~ '  node [shape=box, style="rounded,filled", color="#204a87", fillcolor="#729fcf"];',
+			'  node [shape=note, style="filled", color="#204a87", fillcolor="#729fcf"];',
+			'  %s [color="#4e9a06", fillcolor="#8ae234"]' % self.path.name, # special node
 		]
 
 		for link in self._links(self.path, self.depth):

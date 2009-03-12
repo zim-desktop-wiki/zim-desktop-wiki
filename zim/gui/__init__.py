@@ -827,8 +827,11 @@ class Dialog(gtk.Dialog):
 		'''Function to be overloaded in child classes. Called when the
 		user clicks the 'Ok' button or the equivalent of such a button.
 		'''
-		if not self._no_ok_action:
+		if self._no_ok_action:
+			return True
+		else:
 			raise NotImplementedError
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(Dialog)

@@ -136,11 +136,14 @@ class Notebook(object):
 		else:
 			raise LookupError, 'Could not find store for: %s' % name
 
-	def resolve_path(self, name, namespace=None):
+	def resolve_path(self, name, namespace=None, index=None):
 		'''Returns a proper path name for page names given in links
 		or from user input. The optional argument 'namespace' is the
 		path for the parent namespace of the refering page, if any.
 		Or the path of the "current" namespace in the user interface.
+
+		The 'index' argument allows specifying an index object, if
+		none is given the default index for this notebook is used.
 
 		If no namespace path is given or if the page name starts with
 		a ':' the name is considered an absolute name and only case is
@@ -175,12 +178,16 @@ class Notebook(object):
 		isabs = name.startswith(':') or namespace == None
 		# normalize name
 		# TODO check for illegal characters in the name
-		name = ':'.join(filter(lambda n: len(n)>0, name.split(':')))
+		name = ':'.join( map(unicode.strip,
+				filter(lambda n: len(n)>0, unicode(name).split(':')) ) )
 		if not name or name.isspace():
 			raise PageNameError
 
+		if index is None:
+			index = self.index
+
 		if isabs:
-			return self.index.resolve_case(name) or Path(name)
+			return index.resolve_case(name) or Path(name)
 		else:
 			# first check if we see an explicit match in the path
 			assert isinstance(namespace, Path)
@@ -194,14 +201,14 @@ class Notebook(object):
 				path.reverse()
 				path.append( name.lstrip(':') )
 				name = ':'.join(path)
-				return self.index.resolve_case(name) or Path(name)
+				return index.resolve_case(name) or Path(name)
 				# FIXME use parent
 				# FIXME use short cut when the result is the parent
 			else:
 				# no luck, do a search through the whole path - including root
-				namespace = self.index.lookup_path(namespace) or namespace
+				namespace = index.lookup_path(namespace) or namespace
 				for parent in namespace.parents():
-					candidate = self.index.resolve_case(name, namespace=parent)
+					candidate = index.resolve_case(name, namespace=parent)
 					if not candidate is None:
 						return candidate
 				else:
@@ -289,7 +296,7 @@ class Notebook(object):
 	def walk(self, path=None):
 		'''Generator function which iterates through all pages, depth first.
 		If a path is given, only iterates through sub-pages of that path.
-		
+
 		If you are only interested in the paths using Index.walk() will be
 		more efficient.
 		'''
@@ -375,6 +382,16 @@ class Path(object):
 			return self.name[i:]
 		else:
 			raise Exception, '"%s" is not below "%s"' % (self, path)
+
+	def get_parent(self):
+		'''Returns the path for the parent page'''
+		namespace = self.namespace
+		if namespace:
+			return Path(namespace)
+		elif self.isroot:
+			return None
+		else:
+			return Path(':')
 
 	def parents(self):
 		'''Generator function for parent namespace paths including root'''
@@ -488,3 +505,6 @@ class Link(object):
 		self.source = source
 		self.href = href
 		self.type = type
+
+	def __repr__(self):
+		return '<%s: %s -> %s (%s)>' % (self.__class__.__name__, self.source, self.href, self.type)

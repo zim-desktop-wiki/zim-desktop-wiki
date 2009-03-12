@@ -6,25 +6,28 @@
 
 import tests
 
-from zim.index import Index, IndexPath
+from zim.index import Index, IndexPath, LINK_DIR_BACKWARD, LINK_DIR_BOTH
 from zim.notebook import Path, Link
 from zim.gui.pageindex import PageTreeStore
 
 class TestIndex(tests.TestCase):
 
 	def testDB(self):
+		# Note that in this test our index is not the default index
+		# for the notebook. So any assumption from the notebook about
+		# the index will be wrong.
 		index = Index(dbfile=':memory:')
 		notebook = tests.get_test_notebook()
 		manifest = notebook.testdata_manifest
 		index.set_notebook(notebook)
 		index.update()
 
-		cursor = index.db.cursor()
+		#~ cursor = index.db.cursor()
 		#~ cursor.execute('select * from pages')
-		cursor.execute('select * from links')
-		print '\n==== DB ===='
-		for row in cursor:
-			print row
+		#~ cursor.execute('select * from links')
+		#~ print '\n==== DB ===='
+		#~ for row in cursor:
+			#~ print row
 
 		path = index.lookup_path(Path('Test:foo:bar'))
 		self.assertTrue(isinstance(path, IndexPath))
@@ -35,9 +38,16 @@ class TestIndex(tests.TestCase):
 		pagelist = index.list_pages(None)
 		self.assertTrue(len(pagelist) > 0)
 
-		linklist = list(index.list_links(Path('Test:foo:bar')))
-		self.assertTrue(len(linklist) > 0)
-		self.assertTrue(isinstance(linklist[0], Link))
+		forwlist = list(index.list_links(Path('Test:foo:bar')))
+		backlist = list(index.list_links(Path('Test:foo:bar'), LINK_DIR_BACKWARD))
+		bothlist = list(index.list_links(Path('Test:foo:bar'), LINK_DIR_BOTH))
+		for l in forwlist, backlist, bothlist:
+			self.assertTrue(len(l) > 0)
+			for link in l:
+				self.assertTrue(isinstance(link, Link))
+				self.assertTrue(isinstance(link.source, IndexPath))
+				self.assertTrue(isinstance(link.href, IndexPath))
+		self.assertTrue(len(forwlist) + len(backlist) == len(bothlist))
 
 
 class TestPageTreeStore(tests.TestCase):

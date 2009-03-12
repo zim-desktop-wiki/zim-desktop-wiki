@@ -107,8 +107,9 @@ class IndexPath(Path):
 
 	def get_parent(self):
 		'''Returns IndexPath for parent path'''
-		if self.namespace:
-			return IndexPath(self.namespace, self._indexpath[:-1])
+		namespace = self.namespace
+		if namespace:
+			return IndexPath(namespace, self._indexpath[:-1])
 		elif self.isroot:
 			return None
 		else:
@@ -275,6 +276,7 @@ class Index(gobject.GObject):
 		except:
 			self.db.rollback()
 			logger.warn('Got exception while touching %s', path)
+			# TODO add stack trace to warning
 		else:
 			for path in inserted:
 				self.emit('page-inserted', path)
@@ -363,6 +365,7 @@ class Index(gobject.GObject):
 		except:
 			self.db.rollback()
 			logger.warn('Get exception while indexing pagelist for %s', path)
+			# TODO add stack trace to warning
 		else:
 			if not path.isroot:
 				self.emit('page-haschildren-toggled', path)
@@ -374,27 +377,27 @@ class Index(gobject.GObject):
 		'''Indexes page contents for page. Does not look at sub-pages etc.
 		use 'update()' for that.
 		'''
-		print 'INDEX', page
 		try:
 			path = self.lookup_path(page)
 			if path is None:
 				path = self._touch(page)
 			self.db.execute('delete from links where source == ?', (path.id,))
 			for link in page.get_links():
-				print 'LINK', link
 				# TODO ignore links that are not internal
-				href = self.notebook.resolve_path(link.href)
-				print '>>', href
+				href = self.notebook.resolve_path(
+					link.href, namespace=page.get_parent(), index=self)
+					# need to specify index=self here because we are
+					# not necessary the default index for the notebook
 				if not href is None:
 					href = self.lookup_path(href)
 				if not href is None:
-					print 'INSERT', href
 					# TODO lookup href type
 					self.db.execute('insert into links (source, href) values (?, ?)', (path.id, href.id))
 			self.db.commit()
 		except:
 			self.db.rollback()
 			logger.warn('Got exception while indexing page %s', path)
+			# TODO add stack trace to warning
 		else:
 			self.emit('page-updated', path)
 
