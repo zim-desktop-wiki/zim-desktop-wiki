@@ -1,3 +1,14 @@
+====== HACKING ======
+
+Under the GPL license used for distributing this program all plugins should
+also be licensed under GPL. A closed source plugin extension is not allowed.
+A plugin is allowed to call any non-GPL program as long as the plugin itself
+is under GPL and the non-GPL program runs as a separate process with a
+clearly defined inter process communication channel.
+
+All development documentation is part of the zim source code in the form
+of python doc strings.
+
 
 ====== Classes ======
 

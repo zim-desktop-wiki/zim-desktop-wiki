@@ -58,6 +58,7 @@ ui_actions = (
 	('show_search',  'gtk-find', '_Search...', '<shift><ctrl>F', 'Search'),
 	('show_search_backlinks', None, 'Search _Backlinks...', None, 'Search Back links'),
 	('copy_location', None, 'Copy Location', '<shift><ctrl>L', 'Copy location'),
+	('show_plugins',  None, 'P_lugins', None, 'Plugins dialog'),
 	('show_preferences',  'gtk-preferences', 'Pr_eferences', None, 'Preferences dialog'),
 	('reload_page',  'gtk-refresh', '_Reload', '<ctrl>R', 'Reload page'),
 	('open_attachments_folder', 'gtk-open', 'Open Document _Folder', None, 'Open document folder'),
@@ -428,6 +429,10 @@ class GtkInterface(NotebookInterface):
 		'''Puts the name of the current page on the clipboard.'''
 		import zim.gui.clipboard
 		zim.gui.clipboard.Clipboard().set_pagelink(self.page)
+
+	def show_plugins(self):
+		import zim.gui.pluginsdialog
+		zim.gui.pluginsdialog.PluginsDialog(self).run()
 
 	def show_preferences(self):
 		import zim.gui.preferencesdialog

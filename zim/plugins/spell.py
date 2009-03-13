@@ -41,8 +41,13 @@ class SpellPlugin(PluginClass):
 
 	info = {
 		'name': 'Spell',
-		'author': 'Jaap Karssenberg <pardus@cpan.org>',
-		'description': 'Adds spell checking support',
+		'description': '''\
+Adds spell checking support using gtkspell.
+Please make sure gtkspell is installed.
+
+This is a core plugin shipping with zim.
+''',
+		'author': 'Jaap Karssenberg',
 	}
 
 	def __init__(self, ui):

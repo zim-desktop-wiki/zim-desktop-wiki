@@ -71,15 +71,23 @@ class NotebookInterface(gobject.GObject):
 		for plugin in plugins:
 			self.load_plugin(plugin)
 
-	def load_plugin(self, pluginname):
-		'''FIXME'''
-		import zim.plugins
-		klass = zim.plugins.get_plugin(pluginname)
+	def load_plugin(self, plugin):
+		'''FIXME
+		"plugin" can either be a pluginname or a plugin class
+		'''
+		if isinstance(plugin, basestring):
+			import zim.plugins
+			klass = zim.plugins.get_plugin(plugin)
+		else:
+			klass = plugin
 		plugin = klass(self)
 		self.plugins.append(plugin)
+		logger.debug('Loaded plugin %s', plugin)
 
 	def unload_plugin(self, plugin):
 		'''FIXME'''
+		print 'TODO: unload plugin', plugin
+		#~ logger.debug('Unloaded plugin %s', pluginname)
 
 	def open_notebook(self, notebook):
 		'''FIXME'''
