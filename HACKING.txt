@@ -1,14 +1,15 @@
 ====== HACKING ======
 
-Under the GPL license used for distributing this program all plugins should
-also be licensed under GPL. A closed source plugin extension is not allowed.
-A plugin is allowed to call any non-GPL program as long as the plugin itself
-is under GPL and the non-GPL program runs as a separate process with a
-clearly defined inter process communication channel.
+All development documentation is part of the zim source code in the
+form of python doc strings. Below is a collection of items in progress
+and some general hints.
 
-All development documentation is part of the zim source code in the form
-of python doc strings.
-
+NOTE: Under the GPL license used for distributing this program all
+plugins should also be licensed under GPL. A closed source plugin
+extension is not allowed. A plugin is allowed to call any non-GPL
+program as long as the plugin itself is under GPL and the non-GPL
+program runs as a separate process with a clearly defined inter process
+communication channel.
 
 ====== Classes ======
 
@@ -92,11 +93,40 @@ Other general guidelines:
 
 **Grep for TODO and FIXME tags in the code**
 
+== Milestone 0.42-alpha1 for Zim ==
+
+* Package in such a way that it is not installable !
+
+Must have:
+[ ] Backward compatible on reading wiki pages
+	[ ] Old indented verbatim paragraphs
+[ ] Support rendering checkbox lists
+	[ ] In wiki parser / dumper
+	[ ] In html dumper
+	[ ] In textview
+[ ] View menu complete
+	[ ] Finish HistoryPathbar and NamespacePathbar
+	[*] Add toolbar context menu (see geany for example)
+[ ] Working index on sqlite
+	[ ] TreeModel still bit buggy
+[*] LinkMap plugin
+[ ] Working history
+[ ] Go menu complete
+	[ ] Finish get_next and get_previous in index
+[ ] WWW must work, no need for feature completeness
+	[ ] Test when above items are done
+
+If feasible:
+[*] Plugins dialog separate from preferences + info on plugin
+[*] Print to browser plugin
+[*] Spell plugin
+[ ] Render lists with proper indenting
+
+
 == General health ==
 
 * how to pacakge zim executable (zim.py) and zim/ directory ?
 * Make zim.py also accept files as notebook types (e.g. gjots, .tar.gz etc)
-* Wrapper for coverage.py to generate dir with html highlighting
 
 == Getting server up and running ==
 

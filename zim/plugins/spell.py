@@ -79,7 +79,7 @@ This is a core plugin shipping with zim.
 		if self.spell is None:
 			textview = self.ui.mainwindow.pageview.view
 			self.spell = gtkspell.Spell(textview)
-			textview.gtkspell = self.spell # used by hardcoded hook
+			textview.gtkspell = self.spell # used by hardcoded hook in pageview
 		# TODO action_show_active
 
 		return False # we can be called from idle event

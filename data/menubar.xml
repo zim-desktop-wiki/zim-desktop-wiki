@@ -33,11 +33,20 @@
 			<menuitem action='toggle_toolbar'/>
 			<menuitem action='toggle_statusbar'/>
 			<menuitem action='toggle_sidepane'/>
-			<menu action='path_bar_menu'>
+			<menu action='pathbar_menu'>
+				<menuitem action='set_pathbar_none'/>
 				<menuitem action='set_pathbar_recent'/>
 				<menuitem action='set_pathbar_history'/>
-				<menuitem action='set_pathbar_namespace'/>
-				<menuitem action='set_pathbar_hidden'/>
+				<menuitem action='set_pathbar_path'/>
+			</menu>
+			<menu action='toolbar_menu'>
+				<menuitem action='set_toolbar_icons_and_text'/>
+				<menuitem action='set_toolbar_icons_only'/>
+				<menuitem action='set_toolbar_text_only'/>
+				<separator/>
+				<menuitem action='set_toolbar_icons_large'/>
+				<menuitem action='set_toolbar_icons_small'/>
+				<menuitem action='set_toolbar_icons_tiny'/>
 			</menu>
 			<separator/>
 			<placeholder name='plugin_items'/>
@@ -112,6 +121,17 @@
 			<toolitem action='attach_file'/>
 		</placeholder>
 	</toolbar>
+	<popup name='toolbar_popup'>
+		<menuitem action='set_toolbar_icons_and_text'/>
+		<menuitem action='set_toolbar_icons_only'/>
+		<menuitem action='set_toolbar_text_only'/>
+		<separator/>
+		<menuitem action='set_toolbar_icons_large'/>
+		<menuitem action='set_toolbar_icons_small'/>
+		<menuitem action='set_toolbar_icons_tiny'/>
+	</popup>
+</ui>
+
 <!--
 	<popup name='page_popup'>
 		<menuitem action='popup_new_page'/>
@@ -120,7 +140,6 @@
 		<menuitem action='popup_delete_page'/>
 	</popup>
 -->
-</ui>
 
 <!--
 <ui>

@@ -37,7 +37,8 @@ ui_actions = (
 	('tools_menu', None, '_Tools'),
 	('go_menu', None, '_Go'),
 	('help_menu', None, '_Help'),
-	('path_bar_menu', None, 'P_athbar type'),
+	('pathbar_menu', None, 'P_athbar'),
+	('toolbar_menu', None, '_Toolbar'),
 
 	# name, stock id, label, accelerator, tooltip
 	('new_page',  'gtk-new', '_New Page', '<ctrl>N', 'New page'),
@@ -86,16 +87,43 @@ ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, None, initial state
 	('toggle_toolbar', None, '_Toolbar',  None, 'Show toolbar', None, True),
 	('toggle_statusbar', None, '_Statusbar', None, 'Show statusbar', None, True),
-	('toggle_sidepane',  'gtk-index', '_Index', 'F9', 'Show index', None, False),
+	('toggle_sidepane',  'gtk-index', '_Index', 'F9', 'Show index', None, True),
 )
 
-ui_radio_actions = (
+ui_pathbar_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
-	('set_pathbar_recent', None, '_Recent pages', None, None, 0),
-	('set_pathbar_history', None, '_History',  None, None, 1),
-	('set_pathbar_namespace', None, '_Namespace', None, None, 2),
-	('set_pathbar_hidden', None, 'H_idden',  None, None, 3),
+	('set_pathbar_none', None, '_None',  None, None, 0),
+	('set_pathbar_recent', None, '_Recent pages', None, None, 1),
+	('set_pathbar_history', None, '_History',  None, None, 2),
+	('set_pathbar_path', None, 'N_amespace', None, None, 3),
 )
+
+PATHBAR_NONE = 'none'
+PATHBAR_RECENT = 'recent'
+PATHBAR_HISTORY = 'history'
+PATHBAR_PATH = 'path'
+
+ui_toolbar_style_radio_actions = (
+	# name, stock id, label, accelerator, tooltip
+	('set_toolbar_icons_and_text', None, 'Icons _and Text', None, None, 0),
+	('set_toolbar_icons_only', None, '_Icons Only', None, None, 1),
+	('set_toolbar_text_only', None, '_Text Only', None, None, 2),
+)
+
+ui_toolbar_size_radio_actions = (
+	# name, stock id, label, accelerator, tooltip
+	('set_toolbar_icons_large', None, '_Large Icons', None, None, 0),
+	('set_toolbar_icons_small', None, '_Small Icons', None, None, 1),
+	('set_toolbar_icons_tiny', None, '_Tiny Icons', None, None, 2),
+)
+
+TOOLBAR_ICONS_AND_TEXT = 'icons_and_text'
+TOOLBAR_ICONS_ONLY = 'icons_only'
+TOOLBAR_TEXT_ONLY = 'text_only'
+
+TOOLBAR_ICONS_LARGE = 'large'
+TOOLBAR_ICONS_SMALL = 'small'
+TOOLBAR_ICONS_TINY = 'tiny'
 
 
 class GtkInterface(NotebookInterface):
@@ -137,7 +165,12 @@ class GtkInterface(NotebookInterface):
 
 		self.add_actions(ui_actions, self)
 		self.add_toggle_actions(ui_toggle_actions, self.mainwindow)
-		self.add_radio_actions(ui_radio_actions, self.mainwindow)
+		self.add_radio_actions(ui_pathbar_radio_actions,
+								self.mainwindow, 'do_set_pathbar')
+		self.add_radio_actions(ui_toolbar_style_radio_actions,
+								self.mainwindow, 'do_set_toolbar_style')
+		self.add_radio_actions(ui_toolbar_size_radio_actions,
+								self.mainwindow, 'do_set_toolbar_size')
 		self.add_ui(data_file('menubar.xml').read(), self)
 
 		self.load_plugins()
@@ -200,14 +233,6 @@ class GtkInterface(NotebookInterface):
 		group.add_toggle_actions(actions)
 		self._connect_actions(actions, group, handler, is_toggle=True)
 
-	def add_radio_actions(self, actions, handler):
-		'''Wrapper for gtk.ActionGroup.add_radio_actions(actions),
-		"handler" is the object that has the methods for these actions.
-		'''
-		group = self._init_actiongroup(handler)
-		group.add_radio_actions(actions)
-		self._connect_actions(actions, group, handler)
-
 	def _init_actiongroup(self, handler):
 		'''Initializes the actiongroup for handler if it does not already
 		exist and returns the actiongroup.
@@ -218,18 +243,36 @@ class GtkInterface(NotebookInterface):
 			self.uimanager.insert_action_group(handler.actiongroup, 0)
 		return handler.actiongroup
 
-	def _connect_actions(self, actions, group, handler, is_toggle=False):
-		def log_action(action):
-			logger.debug('Action: %s', action.get_name())
+	@staticmethod
+	def _log_action(action, *a):
+		logger.debug('Action: %s', action.get_name())
 
+	def _connect_actions(self, actions, group, handler, is_toggle=False):
 		for name in [a[0] for a in actions if not a[0].endswith('_menu')]:
 			action = group.get_action(name)
 			if is_toggle:
 				name = 'do_' + name
 			assert hasattr(handler, name), 'No method defined for action %s' % name
 			method = getattr(handler.__class__, name)
-			action.connect('activate', log_action)
+			action.connect('activate', self._log_action)
 			action.connect_object('activate', method, handler)
+
+	def add_radio_actions(self, actions, handler, methodname):
+		'''Wrapper for gtk.ActionGroup.add_radio_actions(actions),
+		"handler" is the object that these actions belong to and
+		"methodname" gives the callback to be called on changes in this group.
+		(See doc on gtk.RadioAction 'changed' signal for this callback.)
+		'''
+		# A bit different from the other two methods since radioactions
+		# come in mutual exclusive groups. Only need to connect to one
+		# action to get signals from whole group.
+		group = self._init_actiongroup(handler)
+		group.add_radio_actions(actions)
+		assert hasattr(handler, methodname), 'No such method %s' % methodname
+		method = getattr(handler.__class__, methodname)
+		action = group.get_action(actions[0][0])
+		action.connect('changed', self._log_action)
+		action.connect_object('changed', method, handler)
 
 	def add_ui(self, xml, handler):
 		'''Wrapper for gtk.UIManager.add_ui_from_string(xml)'''
@@ -342,7 +385,7 @@ class GtkInterface(NotebookInterface):
 		if not record is None:
 			self.open_page(record)
 		else:
-			child = self.notebook.index.get_pagelist(page)[0]
+			child = self.notebook.index.list_pages(self.page)[0]
 			self.open_page(child)
 
 	def open_page_previous(self):
@@ -507,6 +550,7 @@ class MainWindow(gtk.Window):
 	def __init__(self, ui):
 		'''Constructor'''
 		gtk.Window.__init__(self)
+		self.ui = ui
 
 		ui.connect_after('open-notebook', self.do_open_notebook)
 		ui.connect('open-page', self.do_open_page)
@@ -528,6 +572,7 @@ class MainWindow(gtk.Window):
 		self.add_accel_group(ui.uimanager.get_accel_group())
 		self.menubar = ui.uimanager.get_widget('/menubar')
 		self.toolbar = ui.uimanager.get_widget('/toolbar')
+		self.toolbar.connect('popup-context-menu', self.do_toolbar_popup)
 		vbox.pack_start(self.menubar, False)
 		vbox.pack_start(self.toolbar, False)
 
@@ -545,9 +590,10 @@ class MainWindow(gtk.Window):
 		vbox2 = gtk.VBox()
 		hpane.add2(vbox2)
 
-		self.pathbar = zim.gui.pathbar.RecentPathBar(ui, spacing=3)
-		self.pathbar.set_border_width(3)
-		vbox2.pack_start(self.pathbar, False)
+		self.pathbar = None
+		self.pathbar_box = gtk.HBox() # FIXME other class for this ?
+		self.pathbar_box.set_border_width(3)
+		vbox2.pack_start(self.pathbar_box, False)
 
 		self.pageview = zim.gui.pageview.PageView(ui)
 		self.pageview.view.connect(
@@ -598,6 +644,11 @@ class MainWindow(gtk.Window):
 		else:
 			self.toolbar.show()
 
+	def do_toolbar_popup(self, toolbar, x, y, button):
+		'''Show the context menu for the toolbar'''
+		menu = self.ui.uimanager.get_widget('/toolbar_popup')
+		menu.popup(None, None, None, button, 0)
+
 	def toggle_statusbar(self):
 		self.actiongroup.get_action('toggle_statusbar').activate()
 
@@ -616,13 +667,76 @@ class MainWindow(gtk.Window):
 		else:
 			self.show_sidepane()
 
-	def set_pathbar_recent(self): pass
+	def set_pathbar(self, style):
+		'''Set the pathbar. Style can be either PATHBAR_NONE,
+		PATHBAR_RECENT, PATHBAR_HISTORY or PATHBAR_PATH.
+		'''
+		assert style in ('none', 'recent', 'history', 'path')
+		self.actiongroup.get_action('set_pathbar_'+style).activate()
 
-	def set_pathbar_history(self): pass
+	def do_set_pathbar(self, action):
+		name = action.get_name()
+		style = name[12:] # len('set_pathbar_') == 12
 
-	def set_pathbar_namespace(self): pass
+		if style == PATHBAR_NONE:
+			self.pathbar_box.hide()
+			return
+		elif style == PATHBAR_HISTORY:
+			klass = zim.gui.pathbar.HistoryPathBar
+		elif style == PATHBAR_RECENT:
+			klass = zim.gui.pathbar.RecentPathBar
+		elif style == PATHBAR_PATH:
+			klass = zim.gui.pathbar.NamespacePathBar
+		else:
+			assert False, 'BUG: Unknown pathbar type %s' % style
 
-	def set_pathbar_hidden(self): pass
+		if not (self.pathbar and self.pathbar.__class__ == klass):
+			for child in self.pathbar_box.get_children():
+				self.pathbar_box.remove(child)
+			self.pathbar = klass(self.ui, spacing=3)
+			self.pathbar.set_history(self.ui.history)
+			self.pathbar_box.pack_start(self.pathbar, False)
+		self.pathbar_box.show_all()
+
+	def set_toolbar_style(self, style):
+		'''Set the toolbar style. Style can be either
+		TOOLBAR_ICONS_AND_TEXT, TOOLBAR_ICONS_ONLY or TOOLBAR_TEXT_ONLY.
+		'''
+		assert style in ('icons_and_text', 'icons_only', 'text_only')
+		self.actiongroup.get_action('set_toolbar_style_'+style).activate()
+
+	def do_set_toolbar_style(self, action):
+		name = action.get_name()
+		style = name[12:] # len('set_toolbar_') == 12
+
+		if style == TOOLBAR_ICONS_AND_TEXT:
+			self.toolbar.set_style(gtk.TOOLBAR_BOTH)
+		elif style == TOOLBAR_ICONS_ONLY:
+			self.toolbar.set_style(gtk.TOOLBAR_ICONS)
+		elif style == TOOLBAR_TEXT_ONLY:
+			self.toolbar.set_style(gtk.TOOLBAR_TEXT)
+		else:
+			assert False, 'BUG: Unkown toolbar style: %s' % style
+
+	def set_toolbar_size(self, size):
+		'''Set the toolbar style. Style can be either
+		TOOLBAR_ICONS_LARGE, TOOLBAR_ICONS_SMALL or TOOLBAR_ICONS_TINY.
+		'''
+		assert size in ('large', 'small', 'tiny')
+		self.actiongroup.get_action('set_toolbar_size_'+size).activate()
+
+	def do_set_toolbar_size(self, action):
+		name = action.get_name()
+		size = name[18:] # len('set_toolbar_icons_') == 18
+
+		if size == TOOLBAR_ICONS_LARGE:
+			self.toolbar.set_icon_size(gtk.ICON_SIZE_LARGE_TOOLBAR)
+		elif size == TOOLBAR_ICONS_SMALL:
+			self.toolbar.set_icon_size(gtk.ICON_SIZE_SMALL_TOOLBAR)
+		elif size == TOOLBAR_ICONS_TINY:
+			self.toolbar.set_icon_size(gtk.ICON_SIZE_MENU)
+		else:
+			assert False, 'BUG: Unkown toolbar size: %s' % size
 
 	def show_sidepane(self):
 		self.pageindex.show_all()
@@ -637,7 +751,8 @@ class MainWindow(gtk.Window):
 		# TODO action_show_active('toggle_sidepane', False)
 
 	def do_open_notebook(self, ui, notebook):
-		self.pathbar.set_history(ui.history)
+		# delayed till here because the pathbar needs the history to be in place
+		self.set_pathbar(PATHBAR_RECENT) # TODO get this from preferences
 
 	def do_open_page(self, ui, page, record):
 		'''Signal handler for open-page, updates the pageview'''
@@ -787,7 +902,7 @@ class Dialog(gtk.Dialog):
 
 		return table
 
-	def get_field(name):
+	def get_field(self, name):
 		'''Returns the value of a single field'''
 		return self.get_fields()[name]
 
