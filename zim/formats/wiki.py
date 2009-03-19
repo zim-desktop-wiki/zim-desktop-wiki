@@ -22,14 +22,26 @@ info = {
 }
 
 TABSTOP = 4
-BULLET = u'[\\*\u2022]'
+BULLET = u'[\\*\u2022]|\\[[ \\*x]\\]'
+	# bullets can be '*' or 0x2022 for normal items
+	# and '[ ]', '[*]' or '[x]' for checkbox items
+
+bullets = {
+	'[ ]': 'unchecked-box',
+	'[x]': 'xchecked-box',
+	'[*]': 'checked-box'
+}
+# reverse dict
+bullet_types = {}
+for bullet in bullets:
+	bullet_types[bullets[bullet]] = bullet
 
 parser_re = {
 	'blockstart': re.compile("\A(''')\s*?\n"),
 	'pre':        re.compile("\A'''\s*?(^.*?)^'''\s*\Z", re.M | re.S),
 	'splithead':  re.compile('^(==+[^\n\S]+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)\s+(.*?)(\s+==+)?\s*)\Z"),
-	'splitlist':  re.compile("((?:^\s*%s\s+.*\n?)+)" % BULLET, re.M),
+	'splitlist':  re.compile("((?:^\s*(?:%s)\s+.*\n?)+)" % BULLET, re.M),
 	'listitem':   re.compile("^(\s*)(%s)\s+(.*\n?)" % BULLET),
 
 	# All the experssions below will match the inner pair of
@@ -174,7 +186,11 @@ class Parser(ParserClass):
 					builder.end('ul')
 			level = mylevel
 
-			builder.start('li')
+			if bullet in bullets:
+				attrib = {'bullet': bullets[bullet]}
+			else:
+				attrib = {}
+			builder.start('li', attrib)
 			self._parse_text(builder, text)
 			builder.end('li')
 
@@ -264,7 +280,11 @@ class Dumper(DumperClass):
 				tag = '='*(7 - level)
 				file.write(tag+' '+element.text+' '+tag)
 			elif element.tag == 'li':
-				file.write('\t'*list_level+'* ')
+				if 'bullet' in element.attrib:
+					bullet = bullet_types[element.attrib['bullet']]
+				else:
+					bullet = '*'
+				file.write('\t'*list_level+bullet+' ')
 				self.dump_children(element, file, list_level=list_level) # recurs
 				file.write('\n')
 			elif element.tag == 'pre':

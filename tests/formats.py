@@ -51,6 +51,16 @@ A list
 	* bar
 	* baz
 
+And a checkbox list
+[ ] item 1
+	[*] sub item 1
+		* Some normal bullet
+	[x] sub item 2
+	[ ] sub item 3
+[ ] item 2
+[ ] item 3
+	[x] item FOOOOOO !
+
 ----
 
 ====
@@ -186,6 +196,8 @@ And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 </p>
 <p>A list
 <ul><li>foo</li><ul><li>bar</li><li>baz</li></ul></ul></p>
+<p>And a checkbox list
+<ul><li bullet="unchecked-box">item 1</li><ul><li bullet="checked-box">sub item 1</li><ul><li>Some normal bullet</li></ul><li bullet="xchecked-box">sub item 2</li><li bullet="unchecked-box">sub item 3</li></ul><li bullet="unchecked-box">item 2</li><li bullet="unchecked-box">item 3</li><ul><li bullet="xchecked-box">item FOOOOOO !</li></ul></ul></p>
 <p>----
 </p>
 <p>====
@@ -299,6 +311,26 @@ A list<br>
 <ul>
 <li>bar</li>
 <li>baz</li>
+</ul>
+</ul>
+</p>
+
+<p>
+And a checkbox list<br>
+<ul>
+<li>item 1</li>
+<ul>
+<li>sub item 1</li>
+<ul>
+<li>Some normal bullet</li>
+</ul>
+<li>sub item 2</li>
+<li>sub item 3</li>
+</ul>
+<li>item 2</li>
+<li>item 3</li>
+<ul>
+<li>item FOOOOOO !</li>
 </ul>
 </ul>
 </p>

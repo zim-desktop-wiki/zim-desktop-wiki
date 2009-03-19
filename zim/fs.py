@@ -27,7 +27,7 @@ class UnixPath(object):
 		# TODO keep link to parent dir if first arg is Dir object
 		#      but only if there is no '../' after that arg
 		if isinstance(path, (list, tuple)):
-			path = map(str, path) 
+			path = map(str, path)
 				# Any path objects in list will also be flattened
 			path = os.path.join(*path)
 		elif isinstance(path, Path):
@@ -51,6 +51,12 @@ class UnixPath(object):
 
 	def __repr__(self):
 		return '<%s: %>' % (self.__class__.__name__, self.path)
+
+	def __add__(self, other):
+		'''Concatonates paths, only creates path objects. See
+		Dir.file() and Dir.subdir() instead to create otehr objects.
+		'''
+		return self.__class__((self, other))
 
 	@property
 	def basename(self):

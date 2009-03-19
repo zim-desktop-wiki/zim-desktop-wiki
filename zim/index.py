@@ -184,6 +184,16 @@ class Index(gobject.GObject):
 	def do_move_page(self, page):
 		pass # TODO index logic for moving page(s)
 
+	def do_delete_page(self, path):
+		'''Delete page plus sub-pages plus forward links from the index'''
+		# TODO actually delete a page + children + links
+		# TODO emit signal for deleted pages
+		path = self.lookup_path(path)
+		if path.haschildren:
+			self._delete_pagelist(path)
+		self.db.commit()
+		self.emit('page-deleted', path)
+
 	def _connect(self):
 		self.db = sqlite3.connect(
 			str(self.dbfile), detect_types=sqlite3.PARSE_DECLTYPES)
@@ -206,7 +216,8 @@ class Index(gobject.GObject):
 		  one is already running just adds the new path in the queue.
 		* In normal operation only page listings are checked. To also check
 		  and, when needed, re-index the page contents for all pages set
-		  "fullcheck" to True.
+		  "fullcheck" to True. (New pages that are encountered in normal
+		  operation are also queued for full index by default.)
 
 		A callback method can be supplied that will be called after each
 		updated path. This can be used e.g. to display a progress bar. the
@@ -221,7 +232,8 @@ class Index(gobject.GObject):
 		else:
 			indexpath = self.lookup_path(path)
 			if indexpath is None:
-				indexpath = self._touch(path)
+				indexpath = path
+				fullcheck = True
 
 		self._update_queue.append((indexpath, recursive, fullcheck))
 
@@ -240,7 +252,13 @@ class Index(gobject.GObject):
 		# called as an idle event handler
 		if self._update_queue:
 			path = self._update_queue[0][0]
-			self._update()
+			try:
+				self._update()
+			except:
+				import sys
+				logger.warn('Got exception while indexing: %s', path)
+				sys.excepthook(*sys.exc_info())
+
 			if not callback is None:
 				callback(path, self._update_queue)
 			return True
@@ -248,39 +266,6 @@ class Index(gobject.GObject):
 			logger.debug('Background index update done')
 			self._updating = False
 			return False
-
-	def _touch(self, path):
-		'''This creates a path along with all it's parents'''
-		try:
-			cursor = self.db.cursor()
-			names = path.split()
-			parentid = 0
-			indexpath = []
-			inserted = []
-			for i in range(len(names)):
-				p = self.lookup_path()
-				if p is None:
-					haschildren = i < (len(names) - 1)
-					cursor.execute(
-						'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
-						(names[i], parentid, False, haschildren))
-					parentid = cursor.lastrowid
-					indexpath.append(parentid)
-					inserted.append(IndexPath(':'.join(names[:i+1]), indexpath))
-				else:
-					# TODO check if haschildren is correct, update and emit has-children-toggled if not
-					parentid = p.id
-					indexpath.append(parentid)
-
-			self.db.commit()
-		except:
-			self.db.rollback()
-			logger.warn('Got exception while touching %s', path)
-			# TODO add stack trace to warning
-		else:
-			for path in inserted:
-				self.emit('page-inserted', path)
-
 
 	def _update(self):
 		'''This method unshifts one instruction for the queue and processes
@@ -291,15 +276,18 @@ class Index(gobject.GObject):
 		# TODO implement fullcheck for page contents
 		if fullcheck:
 			uptodate = False
-			#~ try:
-				#~ current = self.notebook.get_page_indexkey(path)
-				#~ if current and path.indexkey == current:
-					#~ uptodate = True
-			#~ except NotImplementedError:
-				#~ pass # we don't know
+			#~ if isinstance(path, IndexPath):
+				#~ try:
+					#~ current = self.notebook.get_page_indexkey(path)
+					#~ if current and path.indexkey == current:
+						#~ uptodate = True
+				#~ except NotImplementedError:
+					#~ pass # we don't know
+			# else does not even exist yet in databse -> index
+
 			if not uptodate:
 				page = self.notebook.get_page(path)
-				self.index_page(page)
+				path = self.index_page(page)
 
 		# TODO check index keys to optimize updating
 		#~ current = None
@@ -364,10 +352,10 @@ class Index(gobject.GObject):
 				self.db.commit()
 		except:
 			self.db.rollback()
-			logger.warn('Get exception while indexing pagelist for %s', path)
-			# TODO add stack trace to warning
+			raise
 		else:
 			if not path.isroot:
+				# always emit, as haschildren could be toggled on _or_ off
 				self.emit('page-haschildren-toggled', path)
 
 			for path in inserted:
@@ -375,7 +363,7 @@ class Index(gobject.GObject):
 
 	def index_page(self, page):
 		'''Indexes page contents for page. Does not look at sub-pages etc.
-		use 'update()' for that.
+		use 'update()' for that. Returns the IndexPath for page.
 		'''
 		try:
 			path = self.lookup_path(page)
@@ -396,20 +384,46 @@ class Index(gobject.GObject):
 			self.db.commit()
 		except:
 			self.db.rollback()
-			logger.warn('Got exception while indexing page %s', path)
-			# TODO add stack trace to warning
+			raise
 		else:
 			self.emit('page-updated', path)
 
-	def do_delete_page(self, path):
-		'''Delete page plus sub-pages plus forward links from the index'''
-		# TODO actually delete a page + children + links
-		# TODO emit signal for deleted pages
-		path = self.lookup_path(path)
-		if path.haschildren:
-			self._delete_pagelist(path)
-		self.db.commit()
-		self.emit('page-deleted', path)
+		return path
+
+	def _touch(self, path):
+		'''This method creates a path along with all it's parents.
+		Returns the final IndexPath.
+		'''
+		try:
+			cursor = self.db.cursor()
+			names = path.split()
+			parentid = 0
+			indexpath = []
+			inserted = []
+			for i in range(len(names)):
+				p = self.lookup_path()
+				if p is None:
+					haschildren = i < (len(names) - 1)
+					cursor.execute(
+						'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
+						(names[i], parentid, False, haschildren))
+					parentid = cursor.lastrowid
+					indexpath.append(parentid)
+					inserted.append(IndexPath(':'.join(names[:i+1]), indexpath))
+				else:
+					# TODO check if haschildren is correct, update and emit has-children-toggled if not
+					parentid = p.id
+					indexpath.append(parentid)
+
+			self.db.commit()
+		except:
+			self.db.rollback()
+			raise
+		else:
+			for path in inserted:
+				self.emit('page-inserted', path)
+
+		return inserted[-1]
 
 	def walk(self, path=None):
 		if path is None or path.isroot:
@@ -594,6 +608,13 @@ class Index(gobject.GObject):
 				# TODO lookup type by id
 
 				yield Link(source, href)
+
+	def n_list_links(self, path, direction=LINK_DIR_FORWARD):
+		'''Link list_lins() but returns only the number of links instead
+		of the links themselves.
+		'''
+		# TODO optimize this one
+		return len(list(self.list_links(path, direction)))
 
 	def get_previous(self, path):
 		'''Returns the next page in the index, crossing namespaces'''

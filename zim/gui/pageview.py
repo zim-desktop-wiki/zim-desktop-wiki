@@ -15,6 +15,17 @@ from zim.notebook import Path
 logger = logging.getLogger('zim.gui.pageview')
 
 
+STOCK_CHECKED_BOX = 'zim-checked-box'
+STOCK_UNCHECKED_BOX = 'zim-unchecked-box'
+STOCK_XCHECKED_BOX = 'zim-xchecked-box'
+
+bullet_types = {
+	'checked-box': STOCK_CHECKED_BOX,
+	'unchecked-box': STOCK_UNCHECKED_BOX,
+	'xchecked-box': STOCK_XCHECKED_BOX,
+}
+
+
 class TextBuffer(gtk.TextBuffer):
 	'''Zim subclass of gtk.TextBuffer.
 
@@ -112,7 +123,19 @@ class TextBuffer(gtk.TextBuffer):
 
 				self._insert_element_children(element, list_level=list_level+1) # recurs
 			elif element.tag == 'li':
-				self.insert_at_cursor('\t'*list_level + u'\u2022 ')
+				if 'bullet' in element.attrib:
+					bullet = element.attrib['bullet']
+					if bullet in bullet_types:
+						stock = bullet_types[bullet]
+					else:
+						logger.warn('Unkown bullet type: %s', bullet)
+						stock = gtk.STOCK_MISSING_IMAGE
+					self.insert_at_cursor('\t'*list_level)
+					self.insert_icon_at_cursor(stock)
+					self.insert_at_cursor(' ')
+				else:
+					self.insert_at_cursor('\t'*list_level + u'\u2022 ')
+
 				if element.tail:
 					element.tail += '\n'
 				else:
@@ -196,14 +219,36 @@ class TextBuffer(gtk.TextBuffer):
 			raise Exception, 'No link at iter'
 
 	def insert_image(self, iter, attrib, text):
-		'''FIXME'''
-		self._place_cursor(iter)
-		self.insert_image_at_cursor(attrib, text)
-		self._restore_cursor()
+		# TODO support width / height arguemnts from_file_at_size()
+		# TODO parse image file locations elsewhere
+		# TODO support tooltip text
+		src = attrib['src']
+		i = src.find('?')
+		if i > 0:
+			src = src[:i]
+		try:
+			pixbuf = gtk.gdk.pixbuf_new_from_file(src)
+		except:
+			logger.warn('No such image: %s', src)
+			widget = gtk.HBox() # FIXME need *some* widget here...
+			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG)
+		self.insert_pixbuf(iter, pixbuf)
 
 	def insert_image_at_cursor(self, attrib, text):
-		'''FIXME'''
-		# TODO support for images
+		iter = self.get_iter_at_mark(self.get_insert())
+		self.insert_image(iter, attrib, text)
+
+	def insert_icon(self, iter, stock):
+		widget = gtk.HBox() # FIXME need *some* widget here...
+		pixbuf = widget.render_icon(stock, gtk.ICON_SIZE_MENU)
+		if pixbuf is None:
+			logger.warn('Could not find icon: %s', stock)
+			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
+		self.insert_pixbuf(iter, pixbuf)
+
+	def insert_icon_at_cursor(self, stock):
+		iter = self.get_iter_at_mark(self.get_insert())
+		self.insert_icon(iter, stock)
 
 	def set_textstyle(self, style, tag=None):
 		'''Sets the current text style. This style will be applied

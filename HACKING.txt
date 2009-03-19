@@ -93,6 +93,14 @@ Other general guidelines:
 
 **Grep for TODO and FIXME tags in the code**
 
+== Needed Artwork ==
+
+* Paperclip icon
+* Icon for plugin dialog - puzzle piece like in Mozilla
+* Calendar icon
+* Task list icon
+* LinkMap icon - re-use red boxes from zim logo ?
+
 == Milestone 0.42-alpha1 for Zim ==
 
 * Package in such a way that it is not installable !
@@ -101,9 +109,10 @@ Must have:
 [ ] Backward compatible on reading wiki pages
 	[ ] Old indented verbatim paragraphs
 [ ] Support rendering checkbox lists
-	[ ] In wiki parser / dumper
+	[*] In wiki parser / dumper
 	[ ] In html dumper
 	[ ] In textview
+[ ] Support rendering images
 [ ] View menu complete
 	[ ] Finish HistoryPathbar and NamespacePathbar
 	[*] Add toolbar context menu (see geany for example)
@@ -121,7 +130,6 @@ If feasible:
 [*] Print to browser plugin
 [*] Spell plugin
 [ ] Render lists with proper indenting
-
 
 == General health ==
 

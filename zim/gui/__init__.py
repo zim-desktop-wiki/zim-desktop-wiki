@@ -19,7 +19,7 @@ import zim
 import zim.fs
 from zim import NotebookInterface
 from zim.notebook import Path, Page, PageNameError
-from zim.config import data_file, config_file
+from zim.config import data_file, config_file, data_dirs
 import zim.history
 import zim.gui.pathbar
 import zim.gui.pageindex
@@ -124,6 +124,23 @@ TOOLBAR_TEXT_ONLY = 'text_only'
 TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
+
+
+# Load custom application icons as stock
+try:
+	factory = gtk.IconFactory()
+	factory.add_default()
+	for dir in data_dirs('pixmaps'):
+		for file in dir.list():
+			i = file.rindex('.')
+			name = 'zim-'+file[:i] # e.g. checked-box.png -> zim-checked-box
+			pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
+			set = gtk.IconSet(pixbuf=pixbuf)
+			factory.add(name, set)
+except Exception:
+	import sys
+	logger.warn('Got exception while loading application icons')
+	sys.excepthook(*sys.exc_info())
 
 
 class GtkInterface(NotebookInterface):
@@ -625,9 +642,9 @@ class MainWindow(gtk.Window):
 			return label
 
 		# specify statusbar elements right-to-left
-		self.style_label = statusbar_element('<style>', 100)
-		self.insert_label = statusbar_element('INS', 60)
-		self.backlinks_label = statusbar_element('<backlinks>', 120, True)
+		self.statusbar_style_label = statusbar_element('<style>', 100)
+		self.statusbar_insert_label = statusbar_element('INS', 60)
+		self.statusbar_backlinks_label = statusbar_element('<backlinks>', 120, True)
 
 		# add a second statusbar widget - somehow the corner grip
 		# does not render properly after the pack_end for the first one
@@ -695,7 +712,7 @@ class MainWindow(gtk.Window):
 				self.pathbar_box.remove(child)
 			self.pathbar = klass(self.ui, spacing=3)
 			self.pathbar.set_history(self.ui.history)
-			self.pathbar_box.pack_start(self.pathbar, False)
+			self.pathbar_box.add(self.pathbar)
 		self.pathbar_box.show_all()
 
 	def set_toolbar_style(self, style):
@@ -763,13 +780,17 @@ class MainWindow(gtk.Window):
 		# TODO set backlinks label
 
 		self.pageview.view.get_buffer().connect(
-			'textstyle-changed', lambda o, s: self.style_label.set_text(s))
+			'textstyle-changed',
+			lambda o, s: self.statusbar_style_label.set_text(s))
+
+		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
+		self.statusbar_backlinks_label.set_text('%i Backlinks' % n)
 
 	def do_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()
 		if state: text = 'OVR'
 		else: text = 'INS'
-		self.insert_label.set_text(text)
+		self.statusbar_insert_label.set_text(text)
 
 
 def get_window(ui):
