@@ -108,6 +108,7 @@ Other general guidelines:
 Must have:
 [ ] Backward compatible on reading wiki pages
 	[ ] Old indented verbatim paragraphs
+	[ ] Translate "_" in filenames same as perl version
 [ ] Support rendering checkbox lists
 	[*] In wiki parser / dumper
 	[ ] In html dumper
@@ -117,7 +118,8 @@ Must have:
 	[ ] Finish HistoryPathbar and NamespacePathbar
 	[*] Add toolbar context menu (see geany for example)
 [ ] Working index on sqlite
-	[ ] TreeModel still bit buggy
+	[ ] UTF8 names get duplicated (?)
+	[ ] Check timestamps
 [*] LinkMap plugin
 [ ] Working history
 [ ] Go menu complete
@@ -267,4 +269,13 @@ If we want to run a network version and decide to fix all the related
 concurency and authentication stuff the proper way would be to extend the
 server with the needed interfaces. E.g. plain source pages and an SQL
 query interface with some plain text result page.
+
+== Autoformatting ==
+
+Instead of hardcoding autoformatting maintain a list of regexes and
+actions that is aither user editable or at least editiable from a
+plugin script. Implement in a generic fashion.
+
++ need to be able to enable / disable sets based on prefs
+
 

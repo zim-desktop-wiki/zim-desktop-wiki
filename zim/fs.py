@@ -9,6 +9,15 @@ Used as a base library for most other zim modules.
 
 # TODO - use weakref ?
 
+# TODO Make sre files are *really* written before rename step
+# remember the ext4 issue with truncated files in case of failure within
+# 60s after write.
+#
+# From the pyton doc: If you’re starting with a Python file object f, first 
+# do f.flush(), and then do os.fsync(f.fileno()), to ensure that all internal
+# buffers associated with f are written to disk. Availability: Unix, and 
+# Windows starting in 2.2.3.
+
 import os
 import errno
 import codecs

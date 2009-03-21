@@ -20,6 +20,10 @@ a asociative database. Especially lookups of page names are a bit inefficient,
 as we need to do a seperate lookup for each parent. Open for future improvement.
 '''
 
+# Note that it is important that this module fires signals and list pages
+# in a consistent order, if the order is not consistent or changes without
+# the apropriate signals the pageindex widget will get confused and mess up.
+
 import sqlite3
 import gobject
 import logging
@@ -274,7 +278,7 @@ class Index(gobject.GObject):
 		path, recursive, fullcheck = self._update_queue.pop(0)
 
 		# TODO implement fullcheck for page contents
-		if fullcheck:
+		if fullcheck and not path.isroot:
 			uptodate = False
 			#~ if isinstance(path, IndexPath):
 				#~ try:
@@ -358,6 +362,7 @@ class Index(gobject.GObject):
 				# always emit, as haschildren could be toggled on _or_ off
 				self.emit('page-haschildren-toggled', path)
 
+			inserted.sort(key=lambda p: p.basename)
 			for path in inserted:
 				self.emit('page-inserted', path)
 
@@ -365,6 +370,7 @@ class Index(gobject.GObject):
 		'''Indexes page contents for page. Does not look at sub-pages etc.
 		use 'update()' for that. Returns the IndexPath for page.
 		'''
+		assert not page.isroot, 'Can not index root'
 		try:
 			path = self.lookup_path(page)
 			if path is None:
@@ -437,7 +443,7 @@ class Index(gobject.GObject):
 	def _walk(self, path, indexpath):
 		# Here path always is an IndexPath
 		cursor = self.db.cursor()
-		cursor.execute('select * from pages where parent == ?', (path.id,))
+		cursor.execute('select * from pages where parent == ? order by basename', (path.id,))
 		for row in cursor:
 			name = path.name+':'+row['basename']
 			childpath = indexpath+(row['id'],)
@@ -582,7 +588,7 @@ class Index(gobject.GObject):
 			indexpath = path._indexpath
 
 		cursor = self.db.cursor()
-		cursor.execute('select * from pages where parent==?', (parentid,))
+		cursor.execute('select * from pages where parent==? order by basename', (parentid,))
 		return [
 			IndexPath(name+':'+r['basename'], indexpath+(r['id'],), r)
 				for r in cursor ]
