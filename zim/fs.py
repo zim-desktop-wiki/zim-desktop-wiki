@@ -13,9 +13,9 @@ Used as a base library for most other zim modules.
 # remember the ext4 issue with truncated files in case of failure within
 # 60s after write.
 #
-# From the pyton doc: If you’re starting with a Python file object f, first 
+# From the pyton doc: If you’re starting with a Python file object f, first
 # do f.flush(), and then do os.fsync(f.fileno()), to ensure that all internal
-# buffers associated with f are written to disk. Availability: Unix, and 
+# buffers associated with f are written to disk. Availability: Unix, and
 # Windows starting in 2.2.3.
 
 import os
@@ -136,8 +136,10 @@ class Dir(Path):
 
 	def list(self):
 		'''FIXME'''
+		# TODO check notes on handling encodings in os.listdir
 		if self.exists():
-			return [f for f in os.listdir(self.path) if not f.startswith('.')]
+			return [f.decode('utf8')
+				for f in os.listdir(self.path) if not f.startswith('.')]
 		else:
 			return []
 

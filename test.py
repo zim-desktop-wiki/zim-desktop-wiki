@@ -9,6 +9,7 @@ import sys
 import shutil
 import unittest
 import getopt
+import logging
 
 import tests
 
@@ -57,6 +58,10 @@ On Ubuntu or Debian install package 'python-coverage'.
 			coverage.start()
 		else:
 			assert False
+
+	# Set logging handler
+	level = logging.WARNING
+	logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
 
 	# Collect the test cases
 	suite = unittest.TestSuite()

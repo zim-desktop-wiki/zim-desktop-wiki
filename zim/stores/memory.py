@@ -6,7 +6,8 @@
 
 See StoreClass in zim.stores for the API documentation.
 
-FIXME
+FIXME document nodetree
+FIXME document subclassing
 '''
 
 from zim import formats

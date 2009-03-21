@@ -331,7 +331,8 @@ class GtkInterface(NotebookInterface):
 		self.notebook = notebook
 		self.history = zim.history.History(notebook)
 
-		self.notebook.index.update(background=True)
+		# Do a lightweight background check of the index
+		self.notebook.index.update(background=True, checkcontents=False)
 
 		# TODO load history and set intial page
 		self.open_page_home()
@@ -518,7 +519,7 @@ class GtkInterface(NotebookInterface):
 		self.spawn('zim', '--server', '--gui', self.notebook.name)
 
 	def reload_index(self):
-		self.notebook.index.update(fullcheck=True)
+		self.notebook.index.update()
 		# TODO use callback argument to present a progressbar
 
 	def show_help(self, page=None):

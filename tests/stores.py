@@ -55,6 +55,7 @@ class TestStoresMemory(tests.TestCase):
 		#import pprint
 		#pprint.pprint(self.index)
 		#pprint.pprint(names)
+		self.assertTrue(u'utf8:\u03b1\u03b2\u03b3' in names) # Check usage of unicode
 		self.assertEqual(names, self.index)
 
 	#~ def testResolveFile(self):

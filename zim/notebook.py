@@ -329,6 +329,9 @@ class Path(object):
 		name. Never construct a path directly from user input, but always use
 		"Notebook.resolve_path()" for that.
 		'''
+		if isinstance(name, (list, tuple)):
+			name = ':'.join(name)
+
 		if name == ':': # root namespace
 			self.name = ''
 		else:
@@ -350,6 +353,10 @@ class Path(object):
 			return Path(self.name+':'+name)
 		else: # we are the top level root namespace
 			return Path(name)
+
+	@property
+	def parts(self):
+		return self.name.split(':')
 
 	@property
 	def basename(self):

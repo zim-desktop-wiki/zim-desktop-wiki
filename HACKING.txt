@@ -116,9 +116,7 @@ Must have:
 [ ] Support rendering images
 [ ] View menu complete
 	[ ] Finish HistoryPathbar and NamespacePathbar
-	[*] Add toolbar context menu (see geany for example)
 [ ] Working index on sqlite
-	[ ] UTF8 names get duplicated (?)
 	[ ] Check timestamps
 [*] LinkMap plugin
 [ ] Working history
@@ -217,6 +215,15 @@ We depend on Gtk+ >= 2.6 instead of >= 2.4
 * Html templates need css "p { white-space: pre }" to render same as zim
 
 ---------------
+
+Entries can now have inline icons now - see
+http://library.gnome.org/devel/gtk/unstable/GtkEntry.html :)
+
+Using these for browse buttons etc will be very slick.
+Check gtk version in form code and fallback to adding a small button
+behind the entry.
+
+How does a browse dialog for pages / namespaces look ??
 
 == File format ==
 

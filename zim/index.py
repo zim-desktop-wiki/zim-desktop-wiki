@@ -24,6 +24,7 @@ as we need to do a seperate lookup for each parent. Open for future improvement.
 # in a consistent order, if the order is not consistent or changes without
 # the apropriate signals the pageindex widget will get confused and mess up.
 
+import sys
 import sqlite3
 import gobject
 import logging
@@ -38,8 +39,9 @@ LINK_DIR_BOTH = 3
 
 # Primary keys start counting with "1", so we can use parent=0
 # for pages in the root namespace...
+# TODO change this and have explicit entry for root...
 
-SQL_TABLES = '''
+SQL_CREATE_TABLES = '''
 create table if not exists pages (
 	id INTEGER PRIMARY KEY,
 	basename TEXT,
@@ -66,9 +68,6 @@ create table if not exists linktypes (
 	label TEXT
 );
 '''
-
-# TODO first index all namespaces before indexing pages
-# else we can not resolve links properly - probably need two queues...
 
 # TODO need better support for TreePaths, e.g. as signal arguments for Treemodel
 
@@ -183,7 +182,8 @@ class Index(gobject.GObject):
 		# modified
 
 	def do_save_page(self, page):
-		self.index_page(page)
+		assert False, 'TODO: lookup page / touch if needed'
+		self._index_page(page)
 
 	def do_move_page(self, page):
 		pass # TODO index logic for moving page(s)
@@ -204,24 +204,34 @@ class Index(gobject.GObject):
 		self.db.row_factory = sqlite3.Row
 
 		# TODO verify database integrity and zim version number
-		self.db.executescript(SQL_TABLES)
+		self.db.executescript(SQL_CREATE_TABLES)
 
-	def update(self, path=None,
-		recursive=True, background=False, fullcheck=False,
-		callback=None
-	):
-		'''This method initiates a database update for a namespace, or, if no
-		path is given for the root namespace of the notebook.
+	def flush(self):
+		'''Flushes all database content. Can be used before calling
+		update() to have a clean re-build. However, this method does not
+		generate signals, so it is not safe to use while a PageTreeStore
+		is connected to the index.
+		'''
+		logger.info('Flushing index')
+		for table in ('pages', 'pagetypes', 'links', 'linktypes'):
+			self.db.execute('drop table "%s"' % table)
+		self.db.executescript(SQL_CREATE_TABLES)
 
-		* If "recursive" is True, all namespaces below the given path will
-		  be checked.
-		* If "background" is True the update will be scheduled on idle events
-		  in the glib / gtk main loop. Starting a second background job while
-		  one is already running just adds the new path in the queue.
-		* In normal operation only page listings are checked. To also check
-		  and, when needed, re-index the page contents for all pages set
-		  "fullcheck" to True. (New pages that are encountered in normal
-		  operation are also queued for full index by default.)
+	def update(self, path=None, background=False, checkcontents=True, callback=None):
+		'''This method initiates a database update for a namespace, or,
+		if no path is given for the root namespace of the notebook. For
+		each path the indexkey as provided by the notebook store will be checked
+		to decide if an update is needed. Note that if we have a new index which
+		is still empty, updating will build the contents.
+
+		If "background" is True the update will be scheduled on idle events
+		in the glib / gtk main loop. Starting a second background job while
+		one is already running just adds the new path in the queue.
+
+		If "checkcontents" is True the indexkey for each page is checked to
+		determine if the contents also need to be indexed. If this option
+		is False only pagelists will be updated. Any new pages that are
+		encoutered are always indexed fully regardless of this option.
 
 		A callback method can be supplied that will be called after each
 		updated path. This can be used e.g. to display a progress bar. the
@@ -232,22 +242,23 @@ class Index(gobject.GObject):
 		behavior of treeviews displaying the index look more solid.
 		'''
 		if path is None or path.isroot:
-			indexpath = IndexPath(':', (0,))
+			indexpath = IndexPath(':', (0,), {'hascontent': False, 'haschildren':True})
 		else:
 			indexpath = self.lookup_path(path)
 			if indexpath is None:
-				indexpath = path
-				fullcheck = True
+				p = self._touch_path(path)
+				indexpath = IndexPath(path.name, p._indexpath, {'haschildren': True})
+				checkcontent = True
 
-		self._update_queue.append((indexpath, recursive, fullcheck))
+		self._update_queue.append((indexpath, checkcontents))
 
 		if background:
 			if not self._updating:
-				logger.debug('Starting background index update')
+				logger.info('Starting background index update')
 				self._updating = False
 				gobject.idle_add(self._do_update, callback)
 		else:
-			logger.debug('Updating index')
+			logger.info('Updating index')
 			while self._do_update(callback):
 				continue
 
@@ -255,126 +266,70 @@ class Index(gobject.GObject):
 		# This method needs to return boolean because it is
 		# called as an idle event handler
 		if self._update_queue:
-			path = self._update_queue[0][0]
+			path, checkcontents = self._update_queue.pop(0)
 			try:
-				self._update()
+				if checkcontents and not path.isroot:
+					page = self.notebook.get_page(path)
+					self._index_page(path, page)
+				if path.haschildren:
+					self._update_pagelist(path, checkcontents)
 			except:
-				import sys
-				logger.warn('Got exception while indexing: %s', path)
+				# Catch any errors while listing & parsing all pages
+				logger.warn('Got an exception while indexing: %s', path)
 				sys.excepthook(*sys.exc_info())
 
 			if not callback is None:
 				callback(path, self._update_queue)
 			return True
 		else:
-			logger.debug('Background index update done')
+			logger.info('Index update done')
 			self._updating = False
 			return False
 
-	def _update(self):
-		'''This method unshifts one instruction for the queue and processes
-		it.
+	def _touch_path(self, path):
+		'''This method creates a path along with all it's parents.
+		Returns the final IndexPath.
 		'''
-		path, recursive, fullcheck = self._update_queue.pop(0)
-
-		# TODO implement fullcheck for page contents
-		if fullcheck and not path.isroot:
-			uptodate = False
-			#~ if isinstance(path, IndexPath):
-				#~ try:
-					#~ current = self.notebook.get_page_indexkey(path)
-					#~ if current and path.indexkey == current:
-						#~ uptodate = True
-				#~ except NotImplementedError:
-					#~ pass # we don't know
-			# else does not even exist yet in databse -> index
-
-			if not uptodate:
-				page = self.notebook.get_page(path)
-				path = self.index_page(page)
-
-		# TODO check index keys to optimize updating
-		#~ current = None
-		#~ try:
-			#~ current = self.notebook.get_pagelist_indexkey(path)
-			#~ if path.indexkey == current:
-				#~ return True
-		#~ except NotImplementedError:
-			#~ pass # we don't know, so re-index
-
-		# if we get here the cache was out of date or the pagelist does not
-		# exist anymore - empty list must result in deleting all sub-pages
 		try:
 			cursor = self.db.cursor()
-			cursor.execute('select id, basename from pages where parent==?', (path.id,))
-			rows = cursor.fetchall()
-			cleanup = set([r['basename'] for r in rows])
-
-			# check for new pages
-			seenchildren = False
+			names = path.parts
+			parentid = 0
+			indexpath = []
 			inserted = []
-			for page in self.notebook.get_pagelist(path):
-				seenchildren = True
-				if page.basename in cleanup:
-					cleanup.remove(page.basename)
-				else:
-					# We set haschildren to False untill we have actualy seen those
-					# children. Failing to do so will cause trouble with the
-					# gtk.TreeModel interface to the database, which can not handle
-					# nodes that say they have children but fail to deliver when
-					# asked.
-					cursor = self.db.cursor()
+			for i in range(len(names)):
+				p = self.lookup_path(Path(names[:i+1]))
+				if p is None:
+					haschildren = i < (len(names) - 1)
 					cursor.execute(
 						'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
-						(page.basename, path.id, page.hascontent, False))
-					indexpath = path._indexpath + (cursor.lastrowid,)
-					inserted.append(IndexPath(page.name, indexpath))
-					fullcheck = True # tree below does not yet exist - check fully
+						(names[i], parentid, False, haschildren))
+					parentid = cursor.lastrowid
+					indexpath.append(parentid)
+					inserted.append(
+						IndexPath(':'.join(names[:i+1]), indexpath,
+							{'hascontent': False, 'haschildren': haschildren}))
+				else:
+					# TODO check if haschildren is correct, update and emit has-children-toggled if not
+					parentid = p.id
+					indexpath.append(parentid)
 
-				if fullcheck or (recursive and page.haschildren):
-					# FIXME get rid of this lookup_path()
-					child = self.lookup_path(page, parent=path)
-					assert not child is None
-					self._update_queue.append((child, recursive, fullcheck))
-
-			# cleanup remaining pages - TODO
-			#~ for basename in cleanup:
-				#~ self.do_delete_page(records[basename])
-
-			# Update index key to reflect we did our updates - TODO
-			#~ if not current is None:
-				#~ self.db.execute(
-					#~ 'update pages set childrenkey = ? where id == ?',
-					#~ (path.id, current) )
-
-			if path.isroot:
-				self.db.commit()
-			else:
-				self.db.execute(
-					'update pages set haschildren=? where id==?',
-					(seenchildren, path.id) )
-				self.db.commit()
+			self.db.commit()
 		except:
 			self.db.rollback()
 			raise
 		else:
-			if not path.isroot:
-				# always emit, as haschildren could be toggled on _or_ off
-				self.emit('page-haschildren-toggled', path)
-
-			inserted.sort(key=lambda p: p.basename)
 			for path in inserted:
 				self.emit('page-inserted', path)
 
-	def index_page(self, page):
-		'''Indexes page contents for page. Does not look at sub-pages etc.
-		use 'update()' for that. Returns the IndexPath for page.
+		return inserted[-1]
+
+	def _index_page(self, path, page):
+		'''Indexes page contents for page.
+
+		TODO: emit a signal for this for plugins to use
 		'''
-		assert not page.isroot, 'Can not index root'
+		assert isinstance(path, IndexPath) and not path.isroot
 		try:
-			path = self.lookup_path(page)
-			if path is None:
-				path = self._touch(page)
 			self.db.execute('delete from links where source == ?', (path.id,))
 			for link in page.get_links():
 				# TODO ignore links that are not internal
@@ -394,42 +349,111 @@ class Index(gobject.GObject):
 		else:
 			self.emit('page-updated', path)
 
-		return path
-
-	def _touch(self, path):
-		'''This method creates a path along with all it's parents.
-		Returns the final IndexPath.
+	def _update_pagelist(self, path, checkcontent):
+		'''Checks and updates the pagelist for a path if needed and queues any
+		child pages for updating based on "checkcontents" and whether
+		the child has children itself. Called indirectly by update().
 		'''
+		assert isinstance(path, IndexPath)
+
+		def check_and_queue(path):
+			# Helper function to queue individual children
+			if path.haschildren:
+				self._update_queue.append((path, checkcontent))
+			elif checkcontent:
+				uptodate = False
+				try:
+					current = self.notebook.get_page_indexkey(path)
+					if current and path.indexkey == current:
+						uptodate = True
+				except NotImplementedError:
+					pass # we don't know
+
+				if not uptodate:
+					self._update_queue.append((path, checkcontent))
+
+		# Check if listing is uptodate
+		uptodate = False
 		try:
-			cursor = self.db.cursor()
-			names = path.split()
-			parentid = 0
-			indexpath = []
-			inserted = []
-			for i in range(len(names)):
-				p = self.lookup_path()
-				if p is None:
-					haschildren = i < (len(names) - 1)
-					cursor.execute(
-						'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
-						(names[i], parentid, False, haschildren))
-					parentid = cursor.lastrowid
-					indexpath.append(parentid)
-					inserted.append(IndexPath(':'.join(names[:i+1]), indexpath))
-				else:
-					# TODO check if haschildren is correct, update and emit has-children-toggled if not
-					parentid = p.id
-					indexpath.append(parentid)
+			current = self.notebook.get_pagelist_indexkey(path)
+			if current and path.indexkey == current:
+				uptodate = True
+		except NotImplementedError:
+			pass # we don't know
 
-			self.db.commit()
-		except:
-			self.db.rollback()
-			raise
+		cursor = self.db.cursor()
+		cursor.execute('select * from pages where parent==?', (path.id,))
+
+		if uptodate:
+			for row in cursor:
+				p = IndexPath(path.name+':'+row['basename'], path._indexpath+(row['id'],), row)
+				check_and_queue(p)
 		else:
-			for path in inserted:
-				self.emit('page-inserted', path)
+			children = {}
+			for row in cursor:
+				children[row['basename']] = row
+			seen = set()
+			changes = []
+			try:
+				for page in self.notebook.get_pagelist(path):
+					seen.add(page.basename)
+					if page.basename in children:
+						# TODO: check if hascontent and haschildren are correct, update if incorrect + append to changes
+						row = children[page.basename]
+						p = IndexPath(path.name+':'+row['basename'], path._indexpath+(row['id'],), row)
+						check_and_queue(p)
+					else:
+						# We set haschildren to False untill we have actualy seen those
+						# children. Failing to do so will cause trouble with the
+						# gtk.TreeModel interface to the database, which can not handle
+						# nodes that say they have children but fail to deliver when
+						# asked.
+						cursor = self.db.cursor()
+						cursor.execute(
+							'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
+							(page.basename, path.id, page.hascontent, False))
+						indexpath = path._indexpath + (cursor.lastrowid,)
+						child = IndexPath(page.name, indexpath,
+							{'hascontent': page.hascontent, 'haschildren': page.haschildren})
+						changes.append((child, 1))
+						check_and_queue(child)
 
-		return inserted[-1]
+				# Update index key to reflect we did our updates - TODO
+				#~ if not current is None:
+					#~ self.db.execute(
+						#~ 'update pages set childrenkey = ? where id == ?',
+						#~ (path.id, current) )
+
+				if path.isroot:
+					self.db.commit()
+				else:
+					haschildren = len(seen) > 0
+					self.db.execute(
+						'update pages set haschildren=? where id==?',
+						(haschildren, path.id) )
+					self.db.commit()
+			except:
+				self.db.rollback()
+				raise
+			else:
+				if not path.isroot:
+					# FIXME should we check if this really changed first ?
+					self.emit('page-haschildren-toggled', path)
+
+				#~ for basename in set(children.keys()).difference(seen):
+					#~ child = IndexPath(...)
+					#~ changes.append((child, 3))
+
+				# All these signals should come in proper order...
+				changes.sort(key=lambda c: c[0].basename)
+				for path, action in changes:
+					if action == 1:
+						self.emit('page-inserted', path)
+					elif action == 2:
+						self.emit('page-updated', path)
+					else: # 3
+						pass #~ self.do_delete_page(path)
+
 
 	def walk(self, path=None):
 		if path is None or path.isroot:

@@ -3,6 +3,7 @@ Test:foo:bar
 Test:wiki
 TODOList:bar
 TODOList:foo
+utf8:αβγ
 
 %%%% Test:foo %%%%
 ====== Foo ======
@@ -126,3 +127,6 @@ TODO:
 * fix 2 24/3/08 !!
 * fix 3 !
 
+%%%% utf8:αβγ %%%%
+Test 1 2 3
+Test 1 2 3

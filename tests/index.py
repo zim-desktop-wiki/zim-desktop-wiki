@@ -12,35 +12,75 @@ from zim.gui.pageindex import PageTreeStore
 
 class TestIndex(tests.TestCase):
 
-	def testDB(self):
+	def setUp(self):
 		# Note that in this test our index is not the default index
 		# for the notebook. So any assumption from the notebook about
 		# the index will be wrong.
-		index = Index(dbfile=':memory:')
-		notebook = tests.get_test_notebook()
-		manifest = notebook.testdata_manifest
-		index.set_notebook(notebook)
-		index.update()
+		self.index = Index(dbfile=':memory:')
+		self.notebook = tests.get_test_notebook()
+		self.index.set_notebook(self.notebook)
+		self.index.update()
 
-		#~ cursor = index.db.cursor()
+		#~ cursor = self.index.db.cursor()
 		#~ cursor.execute('select * from pages')
 		#~ cursor.execute('select * from links')
 		#~ print '\n==== DB ===='
 		#~ for row in cursor:
 			#~ print row
 
-		path = index.lookup_path(Path('Test:foo:bar'))
+	def testUpdate(self):
+		'''Test indexing'''
+
+		# cursor.row_count is not reliable - see docs
+		def count_pages(db):
+			c = db.cursor()
+			c.execute('select id from pages')
+			r = c.fetchall()
+			return len(r)
+
+		# repeat update() to check if update is stable
+		manifest = len(self.notebook.testdata_manifest)
+		self.assertEqual(count_pages(self.index.db), manifest)
+		self.index.update()
+		self.assertEqual(count_pages(self.index.db), manifest)
+		self.index.update()
+		self.assertEqual(count_pages(self.index.db), manifest)
+
+		# now go through the flush loop
+		self.index.flush()
+		self.assertEqual(count_pages(self.index.db), 0)
+		self.index.update()
+		self.assertEqual(count_pages(self.index.db), manifest)
+
+		# now index only part of the tree - and repeat
+		self.index.flush()
+		self.assertEqual(count_pages(self.index.db), 0)
+		self.index.update(Path('Test'))
+		firstcount = count_pages(self.index.db)
+		self.assertTrue(firstcount > 2)
+		self.index.update(Path('Test'))
+		self.assertEqual(count_pages(self.index.db), firstcount)
+
+	def testLookup(self):
+		'''Test index lookup methods'''
+		path = self.index.lookup_path(Path('Test:foo:bar'))
 		self.assertTrue(isinstance(path, IndexPath))
-		path = index.lookup_id(path.id)
+		path = self.index.lookup_id(path.id)
 		self.assertTrue(isinstance(path, IndexPath))
 		self.assertEqual(path.name, 'Test:foo:bar')
 
-		pagelist = index.list_pages(None)
+		# pages
+		pagelist = self.index.list_pages(None)
 		self.assertTrue(len(pagelist) > 0)
+		pagelist = self.index.list_pages(Path('Test'))
+		self.assertTrue(len(pagelist) > 0)
+		pagelist = self.index.list_pages(Path('Some:Non:Existing:Path'))
+		self.assertTrue(len(pagelist) == 0)
 
-		forwlist = list(index.list_links(Path('Test:foo:bar')))
-		backlist = list(index.list_links(Path('Test:foo:bar'), LINK_DIR_BACKWARD))
-		bothlist = list(index.list_links(Path('Test:foo:bar'), LINK_DIR_BOTH))
+		# links
+		forwlist = list(self.index.list_links(Path('Test:foo:bar')))
+		backlist = list(self.index.list_links(Path('Test:foo:bar'), LINK_DIR_BACKWARD))
+		bothlist = list(self.index.list_links(Path('Test:foo:bar'), LINK_DIR_BOTH))
 		for l in forwlist, backlist, bothlist:
 			self.assertTrue(len(l) > 0)
 			for link in l:
@@ -49,13 +89,16 @@ class TestIndex(tests.TestCase):
 				self.assertTrue(isinstance(link.href, IndexPath))
 		self.assertTrue(len(forwlist) + len(backlist) == len(bothlist))
 
+		n = self.index.n_list_links(Path('Test:foo:bar'), LINK_DIR_BACKWARD)
+		self.assertEqual(n, len(backlist))
+
 
 class TestPageTreeStore(tests.TestCase):
 
-	def testPageTreeStore(self):
+	def runTest(self):
+		'''Test PageTreeStore index interface'''
 		index = Index(dbfile=':memory:')
 		notebook = tests.get_test_notebook()
-		manifest = notebook.testdata_manifest
 		index.set_notebook(notebook)
 		index.update()
 
