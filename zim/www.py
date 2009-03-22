@@ -7,6 +7,7 @@
 #		-P --public 	allow connections from outside
 # TODO check client host for security
 # TODO setting for doc_root_url when running in CGI mode
+# TODO support "etg" and "if-none-match' headers at least for icons
 
 '''FIXME'''
 
@@ -16,14 +17,21 @@ import logging
 import glib
 import gobject
 
+from wsgiref.headers import Headers
+
 from zim import NotebookInterface
 from zim.notebook import Page, Path
 from zim.fs import *
 from zim.formats import ParseTree, TreeBuilder
-
+from zim.config import data_file
 
 logger = logging.getLogger('zim.www')
 
+# TODO FIXME HACK - this translation needs to be done when exporting
+icons = {}
+for icon in ('checked-box.png', 'xchecked-box.png', 'unchecked-box.png'):
+	file = data_file('pixmaps/'+icon)
+	icons[file.path] = icon
 
 class WWWError(Exception):
 	'''FIXME'''
@@ -102,22 +110,42 @@ class WWWInterface(NotebookInterface):
 		The return value of this call is a list of lines with the content to
 		be served.
 		'''
+		headerlist = []
+		headers = Headers(headerlist)
 		path = environ.get('PATH_INFO', '/')
 		try:
 			methods = ('GET', 'HEAD')
 			if not environ['REQUEST_METHOD'] in methods:
 				raise WWWError('405', headers=[('Allow', ', '.join(methods))])
 
+			if not path:
+				path = '/'
+			elif path == '/favicon.ico':
+				path = '/+icons/favicon.ico'
+			elif path in icons:
+				# TODO FIXME HACK - this translation needs to be done when exporting
+				path = '/+icons/' + icons[path]
+
 			if self.notebook is None:
 				raise NoConfigError
-			elif path == '' or path == '/':
+			elif path == '/':
+				headers.add_header('Content-Type', 'text/html', charset='utf-8')
 				content = self.render_index()
 			elif path.startswith('/+docs/'):
 				pass # TODO document root
 			elif path.startswith('/+file/'):
 				pass # TODO attachment or raw source
+			elif path.startswith('/+icons/'):
+				# TODO check if favicon is overridden or something
+				file = data_file('pixmaps/%s' % path[8:])
+				if path.endswith('.png'):
+					headers['Content-Type'] = 'image/png'
+				elif path.endswith('.ico'):
+					headers['Content-Type'] = 'image/vnd.microsoft.icon'
+				content = file.read(encoding=None)
 			else:
 				# Must be a page or a namespace (html file or directory path)
+				headers.add_header('Content-Type', 'text/html', charset='utf-8')
 				if path.endswith('.html'):
 					pagename = path[:-5].replace('/', ':')
 				elif path.endswith('/'):
@@ -135,10 +163,10 @@ class WWWInterface(NotebookInterface):
 					raise PageNotFoundError(page)
 		except WWWError, error:
 			logger.error(error.logmsg)
-			header = [('Content-Type', 'text/plain')]
+			headerlist = [('Content-Type', 'text/plain')]
 			if error.headers:
 				header.extend(error.headers)
-			start_response(error.status, header)
+			start_response(error.status, headerlist)
 			if environ['REQUEST_METHOD'] == 'HEAD':
 				return []
 			else:
@@ -152,12 +180,13 @@ class WWWInterface(NotebookInterface):
 			start_response('500 Internal Server Error', [])
 			return []
 		else:
-			header = [('Content-Type', 'text/html;charset=utf-8')]
-			start_response('200 OK', header)
+			start_response('200 OK', headerlist)
 			if environ['REQUEST_METHOD'] == 'HEAD':
 				return []
-			else:
+			elif 'utf-8' in headers['Content-Type']:
 				return [string.encode('utf8') for string in content]
+			else:
+				return content
 
 	def render_index(self, namespace=None):
 		'''Serve an index page'''

@@ -109,10 +109,7 @@ Must have:
 [ ] Backward compatible on reading wiki pages
 	[ ] Old indented verbatim paragraphs
 	[ ] Translate "_" in filenames same as perl version
-[ ] Support rendering checkbox lists
-	[*] In wiki parser / dumper
-	[ ] In html dumper
-	[ ] In textview
+[*] Support rendering checkbox lists
 [ ] Support rendering images
 [*] View menu complete
 [ ] Working index on sqlite
@@ -123,7 +120,7 @@ Must have:
 [ ] Go menu complete
 	[ ] Finish get_next and get_previous in index
 [ ] WWW must work, no need for feature completeness
-	[ ] Test when above items are done
+	[ ] Support images and file links
 
 If feasible:
 [*] Plugins dialog separate from preferences + info on plugin

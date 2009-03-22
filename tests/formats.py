@@ -261,10 +261,19 @@ class TestHtmlFormat(TestCase):
 
 	def testExport(self):
 		'''Test exporting wiki format to Html'''
+
+		from zim.config import data_file
+		icons = {}
+		for icon in ('checked-box', 'unchecked-box', 'xchecked-box'):
+			icons[icon] = data_file('pixmaps/%s.png' % icon)
+			self.assertTrue(icons[icon].exists())
+
 		wiki = Buffer(wikitext)
 		output = Buffer()
 		tree = get_format('wiki').Parser(self.page).parse(wiki)
 		self.format.Dumper(self.page).dump(tree, output)
+
+		# Note '%' is doubled to '%%' because of format substitution being used
 		html = u'''\
 <h1>Head1</h1>
 
@@ -301,7 +310,7 @@ LINKS: <a href="/foo/bar.html">:foo:bar</a> <a href="./file.png">./file.png</a> 
 <p>
 Let's try these <strong>bold</strong>, <em>italic</em>, <u>underline</u> and <strike>strike</strike><br>
 And some <code>//verbatim//</code><br>
-And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_<br>
+And don't forget these: *bold*, /italic/ / * *^%%#@#$#!@)_!)_<br>
 </p>
 
 <p>
@@ -318,19 +327,19 @@ A list<br>
 <p>
 And a checkbox list<br>
 <ul>
-<li>item 1</li>
+<li style="list-style-image: url(%(unchecked-box)s)">item 1</li>
 <ul>
-<li>sub item 1</li>
+<li style="list-style-image: url(%(checked-box)s)">sub item 1</li>
 <ul>
 <li>Some normal bullet</li>
 </ul>
-<li>sub item 2</li>
-<li>sub item 3</li>
+<li style="list-style-image: url(%(xchecked-box)s)">sub item 2</li>
+<li style="list-style-image: url(%(unchecked-box)s)">sub item 3</li>
 </ul>
-<li>item 2</li>
-<li>item 3</li>
+<li style="list-style-image: url(%(unchecked-box)s)">item 2</li>
+<li style="list-style-image: url(%(unchecked-box)s)">item 3</li>
 <ul>
-<li>item FOOOOOO !</li>
+<li style="list-style-image: url(%(xchecked-box)s)">item FOOOOOO !</li>
 </ul>
 </ul>
 </p>
@@ -347,5 +356,5 @@ This is not a header<br>
 <p>
 That's all ...<br>
 </p>
-'''
+''' % icons
 		self.assertEqualDiff(output.getvalue(), html)

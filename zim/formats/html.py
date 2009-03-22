@@ -5,11 +5,13 @@
 '''FIXME'''
 
 # TODO paragraph indenting using margin CSS ?
+# TODO use global CSS for checkboxes instead of inline style - needs also support from tempalte etc
 
 import re
 
 from zim.fs import *
 from zim.formats import *
+from zim.config import data_file
 
 info = {
 	'name':  'Html',
@@ -96,7 +98,11 @@ class Dumper(DumperClass):
 				self._dump_children(element, file) # recurs
 				file.write('</ul>\n')
 			elif element.tag == 'li':
-				file.write('<li>' + text)
+				if 'bullet' in element.attrib:
+					icon = self.icon(element.attrib['bullet'])
+					file.write('<li style="list-style-image: url(%s)">' % icon + text)
+				else:
+					file.write('<li>' + text)
 				self._dump_children(element, file) # recurs
 				file.write('</li>\n')
 			elif element.tag == 'img':
@@ -136,3 +142,6 @@ class Dumper(DumperClass):
 
 		return url_encode(href)
 
+	def icon(self, name):
+		return data_file('pixmaps/%s.png' % name)
+		#return '/+icon/' + name + '.png'

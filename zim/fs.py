@@ -13,9 +13,9 @@ Used as a base library for most other zim modules.
 # remember the ext4 issue with truncated files in case of failure within
 # 60s after write.
 #
-# From the pyton doc: If you’re starting with a Python file object f, first 
+# From the pyton doc: If you’re starting with a Python file object f, first
 # do f.flush(), and then do os.fsync(f.fileno()), to ensure that all internal
-# buffers associated with f are written to disk. Availability: Unix, and 
+# buffers associated with f are written to disk. Availability: Unix, and
 # Windows starting in 2.2.3.
 
 import os
@@ -59,7 +59,7 @@ class UnixPath(object):
 		return self.path
 
 	def __repr__(self):
-		return '<%s: %>' % (self.__class__.__name__, self.path)
+		return '<%s: %s>' % (self.__class__.__name__, self.path)
 
 	def __add__(self, other):
 		'''Concatonates paths, only creates path objects. See
@@ -183,20 +183,23 @@ class File(Path):
 		'''Returns True if the file exists and is actually a file'''
 		return os.path.isfile(self.path)
 
-	def open(self, mode='r'):
+	def open(self, mode='r', encoding='utf8'):
 		'''Returns an io object for reading or writing.
 		Opening a non-exisiting file for writing will cause the whole path
 		to this file to be created on the fly.
 		'''
 		if not self.exists() and mode == 'w':
 			self.dir.touch()
-		return codecs.open(self.path, mode=mode, encoding='utf8')
+		if encoding is None:
+			return open(self.path, mode=mode)
+		else:
+			return codecs.open(self.path, mode=mode, encoding=encoding)
 
-	def read(self):
+	def read(self, encoding='utf8'):
 		if not self.exists():
 			return ''
 		else:
-			file = self.open('r')
+			file = self.open('r', encoding)
 			return file.read()
 
 	def readlines(self):
