@@ -30,6 +30,7 @@ class Button(gtk.Button):
 			hbox.add(label)
 			self.add(hbox)
 			self.set_alignment(0.5, 0.5)
+			# FIXME should we use Button.set_image() here ??
 
 
 class IconButton(gtk.Button):
@@ -100,7 +101,7 @@ class BrowserTreeView(gtk.TreeView):
 				# because otherwise we can not toggle the folding state
 				# of a path without activating it. The assumption being
 				# that the path gets selected on button press and then
-				# gets activated on button release. Clicking the 
+				# gets activated on button release. Clicking the
 				# expander in front of a path should not select the path.
 				# This logic is based on particulars of the C implementation
 				# and might not be future proof.

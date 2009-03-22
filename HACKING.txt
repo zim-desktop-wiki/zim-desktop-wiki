@@ -114,14 +114,12 @@ Must have:
 	[ ] In html dumper
 	[ ] In textview
 [ ] Support rendering images
-[ ] View menu complete
-	[ ] Finish HistoryPathbar and NamespacePathbar
-	[*] Add toolbar context menu (see geany for example)
+[*] View menu complete
 [ ] Working index on sqlite
 	[ ] UTF8 names get duplicated (?)
 	[ ] Check timestamps
 [*] LinkMap plugin
-[ ] Working history
+[*] Working history
 [ ] Go menu complete
 	[ ] Finish get_next and get_previous in index
 [ ] WWW must work, no need for feature completeness
