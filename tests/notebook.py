@@ -68,6 +68,26 @@ class TestNotebook(tests.TestCase):
 
 		self.assertRaises(PageNameError, self.notebook.resolve_path, ':::')
 
+	def testResolveFile(self):
+		'''Test notebook.resolve_file()'''
+		dir = Dir(tests.create_tmp_dir('notebook_testResolveFile'))
+		path = Path('Foo:Bar')
+		self.notebook.get_store(path).dir = dir
+		for link, wanted in (
+			('~/test.txt', File('~/test.txt')),
+			#~ ('file:///test.txt', File('file:///test.txt')),
+			#~ ('file:/test.txt', File('file:///test.txt')),
+			#~ ('file://localhost/test.txt', File('file:///test.txt')),
+			#~ ('/test.txt', File(...)),
+			('./test.txt', dir.file('Foo/Bar/test.txt')),
+			('../test.txt', dir.file('Foo/test.txt')),
+			('../Bar/Baz/test.txt', dir.file('Foo/Bar/Baz/test.txt')),
+		): 
+			#~ print link, '>>', self.notebook.resolve_file(link, path)
+			self.assertEqual(
+				self.notebook.resolve_file(link, path), wanted)
+		
+
 #	def testResolveLink(self):
 #		'''Test page.resolve_link()'''
 #		page = self.notebook.get_page(':Test:foo')

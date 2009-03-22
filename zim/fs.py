@@ -43,11 +43,21 @@ class UnixPath(object):
 			path = path.path
 
 		if path.startswith('file:/'):
-			assert False, 'TODO convert file url to path'
+			path = self._parse_uri(path)
 		elif path.startswith('~'):
 			path = os.path.expanduser(path)
 
 		self.path = os.path.abspath(path)
+
+	@staticmethod
+	def _parse_uri(uri):
+		# Spec is file:/// or file://host/
+		# But file:/ is sometimes used by non-compliant apps
+		if uri.startswith('file:///'): return uri[7:]
+		elif uri.startswith('file://localhost/'): return uri[16:]
+		elif uri.startswith('file://'): assert False, 'Can not handle non-local file uris'
+		elif uri.startswith('file:/'): return uri[5:]
+		else: assert False, 'Not a file uri: %s' % uri
 
 	def __iter__(self):
 		parts = self.split()
@@ -62,10 +72,13 @@ class UnixPath(object):
 		return '<%s: %s>' % (self.__class__.__name__, self.path)
 
 	def __add__(self, other):
-		'''Concatonates paths, only creates path objects. See
-		Dir.file() and Dir.subdir() instead to create otehr objects.
+		'''Concatonates paths, only creates objects of the same class. See
+		Dir.file() and Dir.subdir() instead to create other objects.
 		'''
 		return self.__class__((self, other))
+
+	def __eq__(self, other):
+		return self.path == other.path
 
 	@property
 	def basename(self):
@@ -130,6 +143,12 @@ else:
 class Dir(Path):
 	'''OO wrapper for directories'''
 
+	def __eq__(self, other):
+		if isinstance(other, Dir):
+			return self.path == other.path
+		else:
+			return False
+
 	def exists(self):
 		'''Returns True if the dir exists and is actually a dir'''
 		return os.path.isdir(self.path)
@@ -178,6 +197,12 @@ class Dir(Path):
 
 class File(Path):
 	'''OO wrapper for files'''
+
+	def __eq__(self, other):
+		if isinstance(other, File):
+			return self.path == other.path
+		else:
+			return False
 
 	def exists(self):
 		'''Returns True if the file exists and is actually a file'''

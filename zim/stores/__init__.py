@@ -152,3 +152,14 @@ class StoreClass():
 		else:
 			return False
 
+	def get_attachments_dir(self, path):
+		'''FIXME'''
+		# TODO merge with _get_dir and _get_file in stores/files.py
+		assert self.dir, 'Stores without a dir attribute need to overload this method'
+		if path == self.namespace:
+			return self.dir
+		else:
+			name = path.relname(self.namespace)
+			# TODO map strange characters
+			dirpath = name.replace(':', '/')
+			return Dir([self.dir, dirpath])
