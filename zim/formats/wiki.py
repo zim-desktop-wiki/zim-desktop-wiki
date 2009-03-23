@@ -8,8 +8,7 @@ import re
 
 from zim.fs import *
 from zim.formats import *
-from zim.parsing import Re, ParsingError, \
-	is_url_re, is_email_re, is_path_re, is_interwiki_re
+from zim.parsing import Re, ParsingError
 from zim.config import HeadersDict
 
 info = {
@@ -212,12 +211,7 @@ class Parser(ParserClass):
 				mytext = link
 			if len(link) == 0: # [[|link]] bug
 					link = mytext
-			if is_url_re.match(link): type = is_url_re[1]
-			elif is_email_re.match(link): type = 'mailto'
-			elif is_path_re.match(link): type = 'file'
-			else: type = 'page'
-			# TODO how about interwiki ?
-			return ('link', {'type':type, 'href':link}, mytext)
+			return ('link', {'href':link}, mytext)
 
 		list = parser_re['link'].sublist(parse_link, list)
 

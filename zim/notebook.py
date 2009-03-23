@@ -250,47 +250,40 @@ class Notebook(object):
 		#~ '''FIXME'''
 		#~ pass # TODO search code
 
-	def resolve_file(file, page):
-		'''Resolves a file or directory path relative to a page and returns.
+	def resolve_file(self, file, path):
+		'''Resolves a file or directory path relative to a page. Returns a
+		File object. However the file does not have to exist.
 
 		File urls and paths that start with '~/' or '~user/' are considered
 		absolute paths and are returned unmodified.
 
 		In case the file path starts with '/' the the path is taken relative
-		to the document root of the notebook is used. This can be the dir
-		where pages are stored, or some other dir.
+		to the document root - this can be the dir where pages are stored,
+		or some other dir.
 
 		Other paths are considered attachments and are resolved relative
-		to the page.
+		to the namespce below the page.
 		'''
-		# TODO security argument for www interface
-		#	- turn everything outside notebook into file:// urls
-		#	- do not leak info on existence of files etc.
-		# TODO should we handle smb:// URLs here ?
-
-		if file.startswith('~') or file.startswith('file://'):
-			return file
+		if file.startswith('~') or file.startswith('file:/'):
+			return File(file)
 		elif file.startswith('/'):
-			pass # TODO get_document_dir
+			print 'TODO: document_root - no compat to file root !'
+			return File('/TODO')
 		else:
-			filepath = [p for p in path.split('/') if len(p)]
-			pagepath = page.name.split(':')
+			# TODO - how to deal with '..' in the middle of the path ?
+			filepath = [p for p in file.split('/') if len(p) and p != '.']
+			pagepath = path.name.split(':')
 			filename = filepath.pop()
-			for part in filepath[:]:
-				if part == '.':
-					filepath.pop(0)
-				elif part == '..':
-					# TODO if not pagepath -> document root ??
-					filepath.pop(0)
-					pagepath.pop(0)
+			while filepath and filepath[0] == '..':
+				if not pagepath:
+					print 'TODO: handle paths relative to notebook but outside notebook dir'
+					return File('/TODO')
 				else:
-					break
-			pagename = ':'+':'.join(pagepath, filepath)
-			if pagename == page.name:
-				store = page.store
-			else:
-				store = self.get_store(pagename)
-			dir = store.get_attachments_dir(pagename)
+					filepath.pop(0)
+					pagepath.pop()
+			pagename = ':'+':'.join(pagepath + filepath)
+			store = self.get_store(pagename)
+			dir = store.get_attachments_dir(Path(pagename))
 			return dir.file(filename)
 
 	def walk(self, path=None):
@@ -460,7 +453,7 @@ class Page(Path):
 		'''Returns contents as a parse tree or None'''
 		if self.source:
 			if self.source.exists():
-				parser = self.format.Parser(self)
+				parser = self.format.Parser()
 				tree = parser.parse(self.source)
 				return tree
 			else:
@@ -474,7 +467,7 @@ class Page(Path):
 			raise Exception, 'Can not store data in a read-only Page'
 
 		if self.source:
-			dumper = self.format.Dumper(self)
+			dumper = self.format.Dumper()
 			dumper.dump(tree, self.source)
 		else:
 			self._tree = tree
@@ -486,7 +479,7 @@ class Page(Path):
 		tree = self.get_parsetree()
 		if tree:
 			import zim.formats
-			dumper = zim.formats.get_format(format).Dumper(self)
+			dumper = zim.formats.get_format(format).Dumper()
 			return dumper.tostring(tree)
 		else:
 			return ''
@@ -496,13 +489,17 @@ class Page(Path):
 		for this page.
 		'''
 		import zim.formats
-		parser = zim.formats.get_format(format).Parser(self)
+		parser = zim.formats.get_format(format).Parser()
 		self.set_parsetree(parser.fromstring(text))
 
 	def get_links(self):
 		tree = self.get_parsetree()
 		if tree:
 			for tag in tree.getiterator('link'):
+				#~ if is_url_re.match(link): type = is_url_re[1]
+				#~ elif is_email_re.match(link): type = 'mailto'
+				#~ elif is_path_re.match(link): type = 'file'
+				#~ else: type = 'page'
 				yield Link(self, **tag.attrib)
 
 

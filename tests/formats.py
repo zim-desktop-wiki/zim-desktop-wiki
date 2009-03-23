@@ -122,20 +122,20 @@ class TestTextFormat(TestCase):
 
 	def testRoundtrip(self):
 		# First using file interface
-		tree = self.format.Parser(self.page).parse( Buffer(wikitext) )
+		tree = self.format.Parser().parse( Buffer(wikitext) )
 		self.assertTrue(isinstance(tree, ParseTree))
 		self.assertTrue(tree.getroot().tag == 'page')
 		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
 		output = Buffer()
-		self.format.Dumper(self.page).dump(tree, output)
+		self.format.Dumper().dump(tree, output)
 		self.assertEqualDiff(output.getvalue(), wikitext)
 
 		# Next the same test usiing string interface
-		tree = self.format.Parser(self.page).fromstring(wikitext)
+		tree = self.format.Parser().fromstring(wikitext)
 		self.assertTrue(isinstance(tree, ParseTree))
 		self.assertTrue(tree.getroot().tag == 'page')
 		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
-		output = self.format.Dumper(self.page).tostring(tree)
+		output = self.format.Dumper().tostring(tree)
 		self.assertEqualDiff(output, wikitext)
 
 
@@ -155,11 +155,11 @@ Modification-Date: Wed, 06 Aug 2008 22:17:29 +0200
 
 foo bar
 '''
-		tree = self.format.Parser(self.page).parse( Buffer(text) )
+		tree = self.format.Parser().parse( Buffer(text) )
 		#~ print '>>>\n'+tostring(tree)+'\n<<<\n'
 		self.assertEquals(tree.getroot().attrib['Content-Type'], 'text/x-zim-wiki')
 		output = Buffer()
-		self.format.Dumper(self.page).dump(tree, output)
+		self.format.Dumper().dump(tree, output)
 		self.assertEqualDiff(output.getvalue(), text)
 
 	def testParsing(self):
@@ -183,7 +183,7 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 	Indented and all: //foo//
 </pre>
 <p>IMAGE: <img src="../my-image.png">Foo Bar</img>
-LINKS: <link href=":foo:bar" type="page">:foo:bar</link> <link href="./file.png" type="file">./file.png</link> <link href="file:///etc/passwd" type="file">file:///etc/passwd</link>
+LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
 </p>
 <p>	Some indented
 	paragraphs go here ...
@@ -205,7 +205,7 @@ This is not a header
 </p>
 <p>That's all ...
 </p></page>'''
-		t = self.format.Parser(self.page).parse( Buffer(wikitext) )
+		t = self.format.Parser().parse( Buffer(wikitext) )
 		self.assertEqualDiff(t.tostring(), tree)
 
 
@@ -226,19 +226,18 @@ A list
 	* bar
 	* baz
 '''
-		tree = self.format.Parser(self.page).parse( Buffer(input) )
+		tree = self.format.Parser().parse( Buffer(input) )
 		output = Buffer()
-		self.format.Dumper(self.page).dump(tree, output)
+		self.format.Dumper().dump(tree, output)
 		self.assertEqualDiff(output.getvalue(), text)
 
 	def testLink(self):
 		text = '[[FooBar]]' # FIXME add link type
-		tree = self.format.Parser(self.page).parse( Buffer(text) )
+		tree = self.format.Parser().parse( Buffer(text) )
 		done = False
 		for tag in tree.getiterator('link'):
 			link = Link(self.page, **tag.attrib)
 			self.assertEqual(tag.attrib['href'], link.href)
-			self.assertEqual(tag.attrib['type'], link.type)
 			done = True
 		self.assertTrue(done)
 
@@ -255,16 +254,25 @@ class TestHtmlFormat(TestCase):
 		para.text = '<foo>"foo" & "bar"</foo>'
 		tree = ParseTree(page)
 		html = Buffer()
-		self.format.Dumper(self.page).dump(tree, html)
+		self.format.Dumper().dump(tree, html)
 		self.assertEqual(html.getvalue(),
 			'<p>\n&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;</p>\n' )
 
 	def testExport(self):
 		'''Test exporting wiki format to Html'''
+
+		from zim.config import data_file
+		icons = {}
+		for icon in ('checked-box', 'unchecked-box', 'xchecked-box'):
+			icons[icon] = data_file('pixmaps/%s.png' % icon)
+			self.assertTrue(icons[icon].exists())
+
 		wiki = Buffer(wikitext)
 		output = Buffer()
-		tree = get_format('wiki').Parser(self.page).parse(wiki)
-		self.format.Dumper(self.page).dump(tree, output)
+		tree = get_format('wiki').Parser().parse(wiki)
+		self.format.Dumper().dump(tree, output)
+
+		# Note '%' is doubled to '%%' because of format substitution being used
 		html = u'''\
 <h1>Head1</h1>
 
@@ -301,7 +309,7 @@ LINKS: <a href="/foo/bar.html">:foo:bar</a> <a href="./file.png">./file.png</a> 
 <p>
 Let's try these <strong>bold</strong>, <em>italic</em>, <u>underline</u> and <strike>strike</strike><br>
 And some <code>//verbatim//</code><br>
-And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_<br>
+And don't forget these: *bold*, /italic/ / * *^%%#@#$#!@)_!)_<br>
 </p>
 
 <p>
@@ -318,19 +326,19 @@ A list<br>
 <p>
 And a checkbox list<br>
 <ul>
-<li>item 1</li>
+<li style="list-style-image: url(%(unchecked-box)s)">item 1</li>
 <ul>
-<li>sub item 1</li>
+<li style="list-style-image: url(%(checked-box)s)">sub item 1</li>
 <ul>
 <li>Some normal bullet</li>
 </ul>
-<li>sub item 2</li>
-<li>sub item 3</li>
+<li style="list-style-image: url(%(xchecked-box)s)">sub item 2</li>
+<li style="list-style-image: url(%(unchecked-box)s)">sub item 3</li>
 </ul>
-<li>item 2</li>
-<li>item 3</li>
+<li style="list-style-image: url(%(unchecked-box)s)">item 2</li>
+<li style="list-style-image: url(%(unchecked-box)s)">item 3</li>
 <ul>
-<li>item FOOOOOO !</li>
+<li style="list-style-image: url(%(xchecked-box)s)">item FOOOOOO !</li>
 </ul>
 </ul>
 </p>
@@ -347,5 +355,5 @@ This is not a header<br>
 <p>
 That's all ...<br>
 </p>
-'''
+''' % icons
 		self.assertEqualDiff(output.getvalue(), html)

@@ -170,14 +170,14 @@ class PageTreeView(BrowserTreeView):
 		'page-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
-	def __init__(self, app):
+	def __init__(self, ui):
 		BrowserTreeView.__init__(self)
 
-		self.app = app
-		self.app.connect('open-page', lambda o, p, r: self.select_page(p))
-		self.app.connect_after('open-notebook', self.do_set_notebook)
-		if not self.app.notebook is None:
-			self.do_set_notebook(self.app, self.app.notebook)
+		self.ui = ui
+		self.ui.connect('open-page', lambda o, p, r: self.select_page(p))
+		self.ui.connect_after('open-notebook', self.do_set_notebook)
+		if not self.ui.notebook is None:
+			self.do_set_notebook(self.app, self.ui.notebook)
 
 		cell_renderer = gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
@@ -188,10 +188,10 @@ class PageTreeView(BrowserTreeView):
 		# TODO drag & drop stuff
 		# TODO popup menu for pages - share with e.g. pathbar buttons
 
-	def do_set_notebook(self, app, notebook):
+	def do_set_notebook(self, ui, notebook):
 		self.set_model(PageTreeStore(notebook.index))
-		if not app.page is None:
-			self.select_page(app.page)
+		if not ui.page is None:
+			self.select_page(ui.page)
 
 	def do_row_activated(self, treepath, column):
 		'''Handler for the row-activated signal, emits page-activated'''
@@ -201,8 +201,8 @@ class PageTreeView(BrowserTreeView):
 		self.emit('page-activated', path)
 
 	def do_page_activated(self, path):
-		'''Handler for the page-activated signal, calls app.open_page()'''
-		self.app.open_page(path)
+		'''Handler for the page-activated signal, calls ui.open_page()'''
+		self.ui.open_page(path)
 
 	def do_key_press_event(self, event):
 		'''Handler for key presses'''
@@ -247,7 +247,7 @@ class PageTreeView(BrowserTreeView):
 		# TODO unlist temporary listed items
 		# TODO temporary list new item if page does not exist
 
-		path = self.app.notebook.index.lookup_path(path)
+		path = self.ui.notebook.index.lookup_path(path)
 		if path is None:
 			pass # TODO temporary list the thing in the index
 		else:

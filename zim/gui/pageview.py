@@ -10,7 +10,7 @@ import gtk
 import pango
 
 from zim.notebook import Path
-
+from zim.parsing import link_type
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -222,14 +222,11 @@ class TextBuffer(gtk.TextBuffer):
 		# TODO support width / height arguemnts from_file_at_size()
 		# TODO parse image file locations elsewhere
 		# TODO support tooltip text
-		src = attrib['src']
-		i = src.find('?')
-		if i > 0:
-			src = src[:i]
+		file = attrib['src-file']
 		try:
-			pixbuf = gtk.gdk.pixbuf_new_from_file(src)
+			pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
 		except:
-			logger.warn('No such image: %s', src)
+			logger.warn('No such image: %s', file)
 			widget = gtk.HBox() # FIXME need *some* widget here...
 			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG)
 		self.insert_pixbuf(iter, pixbuf)
@@ -430,8 +427,8 @@ gobject.type_register(TextView)
 class PageView(gtk.VBox):
 	'''FIXME'''
 
-	def __init__(self, app):
-		self.app = app
+	def __init__(self, ui):
+		self.ui = ui
 		gtk.VBox.__init__(self)
 		self.view = TextView()
 		swindow = gtk.ScrolledWindow()
@@ -441,8 +438,8 @@ class PageView(gtk.VBox):
 		self.add(swindow)
 
 		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
-		self.view.connect_object('link-clicked', PageView.do_link_enter, self)
-		self.view.connect_object('link-clicked', PageView.do_link_leave, self)
+		self.view.connect_object('link-enter', PageView.do_link_enter, self)
+		self.view.connect_object('link-leave', PageView.do_link_leave, self)
 
 	def grab_focus(self):
 		self.view.grab_focus()
@@ -451,6 +448,8 @@ class PageView(gtk.VBox):
 		tree = page.get_parsetree()
 		buffer = TextBuffer()
 		if not tree is None:
+			tree.resolve_images(self.ui.notebook, page)
+				# TODO same for links ?
 			buffer.set_parsetree(tree)
 		else:
 			print 'TODO get template'
@@ -458,25 +457,27 @@ class PageView(gtk.VBox):
 		buffer.place_cursor(buffer.get_iter_at_offset(0)) # FIXME
 
 	def do_link_enter(self, link):
-		pass # TODO set statusbar
+		self.ui.mainwindow.statusbar.push(1, 'Go to "%s"' % link['href'])
 
 	def do_link_leave(self, link):
-		pass # TODO set statusbar
+		self.ui.mainwindow.statusbar.pop(1)
 
 	def do_link_clicked(self, link):
 		'''Handler for the link-clicked signal'''
 		assert isinstance(link, dict)
-		logger.debug('Link clinked: %(type)s: %(href)s' % link)
+		# TODO use link object if available
+		type = link_type(link['href'])
+		logger.debug('Link clinked: %s: %s' % (type, link['href']))
 
-		if link['type'] == 'page':
-			path = self.app.notebook.resolve_path(
-				link['href'], Path(self.app.page.namespace))
-			self.app.open_page(path)
-		elif link['type'] == 'file':
-			path = self.app.notebook.resolve_file(
-				link['href'], self.app.page)
+		if type == 'page':
+			path = self.ui.notebook.resolve_path(
+				link['href'], Path(self.ui.page.namespace))
+			self.ui.open_page(path)
+		elif type == 'file':
+			path = self.ui.notebook.resolve_file(
+				link['href'], self.ui.page)
 			print 'TODO: open_file(path)'
-			#~ self.app.open_file(path)
+			#~ self.ui.open_file(path)
 		else:
 			print 'TODO: open_url(url)'
 

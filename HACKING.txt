@@ -124,18 +124,16 @@ Must have:
 [ ] Backward compatible on reading wiki pages
 	[ ] Old indented verbatim paragraphs
 	[ ] Translate "_" in filenames same as perl version
-[ ] Support rendering checkbox lists
-	[ ] In html dumper
-[ ] Support rendering images
-[ ] View menu complete
-	[ ] Finish HistoryPathbar and NamespacePathbar
+[*] Support rendering checkbox lists
+[*] Support rendering images
+[*] View menu complete
 [ ] Working index on sqlite
+	[ ] Fix get_next and get_previous
 [*] LinkMap plugin
-[ ] Working history
-[ ] Go menu complete
-	[ ] Finish get_next and get_previous in index
+[*] Working history
+[*] Go menu complete
 [ ] WWW must work, no need for feature completeness
-	[ ] Test when above items are done
+	[ ] Support images and file links
 
 If feasible:
 [*] Plugins dialog separate from preferences + info on plugin
@@ -154,8 +152,6 @@ If feasible:
 * Resolving files
 	* Needs testing + testing for new FS methods
 	* Needs security mode for www
-* Resolving pages
-	* Need test for Notebook.resolve_page() with lots of scenarios
 * Templates need setting to remove title from tree
 	* Used e.g. in Presentation template to put title in separate bar
 * Templates need setting for line-ending with/without <br>
@@ -165,39 +161,20 @@ If feasible:
 * For S5 template need to split body on H1 or HR
 	* FOREACH slide IN page.sections
 	* want to be able to cleanup headings per slide...
-* Implement checkbox lists
-* Backward compatibility with older zim versions
-    * Wiki pages without headers use indented paragraphs for Verbatim
-	* Resolve file should also check same dir as page source
 * Check client hostname and add a --public option (default localhost only)
-* Search interface ?
 
 === file links for www ===
 
 When serving:
 * attachments should be served - link needs to be from server root
 * files under doc root (if any) should be served - idem
+* bullet icons should be served
 * all other files get linked as file:/// urls
 
 When exporting:
 * attachments should be copied - link should be reative file path from html file
 * doc root never needs to be copied, absolute path or use doc_root url setting
 * other files maybe copied or linked with absolute path
-
-== Towards full capabilities ==
-
-* Finish main GUI
-* Implement moving pages
-	* Logic for updating links
-	* Include sub pages and attachments
-* Latex Dumper
-* Txt2tags Parser (and Dumper ?) class
-    * Plugin to use txt2tags for multitude of output formats
-* Notebook cache based on sqlite
-    * Make sure to test all store backends both with and without cache
-    * Make sure not to auto-vivicate cache to quickly
-* Store type for reading from .tar.gz files
-
 
 == Get a self hosting documentation browser ==
 
@@ -223,8 +200,15 @@ We depend on Gtk+ >= 2.6 instead of >= 2.4
 == Templates ==
 
 * Templates now use "[%-" and "-%]" to remove linebreaks around tags
-* Templates no longer have a "page.heading" variable
-* Html templates need css "p { white-space: pre }" to render same as zim
+
+== File links ==
+
+* Dropped backward support for linking images in same namespace as dir with "./"
+  now only works with "../" while "./" is reserved for attachments.
+* Made paths starting with '/' always refer to the document root. Absolute paths
+  now always need the file:// syntax. (Only in the case where a notebook really
+  doesn't have a directory will the document root default to the filesystem
+  root.)
 
 ---------------
 

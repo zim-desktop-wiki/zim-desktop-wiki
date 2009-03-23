@@ -108,27 +108,41 @@ class History(gobject.GObject):
 		else:
 			return None
 
-	def get_child(self, page):
-		'''FIXME'''
-		namespace = page.name + ':'
-		for i in range(self.current):
-			j = self.current - i
-			if self.history[j][PAGE_COL].startswith(namespace):
-				return HistoryRecord(self.history, j)
+	def get_child(self, path):
+		'''Returns a path for a direct child of path or None'''
+		namespace = path.name + ':'
+		for i in range(len(self.history)-1, -1, -1):
+			if self.history[i][PAGE_COL].startswith(namespace):
+				name = self.history[i][PAGE_COL]
+				parts = name[len(namespace):].split(':')
+				return Path(namespace+parts[0])
 		else:
 			return None
+
+	def get_grandchild(self, path):
+		'''Returns a path for the deepest child of path that could be found or None'''
+		namespace = path.name + ':'
+		for i in range(len(self.history)-1, -1, -1):
+			if self.history[i][PAGE_COL].startswith(namespace):
+				namespace = self.history[i][PAGE_COL] + ':'
+
+		if len(namespace) == len(path.name) + 1:
+			return None
+		else:
+			return Path(namespace)
+
+	def get_history(self):
+		'''Generator function that yields history records, latest first'''
+		for i in range(len(self.history)-1, -1, -1):
+			yield HistoryRecord(self.history, i)
 
 	def get_unique(self, max=None):
 		'''Generator function that yields unique records'''
 		seen = set()
-		for i in range(len(self.history)):
-			j = len(self.history) - 1 - i
-			if not self.history[j][PAGE_COL] in seen:
-				seen.add(self.history[j][PAGE_COL])
-				yield HistoryRecord(self.history, j)
+		for i in range(len(self.history)-1, -1, -1):
+			if not self.history[i][PAGE_COL] in seen:
+				seen.add(self.history[i][PAGE_COL])
+				yield HistoryRecord(self.history, i)
 
-	def get_namespace(self):
-		'''Generator function that yields records in same namespace path'''
-		# TODO get namespace
 
 gobject.type_register(History)

@@ -123,4 +123,11 @@ is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')
 is_path_re = Re('.*/') # FIXME - any better check ?
 is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
 
-
+def link_type(link):
+	'''Function that retuns a link type for urls and page links'''
+	if is_url_re.match(link): type = is_url_re[1]
+	elif is_email_re.match(link): type = 'mailto'
+	elif is_path_re.match(link): type = 'file'
+	else: type = 'page'
+	# TODO interwiki
+	return type

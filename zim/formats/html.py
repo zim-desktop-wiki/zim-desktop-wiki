@@ -5,11 +5,14 @@
 '''FIXME'''
 
 # TODO paragraph indenting using margin CSS ?
+# TODO use global CSS for checkboxes instead of inline style - needs also support from tempalte etc
 
 import re
 
 from zim.fs import *
 from zim.formats import *
+from zim.config import data_file
+from zim.parsing import link_type
 
 info = {
 	'name':  'Html',
@@ -96,14 +99,18 @@ class Dumper(DumperClass):
 				self._dump_children(element, file) # recurs
 				file.write('</ul>\n')
 			elif element.tag == 'li':
-				file.write('<li>' + text)
+				if 'bullet' in element.attrib:
+					icon = self.icon(element.attrib['bullet'])
+					file.write('<li style="list-style-image: url(%s)">' % icon + text)
+				else:
+					file.write('<li>' + text)
 				self._dump_children(element, file) # recurs
 				file.write('</li>\n')
 			elif element.tag == 'img':
-				src = self.href('file', element.attrib['src'])
+				src = self.href(element.attrib['src'])
 				file.write('<img src="%s" alt="%s">' % (src, text))
 			elif element.tag == 'link':
-				href = self.href(element.attrib['type'], element.attrib['href'])
+				href = self.href(element.attrib['href'])
 				file.write('<a href="%s">%s</a>' % (href, text))
 			elif element.tag in ['em', 'strong', 'mark', 'strike', 'code']:
 				if element.tag == 'mark': tag = 'u'
@@ -120,8 +127,10 @@ class Dumper(DumperClass):
 					tail = encode_whitespace(tail)
 				file.write(tail)
 
-	def href(self, type, href):
+	def href(self, href):
 		# TODO need a way to set a base url (+ seperate base for files for www server)
+		# TODO use link object if available
+		type = link_type(href)
 		if type == 'page':
 			href = href.replace(':', '/') + '.html'
 			if not href.startswith('/'):
@@ -136,3 +145,6 @@ class Dumper(DumperClass):
 
 		return url_encode(href)
 
+	def icon(self, name):
+		return data_file('pixmaps/%s.png' % name)
+		#return '/+icon/' + name + '.png'

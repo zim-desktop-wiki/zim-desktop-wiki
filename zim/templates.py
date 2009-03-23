@@ -600,4 +600,4 @@ class ParseTreeProxy(object):
 	def body(self):
 		format = self._pageproxy._format
 		page = self._pageproxy._page
-		return format.Dumper(page).tostring(self._tree)
+		return format.Dumper().tostring(self._tree)

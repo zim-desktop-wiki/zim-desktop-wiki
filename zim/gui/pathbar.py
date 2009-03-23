@@ -349,19 +349,31 @@ class ScrollButton(gtk.Button):
 
 
 class PathBar(ScrolledHBox):
-	'''Base class for pathbars in the zim GUI'''
+	'''Base class for pathbars in the zim GUI, extends ScrolledHBox for usage
+	with a list of ToggleButtons representing zim Path objects'''
 
 	def __init__(self, ui, history=None, spacing=0, homogeneous=False):
 		ScrolledHBox.__init__(self, spacing, homogeneous)
 		self.ui = ui
 		self.history = None
+		self._selected = None
 		if history:
 			self.set_history(history)
+		self.ui.connect_after('open-page', self._after_open_page)
 
 	def set_history(self, history):
 		self.history = history
 		self.history.connect('changed', lambda o: self._update())
 		self._update()
+		self._select(history.get_current())
+
+	def _after_open_page(self, ui, page, path):
+		# Since we connect after open page, update has likely been done
+		# already from the history 'changed' signal - if not trigger it here.
+		self._select(path)
+		if self._selected is None:
+			self._update()
+			self._select(path)
 
 	def _update(self):
 		if self.history is None:
@@ -369,12 +381,14 @@ class PathBar(ScrolledHBox):
 
 		for child in self.get_children()[2:]:
 			self.remove(child)
+		self._selected = None
 
 		tooltips = gtk.Tooltips()
 		for path in self.get_paths():
-			button = gtk.Button(label=path.basename)
+			button = gtk.ToggleButton(label=path.basename)
 			button.set_use_underline(False)
-			button.connect('clicked', self.on_button_clicked, path)
+			button.zim_path = path
+			button.connect('clicked', self.on_button_clicked)
 			# FIXME tooltips seem not to work - not sure why
 			tooltips.set_tip(button, path.name)
 			# TODO show context menu for pageson right click
@@ -388,8 +402,33 @@ class PathBar(ScrolledHBox):
 		'''
 		raise NotImplemented
 
-	def on_button_clicked(self, button, path):
-		self.ui.open_page(path)
+	def _select(self, path):
+		def set_active(button, active):
+			button.handler_block_by_func(self.on_button_clicked)
+			button.set_active(active)
+			label = button.get_child()
+			if active:
+				label.set_markup('<b>'+label.get_text()+'</b>')
+			else:
+				label.set_text(label.get_text())
+					# get_text() gives string without markup
+			button.handler_unblock_by_func(self.on_button_clicked)
+
+		if not self._selected is None:
+			set_active(self._selected, False)
+
+		for button in reversed(self.get_children()[2:]):
+			if button.zim_path == path:
+				self._selected = button
+				break
+		else:
+			self._selected = None
+
+		if not self._selected is None:
+			set_active(self._selected, True)
+
+	def on_button_clicked(self, button):
+		self.ui.open_page(button.zim_path)
 
 
 class HistoryPathBar(PathBar):
@@ -399,7 +438,10 @@ class HistoryPathBar(PathBar):
 	# path to the last position
 
 	def get_paths(self):
-		return self.history.get(10) # FIXME what is API to get X records ?
+		# TODO enforce max number of paths shown
+		paths = list(self.history.get_history())
+		paths.reverse()
+		return paths
 
 
 class RecentPathBar(PathBar):
@@ -410,7 +452,10 @@ class RecentPathBar(PathBar):
 	# allready or not
 
 	def get_paths(self):
-		return reversed(list(self.history.get_unique(10)))
+		# TODO enforce max number of paths shown
+		paths = list(self.history.get_unique())
+		paths.reverse()
+		return paths
 
 
 class NamespacePathBar(PathBar):
@@ -420,8 +465,14 @@ class NamespacePathBar(PathBar):
 	# Clicking a button in the pathbar should not change the view
 
 	def get_paths(self):
-		pass
-
+		# no need to enforce a max number of paths here
+		current = self.history.get_current()
+		path = self.history.get_grandchild(current) or current
+		paths = list(path.parents())
+		paths.reverse()
+		paths.pop(0) # remove root
+		paths.append(path) # add leaf
+		return paths
 
 
 ############################
