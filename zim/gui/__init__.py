@@ -14,6 +14,7 @@ import logging
 import gobject
 import gtk
 import gtk.keysyms
+import pango
 
 import zim
 import zim.fs
@@ -519,8 +520,21 @@ class GtkInterface(NotebookInterface):
 		self.spawn('zim', '--server', '--gui', self.notebook.name)
 
 	def reload_index(self):
-		self.notebook.index.update()
-		# TODO use callback argument to present a progressbar
+		cont = True
+		def on_cancel():
+			cont = False
+			print '!!!!!!\n'*3, 'SET', cont
+		dialog = ProgressBarDialog(self, 'Updating index', on_cancel)
+		dialog.msg_label.set_ellipsize(pango.ELLIPSIZE_START)
+		dialog.show_all()
+		def on_callback(path):
+			dialog.pulse(msg=path.name)
+			while gtk.events_pending():
+				gtk.main_iteration(block=False)
+			print 'RETURNING', cont
+			return cont
+		self.notebook.index.update(callback=on_callback)
+		dialog.destroy()
 
 	def show_help(self, page=None):
 		if page:
@@ -1105,3 +1119,61 @@ class RenamePageDialog(Dialog):
 		name = self.get_field('name')
 		self.ui.notebook.rename_page(self.page, name)
 
+class ProgressBarDialog(gtk.Dialog):
+	'''Dialog to display a progress bar. Behaves more like a MessageDialog than
+	like a normal Dialog. These dialogs are only supposed to run modal, but are
+	not called with run() as there is typically a background action giving them
+	callbacks. They _always_ should implement a cancel action to break the
+	background process.
+
+	TODO: also support perentage mode
+	'''
+
+	def __init__(self, ui, text, cancel_callback):
+		self.ui = ui
+		self.cancel_callback = cancel_callback
+		gtk.Dialog.__init__(
+			# no title - see HIG about message dialogs
+			self, parent=get_window(self.ui),
+			title='',
+			flags=gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_MODAL,
+			buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+		)
+		self.set_border_width(10)
+		self.vbox.set_spacing(5)
+		self.set_default_size(300, 0)
+
+		label = gtk.Label()
+		label.set_markup('<b>'+text+'</b>')
+		label.set_alignment(0.0, 0.5)
+		self.vbox.pack_start(label, False)
+
+		self.progressbar = gtk.ProgressBar()
+		self.vbox.pack_start(self.progressbar, False)
+
+		self.msg_label = gtk.Label()
+		self.msg_label.set_alignment(0.0, 0.5)
+		self.vbox.pack_start(self.msg_label, False)
+
+	def pulse(self, msg=None):
+		self.progressbar.pulse()
+		if not msg is None:
+			self.msg_label.set_markup('<i>'+msg+'</i>')
+
+	def show_all(self):
+		'''Logs debug info and calls gtk.Dialog.show_all()'''
+		logger.debug('Opening ProgressBarDialog')
+		gtk.Dialog.show_all(self)
+
+	def do_response(self, id):
+		'''Handles the response signal and calls the 'cancel' callback.'''
+		logger.debug('ProgressBarDialog get response %s', id)
+		if self.cancel_callback is None:
+			self.destroy()
+		else:
+			self.cancel_callback()
+
+#		logger.debug('Closed ProgressBarDialog') # FIXME needs to go in other place - also catch programmatic close
+
+# Need to register classes defining gobject signals
+gobject.type_register(ProgressBarDialog)

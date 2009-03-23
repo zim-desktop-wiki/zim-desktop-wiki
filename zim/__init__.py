@@ -127,8 +127,10 @@ class NotebookInterface(gobject.GObject):
 		else:
 			index = self.notebook.index
 		index.flush()
-		index.update(
-			callback=lambda p, q: logger.info('Indexed %s', p.name))
+		def on_callback(path):
+			logger.info('Indexed %s', path.name)
+			return True
+		index.update(callback=on_callback)
 
 	def spawn(self, *argv):
 		'''FIXME'''

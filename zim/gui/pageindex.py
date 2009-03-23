@@ -129,7 +129,7 @@ class PageTreeStore(gtk.GenericTreeModel):
 	def on_iter_has_child(self, path):
 		'''Returns True if indexPath path has children'''
 		if not path.hasdata:
-			path = self.index.lookup_path(path)
+			path = self.index.lookup_data(path)
 		return path.haschildren
 
 	def on_iter_n_children(self, path=None):

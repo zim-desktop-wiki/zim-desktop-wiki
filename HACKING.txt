@@ -11,6 +11,21 @@ program as long as the plugin itself is under GPL and the non-GPL
 program runs as a separate process with a clearly defined inter process
 communication channel.
 
+====== Gtk+ libraries =====
+
+Zim is build on top of pygtk and pygobject. However, the classes outside the
+'gui' namespace are not allowed to use the gtk libraries, and should work when
+only gobject is available. This potentially allows zim to run without a graphical
+interface, also it gives a strict boundry between UI and data layers in the
+class hierarchy. The exception are modules in the 'plugin' namespace, which can
+of course package their own UI components. However, these should check on
+initialization if we are running in graphical mode or not.
+
+For the moment we try to keep compatibility with Gtk+ version 2.6, this may
+change without notice when a new stable version is properly supported on all
+platforms.
+# FIXME check what is actual current stable & check latest packaged for win32
+
 ====== Classes ======
 
 Each class has inline documentation, use pydoc to view it.
@@ -45,12 +60,12 @@ zim
 |   |-- html
 |   |-- plain
 |   `-- wiki
-|-- fs              # File system objects
-|   |-- Path()
-|   |-- File(Path)
-|   |-- Dir(Path)
-|   `-- Buffer(StringIO)
-`-- utils			# Coding utilities
+`-- fs              # File system objects
+    |-- Path()
+    |-- File(Path)
+    |-- Dir(Path)
+    `-- Buffer(StringIO)
+
 
 Both gtk and www interfaces inherit from the Interface class defined
 in zim. This class takes care of loading configuration files, plugins etc.
@@ -78,16 +93,16 @@ See the python style guide for best practices. Some items to keep in mind:
 * Signal handlers have a method name starting with "do_"
 * Use "assert" for checks that could be removed when code is stable
 * Do not rely on __doc__ on run time, this data could be optimized away
-* Have a look at zim.utils for common code snippets
+* Have a look e.g. at zim.parsing and zim.gui.widgets for common code snippets
 
 Other general guidelines:
 * Writing test cases is good, full test coverage is better.
   Run "./test.py --cover" to get a coverage report.
 * Wait with loading modules and constructing widgets untill they are
   really needed, this should keep startup speed reasonable
-* Try to do slow operations in the gui using the idle event, e.g loading
-  the side pane index or a list with search results
-
+* Try to do slow operations that could be done asynchronous using the idle
+  event, e.g loading the side pane index, or a list with search results, or
+  even running an external command to check in a new version of a file.
 
 ====== TODO ======
 
@@ -110,14 +125,11 @@ Must have:
 	[ ] Old indented verbatim paragraphs
 	[ ] Translate "_" in filenames same as perl version
 [ ] Support rendering checkbox lists
-	[*] In wiki parser / dumper
 	[ ] In html dumper
-	[ ] In textview
 [ ] Support rendering images
 [ ] View menu complete
 	[ ] Finish HistoryPathbar and NamespacePathbar
 [ ] Working index on sqlite
-	[ ] Check timestamps
 [*] LinkMap plugin
 [ ] Working history
 [ ] Go menu complete

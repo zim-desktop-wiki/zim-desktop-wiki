@@ -7,18 +7,86 @@
 import os
 import sys
 import shutil
-import unittest
 import getopt
 import logging
+
+import unittest
+import time
+import types
 
 import tests
 
 # TODO overload one of the unittest classes to test add file names
 
 pyfiles = []
-for dir, dirs, files in os.walk('zim'):
-	pyfiles.extend([dir+'/'+f for f in files if f.endswith('.py')])
+for d, dirs, files in os.walk('zim'):
+	pyfiles.extend([d+'/'+f for f in files if f.endswith('.py')])
 pyfiles.sort()
+
+class FastTestLoader(unittest.TestLoader):
+	'''Extension of TestLoader which ignores all classes which have an
+	attribute 'slowTest' set to True.
+	'''
+
+	def __init__(self, full=True):
+		unittest.TestLoader.__init__(self)
+		self.ignored = 0
+		self.full = full
+
+	def loadTestsFromModule(self, module):
+		"""Return a suite of all tests cases contained in the given module"""
+		tests = []
+		for name in dir(module):
+			obj = getattr(module, name)
+			if (isinstance(obj, (type, types.ClassType)) and
+				issubclass(obj, unittest.TestCase)):
+				if not self.full and hasattr(obj, 'slowTest') and obj.slowTest:
+					print 'Ignoring slow test:', obj.__name__
+					self.ignored += 1
+				else:
+					tests.append(self.loadTestsFromTestCase(obj))
+		return self.suiteClass(tests)
+
+
+class MyTextTestRunner(unittest.TextTestRunner):
+	'''Extionsion of TextTestRunner to report number of ignored tests in the
+	proper place.
+	'''
+
+	def __init__(self, verbosity, ignored):
+		unittest.TextTestRunner.__init__(self, verbosity=verbosity)
+		self.ignored = ignored
+
+	def run(self, test):
+		"Run the given test case or test suite."
+		result = self._makeResult()
+		startTime = time.time()
+		test(result)
+		stopTime = time.time()
+		timeTaken = stopTime - startTime
+		result.printErrors()
+		self.stream.writeln(result.separator2)
+		run = result.testsRun
+		self.stream.writeln("Ran %d test%s in %.3fs" %
+							(run, run != 1 and "s" or "", timeTaken))
+		ignored = self.ignored
+		if ignored > 0:
+			self.stream.writeln("Ignored %d slow test%s" %
+							(ignored, ignored != 1 and "s" or ""))
+		self.stream.writeln()
+		if not result.wasSuccessful():
+			self.stream.write("FAILED (")
+			failed, errored = map(len, (result.failures, result.errors))
+			if failed:
+				self.stream.write("failures=%d" % failed)
+			if errored:
+				if failed: self.stream.write(", ")
+				self.stream.write("errors=%d" % errored)
+			self.stream.writeln(")")
+		else:
+			self.stream.writeln("OK")
+		return result
+
 
 
 def main(argv=None):
@@ -28,7 +96,8 @@ def main(argv=None):
 
 	# parse options
 	coverage = None
-	opts, args = getopt.gnu_getopt(argv[1:], 'h', ['help', 'coverage'])
+	full = False
+	opts, args = getopt.gnu_getopt(argv[1:], 'h', ['help', 'coverage', 'full'])
 	for o, a in opts:
 		if o in ('-h', '--help'):
 			print '''\
@@ -39,6 +108,7 @@ If no module is given the whole test suite is run.
 
 Options:
   -h, --help   print this text
+  --full       run all tests (much slower that base set)
   --coverage   report test coverage statistics
 ''' % argv[0]
 			return
@@ -56,6 +126,8 @@ On Ubuntu or Debian install package 'python-coverage'.
 			coverage.exclude('assert')
 			coverage.exclude('raise NotImplementedError')
 			coverage.start()
+		elif o == '--full':
+			full = True
 		else:
 			assert False
 
@@ -65,17 +137,20 @@ On Ubuntu or Debian install package 'python-coverage'.
 
 	# Collect the test cases
 	suite = unittest.TestSuite()
+	loader = FastTestLoader(full=full)
+
 	if args:
 		modules = [ 'tests.'+name for name in args ]
 	else:
 		suite.addTest(TestCompileAll())
 		modules = [ 'tests.'+name for name in tests.__all__ ]
+
 	for name in modules:
-		test = unittest.defaultTestLoader.loadTestsFromName(name)
+		test = loader.loadTestsFromName(name)
 		suite.addTest(test)
 
 	# And run them
-	unittest.TextTestRunner(verbosity=3).run(suite)
+	MyTextTestRunner(verbosity=3, ignored=loader.ignored).run(suite)
 
 	if coverage:
 		coverage.stop()

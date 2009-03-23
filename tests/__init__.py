@@ -71,10 +71,10 @@ def get_test_notebook(format='wiki'):
 	for name, text in get_notebook_data(format):
 			manifest.append(name)
 			store._set_node(Path(name), text)
-	notebook.testdata_manifest = _expand_manifest(manifest)
+	notebook.testdata_manifest = expand_manifest(manifest)
 	return notebook
 
-def _expand_manifest(names):
+def expand_manifest(names):
 	'''Build a set of all pages names and all namespaces that need to
 	exist to host those page names.
 	'''

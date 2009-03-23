@@ -307,10 +307,12 @@ class Notebook(object):
 			yield page
 
 	def get_pagelist_indexkey(self, path):
-		raise NotImplementedError
+		store = self.get_store(path)
+		return store.get_pagelist_indexkey(path)
 
 	def get_page_indexkey(self, path):
-		raise NotImplementedError
+		store = self.get_store(path)
+		return store.get_page_indexkey(path)
 
 class Path(object):
 	'''This is the parent class for the Page class. It contains the name

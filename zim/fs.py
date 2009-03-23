@@ -88,6 +88,10 @@ class UnixPath(object):
 		'''Abstract method'''
 		raise NotImplementedError
 
+	def mtime(self):
+		stat_result = os.stat(self.path)
+		return stat_result.st_mtime
+
 	def split(self):
 		'''FIXME'''
 		path = self.path

@@ -129,12 +129,10 @@ class StoreClass():
 		'''
 		raise NotImplementedError
 
-	def get_index_key(self, path):
-		'''Optional ABSTRACT METHOD, should be implemented in sub-class
-		to optimize indexing.
+	def get_pagelist_indexkey(self, path):
+		raise NotImplementedError
 
-		See documentation for zim.index for more details.
-		'''
+	def get_page_indexkey(self, path):
 		raise NotImplementedError
 
 	def store_has_dir(self):

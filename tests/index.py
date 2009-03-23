@@ -6,8 +6,9 @@
 
 import tests
 
+from zim.fs import Dir
 from zim.index import Index, IndexPath, LINK_DIR_BACKWARD, LINK_DIR_BOTH
-from zim.notebook import Path, Link
+from zim.notebook import Notebook, Path, Link
 from zim.gui.pageindex import PageTreeStore
 
 class TestIndex(tests.TestCase):
@@ -19,50 +20,27 @@ class TestIndex(tests.TestCase):
 		self.index = Index(dbfile=':memory:')
 		self.notebook = tests.get_test_notebook()
 		self.index.set_notebook(self.notebook)
+		self.manifest = self.notebook.testdata_manifest
+
+	def runTest(self):
+		'''Test indexing'''
+		# This is one big test instead of seperate sub tests because in the
+		# subclass we generate a file based notebook in setUp, and we do not
+		# want to do that many times
+
+		#~ print self.__class__.__name__
 		self.index.update()
 
+		#~ print '\n==== DB ===='
 		#~ cursor = self.index.db.cursor()
 		#~ cursor.execute('select * from pages')
+		#~ for row in cursor:
+			#~ print row
 		#~ cursor.execute('select * from links')
-		#~ print '\n==== DB ===='
 		#~ for row in cursor:
 			#~ print row
 
-	def testUpdate(self):
-		'''Test indexing'''
-
-		# cursor.row_count is not reliable - see docs
-		def count_pages(db):
-			c = db.cursor()
-			c.execute('select id from pages')
-			r = c.fetchall()
-			return len(r)
-
-		# repeat update() to check if update is stable
-		manifest = len(self.notebook.testdata_manifest)
-		self.assertEqual(count_pages(self.index.db), manifest)
-		self.index.update()
-		self.assertEqual(count_pages(self.index.db), manifest)
-		self.index.update()
-		self.assertEqual(count_pages(self.index.db), manifest)
-
-		# now go through the flush loop
-		self.index.flush()
-		self.assertEqual(count_pages(self.index.db), 0)
-		self.index.update()
-		self.assertEqual(count_pages(self.index.db), manifest)
-
-		# now index only part of the tree - and repeat
-		self.index.flush()
-		self.assertEqual(count_pages(self.index.db), 0)
-		self.index.update(Path('Test'))
-		firstcount = count_pages(self.index.db)
-		self.assertTrue(firstcount > 2)
-		self.index.update(Path('Test'))
-		self.assertEqual(count_pages(self.index.db), firstcount)
-
-	def testLookup(self):
-		'''Test index lookup methods'''
+		# paths / ids
 		path = self.index.lookup_path(Path('Test:foo:bar'))
 		self.assertTrue(isinstance(path, IndexPath))
 		path = self.index.lookup_id(path.id)
@@ -91,6 +69,53 @@ class TestIndex(tests.TestCase):
 
 		n = self.index.n_list_links(Path('Test:foo:bar'), LINK_DIR_BACKWARD)
 		self.assertEqual(n, len(backlist))
+
+
+		# cursor.row_count is not reliable - see docs
+		def count_pages(db):
+			c = db.cursor()
+			c.execute('select id from pages')
+			r = c.fetchall()
+			return len(r)
+
+		# repeat update() to check if update is stable
+		manifest = len(self.manifest)
+		self.assertEqual(count_pages(self.index.db), manifest)
+		self.index.update(checkcontents=False)
+		self.assertEqual(count_pages(self.index.db), manifest)
+
+		# now go through the flush loop
+		self.index.flush()
+		self.assertEqual(count_pages(self.index.db), 0)
+		self.index.update()
+		self.assertEqual(count_pages(self.index.db), manifest)
+
+		# now index only part of the tree - and repeat
+		self.index.flush()
+		self.assertEqual(count_pages(self.index.db), 0)
+		self.index.update(Path('Test'))
+		firstcount = count_pages(self.index.db)
+		self.assertTrue(firstcount > 2)
+		self.index.update(Path('Test'))
+		self.assertEqual(count_pages(self.index.db), firstcount)
+
+
+class TestIndexFiles(TestIndex):
+	# Like the test above, but now using a files backend
+
+	slowTest = True
+
+	def setUp(self):
+		dir = Dir(tests.create_tmp_dir('index_TestIndexFiles'))
+		self.notebook = Notebook(path=dir)
+		self.index = self.notebook.index
+		store = self.notebook.get_store(':')
+		manifest = []
+		for name, text in tests.get_notebook_data('wiki'):
+			manifest.append(name)
+			page = store.get_page(Path(name))
+			page.set_text('wiki', text)
+		self.manifest = tests.expand_manifest(manifest)
 
 
 class TestPageTreeStore(tests.TestCase):

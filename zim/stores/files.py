@@ -91,25 +91,24 @@ class Store(StoreClass):
 	#~ def delete_page(self, name):
 		#~ '''FIXME'''
 
-	def get_index_key(self, path):
-		'''Returns a string consisting of the mtime of the file and the mtime
-		of the directory corresponding to this page. Both timestamps are taken
-		as utime and joined by a ":" character. If either of these timestamps
-		change this will cause the index to re-read the page and the asociated
-		namespace.
+	# It could be argued that we should use e.g. MD5 checksums to verify
+	# integrity of the page content instead of mtime. It is true the mtime
+	# can be unreliable, for example when files are read from a remote
+	# network filesystem. However calculating the MD5 and refreshing the
+	# index both require an operation on the actual file contents, so it is
+	# more efficient to just re-index whenever the timestamps are out of
+	# sync instead of calculating the MD5 for each page to be checked.
 
-		( It could be argued that we should use e.g. MD5 checksums to verify
-		integrity of the page content instead of mtime. It is true the mtime
-		can be unreliable, for example when files are read from a remote
-		network filesystem. However calculating the MD5 and refreshing the
-		index both require an operation on the actual file contents, so it is
-		more efficient to just re-index whenever the timestamps are out of
-		sync instead of calculating the MD5 for each page to be checked. )
-		'''
-		mtime = []
-		for o in (self._get_file(path), self._get_dir(path)):
-			if o.exists():
-				mtime.append(o.mtime())
-			else:
-				mtime.append('')
-		return ':'.join(mtime)
+	def get_pagelist_indexkey(self, path):
+		dir = self._get_dir(path)
+		if dir.exists():
+			return dir.mtime()
+		else:
+			return None
+
+	def get_page_indexkey(self, path):
+		file = self._get_file(path)
+		if file.exists():
+			return file.mtime()
+		else:
+			return None

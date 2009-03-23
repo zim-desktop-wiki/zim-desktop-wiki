@@ -24,7 +24,6 @@ as we need to do a seperate lookup for each parent. Open for future improvement.
 # in a consistent order, if the order is not consistent or changes without
 # the apropriate signals the pageindex widget will get confused and mess up.
 
-import sys
 import sqlite3
 import gobject
 import logging
@@ -39,7 +38,11 @@ LINK_DIR_BOTH = 3
 
 # Primary keys start counting with "1", so we can use parent=0
 # for pages in the root namespace...
-# TODO change this and have explicit entry for root...
+# TODO: change this and have explicit entry for root...
+
+# TODO: check if usage of indexkeys can be simplified to get rid of exception
+
+# TODO: touch pages in the database that are linked but do not exist
 
 SQL_CREATE_TABLES = '''
 create table if not exists pages (
@@ -153,7 +156,8 @@ class Index(gobject.GObject):
 		self.db = None
 		self.notebook = None
 		self._updating= False
-		self._update_queue = []
+		self._update_pagelist_queue = []
+		self._index_page_queue = []
 		if self.dbfile:
 			self._connect()
 		if notebook:
@@ -235,12 +239,18 @@ class Index(gobject.GObject):
 
 		A callback method can be supplied that will be called after each
 		updated path. This can be used e.g. to display a progress bar. the
-		callback gets two arguments, the first is the path just processed,
-		the second the queue of paths to be updated.
+		callback gets the path just processed as an argument. If the callback
+		returns False the update will not continue.
 
 		Indexes are checked width first. This is important to make the visual
 		behavior of treeviews displaying the index look more solid.
 		'''
+
+		# Updating uses two queues, one for indexing the tree structure and a
+		# second for pages where we need to index the content. Reason is that we
+		# first need to have the full tree before we can reliably resolve links
+		# and thus index content.
+
 		if path is None or path.isroot:
 			indexpath = IndexPath(':', (0,), {'hascontent': False, 'haschildren':True})
 		else:
@@ -250,36 +260,49 @@ class Index(gobject.GObject):
 				indexpath = IndexPath(path.name, p._indexpath, {'haschildren': True})
 				checkcontent = True
 
-		self._update_queue.append((indexpath, checkcontents))
+		self._update_pagelist_queue.append(indexpath)
+		if checkcontents and not indexpath.isroot:
+			self._index_page_queue.append(indexpath)
 
 		if background:
 			if not self._updating:
 				logger.info('Starting background index update')
 				self._updating = False
-				gobject.idle_add(self._do_update, callback)
+				gobject.idle_add(self._do_update, (checkcontents, callback))
 		else:
 			logger.info('Updating index')
-			while self._do_update(callback):
+			while self._do_update((checkcontents, callback)):
 				continue
 
-	def _do_update(self, callback):
-		# This method needs to return boolean because it is
-		# called as an idle event handler
-		if self._update_queue:
-			path, checkcontents = self._update_queue.pop(0)
+	def _do_update(self, data):
+		# This returns boolean to continue or not because it can be called as an
+		# idle event handler, if a callback is used, the callback should give
+		# this boolean value.
+		checkcontents, callback = data
+		if self._update_pagelist_queue or self._index_page_queue:
 			try:
-				if checkcontents and not path.isroot:
+				if self._update_pagelist_queue:
+					path = self._update_pagelist_queue.pop(0)
+					self._update_pagelist(path, checkcontents)
+				elif self._index_page_queue:
+					path = self._index_page_queue.pop(0)
 					page = self.notebook.get_page(path)
 					self._index_page(path, page)
-				if path.haschildren:
-					self._update_pagelist(path, checkcontents)
+			except KeyboardInterrupt:
+				raise
 			except:
 				# Catch any errors while listing & parsing all pages
+				import sys
 				logger.warn('Got an exception while indexing: %s', path)
 				sys.excepthook(*sys.exc_info())
 
 			if not callback is None:
-				callback(path, self._update_queue)
+				cont = callback(path)
+				if not cont is True:
+					logger.info('Index update is cancelled')
+					self._update_pagelist_queue = [] # flush
+					self._index_page_queue = [] # flush
+					return False
 			return True
 		else:
 			logger.info('Index update done')
@@ -328,6 +351,7 @@ class Index(gobject.GObject):
 
 		TODO: emit a signal for this for plugins to use
 		'''
+		#~ print 'INDEX PAGE', path
 		assert isinstance(path, IndexPath) and not path.isroot
 		try:
 			self.db.execute('delete from links where source == ?', (path.id,))
@@ -342,6 +366,11 @@ class Index(gobject.GObject):
 				if not href is None:
 					# TODO lookup href type
 					self.db.execute('insert into links (source, href) values (?, ?)', (path.id, href.id))
+			try:
+				key = self.notebook.get_page_indexkey(page)
+			except NotImplementedError:
+				key = None
+			self.db.execute('update pages set contentkey = ? where id == ?', (key, path.id))
 			self.db.commit()
 		except:
 			self.db.rollback()
@@ -354,32 +383,35 @@ class Index(gobject.GObject):
 		child pages for updating based on "checkcontents" and whether
 		the child has children itself. Called indirectly by update().
 		'''
+		#~ print 'UPDATE LIST', path
 		assert isinstance(path, IndexPath)
 
 		def check_and_queue(path):
 			# Helper function to queue individual children
 			if path.haschildren:
-				self._update_queue.append((path, checkcontent))
+				self._update_pagelist_queue.append(path)
 			elif checkcontent:
 				uptodate = False
 				try:
-					current = self.notebook.get_page_indexkey(path)
-					if current and path.indexkey == current:
+					pagekey = self.notebook.get_page_indexkey(path)
+					if pagekey and path.contentkey == pagekey:
 						uptodate = True
 				except NotImplementedError:
 					pass # we don't know
 
 				if not uptodate:
-					self._update_queue.append((path, checkcontent))
+					self._index_page_queue.append(path)
 
 		# Check if listing is uptodate
 		uptodate = False
 		try:
-			current = self.notebook.get_pagelist_indexkey(path)
-			if current and path.indexkey == current:
+			listkey = self.notebook.get_pagelist_indexkey(path)
+			if listkey and path.childrenkey == listkey:
 				uptodate = True
-		except NotImplementedError:
-			pass # we don't know
+		except (KeyError, NotImplementedError):
+			# TODO: we catch the KeyError here in case we get a path, e.g. roto,
+			#which has a manually contructed row, which does not contain 'childrenkey'
+			listkey = None # we don't know
 
 		cursor = self.db.cursor()
 		cursor.execute('select * from pages where parent==?', (path.id,))
@@ -416,13 +448,15 @@ class Index(gobject.GObject):
 						child = IndexPath(page.name, indexpath,
 							{'hascontent': page.hascontent, 'haschildren': page.haschildren})
 						changes.append((child, 1))
-						check_and_queue(child)
+						if page.haschildren:
+							self._update_pagelist_queue.append(child)
+						if page.hascontent:
+							self._index_page_queue.append(child)
 
-				# Update index key to reflect we did our updates - TODO
-				#~ if not current is None:
-					#~ self.db.execute(
-						#~ 'update pages set childrenkey = ? where id == ?',
-						#~ (path.id, current) )
+				# Update index key to reflect we did our updates
+				self.db.execute(
+					'update pages set childrenkey = ? where id == ?',
+					(listkey, path.id) )
 
 				if path.isroot:
 					self.db.commit()
@@ -517,6 +551,15 @@ class Index(gobject.GObject):
 				parentid = row['id']
 
 		return IndexPath(path.name, indexpath, row)
+
+	def lookup_data(self, path):
+		'''Returns a full IndexPath for a IndexPath that has 'hasdata'
+		set to False.
+		'''
+		cursor = self.db.cursor()
+		cursor.execute('select * from pages where id==?', (path.id,))
+		path._row = cursor.fetchone()
+		return path
 
 	def lookup_id(self, id):
 		'''Returns an IndexPath for an index id'''
