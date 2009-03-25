@@ -38,10 +38,10 @@ for bullet in bullets:
 parser_re = {
 	'blockstart': re.compile("\A(''')\s*?\n"),
 	'pre':        re.compile("\A'''\s*?(^.*?)^'''\s*\Z", re.M | re.S),
-	'splithead':  re.compile('^(==+[^\n\S]+\S.*?\n)', re.M),
-	'heading':    re.compile("\A((==+)\s+(.*?)(\s+==+)?\s*)\Z"),
-	'splitlist':  re.compile("((?:^\s*(?:%s)\s+.*\n?)+)" % BULLET, re.M),
-	'listitem':   re.compile("^(\s*)(%s)\s+(.*\n?)" % BULLET),
+	'splithead':  re.compile('^(==+[ \t]+\S.*?\n)', re.M),
+	'heading':    re.compile("\A((==+)[ \t]+(.*?)([ \t]+==+)?[ \t]*\n?)\Z"),
+	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % BULLET, re.M),
+	'listitem':   re.compile("^([ \t]*)(%s)[ \t]+(.*\n?)" % BULLET),
 
 	# All the experssions below will match the inner pair of
 	# delimiters if there are more then two characters in a row.
@@ -107,7 +107,7 @@ class Parser(ParserClass):
 			builder.start('page')
 		else:
 			paras.pop(0)
-			if paras[0].isspace:
+			if paras and paras[0].isspace:
 				paras.pop(0)
 			builder.start('page', headers)
 
@@ -173,7 +173,7 @@ class Parser(ParserClass):
 
 		for line in list.splitlines():
 			m = parser_re['listitem'].match(line)
-			assert m, 'Line does not match a list item: %s' % line
+			assert m, 'Line does not match a list item: >>%s<<' % line
 			prefix, bullet, text = m.groups()
 
 			mylevel = prefix.replace(' '*TABSTOP, '\t').count('\t')

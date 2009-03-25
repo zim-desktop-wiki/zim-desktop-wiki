@@ -187,7 +187,7 @@ class HeadersDict(ListDict):
 		Raises a ParsingError when 'text' is not a valid header block.
 		Trailing whitespace is ignored.
 		'''
-
+		header = None
 		for line in text.rstrip().splitlines():
 			is_header = self._is_header_re.match(line)
 			if is_header:
