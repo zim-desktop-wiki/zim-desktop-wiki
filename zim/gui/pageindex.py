@@ -30,12 +30,16 @@ class PageTreeStore(gtk.GenericTreeModel):
 	def __init__(self, index):
 		gtk.GenericTreeModel.__init__(self)
 		self.index = index
+		#~ def log(o, p, m): print '!!', m, p, p._indexpath
+		#~ index.connect('page-inserted', log, 'page-inserted')
 		index.connect('page-inserted',
 			lambda o, p: self.emit('row-inserted',
 				self.get_treepath(p), self.create_tree_iter(p)))
+		#~ index.connect('page-updated', log, 'page-updated')
 		index.connect('page-updated',
 			lambda o, p: self.emit('row-changed',
 				self.get_treepath(p), self.create_tree_iter(p)))
+		#~ index.connect('page-haschildren-toggled', log, 'page-haschildren-toggled')
 		index.connect('page-haschildren-toggled',
 			lambda o, p: self.emit('row-has-child-toggled',
 				self.get_treepath(p), self.create_tree_iter(p)))

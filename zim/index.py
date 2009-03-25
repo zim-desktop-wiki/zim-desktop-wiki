@@ -351,7 +351,7 @@ class Index(gobject.GObject):
 
 		TODO: emit a signal for this for plugins to use
 		'''
-		#~ print 'INDEX PAGE', path
+		#~ print '!! INDEX PAGE', path, path._indexpath
 		assert isinstance(path, IndexPath) and not path.isroot
 		try:
 			self.db.execute('delete from links where source == ?', (path.id,))
@@ -383,7 +383,7 @@ class Index(gobject.GObject):
 		child pages for updating based on "checkcontents" and whether
 		the child has children itself. Called indirectly by update().
 		'''
-		#~ print 'UPDATE LIST', path
+		#~ print '!! UPDATE LIST', path, path._indexpath
 		assert isinstance(path, IndexPath)
 
 		def check_and_queue(path):
@@ -416,9 +416,14 @@ class Index(gobject.GObject):
 		cursor = self.db.cursor()
 		cursor.execute('select * from pages where parent==?', (path.id,))
 
+		if path.isroot:
+			indexpath = ()
+		else:
+			indexpath = path._indexpath
+
 		if uptodate:
 			for row in cursor:
-				p = IndexPath(path.name+':'+row['basename'], path._indexpath+(row['id'],), row)
+				p = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],), row)
 				check_and_queue(p)
 		else:
 			children = {}
@@ -432,7 +437,7 @@ class Index(gobject.GObject):
 					if page.basename in children:
 						# TODO: check if hascontent and haschildren are correct, update if incorrect + append to changes
 						row = children[page.basename]
-						p = IndexPath(path.name+':'+row['basename'], path._indexpath+(row['id'],), row)
+						p = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],), row)
 						check_and_queue(p)
 					else:
 						# We set haschildren to False untill we have actualy seen those
@@ -444,8 +449,7 @@ class Index(gobject.GObject):
 						cursor.execute(
 							'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
 							(page.basename, path.id, page.hascontent, False))
-						indexpath = path._indexpath + (cursor.lastrowid,)
-						child = IndexPath(page.name, indexpath,
+						child = IndexPath(page.name, indexpath + (cursor.lastrowid,),
 							{'hascontent': page.hascontent, 'haschildren': page.haschildren})
 						changes.append((child, 1))
 						if page.haschildren:
@@ -689,13 +693,73 @@ class Index(gobject.GObject):
 		# TODO optimize this one
 		return len(list(self.list_links(path, direction)))
 
-	def get_previous(self, path):
-		'''Returns the next page in the index, crossing namespaces'''
-		# TODO get_previous
+	def get_previous(self, path, recurs=True):
+		'''Returns the previous page in the index. If 'recurs' is False it stays
+		in the same namespace as path, but by default it crossing namespaces and
+		walks the whole tree.
+		'''
+		path = self.lookup_path(path)
+		if path is None or path.isroot:
+			return None
 
-	def get_next(self, path):
-		'''Returns the next page in the index, crossing namespaces'''
-		# TODO get_next
+		if not recurs:
+			return self._get_prev(path)
+		else:
+			prev = self._get_prev(path)
+			if prev is None:
+				# climb one up to parent
+				parent = path.get_parent()
+				if not parent.isroot:
+					prev = parent
+			else:
+				# decent to deepest child of previous path
+				while prev.haschildren:
+					prev = self.list_pages(prev)[-1]
+			return prev
+
+	def _get_prev(self, path):
+		'''Atomic function for get_previous()'''
+		pagelist = self.list_pages(path.get_parent())
+		i = pagelist.index(path)
+		if i > 0:
+			return pagelist[i-1]
+		else:
+			return None
+
+	def get_next(self, path, recurs=True):
+		'''Returns the next page in the index. If 'recurs' is False it stays
+		in the same namespace as path, but by default it crossing namespaces and
+		walks the whole tree.
+		'''
+		path = self.lookup_path(path)
+		if path is None or path.isroot:
+			return None
+
+		if not recurs:
+			return self._get_next(path)
+		elif path.haschildren:
+			# decent to first child
+			return self.list_pages(path)[0]
+		else:
+			next = self._get_next(path)
+			if next is None:
+				# climb up to the first parent that has a next path
+				for parent in path.parents():
+					if parent.isroot:
+						break
+					next = self._get_next(parent)
+					if next:
+						break
+			return next
+
+	def _get_next(self, path):
+		'''Atomic function for get_next()'''
+		pagelist = self.list_pages(path.get_parent())
+		i = pagelist.index(path)
+		if i+1 < len(pagelist):
+			return pagelist[i+1]
+		else:
+			return None
 
 
 # Need to register classes defining gobject signals

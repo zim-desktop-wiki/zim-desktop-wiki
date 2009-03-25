@@ -161,8 +161,10 @@ class Dir(Path):
 		'''FIXME'''
 		# TODO check notes on handling encodings in os.listdir
 		if self.exists():
-			return [f.decode('utf8')
+			files = [f.decode('utf8')
 				for f in os.listdir(self.path) if not f.startswith('.')]
+			files.sort()
+			return files
 		else:
 			return []
 

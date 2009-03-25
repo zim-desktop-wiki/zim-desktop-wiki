@@ -11,6 +11,22 @@ from zim.index import Index, IndexPath, LINK_DIR_BACKWARD, LINK_DIR_BOTH
 from zim.notebook import Notebook, Path, Link
 from zim.gui.pageindex import PageTreeStore
 
+
+def get_files_notebook():
+	# We fill the notebook using the store interface, as this test comes before
+	# the notebook test, but after the store test.
+	dir = Dir(tests.create_tmp_dir('index_TestIndexFiles'))
+	notebook = Notebook(path=dir)
+	store = notebook.get_store(':')
+	manifest = []
+	for name, text in tests.get_notebook_data('wiki'):
+		manifest.append(name)
+		page = store.get_page(Path(name))
+		page.set_text('wiki', text)
+	notebook.testdata_manifest = tests.expand_manifest(manifest)
+	return notebook
+
+
 class TestIndex(tests.TestCase):
 
 	def setUp(self):
@@ -20,7 +36,6 @@ class TestIndex(tests.TestCase):
 		self.index = Index(dbfile=':memory:')
 		self.notebook = tests.get_test_notebook()
 		self.index.set_notebook(self.notebook)
-		self.manifest = self.notebook.testdata_manifest
 
 	def runTest(self):
 		'''Test indexing'''
@@ -52,6 +67,9 @@ class TestIndex(tests.TestCase):
 		self.assertTrue(len(pagelist) > 0)
 		pagelist = self.index.list_pages(Path('Test'))
 		self.assertTrue(len(pagelist) > 0)
+		for page in pagelist:
+			self.assertTrue(page.name.startswith('Test:'))
+			self.assertTrue(page.name.count(':') == 1)
 		pagelist = self.index.list_pages(Path('Some:Non:Existing:Path'))
 		self.assertTrue(len(pagelist) == 0)
 
@@ -79,7 +97,7 @@ class TestIndex(tests.TestCase):
 			return len(r)
 
 		# repeat update() to check if update is stable
-		manifest = len(self.manifest)
+		manifest = len(self.notebook.testdata_manifest)
 		self.assertEqual(count_pages(self.index.db), manifest)
 		self.index.update(checkcontents=False)
 		self.assertEqual(count_pages(self.index.db), manifest)
@@ -106,28 +124,25 @@ class TestIndexFiles(TestIndex):
 	slowTest = True
 
 	def setUp(self):
-		dir = Dir(tests.create_tmp_dir('index_TestIndexFiles'))
-		self.notebook = Notebook(path=dir)
+		self.notebook = get_files_notebook()
 		self.index = self.notebook.index
-		store = self.notebook.get_store(':')
-		manifest = []
-		for name, text in tests.get_notebook_data('wiki'):
-			manifest.append(name)
-			page = store.get_page(Path(name))
-			page.set_text('wiki', text)
-		self.manifest = tests.expand_manifest(manifest)
 
 
 class TestPageTreeStore(tests.TestCase):
 
+	def setUp(self):
+		self.index = Index(dbfile=':memory:')
+		self.notebook = tests.get_test_notebook()
+		self.index.set_notebook(self.notebook)
+
 	def runTest(self):
 		'''Test PageTreeStore index interface'''
-		index = Index(dbfile=':memory:')
-		notebook = tests.get_test_notebook()
-		index.set_notebook(notebook)
-		index.update()
+		# This is one big test instead of seperate sub tests because in the
+		# subclass we generate a file based notebook in setUp, and we do not
+		# want to do that many times
 
-		treestore = PageTreeStore(index)
+		self.index.update()
+		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 1)
 
@@ -153,7 +168,7 @@ class TestPageTreeStore(tests.TestCase):
 		# Now walk through the whole notebook testing the API
 		# with nested pages and stuff
 		path = []
-		for page in notebook.walk():
+		for page in self.notebook.walk():
 			names = page.name.split(':')
 			if len(names) > len(path):
 				path.append(0)
@@ -197,3 +212,18 @@ class TestPageTreeStore(tests.TestCase):
 				self.assertTrue(child is None)
 				child = treestore.iter_nth_child(iter, 0)
 				self.assertTrue(child is None)
+
+		# Check if all the signals go OK
+		del treestore
+		self.index.flush()
+		treestore = PageTreeStore(self.index)
+		self.index.update()
+
+
+class TestPageTreeStoreFiles(TestPageTreeStore):
+
+	slowTest = True
+
+	def setUp(self):
+		self.notebook = get_files_notebook()
+		self.index = self.notebook.index

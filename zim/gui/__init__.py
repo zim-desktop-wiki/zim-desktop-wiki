@@ -520,20 +520,10 @@ class GtkInterface(NotebookInterface):
 		self.spawn('zim', '--server', '--gui', self.notebook.name)
 
 	def reload_index(self):
-		cont = True
-		def on_cancel():
-			cont = False
-			print '!!!!!!\n'*3, 'SET', cont
-		dialog = ProgressBarDialog(self, 'Updating index', on_cancel)
+		dialog = ProgressBarDialog(self, 'Updating index')
 		dialog.msg_label.set_ellipsize(pango.ELLIPSIZE_START)
 		dialog.show_all()
-		def on_callback(path):
-			dialog.pulse(msg=path.name)
-			while gtk.events_pending():
-				gtk.main_iteration(block=False)
-			print 'RETURNING', cont
-			return cont
-		self.notebook.index.update(callback=on_callback)
+		self.notebook.index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
 
 	def show_help(self, page=None):
@@ -1124,14 +1114,15 @@ class ProgressBarDialog(gtk.Dialog):
 	like a normal Dialog. These dialogs are only supposed to run modal, but are
 	not called with run() as there is typically a background action giving them
 	callbacks. They _always_ should implement a cancel action to break the
-	background process.
+        background process, either be overloadig this class, or by checking the
+	return value of pulse().
 
-	TODO: also support perentage mode
+	TODO: also support percentage mode
 	'''
 
-	def __init__(self, ui, text, cancel_callback):
+	def __init__(self, ui, text):
 		self.ui = ui
-		self.cancel_callback = cancel_callback
+		self.cancelled = False
 		gtk.Dialog.__init__(
 			# no title - see HIG about message dialogs
 			self, parent=get_window(self.ui),
@@ -1156,9 +1147,19 @@ class ProgressBarDialog(gtk.Dialog):
 		self.vbox.pack_start(self.msg_label, False)
 
 	def pulse(self, msg=None):
+		'''Sets an optional message and moves forward the progress bar. Will also 
+		handle all pending Gtk events, so interface keeps responsive during a background
+		job. This method returns True untill the 'Cancel' button has been pressed, this
+		boolean could be used to decide if the ackground job should continue or not.
+		'''
 		self.progressbar.pulse()
 		if not msg is None:
 			self.msg_label.set_markup('<i>'+msg+'</i>')
+
+		while gtk.events_pending():
+			gtk.main_iteration(block=False)
+
+		return not self.cancelled
 
 	def show_all(self):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
@@ -1168,12 +1169,11 @@ class ProgressBarDialog(gtk.Dialog):
 	def do_response(self, id):
 		'''Handles the response signal and calls the 'cancel' callback.'''
 		logger.debug('ProgressBarDialog get response %s', id)
-		if self.cancel_callback is None:
-			self.destroy()
-		else:
-			self.cancel_callback()
+		self.cancelled = True
 
-#		logger.debug('Closed ProgressBarDialog') # FIXME needs to go in other place - also catch programmatic close
+	#def do_destroy(self):
+	#	logger.debug('Closed ProgressBarDialog')
+		
 
 # Need to register classes defining gobject signals
 gobject.type_register(ProgressBarDialog)

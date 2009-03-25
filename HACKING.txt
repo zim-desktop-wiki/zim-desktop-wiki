@@ -116,6 +116,10 @@ Other general guidelines:
 * Task list icon
 * LinkMap icon - re-use red boxes from zim logo ?
 
+== BUGS ==
+
+* Pressing Alt-PgUp / PgDwn or Alt-Left / Alt-Right to fast causes a segfault
+
 == Milestone 0.42-alpha1 for Zim ==
 
 * Package in such a way that it is not installable !
@@ -127,8 +131,7 @@ Must have:
 [*] Support rendering checkbox lists
 [*] Support rendering images
 [*] View menu complete
-[ ] Working index on sqlite
-	[ ] Fix get_next and get_previous
+[*] Working index on sqlite
 [*] LinkMap plugin
 [*] Working history
 [*] Go menu complete
