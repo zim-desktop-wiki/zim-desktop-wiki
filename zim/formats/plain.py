@@ -6,8 +6,8 @@
 
 import re
 
-from zim.fs import *
 from zim.formats import *
+from zim.parsing import TextBuffer
 
 info = {
 	'name':  'Plain text',
@@ -27,27 +27,25 @@ class Parser(ParserClass):
 
 	def parse(self, input):
 		'''FIXME'''
-		assert isinstance(input, (File, Buffer))
+		if isinstance(input, basestring):
+			input = input.splitlines(True)
+
 		page = Element('page')
 		para = SubElement(page, 'p')
-
-		file = input.open('r')
-		para.text = file.read()
-		file.close()
+		para.text = ''.join(input)
 
 		return ParseTree(page)
 
 
 class Dumper(DumperClass):
 
-	def dump(self, tree, output):
+	def dump(self, tree):
 		'''FIXME'''
 		assert isinstance(tree, ParseTree)
-		assert isinstance(output, (File, Buffer))
-		file = output.open('w')
 
+		output = TextBuffer()
 		for element in tree.getiterator():
 			if not element.text is None:
-				file.write(element.text)
+				output.append(element.text)
 
-		file.close()
+		return output.get_lines()

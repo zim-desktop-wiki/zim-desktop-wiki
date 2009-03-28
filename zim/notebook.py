@@ -447,14 +447,14 @@ class Page(Path):
 		if self.source:
 			return self.source.exists()
 		else:
-			return self._tree
+			return bool(self._tree)
 
 	def get_parsetree(self):
 		'''Returns contents as a parse tree or None'''
 		if self.source:
 			if self.source.exists():
 				parser = self.format.Parser()
-				tree = parser.parse(self.source)
+				tree = parser.parse(self.source.readlines())
 				return tree
 			else:
 				return None
@@ -468,21 +468,21 @@ class Page(Path):
 
 		if self.source:
 			dumper = self.format.Dumper()
-			dumper.dump(tree, self.source)
+			self.source.writelines(dumper.dump(tree))
 		else:
 			self._tree = tree
 
 	def get_text(self, format):
-		'''Convenience method that converts the parse tree to a particular
-		format.
+		'''Convenience method that converts the current parse tree to a 
+		particular format and returns a list of lines.
 		'''
 		tree = self.get_parsetree()
 		if tree:
 			import zim.formats
 			dumper = zim.formats.get_format(format).Dumper()
-			return dumper.tostring(tree)
+			return dumper.dump(tree)
 		else:
-			return ''
+			return []
 
 	def set_text(self, format, text):
 		'''Convenience method that parses 'text' and sets the parse tree
@@ -490,7 +490,7 @@ class Page(Path):
 		'''
 		import zim.formats
 		parser = zim.formats.get_format(format).Parser()
-		self.set_parsetree(parser.fromstring(text))
+		self.set_parsetree(parser.parse(text))
 
 	def get_links(self):
 		tree = self.get_parsetree()

@@ -10,7 +10,7 @@ import re
 import logging
 
 from zim.fs import *
-from zim.parsing import ParsingError
+from zim.parsing import TextBuffer, ParsingError
 
 logger = logging.getLogger('zim.config')
 
@@ -113,10 +113,14 @@ class ConfigList(ListDict):
 			file = config_file(self.path)
 			if not file.exists():
 				return
-		assert isinstance(file, (File, Buffer))
+		self.parse(file.readlines())
 
-		fh = file.open('r')
-		for line in fh:
+	def parse(self, text):
+		'''FIXME'''
+		if isinstance(text, basestring):
+			text = text.splitlines(True)
+		
+		for line in text:
 			line = line.strip()
 			if line.isspace() or line.startswith('#'):
 				continue
@@ -130,20 +134,21 @@ class ConfigList(ListDict):
 			for i in range(0, 2):
 				cols[i] = self.escaped_re.sub(r'\1', cols[i])
 			self[cols[0]] = cols[1]
-		fh.close()
 
 	def write(self, file=None):
 		'''FIXME'''
 		if file is None and self.path:
 			file = config_file(self.path)
-		assert isinstance(file, (File, Buffer))
+		file.writelines(self.dump())
 
-		fh = file.open('w')
+	def dump(self):
+		'''FIXME'''
+		text = TextBuffer()
 		for k, v in self.items():
 			k = self.escape_re.sub(r'\\\1', k)
 			v = self.escape_re.sub(r'\\\1', v)
-			fh.write("%s\t%s\n" % (k, v))
-		fh.close()
+			text.append("%s\t%s\n" % (k, v))
+		return text.get_lines()
 
 
 class ConfigDict(ListDict):

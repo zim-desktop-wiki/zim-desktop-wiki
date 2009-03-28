@@ -27,3 +27,10 @@ class TestParsing(TestCase):
 			self.assertEquals(re[2], 'bar')
 		else:
 			assert False, 'fail'
+
+	def testTextBuffer(self):
+		buffer = TextBuffer()
+		buffer += ['test 123\n test !', 'fooo bar\n', 'duss']
+		self.assertEqual(
+			buffer.get_lines(),
+			['test 123\n', ' test !fooo bar\n', 'duss\n'] )

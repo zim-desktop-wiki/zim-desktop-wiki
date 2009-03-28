@@ -199,13 +199,9 @@ class WWWInterface(NotebookInterface):
 	def render_page(self, page):
 		'''Serve a single page from the notebook'''
 		if self.template:
-			output = Buffer()
-			self.template.process(self.notebook, page, output)
-			html = output.getvalue()
+			return self.template.process(self.notebook, page)
 		else:
-			html = page.get_text(format='html')
-
-		return [html]
+			return page.get_text(format='html')
 
 
 class IndexPage(Page):

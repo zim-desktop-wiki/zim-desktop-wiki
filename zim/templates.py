@@ -14,7 +14,7 @@ Usage:
 	import zim.templates
 	tmpl = zim.templates.get_template('html', 'Default')
 	for page in notebook.get_root():
-		tmpl.process(page, sys.stdout)
+		sys.stdout.writelines( tmpl.process(page) )
 
 Template files are expected to be in a path
 XDG_DATA/zim/templates/FORMAT/
@@ -61,8 +61,9 @@ import logging
 
 import zim
 import zim.formats
+from zim.fs import File
 from zim.config import data_dirs
-from zim.parsing import Re, split_quoted_strings, unescape_quoted_string
+from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string
 from zim.index import LINK_DIR_BACKWARD
 
 logger = logging.getLogger('zim.templates')
@@ -92,7 +93,7 @@ def get_template(format, name):
 	#~ if not name in templates: FIXME exception type
 		#~ raise
 	file = templates[name]
-	return Template(file, format)
+	return Template(File(file).readlines(), format)
 
 
 class TemplateError(Exception):
@@ -121,31 +122,25 @@ class TemplateProcessError(TemplateError):
 class GenericTemplate(object):
 	'''Base template class'''
 
-	def __init__(self, input):
+	def __init__(self, input, name=None):
 		'''Constuctor takes a file path or an opened file handle'''
 		if isinstance(input, basestring):
-			self.name = input
-			input = open(input)
-		else:
-			self.name = '<open file>'
+			input = input.splitlines(True)
+		self.name = name or '<open file>'
 		self.lineno = 0
 		self.tokens = TemplateTokenList()
 		self.stack = [ self.tokens ]
 		self._parse(input)
 
-	def process(self, dict, output):
-		'''Process the template and write to output.
-
-			dict is used to get / set template parameter
-			output should be a path or file-like object
+	def process(self, dict):
+		'''Processes the template and returns a list of lines.
+		The dict is used to get / set template parameters.
 		'''
-		if isinstance(output, basestring):
-			output = open(output, 'w')
-
 		if not isinstance(dict, TemplateDict):
 			dict = TemplateDict(dict)
 
-		self.tokens.process(dict, output)
+		output = TextBuffer(self.tokens.process(dict))
+		return output.get_lines()
 
 	_token_re = Re(r'^([A-Z]+)(\s|$)')
 
@@ -227,27 +222,30 @@ class GenericTemplate(object):
 class Template(GenericTemplate):
 	'''Template class that can process a zim Page object'''
 
-	def __init__(self, input, format):
+	def __init__(self, input, format, name=None):
 		if isinstance(format, basestring):
 			format = zim.formats.get_format(format)
 		self.format = format
-		GenericTemplate.__init__(self, input)
+		GenericTemplate.__init__(self, input, name)
 
-	def process(self, notebook, page, output):
-		'''Output 'page' to a file path or file handle using this template'''
+	def process(self, notebook, page):
+		'''Processes the template with a dict giving a set a standard
+		parameters for 'page' and returns a list of lines.
+		'''
 		dict = {
 			'zim': { 'version': zim.__version__ },
 			'page': PageProxy(notebook, page, self.format),
 			'strftime': TemplateFunction(self.strftime),
 			'url': TemplateFunction(self.url)
 		}
-		GenericTemplate.process(self, dict, output)
+		output = GenericTemplate.process(self, dict)
 
 		# Caching last processed dict because any pages in the dict
 		# will be cached using a weakref dict. Assuming we process multiple
 		# pages after each other, and they share links like home / previous /
 		# next etc. this will is a cheap optimization.
 		self._last_dict = dict
+		return output
 
 	@staticmethod
 	def strftime(dict, format, timestamp):
@@ -262,15 +260,18 @@ class Template(GenericTemplate):
 class TemplateTokenList(list):
 	'''This class contains a list of TemplateToken objects and strings'''
 
-	def process(self, dict, output):
+	def process(self, dict):
 		'''Recursively calls "process()" on the TemplateToken objects
 		and prints out any strings in the list.
 		'''
+		output = []
 		for token in self:
 			if isinstance(token, TemplateToken):
-				token.process(dict, output)
+				output.extend(token.process(dict))
 			else:
-				output.write(token)
+				output.append(token)
+
+		return output
 
 
 class TemplateToken(object):
@@ -318,10 +319,12 @@ class GETToken(TemplateToken):
 	def __init__(self, string):
 		self.expr = self.parse_expr(string)
 
-	def process(self, dict, out):
+	def process(self, dict):
 		value = self.expr.evaluate(dict)
 		if value:
-			out.write(unicode(value).encode('utf8'))
+			return [unicode(value).encode('utf8')]
+		else:
+			return []
 
 
 class SETToken(TemplateToken):
@@ -333,8 +336,9 @@ class SETToken(TemplateToken):
 		self.param = TemplateParam(var.strip())
 		self.expr = self.parse_expr(val)
 
-	def process(self, dict, out):
+	def process(self, dict):
 		dict[self.param] = self.expr.evaluate(dict)
+		return []
 
 
 class IFToken(TemplateToken):
@@ -349,7 +353,7 @@ class IFToken(TemplateToken):
 		self.if_block = TemplateTokenList()
 		self.else_block = TemplateTokenList()
 
-	def process(self, dict, out):
+	def process(self, dict):
 		var = self.expr.evaluate(dict)
 		if not self.val is None:
 			val = self.val.evaluate(dict)
@@ -358,9 +362,9 @@ class IFToken(TemplateToken):
 			bool = var
 
 		if bool:
-			self.if_block.process(dict, out)
+			return self.if_block.process(dict)
 		else:
-			self.else_block.process(dict, out)
+			return self.else_block.process(dict)
 
 
 class FOREACHToken(TemplateToken):
@@ -375,13 +379,15 @@ class FOREACHToken(TemplateToken):
 		self.expr = self.parse_expr(val)
 		self.foreach_block = TemplateTokenList()
 
-	def process(self, dict, out):
+	def process(self, dict):
 		values = self.expr.evaluate(dict)
 		# FIXME how to check if values is iterable ?
+		output = []
 		for value in values:
 			dict[self.param] = value
-			self.foreach_block.process(dict, out)
+			output.extend(self.foreach_block.process(dict))
 
+		return output
 
 class TemplateLiteral(unicode):
 
@@ -580,10 +586,9 @@ class PageProxy(object):
 	@property
 	def backlinks(self):
 		blinks = self._notebook.index.list_links(self._page, LINK_DIR_BACKWARD)
-		for type, name in blinks:
-			if type == 'page':
-				page = self._notebook.get_page(name)
-				yield PageProxy(self._notebook, page)
+		#~ for link in blinks:
+		#~	page = self._notebook.get_page(link.href)
+		#~	yield PageProxy(self._notebook, page)
 
 
 class ParseTreeProxy(object):
@@ -600,4 +605,4 @@ class ParseTreeProxy(object):
 	def body(self):
 		format = self._pageproxy._format
 		page = self._pageproxy._page
-		return format.Dumper().tostring(self._tree)
+		return ''.join(format.Dumper().dump(self._tree))

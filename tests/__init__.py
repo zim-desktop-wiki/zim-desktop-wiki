@@ -104,6 +104,7 @@ class TestCase(unittest.TestCase):
 	def assertEqualDiff(self, first, second, msg=None):
 		'''Fail if the two strings are unequal as determined by
 		the '==' operator. On failure shows a diff of both strings.
+		Alternatively the arguments can be lists of lines.
 		'''
 		if msg is None:
 			msg = u'Strings differ:'
@@ -112,19 +113,22 @@ class TestCase(unittest.TestCase):
 		if not first == second:
 			#~ print '>>>>\n'+first+'=====\n'+second+'<<<<\n'
 			if not first:
-				msg += ' first string is empty'
+				msg += ' first text is empty'
 			elif not second:
-				msg += ' second string is empty'
+				msg += ' second text is empty'
 			elif not type(first) == type(second):
 				types = type(first), type(second)
 				msg += ' types differ, %s and %s' % types
 			else:
 				from difflib import Differ
-				diff = Differ().compare(
-					second.splitlines(), first.splitlines() )
+				if isinstance(first, basestring):
+					first = first.splitlines(True)
+				if isinstance(second, basestring):
+					second = first.splitlines(True)
+				diff = Differ().compare(second, first)
 				# switching first and second, because usually second
 				# is the reference we are testing against
-				msg += '\n' + '\n'.join(diff)
+				msg += '\n' + ''.join(diff)
 			raise self.failureException, msg.encode('utf8')
 
 

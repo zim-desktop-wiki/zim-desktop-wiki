@@ -53,10 +53,7 @@ This is a core plugin shipping with zim.
 
 	def print_to_browser(self):
 		file = '/tmp/pyzim-print-to-browser.html' # FIXME use proper interface to get tmp file
-		#output = File(file)
-		output = Buffer()
 		template = zim.templates.get_template('html', 'Print')
-		template.process(self.ui.notebook, self.ui.page, output)
-		# TODO figure out why output directly to file doesn't work
-		File(file).write(output.getvalue())
+		html = template.process(self.ui.notebook, self.ui.page)
+		File(file).writelines(html)
 		webbrowser.open('file://%s' % file)

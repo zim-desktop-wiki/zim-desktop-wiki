@@ -55,8 +55,6 @@ to a title or subtitle in the document.
 import re
 import logging
 
-from zim.fs import Buffer
-
 logger = logging.getLogger('zim.formats')
 
 # Needed to determine RTL, but may not be available
@@ -76,8 +74,6 @@ except:  # pragma: no cover
 	import xml.etree.ElementTree as ElementTreeModule
 	from xml.etree.ElementTree import \
 		Element, SubElement, TreeBuilder
-
-from zim.fs import Buffer
 
 
 def get_format(name):
@@ -102,12 +98,13 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 	def tostring(self):
 		'''Serialize the tree to a XML representation.'''
+		from cStringIO import StringIO
 
 		# Parent dies when we have attributes that are not a string
 		for element in self.getiterator('h'):
 			element.attrib['level'] = str(element.attrib['level'])
 
-		xml = Buffer()
+		xml = StringIO()
 		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")
 		ElementTreeModule.ElementTree.write(self, xml, 'utf-8')
 		return xml.getvalue()
@@ -170,12 +167,9 @@ class ParserClass(object):
 	'Parser' which inherits from this base class.
 	'''
 
-	def parse(self, file):
+	def parse(self, input):
 		'''FIXME'''
 		raise NotImplementedError
-
-	def fromstring(self, text):
-		return self.parse(Buffer(text))
 
 
 class DumperClass(object):
@@ -185,14 +179,9 @@ class DumperClass(object):
 	'Dumper' which inherits from this base class.
 	'''
 
-	def dump(self, tree, file):
+	def dump(self, tree):
 		'''FIXME'''
 		raise NotImplementedError
-
-	def tostring(self, tree):
-		buffer = Buffer()
-		self.dump(tree, buffer)
-		return buffer.getvalue()
 
 	def isrtl(self, element):
 		'''Returns True if the parse tree below element starts with

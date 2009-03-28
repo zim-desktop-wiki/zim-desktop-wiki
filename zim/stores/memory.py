@@ -11,7 +11,6 @@ FIXME document subclassing
 '''
 
 from zim import formats
-from zim.fs import Buffer
 from zim.notebook import Page
 from zim.stores import StoreClass
 
@@ -71,9 +70,11 @@ class Store(StoreClass):
 			text = node[1]
 			haschildren = len(node[2])
 
-		on_write = lambda b: self._set_node(path, b.getvalue())
-		source = Buffer(text, on_write=on_write)
-		return Page(path, haschildren, source=source, format=self.format)
+		#~ on_write = lambda b: self._set_node(path, b.getvalue())
+		page = Page(path, haschildren)
+		if text:
+			page.set_parsetree(self.format.Parser().parse(text))
+		return page
 
 	def get_pagelist(self, path):
 		if path == self.namespace:

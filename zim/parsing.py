@@ -131,3 +131,14 @@ def link_type(link):
 	else: type = 'page'
 	# TODO interwiki
 	return type
+
+
+class TextBuffer(list):
+	'''List of strings.'''
+
+	def get_lines(self):
+		'''Returns a proper list of lines'''
+		lines = ''.join(self).splitlines(True)
+		if lines and not lines[-1].endswith('\n'):
+			lines[-1] += '\n'
+		return lines

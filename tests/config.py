@@ -4,7 +4,6 @@
 
 from tests import TestCase
 
-from zim.fs import Buffer
 from zim.config import *
 
 
@@ -32,12 +31,11 @@ some\ space\the\ re
 '''
 		keys = ['foo', 'dusss', 'some space']
 		mydict = ConfigList()
-		mydict.read(Buffer(input))
+		mydict.parse(input)
 		mykeys = [k for k, v in mydict.items()]
 		self.assertEquals(mykeys, keys)
-		result = Buffer()
-		mydict.write(result)
-		self.assertEquals(result.getvalue(), output)
+		result = mydict.dump()
+		self.assertEqualDiff(result, output.splitlines(True))
 
 class TestHeaders(TestCase):
 

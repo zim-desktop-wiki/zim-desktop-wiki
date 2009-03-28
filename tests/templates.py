@@ -10,7 +10,6 @@ from tests import TestCase
 import os
 
 import zim
-from zim.fs import *
 from zim.templates import *
 from zim.templates import GenericTemplate, \
 	TemplateParam, TemplateDict, TemplateFunction, PageProxy
@@ -49,7 +48,7 @@ class TestGenericTemplate(TestCase):
 
 	def testSyntax(self):
 		'''Test Template processing simple statements without page'''
-		file = Buffer('''
+		input = '''
 [%- SET test  = "foo"  -%]
 [%- SET true  = "true" -%]
 [%- SET false = ""     -%]
@@ -72,9 +71,9 @@ NOK
 [% numbers = ['1', '2', '3'] -%]
 [% FOREACH n IN numbers %][% n %]...[% END %]
 ---
-''')
+'''
 
-		result = u'''\
+		wantedresult = u'''\
 ---
 <b>foo</b>
 <i></i>
@@ -90,32 +89,28 @@ NOK
 1...2...3...
 ---
 '''
-		test = Buffer()
-		tmpl = GenericTemplate(file)
+		tmpl = GenericTemplate(input)
 		#~ import pprint
 		#~ pprint.pprint( tmpl.tokens )
 		dict = { 'upper': TemplateFunction(lambda d, *a: a[0].upper()) }
-		tmpl.process(dict, test)
+		result = tmpl.process(dict)
 		#~ print test.getvalue()
-		self.assertEqualDiff(test.getvalue(), result)
+		self.assertEqualDiff(result, wantedresult.splitlines(True))
 
 	def testRaise(self):
 		'''Test Template invalid syntax raises TemplateError'''
-		#~ file = Buffer('foo[% ELSE %]bar')
-		#~ try: Template(file, 'html')
-		#~ except TemplateSyntaxError, error: print error
-		file = Buffer('foo[% ELSE %]bar')
-		self.assertRaises(TemplateSyntaxError, GenericTemplate, file)
+		input = 'foo[% ELSE %]bar'
+		self.assertRaises(TemplateSyntaxError, GenericTemplate, input)
 
-		file = Buffer('foo[% FOREACH foo = ("1", "2", "3") %]bar')
-		self.assertRaises(TemplateSyntaxError, GenericTemplate, file)
+		input = 'foo[% FOREACH foo = ("1", "2", "3") %]bar'
+		self.assertRaises(TemplateSyntaxError, GenericTemplate, input)
 
-		file = Buffer('foo[% `echo /etc/passwd` %]bar')
-		self.assertRaises(TemplateSyntaxError, GenericTemplate, file)
+		input = 'foo[% `echo /etc/passwd` %]bar'
+		self.assertRaises(TemplateSyntaxError, GenericTemplate, input)
 
-		file = Buffer('foo[% duss("ja") %]bar')
-		templ = GenericTemplate(file)
-		self.assertRaises(TemplateProcessError, templ.process, {}, Buffer())
+		input = 'foo[% duss("ja") %]bar'
+		templ = GenericTemplate(input)
+		self.assertRaises(TemplateProcessError, templ.process, {})
 
 
 class TestTemplateSet(TestCase):
@@ -159,14 +154,14 @@ class TestPageProxy(TestCase):
 class TestTemplate(TestCase):
 
 	def runTest(self):
-		file = Buffer(u'''\
+		input = u'''\
 Version [% zim.version %]
 <title>[% page.title %]</title> FIXME
 <h1>[% page.name %]</h1>
 <h2>[% page.heading %]</h2> FIXME
 [% page.body %]
-''' )
-		result = u'''\
+'''
+		wantedresult = u'''\
 Version %s
 <title>FooBar</title> FIXME
 <h1>FooBar</h1>
@@ -183,6 +178,5 @@ Version %s
 **foo bar !**
 ''')
 		self.assertTrue(len(page.get_text('html')) > 0)
-		output = Buffer()
-		Template(file, 'html').process(Notebook(), page, output)
-		self.assertEqualDiff(output.getvalue(), result)
+		result = Template(input, 'html').process(Notebook(), page)
+		self.assertEqualDiff(result, wantedresult.splitlines(True))

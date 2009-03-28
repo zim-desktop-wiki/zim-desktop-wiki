@@ -6,7 +6,6 @@
 
 from tests import TestCase, get_test_page
 
-from zim.fs import *
 from zim.formats import *
 from zim.notebook import Link
 
@@ -122,21 +121,20 @@ class TestTextFormat(TestCase):
 
 	def testRoundtrip(self):
 		# First using file interface
-		tree = self.format.Parser().parse( Buffer(wikitext) )
+		tree = self.format.Parser().parse(wikitext)
 		self.assertTrue(isinstance(tree, ParseTree))
 		self.assertTrue(tree.getroot().tag == 'page')
 		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
-		output = Buffer()
-		self.format.Dumper().dump(tree, output)
-		self.assertEqualDiff(output.getvalue(), wikitext)
+		output = self.format.Dumper().dump(tree)
+		self.assertEqualDiff(output, wikitext.splitlines(True))
 
 		# Next the same test usiing string interface
-		tree = self.format.Parser().fromstring(wikitext)
+		tree = self.format.Parser().parse(wikitext)
 		self.assertTrue(isinstance(tree, ParseTree))
 		self.assertTrue(tree.getroot().tag == 'page')
 		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
-		output = self.format.Dumper().tostring(tree)
-		self.assertEqualDiff(output, wikitext)
+		output = self.format.Dumper().dump(tree)
+		self.assertEqualDiff(output, wikitext.splitlines(True))
 
 
 class TestWikiFormat(TestTextFormat):
@@ -155,12 +153,11 @@ Modification-Date: Wed, 06 Aug 2008 22:17:29 +0200
 
 foo bar
 '''
-		tree = self.format.Parser().parse( Buffer(text) )
+		tree = self.format.Parser().parse(text)
 		#~ print '>>>\n'+tostring(tree)+'\n<<<\n'
 		self.assertEquals(tree.getroot().attrib['Content-Type'], 'text/x-zim-wiki')
-		output = Buffer()
-		self.format.Dumper().dump(tree, output)
-		self.assertEqualDiff(output.getvalue(), text)
+		output = self.format.Dumper().dump(tree)
+		self.assertEqualDiff(output, text.splitlines(True))
 
 	def testParsing(self):
 		'''Test wiki parse tree generation.'''
@@ -205,7 +202,7 @@ This is not a header
 </p>
 <p>That's all ...
 </p></page>'''
-		t = self.format.Parser().parse( Buffer(wikitext) )
+		t = self.format.Parser().parse(wikitext)
 		self.assertEqualDiff(t.tostring(), tree)
 
 
@@ -226,14 +223,13 @@ A list
 	* bar
 	* baz
 '''
-		tree = self.format.Parser().parse( Buffer(input) )
-		output = Buffer()
-		self.format.Dumper().dump(tree, output)
-		self.assertEqualDiff(output.getvalue(), text)
+		tree = self.format.Parser().parse(input)
+		output = self.format.Dumper().dump(tree)
+		self.assertEqualDiff(output, text.splitlines(True))
 
 	def testLink(self):
 		text = '[[FooBar]]' # FIXME add link type
-		tree = self.format.Parser().parse( Buffer(text) )
+		tree = self.format.Parser().parse(text)
 		done = False
 		for tag in tree.getiterator('link'):
 			link = Link(self.page, **tag.attrib)
@@ -253,10 +249,9 @@ class TestHtmlFormat(TestCase):
 		para = SubElement(page, 'p')
 		para.text = '<foo>"foo" & "bar"</foo>'
 		tree = ParseTree(page)
-		html = Buffer()
-		self.format.Dumper().dump(tree, html)
-		self.assertEqual(html.getvalue(),
-			'<p>\n&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;</p>\n' )
+		html = self.format.Dumper().dump(tree)
+		self.assertEqual(html,
+			['<p>\n', '&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;</p>\n'] )
 
 	def testExport(self):
 		'''Test exporting wiki format to Html'''
@@ -267,10 +262,8 @@ class TestHtmlFormat(TestCase):
 			icons[icon] = data_file('pixmaps/%s.png' % icon)
 			self.assertTrue(icons[icon].exists())
 
-		wiki = Buffer(wikitext)
-		output = Buffer()
-		tree = get_format('wiki').Parser().parse(wiki)
-		self.format.Dumper().dump(tree, output)
+		tree = get_format('wiki').Parser().parse(wikitext)
+		output = self.format.Dumper().dump(tree)
 
 		# Note '%' is doubled to '%%' because of format substitution being used
 		html = u'''\
@@ -356,4 +349,4 @@ This is not a header<br>
 That's all ...<br>
 </p>
 ''' % icons
-		self.assertEqualDiff(output.getvalue(), html)
+		self.assertEqualDiff(output, html.splitlines(True))

@@ -9,21 +9,20 @@ Used as a base library for most other zim modules.
 
 # TODO - use weakref ?
 
-# TODO Make sre files are *really* written before rename step
-# remember the ext4 issue with truncated files in case of failure within
-# 60s after write.
-#
-# From the pyton doc: If you’re starting with a Python file object f, first
+# From the pyton doc: If you're starting with a Python file object f, first
 # do f.flush(), and then do os.fsync(f.fileno()), to ensure that all internal
 # buffers associated with f are written to disk. Availability: Unix, and
 # Windows starting in 2.2.3.
+#
+# (Remember the ext4 issue with truncated files in case of failure within
+# 60s after write. This way of working should prevent that kind of issue.)
 
 import os
 import errno
 import codecs
 from StringIO import StringIO
 
-__all__ = ['Dir', 'File', 'Buffer']
+__all__ = ['Dir', 'File']
 
 class PathLookupError(Exception):
 	'''FIXME'''
@@ -204,7 +203,19 @@ class Dir(Path):
 
 
 class File(Path):
-	'''OO wrapper for files'''
+	'''OO wrapper for files. Implements more complex logic than
+	the default python file objects. On writing we first write to a
+	temporary files, then flush and sync and finally replace the file we
+	intended to write with the temporary file. This makes it much more
+	difficult to loose file contents when something goes wrong during
+	the writing. Also this class supports checking mtime and MD5 sums
+	on write to prevent overwriting modified files.
+	'''
+
+	def __init__(self, path, checkoverwrite=False):
+		Path.__init__(self, path)
+		if checkoverwrite:
+			assert False, 'TODO: implement mtime / MD5 checks'
 
 	def __eq__(self, other):
 		if isinstance(other, File):
@@ -220,13 +231,47 @@ class File(Path):
 		'''Returns an io object for reading or writing.
 		Opening a non-exisiting file for writing will cause the whole path
 		to this file to be created on the fly.
+		To open the raw file specify 'encoding=None'.
 		'''
+		assert mode in ('r', 'w')
 		if not self.exists() and mode == 'w':
 			self.dir.touch()
-		if encoding is None:
-			return open(self.path, mode=mode)
+		
+		if encoding:
+			mode += 'b'
+
+		if mode in ('w', 'wb'):
+			tmp = self.path + '.zim.new~'
+			fh = FileHandle(tmp, mode=mode, on_close=self._on_write)
 		else:
-			return codecs.open(self.path, mode=mode, encoding=encoding)
+			fh = open(self.path, mode=mode)
+
+		if encoding:
+			# code copied from codecs.open() to wrap our FileHandle objects
+			info = codecs.lookup(encoding)
+			srw = codecs.StreamReaderWriter(
+				fh, info.streamreader, info.streamwriter, 'strict')
+			srw.encoding = encoding
+			return srw
+		else:
+			return fh
+
+	def _on_write(self):
+		# flush and sync are already done before close()
+		tmp = self.path + '.zim.new~'
+		assert os.path.isfile(tmp)
+		if isinstance(self, WindowsPath):
+			# On Windows, if dst already exists, OSError will be raised
+			# and no atomic operation to rename the file :(
+			back = self.path + '~'
+			if os.path.isfile(back):
+				os.remove(back)
+			os.rename(self.path, back)
+			os.rename(tmp, self.path)
+			os.remove(back)
+		else:
+			# On UNix, dst already exists it is replaced in an atomic operation
+			os.rename(tmp, self.path)
 
 	def read(self, encoding='utf8'):
 		if not self.exists():
@@ -247,6 +292,11 @@ class File(Path):
 		file.write(text)
 		file.close()
 
+	def writelines(self, lines):
+		file = self.open('w')
+		file.writelines(lines)
+		file.close()
+
 	def touch(self):
 		'''FIXME'''
 		if self.exists():
@@ -256,63 +306,29 @@ class File(Path):
 			io.write('')
 			io.close()
 
+	def remove(self):
+		os.remove(self.path)
+		tmp = self.path + '.zim.new~'
+		if os.path.isfile(tmp):
+			os.remove(tmp)
+
 	def cleanup(self):
 		'''FIXME'''
-		os.remove(self.path)
+		self.remove()
 		self.dir.cleanup()
 
 
-
-class Buffer(StringIO):
-	'''StringIO subclass with methods mimicing File objects.
-
-	The constructor takes an optional callback function. This
-	function is called when the io handle is closed after writing.
-
-	Unlike StringIO we assume everything to be encoded in utf8.
-	Also unlike StringIO objects these objects can be opened and
-	closed multiple times; and getvalue() still works after close.
-	'''
-
-	def __init__(self, text=u'', on_write=None):
-		if not on_write is None:
-			assert callable(on_write)
-		self.on_write = on_write
-		self.mode = None
-		StringIO.__init__(self, text)
-
-	def write(self, s):
-		if not isinstance(s, unicode):
-			s = s.decode('utf8')
-		StringIO.write(self, s)
-
-	def exists(self):
-		'''Returns True if the buffer contains any text'''
-		return len(self.getvalue()) > 0
-
-	def open(self, mode='r'):
-		'''Resets internal state and returns the buffer itself.
-		Since we derive from StringIO we can act as an io object.
-		Only modes 'r' and 'w' are supported.
-		'''
-		if not self.mode is None:
-			raise IOError, 'Buffer is already opened'
-		self.pos = 0 # reset internal cursor
-		if mode == 'r':
-			if not self.exists():
-				raise IOError, 'Buffer does not exist'
-			self.mode = mode
-			return self
-		elif mode == 'w':
-			self.mode = mode
-			return self
-		else:
-			assert False, 'Unknown mode: %s' % mode
-
+class FileHandle(file):
+	'''Subclass of builtin file type that uses flush and fsync on close 
+	and supports a callback'''
+	
+	def __init__(self, path, on_close=None, **opts):
+		file.__init__(self, path, **opts)
+		self.on_close = on_close
+	
 	def close(self):
-		'''Reset internal state and optionally calls the callback.
-		Unlink StringIO.close() the buffer will be preserved.
-		'''
-		if self.mode == 'w' and self.on_write:
-			self.on_write(self)
-		self.mode = None
+		self.flush()
+		os.fsync(self.fileno())
+		file.close(self)
+		if not self.on_close is None:
+			self.on_close()

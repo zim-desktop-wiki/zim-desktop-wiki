@@ -9,10 +9,9 @@
 
 import re
 
-from zim.fs import *
 from zim.formats import *
 from zim.config import data_file
-from zim.parsing import link_type
+from zim.parsing import TextBuffer, link_type
 
 info = {
 	'name':  'Html',
@@ -59,14 +58,13 @@ def encode_whitespace(text):
 
 class Dumper(DumperClass):
 
-	def dump(self, tree, output):
+	def dump(self, tree):
 		assert isinstance(tree, ParseTree)
-		assert isinstance(output, (File, Buffer))
-		file = output.open('w')
-		self._dump_children(tree.getroot(), file, istoplevel=True)
-		file.close()
+		output = TextBuffer()
+		self._dump_children(tree.getroot(), output, istoplevel=True)
+		return output.get_lines()
 
-	def _dump_children(self, list, file, istoplevel=False):
+	def _dump_children(self, list, output, istoplevel=False):
 		'''FIXME'''
 
 		for element in list.getchildren():
@@ -79,43 +77,43 @@ class Dumper(DumperClass):
 			if element.tag == 'h':
 				tag = 'h' + str(element.attrib['level'])
 				if self.isrtl(element):
-					file.write('<'+tag+' dir=\'rtl\'>'+text+'</'+tag+'>')
+					output += ['<', tag, ' dir=\'rtl\'>', text, '</', tag, '>']
 				else:
-					file.write('<'+tag+'>'+text+'</'+tag+'>')
+					output += ['<', tag, '>', text, '</', tag, '>']
 			elif element.tag == 'p':
 				if self.isrtl(element):
-					file.write('<p dir=\'rtl\'>\n' + text)
+					output += ['<p dir=\'rtl\'>\n', text]
 				else:
-					file.write('<p>\n' + text)
-				self._dump_children(element, file) # recurs
-				file.write('</p>\n')
+					output += ['<p>\n', text]
+				self._dump_children(element, output) # recurs
+				output.append('</p>\n')
 			elif element.tag == 'pre':
 				if self.isrtl(element):
-					file.write('<pre dir=\'rtl\'>\n'+text+'</pre>\n')
+					output += ['<pre dir=\'rtl\'>\n', text, '</pre>\n']
 				else:
-					file.write('<pre>\n'+text+'</pre>\n')
+					output += ['<pre>\n', text, '</pre>\n']
 			elif element.tag is 'ul':
-				file.write('<ul>\n' + text)
-				self._dump_children(element, file) # recurs
-				file.write('</ul>\n')
+				output += ['<ul>\n', text]
+				self._dump_children(element, output) # recurs
+				output.append('</ul>\n')
 			elif element.tag == 'li':
 				if 'bullet' in element.attrib:
 					icon = self.icon(element.attrib['bullet'])
-					file.write('<li style="list-style-image: url(%s)">' % icon + text)
+					output += ['<li style="list-style-image: url(%s)">' % icon, text]
 				else:
-					file.write('<li>' + text)
-				self._dump_children(element, file) # recurs
-				file.write('</li>\n')
+					output += ['<li>', text]
+				self._dump_children(element, output) # recurs
+				output.append('</li>\n')
 			elif element.tag == 'img':
 				src = self.href(element.attrib['src'])
-				file.write('<img src="%s" alt="%s">' % (src, text))
+				output.append('<img src="%s" alt="%s">' % (src, text))
 			elif element.tag == 'link':
 				href = self.href(element.attrib['href'])
-				file.write('<a href="%s">%s</a>' % (href, text))
+				output.append('<a href="%s">%s</a>' % (href, text))
 			elif element.tag in ['em', 'strong', 'mark', 'strike', 'code']:
 				if element.tag == 'mark': tag = 'u'
 				else: tag = element.tag
-				file.write('<'+tag+'>'+text+'</'+tag+'>')
+				output += ['<', tag, '>', text, '</', tag, '>']
 			else:
 				assert False, 'Unknown node type: %s' % element
 
@@ -125,7 +123,7 @@ class Dumper(DumperClass):
 					# text in between elements, skip encoding
 					# for whitespace between headings, paras etc.
 					tail = encode_whitespace(tail)
-				file.write(tail)
+				output.append(tail)
 
 	def href(self, href):
 		# TODO need a way to set a base url (+ seperate base for files for www server)

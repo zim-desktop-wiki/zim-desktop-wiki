@@ -6,9 +6,8 @@
 
 import re
 
-from zim.fs import *
 from zim.formats import *
-from zim.parsing import Re, ParsingError
+from zim.parsing import Re, TextBuffer, ParsingError
 from zim.config import HeadersDict
 
 info = {
@@ -69,8 +68,8 @@ class Parser(ParserClass):
 		# Read the file and divide into paragraphs on the fly.
 		# Blocks of empty lines are also treated as paragraphs for now.
 		# We also check for blockquotes here and avoid splitting them up.
-		assert isinstance(input, (File, Buffer))
-		file = input.open('r')
+		if isinstance(input, basestring):
+			input = input.splitlines(True)
 
 		paras = ['']
 		def para_start():
@@ -90,13 +89,12 @@ class Parser(ParserClass):
 			return True
 
 		para_isspace = False
-		for line in file:
+		for line in input:
 			# Try start new para when switching between text and empty lines or back
 			if line.isspace() != para_isspace:
 				if para_start():
 					para_isspace = line.isspace() # decide type of new para
 			paras[-1] += line
-		file.close()
 
 		# Now all text is read, start wrapping it into a document tree.
 		# First check for meta data at the top of the file
@@ -244,65 +242,65 @@ class Parser(ParserClass):
 class Dumper(DumperClass):
 	'''FIXME'''
 
-	def dump(self, tree, output):
+	def dump(self, tree):
 		'''FIXME'''
 		assert isinstance(tree, ParseTree)
-		assert isinstance(output, (File, Buffer))
-		file = output.open('w')
+
+		output = TextBuffer()
 		headers = tree.getroot().attrib
 		if isinstance(headers, HeadersDict):
-			file.write(headers.tostring())
-			file.write('\n') # empty line to separate headers and data
-		self.dump_children(tree.getroot(), file)
-		file.close()
+			output.append(headers.tostring()+'\n')
+		self.dump_children(tree.getroot(), output)
 
-	def dump_children(self, list, file, list_level=-1):
+		return output.get_lines()
+
+	def dump_children(self, list, output, list_level=-1):
 		'''FIXME'''
 
 		if list.text:
-			file.write(list.text)
+			output.append(list.text)
 
 		for element in list.getchildren():
 			if element.tag == 'p':
-				self.dump_children(element, file) # recurs
+				self.dump_children(element, output) # recurs
 			elif element.tag == 'ul':
-				self.dump_children(element, file, list_level=list_level+1) # recurs
+				self.dump_children(element, output, list_level=list_level+1) # recurs
 			elif element.tag == 'h':
 				level = int(element.attrib['level'])
 				if level < 1:   level = 1
 				elif level > 5: level = 5
 				tag = '='*(7 - level)
-				file.write(tag+' '+element.text+' '+tag)
+				output.append(tag+' '+element.text+' '+tag)
 			elif element.tag == 'li':
 				if 'bullet' in element.attrib:
 					bullet = bullet_types[element.attrib['bullet']]
 				else:
 					bullet = '*'
-				file.write('\t'*list_level+bullet+' ')
-				self.dump_children(element, file, list_level=list_level) # recurs
-				file.write('\n')
+				output.append('\t'*list_level+bullet+' ')
+				self.dump_children(element, output, list_level=list_level) # recurs
+				output.append('\n')
 			elif element.tag == 'pre':
-				file.write("'''\n"+element.text+"'''\n")
+				output.append("'''\n"+element.text+"'''\n")
 			elif element.tag == 'img':
 				src = element.attrib['src']
 				if element.text:
-					file.write('{{'+src+'|'+element.text+'}}')
+					output.append('{{'+src+'|'+element.text+'}}')
 				else:
-					file.write('{{'+src+'}}')
+					output.append('{{'+src+'}}')
 			elif element.tag == 'link':
 				href = element.attrib['href']
 				if href == element.text:
-					file.write('[['+href+']]')
+					output.append('[['+href+']]')
 				else:
-					file.write('[['+href+'|'+element.text+']]')
+					output.append('[['+href+'|'+element.text+']]')
 			elif element.tag in dumper_tags:
 				tag = dumper_tags[element.tag]
-				file.write(tag+element.text+tag)
+				output.append(tag+element.text+tag)
 			else:
 				assert False, 'Unknown node type: %s' % element
 
 			if element.tail:
-				file.write(element.tail)
+				output.append(element.tail)
 
 
 
