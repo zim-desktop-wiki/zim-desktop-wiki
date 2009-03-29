@@ -138,11 +138,11 @@ class TestPageProxy(TestCase):
 
 	def runTest(self):
 		page = tests.get_test_page('FooBar')
-		page.set_text('wiki', '''\
+		page.parse('wiki', '''\
 ====== Page Heading ======
 **foo bar !**
 ''')
-		self.assertTrue(len(page.get_text('html')) > 0)
+		self.assertTrue(len(page.dump('html')) > 0)
 		proxy = PageProxy(Notebook(), page, zim.formats.get_format('html'))
 		self.assertEqual(proxy.name, page.name)
 		self.assertEqual(proxy.namespace, page.namespace)
@@ -173,10 +173,10 @@ Version %s
 
 ''' % zim.__version__
 		page = tests.get_test_page('FooBar')
-		page.set_text('wiki', '''\
+		page.parse('wiki', '''\
 ====== Page Heading ======
 **foo bar !**
 ''')
-		self.assertTrue(len(page.get_text('html')) > 0)
+		self.assertTrue(len(page.dump('html')) > 0)
 		result = Template(input, 'html').process(Notebook(), page)
 		self.assertEqualDiff(result, wantedresult.splitlines(True))

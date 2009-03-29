@@ -20,7 +20,7 @@ import os # using os directly in get_pagelist()
 
 from zim.fs import *
 from zim import formats
-from zim.notebook import Page
+from zim.notebook import Path, Page
 from zim.stores import StoreClass
 
 __store__ = 'files'
@@ -62,7 +62,7 @@ class Store(StoreClass):
 		# TODO check if file exists and if it is writable
 		#	return None if does not exist and can not be created
 		#	set read-only when exists but not writable
-		return Page(path,
+		return FileStorePage(path,
 				haschildren=dir.exists(), source=file, format=self.format)
 
 	def get_pagelist(self, path):
@@ -112,3 +112,34 @@ class Store(StoreClass):
 			return file.mtime()
 		else:
 			return None
+
+
+class FileStorePage(Page):
+
+	def __init__(self, path, haschildren=False, source=None, format=None):
+		assert source and format
+		Page.__init__(self, path, haschildren)
+		self.source = source
+		self.format = format
+
+	@property
+	def hascontent(self):
+		return self.source.exists()
+
+	def get_parsetree(self):
+		'''Returns contents as a parse tree or None'''
+		#~ self.emit('request-parsetree')
+		if self.source.exists():
+			parser = self.format.Parser()
+			tree = parser.parse(self.source.readlines())
+			return tree
+		else:
+			return None
+
+	def set_parsetree(self, tree):
+		'''Save a parse tree to page source'''
+		if 'readonly' in self.properties and self.properties['readonly']:
+			raise Exception, 'Can not store data in a read-only Page'
+
+		self.source.writelines(self.format.Dumper().dump(tree))
+		#~ self.emit('changed')

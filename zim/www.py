@@ -201,7 +201,7 @@ class WWWInterface(NotebookInterface):
 		if self.template:
 			return self.template.process(self.notebook, page)
 		else:
-			return page.get_text(format='html')
+			return page.dump(format='html')
 
 
 class IndexPage(Page):

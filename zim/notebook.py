@@ -420,22 +420,24 @@ class Page(Path):
 	to the Path instances.
 	'''
 
-	# Page objects should never need to access self.store.notebook,
-	# they are purely intended as references to data in the store.
+	# define signals we want to use - (closure type, return type and arg types)
+	#~ __gsignals__ = {
+		#~ 'request-parsetree': (gobject.SIGNAL_RUN_LAST, None, ()),
+		#~ 'changed': (gobject.SIGNAL_RUN_LAST, None, ())
+	#~ }
 
-	def __init__(self, path, haschildren=False, source=None, format=None):
-		'''Construct Page object. Needs at least a path object, a store object
-		and a boolean to flag if the page has children. The source object and
-		format module are optional but need to go together.
+	def __init__(self, path, haschildren=False, parsetree=None):
+		'''Construct Page object. Needs a path object and a boolean to flag
+		if the page has children.
 		'''
 		assert isinstance(path, Path)
-		assert not (source and format is None) # these should come as a pair
+		#~ gobject.GObject.__init__(self)
 		self.name = path.name
 		self.haschildren = haschildren
-		self.source = source
-		self.format = format
-		self._tree = None
+		self._parsetree = parsetree
 		self.properties = {}
+		self._on_changed = None
+		self._on_request_parsetree = None
 		if hasattr(path, '_indexpath'):
 			self._indexpath = path._indexpath
 			# Keeping this data around will speed things up when this page
@@ -443,54 +445,49 @@ class Page(Path):
 
 	@property
 	def hascontent(self):
-		'''Returns True if this page has no content'''
-		if self.source:
-			return self.source.exists()
-		else:
-			return bool(self._tree)
+		'''Returns whether this page has content'''
+		return bool(self._parsetree)
 
 	def get_parsetree(self):
 		'''Returns contents as a parse tree or None'''
-		if self.source:
-			if self.source.exists():
-				parser = self.format.Parser()
-				tree = parser.parse(self.source.readlines())
-				return tree
-			else:
-				return None
-		else:
-			return self._tree
+		#~ self.emit('request-parsetree')
+		return self._parsetree
 
 	def set_parsetree(self, tree):
-		'''Save a parse tree to page source'''
+		'''Set the parsetree with content for this page. Set the parsetree
+		to None to remove all content.
+		'''
 		if 'readonly' in self.properties and self.properties['readonly']:
 			raise Exception, 'Can not store data in a read-only Page'
+		self._parsetree = tree
+		#~ self.emit('changed')
 
-		if self.source:
-			dumper = self.format.Dumper()
-			self.source.writelines(dumper.dump(tree))
-		else:
-			self._tree = tree
-
-	def get_text(self, format):
-		'''Convenience method that converts the current parse tree to a 
-		particular format and returns a list of lines.
+	def dump(self, format):
+		'''Convenience method that converts the current parse tree to a
+		particular format and returns a list of lines. Format can be either a
+		format module or a string which can be passed to formats.get_format().
 		'''
+		if isinstance(format, basestring):
+			import zim.formats
+			format = zim.formats.get_format(format)
+
 		tree = self.get_parsetree()
 		if tree:
-			import zim.formats
-			dumper = zim.formats.get_format(format).Dumper()
-			return dumper.dump(tree)
+			return format.Dumper().dump(tree)
 		else:
 			return []
 
-	def set_text(self, format, text):
-		'''Convenience method that parses 'text' and sets the parse tree
-		for this page.
+	def parse(self, format, text):
+		'''Convenience method that parses text and sets the parse tree
+		for this page. Format can be either a format module or a string which
+		can be passed to formats.get_format(). Text can be either a string or
+		a list or iterable of lines.
 		'''
-		import zim.formats
-		parser = zim.formats.get_format(format).Parser()
-		self.set_parsetree(parser.parse(text))
+		if isinstance(format, basestring):
+			import zim.formats
+			format = zim.formats.get_format(format)
+
+		self.set_parsetree(format.Parser().parse(text))
 
 	def get_links(self):
 		tree = self.get_parsetree()

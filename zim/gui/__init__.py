@@ -454,7 +454,7 @@ class GtkInterface(NotebookInterface):
 
 	def email_page(self):
 		self.save_page_if_modified()
-		text = page.get_text(format='wiki')
+		text = ''.join(page.dump(format='wiki')).encode('utf8')
 		# TODO url encoding - replace \W with sprintf('%%%02x')
 		url = 'mailto:?subject=%s&body=%s' % (page.name, text)
 		# TODO open url
@@ -1065,9 +1065,9 @@ class SaveCopyDialog(FileDialog):
 		path = self.filechooser.get_filename()
 		format = 'wiki'
 		logger.info("Saving a copy at %s using format '%s'", path, format)
-		text = self.ui.page.get_text(format)
+		lines = self.ui.page.dump(format)
 		file = zim.fs.File(path)
-		file.write(text)
+		file.writelines(lines)
 		return True
 
 

@@ -111,13 +111,15 @@ class NotebookInterface(gobject.GObject):
 			page = self.notebook.get_page(page)
 
 		if template is None:
-			print page.get_text(format=format).encode('utf8')
+			output = page.dump(format=format)
 		else:
-			import sys
 			if isinstance(template, basestring):
 				from zim.templates import get_template
 				template = get_template(format, template)
-			template.process(page, sys.stdout)
+			output = template.process(page)
+		import sys
+		for line in output:
+			sys.stdout.write(line.encode('utf8'))
 
 	def do_index(self, output=None):
 		'''Method called when doing a commandline index re-build'''
