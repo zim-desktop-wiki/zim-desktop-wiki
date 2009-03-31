@@ -25,12 +25,10 @@ TEXT_TARGET_LIST = (
 
 class Clipboard(gtk.Clipboard):
 
-	def set_pagelink(self, page):
+	def set_pagelink(self, notebook, page):
 		'''Copy a pagename to the clipboard. The pagename can be pasted by the
 		user either as a link within zim or as text outside zim.
 		'''
-		store = page.store
-		notebook = store.notebook
 		# TODO uri encode step to escape other '?' characters
 		uri = '%s?%s' % (notebook.name, page.name)
 

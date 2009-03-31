@@ -16,7 +16,7 @@ import pango
 
 from zim import notebook
 from zim.config import data_file
-from zim.gui.widgets import BrowserTreeView, IconButton
+from zim.gui.widgets import IconButton
 from zim.gui import Dialog
 
 NAME_COL = 0  # column with notebook name
@@ -42,12 +42,24 @@ class NotebookTreeModel(gtk.ListStore):
 				self.append((name, False))
 
 	def get_iter_from_notebook(self, notebook):
-		'''Returns the TreeIter for a notebook name or None'''
+		'''Returns the TreeIter for a notebook (or notebook name) or None'''
 		for row in self:
+			if not isinstance(notebook, basestring):
+				notebook = notebook.name
 			if row[NAME_COL] == notebook:
 				return row.iter
 		else:
 			return None
+
+	def append_notebook(self, notebook):
+		assert notebook.dir
+		self.append_path(notebook.dir.path, notebook.name)
+
+	def append_path(self, path, name=None):
+		if name is None:
+			name = path
+		self.notebooks[name] = path
+		self.append((name, False))
 
 	def get_default(self):
 		'''Returns a TreeIter for the default notebook or None'''
@@ -81,13 +93,14 @@ class NotebookTreeModel(gtk.ListStore):
 		# TODO: self.notebooks.write()
 
 
-class NotebookTreeView(BrowserTreeView):
+class NotebookTreeView(gtk.TreeView):
 
 	def __init__(self, model=None):
 		# TODO: add logic to flag open notebook italic - needs daemon
 		if model is None:
 			model = NotebookTreeModel()
-		BrowserTreeView.__init__(self, model)
+		gtk.TreeView.__init__(self, model)
+		self.get_selection().set_mode(gtk.SELECTION_BROWSE)
 		self.set_rules_hint(True)
 		self.set_reorderable(True)
 
@@ -101,9 +114,11 @@ class NotebookTreeView(BrowserTreeView):
 class NotebookComboBox(gtk.ComboBox):
 	'''Combobox showing the a list of notebooks'''
 
-	def __init__(self, model=None):
+	def __init__(self, model=None, current=None):
 		'''Constructor, "model" should be a NotebookTreeModel or None to
-		use the default list.
+		use the default list. The notebook 'current' will be shown in the
+		widget - if it is not in the list it wil be added. Otherwise the default
+		will be shown.
 		'''
 		if model is None:
 			model = NotebookTreeModel()
@@ -111,7 +126,14 @@ class NotebookComboBox(gtk.ComboBox):
 		cell_renderer = gtk.CellRendererText()
 		self.pack_start(cell_renderer, False)
 		self.set_attributes(cell_renderer, text=0)
-		self.set_active_default()
+		if current is None:
+			self.set_active_default()
+		else:
+			iter = model.get_iter_from_notebook(current)
+			if iter is None:
+				model.append_notebook(current)
+				iter = model.get_iter_from_notebook(current)
+			self.set_active_iter(iter)
 
 	def set_active_default(self):
 		iter = self.get_model().get_default()
@@ -238,19 +260,20 @@ class NotebookDialog(Dialog):
 
 	def do_add_notebook(self, *a):
 		# TODO: add "new" notebook in list and select it
-		self.edit_notebook()
+		#~ self.edit_notebook()
+		print 'TODO: add notebook'
 
 	def do_edit_notebook(self, *a):
 		model, iter = self.treeview.get_selection().get_selected()
 		if iter is None: return
 		notebook = self.notebooks[model[iter][NAME_COL]]
 		print 'TODO: run properties dialog'
-		self._save_notebook_list() # directory could have changed
+		#~ self._save_notebook_list() # directory could have changed
 
 	def do_remove_notebook(self, *a):
 		model, iter = self.treeview.get_selection().get_selected()
 		if iter is None: return
 		print 'DEL', model[iter][NAME_COL]
 		#~ del model[iter]
-		self._save_notebook_list()
+		#~ self._save_notebook_list()
 

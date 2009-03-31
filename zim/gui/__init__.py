@@ -197,7 +197,9 @@ class GtkInterface(NotebookInterface):
 			self.open_notebook(notebook)
 
 		if not page is None:
-			assert notebook, 'Can not open page without notebook'
+			assert self.notebook, 'Can not open page without notebook'
+			if isinstance(page, basestring):
+				page = self.notebook.resolve_path(page)
 			self.open_page(page)
 
 	def main(self):
@@ -490,7 +492,7 @@ class GtkInterface(NotebookInterface):
 	def copy_location(self):
 		'''Puts the name of the current page on the clipboard.'''
 		import zim.gui.clipboard
-		zim.gui.clipboard.Clipboard().set_pagelink(self.page)
+		zim.gui.clipboard.Clipboard().set_pagelink(self.notebook, self.page)
 
 	def show_plugins(self):
 		import zim.gui.pluginsdialog
@@ -890,7 +892,7 @@ class Dialog(gtk.Dialog):
 		label.set_markup('<i>%s</i>' % text)
 		self.vbox.add(label)
 
-	def add_fields(self, fields, table=None):
+	def add_fields(self, fields, table=None, trigger_response=True):
 		'''Add a number of fields to the dialog, convenience method to
 		construct simple forms. The argument 'fields' should be a list of
 		field definitions; each definition is a tupple of:
@@ -903,6 +905,10 @@ class Dialog(gtk.Dialog):
 		If 'table' is specified the fields are added to that table, otherwise
 		a new table is constructed and added to the dialog. Returns the table
 		to allow building a form in multiple calls.
+
+		If 'trigger_response' is True pressing <Enter> in the last Entry widget
+		will call response_ok(). Set to False if more forms will follow in the
+		same dialog.
 		'''
 		if table is None:
 			table = gtk.Table()
@@ -924,7 +930,17 @@ class Dialog(gtk.Dialog):
 			table.attach(entry, 1,2, i,i+1)
 			i += 1
 
-		# TODO: hook last field to call response 'Ok' on activate
+		def focus_next(o, next):
+			next.grab_focus()
+
+		for i in range(len(fields)-1):
+			name = fields[i][0]
+			next = fields[i+1][0]
+			self.inputs[name].connect('activate', focus_next, self.inputs[next])
+
+		if trigger_response:
+			last = fields[-1][0]
+			self.inputs[last].connect('activate', lambda o: self.response_ok())
 
 		return table
 
@@ -1147,7 +1163,7 @@ class ProgressBarDialog(gtk.Dialog):
 		self.vbox.pack_start(self.msg_label, False)
 
 	def pulse(self, msg=None):
-		'''Sets an optional message and moves forward the progress bar. Will also 
+		'''Sets an optional message and moves forward the progress bar. Will also
 		handle all pending Gtk events, so interface keeps responsive during a background
 		job. This method returns True untill the 'Cancel' button has been pressed, this
 		boolean could be used to decide if the ackground job should continue or not.
@@ -1173,7 +1189,7 @@ class ProgressBarDialog(gtk.Dialog):
 
 	#def do_destroy(self):
 	#	logger.debug('Closed ProgressBarDialog')
-		
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(ProgressBarDialog)

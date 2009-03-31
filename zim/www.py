@@ -271,6 +271,10 @@ class Server(gobject.GObject):
 		else:
 			self.use_gtk = False
 
+	def set_notebook(self, notebook):
+		self.stop()
+		self.interface = WWWInterface(notebook)
+
 	def set_port(self, port):
 		assert not self.running
 		assert isinstance(port, int), port

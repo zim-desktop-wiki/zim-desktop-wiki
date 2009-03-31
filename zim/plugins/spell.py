@@ -30,10 +30,9 @@ ui_xml = '''
 </ui>
 '''
 
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('toggle_spellcheck', 'gtk-spell-check', 'Check _spelling', 'F7', 'Spell check'),
-
+ui_toggle_actions = (
+	# name, stock id, label, accelerator, tooltip, None, initial state
+	('toggle_spellcheck', 'gtk-spell-check', 'Check _spelling', 'F7', 'Spell check', None, False),
 )
 
 class SpellPlugin(PluginClass):
@@ -55,7 +54,7 @@ This is a core plugin shipping with zim.
 		self.spell = None
 		self.enabled = False
 		if self.ui.ui_type == 'gtk':
-			self.ui.add_actions(ui_actions, self)
+			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			self.ui.add_ui(ui_xml, self)
 			# TODO use setting to control behavior
 			self.ui.connect_after('open-page', self.do_open_page)
@@ -68,6 +67,9 @@ This is a core plugin shipping with zim.
 			return True
 
 	def toggle_spellcheck(self):
+		self.ui.actiongroup.get_action('toggle_spellcheck').activate()
+
+	def do_toggle_spellcheck(self):
 		if not self.enabled:
 			self.enable_spellcheck()
 		else:
