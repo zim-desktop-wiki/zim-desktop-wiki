@@ -46,7 +46,7 @@ for pages that have just been deleted.
 The index will cache page listings in order to speed up the performance,
 so it should not be necessary to do speed optializations in the store lookups.
 However for eficient caching, store objects should implement the
-'get_index_key()' method.
+'get_pagelist_indexkey()' and 'get_page_indexkey()' methods.
 
 The notebook will use Path objects when requesting a specific page. These
 paths just map to a specific page name but do not contain any information
@@ -130,10 +130,20 @@ class StoreClass():
 		raise NotImplementedError
 
 	def get_pagelist_indexkey(self, path):
-		raise NotImplementedError
+		'''This method should return a key that can be checked by the index to
+		determine if a list of (sub-)pages should be indexed again. A typical
+		implementation would be to return the modification time of the directory
+		where the pages are stored. The default in the base class returns None,
+		forcing the index to always re-index the page. This is not very
+		efficient and should be overloaded by the store.
+		'''
+		return None
 
 	def get_page_indexkey(self, path):
-		raise NotImplementedError
+		'''Like get_pagelist_indexkey() but used to decide whether page contents
+		should be indexed or not.
+		'''
+		return None
 
 	def store_has_dir(self):
 		'''Returns True if we have a directory attribute.

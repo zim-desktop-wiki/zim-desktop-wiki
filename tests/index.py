@@ -102,6 +102,12 @@ class TestIndex(tests.TestCase):
 		self.index.update(checkcontents=False)
 		self.assertEqual(count_pages(self.index.db), manifest)
 
+		# indexkey
+		for path in (Path('Test'), Path('Test:foo')):
+			indexpath = self.index.lookup_path(path)
+			self.assertEqual(indexpath.contentkey, self.notebook.get_page_indexkey(path))
+			self.assertEqual(indexpath.childrenkey, self.notebook.get_pagelist_indexkey(path))
+
 		# now go through the flush loop
 		self.index.flush()
 		self.assertEqual(count_pages(self.index.db), 0)

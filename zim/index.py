@@ -40,8 +40,6 @@ LINK_DIR_BOTH = 3
 # for pages in the root namespace...
 # TODO: change this and have explicit entry for root...
 
-# TODO: check if usage of indexkeys can be simplified to get rid of exception
-
 # TODO: touch pages in the database that are linked but do not exist
 
 SQL_CREATE_TABLES = '''
@@ -54,8 +52,8 @@ create table if not exists pages (
 	type INTEGER,
 	ctime TIMESTAMP,
 	mtime TIMESTAMP,
-	contentkey TEXT,
-	childrenkey TEXT
+	contentkey FLOAT,
+	childrenkey FLOAT
 );
 create table if not exists pagetypes (
 	id INTEGER PRIMARY KEY,
@@ -256,8 +254,9 @@ class Index(gobject.GObject):
 		else:
 			indexpath = self.lookup_path(path)
 			if indexpath is None:
-				p = self._touch_path(path)
-				indexpath = IndexPath(path.name, p._indexpath, {'haschildren': True})
+				indexpath = self._touch_path(path)
+				indexpath._row['haschildren'] = True
+				indexpath._row['childrenkey'] = None
 				checkcontent = True
 
 		self._update_pagelist_queue.append(indexpath)
@@ -267,12 +266,14 @@ class Index(gobject.GObject):
 		if background:
 			if not self._updating:
 				logger.info('Starting background index update')
-				self._updating = False
+				self._updating = True
 				gobject.idle_add(self._do_update, (checkcontents, callback))
 		else:
 			logger.info('Updating index')
+			self._updating = True # just to be sure - callback could throw events
 			while self._do_update((checkcontents, callback)):
 				continue
+			self._updating = False
 
 	def _do_update(self, data):
 		# This returns boolean to continue or not because it can be called as an
@@ -366,10 +367,7 @@ class Index(gobject.GObject):
 				if not href is None:
 					# TODO lookup href type
 					self.db.execute('insert into links (source, href) values (?, ?)', (path.id, href.id))
-			try:
-				key = self.notebook.get_page_indexkey(page)
-			except NotImplementedError:
-				key = None
+			key = self.notebook.get_page_indexkey(page)
 			self.db.execute('update pages set contentkey = ? where id == ?', (key, path.id))
 			self.db.commit()
 		except:
@@ -391,27 +389,16 @@ class Index(gobject.GObject):
 			if path.haschildren:
 				self._update_pagelist_queue.append(path)
 			elif checkcontent:
-				uptodate = False
-				try:
-					pagekey = self.notebook.get_page_indexkey(path)
-					if pagekey and path.contentkey == pagekey:
-						uptodate = True
-				except NotImplementedError:
-					pass # we don't know
-
-				if not uptodate:
+				pagekey = self.notebook.get_page_indexkey(path)
+				if not (pagekey and path.contentkey == pagekey):
 					self._index_page_queue.append(path)
 
 		# Check if listing is uptodate
 		uptodate = False
-		try:
+		if not path.isroot: # FIXME with explicite entry for root we also will have a indexkey for it
 			listkey = self.notebook.get_pagelist_indexkey(path)
 			if listkey and path.childrenkey == listkey:
 				uptodate = True
-		except (KeyError, NotImplementedError):
-			# TODO: we catch the KeyError here in case we get a path, e.g. roto,
-			#which has a manually contructed row, which does not contain 'childrenkey'
-			listkey = None # we don't know
 
 		cursor = self.db.cursor()
 		cursor.execute('select * from pages where parent==?', (path.id,))
@@ -422,10 +409,12 @@ class Index(gobject.GObject):
 			indexpath = path._indexpath
 
 		if uptodate:
+			#~ print '!! ... is up to date'
 			for row in cursor:
 				p = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],), row)
 				check_and_queue(p)
 		else:
+			#~ print '!! ... updating'
 			children = {}
 			for row in cursor:
 				children[row['basename']] = row
@@ -450,7 +439,10 @@ class Index(gobject.GObject):
 							'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
 							(page.basename, path.id, page.hascontent, False))
 						child = IndexPath(page.name, indexpath + (cursor.lastrowid,),
-							{'hascontent': page.hascontent, 'haschildren': page.haschildren})
+							{	'hascontent': page.hascontent,
+								'haschildren': page.haschildren,
+								'childrenkey': None
+							} )
 						changes.append((child, 1))
 						if page.haschildren:
 							self._update_pagelist_queue.append(child)
@@ -458,9 +450,10 @@ class Index(gobject.GObject):
 							self._index_page_queue.append(child)
 
 				# Update index key to reflect we did our updates
-				self.db.execute(
-					'update pages set childrenkey = ? where id == ?',
-					(listkey, path.id) )
+				if not path.isroot: # FIXME need explicit entry for root
+					self.db.execute(
+						'update pages set childrenkey = ? where id == ?',
+						(listkey, path.id) )
 
 				if path.isroot:
 					self.db.commit()
