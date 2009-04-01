@@ -14,7 +14,6 @@
 import sys
 import socket
 import logging
-import glib
 import gobject
 
 from wsgiref.headers import Headers
@@ -288,7 +287,7 @@ class Server(gobject.GObject):
 		else:
 			if not self.running:
 				self.start()
-			glib.MainLoop().run()
+			gobject.MainLoop().run()
 		self.stop()
 
 	def start(self):
@@ -306,7 +305,7 @@ class Server(gobject.GObject):
 		self.socket.bind(("localhost", self.port)) # TODO use socket.gethostname() for public server
 		self.socket.listen(5)
 
-		glib.io_add_watch(self.socket, glib.IO_IN,
+		gobject.io_add_watch(self.socket, gobject.IO_IN,
 			lambda *a: self.do_accept_request())
 
 		self.running = True

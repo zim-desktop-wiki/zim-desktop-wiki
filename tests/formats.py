@@ -13,8 +13,6 @@ if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
 
 wikitext = u"""\
-Content-Type: text/x-zim-wiki
-
 ====== Head1 ======
 
 ===== Head 2 =====
@@ -71,7 +69,7 @@ That's all ...
 class TestParseTree(TestCase):
 
 	def setUp(self):
-		self.xml = u'''\
+		self.xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <page>
 <h level="1">Head 1</h>
@@ -97,7 +95,7 @@ class TestParseTree(TestCase):
 	def testcleanup_headings(self):
 		'''Test ParseTree.cleanup_headings()'''
 		tree = ParseTree().fromstring(self.xml)
-		wanted = u'''\
+		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <page>
 <h level="2">Head 1</h>
@@ -144,26 +142,26 @@ class TestWikiFormat(TestTextFormat):
 		self.format = get_format('wiki')
 		self.page = get_test_page()
 
-	def testHeaders(self):
-		text = '''\
-Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
-Creation-Date: Unkown
-Modification-Date: Wed, 06 Aug 2008 22:17:29 +0200
-
-foo bar
-'''
-		tree = self.format.Parser().parse(text)
+	#~ def testHeaders(self):
+		#~ text = '''\
+#~ Content-Type: text/x-zim-wiki
+#~ Wiki-Format: zim 0.26
+#~ Creation-Date: Unkown
+#~ Modification-Date: Wed, 06 Aug 2008 22:17:29 +0200
+#~
+#~ foo bar
+#~ '''
+		#~ tree = self.format.Parser().parse(text)
 		#~ print '>>>\n'+tostring(tree)+'\n<<<\n'
-		self.assertEquals(tree.getroot().attrib['Content-Type'], 'text/x-zim-wiki')
-		output = self.format.Dumper().dump(tree)
-		self.assertEqualDiff(output, text.splitlines(True))
+		#~ self.assertEquals(tree.getroot().attrib['Content-Type'], 'text/x-zim-wiki')
+		#~ output = self.format.Dumper().dump(tree)
+		#~ self.assertEqualDiff(output, text.splitlines(True))
 
 	def testParsing(self):
 		'''Test wiki parse tree generation.'''
-		tree = u'''\
+		tree = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<page Content-Type="text/x-zim-wiki"><h level="1">Head1</h>
+<page><h level="1">Head1</h>
 
 <h level="2">Head 2</h>
 
@@ -208,16 +206,12 @@ This is not a header
 
 	def testUnicodeBullet(self):
 		input = u'''\
-Content-Type: text/x-zim-wiki
-
 A list
 • foo
 	• bar
 	• baz
 '''
 		text = u'''\
-Content-Type: text/x-zim-wiki
-
 A list
 * foo
 	* bar
@@ -236,6 +230,39 @@ A list
 			self.assertEqual(tag.attrib['href'], link.href)
 			done = True
 		self.assertTrue(done)
+
+	def testBackward(self):
+		input = u'''\
+test 1 2 3
+
+	Some Verbatim block
+	here ....
+
+test 4 5 6
+'''
+		wanted = u'''\
+test 1 2 3
+
+\'''
+	Some Verbatim block
+	here ....
+\'''
+
+test 4 5 6
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<page><p>test 1 2 3
+</p>
+<pre>	Some Verbatim block
+	here ....
+</pre>
+<p>test 4 5 6
+</p></page>'''
+		t = self.format.Parser(version='Unknown').parse(input)
+		self.assertEqualDiff(t.tostring(), xml)
+		output = self.format.Dumper().dump(t)
+		self.assertEqualDiff(output, wanted.splitlines(True))
 
 class TestHtmlFormat(TestCase):
 

@@ -110,25 +110,27 @@ class TestCase(unittest.TestCase):
 			msg = u'Strings differ:'
 		else:
 			msg = unicode(msg)
-		if not first == second:
-			#~ print '>>>>\n'+first+'=====\n'+second+'<<<<\n'
-			if not first:
-				msg += ' first text is empty'
-			elif not second:
-				msg += ' second text is empty'
-			elif not type(first) == type(second):
-				types = type(first), type(second)
-				msg += ' types differ, %s and %s' % types
-			else:
-				from difflib import Differ
-				if isinstance(first, basestring):
-					first = first.splitlines(True)
-				if isinstance(second, basestring):
-					second = first.splitlines(True)
-				diff = Differ().compare(second, first)
-				# switching first and second, because usually second
-				# is the reference we are testing against
-				msg += '\n' + ''.join(diff)
-			raise self.failureException, msg.encode('utf8')
+
+		if not type(first) == type(second):
+			types = type(first), type(second)
+			msg += ' types differ, %s and %s' % types
+		elif not first:
+			msg += ' first text is empty'
+		elif not second:
+			msg += ' second text is empty'
+		elif not first == second:
+			from difflib import Differ
+			if isinstance(first, basestring):
+				first = first.splitlines(True)
+			if isinstance(second, basestring):
+				second = second.splitlines(True)
+			diff = Differ().compare(second, first)
+			# switching first and second, because usually second
+			# is the reference we are testing against
+			msg += '\n' + ''.join(diff)
+		else:
+			return
+
+		raise self.failureException, msg.encode('utf8')
 
 

@@ -4,3 +4,5 @@ include *.txt
 include test.py tests/*.py
 recursive-include tests/data/ *
 recursive-include data/ *
+prune data/manual/.zim
+global-exclude *~ *.bak *.swp 

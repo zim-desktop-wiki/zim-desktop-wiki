@@ -119,7 +119,7 @@ class ConfigList(ListDict):
 		'''FIXME'''
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
-		
+
 		for line in text:
 			line = line.strip()
 			if line.isspace() or line.startswith('#'):
@@ -173,12 +173,12 @@ class HeadersDict(ListDict):
 	'''
 
 	_is_header_re = re.compile('^([\w\-]+):\s+(.*)')
-	_is_continue_re = re.compile('^(\s+)')
+	_is_continue_re = re.compile('^(\s+)(?=\S)')
 
 	def __init__(self, text=None):
 		ListDict.__init__(self)
 		if not text is None:
-			self.append(text)
+			self.parse(text)
 
 	def __getitem__(self, k):
 		return ListDict.__getitem__(self, k.title())
@@ -186,26 +186,48 @@ class HeadersDict(ListDict):
 	def __setitem__(self, k, v):
 		return ListDict.__setitem__(self, k.title(), v)
 
-	def append(self, text):
-		'''Adds headers defined in 'text' to the dict.
+	def read(self, lines):
+		'''Checks for headers at the start of the list of lines and if any
+		reads them into the dict untill the first empty line. Will shift any
+		lines belonging to the header block, so after this method returns the
+		input does no longer contain the header block.
+		'''
+		self._parse(lines, fatal=False)
+		if lines and lines[0].isspace():
+			lines.pop(0)
+
+	def parse(self, text):
+		'''Adds headers defined in 'text' to the dict. Text can either be
+		a string or a list of lines.
 
 		Raises a ParsingError when 'text' is not a valid header block.
 		Trailing whitespace is ignored.
 		'''
+		if isinstance(text, basestring):
+			lines = text.rstrip().splitlines(True)
+		else:
+			lines = text[:] # make copy so we do not destry the original
+		self._parse(lines)
+
+	def _parse(self, lines, fatal=True):
 		header = None
-		for line in text.rstrip().splitlines():
-			is_header = self._is_header_re.match(line)
+		while lines:
+			is_header = self._is_header_re.match(lines[0])
 			if is_header:
 				header = is_header.group(1)
 				value  = is_header.group(2)
 				self[header] = value.strip()
-			elif self._is_continue_re.match(line) and not header is None:
-				self[header] += '\n' + line.strip()
+			elif self._is_continue_re.match(lines[0]) and not header is None:
+				self[header] += '\n' + lines[0].strip()
 			else:
-				raise ParsingError, 'Not a valid rfc822 header block'
+				if fatal:
+					raise ParsingError, 'Not a valid rfc822 header block'
+				else:
+					break
+			lines.pop(0)
 
-	def tostring(self, strict=False):
-		'''Returns the dict as a rfc822 header block.
+	def dump(self, strict=False):
+		'''Returns the dict as a list of lines defining a rfc822 header block.
 
 		If 'strict' is set to True lines will be properly terminated
 		with '\r\n' instead of '\n'.
@@ -219,4 +241,4 @@ class HeadersDict(ListDict):
 		if strict:
 			text = text.replace('\n', '\r\n')
 
-		return text
+		return text.splitlines(True)

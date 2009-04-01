@@ -8,7 +8,6 @@ import re
 
 from zim.formats import *
 from zim.parsing import Re, TextBuffer, ParsingError
-from zim.config import HeadersDict
 
 info = {
 	'name':  'Wiki text',
@@ -41,6 +40,7 @@ parser_re = {
 	'heading':    re.compile("\A((==+)[ \t]+(.*?)([ \t]+==+)?[ \t]*\n?)\Z"),
 	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % BULLET, re.M),
 	'listitem':   re.compile("^([ \t]*)(%s)[ \t]+(.*\n?)" % BULLET),
+	'unindented_line': re.compile('^\S', re.M),
 
 	# All the experssions below will match the inner pair of
 	# delimiters if there are more then two characters in a row.
@@ -63,6 +63,9 @@ dumper_tags = {
 
 
 class Parser(ParserClass):
+
+	def __init__(self, version='zim 0.26'):
+		self.backward = version != 'zim 0.26'
 
 	def parse(self, input):
 		# Read the file and divide into paragraphs on the fly.
@@ -97,22 +100,14 @@ class Parser(ParserClass):
 			paras[-1] += line
 
 		# Now all text is read, start wrapping it into a document tree.
-		# First check for meta data at the top of the file
-		builder = TreeBuilder()
-		try:
-			headers = HeadersDict(paras[0])
-		except ParsingError:
-			builder.start('page')
-		else:
-			paras.pop(0)
-			if paras and paras[0].isspace:
-				paras.pop(0)
-			builder.start('page', headers)
-
-		# Then continue with all other contents
 		# Headings can still be in the middle of a para, so get them out.
+		builder = TreeBuilder()
+		builder.start('page')
 		for para in paras:
-			if parser_re['blockstart'].search(para):
+			if not self.backward and parser_re['blockstart'].search(para):
+				self._parse_block(builder, para)
+			elif self.backward and not para.isspace() \
+			and not parser_re['unindented_line'].search(para):
 				self._parse_block(builder, para)
 			else:
 				parts = parser_re['splithead'].split(para)
@@ -128,11 +123,17 @@ class Parser(ParserClass):
 
 	def _parse_block(self, builder, block):
 		'''Parse a block, like a verbatim paragraph'''
-		m = parser_re['pre'].match(block)
-		assert m, 'Block does not match pre'
-		builder.start('pre')
-		builder.data(m.group(1))
-		builder.end('pre')
+		if not self.backward:
+			m = parser_re['pre'].match(block)
+			assert m, 'Block does not match pre'
+			builder.start('pre')
+			builder.data(m.group(1))
+			builder.end('pre')
+		else:
+			builder.start('pre')
+			builder.data(block)
+			builder.end('pre')
+
 
 	def _parse_head(self, builder, head):
 		'''Parse a heading'''
@@ -245,13 +246,8 @@ class Dumper(DumperClass):
 	def dump(self, tree):
 		'''FIXME'''
 		assert isinstance(tree, ParseTree)
-
 		output = TextBuffer()
-		headers = tree.getroot().attrib
-		if isinstance(headers, HeadersDict):
-			output.append(headers.tostring()+'\n')
 		self.dump_children(tree.getroot(), output)
-
 		return output.get_lines()
 
 	def dump_children(self, list, output, list_level=-1):

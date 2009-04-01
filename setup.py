@@ -17,6 +17,11 @@ except:
 	sys.exit(1)
 
 
+if len(sys.argv) > 1 and 'install' in sys.argv[1]:
+	print 'This is an Alpha release for testing only.\nIt is not installable but can be run directly from the source.'
+	sys.exit(1)
+
+
 # Helper routines
 
 def collect_packages():
@@ -62,6 +67,8 @@ class sdist_zim(sdist):
 
 	def run(self):
 		create_distmeta()
+		if os.path.isfile('MANIFEST'):
+			os.remove('MANIFEST') # force manifest to be re-generated
 		sdist.run(self)
 
 
@@ -71,6 +78,8 @@ class build_py_zim(build_py):
 
 	def run(self):
 		create_distmeta()
+		if os.path.isfile('MANIFEST'):
+			os.remove('MANIFEST') # force manifest to be re-generated
 		build_py.run(self)
 
 

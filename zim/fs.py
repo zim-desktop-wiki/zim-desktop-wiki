@@ -52,6 +52,7 @@ class UnixPath(object):
 	def _parse_uri(uri):
 		# Spec is file:/// or file://host/
 		# But file:/ is sometimes used by non-compliant apps
+		# Windows uses file:///C:/ which is compliant
 		if uri.startswith('file:///'): return uri[7:]
 		elif uri.startswith('file://localhost/'): return uri[16:]
 		elif uri.startswith('file://'): assert False, 'Can not handle non-local file uris'
@@ -61,7 +62,7 @@ class UnixPath(object):
 	def __iter__(self):
 		parts = self.split()
 		for i in range(1, len(parts)+1):
-			path = os.path.join('/', *parts[0:i]) # FIXME posix specific
+			path = os.path.join(*parts[0:i])
 			yield path
 
 	def __str__(self):
@@ -106,14 +107,9 @@ class UnixPath(object):
 
 	def split(self):
 		'''FIXME'''
-		path = self.path
-		parts = []
-		while path:
-			path, part = os.path.split(path)
-			if part	:
-				parts.insert(0, part)
-			if path == '/':
-				break
+		drive, path = os.path.splitdrive(self.path)
+		parts = path.replace('\\', '/').strip('/').split('/')
+		parts[0] = drive + os.path.sep + parts[0]
 		return parts
 
 
@@ -236,7 +232,7 @@ class File(Path):
 		assert mode in ('r', 'w')
 		if not self.exists() and mode == 'w':
 			self.dir.touch()
-		
+
 		if encoding:
 			mode += 'b'
 
@@ -263,12 +259,15 @@ class File(Path):
 		if isinstance(self, WindowsPath):
 			# On Windows, if dst already exists, OSError will be raised
 			# and no atomic operation to rename the file :(
-			back = self.path + '~'
-			if os.path.isfile(back):
+			if os.path.isfile(self.path):
+				back = self.path + '~'
+				if os.path.isfile(back):
+					os.remove(back)
+				os.rename(self.path, back)
+				os.rename(tmp, self.path)
 				os.remove(back)
-			os.rename(self.path, back)
-			os.rename(tmp, self.path)
-			os.remove(back)
+			else:
+				os.rename(tmp, self.path)
 		else:
 			# On UNix, dst already exists it is replaced in an atomic operation
 			os.rename(tmp, self.path)
@@ -319,13 +318,13 @@ class File(Path):
 
 
 class FileHandle(file):
-	'''Subclass of builtin file type that uses flush and fsync on close 
+	'''Subclass of builtin file type that uses flush and fsync on close
 	and supports a callback'''
-	
+
 	def __init__(self, path, on_close=None, **opts):
 		file.__init__(self, path, **opts)
 		self.on_close = on_close
-	
+
 	def close(self):
 		self.flush()
 		os.fsync(self.fileno())

@@ -169,5 +169,5 @@ class StoreClass():
 		else:
 			name = path.relname(self.namespace)
 			# TODO map strange characters
-			dirpath = name.replace(':', '/')
+			dirpath = name.replace(':', '/').replace(' ', '_')
 			return Dir([self.dir, dirpath])

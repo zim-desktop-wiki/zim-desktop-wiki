@@ -22,13 +22,15 @@ class TestFS(tests.TestCase):
 		self.assertEqual(path.path, test)
 
 		path = Path('/foo/bar')
+		uri = 'file:///' + os.path.abspath('/foo/bar').replace('\\', '/').strip('/')
 		self.assertEqual(path.uri, 'file:///foo/bar')
 
 		# TODO test Path('file:///foo/bar') => '/foo/bar'
 		# TODO test Path('file://localhost/foo/bar') => '/foo/bar'
 
 		path = Path('/foo//bar/baz/')
-		self.assertEqual(path.split(), ['foo', 'bar', 'baz'])
+		drive, p = os.path.splitdrive(path.path)
+		self.assertEqual(path.split(), [drive + os.sep + 'foo', 'bar', 'baz'])
 		dirs = []
 		for d in path: dirs.append(d)
 		self.assertEqual(dirs, ['/foo', '/foo/bar', '/foo/bar/baz'])

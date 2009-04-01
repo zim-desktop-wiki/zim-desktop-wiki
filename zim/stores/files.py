@@ -22,6 +22,7 @@ from zim.fs import *
 from zim import formats
 from zim.notebook import Path, Page
 from zim.stores import StoreClass
+from zim.config import HeadersDict
 
 __store__ = 'files'
 
@@ -43,17 +44,18 @@ class Store(StoreClass):
 		assert path != self.namespace, 'Can not get a file for the toplevel namespace'
 		name = path.relname(self.namespace)
 		# TODO map strange characters
-		filepath = name.replace(':', '/')+'.txt'
+		filepath = name.replace(':', '/').replace(' ', '_')+'.txt'
 		return File([self.dir, filepath])
 
 	def _get_dir(self, path):
 		'''Returns a dir object for a notebook path'''
+		# TODO StoreClass.get_attachments_dir is a copy of this logic
 		if path == self.namespace:
 			return self.dir
 		else:
 			name = path.relname(self.namespace)
 			# TODO map strange characters
-			dirpath = name.replace(':', '/')
+			dirpath = name.replace(':', '/').replace(' ', '_')
 			return Dir([self.dir, dirpath])
 
 	def get_page(self, path):
@@ -73,9 +75,9 @@ class Store(StoreClass):
 			if file.startswith('.') or file.startswith('_'):
 				continue # no hidden files or directories
 			elif file.endswith('.txt'): # TODO: do not hard code extension
-				names.add(file[:-4])
+				names.add(file[:-4].replace('_', ' '))
 			elif os.path.isdir( os.path.join(dir.path, file) ):
-				names.add(file)
+				names.add(file.replace('_', ' '))
 			else:
 				pass # unknown file type
 
@@ -130,8 +132,16 @@ class FileStorePage(Page):
 		'''Returns contents as a parse tree or None'''
 		#~ self.emit('request-parsetree')
 		if self.source.exists():
-			parser = self.format.Parser()
-			tree = parser.parse(self.source.readlines())
+			lines = self.source.readlines()
+			self.properties = HeadersDict()
+			self.properties.read(lines)
+			# TODO: detect other formats by the header as well
+			if 'Wiki-Format' in self.properties:
+				version = self.properties['Wiki-Format']
+			else:
+				version = 'Unknown'
+			parser = self.format.Parser(version)
+			tree = parser.parse(lines)
 			return tree
 		else:
 			return None
@@ -141,5 +151,14 @@ class FileStorePage(Page):
 		if 'readonly' in self.properties and self.properties['readonly']:
 			raise Exception, 'Can not store data in a read-only Page'
 
-		self.source.writelines(self.format.Dumper().dump(tree))
+		if not isinstance(self.properties, HeadersDict):
+			assert not self.properties
+			self.properties = HeadersDict()
+			self.properties['Content-Type'] = 'text/x-zim-wiki'
+			self.properties['Wiki-Format'] = 'zim 0.26'
+
+		lines = self.properties.dump()
+		lines.append('\n')
+		lines.extend(self.format.Dumper().dump(tree))
+		self.source.writelines(lines)
 		#~ self.emit('changed')

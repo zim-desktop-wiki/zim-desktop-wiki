@@ -51,7 +51,23 @@ Aaa: foobar
 		headers = HeadersDict(text)
 		self.assertEqual(headers['Foobar'], '123')
 		self.assertEqual(headers['More-Lines'], 'test\n1234\ntest')
-		self.assertEqualDiff(headers.tostring(), text)
+		self.assertEqualDiff(headers.dump(), text.splitlines(True))
+
+		moretext='''\
+Foobar: 123
+More-Lines: test
+	1234
+	test
+Aaa: foobar
+
+test 123
+test 456
+'''
+		lines = moretext.splitlines(True)
+		headers = HeadersDict()
+		headers.read(lines)
+		self.assertEqualDiff(headers.dump(), text.splitlines(True))
+		self.assertEqualDiff(lines, ['test 123\n', 'test 456\n'])
 
 		# error tolerance and case insensitivity
 		text = '''\
@@ -69,7 +85,7 @@ test
 '''
 		self.assertRaises(ParsingError, HeadersDict, text)
 
-		text = 'foo-bar: test'
+		text = 'foo-bar: test\n\n\n'
 		headers = HeadersDict(text)
 		self.assertEqual(headers['Foo-Bar'], 'test')
-		self.assertEqual(headers.tostring(), 'Foo-Bar: test\n')
+		self.assertEqual(headers.dump(), ['Foo-Bar: test\n'])
