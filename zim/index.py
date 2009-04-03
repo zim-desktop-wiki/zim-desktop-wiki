@@ -293,9 +293,7 @@ class Index(gobject.GObject):
 				raise
 			except:
 				# Catch any errors while listing & parsing all pages
-				import sys
-				logger.warn('Got an exception while indexing: %s', path)
-				sys.excepthook(*sys.exc_info())
+				logger.exception('Got an exception while indexing "%s":', path)
 
 			if not callback is None:
 				cont = callback(path)

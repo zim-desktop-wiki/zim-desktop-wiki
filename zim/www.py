@@ -17,6 +17,7 @@ import logging
 import gobject
 
 from wsgiref.headers import Headers
+import urllib
 
 from zim import NotebookInterface
 from zim.notebook import Page, Path
@@ -41,11 +42,11 @@ class WWWError(Exception):
 		'500': 'Internal Server Error',
 	}
 
-	def __init__(self, status='500', headers=None, msg=None):
+	def __init__(self, status='500', headers=None, msg=''):
 		'''FIXME'''
 		self.status = '%s %s' % (status, self.statusstring[status])
 		self.headers = headers
-		self.msg = msg
+		self.msg = str(msg)
 		self.logmsg = self.status + ' - ' + self.msg
 
 
@@ -141,7 +142,7 @@ class WWWInterface(NotebookInterface):
 					headers['Content-Type'] = 'image/png'
 				elif path.endswith('.ico'):
 					headers['Content-Type'] = 'image/vnd.microsoft.icon'
-				content = file.read(encoding=None)
+				content = [file.read(encoding=None)]
 			else:
 				# Must be a page or a namespace (html file or directory path)
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
@@ -152,6 +153,7 @@ class WWWInterface(NotebookInterface):
 				else:
 					raise PageNotFoundError(path)
 
+				pagename = urllib.unquote(pagename)
 				path = self.notebook.resolve_path(pagename)
 				page = self.notebook.get_page(path)
 				if page.hascontent:
@@ -169,13 +171,12 @@ class WWWInterface(NotebookInterface):
 			if environ['REQUEST_METHOD'] == 'HEAD':
 				return []
 			else:
-				return error.msg
+				return [error.msg]
 		# TODO also handle template errors as special here
-		except Exception, error:
+		except Exception:
 			# Unexpected error - maybe a bug, do not expose output on bugs
 			# to the outside world
-			logger.error("%s: %s", error.__class__.__name__, str(error))
-			sys.excepthook(*sys.exc_info())
+			logger.exception('Unexpected error:')
 			start_response('500 Internal Server Error', [])
 			return []
 		else:
