@@ -1,30 +1,27 @@
 <ui>
 	<menubar name='menubar'>
 		<menu action='file_menu'>
-<!--
 			<menuitem action='new_page'/>
--->
 			<menuitem action='open_notebook'/>
-<!--
 			<menuitem action='import_page'/>
--->
 			<separator/>
-<!--
 			<menuitem action='save_page'/>
 			<menuitem action='save_copy'/>
+<!--
 			<menuitem action='save_version'/>
 			<menuitem action='show_versions'/>
 -->
 			<separator/>
-<!--
 			<menuitem action='show_export'/>
--->
 			<placeholder name='print_actions'/>
 <!--
 			<menuitem action='email_page'/>
 -->
 			<separator/>
-			<placeholder name='page_mods'/>
+			<menuitem action='rename_page'/>
+			<menuitem action='move_page'/>
+			<menuitem action='delete_page'/>
+			<placeholder name='page_modification_actions'/>
 			<separator/>
 <!--
 			<menuitem action='show_properties'/>
@@ -83,10 +80,10 @@
 			<separator/>
 <!--
 			<menuitem action='edit_page_source'/>
+-->
 			<menuitem action='attach_file'/>
 			<menuitem action='open_attachments_folder'/>
 			<menuitem action='open_documents_folder'/>
--->
 			<separator/>
 			<menuitem action='show_server_gui'/>
 			<separator/>
@@ -136,9 +133,7 @@
 		<placeholder name='format'/>
 		<separator/>
 		<placeholder name='tools'>
-<!--
 			<toolitem action='attach_file'/>
--->
 		</placeholder>
 	</toolbar>
 	<popup name='toolbar_popup'>
@@ -150,8 +145,6 @@
 		<menuitem action='set_toolbar_icons_small'/>
 		<menuitem action='set_toolbar_icons_tiny'/>
 	</popup>
-</ui>
-
 <!--
 	<popup name='page_popup'>
 		<menuitem action='popup_new_page'/>
@@ -160,17 +153,5 @@
 		<menuitem action='popup_delete_page'/>
 	</popup>
 -->
-
-<!--
-<ui>
-	<menubar name='menu_bar'>
-			<menu action='file_menu'>
-				<placeholder name='page_mods'>
-					<menuitem action='copy_page'/>
-					<menuitem action='rename_page'/>
-					<menuitem action='delete_page'/>
-				</placeholder>
-			</menu>
-	</menubar>
 </ui>
--->
+

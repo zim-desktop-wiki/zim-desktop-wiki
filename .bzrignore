@@ -3,7 +3,6 @@ dist
 tmp*
 .coverage
 *,cover
-config
 *.bak
 zim/_version.py
 MANIFEST

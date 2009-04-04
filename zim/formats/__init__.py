@@ -76,9 +76,22 @@ except:  # pragma: no cover
 		Element, SubElement, TreeBuilder
 
 
+EXPORT_FORMAT = 1
+IMPORT_FORMAT = 2
+NATIVE_FORMAT = 4
+
+
+def list_formats(type):
+	if type == EXPORT_FORMAT:
+		return ['HTML']
+	else:
+		assert False, 'TODO'
+
+
 def get_format(name):
 	'''Returns the module object for a specific format.'''
 	# __import__ has some quirks, see the reference manual
+	name = name.lower()
 	mod = __import__('zim.formats.'+name)
 	mod = getattr(mod, 'formats')
 	mod = getattr(mod, name)

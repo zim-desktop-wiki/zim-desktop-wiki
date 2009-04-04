@@ -101,14 +101,15 @@ class NotebookInterface(gobject.GObject):
 		self.notebook = notebook
 
 	def do_export(self, format='html', template=None, page=None, output=None):
-		'''Method called when doign a commandline export'''
+		'''Method called when doing a commandline export'''
 		if page is None:
 			assert False, 'TODO: export whole notebook'
 		if not output is None:
 			assert False, 'TODO: output other than stdout'
 
-		if isinstance(page,basestring):
-			page = self.notebook.get_page(page)
+		if isinstance(page, basestring):
+			path = self.notebook.resolve_path(page)
+			page = self.notebook.get_page(path)
 
 		if template is None:
 			output = page.dump(format=format)

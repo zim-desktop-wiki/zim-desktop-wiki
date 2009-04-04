@@ -1,8 +1,14 @@
 # Script and module files are included automatically
 # need to specify additional ditribution files here
 include *.txt
-include test.py tests/*.py
-recursive-include tests/data/ *
+include *.py
 recursive-include data/ *
-prune data/manual/.zim
-global-exclude *~ *.bak *.swp 
+prune data/manual/.zim/
+recursive-include dev/ *
+recursive-include cgi-bin/ *
+recursive-include contrib/ *
+recursive-include HACKING/ *
+prune HACKING/.zim/
+recursive-include tests/ *
+prune tests/tmp/
+global-exclude *~ *.bak *.swp *.pyc

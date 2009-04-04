@@ -90,11 +90,8 @@ class Store(StoreClass):
 			childpath = path + node[0]
 			yield self._build_page(childpath, node)
 
-	#~ def move_page(self, name, newname):
-		#~ '''FIXME'''
+	def move_page(self, oldpath, newpath):
+		assert False, 'TODO'
 
-	#~ def copy_page(self, name, newname):
-		#~ '''FIXME'''
-
-	#~ def delete_page(self, name):
-		#~ '''FIXME'''
+	def delete_page(self, path):
+		assert False, 'TODO'

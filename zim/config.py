@@ -16,12 +16,17 @@ logger = logging.getLogger('zim.config')
 
 # add "data" dir if it is in the same dir as zim.py
 # this allows running zim without installation
-_data_dirs = []
+_data_dirs = [] # FIXME add XDG_DATA_HOME here
 _scriptdir = os.path.dirname(sys.argv[0])
-_data_dir = os.path.join(_scriptdir, 'data')
-if os.path.isdir(_data_dir):
-	_data_dirs.append(_data_dir)
-
+for d in (_scriptdir, '.'):
+	_data_dir = os.path.join(d, 'data')
+	if os.path.isdir(_data_dir):
+		_data_dirs.append(_data_dir)
+		break
+else:
+	# FIXME check environemnt
+	#~ _data_dirs.extend(('/usr/share', '/usr/local/share'))
+	pass
 
 def data_dirs(*path):
 	'''Generator for existings dirs matching path in the zim data dirs.'''

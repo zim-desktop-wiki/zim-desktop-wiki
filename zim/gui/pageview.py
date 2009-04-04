@@ -123,6 +123,8 @@ class TextBuffer(gtk.TextBuffer):
 
 				self._insert_element_children(element, list_level=list_level+1) # recurs
 			elif element.tag == 'li':
+				tag = self._get_indent_texttag(list_level)
+				self.set_textstyle('indent', tag=tag)
 				if 'bullet' in element.attrib:
 					bullet = element.attrib['bullet']
 					if bullet in bullet_types:
@@ -130,11 +132,10 @@ class TextBuffer(gtk.TextBuffer):
 					else:
 						logger.warn('Unkown bullet type: %s', bullet)
 						stock = gtk.STOCK_MISSING_IMAGE
-					self.insert_at_cursor('\t'*list_level)
 					self.insert_icon_at_cursor(stock)
 					self.insert_at_cursor(' ')
 				else:
-					self.insert_at_cursor('\t'*list_level + u'\u2022 ')
+					self.insert_at_cursor(u'\u2022 ')
 
 				if element.tail:
 					element.tail += '\n'
@@ -145,6 +146,7 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(element.text)
 
 				self._insert_element_children(element, list_level=list_level) # recurs
+				self.set_textstyle(None)
 			elif element.tag == 'link':
 				self.insert_link_at_cursor(element.attrib, element.text)
 			elif element.tag == 'img':
@@ -165,6 +167,16 @@ class TextBuffer(gtk.TextBuffer):
 
 			if element.tail:
 				self.insert_at_cursor(element.tail)
+
+	def _get_indent_texttag(self, level):
+		# TODO make number of pixels in indent configable (call this tabstop)
+		name = 'indent%i' % level
+		tag = self.get_tag_table().lookup(name)
+		if tag is None:
+			margin = 10 + 30 * level-1 # offset from left side for all lines
+			indent = -10 # offset for first line (bullet)
+			tag = self.create_tag(name, left_margin=margin, indent=indent)
+		return tag
 
 	def insert_link(self, iter, attrib, text):
 		'''FIXME'''
@@ -241,7 +253,18 @@ class TextBuffer(gtk.TextBuffer):
 		if pixbuf is None:
 			logger.warn('Could not find icon: %s', stock)
 			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
+
+		mark = self.create_mark('zim-tmp', iter, True)
 		self.insert_pixbuf(iter, pixbuf)
+
+		if not self.textstyle_tag is None:
+			start = self.get_iter_at_mark(mark)
+			end = start.copy()
+			end.forward_char()
+			self.remove_all_tags(start, end)
+			self.apply_tag(self.textstyle_tag, start, end)
+
+		self.delete_mark(mark)
 
 	def insert_icon_at_cursor(self, stock):
 		iter = self.get_iter_at_mark(self.get_insert())

@@ -165,6 +165,7 @@ class GtkInterface(NotebookInterface):
 		self.page = None
 		self.history = None
 		self.load_config()
+		self.uistate = {}
 
 		icon = data_file('zim.png').path
 		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
@@ -200,7 +201,11 @@ class GtkInterface(NotebookInterface):
 			assert self.notebook, 'Can not open page without notebook'
 			if isinstance(page, basestring):
 				page = self.notebook.resolve_path(page)
-			self.open_page(page)
+				if not page is None:
+					self.open_page(page)
+			else:
+				assert isinstance(page, Path)
+				self.open_page(page)
 
 	def main(self):
 		'''Wrapper for gtk.main(); does not return untill program has ended.'''
@@ -862,6 +867,19 @@ class Dialog(gtk.Dialog):
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 
+		if isinstance(ui, GtkInterface):
+			key = self.__class__.__name__
+			ui.uistate.setdefault(key, {})
+			self.uistate = ui.uistate[key]
+			#~ print '>>', self.uistates
+			if 'windowsize' in self.uistate:
+				try:
+					w, h = map(int, self.uistate['windowsize'].split(','))
+				except:
+					logger.exception('Error parsing %s.windowsize:', key)
+				else:
+					self.set_default_size(w, h)
+
 		self._no_ok_action = False
 		if buttons is None or buttons == gtk.BUTTONS_NONE:
 			self._no_ok_action = True
@@ -981,6 +999,10 @@ class Dialog(gtk.Dialog):
 		else:
 			close = True
 
+		if hasattr(self, 'uistate'):
+			w, h = self.get_size()
+			self.uistate['windowsize'] = '%i,%i' % (w, h)
+
 		if close:
 			self.destroy()
 			logger.debug('Closed dialog "%s"', self.title[:-6])
@@ -1073,6 +1095,7 @@ class SaveCopyDialog(FileDialog):
 	def __init__(self, ui):
 		FileDialog.__init__(self, ui, 'Save Copy', gtk.FILE_CHOOSER_ACTION_SAVE)
 		self.filechooser.set_current_name(self.ui.page.name + '.txt')
+		# TODO also include headers
 		# TODO add droplist with native formats to choose + hook filters
 		# TODO change "Ok" button to "Save"
 

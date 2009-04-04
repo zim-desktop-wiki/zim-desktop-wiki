@@ -84,14 +84,11 @@ class Store(StoreClass):
 		for name in names: # sets are sorted by default
 			yield self.get_page(path + name)
 
-	#~ def move_page(self, name, newname):
-		#~ '''FIXME'''
+	def move_page(self, oldpath, newpath):
+		assert False, 'TODO'
 
-	#~ def copy_page(self, name, newname):
-		#~ '''FIXME'''
-
-	#~ def delete_page(self, name):
-		#~ '''FIXME'''
+	def delete_page(self, path):
+		assert False, 'TODO'
 
 	# It could be argued that we should use e.g. MD5 checksums to verify
 	# integrity of the page content instead of mtime. It is true the mtime

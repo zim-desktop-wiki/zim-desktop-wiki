@@ -1,0 +1,21 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Sat, 04 Apr 2009 10:58:28 +0200
+Modification-Date: Sat, 04 Apr 2009 10:58:53 +0200
+
+====== Issues ======
+
+== BUGS ==
+
+* Pressing Alt-PgUp / PgDwn or Alt-Left / Alt-Right to fast causes a segfault
+	* Same bug shows up with command line argument for page to open
+* WWW does not yet support images and file links
+
+== LIMITATIONS ==
+
+* Main assumption about the whole file handling and page rendering is that
+  files are small enough that we can load them into memory several times.
+  This seems a valid assumption as notebooks are spread over many files.
+  Having really huge files with contents is outside the scope of the design.
+  If this is what you want to do, you probably need a more heavy duty text
+  editor.

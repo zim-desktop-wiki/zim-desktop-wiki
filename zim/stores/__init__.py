@@ -112,14 +112,6 @@ class StoreClass():
 		'''
 		raise NotImplementedError
 
-	def copy_page(self, oldpath, newpath):
-		'''ABSTRACT METHOD, must be implemented in sub-class if store is
-		writable.
-
-		Copy content from "oldpath" to object "newpath".
-		'''
-		raise NotImplementedError
-
 	def delete_page(self, path):
 		'''ABSTRACT METHOD, must be implemented in sub-class if store is
 		writable.

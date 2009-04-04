@@ -10,6 +10,7 @@ noetbook.  As a backend it uses one of more packages from
 the 'stores' namespace.
 '''
 
+import os
 import weakref
 import logging
 
@@ -24,7 +25,7 @@ logger = logging.getLogger('zim.notebook')
 
 def get_notebook(notebook):
 	'''Takes a path or name and returns a notebook object'''
-	if not isinstance(notebook, Dir):
+	if isinstance(notebook, basestring):
 		# We are not sure if it is a name or a path, try lookup
 		name = notebook
 		table = get_notebook_table()
@@ -35,18 +36,26 @@ def get_notebook(notebook):
 				notebook = table[table[notebook]]
 			else:
 				notebook = table[notebook]
-			notebook = Dir(notebook)
-		elif notebook == '_manual_':
-			notebook = data_dir('manual')
 		else:
-			notebook = Dir(notebook) # maybe it's a path after all
+			pass # maybe it's a path after all
+
+		if notebook == '_manual_':
+			notebook = data_dir('manual')
+		elif os.path.isfile(notebook):
+			notebook = File(notebook)
+		else:
+			notebook = Dir(notebook)
+
+	if isinstance(notebook, File) and notebook.basename == 'notebook.zim':
+		notebook = notebook.dir
+		name = notebook.path # FIXME get name from the file
 	else:
 		name = notebook.path
 
 	if notebook.exists():
 		return Notebook(path=notebook, name=name)
 	else:
-		raise Exception, 'no such notebook: %s' % notebook
+		raise Exception, 'No such notebook: %s' % notebook
 
 
 notebook_table_ref = lambda: None

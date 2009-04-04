@@ -1,0 +1,101 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Sat, 04 Apr 2009 10:56:09 +0200
+Modification-Date: Sat, 04 Apr 2009 10:56:26 +0200
+
+====== Ideas ======
+
+
+Entries can now have inline icons now - see
+http://library.gnome.org/devel/gtk/unstable/GtkEntry.html :)
+
+Using these for browse buttons etc will be very slick.
+Check gtk version in form code and fallback to adding a small button
+behind the entry.
+
+How does a browse dialog for pages / namespaces look ??
+
+=== file links for www ===
+
+When serving:
+* attachments should be served - link needs to be from server root
+* files under doc root (if any) should be served - idem
+* bullet icons should be served
+* all other files get linked as file:/// urls
+
+When exporting:
+* attachments should be copied - link should be reative file path from html file
+* doc root never needs to be copied, absolute path or use doc_root url setting
+* other files maybe copied or linked with absolute path
+
+== Get a self hosting documentation browser ==
+
+For example './zim.py zim/' should show all modules and classes in the treeview
+clicking a page should show API documentation. Using the xdot view should show
+relations between classes.
+
+* Store that generates pydoc like output for a python source file
+* Commandline option to force default store ?
+* Link types to distinguise inheritance and collaboration
+
+
+== File format ==
+
+Header for mtime in pages causes conflicts when merging versions :S
+Get rid of all headers except the content-type line defining a zim version.
+
+Move to a new extension (.wkz ?) and assign the proper mimetype and icon.
+Move notebook.zim to hidden ".notebook.zim" (not in .zim dir - .zim should
+be ignored when versioning).
+Add zim format version to notebook as well. When we detect older version
+< 0.42, prompt user to upgrade the notebook to new format and move the files
+around. Do automated backup first! Do we need to keep backward compat mode ??
+
+( Code to store the tar.gz backup can be used as well for e.g. for a
+backup plugin, or to publish read-only notebooks. )
+
+== Locking ==
+
+Do not use mtime or lock, even mtime fails on network drives.
+Use lock directory (similar to bzr) and if locked prompt user
+to break lock or open read-only. If detected that other
+process broke lock, warn user and switch to read-only.
+
+Assume single user usage, so this is only prevention.
+For multi-user setups need network client etc.
+
+== mtime stuff ==
+
+After reading a page get the mtime and keep the original raw file in memory.
+When at writing timestamps do not match, calculate md5 of original in memory
+and of the file on disk. Only prompt user if md5 sums really do not match.
+This makes us more reliable for network file systems etc.
+
+== file buffers ==
+
+The idea to read /write diretly from and to files from e.g. a format was
+a pre-mature optimalization. Adapt the Buffer object to be a in-memory buffer
+of an existing file. Pass file data around in memory after reading.
+
+== Daemon ==
+
+Same daemon architecture as we have now. However need to maintain interface
+type for clients, so server and gui can have same notebook open.
+Need daemonclient object class and interfaceclient class.
+Also need a stub daemon class for stand alone and testing.
+
+== Network client ==
+
+If we want to run a network version and decide to fix all the related
+concurency and authentication stuff the proper way would be to extend the
+server with the needed interfaces. E.g. plain source pages and an SQL
+query interface with some plain text result page.
+
+== Autoformatting ==
+
+Instead of hardcoding autoformatting maintain a list of regexes and
+actions that is aither user editable or at least editiable from a
+plugin script. Implement in a generic fashion.
+
++ need to be able to enable / disable sets based on prefs
+

@@ -1,4 +1,9 @@
-Inline latex
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Unknown
+Modification-Date: Sat, 04 Apr 2009 10:56:34 +0200
+
+====== Inline latex ======
 Created Tuesday 24 March 2009
 
 Need support for inline objects that render images on the fly
@@ -29,12 +34,12 @@ for backward compatibility.
 Also for external files we can save the image by MD5 sum.
 
 
-• How to mark inline blocks in the wiki source ?
-	• Support "$$ ... $$" for latex formulas ?
-	• Support some block construct like "{{{ latex\n ... \n}}}\n"
-		• distuinguise from block of latex for syntax highlighting ...
-		• research wikipedia and creole syntax for such a block
-• How to trigger image generation when rendering the page ?
-• How to trigger image generation or copying when e.g. exporting to HTML ?
+* How to mark inline blocks in the wiki source ?
+	* Support "$$ ... $$" for latex formulas ?
+	* Support some block construct like "''{{{ latex\n ... \n}}}\n''"
+		* distuinguise from block of latex for syntax highlighting ...
+		* research wikipedia and creole syntax for such a block
+* How to trigger image generation when rendering the page ?
+* How to trigger image generation or copying when e.g. exporting to HTML ?
 
 
