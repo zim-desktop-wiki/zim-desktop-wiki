@@ -113,3 +113,85 @@ class BrowserTreeView(gtk.TreeView):
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(BrowserTreeView)
+
+
+class MenuButton(gtk.HBox):
+	'''FIXME
+
+	This module is based loosely on gedit-status-combo-box.c from the gedit
+	sources.
+	'''
+
+	# Set up a style for the statusbar variant to decrease spacing of the button
+	gtk.rc_parse_string('''\
+style "zim-statusbar-menubutton-style"
+{
+	GtkWidget::focus-padding = 0
+	GtkWidget::focus-line-width = 0
+	xthickness = 0
+	ythickness = 0
+}
+widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
+''')
+
+	def __init__(self, label, menu, status_bar_style=False):
+		gtk.HBox.__init__(self)
+		if isinstance(label, basestring):
+			self.label = gtk.Label()
+			self.label.set_markup_with_mnemonic(label)
+		else:
+			assert isinstance(label, gtk.Widget)
+			self.label = label
+		self.menu = menu
+		self.button = gtk.ToggleButton()
+		if status_bar_style:
+			self.button.set_name('zim-statusbar-menubutton')
+			self.button.set_relief(gtk.RELIEF_NONE)
+		self.button.add(self.label)
+		# We need to wrap stuff in an eventbox in order to get the gdk.Window
+		# which we need to get coordinates when positioning the menu
+		self.eventbox = gtk.EventBox()
+		self.eventbox.add(self.button)
+		self.add(self.eventbox)
+
+		self.button.connect_object(
+			'button-press-event', self.__class__.popup_menu, self)
+		self._clicked_signal = self.button.connect_object(
+			'clicked', self.__class__.popup_menu, self)
+
+		# TODO reduce size of toggle-button - see gedit-status-combo for example
+		# TODO looks like other statusbar items resize on toggle button
+
+	def popup_menu(self, event=None):
+		if not self.get_property('sensitive'):
+			return
+
+		if event: # we came from button-press-event or similar
+			button = event.button
+			time = event.time
+			if self.button.get_active():
+				return
+		else:
+			button = 0
+			time = gtk.get_current_event_time()
+
+		self.button.handler_block(self._clicked_signal)
+		self.button.set_active(True)
+		self.button.handler_unblock(self._clicked_signal)
+		self.menu.connect('deactivate', self._deactivate_menu)
+		self.menu.show_all()
+		self.menu.popup(None, None, self._position_menu, button, time)
+
+	def _position_menu(self, menu):
+		x, y = self.eventbox.window.get_origin()
+		w, h = menu.get_toplevel().size_request()
+		y -= h # make the menu pop above the button
+		return x, y, False
+
+	def _deactivate_menu(self, menu):
+		self.button.handler_block(self._clicked_signal)
+		self.button.set_active(False)
+		self.button.handler_unblock(self._clicked_signal)
+
+# Need to register classes defining / overriding gobject signals
+gobject.type_register(MenuButton)

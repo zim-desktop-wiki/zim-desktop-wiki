@@ -519,4 +519,4 @@ class Link(object):
 		self.type = type
 
 	def __repr__(self):
-		return '<%s: %s -> %s (%s)>' % (self.__class__.__name__, self.source, self.href, self.type)
+		return '<%s: %s to %s (%s)>' % (self.__class__.__name__, self.source, self.href, self.type)

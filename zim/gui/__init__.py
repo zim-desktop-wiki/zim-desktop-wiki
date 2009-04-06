@@ -20,11 +20,13 @@ import zim
 import zim.fs
 from zim import NotebookInterface
 from zim.notebook import Path, Page, PageNameError
+from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs
 import zim.history
 import zim.gui.pathbar
 import zim.gui.pageindex
 import zim.gui.pageview
+from zim.gui.widgets import MenuButton
 
 logger = logging.getLogger('zim.gui')
 
@@ -638,25 +640,27 @@ class MainWindow(gtk.Window):
 		self.statusbar.push(0, '<page>')
 		hbox.add(self.statusbar)
 
-		def statusbar_element(string, size, eventbox=False):
+		def statusbar_element(string, size):
 			frame = gtk.Frame()
 			frame.set_shadow_type(gtk.SHADOW_IN)
 			self.statusbar.pack_end(frame, False)
 			label = gtk.Label(string)
 			label.set_size_request(size, 10)
 			label.set_alignment(0.1, 0.5)
-			if eventbox:
-				box = gtk.EventBox()
-				box.add(label)
-				frame.add(box)
-			else:
-				frame.add(label)
+			frame.add(label)
 			return label
 
 		# specify statusbar elements right-to-left
 		self.statusbar_style_label = statusbar_element('<style>', 100)
 		self.statusbar_insert_label = statusbar_element('INS', 60)
-		self.statusbar_backlinks_label = statusbar_element('<backlinks>', 120, True)
+
+		# and build the widget for backlinks
+		self.statusbar_backlinks_button = \
+			BackLinksMenuButton(self.ui, status_bar_style=True)
+		frame = gtk.Frame()
+		frame.set_shadow_type(gtk.SHADOW_IN)
+		self.statusbar.pack_end(frame, False)
+		frame.add(self.statusbar_backlinks_button)
 
 		# add a second statusbar widget - somehow the corner grip
 		# does not render properly after the pack_end for the first one
@@ -789,20 +793,49 @@ class MainWindow(gtk.Window):
 
 		self.statusbar.pop(0)
 		self.statusbar.push(0, page.name)
-		# TODO set backlinks label
 
 		self.pageview.view.get_buffer().connect(
 			'textstyle-changed',
 			lambda o, s: self.statusbar_style_label.set_text(s))
 
 		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
-		self.statusbar_backlinks_label.set_text('%i Backlinks' % n)
+		label = self.statusbar_backlinks_button.label
+		label.set_text_with_mnemonic('%i _Backlinks...' % n)
+		if n == 0:
+			self.statusbar_backlinks_button.set_sensitive(False)
+		else:
+			self.statusbar_backlinks_button.set_sensitive(True)
 
 	def do_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()
 		if state: text = 'OVR'
 		else: text = 'INS'
 		self.statusbar_insert_label.set_text(text)
+
+
+class BackLinksMenuButton(MenuButton):
+
+	def __init__(self, ui, status_bar_style=False):
+		MenuButton.__init__(self, 'X _Backlinks', gtk.Menu(), status_bar_style)
+		self.ui = ui
+
+	def popup_menu(self, event=None):
+		# Create menu on the fly
+		self.menu = gtk.Menu()
+		index = self.ui.notebook.index
+		links = list(index.list_links(self.ui.page, LINK_DIR_BACKWARD))
+		if not links:
+			return
+
+		self.menu.add(gtk.TearoffMenuItem())
+			# TODO: hook tearoff to trigger search dialog
+
+		for link in links:
+			item = gtk.MenuItem(link.source.name)
+			item.connect_object('activate', self.ui.open_page, link.source)
+			self.menu.add(item)
+
+		MenuButton.popup_menu(self, event)
 
 
 def get_window(ui):
