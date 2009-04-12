@@ -177,10 +177,13 @@ class Dir(Path):
 
 	def file(self, path):
 		'''FIXME'''
+		assert isinstance(path, (File, basestring, list, tuple))
 		if isinstance(path, File):
 			file = path
-		else:
+		elif isinstance(path, basestring):
 			file = File((self.path, path))
+		else:
+			file = File((self.path,) + tuple(path))
 		if not file.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (file, self)
 		# TODO set parent dir on file
@@ -188,10 +191,13 @@ class Dir(Path):
 
 	def subdir(self, path):
 		'''FIXME'''
+		assert isinstance(path, (File, basestring, list, tuple))
 		if isinstance(path, Dir):
 			dir = path
-		else:
+		elif isinstance(path, basestring):
 			dir = Dir((self.path, path))
+		else:
+			dir = Dir((self.path,) + tuple(path))
 		if not dir.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (dir, self)
 		# TODO set parent dir on file

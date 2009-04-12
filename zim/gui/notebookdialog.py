@@ -4,8 +4,8 @@
 
 '''This module contains the notebook dialog which is used for the
 "open another notebook" action and which is shown if you start zim without
-argument. The dialog directly modifies the notebook table obtained from
-zim.notebook.get_notebook_table(). It re-uses the properties dialog to
+argument. The dialog directly modifies the notebook list obtained from
+zim.notebook.get_notebook_list(). It re-uses the properties dialog to
 modify the notebook properties. A special dropdown allows settign the special
 entry for _default_ which will be openend directly the next time zim is
 started without arguments.
@@ -28,12 +28,12 @@ class NotebookTreeModel(gtk.ListStore):
 
 	def __init__(self, notebooks=None):
 		'''Constructor. If "notebooks" is None, the default list as provided
-		by zim.notebook.get_notebook_table() is used.
+		by zim.notebook.get_notebook_list() is used.
 		'''
 		gtk.ListStore.__init__(self, str, bool) # NAME_COL, OPEN_COL
 
 		if notebooks is None:
-			self.notebooks = notebook.get_notebook_table()
+			self.notebooks = notebook.get_notebook_list()
 		else:
 			self.notebooks = notebooks
 

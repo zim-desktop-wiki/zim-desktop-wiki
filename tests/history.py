@@ -32,6 +32,10 @@ class TestHistory(TestCase):
 
 		self._assertCurrent(history, self.pages[-1])
 
+		pages = list(history.get_history())
+		self.assertEqual(pages[0], history.get_current())
+		self.assertEqual(len(pages), len(self.pages))
+
 		# walk backwards
 		for i in range(2, len(self.pages)+1):
 			prev = history.get_previous()
@@ -55,3 +59,41 @@ class TestHistory(TestCase):
 		self._assertCurrent(history, self.pages[-1])
 		self.assertTrue(history.get_next() is None)
 		self.assertTrue(history.get_current().is_last())
+
+	def testUnique(self):
+		'''Get recent pages from history'''
+		history = History(self.notebook)
+		for page in self.pages:
+			history.append(page)
+		self.assertEqual(len(history.history), len(self.pages))
+
+		unique = list(history.get_unique())
+		self.assertEqual(unique[0], history.get_current())
+		self.assertEqual(len(unique), len(self.pages))
+
+		for page in self.pages:
+			history.append(page)
+		self.assertEqual(len(history.history), 2*len(self.pages))
+
+		unique = list(history.get_unique())
+		self.assertEqual(unique[0], history.get_current())
+		self.assertEqual(len(unique), len(self.pages))
+		
+		unique = set([page.name for page in unique]) # collapse doubles 
+		self.assertEqual(len(unique), len(self.pages))
+
+	def testChildren(self):
+		'''Test getting namespace from history'''
+		history = History(self.notebook)
+		for name in ('Test:wiki', 'Test:foo:bar', 'Test:foo', 'TODOList:bar'):
+			page = self.notebook.get_page(Path(name))
+			history.append(page)
+		
+		self.assertEqual(history.get_child(Path('Test')), Path('Test:foo'))
+		self.assertEqual(history.get_grandchild(Path('Test')), Path('Test:foo:bar'))
+		self.assertEqual(history.get_child(Path('NonExistent')), None)
+		self.assertEqual(history.get_grandchild(Path('NonExistent')), None)
+
+		history.append(self.notebook.get_page(Path('Test:wiki')))
+		self.assertEqual(history.get_child(Path('Test')), Path('Test:wiki'))
+		self.assertEqual(history.get_grandchild(Path('Test')), Path('Test:wiki'))

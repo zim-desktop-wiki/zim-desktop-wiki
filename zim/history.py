@@ -136,7 +136,7 @@ class History(gobject.GObject):
 		for i in range(len(self.history)-1, -1, -1):
 			yield HistoryRecord(self.history, i)
 
-	def get_unique(self, max=None):
+	def get_unique(self):
 		'''Generator function that yields unique records'''
 		seen = set()
 		for i in range(len(self.history)-1, -1, -1):

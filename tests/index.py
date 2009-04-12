@@ -108,6 +108,21 @@ class TestIndex(tests.TestCase):
 			self.assertEqual(indexpath.contentkey, self.notebook.get_page_indexkey(path))
 			self.assertEqual(indexpath.childrenkey, self.notebook.get_pagelist_indexkey(path))
 
+		# get_previous / get_next
+		page = self.index.list_pages(None)[0]
+		seen = 0
+		while page:
+			seen = max(seen, page.name.count(':'))
+			page = self.index.get_next(page)
+		self.assertTrue(seen >= 2)
+		
+		page = self.index.list_pages(None)[-1]
+		seen = 0
+		while page:
+			seen = max(seen, page.name.count(':'))
+			page = self.index.get_previous(page)
+		self.assertTrue(seen >= 2)
+
 		# now go through the flush loop
 		self.index.flush()
 		self.assertEqual(count_pages(self.index.db), 0)

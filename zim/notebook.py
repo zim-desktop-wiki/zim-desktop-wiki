@@ -28,7 +28,7 @@ def get_notebook(notebook):
 	if isinstance(notebook, basestring):
 		# We are not sure if it is a name or a path, try lookup
 		name = notebook
-		table = get_notebook_table()
+		table = get_notebook_list()
 		notebook = unicode(notebook)
 		if notebook in table:
 			if notebook == '_default_' and table['_default_'] in table:
@@ -58,22 +58,9 @@ def get_notebook(notebook):
 		raise Exception, 'No such notebook: %s' % notebook
 
 
-notebook_table_ref = lambda: None
-
-def get_notebook_table():
+def get_notebook_list():
 	'''FIXME'''
-	table = notebook_table_ref()
-	if table is None:
-		table = ConfigList('notebooks.list')
-		_notebook_table_ref = weakref.ref(table)
-	return table
-
-
-def set_notebooks_dict(notebooks):
-	'''FIXME'''
-	assert isinstance(notebooks, ConfigList)
-	file = config_file('notebooks.list')
-	notebooks.write(file)
+	return config_file('notebooks.list')
 
 
 class PageNameError(Exception):
@@ -99,6 +86,7 @@ class Notebook(object):
 		if isinstance(path, Dir):
 			self.dir = path
 			self.cache_dir = path.subdir('.zim')
+				# TODO set cache dir in XDG_CACHE when notebook is read-only
 			logger.debug('Cache dir: %s', self.cache_dir)
 			if config is None:
 				pass # TODO: load config file from dir

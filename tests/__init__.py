@@ -19,6 +19,16 @@ __all__ = [
 __unittest = 1 # needed to get stack trace OK for class TestCase
 
 
+def set_environ():
+	os.environ.update({
+		'XDG_DATA_HOME': './tests/tmp/share',
+		'XDG_DATA_DIRS': './tests/tmp/share',
+		'XDG_CONFIG_HOME': './tests/tmp/config',
+		'XDG_CONFIG_DIRS': './tests/tmp/config',
+		'XDG_CACHE_HOME': './tests/tmp/cache'
+	})
+
+
 def create_tmp_dir(name):
 	'''Returns a path to a tmp dir for tests to store dump data.
 	The dir is removed and recreated empty every time this function

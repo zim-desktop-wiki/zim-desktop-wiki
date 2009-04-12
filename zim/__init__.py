@@ -24,6 +24,7 @@ import os
 import logging
 import gobject
 
+from zim.config import config_file, ConfigDictFile
 
 logger = logging.getLogger('zim')
 executable = 'zim'
@@ -59,11 +60,11 @@ class NotebookInterface(gobject.GObject):
 		except ImportError:
 			logger.debug('No bzr version-info found')
 
+		self.preferences = config_file('preferences.conf')
+		self.uistate = {}
+
 		if not notebook is None:
 			self.open_notebook(notebook)
-
-	def load_config(self):
-		'''FIXME'''
 
 	def load_plugins(self):
 		'''FIXME'''
@@ -99,6 +100,8 @@ class NotebookInterface(gobject.GObject):
 	def do_open_notebook(self, notebook):
 		'''FIXME'''
 		self.notebook = notebook
+		self.uistate = ConfigDictFile(notebook.cache_dir.file('state.conf'))
+		# TODO read profile preferences file if one is set in the notebook
 
 	def do_export(self, format='html', template=None, page=None, output=None):
 		'''Method called when doing a commandline export'''

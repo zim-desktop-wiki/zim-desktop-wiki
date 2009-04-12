@@ -28,10 +28,10 @@ class FastTestLoader(unittest.TestLoader):
 	attribute 'slowTest' set to True.
 	'''
 
-	def __init__(self, full=True):
+	def __init__(self, alltests=True):
 		unittest.TestLoader.__init__(self)
 		self.ignored = 0
-		self.full = full
+		self.alltests = alltests
 
 	def loadTestsFromModule(self, module):
 		"""Return a suite of all tests cases contained in the given module"""
@@ -40,7 +40,7 @@ class FastTestLoader(unittest.TestLoader):
 			obj = getattr(module, name)
 			if (isinstance(obj, (type, types.ClassType)) and
 				issubclass(obj, unittest.TestCase)):
-				if not self.full and hasattr(obj, 'slowTest') and obj.slowTest:
+				if not self.alltests and hasattr(obj, 'slowTest') and obj.slowTest:
 					print 'Ignoring slow test:', obj.__name__
 					self.ignored += 1
 				else:
@@ -96,8 +96,8 @@ def main(argv=None):
 
 	# parse options
 	coverage = None
-	full = False
-	opts, args = getopt.gnu_getopt(argv[1:], 'h', ['help', 'coverage', 'full'])
+	alltests = False
+	opts, args = getopt.gnu_getopt(argv[1:], 'h', ['help', 'coverage', 'all'])
 	for o, a in opts:
 		if o in ('-h', '--help'):
 			print '''\
@@ -108,7 +108,7 @@ If no module is given the whole test suite is run.
 
 Options:
   -h, --help   print this text
-  --full       run all tests (much slower that base set)
+  --all       run all tests (much slower that base set)
   --coverage   report test coverage statistics
 ''' % argv[0]
 			return
@@ -126,8 +126,8 @@ On Ubuntu or Debian install package 'python-coverage'.
 			coverage.exclude('assert')
 			coverage.exclude('raise NotImplementedError')
 			coverage.start()
-		elif o == '--full':
-			full = True
+		elif o == '--all':
+			alltests = True
 		else:
 			assert False
 
@@ -135,9 +135,13 @@ On Ubuntu or Debian install package 'python-coverage'.
 	level = logging.WARNING
 	logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
 
+	# Set environment - so we can be sure we don't see
+	# any data from a previous installed version
+	tests.set_environ()
+
 	# Collect the test cases
 	suite = unittest.TestSuite()
-	loader = FastTestLoader(full=full)
+	loader = FastTestLoader(alltests=alltests)
 
 	if args:
 		modules = [ 'tests.'+name for name in args ]
@@ -152,6 +156,18 @@ On Ubuntu or Debian install package 'python-coverage'.
 	# And run them
 	MyTextTestRunner(verbosity=3, ignored=loader.ignored).run(suite)
 
+	# Check the modules were loaded from the right location
+	# (so no testing based on modules from a previous installed version...)
+	mylib = os.path.abspath('./zim')
+	for module in [m for m in sys.modules.keys()
+			if m == 'zim' or m.startswith('zim.')]:
+		if sys.modules[module] is None:
+			continue
+		file = sys.modules[module].__file__
+		assert file.startswith(mylib), \
+			'Module %s was loaded from %s' % (module, file)
+
+
 	if coverage:
 		coverage.stop()
 		report_coverage(coverage)
@@ -164,7 +180,6 @@ def report_coverage(coverage):
 
 	# Detailed report in html
 	if os.path.exists('coverage/'):
-		import shutil
 		shutil.rmtree('coverage/') # cleanup
 	os.mkdir('coverage')
 
@@ -217,6 +232,7 @@ def report_coverage(coverage):
 </body>
 </html>
 ''')
+		html.close()
 
 	# Index for detailed reports
 	html = open('coverage/index.html', 'w')
@@ -264,6 +280,7 @@ def report_coverage(coverage):
 </body>
 </html>
 ''')
+	html.close()
 
 	print '\nDetailed coverage reports can be found in ./coverage/'
 

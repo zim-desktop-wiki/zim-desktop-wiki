@@ -133,7 +133,7 @@ TOOLBAR_ICONS_TINY = 'tiny'
 try:
 	factory = gtk.IconFactory()
 	factory.add_default()
-	for dir in data_dirs('pixmaps'):
+	for dir in data_dirs(('pixmaps')):
 		for file in dir.list():
 			i = file.rindex('.')
 			name = 'zim-'+file[:i] # e.g. checked-box.png -> zim-checked-box
@@ -153,11 +153,15 @@ class GtkInterface(NotebookInterface):
 	Signals:
 	* open-page (page, path)
 	  Called when opening another page, see open_page() for details
+	* close-page (page)
+	  Called when closing a page, typically just before a new page is opened
+	  and before closing the application
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object))
+		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
+		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	ui_type = 'gtk'
@@ -166,8 +170,6 @@ class GtkInterface(NotebookInterface):
 		NotebookInterface.__init__(self, **opts)
 		self.page = None
 		self.history = None
-		self.load_config()
-		self.uistate = {}
 
 		icon = data_file('zim.png').path
 		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
@@ -229,6 +231,7 @@ class GtkInterface(NotebookInterface):
 		self.quit()
 
 	def quit(self):
+		self.emit('close-page', self.page)
 		self.mainwindow.destroy()
 		gtk.main_quit()
 
@@ -338,7 +341,7 @@ class GtkInterface(NotebookInterface):
 
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook.'''
-		self.notebook = notebook
+		NotebookInterface.do_open_notebook(self, notebook)
 		self.history = zim.history.History(notebook)
 
 		# Do a lightweight background check of the index
@@ -366,7 +369,13 @@ class GtkInterface(NotebookInterface):
 			page = path
 		else:
 			page = self.notebook.get_page(path)
+		if self.page:
+			self.emit('close-page', self.page)
 		self.emit('open-page', page, path)
+
+	def do_close_page(self, page):
+		print 'Writine %r' % self.uistate.file
+		self.uistate.write()
 
 	def do_open_page(self, page, path):
 		'''Signal handler for open-page.'''
@@ -900,18 +909,13 @@ class Dialog(gtk.Dialog):
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 
-		if isinstance(ui, GtkInterface):
+		if isinstance(ui, NotebookInterface):
 			key = self.__class__.__name__
-			ui.uistate.setdefault(key, {})
 			self.uistate = ui.uistate[key]
-			#~ print '>>', self.uistates
-			if 'windowsize' in self.uistate:
-				try:
-					w, h = map(int, self.uistate['windowsize'].split(','))
-				except:
-					logger.exception('Error parsing %s.windowsize:', key)
-				else:
-					self.set_default_size(w, h)
+			#~ print '>>', self.uistate
+			self.uistate.check_is_coord('windowsize', (-1, -1))
+			w, h = self.uistate['windowsize']
+			self.set_default_size(w, h)
 
 		self._no_ok_action = False
 		if buttons is None or buttons == gtk.BUTTONS_NONE:
@@ -1034,7 +1038,7 @@ class Dialog(gtk.Dialog):
 
 		if hasattr(self, 'uistate'):
 			w, h = self.get_size()
-			self.uistate['windowsize'] = '%i,%i' % (w, h)
+			self.uistate['windowsize'] = (w, h)
 
 		if close:
 			self.destroy()

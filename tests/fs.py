@@ -23,7 +23,7 @@ class TestFS(tests.TestCase):
 
 		path = Path('/foo/bar')
 		uri = 'file:///' + os.path.abspath('/foo/bar').replace('\\', '/').strip('/')
-		self.assertEqual(path.uri, 'file:///foo/bar')
+		self.assertEqual(path.uri, uri)
 
 		# TODO test Path('file:///foo/bar') => '/foo/bar'
 		# TODO test Path('file://localhost/foo/bar') => '/foo/bar'
@@ -33,7 +33,9 @@ class TestFS(tests.TestCase):
 		self.assertEqual(path.split(), [drive + os.sep + 'foo', 'bar', 'baz'])
 		dirs = []
 		for d in path: dirs.append(d)
-		self.assertEqual(dirs, ['/foo', '/foo/bar', '/foo/bar/baz'])
+		wanted = map(lambda p: os.path.abspath(drive+p),
+					['/foo', '/foo/bar', '/foo/bar/baz'])
+		self.assertEqual(dirs, wanted)
 
 	def testFileHandle(self):
 		'''Test FileHandle object'''

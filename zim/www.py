@@ -84,7 +84,6 @@ class WWWInterface(NotebookInterface):
 			from zim.templates import get_template
 			template = get_template('html', template)
 		self.template = template
-		self.load_config()
 		self.load_plugins()
 		if not notebook is None:
 			self.open_notebook(notebook)

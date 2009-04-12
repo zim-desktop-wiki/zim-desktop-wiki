@@ -78,8 +78,7 @@ def list_templates(format):
 	'''Returns a dict mapping template names to file paths.'''
 	format = format.lower()
 	templates = {}
-	for dir in data_dirs('templates', format):
-		print 'DIR', dir
+	for dir in data_dirs(('templates', format)):
 		for file in dir.list():
 			i = file.rfind('.') # match begin of file extension
 			if i >= 0:

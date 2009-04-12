@@ -1,0 +1,38 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Thu, 09 Apr 2009 21:23:30 +0200
+Modification-Date: Thu, 09 Apr 2009 21:43:47 +0200
+
+====== Config Files ======
+
+Zim uses several config files for different kinds of data:
+
+**XDG_CONFIG_HOME/zim/preferences.conf**
+This file is used for all kinds of settings that are constant across notebooks. Mainly contains the contents of the "preferences" dialog and some hidden settings. Can be accessed in the code as ...  FIXME
+
+If this file does not exist a default will be looked for first in the XDG_CONFIG_DIRS and then in the XDG_DATA_DIRS.
+
+**NOTEBOOK/notebook.zim**
+Used to save notebook specific settings. This file has the same format as the other ".conf" files, but the extension ".zim" is used so we can have our own mimetype (application/x-zim-notebook). When we configure zim as the default application for this mimetype we get to open notebooks by clicking on this file in the notebook. Can be accessed in the code as ...  FIXME
+
+**NOTEBOOK/.zim/state.conf**
+Used for state parameters that are specific per notebook but do not belong to the notebook configuration. E.g. the window size, the last template used for export etc. We want to keep these out of notebook.zim because when the notebook is for example under version control, we do not want notebook.conf to change after every usage of zim. Can be accessed in the code as ...  FIXME
+
+The files in NOTEBOOK/.zim/ can also be saved in XDG_CACHE/notebook_path/ when the notebook is read-only.
+
+**XDG_CONFIG_HOME/zim/accelmap**
+Specifies the key bindings for menu items if these are customized. Format is a scheme variant used byt gtk. can be loaded and saved by ''gtk.accel_map_load()'' and ''gtk.accel_map_save()'' respectively.
+
+If this file does not exist a default will be looked for first in the XDG_CONFIG_DIRS and then in the XDG_DATA_DIRS.
+
+**XDG_CONFIG_HOME/zim/style.conf**
+Specifies the look of the various text styles in the GUI.
+
+If this file does not exist a default will be looked for first in the XDG_CONFIG_DIRS and then in the XDG_DATA_DIRS.
+
+
+===== Profiles =====
+
+Zim has support for different "profiles" to be able to have different sets of configuration. The profile can be specified on the commandline or can be set in the notebook configuration. A profile can have it's own version of preferences.conf, which will be called preferences-profile_name.conf.
+
+The main purpose of this feature is to allow configuring a different set of plugins for different types of notebooks. Additionally a profile can switch the GUI to read-only state by default, hiding all controls that need write permission.
