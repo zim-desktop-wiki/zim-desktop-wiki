@@ -15,7 +15,7 @@ import weakref
 import logging
 
 from zim.fs import *
-from zim.config import ConfigList, config_file, data_dir
+from zim.config import ConfigList, config_file, data_dir, user_dirs
 from zim.parsing import Re, is_url_re, is_email_re
 import zim.stores
 
@@ -279,9 +279,26 @@ class Notebook(object):
 					filepath.pop(0)
 					pagepath.pop()
 			pagename = ':'+':'.join(pagepath + filepath)
-			store = self.get_store(pagename)
-			dir = store.get_attachments_dir(Path(pagename))
+			dir = self.get_attachments_dir(Path(pagename))
 			return dir.file(filename)
+
+	def get_attachments_dir(self, path):
+		'''Returns a Dir object for the attachments directory for 'path'.
+		The directory does not need to exist.
+		'''
+		store = self.get_store(path)
+		return store.get_attachments_dir(path)
+
+	def get_documents_dir(self):
+		'''Returns the Dir object for the documents folder or None if no
+		documents folder is configured.
+		'''
+		# TODO check notebook.zim
+		dirs = user_dirs()
+		if 'XDG_DOCUMENTS_DIR' in dirs:
+			return dirs['XDG_DOCUMENTS_DIR']
+		else:
+			return None
 
 	def walk(self, path=None):
 		'''Generator function which iterates through all pages, depth first.
@@ -303,6 +320,7 @@ class Notebook(object):
 	def get_page_indexkey(self, path):
 		store = self.get_store(path)
 		return store.get_page_indexkey(path)
+
 
 class Path(object):
 	'''This is the parent class for the Page class. It contains the name

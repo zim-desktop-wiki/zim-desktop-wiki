@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Sun, 12 Apr 2009 23:55:08 +0200
+Modification-Date: Mon, 20 Apr 2009 21:47:41 +0200
 
 ====== Tasks ======
 
@@ -10,7 +10,7 @@ Modification-Date: Sun, 12 Apr 2009 23:55:08 +0200
 
 
 **Grep for TODO and FIXME tags in the code**
-
+	
 == Needed Artwork ==
 * Paperclip icon
 * Icon for plugin dialog - puzzle piece like in Mozilla
@@ -20,14 +20,12 @@ Modification-Date: Sun, 12 Apr 2009 23:55:08 +0200
 
 == Alpha2 ==
 
-How should the namespace chooser look in dialogs ????
-
 [*] proper XDG config & data paths
 [*] implement config file support + state
-[ ] implement logic for document folder and attachment folder
+[*] implement logic for document folder and attachment folder
 [ ] Export dialog
 [*] Hook dialogs to remember size
-[ ] Search function in side pane (as you type)
+[ ] Search function in side pane (as you type) ??
 [ ] New page
 	[ ] implement dialog + hook save
 	[ ] implement template

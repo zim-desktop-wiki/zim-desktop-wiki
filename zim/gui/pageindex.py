@@ -189,6 +189,9 @@ class PageTreeView(BrowserTreeView):
 		self.append_column(column)
 		self.set_headers_visible(False)
 
+		self.set_enable_search(True)
+		self.set_search_column(0)
+
 		# TODO drag & drop stuff
 		# TODO popup menu for pages - share with e.g. pathbar buttons
 

@@ -138,6 +138,7 @@ check=1.333
 
 		del conf
 		conf = ConfigDictFile(file)
+		self.assertFalse(conf.modified)
 		self.assertEqual(conf, {
 			'Foo': {
 				'xyz': 'foooooo',
@@ -153,6 +154,9 @@ check=1.333
 		conf['Foo'].check_is_int('foobar', None)
 		conf['Bar'].check_is_float('check', None)
 		conf['Foo'].check_is_coord('tja', None)
+		self.assertFalse(conf.modified)
+		conf['Foo']['tja'] = (33, 44)
+		self.assertTrue(conf.modified)
 
 	def testLookup(self):
 		'''Test lookup of config files'''
@@ -171,8 +175,10 @@ class TestUtils(TestCase):
 		'''Test ListDict class'''
 		keys = ['foo', 'bar', 'baz']
 		mydict = ListDict()
+		self.assertFalse(mydict.modified)
 		for k in keys:
 			mydict[k] = 'dusss'
+		self.assertTrue(mydict.modified)
 		mykeys = [k for k, v in mydict.items()]
 		self.assertEquals(mykeys, keys)
 
@@ -250,3 +256,29 @@ test
 		headers = HeadersDict(text)
 		self.assertEqual(headers['Foo-Bar'], 'test')
 		self.assertEqual(headers.dump(), ['Foo-Bar: test\n'])
+
+
+class TestUserDirs(TestCase):
+
+	def setUp(self):
+		XDG_CONFIG_HOME.file('user-dirs.dirs').write('''\
+# This file is written by xdg-user-dirs-update
+# If you want to change or add directories, just edit the line you're
+# interested in. All local changes will be retained on the next run
+# Format is XDG_xxx_DIR="$HOME/yyy", where yyy is a shell-escaped
+# homedir-relative path, or XDG_xxx_DIR="/yyy", where /yyy is an
+# absolute path. No other format is supported.
+#
+XDG_DESKTOP_DIR="$HOME/Desktop"
+XDG_DOWNLOAD_DIR="$HOME/Desktop"
+XDG_TEMPLATES_DIR="$HOME/Templates"
+XDG_PUBLICSHARE_DIR="$HOME/Public"
+XDG_DOCUMENTS_DIR="$HOME/Documents"
+XDG_MUSIC_DIR="$HOME/Music"
+XDG_PICTURES_DIR="$HOME/Pictures"
+XDG_VIDEOS_DIR="$HOME/Videos"
+''')
+
+	def runTest(self):
+		dirs = user_dirs()
+		self.assertEqual(dirs['XDG_DOCUMENTS_DIR'], Dir('~/Documents'))

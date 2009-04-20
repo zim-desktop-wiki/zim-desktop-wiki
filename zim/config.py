@@ -150,6 +150,24 @@ def config_file(path):
 	else:
 		return file
 
+def user_dirs():
+	'''Returns a dict with directories for the xdg user dirs'''
+	dirs = {}
+	file = XDG_CONFIG_HOME.file('user-dirs.dirs')
+	for line in file.readlines():
+		line = line.strip()
+		if line.isspace() or line.startswith('#'):
+			continue
+		else:
+			try:
+				assert '=' in line
+				key, value = line.split('=', 1)
+				value = os.path.expandvars(value.strip('"'))
+				dirs[key] = Dir(value)
+			except:
+				logger.exception('Exception while parsing %s', file)
+	return dirs
+
 
 class ConfigPathError(Exception):
 	pass
@@ -163,9 +181,29 @@ class ListDict(dict):
 
 	def __init__(self):
 		self.order = []
+		self._modified = False
+
+	@property
+	def modified(self):
+		'''Recursive property'''
+		if self._modified:
+			return True
+		else:
+			return any(v.modified for v in self.values()
+									if isinstance(v, ListDict))
+
+	def set_modified(self, modified):
+		if modified:
+			self._modified = True
+		else:
+			self._modified = False
+			for v in self.values():
+				if isinstance(v, ListDict):
+					v.set_modified(False)
 
 	def __setitem__(self, k, v):
 		dict.__setitem__(self, k, v)
+		self._modified = True
 		if not k in self.order:
 			self.order.append(k)
 
@@ -330,6 +368,7 @@ class ConfigFile(ListDict):
 		self.default = default
 		try:
 			self.read()
+			self.set_modified(False)
 		except ConfigPathError:
 			pass
 
@@ -343,7 +382,9 @@ class ConfigFile(ListDict):
 			raise ConfigPathError, 'Config file \'%s\' does not exist and no default set' % self.file
 
 	def write(self):
+		logger.debug('Writing config file: %s', self.file)
 		self.file.writelines(self.dump())
+		self.set_modified(False)
 
 
 class ConfigDictFile(ConfigFile, ConfigDict):

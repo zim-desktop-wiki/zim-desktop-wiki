@@ -46,31 +46,31 @@ ui_actions = (
 	# name, stock id, label, accelerator, tooltip
 	('new_page',  'gtk-new', '_New Page', '<ctrl>N', 'New page'),
 	('open_notebook', 'gtk-open', '_Open Another Notebook...', '<ctrl>O', 'Open notebook'),
-	('import_page', None, '_Import Page', None, 'Import a file as a page'),
+	('import_page', None, '_Import Page', '', 'Import a file as a page'),
 	('save_page', 'gtk-save', '_Save', '<ctrl>S', 'Save page'),
-	('save_copy', None, 'Save a _Copy...', None, 'Save a copy'),
+	('save_copy', None, 'Save a _Copy...', '', 'Save a copy'),
 	('save_version', 'gtk-save-as', 'S_ave Version...', '<ctrl><shift>S', 'Save Version'),
-	('show_versions', None, '_Versions...', None, 'Versions'),
-	('show_export',  None, 'E_xport...', None, 'Export'),
-	('email_page', None, '_Send To...', None, 'Mail page'),
-	('move_page', None, '_Move Page...', None, 'Move page'),
+	('show_versions', None, '_Versions...', '', 'Versions'),
+	('show_export',  None, 'E_xport...', '', 'Export'),
+	('email_page', None, '_Send To...', '', 'Mail page'),
+	('move_page', None, '_Move Page...', '', 'Move page'),
 	('rename_page', None, '_Rename Page...', 'F2', 'Rename page'),
-	('delete_page', None, '_Delete Page', None, 'Delete page'),
-	('show_properties',  'gtk-properties', 'Proper_ties', None, 'Properties dialog'),
+	('delete_page', None, '_Delete Page', '', 'Delete page'),
+	('show_properties',  'gtk-properties', 'Proper_ties', '', 'Properties dialog'),
 	('close',  'gtk-close', '_Close', '<ctrl>W', 'Close window'),
 	('quit',  'gtk-quit', '_Quit', '<ctrl>Q', 'Quit'),
 	('show_search',  'gtk-find', '_Search...', '<shift><ctrl>F', 'Search'),
-	('show_search_backlinks', None, 'Search _Backlinks...', None, 'Search Back links'),
+	('show_search_backlinks', None, 'Search _Backlinks...', '', 'Search Back links'),
 	('copy_location', None, 'Copy Location', '<shift><ctrl>L', 'Copy location'),
-	('show_plugins',  None, 'P_lugins', None, 'Plugins dialog'),
-	('show_preferences',  'gtk-preferences', 'Pr_eferences', None, 'Preferences dialog'),
+	('show_plugins',  None, 'P_lugins', '', 'Plugins dialog'),
+	('show_preferences',  'gtk-preferences', 'Pr_eferences', '', 'Preferences dialog'),
 	('reload_page',  'gtk-refresh', '_Reload', '<ctrl>R', 'Reload page'),
-	('open_attachments_folder', 'gtk-open', 'Open Document _Folder', None, 'Open document folder'),
-	('open_documents_folder', 'gtk-open', 'Open Document _Root', None, 'Open document root'),
-	('attach_file', 'mail-attachment', 'Attach _File', None, 'Attach external file'),
-	('edit_page_source', 'gtk-edit', 'Edit _Source', None, 'Open source'),
-	('show_server_gui', None, 'Start _Web Server', None, 'Start web server'),
-	('reload_index', None, 'Re-build Index', None, 'Rebuild index'),
+	('open_attachments_folder', 'gtk-open', 'Open Attachments _Folder', '', 'Open document folder'),
+	('open_documents_folder', 'gtk-open', 'Open _Documents Folder', '', 'Open document root'),
+	('attach_file', 'mail-attachment', 'Attach _File', '', 'Attach external file'),
+	('edit_page_source', 'gtk-edit', 'Edit _Source', '', 'Open source'),
+	('show_server_gui', None, 'Start _Web Server', '', 'Start web server'),
+	('reload_index', None, 'Re-build Index', '', 'Rebuild index'),
 	('open_page_back', 'gtk-go-back', '_Back', '<alt>Left', 'Go page back'),
 	('open_page_forward', 'gtk-go-forward', '_Forward', '<alt>Right', 'Go page forward'),
 	('open_page_parent', 'gtk-go-up', '_Parent', '<alt>Up', 'Go to parent page'),
@@ -80,10 +80,10 @@ ui_actions = (
 	('open_page_home', 'gtk-home', '_Home', '<alt>Home', 'Go home'),
 	('open_page', 'gtk-jump-to', '_Jump To...', '<ctrl>J', 'Jump to page'),
 	('show_help', 'gtk-help', '_Contents', 'F1', 'Help contents'),
-	('show_help_faq', None, '_FAQ', None, 'FAQ'),
-	('show_help_keys', None, '_Keybindings', None, 'Key bindings'),
-	('show_help_bugs', None, '_Bugs', None, 'Bugs'),
-	('show_about', 'gtk-about', '_About', None, 'About'),
+	('show_help_faq', None, '_FAQ', '', 'FAQ'),
+	('show_help_keys', None, '_Keybindings', '', 'Key bindings'),
+	('show_help_bugs', None, '_Bugs', '', 'Bugs'),
+	('show_about', 'gtk-about', '_About', '', 'About'),
 )
 
 ui_toggle_actions = (
@@ -195,6 +195,12 @@ class GtkInterface(NotebookInterface):
 		self.add_radio_actions(ui_toolbar_size_radio_actions,
 								self.mainwindow, 'do_set_toolbar_size')
 		self.add_ui(data_file('menubar.xml').read(), self)
+
+		accelmap = config_file('accelmap')
+		if accelmap.exists():
+			gtk.accel_map_load(accelmap.path)
+		#~ gtk.accel_map_get().connect(
+			#~ 'changed', lambda o: gtk.accelmap_save(accelmap.path) )
 
 		self.load_plugins()
 
@@ -374,8 +380,8 @@ class GtkInterface(NotebookInterface):
 		self.emit('open-page', page, path)
 
 	def do_close_page(self, page):
-		print 'Writine %r' % self.uistate.file
-		self.uistate.write()
+		if self.uistate.modified:
+			self.uistate.write()
 
 	def do_open_page(self, page, path):
 		'''Signal handler for open-page.'''
@@ -525,11 +531,26 @@ class GtkInterface(NotebookInterface):
 	def attach_file(self):
 		pass
 
+	def open_folder(self, dir):
+		self.spawn('xdg-open', dir.path)
+
+	def open_file(self, file):
+		self.spawn('xdg-open', file.path)
+
 	def open_attachments_folder(self):
-		pass
+		dir = self.notebook.get_attachments_dir(self.page)
+		if dir is None:
+			return # TODO: proper error dialog
+		elif dir.exists():
+			self.open_folder(dir)
+		else:
+			print 'TODO prompt whether to create it'
+			# else open first parent that exists
 
 	def open_documents_folder(self):
-		pass
+		dir = self.notebook.get_documents_dir()
+		if dir and dir.exists():
+			self.open_folder(dir)
 
 	def edit_page_source(self):
 		pass
