@@ -185,7 +185,7 @@ LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png<
 </p>
 
 
-<p>Let's try these <strong>bold</strong>, <em>italic</em>, <mark>underline</mark> and <strike>strike</strike>
+<p>Let's try these <strong>bold</strong>, <emphasis>italic</emphasis>, <mark>underline</mark> and <strike>strike</strike>
 And some <code>//verbatim//</code>
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 </p>

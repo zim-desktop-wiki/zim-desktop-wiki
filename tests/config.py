@@ -189,13 +189,15 @@ foo	bar
 	dusss ja
 # comments get taken out
 some\ space he\ re # even here
+empty
 '''
 		output = u'''\
 foo\tbar
 dusss\tja
-some\ space\the\ re
+some\\ space\the\\ re
+empty\t
 '''
-		keys = ['foo', 'dusss', 'some space']
+		keys = ['foo', 'dusss', 'some space', 'empty']
 		mydict = ConfigList()
 		mydict.parse(input)
 		mykeys = [k for k, v in mydict.items()]

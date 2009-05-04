@@ -110,8 +110,9 @@ class Dumper(DumperClass):
 			elif element.tag == 'link':
 				href = self.href(element.attrib['href'])
 				output.append('<a href="%s">%s</a>' % (href, text))
-			elif element.tag in ['em', 'strong', 'mark', 'strike', 'code']:
+			elif element.tag in ['emphasis', 'strong', 'mark', 'strike', 'code']:
 				if element.tag == 'mark': tag = 'u'
+				elif element.tag == 'emphasis': tag = 'em'
 				else: tag = element.tag
 				output += ['<', tag, '>', text, '</', tag, '>']
 			else:

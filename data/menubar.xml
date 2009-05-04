@@ -31,6 +31,24 @@
 			<menuitem action='quit'/>
 		</menu>
 		<menu action='edit_menu'>
+<!--
+			<menuitem action='Undo'/>
+			<menuitem action='Redo'/>
+-->
+			<separator/>
+<!--
+			<menuitem action='Cut'/>
+			<menuitem action='Copy'/>
+			<menuitem action='Paste'/>
+			<menuitem action='Delete'/>
+-->
+			<separator/>
+<!--
+			<menuitem action='ToggleCheckbox'/>
+			<menuitem action='XToggleCheckbox'/>
+			<menuitem action='EditObject'/>
+-->
+			<separator/>
 			<placeholder name='edit_page'/>
 			<separator/>
 			<menuitem action='copy_location'/>
@@ -65,17 +83,51 @@
 			<menuitem action='reload_page'/>
 		</menu>
 		<menu action='insert_menu'>
-		</menu>
-		<menu action='format_menu'></menu>
-		<menu action='search_menu'>
-			<placeholder name='find_items'/>
+<!--
+			<menuitem action='InsertDate'/>
+-->
 			<separator/>
 <!--
+			<menuitem action='InsertImage'/>
+-->
+			<placeholder name='PluginItems'/>
+			<separator/>
+<!--
+			<menuitem action='InsertFromFile'/>
+			<menuitem action='InsertExtLink'/>
+			<menuitem action='InsertLink'/>
+-->
+		</menu>
+		<menu action='format_menu'>
+			<menuitem action='apply_format_h1'/>
+			<menuitem action='apply_format_h2'/>
+			<menuitem action='apply_format_h3'/>
+			<menuitem action='apply_format_h4'/>
+			<menuitem action='apply_format_h5'/>
+			<separator/>
+			<menuitem action='apply_format_strong'/>
+			<menuitem action='apply_format_emphasis'/>
+			<menuitem action='apply_format_mark'/>
+			<menuitem action='apply_format_strike'/>
+			<menuitem action='apply_format_code'/>
+			<separator/>
+			<menuitem action='clear_formatting'/>
+		</menu>
+		<menu action='search_menu'>
+<!--
+			<menuitem action='Find'/>
+			<menuitem action='FindNext'/>
+			<menuitem action='FindPrev'/>
+			<menuitem action='FindReplace'/>
+			<separator/>
 			<menuitem action='show_search'/>
 			<menuitem action='show_search_backlinks'/>
 -->
 		</menu>
 		<menu action='tools_menu'>
+<!--
+			<menuitem action='WordCount'/>
+-->
 			<placeholder name='page_tools'/>
 			<separator/>
 <!--
@@ -130,7 +182,14 @@
 		<separator/>
 		<placeholder name='search'/>
 		<separator/>
-		<placeholder name='format'/>
+<!--
+		<toolitem action='InsertLink'/>
+-->
+		<separator/>
+		<toolitem action='toggle_format_strong'/>
+		<toolitem action='toggle_format_emphasis'/>
+		<toolitem action='toggle_format_mark'/>
+		<toolitem action='toggle_format_strike'/>
 		<separator/>
 		<placeholder name='tools'>
 			<toolitem action='attach_file'/>

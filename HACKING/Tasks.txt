@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Mon, 20 Apr 2009 21:47:41 +0200
+Modification-Date: Mon, 04 May 2009 23:20:49 +0200
 
 ====== Tasks ======
 
@@ -10,7 +10,7 @@ Modification-Date: Mon, 20 Apr 2009 21:47:41 +0200
 
 
 **Grep for TODO and FIXME tags in the code**
-	
+
 == Needed Artwork ==
 * Paperclip icon
 * Icon for plugin dialog - puzzle piece like in Mozilla
@@ -25,7 +25,8 @@ Modification-Date: Mon, 20 Apr 2009 21:47:41 +0200
 [*] implement logic for document folder and attachment folder
 [ ] Export dialog
 [*] Hook dialogs to remember size
-[ ] Search function in side pane (as you type) ??
+[ ] Mainwindow should remember size
+[ ] Search function in seide pane (as you type) ??
 [ ] New page
 	[ ] implement dialog + hook save
 	[ ] implement template
@@ -51,14 +52,18 @@ Modification-Date: Mon, 20 Apr 2009 21:47:41 +0200
 [ ] Context dialog for side pane
 [ ] Editing
 	[*] Render lists with indenting
+	[ ] Implement key bindings for bullet list control
 	[ ] Implement TextView support for checking checkboxes
-	[ ] Implement visual style config
-	[ ] Implement get parse tree + test roundtrip
+	[*] Implement visual style config
+	[*] Implement "formats" menu items
+	[*] Set text_style from cursor - make formatting stick properly
+	[ ] **Implement get parse tree + test roundtrip**
 	[ ] Implement save and autosave (mtime + md5)
 	[ ] implement generic autoformatting hooks
 	[ ] Implement insert link + file link
 	[ ] Implement insert image
 	[ ] Implement attach file
+	[ ] Make undo / redo work - separate undo stack manager object
 	[ ] formats-, edit- & insert-menu complete
 
 == General health ==

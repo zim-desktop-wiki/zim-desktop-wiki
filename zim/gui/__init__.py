@@ -241,15 +241,15 @@ class GtkInterface(NotebookInterface):
 		self.mainwindow.destroy()
 		gtk.main_quit()
 
-	def add_actions(self, actions, handler):
+	def add_actions(self, actions, handler, methodname=None):
 		'''Wrapper for gtk.ActionGroup.add_actions(actions),
 		"handler" is the object that has the methods for these actions.
 
-		Each action is mapped to a like named method of the handler object.
-		If the object not yet has an actiongroup this is created first,
+		Each action is mapped to a like named method of the handler
+		object. If the object not yet has an actiongroup this is created first,
 		attached to the uimanager and put in the "actiongroup" attribute.
 		'''
-		group = self._init_actiongroup(handler)
+		group = self.init_actiongroup(handler)
 		group.add_actions(actions)
 		self._connect_actions(actions, group, handler)
 
@@ -265,12 +265,12 @@ class GtkInterface(NotebookInterface):
 		actual logic is implamented in the handler which is prefixed with
 		"do_".
 		'''
-		group = self._init_actiongroup(handler)
+		group = self.init_actiongroup(handler)
 		group.add_toggle_actions(actions)
 		self._connect_actions(actions, group, handler, is_toggle=True)
 
-	def _init_actiongroup(self, handler):
-		'''Initializes the actiongroup for handler if it does not already
+	def init_actiongroup(self, handler):
+		'''Initializes the actiongroup for 'handler' if it does not already
 		exist and returns the actiongroup.
 		'''
 		if not hasattr(handler, 'actiongroup') or handler.actiongroup is None:
@@ -286,8 +286,7 @@ class GtkInterface(NotebookInterface):
 	def _connect_actions(self, actions, group, handler, is_toggle=False):
 		for name in [a[0] for a in actions if not a[0].endswith('_menu')]:
 			action = group.get_action(name)
-			if is_toggle:
-				name = 'do_' + name
+			if is_toggle: name = 'do_' + name
 			assert hasattr(handler, name), 'No method defined for action %s' % name
 			method = getattr(handler.__class__, name)
 			action.connect('activate', self._log_action)
@@ -302,7 +301,7 @@ class GtkInterface(NotebookInterface):
 		# A bit different from the other two methods since radioactions
 		# come in mutual exclusive groups. Only need to connect to one
 		# action to get signals from whole group.
-		group = self._init_actiongroup(handler)
+		group = self.init_actiongroup(handler)
 		group.add_radio_actions(actions)
 		assert hasattr(handler, methodname), 'No such method %s' % methodname
 		method = getattr(handler.__class__, methodname)
@@ -823,10 +822,6 @@ class MainWindow(gtk.Window):
 
 		self.statusbar.pop(0)
 		self.statusbar.push(0, page.name)
-
-		self.pageview.view.get_buffer().connect(
-			'textstyle-changed',
-			lambda o, s: self.statusbar_style_label.set_text(s))
 
 		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
 		label = self.statusbar_backlinks_button.label

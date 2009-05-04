@@ -11,6 +11,7 @@ import pango
 
 from zim.notebook import Path
 from zim.parsing import link_type
+from zim.config import config_file
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -25,6 +26,32 @@ bullet_types = {
 	'xchecked-box': STOCK_XCHECKED_BOX,
 }
 
+ui_actions = (
+	# name, stock id, label, accelerator, tooltip
+	('clear_formatting', None, '_Clear Formatting', '<ctrl>0', ''),
+)
+
+ui_format_actions = (
+	# name, stock id, label, accelerator, tooltip
+	('apply_format_h1', None, 'Heading _1', '<ctrl>1', 'Heading 1'),
+	('apply_format_h2', None, 'Heading _2', '<ctrl>2', 'Heading 2'),
+	('apply_format_h3', None, 'Heading _3', '<ctrl>3', 'Heading 3'),
+	('apply_format_h4', None, 'Heading _4', '<ctrl>4', 'Heading 4'),
+	('apply_format_h5', None, 'Heading _5', '<ctrl>5', 'Heading 5'),
+	('apply_format_strong', 'gtk-bold', '_Strong', '<ctrl>B', 'Strong'),
+	('apply_format_emphasis', 'gtk-italic', '_Emphasis', '<ctrl>I', 'Emphasis'),
+	('apply_format_mark', 'gtk-underline', '_Mark', '<ctrl>U', 'Mark'),
+	('apply_format_strike', 'gtk-strikethrough', '_Strike', '<ctrl>K', 'Strike'),
+	('apply_format_code', None, '_Verbatim', '<ctrl>T', 'Verbatim'),
+)
+
+ui_format_toggle_actions = (
+	# name, stock id, label, accelerator, tooltip, None, initial state
+	('toggle_format_strong', 'gtk-bold', '_Strong', '', 'Strong', None, False),
+	('toggle_format_emphasis', 'gtk-italic', '_Emphasis', '', 'Emphasis', None, False),
+	('toggle_format_mark', 'gtk-underline', '_Mark', '', 'Mark', None, False),
+	('toggle_format_strike', 'gtk-strikethrough', '_Strike', '', 'Strike', None, False),
+)
 
 class TextBuffer(gtk.TextBuffer):
 	'''Zim subclass of gtk.TextBuffer.
@@ -41,43 +68,54 @@ class TextBuffer(gtk.TextBuffer):
 	TODO: manage undo stack - group by memorizing offsets and get/set trees
 	TODO: manage rich copy-paste based on zim formats
 	      use serialization API if gtk >= 2.10 ?
-	TODO: emit textstyle-changed when cursor moved
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'insert-text': 'override',
-		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (str,)),
+		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'indent-changed': (gobject.SIGNAL_RUN_LAST, None, (int,)),
 	}
 
 	# text tags supported by the editor and default stylesheet
 	tag_styles = {
-		'h1':     {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
-		'h2':     {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
-		'h3':     {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
-		'h4':     {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
-		'h5':     {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': 'italic'},
-		'h6':     {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
-		'em':     {'style': 'italic'},
-		'strong': {'weight': pango.WEIGHT_BOLD},
-		'mark':   {'background': 'yellow'},
-		'strike': {'strikethrough': 'true', 'foreground': 'grey'},
-		'code':   {'family': 'monospace'},
-		'pre':    {'family': 'monospace', 'wrap-mode': 'none'},
-		'link':   {'foreground': 'blue'},
+		'h1':       {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
+		'h2':       {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
+		'h3':       {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
+		'h4':       {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
+		'h5':       {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': 'italic'},
+		'h6':       {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
+		'emphasis': {'style': 'italic'},
+		'strong':   {'weight': pango.WEIGHT_BOLD},
+		'mark':     {'background': 'yellow'},
+		'strike':   {'strikethrough': 'true', 'foreground': 'grey'},
+		'code':     {'family': 'monospace'},
+		'pre':      {'family': 'monospace', 'wrap-mode': 'none'},
+		'link':     {'foreground': 'blue'},
 	}
+
+	# possible attributes for styles in tag_styles
+	tag_attributes = set( (
+		'weight', 'scale', 'style', 'background', 'foreground', 'strikethrough',
+		'family', 'wrap-mode', 'indent', 'underline'
+	) )
 
 	def __init__(self):
 		'''FIXME'''
 		gtk.TextBuffer.__init__(self)
+
 		for k, v in self.tag_styles.items():
 			tag = self.create_tag('style-'+k, **v)
 			tag.zim_type = 'style'
 			tag.zim_style = k
 
+		self.textstyle = None
+		self._editmode_tags = ()
+
 	def clear(self):
 		'''FIXME'''
 		self.set_textstyle(None)
+		self.set_indent(None)
 		self.delete(*self.get_bounds())
 		# TODO: also throw away undo stack
 
@@ -123,8 +161,7 @@ class TextBuffer(gtk.TextBuffer):
 
 				self._insert_element_children(element, list_level=list_level+1) # recurs
 			elif element.tag == 'li':
-				tag = self._get_indent_texttag(list_level)
-				self.set_textstyle('indent', tag=tag)
+				self.set_indent(list_level)
 				if 'bullet' in element.attrib:
 					bullet = element.attrib['bullet']
 					if bullet in bullet_types:
@@ -146,7 +183,7 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(element.text)
 
 				self._insert_element_children(element, list_level=list_level) # recurs
-				self.set_textstyle(None)
+				self.set_indent(None)
 			elif element.tag == 'link':
 				self.insert_link_at_cursor(element.attrib, element.text)
 			elif element.tag == 'img':
@@ -168,16 +205,6 @@ class TextBuffer(gtk.TextBuffer):
 			if element.tail:
 				self.insert_at_cursor(element.tail)
 
-	def _get_indent_texttag(self, level):
-		# TODO make number of pixels in indent configable (call this tabstop)
-		name = 'indent%i' % level
-		tag = self.get_tag_table().lookup(name)
-		if tag is None:
-			margin = 10 + 30 * level-1 # offset from left side for all lines
-			indent = -10 # offset for first line (bullet)
-			tag = self.create_tag(name, left_margin=margin, indent=indent)
-		return tag
-
 	def insert_link(self, iter, attrib, text):
 		'''FIXME'''
 		self._place_cursor(iter)
@@ -190,9 +217,9 @@ class TextBuffer(gtk.TextBuffer):
 		tag = self.create_tag(None, **self.tag_styles['link'])
 		tag.zim_type = 'link'
 		tag.zim_attrib = attrib
-		self.set_textstyle('link', tag=tag)
+		self._editmode_tags = self._editmode_tags + (tag,)
 		self.insert_at_cursor(text)
-		self.set_textstyle(None)
+		self._editmode_tags = self._editmode_tags[:-1]
 
 	def get_link_data(self, iter):
 		'''Returns the dict with link properties for a link at iter.
@@ -270,24 +297,133 @@ class TextBuffer(gtk.TextBuffer):
 		iter = self.get_iter_at_mark(self.get_insert())
 		self.insert_icon(iter, stock)
 
-	def set_textstyle(self, style, tag=None):
+	def set_textstyle(self, name):
 		'''Sets the current text style. This style will be applied
 		to text inserted at the cursor. Use 'set_textstyle(None)' to
 		reset to normal text.
-
-		If tag is given it shoul dbe a TextTag object to be used.
-		This is used for styles that use anonymous tags, e.g. links.
 		'''
-		self.textstyle = style
-		if not style is None:
-			if tag is None:
-				tagname = 'style-'+style
-				tag = self.get_tag_table().lookup(tagname)
-			assert isinstance(tag, gtk.TextTag)
-			self.textstyle_tag = tag
+		self._editmode_tags = filter(
+			lambda tag: not tag.get_property('name').startswith('style-'),
+			self._editmode_tags)
+
+		if not name is None:
+			tag = self.get_tag_table().lookup('style-'+name)
+			self._editmode_tags = self._editmode_tags + (tag,)
+
+		self.emit('textstyle-changed', name)
+
+	def set_textstyle_from_cursor(self):
+		iter = self.get_iter_at_mark(self.get_insert())
+		self.set_textstyle_from_iter(iter)
+
+	def set_textstyle_from_iter(self, iter):
+		'''Updates the textstyle from a text position.
+		Triggered automatically when moving the cursor.
+		'''
+		tags = self.get_tags(iter)
+		if not tags == self._editmode_tags:
+			#~ print '>', [(t.zim_type, t.get_property('name')) for t in tags]
+			self._editmode_tags = tuple(tags)
+			for tag in tags:
+				if tag.zim_type == 'style':
+					name = tag.get_property('name')[6:]
+					self.emit('textstyle-changed', name)
+					break
+			else:
+				self.emit('textstyle-changed', None)
+
+	def get_tags(self, iter):
+		'''Like gtk.TextIter.get_tags() but only returns our own tags and
+		assumes tags have "left gravity".
+		'''
+		tags = filter(
+			lambda tag: hasattr(tag, 'zim_type') and not iter.begins_tag(tag),
+			iter.get_tags() )
+		tags.extend( filter(
+			lambda tag: hasattr(tag, 'zim_type'),
+			iter.get_toggled_tags(False) ))
+		return tags
+
+	def do_textstyle_changed(self, name):
+		self.textstyle = name
+
+	def toggle_textstyle(self, name):
+		'''If there is a selection toggle the text style of the selection,
+		otherwise toggle the text style of the cursor.
+		'''
+		if not self.get_has_selection():
+			if self.textstyle == name:
+				self.set_textstyle(None)
+			else:
+				self.set_textstyle(name)
 		else:
-			self.textstyle_tag = None
-		self.emit('textstyle-changed', style or '')
+			start, end = self.get_selection_bounds()
+			tag = self.get_tag_table().lookup('style-'+name)
+			had_tag = self.range_has_tag(start, end, tag)
+			self.remove_textstyle_tags(start, end)
+			if not had_tag:
+				self.apply_tag(tag, start, end)
+
+			self.set_textstyle_from_cursor()
+
+	def range_has_tag(self, start, end, tag):
+		'''Check if a certain tag appears anywhere in a certain range'''
+		# test right gravity for start itere, but left gravity for end iter
+		if tag in start.get_tags() \
+		or tag in self.get_tags(end):
+			return True
+		else:
+			iter = start.copy()
+			if iter.forward_to_tag_toggle(tag):
+				return iter.compare(end) < 0
+			else:
+				return False
+
+	def remove_textstyle_tags(self, start, end):
+		'''Removes all textstyle tags from a range'''
+		for name in self.tag_styles.keys():
+			if not name == 'link':
+				self.remove_tag_by_name('style-'+name, start, end)
+
+		self.set_textstyle_from_cursor()
+
+	def get_indent(self, iter=None):
+		'''Returns the indent level at iter, or at cursor if 'iter' is None.'''
+		if iter is None:
+			iter = self.get_iter_at_mark(self.get_insert())
+		pass
+
+	def set_indent(self, level):
+		'''Sets the current indent level. This style will be applied
+		to text inserted at the cursor. Using 'set_indent(None)' is
+		equivalent to 'set_indent(0)'.
+		'''
+		self._editmode_tags = filter(
+			lambda tag: not tag.get_property('name').startswith('indent-'),
+			self._editmode_tags)
+
+		if level and level > 0:
+			# TODO make number of pixels in indent configable (call this tabstop)
+			name = 'indent-%i' % level
+			tag = self.get_tag_table().lookup(name)
+			if tag is None:
+				margin = 10 + 30 * level-1 # offset from left side for all lines
+				indent = -10 # offset for first line (bullet)
+				tag = self.create_tag(name, left_margin=margin, indent=indent)
+				tag.zim_type = 'indent'
+			self._editmode_tags = self._editmode_tags + (tag,)
+		else:
+			level = 0
+
+		self.emit('indent-changed', level)
+
+	def apply_indent(self, level):
+		pass
+
+	def do_mark_set(self, iter, mark):
+		if mark.get_name() == 'insert':
+			self.set_textstyle_from_iter(iter)
+		gtk.TextBuffer.do_mark_set(self, iter, mark)
 
 	def do_insert_text(self, end, string, length):
 		'''Signal handler for insert-text signal'''
@@ -295,13 +431,12 @@ class TextBuffer(gtk.TextBuffer):
 		gtk.TextBuffer.do_insert_text(self, end, string, length)
 
 		# Apply current text style
-		if not self.textstyle_tag is None:
-			start = end.copy()
-			start.backward_chars(len(string))
-			self.remove_all_tags(start, end)
-			self.apply_tag(self.textstyle_tag, start, end)
-
-		# TODO: record undo steps
+		start = end.copy()
+		start.backward_chars(len(string))
+			# do not trust the given length, it does not understand unicode
+		self.remove_all_tags(start, end)
+		for tag in self._editmode_tags:
+			self.apply_tag(tag, start, end)
 
 	def get_parsetree(self, bounds=None):
 		'''FIXME'''
@@ -309,6 +444,14 @@ class TextBuffer(gtk.TextBuffer):
 			start, end = self.get_bounds()
 		else:
 			start, end = bounds
+
+	def get_has_selection(self):
+		'''Returns boolean whether there is a selection or not.
+
+		Method available in gtk.TextBuffer for gtk version >= 2.10
+		reproduced here for backward compatibility.
+		'''
+		return bool(self.get_selection_bounds())
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextBuffer)
@@ -464,8 +607,47 @@ class PageView(gtk.VBox):
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
 		self.view.connect_object('link-leave', PageView.do_link_leave, self)
 
+		self.ui.add_actions(ui_actions, self)
+
+		# format actions need some custom hooks
+		actiongroup = self.ui.init_actiongroup(self)
+		actiongroup.add_actions(ui_format_actions)
+		actiongroup.add_toggle_actions(ui_format_toggle_actions)
+		for name in [a[0] for a in ui_format_actions]:
+			action = actiongroup.get_action(name)
+			action.connect('activate', self.do_toggle_format_action)
+		for name in [a[0] for a in ui_format_toggle_actions]:
+			action = actiongroup.get_action(name)
+			action.connect('activate', self.do_toggle_format_action)
+
+		self.load_styles()
+
 	def grab_focus(self):
 		self.view.grab_focus()
+
+	def load_styles(self):
+		'''Load and parse the style config file'''
+		style = config_file('style.conf')
+		testbuffer = gtk.TextBuffer()
+		for tag in [k[4:] for k in style.keys() if k.startswith('Tag ')]:
+			try:
+				assert tag in TextBuffer.tag_styles, 'No such tag: %s' % tag
+				attrib = style['Tag '+tag].copy()
+				for a in attrib.keys():
+					assert a in TextBuffer.tag_attributes, 'No such tag attribute: %s' % a
+					if isinstance(attrib[a], basestring):
+						if attrib[a].startswith('PANGO_'):
+							const = attrib[a][6:]
+							assert hasattr(pango, const), 'No such constant: pango.%s' % const
+							attrib[a] = getattr(pango, const)
+						else:
+							attrib[a] = str(attrib[a]) # pango doesn't like unicode attributes
+				#~ print 'TAG', tag, attrib
+				assert testbuffer.create_tag('style-'+tag, **attrib)
+			except:
+				logger.exception('Exception while parsing tag: %s:', tag)
+			else:
+				TextBuffer.tag_styles[tag] = attrib
 
 	def set_page(self, page):
 		tree = page.get_parsetree()
@@ -477,7 +659,29 @@ class PageView(gtk.VBox):
 		else:
 			print 'TODO get template'
 		self.view.set_buffer(buffer)
+		buffer.connect('textstyle-changed', self.do_textstyle_changed)
 		buffer.place_cursor(buffer.get_iter_at_offset(0)) # FIXME
+
+	def do_textstyle_changed(self, buffer, style):
+		# set statusbar
+		if style: label = style.title()
+		else: label = 'None'
+		self.ui.mainwindow.statusbar_style_label.set_text(label)
+
+		# set toolbar toggles
+		for name in [a[0] for a in ui_format_toggle_actions]:
+			action = self.actiongroup.get_action(name)
+			self._show_toggle(action, False)
+
+		if style:
+			action = self.actiongroup.get_action('toggle_format_'+style)
+			if not action is None:
+				self._show_toggle(action, True)
+
+	def _show_toggle(self, action, state):
+		action.handler_block_by_func(self.do_toggle_format_action)
+		action.set_active(state)
+		action.handler_unblock_by_func(self.do_toggle_format_action)
 
 	def do_link_enter(self, link):
 		self.ui.mainwindow.statusbar.push(1, 'Go to "%s"' % link['href'])
@@ -504,3 +708,35 @@ class PageView(gtk.VBox):
 		else:
 			print 'TODO: open_url(url)'
 
+	def clear_formatting(self):
+		buffer = self.view.get_buffer()
+
+		# if self.ui.preferences['autoselect'] \
+		#		and not buffer.get_has_selection() \
+		#		and not buffer.textstyle == format:
+		# 	buffer.select(TextBuffer.SELECT_WORD)
+
+		if buffer.get_has_selection():
+			start, end = buffer.get_selection_bounds()
+			buffer.remove_textstyle_tags(start, end)
+		else:
+			buffer.set_textstyle(None)
+
+	def do_toggle_format_action(self, action):
+		'''Handler that catches all actions to apply and/or toggle formats'''
+		name = action.get_name()
+		logger.debug('Action: %s (format toggle action)', name)
+		if name.startswith('apply_format_'): style = name[13:]
+		elif name.startswith('toggle_format_'): style = name[14:]
+		else: assert False, "BUG: don't known this action"
+		self.toggle_format(style)
+
+	def toggle_format(self, format):
+		buffer = self.view.get_buffer()
+
+		# if self.ui.preferences['autoselect'] \
+		#		and not buffer.get_has_selection() \
+		#		and not buffer.textstyle == format:
+		# 	buffer.select(TextBuffer.SELECT_WORD)
+
+		buffer.toggle_textstyle(format)

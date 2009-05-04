@@ -44,21 +44,21 @@ parser_re = {
 
 	# All the experssions below will match the inner pair of
 	# delimiters if there are more then two characters in a row.
-	'link':   Re('\[\[(?!\[)(.+?)\]\]'),
-	'img':    Re('\{\{(?!\{)(.+?)\}\}'),
-	'em':     Re('//(?!/)(.+?)//'),
-	'strong': Re('\*\*(?!\*)(.+?)\*\*'),
-	'mark':   Re('__(?!_)(.+?)__'),
-	'strike': Re('~~(?!~)(.+?)~~'),
-	'code':   Re("''(?!')(.+?)''"),
+	'link':     Re('\[\[(?!\[)(.+?)\]\]'),
+	'img':      Re('\{\{(?!\{)(.+?)\}\}'),
+	'emphasis': Re('//(?!/)(.+?)//'),
+	'strong':   Re('\*\*(?!\*)(.+?)\*\*'),
+	'mark':     Re('__(?!_)(.+?)__'),
+	'strike':   Re('~~(?!~)(.+?)~~'),
+	'code':     Re("''(?!')(.+?)''"),
 }
 
 dumper_tags = {
-	'em':     '//',
-	'strong': '**',
-	'mark':   '__',
-	'strike': '~~',
-	'code':   "''",
+	'emphasis': '//',
+	'strong':   '**',
+	'mark':     '__',
+	'strike':   '~~',
+	'code':     "''",
 }
 
 
@@ -225,7 +225,7 @@ class Parser(ParserClass):
 
 		list = parser_re['img'].sublist(parse_image, list)
 
-		for style in 'em', 'strong', 'mark', 'strike':
+		for style in 'emphasis', 'strong', 'mark', 'strike':
 			list = parser_re[style].sublist(
 					lambda match: (style, {}, match[1]) , list)
 

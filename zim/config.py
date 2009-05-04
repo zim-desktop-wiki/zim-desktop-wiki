@@ -285,20 +285,24 @@ class ConfigList(ListDict):
 				continue
 			cols = self._fields_re.findall(line)
 			if len(cols) == 1:
-				cols[1] = None # empty string in second column
+				cols.append(None) # empty string in second column
+				cols[0] = self._escaped_re.sub(r'\1', cols[0])
 			else:
 				assert len(cols) >= 2
 				if len(cols) > 2 and not cols[2].startswith('#'):
 					logger.warn('trailing data') # FIXME better warning
-			for i in range(0, 2):
-				cols[i] = self._escaped_re.sub(r'\1', cols[i])
+				cols[0] = self._escaped_re.sub(r'\1', cols[0])
+				cols[1] = self._escaped_re.sub(r'\1', cols[1])
 			self[cols[0]] = cols[1]
 
 	def dump(self):
 		text = TextBuffer()
 		for k, v in self.items():
 			k = self._escape_re.sub(r'\\\1', k)
-			v = self._escape_re.sub(r'\\\1', v)
+			if v is None:
+				v = ''
+			else:
+				v = self._escape_re.sub(r'\\\1', v)
 			text.append("%s\t%s\n" % (k, v))
 		return text.get_lines()
 
