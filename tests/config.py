@@ -121,17 +121,21 @@ class TestConfigFile(TestCase):
 		conf['Foo']['tja'] = (3, 4)
 		conf['Bar']['hmmm'] = 'tja'
 		conf['Bar']['check'] = 1.333
+		conf['Bar']['empty'] = ''
+		conf['Bar']['none'] = None
 		conf.write()
 		text = u'''\
 [Foo]
 xyz=foooooo
 foobar=0
 test=True
-tja=(3, 4)
+tja=[3,4]
 
 [Bar]
 hmmm=tja
 check=1.333
+empty=
+none=None
 
 '''
 		self.assertEqualDiff(file.read(), text)
@@ -144,19 +148,24 @@ check=1.333
 				'xyz': 'foooooo',
 				'foobar': 0,
 				'test': True,
-				'tja': (3, 4),
+				'tja': [3, 4],
 			},
 			'Bar': {
 				'hmmm': 'tja',
 				'check': 1.333,
+				'empty': '',
+				'none': None
 			}
 		})
-		conf['Foo'].check_is_int('foobar', None)
-		conf['Bar'].check_is_float('check', None)
-		conf['Foo'].check_is_coord('tja', None)
-		self.assertFalse(conf.modified)
 		conf['Foo']['tja'] = (33, 44)
 		self.assertTrue(conf.modified)
+
+		# Check enforcing default type
+		conf.set_modified(False)
+		self.assertEqual(conf['Foo'].setdefault('foobar', 5), 0)
+		self.assertEqual(conf['Bar'].setdefault('check', 3.14), 1.333)
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), conf.is_coord), (33,44))
+		self.assertFalse(conf.modified)
 
 	def testLookup(self):
 		'''Test lookup of config files'''
@@ -179,6 +188,17 @@ class TestUtils(TestCase):
 		for k in keys:
 			mydict[k] = 'dusss'
 		self.assertTrue(mydict.modified)
+
+		val = mydict.get('newkey')
+		self.assertEqual(val, None)
+		# get() does _not_ set the key if it doesn't exist
+
+		val = mydict.setdefault('dus', 'ja')
+		self.assertEqual(val, 'ja')
+		val = mydict.setdefault('dus', 'hmm')
+		self.assertEqual(val, 'ja')
+		keys.append('dus')
+
 		mykeys = [k for k, v in mydict.items()]
 		self.assertEquals(mykeys, keys)
 

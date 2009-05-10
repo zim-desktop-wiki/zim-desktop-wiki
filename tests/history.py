@@ -8,6 +8,7 @@ from tests import TestCase, get_test_notebook
 
 from zim.notebook import Path
 from zim.history import History, HistoryRecord
+from zim.config import ConfigDict
 
 class TestHistory(TestCase):
 	'''FIXME'''
@@ -78,8 +79,8 @@ class TestHistory(TestCase):
 		unique = list(history.get_unique())
 		self.assertEqual(unique[0], history.get_current())
 		self.assertEqual(len(unique), len(self.pages))
-		
-		unique = set([page.name for page in unique]) # collapse doubles 
+
+		unique = set([page.name for page in unique]) # collapse doubles
 		self.assertEqual(len(unique), len(self.pages))
 
 	def testChildren(self):
@@ -88,7 +89,7 @@ class TestHistory(TestCase):
 		for name in ('Test:wiki', 'Test:foo:bar', 'Test:foo', 'TODOList:bar'):
 			page = self.notebook.get_page(Path(name))
 			history.append(page)
-		
+
 		self.assertEqual(history.get_child(Path('Test')), Path('Test:foo'))
 		self.assertEqual(history.get_grandchild(Path('Test')), Path('Test:foo:bar'))
 		self.assertEqual(history.get_child(Path('NonExistent')), None)
@@ -97,3 +98,36 @@ class TestHistory(TestCase):
 		history.append(self.notebook.get_page(Path('Test:wiki')))
 		self.assertEqual(history.get_child(Path('Test')), Path('Test:wiki'))
 		self.assertEqual(history.get_grandchild(Path('Test')), Path('Test:wiki'))
+
+	def testSerialize(self):
+		'''Test parsing the history from the state file'''
+		uistate = ConfigDict()
+		history = History(self.notebook, uistate)
+
+		for page in self.pages:
+			history.append(page)
+		self.assertEqual(len(history.history), len(self.pages))
+		self._assertCurrent(history, self.pages[-1])
+
+		# rewind 2
+		for i in range(2):
+			prev = history.get_previous()
+			history.set_current(prev)
+
+		# check state
+		self.assertEqual(len(uistate['History']['pages']), len(history.history))
+		self.assertEqual(uistate['History']['current'], len(history.history)-3)
+
+		# clone uistate by text
+		lines = uistate.dump()
+		newuistate = ConfigDict()
+		newuistate.parse(lines)
+
+		# check new state
+		self.assertEqual(len(newuistate['History']['pages']), len(history.history))
+		self.assertEqual(newuistate['History']['current'], len(history.history)-3)
+
+		# and compare resulting history object
+		newhistory = History(self.notebook, newuistate)
+		self.assertEqual(newhistory.history, history.history)
+		self.assertEqual(newhistory.current, history.current)

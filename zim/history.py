@@ -25,6 +25,8 @@ PAGE_COL = 0
 CURSOR_COL = 1
 SCROLL_COL = 2
 
+MAX_HISTORY = 25
+
 
 class HistoryRecord(Path):
 	'''This class functions as an iterator for the history list'''
@@ -57,8 +59,7 @@ class History(gobject.GObject):
 	Signals:
 		* changed - emitted whenever something changes
 	'''
-	# TODO should inherit from the selection object
-	# TODO max length for list (?)
+	# TODO should inherit from the selection object ?
 	# TODO connect to notebook signals to stay in sync
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -66,29 +67,45 @@ class History(gobject.GObject):
 		'changed': (gobject.SIGNAL_RUN_LAST, None, tuple())
 	}
 
-	def __init__(self, notebook):
+	def __init__(self, notebook, uistate=None):
 		gobject.GObject.__init__(self)
-		self.history = []
-		self.current = None
+		if uistate is None:
+			self.uistate = {}
+		else:
+			self.uistate = uistate['History']
+
+		self.uistate.setdefault('pages', [])
+		self.uistate.setdefault('current', len(self.history)-1)
+
+	# reference to whatever integer is stored in the dict
+	current = property(
+		lambda self: self.uistate.__getitem__('current'),
+		lambda self, value: self.uistate.__setitem__('current', value) )
+
+	# reference to the list with pages
+	history = property(
+		lambda self: self.uistate.__getitem__('pages'),
+		lambda self, value: self.uistate.__setitem__('pages', value) )
 
 	def append(self, page):
-		if not self.current is None:
+		if self.current != -1:
 			self.history = self.history[:self.current+1] # drop forward stack
 
-		for item in self.history:
-			if item[PAGE_COL] == page.name:
-				self.history.append(item) # copy reference
-				break
-		else:
-			item = [page.name, None, None] # PAGE_COL, CURSOR_COL, SCROLL_COL
-			self.history.append(item)
+		while len(self.history) >= MAX_HISTORY:
+			self.history.pop(0)
 
-		self.current = len(self.history)-1
+		item = [page.name, None, None] # PAGE_COL, CURSOR_COL, SCROLL_COL
+		self.history.append(item)
+
+		self.current = -1
+			# this assignment always triggers "modified" on the ListDict
 
 		self.emit('changed')
 
 	def get_current(self):
-		if not self.current is None:
+		if self.history:
+			if self.current < 0:
+				self.current = len(self.history) + self.current
 			return HistoryRecord(self.history, self.current)
 		else:
 			return None
@@ -97,14 +114,23 @@ class History(gobject.GObject):
 		self.current = record.i
 
 	def get_previous(self, step=1):
-		if not self.current is None and self.current > 0:
-			return HistoryRecord(self.history, self.current-1)
+		if self.history:
+			if self.current < 0:
+				self.current = len(self.history) + self.current
+
+			if self.current == 0:
+				return None
+			else:
+				return HistoryRecord(self.history, self.current-1)
 		else:
 			return None
 
 	def get_next(self, step=1):
-		if not self.current is None and self.current+1 < len(self.history):
-			return HistoryRecord(self.history, self.current+1)
+		if self.history:
+			if self.current == -1 or self.current+1 == len(self.history):
+				return None
+			else:
+				return HistoryRecord(self.history, self.current+1)
 		else:
 			return None
 
@@ -126,10 +152,9 @@ class History(gobject.GObject):
 			if self.history[i][PAGE_COL].startswith(namespace):
 				namespace = self.history[i][PAGE_COL] + ':'
 
-		if len(namespace) == len(path.name) + 1:
-			return None
-		else:
-			return Path(namespace)
+		child = Path(namespace)
+		if child == path: return None
+		else: return child
 
 	def get_history(self):
 		'''Generator function that yields history records, latest first'''

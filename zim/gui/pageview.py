@@ -112,6 +112,8 @@ class TextBuffer(gtk.TextBuffer):
 		self.textstyle = None
 		self._editmode_tags = ()
 
+		#~ self.connect('begin-user-action', lambda o: logger.info('action'))
+
 	def clear(self):
 		'''FIXME'''
 		self.set_textstyle(None)

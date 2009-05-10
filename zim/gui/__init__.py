@@ -347,7 +347,7 @@ class GtkInterface(NotebookInterface):
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook.'''
 		NotebookInterface.do_open_notebook(self, notebook)
-		self.history = zim.history.History(notebook)
+		self.history = zim.history.History(notebook, self.uistate)
 
 		# Do a lightweight background check of the index
 		self.notebook.index.update(background=True, checkcontents=False)
@@ -614,6 +614,7 @@ class MainWindow(gtk.Window):
 
 		ui.connect_after('open-notebook', self.do_open_notebook)
 		ui.connect('open-page', self.do_open_page)
+		ui.connect('close-page', self.do_close_page)
 
 		# Catching this signal prevents the window to actually be destroyed
 		# when the user tries to close it. The action for close should either
@@ -624,7 +625,6 @@ class MainWindow(gtk.Window):
 			return True
 		self.connect('delete-event', do_delete_event)
 
-		self.set_default_size(600, 450)
 		vbox = gtk.VBox()
 		self.add(vbox)
 
@@ -637,18 +637,18 @@ class MainWindow(gtk.Window):
 		vbox.pack_start(self.toolbar, False)
 
 		# split window in side pane and editor
-		hpane = gtk.HPaned()
-		hpane.set_position(175)
-		vbox.add(hpane)
+		self.hpane = gtk.HPaned()
+		self.hpane.set_position(175)
+		vbox.add(self.hpane)
 		self.pageindex = zim.gui.pageindex.PageIndex(ui)
-		hpane.add1(self.pageindex)
+		self.hpane.add1(self.pageindex)
 
 		self.pageindex.connect('key-press-event',
 			lambda o, event: event.keyval == gtk.keysyms.Escape
 				and logger.debug('TODO: hide side pane'))
 
 		vbox2 = gtk.VBox()
-		hpane.add2(vbox2)
+		self.hpane.add2(vbox2)
 
 		self.pathbar = None
 		self.pathbar_box = gtk.HBox() # FIXME other class for this ?
@@ -697,37 +697,78 @@ class MainWindow(gtk.Window):
 		#~ statusbar2.set_size_request(25, 10)
 		#~ hbox.pack_end(statusbar2, False)
 
-	def toggle_toolbar(self):
-		self.actiongroup.get_action('toggle_toolbar').activate()
-
-	def do_toggle_toolbar(self):
-		if self.toolbar.get_property('visible'):
-			self.toolbar.hide()
+	def toggle_toolbar(self, show=None):
+		action = self.actiongroup.get_action('toggle_toolbar')
+		if show is None or show != action.get_active():
+			action.activate()
 		else:
+			self.do_toggle_toolbar(show=show)
+
+	def do_toggle_toolbar(self, show=None):
+		if show is None:
+			action = self.actiongroup.get_action('toggle_toolbar')
+			show = action.get_active()
+
+		if show:
+			self.toolbar.set_no_show_all(False)
 			self.toolbar.show()
+		else:
+			self.toolbar.hide()
+			self.toolbar.set_no_show_all(True)
+
+		self.uistate['show_toolbar'] = show
 
 	def do_toolbar_popup(self, toolbar, x, y, button):
 		'''Show the context menu for the toolbar'''
 		menu = self.ui.uimanager.get_widget('/toolbar_popup')
 		menu.popup(None, None, None, button, 0)
 
-	def toggle_statusbar(self):
-		self.actiongroup.get_action('toggle_statusbar').activate()
-
-	def do_toggle_statusbar(self):
-		if self.statusbar.get_property('visible'):
-			self.statusbar.hide()
+	def toggle_statusbar(self, show=None):
+		action = self.actiongroup.get_action('toggle_statusbar')
+		if show is None or show != action.get_active():
+			action.activate()
 		else:
+			self.do_toggle_statusbar(show=show)
+
+	def do_toggle_statusbar(self, show=None):
+		if show is None:
+			action = self.actiongroup.get_action('toggle_statusbar')
+			show = action.get_active()
+
+		if show:
+			self.statusbar.set_no_show_all(False)
 			self.statusbar.show()
-
-	def toggle_sidepane(self):
-		self.actiongroup.get_action('toggle_sidepane').activate()
-
-	def do_toggle_sidepane(self):
-		if self.pageindex.get_property('visible'):
-			self.hide_sidepane()
 		else:
-			self.show_sidepane()
+			self.statusbar.hide()
+			self.statusbar.set_no_show_all(True)
+
+		self.uistate['show_statusbar'] = show
+
+	def toggle_sidepane(self, show=None):
+		action = self.actiongroup.get_action('toggle_sidepane')
+		if show is None or show != action.get_active():
+			action.activate()
+		else:
+			self.do_toggle_sidepane(show=show)
+
+	def do_toggle_sidepane(self, show=None):
+		if show is None:
+			action = self.actiongroup.get_action('toggle_sidepane')
+			show = action.get_active()
+			print '>> action active:', show
+
+		if show:
+			self.pageindex.set_no_show_all(False)
+			self.pageindex.show_all()
+			self.hpane.set_position(self.uistate['sidepane_pos'])
+			self.pageindex.grab_focus()
+		else:
+			self.uistate['sidepane_pos'] = self.hpane.get_position()
+			self.pageindex.hide_all()
+			self.pageindex.set_no_show_all(True)
+			self.pageview.grab_focus()
+
+		self.uistate['show_sidepane'] = show
 
 	def set_pathbar(self, style):
 		'''Set the pathbar. Style can be either PATHBAR_NONE,
@@ -760,12 +801,14 @@ class MainWindow(gtk.Window):
 			self.pathbar_box.add(self.pathbar)
 		self.pathbar_box.show_all()
 
+		self.uistate['pathbar_type'] = style
+
 	def set_toolbar_style(self, style):
 		'''Set the toolbar style. Style can be either
 		TOOLBAR_ICONS_AND_TEXT, TOOLBAR_ICONS_ONLY or TOOLBAR_TEXT_ONLY.
 		'''
-		assert style in ('icons_and_text', 'icons_only', 'text_only')
-		self.actiongroup.get_action('set_toolbar_style_'+style).activate()
+		assert style in ('icons_and_text', 'icons_only', 'text_only'), style
+		self.actiongroup.get_action('set_toolbar_'+style).activate()
 
 	def do_set_toolbar_style(self, action):
 		name = action.get_name()
@@ -780,12 +823,14 @@ class MainWindow(gtk.Window):
 		else:
 			assert False, 'BUG: Unkown toolbar style: %s' % style
 
+		self.uistate['toolbar_style'] = style
+
 	def set_toolbar_size(self, size):
 		'''Set the toolbar style. Style can be either
 		TOOLBAR_ICONS_LARGE, TOOLBAR_ICONS_SMALL or TOOLBAR_ICONS_TINY.
 		'''
-		assert size in ('large', 'small', 'tiny')
-		self.actiongroup.get_action('set_toolbar_size_'+size).activate()
+		assert size in ('large', 'small', 'tiny'), size
+		self.actiongroup.get_action('set_toolbar_icons_'+size).activate()
 
 	def do_set_toolbar_size(self, action):
 		name = action.get_name()
@@ -800,21 +845,36 @@ class MainWindow(gtk.Window):
 		else:
 			assert False, 'BUG: Unkown toolbar size: %s' % size
 
-	def show_sidepane(self):
-		self.pageindex.show_all()
-		# TODO restore pane position
-		self.pageindex.grab_focus()
-		# TODO action_show_active('toggle_sidepane', True)
+		self.uistate['toolbar_size'] = size
 
-	def hide_sidepane(self):
-		# TODO save pane position
-		self.pageindex.hide_all()
-		self.pageview.grab_focus()
-		# TODO action_show_active('toggle_sidepane', False)
 
 	def do_open_notebook(self, ui, notebook):
-		# delayed till here because the pathbar needs the history to be in place
-		self.set_pathbar(PATHBAR_RECENT) # TODO get this from preferences
+		# delayed till here because all this needs real uistate to be in place
+		# also pathbar needs history in place
+		self.uistate = ui.uistate['MainWindow']
+
+		self.uistate.setdefault('windowsize', (600, 450), self.uistate.is_coord)
+		w, h = self.uistate['windowsize']
+		self.set_default_size(w, h)
+
+		self.uistate.setdefault('show_sidepane', True)
+		self.uistate.setdefault('sidepane_pos', 200)
+		self.toggle_sidepane(show=self.uistate['show_sidepane'])
+
+		self.uistate.setdefault('show_toolbar', True)
+		self.toggle_toolbar(show=self.uistate['show_toolbar'])
+		if 'toolbar_style' in self.uistate:
+			self.set_toolbar_style(self.uistate['toolbar_style'])
+		# else trust system default
+		if 'toolbar_size' in self.uistate:
+			self.set_toolbar_size(self.uistate['toolbar_size'])
+		# else trust system default
+
+		self.uistate.setdefault('show_statusbar', True)
+		self.toggle_statusbar(show=self.uistate['show_statusbar'])
+
+		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT)
+		self.set_pathbar(self.uistate['pathbar_type'])
 
 	def do_open_page(self, ui, page, record):
 		'''Signal handler for open-page, updates the pageview'''
@@ -830,6 +890,11 @@ class MainWindow(gtk.Window):
 			self.statusbar_backlinks_button.set_sensitive(False)
 		else:
 			self.statusbar_backlinks_button.set_sensitive(True)
+
+	def do_close_page(self, ui, page):
+		w, h = self.get_size()
+		self.uistate['windowsize'] = (w, h)
+		self.uistate['sidepane_pos'] = self.hpane.get_position()
 
 	def do_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()
@@ -929,7 +994,7 @@ class Dialog(gtk.Dialog):
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
 			#~ print '>>', self.uistate
-			self.uistate.check_is_coord('windowsize', (-1, -1))
+			self.uistate.setdefault('windowsize', (-1, -1), self.uistate.is_coord)
 			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
 

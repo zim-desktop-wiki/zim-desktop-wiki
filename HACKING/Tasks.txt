@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Mon, 04 May 2009 23:20:49 +0200
+Modification-Date: Sun, 10 May 2009 12:22:48 +0200
 
 ====== Tasks ======
 
@@ -25,8 +25,8 @@ Modification-Date: Mon, 04 May 2009 23:20:49 +0200
 [*] implement logic for document folder and attachment folder
 [ ] Export dialog
 [*] Hook dialogs to remember size
-[ ] Mainwindow should remember size
-[ ] Search function in seide pane (as you type) ??
+[*] Mainwindow should remember size
+[ ] Search function in side pane (as you type) ??
 [ ] New page
 	[ ] implement dialog + hook save
 	[ ] implement template

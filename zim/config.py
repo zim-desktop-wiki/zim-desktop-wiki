@@ -9,6 +9,11 @@ import os
 import re
 import logging
 
+try:
+	import json # in standard lib since 2.6
+except:
+	import simplejson as json # extra dependency
+
 from zim.fs import *
 from zim.parsing import TextBuffer, ParsingError
 
@@ -207,6 +212,36 @@ class ListDict(dict):
 		if not k in self.order:
 			self.order.append(k)
 
+	# Would expect that setdefault() triggers __setitem__
+	# but this seems not to be the case in the standard implementation
+	# And we added some extra functionality here
+	def setdefault(self, k, v=None, check=None):
+		'''Like dict.setdefault() but with some extra restriction because we
+		assume un-safe user input. If a function 'check' is given it will
+		overwrite any value if check(value) evaluates False. If no function
+		is given is it will compare the classes of the set value and the
+		default to ensure we get what we expect. This restricts the use of
+		setdefault() without a value (or value is None) because any value
+		now will be rejected and we always initialize None.
+		'''
+		if not k in self:
+			self.__setitem__(k, v)
+		elif check is None:
+			klass = v.__class__
+			if issubclass(klass, basestring):
+				klass = basestring
+			if not isinstance(self[k], klass):
+				logger.warn(
+					'Invalid config value for %s: "%s" - should be of type %s',
+					k, self[k], v.__class__)
+				self.__setitem__(k, v)
+		else:
+			if not check(self[k]):
+				logger.warn(
+					'Invalid config value for %s: "%s"', k, self[k])
+				self.__setitem__(k, v)
+		return self[k]
+
 	def items(self):
 		for k in self.order:
 			yield (k, self[k])
@@ -246,21 +281,15 @@ class ListDict(dict):
 			logger.warn('Invalid config value for %s: "%s" - should be a decimal number')
 			self[key] = default
 
-	def check_is_coord(self, key, default):
-		'''Asserts that the value for 'key' is a coordinate
-		(a tuple of 2 ints) and sets it to default if this is not the
-		case or when no value is set at all for 'key'.
+	@staticmethod
+	def is_coord(value):
+		'''Returns True if value is a coordinate (a tuple or list of 2 ints).
+		Can be used in combination with setdefault() to enforce data types.
 		'''
-		if not key in self:
-			self[key] = default
-		else:
-			v = self[key]
-			if not (isinstance(v, tuple)
-				and len(v) == 2
-				and isinstance(v[0], int)
-				and isinstance(v[1], int)  ):
-				logger.warn('Invalid config value for %s: "%s" - should be a coordinate')
-				self[key] = default
+		return (isinstance(value, (tuple, list))
+				and len(value) == 2
+				and isinstance(value[0], int)
+				and isinstance(value[1], int)  )
 
 
 class ConfigList(ListDict):
@@ -333,32 +362,73 @@ class ConfigDict(ListDict):
 			else:
 				parameter, value = line.split('=', 2)
 				parameter = parameter.rstrip()
-				value = self._convert_value(value.lstrip())
-				section[parameter] = value
+				try:
+					value = self._decode_value(value.lstrip())
+					section[parameter] = value
+				except:
+					logger.warn('Failed to parse value for: %s', parameter)
 
-	_int_re = re.compile('^[0-9]+$')
-	_float_re = re.compile('^[0-9]+\\.[0-9]+$')
-	_coord_re = re.compile('^\\(\\s*[0-9]+\\s*,\\s*[0-9]+\\s*\\)$')
-
-	def _convert_value(self, value):
+	# Seperated out as this will be slightly different for .desktop files
+	def _decode_value(self, value):
+		if len(value) == 0:
+			return ''
 		if value == 'True': return True
 		elif value == 'False': return False
-		elif self._int_re.match(value): return int(value)
-		elif self._float_re.match(value): return float(value)
-		elif self._coord_re.match(value):
-			x,y = map(int, value[1:-1].split(','))
-			return (x, y)
-		else: return value
+		elif value == 'None': return None
+		elif value[0] in ('{', '['):
+			return json.loads(value)
+		else:
+			try:
+				value = int(value)
+				return value
+			except: pass
+
+			try:
+				value = float(value)
+				return value
+			except: pass
+
+			return json.loads('"%s"' % value.replace('"', '\\"')) # force string
+
+	# for later use when parsing .desktop files...
+	#~ def _decode_desktop_value(self, values):
+		#~ if value == 'true': return True
+		#~ elif value == 'false': return False
+		#~ else:
+			#~ try:
+				#~ value = float(value)
+				#~ return value
+			#~ except:
+				#~ return json.parses('"%s'" % value.replace('"', '\\"')) # force string
 
 	def dump(self):
 		lines = []
 		for section, parameters in self.items():
 			lines.append('[%s]\n' % section)
 			for param, value in parameters.items():
-				# TODO: how to encode line endings in value ?
-				lines.append('%s=%s\n' % (param, value))
+				lines.append('%s=%s\n' % (param, self._encode_value(value)))
 			lines.append('\n')
 		return lines
+
+	def _encode_value(self, value):
+		if isinstance(value, basestring):
+			return json.dumps(value)[1:-1] # get rid of quotes
+		elif value is True: return 'True'
+		elif value is False: return 'False'
+		elif value is None: return 'None'
+		else:
+			return json.dumps(value, separators=(',',':'))
+				# specify separators for compact encoding
+
+	# for later use when parsing .desktop files...
+	#~ def _encode_desktop_value(self, value):
+		#~ if value is True: return 'true'
+		#~ elif value is False: return 'false'
+		#~ elif isinstance(value, int) or isinstance(value, float):
+			#~ value = value.__str__()
+		#~ else:
+			#~ assert isinstace(value, basestring), 'Desktop files can not store complex data'
+			#~ return json.dumps(value)(value)[1:-1] # get rid of quotes
 
 
 class ConfigFile(ListDict):
