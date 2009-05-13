@@ -45,6 +45,7 @@ ui_actions = (
 
 	# name, stock id, label, accelerator, tooltip
 	('new_page',  'gtk-new', '_New Page', '<ctrl>N', 'New page'),
+	('new_sub_page',  'gtk-new', 'New S_ub Page', '', 'New sub page'),
 	('open_notebook', 'gtk-open', '_Open Another Notebook...', '<ctrl>O', 'Open notebook'),
 	('import_page', None, '_Import Page', '', 'Import a file as a page'),
 	('save_page', 'gtk-save', '_Save', '<ctrl>S', 'Save page'),
@@ -318,6 +319,13 @@ class GtkInterface(NotebookInterface):
 		# TODO remove action group
 		# TODO remove ui
 
+	def get_path_context(self):
+		'''Returns the current 'context' for actions that want a path to start
+		with. Asks the mainwindow for a selected page, defaults to the
+		current page if any.
+		'''
+		return self.mainwindow.get_selected_path() or self.page
+
 	def open_notebook(self, notebook=None):
 		'''Open a new notebook. If this is the first notebook the open-notebook
 		signal is emitted and the notebook is opened in this process. Otherwise
@@ -452,6 +460,12 @@ class GtkInterface(NotebookInterface):
 		'''
 		NewPageDialog(self).run()
 
+	def new_sub_page(self):
+		'''Same as new_page() but sets the namespace widget one level deeper'''
+		dialog = NewPageDialog(self)
+		dialog.set_current_namespace(self.get_path_context())
+		dialog.run()
+
 	def save_page(self):
 		pass
 
@@ -486,15 +500,14 @@ class GtkInterface(NotebookInterface):
 		'''Import a file from outside the notebook as a new page.'''
 		ImportPageDialog(self).run()
 
-	def move_page(self, page=None):
-		MovePageDialog(self, page=page).run()
+	def move_page(self, path=None):
+		MovePageDialog(self, path=path).run()
 
-	def rename_page(self, page=None):
-		RenamePageDialog(self, page=page).run()
+	def rename_page(self, path=None):
+		RenamePageDialog(self, path=path).run()
 
-	def delete_page(self, page=None):
-		if page is None:
-			page = self.page
+	def delete_page(self, path=None):
+		pass
 		# TODO confirmation dialog is MessageDialog style
 		#~ self.notebook.delete_page(page)
 
@@ -696,6 +709,27 @@ class MainWindow(gtk.Window):
 		#~ statusbar2 = gtk.Statusbar()
 		#~ statusbar2.set_size_request(25, 10)
 		#~ hbox.pack_end(statusbar2, False)
+
+	def get_selected_path(self):
+		'''Returns a selected path either from the side pane or the pathbar
+		if any or None.
+		'''
+		child = self.hpane.get_focus_child()
+		if child == self.pageindex:
+			logger.debug('Pageindex has focus')
+			return self.pageindex.get_selected_path()
+		else: # right hand pane has focus
+			while isinstance(child, gtk.Box):
+				child = child.get_focus_child()
+				if child == self.pathbar:
+					logger.debug('Pathbar has focus')
+					return self.pathbar.get_selected_path()
+				elif child == self.pageview:
+					logger.debug('Pageview has focus')
+					return self.ui.page
+
+			logger.debug('No path in focus mainwindow')
+			return None
 
 	def toggle_toolbar(self, show=None):
 		action = self.actiongroup.get_action('toggle_toolbar')
@@ -1056,14 +1090,20 @@ class Dialog(gtk.Dialog):
 
 		for field in fields:
 			name, type, label, value = field
-			label = gtk.Label(label+':')
-			label.set_alignment(0.0, 0.5)
-			table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
-			entry = gtk.Entry()
-			if not value is None:
-				entry.set_text(value)
-			self.inputs[name] = entry
-			table.attach(entry, 1,2, i,i+1)
+			if type == 'bool':
+				button = gtk.CheckButton(label=label)
+				button.set_active(value or False)
+				self.inputs[name] = button
+				table.attach(button, 0,2, i,i+1)
+			else:
+				label = gtk.Label(label+':')
+				label.set_alignment(0.0, 0.5)
+				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
+				entry = gtk.Entry()
+				if not value is None:
+					entry.set_text(value)
+				self.inputs[name] = entry
+				table.attach(entry, 1,2, i,i+1)
 			i += 1
 
 		def focus_next(o, next):
@@ -1087,8 +1127,13 @@ class Dialog(gtk.Dialog):
 	def get_fields(self):
 		'''Returns a dict with values of the fields.'''
 		values = {}
-		for name, entry in self.inputs.items():
-			values[name] = entry.get_text()
+		for name, widget in self.inputs.items():
+			if isinstance(widget, gtk.Entry):
+				values[name] = widget.get_text()
+			elif isinstance(widget, gtk.ToggleButton):
+				values[name] = widget.get_active()
+			else:
+				assert False, 'BUG: unkown widget in inputs'
 		return values
 
 	def run(self):
@@ -1177,6 +1222,9 @@ class OpenPageDialog(Dialog):
 		self.add_fields([('name', 'page', 'Jump to Page', None)])
 		# TODO custom "jump to" button
 
+	def set_current_namespace(self, path):
+		pass # TODO
+
 	def do_response_ok(self):
 		try:
 			name = self.get_field('name')
@@ -1254,17 +1302,33 @@ class MovePageDialog(Dialog):
 
 class RenamePageDialog(Dialog):
 
-	def __init__(self, ui, page=None):
+	def __init__(self, ui, path=None):
 		Dialog.__init__(self, ui, 'Rename Page')
-		if page is None:
-			self.page = self.ui.page
+		if path is None:
+			self.path = self.ui.get_path_context()
 		else:
-			self.page = page
-		# TODO add name input
+			self.path = path
+		self.vbox.add(gtk.Label('Rename page "%s"' % self.path.name))
+		self.add_fields([
+			('name', 'string', 'Name', self.path.basename),
+			('head', 'bool', 'Update the heading of this page', True),
+			('links', 'bool', 'Update links to this page', True),
+		])
 
 	def do_response_ok(self):
 		name = self.get_field('name')
-		self.ui.notebook.rename_page(self.page, name)
+		head = self.get_field('head')
+		links = self.get_field('links')
+		try:
+			newpath = self.ui.notebook.rename_page(self.path,
+				newbasename=name, update_heading=head, update_links=links)
+		except Exception, error:
+			ErrorDialog(self, error).run()
+			return False
+		else:
+			if self.path == self.ui.page:
+				self.ui.open_page(newpath)
+			return True
 
 class ProgressBarDialog(gtk.Dialog):
 	'''Dialog to display a progress bar. Behaves more like a MessageDialog than

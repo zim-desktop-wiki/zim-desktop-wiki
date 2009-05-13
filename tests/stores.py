@@ -7,7 +7,7 @@
 import tests
 
 from zim.fs import *
-from zim.notebook import Notebook, Path
+from zim.notebook import Notebook, Path, LookupError, PageExistsError
 import zim.stores
 
 
@@ -19,6 +19,25 @@ def walk(store, namespace=None):
 		if page.haschildren:
 			for parent, child in walk(store, page): # recurs
 				yield parent, child
+
+
+def ascii_page_tree(store, namespace=None, level=0):
+	'''Returns an ascii page tree. Used for debugging the test'''
+	if namespace is None:
+		namespace = store.namespace
+
+	if namespace.isroot: basename = '<root>'
+	else: basename = namespace.basename
+
+	text = '  '*level + basename + '\n'
+	level += 1
+	for page in store.get_pagelist(namespace):
+		if page.haschildren:
+			text += ascii_page_tree(store, page, level) # recurs
+		else:
+			text += '  '*level + page.basename + '\n'
+
+	return text
 
 
 class TestStoresMemory(tests.TestCase):
@@ -58,12 +77,73 @@ class TestStoresMemory(tests.TestCase):
 		self.assertTrue(u'utf8:\u03b1\u03b2\u03b3' in names) # Check usage of unicode
 		self.assertEqual(names, self.index)
 
+	def testManipulate(self):
+		'''Test moving and deleting pages in the store'''
+
+		# check test setup OK
+		for path in (Path('Test:BAR'), Path('NewPage')):
+			page = self.store.get_page(path)
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
+
+		# check errors
+		self.assertRaises(LookupError,
+			self.store.move_page, Path('NewPage'), Path('Test:BAR'))
+		self.assertRaises(PageExistsError,
+			self.store.move_page, Path('Test:foo'), Path('TODOList'))
+
+		for oldpath, newpath in (
+			(Path('Test:foo'), Path('Test:BAR')),
+			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
+		):
+			page = self.store.get_page(oldpath)
+			text = page.dump('wiki')
+			self.assertTrue(page.haschildren)
+
+			#~ print ascii_page_tree(self.store)
+			self.store.move_page(oldpath, newpath)
+			#~ print ascii_page_tree(self.store)
+
+			# newpath should exist and look like the old one
+			page = self.store.get_page(newpath)
+			self.assertTrue(page.haschildren)
+			self.assertEqual(page.dump('wiki'), text)
+
+			# oldpath should be deleted
+			page = self.store.get_page(oldpath)
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
+
+			# let's delete the newpath again
+			self.assertTrue(self.store.delete_page(newpath))
+			page = self.store.get_page(newpath)
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
+
+			# delete again should silently fail
+			self.assertFalse(self.store.delete_page(newpath))
+
+		# check cleaning up works OK
+		page = self.store.get_page(Path('NewPage'))
+		self.assertFalse(page.haschildren)
+		self.assertFalse(page.hascontent)
+
+		# check case-sensitive move
+		self.store.move_page(Path('utf8'), Path('UTF8'))
+		page = self.store.get_page(Path('utf8'))
+		self.assertFalse(page.haschildren)
+		newpage = self.store.get_page(Path('UTF8'))
+		self.assertTrue(newpage.haschildren)
+		self.assertFalse(newpage == page)
+
+
 	#~ def testResolveFile(self):
 		#~ '''Test store.resolve_file()'''
 
 	# TODO test getting a non-existing page
 	# TODO test if children uses namespace objects
 	# TODO test move, delete, read, write
+
 
 
 class TestFiles(TestStoresMemory):

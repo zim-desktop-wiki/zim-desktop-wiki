@@ -69,25 +69,25 @@ usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
 '''
 optionhelp = '''\
 General Options:
-  --gui       run the editor (this is the default)
-  --server    run the web server
-  --export    export to a different format
-  --index     build an index for a notebook
-  --manual    open the user manual
-  --verbose   print information to terminal
-  --debug     print debug messages
-  --version   print version and exit
-  --help      print this text
+  --gui           run the editor (this is the default)
+  --server        run the web server
+  --export        export to a different format
+  --index         build an index for a notebook
+  --manual        open the user manual
+  -V, --verbose   print information to terminal
+  -D, --debug     print debug messages
+  -v, --version   print version and exit
+  -h, --help      print this text
 
 Server Options:
-  --port      port to use (defaults to 8080)
-  --template  name of the template to use
-  --gui       run the gui wrapper for the server
+  --port          port to use (defaults to 8080)
+  --template      name of the template to use
+  --gui           run the gui wrapper for the server
 
 Export Options:
-  --format    format to use (defaults to 'html')
-  --template  name of the template to use
-  --output    output file or directory
+  --format        format to use (defaults to 'html')
+  --template      name of the template to use
+  -o, --output    output file or directory
 
 Index Options:
   --output    output file

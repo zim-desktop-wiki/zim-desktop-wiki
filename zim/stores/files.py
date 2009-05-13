@@ -20,7 +20,7 @@ import os # using os directly in get_pagelist()
 
 from zim.fs import *
 from zim import formats
-from zim.notebook import Path, Page
+from zim.notebook import Path, Page, LookupError, PageExistsError
 from zim.stores import StoreClass
 from zim.config import HeadersDict
 
@@ -84,11 +84,36 @@ class Store(StoreClass):
 		for name in names: # sets are sorted by default
 			yield self.get_page(path + name)
 
-	def move_page(self, oldpath, newpath):
-		assert False, 'TODO'
+	def move_page(self, path, newpath):
+		file = self._get_file(path)
+		dir = self._get_dir(path)
+		if not (file.exists() or dir.exists()):
+			raise LookupError, 'No such page: %s' % path.name
+
+		newfile = self._get_file(newpath)
+		newdir = self._get_dir(newpath)
+		if (newfile.exists() or newdir.exists()):
+			raise PageExistsError, 'Page already exists: %s' % newpath.name
+
+		if file.exists():
+			file.rename(newfile)
+
+		if dir.exists():
+			dir.rename(newdir)
+
 
 	def delete_page(self, path):
-		assert False, 'TODO'
+		file = self._get_file(path)
+		dir = self._get_dir(path)
+		if not (file.exists() or dir.exists()):
+			return False
+		else:
+			file.cleanup()
+			assert dir.path.startswith(self.dir.path)
+			dir.remove_children()
+			dir.cleanup()
+			return True
+
 
 	# It could be argued that we should use e.g. MD5 checksums to verify
 	# integrity of the page content instead of mtime. It is true the mtime

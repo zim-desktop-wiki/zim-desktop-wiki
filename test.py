@@ -97,7 +97,8 @@ def main(argv=None):
 	# parse options
 	coverage = None
 	alltests = False
-	opts, args = getopt.gnu_getopt(argv[1:], 'h', ['help', 'coverage', 'all'])
+	loglevel = logging.WARNING
+	opts, args = getopt.gnu_getopt(argv[1:], 'hVD', ['help', 'coverage', 'all', 'debug', 'verbose'])
 	for o, a in opts:
 		if o in ('-h', '--help'):
 			print '''\
@@ -107,9 +108,11 @@ Where MODULE should a module name from ./tests/
 If no module is given the whole test suite is run.
 
 Options:
-  -h, --help   print this text
-  --all       run all tests (much slower that base set)
-  --coverage   report test coverage statistics
+  -h, --help     print this text
+  --all          run all tests (much slower that base set)
+  --coverage     report test coverage statistics
+  -V, --verbose  run with verbose output from logging
+  -D, --debug    run with debug output from logging
 ''' % argv[0]
 			return
 		elif o == '--coverage':
@@ -128,12 +131,15 @@ On Ubuntu or Debian install package 'python-coverage'.
 			coverage.start()
 		elif o == '--all':
 			alltests = True
+		elif o in ('-V', '--verbose'):
+			loglevel = logging.INFO
+		elif o in ('-D', '--debug'):
+			loglevel = logging.DEBUG
 		else:
 			assert False
 
 	# Set logging handler
-	level = logging.WARNING
-	logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
+	logging.basicConfig(level=loglevel, format='%(levelname)s: %(message)s')
 
 	# Set environment - so we can be sure we don't see
 	# any data from a previous installed version

@@ -112,6 +112,8 @@ class UnixPath(object):
 		parts[0] = drive + os.path.sep + parts[0]
 		return parts
 
+	def rename(self, newpath):
+		os.renames(self.path, newpath.path)
 
 class WindowsPath(UnixPath):
 
@@ -171,9 +173,39 @@ class Dir(Path):
 			if e.errno != errno.EEXIST:
 				raise
 
+	def remove(self):
+		'''Remove this dir, fails if dir is non-empty.'''
+		os.rmdir(self.path)
+
 	def cleanup(self):
-		'''FIXME'''
-		os.removedirs(self.path)
+		'''Removes this dir and any empty parent dirs.
+
+		Ignores if dir does not exist. Fails silently if dir is not empty.
+		Returns boolean for success (so False means dir still exists).
+		'''
+		if not self.exists():
+			return True
+
+		try:
+			os.removedirs(self.path)
+		except OSError:
+			return False # probably dir not empty
+		else:
+			return True
+
+	def remove_children(self):
+		'''Remove everything below this dir.
+
+		WARNING: This is quite powerful and recursive, so make sure to double
+		check the dir is actually what you think it is before calling this.
+		'''
+		assert self.path and self.path != '/' # FIXME more checks here ?
+		for root, dirs, files in os.walk(self.path, topdown=False):
+			for name in files:
+				os.remove(os.path.join(root, name))
+			for name in dirs:
+				os.rmdir(os.path.join(root, name))
+
 
 	def file(self, path):
 		'''FIXME'''
@@ -312,13 +344,18 @@ class File(Path):
 			io.close()
 
 	def remove(self):
-		os.remove(self.path)
+		'''Remove this file and any related temporary files we made.
+		Ignores if page did not exist in the first place.
+		'''
+		if os.path.isfile(self.path):
+			os.remove(self.path)
+
 		tmp = self.path + '.zim.new~'
 		if os.path.isfile(tmp):
 			os.remove(tmp)
 
 	def cleanup(self):
-		'''FIXME'''
+		'''Remove this file and deletes any empty parent directories.'''
 		self.remove()
 		self.dir.cleanup()
 

@@ -111,6 +111,25 @@ class TestParseTree(TestCase):
 		text = tree.tostring()
 		self.assertEqualDiff(text, wanted)
 
+	def testSetHeading(self):
+		'''Test ParseTree.set_heading()'''
+		tree = ParseTree().fromstring(self.xml)
+		tree.set_heading('Foo')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<page>
+<h level="1">Foo</h>
+<h level="2">Head 2</h>
+<h level="3">Head 3</h>
+<h level="2">Head 4</h>
+<h level="5">Head 5</h>
+<h level="4">Head 6</h>
+<h level="5">Head 7</h>
+<h level="6">Head 8</h>
+</page>'''
+		text = tree.tostring()
+		self.assertEqualDiff(text, wanted)
+
 class TestTextFormat(TestCase):
 
 	def setUp(self):

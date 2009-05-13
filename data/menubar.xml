@@ -2,6 +2,7 @@
 	<menubar name='menubar'>
 		<menu action='file_menu'>
 			<menuitem action='new_page'/>
+			<menuitem action='new_sub_page'/>
 			<menuitem action='open_notebook'/>
 			<menuitem action='import_page'/>
 			<separator/>
@@ -23,9 +24,7 @@
 			<menuitem action='delete_page'/>
 			<placeholder name='page_modification_actions'/>
 			<separator/>
-<!--
 			<menuitem action='show_properties'/>
--->
 			<separator/>
 			<menuitem action='close'/>
 			<menuitem action='quit'/>
@@ -204,13 +203,16 @@
 		<menuitem action='set_toolbar_icons_small'/>
 		<menuitem action='set_toolbar_icons_tiny'/>
 	</popup>
-<!--
 	<popup name='page_popup'>
-		<menuitem action='popup_new_page'/>
-		<menuitem action='popup_move_page'/>
-		<menuitem action='popup_rename_page'/>
-		<menuitem action='popup_delete_page'/>
+		<menuitem action='new_page'/>
+		<menuitem action='new_sub_page'/>
+		<separator/>
+		<menuitem action='rename_page'/>
+		<menuitem action='move_page'/>
+		<menuitem action='delete_page'/>
+		<placeholder name='page_modification_actions'/>
+		<separator/>
+		<menuitem action='show_properties'/>
 	</popup>
--->
 </ui>
 

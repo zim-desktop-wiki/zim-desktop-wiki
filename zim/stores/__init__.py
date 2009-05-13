@@ -102,13 +102,15 @@ class StoreClass():
 		'''
 		raise NotImplementedError
 
-	def move_page(self, oldpath, newpath):
+	def move_page(self, path, newpath):
 		'''ABSTRACT METHOD, must be implemented in sub-class if store is
 		writable.
 
 		Move content from "oldpath" to "newpath". If oldpath is a Page
 		object this should result in 'page.hascontent' being False if
 		succesfull.
+
+		Raises an error if path does not exist, or if newpath already exists.
 		'''
 		raise NotImplementedError
 
@@ -118,6 +120,8 @@ class StoreClass():
 
 		Deletes a page. If path is a Page object this should result
 		in 'page.hascontent' being False if succesfull.
+
+		Returns False if page did not exist in the first place, True otherwise.
 		'''
 		raise NotImplementedError
 

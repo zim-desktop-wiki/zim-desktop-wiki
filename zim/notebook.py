@@ -14,6 +14,8 @@ import os
 import weakref
 import logging
 
+import gobject
+
 from zim.fs import *
 from zim.config import ConfigList, config_file, data_dir, user_dirs
 from zim.parsing import Re, is_url_re, is_email_re
@@ -70,12 +72,21 @@ class PageNameError(Exception):
 class LookupError(Exception):
 	pass
 
+class PageExistsError(Exception):
+	pass
 
-class Notebook(object):
+class Notebook(gobject.GObject):
 	'''FIXME'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'moved-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
+		'deleted-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+	}
 
 	def __init__(self, path=None, name=None, config=None, index=None):
 		'''FIXME'''
+		gobject.GObject.__init__(self)
 		self._namespaces = []	# list used to resolve stores
 		self._stores = {}		# dict mapping namespaces to stores
 		self._page_cache = weakref.WeakValueDictionary()
@@ -173,12 +184,7 @@ class Notebook(object):
 		and typically user input should not need to able to address this path.
 		'''
 		isabs = name.startswith(':') or namespace == None
-		# normalize name
-		# TODO check for illegal characters in the name
-		name = ':'.join( map(unicode.strip,
-				filter(lambda n: len(n)>0, unicode(name).split(':')) ) )
-		if not name or name.isspace():
-			raise PageNameError
+		name = self.cleanup_pathname(name)
 
 		if index is None:
 			index = self.index
@@ -212,6 +218,20 @@ class Notebook(object):
 					# name not found, keep case as is
 					return namespace+name
 
+	def cleanup_pathname(self, name):
+		'''Returns a safe version of name, used internally by functions like
+		resolve_path() to parse user input.
+		'''
+		name = ':'.join( map(unicode.strip,
+				filter(lambda n: len(n)>0, unicode(name).split(':')) ) )
+
+		# TODO check for illegal characters in the name
+
+		if not name or name.isspace():
+			raise PageNameError
+
+		return name
+
 	def get_page(self, path):
 		'''Returns a Page object'''
 		assert isinstance(path, Path)
@@ -234,14 +254,59 @@ class Notebook(object):
 		return store.get_pagelist(path)
 		# TODO: add sub-stores in this namespace if any
 
-	#~ def move_page(self, name, newname):
-		#~ '''FIXME'''
+	def move_page(self, path, newpath, update_links=True):
+		'''FIXME'''
+		logger.debug('Move %s to %s (%s)', path, newpath, update_links)
+		store = self.get_store(path)
+		newstore = self.get_store(newpath)
+		if newstore == store:
+			store.move_page(path, newpath)
+		else:
+			assert False, 'TODO: move between stores'
+			# recursive + move attachments as well
 
-	#~ def copy_page(self, name, newname):
-		#~ '''FIXME'''
+		# FIXME nicer way to flush out of sync objects - flag invalid ?
+		for p in path, newpath:
+			if p.name in self._page_cache:
+				del self._page_cache[p.name]
 
-	#~ def del_page(self, name):
-		#~ '''FIXME'''
+		# TODO update links
+
+		self.emit('moved-page', path, newpath)
+
+	def rename_page(self, path, newbasename,
+						update_heading=True, update_links=True):
+		'''FIXME'''
+		logger.debug('Rename %s to "%s" (%s, %s)',
+			path, newbasename, update_heading, update_links)
+
+		newbasename = self.cleanup_pathname(newbasename)
+		newpath = Path(path.namespace + ':' + newbasename)
+		if newbasename.lower() != path.basename.lower():
+			# allow explicit case-sensitive renaming
+			newpath = self.index.resolve_case(
+				newbasename, namespace=path.get_parent()) or newpath
+
+		self.move_page(path, newpath, update_links=update_links)
+		if update_heading:
+			page = self.get_page(newpath)
+			tree = page.get_parsetree()
+			tree.set_heading(newbasename.title())
+			page.set_parsetree(tree)
+
+		return newpath
+
+	def delete_page(self, path):
+		store = self.get_store(path)
+		existed = store.delete_page(path)
+
+		# FIXME nicer way to flush out of sync objects - flag invalid ?
+		if path.name in self._page_cache:
+			del self._page_cache[path.name]
+
+		if existed:
+			self.emit('deleted-page', path)
+		return existed
 
 	#~ def search(self):
 		#~ '''FIXME'''
@@ -320,6 +385,9 @@ class Notebook(object):
 	def get_page_indexkey(self, path):
 		store = self.get_store(path)
 		return store.get_page_indexkey(path)
+
+# Need to register classes defining gobject signals
+gobject.type_register(Notebook)
 
 
 class Path(object):

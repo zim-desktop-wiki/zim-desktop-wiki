@@ -389,9 +389,10 @@ class PathBar(ScrolledHBox):
 			button.set_use_underline(False)
 			button.zim_path = path
 			button.connect('clicked', self.on_button_clicked)
+			button.connect('popup-menu', self.on_button_popup_menu)
+			button.connect('button-release-event', self.do_button_release_event)
 			# FIXME tooltips seem not to work - not sure why
 			tooltips.set_tip(button, path.name)
-			# TODO show context menu for pageson right click
 			# TODO Drag n drop support also nice to have
 			button.show()
 			self.add(button)
@@ -430,6 +431,23 @@ class PathBar(ScrolledHBox):
 	def on_button_clicked(self, button):
 		self.ui.open_page(button.zim_path)
 
+	def do_button_release_event(self, button, event):
+		'''Handler for button-release-event, triggers popup menu'''
+		if event.button == 3:
+			button.emit('popup-menu') # FIXME do we need to pass x/y and button ?
+			return True
+
+	def on_button_popup_menu(self, button):
+		menu = self.ui.uimanager.get_widget('/page_popup')
+		menu.popup(None, None, None, 3, 0)
+		return True
+
+	def get_selected_path(self):
+		'''Returns path currently selected or None'''
+		if self._selected:
+			return self._selected.zim_path
+		else:
+			return None
 
 class HistoryPathBar(PathBar):
 

@@ -240,7 +240,8 @@ class PageTreeView(BrowserTreeView):
 			return BrowserTreeView.do_button_release_event(self, event)
 
 	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
-		print 'TODO: trigger popup for page'
+		menu = self.ui.uimanager.get_widget('/page_popup')
+		menu.popup(None, None, None, 3, 0)
 		return True
 
 	def select_page(self, path):
@@ -281,3 +282,11 @@ class PageIndex(gtk.ScrolledWindow):
 
 	def grab_focus(self):
 		self.treeview.grab_focus()
+
+	def get_selected_path(self):
+		'''Returns path currently selected or None'''
+		model, iter = self.treeview.get_selection().get_selected()
+		if model is None or iter is None:
+			return None
+		else:
+			return model.get_indexpath(iter)

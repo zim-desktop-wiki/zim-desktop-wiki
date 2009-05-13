@@ -43,6 +43,76 @@ class TestNotebook(tests.TestCase):
 			index.add(page.name)
 		self.assertEqual(index, self.notebook.testdata_manifest)
 
+	def testManipulate(self):
+		'''Test renaming, moving and deleting pages in the notebook'''
+
+		# check test setup OK
+		for path in (Path('Test:BAR'), Path('NewPage')):
+			page = self.notebook.get_page(path)
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
+
+		# check errors
+		self.assertRaises(LookupError,
+			self.notebook.move_page, Path('NewPage'), Path('Test:BAR'))
+		self.assertRaises(PageExistsError,
+			self.notebook.move_page, Path('Test:foo'), Path('TODOList'))
+
+
+		for oldpath, newpath in (
+			(Path('Test:foo'), Path('Test:BAR')),
+			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
+		):
+			page = self.notebook.get_page(oldpath)
+			text = page.dump('wiki')
+			self.assertTrue(page.haschildren)
+
+			self.notebook.move_page(oldpath, newpath)
+
+			# newpath should exist and look like the old one
+			page = self.notebook.get_page(newpath)
+			self.assertTrue(page.haschildren)
+			self.assertEqual(page.dump('wiki'), text)
+
+			# oldpath should be deleted
+			page = self.notebook.get_page(oldpath)
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
+
+			# let's delete the newpath again
+			self.assertTrue(self.notebook.delete_page(newpath))
+			page = self.notebook.get_page(newpath)
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
+
+			# delete again should silently fail
+			self.assertFalse(self.notebook.delete_page(newpath))
+
+		# check cleaning up works OK
+		page = self.notebook.get_page(Path('NewPage'))
+		self.assertFalse(page.haschildren)
+		self.assertFalse(page.hascontent)
+
+		# Try rename
+		page = self.notebook.get_page(Path('Test:wiki'))
+		self.assertTrue(page.hascontent)
+		copy = page
+			# we now have a copy of the page object - this is an important
+			# part of the test - see if caching of page objects doesn't bite
+
+		self.notebook.rename_page(Path('Test:wiki'), 'foo')
+		page = self.notebook.get_page(Path('Test:wiki'))
+		self.assertFalse(page.hascontent)
+		page = self.notebook.get_page(Path('Test:foo'))
+		self.assertTrue(page.hascontent)
+
+		self.notebook.rename_page(Path('Test:foo'), 'Foo')
+		page = self.notebook.get_page(Path('Test:foo'))
+		self.assertFalse(page.hascontent)
+		page = self.notebook.get_page(Path('Test:Foo'))
+		self.assertTrue(page.hascontent)
+
+
 	def testResolvePath(self):
 		'''Test notebook.resolve_path()'''
 
@@ -82,11 +152,11 @@ class TestNotebook(tests.TestCase):
 			('./test.txt', dir.file('Foo/Bar/test.txt')),
 			('../test.txt', dir.file('Foo/test.txt')),
 			('../Bar/Baz/test.txt', dir.file('Foo/Bar/Baz/test.txt')),
-		): 
+		):
 			#~ print link, '>>', self.notebook.resolve_file(link, path)
 			self.assertEqual(
 				self.notebook.resolve_file(link, path), wanted)
-		
+
 
 #	def testResolveLink(self):
 #		'''Test page.resolve_link()'''

@@ -11,7 +11,7 @@ FIXME document subclassing
 '''
 
 from zim import formats
-from zim.notebook import Page
+from zim.notebook import Page, LookupError, PageExistsError
 from zim.stores import StoreClass
 
 __store__ = 'memory'
@@ -90,8 +90,36 @@ class Store(StoreClass):
 			childpath = path + node[0]
 			yield self._build_page(childpath, node)
 
-	def move_page(self, oldpath, newpath):
-		assert False, 'TODO'
+	def move_page(self, path, newpath):
+		node = self._get_node(path)
+		if node is None:
+			raise LookupError, 'No such page: %s' % path.name
+
+		newnode = self._get_node(newpath)
+		if not newnode is None:
+			raise PageExistsError, 'Page already exists: %s' % newpath.name
+
+		self.delete_page(path)
+
+		newnode = self._get_node(newpath, vivificate=True)
+		newnode[1] = node[1] # text
+		newnode[2] = node[2] # children
+
 
 	def delete_page(self, path):
-		assert False, 'TODO'
+		# Make sure not to destroy the actual content, we are used by
+		# move_page, which could be keeping a reference to the content
+		node = self._get_node(path)
+		if node is None:
+			return False
+
+		parent = path.get_parent()
+		if parent.isroot:
+			self._nodetree.remove(node)
+		else:
+			pnode = self._get_node(parent)
+			pnode[2].remove(node)
+			if not (pnode[1] or pnode[2]):
+				self.delete_page(parent) # recurs to cleanup empty parent
+
+		return True
