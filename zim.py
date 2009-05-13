@@ -181,7 +181,7 @@ def main(argv):
 			raise UsageError
 		handler = zim.NotebookInterface(notebook=args[0])
 		if len(args) == 2: optsdict['page'] = args[1]
-		method = getattr(handler, 'do_' + cmd)
+		method = getattr(handler, 'cmd_' + cmd)
 		method(**optsdict)
 	elif cmd == 'gui':
 		import zim.gui

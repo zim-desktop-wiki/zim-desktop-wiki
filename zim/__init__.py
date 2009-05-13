@@ -103,29 +103,33 @@ class NotebookInterface(gobject.GObject):
 		self.uistate = ConfigDictFile(notebook.cache_dir.file('state.conf'))
 		# TODO read profile preferences file if one is set in the notebook
 
-	def do_export(self, format='html', template=None, page=None, output=None):
+	def cmd_export(self, format='html', template=None, page=None, output=None):
 		'''Method called when doing a commandline export'''
-		if page is None:
-			assert False, 'TODO: export whole notebook'
-		if not output is None:
-			assert False, 'TODO: output other than stdout'
 
-		if isinstance(page, basestring):
+		if page is None:
+			selection = self.notebook
+		elif isinstance(page, basestring):
+			# TODO detect whether page is a query string
 			path = self.notebook.resolve_path(page)
 			page = self.notebook.get_page(path)
-
-		if template is None:
-			output = page.dump(format=format)
+			selection = page # TODO API selection objects
 		else:
-			if isinstance(template, basestring):
-				from zim.templates import get_template
-				template = get_template(format, template)
-			output = template.process(page)
-		import sys
-		for line in output:
-			sys.stdout.write(line.encode('utf8'))
+			page = self.notebook.get_page(page)
+			selection = page # TODO API selection objects
 
-	def do_index(self, output=None):
+		if isinstance(template, basestring):
+			from zim.templates import get_template
+			template = get_template(format, template)
+
+		if output is None:
+			import sys
+			output = sys.stdout
+
+		from zim.exporter import Exporter
+		Exporter().export(selection, format, output, template)
+
+
+	def cmd_index(self, output=None):
 		'''Method called when doing a commandline index re-build'''
 		if not output is None:
 			import zim.index
