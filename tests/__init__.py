@@ -13,7 +13,8 @@ __all__ = [
 	'parsing', 'fs', 'config',
 	'formats', 'templates',
 	'stores', 'index', 'notebook',
-	'history', 'plugins'
+	'history', 'plugins',
+	'pageview',
 ]
 
 __unittest = 1 # needed to get stack trace OK for class TestCase
@@ -42,34 +43,26 @@ def create_tmp_dir(name):
 	assert os.path.exists(dir) # make real sure
 	return dir
 
+_test_data_cache = {}
+
+def get_test_data(path):
+	if not path in _test_data_cache:
+		buffer = codecs.open('tests/data/'+path, encoding='utf8').read()
+		_test_data_cache[path] = buffer
+
+	buffer = _test_data_cache[path]
+	assert len(buffer) and not buffer.isspace()
+	return buffer
+
 def get_notebook_data(format):
 	'''Generator function for test data'''
 	assert format == 'wiki' # No other formats available for now
-	file = codecs.open('tests/data/notebook-wiki.txt', encoding='utf8')
-
-	# Read manifest
-	manifest = []
-	for line in file:
-		if line.isspace(): break
-		manifest.append(line.strip())
-
-	pagename = None
-	buffer = u''
-	i = -1
-	for line in file:
-		if line.startswith('%%%%'):
-			# new page start, yield previous page
-			if not pagename is None:
-				yield (pagename, buffer)
-			pagename = line.strip('% \n')
-			i += 1
-			assert manifest[i] == pagename, \
-				'got page %s, expected %s' % (pagename, manifest[i])
-			buffer = u''
-		else:
-			buffer += line
-	yield (pagename, buffer)
-
+	manifest = get_test_data('notebook-wiki/MANIFEST')
+	files = [f.rstrip() for f in manifest.splitlines()]
+	for file in files:
+		pagename = file[:-4] # remove .txt
+		pagename = pagename.replace('/',':').replace('_', ' ')
+		yield (pagename, get_test_data('notebook-wiki/'+file))
 
 def get_test_notebook(format='wiki'):
 	'''Returns a notebook with a memory store and some test data'''
@@ -102,7 +95,7 @@ def get_test_page(name='Foo'):
 	from zim.notebook import Notebook, Path
 	notebook = Notebook()
 	notebook.add_store(Path(':'), 'memory')
-	return notebook.get_page(Path(name))
+	return notebook, notebook.get_page(Path(name))
 
 
 class TestCase(unittest.TestCase):
@@ -110,7 +103,7 @@ class TestCase(unittest.TestCase):
 
 	def run(self, *args):
 		unittest.TestCase.run(self, *args)
-
+	
 	def assertEqualDiff(self, first, second, msg=None):
 		'''Fail if the two strings are unequal as determined by
 		the '==' operator. On failure shows a diff of both strings.
@@ -143,4 +136,31 @@ class TestCase(unittest.TestCase):
 
 		raise self.failureException, msg.encode('utf8')
 
+	def assertEqualDiffData(self, first, second, msg=None):
+		'''Like assertEqualDiff(), but handles sets and other
+		data types that can be cast to lists.
+		'''
+		if msg is None:
+			msg = u'Values differ:'
+		else:
+			msg = unicode(msg)
 
+		if not type(first) == type(second):
+			types = type(first), type(second)
+			msg += ' types differ, %s and %s' % types
+		elif first is None:
+			msg += ' first item is "None"'
+		elif second is None:
+			msg += ' second item is "None"'
+		elif not first == second:
+			from difflib import Differ
+			first = list(first)
+			second = list(second)
+			diff = Differ().compare(second, first)
+			# switching first and second, because usually second
+			# is the reference we are testing against
+			msg += '\n' + '\n'.join(diff)
+		else:
+			return
+
+		raise self.failureException, msg.encode('utf8')

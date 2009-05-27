@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Tue, 12 May 2009 21:05:10 +0200
+Modification-Date: Wed, 27 May 2009 21:00:21 +0200
 
 ====== Tasks ======
 
@@ -56,7 +56,7 @@ Modification-Date: Tue, 12 May 2009 21:05:10 +0200
 	[*] Implement visual style config
 	[*] Implement "formats" menu items
 	[*] Set text_style from cursor - make formatting stick properly
-	[ ] **Implement get parse tree + test roundtrip**
+	[*] Implement get parse tree + test roundtrip
 	[ ] Implement save and autosave (mtime + md5)
 	[ ] implement generic autoformatting hooks
 	[ ] Implement insert link + file link
@@ -64,6 +64,9 @@ Modification-Date: Tue, 12 May 2009 21:05:10 +0200
 	[ ] Implement attach file
 	[ ] Make undo / redo work - separate undo stack manager object
 	[ ] formats-, edit- & insert-menu complete
+	[ ] enforce applying a format to a link selects whole link
+	[ ] enforce sane indenting levels for lists
+	[ ] enforce heading can not be indented
 
 == General health ==
 

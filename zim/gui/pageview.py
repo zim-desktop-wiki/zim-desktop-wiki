@@ -5,6 +5,7 @@
 '''FIXME'''
 
 import logging
+
 import gobject
 import gtk
 import pango
@@ -12,6 +13,7 @@ import pango
 from zim.notebook import Path
 from zim.parsing import link_type
 from zim.config import config_file
+from zim.formats import ParseTree, TreeBuilder
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -25,6 +27,10 @@ bullet_types = {
 	'unchecked-box': STOCK_UNCHECKED_BOX,
 	'xchecked-box': STOCK_XCHECKED_BOX,
 }
+# reverse dict
+bullets = {}
+for bullet in bullet_types:
+	bullets[bullet_types[bullet]] = bullet
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip
@@ -53,6 +59,13 @@ ui_format_toggle_actions = (
 	('toggle_format_strike', 'gtk-strikethrough', '_Strike', '', 'Strike', None, False),
 )
 
+
+_is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
+_is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
+
+PIXBUF_CHR = u'\uFFFC'
+
+
 class TextBuffer(gtk.TextBuffer):
 	'''Zim subclass of gtk.TextBuffer.
 
@@ -67,8 +80,15 @@ class TextBuffer(gtk.TextBuffer):
 
 	TODO: manage undo stack - group by memorizing offsets and get/set trees
 	TODO: manage rich copy-paste based on zim formats
-	      use serialization API if gtk >= 2.10 ?
+		  use serialization API if gtk >= 2.10 ?
 	'''
+
+	# We rely on the priority of gtk TextTags to sort links before styles,
+	# and styles before indenting. Since styles are initialized on init,
+	# while indenting tags are created when needed, indenting tags always
+	# have the higher priority. By explicitly lowering the priority of new
+	# link tags to zero we keep those tags on the lower endof the scale.
+
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -79,19 +99,19 @@ class TextBuffer(gtk.TextBuffer):
 
 	# text tags supported by the editor and default stylesheet
 	tag_styles = {
-		'h1':       {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
-		'h2':       {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
-		'h3':       {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
-		'h4':       {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
-		'h5':       {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': 'italic'},
-		'h6':       {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
+		'h1':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
+		'h2':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
+		'h3':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
+		'h4':	   {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
+		'h5':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': 'italic'},
+		'h6':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
 		'emphasis': {'style': 'italic'},
 		'strong':   {'weight': pango.WEIGHT_BOLD},
-		'mark':     {'background': 'yellow'},
+		'mark':	 {'background': 'yellow'},
 		'strike':   {'strikethrough': 'true', 'foreground': 'grey'},
-		'code':     {'family': 'monospace'},
-		'pre':      {'family': 'monospace', 'wrap-mode': 'none'},
-		'link':     {'foreground': 'blue'},
+		'code':	 {'family': 'monospace'},
+		'pre':	  {'family': 'monospace', 'wrap-mode': 'none'},
+		'link':	 {'foreground': 'blue'},
 	}
 
 	# possible attributes for styles in tag_styles
@@ -107,7 +127,13 @@ class TextBuffer(gtk.TextBuffer):
 		for k, v in self.tag_styles.items():
 			tag = self.create_tag('style-'+k, **v)
 			tag.zim_type = 'style'
-			tag.zim_style = k
+			if k in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+				# This is needed to get proper output in get_parse_tree
+				tag.zim_tag = 'h'
+				tag.zim_attrib = {'level': int(k[1])}
+			else:
+				tag.zim_tag = k
+				tag.zim_attrib = None
 
 		self.textstyle = None
 		self._editmode_tags = ()
@@ -123,7 +149,6 @@ class TextBuffer(gtk.TextBuffer):
 
 	def set_parsetree(self, tree):
 		'''FIXME'''
-		# TODO: this insert should not be recorded by undo stack
 		self.clear()
 		self.insert_parsetree_at_cursor(tree)
 		self.set_modified(False)
@@ -163,8 +188,8 @@ class TextBuffer(gtk.TextBuffer):
 
 				self._insert_element_children(element, list_level=list_level+1) # recurs
 			elif element.tag == 'li':
-				self.set_indent(list_level)
-				if 'bullet' in element.attrib:
+				self.set_indent(list_level+1)
+				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
 					bullet = element.attrib['bullet']
 					if bullet in bullet_types:
 						stock = bullet_types[bullet]
@@ -217,7 +242,9 @@ class TextBuffer(gtk.TextBuffer):
 		'''FIXME'''
 		# TODO generate anonymous tags for links
 		tag = self.create_tag(None, **self.tag_styles['link'])
+		tag.set_priority(0) # force links to be below styles
 		tag.zim_type = 'link'
+		tag.zim_tag = 'link'
 		tag.zim_attrib = attrib
 		self._editmode_tags = self._editmode_tags + (tag,)
 		self.insert_at_cursor(text)
@@ -264,12 +291,15 @@ class TextBuffer(gtk.TextBuffer):
 		# TODO parse image file locations elsewhere
 		# TODO support tooltip text
 		file = attrib['src-file']
+		attrib['alt'] = text
 		try:
 			pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
 		except:
 			logger.warn('No such image: %s', file)
 			widget = gtk.HBox() # FIXME need *some* widget here...
 			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG)
+		pixbuf.zim_type = 'image'
+		pixbuf.zim_attrib = attrib
 		self.insert_pixbuf(iter, pixbuf)
 
 	def insert_image_at_cursor(self, attrib, text):
@@ -277,23 +307,14 @@ class TextBuffer(gtk.TextBuffer):
 		self.insert_image(iter, attrib, text)
 
 	def insert_icon(self, iter, stock):
-		widget = gtk.HBox() # FIXME need *some* widget here...
+		widget = gtk.HBox() # HACK need *some* widget here...
 		pixbuf = widget.render_icon(stock, gtk.ICON_SIZE_MENU)
 		if pixbuf is None:
 			logger.warn('Could not find icon: %s', stock)
 			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
-
-		mark = self.create_mark('zim-tmp', iter, True)
+		pixbuf.zim_type = 'icon'
+		pixbuf.zim_attrib = {'stock': stock}
 		self.insert_pixbuf(iter, pixbuf)
-
-		if not self.textstyle_tag is None:
-			start = self.get_iter_at_mark(mark)
-			end = start.copy()
-			end.forward_char()
-			self.remove_all_tags(start, end)
-			self.apply_tag(self.textstyle_tag, start, end)
-
-		self.delete_mark(mark)
 
 	def insert_icon_at_cursor(self, stock):
 		iter = self.get_iter_at_mark(self.get_insert())
@@ -322,7 +343,7 @@ class TextBuffer(gtk.TextBuffer):
 		'''Updates the textstyle from a text position.
 		Triggered automatically when moving the cursor.
 		'''
-		tags = self.get_tags(iter)
+		tags = self.get_zim_tags(iter)
 		if not tags == self._editmode_tags:
 			#~ print '>', [(t.zim_type, t.get_property('name')) for t in tags]
 			self._editmode_tags = tuple(tags)
@@ -334,16 +355,16 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				self.emit('textstyle-changed', None)
 
-	def get_tags(self, iter):
+	def get_zim_tags(self, iter):
 		'''Like gtk.TextIter.get_tags() but only returns our own tags and
 		assumes tags have "left gravity".
 		'''
+		start_tags = set(iter.get_toggled_tags(True))
 		tags = filter(
-			lambda tag: hasattr(tag, 'zim_type') and not iter.begins_tag(tag),
+			lambda tag: _is_zim_tag(tag) and not tag in start_tags,
 			iter.get_tags() )
-		tags.extend( filter(
-			lambda tag: hasattr(tag, 'zim_type'),
-			iter.get_toggled_tags(False) ))
+		tags.extend( filter(_is_zim_tag, iter.get_toggled_tags(False)) )
+		tags.sort(key=lambda tag: tag.get_priority())
 		return tags
 
 	def do_textstyle_changed(self, name):
@@ -370,9 +391,9 @@ class TextBuffer(gtk.TextBuffer):
 
 	def range_has_tag(self, start, end, tag):
 		'''Check if a certain tag appears anywhere in a certain range'''
-		# test right gravity for start itere, but left gravity for end iter
+		# test right gravity for start iter, but left gravity for end iter
 		if tag in start.get_tags() \
-		or tag in self.get_tags(end):
+		or tag in self.get_zim_tags(end):
 			return True
 		else:
 			iter = start.copy()
@@ -393,7 +414,11 @@ class TextBuffer(gtk.TextBuffer):
 		'''Returns the indent level at iter, or at cursor if 'iter' is None.'''
 		if iter is None:
 			iter = self.get_iter_at_mark(self.get_insert())
-		pass
+		tags = filter(_is_indent_tag, self.get_zim_tags(iter))
+		if tags:
+			return tags[0].zim_attrib['indent']
+		else:
+			return 0
 
 	def set_indent(self, level):
 		'''Sets the current indent level. This style will be applied
@@ -401,18 +426,19 @@ class TextBuffer(gtk.TextBuffer):
 		equivalent to 'set_indent(0)'.
 		'''
 		self._editmode_tags = filter(
-			lambda tag: not tag.get_property('name').startswith('indent-'),
-			self._editmode_tags)
+			lambda tag: not _is_indent_tag(tag), self._editmode_tags)
 
 		if level and level > 0:
 			# TODO make number of pixels in indent configable (call this tabstop)
 			name = 'indent-%i' % level
 			tag = self.get_tag_table().lookup(name)
 			if tag is None:
-				margin = 10 + 30 * level-1 # offset from left side for all lines
+				margin = 10 + 30 * (level-1) # offset from left side for all lines
 				indent = -10 # offset for first line (bullet)
 				tag = self.create_tag(name, left_margin=margin, indent=indent)
 				tag.zim_type = 'indent'
+				tag.zim_tag = 'indent'
+				tag.zim_attrib = {'indent': level-1}
 			self._editmode_tags = self._editmode_tags + (tag,)
 		else:
 			level = 0
@@ -433,19 +459,164 @@ class TextBuffer(gtk.TextBuffer):
 		gtk.TextBuffer.do_insert_text(self, end, string, length)
 
 		# Apply current text style
+		length = len(unicode(string))
+			# default function argument gives byte length :S
 		start = end.copy()
-		start.backward_chars(len(string))
-			# do not trust the given length, it does not understand unicode
+		start.backward_chars(length)
 		self.remove_all_tags(start, end)
 		for tag in self._editmode_tags:
 			self.apply_tag(tag, start, end)
 
+	def do_insert_pixbuf(self, end, pixbuf):
+		gtk.TextBuffer.do_insert_pixbuf(self, end, pixbuf)
+		start = end.copy()
+		start.backward_char()
+		self.remove_all_tags(start, end)
+		for tag in self._editmode_tags:
+			self.apply_tag(tag, start, end)
+
+	def get_bullet(self, line):
+		iter = self.get_iter_at_line(line)
+		return self._get_bullet(iter)
+
+	def get_bullet_at_iter(self, iter):
+		if not iter.starts_line():
+			print 'LOOKING for bullet at wrong place', iter.get_line_offset()
+			return None
+
+		pixbuf = iter.get_pixbuf()
+		if pixbuf:
+			if hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'icon' \
+			and pixbuf.zim_attrib['stock'] in (
+				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
+				return bullets[pixbuf.zim_attrib['stock']]
+			else:
+				return None
+		else:
+			bound = iter.copy()
+			bound.forward_char()
+			if iter.get_slice(bound) == u'\u2022':
+				return '*'
+			else:
+				return None
+
+	def _iter_forward_past_bullet(self, iter):
+		iter.forward_char()
+		bound = iter.copy()
+		bound.forward_char()
+		if iter.get_text(bound) == ' ':
+			iter.forward_char()
+
 	def get_parsetree(self, bounds=None):
-		'''FIXME'''
 		if bounds is None:
 			start, end = self.get_bounds()
 		else:
 			start, end = bounds
+
+		builder = TreeBuilder()
+		builder.start('zim-tree')
+
+		open_tags = []
+		def set_tags(iter, tags):
+			'''This function changes the parse tree based on the TextTags in
+			effect for the next section of text.
+			'''
+			# We assume that by definition we only get one tag for each tag
+			# type and that we get tags in such an order that the one we get
+			# first should be closed first while closing later ones breaks the
+			# ones before. This is enforced using the priorities of the tags
+			# in the TagTable.
+			tags.sort(key=lambda tag: tag.get_priority(), reverse=True)
+
+			i = 0
+			while i < len(tags) and i < len(open_tags) \
+			and tags[i] == open_tags[i][0]:
+				i += 1
+
+			# so i is the breakpoint where new stack is different
+			while len(open_tags) > i:
+				builder.end(open_tags[-1][1])
+				open_tags.pop()
+
+			if tags:
+				for tag in tags[i:]:
+					t, attrib = tag.zim_tag, tag.zim_attrib
+					if t == 'indent':
+						bullet = self.get_bullet_at_iter(iter)
+						if bullet:
+							t = 'li'
+							attrib = attrib.copy() # break ref with tree
+							attrib['bullet'] = bullet
+							self._iter_forward_past_bullet(iter)
+						else:
+							t = 'p'
+					builder.start(t, attrib)
+					open_tags.append((tag, t))
+
+		# And now the actual loop going through the buffer
+		iter = start.copy()
+		while iter.compare(end) == -1:
+			pixbuf = iter.get_pixbuf()
+			if pixbuf:
+				# reset all tags except indenting
+				set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
+				pixbuf = iter.get_pixbuf() # iter may have moved
+				if pixbuf is None:
+					continue
+
+				if pixbuf.zim_type == 'icon':
+					pass # TODO checkboxes etc.
+				elif pixbuf.zim_type == 'image':
+					attrib = pixbuf.zim_attrib
+					text = attrib['alt']
+					del attrib['alt']
+					builder.start('img', attrib)
+					builder.data(text)
+					builder.end('img')
+				else:
+					assert False, 'BUG: unknown pixbuf type'
+
+				iter.forward_char()
+			# TODO elif embedded widget
+			else:
+				# Set tags
+				set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
+
+				# Find biggest slice without tags being toggled
+				bound = iter.copy()
+				toggled = []
+				while not toggled:
+					if bound.forward_to_tag_toggle(None):
+						toggled = filter(_is_zim_tag,
+							bound.get_toggled_tags(False)
+							+ bound.get_toggled_tags(True) )
+					else:
+						break
+
+				# But limit slice to first pixbuf
+				# TODO: also limit slice to any embeddded widget
+				text = iter.get_slice(bound)
+				if PIXBUF_CHR in text:
+					i = text.index(PIXBUF_CHR)
+					bound = iter.copy()
+					bound.forward_chars(i)
+					text = text[:i]
+
+				# And limit to end
+				if bound.compare(end) == 1:
+					bound = end
+					text = iter.get_slice(end)
+
+				# And insert text
+				builder.data(text)
+				iter = bound
+
+		# close any open tags
+		set_tags(end, [])
+
+		builder.end('zim-tree')
+		return ParseTree(builder.close())
+
 
 	def get_has_selection(self):
 		'''Returns boolean whether there is a selection or not.
@@ -492,6 +663,7 @@ class TextView(gtk.TextView):
 		'''FIXME'''
 		gtk.TextView.__init__(self, TextBuffer())
 		self.cursor = 'text'
+		self.cursor_link = None
 		self.gtkspell = None
 		self.set_left_margin(10)
 		self.set_right_margin(5)
@@ -558,7 +730,7 @@ class TextView(gtk.TextView):
 			pass # TODO check for pixbufs that are clickable
 
 		if link: cursor = 'link'
-		else:    cursor = 'text'
+		else:	cursor = 'text'
 
 		if cursor != self.cursor:
 			window = self.get_window(gtk.TEXT_WINDOW_TEXT)
@@ -567,15 +739,20 @@ class TextView(gtk.TextView):
 		# Check if we need to emit any events for hovering
 		# TODO: do we need similar events for images ?
 		if self.cursor == 'link': # was over link before
-			if cursor == 'link':
-				pass
-				#~ print 'TODO: check we are still over same link'
+			if cursor == 'link': # still over link
+				if link == self.cursor_link:
+					pass
+				else:
+					# but other link
+					self.emit('link-leave', self.cursor_link)
+					self.emit('link-enter', link)
 			else:
-				self.emit('link-leave', link)
+				self.emit('link-leave', self.cursor_link)
 		elif cursor == 'link': # was not over link, but is now
 			self.emit('link-enter', link)
 
 		self.cursor = cursor
+		self.cursor_link = link
 
 	def click_link(self, iter):
 		'''Emits the link-clicked signal if there is a link at iter.

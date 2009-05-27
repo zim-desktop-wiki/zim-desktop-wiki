@@ -114,8 +114,9 @@ class ParseTree(ElementTreeModule.ElementTree):
 		from cStringIO import StringIO
 
 		# Parent dies when we have attributes that are not a string
-		for element in self.getiterator('h'):
-			element.attrib['level'] = str(element.attrib['level'])
+		for element in self.getiterator('*'):
+			for key in element.attrib.keys():
+				element.attrib[key] = str(element.attrib[key])
 
 		xml = StringIO()
 		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")

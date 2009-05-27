@@ -96,9 +96,9 @@ def main(argv=None):
 
 	# parse options
 	coverage = None
-	alltests = False
+	alltests = True
 	loglevel = logging.WARNING
-	opts, args = getopt.gnu_getopt(argv[1:], 'hVD', ['help', 'coverage', 'all', 'debug', 'verbose'])
+	opts, args = getopt.gnu_getopt(argv[1:], 'hVD', ['help', 'coverage', 'fast', 'debug', 'verbose'])
 	for o, a in opts:
 		if o in ('-h', '--help'):
 			print '''\
@@ -109,7 +109,7 @@ If no module is given the whole test suite is run.
 
 Options:
   -h, --help     print this text
-  --all          run all tests (much slower that base set)
+  --fast         skip a number of slower tests
   --coverage     report test coverage statistics
   -V, --verbose  run with verbose output from logging
   -D, --debug    run with debug output from logging
@@ -129,8 +129,8 @@ On Ubuntu or Debian install package 'python-coverage'.
 			coverage.exclude('assert')
 			coverage.exclude('raise NotImplementedError')
 			coverage.start()
-		elif o == '--all':
-			alltests = True
+		elif o == '--fast':
+			alltests = False
 		elif o in ('-V', '--verbose'):
 			loglevel = logging.INFO
 		elif o in ('-D', '--debug'):

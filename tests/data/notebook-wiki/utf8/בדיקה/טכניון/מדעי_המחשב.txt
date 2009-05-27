@@ -1,0 +1,10 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: ×', 07 ××¤×¨ 2009 13:08:18 +0300
+Modification-Date: ×', 07 ××¤×¨ 2009 13:10:08 +0300
+
+====== מדעי המחשב ======
+Created שלישי 07 אפריל 2009
+
+שפת תכנות
+אלגוריטמיים

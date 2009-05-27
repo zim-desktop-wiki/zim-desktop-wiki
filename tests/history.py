@@ -6,14 +6,16 @@
 
 from tests import TestCase, get_test_notebook
 
-from zim.notebook import Path
+import zim.history
 from zim.history import History, HistoryRecord
+from zim.notebook import Path
 from zim.config import ConfigDict
 
 class TestHistory(TestCase):
 	'''FIXME'''
 
 	def setUp(self):
+		zim.history.MAX_HISTORY = 100
 		self.notebook = get_test_notebook()
 		self.pages = [self.notebook.get_page(Path(name))
 			for name in self.notebook.testdata_manifest]

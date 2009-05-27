@@ -4,7 +4,7 @@
 
 '''Test cases for the zim.formats module.'''
 
-from tests import TestCase, get_test_page
+from tests import TestCase, get_test_page, get_test_data
 
 from zim.formats import *
 from zim.notebook import Link
@@ -12,59 +12,7 @@ from zim.notebook import Link
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
 
-wikitext = u"""\
-====== Head1 ======
-
-===== Head 2 =====
-
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
-eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-aliquip ex ea commodo consequat. Duis aute irure dolor in
-reprehenderit in voluptate velit esse cillum dolore eu fugiat
-nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
-sunt in culpa qui officia deserunt mollit anim id est laborum.
-
-'''
-Some Verbatim here
-
-	Indented and all: //foo//
-'''
-
-IMAGE: {{../my-image.png|Foo Bar}}
-LINKS: [[:foo:bar]] [[./file.png]] [[file:///etc/passwd]]
-
-	Some indented
-	paragraphs go here ...
-
-
-
-Let's try these **bold**, //italic//, __underline__ and ~~strike~~
-And some ''//verbatim//''
-And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
-
-A list
-* foo
-	* bar
-	* baz
-
-And a checkbox list
-[ ] item 1
-	[*] sub item 1
-		* Some normal bullet
-	[x] sub item 2
-	[ ] sub item 3
-[ ] item 2
-[ ] item 3
-	[x] item FOOOOOO !
-
-----
-
-====
-This is not a header
-
-That's all ...
-"""
+wikitext = get_test_data('notebook-wiki/roundtrip.txt')
 
 class TestParseTree(TestCase):
 
@@ -134,7 +82,7 @@ class TestTextFormat(TestCase):
 
 	def setUp(self):
 		self.format = get_format('plain')
-		self.page = get_test_page()
+		notebook, self.page = get_test_page()
 
 	def testRoundtrip(self):
 		# First using file interface
@@ -159,7 +107,7 @@ class TestWikiFormat(TestTextFormat):
 	def setUp(self):
 		#~ TestTextFormat.setUp(self)
 		self.format = get_format('wiki')
-		self.page = get_test_page()
+		notebook, self.page = get_test_page()
 
 	#~ def testHeaders(self):
 		#~ text = '''\
@@ -198,6 +146,7 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 </pre>
 <p>IMAGE: <img src="../my-image.png">Foo Bar</img>
 LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
+LINKS: <link href="Foo">Foo</link><link href="Bar">Bar</link>
 </p>
 <p>	Some indented
 	paragraphs go here ...
@@ -209,9 +158,9 @@ And some <code>//verbatim//</code>
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 </p>
 <p>A list
-<ul><li>foo</li><ul><li>bar</li><li>baz</li></ul></ul></p>
+<ul><li bullet="*">foo</li><ul><li bullet="*">bar</li><li bullet="*">baz</li></ul></ul></p>
 <p>And a checkbox list
-<ul><li bullet="unchecked-box">item 1</li><ul><li bullet="checked-box">sub item 1</li><ul><li>Some normal bullet</li></ul><li bullet="xchecked-box">sub item 2</li><li bullet="unchecked-box">sub item 3</li></ul><li bullet="unchecked-box">item 2</li><li bullet="unchecked-box">item 3</li><ul><li bullet="xchecked-box">item FOOOOOO !</li></ul></ul></p>
+<ul><li bullet="unchecked-box">item 1</li><ul><li bullet="checked-box">sub item 1</li><ul><li bullet="*">Some normal bullet</li></ul><li bullet="xchecked-box">sub item 2</li><li bullet="unchecked-box">sub item 3</li></ul><li bullet="unchecked-box">item 2</li><li bullet="unchecked-box">item 3</li><ul><li bullet="xchecked-box">item FOOOOOO !</li></ul></ul></p>
 <p>----
 </p>
 <p>====
@@ -287,7 +236,7 @@ class TestHtmlFormat(TestCase):
 
 	def setUp(self):
 		self.format = get_format('html')
-		self.page = get_test_page()
+		notebook, self.page = get_test_page()
 
 	def testEncoding(self):
 		'''Test HTML encoding'''
@@ -336,6 +285,7 @@ Some Verbatim here
 <p>
 IMAGE: <img src="../my-image.png" alt="Foo Bar"><br>
 LINKS: <a href="/foo/bar.html">:foo:bar</a> <a href="./file.png">./file.png</a> <a href="file:///etc/passwd">file:///etc/passwd</a><br>
+LINKS: <a href="/Foo.html">Foo</a><a href="/Bar.html">Bar</a><br>
 </p>
 
 <p>

@@ -26,7 +26,8 @@ BULLET = u'[\\*\u2022]|\\[[ \\*x]\\]'
 bullets = {
 	'[ ]': 'unchecked-box',
 	'[x]': 'xchecked-box',
-	'[*]': 'checked-box'
+	'[*]': 'checked-box',
+	'*': '*',
 }
 # reverse dict
 bullet_types = {}
@@ -187,7 +188,7 @@ class Parser(ParserClass):
 			if bullet in bullets:
 				attrib = {'bullet': bullets[bullet]}
 			else:
-				attrib = {}
+				attrib = {'bullet': '*'}
 			builder.start('li', attrib)
 			self._parse_text(builder, text)
 			builder.end('li')
@@ -268,13 +269,16 @@ class Dumper(DumperClass):
 				tag = '='*(7 - level)
 				output.append(tag+' '+element.text+' '+tag)
 			elif element.tag == 'li':
+				if 'indent' in element.attrib:
+					list_level = int(element.attrib['indent'])
 				if 'bullet' in element.attrib:
 					bullet = bullet_types[element.attrib['bullet']]
 				else:
 					bullet = '*'
 				output.append('\t'*list_level+bullet+' ')
 				self.dump_children(element, output, list_level=list_level) # recurs
-				output.append('\n')
+				if not element.tail:
+					element.tail = '\n'
 			elif element.tag == 'pre':
 				output.append("'''\n"+element.text+"'''\n")
 			elif element.tag == 'img':

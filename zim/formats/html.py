@@ -97,7 +97,7 @@ class Dumper(DumperClass):
 				self._dump_children(element, output) # recurs
 				output.append('</ul>\n')
 			elif element.tag == 'li':
-				if 'bullet' in element.attrib:
+				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
 					icon = self.icon(element.attrib['bullet'])
 					output += ['<li style="list-style-image: url(%s)">' % icon, text]
 				else:

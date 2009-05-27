@@ -137,7 +137,7 @@ class TestTemplateSet(TestCase):
 class TestPageProxy(TestCase):
 
 	def runTest(self):
-		page = tests.get_test_page('FooBar')
+		notebook, page = tests.get_test_page('FooBar')
 		page.parse('wiki', '''\
 ====== Page Heading ======
 **foo bar !**
@@ -172,7 +172,7 @@ Version %s
 </p>
 
 ''' % zim.__version__
-		page = tests.get_test_page('FooBar')
+		notebook, page = tests.get_test_page('FooBar')
 		page.parse('wiki', '''\
 ====== Page Heading ======
 **foo bar !**

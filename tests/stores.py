@@ -75,7 +75,7 @@ class TestStoresMemory(tests.TestCase):
 		#pprint.pprint(self.index)
 		#pprint.pprint(names)
 		self.assertTrue(u'utf8:\u03b1\u03b2\u03b3' in names) # Check usage of unicode
-		self.assertEqual(names, self.index)
+		self.assertEqualDiffData(names, self.index)
 
 	def testManipulate(self):
 		'''Test moving and deleting pages in the store'''
@@ -148,6 +148,8 @@ class TestStoresMemory(tests.TestCase):
 
 class TestFiles(TestStoresMemory):
 	'''Test the store.files module'''
+
+	slowTest = True
 
 	def setUp(self):
 		TestStoresMemory.setUp(self)
