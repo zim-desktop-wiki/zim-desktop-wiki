@@ -80,6 +80,10 @@ EXPORT_FORMAT = 1
 IMPORT_FORMAT = 2
 NATIVE_FORMAT = 4
 
+UNCHECKED_BOX = 'unchecked-box'
+CHECKED_BOX = 'checked-box'
+XCHECKED_BOX = 'xchecked-box'
+BULLET = '*'
 
 def list_formats(type):
 	if type == EXPORT_FORMAT:

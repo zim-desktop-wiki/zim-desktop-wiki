@@ -19,15 +19,15 @@ info = {
 }
 
 TABSTOP = 4
-BULLET = u'[\\*\u2022]|\\[[ \\*x]\\]'
+bullet_re = u'[\\*\u2022]|\\[[ \\*x]\\]'
 	# bullets can be '*' or 0x2022 for normal items
 	# and '[ ]', '[*]' or '[x]' for checkbox items
 
 bullets = {
-	'[ ]': 'unchecked-box',
-	'[x]': 'xchecked-box',
-	'[*]': 'checked-box',
-	'*': '*',
+	'[ ]': UNCHECKED_BOX,
+	'[x]': XCHECKED_BOX,
+	'[*]': CHECKED_BOX,
+	'*': BULLET,
 }
 # reverse dict
 bullet_types = {}
@@ -39,8 +39,8 @@ parser_re = {
 	'pre':        re.compile("\A'''\s*?(^.*?)^'''\s*\Z", re.M | re.S),
 	'splithead':  re.compile('^(==+[ \t]+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)[ \t]+(.*?)([ \t]+==+)?[ \t]*\n?)\Z"),
-	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % BULLET, re.M),
-	'listitem':   re.compile("^([ \t]*)(%s)[ \t]+(.*\n?)" % BULLET),
+	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % bullet_re, re.M),
+	'listitem':   re.compile("^([ \t]*)(%s)[ \t]+(.*\n?)" % bullet_re),
 	'unindented_line': re.compile('^\S', re.M),
 
 	# All the experssions below will match the inner pair of

@@ -13,7 +13,10 @@ import pango
 from zim.notebook import Path
 from zim.parsing import link_type
 from zim.config import config_file
-from zim.formats import ParseTree, TreeBuilder
+from zim.formats import ParseTree, TreeBuilder, \
+	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
+from zim.gui import Dialog
+
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -23,9 +26,9 @@ STOCK_UNCHECKED_BOX = 'zim-unchecked-box'
 STOCK_XCHECKED_BOX = 'zim-xchecked-box'
 
 bullet_types = {
-	'checked-box': STOCK_CHECKED_BOX,
-	'unchecked-box': STOCK_UNCHECKED_BOX,
-	'xchecked-box': STOCK_XCHECKED_BOX,
+	CHECKED_BOX: STOCK_CHECKED_BOX,
+	UNCHECKED_BOX: STOCK_UNCHECKED_BOX,
+	XCHECKED_BOX: STOCK_XCHECKED_BOX,
 }
 # reverse dict
 bullets = {}
@@ -34,6 +37,19 @@ for bullet in bullet_types:
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip
+	('undo', 'gtk-undo', '_Undo', '<ctrl>Z', 'Undo'),
+	('redo', 'gtk-redo', '_Redo', '<ctrl><shift>Z', 'Redo'),
+	('cut', 'gtk-cut', 'Cu_t', '<ctrl>X', 'Cut'),
+	('copy', 'gtk-copy', '_Copy', '<ctrl>C', 'Copy'),
+	('paste', 'gtk-paste', '_Paste', '<ctrl>V', 'Paste'),
+	('delete', 'gtk-delete', '_Delete', '', 'Delete'),
+	('toggle_checkbox', STOCK_CHECKED_BOX, 'Toggle Checkbox \'V\'', 'F12', ''),
+	('xtoggle_checkbox', STOCK_XCHECKED_BOX, 'Toggle Checkbox \'X\'', '<shift>F12', ''),
+	('edit_object', 'gtk-properties', '_Edit Link...', '<ctrl>E', ''),
+	('insert_image', None, '_Image...', '', 'Insert Image'),
+	('insert_text_from_file', None, 'Text From _File...', '', 'Insert Text From File'),
+	('insert_external_link', 'gtk-connect', 'E_xternal Link', '', 'Insert External Link'),
+	('insert_link', 'gtk-connect', '_Link', '', 'Insert Link'),
 	('clear_formatting', None, '_Clear Formatting', '<ctrl>0', ''),
 )
 
@@ -62,6 +78,7 @@ ui_format_toggle_actions = (
 
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
 _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
+_is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 
 PIXBUF_CHR = u'\uFFFC'
 
@@ -286,6 +303,16 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			raise Exception, 'No link at iter'
 
+	def insert_pixbuf(self, iter, pixbuf):
+		# Make sure we always apply the correct tags when inserting a pixbuf
+		if iter.equal(self.get_iter_at_mark(self.get_insert())):
+			gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
+		else:
+			mode = self._editmode_tags
+			self._editmode_tags = tuple(self.get_zim_tags(iter))
+			gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
+			self._editmode_tags = mode
+
 	def insert_image(self, iter, attrib, text):
 		# TODO support width / height arguemnts from_file_at_size()
 		# TODO parse image file locations elsewhere
@@ -296,7 +323,7 @@ class TextBuffer(gtk.TextBuffer):
 			pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
 		except:
 			logger.warn('No such image: %s', file)
-			widget = gtk.HBox() # FIXME need *some* widget here...
+			widget = gtk.HBox() # Need *some* widget here...
 			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG)
 		pixbuf.zim_type = 'image'
 		pixbuf.zim_attrib = attrib
@@ -307,7 +334,7 @@ class TextBuffer(gtk.TextBuffer):
 		self.insert_image(iter, attrib, text)
 
 	def insert_icon(self, iter, stock):
-		widget = gtk.HBox() # HACK need *some* widget here...
+		widget = gtk.HBox() # Need *some* widget here...
 		pixbuf = widget.render_icon(stock, gtk.ICON_SIZE_MENU)
 		if pixbuf is None:
 			logger.warn('Could not find icon: %s', stock)
@@ -357,9 +384,10 @@ class TextBuffer(gtk.TextBuffer):
 
 	def get_zim_tags(self, iter):
 		'''Like gtk.TextIter.get_tags() but only returns our own tags and
-		assumes tags have "left gravity".
+		assumes tags have "left gravity". An exception are indent tags, which
+		gravitate both ways.
 		'''
-		start_tags = set(iter.get_toggled_tags(True))
+		start_tags = set(filter(_is_not_indent_tag, iter.get_toggled_tags(True)))
 		tags = filter(
 			lambda tag: _is_zim_tag(tag) and not tag in start_tags,
 			iter.get_tags() )
@@ -425,8 +453,7 @@ class TextBuffer(gtk.TextBuffer):
 		to text inserted at the cursor. Using 'set_indent(None)' is
 		equivalent to 'set_indent(0)'.
 		'''
-		self._editmode_tags = filter(
-			lambda tag: not _is_indent_tag(tag), self._editmode_tags)
+		self._editmode_tags = filter(_is_not_indent_tag, self._editmode_tags)
 
 		if level and level > 0:
 			# TODO make number of pixels in indent configable (call this tabstop)
@@ -481,7 +508,6 @@ class TextBuffer(gtk.TextBuffer):
 
 	def get_bullet_at_iter(self, iter):
 		if not iter.starts_line():
-			print 'LOOKING for bullet at wrong place', iter.get_line_offset()
 			return None
 
 		pixbuf = iter.get_pixbuf()
@@ -496,7 +522,7 @@ class TextBuffer(gtk.TextBuffer):
 			bound = iter.copy()
 			bound.forward_char()
 			if iter.get_slice(bound) == u'\u2022':
-				return '*'
+				return BULLET
 			else:
 				return None
 
@@ -630,6 +656,11 @@ class TextBuffer(gtk.TextBuffer):
 gobject.type_register(TextBuffer)
 
 
+CURSOR_TEXT = gtk.gdk.Cursor(gtk.gdk.XTERM)
+CURSOR_LINK = gtk.gdk.Cursor(gtk.gdk.HAND2)
+CURSOR_TOGGLE = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
+
+
 class TextView(gtk.TextView):
 	'''FIXME'''
 
@@ -653,16 +684,10 @@ class TextView(gtk.TextView):
 
 	}
 
-	cursors = {
-		'text':  gtk.gdk.Cursor(gtk.gdk.XTERM),
-		'link':  gtk.gdk.Cursor(gtk.gdk.HAND2),
-		'arrow': gtk.gdk.Cursor(gtk.gdk.LEFT_PTR),
-	}
-
 	def __init__(self):
 		'''FIXME'''
 		gtk.TextView.__init__(self, TextBuffer())
-		self.cursor = 'text'
+		self.cursor = CURSOR_TEXT
 		self.cursor_link = None
 		self.gtkspell = None
 		self.set_left_margin(10)
@@ -702,9 +727,9 @@ class TextView(gtk.TextView):
 		if not selection:
 			iter = self.get_iter_at_pointer()
 			if event.button == 1:
-				self.click_link(iter)
+				self.click_link(iter) or self.toggle_checkbox(iter)
 			elif event.button == 3:
-				pass # TODO alternative click on checkbox
+				self.toggle_checkbox(iter, XCHECKED_BOX)
 		return cont # continue emit ?
 
 	#~ def do_key_press_event(self, event):
@@ -726,20 +751,25 @@ class TextView(gtk.TextView):
 		'''
 		link = self.get_buffer().get_link_data(iter)
 
-		if not link:
-			pass # TODO check for pixbufs that are clickable
-
-		if link: cursor = 'link'
-		else:	cursor = 'text'
+		if link:
+			cursor = CURSOR_LINK
+		else:
+			pixbuf = iter.get_pixbuf()
+			if pixbuf and pixbuf.zim_type == 'icon' \
+			and pixbuf.zim_attrib['stock'] in (
+				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
+				cursor = CURSOR_TOGGLE
+			else:
+				cursor = CURSOR_TEXT
 
 		if cursor != self.cursor:
 			window = self.get_window(gtk.TEXT_WINDOW_TEXT)
-			window.set_cursor(self.cursors[cursor])
+			window.set_cursor(cursor)
 
 		# Check if we need to emit any events for hovering
 		# TODO: do we need similar events for images ?
-		if self.cursor == 'link': # was over link before
-			if cursor == 'link': # still over link
+		if self.cursor == CURSOR_LINK: # was over link before
+			if cursor == CURSOR_LINK: # still over link
 				if link == self.cursor_link:
 					pass
 				else:
@@ -748,7 +778,7 @@ class TextView(gtk.TextView):
 					self.emit('link-enter', link)
 			else:
 				self.emit('link-leave', self.cursor_link)
-		elif cursor == 'link': # was not over link, but is now
+		elif cursor == CURSOR_LINK: # was not over link, but is now
 			self.emit('link-enter', link)
 
 		self.cursor = cursor
@@ -764,6 +794,26 @@ class TextView(gtk.TextView):
 			return True
 		else:
 			return False
+
+	def toggle_checkbox(self, iter, checkbox_type=CHECKED_BOX):
+		buffer = self.get_buffer()
+		bullet = buffer.get_bullet_at_iter(iter)
+		if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
+			if bullet == checkbox_type:
+				icon = bullet_types[UNCHECKED_BOX]
+			else:
+				icon = bullet_types[checkbox_type]
+		else:
+			return False
+
+		buffer.begin_user_action()
+		bound = iter.copy()
+		bound.forward_char()
+		buffer.delete(iter, bound)
+		buffer.insert_icon(iter, icon)
+		buffer.end_user_action()
+		return True
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)
@@ -887,6 +937,56 @@ class PageView(gtk.VBox):
 		else:
 			print 'TODO: open_url(url)'
 
+	def undo(self):
+		pass
+
+	def redo(self):
+		pass
+
+	def cut(self):
+		#~ if self.view.get('has-focus'):
+		self.view.emit('cut-clipboard')
+
+	def copy(self):
+		#~ if self.view.get('has-focus'):
+		self.view.emit('copy-clipboard')
+
+	def paste(self):
+		#~ if self.view.get('has-focus'):
+		self.view.emit('paste-clipboard')
+
+	def delete(self):
+		#~ if self.view.get('has-focus'):
+		self.view.emit('delete-from-cursor', gtk.DELETE_CHARS, 1)
+
+	def toggle_checkbox(self):
+		self._toggled_checkbox(CHECKED_BOX)
+
+	def xtoggle_checkbox(self):
+		self._toggled_checkbox(XCHECKED_BOX)
+
+	def _toggled_checkbox(self, checkbox):
+		buffer = self.view.get_buffer()
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		if not iter.starts_line():
+			iter = buffer.get_iter_at_line(iter.get_line())
+		self.view.toggle_checkbox(iter, checkbox)
+
+	def edit_object(self):
+		pass
+
+	def insert_image(self):
+		pass
+
+	def insert_text_from_file(self):
+		pass
+
+	def insert_external_link(self):
+		InsertExternalLinkDialog(self.ui, self.view.get_buffer()).run()
+
+	def insert_link(self):
+		InsertLinkDialog(self.ui, self.view.get_buffer()).run()
+
 	def clear_formatting(self):
 		buffer = self.view.get_buffer()
 
@@ -919,3 +1019,36 @@ class PageView(gtk.VBox):
 		# 	buffer.select(TextBuffer.SELECT_WORD)
 
 		buffer.toggle_textstyle(format)
+
+
+class InsertLinkDialog(Dialog):
+
+	def __init__(self, ui, buffer):
+		Dialog.__init__(self, ui, 'Insert Link')
+		self.buffer = buffer
+		self.add_fields([
+			('text', 'string', 'Text', None),
+			('link', 'page', 'Links to', None)
+		])
+		# TODO custom "link" button
+
+	def do_response_ok(self):
+		text = self.get_field('text').strip()
+		link = self.get_field('link').strip()
+		if not text and not link: return False
+		elif not text: text = link
+		elif not link: link = text
+		else: pass
+		self.buffer.insert_link_at_cursor({'href': link}, text)
+		return True
+
+class InsertExternalLinkDialog(InsertLinkDialog):
+
+	def __init__(self, ui, buffer):
+		Dialog.__init__(self, ui, 'Insert External Link')
+		self.buffer = buffer
+		self.add_fields([
+			('text', 'string', 'Text', None),
+			('link', 'file', 'Links to', None)
+		])
+		# TODO custom "link" button

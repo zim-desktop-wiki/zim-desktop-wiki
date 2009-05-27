@@ -25,7 +25,6 @@ from zim.config import data_file, config_file, data_dirs
 import zim.history
 import zim.gui.pathbar
 import zim.gui.pageindex
-import zim.gui.pageview
 from zim.gui.widgets import MenuButton
 
 logger = logging.getLogger('zim.gui')
@@ -668,7 +667,9 @@ class MainWindow(gtk.Window):
 		self.pathbar_box.set_border_width(3)
 		vbox2.pack_start(self.pathbar_box, False)
 
-		self.pageview = zim.gui.pageview.PageView(ui)
+		from zim.gui.pageview import PageView
+			# imported here to prevent circular dependency
+		self.pageview = PageView(ui)
 		self.pageview.view.connect(
 			'toggle-overwrite', self.do_textview_toggle_overwrite)
 		vbox2.add(self.pageview)

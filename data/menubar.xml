@@ -30,23 +30,17 @@
 			<menuitem action='quit'/>
 		</menu>
 		<menu action='edit_menu'>
-<!--
-			<menuitem action='Undo'/>
-			<menuitem action='Redo'/>
--->
+			<menuitem action='undo'/>
+			<menuitem action='redo'/>
 			<separator/>
-<!--
-			<menuitem action='Cut'/>
-			<menuitem action='Copy'/>
-			<menuitem action='Paste'/>
-			<menuitem action='Delete'/>
--->
+			<menuitem action='cut'/>
+			<menuitem action='copy'/>
+			<menuitem action='paste'/>
+			<menuitem action='delete'/>
 			<separator/>
-<!--
-			<menuitem action='ToggleCheckbox'/>
-			<menuitem action='XToggleCheckbox'/>
-			<menuitem action='EditObject'/>
--->
+			<menuitem action='toggle_checkbox'/>
+			<menuitem action='xtoggle_checkbox'/>
+			<menuitem action='edit_object'/>
 			<separator/>
 			<placeholder name='edit_page'/>
 			<separator/>
@@ -86,16 +80,12 @@
 			<menuitem action='InsertDate'/>
 -->
 			<separator/>
-<!--
-			<menuitem action='InsertImage'/>
--->
+			<menuitem action='insert_image'/>
 			<placeholder name='PluginItems'/>
 			<separator/>
-<!--
-			<menuitem action='InsertFromFile'/>
-			<menuitem action='InsertExtLink'/>
-			<menuitem action='InsertLink'/>
--->
+			<menuitem action='insert_text_from_file'/>
+			<menuitem action='insert_external_link'/>
+			<menuitem action='insert_link'/>
 		</menu>
 		<menu action='format_menu'>
 			<menuitem action='apply_format_h1'/>
