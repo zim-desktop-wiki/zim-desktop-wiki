@@ -1196,23 +1196,6 @@ class FileDialog(Dialog):
 		# FIXME hook to expander to resize window
 
 
-class OpenFileDialog(FileDialog):
-
-	def __init__(self, ui, title='Select File'):
-		FileDialog.__init__(self, ui, title)
-
-	def get_filename(self):
-		'''Run the dialog and return the filename directly.'''
-		response = self.run()
-		if response == gtk.RESPONSE_OK:
-			return self.filechooser.get_filename()
-		else:
-			return None
-
-	def do_response_ok(self):
-		return True
-
-
 class OpenPageDialog(Dialog):
 	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.
 	Prompts for a page name and navigate to that page on 'Ok'.
@@ -1277,13 +1260,40 @@ class SaveCopyDialog(FileDialog):
 		return True
 
 
-class ImportPageDialog(Dialog):
+class ImportPageDialog(FileDialog):
+	# TODO how to properly detect file types for other formats ?
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, 'Import Page')
-		# TODO add input for filename, pagename, namespace, file type
+		FileDialog.__init__(self, ui, 'Import Page', gtk.FILE_CHOOSER_ACTION_OPEN)
+		allfilter = gtk.FileFilter()
+		allfilter.set_name('All')
+		allfilter.add_pattern('*')
+		self.filechooser.add_filter(allfilter)
+		txtfilter = gtk.FileFilter()
+		txtfilter.set_name('*.txt')
+		txtfilter.add_pattern('*.txt')
+		self.filechooser.add_filter(txtfilter)
+		self.filechooser.set_filter(txtfilter)
+		# TODO add input for namespace, format
 
-	# TODO trigger file selection menu directly on run()
+	def do_response_ok(self):
+		file = self.filechooser.get_filename()
+		if file is None:
+			return False
+		else:
+			file = zim.fs.File(file)
+		basename = file.basename
+		if basename.endswith('.txt'):
+			basename = basename[:-4]
+		path = self.ui.notebook.resolve_path(basename)
+		page = self.ui.notebook.get_page(path)
+		if page.hascontent:
+			path = self.ui.notebook.index.get_unique_path(path)
+			page = self.ui.notebook.get_page(path)
+			assert not page.hascontent
+		page.parse('wiki', file.readlines())
+		self.ui.open_page(page)
+		return True
 
 
 class MovePageDialog(Dialog):

@@ -108,6 +108,12 @@ class TestIndex(tests.TestCase):
 			self.assertEqual(indexpath.contentkey, self.notebook.get_page_indexkey(path))
 			self.assertEqual(indexpath.childrenkey, self.notebook.get_pagelist_indexkey(path))
 
+		# other functions
+		path = self.index.get_unique_path(Path('non-existing-path'))
+		self.assertEqual(path, Path('non-existing-path'))
+		path = self.index.get_unique_path(Path('Test:foo'))
+		self.assertEqual(path, Path('Test:foo_1'))
+
 		# get_previous / get_next
 		page = self.index.list_pages(None)[0]
 		seen = 0

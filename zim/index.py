@@ -98,6 +98,15 @@ class IndexPath(Path):
 	def id(self): return self._indexpath[-1]
 
 	@property
+	def parentid(self):
+		if self._indexpath and len(self._indexpath) > 1:
+			return self._indexpath[-2]
+		elif self.isroot:
+			return None
+		else:
+			return 0
+
+	@property
 	def hasdata(self): return not self._row is None
 
 	def __getattr__(self, attr):
@@ -752,6 +761,24 @@ class Index(gobject.GObject):
 		else:
 			return None
 
+	def get_unique_path(self, suggestedpath):
+		'''Find a non existing path based on 'path' - basically just adds
+		an integer until we hit a path that does not exist.
+		'''
+		path = self.lookup_path(suggestedpath)
+		if path is None: return suggestedpath
+		elif path.isroot:
+			raise LookupError, 'Can not create new top level path'
+		else:
+			cursor = self.db.cursor()
+			cursor.execute('select basename from pages where basename like ? and parent==?',
+				(path.basename+'%', path.parentid))
+			taken = cursor.fetchall()
+			i = 1
+			name = path.basename + '_'
+			while name + str(i) in taken:
+				i += 1
+			return Path(path.namespace + ':' + name+str(i))
 
 # Need to register classes defining gobject signals
 gobject.type_register(Index)
