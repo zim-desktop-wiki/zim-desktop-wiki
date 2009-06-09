@@ -37,7 +37,9 @@ class UnixPath(object):
 		if isinstance(path, (list, tuple)):
 			path = map(str, path)
 				# Any path objects in list will also be flattened
-			path = os.path.join(*path)
+			path = os.path.sep.join(path)
+				# os.path.join is too intelligent for it's own good
+				# just join with the path seperator..
 		elif isinstance(path, Path):
 			path = path.path
 
@@ -114,6 +116,10 @@ class UnixPath(object):
 
 	def rename(self, newpath):
 		os.renames(self.path, newpath.path)
+
+	def ischild(self, parent):
+		return self.path.startswith(parent.path + os.path.sep)
+
 
 class WindowsPath(UnixPath):
 

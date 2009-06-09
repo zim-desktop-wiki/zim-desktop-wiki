@@ -188,11 +188,11 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 					k, v = option.split('=')
 					if k in ('width', 'height', 'type'):
-						element.attrib[k] = v
+						element.attrib[str(k)] = v # str to avoid unicode key
 					else:
 						logger.warn('Unknown attribute "%s" in "%s"', k, filepath)
-				filepath = filepath[:i]
-			element.attrib['src-file'] = notebook.resolve_file(filepath, path)
+				element.attrib['src'] = filepath[:i]
+			element.attrib['src-file'] = notebook.resolve_file(element.attrib['src'], path)
 
 class ParserClass(object):
 	'''Base class for parsers

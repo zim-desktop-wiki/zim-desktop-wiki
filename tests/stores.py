@@ -137,9 +137,6 @@ class TestStoresMemory(tests.TestCase):
 		self.assertFalse(newpage == page)
 
 
-	#~ def testResolveFile(self):
-		#~ '''Test store.resolve_file()'''
-
 	# TODO test getting a non-existing page
 	# TODO test if children uses namespace objects
 	# TODO test move, delete, read, write

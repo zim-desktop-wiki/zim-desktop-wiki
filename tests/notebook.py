@@ -142,22 +142,29 @@ class TestNotebook(tests.TestCase):
 		'''Test notebook.resolve_file()'''
 		dir = Dir(tests.create_tmp_dir('notebook_testResolveFile'))
 		path = Path('Foo:Bar')
+		self.notebook.dir = dir
 		self.notebook.get_store(path).dir = dir
-		for link, wanted in (
-			('~/test.txt', File('~/test.txt')),
-			#~ ('file:///test.txt', File('file:///test.txt')),
-			#~ ('file:/test.txt', File('file:///test.txt')),
-			#~ ('file://localhost/test.txt', File('file:///test.txt')),
-			#~ ('/test.txt', File(...)),
-			('./test.txt', dir.file('Foo/Bar/test.txt')),
-			('../test.txt', dir.file('Foo/test.txt')),
-			('../Bar/Baz/test.txt', dir.file('Foo/Bar/Baz/test.txt')),
+		docdir = self.notebook.get_documents_dir()
+		for link, wanted, cleaned in (
+			('~/test.txt', File('~/test.txt'), '~/test.txt'),
+			('file:///test.txt', File('file:///test.txt'), None),
+			('file:/test.txt', File('file:///test.txt'), None),
+			('file://localhost/test.txt', File('file:///test.txt'), None),
+			('/test.txt', docdir.file('test.txt'), '/test.txt'),
+			('./test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
+			('../test.txt', dir.file('Foo/test.txt'), '../test.txt'),
+			('../Bar/Baz/test.txt', dir.file('Foo/Bar/Baz/test.txt'), './Baz/test.txt'),
 		):
 			#~ print link, '>>', self.notebook.resolve_file(link, path)
 			self.assertEqual(
 				self.notebook.resolve_file(link, path), wanted)
+			self.assertEqual(
+				self.notebook.relative_filepath(wanted, path), cleaned)
 
-
+		# check relative path without Path
+		self.assertEqual(
+			self.notebook.relative_filepath(docdir.file('foo.txt')), '/foo.txt')
+		
 #	def testResolveLink(self):
 #		'''Test page.resolve_link()'''
 #		page = self.notebook.get_page(':Test:foo')

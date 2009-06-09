@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Thu, 28 May 2009 00:42:11 +0200
+Modification-Date: Fri, 05 Jun 2009 14:43:49 +0200
 
 ====== Tasks ======
 
@@ -47,11 +47,12 @@ Modification-Date: Thu, 28 May 2009 00:42:11 +0200
 	[ ] on notebook level have a "move to trash" setting
 	[ ] check ui behavior on delete current page
 [*] Save copy (to file - like export but in native format)
-[ ] Import page (opposite of save copy)
+[*] Import page (opposite of save copy)
 [*] Context dialog for side pane
 [ ] Editing
 	[*] Render lists with indenting
 	[ ] Implement key bindings for bullet list control
+	[ ] Implement key binding to follow links
 	[*] Implement TextView support for checking checkboxes
 	[*] Implement visual style config
 	[*] Implement "formats" menu items
@@ -60,7 +61,7 @@ Modification-Date: Thu, 28 May 2009 00:42:11 +0200
 	[ ] Implement save and autosave (mtime + md5)
 	[ ] implement generic autoformatting hooks
 	[*] Implement insert link + file link
-	[ ] Implement insert image
+	[*] Implement insert image
 	[ ] Implement attach file
 	[ ] Make undo / redo work - separate undo stack manager object
 	[ ] formats-, edit- & insert-menu complete

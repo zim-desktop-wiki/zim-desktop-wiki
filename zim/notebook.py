@@ -17,7 +17,7 @@ import logging
 import gobject
 
 from zim.fs import *
-from zim.config import ConfigList, config_file, data_dir, user_dirs
+from zim.config import ConfigDictFile, config_file, data_dir, user_dirs
 from zim.parsing import Re, is_url_re, is_email_re
 import zim.stores
 
@@ -93,6 +93,7 @@ class Notebook(gobject.GObject):
 		self.dir = None
 		self.cache_dir = None
 		self.name = name
+		self.config = config or {}
 
 		if isinstance(path, Dir):
 			self.dir = path
@@ -100,7 +101,7 @@ class Notebook(gobject.GObject):
 				# TODO set cache dir in XDG_CACHE when notebook is read-only
 			logger.debug('Cache dir: %s', self.cache_dir)
 			if config is None:
-				pass # TODO: load config file from dir
+				self.config = ConfigDictFile(path.file('notebook.zim'))
 			# TODO check if config defined root namespace
 			self.add_store(Path(':'), 'files') # set root
 			# TODO add other namespaces from config
@@ -312,7 +313,7 @@ class Notebook(gobject.GObject):
 		#~ '''FIXME'''
 		#~ pass # TODO search code
 
-	def resolve_file(self, file, path):
+	def resolve_file(self, filename, path):
 		'''Resolves a file or directory path relative to a page. Returns a
 		File object. However the file does not have to exist.
 
@@ -326,14 +327,14 @@ class Notebook(gobject.GObject):
 		Other paths are considered attachments and are resolved relative
 		to the namespce below the page.
 		'''
-		if file.startswith('~') or file.startswith('file:/'):
-			return File(file)
-		elif file.startswith('/'):
-			print 'TODO: document_root - no compat to file root !'
-			return File('/TODO')
+		if filename.startswith('~') or filename.startswith('file:/'):
+			return File(filename)
+		elif filename.startswith('/'):
+			dir = self.get_documents_dir()
+			return dir.file(filename)
 		else:
 			# TODO - how to deal with '..' in the middle of the path ?
-			filepath = [p for p in file.split('/') if len(p) and p != '.']
+			filepath = [p for p in filename.split('/') if len(p) and p != '.']
 			pagepath = path.name.split(':')
 			filename = filepath.pop()
 			while filepath and filepath[0] == '..':
@@ -347,6 +348,38 @@ class Notebook(gobject.GObject):
 			dir = self.get_attachments_dir(Path(pagename))
 			return dir.file(filename)
 
+	def relative_filepath(self, file, path=None):
+		'''Returns a filepath relative to either the documents dir (/xxx), the
+		attachments dir (if a path is given) (./xxx or ../xxx) or the users 
+		home dir (~/xxx). Returns None otherwise.
+
+		Intended as the counter part of resolve_file().
+		Typically this function is used to present the user with readable paths
+		or to shorten the paths inserted in the wiki code. It is advised to
+		use file urls for links that can not be made relative.
+		'''
+		if path:
+			root = self.dir
+			dir = self.get_attachments_dir(path)
+			if file.ischild(dir):
+				return './'+file.path[len(dir.path):].lstrip('/')
+			elif root and file.ischild(root) and dir.ischild(root):
+				prefix = os.path.commonprefix((dir.path, file.path))
+				i = prefix.rindex('/') + 1
+				uppath, downpath = dir.path[i:], file.path[i:]
+				return '../'*(1+uppath.count('/')) + downpath
+
+		home = Dir('~')
+		dir = self.get_documents_dir()
+		if dir != home and file.ischild(dir):
+			return '/'+file.path[len(dir.path):].lstrip('/')
+
+		dir = home
+		if file.ischild(dir):
+			return '~/'+file.path[len(dir.path):].lstrip('/')
+
+		return None
+
 	def get_attachments_dir(self, path):
 		'''Returns a Dir object for the attachments directory for 'path'.
 		The directory does not need to exist.
@@ -358,12 +391,13 @@ class Notebook(gobject.GObject):
 		'''Returns the Dir object for the documents folder or None if no
 		documents folder is configured.
 		'''
-		# TODO check notebook.zim
 		dirs = user_dirs()
-		if 'XDG_DOCUMENTS_DIR' in dirs:
+		if 'documents_dir' in self.config:
+			return Dir(self.config['documents_dir'])
+		elif 'XDG_DOCUMENTS_DIR' in dirs:
 			return dirs['XDG_DOCUMENTS_DIR']
 		else:
-			return None
+			return Dir('~/Documents') # fall back to home dir
 
 	def walk(self, path=None):
 		'''Generator function which iterates through all pages, depth first.

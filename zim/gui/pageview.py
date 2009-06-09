@@ -10,12 +10,13 @@ import gobject
 import gtk
 import pango
 
+from zim.fs import *
 from zim.notebook import Path
 from zim.parsing import link_type
 from zim.config import config_file
-from zim.formats import ParseTree, TreeBuilder, \
+from zim.formats import get_format, ParseTree, TreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.gui import Dialog
+from zim.gui import Dialog, FileDialog
 
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -45,11 +46,11 @@ ui_actions = (
 	('delete', 'gtk-delete', '_Delete', '', 'Delete'),
 	('toggle_checkbox', STOCK_CHECKED_BOX, 'Toggle Checkbox \'V\'', 'F12', ''),
 	('xtoggle_checkbox', STOCK_XCHECKED_BOX, 'Toggle Checkbox \'X\'', '<shift>F12', ''),
-	('edit_object', 'gtk-properties', '_Edit Link...', '<ctrl>E', ''),
+	('edit_object', 'gtk-properties', '_Edit Link or Object...', '<ctrl>E', ''),
 	('insert_image', None, '_Image...', '', 'Insert Image'),
 	('insert_text_from_file', None, 'Text From _File...', '', 'Insert Text From File'),
-	('insert_external_link', 'gtk-connect', 'E_xternal Link', '', 'Insert External Link'),
-	('insert_link', 'gtk-connect', '_Link', '', 'Insert Link'),
+	('insert_external_link', 'gtk-connect', 'E_xternal Link...', '', 'Insert External Link'),
+	('insert_link', 'gtk-connect', '_Link...', '<ctrl>L', 'Insert Link'),
 	('clear_formatting', None, '_Clear Formatting', '<ctrl>0', ''),
 )
 
@@ -229,9 +230,10 @@ class TextBuffer(gtk.TextBuffer):
 				self._insert_element_children(element, list_level=list_level) # recurs
 				self.set_indent(None)
 			elif element.tag == 'link':
-				self.insert_link_at_cursor(element.attrib, element.text)
+				self.insert_link_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':
-				self.insert_image_at_cursor(element.attrib, element.text)
+				file = element.attrib['src-file']
+				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
 			else:
 				# Text styles
 				if element.tag == 'h':
@@ -249,13 +251,13 @@ class TextBuffer(gtk.TextBuffer):
 			if element.tail:
 				self.insert_at_cursor(element.tail)
 
-	def insert_link(self, iter, attrib, text):
+	def insert_link(self, iter, text, href, **attrib):
 		'''FIXME'''
 		self._place_cursor(iter)
-		self.insert_link_at_cursor(attrib, text)
+		self.insert_link_at_cursor(text, href, **attrib)
 		self._restore_cursor()
 
-	def insert_link_at_cursor(self, attrib, text):
+	def insert_link_at_cursor(self, text, href, **attrib):
 		'''FIXME'''
 		# TODO generate anonymous tags for links
 		tag = self.create_tag(None, **self.tag_styles['link'])
@@ -263,22 +265,23 @@ class TextBuffer(gtk.TextBuffer):
 		tag.zim_type = 'link'
 		tag.zim_tag = 'link'
 		tag.zim_attrib = attrib
+		tag.zim_attrib['href'] = href
 		self._editmode_tags = self._editmode_tags + (tag,)
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
+
+	def get_link_tag(self, iter):
+		for tag in iter.get_tags():
+			if hasattr(tag, 'zim_type') and tag.zim_type == 'link':
+				return tag
+		else:
+			return None
 
 	def get_link_data(self, iter):
 		'''Returns the dict with link properties for a link at iter.
 		Fails silently and returns None when there is no link at iter.
 		'''
-		for tag in iter.get_tags():
-			try:
-				if tag.zim_type == 'link':
-					break
-			except AttributeError:
-				pass
-		else:
-			tag = None
+		tag = self.get_link_tag(iter)
 
 		if tag:
 			link = tag.zim_attrib.copy()
@@ -286,22 +289,18 @@ class TextBuffer(gtk.TextBuffer):
 				print 'TODO get tag text and use as href'
 			return link
 		else:
-			return False
+			return None
 
 	def set_link_data(self, iter, attrib):
 		'''Set the link properties for a link at iter. Will throw an exception
 		if there is no link at iter.
 		'''
-		for tag in iter.get_tags():
-			try:
-				if tag.zim_type == 'link':
-					# TODO check if href needs to be set to None again
-					tag.zim_attrib = attrib
-					break
-			except AttributeError:
-				pass
-		else:
+		tag = self.get_link_tag(iter)
+		if tag is None:
 			raise Exception, 'No link at iter'
+		else:
+			# TODO check if href needs to be set to None again
+			tag.zim_attrib = attrib
 
 	def insert_pixbuf(self, iter, pixbuf):
 		# Make sure we always apply the correct tags when inserting a pixbuf
@@ -313,25 +312,37 @@ class TextBuffer(gtk.TextBuffer):
 			gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
 			self._editmode_tags = mode
 
-	def insert_image(self, iter, attrib, text):
+	def insert_image(self, iter, file, src, **attrib):
 		# TODO support width / height arguemnts from_file_at_size()
 		# TODO parse image file locations elsewhere
 		# TODO support tooltip text
-		file = attrib['src-file']
-		attrib['alt'] = text
 		try:
-			pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+			if 'width' in attrib or 'height' in attrib:
+				w = int(attrib.get('width', -1))
+				h = int(attrib.get('height', -1))
+				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, w, h)
+			else:
+				pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
 		except:
 			logger.warn('No such image: %s', file)
 			widget = gtk.HBox() # Need *some* widget here...
 			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG)
 		pixbuf.zim_type = 'image'
 		pixbuf.zim_attrib = attrib
+		pixbuf.zim_attrib['src'] = src
 		self.insert_pixbuf(iter, pixbuf)
 
-	def insert_image_at_cursor(self, attrib, text):
+	def insert_image_at_cursor(self, file, src, **attrib):
 		iter = self.get_iter_at_mark(self.get_insert())
-		self.insert_image(iter, attrib, text)
+		self.insert_image(iter, file, src, **attrib)
+
+	def get_image_data(self, iter):
+		'''Returns data for a zim image at iter or None'''
+		pixbuf = iter.get_pixbuf()
+		if pixbuf and hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'image':
+			return pixbuf.zim_attrib.copy()
+		else:
+			return None
 
 	def insert_icon(self, iter, stock):
 		widget = gtk.HBox() # Need *some* widget here...
@@ -643,6 +654,39 @@ class TextBuffer(gtk.TextBuffer):
 		builder.end('zim-tree')
 		return ParseTree(builder.close())
 
+	def select_word(self):
+		'''Selects the word at the cursor, if any. Returns True for success'''
+		insert = self.get_iter_at_mark(self.get_insert())
+		if not insert.inside_word():
+			return False
+
+		bound = insert.copy()
+		if not insert.ends_word():
+			insert.forward_word_end()
+		if not bound.starts_word():
+			bound.backward_word_start()
+
+		self.select_range(insert, bound)
+		return True
+
+	def select_link(self):
+		'''Selects the link at the cursor, if any.
+		Returns link data or None when there was no link at the cursor.
+		'''
+		insert = self.get_iter_at_mark(self.get_insert())
+		tag = self.get_link_tag(insert)
+		if tag is None:
+			return None
+		link = tag.zim_attrib.copy()
+
+		bound = insert.copy()
+		if not insert.ends_tag(tag):
+			insert.forward_to_tag_toggle(tag)
+		if not bound.begins_tag(tag):
+			bound.backward_to_tag_toggle(tag)
+
+		self.select_range(insert, bound)
+		return link
 
 	def get_has_selection(self):
 		'''Returns boolean whether there is a selection or not.
@@ -879,6 +923,13 @@ class PageView(gtk.VBox):
 				TextBuffer.tag_styles[tag] = attrib
 
 	def set_page(self, page):
+		# for some reason keeping a copy of the previus buffer
+		# prevents a number of segfaults ...
+		# we do clear the old buffer to save some memory
+		self._prev_buffer = self.view.get_buffer()
+		self._prev_buffer.delete(*self._prev_buffer.get_bounds())
+
+		# now create the new buffer
 		tree = page.get_parsetree()
 		buffer = TextBuffer()
 		if not tree is None:
@@ -944,19 +995,15 @@ class PageView(gtk.VBox):
 		pass
 
 	def cut(self):
-		#~ if self.view.get('has-focus'):
 		self.view.emit('cut-clipboard')
 
 	def copy(self):
-		#~ if self.view.get('has-focus'):
 		self.view.emit('copy-clipboard')
 
 	def paste(self):
-		#~ if self.view.get('has-focus'):
 		self.view.emit('paste-clipboard')
 
 	def delete(self):
-		#~ if self.view.get('has-focus'):
 		self.view.emit('delete-from-cursor', gtk.DELETE_CHARS, 1)
 
 	def toggle_checkbox(self):
@@ -973,13 +1020,22 @@ class PageView(gtk.VBox):
 		self.view.toggle_checkbox(iter, checkbox)
 
 	def edit_object(self):
-		pass
+		buffer = self.view.get_buffer()
+		insert = buffer.get_iter_at_mark(buffer.get_insert())
+		alt = insert.copy()
+		alt.backward_char()
+		if buffer.get_image_data(insert) or buffer.get_image_data(alt):
+			EditImageDialog(self.ui, buffer).run()
+		elif buffer.get_link_tag(insert):
+			EditLinkDialog(self.ui, buffer).run()
+		else:
+			return False
 
 	def insert_image(self):
-		pass
+		InsertImageDialog(self.ui, self.view.get_buffer()).run()
 
 	def insert_text_from_file(self):
-		pass
+		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
 
 	def insert_external_link(self):
 		InsertExternalLinkDialog(self.ui, self.view.get_buffer()).run()
@@ -988,14 +1044,10 @@ class PageView(gtk.VBox):
 		InsertLinkDialog(self.ui, self.view.get_buffer()).run()
 
 	def clear_formatting(self):
+		has_selection = self.autoselect()
+
 		buffer = self.view.get_buffer()
-
-		# if self.ui.preferences['autoselect'] \
-		#		and not buffer.get_has_selection() \
-		#		and not buffer.textstyle == format:
-		# 	buffer.select(TextBuffer.SELECT_WORD)
-
-		if buffer.get_has_selection():
+		if has_selection:
 			start, end = buffer.get_selection_bounds()
 			buffer.remove_textstyle_tags(start, end)
 		else:
@@ -1012,13 +1064,164 @@ class PageView(gtk.VBox):
 
 	def toggle_format(self, format):
 		buffer = self.view.get_buffer()
-
-		# if self.ui.preferences['autoselect'] \
-		#		and not buffer.get_has_selection() \
-		#		and not buffer.textstyle == format:
-		# 	buffer.select(TextBuffer.SELECT_WORD)
-
+		if not buffer.textstyle == format:
+			self.autoselect()
 		buffer.toggle_textstyle(format)
+
+	def autoselect(self):
+		buffer = self.view.get_buffer()
+		if buffer.get_has_selection():
+			return True
+		#~ elif not self.ui.preferences['autoselect']:
+			#~ return False
+		else:
+			return buffer.select_word()
+
+
+class InsertImageDialog(FileDialog):
+	def __init__(self, ui, buffer):
+		FileDialog.__init__(
+			self, ui, 'Insert Image', gtk.FILE_CHOOSER_ACTION_OPEN)
+		self.buffer = buffer
+
+		allfilter = gtk.FileFilter()
+		allfilter.set_name('All')
+		allfilter.add_pattern('*')
+		self.filechooser.add_filter(allfilter)
+
+		imgfilter = gtk.FileFilter()
+		imgfilter.set_name('Images')
+		imgfilter.add_pixbuf_formats()
+		self.filechooser.add_filter(imgfilter)
+		self.filechooser.set_filter(imgfilter)
+		# TODO custom 'insert' button ?
+
+	def do_response_ok(self):
+		file = self.get_file()
+		if file is None: return False
+		src = self.ui.notebook.relative_filepath(file) or file.url
+		self.buffer.insert_image_at_cursor(file, src)
+		return True
+
+
+class EditImageDialog(Dialog):
+
+	def __init__(self, ui, buffer):
+		Dialog.__init__(self, ui, 'Edit Image')
+		self.buffer = buffer
+
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		image_data = self.buffer.get_image_data(iter)
+		if image_data is None:
+			iter.backward_char()
+			image_data = self.buffer.get_image_data(iter)
+			assert image_data, 'No image found'
+		self._image_data = image_data
+		self._iter = iter.get_offset()
+
+		src = image_data['src']
+		if '?' in src:
+			i = src.find('?')
+			src = src[:i]
+		self.add_fields([
+			('file', 'file', 'Location', src),
+			('width', 'int', 'Width', (0, 0, 0)),
+			('height', 'int', 'Height', (0, 0, 0))
+		])
+
+		reset_button = gtk.Button('_Reset Size')
+		hbox = gtk.HBox()
+		hbox.pack_end(reset_button, False)
+		self.vbox.add(hbox)
+
+		reset_button.connect_object('clicked',
+			self.__class__.reset_dimensions, self)
+		#~ self.inputs['file'].connect_object('activate',
+			#~ self.__class__.reset_dimensions, self)
+		self.inputs['width'].connect_object('value-changed',
+			self.__class__.do_width_changed, self)
+		self.inputs['height'].connect_object('value-changed',
+			self.__class__.do_height_changed, self)
+
+		self._set_dimension = None
+		image_data = image_data.copy()
+		self.reset_dimensions()
+		if 'width' in image_data:
+			self.inputs['width'].set_value(int(image_data['width']))
+		elif 'height' in image_data:
+			self.inputs['height'].set_value(int(image_data['height']))
+
+	def reset_dimensions(self):
+		self._image_data.pop('width', None)
+		self._image_data.pop('height', None)
+		filename = self.get_field('file')
+		file = self.ui.notebook.resolve_file(filename, self.ui.page)
+		try:
+			info, w, h = gtk.gdk.pixbuf_get_file_info(file.path)
+		except:
+			logger.warn('Could not get size for image: %s', file.path)
+			self.inputs['width'].set_sensitive(False)
+			self.inputs['height'].set_sensitive(False)
+		else:
+			self.inputs['width'].set_sensitive(True)
+			self.inputs['height'].set_sensitive(True)
+			self._block = True
+			self.inputs['width'].set_range(0, 4*w)
+			self.inputs['width'].set_value(w)
+			self.inputs['height'].set_range(0, 4*w)
+			self.inputs['height'].set_value(h)
+			self._block = False
+			self._ratio = float(w)/ h
+
+	def do_width_changed(self):
+		if self._block: return
+		self._image_data.pop('height', None)
+		self._image_data['width'] = self.get_field('width')
+		h = int(float(self._image_data['width']) / self._ratio)
+		self._block = True
+		self.inputs['height'].set_value(h)
+		self._block = False
+
+	def do_height_changed(self):
+		if self._block: return
+		self._image_data.pop('width', None)
+		self._image_data['height'] = self.get_field('height')
+		w = int(self._ratio * self._image_data['height'])
+		self._block = True
+		self.inputs['width'].set_value(w)
+		self._block = False
+
+	def do_response_ok(self):
+		filename = self.get_field('file')
+		file = self.ui.notebook.resolve_file(filename, self.ui.page)
+		attrib = self._image_data
+		attrib['src'] = self.ui.notebook.relative_filepath(file) or file.url
+
+		iter = self.buffer.get_iter_at_offset(self._iter)
+		bound = iter.copy()
+		bound.forward_char()
+		self.buffer.begin_user_action()
+		self.buffer.delete(iter, bound)
+		self.buffer.insert_image_at_cursor(file, **attrib)
+		self.buffer.end_user_action()
+		return True
+
+
+class InsertTextFromFileDialog(FileDialog):
+
+	def __init__(self, ui, buffer):
+		FileDialog.__init__(
+			self, ui, 'Insert Text From File', gtk.FILE_CHOOSER_ACTION_OPEN)
+		self.buffer = buffer
+		# TODO custom 'insert' button ?
+
+	def do_response_ok(self):
+		file = self.get_file()
+		if file is None: return False
+		parser = get_format('plain').Parser()
+		tree = parser.parse(file.readlines())
+		self.buffer.insert_parsetree_at_cursor(tree)
+		return True
 
 
 class InsertLinkDialog(Dialog):
@@ -1026,29 +1229,72 @@ class InsertLinkDialog(Dialog):
 	def __init__(self, ui, buffer):
 		Dialog.__init__(self, ui, 'Insert Link')
 		self.buffer = buffer
+		href, text = self._get_link()
 		self.add_fields([
-			('text', 'string', 'Text', None),
-			('link', 'page', 'Links to', None)
+			('href', 'page', 'Link to', href),
+			('text', 'string', 'Text', text)
 		])
 		# TODO custom "link" button
 
+	def _get_link(self):
+		link = self.buffer.select_link()
+		href = ''
+		text = ''
+		if link:
+			href = link['href']
+		#~ elif self.ui.preferences['autoselect']:
+		else:
+			self.buffer.select_word()
+
+		if self.buffer.get_has_selection():
+			start, end = self.buffer.get_selection_bounds()
+			text = self.buffer.get_text(start, end)
+			self._selection_bounds = (start.get_offset(), end.get_offset())
+				# Interaction in the dialog causes buffer to loose selection
+				# maybe due to clipboard focus !??
+				# Anyway, need to remember bounds ourselves.
+		else:
+			self._selection_bounds = None
+
+		return href, text
+
 	def do_response_ok(self):
-		text = self.get_field('text').strip()
-		link = self.get_field('link').strip()
-		if not text and not link: return False
-		elif not text: text = link
-		elif not link: link = text
-		else: pass
-		self.buffer.insert_link_at_cursor({'href': link}, text)
-		return True
+		href = self.get_field('href')
+		text = self.get_field('text') or href
+		if not href:
+			return False
+		else:
+			self.buffer.begin_user_action()
+			if self._selection_bounds:
+				start, end = map(
+					self.buffer.get_iter_at_offset, self._selection_bounds)
+				self.buffer.delete(start, end)
+			self.buffer.insert_link_at_cursor(text, href)
+			self.buffer.end_user_action()
+			return True
 
 class InsertExternalLinkDialog(InsertLinkDialog):
 
 	def __init__(self, ui, buffer):
 		Dialog.__init__(self, ui, 'Insert External Link')
 		self.buffer = buffer
+		href, text = self._get_link()
 		self.add_fields([
-			('text', 'string', 'Text', None),
-			('link', 'file', 'Links to', None)
+			('href', 'file', 'Link to', href),
+			('text', 'string', 'Text', text)
+		])
+		# TODO custom "link" button
+
+
+class EditLinkDialog(InsertLinkDialog):
+
+	def __init__(self, ui, buffer):
+		Dialog.__init__(self, ui, 'Edit Link')
+		self.buffer = buffer
+		href, text = self._get_link()
+		# TODO check link type internal / external ans set field type correctly
+		self.add_fields([
+			('href', 'page', 'Link to', href),
+			('text', 'string', 'Text', text)
 		])
 		# TODO custom "link" button

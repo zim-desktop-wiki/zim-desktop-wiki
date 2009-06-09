@@ -489,7 +489,6 @@ class GtkInterface(NotebookInterface):
 		zim.gui.exportdialog.ExportDialog(self).run()
 
 	def email_page(self):
-		self.save_page_if_modified()
 		text = ''.join(page.dump(format='wiki')).encode('utf8')
 		# TODO url encoding - replace \W with sprintf('%%%02x')
 		url = 'mailto:?subject=%s&body=%s' % (page.name, text)
@@ -1096,13 +1095,23 @@ class Dialog(gtk.Dialog):
 				button.set_active(value or False)
 				self.inputs[name] = button
 				table.attach(button, 0,2, i,i+1)
+			elif type == 'int':
+				label = gtk.Label(label+':')
+				label.set_alignment(0.0, 0.5)
+				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
+				button = gtk.SpinButton()
+				v, min, max = value
+				button.set_value(v)
+				button.set_range(min, max)
+				self.inputs[name] = button
+				table.attach(button, 1,2, i,i+1)
 			else:
 				label = gtk.Label(label+':')
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
 				entry = gtk.Entry()
 				if not value is None:
-					entry.set_text(value)
+					entry.set_text(str(value))
 				self.inputs[name] = entry
 				table.attach(entry, 1,2, i,i+1)
 			i += 1
@@ -1130,9 +1139,11 @@ class Dialog(gtk.Dialog):
 		values = {}
 		for name, widget in self.inputs.items():
 			if isinstance(widget, gtk.Entry):
-				values[name] = widget.get_text()
+				values[name] = widget.get_text().strip()
 			elif isinstance(widget, gtk.ToggleButton):
 				values[name] = widget.get_active()
+			elif isinstance(widget, gtk.SpinButton):
+				values[name] = int(widget.get_value())
 			else:
 				assert False, 'BUG: unkown widget in inputs'
 		return values
@@ -1195,6 +1206,14 @@ class FileDialog(Dialog):
 		self.vbox.add(self.filechooser)
 		# FIXME hook to expander to resize window
 
+	def get_file(self):
+		'''Wrapper for filechooser.get_filename().
+		Returns a File object or None.
+		'''
+		path = self.filechooser.get_filename()
+		if path is None: return None
+		else: return zim.fs.File(path)
+
 
 class OpenPageDialog(Dialog):
 	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.
@@ -1250,12 +1269,11 @@ class SaveCopyDialog(FileDialog):
 		# TODO change "Ok" button to "Save"
 
 	def do_response_ok(self):
-		self.ui.save_page_if_modified()
-		path = self.filechooser.get_filename()
+		file = self.get_file()
+		if file is None: return False
 		format = 'wiki'
 		logger.info("Saving a copy at %s using format '%s'", path, format)
 		lines = self.ui.page.dump(format)
-		file = zim.fs.File(path)
 		file.writelines(lines)
 		return True
 
@@ -1265,10 +1283,12 @@ class ImportPageDialog(FileDialog):
 
 	def __init__(self, ui):
 		FileDialog.__init__(self, ui, 'Import Page', gtk.FILE_CHOOSER_ACTION_OPEN)
+
 		allfilter = gtk.FileFilter()
 		allfilter.set_name('All')
 		allfilter.add_pattern('*')
 		self.filechooser.add_filter(allfilter)
+
 		txtfilter = gtk.FileFilter()
 		txtfilter.set_name('*.txt')
 		txtfilter.add_pattern('*.txt')
@@ -1277,20 +1297,20 @@ class ImportPageDialog(FileDialog):
 		# TODO add input for namespace, format
 
 	def do_response_ok(self):
-		file = self.filechooser.get_filename()
-		if file is None:
-			return False
-		else:
-			file = zim.fs.File(file)
+		file = self.get_file()
+		if file is None: return False
+
 		basename = file.basename
 		if basename.endswith('.txt'):
 			basename = basename[:-4]
+
 		path = self.ui.notebook.resolve_path(basename)
 		page = self.ui.notebook.get_page(path)
 		if page.hascontent:
 			path = self.ui.notebook.index.get_unique_path(path)
 			page = self.ui.notebook.get_page(path)
 			assert not page.hascontent
+
 		page.parse('wiki', file.readlines())
 		self.ui.open_page(page)
 		return True

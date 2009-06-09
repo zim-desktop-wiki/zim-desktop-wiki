@@ -1,0 +1,8 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Sat, 04 Apr 2009 10:58:28 +0200
+Modification-Date: Sun, 07 Jun 2009 19:54:00 +0200
+
+====== LIMITATIONS ======
+
+Main assumption about the whole file handling and page rendering is that files are small enough that we can load them into memory several times. This seems a valid assumption as notebooks are spread over many files. Having really huge files with contents is outside the scope of the design. If this is what you want to do, you probably need a more heavy duty text editor.
