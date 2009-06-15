@@ -415,20 +415,29 @@ class GtkInterface(NotebookInterface):
 		record = self.history.get_previous()
 		if not record is None:
 			self.open_page(record)
+			return True
+		else:
+			return False
 
 	def open_page_forward(self):
 		record = self.history.get_next()
 		if not record is None:
 			self.open_page(record)
+			return True
+		else:
+			return False
 
 	def open_page_parent(self):
 		namespace = self.page.namespace
 		if namespace:
 			self.open_page(Path(namespace))
+			return True
+		else:
+			return False
 
 	def open_page_child(self):
 		if not self.page.haschildren:
-			return
+			return False
 
 		record = self.history.get_child(self.page)
 		if not record is None:
@@ -436,16 +445,23 @@ class GtkInterface(NotebookInterface):
 		else:
 			child = self.notebook.index.list_pages(self.page)[0]
 			self.open_page(child)
+		return True
 
 	def open_page_previous(self):
 		path = self.notebook.index.get_previous(self.page)
 		if not path is None:
 			self.open_page(path)
+			return True
+		else:
+			return False
 
 	def open_page_next(self):
 		path = self.notebook.index.get_next(self.page)
 		if not path is None:
 			self.open_page(path)
+			return True
+		else:
+			return False
 
 	def open_page_home(self):
 		self.open_page(self.notebook.get_home_page())
@@ -461,9 +477,7 @@ class GtkInterface(NotebookInterface):
 
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
-		dialog = NewPageDialog(self)
-		dialog.set_current_namespace(self.get_path_context())
-		dialog.run()
+		NewPageDialog(self, namespace=self.get_path_context()).run()
 
 	def save_page(self):
 		pass
@@ -505,9 +519,7 @@ class GtkInterface(NotebookInterface):
 		RenamePageDialog(self, path=path).run()
 
 	def delete_page(self, path=None):
-		pass
-		# TODO confirmation dialog is MessageDialog style
-		#~ self.notebook.delete_page(page)
+		DeletePageDialog(self, path=path).run()
 
 	def show_properties(self):
 		import zim.gui.propertiesdialog
@@ -538,14 +550,20 @@ class GtkInterface(NotebookInterface):
 		self.save_page_if_modified()
 		self.open_page(self.page)
 
-	def attach_file(self):
-		pass
+	def attach_file(self, path=None):
+		AttachFileDialog(self, path=path).run()
 
 	def open_folder(self, dir):
 		self.spawn('xdg-open', dir.path)
 
 	def open_file(self, file):
 		self.spawn('xdg-open', file.path)
+
+	def open_url(self, url):
+		if url.startswith('file:/'):
+			self.open_file(File(url))
+		else:
+			self.spawn('xdg-open', url)
 
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -1105,7 +1123,7 @@ class Dialog(gtk.Dialog):
 				button.set_range(min, max)
 				self.inputs[name] = button
 				table.attach(button, 1,2, i,i+1)
-			else:
+			elif type in ('string', 'page', 'namespace', 'file', 'image'):
 				label = gtk.Label(label+':')
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
@@ -1114,6 +1132,17 @@ class Dialog(gtk.Dialog):
 					entry.set_text(str(value))
 				self.inputs[name] = entry
 				table.attach(entry, 1,2, i,i+1)
+				if type == 'page':
+					entry.set_completion(self._get_page_completion())
+				elif type == 'namespace':
+					entry.set_completion(self._get_namespace_completion())
+				elif type in ('file', 'image'):
+					# FIXME use inline icon for newer versions of Gtk
+					browse = gtk.Button('_Browse')
+					browse.connect('clicked', self._select_file, (type, entry))
+					table.attach(browse, 2,3, i,i+1, xoptions=gtk.FILL)
+			else:
+				assert False, 'BUG: unknown field type: %s' % type
 			i += 1
 
 		def focus_next(o, next):
@@ -1129,6 +1158,24 @@ class Dialog(gtk.Dialog):
 			self.inputs[last].connect('activate', lambda o: self.response_ok())
 
 		return table
+
+	def _select_file(self, button, data):
+		'''Triggered by the 'browse' button for file entries'''
+		type, entry = data
+		dialog = SelectFileDialog(self.ui)
+		if type == 'image':
+			dialog.add_filter_images()
+		file = dialog.run()
+		if not file is None:
+			entry.set_text(file.path)
+
+	def _get_page_completion(self):
+		print 'TODO page completion'
+		return gtk.EntryCompletion()
+
+	def _get_namespace_completion(self):
+		print 'TODO namespace completion'
+		return gtk.EntryCompletion()
 
 	def get_field(self, name):
 		'''Returns the value of a single field'''
@@ -1206,6 +1253,10 @@ class FileDialog(Dialog):
 		self.vbox.add(self.filechooser)
 		# FIXME hook to expander to resize window
 
+	def set_file(self, file):
+		'''Wrapper for filechooser.set_filename()'''
+		self.filechooser.set_file(file.path)
+
 	def get_file(self):
 		'''Wrapper for filechooser.get_filename().
 		Returns a File object or None.
@@ -1214,19 +1265,63 @@ class FileDialog(Dialog):
 		if path is None: return None
 		else: return zim.fs.File(path)
 
+	def _add_filter_all(self):
+		filter = gtk.FileFilter()
+		filter.set_name('All Files')
+		filter.add_pattern('*')
+		self.filechooser.add_filter(filter)
+
+	def add_filter(self, name, glob):
+		'''Wrapper for filechooser.add_filter()
+		using gtk.FileFilter.add_pattern(). Returns the filter object.
+		'''
+		if len(self.filechooser.list_filters()) == 0:
+			self._add_filter_all()
+		filter = gtk.FileFilter()
+		filter.set_name(name)
+		filter.add_pattern(glob)
+		self.filechooser.add_filter(filter)
+		self.filechooser.set_filter(filter)
+		return filter
+
+	def add_filter_images(self):
+		'''Wrapper for filechooser.add_filter()
+		using gtk.FileFilter.add_pixbuf_formats(). Returns the filter object.
+		'''
+		if len(self.filechooser.list_filters()) == 0:
+			self._add_filter_all()
+		filter = gtk.FileFilter()
+		filter.set_name('Images')
+		filter.add_pixbuf_formats()
+		self.filechooser.add_filter(filter)
+		self.filechooser.set_filter(filter)
+		return filter
+
+
+class SelectFileDialog(FileDialog):
+
+	def __init__(self, ui, title='Select File'):
+		FileDialog.__init__(self, ui, title)
+		self.file = None
+
+	def do_response_ok(self):
+		self.file = self.get_file()
+		return not self.file is None
+
+	def run(self):
+		FileDialog.run(self)
+		return self.file
+
 
 class OpenPageDialog(Dialog):
 	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.
 	Prompts for a page name and navigate to that page on 'Ok'.
 	'''
 
-	def __init__(self, ui):
+	def __init__(self, ui, namespace=None):
 		Dialog.__init__(self, ui, 'Jump to')
 		self.add_fields([('name', 'page', 'Jump to Page', None)])
 		# TODO custom "jump to" button
-
-	def set_current_namespace(self, path):
-		pass # TODO
 
 	def do_response_ok(self):
 		try:
@@ -1240,23 +1335,33 @@ class OpenPageDialog(Dialog):
 			return True
 
 
-class NewPageDialog(OpenPageDialog):
+class NewPageDialog(Dialog):
 	'''Dialog used to create a new page, functionally it is almost the same
 	as the OpenPageDialog except that the page is saved directly in order
 	to create it.
 	'''
 
-	def __init__(self, ui):
+	def __init__(self, ui, namespace=None):
 		Dialog.__init__(self, ui, 'New Page')
 		self.add_text('Please note that linking to a non-existing page\nalso creates a new page automatically.')
 		self.add_fields([('name', 'page', 'Page Name', None)])
 		self.set_help(':Usage:Pages')
 
 	def do_response_ok(self):
-		ok = OpenPageDialog.do_response_ok(self)
-		if ok and not self.ui.page.exists():
+		try:
+			name = self.get_field('name')
+			path = self.ui.notebook.resolve_path(name)
+		except PageNameError, error:
+			ErrorDialog(self, error).run()
+			return False
+		else:
+			page = self.ui.notebook.get_page(path)
+			if page.hascontent or page.haschildren:
+				ErrorDialog(self, 'Page exists').run()
+				return False
+			self.ui.open_page(page)
 			self.ui.save_page()
-		return ok
+			return True
 
 
 class SaveCopyDialog(FileDialog):
@@ -1282,18 +1387,8 @@ class ImportPageDialog(FileDialog):
 	# TODO how to properly detect file types for other formats ?
 
 	def __init__(self, ui):
-		FileDialog.__init__(self, ui, 'Import Page', gtk.FILE_CHOOSER_ACTION_OPEN)
-
-		allfilter = gtk.FileFilter()
-		allfilter.set_name('All')
-		allfilter.add_pattern('*')
-		self.filechooser.add_filter(allfilter)
-
-		txtfilter = gtk.FileFilter()
-		txtfilter.set_name('*.txt')
-		txtfilter.add_pattern('*.txt')
-		self.filechooser.add_filter(txtfilter)
-		self.filechooser.set_filter(txtfilter)
+		FileDialog.__init__(self, ui, 'Import Page')
+		self.add_filter('Text Files', '*.txt')
 		# TODO add input for namespace, format
 
 	def do_response_ok(self):
@@ -1318,18 +1413,33 @@ class ImportPageDialog(FileDialog):
 
 class MovePageDialog(Dialog):
 
-	def __init__(self, ui, page=None):
+	def __init__(self, ui, path=None):
 		Dialog.__init__(self, ui, 'Move Page')
-		if page is None:
-			self.page = self.ui.page
+		if path is None:
+			self.path = self.ui.get_path_context()
 		else:
-			self.page = page
-		# TODO Add namespace selector
+			self.path = path
+		assert self.path, 'Need a page here'
+
+		self.vbox.add(gtk.Label('Move page "%s"' % self.path.name))
+		self.add_fields([
+			('parent', 'namespace', 'Namespace', self.path.namespace),
+			('links', 'bool', 'Update links to this page', True),
+		])
 
 	def do_response_ok(self):
-		namespace = self.get_field('namespace')
-		self.ui.notebook.move_page(self.page, namespace)
-
+		parent = self.get_field('parent')
+		links = self.get_field('links')
+		try:
+			newpath = self.ui.notebook.resolve_path(parent) + self.path.basename
+			self.ui.notebook.move_page(self.path, newpath, update_links=links)
+		except Exception, error:
+			ErrorDialog(self, error).run()
+			return False
+		else:
+			if self.path == self.ui.page:
+				self.ui.open_page(newpath)
+			return True
 
 class RenamePageDialog(Dialog):
 
@@ -1339,6 +1449,8 @@ class RenamePageDialog(Dialog):
 			self.path = self.ui.get_path_context()
 		else:
 			self.path = path
+		assert self.path, 'Need a page here'
+
 		self.vbox.add(gtk.Label('Rename page "%s"' % self.path.name))
 		self.add_fields([
 			('name', 'string', 'Name', self.path.basename),
@@ -1360,6 +1472,74 @@ class RenamePageDialog(Dialog):
 			if self.path == self.ui.page:
 				self.ui.open_page(newpath)
 			return True
+
+
+class DeletePageDialog(Dialog):
+
+	def __init__(self, ui, path=None):
+		Dialog.__init__(self, ui, 'Delete Page')
+		if path is None:
+			self.path = self.ui.get_path_context()
+		else:
+			self.path = path
+		assert self.path, 'Need a page here'
+
+		hbox = gtk.HBox(spacing=12)
+		self.vbox.add(hbox)
+		img = gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DIALOG)
+		hbox.add(img)
+		label = gtk.Label()
+		label.set_markup('<b>Delete page "%s"?</b>\n\nPage "%s" and all of it\'s sub-pages and attachments will be deleted' % (self.path.basename, self.path.name))
+		hbox.add(label)
+
+	def do_response_ok(self):
+		try:
+			self.ui.notebook.delete_page(self.path)
+		except Exception, error:
+			ErrorDialog(self, error).run()
+			return False
+		else:
+			if self.path == self.ui.page:
+				self.ui.open_page_back() \
+				or self.ui.open_page_parent \
+				or self.ui.open_page_home
+			return True
+
+
+class AttachFileDialog(FileDialog):
+
+	def __init__(self, ui, path=None):
+		FileDialog.__init__(self, ui, 'Attach File')
+		if path is None:
+			self.path = self.ui.get_path_context()
+		else:
+			self.path = path
+		assert self.path, 'Need a page here'
+
+		self.dir = self.ui.notebook.get_attachments_dir(self.path)
+		if self.dir is None:
+			ErrorDialog('Page "%s" does not have a folder for attachments' % self.path)
+			raise Exception, 'Page "%s" does not have a folder for attachments' % self.path
+
+	def do_response_ok(self):
+		file = self.get_file()
+		if file is None:
+			return False
+		else:
+			file.copyto(self.dir)
+			file = self.dir.file(file.basename)
+			mimetype = file.get_mimetype()
+			pageview = self.ui.mainwindow.pageview
+			if mimetype.media == 'image':
+				try:
+					pageview.insert_image(file, interactive=False)
+				except:
+					logger.exception('Could not insert image')
+					pageview.insert_links([file]) # image type not supported?
+			else:
+				pageview.insert_links([file])
+			return True
+
 
 class ProgressBarDialog(gtk.Dialog):
 	'''Dialog to display a progress bar. Behaves more like a MessageDialog than

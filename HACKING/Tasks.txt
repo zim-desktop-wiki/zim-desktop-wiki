@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Fri, 05 Jun 2009 14:43:49 +0200
+Modification-Date: Mon, 15 Jun 2009 18:32:33 +0200
 
 ====== Tasks ======
 
@@ -27,25 +27,27 @@ Modification-Date: Fri, 05 Jun 2009 14:43:49 +0200
 [*] Hook dialogs to remember size
 [*] Mainwindow should remember size
 [ ] Search function in side pane (as you type) ??
-[ ] New page
-	[ ] implement dialog + hook save
-	[ ] implement template
+[ ] Implement save and autosave (mtime + md5) + hook signal
+[ ] Completion for pages and namespaces
+[*] New page
+	[*] implement dialog + hook save
+	[*] implement template
 [ ] Move page
 	[x] implement in notebook if between stores
 	[*] implement in store(s)
 	[ ] implement update links logic
-	[ ] implement dialog
-	[ ] hook history, pathbar and index
-	[ ] implement drag & drop in the treeview
+	[*] implement dialog
+	[*] hook index
+	[ ] implement drag & drop in the treeview ??
 [ ] Rename page (based on move_page in stores)
 	[*] implement in page to change heading
 	[*] implement dialog
-[ ] Delete page
+[*] Delete page
 	[*] implement in store(s)
-	[ ] implement dialog / warning + warning about sub-pages and attachments
-	[ ] hook history, pathbar and index
-	[ ] on notebook level have a "move to trash" setting
-	[ ] check ui behavior on delete current page
+	[*] implement dialog / warning + warning about sub-pages and attachments
+	[*] hook index
+	[x] on notebook level have a "move to trash" setting
+	[*] check ui behavior on delete current page
 [*] Save copy (to file - like export but in native format)
 [*] Import page (opposite of save copy)
 [*] Context dialog for side pane
@@ -58,11 +60,10 @@ Modification-Date: Fri, 05 Jun 2009 14:43:49 +0200
 	[*] Implement "formats" menu items
 	[*] Set text_style from cursor - make formatting stick properly
 	[*] Implement get parse tree + test roundtrip
-	[ ] Implement save and autosave (mtime + md5)
 	[ ] implement generic autoformatting hooks
 	[*] Implement insert link + file link
 	[*] Implement insert image
-	[ ] Implement attach file
+	[*] Implement attach file
 	[ ] Make undo / redo work - separate undo stack manager object
 	[ ] formats-, edit- & insert-menu complete
 	[ ] enforce applying a format to a link selects whole link

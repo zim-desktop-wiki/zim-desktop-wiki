@@ -58,6 +58,7 @@ arbitrary code from templates.
 
 import re
 import logging
+from time import strftime
 
 import zim
 import zim.formats
@@ -248,13 +249,22 @@ class Template(GenericTemplate):
 		self._last_dict = dict
 		return output
 
+	def process_to_parsetree(self, notebook, page):
+		'''Like process, but returns a parse tree instead of text'''
+		lines = self.process(notebook, page)
+		return self.format.Parser().parse(lines)
+
 	@staticmethod
-	def strftime(dict, format, timestamp):
-		'''FIXME'''
-		pass # TODO
+	def strftime(dict, format, timestamp=None):
+		'''Static method callable from the template, returns a string'''
+		if timestamp is None:
+			return strftime(format)
+		else:
+			return strftime(format, timestamp)
 
 	@staticmethod
 	def url(dict, pagename):
+		'''Static method callable from the template, returns a string'''
 		return pagename # FIXME page to url function
 
 

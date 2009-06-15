@@ -43,9 +43,8 @@ class PageTreeStore(gtk.GenericTreeModel):
 		index.connect('page-haschildren-toggled',
 			lambda o, p: self.emit('row-has-child-toggled',
 				self.get_treepath(p), self.create_tree_iter(p)))
-		#~ index.connect('page-deleted',
-			#~ lambda o, p: self.emit('row-deleted', self.get_treepath(p)))
-			# TODO: how to get treepath for a deleted page ??
+		index.connect('delete',
+			lambda o, p: self.emit('row-deleted', self.get_treepath(p)))
 
 	def on_get_flags(self):
 		return 0 # no flags
@@ -177,11 +176,12 @@ class PageTreeView(BrowserTreeView):
 	def __init__(self, ui):
 		BrowserTreeView.__init__(self)
 
-		self.ui = ui
-		self.ui.connect('open-page', lambda o, p, r: self.select_page(p))
-		self.ui.connect_after('open-notebook', self.do_set_notebook)
-		if not self.ui.notebook is None:
-			self.do_set_notebook(self.app, self.ui.notebook)
+		if not ui is None: # is None in test case
+			self.ui = ui
+			self.ui.connect('open-page', lambda o, p, r: self.select_page(p))
+			self.ui.connect_after('open-notebook', self.do_set_notebook)
+			if not self.ui.notebook is None:
+				self.do_set_notebook(self.app, self.ui.notebook)
 
 		cell_renderer = gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
@@ -192,8 +192,12 @@ class PageTreeView(BrowserTreeView):
 		self.set_enable_search(True)
 		self.set_search_column(0)
 
-		# TODO drag & drop stuff
-		# TODO popup menu for pages - share with e.g. pathbar buttons
+		self.enable_model_drag_source(
+			gtk.gdk.BUTTON1_MASK, (('text/x-zim-page-list', 0, 0),),
+			gtk.gdk.ACTION_LINK|gtk.gdk.ACTION_MOVE )
+		self.enable_model_drag_dest(
+			(('text/x-zim-page-list', 0, 0),),
+			gtk.gdk.ACTION_LINK )
 
 	def do_set_notebook(self, ui, notebook):
 		self.set_model(PageTreeStore(notebook.index))
@@ -243,6 +247,12 @@ class PageTreeView(BrowserTreeView):
 		menu = self.ui.uimanager.get_widget('/page_popup')
 		menu.popup(None, None, None, 3, 0)
 		return True
+
+	def do_drag_data_get(self, context, selection_data, info, time):
+		print 'drag GET'
+
+	def do_drag_data_recieved(self, context, x, y, selection_data, info, time):
+		print 'drag PUT'
 
 	def select_page(self, path):
 		'''Select a page in the treeview, connected to the open-page signal'''

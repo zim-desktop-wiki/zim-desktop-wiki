@@ -80,8 +80,10 @@ class Notebook(gobject.GObject):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'moved-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-		'deleted-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-created': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-moved': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
+		'page-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	def __init__(self, path=None, name=None, config=None, index=None):
@@ -273,7 +275,7 @@ class Notebook(gobject.GObject):
 
 		# TODO update links
 
-		self.emit('moved-page', path, newpath)
+		self.emit('page-moved', path, newpath)
 
 	def rename_page(self, path, newbasename,
 						update_heading=True, update_links=True):
@@ -306,7 +308,7 @@ class Notebook(gobject.GObject):
 			del self._page_cache[path.name]
 
 		if existed:
-			self.emit('deleted-page', path)
+			self.emit('page-deleted', path)
 		return existed
 
 	#~ def search(self):
@@ -350,13 +352,13 @@ class Notebook(gobject.GObject):
 
 	def relative_filepath(self, file, path=None):
 		'''Returns a filepath relative to either the documents dir (/xxx), the
-		attachments dir (if a path is given) (./xxx or ../xxx) or the users 
+		attachments dir (if a path is given) (./xxx or ../xxx) or the users
 		home dir (~/xxx). Returns None otherwise.
 
 		Intended as the counter part of resolve_file().
 		Typically this function is used to present the user with readable paths
 		or to shorten the paths inserted in the wiki code. It is advised to
-		use file urls for links that can not be made relative.
+		use file uris for links that can not be made relative.
 		'''
 		if path:
 			root = self.dir
@@ -398,6 +400,14 @@ class Notebook(gobject.GObject):
 			return dirs['XDG_DOCUMENTS_DIR']
 		else:
 			return Dir('~/Documents') # fall back to home dir
+
+	def get_template(self, path):
+		'''Returns a template object for path. Typically used to set initial
+		content for a new page.
+		'''
+		# TODO config per namespace
+		from zim.templates import get_template
+		return get_template('wiki', '_New')
 
 	def walk(self, path=None):
 		'''Generator function which iterates through all pages, depth first.
@@ -458,6 +468,9 @@ class Path(object):
 			return self.name == other.name
 		else: # e.g. path == None
 			return False
+
+	def __ne__(self, other):
+		return not self.__eq__(other)
 
 	def __add__(self, name):
 		'''"path + name" returns a child path'''

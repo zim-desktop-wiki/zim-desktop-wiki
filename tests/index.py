@@ -9,7 +9,7 @@ import tests
 from zim.fs import Dir
 from zim.index import Index, IndexPath, LINK_DIR_BACKWARD, LINK_DIR_BOTH
 from zim.notebook import Notebook, Path, Link
-from zim.gui.pageindex import PageTreeStore
+from zim.gui.pageindex import PageTreeStore, PageTreeView
 
 
 def get_files_notebook():
@@ -172,6 +172,9 @@ class TestPageTreeStore(tests.TestCase):
 		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 1)
+
+		treeview = PageTreeView(None) # just run hidden to check errors
+		treeview.set_model(treestore)
 
 		n = treestore.on_iter_n_children()
 		self.assertTrue(n > 0)

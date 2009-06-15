@@ -18,11 +18,16 @@ Used as a base library for most other zim modules.
 # 60s after write. This way of working should prevent that kind of issue.)
 
 import os
+import shutil
 import errno
 import codecs
+import logging
 from StringIO import StringIO
 
 __all__ = ['Dir', 'File']
+
+logger = logging.getLogger('zim.fs')
+
 
 class PathLookupError(Exception):
 	'''FIXME'''
@@ -82,6 +87,9 @@ class UnixPath(object):
 	def __eq__(self, other):
 		return self.path == other.path
 
+	def __ne__(self, other):
+		return not self.__eq__(other)
+
 	@property
 	def basename(self):
 		'''Basename property'''
@@ -115,11 +123,15 @@ class UnixPath(object):
 		return parts
 
 	def rename(self, newpath):
+		logger.info('Rename %s to %s', self, newpath)
 		os.renames(self.path, newpath.path)
 
 	def ischild(self, parent):
 		return self.path.startswith(parent.path + os.path.sep)
 
+	def get_mimetype(self):
+		import xdg.Mime
+		return xdg.Mime.get_type(self.path, name_pri=80)
 
 class WindowsPath(UnixPath):
 
@@ -181,6 +193,7 @@ class Dir(Path):
 
 	def remove(self):
 		'''Remove this dir, fails if dir is non-empty.'''
+		logger.info('Remove dir: %s', self)
 		os.rmdir(self.path)
 
 	def cleanup(self):
@@ -206,6 +219,7 @@ class Dir(Path):
 		check the dir is actually what you think it is before calling this.
 		'''
 		assert self.path and self.path != '/' # FIXME more checks here ?
+		logger.info('Remove file tree: %s', self)
 		for root, dirs, files in os.walk(self.path, topdown=False):
 			for name in files:
 				os.remove(os.path.join(root, name))
@@ -315,6 +329,7 @@ class File(Path):
 		else:
 			# On UNix, dst already exists it is replaced in an atomic operation
 			os.rename(tmp, self.path)
+		logger.debug('Wrote %s', self)
 
 	def read(self, encoding='utf8'):
 		if not self.exists():
@@ -353,6 +368,7 @@ class File(Path):
 		'''Remove this file and any related temporary files we made.
 		Ignores if page did not exist in the first place.
 		'''
+		logger.info('Remove file: %s', self)
 		if os.path.isfile(self.path):
 			os.remove(self.path)
 
@@ -364,6 +380,16 @@ class File(Path):
 		'''Remove this file and deletes any empty parent directories.'''
 		self.remove()
 		self.dir.cleanup()
+
+	def copyto(self, dest):
+		'''Copy this file to 'dest'. 'dest can be either a file or a dir'''
+		assert isinstance(dest, (File, Dir))
+		logger.info('Copy %s to %s', self, dest)
+		if isinstance(dest, Dir):
+			dest.touch()
+		else:
+			dest.dir.touch()
+		shutil.copy(self.path, dest.path)
 
 
 class FileHandle(file):

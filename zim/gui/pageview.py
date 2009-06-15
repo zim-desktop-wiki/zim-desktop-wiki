@@ -313,8 +313,6 @@ class TextBuffer(gtk.TextBuffer):
 			self._editmode_tags = mode
 
 	def insert_image(self, iter, file, src, **attrib):
-		# TODO support width / height arguemnts from_file_at_size()
-		# TODO parse image file locations elsewhere
 		# TODO support tooltip text
 		try:
 			if 'width' in attrib or 'height' in attrib:
@@ -930,17 +928,22 @@ class PageView(gtk.VBox):
 		self._prev_buffer.delete(*self._prev_buffer.get_bounds())
 
 		# now create the new buffer
-		tree = page.get_parsetree()
 		buffer = TextBuffer()
-		if not tree is None:
-			tree.resolve_images(self.ui.notebook, page)
-				# TODO same for links ?
-			buffer.set_parsetree(tree)
-		else:
-			print 'TODO get template'
 		self.view.set_buffer(buffer)
+		tree = page.get_parsetree()
+		cursorpos = 0
+		if tree is None:
+			# TODO check read-only
+			template = self.ui.notebook.get_template(page)
+			tree = template.process_to_parsetree(self.ui.notebook, page)
+			cursorpos = -1
+		tree.resolve_images(self.ui.notebook, page)
+			# TODO same for links ?
+		buffer.set_parsetree(tree)
+		if cursorpos != -1:
+			buffer.place_cursor(buffer.get_iter_at_offset(cursorpos))
+		# TODO else check template for cursor pos ??
 		buffer.connect('textstyle-changed', self.do_textstyle_changed)
-		buffer.place_cursor(buffer.get_iter_at_offset(0)) # FIXME
 
 	def do_textstyle_changed(self, buffer, style):
 		# set statusbar
@@ -974,7 +977,7 @@ class PageView(gtk.VBox):
 		assert isinstance(link, dict)
 		# TODO use link object if available
 		type = link_type(link['href'])
-		logger.debug('Link clinked: %s: %s' % (type, link['href']))
+		logger.debug('Link clicked: %s: %s' % (type, link['href']))
 
 		if type == 'page':
 			path = self.ui.notebook.resolve_path(
@@ -983,10 +986,9 @@ class PageView(gtk.VBox):
 		elif type == 'file':
 			path = self.ui.notebook.resolve_file(
 				link['href'], self.ui.page)
-			print 'TODO: open_file(path)'
-			#~ self.ui.open_file(path)
+			self.ui.open_file(path)
 		else:
-			print 'TODO: open_url(url)'
+			self.ui.open_url(link['href'])
 
 	def undo(self):
 		pass
@@ -1031,14 +1033,49 @@ class PageView(gtk.VBox):
 		else:
 			return False
 
-	def insert_image(self):
-		InsertImageDialog(self.ui, self.view.get_buffer()).run()
+	def insert_image(self, file=None, interactive=True):
+		if interactive:
+			InsertImageDialog(self.ui, self.view.get_buffer(), file).run()
+		else:
+			assert isinstance(file, File)
+			src = self.ui.notebook.relative_filepath(file, self.ui.page) or file.uri
+			print 'SRC', src
+			self.view.get_buffer().insert_image_at_cursor(file, src)
 
 	def insert_text_from_file(self):
 		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
 
 	def insert_external_link(self):
 		InsertExternalLinkDialog(self.ui, self.view.get_buffer()).run()
+
+	def insert_links(self, links):
+		'''Non-interactive method to insert one or more links plus
+		line breaks or whitespace. Resolves file links to relative paths.
+		'''
+		links = list(links)
+		for i in range(len(links)):
+			if isinstance(links[i], File):
+				file = links[i]
+			else:
+				type = link_type(links[i])
+				if type == 'file':
+					file = File(links[i])
+				else:
+					continue # not a file
+			links[i] = self.ui.notebook.relative_filepath(file, self.ui.page) or file.uri
+
+		if len(links) == 1: sep = ' '
+		else: sep = '\n'
+
+		buffer = self.view.get_buffer()
+		buffer.begin_user_action()
+		if buffer.get_has_selection():
+			start, end = buffer.get_selection_bounds()
+			self.buffer.delete(start, end)
+		for link in links:
+			buffer.insert_link_at_cursor(link, link)
+			buffer.insert_at_cursor(sep)
+		buffer.end_user_action()
 
 	def insert_link(self):
 		InsertLinkDialog(self.ui, self.view.get_buffer()).run()
@@ -1079,27 +1116,20 @@ class PageView(gtk.VBox):
 
 
 class InsertImageDialog(FileDialog):
-	def __init__(self, ui, buffer):
+
+	def __init__(self, ui, buffer, file=None):
 		FileDialog.__init__(
 			self, ui, 'Insert Image', gtk.FILE_CHOOSER_ACTION_OPEN)
 		self.buffer = buffer
-
-		allfilter = gtk.FileFilter()
-		allfilter.set_name('All')
-		allfilter.add_pattern('*')
-		self.filechooser.add_filter(allfilter)
-
-		imgfilter = gtk.FileFilter()
-		imgfilter.set_name('Images')
-		imgfilter.add_pixbuf_formats()
-		self.filechooser.add_filter(imgfilter)
-		self.filechooser.set_filter(imgfilter)
+		self.add_filter_images()
+		if file:
+			self.set_file(file)
 		# TODO custom 'insert' button ?
 
 	def do_response_ok(self):
 		file = self.get_file()
 		if file is None: return False
-		src = self.ui.notebook.relative_filepath(file) or file.url
+		src = self.ui.notebook.relative_filepath(file, self.ui.page) or file.uri
 		self.buffer.insert_image_at_cursor(file, src)
 		return True
 
@@ -1124,7 +1154,7 @@ class EditImageDialog(Dialog):
 			i = src.find('?')
 			src = src[:i]
 		self.add_fields([
-			('file', 'file', 'Location', src),
+			('file', 'image', 'Location', src),
 			('width', 'int', 'Width', (0, 0, 0)),
 			('height', 'int', 'Height', (0, 0, 0))
 		])
@@ -1195,7 +1225,7 @@ class EditImageDialog(Dialog):
 		filename = self.get_field('file')
 		file = self.ui.notebook.resolve_file(filename, self.ui.page)
 		attrib = self._image_data
-		attrib['src'] = self.ui.notebook.relative_filepath(file) or file.url
+		attrib['src'] = self.ui.notebook.relative_filepath(file, self.ui.page) or file.uri
 
 		iter = self.buffer.get_iter_at_offset(self._iter)
 		bound = iter.copy()
@@ -1260,18 +1290,28 @@ class InsertLinkDialog(Dialog):
 
 	def do_response_ok(self):
 		href = self.get_field('href')
-		text = self.get_field('text') or href
 		if not href:
 			return False
-		else:
-			self.buffer.begin_user_action()
-			if self._selection_bounds:
-				start, end = map(
-					self.buffer.get_iter_at_offset, self._selection_bounds)
-				self.buffer.delete(start, end)
-			self.buffer.insert_link_at_cursor(text, href)
-			self.buffer.end_user_action()
-			return True
+
+		type = link_type(href)
+		if type == 'file':
+			file = File(href)
+			href = self.ui.notebook.relative_filepath(file, self.ui.page) or file.uri
+
+		text = self.get_field('text') or href
+
+		self.buffer.begin_user_action()
+		if self._selection_bounds:
+			start, end = map(
+				self.buffer.get_iter_at_offset, self._selection_bounds)
+			self.buffer.delete(start, end)
+		self.buffer.insert_link_at_cursor(text, href)
+		if not self._selection_bounds:
+			self.buffer.insert_at_cursor(' ')
+		self.buffer.end_user_action()
+
+		return True
+
 
 class InsertExternalLinkDialog(InsertLinkDialog):
 
@@ -1292,9 +1332,11 @@ class EditLinkDialog(InsertLinkDialog):
 		Dialog.__init__(self, ui, 'Edit Link')
 		self.buffer = buffer
 		href, text = self._get_link()
-		# TODO check link type internal / external ans set field type correctly
+		type = link_type(href)
+		if type == 'file': input = 'file'
+		else: input = 'page'
 		self.add_fields([
-			('href', 'page', 'Link to', href),
+			('href', input, 'Link to', href),
 			('text', 'string', 'Text', text)
 		])
 		# TODO custom "link" button

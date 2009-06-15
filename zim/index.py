@@ -150,7 +150,8 @@ class Index(gobject.GObject):
 		'page-inserted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-updated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-haschildren-toggled': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'page-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,))
+		'page-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'delete': (gobject.SIGNAL_RUN_LAST, None, (object,))
 	}
 
 	def __init__(self, notebook=None, dbfile=None):
@@ -189,25 +190,17 @@ class Index(gobject.GObject):
 				logger.debug('Index database file: %s', self.dbfile)
 			self._connect()
 
-		# TODO connect to notebook signals for pages being moved / deleted /
-		# modified
+		def on_page_moved(o, oldpath, newpath):
+			self.delete(oldpath)
+			self.update(newpath, background=True)
 
-	def do_save_page(self, page):
-		assert False, 'TODO: lookup page / touch if needed'
-		self._index_page(page)
-
-	def do_move_page(self, page):
-		pass # TODO index logic for moving page(s)
-
-	def do_delete_page(self, path):
-		'''Delete page plus sub-pages plus forward links from the index'''
-		# TODO actually delete a page + children + links
-		# TODO emit signal for deleted pages
-		path = self.lookup_path(path)
-		if path.haschildren:
-			self._delete_pagelist(path)
-		self.db.commit()
-		self.emit('page-deleted', path)
+		self.notebook.connect('page-created',
+			lambda o, p: self._touch_path(p) )
+		self.notebook.connect('page-changed',
+			lambda o, p: self._index_page(indexpath, self.lookup_path(p)) )
+		self.notebook.connect('page-moved', on_page_moved)
+		self.notebook.connect('page-deleted',
+			lambda o, p: self.delete(p) )
 
 	def _connect(self):
 		self.db = sqlite3.connect(
@@ -478,20 +471,38 @@ class Index(gobject.GObject):
 					# FIXME should we check if this really changed first ?
 					self.emit('page-haschildren-toggled', path)
 
-				#~ for basename in set(children.keys()).difference(seen):
-					#~ child = IndexPath(...)
-					#~ changes.append((child, 3))
-
 				# All these signals should come in proper order...
 				changes.sort(key=lambda c: c[0].basename)
 				for path, action in changes:
 					if action == 1:
 						self.emit('page-inserted', path)
-					elif action == 2:
+					else: # action == 2:
 						self.emit('page-updated', path)
-					else: # 3
-						pass #~ self.do_delete_page(path)
 
+				# Clean up pages that disappeared
+				for basename in set(children.keys()).difference(seen):
+					row = children[basename]
+					child = IndexPath(path.name+':'+basename, indexpath+(row['id'],), row)
+					self.delete(child)
+
+	def delete(self, path):
+		'''Delete page plus sub-pages plus forward links from the index'''
+		path = self.lookup_path(path)
+		self.emit('delete', path)
+
+	def do_delete(self, path):
+		ids = [path.id]
+		ids.extend(p.id for p in self.walk(path))
+		try:
+			for id in ids:
+				self.db.execute('delete from links where source = ?', (id,))
+				self.db.execute('delete from pages where id = ?', (id,))
+		except:
+			self.db.rollback()
+			raise
+		else:
+			self.db.commit()
+			self.emit('page-deleted', path)
 
 	def walk(self, path=None):
 		if path is None or path.isroot:
