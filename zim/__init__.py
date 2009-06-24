@@ -61,7 +61,7 @@ class NotebookInterface(gobject.GObject):
 			logger.debug('No bzr version-info found')
 
 		self.preferences = config_file('preferences.conf')
-		self.uistate = {}
+		self.uistate = None
 
 		if not notebook is None:
 			self.open_notebook(notebook)

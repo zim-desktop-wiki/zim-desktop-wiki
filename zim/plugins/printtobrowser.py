@@ -31,7 +31,7 @@ ui_actions = (
 class SpellPlugin(PluginClass):
 	'''FIXME'''
 
-	info = {
+	plugin_info = {
 		'name': 'Print to Browser',
 		'description': '''\
 This plugin provides a workaround for the lack of

@@ -14,7 +14,7 @@ class testPlugins(TestCase):
 	def testGetPlugin(self):
 		'''Test loading a plugin'''
 		plugin = zim.plugins.get_plugin('spell')
-		self.assertTrue(plugin.info['name'] == 'Spell')
+		self.assertTrue(plugin.plugin_info['name'] == 'Spell')
 
 	def testListPlugins(self):
 		plugins = zim.plugins.list_plugins()

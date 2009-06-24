@@ -9,6 +9,7 @@ import os
 import sys
 
 from zim.fs import Dir
+from zim.config import ListDict
 
 def get_plugin(pluginname):
 	'''Returns the plugin class object for a given name'''
@@ -48,15 +49,65 @@ def list_plugins():
 
 
 class PluginClass(object):
+	'''FIXME
 
-	info = {}
+	Plugins should define two class attributes. The first is a dict
+	called 'plugin_info'. It can contain the following keys:
+
+		* name - short name
+		* description - one paragraph description 
+		* author - name of the author
+		* manualpage - page name in the manual (optional)
+
+	This info will be used e.g. in the plugin tab of the preferences
+	dialog.
+
+	Secondly a tuple can be defined called 'plugin_preferences'. 
+	Each item in this list should in turn be tuple containing four items:
+	
+		* the key in the config file
+		* an option type (see Dialog.add_fields() for more details)
+		* a label to show in the dialog
+		* a default value
+
+	These preferences will be initialized if not set and the actual values 
+	can be found in the 'preferences' attribute. The type and label will
+	be used to render a default configure dialog when triggered from
+	the preferences dialog.
+	'''
+
+	plugin_info = {}
+
+	plugin_preferences = ()
 
 	def __init__(self, ui):
 		self.ui = ui
-		assert 'name' in self.info, 'Plugins should provide a name'
-		assert 'description' in self.info, 'Plugins should provide a description'
-		assert 'author' in self.info, 'Plugins should provide a author'
+		assert 'name' in self.plugin_info, 'Plugins should provide a name in the info dict'
+		assert 'description' in self.plugin_info, 'Plugins should provide a description in the info dict'
+		assert 'author' in self.plugin_info, 'Plugins should provide a author in the info dict'
+		section = self.__class__.__name__
+		self.preferences = self.ui.preferences[section]
+		for key, type, label, default in self.plugin_preferences:
+				self.preferences.setdefault(key, default)
+		self.uistate = ListDict()
+		self.ui.connect_after('open-notebook', self._merge_uistate)
+
+	def _merge_uistate(self, *a):
+		# As a convenience we provide a uistate dict directly after
+		# initialization of the plugin. However, in reality this
+		# config file is only available after the notebook is openend.
+		# Therefore we need to link the actual file and merge back
+		# any defaults that were set during plugin intialization etc.
+		section = self.__class__.__name__
+		defaults = self.uistate
+		self.uistate = self.ui.uistate[section]
+		for key, value in defaults.items():
+			self.uistate.setdefault(key, value)
 
 	def disconnect(self):
 		'''FIXME'''
 		self.ui.remove_actions(self)
+
+	def add_actions():
+		pass
+

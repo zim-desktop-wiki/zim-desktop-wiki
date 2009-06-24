@@ -10,7 +10,7 @@ from zim.index import LINK_DIR_BOTH
 class LinkMapPlugin(PluginClass):
 	'''FIXME'''
 
-	info = {
+	plugin_info = {
 		'name': 'Link Map',
 		'description': '''\
 This plugin provides a dialog with a grahical
@@ -24,6 +24,7 @@ sure it is installed.
 This is a core plugin shipping with zim.
 ''',
 		'author': 'Jaap Karssenberg',
+		'manualpage': 'Plugins:LinkMap',
 	}
 
 	def __init__(self, ui):

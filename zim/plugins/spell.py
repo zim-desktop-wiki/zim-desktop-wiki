@@ -38,7 +38,7 @@ ui_toggle_actions = (
 class SpellPlugin(PluginClass):
 	'''FIXME'''
 
-	info = {
+	plugin_info = {
 		'name': 'Spell',
 		'description': '''\
 Adds spell checking support using gtkspell.
@@ -47,12 +47,17 @@ Please make sure gtkspell is installed.
 This is a core plugin shipping with zim.
 ''',
 		'author': 'Jaap Karssenberg',
+		'manualpage': 'Plugins:Spell',
 	}
+
+	plugin_preferences = (
+		('language', 'string', 'Default Language', ''),
+	)
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
 		self.spell = None
-		self.enabled = False
+		self.uistate.setdefault('active', False)
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			self.ui.add_ui(ui_xml, self)
@@ -70,24 +75,25 @@ This is a core plugin shipping with zim.
 		self.ui.actiongroup.get_action('toggle_spellcheck').activate()
 
 	def do_toggle_spellcheck(self):
-		if not self.enabled:
+		if not self.uistate['active']:
 			self.enable_spellcheck()
 		else:
 			self.disable_spellcheck()
 
 	def enable_spellcheck(self):
 		# TODO check language in page / notebook / default
-		self.enabled = True
+		self.uistate['active'] = True
 		if self.spell is None:
 			textview = self.ui.mainwindow.pageview.view
-			self.spell = gtkspell.Spell(textview)
+			lang = self.preferences['language'] or None
+			self.spell = gtkspell.Spell(textview, lang)
 			textview.gtkspell = self.spell # used by hardcoded hook in pageview
 		# TODO action_show_active
 
 		return False # we can be called from idle event
 
 	def disable_spellcheck(self):
-		self.enabled = False
+		self.uistate['active'] = False
 		if not self.spell is None:
 			textview = self.ui.mainwindow.pageview.view
 			textview.gtkspell = None
@@ -100,5 +106,5 @@ This is a core plugin shipping with zim.
 		# hook in TextView, just attach a new one.
 		# Use idle timer to avoid lag in page loading.
 		self.spell = None
-		if self.enabled:
+		if self.uistate['active']:
 			gobject.idle_add(self.enable_spellcheck)

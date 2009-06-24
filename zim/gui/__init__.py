@@ -21,7 +21,7 @@ import zim.fs
 from zim import NotebookInterface
 from zim.notebook import Path, Page, PageNameError
 from zim.index import LINK_DIR_BACKWARD
-from zim.config import data_file, config_file, data_dirs
+from zim.config import data_file, config_file, data_dirs, ListDict
 import zim.history
 import zim.gui.pathbar
 import zim.gui.pageindex
@@ -62,7 +62,6 @@ ui_actions = (
 	('show_search',  'gtk-find', '_Search...', '<shift><ctrl>F', 'Search'),
 	('show_search_backlinks', None, 'Search _Backlinks...', '', 'Search Back links'),
 	('copy_location', None, 'Copy Location', '<shift><ctrl>L', 'Copy location'),
-	('show_plugins',  None, 'P_lugins', '', 'Plugins dialog'),
 	('show_preferences',  'gtk-preferences', 'Pr_eferences', '', 'Preferences dialog'),
 	('reload_page',  'gtk-refresh', '_Reload', '<ctrl>R', 'Reload page'),
 	('open_attachments_folder', 'gtk-open', 'Open Attachments _Folder', '', 'Open document folder'),
@@ -156,18 +155,21 @@ class GtkInterface(NotebookInterface):
 	* close-page (page)
 	  Called when closing a page, typically just before a new page is opened
 	  and before closing the application
+	* preferences-changed
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	ui_type = 'gtk'
 
 	def __init__(self, notebook=None, page=None, **opts):
 		NotebookInterface.__init__(self, **opts)
+		self.preferences_register = ListDict()
 		self.page = None
 		self.history = None
 
@@ -202,6 +204,10 @@ class GtkInterface(NotebookInterface):
 		#~ gtk.accel_map_get().connect(
 			#~ 'changed', lambda o: gtk.accelmap_save(accelmap.path) )
 
+		self.register_preferences( (
+			('MainWindow', 'Foo', 'page', 'General', 'Foo page', 'Foo'),
+		) )
+
 		self.load_plugins()
 
 		if not notebook is None:
@@ -225,6 +231,13 @@ class GtkInterface(NotebookInterface):
 				# Close application. Either the user cancelled the notebook
 				# dialog, or the notebook was opened in a different process.
 				return
+
+		if self.page is None:
+			path = self.history.get_current()
+			if path:
+				self.open_page(path)
+			else:
+				self.open_page_home()
 
 		self.uimanager.ensure_update()
 			# prevent flashing when the toolbar is after showing the window
@@ -318,6 +331,25 @@ class GtkInterface(NotebookInterface):
 		# TODO remove action group
 		# TODO remove ui
 
+	def register_preferences(self, preferences):
+		'''Registers user preferences. Registering means that a
+		preference will show up in the preferences dialog.
+		Each preference is a tuple consisting of:
+
+		* the section name in the config file
+		* the key in the config file
+		* an option type (see Dialog.add_fields() for more details)
+		* a category (the tab in which the option will be shown)
+		* a label to show in the dialog
+		* a default value
+		'''
+		register = self.preferences_register
+		for p in preferences:
+			section, key, type, category, label, default = p
+			self.preferences[section].setdefault(key, default)
+			register.setdefault(category, [])
+			register[category].append((section, key, type, label))
+
 	def get_path_context(self):
 		'''Returns the current 'context' for actions that want a path to start
 		with. Asks the mainwindow for a selected page, defaults to the
@@ -356,11 +388,8 @@ class GtkInterface(NotebookInterface):
 		NotebookInterface.do_open_notebook(self, notebook)
 		self.history = zim.history.History(notebook, self.uistate)
 
-		# Do a lightweight background check of the index
+		# Start a lightweight background check of the index
 		self.notebook.index.update(background=True, checkcontents=False)
-
-		# TODO load history and set intial page
-		self.open_page_home()
 
 	def open_page(self, path=None):
 		'''Emit the open-page signal. The argument 'path' can either be a Page
@@ -386,8 +415,12 @@ class GtkInterface(NotebookInterface):
 		self.emit('open-page', page, path)
 
 	def do_close_page(self, page):
-		if self.uistate.modified:
-			self.uistate.write()
+		def save_uistate():
+			if self.uistate.modified:
+				self.uistate.write()
+			return False # only run once
+
+		gobject.idle_add(save_uistate)
 
 	def do_open_page(self, page, path):
 		'''Signal handler for open-page.'''
@@ -538,13 +571,14 @@ class GtkInterface(NotebookInterface):
 		import zim.gui.clipboard
 		zim.gui.clipboard.Clipboard().set_pagelink(self.notebook, self.page)
 
-	def show_plugins(self):
-		import zim.gui.pluginsdialog
-		zim.gui.pluginsdialog.PluginsDialog(self).run()
-
 	def show_preferences(self):
-		import zim.gui.preferencesdialog
-		zim.gui.preferencesdialog.PreferencesDialog(self).run()
+		from zim.gui.preferencesdialog import PreferencesDialog
+		PreferencesDialog(self).run()
+
+	def save_preferences(self):
+		if self.preferences.modified:
+			self.preferences.write()
+			self.emit('preferences-changed')
 
 	def reload_page(self):
 		self.save_page_if_modified()
