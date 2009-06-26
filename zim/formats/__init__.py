@@ -173,26 +173,12 @@ class ParseTree(ElementTreeModule.ElementTree):
 			path.append((level, newlevel))
 
 	def resolve_images(self, notebook, path):
-		'''Resolves the source files for all images relative to a page path
-		and adds a 'src-file' attribute to the elements with the full file path.
-		It also takes care of url style properties in the src path.
+		'''Resolves the source files for all images relative to a page path	and
+		adds a '_src_file' attribute to the elements with the full file path.
 		'''
 		for element in self.getiterator('img'):
 			filepath = element.attrib['src']
-			i = filepath.find('?')
-			if i > 0:
-				for option in filepath[i+1:].split('&'):
-					if option.find('=') == -1:
-						logger.warn('Mal-formed options in "%s"' , filepath)
-						break
-
-					k, v = option.split('=')
-					if k in ('width', 'height', 'type'):
-						element.attrib[str(k)] = v # str to avoid unicode key
-					else:
-						logger.warn('Unknown attribute "%s" in "%s"', k, filepath)
-				element.attrib['src'] = filepath[:i]
-			element.attrib['src-file'] = notebook.resolve_file(element.attrib['src'], path)
+			element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
 
 class ParserClass(object):
 	'''Base class for parsers
@@ -205,6 +191,29 @@ class ParserClass(object):
 		'''FIXME'''
 		raise NotImplementedError
 
+	def parse_image_url(self, url):
+		'''Parse urls style options for images like "foo.png?width=500" and
+		returns a dict with the options. The base url will be in the dict
+		as 'src'.
+		'''
+		i = url.find('?')
+		if i > 0:
+			attrib = {'src': url[:i]}
+			for option in url[i+1:].split('&'):
+				if option.find('=') == -1:
+					logger.warn('Mal-formed options in "%s"' , url)
+					break
+
+				k, v = option.split('=')
+				if k in ('width', 'height', 'type'):
+					if len(v) > 0:
+						attrib[str(k)] = v # str to avoid unicode key
+				else:
+					logger.warn('Unknown attribute "%s" in "%s"', k, url)
+			return attrib
+		else:
+			return {'src': url}
+
 
 class DumperClass(object):
 	'''Base class for dumper classes.
@@ -212,6 +221,9 @@ class DumperClass(object):
 	Each format that can be used natively should define a class
 	'Dumper' which inherits from this base class.
 	'''
+
+	def __init__(self, linker=None):
+		self.linker = linker
 
 	def dump(self, tree):
 		'''FIXME'''

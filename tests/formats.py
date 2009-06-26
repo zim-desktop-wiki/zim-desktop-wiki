@@ -8,6 +8,7 @@ from tests import TestCase, get_test_page, get_test_data
 
 from zim.formats import *
 from zim.notebook import Link
+from zim.parsing import link_type
 
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
@@ -144,7 +145,7 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 	Indented and all: //foo//
 </pre>
-<p>IMAGE: <img src="../my-image.png">Foo Bar</img>
+<p>IMAGE: <img src="../my-image.png" width="600">Foo Bar</img>
 LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
 LINKS: <link href="Foo">Foo</link><link href="Bar">Bar</link>
 </p>
@@ -244,7 +245,7 @@ class TestHtmlFormat(TestCase):
 		para = SubElement(page, 'p')
 		para.text = '<foo>"foo" & "bar"</foo>'
 		tree = ParseTree(page)
-		html = self.format.Dumper().dump(tree)
+		html = self.format.Dumper(linker=StubLinker()).dump(tree)
 		self.assertEqual(html,
 			['<p>\n', '&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;</p>\n'] )
 
@@ -252,13 +253,8 @@ class TestHtmlFormat(TestCase):
 		'''Test exporting wiki format to Html'''
 
 		from zim.config import data_file
-		icons = {}
-		for icon in ('checked-box', 'unchecked-box', 'xchecked-box'):
-			icons[icon] = data_file('pixmaps/%s.png' % icon)
-			self.assertTrue(icons[icon].exists())
-
 		tree = get_format('wiki').Parser().parse(wikitext)
-		output = self.format.Dumper().dump(tree)
+		output = self.format.Dumper(linker=StubLinker()).dump(tree)
 
 		# Note '%' is doubled to '%%' because of format substitution being used
 		html = u'''\
@@ -283,9 +279,9 @@ Some Verbatim here
 </pre>
 
 <p>
-IMAGE: <img src="../my-image.png" alt="Foo Bar"><br>
-LINKS: <a href="/foo/bar.html">:foo:bar</a> <a href="./file.png">./file.png</a> <a href="file:///etc/passwd">file:///etc/passwd</a><br>
-LINKS: <a href="/Foo.html">Foo</a><a href="/Bar.html">Bar</a><br>
+IMAGE: <img src="img://../my-image.png" alt="Foo Bar" width="600"><br>
+LINKS: <a href="page://:foo:bar">:foo:bar</a> <a href="file://./file.png">./file.png</a> <a href="file://file:///etc/passwd">file:///etc/passwd</a><br>
+LINKS: <a href="page://Foo">Foo</a><a href="page://Bar">Bar</a><br>
 </p>
 
 <p>
@@ -298,7 +294,7 @@ LINKS: <a href="/Foo.html">Foo</a><a href="/Bar.html">Bar</a><br>
 <p>
 Let's try these <strong>bold</strong>, <em>italic</em>, <u>underline</u> and <strike>strike</strike><br>
 And some <code>//verbatim//</code><br>
-And don't forget these: *bold*, /italic/ / * *^%%#@#$#!@)_!)_<br>
+And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_<br>
 </p>
 
 <p>
@@ -315,19 +311,19 @@ A list<br>
 <p>
 And a checkbox list<br>
 <ul>
-<li style="list-style-image: url(%(unchecked-box)s)">item 1</li>
+<li style="list-style-image: url(icon://unchecked-box)">item 1</li>
 <ul>
-<li style="list-style-image: url(%(checked-box)s)">sub item 1</li>
+<li style="list-style-image: url(icon://checked-box)">sub item 1</li>
 <ul>
 <li>Some normal bullet</li>
 </ul>
-<li style="list-style-image: url(%(xchecked-box)s)">sub item 2</li>
-<li style="list-style-image: url(%(unchecked-box)s)">sub item 3</li>
+<li style="list-style-image: url(icon://xchecked-box)">sub item 2</li>
+<li style="list-style-image: url(icon://unchecked-box)">sub item 3</li>
 </ul>
-<li style="list-style-image: url(%(unchecked-box)s)">item 2</li>
-<li style="list-style-image: url(%(unchecked-box)s)">item 3</li>
+<li style="list-style-image: url(icon://unchecked-box)">item 2</li>
+<li style="list-style-image: url(icon://unchecked-box)">item 3</li>
 <ul>
-<li style="list-style-image: url(%(xchecked-box)s)">item FOOOOOO !</li>
+<li style="list-style-image: url(icon://xchecked-box)">item FOOOOOO !</li>
 </ul>
 </ul>
 </p>
@@ -344,5 +340,14 @@ This is not a header<br>
 <p>
 That's all ...<br>
 </p>
-''' % icons
+'''
 		self.assertEqualDiff(output, html.splitlines(True))
+
+
+class StubLinker(object):
+
+	def link(self, link): return '%s://%s' % (link_type(link), link)
+
+	def img(self, src): return 'img://' + src
+
+	def icon(self, name): return 'icon://' + name

@@ -14,20 +14,25 @@ __all__ = [
 	'formats', 'templates',
 	'stores', 'index', 'notebook',
 	'history', 'plugins',
-	'pageview',
+	'export', 'www', 'pageview',
+	'printtobrowser'
 ]
 
 __unittest = 1 # needed to get stack trace OK for class TestCase
 
 
 def set_environ():
+	tmpdir = './tests/tmp/tmp'
 	os.environ.update({
+		'TMP': tmpdir,
 		'XDG_DATA_HOME': './tests/tmp/share',
 		'XDG_DATA_DIRS': './tests/tmp/share',
 		'XDG_CONFIG_HOME': './tests/tmp/config',
 		'XDG_CONFIG_DIRS': './tests/tmp/config',
 		'XDG_CACHE_HOME': './tests/tmp/cache'
 	})
+	if not os.path.isdir(tmpdir):
+		os.mkdir(tmpdir)
 
 
 def create_tmp_dir(name):

@@ -10,26 +10,17 @@
 import re
 
 from zim.formats import *
-from zim.config import data_file
-from zim.parsing import TextBuffer, link_type
+from zim.parsing import TextBuffer, link_type, url_encode
 
 info = {
 	'name':  'Html',
 	'mime':  'text/html',
+	'extension': 'html',
 	'read':	  False,
 	'write':  False,
 	'import': False,
 	'export': True,
 }
-
-
-def url_encode(link):
-	if not link is None:
-		link.replace(' ', '%20')
-		# FIXME what other chars do we need ?
-		return link
-	else:
-		return ''
 
 
 def html_encode(text):
@@ -60,6 +51,7 @@ class Dumper(DumperClass):
 
 	def dump(self, tree):
 		assert isinstance(tree, ParseTree)
+		assert self.linker, 'HTML dumper needs a linker object'
 		output = TextBuffer()
 		self._dump_children(tree.getroot(), output, istoplevel=True)
 		return output.get_lines()
@@ -98,17 +90,21 @@ class Dumper(DumperClass):
 				output.append('</ul>\n')
 			elif element.tag == 'li':
 				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
-					icon = self.icon(element.attrib['bullet'])
+					icon = url_encode(self.linker.icon(element.attrib['bullet']))
 					output += ['<li style="list-style-image: url(%s)">' % icon, text]
 				else:
 					output += ['<li>', text]
 				self._dump_children(element, output) # recurs
 				output.append('</li>\n')
 			elif element.tag == 'img':
-				src = self.href(element.attrib['src'])
-				output.append('<img src="%s" alt="%s">' % (src, text))
+				src = url_encode(self.linker.img(element.attrib['src']))
+				opt = ''
+				for o in ('width', 'height'):
+					if o in element.attrib and int(element.attrib[o]) > 0:
+						opt = ' %s="%s"' % (o, element.attrib[o])
+				output.append('<img src="%s" alt="%s"%s>' % (src, text, opt))
 			elif element.tag == 'link':
-				href = self.href(element.attrib['href'])
+				href = url_encode(self.linker.link(element.attrib['href']))
 				output.append('<a href="%s">%s</a>' % (href, text))
 			elif element.tag in ['emphasis', 'strong', 'mark', 'strike', 'code']:
 				if element.tag == 'mark': tag = 'u'
@@ -126,24 +122,4 @@ class Dumper(DumperClass):
 					tail = encode_whitespace(tail)
 				output.append(tail)
 
-	def href(self, href):
-		# TODO need a way to set a base url (+ seperate base for files for www server)
-		# TODO use link object if available
-		type = link_type(href)
-		if type == 'page':
-			href = href.replace(':', '/') + '.html'
-			if not href.startswith('/'):
-				href = '/' + href
-		elif type == 'file':
-			pass # TODO parse file links for html output
-		elif type == 'mailto':
-			if not href.startswith('mailto:'):
-				href = 'mailto:' + link
-		else:
-			pass # I dunno, some url ?
 
-		return url_encode(href)
-
-	def icon(self, name):
-		return data_file('pixmaps/%s.png' % name)
-		#return '/+icon/' + name + '.png'

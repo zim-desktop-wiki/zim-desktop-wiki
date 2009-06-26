@@ -40,6 +40,17 @@ def unescape_quoted_string(string):
 	return string
 
 
+def url_encode(url):
+	'''Replaces non-standard characters in urls with hex codes'''
+	url = url.replace(' ', '%20')
+	# FIXME what other chars do we need ?
+	return url
+
+
+def url_decode(url):
+	pass # TODO url_decode
+
+
 class Re(object):
 	'''Wrapper around regex pattern objects which memorizes the
 	last match object and gives list access to it's capturing groups.
@@ -66,7 +77,7 @@ class Re(object):
 	# We could implement __eq__ here to get more Perlish syntax
 	# for matching. However that would make code using this class
 	# less readable for Python adepts. Therefore keep using
-	# match() and search() and do not go for to much overloading.
+	# match() and search() and do not go for too much overloading.
 
 	def __len__(self):
 		if self.m is None:
@@ -134,7 +145,11 @@ def link_type(link):
 
 
 class TextBuffer(list):
-	'''List of strings.'''
+	'''List of strings. Allows you to append arbitry pieces of text but
+	calling get_lines() will recombine or split text into lines. Used by
+	parsers that need to output lines but handle smaller pieces of text
+	internally.
+	'''
 
 	def get_lines(self):
 		'''Returns a proper list of lines'''

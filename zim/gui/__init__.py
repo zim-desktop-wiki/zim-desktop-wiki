@@ -66,7 +66,7 @@ ui_actions = (
 	('show_preferences',  'gtk-preferences', 'Pr_eferences', '', 'Preferences dialog'),
 	('reload_page',  'gtk-refresh', '_Reload', '<ctrl>R', 'Reload page'),
 	('open_attachments_folder', 'gtk-open', 'Open Attachments _Folder', '', 'Open document folder'),
-	('open_documents_folder', 'gtk-open', 'Open _Documents Folder', '', 'Open document root'),
+	('open_document_root', 'gtk-open', 'Open _Document Root', '', 'Open document root'),
 	('attach_file', 'mail-attachment', 'Attach _File', '', 'Attach external file'),
 	('edit_page_source', 'gtk-edit', 'Edit _Source', '', 'Open source'),
 	('show_server_gui', None, 'Start _Web Server', '', 'Start web server'),
@@ -355,12 +355,18 @@ class GtkInterface(NotebookInterface):
 		'''Signal handler for open-notebook.'''
 		NotebookInterface.do_open_notebook(self, notebook)
 		self.history = zim.history.History(notebook, self.uistate)
+		self.on_notebook_properties_changed(notebook)
 
 		# Do a lightweight background check of the index
 		self.notebook.index.update(background=True, checkcontents=False)
 
 		# TODO load history and set intial page
 		self.open_page_home()
+
+	def on_notebook_properties_changed(self, notebook):
+		has_doc_root = not notebook.get_document_root() is None
+		action = self.actiongroup.get_action('open_document_root')
+		action.set_sensitive(has_doc_root)
 
 	def open_page(self, path=None):
 		'''Emit the open-page signal. The argument 'path' can either be a Page
@@ -568,14 +574,18 @@ class GtkInterface(NotebookInterface):
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)
 		if dir is None:
-			return # TODO: proper error dialog
+			error = 'This page does not have an attachments folder'
+			ErrorDialog(self, error).run()
 		elif dir.exists():
 			self.open_folder(dir)
 		else:
-			print 'TODO prompt whether to create it'
-			# else open first parent that exists
+			question = ('Create folder?', 'The attachments folder for this page does not yet exist.\nDo you want to create it now?')
+			create = QuestionDialog(self, question).run()
+			if create:
+				dir.touch()
+				self.open_folder(dir)
 
-	def open_documents_folder(self):
+	def open_document_root(self):
 		dir = self.notebook.get_documents_dir()
 		if dir and dir.exists():
 			self.open_folder(dir)
@@ -588,7 +598,6 @@ class GtkInterface(NotebookInterface):
 
 	def reload_index(self):
 		dialog = ProgressBarDialog(self, 'Updating index')
-		dialog.msg_label.set_ellipsize(pango.ELLIPSIZE_START)
 		dialog.show_all()
 		self.notebook.index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
@@ -1015,9 +1024,52 @@ class ErrorDialog(gtk.MessageDialog):
 
 	def run(self):
 		'''Runs the dialog and destroys it directly.'''
+		logger.debug('Running ErrorDialog')
 		logger.error(self.error)
 		gtk.MessageDialog.run(self)
 		self.destroy()
+
+
+
+class QuestionDialog(gtk.MessageDialog):
+
+	def __init__(self, ui, question):
+		'''Constructor. 'ui' can either be the main application or some
+		other dialog. Question is a message that can be answered by
+		'yes' or 'no'. The question can also be a tuple containing a short
+		question and a longer explanation, this is prefered for look&feel.
+		'''
+		if isinstance(question, tuple):
+			question, text = question
+		else:
+			text = None
+		self.question = question
+
+		self.response = None
+		gtk.MessageDialog.__init__(
+			self, parent=get_window(ui),
+			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO,
+			message_format=question
+		)
+		if text:
+			self.format_secondary_text(text)
+
+		self.connect('response', self.__class__.do_response)
+
+	def do_response(self, id):
+		self.response = id
+
+	def run(self):
+		'''Runs the dialog and destroys it directly.
+		Returns True if the user clicked 'Yes', False otherwise.
+		'''
+		logger.debug('Runnine QuestionDialog')
+		logger.debug('Q: %s', self.question)
+		gtk.MessageDialog.run(self)
+		self.destroy()
+		answer = self.response == gtk.RESPONSE_YES
+		logger.debug('A: %s', answer)
+		return answer
 
 
 class Dialog(gtk.Dialog):
@@ -1049,6 +1101,10 @@ class Dialog(gtk.Dialog):
 			self.uistate.setdefault('windowsize', (-1, -1), self.uistate.is_coord)
 			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
+		else:
+			self.uistate = { # used in tests/debug
+				'windowsize': (-1, -1)
+			}
 
 		self._no_ok_action = False
 		if buttons is None or buttons == gtk.BUTTONS_NONE:
@@ -1221,9 +1277,8 @@ class Dialog(gtk.Dialog):
 		else:
 			close = True
 
-		if hasattr(self, 'uistate'):
-			w, h = self.get_size()
-			self.uistate['windowsize'] = (w, h)
+		w, h = self.get_size()
+		self.uistate['windowsize'] = (w, h)
 
 		if close:
 			self.destroy()
@@ -1248,6 +1303,9 @@ class FileDialog(Dialog):
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN, **opts):
 		Dialog.__init__(self, ui, title, **opts)
+		if self.uistate['windowsize'] == (-1, -1):
+			self.uistate['windowsize'] = (500, 400)
+			self.set_default_size(500, 400)
 		self.filechooser = gtk.FileChooserWidget(action=action)
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
 		self.vbox.add(self.filechooser)
@@ -1576,6 +1634,7 @@ class ProgressBarDialog(gtk.Dialog):
 
 		self.msg_label = gtk.Label()
 		self.msg_label.set_alignment(0.0, 0.5)
+		self.msg_label.set_ellipsize(pango.ELLIPSIZE_START)
 		self.vbox.pack_start(self.msg_label, False)
 
 	def pulse(self, msg=None):

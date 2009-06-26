@@ -6,9 +6,10 @@
 
 import webbrowser
 
-from zim.fs import *
+from zim.fs import TmpFile
 from zim.plugins import PluginClass
 import zim.templates
+from zim.exporter import BaseLinker
 
 ui_xml = '''
 <ui>
@@ -52,8 +53,13 @@ This is a core plugin shipping with zim.
 			self.ui.add_ui(ui_xml, self)
 
 	def print_to_browser(self):
-		file = '/tmp/pyzim-print-to-browser.html' # FIXME use proper interface to get tmp file
-		template = zim.templates.get_template('html', 'Print')
-		html = template.process(self.ui.notebook, self.ui.page)
-		File(file).writelines(html)
+		file = self.print_to_file()
 		webbrowser.open('file://%s' % file)
+
+	def print_to_file(self):
+		file = TmpFile('print-to-browser.html') 
+		template = zim.templates.get_template('html', 'Print')
+		template.set_linker(BaseLinker('html', self.ui.notebook, self.ui.page))
+		html = template.process(self.ui.notebook, self.ui.page)
+		file.writelines(html)
+		return file

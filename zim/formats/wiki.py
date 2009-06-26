@@ -218,11 +218,10 @@ class Parser(ParserClass):
 		def parse_image(match):
 			parts = match[1].split('|', 2)
 			src = parts[0]
-			if len(parts) > 1:
-				mytext = parts[1]
-			else:
-				mytext = None
-			return ('img', {'src':src}, mytext)
+			if len(parts) > 1: mytext = parts[1]
+			else: mytext = None
+			attrib = self.parse_image_url(src)
+			return ('img', attrib, mytext)
 
 		list = parser_re['img'].sublist(parse_image, list)
 
@@ -283,6 +282,14 @@ class Dumper(DumperClass):
 				output.append("'''\n"+element.text+"'''\n")
 			elif element.tag == 'img':
 				src = element.attrib['src']
+				opts = []
+				for k, v in element.attrib.items():
+					if k == 'src' or k.startswith('_'):
+						continue
+					else:
+						opts.append('%s=%s' % (k, v))
+				if opts:
+					src += '?%s' % '&'.join(opts)
 				if element.text:
 					output.append('{{'+src+'|'+element.text+'}}')
 				else:

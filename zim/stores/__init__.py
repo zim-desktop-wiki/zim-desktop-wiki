@@ -78,6 +78,18 @@ def get_store(name):
 	return mod
 
 
+def encode_filename(pagename):
+	'''Encodes a pagename to a filename. Namespaces are mapped to directories
+	and special characters are encoded. Returns basename without extension.
+	'''
+	# TODO - actually encode special characters ...
+	return pagename.replace(':', '/').replace(' ', '_')
+
+def decode_filename(filename):
+	'''Decodes a file basename to a pagename'''
+	return filename.replace('/', ':').replace('_', ' ')
+
+
 class StoreClass():
 
 	def __init__(self, notebook, path):
@@ -164,6 +176,5 @@ class StoreClass():
 			return self.dir
 		else:
 			name = path.relname(self.namespace)
-			# TODO map strange characters
-			dirpath = name.replace(':', '/').replace(' ', '_')
+			dirpath = encode_filename(name)
 			return Dir([self.dir, dirpath])

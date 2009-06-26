@@ -24,6 +24,7 @@ import os
 import logging
 import gobject
 
+from zim.fs import *
 from zim.config import config_file, ConfigDictFile
 
 logger = logging.getLogger('zim')
@@ -100,34 +101,33 @@ class NotebookInterface(gobject.GObject):
 	def do_open_notebook(self, notebook):
 		'''FIXME'''
 		self.notebook = notebook
-		self.uistate = ConfigDictFile(notebook.cache_dir.file('state.conf'))
+		if notebook.cache_dir:
+			# may not exist during tests
+			self.uistate = ConfigDictFile(
+				notebook.cache_dir.file('state.conf') )
 		# TODO read profile preferences file if one is set in the notebook
 
 	def cmd_export(self, format='html', template=None, page=None, output=None):
 		'''Method called when doing a commandline export'''
+		import zim.exporter
+		exporter = zim.exporter.Exporter(self.notebook, format, template)
 
-		if page is None:
-			selection = self.notebook
-		elif isinstance(page, basestring):
-			# TODO detect whether page is a query string
+		if page:
 			path = self.notebook.resolve_path(page)
 			page = self.notebook.get_page(path)
-			selection = page # TODO API selection objects
-		else:
-			page = self.notebook.get_page(page)
-			selection = page # TODO API selection objects
 
-		if isinstance(template, basestring):
-			from zim.templates import get_template
-			template = get_template(format, template)
-
-		if output is None:
+		if page and output is None:
 			import sys
-			output = sys.stdout
-
-		from zim.exporter import Exporter
-		Exporter().export(selection, format, output, template)
-
+			exporter.export_page_to_fh(sys.stdout, page)
+		elif not output:
+			logger.error('Need output directory to export notebook')
+		else:
+			dir = Dir(output)
+			if page:
+				exporter.export_page(dir, page)
+			else:
+				self.notebook.index.update()
+				exporter.export_all(dir)
 
 	def cmd_index(self, output=None):
 		'''Method called when doing a commandline index re-build'''
