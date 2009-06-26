@@ -302,5 +302,6 @@ XDG_VIDEOS_DIR="$HOME/Videos"
 ''')
 
 	def runTest(self):
+		'''Test config for user dirs'''
 		dirs = user_dirs()
 		self.assertEqual(dirs['XDG_DOCUMENTS_DIR'], Dir('~/Documents'))

@@ -21,7 +21,7 @@ import os # using os directly in get_pagelist()
 from zim.fs import *
 from zim import formats
 from zim.notebook import Path, Page, LookupError, PageExistsError
-from zim.stores import StoreClass
+from zim.stores import StoreClass, encode_filename, decode_filename
 from zim.config import HeadersDict
 
 __store__ = 'files'
@@ -43,19 +43,16 @@ class Store(StoreClass):
 		'''Returns a File object for a notebook path'''
 		assert path != self.namespace, 'Can not get a file for the toplevel namespace'
 		name = path.relname(self.namespace)
-		# TODO map strange characters
-		filepath = name.replace(':', '/').replace(' ', '_')+'.txt'
+		filepath = encode_filename(name)+'.txt'
 		return File([self.dir, filepath])
 
 	def _get_dir(self, path):
 		'''Returns a dir object for a notebook path'''
-		# TODO StoreClass.get_attachments_dir is a copy of this logic
 		if path == self.namespace:
 			return self.dir
 		else:
 			name = path.relname(self.namespace)
-			# TODO map strange characters
-			dirpath = name.replace(':', '/').replace(' ', '_')
+			dirpath = encode_filename(name)
 			return Dir([self.dir, dirpath])
 
 	def get_page(self, path):
@@ -75,9 +72,9 @@ class Store(StoreClass):
 			if file.startswith('.') or file.startswith('_'):
 				continue # no hidden files or directories
 			elif file.endswith('.txt'): # TODO: do not hard code extension
-				names.add(file[:-4].replace('_', ' '))
+				names.add(decode_filename(file[:-4]))
 			elif os.path.isdir( os.path.join(dir.path, file) ):
-				names.add(file.replace('_', ' '))
+				names.add(decode_filename(file))
 			else:
 				pass # unknown file type
 

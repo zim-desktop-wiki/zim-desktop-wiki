@@ -230,7 +230,7 @@ class ListDict(dict):
 			klass = v.__class__
 			if issubclass(klass, basestring):
 				klass = basestring
-			if not isinstance(self[k], klass):
+			if not isinstance(self[k], klass) and not self[k] is None:
 				logger.warn(
 					'Invalid config value for %s: "%s" - should be of type %s',
 					k, self[k], v.__class__)
@@ -456,7 +456,6 @@ class ConfigFile(ListDict):
 			raise ConfigPathError, 'Config file \'%s\' does not exist and no default set' % self.file
 
 	def write(self):
-		logger.debug('Writing config file: %s', self.file)
 		self.file.writelines(self.dump())
 		self.set_modified(False)
 

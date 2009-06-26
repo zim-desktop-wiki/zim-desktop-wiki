@@ -64,7 +64,7 @@ class TestStoresMemory(tests.TestCase):
 				parts.pop()
 
 	def testIndex(self):
-		'''Test we get a proper index'''
+		'''Test we get a proper index for the memory store'''
 		names = set()
 		for parent, page in walk(self.store):
 			self.assertTrue(len(page.name) > 0)
@@ -78,7 +78,7 @@ class TestStoresMemory(tests.TestCase):
 		self.assertEqualDiffData(names, self.index)
 
 	def testManipulate(self):
-		'''Test moving and deleting pages in the store'''
+		'''Test moving and deleting pages in the memory store'''
 
 		# check test setup OK
 		for path in (Path('Test:BAR'), Path('NewPage')):
@@ -161,4 +161,10 @@ class TestFiles(TestStoresMemory):
 				mypage = self.store.get_page(page)
 				mypage.set_parsetree(page.get_parsetree())
 
-	# TODO test move, delete, read, write
+	def testIndex(self):
+		'''Test we get a proper index for files store'''
+		TestStoresMemory.testIndex(self)
+
+	def testManipulate(self):
+		'''Test moving and deleting pages in the files store'''
+		TestStoresMemory.testManipulate(self)

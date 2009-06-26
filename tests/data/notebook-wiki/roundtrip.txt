@@ -16,7 +16,7 @@ Some Verbatim here
 	Indented and all: //foo//
 '''
 
-IMAGE: {{../my-image.png|Foo Bar}}
+IMAGE: {{../my-image.png?width=600|Foo Bar}}
 LINKS: [[:foo:bar]] [[./file.png]] [[file:///etc/passwd]]
 LINKS: [[Foo]][[Bar]]
 

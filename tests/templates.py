@@ -142,8 +142,8 @@ class TestPageProxy(TestCase):
 ====== Page Heading ======
 **foo bar !**
 ''')
-		self.assertTrue(len(page.dump('html')) > 0)
-		proxy = PageProxy(Notebook(), page, zim.formats.get_format('html'))
+		self.assertTrue(len(page.dump('html', linker=StubLinker())) > 0)
+		proxy = PageProxy(Notebook(), page, zim.formats.get_format('html'), StubLinker())
 		self.assertEqual(proxy.name, page.name)
 		self.assertEqual(proxy.namespace, page.namespace)
 		self.assertEqual(proxy.basename, page.basename)
@@ -177,6 +177,17 @@ Version %s
 ====== Page Heading ======
 **foo bar !**
 ''')
-		self.assertTrue(len(page.dump('html')) > 0)
-		result = Template(input, 'html').process(Notebook(), page)
+		self.assertTrue(len(page.dump('html', linker=StubLinker())) > 0)
+		result = Template(input, 'html', linker=StubLinker()).process(Notebook(), page)
 		self.assertEqualDiff(result, wantedresult.splitlines(True))
+
+
+class StubLinker(object):
+
+	def set_path(self, path): pass
+
+	def link(self, link): return '%s://%s' % (link_type(link), link)
+
+	def img(self, src): return 'img://' + src
+
+	def icon(self, name): return 'icon://' + name

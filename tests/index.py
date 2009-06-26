@@ -154,6 +154,10 @@ class TestIndexFiles(TestIndex):
 		self.notebook = get_files_notebook()
 		self.index = self.notebook.index
 
+	def runTest(self):
+		'''Test indexing files'''
+		TestIndex.runTest(self)
+
 
 class TestPageTreeStore(tests.TestCase):
 
@@ -257,3 +261,7 @@ class TestPageTreeStoreFiles(TestPageTreeStore):
 	def setUp(self):
 		self.notebook = get_files_notebook()
 		self.index = self.notebook.index
+
+	def runTest(self):
+		'''Test PageTreeStore index interface with files index'''
+		TestPageTreeStore.runTest(self)

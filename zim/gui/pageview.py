@@ -242,7 +242,7 @@ class TextBuffer(gtk.TextBuffer):
 			elif element.tag == 'link':
 				self.insert_link_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':
-				file = element.attrib['src-file']
+				file = element.attrib['_src_file']
 				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
 			else:
 				# Text styles

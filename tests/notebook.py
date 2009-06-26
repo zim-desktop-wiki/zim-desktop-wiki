@@ -144,13 +144,14 @@ class TestNotebook(tests.TestCase):
 		path = Path('Foo:Bar')
 		self.notebook.dir = dir
 		self.notebook.get_store(path).dir = dir
-		docdir = self.notebook.get_documents_dir()
+		self.notebook.config['document_root'] = './notebook_document_root'
+		doc_root = self.notebook.get_document_root()
 		for link, wanted, cleaned in (
 			('~/test.txt', File('~/test.txt'), '~/test.txt'),
 			('file:///test.txt', File('file:///test.txt'), None),
 			('file:/test.txt', File('file:///test.txt'), None),
 			('file://localhost/test.txt', File('file:///test.txt'), None),
-			('/test.txt', docdir.file('test.txt'), '/test.txt'),
+			('/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('./test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
 			('../test.txt', dir.file('Foo/test.txt'), '../test.txt'),
 			('../Bar/Baz/test.txt', dir.file('Foo/Bar/Baz/test.txt'), './Baz/test.txt'),
@@ -163,7 +164,7 @@ class TestNotebook(tests.TestCase):
 
 		# check relative path without Path
 		self.assertEqual(
-			self.notebook.relative_filepath(docdir.file('foo.txt')), '/foo.txt')
+			self.notebook.relative_filepath(doc_root.file('foo.txt')), '/foo.txt')
 		
 #	def testResolveLink(self):
 #		'''Test page.resolve_link()'''

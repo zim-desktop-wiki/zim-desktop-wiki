@@ -224,11 +224,15 @@ class GenericTemplate(object):
 class Template(GenericTemplate):
 	'''Template class that can process a zim Page object'''
 
-	def __init__(self, input, format, name=None):
+	def __init__(self, input, format, linker=None, name=None):
 		if isinstance(format, basestring):
 			format = zim.formats.get_format(format)
 		self.format = format
+		self.linker = linker
 		GenericTemplate.__init__(self, input, name)
+
+	def set_linker(self, linker):
+		self.linker = linker
 
 	def process(self, notebook, page):
 		'''Processes the template with a dict giving a set a standard
@@ -236,7 +240,7 @@ class Template(GenericTemplate):
 		'''
 		dict = {
 			'zim': { 'version': zim.__version__ },
-			'page': PageProxy(notebook, page, self.format),
+			'page': PageProxy(notebook, page, self.format, self.linker),
 			'strftime': TemplateFunction(self.strftime),
 			'url': TemplateFunction(self.url)
 		}
@@ -513,9 +517,10 @@ class TemplateDict(object):
 				else:
 					return None
 			elif isinstance(branch, object):
-				if hasattr(branch, name):
+				# do not use hasattr here - it silences exceptions
+				try:
 					branch = getattr(branch, name)
-				else:
+				except AttributeError:
 					return None
 			else:
 				return None
@@ -529,8 +534,11 @@ class TemplateDict(object):
 			if param.key in branch:
 				return branch[param.key]
 		elif isinstance(branch, object):
-			if hasattr(branch, param.key):
+			# do not use hasattr here - it silences exceptions
+			try:
 				return getattr(branch, param.key)
+			except AttributeError:
+				pass
 		return None
 
 	def __getitem__(self, param):
@@ -549,12 +557,13 @@ class TemplateDict(object):
 class PageProxy(object):
 	'''Exposes a single page object to the template.'''
 
-	def __init__(self, notebook, page, format):
+	def __init__(self, notebook, page, format, linker):
 		'''Constructor takes the page object to expose and a format.'''
 		# private attributes should be shielded by the template engine
 		self._page = page
 		self._notebook = notebook
 		self._format = format
+		self._linker = linker
 		self._treeproxy_obj = None
 
 	def _treeproxy(self):
@@ -592,7 +601,7 @@ class PageProxy(object):
 		for type, name in self._page.get_links():
 			if type == 'page':
 				page = self._notebook.get_page(name)
-				yield PageProxy(self._notebook, page)
+				yield PageProxy(self._notebook, page, self._format, self._linker)
 
 	@property
 	def backlinks(self):
@@ -610,10 +619,17 @@ class ParseTreeProxy(object):
 
 	@property
 	def heading(self):
-		return None # TODO
+		if not self._tree:
+			return None
+		else:
+			return None # TODO
 
 	@property
 	def body(self):
-		format = self._pageproxy._format
-		page = self._pageproxy._page
-		return ''.join(format.Dumper().dump(self._tree))
+		if not self._tree:
+			return None
+		else:
+			format = self._pageproxy._format
+			linker = self._pageproxy._linker
+			linker.set_path(self._pageproxy._page)
+			return ''.join(format.Dumper(linker=linker).dump(self._tree))

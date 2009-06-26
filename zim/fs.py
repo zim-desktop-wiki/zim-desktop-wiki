@@ -29,6 +29,12 @@ __all__ = ['Dir', 'File']
 logger = logging.getLogger('zim.fs')
 
 
+def get_tmpdir():
+	import tempfile
+	return tempfile.gettempdir()
+	# TODO make path specific for user / process ...
+
+
 class PathLookupError(Exception):
 	'''FIXME'''
 
@@ -390,6 +396,19 @@ class File(Path):
 		else:
 			dest.dir.touch()
 		shutil.copy(self.path, dest.path)
+
+
+class TmpFile(File):
+
+	def __init__(self, name, unique=True, checkoverwrite=False):
+		'''Create a file object under the tmp dir.
+		If 'unique' is True a random key will be inserted in the name
+		before the file extension.
+		'''
+		if unique:
+			print 'TODO: support unique tmp files'
+		path = (get_tmpdir(), name)
+		File.__init__(self, path, checkoverwrite)
 
 
 class FileHandle(file):

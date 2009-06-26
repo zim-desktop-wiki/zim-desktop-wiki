@@ -122,7 +122,7 @@
 -->
 			<menuitem action='attach_file'/>
 			<menuitem action='open_attachments_folder'/>
-			<menuitem action='open_documents_folder'/>
+			<menuitem action='open_document_root'/>
 			<separator/>
 			<menuitem action='show_server_gui'/>
 			<separator/>

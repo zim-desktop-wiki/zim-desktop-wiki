@@ -9,6 +9,7 @@ from zim.parsing import *
 class TestParsing(TestCase):
 
 	def testSplitWords(self):
+		'''Test parsing quoted strings'''
 		string = r'''"foo bar", "\"foooo bar\"" dusss ja'''
 		list = ['foo bar', ',', '"foooo bar"', 'dusss', 'ja']
 		result = split_quoted_strings(string)
@@ -18,6 +19,7 @@ class TestParsing(TestCase):
 		self.assertEquals(result, list)
 
 	def testRe(self):
+		'''Test parsing Re class'''
 		string = 'foo bar baz';
 		re = Re('f(oo)\s*(bar)')
 		if re.match(string):
@@ -29,6 +31,7 @@ class TestParsing(TestCase):
 			assert False, 'fail'
 
 	def testTextBuffer(self):
+		'''Test parsing TextBuffer class'''
 		buffer = TextBuffer()
 		buffer += ['test 123\n test !', 'fooo bar\n', 'duss']
 		self.assertEqual(

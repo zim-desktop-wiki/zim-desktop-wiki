@@ -323,8 +323,8 @@ class Notebook(gobject.GObject):
 		absolute paths and are returned unmodified.
 
 		In case the file path starts with '/' the the path is taken relative
-		to the document root - this can be the dir where pages are stored,
-		or some other dir.
+		to the document root - this can e.g. be a parent directory of the
+		notebook. Defaults to the home dir.
 
 		Other paths are considered attachments and are resolved relative
 		to the namespce below the page.
@@ -332,11 +332,13 @@ class Notebook(gobject.GObject):
 		if filename.startswith('~') or filename.startswith('file:/'):
 			return File(filename)
 		elif filename.startswith('/'):
-			dir = self.get_documents_dir()
+			dir = self.get_document_root() or Dir('~')
 			return dir.file(filename)
 		else:
 			# TODO - how to deal with '..' in the middle of the path ?
 			filepath = [p for p in filename.split('/') if len(p) and p != '.']
+			if not filepath: # filename is e.g. "."
+				return self.get_attachments_dir(path)
 			pagepath = path.name.split(':')
 			filename = filepath.pop()
 			while filepath and filepath[0] == '..':
@@ -371,12 +373,11 @@ class Notebook(gobject.GObject):
 				uppath, downpath = dir.path[i:], file.path[i:]
 				return '../'*(1+uppath.count('/')) + downpath
 
-		home = Dir('~')
-		dir = self.get_documents_dir()
-		if dir != home and file.ischild(dir):
+		dir = self.get_document_root()
+		if dir and file.ischild(dir):
 			return '/'+file.path[len(dir.path):].lstrip('/')
 
-		dir = home
+		dir = Dir('~')
 		if file.ischild(dir):
 			return '~/'+file.path[len(dir.path):].lstrip('/')
 
@@ -389,17 +390,12 @@ class Notebook(gobject.GObject):
 		store = self.get_store(path)
 		return store.get_attachments_dir(path)
 
-	def get_documents_dir(self):
-		'''Returns the Dir object for the documents folder or None if no
-		documents folder is configured.
-		'''
-		dirs = user_dirs()
-		if 'documents_dir' in self.config:
-			return Dir(self.config['documents_dir'])
-		elif 'XDG_DOCUMENTS_DIR' in dirs:
-			return dirs['XDG_DOCUMENTS_DIR']
+	def get_document_root(self):
+		'''Returns the Dir object for the document root or None'''
+		if 'document_root' in self.config:
+			return Dir(self.config['document_root'])
 		else:
-			return Dir('~/Documents') # fall back to home dir
+			return None
 
 	def get_template(self, path):
 		'''Returns a template object for path. Typically used to set initial
@@ -592,7 +588,7 @@ class Page(Path):
 		self._parsetree = tree
 		#~ self.emit('changed')
 
-	def dump(self, format):
+	def dump(self, format, linker=None):
 		'''Convenience method that converts the current parse tree to a
 		particular format and returns a list of lines. Format can be either a
 		format module or a string which can be passed to formats.get_format().
@@ -601,9 +597,12 @@ class Page(Path):
 			import zim.formats
 			format = zim.formats.get_format(format)
 
+		if not linker is None:
+			linker.set_path(self)
+
 		tree = self.get_parsetree()
 		if tree:
-			return format.Dumper().dump(tree)
+			return format.Dumper(linker=linker).dump(tree)
 		else:
 			return []
 
@@ -628,6 +627,54 @@ class Page(Path):
 				#~ elif is_path_re.match(link): type = 'file'
 				#~ else: type = 'page'
 				yield Link(self, **tag.attrib)
+
+
+class IndexPage(Page):
+	'''Page displaying a namespace index'''
+
+	def __init__(self, notebook, path=None, recurs=True):
+		'''Constructor takes a namespace path'''
+		if path is None:
+			path = Path(':')
+		Page.__init__(self, path, haschildren=True)
+		self.index_recurs = recurs
+		self.notebook = notebook
+		self.properties['readonly'] = True
+		self.properties['type'] = 'namespace-index'
+
+	@property
+	def hascontent(self): return True
+
+	def get_parsetree(self):
+		if self._parsetree is None:
+			self._parsetree = self._generate_parsetree()
+		return self._parsetree
+
+	def _generate_parsetree(self):
+		import zim.formats
+		builder = zim.formats.TreeBuilder()
+
+		def add_namespace(path):
+			pagelist = self.notebook.index.list_pages(path)
+			builder.start('ul')
+			for page in pagelist:
+				builder.start('li')
+				builder.start('link', {'type': 'page', 'href': page.name})
+				builder.data(page.basename)
+				builder.end('link')
+				builder.end('li')
+				if page.haschildren and self.index_recurs:
+					add_namespace(page) # recurs
+			builder.end('ul')
+
+		builder.start('page')
+		builder.start('h', {'level':1})
+		builder.data('Index of %s' % self.name)
+		builder.end('h')
+		add_namespace(self)
+		builder.end('page')
+
+		return zim.formats.ParseTree(builder.close())
 
 
 class Link(object):

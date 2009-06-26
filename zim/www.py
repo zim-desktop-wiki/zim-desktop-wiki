@@ -20,10 +20,11 @@ from wsgiref.headers import Headers
 import urllib
 
 from zim import NotebookInterface
-from zim.notebook import Page, Path
+from zim.notebook import Path, Page, IndexPage
 from zim.fs import *
 from zim.formats import ParseTree, TreeBuilder
 from zim.config import data_file
+from zim.exporter import BaseLinker
 
 logger = logging.getLogger('zim.www')
 
@@ -84,13 +85,17 @@ class WWWInterface(NotebookInterface):
 			from zim.templates import get_template
 			template = get_template('html', template)
 		self.template = template
+		self.linker = None
 		self.load_plugins()
 		if not notebook is None:
 			self.open_notebook(notebook)
 
-	#~ def open_notebook(self, notebook):
-		#~ NotebookInterface.open_notebook(self, notebook)
+	def open_notebook(self, notebook):
+		NotebookInterface.open_notebook(self, notebook)
 		#~ self.notebook.index.update()
+		self.linker = WWWLinker('html', notebook)
+		if self.template:
+			self.template.set_linker(self.linker)
 
 	def __call__(self, environ, start_response):
 		'''Main function for handling a single request. Arguments are the file
@@ -176,8 +181,9 @@ class WWWInterface(NotebookInterface):
 			# Unexpected error - maybe a bug, do not expose output on bugs
 			# to the outside world
 			logger.exception('Unexpected error:')
-			start_response('500 Internal Server Error', [])
-			return []
+			headerlist = [('Content-Type', 'text/plain')]
+			start_response('500 Internal Server Error', headerlist)
+			return ['Internal Server Error']
 		else:
 			start_response('200 OK', headerlist)
 			if environ['REQUEST_METHOD'] == 'HEAD':
@@ -189,9 +195,6 @@ class WWWInterface(NotebookInterface):
 
 	def render_index(self, namespace=None):
 		'''Serve an index page'''
-		if namespace is None:
-			namespace = Path(':') # top level namespace
-
 		page = IndexPage(self.notebook, namespace)
 		return self.render_page(page)
 
@@ -200,47 +203,7 @@ class WWWInterface(NotebookInterface):
 		if self.template:
 			return self.template.process(self.notebook, page)
 		else:
-			return page.dump(format='html')
-
-
-class IndexPage(Page):
-	'''Page displaying a namespace index'''
-
-	def __init__(self, notebook, path, recurs=True):
-		'''Constructor takes a namespace object'''
-		Page.__init__(self, path, haschildren=True)
-		self.index_recurs = recurs
-		self.notebook = notebook
-		self.properties['readonly'] = True
-		self.properties['type'] = 'namespace-index'
-
-	@property
-	def hascontent(self): return True
-
-	def get_parsetree(self):
-		builder = TreeBuilder()
-
-		def add_namespace(path):
-			pagelist = self.notebook.index.list_pages(path)
-			builder.start('ul')
-			for page in pagelist:
-				builder.start('li')
-				builder.start('link', {'type': 'page', 'href': page.name})
-				builder.data(page.basename)
-				builder.end('link')
-				builder.end('li')
-				if page.haschildren and self.index_recurs:
-					add_namespace(page) # recurs
-			builder.end('ul')
-
-		builder.start('page')
-		builder.start('h', {'level':1})
-		builder.data('Index of %s' % self.name)
-		builder.end('h')
-		add_namespace(self)
-		builder.end('page')
-
-		return ParseTree(builder.close())
+			return page.dump(format='html', linker=self.linker)
 
 
 class Server(gobject.GObject):
@@ -365,6 +328,9 @@ class Server(gobject.GObject):
 		clientsocket.close()
 		return True # else io watch gets deleted
 
-
 # Need to register classes defining gobject signals
 gobject.type_register(Server)
+
+
+class WWWLinker(BaseLinker):
+	pass

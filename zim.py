@@ -51,7 +51,7 @@ commandopts = {
 shortopts = {
 	'v': 'version', 'h': 'help',
 	'V': 'verbose', 'D': 'debug',
-	'o': 'output'
+	'o': 'output='
 }
 maxargs = {
 	'gui': 2, 'server': 1, 'manual': 1,
@@ -87,7 +87,10 @@ Server Options:
 Export Options:
   --format        format to use (defaults to 'html')
   --template      name of the template to use
-  -o, --output    output file or directory
+  -o, --output    output directory
+
+  You can use the export option to print a single page to stdout.
+  When exporting a whole notebook you need to provide a directory.
 
 Index Options:
   --output    output file
@@ -106,6 +109,8 @@ def main(argv):
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
+	for s, l in shortopts.items():
+		if l.endswith('='): short = short.replace(s, s+':')
 	long = list(longopts) + list(commands)
 	for opts in commandopts.values():
 		long.extend(opts)
@@ -117,7 +122,7 @@ def main(argv):
 	if opts:
 		o = opts[0][0].lstrip('-')
 		if o in shortopts:
-			o = shortopts[o]
+			o = shortopts[o].rstrip('=')
 		if o in commands:
 			opts.pop(0)
 			cmd = o
@@ -151,7 +156,7 @@ def main(argv):
 	for o, a in opts:
 		o = o.lstrip('-')
 		if o in shortopts:
-			o = shortopts[o]
+			o = shortopts[o].rstrip('=')
 
 		if o+'=' in allowedopts:
 			optsdict[o] = a
