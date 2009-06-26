@@ -127,6 +127,11 @@ TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
+ui_preferences = (
+	# section, key, type, category, label, default
+	('tearoff_menus', 'bool', 'Interface', 'Add \'tearoff\' strips to the menus', False),
+	('toggle_on_ctrlspace', 'bool', 'Interface', 'Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)', True),
+)
 
 # Load custom application icons as stock
 try:
@@ -186,6 +191,8 @@ class GtkInterface(NotebookInterface):
 		</ui>
 		''')
 
+		self.register_preferences('GtkInterface', ui_preferences)
+
 		self.mainwindow = MainWindow(self)
 
 		self.add_actions(ui_actions, self)
@@ -203,10 +210,6 @@ class GtkInterface(NotebookInterface):
 			gtk.accel_map_load(accelmap.path)
 		#~ gtk.accel_map_get().connect(
 			#~ 'changed', lambda o: gtk.accelmap_save(accelmap.path) )
-
-		self.register_preferences( (
-			('MainWindow', 'Foo', 'page', 'General', 'Foo page', 'Foo'),
-		) )
 
 		self.load_plugins()
 
@@ -331,12 +334,12 @@ class GtkInterface(NotebookInterface):
 		# TODO remove action group
 		# TODO remove ui
 
-	def register_preferences(self, preferences):
+	def register_preferences(self, section, preferences):
 		'''Registers user preferences. Registering means that a
 		preference will show up in the preferences dialog.
-		Each preference is a tuple consisting of:
+		The section given is the section to locate these preferences in the
+		config file. Each preference is a tuple consisting of:
 
-		* the section name in the config file
 		* the key in the config file
 		* an option type (see Dialog.add_fields() for more details)
 		* a category (the tab in which the option will be shown)
@@ -345,7 +348,7 @@ class GtkInterface(NotebookInterface):
 		'''
 		register = self.preferences_register
 		for p in preferences:
-			section, key, type, category, label, default = p
+			key, type, category, label, default = p
 			self.preferences[section].setdefault(key, default)
 			register.setdefault(category, [])
 			register[category].append((section, key, type, label))
@@ -579,6 +582,10 @@ class GtkInterface(NotebookInterface):
 		if self.preferences.modified:
 			self.preferences.write()
 			self.emit('preferences-changed')
+
+	def do_preferences_changed(self):
+		self.uimanager.set_add_tearoffs(
+			self.preferences['GtkInterface']['tearoff_menus'] )
 
 	def reload_page(self):
 		self.save_page_if_modified()

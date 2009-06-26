@@ -9,6 +9,7 @@ import gtk
 from zim.gui import Dialog
 from zim.gui.widgets import Button, BrowserTreeView
 import zim.plugins
+from zim.gui.pageview import PageView
 
 class PreferencesDialog(Dialog):
 	'''Preferences dialog consisting of tabs with various options and
@@ -23,9 +24,11 @@ class PreferencesDialog(Dialog):
 		for category, preferences in ui.preferences_register.items():
 			table = gtk.Table()
 			table.set_border_width(5)
-			table.set_row_spacings(5)
+			table.set_row_spacings(12)
 			table.set_col_spacings(12)
-			gtknotebook.append_page(table, gtk.Label(category))
+			vbox = gtk.VBox()
+			vbox.pack_start(table, False)
+			gtknotebook.append_page(vbox, gtk.Label(category))
 			fields = []
 			for p in preferences:
 				section, key, type, label = p
@@ -33,10 +36,46 @@ class PreferencesDialog(Dialog):
 				fields.append(((section, key), type, label, value))
 				# a tuple is hashable and can be used as field name...
 			self.add_fields(fields, table=table, trigger_response=False)
+			if category == 'Interface':
+				self._add_extra_widgets(table, vbox)
 
+		gtknotebook.append_page(StylesTab(self), gtk.Label('Styles'))
+		gtknotebook.append_page(KeyBindingsTab(self), gtk.Label('Key bindings'))
 		gtknotebook.append_page(PluginsTab(self), gtk.Label('Plugins'))
 
+	def _add_extra_widgets(self, table, vbox):
+		# need to hardcode this, can not register it as a preference
+		self.add_fields((('use_custom_font', 'bool', 'Use a custom font', False),), table=table, trigger_response=False)
+		self.use_custom_font = self.inputs.pop('use_custom_font')
+
+		self.fontbutton = gtk.FontButton()
+		self.fontbutton.set_sensitive(False)
+		try:
+			font = PageView.style['TextView']['font']
+			if font:
+				self.fontbutton.set_font_name(font)
+				self.fontbutton.set_sensitive(True)
+				self.use_custom_font.set_active(True)
+		except KeyError:
+			pass
+		self.use_custom_font.connect('toggled',
+			lambda o: self.fontbutton.set_sensitive(self.use_custom_font.get_active()))
+
+		# HACK - how to do proper layout fontbutton ?
+		self.fontbutton.set_size_request(200, -1)
+		hbox = gtk.HBox()
+		vbox.add(hbox)
+		hbox.pack_start(gtk.Label('\t\t'), False)
+		hbox.pack_start(self.fontbutton, False)
+
 	def do_response_ok(self):
+		if self.use_custom_font.get_active():
+			font = self.fontbutton.get_font_name()
+		else:
+			font = None
+		PageView.style['TextView']['font'] = font
+		PageView.style.write()
+
 		fields = self.get_fields()
 		#~ print fields
 		for key, value in fields.items():
@@ -50,7 +89,7 @@ class PluginsTab(gtk.HBox):
 
 	def __init__(self, dialog):
 		gtk.HBox.__init__(self, spacing=12)
-		self.set_border_width(12)
+		self.set_border_width(5)
 		self.dialog = dialog
 
 		treeview = PluginsTreeView(self.dialog.ui)
@@ -86,7 +125,7 @@ class PluginsTab(gtk.HBox):
 			Button(stock=gtk.STOCK_HELP, label='_More')
 		self.plugin_help_button.connect('clicked', self.on_help_button_clicked)
 		hbox.pack_start(self.plugin_help_button, False)
-		
+
 		self.configure_button = \
 			Button(stock=gtk.STOCK_PREFERENCES, label='C_onfigure')
 		self.configure_button.connect('clicked', self.on_configure_button_clicked)
@@ -169,3 +208,61 @@ class PluginConfigureDialog(Dialog):
 		self.preferences.update(self.get_fields())
 		self.ui.save_preferences()
 		return True
+
+
+class StylesTab(gtk.VBox):
+
+	def __init__(self, dialog):
+		gtk.VBox.__init__(self)
+		self.add(gtk.Label('TODO add treeview with styles'))
+
+
+class StylesTreeModel(gtk.ListStore):
+
+	def __init__(self, ui):
+		#'weight', 'scale', 'style', 'background', 'foreground', 'strikethrough',
+		# 'family', 'wrap-mode', 'indent', 'underline'
+		gtk.ListStore.__init__(self, bool, str, object)
+
+
+class KeyBindingsTab(gtk.VBox):
+
+	def __init__(self, dialog):
+		gtk.VBox.__init__(self)
+		self.add(gtk.Label('TODO add treeview with accelerators'))
+
+#~ Build editable treeview of menu items + accelerators
+#~
+#~ Just getting action names does not give menu structure,
+#~ so walk the menu.
+#~
+#~ Menus are containers, have a foreach
+#~ Menutitems are bin, can have submenu
+#~
+#~ Get label using get_child() etc (probably gives a box with icon,
+#~ label, accel, etc.)
+#~
+#~ Test get_submenu(),
+#~ if is None: leaf item, get accelerator
+#~ elif value: recurs
+#~
+#~ To get the accelerator:
+#~ accel_path = menuitem.get_accel_path() (make sure this is not the mnemonic..)
+#~ key, mod = gtk.accel_map_lookup_entry(accel_path)
+#~
+#~ To get / set accelerator labels in the UI use:
+#~ gtk.accelerator_name() to get a name to display
+#~
+#~ To parse name set by user
+#~ gtk.accelerator_parse()
+#~ gtk.accelerator_valid()
+#~
+#~ To change the accelerator:
+#~ Maybe first unlock path in accel_map and unlock the actiongroup..
+#~ gtk.accel_map.change_entry(accel_path, key, mods, replace=True)
+#~ check return value
+#~
+#~ To get updates for ui use:
+#~ gtk.accel_map_get().connect('changed', func(o, accel_path, key, mods))
+#~ This way we also get any accelerators that were deleted as result of
+#~ replace=True

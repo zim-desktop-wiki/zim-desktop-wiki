@@ -76,6 +76,16 @@ ui_format_toggle_actions = (
 	('toggle_format_strike', 'gtk-strikethrough', '_Strike', '', 'Strike', None, False),
 )
 
+ui_preferences = (
+	# key, type, category, label, default
+	('follow_on_enter', 'bool', 'Interface', 'Use the <Enter> key to follow links\n(If disabled you can still use <Alt><Enter>)', True),
+	('read_only_cursor', 'bool', 'Interface', 'Show the cursor also for pages that can not be edited', False),
+	('autolink_camelcase', 'bool', 'Editing', 'Automatically turn CamelCasewords into links', True),
+	('autolink_files', 'bool', 'Editing', 'Automatically turn file paths into links', True),
+	('autoselect', 'bool', 'Editing', 'Automatically select the current word when you apply formatting', True),
+	('unindent_on_backspace', 'bool', 'Editing', 'Unindent on <BackSpace>\n(If disabled you can still use <Shift><Tab>)', True),
+	('recursive_checklist', 'bool', 'Editing', 'Checking a checkbox also change any sub-items', False),
+)
 
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
 _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
@@ -891,19 +901,33 @@ class PageView(gtk.VBox):
 			action = actiongroup.get_action(name)
 			action.connect('activate', self.do_toggle_format_action)
 
-		self.load_styles()
+		self.preferences = self.ui.preferences['PageView']
+		self.ui.register_preferences('PageView', ui_preferences)
+
+		PageView.style = config_file('style.conf')
+		self.ui.connect('preferences-changed', lambda o: self.reload_style())
+		self.reload_style()
 
 	def grab_focus(self):
 		self.view.grab_focus()
 
-	def load_styles(self):
-		'''Load and parse the style config file'''
-		style = config_file('style.conf')
+	def reload_style(self):
+		'''(Re-)loads style definition from the config. While running this
+		config is found as the class attribute 'style'.
+		'''
+		# FIXME use Textview/tabstop
+		try:
+			font = pango.FontDescription(self.style['TextView']['font'])
+		except KeyError:
+			self.view.modify_font(None)
+		else:
+			self.view.modify_font(font)
+
 		testbuffer = gtk.TextBuffer()
-		for tag in [k[4:] for k in style.keys() if k.startswith('Tag ')]:
+		for tag in [k[4:] for k in self.style.keys() if k.startswith('Tag ')]:
 			try:
 				assert tag in TextBuffer.tag_styles, 'No such tag: %s' % tag
-				attrib = style['Tag '+tag].copy()
+				attrib = self.style['Tag '+tag].copy()
 				for a in attrib.keys():
 					assert a in TextBuffer.tag_attributes, 'No such tag attribute: %s' % a
 					if isinstance(attrib[a], basestring):
@@ -1109,10 +1133,10 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		if buffer.get_has_selection():
 			return True
-		#~ elif not self.ui.preferences['autoselect']:
-			#~ return False
-		else:
+		elif self.preferences['autoselect']:
 			return buffer.select_word()
+		else:
+			return False
 
 
 class InsertImageDialog(FileDialog):
@@ -1272,8 +1296,7 @@ class InsertLinkDialog(Dialog):
 		text = ''
 		if link:
 			href = link['href']
-		#~ elif self.ui.preferences['autoselect']:
-		else:
+		elif self.ui.preferences['PageView']['autoselect']:
 			self.buffer.select_word()
 
 		if self.buffer.get_has_selection():
