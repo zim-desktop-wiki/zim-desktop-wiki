@@ -42,6 +42,7 @@ class TestExportCommandLine(TestExport):
 		for name, text in get_notebook_data('wiki'):
 			page = notebook.get_page(Path(name))
 			page.parse('wiki', text)
+			notebook.store_page(page)
 		file = dir.file('Test/foo.txt')
 		self.assertTrue(file.exists())
 		

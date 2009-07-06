@@ -81,9 +81,9 @@ class Notebook(gobject.GObject):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'page-created': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-updated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-moved': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'page-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'page-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	def __init__(self, path=None, name=None, config=None, index=None):
@@ -236,7 +236,10 @@ class Notebook(gobject.GObject):
 		return name
 
 	def get_page(self, path):
-		'''Returns a Page object'''
+		'''Returns a Page object. This method uses a weakref dictionary to
+		ensure that an unique object is being used for each page that is
+		given out.
+		'''
 		assert isinstance(path, Path)
 		if path.name in self._page_cache:
 			return self._page_cache[path.name]
@@ -246,6 +249,17 @@ class Notebook(gobject.GObject):
 			# TODO - set haschildren if page maps to a store namespace
 			self._page_cache[path.name] = page
 			return page
+
+	def flush_page_cache(self, path):
+		'''Remove a page from the page cache, calling get_page() after this
+		will return a fresh page object. Be aware that the old object
+		may still be around but will have its 'valid' attribute set to False.
+		'''
+		if path.name in self._page_cache:
+			page = self._page_cache[path.name]
+			assert not page.modified, 'BUG: Flushing page with unsaved changes'
+			page.valid = False
+			del self._page_cache[path.name]
 
 	def get_home_page(self):
 		'''Returns a page object for the home page.'''
@@ -257,9 +271,38 @@ class Notebook(gobject.GObject):
 		return store.get_pagelist(path)
 		# TODO: add sub-stores in this namespace if any
 
+	def store_page(self, page):
+		'''Store a page permanently. Commits the parse tree from the page
+		object to the backend store.
+		'''
+		assert page.valid, 'BUG: page object no longer valid'
+		store = self.get_store(page)
+		existed = store.page_exists(page)
+		store.store_page(page)
+		if not existed:
+			self.emit('page-created', page)
+		self.emit('page-updated', page)
+
+	def revert_page(self, page):
+		'''Reloads the parse tree from the store into the page object.
+		In a sense the opposite to store_page(). Used in the gui to
+		discard changes in a page.
+		'''
+		# get_page without the cache
+		assert page.valid, 'BUG: page object no longer valid'
+		store = self.get_store(page)
+		storedpage = store.get_page(page)
+		page.set_parsetree(storedpage.get_parsetree())
+		page.modified = False
+
 	def move_page(self, path, newpath, update_links=True):
 		'''FIXME'''
 		logger.debug('Move %s to %s (%s)', path, newpath, update_links)
+
+		if path.name in self._page_cache:
+			page = self._page_cache[path.name]
+			assert not page.modified, 'BUG: moving a page with uncomitted changes'
+
 		store = self.get_store(path)
 		newstore = self.get_store(newpath)
 		if newstore == store:
@@ -268,10 +311,8 @@ class Notebook(gobject.GObject):
 			assert False, 'TODO: move between stores'
 			# recursive + move attachments as well
 
-		# FIXME nicer way to flush out of sync objects - flag invalid ?
-		for p in path, newpath:
-			if p.name in self._page_cache:
-				del self._page_cache[p.name]
+		self.flush_page_cache(path)
+		self.flush_page_cache(newpath)
 
 		# TODO update links
 
@@ -296,6 +337,7 @@ class Notebook(gobject.GObject):
 			tree = page.get_parsetree()
 			tree.set_heading(newbasename.title())
 			page.set_parsetree(tree)
+			self.store_page(page)
 
 		return newpath
 
@@ -303,13 +345,13 @@ class Notebook(gobject.GObject):
 		store = self.get_store(path)
 		existed = store.delete_page(path)
 
-		# FIXME nicer way to flush out of sync objects - flag invalid ?
-		if path.name in self._page_cache:
-			del self._page_cache[path.name]
+		self.flush_page_cache(path)
 
 		if existed:
 			self.emit('page-deleted', path)
-		return existed
+			return True
+		else:
+			return False
 
 	#~ def search(self):
 		#~ '''FIXME'''
@@ -433,7 +475,8 @@ gobject.type_register(Notebook)
 class Path(object):
 	'''This is the parent class for the Page class. It contains the name
 	of the page and is used instead of the actual page object by methods
-	that only know the name of the page.
+	that only know the name of the page. Path objects have no internal state
+	and are essentially normalized page names.
 	'''
 
 	__slots__ = ('name',)
@@ -536,34 +579,31 @@ class Path(object):
 class Page(Path):
 	'''FIXME
 
-	Page objects inherit from Path but contain store specific data about
-	how/where to get the page content. We try to keep Page objects unique
+	Page objects inherit from Path but have internal state reflecting content
+	in the notebook. We try to keep Page objects unique
 	by hashing them in notebook.get_page(), Path object on the other hand
 	are cheap and can have multiple instances for the same logical path.
 	We ask for a path object instead of a name in the constructore to
 	encourage the use of Path objects over passsing around page names as
 	string. Also this allows some optimalizations by addind index pointers
 	to the Path instances.
-	'''
 
-	# define signals we want to use - (closure type, return type and arg types)
-	#~ __gsignals__ = {
-		#~ 'request-parsetree': (gobject.SIGNAL_RUN_LAST, None, ()),
-		#~ 'changed': (gobject.SIGNAL_RUN_LAST, None, ())
-	#~ }
+	You can use a Page object instead of a Path anywhere in the APIs where
+	a path is needed as argument etc.
+	'''
 
 	def __init__(self, path, haschildren=False, parsetree=None):
 		'''Construct Page object. Needs a path object and a boolean to flag
 		if the page has children.
 		'''
 		assert isinstance(path, Path)
-		#~ gobject.GObject.__init__(self)
 		self.name = path.name
 		self.haschildren = haschildren
+		self.valid = True
+		self.modified = False
 		self._parsetree = parsetree
+		self._ui_object = None
 		self.properties = {}
-		self._on_changed = None
-		self._on_request_parsetree = None
 		if hasattr(path, '_indexpath'):
 			self._indexpath = path._indexpath
 			# Keeping this data around will speed things up when this page
@@ -572,12 +612,29 @@ class Page(Path):
 	@property
 	def hascontent(self):
 		'''Returns whether this page has content'''
-		return bool(self._parsetree)
+		return bool(self._ui_object) or bool(self._parsetree)
 
 	def get_parsetree(self):
-		'''Returns contents as a parse tree or None'''
-		#~ self.emit('request-parsetree')
-		return self._parsetree
+		'''Returns contents as a parsetree or None'''
+		assert self.valid, 'BUG: page object became invalid'
+
+		if self._parsetree:
+			return self._parsetree
+		elif self._ui_object:
+			return self._ui_object.get_parsetree()
+		else:
+			try:
+				self._parsetree = self._fetch_parsetree()
+			except NotImplementedError:
+				return None
+			else:
+				return self._parsetree
+
+	def _fetch_parsetree(self):
+		'''Method to be overloaded in sub-classes. Should return a parsetree
+		or None.
+		'''
+		raise NotImplementedError
 
 	def set_parsetree(self, tree):
 		'''Set the parsetree with content for this page. Set the parsetree
@@ -585,8 +642,28 @@ class Page(Path):
 		'''
 		if 'readonly' in self.properties and self.properties['readonly']:
 			raise Exception, 'Can not store data in a read-only Page'
-		self._parsetree = tree
-		#~ self.emit('changed')
+
+		if self._ui_object:
+			self._ui_object.set_parsetree(tree)
+		else:
+			self._parsetree = tree
+
+		self.modified = True
+
+	def set_ui_object(self, object):
+		'''Set a temporary hook to fetch the parse tree. Used by the gtk ui to
+		'lock' pages that are being edited. Set to None to break the lock.
+
+		The ui object should in turn have a get_parsetree() and a
+		set_parsetree() method which will be called by the page object.
+		'''
+		if object is None:
+			self._parsetree = self._ui_object.get_parsetree()
+			self._ui_object = None
+		else:
+			assert self._ui_object is None, 'BUG: page already being edited by another widget'
+			self._parsetree = None
+			self._ui_object = object
 
 	def dump(self, format, linker=None):
 		'''Convenience method that converts the current parse tree to a

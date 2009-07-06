@@ -28,6 +28,7 @@ class Button(gtk.Button):
 			hbox = gtk.HBox(spacing=2)
 			hbox.add(icon)
 			hbox.add(label)
+			hbox.show_all()
 			self.add(hbox)
 			self.set_alignment(0.5, 0.5)
 			# FIXME should we use Button.set_image() here ??

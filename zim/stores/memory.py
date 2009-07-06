@@ -14,8 +14,6 @@ from zim import formats
 from zim.notebook import Page, LookupError, PageExistsError
 from zim.stores import StoreClass
 
-__store__ = 'memory'
-
 
 class Store(StoreClass):
 
@@ -70,10 +68,10 @@ class Store(StoreClass):
 			text = node[1]
 			haschildren = len(node[2])
 
-		#~ on_write = lambda b: self._set_node(path, b.getvalue())
 		page = Page(path, haschildren)
 		if text:
 			page.set_parsetree(self.format.Parser().parse(text))
+			page.modified = False
 		return page
 
 	def get_pagelist(self, path):
@@ -89,6 +87,11 @@ class Store(StoreClass):
 		for node in nodes:
 			childpath = path + node[0]
 			yield self._build_page(childpath, node)
+
+	def store_page(self, page):
+		text = self.format.Dumper().dump(page.get_parsetree())
+		self._set_node(page, text)
+		page.modified = False
 
 	def move_page(self, path, newpath):
 		node = self._get_node(path)
@@ -123,3 +126,6 @@ class Store(StoreClass):
 				self.delete_page(parent) # recurs to cleanup empty parent
 
 		return True
+
+	def page_exists(self, path):
+		return bool(self._get_node(path))

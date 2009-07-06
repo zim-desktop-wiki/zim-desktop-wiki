@@ -23,6 +23,7 @@ def get_files_notebook():
 		manifest.append(name)
 		page = store.get_page(Path(name))
 		page.parse('wiki', text)
+		store.store_page(page)
 	notebook.testdata_manifest = tests.expand_manifest(manifest)
 	return notebook
 

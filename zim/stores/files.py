@@ -24,8 +24,6 @@ from zim.notebook import Path, Page, LookupError, PageExistsError
 from zim.stores import StoreClass, encode_filename, decode_filename
 from zim.config import HeadersDict
 
-__store__ = 'files'
-
 
 class Store(StoreClass):
 
@@ -81,6 +79,10 @@ class Store(StoreClass):
 		for name in names: # sets are sorted by default
 			yield self.get_page(path + name)
 
+	def store_page(self, page):
+		# FIXME assert page is ours and page is FilePage
+		page._store_parsetree()
+
 	def move_page(self, path, newpath):
 		file = self._get_file(path)
 		dir = self._get_dir(path)
@@ -111,6 +113,8 @@ class Store(StoreClass):
 			dir.cleanup()
 			return True
 
+	def page_exists(self, path):
+		return self._get_file(path).exists()
 
 	# It could be argued that we should use e.g. MD5 checksums to verify
 	# integrity of the page content instead of mtime. It is true the mtime
@@ -142,14 +146,15 @@ class FileStorePage(Page):
 		Page.__init__(self, path, haschildren)
 		self.source = source
 		self.format = format
+		self.source.checkoverwrite = True
 
 	@property
 	def hascontent(self):
-		return self.source.exists()
+		return bool(self._ui_object) or bool(self._parsetree) \
+			or self.source.exists()
 
-	def get_parsetree(self):
-		'''Returns contents as a parse tree or None'''
-		#~ self.emit('request-parsetree')
+	def _fetch_parsetree(self):
+		'''Fetch a parsetree from source or returns None'''
 		if self.source.exists():
 			lines = self.source.readlines()
 			self.properties = HeadersDict()
@@ -160,15 +165,14 @@ class FileStorePage(Page):
 			else:
 				version = 'Unknown'
 			parser = self.format.Parser(version)
-			tree = parser.parse(lines)
-			return tree
+			return parser.parse(lines)
 		else:
 			return None
 
-	def set_parsetree(self, tree):
+	def _store_parsetree(self):
 		'''Save a parse tree to page source'''
-		if 'readonly' in self.properties and self.properties['readonly']:
-			raise Exception, 'Can not store data in a read-only Page'
+		tree = self.get_parsetree()
+		assert tree, 'BUG: Can not store a page without content'
 
 		if not isinstance(self.properties, HeadersDict):
 			assert not self.properties
@@ -180,4 +184,4 @@ class FileStorePage(Page):
 		lines.append('\n')
 		lines.extend(self.format.Dumper().dump(tree))
 		self.source.writelines(lines)
-		#~ self.emit('changed')
+		self.modified = False

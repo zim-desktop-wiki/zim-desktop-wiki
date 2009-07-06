@@ -25,7 +25,7 @@ from zim.config import data_file, config_file, data_dirs
 import zim.history
 import zim.gui.pathbar
 import zim.gui.pageindex
-from zim.gui.widgets import MenuButton
+from zim.gui.widgets import Button, MenuButton
 
 logger = logging.getLogger('zim.gui')
 
@@ -153,6 +153,8 @@ class GtkInterface(NotebookInterface):
 	Signals:
 	* open-page (page, path)
 	  Called when opening another page, see open_page() for details
+	* save-page (page)
+	  Called when a page is saved
 	* close-page (page)
 	  Called when closing a page, typically just before a new page is opened
 	  and before closing the application
@@ -161,6 +163,7 @@ class GtkInterface(NotebookInterface):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
+		'save-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
@@ -170,6 +173,7 @@ class GtkInterface(NotebookInterface):
 		NotebookInterface.__init__(self, **opts)
 		self.page = None
 		self.history = None
+		self._save_page_in_progress = False
 
 		icon = data_file('zim.png').path
 		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
@@ -226,6 +230,19 @@ class GtkInterface(NotebookInterface):
 				# dialog, or the notebook was opened in a different process.
 				return
 
+		def autosave():
+			page = self.mainwindow.pageview.get_page()
+			if page.modified:
+				self.save_page(page)
+			return False # remove signal
+
+		def schedule_autosave():
+			gobject.idle_add(autosave)
+			return True # keep ticking
+
+		self._autosave_timer = None
+		gobject.timeout_add_seconds(5, schedule_autosave)
+
 		self.uimanager.ensure_update()
 			# prevent flashing when the toolbar is after showing the window
 		self.mainwindow.show_all()
@@ -237,7 +254,7 @@ class GtkInterface(NotebookInterface):
 		self.quit()
 
 	def quit(self):
-		self.emit('close-page', self.page)
+		assert self.close_page(self.page)
 		self.mainwindow.destroy()
 		gtk.main_quit()
 
@@ -388,12 +405,9 @@ class GtkInterface(NotebookInterface):
 		else:
 			page = self.notebook.get_page(path)
 		if self.page:
-			self.emit('close-page', self.page)
+			assert self.close_page(self.page)
 		self.emit('open-page', page, path)
-
-	def do_close_page(self, page):
-		if self.uistate.modified:
-			self.uistate.write()
+		# else we failed to save the page
 
 	def do_open_page(self, page, path):
 		'''Signal handler for open-page.'''
@@ -416,6 +430,19 @@ class GtkInterface(NotebookInterface):
 
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
+
+	def close_page(self, page=None):
+		'''Emits the 'close-page' signal and returns boolean for success'''
+		if page is None:
+			page = self.page
+		self.emit('close-page', page)
+		return not page.modified
+
+	def do_close_page(self, page):
+		if page.modified:
+			self.save_page(page)
+		if self.uistate.modified:
+			self.uistate.write()
 
 	def open_page_back(self):
 		record = self.history.get_previous()
@@ -485,11 +512,34 @@ class GtkInterface(NotebookInterface):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
 		NewPageDialog(self, namespace=self.get_path_context()).run()
 
-	def save_page(self):
-		pass
+	def save_page(self, page=None):
+		'''Save 'page', or current page when 'page' is None, by emitting the
+		'save-page' signal. Returns boolean for success.
+		'''
+		if self._save_page_in_progress:
+			# We need this check as the SavePageErrorDialog has a timer
+			# and auto-save may trigger while we are waiting for that one...
+			return False
 
-	def save_page_if_modified(self):
-		pass
+		self._save_page_in_progress = True
+		try:
+			if page is None:
+				page = self.mainwindow.pageview.get_page()
+			self.emit('save-page', page)
+		except:
+			self._save_page_in_progress = False
+			raise
+		else:
+			self._save_page_in_progress = False
+			return not page.modified
+
+	def do_save_page(self, page):
+		logger.debug('Saving page: %s', page)
+		try:
+			self.notebook.store_page(page)
+		except Exception, error:
+			logger.warn('Failed to save page: %s', page.name)
+			SavePageErrorDialog(self, error, page).run()
 
 	def save_copy(self):
 		'''Offer to save a copy of a page in the source format, so it can be
@@ -553,8 +603,10 @@ class GtkInterface(NotebookInterface):
 		zim.gui.preferencesdialog.PreferencesDialog(self).run()
 
 	def reload_page(self):
-		self.save_page_if_modified()
-		self.open_page(self.page)
+		if self.page.modified:
+			assert self.save_page(self.page)
+		self.notebook.flush_page_cache(self.page)
+		self.open_page(self.notebook.get_page(self.page))
 
 	def attach_file(self, path=None):
 		AttachFileDialog(self, path=path).run()
@@ -709,6 +761,19 @@ class MainWindow(gtk.Window):
 		self.statusbar.push(0, '<page>')
 		hbox.add(self.statusbar)
 
+		def update_statusbar(*a):
+			page = self.pageview.get_page()
+			label = page.name
+			# TODO if page is read-only
+			if page.modified:
+				label += '*'
+			self.statusbar.pop(0)
+			self.statusbar.push(0, label)
+
+		self.pageview.connect('modified-changed', update_statusbar)
+		self.ui.connect_after('open-page', update_statusbar)
+		self.ui.connect_after('save-page', update_statusbar)
+
 		def statusbar_element(string, size):
 			frame = gtk.Frame()
 			frame.set_shadow_type(gtk.SHADOW_IN)
@@ -816,7 +881,6 @@ class MainWindow(gtk.Window):
 		if show is None:
 			action = self.actiongroup.get_action('toggle_sidepane')
 			show = action.get_active()
-			print '>> action active:', show
 
 		if show:
 			self.pageindex.set_no_show_all(False)
@@ -941,9 +1005,6 @@ class MainWindow(gtk.Window):
 		'''Signal handler for open-page, updates the pageview'''
 		self.pageview.set_page(page)
 
-		self.statusbar.pop(0)
-		self.statusbar.push(0, page.name)
-
 		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
 		label = self.statusbar_backlinks_button.label
 		label.set_text_with_mnemonic('%i _Backlinks...' % n)
@@ -1024,11 +1085,98 @@ class ErrorDialog(gtk.MessageDialog):
 
 	def run(self):
 		'''Runs the dialog and destroys it directly.'''
-		logger.debug('Running ErrorDialog')
+		logger.debug('Running %s', self.__class__.__name__)
 		logger.error(self.error)
-		gtk.MessageDialog.run(self)
+		while True:
+			response = gtk.MessageDialog.run(self)
+			if response == gtk.RESPONSE_OK and not self.do_response_ok():
+				continue
+			else:
+				break
 		self.destroy()
 
+	def do_response_ok(self):
+		return True
+
+
+class SavePageErrorDialog(ErrorDialog):
+	'''Error dialog used when we hit an error while trying to save a page.
+	Allow to save a copy or to discard changes. Includes a timer which
+	delays the action buttons becoming sensitive. Reason for this timer is
+	that the dialog may popup from auto-save while the user is typing, and
+	we want to prevent an accidental action.
+	'''
+
+	def __init__(self, ui, error, page):
+		title = 'Could not save page: %s' % page.name
+		explanation = '''\
+To continue you can save a copy of this page or discard
+any changes. If you save a copy changes will be also
+discarded, but you can restore the copy later.'''
+		gtk.MessageDialog.__init__(
+			self, parent=get_window(ui),
+			type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_NONE,
+			message_format=title
+		)
+		#~ self.set_default_size(450, -1)
+		self.format_secondary_text(
+			unicode(error).encode('utf-8').strip()+'\n\n'+explanation)
+
+		self.page = page
+		self.error = error
+		self.ui = ui
+
+		self.timer_label = gtk.Label()
+		self.timer_label.set_alignment(0.9, 0.5)
+		self.timer_label.set_sensitive(False)
+		self.timer_label.show()
+		self.vbox.add(self.timer_label)
+
+		cancel_button = gtk.Button(stock=gtk.STOCK_CANCEL)
+		self.add_action_widget(cancel_button, gtk.RESPONSE_CANCEL)
+
+		self._done = False
+		def discard(self):
+			page.get_parsetree() # make sure PageView understands we tried...
+			self.ui.notebook.revert_page(self.page)
+			self._done = True
+
+		def save(self):
+			if SaveCopyDialog(self, page=self.page).run():
+				discard(self)
+
+		discard_button = gtk.Button('_Discard Changes')
+		discard_button.connect_object('clicked', discard, self)
+		self.add_action_widget(discard_button, gtk.RESPONSE_OK)
+
+		save_button = Button(label='_Save Copy', stock=gtk.STOCK_SAVE_AS)
+		save_button.connect_object('clicked', save, self)
+		self.add_action_widget(save_button, gtk.RESPONSE_OK)
+
+		for button in (cancel_button, discard_button, save_button):
+			button.set_sensitive(False)
+			button.show()
+
+	def do_response_ok(self):
+		return self._done
+
+	def run(self):
+		self.timer = 5
+		self.timer_label.set_text('%i sec.' % self.timer)
+		def timer(self):
+			self.timer -= 1
+			if self.timer > 0:
+				self.timer_label.set_text('%i sec.' % self.timer)
+				return True # keep timer going
+			else:
+				for button in self.action_area.get_children():
+					button.set_sensitive(True)
+				self.timer_label.set_text('')
+				return False # remove timer
+
+		id = gobject.timeout_add_seconds(1, timer, self)
+		ErrorDialog.run(self)
+		gobject.source_remove(id)
 
 
 class QuestionDialog(gtk.MessageDialog):
@@ -1085,6 +1233,7 @@ class Dialog(gtk.Dialog):
 		title.
 		'''
 		self.ui = ui
+		self.result = None
 		self.inputs = {}
 		gtk.Dialog.__init__(
 			self, parent=get_window(self.ui),
@@ -1254,7 +1403,11 @@ class Dialog(gtk.Dialog):
 	def run(self):
 		'''Calls show_all() followed by gtk.Dialog.run()'''
 		self.show_all()
-		gtk.Dialog.run(self)
+		self._close = False
+		while not self._close:
+			gtk.Dialog.run(self)
+			# will be broken when _close is set from do_response()
+		return self.result
 
 	def show_all(self):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
@@ -1271,16 +1424,16 @@ class Dialog(gtk.Dialog):
 		returns True. If response was negative just closes the dialog without
 		further action.
 		'''
-		if id == gtk.RESPONSE_OK:
+		if id == gtk.RESPONSE_OK and not self._no_ok_action:
 			logger.debug('Dialog response OK')
-			close = self.do_response_ok()
+			self._close = self.do_response_ok()
 		else:
-			close = True
+			self._close = True
 
 		w, h = self.get_size()
 		self.uistate['windowsize'] = (w, h)
 
-		if close:
+		if self._close:
 			self.destroy()
 			logger.debug('Closed dialog "%s"', self.title[:-6])
 
@@ -1288,10 +1441,7 @@ class Dialog(gtk.Dialog):
 		'''Function to be overloaded in child classes. Called when the
 		user clicks the 'Ok' button or the equivalent of such a button.
 		'''
-		if self._no_ok_action:
-			return True
-		else:
-			raise NotImplementedError
+		raise NotImplementedError
 
 
 # Need to register classes defining gobject signals
@@ -1307,6 +1457,7 @@ class FileDialog(Dialog):
 			self.uistate['windowsize'] = (500, 400)
 			self.set_default_size(500, 400)
 		self.filechooser = gtk.FileChooserWidget(action=action)
+		self.filechooser.set_do_overwrite_confirmation(True)
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
 		self.vbox.add(self.filechooser)
 		# FIXME hook to expander to resize window
@@ -1424,9 +1575,12 @@ class NewPageDialog(Dialog):
 
 class SaveCopyDialog(FileDialog):
 
-	def __init__(self, ui):
+	def __init__(self, ui, page=None):
 		FileDialog.__init__(self, ui, 'Save Copy', gtk.FILE_CHOOSER_ACTION_SAVE)
 		self.filechooser.set_current_name(self.ui.page.name + '.txt')
+		if page is None:
+			page = self.ui.page
+		self.page = page
 		# TODO also include headers
 		# TODO add droplist with native formats to choose + hook filters
 		# TODO change "Ok" button to "Save"
@@ -1435,9 +1589,10 @@ class SaveCopyDialog(FileDialog):
 		file = self.get_file()
 		if file is None: return False
 		format = 'wiki'
-		logger.info("Saving a copy at %s using format '%s'", path, format)
-		lines = self.ui.page.dump(format)
+		logger.info("Saving a copy of %s using format '%s'", self.page, format)
+		lines = self.page.dump(format)
 		file.writelines(lines)
+		self.result = True
 		return True
 
 
@@ -1465,6 +1620,7 @@ class ImportPageDialog(FileDialog):
 			assert not page.hascontent
 
 		page.parse('wiki', file.readlines())
+		self.ui.noetbook.store_page(page)
 		self.ui.open_page(page)
 		return True
 
@@ -1478,6 +1634,9 @@ class MovePageDialog(Dialog):
 		else:
 			self.path = path
 		assert self.path, 'Need a page here'
+
+		if isinstance(self.path, Page) and self.path.modified:
+			assert self.ui.save_page(self.path)
 
 		self.vbox.add(gtk.Label('Move page "%s"' % self.path.name))
 		self.add_fields([

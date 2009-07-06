@@ -864,9 +864,16 @@ gobject.type_register(TextView)
 class PageView(gtk.VBox):
 	'''FIXME'''
 
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+	}
+
+
 	def __init__(self, ui):
 		self.ui = ui
 		gtk.VBox.__init__(self)
+		self.page = None
 		self.view = TextView()
 		swindow = gtk.ScrolledWindow()
 		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -892,6 +899,8 @@ class PageView(gtk.VBox):
 			action.connect('activate', self.do_toggle_format_action)
 
 		self.load_styles()
+
+		self.ui.connect('open-notebook', self.on_open_notebook)
 
 	def grab_focus(self):
 		self.view.grab_focus()
@@ -920,30 +929,75 @@ class PageView(gtk.VBox):
 			else:
 				TextBuffer.tag_styles[tag] = attrib
 
+	def on_open_notebook(self, ui, notebook):
+
+		def assert_not_modified(page, *a):
+			if page == self.page:
+				assert not self.view.get_buffer().get_modified(), \
+					'BUG: page changed while buffer changed as well'
+
+		for s in ('page-updated', 'page-deleted', 'page-moved'):
+			notebook.connect(s, assert_not_modified)
+
 	def set_page(self, page):
-		# for some reason keeping a copy of the previus buffer
+		# unhook from previous page
+		if self.page:
+			self.page.set_ui_object(None)
+
+		# for some reason keeping a copy of the previous buffer
 		# prevents a number of segfaults ...
 		# we do clear the old buffer to save some memory
 		self._prev_buffer = self.view.get_buffer()
 		self._prev_buffer.delete(*self._prev_buffer.get_bounds())
 
 		# now create the new buffer
+		self.page = page
 		buffer = TextBuffer()
 		self.view.set_buffer(buffer)
 		tree = page.get_parsetree()
+		page.set_ui_object(self)
+
 		cursorpos = 0
 		if tree is None:
 			# TODO check read-only
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
 			cursorpos = -1
-		tree.resolve_images(self.ui.notebook, page)
-			# TODO same for links ?
-		buffer.set_parsetree(tree)
+		self.set_parsetree(tree)
 		if cursorpos != -1:
 			buffer.place_cursor(buffer.get_iter_at_offset(cursorpos))
 		# TODO else check template for cursor pos ??
+
 		buffer.connect('textstyle-changed', self.do_textstyle_changed)
+		buffer.connect('modified-changed',
+			lambda o: self.on_modified_changed(o))
+
+		#~ self.page.set_parsetree_hook(buffer.get_parsetree)
+
+	def get_page(self): return self.page
+
+	def on_modified_changed(self, buffer):
+		# one-way traffic, set page modified after modifying the buffer
+		# but not the other way
+		if buffer.get_modified() and not self.page.modified:
+			self.page.modified = True
+			self.emit('modified-changed')
+
+	def get_parsetree(self):
+		buffer = self.view.get_buffer()
+		if buffer.get_modified():
+			self._parsetree = buffer.get_parsetree()
+			buffer.set_modified(False)
+		return self._parsetree
+
+	def set_parsetree(self, tree):
+		buffer = self.view.get_buffer()
+		assert not buffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
+		tree.resolve_images(self.ui.notebook, self.page)
+			# TODO same for links ?
+		buffer.set_parsetree(tree)
+		buffer.set_modified(False)
+		self._parsetree = tree
 
 	def do_textstyle_changed(self, buffer, style):
 		# set statusbar
@@ -981,11 +1035,11 @@ class PageView(gtk.VBox):
 
 		if type == 'page':
 			path = self.ui.notebook.resolve_path(
-				link['href'], Path(self.ui.page.namespace))
+				link['href'], self.page.get_parent())
 			self.ui.open_page(path)
 		elif type == 'file':
 			path = self.ui.notebook.resolve_file(
-				link['href'], self.ui.page)
+				link['href'], self.page)
 			self.ui.open_file(path)
 		else:
 			self.ui.open_url(link['href'])
@@ -1027,26 +1081,26 @@ class PageView(gtk.VBox):
 		alt = insert.copy()
 		alt.backward_char()
 		if buffer.get_image_data(insert) or buffer.get_image_data(alt):
-			EditImageDialog(self.ui, buffer).run()
+			EditImageDialog(self.ui, buffer, self.page).run()
 		elif buffer.get_link_tag(insert):
-			EditLinkDialog(self.ui, buffer).run()
+			EditLinkDialog(self.ui, buffer, self.page).run()
 		else:
 			return False
 
 	def insert_image(self, file=None, interactive=True):
 		if interactive:
-			InsertImageDialog(self.ui, self.view.get_buffer(), file).run()
+			InsertImageDialog(self.ui, self.view.get_buffer(), self.page, file).run()
 		else:
 			assert isinstance(file, File)
-			src = self.ui.notebook.relative_filepath(file, self.ui.page) or file.uri
+			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
 			print 'SRC', src
 			self.view.get_buffer().insert_image_at_cursor(file, src)
 
 	def insert_text_from_file(self):
-		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
+		InsertTextFromFileDialog(self.ui, self.view.get_buffer(), self.page).run()
 
 	def insert_external_link(self):
-		InsertExternalLinkDialog(self.ui, self.view.get_buffer()).run()
+		InsertExternalLinkDialog(self.ui, self.view.get_buffer(), self.page).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links plus
@@ -1062,7 +1116,7 @@ class PageView(gtk.VBox):
 					file = File(links[i])
 				else:
 					continue # not a file
-			links[i] = self.ui.notebook.relative_filepath(file, self.ui.page) or file.uri
+			links[i] = self.ui.notebook.relative_filepath(file, self.page) or file.uri
 
 		if len(links) == 1: sep = ' '
 		else: sep = '\n'
@@ -1078,7 +1132,7 @@ class PageView(gtk.VBox):
 		buffer.end_user_action()
 
 	def insert_link(self):
-		InsertLinkDialog(self.ui, self.view.get_buffer()).run()
+		InsertLinkDialog(self.ui, self.view.get_buffer(), self.page).run()
 
 	def clear_formatting(self):
 		has_selection = self.autoselect()
@@ -1114,13 +1168,17 @@ class PageView(gtk.VBox):
 		else:
 			return buffer.select_word()
 
+# Need to register classes defining gobject signals
+gobject.type_register(PageView)
+
 
 class InsertImageDialog(FileDialog):
 
-	def __init__(self, ui, buffer, file=None):
+	def __init__(self, ui, buffer, path, file=None):
 		FileDialog.__init__(
 			self, ui, 'Insert Image', gtk.FILE_CHOOSER_ACTION_OPEN)
 		self.buffer = buffer
+		self.path = path
 		self.add_filter_images()
 		if file:
 			self.set_file(file)
@@ -1129,16 +1187,17 @@ class InsertImageDialog(FileDialog):
 	def do_response_ok(self):
 		file = self.get_file()
 		if file is None: return False
-		src = self.ui.notebook.relative_filepath(file, self.ui.page) or file.uri
+		src = self.ui.notebook.relative_filepath(file, self.path) or file.uri
 		self.buffer.insert_image_at_cursor(file, src)
 		return True
 
 
 class EditImageDialog(Dialog):
 
-	def __init__(self, ui, buffer):
+	def __init__(self, ui, buffer, path):
 		Dialog.__init__(self, ui, 'Edit Image')
 		self.buffer = buffer
+		self.path = path
 
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		image_data = self.buffer.get_image_data(iter)
@@ -1185,7 +1244,7 @@ class EditImageDialog(Dialog):
 		self._image_data.pop('width', None)
 		self._image_data.pop('height', None)
 		filename = self.get_field('file')
-		file = self.ui.notebook.resolve_file(filename, self.ui.page)
+		file = self.ui.notebook.resolve_file(filename, self.path)
 		try:
 			info, w, h = gtk.gdk.pixbuf_get_file_info(file.path)
 		except:
@@ -1223,9 +1282,9 @@ class EditImageDialog(Dialog):
 
 	def do_response_ok(self):
 		filename = self.get_field('file')
-		file = self.ui.notebook.resolve_file(filename, self.ui.page)
+		file = self.ui.notebook.resolve_file(filename, self.path)
 		attrib = self._image_data
-		attrib['src'] = self.ui.notebook.relative_filepath(file, self.ui.page) or file.uri
+		attrib['src'] = self.ui.notebook.relative_filepath(file, self.path) or file.uri
 
 		iter = self.buffer.get_iter_at_offset(self._iter)
 		bound = iter.copy()
@@ -1256,9 +1315,11 @@ class InsertTextFromFileDialog(FileDialog):
 
 class InsertLinkDialog(Dialog):
 
-	def __init__(self, ui, buffer):
+	def __init__(self, ui, buffer, path):
 		Dialog.__init__(self, ui, 'Insert Link')
 		self.buffer = buffer
+		self.path = path
+
 		href, text = self._get_link()
 		self.add_fields([
 			('href', 'page', 'Link to', href),
@@ -1296,7 +1357,7 @@ class InsertLinkDialog(Dialog):
 		type = link_type(href)
 		if type == 'file':
 			file = File(href)
-			href = self.ui.notebook.relative_filepath(file, self.ui.page) or file.uri
+			href = self.ui.notebook.relative_filepath(file, self.path) or file.uri
 
 		text = self.get_field('text') or href
 
@@ -1315,9 +1376,11 @@ class InsertLinkDialog(Dialog):
 
 class InsertExternalLinkDialog(InsertLinkDialog):
 
-	def __init__(self, ui, buffer):
+	def __init__(self, ui, buffer, path):
 		Dialog.__init__(self, ui, 'Insert External Link')
 		self.buffer = buffer
+		self.path = path
+
 		href, text = self._get_link()
 		self.add_fields([
 			('href', 'file', 'Link to', href),
@@ -1328,9 +1391,11 @@ class InsertExternalLinkDialog(InsertLinkDialog):
 
 class EditLinkDialog(InsertLinkDialog):
 
-	def __init__(self, ui, buffer):
+	def __init__(self, ui, buffer, path):
 		Dialog.__init__(self, ui, 'Edit Link')
 		self.buffer = buffer
+		self.path = path
+
 		href, text = self._get_link()
 		type = link_type(href)
 		if type == 'file': input = 'file'

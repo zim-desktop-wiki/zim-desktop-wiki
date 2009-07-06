@@ -6,7 +6,11 @@
 
 import tests
 
+import os
+import time
+
 from zim.fs import *
+from zim.fs import OverWriteError
 from zim.notebook import Notebook, Path, LookupError, PageExistsError
 import zim.stores
 
@@ -79,6 +83,17 @@ class TestStoresMemory(tests.TestCase):
 
 	def testManipulate(self):
 		'''Test moving and deleting pages in the memory store'''
+
+		# Check we can get / store a page
+		page = self.store.get_page(Path('Test:foo'))
+		self.assertTrue(page.get_parsetree())
+		self.assertTrue('Foo' in ''.join(page.dump('plain')))
+		self.assertFalse(page.modified)
+		page.parse('wiki', '=== BAR ===')
+		self.assertTrue(page.modified)
+		self.store.store_page(page)
+		self.assertFalse(page.modified)
+		self.assertTrue('BAR' in ''.join(page.dump('plain')))
 
 		# check test setup OK
 		for path in (Path('Test:BAR'), Path('NewPage')):
@@ -160,6 +175,19 @@ class TestFiles(TestStoresMemory):
 			if page.hascontent:
 				mypage = self.store.get_page(page)
 				mypage.set_parsetree(page.get_parsetree())
+				self.store.store_page(mypage)
+
+	def modify(self, path, func):
+		mtime = os.stat(path).st_mtime
+		m = mtime
+		i = 0
+		while m == mtime:
+			time.sleep(1)
+			func(path)
+			m = os.stat(path).st_mtime
+			i += 1
+			assert i < 5
+		#~ print '>>>', m, mtime
 
 	def testIndex(self):
 		'''Test we get a proper index for files store'''
@@ -168,3 +196,11 @@ class TestFiles(TestStoresMemory):
 	def testManipulate(self):
 		'''Test moving and deleting pages in the files store'''
 		TestStoresMemory.testManipulate(self)
+
+		# test overwrite check
+		page = self.store.get_page(Path('Test:overwrite'))
+		page.parse('plain', 'BARRR')
+		self.store.store_page(page)
+		self.assertTrue('BARRR' in ''.join(page.dump('plain')))
+		self.modify(page.source.path, lambda p: open(p, 'w').write('bar'))
+		self.assertRaises(OverWriteError, self.store.store_page, page)

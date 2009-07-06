@@ -73,7 +73,7 @@ class Exporter(object):
 	def export_page_to_fh(self, fh, page):
 		# TODO use documents_url
 		if self.template is None:
-			linker.set_path(page)
+			self.linker.set_path(page)
 			lines = page.dump(self.format, linker=self.linker)
 		else:
 			lines = self.template.process(self.notebook, page)

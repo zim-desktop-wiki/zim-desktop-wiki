@@ -11,8 +11,7 @@ modules.
 Each store module should implement a class named "Store" which
 inherits from StoreClass. All methods marked with "ABSTRACT" need to
 be implemented in the sub class. When called directly they will raise
-a NotImplementedError. Overloading other methods is optional. Also
-each module should define a variable '__store__' with it's own name.
+a NotImplementedError. Overloading other methods is optional.
 
 === Storage Model ===
 
@@ -74,7 +73,6 @@ def get_store(name):
 	mod = __import__('zim.stores.'+name)
 	mod = getattr(mod, 'stores')
 	mod = getattr(mod, name)
-	assert mod.__store__ == name
 	return mod
 
 
@@ -102,7 +100,7 @@ class StoreClass():
 	def get_page(self, path):
 		'''ABSTRACT METHOD, must be implemented in all sub-classes.
 
-		Return a Page object for page 'name'.
+		Return a new Page object for a path.
 		'''
 		raise NotImplementedError
 
@@ -111,6 +109,13 @@ class StoreClass():
 
 		Should return a list (or iterator) of page objects below a specific
 		path. Used by the index to recursively find all pages in the store.
+		'''
+		raise NotImplementedError
+
+	def store_page(self, page):
+		'''ABSTRACT METHOD, must be implemented in all sub-classes.
+
+		Store a page in the backend storage.
 		'''
 		raise NotImplementedError
 
@@ -134,6 +139,15 @@ class StoreClass():
 		in 'page.hascontent' being False if succesfull.
 
 		Returns False if page did not exist in the first place, True otherwise.
+		'''
+		raise NotImplementedError
+
+	def page_exists(self, path):
+		'''ABSTRACT METHOD, must be implemented in sub-class.
+
+		Should return boolean whether a page exists or not. Differs from
+		page.hascontent because this method should only look at what is stored
+		already.
 		'''
 		raise NotImplementedError
 

@@ -7,10 +7,11 @@
 import tests
 
 import os
+import time
 
 import tests
 from zim.fs import *
-from zim.fs import Path, FileHandle
+from zim.fs import Path, FileHandle, OverWriteError
 
 
 class TestFS(tests.TestCase):
@@ -86,6 +87,13 @@ class TestFS(tests.TestCase):
 		self.assertEqual(file.readlines(), ['c\n', 'd\n'])
 		self.assertTrue(os.path.isfile(file.path+'.zim.new~'))
 
+		# test read-only
+		path = tmpdir+'/read-only-file.txt'
+		open(path, 'w').write('test 123')
+		os.chmod(path, 0444)
+		file = File(path)
+		self.assertRaises(OverWriteError, file.write, 'Overwritten!')
+
 		# TODO: more test here
 
 	def testDir(self):
@@ -96,4 +104,41 @@ class TestFS(tests.TestCase):
 		# TODO: real test here
 		# TODO - test file(), + test exception
 		# TODO - test subdir(), + test excepion
+
+
+class TestFileOverwrite(tests.TestCase):
+
+	slowTest = True
+
+	def setUp(self):
+		self.path = tests.create_tmp_dir('fs_testOverwrite')+'/file.txt'
+
+	def modify(self, func):
+		mtime = os.stat(self.path).st_mtime
+		m = mtime
+		i = 0
+		while m == mtime:
+			time.sleep(1)
+			func(self.path)
+			m = os.stat(self.path).st_mtime
+			i += 1
+			assert i < 5
+		#~ print '>>>', m, mtime
+
+	def runTest(self):
+		'''Test file overwrite check'''
+		file = File(self.path, checkoverwrite=True)
+		file.write('bar')
+		self.assertEquals(file.read(), 'bar')
+		self.modify(lambda p: open(p, 'w').write('XXX'))
+			# modify mtime and content
+		self.assertRaises(OverWriteError, file.write, 'foo')
+		self.assertEquals(file.read(), 'XXX')
+
+		file = File(self.path, checkoverwrite=True)
+		file.write('bar')
+		self.modify(lambda p: open(p, 'w').write('bar'))
+			# modify mtime but keep content the same
+		file.write('foo')
+		self.assertEquals(file.read(), 'foo')
 

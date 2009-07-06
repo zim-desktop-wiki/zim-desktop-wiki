@@ -30,7 +30,12 @@ class TestNotebook(tests.TestCase):
 
 		page1 = self.notebook.get_page(Path('Tree:foo'))
 		page2 = self.notebook.get_page(Path('Tree:foo'))
-		self.assertTrue(id(page1) == id(page2)) # check usage of weakref
+		self.assertTrue(page1.valid)
+		self.assertTrue(id(page2) == id(page1)) # check usage of weakref
+		self.notebook.flush_page_cache(Path('Tree:foo'))
+		page3 = self.notebook.get_page(Path('Tree:foo'))
+		self.assertTrue(id(page3) != id(page1))
+		self.assertFalse(page1.valid)
 
 		pages = list(self.notebook.get_pagelist(Path(':')))
 		self.assertTrue(len(pages) > 0)

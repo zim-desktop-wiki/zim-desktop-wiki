@@ -9,7 +9,7 @@ Used as a base library for most other zim modules.
 
 # TODO - use weakref ?
 
-# From the pyton doc: If you're starting with a Python file object f, first
+# From the python doc: If you're starting with a Python file object f, first
 # do f.flush(), and then do os.fsync(f.fileno()), to ensure that all internal
 # buffers associated with f are written to disk. Availability: Unix, and
 # Windows starting in 2.2.3.
@@ -36,6 +36,10 @@ def get_tmpdir():
 
 
 class PathLookupError(Exception):
+	'''FIXME'''
+
+
+class OverWriteError(Exception):
 	'''FIXME'''
 
 
@@ -117,6 +121,13 @@ class UnixPath(object):
 		'''Abstract method'''
 		raise NotImplementedError
 
+	def iswritable(self):
+		if self.exists():
+			statinfo = os.stat(self.path)
+			return bool(statinfo.st_mode & 0200)
+		else:
+			return self.dir.iswritable() # recurs
+		
 	def mtime(self):
 		stat_result = os.stat(self.path)
 		return stat_result.st_mtime
@@ -268,14 +279,19 @@ class File(Path):
 	temporary files, then flush and sync and finally replace the file we
 	intended to write with the temporary file. This makes it much more
 	difficult to loose file contents when something goes wrong during
-	the writing. Also this class supports checking mtime and MD5 sums
-	on write to prevent overwriting modified files.
+	the writing.
+
+	When 'checkoverwrite' this class checks mtime to prevent overwriting a
+	file that was changed on disk, if mtime fails MD5 sums are used to verify
+	before raising an exception. However this check only works when using
+	read(), readlines(), write() or writelines(), but not when calling open()
+	directly. Unfortunately this logic is not atomic, so your mileage may vary.
 	'''
 
 	def __init__(self, path, checkoverwrite=False):
 		Path.__init__(self, path)
-		if checkoverwrite:
-			assert False, 'TODO: implement mtime / MD5 checks'
+		self.checkoverwrite = checkoverwrite
+		self._mtime = None
 
 	def __eq__(self, other):
 		if isinstance(other, File):
@@ -294,8 +310,13 @@ class File(Path):
 		To open the raw file specify 'encoding=None'.
 		'''
 		assert mode in ('r', 'w')
-		if not self.exists() and mode == 'w':
-			self.dir.touch()
+		if mode == 'w':
+			if not self.iswritable():
+				raise OverWriteError, 'File is not writable'
+			elif not self.exists():
+				self.dir.touch()
+			else:
+				pass # exists and writable
 
 		if encoding:
 			mode += 'b'
@@ -342,24 +363,55 @@ class File(Path):
 			return ''
 		else:
 			file = self.open('r', encoding)
-			return file.read()
+			content = file.read()
+			self._checkoverwrite(content)
+			return content
 
 	def readlines(self):
 		if not self.exists():
 			return []
 		else:
 			file = self.open('r')
-			return file.readlines()
+			content = file.readlines()
+			self._checkoverwrite(content)
+			return content
 
 	def write(self, text):
+		self._assertoverwrite()
 		file = self.open('w')
 		file.write(text)
 		file.close()
+		self._checkoverwrite(text)
 
 	def writelines(self, lines):
+		self._assertoverwrite()
 		file = self.open('w')
 		file.writelines(lines)
 		file.close()
+		self._checkoverwrite(lines)
+
+	def _checkoverwrite(self, content):
+		if self.checkoverwrite:
+			self._mtime = self.mtime()
+			self._content = content
+
+	def _assertoverwrite(self):
+		# do not prohibit writing without reading first
+
+		def md5(content):
+			import hashlib
+			m = hashlib.md5()
+			if isinstance(content, basestring):
+				m.update(content)
+			else:
+				for l in content:
+					m.update(l)
+			return m.digest()
+
+		if self._mtime and self._mtime != self.mtime():
+			logger.warn('mtime check failed for %s, trying md5', self.path)
+			if md5(self._content) != md5(self.open('r').read()):
+				raise OverWriteError, 'File changed on disk: %s' % self.path
 
 	def touch(self):
 		'''FIXME'''

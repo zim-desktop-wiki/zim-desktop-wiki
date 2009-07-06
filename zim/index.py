@@ -196,8 +196,8 @@ class Index(gobject.GObject):
 
 		self.notebook.connect('page-created',
 			lambda o, p: self._touch_path(p) )
-		self.notebook.connect('page-changed',
-			lambda o, p: self._index_page(indexpath, self.lookup_path(p)) )
+		self.notebook.connect('page-updated',
+			lambda o, p: self._index_page(self.lookup_path(p), p) )
 		self.notebook.connect('page-moved', on_page_moved)
 		self.notebook.connect('page-deleted',
 			lambda o, p: self.delete(p) )
@@ -345,7 +345,10 @@ class Index(gobject.GObject):
 			for path in inserted:
 				self.emit('page-inserted', path)
 
-		return inserted[-1]
+		if inserted:
+			return inserted[-1]
+		else:
+			return self.lookup_path(path)
 
 	def _index_page(self, path, page):
 		'''Indexes page contents for page.

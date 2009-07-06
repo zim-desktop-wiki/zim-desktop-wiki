@@ -94,9 +94,11 @@ class History(gobject.GObject):
 		while len(self.history) >= MAX_HISTORY:
 			self.history.pop(0)
 
-		item = [page.name, None, None] # PAGE_COL, CURSOR_COL, SCROLL_COL
-		self.history.append(item)
-
+		if self.history and page.name == self.history[-1][PAGE_COL]:
+			pass
+		else:
+			item = [page.name, None, None] # PAGE_COL, CURSOR_COL, SCROLL_COL
+			self.history.append(item)
 		self.current = -1
 			# this assignment always triggers "modified" on the ListDict
 
