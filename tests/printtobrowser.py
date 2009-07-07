@@ -8,6 +8,7 @@ from tests import TestCase
 
 import zim.plugins
 from zim.notebook import Path
+from zim.config import ConfigDict
 
 class TestPrintToBrowser(TestCase):
 
@@ -30,3 +31,8 @@ class StubUI(object):
 	def __init__(self):
 		self.notebook = tests.get_test_notebook()
 		self.page = self.notebook.get_page(Path('Test:foo'))
+		self.preferences = ConfigDict()
+	
+	def connect(*a): pass
+
+	def connect_after(*a): pass

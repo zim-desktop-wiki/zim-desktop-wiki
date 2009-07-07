@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Mon, 29 Jun 2009 17:42:55 +0200
+Modification-Date: Mon, 06 Jul 2009 22:51:04 +0200
 
 ====== Tasks ======
 
@@ -24,7 +24,7 @@ Modification-Date: Mon, 29 Jun 2009 17:42:55 +0200
 [ ] Static linker for export
 [ ] Update links logic for move / rename
 [ ] Search function in side pane (as you type) ??
-[ ] Implement save and autosave (mtime + md5) + hook signal
+[*] Implement save and autosave (mtime + md5) + hook signal
 [ ] Completion for pages and namespaces
 [ ] implement drag & drop in the treeview ??
 [ ] Implement key bindings for bullet list control

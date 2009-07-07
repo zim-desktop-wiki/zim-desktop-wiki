@@ -17,15 +17,16 @@ import gtk.keysyms
 import pango
 
 import zim
-import zim.fs
+from zim.fs import *
 from zim import NotebookInterface
 from zim.notebook import Path, Page, PageNameError
 from zim.index import LINK_DIR_BACKWARD
-from zim.config import data_file, config_file, data_dirs
+from zim.config import data_file, config_file, data_dirs, ListDict
 import zim.history
 import zim.gui.pathbar
 import zim.gui.pageindex
 from zim.gui.widgets import Button, MenuButton
+from zim.gui.applications import get_application
 
 logger = logging.getLogger('zim.gui')
 
@@ -62,7 +63,6 @@ ui_actions = (
 	('show_search',  'gtk-find', '_Search...', '<shift><ctrl>F', 'Search'),
 	('show_search_backlinks', None, 'Search _Backlinks...', '', 'Search Back links'),
 	('copy_location', None, 'Copy Location', '<shift><ctrl>L', 'Copy location'),
-	('show_plugins',  None, 'P_lugins', '', 'Plugins dialog'),
 	('show_preferences',  'gtk-preferences', 'Pr_eferences', '', 'Preferences dialog'),
 	('reload_page',  'gtk-refresh', '_Reload', '<ctrl>R', 'Reload page'),
 	('open_attachments_folder', 'gtk-open', 'Open Attachments _Folder', '', 'Open document folder'),
@@ -128,6 +128,11 @@ TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
+ui_preferences = (
+	# section, key, type, category, label, default
+	('tearoff_menus', 'bool', 'Interface', 'Add \'tearoff\' strips to the menus', False),
+	('toggle_on_ctrlspace', 'bool', 'Interface', 'Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)', True),
+)
 
 # Load custom application icons as stock
 try:
@@ -158,6 +163,7 @@ class GtkInterface(NotebookInterface):
 	* close-page (page)
 	  Called when closing a page, typically just before a new page is opened
 	  and before closing the application
+	* preferences-changed
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -165,12 +171,14 @@ class GtkInterface(NotebookInterface):
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'save-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	ui_type = 'gtk'
 
 	def __init__(self, notebook=None, page=None, **opts):
 		NotebookInterface.__init__(self, **opts)
+		self.preferences_register = ListDict()
 		self.page = None
 		self.history = None
 		self._save_page_in_progress = False
@@ -187,6 +195,11 @@ class GtkInterface(NotebookInterface):
 			</toolbar>
 		</ui>
 		''')
+
+		self.register_preferences('GtkInterface', ui_preferences)
+		self.preferences['GtkInterface'].setdefault('file_browser', 'xdg-open')
+		self.preferences['GtkInterface'].setdefault('web_browser', 'xdg-open')
+		self.preferences['GtkInterface'].setdefault('email_client', 'xdg-email')
 
 		self.mainwindow = MainWindow(self)
 
@@ -229,6 +242,13 @@ class GtkInterface(NotebookInterface):
 				# Close application. Either the user cancelled the notebook
 				# dialog, or the notebook was opened in a different process.
 				return
+
+		if self.page is None:
+			path = self.history.get_current()
+			if path:
+				self.open_page(path)
+			else:
+				self.open_page_home()
 
 		def autosave():
 			page = self.mainwindow.pageview.get_page()
@@ -276,7 +296,7 @@ class GtkInterface(NotebookInterface):
 
 		Differs for add-actions() in that in the mapping from action name
 		to method name is prefixed with "do_". The reason for this is that
-		in order to keep the state of toolbar andmenubar widgets stays in
+		in order to keep the state of toolbar and menubar widgets stays in
 		sync with the internal state. Therefore the method of the same name
 		as the action should just call activate() on the action, while the
 		actual logic is implamented in the handler which is prefixed with
@@ -335,6 +355,25 @@ class GtkInterface(NotebookInterface):
 		# TODO remove action group
 		# TODO remove ui
 
+	def register_preferences(self, section, preferences):
+		'''Registers user preferences. Registering means that a
+		preference will show up in the preferences dialog.
+		The section given is the section to locate these preferences in the
+		config file. Each preference is a tuple consisting of:
+
+		* the key in the config file
+		* an option type (see Dialog.add_fields() for more details)
+		* a category (the tab in which the option will be shown)
+		* a label to show in the dialog
+		* a default value
+		'''
+		register = self.preferences_register
+		for p in preferences:
+			key, type, category, label, default = p
+			self.preferences[section].setdefault(key, default)
+			register.setdefault(category, [])
+			register[category].append((section, key, type, label))
+
 	def get_path_context(self):
 		'''Returns the current 'context' for actions that want a path to start
 		with. Asks the mainwindow for a selected page, defaults to the
@@ -374,11 +413,8 @@ class GtkInterface(NotebookInterface):
 		self.history = zim.history.History(notebook, self.uistate)
 		self.on_notebook_properties_changed(notebook)
 
-		# Do a lightweight background check of the index
+		# Start a lightweight background check of the index
 		self.notebook.index.update(background=True, checkcontents=False)
-
-		# TODO load history and set intial page
-		self.open_page_home()
 
 	def on_notebook_properties_changed(self, notebook):
 		has_doc_root = not notebook.get_document_root() is None
@@ -407,7 +443,6 @@ class GtkInterface(NotebookInterface):
 		if self.page:
 			assert self.close_page(self.page)
 		self.emit('open-page', page, path)
-		# else we failed to save the page
 
 	def do_open_page(self, page, path):
 		'''Signal handler for open-page.'''
@@ -441,8 +476,13 @@ class GtkInterface(NotebookInterface):
 	def do_close_page(self, page):
 		if page.modified:
 			self.save_page(page)
-		if self.uistate.modified:
-			self.uistate.write()
+
+		def save_uistate():
+			if self.uistate.modified:
+				self.uistate.write()
+			return False # only run once
+
+		gobject.idle_add(save_uistate)
 
 	def open_page_back(self):
 		record = self.history.get_previous()
@@ -594,13 +634,18 @@ class GtkInterface(NotebookInterface):
 		import zim.gui.clipboard
 		zim.gui.clipboard.Clipboard().set_pagelink(self.notebook, self.page)
 
-	def show_plugins(self):
-		import zim.gui.pluginsdialog
-		zim.gui.pluginsdialog.PluginsDialog(self).run()
-
 	def show_preferences(self):
-		import zim.gui.preferencesdialog
-		zim.gui.preferencesdialog.PreferencesDialog(self).run()
+		from zim.gui.preferencesdialog import PreferencesDialog
+		PreferencesDialog(self).run()
+
+	def save_preferences(self):
+		if self.preferences.modified:
+			self.preferences.write()
+			self.emit('preferences-changed')
+
+	def do_preferences_changed(self):
+		self.uimanager.set_add_tearoffs(
+			self.preferences['GtkInterface']['tearoff_menus'] )
 
 	def reload_page(self):
 		if self.page.modified:
@@ -612,16 +657,26 @@ class GtkInterface(NotebookInterface):
 		AttachFileDialog(self, path=path).run()
 
 	def open_folder(self, dir):
-		self.spawn('xdg-open', dir.path)
+		assert isinstance(dir, Dir)
+		return self._openwith(self.preferences['GtkInterface']['file_browser'], (dir,))
 
 	def open_file(self, file):
-		self.spawn('xdg-open', file.path)
+		assert isinstance(file, (File, Dir))
+		return self._openwith(self.preferences['GtkInterface']['file_browser'], (file,))
 
 	def open_url(self, url):
+		assert isinstance(url, basestring)
 		if url.startswith('file:/'):
 			self.open_file(File(url))
+		elif url.startswith('mailto:'):
+			self._openwith(self.preferences['GtkInterface']['email_client'], (url,))
 		else:
-			self.spawn('xdg-open', url)
+			self._openwith(self.preferences['GtkInterface']['web_browser'], (url,))
+
+	def _openwith(self, appname, args):
+		app = get_application(appname)
+		cmd = app.parse_exec(args)
+		self.spawn(*cmd)
 
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -1291,9 +1346,12 @@ class Dialog(gtk.Dialog):
 		field definitions; each definition is a tupple of:
 
 			* The field name
-			* The field type (e.g. 'page')
+			* The field type
 			* The label to put in front of the input field
 			* The initial value of the field
+
+		The following field types are supported: 'bool', 'int', 'list',
+		'string', 'page', 'namespace', 'file' and 'image'.
 
 		If 'table' is specified the fields are added to that table, otherwise
 		a new table is constructed and added to the dialog. Returns the table
@@ -1328,6 +1386,21 @@ class Dialog(gtk.Dialog):
 				button.set_range(min, max)
 				self.inputs[name] = button
 				table.attach(button, 1,2, i,i+1)
+			elif type == 'list':
+				label = gtk.Label(label+':')
+				label.set_alignment(0.0, 0.5)
+				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
+				value, options = value
+				combobox = gtk.combo_box_new_text()
+				for option in options:
+					combobox.append_text(str(option))
+				try:
+					active = options.index(value)
+					combobox.set_active(active)
+				except ValueError:
+					pass
+				self.inputs[name] = combobox
+				table.attach(combobox, 1,2, i,i+1)
 			elif type in ('string', 'page', 'namespace', 'file', 'image'):
 				label = gtk.Label(label+':')
 				label.set_alignment(0.0, 0.5)
@@ -1356,7 +1429,10 @@ class Dialog(gtk.Dialog):
 		for i in range(len(fields)-1):
 			name = fields[i][0]
 			next = fields[i+1][0]
-			self.inputs[name].connect('activate', focus_next, self.inputs[next])
+			try:
+				self.inputs[name].connect('activate', focus_next, self.inputs[next])
+			except Exception:
+				pass
 
 		if trigger_response:
 			last = fields[-1][0]
@@ -1394,6 +1470,8 @@ class Dialog(gtk.Dialog):
 				values[name] = widget.get_text().strip()
 			elif isinstance(widget, gtk.ToggleButton):
 				values[name] = widget.get_active()
+			elif isinstance(widget, gtk.ComboBox):
+				values[name] = widget.get_active_text()
 			elif isinstance(widget, gtk.SpinButton):
 				values[name] = int(widget.get_value())
 			else:
@@ -1401,7 +1479,9 @@ class Dialog(gtk.Dialog):
 		return values
 
 	def run(self):
-		'''Calls show_all() followed by gtk.Dialog.run()'''
+		'''Calls show_all() followed by gtk.Dialog.run().
+		Returns the 'result' attribute of the dialog if any.
+		'''
 		self.show_all()
 		self._close = False
 		while not self._close:
@@ -1472,7 +1552,7 @@ class FileDialog(Dialog):
 		'''
 		path = self.filechooser.get_filename()
 		if path is None: return None
-		else: return zim.fs.File(path)
+		else: return File(path)
 
 	def _add_filter_all(self):
 		filter = gtk.FileFilter()

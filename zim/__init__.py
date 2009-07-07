@@ -62,7 +62,7 @@ class NotebookInterface(gobject.GObject):
 			logger.debug('No bzr version-info found')
 
 		self.preferences = config_file('preferences.conf')
-		self.uistate = {}
+		self.uistate = None
 
 		if not notebook is None:
 			self.open_notebook(notebook)
@@ -145,6 +145,7 @@ class NotebookInterface(gobject.GObject):
 	def spawn(self, *argv):
 		'''FIXME'''
 		argv = list(argv)
+		argv = map(lambda a: unicode(a).encode('utf-8'), argv)
 		if argv[0] == 'zim':
 			argv[0] = executable
 		logger.info('Spawn process: %s', ' '.join(['"%s"' % a for a in argv]))

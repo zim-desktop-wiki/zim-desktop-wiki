@@ -1,0 +1,15 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Wed, 24 Jun 2009 23:45:10 +0200
+Modification-Date: Wed, 24 Jun 2009 23:50:25 +0200
+
+====== Forms ======
+Created Wednesday 24 June 2009
+
+Clearly we need per page templates. To be able to edit these from zim they should be valid wiki pages. This is possible because we can include template instructions without problem.
+
+Open issue: how to layout forms with gtk entries as input in wiki ? Maybe just consider these embedded widgets and use some kind of "insert form" menu item to create them ?
+
+Would be able to use definition lists like "author:: foo" or similar, but would not allow e.g. right aligned image next to fields.
+
+Open issue: how to set initial cursor position ?

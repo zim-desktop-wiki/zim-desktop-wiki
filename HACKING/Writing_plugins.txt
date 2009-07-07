@@ -1,0 +1,19 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Wed, 24 Jun 2009 23:42:30 +0200
+Modification-Date: Wed, 24 Jun 2009 23:44:50 +0200
+
+====== Writing plugins ======
+
+Topics:
+* How to subclass PluginClass
+* How to intall
+* How to add menu items
+* How to add preferences
+* How to use uistate
+* How to use notebook properties
+
+Other
+* How to package
+* Manual page
+* Unite testing

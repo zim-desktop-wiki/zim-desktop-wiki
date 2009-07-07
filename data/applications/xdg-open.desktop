@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Exec=xdg-open
+TryExec=xdg-open
+Icon=file-manager
+NoDisplay=true
+X-Zim-AppType=file_browser;web_browser
+Name=Default (xdg)
