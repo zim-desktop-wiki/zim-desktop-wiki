@@ -15,7 +15,7 @@ except:
 	import simplejson as json # extra dependency
 
 from zim.fs import *
-from zim.parsing import TextBuffer, ParsingError
+from zim.parsing import TextBuffer, ParsingError, split_quoted_strings
 
 logger = logging.getLogger('zim.config')
 
@@ -105,6 +105,8 @@ def data_dir(path):
 	for dir in data_dirs(path):
 		if dir.exists():
 			return dir
+	else:
+		return None
 
 def data_file(path):
 	'''Takes a path relative to the zim data dir and returns the first file
@@ -114,6 +116,8 @@ def data_file(path):
 		file = dir.file(path)
 		if file.exists():
 			return file
+	else:
+		return None
 
 def config_dirs():
 	'''Generator that first yields the equivalent of ~/.config/zim and
@@ -147,7 +151,7 @@ def config_file(path):
 				if default.exists():
 					break
 			else:
-				default is None
+				default = None
 		else:
 			default = None
 
@@ -251,13 +255,14 @@ class ListDict(dict):
 		of keys. Keys not in the list are moved to the end. Keys that are in
 		the list but not in the dict will be ignored.
 		'''
+		order = order.copy()
 		oldorder = set(self.order)
 		neworder = set(order)
 		for k in neworder - oldorder: # keys not in the dict
 			order.remove(k)
 		for k in oldorder - neworder: # keys not in the list
 			order.append(k)
-		sneworder = set(order)
+		neworder = set(order)
 		assert neworder == oldorder
 		self.order = order
 
@@ -351,7 +356,7 @@ class ConfigDict(ListDict):
 	def parse(self, text):
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
-		setion = None
+		section = None
 		for line in text:
 			line = line.strip()
 			if not line or line.startswith('#'):
@@ -390,17 +395,6 @@ class ConfigDict(ListDict):
 
 			return json.loads('"%s"' % value.replace('"', '\\"')) # force string
 
-	# for later use when parsing .desktop files...
-	#~ def _decode_desktop_value(self, values):
-		#~ if value == 'true': return True
-		#~ elif value == 'false': return False
-		#~ else:
-			#~ try:
-				#~ value = float(value)
-				#~ return value
-			#~ except:
-				#~ return json.parses('"%s'" % value.replace('"', '\\"')) # force string
-
 	def dump(self):
 		lines = []
 		for section, parameters in self.items():
@@ -419,16 +413,6 @@ class ConfigDict(ListDict):
 		else:
 			return json.dumps(value, separators=(',',':'))
 				# specify separators for compact encoding
-
-	# for later use when parsing .desktop files...
-	#~ def _encode_desktop_value(self, value):
-		#~ if value is True: return 'true'
-		#~ elif value is False: return 'false'
-		#~ elif isinstance(value, int) or isinstance(value, float):
-			#~ value = value.__str__()
-		#~ else:
-			#~ assert isinstace(value, basestring), 'Desktop files can not store complex data'
-			#~ return json.dumps(value)(value)[1:-1] # get rid of quotes
 
 
 class ConfigFile(ListDict):

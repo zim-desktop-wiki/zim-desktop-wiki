@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Exec=xdg-email
+TryExec=xdg-email
+Icon=email
+NoDisplay=true
+X-Zim-AppType=email_client
+Name=Default (xdg)

@@ -98,11 +98,12 @@ class PluginClass(object):
 		# config file is only available after the notebook is openend.
 		# Therefore we need to link the actual file and merge back
 		# any defaults that were set during plugin intialization etc.
-		section = self.__class__.__name__
-		defaults = self.uistate
-		self.uistate = self.ui.uistate[section]
-		for key, value in defaults.items():
-			self.uistate.setdefault(key, value)
+		if self.ui.uistate:
+			section = self.__class__.__name__
+			defaults = self.uistate
+			self.uistate = self.ui.uistate[section]
+			for key, value in defaults.items():
+				self.uistate.setdefault(key, value)
 
 	def disconnect(self):
 		'''FIXME'''

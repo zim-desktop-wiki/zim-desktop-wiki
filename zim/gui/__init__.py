@@ -17,7 +17,7 @@ import gtk.keysyms
 import pango
 
 import zim
-import zim.fs
+from zim.fs import *
 from zim import NotebookInterface
 from zim.notebook import Path, Page, PageNameError
 from zim.index import LINK_DIR_BACKWARD
@@ -26,6 +26,7 @@ import zim.history
 import zim.gui.pathbar
 import zim.gui.pageindex
 from zim.gui.widgets import MenuButton
+from zim.gui.applications import get_application
 
 logger = logging.getLogger('zim.gui')
 
@@ -192,6 +193,9 @@ class GtkInterface(NotebookInterface):
 		''')
 
 		self.register_preferences('GtkInterface', ui_preferences)
+		self.preferences['GtkInterface'].setdefault('file_browser', 'xdg-open')
+		self.preferences['GtkInterface'].setdefault('web_browser', 'xdg-open')
+		self.preferences['GtkInterface'].setdefault('email_client', 'xdg-email')
 
 		self.mainwindow = MainWindow(self)
 
@@ -275,7 +279,7 @@ class GtkInterface(NotebookInterface):
 
 		Differs for add-actions() in that in the mapping from action name
 		to method name is prefixed with "do_". The reason for this is that
-		in order to keep the state of toolbar andmenubar widgets stays in
+		in order to keep the state of toolbar and menubar widgets stays in
 		sync with the internal state. Therefore the method of the same name
 		as the action should just call activate() on the action, while the
 		actual logic is implamented in the handler which is prefixed with
@@ -601,16 +605,26 @@ class GtkInterface(NotebookInterface):
 		AttachFileDialog(self, path=path).run()
 
 	def open_folder(self, dir):
-		self.spawn('xdg-open', dir.path)
+		assert isinstance(dir, Dir)
+		return self._openwith(self.preferences['GtkInterface']['file_browser'], (dir,))
 
 	def open_file(self, file):
-		self.spawn('xdg-open', file.path)
+		assert isinstance(file, (File, Dir))
+		return self._openwith(self.preferences['GtkInterface']['file_browser'], (file,))
 
 	def open_url(self, url):
+		assert isinstance(url, basestring)
 		if url.startswith('file:/'):
 			self.open_file(File(url))
+		elif url.startswith('mailto:'):
+			self._openwith(self.preferences['GtkInterface']['mail_client'], (url,))
 		else:
-			self.spawn('xdg-open', url)
+			self._openwith(self.preferences['GtkInterface']['web_browser'], (url,))
+
+	def _openwith(self, appname, args):
+		app = get_application(appname)
+		cmd = app.parse_exec(args)
+		self.spawn(*cmd)
 
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -1126,6 +1140,7 @@ class Dialog(gtk.Dialog):
 		title.
 		'''
 		self.ui = ui
+		self.result = None
 		self.inputs = {}
 		gtk.Dialog.__init__(
 			self, parent=get_window(self.ui),
@@ -1183,9 +1198,12 @@ class Dialog(gtk.Dialog):
 		field definitions; each definition is a tupple of:
 
 			* The field name
-			* The field type (e.g. 'page')
+			* The field type
 			* The label to put in front of the input field
 			* The initial value of the field
+
+		The following field types are supported: 'bool', 'int', 'list',
+		'string', 'page', 'namespace', 'file' and 'image'.
 
 		If 'table' is specified the fields are added to that table, otherwise
 		a new table is constructed and added to the dialog. Returns the table
@@ -1220,6 +1238,21 @@ class Dialog(gtk.Dialog):
 				button.set_range(min, max)
 				self.inputs[name] = button
 				table.attach(button, 1,2, i,i+1)
+			elif type == 'list':
+				label = gtk.Label(label+':')
+				label.set_alignment(0.0, 0.5)
+				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
+				value, options = value
+				combobox = gtk.combo_box_new_text()
+				for option in options:
+					combobox.append_text(str(option))
+				try:
+					active = options.index(value)
+					combobox.set_active(active)
+				except ValueError:
+					pass
+				self.inputs[name] = combobox
+				table.attach(combobox, 1,2, i,i+1)
 			elif type in ('string', 'page', 'namespace', 'file', 'image'):
 				label = gtk.Label(label+':')
 				label.set_alignment(0.0, 0.5)
@@ -1248,7 +1281,10 @@ class Dialog(gtk.Dialog):
 		for i in range(len(fields)-1):
 			name = fields[i][0]
 			next = fields[i+1][0]
-			self.inputs[name].connect('activate', focus_next, self.inputs[next])
+			try:
+				self.inputs[name].connect('activate', focus_next, self.inputs[next])
+			except Exception:
+				pass
 
 		if trigger_response:
 			last = fields[-1][0]
@@ -1286,6 +1322,8 @@ class Dialog(gtk.Dialog):
 				values[name] = widget.get_text().strip()
 			elif isinstance(widget, gtk.ToggleButton):
 				values[name] = widget.get_active()
+			elif isinstance(widget, gtk.ComboBox):
+				values[name] = widget.get_active_text()
 			elif isinstance(widget, gtk.SpinButton):
 				values[name] = int(widget.get_value())
 			else:
@@ -1293,9 +1331,12 @@ class Dialog(gtk.Dialog):
 		return values
 
 	def run(self):
-		'''Calls show_all() followed by gtk.Dialog.run()'''
+		'''Calls show_all() followed by gtk.Dialog.run().
+		Returns the 'result' attribute of the dialog if any.
+		'''
 		self.show_all()
 		gtk.Dialog.run(self)
+		return self.result
 
 	def show_all(self):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
@@ -1362,7 +1403,7 @@ class FileDialog(Dialog):
 		'''
 		path = self.filechooser.get_filename()
 		if path is None: return None
-		else: return zim.fs.File(path)
+		else: return File(path)
 
 	def _add_filter_all(self):
 		filter = gtk.FileFilter()

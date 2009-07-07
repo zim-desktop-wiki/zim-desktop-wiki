@@ -5,11 +5,17 @@
 '''FIXME'''
 
 import gtk
+import logging
 
+from zim.gui.applications import get_application, get_helper_applications, create_helper_application
 from zim.gui import Dialog
 from zim.gui.widgets import Button, BrowserTreeView
 import zim.plugins
 from zim.gui.pageview import PageView
+
+
+logger = logging.getLogger('zim.gui.preferencesdialog')
+
 
 class PreferencesDialog(Dialog):
 	'''Preferences dialog consisting of tabs with various options and
@@ -21,6 +27,8 @@ class PreferencesDialog(Dialog):
 		Dialog.__init__(self, ui, 'Preferences')
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
+
+		# Dynamic tabs
 		for category, preferences in ui.preferences_register.items():
 			table = gtk.Table()
 			table.set_border_width(5)
@@ -37,13 +45,34 @@ class PreferencesDialog(Dialog):
 				# a tuple is hashable and can be used as field name...
 			self.add_fields(fields, table=table, trigger_response=False)
 			if category == 'Interface':
-				self._add_extra_widgets(table, vbox)
+				self._add_font_selection(table, vbox)
 
-		gtknotebook.append_page(StylesTab(self), gtk.Label('Styles'))
-		gtknotebook.append_page(KeyBindingsTab(self), gtk.Label('Key bindings'))
+		# Styles tab
+		#~ gtknotebook.append_page(StylesTab(self), gtk.Label('Styles'))
+
+		# Keybindings tab
+		#~ gtknotebook.append_page(KeyBindingsTab(self), gtk.Label('Key bindings'))
+
+		# Applications tab
+		table = gtk.Table()
+		table.set_border_width(5)
+		table.set_row_spacings(12)
+		table.set_col_spacings(12)
+		self.add_fields( (
+			('file_browser', 'list', 'File browser', (None, ())),
+			('web_browser', 'list', 'Web browser', (None, ())),
+			('email_client', 'list', 'Email client', (None, ())),
+		), table=table, trigger_response=False)
+		for type in ('file_browser', 'web_browser', 'email_client'):
+			self._append_applications(type)
+		vbox = gtk.VBox()
+		vbox.pack_start(table, False)
+		gtknotebook.append_page(vbox, gtk.Label('Applications'))
+
+		# Plugins tab
 		gtknotebook.append_page(PluginsTab(self), gtk.Label('Plugins'))
 
-	def _add_extra_widgets(self, table, vbox):
+	def _add_font_selection(self, table, vbox):
 		# need to hardcode this, can not register it as a preference
 		self.add_fields((('use_custom_font', 'bool', 'Use a custom font', False),), table=table, trigger_response=False)
 		self.use_custom_font = self.inputs.pop('use_custom_font')
@@ -68,6 +97,33 @@ class PreferencesDialog(Dialog):
 		hbox.pack_start(gtk.Label('\t\t'), False)
 		hbox.pack_start(self.fontbutton, False)
 
+	def _append_applications(self, type):
+		# TODO search for other options
+
+		current = self.ui.preferences['GtkInterface'][type]
+		apps = get_helper_applications(type)
+		if not current in [app.key for app in apps]:
+			app = get_application(current)
+			if app:
+				apps.insert(0, app)
+			else:
+				logger.warn('Could not find application: %s', current)
+
+		name_map = {}
+		setattr(self, '%s_map' % type, name_map)
+
+		combobox = self.inputs[type]
+		for app in apps:
+			name = app.get_name()
+			name_map[name] = app.key
+			combobox.append_text(name)
+
+		try:
+			active = [app.key for app in apps].index(current)
+			combobox.set_active(active)
+		except ValueError:
+			pass
+
 	def do_response_ok(self):
 		if self.use_custom_font.get_active():
 			font = self.fontbutton.get_font_name()
@@ -75,6 +131,12 @@ class PreferencesDialog(Dialog):
 			font = None
 		PageView.style['TextView']['font'] = font
 		PageView.style.write()
+
+		for type in ('file_browser', 'web_browser', 'email_client'):
+			combobox = self.inputs.pop(type)
+			name = combobox.get_active_text()
+			name_map = getattr(self, '%s_map' % type)
+			self.ui.preferences['GtkInterface'][type] = name_map[name]
 
 		fields = self.get_fields()
 		#~ print fields
@@ -266,3 +328,20 @@ class KeyBindingsTab(gtk.VBox):
 #~ gtk.accel_map_get().connect('changed', func(o, accel_path, key, mods))
 #~ This way we also get any accelerators that were deleted as result of
 #~ replace=True
+
+class NewAppDialog(Dialog):
+
+	def __init__(self, ui, type):
+		Dialog.__init__(self, ui, 'Custom Command')
+		assert type in ('file_browser', 'web_browser', 'email_client')
+		self.type = type
+		self.add_fields(
+			('name', 'string', 'Name', ''),
+			('exec', 'string', 'Command', ''),
+		)
+
+	def do_response_ok(self):
+		fields = self.get_fields()
+		file = create_helper_application(self.type, fields['name'], fields['exec'])
+		self.result = file
+		return True

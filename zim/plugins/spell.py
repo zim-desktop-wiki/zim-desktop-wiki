@@ -61,7 +61,6 @@ This is a core plugin shipping with zim.
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			self.ui.add_ui(ui_xml, self)
-			# TODO use setting to control behavior
 			self.ui.connect_after('open-page', self.do_open_page)
 
 	@classmethod
@@ -71,40 +70,46 @@ This is a core plugin shipping with zim.
 		else:
 			return True
 
-	def toggle_spellcheck(self):
-		self.ui.actiongroup.get_action('toggle_spellcheck').activate()
-
-	def do_toggle_spellcheck(self):
-		if not self.uistate['active']:
-			self.enable_spellcheck()
+	def toggle_spellcheck(self, enable=None):
+		action = self.actiongroup.get_action('toggle_spellcheck')
+		if enable is None or enable != action.get_active():
+			action.activate()
 		else:
-			self.disable_spellcheck()
+			self.do_toggle_spellcheck(enable=enable)
 
-	def enable_spellcheck(self):
-		# TODO check language in page / notebook / default
-		self.uistate['active'] = True
-		if self.spell is None:
-			textview = self.ui.mainwindow.pageview.view
-			lang = self.preferences['language'] or None
-			self.spell = gtkspell.Spell(textview, lang)
-			textview.gtkspell = self.spell # used by hardcoded hook in pageview
-		# TODO action_show_active
+	def do_toggle_spellcheck(self, enable=None):
+		print 'do_toggle_spellcheck', enable
+		if enable is None:
+			action = self.actiongroup.get_action('toggle_spellcheck')
+			enable = action.get_active()
 
+		textview = self.ui.mainwindow.pageview.view
+		if enable:
+			# TODO check language in page / notebook / default
+			if self.spell is None:
+				lang = self.preferences['language'] or None
+				self.spell = gtkspell.Spell(textview, lang)
+				textview.gtkspell = self.spell # used by hardcoded hook in pageview
+			else:
+				pass
+		else:
+			if self.spell is None:
+				pass
+			else:
+				self.spell.detach()
+				self.spell = None
+				textview.gtkspell = None
+		
+		self.uistate['active'] = enable
 		return False # we can be called from idle event
-
-	def disable_spellcheck(self):
-		self.uistate['active'] = False
-		if not self.spell is None:
-			textview = self.ui.mainwindow.pageview.view
-			textview.gtkspell = None
-			self.spell.detach()
-			self.spell = None
-		# TODO action_show_active
 
 	def do_open_page(self, ui, page, record):
 		# Assume the old object is detached by hard coded
 		# hook in TextView, just attach a new one.
 		# Use idle timer to avoid lag in page loading.
+		# This hook also synchronizes the state of the toggle with
+		# the uistate when loading the first page
 		self.spell = None
 		if self.uistate['active']:
-			gobject.idle_add(self.enable_spellcheck)
+			gobject.idle_add(self.toggle_spellcheck, True)
+
