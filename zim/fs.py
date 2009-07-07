@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
@@ -193,7 +193,7 @@ class Dir(Path):
 		'''FIXME'''
 		# TODO check notes on handling encodings in os.listdir
 		if self.exists():
-			files = [f.decode('utf8')
+			files = [f.decode('utf-8')
 				for f in os.listdir(self.path) if not f.startswith('.')]
 			files.sort()
 			return files
@@ -303,7 +303,7 @@ class File(Path):
 		'''Returns True if the file exists and is actually a file'''
 		return os.path.isfile(self.path)
 
-	def open(self, mode='r', encoding='utf8'):
+	def open(self, mode='r', encoding='utf-8'):
 		'''Returns an io object for reading or writing.
 		Opening a non-exisiting file for writing will cause the whole path
 		to this file to be created on the fly.
@@ -358,7 +358,7 @@ class File(Path):
 			os.rename(tmp, self.path)
 		logger.debug('Wrote %s', self)
 
-	def read(self, encoding='utf8'):
+	def read(self, encoding='utf-8'):
 		if not self.exists():
 			return ''
 		else:

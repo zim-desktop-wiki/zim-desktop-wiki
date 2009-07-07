@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 

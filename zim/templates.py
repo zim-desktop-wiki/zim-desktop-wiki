@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
@@ -337,7 +337,7 @@ class GETToken(TemplateToken):
 	def process(self, dict):
 		value = self.expr.evaluate(dict)
 		if value:
-			return [unicode(value).encode('utf8')]
+			return [unicode(value).encode('utf-8')]
 		else:
 			return []
 

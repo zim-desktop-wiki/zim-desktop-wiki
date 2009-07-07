@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
@@ -189,7 +189,7 @@ class WWWInterface(NotebookInterface):
 			if environ['REQUEST_METHOD'] == 'HEAD':
 				return []
 			elif 'utf-8' in headers['Content-Type']:
-				return [string.encode('utf8') for string in content]
+				return [string.encode('utf-8') for string in content]
 			else:
 				return content
 

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 #

@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
@@ -8,6 +8,7 @@ import os
 import shutil
 import unittest
 import codecs
+import gettext
 
 __all__ = [
 	'parsing', 'fs', 'config',
@@ -19,6 +20,9 @@ __all__ = [
 ]
 
 __unittest = 1 # needed to get stack trace OK for class TestCase
+
+
+gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext')) 
 
 
 def set_environ():
@@ -52,7 +56,7 @@ _test_data_cache = {}
 
 def get_test_data(path):
 	if not path in _test_data_cache:
-		buffer = codecs.open('tests/data/'+path, encoding='utf8').read()
+		buffer = codecs.open('tests/data/'+path, encoding='utf-8').read()
 		_test_data_cache[path] = buffer
 
 	buffer = _test_data_cache[path]
@@ -139,7 +143,7 @@ class TestCase(unittest.TestCase):
 		else:
 			return
 
-		raise self.failureException, msg.encode('utf8')
+		raise self.failureException, msg.encode('utf-8')
 
 	def assertEqualDiffData(self, first, second, msg=None):
 		'''Like assertEqualDiff(), but handles sets and other
@@ -168,4 +172,4 @@ class TestCase(unittest.TestCase):
 		else:
 			return
 
-		raise self.failureException, msg.encode('utf8')
+		raise self.failureException, msg.encode('utf-8')

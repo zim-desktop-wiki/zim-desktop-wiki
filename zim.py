@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright 2008, 2009 Jaap Karssenberg <pardus@cpan.org>
 #
@@ -25,8 +25,11 @@ to the apropriate class to run the application.
 
 import sys
 import logging
+import gettext
 
 from getopt import gnu_getopt, GetoptError
+
+gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext')) 
 
 try:
 	version_info = sys.version_info

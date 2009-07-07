@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
@@ -31,8 +31,8 @@ from zim.gui.applications import get_application
 logger = logging.getLogger('zim.gui')
 
 ui_actions = (
-	('file_menu', None, '_File'),
-	('edit_menu', None, '_Edit'),
+	('file_menu', None, _('_File')),
+	('edit_menu', None, _('_Edit')),
 	('view_menu', None, '_View'),
 	('insert_menu', None, '_Insert'),
 	('search_menu', None, '_Search'),
@@ -599,7 +599,7 @@ class GtkInterface(NotebookInterface):
 		zim.gui.exportdialog.ExportDialog(self).run()
 
 	def email_page(self):
-		text = ''.join(page.dump(format='wiki')).encode('utf8')
+		text = ''.join(page.dump(format='wiki')).encode('utf-8')
 		# TODO url encoding - replace \W with sprintf('%%%02x')
 		url = 'mailto:?subject=%s&body=%s' % (page.name, text)
 		# TODO open url

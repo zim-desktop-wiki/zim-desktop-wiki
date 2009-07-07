@@ -1312,7 +1312,7 @@ class DotWidget(gtk.DrawingArea):
 
     def set_dotcode(self, dotcode, filename='<stdin>'):
         if isinstance(dotcode, unicode):
-            dotcode = dotcode.encode('utf8')
+            dotcode = dotcode.encode('utf-8')
         p = subprocess.Popen(
             [self.filter, '-Txdot'],
             stdin=subprocess.PIPE,

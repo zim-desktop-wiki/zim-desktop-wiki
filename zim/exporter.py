@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
@@ -77,7 +77,7 @@ class Exporter(object):
 			lines = page.dump(self.format, linker=self.linker)
 		else:
 			lines = self.template.process(self.notebook, page)
-		fh.writelines(l.encode('utf8') for l in lines)
+		fh.writelines(l.encode('utf-8') for l in lines)
 
 
 class BaseLinker(object):
