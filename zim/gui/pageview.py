@@ -36,6 +36,25 @@ bullets = {}
 for bullet in bullet_types:
 	bullets[bullet_types[bullet]] = bullet
 
+
+# Check the (undocumented) list of constants in gtk.keysyms to see all names
+KEYVALS_HOME = map(gtk.gdk.keyval_from_name, ('Home', 'KP_Home'))
+KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))
+KEYVALS_BACKSPACE = map(gtk.gdk.keyval_from_name, ('BackSpace',))
+KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
+KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
+
+KEYVALS_END_OF_WORD = map(
+	gtk.gdk.unicode_to_keyval, map(ord, (' ', ')', '>', '.', '!', '?')))
+
+KEYVALS_ASTERISK = (
+	gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
+KEYVALS_SLASH = (
+	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
+KEYVALS_GT = (gtk.gdk.unicode_to_keyval(ord('>')),)
+KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
+
+
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip
 	('undo', 'gtk-undo', '_Undo', '<ctrl>Z', 'Undo'),
@@ -121,25 +140,28 @@ class TextBuffer(gtk.TextBuffer):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'insert-text': 'override',
+		'begin-insert-tree': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'end-insert-tree': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'inserted-tree': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)),
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'indent-changed': (gobject.SIGNAL_RUN_LAST, None, (int,)),
 	}
 
 	# text tags supported by the editor and default stylesheet
 	tag_styles = {
-		'h1':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
-		'h2':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
-		'h3':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
-		'h4':	   {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
-		'h5':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': 'italic'},
-		'h6':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
+		'h1': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
+		'h2': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
+		'h3': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
+		'h4': {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
+		'h5': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': 'italic'},
+		'h6': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
 		'emphasis': {'style': 'italic'},
-		'strong':   {'weight': pango.WEIGHT_BOLD},
-		'mark':	 {'background': 'yellow'},
-		'strike':   {'strikethrough': 'true', 'foreground': 'grey'},
-		'code':	 {'family': 'monospace'},
-		'pre':	  {'family': 'monospace', 'wrap-mode': 'none'},
-		'link':	 {'foreground': 'blue'},
+		'strong': {'weight': pango.WEIGHT_BOLD},
+		'mark': {'background': 'yellow'},
+		'strike': {'strikethrough': 'true', 'foreground': 'grey'},
+		'code': {'family': 'monospace'},
+		'pre': {'family': 'monospace', 'wrap-mode': 'none'},
+		'link': {'foreground': 'blue'},
 	}
 
 	# possible attributes for styles in tag_styles
@@ -151,6 +173,7 @@ class TextBuffer(gtk.TextBuffer):
 	def __init__(self):
 		'''FIXME'''
 		gtk.TextBuffer.__init__(self)
+		self._insert_tree_in_progress = False
 
 		for k, v in self.tag_styles.items():
 			tag = self.create_tag('style-'+k, **v)
@@ -165,8 +188,6 @@ class TextBuffer(gtk.TextBuffer):
 
 		self.textstyle = None
 		self._editmode_tags = ()
-
-		#~ self.connect('begin-user-action', lambda o: logger.info('action'))
 
 	def clear(self):
 		'''FIXME'''
@@ -199,7 +220,19 @@ class TextBuffer(gtk.TextBuffer):
 
 	def insert_parsetree_at_cursor(self, tree):
 		'''FIXME'''
+		self.emit('begin-insert-tree')
+		startoffset = self.get_iter_at_mark(self.get_insert()).get_offset()
 		self._insert_element_children(tree.getroot())
+		startiter = self.get_iter_at_offset(startoffset)
+		enditer = self.get_iter_at_mark(self.get_insert())
+		self.emit('end-insert-tree')
+		self.emit('inserted-tree', startiter, enditer, tree)
+
+	def do_begin_insert_tree(self):
+		self._insert_tree_in_progress = True
+
+	def do_end_insert_tree(self):
+		self._insert_tree_in_progress = False
 
 	def _insert_element_children(self, node, list_level=-1):
 		# FIXME: should block textstyle-changed here for performance
@@ -216,7 +249,7 @@ class TextBuffer(gtk.TextBuffer):
 
 				self._insert_element_children(element, list_level=list_level+1) # recurs
 			elif element.tag == 'li':
-				self.set_indent(list_level+1)
+				self.set_indent(list_level)
 				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
 					bullet = element.attrib['bullet']
 					if bullet in bullet_types:
@@ -323,6 +356,7 @@ class TextBuffer(gtk.TextBuffer):
 			self._editmode_tags = mode
 
 	def insert_image(self, iter, file, src, **attrib):
+		# TODO emit signals if not self._insert_tree_in_progress
 		# TODO support tooltip text
 		try:
 			if 'width' in attrib or 'height' in attrib:
@@ -353,6 +387,7 @@ class TextBuffer(gtk.TextBuffer):
 			return None
 
 	def insert_icon(self, iter, stock):
+		# TODO emit signals if not self._insert_tree_in_progress
 		widget = gtk.HBox() # Need *some* widget here...
 		pixbuf = widget.render_icon(stock, gtk.ICON_SIZE_MENU)
 		if pixbuf is None:
@@ -469,30 +504,93 @@ class TextBuffer(gtk.TextBuffer):
 
 	def set_indent(self, level):
 		'''Sets the current indent level. This style will be applied
-		to text inserted at the cursor. Using 'set_indent(None)' is
-		equivalent to 'set_indent(0)'.
+		to text inserted at the cursor. Set 'level' None to remove indenting.
+		Indenting level 0 looks the same as normal text for most purposes but
+		has slightly different wrap around behavior, assumes a list bullet at
+		start of the line.
 		'''
 		self._editmode_tags = filter(_is_not_indent_tag, self._editmode_tags)
 
-		if level and level > 0:
-			# TODO make number of pixels in indent configable (call this tabstop)
-			name = 'indent-%i' % level
-			tag = self.get_tag_table().lookup(name)
-			if tag is None:
-				margin = 10 + 30 * (level-1) # offset from left side for all lines
-				indent = -10 # offset for first line (bullet)
-				tag = self.create_tag(name, left_margin=margin, indent=indent)
-				tag.zim_type = 'indent'
-				tag.zim_tag = 'indent'
-				tag.zim_attrib = {'indent': level-1}
+		if not level is None:
+			assert level >= 0
+			tag = self._get_indent_tag(level)
 			self._editmode_tags = self._editmode_tags + (tag,)
 		else:
-			level = 0
+			level = -1
 
 		self.emit('indent-changed', level)
 
-	def apply_indent(self, level):
-		pass
+	def apply_indent(self, level, start, end):
+		def remove_indent(tag, buffer):
+			if _is_indent_tag(tag):
+				buffer.remove_tag(tag, start, end)
+		self.get_tag_table().foreach(remove_indent, self)
+
+		if not level is None:
+			tag = self._get_indent_tag(level)
+			self.apply_tag(tag, start, end)
+		self.set_textstyle_from_cursor() # also updates indent tag
+
+	def _get_indent_tag(self, level):
+		# TODO make number of pixels in indent configable (call this tabstop)
+		name = 'indent-%i' % level
+		tag = self.get_tag_table().lookup(name)
+		if tag is None:
+			margin = 10 + 30 * level # offset from left side for all lines
+			indent = -10 # offset for first line (bullet)
+			tag = self.create_tag(name, left_margin=margin, indent=indent)
+			tag.zim_type = 'indent'
+			tag.zim_tag = 'indent'
+			tag.zim_attrib = {'indent': level}
+		return tag
+
+	def increment_indent(self, iter):
+		start = self.get_iter_at_line(iter.get_line())
+		end = start.copy()
+		end.forward_line()
+		level = self.get_indent(start)
+		self.apply_indent(level+1, start, end)
+		return True
+
+	def decrement_indent(self, iter):
+		start = self.get_iter_at_line(iter.get_line())
+		end = start.copy()
+		end.forward_line()
+		level = self.get_indent(start)
+		if level > 0:
+			self.apply_indent(level-1, start, end)
+			return True
+		else:
+			return False
+
+	def foreach_line_in_selection(self, func, userdata=None):
+		bounds = self.get_selection_bounds()
+		if bounds:
+			start, end = bounds
+			return self.foreach_line(start, end, func, userdata)
+		else:
+			return ()
+
+	def foreach_line(self, start, end, func, userdata=None):
+		# first building list of lines because
+		# iters might break when changing the buffer
+		lines = []
+		iter = self.get_iter_at_line(start.get_line())
+		while iter.compare(end) == -1:
+			lines.append(iter.get_line())
+			if iter.forward_line():
+				continue
+			else:
+				break
+
+		results = []
+		if userdata is None:
+			for line in lines:
+				results.append(func(self.get_iter_at_line(line)))
+		else:
+			for line in lines:
+				results.append(func(self.get_iter_at_line(line), userdata))
+		return results
 
 	def do_mark_set(self, iter, mark):
 		if mark.get_name() == 'insert':
@@ -545,12 +643,25 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				return None
 
-	def _iter_forward_past_bullet(self, iter):
+	def iter_forward_past_bullet(self, iter):
+		bullet = self.get_bullet_at_iter(iter)
+		if bullet:
+			self._iter_forward_past_bullet(iter, bullet)
+			return True
+		else:
+			return False
+
+	def _iter_forward_past_bullet(self, iter, bullet):
+		assert bullet in (BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX)
+		# other bullet types might need to skip different number of char etc.
 		iter.forward_char()
 		bound = iter.copy()
 		bound.forward_char()
-		if iter.get_text(bound) == ' ':
-			iter.forward_char()
+		while iter.get_text(bound) == ' ':
+			if iter.forward_char():
+				bound.forward_char()
+			else:
+				break
 
 	def get_parsetree(self, bounds=None):
 		if bounds is None:
@@ -592,7 +703,7 @@ class TextBuffer(gtk.TextBuffer):
 							t = 'li'
 							attrib = attrib.copy() # break ref with tree
 							attrib['bullet'] = bullet
-							self._iter_forward_past_bullet(iter)
+							self._iter_forward_past_bullet(iter, bullet)
 						else:
 							t = 'p'
 					builder.start(t, attrib)
@@ -696,6 +807,24 @@ class TextBuffer(gtk.TextBuffer):
 		self.select_range(insert, bound)
 		return link
 
+	def toggle_checkbox(self, iter, checkbox_type=CHECKED_BOX):
+		bullet = self.get_bullet_at_iter(iter)
+		if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
+			if bullet == checkbox_type:
+				icon = bullet_types[UNCHECKED_BOX]
+			else:
+				icon = bullet_types[checkbox_type]
+		else:
+			return False
+
+		self.begin_user_action()
+		bound = iter.copy()
+		bound.forward_char()
+		self.delete(iter, bound)
+		self.insert_icon(iter, icon)
+		self.end_user_action()
+		return True
+
 	def get_has_selection(self):
 		'''Returns boolean whether there is a selection or not.
 
@@ -710,7 +839,7 @@ gobject.type_register(TextBuffer)
 
 CURSOR_TEXT = gtk.gdk.Cursor(gtk.gdk.XTERM)
 CURSOR_LINK = gtk.gdk.Cursor(gtk.gdk.HAND2)
-CURSOR_TOGGLE = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
+CURSOR_WIDGET = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
 
 
 class TextView(gtk.TextView):
@@ -722,6 +851,8 @@ class TextView(gtk.TextView):
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'end-of-word': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'end-of-line': (gobject.SIGNAL_RUN_LAST, None, ()),
 
 		# Override clipboard interaction
 		#~ 'copy-clipboard': 'override',
@@ -732,8 +863,7 @@ class TextView(gtk.TextView):
 		'motion-notify-event': 'override',
 		'visibility-notify-event': 'override',
 		'button-release-event': 'override',
-		#~ 'key-press-event': 'override',
-
+		'key-press-event': 'override',
 	}
 
 	def __init__(self):
@@ -779,16 +909,140 @@ class TextView(gtk.TextView):
 		if not selection:
 			iter = self.get_iter_at_pointer()
 			if event.button == 1:
-				self.click_link(iter) or self.toggle_checkbox(iter)
+				self.click_link(iter) or self.get_buffer().toggle_checkbox(iter)
 			elif event.button == 3:
-				self.toggle_checkbox(iter, XCHECKED_BOX)
+				self.get_buffer().toggle_checkbox(iter, XCHECKED_BOX)
 		return cont # continue emit ?
 
-	#~ def do_key_press_event(self, event):
-		#~ '''FIXME'''
-		#~ cont = gtk.TextView.do_key_press_event(self, event)
-		#~ print 'key press'
-		#~ return cont # continue emit ?
+	def do_key_press_event(self, event):
+		# Returns boolean whether we handled the event or it should continue to emit
+		# Key bindings in standard input mode:
+		#   Tab at start of line indents line
+		#   Shift-Tab and optionally Backspace at start of line unindent line
+		#   Space, Tab and some other characters trigger word autoformatting
+		#   Enter triggers line autoformatting
+		#   Home toggles between real home and start of first word
+		# See below fro read-only mode and selection mode
+		handled = True
+		buffer = self.get_buffer()
+		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
+
+		READONLY = False # FIXME
+		SETTING = True # FIXME
+		if READONLY:
+			handled = self._do_key_press_event_readonly(event)
+		elif buffer.get_has_selection():
+			handled = self._do_key_press_event_selection(event)
+		elif event.keyval in KEYVALS_TAB:
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			realhome, ourhome = self.get_home_positions(iter)
+			if iter.compare(ourhome) == 1: # iter beyond home position
+				self.emit('end-of-word')
+				handled = False
+			else:
+				iter = buffer.get_iter_at_mark(buffer.get_insert())
+				iter = buffer.get_iter_at_line(iter.get_line())
+				buffer.increment_indent(iter)
+		elif event.keyval in KEYVALS_LEFT_TAB or \
+		(event.keyval in KEYVALS_BACKSPACE and SETTING):
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			realhome, ourhome = self.get_home_positions(iter)
+			if iter.compare(ourhome) == 1: # iter beyond home position
+				handled = False
+			else:
+				iter = buffer.get_iter_at_line(iter.get_line())
+				done = buffer.decrement_indent(iter)
+				if event.keyval in KEYVALS_BACKSPACE and not done:
+					handled = False # do a normal backspace
+		elif event.keyval in KEYVALS_END_OF_WORD:
+			self.emit('end-of-word')
+			handled = False
+		elif event.keyval in KEYVALS_ENTER:
+			buffer = self.get_buffer()
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			link = buffer.get_link_data(iter)
+			if link:
+				if SETTING or event.state & gtk.gdk.META_MASK: # Meta == Alt
+					self.click_link(iter)
+				else:
+					pass # do not insert newline, just ignore
+			else:
+				self.emit('end-of-line')
+				handled = False
+		elif event.keyval in KEYVALS_HOME and \
+		not event.state & gtk.gdk.CONTROL_MASK:
+			insert = buffer.get_iter_at_mark(buffer.get_insert())
+			realhome, ourhome = self.get_home_positions(insert)
+			if insert.equal(ourhome): iter = realhome
+			else: iter = ourhome
+			if event.state & gtk.gdk.SHIFT_MASK:
+				buffer.move_mark_by_name('insert', iter)
+			else:
+				buffer.place_cursor(iter)
+		else:
+			handled = False
+
+		if handled:
+			return True
+		else:
+			return gtk.TextView.do_key_press_event(self, event)
+
+	def _do_key_press_event_readonly(self, event):
+		# Key bindings in read-only mode:
+		#   / open searchs box
+		#   Space scrolls one page
+		#   Shift-Space scrolls one page up
+		handled = True
+		if event.keyval in KEYVALS_SLASH:
+			self.begin_find() # TODO
+		elif event.keyval in KEYVALS_SPACE:
+			if event.state & gtk.gdk.SHIFT_MASK: i = -1
+			else: i = 1
+			self.emit('move-cursor', gtk.MOVEMENT_PAGES, i, False)
+		else:
+			handled = False
+		return handled
+
+	def _do_key_press_event_selection(self, event):
+		# Key bindings when there is an active selections:
+		#   Tab indents whole selection
+		#   Shift-Tab and optionally Backspace unindent whole selection
+		#   * Turns whole selection in bullet list, or toggle back
+		#   > Quotes whole selection with '>'
+		handled = True
+		buffer = self.get_buffer()
+		SETTING = True # FIXME
+		if event.keyval in KEYVALS_TAB:
+			buffer.foreach_line_in_selection(buffer.increment_indent)
+		elif event.keyval in KEYVALS_LEFT_TAB:
+			buffer.foreach_line_in_selection(buffer.decrement_indent)
+		elif event.keyval in KEYVALS_BACKSPACE and SETTING:
+			done = buffer.foreach_line_in_selection(buffer.decrement_indent)
+			if not any(done):
+				handled = None # nothing happened, normal backspace
+		elif event.keyval in KEYVALS_ASTERISK:
+			def toggle_bullet(iter):
+				bound = iter.copy()
+				bound.forward_char()
+				if iter.get_text(bound) == u'\u2022':
+					bound = iter.copy()
+					buffer.iter_forward_past_bullet(bound)
+					buffer.delete(iter, bound)
+				else:
+					buffer.insert(iter, u'\u2022 ')
+			buffer.foreach_line_in_selection(toggle_bullet)
+		elif event.keyval in KEYVALS_GT:
+			def email_quote(iter):
+				bound = iter.copy()
+				bound.forward_char()
+				if iter.get_text(bound) == '>':
+					buffer.insert(iter, '>')
+				else:
+					buffer.insert(iter, '> ')
+			buffer.foreach_line_in_selection(email_quote)
+		else:
+			handled = False
+		return handled
 
 	def get_iter_at_pointer(self):
 		'''Returns the TextIter that is under the mouse'''
@@ -810,7 +1064,7 @@ class TextView(gtk.TextView):
 			if pixbuf and pixbuf.zim_type == 'icon' \
 			and pixbuf.zim_attrib['stock'] in (
 				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
-				cursor = CURSOR_TOGGLE
+				cursor = CURSOR_WIDGET
 			else:
 				cursor = CURSOR_TEXT
 
@@ -847,28 +1101,298 @@ class TextView(gtk.TextView):
 		else:
 			return False
 
-	def toggle_checkbox(self, iter, checkbox_type=CHECKED_BOX):
-		buffer = self.get_buffer()
-		bullet = buffer.get_bullet_at_iter(iter)
-		if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
-			if bullet == checkbox_type:
-				icon = bullet_types[UNCHECKED_BOX]
-			else:
-				icon = bullet_types[checkbox_type]
+	def get_home_positions(self, iter):
+		'''Returns two text iters. If we are on a word wrapped line, both point
+		to the begin of the visual line (which is not the actual paragraph
+		start). If the visual begin happens to be the real line start the first
+		iter will give the real line start while the second will give the start
+		of the actual content on the line (so after skipping bullets and
+		whitespace) while the second. In that case the two iters specify a
+		range that may contain bullets or whitespace at the start of the line.
+		'''
+		realhome = iter.copy()
+		if not self.starts_display_line(realhome):
+			self.backward_display_line_start(realhome)
+		if realhome.starts_line():
+			ourhome = realhome.copy()
+			self.get_buffer().iter_forward_past_bullet(ourhome)
+			bound = ourhome.copy()
+			bound.forward_char()
+			while ourhome.get_text(bound) in (' ', '\t'):
+				if ourhome.forward_char():
+					bound.forward_char()
+				else:
+					break
+			return realhome, ourhome
 		else:
-			return False
+			# only start visual line, not start of real line
+			return realhome, realhome.copy()
 
-		buffer.begin_user_action()
-		bound = iter.copy()
-		bound.forward_char()
-		buffer.delete(iter, bound)
-		buffer.insert_icon(iter, icon)
-		buffer.end_user_action()
-		return True
+	def do_end_of_word(self):
+		print 'End Of Word'
 
+	def do_end_of_line(self):
+		print 'End Of Line'
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)
+
+
+class UndoStackManager:
+	'''This class implements a manager for the undo stack for our TextBuffer class.
+	It records any changes and allows rolling back actions. Data in this undo stack
+	is only valid as long as the asociated TextBuffer exists.
+
+	When recording new actions after rolling back a previous action, the remaining
+	stack will be 'folded'. This means that even the 'undo' action can always be
+	undone and no data is discarded.
+
+	We try to group single-character inserts and deletes into words. This makes
+	the stack more compact and makes the undo action more meaningfull.
+	'''
+
+	MAX_UNDO = 100 # FIXME what is a sensible value here ?
+
+	# We have 4 types of actions that can be recorded. Each action is recorded as
+	# a tuple containing this constant as the first item, followed by the start
+	# and end offsets in the buffer and a data structure (either a parse tree or a text tag).
+	# Negating an action gives it opposite.
+
+	ACTION_INSERT = 1
+	ACTION_DELETE = -1
+	ACTION_APPLY_TAG = 2
+	ACTION_REMOVE_TAG = -2
+
+	# Actions can be grouped on the stack by putting them inside lists. These lists
+	# will be undone / redone recursively as single actions. When recording a group
+	# will start and stop with the begin-user-action and end-user-action signals.
+	# By definition these signals will not be emitted if a group is open already, so
+	# groups will not be nested inside each other. However folding* the stack can result
+	# in nested groups, so these should be handled transparently.
+
+	# *) Folding: if the user presses undo a few times and starts typing we "fold" the
+	#    actions that are on the redo stack into the undo stack. So this content is not
+	#    dropped. Pressing undo again will first undo the typing, then undo (or redo) the
+	#    previous undo actions and then proceed undoing the rest of the stack.
+	#	FIXME: nice ascii diagram of how folding of the undo stack works...
+
+	# Each interactive action (e.g. every single key stroke) is wrapped in a set of
+	# begin-user-action and end-user-action signals. We use these signals to group actions.
+	# This implies that any sequence on non-interactive actions will also end up in a
+	# single group. An interactively created group consisting of a single character insert
+	# or single character delete is a candidate for merging*.
+
+	# *) Merging: grouping various small actions into a meaningful action automatically.
+	#    In this case we merge single character inserts into words so undo is a bit faster
+	#    then just undoing one character at the time.
+
+	def __init__(self, textbuffer):
+		self.buffer = textbuffer
+		self.stack = [] # stack of actions & action groups
+		self.group = [] # current group of actions
+		self.can_merge = False # can we merge interactive key strokes to head of stack ?
+		self.undo_count = 0 # number of undo steps that were done
+		self.block_count = 0 # number of times block() was called
+
+		self.recording_handlers = [] # handlers to be blocked when not recording
+		for signal, handler in (
+			('insert-text', self.do_insert_text),
+			('inserted-tree', self.do_insert_tree),
+			('delete-range', self.do_delete_range),
+			('begin-user-action', self.do_begin_user_action),
+			('end-user-action', self.do_end_user_action),
+		):
+			self.recording_handlers.append(
+				self.buffer.connect(signal, handler) )
+
+		for signal, action in (
+			('apply-tag', self.ACTION_APPLY_TAG),
+			('remove-tag', self.ACTION_REMOVE_TAG),
+		):
+			self.recording_handlers.append(
+				self.buffer.connect(signal, self.do_change_tag, data=action) )
+
+		self.buffer.connect_object('begin-insert-tree',
+			self.__class__.block, self)
+		self.buffer.connect_object('end-insert-tree',
+			self.__class__.unblock, self)
+
+		#~ self.buffer.connect_object('edit-textstyle-changed',
+			#~ self.__class__._flush_if_typing, self)
+		#~ self.buffer.connect_object('set-mark',
+			#~ self.__class__._flush_if_typing, self)
+
+	def block(self):
+		'''Block listening to events from the textbuffer untill further notice.
+		Any change in between will not be undo-able (and mess up the undo stack)
+		unless it is recorded explicitly. Keeps count of number of calls to
+		block() and unblock().
+		'''
+		# blocking / unblocking does not affect the state - just "pause"
+		if self.block_count == 0:
+			for id in self.recording_handlers:
+				self.buffer.block_handler(id)
+		self.block_count += 1
+
+	def unblock(self):
+		# blocking / unblocking does not affect the state - just "pause"
+		if self.block_count > 1:
+			self.block_count -= 1
+		else:
+			for id in self.recording_handlers:
+				self.buffer.unblock_handler(id)
+			self.block_count = 0
+
+	def begin_user_action(self):
+		'''Start a group of actions that will be undone / redone as a single action'''
+		if self.group:
+			self._flush_insert()
+			self.stack.append(self.group)
+			self.group = []
+			self.can_merge = False # content was entered non-interactive, so can't merge
+
+			while len(self.stack) > MAX_UNDO:
+				self.stack.pop(0)
+		elif self.undo_count > 0:
+			self._flush_redo_stack()
+		else:
+			pass
+
+	def end_user_action(self):
+		'''End a group of actions that will be undone / redone as a single action'''
+		if self.group:
+			self._flush_insert()
+			merged = False
+			if len(self.group) == 1 \
+				and self.group[0][0] in (self.ACTION_INSERT, self.ACTION_DELETE) \
+				and self.group[0][1] - self.group[0][2] == 1:
+				can_merge = self.group[0][0] # ACTION_INSERT or ACTION_DELETE
+				if can_merge == self.can_merge:
+					self.stack[-1].extend(self.group) # TODO more intelligent merging ?
+			else:
+				can_merge = False
+
+			if not merged:
+				self.stack.append(self.group)
+			self.group = []
+			self.can_merge = can_merge
+
+			while len(self.stack) > MAX_UNDO:
+				self.stack.pop(0)
+		else:
+			pass
+
+	def do_inserted_tree(self, buffer, start, end, parsetree):
+		if self.undo_count > 0: self._flush_redo_stack()
+
+		start, end = start.get_offset(), end.get_offset()
+		self.group.append((self.ACTION_INSERT, start, end, tree))
+
+	def do_insert_text(self, buffer, end, text, length):
+		# Do not use length argument, it seems not to understand unicode
+		if self.undo_count > 0: self._flush_redo_stack()
+
+		start = end.copy()
+		start.backward_chars(lenght)
+		start, end = start.get_offset(), end.get_offset()
+		self.group.append((self.ACTION_INSERT, start, end, None))
+
+	def _flush_insert(self):
+		# For insert actually getting the tree is delayed when possible
+		for i in range(len(self.group)):
+			if self.group[i][0] == self.ACTION_INSERT and self.group[i][3] is None:
+				start = self.buffer.get_iter(self.group[i][1])
+				end = self.buffer.get_iter(self.group[i][2])
+				tree = self.buffer.get_parsetree(start, end)
+				self.group[i] = (self.ACTION_INSERT, self.group[i][1], self.group[i][2], tree)
+
+	def do_delete_range(self, buffer, start, end):
+		if self.undo_count > 0: self._flush_redo_stack()
+		elif self.group: self._flush_insert()
+
+		tree = self.buffer.get_parsetree(start, end)
+		start, end = start.get_offset(), end.get_offset()
+		self.group.append((self.ACTION_DELETE, start, end, tree))
+
+	def do_change_tag(self, buffer, tag, start, end, action):
+		assert action in (self.ACTION_APPLY_TAG, self.ACTION_REMOVE_TAG)
+		if not hasattr(tag, 'zim_type'):
+			return
+
+		if self.undo_count > 0: self._flush_redo_stack()
+
+		start, end = start.get_offset(), end.get_offset()
+		if self.group and self.group[-1][0] == self.ACTION_INSERT \
+			and self.group[-1][1:] == (start, end, None):
+			pass # for text that is not yet flushed tags will be in the tree
+		else:
+			if self.group: self._flush_insert()
+			self.group.append((action, start, end, tag))
+
+	def undo(self):
+		'''Undo one user action'''
+		assert not self.group, 'BUG: interactive action not ended before undo() was called'
+		l = len(self.stack)
+		if self.undo_count == l:
+			return False
+		else:
+			self.undo_count += 1
+			i = l - self.undo_count
+			self._do_action(self._reverse_action(self.stack[i]))
+			return True
+
+	def _flush_redo_stack(self):
+		# fold stack so no data is lost, each undo step can now be undone
+		assert not self.group, 'BUG: interactive action not ended before starting new action'
+		i = len(self.stack) - self.undo_count
+		fold = self._reverse_action(self.stack[i:])
+		self.stack = self.stack[:i]
+		self.stack.extend(fold)
+		self.undo_count = 0
+
+	def redo(self):
+		'''Redo one user action'''
+		assert not self.group, 'BUG: interactive action not ended before redo() was called'
+		if self.undo_count == 0:
+			return False
+		else:
+			i = len(self.stack) - self.undo_count
+			self.undo_count += 1
+			self._do_action(self.stack[i])
+			return True
+
+	def _reverse_action(self, action):
+		if isinstance(action, list): # group
+			action = map(self._reverse_action, reversed(action)) # recurs
+		else:
+			# constants are defined such that negating them reverses the action
+			action = (-action[0],) + action[1:]
+		return action
+
+	def _do_action(self, action):
+		self.block()
+
+		if isinstance(action, list): # group
+			for a in action:
+				self._do_action(a) # recurs
+		else:
+			act, start, end, data = action
+			start = self.buffer.get_iter_at_offset(start)
+			end = self.buffer.get_iter_at_offset(end)
+
+			if act == self.ACTION_INSERT:
+				self.buffer.insert_tree(start, tree)
+			elif act == self.ACTION_DELETE:
+				self.buffer.delete(start, end)
+				# TODO - assert that deleted content matches what is on the stack ?
+			elif act == self.ACTION_APPLY_TAG:
+				self.buffer.apply_tag(data, start, end)
+			elif act == self.ACTION_REMOVE_TAG:
+				self.buffer.remove_tag(data, start, end)
+			else:
+				assert False, 'BUG: unknown action type'
+
+		self.unblock()
 
 
 class PageView(gtk.VBox):
@@ -884,6 +1408,7 @@ class PageView(gtk.VBox):
 		self.ui = ui
 		gtk.VBox.__init__(self)
 		self.page = None
+		self.undostack = None
 		self.view = TextView()
 		swindow = gtk.ScrolledWindow()
 		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -971,6 +1496,9 @@ class PageView(gtk.VBox):
 		# for some reason keeping a copy of the previous buffer
 		# prevents a number of segfaults ...
 		# we do clear the old buffer to save some memory
+		if self.undostack:
+			self.undostack.block()
+			self.undostack = None
 		self._prev_buffer = self.view.get_buffer()
 		self._prev_buffer.delete(*self._prev_buffer.get_bounds())
 
@@ -996,7 +1524,7 @@ class PageView(gtk.VBox):
 		buffer.connect('modified-changed',
 			lambda o: self.on_modified_changed(o))
 
-		#~ self.page.set_parsetree_hook(buffer.get_parsetree)
+		#~ self.undostack = UndoStackManager(buffer)
 
 	def get_page(self): return self.page
 
@@ -1020,7 +1548,6 @@ class PageView(gtk.VBox):
 		tree.resolve_images(self.ui.notebook, self.page)
 			# TODO same for links ?
 		buffer.set_parsetree(tree)
-		buffer.set_modified(False)
 		self._parsetree = tree
 
 	def do_textstyle_changed(self, buffer, style):
@@ -1069,10 +1596,10 @@ class PageView(gtk.VBox):
 			self.ui.open_url(link['href'])
 
 	def undo(self):
-		pass
+		self.undostack.undo()
 
 	def redo(self):
-		pass
+		self.undostack.redo()
 
 	def cut(self):
 		self.view.emit('cut-clipboard')
@@ -1094,10 +1621,13 @@ class PageView(gtk.VBox):
 
 	def _toggled_checkbox(self, checkbox):
 		buffer = self.view.get_buffer()
-		iter = buffer.get_iter_at_mark(buffer.get_insert())
-		if not iter.starts_line():
-			iter = buffer.get_iter_at_line(iter.get_line())
-		self.view.toggle_checkbox(iter, checkbox)
+		if buffer.get_has_selection():
+			buffer.foreach_line_in_selection(buffer.toggle_checkbox, checkbox)
+		else:
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			if not iter.starts_line():
+				iter = buffer.get_iter_at_line(iter.get_line())
+			buffer.toggle_checkbox(iter, checkbox)
 
 	def edit_object(self):
 		buffer = self.view.get_buffer()
