@@ -191,7 +191,7 @@ class NotebookDialog(Dialog):
 		Dialog.__init__(self, ui, 'Open Notebook')
 		# TODO set button to "OPEN" instead of "OK"
 		self.set_default_size(500, 400)
-		self.set_help(':Usage:Notebooks')
+		self.set_help(':Help:Notebooks')
 
 		# show some art work in an otherwise boring dialog
 		path = data_file('globe_banner_small.png').path

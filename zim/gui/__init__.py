@@ -719,7 +719,7 @@ class GtkInterface(NotebookInterface):
 		self.show_help('FAQ')
 
 	def show_help_keys(self):
-		self.show_help('Usage:KeyBindings')
+		self.show_help('Help:KeyBindings')
 
 	def show_help_bugs(self):
 		self.show_help('Bugs')
@@ -1634,7 +1634,7 @@ class NewPageDialog(Dialog):
 		Dialog.__init__(self, ui, 'New Page')
 		self.add_text('Please note that linking to a non-existing page\nalso creates a new page automatically.')
 		self.add_fields([('name', 'page', 'Page Name', None)])
-		self.set_help(':Usage:Pages')
+		self.set_help(':Help:Pages')
 
 	def do_response_ok(self):
 		try:

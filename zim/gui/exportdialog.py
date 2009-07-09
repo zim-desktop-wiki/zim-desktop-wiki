@@ -18,7 +18,7 @@ class ExportDialog(Dialog):
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, 'Export')
 		#~ self.set_resizable(False)
-		self.set_help('ExportDialog')
+		self.set_help(':Help:Export')
 
 		# Pages ------------------------
 		vbox = gtk.VBox(0, 5)
