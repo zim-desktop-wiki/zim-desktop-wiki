@@ -22,7 +22,7 @@ __unittest = 1 # needed to get stack trace OK for class TestCase
 
 
 def set_environ():
-	tmpdir = './tests/tmp/tmp'
+	tmpdir = './tests/tmp/'
 	os.environ.update({
 		'TMP': tmpdir,
 		'XDG_DATA_HOME': './tests/tmp/share',

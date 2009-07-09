@@ -37,14 +37,22 @@ for bullet in bullet_types:
 	bullets[bullet_types[bullet]] = bullet
 
 
-KEYVAL_HOME = gtk.gdk.keyval_from_name('Home')
-KEYVAL_ENTER = gtk.gdk.keyval_from_name('Return')
-KEYVAL_BACKSPACE = gtk.gdk.keyval_from_name('BackSpace')
-KEYVAL_TAB = gtk.gdk.keyval_from_name('Tab')
+# Check the (undocumented) list of constants in gtk.keysyms to see all names
+KEYVALS_HOME = map(gtk.gdk.keyval_from_name, ('Home', 'KP_Home'))
+KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))
+KEYVALS_BACKSPACE = map(gtk.gdk.keyval_from_name, ('BackSpace',))
+KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
+KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
+
 KEYVALS_END_OF_WORD = map(
 	gtk.gdk.unicode_to_keyval, map(ord, (' ', ')', '>', '.', '!', '?')))
-KEYVAL_ASTERISK = gtk.gdk.unicode_to_keyval(ord('*'))
-KEYVAL_GT = gtk.gdk.unicode_to_keyval(ord('>'))
+
+KEYVALS_ASTERISK = (
+	gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
+KEYVALS_SLASH = (
+	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
+KEYVALS_GT = (gtk.gdk.unicode_to_keyval(ord('>')),)
+KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
 
 ui_actions = (
@@ -131,19 +139,19 @@ class TextBuffer(gtk.TextBuffer):
 
 	# text tags supported by the editor and default stylesheet
 	tag_styles = {
-		'h1':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
-		'h2':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
-		'h3':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
-		'h4':	   {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
-		'h5':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': 'italic'},
-		'h6':	   {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
+		'h1': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
+		'h2': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
+		'h3': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
+		'h4': {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
+		'h5': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': 'italic'},
+		'h6': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
 		'emphasis': {'style': 'italic'},
-		'strong':   {'weight': pango.WEIGHT_BOLD},
-		'mark':	 {'background': 'yellow'},
-		'strike':   {'strikethrough': 'true', 'foreground': 'grey'},
-		'code':	 {'family': 'monospace'},
-		'pre':	  {'family': 'monospace', 'wrap-mode': 'none'},
-		'link':	 {'foreground': 'blue'},
+		'strong': {'weight': pango.WEIGHT_BOLD},
+		'mark': {'background': 'yellow'},
+		'strike': {'strikethrough': 'true', 'foreground': 'grey'},
+		'code': {'family': 'monospace'},
+		'pre': {'family': 'monospace', 'wrap-mode': 'none'},
+		'link': {'foreground': 'blue'},
 	}
 
 	# possible attributes for styles in tag_styles
@@ -231,7 +239,7 @@ class TextBuffer(gtk.TextBuffer):
 
 				self._insert_element_children(element, list_level=list_level+1) # recurs
 			elif element.tag == 'li':
-				self.set_indent(list_level+1)
+				self.set_indent(list_level)
 				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
 					bullet = element.attrib['bullet']
 					if bullet in bullet_types:
@@ -486,16 +494,19 @@ class TextBuffer(gtk.TextBuffer):
 
 	def set_indent(self, level):
 		'''Sets the current indent level. This style will be applied
-		to text inserted at the cursor. Using 'set_indent(None)' is
-		equivalent to 'set_indent(0)'.
+		to text inserted at the cursor. Set 'level' None to remove indenting.
+		Indenting level 0 looks the same as normal text for most purposes but
+		has slightly different wrap around behavior, assumes a list bullet at
+		start of the line.
 		'''
 		self._editmode_tags = filter(_is_not_indent_tag, self._editmode_tags)
 
-		if level and level > 0:
+		if not level is None:
+			assert level >= 0
 			tag = self._get_indent_tag(level)
 			self._editmode_tags = self._editmode_tags + (tag,)
 		else:
-			level = 0
+			level = -1
 
 		self.emit('indent-changed', level)
 
@@ -505,7 +516,7 @@ class TextBuffer(gtk.TextBuffer):
 				buffer.remove_tag(tag, start, end)
 		self.get_tag_table().foreach(remove_indent, self)
 
-		if level and level > 0:
+		if not level is None:
 			tag = self._get_indent_tag(level)
 			self.apply_tag(tag, start, end)
 		self.set_textstyle_from_cursor() # also updates indent tag
@@ -515,38 +526,40 @@ class TextBuffer(gtk.TextBuffer):
 		name = 'indent-%i' % level
 		tag = self.get_tag_table().lookup(name)
 		if tag is None:
-			margin = 10 + 30 * (level-1) # offset from left side for all lines
+			margin = 10 + 30 * level # offset from left side for all lines
 			indent = -10 # offset for first line (bullet)
 			tag = self.create_tag(name, left_margin=margin, indent=indent)
 			tag.zim_type = 'indent'
 			tag.zim_tag = 'indent'
-			tag.zim_attrib = {'indent': level-1}
+			tag.zim_attrib = {'indent': level}
 		return tag
 
 	def increment_indent(self, iter):
-		print "INCREMENT INDENT"
 		start = self.get_iter_at_line(iter.get_line())
 		end = start.copy()
 		end.forward_line()
 		level = self.get_indent(start)
 		self.apply_indent(level+1, start, end)
+		return True
 
 	def decrement_indent(self, iter):
-		print "DECREMENT INDENT"
 		start = self.get_iter_at_line(iter.get_line())
 		end = start.copy()
 		end.forward_line()
 		level = self.get_indent(start)
-		self.apply_indent(level-1, start, end)
+		if level > 0:
+			self.apply_indent(level-1, start, end)
+			return True
+		else:
+			return False
 
 	def foreach_line_in_selection(self, func, userdata=None):
 		bounds = self.get_selection_bounds()
 		if bounds:
 			start, end = bounds
-			self.foreach_line(start, end, func, userdata)
-			return True
+			return self.foreach_line(start, end, func, userdata)
 		else:
-			return False
+			return ()
 
 	def foreach_line(self, start, end, func, userdata=None):
 		# first building list of lines because
@@ -560,12 +573,14 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				break
 
+		results = []
 		if userdata is None:
 			for line in lines:
-				func(self.get_iter_at_line(line))
+				results.append(func(self.get_iter_at_line(line)))
 		else:
 			for line in lines:
-				func(self.get_iter_at_line(line), userdata)
+				results.append(func(self.get_iter_at_line(line), userdata))
+		return results
 
 	def do_mark_set(self, iter, mark):
 		if mark.get_name() == 'insert':
@@ -900,24 +915,15 @@ class TextView(gtk.TextView):
 		# See below fro read-only mode and selection mode
 		handled = True
 		buffer = self.get_buffer()
-		print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
-		#~ if readonly TODO
-			#~ handled = self._do_key_press_event_readonly(event)
-		#~ elif
-		if buffer.get_has_selection():
+		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
+
+		READONLY = False # FIXME
+		SETTING = True # FIXME
+		if READONLY:
+			handled = self._do_key_press_event_readonly(event)
+		elif buffer.get_has_selection():
 			handled = self._do_key_press_event_selection(event)
-		elif event.state & gtk.gdk.SHIFT_MASK and event.keyval in (KEYVAL_TAB, KEYVAL_BACKSPACE):
-			#~ if setting and event.keyval == KEYVAL_BACKSPACE:
-				#~ handled = False
-			#~ else:
-			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			realhome, ourhome = self.get_home_positions(iter)
-			if iter.compare(ourhome) == 1: # iter beyond home position
-				handled = False
-			else:
-				iter = buffer.get_iter_at_line(iter.get_line())
-				buffer.decrement_indent(iter)
-		elif event.keyval == KEYVAL_TAB:
+		elif event.keyval in KEYVALS_TAB:
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(iter)
 			if iter.compare(ourhome) == 1: # iter beyond home position
@@ -927,20 +933,34 @@ class TextView(gtk.TextView):
 				iter = buffer.get_iter_at_mark(buffer.get_insert())
 				iter = buffer.get_iter_at_line(iter.get_line())
 				buffer.increment_indent(iter)
+		elif event.keyval in KEYVALS_LEFT_TAB or \
+		(event.keyval in KEYVALS_BACKSPACE and SETTING):
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			realhome, ourhome = self.get_home_positions(iter)
+			if iter.compare(ourhome) == 1: # iter beyond home position
+				handled = False
+			else:
+				iter = buffer.get_iter_at_line(iter.get_line())
+				done = buffer.decrement_indent(iter)
+				if event.keyval in KEYVALS_BACKSPACE and not done:
+					handled = False # do a normal backspace
 		elif event.keyval in KEYVALS_END_OF_WORD:
 			self.emit('end-of-word')
 			handled = False
-		elif event.keyval == KEYVAL_ENTER:
+		elif event.keyval in KEYVALS_ENTER:
 			buffer = self.get_buffer()
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			link = buffer.get_link_data(iter)
 			if link:
-				# if setting follow link on enter FIXME
-				self.click_link(iter)
+				if SETTING or event.state & gtk.gdk.META_MASK: # Meta == Alt
+					self.click_link(iter)
+				else:
+					pass # do not insert newline, just ignore
 			else:
 				self.emit('end-of-line')
 				handled = False
-		elif event.keyval == KEYVAL_HOME and not event.state & gtk.gdk.CONTROL_MASK:
+		elif event.keyval in KEYVALS_HOME and \
+		not event.state & gtk.gdk.CONTROL_MASK:
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(insert)
 			if insert.equal(ourhome): iter = realhome
@@ -962,38 +982,54 @@ class TextView(gtk.TextView):
 		#   / open searchs box
 		#   Space scrolls one page
 		#   Shift-Space scrolls one page up
-		return False
-		# TODO key bindings for read-only
-		#~ handled = True
-		#~ if key == '/':
-			#~ self.begin_find()
-		#~ elif key == ' ':
-			#~ if shift_mask: i = -1
-		#~ else: i = 1
-			#~ self.emit('move-cursor', gtk.MOVEMENT_PAGES, i, False)
-		#~ else:
-			#~ handled = False
-		#~ return handled
+		handled = True
+		if event.keyval in KEYVALS_SLASH:
+			self.begin_find() # TODO
+		elif event.keyval in KEYVALS_SPACE:
+			if event.state & gtk.gdk.SHIFT_MASK: i = -1
+			else: i = 1
+			self.emit('move-cursor', gtk.MOVEMENT_PAGES, i, False)
+		else:
+			handled = False
+		return handled
 
 	def _do_key_press_event_selection(self, event):
 		# Key bindings when there is an active selections:
 		#   Tab indents whole selection
 		#   Shift-Tab and optionally Backspace unindent whole selection
-		#   * Turns whole selection in bullet list
+		#   * Turns whole selection in bullet list, or toggle back
 		#   > Quotes whole selection with '>'
 		handled = True
 		buffer = self.get_buffer()
-		if event.state & gtk.gdk.SHIFT_MASK and event.keyval in (KEYVAL_TAB, KEYVAL_BACKSPACE):
-			#~ if setting and event.keyval == KEYVAL_BACKSPACE:
-				#~ handled = False
-			#~ else:
-			buffer.foreach_line_in_selection(buffer.decrement_indent)
-		elif event.keyval == KEYVAL_TAB:
+		SETTING = True # FIXME
+		if event.keyval in KEYVALS_TAB:
 			buffer.foreach_line_in_selection(buffer.increment_indent)
-		elif event.keyval == KEYVAL_ASTERISK:
-			buffer.foreach_line_in_selection(lambda i: buffer.insert(i, u'\u2022 '))
-		elif event.keyval == KEYVAL_GT:
-			buffer.foreach_line_in_selection(lambda i: buffer.insert(i, '> '))
+		elif event.keyval in KEYVALS_LEFT_TAB:
+			buffer.foreach_line_in_selection(buffer.decrement_indent)
+		elif event.keyval in KEYVALS_BACKSPACE and SETTING:
+			done = buffer.foreach_line_in_selection(buffer.decrement_indent)
+			if not any(done):
+				handled = None # nothing happened, normal backspace
+		elif event.keyval in KEYVALS_ASTERISK:
+			def toggle_bullet(iter):
+				bound = iter.copy()
+				bound.forward_char()
+				if iter.get_text(bound) == u'\u2022':
+					bound = iter.copy()
+					buffer.iter_forward_past_bullet(bound)
+					buffer.delete(iter, bound)
+				else:
+					buffer.insert(iter, u'\u2022 ')
+			buffer.foreach_line_in_selection(toggle_bullet)
+		elif event.keyval in KEYVALS_GT:
+			def email_quote(iter):
+				bound = iter.copy()
+				bound.forward_char()
+				if iter.get_text(bound) == '>':
+					buffer.insert(iter, '>')
+				else:
+					buffer.insert(iter, '> ')
+			buffer.foreach_line_in_selection(email_quote)
 		else:
 			handled = False
 		return handled

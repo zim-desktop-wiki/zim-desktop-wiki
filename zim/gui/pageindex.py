@@ -16,6 +16,18 @@ from zim.gui.widgets import BrowserTreeView
 
 NAME_COL = 0  # column with short page name (page.basename)
 
+
+# Check the (undocumented) list of constants in gtk.keysyms to see all names
+KEYVALS_ASTERISK = (
+	gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
+KEYVALS_SLASH = (
+	gtk.gdk.unicode_to_keyval(ord('\\')),
+	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
+KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
+KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
+KEYVAL_L = gtk.gdk.unicode_to_keyval(ord('l'))
+
+
 class PageTreeStore(gtk.GenericTreeModel):
 	'''FIXME
 
@@ -216,24 +228,36 @@ class PageTreeView(BrowserTreeView):
 		self.ui.open_page(path)
 
 	def do_key_press_event(self, event):
-		'''Handler for key presses'''
-		if BrowserTreeView.do_key_press_event(self, event):
-			return True
+		# Keybindings for the treeview:
+		#  Ctrl-C copy link to selected page
+		#  Ctrl-L insert link to selected page in pageview
+		#  * expand all
+		#  / or \ collapse all
+		#  Esc closes the side pane
+		handled = True
+		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
 
-		try:
-			key = chr(event.keyval)
-		except ValueError:
-			return False
-
-		if event.state == gtk.gdk.CONTROL_MASK:
-			if   key == 'c':
+		# FIXME Ctrl-C ad Ctrl-L are masked by standard actions - need to switch those with focus
+		if event.state & gtk.gdk.CONTROL_MASK:
+			if event.keyval == KEYVAL_C:
 				print 'TODO copy location'
-			elif key == 'l':
+			elif event.keyval == KEYVAL_L:
 				print 'TODO insert link'
 			else:
-				return False
+				handled = False
+		elif event.keyval in KEYVALS_ASTERISK:
+			self.expand_all()
+		elif event.keyval in KEYVALS_SLASH:
+			self.collapse_all()
+		elif event.keyval == KEYVAL_ESC:
+			print 'TODO close side pane'
 		else:
-			return False
+			handled = False
+
+		if handled:
+			return True
+		else:
+			return BrowserTreeView.do_key_press_event(self, event)
 
 	def do_button_release_event(self, event):
 		'''Handler for button-release-event, triggers popup menu'''
