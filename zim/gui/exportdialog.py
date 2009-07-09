@@ -16,17 +16,17 @@ class ExportDialog(Dialog):
 	'''FIXME'''
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, 'Export')
+		Dialog.__init__(self, ui, _('Export'))
 		#~ self.set_resizable(False)
 		self.set_help(':Help:Export')
 
 		# Pages ------------------------
 		vbox = gtk.VBox(0, 5)
 		vbox.set_border_width(12)
-		self._add_with_frame(vbox, '<b>Pages</b>')
+		self._add_with_frame(vbox, '<b>'+_('Pages')+'</b>')
 
-		all_pages_radio = gtk.RadioButton(None, '_Complete notebook')
-		selection_radio = gtk.RadioButton(all_pages_radio, '_Selection')
+		all_pages_radio = gtk.RadioButton(None, _('_Complete notebook'))
+		selection_radio = gtk.RadioButton(all_pages_radio, _('_Selection'))
 		#~ recursive_box = gtk.CheckButton('Recursive')
 		vbox.add(all_pages_radio)
 		vbox.add(selection_radio)
@@ -45,10 +45,10 @@ class ExportDialog(Dialog):
 		table.set_border_width(12)
 		table.set_row_spacings(5)
 		table.set_col_spacings(12)
-		self._add_with_frame(table, '<b>Output</b>')
+		self._add_with_frame(table, '<b>'+_('Output')+'</b>')
 
 		# Format
-		table.attach(gtk.Label('Format:'), 0,1, 0,1)
+		table.attach(gtk.Label(_('Format')+': '), 0,1, 0,1)
 		formats_combobox = gtk.combo_box_new_text()
 		export_formats = zim.formats.list_formats(zim.formats.EXPORT_FORMAT)
 		for name in export_formats:
@@ -71,10 +71,10 @@ class ExportDialog(Dialog):
 			templates = sorted(template_dict.keys())
 			for name in templates:
 				templates_combobox.append_text(name)
-			templates_combobox.append_text('Other...')
+			templates_combobox.append_text(_('Other...'))
 			templates_combobox.set_sensitive(True)
 			template = self.uistate['template']
-			if template == 'Other...':
+			if template == _('Other...'):
 				templates_combobox.set_active(len(templates))
 			else:
 				try:
@@ -83,7 +83,7 @@ class ExportDialog(Dialog):
 				except ValueError:
 					pass
 
-		table.attach(gtk.Label('Template:'), 0,1, 1,2)
+		table.attach(gtk.Label(_('Template')+': '), 0,1, 1,2)
 		templates_combobox = gtk.combo_box_new_text()
 		templates_combobox.set_sensitive(False)
 		formats_combobox.connect('changed', set_templates, templates_combobox)
@@ -91,11 +91,11 @@ class ExportDialog(Dialog):
 		self.inputs['template'] = templates_combobox
 		self.uistate.setdefault('template', 'Default')
 
-		other_template_selector = gtk.FileChooserButton('Please select a template file')
+		other_template_selector = gtk.FileChooserButton(_('Please select a template file'))
 		other_template_selector.set_sensitive(False)
 		templates_combobox.connect('changed',
 			lambda o: other_template_selector.set_sensitive(
-							o.get_active_text() == 'Other...') )
+							o.get_active_text() == _('Other...')) )
 		table.attach(other_template_selector, 1,2, 2,3)
 		self.inputs['template_file'] = other_template_selector
 		self.uistate.setdefault('template_file', '')
@@ -109,8 +109,8 @@ class ExportDialog(Dialog):
 		set_templates(formats_combobox, templates_combobox)
 
 		# Folder
-		table.attach(gtk.Label('Output folder:'), 0,1, 3,4)
-		output_folder_selector = gtk.FileChooserButton('Please select a folder')
+		table.attach(gtk.Label(_('Output folder')+': '), 0,1, 3,4)
+		output_folder_selector = gtk.FileChooserButton(_('Please select a folder'))
 		output_folder_selector.set_action(gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
 		table.attach(output_folder_selector, 1,2, 3,4)
 		self.inputs['output_folder'] = output_folder_selector
@@ -124,7 +124,7 @@ class ExportDialog(Dialog):
 
 		# Index
 		self.inputs['index_page'] = gtk.Entry()
-		table.attach(gtk.Label('Index page:'), 0,1, 4,5)
+		table.attach(gtk.Label(_('Index page')+': '), 0,1, 4,5)
 		table.attach(self.inputs['index_page'], 1,2, 4,5)
 		self.uistate.setdefault('index_page', '')
 		self.inputs['index_page'].set_text(self.uistate['index_page'])
@@ -132,9 +132,9 @@ class ExportDialog(Dialog):
 		# Documents ----------------------
 		vbox = gtk.VBox(0, 5)
 		vbox.set_border_width(12)
-		self._add_with_frame(vbox, '<b>Documents</b>')
+		self._add_with_frame(vbox, '<b>'+_('Documents')+'</b>')
 
-		document_root_url_box = gtk.CheckButton('Map document root to URL:')
+		document_root_url_box = gtk.CheckButton(_('Map document root to URL')+': ')
 		document_root_url_entry = gtk.Entry()
 		document_root_url_entry.set_sensitive(False)
 		if self.ui.notebook.get_document_root():
@@ -149,7 +149,7 @@ class ExportDialog(Dialog):
 		self.inputs['use_document_root_url'].set_active(self.uistate['use_document_root_url'])
 		self.inputs['document_root_url'].set_text(self.uistate['document_root_url'])
 
-		include_documents_box = gtk.CheckButton('Include a copy of linked documents')
+		include_documents_box = gtk.CheckButton(_('Include a copy of linked documents'))
 		self.inputs['include_documents'] = include_documents_box
 		self.uistate.setdefault('include_documents', False)
 		self.inputs['include_documents'].set_active(self.uistate['include_documents'])
@@ -191,7 +191,7 @@ class ExportDialog(Dialog):
 			if self.uistate[k]: # ignore empty string as well
 				options[k] = self.uistate[k]
 
-		if options['template'] == 'Other...':
+		if options['template'] == _('Other...'):
 			options['template'] = self.uistate['template_file']
 
 		if self.uistate['use_document_root_url'] and self.uistate['document_root_url']:
@@ -199,7 +199,7 @@ class ExportDialog(Dialog):
 
 		exporter = Exporter(self.ui.notebook, **options)
 
-		dialog = ProgressBarDialog(self, 'Exporting notebook')
+		dialog = ProgressBarDialog(self, _('Exporting notebook'))
 		dialog.show_all()
 		exporter.export_all(dir, callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()

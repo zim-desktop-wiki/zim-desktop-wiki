@@ -26,7 +26,7 @@ gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
 
 
 def set_environ():
-	tmpdir = './tests/tmp/tmp'
+	tmpdir = './tests/tmp/'
 	os.environ.update({
 		'TMP': tmpdir,
 		'XDG_DATA_HOME': './tests/tmp/share',

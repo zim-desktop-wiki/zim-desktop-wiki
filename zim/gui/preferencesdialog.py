@@ -24,7 +24,7 @@ class PreferencesDialog(Dialog):
 	'''
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, 'Preferences')
+		Dialog.__init__(self, ui, _('Preferences'))
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
 
@@ -59,22 +59,22 @@ class PreferencesDialog(Dialog):
 		table.set_row_spacings(12)
 		table.set_col_spacings(12)
 		self.add_fields( (
-			('file_browser', 'list', 'File browser', (None, ())),
-			('web_browser', 'list', 'Web browser', (None, ())),
-			('email_client', 'list', 'Email client', (None, ())),
+			('file_browser', 'list', _('File browser'), (None, ())),
+			('web_browser', 'list', _('Web browser'), (None, ())),
+			('email_client', 'list', _('Email client'), (None, ())),
 		), table=table, trigger_response=False)
 		for type in ('file_browser', 'web_browser', 'email_client'):
 			self._append_applications(type)
 		vbox = gtk.VBox()
 		vbox.pack_start(table, False)
-		gtknotebook.append_page(vbox, gtk.Label('Applications'))
+		gtknotebook.append_page(vbox, gtk.Label(_('Applications')))
 
 		# Plugins tab
-		gtknotebook.append_page(PluginsTab(self), gtk.Label('Plugins'))
+		gtknotebook.append_page(PluginsTab(self), gtk.Label(_('Plugins')))
 
 	def _add_font_selection(self, table, vbox):
 		# need to hardcode this, can not register it as a preference
-		self.add_fields((('use_custom_font', 'bool', 'Use a custom font', False),), table=table, trigger_response=False)
+		self.add_fields((('use_custom_font', 'bool', _('Use a custom font'), False),), table=table, trigger_response=False)
 		self.use_custom_font = self.inputs.pop('use_custom_font')
 
 		self.fontbutton = gtk.FontButton()
@@ -167,15 +167,15 @@ class PluginsTab(gtk.HBox):
 			label.set_alignment(0.0, 0.5)
 			return label
 
-		vbox.pack_start(heading('Name'), False)
+		vbox.pack_start(heading(_('Name')), False)
 		self.name_label = gtk.Label()
 		self.name_label.set_alignment(0.0, 0.5)
 		vbox.pack_start(self.name_label, False)
-		vbox.pack_start(heading('\nDescription'), False)
+		vbox.pack_start(heading('\n'+_('Description')), False)
 		self.description_label = gtk.Label()
 		self.description_label.set_alignment(0.0, 0.5)
 		vbox.pack_start(self.description_label, False) # FIXME run through plain format to make links
-		vbox.pack_start(heading('\nAuthor'), False)
+		vbox.pack_start(heading('\n'+_('Author')), False)
 		self.author_label= gtk.Label()
 		self.author_label.set_alignment(0.0, 0.5)
 		vbox.pack_start(self.author_label, False) # FIXME idem
@@ -184,12 +184,12 @@ class PluginsTab(gtk.HBox):
 		vbox.pack_end(hbox, False)
 
 		self.plugin_help_button = \
-			Button(stock=gtk.STOCK_HELP, label='_More')
+			Button(stock=gtk.STOCK_HELP, label=_('_More'))
 		self.plugin_help_button.connect('clicked', self.on_help_button_clicked)
 		hbox.pack_start(self.plugin_help_button, False)
 
 		self.configure_button = \
-			Button(stock=gtk.STOCK_PREFERENCES, label='C_onfigure')
+			Button(stock=gtk.STOCK_PREFERENCES, label=_('C_onfigure'))
 		self.configure_button.connect('clicked', self.on_configure_button_clicked)
 		hbox.pack_start(self.configure_button, False)
 
@@ -245,18 +245,18 @@ class PluginsTreeView(BrowserTreeView):
 		cellrenderer = gtk.CellRendererToggle()
 		cellrenderer.connect('toggled', lambda o, p: model.do_toggle_path(p))
 		self.append_column(
-			gtk.TreeViewColumn('Enabled', cellrenderer, active=0))
+			gtk.TreeViewColumn(_('Enabled'), cellrenderer, active=0))
 		self.append_column(
-			gtk.TreeViewColumn('Plugin', gtk.CellRendererText(), text=1))
+			gtk.TreeViewColumn(_('Plugin'), gtk.CellRendererText(), text=1))
 
 
 class PluginConfigureDialog(Dialog):
 
 	def __init__(self, dialog, klass):
-		Dialog.__init__(self, dialog, 'Configure Plugin')
+		Dialog.__init__(self, dialog, _('Configure Plugin'))
 		self.ui = dialog.ui
 
-		label = gtk.Label('Options for plugin %s' % klass.plugin_info['name'])
+		label = gtk.Label(_('Options for plugin %s') % klass.plugin_info['name'])
 		self.vbox.add(label)
 
 		fields = []
@@ -332,12 +332,12 @@ class KeyBindingsTab(gtk.VBox):
 class NewAppDialog(Dialog):
 
 	def __init__(self, ui, type):
-		Dialog.__init__(self, ui, 'Custom Command')
+		Dialog.__init__(self, ui, _('Custom Command'))
 		assert type in ('file_browser', 'web_browser', 'email_client')
 		self.type = type
 		self.add_fields(
-			('name', 'string', 'Name', ''),
-			('exec', 'string', 'Command', ''),
+			('name', 'string', _('Name'), ''),
+			('exec', 'string', _('Command'), ''),
 		)
 
 	def do_response_ok(self):
