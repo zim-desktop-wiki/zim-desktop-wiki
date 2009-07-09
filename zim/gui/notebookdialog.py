@@ -106,7 +106,7 @@ class NotebookTreeView(gtk.TreeView):
 
 		cell_renderer = gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
-		column = gtk.TreeViewColumn('Notebook', cell_renderer, text=NAME_COL)
+		column = gtk.TreeViewColumn(_('Notebook'), cell_renderer, text=NAME_COL)
 		column.set_sort_column_id(NAME_COL)
 		self.append_column(column)
 
@@ -188,7 +188,7 @@ class DefaultNotebookComboBox(NotebookComboBox):
 class NotebookDialog(Dialog):
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, 'Open Notebook')
+		Dialog.__init__(self, ui, _('Open Notebook'))
 		# TODO set button to "OPEN" instead of "OK"
 		self.set_default_size(500, 400)
 		self.set_help(':Usage:Notebooks')
@@ -239,7 +239,7 @@ class NotebookDialog(Dialog):
 		clear_button.connect('clicked', lambda o: self.combobox.set_active(-1))
 
 		hbox = gtk.HBox(spacing=5)
-		hbox.pack_start(gtk.Label('Default notebook:'), False)
+		hbox.pack_start(gtk.Label(_('Default notebook')+': '), False)
 		hbox.pack_start(self.combobox, False)
 		hbox.pack_start(clear_button, False)
 		self.vbox.pack_start(hbox, False)

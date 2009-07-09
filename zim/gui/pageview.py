@@ -57,53 +57,53 @@ KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip
-	('undo', 'gtk-undo', '_Undo', '<ctrl>Z', 'Undo'),
-	('redo', 'gtk-redo', '_Redo', '<ctrl><shift>Z', 'Redo'),
-	('cut', 'gtk-cut', 'Cu_t', '<ctrl>X', 'Cut'),
-	('copy', 'gtk-copy', '_Copy', '<ctrl>C', 'Copy'),
-	('paste', 'gtk-paste', '_Paste', '<ctrl>V', 'Paste'),
-	('delete', 'gtk-delete', '_Delete', '', 'Delete'),
-	('toggle_checkbox', STOCK_CHECKED_BOX, 'Toggle Checkbox \'V\'', 'F12', ''),
-	('xtoggle_checkbox', STOCK_XCHECKED_BOX, 'Toggle Checkbox \'X\'', '<shift>F12', ''),
-	('edit_object', 'gtk-properties', '_Edit Link or Object...', '<ctrl>E', ''),
-	('insert_image', None, '_Image...', '', 'Insert Image'),
-	('insert_text_from_file', None, 'Text From _File...', '', 'Insert Text From File'),
-	('insert_external_link', 'gtk-connect', 'E_xternal Link...', '', 'Insert External Link'),
-	('insert_link', 'gtk-connect', '_Link...', '<ctrl>L', 'Insert Link'),
-	('clear_formatting', None, '_Clear Formatting', '<ctrl>0', ''),
+	('undo', 'gtk-undo', _('_Undo'), '<ctrl>Z', _('Undo')),
+	('redo', 'gtk-redo', _('_Redo'), '<ctrl><shift>Z', _('Redo')),
+	('cut', 'gtk-cut', _('Cu_t'), '<ctrl>X', _('Cut')),
+	('copy', 'gtk-copy', _('_Copy'), '<ctrl>C', _('Copy')),
+	('paste', 'gtk-paste', _('_Paste'), '<ctrl>V', _('Paste')),
+	('delete', 'gtk-delete', _('_Delete'), '', _('Delete')),
+	('toggle_checkbox', STOCK_CHECKED_BOX, _('Toggle Checkbox \'V\''), 'F12', ''),
+	('xtoggle_checkbox', STOCK_XCHECKED_BOX, _('Toggle Checkbox \'X\''), '<shift>F12', ''),
+	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<ctrl>E', ''),
+	('insert_image', None, _('_Image...'), '', _('Insert Image')),
+	('insert_text_from_file', None, _('Text From _File...'), '', _('Insert Text From File')),
+	('insert_external_link', 'gtk-connect', _('E_xternal Link...'), '', _('Insert External Link')),
+	('insert_link', 'gtk-connect', _('_Link...'), '<ctrl>L', _('Insert Link')),
+	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', ''),
 )
 
 ui_format_actions = (
 	# name, stock id, label, accelerator, tooltip
-	('apply_format_h1', None, 'Heading _1', '<ctrl>1', 'Heading 1'),
-	('apply_format_h2', None, 'Heading _2', '<ctrl>2', 'Heading 2'),
-	('apply_format_h3', None, 'Heading _3', '<ctrl>3', 'Heading 3'),
-	('apply_format_h4', None, 'Heading _4', '<ctrl>4', 'Heading 4'),
-	('apply_format_h5', None, 'Heading _5', '<ctrl>5', 'Heading 5'),
-	('apply_format_strong', 'gtk-bold', '_Strong', '<ctrl>B', 'Strong'),
-	('apply_format_emphasis', 'gtk-italic', '_Emphasis', '<ctrl>I', 'Emphasis'),
-	('apply_format_mark', 'gtk-underline', '_Mark', '<ctrl>U', 'Mark'),
-	('apply_format_strike', 'gtk-strikethrough', '_Strike', '<ctrl>K', 'Strike'),
-	('apply_format_code', None, '_Verbatim', '<ctrl>T', 'Verbatim'),
+	('apply_format_h1', None, _('Heading _1'), '<ctrl>1', _('Heading 1')),
+	('apply_format_h2', None, _('Heading _2'), '<ctrl>2', _('Heading 2')),
+	('apply_format_h3', None, _('Heading _3'), '<ctrl>3', _('Heading 3')),
+	('apply_format_h4', None, _('Heading _4'), '<ctrl>4', _('Heading 4')),
+	('apply_format_h5', None, _('Heading _5'), '<ctrl>5', _('Heading 5')),
+	('apply_format_strong', 'gtk-bold', _('_Strong'), '<ctrl>B', _('Strong')),
+	('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<ctrl>I', _('Emphasis')),
+	('apply_format_mark', 'gtk-underline', _('_Mark'), '<ctrl>U', _('Mark')),
+	('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<ctrl>K', _('Strike')),
+	('apply_format_code', None, _('_Verbatim'), '<ctrl>T', _('Verbatim')),
 )
 
 ui_format_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, None, initial state
-	('toggle_format_strong', 'gtk-bold', '_Strong', '', 'Strong', None, False),
-	('toggle_format_emphasis', 'gtk-italic', '_Emphasis', '', 'Emphasis', None, False),
-	('toggle_format_mark', 'gtk-underline', '_Mark', '', 'Mark', None, False),
-	('toggle_format_strike', 'gtk-strikethrough', '_Strike', '', 'Strike', None, False),
+	('toggle_format_strong', 'gtk-bold', _('_Strong'), '', _('Strong'), None, False),
+	('toggle_format_emphasis', 'gtk-italic', _('_Emphasis'), '', _('Emphasis'), None, False),
+	('toggle_format_mark', 'gtk-underline', _('_Mark'), '', _('Mark'), None, False),
+	('toggle_format_strike', 'gtk-strikethrough', _('_Strike'), '', _('Strike'), None, False),
 )
 
 ui_preferences = (
 	# key, type, category, label, default
-	('follow_on_enter', 'bool', 'Interface', 'Use the <Enter> key to follow links\n(If disabled you can still use <Alt><Enter>)', True),
-	('read_only_cursor', 'bool', 'Interface', 'Show the cursor also for pages that can not be edited', False),
-	('autolink_camelcase', 'bool', 'Editing', 'Automatically turn CamelCasewords into links', True),
-	('autolink_files', 'bool', 'Editing', 'Automatically turn file paths into links', True),
-	('autoselect', 'bool', 'Editing', 'Automatically select the current word when you apply formatting', True),
-	('unindent_on_backspace', 'bool', 'Editing', 'Unindent on <BackSpace>\n(If disabled you can still use <Shift><Tab>)', True),
-	('recursive_checklist', 'bool', 'Editing', 'Checking a checkbox also change any sub-items', False),
+	('follow_on_enter', 'bool', 'Interface', _('Use the <Enter> key to follow links\n(If disabled you can still use <Alt><Enter>)'), True),
+	('read_only_cursor', 'bool', 'Interface', _('Show the cursor also for pages that can not be edited'), False),
+	('autolink_camelcase', 'bool', 'Editing', _('Automatically turn CamelCasewords into links'), True),
+	('autolink_files', 'bool', 'Editing', _('Automatically turn file paths into links'), True),
+	('autoselect', 'bool', 'Editing', _('Automatically select the current word when you apply formatting'), True),
+	('unindent_on_backspace', 'bool', 'Editing', _('Unindent on <BackSpace>\n(If disabled you can still use <Shift><Tab>)'), True),
+	('recursive_checklist', 'bool', 'Editing', _('Checking a checkbox also change any sub-items'), False),
 )
 
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
@@ -1749,7 +1749,7 @@ class InsertImageDialog(FileDialog):
 class EditImageDialog(Dialog):
 
 	def __init__(self, ui, buffer, path):
-		Dialog.__init__(self, ui, 'Edit Image')
+		Dialog.__init__(self, ui, _('Edit Image'))
 		self.buffer = buffer
 		self.path = path
 
@@ -1767,12 +1767,12 @@ class EditImageDialog(Dialog):
 			i = src.find('?')
 			src = src[:i]
 		self.add_fields([
-			('file', 'image', 'Location', src),
-			('width', 'int', 'Width', (0, 0, 0)),
-			('height', 'int', 'Height', (0, 0, 0))
+			('file', 'image', _('Location'), src),
+			('width', 'int', _('Width'), (0, 0, 0)),
+			('height', 'int', _('Height'), (0, 0, 0))
 		])
 
-		reset_button = gtk.Button('_Reset Size')
+		reset_button = gtk.Button(_('_Reset Size'))
 		hbox = gtk.HBox()
 		hbox.pack_end(reset_button, False)
 		self.vbox.add(hbox)
@@ -1854,7 +1854,7 @@ class InsertTextFromFileDialog(FileDialog):
 
 	def __init__(self, ui, buffer):
 		FileDialog.__init__(
-			self, ui, 'Insert Text From File', gtk.FILE_CHOOSER_ACTION_OPEN)
+			self, ui, _('Insert Text From File'), gtk.FILE_CHOOSER_ACTION_OPEN)
 		self.buffer = buffer
 		# TODO custom 'insert' button ?
 
@@ -1870,14 +1870,14 @@ class InsertTextFromFileDialog(FileDialog):
 class InsertLinkDialog(Dialog):
 
 	def __init__(self, ui, buffer, path):
-		Dialog.__init__(self, ui, 'Insert Link')
+		Dialog.__init__(self, ui, _('Insert Link'))
 		self.buffer = buffer
 		self.path = path
 
 		href, text = self._get_link()
 		self.add_fields([
-			('href', 'page', 'Link to', href),
-			('text', 'string', 'Text', text)
+			('href', 'page', _('Link to'), href),
+			('text', 'string', _('Text'), text)
 		])
 		# TODO custom "link" button
 
@@ -1930,14 +1930,14 @@ class InsertLinkDialog(Dialog):
 class InsertExternalLinkDialog(InsertLinkDialog):
 
 	def __init__(self, ui, buffer, path):
-		Dialog.__init__(self, ui, 'Insert External Link')
+		Dialog.__init__(self, ui, _('Insert External Link'))
 		self.buffer = buffer
 		self.path = path
 
 		href, text = self._get_link()
 		self.add_fields([
-			('href', 'file', 'Link to', href),
-			('text', 'string', 'Text', text)
+			('href', 'file', _('Link to'), href),
+			('text', 'string', _('Text'), text)
 		])
 		# TODO custom "link" button
 
@@ -1945,7 +1945,7 @@ class InsertExternalLinkDialog(InsertLinkDialog):
 class EditLinkDialog(InsertLinkDialog):
 
 	def __init__(self, ui, buffer, path):
-		Dialog.__init__(self, ui, 'Edit Link')
+		Dialog.__init__(self, ui, _('Edit Link'))
 		self.buffer = buffer
 		self.path = path
 
@@ -1954,7 +1954,7 @@ class EditLinkDialog(InsertLinkDialog):
 		if type == 'file': input = 'file'
 		else: input = 'page'
 		self.add_fields([
-			('href', input, 'Link to', href),
-			('text', 'string', 'Text', text)
+			('href', input, _('Link to'), href),
+			('text', 'string', _('Text'), text)
 		])
 		# TODO custom "link" button

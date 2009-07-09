@@ -11,7 +11,7 @@ class VersionsDialog(Dialog):
 	'''FIXME'''
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, 'Versions')
+		Dialog.__init__(self, ui, _('Versions'))
 		self.vbox.add(gtk.Label('TODO'))
 
 	def do_response_ok(self):

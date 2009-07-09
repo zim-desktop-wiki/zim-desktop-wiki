@@ -11,7 +11,7 @@ class PropertiesDialog(Dialog):
 	'''FIXME'''
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, 'Properties')
+		Dialog.__init__(self, ui, _('Properties'))
 		self.vbox.add(gtk.Label('TODO'))
 
 	def do_response_ok(self):

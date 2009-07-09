@@ -11,7 +11,7 @@ class SearchDialog(Dialog):
 	'''FIXME'''
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, 'Search')
+		Dialog.__init__(self, ui, _('Search'))
 		self.vbox.add(gtk.Label('TODO'))
 
 	def do_response_ok(self):

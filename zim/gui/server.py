@@ -62,7 +62,7 @@ class ServerWindow(gtk.Window):
 		self.status_icon = gtk.image_new_from_stock(*stock_stopped)
 		table.attach(self.status_icon, 0,2, 0,2)
 		self.status_label = gtk.Label()
-		self.status_label.set_markup('<i>Server not started</i>')
+		self.status_label.set_markup('<i>'+_('Server not started')+'</i>')
 		table.attach(self.status_label, 4,5, 0,1)
 		self.link_button = gtk.LinkButton('') # FIXME since 2.10
 		self.link_button.set_sensitive(False)
@@ -82,7 +82,7 @@ class ServerWindow(gtk.Window):
 		table.set_row_spacings(5)
 		vbox.add(table)
 
-		table.attach(gtk.Label('Notebook:'), 0,1, 0,1)
+		table.attach(gtk.Label(_('Notebook')+': '), 0,1, 0,1)
 		self.notebookcombobox = NotebookComboBox(current=server.interface.notebook)
 		self.notebookcombobox.connect('changed', _stop)
 		self.notebookcombobox.connect('changed',
@@ -94,7 +94,7 @@ class ServerWindow(gtk.Window):
 		open_button.connect('clicked', lambda *a: NotebookDialog(self).run())
 		table.attach(open_button, 2,3, 0,1)
 
-		table.attach(gtk.Label('Port:'), 0,1, 1,2)
+		table.attach(gtk.Label(_('Port')+': '), 0,1, 1,2)
 		self.portentry = gtk.SpinButton()
 		self.portentry.set_numeric(True)
 		self.portentry.set_range(80, 10000)
@@ -116,7 +116,7 @@ class ServerWindow(gtk.Window):
 
 	def do_server_started(self, server):
 		self.status_icon.set_from_stock(*stock_started)
-		self.status_label.set_markup('<i>Server started</i>')
+		self.status_label.set_markup('<i>'+_('Server started')+'</i>')
 		url = 'http://localhost:%i' % server.port
 		self.link_button.set_uri(url)
 		self.link_button.set_label(url)
@@ -124,5 +124,5 @@ class ServerWindow(gtk.Window):
 
 	def do_server_stopped(self, server):
 		self.status_icon.set_from_stock(*stock_stopped)
-		self.status_label.set_markup('<i>Server stopped</i>')
+		self.status_label.set_markup('<i>'+_('Server stopped')+'</i>')
 		self.link_button.set_sensitive(False)
