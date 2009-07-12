@@ -1299,7 +1299,7 @@ class Dialog(gtk.Dialog):
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 
-		if isinstance(ui, NotebookInterface):
+		if isinstance(ui, NotebookInterface) and ui.uistate:
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
 			#~ print '>>', self.uistate

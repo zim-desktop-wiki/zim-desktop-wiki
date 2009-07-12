@@ -10,6 +10,17 @@ import gobject
 import gtk
 
 
+# Check the (undocumented) list of constants in gtk.keysyms to see all names
+KEYVAL_LEFT = gtk.gdk.keyval_from_name('Left')
+KEYVAL_RIGHT = gtk.gdk.keyval_from_name('Right')
+KEYVALS_ASTERISK = (
+	gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
+KEYVALS_SLASH = (
+	gtk.gdk.unicode_to_keyval(ord('\\')),
+	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
+
+
+
 class Button(gtk.Button):
 	'''This class overloads the constructor of the default gtk.Button
 	class. The purpose is to change the behavior in such a way that stock
@@ -63,32 +74,35 @@ class BrowserTreeView(gtk.TreeView):
 
 	def do_key_press_event(self, event):
 		'''Handler for key-press-event, adds extra key bindings'''
-		if event.keyval == gtk.keysyms.Left:
+		# Keybindings for the treeview:
+		#  * expand all
+		#  / or \ collapse all
+		#  Right expand sub items
+		#  Left collapse sub items
+		handled = True
+		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
+
+		if event.keyval in KEYVALS_ASTERISK:
+			self.expand_all()
+		elif event.keyval in KEYVALS_SLASH:
+			self.collapse_all()
+		elif event.keyval == KEYVAL_LEFT:
 			model, iter = self.get_selection().get_selected()
 			if not iter is None:
 				path = model.get_path(iter)
 				self.collapse_row(path)
-			return True
-		elif event.keyval == gtk.keysyms.Right:
+		elif event.keyval == KEYVAL_RIGHT:
 			model, iter = self.get_selection().get_selected()
 			if not iter is None:
 				path = model.get_path(iter)
 				self.expand_row(path, 0)
-			return True
+		else:
+			handled = False
 
-		try:
-			key = chr(event.keyval)
-		except ValueError:
-			return False
-
-		if key == '\\':
-			self.collapse_all()
-			return True
-		elif key == '*':
-			self.expand_all()
+		if handled:
 			return True
 		else:
-			return False
+			return gtk.TreeView.do_key_press_event(self, event)
 
 	def do_button_release_event(self, event):
 		'''Handler for button-release-event, implements single click navigation'''
