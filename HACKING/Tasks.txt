@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Mon, 06 Jul 2009 22:51:04 +0200
+Modification-Date: Mon, 13 Jul 2009 18:11:15 +0200
 
 ====== Tasks ======
 
@@ -23,16 +23,10 @@ Modification-Date: Mon, 06 Jul 2009 22:51:04 +0200
 [ ] Support for documents in export
 [ ] Static linker for export
 [ ] Update links logic for move / rename
-[ ] Search function in side pane (as you type) ??
-[*] Implement save and autosave (mtime + md5) + hook signal
 [ ] Completion for pages and namespaces
 [ ] implement drag & drop in the treeview ??
-[ ] Implement key bindings for bullet list control
-[ ] Implement key binding to follow links
-[ ] implement generic autoformatting hooks
 [ ] Make undo / redo work - separate undo stack manager object
 [ ] formats-, edit- & insert-menu complete
-[ ] enforce applying a format to a link selects whole link
 [ ] enforce sane indenting levels for lists
 [ ] enforce heading can not be indented
 

@@ -9,10 +9,12 @@ import logging
 import gobject
 import gtk
 import pango
+import re
+import string
 
 from zim.fs import *
 from zim.notebook import Path
-from zim.parsing import link_type
+from zim.parsing import link_type, Re
 from zim.config import config_file
 from zim.formats import get_format, ParseTree, TreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
@@ -44,8 +46,10 @@ KEYVALS_BACKSPACE = map(gtk.gdk.keyval_from_name, ('BackSpace',))
 KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
 KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 
+#~ KEYVALS_END_OF_WORD = map(
+	#~ gtk.gdk.unicode_to_keyval, map(ord, (' ', ')', '>', '.', '!', '?')))
 KEYVALS_END_OF_WORD = map(
-	gtk.gdk.unicode_to_keyval, map(ord, (' ', ')', '>', '.', '!', '?')))
+	gtk.gdk.unicode_to_keyval, map(ord, (' ', ')', '>')))
 
 KEYVALS_ASTERISK = (
 	gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
@@ -112,6 +116,40 @@ _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 
 PIXBUF_CHR = u'\uFFFC'
 
+heading_re = Re(r'^(={2,7})\s*(.*)\s*(\1)?$')
+
+# FIXME check which ones we have predefined in zim.parsing + add "$"
+url_re = Re(r'\w[\w\+\-\.]+://\S+$')
+page_re = Re(r'''(
+	  [\w\.\-\(\)]*(?: :[\w\.\-\(\)]{2,} )+:?
+	| \+\w[\w\.\-\(\)]+(?: :[\w\.\-\(\)]{2,} )*:?
+)$''', re.X) # e.g. namespace:page or +subpage, but not word without ':' or '+'
+interwiki_re = Re(r'\w[\w\+\-\.]+\?\w\S+$') # name?page, where page can be any url style
+file_re = Re(r'''(
+	  ~/[^/\s]
+	| ~[^/\s]*/
+	| \.\.?/
+	| /[^/\s]
+)\S*$''', re.X) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
+
+# These sets adjust to the current locale - so not same as "[a-z]" ..
+# Must be kidding - no classes for this in the regex engine !?
+classes = {
+	'upper': string.uppercase,
+	'lower': string.lowercase,
+	'letters': string.letters
+}
+camelcase_re = Re(r'[%(upper)s]+[%(lower)s]+[%(upper)s]+\w*$' % classes)
+twoletter_re = re.compile(r'[%(letters)s]{2}' % classes)
+del classes
+
+autoformat_bullets = {
+	'*': BULLET,
+	'[]': UNCHECKED_BOX,
+	'[*]': CHECKED_BOX,
+	'[x]': XCHECKED_BOX,
+}
+
 
 class TextBuffer(gtk.TextBuffer):
 	'''Zim subclass of gtk.TextBuffer.
@@ -124,6 +162,13 @@ class TextBuffer(gtk.TextBuffer):
 	like named TextTags. For links anonymous TextTags are used. Not all tags
 	are styles though, e.g. gtkspell uses it's own tags and tags may also
 	be used to highlight search results etc.
+
+	Signals:
+		begin-insert-tree () - Emitted at the begin of a complex insert
+		end-insert-tree () - Emitted at the end of a complex insert
+		inserted-tree (start, end, tree) - Gives inserted tree after inserting it
+		textstyle-changed (style) - Emitted when textstyle at the cursor changes
+		indent-changed (leve) - Emitted when the indent at the cursor changes
 
 	TODO: manage undo stack - group by memorizing offsets and get/set trees
 	TODO: manage rich copy-paste based on zim formats
@@ -252,15 +297,9 @@ class TextBuffer(gtk.TextBuffer):
 				self.set_indent(list_level)
 				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
 					bullet = element.attrib['bullet']
-					if bullet in bullet_types:
-						stock = bullet_types[bullet]
-					else:
-						logger.warn('Unkown bullet type: %s', bullet)
-						stock = gtk.STOCK_MISSING_IMAGE
-					self.insert_icon_at_cursor(stock)
-					self.insert_at_cursor(' ')
 				else:
-					self.insert_at_cursor(u'\u2022 ')
+					bullet = BULLET # default to '*'
+				self.insert_bullet_at_cursor(bullet)
 
 				if element.tail:
 					element.tail += '\n'
@@ -302,16 +341,19 @@ class TextBuffer(gtk.TextBuffer):
 
 	def insert_link_at_cursor(self, text, href, **attrib):
 		'''FIXME'''
-		# TODO generate anonymous tags for links
+		tag = self.create_link_tag(href, **attrib)
+		self._editmode_tags = self._editmode_tags + (tag,)
+		self.insert_at_cursor(text)
+		self._editmode_tags = self._editmode_tags[:-1]
+
+	def create_link_tag(self, href, **attrib):
 		tag = self.create_tag(None, **self.tag_styles['link'])
 		tag.set_priority(0) # force links to be below styles
 		tag.zim_type = 'link'
 		tag.zim_tag = 'link'
 		tag.zim_attrib = attrib
 		tag.zim_attrib['href'] = href
-		self._editmode_tags = self._editmode_tags + (tag,)
-		self.insert_at_cursor(text)
-		self._editmode_tags = self._editmode_tags[:-1]
+		return tag
 
 	def get_link_tag(self, iter):
 		for tag in iter.get_tags():
@@ -351,7 +393,7 @@ class TextBuffer(gtk.TextBuffer):
 			gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
 		else:
 			mode = self._editmode_tags
-			self._editmode_tags = tuple(self.get_zim_tags(iter))
+			self.set_editmode_from_iter(iter)
 			gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
 			self._editmode_tags = mode
 
@@ -401,6 +443,27 @@ class TextBuffer(gtk.TextBuffer):
 		iter = self.get_iter_at_mark(self.get_insert())
 		self.insert_icon(iter, stock)
 
+	def insert_bullet(self, iter, bullet):
+		self._place_cursor(iter)
+		self.insert_bullet_at_cursor(bullet)
+		self._restore_cursor()
+
+	def insert_bullet_at_cursor(self, bullet):
+		self.begin_user_action()
+		if not filter(_is_indent_tag, self._editmode_tags):
+			self.set_indent(0) # bullets always need indenting
+		if bullet == BULLET:
+			self.insert_at_cursor(u'\u2022 ')
+		elif bullet in bullet_types:
+			stock = bullet_types[bullet]
+			self.insert_icon_at_cursor(stock)
+			self.insert_at_cursor(' ')
+		else:
+			logger.warn('Unkown bullet type: %s', bullet)
+			self.insert_at_cursor(u'\u2022 ')
+		self.end_user_action()
+
+
 	def set_textstyle(self, name):
 		'''Sets the current text style. This style will be applied
 		to text inserted at the cursor. Use 'set_textstyle(None)' to
@@ -416,15 +479,15 @@ class TextBuffer(gtk.TextBuffer):
 
 		self.emit('textstyle-changed', name)
 
-	def set_textstyle_from_cursor(self):
+	def set_editmode_from_cursor(self):
 		iter = self.get_iter_at_mark(self.get_insert())
-		self.set_textstyle_from_iter(iter)
+		self.set_editmode_from_iter(iter)
 
-	def set_textstyle_from_iter(self, iter):
-		'''Updates the textstyle from a text position.
+	def set_editmode_from_iter(self, iter):
+		'''Updates the textstyle and indent from a text position.
 		Triggered automatically when moving the cursor.
 		'''
-		tags = self.get_zim_tags(iter)
+		tags = self.iter_get_zim_tags(iter)
 		if not tags == self._editmode_tags:
 			#~ print '>', [(t.zim_type, t.get_property('name')) for t in tags]
 			self._editmode_tags = tuple(tags)
@@ -436,16 +499,27 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				self.emit('textstyle-changed', None)
 
-	def get_zim_tags(self, iter):
+	def iter_get_zim_tags(self, iter):
 		'''Like gtk.TextIter.get_tags() but only returns our own tags and
 		assumes tags have "left gravity". An exception are indent tags, which
-		gravitate both ways.
+		gravitate both ways (but not at the same time).
+		This method is used to determing which tags should be applied to newly
+		inserted text at 'iter'.
 		'''
-		start_tags = set(filter(_is_not_indent_tag, iter.get_toggled_tags(True)))
+		# <indent leve=1>foo\n</indent><cursor><indent level=2>bar</indent>
+		#	in this case new text should get indent level 2 -> right gravity
+		# <indent leve=1>foo\n</indent><indent level=2>bar</indent><cursor>\n
+		#	in this case new text should also get indent level 2 -> left gravity
+		exclude_start_tags = set(filter(_is_not_indent_tag, iter.get_toggled_tags(True)))
 		tags = filter(
-			lambda tag: _is_zim_tag(tag) and not tag in start_tags,
+			lambda tag: _is_zim_tag(tag) and not tag in exclude_start_tags,
 			iter.get_tags() )
-		tags.extend( filter(_is_zim_tag, iter.get_toggled_tags(False)) )
+		if filter(_is_indent_tag, tags):
+			# already have a right gravity indent tag
+			tags.extend( filter(_is_not_indent_tag, iter.get_toggled_tags(False)) )
+		else:
+			# allow a left gravity indent tag
+			tags.extend( filter(_is_zim_tag, iter.get_toggled_tags(False)) )
 		tags.sort(key=lambda tag: tag.get_priority())
 		return tags
 
@@ -469,13 +543,13 @@ class TextBuffer(gtk.TextBuffer):
 			if not had_tag:
 				self.apply_tag(tag, start, end)
 
-			self.set_textstyle_from_cursor()
+			self.set_editmode_from_cursor()
 
 	def range_has_tag(self, start, end, tag):
 		'''Check if a certain tag appears anywhere in a certain range'''
 		# test right gravity for start iter, but left gravity for end iter
 		if tag in start.get_tags() \
-		or tag in self.get_zim_tags(end):
+		or tag in self.iter_get_zim_tags(end):
 			return True
 		else:
 			iter = start.copy()
@@ -490,17 +564,7 @@ class TextBuffer(gtk.TextBuffer):
 			if not name == 'link':
 				self.remove_tag_by_name('style-'+name, start, end)
 
-		self.set_textstyle_from_cursor()
-
-	def get_indent(self, iter=None):
-		'''Returns the indent level at iter, or at cursor if 'iter' is None.'''
-		if iter is None:
-			iter = self.get_iter_at_mark(self.get_insert())
-		tags = filter(_is_indent_tag, self.get_zim_tags(iter))
-		if tags:
-			return tags[0].zim_attrib['indent']
-		else:
-			return 0
+		self.set_editmode_from_cursor()
 
 	def set_indent(self, level):
 		'''Sets the current indent level. This style will be applied
@@ -520,16 +584,16 @@ class TextBuffer(gtk.TextBuffer):
 
 		self.emit('indent-changed', level)
 
-	def apply_indent(self, level, start, end):
-		def remove_indent(tag, buffer):
-			if _is_indent_tag(tag):
-				buffer.remove_tag(tag, start, end)
-		self.get_tag_table().foreach(remove_indent, self)
-
-		if not level is None:
-			tag = self._get_indent_tag(level)
-			self.apply_tag(tag, start, end)
-		self.set_textstyle_from_cursor() # also updates indent tag
+	def get_indent(self, iter=None):
+		'''Returns the indent level at iter, or at cursor if 'iter' is None.'''
+		if iter is None:
+			iter = self.get_iter_at_mark(self.get_insert())
+		tags = filter(_is_indent_tag, iter.get_tags())
+		if tags:
+			assert len(tags) == 1, 'BUG: overlapping indent tags'
+			return tags[0].zim_attrib['indent']
+		else:
+			return 0
 
 	def _get_indent_tag(self, level):
 		# TODO make number of pixels in indent configable (call this tabstop)
@@ -544,34 +608,52 @@ class TextBuffer(gtk.TextBuffer):
 			tag.zim_attrib = {'indent': level}
 		return tag
 
-	def increment_indent(self, iter):
-		start = self.get_iter_at_line(iter.get_line())
+	def set_indent_for_line(self, level, line):
+		start = self.get_iter_at_line(line)
 		end = start.copy()
 		end.forward_line()
-		level = self.get_indent(start)
-		self.apply_indent(level+1, start, end)
+		tags = filter(_is_indent_tag, start.get_tags())
+		if tags:
+			assert len(tags) == 1, 'BUG: overlapping indent tags'
+			self.remove_tag(tags[0], start, end)
+		tag = self._get_indent_tag(level)
+		self.apply_tag(tag, start, end)
+
+	def increment_indent(self, iter):
+		level = self.get_indent(iter)
+		self.set_indent_for_line(level+1, iter.get_line())
+		self.set_editmode_from_cursor() # also updates indent tag
 		return True
 
 	def decrement_indent(self, iter):
-		start = self.get_iter_at_line(iter.get_line())
-		end = start.copy()
-		end.forward_line()
-		level = self.get_indent(start)
+		level = self.get_indent(iter)
 		if level > 0:
-			self.apply_indent(level-1, start, end)
+			self.set_indent_for_line(level-1, iter.get_line())
+			self.set_editmode_from_cursor() # also updates indent tag
 			return True
 		else:
 			return False
 
 	def foreach_line_in_selection(self, func, userdata=None):
+		'''Iterates over all lines covering the current selection and calls
+		'func' for each line. The callback gets single argument, which is a
+		TextIter for the start of the line. Optionally a second argument can
+		be given by 'userdata'. Returns False if there is no selection.
+		'''
 		bounds = self.get_selection_bounds()
 		if bounds:
 			start, end = bounds
-			return self.foreach_line(start, end, func, userdata)
+			self.foreach_line(start, end, func, userdata)
+			return True
 		else:
-			return ()
+			return False
 
 	def foreach_line(self, start, end, func, userdata=None):
+		'''Iterates over all lines covering 'start' to 'end' and calls 'func'
+		for each line. The callback gets single argument, which is a TextIter
+		for the start of the line. Optionally a second argument can
+		be given by 'userdata'.
+		'''
 		# first building list of lines because
 		# iters might break when changing the buffer
 		lines = []
@@ -583,18 +665,41 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				break
 
-		results = []
 		if userdata is None:
 			for line in lines:
-				results.append(func(self.get_iter_at_line(line)))
+				func(self.get_iter_at_line(line))
 		else:
 			for line in lines:
-				results.append(func(self.get_iter_at_line(line), userdata))
-		return results
+				func(self.get_iter_at_line(line), userdata)
+
+	def strip_selection(self):
+		'''Limits the selection by excluding whitespace (e.g. empty lines) from
+		the start end end of the selection.
+		Returns True if we have a non-zero non-whitespace selection.
+		Returns False if no selection or the whole selection is whitespace.
+		'''
+		bounds = self.get_selection_bounds()
+		if bounds:
+			start, end = bounds
+		else:
+			return False
+
+		selected = start.get_slice(end)
+		if selected.isspace():
+			return False
+
+		left = len(selected) - len(selected.lstrip())
+		right = len(selected) - len(selected.rstrip())
+		if left > 0:
+			start.forward_chars(left)
+		if right > 0:
+			end.backward_chars(right)
+
+		self.select_range(start, end)
 
 	def do_mark_set(self, iter, mark):
 		if mark.get_name() == 'insert':
-			self.set_textstyle_from_iter(iter)
+			self.set_editmode_from_iter(iter)
 		gtk.TextBuffer.do_mark_set(self, iter, mark)
 
 	def do_insert_text(self, end, string, length):
@@ -709,6 +814,19 @@ class TextBuffer(gtk.TextBuffer):
 					builder.start(t, attrib)
 					open_tags.append((tag, t))
 
+		def break_tags(type):
+			# Forces breaking the stack of open tags on the level of 'tag'
+			# The next set_tags() will re-open any tags that are still open
+			i = 0
+			for i in range(len(open_tags)):
+				if open_tags[i][1] == type:
+					break
+
+			# so i is the breakpoint
+			while len(open_tags) > i:
+				builder.end(open_tags[-1][1])
+				open_tags.pop()
+
 		# And now the actual loop going through the buffer
 		iter = start.copy()
 		while iter.compare(end) == -1:
@@ -721,14 +839,18 @@ class TextBuffer(gtk.TextBuffer):
 					continue
 
 				if pixbuf.zim_type == 'icon':
-					pass # TODO checkboxes etc.
+					assert False, 'TODO checkboxes etc. outside of indent'
 				elif pixbuf.zim_type == 'image':
-					attrib = pixbuf.zim_attrib
-					text = attrib['alt']
-					del attrib['alt']
-					builder.start('img', attrib)
-					builder.data(text)
-					builder.end('img')
+					attrib = pixbuf.zim_attrib.copy()
+					if 'alt' in attrib:
+						text = attrib['alt']
+						del attrib['alt']
+						builder.start('img', attrib)
+						builder.data(text)
+						builder.end('img')
+					else:
+						builder.start('img', attrib)
+						builder.end('img')
 				else:
 					assert False, 'BUG: unknown pixbuf type'
 
@@ -763,15 +885,30 @@ class TextBuffer(gtk.TextBuffer):
 					bound = end
 					text = iter.get_slice(end)
 
-				# And insert text
-				builder.data(text)
+				if filter(lambda t: t[1] == 'li', open_tags) \
+				and bound.get_line() != iter.get_line():
+					# And limit bullets to a single line
+					orig = bound
+					bound = iter.copy()
+					bound.forward_line()
+					assert bound.compare(orig) < 1
+					text = iter.get_slice(bound).rstrip('\n')
+					builder.data(text)
+					break_tags('li')
+					builder.data('\n') # add to tail
+				else:
+					# Else just inser text we got
+					builder.data(text)
+
 				iter = bound
 
 		# close any open tags
 		set_tags(end, [])
 
 		builder.end('zim-tree')
-		return ParseTree(builder.close())
+		tree = ParseTree(builder.close())
+		#~ print tree.tostring()
+		return tree
 
 	def select_word(self):
 		'''Selects the word at the cursor, if any. Returns True for success'''
@@ -825,6 +962,32 @@ class TextBuffer(gtk.TextBuffer):
 		self.end_user_action()
 		return True
 
+	def iter_backward_word_start(self, iter):
+		'''Like gtk.TextIter.backward_word_start() but less intelligent.
+		This method does not take into account the language and just skips
+		to either the last white space or the begin of line.
+		Returns boolean for success.
+		'''
+		if iter.starts_line():
+			return False
+
+		# find start of word - either start of line or whitespace
+		# the backward_word_start() method also stops at punctuation etc.
+		orig = iter.copy()
+		while True:
+			if iter.starts_line():
+				break
+			else:
+				bound = iter.copy()
+				bound.backward_char()
+				char = bound.get_slice(iter)
+				if char == PIXBUF_CHR or char.isspace():
+					break # whitespace or pixbuf before start iter
+				else:
+					iter.backward_char()
+
+		return iter.compare(orig)
+
 	def get_has_selection(self):
 		'''Returns boolean whether there is a selection or not.
 
@@ -843,7 +1006,20 @@ CURSOR_WIDGET = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
 
 
 class TextView(gtk.TextView):
-	'''FIXME'''
+	'''FIXME
+
+	Signals:
+		link-clicked (link) - Emitted when the used clicks a link
+		link-enter (link) - Emitted when the mouse pointer enters a link
+		link-leave (link) - Emitted when the mouse pointer leaves a link
+		end-of-word (start, end, word) - Emitted when the user typed a character like space that ends a word
+		end-of-line (end) - Emitted when the user typed a newline
+
+	Plugin writers that want to add auto-formatting logic should connect to
+	'end-of-word'. If you recognize the word and format it you need
+	to stop the signal with 'stop_emission()' to prevent other hooks from
+	taking it as well.
+	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -851,8 +1027,8 @@ class TextView(gtk.TextView):
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'end-of-word': (gobject.SIGNAL_RUN_LAST, None, ()),
-		'end-of-line': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'end-of-word': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)),
+		'end-of-line': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 
 		# Override clipboard interaction
 		#~ 'copy-clipboard': 'override',
@@ -937,8 +1113,7 @@ class TextView(gtk.TextView):
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(iter)
 			if iter.compare(ourhome) == 1: # iter beyond home position
-				self.emit('end-of-word')
-				handled = False
+				self._insert_and_emit('\t', 'end-of-word')
 			else:
 				iter = buffer.get_iter_at_mark(buffer.get_insert())
 				iter = buffer.get_iter_at_line(iter.get_line())
@@ -955,8 +1130,8 @@ class TextView(gtk.TextView):
 				if event.keyval in KEYVALS_BACKSPACE and not done:
 					handled = False # do a normal backspace
 		elif event.keyval in KEYVALS_END_OF_WORD:
-			self.emit('end-of-word')
-			handled = False
+			char = unichr(gtk.gdk.keyval_to_unicode(event.keyval))
+			self._insert_and_emit(char, 'end-of-word')
 		elif event.keyval in KEYVALS_ENTER:
 			buffer = self.get_buffer()
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
@@ -967,8 +1142,7 @@ class TextView(gtk.TextView):
 				else:
 					pass # do not insert newline, just ignore
 			else:
-				self.emit('end-of-line')
-				handled = False
+				self._insert_and_emit('\n', 'end-of-line')
 		elif event.keyval in KEYVALS_HOME and \
 		not event.state & gtk.gdk.CONTROL_MASK:
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
@@ -986,6 +1160,29 @@ class TextView(gtk.TextView):
 			return True
 		else:
 			return gtk.TextView.do_key_press_event(self, event)
+
+	def _insert_and_emit(self, char, signal):
+		# Helper method for emitting end-of-word and end-of-line signals
+		# First insert char, then call the signal and reset the cursor this
+		# way anythin the signal does goes after the insert on the undo stack.
+		# end-of-line implies end-of-word before it
+		assert signal in ('end-of-word', 'end-of-line')
+		buffer = self.get_buffer()
+		buffer.insert_at_cursor(char)
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		mark = buffer.create_mark(None, iter)
+		iter.backward_char()
+
+		start = iter.copy()
+		if buffer.iter_backward_word_start(start):
+			word = start.get_text(iter)
+			self.emit('end-of-word', start, iter, word)
+
+		if signal == 'end-of-line':
+			self.emit('end-of-line', iter)
+
+		buffer.place_cursor(buffer.get_iter_at_mark(mark))
+		buffer.delete_mark(mark)
 
 	def _do_key_press_event_readonly(self, event):
 		# Key bindings in read-only mode:
@@ -1012,13 +1209,25 @@ class TextView(gtk.TextView):
 		handled = True
 		buffer = self.get_buffer()
 		SETTING = True # FIXME
+
+		def decrement_indent():
+			# For selection decrement first check if all lines have indent
+			level = []
+			buffer.strip_selection()
+			buffer.foreach_line_in_selection(
+				lambda i: level.append(buffer.get_indent(i)) )
+			if level and min(level) > 0:
+				return buffer.foreach_line_in_selection(buffer.decrement_indent)
+			else:
+				return False
+
 		if event.keyval in KEYVALS_TAB:
 			buffer.foreach_line_in_selection(buffer.increment_indent)
 		elif event.keyval in KEYVALS_LEFT_TAB:
-			buffer.foreach_line_in_selection(buffer.decrement_indent)
+			decrement_indent()
 		elif event.keyval in KEYVALS_BACKSPACE and SETTING:
-			done = buffer.foreach_line_in_selection(buffer.decrement_indent)
-			if not any(done):
+			decremented = decrement_indent()
+			if not decremented:
 				handled = None # nothing happened, normal backspace
 		elif event.keyval in KEYVALS_ASTERISK:
 			def toggle_bullet(iter):
@@ -1128,11 +1337,92 @@ class TextView(gtk.TextView):
 			# only start visual line, not start of real line
 			return realhome, realhome.copy()
 
-	def do_end_of_word(self):
-		print 'End Of Word'
+	def do_end_of_word(self, start, end, word):
+		buffer = self.get_buffer()
+		handled = True
+		#~ print 'WORD >>%s<<' % word
 
-	def do_end_of_line(self):
-		print 'End Of Line'
+		def apply_link(match):
+			#~ print "LINK >>%s<<" % word
+			start = end.copy()
+			if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end)):
+				return False
+			if not start.backward_chars(len(match)):
+				return False
+			if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start)):
+				return False
+
+			tag = buffer.create_link_tag(match)
+			buffer.apply_tag(tag, start, end)
+			return True
+
+		SETTING  = True
+		if start.starts_line() and word in autoformat_bullets:
+			# format bullet and checkboxes
+			end.forward_char() # also overwrite the char triggering the action
+			mark = buffer.create_mark(None, end)
+			buffer.begin_user_action()
+			buffer.delete(start, end)
+			buffer.insert_bullet(
+				buffer.get_iter_at_mark(mark), autoformat_bullets[word])
+			buffer.delete_mark(mark)
+		elif url_re.search(word):
+			apply_link(url_re[0])
+		elif page_re.search(word):
+			# Do not link "10:20h", "10:20PM" etc. so check two letters before first ":"
+			w = word.strip(':').split(':')
+			if w and twoletter_re.search(w[0]):
+				apply_link(page_re[0])
+			else:
+				handled = False
+		elif interwiki_re.search(word):
+			apply_link(interwiki_re[0])
+		elif SETTING and file_re.search(word): # FIXME
+			apply_link(file_re[0])
+		elif SETTING and camelcase_re.search(word): # FIXME
+			apply_link(camelcase_re[0])
+		else:
+			handled = False
+
+		# TODO match utf8 entities ?
+
+		if handled:
+			self.stop_emission('end-of-word')
+
+	def do_end_of_line(self, end):
+		buffer = self.get_buffer()
+
+		# TODO reset all editmode tags except Verbatim / indent ?
+
+		if end.starts_line():
+			return # empty line
+		start = buffer.get_iter_at_line(end.get_line())
+		line = start.get_text(end)
+		#~ print 'LINE >>%s<<' % line
+
+		if heading_re.match(line):
+			level = len(heading_re[1])-1
+			heading = heading_re[2]
+			mark = buffer.create_mark(None, end)
+			buffer.begin_user_action()
+			buffer.delete(start, end)
+			buffer.insert_with_tags_by_name(
+				buffer.get_iter_at_mark(mark), heading, 'style-h'+str(level))
+			buffer.end_user_action()
+			buffer.delete_mark(mark)
+		elif not buffer.get_bullet_at_iter(start) is None:
+			ourhome = start.copy()
+			buffer.iter_forward_past_bullet(ourhome)
+			if ourhome.equal(end): # line with bullet but no text
+				buffer.delete(start, end)
+			else: # we are part of bullet list - set indent + bullet
+				iter = end.copy()
+				iter.forward_line()
+				bullet = buffer.get_bullet_at_iter(start)
+				buffer.insert_bullet(iter, bullet)
+
+		# TODO other bullets / numbered lists ??
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)
