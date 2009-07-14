@@ -261,7 +261,11 @@ class GtkInterface(NotebookInterface):
 			return True # keep ticking
 
 		self._autosave_timer = None
-		gobject.timeout_add_seconds(5, schedule_autosave)
+		try:
+			gobject.timeout_add_seconds(5, schedule_autosave)
+		except AttributeError:
+			# older gobject version doesn't know about seconds
+			gobject.timeout_add(5000, schedule_autosave)
 
 		self.uimanager.ensure_update()
 			# prevent flashing when the toolbar is after showing the window
@@ -1230,7 +1234,11 @@ discarded, but you can restore the copy later.''')
 				self.timer_label.set_text('')
 				return False # remove timer
 
-		id = gobject.timeout_add_seconds(1, timer, self)
+		try:
+			id = gobject.timeout_add_seconds(1, timer, self)
+		except AttributeError:
+			# older gobject version doesn't know about seconds
+			id = gobject.timeout_add(1000, timer, self)
 		ErrorDialog.run(self)
 		gobject.source_remove(id)
 
@@ -1291,6 +1299,7 @@ class Dialog(gtk.Dialog):
 		self.ui = ui
 		self.result = None
 		self.inputs = {}
+		self.destroyed = False
 		gtk.Dialog.__init__(
 			self, parent=get_window(self.ui),
 			title=format_title(title),
@@ -1484,14 +1493,15 @@ class Dialog(gtk.Dialog):
 		Returns the 'result' attribute of the dialog if any.
 		'''
 		self.show_all()
-		self._close = False
-		while not self._close:
+		assert not self.destroyed, 'BUG: re-using dialog after it was closed'
+		while not self.destroyed:
 			gtk.Dialog.run(self)
 			# will be broken when _close is set from do_response()
 		return self.result
 
 	def show_all(self):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
+		assert not self.destroyed, 'BUG: re-using dialog after it was closed'
 		logger.debug('Opening dialog "%s"', self.title[:-6])
 		gtk.Dialog.show_all(self)
 
@@ -1507,14 +1517,14 @@ class Dialog(gtk.Dialog):
 		'''
 		if id == gtk.RESPONSE_OK and not self._no_ok_action:
 			logger.debug('Dialog response OK')
-			self._close = self.do_response_ok()
+			self.destroyed = self.do_response_ok()
 		else:
-			self._close = True
+			self.destroyed = True
 
 		w, h = self.get_size()
 		self.uistate['windowsize'] = (w, h)
 
-		if self._close:
+		if self.destroyed:
 			self.destroy()
 			logger.debug('Closed dialog "%s"', self.title[:-6])
 

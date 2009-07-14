@@ -176,7 +176,7 @@ class TestPageTreeStore(tests.TestCase):
 		self.index.update()
 		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 1)
+		self.assertEqual(treestore.get_n_columns(), 2)
 
 		treeview = PageTreeView(None) # just run hidden to check errors
 		treeview.set_model(treestore)

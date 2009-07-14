@@ -10,12 +10,17 @@ but also e.g. for the page lists in the search dialog.
 import gobject
 import gtk
 import pango
+import logging
 
 from zim.index import IndexPath
 from zim.gui.widgets import BrowserTreeView
 
-NAME_COL = 0  # column with short page name (page.basename)
 
+logger = logging.getLogger('zim.gui.pageindex')
+
+
+NAME_COL = 0  # column with short page name (page.basename)
+PATH_COL = 1  # column with the zim IndexPath itself
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
@@ -57,12 +62,14 @@ class PageTreeStore(gtk.GenericTreeModel):
 		return 0 # no flags
 
 	def on_get_n_columns(self):
-		return 1 # only one column
+		return 2 # two columns
 
 	def on_get_column_type(self, index):
 		#~ print '>> on_get_column_type', index
-		assert index == 0
-		return gobject.TYPE_STRING
+		if index == 0:
+			return gobject.TYPE_STRING
+		elif index == 1:
+			return gobject.TYPE_PYOBJECT
 
 	def on_get_iter(self, treepath):
 		'''Returns an IndexPath for a TreePath or None'''
@@ -100,8 +107,10 @@ class PageTreeStore(gtk.GenericTreeModel):
 	def on_get_value(self, path, column):
 		'''Returns the data for a specific column'''
 		#~ print '>> on_get_value', path, column
-		assert column == 0
-		return path.basename
+		if column == 0:
+			return path.basename
+		elif column == 1:
+			return path
 
 	def on_iter_next(self, path):
 		'''Returns the IndexPath for the next row on the same level or None'''
@@ -170,6 +179,19 @@ class PageTreeStore(gtk.GenericTreeModel):
 			return None
 		else:
 			return parent
+
+	# Compatibility for older version of GenericTreeModel
+	if not hasattr(gtk.GenericTreeModel, 'create_tree_iter'):
+		logger.warn('Using work around for older version of GenericTreeModel - may hurt performance')
+		def create_tree_iter(self, indexpath):
+			'''Turn an IndexPath into a TreeIter'''
+			treepath = self.get_treepath(indexpath)
+			return self.get_iter(treepath)
+
+	if not hasattr(gtk.GenericTreeModel, 'get_user_data'):
+		def get_user_data(self, treeiter):
+			'''Turn a TreeIter into an IndexPath'''
+			return self.get_value(treeiter, 1)
 
 
 class PageTreeView(BrowserTreeView):

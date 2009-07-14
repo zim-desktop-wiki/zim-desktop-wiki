@@ -11,6 +11,7 @@ import gtk
 import pango
 import re
 import string
+import weakref
 
 from zim.fs import *
 from zim.notebook import Path
@@ -19,6 +20,7 @@ from zim.config import config_file
 from zim.formats import get_format, ParseTree, TreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui import Dialog, FileDialog
+from zim.gui.widgets import Button, IconButton
 
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -38,6 +40,9 @@ bullets = {}
 for bullet in bullet_types:
 	bullets[bullet_types[bullet]] = bullet
 
+FIND_IN_PLACE = 1
+FIND_CASE_SENSITIVE = 2
+FIND_WHOLE_WORD = 4
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVALS_HOME = map(gtk.gdk.keyval_from_name, ('Home', 'KP_Home'))
@@ -58,6 +63,8 @@ KEYVALS_SLASH = (
 KEYVALS_GT = (gtk.gdk.unicode_to_keyval(ord('>')),)
 KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
+KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
+
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip
@@ -75,6 +82,10 @@ ui_actions = (
 	('insert_external_link', 'gtk-connect', _('E_xternal Link...'), '', _('Insert External Link')),
 	('insert_link', 'gtk-connect', _('_Link...'), '<ctrl>L', _('Insert Link')),
 	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', ''),
+	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', ''),
+	('find_next', None, _('Find Ne_xt'), '<ctrl>G', ''),
+	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', ''),
+	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', ''),
 )
 
 ui_format_actions = (
@@ -542,6 +553,7 @@ class TextBuffer(gtk.TextBuffer):
 			self.remove_textstyle_tags(start, end)
 			if not had_tag:
 				self.apply_tag(tag, start, end)
+			self.set_modified(True)
 
 			self.set_editmode_from_cursor()
 
@@ -563,6 +575,7 @@ class TextBuffer(gtk.TextBuffer):
 		for name in self.tag_styles.keys():
 			if not name == 'link':
 				self.remove_tag_by_name('style-'+name, start, end)
+		self.set_modified(True)
 
 		self.set_editmode_from_cursor()
 
@@ -962,6 +975,80 @@ class TextBuffer(gtk.TextBuffer):
 		self.end_user_action()
 		return True
 
+	def find_forward(self, string, flags=None):
+		'''Highlight the next occurence of 'string', returns True if
+		the string was found.
+
+		Flags can be:
+			FIND_IN_PLACE - do not move forward if iter is at a match alread
+			FIND_CASE_SENSITIVE - check case of matches
+			FIND_WHOLE_WORD - only match whole words
+		'''
+		return self._find(1, string, flags)
+
+	def find_backward(self, string, flags=None):
+		'''Like find_forward() but in the opposite direction'''
+		return self._find(-1, string, flags)
+
+	def _find(self, direction, string, flags):
+		if not string or string.isspace():
+			return False
+		if flags is None:
+			flags = 0
+		checkcase = bool(flags & FIND_CASE_SENSITIVE)
+
+		def check_iter(iter):
+			bound = iter.copy()
+			bound.forward_chars(len(string))
+			match = iter.get_slice(bound)
+			if (not checkcase and match.lower() == string.lower()) \
+			or match == string:
+				if flags & FIND_WHOLE_WORD \
+				and not (iter.starts_word() and bound.ends_word()):
+					return False
+
+				self.select_range(iter, bound)
+				return True
+			else:
+				return False
+
+		iter = self.get_iter_at_mark(self.get_insert())
+		if flags & FIND_IN_PLACE and check_iter(iter):
+				return True
+
+		start, end = self.get_bounds()
+		if direction == 1: # forward
+			iter.forward_char() # else will behave like FIND_IN_PLACE
+			func = gtk.TextIter.forward_search
+			part1 = (iter, end)
+			part1 = (iter, end)
+			part2 = (start, iter.copy())
+		else: # backward
+			func = gtk.TextIter.backward_search
+			part1 = (iter, start)
+			part2 = (end, iter.copy())
+
+		iter, limit = part1
+		bound = func(iter, string, flags=(), limit=limit)
+		while bound and not check_iter(bound[0]):
+			bound = func(bound[0], string, flags=(), limit=limit)
+
+		if not bound:
+			iter, limit = part2
+			bound = func(iter, string, flags=(), limit=limit)
+			while bound and not check_iter(bound[0]):
+				bound = func(iter, string, flags=(), limit=limit)
+
+		if not bound:
+			self.unset_selection()
+			return False
+		else:
+			return True
+
+	def unset_selection(self):
+		iter = self.get_iter_at_mark(self.get_insert())
+		self.select_range(iter, iter)
+
 	def iter_backward_word_start(self, iter):
 		'''Like gtk.TextIter.backward_word_start() but less intelligent.
 		This method does not take into account the language and just skips
@@ -1186,13 +1273,10 @@ class TextView(gtk.TextView):
 
 	def _do_key_press_event_readonly(self, event):
 		# Key bindings in read-only mode:
-		#   / open searchs box
 		#   Space scrolls one page
 		#   Shift-Space scrolls one page up
 		handled = True
-		if event.keyval in KEYVALS_SLASH:
-			self.begin_find() # TODO
-		elif event.keyval in KEYVALS_SPACE:
+		if event.keyval in KEYVALS_SPACE:
 			if event.state & gtk.gdk.SHIFT_MASK: i = -1
 			else: i = 1
 			self.emit('move-cursor', gtk.MOVEMENT_PAGES, i, False)
@@ -1699,12 +1783,44 @@ class PageView(gtk.VBox):
 		gtk.VBox.__init__(self)
 		self.page = None
 		self.undostack = None
+		self.replace_dialog_ref = lambda: None # mimic empty weakref
 		self.view = TextView()
 		swindow = gtk.ScrolledWindow()
 		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		swindow.set_shadow_type(gtk.SHADOW_IN)
 		swindow.add(self.view)
 		self.add(swindow)
+
+		# Create search box
+		self.find_bar = gtk.HBox(spacing=5)
+		self.find_bar.connect('key-press-event', self.on_find_bar_key_press_event)
+
+		self.find_bar.pack_start(gtk.Label(_('Find')+': '), False)
+			# T: label for input in find bar on bottom of page
+		self.find_entry = gtk.Entry()
+		self.find_entry.connect('changed', self.on_find_entry_changed)
+		self.find_entry.connect('activate', self.on_find_entry_activate)
+		self.find_bar.pack_start(self.find_entry, False)
+
+		self.find_prev_button = Button('_Previous', gtk.STOCK_GO_BACK)
+			# T: button in find bar on bottom of page
+		self.find_prev_button.connect_object('clicked', self.__class__.find_previous, self)
+		self.find_prev_button.set_sensitive(False)
+		self.find_bar.pack_start(self.find_prev_button, False)
+
+		self.find_next_button = Button('_Next', gtk.STOCK_GO_FORWARD)
+			# T: button in find bar on bottom of page
+		self.find_next_button.connect_object('clicked', self.__class__.find_next, self)
+		self.find_next_button.set_sensitive(False)
+		self.find_bar.pack_start(self.find_next_button, False)
+
+		close_button = IconButton(gtk.STOCK_CLOSE, relief=False)
+		close_button.connect_object('clicked', self.__class__.hide_find, self)
+		self.find_bar.pack_end(close_button, False)
+
+		self.find_bar.set_no_show_all(True)
+		self.pack_end(self.find_bar, False)
+
 
 		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
@@ -2012,6 +2128,55 @@ class PageView(gtk.VBox):
 		else:
 			return False
 
+	def show_find(self, string=None):
+		self.find_bar.set_no_show_all(False)
+		self.find_bar.show_all()
+
+		if string is None:
+			self.find_entry.grab_focus()
+		else:
+			self.find_entry.set_text(string)
+			self.view.grab_focus()
+
+	def hide_find(self):
+		self.find_bar.hide_all()
+		self.find_bar.set_no_show_all(True)
+		self.view.grab_focus()
+
+	def on_find_bar_key_press_event(self, widget, event):
+		if event.keyval == KEYVAL_ESC:
+			self.hide_find()
+			return True
+		else:
+			return False
+
+	def find_next(self):
+		string = self.find_entry.get_text()
+		self.view.get_buffer().find_forward(string)
+
+	def find_previous(self):
+		string = self.find_entry.get_text()
+		self.view.get_buffer().find_backward(string)
+
+	def on_find_entry_changed(self, entry):
+		string = entry.get_text()
+		ok = self.view.get_buffer().find_forward(string, flags=FIND_IN_PLACE)
+		self.find_next_button.set_sensitive(ok)
+		self.find_prev_button.set_sensitive(ok)
+
+	def on_find_entry_activate(self, entry):
+		self.on_find_entry_changed(entry)
+		self.view.grab_focus()
+
+	def show_find_and_replace(self):
+		dialog = self.replace_dialog_ref()
+		if dialog and not dialog.destroyed:
+			dialog.present()
+		else:
+			dialog = FindAndReplaceDialog(self)
+			self.replace_dialog_ref = weakref.ref(dialog)
+			dialog.show_all()
+
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
 
@@ -2248,3 +2413,116 @@ class EditLinkDialog(InsertLinkDialog):
 			('text', 'string', _('Text'), text)
 		])
 		# TODO custom "link" button
+
+class FindAndReplaceDialog(Dialog):
+
+	def __init__(self, pageview):
+		Dialog.__init__(self, pageview.ui, _('Find and Replace'), buttons=gtk.BUTTONS_CLOSE)
+		self.view = pageview.view
+
+		hbox = gtk.HBox(spacing=12)
+		hbox.set_border_width(12)
+		self.vbox.add(hbox)
+
+		vbox = gtk.VBox(spacing=5)
+		hbox.pack_start(vbox, False)
+
+		label = gtk.Label(_('Find what')+': ')
+			# T: input label in find & replace dialog
+		label.set_alignment(0.0, 0.5)
+		vbox.add(label)
+
+		self.find_entry = gtk.Entry()
+		self.find_entry.set_text( pageview.find_entry.get_text() )
+		self.find_entry.connect('changed', self.on_find_entry_changed)
+		self.find_entry.connect('activate', self.on_find_entry_changed)
+		vbox.add(self.find_entry)
+
+		self.case_option = gtk.CheckButton(_('Match c_ase'))
+			# T: checkbox option in find & replace dialog
+		self.case_option.connect('toggled', self.on_find_entry_changed)
+		vbox.add(self.case_option)
+
+		self.word_option = gtk.CheckButton(_('Whole _word'))
+			# T: checkbox option in find & replace dialog
+		self.word_option.connect('toggled', self.on_find_entry_changed)
+		vbox.add(self.word_option)
+
+		label = gtk.Label(_('Replace with')+': ')
+			# T: input label in find & replace dialog
+		label.set_alignment(0.0, 0.5)
+		vbox.add(label)
+
+		self.replace_entry = gtk.Entry()
+		vbox.add(self.replace_entry)
+
+		self.bbox = gtk.VButtonBox()
+		hbox.add(self.bbox)
+
+		next_button = Button(_('_Next'), gtk.STOCK_GO_FORWARD)
+			# T: Button in search & replace dialog
+		next_button.connect_object('clicked', self.__class__.find_next, self)
+		self.bbox.add(next_button)
+
+		prev_button = Button(_('_Previous'), gtk.STOCK_GO_BACK)
+			# T: Button in search & replace dialog
+		prev_button.connect_object('clicked', self.__class__.find_previous, self)
+		self.bbox.add(prev_button)
+
+		replace_button = Button(_('_Replace'), gtk.STOCK_FIND_AND_REPLACE)
+			# T: Button in search & replace dialog
+		replace_button.connect_object('clicked', self.__class__.replace, self)
+		self.bbox.add(replace_button)
+
+		all_button = Button(_('Replace _All'), gtk.STOCK_FIND_AND_REPLACE)
+			# T: Button in search & replace dialog
+		all_button.connect_object('clicked', self.__class__.replace_all, self)
+		self.bbox.add(all_button)
+
+
+	@property
+	def _flags(self):
+		flags = 0
+		if self.case_option.get_active():
+			flags = flags | FIND_CASE_SENSITIVE
+		if self.word_option.get_active():
+			flags = flags | FIND_WHOLE_WORD
+		return flags
+
+	def find_next(self):
+		string = self.find_entry.get_text()
+		self.view.get_buffer().find_forward(string, flags=self._flags)
+
+	def find_previous(self):
+		string = self.find_entry.get_text()
+		self.view.get_buffer().find_backward(string, flags=self._flags)
+
+	def on_find_entry_changed(self, widget):
+		string = self.find_entry.get_text()
+		flags= FIND_IN_PLACE | self._flags
+		ok = self.view.get_buffer().find_forward(string, flags=flags)
+
+		for button in self.bbox.get_children():
+			if isinstance(button, gtk.Button):
+				button.set_sensitive(ok)
+
+	def replace(self):
+		string = self.find_entry.get_text()
+		flags= FIND_IN_PLACE | self._flags
+		if self.view.get_buffer().find_forward(string, flags=flags):
+			buffer = self.view.get_buffer()
+			assert buffer.get_has_selection(), 'BUG: find returned OK, but no selection ?'
+			buffer.begin_user_action()
+			buffer.delete_selection(False, self.view.get_editable())
+			buffer.insert_at_cursor(self.replace_entry.get_text())
+			buffer.end_user_action()
+			return True
+		else:
+			return False
+
+	def replace_all(self):
+		buffer = self.view.get_buffer()
+		buffer.begin_user_action()
+		while self.replace():
+			continue
+		buffer.end_user_action()

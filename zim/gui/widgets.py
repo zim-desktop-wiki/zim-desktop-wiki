@@ -48,11 +48,13 @@ class Button(gtk.Button):
 class IconButton(gtk.Button):
 	'''Button with a stock icon, but no label.'''
 
-	def __init__(self, stock):
+	def __init__(self, stock, relief=True):
 		gtk.Button.__init__(self)
 		icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
 		self.add(icon)
 		self.set_alignment(0.5, 0.5)
+		if not relief:
+			self.set_relief(gtk.RELIEF_NONE)
 
 
 class BrowserTreeView(gtk.TreeView):

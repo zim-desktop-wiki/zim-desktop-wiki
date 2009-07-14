@@ -101,11 +101,11 @@
 			<menuitem action='clear_formatting'/>
 		</menu>
 		<menu action='search_menu'>
+			<menuitem action='show_find'/>
+			<menuitem action='find_next'/>
+			<menuitem action='find_previous'/>
+			<menuitem action='show_find_and_replace'/>
 <!--
-			<menuitem action='Find'/>
-			<menuitem action='FindNext'/>
-			<menuitem action='FindPrev'/>
-			<menuitem action='FindReplace'/>
 			<separator/>
 			<menuitem action='show_search'/>
 			<menuitem action='show_search_backlinks'/>
