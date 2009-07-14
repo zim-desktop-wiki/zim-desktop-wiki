@@ -2,7 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''Spell check plugin based on gtkspell'''
 
 import gobject
 
@@ -36,7 +36,6 @@ ui_toggle_actions = (
 )
 
 class SpellPlugin(PluginClass):
-	'''FIXME'''
 
 	plugin_info = {
 		'name': 'Spell',

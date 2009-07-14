@@ -2,8 +2,6 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
-
 import gtk
 import logging
 

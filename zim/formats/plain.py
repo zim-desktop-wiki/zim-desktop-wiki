@@ -2,7 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module handles parsing and dumping input in plain text'''
 
 import re
 
@@ -26,7 +26,6 @@ class Parser(ParserClass):
 	# idem for linking urls etc.
 
 	def parse(self, input):
-		'''FIXME'''
 		if isinstance(input, basestring):
 			input = input.splitlines(True)
 
@@ -40,7 +39,6 @@ class Parser(ParserClass):
 class Dumper(DumperClass):
 
 	def dump(self, tree):
-		'''FIXME'''
 		assert isinstance(tree, ParseTree)
 
 		output = TextBuffer()

@@ -2,8 +2,6 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
-
 # Bunch of meta data, used at least in the about dialog
 __version__ = '0.42-alpha1'
 __url__='http://www.zim-wiki.org'
@@ -31,7 +29,8 @@ logger = logging.getLogger('zim')
 executable = 'zim'
 
 class NotebookInterface(gobject.GObject):
-	'''FIXME
+	'''Application wrapper for a notebook. Base class for GtkInterface
+	and WWWInterface classes.
 
 	Subclasses can prove a class attribute "ui_type" to tell plugins what
 	interface they support. This can be "gtk" or "html". If "ui_type" is None
@@ -68,13 +67,13 @@ class NotebookInterface(gobject.GObject):
 			self.open_notebook(notebook)
 
 	def load_plugins(self):
-		'''FIXME'''
+		'''Load the plugins defined in the preferences'''
 		plugins = ['spell', 'linkmap', 'printtobrowser'] # FIXME: get from config
 		for plugin in plugins:
 			self.load_plugin(plugin)
 
 	def load_plugin(self, plugin):
-		'''FIXME
+		'''Load a single plugin.
 		"plugin" can either be a pluginname or a plugin class
 		'''
 		if isinstance(plugin, basestring):
@@ -87,19 +86,20 @@ class NotebookInterface(gobject.GObject):
 		logger.debug('Loaded plugin %s', plugin)
 
 	def unload_plugin(self, plugin):
-		'''FIXME'''
+		'''Remove a plugin'''
 		print 'TODO: unload plugin', plugin
 		#~ logger.debug('Unloaded plugin %s', pluginname)
 
 	def open_notebook(self, notebook):
-		'''FIXME'''
+		'''Open a notebook if no notebook was set already.
+		'noetbook' can be either a string or a notebook object.
+		'''
 		import zim.notebook
 		if isinstance(notebook, basestring):
 			notebook = zim.notebook.get_notebook(notebook)
 		self.emit('open-notebook', notebook)
 
 	def do_open_notebook(self, notebook):
-		'''FIXME'''
 		self.notebook = notebook
 		if notebook.cache_dir:
 			# may not exist during tests
@@ -143,7 +143,7 @@ class NotebookInterface(gobject.GObject):
 		index.update(callback=on_callback)
 
 	def spawn(self, *argv):
-		'''FIXME'''
+		'''Spawn a sub process'''
 		argv = list(argv)
 		argv = map(lambda a: unicode(a).encode('utf-8'), argv)
 		if argv[0] == 'zim':

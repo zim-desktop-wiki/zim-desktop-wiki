@@ -18,6 +18,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 MA 02110-1301, USA.
 
 
+== Included Files ==
+
+The following files were included from other sources:
+
+From the default Gnome icon theme:
+* pixmaps/task-list.png (was: stock_todo.png)
+* pixmaps/attachment.png (was: mail-attachment.png)
+
+From Gtk+ 2.8
+* pixmaps/link.png (was: stock_connect_24.png)
+
+Other:
+* pixmaps/calendar.png (was: stock_calendar-view-month.png)
+  Copyright 2007 by Jakub Steiner, released under GPL
+  modifications copyright 2009 by Gabriel Hurley
+
 
 ====== INSTALLING ======
 

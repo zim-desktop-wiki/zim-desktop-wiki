@@ -61,7 +61,7 @@ def get_notebook(notebook):
 
 
 def get_notebook_list():
-	'''FIXME'''
+	'''Returns a list of known notebooks'''
 	return config_file('notebooks.list')
 
 
@@ -76,7 +76,9 @@ class PageExistsError(Exception):
 	pass
 
 class Notebook(gobject.GObject):
-	'''FIXME'''
+	'''Main class to access a notebook. Proxies between backend Store
+	and Index objects on the one hand and the gui application on the other
+	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -87,7 +89,6 @@ class Notebook(gobject.GObject):
 	}
 
 	def __init__(self, path=None, name=None, config=None, index=None):
-		'''FIXME'''
 		gobject.GObject.__init__(self)
 		self._namespaces = []	# list used to resolve stores
 		self._stores = {}		# dict mapping namespaces to stores
@@ -296,7 +297,9 @@ class Notebook(gobject.GObject):
 		page.modified = False
 
 	def move_page(self, path, newpath, update_links=True):
-		'''FIXME'''
+		'''Move a page from 'path' to 'newpath'. If 'update_links' is
+		True all links from and to the page will be modified as well.
+		'''
 		logger.debug('Move %s to %s (%s)', path, newpath, update_links)
 
 		if path.name in self._page_cache:
@@ -320,7 +323,11 @@ class Notebook(gobject.GObject):
 
 	def rename_page(self, path, newbasename,
 						update_heading=True, update_links=True):
-		'''FIXME'''
+		'''Rename page to a page in the same namespace but with a new basename.
+		If 'update_heading' is True the first heading in the page will be updated to it's 
+		new name.  If 'update_links' is True all links from and to the page will be
+		modified as well.
+		'''
 		logger.debug('Rename %s to "%s" (%s, %s)',
 			path, newbasename, update_heading, update_links)
 
@@ -352,10 +359,6 @@ class Notebook(gobject.GObject):
 			return True
 		else:
 			return False
-
-	#~ def search(self):
-		#~ '''FIXME'''
-		#~ pass # TODO search code
 
 	def resolve_file(self, filename, path):
 		'''Resolves a file or directory path relative to a page. Returns a
@@ -577,7 +580,7 @@ class Path(object):
 
 
 class Page(Path):
-	'''FIXME
+	'''Class to represent a single page in the notebook.
 
 	Page objects inherit from Path but have internal state reflecting content
 	in the notebook. We try to keep Page objects unique

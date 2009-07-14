@@ -2,7 +2,7 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module contains the export functions for zim'''
 
 import logging
 
@@ -18,7 +18,7 @@ logger = logging.getLogger('zim.exporter')
 
 
 class Exporter(object):
-	'''FIXME'''
+	'''Class that handles an export action'''
 
 	def __init__(self, notebook, format, template=None,
 				index_page=None,

@@ -2,7 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''Plugin to serve as work-around for the lack of printing support'''
 
 import webbrowser
 
@@ -30,7 +30,6 @@ ui_actions = (
 )
 
 class SpellPlugin(PluginClass):
-	'''FIXME'''
 
 	plugin_info = {
 		'name': 'Print to Browser',

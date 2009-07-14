@@ -2,7 +2,9 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module contains the core of the interactive editor. It includes all
+classes needed to display and edit a single page as well as related dialogs
+like the dialogs to insert images, links etc.'''
 
 import logging
 
@@ -79,8 +81,8 @@ ui_actions = (
 	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<ctrl>E', ''),
 	('insert_image', None, _('_Image...'), '', _('Insert Image')),
 	('insert_text_from_file', None, _('Text From _File...'), '', _('Insert Text From File')),
-	('insert_external_link', 'gtk-connect', _('E_xternal Link...'), '', _('Insert External Link')),
-	('insert_link', 'gtk-connect', _('_Link...'), '<ctrl>L', _('Insert Link')),
+	('insert_external_link', 'zim-link', _('E_xternal Link...'), '', _('Insert External Link')),
+	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link')),
 	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', ''),
 	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', ''),
 	('find_next', None, _('Find Ne_xt'), '<ctrl>G', ''),
@@ -227,7 +229,6 @@ class TextBuffer(gtk.TextBuffer):
 	) )
 
 	def __init__(self):
-		'''FIXME'''
 		gtk.TextBuffer.__init__(self)
 		self._insert_tree_in_progress = False
 
@@ -246,20 +247,20 @@ class TextBuffer(gtk.TextBuffer):
 		self._editmode_tags = ()
 
 	def clear(self):
-		'''FIXME'''
+		'''Clear all content from the buffer'''
 		self.set_textstyle(None)
 		self.set_indent(None)
 		self.delete(*self.get_bounds())
 		# TODO: also throw away undo stack
 
 	def set_parsetree(self, tree):
-		'''FIXME'''
+		'''Load a new ParseTree in the buffer, first flushes existing content'''
 		self.clear()
 		self.insert_parsetree_at_cursor(tree)
 		self.set_modified(False)
 
 	def insert_parsetree(self, iter, tree):
-		'''FIXME'''
+		'''Insert a ParseTree within the existing buffer'''
 		self._place_cursor(iter)
 		self.insert_parsetree_at_cursor(tree)
 		self._restore_cursor()
@@ -275,7 +276,7 @@ class TextBuffer(gtk.TextBuffer):
 		self.delete_mark(mark)
 
 	def insert_parsetree_at_cursor(self, tree):
-		'''FIXME'''
+		'''Like insert_parsetree() but inserts at the cursor'''
 		self.emit('begin-insert-tree')
 		startoffset = self.get_iter_at_mark(self.get_insert()).get_offset()
 		self._insert_element_children(tree.getroot())
@@ -345,13 +346,13 @@ class TextBuffer(gtk.TextBuffer):
 				self.insert_at_cursor(element.tail)
 
 	def insert_link(self, iter, text, href, **attrib):
-		'''FIXME'''
+		'''Insert a link into the buffer at iter'''
 		self._place_cursor(iter)
 		self.insert_link_at_cursor(text, href, **attrib)
 		self._restore_cursor()
 
 	def insert_link_at_cursor(self, text, href, **attrib):
-		'''FIXME'''
+		'''Like insert_link() but inserts at the cursor'''
 		tag = self.create_link_tag(href, **attrib)
 		self._editmode_tags = self._editmode_tags + (tag,)
 		self.insert_at_cursor(text)
@@ -1093,7 +1094,7 @@ CURSOR_WIDGET = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
 
 
 class TextView(gtk.TextView):
-	'''FIXME
+	'''Custom TextView class. Takes care of additional key bindings and on-mouse-over for links.
 
 	Signals:
 		link-clicked (link) - Emitted when the used clicks a link
@@ -1129,8 +1130,7 @@ class TextView(gtk.TextView):
 		'key-press-event': 'override',
 	}
 
-	def __init__(self):
-		'''FIXME'''
+	def __init__(self, preferences):
 		gtk.TextView.__init__(self, TextBuffer())
 		self.cursor = CURSOR_TEXT
 		self.cursor_link = None
@@ -1138,6 +1138,7 @@ class TextView(gtk.TextView):
 		self.set_left_margin(10)
 		self.set_right_margin(5)
 		self.set_wrap_mode(gtk.WRAP_WORD)
+		self.preferences = preferences
 
 	def set_buffer(self, buffer):
 		if not self.gtkspell is None:
@@ -1166,7 +1167,6 @@ class TextView(gtk.TextView):
 		return False # continue emit
 
 	def do_button_release_event(self, event):
-		'''FIXME'''
 		cont = gtk.TextView.do_button_release_event(self, event)
 		selection = self.get_buffer().get_selection_bounds()
 		if not selection:
@@ -1191,7 +1191,6 @@ class TextView(gtk.TextView):
 		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
 
 		READONLY = False # FIXME
-		SETTING = True # FIXME
 		if READONLY:
 			handled = self._do_key_press_event_readonly(event)
 		elif buffer.get_has_selection():
@@ -1206,7 +1205,7 @@ class TextView(gtk.TextView):
 				iter = buffer.get_iter_at_line(iter.get_line())
 				buffer.increment_indent(iter)
 		elif event.keyval in KEYVALS_LEFT_TAB or \
-		(event.keyval in KEYVALS_BACKSPACE and SETTING):
+		(event.keyval in KEYVALS_BACKSPACE and self.preferences['unindent_on_backspace']):
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(iter)
 			if iter.compare(ourhome) == 1: # iter beyond home position
@@ -1224,7 +1223,8 @@ class TextView(gtk.TextView):
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			link = buffer.get_link_data(iter)
 			if link:
-				if SETTING or event.state & gtk.gdk.META_MASK: # Meta == Alt
+				if self.preferences['follow_on_enter'] \
+				or event.state & gtk.gdk.MOD1_MASK: # Meta == Alt
 					self.click_link(iter)
 				else:
 					pass # do not insert newline, just ignore
@@ -1292,7 +1292,6 @@ class TextView(gtk.TextView):
 		#   > Quotes whole selection with '>'
 		handled = True
 		buffer = self.get_buffer()
-		SETTING = True # FIXME
 
 		def decrement_indent():
 			# For selection decrement first check if all lines have indent
@@ -1309,7 +1308,7 @@ class TextView(gtk.TextView):
 			buffer.foreach_line_in_selection(buffer.increment_indent)
 		elif event.keyval in KEYVALS_LEFT_TAB:
 			decrement_indent()
-		elif event.keyval in KEYVALS_BACKSPACE and SETTING:
+		elif event.keyval in KEYVALS_BACKSPACE and self.preferences['unindent_on_backspace']:
 			decremented = decrement_indent()
 			if not decremented:
 				handled = None # nothing happened, normal backspace
@@ -1440,7 +1439,6 @@ class TextView(gtk.TextView):
 			buffer.apply_tag(tag, start, end)
 			return True
 
-		SETTING  = True
 		if start.starts_line() and word in autoformat_bullets:
 			# format bullet and checkboxes
 			end.forward_char() # also overwrite the char triggering the action
@@ -1461,9 +1459,9 @@ class TextView(gtk.TextView):
 				handled = False
 		elif interwiki_re.search(word):
 			apply_link(interwiki_re[0])
-		elif SETTING and file_re.search(word): # FIXME
+		elif self.preferences['autolink_files'] and file_re.search(word): # FIXME
 			apply_link(file_re[0])
-		elif SETTING and camelcase_re.search(word): # FIXME
+		elif self.preferences['autolink_camelcase'] and camelcase_re.search(word): # FIXME
 			apply_link(camelcase_re[0])
 		else:
 			handled = False
@@ -1770,7 +1768,9 @@ class UndoStackManager:
 
 
 class PageView(gtk.VBox):
-	'''FIXME'''
+	'''Wrapper for TextView which handles the application logic for menu items.
+	Also adds a bar below the TextView with input for the 'find' action.
+	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -1784,7 +1784,11 @@ class PageView(gtk.VBox):
 		self.page = None
 		self.undostack = None
 		self.replace_dialog_ref = lambda: None # mimic empty weakref
-		self.view = TextView()
+
+		self.preferences = self.ui.preferences['PageView']
+		self.ui.register_preferences('PageView', ui_preferences)
+
+		self.view = TextView(preferences=self.preferences)
 		swindow = gtk.ScrolledWindow()
 		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		swindow.set_shadow_type(gtk.SHADOW_IN)
@@ -1821,10 +1825,10 @@ class PageView(gtk.VBox):
 		self.find_bar.set_no_show_all(True)
 		self.pack_end(self.find_bar, False)
 
-
 		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
 		self.view.connect_object('link-leave', PageView.do_link_leave, self)
+
 
 		self.ui.add_actions(ui_actions, self)
 
@@ -1838,9 +1842,6 @@ class PageView(gtk.VBox):
 		for name in [a[0] for a in ui_format_toggle_actions]:
 			action = actiongroup.get_action(name)
 			action.connect('activate', self.do_toggle_format_action)
-
-		self.preferences = self.ui.preferences['PageView']
-		self.ui.register_preferences('PageView', ui_preferences)
 
 		PageView.style = config_file('style.conf')
 		self.ui.connect('preferences-changed', lambda o: self.reload_style())
@@ -1862,6 +1863,14 @@ class PageView(gtk.VBox):
 			self.view.modify_font(None)
 		else:
 			self.view.modify_font(font)
+
+		if 'justify' in self.style['TextView']:
+			try:
+				const = self.style['TextView']['justify']
+				assert hasattr(gtk, const), 'No such constant: gtk.%s' % const
+				self.view.set_justification(getattr(gtk, const))
+			except:
+				logger.exception('Exception while setting justification:')
 
 		testbuffer = gtk.TextBuffer()
 		for tag in [k[4:] for k in self.style.keys() if k.startswith('Tag ')]:

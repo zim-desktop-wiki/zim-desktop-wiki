@@ -2,7 +2,10 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module contains utilities to work with external applications
+it is based on the Freedesktop.org (XDG) Desktop Entry specification
+with some additional logic based on status quo on Gnome / XFCE.
+'''
 
 import os
 import logging

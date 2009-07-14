@@ -183,7 +183,12 @@ class StoreClass():
 			return False
 
 	def get_attachments_dir(self, path):
-		'''FIXME'''
+		'''Returns a Dir object for storing attachements for 'path'.
+		Assumes the store has a directory set already and aplies the
+		default heuristic for mapping page names to file names.
+		Sub-classes that do not have a directory or want a different
+		layout need to subclass this method.
+		'''
 		# TODO merge with _get_dir and _get_file in stores/files.py
 		assert self.dir, 'Stores without a dir attribute need to overload this method'
 		if path == self.namespace:

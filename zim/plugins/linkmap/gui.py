@@ -2,8 +2,6 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
-
 import gtk
 
 from zim._lib import xdot
@@ -44,7 +42,6 @@ class GtkLinkMap():
 
 
 class LinkMapDialog(Dialog):
-	'''FIXME'''
 
 	def __init__(self, ui, linkmap):
 		Dialog.__init__(self, ui, 'LinkMap', buttons=gtk.BUTTONS_CLOSE)

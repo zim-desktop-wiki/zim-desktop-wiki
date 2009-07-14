@@ -2,7 +2,7 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module contains utilities for parsing strings and text'''
 
 import re
 

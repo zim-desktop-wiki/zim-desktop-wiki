@@ -143,7 +143,7 @@ class IndexPath(Path):
 
 
 class Index(gobject.GObject):
-	'''FIXME'''
+	'''This class wraps the database with meta data on zim pages'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {

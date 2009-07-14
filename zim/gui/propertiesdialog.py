@@ -2,13 +2,10 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
-
 import gtk
 from zim.gui import Dialog
 
 class PropertiesDialog(Dialog):
-	'''FIXME'''
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Properties'))

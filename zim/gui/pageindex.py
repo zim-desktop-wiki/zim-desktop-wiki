@@ -29,14 +29,17 @@ KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
 class PageTreeStore(gtk.GenericTreeModel):
-	'''FIXME
+	'''Custom TreeModel that is integrated closely with the Index object.
+	In fact it is jsut an API layer translating between the gtk.TreeView and
+	the zim Index interfaces. It fetches data on the fly when requested and
+	does not keep it's own cache. This allows scaling to very large notebooks. 
 
 	Note: Be aware that in this interface there are two classes both referred
 	to as "paths". The first is gtk.TreePath and the second is
 	zim.notebook.Path . When a TreePath is intended the argument is called
 	explicitly "treepath", while arguments called "path" refer to a zim Path.
 
-	TODO see python gtk-2.0 tutorial for remarks about reference leaking !
+	TODO: see python gtk-2.0 tutorial for remarks about reference leaking !
 	'''
 
 	def __init__(self, index):

@@ -2,7 +2,9 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module contains utilities to work with config files. It also supports looking up
+files according to the Freedesktop.org (XDG) Base Dir specification.
+'''
 
 import sys
 import os
@@ -255,7 +257,7 @@ class ListDict(dict):
 		of keys. Keys not in the list are moved to the end. Keys that are in
 		the list but not in the dict will be ignored.
 		'''
-		order = order.copy()
+		order = order[:] # copy
 		oldorder = set(self.order)
 		neworder = set(order)
 		for k in neworder - oldorder: # keys not in the dict

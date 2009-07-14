@@ -67,7 +67,7 @@ ui_actions = (
 	('reload_page',  'gtk-refresh', _('_Reload'), '<ctrl>R', _('Reload page')),
 	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', _('Open document folder')),
 	('open_document_root', 'gtk-open', _('Open _Document Root'), '', _('Open document root')),
-	('attach_file', 'mail-attachment', _('Attach _File'), '', _('Attach external file')),
+	('attach_file', 'zim-attachment', _('Attach _File'), '', _('Attach external file')),
 	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', _('Open source')),
 	('show_server_gui', None, _('Start _Web Server'), '', _('Start web server')),
 	('reload_index', None, _('Re-build Index'), '', _('Rebuild index')),
@@ -1361,7 +1361,7 @@ class Dialog(gtk.Dialog):
 			* The initial value of the field
 
 		The following field types are supported: 'bool', 'int', 'list',
-		'string', 'page', 'namespace', 'file' and 'image'.
+		'string', 'page', 'namespace', 'dir', 'file' and 'image'.
 
 		If 'table' is specified the fields are added to that table, otherwise
 		a new table is constructed and added to the dialog. Returns the table
@@ -1411,7 +1411,7 @@ class Dialog(gtk.Dialog):
 					pass
 				self.inputs[name] = combobox
 				table.attach(combobox, 1,2, i,i+1)
-			elif type in ('string', 'page', 'namespace', 'file', 'image'):
+			elif type in ('string', 'page', 'namespace', 'dir', 'file', 'image'):
 				label = gtk.Label(label+': ')
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
@@ -1424,7 +1424,7 @@ class Dialog(gtk.Dialog):
 					entry.set_completion(self._get_page_completion())
 				elif type == 'namespace':
 					entry.set_completion(self._get_namespace_completion())
-				elif type in ('file', 'image'):
+				elif type in ('dir', 'file', 'image'):
 					# FIXME use inline icon for newer versions of Gtk
 					browse = gtk.Button('_Browse')
 					browse.connect('clicked', self._select_file, (type, entry))
@@ -1453,9 +1453,12 @@ class Dialog(gtk.Dialog):
 	def _select_file(self, button, data):
 		'''Triggered by the 'browse' button for file entries'''
 		type, entry = data
-		dialog = SelectFileDialog(self.ui)
-		if type == 'image':
-			dialog.add_filter_images()
+		if type == 'dir':
+			dialog = SelectFolderDialog(self)
+		else:
+			dialog = SelectFileDialog(self)
+			if type == 'image':
+				dialog.add_filter_images()
 		file = dialog.run()
 		if not file is None:
 			entry.set_text(file.path)
@@ -1565,6 +1568,14 @@ class FileDialog(Dialog):
 		if path is None: return None
 		else: return File(path)
 
+	def get_dir(self):
+		'''Wrapper for filechooser.get_filename().
+		Returns a Dir object or None.
+		'''
+		path = self.filechooser.get_filename()
+		if path is None: return None
+		else: return Dir(path)
+
 	def _add_filter_all(self):
 		filter = gtk.FileFilter()
 		filter.set_name(_('All Files'))
@@ -1611,6 +1622,22 @@ class SelectFileDialog(FileDialog):
 	def run(self):
 		FileDialog.run(self)
 		return self.file
+
+
+class SelectFolderDialog(FileDialog):
+
+	def __init__(self, ui, title=_('Select Folder')):
+		FileDialog.__init__(self, ui, title,
+			action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
+		self.dir = None
+
+	def do_response_ok(self):
+		self.dir = self.get_dir()
+		return not self.dir is None
+
+	def run(self):
+		FileDialog.run(self)
+		return self.dir
 
 
 class OpenPageDialog(Dialog):

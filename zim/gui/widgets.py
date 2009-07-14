@@ -133,7 +133,10 @@ gobject.type_register(BrowserTreeView)
 
 
 class MenuButton(gtk.HBox):
-	'''FIXME
+	'''A button which pops up a menu when clicked. It behaves different from
+	a combobox because it is not a selector and the label on the button is
+	not a selected item from the menu. Main example of this widget type is the
+	button with backlinks in the statusbar of the main window.
 
 	This module is based loosely on gedit-status-combo-box.c from the gedit
 	sources.
@@ -180,6 +183,10 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 		# TODO looks like other statusbar items resize on toggle button
 
 	def popup_menu(self, event=None):
+		'''This method actually pops up the menu.
+		Sub-calsses can overload and wrap it to populate the menu
+		dynamically.
+		'''
 		if not self.get_property('sensitive'):
 			return
 

@@ -2,13 +2,12 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''Plugin showing a map of links between pages based on GraphViz'''
 
 from zim.plugins import PluginClass
 from zim.index import LINK_DIR_BOTH
 
 class LinkMapPlugin(PluginClass):
-	'''FIXME'''
 
 	plugin_info = {
 		'name': 'Link Map',
@@ -41,7 +40,6 @@ This is a core plugin shipping with zim.
 
 
 class LinkMap(object):
-	'''FIXME'''
 
 	def __init__(self, notebook, path, depth=2):
 		self.notebook = notebook
@@ -71,12 +69,10 @@ class LinkMap(object):
 						yield link
 
 	def get_linkmap(self, format=None):
-		'''FIXME'''
 		dotcode = self.get_dotcode()
 		# TODO pass format to dot -Tformat
 
 	def get_dotcode(self):
-		'''FIXME'''
 		dotcode = [
 			'digraph LINKS {',
 			'  size="6,6";',

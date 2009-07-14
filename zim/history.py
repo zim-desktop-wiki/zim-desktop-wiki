@@ -2,7 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME
+'''This module contains the history class.
 
 The history can be represented as a list of pages with extra columns for the
 cursor and scroll positions. One additional setting is used to give the current
@@ -54,7 +54,7 @@ class HistoryRecord(Path):
 
 
 class History(gobject.GObject):
-	'''FIXME
+	'''History class.
 
 	Signals:
 		* changed - emitted whenever something changes

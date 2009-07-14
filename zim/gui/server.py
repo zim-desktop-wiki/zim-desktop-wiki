@@ -18,7 +18,6 @@ stock_started = ('gtk-yes', gtk.ICON_SIZE_DIALOG)
 stock_stopped = ('gtk-no', gtk.ICON_SIZE_DIALOG)
 
 class ServerWindow(gtk.Window):
-	'''FIXME'''
 
 	def __init__(self, server):
 		'''Constructor needs a Server object to control'''

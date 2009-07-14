@@ -2,7 +2,7 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''Utilities to work with the clipboard for copy-pasting'''
 
 import gtk
 import logging

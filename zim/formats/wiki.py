@@ -2,7 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module handles parsing and dumping wiki text'''
 
 import re
 
@@ -241,18 +241,14 @@ class Parser(ParserClass):
 
 
 class Dumper(DumperClass):
-	'''FIXME'''
 
 	def dump(self, tree):
-		'''FIXME'''
 		assert isinstance(tree, ParseTree)
 		output = TextBuffer()
 		self.dump_children(tree.getroot(), output)
 		return output.get_lines()
 
 	def dump_children(self, list, output, list_level=-1):
-		'''FIXME'''
-
 		if list.text:
 			output.append(list.text)
 

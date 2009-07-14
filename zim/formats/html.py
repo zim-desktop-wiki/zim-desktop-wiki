@@ -2,7 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
+'''This module supports dumping to HTML'''
 
 # TODO paragraph indenting using margin CSS ?
 # TODO use global CSS for checkboxes instead of inline style - needs also support from tempalte etc
@@ -57,8 +57,6 @@ class Dumper(DumperClass):
 		return output.get_lines()
 
 	def _dump_children(self, list, output, istoplevel=False):
-		'''FIXME'''
-
 		for element in list.getchildren():
 			text = html_encode(element.text)
 			if not element.tag == 'pre':

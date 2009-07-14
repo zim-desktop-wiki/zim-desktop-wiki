@@ -2,8 +2,6 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
-
 import types
 import os
 import sys
@@ -49,7 +47,9 @@ def list_plugins():
 
 
 class PluginClass(object):
-	'''FIXME
+	'''Base class for plugins. Every module containing a plugin should
+	have exactly one class derived from this base class. That class
+	will be initialized when the plugin is loaded.
 
 	Plugins should define two class attributes. The first is a dict
 	called 'plugin_info'. It can contain the following keys:
@@ -106,7 +106,9 @@ class PluginClass(object):
 				self.uistate.setdefault(key, value)
 
 	def disconnect(self):
-		'''FIXME'''
+		'''Disconnect the plugin object from the ui, should revert
+		any changes it made to the application.
+		'''
 		self.ui.remove_actions(self)
 
 	def add_actions():

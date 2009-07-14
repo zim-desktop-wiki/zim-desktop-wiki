@@ -37,7 +37,6 @@ __store__ = 'gjots'
 class Store(memory.Store):
 
 	def __init__(self, **args):
-		'''FIXME'''
 		memory.Store.__init__(self,  **args)
 		self.format = zim.formats.get_format('plain')
 		if 'file' in args:
@@ -46,14 +45,11 @@ class Store(memory.Store):
 		self._read_file()
 
 	def _read_file(self):
-		'''FIXME'''
-		# TODO gjots parser code goes here
+		pass # TODO gjots parser code goes here
 
 	def _write_file(self):
-		'''FIXME'''
-		# TODO gjots dumper code goes here
+		pass # TODO gjots dumper code goes here
 
 	def _on_write(self, buffer):
-		'''FIXME'''
 		memory.Store._on_write(self, buffer)
 		self._write_file()

@@ -14,7 +14,8 @@ started without arguments.
 import gtk
 import pango
 
-from zim import notebook
+from zim.fs import *
+import zim.notebook
 from zim.config import data_file
 from zim.gui.widgets import IconButton
 from zim.gui import Dialog
@@ -22,6 +23,8 @@ from zim.gui import Dialog
 NAME_COL = 0  # column with notebook name
 OPEN_COL = 1  # column with boolean if notebook is open alreadys
 
+
+# TODO if this is the first time zim is started go directly to AddNoteook, set default and return
 
 class NotebookTreeModel(gtk.ListStore):
 	'''TreeModel that wraps a notebook list given as a ConfigList'''
@@ -33,7 +36,7 @@ class NotebookTreeModel(gtk.ListStore):
 		gtk.ListStore.__init__(self, str, bool) # NAME_COL, OPEN_COL
 
 		if notebooks is None:
-			self.notebooks = notebook.get_notebook_list()
+			self.notebooks = zim.notebook.get_notebook_list()
 		else:
 			self.notebooks = notebooks
 
@@ -60,6 +63,7 @@ class NotebookTreeModel(gtk.ListStore):
 			name = path
 		self.notebooks[name] = path
 		self.append((name, False))
+		self.write_list()
 
 	def get_default(self):
 		'''Returns a TreeIter for the default notebook or None'''
@@ -89,8 +93,7 @@ class NotebookTreeModel(gtk.ListStore):
 	def write_list(self):
 		list = [unicode(row[NAME_COL]) for row in self]
 		self.notebooks.set_order(list)
-		print 'SAVE', self.notebooks
-		# TODO: self.notebooks.write()
+		self.notebooks.write()
 
 
 class NotebookTreeView(gtk.TreeView):
@@ -259,21 +262,60 @@ class NotebookDialog(Dialog):
 		return True
 
 	def do_add_notebook(self, *a):
-		# TODO: add "new" notebook in list and select it
-		#~ self.edit_notebook()
-		print 'TODO: add notebook'
+		properties = AddNotebookDialog(self).run()
+		if properties:
+			folder = properties['folder']
+			name = properties['name']
+			self.treeview.get_model().append_path(folder, name=name)
 
 	def do_edit_notebook(self, *a):
 		model, iter = self.treeview.get_selection().get_selected()
 		if iter is None: return
-		notebook = self.notebooks[model[iter][NAME_COL]]
-		print 'TODO: run properties dialog'
-		#~ self._save_notebook_list() # directory could have changed
+		name = unicode(model[iter][NAME_COL])
+		print model.notebooks
+		folder = model.notebooks[name]
+		properties = EditNotebookDialog(self, name, folder).run()
+		if properties:
+			folder = properties['folder']
+			name = properties['name']
+			print 'TODO update notebook list with', (name, folder)
 
 	def do_remove_notebook(self, *a):
 		model, iter = self.treeview.get_selection().get_selected()
 		if iter is None: return
-		print 'DEL', model[iter][NAME_COL]
-		#~ del model[iter]
-		#~ self._save_notebook_list()
+		print 'TODO delete from notebook list', model[iter][NAME_COL]
 
+
+class AddNotebookDialog(Dialog):
+
+	def __init__(self, ui):
+		Dialog.__init__(self, ui, _('Add Notebook')) # T: Dialog window title
+		self.add_text(_('''\
+Please select a name and a folder for the notebook.
+
+To create a new notebook you need to select an empty folder.
+Of course you can also select an existing zim notebook folder.
+''')) # T: help text in the 'Add Notebook' dialog
+		self.add_fields((
+			('name', 'string', _('Name'), 'Notes'), # T: input field in 'Add Notebook' dialog
+			('folder', 'dir', _('Folder'), '~/Notes'), # T: input field in 'Add Notebook' dialog
+		))
+
+	def do_response_ok(self):
+		name = self.get_field('name')
+		folder = self.get_field('folder')
+		if name and folder:
+			self.result = {'name': name, 'folder': folder}
+			return True
+		else:
+			return False
+
+
+class EditNotebookDialog(AddNotebookDialog):
+
+	def __init__(self, ui, name, folder):
+		Dialog.__init__(self, ui, _('Edit Notebook')) # T: Dialog window title
+		self.add_fields((
+			('name', 'string', _('Name'), name), # T: input field in 'Add Notebook' dialog
+			('folder', 'dir', _('Folder'), folder), # T: input field in 'Add Notebook' dialog
+		))

@@ -36,11 +36,11 @@ def get_tmpdir():
 
 
 class PathLookupError(Exception):
-	'''FIXME'''
+	pass
 
 
 class OverWriteError(Exception):
-	'''FIXME'''
+	pass
 
 
 class UnixPath(object):
@@ -112,7 +112,7 @@ class UnixPath(object):
 
 	@property
 	def dir(self):
-		'''FIXME'''
+		'''Returns a Dir object for the parent dir'''
 		path = os.path.dirname(self.path)
 		# TODO make this persistent - weakref ?
 		return Dir(path)
@@ -133,7 +133,9 @@ class UnixPath(object):
 		return stat_result.st_mtime
 
 	def split(self):
-		'''FIXME'''
+		'''Returns the directory parsts of the path as a list.
+		If the OS uses the concept of a drive the first part will include the drive.
+		'''
 		drive, path = os.path.splitdrive(self.path)
 		parts = path.replace('\\', '/').strip('/').split('/')
 		parts[0] = drive + os.path.sep + parts[0]
@@ -190,7 +192,7 @@ class Dir(Path):
 		return os.path.isdir(self.path)
 
 	def list(self):
-		'''FIXME'''
+		'''Returns a list of names for files and subdirectories'''
 		# TODO check notes on handling encodings in os.listdir
 		if self.exists():
 			files = [f.decode('utf-8')
@@ -201,7 +203,7 @@ class Dir(Path):
 			return []
 
 	def touch(self):
-		'''FIXME'''
+		'''Create this dir and any parent directories that do not yet exist'''
 		try:
 			os.makedirs(self.path)
 		except OSError, e:
@@ -245,7 +247,7 @@ class Dir(Path):
 
 
 	def file(self, path):
-		'''FIXME'''
+		'''Returns a File object for a path relative to this directory'''
 		assert isinstance(path, (File, basestring, list, tuple))
 		if isinstance(path, File):
 			file = path
@@ -259,7 +261,7 @@ class Dir(Path):
 		return file
 
 	def subdir(self, path):
-		'''FIXME'''
+		'''Returns a Dir object for a path relative to this directory'''
 		assert isinstance(path, (File, basestring, list, tuple))
 		if isinstance(path, Dir):
 			dir = path
@@ -414,7 +416,9 @@ class File(Path):
 				raise OverWriteError, 'File changed on disk: %s' % self.path
 
 	def touch(self):
-		'''FIXME'''
+		'''Create this file and any parent directories if it does not yet exist.
+		Only needed for place holders - will happen automatically at first write.
+		'''
 		if self.exists():
 			return
 		else:

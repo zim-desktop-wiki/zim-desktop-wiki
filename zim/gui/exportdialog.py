@@ -2,8 +2,6 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
-
 import gtk
 
 from zim.fs import *
@@ -12,8 +10,8 @@ from zim.exporter import Exporter
 import zim.formats
 import zim.templates
 
+
 class ExportDialog(Dialog):
-	'''FIXME'''
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Export'))

@@ -9,7 +9,10 @@
 # TODO setting for doc_root_url when running in CGI mode
 # TODO support "etg" and "if-none-match' headers at least for icons
 
-'''FIXME'''
+'''This module contains a web interface for zim. This is an alternative to
+the GUI application. It can be run either as a stand-alone web server or
+embedded in another server using cgi-bin or one of the python web frameworks.
+'''
 
 import sys
 import socket
@@ -35,7 +38,6 @@ for icon in ('checked-box.png', 'xchecked-box.png', 'unchecked-box.png'):
 	icons[file.path] = icon
 
 class WWWError(Exception):
-	'''FIXME'''
 
 	statusstring = {
 		'404': 'Not Found',
@@ -44,7 +46,6 @@ class WWWError(Exception):
 	}
 
 	def __init__(self, status='500', headers=None, msg=''):
-		'''FIXME'''
 		self.status = '%s %s' % (status, self.statusstring[status])
 		self.headers = headers
 		self.msg = str(msg)
@@ -216,7 +217,6 @@ class Server(gobject.GObject):
 	}
 
 	def __init__(self, notebook=None, port=8080, gui=False, **opts):
-		'''FIXME'''
 		gobject.GObject.__init__(self)
 		self.socket = None
 		self.running = False

@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Mon, 13 Jul 2009 18:11:15 +0200
+Modification-Date: Tue, 14 Jul 2009 23:51:34 +0200
 
 ====== Tasks ======
 
@@ -13,7 +13,6 @@ Modification-Date: Mon, 13 Jul 2009 18:11:15 +0200
 
 == Needed Artwork ==
 * Paperclip icon
-* Icon for plugin dialog - puzzle piece like in Mozilla
 * Calendar icon
 * Task list icon
 * LinkMap icon - re-use red boxes from zim logo ?
@@ -29,6 +28,46 @@ Modification-Date: Mon, 13 Jul 2009 18:11:15 +0200
 [ ] formats-, edit- & insert-menu complete
 [ ] enforce sane indenting levels for lists
 [ ] enforce heading can not be indented
+
+Add post processing that checks for comments starting with "T:" and add them to the zim.pot file
+Go over files again to add translatore comments
+foreach translation in pot
+check files + linenumbers
+check next line
+print comments if any
+print entry
+
+para indenting and bullet offset tags need to be split up to fix situation where bullet lists need to have indent 0 to render properly
+
+check indent-changed signal emission
+
+Make verbatim paragraphs work in the pageview
+
+* Fix attachments / documents in export dialog - 1 uur
+* Study install script + meta files
+>>> Release alpha 2
+
+* Grep + classify other TODO and FIXME tags
+
+* Finish UndoManager
+* Fix page files as commandline argument
+* Search dialog (keep it simple for now)
+* TaskList plugin (allow options for keywords, heading keywords, use
+all checkboxes)
+* Calendar plugin (use Calendar namespace + allow option)
+
+* read-only pages / notebooks / switch read-only
+* notebook properties
+* Write post processor translation files
+>>> Publish tranlation + call for translators
+
+* Daemon / TrayIcon
+* Version control
+>>> Release beta 1 RC
+
+* InsertScreenshot / ...
+* EquationEditor / DiagramEditor / ...
+* Fuse plugin (encfs etc.)
 
 == General health ==
 
