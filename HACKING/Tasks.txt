@@ -1,93 +1,81 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Tue, 14 Jul 2009 23:51:34 +0200
+Modification-Date: Wed, 15 Jul 2009 23:11:58 +0200
 
 ====== Tasks ======
 
-//This is a list of short-term tasks / ongoing development.//
-//For long term list, go to the bug tracker on launchpad.//
+**Also grep for TODO and FIXME tags in the code**
 
+== Art Work ==
+[ ] Need icon for LinkMap plugin - re-use red boxes from zim logo ?
+[ ] Update icons for attachement / calendar / task list ?
 
-**Grep for TODO and FIXME tags in the code**
+== Packaging ==
+[ ] Setup: need to figure out how setup.py should look to install properly
+	* data -> usr/share/zim
+	* zim.py -> bin/zim
+	* zim.desktop -> usr/share/applications
+	* zim.png -> usr/share/pixmaps
+	* install mimetype for notebook.zim files
+[*] Translations: add script to include comments in zim.pot
+[ ] Update README / Changes / ...
+[ ] Build ubuntu / debian package
+[ ] Build windows installer (with or without Python + Gtk included)
 
-== Needed Artwork ==
-* Paperclip icon
-* Calendar icon
-* Task list icon
-* LinkMap icon - re-use red boxes from zim logo ?
-
-== Alpha2 ==
-
-[ ] Support for documents in export
-[ ] Static linker for export
-[ ] Update links logic for move / rename
-[ ] Completion for pages and namespaces
-[ ] implement drag & drop in the treeview ??
-[ ] Make undo / redo work - separate undo stack manager object
-[ ] formats-, edit- & insert-menu complete
-[ ] enforce sane indenting levels for lists
-[ ] enforce heading can not be indented
-
-Add post processing that checks for comments starting with "T:" and add them to the zim.pot file
-Go over files again to add translatore comments
-foreach translation in pot
-check files + linenumbers
-check next line
-print comments if any
-print entry
-
-para indenting and bullet offset tags need to be split up to fix situation where bullet lists need to have indent 0 to render properly
-
-check indent-changed signal emission
-
-Make verbatim paragraphs work in the pageview
-
-* Fix attachments / documents in export dialog - 1 uur
-* Study install script + meta files
->>> Release alpha 2
-
-* Grep + classify other TODO and FIXME tags
-
-* Finish UndoManager
-* Fix page files as commandline argument
-* Search dialog (keep it simple for now)
-* TaskList plugin (allow options for keywords, heading keywords, use
-all checkboxes)
-* Calendar plugin (use Calendar namespace + allow option)
-
-* read-only pages / notebooks / switch read-only
-* notebook properties
-* Write post processor translation files
->>> Publish tranlation + call for translators
-
-* Daemon / TrayIcon
-* Version control
->>> Release beta 1 RC
-
-* InsertScreenshot / ...
-* EquationEditor / DiagramEditor / ...
-* Fuse plugin (encfs etc.)
-
-== General health ==
-
-* how to pacakge zim executable (zim.py) and zim/ directory ?
-* Make zim.py also accept files as notebook types (e.g. gjots, .tar.gz etc)
-
-== Getting server up and running ==
-
-* Finish GUI for stopping / starting the server
-* Resolving files
-	* Needs testing + testing for new FS methods
-	* Needs security mode for www
-* Templates need setting to remove title from tree
+== Defects ==
+[ ] Pageview: enforce sane indenting levels for lists
+[ ] Pageview: enforce heading can not be indented
+[ ] Pageview: Para indenting tags and bullet offset tags need to be split up
+[ ] Pageview: Fix issue with Verbatim paragraphs
+[ ] Pageindex: Drag&Drop in the side pane is not working
+[ ] Exporter: Exporter needs to support documents & attachments
+[ ] Exporter: Check if linker for exporter is OK
+	* Integrate linker logic with Store object ?
+[ ] Notebook: When moving / renaming links need to be updated
+	* Allow non-exisitng pag as placeholder in the index for resolving
+[ ] Dialog: Autocompletion for pages and namespaces in dialogs
+	* Use a sub-class of the treemodel from the index ?
+[ ] Commandline: Allow opening files mapping to pages from the commandline
+[ ] WWW: Improve dialog for controlling web server
+[ ] WWW: check resolving of files and icons for web server
+	* Add extra check that no files outside allowed directories are served
+[ ] Templates: first heading of tree should be a separate template parameter
 	* Used e.g. in Presentation template to put title in separate bar
-* Templates need setting for line-ending with/without <br>
-* Templates need setting to change the heading level
-	* need test for ParseTree.cleanup_headings()
-* Expose page properties in template and set a pagetype property for index pages
-* For S5 template need to split body on H1 or HR
-	* FOREACH slide IN page.sections
-	* want to be able to cleanup headings per slide...
-* Check client hostname and add a --public option (default localhost only)
+[ ] Templates: check correct way to have a page property for index pages
+
+== Features ==
+[ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
+[ ] Pageview: Finish the UndoStackManager and hook to the pageview
+[ ] Pageview: menu controls to indent / unindent / move up move down a list item
+	* Check emission of indent-changed signal to set state of buttons
+	* Also think about keybindings for moving a line up / down or top / bottm
+[ ] Implement properties dialog
+[ ] Implement insert date dialog
+	* hook signal for linking - split off suggest-link from end-of-word ?
+[ ] Implement Calendar plugin
+	* Use preferences for namespace to use, set to "Calendar" by default
+	* Hook to signal from calendar to format links + hook to end-of-word
+[ ] Implement search + search dialog
+[ ] Implement TaskList plugin
+	* Use prefrences for keywords, heading keywords, use of checkboxes
+[ ] Implement VersionControl plugin(s)
+[ ] Implement background deamon
+[ ] Implement TrayIcon plugin
+[ ] Implement InsertScreenshot plugin + preference for command
+[ ] Implement EquationEditor and DiagramEditor plugins
+	* write common base class for plugins that convert some script to an image
+[ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..
+	* Preferences dialog should have list of mount points
+[ ] Implement zip and tar.gz notebooks
+[ ] Implement gjots notebooks
+[ ] WWW: Implement a '--public' option + add checkbox in GUI to allow remote connections (default localhost only)
+[ ] Templates: setting to determing use of <br> elements (default yes)
+[ ] Templates: need settings to enforce level of headings in output
+	* see ParseTree.cleanup_headings() - needs test
+[ ] Templates: Need [% FOREACH section %] statement to export multiple zim pages to a single output
+[ ] Exporter: Need to support exporting multiple zim pages to a single output
+[ ] Templates: Need option to split body on H1 and HR
+	* Needed for S5 output - multiple slides in one page
+	* Also want to be able to control headings per slide
 

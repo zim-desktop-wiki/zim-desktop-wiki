@@ -8,7 +8,7 @@ from zim.gui import Dialog
 class VersionsDialog(Dialog):
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Versions'))
+		Dialog.__init__(self, ui, _('Versions')) # T: Dialog title
 		self.vbox.add(gtk.Label('TODO'))
 
 	def do_response_ok(self):

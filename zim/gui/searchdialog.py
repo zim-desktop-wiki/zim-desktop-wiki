@@ -8,7 +8,7 @@ from zim.gui import Dialog
 class SearchDialog(Dialog):
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Search'))
+		Dialog.__init__(self, ui, _('Search')) # T: Dialog title
 		self.vbox.add(gtk.Label('TODO'))
 
 	def do_response_ok(self):

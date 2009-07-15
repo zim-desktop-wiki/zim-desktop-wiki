@@ -31,74 +31,74 @@ from zim.gui.applications import get_application
 logger = logging.getLogger('zim.gui')
 
 ui_actions = (
-	('file_menu', None, _('_File')),
-	('edit_menu', None, _('_Edit')),
-	('view_menu', None, _('_View')),
-	('insert_menu', None, _('_Insert')),
-	('search_menu', None, _('_Search')),
-	('format_menu', None, _('For_mat')),
-	('tools_menu', None, _('_Tools')),
-	('go_menu', None, _('_Go_')),
-	('help_menu', None, _('_Help')),
-	('pathbar_menu', None, _('P_athbar')),
-	('toolbar_menu', None, _('_Toolbar')),
+	('file_menu', None, _('_File')), # T: Menu title
+	('edit_menu', None, _('_Edit')), # T: Menu title
+	('view_menu', None, _('_View')), # T: Menu title
+	('insert_menu', None, _('_Insert')), # T: Menu title
+	('search_menu', None, _('_Search')), # T: Menu title
+	('format_menu', None, _('For_mat')), # T: Menu title
+	('tools_menu', None, _('_Tools')), # T: Menu title
+	('go_menu', None, _('_Go_')), # T: Menu title
+	('help_menu', None, _('_Help')), # T: Menu title
+	('pathbar_menu', None, _('P_athbar')), # T: Menu title
+	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
 
 	# name, stock id, label, accelerator, tooltip
-	('new_page',  'gtk-new', _('_New Page'), '<ctrl>N', _('New page')),
-	('new_sub_page',  'gtk-new', _('New S_ub Page'), '', _('New sub page')),
-	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', _('Open notebook')),
-	('import_page', None, _('_Import Page'), '', _('Import a file as a page')),
-	('save_page', 'gtk-save', _('_Save'), '<ctrl>S', _('Save page')),
-	('save_copy', None, _('Save a _Copy...'), '', _('Save a copy')),
-	('save_version', 'gtk-save-as', _('S_ave Version...'), '<ctrl><shift>S', _('Save Version')),
-	('show_versions', None, _('_Versions...'), '', _('Versions')),
-	('show_export',  None, _('E_xport...'), '', _('Export')),
-	('email_page', None, _('_Send To...'), '', _('Mail page')),
-	('move_page', None, _('_Move Page...'), '', _('Move page')),
-	('rename_page', None, _('_Rename Page...'), 'F2', _('Rename page')),
-	('delete_page', None, _('_Delete Page'), '', _('Delete page')),
-	('show_properties',  'gtk-properties', _('Proper_ties'), '', _('Properties dialog')),
-	('close',  'gtk-close', _('_Close'), '<ctrl>W', _('Close window')),
-	('quit',  'gtk-quit', _('_Quit'), '<ctrl>Q', _('Quit')),
-	('show_search',  'gtk-find', _('_Search...'), '<shift><ctrl>F', _('Search')),
-	('show_search_backlinks', None, _('Search _Backlinks...'), '', _('Search Back links')),
-	('copy_location', None, _('Copy Location'), '<shift><ctrl>L', _('Copy location')),
-	('show_preferences',  'gtk-preferences', _('Pr_eferences'), '', _('Preferences dialog')),
-	('reload_page',  'gtk-refresh', _('_Reload'), '<ctrl>R', _('Reload page')),
-	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', _('Open document folder')),
-	('open_document_root', 'gtk-open', _('Open _Document Root'), '', _('Open document root')),
-	('attach_file', 'zim-attachment', _('Attach _File'), '', _('Attach external file')),
-	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', _('Open source')),
-	('show_server_gui', None, _('Start _Web Server'), '', _('Start web server')),
-	('reload_index', None, _('Re-build Index'), '', _('Rebuild index')),
-	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back')),
-	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward')),
-	('open_page_parent', 'gtk-go-up', _('_Parent'), '<alt>Up', _('Go to parent page')),
-	('open_page_child', 'gtk-go-down', _('_Child'), '<alt>Down', _('Go to child page')),
-	('open_page_previous', None, _('_Previous in index'), '<alt>Page_Up', _('Go to previous page')),
-	('open_page_next', None, _('_Next in index'), '<alt>Page_Down', _('Go to next page')),
-	('open_page_home', 'gtk-home', _('_Home'), '<alt>Home', _('Go home')),
-	('open_page', 'gtk-jump-to', _('_Jump To...'), '<ctrl>J', _('Jump to page')),
-	('show_help', 'gtk-help', _('_Contents'), 'F1', _('Help contents')),
-	('show_help_faq', None, _('_FAQ'), '', _('FAQ')),
-	('show_help_keys', None, _('_Keybindings'), '', _('Key bindings')),
-	('show_help_bugs', None, _('_Bugs'), '', _('Bugs')),
-	('show_about', 'gtk-about', _('_About'), '', _('About')),
+	('new_page',  'gtk-new', _('_New Page'), '<ctrl>N', ''), # T: Menu item
+	('new_sub_page',  'gtk-new', _('New S_ub Page'), '', ''), # T: Menu item
+	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', ''), # T: Menu item
+	('import_page', None, _('_Import Page'), '', ''), # T: Menu item
+	('save_page', 'gtk-save', _('_Save'), '<ctrl>S', ''), # T: Menu item
+	('save_copy', None, _('Save a _Copy...'), '', ''), # T: Menu item
+	('save_version', 'gtk-save-as', _('S_ave Version...'), '<ctrl><shift>S', ''), # T: Menu item
+	('show_versions', None, _('_Versions...'), '', ''), # T: Menu item
+	('show_export',  None, _('E_xport...'), '', ''), # T: Menu item
+	('email_page', None, _('_Send To...'), '', ''), # T: Menu item
+	('move_page', None, _('_Move Page...'), '', ''), # T: Menu item
+	('rename_page', None, _('_Rename Page...'), 'F2', ''), # T: Menu item
+	('delete_page', None, _('_Delete Page'), '', ''), # T: Menu item
+	('show_properties',  'gtk-properties', _('Proper_ties'), '', ''), # T: Menu item
+	('close',  'gtk-close', _('_Close'), '<ctrl>W', ''), # T: Menu item
+	('quit',  'gtk-quit', _('_Quit'), '<ctrl>Q', ''), # T: Menu item
+	('show_search',  'gtk-find', _('_Search...'), '<shift><ctrl>F', ''), # T: Menu item
+	('show_search_backlinks', None, _('Search _Backlinks...'), '', ''), # T: Menu item
+	('copy_location', None, _('Copy Location'), '<shift><ctrl>L', ''), # T: Menu item
+	('show_preferences',  'gtk-preferences', _('Pr_eferences'), '', ''), # T: Menu item
+	('reload_page',  'gtk-refresh', _('_Reload'), '<ctrl>R', ''), # T: Menu item
+	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', ''), # T: Menu item
+	('open_document_root', 'gtk-open', _('Open _Document Root'), '', ''), # T: Menu item
+	('attach_file', 'zim-attachment', _('Attach _File'), '', _('Attach external file')), # T: Menu item
+	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', ''), # T: Menu item
+	('show_server_gui', None, _('Start _Web Server'), '', ''), # T: Menu item
+	('reload_index', None, _('Re-build Index'), '', ''), # T: Menu item
+	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back')), # T: Menu item
+	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward')), # T: Menu item
+	('open_page_parent', 'gtk-go-up', _('_Parent'), '<alt>Up', _('Go to parent page')), # T: Menu item
+	('open_page_child', 'gtk-go-down', _('_Child'), '<alt>Down', _('Go to child page')), # T: Menu item
+	('open_page_previous', None, _('_Previous in index'), '<alt>Page_Up', _('Go to previous page')), # T: Menu item
+	('open_page_next', None, _('_Next in index'), '<alt>Page_Down', _('Go to next page')), # T: Menu item
+	('open_page_home', 'gtk-home', _('_Home'), '<alt>Home', _('Go home')), # T: Menu item
+	('open_page', 'gtk-jump-to', _('_Jump To...'), '<ctrl>J', ''), # T: Menu item
+	('show_help', 'gtk-help', _('_Contents'), 'F1', ''), # T: Menu item
+	('show_help_faq', None, _('_FAQ'), '', ''), # T: Menu item
+	('show_help_keys', None, _('_Keybindings'), '', ''), # T: Menu item
+	('show_help_bugs', None, _('_Bugs'), '', ''), # T: Menu item
+	('show_about', 'gtk-about', _('_About'), '', ''), # T: Menu item
 )
 
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, None, initial state
-	('toggle_toolbar', None, _('_Toolbar'),  None, _('Show toolbar'), None, True),
-	('toggle_statusbar', None, _('_Statusbar'), None, _('Show statusbar'), None, True),
-	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), None, True),
+	('toggle_toolbar', None, _('_Toolbar'),  None, '', None, True), # T: Menu item
+	('toggle_statusbar', None, _('_Statusbar'), None, '', None, True), # T: Menu item
+	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), None, True), # T: Menu item
 )
 
 ui_pathbar_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
-	('set_pathbar_none', None, _('_None'),  None, None, 0),
-	('set_pathbar_recent', None, _('_Recent pages'), None, None, 1),
-	('set_pathbar_history', None, _('_History'),  None, None, 2),
-	('set_pathbar_path', None, _('N_amespace'), None, None, 3),
+	('set_pathbar_none', None, _('_None'),  None, None, 0), # T: Menu item
+	('set_pathbar_recent', None, _('_Recent pages'), None, None, 1), # T: Menu item
+	('set_pathbar_history', None, _('_History'),  None, None, 2), # T: Menu item
+	('set_pathbar_path', None, _('N_amespace'), None, None, 3), # T: Menu item
 )
 
 PATHBAR_NONE = 'none'
@@ -108,16 +108,16 @@ PATHBAR_PATH = 'path'
 
 ui_toolbar_style_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
-	('set_toolbar_icons_and_text', None, _('Icons _and Text'), None, None, 0),
-	('set_toolbar_icons_only', None, _('_Icons Only'), None, None, 1),
-	('set_toolbar_text_only', None, _('_Text Only'), None, None, 2),
+	('set_toolbar_icons_and_text', None, _('Icons _and Text'), None, None, 0), # T: Menu item
+	('set_toolbar_icons_only', None, _('_Icons Only'), None, None, 1), # T: Menu item
+	('set_toolbar_text_only', None, _('_Text Only'), None, None, 2), # T: Menu item
 )
 
 ui_toolbar_size_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
-	('set_toolbar_icons_large', None, _('_Large Icons'), None, None, 0),
-	('set_toolbar_icons_small', None, _('_Small Icons'), None, None, 1),
-	('set_toolbar_icons_tiny', None, _('_Tiny Icons'), None, None, 2),
+	('set_toolbar_icons_large', None, _('_Large Icons'), None, None, 0), # T: Menu item
+	('set_toolbar_icons_small', None, _('_Small Icons'), None, None, 1), # T: Menu item
+	('set_toolbar_icons_tiny', None, _('_Tiny Icons'), None, None, 2), # T: Menu item
 )
 
 TOOLBAR_ICONS_AND_TEXT = 'icons_and_text'
@@ -131,7 +131,9 @@ TOOLBAR_ICONS_TINY = 'tiny'
 ui_preferences = (
 	# section, key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
+		# T: Option in the preferences dialog
 	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)'), True),
+		# T: Option in the preferences dialog
 )
 
 # Load custom application icons as stock
@@ -686,11 +688,16 @@ class GtkInterface(NotebookInterface):
 		dir = self.notebook.get_attachments_dir(self.page)
 		if dir is None:
 			error = _('This page does not have an attachments folder')
+				# T: Error message
 			ErrorDialog(self, error).run()
 		elif dir.exists():
 			self.open_folder(dir)
 		else:
-			question = (_('Create folder?'), _('The attachments folder for this page does not yet exist.\nDo you want to create it now?'))
+			question = (
+				_('Create folder?'),
+					# T: Heading in a question dialog for creating a folder
+				_('The attachments folder for this page does not yet exist.\nDo you want to create it now?'))
+					# T: Text in a question dialog for creating a folder
 			create = QuestionDialog(self, question).run()
 			if create:
 				dir.touch()
@@ -709,6 +716,7 @@ class GtkInterface(NotebookInterface):
 
 	def reload_index(self):
 		dialog = ProgressBarDialog(self, _('Updating index'))
+			# T: Title of progressbar dialog
 		dialog.show_all()
 		self.notebook.index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
@@ -738,6 +746,7 @@ class GtkInterface(NotebookInterface):
 			pass
 		dialog.set_version(zim.__version__)
 		dialog.set_comments(_('A desktop wiki'))
+			# T: General description of zim itself
 		dialog.set_copyright(zim.__copyright__)
 		dialog.set_license(zim.__license__)
 		dialog.set_authors([zim.__author__])
@@ -1067,6 +1076,7 @@ class MainWindow(gtk.Window):
 		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
 		label = self.statusbar_backlinks_button.label
 		label.set_text_with_mnemonic(_('%i _Backlinks...') % n)
+			# T: Label for button with backlinks in statusbar
 		if n == 0:
 			self.statusbar_backlinks_button.set_sensitive(False)
 		else:
@@ -1169,6 +1179,7 @@ class SavePageErrorDialog(ErrorDialog):
 
 	def __init__(self, ui, error, page):
 		title = _('Could not save page: %s') % page.name
+			# T: Heading of error dialog
 		explanation = _('''\
 To continue you can save a copy of this page or discard
 any changes. If you save a copy changes will be also
@@ -1206,10 +1217,12 @@ discarded, but you can restore the copy later.''')
 				discard(self)
 
 		discard_button = gtk.Button(_('_Discard Changes'))
+			# T: Button in error dialog
 		discard_button.connect_object('clicked', discard, self)
 		self.add_action_widget(discard_button, gtk.RESPONSE_OK)
 
 		save_button = Button(label=_('_Save Copy'), stock=gtk.STOCK_SAVE_AS)
+ 			# T: Button in error dialog
 		save_button.connect_object('clicked', save, self)
 		self.add_action_widget(save_button, gtk.RESPONSE_OK)
 
@@ -1579,6 +1592,7 @@ class FileDialog(Dialog):
 	def _add_filter_all(self):
 		filter = gtk.FileFilter()
 		filter.set_name(_('All Files'))
+			# T: Filter in open file dialog, shows all files (*)
 		filter.add_pattern('*')
 		self.filechooser.add_filter(filter)
 
@@ -1603,6 +1617,7 @@ class FileDialog(Dialog):
 			self._add_filter_all()
 		filter = gtk.FileFilter()
 		filter.set_name(_('Images'))
+			# T: Filter in open file dialog, shows image files only
 		filter.add_pixbuf_formats()
 		self.filechooser.add_filter(filter)
 		self.filechooser.set_filter(filter)
@@ -1612,6 +1627,7 @@ class FileDialog(Dialog):
 class SelectFileDialog(FileDialog):
 
 	def __init__(self, ui, title=_('Select File')):
+		# T: Title of file selection dialog
 		FileDialog.__init__(self, ui, title)
 		self.file = None
 
@@ -1627,6 +1643,7 @@ class SelectFileDialog(FileDialog):
 class SelectFolderDialog(FileDialog):
 
 	def __init__(self, ui, title=_('Select Folder')):
+		# T: Title of folder selection dialog
 		FileDialog.__init__(self, ui, title,
 			action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
 		self.dir = None
@@ -1646,8 +1663,9 @@ class OpenPageDialog(Dialog):
 	'''
 
 	def __init__(self, ui, namespace=None):
-		Dialog.__init__(self, ui, _('Jump to'))
+		Dialog.__init__(self, ui, _('Jump to')) # T: Dialog title
 		self.add_fields([('name', 'page', _('Jump to Page'), None)])
+			# T: Label for page input
 		# TODO custom "jump to" button
 
 	def do_response_ok(self):
@@ -1669,9 +1687,10 @@ class NewPageDialog(Dialog):
 	'''
 
 	def __init__(self, ui, namespace=None):
-		Dialog.__init__(self, ui, _('New Page'))
+		Dialog.__init__(self, ui, _('New Page')) # T: Dialog title
 		self.add_text(_('Please note that linking to a non-existing page\nalso creates a new page automatically.'))
-		self.add_fields([('name', 'page', _('Page Name'), None)])
+			# T: Dialog text in 'new page' dialog
+		self.add_fields([('name', 'page', _('Page Name'), None)]) # T: Input label
 		self.set_help(':Help:Pages')
 
 	def do_response_ok(self):
@@ -1684,7 +1703,7 @@ class NewPageDialog(Dialog):
 		else:
 			page = self.ui.notebook.get_page(path)
 			if page.hascontent or page.haschildren:
-				ErrorDialog(self, _('Page exists')).run()
+				ErrorDialog(self, _('Page exists')).run() # T: error message
 				return False
 			self.ui.open_page(page)
 			self.ui.save_page()
@@ -1695,6 +1714,7 @@ class SaveCopyDialog(FileDialog):
 
 	def __init__(self, ui, page=None):
 		FileDialog.__init__(self, ui, _('Save Copy'), gtk.FILE_CHOOSER_ACTION_SAVE)
+			# T: Dialog title of file save dialog
 		self.filechooser.set_current_name(self.ui.page.name + '.txt')
 		if page is None:
 			page = self.ui.page
@@ -1718,8 +1738,8 @@ class ImportPageDialog(FileDialog):
 	# TODO how to properly detect file types for other formats ?
 
 	def __init__(self, ui):
-		FileDialog.__init__(self, ui, _('Import Page'))
-		self.add_filter(_('Text Files'), '*.txt')
+		FileDialog.__init__(self, ui, _('Import Page')) # T: Dialog title
+		self.add_filter(_('Text Files'), '*.txt') # File filter for '*.txt'
 		# TODO add input for namespace, format
 
 	def do_response_ok(self):
@@ -1746,7 +1766,7 @@ class ImportPageDialog(FileDialog):
 class MovePageDialog(Dialog):
 
 	def __init__(self, ui, path=None):
-		Dialog.__init__(self, ui, _('Move Page'))
+		Dialog.__init__(self, ui, _('Move Page')) # T: Dialog title
 		if path is None:
 			self.path = self.ui.get_path_context()
 		else:
@@ -1757,9 +1777,12 @@ class MovePageDialog(Dialog):
 			assert self.ui.save_page(self.path)
 
 		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
+			# T: Heading in 'move page' dialog - %s is the page name
 		self.add_fields([
 			('parent', 'namespace', _('Namespace'), self.path.namespace),
+				# T: Input label for namespace to move a file to
 			('links', 'bool', _('Update links to this page'), True),
+				# T: option in 'move page' dialog
 		])
 
 	def do_response_ok(self):
@@ -1779,7 +1802,7 @@ class MovePageDialog(Dialog):
 class RenamePageDialog(Dialog):
 
 	def __init__(self, ui, path=None):
-		Dialog.__init__(self, ui, _('Rename Page'))
+		Dialog.__init__(self, ui, _('Rename Page')) # T: Dialog title
 		if path is None:
 			self.path = self.ui.get_path_context()
 		else:
@@ -1789,8 +1812,11 @@ class RenamePageDialog(Dialog):
 		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
 		self.add_fields([
 			('name', 'string', _('Name'), self.path.basename),
+				# T: Input label in the 'rename page' dialog for the new name
 			('head', 'bool', _('Update the heading of this page'), True),
+				# T: Option in the 'rename page' dialog
 			('links', 'bool', _('Update links to this page'), True),
+				# T: Option in the 'rename page' dialog
 		])
 
 	def do_response_ok(self):
@@ -1812,7 +1838,7 @@ class RenamePageDialog(Dialog):
 class DeletePageDialog(Dialog):
 
 	def __init__(self, ui, path=None):
-		Dialog.__init__(self, ui, _('Delete Page'))
+		Dialog.__init__(self, ui, _('Delete Page')) # T: Dialog title
 		if path is None:
 			self.path = self.ui.get_path_context()
 		else:
@@ -1825,7 +1851,9 @@ class DeletePageDialog(Dialog):
 		hbox.add(img)
 		label = gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
+			# T: Heading in 'delete page' dialog - %s is the page name
 		long = _('Page "%s" and all of it\'s sub-pages and attachments will be deleted') % self.path.name
+			# T: Text in 'delete page' dialog - %s is the page name
 		label.set_markup('<b>'+short+'</b>\n\n'+long)
 		hbox.add(label)
 
@@ -1846,7 +1874,7 @@ class DeletePageDialog(Dialog):
 class AttachFileDialog(FileDialog):
 
 	def __init__(self, ui, path=None):
-		FileDialog.__init__(self, ui, _('Attach File'))
+		FileDialog.__init__(self, ui, _('Attach File')) # T: Dialog title
 		if path is None:
 			self.path = self.ui.get_path_context()
 		else:
@@ -1856,6 +1884,7 @@ class AttachFileDialog(FileDialog):
 		self.dir = self.ui.notebook.get_attachments_dir(self.path)
 		if self.dir is None:
 			ErrorDialog(_('Page "%s" does not have a folder for attachments') % self.path)
+				# T: Error dialog - %s is the full page name
 			raise Exception, 'Page "%s" does not have a folder for attachments' % self.path
 
 	def do_response_ok(self):
