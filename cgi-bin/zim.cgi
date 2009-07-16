@@ -30,6 +30,10 @@ config = {
 	#~ 'template': 'Default.html',
 }
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
 from zim.www import WWWInterface
 from wsgiref.handlers import CGIHandler
 

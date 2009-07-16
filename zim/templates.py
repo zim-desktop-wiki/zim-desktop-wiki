@@ -79,7 +79,9 @@ def list_templates(format):
 	'''Returns a dict mapping template names to file paths.'''
 	format = format.lower()
 	templates = {}
-	for dir in data_dirs(('templates', format)):
+	path = list(data_dirs(('templates', format)))
+	path.reverse()
+	for dir in path:
 		for file in dir.list():
 			i = file.rfind('.') # match begin of file extension
 			if i >= 0:
@@ -95,7 +97,8 @@ def get_template(format, name):
 	#~ if not name in templates: FIXME exception type
 		#~ raise
 	file = templates[name]
-	return Template(File(file).readlines(), format)
+	logger.info('Loading template from: %s', file)
+	return Template(File(file).readlines(), format, name=file)
 
 
 class TemplateError(Exception):

@@ -100,3 +100,7 @@ class testWWWInterface(TestCase):
 		else:
 			logger.removeFilter(filter)
 
+		# favicon
+		response = call('GET', '/favicon.ico')
+		header, body = self.assertResponseWellFormed(response)
+		self.assertEqual(header[0], 'HTTP/1.0 200 OK')

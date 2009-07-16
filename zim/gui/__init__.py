@@ -396,13 +396,13 @@ class GtkInterface(NotebookInterface):
 			# Handle menu item for open_notebook, prompt user. The notebook
 			# dialog will call this method again after a selection is made.
 			logger.debug('No notebook given, showing notebookdialog')
-			import notebookdialog
+			import zim.gui.notebookdialog
 			if self.mainwindow.get_property('visible'):
 				# this dialog does not need to run modal
-				notebookdialog.NotebookDialog(self).show_all()
+				zim.gui.notebookdialog.NotebookDialog(self).show_all()
 			else:
 				# main loop not yet started
-				notebookdialog.NotebookDialog(self).run()
+				zim.gui.notebookdialog.NotebookDialog(self).run()
 		elif self.notebook is None:
 			# No notebook has been set, so we open this notebook ourselfs
 			# TODO also check if notebook was open through demon before going here

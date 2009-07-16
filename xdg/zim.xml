@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
+	<mime-type type="application/x-zim-notebook">
+		<sub-class-of type="text/plain"/>
+		<glob pattern="*.zim"/>
+		<comment>Zim notebook</comment>
+	</mime-type>
+	<mime-type type="text/x-zim-wiki">
+		<sub-class-of type="text/plain"/>
+    		<magic priority="80">
+			<match value='Content-Type: text/x-zim-wiki' type="string" offset="0"/>
+		</magic>
+		<comment>Zim wiki page</comment>
+	</mime-type>
+	<mime-type type="application/x-gjots">
+		<sub-class-of type="text/plain"/>
+		<glob pattern="*.gjots"/>
+		<comment>Gjots notebook</comment>
+	</mime-type>
+</mime-info>

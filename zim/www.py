@@ -94,7 +94,7 @@ class WWWInterface(NotebookInterface):
 	def open_notebook(self, notebook):
 		NotebookInterface.open_notebook(self, notebook)
 		#~ self.notebook.index.update()
-		self.linker = WWWLinker('html', notebook)
+		self.linker = WWWLinker('html', self.notebook)
 		if self.template:
 			self.template.set_linker(self.linker)
 

@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Wed, 15 Jul 2009 23:11:58 +0200
+Modification-Date: Thu, 16 Jul 2009 21:20:12 +0200
 
 ====== Tasks ======
 
@@ -10,18 +10,18 @@ Modification-Date: Wed, 15 Jul 2009 23:11:58 +0200
 == Art Work ==
 [ ] Need icon for LinkMap plugin - re-use red boxes from zim logo ?
 [ ] Update icons for attachement / calendar / task list ?
+[ ] Improve HTML templates & CSS stylesheets for export and server use
+	* How about some javascript controls ?
+
 
 == Packaging ==
-[ ] Setup: need to figure out how setup.py should look to install properly
-	* data -> usr/share/zim
-	* zim.py -> bin/zim
-	* zim.desktop -> usr/share/applications
-	* zim.png -> usr/share/pixmaps
-	* install mimetype for notebook.zim files
+[*] Setup: need to figure out how setup.py should look to install properly
 [*] Translations: add script to include comments in zim.pot
-[ ] Update README / Changes / ...
+[ ] Update CHANGELOG.txt
+[ ] Update "Install" and "Packaging" sections in README.txt
 [ ] Build ubuntu / debian package
 [ ] Build windows installer (with or without Python + Gtk included)
+
 
 == Defects ==
 [ ] Pageview: enforce sane indenting levels for lists
@@ -31,7 +31,8 @@ Modification-Date: Wed, 15 Jul 2009 23:11:58 +0200
 [ ] Pageindex: Drag&Drop in the side pane is not working
 [ ] Exporter: Exporter needs to support documents & attachments
 [ ] Exporter: Check if linker for exporter is OK
-	* Integrate linker logic with Store object ?
+[ ] Notebook dialog: remove, edit buttons do not work
+	* Keep notebooks list, or move to dir with .zim files ?
 [ ] Notebook: When moving / renaming links need to be updated
 	* Allow non-exisitng pag as placeholder in the index for resolving
 [ ] Dialog: Autocompletion for pages and namespaces in dialogs
@@ -43,6 +44,7 @@ Modification-Date: Wed, 15 Jul 2009 23:11:58 +0200
 [ ] Templates: first heading of tree should be a separate template parameter
 	* Used e.g. in Presentation template to put title in separate bar
 [ ] Templates: check correct way to have a page property for index pages
+
 
 == Features ==
 [ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
@@ -78,4 +80,4 @@ Modification-Date: Wed, 15 Jul 2009 23:11:58 +0200
 [ ] Templates: Need option to split body on H1 and HR
 	* Needed for S5 output - multiple slides in one page
 	* Also want to be able to control headings per slide
-
+[ ] Templates: Add the option to include special pages into the template, e.g. index page
