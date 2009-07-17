@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Thu, 16 Jul 2009 21:20:12 +0200
+Modification-Date: Fri, 17 Jul 2009 22:33:43 +0200
 
 ====== Tasks ======
 
@@ -31,8 +31,9 @@ Modification-Date: Thu, 16 Jul 2009 21:20:12 +0200
 [ ] Pageindex: Drag&Drop in the side pane is not working
 [ ] Exporter: Exporter needs to support documents & attachments
 [ ] Exporter: Check if linker for exporter is OK
-[ ] Notebook dialog: remove, edit buttons do not work
-	* Keep notebooks list, or move to dir with .zim files ?
+[*] Notebook dialog: remove, edit buttons do not work
+[*] Open notebook: use default notebook
+[*] Open notebook: on first use, show "Add Notebook" dialog, set default and open directly
 [ ] Notebook: When moving / renaming links need to be updated
 	* Allow non-exisitng pag as placeholder in the index for resolving
 [ ] Dialog: Autocompletion for pages and namespaces in dialogs
@@ -44,6 +45,7 @@ Modification-Date: Thu, 16 Jul 2009 21:20:12 +0200
 [ ] Templates: first heading of tree should be a separate template parameter
 	* Used e.g. in Presentation template to put title in separate bar
 [ ] Templates: check correct way to have a page property for index pages
+[ ] Commandline: --list option is missing
 
 
 == Features ==

@@ -1162,6 +1162,9 @@ class TextView(gtk.TextView):
 			self.gtkspell = None
 		gtk.TextView.set_buffer(self, buffer)
 
+	#~ def do_drag_motion(self, context, *a):
+		#~ print context.targets
+
 	def do_motion_notify_event(self, event):
 		'''Event handler that triggers check_cursor_type()
 		when the mouse moves

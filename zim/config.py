@@ -218,6 +218,14 @@ class ListDict(dict):
 		if not k in self.order:
 			self.order.append(k)
 
+	def __delitem__(self, k):
+		dict.__delitem__(self, k)
+		self.order.remove(k)
+
+	def pop(self, k):
+		v = dict.pop(self, k)
+		self.order.remove(k)
+
 	# Would expect that setdefault() triggers __setitem__
 	# but this seems not to be the case in the standard implementation
 	# And we added some extra functionality here

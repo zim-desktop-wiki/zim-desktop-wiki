@@ -15,6 +15,7 @@ import gobject
 import gtk
 import gtk.keysyms
 import pango
+from gettext import ngettext
 
 import zim
 from zim.fs import *
@@ -38,18 +39,18 @@ ui_actions = (
 	('search_menu', None, _('_Search')), # T: Menu title
 	('format_menu', None, _('For_mat')), # T: Menu title
 	('tools_menu', None, _('_Tools')), # T: Menu title
-	('go_menu', None, _('_Go_')), # T: Menu title
+	('go_menu', None, _('_Go')), # T: Menu title
 	('help_menu', None, _('_Help')), # T: Menu title
 	('pathbar_menu', None, _('P_athbar')), # T: Menu title
 	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
 
 	# name, stock id, label, accelerator, tooltip
-	('new_page',  'gtk-new', _('_New Page'), '<ctrl>N', ''), # T: Menu item
-	('new_sub_page',  'gtk-new', _('New S_ub Page'), '', ''), # T: Menu item
+	('new_page',  'gtk-new', _('_New Page...'), '<ctrl>N', ''), # T: Menu item
+	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '', ''), # T: Menu item
 	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', ''), # T: Menu item
-	('import_page', None, _('_Import Page'), '', ''), # T: Menu item
+	('import_page', None, _('_Import Page...'), '', ''), # T: Menu item
 	('save_page', 'gtk-save', _('_Save'), '<ctrl>S', ''), # T: Menu item
-	('save_copy', None, _('Save a _Copy...'), '', ''), # T: Menu item
+	('save_copy', None, _('Save A _Copy...'), '', ''), # T: Menu item
 	('save_version', 'gtk-save-as', _('S_ave Version...'), '<ctrl><shift>S', ''), # T: Menu item
 	('show_versions', None, _('_Versions...'), '', ''), # T: Menu item
 	('show_export',  None, _('E_xport...'), '', ''), # T: Menu item
@@ -108,7 +109,7 @@ PATHBAR_PATH = 'path'
 
 ui_toolbar_style_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
-	('set_toolbar_icons_and_text', None, _('Icons _and Text'), None, None, 0), # T: Menu item
+	('set_toolbar_icons_and_text', None, _('Icons _And Text'), None, None, 0), # T: Menu item
 	('set_toolbar_icons_only', None, _('_Icons Only'), None, None, 1), # T: Menu item
 	('set_toolbar_text_only', None, _('_Text Only'), None, None, 2), # T: Menu item
 )
@@ -392,26 +393,51 @@ class GtkInterface(NotebookInterface):
 		signal is emitted and the notebook is opened in this process. Otherwise
 		we let another instance handle it. If notebook=None the notebookdialog
 		is run to prompt the user.'''
-		if notebook is None:
-			# Handle menu item for open_notebook, prompt user. The notebook
-			# dialog will call this method again after a selection is made.
-			logger.debug('No notebook given, showing notebookdialog')
-			import zim.gui.notebookdialog
-			if self.mainwindow.get_property('visible'):
-				# this dialog does not need to run modal
+		if self.notebook:
+			if notebook is None:
+				# Handle menu item for 'open another notebook'
+				logger.debug('No notebook given, showing notebookdialog')
+				import zim.gui.notebookdialog
 				zim.gui.notebookdialog.NotebookDialog(self).show_all()
+				# Don't do anything else, the dialog will call us again
 			else:
-				# main loop not yet started
-				zim.gui.notebookdialog.NotebookDialog(self).run()
-		elif self.notebook is None:
-			# No notebook has been set, so we open this notebook ourselfs
-			# TODO also check if notebook was open through demon before going here
-			logger.info('Open notebook: %s', notebook)
-			NotebookInterface.open_notebook(self, notebook)
+				# We are already intialized, so let another process handle it
+				# TODO put this in the same package as the daemon code
+				self.spawn('zim', notebook)
 		else:
-			# We are already intialized, let another process handle it
-			# TODO put this in the same package as the daemon code
-			self.spawn('zim', notebook)
+			if notebook:
+				# No notebook has been set, so we open this notebook ourself
+				# TODO also check if notebook was open through demon before going here
+				logger.info('Open notebook: %s', notebook)
+				NotebookInterface.open_notebook(self, notebook)
+			else:
+				from zim.notebook import get_notebook_list
+				notebook_list = get_notebook_list()
+				notebooks = notebook_list.keys()
+				if not notebooks:
+					logger.debug('No notebook list - short cutting dialog')
+					import zim.gui.notebookdialog
+					fields = zim.gui.notebookdialog.AddNotebookDialog(self).run()
+					if fields:
+						notebook_list[fields['name']] = fields['folder']
+						notebook_list.write()
+						NotebookInterface.open_notebook(self, fields['folder'])
+					else:
+						# else dialog was cancelled
+						gtk.main_quit()
+				elif len(notebooks) == 1:
+					logger.debug('Opening only notebook in list')
+					NotebookInterface.open_notebook(self, notebooks[0])
+				elif '_default_' in notebooks and notebook_list['_default_']:
+					logger.debug('Opening default notebook')
+					NotebookInterface.open_notebook(self, '_default_')
+				else:
+					# multiple notebooks defined and no default
+					logger.debug('No notebook given, showing notebookdialog')
+					import zim.gui.notebookdialog
+					zim.gui.notebookdialog.NotebookDialog(self).run()
+					# Don't do anything else, the dialog will call us again
+
 
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook.'''
@@ -1075,7 +1101,8 @@ class MainWindow(gtk.Window):
 
 		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
 		label = self.statusbar_backlinks_button.label
-		label.set_text_with_mnemonic(_('%i _Backlinks...') % n)
+		label.set_text_with_mnemonic(
+			ngettext('%i _Backlink...', '%i _Backlinks...', n) % n)
 			# T: Label for button with backlinks in statusbar
 		if n == 0:
 			self.statusbar_backlinks_button.set_sensitive(False)
@@ -1097,7 +1124,7 @@ class MainWindow(gtk.Window):
 class BackLinksMenuButton(MenuButton):
 
 	def __init__(self, ui, status_bar_style=False):
-		label = _('%i _Backlinks...') % 0
+		label = '%i _Backlinks...' % 0 # Translated above
 		MenuButton.__init__(self, label, gtk.Menu(), status_bar_style)
 		self.ui = ui
 
@@ -1739,7 +1766,7 @@ class ImportPageDialog(FileDialog):
 
 	def __init__(self, ui):
 		FileDialog.__init__(self, ui, _('Import Page')) # T: Dialog title
-		self.add_filter(_('Text Files'), '*.txt') # File filter for '*.txt'
+		self.add_filter(_('Text Files'), '*.txt') # T: File filter for '*.txt'
 		# TODO add input for namespace, format
 
 	def do_response_ok(self):

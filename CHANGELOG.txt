@@ -1,0 +1,24 @@
+===== Changes for zim =====
+Jaap Karssenberg pardus@cpan.org
+
+This branch is the Python rewrite and starts with version 0.42. 
+Lower version numbers for zim correspond to the Perl branch.
+
+=== 0.42 - ... ===
+Functionality should be similar to Perl branch version 0.28
+Additional issues addressed in this release:
+
+* Moving a page also moves sub-pages and attachments - lp #269090, lp #350537
+* Deleting a page also deletes sub-pages and attachements - lp #320433
+* After deleting a page the user is moved away from that page - lp #297681
+* Wrapped lines in bullet lists are indented properly - lp #277580
+* Added a web-based interface to read zim notebooks - lp #208604
+* Distinguising between "move page" and "rename page" - lp #269076
+* Menu actions like "Rename Page (F2)" now follow the focus and work in the side pane as well - lp #373287
+* Page title can be updated automatically when moving a page - lp #304552
+* "Link" action behaves more like inserting an object instead of aplying formatting - lp #341608
+* File links are now inserted showing only the basename of the file - lp #336365
+* Dialogs spawned from another dialog will pop over it - lp #283417
+* Dialogs remember their window size - lp #227160
+* Check for pages that are changed offline now employs MD5 sum to be more robust - lp #299673
+

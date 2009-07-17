@@ -20,35 +20,46 @@ from zim.config import data_file
 from zim.gui.widgets import IconButton
 from zim.gui import Dialog
 
-NAME_COL = 0  # column with notebook name
-OPEN_COL = 1  # column with boolean if notebook is open alreadys
-
+OPEN_COL = 0  # column with boolean if notebook is open alreadys
+NAME_COL = 1  # column with notebook name
+PATH_COL = 2  # column with the directory path
 
 # TODO if this is the first time zim is started go directly to AddNoteook, set default and return
 
 class NotebookTreeModel(gtk.ListStore):
-	'''TreeModel that wraps a notebook list given as a ConfigList'''
+	'''TreeModel that wraps a notebook list given as a ConfigList.
+	It exposes 3 columns:
+
+		* bool, True is the notebook is opened already
+		* str, name of the notebook
+		* str, dir path of the notebook
+
+	To get the correct column numbers the constants OPEN_COL, NAME_COL and
+	PATH_COL are avaialble.
+	'''
 
 	def __init__(self, notebooks=None):
 		'''Constructor. If "notebooks" is None, the default list as provided
 		by zim.notebook.get_notebook_list() is used.
 		'''
-		gtk.ListStore.__init__(self, str, bool) # NAME_COL, OPEN_COL
+		gtk.ListStore.__init__(self, bool, str, str) # OPEN_COL, NAME_COL, PATH_COL
 
 		if notebooks is None:
 			self.notebooks = zim.notebook.get_notebook_list()
 		else:
 			self.notebooks = notebooks
 
+		self._loading = True
 		for name, path in self.notebooks.items():
 			if not (name.startswith('_') and name.endswith('_')):
-				self.append((name, False))
+				self.append((False, name, path))
+		self._loading = False
 
 	def get_iter_from_notebook(self, notebook):
 		'''Returns the TreeIter for a notebook (or notebook name) or None'''
+		if not isinstance(notebook, basestring):
+			notebook = notebook.name
 		for row in self:
-			if not isinstance(notebook, basestring):
-				notebook = notebook.name
 			if row[NAME_COL] == notebook:
 				return row.iter
 		else:
@@ -56,14 +67,7 @@ class NotebookTreeModel(gtk.ListStore):
 
 	def append_notebook(self, notebook):
 		assert notebook.dir
-		self.append_path(notebook.dir.path, notebook.name)
-
-	def append_path(self, path, name=None):
-		if name is None:
-			name = path
-		self.notebooks[name] = path
-		self.append((name, False))
-		self.write_list()
+		self.append_row(notebook.name, notebook.dir.path)
 
 	def get_default(self):
 		'''Returns a TreeIter for the default notebook or None'''
@@ -83,16 +87,27 @@ class NotebookTreeModel(gtk.ListStore):
 			self.notebooks['_default_'] = unicode(self[iter][NAME_COL])
 		self.write_list()
 
-	def do_row_inserted(self, path, iter):
-		self.write_list()
-
-	# TODO do_rows_reordered
-
-	# TODO do_row_deleted
-
 	def write_list(self):
-		list = [unicode(row[NAME_COL]) for row in self]
-		self.notebooks.set_order(list)
+		if self._loading:
+			return # ignore signals while first populating the list
+
+		order = []
+		for row in self:
+			name = unicode(row[NAME_COL])
+			folder = unicode(row[PATH_COL])
+			self.notebooks[name] = folder
+			order.append(name)
+
+		for name, path in self.notebooks.items():
+			if (name.startswith('_') and name.endswith('_')):
+				order.insert(0, name)
+			elif not name in order:
+				self.notebooks.pop(name)
+			else:
+				pass
+
+		self.notebooks.set_order(order)
+		#~ print ''.join(self.notebooks.dump())
 		self.notebooks.write()
 
 
@@ -129,7 +144,7 @@ class NotebookComboBox(gtk.ComboBox):
 		gtk.ComboBox.__init__(self, model)
 		cell_renderer = gtk.CellRendererText()
 		self.pack_start(cell_renderer, False)
-		self.set_attributes(cell_renderer, text=0)
+		self.set_attributes(cell_renderer, text=NAME_COL)
 		if current is None:
 			self.set_active_default()
 		else:
@@ -169,6 +184,7 @@ class DefaultNotebookComboBox(NotebookComboBox):
 		NotebookComboBox.__init__(self, model)
 		self._block_changed = False
 		self.do_model_changed(self.get_model())
+		self.connect('changed', self.__class__.do_changed)
 
 	def do_changed(self):
 		# Set default if triggered by user action
@@ -176,7 +192,7 @@ class DefaultNotebookComboBox(NotebookComboBox):
 			model = self.get_model()
 			i = self.get_active()
 			if i >= 0:
-				model.set_default(iter)
+				model.set_default(i)
 			else:
 				model.set_default(None)
 
@@ -257,50 +273,65 @@ class NotebookDialog(Dialog):
 
 	def do_response_ok(self):
 		model, iter = self.treeview.get_selection().get_selected()
+		model.write_list() # List will be read by open_notebook again..
 		if iter is None:
 			return False
-		name = model[iter][0]
-		self.ui.open_notebook(name)
-		return True
+		else:
+			name = unicode(model[iter][NAME_COL])
+			self.ui.open_notebook(name)
+			return True
 
 	def do_add_notebook(self, *a):
 		properties = AddNotebookDialog(self).run()
 		if properties:
-			folder = properties['folder']
-			name = properties['name']
-			self.treeview.get_model().append_path(folder, name=name)
+			model = self.treeview.get_model()
+			iter = model.append()
+			model.set(iter,
+				OPEN_COL, False,
+				NAME_COL, properties['name'],
+				PATH_COL, properties['folder'] )
+			model.write_list()
 
 	def do_edit_notebook(self, *a):
 		model, iter = self.treeview.get_selection().get_selected()
-		if iter is None: return
+		if iter is None:
+			return
 		name = unicode(model[iter][NAME_COL])
-		print model.notebooks
-		folder = model.notebooks[name]
+		folder = unicode(model[iter][PATH_COL])
 		properties = EditNotebookDialog(self, name, folder).run()
 		if properties:
-			folder = properties['folder']
-			name = properties['name']
-			print 'TODO update notebook list with', (name, folder)
+			model.set(iter,
+				OPEN_COL, False,
+				NAME_COL, properties['name'],
+				PATH_COL, properties['folder'] )
+			model.write_list()
 
 	def do_remove_notebook(self, *a):
 		model, iter = self.treeview.get_selection().get_selected()
-		if iter is None: return
-		print 'TODO delete from notebook list', model[iter][NAME_COL]
+		model.remove(iter)
+		# explicitly _no_ model.write_list()
 
 
 class AddNotebookDialog(Dialog):
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Add Notebook')) # T: Dialog window title
-		self.add_text(_('''\
+	title = _('Add Notebook') # T: Dialog window title
+	text = _('''\
 Please select a name and a folder for the notebook.
 
 To create a new notebook you need to select an empty folder.
 Of course you can also select an existing zim notebook folder.
-''')) # T: help text in the 'Add Notebook' dialog
+''') # T: help text in the 'Add Notebook' dialog
+
+	def __init__(self, ui, name=None, folder=None):
+		Dialog.__init__(self, ui, self.title)
+		if name is None and folder is None:
+			name = 'Notes'
+			folder = '~/Notes'
+		if self.text:
+			self.add_text(self.text)
 		self.add_fields((
-			('name', 'string', _('Name'), 'Notes'), # T: input field in 'Add Notebook' dialog
-			('folder', 'dir', _('Folder'), '~/Notes'), # T: input field in 'Add Notebook' dialog
+			('name', 'string', _('Name'), name), # T: input field in 'Add Notebook' dialog
+			('folder', 'dir', _('Folder'), folder), # T: input field in 'Add Notebook' dialog
 		))
 
 	def do_response_ok(self):
@@ -315,9 +346,5 @@ Of course you can also select an existing zim notebook folder.
 
 class EditNotebookDialog(AddNotebookDialog):
 
-	def __init__(self, ui, name, folder):
-		Dialog.__init__(self, ui, _('Edit Notebook')) # T: Dialog window title
-		self.add_fields((
-			('name', 'string', _('Name'), name), # T: input field in 'Add Notebook' dialog
-			('folder', 'dir', _('Folder'), folder), # T: input field in 'Add Notebook' dialog
-		))
+	title = _('Edit Notebook') # T: Dialog window title
+	text = None

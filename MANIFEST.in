@@ -2,9 +2,12 @@
 # need to specify additional ditribution files here
 include *.txt
 include *.py
+imclude *.pot
 recursive-include data/ *
 prune data/manual/.zim/
 recursive-include dev/ *
+recursive-include xdg/ *
+recursive-include po/ *
 recursive-include cgi-bin/ *
 recursive-include contrib/ *
 recursive-include HACKING/ *

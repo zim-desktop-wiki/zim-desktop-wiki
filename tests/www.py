@@ -21,7 +21,9 @@ class Filter404(object):
 
 
 
-class testWWWInterface(TestCase):
+class TestWWWInterface(TestCase):
+
+	slowTest = True
 
 	def assertResponseWellFormed(self, response, expectbody=True):
 		body = response.splitlines()
@@ -45,14 +47,16 @@ class testWWWInterface(TestCase):
 		header, body = self.assertResponseWellFormed(response, expectbody)
 		self.assertEqual(header[0], 'HTTP/1.0 200 OK')
 		self.assertTrue('Content-Type: text/html; charset="utf-8"' in header)
-		if expectbody:
-			self.assertTrue('<!-- Wiki content -->' in body, 'Template is used')
+		return header, body
+
+	def setUp(self):
+		self.template = None
 
 	def runTest(self):
 		'Test WWW interface'
 		notebook = get_test_notebook()
 		notebook.index.update()
-		interface = WWWInterface(notebook, template='Default')
+		interface = WWWInterface(notebook, template=self.template)
 		validator = wsgiref.validate.validator(interface)
 
 		def call(command, path):
@@ -104,3 +108,18 @@ class testWWWInterface(TestCase):
 		response = call('GET', '/favicon.ico')
 		header, body = self.assertResponseWellFormed(response)
 		self.assertEqual(header[0], 'HTTP/1.0 200 OK')
+
+
+class TestWWWInterfaceTemplate(TestWWWInterface):
+
+	def assertResponseOK(self, response, expectbody=True):
+		header, body = TestWWWInterface.assertResponseOK(self, response, expectbody)
+		if expectbody:
+			self.assertTrue('<!-- Wiki content -->' in body, 'Template is used')
+
+	def setUp(self):
+		self.template = 'Default'
+
+	def runTest(self):
+		'Test WWW interface with a template'
+		TestWWWInterface.runTest(self)
