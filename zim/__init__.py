@@ -185,12 +185,14 @@ def main(argv):
 
 	logger.info('This is zim %s', __version__)
 	if level == logging.DEBUG:
+		logger.debug('Python version is %s' % str(sys.version_info))
 		try:
 			from zim._version import version_info
 			logger.debug(
-				'branch: %(branch_nick)s\n'
-				'revision: %(revno)d %(revision_id)s\n'
-				'date: %(date)s\n',
+				'Zim revision is:\n'
+				'\tbranch: %(branch_nick)s\n'
+				'\trevision: %(revno)d %(revision_id)s\n'
+				'\tdate: %(date)s\n',
 				version_info )
 		except ImportError:
 			logger.debug('No bzr version-info found')

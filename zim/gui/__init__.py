@@ -185,6 +185,9 @@ class GtkInterface(NotebookInterface):
 		self.history = None
 		self._save_page_in_progress = False
 
+		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
+		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
+
 		icon = data_file('zim.png').path
 		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
 
@@ -1328,12 +1331,31 @@ class Dialog(gtk.Dialog):
 	It adds a number of convenience routines to build dialogs.
 	The default behavior is modified in such a way that dialogs are
 	destroyed on response if the response handler returns True.
+
+	For a simple dialog the subclass only needs to call Dialog.__init__()
+	with to define the title and input fields of the dialog, and overload
+	do_response_ok() to handle the result.
 	'''
 
-	def __init__(self, ui, title, buttons=gtk.BUTTONS_OK_CANCEL):
+	def __init__(self, ui, title,
+			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
+			text=None, fields=None, help=None
+		):
 		'''Constructor. 'ui' can either be the main application or some
 		other dialog from which this dialog is spwaned. 'title' is the dialog
-		title.
+		title. 'buttons' is a constant controlling what kind of buttons the
+		dialog will have. Currently supported are:
+
+			* None or gtk.BUTTONS_NONE - for dialog taking care of this themselves
+			* gtk.BUTTONS_OK_CANCEL - Render Ok and Cancel
+			* gtk.BUTTONS_CLOSE - Only set a Close button
+
+		'button' is an optional argument giving a tuple of a label and a stock
+		item to use instead of the default 'Ok' button (either stock or label
+		can be None).
+
+		Options 'text', 'fields' and 'help' will be past on to add_text(),
+		add_fields() and set_help() respectively.
 		'''
 		self.ui = ui
 		self.result = None
@@ -1360,16 +1382,26 @@ class Dialog(gtk.Dialog):
 			}
 
 		self._no_ok_action = False
+		if not button is None:
+			button = Button(*button)
+
 		if buttons is None or buttons == gtk.BUTTONS_NONE:
 			self._no_ok_action = True
 		elif buttons == gtk.BUTTONS_OK_CANCEL:
 			self.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-			self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+			if button:
+				self.add_action_widget(button, gtk.RESPONSE_OK)
+			else:
+				self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
 		elif buttons == gtk.BUTTONS_CLOSE:
 			self.add_button(gtk.STOCK_CLOSE, gtk.RESPONSE_OK)
 			self._no_ok_action = True
 		else:
-			assert False, 'TODO - parse different button types'
+			assert False, 'BUG: unknown button type'
+
+		if text: self.add_text(text)
+		if fields: self.add_fields(fields)
+		if help: self.set_help(help)
 
 	def set_help(self, pagename):
 		'''Set the name of the manual page with help for this dialog.
@@ -1573,6 +1605,9 @@ class Dialog(gtk.Dialog):
 	def do_response_ok(self):
 		'''Function to be overloaded in child classes. Called when the
 		user clicks the 'Ok' button or the equivalent of such a button.
+
+		Should return True to allow the dialog to close. If e.g. input is not
+		valid, returning False will keep the dialog open.
 		'''
 		raise NotImplementedError
 
@@ -1584,8 +1619,18 @@ gobject.type_register(Dialog)
 class FileDialog(Dialog):
 	'''File chooser dialog, adds a filechooser widget to Dialog.'''
 
-	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN, **opts):
-		Dialog.__init__(self, ui, title, **opts)
+	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
+			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
+			text=None, fields=None, help=None
+		):
+		if button is None:
+			if action == gtk.FILE_CHOOSER_ACTION_OPEN:
+				button = (None, gtk.STOCK_OPEN)
+			elif action == gtk.FILE_CHOOSER_ACTION_SAVE:
+				button = (None, gtk.STOCK_SAVE)
+			# else Ok will do
+		Dialog.__init__(self, ui, title,
+			buttons=buttons, button=button, text=text, help=help)
 		if self.uistate['windowsize'] == (-1, -1):
 			self.uistate['windowsize'] = (500, 400)
 			self.set_default_size(500, 400)
@@ -1594,6 +1639,8 @@ class FileDialog(Dialog):
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
 		self.vbox.add(self.filechooser)
 		# FIXME hook to expander to resize window
+		if fields:
+			self.add_fields(fields)
 
 	def set_file(self, file):
 		'''Wrapper for filechooser.set_filename()'''
@@ -1689,10 +1736,10 @@ class OpenPageDialog(Dialog):
 	'''
 
 	def __init__(self, ui, namespace=None):
-		Dialog.__init__(self, ui, _('Jump to')) # T: Dialog title
-		self.add_fields([('name', 'page', _('Jump to Page'), None)])
-			# T: Label for page input
-		# TODO custom "jump to" button
+		Dialog.__init__(self, ui, _('Jump to'), # T: Dialog title
+			button=(None, gtk.STOCK_JUMP_TO),
+			fields=[('name', 'page', _('Jump to Page'), None)] # T: Label for page input
+		)
 
 	def do_response_ok(self):
 		try:
@@ -1713,11 +1760,14 @@ class NewPageDialog(Dialog):
 	'''
 
 	def __init__(self, ui, namespace=None):
-		Dialog.__init__(self, ui, _('New Page')) # T: Dialog title
-		self.add_text(_('Please note that linking to a non-existing page\nalso creates a new page automatically.'))
-			# T: Dialog text in 'new page' dialog
-		self.add_fields([('name', 'page', _('Page Name'), None)]) # T: Input label
-		self.set_help(':Help:Pages')
+		Dialog.__init__(self, ui, _('New Page'), # T: Dialog title
+			text=_(
+				'Please note that linking to a non-existing page\n'
+				'also creates a new page automatically.'),
+				# T: Dialog text in 'new page' dialog
+			fields=[('name', 'page', _('Page Name'), None)], # T: Input label
+			help=':Help:Pages'
+		)
 
 	def do_response_ok(self):
 		try:
@@ -1747,7 +1797,6 @@ class SaveCopyDialog(FileDialog):
 		self.page = page
 		# TODO also include headers
 		# TODO add droplist with native formats to choose + hook filters
-		# TODO change "Ok" button to "Save"
 
 	def do_response_ok(self):
 		file = self.get_file()

@@ -143,9 +143,8 @@ _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 
 PIXBUF_CHR = u'\uFFFC'
 
+# Regexes used for autoformatting
 heading_re = Re(r'^(={2,7})\s*(.*)\s*(\1)?$')
-
-# FIXME check which ones we have predefined in zim.parsing + add "$"
 url_re = Re(r'\w[\w\+\-\.]+://\S+$')
 page_re = Re(r'''(
 	  [\w\.\-\(\)]*(?: :[\w\.\-\(\)]{2,} )+:?
@@ -195,11 +194,8 @@ class TextBuffer(gtk.TextBuffer):
 		end-insert-tree () - Emitted at the end of a complex insert
 		inserted-tree (start, end, tree) - Gives inserted tree after inserting it
 		textstyle-changed (style) - Emitted when textstyle at the cursor changes
-		indent-changed (leve) - Emitted when the indent at the cursor changes
-
-	TODO: manage undo stack - group by memorizing offsets and get/set trees
-	TODO: manage rich copy-paste based on zim formats
-		  use serialization API if gtk >= 2.10 ?
+		indent-changed (level) - Emitted when the indent at the cursor changes
+		clear - emitted to clear the whole buffer before destruction
 	'''
 
 	# We rely on the priority of gtk TextTags to sort links before styles,
@@ -217,7 +213,11 @@ class TextBuffer(gtk.TextBuffer):
 		'inserted-tree': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)),
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'indent-changed': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+		'clear': (gobject.SIGNAL_RUN_LAST, None, ())
 	}
+
+	# style attributes
+	tabstop = 30 # pixels
 
 	# text tags supported by the editor and default stylesheet
 	tag_styles = {
@@ -262,10 +262,12 @@ class TextBuffer(gtk.TextBuffer):
 
 	def clear(self):
 		'''Clear all content from the buffer'''
+		self.emit('clear')
+
+	def do_clear(self):
 		self.set_textstyle(None)
 		self.set_indent(None)
 		self.delete(*self.get_bounds())
-		# TODO: also throw away undo stack
 
 	def set_parsetree(self, tree):
 		'''Load a new ParseTree in the buffer, first flushes existing content'''
@@ -304,10 +306,12 @@ class TextBuffer(gtk.TextBuffer):
 
 	def do_end_insert_tree(self):
 		self._insert_tree_in_progress = False
+		self.set_editmode_from_cursor(force=True)
+			# emitting textstyle-changed is skipped while loading the tree
 
 	def _insert_element_children(self, node, list_level=-1):
-		# FIXME: should block textstyle-changed here for performance
 		# FIXME should load list_level from cursor position
+		#~ list_level = get_indent --- with bullets at indent 0 this is not bullet proof...
 		for element in node.getchildren():
 			if element.tag == 'p':
 				if element.text:
@@ -365,8 +369,10 @@ class TextBuffer(gtk.TextBuffer):
 		self.insert_link_at_cursor(text, href, **attrib)
 		self._restore_cursor()
 
-	def insert_link_at_cursor(self, text, href, **attrib):
+	def insert_link_at_cursor(self, text, href=None, **attrib):
 		'''Like insert_link() but inserts at the cursor'''
+		if href == text:
+			href = None
 		tag = self.create_link_tag(href, **attrib)
 		self._editmode_tags = self._editmode_tags + (tag,)
 		self.insert_at_cursor(text)
@@ -397,21 +403,17 @@ class TextBuffer(gtk.TextBuffer):
 		if tag:
 			link = tag.zim_attrib.copy()
 			if link['href'] is None:
-				print 'TODO get tag text and use as href'
+				# Copy text content as href
+				start = iter.copy()
+				if not start.begins_tag(tag):
+					start.backward_to_tag_toggle(tag)
+				end = iter.copy()
+				if not end.ends_tag(tag):
+					end.forward_to_tag_toggle(tag)
+				link['href'] = start.get_text(end)
 			return link
 		else:
 			return None
-
-	def set_link_data(self, iter, attrib):
-		'''Set the link properties for a link at iter. Will throw an exception
-		if there is no link at iter.
-		'''
-		tag = self.get_link_tag(iter)
-		if tag is None:
-			raise Exception, 'No link at iter'
-		else:
-			# TODO check if href needs to be set to None again
-			tag.zim_attrib = attrib
 
 	def insert_pixbuf(self, iter, pixbuf):
 		# Make sure we always apply the correct tags when inserting a pixbuf
@@ -424,8 +426,11 @@ class TextBuffer(gtk.TextBuffer):
 			self._editmode_tags = mode
 
 	def insert_image(self, iter, file, src, **attrib):
-		# TODO emit signals if not self._insert_tree_in_progress
-		# TODO support tooltip text
+		'''Insert an image linked to file 'file' but showing 'src' as link to
+		the user.
+		'''
+		#~ If there is a property 'alt' in attrib we try to set a tooltip.
+		#~ '''
 		try:
 			if 'width' in attrib or 'height' in attrib:
 				w = int(attrib.get('width', -1))
@@ -455,7 +460,6 @@ class TextBuffer(gtk.TextBuffer):
 			return None
 
 	def insert_icon(self, iter, stock):
-		# TODO emit signals if not self._insert_tree_in_progress
 		widget = gtk.HBox() # Need *some* widget here...
 		pixbuf = widget.render_icon(stock, gtk.ICON_SIZE_MENU)
 		if pixbuf is None:
@@ -503,18 +507,19 @@ class TextBuffer(gtk.TextBuffer):
 			tag = self.get_tag_table().lookup('style-'+name)
 			self._editmode_tags = self._editmode_tags + (tag,)
 
-		self.emit('textstyle-changed', name)
+		if not self._insert_tree_in_progress:
+			self.emit('textstyle-changed', name)
 
-	def set_editmode_from_cursor(self):
+	def set_editmode_from_cursor(self, force=False):
 		iter = self.get_iter_at_mark(self.get_insert())
-		self.set_editmode_from_iter(iter)
+		self.set_editmode_from_iter(iter, force=force)
 
-	def set_editmode_from_iter(self, iter):
+	def set_editmode_from_iter(self, iter, force=False):
 		'''Updates the textstyle and indent from a text position.
 		Triggered automatically when moving the cursor.
 		'''
 		tags = self.iter_get_zim_tags(iter)
-		if not tags == self._editmode_tags:
+		if force or not tags == self._editmode_tags:
 			#~ print '>', [(t.zim_type, t.get_property('name')) for t in tags]
 			self._editmode_tags = tuple(tags)
 			for tag in tags:
@@ -624,11 +629,10 @@ class TextBuffer(gtk.TextBuffer):
 			return 0
 
 	def _get_indent_tag(self, level):
-		# TODO make number of pixels in indent configable (call this tabstop)
 		name = 'indent-%i' % level
 		tag = self.get_tag_table().lookup(name)
 		if tag is None:
-			margin = 10 + 30 * level # offset from left side for all lines
+			margin = 10 + self.tabstop * level # offset from left side for all lines
 			indent = -10 # offset for first line (bullet)
 			tag = self.create_tag(name, left_margin=margin, indent=indent)
 			tag.zim_type = 'indent'
@@ -839,6 +843,8 @@ class TextBuffer(gtk.TextBuffer):
 							self._iter_forward_past_bullet(iter, bullet)
 						else:
 							t = 'p'
+					elif t == 'link':
+						attrib = self.get_link_data(iter)
 					builder.start(t, attrib)
 					open_tags.append((tag, t))
 
@@ -867,7 +873,7 @@ class TextBuffer(gtk.TextBuffer):
 					continue
 
 				if pixbuf.zim_type == 'icon':
-					assert False, 'TODO checkboxes etc. outside of indent'
+					assert False, 'BUG: Checkbox outside of indent ?'
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
 					if 'alt' in attrib:
@@ -883,7 +889,7 @@ class TextBuffer(gtk.TextBuffer):
 					assert False, 'BUG: unknown pixbuf type'
 
 				iter.forward_char()
-			# TODO elif embedded widget
+			# FUTURE: elif embedded widget
 			else:
 				# Set tags
 				set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
@@ -900,7 +906,7 @@ class TextBuffer(gtk.TextBuffer):
 						break
 
 				# But limit slice to first pixbuf
-				# TODO: also limit slice to any embeddded widget
+				# FUTURE: also limit slice to any embeddded widget
 				text = iter.get_slice(bound)
 				if PIXBUF_CHR in text:
 					i = text.index(PIXBUF_CHR)
@@ -1382,7 +1388,6 @@ class TextView(gtk.TextView):
 			window.set_cursor(cursor)
 
 		# Check if we need to emit any events for hovering
-		# TODO: do we need similar events for images ?
 		if self.cursor == CURSOR_LINK: # was over link before
 			if cursor == CURSOR_LINK: # still over link
 				if link == self.cursor_link:
@@ -1476,14 +1481,12 @@ class TextView(gtk.TextView):
 				handled = False
 		elif interwiki_re.search(word):
 			apply_link(interwiki_re[0])
-		elif self.preferences['autolink_files'] and file_re.search(word): # FIXME
+		elif self.preferences['autolink_files'] and file_re.search(word):
 			apply_link(file_re[0])
-		elif self.preferences['autolink_camelcase'] and camelcase_re.search(word): # FIXME
+		elif self.preferences['autolink_camelcase'] and camelcase_re.search(word):
 			apply_link(camelcase_re[0])
 		else:
 			handled = False
-
-		# TODO match utf8 entities ?
 
 		if handled:
 			self.stop_emission('end-of-word')
@@ -1519,9 +1522,6 @@ class TextView(gtk.TextView):
 				iter.forward_line()
 				bullet = buffer.get_bullet_at_iter(start)
 				buffer.insert_bullet(iter, bullet)
-
-		# TODO other bullets / numbered lists ??
-
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)
@@ -1606,6 +1606,9 @@ class UndoStackManager:
 		self.buffer.connect_object('end-insert-tree',
 			self.__class__.unblock, self)
 
+		self.buffer.connect_object('clear',
+			self.__class__.clear, self)
+
 		#~ self.buffer.connect_object('edit-textstyle-changed',
 			#~ self.__class__._flush_if_typing, self)
 		#~ self.buffer.connect_object('set-mark',
@@ -1631,6 +1634,11 @@ class UndoStackManager:
 			for id in self.recording_handlers:
 				self.buffer.unblock_handler(id)
 			self.block_count = 0
+
+	def clear(self):
+		self.stack = []
+		self.group = []
+		self.block()
 
 	def begin_user_action(self):
 		'''Start a group of actions that will be undone / redone as a single action'''
@@ -1773,7 +1781,8 @@ class UndoStackManager:
 				self.buffer.insert_tree(start, tree)
 			elif act == self.ACTION_DELETE:
 				self.buffer.delete(start, end)
-				# TODO - assert that deleted content matches what is on the stack ?
+				# TODO - replace what is on the stack with what is being deleted
+				# log warning BUG if the two do not match
 			elif act == self.ACTION_APPLY_TAG:
 				self.buffer.apply_tag(data, start, end)
 			elif act == self.ACTION_REMOVE_TAG:
@@ -1873,13 +1882,18 @@ class PageView(gtk.VBox):
 		'''(Re-)loads style definition from the config. While running this
 		config is found as the class attribute 'style'.
 		'''
-		# FIXME use Textview/tabstop
 		try:
 			font = pango.FontDescription(self.style['TextView']['font'])
 		except KeyError:
 			self.view.modify_font(None)
 		else:
 			self.view.modify_font(font)
+
+		if 'tabstop' in self.style['TextView'] \
+		and isinstance(self.style['TextView']['tabstop'], int):
+			tabstop = self.style['TextView']['tabstop']
+			if tabstop > 0:
+				TextBuffer.tabstop = tabstop
 
 		if 'justify' in self.style['TextView']:
 			try:
@@ -1950,7 +1964,6 @@ class PageView(gtk.VBox):
 		self.set_parsetree(tree)
 		if cursorpos != -1:
 			buffer.place_cursor(buffer.get_iter_at_offset(cursorpos))
-		# TODO else check template for cursor pos ??
 
 		buffer.connect('textstyle-changed', self.do_textstyle_changed)
 		buffer.connect('modified-changed',
@@ -1978,7 +1991,6 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		assert not buffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
 		tree.resolve_images(self.ui.notebook, self.page)
-			# TODO same for links ?
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
 
@@ -2012,7 +2024,6 @@ class PageView(gtk.VBox):
 	def do_link_clicked(self, link):
 		'''Handler for the link-clicked signal'''
 		assert isinstance(link, dict)
-		# TODO use link object if available
 		type = link_type(link['href'])
 		logger.debug('Link clicked: %s: %s' % (type, link['href']))
 
@@ -2218,7 +2229,6 @@ class InsertImageDialog(FileDialog):
 		self.add_filter_images()
 		if file:
 			self.set_file(file)
-		# TODO custom 'insert' button ?
 
 	def do_response_ok(self):
 		file = self.get_file()
@@ -2340,7 +2350,6 @@ class InsertTextFromFileDialog(FileDialog):
 			self, ui, _('Insert Text From File'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
 		self.buffer = buffer
-		# TODO custom 'insert' button ?
 
 	def do_response_ok(self):
 		file = self.get_file()
@@ -2354,7 +2363,8 @@ class InsertTextFromFileDialog(FileDialog):
 class InsertLinkDialog(Dialog):
 
 	def __init__(self, ui, buffer, path):
-		Dialog.__init__(self, ui, _('Insert Link')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Insert Link'), # T: Dialog title
+					button=(_('_Link'), 'zim-link') )  # T: Dialog button
 		self.buffer = buffer
 		self.path = path
 
@@ -2363,7 +2373,6 @@ class InsertLinkDialog(Dialog):
 			('href', 'page', _('Link to'), href), # T: Input in 'insert link' dialog
 			('text', 'string', _('Text'), text) # T: Input in 'insert link' dialog
 		])
-		# TODO custom "link" button
 
 	def _get_link(self):
 		link = self.buffer.select_link()
@@ -2414,7 +2423,8 @@ class InsertLinkDialog(Dialog):
 class InsertExternalLinkDialog(InsertLinkDialog):
 
 	def __init__(self, ui, buffer, path):
-		Dialog.__init__(self, ui, _('Insert External Link')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Insert External Link'), # T: Dialog title
+					button=(_('_Link'), 'zim-link') )  # T: Dialog button
 		self.buffer = buffer
 		self.path = path
 
@@ -2423,13 +2433,13 @@ class InsertExternalLinkDialog(InsertLinkDialog):
 			('href', 'file', _('Link to'), href), # T: Input in 'insert link' dialog
 			('text', 'string', _('Text'), text), # T: Input in 'insert link' dialog
 		])
-		# TODO custom "link" button
 
 
 class EditLinkDialog(InsertLinkDialog):
 
 	def __init__(self, ui, buffer, path):
-		Dialog.__init__(self, ui, _('Edit Link')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Edit Link'), # T: Dialog title
+					button=(_('_Link'), 'zim-link') )  # T: Dialog button
 		self.buffer = buffer
 		self.path = path
 
@@ -2441,7 +2451,7 @@ class EditLinkDialog(InsertLinkDialog):
 			('href', input, _('Link to'), href), # T: Input in 'edit link' dialog
 			('text', 'string', _('Text'), text), # T: Input in 'edit link' dialog
 		])
-		# TODO custom "link" button
+
 
 class FindAndReplaceDialog(Dialog):
 

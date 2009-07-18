@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Tue, 19 May 2009 19:48:40 +0200
-Modification-Date: Tue, 19 May 2009 21:49:00 +0200
+Modification-Date: Sat, 18 Jul 2009 16:00:00 +0200
 
 ====== Parse Tree ======
 
@@ -32,7 +32,7 @@ Basically all content should be wrapped in paragraph nodes.
 **strong** - default rendered in bold
 **mark** - default rendered as highlighted, alternatively underline
 **strike **- strike through
-**tt** - verbatim text
+**code** - verbatim text
 
 	Formats can only contain text and links, with the exception of the **tt** format, which can only contains text.
 

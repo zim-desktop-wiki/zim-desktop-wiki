@@ -29,20 +29,13 @@ class Button(gtk.Button):
 	'''
 
 	def __init__(self, label=None, stock=None, use_underline=True):
-		if label is None or label is None:
+		if label is None or stock is None:
 			gtk.Button.__init__(self, label=label, stock=stock)
 		else:
-			gtk.Button.__init__(self)
+			gtk.Button.__init__(self, label=label)
 			icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
-			label = gtk.Label(label)
-			label.set_use_underline(use_underline)
-			hbox = gtk.HBox(spacing=2)
-			hbox.add(icon)
-			hbox.add(label)
-			hbox.show_all()
-			self.add(hbox)
-			self.set_alignment(0.5, 0.5)
-			# FIXME should we use Button.set_image() here ??
+			self.set_image(icon)
+		self.set_use_underline(use_underline)
 
 
 class IconButton(gtk.Button):

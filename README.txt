@@ -48,6 +48,7 @@ dependencies check `./setup.py --requires`.
 
 You will at least need the following:
 
+	* gtk+ >= 2.6
 	* pygtk
 	* pygobject
 	* pyxdg

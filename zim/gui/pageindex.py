@@ -28,11 +28,11 @@ KEYVAL_L = gtk.gdk.unicode_to_keyval(ord('l'))
 KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
-class PageTreeStore(gtk.GenericTreeModel):
+class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	'''Custom TreeModel that is integrated closely with the Index object.
 	In fact it is jsut an API layer translating between the gtk.TreeView and
 	the zim Index interfaces. It fetches data on the fly when requested and
-	does not keep it's own cache. This allows scaling to very large notebooks. 
+	does not keep it's own cache. This allows scaling to very large notebooks.
 
 	Note: Be aware that in this interface there are two classes both referred
 	to as "paths". The first is gtk.TreePath and the second is
@@ -195,6 +195,21 @@ class PageTreeStore(gtk.GenericTreeModel):
 		def get_user_data(self, treeiter):
 			'''Turn a TreeIter into an IndexPath'''
 			return self.get_value(treeiter, 1)
+
+	def row_draggable(self, path):
+		return True
+
+	def drag_data_get(self, path, selection):
+		return False
+
+	def drag_data_delete(self, path):
+		return False
+
+	def row_drop_possible(self, path, selection):
+		return True
+
+	def drag_data_received(self, path, selection):
+		return True
 
 
 class PageTreeView(BrowserTreeView):

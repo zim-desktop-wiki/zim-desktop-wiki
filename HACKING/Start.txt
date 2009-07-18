@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Unknown
-Modification-Date: Sat, 04 Apr 2009 10:59:43 +0200
+Modification-Date: Sat, 18 Jul 2009 15:59:20 +0200
 
 ====== HACKING ======
 
@@ -97,7 +97,7 @@ See the python style guide for best practices. Some items to keep in mind:
   Any actual manipulation of pages, notebooks etc. should go elsewhere.
 * Signal handlers have a method name starting with "do_"
 * Use "assert" for checks that could be removed when code is stable
-* Do not rely on __doc__ on run time, this data could be optimized away
+* Do not rely on ''__doc__'' on run time, this data could be optimized away
 * Have a look e.g. at zim.parsing and zim.gui.widgets for common code snippets
 
 Other general guidelines:

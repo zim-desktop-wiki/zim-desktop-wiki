@@ -67,10 +67,11 @@ class Re(object):
 	# TODO, mimic complete interface for regex object including
 	#       split, findall, finditer, etc.
 
-	__slots__ = ('p', 'm') # pattern and match objects
+	__slots__ = ('r', 'p', 'm') # regex, pattern and match objects
 
 	def __init__(self, pattern, flags=0):
 		'''Constructor takes same arguments as re.compile()'''
+		self.r = pattern
 		self.p = re.compile(pattern, flags)
 		self.m = None
 
@@ -78,6 +79,12 @@ class Re(object):
 	# for matching. However that would make code using this class
 	# less readable for Python adepts. Therefore keep using
 	# match() and search() and do not go for too much overloading.
+
+	def __str__(self):
+		return self.r
+
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self.r)
 
 	def __len__(self):
 		if self.m is None:
