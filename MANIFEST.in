@@ -2,10 +2,10 @@
 # need to specify additional ditribution files here
 include *.txt
 include *.py
-imclude *.pot
+include *.pot
 recursive-include data/ *
 prune data/manual/.zim/
-recursive-include dev/ *
+recursive-include tools/ *
 recursive-include xdg/ *
 recursive-include po/ *
 recursive-include cgi-bin/ *

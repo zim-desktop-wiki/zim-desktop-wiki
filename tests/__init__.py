@@ -22,7 +22,7 @@ __all__ = [
 __unittest = 1 # needed to get stack trace OK for class TestCase
 
 
-gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext')) 
+gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
 
 
 def set_environ():
@@ -56,7 +56,8 @@ _test_data_cache = {}
 
 def get_test_data(path):
 	if not path in _test_data_cache:
-		buffer = codecs.open('tests/data/'+path, encoding='utf-8').read()
+		buffer = codecs.open(
+			'tests/data/'+path.encode('utf-8'), encoding='utf-8' ).read()
 		_test_data_cache[path] = buffer
 
 	buffer = _test_data_cache[path]
@@ -112,7 +113,7 @@ class TestCase(unittest.TestCase):
 
 	def run(self, *args):
 		unittest.TestCase.run(self, *args)
-	
+
 	def assertEqualDiff(self, first, second, msg=None):
 		'''Fail if the two strings are unequal as determined by
 		the '==' operator. On failure shows a diff of both strings.

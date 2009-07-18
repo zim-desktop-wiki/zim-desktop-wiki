@@ -12,3 +12,4 @@ tests/tmp
 doxygen
 data/manual/Changelog.txt
 bin
+./locale

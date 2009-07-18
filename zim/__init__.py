@@ -27,10 +27,17 @@ import logging
 from getopt import gnu_getopt, GetoptError
 
 from zim.fs import *
-from zim.config import log_basedirs, data_file, config_file, ConfigDictFile
+from zim.config import log_basedirs, data_file, config_file, ConfigDictFile, ZIM_DATA_DIR
 
+if ZIM_DATA_DIR:
+	# We are running from a source dir - use the locale data included there
+	localedir = ZIM_DATA_DIR.dir.subdir('locale').path
+	#~ print "Set localdir to: %s" % localedir
+else:
+	# Hope the system knows where to find the data
+	localedir = None
 
-gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
+gettext.install('zim', localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
 
 logger = logging.getLogger('zim')
 
@@ -175,7 +182,7 @@ def main(argv):
 	if optsdict.pop('verbose', False): level = logging.INFO
 	if optsdict.pop('debug', False): level = logging.DEBUG # no "elif" !
 	logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
-	
+
 	logger.info('This is zim %s', __version__)
 	if level == logging.DEBUG:
 		try:

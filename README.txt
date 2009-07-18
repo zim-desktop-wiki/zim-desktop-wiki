@@ -22,6 +22,8 @@ MA 02110-1301, USA.
 
 The following files were included from other sources:
 
+* zim/_lib/xdot.py - Copyright 2008 Jose Fonseca
+
 From the default Gnome icon theme:
 * pixmaps/task-list.png (was: stock_todo.png)
 * pixmaps/attachment.png (was: mail-attachment.png)
@@ -37,15 +39,63 @@ Other:
 
 ====== INSTALLING ======
 
+NOTE: To test zim it is not needed to install. You should be able to run it 
+directly from the source directory by calling `./zim.py`. ( To run a translated
+version from the source first call `./setup.py build_trans`. )
+
+First you should verify you have the dependencies zim needs. To list all 
+dependencies check `./setup.py --requires`. 
+
+You will at least need the following:
+
+	* pygtk
+	* pygobject
+	* pyxdg
+
+To verify zim is working properly on your system you can call the test suite
+using `./test.py`. Failures do not have to be critical, but in principle all
+tests should pass.
+
 Zim can be installed from source using:
 
-  $ python setup.py install
+  ./setup.py install
 
-FIXME list dependencies
+Most plugins have additional requirements. These are listed in the plugin 
+descriptions.
 
 
 
 ====== PACKAGING ======
 
-FIXME add pointers on packaging 
+To build a tree in a target directory you can use:
+
+	./setup.py install --root=/path/to/package/build/dir
+
+Special attention may be needed to run xdg update commands in a post-install 
+script. Recommended commands are:
+
+	update-desktop-database
+	update-mime-database
+	xdg-icon-resource install --context mimetypes \
+		--size 64 zim.png application-x-zim-notebook
+
+
+
+====== TRANSLATING ======
+
+To contribute to translations onlne please go to http://launchpad.net.
+
+To test a new translation you can either download the snapshot from launchpad 
+and run: 
+
+	./tools/import-launchpad-translations.py launchpad-export.tar.gz
+
+
+Or you can edit the template zim.pot with your favourite editor. In that case 
+you should add you new .po file to the po/ directory.
+
+After adding the .po file(s) you can compile the translation using:
+
+	./setup build_trans
+
 

@@ -15,7 +15,6 @@ import gobject
 import gtk
 import gtk.keysyms
 import pango
-from gettext import ngettext
 
 import zim
 from zim.fs import *
