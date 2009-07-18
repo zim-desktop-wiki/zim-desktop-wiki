@@ -1,18 +1,41 @@
 #!/usr/bin/python
 
 import sys
-import zim
 
 
+# Check if we run the correct python version
 try:
 	version_info = sys.version_info
-	assert version_info >= (2, 6)
+	assert version_info >= (2, 5)
 	assert version_info < (3, 0)
 except:
-	print >> sys.stderr, 'zim needs python >= 2.5   (but < 3.0)'
+	print >> sys.stderr, 'ERROR: zim needs python >= 2.5   (but < 3.0)'
 	sys.exit(1)
 
 
+# Try importing our modules
+try:
+	import zim
+	import zim.config
+except ImportError:
+	print >>sys.stderr, 'ERROR: Could not find python module files in path:'
+	print >>sys.stderr, ' '.join(map(str, sys.path))
+	print >>sys.stderr, '\nTry setting PYTHONPATH'
+	sys.exit(1)
+
+
+# Check if we can find our data files
+try:
+	icon = zim.config.data_file('zim.png')
+	assert not icon is None
+except:
+	print >>sys.stderr, 'ERROR: Could not find data files in path:'
+	print >>sys.stderr, ' '.join(map(str, zim.config.data_dirs()))
+	print >>sys.stderr, '\nTry setting XDG_DATA_DIRS'
+	sys.exit(1)
+
+
+# Run the application and handle some exceptions
 try:
 	zim.main(sys.argv)
 except zim.GetoptError, err:

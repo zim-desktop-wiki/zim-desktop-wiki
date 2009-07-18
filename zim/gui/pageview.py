@@ -121,7 +121,7 @@ ui_preferences = (
 		_('Show the cursor also for pages that can not be edited'), False),
 		# T: option in preferences dialog
 	('autolink_camelcase', 'bool', 'Editing',
-		_('Automatically turn CamelCasewords into links'), True),
+		_('Automatically turn "CamelCase" words into links'), True),
 		# T: option in preferences dialog
 	('autolink_files', 'bool', 'Editing',
 		_('Automatically turn file paths into links'), True),

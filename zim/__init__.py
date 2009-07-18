@@ -27,13 +27,12 @@ import logging
 from getopt import gnu_getopt, GetoptError
 
 from zim.fs import *
-from zim.config import config_file, ConfigDictFile
+from zim.config import log_basedirs, data_file, config_file, ConfigDictFile
 
 
 gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
 
 logger = logging.getLogger('zim')
-
 
 executable = 'zim'
 
@@ -176,10 +175,24 @@ def main(argv):
 	if optsdict.pop('verbose', False): level = logging.INFO
 	if optsdict.pop('debug', False): level = logging.DEBUG # no "elif" !
 	logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
+	
+	logger.info('This is zim %s', __version__)
+	if level == logging.DEBUG:
+		try:
+			from zim._version import version_info
+			logger.debug(
+				'branch: %(branch_nick)s\n'
+				'revision: %(revno)d %(revision_id)s\n'
+				'date: %(date)s\n',
+				version_info )
+		except ImportError:
+			logger.debug('No bzr version-info found')
+
+		log_basedirs()
 
 	# Now we determine the class to handle this command
 	# and start the application ...
-	logger.debug('run command: %s', cmd)
+	logger.debug('Running command: %s', cmd)
 	if cmd in ('export', 'index'):
 		if not len(args) >= 1:
 			raise UsageError
@@ -218,17 +231,6 @@ class NotebookInterface(gobject.GObject):
 		gobject.GObject.__init__(self)
 		self.notebook = None
 		self.plugins = []
-
-		logger.info('This is zim %s', __version__)
-		try:
-			from zim._version import version_info
-			logger.debug(
-				'branch: %(branch_nick)s\n'
-				'revision: %(revno)d %(revision_id)s\n'
-				'date: %(date)s\n',
-				version_info )
-		except ImportError:
-			logger.debug('No bzr version-info found')
 
 		self.preferences = config_file('preferences.conf')
 		self.uistate = None

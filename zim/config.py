@@ -49,7 +49,7 @@ def _set_basedirs():
 		ZIM_DATA_DIR = zim_data_dir
 	else:
 		ZIM_DATA_DIR = None
-
+	
 	if 'XDG_DATA_HOME' in os.environ:
 		XDG_DATA_HOME = Dir(os.environ['XDG_DATA_HOME'])
 	else:
@@ -77,6 +77,19 @@ def _set_basedirs():
 
 # Call on module initialization to set defaults
 _set_basedirs()
+
+def log_basedirs():
+	'''Put the basedirs in use into logging'''
+	if ZIM_DATA_DIR:
+		logger.debug('Running from a source dir: %s', ZIM_DATA_DIR.dir)
+	else:
+		logger.debug('Not running from a source dir')
+	logger.debug('Set XDG_DATA_HOME to %s', XDG_DATA_HOME)
+	logger.debug('Set XDG_DATA_DIRS to %s', XDG_DATA_DIRS)
+	logger.debug('Set XDG_CONFIG_HOME to %s', XDG_CONFIG_HOME)
+	logger.debug('Set XDG_CONFIG_DIRS to %s', XDG_CONFIG_DIRS)
+	logger.debug('Set XDG_CACHE_HOME to %s', XDG_CACHE_HOME)
+
 
 def data_dirs(path=None):
 	'''Generator for paths that contain zim data files. These will be the
