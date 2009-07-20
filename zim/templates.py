@@ -588,7 +588,7 @@ class PageProxy(object):
 	def namespace(self): return self._page.namespace
 
 	@property
-	def title(self): return self.heading or self._page.name
+	def title(self): return self.heading or self._page.basename
 
 	@property
 	def heading(self): return self._treeproxy().heading

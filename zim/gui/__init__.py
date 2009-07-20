@@ -295,6 +295,7 @@ class GtkInterface(NotebookInterface):
 		object. If the object not yet has an actiongroup this is created first,
 		attached to the uimanager and put in the "actiongroup" attribute.
 		'''
+		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		group = self.init_actiongroup(handler)
 		group.add_actions(actions)
 		self._connect_actions(actions, group, handler)
@@ -311,6 +312,7 @@ class GtkInterface(NotebookInterface):
 		actual logic is implamented in the handler which is prefixed with
 		"do_".
 		'''
+		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		group = self.init_actiongroup(handler)
 		group.add_toggle_actions(actions)
 		self._connect_actions(actions, group, handler, is_toggle=True)
@@ -347,9 +349,10 @@ class GtkInterface(NotebookInterface):
 		# A bit different from the other two methods since radioactions
 		# come in mutual exclusive groups. Only need to connect to one
 		# action to get signals from whole group.
+		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
+		assert hasattr(handler, methodname), 'No such method %s' % methodname
 		group = self.init_actiongroup(handler)
 		group.add_radio_actions(actions)
-		assert hasattr(handler, methodname), 'No such method %s' % methodname
 		method = getattr(handler.__class__, methodname)
 		action = group.get_action(actions[0][0])
 		action.connect('changed', self._log_action)
@@ -1237,7 +1240,8 @@ discarded, but you can restore the copy later.''')
 
 		self._done = False
 		def discard(self):
-			page.get_parsetree() # make sure PageView understands we tried...
+			self.ui.mainwindow.pageview.clear()
+				# issue may be caused in pageview - make sure it unlocks
 			self.ui.notebook.revert_page(self.page)
 			self._done = True
 

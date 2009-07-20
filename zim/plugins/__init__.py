@@ -55,22 +55,22 @@ class PluginClass(object):
 	called 'plugin_info'. It can contain the following keys:
 
 		* name - short name
-		* description - one paragraph description 
+		* description - one paragraph description
 		* author - name of the author
 		* manualpage - page name in the manual (optional)
 
 	This info will be used e.g. in the plugin tab of the preferences
 	dialog.
 
-	Secondly a tuple can be defined called 'plugin_preferences'. 
+	Secondly a tuple can be defined called 'plugin_preferences'.
 	Each item in this list should in turn be tuple containing four items:
-	
+
 		* the key in the config file
 		* an option type (see Dialog.add_fields() for more details)
 		* a label to show in the dialog
 		* a default value
 
-	These preferences will be initialized if not set and the actual values 
+	These preferences will be initialized if not set and the actual values
 	can be found in the 'preferences' attribute. The type and label will
 	be used to render a default configure dialog when triggered from
 	the preferences dialog.
@@ -85,6 +85,8 @@ class PluginClass(object):
 		assert 'name' in self.plugin_info, 'Plugins should provide a name in the info dict'
 		assert 'description' in self.plugin_info, 'Plugins should provide a description in the info dict'
 		assert 'author' in self.plugin_info, 'Plugins should provide a author in the info dict'
+		if self.plugin_preferences:
+			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tupels'
 		section = self.__class__.__name__
 		self.preferences = self.ui.preferences[section]
 		for key, type, label, default in self.plugin_preferences:
@@ -114,3 +116,27 @@ class PluginClass(object):
 	def add_actions():
 		pass
 
+	def toggle_action(self, action, active=None):
+		'''Trigger a toggle action. If 'active' is None it is toggled, else it
+		is forced to state of 'active'. This method helps to keep the menu item
+		or toolbar item asociated with the action in sync with your internal
+		state. A typical usage to define a handler for a toggle action called
+		'show_foo' would be:
+
+			def show_foo(self, show=None):
+				self.toggle_action('show_foo', active=show)
+
+			def do_show_foo(self, show=None):
+				if show is None:
+					show = self.actiongroup.get_action('show_foo').get_active()
+
+				# ... the actual logic for toggling on / off 'foo'
+
+		'''
+		name = action
+		action = self.actiongroup.get_action(name)
+		if active is None or active != action.get_active():
+			action.activate()
+		else:
+			method = getattr(self, 'do_'+name)
+			method(active)

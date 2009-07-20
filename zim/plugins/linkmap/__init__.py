@@ -10,8 +10,8 @@ from zim.index import LINK_DIR_BOTH
 class LinkMapPlugin(PluginClass):
 
 	plugin_info = {
-		'name': 'Link Map',
-		'description': '''\
+		'name': _('Link Map'), # T: plugin name
+		'description': _('''\
 This plugin provides a dialog with a grahical
 representation of the linking structure of the
 notebook. It can be used as a kind of "mind map"
@@ -21,7 +21,7 @@ This plugin depends on GraphViz, please make
 sure it is installed.
 
 This is a core plugin shipping with zim.
-''',
+'''), # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'manualpage': 'Plugins:LinkMap',
 	}

@@ -324,7 +324,7 @@ class Notebook(gobject.GObject):
 	def rename_page(self, path, newbasename,
 						update_heading=True, update_links=True):
 		'''Rename page to a page in the same namespace but with a new basename.
-		If 'update_heading' is True the first heading in the page will be updated to it's 
+		If 'update_heading' is True the first heading in the page will be updated to it's
 		new name.  If 'update_links' is True all links from and to the page will be
 		modified as well.
 		'''
@@ -513,6 +513,14 @@ class Path(object):
 
 	def __ne__(self, other):
 		return not self.__eq__(other)
+
+	def __lt__(self, other):
+		'''`self < other` evaluates True when self is a parent of other'''
+		return other.name.startswith(self.name+':')
+
+	def __gt__(self, other):
+		'''`self > other` evaluates True when self is a child of other'''
+		return self.name.startswith(other.name+':')
 
 	def __add__(self, name):
 		'''"path + name" returns a child path'''
