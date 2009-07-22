@@ -25,15 +25,15 @@ ui_xml = '''
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip
-	('print_to_browser', 'gtk-print', '_Print to Browser', '<ctrl>P', 'Printto browser'),
+	('print_to_browser', 'gtk-print', _('_Print to Browser'), '<ctrl>P', 'Printto browser'), # T: menu item
 
 )
 
 class SpellPlugin(PluginClass):
 
 	plugin_info = {
-		'name': 'Print to Browser',
-		'description': '''\
+		'name': _('Print to Browser'), # T: plugin name
+		'description': _('''\
 This plugin provides a workaround for the lack of
 printing support in zim. It exports the current page
 to html and opens a browser. Assuming the browser
@@ -41,7 +41,7 @@ does have printing support this will get your
 data to the printer in two steps.
 
 This is a core plugin shipping with zim.
-''',
+'''), # T: plugin description
 		'author': 'Jaap Karssenberg',
 	}
 
@@ -56,7 +56,7 @@ This is a core plugin shipping with zim.
 		webbrowser.open('file://%s' % file)
 
 	def print_to_file(self):
-		file = TmpFile('print-to-browser.html') 
+		file = TmpFile('print-to-browser.html')
 		template = zim.templates.get_template('html', 'Print')
 		template.set_linker(BaseLinker('html', self.ui.notebook, self.ui.page))
 		html = template.process(self.ui.notebook, self.ui.page)

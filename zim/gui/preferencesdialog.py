@@ -99,7 +99,7 @@ class PreferencesDialog(Dialog):
 		# HACK - how to do proper layout fontbutton ?
 		self.fontbutton.set_size_request(200, -1)
 		hbox = gtk.HBox()
-		vbox.add(hbox)
+		vbox.pack_start(hbox, False)
 		hbox.pack_start(gtk.Label('\t\t'), False)
 		hbox.pack_start(self.fontbutton, False)
 

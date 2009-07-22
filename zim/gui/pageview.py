@@ -1979,6 +1979,13 @@ class PageView(gtk.VBox):
 			self.page.modified = True
 			self.emit('modified-changed')
 
+	def clear(self):
+		# Called e.g. by "discard changes" maybe due to an exception in
+		# buffer.get_parse_tree() - so just drop everything...
+		buffer = self.view.get_buffer()
+		buffer.clear()
+		buffer.set_modified(False)
+
 	def get_parsetree(self):
 		buffer = self.view.get_buffer()
 		if buffer.get_modified():

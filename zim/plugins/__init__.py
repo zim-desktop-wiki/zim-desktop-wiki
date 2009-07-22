@@ -85,6 +85,8 @@ class PluginClass(object):
 		assert 'name' in self.plugin_info, 'Plugins should provide a name in the info dict'
 		assert 'description' in self.plugin_info, 'Plugins should provide a description in the info dict'
 		assert 'author' in self.plugin_info, 'Plugins should provide a author in the info dict'
+		if self.plugin_preferences:
+			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tupels'
 		section = self.__class__.__name__
 		self.preferences = self.ui.preferences[section]
 		for key, type, label, default in self.plugin_preferences:
@@ -137,3 +139,28 @@ class PluginClass(object):
 		'''
 		assert self.ui.ui_type == 'gtk'
 		self.ui.add_radio_actions(actions, handler=self, methodname=methodname)
+
+	def toggle_action(self, action, active=None):
+		'''Trigger a toggle action. If 'active' is None it is toggled, else it
+		is forced to state of 'active'. This method helps to keep the menu item
+		or toolbar item asociated with the action in sync with your internal
+		state. A typical usage to define a handler for a toggle action called
+		'show_foo' would be:
+
+			def show_foo(self, show=None):
+				self.toggle_action('show_foo', active=show)
+
+			def do_show_foo(self, show=None):
+				if show is None:
+					show = self.actiongroup.get_action('show_foo').get_active()
+
+				# ... the actual logic for toggling on / off 'foo'
+
+		'''
+		name = action
+		action = self.actiongroup.get_action(name)
+		if active is None or active != action.get_active():
+			action.activate()
+		else:
+			method = getattr(self, 'do_'+name)
+			method(active)

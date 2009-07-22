@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Sat, 18 Jul 2009 22:06:09 +0200
+Modification-Date: Mon, 20 Jul 2009 21:13:39 +0200
 
 ====== Tasks ======
 
@@ -62,9 +62,7 @@ Modification-Date: Sat, 18 Jul 2009 22:06:09 +0200
 [ ] Implement properties dialog
 [ ] Implement insert date dialog
 	* hook signal for linking - split off suggest-link from end-of-word ?
-[ ] Implement Calendar plugin
-	* Use preferences for namespace to use, set to "Calendar" by default
-	* Hook to signal from calendar to format links + hook to end-of-word
+[*] Implement Calendar plugin
 [ ] Implement search + search dialog
 [ ] Implement TaskList plugin
 	* Use prefrences for keywords, heading keywords, use of checkboxes

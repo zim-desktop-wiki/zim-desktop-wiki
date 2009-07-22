@@ -251,7 +251,7 @@ class NotebookInterface(gobject.GObject):
 
 	def load_plugins(self):
 		'''Load the plugins defined in the preferences'''
-		plugins = ['spell', 'linkmap', 'printtobrowser'] # FIXME: get from config
+		plugins = ['calendar', 'spell', 'linkmap', 'printtobrowser'] # FIXME: get from config
 		for plugin in plugins:
 			self.load_plugin(plugin)
 

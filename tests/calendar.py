@@ -1,0 +1,46 @@
+
+# -*- coding: utf-8 -*-
+
+# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+
+import tests
+from tests import TestCase
+
+from datetime import date as dateclass
+
+import zim.plugins
+from zim.notebook import Path
+from zim.config import ConfigDict
+
+
+class TestCalendarPlugin(TestCase):
+
+	slowTest = True
+
+	def runTest(self):
+		'Test Calendar plugin'
+		ui = StubUI()
+		pluginklass = zim.plugins.get_plugin('calendar')
+		plugin = pluginklass(ui)
+		today = dateclass.today()
+		path = plugin.path_from_date(today)
+		self.assertTrue(isinstance(path, Path))
+		namespace = Path(plugin.preferences['namespace'])
+		self.assertTrue(path > namespace)
+		date = plugin.date_from_path(path)
+		self.assertTrue(isinstance(date, dateclass))
+		self.assertEqual(date, today)
+
+
+class StubUI(object):
+
+	ui_type = 'stub'
+
+	def __init__(self):
+		self.notebook = tests.get_test_notebook()
+		self.page = self.notebook.get_page(Path('Test:foo'))
+		self.preferences = ConfigDict()
+	
+	def connect(*a): pass
+
+	def connect_after(*a): pass

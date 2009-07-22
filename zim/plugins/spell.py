@@ -32,19 +32,19 @@ ui_xml = '''
 
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, None, initial state
-	('toggle_spellcheck', 'gtk-spell-check', 'Check _spelling', 'F7', 'Spell check', None, False),
+	('toggle_spellcheck', 'gtk-spell-check', _('Check _spelling'), 'F7', 'Spell check', None, False), # T: menu item
 )
 
 class SpellPlugin(PluginClass):
 
 	plugin_info = {
-		'name': 'Spell',
-		'description': '''\
+		'name': _('Spell'), # T: plugin name
+		'description': _('''\
 Adds spell checking support using gtkspell.
 Please make sure gtkspell is installed.
 
 This is a core plugin shipping with zim.
-''',
+'''), # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'manualpage': 'Plugins:Spell',
 	}
@@ -98,7 +98,7 @@ This is a core plugin shipping with zim.
 				self.spell.detach()
 				self.spell = None
 				textview.gtkspell = None
-		
+
 		self.uistate['active'] = enable
 		return False # we can be called from idle event
 

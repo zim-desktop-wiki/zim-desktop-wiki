@@ -531,6 +531,14 @@ class Path(object):
 	def __ne__(self, other):
 		return not self.__eq__(other)
 
+	def __lt__(self, other):
+		'''`self < other` evaluates True when self is a parent of other'''
+		return other.name.startswith(self.name+':')
+
+	def __gt__(self, other):
+		'''`self > other` evaluates True when self is a child of other'''
+		return self.name.startswith(other.name+':')
+
 	def __add__(self, name):
 		'''"path + name" returns a child path'''
 		if len(self.name):
