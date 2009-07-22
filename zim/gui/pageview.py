@@ -21,8 +21,7 @@ from zim.parsing import link_type, Re
 from zim.config import config_file
 from zim.formats import get_format, ParseTree, TreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.gui import Dialog, FileDialog
-from zim.gui.widgets import Button, IconButton
+from zim.gui.widgets import Dialog, FileDialog, Button, IconButton
 
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -632,8 +631,8 @@ class TextBuffer(gtk.TextBuffer):
 		name = 'indent-%i' % level
 		tag = self.get_tag_table().lookup(name)
 		if tag is None:
-			margin = 10 + self.tabstop * level # offset from left side for all lines
-			indent = -10 # offset for first line (bullet)
+			margin = 12 + self.tabstop * level # offset from left side for all lines
+			indent = -12 # offset for first line (bullet)
 			tag = self.create_tag(name, left_margin=margin, indent=indent)
 			tag.zim_type = 'indent'
 			tag.zim_tag = 'indent'

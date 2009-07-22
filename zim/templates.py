@@ -62,6 +62,7 @@ from time import strftime
 
 import zim
 import zim.formats
+from zim.errors import Error
 from zim.fs import File
 from zim.config import data_dirs
 from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string
@@ -101,27 +102,36 @@ def get_template(format, name):
 	return Template(File(file).readlines(), format, name=file)
 
 
-class TemplateError(Exception):
+class TemplateError(Error):
 	pass
 
 
 class TemplateSyntaxError(TemplateError):
-	'''Exception used for syntax errors while parsing templates.
-	Will print file path and line number together with the message.
-	'''
+
+	description = '''\
+An error occcured while parsing a template.
+It seems the template contains some invalid syntax.
+'''
+
 
 	def __init__(self, msg):
-		self.msg = msg
+		self._msg = msg
 		self.file = '<unknown file>'
 		self.line = 0
 
-	def __str__(self):
+	@property
+	def msg(self):
 		return 'Syntax error at "%s" line %i: %s' % \
 						(self.file, self.line, self.msg)
 
 
 class TemplateProcessError(TemplateError):
-	pass
+
+	description = '''
+A run-time error occured while processing a template.
+This can be due to the template calling functions that are
+not availabel, or it can be a glitch in the program.
+'''
 
 
 class GenericTemplate(object):

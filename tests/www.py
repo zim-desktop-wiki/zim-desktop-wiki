@@ -73,6 +73,7 @@ class TestWWWInterface(TestCase):
 			wfile = StringIO()
 			handler = wsgiref.handlers.SimpleHandler(rfile, wfile, sys.stderr, environ)
 			handler.run(validator)
+			#~ print '>>>>\n', wfile.getvalue(), '<<<<'
 			return wfile.getvalue()
 
 		# index

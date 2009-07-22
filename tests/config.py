@@ -264,7 +264,7 @@ more-lines: test
 1234
 test
 '''
-		self.assertRaises(ParsingError, HeadersDict, text)
+		self.assertRaises(HeaderParsingError, HeadersDict, text)
 
 		text = '''\
 fooo
@@ -272,7 +272,7 @@ more-lines: test
 1234
 test
 '''
-		self.assertRaises(ParsingError, HeadersDict, text)
+		self.assertRaises(HeaderParsingError, HeadersDict, text)
 
 		text = 'foo-bar: test\n\n\n'
 		headers = HeadersDict(text)

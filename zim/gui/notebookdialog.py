@@ -17,8 +17,7 @@ import pango
 from zim.fs import *
 import zim.notebook
 from zim.config import data_file
-from zim.gui.widgets import IconButton
-from zim.gui import Dialog
+from zim.gui.widgets import Dialog, IconButton
 
 OPEN_COL = 0  # column with boolean if notebook is open alreadys
 NAME_COL = 1  # column with notebook name

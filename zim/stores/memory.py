@@ -10,7 +10,7 @@ FIXME document nodetree
 FIXME document subclassing
 '''
 
-from zim import formats
+from zim.formats import get_format
 from zim.notebook import Page, LookupError, PageExistsError
 from zim.stores import StoreClass
 
@@ -22,7 +22,7 @@ class Store(StoreClass):
 		Pass args needed for StoreClass init.
 		'''
 		StoreClass.__init__(self, **args)
-		self.format = formats.get_format('wiki') # TODO make configable
+		self.format = get_format('wiki') # TODO make configable
 		self._nodetree = []
 
 	def _set_node(self, path, text):

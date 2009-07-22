@@ -14,9 +14,10 @@ except:
 
 
 # Try importing our modules
+import zim
+import zim.config
 try:
-	import zim
-	import zim.config
+	pass
 except ImportError:
 	print >>sys.stderr, 'ERROR: Could not find python module files in path:'
 	print >>sys.stderr, ' '.join(map(str, sys.path))

@@ -23,7 +23,7 @@ arge numbers of very short entries, which may take a lot of
 overhead when saved as individual files.
 '''
 
-from zim import formats
+from zim.formats import get_format
 from zim.stores import memory
 
 __store__ = 'gjots'
@@ -38,7 +38,7 @@ class Store(memory.Store):
 
 	def __init__(self, **args):
 		memory.Store.__init__(self,  **args)
-		self.format = zim.formats.get_format('plain')
+		self.format = get_format('plain')
 		if 'file' in args:
 			self.file = file
 		assert self.has_file()

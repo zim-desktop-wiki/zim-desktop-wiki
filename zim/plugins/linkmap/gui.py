@@ -5,8 +5,7 @@
 import gtk
 
 from zim._lib import xdot
-from zim.gui import Dialog
-from zim.gui.widgets import IconButton
+from zim.gui.widgets import Dialog, IconButton
 
 from zim.plugins.linkmap import LinkMap
 

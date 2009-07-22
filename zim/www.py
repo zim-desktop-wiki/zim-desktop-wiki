@@ -23,6 +23,7 @@ from wsgiref.headers import Headers
 import urllib
 
 from zim import NotebookInterface
+from zim.errors import Error
 from zim.notebook import Path, Page, IndexPage
 from zim.fs import *
 from zim.formats import ParseTree, TreeBuilder
@@ -37,7 +38,7 @@ for icon in ('checked-box.png', 'xchecked-box.png', 'unchecked-box.png'):
 	file = data_file('pixmaps/'+icon)
 	icons[file.path] = icon
 
-class WWWError(Exception):
+class WWWError(Error):
 
 	statusstring = {
 		'404': 'Not Found',
@@ -45,25 +46,35 @@ class WWWError(Exception):
 		'500': 'Internal Server Error',
 	}
 
-	def __init__(self, status='500', headers=None, msg=''):
+	def __init__(self, msg, status='500', headers=None):
 		self.status = '%s %s' % (status, self.statusstring[status])
 		self.headers = headers
-		self.msg = str(msg)
-		self.logmsg = self.status + ' - ' + self.msg
+		self.msg = self.status
+		if msg:
+			self.msg += ' - ' + msg
 
 
 class NoConfigError(WWWError):
 
+	description = '''\
+There was no notebook configured for this zim instance.
+This is likely a configuration isue.
+'''
+
 	def __init__(self):
-		WWWError.__init__(self, msg='Server was not configured properly, please provide a notebook first.')
+		WWWError.__init__(self, 'Notebook not found')
 
 
 class PageNotFoundError(WWWError):
 
+	description = '''\
+You tried to open a page that does not exist.
+'''
+
 	def __init__(self, page):
 		if not isinstance(page, basestring):
 			page = page.name
-		WWWError.__init__(self, '404', msg='No such page: %s' % page)
+		WWWError.__init__(self, 'No such page: %s' % page, status='404')
 
 
 class WWWInterface(NotebookInterface):
@@ -167,24 +178,27 @@ class WWWInterface(NotebookInterface):
 					content = self.render_index(page)
 				else:
 					raise PageNotFoundError(page)
-		except WWWError, error:
-			logger.error(error.logmsg)
-			headerlist = [('Content-Type', 'text/plain')]
-			if error.headers:
-				header.extend(error.headers)
-			start_response(error.status, headerlist)
+		except Exception, error:
+			headerlist = []
+			headers = Headers(headerlist)
+			headers.add_header('Content-Type', 'text/plain', charset='utf-8')
+			if isinstance(error, WWWError):
+				logger.error(error.msg)
+				if error.headers:
+					header.extend(error.headers)
+				start_response(error.status, headerlist)
+				content = unicode(error).splitlines(True)
+			# TODO also handle template errors as special here
+			else:
+				# Unexpected error - maybe a bug, do not expose output on bugs
+				# to the outside world
+				logger.exception('Unexpected error:')
+				start_response('500 Internal Server Error', headerlist)
+				content = ['Internal Server Error']
 			if environ['REQUEST_METHOD'] == 'HEAD':
 				return []
 			else:
-				return [error.msg]
-		# TODO also handle template errors as special here
-		except Exception:
-			# Unexpected error - maybe a bug, do not expose output on bugs
-			# to the outside world
-			logger.exception('Unexpected error:')
-			headerlist = [('Content-Type', 'text/plain')]
-			start_response('500 Internal Server Error', headerlist)
-			return ['Internal Server Error']
+				return [string.encode('utf-8') for string in content]
 		else:
 			start_response('200 OK', headerlist)
 			if environ['REQUEST_METHOD'] == 'HEAD':

@@ -25,6 +25,7 @@ Modification-Date: Sat, 18 Jul 2009 22:06:09 +0200
 
 == Defects ==
 [ ] History: hook cursor position into history and actually use it
+[ ] MainWindow: cltr-space and alt-spac keybindings to focus side pane
 [ ] Pageview: enforce sane indenting levels for lists
 [ ] Pageview: enforce heading can not be indented
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up

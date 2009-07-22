@@ -3,7 +3,7 @@
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 import gtk
-from zim.gui import Dialog
+from zim.gui.widgets import Dialog
 
 class PropertiesDialog(Dialog):
 

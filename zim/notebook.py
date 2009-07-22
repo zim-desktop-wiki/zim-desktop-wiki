@@ -17,7 +17,8 @@ import logging
 import gobject
 
 from zim.fs import *
-from zim.config import ConfigDictFile, config_file, data_dir, user_dirs
+from zim.errors import Error
+from zim.config import ConfigDict, ConfigDictFile, config_file, data_dir, user_dirs
 from zim.parsing import Re, is_url_re, is_email_re
 import zim.stores
 
@@ -65,15 +66,25 @@ def get_notebook_list():
 	return config_file('notebooks.list')
 
 
-class PageNameError(Exception):
-	pass
+class PageNameError(Error):
 
+	description = _('''\
+The given page name is not valid.
+''') # T: error description
+	# TODO add to explanation what are validcharacters
 
-class LookupError(Exception):
-	pass
+	def __init__(self, name):
+		self.msg = _('Invalid page name "%s"') % name # T: error message
 
-class PageExistsError(Exception):
-	pass
+class LookupError(Error):
+
+	description = '''\
+Failed to lookup this page in the notebook storage.
+This is likely a glitch in the application.
+'''
+
+class PageExistsError(Error):
+	pass # TODO check where this should be used
 
 class Notebook(gobject.GObject):
 	'''Main class to access a notebook. Proxies between backend Store
@@ -96,14 +107,14 @@ class Notebook(gobject.GObject):
 		self.dir = None
 		self.cache_dir = None
 		self.name = name
-		self.config = config or {}
+		self.config = config
 
 		if isinstance(path, Dir):
 			self.dir = path
 			self.cache_dir = path.subdir('.zim')
 				# TODO set cache dir in XDG_CACHE when notebook is read-only
 			logger.debug('Cache dir: %s', self.cache_dir)
-			if config is None:
+			if self.config is None:
 				self.config = ConfigDictFile(path.file('notebook.zim'))
 			# TODO check if config defined root namespace
 			self.add_store(Path(':'), 'files') # set root
@@ -119,6 +130,10 @@ class Notebook(gobject.GObject):
 		else:
 			self.index = index
 			self.index.set_notebook(self)
+
+		if self.config is None:
+			self.config = ConfigDict()
+		self.config['Notebook'].setdefault('home', ':Home')
 
 
 	def add_store(self, path, store, **args):
@@ -226,13 +241,14 @@ class Notebook(gobject.GObject):
 		'''Returns a safe version of name, used internally by functions like
 		resolve_path() to parse user input.
 		'''
+		orig = name
 		name = ':'.join( map(unicode.strip,
 				filter(lambda n: len(n)>0, unicode(name).split(':')) ) )
 
 		# TODO check for illegal characters in the name
 
 		if not name or name.isspace():
-			raise PageNameError
+			raise PageNameError, orig
 
 		return name
 
@@ -264,7 +280,8 @@ class Notebook(gobject.GObject):
 
 	def get_home_page(self):
 		'''Returns a page object for the home page.'''
-		return self.get_page(Path('Home')) # TODO: make this configable
+		path = self.resolve_path(self.config['Notebook']['home'])
+		return self.get_page(path)
 
 	def get_pagelist(self, path):
 		'''Returns a list of page objects.'''
@@ -324,7 +341,7 @@ class Notebook(gobject.GObject):
 	def rename_page(self, path, newbasename,
 						update_heading=True, update_links=True):
 		'''Rename page to a page in the same namespace but with a new basename.
-		If 'update_heading' is True the first heading in the page will be updated to it's 
+		If 'update_heading' is True the first heading in the page will be updated to it's
 		new name.  If 'update_links' is True all links from and to the page will be
 		modified as well.
 		'''

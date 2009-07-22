@@ -17,9 +17,12 @@ except:
 	import simplejson as json # extra dependency
 
 from zim.fs import *
-from zim.parsing import TextBuffer, ParsingError, split_quoted_strings
+from zim.errors import Error
+from zim.parsing import TextBuffer, split_quoted_strings
+
 
 logger = logging.getLogger('zim.config')
+
 
 ZIM_DATA_DIR = None
 XDG_DATA_HOME = None
@@ -49,7 +52,7 @@ def _set_basedirs():
 		ZIM_DATA_DIR = zim_data_dir
 	else:
 		ZIM_DATA_DIR = None
-	
+
 	if 'XDG_DATA_HOME' in os.environ:
 		XDG_DATA_HOME = Dir(os.environ['XDG_DATA_HOME'])
 	else:
@@ -193,9 +196,17 @@ def user_dirs():
 	return dirs
 
 
-class ConfigPathError(Exception):
-	pass
+class ConfigPathError(Error):
 
+	description = '''\
+A config file was not found and did not have a default either.
+This ould mean that the paths for locating config files are
+not set correctly.
+'''
+
+	def __init__(self, file):
+		self.file = file
+		self.msg = 'No default config found for %s' % file
 
 class ListDict(dict):
 	'''Class that behaves like a dict but keeps items in same order.
@@ -460,7 +471,7 @@ class ConfigFile(ListDict):
 		elif self.default:
 			self.parse(self.default.readlines())
 		else:
-			raise ConfigPathError, 'Config file \'%s\' does not exist and no default set' % self.file
+			raise ConfigPathError, self.file
 
 	def write(self):
 		self.file.writelines(self.dump())
@@ -473,6 +484,17 @@ class ConfigDictFile(ConfigFile, ConfigDict):
 
 class ConfigListFile(ConfigFile, ConfigList):
 	pass
+
+
+class HeaderParsingError(Error):
+
+	description = '''\
+Invalid data was found in a block with headers.
+This probably means the header block was corrupted
+and can not be read correctly.'''
+
+	def __init__(self, line):
+		self.msg = 'Invalid header >>%s<<' % line.strip('\n')
 
 
 class HeadersDict(ListDict):
@@ -510,7 +532,7 @@ class HeadersDict(ListDict):
 		'''Adds headers defined in 'text' to the dict. Text can either be
 		a string or a list of lines.
 
-		Raises a ParsingError when 'text' is not a valid header block.
+		Raises a HeaderParsingError when 'text' is not a valid header block.
 		Trailing whitespace is ignored.
 		'''
 		if isinstance(text, basestring):
@@ -531,7 +553,7 @@ class HeadersDict(ListDict):
 				self[header] += '\n' + lines[0].strip()
 			else:
 				if fatal:
-					raise ParsingError, 'Not a valid rfc822 header block'
+					raise HeaderParsingError, lines[0]
 				else:
 					break
 			lines.pop(0)

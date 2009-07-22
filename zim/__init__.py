@@ -27,7 +27,8 @@ import logging
 from getopt import gnu_getopt, GetoptError
 
 from zim.fs import *
-from zim.config import log_basedirs, data_file, config_file, ConfigDictFile, ZIM_DATA_DIR
+from zim.errors import Error
+from zim.config import config_file, log_basedirs, ZIM_DATA_DIR
 
 if ZIM_DATA_DIR:
 	# We are running from a source dir - use the locale data included there
@@ -102,14 +103,15 @@ Index Options:
 Try 'zim --manual' for more help.
 '''
 
-class UsageError(Exception):
+
+class UsageError(Error):
 	pass
 
 
 def main(argv):
 	'''Run the main program.'''
-
 	global executable
+
 	executable = argv[0]
 
 	# Let getopt parse the option list
@@ -284,6 +286,7 @@ class NotebookInterface(gobject.GObject):
 		self.notebook = notebook
 		if notebook.cache_dir:
 			# may not exist during tests
+			from zim.config import ConfigDictFile
 			self.uistate = ConfigDictFile(
 				notebook.cache_dir.file('state.conf') )
 		# TODO read profile preferences file if one is set in the notebook

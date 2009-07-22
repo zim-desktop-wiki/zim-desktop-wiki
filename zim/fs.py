@@ -24,6 +24,8 @@ import codecs
 import logging
 from StringIO import StringIO
 
+from zim.errors import Error
+
 __all__ = ['Dir', 'File']
 
 logger = logging.getLogger('zim.fs')
@@ -35,12 +37,12 @@ def get_tmpdir():
 	# TODO make path specific for user / process ...
 
 
-class PathLookupError(Exception):
-	pass
+class PathLookupError(Error):
+	pass # TODO description
 
 
-class OverWriteError(Exception):
-	pass
+class OverWriteError(Error):
+	pass # TODO description
 
 
 class UnixPath(object):
@@ -127,7 +129,7 @@ class UnixPath(object):
 			return bool(statinfo.st_mode & 0200)
 		else:
 			return self.dir.iswritable() # recurs
-		
+
 	def mtime(self):
 		stat_result = os.stat(self.path)
 		return stat_result.st_mtime

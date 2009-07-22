@@ -5,10 +5,10 @@
 import gtk
 
 from zim.fs import *
-from zim.gui import Dialog, ProgressBarDialog
 from zim.exporter import Exporter
 import zim.formats
 import zim.templates
+from zim.gui.widgets import Dialog, ProgressBarDialog
 
 
 class ExportDialog(Dialog):

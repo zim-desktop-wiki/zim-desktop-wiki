@@ -5,10 +5,10 @@
 import gtk
 import logging
 
-from zim.gui.applications import get_application, get_helper_applications, create_helper_application
-from zim.gui import Dialog
-from zim.gui.widgets import Button, BrowserTreeView
 import zim.plugins
+from zim.gui.applications import \
+	get_application, get_helper_applications, create_helper_application
+from zim.gui.widgets import Dialog, Button, BrowserTreeView
 from zim.gui.pageview import PageView
 
 

@@ -25,7 +25,6 @@ PATH_COL = 1  # column with the zim IndexPath itself
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
 KEYVAL_L = gtk.gdk.unicode_to_keyval(ord('l'))
-KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
 class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
@@ -280,8 +279,6 @@ class PageTreeView(BrowserTreeView):
 				print 'TODO insert link'
 			else:
 				handled = False
-		elif event.keyval == KEYVAL_ESC:
-			print 'TODO close side pane'
 		else:
 			handled = False
 

@@ -11,7 +11,7 @@ import codecs
 import gettext
 
 __all__ = [
-	'parsing', 'fs', 'config',
+	'errors', 'parsing', 'fs', 'config',
 	'formats', 'templates',
 	'stores', 'index', 'notebook',
 	'history', 'plugins',

@@ -55,22 +55,22 @@ class PluginClass(object):
 	called 'plugin_info'. It can contain the following keys:
 
 		* name - short name
-		* description - one paragraph description 
+		* description - one paragraph description
 		* author - name of the author
 		* manualpage - page name in the manual (optional)
 
 	This info will be used e.g. in the plugin tab of the preferences
 	dialog.
 
-	Secondly a tuple can be defined called 'plugin_preferences'. 
+	Secondly a tuple can be defined called 'plugin_preferences'.
 	Each item in this list should in turn be tuple containing four items:
-	
+
 		* the key in the config file
 		* an option type (see Dialog.add_fields() for more details)
 		* a label to show in the dialog
 		* a default value
 
-	These preferences will be initialized if not set and the actual values 
+	These preferences will be initialized if not set and the actual values
 	can be found in the 'preferences' attribute. The type and label will
 	be used to render a default configure dialog when triggered from
 	the preferences dialog.
@@ -107,10 +107,33 @@ class PluginClass(object):
 
 	def disconnect(self):
 		'''Disconnect the plugin object from the ui, should revert
-		any changes it made to the application.
+		any changes it made to the application. Default handler removes
+		any GUI actions and menu items that were defined.
 		'''
-		self.ui.remove_actions(self)
+		if self.ui.ui_type == 'gtk':
+			self.ui.remove_ui(self)
+			self.ui.remove_actiongroup(self)
 
-	def add_actions():
-		pass
+	def add_actions(self, actions):
+		'''Define menu actions in the Gtk GUI
 
+		TODO document how an action tuple looks
+		'''
+		assert self.ui.ui_type == 'gtk'
+		self.ui.add_actions(actions, handler=self)
+
+	def add_toggle_actions(self, actions):
+		'''Define menu toggle actions in the Gtk GUI
+
+		TODO document how an action tuple looks
+		'''
+		assert self.ui.ui_type == 'gtk'
+		self.ui.add_toggle_actions(actions, handler=self)
+
+	def add_radio_actions(self, actions, methodname):
+		'''Define menu actions in the Gtk GUI
+
+		TODO document how an action tuple looks
+		'''
+		assert self.ui.ui_type == 'gtk'
+		self.ui.add_radio_actions(actions, handler=self, methodname=methodname)

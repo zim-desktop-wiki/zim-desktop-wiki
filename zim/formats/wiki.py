@@ -7,7 +7,7 @@
 import re
 
 from zim.formats import *
-from zim.parsing import Re, TextBuffer, ParsingError
+from zim.parsing import Re, TextBuffer
 
 info = {
 	'name':  'Wiki text',

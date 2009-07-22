@@ -6,9 +6,6 @@
 
 import re
 
-class ParsingError(Exception):
-	pass
-
 
 def split_quoted_strings(string, unescape=True):
 	'''Split a word list respecting quotes.'''
@@ -42,8 +39,8 @@ def unescape_quoted_string(string):
 
 def url_encode(url):
 	'''Replaces non-standard characters in urls with hex codes'''
-	url = url.replace(' ', '%20')
-	# FIXME what other chars do we need ?
+	url = url.encode('utf-8').replace(' ', '%20')
+	# TODO url encoding - replace \W with sprintf('%%%02x')
 	return url
 
 

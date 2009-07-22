@@ -19,7 +19,7 @@ once we have it resolved.
 import os # using os directly in get_pagelist()
 
 from zim.fs import *
-from zim import formats
+from zim.formats import get_format
 from zim.notebook import Path, Page, LookupError, PageExistsError
 from zim.stores import StoreClass, encode_filename, decode_filename
 from zim.config import HeadersDict
@@ -35,7 +35,7 @@ class Store(StoreClass):
 		StoreClass.__init__(self, **args)
 		self.dir = dir
 		assert self.store_has_dir()
-		self.format = formats.get_format('wiki') # TODO make configable
+		self.format = get_format('wiki') # TODO make configable
 
 	def _get_file(self, path):
 		'''Returns a File object for a notebook path'''
