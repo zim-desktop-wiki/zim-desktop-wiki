@@ -10,8 +10,13 @@ TODO document dialog base classes
 
 import gobject
 import gtk
+import logging
 
 import zim.errors
+import zim.config
+
+
+logger = logging.getLogger('zim.gui')
 
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
@@ -223,6 +228,18 @@ def format_title(title):
 	return '%s - Zim' % title
 
 
+def get_window(ui):
+	'''Returns a gtk.Window object or None. Used to find the parent window
+	for dialogs.
+	'''
+	if isinstance(ui, gtk.Window):
+		return ui
+	elif hasattr(ui, 'mainwindow'):
+		return ui.mainwindow
+	else:
+		return None
+
+
 class Dialog(gtk.Dialog):
 	'''Wrapper around gtk.Dialog used for most zim dialogs.
 	It adds a number of convenience routines to build dialogs.
@@ -266,7 +283,7 @@ class Dialog(gtk.Dialog):
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 
-		if isinstance(ui, NotebookInterface) and ui.uistate:
+		if hasattr(ui, 'uistate') and isinstance(ui.uistate, zim.config.ConfigDict):
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
 			#~ print '>>', self.uistate

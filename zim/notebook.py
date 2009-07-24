@@ -257,8 +257,11 @@ class Notebook(gobject.GObject):
 		ensure that an unique object is being used for each page that is
 		given out.
 		'''
+		# As a special case, using an invalid page as the argument should
+		# return a valid page object.
 		assert isinstance(path, Path)
-		if path.name in self._page_cache:
+		if path.name in self._page_cache \
+		and self._page_cache[path.name].valid:
 			return self._page_cache[path.name]
 		else:
 			store = self.get_store(path)
@@ -618,6 +621,13 @@ class Page(Path):
 
 	You can use a Page object instead of a Path anywhere in the APIs where
 	a path is needed as argument etc.
+
+	Page objects have an attribute 'valid' which should evaluate True. If for
+	some reason this object is abandoned by the notebook, this attribute will
+	be set to False. Once the page object is invalidated you can no longer use
+	it's internal state. However in that case the object can still be used as
+	a regular Path object to point to the location of a page. The way replace
+	an invalid page object is by calling `notebook.get_page(invalid_page)`.
 	'''
 
 	def __init__(self, path, haschildren=False, parsetree=None):
@@ -668,6 +678,8 @@ class Page(Path):
 		'''Set the parsetree with content for this page. Set the parsetree
 		to None to remove all content.
 		'''
+		assert self.valid, 'BUG: page object became invalid'
+
 		if 'readonly' in self.properties and self.properties['readonly']:
 			raise Exception, 'Can not store data in a read-only Page'
 

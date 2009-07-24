@@ -14,6 +14,7 @@ from zim.gui import Dialog
 from zim.gui.widgets import Button
 from zim.notebook import Path
 
+
 # FUTURE: Use calendar.HTMLCalendar from core libs to render this plugin in www
 
 # TODO implement template for calendar pages
@@ -112,63 +113,6 @@ This is a core plugin shipping with zim.
 	#       add a preference for this
 	# TODO: Overload the "Insert date" dialog by adding a 'link' option
 
-class CalendarDialog(Dialog):
-
-	# TODO: add this method to the dialog base class..
-	@classmethod
-	def unique(klass, handler, *args, **opts):
-		import weakref
-		attr = '_unique_dialog_%s' % klass.__name__
-		dialog = None
-
-		if hasattr(handler, attr):
-			ref = getattr(handler, attr)
-			dialog = ref()
-
-		if dialog is None or dialog.destroyed:
-			dialog = klass(*args, **opts)
-
-		setattr(handler, attr, weakref.ref(dialog))
-		return dialog
-
-	def __init__(self, plugin):
-		Dialog.__init__(self, plugin.ui, _('Calendar'), buttons=None) # T: dialog title
-		self.set_resizable(False)
-		self.plugin = plugin
-
-		format = _('%A %d %B %Y').replace(' 0', ' ') # T: strftime format for current date label
-		label = gtk.Label(dateclass.today().strftime(format))
-		self.vbox.add(label)
-
-		self.calendar = Calendar()
-		self.calendar.display_options(
-			gtk.CALENDAR_SHOW_HEADING |
-			gtk.CALENDAR_SHOW_DAY_NAMES |
-			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
-		self.calendar.connect('activate', self.on_calendar_activate)
-		self.vbox.add(self.calendar)
-
-		hbox = gtk.HBox()
-		self.vbox.add(hbox)
-		button = Button(_('_Today'), gtk.STOCK_JUMP_TO) # T: button label
-		button.connect_object('clicked', self.__class__.select_today, self)
-		hbox.pack_end(button, False)
-
-	def do_response(self, response):
-		self.plugin.show_calendar(False)
-		self.destroy()
-
-	def on_calendar_activate(self, calendar):
-		path = self.plugin.path_from_date( calendar.get_date() )
-		if path != self.ui.page:
-			self.ui.open_page(path)
-
-	def select_today(self):
-		self.calendar.select_date(dateclass.today())
-
-	# TODO: synchronize with page loaded if it matches a date page
-	# TODO: on month changed signal mark days that actually have a page
-
 
 class Calendar(gtk.Calendar):
 	'''Custom calendar widget class. Adds an 'activate' signal for when a
@@ -205,3 +149,70 @@ class Calendar(gtk.Calendar):
 
 # Need to register classes defining gobject signals
 gobject.type_register(Calendar)
+
+
+class CalendarPluginWidget(gtk.VBox):
+
+	def __init__(self, plugin):
+		gtk.VBox.__init__(self)
+		self.plugin = plugin
+
+		format = _('%A %d %B %Y').replace(' 0', ' ') # T: strftime format for current date label
+		label = gtk.Label(dateclass.today().strftime(format))
+		self.pack_start(label, False)
+
+		self.calendar = Calendar()
+		self.calendar.display_options(
+			gtk.CALENDAR_SHOW_HEADING |
+			gtk.CALENDAR_SHOW_DAY_NAMES |
+			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
+		self.calendar.connect('activate', self.on_calendar_activate)
+		self.pack_start(self.calendar, False)
+
+	def on_calendar_activate(self, calendar):
+		path = self.plugin.path_from_date( calendar.get_date() )
+		if path != self.plugin.ui.page:
+			self.plugin.ui.open_page(path)
+
+	# TODO: synchronize with page loaded if it matches a date page
+	# TODO: on month changed signal mark days that actually have a page
+
+
+class CalendarDialog(Dialog):
+
+	# TODO: add this method to the dialog base class..
+	@classmethod
+	def unique(klass, handler, *args, **opts):
+		import weakref
+		attr = '_unique_dialog_%s' % klass.__name__
+		dialog = None
+
+		if hasattr(handler, attr):
+			ref = getattr(handler, attr)
+			dialog = ref()
+
+		if dialog is None or dialog.destroyed:
+			dialog = klass(*args, **opts)
+
+		setattr(handler, attr, weakref.ref(dialog))
+		return dialog
+
+	def __init__(self, plugin):
+		Dialog.__init__(self, plugin.ui, _('Calendar'), buttons=None) # T: dialog title
+		self.set_resizable(False)
+		self.plugin = plugin
+
+		self.calendar_widget = CalendarPluginWidget(plugin)
+		self.vbox.add(self.calendar_widget)
+
+		hbox = gtk.HBox()
+		self.vbox.add(hbox)
+		button = Button(_('_Today'), gtk.STOCK_JUMP_TO) # T: button label
+		button.connect('clicked',
+			lambda o: self.calendar_widget.select_date(dateclass.today()))
+		hbox.pack_end(button, False)
+
+	def do_response(self, response):
+		self.plugin.show_calendar(False)
+		self.destroy()
+
