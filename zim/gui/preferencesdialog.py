@@ -267,6 +267,10 @@ class PluginConfigureDialog(Dialog):
 		Dialog.__init__(self, dialog, _('Configure Plugin')) # T: Dialog title
 		self.ui = dialog.ui
 
+		classes = [p.__class__ for p in self.ui.plugins]
+		i = classes.index(klass)
+		self.plugin = self.ui.plugins[i]
+
 		label = gtk.Label(_('Options for plugin %s') % klass.plugin_info['name'])
 			# T: Heading for 'configure plugin' dialog - %s is the plugin name
 		self.vbox.add(label)
@@ -280,6 +284,7 @@ class PluginConfigureDialog(Dialog):
 
 	def do_response_ok(self):
 		self.preferences.update(self.get_fields())
+		self.plugin.emit('preferences-changed')
 		self.ui.save_preferences()
 		return True
 

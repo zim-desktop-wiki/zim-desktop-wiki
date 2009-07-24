@@ -2,6 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
+import gobject
 import types
 import os
 import sys
@@ -46,7 +47,7 @@ def list_plugins():
 	return plugins
 
 
-class PluginClass(object):
+class PluginClass(gobject.GObject):
 	'''Base class for plugins. Every module containing a plugin should
 	have exactly one class derived from this base class. That class
 	will be initialized when the plugin is loaded.
@@ -80,7 +81,14 @@ class PluginClass(object):
 
 	plugin_preferences = ()
 
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+
+	}
+
 	def __init__(self, ui):
+		gobject.GObject.__init__(self)
 		self.ui = ui
 		assert 'name' in self.plugin_info, 'Plugins should provide a name in the info dict'
 		assert 'description' in self.plugin_info, 'Plugins should provide a description in the info dict'
@@ -107,6 +115,12 @@ class PluginClass(object):
 			for key, value in defaults.items():
 				self.uistate.setdefault(key, value)
 
+	def do_preferences_changed(self):
+		'''Handler called when preferences are changed by the user.
+		Can be overloaded by sub classes to apply relevant changes.
+		'''
+		pass
+
 	def disconnect(self):
 		'''Disconnect the plugin object from the ui, should revert
 		any changes it made to the application. Default handler removes
@@ -115,22 +129,6 @@ class PluginClass(object):
 		if self.ui.ui_type == 'gtk':
 			self.ui.remove_ui(self)
 			self.ui.remove_actiongroup(self)
-
-	def add_actions(self, actions):
-		'''Define menu actions in the Gtk GUI
-
-		TODO document how an action tuple looks
-		'''
-		assert self.ui.ui_type == 'gtk'
-		self.ui.add_actions(actions, handler=self)
-
-	def add_toggle_actions(self, actions):
-		'''Define menu toggle actions in the Gtk GUI
-
-		TODO document how an action tuple looks
-		'''
-		assert self.ui.ui_type == 'gtk'
-		self.ui.add_toggle_actions(actions, handler=self)
 
 	def add_radio_actions(self, actions, methodname):
 		'''Define menu actions in the Gtk GUI
@@ -164,3 +162,6 @@ class PluginClass(object):
 		else:
 			method = getattr(self, 'do_'+name)
 			method(active)
+
+# Need to register classes defining gobject signals
+gobject.type_register(PluginClass)

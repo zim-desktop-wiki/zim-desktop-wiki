@@ -23,14 +23,21 @@ from zim.notebook import Path
 ui_xml = '''
 <ui>
 <menubar name='menubar'>
-	<menu action='view_menu'>
-		<placeholder name='plugin_items'>
-			<menuitem action='show_calendar'/>
-		</placeholder>
-	</menu>
 	<menu action='go_menu'>
 		<placeholder name='plugin_items'>
 			<menuitem action='go_page_today'/>
+		</placeholder>
+	</menu>
+</menubar>
+</ui>
+'''
+
+ui_xml_show_dialog = '''
+<ui>
+<menubar name='menubar'>
+	<menu action='view_menu'>
+		<placeholder name='plugin_items'>
+			<menuitem action='show_calendar'/>
 		</placeholder>
 	</menu>
 </menubar>
@@ -72,22 +79,45 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = (
 		# key, type, label, default
+		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
 		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
 	)
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
+		self.sidepane_widget = None
+		self.ui_id_show_dialog = None
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			self.ui.add_ui(ui_xml, self)
+			self.do_preferences_changed()
+
+	def do_preferences_changed(self):
+		'''Switch between calendar in the sidepane or as a dialog'''
+		sidepane = self.ui.mainwindow.sidepane
+		if self.preferences['embedded']:
+			if self.ui_id_show_dialog:
+				self.ui.remove_ui(self, self.ui_id_show_dialog)
+				self.ui_id_show_dialog = None
+
+			self.sidepane_widget = CalendarPluginWidget(self)
+			sidepane.pack_start(self.sidepane_widget, False)
+			sidepane.reorder_child(self.sidepane_widget, 0)
+			self.sidepane_widget.show_all()
+		else:
+			if self.sidepane_widget:
+				sidepane.remove(self.sidepane_widget)
+				self.sidepane_widget = None
+
+			self.ui_id_show_dialog = self.ui.add_ui(ui_xml_show_dialog, self)
 
 	def path_from_date(self, date):
 		return Path(
 			self.preferences['namespace'] + ':' + date.strftime('%Y:%m:%d') )
 
 	def date_from_path(self, path):
-		_, year, month, day = path.name.rsplit(':', 3)
+		year, month, day = path.name.rsplit(':', 3)[-3:]
 		year, month, day = map(int, (year, month, day))
 		return dateclass(year, month, day)
 

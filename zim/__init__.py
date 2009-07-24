@@ -229,6 +229,10 @@ class NotebookInterface(gobject.GObject):
 	Subclasses can prove a class attribute "ui_type" to tell plugins what
 	interface they support. This can be "gtk" or "html". If "ui_type" is None
 	we run without interface (e.g. commandline export).
+
+	Signals:
+	* open-notebook (notebook)
+	  Emitted to open a notebook in this interface
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -275,7 +279,7 @@ class NotebookInterface(gobject.GObject):
 
 	def open_notebook(self, notebook):
 		'''Open a notebook if no notebook was set already.
-		'noetbook' can be either a string or a notebook object.
+		'notebook' can be either a string or a notebook object.
 		'''
 		import zim.notebook
 		if isinstance(notebook, basestring):

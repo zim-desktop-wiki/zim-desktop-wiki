@@ -23,13 +23,14 @@ class TestCalendarPlugin(TestCase):
 		pluginklass = zim.plugins.get_plugin('calendar')
 		plugin = pluginklass(ui)
 		today = dateclass.today()
-		path = plugin.path_from_date(today)
-		self.assertTrue(isinstance(path, Path))
-		namespace = Path(plugin.preferences['namespace'])
-		self.assertTrue(path > namespace)
-		date = plugin.date_from_path(path)
-		self.assertTrue(isinstance(date, dateclass))
-		self.assertEqual(date, today)
+		for namespace in (Path('Calendar'), Path(':')):
+			plugin.preferences['namespace'] = namespace.name
+			path = plugin.path_from_date(today)
+			self.assertTrue(isinstance(path, Path))
+			self.assertTrue(path > namespace)
+			date = plugin.date_from_path(path)
+			self.assertTrue(isinstance(date, dateclass))
+			self.assertEqual(date, today)
 
 
 class StubUI(object):

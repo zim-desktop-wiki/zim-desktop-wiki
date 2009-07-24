@@ -187,6 +187,9 @@ class GtkInterface(NotebookInterface):
 	  Called when closing a page, typically just before a new page is opened
 	  and before closing the application
 	* preferences-changed
+	  Emitted after the user changed the preferences
+	  (typically triggered by the preferences dialog)
+	Also see signals in zim.NotebookInterface
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -195,6 +198,7 @@ class GtkInterface(NotebookInterface):
 		'save-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+
 	}
 
 	ui_type = 'gtk'
@@ -392,13 +396,23 @@ class GtkInterface(NotebookInterface):
 			handler._ui_merge_ids += (id,)
 		else:
 			handler._ui_merge_ids = (id,)
+		return id
 
-	def remove_ui(self, handler):
-		'''Remove the ui definition(s) for a specific handler'''
-		if hasattr(handler, '_ui_merge_ids'):
-			for id in handler._ui_merge_ids:
-				self.uimanager.remove_ui(id)
-			handler._ui_merge_ids = None
+	def remove_ui(self, handler, id=None):
+		'''Remove the ui definition(s) for a specific handler. If an id is
+		given, only removes that ui part, else removes all ui parts defined
+		for this handler.
+		'''
+		if id:
+			self.uimanager.remove_ui(id)
+			if hasattr(handler, '_ui_merge_ids'):
+				handler._ui_merge_ids = \
+					filter(lambda i: i != id, handler._ui_merge_ids)
+		else:
+			if hasattr(handler, '_ui_merge_ids'):
+				for id in handler._ui_merge_ids:
+					self.uimanager.remove_ui(id)
+				handler._ui_merge_ids = None
 
 	def register_preferences(self, section, preferences):
 		'''Registers user preferences. Registering means that a
@@ -858,12 +872,16 @@ class MainWindow(gtk.Window):
 		self.hpane = gtk.HPaned()
 		self.hpane.set_position(175)
 		vbox.add(self.hpane)
-		self.pageindex = PageIndex(ui)
-		self.hpane.add1(self.pageindex)
+		self.sidepane = gtk.VBox(spacing=5)
+		self.hpane.add1(self.sidepane)
 
-		self.pageindex.connect('key-press-event',
+		self.sidepane.connect('key-press-event',
 			lambda o, event: event.keyval == KEYVAL_ESC
 				and self.toggle_sidepane())
+
+
+		self.pageindex = PageIndex(ui)
+		self.sidepane.add(self.pageindex)
 
 		vbox2 = gtk.VBox()
 		self.hpane.add2(vbox2)
@@ -1009,14 +1027,14 @@ class MainWindow(gtk.Window):
 			show = action.get_active()
 
 		if show:
-			self.pageindex.set_no_show_all(False)
-			self.pageindex.show_all()
+			self.sidepane.set_no_show_all(False)
+			self.sidepane.show_all()
 			self.hpane.set_position(self.uistate['sidepane_pos'])
 			self.pageindex.grab_focus()
 		else:
 			self.uistate['sidepane_pos'] = self.hpane.get_position()
-			self.pageindex.hide_all()
-			self.pageindex.set_no_show_all(True)
+			self.sidepane.hide_all()
+			self.sidepane.set_no_show_all(True)
 			self.pageview.grab_focus()
 
 		self.uistate['show_sidepane'] = show

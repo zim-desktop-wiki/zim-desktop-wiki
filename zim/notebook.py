@@ -536,11 +536,11 @@ class Path(object):
 
 	def __lt__(self, other):
 		'''`self < other` evaluates True when self is a parent of other'''
-		return other.name.startswith(self.name+':')
+		return self.isroot or other.name.startswith(self.name+':')
 
 	def __gt__(self, other):
 		'''`self > other` evaluates True when self is a child of other'''
-		return self.name.startswith(other.name+':')
+		return other.isroot or self.name.startswith(other.name+':')
 
 	def __add__(self, name):
 		'''"path + name" returns a child path'''

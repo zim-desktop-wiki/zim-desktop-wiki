@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Fri, 24 Jul 2009 19:41:30 +0200
+Modification-Date: Fri, 24 Jul 2009 19:44:15 +0200
+
+====== Daily Journal ======
+
+You can use zim a journal notebook by using the calendar plugin.
+
+If you want to mix the journal with other notes you can keep the journal pages in a separate namespace, like ':Calendar'. Or you can configure the top level namespace as the place to keep journal pages.
+
+For a dedicated journal notebook you typically want to set the preference to have the calendar embedded in the side pane. 
+
