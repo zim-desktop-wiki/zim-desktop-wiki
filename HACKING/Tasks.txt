@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Mon, 20 Jul 2009 21:13:39 +0200
+Modification-Date: Tue, 28 Jul 2009 23:18:52 +0200
 
 ====== Tasks ======
 
@@ -25,7 +25,7 @@ Modification-Date: Mon, 20 Jul 2009 21:13:39 +0200
 
 == Defects ==
 [ ] History: hook cursor position into history and actually use it
-[ ] MainWindow: cltr-space and alt-spac keybindings to focus side pane
+[*] MainWindow: cltr-space and alt-spac keybindings to focus side pane
 [ ] Pageview: enforce sane indenting levels for lists
 [ ] Pageview: enforce heading can not be indented
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up

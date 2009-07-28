@@ -150,8 +150,10 @@ ui_preferences = (
 	# section, key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
-	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)'), True),
+	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)'), False),
 		# T: Option in the preferences dialog
+		# default value is False because this is mapped to switch between
+		# char sets in cerain international key mappings
 )
 
 # Load custom application icons as stock
@@ -833,6 +835,10 @@ class MainWindow(gtk.Window):
 		ui.connect_after('open-notebook', self.do_open_notebook)
 		ui.connect('open-page', self.do_open_page)
 		ui.connect('close-page', self.do_close_page)
+		ui.connect('preferences-changed', self.do_preferences_changed)
+
+		self._sidepane_autoclose = False
+		self._switch_focus_accelgroup = None
 
 		# Catching this signal prevents the window to actually be destroyed
 		# when the user tries to close it. The action for close should either
@@ -928,6 +934,25 @@ class MainWindow(gtk.Window):
 		#~ statusbar2.set_size_request(25, 10)
 		#~ hbox.pack_end(statusbar2, False)
 
+		self.do_preferences_changed()
+
+	def do_preferences_changed(self, *a):
+		if self._switch_focus_accelgroup:
+			self.remove_accel_group(self._switch_focus_accelgroup)
+
+		space = gtk.gdk.unicode_to_keyval(ord(' '))
+		group = gtk.AccelGroup()
+		group.connect_group( # <Alt><Space>
+			space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
+			self.do_switch_focus)
+		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
+			group.connect_group( # <Ctrl><Space>
+				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
+				self.do_switch_focus)
+
+		self.add_accel_group(group)
+		self._switch_focus_accelgroup = group
+
 	def get_selected_path(self):
 		'''Returns a selected path either from the side pane or the pathbar
 		if any or None.
@@ -1019,7 +1044,27 @@ class MainWindow(gtk.Window):
 			self.pageindex.set_no_show_all(True)
 			self.pageview.grab_focus()
 
+		self._sidepane_autoclose = False
 		self.uistate['show_sidepane'] = show
+
+	def do_switch_focus(self, *a):
+		action = self.actiongroup.get_action('toggle_sidepane')
+		if action.get_active():
+			# side pane open
+			if self.hpane.get_focus_child() == self.pageindex:
+				# and has focus
+				self.pageview.grab_focus()
+				if self._sidepane_autoclose:
+					self.toggle_sidepane(show=False)
+			else:
+				# but no focus
+				self.pageindex.grab_focus()
+		else:
+			self.toggle_sidepane(show=True)
+			self._sidepane_autoclose = True
+			self.pageindex.grab_focus()
+
+		return True # we are called from an event handler
 
 	def set_pathbar(self, style):
 		'''Set the pathbar. Style can be either PATHBAR_NONE,
