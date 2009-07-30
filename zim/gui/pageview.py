@@ -2094,6 +2094,21 @@ class PageView(gtk.VBox):
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
 
+	def set_cursor_pos(self, pos):
+		buffer = self.view.get_buffer()
+		buffer.place_cursor(buffer.get_iter_at_offset(pos))
+
+	def get_cursor_pos(self):
+		buffer = self.view.get_buffer()
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		return iter.get_offset()
+
+	def set_scroll_pos(self, pos):
+		pass # FIXME set scroll position
+
+	def get_scroll_pos(self):
+		pass # FIXME get scroll position
+
 	def do_textstyle_changed(self, buffer, style):
 		# set statusbar
 		if style: label = style.title()

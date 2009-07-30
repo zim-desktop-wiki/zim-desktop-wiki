@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Tue, 28 Jul 2009 23:18:52 +0200
+Modification-Date: Thu, 30 Jul 2009 19:33:28 +0200
 
 ====== Tasks ======
 
@@ -24,7 +24,7 @@ Modification-Date: Tue, 28 Jul 2009 23:18:52 +0200
 
 
 == Defects ==
-[ ] History: hook cursor position into history and actually use it
+[*] History: hook cursor position into history and actually use it
 [*] MainWindow: cltr-space and alt-spac keybindings to focus side pane
 [ ] Pageview: enforce sane indenting levels for lists
 [ ] Pageview: enforce heading can not be indented
@@ -43,7 +43,6 @@ Modification-Date: Tue, 28 Jul 2009 23:18:52 +0200
 [ ] Dialog: Autocompletion for pages and namespaces in dialogs
 	* Use a sub-class of the treemodel from the index ?
 [ ] Commandline: Allow opening files mapping to pages from the commandline
-[ ] WWW: Improve dialog for controlling web server
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
 [ ] Templates: first heading of tree should be a separate template parameter
@@ -54,7 +53,7 @@ Modification-Date: Tue, 28 Jul 2009 23:18:52 +0200
 
 == Features ==
 [ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
-[ ] Pageview: Finish the UndoStackManager and hook to the pageview
+[*] Pageview: Finish the UndoStackManager and hook to the pageview
 [ ] Pageview: menu controls to indent / unindent / move up move down a list item
 	* Check emission of indent-changed signal to set state of buttons
 	* Also think about keybindings for moving a line up / down or top / bottom
@@ -76,6 +75,7 @@ Modification-Date: Tue, 28 Jul 2009 23:18:52 +0200
 	* Preferences dialog should have list of mount points
 [ ] Implement zip and tar.gz notebooks
 [ ] Implement gjots notebooks
+[ ] WWW: Improve dialog for controlling web server
 [ ] WWW: Implement a '--public' option + add checkbox in GUI to allow remote connections (default localhost only)
 [ ] Templates: setting to determing use of <br> elements (default yes)
 [ ] Templates: need settings to enforce level of headings in output

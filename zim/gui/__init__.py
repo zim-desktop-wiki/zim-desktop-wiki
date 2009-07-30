@@ -525,13 +525,20 @@ class GtkInterface(NotebookInterface):
 		child = self.actiongroup.get_action('open_page_child')
 
 		if isinstance(path, HistoryRecord):
+			historyrecord = path
 			self.history.set_current(path)
-			back.set_sensitive(not path.is_first())
-			forward.set_sensitive(not path.is_last())
+			back.set_sensitive(not path.is_first)
+			forward.set_sensitive(not path.is_last)
 		else:
 			self.history.append(page)
+			historyrecord = self.history.get_current()
 			back.set_sensitive(not is_first_page)
 			forward.set_sensitive(False)
+
+		if historyrecord and not historyrecord.cursor == None:
+			self.mainwindow.pageview.set_cursor_pos(historyrecord.cursor)
+			self.mainwindow.pageview.set_scroll_pos(historyrecord.scroll)
+
 
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
@@ -546,6 +553,11 @@ class GtkInterface(NotebookInterface):
 	def do_close_page(self, page):
 		if page.modified:
 			self.save_page(page)
+
+		current = self.history.get_current()
+		if current == page:
+			current.cursor = self.mainwindow.pageview.get_cursor_pos()
+			current.scroll = self.mainwindow.pageview.get_scroll_pos()
 
 		def save_uistate():
 			if self.uistate.modified:
