@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- this file is NOT in store.xml format -->
+<pagelist>
+<page name="TODOList:foo">
+TODO: fix 1 !!!
+
+TODO:
+* fix 2 24/3/08 !!
+* fix 3 !
+</page>
+<page name="TODOList:bar">
+TODO: test 123 test !!
+
+* foo ! - TODO
+* bar ! - TODO
+* baz - TODO
+
+[[Test:Foo:BAR]]
+</page>
+<page name="Test:wiki">
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Foo Bar ======
+
+This is a **test page** to see how parsing goes
+when ''we'' ''loop'',
+arbitrary //content// through our __parser__
+
+	The was pre formatted but is not
+	anymore in versions &gt;= 0.26
+
+'''
+This however
+should now be verbatim
+'''
+
+'''
+	this too by the way !
+'''
+
+($ROOT, $PAGE, @BACK, @FORW, $UNDO, $REDO);
+		my (%tree_iter, $tree_loaded, $pane_visible);
+		my (@undo_chars, $undo_lock, $save_lock, $overwrite_toggle);
+		my %undo_steps = (
+	       delete =&gt; 'insert', insert =&gt; 'delete',
+	       apply_tag =&gt; 'remove_tag', remove_tag =&gt; 'apply_tag' );
+		my $link_icon = Gtk2-&gt;CHECK_VERSION(2, 6, 0) ? 'gtk-connect' : 'gtk-convert';
+	       # gtk-connect stock item was introduced in 2.6.0
+		my $DATA_DIR  = find_data_dir();
+		my $ICON_FILE = File::Spec-&gt;catfile($DATA_DIR, qw/images zim64.png/);
+
+my %opts = ( 'read_only' =&gt; 0 );
+	for (@ARGV) {
+	        next unless /^-/;
+	        if (/^(--version|-v)$/) {
+	                print version();
+	                exit;
+	        }
+	        elsif (/^--read-?o
+	             my $iter = $buffer-&gt;get_iter_at_mark($buffer-&gt;get_insert());
+	                return parse_backspace($iter);
+	        }
+	        elsif ($val == $k_tab or $val == ord(' ')) { # Other WhiteSpace
+	                my $buffer = $self-&gt;get_buffer;
+	                my $iter = $buffer-&gt;get_iter_at_mark($buffer-&gt;get_insert());
+	                my $string = ($val == $k_tab) ? "\t" : ' ';
+	                return parse_word($iter, $string);
+	        }
+	        #else { printf "key %x pressed\n", $val } # perldoc -m Gtk2::Gdk::Keysyms
+
+return 0; } )
+unless $opts{read_only};
+
+Glib::Timeout-&gt;add(5000, \&amp;save_page)
+	        unless $opts{read_only}; # TODO also use this timer for maintaining an undo stack
+
+	# ################# #
+
+
+	some pre format
+	dsfdf
+			dfssdf
+			sdfsdf
+
+	sdf
+	sdf
+		*&amp;^*&amp;%*&amp;
+
+===== So =====
+what do we need to type
+* to make
+	* the parser
+	* vomit
+		* ???
+
+dfsfds
+sdfd
+fdsfdsfdsfds
+
+
+{{foo.png}}{{bar.png}}
+
+{{foo.tex|foo.png}}
+
+fsdfds
+
+=== fdsfds ===
+
+123 test
+
+sdffdsfds
+
+</page>
+<page name="Test:foo">
+====== Foo ======
+
+bar baz
+</page>
+<page name="Test:foo:bar">
+= FOO =
+
+[[wIKi]]
+[[test:foo]]
+
+•• Search Me ••
+</page>
+<page name="roundtrip">
+====== Head1 ======
+
+===== Head 2 =====
+
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat. Duis aute irure dolor in
+reprehenderit in voluptate velit esse cillum dolore eu fugiat
+nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
+sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+'''
+Some Verbatim here
+
+	Indented and all: //foo//
+'''
+
+IMAGE: {{../my-image.png?width=600|Foo Bar}}
+LINKS: [[:foo:bar]] [[./file.png]] [[file:///etc/passwd]]
+LINKS: [[Foo]][[Bar]]
+
+	Some indented
+	paragraphs go here ...
+
+
+
+Let's try these **bold**, //italic//, __underline__ and ~~strike~~
+And some ''//verbatim//''
+And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
+
+A list
+* foo
+	* bar
+	* baz
+
+And a checkbox list
+[ ] item 1
+	[*] sub item 1
+		* Some normal bullet
+	[x] sub item 2
+	[ ] sub item 3
+[ ] item 2
+[ ] item 3
+	[x] item FOOOOOO !
+
+----
+
+====
+This is not a header
+
+That's all ...
+</page>
+<page name="utf8:αβγ">
+Test 1 2 3
+Test 1 2 3
+</page>
+<page name="utf8:בדיקה:טכניון">
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: ×', 07 ××¤×¨ 2009 01:30:27 +0300
+Modification-Date: ×', 07 ××¤×¨ 2009 01:30:27 +0300
+
+====== Hello ======
+Created שלישי 07 אפריל 2009
+
+</page>
+<page name="utf8:בדיקה:טכניון:מדעי המחשב">
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: ×', 07 ××¤×¨ 2009 13:08:18 +0300
+Modification-Date: ×', 07 ××¤×¨ 2009 13:10:08 +0300
+
+====== מדעי המחשב ======
+Created שלישי 07 אפריל 2009
+
+שפת תכנות
+אלגוריטמיים
+</page>
+<page name="utf8:בדיקה:טכניון:הנדסת מכונות">
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: ×', 07 ××¤×¨ 2009 13:08:06 +0300
+Modification-Date: ×', 07 ××¤×¨ 2009 13:09:28 +0300
+
+====== הנדסת מכונות ======
+Created שלישי 07 אפריל 2009
+
+חדו"א
+מד"ר
+מכניקת מוצקים 2
+A line in English, should be left aligned.
+דינמיקה
+</page>
+</pagelist>

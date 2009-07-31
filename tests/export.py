@@ -2,7 +2,7 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
-from tests import TestCase, create_tmp_dir, get_test_notebook, get_notebook_data
+from tests import TestCase, create_tmp_dir, get_test_notebook, get_test_data
 
 from subprocess import check_call
 
@@ -39,7 +39,7 @@ class TestExportCommandLine(TestExport):
 	def export(self):
 		dir = Dir(create_tmp_dir('export_SourceFiles'))
 		notebook = Notebook(path=dir)
-		for name, text in get_notebook_data('wiki'):
+		for name, text in get_test_data('wiki'):
 			page = notebook.get_page(Path(name))
 			page.parse('wiki', text)
 			notebook.store_page(page)

@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Mon, 20 Jul 2009 21:13:39 +0200
+Modification-Date: Fri, 31 Jul 2009 18:03:41 +0200
 
 ====== Tasks ======
 
@@ -19,6 +19,7 @@ Modification-Date: Mon, 20 Jul 2009 21:13:39 +0200
 [*] Translations: add script to include comments in zim.pot
 [ ] Update CHANGELOG.txt
 [*] Update "Install" and "Packaging" sections in README.txt
+[*] Package test data as a xml file
 [ ] Build ubuntu / debian package
 [ ] Build windows installer (with or without Python + Gtk included)
 

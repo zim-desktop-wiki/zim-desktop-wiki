@@ -139,11 +139,17 @@ class Notebook(gobject.GObject):
 	def add_store(self, path, store, **args):
 		'''Add a store to the notebook to handle a specific path and all
 		it's sub-pages. Needs a Path and a store name, all other args will
-		be passed to the store. Returns the store object.
+		be passed to the store. Alternatively you can pass a store object
+		but in that case no arguments are allowed.
+		Returns the store object.
 		'''
-		mod = zim.stores.get_store(store)
 		assert not path.name in self._stores, 'Store for "%s" exists' % path
-		mystore = mod.Store(notebook=self, path=path, **args)
+		if isinstance(store, basestring):
+			mod = zim.stores.get_store(store)
+			mystore = mod.Store(notebook=self, path=path, **args)
+		else:
+			assert not args
+			mystore = store
 		self._stores[path.name] = mystore
 		self._namespaces.append(path.name)
 
@@ -237,7 +243,8 @@ class Notebook(gobject.GObject):
 					# name not found, keep case as is
 					return namespace+name
 
-	def cleanup_pathname(self, name):
+	@staticmethod
+	def cleanup_pathname(name):
 		'''Returns a safe version of name, used internally by functions like
 		resolve_path() to parse user input.
 		'''
@@ -356,7 +363,7 @@ class Notebook(gobject.GObject):
 		if newbasename.lower() != path.basename.lower():
 			# allow explicit case-sensitive renaming
 			newpath = self.index.resolve_case(
-				newbasename, namespace=path.get_parent()) or newpath
+				newbasename, namespace=path.parent) or newpath
 
 		self.move_page(path, newpath, update_links=update_links)
 		if update_heading:
@@ -543,11 +550,8 @@ class Path(object):
 		return other.isroot or self.name.startswith(other.name+':')
 
 	def __add__(self, name):
-		'''"path + name" returns a child path'''
-		if len(self.name):
-			return Path(self.name+':'+name)
-		else: # we are the top level root namespace
-			return Path(name)
+		'''"path + name" is an alias for path.child(name)'''
+		return self.child(name)
 
 	@property
 	def parts(self):
@@ -585,7 +589,8 @@ class Path(object):
 		else:
 			raise Exception, '"%s" is not below "%s"' % (self, path)
 
-	def get_parent(self):
+	@property
+	def parent(self):
 		'''Returns the path for the parent page'''
 		namespace = self.namespace
 		if namespace:
@@ -605,6 +610,14 @@ class Path(object):
 				yield Path(namespace)
 				path.pop()
 		yield Path(':')
+
+
+	def child(self, name):
+		'''Returns a child path for 'name' '''
+		if len(self.name):
+			return Path(self.name+':'+name)
+		else: # we are the top level root namespace
+			return Path(name)
 
 
 class Page(Path):

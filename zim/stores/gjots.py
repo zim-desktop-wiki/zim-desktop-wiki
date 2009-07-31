@@ -23,12 +23,12 @@ arge numbers of very short entries, which may take a lot of
 overhead when saved as individual files.
 '''
 
+# FUTURE: This module only read gjots file but does not write them.
+# Creating a read/write version is left as an exercise to the reader.
+
 from zim.formats import get_format
 from zim.stores import memory
 
-__store__ = 'gjots'
-
-# TODO needs stub format "plain" - DONE
 # TODO needs parser and dumper routines
 # TODO needs base.has_file()
 # TODO needs test
@@ -36,20 +36,42 @@ __store__ = 'gjots'
 
 class Store(memory.Store):
 
+	properties = {
+		'read-only': True
+	}
+
 	def __init__(self, **args):
 		memory.Store.__init__(self,  **args)
 		self.format = get_format('plain')
 		if 'file' in args:
 			self.file = file
 		assert self.has_file()
-		self._read_file()
+		self.read_file()
 
-	def _read_file(self):
-		pass # TODO gjots parser code goes here
+	def read_file(self):
+		path = [self.file.basename, '']
+		buffer = []
+		for line in self.file:
+			if line.rstrip() in ('\\NewEntry', '\\NewFolder', '\\EndFolder'):
+				if buffer:
+					title = Notebook.cleanup_pathname(buffer[0].replace(':', ' '))
+					p = Path(':'.join(path))
+							# Any '' at the end of path drops out, this is intended behavior
+					self._set_node(p, ''.join(buffer))
+					buffer = []
 
-	def _write_file(self):
-		pass # TODO gjots dumper code goes here
+				if line.rstrip() == '\\NewFolder':
+					path.append('')
+				elif line.rstrip == '\\EndFolder':
+					path.pop()
+			else:
+				buffer.append(line)
 
-	def _on_write(self, buffer):
-		memory.Store._on_write(self, buffer)
-		self._write_file()
+
+	#~ def store_page(page):
+		#~ memory.Store.store_page(self, page)
+		#~ self.write_file()
+
+	#~ def write_file(self):
+		#~ pass
+

@@ -19,7 +19,7 @@ def get_files_notebook():
 	notebook = Notebook(path=dir)
 	store = notebook.get_store(':')
 	manifest = []
-	for name, text in tests.get_notebook_data('wiki'):
+	for name, text in tests.get_test_data('wiki'):
 		manifest.append(name)
 		page = store.get_page(Path(name))
 		page.parse('wiki', text)

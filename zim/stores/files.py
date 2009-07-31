@@ -27,12 +27,12 @@ from zim.config import HeadersDict
 
 class Store(StoreClass):
 
-	def __init__(self, dir=None, **args):
+	def __init__(self, notebook, path, dir=None):
 		'''Contruct a files store.
 
 		Takes an optional 'dir' attribute.
 		'''
-		StoreClass.__init__(self, **args)
+		StoreClass.__init__(self, notebook, path)
 		self.dir = dir
 		assert self.store_has_dir()
 		self.format = get_format('wiki') # TODO make configable

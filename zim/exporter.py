@@ -101,7 +101,7 @@ class BaseLinker(object):
 		type = link_type(link)
 		if type == 'page':
 			# even though useless in the typical use-case still resolve pages so they look OK
-			page = self.notebook.resolve_path(link, namespace=self.path.get_parent())
+			page = self.notebook.resolve_path(link, namespace=self.path.parent)
 			href = '/' + encode_filename(page.name) + self._extension
 		elif type == 'file':
 			href = self.src(link, path)

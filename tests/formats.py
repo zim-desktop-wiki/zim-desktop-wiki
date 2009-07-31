@@ -4,7 +4,7 @@
 
 '''Test cases for the zim.formats module.'''
 
-from tests import TestCase, get_test_page, get_test_data
+from tests import TestCase, get_test_data_page, get_test_page
 
 from zim.formats import *
 from zim.notebook import Link
@@ -13,7 +13,7 @@ from zim.parsing import link_type
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
 
-wikitext = get_test_data('notebook-wiki/roundtrip.txt')
+wikitext = get_test_data_page('wiki', 'roundtrip')
 
 class TestParseTree(TestCase):
 

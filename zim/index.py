@@ -118,7 +118,8 @@ class IndexPath(Path):
 			except IndexError:
 				raise AttributeError, '%s has no attribute %s' % (self.__repr__, attr)
 
-	def get_parent(self):
+	@property
+	def parent(self):
 		'''Returns IndexPath for parent path'''
 		namespace = self.namespace
 		if namespace:
@@ -362,7 +363,7 @@ class Index(gobject.GObject):
 			for link in page.get_links():
 				# TODO ignore links that are not internal
 				href = self.notebook.resolve_path(
-					link.href, namespace=page.get_parent(), index=self)
+					link.href, namespace=page.parent, index=self)
 					# need to specify index=self here because we are
 					# not necessary the default index for the notebook
 				if not href is None:
@@ -722,7 +723,7 @@ class Index(gobject.GObject):
 			prev = self._get_prev(path)
 			if prev is None:
 				# climb one up to parent
-				parent = path.get_parent()
+				parent = path.parent
 				if not parent.isroot:
 					prev = parent
 			else:
@@ -733,7 +734,7 @@ class Index(gobject.GObject):
 
 	def _get_prev(self, path):
 		'''Atomic function for get_previous()'''
-		pagelist = self.list_pages(path.get_parent())
+		pagelist = self.list_pages(path.parent)
 		i = pagelist.index(path)
 		if i > 0:
 			return pagelist[i-1]
@@ -768,7 +769,7 @@ class Index(gobject.GObject):
 
 	def _get_next(self, path):
 		'''Atomic function for get_next()'''
-		pagelist = self.list_pages(path.get_parent())
+		pagelist = self.list_pages(path.parent)
 		i = pagelist.index(path)
 		if i+1 < len(pagelist):
 			return pagelist[i+1]

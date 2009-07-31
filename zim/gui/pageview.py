@@ -2035,7 +2035,7 @@ class PageView(gtk.VBox):
 
 		if type == 'page':
 			path = self.ui.notebook.resolve_path(
-				link['href'], self.page.get_parent())
+				link['href'], self.page.parent)
 			self.ui.open_page(path)
 		elif type == 'file':
 			path = self.ui.notebook.resolve_file(

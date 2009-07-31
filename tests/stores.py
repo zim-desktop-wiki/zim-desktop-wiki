@@ -44,18 +44,11 @@ def ascii_page_tree(store, namespace=None, level=0):
 	return text
 
 
-class TestStoresMemory(tests.TestCase):
-	'''Test the store.memory module'''
+class TestReadOnlyStore(object):
 
-	def setUp(self):
-		'''Initialise a fresh notebook'''
-		store = zim.stores.get_store('memory')
-		self.store = store.Store(path=Path(':'), notebook=Notebook())
-		self.index = set()
-		for name, text in tests.get_notebook_data('wiki'):
-			self.store._set_node(Path(name), text)
-			self.index.add(name)
-		self.normalize_index()
+	# This class does not inherit from TestCase itself as it is used
+	# as a mixin for TestCase classes below but isn't a test case
+	# in itself
 
 	def normalize_index(self):
 		'''Make sure the index conains namespaces for all page names'''
@@ -80,6 +73,19 @@ class TestStoresMemory(tests.TestCase):
 		#pprint.pprint(names)
 		self.assertTrue(u'utf8:\u03b1\u03b2\u03b3' in names) # Check usage of unicode
 		self.assertEqualDiffData(names, self.index)
+
+
+class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
+	'''Test the store.memory module'''
+
+	def setUp(self):
+		store = zim.stores.get_store('memory')
+		self.store = store.Store(path=Path(':'), notebook=Notebook())
+		self.index = set()
+		for name, text in tests.get_test_data('wiki'):
+			self.store._set_node(Path(name), text)
+			self.index.add(name)
+		self.normalize_index()
 
 	def testManipulate(self):
 		'''Test moving and deleting pages in the memory store'''
@@ -157,6 +163,45 @@ class TestStoresMemory(tests.TestCase):
 	# TODO test move, delete, read, write
 
 
+class TextXMLStore(TestReadOnlyStore, tests.TestCase):
+
+	xml = u'''\
+<?xml version='1.0' encoding='utf-8'?>
+<section>
+<page name='Foo'>
+Fooo!
+<page name="Bar">
+Foooo Barrr
+</page>
+</page>
+<page name='Baz'>
+Fooo barrr bazzz
+</page>
+<page name='utf8'>
+<page name='\u03b1\u03b2\u03b3'>
+Utf8 content here
+</page>
+</page>
+</section>
+'''
+
+	def setUp(self):
+		buffer = StubFile(self.xml)
+		store = zim.stores.get_store('xml')
+		self.store = store.Store(path=Path(':'), notebook=Notebook(), file=buffer)
+		self.index = set(['Foo', 'Foo:Bar', 'Baz', u'utf8:\u03b1\u03b2\u03b3'])
+		self.normalize_index()
+
+	def testIndex(self):
+		'''Test we get a proper index for the XML store'''
+		TestReadOnlyStore.testIndex(self)
+
+	def testContent(self):
+		page = self.store.get_page(Path('Foo:Bar'))
+		self.assertEqual(page.dump(format='wiki'), ['Foooo Barrr\n'])
+		ref = self.xml.replace("'", '"')
+		self.assertEqualDiff(''.join(self.store.dump()), ref)
+	
 
 class TestFiles(TestStoresMemory):
 	'''Test the store.files module'''
@@ -204,3 +249,28 @@ class TestFiles(TestStoresMemory):
 		self.assertTrue('BARRR' in ''.join(page.dump('plain')))
 		self.modify(page.source.path, lambda p: open(p, 'w').write('bar'))
 		self.assertRaises(OverWriteError, self.store.store_page, page)
+
+
+class StubFile(File):
+
+	def __init__(self, text):
+		self.text = text
+
+	def read(self):
+		return self.text
+
+	def readlines(self):
+		return self.text.splitlines(True)
+
+	def write(self, *a):
+		assert False
+
+	def writelines(self, *a):
+		assert False
+
+	def open(self, *a):
+		assert False
+
+	def exists(self):
+		return len(self.text) > 0
+

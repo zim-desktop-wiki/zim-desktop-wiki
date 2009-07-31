@@ -1,7 +1,0 @@
-TODO: test 123 test !!
-
-* foo ! - TODO
-* bar ! - TODO
-* baz - TODO
-
-[[Test:Foo:BAR]]

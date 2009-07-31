@@ -122,7 +122,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			pagelist = path._pagelist_ref
 			i = path._pagelist_index + 1
 		else:
-			pagelist = self.index.list_pages(path.get_parent())
+			pagelist = self.index.list_pages(path.parent)
 			i = pagelist.index(path) + 1
 
 		if i >= len(pagelist):
@@ -176,7 +176,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 
 	def on_iter_parent(self, child):
 		'''Returns a IndexPath for parent node of child or None'''
-		parent = child.get_parent()
+		parent = child.parent
 		if parent.isroot:
 			return None
 		else:

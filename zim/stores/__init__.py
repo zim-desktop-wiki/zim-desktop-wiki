@@ -168,7 +168,7 @@ class StoreClass():
 		return None
 
 	def store_has_dir(self):
-		'''Returns True if we have a directory attribute.
+		'''Returns True if we have a directory attribute 'dir'.
 		Auto-vivicates the dir based on namespace if needed.
 		Intended to be used in an 'assert' statement by subclasses that
 		require a directory to store their content.
@@ -179,6 +179,21 @@ class StoreClass():
 			path = self.namespace.name.replace(':', '/')
 			self.dir = Dir([self.notebook.dir, path])
 			return True
+		else:
+			return False
+
+	def store_has_file(self):
+		'''Returns True if we have a file attribute 'file'.
+		If we are the toplevel namespace we can take a file source set for
+		the whole notebook.
+		Intended to be used in an 'assert' statement by subclasses that
+		require a file to read their content from.
+		'''
+		if hasattr(self, 'file') and not self.file is None:
+			return isinstance(self.file, File)
+		elif hasattr(self.notebook, 'file') and self.namespace.isroot:
+			self.file = self.notebook.file
+			return isinstance(self.file, File)
 		else:
 			return False
 

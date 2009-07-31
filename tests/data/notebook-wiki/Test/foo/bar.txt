@@ -1,6 +1,0 @@
-= FOO =
-
-[[wIKi]]
-[[test:foo]]
-
-•• Search Me ••

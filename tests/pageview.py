@@ -1,5 +1,5 @@
 
-from tests import TestCase, get_test_data, get_test_page
+from tests import TestCase, get_test_data_page, get_test_page
 
 from zim.fs import *
 from zim.formats import wiki
@@ -8,7 +8,7 @@ from zim.gui.pageview import *
 class TestTextBuffer(TestCase):
 
 	def runTest(self):
-		wikitext = get_test_data('notebook-wiki/roundtrip.txt')
+		wikitext = get_test_data_page('wiki', 'roundtrip')
 		tree = wiki.Parser().parse(wikitext)
 		notebook, page = get_test_page()
 		notebook.get_store(page).dir = Dir('/foo') # HACK

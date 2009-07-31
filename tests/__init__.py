@@ -7,8 +7,9 @@
 import os
 import shutil
 import unittest
-import codecs
 import gettext
+import xml.etree.cElementTree as etree
+
 
 __all__ = [
 	'errors', 'parsing', 'fs', 'config',
@@ -52,27 +53,40 @@ def create_tmp_dir(name):
 	assert os.path.exists(dir) # make real sure
 	return dir
 
-_test_data_cache = {}
 
-def get_test_data(path):
-	if not path in _test_data_cache:
-		buffer = codecs.open(
-			'tests/data/'+path.encode('utf-8'), encoding='utf-8' ).read()
-		_test_data_cache[path] = buffer
+_test_data_wiki = None
 
-	buffer = _test_data_cache[path]
-	assert len(buffer) and not buffer.isspace()
-	return buffer
-
-def get_notebook_data(format):
-	'''Generator function for test data'''
+def get_test_data(format):
+	global _test_data_wiki
 	assert format == 'wiki' # No other formats available for now
-	manifest = get_test_data('notebook-wiki/MANIFEST')
-	files = [f.rstrip() for f in manifest.splitlines()]
-	for file in files:
-		pagename = file[:-4] # remove .txt
-		pagename = pagename.replace('/',':').replace('_', ' ')
-		yield (pagename, get_test_data('notebook-wiki/'+file))
+	if _test_data_wiki is None:
+		_test_data_wiki = _get_test_data_wiki()
+
+	for name, text in _test_data_wiki:
+		yield name, text
+
+
+def get_test_data_page(format, name):
+	global _test_data_wiki
+	assert format == 'wiki' # No other formats available for now
+	if not _test_data_wiki:
+		_test_data_wiki = _get_test_data_wiki()
+
+	for n, text in _test_data_wiki:
+		if n == name:
+			return text
+	assert False, 'Could not find data for page: %s' % name
+
+
+def _get_test_data_wiki():
+	test_data = []
+	tree = etree.ElementTree(file='tests/data/notebook-wiki.xml')
+	for node in tree.getiterator(tag='page'):
+		name = node.attrib['name']
+		text = unicode(node.text.lstrip('\n'))
+		test_data.append((name, text)) 
+	return tuple(test_data)
+
 
 def get_test_notebook(format='wiki'):
 	'''Returns a notebook with a memory store and some test data'''
@@ -81,11 +95,12 @@ def get_test_notebook(format='wiki'):
 	notebook = Notebook(index=Index(dbfile=':memory:'))
 	store = notebook.add_store(Path(':'), 'memory')
 	manifest = []
-	for name, text in get_notebook_data(format):
+	for name, text in get_test_data(format):
 			manifest.append(name)
 			store._set_node(Path(name), text)
 	notebook.testdata_manifest = expand_manifest(manifest)
 	return notebook
+
 
 def expand_manifest(names):
 	'''Build a set of all pages names and all namespaces that need to
@@ -99,6 +114,7 @@ def expand_manifest(names):
 			name = name[:i]
 			manifest.add(name)
 	return manifest
+
 
 def get_test_page(name='Foo'):
 	'''FIXME'''

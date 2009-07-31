@@ -17,11 +17,11 @@ from zim.stores import StoreClass
 
 class Store(StoreClass):
 
-	def __init__(self, **args):
+	def __init__(self, notebook, path):
 		'''Contruct a memory store.
 		Pass args needed for StoreClass init.
 		'''
-		StoreClass.__init__(self, **args)
+		StoreClass.__init__(self, notebook, path)
 		self.format = get_format('wiki') # TODO make configable
 		self._nodetree = []
 
@@ -116,7 +116,7 @@ class Store(StoreClass):
 		if node is None:
 			return False
 
-		parent = path.get_parent()
+		parent = path.parent
 		if parent.isroot:
 			self._nodetree.remove(node)
 		else:
