@@ -1,0 +1,16 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Thu, 30 Jul 2009 21:37:25 +0200
+Modification-Date: Thu, 30 Jul 2009 21:37:26 +0200
+
+====== SavedSearch ======
+Created Thursday 30 July 2009
+
+voor tags of andere saved search zelfde idee als voor TODO plugin
+
+-> connect naar database voor init table / index page
+-> on init check of table bestaat, anders force update index
+
+Generic SavedSearch object die een query neemt als argument
+Probably sub class van Search / Query object
+Tags plugin kan die dan gebruiken

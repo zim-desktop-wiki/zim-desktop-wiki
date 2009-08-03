@@ -1,13 +1,40 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Unknown
-Modification-Date: Sat, 04 Apr 2009 10:57:58 +0200
+Modification-Date: Thu, 30 Jul 2009 21:34:25 +0200
 
 ====== Task List ======
 
 Start by renaming TODOList to "Task List"...
 
 ----
+Keep it simple, only 2 preference options:
+[*] Inlcude all checkboxes in the task list
+[ ] Incluse lines by tag
+   Tags: [TODO, FIXME ]
+
+Do not take into account headers anymore
+2 use cases:
+1) task management - use checkboxes
+2) writing a document - use tagged lines as placeholders
+
+request to do further filtering of headings / namespaces etc. only
+after clear use case
+
+Index should have two signals
+* initialize tables
+* index page
+
+On initialize table add extra table for tasks
+On index page scan for tasks and put them in the table
+We trust the index to be up2date
+
+Changing preferences -> popup index needs to be rebuild do it now? yes/no
+
+Also TreeModel that maps that table - re-use code from PageIndex ??
+
+------
+
 
 How could zim and gtg integrate ?
 

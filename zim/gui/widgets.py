@@ -12,6 +12,7 @@ import gobject
 import gtk
 import logging
 
+from zim.fs import *
 import zim.errors
 import zim.config
 

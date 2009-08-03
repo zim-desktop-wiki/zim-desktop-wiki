@@ -22,11 +22,16 @@ Modification-Date: Fri, 31 Jul 2009 18:03:41 +0200
 [*] Package test data as a xml file
 [ ] Build ubuntu / debian package
 [ ] Build windows installer (with or without Python + Gtk included)
+[ ] Add website to bazaar + tools/generate_wesite.py
+       * Include some static pages + screenshots etc.
+       * Include manual in website
+       * Include HACKING in website
+       * Store old manual somewhere and link it (but not in bazaar branch)
 
 
 == Defects ==
-[ ] History: hook cursor position into history and actually use it
-[ ] MainWindow: cltr-space and alt-spac keybindings to focus side pane
+[*] History: hook cursor position into history and actually use it
+[*] MainWindow: cltr-space and alt-spac keybindings to focus side pane
 [ ] Pageview: enforce sane indenting levels for lists
 [ ] Pageview: enforce heading can not be indented
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
@@ -44,18 +49,17 @@ Modification-Date: Fri, 31 Jul 2009 18:03:41 +0200
 [ ] Dialog: Autocompletion for pages and namespaces in dialogs
 	* Use a sub-class of the treemodel from the index ?
 [ ] Commandline: Allow opening files mapping to pages from the commandline
-[ ] WWW: Improve dialog for controlling web server
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
 [ ] Templates: first heading of tree should be a separate template parameter
 	* Used e.g. in Presentation template to put title in separate bar
 [ ] Templates: check correct way to have a page property for index pages
 [ ] Commandline: --list option is missing
+[ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
 
 
 == Features ==
-[ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
-[ ] Pageview: Finish the UndoStackManager and hook to the pageview
+[*] Pageview: Finish the UndoStackManager and hook to the pageview
 [ ] Pageview: menu controls to indent / unindent / move up move down a list item
 	* Check emission of indent-changed signal to set state of buttons
 	* Also think about keybindings for moving a line up / down or top / bottom
@@ -77,6 +81,7 @@ Modification-Date: Fri, 31 Jul 2009 18:03:41 +0200
 	* Preferences dialog should have list of mount points
 [ ] Implement zip and tar.gz notebooks
 [ ] Implement gjots notebooks
+[ ] WWW: Improve dialog for controlling web server
 [ ] WWW: Implement a '--public' option + add checkbox in GUI to allow remote connections (default localhost only)
 [ ] Templates: setting to determing use of <br> elements (default yes)
 [ ] Templates: need settings to enforce level of headings in output

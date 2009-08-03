@@ -44,24 +44,24 @@ class TestHistory(TestCase):
 			prev = history.get_previous()
 			self.assertFalse(prev is None)
 			self.assertEqual(prev.name, self.pages[-i].name)
-			self.assertFalse(prev.is_last())
+			self.assertFalse(prev.is_last)
 			history.set_current(prev)
 
 		self._assertCurrent(history, self.pages[0])
 		self.assertTrue(history.get_previous() is None)
-		self.assertTrue(prev.is_first())
+		self.assertTrue(prev.is_first)
 
 		# walk forward
 		for i in range(1, len(self.pages)):
 			next = history.get_next()
 			self.assertFalse(next is None)
 			self.assertEqual(next.name, self.pages[i].name)
-			self.assertFalse(next.is_first())
+			self.assertFalse(next.is_first)
 			history.set_current(next)
 
 		self._assertCurrent(history, self.pages[-1])
 		self.assertTrue(history.get_next() is None)
-		self.assertTrue(history.get_current().is_last())
+		self.assertTrue(history.get_current().is_last)
 
 	def testUnique(self):
 		'''Get recent pages from history'''
@@ -117,7 +117,10 @@ class TestHistory(TestCase):
 			history.set_current(prev)
 
 		# check state
-		self.assertEqual(len(uistate['History']['pages']), len(history.history))
+		#~ import pprint
+		#~ pprint.pprint(uistate)
+		self.assertEqual(len(uistate['History']['history']), len(history.history))
+		#~ self.assertEqual(len(uistate['History']['pages']), len(history.history))
 		self.assertEqual(uistate['History']['current'], len(history.history)-3)
 
 		# clone uistate by text
@@ -126,7 +129,8 @@ class TestHistory(TestCase):
 		newuistate.parse(lines)
 
 		# check new state
-		self.assertEqual(len(newuistate['History']['pages']), len(history.history))
+		self.assertEqual(len(uistate['History']['history']), len(history.history))
+		#~ self.assertEqual(len(newuistate['History']['pages']), len(history.history))
 		self.assertEqual(newuistate['History']['current'], len(history.history)-3)
 
 		# and compare resulting history object

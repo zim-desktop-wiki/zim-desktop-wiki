@@ -281,8 +281,7 @@ class ListDict(dict):
 		return self[k]
 
 	def items(self):
-		for k in self.order:
-			yield (k, self[k])
+		return map(lambda k: (k, self[k]), self.order)
 
 	def set_order(self, order):
 		'''Change the order in which items are listed by setting a list

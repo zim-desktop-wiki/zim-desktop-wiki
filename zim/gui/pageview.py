@@ -139,6 +139,7 @@ ui_preferences = (
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
 _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
+_is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
 
 PIXBUF_CHR = u'\uFFFC'
 
@@ -294,7 +295,13 @@ class TextBuffer(gtk.TextBuffer):
 		'''Like insert_parsetree() but inserts at the cursor'''
 		self.emit('begin-insert-tree')
 		startoffset = self.get_iter_at_mark(self.get_insert()).get_offset()
-		self._insert_element_children(tree.getroot())
+		self.set_textstyle(None)
+		# FIXME also reset indent if at start of line ?
+		root = tree.getroot()
+		if root.text:
+			self.insert_at_cursor(root.text)
+		self._insert_element_children(root)
+		self.set_editmode_from_cursor()
 		startiter = self.get_iter_at_offset(startoffset)
 		enditer = self.get_iter_at_mark(self.get_insert())
 		self.emit('end-insert-tree')
@@ -430,6 +437,8 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		#~ If there is a property 'alt' in attrib we try to set a tooltip.
 		#~ '''
+		if isinstance(file, basestring):
+			file = File(file)
 		try:
 			if 'width' in attrib or 'height' in attrib:
 				w = int(attrib.get('width', -1))
@@ -438,6 +447,7 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
 		except:
+			#~ logger.exception('Could not load image: %s', file)
 			logger.warn('No such image: %s', file)
 			widget = gtk.HBox() # Need *some* widget here...
 			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG)
@@ -556,7 +566,7 @@ class TextBuffer(gtk.TextBuffer):
 	def do_textstyle_changed(self, name):
 		self.textstyle = name
 
-	def toggle_textstyle(self, name):
+	def toggle_textstyle(self, name, interactive=False):
 		'''If there is a selection toggle the text style of the selection,
 		otherwise toggle the text style of the cursor.
 		'''
@@ -566,6 +576,8 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				self.set_textstyle(name)
 		else:
+			if interactive:
+				self.emit('begin-user-action')
 			start, end = self.get_selection_bounds()
 			tag = self.get_tag_table().lookup('style-'+name)
 			had_tag = self.range_has_tag(start, end, tag)
@@ -573,6 +585,8 @@ class TextBuffer(gtk.TextBuffer):
 			if not had_tag:
 				self.apply_tag(tag, start, end)
 			self.set_modified(True)
+			if interactive:
+				self.emit('end-user-action')
 
 			self.set_editmode_from_cursor()
 
@@ -591,10 +605,30 @@ class TextBuffer(gtk.TextBuffer):
 
 	def remove_textstyle_tags(self, start, end):
 		'''Removes all textstyle tags from a range'''
-		for name in self.tag_styles.keys():
-			if not name == 'link':
-				self.remove_tag_by_name('style-'+name, start, end)
-		self.set_modified(True)
+		# We can not just call remove_tag() for all text style tags
+		# this would confuse the hell out of the undostack manager.
+		# We assume only one text style at the time
+		# would need to adjust this function for overlapping styles
+		iter = start.copy()
+		while iter.compare(end) == -1:
+			tags = filter(_is_style_tag, iter.get_tags())
+			if tags:
+				assert len(tags) == 1
+				bound = iter.copy()
+				while bound.compare(end) == -1:
+					bound.forward_to_tag_toggle(tags[0])
+					if bound.ends_tag(tags[0]):
+						self.remove_tag(tags[0], iter, bound)
+						self.set_modified(True)
+						break
+					else:
+						continue
+				else:
+					self.remove_tag(tags[0], iter, end)
+					self.set_modified(True)
+				iter = bound
+			else:
+				iter.forward_to_tag_toggle(None)
 
 		self.set_editmode_from_cursor()
 
@@ -1526,6 +1560,24 @@ class TextView(gtk.TextView):
 gobject.type_register(TextView)
 
 
+class UndoActionGroup(list):
+	'''Container for a set of undo actions, will be undone, redone in a single step'''
+
+	__slots__ = ('can_merge')
+
+	def __init__(self):
+		self.can_merge = False
+
+	def reversed(self):
+		'''Returns a new UndoActionGroup with the reverse actions of this group'''
+		group = UndoActionGroup()
+		for action in self:
+			# constants are defined such that negating them reverses the action
+			action = (-action[0],) + action[1:]
+			group.insert(0, action)
+		return group
+
+
 class UndoStackManager:
 	'''This class implements a manager for the undo stack for our TextBuffer class.
 	It records any changes and allows rolling back actions. Data in this undo stack
@@ -1551,18 +1603,11 @@ class UndoStackManager:
 	ACTION_APPLY_TAG = 2
 	ACTION_REMOVE_TAG = -2
 
-	# Actions can be grouped on the stack by putting them inside lists. These lists
+	# Actions will be grouped on the stack by putting them inside lists. These lists
 	# will be undone / redone recursively as single actions. When recording a group
 	# will start and stop with the begin-user-action and end-user-action signals.
 	# By definition these signals will not be emitted if a group is open already, so
-	# groups will not be nested inside each other. However folding* the stack can result
-	# in nested groups, so these should be handled transparently.
-
-	# *) Folding: if the user presses undo a few times and starts typing we "fold" the
-	#    actions that are on the redo stack into the undo stack. So this content is not
-	#    dropped. Pressing undo again will first undo the typing, then undo (or redo) the
-	#    previous undo actions and then proceed undoing the rest of the stack.
-	#	FIXME: nice ascii diagram of how folding of the undo stack works...
+	# groups will not be nested inside each other.
 
 	# Each interactive action (e.g. every single key stroke) is wrapped in a set of
 	# begin-user-action and end-user-action signals. We use these signals to group actions.
@@ -1574,18 +1619,27 @@ class UndoStackManager:
 	#    In this case we merge single character inserts into words so undo is a bit faster
 	#    then just undoing one character at the time.
 
+	# *) Folding: if the user presses undo a few times and starts typing we "fold" the
+	#    actions that are on the redo stack into the undo stack. So this content is not
+	#    dropped. Pressing undo again will first undo the typing, then undo (or redo) the
+	#    previous undo actions and then proceed undoing the rest of the stack.
+	#	FIXME: nice ascii diagram of how folding of the undo stack works...
+
+
 	def __init__(self, textbuffer):
 		self.buffer = textbuffer
 		self.stack = [] # stack of actions & action groups
-		self.group = [] # current group of actions
-		self.can_merge = False # can we merge interactive key strokes to head of stack ?
+		self.group = UndoActionGroup() # current group of actions
+		self.interactive = False # interactive edit or not
+		self.insert_pending = False # whether we need to call flush insert or not
 		self.undo_count = 0 # number of undo steps that were done
 		self.block_count = 0 # number of times block() was called
 
 		self.recording_handlers = [] # handlers to be blocked when not recording
 		for signal, handler in (
 			('insert-text', self.do_insert_text),
-			('inserted-tree', self.do_insert_tree),
+			#~ ('inserted-tree', self.do_insert_tree),
+			('insert-pixbuf', self.do_insert_pixbuf),
 			('delete-range', self.do_delete_range),
 			('begin-user-action', self.do_begin_user_action),
 			('end-user-action', self.do_end_user_action),
@@ -1598,12 +1652,12 @@ class UndoStackManager:
 			('remove-tag', self.ACTION_REMOVE_TAG),
 		):
 			self.recording_handlers.append(
-				self.buffer.connect(signal, self.do_change_tag, data=action) )
+				self.buffer.connect(signal, self.do_change_tag, action) )
 
-		self.buffer.connect_object('begin-insert-tree',
-			self.__class__.block, self)
-		self.buffer.connect_object('end-insert-tree',
-			self.__class__.unblock, self)
+		#~ self.buffer.connect_object('begin-insert-tree',
+			#~ self.__class__.block, self)
+		#~ self.buffer.connect_object('end-insert-tree',
+			#~ self.__class__.unblock, self)
 
 		self.buffer.connect_object('clear',
 			self.__class__.clear, self)
@@ -1622,7 +1676,7 @@ class UndoStackManager:
 		# blocking / unblocking does not affect the state - just "pause"
 		if self.block_count == 0:
 			for id in self.recording_handlers:
-				self.buffer.block_handler(id)
+				self.buffer.handler_block(id)
 		self.block_count += 1
 
 	def unblock(self):
@@ -1631,7 +1685,7 @@ class UndoStackManager:
 			self.block_count -= 1
 		else:
 			for id in self.recording_handlers:
-				self.buffer.unblock_handler(id)
+				self.buffer.handler_unblock(id)
 			self.block_count = 0
 
 	def clear(self):
@@ -1639,153 +1693,185 @@ class UndoStackManager:
 		self.group = []
 		self.block()
 
-	def begin_user_action(self):
+	def do_begin_user_action(self, buffer):
 		'''Start a group of actions that will be undone / redone as a single action'''
+		if self.undo_count > 0:
+			self.flush_redo_stack()
+
 		if self.group:
-			self._flush_insert()
 			self.stack.append(self.group)
-			self.group = []
-			self.can_merge = False # content was entered non-interactive, so can't merge
-
-			while len(self.stack) > MAX_UNDO:
+			self.group = UndoActionGroup()
+			while len(self.stack) > self.MAX_UNDO:
 				self.stack.pop(0)
-		elif self.undo_count > 0:
-			self._flush_redo_stack()
-		else:
-			pass
 
-	def end_user_action(self):
+		self.interactive = True
+
+	def do_end_user_action(self, buffer):
 		'''End a group of actions that will be undone / redone as a single action'''
 		if self.group:
-			self._flush_insert()
-			merged = False
-			if len(self.group) == 1 \
-				and self.group[0][0] in (self.ACTION_INSERT, self.ACTION_DELETE) \
-				and self.group[0][1] - self.group[0][2] == 1:
-				can_merge = self.group[0][0] # ACTION_INSERT or ACTION_DELETE
-				if can_merge == self.can_merge:
-					self.stack[-1].extend(self.group) # TODO more intelligent merging ?
-			else:
-				can_merge = False
-
-			if not merged:
-				self.stack.append(self.group)
-			self.group = []
-			self.can_merge = can_merge
-
-			while len(self.stack) > MAX_UNDO:
+			self.stack.append(self.group)
+			self.group = UndoActionGroup()
+			while len(self.stack) > self.MAX_UNDO:
 				self.stack.pop(0)
-		else:
-			pass
 
-	def do_inserted_tree(self, buffer, start, end, parsetree):
-		if self.undo_count > 0: self._flush_redo_stack()
+		self.interactive = False
 
-		start, end = start.get_offset(), end.get_offset()
-		self.group.append((self.ACTION_INSERT, start, end, tree))
+	#~ def do_inserted_tree(self, buffer, start, end, parsetree):
+		#~ if self.undo_count > 0: self._flush_redo_stack()
 
-	def do_insert_text(self, buffer, end, text, length):
+		#~ start, end = start.get_offset(), end.get_offset()
+		#~ self.group.append((self.ACTION_INSERT, start, end, tree))
+
+	def do_insert_text(self, buffer, iter, text, length):
 		# Do not use length argument, it seems not to understand unicode
-		if self.undo_count > 0: self._flush_redo_stack()
+		lenght = len(text)
+		if self.undo_count > 0: self.flush_redo_stack()
 
-		start = end.copy()
-		start.backward_chars(lenght)
-		start, end = start.get_offset(), end.get_offset()
+		start = iter.get_offset()
+		end = start + length
+
+		if length == 1 and not text.isspace() \
+		and self.interactive and not self.group:
+			# we can merge
+			if self.stack and self.stack[-1].can_merge:
+				previous = self.stack[-1][-1]
+				if previous[0] == self.ACTION_INSERT \
+				and previous[2] == start \
+				and previous[3] is None:
+					# so can previous group - let's merge
+					self.group = self.stack.pop()
+					self.group[-1] = (self.ACTION_INSERT, previous[1], end, None)
+					return
+			# we didn't merge - set flag for next
+			self.group.can_merge = True
+
 		self.group.append((self.ACTION_INSERT, start, end, None))
+		self.insert_pending = True
 
-	def _flush_insert(self):
+	def do_insert_pixbuf(self, buffer, iter, pixbuf):
+		if self.undo_count > 0: self.flush_redo_stack()
+		elif self.insert_pending: self.flush_insert()
+
+		start = iter.get_offset()
+		end = start + 1
+		self.group.append((self.ACTION_INSERT, start, end, None))
+		self.group.can_merge = False
+		self.insert_pending = True
+
+	def flush_insert(self):
 		# For insert actually getting the tree is delayed when possible
-		for i in range(len(self.group)):
-			if self.group[i][0] == self.ACTION_INSERT and self.group[i][3] is None:
-				start = self.buffer.get_iter(self.group[i][1])
-				end = self.buffer.get_iter(self.group[i][2])
-				tree = self.buffer.get_parsetree(start, end)
-				self.group[i] = (self.ACTION_INSERT, self.group[i][1], self.group[i][2], tree)
+		def _flush_group(group):
+			for i in reversed(range(len(group))):
+				action, start, end, tree = group[i]
+				if action == self.ACTION_INSERT and tree is None:
+					bounds = (self.buffer.get_iter_at_offset(start),
+								self.buffer.get_iter_at_offset(end))
+					tree = self.buffer.get_parsetree(bounds)
+					group[i] = (self.ACTION_INSERT, start, end, tree)
+				else:
+					return False
+			return True
+
+		if _flush_group(self.group):
+			for i in reversed(range(len(self.stack))):
+				if not _flush_group(self.stack[i]):
+					break
+
+		self.insert_pending = False
 
 	def do_delete_range(self, buffer, start, end):
-		if self.undo_count > 0: self._flush_redo_stack()
-		elif self.group: self._flush_insert()
+		if self.undo_count > 0: self.flush_redo_stack()
+		elif self.insert_pending: self.flush_insert()
 
-		tree = self.buffer.get_parsetree(start, end)
+		bounds = (start, end)
+		tree = self.buffer.get_parsetree(bounds)
 		start, end = start.get_offset(), end.get_offset()
 		self.group.append((self.ACTION_DELETE, start, end, tree))
+		self.group.can_merge = False
 
 	def do_change_tag(self, buffer, tag, start, end, action):
 		assert action in (self.ACTION_APPLY_TAG, self.ACTION_REMOVE_TAG)
 		if not hasattr(tag, 'zim_type'):
 			return
 
-		if self.undo_count > 0: self._flush_redo_stack()
-
 		start, end = start.get_offset(), end.get_offset()
-		if self.group and self.group[-1][0] == self.ACTION_INSERT \
-			and self.group[-1][1:] == (start, end, None):
+		if self.group \
+		and self.group[-1][0] == self.ACTION_INSERT \
+		and self.group[-1][1] <= start \
+		and self.group[-1][2] >= end \
+		and self.group[-1][3] is None:
 			pass # for text that is not yet flushed tags will be in the tree
 		else:
-			if self.group: self._flush_insert()
+			if self.undo_count > 0: self.flush_redo_stack()
+			elif self.insert_pending: self.flush_insert()
+
 			self.group.append((action, start, end, tag))
+			self.group.can_merge = False
 
 	def undo(self):
 		'''Undo one user action'''
-		assert not self.group, 'BUG: interactive action not ended before undo() was called'
+		if self.group:
+			self.stack.append(self.group)
+			self.group = UndoActionGroup()
+		if self.insert_pending: self.flush_insert()
+
+		#~ import pprint
+		#~ pprint.pprint( self.stack )
+
 		l = len(self.stack)
 		if self.undo_count == l:
 			return False
 		else:
 			self.undo_count += 1
 			i = l - self.undo_count
-			self._do_action(self._reverse_action(self.stack[i]))
+			self._replay(self.stack[i].reversed())
 			return True
 
-	def _flush_redo_stack(self):
+	def flush_redo_stack(self):
 		# fold stack so no data is lost, each undo step can now be undone
-		assert not self.group, 'BUG: interactive action not ended before starting new action'
+		# so instead of dropping forward stack, we add an new group for the undone
+		# actions to the stack
+
 		i = len(self.stack) - self.undo_count
-		fold = self._reverse_action(self.stack[i:])
-		self.stack = self.stack[:i]
-		self.stack.extend(fold)
+		fold = UndoActionGroup()
+		for group in reversed(self.stack[i:]):
+			fold.extend(group.reversed())
+		self.stack.append(fold)
 		self.undo_count = 0
 
 	def redo(self):
 		'''Redo one user action'''
-		assert not self.group, 'BUG: interactive action not ended before redo() was called'
 		if self.undo_count == 0:
 			return False
 		else:
+			assert not self.group, 'BUG: undo count should have been zero'
 			i = len(self.stack) - self.undo_count
-			self.undo_count += 1
-			self._do_action(self.stack[i])
+			self._replay(self.stack[i])
+			self.undo_count -= 1
 			return True
 
-	def _reverse_action(self, action):
-		if isinstance(action, list): # group
-			action = map(self._reverse_action, reversed(action)) # recurs
-		else:
-			# constants are defined such that negating them reverses the action
-			action = (-action[0],) + action[1:]
-		return action
-
-	def _do_action(self, action):
+	def _replay(self, actiongroup):
 		self.block()
 
-		if isinstance(action, list): # group
-			for a in action:
-				self._do_action(a) # recurs
-		else:
-			act, start, end, data = action
-			start = self.buffer.get_iter_at_offset(start)
-			end = self.buffer.get_iter_at_offset(end)
+		for action, start, end, data in actiongroup:
+			iter = self.buffer.get_iter_at_offset(start)
+			bound = self.buffer.get_iter_at_offset(end)
 
-			if act == self.ACTION_INSERT:
-				self.buffer.insert_tree(start, tree)
-			elif act == self.ACTION_DELETE:
-				self.buffer.delete(start, end)
+			if action == self.ACTION_INSERT:
+				#~ print 'INSERTING', data.tostring()
+				self.buffer.place_cursor(iter)
+				self.buffer.insert_parsetree_at_cursor(data)
+			elif action == self.ACTION_DELETE:
+				self.buffer.place_cursor(iter)
+				self.buffer.delete(iter, bound)
 				# TODO - replace what is on the stack with what is being deleted
 				# log warning BUG if the two do not match
-			elif act == self.ACTION_APPLY_TAG:
-				self.buffer.apply_tag(data, start, end)
-			elif act == self.ACTION_REMOVE_TAG:
-				self.buffer.remove_tag(data, start, end)
+			elif action == self.ACTION_APPLY_TAG:
+				self.buffer.apply_tag(data, iter, bound)
+				self.buffer.place_cursor(bound)
+			elif action == self.ACTION_REMOVE_TAG:
+				self.buffer.remove_tag(data, iter, bound)
+				self.buffer.place_cursor(bound)
 			else:
 				assert False, 'BUG: unknown action type'
 
@@ -1867,6 +1953,14 @@ class PageView(gtk.VBox):
 		for name in [a[0] for a in ui_format_toggle_actions]:
 			action = actiongroup.get_action(name)
 			action.connect('activate', self.do_toggle_format_action)
+
+		# extra keybinding - FIXME needs switch on read-only
+		y = gtk.gdk.unicode_to_keyval(ord('y'))
+		group = self.ui.uimanager.get_accel_group()
+		group.connect_group( # <Ctrl>Y
+				y, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
+				lambda *a: self.redo())
+
 
 		PageView.style = config_file('style.conf')
 		self.ui.connect('preferences-changed', lambda o: self.reload_style())
@@ -1968,7 +2062,7 @@ class PageView(gtk.VBox):
 		buffer.connect('modified-changed',
 			lambda o: self.on_modified_changed(o))
 
-		#~ self.undostack = UndoStackManager(buffer)
+		self.undostack = UndoStackManager(buffer)
 
 	def get_page(self): return self.page
 
@@ -1999,6 +2093,21 @@ class PageView(gtk.VBox):
 		tree.resolve_images(self.ui.notebook, self.page)
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
+
+	def set_cursor_pos(self, pos):
+		buffer = self.view.get_buffer()
+		buffer.place_cursor(buffer.get_iter_at_offset(pos))
+
+	def get_cursor_pos(self):
+		buffer = self.view.get_buffer()
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		return iter.get_offset()
+
+	def set_scroll_pos(self, pos):
+		pass # FIXME set scroll position
+
+	def get_scroll_pos(self):
+		pass # FIXME get scroll position
 
 	def do_textstyle_changed(self, buffer, style):
 		# set statusbar
@@ -2096,7 +2205,6 @@ class PageView(gtk.VBox):
 		else:
 			assert isinstance(file, File)
 			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
-			print 'SRC', src
 			self.view.get_buffer().insert_image_at_cursor(file, src)
 
 	def insert_text_from_file(self):
@@ -2160,7 +2268,7 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		if not buffer.textstyle == format:
 			self.autoselect()
-		buffer.toggle_textstyle(format)
+		buffer.toggle_textstyle(format, interactive=True)
 
 	def autoselect(self):
 		buffer = self.view.get_buffer()

@@ -1,0 +1,14 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Thu, 30 Jul 2009 21:34:40 +0200
+Modification-Date: Thu, 30 Jul 2009 21:34:40 +0200
+
+====== SnippetsPlugin ======
+Created Thursday 30 July 2009
+
+Add plugin to insert snippets
+-> Keep snippets as text files in config dir
+-> small dialog to manage them
+-> sub-menu to insert snippets
+
+examples ?

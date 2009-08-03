@@ -21,36 +21,51 @@ import gobject
 
 from zim.notebook import Path
 
-PAGE_COL = 0
-CURSOR_COL = 1
-SCROLL_COL = 2
 
 MAX_HISTORY = 25
 
 
 class HistoryRecord(Path):
-	'''This class functions as an iterator for the history list'''
+	'''Path withsome additional info from the history'''
 
 	__slots__ = ('history', 'i')
 
 	def __init__(self, history, i):
-		Path.__init__(self, history[i][PAGE_COL])
+		Path.__init__(self, history.history[i])
 		self.history = history
 		self.i = i
 
 	@property
+	def valid(self):
+		return self.history.history[self.i] == self.name
+
+	@property
+	def is_first(self): return self.i == 0
+
+	@property
+	def is_last(self): return self.i == len(self.history.history) - 1
+
+	@property
 	def cursor(self):
-		return self.history[self.i][CURSOR_COL]
+		if self.name in self.history.pages:
+			return self.history.pages[self.name][0]
+		else:
+			return None
+
+	@cursor.setter
+	def cursor(self, value):
+		self.history.pages[self.name] = (value, self.scroll)
 
 	@property
 	def scroll(self):
-		return self.history[self.i][SCROLL_COL]
+		if self.name in self.history.pages:
+			return self.history.pages[self.name][1]
+		else:
+			return None
 
-	def is_first(self):
-		return self.i == 0
-
-	def is_last(self):
-		return self.i == len(self.history)-1
+	@scroll.setter
+	def scroll(self, value):
+		self.history.pages[self.name] = (self.cursor, value)
 
 
 class History(gobject.GObject):
@@ -74,31 +89,38 @@ class History(gobject.GObject):
 		else:
 			self.uistate = uistate['History']
 
-		self.uistate.setdefault('pages', [])
+		self.uistate.setdefault('pages', {})
+		self.uistate.setdefault('history', [])
 		self.uistate.setdefault('current', len(self.history)-1)
 
-	# reference to whatever integer is stored in the dict
-	current = property(
-		lambda self: self.uistate.__getitem__('current'),
-		lambda self, value: self.uistate.__setitem__('current', value) )
+	@property
+	def current(self): return self.uistate['current']
 
-	# reference to the list with pages
-	history = property(
-		lambda self: self.uistate.__getitem__('pages'),
-		lambda self, value: self.uistate.__setitem__('pages', value) )
+	@current.setter
+	def current(self, value): self.uistate['current'] = value
+
+	@property
+	def history(self): return self.uistate['history']
+
+	@history.setter
+	def history(self, value): self.uistate['history'] = value
+
+	@property
+	def pages(self): return self.uistate['pages']
 
 	def append(self, page):
 		if self.current != -1:
 			self.history = self.history[:self.current+1] # drop forward stack
 
 		while len(self.history) >= MAX_HISTORY:
-			self.history.pop(0)
+			n = self.history.pop(0)
+			if not n in self.history: # name can appear multipel times
+				self.pages.pop(name)
 
-		if self.history and page.name == self.history[-1][PAGE_COL]:
+		if self.history and self.history[-1] == page.name:
 			pass
 		else:
-			item = [page.name, None, None] # PAGE_COL, CURSOR_COL, SCROLL_COL
-			self.history.append(item)
+			self.history.append(page.name)
 		self.current = -1
 			# this assignment always triggers "modified" on the ListDict
 
@@ -108,11 +130,12 @@ class History(gobject.GObject):
 		if self.history:
 			if self.current < 0:
 				self.current = len(self.history) + self.current
-			return HistoryRecord(self.history, self.current)
+			return HistoryRecord(self, self.current)
 		else:
 			return None
 
 	def set_current(self, record):
+		assert record.valid
 		self.current = record.i
 
 	def get_previous(self, step=1):
@@ -123,7 +146,7 @@ class History(gobject.GObject):
 			if self.current == 0:
 				return None
 			else:
-				return HistoryRecord(self.history, self.current-1)
+				return HistoryRecord(self, self.current-1)
 		else:
 			return None
 
@@ -132,7 +155,7 @@ class History(gobject.GObject):
 			if self.current == -1 or self.current+1 == len(self.history):
 				return None
 			else:
-				return HistoryRecord(self.history, self.current+1)
+				return HistoryRecord(self, self.current+1)
 		else:
 			return None
 
@@ -140,8 +163,8 @@ class History(gobject.GObject):
 		'''Returns a path for a direct child of path or None'''
 		namespace = path.name + ':'
 		for i in range(len(self.history)-1, -1, -1):
-			if self.history[i][PAGE_COL].startswith(namespace):
-				name = self.history[i][PAGE_COL]
+			if self.history[i].startswith(namespace):
+				name = self.history[i]
 				parts = name[len(namespace):].split(':')
 				return Path(namespace+parts[0])
 		else:
@@ -151,8 +174,8 @@ class History(gobject.GObject):
 		'''Returns a path for the deepest child of path that could be found or None'''
 		namespace = path.name + ':'
 		for i in range(len(self.history)-1, -1, -1):
-			if self.history[i][PAGE_COL].startswith(namespace):
-				namespace = self.history[i][PAGE_COL] + ':'
+			if self.history[i].startswith(namespace):
+				namespace = self.history[i] + ':'
 
 		child = Path(namespace)
 		if child == path: return None
@@ -161,15 +184,15 @@ class History(gobject.GObject):
 	def get_history(self):
 		'''Generator function that yields history records, latest first'''
 		for i in range(len(self.history)-1, -1, -1):
-			yield HistoryRecord(self.history, i)
+			yield HistoryRecord(self, i)
 
 	def get_unique(self):
 		'''Generator function that yields unique records'''
 		seen = set()
 		for i in range(len(self.history)-1, -1, -1):
-			if not self.history[i][PAGE_COL] in seen:
-				seen.add(self.history[i][PAGE_COL])
-				yield HistoryRecord(self.history, i)
+			if not self.history[i] in seen:
+				seen.add(self.history[i])
+				yield HistoryRecord(self, i)
 
 
 gobject.type_register(History)
