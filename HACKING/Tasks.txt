@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Thu, 30 Jul 2009 19:33:28 +0200
+Modification-Date: Thu, 30 Jul 2009 21:36:55 +0200
 
 ====== Tasks ======
 
@@ -21,6 +21,11 @@ Modification-Date: Thu, 30 Jul 2009 19:33:28 +0200
 [*] Update "Install" and "Packaging" sections in README.txt
 [ ] Build ubuntu / debian package
 [ ] Build windows installer (with or without Python + Gtk included)
+[ ] Add website to bazaar + tools/generate_wesite.py
+       * Include some static pages + screenshots etc.
+       * Include manual in website
+       * Include HACKING in website
+       * Store old manual somewhere and link it (but not in bazaar branch)
 
 
 == Defects ==
@@ -49,10 +54,10 @@ Modification-Date: Thu, 30 Jul 2009 19:33:28 +0200
 	* Used e.g. in Presentation template to put title in separate bar
 [ ] Templates: check correct way to have a page property for index pages
 [ ] Commandline: --list option is missing
+[ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
 
 
 == Features ==
-[ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
 [*] Pageview: Finish the UndoStackManager and hook to the pageview
 [ ] Pageview: menu controls to indent / unindent / move up move down a list item
 	* Check emission of indent-changed signal to set state of buttons
