@@ -1,15 +1,15 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Fri, 31 Jul 2009 18:03:41 +0200
+Modification-Date: Mon, 03 Aug 2009 20:09:27 +0200
 
 ====== Tasks ======
 
 **Also grep for TODO and FIXME tags in the code**
 
 == Art Work ==
-[ ] Need icon for LinkMap plugin - re-use red boxes from zim logo ?
-[ ] Update icons for attachement / calendar / task list ?
+[*] Need icon for LinkMap plugin - re-use red boxes from zim logo ?
+[ ] Update icons for ~~attachement /~~ calendar / task list ?
 [ ] Improve HTML templates & CSS stylesheets for export and server use
 	* How about some javascript controls ?
 
@@ -54,7 +54,7 @@ Modification-Date: Fri, 31 Jul 2009 18:03:41 +0200
 [ ] Templates: first heading of tree should be a separate template parameter
 	* Used e.g. in Presentation template to put title in separate bar
 [ ] Templates: check correct way to have a page property for index pages
-[ ] Commandline: --list option is missing
+[*] Commandline: --list option is missing
 [ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
 
 
@@ -65,6 +65,8 @@ Modification-Date: Fri, 31 Jul 2009 18:03:41 +0200
 	* Also think about keybindings for moving a line up / down or top / bottom
 [ ] Pageview: support numbered lists
 [ ] Implement properties dialog
+[ ] Implement "Open with" menu
+[ ] Implement "Open with custom command"dialog
 [ ] Implement insert date dialog
 	* hook signal for linking - split off suggest-link from end-of-word ?
 [*] Implement Calendar plugin

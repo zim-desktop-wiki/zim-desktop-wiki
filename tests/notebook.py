@@ -7,10 +7,76 @@
 import tests
 
 from zim.fs import *
+from zim.config import config_file
 from zim.notebook import *
 
-# TODO: test get_notebook and friends
-# TODO: test construction of notebooks with Dir and File path arguments
+class TestGetNotebook(tests.TestCase):
+
+	slowTest = True
+
+	def setUp(self):
+		list = config_file('notebooks.list')
+		file = list.file
+		if file.exists():
+			file.remove()
+
+	def runTest(self):
+		root = Dir(tests.create_tmp_dir('notebook_TestGetNotebook'))
+
+		list = get_notebook_list()
+		self.assertFalse(list)
+
+		nb = get_notebook('_default_')
+		self.assertTrue(nb is None)
+		nb = get_notebook('foo')
+		self.assertTrue(nb is None)
+
+		dir = root.subdir('/notebook')
+		nb = get_notebook(dir.path)
+		self.assertTrue(nb is None)
+		nb = get_notebook(dir)
+		self.assertTrue(nb is None)
+		
+		file = dir.file('notebook.zim')
+		file.touch()
+		nb = get_notebook(dir.path)
+		self.assertEqual(nb.dir, dir)
+		nb = get_notebook(dir)
+		self.assertEqual(nb.dir, dir)
+		nb = get_notebook(file)
+		self.assertEqual(nb.dir, dir)
+		
+		list['foo'] = dir.path
+		list.write()
+		list = get_notebook_list()
+		self.assertTrue(len(list) == 1)
+
+		nb = get_notebook('foo')
+		self.assertEqual(nb.dir, dir)
+		nb = get_notebook('_default_')
+		self.assertEqual(nb.dir, dir)
+
+		list['_default_'] = 'foo'
+		list.write()
+		list = get_notebook_list()
+		self.assertTrue(len(list) == 2)
+
+		nb = get_notebook('foo')
+		self.assertEqual(nb.dir, dir)
+		nb = get_notebook('_default_')
+		self.assertEqual(nb.dir, dir)
+
+		list['bar'] = '/foo/bar'
+		del list['_default_']
+		list.write()
+		list = get_notebook_list()
+		self.assertTrue(len(list) == 2)
+
+		nb = get_notebook('foo')
+		self.assertEqual(nb.dir, dir)
+		nb = get_notebook('_default_')
+		self.assertTrue(nb is None)
+
 
 class TestNotebook(tests.TestCase):
 

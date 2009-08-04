@@ -4,6 +4,7 @@
 
 import os
 import sys
+import shutil
 from subprocess import Popen, PIPE
 
 def main(remove=False):
@@ -14,6 +15,10 @@ def main(remove=False):
 			print 'rm %s' % file
 			if remove:
 				os.remove(file)
+		elif os.path.isdir(file):
+			print 'rmtree %s' % file
+			if remove:
+				shutil.rmtree(file)
 	pipe.close()
 
 if __name__ == '__main__':

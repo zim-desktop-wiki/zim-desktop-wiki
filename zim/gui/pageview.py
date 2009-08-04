@@ -13,7 +13,6 @@ import gtk
 import pango
 import re
 import string
-import weakref
 
 from zim.fs import *
 from zim.notebook import Path
@@ -1894,7 +1893,6 @@ class PageView(gtk.VBox):
 		gtk.VBox.__init__(self)
 		self.page = None
 		self.undostack = None
-		self.replace_dialog_ref = lambda: None # mimic empty weakref
 
 		self.preferences = self.ui.preferences['PageView']
 		self.ui.register_preferences('PageView', ui_preferences)
@@ -2320,13 +2318,8 @@ class PageView(gtk.VBox):
 		self.view.grab_focus()
 
 	def show_find_and_replace(self):
-		dialog = self.replace_dialog_ref()
-		if dialog and not dialog.destroyed:
-			dialog.present()
-		else:
-			dialog = FindAndReplaceDialog(self)
-			self.replace_dialog_ref = weakref.ref(dialog)
-			dialog.show_all()
+		dialog = FindAndReplaceDialog.unique(self, self)
+		dialog.present()
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)

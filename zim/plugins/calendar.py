@@ -135,9 +135,9 @@ This is a core plugin shipping with zim.
 
 		dialog = CalendarDialog.unique(self, self)
 		if show:
-			dialog.show_all()
+			dialog.present()
 		else:
-			dialog.hide_all()
+			dialog.hide()
 
 	# TODO: hook to the pageview end-of-word signal and link dates
 	#       add a preference for this
@@ -209,23 +209,6 @@ class CalendarPluginWidget(gtk.VBox):
 
 
 class CalendarDialog(Dialog):
-
-	# TODO: add this method to the dialog base class..
-	@classmethod
-	def unique(klass, handler, *args, **opts):
-		import weakref
-		attr = '_unique_dialog_%s' % klass.__name__
-		dialog = None
-
-		if hasattr(handler, attr):
-			ref = getattr(handler, attr)
-			dialog = ref()
-
-		if dialog is None or dialog.destroyed:
-			dialog = klass(*args, **opts)
-
-		setattr(handler, attr, weakref.ref(dialog))
-		return dialog
 
 	def __init__(self, plugin):
 		Dialog.__init__(self, plugin.ui, _('Calendar'), buttons=None) # T: dialog title

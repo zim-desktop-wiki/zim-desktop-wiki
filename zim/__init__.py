@@ -48,7 +48,7 @@ executable = 'zim'
 longopts = ('verbose', 'debug')
 commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual')
 commandopts = {
-	'gui': (),
+	'gui': ('list',),
 	'server': ('port=', 'template=', 'gui'),
 	'export': ('format=', 'template=', 'output='),
 	'index': ('output=',),
@@ -84,6 +84,10 @@ General Options:
   -v, --version   print version and exit
   -h, --help      print this text
 
+GUI Options:
+  --list          show the list with notebooks instead of
+                  opening the default notebook
+
 Server Options:
   --port          port to use (defaults to 8080)
   --template      name of the template to use
@@ -98,7 +102,7 @@ Export Options:
   When exporting a whole notebook you need to provide a directory.
 
 Index Options:
-  --output    output file
+  -o, --output    output file
 
 Try 'zim --manual' for more help.
 '''
@@ -106,6 +110,9 @@ Try 'zim --manual' for more help.
 
 class UsageError(Error):
 	pass
+
+class NotebookLookupError(Error):
+	pass # TODO: description of this error
 
 
 def main(argv):
@@ -206,9 +213,13 @@ def main(argv):
 	logger.debug('Running command: %s', cmd)
 	if cmd in ('export', 'index'):
 		if not len(args) >= 1:
-			raise UsageError
-		handler = NotebookInterface(notebook=args[0])
-		if len(args) == 2: optsdict['page'] = args[1]
+			handler = NotebookInterface(notebook='_default_')
+		else:
+			handler = NotebookInterface(notebook=args[0])
+
+		if len(args) == 2:
+			optsdict['page'] = args[1]
+
 		method = getattr(handler, 'cmd_' + cmd)
 		method(**optsdict)
 	elif cmd == 'gui':
@@ -280,13 +291,26 @@ class NotebookInterface(gobject.GObject):
 	def open_notebook(self, notebook):
 		'''Open a notebook if no notebook was set already.
 		'notebook' can be either a string or a notebook object.
+		If 'notebook' is None we check for a default notebook, if no default
+		is found a NotebookSelectionError is generated.
 		'''
-		import zim.notebook
+		from zim.notebook import get_notebook, Notebook
+		assert self.notebook is None, 'BUG: other notebook opened already'
+		assert not notebook is None, 'BUG: no notebook specified'
+
+		logger.debug('Opening notebook: %s', notebook)
 		if isinstance(notebook, basestring):
-			notebook = zim.notebook.get_notebook(notebook)
-		self.emit('open-notebook', notebook)
+			nb = get_notebook(notebook)
+			if nb is None:
+				raise NotebookLookupError, _('Could not find notebook: %s') % notebook
+					# T: Error when looking up a notebook
+			self.emit('open-notebook', nb)
+		else:
+			assert isinstance(notebook, Notebook)
+			self.emit('open-notebook', notebook)
 
 	def do_open_notebook(self, notebook):
+		assert self.notebook is None, 'BUG: other notebook opened already'
 		self.notebook = notebook
 		if notebook.cache_dir:
 			# may not exist during tests

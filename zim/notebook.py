@@ -27,27 +27,40 @@ logger = logging.getLogger('zim.notebook')
 
 
 def get_notebook(notebook):
-	'''Takes a path or name and returns a notebook object'''
+	'''Takes a path or name and returns a notebook object or None'''
+	assert notebook, 'BUG: notebook not defined'
 	if isinstance(notebook, basestring):
 		# We are not sure if it is a name or a path, try lookup
 		name = notebook
 		table = get_notebook_list()
 		notebook = unicode(notebook)
-		if notebook in table:
-			if notebook == '_default_' and table['_default_'] in table:
+		if notebook == '_default_':
+			if '_default_' in table and table['_default_'] in table:
 				# default is not set to a path, but to another notebook name
-				notebook = table[table[notebook]]
+				notebook = table[table['_default_']]
+			elif len(table) == 1:
+				notebook = table.values()[0]
 			else:
-				notebook = table[notebook]
-		else:
-			pass # maybe it's a path after all
-
-		if notebook == '_manual_':
+				return None
+		elif notebook == '_manual_':
 			notebook = data_dir('manual')
-		elif os.path.isfile(notebook):
-			notebook = File(notebook)
+		elif notebook in table:
+			notebook = table[notebook]
 		else:
-			notebook = Dir(notebook)
+			pass # maybe it's a path
+
+		if '/' in notebook or '\\' in notebook:
+			notebook = File(notebook).path
+			if os.path.isfile(notebook):
+				notebook = File(notebook)
+			elif os.path.isdir(notebook):
+				notebook = Dir(notebook)
+			else:
+				return None
+
+		else:
+			return None
+
 
 	if isinstance(notebook, File) and notebook.basename == 'notebook.zim':
 		notebook = notebook.dir
@@ -58,7 +71,7 @@ def get_notebook(notebook):
 	if notebook.exists():
 		return Notebook(path=notebook, name=name)
 	else:
-		raise Exception, 'No such notebook: %s' % notebook
+		return None
 
 
 def get_notebook_list():
@@ -76,6 +89,7 @@ The given page name is not valid.
 	def __init__(self, name):
 		self.msg = _('Invalid page name "%s"') % name # T: error message
 
+
 class LookupError(Error):
 
 	description = '''\
@@ -83,8 +97,10 @@ Failed to lookup this page in the notebook storage.
 This is likely a glitch in the application.
 '''
 
+
 class PageExistsError(Error):
 	pass # TODO check where this should be used
+
 
 class Notebook(gobject.GObject):
 	'''Main class to access a notebook. Proxies between backend Store

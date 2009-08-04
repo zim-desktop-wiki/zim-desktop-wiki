@@ -31,9 +31,9 @@ import gtk.keysyms
 import pango
 
 import zim
-from zim import NotebookInterface
+from zim import NotebookInterface, NotebookLookupError
 from zim.fs import *
-from zim.notebook import get_notebook_list, Path, Page, PageNameError
+from zim.notebook import get_notebook, get_notebook_list, Path, Page, PageNameError
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict
 from zim.parsing import url_encode
@@ -205,12 +205,14 @@ class GtkInterface(NotebookInterface):
 
 	ui_type = 'gtk'
 
-	def __init__(self, notebook=None, page=None, **opts):
+	def __init__(self, notebook=None, page=None, list=False, **opts):
+		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
 		NotebookInterface.__init__(self, **opts)
 		self.preferences_register = ListDict()
 		self.page = None
 		self.history = None
 		self._save_page_in_progress = False
+		self._dont_use_default_notebook = list
 
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
@@ -253,24 +255,27 @@ class GtkInterface(NotebookInterface):
 
 		self.load_plugins()
 
-		if not notebook is None:
+		if notebook:
 			self.open_notebook(notebook)
+			if self.notebook is None:
+				# Exit the program before reaching main()
+				raise Exception, 'Could not open notebook: %s' % notebook
 
-		if not page is None:
-			assert self.notebook, 'Can not open page without notebook'
-			if isinstance(page, basestring):
-				page = self.notebook.resolve_path(page)
-				if not page is None:
+			if page:
+				if isinstance(page, basestring):
+					page = self.notebook.resolve_path(page)
+					if not page is None:
+						self.open_page(page)
+				else:
+					assert isinstance(page, Path)
 					self.open_page(page)
-			else:
-				assert isinstance(page, Path)
-				self.open_page(page)
+		else:
+			pass # Will check default in main()
 
 	def main(self):
 		'''Wrapper for gtk.main(); does not return untill program has ended.'''
 		if self.notebook is None:
-			self.open_notebook()
-			if self.notebook is None:
+			if not self._init_notebook():
 				# Close application. Either the user cancelled the notebook
 				# dialog, or the notebook was opened in a different process.
 				return
@@ -442,54 +447,55 @@ class GtkInterface(NotebookInterface):
 		'''
 		return self.mainwindow.get_selected_path() or self.page
 
+	def _init_notebook(self):
+		# Called by main() when no notebook was specified
+		# returns boolean for sucess
+		if not self._dont_use_default_notebook:
+			default = get_notebook('_default_')
+			if default:
+				logger.info('Opening default notebook')
+				self.open_notebook(default)
+				return not self.notebook is None
+
+		list = get_notebook_list()
+		if not list:
+			logger.debug('First time usage - prompt for notebook folder')
+			from zim.gui.notebookdialog import AddNotebookDialog
+			fields = AddNotebookDialog(self).run()
+			if fields:
+				list[fields['name']] = fields['folder']
+				list.write()
+				self.open_notebook(fields['folder'])
+			else:
+				return False # User cancelled the dialog ?
+		else:
+			# Multiple notebooks defined and no default
+			from zim.gui.notebookdialog import NotebookDialog
+			NotebookDialog(self).run()
+			# Dialog will call open_notebok()
+
+		return not self.notebook is None
+
 	def open_notebook(self, notebook=None):
 		'''Open a new notebook. If this is the first notebook the open-notebook
 		signal is emitted and the notebook is opened in this process. Otherwise
 		we let another instance handle it. If notebook=None the notebookdialog
 		is run to prompt the user.'''
-		if self.notebook:
-			if notebook is None:
-				# Handle menu item for 'open another notebook'
-				logger.debug('No notebook given, showing notebookdialog')
-				from zim.gui.notebookdialog import NotebookDialog
-				NotebookDialog(self).show_all()
-				# Don't do anything else, the dialog will call us again
-			else:
-				# We are already intialized, so let another process handle it
-				# FUTURE: let the daemon handle this decision
-				self.spawn('zim', notebook)
-		else:
-			if notebook:
-				# No notebook has been set, so we open this notebook ourself
-				logger.info('Open notebook: %s', notebook)
+		if not self.notebook:
+			try:
 				NotebookInterface.open_notebook(self, notebook)
-			else:
-				notebook_list = get_notebook_list()
-				notebooks = notebook_list.keys()
-				if not notebooks:
-					logger.debug('No notebook list - short cutting dialog')
-					from zim.gui.notebookdialog import AddNotebookDialog
-					fields = AddNotebookDialog(self).run()
-					if fields:
-						notebook_list[fields['name']] = fields['folder']
-						notebook_list.write()
-						NotebookInterface.open_notebook(self, fields['folder'])
-					else:
-						# else dialog was cancelled
-						gtk.main_quit()
-				elif len(notebooks) == 1:
-					logger.debug('Opening only notebook in list')
-					NotebookInterface.open_notebook(self, notebooks[0])
-				elif '_default_' in notebooks and notebook_list['_default_']:
-					logger.debug('Opening default notebook')
-					NotebookInterface.open_notebook(self, '_default_')
-				else:
-					# multiple notebooks defined and no default
-					logger.debug('No notebook given, showing notebookdialog')
-					from zim.gui.notebookdialog import NotebookDialog
-					NotebookDialog(self).run()
-					# Don't do anything else, the dialog will call us again
-
+			except NotebookLookupError, error:
+				ErrorDialog(self, error).run()
+		elif notebook is None:
+			# Handle menu item for 'open another notebook'
+			from zim.gui.notebookdialog import NotebookDialog
+			NotebookDialog(self).show_all()
+			# Don't do anything else, the dialog will call us again
+		else:
+			# Could be call back from open notebook dialog
+			# We are already intialized, so let another process handle it
+			# FUTURE: let the daemon handle this decision
+			self.spawn('zim', notebook)
 
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook.'''

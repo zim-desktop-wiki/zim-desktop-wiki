@@ -252,6 +252,35 @@ class Dialog(gtk.Dialog):
 	do_response_ok() to handle the result.
 	'''
 
+	@classmethod
+	def unique(klass, handler, *args, **opts):
+		'''This method is used to instantiate a dialog of which there should
+		be only one visible at a time. It enforces a singleton pattern by
+		installing a weak reference in the handler object. If there is an
+		dialog active which is not yet destroyed, this dialog is returned,
+		otherwise a new dialog is created using 'args' and 'opts' as the
+		arguments to the constructor.
+
+		For example on "show_dialog" you could do:
+
+			dialog = MyDialog.unique(ui, somearg)
+			dialog.present()
+
+		'''
+		import weakref
+		attr = '_unique_dialog_%s' % klass.__name__
+		dialog = None
+
+		if hasattr(handler, attr):
+			ref = getattr(handler, attr)
+			dialog = ref()
+
+		if dialog is None or dialog.destroyed:
+			dialog = klass(*args, **opts)
+
+		setattr(handler, attr, weakref.ref(dialog))
+		return dialog
+
 	def __init__(self, ui, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			text=None, fields=None, help=None
@@ -490,10 +519,17 @@ class Dialog(gtk.Dialog):
 			# will be broken when _close is set from do_response()
 		return self.result
 
+	def present(self):
+		self.show_all()
+		gtk.Dialog.present(self)
+
+	def show(self):
+		self.show_all()
+
 	def show_all(self):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
 		assert not self.destroyed, 'BUG: re-using dialog after it was closed'
-		logger.debug('Opening dialog "%s"', self.title[:-6])
+		logger.debug('Opening dialog "%s"', self.title)
 		gtk.Dialog.show_all(self)
 
 	def response_ok(self):
