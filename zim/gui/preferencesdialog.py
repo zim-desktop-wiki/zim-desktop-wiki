@@ -7,7 +7,7 @@ import logging
 
 import zim.plugins
 from zim.gui.applications import \
-	get_application, get_helper_applications, create_helper_application
+	get_application, get_helper_applications, CustomCommandDialog
 from zim.gui.widgets import Dialog, Button, BrowserTreeView
 from zim.gui.pageview import PageView
 
@@ -345,20 +345,3 @@ class KeyBindingsTab(gtk.VBox):
 #~ gtk.accel_map_get().connect('changed', func(o, accel_path, key, mods))
 #~ This way we also get any accelerators that were deleted as result of
 #~ replace=True
-
-class NewAppDialog(Dialog):
-
-	def __init__(self, ui, type):
-		Dialog.__init__(self, ui, _('Custom Command')) # T: Dialog title
-		assert type in ('file_browser', 'web_browser', 'email_client')
-		self.type = type
-		self.add_fields(
-			('name', 'string', _('Name'), ''), # T: Field in 'custom command' dialog
-			('exec', 'string', _('Command'), ''), # T: Field in 'custom command' dialog
-		)
-
-	def do_response_ok(self):
-		fields = self.get_fields()
-		file = create_helper_application(self.type, fields['name'], fields['exec'])
-		self.result = file
-		return True

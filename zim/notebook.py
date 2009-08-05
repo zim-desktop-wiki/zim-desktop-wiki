@@ -49,7 +49,9 @@ def get_notebook(notebook):
 		else:
 			pass # maybe it's a path
 
-		if '/' in notebook or '\\' in notebook:
+		if isinstance(notebook, (File, Dir)):
+			pass
+		elif '/' in notebook or '\\' in notebook:
 			notebook = File(notebook).path
 			if os.path.isfile(notebook):
 				notebook = File(notebook)
@@ -57,13 +59,10 @@ def get_notebook(notebook):
 				notebook = Dir(notebook)
 			else:
 				return None
-
 		else:
 			return None
 
-
 	if isinstance(notebook, File) and notebook.basename == 'notebook.zim':
-		notebook = notebook.dir
 		name = notebook.path # FIXME get name from the file
 	else:
 		name = notebook.path

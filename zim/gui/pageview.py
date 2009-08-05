@@ -21,6 +21,7 @@ from zim.config import config_file
 from zim.formats import get_format, ParseTree, TreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import Dialog, FileDialog, Button, IconButton
+from zim.gui.applications import OpenWithMenu
 
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -1007,6 +1008,9 @@ class TextBuffer(gtk.TextBuffer):
 		if not bound.begins_tag(tag):
 			bound.backward_to_tag_toggle(tag)
 
+		if link['href'] is None:
+			link['href'] = bound.get_text(insert)
+
 		self.select_range(insert, bound)
 		return link
 
@@ -1904,7 +1908,12 @@ class PageView(gtk.VBox):
 		swindow.add(self.view)
 		self.add(swindow)
 
-		# Create search box
+		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
+		self.view.connect_object('link-enter', PageView.do_link_enter, self)
+		self.view.connect_object('link-leave', PageView.do_link_leave, self)
+		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
+
+		## Create search box
 		self.find_bar = gtk.HBox(spacing=5)
 		self.find_bar.connect('key-press-event', self.on_find_bar_key_press_event)
 
@@ -1934,11 +1943,7 @@ class PageView(gtk.VBox):
 		self.find_bar.set_no_show_all(True)
 		self.pack_end(self.find_bar, False)
 
-		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
-		self.view.connect_object('link-enter', PageView.do_link_enter, self)
-		self.view.connect_object('link-leave', PageView.do_link_leave, self)
-
-
+		## setup GUI actions
 		self.ui.add_actions(ui_actions, self)
 
 		# format actions need some custom hooks
@@ -2151,6 +2156,98 @@ class PageView(gtk.VBox):
 		else:
 			self.ui.open_url(link['href'])
 
+	def do_populate_popup(self, menu):
+		buffer = self.view.get_buffer()
+		iter = self.view.get_iter_at_pointer()
+		link = buffer.get_link_data(iter)
+		if link:
+			type = link_type(link['href'])
+			if type == 'file':
+				file = link['href']
+			else:
+				file = None
+		else:
+			pixbuf = iter.get_pixbuf()
+			if pixbuf is None:
+				# Maybe we clicked right side of an image
+				iter.backward_char()
+				pixbuf = iter.get_pixbuf()
+			if pixbuf and hasattr(pixbuf, 'zim_type') \
+			and pixbuf.zim_type == 'image':
+				type = 'image'
+				file = pixbuf.zim_attrib['src']
+			else:
+				return # No link or image
+
+		if file:
+			file = self.ui.notebook.resolve_file(file, self.page)
+
+
+		menu.prepend(gtk.SeparatorMenuItem())
+
+		# edit
+		item = gtk.MenuItem(_('_Edit Link'))
+		item.connect('activate', lambda o: self.edit_object(iter=iter))
+		menu.prepend(item)
+
+		# copy
+		def set_clipboards(o, text):
+			for atom in ('PRIMARY', 'CLIPBOARD'):
+				clipboard = gtk.Clipboard(selection=atom)
+				clipboard.set_text(text)
+
+		if type == 'mailto':
+			item = gtk.MenuItem(_('Copy Email Address')) # T: context menu item
+		else:
+			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
+		menu.prepend(item)
+
+		if file:
+			item.connect('activate', set_clipboards, file.path)
+		elif link:
+			item.connect('activate', set_clipboards, link['href'])
+
+		menu.prepend(gtk.SeparatorMenuItem())
+
+		# open with & open folder
+		if type in ('file', 'image') and file:
+			item = gtk.MenuItem(_('Open Folder'))
+				# T: menu item to open containing folder of files
+			menu.prepend(item)
+			dir = file.dir
+			if dir.exists():
+				item.connect('activate', lambda o: self.ui.open_folder(dir))
+			else:
+				item.set_sensitive(False)
+
+			item = gtk.MenuItem(_('Open With...'))
+				# T: menu item for sub menu with applications
+			menu.prepend(item)
+			if file.exists():
+				submenu = OpenWithMenu(file)
+				item.set_submenu(submenu)
+			else:
+				item.set_sensitive(False)
+		elif type != 'page': # urls etc.
+			item = gtk.MenuItem(_('Open With...'))
+			menu.prepend(item)
+			submenu = OpenWithMenu(link['href'], mimetype='text/html')
+			item.set_submenu(submenu)
+
+		# open
+		if type != 'image' and link:
+			item = gtk.MenuItem(_('Open'))
+				# T: menu item to open a link or file
+			if file and not file.exists():
+				item.set_sensitive(False)
+			else:
+				item.connect_object(
+					'activate', PageView.do_link_clicked, self, link)
+			menu.prepend(item)
+
+		menu.show_all()
+
+
 	def undo(self):
 		self.undostack.undo()
 
@@ -2185,8 +2282,10 @@ class PageView(gtk.VBox):
 				iter = buffer.get_iter_at_line(iter.get_line())
 			buffer.toggle_checkbox(iter, checkbox)
 
-	def edit_object(self):
+	def edit_object(self, iter=None):
 		buffer = self.view.get_buffer()
+		if iter:
+			buffer.place_cursor(iter)
 		insert = buffer.get_iter_at_mark(buffer.get_insert())
 		alt = insert.copy()
 		alt.backward_char()

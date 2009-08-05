@@ -354,21 +354,21 @@ class NotebookInterface(gobject.GObject):
 			return True
 		index.update(callback=on_callback)
 
-	def spawn(self, *argv):
-		'''Spawn a sub process'''
-		argv = list(argv)
-		argv = map(lambda a: unicode(a).encode('utf-8'), argv)
-		if argv[0] == 'zim':
-			argv[0] = executable
-		logger.info('Spawn process: %s', ' '.join(['"%s"' % a for a in argv]))
+	def spawn(self, *args):
+		'''Spawn a new instance of zim'''
+		# TODO: after implementing the daemon, put this in that module
+		argv = list(args)
+		argv.insert(0, executable)
+		argv = [a.encode('utf-8') for a in argv]
+		logger.info('Running: %s', argv)
 		try:
-			pid = os.spawnvp(os.P_NOWAIT, argv[0], argv)
-		except AttributeError:
-			# spawnvp is not available on windows
-			# TODO path lookup ?
-			pid = os.spawnv(os.P_NOWAIT, argv[0], argv)
-		logger.debug('New process: %i', pid)
-
+			pid, stdin, stdout, stderr = \
+				gobject.spawn_async(argv, flags=gobject.SPAWN_SEARCH_PATH)
+		except gobject.GError:
+			logger.error('Failed running: %s', argv)
+			return None
+		else:
+			logger.debug('Process started with PID: %i', pid)
 
 # Need to register classes defining gobject signals
 gobject.type_register(NotebookInterface)

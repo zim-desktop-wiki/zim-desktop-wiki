@@ -12,7 +12,7 @@ import xml.etree.cElementTree as etree
 
 
 __all__ = [
-	'errors', 'parsing', 'fs', 'config',
+	'errors', 'parsing', 'fs', 'config', 'applications',
 	'formats', 'templates',
 	'stores', 'index', 'notebook',
 	'history', 'plugins',

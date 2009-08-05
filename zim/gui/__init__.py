@@ -495,7 +495,7 @@ class GtkInterface(NotebookInterface):
 			# Could be call back from open notebook dialog
 			# We are already intialized, so let another process handle it
 			# FUTURE: let the daemon handle this decision
-			self.spawn('zim', notebook)
+			self.spawn(notebook)
 
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook.'''
@@ -762,6 +762,7 @@ class GtkInterface(NotebookInterface):
 
 	def open_file(self, file):
 		assert isinstance(file, (File, Dir))
+		# TODO: check default application first - else we can not set defaults from zim
 		return self._openwith(self.preferences['GtkInterface']['file_browser'], (file,))
 
 	def open_url(self, url):
@@ -773,10 +774,9 @@ class GtkInterface(NotebookInterface):
 		else:
 			self._openwith(self.preferences['GtkInterface']['web_browser'], (url,))
 
-	def _openwith(self, appname, args):
-		app = get_application(appname)
-		cmd = app.parse_exec(args)
-		self.spawn(*cmd)
+	def _openwith(self, name, args):
+		entry = get_application(name)
+		entry.run(args)
 
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -806,7 +806,7 @@ class GtkInterface(NotebookInterface):
 		pass
 
 	def show_server_gui(self):
-		self.spawn('zim', '--server', '--gui', self.notebook.name)
+		self.spawn('--server', '--gui', self.notebook.name)
 
 	def reload_index(self):
 		dialog = ProgressBarDialog(self, _('Updating index'))
@@ -817,9 +817,9 @@ class GtkInterface(NotebookInterface):
 
 	def show_help(self, page=None):
 		if page:
-			self.spawn('zim', '--manual', page)
+			self.spawn('--manual', page)
 		else:
-			self.spawn('zim', '--manual')
+			self.spawn('--manual')
 
 	def show_help_faq(self):
 		self.show_help('FAQ')
