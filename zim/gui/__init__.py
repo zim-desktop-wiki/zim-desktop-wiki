@@ -24,6 +24,7 @@ Especially the Dialog class contains many convenience methods to
 quickly setup a simple form.
 '''
 
+import os
 import logging
 import gobject
 import gtk
@@ -147,7 +148,7 @@ TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
 ui_preferences = (
-	# section, key, type, category, label, default
+	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
 	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)'), False),
@@ -279,6 +280,10 @@ class GtkInterface(NotebookInterface):
 				# Close application. Either the user cancelled the notebook
 				# dialog, or the notebook was opened in a different process.
 				return
+
+		if self.notebook.dir:
+			os.chdir(self.notebook.dir.path)
+			os.environ['PWD'] = self.notebook.dir.path
 
 		if self.page is None:
 			path = self.history.get_current()
@@ -502,6 +507,7 @@ class GtkInterface(NotebookInterface):
 		NotebookInterface.do_open_notebook(self, notebook)
 		self.history = History(notebook, self.uistate)
 		self.on_notebook_properties_changed(notebook)
+		notebook.connect('properties-changed', self.on_notebook_properties_changed)
 
 		# Start a lightweight background check of the index
 		self.notebook.index.update(background=True, checkcontents=False)
@@ -798,7 +804,7 @@ class GtkInterface(NotebookInterface):
 				self.open_folder(dir)
 
 	def open_document_root(self):
-		dir = self.notebook.get_documents_dir()
+		dir = self.notebook.get_document_root()
 		if dir and dir.exists():
 			self.open_folder(dir)
 
@@ -1181,6 +1187,7 @@ class MainWindow(gtk.Window):
 
 
 	def do_open_notebook(self, ui, notebook):
+		# Initialize all the uistate parameters
 		# delayed till here because all this needs real uistate to be in place
 		# also pathbar needs history in place
 		self.uistate = ui.uistate['MainWindow']
@@ -1207,6 +1214,18 @@ class MainWindow(gtk.Window):
 
 		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT)
 		self.set_pathbar(self.uistate['pathbar_type'])
+
+		# And hook to notebook properties
+		self.on_notebook_properties_changed(notebook)
+		notebook.connect('properties-changed', self.on_notebook_properties_changed)
+
+	def on_notebook_properties_changed(self, notebook):
+		self.set_title(notebook.name + ' - Zim')
+		if notebook.icon:
+			try:
+				self.set_icon_from_file(notebook.icon)
+			except gobject.GError:
+				logger.exception('Could not load icon %s', notebook.icon)
 
 	def do_open_page(self, ui, page, record):
 		'''Signal handler for open-page, updates the pageview'''

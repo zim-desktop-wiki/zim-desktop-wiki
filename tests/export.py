@@ -38,7 +38,7 @@ class TestExportCommandLine(TestExport):
 
 	def export(self):
 		dir = Dir(create_tmp_dir('export_SourceFiles'))
-		notebook = Notebook(path=dir)
+		notebook = Notebook(dir=dir)
 		for name, text in get_test_data('wiki'):
 			page = notebook.get_page(Path(name))
 			page.parse('wiki', text)

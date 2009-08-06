@@ -268,7 +268,8 @@ class ListDict(dict):
 			klass = v.__class__
 			if issubclass(klass, basestring):
 				klass = basestring
-			if not isinstance(self[k], klass) and not self[k] is None:
+			if not isinstance(self[k], klass) \
+			and not self[k] is None and not v is None:
 				logger.warn(
 					'Invalid config value for %s: "%s" - should be of type %s',
 					k, self[k], v.__class__)

@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Thu, 06 Aug 2009 18:40:25 +0200
+Modification-Date: Thu, 06 Aug 2009 18:42:16 +0200
+
+====== Profiles ======
+Created Thursday 06 August 2009
+
+If we want preferences per notebook the right way to go would be by using profiles. This allows grouping notebooks which will share the same preferences set. Also different users can still have different preferences for the same notebook.
+
+* notebook has a "profile" name
+* each profiles has it's own preferences file
+* if the profiles doesn't exist, copy default

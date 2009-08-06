@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Mon, 03 Aug 2009 20:09:27 +0200
+Modification-Date: Thu, 06 Aug 2009 20:29:35 +0200
 
 ====== Tasks ======
 
@@ -53,24 +53,24 @@ Modification-Date: Mon, 03 Aug 2009 20:09:27 +0200
 	* Add extra check that no files outside allowed directories are served
 [ ] Templates: first heading of tree should be a separate template parameter
 	* Used e.g. in Presentation template to put title in separate bar
-[ ] Templates: check correct way to have a page property for index pages
 [*] Commandline: --list option is missing
+[ ] Templates: check correct way to have a page property for index pages
 [ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
+[*] Implement properties dialog
+[*] Implement "Open with" menu
 
 
 == Features ==
+[ ] Implement insert date dialog
+	* hook signal for linking - split off suggest-link from end-of-word ?
+[ ] Implement search + search dialog
 [*] Pageview: Finish the UndoStackManager and hook to the pageview
 [ ] Pageview: menu controls to indent / unindent / move up move down a list item
 	* Check emission of indent-changed signal to set state of buttons
 	* Also think about keybindings for moving a line up / down or top / bottom
 [ ] Pageview: support numbered lists
-[ ] Implement properties dialog
-[ ] Implement "Open with" menu
 [ ] Implement "Open with custom command"dialog
-[ ] Implement insert date dialog
-	* hook signal for linking - split off suggest-link from end-of-word ?
 [*] Implement Calendar plugin
-[ ] Implement search + search dialog
 [ ] Implement TaskList plugin
 	* Use prefrences for keywords, heading keywords, use of checkboxes
 [ ] Implement VersionControl plugin(s)

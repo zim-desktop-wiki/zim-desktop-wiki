@@ -31,7 +31,6 @@ def get_notebook(notebook):
 	assert notebook, 'BUG: notebook not defined'
 	if isinstance(notebook, basestring):
 		# We are not sure if it is a name or a path, try lookup
-		name = notebook
 		table = get_notebook_list()
 		notebook = unicode(notebook)
 		if notebook == '_default_':
@@ -63,12 +62,13 @@ def get_notebook(notebook):
 			return None
 
 	if isinstance(notebook, File) and notebook.basename == 'notebook.zim':
-		name = notebook.path # FIXME get name from the file
-	else:
-		name = notebook.path
+		notebook = notebook.dir
 
 	if notebook.exists():
-		return Notebook(path=notebook, name=name)
+		if isinstance(notebook, File):
+			return Notebook(file=notebook)
+		else:
+			return Notebook(dir=notebook)
 	else:
 		return None
 
@@ -112,32 +112,47 @@ class Notebook(gobject.GObject):
 		'page-updated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-moved': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'page-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'properties-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 	}
 
-	def __init__(self, path=None, name=None, config=None, index=None):
+	properties = (
+		('name', 'string', _('Name')), # T: label for properties dialog
+		('home', 'page', _('Home Page')), # T: label for properties dialog
+		('icon', 'image', _('Icon')), # T: label for properties dialog
+		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
+		('slow_fs', 'bool', _('Slow file system')), # T: label for properties dialog
+		#~ ('autosave', 'bool', _('Auto-version when closing the notebook')),
+			# T: label for properties dialog
+	)
+
+	def __init__(self, dir=None, file=None, config=None, index=None):
+		assert not (dir and file), 'BUG: can not provide both dir and file '
 		gobject.GObject.__init__(self)
 		self._namespaces = []	# list used to resolve stores
 		self._stores = {}		# dict mapping namespaces to stores
 		self._page_cache = weakref.WeakValueDictionary()
 		self.dir = None
+		self.file = None
 		self.cache_dir = None
-		self.name = name
+		self.name = None
+		self.icon = None
 		self.config = config
 
-		if isinstance(path, Dir):
-			self.dir = path
-			self.cache_dir = path.subdir('.zim')
+		if dir:
+			assert isinstance(dir, Dir)
+			self.dir = dir
+			self.cache_dir = dir.subdir('.zim')
 				# TODO set cache dir in XDG_CACHE when notebook is read-only
 			logger.debug('Cache dir: %s', self.cache_dir)
 			if self.config is None:
-				self.config = ConfigDictFile(path.file('notebook.zim'))
+				self.config = ConfigDictFile(dir.file('notebook.zim'))
 			# TODO check if config defined root namespace
 			self.add_store(Path(':'), 'files') # set root
 			# TODO add other namespaces from config
-		elif isinstance(path, File):
+		elif file:
+			assert isinstance(file, File)
+			self.file = file
 			assert False, 'TODO: support for single file notebooks'
-		elif not path is None:
-			assert False, 'path should be either File or Dir'
 
 		if index is None:
 			import zim.index # circular import
@@ -148,8 +163,52 @@ class Notebook(gobject.GObject):
 
 		if self.config is None:
 			self.config = ConfigDict()
-		self.config['Notebook'].setdefault('home', ':Home')
 
+		self.config['Notebook'].setdefault('name', None)
+		self.config['Notebook'].setdefault('home', ':Home')
+		self.config['Notebook'].setdefault('icon', None)
+		self.config['Notebook'].setdefault('document_root', None)
+		self.config['Notebook'].setdefault('slow_fs', False)
+		self.do_properties_changed()
+
+	def save_properties(self, **properties):
+		# Check if icon is relative
+		if self.dir and properties['icon'] \
+		and properties['icon'].startswith(self.dir.path):
+			i = len(self.dir.path)
+			path = './' + properties['icon'][i:].lstrip('/\\')
+			# TODO use proper fs routine(s) for this substitution
+			properties['icon'] = path
+
+		self.config['Notebook'].update(properties)
+		self.config.write()
+		self.emit('properties-changed')
+
+	def do_properties_changed(self):
+		#~ import pprint
+		#~ pprint.pprint(self.config)
+		config = self.config['Notebook']
+
+		# Set a name for ourselves
+		if config['name']: 	self.name = config['name']
+		elif self.dir: self.name = self.dir.basename
+		elif self.file: self.name = self.file.basename
+		else: self.name = 'Unnamed Notebook'
+
+		# We should always have a home
+		config.setdefault('home', ':Home')
+
+		# Resolve icon, can be relative
+		# TODO proper FS routine to check abs path - also allowed without the "./" - so e.g. icon.png should be resolved as well
+		if self.dir and config['icon'] and config['icon'].startswith('.'):
+			self.icon = self.dir.file(config['icon']).path
+		elif config['icon']:
+			self.icon = File(config['icon']).path
+		else:
+			self.icon = None
+
+		# Set FS property
+		if config['slow_fs']: print 'TODO: hook slow_fs property'
 
 	def add_store(self, path, store, **args):
 		'''Add a store to the notebook to handle a specific path and all
@@ -479,10 +538,9 @@ class Notebook(gobject.GObject):
 
 	def get_document_root(self):
 		'''Returns the Dir object for the document root or None'''
-		if 'document_root' in self.config:
-			return Dir(self.config['document_root'])
-		else:
-			return None
+		path = self.config['Notebook']['document_root']
+		if path: return Dir(path)
+		else: return None
 
 	def get_template(self, path):
 		'''Returns a template object for path. Typically used to set initial

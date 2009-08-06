@@ -16,7 +16,7 @@ def get_files_notebook():
 	# We fill the notebook using the store interface, as this test comes before
 	# the notebook test, but after the store test.
 	dir = Dir(tests.create_tmp_dir('index_TestIndexFiles'))
-	notebook = Notebook(path=dir)
+	notebook = Notebook(dir=dir)
 	store = notebook.get_store(':')
 	manifest = []
 	for name, text in tests.get_test_data('wiki'):

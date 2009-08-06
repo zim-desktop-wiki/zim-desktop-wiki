@@ -215,7 +215,7 @@ class TestNotebook(tests.TestCase):
 		path = Path('Foo:Bar')
 		self.notebook.dir = dir
 		self.notebook.get_store(path).dir = dir
-		self.notebook.config['document_root'] = './notebook_document_root'
+		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
 		doc_root = self.notebook.get_document_root()
 		for link, wanted, cleaned in (
 			('~/test.txt', File('~/test.txt'), '~/test.txt'),

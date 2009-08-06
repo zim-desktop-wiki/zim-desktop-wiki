@@ -120,9 +120,9 @@
 -->
 			<menuitem action='attach_file'/>
 			<menuitem action='open_attachments_folder'/>
-			<menuitem action='open_document_root'/>
 			<separator/>
 			<menuitem action='show_server_gui'/>
+			<menuitem action='open_document_root'/>
 			<separator/>
 			<menuitem action='reload_index'/>
 		</menu>
