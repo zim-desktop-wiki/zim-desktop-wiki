@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import os
 import re
 
 source_files = {}
@@ -17,11 +16,21 @@ def get_file(file):
 def extract_comment(file, line):
 	lines = get_file(file)
 	line -= 1 # list is 0 based
-	match = comment_re.search(lines[line]) \
-		or comment_re.match(lines[line+1])
+	match = comment_re.search(lines[line])
 	if match:
+		# comment on same line
 		return match.group(1)
 	else:
+		# search next line(s) for a comment
+		i = line+1
+		while i < len(lines):
+			if '_(' in lines[i] or 'gettext(' in lines[i]:
+				break
+			else:
+				match = comment_re.search(lines[i])
+				if match:
+					return match.group(1)
+			i += 1
 		return None
 
 def extract_comments(sources):
@@ -34,6 +43,9 @@ def extract_comments(sources):
 	if comments:
 		return ' | \n'.join(['#. '+c for c in comments])+'\n'
 	else:
+		print 'No translator comment for:'
+		for file, line in sources:
+			print '\t%s line %s' % (file, line)
 		return ''
 
 def add_comments(file):

@@ -8,7 +8,7 @@ from zim.fs import *
 from zim.exporter import Exporter
 import zim.formats
 import zim.templates
-from zim.gui.widgets import Dialog, ProgressBarDialog
+from zim.gui.widgets import Dialog, ProgressBarDialog, ErrorDialog
 
 
 class ExportDialog(Dialog):
@@ -144,32 +144,36 @@ class ExportDialog(Dialog):
 		self._add_with_frame(vbox, '<b>'+_('Documents')+'</b>')
 			# T: Section heading in export dialog
 
-		document_root_url_box = gtk.CheckButton(_('Map document root to URL')+': ')
-			# T: Checkbox option in export dialog
-		document_root_url_entry = gtk.Entry()
-		document_root_url_entry.set_sensitive(False)
-		if self.ui.notebook.get_document_root():
-			document_root_url_box.connect('toggled',
-				lambda o: document_root_url_entry.set_sensitive(o.get_active()) )
-		else:
-			document_root_url_box.set_sensitive(False)
-		self.inputs['use_document_root_url'] = document_root_url_box
-		self.inputs['document_root_url'] = document_root_url_entry
 		self.uistate.setdefault('use_document_root_url', False)
 		self.uistate.setdefault('document_root_url', '')
-		self.inputs['use_document_root_url'].set_active(self.uistate['use_document_root_url'])
-		self.inputs['document_root_url'].set_text(self.uistate['document_root_url'])
 
-		include_documents_box = gtk.CheckButton(_('Include a copy of linked documents'))
-		self.inputs['include_documents'] = include_documents_box
-		self.uistate.setdefault('include_documents', False)
-		self.inputs['include_documents'].set_active(self.uistate['include_documents'])
+		self.absolute_document_root = \
+			gtk.RadioButton(None,
+			_('Link files under document root with full file path') )
+			# T: radio option in export dialog
+		vbox.add(self.absolute_document_root)
+
+		self.use_document_root_url = \
+			gtk.RadioButton(self.absolute_document_root,
+			_('Map document root to URL')+': ' )
+			# T: radio option in export dialog
+
+		document_root_url_entry = gtk.Entry()
+		document_root_url_entry.set_sensitive(False)
+		self.inputs['document_root_url'] = document_root_url_entry
+		self.inputs['document_root_url'].set_text(self.uistate['document_root_url'])
+		if self.ui.notebook.get_document_root():
+			self.use_document_root_url.connect('toggled',
+				lambda o: document_root_url_entry.set_sensitive(o.get_active()) )
+			self.use_document_root_url.set_active(self.uistate['use_document_root_url'])
+		else:
+			self.use_document_root_url.set_sensitive(False)
+			self.absolute_document_root.set_sensitive(False)
 
 		hbox = gtk.HBox(0, 5)
-		hbox.add(document_root_url_box)
+		hbox.add(self.use_document_root_url)
 		hbox.add(document_root_url_entry)
 		vbox.add(hbox)
-		vbox.add(include_documents_box)
 
 	def _add_with_frame(self, widget, title):
 		frame = gtk.Frame()
@@ -185,10 +189,8 @@ class ExportDialog(Dialog):
 		self.uistate['template_file'] = self.inputs['template_file'].get_filename()
 		self.uistate['output_folder'] = self.inputs['output_folder'].get_filename()
 		self.uistate['index_page'] = self.inputs['index_page'].get_text()
-		self.uistate['use_document_root_url'] = self.inputs['use_document_root_url'].get_active()
 		self.uistate['document_root_url'] = self.inputs['document_root_url'].get_text()
-		self.uistate['include_documents'] = self.inputs['include_documents'].get_active()
-
+		self.uistate['use_document_root_url'] = self.use_document_root_url.get_active()
 
 		for k in ('format', 'template', 'output_folder'):
 			if not self.uistate[k]: # ignore empty string as well
@@ -198,15 +200,23 @@ class ExportDialog(Dialog):
 		dir = Dir(self.uistate['output_folder'])
 
 		options = {}
-		for k in ('format', 'template', 'index_page', 'include_documents'):
-			if self.uistate[k]: # ignore empty string as well
+		for k in ('format', 'template', 'index_page'):
+			if self.uistate[k] and not self.uistate[k].isspace():
 				options[k] = self.uistate[k]
 
 		if options['template'] == _('Other...'):
 			options['template'] = self.uistate['template_file']
+			if not options['template'] or options['template'].isspace():
+				ErrorDialog(self, _('Please specify a template')).run()
+					# T: error message when input for export dialog not OK
+				return False
 
-		if self.uistate['use_document_root_url'] and self.uistate['document_root_url']:
+		if self.uistate['use_document_root_url']:
 			options['document_root_url'] = self.uistate['document_root_url']
+			if not options['document_root_url'] or options['document_root_url'].isspace():
+				ErrorDialog(self, _('Please specify a URL for the document root')).run()
+					# T: error message when input for export dialog not OK
+				return False
 
 		exporter = Exporter(self.ui.notebook, **options)
 

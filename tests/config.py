@@ -164,7 +164,9 @@ none=None
 		conf.set_modified(False)
 		self.assertEqual(conf['Foo'].setdefault('foobar', 5), 0)
 		self.assertEqual(conf['Bar'].setdefault('check', 3.14), 1.333)
-		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), conf.is_coord), (33,44))
+		self.assertEqual(conf['Bar'].setdefault('check', None), 1.333)
+		self.assertEqual(conf['Bar'].setdefault('check', 'foo', klass=float), 1.333)
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), check=conf.is_coord), (33,44))
 		self.assertFalse(conf.modified)
 
 	def testLookup(self):

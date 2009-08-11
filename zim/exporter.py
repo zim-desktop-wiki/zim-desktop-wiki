@@ -21,13 +21,15 @@ class Exporter(object):
 	'''Class that handles an export action'''
 
 	def __init__(self, notebook, format, template=None,
-				index_page=None,
-				include_documents=False, document_root_url=None):
+					index_page=None, document_root_url=None):
+		'''TODO document eport options'''
 		self.notebook = notebook
 		self.index_page = index_page
-		self.include_documents = include_documents
 		self.document_root_url = document_root_url
 		self.linker = BaseLinker(format, notebook)
+
+		if document_root_url:
+			print 'TODO: implement map document root'
 
 		if isinstance(format, basestring):
 			self.format = get_format(format)
@@ -71,7 +73,7 @@ class Exporter(object):
 		# TODO add attachments + copy documents
 
 	def export_page_to_fh(self, fh, page):
-		# TODO use documents_url
+		# TODO use document_root_url
 		if self.template is None:
 			self.linker.set_path(page)
 			lines = page.dump(self.format, linker=self.linker)

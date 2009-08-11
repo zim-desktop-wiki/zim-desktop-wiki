@@ -164,10 +164,10 @@ class Notebook(gobject.GObject):
 		if self.config is None:
 			self.config = ConfigDict()
 
-		self.config['Notebook'].setdefault('name', None)
-		self.config['Notebook'].setdefault('home', ':Home')
-		self.config['Notebook'].setdefault('icon', None)
-		self.config['Notebook'].setdefault('document_root', None)
+		self.config['Notebook'].setdefault('name', None, klass=basestring)
+		self.config['Notebook'].setdefault('home', ':Home', klass=basestring)
+		self.config['Notebook'].setdefault('icon', None, klass=basestring)
+		self.config['Notebook'].setdefault('document_root', None, klass=basestring)
 		self.config['Notebook'].setdefault('slow_fs', False)
 		self.do_properties_changed()
 

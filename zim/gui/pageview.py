@@ -2186,7 +2186,7 @@ class PageView(gtk.VBox):
 		menu.prepend(gtk.SeparatorMenuItem())
 
 		# edit
-		item = gtk.MenuItem(_('_Edit Link'))
+		item = gtk.MenuItem(_('_Edit Link')) # T: menu item in context menu
 		item.connect('activate', lambda o: self.edit_object(iter=iter))
 		menu.prepend(item)
 

@@ -253,26 +253,28 @@ class ListDict(dict):
 	# Would expect that setdefault() triggers __setitem__
 	# but this seems not to be the case in the standard implementation
 	# And we added some extra functionality here
-	def setdefault(self, k, v=None, check=None):
+	def setdefault(self, k, v=None, klass=None, check=None):
 		'''Like dict.setdefault() but with some extra restriction because we
-		assume un-safe user input. If a function 'check' is given it will
-		overwrite any value if check(value) evaluates False. If no function
+		assume un-safe user input. If 'klass' is given the existing value 
+		will be checked to be of that class and reset to default if it is not.
+		Alternatively 'check' can be a function that needs to return True
+		in order to keep the existing value. If no class and no function
 		is given is it will compare the classes of the set value and the
-		default to ensure we get what we expect. This restricts the use of
-		setdefault() without a value (or value is None) because any value
-		now will be rejected and we always initialize None.
+		default to ensure we get what we expect. (An exception is made when
+		value is None, in that case it is good practise to always specify
+		a class or check function.)
 		'''
 		if not k in self:
 			self.__setitem__(k, v)
 		elif check is None:
-			klass = v.__class__
+			klass = klass or v.__class__
 			if issubclass(klass, basestring):
 				klass = basestring
-			if not isinstance(self[k], klass) \
-			and not self[k] is None and not v is None:
+			if not self[k] is None and not v is None \
+			and not isinstance(self[k], klass):
 				logger.warn(
 					'Invalid config value for %s: "%s" - should be of type %s',
-					k, self[k], v.__class__)
+					k, self[k], klass)
 				self.__setitem__(k, v)
 		else:
 			if not check(self[k]):

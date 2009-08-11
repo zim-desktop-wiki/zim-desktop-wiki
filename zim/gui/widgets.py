@@ -10,6 +10,7 @@ TODO document dialog base classes
 
 import gobject
 import gtk
+import pango
 import logging
 
 from zim.fs import *
@@ -317,7 +318,7 @@ class Dialog(gtk.Dialog):
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
 			#~ print '>>', self.uistate
-			self.uistate.setdefault('windowsize', (-1, -1), self.uistate.is_coord)
+			self.uistate.setdefault('windowsize', (-1, -1), check=self.uistate.is_coord)
 			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
 		else:
@@ -583,14 +584,15 @@ class ErrorDialog(gtk.MessageDialog):
 			description = error.description
 		else:
 			msg = unicode(error)
-			description = ''
+			description = None
 
 		gtk.MessageDialog.__init__(
 			self, parent=get_window(ui),
 			type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_CLOSE,
 			message_format=msg
 		)
-		self.format_secondary_text(description)
+		if description:
+			self.format_secondary_text(description)
 
 	def run(self):
 		'''Runs the dialog and destroys it directly.'''

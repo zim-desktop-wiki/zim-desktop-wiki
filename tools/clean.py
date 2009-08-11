@@ -9,10 +9,12 @@ from subprocess import Popen, PIPE
 
 def main(remove=False):
 	pipe = Popen('bzr ls --ignored', shell=True, stdout=PIPE).stdout
+	print 'rm *.pyc'
 	for line in pipe.readlines():
 		file = line.strip()
 		if os.path.isfile(file):
-			print 'rm %s' % file
+			if not file.endswith('.pyc'):
+				print 'rm %s' % file
 			if remove:
 				os.remove(file)
 		elif os.path.isdir(file):

@@ -28,8 +28,6 @@ import os
 import logging
 import gobject
 import gtk
-import gtk.keysyms
-import pango
 
 import zim
 from zim import NotebookInterface, NotebookLookupError
@@ -321,6 +319,13 @@ class GtkInterface(NotebookInterface):
 
 	def quit(self):
 		assert self.close_page(self.page)
+			# returns False if page not saved
+
+		if self.uistate.modified:
+			self.uistate.write()
+			# This is normally done on idle after close_page(), but here no
+			# idle event will follow because we go directly to main_quit()
+
 		self.mainwindow.destroy()
 		gtk.main_quit()
 
@@ -590,7 +595,7 @@ class GtkInterface(NotebookInterface):
 				self.uistate.write()
 			return False # only run once
 
-		gobject.idle_add(save_uistate)
+		save_uistate()
 
 	def open_page_back(self):
 		record = self.history.get_previous()
@@ -851,6 +856,7 @@ class GtkInterface(NotebookInterface):
 		dialog.set_license(zim.__license__)
 		dialog.set_authors([zim.__author__])
 		dialog.set_translator_credits(_('translator-credits'))
+			# T: This string needs to be translated with names of the translators for this language
 		dialog.set_website(zim.__url__)
 		dialog.run()
 		dialog.destroy()
@@ -1192,7 +1198,7 @@ class MainWindow(gtk.Window):
 		# also pathbar needs history in place
 		self.uistate = ui.uistate['MainWindow']
 
-		self.uistate.setdefault('windowsize', (600, 450), self.uistate.is_coord)
+		self.uistate.setdefault('windowsize', (600, 450), check=self.uistate.is_coord)
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 
@@ -1306,6 +1312,7 @@ class SavePageErrorDialog(ErrorDialog):
 To continue you can save a copy of this page or discard
 any changes. If you save a copy changes will be also
 discarded, but you can restore the copy later.''')
+			# T: text in error dialog when saving page failed
 		gtk.MessageDialog.__init__(
 			self, parent=get_window(ui),
 			type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_NONE,
@@ -1534,6 +1541,7 @@ class RenamePageDialog(Dialog):
 		assert self.path, 'Need a page here'
 
 		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
+			# T: label in 'rename page' dialog - %s is the page name
 		self.add_fields([
 			('name', 'string', _('Name'), self.path.basename),
 				# T: Input label in the 'rename page' dialog for the new name

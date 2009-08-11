@@ -1,15 +1,13 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Thu, 30 Jul 2009 21:36:25 +0200
-Modification-Date: Thu, 30 Jul 2009 21:36:25 +0200
+Modification-Date: Mon, 10 Aug 2009 00:04:21 +0200
 
 ====== Exporter ======
 Created Thursday 30 July 2009
 
-
-Get rid of the "include files" in export dialog -> push attachments /
-document root
-How about "include document root" ?
+~~Get rid of the "include files" in export dialog -> push attachments /~~
+~~document root~~
 
 push icons for html to data uris
 
@@ -30,7 +28,7 @@ intended for e.g. print to browser
 link files and images by absolute file:// uris, do no link pages (or stub link)
 icons are linked statically to the data files
 
-FileStoreLinker lives in zim.store.files
+FileExportLinker lives in exporter
 assume Files store layout
 link attachments and images
 where do icons go ?
