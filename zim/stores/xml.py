@@ -67,10 +67,10 @@ class Store(memory.Store):
 		return text.get_lines()
 
 	def _dump_node(self, node):
-		text = [u'<page name="%s">\n' % node[0]]
-		if len(node[1]):
-			text.append(node[1])
-		for n in node[2]:
+		text = [u'<page name="%s">\n' % node.basename]
+		if node.text:
+			text.append(node.text)
+		for n in node.children:
 			text += self._dump_node(n) # recurs
 		text.append('</page>\n')
 		return text
@@ -89,14 +89,18 @@ class MemoryStoreTreeBuilder(object):
 		elif tag == 'page':
 			assert 'name' in attrib
 			self.path = self.path + attrib['name']
-			node = self.store._get_node(self.path, vivificate=True)
+			node = self.store.get_node(self.path, vivificate=True)
 			self.stack.append(node)
 		else:
 			assert False, 'Unknown tag'
 
 	def data(self, data):
 		if self.stack:
-			self.stack[-1][1] += data
+			node = self.stack[-1]
+			if node.text:
+				node.text += data
+			else:
+				node.text = data
 
 	def end(self, tag):
 		if tag == 'section':
@@ -105,10 +109,10 @@ class MemoryStoreTreeBuilder(object):
 			assert self.stack
 			self.path = self.path.parent
 			node = self.stack.pop()
-			if node[1].isspace():
-				node[1] = ''
-			else:
-				node[1] = unicode(node[1].strip('\n') + '\n')
+			if node.text and node.text.isspace():
+				node.text = ''
+			elif node.text:
+				node.text = unicode(node.text.strip('\n') + '\n')
 
 	def close(self):
 		pass

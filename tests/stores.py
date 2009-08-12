@@ -83,7 +83,7 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		self.store = store.Store(path=Path(':'), notebook=Notebook())
 		self.index = set()
 		for name, text in tests.get_test_data('wiki'):
-			self.store._set_node(Path(name), text)
+			self.store.set_node(Path(name), text)
 			self.index.add(name)
 		self.normalize_index()
 
