@@ -101,10 +101,20 @@ class PageExistsError(Error):
 	pass # TODO check where this should be used
 
 
+class PageReadOnlyError(Error):
+
+	# TODO verbose description
+
+	def __init__(self, page):
+		self.msg = _('Can not modify page: %s') % page.name
+			# T: error message for read-only pages
+
 class Notebook(gobject.GObject):
 	'''Main class to access a notebook. Proxies between backend Store
 	and Index objects on the one hand and the gui application on the other
 	'''
+
+	# TODO add checks for read-only page in much more methods
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -141,8 +151,11 @@ class Notebook(gobject.GObject):
 		if dir:
 			assert isinstance(dir, Dir)
 			self.dir = dir
-			self.cache_dir = dir.subdir('.zim')
-				# TODO set cache dir in XDG_CACHE when notebook is read-only
+			self.readonly = not dir.iswritable()
+			if not self.readonly:
+				self.cache_dir = dir.subdir('.zim')
+			else:
+				self.cache_dir = self._cache_dir(dir)
 			logger.debug('Cache dir: %s', self.cache_dir)
 			if self.config is None:
 				self.config = ConfigDictFile(dir.file('notebook.zim'))
@@ -152,6 +165,7 @@ class Notebook(gobject.GObject):
 		elif file:
 			assert isinstance(file, File)
 			self.file = file
+			self.readonly = not file.iswritable()
 			assert False, 'TODO: support for single file notebooks'
 
 		if index is None:
@@ -170,6 +184,11 @@ class Notebook(gobject.GObject):
 		self.config['Notebook'].setdefault('document_root', None, klass=basestring)
 		self.config['Notebook'].setdefault('slow_fs', False)
 		self.do_properties_changed()
+
+	def _cache_dir(self, dir):
+		from zim.config import XDG_CACHE_HOME
+		path = 'notebook-' + dir.path.replace('/', '_').strip('_')
+		return XDG_CACHE_HOME.subdir(('zim', path))
 
 	def save_properties(self, **properties):
 		# Check if icon is relative
@@ -727,6 +746,7 @@ class Page(Path):
 		self.modified = False
 		self._parsetree = parsetree
 		self._ui_object = None
+		self.readonly = True # stores need to explicitly set readonly
 		self.properties = {}
 		if hasattr(path, '_indexpath'):
 			self._indexpath = path._indexpath
@@ -766,8 +786,8 @@ class Page(Path):
 		'''
 		assert self.valid, 'BUG: page object became invalid'
 
-		if 'readonly' in self.properties and self.properties['readonly']:
-			raise Exception, 'Can not store data in a read-only Page'
+		if self.readonly:
+			raise PageReadOnlyError, self
 
 		if self._ui_object:
 			self._ui_object.set_parsetree(tree)
@@ -842,7 +862,6 @@ class IndexPage(Page):
 		Page.__init__(self, path, haschildren=True)
 		self.index_recurs = recurs
 		self.notebook = notebook
-		self.properties['readonly'] = True
 		self.properties['type'] = 'namespace-index'
 
 	@property

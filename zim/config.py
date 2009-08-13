@@ -255,7 +255,7 @@ class ListDict(dict):
 	# And we added some extra functionality here
 	def setdefault(self, k, v=None, klass=None, check=None):
 		'''Like dict.setdefault() but with some extra restriction because we
-		assume un-safe user input. If 'klass' is given the existing value 
+		assume un-safe user input. If 'klass' is given the existing value
 		will be checked to be of that class and reset to default if it is not.
 		Alternatively 'check' can be a function that needs to return True
 		in order to keep the existing value. If no class and no function
@@ -434,10 +434,11 @@ class ConfigDict(ListDict):
 	def dump(self):
 		lines = []
 		for section, parameters in self.items():
-			lines.append('[%s]\n' % section)
-			for param, value in parameters.items():
-				lines.append('%s=%s\n' % (param, self._encode_value(value)))
-			lines.append('\n')
+			if parameters:
+				lines.append('[%s]\n' % section)
+				for param, value in parameters.items():
+					lines.append('%s=%s\n' % (param, self._encode_value(value)))
+				lines.append('\n')
 		return lines
 
 	def _encode_value(self, value):

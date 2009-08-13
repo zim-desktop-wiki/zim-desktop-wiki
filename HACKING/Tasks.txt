@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Wed, 12 Aug 2009 23:53:15 +0200
+Modification-Date: Thu, 13 Aug 2009 10:56:31 +0200
 
 ====== Tasks ======
 
@@ -57,7 +57,7 @@ Modification-Date: Wed, 12 Aug 2009 23:53:15 +0200
 	* Used e.g. in Presentation template to put title in separate bar
 [*] Commandline: --list option is missing
 [ ] Templates: check correct way to have a page property for index pages
-[ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
+[*] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
 [*] Implement properties dialog
 [*] Implement "Open with" menu
 

@@ -34,6 +34,7 @@ class Store(StoreClass):
 		StoreClass.__init__(self, notebook, path)
 		self.format = get_format('wiki') # TODO make configable
 		self._nodetree = []
+		self.readonly = False
 
 	def set_node(self, path, text):
 		'''Sets node for 'page' and return it.'''
@@ -80,8 +81,10 @@ class Store(StoreClass):
 
 		page = Page(path, haschildren)
 		if text:
+			page.readonly = False
 			page.set_parsetree(self.format.Parser().parse(text))
 			page.modified = False
+		page.readonly = self.readonly
 		return page
 
 	def get_pagelist(self, path):

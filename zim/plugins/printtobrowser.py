@@ -24,12 +24,12 @@ ui_xml = '''
 '''
 
 ui_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('print_to_browser', 'gtk-print', _('_Print to Browser'), '<ctrl>P', 'Printto browser'), # T: menu item
+	# name, stock id, label, accelerator, tooltip, readonly
+	('print_to_browser', 'gtk-print', _('_Print to Browser'), '<ctrl>P', 'Printto browser', True), # T: menu item
 
 )
 
-class SpellPlugin(PluginClass):
+class PrintToBrowserPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Print to Browser'), # T: plugin name

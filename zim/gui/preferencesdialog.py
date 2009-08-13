@@ -234,12 +234,10 @@ class PluginsTreeModel(gtk.ListStore):
 	def do_toggle_path(self, path):
 		loaded, name, klass = self[path]
 		if loaded:
-			classes = [p.__class__ for p in self.ui.plugins]
-			i = classes.index(klass)
-			self.ui.unload_plugin(self.ui.plugins[i])
+			self.ui.unload_plugin(klass.plugin_key)
 			self[path][0] = False
 		else:
-			self.ui.load_plugin(klass)
+			self.ui.load_plugin(klass.plugin_key)
 			self[path][0] = True
 
 

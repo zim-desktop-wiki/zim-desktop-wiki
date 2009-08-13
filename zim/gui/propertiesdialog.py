@@ -19,8 +19,12 @@ class PropertiesDialog(Dialog):
 		for name, type, label in self.ui.notebook.properties:
 			fields.append((name, type, label, config[name]))
 		self.add_fields(fields)
+		if self.ui.readonly:
+			for widget in self.inputs.values():
+				widget.set_sensitive(False)
 
 	def do_response_ok(self):
-		properties = self.get_fields()
-		self.ui.notebook.save_properties(**properties)
+		if not self.ui.readonly:
+			properties = self.get_fields()
+			self.ui.notebook.save_properties(**properties)
 		return True

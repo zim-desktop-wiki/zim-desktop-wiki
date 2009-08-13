@@ -50,13 +50,13 @@ ui_xml_show_dialog = '''
 '''
 
 ui_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('go_page_today', None, _('To_day'), '<ctrl>D', ''), # T: menu item
+	# name, stock id, label, accelerator, tooltip, readonly
+	('go_page_today', None, _('To_day'), '<ctrl>D', '', True), # T: menu item
 )
 
 ui_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, None, initial state
-	('show_calendar', 'zim-calendar', _('Calen_dar'),  '', '', None, False), # T: menu item
+	# name, stock id, label, accelerator, tooltip, initial state, readonly
+	('show_calendar', 'zim-calendar', _('Calen_dar'),  '', '', False, True), # T: menu item
 )
 
 KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))

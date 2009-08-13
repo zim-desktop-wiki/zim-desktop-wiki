@@ -147,6 +147,7 @@ class FileStorePage(Page):
 		self.source = source
 		self.format = format
 		self.source.checkoverwrite = True
+		self.readonly = not self.source.iswritable()
 
 	@property
 	def hascontent(self):

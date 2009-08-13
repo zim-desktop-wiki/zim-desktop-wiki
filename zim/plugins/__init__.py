@@ -22,6 +22,7 @@ def get_plugin(pluginname):
 		if ( isinstance(obj, (type, types.ClassType)) # is a class
 		and issubclass(obj, PluginClass) # is derived from PluginClass
 		and not obj == PluginClass ): # but is not PluginClass itself
+			obj.plugin_key = pluginname
 			return obj
 
 

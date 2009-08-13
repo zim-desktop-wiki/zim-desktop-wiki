@@ -68,25 +68,25 @@ KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
 ui_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('undo', 'gtk-undo', _('_Undo'), '<ctrl>Z', ''), # T: Menu item
-	('redo', 'gtk-redo', _('_Redo'), '<ctrl><shift>Z', ''), # T: Menu item
-	('cut', 'gtk-cut', _('Cu_t'), '<ctrl>X', ''), # T: Menu item
-	('copy', 'gtk-copy', _('_Copy'), '<ctrl>C', ''), # T: Menu item
-	('paste', 'gtk-paste', _('_Paste'), '<ctrl>V', ''), # T: Menu item
-	('delete', 'gtk-delete', _('_Delete'), '', ''), # T: Menu item
-	('toggle_checkbox', STOCK_CHECKED_BOX, _('Toggle Checkbox \'V\''), 'F12', ''), # T: Menu item
-	('xtoggle_checkbox', STOCK_XCHECKED_BOX, _('Toggle Checkbox \'X\''), '<shift>F12', ''), # T: Menu item
-	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<ctrl>E', ''), # T: Menu item
-	('insert_image', None, _('_Image...'), '', ''), # T: Menu item
-	('insert_text_from_file', None, _('Text From _File...'), '', ''), # T: Menu item
-	('insert_external_link', 'zim-link', _('E_xternal Link...'), '', ''), # T: Menu item
-	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link')), # T: Menu item
-	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', ''), # T: Menu item
-	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', ''), # T: Menu item
-	('find_next', None, _('Find Ne_xt'), '<ctrl>G', ''), # T: Menu item
-	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', ''), # T: Menu item
-	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', ''), # T: Menu item
+	# name, stock id, label, accelerator, tooltip, readonly
+	('undo', 'gtk-undo', _('_Undo'), '<ctrl>Z', '', False), # T: Menu item
+	('redo', 'gtk-redo', _('_Redo'), '<ctrl><shift>Z', '', False), # T: Menu item
+	('cut', 'gtk-cut', _('Cu_t'), '<ctrl>X', '', False), # T: Menu item
+	('copy', 'gtk-copy', _('_Copy'), '<ctrl>C', '', False), # T: Menu item
+	('paste', 'gtk-paste', _('_Paste'), '<ctrl>V', '', False), # T: Menu item
+	('delete', 'gtk-delete', _('_Delete'), '', '', False), # T: Menu item
+	('toggle_checkbox', STOCK_CHECKED_BOX, _('Toggle Checkbox \'V\''), 'F12', '', False), # T: Menu item
+	('xtoggle_checkbox', STOCK_XCHECKED_BOX, _('Toggle Checkbox \'X\''), '<shift>F12', '', False), # T: Menu item
+	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<ctrl>E', '', False), # T: Menu item
+	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
+	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
+	('insert_external_link', 'zim-link', _('E_xternal Link...'), '', '', False), # T: Menu item
+	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
+	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', '', False), # T: Menu item
+	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', '', True), # T: Menu item
+	('find_next', None, _('Find Ne_xt'), '<ctrl>G', '', True), # T: Menu item
+	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', '', True), # T: Menu item
+	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', '', False), # T: Menu item
 )
 
 ui_format_actions = (
@@ -104,11 +104,11 @@ ui_format_actions = (
 )
 
 ui_format_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, None, initial state
-	('toggle_format_strong', 'gtk-bold', _('_Strong'), '', _('Strong'), None, False),
-	('toggle_format_emphasis', 'gtk-italic', _('_Emphasis'), '', _('Emphasis'), None, False),
-	('toggle_format_mark', 'gtk-underline', _('_Mark'), '', _('Mark'), None, False),
-	('toggle_format_strike', 'gtk-strikethrough', _('_Strike'), '', _('Strike'), None, False),
+	# name, stock id, label, accelerator, tooltip
+	('toggle_format_strong', 'gtk-bold', _('_Strong'), '', _('Strong')),
+	('toggle_format_emphasis', 'gtk-italic', _('_Emphasis'), '', _('Emphasis')),
+	('toggle_format_mark', 'gtk-underline', _('_Mark'), '', _('Mark')),
+	('toggle_format_strike', 'gtk-strikethrough', _('_Strike'), '', _('Strike')),
 )
 
 ui_preferences = (
@@ -1249,8 +1249,7 @@ class TextView(gtk.TextView):
 		buffer = self.get_buffer()
 		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
 
-		READONLY = False # FIXME
-		if READONLY:
+		if not self.get_editable():
 			handled = self._do_key_press_event_readonly(event)
 		elif buffer.get_has_selection():
 			handled = self._do_key_press_event_selection(event)
@@ -1896,6 +1895,7 @@ class PageView(gtk.VBox):
 		self.ui = ui
 		gtk.VBox.__init__(self)
 		self.page = None
+		self.readonly = True
 		self.undostack = None
 
 		self.preferences = self.ui.preferences['PageView']
@@ -1952,9 +1952,11 @@ class PageView(gtk.VBox):
 		actiongroup.add_toggle_actions(ui_format_toggle_actions)
 		for name in [a[0] for a in ui_format_actions]:
 			action = actiongroup.get_action(name)
+			action.zim_readonly = False
 			action.connect('activate', self.do_toggle_format_action)
 		for name in [a[0] for a in ui_format_toggle_actions]:
 			action = actiongroup.get_action(name)
+			action.zim_readonly = False
 			action.connect('activate', self.do_toggle_format_action)
 
 		# extra keybinding - FIXME needs switch on read-only
@@ -1966,13 +1968,19 @@ class PageView(gtk.VBox):
 
 
 		PageView.style = config_file('style.conf')
-		self.ui.connect('preferences-changed', lambda o: self.reload_style())
-		self.reload_style()
+		self.on_preferences_changed(self.ui)
+		self.ui.connect('preferences-changed', self.on_preferences_changed)
 
 		self.ui.connect('open-notebook', self.on_open_notebook)
+		self.ui.connect_object('readonly-changed', PageView.set_readonly, self)
 
 	def grab_focus(self):
 		self.view.grab_focus()
+
+	def on_preferences_changed(self, ui):
+		self.reload_style()
+		self.view.set_cursor_visible(
+			self.preferences['read_only_cursor'] or not self.readonly)
 
 	def reload_style(self):
 		'''(Re-)loads style definition from the config. While running this
@@ -2066,6 +2074,7 @@ class PageView(gtk.VBox):
 			lambda o: self.on_modified_changed(o))
 
 		self.undostack = UndoStackManager(buffer)
+		self.set_readonly()
 
 	def get_page(self): return self.page
 
@@ -2096,6 +2105,18 @@ class PageView(gtk.VBox):
 		tree.resolve_images(self.ui.notebook, self.page)
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
+
+	def set_readonly(self):
+		if self.page:
+			self.readonly = self.page.readonly or self.ui.readonly
+		self.view.set_editable(not self.readonly)
+		self.view.set_cursor_visible(
+			self.preferences['read_only_cursor'] or not self.readonly)
+
+		# partly overrule logic in ui.set_readonly()
+		for action in self.actiongroup.list_actions():
+			if not action.zim_readonly:
+				action.set_sensitive(not self.readonly)
 
 	def set_cursor_pos(self, pos):
 		buffer = self.view.get_buffer()

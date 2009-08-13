@@ -266,27 +266,41 @@ class NotebookInterface(gobject.GObject):
 
 	def load_plugins(self):
 		'''Load the plugins defined in the preferences'''
-		plugins = ['calendar', 'spell', 'linkmap', 'printtobrowser'] # FIXME: get from config
+		self.preferences['General'].setdefault('plugins', ['calendar', 'printtobrowser'])
+		plugins = self.preferences['General']['plugins']
 		for plugin in plugins:
 			self.load_plugin(plugin)
 
-	def load_plugin(self, plugin):
-		'''Load a single plugin.
-		"plugin" can either be a pluginname or a plugin class
-		'''
-		if isinstance(plugin, basestring):
-			import zim.plugins
-			klass = zim.plugins.get_plugin(plugin)
-		else:
-			klass = plugin
+	def load_plugin(self, name):
+		'''Load a single plugin by name'''
+		assert isinstance(name, basestring)
+		import zim.plugins
+		klass = zim.plugins.get_plugin(name)
 		plugin = klass(self)
 		self.plugins.append(plugin)
-		logger.debug('Loaded plugin %s', plugin)
+		logger.debug('Loaded plugin %s (%s)', name, plugin)
+
+		plugin.plugin_key = name
+		if not name in self.preferences['General']['plugins']:
+			self.preferences['General']['plugins'].append(name)
+			self.preferences.write()
 
 	def unload_plugin(self, plugin):
 		'''Remove a plugin'''
-		print 'TODO: unload plugin', plugin
-		#~ logger.debug('Unloaded plugin %s', pluginname)
+		if isinstance(plugin, basestring):
+			name = plugin
+			assert name in map(lambda p: p.plugin_key, self.plugins)
+			plugin = filter(lambda p: p.plugin_key == name, self.plugins)[0]
+		else:
+			assert plugin in self.plugins
+			name = plugin.plugin_key
+
+		plugin.disconnect()
+		self.plugins.remove(plugin)
+		logger.debug('Unloaded plugin %s', name)
+
+		self.preferences['General']['plugins'].remove(name)
+		self.preferences.write()
 
 	def open_notebook(self, notebook):
 		'''Open a notebook if no notebook was set already.
