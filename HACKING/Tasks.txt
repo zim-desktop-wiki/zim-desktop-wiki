@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Thu, 13 Aug 2009 18:10:59 +0200
+Modification-Date: Thu, 13 Aug 2009 20:02:24 +0200
 
 ====== Tasks ======
 
@@ -42,8 +42,6 @@ Modification-Date: Thu, 13 Aug 2009 18:10:59 +0200
 [ ] Exporter: Check if linker for exporter is OK
 [ ] Notebook: When moving / renaming links need to be updated
 	* Allow non-exisitng pag as placeholder in the index for resolving
-[*] Dialog: Autocompletion for pages and namespaces in dialogs
-[*] Commandline: Allow opening files mapping to pages from the commandline
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
 

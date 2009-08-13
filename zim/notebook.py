@@ -18,7 +18,8 @@ import gobject
 
 from zim.fs import *
 from zim.errors import Error
-from zim.config import ConfigDict, ConfigDictFile, config_file, data_dir, user_dirs
+from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
+	config_file, data_dir, user_dirs
 from zim.parsing import Re, is_url_re, is_email_re
 import zim.stores
 
@@ -161,6 +162,7 @@ class Notebook(gobject.GObject):
 		gobject.GObject.__init__(self)
 		self._namespaces = []	# list used to resolve stores
 		self._stores = {}		# dict mapping namespaces to stores
+		self.namespace_properties = HierarchicDict()
 		self._page_cache = weakref.WeakValueDictionary()
 		self.dir = None
 		self.file = None
@@ -586,9 +588,10 @@ class Notebook(gobject.GObject):
 		'''Returns a template object for path. Typically used to set initial
 		content for a new page.
 		'''
-		# TODO config per namespace
 		from zim.templates import get_template
-		return get_template('wiki', '_New')
+		template = self.namespace_properties[path].get('template', '_New')
+		logger.debug('Found template \'%s\' for %s', template, path)
+		return get_template('wiki', template)
 
 	def walk(self, path=None):
 		'''Generator function which iterates through all pages, depth first.

@@ -58,7 +58,7 @@ arbitrary code from templates.
 
 import re
 import logging
-from time import strftime
+from time import strftime, strptime
 
 import zim
 import zim.formats
@@ -277,6 +277,14 @@ class Template(GenericTemplate):
 		'''Static method callable from the template, returns a string'''
 		if timestamp is None:
 			return strftime(format)
+		elif isinstance(timestamp, basestring):
+			# TODO generalize this - now hardcoded for Calendar plugin
+			match = re.search(r'\d{4}:\d{2}:\d{2}', timestamp)
+			if match:
+				timestamp = strptime(match.group(0), '%Y:%m:%d')
+				return strftime(format, timestamp)
+			else:
+				return None
 		else:
 			return strftime(format, timestamp)
 
