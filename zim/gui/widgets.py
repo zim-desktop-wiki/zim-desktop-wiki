@@ -16,6 +16,7 @@ import logging
 from zim.fs import *
 import zim.errors
 import zim.config
+from zim.notebook import Path
 
 
 logger = logging.getLogger('zim.gui')
@@ -126,8 +127,6 @@ class BrowserTreeView(gtk.TreeView):
 				# expander in front of a path should not select the path.
 				# This logic is based on particulars of the C implementation
 				# and might not be future proof.
-		elif event.button == 3:
-			print 'TODO: context menu for page'
 
 		return gtk.TreeView.do_button_release_event(self, event)
 
@@ -432,14 +431,15 @@ class Dialog(gtk.Dialog):
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
 				entry = gtk.Entry()
+				entry.zim_type = type
 				if not value is None:
 					entry.set_text(str(value))
 				self.inputs[name] = entry
 				table.attach(entry, 1,2, i,i+1)
 				if type == 'page':
-					entry.set_completion(self._get_page_completion())
+					self._set_page_completion(entry)
 				elif type == 'namespace':
-					entry.set_completion(self._get_namespace_completion())
+					self._set_namespace_completion(entry)
 				elif type in ('dir', 'file', 'image'):
 					# FIXME use inline icon for newer versions of Gtk
 					browse = gtk.Button('_Browse')
@@ -481,13 +481,52 @@ class Dialog(gtk.Dialog):
 		if not file is None:
 			entry.set_text(file.path)
 
-	def _get_page_completion(self):
-		print 'TODO page completion'
-		return gtk.EntryCompletion()
+	def _set_page_completion(self, entry):
+		# TODO: more advanced widget for this
+		if not (self.ui and hasattr(self.ui, 'notebook')):
+			logger.warn('Could not set page completion, no ui object')
+			return
+		completion = gtk.EntryCompletion()
+		model = gtk.ListStore(str)
+		completion.set_model(model)
+		completion.set_text_column(0)
+		completion.set_inline_completion(True)
+		entry.set_completion(completion)
+		entry.zim_completion_namespace = None
+		entry.connect('changed', self._update_page_completion)
 
-	def _get_namespace_completion(self):
-		print 'TODO namespace completion'
-		return gtk.EntryCompletion()
+	def _set_namespace_completion(self, entry):
+		# TODO: more advanced widget for this
+		self._set_page_completion(entry)
+
+	def _update_page_completion(self, entry):
+		text = entry.get_text()
+		namespace = self.ui.page.namespace
+		prefix = len(namespace)+1
+		if ':' in text:
+			i = text.rfind(':')
+			if text.startswith(':'):
+				namespace = text[:i]
+				prefix = 0
+			else:
+				namespace += ':' + text[:i]
+
+		if entry.zim_completion_namespace == namespace:
+			return
+		else:
+			entry.zim_completion_namespace = namespace
+			if namespace.strip(':'):
+				namespace = self.ui.notebook.resolve_path(namespace)
+			else:
+				namespace = Path(':')
+			#~ print 'Completing', namespace
+
+		completion = entry.get_completion()
+		model = completion.get_model()
+		model.clear()
+		for p in self.ui.notebook.index.list_pages(namespace):
+			#~ print '>', p, p.name[prefix:]
+			model.append((p.name[prefix:],))
 
 	def get_field(self, name):
 		'''Returns the value of a single field'''

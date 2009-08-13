@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Thu, 13 Aug 2009 16:48:53 +0200
+Modification-Date: Thu, 13 Aug 2009 18:10:59 +0200
 
 ====== Tasks ======
 
@@ -42,8 +42,7 @@ Modification-Date: Thu, 13 Aug 2009 16:48:53 +0200
 [ ] Exporter: Check if linker for exporter is OK
 [ ] Notebook: When moving / renaming links need to be updated
 	* Allow non-exisitng pag as placeholder in the index for resolving
-[ ] Dialog: Autocompletion for pages and namespaces in dialogs
-	* Use a sub-class of the treemodel from the index ?
+[*] Dialog: Autocompletion for pages and namespaces in dialogs
 [*] Commandline: Allow opening files mapping to pages from the commandline
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
@@ -58,6 +57,7 @@ Modification-Date: Thu, 13 Aug 2009 16:48:53 +0200
 	* Check emission of indent-changed signal to set state of buttons
 	* Also think about keybindings for moving a line up / down or top / bottom
 [ ] Pageview: support numbered lists
+[ ] Dialog: improved widgets for page and namespace inputs
 [ ] Implement "Open with custom command"dialog
 [*] Implement Calendar plugin
 [ ] Implement TaskList plugin
