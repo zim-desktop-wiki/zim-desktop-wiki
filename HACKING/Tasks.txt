@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Thu, 13 Aug 2009 10:56:31 +0200
+Modification-Date: Thu, 13 Aug 2009 16:07:17 +0200
 
 ====== Tasks ======
 
@@ -53,7 +53,7 @@ Modification-Date: Thu, 13 Aug 2009 10:56:31 +0200
 [ ] Commandline: Allow opening files mapping to pages from the commandline
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
-[ ] Templates: first heading of tree should be a separate template parameter
+[*] Templates: first heading of tree should be a separate template parameter
 	* Used e.g. in Presentation template to put title in separate bar
 [*] Commandline: --list option is missing
 [ ] Templates: check correct way to have a page property for index pages

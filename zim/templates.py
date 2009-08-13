@@ -66,6 +66,7 @@ from zim.errors import Error
 from zim.fs import File
 from zim.config import data_dirs
 from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string
+from zim.formats import ParseTree, Element
 from zim.index import LINK_DIR_BACKWARD
 
 logger = logging.getLogger('zim.templates')
@@ -635,14 +636,30 @@ class ParseTreeProxy(object):
 		if not self._tree:
 			return None
 		else:
-			return None # TODO
+			head, body = self._split_head(self._tree)
+			return head
 
 	@property
 	def body(self):
 		if not self._tree:
 			return None
 		else:
+			head, body = self._split_head(self._tree)
 			format = self._pageproxy._format
 			linker = self._pageproxy._linker
 			linker.set_path(self._pageproxy._page)
-			return ''.join(format.Dumper(linker=linker).dump(self._tree))
+			return ''.join(format.Dumper(linker=linker).dump(body))
+
+	def _split_head(self, tree):
+		if not hasattr(self, '_servered_head'):
+			elements = tree.getroot().getchildren()
+			if elements[0].tag == 'h':
+				root = Element('zim-tree')
+				for element in elements[1:]:
+					root.append(element)
+				body = ParseTree(root)
+				self._servered_head = (elements[0].text, body)
+			else:
+				self._servered_head = (None, tree)
+
+		return self._servered_head

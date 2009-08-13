@@ -20,7 +20,7 @@ class TestParseTree(TestCase):
 	def setUp(self):
 		self.xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<page>
+<zim-tree>
 <h level="1">Head 1</h>
 <h level="2">Head 2</h>
 <h level="3">Head 3</h>
@@ -29,7 +29,7 @@ class TestParseTree(TestCase):
 <h level="4">Head 6</h>
 <h level="5">Head 7</h>
 <h level="6">Head 8</h>
-</page>'''
+</zim-tree>'''
 
 	def teststring(self):
 		'''Test ParseTree.fromstring() and .tostring()'''
@@ -37,7 +37,7 @@ class TestParseTree(TestCase):
 		r = tree.fromstring(self.xml)
 		self.assertEqual(id(r), id(tree)) # check return value
 		e = tree.getroot()
-		self.assertEqual(e.tag, 'page') # check content
+		self.assertEqual(e.tag, 'zim-tree') # check content
 		text = tree.tostring()
 		self.assertEqualDiff(text, self.xml)
 
@@ -46,7 +46,7 @@ class TestParseTree(TestCase):
 		tree = ParseTree().fromstring(self.xml)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<page>
+<zim-tree>
 <h level="2">Head 1</h>
 <h level="3">Head 2</h>
 <h level="4">Head 3</h>
@@ -55,7 +55,7 @@ class TestParseTree(TestCase):
 <h level="4">Head 6</h>
 <h level="4">Head 7</h>
 <h level="4">Head 8</h>
-</page>'''
+</zim-tree>'''
 		tree.cleanup_headings(offset=1, max=4)
 		text = tree.tostring()
 		self.assertEqualDiff(text, wanted)
@@ -66,7 +66,7 @@ class TestParseTree(TestCase):
 		tree.set_heading('Foo')
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<page>
+<zim-tree>
 <h level="1">Foo</h>
 <h level="2">Head 2</h>
 <h level="3">Head 3</h>
@@ -75,7 +75,7 @@ class TestParseTree(TestCase):
 <h level="4">Head 6</h>
 <h level="5">Head 7</h>
 <h level="6">Head 8</h>
-</page>'''
+</zim-tree>'''
 		text = tree.tostring()
 		self.assertEqualDiff(text, wanted)
 
@@ -89,7 +89,7 @@ class TestTextFormat(TestCase):
 		# First using file interface
 		tree = self.format.Parser().parse(wikitext)
 		self.assertTrue(isinstance(tree, ParseTree))
-		self.assertTrue(tree.getroot().tag == 'page')
+		self.assertEqual(tree.getroot().tag, 'zim-tree')
 		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
 		output = self.format.Dumper().dump(tree)
 		self.assertEqualDiff(output, wikitext.splitlines(True))
@@ -97,7 +97,7 @@ class TestTextFormat(TestCase):
 		# Next the same test usiing string interface
 		tree = self.format.Parser().parse(wikitext)
 		self.assertTrue(isinstance(tree, ParseTree))
-		self.assertTrue(tree.getroot().tag == 'page')
+		self.assertTrue(tree.getroot().tag == 'zim-tree')
 		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
 		output = self.format.Dumper().dump(tree)
 		self.assertEqualDiff(output, wikitext.splitlines(True))
@@ -129,7 +129,7 @@ class TestWikiFormat(TestTextFormat):
 		'''Test wiki parse tree generation.'''
 		tree = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<page><h level="1">Head1</h>
+<zim-tree><h level="1">Head1</h>
 
 <h level="2">Head 2</h>
 
@@ -168,7 +168,7 @@ And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 This is not a header
 </p>
 <p>That's all ...
-</p></page>'''
+</p></zim-tree>'''
 		t = self.format.Parser().parse(wikitext)
 		self.assertEqualDiff(t.tostring(), tree)
 
@@ -221,13 +221,13 @@ test 4 5 6
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<page><p>test 1 2 3
+<zim-tree><p>test 1 2 3
 </p>
 <pre>	Some Verbatim block
 	here ....
 </pre>
 <p>test 4 5 6
-</p></page>'''
+</p></zim-tree>'''
 		t = self.format.Parser(version='Unknown').parse(input)
 		self.assertEqualDiff(t.tostring(), xml)
 		output = self.format.Dumper().dump(t)
@@ -241,7 +241,7 @@ class TestHtmlFormat(TestCase):
 
 	def testEncoding(self):
 		'''Test HTML encoding'''
-		page = Element('page')
+		page = Element('zim-tree')
 		para = SubElement(page, 'p')
 		para.text = '<foo>"foo" & "bar"</foo>'
 		tree = ParseTree(page)

@@ -156,17 +156,16 @@ class TestTemplate(TestCase):
 	def runTest(self):
 		input = u'''\
 Version [% zim.version %]
-<title>[% page.title %]</title> FIXME
+<title>[% page.title %]</title>
 <h1>[% page.name %]</h1>
-<h2>[% page.heading %]</h2> FIXME
+<h2>[% page.heading %]</h2>
 [% page.body %]
 '''
 		wantedresult = u'''\
 Version %s
-<title>FooBar</title> FIXME
+<title>Page Heading</title>
 <h1>FooBar</h1>
-<h2></h2> FIXME
-<h1>Page Heading</h1>
+<h2>Page Heading</h2>
 <p>
 <strong>foo bar !</strong><br>
 </p>

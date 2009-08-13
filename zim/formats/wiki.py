@@ -103,7 +103,7 @@ class Parser(ParserClass):
 		# Now all text is read, start wrapping it into a document tree.
 		# Headings can still be in the middle of a para, so get them out.
 		builder = TreeBuilder()
-		builder.start('page')
+		builder.start('zim-tree')
 		for para in paras:
 			if not self.backward and parser_re['blockstart'].search(para):
 				self._parse_block(builder, para)
@@ -119,7 +119,7 @@ class Parser(ParserClass):
 					elif len(p) > 0:
 						self._parse_para(builder, p)
 
-		builder.end('page')
+		builder.end('zim-tree')
 		return ParseTree(builder.close())
 
 	def _parse_block(self, builder, block):

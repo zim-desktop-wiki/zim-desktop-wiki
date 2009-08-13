@@ -29,7 +29,7 @@ class Parser(ParserClass):
 		if isinstance(input, basestring):
 			input = input.splitlines(True)
 
-		page = Element('page')
+		page = Element('zim-tree')
 		para = SubElement(page, 'p')
 		para.text = ''.join(input)
 
