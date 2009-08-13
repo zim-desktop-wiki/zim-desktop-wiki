@@ -486,7 +486,7 @@ class GtkInterface(NotebookInterface):
 		# Called by main() when no notebook was specified
 		# returns boolean for sucess
 		if not self._dont_use_default_notebook:
-			default = get_notebook('_default_')
+			default, _ = get_notebook('_default_')
 			if default:
 				logger.info('Opening default notebook')
 				self.open_notebook(default)
@@ -518,9 +518,12 @@ class GtkInterface(NotebookInterface):
 		is run to prompt the user.'''
 		if not self.notebook:
 			try:
-				NotebookInterface.open_notebook(self, notebook)
+				page = NotebookInterface.open_notebook(self, notebook)
 			except NotebookLookupError, error:
 				ErrorDialog(self, error).run()
+			else:
+				if page:
+					self.open_page(page)
 		elif notebook is None:
 			# Handle menu item for 'open another notebook'
 			from zim.gui.notebookdialog import NotebookDialog

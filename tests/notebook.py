@@ -26,24 +26,24 @@ class TestGetNotebook(tests.TestCase):
 		list = get_notebook_list()
 		self.assertFalse(list)
 
-		nb = get_notebook('_default_')
+		nb, _ = get_notebook('_default_')
 		self.assertTrue(nb is None)
-		nb = get_notebook('foo')
+		nb, _ = get_notebook('foo')
 		self.assertTrue(nb is None)
 
 		dir = root.subdir('/notebook')
-		nb = get_notebook(dir.path)
+		nb, _ = get_notebook(dir.path)
 		self.assertTrue(nb is None)
-		nb = get_notebook(dir)
+		nb, _ = get_notebook(dir)
 		self.assertTrue(nb is None)
 		
 		file = dir.file('notebook.zim')
 		file.touch()
-		nb = get_notebook(dir.path)
+		nb, _ = get_notebook(dir.path)
 		self.assertEqual(nb.dir, dir)
-		nb = get_notebook(dir)
+		nb, _ = get_notebook(dir)
 		self.assertEqual(nb.dir, dir)
-		nb = get_notebook(file)
+		nb, _ = get_notebook(file)
 		self.assertEqual(nb.dir, dir)
 		
 		list['foo'] = dir.path
@@ -51,9 +51,9 @@ class TestGetNotebook(tests.TestCase):
 		list = get_notebook_list()
 		self.assertTrue(len(list) == 1)
 
-		nb = get_notebook('foo')
+		nb, _ = get_notebook('foo')
 		self.assertEqual(nb.dir, dir)
-		nb = get_notebook('_default_')
+		nb, _ = get_notebook('_default_')
 		self.assertEqual(nb.dir, dir)
 
 		list['_default_'] = 'foo'
@@ -61,9 +61,9 @@ class TestGetNotebook(tests.TestCase):
 		list = get_notebook_list()
 		self.assertTrue(len(list) == 2)
 
-		nb = get_notebook('foo')
+		nb, _ = get_notebook('foo')
 		self.assertEqual(nb.dir, dir)
-		nb = get_notebook('_default_')
+		nb, _ = get_notebook('_default_')
 		self.assertEqual(nb.dir, dir)
 
 		list['bar'] = '/foo/bar'
@@ -72,9 +72,9 @@ class TestGetNotebook(tests.TestCase):
 		list = get_notebook_list()
 		self.assertTrue(len(list) == 2)
 
-		nb = get_notebook('foo')
+		nb, _ = get_notebook('foo')
 		self.assertEqual(nb.dir, dir)
-		nb = get_notebook('_default_')
+		nb, _ = get_notebook('_default_')
 		self.assertTrue(nb is None)
 
 

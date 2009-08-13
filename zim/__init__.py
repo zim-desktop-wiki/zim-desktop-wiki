@@ -307,6 +307,9 @@ class NotebookInterface(gobject.GObject):
 		'notebook' can be either a string or a notebook object.
 		If 'notebook' is None we check for a default notebook, if no default
 		is found a NotebookSelectionError is generated.
+
+		If the notebook is a string which also specifies a page the page
+		path is returned so it can be handled in a sub-class.
 		'''
 		from zim.notebook import get_notebook, Notebook
 		assert self.notebook is None, 'BUG: other notebook opened already'
@@ -314,14 +317,16 @@ class NotebookInterface(gobject.GObject):
 
 		logger.debug('Opening notebook: %s', notebook)
 		if isinstance(notebook, basestring):
-			nb = get_notebook(notebook)
+			nb, path = get_notebook(notebook)
 			if nb is None:
 				raise NotebookLookupError, _('Could not find notebook: %s') % notebook
 					# T: Error when looking up a notebook
 			self.emit('open-notebook', nb)
+			return path
 		else:
 			assert isinstance(notebook, Notebook)
 			self.emit('open-notebook', notebook)
+			return None
 
 	def do_open_notebook(self, notebook):
 		assert self.notebook is None, 'BUG: other notebook opened already'

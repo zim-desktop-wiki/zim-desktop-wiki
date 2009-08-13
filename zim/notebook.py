@@ -27,7 +27,14 @@ logger = logging.getLogger('zim.notebook')
 
 
 def get_notebook(notebook):
-	'''Takes a path or name and returns a notebook object or None'''
+	'''Takes a file or dir path or a name and returns a tuple of a notebook
+	object and an optional page path or None. If the notebook was not found
+	both elements in the tuple are None.
+
+	The page is only incuded if the path explicitly indicates a certain page.
+	If no page is returned either the last page in the history or the home
+	page should be used as 'current' pge.
+	'''
 	assert notebook, 'BUG: notebook not defined'
 	if isinstance(notebook, basestring):
 		# We are not sure if it is a name or a path, try lookup
@@ -40,7 +47,7 @@ def get_notebook(notebook):
 			elif len(table) == 1:
 				notebook = table.values()[0]
 			else:
-				return None
+				return None, None
 		elif notebook == '_manual_':
 			notebook = data_dir('manual')
 		elif notebook in table:
@@ -57,20 +64,34 @@ def get_notebook(notebook):
 			elif os.path.isdir(notebook):
 				notebook = Dir(notebook)
 			else:
-				return None
+				return None, None
 		else:
-			return None
+			return None, None
 
-	if isinstance(notebook, File) and notebook.basename == 'notebook.zim':
-		notebook = notebook.dir
+	path = None
+	if isinstance(notebook, File):
+		if notebook.basename == 'notebook.zim':
+			notebook = notebook.dir
+		else:
+			parents = list(notebook)
+			parents.reverse()
+			for p in parents:
+				if File((p, 'notebook.zim')).exists():
+					i = len(p)
+					path = notebook.path[i:]
+					if '.' in path:
+						path, _ = path.rsplit('.', 1) # remove extension
+					path = Path(path.replace('/', ':'))
+					notebook = Dir(p)
+					break
 
 	if notebook.exists():
 		if isinstance(notebook, File):
-			return Notebook(file=notebook)
+			return Notebook(file=notebook), path
 		else:
-			return Notebook(dir=notebook)
+			return Notebook(dir=notebook), path
 	else:
-		return None
+		return None, None
 
 
 def get_notebook_list():
