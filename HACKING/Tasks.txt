@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Thu, 13 Aug 2009 20:02:24 +0200
+Modification-Date: Fri, 14 Aug 2009 13:21:04 +0200
 
 ====== Tasks ======
 
@@ -49,7 +49,7 @@ Modification-Date: Thu, 13 Aug 2009 20:02:24 +0200
 == Features ==
 [ ] Implement insert date dialog
 	* hook signal for linking - split off suggest-link from end-of-word ?
-[ ] Implement search + search dialog
+[*] Implement search + search dialog
 [*] Pageview: Finish the UndoStackManager and hook to the pageview
 [ ] Pageview: menu controls to indent / unindent / move up move down a list item
 	* Check emission of indent-changed signal to set state of buttons

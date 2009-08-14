@@ -285,6 +285,9 @@ class Notebook(gobject.GObject):
 		else:
 			raise LookupError, 'Could not find store for: %s' % name
 
+	def get_stores(self):
+		return self._stores.values()
+
 	def resolve_path(self, name, namespace=None, index=None):
 		'''Returns a proper path name for page names given in links
 		or from user input. The optional argument 'namespace' is the

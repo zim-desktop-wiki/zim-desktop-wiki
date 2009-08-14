@@ -16,7 +16,8 @@ __all__ = [
 	'formats', 'templates',
 	'stores', 'index', 'notebook',
 	'history', 'plugins',
-	'export', 'www', 'pageview',
+	'export', 'www', 'search',
+	'pageview',
 	'calendar', 'printtobrowser'
 ]
 

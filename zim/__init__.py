@@ -120,6 +120,8 @@ def main(argv):
 	global executable
 
 	executable = argv[0]
+	if '/' in executable or '\\' in executable:
+		executable = File(executable).path # abs path
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
@@ -148,7 +150,7 @@ def main(argv):
 		print __license__
 		return
 	elif cmd == 'help':
-		print usagehelp.replace('zim', executable)
+		print usagehelp.replace('zim', argv[0])
 		print optionhelp
 		return
 

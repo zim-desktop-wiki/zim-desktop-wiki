@@ -180,6 +180,19 @@ class ParseTree(ElementTreeModule.ElementTree):
 			filepath = element.attrib['src']
 			element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
 
+	def count(self, text):
+		score = 0
+
+		for element in self.getiterator():
+			if element.text:
+				score += element.text.count(text)
+
+			if element.tail:
+				score += element.tail.count(text)
+
+		return score
+
+
 class ParserClass(object):
 	'''Base class for parsers
 
