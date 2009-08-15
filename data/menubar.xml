@@ -72,12 +72,10 @@
 			<menuitem action='reload_page'/>
 		</menu>
 		<menu action='insert_menu'>
-<!--
-			<menuitem action='InsertDate'/>
--->
+			<menuitem action='insert_date'/>
 			<separator/>
 			<menuitem action='insert_image'/>
-			<placeholder name='PluginItems'/>
+			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='insert_text_from_file'/>
 			<menuitem action='insert_external_link'/>

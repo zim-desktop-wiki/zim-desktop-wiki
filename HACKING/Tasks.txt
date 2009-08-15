@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Sat, 15 Aug 2009 14:11:31 +0200
+Modification-Date: Sat, 15 Aug 2009 17:01:42 +0200
 
 ====== Tasks ======
 
@@ -46,17 +46,12 @@ Modification-Date: Sat, 15 Aug 2009 14:11:31 +0200
 [ ] Links to non-exisiting pages are not indexed
 
 == Features ==
-[ ] Implement insert date dialog
-	* hook signal for linking - split off suggest-link from end-of-word ?
+[*] Implement Calendar plugin
+[*] Implement insert date dialog
+[ ] Hook signal for linking - split off suggest-link from end-of-word ?
+	* use e.g. in InsertDateDialog
 [*] Implement search + search dialog
 [*] Pageview: Finish the UndoStackManager and hook to the pageview
-[ ] Pageview: menu controls to indent / unindent / move up move down a list item
-	* Check emission of indent-changed signal to set state of buttons
-	* Also think about keybindings for moving a line up / down or top / bottom
-[ ] Pageview: support numbered lists
-[ ] Dialog: improved widgets for page and namespace inputs
-[ ] Implement "Open with custom command"dialog
-[*] Implement Calendar plugin
 [ ] Implement TaskList plugin
 	* Use prefrences for keywords, heading keywords, use of checkboxes
 [ ] Implement VersionControl plugin(s)
@@ -67,6 +62,14 @@ Modification-Date: Sat, 15 Aug 2009 14:11:31 +0200
 	* write common base class for plugins that convert some script to an image
 [ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..
 	* Preferences dialog should have list of mount points
+
+== New Features ==
+[ ] Pageview: menu controls to indent / unindent / move up move down a list item
+	* Check emission of indent-changed signal to set state of buttons
+	* Also think about keybindings for moving a line up / down or top / bottom
+[ ] Pageview: support numbered lists
+[ ] Dialog: improved widgets for page and namespace inputs
+[ ] Implement "Open with custom command"dialog
 [ ] Implement zip and tar.gz notebooks
 [ ] Implement gjots notebooks
 [ ] WWW: Improve dialog for controlling web server

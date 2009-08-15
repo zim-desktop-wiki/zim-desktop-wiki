@@ -13,6 +13,7 @@ import gtk
 import pango
 import re
 import string
+from time import strftime
 
 from zim.fs import *
 from zim.notebook import Path
@@ -20,7 +21,7 @@ from zim.parsing import link_type, Re
 from zim.config import config_file
 from zim.formats import get_format, ParseTree, TreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.gui.widgets import Dialog, FileDialog, Button, IconButton
+from zim.gui.widgets import Dialog, FileDialog, Button, IconButton, BrowserTreeView
 from zim.gui.applications import OpenWithMenu
 
 
@@ -78,6 +79,7 @@ ui_actions = (
 	('toggle_checkbox', STOCK_CHECKED_BOX, _('Toggle Checkbox \'V\''), 'F12', '', False), # T: Menu item
 	('xtoggle_checkbox', STOCK_XCHECKED_BOX, _('Toggle Checkbox \'X\''), '<shift>F12', '', False), # T: Menu item
 	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<ctrl>E', '', False), # T: Menu item
+	('insert_date', None, _('_Date and Time...'), '<ctrl>D', '', False), # T: Menu item
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
 	('insert_external_link', 'zim-link', _('E_xternal Link...'), '', '', False), # T: Menu item
@@ -2317,6 +2319,9 @@ class PageView(gtk.VBox):
 		else:
 			return False
 
+	def insert_date(self):
+		InsertDateDialog(self.ui, self.view.get_buffer()).run()
+
 	def insert_image(self, file=None, interactive=True):
 		if interactive:
 			InsertImageDialog(self.ui, self.view.get_buffer(), self.page, file).run()
@@ -2443,6 +2448,59 @@ class PageView(gtk.VBox):
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
+
+
+class InsertDateDialog(Dialog):
+
+	def __init__(self, ui, buffer):
+		Dialog.__init__(self, ui, _('Insert Date and Time'), # T: Dialog title
+			button=(_('_Insert'), 'gtk-ok') )  # T: Button label
+		self.buffer = buffer
+
+		# TODO store preferred format and link check in uistate
+
+		model = gtk.ListStore(str)
+		self.view = BrowserTreeView(model)
+		self.vbox.add(self.view)
+
+		cell_renderer = gtk.CellRendererText()
+		column = gtk.TreeViewColumn('_date_', cell_renderer, text=0)
+		self.view.append_column(column)
+		self.view.set_headers_visible(False)
+
+		self.linkbutton = gtk.CheckButton(_('_Link to date'))
+			# T: check box in InsertDate dialog
+		self.vbox.pack_start(self.linkbutton, False)
+
+		# FIXME need way to get 'raw' config file..
+		listdict = config_file('dates.list')
+		file = listdict.file
+		if not file.exists():
+			file = listdict.default
+
+		for line in file.readlines():
+			line = line.strip()
+			if line.startswith('#'): continue
+			try:
+				date = strftime(line)
+				model.append((date,))
+			except:
+				logger.exception('Could not parse date: %s', line)
+
+		self.view.connect('row-activated',
+			lambda *a: self.response(gtk.RESPONSE_OK) )
+
+		# TODO edit button which allows editing the config file
+
+	def do_response_ok(self):
+		model, iter = self.view.get_selection().get_selected()
+		text = model[iter][0]
+		if self.linkbutton.get_active():
+			print 'TODO: link date'
+		else:
+			self.buffer.insert_at_cursor(text)
+
+		return True
 
 
 class InsertImageDialog(FileDialog):
