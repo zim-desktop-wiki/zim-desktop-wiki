@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Fri, 14 Aug 2009 13:21:04 +0200
+Modification-Date: Sat, 15 Aug 2009 14:11:31 +0200
 
 ====== Tasks ======
 
@@ -40,11 +40,10 @@ Modification-Date: Fri, 14 Aug 2009 13:21:04 +0200
 [ ] Index: add API for listing and indexing attachments
 [ ] Exporter: Exporter needs to support documents & attachments 
 [ ] Exporter: Check if linker for exporter is OK
-[ ] Notebook: When moving / renaming links need to be updated
-	* Allow non-exisitng pag as placeholder in the index for resolving
+[*] Notebook: When moving / renaming links need to be updated
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
-
+[ ] Links to non-exisiting pages are not indexed
 
 == Features ==
 [ ] Implement insert date dialog

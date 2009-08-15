@@ -1544,14 +1544,25 @@ class MovePageDialog(Dialog):
 		if isinstance(self.path, Page) and self.path.modified:
 			assert self.ui.save_page(self.path)
 
+		i = self.ui.notebook.index.n_list_links(
+					self.path, zim.index.LINK_DIR_BACKWARD)
+
 		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
 			# T: Heading in 'move page' dialog - %s is the page name
+		linkslabel = ngettext(
+			'Update %i page linking to this page',
+			'Update %i pages linking to this page', i) % i
+			# T: label in MovePage dialog - %i is number of backlinks
 		self.add_fields([
 			('parent', 'namespace', _('Namespace'), self.path.namespace),
 				# T: Input label for namespace to move a file to
-			('links', 'bool', _('Update links to this page'), True),
+			('links', 'bool', linkslabel, True),
 				# T: option in 'move page' dialog
 		])
+
+		if i == 0:
+			self.inputs['links'].set_active(False)
+			self.inputs['links'].set_sensitive(False)
 
 	def do_response_ok(self):
 		parent = self.get_field('parent')
@@ -1577,16 +1588,27 @@ class RenamePageDialog(Dialog):
 			self.path = path
 		assert self.path, 'Need a page here'
 
+		i = self.ui.notebook.index.n_list_links(
+					self.path, zim.index.LINK_DIR_BACKWARD)
+
 		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
 			# T: label in 'rename page' dialog - %s is the page name
+		linkslabel = ngettext(
+			'Update %i page linking to this page',
+			'Update %i pages linking to this page', i) % i
+			# T: label in MovePage dialog - %i is number of backlinks
 		self.add_fields([
 			('name', 'string', _('Name'), self.path.basename),
 				# T: Input label in the 'rename page' dialog for the new name
 			('head', 'bool', _('Update the heading of this page'), True),
 				# T: Option in the 'rename page' dialog
-			('links', 'bool', _('Update links to this page'), True),
+			('links', 'bool', linkslabel, True),
 				# T: Option in the 'rename page' dialog
 		])
+
+		if i == 0:
+			self.inputs['links'].set_active(False)
+			self.inputs['links'].set_sensitive(False)
 
 	def do_response_ok(self):
 		name = self.get_field('name')

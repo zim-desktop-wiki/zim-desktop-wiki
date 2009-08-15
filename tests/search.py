@@ -17,19 +17,21 @@ class TestSearch(TestCase):
 		result = searcher.search(query)
 		self.assertTrue(isinstance(result, ResultsSelection))
 		self.assertTrue(len(result.pages) > 0)
-		self.assertTrue(Path('TODOList:bar') in result.pages)
+		#~ print result.pages
+		self.assertTrue(Path('Test:foo') in result.pages)
+		self.assertTrue(Path('Test:foo:bar') in result.pages)
 		scores = [result.scores[p] for p in result.pages]
 		self.assertTrue(all(scores))
 
 		#~ print result.pages
 
 		notebook.index.update()
-		query = Query('LinksTo: "Test:Foo:Bar"')
+		query = Query('LinksTo: "Linking:Foo:Bar"')
 		self.assertEqual(query.root,
-			AndGroup([('linksto', 'Test:Foo:Bar')]) )
+			AndGroup([('linksto', 'Linking:Foo:Bar')]) )
 		result = searcher.search(query)
 		self.assertTrue(isinstance(result, ResultsSelection))
-		self.assertTrue(Path('TODOList:bar') in result.pages)
+		self.assertTrue(Path('Linking:Dus:Ja') in result.pages)
 		scores = [result.scores[p] for p in result.pages]
 		self.assertTrue(all(scores))
 

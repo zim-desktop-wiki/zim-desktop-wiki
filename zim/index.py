@@ -28,7 +28,7 @@ import sqlite3
 import gobject
 import logging
 
-from zim.notebook import Path, Link
+from zim.notebook import Path, Link, PageNameError
 
 logger = logging.getLogger('zim.index')
 
@@ -146,6 +146,25 @@ class IndexPath(Path):
 class Index(gobject.GObject):
 	'''This class wraps the database with meta data on zim pages'''
 
+	# Resolving links depends on the contents of the database and
+	# links to non-existing pages can create new page nodes. This has
+	# consequences for updating the database and makes things a bit
+	# more complicated than expected at first sight. Page nodes for
+	# non-exisiting page are refered to as 'placeholders' below.
+	#
+	# 1) When updating we first traverse the whole page tree creating
+	#    nodes for all existing pages before indexing contents and links
+	# 2) When we do index the contents we need to go top down through
+	#    the tree, indexing parent nodes before we index children. This is
+	#    because resolving links goes bottom up and may see non-exisitng
+	#    pages created based on a link in a parent.
+	# 3) We need to clean up trees of placeholders by checking if they
+	#    have pages linking to them or not. This needs to go bottom up as
+	#    there may be non-existing parent pages that also need to be
+	#    cleaned up.
+	#
+	# TODO TODO TODO - finish this thought and check correctness of this blob
+
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'page-inserted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
@@ -197,6 +216,7 @@ class Index(gobject.GObject):
 
 		self.notebook.connect('page-created',
 			lambda o, p: self._touch_path(p) )
+			# page-created is always directly followed by page-updated
 		self.notebook.connect('page-updated',
 			lambda o, p: self._index_page(self.lookup_path(p), p) )
 		self.notebook.connect('page-moved', on_page_moved)
@@ -278,6 +298,16 @@ class Index(gobject.GObject):
 				continue
 			self._updating = False
 
+	def ensure_update(self, callback=None):
+		'''Wait till any background update is finished'''
+		if self._updating:
+			logger.info('Ensure index updated')
+			while self._do_update((False, callback)):
+				continue
+			self._updating = False
+		else:
+			return
+
 	def _do_update(self, data):
 		# This returns boolean to continue or not because it can be called as an
 		# idle event handler, if a callback is used, the callback should give
@@ -313,7 +343,8 @@ class Index(gobject.GObject):
 
 	def _touch_path(self, path):
 		'''This method creates a path along with all it's parents.
-		Returns the final IndexPath.
+		Returns the final IndexPath. Path is created as a palceholder which
+		has neither content or children.
 		'''
 		try:
 			cursor = self.db.cursor()
@@ -360,17 +391,25 @@ class Index(gobject.GObject):
 		assert isinstance(path, IndexPath) and not path.isroot
 		try:
 			self.db.execute('delete from links where source == ?', (path.id,))
-			for link in page.get_links():
-				# TODO ignore links that are not internal
-				href = self.notebook.resolve_path(
-					link.href, namespace=page.parent, index=self)
-					# need to specify index=self here because we are
-					# not necessary the default index for the notebook
-				if not href is None:
-					href = self.lookup_path(href)
-				if not href is None:
-					# TODO lookup href type
-					self.db.execute('insert into links (source, href) values (?, ?)', (path.id, href.id))
+			for type, href, _ in page.get_links():
+				if type != 'page':
+					continue
+
+				try:
+					link = self.notebook.resolve_path(
+						href, source=page, index=self)
+						# need to specify index=self here because we are
+						# not necessary the default index for the notebook
+				except PageNameError:
+					continue
+
+				indexpath = self.lookup_path(link)
+				if indexpath is None:
+					#~ indexpath = self._touch_path(link) - TODO
+					continue
+
+				self.db.execute('insert into links (source, href) values (?, ?)', (path.id, indexpath.id))
+
 			key = self.notebook.get_page_indexkey(page)
 			self.db.execute('update pages set contentkey = ? where id == ?', (key, path.id))
 			self.db.commit()
@@ -486,7 +525,12 @@ class Index(gobject.GObject):
 				# Clean up pages that disappeared
 				for basename in set(children.keys()).difference(seen):
 					row = children[basename]
-					child = IndexPath(path.name+':'+basename, indexpath+(row['id'],), row)
+					# TODO allow for placeholders:
+					#~ if not row['hascontent']:
+						#~ pass # might be a placeholder or might store children
+					#~ else:
+					child = IndexPath(
+						path.name+':'+basename, indexpath+(row['id'],), row)
 					self.delete(child)
 
 	def delete(self, path):
@@ -507,6 +551,9 @@ class Index(gobject.GObject):
 		else:
 			self.db.commit()
 			self.emit('page-deleted', path)
+
+		# TODO check forward links and clean up any placeholders
+		# TODO check backward links and unlink any links going here ??
 
 	def walk(self, path=None):
 		if path is None or path.isroot:

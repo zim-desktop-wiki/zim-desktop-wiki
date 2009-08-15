@@ -110,7 +110,7 @@ class RootSelection(Selection):
 				for page in store.walk():
 					tree = page.get_parsetree()
 					if tree:
-						score = tree.count(word)
+						score = tree.count(word, case=False)
 						if score:
 							pages.append(page)
 							scores[page] = score
@@ -146,7 +146,7 @@ class ResultsSelection(Selection):
 			for page in self.pages:
 				tree = page.get_parsetree()
 				if tree:
-					score = tree.count(word)
+					score = tree.count(word, case=False)
 					if score:
 						pages.append(page)
 						scores[page] = self.scores.get(page, 0) + score

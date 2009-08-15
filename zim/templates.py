@@ -620,7 +620,7 @@ class PageProxy(object):
 
 	@property
 	def links(self):
-		for type, name in self._page.get_links():
+		for type, name, _ in self._page.get_links():
 			if type == 'page':
 				page = self._notebook.get_page(name)
 				yield PageProxy(self._notebook, page, self._format, self._linker)

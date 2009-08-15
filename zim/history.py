@@ -115,7 +115,7 @@ class History(gobject.GObject):
 		while len(self.history) >= MAX_HISTORY:
 			n = self.history.pop(0)
 			if not n in self.history: # name can appear multipel times
-				self.pages.pop(name)
+				self.pages.pop(n)
 
 		if self.history and self.history[-1] == page.name:
 			pass
