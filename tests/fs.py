@@ -13,6 +13,7 @@ import tests
 from zim.fs import *
 from zim.fs import Path, FileHandle, OverWriteError
 
+# TODO: also test dir.new_file()
 
 class TestFS(tests.TestCase):
 

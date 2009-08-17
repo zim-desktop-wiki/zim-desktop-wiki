@@ -155,6 +155,9 @@ class PreferencesDialog(Dialog):
 
 class PluginsTab(gtk.HBox):
 
+	# TODO defined checks for plugin dependencies and grey them out here if
+	# the check fails - or give an error popup with the result of the check
+
 	def __init__(self, dialog):
 		gtk.HBox.__init__(self, spacing=12)
 		self.set_border_width(5)
@@ -227,9 +230,15 @@ class PluginsTreeModel(gtk.ListStore):
 		gtk.ListStore.__init__(self, bool, str, object)
 		self.ui = ui
 		loaded = [p.__class__ for p in self.ui.plugins]
-		for klass in map(zim.plugins.get_plugin, zim.plugins.list_plugins()):
-			l = klass in loaded
-			self.append((l, klass.plugin_info['name'], klass))
+		for name in zim.plugins.list_plugins():
+			try:
+				klass = zim.plugins.get_plugin(name)
+			except:
+				logger.exception('Could not load plugin %s', name)
+				continue
+			else:
+				l = klass in loaded
+				self.append((l, klass.plugin_info['name'], klass))
 
 	def do_toggle_path(self, path):
 		loaded, name, klass = self[path]

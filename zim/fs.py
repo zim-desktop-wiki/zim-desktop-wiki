@@ -247,7 +247,6 @@ class Dir(Path):
 			for name in dirs:
 				os.rmdir(os.path.join(root, name))
 
-
 	def file(self, path):
 		'''Returns a File object for a path relative to this directory'''
 		assert isinstance(path, (File, basestring, list, tuple))
@@ -260,6 +259,22 @@ class Dir(Path):
 		if not file.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (file, self)
 		# TODO set parent dir on file
+		return file
+
+	def new_file(self, path):
+		'''Like file() but guarantees the file does not yet exist by adding
+		sequentional numbers if needed.
+		'''
+		file = self.file(path)
+		basename = file.basename
+		if '.' in basename: basename = basename.split('.', 1)
+		else: basename = (basename, '')
+		parent = file.dir
+		i = 0
+		while file.exists():
+			i += 1
+			name = ''.join((basename[0], '%03i' % i, basename[1]))
+			file = parent.file(basename)
 		return file
 
 	def subdir(self, path):
@@ -455,6 +470,16 @@ class File(Path):
 			dest.dir.touch()
 		shutil.copy(self.path, dest.path)
 
+	def moveto(self, dest):
+		'''Move this file to 'dest'. 'dest can be either a file or a dir'''
+		assert isinstance(dest, (File, Dir))
+		logger.info('Move %s to %s', self, dest)
+		if isinstance(dest, Dir):
+			dest.touch()
+		else:
+			dest.dir.touch()
+		shutil.move(self.path, dest.path)
+
 
 class TmpFile(File):
 
@@ -465,7 +490,10 @@ class TmpFile(File):
 		'''
 		if unique:
 			print 'TODO: support unique tmp files'
-		path = (get_tmpdir(), name)
+		# TODO: make sure /tmp/zim-USER is 600
+		# TODO: separate tmp files by process
+		# TODO: cleanup tmp files by process when zim exists
+		path = (get_tmpdir(), 'zim-%s' % os.environ['USER'], name)
 		File.__init__(self, path, checkoverwrite)
 
 

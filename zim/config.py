@@ -400,14 +400,16 @@ class ConfigDict(ListDict):
 			elif line.startswith('[') and line.endswith(']'):
 				name = line[1:-1].strip()
 				section = self[name]
-			else:
-				parameter, value = line.split('=', 2)
+			elif '=' in line:
+				parameter, value = line.split('=', 1)
 				parameter = parameter.rstrip()
 				try:
 					value = self._decode_value(value.lstrip())
 					section[parameter] = value
 				except:
 					logger.warn('Failed to parse value for: %s', parameter)
+			else:
+				logger.warn('Could not parse line: %s', line)
 
 	# Seperated out as this will be slightly different for .desktop files
 	def _decode_value(self, value):

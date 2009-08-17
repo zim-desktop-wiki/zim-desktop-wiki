@@ -223,10 +223,12 @@ class DesktopEntryDict(ConfigDict):
 		else:
 			return False
 
-	def parse_exec(self, args):
+	def parse_exec(self, args=None):
 		'''Returns a list of command and arguments that can be used to
 		open this application. Args can be either File objects or urls.
 		'''
+		assert args is None or isinstance(args, (list, tuple))
+
 		def uris(args):
 			uris = []
 			for arg in args:
@@ -237,7 +239,7 @@ class DesktopEntryDict(ConfigDict):
 			return uris
 
 		cmd = split_quoted_strings(self['Desktop Entry']['Exec'])
-		if len(args) == 0:
+		if args is None or len(args) == 0:
 			if '%f' in cmd: cmd.remove('%f')
 			elif '%F' in cmd: cmd.remove('%F')
 			elif '%u' in cmd: cmd.remove('%u')
@@ -284,14 +286,19 @@ class DesktopEntryDict(ConfigDict):
 
 		return tuple(cmd)
 
-	def run(self, args):
+	def run(self, args, callback=None):
 		'''Starts the application, returns the PID or None'''
 
 		argv = [a.encode('utf-8') for a in self.parse_exec(args)]
+		flags = gobject.SPAWN_SEARCH_PATH
+		if callback:
+			flags |= gobject.SPAWN_DO_NOT_REAP_CHILD
+			# without this flag child is reaped autmatically -> no zombies
+
 		logger.info('Running: %s', argv)
 		try:
 			pid, stdin, stdout, stderr = \
-				gobject.spawn_async(argv, flags=gobject.SPAWN_SEARCH_PATH)
+				gobject.spawn_async(argv, flags=flags)
 		except (gobject.GError, AssertionError):
 			logger.error('Failed running: %s', argv)
 			name = self.get_name()
@@ -300,6 +307,9 @@ class DesktopEntryDict(ConfigDict):
 			return None
 		else:
 			logger.debug('Process started with PID: %i', pid)
+			if callback:
+				gobject.child_watch_add(pid, callback)
+				# child watch does implicite reaping -> no zombies
 			return pid
 
 	def _decode_desktop_value(self, value):
