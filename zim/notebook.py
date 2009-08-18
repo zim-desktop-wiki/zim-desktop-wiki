@@ -699,20 +699,21 @@ class Notebook(gobject.GObject):
 			root = self.dir
 			dir = self.get_attachments_dir(path)
 			if file.ischild(dir):
-				return './'+file.path[len(dir.path):].lstrip('/')
+				return './'+file.relpath(dir)
 			elif root and file.ischild(root) and dir.ischild(root):
-				prefix = os.path.commonprefix((dir.path, file.path))
-				i = prefix.rindex('/') + 1
-				uppath, downpath = dir.path[i:], file.path[i:]
-				return '../'*(1+uppath.count('/')) + downpath
+				parent = file.commonparent(dir)
+				uppath = dir.relpath(parent)
+				downpath = file.relpath(parent)
+				up = 1 + uppath.count('/')
+				return '../'*up + downpath
 
 		dir = self.get_document_root()
 		if dir and file.ischild(dir):
-			return '/'+file.path[len(dir.path):].lstrip('/')
+			return '/'+file.relpath(dir)
 
 		dir = Dir('~')
 		if file.ischild(dir):
-			return '~/'+file.path[len(dir.path):].lstrip('/')
+			return '~/'+file.relpath(dir)
 
 		return None
 

@@ -216,9 +216,13 @@ class DesktopEntryDict(ConfigDict):
 		cmd = self['Desktop Entry']['TryExec']
 		if not cmd:
 			return True
+		elif os.name == 'nt' and not '.' in cmd:
+			cmd = cmd + '.exe'
+			# No need for two .desktop files for common applications
 
-		for dir in map(Dir, os.environ['PATH'].split(os.pathsep)):
-			if dir.file(cmd).exists():
+		for dir in os.environ['PATH'].split(os.pathsep):
+			file = os.sep.join((dir, cmd))
+			if os.path.isfile(file):
 				return True
 		else:
 			return False
@@ -288,8 +292,8 @@ class DesktopEntryDict(ConfigDict):
 
 	def run(self, args, callback=None):
 		'''Starts the application, returns the PID or None'''
-
 		argv = [a.encode('utf-8') for a in self.parse_exec(args)]
+
 		flags = gobject.SPAWN_SEARCH_PATH
 		if callback:
 			flags |= gobject.SPAWN_DO_NOT_REAP_CHILD
@@ -299,8 +303,8 @@ class DesktopEntryDict(ConfigDict):
 		try:
 			pid, stdin, stdout, stderr = \
 				gobject.spawn_async(argv, flags=flags)
-		except (gobject.GError, AssertionError):
-			logger.error('Failed running: %s', argv)
+		except gobject.GError:
+			logger.exception('Failed running: %s', argv)
 			name = self.get_name()
 			ErrorDialog(None, _('Could not run application: %s') % name).run()
 				# T: error when application failed to start

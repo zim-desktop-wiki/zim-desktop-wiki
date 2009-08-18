@@ -30,6 +30,24 @@ from zim.fs import *
 from zim.errors import Error
 from zim.config import config_file, log_basedirs, ZIM_DATA_DIR
 
+
+if os.name == 'nt':
+	# Windows specific environment variables
+	# os.environ does not support setdefault() ...
+	if not 'USER' in os.environ or not os.environ['USER']:
+		os.environ['USER'] =  os.environ['USERNAME']
+		
+	if not 'HOME' in os.environ or not os.environ['HOME']:
+		if 'USERPROFILE' in os.environ: 
+			os.environ['HOME'] = os.environ['USERPROFILE']
+		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
+			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
+			os.environ['HOME'] = home
+
+assert os.environ['USER'], 'ERROR: environment variable $USER not set'
+assert os.path.isdir(os.environ['HOME']), 'ERROR: environment variable $HOME not set correctly'
+
+
 if ZIM_DATA_DIR:
 	# We are running from a source dir - use the locale data included there
 	localedir = ZIM_DATA_DIR.dir.subdir('locale').path
@@ -40,9 +58,12 @@ else:
 
 gettext.install('zim', localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
 
+
 logger = logging.getLogger('zim')
 
+
 executable = 'zim'
+
 
 # All commandline options in various groups
 longopts = ('verbose', 'debug')

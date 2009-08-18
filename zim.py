@@ -2,7 +2,6 @@
 
 import sys
 
-
 # Check if we run the correct python version
 try:
 	version_info = sys.version_info

@@ -94,6 +94,7 @@ class TestFS(tests.TestCase):
 		os.chmod(path, 0444)
 		file = File(path)
 		self.assertRaises(OverWriteError, file.write, 'Overwritten!')
+		os.chmod(path, 0644) # make it removable again
 
 		# TODO: more test here
 

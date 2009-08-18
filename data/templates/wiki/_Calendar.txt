@@ -1,2 +1,2 @@
-======= [% strftime("%A %e %b %Y", page.name) %] =======
+======= [% strftime("%A %d %b %Y", page.name) %] =======
 

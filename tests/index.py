@@ -12,10 +12,10 @@ from zim.notebook import Notebook, Path, Link
 from zim.gui.pageindex import PageTreeStore, PageTreeView
 
 
-def get_files_notebook():
+def get_files_notebook(key):
 	# We fill the notebook using the store interface, as this test comes before
 	# the notebook test, but after the store test.
-	dir = Dir(tests.create_tmp_dir('index_TestIndexFiles'))
+	dir = Dir(tests.create_tmp_dir('index_'+key))
 	notebook = Notebook(dir=dir)
 	store = notebook.get_store(':')
 	manifest = []
@@ -153,7 +153,7 @@ class TestIndexFiles(TestIndex):
 	slowTest = True
 
 	def setUp(self):
-		self.notebook = get_files_notebook()
+		self.notebook = get_files_notebook('TestIndexFiles')
 		self.index = self.notebook.index
 
 	def runTest(self):
@@ -263,7 +263,7 @@ class TestPageTreeStoreFiles(TestPageTreeStore):
 	slowTest = True
 
 	def setUp(self):
-		self.notebook = get_files_notebook()
+		self.notebook = get_files_notebook('TestPageTreeStoreFiles')
 		self.index = self.notebook.index
 
 	def runTest(self):

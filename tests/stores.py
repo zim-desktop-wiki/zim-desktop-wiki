@@ -152,7 +152,11 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		# check case-sensitive move
 		self.store.move_page(Path('utf8'), Path('UTF8'))
 		page = self.store.get_page(Path('utf8'))
-		self.assertFalse(page.haschildren)
+		# self.assertFalse(page.haschildren) - fails on case-insensitive FS
+		self.assertFalse(Path('utf8')
+			in list(self.store.get_pagelist(Path(':'))))
+		self.assertTrue(Path('UTF8')
+			in list(self.store.get_pagelist(Path(':'))))
 		newpage = self.store.get_page(Path('UTF8'))
 		self.assertTrue(newpage.haschildren)
 		self.assertFalse(newpage == page)

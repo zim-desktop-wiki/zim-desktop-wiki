@@ -6,7 +6,17 @@
 import tests
 from tests import TestCase
 
+import os
+
 from zim.gui.applications import *
+
+def replace(l, old, new):
+	l = list(l)
+	while old in l:
+		i = l.index(old)
+		l[i] = new
+	return tuple(l)
+
 
 class TestApplications(TestCase):
 
@@ -37,6 +47,10 @@ class TestApplications(TestCase):
 			('foo %F', (File('/foo/bar'),), ('foo', '/foo/bar')),
 			('foo %U', (File('/foo/bar'),), ('foo', 'file:///foo/bar')),
 		):
+			if os.name == 'nt':
+				wanted = replace(wanted, '/foo/bar', r'C:\foo\bar')
+				wanted = replace(wanted, 'file:///foo/bar', r'file:///C:/foo/bar')
+
 			#print app, args
 			entry['Desktop Entry']['Exec'] = app
 			result = entry.parse_exec(args)
@@ -50,6 +64,8 @@ class TestApplications(TestCase):
 			('foo %f %k', (), ('foo', '/foo.desktop')),
 			('foo %f %c', (), ('foo', 'Foo')),
 		):
+			if os.name == 'nt':
+				wanted = replace(wanted, '/foo.desktop', r'C:\foo.desktop')
 			#print app, args
 			entry['Desktop Entry']['Exec'] = app
 			result = entry.parse_exec(args)

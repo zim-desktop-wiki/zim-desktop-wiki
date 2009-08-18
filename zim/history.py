@@ -45,27 +45,27 @@ class HistoryRecord(Path):
 	@property
 	def is_last(self): return self.i == len(self.history.history) - 1
 
-	@property
-	def cursor(self):
+	def get_cursor(self):
 		if self.name in self.history.pages:
 			return self.history.pages[self.name][0]
 		else:
 			return None
 
-	@cursor.setter
-	def cursor(self, value):
+	def set_cursor(self, value):
 		self.history.pages[self.name] = (value, self.scroll)
 
-	@property
-	def scroll(self):
+	cursor = property(get_cursor, set_cursor)
+
+	def get_scroll(self):
 		if self.name in self.history.pages:
 			return self.history.pages[self.name][1]
 		else:
 			return None
 
-	@scroll.setter
-	def scroll(self, value):
+	def set_scroll(self, value):
 		self.history.pages[self.name] = (self.cursor, value)
+
+	scroll = property(get_scroll, set_scroll)
 
 
 class History(gobject.GObject):
@@ -93,17 +93,13 @@ class History(gobject.GObject):
 		self.uistate.setdefault('history', [])
 		self.uistate.setdefault('current', len(self.history)-1)
 
-	@property
-	def current(self): return self.uistate['current']
+	current = property(
+		lambda self: self.uistate['current'],
+		lambda self, value: self.uistate.__setitem__('current', value) )
 
-	@current.setter
-	def current(self, value): self.uistate['current'] = value
-
-	@property
-	def history(self): return self.uistate['history']
-
-	@history.setter
-	def history(self, value): self.uistate['history'] = value
+	history = property(
+		lambda self: self.uistate['history'],
+		lambda self, value: self.uistate.__setitem__('history', value) )
 
 	@property
 	def pages(self): return self.uistate['pages']

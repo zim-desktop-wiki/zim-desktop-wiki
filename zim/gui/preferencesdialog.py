@@ -165,7 +165,11 @@ class PluginsTab(gtk.HBox):
 
 		treeview = PluginsTreeView(self.dialog.ui)
 		treeview.connect('row-activated', self.do_row_activated)
-		self.pack_start(treeview, False) # FIXME insert scrollwindow
+		swindow = gtk.ScrolledWindow()
+		swindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+		swindow.set_shadow_type(gtk.SHADOW_IN)
+		self.pack_start(swindow, False)
+		swindow.add(treeview)
 
 		vbox = gtk.VBox()
 		self.add(vbox)

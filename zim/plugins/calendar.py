@@ -207,7 +207,8 @@ class CalendarPluginWidget(gtk.VBox):
 		self.plugin = plugin
 
 		format = _('%A %d %B %Y').replace(' 0', ' ') # T: strftime format for current date label
-		label = gtk.Label(dateclass.today().strftime(format))
+		label = gtk.Label(dateclass.today().strftime(str(format)))
+			# str() needed for python 2.5 compatibility
 		self.pack_start(label, False)
 
 		self.calendar = Calendar()

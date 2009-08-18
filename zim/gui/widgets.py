@@ -420,7 +420,8 @@ class Dialog(gtk.Dialog):
 				for option in options:
 					combobox.append_text(str(option))
 				try:
-					active = options.index(value)
+					active = list(options).index(value)
+						# list() needed for python 2.5 compat
 					combobox.set_active(active)
 				except ValueError:
 					pass

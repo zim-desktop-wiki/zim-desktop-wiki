@@ -143,29 +143,65 @@ class UnixPath(object):
 		parts[0] = drive + os.path.sep + parts[0]
 		return parts
 
+	def relpath(self, reference):
+		assert self.path.startswith(reference.path)
+		i = len(reference.path)
+		path = self.path[i:]
+		path = path.lstrip('/')
+		return path
+
+	def commonparent(self, other):
+		'''Returns a common path between self and other as a Dir object.'''
+		path = os.path.commonprefix((self.path, other.path))
+		i = path.rfind(os.path.sep) # win32 save...
+		if i >= 0:
+			path = path[:i]
+		return Dir(path)
+
 	def rename(self, newpath):
 		logger.info('Rename %s to %s', self, newpath)
 		os.renames(self.path, newpath.path)
 
+	# FIXME we could define overloaded operators same as for notebook.Path
 	def ischild(self, parent):
 		return self.path.startswith(parent.path + os.path.sep)
 
 	def get_mimetype(self):
-		import xdg.Mime
-		return xdg.Mime.get_type(self.path, name_pri=80)
+		try:
+			import xdg.Mime
+			return xdg.Mime.get_type(self.path, name_pri=80)
+		except ImportError:
+			# Fake mime typing (e.g. for win32)
+			if '.' in self.basename:
+				_, ext = self.basename.rsplit('.', 1)
+				if ext == 'txt':
+					return 'text/plain'
+				else:
+					return 'x-file-extension/%s' % ext
+			else:
+				return 'application/octet-stream'
+				# TODO could use magic check here (first 32 byte)
+
+
 
 class WindowsPath(UnixPath):
 
-    @property
-    def uri(self):
-        '''File uri property with win32 logic'''
-        # win32 paths do not start with '/', so add another one
-        return 'file:///'+self.canonpath
+	@property
+	def uri(self):
+		'''File uri property with win32 logic'''
+		# win32 paths do not start with '/', so add another one
+		return 'file:///'+self.canonpath
 
-    @property
-    def canonpath(self):
-        path = self.path.replace('\\', '/')
-        return path
+	@property
+	def canonpath(self):
+		path = self.path.replace('\\', '/')
+		return path
+
+	def relpath(self, reference):
+		'''Relative path, explicit using unix convention for seperators'''
+		path = UnixPath.relpath(self, reference)
+		path = path.lstrip('\\')
+		return path.replace('\\', '/')
 
 
 # Determine which base class to use for classes below
@@ -174,8 +210,6 @@ if os.name == 'posix':
 elif os.name == 'nt':
 	Path = WindowsPath
 else:
-	import logging
-	logger = logging.getLogger('zim')
 	logger.critical('os name "%s" unknown, falling back to posix', os.name)
 	Path = UnixPath
 
@@ -479,6 +513,19 @@ class File(Path):
 		else:
 			dest.dir.touch()
 		shutil.move(self.path, dest.path)
+
+	def compare(self, other):
+		'''Uses MD5 to tell you if files are the same or not.
+		This can e.g. be used to detect case-insensitive filsystems 
+		when renaming files.
+		'''
+		def md5(file):
+			import hashlib
+			m = hashlib.md5()
+			m.update(file.read())
+			return m.digest()
+
+		return md5(self) == md5(other)
 
 
 class TmpFile(File):

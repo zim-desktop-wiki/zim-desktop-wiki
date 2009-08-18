@@ -1,0 +1,27 @@
+[Desktop Entry]
+Version=1.0
+Name=Firefox Web Browser
+Exec=firefox %u
+Terminal=false
+Type=Application
+Icon=firefox
+X-Zim-AppType=web_browser
+Name[ca]=Navegador web Firefox
+Name[cs]=Firefox Webový prohlížeč
+Name[es]=Navegador web Firefox
+Name[fa]=مرورگر اینترنتی Firefox
+Name[fi]=Firefox-selain
+Name[fr]=Navigateur Web Firefox
+Name[hu]=Firefox webböngésző
+Name[it]=Firefox Browser Web
+Name[ja]=Firefox ウェブ・ブラウザ
+Name[ko]=Firefox 웹 브라우저
+Name[nb]=Firefox Nettleser
+Name[nl]=Firefox webbrowser
+Name[nn]=Firefox Nettlesar
+Name[no]=Firefox Nettleser
+Name[pl]=Przeglądarka WWW Firefox
+Name[pt]=Firefox Navegador Web
+Name[pt_BR]=Navegador Web Firefox
+Name[sk]=Internetový prehliadač Firefox
+Name[sv]=Webbläsaren Firefox
