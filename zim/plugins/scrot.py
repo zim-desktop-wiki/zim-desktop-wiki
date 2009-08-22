@@ -8,7 +8,7 @@ import time
 from zim.fs import TmpFile
 from zim.plugins import PluginClass
 from zim.gui.widgets import Dialog, ErrorDialog
-from zim.gui.applications import DesktopEntryDict
+from zim.applications import Application
 
 ui_xml = '''
 <ui>
@@ -94,16 +94,10 @@ class InsertScreenshotDialog(Dialog):
 			options += ('--delay', str(delay))
 			# Wait NUM seconds before taking a shot.
 
-		entry = DesktopEntryDict()
-		entry.parse(
-			'[Desktop Entry]\n'
-			'Type = Application\n'
-			'Name = Scrot\n'
-			'Exec = scrot %s\n' % ' '.join(options) )
-		assert entry.isvalid()
+		scrot = Application(('scrot',) + options)
 
-		def callback(pid, status):
-			if status == 0:
+		def callback(status):
+			if status == scrot.STATUS_OK:
 				name = time.strftime('screenshot_%Y-%m-%d-%H%M%S.png')
 				page = self.ui.page
 				dir = self.ui.notebook.get_attachments_dir(page)
@@ -112,10 +106,9 @@ class InsertScreenshotDialog(Dialog):
 				self.ui.mainwindow.pageview.insert_image(file, interactive=False)
 			else:
 				ErrorDialog(self.ui,
-					_('Some error occured while running scrot')).run()
+					_('Some error occured while running "scrot"')).run()
 					# T: Error message in "insert screenshot" dialog
 
 		tmpfile.dir.touch()
-		entry.run((tmpfile,), callback)
-
-
+		scrot.spawn((tmpfile,), callback)
+		return True

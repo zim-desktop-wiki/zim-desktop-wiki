@@ -152,6 +152,8 @@ LINKS: [[Foo]][[Bar]]
 	paragraphs go here ...
 
 
+{{./equation003.png?type=equation}}
+
 
 Let's try these **bold**, //italic//, __underline__ and ~~strike~~
 And some ''//verbatim//''

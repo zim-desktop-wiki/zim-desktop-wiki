@@ -453,9 +453,12 @@ class TextBuffer(gtk.TextBuffer):
 			logger.warn('No such image: %s', file)
 			widget = gtk.HBox() # Need *some* widget here...
 			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG)
+			pixbuf = pixbuf.copy() # need unique instance to set zim_attrib
+
 		pixbuf.zim_type = 'image'
 		pixbuf.zim_attrib = attrib
 		pixbuf.zim_attrib['src'] = src
+		pixbuf.zim_attrib['_src_file'] = file
 		self.insert_pixbuf(iter, pixbuf)
 
 	def insert_image_at_cursor(self, file, src, **attrib):
@@ -1329,6 +1332,7 @@ class TextView(gtk.TextView):
 			self.emit('end-of-line', iter)
 
 		buffer.place_cursor(buffer.get_iter_at_mark(mark))
+		self.scroll_mark_onscreen(mark)
 		buffer.delete_mark(mark)
 
 	def _do_key_press_event_readonly(self, event):
@@ -1899,6 +1903,7 @@ class PageView(gtk.VBox):
 		self.page = None
 		self.readonly = True
 		self.undostack = None
+		self.image_generator_plugins = {}
 
 		self.preferences = self.ui.preferences['PageView']
 		self.ui.register_preferences('PageView', ui_preferences)
@@ -2071,6 +2076,8 @@ class PageView(gtk.VBox):
 		if cursorpos != -1:
 			buffer.place_cursor(buffer.get_iter_at_offset(cursorpos))
 
+		self.view.scroll_mark_onscreen(buffer.get_insert())
+
 		buffer.connect('textstyle-changed', self.do_textstyle_changed)
 		buffer.connect('modified-changed',
 			lambda o: self.on_modified_changed(o))
@@ -2135,6 +2142,18 @@ class PageView(gtk.VBox):
 	def get_scroll_pos(self):
 		pass # FIXME get scroll position
 
+	def register_image_generator_plugin(self, plugin, type):
+		assert not 'type' in self.image_generator_plugins, \
+			'Already have plugin for image type "%s"' % type
+		self.image_generator_plugins[type] = plugin
+		logger.debug('Registered plugin %s for image type "%s"', plugin, type)
+
+	def unregister_image_generator_plugin(self, plugin):
+		for type, obj in self.image_generator_plugins.items():
+			if obj == plugin:
+				self.image_generator_plugins.pop(type)
+				logger.debug('Removed plugin %s for image type "%s"', plugin, type)
+
 	def do_textstyle_changed(self, buffer, style):
 		# set statusbar
 		if style: label = style.title()
@@ -2190,15 +2209,21 @@ class PageView(gtk.VBox):
 			else:
 				file = None
 		else:
-			pixbuf = iter.get_pixbuf()
-			if pixbuf is None:
+			image = buffer.get_image_data(iter)
+			if image is None:
 				# Maybe we clicked right side of an image
 				iter.backward_char()
-				pixbuf = iter.get_pixbuf()
-			if pixbuf and hasattr(pixbuf, 'zim_type') \
-			and pixbuf.zim_type == 'image':
+				image = buffer.get_image_data(iter)
+
+			if image:
 				type = 'image'
-				file = pixbuf.zim_attrib['src']
+				file = image['src']
+				if 'type' in image \
+				and image['type'] in self.image_generator_plugins:
+					plugin = self.image_generator_plugins[image['type']]
+					plugin.do_populate_popup(menu, buffer, iter, image)
+					menu.show_all()
+					return # plugin should decide about populating
 			else:
 				return # No link or image
 
@@ -2309,26 +2334,35 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		if iter:
 			buffer.place_cursor(iter)
-		insert = buffer.get_iter_at_mark(buffer.get_insert())
-		alt = insert.copy()
-		alt.backward_char()
-		if buffer.get_image_data(insert) or buffer.get_image_data(alt):
-			EditImageDialog(self.ui, buffer, self.page).run()
-		elif buffer.get_link_tag(insert):
-			EditLinkDialog(self.ui, buffer, self.page).run()
+
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		if buffer.get_link_tag(iter):
+			return EditLinkDialog(self.ui, buffer, self.page).run()
+
+		image = buffer.get_image_data(iter)
+		if not image:
+			iter.backward_char() # maybe we clicked right side of an image
+			image = buffer.get_image_data(iter)
+
+		if image:
+			if 'type' in image and image['type'] in self.image_generator_plugins:
+				plugin = self.image_generator_plugins[image['type']]
+				plugin.edit_object(buffer, iter, image)
+			else:
+				EditImageDialog(self.ui, buffer, self.page).run()
 		else:
 			return False
 
 	def insert_date(self):
 		InsertDateDialog(self.ui, self.view.get_buffer()).run()
 
-	def insert_image(self, file=None, interactive=True):
+	def insert_image(self, file=None, type=None, interactive=True):
 		if interactive:
 			InsertImageDialog(self.ui, self.view.get_buffer(), self.page, file).run()
 		else:
 			assert isinstance(file, File)
 			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
-			self.view.get_buffer().insert_image_at_cursor(file, src)
+			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
 
 	def insert_text_from_file(self):
 		InsertTextFromFileDialog(self.ui, self.view.get_buffer(), self.page).run()

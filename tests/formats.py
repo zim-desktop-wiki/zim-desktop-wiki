@@ -153,6 +153,8 @@ LINKS: <link href="Foo">Foo</link><link href="Bar">Bar</link>
 	paragraphs go here ...
 </p>
 
+<p><img src="./equation003.png" type="equation" />
+</p>
 
 <p>Let's try these <strong>bold</strong>, <emphasis>italic</emphasis>, <mark>underline</mark> and <strike>strike</strike>
 And some <code>//verbatim//</code>
@@ -289,6 +291,10 @@ LINKS: <a href="page://Foo">Foo</a><a href="page://Bar">Bar</a><br>
 &nbsp;&nbsp;&nbsp;&nbsp;paragraphs go here ...<br>
 </p>
 
+
+<p>
+<img src="img://./equation003.png" alt=""><br>
+</p>
 
 
 <p>

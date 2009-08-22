@@ -873,3 +873,150 @@ class ProgressBarDialog(gtk.Dialog):
 
 # Need to register classes defining gobject signals
 gobject.type_register(ProgressBarDialog)
+
+
+class ImageView(gtk.Layout):
+
+	SCALE_FIT = 1 # scale image with the window (if it is bigger)
+	SCALE_STATIC = 2 # use scaling factore
+
+	__gsignals__ = {
+		'size-allocate': 'override',
+	}
+
+	def __init__(self, bgcolor='#FFF', checkboard=True):
+		gtk.Layout.__init__(self)
+		self.set_flags(gtk.CAN_FOCUS)
+		self.scaling = self.SCALE_FIT
+		self.factor = 1
+
+		self._pixbuf = None
+		self._render_size = None # allocation w, h for which we have rendered
+		self._render_timeout = None # timer before updating rendering
+		self._image = gtk.Image() # pixbuf is set for the image in _render()
+		self.add(self._image)
+
+		colormap = self._image.get_colormap()
+		self._lightgrey = colormap.alloc_color('#666')
+		self._darkgrey = colormap.alloc_color('#999')
+
+		if bgcolor:
+			self.set_bgcolor(bgcolor)
+		self.checkboard = checkboard
+
+	def set_bgcolor(self, bgcolor):
+		'''Set background color, can either be a name or a spec in hex'''
+		color = gtk.gdk.Color(bgcolor)
+		self.modify_bg(gtk.STATE_NORMAL, color)
+
+	def set_checkboard(self, checkboard):
+		'''If checkboard is True we draw a checkboard behind transparent image,
+		if it is False we just show the background color.
+		'''
+		self.checkboard = checkboard
+
+	def set_scaling(self, scaling, factor=1):
+		'''Set the scaling to either one of SCALE_FIT or SCALE_STATIC.
+		The factor is only used by SCALE_STATIC as fixed scaling factor.
+		'''
+		assert scaling in (SCALE_FIT, SCALE_STATIC)
+		self.scaling = scaling
+		self.factor = factor
+		self._render()
+
+	def set_file(self, file):
+		'''Convenience method to load a pixbuf from file and load it'''
+		pixbuf = None
+
+		if file:
+			try:
+				pixbuf = gtk.gdk.pixbuf_new_from_file(str(file))
+			except:
+				logger.exception('Could not load image "%s"', file)
+		else:
+			pass
+
+		self.set_pixbuf(pixbuf)
+
+	def set_pixbuf(self, pixbuf):
+		'''Set the image to display. Set image to 'None' to display a broken
+		image icon.
+		'''
+		if pixbuf is None:
+			pixbuf = self.render_icon(
+				gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG).copy()
+		self._pixbuf = pixbuf
+		self._render()
+
+	def do_size_allocate(self, allocation):
+		gtk.Layout.do_size_allocate(self, allocation)
+
+		# remove timer if any
+		if self._render_timeout:
+			gobject.source_remove(self._render_timeout)
+
+		if not self._pixbuf \
+		or (allocation.width, allocation.height) == self._render_size:
+			pass # no update of rendering needed
+		else:
+			# set new timer for 100ms
+			self._render_timeout = gobject.timeout_add(100, self._render)
+
+	def _render(self):
+		# remove timer if any
+		if self._render_timeout:
+			gobject.source_remove(self._render_timeout)
+
+		# Determine what size we want to render the image
+		allocation = self.allocation
+		wwin, hwin = allocation.width, allocation.height
+		wsrc, hsrc = self._pixbuf.get_width(), self._pixbuf.get_height()
+		self._render_size = (wwin, hwin)
+		#~ print 'Allocated', (wwin, hwin),
+		#~ print 'Source', (wsrc, hsrc)
+
+		if self.scaling == self.SCALE_STATIC:
+			wimg = self.factor * wsrc
+			himg = self.factor * hsrc
+		elif self.scaling == self.SCALE_FIT:
+			if hsrc <= wwin and hsrc <= hwin:
+				# image fits in the screen - no scaling
+				wimg, himg = wsrc, hsrc
+			elif (float(wwin)/wsrc) < (float(hwin)/hsrc):
+				# Fit by width
+				wimg = wwin
+				himg = int(hsrc * float(wwin)/wsrc)
+			else:
+				# Fit by height
+				wimg = int(wsrc * float(hwin)/hsrc)
+				himg = hwin
+		else:
+			assert False, 'BUG: unknown scaling type'
+		#~ print 'Image', (wimg, himg)
+
+		# Scale pixbuf to new size
+		if not self.checkboard or not self._pixbuf.get_has_alpha():
+			if (wimg, himg) == (wsrc, hsrc):
+				pixbuf = self._pixbuf
+			else:
+				pixbuf = self._pixbuf.scale_simple(
+							wimg, himg, gtk.gdk.INTERP_HYPER)
+		else:
+			# Generate checkboard background while scaling
+			pixbuf = self._pixbuf.composite_color_simple(
+				wimg, himg, gtk.gdk.INTERP_HYPER,
+				255, 16, self._lightgrey.pixel, self._darkgrey.pixel )
+
+		# And align the image in the layout
+		wvirt = max((wwin, wimg))
+		hvirt = max((hwin, himg))
+		#~ print 'Virtual', (wvirt, hvirt)
+		self._image.set_from_pixbuf(pixbuf)
+		self.set_size(wvirt, hvirt)
+		self.move(self._image, (wvirt-wimg)/2, (hvirt-himg)/2)
+
+		return False # We could be called by a timeout event
+
+# Need to register classes defining gobject signals
+gobject.type_register(ImageView)
+

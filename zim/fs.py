@@ -303,12 +303,13 @@ class Dir(Path):
 		basename = file.basename
 		if '.' in basename: basename = basename.split('.', 1)
 		else: basename = (basename, '')
-		parent = file.dir
+		dir = file.dir
 		i = 0
 		while file.exists():
+			logger.debug('File exists "%s" trying increment', file)
 			i += 1
-			name = ''.join((basename[0], '%03i' % i, basename[1]))
-			file = parent.file(basename)
+			file = dir.file(
+				''.join((basename[0], '%03i' % i, '.', basename[1])) )
 		return file
 
 	def subdir(self, path):
@@ -516,7 +517,7 @@ class File(Path):
 
 	def compare(self, other):
 		'''Uses MD5 to tell you if files are the same or not.
-		This can e.g. be used to detect case-insensitive filsystems 
+		This can e.g. be used to detect case-insensitive filsystems
 		when renaming files.
 		'''
 		def md5(file):

@@ -36,9 +36,9 @@ if os.name == 'nt':
 	# os.environ does not support setdefault() ...
 	if not 'USER' in os.environ or not os.environ['USER']:
 		os.environ['USER'] =  os.environ['USERNAME']
-		
+
 	if not 'HOME' in os.environ or not os.environ['HOME']:
-		if 'USERPROFILE' in os.environ: 
+		if 'USERPROFILE' in os.environ:
 			os.environ['HOME'] = os.environ['USERPROFILE']
 		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
 			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
@@ -62,7 +62,7 @@ gettext.install('zim', localedir, unicode=True, names=('_', 'gettext', 'ngettext
 logger = logging.getLogger('zim')
 
 
-executable = 'zim'
+ZIM_EXECUTABLE = 'zim'
 
 
 # All commandline options in various groups
@@ -138,11 +138,11 @@ class NotebookLookupError(Error):
 
 def main(argv):
 	'''Run the main program.'''
-	global executable
+	global ZIM_EXECUTABLE
 
-	executable = argv[0]
-	if '/' in executable or '\\' in executable:
-		executable = File(executable).path # abs path
+	ZIM_EXECUTABLE = argv[0]
+	if '/' in ZIM_EXECUTABLE or '\\' in ZIM_EXECUTABLE:
+		ZIM_EXECUTABLE = File(ZIM_EXECUTABLE).path # abs path
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
@@ -399,18 +399,9 @@ class NotebookInterface(gobject.GObject):
 	def spawn(self, *args):
 		'''Spawn a new instance of zim'''
 		# TODO: after implementing the daemon, put this in that module
-		argv = list(args)
-		argv.insert(0, executable)
-		argv = [a.encode('utf-8') for a in argv]
-		logger.info('Running: %s', argv)
-		try:
-			pid, stdin, stdout, stderr = \
-				gobject.spawn_async(argv, flags=gobject.SPAWN_SEARCH_PATH)
-		except gobject.GError:
-			logger.error('Failed running: %s', argv)
-			return None
-		else:
-			logger.debug('Process started with PID: %i', pid)
+		from zim.applications import Application
+		zim = Application((ZIM_EXECUTABLE,) + args)
+		zim.spawn()
 
 # Need to register classes defining gobject signals
 gobject.type_register(NotebookInterface)

@@ -819,7 +819,7 @@ class GtkInterface(NotebookInterface):
 
 	def _openwith(self, name, args):
 		entry = get_application(name)
-		entry.run(args)
+		entry.spawn(args)
 
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)

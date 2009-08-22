@@ -245,6 +245,13 @@ class PageTreeView(BrowserTreeView):
 			(('text/x-zim-page-list', 0, 0),),
 			gtk.gdk.ACTION_LINK )
 
+		if gtk.gtk_version > (2, 10, 0):
+			self.set_enable_tree_lines(True)
+			# TODO: add ui preference for this
+			# need to grey out preference for gtk < 2.10
+			# so need signal after construction preferenes dialog
+
+
 	def do_set_notebook(self, ui, notebook):
 		self.set_model(PageTreeStore(notebook.index))
 		if not ui.page is None:

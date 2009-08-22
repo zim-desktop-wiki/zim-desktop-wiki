@@ -120,7 +120,7 @@ class PreferencesDialog(Dialog):
 
 		combobox = self.inputs[type]
 		for app in apps:
-			name = app.get_name()
+			name = app.name
 			name_map[name] = app.key
 			combobox.append_text(name)
 

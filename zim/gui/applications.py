@@ -5,6 +5,9 @@
 '''This module contains utilities to work with external applications
 it is based on the Freedesktop.org (XDG) Desktop Entry specification
 with some additional logic based on status quo on Gnome / XFCE.
+
+The desktop entry class subclasses the Apllication class from zim.applications,
+see there for methods to run or spawn applications.
 '''
 
 import os
@@ -16,6 +19,7 @@ from zim.fs import *
 from zim.config import data_dirs, XDG_DATA_HOME, XDG_DATA_DIRS, \
 	ConfigDict, ConfigFile, json
 from zim.parsing import split_quoted_strings
+from zim.applications import Application, WebBrowser
 from zim.gui.widgets import Dialog, ErrorDialog
 
 
@@ -55,6 +59,8 @@ def get_application(name):
 	file = _application_file(name + '.desktop', _application_dirs())
 	if file:
 		return DesktopEntryFile(File(file))
+	elif name == 'webbrowser':
+		return WebBrowser()
 	else:
 		return None
 
@@ -75,6 +81,12 @@ def get_applications(mimetype):
 						if file:
 							entries.append(DesktopEntryFile(File(file)))
 							seen.add(basename)
+
+	if mimetype == 'text/html':
+		webbrowser = WebBrowser()
+		webbrowser.key = 'webbrowser'
+		entries.append(webbrowser)
+
 	return entries
 
 
@@ -103,7 +115,7 @@ def get_helper_applications(type):
 
 	if type == 'web_browser':
 		helpers += get_applications('text/html')
-	helpers = filter(DesktopEntryDict.check_tryexec, helpers)
+	helpers = [helper for helper in helpers if helper.tryexec()]
 	return helpers
 
 
@@ -155,7 +167,7 @@ def _create_application(dir, Name, Exec, **param):
 	return entry
 
 
-class DesktopEntryDict(ConfigDict):
+class DesktopEntryDict(ConfigDict, Application):
 	'''Base class for DesktopEntryFile. Defines all the logic to work with
 	desktop entry files. A desktop entry files describes all you need to know
 	about an external application.
@@ -179,13 +191,23 @@ class DesktopEntryDict(ConfigDict):
 		else:
 			return True
 
-	def get_name(self):
+	@property
+	def name(self):
 		# TODO: localisation of application name
 		return self['Desktop Entry']['Name']
 
-	def get_comment(self):
+	@property
+	def comment(self):
 		# TODO: localisation of application name
 		return self['Desktop Entry']['Comment']
+
+	@property
+	def tryexeccmd(self):
+		return self['Desktop Entry'].get('TryExec')
+
+	@property
+	def cmd(self):
+		return split_quoted_strings(self['Desktop Entry']['Exec'])
 
 	def get_pixbuf(self):
 		if 'Icon' in self['Desktop Entry']:
@@ -207,25 +229,6 @@ class DesktopEntryDict(ConfigDict):
 				#~ logger.exception('Foo')
 				return None
 			return pixbuf
-
-
-	def check_tryexec(self):
-		if not 'TryExec' in self['Desktop Entry']:
-			return True
-
-		cmd = self['Desktop Entry']['TryExec']
-		if not cmd:
-			return True
-		elif os.name == 'nt' and not '.' in cmd:
-			cmd = cmd + '.exe'
-			# No need for two .desktop files for common applications
-
-		for dir in os.environ['PATH'].split(os.pathsep):
-			file = os.sep.join((dir, cmd))
-			if os.path.isfile(file):
-				return True
-		else:
-			return False
 
 	def parse_exec(self, args=None):
 		'''Returns a list of command and arguments that can be used to
@@ -279,7 +282,7 @@ class DesktopEntryDict(ConfigDict):
 
 		if '%c' in cmd:
 			i = cmd.index('%c')
-			cmd[i] = self.get_name()
+			cmd[i] = self.name
 
 		if '%k' in cmd:
 			i = cmd.index('%k')
@@ -290,31 +293,7 @@ class DesktopEntryDict(ConfigDict):
 
 		return tuple(cmd)
 
-	def run(self, args, callback=None):
-		'''Starts the application, returns the PID or None'''
-		argv = [a.encode('utf-8') for a in self.parse_exec(args)]
-
-		flags = gobject.SPAWN_SEARCH_PATH
-		if callback:
-			flags |= gobject.SPAWN_DO_NOT_REAP_CHILD
-			# without this flag child is reaped autmatically -> no zombies
-
-		logger.info('Running: %s', argv)
-		try:
-			pid, stdin, stdout, stderr = \
-				gobject.spawn_async(argv, flags=flags)
-		except gobject.GError:
-			logger.exception('Failed running: %s', argv)
-			name = self.get_name()
-			ErrorDialog(None, _('Could not run application: %s') % name).run()
-				# T: error when application failed to start
-			return None
-		else:
-			logger.debug('Process started with PID: %i', pid)
-			if callback:
-				gobject.child_watch_add(pid, callback)
-				# child watch does implicite reaping -> no zombies
-			return pid
+	_cmd = parse_exec # To hook into Application.spawn and Application.run
 
 	def _decode_desktop_value(self, value):
 		if value == 'true': return True
@@ -358,20 +337,21 @@ class OpenWithMenu(gtk.Menu):
 
 	def on_activate(self, menuitem):
 		entry = menuitem.entry
-		entry.run((self.file,))
+		entry.spawn((self.file,))
 
 
 class DesktopEntryMenuItem(gtk.ImageMenuItem):
 
 	def __init__(self, entry):
-		text = _('Open with "%s"') % entry.get_name()
+		text = _('Open with "%s"') % entry.name
 			# T: menu item to open a file with an application, %s is the app name
 		gtk.ImageMenuItem.__init__(self, text)
 		self.entry = entry
 
-		pixbuf = entry.get_pixbuf()
-		if pixbuf:
-			self.set_image(gtk.image_new_from_pixbuf(pixbuf))
+		if hasattr(entry, 'get_pixbuf'):
+			pixbuf = entry.get_pixbuf()
+			if pixbuf:
+				self.set_image(gtk.image_new_from_pixbuf(pixbuf))
 
 
 class CustomCommandDialog(Dialog):

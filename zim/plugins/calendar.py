@@ -54,7 +54,7 @@ ui_actions = (
 
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, initial state, readonly
-	('show_calendar', 'zim-calendar', _('Calen_dar'),  '', '', False, True), # T: menu item
+	('show_calendar', 'zim-calendar', _('Calen_dar'),  '', 'Show calendar', False, True), # T: menu item
 )
 
 KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))
