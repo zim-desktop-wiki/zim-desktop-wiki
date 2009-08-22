@@ -18,7 +18,7 @@ __all__ = [
 	'history', 'plugins',
 	'export', 'www', 'search',
 	'pageview',
-	'calendar', 'printtobrowser', 'equationeditor'
+	'calendar', 'printtobrowser', 'equationeditor', 'diagrameditor',
 ]
 
 __unittest = 1 # needed to get stack trace OK for class TestCase

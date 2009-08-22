@@ -29,13 +29,12 @@ ui_xml = '''
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, read only
-	('insert_equation', None, _('E_quation...'), '', 'Insert equation', False),
-		# T: menu item for insert screenshot plugin
+	('insert_equation', None, _('E_quation...'), '', _('Insert equation'), False),
+		# T: menu item for insert equation plugin
 )
 
 
 class InsertEquationPlugin(PluginClass):
-	'''FIXME'''
 
 	plugin_info = {
 		'name': _('Insert Equation'), # T: plugin name
@@ -46,6 +45,7 @@ Depends on: latex, dvipng
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
+		'manualpage': ':Plugins:Equation Editor',
 		'author': 'Jaap Karssenberg',
 	}
 
@@ -85,7 +85,7 @@ class InsertEquationDialog(ImageGeneratorDialog):
 
 	def __init__(self, ui, image=None):
 		generator = EquationGenerator()
-		ImageGeneratorDialog.__init__(self, ui, _('Insert Equation'),
+		ImageGeneratorDialog.__init__(self, ui, _('Insert Equation'), # T: dialog title
 			generator, image, help=':Plugins:Equation Editor' )
 
 

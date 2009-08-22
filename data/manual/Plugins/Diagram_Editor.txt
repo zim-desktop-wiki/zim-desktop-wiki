@@ -1,0 +1,22 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Diagram Editor ======
+
+The diagram editor allows you to insert and edit diagrams based on the GraphViz.
+
+For example a diagram like:
+
+{{./diagram.png}}
+
+Can be created by entering the following definition in the dialog:
+
+'''
+digraph G {
+  foo -> bar
+  bar -> baz
+  baz -> foo
+}
+'''
+
+For full documentation see: [[http://www.graphviz.org/]]

@@ -9,11 +9,6 @@ from zim.plugins.equationeditor import *
 
 class TestEquationEditor(TestCase):
 
-	# TODO: test availability of latex / dvipng
-	# implement check in plugn (also have plugin load check this)
-	# have special method name to test from test.py
-	# base this test on virtual application object with tryExec method
-
 	slowTest = True
 
 	@classmethod
@@ -26,7 +21,6 @@ class TestEquationEditor(TestCase):
 	def runTest(self):
 		'Test Equation Editor plugin'
 		# TODO empty tmp dir
-		# TODO make commands more silent - redirect to dev null ?
 		text = r'''
 c = \sqrt{ a^2 + b^2 }
 

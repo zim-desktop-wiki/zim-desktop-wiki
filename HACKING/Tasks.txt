@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Wed, 19 Aug 2009 18:53:43 +0200
+Modification-Date: Sat, 22 Aug 2009 13:18:21 +0200
 
 ====== Tasks ======
 
@@ -58,8 +58,7 @@ Modification-Date: Wed, 19 Aug 2009 18:53:43 +0200
 [ ] Implement background deamon
 [ ] Implement TrayIcon plugin
 [*] Implement InsertScreenshot plugin  ~~+ preference for command~~
-[ ] Implement EquationEditor and DiagramEditor plugins
-	* write common base class for plugins that convert some script to an image
+[*] Implement EquationEditor and DiagramEditor plugins
 [ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..
 	* Preferences dialog should have list of mount points
 
