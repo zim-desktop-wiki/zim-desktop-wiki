@@ -30,6 +30,24 @@ from zim.fs import *
 from zim.errors import Error
 from zim.config import config_file, log_basedirs, ZIM_DATA_DIR
 
+
+if os.name == 'nt':
+	# Windows specific environment variables
+	# os.environ does not support setdefault() ...
+	if not 'USER' in os.environ or not os.environ['USER']:
+		os.environ['USER'] =  os.environ['USERNAME']
+
+	if not 'HOME' in os.environ or not os.environ['HOME']:
+		if 'USERPROFILE' in os.environ:
+			os.environ['HOME'] = os.environ['USERPROFILE']
+		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
+			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
+			os.environ['HOME'] = home
+
+assert os.environ['USER'], 'ERROR: environment variable $USER not set'
+assert os.path.isdir(os.environ['HOME']), 'ERROR: environment variable $HOME not set correctly'
+
+
 if ZIM_DATA_DIR:
 	# We are running from a source dir - use the locale data included there
 	localedir = ZIM_DATA_DIR.dir.subdir('locale').path
@@ -40,9 +58,12 @@ else:
 
 gettext.install('zim', localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
 
+
 logger = logging.getLogger('zim')
 
-executable = 'zim'
+
+ZIM_EXECUTABLE = 'zim'
+
 
 # All commandline options in various groups
 longopts = ('verbose', 'debug')
@@ -117,9 +138,11 @@ class NotebookLookupError(Error):
 
 def main(argv):
 	'''Run the main program.'''
-	global executable
+	global ZIM_EXECUTABLE
 
-	executable = argv[0]
+	ZIM_EXECUTABLE = argv[0]
+	if '/' in ZIM_EXECUTABLE or '\\' in ZIM_EXECUTABLE:
+		ZIM_EXECUTABLE = File(ZIM_EXECUTABLE).path # abs path
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
@@ -148,7 +171,7 @@ def main(argv):
 		print __license__
 		return
 	elif cmd == 'help':
-		print usagehelp.replace('zim', executable)
+		print usagehelp.replace('zim', argv[0])
 		print optionhelp
 		return
 
@@ -266,34 +289,50 @@ class NotebookInterface(gobject.GObject):
 
 	def load_plugins(self):
 		'''Load the plugins defined in the preferences'''
-		print '\n\n\nTODO: get plugins from config\n\n\n'
-		plugins = ['calendar', 'spell', 'linkmap', 'printtobrowser', 'tasklist'] # FIXME: get from config
+		self.preferences['General'].setdefault('plugins', ['calendar', 'printtobrowser'])
+		plugins = self.preferences['General']['plugins']
 		for plugin in plugins:
 			self.load_plugin(plugin)
 
-	def load_plugin(self, plugin):
-		'''Load a single plugin.
-		"plugin" can either be a pluginname or a plugin class
-		'''
-		if isinstance(plugin, basestring):
-			import zim.plugins
-			klass = zim.plugins.get_plugin(plugin)
-		else:
-			klass = plugin
+	def load_plugin(self, name):
+		'''Load a single plugin by name'''
+		assert isinstance(name, basestring)
+		import zim.plugins
+		klass = zim.plugins.get_plugin(name)
 		plugin = klass(self)
 		self.plugins.append(plugin)
-		logger.debug('Loaded plugin %s', plugin)
+		logger.debug('Loaded plugin %s (%s)', name, plugin)
+
+		plugin.plugin_key = name
+		if not name in self.preferences['General']['plugins']:
+			self.preferences['General']['plugins'].append(name)
+			self.preferences.write()
 
 	def unload_plugin(self, plugin):
 		'''Remove a plugin'''
-		print 'TODO: unload plugin', plugin
-		#~ logger.debug('Unloaded plugin %s', pluginname)
+		if isinstance(plugin, basestring):
+			name = plugin
+			assert name in map(lambda p: p.plugin_key, self.plugins)
+			plugin = filter(lambda p: p.plugin_key == name, self.plugins)[0]
+		else:
+			assert plugin in self.plugins
+			name = plugin.plugin_key
+
+		plugin.disconnect()
+		self.plugins.remove(plugin)
+		logger.debug('Unloaded plugin %s', name)
+
+		self.preferences['General']['plugins'].remove(name)
+		self.preferences.write()
 
 	def open_notebook(self, notebook):
 		'''Open a notebook if no notebook was set already.
 		'notebook' can be either a string or a notebook object.
 		If 'notebook' is None we check for a default notebook, if no default
 		is found a NotebookSelectionError is generated.
+
+		If the notebook is a string which also specifies a page the page
+		path is returned so it can be handled in a sub-class.
 		'''
 		from zim.notebook import get_notebook, Notebook
 		assert self.notebook is None, 'BUG: other notebook opened already'
@@ -301,14 +340,16 @@ class NotebookInterface(gobject.GObject):
 
 		logger.debug('Opening notebook: %s', notebook)
 		if isinstance(notebook, basestring):
-			nb = get_notebook(notebook)
+			nb, path = get_notebook(notebook)
 			if nb is None:
 				raise NotebookLookupError, _('Could not find notebook: %s') % notebook
 					# T: Error when looking up a notebook
 			self.emit('open-notebook', nb)
+			return path
 		else:
 			assert isinstance(notebook, Notebook)
 			self.emit('open-notebook', notebook)
+			return None
 
 	def do_open_notebook(self, notebook):
 		assert self.notebook is None, 'BUG: other notebook opened already'
@@ -358,18 +399,9 @@ class NotebookInterface(gobject.GObject):
 	def spawn(self, *args):
 		'''Spawn a new instance of zim'''
 		# TODO: after implementing the daemon, put this in that module
-		argv = list(args)
-		argv.insert(0, executable)
-		argv = [a.encode('utf-8') for a in argv]
-		logger.info('Running: %s', argv)
-		try:
-			pid, stdin, stdout, stderr = \
-				gobject.spawn_async(argv, flags=gobject.SPAWN_SEARCH_PATH)
-		except gobject.GError:
-			logger.error('Failed running: %s', argv)
-			return None
-		else:
-			logger.debug('Process started with PID: %i', pid)
+		from zim.applications import Application
+		zim = Application((ZIM_EXECUTABLE,) + args)
+		zim.spawn()
 
 # Need to register classes defining gobject signals
 gobject.type_register(NotebookInterface)

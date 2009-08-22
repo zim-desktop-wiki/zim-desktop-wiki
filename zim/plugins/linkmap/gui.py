@@ -22,8 +22,8 @@ ui_xml = '''
 '''
 
 ui_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('show_linkmap', 'zim-linkmap', _('Show Link Map'), None, _('Show Link Map')), # T: Menu item
+	# name, stock id, label, accelerator, tooltip, readonly
+	('show_linkmap', 'zim-linkmap', _('Show Link Map'), None, _('Show Link Map'), True), # T: Menu item
 )
 
 

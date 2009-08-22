@@ -15,6 +15,16 @@ from zim.notebook import Page, LookupError, PageExistsError
 from zim.stores import StoreClass
 
 
+class Node(object):
+
+	__slots__ = ('basename', 'text', 'children')
+
+	def __init__(self, basename, text=None):
+		self.basename = basename
+		self.text = text
+		self.children = []
+
+
 class Store(StoreClass):
 
 	def __init__(self, notebook, path):
@@ -24,14 +34,15 @@ class Store(StoreClass):
 		StoreClass.__init__(self, notebook, path)
 		self.format = get_format('wiki') # TODO make configable
 		self._nodetree = []
+		self.readonly = False
 
-	def _set_node(self, path, text):
+	def set_node(self, path, text):
 		'''Sets node for 'page' and return it.'''
-		node = self._get_node(path, vivificate=True)
-		node[1] = text
+		node = self.get_node(path, vivificate=True)
+		node.text = text
 		return node
 
-	def _get_node(self, path, vivificate=False):
+	def get_node(self, path, vivificate=False):
 		'''Returns node for page 'name' or None.
 		If 'vivificate is True nodes are created on the fly.
 		'''
@@ -43,21 +54,21 @@ class Store(StoreClass):
 			n = names.pop(0) # get next item
 			node = None
 			for leaf in branch:
-				if leaf[0] == n:
+				if leaf.basename == n:
 					node = leaf
 					break
 			if node is None:
 				if vivificate:
-					node = [n, '', []] # basename, text, children
+					node = Node(basename=n)
 					branch.append(node)
 				else:
 					return None
-			branch = node[2]
+			branch = node.children
 
 		return node
 
 	def get_page(self, path):
-		node = self._get_node(path)
+		node = self.get_node(path)
 		return self._build_page(path, node)
 
 	def _build_page(self, path, node):
@@ -65,54 +76,56 @@ class Store(StoreClass):
 			text = None
 			haschildren = False
 		else:
-			text = node[1]
-			haschildren = len(node[2])
+			text = node.text
+			haschildren = bool(node.children)
 
 		page = Page(path, haschildren)
 		if text:
+			page.readonly = False
 			page.set_parsetree(self.format.Parser().parse(text))
 			page.modified = False
+		page.readonly = self.readonly
 		return page
 
 	def get_pagelist(self, path):
 		if path == self.namespace:
 			nodes = self._nodetree
 		else:
-			node = self._get_node(path)
+			node = self.get_node(path)
 			if node is None:
 				return # implicit generate empty list
 			else:
-				nodes = node[2]
+				nodes = node.children
 
 		for node in nodes:
-			childpath = path + node[0]
+			childpath = path + node.basename
 			yield self._build_page(childpath, node)
 
 	def store_page(self, page):
 		text = self.format.Dumper().dump(page.get_parsetree())
-		self._set_node(page, text)
+		self.set_node(page, text)
 		page.modified = False
 
 	def move_page(self, path, newpath):
-		node = self._get_node(path)
+		node = self.get_node(path)
 		if node is None:
 			raise LookupError, 'No such page: %s' % path.name
 
-		newnode = self._get_node(newpath)
+		newnode = self.get_node(newpath)
 		if not newnode is None:
 			raise PageExistsError, 'Page already exists: %s' % newpath.name
 
 		self.delete_page(path)
 
-		newnode = self._get_node(newpath, vivificate=True)
-		newnode[1] = node[1] # text
-		newnode[2] = node[2] # children
+		newnode = self.get_node(newpath, vivificate=True)
+		newnode.text = node.text
+		newnode.children = node.children # children
 
 
 	def delete_page(self, path):
 		# Make sure not to destroy the actual content, we are used by
 		# move_page, which could be keeping a reference to the content
-		node = self._get_node(path)
+		node = self.get_node(path)
 		if node is None:
 			return False
 
@@ -120,12 +133,12 @@ class Store(StoreClass):
 		if parent.isroot:
 			self._nodetree.remove(node)
 		else:
-			pnode = self._get_node(parent)
-			pnode[2].remove(node)
-			if not (pnode[1] or pnode[2]):
+			pnode = self.get_node(parent)
+			pnode.children.remove(node)
+			if not (pnode.text or pnode.children):
 				self.delete_page(parent) # recurs to cleanup empty parent
 
 		return True
 
 	def page_exists(self, path):
-		return bool(self._get_node(path))
+		return bool(self.get_node(path))

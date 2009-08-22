@@ -255,7 +255,7 @@ class ListDict(dict):
 	# And we added some extra functionality here
 	def setdefault(self, k, v=None, klass=None, check=None):
 		'''Like dict.setdefault() but with some extra restriction because we
-		assume un-safe user input. If 'klass' is given the existing value 
+		assume un-safe user input. If 'klass' is given the existing value
 		will be checked to be of that class and reset to default if it is not.
 		Alternatively 'check' can be a function that needs to return True
 		in order to keep the existing value. If no class and no function
@@ -400,14 +400,16 @@ class ConfigDict(ListDict):
 			elif line.startswith('[') and line.endswith(']'):
 				name = line[1:-1].strip()
 				section = self[name]
-			else:
-				parameter, value = line.split('=', 2)
+			elif '=' in line:
+				parameter, value = line.split('=', 1)
 				parameter = parameter.rstrip()
 				try:
 					value = self._decode_value(value.lstrip())
 					section[parameter] = value
 				except:
 					logger.warn('Failed to parse value for: %s', parameter)
+			else:
+				logger.warn('Could not parse line: %s', line)
 
 	# Seperated out as this will be slightly different for .desktop files
 	def _decode_value(self, value):
@@ -434,10 +436,11 @@ class ConfigDict(ListDict):
 	def dump(self):
 		lines = []
 		for section, parameters in self.items():
-			lines.append('[%s]\n' % section)
-			for param, value in parameters.items():
-				lines.append('%s=%s\n' % (param, self._encode_value(value)))
-			lines.append('\n')
+			if parameters:
+				lines.append('[%s]\n' % section)
+				for param, value in parameters.items():
+					lines.append('%s=%s\n' % (param, self._encode_value(value)))
+				lines.append('\n')
 		return lines
 
 	def _encode_value(self, value):
@@ -576,3 +579,65 @@ class HeadersDict(ListDict):
 			text = text.replace('\n', '\r\n')
 
 		return text.splitlines(True)
+
+
+class HierarchicDict(object):
+	'''Dict which considers keys to be hierarchic (separator is ':' for
+	obvious reasons). Each key gives a dict which shows shadows of all
+	parents in the hierarchy. This is specifically used to store
+	namespace properties for zim notebooks.
+	'''
+
+	__slots__ = ('dict')
+
+	def __init__(self):
+		self.dict = {}
+
+	def __getitem__(self, k):
+		if not isinstance(k, basestring):
+			k = k.name # assume zim path
+		return HierarchicDictFrame(self.dict, k)
+
+
+class HierarchicDictFrame(object):
+
+	__slots__ = ('dict', 'key')
+
+	def __init__(self, dict, key):
+		self.dict = dict
+		self.key = key
+
+	def _keys(self):
+		yield self.key
+		parts = self.key.split(':')
+		parts.pop()
+		while parts:
+			yield ':'.join(parts)
+			parts.pop()
+		yield '' # top level namespace
+
+	def get(self, k, default=None):
+		try:
+			v = self.__getitem__(k)
+		except KeyError:
+			return default
+		else:
+			return v
+
+	def __getitem__(self, k):
+		for key in self._keys():
+			if key in self.dict and k in self.dict[key]:
+				return self.dict[key][k]
+		else:
+			raise KeyError
+
+	def __setitem__(self, k, v):
+		if not self.key in self.dict:
+			self.dict[self.key] = {}
+		self.dict[self.key][k] = v
+
+	def remove(self, k):
+		if self.key in self.dict and k in self.dict[self.key]:
+			return self.dict[self.key].pop(k)
+		else:
+			raise KeyError

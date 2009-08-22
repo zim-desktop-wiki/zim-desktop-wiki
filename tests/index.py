@@ -12,10 +12,10 @@ from zim.notebook import Notebook, Path, Link
 from zim.gui.pageindex import PageTreeStore, PageTreeView
 
 
-def get_files_notebook():
+def get_files_notebook(key):
 	# We fill the notebook using the store interface, as this test comes before
 	# the notebook test, but after the store test.
-	dir = Dir(tests.create_tmp_dir('index_TestIndexFiles'))
+	dir = Dir(tests.create_tmp_dir('index_'+key))
 	notebook = Notebook(dir=dir)
 	store = notebook.get_store(':')
 	manifest = []
@@ -99,9 +99,10 @@ class TestIndex(tests.TestCase):
 
 		# repeat update() to check if update is stable
 		manifest = len(self.notebook.testdata_manifest)
-		self.assertEqual(count_pages(self.index.db), manifest)
+		self.assertTrue(count_pages(self.index.db) >= manifest)
+		origcount = count_pages(self.index.db)
 		self.index.update(checkcontents=False)
-		self.assertEqual(count_pages(self.index.db), manifest)
+		self.assertEqual(count_pages(self.index.db), origcount)
 
 		# indexkey
 		for path in (Path('Test'), Path('Test:foo')):
@@ -134,7 +135,7 @@ class TestIndex(tests.TestCase):
 		self.index.flush()
 		self.assertEqual(count_pages(self.index.db), 0)
 		self.index.update()
-		self.assertEqual(count_pages(self.index.db), manifest)
+		self.assertEqual(count_pages(self.index.db), origcount)
 
 		# now index only part of the tree - and repeat
 		self.index.flush()
@@ -152,7 +153,7 @@ class TestIndexFiles(TestIndex):
 	slowTest = True
 
 	def setUp(self):
-		self.notebook = get_files_notebook()
+		self.notebook = get_files_notebook('TestIndexFiles')
 		self.index = self.notebook.index
 
 	def runTest(self):
@@ -206,12 +207,14 @@ class TestPageTreeStore(tests.TestCase):
 		for page in self.notebook.walk():
 			names = page.name.split(':')
 			if len(names) > len(path):
-				path.append(0)
+				path.append(0) # always increment by one
 			elif len(names) < len(path):
-				path.pop()
+				while len(names) < len(path):
+					path.pop()
 				path[-1] += 1
 			else:
 				path[-1] += 1
+			#~ print '>>', page, path
 			iter = treestore.get_iter(tuple(path))
 			indexpath = treestore.get_indexpath(iter)
 			self.assertEqual(indexpath, page)
@@ -260,7 +263,7 @@ class TestPageTreeStoreFiles(TestPageTreeStore):
 	slowTest = True
 
 	def setUp(self):
-		self.notebook = get_files_notebook()
+		self.notebook = get_files_notebook('TestPageTreeStoreFiles')
 		self.index = self.notebook.index
 
 	def runTest(self):

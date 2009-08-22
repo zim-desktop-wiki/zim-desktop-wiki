@@ -16,6 +16,7 @@ import logging
 from zim.fs import *
 import zim.errors
 import zim.config
+from zim.notebook import Path
 
 
 logger = logging.getLogger('zim.gui')
@@ -126,8 +127,6 @@ class BrowserTreeView(gtk.TreeView):
 				# expander in front of a path should not select the path.
 				# This logic is based on particulars of the C implementation
 				# and might not be future proof.
-		elif event.button == 3:
-			print 'TODO: context menu for page'
 
 		return gtk.TreeView.do_button_release_event(self, event)
 
@@ -421,7 +420,8 @@ class Dialog(gtk.Dialog):
 				for option in options:
 					combobox.append_text(str(option))
 				try:
-					active = options.index(value)
+					active = list(options).index(value)
+						# list() needed for python 2.5 compat
 					combobox.set_active(active)
 				except ValueError:
 					pass
@@ -432,14 +432,15 @@ class Dialog(gtk.Dialog):
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
 				entry = gtk.Entry()
+				entry.zim_type = type
 				if not value is None:
 					entry.set_text(str(value))
 				self.inputs[name] = entry
 				table.attach(entry, 1,2, i,i+1)
 				if type == 'page':
-					entry.set_completion(self._get_page_completion())
+					self._set_page_completion(entry)
 				elif type == 'namespace':
-					entry.set_completion(self._get_namespace_completion())
+					self._set_namespace_completion(entry)
 				elif type in ('dir', 'file', 'image'):
 					# FIXME use inline icon for newer versions of Gtk
 					browse = gtk.Button('_Browse')
@@ -481,13 +482,52 @@ class Dialog(gtk.Dialog):
 		if not file is None:
 			entry.set_text(file.path)
 
-	def _get_page_completion(self):
-		print 'TODO page completion'
-		return gtk.EntryCompletion()
+	def _set_page_completion(self, entry):
+		# TODO: more advanced widget for this
+		if not (self.ui and hasattr(self.ui, 'notebook')):
+			logger.warn('Could not set page completion, no ui object')
+			return
+		completion = gtk.EntryCompletion()
+		model = gtk.ListStore(str)
+		completion.set_model(model)
+		completion.set_text_column(0)
+		completion.set_inline_completion(True)
+		entry.set_completion(completion)
+		entry.zim_completion_namespace = None
+		entry.connect('changed', self._update_page_completion)
 
-	def _get_namespace_completion(self):
-		print 'TODO namespace completion'
-		return gtk.EntryCompletion()
+	def _set_namespace_completion(self, entry):
+		# TODO: more advanced widget for this
+		self._set_page_completion(entry)
+
+	def _update_page_completion(self, entry):
+		text = entry.get_text()
+		namespace = self.ui.page.namespace
+		prefix = len(namespace)+1
+		if ':' in text:
+			i = text.rfind(':')
+			if text.startswith(':'):
+				namespace = text[:i]
+				prefix = 0
+			else:
+				namespace += ':' + text[:i]
+
+		if entry.zim_completion_namespace == namespace:
+			return
+		else:
+			entry.zim_completion_namespace = namespace
+			if namespace.strip(':'):
+				namespace = self.ui.notebook.resolve_path(namespace)
+			else:
+				namespace = Path(':')
+			#~ print 'Completing', namespace
+
+		completion = entry.get_completion()
+		model = completion.get_model()
+		model.clear()
+		for p in self.ui.notebook.index.list_pages(namespace):
+			#~ print '>', p, p.name[prefix:]
+			model.append((p.name[prefix:],))
 
 	def get_field(self, name):
 		'''Returns the value of a single field'''
@@ -833,3 +873,150 @@ class ProgressBarDialog(gtk.Dialog):
 
 # Need to register classes defining gobject signals
 gobject.type_register(ProgressBarDialog)
+
+
+class ImageView(gtk.Layout):
+
+	SCALE_FIT = 1 # scale image with the window (if it is bigger)
+	SCALE_STATIC = 2 # use scaling factore
+
+	__gsignals__ = {
+		'size-allocate': 'override',
+	}
+
+	def __init__(self, bgcolor='#FFF', checkboard=True):
+		gtk.Layout.__init__(self)
+		self.set_flags(gtk.CAN_FOCUS)
+		self.scaling = self.SCALE_FIT
+		self.factor = 1
+
+		self._pixbuf = None
+		self._render_size = None # allocation w, h for which we have rendered
+		self._render_timeout = None # timer before updating rendering
+		self._image = gtk.Image() # pixbuf is set for the image in _render()
+		self.add(self._image)
+
+		colormap = self._image.get_colormap()
+		self._lightgrey = colormap.alloc_color('#666')
+		self._darkgrey = colormap.alloc_color('#999')
+
+		if bgcolor:
+			self.set_bgcolor(bgcolor)
+		self.checkboard = checkboard
+
+	def set_bgcolor(self, bgcolor):
+		'''Set background color, can either be a name or a spec in hex'''
+		color = gtk.gdk.Color(bgcolor)
+		self.modify_bg(gtk.STATE_NORMAL, color)
+
+	def set_checkboard(self, checkboard):
+		'''If checkboard is True we draw a checkboard behind transparent image,
+		if it is False we just show the background color.
+		'''
+		self.checkboard = checkboard
+
+	def set_scaling(self, scaling, factor=1):
+		'''Set the scaling to either one of SCALE_FIT or SCALE_STATIC.
+		The factor is only used by SCALE_STATIC as fixed scaling factor.
+		'''
+		assert scaling in (SCALE_FIT, SCALE_STATIC)
+		self.scaling = scaling
+		self.factor = factor
+		self._render()
+
+	def set_file(self, file):
+		'''Convenience method to load a pixbuf from file and load it'''
+		pixbuf = None
+
+		if file:
+			try:
+				pixbuf = gtk.gdk.pixbuf_new_from_file(str(file))
+			except:
+				logger.exception('Could not load image "%s"', file)
+		else:
+			pass
+
+		self.set_pixbuf(pixbuf)
+
+	def set_pixbuf(self, pixbuf):
+		'''Set the image to display. Set image to 'None' to display a broken
+		image icon.
+		'''
+		if pixbuf is None:
+			pixbuf = self.render_icon(
+				gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG).copy()
+		self._pixbuf = pixbuf
+		self._render()
+
+	def do_size_allocate(self, allocation):
+		gtk.Layout.do_size_allocate(self, allocation)
+
+		# remove timer if any
+		if self._render_timeout:
+			gobject.source_remove(self._render_timeout)
+
+		if not self._pixbuf \
+		or (allocation.width, allocation.height) == self._render_size:
+			pass # no update of rendering needed
+		else:
+			# set new timer for 100ms
+			self._render_timeout = gobject.timeout_add(100, self._render)
+
+	def _render(self):
+		# remove timer if any
+		if self._render_timeout:
+			gobject.source_remove(self._render_timeout)
+
+		# Determine what size we want to render the image
+		allocation = self.allocation
+		wwin, hwin = allocation.width, allocation.height
+		wsrc, hsrc = self._pixbuf.get_width(), self._pixbuf.get_height()
+		self._render_size = (wwin, hwin)
+		#~ print 'Allocated', (wwin, hwin),
+		#~ print 'Source', (wsrc, hsrc)
+
+		if self.scaling == self.SCALE_STATIC:
+			wimg = self.factor * wsrc
+			himg = self.factor * hsrc
+		elif self.scaling == self.SCALE_FIT:
+			if hsrc <= wwin and hsrc <= hwin:
+				# image fits in the screen - no scaling
+				wimg, himg = wsrc, hsrc
+			elif (float(wwin)/wsrc) < (float(hwin)/hsrc):
+				# Fit by width
+				wimg = wwin
+				himg = int(hsrc * float(wwin)/wsrc)
+			else:
+				# Fit by height
+				wimg = int(wsrc * float(hwin)/hsrc)
+				himg = hwin
+		else:
+			assert False, 'BUG: unknown scaling type'
+		#~ print 'Image', (wimg, himg)
+
+		# Scale pixbuf to new size
+		if not self.checkboard or not self._pixbuf.get_has_alpha():
+			if (wimg, himg) == (wsrc, hsrc):
+				pixbuf = self._pixbuf
+			else:
+				pixbuf = self._pixbuf.scale_simple(
+							wimg, himg, gtk.gdk.INTERP_HYPER)
+		else:
+			# Generate checkboard background while scaling
+			pixbuf = self._pixbuf.composite_color_simple(
+				wimg, himg, gtk.gdk.INTERP_HYPER,
+				255, 16, self._lightgrey.pixel, self._darkgrey.pixel )
+
+		# And align the image in the layout
+		wvirt = max((wwin, wimg))
+		hvirt = max((hwin, himg))
+		#~ print 'Virtual', (wvirt, hvirt)
+		self._image.set_from_pixbuf(pixbuf)
+		self.set_size(wvirt, hvirt)
+		self.move(self._image, (wvirt-wimg)/2, (hvirt-himg)/2)
+
+		return False # We could be called by a timeout event
+
+# Need to register classes defining gobject signals
+gobject.type_register(ImageView)
+

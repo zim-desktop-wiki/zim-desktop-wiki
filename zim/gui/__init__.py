@@ -60,54 +60,54 @@ ui_actions = (
 	('pathbar_menu', None, _('P_athbar')), # T: Menu title
 	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
 
-	# name, stock id, label, accelerator, tooltip
-	('new_page',  'gtk-new', _('_New Page...'), '<ctrl>N', ''), # T: Menu item
-	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '', ''), # T: Menu item
-	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', ''), # T: Menu item
-	('import_page', None, _('_Import Page...'), '', ''), # T: Menu item
-	('save_page', 'gtk-save', _('_Save'), '<ctrl>S', ''), # T: Menu item
-	('save_copy', None, _('Save A _Copy...'), '', ''), # T: Menu item
-	('save_version', 'gtk-save-as', _('S_ave Version...'), '<ctrl><shift>S', ''), # T: Menu item
-	('show_versions', None, _('_Versions...'), '', ''), # T: Menu item
-	('show_export',  None, _('E_xport...'), '', ''), # T: Menu item
-	('email_page', None, _('_Send To...'), '', ''), # T: Menu item
-	('move_page', None, _('_Move Page...'), '', ''), # T: Menu item
-	('rename_page', None, _('_Rename Page...'), 'F2', ''), # T: Menu item
-	('delete_page', None, _('_Delete Page'), '', ''), # T: Menu item
-	('show_properties',  'gtk-properties', _('Proper_ties'), '', ''), # T: Menu item
-	('close',  'gtk-close', _('_Close'), '<ctrl>W', ''), # T: Menu item
-	('quit',  'gtk-quit', _('_Quit'), '<ctrl>Q', ''), # T: Menu item
-	('show_search',  'gtk-find', _('_Search...'), '<shift><ctrl>F', ''), # T: Menu item
-	('show_search_backlinks', None, _('Search _Backlinks...'), '', ''), # T: Menu item
-	('copy_location', None, _('Copy Location'), '<shift><ctrl>L', ''), # T: Menu item
-	('show_preferences',  'gtk-preferences', _('Pr_eferences'), '', ''), # T: Menu item
-	('reload_page',  'gtk-refresh', _('_Reload'), '<ctrl>R', ''), # T: Menu item
-	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', ''), # T: Menu item
-	('open_document_root', 'gtk-open', _('Open _Document Root'), '', ''), # T: Menu item
-	('attach_file', 'zim-attachment', _('Attach _File'), '', _('Attach external file')), # T: Menu item
-	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', ''), # T: Menu item
-	('show_server_gui', None, _('Start _Web Server'), '', ''), # T: Menu item
-	('reload_index', None, _('Re-build Index'), '', ''), # T: Menu item
-	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back')), # T: Menu item
-	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward')), # T: Menu item
-	('open_page_parent', 'gtk-go-up', _('_Parent'), '<alt>Up', _('Go to parent page')), # T: Menu item
-	('open_page_child', 'gtk-go-down', _('_Child'), '<alt>Down', _('Go to child page')), # T: Menu item
-	('open_page_previous', None, _('_Previous in index'), '<alt>Page_Up', _('Go to previous page')), # T: Menu item
-	('open_page_next', None, _('_Next in index'), '<alt>Page_Down', _('Go to next page')), # T: Menu item
-	('open_page_home', 'gtk-home', _('_Home'), '<alt>Home', _('Go home')), # T: Menu item
-	('open_page', 'gtk-jump-to', _('_Jump To...'), '<ctrl>J', ''), # T: Menu item
-	('show_help', 'gtk-help', _('_Contents'), 'F1', ''), # T: Menu item
-	('show_help_faq', None, _('_FAQ'), '', ''), # T: Menu item
-	('show_help_keys', None, _('_Keybindings'), '', ''), # T: Menu item
-	('show_help_bugs', None, _('_Bugs'), '', ''), # T: Menu item
-	('show_about', 'gtk-about', _('_About'), '', ''), # T: Menu item
+	# name, stock id, label, accelerator, tooltip, readonly
+	('new_page',  'gtk-new', _('_New Page...'), '<ctrl>N', '', False), # T: Menu item
+	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '', '', False), # T: Menu item
+	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', '', True), # T: Menu item
+	('import_page', None, _('_Import Page...'), '', '', False), # T: Menu item
+	('save_page', 'gtk-save', _('_Save'), '<ctrl>S', '', False), # T: Menu item
+	('save_copy', None, _('Save A _Copy...'), '', '', True), # T: Menu item
+	('save_version', 'gtk-save-as', _('S_ave Version...'), '<ctrl><shift>S', '', False), # T: Menu item
+	('show_versions', None, _('_Versions...'), '', '', True), # T: Menu item
+	('show_export',  None, _('E_xport...'), '', '', True), # T: Menu item
+	('email_page', None, _('_Send To...'), '', '', True), # T: Menu item
+	('move_page', None, _('_Move Page...'), '', '', False), # T: Menu item
+	('rename_page', None, _('_Rename Page...'), 'F2', '', False), # T: Menu item
+	('delete_page', None, _('_Delete Page'), '', '', False), # T: Menu item
+	('show_properties',  'gtk-properties', _('Proper_ties'), '', '', True), # T: Menu item
+	('close',  'gtk-close', _('_Close'), '<ctrl>W', '', True), # T: Menu item
+	('quit',  'gtk-quit', _('_Quit'), '<ctrl>Q', '', True), # T: Menu item
+	('show_search',  'gtk-find', _('_Search...'), '<shift><ctrl>F', '', True), # T: Menu item
+	('show_search_backlinks', None, _('Search _Backlinks...'), '', '', True), # T: Menu item
+	('copy_location', None, _('Copy Location'), '<shift><ctrl>L', '', True), # T: Menu item
+	('show_preferences',  'gtk-preferences', _('Pr_eferences'), '', '', True), # T: Menu item
+	('reload_page',  'gtk-refresh', _('_Reload'), '<ctrl>R', '', True), # T: Menu item
+	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', '', True), # T: Menu item
+	('open_document_root', 'gtk-open', _('Open _Document Root'), '', '', True), # T: Menu item
+	('attach_file', 'zim-attachment', _('Attach _File'), '', _('Attach external file'), False), # T: Menu item
+	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', '', False), # T: Menu item
+	('show_server_gui', None, _('Start _Web Server'), '', '', True), # T: Menu item
+	('reload_index', None, _('Re-build Index'), '', '', False), # T: Menu item
+	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back'), True), # T: Menu item
+	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward'), True), # T: Menu item
+	('open_page_parent', 'gtk-go-up', _('_Parent'), '<alt>Up', _('Go to parent page'), True), # T: Menu item
+	('open_page_child', 'gtk-go-down', _('_Child'), '<alt>Down', _('Go to child page'), True), # T: Menu item
+	('open_page_previous', None, _('_Previous in index'), '<alt>Page_Up', _('Go to previous page'), True), # T: Menu item
+	('open_page_next', None, _('_Next in index'), '<alt>Page_Down', _('Go to next page'), True), # T: Menu item
+	('open_page_home', 'gtk-home', _('_Home'), '<alt>Home', _('Go home'), True), # T: Menu item
+	('open_page', 'gtk-jump-to', _('_Jump To...'), '<ctrl>J', '', True), # T: Menu item
+	('show_help', 'gtk-help', _('_Contents'), 'F1', '', True), # T: Menu item
+	('show_help_faq', None, _('_FAQ'), '', '', True), # T: Menu item
+	('show_help_keys', None, _('_Keybindings'), '', '', True), # T: Menu item
+	('show_help_bugs', None, _('_Bugs'), '', '', True), # T: Menu item
+	('show_about', 'gtk-about', _('_About'), '', '', True), # T: Menu item
 )
 
 ui_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, None, initial state
-	('toggle_toolbar', None, _('_Toolbar'),  None, '', None, True), # T: Menu item
-	('toggle_statusbar', None, _('_Statusbar'), None, '', None, True), # T: Menu item
-	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), None, True), # T: Menu item
+	# name, stock id, label, accelerator, tooltip, initial state, readonly
+	('toggle_toolbar', None, _('_Toolbar'),  None, '', True, True), # T: Menu item
+	('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
+	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
 )
 
 ui_pathbar_radio_actions = (
@@ -190,6 +190,9 @@ class GtkInterface(NotebookInterface):
 	* preferences-changed
 	  Emitted after the user changed the preferences
 	  (typically triggered by the preferences dialog)
+	* read-only-changed
+	  Emitted when the ui changed from read-write to read-only or back
+
 	Also see signals in zim.NotebookInterface
 	'''
 
@@ -199,7 +202,7 @@ class GtkInterface(NotebookInterface):
 		'save-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-
+		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	ui_type = 'gtk'
@@ -212,6 +215,7 @@ class GtkInterface(NotebookInterface):
 		self.history = None
 		self._save_page_in_progress = False
 		self._dont_use_default_notebook = list
+		self.readonly = False
 
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
@@ -339,7 +343,7 @@ class GtkInterface(NotebookInterface):
 		'''
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		group = self.init_actiongroup(handler)
-		group.add_actions(actions)
+		group.add_actions([a[0:5] for a in actions])
 		self._connect_actions(actions, group, handler)
 
 	def add_toggle_actions(self, actions, handler):
@@ -356,6 +360,8 @@ class GtkInterface(NotebookInterface):
 		'''
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		group = self.init_actiongroup(handler)
+		actions = [a[0:5]+(None,)+(a[5],) for a in actions]
+			# insert 'None' for callback
 		group.add_toggle_actions(actions)
 		self._connect_actions(actions, group, handler, is_toggle=True)
 
@@ -380,13 +386,16 @@ class GtkInterface(NotebookInterface):
 		logger.debug('Action: %s', action.get_name())
 
 	def _connect_actions(self, actions, group, handler, is_toggle=False):
-		for name in [a[0] for a in actions if not a[0].endswith('_menu')]:
+		for name, readonly in [(a[0], a[-1]) for a in actions if not a[0].endswith('_menu')]:
 			action = group.get_action(name)
+			action.zim_readonly = readonly
 			if is_toggle: name = 'do_' + name
 			assert hasattr(handler, name), 'No method defined for action %s' % name
 			method = getattr(handler.__class__, name)
 			action.connect('activate', self._log_action)
 			action.connect_object('activate', method, handler)
+			if self.readonly and not action.zim_readonly:
+				action.set_sensitive(False)
 
 	def add_radio_actions(self, actions, handler, methodname):
 		'''Wrapper for gtk.ActionGroup.add_radio_actions(actions),
@@ -431,6 +440,22 @@ class GtkInterface(NotebookInterface):
 					self.uimanager.remove_ui(id)
 				handler._ui_merge_ids = None
 
+	def set_readonly(self, readonly):
+		if not self.readonly:
+			# Save any modification now - will not be allowed after switch
+			page = self.mainwindow.pageview.get_page()
+			if page and page.modified:
+				self.save_page(page)
+
+		for group in self.uimanager.get_action_groups():
+			for action in group.list_actions():
+				if hasattr(action, 'zim_readonly') \
+				and not action.zim_readonly:
+					action.set_sensitive(not readonly)
+
+		self.readonly = readonly
+		self.emit('readonly-changed')
+
 	def register_preferences(self, section, preferences):
 		'''Registers user preferences. Registering means that a
 		preference will show up in the preferences dialog.
@@ -461,7 +486,7 @@ class GtkInterface(NotebookInterface):
 		# Called by main() when no notebook was specified
 		# returns boolean for sucess
 		if not self._dont_use_default_notebook:
-			default = get_notebook('_default_')
+			default, _ = get_notebook('_default_')
 			if default:
 				logger.info('Opening default notebook')
 				self.open_notebook(default)
@@ -493,9 +518,12 @@ class GtkInterface(NotebookInterface):
 		is run to prompt the user.'''
 		if not self.notebook:
 			try:
-				NotebookInterface.open_notebook(self, notebook)
+				page = NotebookInterface.open_notebook(self, notebook)
 			except NotebookLookupError, error:
 				ErrorDialog(self, error).run()
+			else:
+				if page:
+					self.open_page(page)
 		elif notebook is None:
 			# Handle menu item for 'open another notebook'
 			from zim.gui.notebookdialog import NotebookDialog
@@ -516,6 +544,8 @@ class GtkInterface(NotebookInterface):
 
 		# Start a lightweight background check of the index
 		self.notebook.index.update(background=True, checkcontents=False)
+
+		self.set_readonly(notebook.readonly)
 
 	def on_notebook_properties_changed(self, notebook):
 		has_doc_root = not notebook.get_document_root() is None
@@ -669,6 +699,8 @@ class GtkInterface(NotebookInterface):
 		'''Save 'page', or current page when 'page' is None, by emitting the
 		'save-page' signal. Returns boolean for success.
 		'''
+		assert not self.readonly, 'BUG: can not save page when read-only'
+
 		if self._save_page_in_progress:
 			# We need this check as the SavePageErrorDialog has a timer
 			# and auto-save may trigger while we are waiting for that one...
@@ -735,7 +767,7 @@ class GtkInterface(NotebookInterface):
 
 	def show_search(self, query=None):
 		from zim.gui.searchdialog import SearchDialog
-		SearchDialog(self).main(query)
+		SearchDialog(self, query).show_all()
 
 	def show_search_backlinks(self):
 		query = 'LinksTo: "%s"' % self.page.name
@@ -787,7 +819,7 @@ class GtkInterface(NotebookInterface):
 
 	def _openwith(self, name, args):
 		entry = get_application(name)
-		entry.run(args)
+		entry.spawn(args)
 
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -943,16 +975,21 @@ class MainWindow(gtk.Window):
 
 		def update_statusbar(*a):
 			page = self.pageview.get_page()
+			if not page:
+				return
 			label = page.name
 			# TODO if page is read-only
 			if page.modified:
 				label += '*'
+			if self.ui.readonly or page.readonly:
+				label += ' ['+_('readonly')+']' # T: page status in statusbar
 			self.statusbar.pop(0)
 			self.statusbar.push(0, label)
 
 		self.pageview.connect('modified-changed', update_statusbar)
 		self.ui.connect_after('open-page', update_statusbar)
 		self.ui.connect_after('save-page', update_statusbar)
+		self.ui.connect_after('readonly-changed', update_statusbar)
 
 		def statusbar_element(string, size):
 			frame = gtk.Frame()
@@ -1507,14 +1544,25 @@ class MovePageDialog(Dialog):
 		if isinstance(self.path, Page) and self.path.modified:
 			assert self.ui.save_page(self.path)
 
+		i = self.ui.notebook.index.n_list_links(
+					self.path, zim.index.LINK_DIR_BACKWARD)
+
 		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
 			# T: Heading in 'move page' dialog - %s is the page name
+		linkslabel = ngettext(
+			'Update %i page linking to this page',
+			'Update %i pages linking to this page', i) % i
+			# T: label in MovePage dialog - %i is number of backlinks
 		self.add_fields([
 			('parent', 'namespace', _('Namespace'), self.path.namespace),
 				# T: Input label for namespace to move a file to
-			('links', 'bool', _('Update links to this page'), True),
+			('links', 'bool', linkslabel, True),
 				# T: option in 'move page' dialog
 		])
+
+		if i == 0:
+			self.inputs['links'].set_active(False)
+			self.inputs['links'].set_sensitive(False)
 
 	def do_response_ok(self):
 		parent = self.get_field('parent')
@@ -1540,16 +1588,27 @@ class RenamePageDialog(Dialog):
 			self.path = path
 		assert self.path, 'Need a page here'
 
+		i = self.ui.notebook.index.n_list_links(
+					self.path, zim.index.LINK_DIR_BACKWARD)
+
 		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
 			# T: label in 'rename page' dialog - %s is the page name
+		linkslabel = ngettext(
+			'Update %i page linking to this page',
+			'Update %i pages linking to this page', i) % i
+			# T: label in MovePage dialog - %i is number of backlinks
 		self.add_fields([
 			('name', 'string', _('Name'), self.path.basename),
 				# T: Input label in the 'rename page' dialog for the new name
 			('head', 'bool', _('Update the heading of this page'), True),
 				# T: Option in the 'rename page' dialog
-			('links', 'bool', _('Update links to this page'), True),
+			('links', 'bool', linkslabel, True),
 				# T: Option in the 'rename page' dialog
 		])
+
+		if i == 0:
+			self.inputs['links'].set_active(False)
+			self.inputs['links'].set_sensitive(False)
 
 	def do_response_ok(self):
 		name = self.get_field('name')

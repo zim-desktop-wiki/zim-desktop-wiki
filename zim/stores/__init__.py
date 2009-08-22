@@ -212,3 +212,17 @@ class StoreClass():
 			name = path.relname(self.namespace)
 			dirpath = encode_filename(name)
 			return Dir([self.dir, dirpath])
+
+	def walk(self, path=None):
+		'''Generator walking all pages under this store. This is intended
+		for some low level operations. From the application you typically
+		want to use either notebook.walk() or index.walk() which traverse
+		all stores.
+		'''
+		if path is None:
+			path = self.namespace
+
+		for page in self.get_pagelist(path):
+			yield page
+			for child in self.walk(page): # recurs
+				yield child

@@ -120,7 +120,7 @@ class PreferencesDialog(Dialog):
 
 		combobox = self.inputs[type]
 		for app in apps:
-			name = app.get_name()
+			name = app.name
 			name_map[name] = app.key
 			combobox.append_text(name)
 
@@ -155,6 +155,9 @@ class PreferencesDialog(Dialog):
 
 class PluginsTab(gtk.HBox):
 
+	# TODO defined checks for plugin dependencies and grey them out here if
+	# the check fails - or give an error popup with the result of the check
+
 	def __init__(self, dialog):
 		gtk.HBox.__init__(self, spacing=12)
 		self.set_border_width(5)
@@ -162,7 +165,11 @@ class PluginsTab(gtk.HBox):
 
 		treeview = PluginsTreeView(self.dialog.ui)
 		treeview.connect('row-activated', self.do_row_activated)
-		self.pack_start(treeview, False) # FIXME insert scrollwindow
+		swindow = gtk.ScrolledWindow()
+		swindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+		swindow.set_shadow_type(gtk.SHADOW_IN)
+		self.pack_start(swindow, False)
+		swindow.add(treeview)
 
 		vbox = gtk.VBox()
 		self.add(vbox)
@@ -227,11 +234,12 @@ class PluginsTreeModel(gtk.ListStore):
 		gtk.ListStore.__init__(self, bool, str, object)
 		self.ui = ui
 		loaded = [p.__class__ for p in self.ui.plugins]
-		for plugin in zim.plugins.list_plugins():
+		for name in zim.plugins.list_plugins():
 			try:
-				klass = zim.plugins.get_plugin(plugin)
+				klass = zim.plugins.get_plugin(name)
 			except:
-				logger.exception('Failed to load plugin "%s"', plugin)
+				logger.exception('Could not load plugin %s', name)
+				continue
 			else:
 				l = klass in loaded
 				self.append((l, klass.plugin_info['name'], klass))
@@ -239,12 +247,10 @@ class PluginsTreeModel(gtk.ListStore):
 	def do_toggle_path(self, path):
 		loaded, name, klass = self[path]
 		if loaded:
-			classes = [p.__class__ for p in self.ui.plugins]
-			i = classes.index(klass)
-			self.ui.unload_plugin(self.ui.plugins[i])
+			self.ui.unload_plugin(klass.plugin_key)
 			self[path][0] = False
 		else:
-			self.ui.load_plugin(klass)
+			self.ui.load_plugin(klass.plugin_key)
 			self[path][0] = True
 
 

@@ -18,8 +18,9 @@ import gobject
 
 from zim.fs import *
 from zim.errors import Error
-from zim.config import ConfigDict, ConfigDictFile, config_file, data_dir, user_dirs
-from zim.parsing import Re, is_url_re, is_email_re
+from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
+	config_file, data_dir, user_dirs
+from zim.parsing import Re, is_url_re, is_email_re, link_type
 import zim.stores
 
 
@@ -27,7 +28,14 @@ logger = logging.getLogger('zim.notebook')
 
 
 def get_notebook(notebook):
-	'''Takes a path or name and returns a notebook object or None'''
+	'''Takes a file or dir path or a name and returns a tuple of a notebook
+	object and an optional page path or None. If the notebook was not found
+	both elements in the tuple are None.
+
+	The page is only incuded if the path explicitly indicates a certain page.
+	If no page is returned either the last page in the history or the home
+	page should be used as 'current' pge.
+	'''
 	assert notebook, 'BUG: notebook not defined'
 	if isinstance(notebook, basestring):
 		# We are not sure if it is a name or a path, try lookup
@@ -40,7 +48,7 @@ def get_notebook(notebook):
 			elif len(table) == 1:
 				notebook = table.values()[0]
 			else:
-				return None
+				return None, None
 		elif notebook == '_manual_':
 			notebook = data_dir('manual')
 		elif notebook in table:
@@ -57,20 +65,34 @@ def get_notebook(notebook):
 			elif os.path.isdir(notebook):
 				notebook = Dir(notebook)
 			else:
-				return None
+				return None, None
 		else:
-			return None
+			return None, None
 
-	if isinstance(notebook, File) and notebook.basename == 'notebook.zim':
-		notebook = notebook.dir
+	path = None
+	if isinstance(notebook, File):
+		if notebook.basename == 'notebook.zim':
+			notebook = notebook.dir
+		else:
+			parents = list(notebook)
+			parents.reverse()
+			for p in parents:
+				if File((p, 'notebook.zim')).exists():
+					i = len(p)
+					path = notebook.path[i:]
+					if '.' in path:
+						path, _ = path.rsplit('.', 1) # remove extension
+					path = Path(path.replace('/', ':'))
+					notebook = Dir(p)
+					break
 
 	if notebook.exists():
 		if isinstance(notebook, File):
-			return Notebook(file=notebook)
+			return Notebook(file=notebook), path
 		else:
-			return Notebook(dir=notebook)
+			return Notebook(dir=notebook), path
 	else:
-		return None
+		return None, None
 
 
 def get_notebook_list():
@@ -101,10 +123,20 @@ class PageExistsError(Error):
 	pass # TODO check where this should be used
 
 
+class PageReadOnlyError(Error):
+
+	# TODO verbose description
+
+	def __init__(self, page):
+		self.msg = _('Can not modify page: %s') % page.name
+			# T: error message for read-only pages
+
 class Notebook(gobject.GObject):
 	'''Main class to access a notebook. Proxies between backend Store
 	and Index objects on the one hand and the gui application on the other
 	'''
+
+	# TODO add checks for read-only page in much more methods
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -130,6 +162,7 @@ class Notebook(gobject.GObject):
 		gobject.GObject.__init__(self)
 		self._namespaces = []	# list used to resolve stores
 		self._stores = {}		# dict mapping namespaces to stores
+		self.namespace_properties = HierarchicDict()
 		self._page_cache = weakref.WeakValueDictionary()
 		self.dir = None
 		self.file = None
@@ -141,8 +174,11 @@ class Notebook(gobject.GObject):
 		if dir:
 			assert isinstance(dir, Dir)
 			self.dir = dir
-			self.cache_dir = dir.subdir('.zim')
-				# TODO set cache dir in XDG_CACHE when notebook is read-only
+			self.readonly = not dir.iswritable()
+			if not self.readonly:
+				self.cache_dir = dir.subdir('.zim')
+			else:
+				self.cache_dir = self._cache_dir(dir)
 			logger.debug('Cache dir: %s', self.cache_dir)
 			if self.config is None:
 				self.config = ConfigDictFile(dir.file('notebook.zim'))
@@ -152,6 +188,7 @@ class Notebook(gobject.GObject):
 		elif file:
 			assert isinstance(file, File)
 			self.file = file
+			self.readonly = not file.iswritable()
 			assert False, 'TODO: support for single file notebooks'
 
 		if index is None:
@@ -170,6 +207,11 @@ class Notebook(gobject.GObject):
 		self.config['Notebook'].setdefault('document_root', None, klass=basestring)
 		self.config['Notebook'].setdefault('slow_fs', False)
 		self.do_properties_changed()
+
+	def _cache_dir(self, dir):
+		from zim.config import XDG_CACHE_HOME
+		path = 'notebook-' + dir.path.replace('/', '_').strip('_')
+		return XDG_CACHE_HOME.subdir(('zim', path))
 
 	def save_properties(self, **properties):
 		# Check if icon is relative
@@ -243,28 +285,33 @@ class Notebook(gobject.GObject):
 		else:
 			raise LookupError, 'Could not find store for: %s' % name
 
-	def resolve_path(self, name, namespace=None, index=None):
+	def get_stores(self):
+		return self._stores.values()
+
+	def resolve_path(self, name, source=None, index=None):
 		'''Returns a proper path name for page names given in links
-		or from user input. The optional argument 'namespace' is the
-		path for the parent namespace of the refering page, if any.
-		Or the path of the "current" namespace in the user interface.
+		or from user input. The optional argument 'source' is the
+		path for the refering page, if any, or the path of the "current"
+		page in the user interface.
 
 		The 'index' argument allows specifying an index object, if
 		none is given the default index for this notebook is used.
 
-		If no namespace path is given or if the page name starts with
+		If no source path is given or if the page name starts with
 		a ':' the name is considered an absolute name and only case is
 		resolved. If the page does not exist the last part(s) of the
 		name will remain in the case as given.
 
-		If the name is relative to the namespace path we first look for a
-		match of the first part of the name in the path. If that fails
-		we do a search for the first part of the name through all
-		namespaces in the path, starting with pages below the namespace
-		itself. If no existing page was found in this search we default to
-		a new page below this namespace.
+		If a source path is given and the page name starts with '+'
+		it will be resolved as a direct child of the source.
 
-		So if we for exampel look for "baz" with as namespace ":foo:bar"
+		Else we first look for a match of the first part of the name in the
+		source path. If that fails we do a search for the first part of
+		the name through all namespaces in the source path, starting with
+		pages below the namespace of the source. If no existing page was
+		found in this search we default to a new page below this namespace.
+
+		So if we for example look for "baz" with as source ":foo:bar:dus"
 		the following pages will be checked in a case insensitive way:
 
 			:foo:bar:baz
@@ -273,8 +320,8 @@ class Notebook(gobject.GObject):
 
 		And if none exist we default to ":foo:bar:baz"
 
-		However if for example we are looking for "bar:bud" with as namespace
-		":foo:bar:baz", we only try to resolve the case for ":foo:bar:bud"
+		However if for example we are looking for "bar:bud" with as source
+		":foo:bar:baz:dus", we only try to resolve the case for ":foo:bar:bud"
 		and default to the given case if it does not yet exist.
 
 		This method will raise a PageNameError if the name resolves
@@ -282,19 +329,27 @@ class Notebook(gobject.GObject):
 		there is no way for the name to address the root path in this method -
 		and typically user input should not need to able to address this path.
 		'''
-		isabs = name.startswith(':') or namespace == None
+		assert name, 'BUG: name is empty string'
+		startswith = name[0]
+		if startswith == '+':
+			name = name[1:]
 		name = self.cleanup_pathname(name)
 
 		if index is None:
 			index = self.index
 
-		if isabs:
+		if startswith == ':' or source == None:
 			return index.resolve_case(name) or Path(name)
+		elif startswith == '+':
+			assert isinstance(source, Path)
+			return index.resolve_case(source.name+':'+name)  \
+						or Path(source.name+':'+name)
+			# FIXME use parent as argument
 		else:
 			# first check if we see an explicit match in the path
-			assert isinstance(namespace, Path)
+			assert isinstance(source, Path)
 			anchor = name.split(':')[0].lower()
-			path = namespace.name.lower().split(':')
+			path = source.namespace.lower().split(':')
 			if anchor in path:
 				# ok, so we can shortcut to an absolute path
 				path.reverse() # why is there no rindex or rfind ?
@@ -304,18 +359,33 @@ class Notebook(gobject.GObject):
 				path.append( name.lstrip(':') )
 				name = ':'.join(path)
 				return index.resolve_case(name) or Path(name)
-				# FIXME use parent
+				# FIXME use parentt as argument
 				# FIXME use short cut when the result is the parent
 			else:
 				# no luck, do a search through the whole path - including root
-				namespace = index.lookup_path(namespace) or namespace
-				for parent in namespace.parents():
+				source = index.lookup_path(source) or source
+				for parent in source.parents():
 					candidate = index.resolve_case(name, namespace=parent)
 					if not candidate is None:
 						return candidate
 				else:
 					# name not found, keep case as is
-					return namespace+name
+					return source.parent + name
+
+	def relative_link(self, source, href):
+		'''Returns a link for a path 'href' relative to path 'source'.
+		More or less the opposite of resolve_path().
+		'''
+		if href == source:
+			return href.basename
+		elif href > source:
+			return '+' + href.relname(source)
+		else:
+			parent = source.commonparent(href)
+			if parent.isroot:
+				return ':' + href.name
+			else:
+				return parent.basename + ':' + href.relname(parent)
 
 	@staticmethod
 	def cleanup_pathname(name):
@@ -355,12 +425,17 @@ class Notebook(gobject.GObject):
 		'''Remove a page from the page cache, calling get_page() after this
 		will return a fresh page object. Be aware that the old object
 		may still be around but will have its 'valid' attribute set to False.
+		This function also removes all child pages of path from the cache.
 		'''
-		if path.name in self._page_cache:
-			page = self._page_cache[path.name]
-			assert not page.modified, 'BUG: Flushing page with unsaved changes'
-			page.valid = False
-			del self._page_cache[path.name]
+		names = [path.name]
+		ns = path.name + ':'
+		names.extend(k for k in self._page_cache.keys() if k.startswith(ns))
+		for name in names:
+			if name in self._page_cache:
+				page = self._page_cache[name]
+				assert not page.modified, 'BUG: Flushing page with unsaved changes'
+				page.valid = False
+				del self._page_cache[name]
 
 	def get_home_page(self):
 		'''Returns a page object for the home page.'''
@@ -403,10 +478,23 @@ class Notebook(gobject.GObject):
 		'''
 		logger.debug('Move %s to %s (%s)', path, newpath, update_links)
 
-		if path.name in self._page_cache:
-			page = self._page_cache[path.name]
-			assert not page.modified, 'BUG: moving a page with uncomitted changes'
+		page = self.get_page(path)
+		if not (page.hascontent or page.haschildren):
+			raise LookupError, 'Page does not exist: %s' % path.name
+		assert not page.modified, 'BUG: moving a page with uncomitted changes'
 
+		# Collect backlinks
+		if update_links:
+			from zim.index import LINK_DIR_BACKWARD
+			backlinkpages = set(
+				l.source for l in
+					self.index.list_links(path, LINK_DIR_BACKWARD) )
+			for child in self.index.walk(path):
+				backlinkpages.update(set(
+					l.source for l in
+						self.index.list_links(path, LINK_DIR_BACKWARD) ))
+
+		# Do the actual move
 		store = self.get_store(path)
 		newstore = self.get_store(newpath)
 		if newstore == store:
@@ -418,9 +506,108 @@ class Notebook(gobject.GObject):
 		self.flush_page_cache(path)
 		self.flush_page_cache(newpath)
 
-		# TODO update links
+		# Update links in moved pages
+		page = self.get_page(newpath)
+		if page.hascontent:
+			self._update_links_from(page, path)
+			store = self.get_store(page)
+			store.store_page(page)
+			# do not use self.store_page because it emits premature signals
+		for child in self._no_index_walk(newpath):
+			if not child.hascontent:
+				continue
+			oldpath = path + child.relname(newpath)
+			self._update_links_from(child, oldpath)
+			store = self.get_store(child)
+			store.store_page(child)
+			# do not use self.store_page because it emits premature signals
 
+		# Let the index know what is happening
 		self.emit('page-moved', path, newpath)
+			# index triggers on this to delete old tree and index new tree
+
+		# Update links to the moved page tree
+		if update_links:
+			self.index.ensure_update() # TODO use callback
+			#~ print backlinkpages
+			for p in backlinkpages:
+				if p == path or p > path:
+					continue
+				page = self.get_page(p)
+				self._update_links_in_page(page, path, newpath)
+				self.store_page(page)
+
+	def _no_index_walk(self, path):
+		'''Walking that can be used when the index is not in sync'''
+		# TODO allow this to cross several stores
+		store = self.get_store(path)
+		for page in store.get_pagelist(path):
+			yield page
+			for child in self._no_index_walk(page): # recurs
+				yield child
+
+	@staticmethod
+	def _update_link_tag(tag, newhref):
+		haschildren = bool(list(tag.getchildren()))
+		if not haschildren and tag.text == tag.attrib['href']:
+			tag.text = newhref
+		tag.attrib['href'] = str(newhref)
+
+	def _update_links_from(self, page, oldpath):
+		logger.debug('Updating links in %s (was %s)', page, oldpath)
+		tree = page.get_parsetree()
+		if not tree:
+			return
+
+		for tag in tree.getiterator('link'):
+			href = tag.attrib['href']
+			type = link_type(href)
+			if type == 'page':
+				hrefpath = self.resolve_path(href, source=page)
+				oldhrefpath = self.resolve_path(href, source=oldpath)
+				#~ print 'LINK', oldhrefpath, '->', hrefpath
+				if hrefpath != oldhrefpath:
+					if hrefpath >= page and oldhrefpath >= oldpath:
+						#~ print '\t.. Ignore'
+						pass
+					else:
+						newhref = self.relative_link(page, oldhrefpath)
+						#~ print '\t->', newhref
+						self._update_link_tag(tag, newhref)
+
+		page.set_parsetree(tree)
+
+	def _update_links_in_page(self, page, oldpath, newpath):
+		# Maybe counter intuitive, but pages below oldpath do not need
+		# to exist anymore while we still try to resolve links to these
+		# pages. The reason is that all pages that could link _upward_
+		# to these pages are below and are moved as well.
+		logger.debug('Updating links in %s to %s (was: %s)', page, newpath, oldpath)
+		tree = page.get_parsetree()
+		if not tree:
+			logger.warn('Page turned out to be empty: %s', page)
+			return
+
+		for tag in tree.getiterator('link'):
+			href = tag.attrib['href']
+			type = link_type(href)
+			if type == 'page':
+				hrefpath = self.resolve_path(href, source=page)
+				#~ print 'LINK', hrefpath
+				if hrefpath == oldpath:
+					newhrefpath = newpath
+					#~ print '\t==', oldpath, '->', newhrefpath
+				elif hrefpath > oldpath:
+					rel = hrefpath.relname(oldpath)
+					newhrefpath = newpath + rel
+					#~ print '\t>', oldpath, '->', newhrefpath
+				else:
+					continue
+
+				newhref = self.relative_link(page, newhrefpath)
+				self._update_link_tag(tag, newhref)
+
+		page.set_parsetree(tree)
 
 	def rename_page(self, path, newbasename,
 						update_heading=True, update_links=True):
@@ -512,20 +699,21 @@ class Notebook(gobject.GObject):
 			root = self.dir
 			dir = self.get_attachments_dir(path)
 			if file.ischild(dir):
-				return './'+file.path[len(dir.path):].lstrip('/')
+				return './'+file.relpath(dir)
 			elif root and file.ischild(root) and dir.ischild(root):
-				prefix = os.path.commonprefix((dir.path, file.path))
-				i = prefix.rindex('/') + 1
-				uppath, downpath = dir.path[i:], file.path[i:]
-				return '../'*(1+uppath.count('/')) + downpath
+				parent = file.commonparent(dir)
+				uppath = dir.relpath(parent)
+				downpath = file.relpath(parent)
+				up = 1 + uppath.count('/')
+				return '../'*up + downpath
 
 		dir = self.get_document_root()
 		if dir and file.ischild(dir):
-			return '/'+file.path[len(dir.path):].lstrip('/')
+			return '/'+file.relpath(dir)
 
 		dir = Dir('~')
 		if file.ischild(dir):
-			return '~/'+file.path[len(dir.path):].lstrip('/')
+			return '~/'+file.relpath(dir)
 
 		return None
 
@@ -546,9 +734,10 @@ class Notebook(gobject.GObject):
 		'''Returns a template object for path. Typically used to set initial
 		content for a new page.
 		'''
-		# TODO config per namespace
 		from zim.templates import get_template
-		return get_template('wiki', '_New')
+		template = self.namespace_properties[path].get('template', '_New')
+		logger.debug('Found template \'%s\' for %s', template, path)
+		return get_template('wiki', template)
 
 	def walk(self, path=None):
 		'''Generator function which iterates through all pages, depth first.
@@ -618,9 +807,17 @@ class Path(object):
 		'''`self < other` evaluates True when self is a parent of other'''
 		return self.isroot or other.name.startswith(self.name+':')
 
+	def __le__(self, other):
+		'''`self <= other` is True if `self == other or self < other`'''
+		return self.__eq__(other) or self.__lt__(other)
+
 	def __gt__(self, other):
 		'''`self > other` evaluates True when self is a child of other'''
 		return other.isroot or self.name.startswith(other.name+':')
+
+	def __ge__(self, other):
+		'''`self >= other` is True if `self == other or self > other`'''
+		return self.__eq__(other) or self.__gt__(other)
 
 	def __add__(self, name):
 		'''"path + name" is an alias for path.child(name)'''
@@ -692,6 +889,21 @@ class Path(object):
 		else: # we are the top level root namespace
 			return Path(name)
 
+	def commonparent(self, other):
+		parent = []
+		parts = self.parts
+		other = other.parts
+		if parts[0] != other[0]:
+			return Path(':') # root
+		else:
+			for i in range(min(len(parts), len(other))):
+				if parts[i] == other[i]:
+					parent.append(parts[i])
+				else:
+					return Path(':'.join(parent))
+			else:
+				return Path(':'.join(parent))
+
 
 class Page(Path):
 	'''Class to represent a single page in the notebook.
@@ -727,6 +939,7 @@ class Page(Path):
 		self.modified = False
 		self._parsetree = parsetree
 		self._ui_object = None
+		self.readonly = True # stores need to explicitly set readonly
 		self.properties = {}
 		if hasattr(path, '_indexpath'):
 			self._indexpath = path._indexpath
@@ -766,8 +979,8 @@ class Page(Path):
 		'''
 		assert self.valid, 'BUG: page object became invalid'
 
-		if 'readonly' in self.properties and self.properties['readonly']:
-			raise Exception, 'Can not store data in a read-only Page'
+		if self.readonly:
+			raise PageReadOnlyError, self
 
 		if self._ui_object:
 			self._ui_object.set_parsetree(tree)
@@ -822,14 +1035,19 @@ class Page(Path):
 		self.set_parsetree(format.Parser().parse(text))
 
 	def get_links(self):
+		'''Generator for a list of tuples of type, href and attrib for links
+		in the parsetree.
+
+		This gives the raw links, if you want nice Link objects use
+		index.list_links() instead.
+		'''
 		tree = self.get_parsetree()
 		if tree:
 			for tag in tree.getiterator('link'):
-				#~ if is_url_re.match(link): type = is_url_re[1]
-				#~ elif is_email_re.match(link): type = 'mailto'
-				#~ elif is_path_re.match(link): type = 'file'
-				#~ else: type = 'page'
-				yield Link(self, **tag.attrib)
+				attrib = tag.attrib.copy()
+				href = tag.attrib.pop('href')
+				type = link_type(href)
+				yield type, href, attrib
 
 
 class IndexPage(Page):
@@ -842,7 +1060,6 @@ class IndexPage(Page):
 		Page.__init__(self, path, haschildren=True)
 		self.index_recurs = recurs
 		self.notebook = notebook
-		self.properties['readonly'] = True
 		self.properties['type'] = 'namespace-index'
 
 	@property

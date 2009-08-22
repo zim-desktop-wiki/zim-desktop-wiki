@@ -72,12 +72,10 @@
 			<menuitem action='reload_page'/>
 		</menu>
 		<menu action='insert_menu'>
-<!--
-			<menuitem action='InsertDate'/>
--->
+			<menuitem action='insert_date'/>
 			<separator/>
 			<menuitem action='insert_image'/>
-			<placeholder name='PluginItems'/>
+			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='insert_text_from_file'/>
 			<menuitem action='insert_external_link'/>
@@ -103,11 +101,9 @@
 			<menuitem action='find_next'/>
 			<menuitem action='find_previous'/>
 			<menuitem action='show_find_and_replace'/>
-<!--
 			<separator/>
 			<menuitem action='show_search'/>
 			<menuitem action='show_search_backlinks'/>
--->
 		</menu>
 		<menu action='tools_menu'>
 <!--

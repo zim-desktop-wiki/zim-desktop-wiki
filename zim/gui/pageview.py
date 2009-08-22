@@ -13,6 +13,7 @@ import gtk
 import pango
 import re
 import string
+from time import strftime
 
 from zim.fs import *
 from zim.notebook import Path
@@ -20,7 +21,7 @@ from zim.parsing import link_type, Re
 from zim.config import config_file
 from zim.formats import get_format, ParseTree, TreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.gui.widgets import Dialog, FileDialog, Button, IconButton
+from zim.gui.widgets import Dialog, FileDialog, Button, IconButton, BrowserTreeView
 from zim.gui.applications import OpenWithMenu
 
 
@@ -68,25 +69,26 @@ KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
 ui_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('undo', 'gtk-undo', _('_Undo'), '<ctrl>Z', ''), # T: Menu item
-	('redo', 'gtk-redo', _('_Redo'), '<ctrl><shift>Z', ''), # T: Menu item
-	('cut', 'gtk-cut', _('Cu_t'), '<ctrl>X', ''), # T: Menu item
-	('copy', 'gtk-copy', _('_Copy'), '<ctrl>C', ''), # T: Menu item
-	('paste', 'gtk-paste', _('_Paste'), '<ctrl>V', ''), # T: Menu item
-	('delete', 'gtk-delete', _('_Delete'), '', ''), # T: Menu item
-	('toggle_checkbox', STOCK_CHECKED_BOX, _('Toggle Checkbox \'V\''), 'F12', ''), # T: Menu item
-	('xtoggle_checkbox', STOCK_XCHECKED_BOX, _('Toggle Checkbox \'X\''), '<shift>F12', ''), # T: Menu item
-	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<ctrl>E', ''), # T: Menu item
-	('insert_image', None, _('_Image...'), '', ''), # T: Menu item
-	('insert_text_from_file', None, _('Text From _File...'), '', ''), # T: Menu item
-	('insert_external_link', 'zim-link', _('E_xternal Link...'), '', ''), # T: Menu item
-	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link')), # T: Menu item
-	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', ''), # T: Menu item
-	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', ''), # T: Menu item
-	('find_next', None, _('Find Ne_xt'), '<ctrl>G', ''), # T: Menu item
-	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', ''), # T: Menu item
-	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', ''), # T: Menu item
+	# name, stock id, label, accelerator, tooltip, readonly
+	('undo', 'gtk-undo', _('_Undo'), '<ctrl>Z', '', False), # T: Menu item
+	('redo', 'gtk-redo', _('_Redo'), '<ctrl><shift>Z', '', False), # T: Menu item
+	('cut', 'gtk-cut', _('Cu_t'), '<ctrl>X', '', False), # T: Menu item
+	('copy', 'gtk-copy', _('_Copy'), '<ctrl>C', '', False), # T: Menu item
+	('paste', 'gtk-paste', _('_Paste'), '<ctrl>V', '', False), # T: Menu item
+	('delete', 'gtk-delete', _('_Delete'), '', '', False), # T: Menu item
+	('toggle_checkbox', STOCK_CHECKED_BOX, _('Toggle Checkbox \'V\''), 'F12', '', False), # T: Menu item
+	('xtoggle_checkbox', STOCK_XCHECKED_BOX, _('Toggle Checkbox \'X\''), '<shift>F12', '', False), # T: Menu item
+	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<ctrl>E', '', False), # T: Menu item
+	('insert_date', None, _('_Date and Time...'), '<ctrl>D', '', False), # T: Menu item
+	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
+	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
+	('insert_external_link', 'zim-link', _('E_xternal Link...'), '', '', False), # T: Menu item
+	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
+	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', '', False), # T: Menu item
+	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', '', True), # T: Menu item
+	('find_next', None, _('Find Ne_xt'), '<ctrl>G', '', True), # T: Menu item
+	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', '', True), # T: Menu item
+	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', '', False), # T: Menu item
 )
 
 ui_format_actions = (
@@ -104,11 +106,11 @@ ui_format_actions = (
 )
 
 ui_format_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, None, initial state
-	('toggle_format_strong', 'gtk-bold', _('_Strong'), '', _('Strong'), None, False),
-	('toggle_format_emphasis', 'gtk-italic', _('_Emphasis'), '', _('Emphasis'), None, False),
-	('toggle_format_mark', 'gtk-underline', _('_Mark'), '', _('Mark'), None, False),
-	('toggle_format_strike', 'gtk-strikethrough', _('_Strike'), '', _('Strike'), None, False),
+	# name, stock id, label, accelerator, tooltip
+	('toggle_format_strong', 'gtk-bold', _('_Strong'), '', _('Strong')),
+	('toggle_format_emphasis', 'gtk-italic', _('_Emphasis'), '', _('Emphasis')),
+	('toggle_format_mark', 'gtk-underline', _('_Mark'), '', _('Mark')),
+	('toggle_format_strike', 'gtk-strikethrough', _('_Strike'), '', _('Strike')),
 )
 
 ui_preferences = (
@@ -451,9 +453,12 @@ class TextBuffer(gtk.TextBuffer):
 			logger.warn('No such image: %s', file)
 			widget = gtk.HBox() # Need *some* widget here...
 			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG)
+			pixbuf = pixbuf.copy() # need unique instance to set zim_attrib
+
 		pixbuf.zim_type = 'image'
 		pixbuf.zim_attrib = attrib
 		pixbuf.zim_attrib['src'] = src
+		pixbuf.zim_attrib['_src_file'] = file
 		self.insert_pixbuf(iter, pixbuf)
 
 	def insert_image_at_cursor(self, file, src, **attrib):
@@ -1249,8 +1254,7 @@ class TextView(gtk.TextView):
 		buffer = self.get_buffer()
 		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
 
-		READONLY = False # FIXME
-		if READONLY:
+		if not self.get_editable():
 			handled = self._do_key_press_event_readonly(event)
 		elif buffer.get_has_selection():
 			handled = self._do_key_press_event_selection(event)
@@ -1328,6 +1332,7 @@ class TextView(gtk.TextView):
 			self.emit('end-of-line', iter)
 
 		buffer.place_cursor(buffer.get_iter_at_mark(mark))
+		self.scroll_mark_onscreen(mark)
 		buffer.delete_mark(mark)
 
 	def _do_key_press_event_readonly(self, event):
@@ -1896,7 +1901,9 @@ class PageView(gtk.VBox):
 		self.ui = ui
 		gtk.VBox.__init__(self)
 		self.page = None
+		self.readonly = True
 		self.undostack = None
+		self.image_generator_plugins = {}
 
 		self.preferences = self.ui.preferences['PageView']
 		self.ui.register_preferences('PageView', ui_preferences)
@@ -1952,9 +1959,11 @@ class PageView(gtk.VBox):
 		actiongroup.add_toggle_actions(ui_format_toggle_actions)
 		for name in [a[0] for a in ui_format_actions]:
 			action = actiongroup.get_action(name)
+			action.zim_readonly = False
 			action.connect('activate', self.do_toggle_format_action)
 		for name in [a[0] for a in ui_format_toggle_actions]:
 			action = actiongroup.get_action(name)
+			action.zim_readonly = False
 			action.connect('activate', self.do_toggle_format_action)
 
 		# extra keybinding - FIXME needs switch on read-only
@@ -1966,13 +1975,19 @@ class PageView(gtk.VBox):
 
 
 		PageView.style = config_file('style.conf')
-		self.ui.connect('preferences-changed', lambda o: self.reload_style())
-		self.reload_style()
+		self.on_preferences_changed(self.ui)
+		self.ui.connect('preferences-changed', self.on_preferences_changed)
 
 		self.ui.connect('open-notebook', self.on_open_notebook)
+		self.ui.connect_object('readonly-changed', PageView.set_readonly, self)
 
 	def grab_focus(self):
 		self.view.grab_focus()
+
+	def on_preferences_changed(self, ui):
+		self.reload_style()
+		self.view.set_cursor_visible(
+			self.preferences['read_only_cursor'] or not self.readonly)
 
 	def reload_style(self):
 		'''(Re-)loads style definition from the config. While running this
@@ -2061,11 +2076,14 @@ class PageView(gtk.VBox):
 		if cursorpos != -1:
 			buffer.place_cursor(buffer.get_iter_at_offset(cursorpos))
 
+		self.view.scroll_mark_onscreen(buffer.get_insert())
+
 		buffer.connect('textstyle-changed', self.do_textstyle_changed)
 		buffer.connect('modified-changed',
 			lambda o: self.on_modified_changed(o))
 
 		self.undostack = UndoStackManager(buffer)
+		self.set_readonly()
 
 	def get_page(self): return self.page
 
@@ -2097,6 +2115,18 @@ class PageView(gtk.VBox):
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
 
+	def set_readonly(self):
+		if self.page:
+			self.readonly = self.page.readonly or self.ui.readonly
+		self.view.set_editable(not self.readonly)
+		self.view.set_cursor_visible(
+			self.preferences['read_only_cursor'] or not self.readonly)
+
+		# partly overrule logic in ui.set_readonly()
+		for action in self.actiongroup.list_actions():
+			if not action.zim_readonly:
+				action.set_sensitive(not self.readonly)
+
 	def set_cursor_pos(self, pos):
 		buffer = self.view.get_buffer()
 		buffer.place_cursor(buffer.get_iter_at_offset(pos))
@@ -2111,6 +2141,18 @@ class PageView(gtk.VBox):
 
 	def get_scroll_pos(self):
 		pass # FIXME get scroll position
+
+	def register_image_generator_plugin(self, plugin, type):
+		assert not 'type' in self.image_generator_plugins, \
+			'Already have plugin for image type "%s"' % type
+		self.image_generator_plugins[type] = plugin
+		logger.debug('Registered plugin %s for image type "%s"', plugin, type)
+
+	def unregister_image_generator_plugin(self, plugin):
+		for type, obj in self.image_generator_plugins.items():
+			if obj == plugin:
+				self.image_generator_plugins.pop(type)
+				logger.debug('Removed plugin %s for image type "%s"', plugin, type)
 
 	def do_textstyle_changed(self, buffer, style):
 		# set statusbar
@@ -2147,7 +2189,7 @@ class PageView(gtk.VBox):
 
 		if type == 'page':
 			path = self.ui.notebook.resolve_path(
-				link['href'], self.page.parent)
+				link['href'], source=self.page)
 			self.ui.open_page(path)
 		elif type == 'file':
 			path = self.ui.notebook.resolve_file(
@@ -2167,15 +2209,21 @@ class PageView(gtk.VBox):
 			else:
 				file = None
 		else:
-			pixbuf = iter.get_pixbuf()
-			if pixbuf is None:
+			image = buffer.get_image_data(iter)
+			if image is None:
 				# Maybe we clicked right side of an image
 				iter.backward_char()
-				pixbuf = iter.get_pixbuf()
-			if pixbuf and hasattr(pixbuf, 'zim_type') \
-			and pixbuf.zim_type == 'image':
+				image = buffer.get_image_data(iter)
+
+			if image:
 				type = 'image'
-				file = pixbuf.zim_attrib['src']
+				file = image['src']
+				if 'type' in image \
+				and image['type'] in self.image_generator_plugins:
+					plugin = self.image_generator_plugins[image['type']]
+					plugin.do_populate_popup(menu, buffer, iter, image)
+					menu.show_all()
+					return # plugin should decide about populating
 			else:
 				return # No link or image
 
@@ -2286,23 +2334,35 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		if iter:
 			buffer.place_cursor(iter)
-		insert = buffer.get_iter_at_mark(buffer.get_insert())
-		alt = insert.copy()
-		alt.backward_char()
-		if buffer.get_image_data(insert) or buffer.get_image_data(alt):
-			EditImageDialog(self.ui, buffer, self.page).run()
-		elif buffer.get_link_tag(insert):
-			EditLinkDialog(self.ui, buffer, self.page).run()
+
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		if buffer.get_link_tag(iter):
+			return EditLinkDialog(self.ui, buffer, self.page).run()
+
+		image = buffer.get_image_data(iter)
+		if not image:
+			iter.backward_char() # maybe we clicked right side of an image
+			image = buffer.get_image_data(iter)
+
+		if image:
+			if 'type' in image and image['type'] in self.image_generator_plugins:
+				plugin = self.image_generator_plugins[image['type']]
+				plugin.edit_object(buffer, iter, image)
+			else:
+				EditImageDialog(self.ui, buffer, self.page).run()
 		else:
 			return False
 
-	def insert_image(self, file=None, interactive=True):
+	def insert_date(self):
+		InsertDateDialog(self.ui, self.view.get_buffer()).run()
+
+	def insert_image(self, file=None, type=None, interactive=True):
 		if interactive:
 			InsertImageDialog(self.ui, self.view.get_buffer(), self.page, file).run()
 		else:
 			assert isinstance(file, File)
 			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
-			self.view.get_buffer().insert_image_at_cursor(file, src)
+			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
 
 	def insert_text_from_file(self):
 		InsertTextFromFileDialog(self.ui, self.view.get_buffer(), self.page).run()
@@ -2422,6 +2482,59 @@ class PageView(gtk.VBox):
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
+
+
+class InsertDateDialog(Dialog):
+
+	def __init__(self, ui, buffer):
+		Dialog.__init__(self, ui, _('Insert Date and Time'), # T: Dialog title
+			button=(_('_Insert'), 'gtk-ok') )  # T: Button label
+		self.buffer = buffer
+
+		# TODO store preferred format and link check in uistate
+
+		model = gtk.ListStore(str)
+		self.view = BrowserTreeView(model)
+		self.vbox.add(self.view)
+
+		cell_renderer = gtk.CellRendererText()
+		column = gtk.TreeViewColumn('_date_', cell_renderer, text=0)
+		self.view.append_column(column)
+		self.view.set_headers_visible(False)
+
+		self.linkbutton = gtk.CheckButton(_('_Link to date'))
+			# T: check box in InsertDate dialog
+		self.vbox.pack_start(self.linkbutton, False)
+
+		# FIXME need way to get 'raw' config file..
+		listdict = config_file('dates.list')
+		file = listdict.file
+		if not file.exists():
+			file = listdict.default
+
+		for line in file.readlines():
+			line = line.strip()
+			if line.startswith('#'): continue
+			try:
+				date = strftime(line)
+				model.append((date,))
+			except:
+				logger.exception('Could not parse date: %s', line)
+
+		self.view.connect('row-activated',
+			lambda *a: self.response(gtk.RESPONSE_OK) )
+
+		# TODO edit button which allows editing the config file
+
+	def do_response_ok(self):
+		model, iter = self.view.get_selection().get_selected()
+		text = model[iter][0]
+		if self.linkbutton.get_active():
+			print 'TODO: link date'
+		else:
+			self.buffer.insert_at_cursor(text)
+
+		return True
 
 
 class InsertImageDialog(FileDialog):

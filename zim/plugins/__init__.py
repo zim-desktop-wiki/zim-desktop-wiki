@@ -22,6 +22,7 @@ def get_plugin(pluginname):
 		if ( isinstance(obj, (type, types.ClassType)) # is a class
 		and issubclass(obj, PluginClass) # is derived from PluginClass
 		and not obj == PluginClass ): # but is not PluginClass itself
+			obj.plugin_key = pluginname
 			return obj
 
 
@@ -100,6 +101,7 @@ class PluginClass(gobject.GObject):
 		for key, type, label, default in self.plugin_preferences:
 				self.preferences.setdefault(key, default)
 		self.uistate = ListDict()
+		self._is_image_generator_plugin = False
 		self.ui.connect_after('open-notebook', self._merge_uistate)
 
 	def _merge_uistate(self, *a):
@@ -129,6 +131,8 @@ class PluginClass(gobject.GObject):
 		if self.ui.ui_type == 'gtk':
 			self.ui.remove_ui(self)
 			self.ui.remove_actiongroup(self)
+			if self._is_image_generator_plugin:
+				self.ui.mainpage.pageview.unregister_image_generator_plugin(self)
 
 	def add_radio_actions(self, actions, methodname):
 		'''Define menu actions in the Gtk GUI
@@ -162,6 +166,11 @@ class PluginClass(gobject.GObject):
 		else:
 			method = getattr(self, 'do_'+name)
 			method(active)
+
+	def register_image_generator_plugin(self, type):
+		self.ui.mainwindow.pageview.register_image_generator_plugin(self, type)
+		self._is_image_generator_pluging = True
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(PluginClass)

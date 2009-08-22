@@ -118,7 +118,7 @@ sdffdsfds
 bar baz
 </page>
 <page name="Test:foo:bar">
-= FOO =
+= FOO Bar =
 
 [[wIKi]]
 [[test:foo]]
@@ -151,6 +151,8 @@ LINKS: [[Foo]][[Bar]]
 	Some indented
 	paragraphs go here ...
 
+
+{{./equation003.png?type=equation}}
 
 
 Let's try these **bold**, //italic//, __underline__ and ~~strike~~
@@ -219,5 +221,19 @@ Created שלישי 07 אפריל 2009
 מכניקת מוצקים 2
 A line in English, should be left aligned.
 דינמיקה
+</page>
+<page name="Linking:Foo:Bar">
+Foo Bar !
+[[Dus:Ja]]
+</page>
+<page name="Linking:Foo:Bar:Baz">
+[[Bar]]
+</page>
+<page name="Linking:Dus">
+Duss
+</page>
+<page name="Linking:Dus:Ja">
+[[Linking:Foo:Bar]]
+[[Dus]]
 </page>
 </pagelist>

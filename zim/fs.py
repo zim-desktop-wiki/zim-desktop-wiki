@@ -143,29 +143,65 @@ class UnixPath(object):
 		parts[0] = drive + os.path.sep + parts[0]
 		return parts
 
+	def relpath(self, reference):
+		assert self.path.startswith(reference.path)
+		i = len(reference.path)
+		path = self.path[i:]
+		path = path.lstrip('/')
+		return path
+
+	def commonparent(self, other):
+		'''Returns a common path between self and other as a Dir object.'''
+		path = os.path.commonprefix((self.path, other.path))
+		i = path.rfind(os.path.sep) # win32 save...
+		if i >= 0:
+			path = path[:i]
+		return Dir(path)
+
 	def rename(self, newpath):
 		logger.info('Rename %s to %s', self, newpath)
 		os.renames(self.path, newpath.path)
 
+	# FIXME we could define overloaded operators same as for notebook.Path
 	def ischild(self, parent):
 		return self.path.startswith(parent.path + os.path.sep)
 
 	def get_mimetype(self):
-		import xdg.Mime
-		return xdg.Mime.get_type(self.path, name_pri=80)
+		try:
+			import xdg.Mime
+			return xdg.Mime.get_type(self.path, name_pri=80)
+		except ImportError:
+			# Fake mime typing (e.g. for win32)
+			if '.' in self.basename:
+				_, ext = self.basename.rsplit('.', 1)
+				if ext == 'txt':
+					return 'text/plain'
+				else:
+					return 'x-file-extension/%s' % ext
+			else:
+				return 'application/octet-stream'
+				# TODO could use magic check here (first 32 byte)
+
+
 
 class WindowsPath(UnixPath):
 
-    @property
-    def uri(self):
-        '''File uri property with win32 logic'''
-        # win32 paths do not start with '/', so add another one
-        return 'file:///'+self.canonpath
+	@property
+	def uri(self):
+		'''File uri property with win32 logic'''
+		# win32 paths do not start with '/', so add another one
+		return 'file:///'+self.canonpath
 
-    @property
-    def canonpath(self):
-        path = self.path.replace('\\', '/')
-        return path
+	@property
+	def canonpath(self):
+		path = self.path.replace('\\', '/')
+		return path
+
+	def relpath(self, reference):
+		'''Relative path, explicit using unix convention for seperators'''
+		path = UnixPath.relpath(self, reference)
+		path = path.lstrip('\\')
+		return path.replace('\\', '/')
 
 
 # Determine which base class to use for classes below
@@ -174,8 +210,6 @@ if os.name == 'posix':
 elif os.name == 'nt':
 	Path = WindowsPath
 else:
-	import logging
-	logger = logging.getLogger('zim')
 	logger.critical('os name "%s" unknown, falling back to posix', os.name)
 	Path = UnixPath
 
@@ -247,7 +281,6 @@ class Dir(Path):
 			for name in dirs:
 				os.rmdir(os.path.join(root, name))
 
-
 	def file(self, path):
 		'''Returns a File object for a path relative to this directory'''
 		assert isinstance(path, (File, basestring, list, tuple))
@@ -260,6 +293,23 @@ class Dir(Path):
 		if not file.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (file, self)
 		# TODO set parent dir on file
+		return file
+
+	def new_file(self, path):
+		'''Like file() but guarantees the file does not yet exist by adding
+		sequentional numbers if needed.
+		'''
+		file = self.file(path)
+		basename = file.basename
+		if '.' in basename: basename = basename.split('.', 1)
+		else: basename = (basename, '')
+		dir = file.dir
+		i = 0
+		while file.exists():
+			logger.debug('File exists "%s" trying increment', file)
+			i += 1
+			file = dir.file(
+				''.join((basename[0], '%03i' % i, '.', basename[1])) )
 		return file
 
 	def subdir(self, path):
@@ -455,6 +505,29 @@ class File(Path):
 			dest.dir.touch()
 		shutil.copy(self.path, dest.path)
 
+	def moveto(self, dest):
+		'''Move this file to 'dest'. 'dest can be either a file or a dir'''
+		assert isinstance(dest, (File, Dir))
+		logger.info('Move %s to %s', self, dest)
+		if isinstance(dest, Dir):
+			dest.touch()
+		else:
+			dest.dir.touch()
+		shutil.move(self.path, dest.path)
+
+	def compare(self, other):
+		'''Uses MD5 to tell you if files are the same or not.
+		This can e.g. be used to detect case-insensitive filsystems
+		when renaming files.
+		'''
+		def md5(file):
+			import hashlib
+			m = hashlib.md5()
+			m.update(file.read())
+			return m.digest()
+
+		return md5(self) == md5(other)
+
 
 class TmpFile(File):
 
@@ -465,7 +538,10 @@ class TmpFile(File):
 		'''
 		if unique:
 			print 'TODO: support unique tmp files'
-		path = (get_tmpdir(), name)
+		# TODO: make sure /tmp/zim-USER is 600
+		# TODO: separate tmp files by process
+		# TODO: cleanup tmp files by process when zim exists
+		path = (get_tmpdir(), 'zim-%s' % os.environ['USER'], name)
 		File.__init__(self, path, checkoverwrite)
 
 

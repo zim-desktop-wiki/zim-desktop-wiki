@@ -2,8 +2,6 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
-'''Plugin to serve as work-around for the lack of printing support'''
-
 import gobject
 import gtk
 
@@ -50,13 +48,13 @@ ui_xml_show_dialog = '''
 '''
 
 ui_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('go_page_today', None, _('To_day'), '<ctrl>D', ''), # T: menu item
+	# name, stock id, label, accelerator, tooltip, readonly
+	('go_page_today', None, _('To_day'), '<ctrl>D', '', True), # T: menu item
 )
 
 ui_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, None, initial state
-	('show_calendar', 'zim-calendar', _('Calen_dar'),  '', '', None, False), # T: menu item
+	# name, stock id, label, accelerator, tooltip, initial state, readonly
+	('show_calendar', 'zim-calendar', _('Calen_dar'),  '', 'Show calendar', False, True), # T: menu item
 )
 
 KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))
@@ -87,14 +85,35 @@ This is a core plugin shipping with zim.
 		PluginClass.__init__(self, ui)
 		self.sidepane_widget = None
 		self.ui_id_show_dialog = None
+		self._set_template = None
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			self.ui.add_ui(ui_xml, self)
-			self.do_preferences_changed()
+			self.ui.connect_after('open-notebook',
+				lambda o, n: self.do_preferences_changed() )
+
+	def disconnect(self):
+		if self._set_template:
+			ns = self._set_template
+			try:
+				self.ui.notebook.namespace_properties[ns].remove('template')
+			except KeyError:
+				pass
+		PluginClass.diconnect(self)
 
 	def do_preferences_changed(self):
 		'''Switch between calendar in the sidepane or as a dialog'''
+		if self._set_template:
+			ns = self._set_template
+			try:
+				self.ui.notebook.namespace_properties[ns].remove('template')
+			except KeyError:
+				pass
+		ns = Path(self.preferences['namespace'])
+		self.ui.notebook.namespace_properties[ns]['template'] = '_Calendar'
+		self._set_template = ns
+
 		sidepane = self.ui.mainwindow.sidepane
 		if self.preferences['embedded']:
 			if self.ui_id_show_dialog:
@@ -188,7 +207,8 @@ class CalendarPluginWidget(gtk.VBox):
 		self.plugin = plugin
 
 		format = _('%A %d %B %Y').replace(' 0', ' ') # T: strftime format for current date label
-		label = gtk.Label(dateclass.today().strftime(format))
+		label = gtk.Label(dateclass.today().strftime(str(format)))
+			# str() needed for python 2.5 compatibility
 		self.pack_start(label, False)
 
 		self.calendar = Calendar()

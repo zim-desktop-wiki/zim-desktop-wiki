@@ -1,7 +1,7 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
-Modification-Date: Tue, 11 Aug 2009 22:40:30 +0200
+Modification-Date: Sat, 22 Aug 2009 13:18:21 +0200
 
 ====== Tasks ======
 
@@ -30,8 +30,6 @@ Modification-Date: Tue, 11 Aug 2009 22:40:30 +0200
 
 
 == Defects ==
-[*] History: hook cursor position into history and actually use it
-[*] MainWindow: cltr-space and alt-spac keybindings to focus side pane
 [ ] Pageview: enforce sane indenting levels for lists
 [ ] Pageview: enforce heading can not be indented
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
@@ -39,50 +37,38 @@ Modification-Date: Tue, 11 Aug 2009 22:40:30 +0200
 [ ] Pageview: Rich copy paste / drag drop
 [ ] Pageview: implement recursive checkbox lists
 [ ] Pageindex: Drag&Drop in the side pane is not working
-[ ] Index: add API for listing and inexing attahments
+[ ] Index: add API for listing and indexing attachments
 [ ] Exporter: Exporter needs to support documents & attachments 
 [ ] Exporter: Check if linker for exporter is OK
-[ ] Memory stores: define node object for extendability
-[*] Notebook dialog: remove, edit buttons do not work
-[*] Open notebook: use default notebook
-[*] Open notebook: on first use, show "Add Notebook" dialog, set default and open directly
-[ ] Notebook: When moving / renaming links need to be updated
-	* Allow non-exisitng pag as placeholder in the index for resolving
-[ ] Dialog: Autocompletion for pages and namespaces in dialogs
-	* Use a sub-class of the treemodel from the index ?
-[ ] Commandline: Allow opening files mapping to pages from the commandline
+[*] Notebook: When moving / renaming links need to be updated
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
-[ ] Templates: first heading of tree should be a separate template parameter
-	* Used e.g. in Presentation template to put title in separate bar
-[*] Commandline: --list option is missing
-[ ] Templates: check correct way to have a page property for index pages
-[ ] Notebook / GUI: set properties for read-only noteboks and pages + switch GUIcontrols
-[*] Implement properties dialog
-[*] Implement "Open with" menu
-
+[ ] Links to non-exisiting pages are not indexed
 
 == Features ==
-[ ] Implement insert date dialog
-	* hook signal for linking - split off suggest-link from end-of-word ?
-[ ] Implement search + search dialog
-[*] Pageview: Finish the UndoStackManager and hook to the pageview
-[ ] Pageview: menu controls to indent / unindent / move up move down a list item
-	* Check emission of indent-changed signal to set state of buttons
-	* Also think about keybindings for moving a line up / down or top / bottom
-[ ] Pageview: support numbered lists
-[ ] Implement "Open with custom command"dialog
 [*] Implement Calendar plugin
+[*] Implement insert date dialog
+[ ] Hook signal for linking - split off suggest-link from end-of-word ?
+	* use e.g. in InsertDateDialog
+[*] Implement search + search dialog
+[*] Pageview: Finish the UndoStackManager and hook to the pageview
 [ ] Implement TaskList plugin
 	* Use prefrences for keywords, heading keywords, use of checkboxes
 [ ] Implement VersionControl plugin(s)
 [ ] Implement background deamon
 [ ] Implement TrayIcon plugin
-[ ] Implement InsertScreenshot plugin + preference for command
-[ ] Implement EquationEditor and DiagramEditor plugins
-	* write common base class for plugins that convert some script to an image
+[*] Implement InsertScreenshot plugin  ~~+ preference for command~~
+[*] Implement EquationEditor and DiagramEditor plugins
 [ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..
 	* Preferences dialog should have list of mount points
+
+== New Features ==
+[ ] Pageview: menu controls to indent / unindent / move up move down a list item
+	* Check emission of indent-changed signal to set state of buttons
+	* Also think about keybindings for moving a line up / down or top / bottom
+[ ] Pageview: support numbered lists
+[ ] Dialog: improved widgets for page and namespace inputs
+[ ] Implement "Open with custom command"dialog
 [ ] Implement zip and tar.gz notebooks
 [ ] Implement gjots notebooks
 [ ] WWW: Improve dialog for controlling web server
@@ -98,3 +84,5 @@ Modification-Date: Tue, 11 Aug 2009 22:40:30 +0200
 [ ] Templates: Add the option to include special pages into the template, e.g. index page
 [ ] Pageview: add support for arbitrary widgets, so we can have objects
 	* Also wrap pixbufs into widgets so we can set tooltips etc.
+[ ] Add iconview with attachments at botton of pageview
+	* Use an expander or similar to show / hide

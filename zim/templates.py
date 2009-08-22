@@ -58,7 +58,7 @@ arbitrary code from templates.
 
 import re
 import logging
-from time import strftime
+from time import strftime, strptime
 
 import zim
 import zim.formats
@@ -66,6 +66,7 @@ from zim.errors import Error
 from zim.fs import File
 from zim.config import data_dirs
 from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string
+from zim.formats import ParseTree, Element
 from zim.index import LINK_DIR_BACKWARD
 
 logger = logging.getLogger('zim.templates')
@@ -276,6 +277,14 @@ class Template(GenericTemplate):
 		'''Static method callable from the template, returns a string'''
 		if timestamp is None:
 			return strftime(format)
+		elif isinstance(timestamp, basestring):
+			# TODO generalize this - now hardcoded for Calendar plugin
+			match = re.search(r'\d{4}:\d{2}:\d{2}', timestamp)
+			if match:
+				timestamp = strptime(match.group(0), '%Y:%m:%d')
+				return strftime(format, timestamp)
+			else:
+				return None
 		else:
 			return strftime(format, timestamp)
 
@@ -611,7 +620,7 @@ class PageProxy(object):
 
 	@property
 	def links(self):
-		for type, name in self._page.get_links():
+		for type, name, _ in self._page.get_links():
 			if type == 'page':
 				page = self._notebook.get_page(name)
 				yield PageProxy(self._notebook, page, self._format, self._linker)
@@ -635,14 +644,30 @@ class ParseTreeProxy(object):
 		if not self._tree:
 			return None
 		else:
-			return None # TODO
+			head, body = self._split_head(self._tree)
+			return head
 
 	@property
 	def body(self):
 		if not self._tree:
 			return None
 		else:
+			head, body = self._split_head(self._tree)
 			format = self._pageproxy._format
 			linker = self._pageproxy._linker
 			linker.set_path(self._pageproxy._page)
-			return ''.join(format.Dumper(linker=linker).dump(self._tree))
+			return ''.join(format.Dumper(linker=linker).dump(body))
+
+	def _split_head(self, tree):
+		if not hasattr(self, '_servered_head'):
+			elements = tree.getroot().getchildren()
+			if elements[0].tag == 'h':
+				root = Element('zim-tree')
+				for element in elements[1:]:
+					root.append(element)
+				body = ParseTree(root)
+				self._servered_head = (elements[0].text, body)
+			else:
+				self._servered_head = (None, tree)
+
+		return self._servered_head

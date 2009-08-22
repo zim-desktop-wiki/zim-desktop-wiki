@@ -9,6 +9,7 @@ import tests
 from zim.fs import *
 from zim.config import config_file
 from zim.notebook import *
+from zim.index import LINK_DIR_FORWARD
 
 class TestGetNotebook(tests.TestCase):
 
@@ -26,24 +27,24 @@ class TestGetNotebook(tests.TestCase):
 		list = get_notebook_list()
 		self.assertFalse(list)
 
-		nb = get_notebook('_default_')
+		nb, _ = get_notebook('_default_')
 		self.assertTrue(nb is None)
-		nb = get_notebook('foo')
+		nb, _ = get_notebook('foo')
 		self.assertTrue(nb is None)
 
 		dir = root.subdir('/notebook')
-		nb = get_notebook(dir.path)
+		nb, _ = get_notebook(dir.path)
 		self.assertTrue(nb is None)
-		nb = get_notebook(dir)
+		nb, _ = get_notebook(dir)
 		self.assertTrue(nb is None)
 		
 		file = dir.file('notebook.zim')
 		file.touch()
-		nb = get_notebook(dir.path)
+		nb, _ = get_notebook(dir.path)
 		self.assertEqual(nb.dir, dir)
-		nb = get_notebook(dir)
+		nb, _ = get_notebook(dir)
 		self.assertEqual(nb.dir, dir)
-		nb = get_notebook(file)
+		nb, _ = get_notebook(file)
 		self.assertEqual(nb.dir, dir)
 		
 		list['foo'] = dir.path
@@ -51,9 +52,9 @@ class TestGetNotebook(tests.TestCase):
 		list = get_notebook_list()
 		self.assertTrue(len(list) == 1)
 
-		nb = get_notebook('foo')
+		nb, _ = get_notebook('foo')
 		self.assertEqual(nb.dir, dir)
-		nb = get_notebook('_default_')
+		nb, _ = get_notebook('_default_')
 		self.assertEqual(nb.dir, dir)
 
 		list['_default_'] = 'foo'
@@ -61,9 +62,9 @@ class TestGetNotebook(tests.TestCase):
 		list = get_notebook_list()
 		self.assertTrue(len(list) == 2)
 
-		nb = get_notebook('foo')
+		nb, _ = get_notebook('foo')
 		self.assertEqual(nb.dir, dir)
-		nb = get_notebook('_default_')
+		nb, _ = get_notebook('_default_')
 		self.assertEqual(nb.dir, dir)
 
 		list['bar'] = '/foo/bar'
@@ -72,9 +73,9 @@ class TestGetNotebook(tests.TestCase):
 		list = get_notebook_list()
 		self.assertTrue(len(list) == 2)
 
-		nb = get_notebook('foo')
+		nb, _ = get_notebook('foo')
 		self.assertEqual(nb.dir, dir)
-		nb = get_notebook('_default_')
+		nb, _ = get_notebook('_default_')
 		self.assertTrue(nb is None)
 
 
@@ -183,6 +184,95 @@ class TestNotebook(tests.TestCase):
 		page = self.notebook.get_page(Path('Test:Foo'))
 		self.assertTrue(page.hascontent)
 
+	def testUpdateLinks(self):
+		'''Test logic for updating links on move'''
+
+		# creating relative paths
+		for source, href, link in (
+			('Foo:Bar', 'Foo:Bar', 'Bar'),
+			('Foo:Bar', 'Foo:Bar:Baz', '+Baz'),
+			('Foo:Bar:Baz', 'Foo:Dus', 'Foo:Dus'),
+			('Foo:Bar:Baz', 'Foo:Bar:Dus', 'Bar:Dus'),
+			('Foo:Bar', 'Dus:Ja', ':Dus:Ja'),
+		): 
+			#~ print '>', source, href, link
+			self.assertEqual(
+				self.notebook.relative_link(Path(source), Path(href)), link)
+
+		# update the page that was moved itself
+		# moving from Dus:Baz to Foo:Bar:Baz
+		text = u'''\
+[[http://foo.org]] # urls are untouched
+[[:Hmmm:OK]] # link way outside move
+[[Baz:Ja]] # relative link that does not need change
+[[Dus:Ja]] # relative link that needs updating
+[[Dus:Ja|Grrr]] # relative link that needs updating - with name
+[[:Foo:Bar:Dus]] # Link that could be mde relative, but isn't
+'''
+		wanted = u'''\
+[[http://foo.org]] # urls are untouched
+[[:Hmmm:OK]] # link way outside move
+[[Baz:Ja]] # relative link that does not need change
+[[:Dus:Ja]] # relative link that needs updating
+[[:Dus:Ja|Grrr]] # relative link that needs updating - with name
+[[:Foo:Bar:Dus]] # Link that could be mde relative, but isn't
+'''
+		notebook, page = tests.get_test_page('Foo:Bar:Baz')
+		page.parse('wiki', text)
+		notebook._update_links_from(page, Path('Dus:Baz'))
+		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted)
+
+		# updating links to the page that was moved
+		# moving from Dus:Baz to Foo:Bar:Baz - updating links in Dus:Ja
+		text = u'''\
+[[http://foo.org]] # urls are untouched
+[[:Hmmm:OK]] # link way outside move
+[[Baz:Ja]] # relative link that needs updating
+[[Baz:Ja|Grr]] # relative link that needs updating - with name
+[[Dus:Foo]] # relative link that does not need updating
+[[:Dus:Baz]] # absolute link that needs updating
+[[:Dus:Baz:Hmm]] # absolute link that needs updating
+[[:Dus:Baz:Hmm:Ja]] # absolute link that needs updating
+'''
+		wanted = u'''\
+[[http://foo.org]] # urls are untouched
+[[:Hmmm:OK]] # link way outside move
+[[:Foo:Bar:Baz:Ja]] # relative link that needs updating
+[[:Foo:Bar:Baz:Ja|Grr]] # relative link that needs updating - with name
+[[Dus:Foo]] # relative link that does not need updating
+[[:Foo:Bar:Baz]] # absolute link that needs updating
+[[:Foo:Bar:Baz:Hmm]] # absolute link that needs updating
+[[:Foo:Bar:Baz:Hmm:Ja]] # absolute link that needs updating
+'''
+		notebook, page = tests.get_test_page('Dus:Ja')
+		page.parse('wiki', text)
+		notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Foo:Bar:Baz'))
+		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted)
+
+		# now test actual move on full notebook
+		def links(source, href):
+			#~ print '===='
+			for link in self.notebook.index.list_links(source, LINK_DIR_FORWARD):
+				#~ print 'LINK', link
+				if link.href == href:
+					return True
+			else:
+				return False
+
+		path = Path('Linking:Dus:Ja')
+		self.assertTrue(links(path, Path('Linking:Dus')))
+		self.assertTrue(links(path, Path('Linking:Foo:Bar')))
+		self.assertTrue(links(Path('Linking:Foo:Bar'), path))
+		
+		newpath = Path('Linking:Hmm:Ok')
+		self.assertFalse(links(newpath, Path('Linking:Dus')))
+		self.assertFalse(links(newpath, Path('Linking:Foo:Bar')))
+		self.assertFalse(links(Path('Linking:Foo:Bar'), newpath))
+		self.notebook.move_page(path, newpath, update_links=True)
+		self.assertTrue(links(newpath, Path('Linking:Dus')))
+		self.assertTrue(links(newpath, Path('Linking:Foo:Bar')))
+		self.assertTrue(links(Path('Linking:Foo:Bar'), newpath))
+
 
 	def testResolvePath(self):
 		'''Test notebook.resolve_path()'''
@@ -199,9 +289,11 @@ class TestNotebook(tests.TestCase):
 
 		# resolving relative paths
 		for name, ns, wanted in (
-			('foo:bar', 'Test', 'Test:foo:bar'),
-			('test', 'Test', 'Test'),
-			('foo', 'Test', 'Test:foo'),
+			('foo:bar', 'Test:xxx', 'Test:foo:bar'),
+			('test', 'Test:xxx', 'Test'),
+			('+test', 'Test:xxx', 'Test:xxx:test'),
+			('foo', 'Test:xxx', 'Test:foo'),
+			('+foo', 'Test:xxx', 'Test:xxx:foo'),
 			('Test', 'TODOList:bar', 'Test'),
 			('test:me', 'TODOList:bar', 'Test:me'),
 		): self.assertEqual(
@@ -303,8 +395,7 @@ class TestPath(tests.TestCase):
 			self.assertEqual(path.namespace, namespace)
 			self.assertTrue(path.name in path.__repr__())
 
-	# TODO test get / set parse tree with and without source
-
+	# TODO test operators on paths > < + - >= <= == !=
 
 class TestPage(TestPath):
 	'''Test page object'''
@@ -314,3 +405,6 @@ class TestPage(TestPath):
 
 	def generator(self, name):
 		return self.notebook.get_page(Path(name))
+
+# TODO test get / set parse tree with and without source
+

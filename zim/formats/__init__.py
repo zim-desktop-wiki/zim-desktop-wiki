@@ -180,6 +180,29 @@ class ParseTree(ElementTreeModule.ElementTree):
 			filepath = element.attrib['src']
 			element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
 
+	def count(self, text, case=True):
+		'''Returns number of occurences of 'text' in this tree.
+		If 'case' is False 'text' is matched case insensitive.
+		'''
+		score = 0
+		if not case: text = text.lower()
+
+		for element in self.getiterator():
+			if element.text:
+				if case:
+					score += element.text.count(text)
+				else:
+					score += element.text.lower().count(text)
+
+			if element.tail:
+				if case:
+					score += element.tail.count(text)
+				else:
+					score += element.tail.lower().count(text)
+
+		return score
+
+
 class ParserClass(object):
 	'''Base class for parsers
 

@@ -16,8 +16,9 @@ __all__ = [
 	'formats', 'templates',
 	'stores', 'index', 'notebook',
 	'history', 'plugins',
-	'export', 'www', 'pageview',
-	'calendar', 'printtobrowser'
+	'export', 'www', 'search',
+	'pageview',
+	'calendar', 'printtobrowser', 'equationeditor', 'diagrameditor',
 ]
 
 __unittest = 1 # needed to get stack trace OK for class TestCase
@@ -97,7 +98,7 @@ def get_test_notebook(format='wiki'):
 	manifest = []
 	for name, text in get_test_data(format):
 			manifest.append(name)
-			store._set_node(Path(name), text)
+			store.set_node(Path(name), text)
 	notebook.testdata_manifest = expand_manifest(manifest)
 	return notebook
 

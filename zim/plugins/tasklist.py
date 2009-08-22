@@ -16,8 +16,8 @@ logger = logging.getLogger('zim.plugins.tasklist')
 
 
 ui_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, None, initial state
-	('show_tag_list', 'zim-task-list', _('Task List'), '', '', None, False),
+	# name, stock id, label, accelerator, tooltip, initial state, read only
+	('show_tag_list', 'zim-task-list', _('Task List'), '', '', False, True),
 )
 
 ui_xml = '''

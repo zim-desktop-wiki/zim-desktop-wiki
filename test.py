@@ -31,6 +31,7 @@ class FastTestLoader(unittest.TestLoader):
 	def __init__(self, alltests=True):
 		unittest.TestLoader.__init__(self)
 		self.ignored = 0
+		self.skipped = 0
 		self.alltests = alltests
 
 	def loadTestsFromModule(self, module):
@@ -43,6 +44,9 @@ class FastTestLoader(unittest.TestLoader):
 				if not self.alltests and hasattr(obj, 'slowTest') and obj.slowTest:
 					print 'Ignoring slow test:', obj.__name__
 					self.ignored += 1
+				elif hasattr(obj, 'skipTest') and obj.skipTest():
+					print 'Skipping test:', obj.__name__, '-', obj.skipTest()
+					self.skipped += 1
 				else:
 					tests.append(self.loadTestsFromTestCase(obj))
 		return self.suiteClass(tests)
@@ -53,9 +57,10 @@ class MyTextTestRunner(unittest.TextTestRunner):
 	proper place.
 	'''
 
-	def __init__(self, verbosity, ignored):
+	def __init__(self, verbosity, ignored, skipped):
 		unittest.TextTestRunner.__init__(self, verbosity=verbosity)
 		self.ignored = ignored
+		self.skipped = skipped
 
 	def run(self, test):
 		"Run the given test case or test suite."
@@ -73,6 +78,10 @@ class MyTextTestRunner(unittest.TextTestRunner):
 		if ignored > 0:
 			self.stream.writeln("Ignored %d slow test%s" %
 							(ignored, ignored != 1 and "s" or ""))
+		skipped = self.skipped
+		if skipped > 0:
+			self.stream.writeln("Skipped %d test%s" %
+							(skipped, skipped != 1 and "s" or ""))
 		self.stream.writeln()
 		if not result.wasSuccessful():
 			self.stream.write("FAILED (")
@@ -160,7 +169,8 @@ On Ubuntu or Debian install package 'python-coverage'.
 		suite.addTest(test)
 
 	# And run them
-	MyTextTestRunner(verbosity=3, ignored=loader.ignored).run(suite)
+	MyTextTestRunner(verbosity=3,
+		ignored=loader.ignored, skipped=loader.skipped).run(suite)
 
 	# Check the modules were loaded from the right location
 	# (so no testing based on modules from a previous installed version...)

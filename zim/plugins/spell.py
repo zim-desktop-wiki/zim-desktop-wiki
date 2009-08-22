@@ -31,8 +31,8 @@ ui_xml = '''
 '''
 
 ui_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, None, initial state
-	('toggle_spellcheck', 'gtk-spell-check', _('Check _spelling'), 'F7', 'Spell check', None, False), # T: menu item
+	# name, stock id, label, accelerator, tooltip, initial state, readonly
+	('toggle_spellcheck', 'gtk-spell-check', _('Check _spelling'), 'F7', 'Spell check', False, True), # T: menu item
 )
 
 class SpellPlugin(PluginClass):

@@ -92,7 +92,11 @@ class Store(StoreClass):
 		newfile = self._get_file(newpath)
 		newdir = self._get_dir(newpath)
 		if (newfile.exists() or newdir.exists()):
-			raise PageExistsError, 'Page already exists: %s' % newpath.name
+			if file.path.lower() == newfile.path.lower() \
+			and file.compare(newfile):
+					pass # renaming on case-insensitive filesystem
+			else:
+				raise PageExistsError, 'Page already exists: %s' % newpath.name
 
 		if file.exists():
 			file.rename(newfile)
@@ -147,6 +151,7 @@ class FileStorePage(Page):
 		self.source = source
 		self.format = format
 		self.source.checkoverwrite = True
+		self.readonly = not self.source.iswritable()
 
 	@property
 	def hascontent(self):

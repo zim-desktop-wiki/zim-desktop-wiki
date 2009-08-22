@@ -9,6 +9,7 @@ import os
 
 from zim.fs import *
 from zim.config import *
+from zim.notebook import Path
 import zim.config
 
 
@@ -307,3 +308,20 @@ XDG_VIDEOS_DIR="$HOME/Videos"
 		'''Test config for user dirs'''
 		dirs = user_dirs()
 		self.assertEqual(dirs['XDG_DOCUMENTS_DIR'], Dir('~/Documents'))
+
+
+class TestHierarchicDict(TestCase):
+
+	def runTest(self):
+		'''Test HierarchicDict class'''
+		dict = HierarchicDict()
+		dict['foo']['key1'] = 'foo'
+		self.assertEqual(dict['foo:bar:baz']['key1'], 'foo')
+		dict['foo:bar']['key1'] = 'bar'
+		self.assertEqual(dict['foo:bar:baz']['key1'], 'bar')
+		self.assertEqual(dict['foo']['key1'], 'foo')
+		dict['foo:bar'].remove('key1')
+		self.assertEqual(dict['foo:bar:baz']['key1'], 'foo')
+		self.assertEqual(dict[Path('foo:bar:baz')]['key1'], 'foo')
+		dict['']['key2'] = 'FOO'
+		self.assertEqual(dict[Path('foo:bar:baz')]['key2'], 'FOO')
