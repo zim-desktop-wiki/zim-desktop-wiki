@@ -227,9 +227,14 @@ class PluginsTreeModel(gtk.ListStore):
 		gtk.ListStore.__init__(self, bool, str, object)
 		self.ui = ui
 		loaded = [p.__class__ for p in self.ui.plugins]
-		for klass in map(zim.plugins.get_plugin, zim.plugins.list_plugins()):
-			l = klass in loaded
-			self.append((l, klass.plugin_info['name'], klass))
+		for plugin in zim.plugins.list_plugins():
+			try:
+				klass = zim.plugins.get_plugin(plugin)
+			except:
+				logger.exception('Failed to load plugin "%s"', plugin)
+			else:
+				l = klass in loaded
+				self.append((l, klass.plugin_info['name'], klass))
 
 	def do_toggle_path(self, path):
 		loaded, name, klass = self[path]

@@ -66,7 +66,7 @@ class NotebookTreeModel(gtk.ListStore):
 
 	def append_notebook(self, notebook):
 		assert notebook.dir
-		self.append_row(notebook.name, notebook.dir.path)
+		self.append((False, notebook.name, notebook.dir.path))
 
 	def get_default(self):
 		'''Returns a TreeIter for the default notebook or None'''

@@ -1,0 +1,14 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Wed, 12 Aug 2009 13:22:10 +0200
+Modification-Date: Wed, 12 Aug 2009 21:36:13 +0200
+
+====== Task List ======
+Created Wednesday 12 August 2009
+
+TODO: document task list plugin
+
+2 use cases:
+1) task management - use checkboxes
+2) writing a document - use tagged lines as placeholders
+

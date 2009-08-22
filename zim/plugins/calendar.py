@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
 '''Plugin to serve as work-around for the lack of printing support'''
 

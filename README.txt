@@ -40,8 +40,9 @@ Other:
 ====== INSTALLING ======
 
 NOTE: To test zim it is not needed to install. You should be able to run it 
-directly from the source directory by calling `./zim.py`. ( To run a translated
-version from the source first call `./setup.py build_trans`. )
+      directly from the source directory by calling `./zim.py`. (To run a
+      translated version from the source first call `./setup.py build_trans`.)
+
 
 First you should verify you have the dependencies zim needs. To list all 
 dependencies check `./setup.py --requires`. 
@@ -63,6 +64,22 @@ Zim can be installed from source using:
 
 Most plugins have additional requirements. These are listed in the plugin 
 descriptions.
+
+===== Paths ====
+
+If you install in a non-default location you may need to set the PYTHONPATH
+environment variable in order for zim to find it's python modules.
+For example, if you installed the modules below "/home/user/lib/zim" you need
+to set:
+
+	PYTHONPATH=/home/user/lib
+
+Also zim uses the XDG paths to locate data and config files. If you get
+an error that zim can not find it's data files
+For example, if you installed the zim data files to "/home/user/share/zim"
+you need to set the data path like this:
+
+	XDG_DATA_DIRS=/home/user/share:/usr/local/share:/usr/share
 
 
 
