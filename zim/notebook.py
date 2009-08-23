@@ -331,6 +331,8 @@ class Notebook(gobject.GObject):
 		'''
 		assert name, 'BUG: name is empty string'
 		startswith = name[0]
+		if startswith == '.':
+			startswith = '+' # backward compat
 		if startswith == '+':
 			name = name[1:]
 		name = self.cleanup_pathname(name)

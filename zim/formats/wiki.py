@@ -126,10 +126,13 @@ class Parser(ParserClass):
 		'''Parse a block, like a verbatim paragraph'''
 		if not self.backward:
 			m = parser_re['pre'].match(block)
-			assert m, 'Block does not match pre'
-			builder.start('pre')
-			builder.data(m.group(1))
-			builder.end('pre')
+			if not m:
+				logger.warn('Block does not match pre >>>\n%s<<<', block)
+				builder.data(block)
+			else:
+				builder.start('pre')
+				builder.data(m.group(1))
+				builder.end('pre')
 		else:
 			builder.start('pre')
 			builder.data(block)

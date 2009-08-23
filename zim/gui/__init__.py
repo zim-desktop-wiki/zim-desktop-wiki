@@ -723,7 +723,7 @@ class GtkInterface(NotebookInterface):
 		try:
 			self.notebook.store_page(page)
 		except Exception, error:
-			logger.warn('Failed to save page: %s', page.name)
+			logger.exception('Failed to save page: %s', page.name)
 			SavePageErrorDialog(self, error, page).run()
 
 	def save_copy(self):

@@ -351,3 +351,58 @@ class StubLinker(object):
 	def img(self, src): return 'img://' + src
 
 	def icon(self, name): return 'icon://' + name
+	
+
+class TestPareTreeBuilder(TestCase):
+
+	def runTest(self):
+		'''Test ParseTreeBuilder class'''
+		# - Test \n before and after h / p / pre
+		# - Test break line into lines
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+foo<h level="1">bar</h>baz
+
+dus<pre>ja</pre>hmm
+
+<h level="2">foo
+</h>bar
+
+dus ja <emphasis>hmm
+dus ja
+</emphasis>grrr
+
+</zim-tree>'''
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+foo
+
+<h level="1">bar</h>
+baz
+
+dus
+
+<pre>ja
+</pre>
+hmm
+
+<h level="2">foo</h>
+bar
+
+dus ja <emphasis>hmm</emphasis>
+<emphasis>dus ja</emphasis>
+grrr
+
+</zim-tree>'''
+
+		# For some reason this does not work with cElementTree.XMLBuilder ...
+		from xml.etree.ElementTree import XMLTreeBuilder
+		builder = XMLTreeBuilder(target=ParseTreeBuilder())
+		builder.feed(input)
+		root = builder.close()
+		tree = ParseTree(root)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
