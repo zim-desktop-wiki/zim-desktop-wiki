@@ -203,6 +203,128 @@ class ParseTree(ElementTreeModule.ElementTree):
 		return score
 
 
+count_eol_re = re.compile(r'\n+\Z')
+split_para_re = re.compile(r'((?:^[ \t]*\n){2,})', re.M)
+
+
+class ParseTreeBuilder(object):
+
+	def __init__(self):
+		self._stack = [] # stack of elements for open tags
+		self._last = None # last element opened or closed
+		self._data = [] # buffer with data
+		self._tail = False # True if we are after an end tag
+		self._seen_eol = 2 # track line ends on flushed data
+			# starts with "2" so check is ok for first top level element
+
+	def start(self, tag, attrib=None):
+		if tag in ('h', 'p', 'pre'):
+			self._flush(need_eol=2)
+		else:
+			self._flush()
+		#~ print 'START', tag
+
+		if attrib:
+			self._last = Element(tag, attrib)
+		else:
+			self._last = Element(tag)
+
+		if self._stack:
+			self._stack[-1].append(self._last)
+		else:
+			assert tag == 'zim-tree', 'root element needs to be "zim-tree"'
+		self._stack.append(self._last)
+
+		self._tail = False
+		return self._last
+
+	def end(self, tag):
+		if tag in ('p', 'pre'):
+			self._flush(need_eol=1)
+		else:
+			self._flush()
+		#~ print 'END', tag
+
+		self._last = self._stack.pop()
+		assert self._last.tag == tag, \
+			"end tag mismatch (expected %s, got %s)" % (self._last.tag, tag)
+ 		self._tail = True
+		return self._last
+
+	def data(self, text):
+		assert isinstance(text, basestring)
+		self._data.append(text)
+
+	def _flush(self, need_eol=0):
+		# need_eol makes sure previous data ends with \n
+
+		#~ print 'DATA:', self._data
+		text = ''.join(self._data)
+
+		# Fix trailing newlines
+		if text:
+			m = count_eol_re.search(text)
+			if m: self._seen_eol = len(m.group(0))
+			else: self._seen_eol = 0
+
+		if need_eol > self._seen_eol:
+			text += '\n' * (need_eol - self._seen_eol)
+			self._seen_eol = need_eol
+
+		# Fix prefix newlines
+		if self._tail and self._last.tag in ('h', 'p', 'pre') \
+		and not text.startswith('\n'):
+			if text:
+				text = '\n' + text
+			else:
+				text = '\n'
+				self._seen_eol = 1
+
+		if text:
+			assert not self._last is None, 'data seen before root element'
+			self._data = []
+
+			# Tags that are not allowed to have newlines
+			if not self._tail and self._last.tag in (
+			'h', 'emphasis', 'strong', 'mark', 'srtike', 'code'):
+				# assume no nested tags in these types ...
+				if self._seen_eol:
+					text = text.rstrip('\n')
+					self._data.append('\n' * self._seen_eol)
+					self._seen_eol = 0
+				lines = text.split('\n')
+
+				self._stack.pop()
+				for line in lines[:-1]:
+					assert self._last.text is None, "internal error (text)"
+					assert self._last.tail is None, "internal error (tail)"
+					self._last.text = line
+					self._last.tail = '\n'
+					self._last = Element(self._last.tag)
+					self._stack[-1].append(self._last)
+
+				self._stack.append(self._last)
+
+				assert self._last.text is None, "internal error (text)"
+				self._last.text = lines[-1]
+			else:
+				# TODO split paragraphs
+
+				# And finally add the text to the tree...
+				if self._tail:
+					assert self._last.tail is None, "internal error (tail)"
+					self._last.tail = text
+				else:
+					assert self._last.text is None, "internal error (text)"
+					self._last.text = text
+
+
+	def close(self):
+		assert len(self._stack) == 0, 'missing end tags'
+		assert self._last and self._last.tag == 'zim-tree', 'missing root element'
+		return self._last
+
+
 class ParserClass(object):
 	'''Base class for parsers
 

@@ -217,8 +217,8 @@ class TestPageTreeStore(tests.TestCase):
 			#~ print '>>', page, path
 			iter = treestore.get_iter(tuple(path))
 			indexpath = treestore.get_indexpath(iter)
+			#~ print '>>>', indexpath
 			self.assertEqual(indexpath, page)
-			#~ print '>>', path, page
 			self.assertEqual(
 				treestore.get_value(iter, 0), page.basename)
 			self.assertEqual(

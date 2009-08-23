@@ -19,7 +19,8 @@ from zim.fs import *
 from zim.notebook import Path
 from zim.parsing import link_type, Re
 from zim.config import config_file
-from zim.formats import get_format, ParseTree, TreeBuilder, \
+from zim.formats import get_format, \
+	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import Dialog, FileDialog, Button, IconButton, BrowserTreeView
 from zim.gui.applications import OpenWithMenu
@@ -507,7 +508,6 @@ class TextBuffer(gtk.TextBuffer):
 			self.insert_at_cursor(u'\u2022 ')
 		self.end_user_action()
 
-
 	def set_textstyle(self, name):
 		'''Sets the current text style. This style will be applied
 		to text inserted at the cursor. Use 'set_textstyle(None)' to
@@ -523,6 +523,17 @@ class TextBuffer(gtk.TextBuffer):
 
 		if not self._insert_tree_in_progress:
 			self.emit('textstyle-changed', name)
+
+	def get_textstyle(self):
+		'''Returns current text style.'''
+		tags = filter(
+			lambda tag: tag.get_property('name').startswith('style-'),
+			self._editmode_tags)
+		if tags:
+			assert len(tags) == 1, 'BUG: can not have multiple text styles'
+			return tags[0].get_property('name')[6:] # len('style-') == 6
+		else:
+			return None
 
 	def set_editmode_from_cursor(self, force=False):
 		iter = self.get_iter_at_mark(self.get_insert())
@@ -551,9 +562,9 @@ class TextBuffer(gtk.TextBuffer):
 		This method is used to determing which tags should be applied to newly
 		inserted text at 'iter'.
 		'''
-		# <indent leve=1>foo\n</indent><cursor><indent level=2>bar</indent>
+		# <indent level=1>foo\n</indent><cursor><indent level=2>bar</indent>
 		#	in this case new text should get indent level 2 -> right gravity
-		# <indent leve=1>foo\n</indent><indent level=2>bar</indent><cursor>\n
+		# <indent level=1>foo\n</indent><indent level=2>bar</indent><cursor>\n
 		#	in this case new text should also get indent level 2 -> left gravity
 		exclude_start_tags = set(filter(_is_not_indent_tag, iter.get_toggled_tags(True)))
 		tags = filter(
@@ -584,6 +595,10 @@ class TextBuffer(gtk.TextBuffer):
 			if interactive:
 				self.emit('begin-user-action')
 			start, end = self.get_selection_bounds()
+			if name == 'code':
+				text = start.get_text(end)
+				if '\n' in text:
+					name = 'pre'
 			tag = self.get_tag_table().lookup('style-'+name)
 			had_tag = self.range_has_tag(start, end, tag)
 			self.remove_textstyle_tags(start, end)
@@ -838,13 +853,22 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				break
 
-	def get_parsetree(self, bounds=None):
+	def get_parsetree(self, bounds=None, raw=False):
+		'''Returns a parse tree for the page contents.
+
+		If 'raw' is True you get a tree that is _not_ nicely cleaned up.
+		This raw tree should result in the exact same contents in the buffer
+		when reloaded so it can be used for e.g. by the undostack manager.
+		'''
 		if bounds is None:
 			start, end = self.get_bounds()
 		else:
 			start, end = bounds
 
-		builder = TreeBuilder()
+		if raw:
+			builder = TreeBuilder()
+		else:
+			builder = ParseTreeBuilder()
 		builder.start('zim-tree')
 
 		open_tags = []
@@ -914,13 +938,14 @@ class TextBuffer(gtk.TextBuffer):
 					assert False, 'BUG: Checkbox outside of indent ?'
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
-					if 'alt' in attrib:
+					if 'alt' in attrib and attrib['alt']:
 						text = attrib['alt']
 						del attrib['alt']
 						builder.start('img', attrib)
 						builder.data(text)
 						builder.end('img')
 					else:
+						del attrib['alt']
 						builder.start('img', attrib)
 						builder.end('img')
 				else:
@@ -981,6 +1006,16 @@ class TextBuffer(gtk.TextBuffer):
 		tree = ParseTree(builder.close())
 		#~ print tree.tostring()
 		return tree
+
+	def select_line(self):
+		'''selects the line at the cursor'''
+		iter = self.get_iter_at_mark(self.get_insert())
+		iter = self.get_iter_at_line(iter.get_line())
+		end = iter.copy()
+		end.forward_line()
+		if end.get_line() != iter.get_line():
+			end.backward_char()
+		self.select_range(iter, end)
 
 	def select_word(self):
 		'''Selects the word at the cursor, if any. Returns True for success'''
@@ -1313,11 +1348,16 @@ class TextView(gtk.TextView):
 
 	def _insert_and_emit(self, char, signal):
 		# Helper method for emitting end-of-word and end-of-line signals
-		# First insert char, then call the signal and reset the cursor this
-		# way anythin the signal does goes after the insert on the undo stack.
+		# First insert char, then call the signal and reset the cursor. This
+		# way anything the signal does goes after the insert on the undo stack.
 		# end-of-line implies end-of-word before it
 		assert signal in ('end-of-word', 'end-of-line')
 		buffer = self.get_buffer()
+		if char == '\n':
+			# break textstyle when we go to the next line
+			textstyle = buffer.get_textstyle()
+			if textstyle != 'pre':
+				buffer.set_textstyle(None)
 		buffer.insert_at_cursor(char)
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		mark = buffer.create_mark(None, iter)
@@ -1534,8 +1574,6 @@ class TextView(gtk.TextView):
 
 	def do_end_of_line(self, end):
 		buffer = self.get_buffer()
-
-		# TODO reset all editmode tags except Verbatim / indent ?
 
 		if end.starts_line():
 			return # empty line
@@ -1774,7 +1812,7 @@ class UndoStackManager:
 				if action == self.ACTION_INSERT and tree is None:
 					bounds = (self.buffer.get_iter_at_offset(start),
 								self.buffer.get_iter_at_offset(end))
-					tree = self.buffer.get_parsetree(bounds)
+					tree = self.buffer.get_parsetree(bounds, raw=True)
 					group[i] = (self.ACTION_INSERT, start, end, tree)
 				else:
 					return False
@@ -1792,7 +1830,7 @@ class UndoStackManager:
 		elif self.insert_pending: self.flush_insert()
 
 		bounds = (start, end)
-		tree = self.buffer.get_parsetree(bounds)
+		tree = self.buffer.get_parsetree(bounds, raw=True)
 		start, end = start.get_offset(), end.get_offset()
 		self.group.append((self.ACTION_DELETE, start, end, tree))
 		self.group.can_merge = False
@@ -2106,6 +2144,7 @@ class PageView(gtk.VBox):
 		if buffer.get_modified():
 			self._parsetree = buffer.get_parsetree()
 			buffer.set_modified(False)
+		#~ print self._parsetree.tostring()
 		return self._parsetree
 
 	def set_parsetree(self, tree):
@@ -2424,15 +2463,19 @@ class PageView(gtk.VBox):
 	def toggle_format(self, format):
 		buffer = self.view.get_buffer()
 		if not buffer.textstyle == format:
-			self.autoselect()
+			ishead = format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
+			self.autoselect(selectline=ishead)
 		buffer.toggle_textstyle(format, interactive=True)
 
-	def autoselect(self):
+	def autoselect(self, selectline=False):
 		buffer = self.view.get_buffer()
 		if buffer.get_has_selection():
 			return True
 		elif self.preferences['autoselect']:
-			return buffer.select_word()
+			if selectline:
+				return buffer.select_line()
+			else:
+				return buffer.select_word()
 		else:
 			return False
 

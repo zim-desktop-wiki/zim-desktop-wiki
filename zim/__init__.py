@@ -298,10 +298,15 @@ class NotebookInterface(gobject.GObject):
 		'''Load a single plugin by name'''
 		assert isinstance(name, basestring)
 		import zim.plugins
-		klass = zim.plugins.get_plugin(name)
-		plugin = klass(self)
-		self.plugins.append(plugin)
-		logger.debug('Loaded plugin %s (%s)', name, plugin)
+		try:
+			klass = zim.plugins.get_plugin(name)
+			plugin = klass(self)
+		except:
+			logger.exception('Failed to load plugin %s', name)
+			return
+		else:
+			self.plugins.append(plugin)
+			logger.debug('Loaded plugin %s (%s)', name, plugin)
 
 		plugin.plugin_key = name
 		if not name in self.preferences['General']['plugins']:

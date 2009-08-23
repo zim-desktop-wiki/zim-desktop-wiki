@@ -567,7 +567,8 @@ class Index(gobject.GObject):
 	def _walk(self, path, indexpath):
 		# Here path always is an IndexPath
 		cursor = self.db.cursor()
-		cursor.execute('select * from pages where parent == ? order by basename', (path.id,))
+		cursor.execute('select * from pages where parent == ? order by lower(basename)', (path.id,))
+			# FIXME, this lower is not utf8 proof
 		for row in cursor:
 			name = path.name+':'+row['basename']
 			childpath = indexpath+(row['id'],)
@@ -721,7 +722,8 @@ class Index(gobject.GObject):
 			indexpath = path._indexpath
 
 		cursor = self.db.cursor()
-		cursor.execute('select * from pages where parent==? order by basename', (parentid,))
+		cursor.execute('select * from pages where parent==? order by lower(basename)', (parentid,))
+			# FIXME, this lower is not utf8 proof
 		return [
 			IndexPath(name+':'+r['basename'], indexpath+(r['id'],), r)
 				for r in cursor ]
