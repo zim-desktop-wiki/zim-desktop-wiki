@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Explorer
-Exec=explorer
-TryExec=explorer
-Icon=file-manager
-NoDisplay=true
-X-Zim-AppType=file_browser;web_browser

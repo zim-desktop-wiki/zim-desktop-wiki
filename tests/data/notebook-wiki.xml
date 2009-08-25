@@ -161,7 +161,7 @@ And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 
 A list
 * foo
-	* bar
+	* ~~bar~~
 	* baz
 
 And a checkbox list

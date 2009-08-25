@@ -100,14 +100,18 @@ class TaskListDialog(Dialog):
 		# Task list
 		self.task_list = TaskListTreeView(self.ui)
 		scrollwindow = gtk.ScrolledWindow()
-		scrollwindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-		#~ scrollwindow.set_shadow_type(gtk.SHADOW_IN)
+		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
 		scrollwindow.add(self.task_list)
 		self.hpane.add2(scrollwindow)
 
 		# Tag list
 		self.tag_list = TagListTreeView(self.task_list)
-		self.hpane.add1(self.tag_list)
+		scrollwindow = gtk.ScrolledWindow()
+		scrollwindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
+		scrollwindow.add(self.tag_list)
+		self.hpane.add1(scrollwindow)
 
 		# Filter input
 		hbox.pack_start(gtk.Label(_('Filter')+': '), False) # T: Input label
@@ -141,7 +145,7 @@ class TaskListDialog(Dialog):
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
 		self.plugin.show_tag_list(False)
-		self.destroy()
+		Dialog.do_response(self, response)
 
 
 class TagListTreeView(BrowserTreeView):
@@ -347,11 +351,11 @@ class TaskListTreeView(BrowserTreeView):
 				self.tags[tag] = 1
 
 	def _flatten(self, node):
-		text = node.text
+		text = node.text or ''
 		for child in node.getchildren():
 			if child.tag != 'li':
 				text += self._flatten(child) # recurs
-				text += child.tail
+				text += child.tail or ''
 		return text
 
 # Need to register classes defining gobject signals

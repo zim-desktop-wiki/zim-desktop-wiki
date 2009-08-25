@@ -327,6 +327,14 @@ class Dir(Path):
 		return dir
 
 
+def _convert_newlines(text):
+	'''Method to strip out any \\r characters. This is needed because
+	we typically read in binary mode and therefore do not use the 
+	universal newlines feature.
+	'''
+	return text.replace('\r', '')
+
+
 class File(Path):
 	'''OO wrapper for files. Implements more complex logic than
 	the default python file objects. On writing we first write to a
@@ -419,7 +427,7 @@ class File(Path):
 			file = self.open('r', encoding)
 			content = file.read()
 			self._checkoverwrite(content)
-			return content
+			return _convert_newlines(content)
 
 	def readlines(self):
 		if not self.exists():
@@ -428,7 +436,7 @@ class File(Path):
 			file = self.open('r')
 			content = file.readlines()
 			self._checkoverwrite(content)
-			return content
+			return map(_convert_newlines, content)
 
 	def write(self, text):
 		self._assertoverwrite()

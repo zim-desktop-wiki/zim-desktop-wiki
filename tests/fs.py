@@ -96,6 +96,13 @@ class TestFS(tests.TestCase):
 		self.assertRaises(OverWriteError, file.write, 'Overwritten!')
 		os.chmod(path, 0644) # make it removable again
 
+		# with windows line-ends
+		file = open(tmpdir+'/newlines.txt', 'wb')
+			# binary mode means no automatic newline conversions
+		file.write('Some lines\r\nWith win32 newlines\r\n')
+		file = File(tmpdir+'/newlines.txt')
+		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines\n')
+
 		# TODO: more test here
 
 	def testDir(self):

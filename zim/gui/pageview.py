@@ -955,7 +955,10 @@ class TextBuffer(gtk.TextBuffer):
 			# FUTURE: elif embedded widget
 			else:
 				# Set tags
+				copy = iter.copy()
 				set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
+				if not iter.equal(copy): # iter moved
+					continue
 
 				# Find biggest slice without tags being toggled
 				bound = iter.copy()

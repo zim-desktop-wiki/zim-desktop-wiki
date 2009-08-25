@@ -19,6 +19,7 @@ logger = logging.getLogger('zim.applications')
 
 
 class Application(object):
+	'''FIXME'''
 
 	STATUS_OK = 0
 
@@ -115,8 +116,12 @@ class Application(object):
 
 
 class WebBrowser(Application):
+	'''Wrapper for the webbrowser module with the Application API. Can be 
+	used as fallback if no webbrowser is configured.
+	'''
 
-	name = _('Default')+' (webbrowser)' # T: label for default webbrowser
+	name = _('Default') + ' (webbrowser)' # T: label for default webbrowser
+	key = 'webbrowser' # Used by zim.gui.applications
 
 	def __init__(self):
 		import webbrowser
@@ -135,3 +140,30 @@ class WebBrowser(Application):
 		for url in args:
 			logger.info('Opening in webbrowser: %s', url)
 			self.controller.open(url)
+
+
+class StartFile(Application):
+	'''Wrapper for os.startfile(). Usefull mainly on windows to open
+	files with the default application.
+	'''
+
+	name = _('Default') + ' (os)' # T: label for default application
+	key = 'startfile' # Used by zim.gui.applications
+
+	def __init__(self):
+		pass
+
+	def tryexec(self):
+		return hasattr(os, 'startfile')
+
+	def run(self, args):
+		raise NotImplementedError, 'StartFile can not run in foreground'
+
+	def spawn(self, args, callback=None):
+		if callback:
+			raise NotImplementedError, 'StartFile can not handle callback'
+
+		for file in args:
+			path = os.path.normpath(unicode(file))
+			logger.info('Opening with os.startfile: %s', path)
+			os.startfile(path)

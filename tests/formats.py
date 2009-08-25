@@ -161,7 +161,7 @@ And some <code>//verbatim//</code>
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 </p>
 <p>A list
-<ul><li bullet="*">foo</li><ul><li bullet="*">bar</li><li bullet="*">baz</li></ul></ul></p>
+<ul><li bullet="*">foo</li><ul><li bullet="*"><strike>bar</strike></li><li bullet="*">baz</li></ul></ul></p>
 <p>And a checkbox list
 <ul><li bullet="unchecked-box">item 1</li><ul><li bullet="checked-box">sub item 1</li><ul><li bullet="*">Some normal bullet</li></ul><li bullet="xchecked-box">sub item 2</li><li bullet="unchecked-box">sub item 3</li></ul><li bullet="unchecked-box">item 2</li><li bullet="unchecked-box">item 3</li><ul><li bullet="xchecked-box">item FOOOOOO !</li></ul></ul></p>
 <p>----
@@ -308,7 +308,7 @@ A list<br>
 <ul>
 <li>foo</li>
 <ul>
-<li>bar</li>
+<li><strike>bar</strike></li>
 <li>baz</li>
 </ul>
 </ul>

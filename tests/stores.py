@@ -95,11 +95,14 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		self.assertTrue(page.get_parsetree())
 		self.assertTrue('Foo' in ''.join(page.dump('plain')))
 		self.assertFalse(page.modified)
-		page.parse('wiki', '=== BAR ===')
+		wikitext = tests.get_test_data_page('wiki', 'roundtrip')
+		page.parse('wiki', wikitext)
 		self.assertTrue(page.modified)
 		self.store.store_page(page)
 		self.assertFalse(page.modified)
-		self.assertTrue('BAR' in ''.join(page.dump('plain')))
+		self.assertEqualDiff(''.join(page.dump('wiki')), wikitext)
+		page = self.store.get_page(Path('Test:foo'))
+		self.assertEqualDiff(''.join(page.dump('wiki')), wikitext)
 
 		# check test setup OK
 		for path in (Path('Test:BAR'), Path('NewPage')):

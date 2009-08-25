@@ -247,5 +247,5 @@ class CalendarDialog(Dialog):
 
 	def do_response(self, response):
 		self.plugin.show_calendar(False)
-		self.destroy()
+		Dialog.do_response(self, response)
 

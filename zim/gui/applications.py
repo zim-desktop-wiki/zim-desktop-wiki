@@ -19,7 +19,7 @@ from zim.fs import *
 from zim.config import data_dirs, XDG_DATA_HOME, XDG_DATA_DIRS, \
 	ConfigDict, ConfigFile, json
 from zim.parsing import split_quoted_strings
-from zim.applications import Application, WebBrowser
+from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import Dialog, ErrorDialog
 
 
@@ -61,6 +61,8 @@ def get_application(name):
 		return DesktopEntryFile(File(file))
 	elif name == 'webbrowser':
 		return WebBrowser()
+	elif name == 'startfile':
+		return StartFile()
 	else:
 		return None
 
@@ -83,9 +85,8 @@ def get_applications(mimetype):
 							seen.add(basename)
 
 	if mimetype == 'text/html':
-		webbrowser = WebBrowser()
-		webbrowser.key = 'webbrowser'
-		entries.append(webbrowser)
+		entries.append(WebBrowser())
+		entries.append(StartFile())
 
 	return entries
 
@@ -104,17 +105,29 @@ def get_helper_applications(type):
 	Type can e.g. be 'web_browser', 'file_browser' or 'email_client'.
 	'''
 	# Be aware that X-Zim-AppType can be a list of types
+	seen = set()
 	helpers = []
 	for dir in data_dirs('applications'):
-		for file in [dir.file(p) for p in dir.list() if p.endswith('.desktop')]:
-			entry = DesktopEntryFile(file)
+		for basename in [n for n in dir.list() if n.endswith('.desktop')]:
+			key = basename[:-8] # len('.desktop') == 8
+			if key in seen:
+				continue
+			seen.add(key)
+			entry = DesktopEntryFile(dir.file(basename))
 			if entry.isvalid():
 				if ('X-Zim-AppType' in entry['Desktop Entry']
 				and type in entry['Desktop Entry']['X-Zim-AppType']):
 					helpers.append(entry)
 
 	if type == 'web_browser':
-		helpers += get_applications('text/html')
+		for entry in get_applications('text/html'):
+			if not entry.key in seen:
+				helpers.append(entry)
+				seen.add(entry.key)
+	
+	if not 'startfile' in seen:
+		helpers.append( get_application('startfile') )
+
 	helpers = [helper for helper in helpers if helper.tryexec()]
 	return helpers
 

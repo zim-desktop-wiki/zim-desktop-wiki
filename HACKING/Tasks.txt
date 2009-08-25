@@ -12,16 +12,15 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Improve HTML templates & CSS stylesheets for export and server use
 	* How about some javascript controls ?
 
-
 == Packaging ==
 [ ] Update CHANGELOG.txt
 [ ] Build ubuntu / debian package
 [ ] Build windows installer (with or without Python + Gtk included)
 [ ] Add website to bazaar + tools/generate_wesite.py
-       * Include some static pages + screenshots etc.
-       * Include manual in website
-       * Include HACKING in website
-       * Store old manual somewhere and link it (but not in bazaar branch)
+	* Include some static pages + screenshots etc.
+	* Include manual in website
+	* Include HACKING in website
+	* Store old manual somewhere and link it (but not in bazaar branch)
 
 
 == Defects ==
@@ -38,11 +37,6 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 	* Add extra check that no files outside allowed directories are served
 [ ] Links to non-exisiting pages are not indexed
 	* Keep a table that has dead-links by basename and trigger index of source pages when a page is created with the same basename
-[ ] Take cleanup functions out of wiki dumper and into ParseTree.reformat() - copy of elements between trees makes it fast
-	* Break formatting at lines (in em / strong / head / links / ..)
-	* Group in para and ensure para end in \n
-	* Ensure \n around pre and h 
-	* ensure no h in para or indent etc.
 
 == Missing Features ==
 [*] Implement Calendar plugin

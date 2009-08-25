@@ -234,10 +234,32 @@ class GtkInterface(NotebookInterface):
 		''')
 
 		self.register_preferences('GtkInterface', ui_preferences)
-		self.preferences['GtkInterface'].setdefault('file_browser', 'xdg-open')
-		self.preferences['GtkInterface'].setdefault('web_browser', 'xdg-open')
-		self.preferences['GtkInterface'].setdefault('email_client', 'xdg-email')
 
+		# Set default applications
+		apps = {
+			'email_client': ['xdg-email', 'startfile'],
+			'file_browser': ['xdg-open', 'startfile'],
+			'web_browser': ['xdg-open', 'startfile']
+		}
+		for type in apps.keys():
+			prefs = self.preferences['GtkInterface']
+			if type in prefs and prefs[type] \
+			and isinstance(prefs[type], basestring):
+				pass # preference is set, no need to set default
+			else:
+				from zim.gui.applications import get_helper_applications
+				key = None
+				helpers = get_helper_applications(type)
+				keys = [entry.key for entry in helpers]
+				for k in apps[type]: # prefered keys
+					if k in keys:
+						key = k
+						break
+				if key is None:
+					if helpers: key = helpers[0].key
+					else: key = 'none'
+				prefs.setdefault(type, key)
+				
 		self.mainwindow = MainWindow(self)
 
 		self.add_actions(ui_actions, self)
@@ -1042,13 +1064,21 @@ class MainWindow(gtk.Window):
 		'''Returns a selected path either from the side pane or the pathbar
 		if any or None.
 		'''
-		child = self.hpane.get_focus_child()
+		def get_focus_child(container):
+			# container.get_focus_child() only for gtk+ >= 2.14
+			for child in container.get_children():
+				if child.is_focus():
+					return child
+			else:
+				return None
+
+		child = get_focus_child(self.hpane)
 		if child == self.pageindex:
 			logger.debug('Pageindex has focus')
 			return self.pageindex.get_selected_path()
 		else: # right hand pane has focus
 			while isinstance(child, gtk.Box):
-				child = child.get_focus_child()
+				child = get_focus_child(child)
 				if child == self.pathbar:
 					logger.debug('Pathbar has focus')
 					return self.pathbar.get_selected_path()
@@ -1136,7 +1166,7 @@ class MainWindow(gtk.Window):
 		action = self.actiongroup.get_action('toggle_sidepane')
 		if action.get_active():
 			# side pane open
-			if self.hpane.get_focus_child() == self.pageindex:
+			if self.pageindex.is_focus():
 				# and has focus
 				self.pageview.grab_focus()
 				if self._sidepane_autoclose:
