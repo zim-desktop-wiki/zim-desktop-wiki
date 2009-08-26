@@ -4,12 +4,10 @@ Priority: optional
 Maintainer: Bart de Koning <bratdaking@gmail.com>
 Standards-Version: 3.8.0
 Build-Depends: debhelper (>=7), python-support (>= 0.8), cdbs (>= 0.4.49)
-XS-Python-Version: >=2.5
 Homepage: http://zim-wiki.org/
 
 Package: pyzim
 Architecture: all
-XB-Python-Version: ${python:Versions}
 Depends: ${misc:Depends}, ${python:Depends}
 Recommends: desktop-file-utils, bzr, subversion
 Suggests: scrot
@@ -19,8 +17,7 @@ Description: graphical text editor based on wiki technologies
  Pages can contain links to other pages, and are saved automatically. Creating
  a new page is as easy as linking to a non-existing page. Pages are
  ordered in a hierarchical structure that gives it the look and feel of an
- outliner.
- 
+ outliner. 
  This tool can be used to keep track of TODO lists or ideas, to take notes
- during a meeting or to draft any other kind of text (blog entries,
- important mails, etc.).
+ during a meeting or to draft any other kind of text: blog entries,
+ important mails, etc.
