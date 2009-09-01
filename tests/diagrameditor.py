@@ -20,7 +20,8 @@ class TestDiagramEditor(TestCase):
 
 	def runTest(self):
 		'Test Diagram Editor plugin'
-		# TODO empty tmp dir
+		generator = DiagramGenerator()
+		generator.cleanup() # Ensure files did not exist
 		text = r'''
 digraph G {
 	foo -> bar
@@ -28,6 +29,6 @@ digraph G {
 	baz -> foo
 }
 '''
-		generator = DiagramGenerator()
 		imagefile, _ = generator.generate_image(text)
 		self.assertTrue(imagefile.exists())
+		generator.cleanup()

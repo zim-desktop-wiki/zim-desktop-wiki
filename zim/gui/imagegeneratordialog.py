@@ -151,7 +151,9 @@ class ImageGeneratorDialog(Dialog):
 
 		return True
 
-	# TODO cleanup tmp images on Cancel
+	def destroy(self):
+		self.generator.cleanup()
+		Dialog.destroy(self)
 
 
 class LogFileDialog(Dialog):

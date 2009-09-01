@@ -96,7 +96,7 @@ class InsertScreenshotDialog(Dialog):
 
 		scrot = Application(('scrot',) + options)
 
-		def callback(status):
+		def callback(status, tmpfile):
 			if status == scrot.STATUS_OK:
 				name = time.strftime('screenshot_%Y-%m-%d-%H%M%S.png')
 				page = self.ui.page
@@ -110,5 +110,5 @@ class InsertScreenshotDialog(Dialog):
 					# T: Error message in "insert screenshot" dialog
 
 		tmpfile.dir.touch()
-		scrot.spawn((tmpfile,), callback)
+		scrot.spawn((tmpfile,), callback, tmpfile)
 		return True

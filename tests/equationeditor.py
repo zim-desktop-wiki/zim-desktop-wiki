@@ -20,7 +20,8 @@ class TestEquationEditor(TestCase):
 
 	def runTest(self):
 		'Test Equation Editor plugin'
-		# TODO empty tmp dir
+		generator = EquationGenerator()
+		generator.cleanup() # ensure files did not yet exist
 		text = r'''
 c = \sqrt{ a^2 + b^2 }
 
@@ -32,7 +33,7 @@ x_{1,2}=\frac{-b\pm\sqrt{\color{Red}b^2-4ac}}{2a}
 
 \hat a  \bar b  \vec c  x'  \dot{x}  \ddot{x}
 '''
-		generator = EquationGenerator()
 		imagefile, logfile = generator.generate_image(text)
 		self.assertTrue(imagefile.exists())
 		self.assertTrue(logfile.exists())
+		generator.cleanup()

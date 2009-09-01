@@ -3,6 +3,7 @@
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
 import gtk
+import glob
 
 from zim.fs import File, TmpFile
 from zim.plugins import PluginClass
@@ -91,6 +92,8 @@ class InsertEquationDialog(ImageGeneratorDialog):
 
 class EquationGenerator(object):
 
+	# TODO: generic base class for image generators
+
 	type = 'equation'
 	basename = 'equation.tex'
 
@@ -98,6 +101,7 @@ class EquationGenerator(object):
 		file = data_file('templates/_Equation.tex')
 		assert file, 'BUG: could not find templates/_Equation.tex'
 		self.template = GenericTemplate(file.readlines(), name=file)
+		self.texfile = TmpFile('latex-equation.tex')
 
 	def generate_image(self, text):
 		if isinstance(text, basestring):
@@ -109,7 +113,7 @@ class EquationGenerator(object):
 		#~ print '>>>%s<<<' % text
 
 		# Write to tmp file usign the template for the header / footer
-		texfile = TmpFile('latex-equation.tex')
+		texfile = self.texfile
 		texfile.writelines(
 			self.template.process({'equation': text}) )
 		#~ print '>>>%s<<<' % texfile.read()
@@ -132,3 +136,10 @@ class EquationGenerator(object):
 		# TODO dvipng can start processing before latex finished - can we win speed there ?
 
 		return pngfile, logfile
+
+	def cleanup(self):
+		path = self.texfile.path
+		for path in glob.glob(path[:-4]+'.*'):
+			File(path).remove()
+
+

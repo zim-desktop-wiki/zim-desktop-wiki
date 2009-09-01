@@ -7,8 +7,6 @@
 Used as a base library for most other zim modules.
 '''
 
-# TODO - use weakref ?
-
 # From the python doc: If you're starting with a Python file object f, first
 # do f.flush(), and then do os.fsync(f.fileno()), to ensure that all internal
 # buffers associated with f are written to disk. Availability: Unix, and
@@ -33,8 +31,11 @@ logger = logging.getLogger('zim.fs')
 
 def get_tmpdir():
 	import tempfile
-	return tempfile.gettempdir()
-	# TODO make path specific for user / process ...
+	root = tempfile.gettempdir()
+	dir = Dir((root, 'zim-%s' % os.environ['USER']))
+	dir.touch()
+	os.chmod(dir.path, 0700) # Limit to single user
+	return dir
 
 
 class PathLookupError(Error):
@@ -49,8 +50,6 @@ class UnixPath(object):
 	'''Parent class for Dir and File objects'''
 
 	def __init__(self, path):
-		# TODO keep link to parent dir if first arg is Dir object
-		#      but only if there is no '../' after that arg
 		if isinstance(path, (list, tuple)):
 			path = map(str, path)
 				# Any path objects in list will also be flattened
@@ -116,7 +115,6 @@ class UnixPath(object):
 	def dir(self):
 		'''Returns a Dir object for the parent dir'''
 		path = os.path.dirname(self.path)
-		# TODO make this persistent - weakref ?
 		return Dir(path)
 
 	def exists(self):
@@ -180,7 +178,6 @@ class UnixPath(object):
 					return 'x-file-extension/%s' % ext
 			else:
 				return 'application/octet-stream'
-				# TODO could use magic check here (first 32 byte)
 
 
 
@@ -229,10 +226,14 @@ class Dir(Path):
 
 	def list(self):
 		'''Returns a list of names for files and subdirectories'''
-		# TODO check notes on handling encodings in os.listdir
+		# For os.listdir(path) if path is a Unicode object, the result 
+		# will be a list of Unicode objects.
+		path = self.path
+		if not isinstance(path, unicode):
+			path = path.decode('utf-8')
+
 		if self.exists():
-			files = [f.decode('utf-8')
-				for f in os.listdir(self.path) if not f.startswith('.')]
+			files = [f for f in os.listdir(path) if not f.startswith('.')]
 			files.sort()
 			return files
 		else:
@@ -273,7 +274,7 @@ class Dir(Path):
 		WARNING: This is quite powerful and recursive, so make sure to double
 		check the dir is actually what you think it is before calling this.
 		'''
-		assert self.path and self.path != '/' # FIXME more checks here ?
+		assert self.path and self.path != '/'
 		logger.info('Remove file tree: %s', self)
 		for root, dirs, files in os.walk(self.path, topdown=False):
 			for name in files:
@@ -292,7 +293,6 @@ class Dir(Path):
 			file = File((self.path,) + tuple(path))
 		if not file.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (file, self)
-		# TODO set parent dir on file
 		return file
 
 	def new_file(self, path):
@@ -323,7 +323,6 @@ class Dir(Path):
 			dir = Dir((self.path,) + tuple(path))
 		if not dir.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (dir, self)
-		# TODO set parent dir on file
 		return dir
 
 
@@ -538,19 +537,28 @@ class File(Path):
 
 
 class TmpFile(File):
+	'''Class for temporary files. These are stored in the temp directory and
+	by deafult they are deleted again when the object is destructed.
+	'''
 
-	def __init__(self, name, unique=True, checkoverwrite=False):
-		'''Create a file object under the tmp dir.
-		If 'unique' is True a random key will be inserted in the name
-		before the file extension.
+	def __init__(self, basename, unique=True, persistent=False):
+		'''Constructor, 'basename' gives the name for this tmp file.
+		If 'unique' is True dir.new_file() is used to make sure we have a new
+		file. If 'persistent' is False the file will be removed when the
+		object is destructed.
 		'''
+		dir = get_tmpdir()
 		if unique:
-			print 'TODO: support unique tmp files'
-		# TODO: make sure /tmp/zim-USER is 600
-		# TODO: separate tmp files by process
-		# TODO: cleanup tmp files by process when zim exists
-		path = (get_tmpdir(), 'zim-%s' % os.environ['USER'], name)
-		File.__init__(self, path, checkoverwrite)
+			file = dir.new_file(basename)
+			File.__init__(self, file.path)
+		else:
+			File.__init__(self, (dir, basename))
+
+		self.persistent = persistent
+
+	def __del__(self):
+		if not self.persistent:
+			self.remove()
 
 
 class FileHandle(file):

@@ -47,8 +47,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [*] Pageview: Finish the UndoStackManager and hook to the pageview
 [ ] Pageview: implement recursive checkbox lists
 [ ] Pageview: make child items in list also (un)indent with parent
-[ ] Implement TaskList plugin
-	* Use prefrences for keywords, heading keywords, use of checkboxes
+[*] Implement TaskList plugin
 [ ] Implement VersionControl plugin(s)
 [ ] Implement background deamon
 [ ] Implement TrayIcon plugin

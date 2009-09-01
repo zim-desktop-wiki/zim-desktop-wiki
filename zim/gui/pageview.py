@@ -6,6 +6,8 @@
 classes needed to display and edit a single page as well as related dialogs
 like the dialogs to insert images, links etc.'''
 
+from __future__ import with_statement
+
 import logging
 
 import gobject
@@ -143,6 +145,7 @@ _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
 _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
+_is_not_style_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'style')
 
 PIXBUF_CHR = u'\uFFFC'
 
@@ -178,6 +181,30 @@ autoformat_bullets = {
 	'[*]': CHECKED_BOX,
 	'[x]': XCHECKED_BOX,
 }
+
+
+class UserAction(object):
+	'''Class used for the TextBuffer.user_action attribute.
+	This allows syntax like:
+
+		with buffer.user_action:
+			buffer.insert(...)
+
+	instead off:
+
+		buffer.begin_user_action()
+		buffer.insert(...)
+		buffer.end_user_action()
+	'''
+
+	def __init__(self, buffer):
+		self.buffer = buffer
+
+	def __enter__(self):
+		self.buffer.begin_user_action()
+
+	def __exit__(self, *a):
+		self.buffer.end_user_action()
 
 
 class TextBuffer(gtk.TextBuffer):
@@ -248,6 +275,7 @@ class TextBuffer(gtk.TextBuffer):
 	def __init__(self):
 		gtk.TextBuffer.__init__(self)
 		self._insert_tree_in_progress = False
+		self.user_action = UserAction(self)
 
 		for k, v in self.tag_styles.items():
 			tag = self.create_tag('style-'+k, **v)
@@ -298,7 +326,8 @@ class TextBuffer(gtk.TextBuffer):
 		'''Like insert_parsetree() but inserts at the cursor'''
 		self.emit('begin-insert-tree')
 		startoffset = self.get_iter_at_mark(self.get_insert()).get_offset()
-		self.set_textstyle(None)
+		self._editmode_tags = ()
+		#~ self.set_textstyle(None)
 		# FIXME also reset indent if at start of line ?
 		root = tree.getroot()
 		if root.text:
@@ -318,37 +347,52 @@ class TextBuffer(gtk.TextBuffer):
 		self.set_editmode_from_cursor(force=True)
 			# emitting textstyle-changed is skipped while loading the tree
 
-	def _insert_element_children(self, node, list_level=-1):
+	def _insert_element_children(self, node, list_level=-1, raw=False):
 		# FIXME should load list_level from cursor position
 		#~ list_level = get_indent --- with bullets at indent 0 this is not bullet proof...
+		if node.tag == 'zim-tree' and 'raw' in node.attrib:
+			raw = node.attrib['raw']
+			if isinstance(raw, basestring):
+				raw = (raw != 'False')
+
 		for element in node.getchildren():
 			if element.tag == 'p':
+				if 'indent' in element.attrib:
+					self.set_indent(int(element.attrib['indent']))
+
 				if element.text:
 					self.insert_at_cursor(element.text)
 
-				self._insert_element_children(element, list_level=list_level) # recurs
+				self._insert_element_children(element, list_level=list_level, raw=raw) # recurs
+
+				self.set_indent(None)
 			elif element.tag == 'ul':
 				if element.text:
 					self.insert_at_cursor(element.text)
 
-				self._insert_element_children(element, list_level=list_level+1) # recurs
+				self._insert_element_children(element, list_level=list_level+1, raw=raw) # recurs
 			elif element.tag == 'li':
+				if list_level < 0:
+					list_level = 0 # We skipped the <ul> - raw tree ?
+				if 'indent' in element.attrib:
+					list_level = int(element.attrib['indent'])
 				self.set_indent(list_level)
 				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
 					bullet = element.attrib['bullet']
 				else:
 					bullet = BULLET # default to '*'
-				self.insert_bullet_at_cursor(bullet)
+				self.insert_bullet_at_cursor(bullet, raw=raw)
 
-				if element.tail:
-					element.tail += '\n'
-				else:
-					element.tail = '\n'
+				if not raw:
+					if element.tail:
+						element.tail += '\n'
+					else:
+						element.tail = '\n'
 
 				if element.text:
 					self.insert_at_cursor(element.text)
 
-				self._insert_element_children(element, list_level=list_level) # recurs
+				self._insert_element_children(element, list_level=list_level, raw=raw) # recurs
 				self.set_indent(None)
 			elif element.tag == 'link':
 				self.insert_link_at_cursor(element.text, **element.attrib)
@@ -493,29 +537,34 @@ class TextBuffer(gtk.TextBuffer):
 		self.insert_bullet_at_cursor(bullet)
 		self._restore_cursor()
 
-	def insert_bullet_at_cursor(self, bullet):
-		self.begin_user_action()
-		if not filter(_is_indent_tag, self._editmode_tags):
-			self.set_indent(0) # bullets always need indenting
-		if bullet == BULLET:
-			self.insert_at_cursor(u'\u2022 ')
-		elif bullet in bullet_types:
-			stock = bullet_types[bullet]
-			self.insert_icon_at_cursor(stock)
-			self.insert_at_cursor(' ')
-		else:
-			logger.warn('Unkown bullet type: %s', bullet)
-			self.insert_at_cursor(u'\u2022 ')
-		self.end_user_action()
+	def insert_bullet_at_cursor(self, bullet, raw=False):
+		with self.user_action:
+			if not filter(_is_indent_tag, self._editmode_tags):
+				self.set_indent(0) # bullets always need indenting
+
+			if bullet == BULLET:
+				if raw:
+					self.insert_at_cursor(u'\u2022')
+				else:
+					self.insert_at_cursor(u'\u2022 ')
+			elif bullet in bullet_types:
+				stock = bullet_types[bullet]
+				self.insert_icon_at_cursor(stock)
+				if not raw:
+					self.insert_at_cursor(' ')
+			else:
+				logger.warn('Unkown bullet type: %s', bullet)
+				if raw:
+					self.insert_at_cursor(u'\u2022')
+				else:
+					self.insert_at_cursor(u'\u2022 ')
 
 	def set_textstyle(self, name):
 		'''Sets the current text style. This style will be applied
 		to text inserted at the cursor. Use 'set_textstyle(None)' to
 		reset to normal text.
 		'''
-		self._editmode_tags = filter(
-			lambda tag: not tag.get_property('name').startswith('style-'),
-			self._editmode_tags)
+		self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
 
 		if not name is None:
 			tag = self.get_tag_table().lookup('style-'+name)
@@ -526,9 +575,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def get_textstyle(self):
 		'''Returns current text style.'''
-		tags = filter(
-			lambda tag: tag.get_property('name').startswith('style-'),
-			self._editmode_tags)
+		tags = filter(_is_style_tag, self._editmode_tags)
 		if tags:
 			assert len(tags) == 1, 'BUG: can not have multiple text styles'
 			return tags[0].get_property('name')[6:] # len('style-') == 6
@@ -867,9 +914,10 @@ class TextBuffer(gtk.TextBuffer):
 
 		if raw:
 			builder = TreeBuilder()
+			builder.start('zim-tree', {'raw': True})
 		else:
 			builder = ParseTreeBuilder()
-		builder.start('zim-tree')
+			builder.start('zim-tree')
 
 		open_tags = []
 		def set_tags(iter, tags):
@@ -938,14 +986,12 @@ class TextBuffer(gtk.TextBuffer):
 					assert False, 'BUG: Checkbox outside of indent ?'
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
-					if 'alt' in attrib and attrib['alt']:
-						text = attrib['alt']
-						del attrib['alt']
+					if 'alt' in attrib:
+						text = attrib.pop('alt') or ''
 						builder.start('img', attrib)
 						builder.data(text)
 						builder.end('img')
 					else:
-						del attrib['alt']
 						builder.start('img', attrib)
 						builder.end('img')
 				else:
@@ -1067,12 +1113,12 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return False
 
-		self.begin_user_action()
-		bound = iter.copy()
-		bound.forward_char()
-		self.delete(iter, bound)
-		self.insert_icon(iter, icon)
-		self.end_user_action()
+		with self.user_action:
+			bound = iter.copy()
+			bound.forward_char()
+			self.delete(iter, bound)
+			self.insert_icon(iter, icon)
+
 		return True
 
 	def find_forward(self, string, flags=None):
@@ -1297,6 +1343,7 @@ class TextView(gtk.TextView):
 		elif buffer.get_has_selection():
 			handled = self._do_key_press_event_selection(event)
 		elif event.keyval in KEYVALS_TAB:
+			# Tab at start of line indents, otherwise trigger end-of-word
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(iter)
 			if iter.compare(ourhome) == 1: # iter beyond home position
@@ -1304,22 +1351,28 @@ class TextView(gtk.TextView):
 			else:
 				iter = buffer.get_iter_at_mark(buffer.get_insert())
 				iter = buffer.get_iter_at_line(iter.get_line())
-				buffer.increment_indent(iter)
+				with buffer.user_action:
+					buffer.increment_indent(iter)
 		elif event.keyval in KEYVALS_LEFT_TAB or \
-		(event.keyval in KEYVALS_BACKSPACE and self.preferences['unindent_on_backspace']):
+		(event.keyval in KEYVALS_BACKSPACE
+			and self.preferences['unindent_on_backspace']):
+			# Backspace or Ctrl-Tab unindents line
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(iter)
 			if iter.compare(ourhome) == 1: # iter beyond home position
 				handled = False
 			else:
-				iter = buffer.get_iter_at_line(iter.get_line())
-				done = buffer.decrement_indent(iter)
+				with buffer.user_action:
+					iter = buffer.get_iter_at_line(iter.get_line())
+					done = buffer.decrement_indent(iter)
 				if event.keyval in KEYVALS_BACKSPACE and not done:
 					handled = False # do a normal backspace
 		elif event.keyval in KEYVALS_END_OF_WORD:
+			# Any other whitspace triggers end-of-line
 			char = unichr(gtk.gdk.keyval_to_unicode(event.keyval))
 			self._insert_and_emit(char, 'end-of-word')
 		elif event.keyval in KEYVALS_ENTER:
+			# Enter can trigger links
 			buffer = self.get_buffer()
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			link = buffer.get_link_data(iter)
@@ -1333,6 +1386,7 @@ class TextView(gtk.TextView):
 				self._insert_and_emit('\n', 'end-of-line')
 		elif event.keyval in KEYVALS_HOME and \
 		not event.state & gtk.gdk.CONTROL_MASK:
+			# Smart Home key
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(insert)
 			if insert.equal(ourhome): iter = realhome
@@ -1356,23 +1410,27 @@ class TextView(gtk.TextView):
 		# end-of-line implies end-of-word before it
 		assert signal in ('end-of-word', 'end-of-line')
 		buffer = self.get_buffer()
-		if char == '\n':
-			# break textstyle when we go to the next line
-			textstyle = buffer.get_textstyle()
-			if textstyle != 'pre':
-				buffer.set_textstyle(None)
-		buffer.insert_at_cursor(char)
-		iter = buffer.get_iter_at_mark(buffer.get_insert())
-		mark = buffer.create_mark(None, iter)
-		iter.backward_char()
 
-		start = iter.copy()
-		if buffer.iter_backward_word_start(start):
-			word = start.get_text(iter)
-			self.emit('end-of-word', start, iter, word)
+		with buffer.user_action:
+			if char == '\n':
+				# break textstyle when we go to the next line
+				textstyle = buffer.get_textstyle()
+				if textstyle != 'pre':
+					buffer.set_textstyle(None)
+			buffer.insert_at_cursor(char)
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			mark = buffer.create_mark(None, iter)
+			iter.backward_char()
 
-		if signal == 'end-of-line':
-			self.emit('end-of-line', iter)
+		# TODO How to tell the undo stack that we want this cursor back on the next undo ?
+		with buffer.user_action:
+			start = iter.copy()
+			if buffer.iter_backward_word_start(start):
+				word = start.get_text(iter)
+				self.emit('end-of-word', start, iter, word)
+
+			if signal == 'end-of-line':
+				self.emit('end-of-line', iter)
 
 		buffer.place_cursor(buffer.get_iter_at_mark(mark))
 		self.scroll_mark_onscreen(mark)
@@ -1411,36 +1469,39 @@ class TextView(gtk.TextView):
 			else:
 				return False
 
-		if event.keyval in KEYVALS_TAB:
-			buffer.foreach_line_in_selection(buffer.increment_indent)
-		elif event.keyval in KEYVALS_LEFT_TAB:
-			decrement_indent()
-		elif event.keyval in KEYVALS_BACKSPACE and self.preferences['unindent_on_backspace']:
-			decremented = decrement_indent()
-			if not decremented:
-				handled = None # nothing happened, normal backspace
-		elif event.keyval in KEYVALS_ASTERISK:
-			def toggle_bullet(iter):
-				bound = iter.copy()
-				bound.forward_char()
-				if iter.get_text(bound) == u'\u2022':
+		with buffer.user_action:
+			if event.keyval in KEYVALS_TAB:
+				buffer.foreach_line_in_selection(buffer.increment_indent)
+			elif event.keyval in KEYVALS_LEFT_TAB:
+				decrement_indent()
+			elif event.keyval in KEYVALS_BACKSPACE \
+			and self.preferences['unindent_on_backspace']:
+				decremented = decrement_indent()
+				if not decremented:
+					handled = None # nothing happened, normal backspace
+			elif event.keyval in KEYVALS_ASTERISK:
+				def toggle_bullet(iter):
 					bound = iter.copy()
-					buffer.iter_forward_past_bullet(bound)
-					buffer.delete(iter, bound)
-				else:
-					buffer.insert(iter, u'\u2022 ')
-			buffer.foreach_line_in_selection(toggle_bullet)
-		elif event.keyval in KEYVALS_GT:
-			def email_quote(iter):
-				bound = iter.copy()
-				bound.forward_char()
-				if iter.get_text(bound) == '>':
-					buffer.insert(iter, '>')
-				else:
-					buffer.insert(iter, '> ')
-			buffer.foreach_line_in_selection(email_quote)
-		else:
-			handled = False
+					bound.forward_char()
+					if iter.get_text(bound) == u'\u2022':
+						bound = iter.copy()
+						buffer.iter_forward_past_bullet(bound)
+						buffer.delete(iter, bound)
+					else:
+						buffer.insert(iter, u'\u2022 ')
+				buffer.foreach_line_in_selection(toggle_bullet)
+			elif event.keyval in KEYVALS_GT:
+				def email_quote(iter):
+					bound = iter.copy()
+					bound.forward_char()
+					if iter.get_text(bound) == '>':
+						buffer.insert(iter, '>')
+					else:
+						buffer.insert(iter, '> ')
+				buffer.foreach_line_in_selection(email_quote)
+			else:
+				handled = False
+
 		return handled
 
 	def get_iter_at_pointer(self):
@@ -1549,7 +1610,6 @@ class TextView(gtk.TextView):
 			# format bullet and checkboxes
 			end.forward_char() # also overwrite the char triggering the action
 			mark = buffer.create_mark(None, end)
-			buffer.begin_user_action()
 			buffer.delete(start, end)
 			buffer.insert_bullet(
 				buffer.get_iter_at_mark(mark), autoformat_bullets[word])
@@ -1588,11 +1648,9 @@ class TextView(gtk.TextView):
 			level = len(heading_re[1])-1
 			heading = heading_re[2]
 			mark = buffer.create_mark(None, end)
-			buffer.begin_user_action()
 			buffer.delete(start, end)
 			buffer.insert_with_tags_by_name(
 				buffer.get_iter_at_mark(mark), heading, 'style-h'+str(level))
-			buffer.end_user_action()
 			buffer.delete_mark(mark)
 		elif not buffer.get_bullet_at_iter(start) is None:
 			ourhome = start.copy()
@@ -1739,7 +1797,11 @@ class UndoStackManager:
 
 	def clear(self):
 		self.stack = []
-		self.group = []
+		self.group = UndoActionGroup()
+		self.interactive = False
+		self.insert_pending = False
+		self.undo_count = 0
+		self.block_count = 0
 		self.block()
 
 	def do_begin_user_action(self, buffer):
@@ -1772,12 +1834,14 @@ class UndoStackManager:
 		#~ self.group.append((self.ACTION_INSERT, start, end, tree))
 
 	def do_insert_text(self, buffer, iter, text, length):
-		# Do not use length argument, it seems not to understand unicode
-		lenght = len(text)
+		# Do not use length argument, it gives length in bytes, not characters
+		text = text.decode('utf-8')
+		length = len(text)
 		if self.undo_count > 0: self.flush_redo_stack()
 
 		start = iter.get_offset()
 		end = start + length
+		#~ print 'INSERT at %i: "%s" (%i)' % (start, text, length)
 
 		if length == 1 and not text.isspace() \
 		and self.interactive and not self.group:
@@ -1902,6 +1966,7 @@ class UndoStackManager:
 	def _replay(self, actiongroup):
 		self.block()
 
+		#~ print '='*80
 		for action, start, end, data in actiongroup:
 			iter = self.buffer.get_iter_at_offset(start)
 			bound = self.buffer.get_iter_at_offset(end)
@@ -1911,14 +1976,17 @@ class UndoStackManager:
 				self.buffer.place_cursor(iter)
 				self.buffer.insert_parsetree_at_cursor(data)
 			elif action == self.ACTION_DELETE:
+				#~ print 'DELETING'
 				self.buffer.place_cursor(iter)
 				self.buffer.delete(iter, bound)
 				# TODO - replace what is on the stack with what is being deleted
 				# log warning BUG if the two do not match
 			elif action == self.ACTION_APPLY_TAG:
+				#~ print 'APPLYING', data
 				self.buffer.apply_tag(data, iter, bound)
 				self.buffer.place_cursor(bound)
 			elif action == self.ACTION_REMOVE_TAG:
+				#~ print 'REMOVING', data
 				self.buffer.remove_tag(data, iter, bound)
 				self.buffer.place_cursor(bound)
 			else:
@@ -2432,14 +2500,13 @@ class PageView(gtk.VBox):
 		else: sep = '\n'
 
 		buffer = self.view.get_buffer()
-		buffer.begin_user_action()
-		if buffer.get_has_selection():
-			start, end = buffer.get_selection_bounds()
-			self.buffer.delete(start, end)
-		for link in links:
-			buffer.insert_link_at_cursor(link, link)
-			buffer.insert_at_cursor(sep)
-		buffer.end_user_action()
+		with buffer.user_action:
+			if buffer.get_has_selection():
+				start, end = buffer.get_selection_bounds()
+				self.buffer.delete(start, end)
+			for link in links:
+				buffer.insert_link_at_cursor(link, link)
+				buffer.insert_at_cursor(sep)
 
 	def insert_link(self):
 		InsertLinkDialog(self.ui, self.view.get_buffer(), self.page).run()
@@ -2701,10 +2768,9 @@ class EditImageDialog(Dialog):
 		iter = self.buffer.get_iter_at_offset(self._iter)
 		bound = iter.copy()
 		bound.forward_char()
-		self.buffer.begin_user_action()
-		self.buffer.delete(iter, bound)
-		self.buffer.insert_image_at_cursor(file, **attrib)
-		self.buffer.end_user_action()
+		with buffer.user_action:
+			self.buffer.delete(iter, bound)
+			self.buffer.insert_image_at_cursor(file, **attrib)
 		return True
 
 
@@ -2772,15 +2838,14 @@ class InsertLinkDialog(Dialog):
 
 		text = self.get_field('text') or href
 
-		self.buffer.begin_user_action()
-		if self._selection_bounds:
-			start, end = map(
-				self.buffer.get_iter_at_offset, self._selection_bounds)
-			self.buffer.delete(start, end)
-		self.buffer.insert_link_at_cursor(text, href)
-		if not self._selection_bounds:
-			self.buffer.insert_at_cursor(' ')
-		self.buffer.end_user_action()
+		with buffer.user_action:
+			if self._selection_bounds:
+				start, end = map(
+					self.buffer.get_iter_at_offset, self._selection_bounds)
+				self.buffer.delete(start, end)
+			self.buffer.insert_link_at_cursor(text, href)
+			if not self._selection_bounds:
+				self.buffer.insert_at_cursor(' ')
 
 		return True
 
@@ -2917,17 +2982,15 @@ class FindAndReplaceDialog(Dialog):
 		if self.view.get_buffer().find_forward(string, flags=flags):
 			buffer = self.view.get_buffer()
 			assert buffer.get_has_selection(), 'BUG: find returned OK, but no selection ?'
-			buffer.begin_user_action()
-			buffer.delete_selection(False, self.view.get_editable())
-			buffer.insert_at_cursor(self.replace_entry.get_text())
-			buffer.end_user_action()
+			with buffer.user_action:
+				buffer.delete_selection(False, self.view.get_editable())
+				buffer.insert_at_cursor(self.replace_entry.get_text())
 			return True
 		else:
 			return False
 
 	def replace_all(self):
 		buffer = self.view.get_buffer()
-		buffer.begin_user_action()
-		while self.replace():
-			continue
-		buffer.end_user_action()
+		with buffer.user_action:
+			while self.replace():
+				continue

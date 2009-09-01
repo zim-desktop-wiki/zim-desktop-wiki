@@ -321,7 +321,7 @@ class ParseTreeBuilder(object):
 
 	def close(self):
 		assert len(self._stack) == 0, 'missing end tags'
-		assert self._last and self._last.tag == 'zim-tree', 'missing root element'
+		assert not self._last is None and self._last.tag == 'zim-tree', 'missing root element'
 		return self._last
 
 

@@ -88,20 +88,29 @@ class InsertDiagramDialog(ImageGeneratorDialog):
 
 class DiagramGenerator(object):
 
+	# TODO: generic base class for image generators
+
 	type = 'diagram'
 	basename = 'diagram.dot'
+
+	def __init__(self):
+		self.dotfile = TmpFile('diagram-editor.dot')
+		self.dotfile.touch()
+		self.pngfile = File(self.dotfile.path[:-4] + '.png') # len('.dot') == 4
 
 	def generate_image(self, text):
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
 
 		# Write to tmp file
-		dotfile = TmpFile('diagram-editor.dot')
-		dotfile.writelines(text)
+		self.dotfile.writelines(text)
 
 		# Call GraphViz
-		pngfile = File(dotfile.path[:-4] + '.png') # len('.dot') == 4
 		dot = Application(dotcmd)
-		dot.run((pngfile, dotfile))
+		dot.run((self.pngfile, self.dotfile))
 
-		return pngfile, None
+		return self.pngfile, None
+
+	def cleanup(self):
+		self.dotfile.remove()
+		self.pngfile.remove()

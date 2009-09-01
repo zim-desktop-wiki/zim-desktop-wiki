@@ -72,7 +72,7 @@ class Application(object):
 		logger.info('Running: %s (cwd: %s)', argv, cwd)
 		subprocess.check_call(argv, cwd=cwd, stdout=open(os.devnull, 'w'))
 
-	def spawn(self, args=None, callback=None, cwd=None):
+	def spawn(self, args=None, callback=None, data=None, cwd=None):
 		'''Run application in the background and return immediatly.
 
 		The optional callback can be used to trigger when the application
@@ -109,9 +109,13 @@ class Application(object):
 		else:
 			logger.debug('Process started with PID: %i', pid)
 			if callback:
-				gobject.child_watch_add(pid,
-					lambda pid, status: callback(status))
 				# child watch does implicite reaping -> no zombies
+				if data is None:
+					gobject.child_watch_add(pid,
+						lambda pid, status: callback(status))
+				else:
+					gobject.child_watch_add(pid,
+						lambda pid, status: callback(status), data)
 			return pid
 
 

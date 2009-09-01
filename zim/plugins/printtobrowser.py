@@ -56,7 +56,7 @@ This is a core plugin shipping with zim.
 		webbrowser.open('file://%s' % file)
 
 	def print_to_file(self):
-		file = TmpFile('print-to-browser.html')
+		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
 		template = zim.templates.get_template('html', 'Print')
 		template.set_linker(BaseLinker('html', self.ui.notebook, self.ui.page))
 		html = template.process(self.ui.notebook, self.ui.page)

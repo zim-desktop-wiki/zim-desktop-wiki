@@ -2,6 +2,8 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
+from __future__ import with_statement
+
 from tests import TestCase, get_test_notebook
 
 import sys
@@ -14,7 +16,16 @@ from zim.www import WWWInterface
 
 # TODO how to test fetching from a socket while mainloop is running ?
 
+logger = logging.getLogger('zim.www')
+
+
 class Filter404(object):
+
+	def __enter__(self):
+		logger.addFilter(self)
+
+	def __exit__(self, *a):
+		logger.removeFilter(self)
 
 	def filter(self, record):
 		return not record.getMessage().startswith('404 Not Found')
@@ -91,19 +102,12 @@ class TestWWWInterface(TestCase):
 		self.assertTrue('<h1>Foo</h1>' in response)
 
 		# page not found
-		logger = logging.getLogger('zim.www')
-		filter = Filter404()
-		logger.addFilter(filter)
-		try:
+
+		with Filter404():
 			for path in ('/Test', '/nonexistingpage.html', '/nonexisting/'):
 				response = call('GET', path)
 				header, body = self.assertResponseWellFormed(response)
 				self.assertEqual(header[0], 'HTTP/1.0 404 Not Found')
-		except:
-			logger.removeFilter(filter)
-			raise
-		else:
-			logger.removeFilter(filter)
 
 		# favicon
 		response = call('GET', '/favicon.ico')

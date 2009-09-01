@@ -11,7 +11,7 @@ import time
 
 import tests
 from zim.fs import *
-from zim.fs import Path, FileHandle, OverWriteError
+from zim.fs import Path, FileHandle, OverWriteError, TmpFile, get_tmpdir
 
 # TODO: also test dir.new_file()
 
@@ -38,6 +38,11 @@ class TestFS(tests.TestCase):
 		wanted = map(lambda p: os.path.abspath(drive+p),
 					['/foo', '/foo/bar', '/foo/bar/baz'])
 		self.assertEqual(dirs, wanted)
+
+		# TODO test get_mimetype (2 variants)
+		# TODO test rename
+		# TODO test commonparent
+		# TODO test relpath
 
 	def testFileHandle(self):
 		'''Test FileHandle object'''
@@ -102,17 +107,37 @@ class TestFS(tests.TestCase):
 		file.write('Some lines\r\nWith win32 newlines\r\n')
 		file = File(tmpdir+'/newlines.txt')
 		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines\n')
-
-		# TODO: more test here
+		# TODO test copyto
+		# TODO test moveto
+		# TODO test compare
+		
+	def testTmpFile(self):
+		dir = get_tmpdir()
+		file = TmpFile('foo.txt')
+		self.assertTrue(file.ischild(dir))
+		# What else to test here ?
 
 	def testDir(self):
 		'''Test Dir object'''
 		tmpdir = tests.create_tmp_dir('fs_testDir')
 		dir = Dir(tmpdir+'/foo/bar')
 		assert not dir.exists()
-		# TODO: real test here
-		# TODO - test file(), + test exception
-		# TODO - test subdir(), + test excepion
+		# TODO test list()
+
+		# TODO - test file(FILE), + test exception
+		# TODO - test subdir(DIR), + test excepion
+
+		file1 = dir.file('unique.txt')
+		file1.touch()
+		file2 = dir.new_file('unique.txt')
+		file2.touch()
+		file3 = dir.new_file('unique.txt')
+		self.assertEqual(file1.basename, 'unique.txt')
+		self.assertEqual(file2.basename, 'unique001.txt')
+		self.assertEqual(file3.basename, 'unique002.txt')
+
+		# TODO test remove_children
+		# TODO test cleanup
 
 
 class TestFileOverwrite(tests.TestCase):
