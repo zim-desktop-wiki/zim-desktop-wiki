@@ -7,12 +7,10 @@
 import logging
 
 from zim.fs import *
-from zim.formats import get_format
+from zim.formats import get_format, BaseLinker
 from zim.templates import get_template
-from zim.notebook import Page, IndexPage
+from zim.notebook import Page, IndexPage, PageNameError
 from zim.stores import encode_filename
-from zim.config import data_file
-from zim.parsing import link_type
 
 logger = logging.getLogger('zim.exporter')
 
@@ -22,14 +20,17 @@ class Exporter(object):
 
 	def __init__(self, notebook, format, template=None,
 					index_page=None, document_root_url=None):
-		'''TODO document eport options'''
+		'''Constructor. The 'notebook' is the source for pages to be exported.
+		(The export target is given as an argument to export_all() or export().)
+		The 'format' and 'template' arguments determine the output format.
+		If 'index_page' is given a page index is generated and
+		'document_root_url' is used to prefix any file links that start with '/'.
+		'''
 		self.notebook = notebook
 		self.index_page = index_page
 		self.document_root_url = document_root_url
-		self.linker = BaseLinker(format, notebook)
-
-		if document_root_url:
-			print 'TODO: implement map document root'
+		self.linker = StaticLinker(format, notebook,
+						document_root_url=document_root_url)
 
 		if isinstance(format, basestring):
 			self.format = get_format(format)
@@ -45,6 +46,11 @@ class Exporter(object):
 			self.template.set_linker(self.linker)
 
 	def export_all(self, dir, callback=None):
+		'''Export all pages in the notebook to 'dir'. Attachments are copied
+		along. The function 'callback' will be called after each page with the
+		page object as single argument. If the callback returns False the
+		export will be cancelled.
+		'''
 		logger.info('Exporting notebook to %s', dir)
 
 		for page in self.notebook.walk():
@@ -63,17 +69,28 @@ class Exporter(object):
 		return True
 
 	def export_page(self, dir, page):
+		'''Export 'page' to a file below 'dir'. Path below 'dir' will be
+		determined by the namespace of 'page'. Attachments wil also be
+		copied along.
+		'''
 		logger.info('Exporting %s', page.name)
-		filename = encode_filename(page.name)
-		filename += '.' + self.format.info['extension']
+		dirname = encode_filename(page.name)
+		filename = dirname + '.' + self.format.info['extension']
 		file = dir.file(filename)
 		fh = file.open('w')
 		self.export_page_to_fh(fh, page)
 		fh.close()
-		# TODO add attachments + copy documents
+		subdir = dir.subdir(dirname)
+		attachments = self.notebook.get_attachments_dir(page)
+		for name in attachments.list():
+			file = attachments.file(name)
+			if file.exists(): # tests os.isfile
+				file.copyto(subdir)
 
 	def export_page_to_fh(self, fh, page):
-		# TODO use document_root_url
+		'''Export 'page' and print the output to open file handle 'hf'.
+		(Does not do anything with attachments.)
+		'''
 		if self.template is None:
 			self.linker.set_path(page)
 			lines = page.dump(self.format, linker=self.linker)
@@ -82,50 +99,49 @@ class Exporter(object):
 		fh.writelines(l.encode('utf-8') for l in lines)
 
 
-class BaseLinker(object):
+class StaticLinker(BaseLinker):
 	'''Linker object for exporting a single page. It links files, images
 	and icons with absolute file paths, but can not link other pages corectly.
 	'''
 
-	def __init__(self, format, notebook, path=None):
+	def __init__(self, format, notebook, path=None, document_root_url=None):
+		BaseLinker.__init__(self)
 		if isinstance(format, basestring):
 			format = get_format(format)
 		self.notebook = notebook
 		self.path = path
+		self.document_root_url = document_root_url
 		self._extension = '.' + format.info['extension']
-		self._icons = {}
 
-	def set_path(self, path):
-		self.path = path
-
-	def link(self, link):
-		'''Returns an url for 'link' '''
-		type = link_type(link)
-		if type == 'page':
-			# even though useless in the typical use-case still resolve pages so they look OK
+	def page(self, link):
+		try:
 			page = self.notebook.resolve_path(link, source=self.path)
-			href = '/' + encode_filename(page.name) + self._extension
-		elif type == 'file':
-			href = self.src(link, path)
-		elif type == 'mailto':
-			if link.startswith('mailto:'):
-				href = link
-			else:
-				href = 'mailto:' + link
+		except PageNameError:
+			return ''
 		else:
-			# I dunno, some url ?
-			href = link
-		return href
+			if page == self.path:
+				return ''
 
-	def img(self, src):
-		'''Returns an url for image file 'src' '''
-		file = self.notebook.resolve_file(src, self.path)
+			parent = page.commonparent(self.path)
+			if parent == self.path:
+				path = './' + self.path.basename + '/'
+				downpath = page.relname(parent)
+				path += encode_filename(downpath) + self._extension
+			elif parent == page:
+				uppath = self.path.relname(parent)
+				path = '../' * (uppath.count(':') + 1)
+				path += encode_filename(page.basename) + self._extension
+			else:
+				uppath = self.path.relname(parent)
+				downpath = page.relname(parent)
+				path = '../' * uppath.count(':') or './'
+				path += encode_filename(downpath) + self._extension
+			#~ print '>>>', path
+			return path
+
+	def file(self, link):
+		if self.document_root_url and link.startswith('/'):
+			return ''.join((self.document_root_url.rstrip('/'), link))
+		else:
+			file = self.notebook.resolve_file(link, self.path)
 		return file.uri
-
-	def icon(self, name):
-		'''Returns an url for an icon'''
-		if not name in self._icons:
-			self._icons[name] = data_file('pixmaps/%s.png' % name).uri
-		return self._icons[name]
-
-# TODO: linker for using a single page

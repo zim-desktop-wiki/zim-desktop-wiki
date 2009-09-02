@@ -19,6 +19,7 @@ once we have it resolved.
 import os # using os directly in get_pagelist()
 
 from zim.fs import *
+from zim.fs import FilteredDir
 from zim.formats import get_format
 from zim.notebook import Path, Page, LookupError, PageExistsError
 from zim.stores import StoreClass, encode_filename, decode_filename
@@ -41,7 +42,7 @@ class Store(StoreClass):
 		'''Returns a File object for a notebook path'''
 		assert path != self.namespace, 'Can not get a file for the toplevel namespace'
 		name = path.relname(self.namespace)
-		filepath = encode_filename(name)+'.txt'
+		filepath = encode_filename(name)+'.txt' # FIXME hard coded extension
 		return File([self.dir, filepath])
 
 	def _get_dir(self, path):
@@ -141,6 +142,13 @@ class Store(StoreClass):
 			return file.mtime()
 		else:
 			return None
+
+	def get_attachments_dir(self, path):
+		dir = StoreClass.get_attachments_dir(self, path)
+		if not dir is None:
+			dir = FilteredDir(dir)
+			dir.ignore('*.txt') # FIXME hardcoded extendion
+		return dir
 
 
 class FileStorePage(Page):

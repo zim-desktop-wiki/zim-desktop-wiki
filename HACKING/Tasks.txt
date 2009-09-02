@@ -26,13 +26,8 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 == Defects ==
 [ ] Pageview: enforce heading can not be indented
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
-[*] Pageview: Fix issue with Verbatim paragraphs
 [ ] Pageview: Rich copy paste / drag drop
 [ ] Pageindex: Drag&Drop in the side pane is not working
-[ ] Index: add API for listing and indexing attachments
-[ ] Exporter: Exporter needs to support documents & attachments 
-[ ] Exporter: Check if linker for exporter is OK
-[*] Notebook: When moving / renaming links need to be updated
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
 [ ] Links to non-exisiting pages are not indexed
@@ -55,6 +50,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [*] Implement EquationEditor and DiagramEditor plugins
 [ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..
 	* Preferences dialog should have list of mount points
+[ ] Package icons in target directory when exporting
 
 == New Features ==
 [ ] Pageview: menu controls to indent / unindent / move up move down a list item

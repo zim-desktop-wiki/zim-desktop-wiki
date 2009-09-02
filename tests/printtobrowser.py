@@ -24,6 +24,7 @@ class TestPrintToBrowser(TestCase):
 		content = file.read()
 		self.assertTrue('<h1>Foo</h1>' in content)
 
+
 class StubUI(object):
 
 	ui_type = 'stub'

@@ -10,17 +10,22 @@ from zim.fs import *
 from zim.notebook import Path, Notebook
 from zim.exporter import Exporter
 
+# TODO add check that attachments are copied correctly
+
 class TestExport(TestCase):
 
 	slowTest = True
+
+	options = {'format': 'html', 'template': 'Default'}
 
 	def setUp(self):
 		self.dir = Dir(create_tmp_dir('export_ExportedFiles'))
 
 	def export(self):
 		notebook = get_test_notebook()
+		notebook.get_store(Path(':')).dir = Dir('/foo/bar') # fake source dir
 		notebook.index.update()
-		exporter = Exporter(notebook, format='html', template='Default')
+		exporter = Exporter(notebook, **self.options)
 		exporter.export_all(self.dir)
 
 	def runTest(self):
@@ -32,6 +37,19 @@ class TestExport(TestCase):
 		text = file.read()
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 		self.assertTrue('<h1>Foo</h1>' in text)
+
+
+class TestExportFullOptions(TestExport):
+
+	options = {'format': 'html', 'template': 'Default',
+			'index_page': 'index', 'document_root_url': 'http://foo.org/'}
+
+	def runTest(self):
+		'''Test export notebook to html with all options'''
+		TestExport.runTest(self)
+		file = self.dir.file('index.html')
+		self.assertTrue(file.exists())
+		# print file.read() TODO check content of index
 
 
 class TestExportCommandLine(TestExport):

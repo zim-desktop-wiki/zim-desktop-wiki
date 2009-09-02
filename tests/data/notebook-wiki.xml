@@ -115,7 +115,21 @@ sdffdsfds
 <page name="Test:foo">
 ====== Foo ======
 
+# This page is used among others for testing export
+
 bar baz
+
+[[foo:bar]]
+[[http://foo.org/bar]]
+[[mailto:foo@bar.org]]
+[[foo@bar.org]]
+
+[[/foo/bar.pdf]]
+{{/foo/bar.pdf}}
+
+[[~/foo/bar.pdf]]
+{{~/foo/bar.pdf}}
+
 </page>
 <page name="Test:foo:bar">
 = FOO Bar =

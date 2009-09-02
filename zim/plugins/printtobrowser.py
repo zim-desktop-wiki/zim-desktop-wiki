@@ -9,7 +9,7 @@ import webbrowser
 from zim.fs import TmpFile
 from zim.plugins import PluginClass
 import zim.templates
-from zim.exporter import BaseLinker
+from zim.exporter import StaticLinker
 
 ui_xml = '''
 <ui>
@@ -58,7 +58,7 @@ This is a core plugin shipping with zim.
 	def print_to_file(self):
 		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
 		template = zim.templates.get_template('html', 'Print')
-		template.set_linker(BaseLinker('html', self.ui.notebook, self.ui.page))
+		template.set_linker(StaticLinker('html', self.ui.notebook, self.ui.page))
 		html = template.process(self.ui.notebook, self.ui.page)
 		file.writelines(html)
 		return file

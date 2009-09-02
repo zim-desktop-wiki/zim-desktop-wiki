@@ -16,6 +16,7 @@ Used as a base library for most other zim modules.
 # 60s after write. This way of working should prevent that kind of issue.)
 
 import os
+import re
 import shutil
 import errno
 import codecs
@@ -226,7 +227,7 @@ class Dir(Path):
 
 	def list(self):
 		'''Returns a list of names for files and subdirectories'''
-		# For os.listdir(path) if path is a Unicode object, the result 
+		# For os.listdir(path) if path is a Unicode object, the result
 		# will be a list of Unicode objects.
 		path = self.path
 		if not isinstance(path, unicode):
@@ -326,9 +327,40 @@ class Dir(Path):
 		return dir
 
 
+def _glob_to_regex(glob):
+	glob = glob.replace('.', '\\.')
+	glob = glob.replace('*', '.*')
+	glob = glob.replace('?', '.?')
+	return re.compile(glob)
+
+
+class FilteredDir(Dir):
+
+	def __init__(self, path):
+		Dir.__init__(self, path)
+		self._ignore = []
+
+	def ignore(self, glob):
+		regex = _glob_to_regex(glob)
+		self._ignore.append(regex)
+
+	def filter(self, name):
+		for regex in self._ignore:
+			if regex.match(name):
+				return False
+		else:
+			return True
+
+	def list(self):
+		files = Dir.list(self)
+		files = filter(self.filter, files)
+		return files
+
+
+
 def _convert_newlines(text):
 	'''Method to strip out any \\r characters. This is needed because
-	we typically read in binary mode and therefore do not use the 
+	we typically read in binary mode and therefore do not use the
 	universal newlines feature.
 	'''
 	return text.replace('\r', '')

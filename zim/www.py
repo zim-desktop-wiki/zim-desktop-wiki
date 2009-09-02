@@ -24,19 +24,22 @@ import urllib
 
 from zim import NotebookInterface
 from zim.errors import Error
-from zim.notebook import Path, Page, IndexPage
+from zim.notebook import Path, Page, IndexPage, PageNameError
 from zim.fs import *
-from zim.formats import ParseTree, TreeBuilder
+from zim.formats import ParseTree, TreeBuilder, BaseLinker
 from zim.config import data_file
-from zim.exporter import BaseLinker
+from zim.stores import encode_filename
+
 
 logger = logging.getLogger('zim.www')
+
 
 # TODO FIXME HACK - this translation needs to be done when exporting
 icons = {}
 for icon in ('checked-box.png', 'xchecked-box.png', 'unchecked-box.png'):
 	file = data_file('pixmaps/'+icon)
 	icons[file.path] = icon
+
 
 class WWWError(Error):
 
@@ -105,7 +108,7 @@ class WWWInterface(NotebookInterface):
 	def open_notebook(self, notebook):
 		NotebookInterface.open_notebook(self, notebook)
 		#~ self.notebook.index.update()
-		self.linker = WWWLinker('html', self.notebook)
+		self.linker = WWWLinker(self.notebook)
 		if self.template:
 			self.template.set_linker(self.linker)
 
@@ -133,6 +136,8 @@ class WWWInterface(NotebookInterface):
 			methods = ('GET', 'HEAD')
 			if not environ['REQUEST_METHOD'] in methods:
 				raise WWWError('405', headers=[('Allow', ', '.join(methods))])
+
+			# TODO clean up path from any '../' (and ..\)
 
 			if not path:
 				path = '/'
@@ -347,4 +352,23 @@ gobject.type_register(Server)
 
 
 class WWWLinker(BaseLinker):
-	pass
+
+	def __init__(self, notebook, path=None):
+		BaseLinker.__init__(self)
+		self.notebook = notebook
+		self.path = path
+
+	def page(self, link):
+		try:
+			page = self.notebook.resolve_path(link, source=self.path)
+		except PageNameError:
+			return ''
+		else:
+			return '/' + encode_filename(page.name) + '.html'
+			# TODO use script location as root for cgi-bin
+
+	def file(self, link):
+		return 'TODO' # TODO link files
+		# doc_root -> /+file/...
+		# attachment /path/to/page/+file/..
+		# other as file:// uri

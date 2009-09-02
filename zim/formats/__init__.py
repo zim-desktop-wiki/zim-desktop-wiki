@@ -55,6 +55,10 @@ to a title or subtitle in the document.
 import re
 import logging
 
+from zim.parsing import link_type
+from zim.config import data_file
+
+
 logger = logging.getLogger('zim.formats')
 
 # Needed to determine RTL, but may not be available
@@ -84,6 +88,7 @@ UNCHECKED_BOX = 'unchecked-box'
 CHECKED_BOX = 'checked-box'
 XCHECKED_BOX = 'xchecked-box'
 BULLET = '*'
+
 
 def list_formats(type):
 	if type == EXPORT_FORMAT:
@@ -412,3 +417,52 @@ class DumperClass(object):
 				return dir == pango.DIRECTION_RTL
 
 		return None
+
+
+class BaseLinker(object):
+	'''Base class for linker objects. Linker object translate links in zim pages
+	to either paths or urls. Paths should be interpreted relative to the
+	document in the way this is done in html.
+	'''
+
+	def __init__(self):
+		self._icons = {}
+
+	def set_path(self, path):
+		self.path = path
+
+	def link(self, link):
+		'''Returns a path or url for 'link' '''
+		# TODO optimize by hashing links seen (reset per page)
+		type = link_type(link)
+		if type == 'page':
+			return self.page(link)
+		elif type == 'file':
+			return self.file(link)
+		elif type == 'mailto':
+			if link.startswith('mailto:'):
+				return link
+			else:
+				return 'mailto:' + link
+		else:
+			# I dunno, some url ?
+			return link
+
+	def img(self, src):
+		'''Returns a path or url for image file 'src' '''
+		return self.file(src)
+
+	def icon(self, name):
+		'''Returns a path or url for an icon'''
+		if not name in self._icons:
+			self._icons[name] = data_file('pixmaps/%s.png' % name).uri
+		return self._icons[name]
+
+	def page(self, link):
+		'''To be overloaded'''
+		raise NotImplementedError
+
+	def file(self, path):
+		'''To be overloaded'''
+		raise NotImplementedError
+
