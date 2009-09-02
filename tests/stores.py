@@ -4,10 +4,13 @@
 
 '''Test cases for basic stores modules.'''
 
+from __future__ import with_statement
+
 import tests
 
 import os
 import time
+import logging
 
 from zim.fs import *
 from zim.fs import OverWriteError
@@ -42,6 +45,21 @@ def ascii_page_tree(store, namespace=None, level=0):
 			text += '  '*level + page.basename + '\n'
 
 	return text
+
+
+logger = logging.getLogger('zim.fs')
+
+
+class FilterOverWriteWarning(object):
+
+	def __enter__(self):
+		logger.addFilter(self)
+
+	def __exit__(self, *a):
+		logger.removeFilter(self)
+
+	def filter(self, record):
+		return not record.getMessage().startswith('mtime check failed')
 
 
 class TestReadOnlyStore(object):
@@ -255,7 +273,8 @@ class TestFiles(TestStoresMemory):
 		self.store.store_page(page)
 		self.assertTrue('BARRR' in ''.join(page.dump('plain')))
 		self.modify(page.source.path, lambda p: open(p, 'w').write('bar'))
-		self.assertRaises(OverWriteError, self.store.store_page, page)
+		with FilterOverWriteWarning():
+			self.assertRaises(OverWriteError, self.store.store_page, page)
 
 
 class StubFile(File):

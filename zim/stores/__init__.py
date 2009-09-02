@@ -77,10 +77,9 @@ def get_store(name):
 
 
 def encode_filename(pagename):
-	'''Encodes a pagename to a filename. Namespaces are mapped to directories
-	and special characters are encoded. Returns basename without extension.
+	'''Encodes a pagename to a filename. Namespaces are mapped to directories.
+	Returns basename without extension.
 	'''
-	# TODO - actually encode special characters ...
 	return pagename.replace(':', '/').replace(' ', '_')
 
 def decode_filename(filename):

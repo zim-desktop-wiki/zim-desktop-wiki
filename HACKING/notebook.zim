@@ -4,7 +4,7 @@ document_root=
 home=:Start
 icon=
 name=HACKING
-slow_fs=0
+slow_fs=False
 
 [Namespaces]
 

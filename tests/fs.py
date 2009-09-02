@@ -4,16 +4,34 @@
 
 '''Test cases for the zim.fs module.'''
 
+from __future__ import with_statement
+
 import tests
 
 import os
 import time
+import logging
 
-import tests
 from zim.fs import *
 from zim.fs import Path, FileHandle, OverWriteError, TmpFile, get_tmpdir
 
 # TODO: also test dir.new_file()
+
+
+logger = logging.getLogger('zim.fs')
+
+
+class FilterOverWriteWarning(object):
+
+	def __enter__(self):
+		logger.addFilter(self)
+
+	def __exit__(self, *a):
+		logger.removeFilter(self)
+
+	def filter(self, record):
+		return not record.getMessage().startswith('mtime check failed')
+
 
 class TestFS(tests.TestCase):
 
@@ -112,6 +130,7 @@ class TestFS(tests.TestCase):
 		# TODO test compare
 		
 	def testTmpFile(self):
+		'''Test TmpFile object'''
 		dir = get_tmpdir()
 		file = TmpFile('foo.txt')
 		self.assertTrue(file.ischild(dir))
@@ -166,13 +185,15 @@ class TestFileOverwrite(tests.TestCase):
 		self.assertEquals(file.read(), 'bar')
 		self.modify(lambda p: open(p, 'w').write('XXX'))
 			# modify mtime and content
-		self.assertRaises(OverWriteError, file.write, 'foo')
+		with FilterOverWriteWarning():
+			self.assertRaises(OverWriteError, file.write, 'foo')
 		self.assertEquals(file.read(), 'XXX')
 
 		file = File(self.path, checkoverwrite=True)
 		file.write('bar')
 		self.modify(lambda p: open(p, 'w').write('bar'))
 			# modify mtime but keep content the same
-		file.write('foo')
+		with FilterOverWriteWarning():
+			file.write('foo')
 		self.assertEquals(file.read(), 'foo')
 

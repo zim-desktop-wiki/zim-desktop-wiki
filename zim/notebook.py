@@ -398,6 +398,17 @@ class Notebook(gobject.GObject):
 		name = ':'.join( map(unicode.strip,
 				filter(lambda n: len(n)>0, unicode(name).split(':')) ) )
 
+		# Reserved characters are:
+		# The ':' is reserrved as seperator
+		# The '?' is reserved to encode url style options
+		# The '#' is reserved as anchor separator
+		# The '/' and '\' are reserved to distinquise file links & urls
+		# First character of each part MUST be alphanumeric
+		#		(including utf8 letters / numbers)
+
+		# Zim version < 0.42 restricted all special charachters but
+		# white listed ".", "-", "_", "(", ")", ":" and "%".
+
 		# TODO check for illegal characters in the name
 
 		if not name or name.isspace():

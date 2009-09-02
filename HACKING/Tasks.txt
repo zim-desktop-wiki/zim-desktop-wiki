@@ -8,9 +8,8 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 
 == Art Work ==
 [*] Need icon for LinkMap plugin - re-use red boxes from zim logo ?
-[ ] Update icons for ~~attachement /~~ calendar / task list ?
+[ ] Update icons for calendar / task list ?
 [ ] Improve HTML templates & CSS stylesheets for export and server use
-	* How about some javascript controls ?
 
 == Packaging ==
 [ ] Update CHANGELOG.txt
