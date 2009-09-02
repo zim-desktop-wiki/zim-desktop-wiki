@@ -11,13 +11,14 @@ Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}
 Recommends: desktop-file-utils, bzr, subversion
 Suggests: scrot
-Description: graphical text editor based on wiki technologies
+Conflicts: zim (<= 0.41)
+Description: Graphical text editor based on wiki technologies
  Zim is a WYSIWYG text editor. It aims at bringing the concept of a wiki to
  your desktop. For example every page is saved as a text file with wiki markup.
  Pages can contain links to other pages, and are saved automatically. Creating
  a new page is as easy as linking to a non-existing page. Pages are
  ordered in a hierarchical structure that gives it the look and feel of an
- outliner. 
+ outliner.\n\n 
  This tool can be used to keep track of TODO lists or ideas, to take notes
  during a meeting or to draft any other kind of text: blog entries,
  important mails, etc.
