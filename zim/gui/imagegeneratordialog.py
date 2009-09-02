@@ -47,7 +47,8 @@ class ImageGeneratorDialog(Dialog):
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 
-		self.previewbutton = Button(_('_Preview'), stock='gtk-refresh')
+		self.previewbutton = Button(_('_Preview'), stock='gtk-refresh') 
+			# T: button in e.g. equation editor dialog
 		self.previewbutton.set_sensitive(False)
 		self.previewbutton.connect_object(
 			'clicked', self.__class__.preview, self)
@@ -57,6 +58,7 @@ class ImageGeneratorDialog(Dialog):
 			lambda b: self.previewbutton.set_sensitive(b.get_modified()))
 
 		self.logbutton = Button(_('View _Log'), stock='gtk-file')
+			# T: button in e.g. equation editor dialog
 		self.logbutton.set_sensitive(False)
 		self.logbutton.connect_object(
 			'clicked', self.__class__.show_log, self)
