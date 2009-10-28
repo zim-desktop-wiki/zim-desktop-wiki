@@ -140,6 +140,7 @@ def main(argv):
 	'''Run the main program.'''
 	global ZIM_EXECUTABLE
 
+	# FIXME - this returns python.exe on my windows test
 	ZIM_EXECUTABLE = argv[0]
 	if '/' in ZIM_EXECUTABLE or '\\' in ZIM_EXECUTABLE:
 		ZIM_EXECUTABLE = File(ZIM_EXECUTABLE).path # abs path

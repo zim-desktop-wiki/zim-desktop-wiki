@@ -146,6 +146,7 @@ _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
 _is_not_style_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'style')
+_is_not_link_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'link')
 
 PIXBUF_CHR = u'\uFFFC'
 
@@ -303,8 +304,14 @@ class TextBuffer(gtk.TextBuffer):
 	def set_parsetree(self, tree):
 		'''Load a new ParseTree in the buffer, first flushes existing content'''
 		self.clear()
-		self.insert_parsetree_at_cursor(tree)
-		self.set_modified(False)
+		try:
+			self.insert_parsetree_at_cursor(tree)
+		except:
+			# Prevent auto-save to kick in at any cost
+			self.set_modified(False)
+			raise
+		else:
+			self.set_modified(False)
 
 	def insert_parsetree(self, iter, tree):
 		'''Insert a ParseTree within the existing buffer'''
@@ -427,7 +434,8 @@ class TextBuffer(gtk.TextBuffer):
 		if href == text:
 			href = None
 		tag = self.create_link_tag(href, **attrib)
-		self._editmode_tags = self._editmode_tags + (tag,)
+		self._editmode_tags = \
+			filter(_is_not_link_tag, self._editmode_tags) + (tag,)
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 
@@ -1337,12 +1345,13 @@ class TextView(gtk.TextView):
 		handled = True
 		buffer = self.get_buffer()
 		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
+		#~ print 'STATE %s' % event.state
 
 		if not self.get_editable():
 			handled = self._do_key_press_event_readonly(event)
 		elif buffer.get_has_selection():
 			handled = self._do_key_press_event_selection(event)
-		elif event.keyval in KEYVALS_TAB:
+		elif event.keyval in KEYVALS_TAB and not event.state:
 			# Tab at start of line indents, otherwise trigger end-of-word
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(iter)
@@ -1355,7 +1364,7 @@ class TextView(gtk.TextView):
 					buffer.increment_indent(iter)
 		elif event.keyval in KEYVALS_LEFT_TAB or \
 		(event.keyval in KEYVALS_BACKSPACE
-			and self.preferences['unindent_on_backspace']):
+			and self.preferences['unindent_on_backspace']) and not event.state:
 			# Backspace or Ctrl-Tab unindents line
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(iter)
@@ -1367,7 +1376,7 @@ class TextView(gtk.TextView):
 					done = buffer.decrement_indent(iter)
 				if event.keyval in KEYVALS_BACKSPACE and not done:
 					handled = False # do a normal backspace
-		elif event.keyval in KEYVALS_END_OF_WORD:
+		elif event.keyval in KEYVALS_END_OF_WORD and not event.state:
 			# Any other whitspace triggers end-of-line
 			char = unichr(gtk.gdk.keyval_to_unicode(event.keyval))
 			self._insert_and_emit(char, 'end-of-word')
@@ -1382,11 +1391,13 @@ class TextView(gtk.TextView):
 					self.click_link(iter)
 				else:
 					pass # do not insert newline, just ignore
-			else:
+			elif not event.state:
 				self._insert_and_emit('\n', 'end-of-line')
+			else:
+				hanlded = False
 		elif event.keyval in KEYVALS_HOME and \
 		not event.state & gtk.gdk.CONTROL_MASK:
-			# Smart Home key
+			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(insert)
 			if insert.equal(ourhome): iter = realhome
@@ -1614,20 +1625,20 @@ class TextView(gtk.TextView):
 			buffer.insert_bullet(
 				buffer.get_iter_at_mark(mark), autoformat_bullets[word])
 			buffer.delete_mark(mark)
-		elif url_re.search(word):
+		elif url_re.match(word):
 			apply_link(url_re[0])
-		elif page_re.search(word):
+		elif page_re.match(word):
 			# Do not link "10:20h", "10:20PM" etc. so check two letters before first ":"
 			w = word.strip(':').split(':')
 			if w and twoletter_re.search(w[0]):
 				apply_link(page_re[0])
 			else:
 				handled = False
-		elif interwiki_re.search(word):
+		elif interwiki_re.match(word):
 			apply_link(interwiki_re[0])
-		elif self.preferences['autolink_files'] and file_re.search(word):
+		elif self.preferences['autolink_files'] and file_re.match(word):
 			apply_link(file_re[0])
-		elif self.preferences['autolink_camelcase'] and camelcase_re.search(word):
+		elif self.preferences['autolink_camelcase'] and camelcase_re.match(word):
 			apply_link(camelcase_re[0])
 		else:
 			handled = False
@@ -2162,6 +2173,7 @@ class PageView(gtk.VBox):
 		# for some reason keeping a copy of the previous buffer
 		# prevents a number of segfaults ...
 		# we do clear the old buffer to save some memory
+		# TODO keep stack of ~3 buffers with content for better performance
 		if self.undostack:
 			self.undostack.block()
 			self.undostack = None
@@ -2181,7 +2193,17 @@ class PageView(gtk.VBox):
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
 			cursorpos = -1
-		self.set_parsetree(tree)
+
+		try:
+			self.set_parsetree(tree)
+		except:
+			self.page.readonly = True
+			self.set_readonly()
+			raise
+			# TODO set error page e.g. zim.notebook.LoadingErrorPage
+			# TODO show error dialog
+			# how to trigger this for testing ?
+
 		if cursorpos != -1:
 			buffer.place_cursor(buffer.get_iter_at_offset(cursorpos))
 
@@ -2838,7 +2860,7 @@ class InsertLinkDialog(Dialog):
 
 		text = self.get_field('text') or href
 
-		with buffer.user_action:
+		with self.buffer.user_action:
 			if self._selection_bounds:
 				start, end = map(
 					self.buffer.get_iter_at_offset, self._selection_bounds)

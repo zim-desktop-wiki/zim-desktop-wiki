@@ -11,6 +11,7 @@ VERSION=0.42.alpha2
 
 all:
 	@echo "make source - Create source package"
+	@echo "make test - Run test suite"
 	@echo "make install - Install on local system"
 	@echo "make buildrpm - Generate a rpm package"
 	@echo "make builddeb - Generate a deb package"
@@ -18,6 +19,9 @@ all:
 
 source:
 	$(PYTHON) setup.py sdist $(COMPILE)
+
+test:
+	$(PYTHON) test.py
 
 install:
 	$(PYTHON) setup.py install --root $(DESTDIR) $(COMPILE)
