@@ -30,7 +30,7 @@ Supported tags:
 	* any text set on these elements should be rendered as alt
 	* class can be used to control plugin functionality, e.g. class=latex-equation
 
-Unless html we respect line breaks and other whitespace as is.
+Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
 get the same effect.
 
@@ -291,7 +291,7 @@ class ParseTreeBuilder(object):
 
 			# Tags that are not allowed to have newlines
 			if not self._tail and self._last.tag in (
-			'h', 'emphasis', 'strong', 'mark', 'srtike', 'code'):
+			'h', 'emphasis', 'strong', 'mark', 'strike', 'code'):
 				# assume no nested tags in these types ...
 				if self._seen_eol:
 					text = text.rstrip('\n')

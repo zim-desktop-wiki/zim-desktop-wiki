@@ -259,7 +259,7 @@ class GtkInterface(NotebookInterface):
 					if helpers: key = helpers[0].key
 					else: key = 'none'
 				prefs.setdefault(type, key)
-				
+
 		self.mainwindow = MainWindow(self)
 
 		self.add_actions(ui_actions, self)
@@ -1468,6 +1468,7 @@ class OpenPageDialog(Dialog):
 		try:
 			name = self.get_field('name')
 			path = self.ui.notebook.resolve_path(name)
+				# we use resolve here on purpose - TODO add current page as ref
 		except PageNameError, error:
 			ErrorDialog(self, error).run()
 			return False
@@ -1491,11 +1492,12 @@ class NewPageDialog(Dialog):
 			fields=[('name', 'page', _('Page Name'), None)], # T: Input label
 			help=':Help:Pages'
 		)
+		self.namespace = namespace or Path(':')
 
 	def do_response_ok(self):
 		try:
 			name = self.get_field('name')
-			path = self.ui.notebook.resolve_path(name)
+			path = self.namespace + self.ui.notebook.cleanup_pathname(name)
 		except PageNameError, error:
 			ErrorDialog(self, error).run()
 			return False

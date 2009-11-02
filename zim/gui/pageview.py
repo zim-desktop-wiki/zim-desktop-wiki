@@ -2185,7 +2185,6 @@ class PageView(gtk.VBox):
 		buffer = TextBuffer()
 		self.view.set_buffer(buffer)
 		tree = page.get_parsetree()
-		page.set_ui_object(self)
 
 		cursorpos = 0
 		if tree is None:
@@ -2196,6 +2195,7 @@ class PageView(gtk.VBox):
 
 		try:
 			self.set_parsetree(tree)
+			page.set_ui_object(self) # only after succesful set tree in buffer
 		except:
 			self.page.readonly = True
 			self.set_readonly()
