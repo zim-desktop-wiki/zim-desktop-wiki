@@ -1334,69 +1334,33 @@ class TextView(gtk.TextView):
 		return cont # continue emit ?
 
 	def do_key_press_event(self, event):
-		# Returns boolean whether we handled the event or it should continue to emit
-		# Key bindings in standard input mode:
-		#   Tab at start of line indents line
-		#   Shift-Tab and optionally Backspace at start of line unindent line
-		#   Space, Tab and some other characters trigger word autoformatting
-		#   Enter triggers line autoformatting
-		#   Home toggles between real home and start of first word
-		# See below fro read-only mode and selection mode
-		handled = True
+		# This method defines extra key bindings for the standard input mode.
+		# It also triggers end-of-word and end-of-line signals.
+		# Calls in read-only mode or selection mode are dispatched to two
+		# methods below. Returns boolean whether we handled the event, this
+		# determines if the event is finished, or it should continue to be
+		# emited to any other handlers.
+
+		handled = False
 		buffer = self.get_buffer()
 		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
 		#~ print 'STATE %s' % event.state
 
 		if not self.get_editable():
-			handled = self._do_key_press_event_readonly(event)
+			# Dispatch read-only mode
+			if self._do_key_press_event_readonly(event):
+				return True
+			else:
+				return gtk.TextView.do_key_press_event(self, event)
 		elif buffer.get_has_selection():
-			handled = self._do_key_press_event_selection(event)
-		elif event.keyval in KEYVALS_TAB and not event.state:
-			# Tab at start of line indents, otherwise trigger end-of-word
-			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			realhome, ourhome = self.get_home_positions(iter)
-			if iter.compare(ourhome) == 1: # iter beyond home position
-				self._insert_and_emit('\t', 'end-of-word')
+			# Dispatch selection mode
+			if self._do_key_press_event_selection(event):
+				return True
 			else:
-				iter = buffer.get_iter_at_mark(buffer.get_insert())
-				iter = buffer.get_iter_at_line(iter.get_line())
-				with buffer.user_action:
-					buffer.increment_indent(iter)
-		elif event.keyval in KEYVALS_LEFT_TAB or \
-		(event.keyval in KEYVALS_BACKSPACE
-			and self.preferences['unindent_on_backspace']) and not event.state:
-			# Backspace or Ctrl-Tab unindents line
-			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			realhome, ourhome = self.get_home_positions(iter)
-			if iter.compare(ourhome) == 1: # iter beyond home position
-				handled = False
-			else:
-				with buffer.user_action:
-					iter = buffer.get_iter_at_line(iter.get_line())
-					done = buffer.decrement_indent(iter)
-				if event.keyval in KEYVALS_BACKSPACE and not done:
-					handled = False # do a normal backspace
-		elif event.keyval in KEYVALS_END_OF_WORD and not event.state:
-			# Any other whitspace triggers end-of-line
-			char = unichr(gtk.gdk.keyval_to_unicode(event.keyval))
-			self._insert_and_emit(char, 'end-of-word')
-		elif event.keyval in KEYVALS_ENTER:
-			# Enter can trigger links
-			buffer = self.get_buffer()
-			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			link = buffer.get_link_data(iter)
-			if link:
-				if self.preferences['follow_on_enter'] \
-				or event.state & gtk.gdk.MOD1_MASK: # Meta == Alt
-					self.click_link(iter)
-				else:
-					pass # do not insert newline, just ignore
-			elif not event.state:
-				self._insert_and_emit('\n', 'end-of-line')
-			else:
-				hanlded = False
-		elif event.keyval in KEYVALS_HOME and \
-		not event.state & gtk.gdk.CONTROL_MASK:
+				return gtk.TextView.do_key_press_event(self, event)
+
+		elif (event.keyval in KEYVALS_HOME
+		and not event.state & gtk.gdk.CONTROL_MASK):
 			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			realhome, ourhome = self.get_home_positions(insert)
@@ -1406,13 +1370,85 @@ class TextView(gtk.TextView):
 				buffer.move_mark_by_name('insert', iter)
 			else:
 				buffer.place_cursor(iter)
-		else:
-			handled = False
+			handled = True
+		elif event.keyval in KEYVALS_TAB and not event.state:
+			# Tab at start of line indents
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			realhome, ourhome = self.get_home_positions(iter)
+			if iter.compare(ourhome) < 1:
+				iter = buffer.get_iter_at_mark(buffer.get_insert())
+				iter = buffer.get_iter_at_line(iter.get_line())
+				with buffer.user_action:
+					buffer.increment_indent(iter)
+				handled = True
+		elif (event.keyval in KEYVALS_LEFT_TAB
+		or (event.keyval in KEYVALS_BACKSPACE
+			and self.preferences['unindent_on_backspace']) and not event.state):
+			# Backspace or Ctrl-Tab unindents line
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			realhome, ourhome = self.get_home_positions(iter)
+			if iter.compare(ourhome) < 1:
+				with buffer.user_action:
+					iter = buffer.get_iter_at_line(iter.get_line())
+					done = buffer.decrement_indent(iter)
+				if event.keyval in KEYVALS_BACKSPACE and not done:
+					handled = False # do a normal backspace
+				else:
+					handled = True
+		elif event.keyval in KEYVALS_ENTER:
+			# Enter can trigger links
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			link = buffer.get_link_data(iter)
+			if link:
+				if (self.preferences['follow_on_enter']
+				or event.state & gtk.gdk.MOD1_MASK): # MOD1 == Alt
+					self.click_link(iter)
+				# else do not insert newline, just ignore
+				handled = True
+
 
 		if handled:
-			return True
-		else:
-			return gtk.TextView.do_key_press_event(self, event)
+			return True # end of event chain
+		elif not gtk.TextView.do_key_press_event(self, event):
+			# Parent class also has no handler for this key
+			return False
+
+		elif (event.keyval in KEYVALS_END_OF_WORD
+		or event.keyval in KEYVALS_ENTER):
+			# Trigger end-of-line and/or end-of-word signals if char was
+			# really inserted by parent class.
+			#
+			# We do it this way because in some cases e.g. a space is not
+			# inserted but is used to select an option in an input mode e.g.
+			# to select between various chinese characters. See lp:460438
+			insert = buffer.get_iter_at_mark(buffer.get_insert())
+			mark = buffer.create_mark(None, insert)
+			iter = insert.copy()
+			iter.backward_char()
+
+			if event.keyval in KEYVALS_ENTER:
+				char = '\n'
+			else:
+				char = unichr(gtk.gdk.keyval_to_unicode(event.keyval))
+
+			if iter.get_text(insert) != char:
+				return True
+
+			# TODO How to tell the undo stack that we want this cursor back on the next undo ?
+			with buffer.user_action:
+				start = iter.copy()
+				if buffer.iter_backward_word_start(start):
+					word = start.get_text(iter)
+					self.emit('end-of-word', start, iter, word)
+
+				if event.keyval in KEYVALS_ENTER:
+					self.emit('end-of-line', iter)
+
+			buffer.place_cursor(buffer.get_iter_at_mark(mark))
+			self.scroll_mark_onscreen(mark)
+			buffer.delete_mark(mark)
+
+		return True
 
 	def _insert_and_emit(self, char, signal):
 		# Helper method for emitting end-of-word and end-of-line signals
@@ -1429,23 +1465,7 @@ class TextView(gtk.TextView):
 				if textstyle != 'pre':
 					buffer.set_textstyle(None)
 			buffer.insert_at_cursor(char)
-			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			mark = buffer.create_mark(None, iter)
-			iter.backward_char()
 
-		# TODO How to tell the undo stack that we want this cursor back on the next undo ?
-		with buffer.user_action:
-			start = iter.copy()
-			if buffer.iter_backward_word_start(start):
-				word = start.get_text(iter)
-				self.emit('end-of-word', start, iter, word)
-
-			if signal == 'end-of-line':
-				self.emit('end-of-line', iter)
-
-		buffer.place_cursor(buffer.get_iter_at_mark(mark))
-		self.scroll_mark_onscreen(mark)
-		buffer.delete_mark(mark)
 
 	def _do_key_press_event_readonly(self, event):
 		# Key bindings in read-only mode:
