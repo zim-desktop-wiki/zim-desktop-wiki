@@ -256,6 +256,12 @@ class PageTreeView(BrowserTreeView):
 		self.set_model(PageTreeStore(notebook.index))
 		if not ui.page is None:
 			self.select_page(ui.page)
+		self.get_model().connect('row-inserted', self.on_row_inserted)
+
+	def on_row_inserted(self, model, treepath, iter):
+		path = model.get_indexpath(iter)
+		if path == self.ui.page:
+			self.select_page(self.ui.page)
 
 	def do_row_activated(self, treepath, column):
 		'''Handler for the row-activated signal, emits page-activated'''

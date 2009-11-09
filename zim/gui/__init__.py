@@ -588,13 +588,19 @@ class GtkInterface(NotebookInterface):
 			return OpenPageDialog(self).run()
 
 		assert isinstance(path, Path)
-		logger.info('Open page: %s', path)
 		if isinstance(path, Page):
 			page = path
 		else:
 			page = self.notebook.get_page(path)
-		if self.page:
+		
+		if self.page and id(self.page) == id(page):
+			# Check ID to enable reload_page but catch all other
+			# redundant calls.
+			return
+		elif self.page:
 			assert self.close_page(self.page)
+		
+		logger.info('Open page: %s (%s)', page, path)
 		self.emit('open-page', page, path)
 
 	def do_open_page(self, page, path):
