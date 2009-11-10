@@ -379,6 +379,11 @@ dus ja <emphasis>hmm
 dus ja
 </emphasis>grrr
 
+<strong>foo
+
+bar
+</strong>
+<strike></strike><emphasis>   </emphasis>
 </zim-tree>'''
 
 		wanted = '''\
@@ -402,6 +407,11 @@ dus ja <emphasis>hmm</emphasis>
 <emphasis>dus ja</emphasis>
 grrr
 
+<strong>foo</strong>
+
+<strong>bar</strong>
+
+   
 </zim-tree>'''
 
 		# For some reason this does not work with cElementTree.XMLBuilder ...

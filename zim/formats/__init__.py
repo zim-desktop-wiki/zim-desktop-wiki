@@ -213,6 +213,22 @@ split_para_re = re.compile(r'((?:^[ \t]*\n){2,})', re.M)
 
 
 class ParseTreeBuilder(object):
+	'''This class supplies an alternative for xml.etree.ElementTree.TreeBuilder
+	which cleans up the tree on the fly while building it. The main use
+	is to normalize the tree that is produced by the editor widget, but it can
+	also be used on other "dirty" interfaces.
+
+	This builder takes care of the following issues:
+	* Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines
+	* Tags can not contain only whitespace
+	* Tags can not be empty (with the exception of the 'img' tag)
+	* There should be an empty line before each 'h', 'p' or 'pre'
+	  (with the exception of the first tag in the tree)
+	* The 'p' and 'pre' elements should always end with a newline ('\n')
+	* Each 'p', 'pre' and 'h' should be postfixed with a newline ('\n')
+	  (as a results 'p' and 'pre' are followed by an empty line, the
+	   'h' does not end in a newline itself, so it is different)
+	'''
 
 	def __init__(self):
 		self._stack = [] # stack of elements for open tags
@@ -250,11 +266,36 @@ class ParseTreeBuilder(object):
 			self._flush()
 		#~ print 'END', tag
 
-		self._last = self._stack.pop()
+		self._last = self._stack[-1]
 		assert self._last.tag == tag, \
 			"end tag mismatch (expected %s, got %s)" % (self._last.tag, tag)
- 		self._tail = True
-		return self._last
+		self._tail = True
+
+		if len(self._stack) > 1 and not (tag == 'img'
+		or (self._last.text and not self._last.text.isspace())
+		or self._last.getchildren() ):
+			# purge empty tags
+			if self._last.text and self._last.text.isspace():
+				self._append_to_previous(self._last.text)
+
+			empty = self._stack.pop()
+			self._stack[-1].remove(empty)
+			children = self._stack[-1].getchildren()
+			if children:
+				self._last = children[-1]
+				if not self._last.tail is None:
+					self._data = [self._last.tail]
+					self._last.tail = None
+			else:
+				self._last = self._stack[-1]
+				if not self._last.text is None:
+					self._data = [self._last.text]
+					self._last.text = None
+
+			return empty
+
+		else:
+			return self._stack.pop()
 
 	def data(self, text):
 		assert isinstance(text, basestring)
@@ -299,23 +340,23 @@ class ParseTreeBuilder(object):
 					self._seen_eol = 0
 				lines = text.split('\n')
 
-				self._stack.pop()
 				for line in lines[:-1]:
 					assert self._last.text is None, "internal error (text)"
 					assert self._last.tail is None, "internal error (tail)"
-					self._last.text = line
-					self._last.tail = '\n'
-					self._last = Element(self._last.tag)
-					self._stack[-1].append(self._last)
-
-				self._stack.append(self._last)
+					if line and not line.isspace():
+						self._last.text = line
+						self._last.tail = '\n'
+						self._last = Element(self._last.tag)
+						self._stack[-2].append(self._last)
+						self._stack[-1] = self._last
+					else:
+						self._append_to_previous(line + '\n')
 
 				assert self._last.text is None, "internal error (text)"
 				self._last.text = lines[-1]
 			else:
 				# TODO split paragraphs
 
-				# And finally add the text to the tree...
 				if self._tail:
 					assert self._last.tail is None, "internal error (tail)"
 					self._last.tail = text
@@ -328,6 +369,21 @@ class ParseTreeBuilder(object):
 		assert len(self._stack) == 0, 'missing end tags'
 		assert not self._last is None and self._last.tag == 'zim-tree', 'missing root element'
 		return self._last
+
+	def _append_to_previous(self, text):
+		'''Add text before current element'''
+		parent = self._stack[-2]
+		children = parent.getchildren()[:-1]
+		if children:
+			if children[-1].tail:
+				children[-1].tail = children[-1].tail + text
+			else:
+				children[-1].tail = text
+		else:
+			if parent.text:
+				parent.text = parent.text + text
+			else:
+				parent.text = text
 
 
 class ParserClass(object):
