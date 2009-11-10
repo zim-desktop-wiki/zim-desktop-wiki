@@ -227,8 +227,30 @@ class TestUndoStackManager(TestCase):
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo <strong>barr</strong> baz</zim-tree>")
 
 
-class TestPageView(object): #TestCase):
+#~ def press(widget, char):
+	#~ event = gtk.gdk.Event(gtk.gdk.KEY_PRESS)
+	#~ event.keyval = int( gtk.gdk.unicode_to_keyval(ord(char)) )
+	#~ event.string = char
+	#~ widget.event(event)
+#~
+#~ class TestTextView(TestCase):
+#~
+	#~ preferences = {
+	#~ }
+#~
+	#~ def runTest(self):
+		#~ view = TextView(self.preferences)
+		#~ buffer = TextBuffer()
+		#~ view.set_buffer(buffer)
+		#~ undomanager = UndoStackManager(buffer)
+#~
+		#~ # Need a window to get the widget realized
+		#~ window = gtk.Window()
+		#~ window.add(view)
+		#~ window.show_all()
+#~
+		#~ press(view, '*')
+		#~ press(view, '\n')
+		#~ start, end = buffer.get_bounds()
+		#~ self.assertEqual(buffer.get_text(start, end), '*\n')
 
-	pass
-
-	# TODO at least test special keybindings + undo for those combos

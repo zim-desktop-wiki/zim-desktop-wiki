@@ -40,6 +40,7 @@
 			<menuitem action='xtoggle_checkbox'/>
 			<separator/>
 			<menuitem action='edit_object'/>
+			<menuitem action='remove_link'/>
 			<separator/>
 			<placeholder name='edit_page'/>
 			<separator/>

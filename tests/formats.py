@@ -149,8 +149,8 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
 LINKS: <link href="Foo">Foo</link><link href="Bar">Bar</link>
 </p>
-<p>	Some indented
-	paragraphs go here ...
+<p indent="1">Some indented
+paragraphs go here ...
 </p>
 
 <p><img src="./equation003.png" type="equation" />
@@ -286,9 +286,9 @@ LINKS: <a href="page://:foo:bar">:foo:bar</a> <a href="file://./file.png">./file
 LINKS: <a href="page://Foo">Foo</a><a href="page://Bar">Bar</a><br>
 </p>
 
-<p>
-&nbsp;&nbsp;&nbsp;&nbsp;Some indented<br>
-&nbsp;&nbsp;&nbsp;&nbsp;paragraphs go here ...<br>
+<p style='padding-left: 30pt'>
+Some indented<br>
+paragraphs go here ...<br>
 </p>
 
 
@@ -379,6 +379,11 @@ dus ja <emphasis>hmm
 dus ja
 </emphasis>grrr
 
+<strong>foo
+
+bar
+</strong>
+<strike></strike><emphasis>   </emphasis>
 </zim-tree>'''
 
 		wanted = '''\
@@ -402,6 +407,11 @@ dus ja <emphasis>hmm</emphasis>
 <emphasis>dus ja</emphasis>
 grrr
 
+<strong>foo</strong>
+
+<strong>bar</strong>
+
+   
 </zim-tree>'''
 
 		# For some reason this does not work with cElementTree.XMLBuilder ...

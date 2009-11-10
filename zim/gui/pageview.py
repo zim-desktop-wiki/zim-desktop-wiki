@@ -82,6 +82,7 @@ ui_actions = (
 	('toggle_checkbox', STOCK_CHECKED_BOX, _('Toggle Checkbox \'V\''), 'F12', '', False), # T: Menu item
 	('xtoggle_checkbox', STOCK_XCHECKED_BOX, _('Toggle Checkbox \'X\''), '<shift>F12', '', False), # T: Menu item
 	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<ctrl>E', '', False), # T: Menu item
+	('remove_link', None, _('_Remove Link'), '', '', False), # T: Menu item
 	('insert_date', None, _('_Date and Time...'), '<ctrl>D', '', False), # T: Menu item
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
@@ -770,6 +771,7 @@ class TextBuffer(gtk.TextBuffer):
 			self.remove_tag(tags[0], start, end)
 		tag = self._get_indent_tag(level)
 		self.apply_tag(tag, start, end)
+		self.set_modified(True)
 		return True
 
 	def increment_indent(self, iter):
@@ -1125,6 +1127,22 @@ class TextBuffer(gtk.TextBuffer):
 		self.select_range(insert, bound)
 		return link
 
+	def remove_link(self):
+		'''Removes the link at the cursor, if any.
+		Returns link data or None when there was no link at the cursor.
+		'''
+		iter = self.get_iter_at_mark(self.get_insert())
+		tag = self.get_link_tag(iter)
+		link = self.select_link()
+		if tag and link:
+			start, end = self.get_selection_bounds()
+			self.remove_tag(tag, start, end)
+			self.set_modified(True)
+			self.set_editmode_from_cursor()
+			return link
+		else:
+			return None
+
 	def toggle_checkbox(self, iter, checkbox_type=CHECKED_BOX):
 		bullet = self.get_bullet_at_iter(iter)
 		if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
@@ -1296,7 +1314,7 @@ class TextView(gtk.TextView):
 		link-clicked (link) - Emitted when the used clicks a link
 		link-enter (link) - Emitted when the mouse pointer enters a link
 		link-leave (link) - Emitted when the mouse pointer leaves a link
-		end-of-word (start, end, word) - Emitted when the user typed a character like space that ends a word
+		end-of-word (start, end, word, char) - Emitted when the user typed a character like space that ends a word
 		end-of-line (end) - Emitted when the user typed a newline
 
 	Plugin writers that want to add auto-formatting logic should connect to
@@ -1311,7 +1329,7 @@ class TextView(gtk.TextView):
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'end-of-word': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)),
+		'end-of-word': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object)),
 		'end-of-line': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 
 		# Override clipboard interaction
@@ -1482,9 +1500,12 @@ class TextView(gtk.TextView):
 				start = iter.copy()
 				if buffer.iter_backward_word_start(start):
 					word = start.get_text(iter)
-					self.emit('end-of-word', start, iter, word)
+					self.emit('end-of-word', start, iter, word, char)
 
 				if event.keyval in KEYVALS_ENTER:
+					# iter may be invalid by now because of end-of-word
+					iter = buffer.get_iter_at_mark(mark)
+					iter.backward_char()
 					self.emit('end-of-line', iter)
 
 			buffer.place_cursor(buffer.get_iter_at_mark(mark))
@@ -1661,7 +1682,7 @@ class TextView(gtk.TextView):
 			# only start visual line, not start of real line
 			return realhome, realhome.copy()
 
-	def do_end_of_word(self, start, end, word):
+	def do_end_of_word(self, start, end, word, char):
 		buffer = self.get_buffer()
 		handled = True
 		#~ print 'WORD >>%s<<' % word
@@ -1683,9 +1704,9 @@ class TextView(gtk.TextView):
 			buffer.apply_tag(tag, start, end)
 			return True
 
-		if start.starts_line() and word in autoformat_bullets:
+		if char == ' ' and start.starts_line() and word in autoformat_bullets:
 			# format bullet and checkboxes
-			end.forward_char() # also overwrite the char triggering the action
+			end.forward_char() # also overwrite the space triggering the action
 			mark = buffer.create_mark(None, end)
 			buffer.delete(start, end)
 			buffer.insert_bullet(
@@ -2431,6 +2452,12 @@ class PageView(gtk.VBox):
 
 		menu.prepend(gtk.SeparatorMenuItem())
 
+		# remove link
+		if link:
+			item = gtk.MenuItem(_('_Remove Link'))
+			item.connect('activate', lambda o: self.remove_link(iter=iter))
+			menu.prepend(item)
+
 		# edit
 		item = gtk.MenuItem(_('_Edit Link')) # T: menu item in context menu
 		item.connect('activate', lambda o: self.edit_object(iter=iter))
@@ -2550,6 +2577,12 @@ class PageView(gtk.VBox):
 				EditImageDialog(self.ui, buffer, self.page).run()
 		else:
 			return False
+
+	def remove_link(self, iter=None):
+		buffer = self.view.get_buffer()
+		if iter:
+			buffer.place_cursor(iter)
+		buffer.remove_link()
 
 	def insert_date(self):
 		InsertDateDialog(self.ui, self.view.get_buffer()).run()
