@@ -161,3 +161,9 @@ class TextBuffer(list):
 		if lines and not lines[-1].endswith('\n'):
 			lines[-1] += '\n'
 		return lines
+
+	def prefix_lines(self, prefix):
+		'''Prefix each line with string 'prefix'.'''
+		lines = self.get_lines()
+		self[:] = [prefix + line for line in lines]
+

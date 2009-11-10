@@ -759,6 +759,7 @@ class TextBuffer(gtk.TextBuffer):
 			self.remove_tag(tags[0], start, end)
 		tag = self._get_indent_tag(level)
 		self.apply_tag(tag, start, end)
+		self.set_modified(True)
 
 	def increment_indent(self, iter):
 		level = self.get_indent(iter)

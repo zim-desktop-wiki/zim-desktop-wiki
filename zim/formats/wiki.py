@@ -42,6 +42,7 @@ parser_re = {
 	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % bullet_re, re.M),
 	'listitem':   re.compile("^([ \t]*)(%s)[ \t]+(.*\n?)" % bullet_re),
 	'unindented_line': re.compile('^\S', re.M),
+	'indent':     re.compile('^(\t+)'),
 
 	# All the experssions below will match the inner pair of
 	# delimiters if there are more then two characters in a row.
@@ -154,7 +155,13 @@ class Parser(ParserClass):
 		if para.isspace():
 			builder.data(para)
 		else:
-			builder.start('p')
+			indent = self._determine_indent(para)
+			if indent > 0:
+				builder.start('p', {'indent': indent})
+				para = ''.join(
+					map(lambda line: line[indent:], para.splitlines(True)) )
+			else:
+				builder.start('p')
 			parts = parser_re['splitlist'].split(para)
 			for i, p in enumerate(parts):
 				if i % 2:
@@ -163,6 +170,16 @@ class Parser(ParserClass):
 				elif len(p) > 0:
 					self._parse_text(builder, p)
 			builder.end('p')
+
+	def _determine_indent(self, text):
+		lvl = 999 # arbitrary large value
+		for line in text.splitlines():
+			m = parser_re['indent'].match(line)
+			if m:
+				lvl = min(lvl, len(m.group(1)))
+			else:
+				return 0
+		return lvl
 
 	def _parse_list(self, builder, list):
 		'''Parse a bullet list'''
@@ -257,7 +274,14 @@ class Dumper(DumperClass):
 
 		for element in list.getchildren():
 			if element.tag == 'p':
-				self.dump_children(element, output) # recurs
+				indent = 0
+				if 'indent' in element.attrib:
+					indent = int(element.attrib['indent'])
+				myoutput = TextBuffer()
+				self.dump_children(element, myoutput) # recurs
+				if indent:
+					myoutput.prefix_lines('\t'*indent)
+				output.extend(myoutput)
 			elif element.tag == 'ul':
 				self.dump_children(element, output, list_level=list_level+1) # recurs
 			elif element.tag == 'h':
