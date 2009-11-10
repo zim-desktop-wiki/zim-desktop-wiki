@@ -144,6 +144,10 @@ ui_preferences = (
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
 _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
+_is_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'h'
+_is_pre_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'pre'
+_is_line_based_tag = lambda tag: _is_indent_tag(tag) or _is_heading_tag(tag) or _is_pre_tag(tag)
+_is_not_line_based_tag = lambda tag: not _is_line_based_tag(tag)
 _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
 _is_not_style_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'style')
 _is_not_link_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'link')
@@ -612,25 +616,27 @@ class TextBuffer(gtk.TextBuffer):
 
 	def iter_get_zim_tags(self, iter):
 		'''Like gtk.TextIter.get_tags() but only returns our own tags and
-		assumes tags have "left gravity". An exception are indent tags, which
-		gravitate both ways (but not at the same time).
-		This method is used to determing which tags should be applied to newly
-		inserted text at 'iter'.
+		assumes inline tags (like 'strong', 'emphasis' etc.) have "left gravity". 
+		The "line based" tags (like 'indent', 'h', 'pre') gravitate both ways 
+		(but not at the same time). This method is used to determing which tags 
+		should be applied to newly inserted text at 'iter'.
 		'''
+		# For example:
 		# <indent level=1>foo\n</indent><cursor><indent level=2>bar</indent>
 		#	in this case new text should get indent level 2 -> right gravity
 		# <indent level=1>foo\n</indent><indent level=2>bar</indent><cursor>\n
 		#	in this case new text should also get indent level 2 -> left gravity
-		exclude_start_tags = set(filter(_is_not_indent_tag, iter.get_toggled_tags(True)))
+		start_tags = set(filter(_is_not_line_based_tag, iter.get_toggled_tags(True)))
 		tags = filter(
-			lambda tag: _is_zim_tag(tag) and not tag in exclude_start_tags,
+			lambda tag: _is_zim_tag(tag) and not tag in start_tags,
 			iter.get_tags() )
-		if filter(_is_indent_tag, tags):
-			# already have a right gravity indent tag
-			tags.extend( filter(_is_not_indent_tag, iter.get_toggled_tags(False)) )
-		else:
-			# allow a left gravity indent tag
-			tags.extend( filter(_is_zim_tag, iter.get_toggled_tags(False)) )
+
+		end_tags = filter(_is_zim_tag, iter.get_toggled_tags(False))
+		if filter(_is_line_based_tag, tags):
+			# already have a right gravity line-based tag
+			end_tags = filter(_is_not_line_based_tag, end_tags)
+		tags.extend(end_tags)
+
 		tags.sort(key=lambda tag: tag.get_priority())
 		return tags
 
@@ -680,32 +686,35 @@ class TextBuffer(gtk.TextBuffer):
 
 	def remove_textstyle_tags(self, start, end):
 		'''Removes all textstyle tags from a range'''
-		# We can not just call remove_tag() for all text style tags
-		# this would confuse the hell out of the undostack manager.
-		# We assume only one text style at the time
-		# would need to adjust this function for overlapping styles
-		iter = start.copy()
-		while iter.compare(end) == -1:
-			tags = filter(_is_style_tag, iter.get_tags())
-			if tags:
-				assert len(tags) == 1
-				bound = iter.copy()
-				while bound.compare(end) == -1:
-					bound.forward_to_tag_toggle(tags[0])
-					if bound.ends_tag(tags[0]):
-						self.remove_tag(tags[0], iter, bound)
-						self.set_modified(True)
-						break
-					else:
-						continue
-				else:
-					self.remove_tag(tags[0], iter, end)
-					self.set_modified(True)
-				iter = bound
-			else:
-				iter.forward_to_tag_toggle(None)
-
+		self.smart_remove_tags(_is_style_tag, start, end)
 		self.set_editmode_from_cursor()
+
+	def smart_remove_tags(self, func, start, end):
+		'''This method removes tags over a range based on a function to test if a
+		tag needs to be removed or not. This is needed because directly calling
+		remove_tag() without knowing if a tag was present or not will trigger the
+		UndoStackManager to assume the tag was there.
+		'''
+		with self.user_action:
+			iter = start.copy()
+			while iter.compare(end) == -1:
+				for tag in filter(func, iter.get_tags()):
+					bound = iter.copy()
+					while bound.compare(end) == -1:
+						# FIXME explain why we need this loop
+						bound.forward_to_tag_toggle(tag)
+						if bound.ends_tag(tag):
+							self.remove_tag(tag, iter, bound)
+							self.set_modified(True)
+							break
+						else:
+							continue
+					else:
+						self.remove_tag(tag, iter, end)
+						self.set_modified(True)
+			
+				if not iter.forward_to_tag_toggle(None):
+					break
 
 	def set_indent(self, level):
 		'''Sets the current indent level. This style will be applied
@@ -750,6 +759,9 @@ class TextBuffer(gtk.TextBuffer):
 
 	def set_indent_for_line(self, level, line):
 		start = self.get_iter_at_line(line)
+		if filter(_is_heading_tag, start.get_tags()):
+			return False
+
 		end = start.copy()
 		end.forward_line()
 		tags = filter(_is_indent_tag, start.get_tags())
@@ -758,17 +770,19 @@ class TextBuffer(gtk.TextBuffer):
 			self.remove_tag(tags[0], start, end)
 		tag = self._get_indent_tag(level)
 		self.apply_tag(tag, start, end)
+		return True
 
 	def increment_indent(self, iter):
 		level = self.get_indent(iter)
-		self.set_indent_for_line(level+1, iter.get_line())
-		self.set_editmode_from_cursor() # also updates indent tag
-		return True
+		if self.set_indent_for_line(level+1, iter.get_line()):
+			self.set_editmode_from_cursor() # also updates indent tag
+			return True
+		else:
+			return False
 
 	def decrement_indent(self, iter):
 		level = self.get_indent(iter)
-		if level > 0:
-			self.set_indent_for_line(level-1, iter.get_line())
+		if level > 0 and self.set_indent_for_line(level-1, iter.get_line()):
 			self.set_editmode_from_cursor() # also updates indent tag
 			return True
 		else:
@@ -1237,6 +1251,35 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		return bool(self.get_selection_bounds())
 
+	def do_delete_range(self, start, end):
+		# Wrap actual delete to hook _do_lines_merged
+		if start.get_line() != end.get_line():
+			with self.user_action:
+				mark = self.create_mark(None, start)
+				gtk.TextBuffer.do_delete_range(self, start, end)
+				iter = self.get_iter_at_mark(mark)
+				self.delete_mark(mark)
+				self._do_lines_merged(iter)
+		else:
+			gtk.TextBuffer.do_delete_range(self, start, end)
+
+	def _do_lines_merged(self, iter):
+		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
+		if iter.starts_line() or iter.ends_line():
+			return
+		
+		end = iter.copy()
+		end.forward_to_line_end()
+		
+		self.smart_remove_tags(_is_line_based_tag, iter, end)
+		
+		for tag in self.iter_get_zim_tags(iter):
+			if _is_line_based_tag(tag):
+				self.apply_tag(tag, iter, end)
+
+		self.set_editmode_from_cursor()
+
+
 # Need to register classes defining gobject signals
 gobject.type_register(TextBuffer)
 
@@ -1622,6 +1665,9 @@ class TextView(gtk.TextView):
 		buffer = self.get_buffer()
 		handled = True
 		#~ print 'WORD >>%s<<' % word
+
+		if buffer.iter_get_zim_tags(start)or buffer.iter_get_zim_tags(end):
+			return
 
 		def apply_link(match):
 			#~ print "LINK >>%s<<" % word

@@ -40,5 +40,5 @@ builddeb:
 clean:
 	$(PYTHON) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
-	rm -rf build/ MANIFEST
+	rm -rf build/ MANIFEST tests/tmp/
 	find . -name '*.pyc' -delete

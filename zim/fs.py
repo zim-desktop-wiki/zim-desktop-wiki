@@ -65,7 +65,11 @@ class UnixPath(object):
 		elif path.startswith('~'):
 			path = os.path.expanduser(path)
 
-		self.path = os.path.abspath(path)
+		self.path = self._abspath(path)
+
+	@staticmethod
+	def _abspath(path):
+		return os.path.abspath(path)
 
 	@staticmethod
 	def _parse_uri(uri):
@@ -183,6 +187,13 @@ class UnixPath(object):
 
 
 class WindowsPath(UnixPath):
+
+	@staticmethod
+	def _abspath(path):
+		# Strip leading / for absolute paths
+		if re.match(r'^[/\\][A-Z]:[/\\]', path):
+			path = path[1:]
+		return os.path.abspath(path)
 
 	@property
 	def uri(self):

@@ -20,7 +20,7 @@ from zim.fs import *
 from zim.errors import Error
 from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
 	config_file, data_dir, user_dirs
-from zim.parsing import Re, is_url_re, is_email_re, link_type
+from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type 
 import zim.stores
 
 
@@ -674,12 +674,22 @@ class Notebook(gobject.GObject):
 
 		Other paths are considered attachments and are resolved relative
 		to the namespce below the page.
+
+		Because this is used to resolve file links and is supposed to be
+		platform independent it tries to convert windows filenames to
+		unix equivalents.
 		'''
+		filename = filename.replace('\\', '/')
 		if filename.startswith('~') or filename.startswith('file:/'):
 			return File(filename)
 		elif filename.startswith('/'):
 			dir = self.get_document_root() or Dir('~')
 			return dir.file(filename)
+		elif is_win32_path_re.match(filename):
+			if not filename.startswith('/'):
+				filename = '/'+filename
+				# make absolute on unix
+			return File(filename)
 		else:
 			# TODO - how to deal with '..' in the middle of the path ?
 			filepath = [p for p in filename.split('/') if len(p) and p != '.']

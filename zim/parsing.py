@@ -134,9 +134,17 @@ class Re(object):
 
 # Some often used regexes
 is_url_re = Re('^(\w[\w\+\-\.]+)://')
+	# scheme "://"
 is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')
-is_path_re = Re('.*/') # FIXME - any better check ?
+	# "mailto:" address
+	# name "@" host
+is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Z]:\\)')
+	# / ~/ ./ ../ ~user/  .\ ..\ ~\ ~user\
+	# X:\ 
+is_win32_path_re = Re(r'^[A-Z]:[\\/]')
+	# X:\ (or X:/)
 is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
+	# identifyer "?" path
 
 def link_type(link):
 	'''Function that retuns a link type for urls and page links'''

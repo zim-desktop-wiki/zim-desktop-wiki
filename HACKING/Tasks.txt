@@ -23,7 +23,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 
 
 == Defects ==
-[ ] Pageview: enforce heading can not be indented
+[*] Pageview: enforce heading can not be indented
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
 [ ] Pageview: Rich copy paste / drag drop
 [ ] Pageindex: Drag&Drop in the side pane is not working

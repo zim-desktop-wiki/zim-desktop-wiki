@@ -37,3 +37,5 @@ class TestParsing(TestCase):
 		self.assertEqual(
 			buffer.get_lines(),
 			['test 123\n', ' test !fooo bar\n', 'duss\n'] )
+
+    # TODO - test link_type including win32 paths

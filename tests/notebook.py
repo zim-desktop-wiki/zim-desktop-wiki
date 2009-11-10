@@ -311,13 +311,18 @@ class TestNotebook(tests.TestCase):
 		doc_root = self.notebook.get_document_root()
 		for link, wanted, cleaned in (
 			('~/test.txt', File('~/test.txt'), '~/test.txt'),
+			(r'~\test.txt', File('~/test.txt'), '~/test.txt'),
 			('file:///test.txt', File('file:///test.txt'), None),
 			('file:/test.txt', File('file:///test.txt'), None),
 			('file://localhost/test.txt', File('file:///test.txt'), None),
 			('/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('./test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
+			(r'.\test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
 			('../test.txt', dir.file('Foo/test.txt'), '../test.txt'),
+			(r'..\test.txt', dir.file('Foo/test.txt'), '../test.txt'),
 			('../Bar/Baz/test.txt', dir.file('Foo/Bar/Baz/test.txt'), './Baz/test.txt'),
+			(r'C:\foo\bar', File('file:///C:/foo/bar'), None),
+			(r'Z:\foo\bar', File('file:///Z:/foo/bar'), None),
 		):
 			#~ print link, '>>', self.notebook.resolve_file(link, path)
 			self.assertEqual(

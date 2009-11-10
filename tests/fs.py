@@ -45,8 +45,12 @@ class TestFS(tests.TestCase):
 		uri = 'file:///' + os.path.abspath('/foo/bar').replace('\\', '/').strip('/')
 		self.assertEqual(path.uri, uri)
 
-		# TODO test Path('file:///foo/bar') => '/foo/bar'
-		# TODO test Path('file://localhost/foo/bar') => '/foo/bar'
+		self.assertEqual(Path('file:///foo/bar'), Path('/foo/bar'))
+		self.assertEqual(Path('file:/foo/bar'), Path('/foo/bar'))
+		self.assertEqual(Path('file://localhost/foo/bar'), Path('/foo/bar'))
+		self.assertEqual(Path('file:///C:/foo/bar'), Path('/C:/foo/bar'))
+		if os.name == 'nt':
+			self.assertEqual(Path('file:///C:/foo/bar'), Path(r'C:\foo\bar'))
 
 		path = Path('/foo//bar/baz/')
 		drive, p = os.path.splitdrive(path.path)
