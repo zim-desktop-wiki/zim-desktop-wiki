@@ -1,9 +1,13 @@
-pyzim (0.42.alpha2-ubuntu1) jaunty; urgency=low
-
-  [ Bart de Koning ]
-  * Initial release. (Closes: #XXXXXX)
+pyzim (0.42.beta1-ubuntu1) karmic; urgency=low
 
   [ Jaap Karrsenberg ]
   * Updated debian control files for beta release
 
- -- Jaap Karrsenberg <pardus@cpan.org>  Wed, 11 Nov 2009 22:14:24 +0100
+ -- Jaap Karrsenberg <pardus@cpan.org>  Thu, 12 Nov 2009 00:25:08 +0100
+
+pyzim (0.42.alpha2-ubuntu1) jaunty; urgency=low
+
+  [ Bart de Koning ]
+  * Initial release.
+
+ -- Bart de Koning <bratdaking@gmail.com>  Wed, 26 Aug 2009 15:03:33 +0200

@@ -7,7 +7,6 @@ PYTHON=`which python`
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/pyzim
 PROJECT=pyzim
-VERSION=0.42.beta1
 
 all:
 	@echo "make source - Create source package"
