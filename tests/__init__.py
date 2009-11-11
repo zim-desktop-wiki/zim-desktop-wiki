@@ -48,6 +48,10 @@ def create_tmp_dir(name):
 	'''
 	dir = os.path.join('tests', 'tmp', name)
 	if os.path.exists(dir):
+		# Make sure to hand unicode to rmtree - looks like it filters
+		# through to listdir somewhere...
+		if not isinstance(dir, unicode):
+			dir = dir.decode('utf-8')
 		shutil.rmtree(dir)
 	assert not os.path.exists(dir) # make real sure
 	os.makedirs(dir)
@@ -181,8 +185,14 @@ class TestCase(unittest.TestCase):
 			msg += ' second item is "None"'
 		elif not first == second:
 			from difflib import Differ
-			first = list(first)
-			second = list(second)
+			if isinstance(first, set):
+				first = list(first)
+				second = list(second)
+				first.sort()
+				second.sort()
+			else:
+				first = list(first)
+				second = list(second)
 			diff = Differ().compare(second, first)
 			# switching first and second, because usually second
 			# is the reference we are testing against

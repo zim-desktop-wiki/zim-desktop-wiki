@@ -72,7 +72,7 @@ class Store(StoreClass):
 				continue # no hidden files or directories
 			elif file.endswith('.txt'): # TODO: do not hard code extension
 				names.add(decode_filename(file[:-4]))
-			elif os.path.isdir( os.path.join(dir.path, file).encode('utf-8') ):
+			elif os.path.isdir( os.path.join(dir.path, file) ):
 				names.add(decode_filename(file))
 			else:
 				pass # unknown file type

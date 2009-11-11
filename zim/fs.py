@@ -52,7 +52,7 @@ class UnixPath(object):
 
 	def __init__(self, path):
 		if isinstance(path, (list, tuple)):
-			path = map(str, path)
+			path = map(unicode, path)
 				# Any path objects in list will also be flattened
 			path = os.path.sep.join(path)
 				# os.path.join is too intelligent for it's own good

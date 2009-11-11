@@ -1510,7 +1510,7 @@ class NewPageDialog(Dialog):
 		else:
 			page = self.ui.notebook.get_page(path)
 			if page.hascontent or page.haschildren:
-				ErrorDialog(self, _('Page exists')).run() # T: error message
+				ErrorDialog(self, _('Page exists')+': %s' % page.name).run() # T: error message
 				return False
 			self.ui.open_page(page)
 			self.ui.save_page()
