@@ -1,3 +1,17 @@
+====== ABOUT ======
+
+Zim - A Desktop Wiki Editor
+
+Zim brings the concept of a wiki to your desktop. Store information,
+link pages and edit with WYSISYG markup. Creating a new page is as easy
+as linking to a non-existing page. Pages are stored in a folder structure,
+like in an outliner, and can have attachments.
+
+This tool can be used to keep track of TODO lists or ideas, to take notes
+during a meeting or to draft any other kind of text (blog entries,
+important mails, etc.).
+
+
 ====== COPYRIGHT ======
 
 Copyright 2008, 2009 Jaap Karssenberg <pardus@cpan.org>
@@ -17,6 +31,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 MA 02110-1301, USA.
 
+== Translations ==
+
+Translations are copyrighted by their respective translators.
+All translations that are entered through the launchpad website
+are distributed under the BSD license.
+
+See the translation files for detailed translator credits.
 
 == Included Files ==
 
@@ -39,13 +60,13 @@ Other:
 
 ====== INSTALLING ======
 
-NOTE: To test zim it is not needed to install. You should be able to run it 
+NOTE: To test zim it is not needed to install. You should be able to run it
       directly from the source directory by calling `./zim.py`. (To run a
       translated version from the source first call `./setup.py build_trans`.)
 
 
-First you should verify you have the dependencies zim needs. To list all 
-dependencies check `./setup.py --requires`. 
+First you should verify you have the dependencies zim needs. To list all
+dependencies check `./setup.py --requires`.
 
 You will at least need the following:
 
@@ -62,7 +83,7 @@ Zim can be installed from source using:
 
   ./setup.py install
 
-Most plugins have additional requirements. These are listed in the plugin 
+Most plugins have additional requirements. These are listed in the plugin
 descriptions.
 
 ===== Paths ====
@@ -89,7 +110,7 @@ To build a tree in a target directory you can use:
 
 	./setup.py install --root=/path/to/package/build/dir
 
-Special attention may be needed to run xdg update commands in a post-install 
+Special attention may be needed to run xdg update commands in a post-install
 script. Recommended commands are:
 
 	update-desktop-database
@@ -103,13 +124,13 @@ script. Recommended commands are:
 
 To contribute to translations onlne please go to http://launchpad.net.
 
-To test a new translation you can either download the snapshot from launchpad 
-and run: 
+To test a new translation you can either download the snapshot from launchpad
+and run:
 
 	./tools/import-launchpad-translations.py launchpad-export.tar.gz
 
 
-Or you can edit the template zim.pot with your favourite editor. In that case 
+Or you can edit the template zim.pot with your favourite editor. In that case
 you should add you new .po file to the po/ directory.
 
 After adding the .po file(s) you can compile the translation using:

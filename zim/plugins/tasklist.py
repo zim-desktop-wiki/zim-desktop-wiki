@@ -51,7 +51,7 @@ or items marked with tags like "TODO" or "FIXME".
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
-		'help_page': ':Help:Plugins:Task List'
+		'help_page': 'Plugins:Task List'
 	}
 
 	plugin_preferences = (

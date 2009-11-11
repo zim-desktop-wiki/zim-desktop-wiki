@@ -1,0 +1,29 @@
+
+====== Links ======
+
+You can either link pages or urls. Urls are recognized because they start with e.g. "''html://''" or "''mailto:''". Page names can contain ':' characters to separate namespaces.
+
+* Links containing a '/' are considerd links to external files
+* Links that start with a ':' are resolved from the root namespace
+* Links that start with a '.' are resolved in the namespace below the current page
+* Links that contain a '?' are interwiki links, see below.
+* All other links are resolved within the path from the root to the current page
+
+You can make any text into a link, thus the link you see and what it links to do not have to be the same. You can use the "//Edit//->//Link//" menu item to modify a link.
+
+==== File Links ====
+You can link to files from zim. File names always need to contain a "''/''" character (even if your operations system uses another path separator). You can link relative to your home directory using "~/foo"  or relative to the page using "./foo". When you want to "attach" a file to a page you can use "//Tools//->//Open folder//" to open the file browser in the appropriate directory. Once you have copied or moved the file to this directory you can drag and drop from your file browser to the zim page, this will create a link.
+
+===== Interwiki =====
+There is a list of pre-defined urls in "''share/zim/urls.list''" which lists most commonly used online wikis. These urls can be refered to by a keyword so you don't have to type the full url every time; also you can update all links to a certain wiki by changing the url in the file. Have a look at the list to get an idea of how to use this.
+
+This link for example goes to wikipedia.org: [[wp?wiki]]
+
+To add your own urls use "''~/.local/share/zim/urls.list''". All types of urls which are supported by zim can be added. Consider adding "''file://''" urls for directories you refer often from zim. See [[Config Files]] for more details.
+
+The zim notebooks you added in the "Open notebook" dialog are automatically recognized as interwiki names.
+
+===== Back links =====
+"Back links" are the reverse of normal links. For example when page //A// links to page //B// then page //B// will have "back link" to page //A//. The list with back links is the answer the the question "What links here".
+
+In the status bar at the bottom of the window you can see how many back links there are for the current page. To view which pages link here you can open the "Search Back links" menu item (//Search//->//Search Back links//) or click the area in the status bar that gives info about back links. 

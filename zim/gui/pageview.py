@@ -2354,6 +2354,7 @@ class PageView(gtk.VBox):
 	def set_cursor_pos(self, pos):
 		buffer = self.view.get_buffer()
 		buffer.place_cursor(buffer.get_iter_at_offset(pos))
+		self.view.scroll_mark_onscreen(buffer.get_insert())
 
 	def get_cursor_pos(self):
 		buffer = self.view.get_buffer()

@@ -1,0 +1,52 @@
+====== About Zim ======
+
+**Zim** is a [[http://en.wikipedia.org/wiki/WYSIWYG|WYSIWYG]] text editor written in Gtk2-Perl. It aims to bring the concept of a wiki to your desktop. Every page is saved as a text file with wiki markup. Pages can contain links to other pages, and are saved automatically. Creating a new page is as easy as linking to a non-existing page. This tool is intended to keep track of TODO lists or to serve as a personal scratch book. But it will also serve you when writing longer and more complicated documents.
+
+A "//desktop wiki//" means that we try to capture the idea of a wiki, not as a webpage but as a collection of files on your local file system that can be edited with a GUI application. The main focus is a kind of personal wiki that serves for all kind of notes: todo-lists, addresses, brainstorm ideas etc.
+
+But we want to go further then just a wiki filled with random content. It should also be possible to use you random notes as the basis for more structured data: articles, presentations etc. Zim will not include tools to layout a presentation or something like that, you should use your office suite of choice for that, but it should be a tool that can deliver all the content for a presentation in a form that only needs a template and some layout before usage. Therefore certain features normally not found in wikis will be added.
+
+
+===== Features =====
+
+==== Content is saved "transparently" ====
+All pages you create in zim are saved as plain text files with wiki formatting. This means that you can access your content with any other editor or file manager without being dependent on zim. You can even have your pages in a revision control system like CVS or use a Makefile to compile your notes into a webpage.
+
+Any images you add are just image files which are linked from the text files. This means that zim can call your standard programs to edit images. When you embed an image in a page the context menu for the image will offer to open it with whatever image manipulation programs you have installed. After editing you just reload the page to see the result.
+
+==== The editor tries to get out of your way ====
+
+//The best wiki is a wiki that does not interfere between you and the content//
+
+The editor tries not to bother you with tasks that distract from the content. This means for example that files are saved automatically but also that files and directories are created and removed on the fly as you add or remove content in the wiki pages. While working on content you should not need to bother with things like the directory structure.
+
+Related features include:
+* You can use [[Help:Wiki Syntax|wiki syntax]] to type formatting
+* If you restart zim it opens at the same place you closed it.
+* The wiki can navigated completely using [[Help:Key Bindings|key bindings]].
+
+==== The editor allows you to organize your notes ====
+The ability to hyperlink pages is a powerful way of organizing content. This goes further than hyperlinks in ordinary web pages. One example of this is that zim keeps track of all links and for each page shows which pages link to it, making links bi-directional. You can also link webpages or external files, when clicked zim will open these with the appropriate applications.
+
+Since zim has the GUI layout resembling a note-taking application you can organize your pages hierarchically, allowing for example to group pages by topic. But because you also have wiki-style back-tracking of links you could also have a category system by using backlinks so a page can link to multiple categories.
+
+==== And more.. ====
+A few other things I would like to mention:
+
+* Zim has various [[Plugins|plugins]] for things like:
+	* Spell checking
+	* an Equation Editor
+	* using Calendar pages
+	* a Task List dialog
+	* a Tray Icon
+
+* You can [[Help:Export|export]] your notes to Html if you want to publish them
+
+See [[:Usage:Getting Started|Getting Started]] for some practical tips on using zim.
+
+===== Copyright =====
+Zim is Copyrighted © 2009 by Jaap G Karssenberg. All rights reserved. This program is free software; you can redistribute it and/or modify it under the terms of the [[http://www.gnu.org/licenses/gpl.html|GNU General Public License (GPL)]].
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+

@@ -1,0 +1,81 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Templates ======
+
+Zim uses templates when exporting pages. This way you can for example write your website in zim and export it to HTML using the layout and style definition of you choice.
+
+Templates are also used to initalize new pages.
+
+===== Templates for export =====
+
+**"Default"**
+This is a simple template intended as a base for custom styles. It has an inline style definition that is intended to match the (default) look of zim.
+
+**"Presentation"**
+Template with a little more color than "Default". It is intended to convert a set of pages in an online presentation quickly. Simple javascript included for some basic keybindings:
+
+'''
+Enter             next page
+Spacebar          next page
+backspace         previous page
+'''
+
+**"Print"**
+This is a plain template intended for printing pages. It is use by the "Print to Browser" plugin.
+
+**"SlideShow (S5)"**
+Template based on S5. S5 is "A Simple Standards-Based Slide Show System", which mean a slide show system completely written in html and javascript. Therefor these slide shows can be presented using a browser and be put on a website. See [[http://meyerweb.com/eric/tools/s5/|the S5 website]] for more information.
+
+Note that in order to use the output from this template you need to download the S5 package and copy the "ui" directory from the package to the same directory where you export your slideshow to.
+
+===== Special templates =====
+
+**"_New"**
+This template is used to initialize new pages. The default contains a header with the page name and a the date at which the page was created.
+
+===== Customizing =====
+
+Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/templates'' by default. You can add templates you use more often there. To modify a template copy it to the ''~/.local/...'' directory and edit it.
+
+Template syntax:
+
+'''
+[% var %]                   # interpolates a variable
+
+[% IF var %] ... [% END %]  # conditionals
+
+[% IF var %]
+	...
+[% ELSE %]
+	...
+[% END %]
+
+[% FOREACH name = var ]     # loop
+... [% name %] ...
+[% END %]
+
+[% strftime("%c") %]		# current time stamp
+[% strftime("%c", var) %]   # date from variable
+'''
+
+Available variables:
+
+'''
+page.name		# complete page name
+page.namespace		# namespace
+page.title		# last part of the name of the page
+page.heading		# title or first heading in the page
+page.body		# content of the page
+page.links		# list of vars with a .file and a .name subvar
+page.backlinks		# "" idem ""
+page.is_index		# true for the automatic generated index page
+prev.name		# name of previous page
+prev.file		# file name of previous page
+next.name		# name of next page
+next.file		# file name of next page
+notebook.root		# root dir relative to page file
+zim.version		# version of zim
+'''
+
+The "Title" field contains either the first heading in the page or the page name. If the first header is used, this header is removed from the "Body" field.

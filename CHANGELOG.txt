@@ -5,7 +5,7 @@ This branch is the Python rewrite and starts with version 0.42.
 Lower version numbers for zim correspond to the Perl branch.
 
 === 0.42 - ... ===
-Functionality should be similar to Perl branch version 0.28
+Functionality should be similar to Perl branch version 0.28.
 Additional issues addressed in this release:
 
 * Moving a page also moves sub-pages and attachments - lp #269090, lp #350537
@@ -24,7 +24,7 @@ Additional issues addressed in this release:
 
 Translations availabl for:
 * Dutch
-* English UK
 * French
 * German
+* Ukranian
 * Spanish

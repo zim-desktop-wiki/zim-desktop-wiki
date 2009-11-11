@@ -12,15 +12,14 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Improve HTML templates & CSS stylesheets for export and server use
 
 == Packaging ==
-[ ] Update CHANGELOG.txt
-[ ] Build ubuntu / debian package
+[*] Build ubuntu / debian package
 [ ] Build windows installer (with or without Python + Gtk included)
 [ ] Add website to bazaar + tools/generate_wesite.py
 	* Include some static pages + screenshots etc.
 	* Include manual in website
 	* Include HACKING in website
 	* Store old manual somewhere and link it (but not in bazaar branch)
-
+[ ] Finish manual
 
 == Defects ==
 [*] Pageview: enforce heading can not be indented

@@ -5,5 +5,9 @@ Modification-Date: Wed, 08 Jul 2009 23:25:40 +0200
 
 ====== Pages ======
 
-TODO explain "new page" dialog
+TODO explain concepts
+
+TODO explain namespaces
+
+TODO explain "new page" and "jump to"  dialogs
 

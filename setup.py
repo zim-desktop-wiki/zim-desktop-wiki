@@ -26,13 +26,6 @@ except:
 	print >> sys.stderr, 'zim needs python >= 2.5   (but < 3.0)'
 	sys.exit(1)
 
-warning = '''
-****************************  WARNING  *********************************
-This is an _alpha_ version of zim. It is likely to be unstable and buggy.
-Please download the stable version to do any real work.
-'''
-
-print warning
 
 # Helper routines
 
@@ -100,8 +93,8 @@ def fix_dist():
 		os.system('bzr version-info --format python > zim/_version.py')
 
 	# Add the changelog to the manual
-	print 'copying CHANGELOG.txt -> data/manual/Changelog.txt'
-	shutil.copy('CHANGELOG.txt', 'data/manual/Changelog.txt')
+	# print 'copying CHANGELOG.txt -> data/manual/Changelog.txt'
+	# shutil.copy('CHANGELOG.txt', 'data/manual/Changelog.txt')
 
 
 # Overloaded commands
@@ -207,5 +200,3 @@ setup(
 	requires     = dependencies
 )
 
-
-print warning

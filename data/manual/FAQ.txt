@@ -5,4 +5,36 @@ Modification-Date: Wed, 08 Jul 2009 23:26:25 +0200
 
 ====== FAQ ======
 
-TODO
+Mail [[pardus@cpan.org|me]] if you have questions that you would like to see answered below.
+
+=== How do I create a new page? ===
+You can just link non-existing pages. If you follow such a link the page will be created automatically when needed.
+
+=== How do you close these "tabs" ? ===
+Uhm, if you mean the buttons above your page, technically that are not tabs but a path bar keeping track of your history or recent pages. The buttons in this bar map to pages in your browse history, not to open pages or something like that. You can not "close" something that is in your history.
+
+=== How do I organize my pages in a tree structure? ===
+You can use "namespaces" to organize your pages. A "namespace" is similar to a directory for files, it is a named group of pages. Namespaces are separated by the "'':''" character in the page name. Thus if you link to "''foo:bar''" you will link to the page called "bar" in the namespace "foo". Just link a non-existing page and follow the link to create it.
+
+=== I would like zim to hide in the system tray. ===
+~~There is a Tray Icon plugn which can be enabled from the Preferences dialog.~~
+
+=== Can I make zim appear with a global keybinding? ===
+~~By default zim will  only run a single instance of each notebook. Trying to open the same notebook again will just pop the corresponding window to the foreground. So you can set a default notebook (see ~~
+
+=== Can I start zim automatically when I log in? ===
+~~Most desktops allow you to specify commands to run on startup. You can just autostart the zim daemon using: "zim --daemon". This will speed up how quickly zim starts later on.~~
+
+~~To open a notebook in the background you probably want to enable the TrayIcon ~~
+
+=== Can I change the colors used for links, underline etc. ? ===
+Yes. Copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit as you see fit. See the [[Help:Config Files|Config Files]] page for the syntax of this file.
+
+=== Can I have encrypted notebooks? ===
+~~Zim notebooks do not support encryption or password protection natively. However you can use encfs to encrypt your notebooks and have zim mount and unmount them automatically. See ~~
+
+=== Can I have full calendaring in zim? ===
+Well, if you really want to, you can use zim as your agenda. However, the Calendar feature is more intended to keep various kinds of journals or logbooks. I'm very hesitant to add calendaring features because these are usually tied to email applications. I admit that it would be really cool to link notes, emails and appointments, but I have no plans to extend zim to become an email reader.
+
+=== Does it run on windows? ===
+Yes it does. See the download page on the website for more notes on installing on the win32 platform.

@@ -896,7 +896,7 @@ class GtkInterface(NotebookInterface):
 		self.show_help('FAQ')
 
 	def show_help_keys(self):
-		self.show_help('Help:KeyBindings')
+		self.show_help('Help:Key Bindings')
 
 	def show_help_bugs(self):
 		self.show_help('Bugs')

@@ -1,11 +1,39 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
-Creation-Date: Wed, 08 Jul 2009 23:24:09 +0200
-Modification-Date: Wed, 08 Jul 2009 23:24:38 +0200
+Creation-Date: Unknown
 
-====== Export ======
+====== Exporting ======
 
-TODO explain export dialog
+Zim will be able to export content to various formats but at the moment only exporting to (simple) Html is supported.
 
-TODO explain commandline export
+To open op the export dialog in zim use the "//File//->//Export//" menu item. This dialog asks for a number of input fields before you can start exporting.
+
+Under **Pages** you can check "Complete notebook" if you want to export all the pages in the notebook, ~~or you can check "Page" if you want to export a selection~~.
+
+~~When you make a selection you can enter one or more pages or namespaces in the text entry field separated by spaces. namespaces always end with a ":", pages do not. The Recursive option automatically adds the coresponding namespace for each page when set.~~
+
+The **Format** is fixed on "Html" for now. Later other options will be added here.
+
+The **Template** field asks you to select a template file (see below). When you select "''Other...''" in the combo box you can browse for another file in the input field below the combo box.
+
+Finally an **Output folder** is required, this is the directory name where you want to save the exported pages.  
+
+If you specify an **Index page** a page will be generated that contains a list with links to all pages that were exported. This can e.g. be used as a site map.
+
+The **Documents** section allows you to choose what you want to do with linked files and images. Files and images that live inside the notebook directory (attachments, equations etc.) will always be copied to the new directory, but the behavior for files and images under the document root can be changed.
+
+TODO explain document root somewhere
+
+===== Templates =====
+The export code only produces the tags that represent the content of the page. It does not add elements like a <head> section. [[Templates]] are used to create complete Html pages. A few standard templates are packaged with zim, but you can also make your own.
+
+===== Exporting from the commandline =====
+Try something like:
+
+'''
+$ zim --export --output=./html \
+  --format=html --template=./foo.html ~/Notes
+'''
+
+See "''zim --help''" for all options.
 

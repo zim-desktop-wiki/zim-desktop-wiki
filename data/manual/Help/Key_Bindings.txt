@@ -1,0 +1,141 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Unknown
+
+====== Key Bindings ======
+
+==== General ====
+
+'''
+F9		Toggle index visibility
+alt-space	Toggle focus between index and buffer
+    		opens side pane if index is invisible
+ctrl-space	Same as ctrl-space - optional see preferences
+ctrl-tab	Focus next inteface element (gtk default)
+'''
+
+
+'''
+alt-home	Go to the home page
+alt-left	Go one page back in history
+alt-right	Go one page forward in history
+alt-up		Go one page up in the namespace
+alt-down	Go one page down in the namespace
+		(The actual page is choosen by the history)
+alt-pgup	Go to the previous page in the index
+alt-pgdown	Go to the next page in the index
+alt-D		Go to todays page
+'''
+
+
+'''
+^Q		Quit the application
+^w		Close window
+'''
+
+
+'''
+^F		Find in the current page
+^G		Find next
+shift-^G	Find previous
+shift-^F  	Search in all pages
+^H		Find and Replace
+'''
+
+
+'''
+^S		Save page        (forced)
+shift-^S	Save version...
+^R		Reload page      (saves first)
+^J		Jump to page...  (either an existing or a new page)
+'''
+
+
+'''
+^L		Link selected text
+		Follow selected text as link when read-only
+shift-^L	Copy a link to the current page to the clipboard
+		In the side pane copies a link to the selected page
+		(Paste this link in a page with ^V)
+^E		Show the "edit link" dialog
+^D		Inserts timestamp
+'''
+
+
+'''
+^1..^5		Make selected text a heading
+^6		Make selected text normal
+^B		Make selected text strong
+^I		Make selected text italic
+^U		Make selected text underline     (renders highlighted)
+^K		Make selected text strike-trough
+^T		Make selected text verbatim text (monospace font)
+'''
+
+
+'''
+^Z		Undo
+Shift-^Z	Redo
+^Y		Redo
+'''
+
+
+'''
+shift-^D	Show the calendar dialog
+'''
+
+
+'''
+F1		Show the manual
+F2		Rename current page
+F3		Find next	(same as ^G)
+F5		Reload page	(same as ^R)
+F12		Toggle checkbox item to 'OK'
+Shift-F12	Toggle checkbox item to 'NOK'
+'''
+
+Also all the usual keybindings apply for the gtk text edit widget, thus bindings like
+''^C'', ''^X'', ''^V'', ''^A'' etc. work as expected.
+
+==== Side pane tree ====
+The following key bindings works when the tree in the side pane is focussed:
+
+'''
+^L		Insert a link to the selected page
+shift-^L	Copy the selected page to clipboard
+^C		Copy the selected page to clipboard
+^F		Search in the page list as shown
+*		Expand all
+\		Collapse all
+'''
+
+
+==== Text selections ====
+For selected text the following keybindings are added:
+
+'''
+*		Toggle bullets for selected text
+>		Toggle email-style quoting for selected text
+TAB		Indent selected text
+shift-TAB	Un-indents selected text
+BACKSPACE	Un-indents selected text
+'''
+
+
+===== Changing accelerators =====
+Gtk+ implements a feature that allows you to change accelerators (keybindings for menu items) interactively. To use this feature you need to either enable this setting in the settings manager of you desktop environment or add the line:
+
+'''
+gtk-can-change-accels = 1
+'''
+
+to ''~/.gtkrc-2.0'' . Zim will remember any changes. If you ever want to reset to the default bindings just remove the "accelmap" file from ''~/.config/zim/''.
+
+===== Emacs mode =====
+Zim does not support an emacs mode specifically, however Gtk+ does. When you set this option all Gtk+ programs will use emacs key bindings for text inputs. To use this feature you need to enable this setting in the settings manager of your desktop environment or add the line:
+
+'''
+gtk-key-theme-name = "Emacs"
+'''
+
+to ''~/.gtkrc-2.0'' . Of course of you use this you will need to customize a number of accelerators as well which conflict with the emacs keybindings. See the secttion above.

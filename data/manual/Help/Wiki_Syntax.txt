@@ -1,0 +1,119 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Unknown
+Modification-Date: Sat, 08 Nov 2008 11:14:38 +0100
+
+====== Syntax ======
+
+Examples of the wiki syntax as used by zim.
+
+Most of this syntax is inspired by the [[http://wiki.splitbrain.org/wiki:dokuwiki|dokuwiki]] syntax, but with some significant modifications. All markup uses at least two characters to reduce the chance of conflicts between the wiki markup normal typographic use of these characters.
+
+===== Headings =====
+
+Headings are created by using an appropriate amount of "=" characters:
+
+'''
+====== Head 1 ======
+
+===== head 2 =====
+
+==== head 3 ====
+
+=== head 4 ===
+
+== head 5 ==
+'''
+
+
+===== Links =====
+
+Link to another page like this:
+
+'''
+[[foo]]  links to page in the current namespace or parents
+[[:foo]] links to page in the root namespace
+[[.foo]] links to page in a subnamespace
+
+[[foo|bar]] links to "foo" but display "bar"
+'''
+
+External links like http://nongnu.org are also supported
+
+===== Lists =====
+
+Bullet list just use a "*" at the start of the line:
+
+'''
+* item 1
+* item 2
+* item 3
+	* item 3a
+'''
+
+Will be rendered as:
+
+* item 1
+* item 2
+* item 3
+	* item 3a
+
+Numbered lists are not (yet) supported.
+
+Checkbox lists look like this:
+
+'''
+[ ] foo
+[*] bar
+	[*] sub item 1
+	[*] sub item 2
+[x] baz
+'''
+
+This renders as:
+
+[ ] foo
+[*] bar
+	[*] sub item 1
+	[*] sub item 2
+[x] baz
+
+Of course the checkboxes are clickable in zim. See [[Check Boxes]] for more details.
+
+===== Markup =====
+**bold**, //italic// and __underline__ and ''verbatim''
+
+'''
+**bold**, //italic// and __underline__ and ''verbatim''
+'''
+
+and also ~~strike through~~	
+
+'''
+and also ~~strike through~~
+'''
+
+Using verbatim also prevents any further parsing of the content. To render a whole block as verbatim the first and last line of the block should contain 3 quotes and no other characters:
+
+'''
+'''
+Sing, O goddess, the rage of
+Achilles son of Peleus, that
+brought countless ills upon
+the Achaeans.
+'''
+'''
+
+This can be used for code examples etc.
+
+Before version 0.26 all indented paragraphs were rendered verbatim as well. This has been changed because it conflicted with the typographic use of indenting paragraphs that were not intended as verbatim. However to maintain backwards compatibility this style is still supported for any page that does not have headers indicating that it was written by version 0.26 or newer.
+
+===== Images =====
+
+To include images use: 
+
+'''
+{{./foobar.png}}
+'''
+
+The filename for an image can either be absolute or relative. If relative it is looked for in the same directory as where the text source of the current page is.

@@ -3,7 +3,7 @@ Wiki-Format: zim 0.26
 Creation-Date: Fri, 13 Mar 2009 22:49:34 +0100
 Modification-Date: Fri, 13 Mar 2009 22:49:51 +0100
 
-====== LinkMap ======
+====== Link Map ======
 
 Having a graph of linking relations allows an alternative view of the internal organization of a notebook. The use of this depends on your use of links. If you hardly use any links, the hierarchic index probably contains all the organization you do. But if you use link extensively there is a deeper structure than the one dimensional index.
 

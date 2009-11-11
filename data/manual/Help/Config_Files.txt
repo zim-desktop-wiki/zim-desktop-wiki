@@ -1,0 +1,72 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Unknown
+Modification-Date: Thu, 16 Oct 2008 22:17:58 +0200
+
+====== Config Files ======
+
+This page documents the various config files used. 
+Also see [[preferences]] for documentation of the preferences dialog.
+
+===== Paths =====
+
+Zim uses the scheme as laid down in the "XDG Base Directory Specification" as published by [[http://freedesktop.org|freedesktop.org]]. The default paths are:
+
+'''
+XDG_CONFIG_HOME = HOME/.config/
+XDG_DATA_HOME   = HOME/.local/share
+XDG_DATA_DIRS   = /usr/local/share/:/usr/share
+'''
+
+These can be overloaded with the coresponding environment variables.
+
+When zim writes config files it always uses XDG_CONFIG_HOME. Data files are read only and are searched for in XDG_DATA_HOME and XDG_DATA_DIRS. The installation defaults for config files are also installed in XDG_DATA_DIRS, but these are copied on first use to XDG_CONFIG_HOME.
+
+===== Files =====
+
+==== Main config file ====
+The default config file is ''XDG_CONFIG_HOME/zim/preferences.conf''.
+
+The config file is written automatically when you close zim. So if you want to change it manually you need to close all instances of zim first.
+
+==== Interwiki URL list ====
+The file ''XDG_DATA/zim/urls.list'' gives a list of urls which are used for the [[linking|interwiki]] function. All files in the XDG_DATA path are read when looking for an url, so you can use XDG_DATA_HOME to overload the installation defaults.
+
+The format consist of one url per line, each line giving the key (which is the interwiki name), followed by whitespace, followed by the actual url. The url can conatin place holders "''{NAME}''" or "{URL}", the first will be replaced by the name of the interwiki page, the second by this name in url encoding. If no placeholder is found in the url the url encoded name is appended to the url.
+
+==== Date format list ====
+The file ''XDG_DATA/zim/dates.list'' gives a list of [[man?strftime(3)|strftime(3)]] formats, one on each line, to be used to populate the "Insert Date and Time" dialog. The first instance of this file that is found in the XDG_DATA path is used.
+
+==== GUI style config file ====
+Zim has certain defaults on how to display styles. For example it displays links as blue text without underline.  To change this style copy "''/usr/share/zim/default.style''" to "''~/.config/zim/''" and edit it. Each style has it's own section which starts with the style name between square brackets and contains key value pairs for the various display properties.
+
+**NOTE: **The display styles for the GUI are not used when exporting to HTML. If you want your HTML to show certain custom styles you should write a HTML [[Templates|template]] with a CSS stylesheet.
+
+Example:
+
+'''
+[TextView]
+tabs = 40
+
+[Tag bold]
+weight = PANGO_WEIGHT_BOLD
+
+[Tag italic]
+style = italic
+'''
+
+Known properties for TextView:
+* **tabs**: //integer//	 - position of the tab stop in pixels
+
+Known properties for Tags:
+* **family**: ''monospace'', ''sans'', ...
+* **foreground**: ''grey'', ''blue'', ''#cccccc'', etc.
+* **background**: ''yellow'', ''#cccccc'', etc.
+* **weight**: ''PANGO_WEIGHT_BOLD'', ...
+* **scale**: //integer//
+* **style**: ''italic'', ...
+* **underline**: ''single'', ...
+* **striketrough**: ''true'', ''false''
+* **wrap**_**mode**: "''none"'', ...
+* **indent**: //integer//
+

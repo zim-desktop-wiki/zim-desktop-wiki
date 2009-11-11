@@ -1,11 +1,30 @@
-Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
-Creation-Date: Fri, 14 Aug 2009 00:02:55 +0200
-Modification-Date: Fri, 14 Aug 2009 00:03:05 +0200
 
 ====== Searching ======
-Created Friday 14 August 2009
 
-TODO document search syntax
+There are two kinds of searching in zim: searching within a page, this is called **Find**, and searching through multiple pages, this is called **Search**.
 
-Search dialog links here
+===== Find =====
+The "//Search//->//Find//..." menu item  triggers a search box at the bottom of the page. By typing a word here you can find occurrences of this word in the current page. You can use either the ''<Alt>N'' and ''<Alt>P'' or the ''<Ctrl>G'' and ''<Shift><Ctrl>G'' keybindings to go to the next/previous occurrence.
+
+This search is not case sensitive and matches everywhere in the page. For more advances searched you can use the "Find and Replace' dialog.
+
+===== Find and Replace =====
+The "//Search//->//Replace...//" menu item triggers a dialog for find and replace in the current page. The "Next" and "Previous" buttons can be used to find the next or previous occurrence without replacing. The "Replace" button can be used to replace one occurrence only. The "Replace all" button can be used to replace all occurrences in the current page at once.
+
+The "Match case" check-box toggles case sensitivity. The search is by default not case sensitive. But it can be useful to match case when looking for names or acronyms.
+
+The "Whole word" check-box toggles whether partial word matches are included. This is especially useful when looking for rather short words.
+
+===== Search =====
+The "//Search//->//Search//..." menu item triggers the search dialog to pop up. This dialog allows you to search for pages that contain a certain word.
+
+The "Match case" check-box toggles case sensitivity. The search is by default not case sensitive. But it can be useful to match case when looking for names or acronyms.
+
+The "Whole word" check-box toggles whether partial word matches are included. This is especially useful when looking for rather short words.
+
+You can have multiple search dialogs open at the same time.
+
+==== Back links ====
+As a special case you can search for a page name. Instead of a full text search a cache lookup will be done and a list is shown of pages linking to the page you searched for. Page names are defined as words containing a ":" character in this context.
+
+When you open the "//Search//->//Search Back links//..." menu item you get the same Search dialog as with //Search// but the name of the current page is filled in already. The same dialog can be triggered by clicking on the "Back links" area in the status bar.

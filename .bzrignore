@@ -10,6 +10,6 @@ MANIFEST
 coverage
 tests/tmp
 doxygen
-data/manual/Changelog.txt
 bin
 ./locale
+debian/pycompat

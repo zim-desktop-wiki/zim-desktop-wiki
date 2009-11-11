@@ -7,3 +7,22 @@ Modification-Date: Wed, 08 Jul 2009 20:28:53 +0200
 
 Pages in this section contain help on using specific parts of the applications.
 
+Organization
+* [[+Notebooks|Notebooks]] 
+* [[+Pages|Pages]] 
+* [[+Links|Links]] 
+
+Editing
+* [[+Key Bindings|Key Bindings]] 
+* [[+Auto Formatting|Auto Formatting]] 
+* [[+Wiki Syntax|Wiki Syntax]] 
+
+Other functions
+* [[+Searching|Searching]] 
+* [[+Export|Export]] 
+
+Configuration
+* [[+Preferences|Preferences]] 
+* [[+Properties|Properties]] 
+* [[+Templates|Templates]] 
+* [[+Config Files|Config Files]] 
