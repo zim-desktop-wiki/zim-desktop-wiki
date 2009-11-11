@@ -245,6 +245,18 @@ class ParseTreeBuilder(object):
 			self._flush()
 		#~ print 'START', tag
 
+		if tag == 'h':
+			if not (attrib and 'level' in attrib):
+				logger.warn('Missing "level" attribute for heading')
+				attrib = attrib or {}
+				attrib['level'] = 1
+		elif tag == 'link':
+			if not (attrib and 'href' in attrib):
+				logger.warn('Missing "href" attribute for link')
+				attrib = attrib or {}
+				attrib['href'] = "404"
+		# TODO check other mandatory properties !
+
 		if attrib:
 			self._last = Element(tag, attrib)
 		else:
@@ -346,7 +358,8 @@ class ParseTreeBuilder(object):
 					if line and not line.isspace():
 						self._last.text = line
 						self._last.tail = '\n'
-						self._last = Element(self._last.tag)
+						attrib = self._last.attrib.copy()
+						self._last = Element(self._last.tag, attrib)
 						self._stack[-2].append(self._last)
 						self._stack[-1] = self._last
 					else:

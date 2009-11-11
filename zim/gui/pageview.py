@@ -19,7 +19,7 @@ from time import strftime
 
 from zim.fs import *
 from zim.notebook import Path
-from zim.parsing import link_type, Re
+from zim.parsing import link_type, Re, url_re
 from zim.config import config_file
 from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
@@ -147,7 +147,7 @@ _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 _is_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'h'
 _is_pre_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'pre'
-_is_line_based_tag = lambda tag: _is_indent_tag(tag) or _is_heading_tag(tag) or _is_pre_tag(tag)
+_is_line_based_tag = lambda tag: _is_indent_tag(tag) #or _is_heading_tag(tag) or _is_pre_tag(tag)
 _is_not_line_based_tag = lambda tag: not _is_line_based_tag(tag)
 _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
 _is_not_style_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'style')
@@ -157,7 +157,6 @@ PIXBUF_CHR = u'\uFFFC'
 
 # Regexes used for autoformatting
 heading_re = Re(r'^(={2,7})\s*(.*)\s*(\1)?$')
-url_re = Re(r'\w[\w\+\-\.]+://\S+$')
 page_re = Re(r'''(
 	  [\w\.\-\(\)]*(?: :[\w\.\-\(\)]{2,} )+:?
 	| \+\w[\w\.\-\(\)]+(?: :[\w\.\-\(\)]{2,} )*:?
@@ -861,6 +860,10 @@ class TextBuffer(gtk.TextBuffer):
 	def do_insert_text(self, end, string, length):
 		'''Signal handler for insert-text signal'''
 		# First call parent for the actual insert
+		if string == '\n':
+			self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
+			# TODO make this more robust for multiline inserts
+			
 		gtk.TextBuffer.do_insert_text(self, end, string, length)
 
 		# Apply current text style
@@ -871,6 +874,34 @@ class TextBuffer(gtk.TextBuffer):
 		self.remove_all_tags(start, end)
 		for tag in self._editmode_tags:
 			self.apply_tag(tag, start, end)
+
+	def do_delete_range(self, start, end):
+		# Wrap actual delete to hook _do_lines_merged
+		if start.get_line() != end.get_line():
+			with self.user_action:
+				mark = self.create_mark(None, start)
+				gtk.TextBuffer.do_delete_range(self, start, end)
+				iter = self.get_iter_at_mark(mark)
+				self.delete_mark(mark)
+				self._do_lines_merged(iter)
+		else:
+			gtk.TextBuffer.do_delete_range(self, start, end)
+
+	def _do_lines_merged(self, iter):
+		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
+		if iter.starts_line() or iter.ends_line():
+			return
+		
+		end = iter.copy()
+		end.forward_to_line_end()
+		
+		self.smart_remove_tags(_is_line_based_tag, iter, end)
+		
+		for tag in self.iter_get_zim_tags(iter):
+			if _is_line_based_tag(tag):
+				self.apply_tag(tag, iter, end)
+
+		self.set_editmode_from_cursor()
 
 	def do_insert_pixbuf(self, end, pixbuf):
 		gtk.TextBuffer.do_insert_pixbuf(self, end, pixbuf)
@@ -1269,34 +1300,6 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		return bool(self.get_selection_bounds())
 
-	def do_delete_range(self, start, end):
-		# Wrap actual delete to hook _do_lines_merged
-		if start.get_line() != end.get_line():
-			with self.user_action:
-				mark = self.create_mark(None, start)
-				gtk.TextBuffer.do_delete_range(self, start, end)
-				iter = self.get_iter_at_mark(mark)
-				self.delete_mark(mark)
-				self._do_lines_merged(iter)
-		else:
-			gtk.TextBuffer.do_delete_range(self, start, end)
-
-	def _do_lines_merged(self, iter):
-		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
-		if iter.starts_line() or iter.ends_line():
-			return
-		
-		end = iter.copy()
-		end.forward_to_line_end()
-		
-		self.smart_remove_tags(_is_line_based_tag, iter, end)
-		
-		for tag in self.iter_get_zim_tags(iter):
-			if _is_line_based_tag(tag):
-				self.apply_tag(tag, iter, end)
-
-		self.set_editmode_from_cursor()
-
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextBuffer)
@@ -1687,7 +1690,9 @@ class TextView(gtk.TextView):
 		handled = True
 		#~ print 'WORD >>%s<<' % word
 
-		if buffer.iter_get_zim_tags(start)or buffer.iter_get_zim_tags(end):
+		if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start)) \
+		or filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end)):
+			# DO not auto-format if any zim tags are applied except for indent
 			return
 
 		def apply_link(match):

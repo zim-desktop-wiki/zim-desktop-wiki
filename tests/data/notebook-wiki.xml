@@ -159,7 +159,7 @@ Some Verbatim here
 '''
 
 IMAGE: {{../my-image.png?width=600|Foo Bar}}
-LINKS: [[:foo:bar]] [[./file.png]] [[file:///etc/passwd]]
+LINKS: [[:foo:bar]] [[./file.png]] file:///etc/passwd
 LINKS: [[Foo]][[Bar]]
 
 	Some indented

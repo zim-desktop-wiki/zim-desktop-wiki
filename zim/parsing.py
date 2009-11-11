@@ -140,11 +140,24 @@ is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')
 	# name "@" host
 is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Z]:\\)')
 	# / ~/ ./ ../ ~user/  .\ ..\ ~\ ~user\
-	# X:\ 
+	# X:\
 is_win32_path_re = Re(r'^[A-Z]:[\\/]')
 	# X:\ (or X:/)
 is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
 	# identifyer "?" path
+
+_classes = {'c': r'[^\s"<>\']'} # limit the character class a bit
+url_re = Re(r'''(
+	\b \w[\w\+\-\.]+:// %(c)s* \[ %(c)s+ \] (?: %(c)s+ [\w/] )?  |
+	\b \w[\w\+\-\.]+:// %(c)s+ [\w/]                             |
+	\b mailto: %(c)s+ \@ %(c)s* \[ %(c)s+ \] (?: %(c)s+ [\w/] )? |
+	\b mailto: %(c)s+ \@ %(c)s+ [\w/]                            |
+	\b %(c)s+ \@ %(c)s+ \. \w+ \b
+)''' % _classes, re.X)
+	# Full url regex - much more strict then the is_url_re
+	# The host name in an uri can be "[hex:hex:..]" for ipv6
+	# but we do not want to match "[http://foo.org]"
+	# See rfc/3986 for the official -but unpractical- regex
 
 def link_type(link):
 	'''Function that retuns a link type for urls and page links'''

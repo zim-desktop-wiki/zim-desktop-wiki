@@ -7,7 +7,7 @@
 import re
 
 from zim.formats import *
-from zim.parsing import Re, TextBuffer
+from zim.parsing import Re, TextBuffer, url_re
 
 info = {
 	'name':  'Wiki text',
@@ -249,7 +249,8 @@ class Parser(ParserClass):
 			list = parser_re[style].sublist(
 					lambda match: (style, {}, match[1]) , list)
 
-		# TODO: urls
+		list = url_re.sublist(
+				lambda match: ('link', {'href':match[1]}, match[1]) , list)
 
 		for part in list:
 			if isinstance(part, tuple):
@@ -263,6 +264,7 @@ class Parser(ParserClass):
 class Dumper(DumperClass):
 
 	def dump(self, tree):
+		#~ print 'DUMP WIKI', tree.tostring()
 		assert isinstance(tree, ParseTree)
 		output = TextBuffer()
 		self.dump_children(tree.getroot(), output)
@@ -320,7 +322,10 @@ class Dumper(DumperClass):
 			elif element.tag == 'link':
 				href = element.attrib['href']
 				if href == element.text:
-					output.append('[['+href+']]')
+					if url_re.match(href):
+						output.append(href)
+					else:
+						output.append('[['+href+']]')
 				else:
 					output.append('[['+href+'|'+element.text+']]')
 			elif element.tag in dumper_tags:

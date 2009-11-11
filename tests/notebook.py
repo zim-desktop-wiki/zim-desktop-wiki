@@ -202,7 +202,7 @@ class TestNotebook(tests.TestCase):
 		# update the page that was moved itself
 		# moving from Dus:Baz to Foo:Bar:Baz
 		text = u'''\
-[[http://foo.org]] # urls are untouched
+http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
 [[Baz:Ja]] # relative link that does not need change
 [[Dus:Ja]] # relative link that needs updating
@@ -210,7 +210,7 @@ class TestNotebook(tests.TestCase):
 [[:Foo:Bar:Dus]] # Link that could be mde relative, but isn't
 '''
 		wanted = u'''\
-[[http://foo.org]] # urls are untouched
+http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
 [[Baz:Ja]] # relative link that does not need change
 [[:Dus:Ja]] # relative link that needs updating
@@ -225,7 +225,7 @@ class TestNotebook(tests.TestCase):
 		# updating links to the page that was moved
 		# moving from Dus:Baz to Foo:Bar:Baz - updating links in Dus:Ja
 		text = u'''\
-[[http://foo.org]] # urls are untouched
+http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
 [[Baz:Ja]] # relative link that needs updating
 [[Baz:Ja|Grr]] # relative link that needs updating - with name
@@ -235,7 +235,7 @@ class TestNotebook(tests.TestCase):
 [[:Dus:Baz:Hmm:Ja]] # absolute link that needs updating
 '''
 		wanted = u'''\
-[[http://foo.org]] # urls are untouched
+http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
 [[:Foo:Bar:Baz:Ja]] # relative link that needs updating
 [[:Foo:Bar:Baz:Ja|Grr]] # relative link that needs updating - with name

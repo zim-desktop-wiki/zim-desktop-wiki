@@ -33,6 +33,9 @@ class Parser(ParserClass):
 		para = SubElement(page, 'p')
 		para.text = ''.join(input)
 
+		#~ list = url_re.sublist(
+			#~ lambda match: ('link', {'href':match[1]}, match[1]) , list)
+
 		return ParseTree(page)
 
 
