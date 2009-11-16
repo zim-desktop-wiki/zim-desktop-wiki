@@ -115,12 +115,12 @@ class Application(object):
 						lambda pid, status: callback(status))
 				else:
 					gobject.child_watch_add(pid,
-						lambda pid, status: callback(status), data)
+						lambda pid, status, data: callback(status, data), data)
 			return pid
 
 
 class WebBrowser(Application):
-	'''Wrapper for the webbrowser module with the Application API. Can be 
+	'''Wrapper for the webbrowser module with the Application API. Can be
 	used as fallback if no webbrowser is configured.
 	'''
 

@@ -616,9 +616,9 @@ class TextBuffer(gtk.TextBuffer):
 
 	def iter_get_zim_tags(self, iter):
 		'''Like gtk.TextIter.get_tags() but only returns our own tags and
-		assumes inline tags (like 'strong', 'emphasis' etc.) have "left gravity". 
-		The "line based" tags (like 'indent', 'h', 'pre') gravitate both ways 
-		(but not at the same time). This method is used to determing which tags 
+		assumes inline tags (like 'strong', 'emphasis' etc.) have "left gravity".
+		The "line based" tags (like 'indent', 'h', 'pre') gravitate both ways
+		(but not at the same time). This method is used to determing which tags
 		should be applied to newly inserted text at 'iter'.
 		'''
 		# For example:
@@ -712,7 +712,7 @@ class TextBuffer(gtk.TextBuffer):
 					else:
 						self.remove_tag(tag, iter, end)
 						self.set_modified(True)
-			
+
 				if not iter.forward_to_tag_toggle(None):
 					break
 
@@ -863,7 +863,7 @@ class TextBuffer(gtk.TextBuffer):
 		if string == '\n':
 			self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
 			# TODO make this more robust for multiline inserts
-			
+
 		gtk.TextBuffer.do_insert_text(self, end, string, length)
 
 		# Apply current text style
@@ -891,12 +891,12 @@ class TextBuffer(gtk.TextBuffer):
 		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
 		if iter.starts_line() or iter.ends_line():
 			return
-		
+
 		end = iter.copy()
 		end.forward_to_line_end()
-		
+
 		self.smart_remove_tags(_is_line_based_tag, iter, end)
-		
+
 		for tag in self.iter_get_zim_tags(iter):
 			if _is_line_based_tag(tag):
 				self.apply_tag(tag, iter, end)
@@ -2568,7 +2568,7 @@ class PageView(gtk.VBox):
 
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		if buffer.get_link_tag(iter):
-			return EditLinkDialog(self.ui, buffer, self.page).run()
+			return EditLinkDialog(self.ui, self).run()
 
 		image = buffer.get_image_data(iter)
 		if not image:
@@ -2586,6 +2586,7 @@ class PageView(gtk.VBox):
 
 	def remove_link(self, iter=None):
 		buffer = self.view.get_buffer()
+		# TODO check selection
 		if iter:
 			buffer.place_cursor(iter)
 		buffer.remove_link()
@@ -2602,10 +2603,10 @@ class PageView(gtk.VBox):
 			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
 
 	def insert_text_from_file(self):
-		InsertTextFromFileDialog(self.ui, self.view.get_buffer(), self.page).run()
+		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
 
 	def insert_external_link(self):
-		InsertExternalLinkDialog(self.ui, self.view.get_buffer(), self.page).run()
+		InsertExternalLinkDialog(self.ui, self).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links plus
@@ -2636,7 +2637,7 @@ class PageView(gtk.VBox):
 				buffer.insert_at_cursor(sep)
 
 	def insert_link(self):
-		InsertLinkDialog(self.ui, self.view.get_buffer(), self.page).run()
+		InsertLinkDialog(self.ui, self).run()
 
 	def clear_formatting(self):
 		has_selection = self.autoselect()
@@ -2895,7 +2896,7 @@ class EditImageDialog(Dialog):
 		iter = self.buffer.get_iter_at_offset(self._iter)
 		bound = iter.copy()
 		bound.forward_char()
-		with buffer.user_action:
+		with self.buffer.user_action:
 			self.buffer.delete(iter, bound)
 			self.buffer.insert_image_at_cursor(file, **attrib)
 		return True
@@ -2920,11 +2921,10 @@ class InsertTextFromFileDialog(FileDialog):
 
 class InsertLinkDialog(Dialog):
 
-	def __init__(self, ui, buffer, path):
+	def __init__(self, ui, pageview):
 		Dialog.__init__(self, ui, _('Insert Link'), # T: Dialog title
 					button=(_('_Link'), 'zim-link') )  # T: Dialog button
-		self.buffer = buffer
-		self.path = path
+		self.pageview = pageview
 
 		href, text = self._get_link()
 		self.add_fields([
@@ -2933,21 +2933,25 @@ class InsertLinkDialog(Dialog):
 		])
 
 	def _get_link(self):
-		link = self.buffer.select_link()
 		href = ''
 		text = ''
-		if link:
-			href = link['href']
-		elif self.ui.preferences['PageView']['autoselect']:
-			self.buffer.select_word()
+		buffer = self.pageview.view.get_buffer()
+		if not buffer.get_has_selection():
+			link = buffer.select_link()
+			if link:
+				href = link['href']
+			else:
+				self.pageview.autoselect()
 
-		if self.buffer.get_has_selection():
-			start, end = self.buffer.get_selection_bounds()
-			text = self.buffer.get_text(start, end)
+		if buffer.get_has_selection():
+			start, end = buffer.get_selection_bounds()
+			text = buffer.get_text(start, end)
 			self._selection_bounds = (start.get_offset(), end.get_offset())
 				# Interaction in the dialog causes buffer to loose selection
 				# maybe due to clipboard focus !??
 				# Anyway, need to remember bounds ourselves.
+			if not href:
+				href = text
 		else:
 			self._selection_bounds = None
 
@@ -2961,29 +2965,32 @@ class InsertLinkDialog(Dialog):
 		type = link_type(href)
 		if type == 'file':
 			file = File(href)
-			href = self.ui.notebook.relative_filepath(file, self.path) or file.uri
+			page = self.pageview.page
+			notebook = self.ui.notebook
+			href = notebook.relative_filepath(file, page) or file.uri
 
 		text = self.get_field('text') or href
 
-		with self.buffer.user_action:
+		buffer = self.pageview.view.get_buffer()
+		with buffer.user_action:
 			if self._selection_bounds:
 				start, end = map(
-					self.buffer.get_iter_at_offset, self._selection_bounds)
-				self.buffer.delete(start, end)
-			self.buffer.insert_link_at_cursor(text, href)
-			if not self._selection_bounds:
-				self.buffer.insert_at_cursor(' ')
+					buffer.get_iter_at_offset, self._selection_bounds)
+				buffer.delete(start, end)
+				buffer.insert_link_at_cursor(text, href)
+			else:
+				buffer.insert_link_at_cursor(text, href)
+				buffer.insert_at_cursor(' ')
 
 		return True
 
 
 class InsertExternalLinkDialog(InsertLinkDialog):
 
-	def __init__(self, ui, buffer, path):
+	def __init__(self, ui, pageview):
 		Dialog.__init__(self, ui, _('Insert External Link'), # T: Dialog title
 					button=(_('_Link'), 'zim-link') )  # T: Dialog button
-		self.buffer = buffer
-		self.path = path
+		self.pageview = pageview
 
 		href, text = self._get_link()
 		self.add_fields([
@@ -2994,11 +3001,10 @@ class InsertExternalLinkDialog(InsertLinkDialog):
 
 class EditLinkDialog(InsertLinkDialog):
 
-	def __init__(self, ui, buffer, path):
+	def __init__(self, ui, pageview):
 		Dialog.__init__(self, ui, _('Edit Link'), # T: Dialog title
 					button=(_('_Link'), 'zim-link') )  # T: Dialog button
-		self.buffer = buffer
-		self.path = path
+		self.pageview = pageview
 
 		href, text = self._get_link()
 		type = link_type(href)

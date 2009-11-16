@@ -128,8 +128,7 @@ class UnixPath(object):
 
 	def iswritable(self):
 		if self.exists():
-			statinfo = os.stat(self.path)
-			return bool(statinfo.st_mode & 0200)
+			return os.access(self.path, os.W_OK)
 		else:
 			return self.dir.iswritable() # recurs
 

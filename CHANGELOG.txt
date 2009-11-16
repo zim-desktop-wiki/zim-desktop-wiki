@@ -22,9 +22,9 @@ Additional issues addressed in this release:
 * Dialogs remember their window size - lp #227160
 * Check for pages that are changed offline now employs MD5 sum to be more robust - lp #299673
 
-Translations availabl for:
+Translations available for:
 * Dutch
 * French
 * German
-* Ukranian
+* Ukrainian
 * Spanish

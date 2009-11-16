@@ -379,11 +379,10 @@ class PathBar(ScrolledHBox):
 		if self.history is None:
 			return
 
-		for child in self.get_children()[2:]:
-			self.remove(child)
+		for button in self.get_children()[2:]:
+			self.remove(button)
 		self._selected = None
 
-		tooltips = gtk.Tooltips()
 		for path in self.get_paths():
 			button = gtk.ToggleButton(label=path.basename)
 			button.set_use_underline(False)
@@ -391,11 +390,18 @@ class PathBar(ScrolledHBox):
 			button.connect('clicked', self.on_button_clicked)
 			button.connect('popup-menu', self.on_button_popup_menu)
 			button.connect('button-release-event', self.do_button_release_event)
-			# FIXME tooltips seem not to work - not sure why
-			tooltips.set_tip(button, path.name)
 			# TODO Drag n drop support also nice to have
 			button.show()
 			self.add(button)
+
+		# FIXME tooltips seem not to work - not sure why
+		if gtk.gtk_version >= (2, 12, 0):
+			for button in self.get_children()[2:]:
+				button.set_tooltip_text(button.zim_path.name)
+		else:
+			tooltips = gtk.Tooltips()
+			for button in self.get_children()[2:]:
+				tooltips.set_tip(button, button.zim_path.name)
 
 	def get_paths(self):
 		'''To be implemented by the sub class, should return a list

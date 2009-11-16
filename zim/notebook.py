@@ -20,7 +20,7 @@ from zim.fs import *
 from zim.errors import Error
 from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
 	config_file, data_dir, user_dirs
-from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type 
+from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type
 import zim.stores
 
 
@@ -175,9 +175,8 @@ class Notebook(gobject.GObject):
 			assert isinstance(dir, Dir)
 			self.dir = dir
 			self.readonly = not dir.iswritable()
-			if not self.readonly:
-				self.cache_dir = dir.subdir('.zim')
-			else:
+			self.cache_dir = dir.subdir('.zim')
+			if self.readonly or not self.cache_dir.iswritable():
 				self.cache_dir = self._cache_dir(dir)
 			logger.debug('Cache dir: %s', self.cache_dir)
 			if self.config is None:
@@ -207,6 +206,15 @@ class Notebook(gobject.GObject):
 		self.config['Notebook'].setdefault('document_root', None, klass=basestring)
 		self.config['Notebook'].setdefault('slow_fs', False)
 		self.do_properties_changed()
+
+	@property
+	def uri(self):
+		'''Returns a file:// uri for this notebook that can be opened by zim'''
+		assert self.dir or self.file, 'Notebook does not have a dir or file'
+		if self.dir:
+			return self.dir.uri
+		else:
+			return self.file.uri
 
 	def _cache_dir(self, dir):
 		from zim.config import XDG_CACHE_HOME

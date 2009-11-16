@@ -592,14 +592,14 @@ class GtkInterface(NotebookInterface):
 			page = path
 		else:
 			page = self.notebook.get_page(path)
-		
+
 		if self.page and id(self.page) == id(page):
 			# Check ID to enable reload_page but catch all other
 			# redundant calls.
 			return
 		elif self.page:
 			assert self.close_page(self.page)
-		
+
 		logger.info('Open page: %s (%s)', page, path)
 		self.emit('open-page', page, path)
 
@@ -877,7 +877,8 @@ class GtkInterface(NotebookInterface):
 		pass
 
 	def show_server_gui(self):
-		self.spawn('--server', '--gui', self.notebook.name)
+		# TODO instead of spawn, include in this process
+		self.spawn('--server', '--gui', self.notebook.uri)
 
 	def reload_index(self):
 		dialog = ProgressBarDialog(self, _('Updating index'))
