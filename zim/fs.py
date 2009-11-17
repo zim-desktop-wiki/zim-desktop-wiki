@@ -168,6 +168,12 @@ class UnixPath(object):
 	def ischild(self, parent):
 		return self.path.startswith(parent.path + os.path.sep)
 
+	def isdir(self):
+		'''Used to detect if e.g. a File object should have really been
+		a Dir object
+		'''
+		return os.path.isdir(self.path)
+
 	def get_mimetype(self):
 		try:
 			import xdg.Mime

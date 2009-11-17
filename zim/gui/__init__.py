@@ -32,6 +32,7 @@ import gtk
 import zim
 from zim import NotebookInterface, NotebookLookupError
 from zim.fs import *
+from zim.errors import Error
 from zim.notebook import get_notebook, get_notebook_list, Path, Page, PageNameError
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict
@@ -173,6 +174,16 @@ except Exception:
 
 
 KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
+
+
+class NoSuchFileError(Error):
+
+	description = _('The file or folder you specified does not exist.\nPlease check if you the path is correct.')
+		# T: Error description for "no such file or folder"
+
+	def __init__(self, path):
+		self.msg = _('No such file or folder: %s') % path.path
+			# T: Error message, %s will be the file path
 
 
 class GtkInterface(NotebookInterface):
@@ -827,14 +838,19 @@ class GtkInterface(NotebookInterface):
 	def attach_file(self, path=None):
 		AttachFileDialog(self, path=path).run()
 
-	def open_folder(self, dir):
-		assert isinstance(dir, Dir)
-		return self._openwith(self.preferences['GtkInterface']['file_browser'], (dir,))
-
 	def open_file(self, file):
+		'''Open either a File or a Dir in the file browser'''
 		assert isinstance(file, (File, Dir))
-		# TODO: check default application first - else we can not set defaults from zim
-		return self._openwith(self.preferences['GtkInterface']['file_browser'], (file,))
+		if isinstance(file, (File)) and file.isdir():
+			file = Dir(file.path)
+
+		if file.exists():
+			# TODO if isinstance(File) check default application for mime type
+			# this is needed once we can set default app from "open with.." menu
+			self._openwith(
+				self.preferences['GtkInterface']['file_browser'], (file,) )
+		else:
+			ErrorDialog(self, NoSuchFileError(file)).run()
 
 	def open_url(self, url):
 		assert isinstance(url, basestring)
@@ -856,7 +872,7 @@ class GtkInterface(NotebookInterface):
 				# T: Error message
 			ErrorDialog(self, error).run()
 		elif dir.exists():
-			self.open_folder(dir)
+			self.open_file(dir)
 		else:
 			question = (
 				_('Create folder?'),
@@ -866,12 +882,12 @@ class GtkInterface(NotebookInterface):
 			create = QuestionDialog(self, question).run()
 			if create:
 				dir.touch()
-				self.open_folder(dir)
+				self.open_file(dir)
 
 	def open_document_root(self):
 		dir = self.notebook.get_document_root()
 		if dir and dir.exists():
-			self.open_folder(dir)
+			self.open_file(dir)
 
 	def edit_page_source(self):
 		pass

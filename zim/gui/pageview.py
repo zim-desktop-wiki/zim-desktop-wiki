@@ -151,6 +151,7 @@ _is_line_based_tag = lambda tag: _is_indent_tag(tag) #or _is_heading_tag(tag) or
 _is_not_line_based_tag = lambda tag: not _is_line_based_tag(tag)
 _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
 _is_not_style_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'style')
+_is_link_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'link'
 _is_not_link_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'link')
 
 PIXBUF_CHR = u'\uFFFC'
@@ -551,9 +552,6 @@ class TextBuffer(gtk.TextBuffer):
 
 	def insert_bullet_at_cursor(self, bullet, raw=False):
 		with self.user_action:
-			if not filter(_is_indent_tag, self._editmode_tags):
-				self.set_indent(0) # bullets always need indenting
-
 			if bullet == BULLET:
 				if raw:
 					self.insert_at_cursor(u'\u2022')
@@ -570,6 +568,12 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(u'\u2022')
 				else:
 					self.insert_at_cursor(u'\u2022 ')
+
+			if not filter(_is_indent_tag, self._editmode_tags):
+				iter = self.get_iter_at_mark(self.get_insert())
+				self.set_indent_for_line(0, iter.get_line())
+					# bullets always need indenting
+
 
 	def set_textstyle(self, name):
 		'''Sets the current text style. This style will be applied
@@ -700,18 +704,11 @@ class TextBuffer(gtk.TextBuffer):
 			while iter.compare(end) == -1:
 				for tag in filter(func, iter.get_tags()):
 					bound = iter.copy()
-					while bound.compare(end) == -1:
-						# FIXME explain why we need this loop
-						bound.forward_to_tag_toggle(tag)
-						if bound.ends_tag(tag):
-							self.remove_tag(tag, iter, bound)
-							self.set_modified(True)
-							break
-						else:
-							continue
-					else:
-						self.remove_tag(tag, iter, end)
-						self.set_modified(True)
+					bound.forward_to_tag_toggle(tag)
+					if not bound.compare(end) == -1:
+						bound = end.copy()
+					self.remove_tag(tag, iter, bound)
+					self.set_modified(True)
 
 				if not iter.forward_to_tag_toggle(None):
 					break
@@ -862,6 +859,7 @@ class TextBuffer(gtk.TextBuffer):
 		# First call parent for the actual insert
 		if string == '\n':
 			self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
+			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 			# TODO make this more robust for multiline inserts
 
 		gtk.TextBuffer.do_insert_text(self, end, string, length)
@@ -1158,21 +1156,10 @@ class TextBuffer(gtk.TextBuffer):
 		self.select_range(insert, bound)
 		return link
 
-	def remove_link(self):
-		'''Removes the link at the cursor, if any.
-		Returns link data or None when there was no link at the cursor.
-		'''
-		iter = self.get_iter_at_mark(self.get_insert())
-		tag = self.get_link_tag(iter)
-		link = self.select_link()
-		if tag and link:
-			start, end = self.get_selection_bounds()
-			self.remove_tag(tag, start, end)
-			self.set_modified(True)
-			self.set_editmode_from_cursor()
-			return link
-		else:
-			return None
+	def remove_link(self, start, end):
+		'''Removes any links between start and end'''
+		self.smart_remove_tags(_is_link_tag, start, end)
+		self.set_editmode_from_cursor()
 
 	def toggle_checkbox(self, iter, checkbox_type=CHECKED_BOX):
 		bullet = self.get_bullet_at_iter(iter)
@@ -2495,7 +2482,7 @@ class PageView(gtk.VBox):
 			menu.prepend(item)
 			dir = file.dir
 			if dir.exists():
-				item.connect('activate', lambda o: self.ui.open_folder(dir))
+				item.connect('activate', lambda o: self.ui.open_file(dir))
 			else:
 				item.set_sensitive(False)
 
@@ -2586,10 +2573,14 @@ class PageView(gtk.VBox):
 
 	def remove_link(self, iter=None):
 		buffer = self.view.get_buffer()
-		# TODO check selection
-		if iter:
-			buffer.place_cursor(iter)
-		buffer.remove_link()
+
+		if not buffer.get_has_selection():
+			if iter:
+				buffer.place_cursor(iter)
+			buffer.select_link()
+
+		start, end = buffer.get_selection_bounds()
+		buffer.remove_link(start, end)
 
 	def insert_date(self):
 		InsertDateDialog(self.ui, self.view.get_buffer()).run()
