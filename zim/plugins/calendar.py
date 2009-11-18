@@ -5,6 +5,7 @@
 import gobject
 import gtk
 
+import re
 from datetime import date as dateclass
 
 from zim.plugins import PluginClass
@@ -17,6 +18,9 @@ from zim.notebook import Path
 
 # TODO implement template for calendar pages
 #  - take into account month and year nodes as well
+
+# TODO provide suggest_link function for dates
+
 
 ui_xml = '''
 <ui>
@@ -59,6 +63,8 @@ ui_toggle_actions = (
 
 KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))
 KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
+
+date_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}:\d{2}$')
 
 
 class CalendarPlugin(PluginClass):
@@ -135,10 +141,22 @@ This is a core plugin shipping with zim.
 		return Path(
 			self.preferences['namespace'] + ':' + date.strftime('%Y:%m:%d') )
 
+	def path_for_month_from_date(self, date):
+		return Path(
+			self.preferences['namespace'] + ':' + date.strftime('%Y:%m') )
+
 	def date_from_path(self, path):
+		assert date_path_re.match(path.name), 'Not an date path: %s' % path.name
 		year, month, day = path.name.rsplit(':', 3)[-3:]
 		year, month, day = map(int, (year, month, day))
 		return dateclass(year, month, day)
+
+	def suggest_link(self, text):
+		if date_path_re.match(path.text):
+			return Path(text)
+		# TODO other formats
+		else:
+			return None
 
 	def go_page_today(self):
 		today = dateclass.today()
@@ -217,15 +235,30 @@ class CalendarPluginWidget(gtk.VBox):
 			gtk.CALENDAR_SHOW_DAY_NAMES |
 			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
 		self.calendar.connect('activate', self.on_calendar_activate)
+		self.calendar.connect('month-changed', self.on_month_changed)
+		self.on_month_changed(self.calendar)
 		self.pack_start(self.calendar, False)
+		
+		self.plugin.ui.connect('open-page', self.on_open_page)
 
 	def on_calendar_activate(self, calendar):
 		path = self.plugin.path_from_date( calendar.get_date() )
 		if path != self.plugin.ui.page:
 			self.plugin.ui.open_page(path)
 
-	# TODO: synchronize with page loaded if it matches a date page
-	# TODO: on month changed signal mark days that actually have a page
+	def on_month_changed(self, calendar):
+		calendar.clear_marks()
+		namespace = self.plugin.path_for_month_from_date( calendar.get_date() )
+		for path in self.plugin.ui.notebook.index.list_pages(namespace):
+			date = self.plugin.date_from_path(path)
+			calendar.mark_day(date.day)
+			
+	def on_open_page(self, ui, page, path):
+		try:
+			date = self.plugin.date_from_path(path)
+			self.calendar.select_month(date.month-1, date.year)
+		except AssertionError:
+			pass
 
 
 class CalendarDialog(Dialog):
