@@ -32,11 +32,12 @@ import gtk
 import zim
 from zim import NotebookInterface, NotebookLookupError
 from zim.fs import *
+from zim.fs import normalize_win32_share
 from zim.errors import Error
 from zim.notebook import get_notebook, get_notebook_list, Path, Page, PageNameError
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict
-from zim.parsing import url_encode
+from zim.parsing import url_encode, is_win32_share_re
 from zim.history import History, HistoryRecord
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
@@ -859,6 +860,8 @@ class GtkInterface(NotebookInterface):
 		elif url.startswith('mailto:'):
 			self._openwith(self.preferences['GtkInterface']['email_client'], (url,))
 		else:
+			if is_win32_share_re.match(url):
+				url = normalize_win32_share(url)
 			self._openwith(self.preferences['GtkInterface']['web_browser'], (url,))
 
 	def _openwith(self, name, args):
@@ -1442,7 +1445,7 @@ discarded, but you can restore the copy later.''')
 		self.add_action_widget(discard_button, gtk.RESPONSE_OK)
 
 		save_button = Button(label=_('_Save Copy'), stock=gtk.STOCK_SAVE_AS)
- 			# T: Button in error dialog
+			# T: Button in error dialog
 		save_button.connect_object('clicked', save, self)
 		self.add_action_widget(save_button, gtk.RESPONSE_OK)
 

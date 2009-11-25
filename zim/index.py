@@ -351,7 +351,8 @@ class Index(gobject.GObject):
 			names = path.parts
 			parentid = 0
 			indexpath = []
-			inserted = []
+			inserted = [] # newly inserted paths
+			lastparent = None # last parent that already existed
 			for i in range(len(names)):
 				p = self.lookup_path(Path(names[:i+1]))
 				if p is None:
@@ -365,15 +366,22 @@ class Index(gobject.GObject):
 						IndexPath(':'.join(names[:i+1]), indexpath,
 							{'hascontent': False, 'haschildren': haschildren}))
 				else:
-					# TODO check if haschildren is correct, update and emit has-children-toggled if not
+					lastparent = p
 					parentid = p.id
 					indexpath.append(parentid)
+			
+			if lastparent and not lastparent.haschildren:
+				self.db.execute('update pages set haschildren = ? where id == ?', (True, lastparent.id))
+			else:
+				lastparent = None
 
 			self.db.commit()
 		except:
 			self.db.rollback()
 			raise
 		else:
+			if lastparent:
+				self.emit('page-haschildren-toggled', lastparent)
 			for path in inserted:
 				self.emit('page-inserted', path)
 
@@ -545,12 +553,22 @@ class Index(gobject.GObject):
 			for id in ids:
 				self.db.execute('delete from links where source = ?', (id,))
 				self.db.execute('delete from pages where id = ?', (id,))
+				
+			parenttoggled = False
+			parent = path.parent
+			if not parent.isroot and self.n_list_pages(parent) == 0:
+				parenttoggled = True
+				self.db.execute(
+					'update pages set haschildren=? where id==?', (False, parent.id) )
+
 		except:
 			self.db.rollback()
 			raise
 		else:
 			self.db.commit()
 			self.emit('page-deleted', path)
+			if parenttoggled:
+				self.emit('page-haschildren-toggled', parent)
 
 		# TODO check forward links and clean up any placeholders
 		# TODO check backward links and unlink any links going here ??
@@ -643,9 +661,9 @@ class Index(gobject.GObject):
 		while parent != 0:
 			indexpath.insert(0, parent)
 			cursor.execute('select basename, parent from pages where id==?', (parent,))
-			row = cursor.fetchone()
-			names.insert(0, row['basename'])
-			parent = row['parent']
+			myrow = cursor.fetchone()
+			names.insert(0, myrow['basename'])
+			parent = myrow['parent']
 
 		return IndexPath(':'.join(names), indexpath, row)
 
@@ -728,6 +746,11 @@ class Index(gobject.GObject):
 			IndexPath(name+':'+r['basename'], indexpath+(r['id'],), r)
 				for r in cursor ]
 
+	def n_list_pages(self, path):
+		'''Returns the number of pages below path'''
+		# TODO optimize this one
+		return len(self.list_pages(path))
+
 	def list_links(self, path, direction=LINK_DIR_FORWARD):
 		path = self.lookup_path(path)
 		if path:
@@ -751,7 +774,7 @@ class Index(gobject.GObject):
 				yield Link(source, href)
 
 	def n_list_links(self, path, direction=LINK_DIR_FORWARD):
-		'''Link list_lins() but returns only the number of links instead
+		'''Like list_lins() but returns only the number of links instead
 		of the links themselves.
 		'''
 		# TODO optimize this one

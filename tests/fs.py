@@ -13,7 +13,7 @@ import time
 import logging
 
 from zim.fs import *
-from zim.fs import Path, FileHandle, OverWriteError, TmpFile, get_tmpdir
+from zim.fs import Path, FileHandle, OverWriteError, TmpFile, get_tmpdir, normalize_win32_share
 
 # TODO: also test dir.new_file()
 
@@ -34,6 +34,18 @@ class FilterOverWriteWarning(object):
 
 
 class TestFS(tests.TestCase):
+
+	def testFunctions(self):
+		smb_urls = (
+			('smb://MyHost.local/share/My%20Documents', r'\\MyHost.local\share\My Documents'),
+		)
+		for url, share in smb_urls:
+			if os.name == 'nt':
+				self.assertEqual(normalize_win32_share(share), share)
+				self.assertEqual(normalize_win32_share(url), share)
+			else:
+				self.assertEqual(normalize_win32_share(share), url)
+				self.assertEqual(normalize_win32_share(url), url)
 
 	def testPath(self):
 		'''Test Path constructor'''

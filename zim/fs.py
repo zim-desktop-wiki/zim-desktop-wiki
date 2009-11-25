@@ -24,6 +24,8 @@ import logging
 from StringIO import StringIO
 
 from zim.errors import Error
+from zim.parsing import url_encode, url_decode
+
 
 __all__ = ['Dir', 'File']
 
@@ -37,6 +39,21 @@ def get_tmpdir():
 	dir.touch()
 	os.chmod(dir.path, 0700) # Limit to single user
 	return dir
+
+
+def normalize_win32_share(path):
+	if os.name == 'nt':
+		if path.startswith('smb://'):
+			# smb://host/share/.. -> \\host\share\..
+			path = path[4:].replace('/', '\\')
+			path = url_decode(path)
+	else:
+		if path.startswith('\\\\'):
+			# \\host\share\.. -> smb://host/share/..
+			path = 'smb:' + path.replace('\\', '/')
+			path = url_encode(path)
+
+	return path
 
 
 class PathLookupError(Error):

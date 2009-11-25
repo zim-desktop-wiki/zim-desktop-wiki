@@ -40,12 +40,14 @@ def unescape_quoted_string(string):
 def url_encode(url):
 	'''Replaces non-standard characters in urls with hex codes'''
 	url = url.encode('utf-8').replace(' ', '%20')
-	# TODO url encoding - replace \W with sprintf('%%%02x')
+	# TODO real url encoding - replace \W with sprintf('%%%02x')
 	return url
 
 
 def url_decode(url):
-	pass # TODO url_decode
+	url = url.decode('utf-8').replace('%20', ' ')
+	# TODO real url decoding
+	return url
 
 
 class Re(object):
@@ -143,6 +145,9 @@ is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Z]:\\)')
 	# X:\
 is_win32_path_re = Re(r'^[A-Z]:[\\/]')
 	# X:\ (or X:/)
+is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
+	# \\host\share
+	# smb://host/share
 is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
 	# identifyer "?" path
 
@@ -163,6 +168,7 @@ def link_type(link):
 	'''Function that retuns a link type for urls and page links'''
 	if is_url_re.match(link): type = is_url_re[1]
 	elif is_email_re.match(link): type = 'mailto'
+	elif is_win32_share_re.match(link): type = 'smb'
 	elif is_path_re.match(link): type = 'file'
 	else: type = 'page'
 	# TODO interwiki
