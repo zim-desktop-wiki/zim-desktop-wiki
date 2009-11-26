@@ -24,7 +24,7 @@ class ExportDialog(Dialog):
 		self._add_with_frame(vbox, '<b>'+_('Pages')+'</b>')
 			# T: Section heading in export dialog
 
-		all_pages_radio = gtk.RadioButton(None, _('_Complete notebook'))
+		all_pages_radio = gtk.RadioButton(None, _('Complete _notebook'))
 			# T: Option in export dialog to export complete notebook
 		selection_radio = gtk.RadioButton(all_pages_radio, _('_Selection'))
 			# T: Option in export dialog to export selection

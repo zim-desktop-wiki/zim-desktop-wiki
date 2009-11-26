@@ -62,15 +62,32 @@ class Application(object):
 		cmd = self.tryexeccmd or self.cmd[0]
 		return not self._lookup(cmd) is None
 
-	def run(self, args=None, cwd=None):
-		'''Run application in the foreground and wait for it to return'''
-		# TODO: may want stdin / stdout etc.
+	def _checkargs(self, cwd, args):
 		assert args is None or isinstance(args, (tuple, list))
 		argv = [a.encode('utf-8') for a in self._cmd(args)]
 		if cwd:
 			cwd = unicode(cwd).encode('utf-8')
+		return cwd, argv
+
+	def run(self, args=None, cwd=None):
+		'''Run application in the foreground and wait for it to return'''
+		cwd, argv = self._checkargs(cwd, args)
 		logger.info('Running: %s (cwd: %s)', argv, cwd)
 		subprocess.check_call(argv, cwd=cwd, stdout=open(os.devnull, 'w'))
+
+	def pipe(self, args=None, cwd=None, input=None):
+		'''Run application in the foreground and wait for it to return.
+		This method returns stdout while logging stderr as warning.
+		Output is returned as a list of lines.
+		'''
+		cwd, argv = self._checkargs(cwd, args)
+		logger.info('Running: %s (cwd: %s)', argv, cwd)
+		stdout, stderr = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE).communicate(input)
+
+		if stderr:
+			logger.warn(stderr)
+
+		return stdout.splitlines(True)
 
 	def spawn(self, args=None, callback=None, data=None, cwd=None):
 		'''Run application in the background and return immediatly.
@@ -85,8 +102,7 @@ class Application(object):
 		the application was successful or not.
 		'''
 		# TODO: can we build this based on os.spawn ? - seems this method fails on win32
-		assert args is None or isinstance(args, (tuple, list))
-		argv = [a.encode('utf-8') for a in self._cmd(args)]
+		cwd, argv = self._checkargs(cwd, args)
 		opts = {}
 		if cwd:
 			opts['cwd'] = unicode(cwd).encode('utf-8')

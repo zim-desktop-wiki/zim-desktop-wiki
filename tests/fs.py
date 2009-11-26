@@ -36,7 +36,7 @@ class FilterOverWriteWarning(object):
 class TestFS(tests.TestCase):
 
 	def testPath(self):
-		'''Test Path constructor'''
+		'''Test Path object'''
 		path = Path(['foo', 'bar'])
 		test = os.path.abspath( os.path.join('foo', 'bar') )
 		self.assertEqual(path.path, test)
@@ -57,7 +57,7 @@ class TestFS(tests.TestCase):
 		self.assertEqual(path.split(), [drive + os.sep + 'foo', 'bar', 'baz'])
 		dirs = []
 		for d in path: dirs.append(d)
-		wanted = map(lambda p: os.path.abspath(drive+p),
+		wanted = map(lambda p: Dir(os.path.abspath(drive+p)),
 					['/foo', '/foo/bar', '/foo/bar/baz'])
 		self.assertEqual(dirs, wanted)
 

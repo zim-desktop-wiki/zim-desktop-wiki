@@ -8,10 +8,7 @@
 			<separator/>
 			<menuitem action='save_page'/>
 			<menuitem action='save_copy'/>
-<!--
-			<menuitem action='save_version'/>
-			<menuitem action='show_versions'/>
--->
+			<placeholder name='versioning_actions'/>
 			<separator/>
 			<menuitem action='show_export'/>
 			<placeholder name='print_actions'/>

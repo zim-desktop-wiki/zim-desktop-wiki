@@ -102,7 +102,7 @@ class InsertScreenshotDialog(Dialog):
 				page = self.ui.page
 				dir = self.ui.notebook.get_attachments_dir(page)
 				file = dir.new_file(name)
-				tmpfile.moveto(file)
+				tmpfile.rename(file)
 				self.ui.mainwindow.pageview.insert_image(file, interactive=False)
 			else:
 				ErrorDialog(self.ui,
