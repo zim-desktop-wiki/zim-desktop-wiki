@@ -5,21 +5,25 @@
 import os
 import logging
 
-import bzrlib.commands
-
 from zim.fs import FS
 from zim.applications import Application
 
 logger = logging.getLogger('zim.vcs.bzr')
 # TODO check if bzrlib also uses logging for output
 
-class Bazaar(Application):
+try:
+    import bzrlib.commands as bzrlib
+except ImportError:
+    bzrlib = None
+
+
+class BzrlibApplication(Application):
 
 	def __init__(self):
 		Application.__init__(self, ('bzr',))
 
 	def run(self, args, cwd=None):
-		if bzrlib.commands:
+		if bzrlib:
 			cwd = unicode(cwd).encode('utf-8')
 			self._bzrlib(args, cwd)
 		else:
@@ -34,14 +38,17 @@ class Bazaar(Application):
 			args = [unicode(a).encode('utf-8') for a in args]
 			args.insert(1, '-q') # --quiet
 			logger.info('Running through bzrlib: %s', args)
-			#~ bzrlib.commands.run_bzr(args)
-			bzrlib.commands.main([None] + args)
+			#~ bzrlib.run_bzr(args)
+			bzrlib.main([None] + args)
 		except:
 			logger.exception('Error thrown by bzrlib')
 		os.chdir(ourcwd)
 
 
-_bzr = Bazaar()
+if bzrlib:
+    _bzr = BzrlibApplication()
+else:
+    _bzr = Application(('bzr',))
 
 
 # TODO document API - use base class

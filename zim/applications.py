@@ -87,7 +87,8 @@ class Application(object):
 		if stderr:
 			logger.warn(stderr)
 
-		return stdout.splitlines(True)
+		return [line + '\n' for line in stdout.splitlines()]
+			# Explicit newline conversion, e.g. on windows \r\n -> \n
 
 	def spawn(self, args=None, callback=None, data=None, cwd=None):
 		'''Run application in the background and return immediatly.
