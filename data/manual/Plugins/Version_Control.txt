@@ -1,0 +1,6 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Version Control ======
+
+TODO document version control support in zim

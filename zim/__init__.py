@@ -290,7 +290,8 @@ class NotebookInterface(gobject.GObject):
 
 	def load_plugins(self):
 		'''Load the plugins defined in the preferences'''
-		self.preferences['General'].setdefault('plugins', ['calendar', 'printtobrowser'])
+		self.preferences['General'].setdefault('plugins', 
+			['calendar', 'printtobrowser', 'versioncontrol'])
 		plugins = self.preferences['General']['plugins']
 		for plugin in plugins:
 			self.load_plugin(plugin)

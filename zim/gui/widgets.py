@@ -32,6 +32,27 @@ KEYVALS_SLASH = (
 	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
 
 
+def scrolled_text_view(text=None, monospace=False):
+	'''Initializes a gtk.TextView with sane defaults for displaying a
+	piece of multiline text, wraps it in a scrolled window and returns
+	both the window and the textview.
+	'''
+	textview = gtk.TextView()
+	textview.set_editable(False)
+	textview.set_wrap_mode(gtk.WRAP_WORD)
+	textview.set_left_margin(5)
+	textview.set_right_margin(5)
+	if monospace:
+		font = pango.FontDescription('Monospace')
+		textview.modify_font(font)
+	if text:
+		textview.get_buffer().set_text(text)
+	window = gtk.ScrolledWindow()
+	window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+	window.set_shadow_type(gtk.SHADOW_IN)
+	window.add(textview)
+	return window, textview
+
 
 class Button(gtk.Button):
 	'''This class overloads the constructor of the default gtk.Button
@@ -62,7 +83,47 @@ class IconButton(gtk.Button):
 			self.set_relief(gtk.RELIEF_NONE)
 
 
-class BrowserTreeView(gtk.TreeView):
+class SingleClickTreeView(gtk.TreeView):
+
+	mask = gtk.gdk.SHIFT_MASK | gtk.gdk.CONTROL_MASK
+
+	def do_button_release_event(self, event):
+		'''Handler for button-release-event, implements single click navigation'''
+
+		if event.button == 1 and not event.state & self.mask \
+		and not self.is_rubber_banding_active():
+			x, y = map(int, event.get_coords())
+				# map to int to surpress deprecation warning :S
+			info = self.get_path_at_pos(x, y)
+			if not info is None:
+				path, column, x, y = info
+				if self.get_selection().path_is_selected(path):
+					self.row_activated(path, column)
+				# This action is conditional on the path being selected
+				# because otherwise we can not toggle the folding state
+				# of a path without activating it. The assumption being
+				# that the path gets selected on button press and then
+				# gets activated on button release. Clicking the
+				# expander in front of a path should not select the path.
+				# This logic is based on particulars of the C implementation
+				# and might not be future proof.
+
+		return gtk.TreeView.do_button_release_event(self, event)
+
+	# backwards compatibility
+	if gtk.gtk_version < (2, 12, 0):
+		def set_rubber_banding(self, enable):
+			pass
+
+		def is_rubber_banding_active(self):
+			return False
+
+
+# Need to register classes defining / overriding gobject signals
+gobject.type_register(SingleClickTreeView)
+
+
+class BrowserTreeView(SingleClickTreeView):
 	'''TreeView subclass intended for lists that are in "browser" mode.
 	Default behavior will be single click navigation for these lists.
 
@@ -110,25 +171,6 @@ class BrowserTreeView(gtk.TreeView):
 			return True
 		else:
 			return gtk.TreeView.do_key_press_event(self, event)
-
-	def do_button_release_event(self, event):
-		'''Handler for button-release-event, implements single click navigation'''
-		if event.button == 1:
-			x, y = map(int, event.get_coords())
-				# map to int to surpress deprecation warning :S
-			path, column, x, y = self.get_path_at_pos(x, y)
-			if self.get_selection().path_is_selected(path):
-				self.row_activated(path, column)
-				# This action is conditional on the path being selected
-				# because otherwise we can not toggle the folding state
-				# of a path without activating it. The assumption being
-				# that the path gets selected on button press and then
-				# gets activated on button release. Clicking the
-				# expander in front of a path should not select the path.
-				# This logic is based on particulars of the C implementation
-				# and might not be future proof.
-
-		return gtk.TreeView.do_button_release_event(self, event)
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(BrowserTreeView)
@@ -221,6 +263,33 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(MenuButton)
+
+
+class PageEntry(gtk.Entry):
+	# TODO move completion logic from below to here..
+
+	# TODO highlight background for an invalid name
+	# TODO highlight for existing / non-existing page (?)
+
+	def set_path(self, path):
+		self.set_text(path.name)
+
+	def get_path(self):
+		# TODO cleanup name etc
+		name = self.get_text().strip()
+		if name:
+			return Path(name)
+		else:
+			return None
+
+	def clear(self):
+		self.set_text('')
+		self.emit('activate')
+
+
+class NamespaceEntry(PageEntry):
+	pass # TODO move completion logic from below to here..
+
 
 
 def format_title(title):

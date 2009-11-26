@@ -5,6 +5,13 @@
 '''Module with basic filesystem objects.
 
 Used as a base library for most other zim modules.
+
+FIXME more docs
+
+There is a singleton object to represent the whole filesystem. THis
+is stored in 'zim.fs.FS'. This object provides signals when a file or
+folder is created, moved or deleted.
+
 '''
 
 # From the python doc: If you're starting with a Python file object f, first
@@ -14,6 +21,17 @@ Used as a base library for most other zim modules.
 #
 # (Remember the ext4 issue with truncated files in case of failure within
 # 60s after write. This way of working should prevent that kind of issue.)
+
+# It could be considered to use a weakref dictionary to ensure the same
+# identity for objects representing the same physical file. (Like we do
+# for page objects in zim.notebook.) However this is not done for a good
+# reason: each part of the code that uses a specific file must do it's
+# own checks to detect if the file was changed outside it's control.
+# So it is e.g. possible to have multiple instances of File() which
+# represent the same file but independently manage the mtime and md5
+# checksums to ensure the file is what they think it should be.
+
+import gobject
 
 import os
 import re
@@ -64,6 +82,25 @@ class OverWriteError(Error):
 	pass # TODO description
 
 
+# TODO actually hook the signal for deleting files and folders
+
+class _FS(gobject.GObject):
+	'''Class used for the singleton 'zim.fs.FS' instance'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'path-created': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'path-moved': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
+		'path-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+	}
+
+# Need to register classes defining gobject signals
+gobject.type_register(_FS)
+
+
+FS = _FS()
+
+
 class UnixPath(object):
 	'''Parent class for Dir and File objects'''
 
@@ -101,9 +138,14 @@ class UnixPath(object):
 
 	def __iter__(self):
 		parts = self.split()
-		for i in range(1, len(parts)+1):
+		for i in range(1, len(parts)):
 			path = os.path.join(*parts[0:i])
-			yield path
+			yield Dir(path)
+
+		#~ if self.isdir():
+		yield Dir(self.path)
+		#~ else:
+			#~ yield self
 
 	def __str__(self):
 		return self.path
@@ -178,8 +220,14 @@ class UnixPath(object):
 		return Dir(path)
 
 	def rename(self, newpath):
+		# Using shutil.move instead of os.rename because move can cross
+		# file system boundies, but rename can not
 		logger.info('Rename %s to %s', self, newpath)
-		os.renames(self.path, newpath.path)
+		newpath.dir.touch()
+		# TODO: check against newpath existing and being a directory
+		shutil.move(self.path, newpath.path)
+		FS.emit('path-moved', self, newpath)
+		self.dir.cleanup()
 
 	# FIXME we could define overloaded operators same as for notebook.Path
 	def ischild(self, parent):
@@ -471,6 +519,7 @@ class File(Path):
 			# On Windows, if dst already exists, OSError will be raised
 			# and no atomic operation to rename the file :(
 			if os.path.isfile(self.path):
+				isnew = False
 				back = self.path + '~'
 				if os.path.isfile(back):
 					os.remove(back)
@@ -478,11 +527,17 @@ class File(Path):
 				os.rename(tmp, self.path)
 				os.remove(back)
 			else:
+				isnew = True
 				os.rename(tmp, self.path)
 		else:
 			# On UNix, dst already exists it is replaced in an atomic operation
+			isnew = not os.path.isfile(self.path)
 			os.rename(tmp, self.path)
+
 		logger.debug('Wrote %s', self)
+
+		if isnew:
+			FS.emit('path-created', self)
 
 	def read(self, encoding='utf-8'):
 		if not self.exists():
@@ -576,16 +631,7 @@ class File(Path):
 		else:
 			dest.dir.touch()
 		shutil.copy(self.path, dest.path)
-
-	def moveto(self, dest):
-		'''Move this file to 'dest'. 'dest can be either a file or a dir'''
-		assert isinstance(dest, (File, Dir))
-		logger.info('Move %s to %s', self, dest)
-		if isinstance(dest, Dir):
-			dest.touch()
-		else:
-			dest.dir.touch()
-		shutil.move(self.path, dest.path)
+		# TODO - not hooked with FS signals
 
 	def compare(self, other):
 		'''Uses MD5 to tell you if files are the same or not.

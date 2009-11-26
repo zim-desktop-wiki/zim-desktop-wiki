@@ -135,7 +135,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 				sys.exit(1)
 			coverage = coverage_module
 			coverage.erase() # clean up old date set
-			coverage.exclude('assert')
+			coverage.exclude('assert ')
 			coverage.exclude('raise NotImplementedError')
 			coverage.start()
 		elif o == '--fast':

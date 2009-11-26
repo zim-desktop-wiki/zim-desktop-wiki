@@ -6,7 +6,7 @@ import gtk
 import logging
 
 from zim.fs import *
-from zim.gui.widgets import Dialog, ImageView, Button, QuestionDialog
+from zim.gui.widgets import Dialog, ImageView, Button, QuestionDialog, scrolled_text_view
 
 
 logger = logging.getLogger('zim.gui')
@@ -47,7 +47,7 @@ class ImageGeneratorDialog(Dialog):
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 
-		self.previewbutton = Button(_('_Preview'), stock='gtk-refresh') 
+		self.previewbutton = Button(_('_Preview'), stock='gtk-refresh')
 			# T: button in e.g. equation editor dialog
 		self.previewbutton.set_sensitive(False)
 		self.previewbutton.connect_object(
@@ -140,7 +140,7 @@ class ImageGeneratorDialog(Dialog):
 		imgfile = self._stitch_fileextension(textfile, self.imagefile.basename)
 
 		textfile.write( self.get_text() )
-		self.imagefile.moveto(imgfile)
+		self.imagefile.rename(imgfile)
 
 		if self._existing_file:
 			self.ui.reload_page()
@@ -164,14 +164,5 @@ class LogFileDialog(Dialog):
 		Dialog.__init__(self, ui, _('Log file'), buttons=gtk.BUTTONS_CLOSE)
 			# T: dialog title for log view dialog - e.g. for Equation Editor
 		self.set_default_size(600, 300)
-		self.textview = gtk.TextView()
-		self.textview.set_editable(False)
-		self.textview.set_left_margin(5)
-		self.textview.set_right_margin(5)
-		scrollwindow = gtk.ScrolledWindow()
-		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
-		scrollwindow.add(self.textview)
-		self.vbox.add(scrollwindow)
-
-		self.textview.get_buffer().set_text(file.read())
+		window, textview = scrolled_text_view(file.read(), monospace=True)
+		self.vbox.add(window)
