@@ -9,12 +9,16 @@ import logging
 from zim.fs import File
 from zim.plugins import PluginClass
 
-from zim.gui.widgets import SingleClickTreeView, Dialog, PageEntry, IconButton, scrolled_text_view
+from zim.gui.widgets import SingleClickTreeView, Dialog, PageEntry, IconButton, scrolled_text_view, QuestionDialog
 
 # FUTURE allow vcs modules like bzr to have their own UI classes
 # these can add additional menu items e.g. Tools->Bazaar-> ...
 # or use their own graphical interfaces, like bzr gdiff
 
+# TODO detect vcs when plugging the plugin from preferences menu
+# TODO set default window size (+ uistate)
+# TODO numeric sort instead of string for revision number in treeview
+# TODO preference for autosave version !
 
 logger = logging.getLogger('zim.plugins.versioncontrol')
 
@@ -36,7 +40,7 @@ ui_xml = '''
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
 	('save_version', 'gtk-save-as', _('S_ave Version...'), '<ctrl><shift>S', '', False), # T: menu item
-	('show_versions', None, _('_Versions...'),  '', '', True), # T: menu item
+	('show_versions', None, _('_Versions...'), '', '', True), # T: menu item
 )
 
 
@@ -61,23 +65,26 @@ This is a core plugin shipping with zim.
 			self.ui.add_ui(ui_xml, self)
 			self.actiongroup.get_action('show_versions').set_sensitive(False)
 			self.ui.connect_after('open-notebook',
-				lambda o, n: self.detect_vcs(n) )
+				lambda o, n: self.detect_vcs() )
 
-	def detect_vcs(self, notebook):
-		if notebook.dir:
-			dir = notebook.dir
-		elif notebook.file:
-			dir = notebook.file.dir
-		else:
-			assert 'Notebook is not based on a file or folder'
-
+	def detect_vcs(self):
+		dir = self._get_notebook_dir()
 		self.vcs = self._detect_vcs(dir)
 		if self.vcs:
 			self.actiongroup.get_action('show_versions').set_sensitive(True)
 
+	def _get_notebook_dir(self):
+		notebook  = self.ui.notebook
+		if notebook.dir:
+			return notebook.dir
+		elif notebook.file:
+			return notebook.file.dir
+		else:
+			assert 'Notebook is not based on a file or folder'
 
 	@staticmethod
 	def _detect_vcs(dir):
+		# split off because it is easier to test this way
 		vcs = None
 
 		for path in reversed(list(dir)):
@@ -97,34 +104,78 @@ This is a core plugin shipping with zim.
 		return vcs
 
 	def save_version(self):
-		if self.vcs:
-			SaveVersionDialog.run()
+		if not self.vcs:
+			# TODO choice from multiple version control systems
+			if QuestionDialog(self, (
+				_("Enable Version Control?"), # T: Question dialog
+				_("Version control is currently not enabled for this notebook.\n"
+				  "Do you want to enable it?" ) # T: Detailed question
+			) ).run():
+				self.init_vcs('bzr')
+
+		SaveVersionDialog(self.ui, self.vcs).run()
+
+	def init_vcs(self, vcs):
+		dir = self._get_notebook_dir()
+		if vcs == 'bzr':
+			from zim.plugins.versioncontrol.bzr import BazaarVCS
+			self.vcs = BazaarVCS(dir)
 		else:
-			VersionControlInitDialog.run()
+			assert False, 'Unkown VCS: %s' % vcs
+
+		if self.vcs:
+			self.vcs.init()
+			self.actiongroup.get_action('show_versions').set_sensitive(True)
 
 	def show_versions(self):
 		dialog = VersionsDialog.unique(self, self.ui, self.vcs)
 		dialog.present()
 
 
-class VersionControlInitDialog(Dialog):
-	pass
+#~ class VersionControlInitDialog(Dialog):
+	#~ pass
 
 
 class SaveVersionDialog(Dialog):
-	pass
 
-	# _("Save Version") # T: Dialog title
+	def __init__(self, ui, vcs):
+		Dialog.__init__(self, ui, _('Save Version'), # T: dialog title
+			button=(None, 'gtk-save'), help='Plugins:Version Control')
+		self.vcs = vcs
 
-	# _("Please enter a comment for this version") # T: Dialog text
+		self.add_text(_("Please enter a comment for this version")) # T: Dialog text
 
-	# Comment box
-	#-- vpane
-	# Box with details
+		vpaned = gtk.VPaned()
+		self.vbox.add(vpaned)
 
-	# Notebook Changes button
+		window, self.textview = scrolled_text_view(_('Saved version from zim'))
+			# T: default version comment in the "save version" dialog
+		self.textview.set_editable(True)
+		vpaned.add1(window)
 
-	# Help, Cancel, SAve
+		vbox = gtk.VBox()
+		vpaned.add2(vbox)
+
+		label = gtk.Label('<b>'+_('Details')+'</b>')
+			# T: section for version details in "save version" dialog
+		label.set_use_markup(True)
+		label.set_alignment(0, 0.5)
+		vbox.pack_start(label, False)
+
+		status = self.vcs.get_status()
+		window, textview = scrolled_text_view(text=''.join(status), monospace=True)
+		vbox.add(window)
+
+
+	def do_response_ok(self):
+		buffer = self.textview.get_buffer()
+		start, end = buffer.get_bounds()
+		msg = buffer.get_text(start, end, False).strip()
+		if msg:
+			self.vcs.commit(msg)
+			return True
+		else:
+			return False
 
 
 class VersionsDialog(Dialog):
@@ -173,7 +224,7 @@ class VersionsDialog(Dialog):
 		label = gtk.Label('<i>\n'+_( '''\
 Select a version to see changes between that version and the current
 state. Or select multiple versions to see changes between those versions.
-''' ).strip()+'</i>')
+''' ).strip()+'</i>') # T: Help text in versions dialog
 		label.set_use_markup(True)
 		#~ label.set_alignment(0, 0.5)
 		vbox.pack_start(label, False)
@@ -250,7 +301,7 @@ state. Or select multiple versions to see changes between those versions.
 				diff_button.set_sensitive(False)
 				comp_button.set_sensitive(False)
 			elif len(rows) == 1:
-				revert_button.set_sensitive(True)
+				revert_button.set_sensitive(usepage)
 				diff_button.set_sensitive(True)
 				comp_button.set_sensitive(usepage)
 			else:
@@ -294,7 +345,20 @@ state. Or select multiple versions to see changes between those versions.
 			# T: dialog title
 
 	def restore_version(self):
-		pass
+		file = self._get_file()
+		path = self.page_entry.get_path()
+		version = self.versionlist.get_versions()[0]
+		assert not file is None
+		if QuestionDialog(self, (
+			_('Restore page to saved version?'), # T: Confirmation question
+			_('Do you want to restore page: %(page)s\n'
+			  'to saved version: %(version)s ?\n\n'
+			  'All changes since the last saved version will be lost !')
+			  % {'page': path.name, 'version': str(version)}
+			  # T: Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
+		) ).run():
+			self.vcs.revert(file=file, version=version)
+			self.ui.reload_page()
 
 	def show_changes(self):
 		# TODO check for gdiff

@@ -67,8 +67,6 @@ ui_actions = (
 	('import_page', None, _('_Import Page...'), '', '', False), # T: Menu item
 	('save_page', 'gtk-save', _('_Save'), '<ctrl>S', '', False), # T: Menu item
 	('save_copy', None, _('Save A _Copy...'), '', '', True), # T: Menu item
-	('save_version', 'gtk-save-as', _('S_ave Version...'), '<ctrl><shift>S', '', False), # T: Menu item
-	('show_versions', None, _('_Versions...'), '', '', True), # T: Menu item
 	('show_export',  None, _('E_xport...'), '', '', True), # T: Menu item
 	('email_page', None, _('_Send To...'), '', '', True), # T: Menu item
 	('move_page', None, _('_Move Page...'), '', '', False), # T: Menu item
