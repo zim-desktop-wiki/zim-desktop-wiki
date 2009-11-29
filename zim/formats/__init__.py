@@ -55,7 +55,7 @@ to a title or subtitle in the document.
 import re
 import logging
 
-from zim.parsing import link_type
+from zim.parsing import link_type, is_url_re, url_encode, url_decode
 from zim.config import data_file
 
 
@@ -184,6 +184,24 @@ class ParseTree(ElementTreeModule.ElementTree):
 		for element in self.getiterator('img'):
 			filepath = element.attrib['src']
 			element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
+
+	def encode_urls(self):
+		'''Calls encode_url() on all links that contain urls'''
+		for link in self.getiterator('link'):
+			href = link.attrib['href']
+			if is_url_re.match(href):
+				link.attrib['href'] = url_encode(href)
+				if link.text == href:
+					link.text = link.attrib['href']
+
+	def decode_urls(self):
+		'''Calls decode_url() on all links that contain urls'''
+		for link in self.getiterator('link'):
+			href = link.attrib['href']
+			if is_url_re.match(href):
+				link.attrib['href'] = url_decode(href)
+				if link.text == href:
+					link.text = link.attrib['href']
 
 	def count(self, text, case=True):
 		'''Returns number of occurences of 'text' in this tree.

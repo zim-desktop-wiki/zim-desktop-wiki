@@ -245,12 +245,16 @@ class Parser(ParserClass):
 
 		list = parser_re['img'].sublist(parse_image, list)
 
-		for style in 'emphasis', 'strong', 'mark', 'strike':
+		for style in 'strong', 'mark', 'strike':
 			list = parser_re[style].sublist(
 					lambda match: (style, {}, match[1]) , list)
 
 		list = url_re.sublist(
 				lambda match: ('link', {'href':match[1]}, match[1]) , list)
+
+		for style in 'emphasis',:
+			list = parser_re[style].sublist(
+					lambda match: (style, {}, match[1]) , list)
 
 		for item in list:
 			if isinstance(item, tuple):

@@ -2,18 +2,30 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
-'''Utilities to work with the clipboard for copy-pasting'''
+'''Utilities to work with the clipboard for copy-pasting
+
+Some functions defined here are also re-used for drag-and-drop
+functionality, which works similar to the clipboard, but has a less
+straight forward API.
+'''
+
+# TODO support pasting parsetree as HTML
+# TODO support for pasting image as parsetree - attach + tree ?
+# TODO check how we tie into drag & drop (e.g. image from firefox ..)
+# TODO unit test for copy - paste parsetree & page link
 
 import gtk
 import logging
 
 from zim.formats import get_format, ParseTree, TreeBuilder
+from zim.parsing import url_encode, url_decode
+
 
 logger = logging.getLogger('zim.gui.clipboard')
 
+
 # Targets have format (name, flags, id), flags need be 0 to allow
 # paste to other widgets and to other aplication instances
-
 PARSETREE_TARGET_ID = 1
 PARSETREE_TARGET_NAME = 'text/x-zim-parsetree'
 PARSETREE_TARGET = (PARSETREE_TARGET_NAME, 0, PARSETREE_TARGET_ID)
@@ -27,12 +39,56 @@ PAGELIST_TARGET_ID = 3
 PAGELIST_TARGET_NAME = 'text/x-zim-page-list'
 PAGELIST_TARGET = (PAGELIST_TARGET_NAME, 0, PAGELIST_TARGET_ID)
 
-TEXT_TARGET_ID = 9
+URI_TARGET_ID = 8
+URI_TARGETS = tuple(gtk.target_list_add_uri_targets(info=URI_TARGET_ID))
+	# According to docs we should provide list as arg to this function,
+	# but seems docs are not correct
+URI_TARGET_NAMES = tuple([target[0] for target in URI_TARGETS])
 
-# TODO support pasting parsetree as HTML
-# TODO support for pasting image as parsetree - attach + tree ?
-# TODO check how we tie into drag & drop (e.g. image from firefox ..)
-# TODO unit test for copy - paste parsetree & page link
+TEXT_TARGET_ID = 9
+TEXT_TARGETS = tuple(gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))
+	# According to docs we should provide list as arg to this function,
+	# but seems docs are not correct
+TEXT_TARGET_NAMES = tuple([target[0] for target in TEXT_TARGETS])
+
+# All targets that we can convert to a parsetree, in order of choice
+PARSETREE_ACCEPT_TARGETS = (
+	PARSETREE_TARGET,
+	INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET,
+) + URI_TARGETS + TEXT_TARGETS
+PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_TARGETS])
+#~ print 'ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES
+
+
+def parsetree_from_selectiondata(selectiondata):
+	'''Function to get a parsetree based on the selectiondata contents
+	if at all possible. Used by both copy-paste and drag-and-drop
+	methods.
+	'''
+	targetname = str(selectiondata.type)
+	if targetname == PARSETREE_TARGET_NAME:
+		return ParseTree().fromstring(selectiondata.data)
+	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
+	or targetname in URI_TARGET_NAMES:
+		# \n seperated list of urls / pagelinks / ..
+		text = selectiondata.data
+		links = map(url_decode, text.strip().split('\n'))
+		print 'LINKS: ', links
+		builder = TreeBuilder()
+		builder.start('zim-tree')
+		for link in links:
+			builder.start('link', {'href': link})
+			builder.data(link)
+			builder.end('link')
+			builder.data(' ')
+		builder.end('zim-tree')
+		return ParseTree(builder.close())
+	elif targetname in TEXT_TARGET_NAMES:
+		# plain text parser should highlight urls etc.
+		text = selectiondata.get_text()
+		return get_format('plain').Parser().parse(text.decode('utf-8'))
+	else:
+		return None
 
 
 class Clipboard(gtk.Clipboard):
@@ -74,62 +130,28 @@ class Clipboard(gtk.Clipboard):
 		'''
 		targets = self.wait_for_targets()
 		logger.debug('Targets available for paste: %s, we want parsetree', targets)
-		if PARSETREE_TARGET_NAME in targets:
-			logger.debug('Requesting parsetree from clipboard')
-			self.request_contents(PARSETREE_TARGET_NAME,
-				self.__class__._request_parsetree_data, user_data=callback)
-		elif PAGELIST_TARGET_NAME in targets \
-		or INTERNAL_PAGELIST_TARGET_NAME in targets \
-		or gtk.targets_include_uri(targets):
-			if INTERNAL_PAGELIST_TARGET_NAME in targets:
-				targetname = INTERNAL_PAGELIST_TARGET_NAME
-			elif PAGELIST_TARGET_NAME in targets:
-				targetname = PAGELIST_TARGET_NAME
-			else:
-				targetname = gtk.taget_list_add_uri_targets()[0][0]
-			logger.debug('Requesting uris from clipboard (%s)', targetname)
-			self.request_contents(targetname,
-				self.__class__._request_parsetree_uris, user_data=callback)
-		#~ elif 'text/html' in targets:
-			#~ logger.debug('Requesting html from clipboard')
-		elif gtk.targets_include_text(targets):
-			logger.debug('Requesting text from clipboard')
-			self.request_text(
-				self.__class__._request_parsetree_text, user_data=callback)
-		#~ elif gtk.targets_include_image(targets):
-			#~ logger.debug('Requesting image from clipboard')
+		for name in PARSETREE_ACCEPT_TARGET_NAMES:
+			if name in targets:
+				break
+		else:
+			name = None
+
+		def request_parsetree_data(self, selectiondata, data):
+			tree = parsetree_from_selectiondata(selectiondata)
+			callback(tree)
+
+		if name:
+			logger.debug('Requesting data for %s', name)
+			self.request_contents(name, request_parsetree_data)
 		else:
 			logger.warn('Could not paste - no compatible data types on clipboard')
-
-	def _request_parsetree_data(self, selectiondata, callback):
-		tree = ParseTree().fromstring(selectiondata.data)
-		callback(tree)
-
-	def _request_parsetree_text(self, text, callback):
-		# plain text parser should highlight urls etc.
-		tree = get_format('plain').Parser().parse(text.decode('utf-8'))
-		callback(tree)
-
-	def _request_parsetree_uris(self, selectiondata, callback):
-		# \n seperated list of urls / pagelinks / ..
-		links = selectiondata.data.strip('\n').split('\n')
-		builder = TreeBuilder()
-		builder.start('zim-tree')
-		for link in links:
-			builder.start('link', {'href': link})
-			builder.data(link)
-			builder.end('link')
-			builder.data(' ')
-		builder.end('zim-tree')
-		tree = ParseTree(builder.close())
-		callback(tree)
 
 	def set_pagelink(self, notebook, page):
 		'''Copy a pagename to the clipboard. The pagename can be pasted by the
 		user either as a link within zim or as text outside zim.
 		'''
-		# TODO uri encode step to escape other '?' characters
-		uri = '%s?%s' % (notebook.name, page.name)
+		# TODO escape other '?' characters
+		uri = '%s?%s' % (url_encode(notebook.name), url_encode(page.name))
 
 		targets = [INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET]
 		targets.extend(gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))

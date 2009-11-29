@@ -26,7 +26,8 @@ from zim.formats import get_format, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import Dialog, FileDialog, Button, IconButton, BrowserTreeView
 from zim.gui.applications import OpenWithMenu
-from zim.gui.clipboard import Clipboard
+from zim.gui.clipboard import Clipboard, \
+	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -341,6 +342,7 @@ class TextBuffer(gtk.TextBuffer):
 		self._editmode_tags = ()
 		#~ self.set_textstyle(None)
 		# FIXME also reset indent if at start of line ?
+		tree.decode_urls()
 		root = tree.getroot()
 		if root.text:
 			self.insert_at_cursor(root.text)
@@ -1008,6 +1010,7 @@ class TextBuffer(gtk.TextBuffer):
 							t = 'p'
 					elif t == 'link':
 						attrib = self.get_link_data(iter)
+						assert attrib['href'], 'Links should have a href'
 					builder.start(t, attrib)
 					open_tags.append((tag, t))
 
@@ -1106,6 +1109,7 @@ class TextBuffer(gtk.TextBuffer):
 
 		builder.end('zim-tree')
 		tree = ParseTree(builder.close())
+		tree.encode_urls()
 		#~ print tree.tostring()
 		return tree
 
@@ -1387,6 +1391,9 @@ class TextView(gtk.TextView):
 		self.set_right_margin(5)
 		self.set_wrap_mode(gtk.WRAP_WORD)
 		self.preferences = preferences
+		actions = gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE | gtk.gdk.ACTION_LINK
+		self.drag_dest_set(0, PARSETREE_ACCEPT_TARGETS, actions)
+			# Flags is 0 because gtktextview does everything itself
 
 	def set_buffer(self, buffer):
 		if not self.gtkspell is None:
@@ -1395,9 +1402,6 @@ class TextView(gtk.TextView):
 			self.gtkspell.detach()
 			self.gtkspell = None
 		gtk.TextView.set_buffer(self, buffer)
-
-	#~ def do_drag_motion(self, context, *a):
-		#~ print context.targets
 
 	def do_copy_clipboard(self):
 		self.get_buffer().copy_clipboard(Clipboard())
@@ -1409,6 +1413,27 @@ class TextView(gtk.TextView):
 	def do_paste_clipboard(self):
 		self.get_buffer().paste_clipboard(Clipboard(), None, self.get_editable())
 		self.scroll_mark_onscreen(self.get_buffer().get_insert())
+
+	#~ def do_drag_motion(self, context, *a):
+		#~ # Method that echos drag data types - only enable for debugging
+		#~ print context.targets
+
+	def do_drag_data_received(self, dragcontext, x, y, selectiondata, info, timestamp):
+		if not self.get_editable():
+			dragcontext.finish(False, False, timestamp)
+			return
+
+		logger.debug('Drag data received of type "%s"', selectiondata.type)
+		tree = parsetree_from_selectiondata(selectiondata)
+		if tree is None:
+			logger.warn('Could not drop data type "%s"', selectiondata.type)
+			dragcontext.finish(False, False, timestamp)
+			return
+
+		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
+		iter = self.get_iter_at_location(x, y)
+		self.get_buffer().insert_parsetree(iter, tree)
+		dragcontext.finish(True, False, timestamp)
 
 	def do_motion_notify_event(self, event):
 		'''Event handler that triggers check_cursor_type()

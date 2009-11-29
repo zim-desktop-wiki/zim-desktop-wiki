@@ -37,16 +37,22 @@ def unescape_quoted_string(string):
 	return string
 
 
+_encode_re = re.compile(r'[^A-Za-z0-9\-\_\.\!\~\*\'\(\)\/\:]')
+# url encoding - char set from man uri(7), see relevant rfc
+# added '/' and ':' to char set for readability of uris
+
 def url_encode(url):
 	'''Replaces non-standard characters in urls with hex codes'''
-	url = url.encode('utf-8').replace(' ', '%20')
-	# TODO real url encoding - replace \W with sprintf('%%%02x')
+	url = url.encode('utf-8') # unicode -> utf-8
+	url = _encode_re.sub(lambda m: '%%%X' % ord(m.group(0)), url)
 	return url
 
 
+_hex_re = re.compile('%([a-fA-F0-9]{2})')
+
 def url_decode(url):
-	url = url.decode('utf-8').replace('%20', ' ')
-	# TODO real url decoding
+	url = _hex_re.sub(lambda m: chr(int(m.group(1), 16)), url)
+	url = url.decode('utf-8') # utf-8 -> unicode
 	return url
 
 
