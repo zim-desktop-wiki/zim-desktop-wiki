@@ -24,6 +24,7 @@ Additional issues addressed in this release:
 
 Translations available for:
 * Dutch
+* Czech
 * French
 * German
 * Ukrainian

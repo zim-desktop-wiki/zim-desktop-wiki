@@ -57,7 +57,7 @@ This is a core plugin shipping with zim.
 	}
 
 	plugin_preferences = (
-		('autosave', 'bool', _('Autosave version on regular intervals'), False),
+		('autosave', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
 	)
 
 	def __init__(self, ui):
