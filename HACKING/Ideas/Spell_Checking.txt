@@ -1,0 +1,24 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Spell Checking ======
+Created Sunday 29 November 2009
+
+Problem: Getting language config per notebook / page / paragraph correct is difficult - most office suites this is still a sore point
+
+Solution: Instead of specifying the language determine it by heuristics
+
+* Installed dictionaries are probably the language the user is likely to use
+* gtkspell has access to both the dictionaries and the text buffer
+* Heuristics can determine language per paragraph or even per sentence. Just lookup in multiple dictionaries and take language with least errors...
+* Pango has function to detect begin & end of paragraph or sentence 
+* As a further refinement e.g. quoted words can be supposed to be in an other language
+* Popup menu for spell suggestions should indicate the language it thinks we are using.
+
+This would properly belong in the gtkspell library, so all gtk application can benefit. Gtkspell3 is dead in the water (see mailing list archive / cvs history) - so gtkspell2 is the proper target.
+
+Gtkspell uses enchant, which manages the dictionary backends. So gtkspell is just the abstraction layer between gtktextbuffer and enchant.
+
+If we want to prototype without modifying gtkspell, we should re-implement the gtktextbuffer interaction and interface with enchant directly. Need to check if pyEnchant bindings are functional. If this works it would still be nice for the community to patch gtkspell itself as well, so others can benefit.
+
+Give Bert credits for the radical idea of getting rid of language as a document option.

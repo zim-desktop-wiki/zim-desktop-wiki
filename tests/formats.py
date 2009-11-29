@@ -86,15 +86,6 @@ class TestTextFormat(TestCase):
 		notebook, self.page = get_test_page()
 
 	def testRoundtrip(self):
-		# First using file interface
-		tree = self.format.Parser().parse(wikitext)
-		self.assertTrue(isinstance(tree, ParseTree))
-		self.assertEqual(tree.getroot().tag, 'zim-tree')
-		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
-		output = self.format.Dumper().dump(tree)
-		self.assertEqualDiff(output, wikitext.splitlines(True))
-
-		# Next the same test usiing string interface
 		tree = self.format.Parser().parse(wikitext)
 		self.assertTrue(isinstance(tree, ParseTree))
 		self.assertTrue(tree.getroot().tag == 'zim-tree')

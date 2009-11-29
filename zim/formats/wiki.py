@@ -252,13 +252,14 @@ class Parser(ParserClass):
 		list = url_re.sublist(
 				lambda match: ('link', {'href':match[1]}, match[1]) , list)
 
-		for part in list:
-			if isinstance(part, tuple):
-				builder.start(part[0], part[1])
-				builder.data(part[2])
-				builder.end(part[0])
+		for item in list:
+			if isinstance(item, tuple):
+				tag, attrib, text = item
+				builder.start(tag, attrib)
+				builder.data(text)
+				builder.end(tag)
 			else:
-				builder.data(part)
+				builder.data(item)
 
 
 class Dumper(DumperClass):

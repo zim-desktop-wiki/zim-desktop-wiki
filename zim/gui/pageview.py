@@ -26,7 +26,7 @@ from zim.formats import get_format, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import Dialog, FileDialog, Button, IconButton, BrowserTreeView
 from zim.gui.applications import OpenWithMenu
-
+from zim.gui.clipboard import Clipboard
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -147,7 +147,7 @@ _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
 _is_heading_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'h'
 _is_pre_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag == 'pre'
-_is_line_based_tag = lambda tag: _is_indent_tag(tag) #or _is_heading_tag(tag) or _is_pre_tag(tag)
+_is_line_based_tag = lambda tag: _is_indent_tag(tag) or _is_heading_tag(tag) or _is_pre_tag(tag)
 _is_not_line_based_tag = lambda tag: not _is_line_based_tag(tag)
 _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
 _is_not_style_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'style')
@@ -1287,6 +1287,49 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		return bool(self.get_selection_bounds())
 
+	def copy_clipboard(self, clipboard):
+		bounds = self.get_selection_bounds()
+		if bounds:
+			tree = self.get_parsetree(bounds)
+			Clipboard().set_parsetree(None, None, tree)
+
+	def cut_clipboard(self, clipboard, default_editable):
+		if self.get_has_selection():
+			self.copy_clipboard(clipboard)
+			self.delete_selection(True, default_editable)
+
+	def paste_clipboard(self, clipboard, iter, default_editable):
+		if not default_editable: return
+
+		if iter is None:
+			iter = self.get_iter_at_mark(self.get_insert())
+		elif self.get_has_selection():
+			# unset selection if explicit iter is given
+			bound = self.get_selection_bound()
+			insert = self.get_insert()
+			self.move_mark(bound, self.get_iter_at_mark(insert))
+
+		mark = self.get_mark('zim-paste-position')
+		if mark:
+			self.move_mark(mark, iter)
+		else:
+			self.create_mark('zim-paste-position', iter, left_gravity=False)
+
+		#~ clipboard.debug_dump_contents()
+		clipboard.request_parsetree(self._paste_clipboard)
+
+	def _paste_clipboard(self, parsetree):
+		with self.user_action:
+			if self.get_has_selection():
+				start, end = self.get_selection_bounds()
+				self.delete(start, end)
+
+			mark = self.get_mark('zim-paste-position')
+			iter = self.get_iter_at_mark(mark)
+			self.delete_mark(mark)
+
+			self.place_cursor(iter)
+			self.insert_parsetree_at_cursor(parsetree)
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextBuffer)
@@ -1323,13 +1366,14 @@ class TextView(gtk.TextView):
 		'end-of-line': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 
 		# Override clipboard interaction
-		#~ 'copy-clipboard': 'override',
-		#~ 'cut-clipboard': 'override',
-		#~ 'paste-clipboard': 'override',
+		'copy-clipboard': 'override',
+		'cut-clipboard': 'override',
+		'paste-clipboard': 'override',
 
 		# And some events we want to connect to
 		'motion-notify-event': 'override',
 		'visibility-notify-event': 'override',
+		'button-press-event': 'override',
 		'button-release-event': 'override',
 		'key-press-event': 'override',
 	}
@@ -1355,6 +1399,17 @@ class TextView(gtk.TextView):
 	#~ def do_drag_motion(self, context, *a):
 		#~ print context.targets
 
+	def do_copy_clipboard(self):
+		self.get_buffer().copy_clipboard(Clipboard())
+
+	def do_cut_clipboard(self):
+		self.get_buffer().cut_clipboard(Clipboard(), self.get_editable())
+		self.scroll_mark_onscreen(self.get_buffer().get_insert())
+
+	def do_paste_clipboard(self):
+		self.get_buffer().paste_clipboard(Clipboard(), None, self.get_editable())
+		self.scroll_mark_onscreen(self.get_buffer().get_insert())
+
 	def do_motion_notify_event(self, event):
 		'''Event handler that triggers check_cursor_type()
 		when the mouse moves
@@ -1373,15 +1428,24 @@ class TextView(gtk.TextView):
 		self.check_cursor_type(self.get_iter_at_pointer())
 		return False # continue emit
 
+	def do_button_press_event(self, event):
+		buffer = self.get_buffer()
+		if event.button == 2 and not buffer.get_has_selection():
+			iter = self.get_iter_at_pointer()
+			buffer.paste_clipboard(Clipboard('PRIMARY'), iter, self.get_editable())
+			return False
+		else:
+			return gtk.TextView.do_button_press_event(self, event)
+
 	def do_button_release_event(self, event):
 		cont = gtk.TextView.do_button_release_event(self, event)
-		selection = self.get_buffer().get_selection_bounds()
-		if not selection:
+		buffer = self.get_buffer()
+		if not buffer.get_has_selection():
 			iter = self.get_iter_at_pointer()
 			if event.button == 1:
-				self.click_link(iter) or self.get_buffer().toggle_checkbox(iter)
+				self.click_link(iter) or buffer.toggle_checkbox(iter)
 			elif event.button == 3:
-				self.get_buffer().toggle_checkbox(iter, XCHECKED_BOX)
+				buffer.toggle_checkbox(iter, XCHECKED_BOX)
 		return cont # continue emit ?
 
 	def do_key_press_event(self, event):

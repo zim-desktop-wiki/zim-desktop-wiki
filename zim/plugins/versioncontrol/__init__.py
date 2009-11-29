@@ -60,6 +60,7 @@ This is a core plugin shipping with zim.
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
+		self.vcs = None
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
