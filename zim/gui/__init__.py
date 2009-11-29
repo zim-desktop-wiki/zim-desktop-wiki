@@ -202,6 +202,8 @@ class GtkInterface(NotebookInterface):
 	  (typically triggered by the preferences dialog)
 	* read-only-changed
 	  Emitted when the ui changed from read-write to read-only or back
+	* quit
+	  Emitted when the application is about to quit
 
 	Also see signals in zim.NotebookInterface
 	'''
@@ -213,6 +215,7 @@ class GtkInterface(NotebookInterface):
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'quit': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	ui_type = 'gtk'
@@ -356,6 +359,8 @@ class GtkInterface(NotebookInterface):
 	def quit(self):
 		assert self.close_page(self.page)
 			# returns False if page not saved
+
+		self.emit('quit')
 
 		if self.uistate.modified:
 			self.uistate.write()
@@ -1088,28 +1093,19 @@ class MainWindow(gtk.Window):
 		'''Returns a selected path either from the side pane or the pathbar
 		if any or None.
 		'''
-		def get_focus_child(container):
-			# container.get_focus_child() only for gtk+ >= 2.14
-			for child in container.get_children():
-				if child.is_focus():
-					return child
-			else:
-				return None
-
-		child = get_focus_child(self.hpane)
-		if child == self.pageindex:
+		# FIXME - this method is bound to break again - to unstable
+		widget = self.get_focus()
+		#~ print '>>>', widget
+		if widget == self.pageindex.treeview:
 			logger.debug('Pageindex has focus')
 			return self.pageindex.get_selected_path()
-		else: # right hand pane has focus
-			while isinstance(child, gtk.Box):
-				child = get_focus_child(child)
-				if child == self.pathbar:
-					logger.debug('Pathbar has focus')
-					return self.pathbar.get_selected_path()
-				elif child == self.pageview:
-					logger.debug('Pageview has focus')
-					return self.ui.page
-
+		elif widget == self.pathbar:
+			logger.debug('Pathbar has focus')
+			return self.pathbar.get_selected_path()
+		elif widget == self.pageview.view:
+			logger.debug('Pageview has focus')
+			return self.ui.page
+		else:
 			logger.debug('No path in focus mainwindow')
 			return None
 

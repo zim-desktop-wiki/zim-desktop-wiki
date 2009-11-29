@@ -59,7 +59,7 @@ class PluginClass(gobject.GObject):
 		* name - short name
 		* description - one paragraph description
 		* author - name of the author
-		* manualpage - page name in the manual (optional)
+		* help - page name in the manual (optional)
 
 	This info will be used e.g. in the plugin tab of the preferences
 	dialog.

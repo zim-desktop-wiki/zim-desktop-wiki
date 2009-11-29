@@ -117,10 +117,10 @@ added:
 		#~ print 'VERSIONS>>', versions
 		self.assertTrue(len(versions) == 2)
 		self.assertTrue(len(versions[0]) == 4)
-		self.assertEqual(versions[0][0], '1')
+		self.assertEqual(versions[0][0], 1)
 		self.assertEqual(versions[0][3], u'test 1\n')
 		self.assertTrue(len(versions[1]) == 4)
-		self.assertEqual(versions[1][0], '2')
+		self.assertEqual(versions[1][0], 2)
 		self.assertEqual(versions[1][3], u'test 2\n')
 
 		lines = vcs.get_version(file, version=1)

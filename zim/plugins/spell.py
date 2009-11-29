@@ -46,7 +46,7 @@ Please make sure gtkspell is installed.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
-		'manualpage': 'Plugins:Spell',
+		'help': 'Plugins:Spell',
 	}
 
 	plugin_preferences = (

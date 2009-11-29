@@ -660,6 +660,7 @@ class Dialog(gtk.Dialog):
 
 		w, h = self.get_size()
 		self.uistate['windowsize'] = (w, h)
+		self.save_uistate()
 
 		if self.destroyed:
 			self.destroy()
@@ -673,6 +674,14 @@ class Dialog(gtk.Dialog):
 		valid, returning False will keep the dialog open.
 		'''
 		raise NotImplementedError
+
+	def save_uistate(self):
+		'''Function to be overloaded in child classes. Called when the
+		dialog is about to exit or hide and wants the uistate to be
+		saved. Just set whatever values need to be save in
+		'self.uistate'. The window size is saved by default already.
+		'''
+		pass
 
 
 # Need to register classes defining gobject signals

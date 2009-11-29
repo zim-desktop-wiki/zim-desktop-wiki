@@ -219,10 +219,10 @@ class PluginsTab(gtk.HBox):
 		self.description_label.set_text(klass.plugin_info['description'].strip())
 		self.author_label.set_text(klass.plugin_info['author'].strip() + '\n')
 		self.configure_button.set_sensitive(active and bool(klass.plugin_preferences))
-		self.plugin_help_button.set_sensitive('manualpage' in klass.plugin_info)
+		self.plugin_help_button.set_sensitive('help' in klass.plugin_info)
 
 	def on_help_button_clicked(self, button):
-		self.dialog.ui.show_help(self._klass.plugin_info['manualpage'])
+		self.dialog.ui.show_help(self._klass.plugin_info['help'])
 
 	def on_configure_button_clicked(self, button):
 		PluginConfigureDialog(self.dialog, self._klass).run()

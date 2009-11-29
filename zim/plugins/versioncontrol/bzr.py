@@ -14,7 +14,8 @@ logger = logging.getLogger('zim.vcs.bzr')
 try:
     import bzrlib.commands as bzrlib
 except ImportError:
-    bzrlib = None
+	logger.warn('Could not load bzrlib - falling back to calling bzr as external program')
+	bzrlib = None
 
 
 class BzrlibApplication(Application):
@@ -83,6 +84,10 @@ class BazaarVCS(object):
 				_bzr.run(['add', newpath], cwd=self.root)
 		# if only oldpath is ours, it is now delete - don't need to do anything
 
+	@property
+	def modified(self):
+		return ''.join( self.get_status() ).strip() != ''
+
 	def get_status(self):
 		return _bzr.pipe(['status'], cwd=self.root)
 
@@ -125,7 +130,7 @@ class BazaarVCS(object):
 					versions.append((rev, date, user, msg))
 				(rev, date, user, msg) = (None, None, None, None)
 			elif line.startswith('revno: '):
-				rev = line[7:].strip()
+				rev = int(line[7:].strip())
 			elif line.startswith('committer: '):
 				user = line[11:].strip()
 			elif line.startswith('timestamp: '):

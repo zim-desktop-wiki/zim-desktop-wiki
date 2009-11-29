@@ -15,10 +15,7 @@ from zim.gui.widgets import SingleClickTreeView, Dialog, PageEntry, IconButton, 
 # these can add additional menu items e.g. Tools->Bazaar-> ...
 # or use their own graphical interfaces, like bzr gdiff
 
-# TODO detect vcs when plugging the plugin from preferences menu
-# TODO set default window size (+ uistate)
-# TODO numeric sort instead of string for revision number in treeview
-# TODO preference for autosave version !
+# FUTURE add option to also pull & push versions automatically
 
 logger = logging.getLogger('zim.plugins.versioncontrol')
 
@@ -56,7 +53,12 @@ This plugin is based on the Bazaar version control system.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
+		'help': 'Plugins:Version Control',
 	}
+
+	plugin_preferences = (
+		('autosave', 'bool', _('Autosave version on regular intervals'), False),
+	)
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
@@ -65,14 +67,24 @@ This is a core plugin shipping with zim.
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
 			self.actiongroup.get_action('show_versions').set_sensitive(False)
-			self.ui.connect_after('open-notebook',
-				lambda o, n: self.detect_vcs() )
+			if self.ui.notebook:
+				self.detect_vcs()
+			else:
+				self.ui.connect_after('open-notebook',
+					lambda o, n: self.detect_vcs() )
+
+			def on_quit(o):
+				if self.preferences['autosave']:
+					self.autosave()
+			self.ui.connect('quit', on_quit)
 
 	def detect_vcs(self):
 		dir = self._get_notebook_dir()
 		self.vcs = self._detect_vcs(dir)
 		if self.vcs:
 			self.actiongroup.get_action('show_versions').set_sensitive(True)
+			if self.preferences['autosave']:
+				self.autosave()
 
 	def _get_notebook_dir(self):
 		notebook  = self.ui.notebook
@@ -104,6 +116,19 @@ This is a core plugin shipping with zim.
 
 		return vcs
 
+	def autosave(self):
+		assert self.vcs
+
+		if self.ui.page and self.ui.page.modified:
+			self.ui.save_page()
+
+		if self.vcs.modified:
+			logger.info('Automatically saving version')
+			self.vcs.commit(_('Automatically saved version from zim'))
+				# T: default version comment for auto-saved versions
+		else:
+			logger.debug('No autosave version needed - no changes')
+
 	def save_version(self):
 		if not self.vcs:
 			# TODO choice from multiple version control systems
@@ -113,6 +138,9 @@ This is a core plugin shipping with zim.
 				  "Do you want to enable it?" ) # T: Detailed question
 			) ).run():
 				self.init_vcs('bzr')
+
+		if self.ui.page.modified:
+			self.ui.save_page()
 
 		SaveVersionDialog(self.ui, self.vcs).run()
 
@@ -188,12 +216,15 @@ class VersionsDialog(Dialog):
 			buttons=gtk.BUTTONS_CLOSE, help='Plugins:Version Control')
 		self.vcs = vcs
 
-		vpaned = gtk.VPaned()
-		vpaned.set_position(300)
-		self.vbox.add(vpaned)
+		self.uistate.setdefault('windowsize', (600, 500), check=self.uistate.is_coord)
+		self.uistate.setdefault('vpanepos', 300)
+
+		self.vpaned = gtk.VPaned()
+		self.vpaned.set_position(self.uistate['vpanepos'])
+		self.vbox.add(self.vpaned)
 
 		vbox = gtk.VBox(spacing=5)
-		vpaned.pack1(vbox, resize=True)
+		self.vpaned.pack1(vbox, resize=True)
 
 		# Choice between whole notebook or page
 		label = gtk.Label('<b>'+_('Versions')+':</b>') # section label
@@ -241,7 +272,7 @@ state. Or select multiple versions to see changes between those versions.
 
 		# -----
 		vbox = gtk.VBox(spacing=5)
-		vpaned.pack2(vbox, resize=False)
+		self.vpaned.pack2(vbox, resize=False)
 
 		frame = gtk.Frame()
 		label = gtk.Label('<b>'+_('Comment')+'</b>') # T: version details
@@ -319,13 +350,21 @@ state. Or select multiple versions to see changes between those versions.
 		col = self.versionlist.get_column(0)
 		self.versionlist.row_activated(0, col)
 
+	def save_uistate(self):
+		self.uistate['vpanepos'] = self.vpaned.get_position()
+
 	def _get_file(self):
 		if self.notebook_radio.get_active():
+			if self.ui.page.modified:
+				self.ui.save_page()
+
 			return None
 		else:
 			path = self.page_entry.get_path()
 			if path:
 				page = self.ui.notebook.get_page(path)
+				if page == self.ui.page and page.modified:
+					self.ui.save_page()
 			else:
 				return None # TODO error message valid page name?
 
@@ -388,7 +427,7 @@ class VersionsTreeView(SingleClickTreeView):
 	# because we utilize multiple selection to select versions for diffs
 
 	def __init__(self):
-		model = gtk.ListStore(str, str, str, str) # rev, date, user, msg
+		model = gtk.ListStore(int, str, str, str) # rev, date, user, msg
 		gtk.TreeView.__init__(self, model)
 
 		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)

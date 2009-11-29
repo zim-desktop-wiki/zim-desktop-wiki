@@ -43,7 +43,7 @@ Depends on: the GraphViz 'dot' command
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-		'manualpage': ':Plugins:Diagram Editor',
+		'help': ':Plugins:Diagram Editor',
 		'author': 'Jaap Karssenberg',
 	}
 

@@ -23,7 +23,7 @@ sure it is installed.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
-		'help_page': 'Plugins:LinkMap',
+		'help': 'Plugins:LinkMap',
 	}
 
 	def __init__(self, ui):

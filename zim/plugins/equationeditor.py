@@ -46,7 +46,7 @@ Depends on: latex, dvipng
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-		'manualpage': ':Plugins:Equation Editor',
+		'help': ':Plugins:Equation Editor',
 		'author': 'Jaap Karssenberg',
 	}
 
