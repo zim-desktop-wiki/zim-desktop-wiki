@@ -72,6 +72,10 @@ create table if not exists linktypes (
 
 # TODO need better support for TreePaths, e.g. as signal arguments for Treemodel
 
+# FIXME, the idea to have some index paths with and some without data
+# was a really bad idea. Need to clean up the code as this is / will be
+# a source of obscure bugs. Remove or replace lookup_data().
+
 class IndexPath(Path):
 	'''Like Path but adds more attributes, functions as an iterator for
 	rows in the table with pages.'''
@@ -369,7 +373,7 @@ class Index(gobject.GObject):
 					lastparent = p
 					parentid = p.id
 					indexpath.append(parentid)
-			
+
 			if lastparent and not lastparent.haschildren:
 				self.db.execute('update pages set haschildren = ? where id == ?', (True, lastparent.id))
 			else:
@@ -434,6 +438,9 @@ class Index(gobject.GObject):
 		'''
 		#~ print '!! UPDATE LIST', path, path._indexpath
 		assert isinstance(path, IndexPath)
+		if not path.hasdata:
+			path = path.lookup_data(path)
+		hadchildren = path.haschildren
 
 		def check_and_queue(path):
 			# Helper function to queue individual children
@@ -518,8 +525,8 @@ class Index(gobject.GObject):
 				self.db.rollback()
 				raise
 			else:
-				if not path.isroot:
-					# FIXME should we check if this really changed first ?
+				path = self.lookup_data(path)
+				if not path.isroot and (hadchildren != path.haschildren):
 					self.emit('page-haschildren-toggled', path)
 
 				# All these signals should come in proper order...
@@ -553,7 +560,7 @@ class Index(gobject.GObject):
 			for id in ids:
 				self.db.execute('delete from links where source = ?', (id,))
 				self.db.execute('delete from pages where id = ?', (id,))
-				
+
 			parenttoggled = False
 			parent = path.parent
 			if not parent.isroot and self.n_list_pages(parent) == 0:

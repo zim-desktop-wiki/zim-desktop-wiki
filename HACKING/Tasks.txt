@@ -20,11 +20,12 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 	* Include HACKING in website
 	* Store old manual somewhere and link it (but not in bazaar branch)
 [ ] Finish manual
+[ ] Update XDG cache and install mime icon on install
 
 == Defects ==
 [*] Pageview: enforce heading can not be indented
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
-[ ] Pageview: Rich copy paste / drag drop
+[*] Pageview: Rich copy paste / drag drop
 [ ] Pageindex: Drag&Drop in the side pane is not working
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
@@ -41,7 +42,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Pageview: implement recursive checkbox lists
 [ ] Pageview: make child items in list also (un)indent with parent
 [*] Implement TaskList plugin
-[ ] Implement VersionControl plugin(s)
+[*] Implement VersionControl plugin(s)
 [ ] Implement background deamon
 [ ] Implement TrayIcon plugin
 [*] Implement InsertScreenshot plugin  ~~+ preference for command~~
@@ -56,7 +57,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 	* Also think about keybindings for moving a line up / down or top / bottom
 [ ] Pageview: support numbered lists
 [ ] Dialog: improved widgets for page and namespace inputs
-[ ] Implement "Open with custom command"dialog
+[ ] Implement "Open with custom command" dialog
 [ ] Implement zip and tar.gz notebooks
 [ ] Implement gjots notebooks
 [ ] WWW: Improve dialog for controlling web server

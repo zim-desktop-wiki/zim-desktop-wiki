@@ -130,7 +130,12 @@ class BazaarVCS(object):
 					versions.append((rev, date, user, msg))
 				(rev, date, user, msg) = (None, None, None, None)
 			elif line.startswith('revno: '):
-				rev = int(line[7:].strip())
+				value = line[7:].strip()
+				if ' ' in value:
+					# e.g. "revno: 48 [merge]\n"
+					i = value.index(' ')
+					value = value[:i]
+				rev = int(value)
 			elif line.startswith('committer: '):
 				user = line[11:].strip()
 			elif line.startswith('timestamp: '):

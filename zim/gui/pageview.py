@@ -1457,7 +1457,8 @@ class TextView(gtk.TextView):
 		buffer = self.get_buffer()
 		if event.button == 2 and not buffer.get_has_selection():
 			iter = self.get_iter_at_pointer()
-			buffer.paste_clipboard(Clipboard('PRIMARY'), iter, self.get_editable())
+			clipboard = Clipboard(selection='PRIMARY')
+			buffer.paste_clipboard(clipboard, iter, self.get_editable())
 			return False
 		else:
 			return gtk.TextView.do_button_press_event(self, event)

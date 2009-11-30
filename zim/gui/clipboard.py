@@ -130,6 +130,10 @@ class Clipboard(gtk.Clipboard):
 		'''
 		targets = self.wait_for_targets()
 		logger.debug('Targets available for paste: %s, we want parsetree', targets)
+
+		if targets is None:
+			return
+
 		for name in PARSETREE_ACCEPT_TARGET_NAMES:
 			if name in targets:
 				break
