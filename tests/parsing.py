@@ -38,4 +38,29 @@ class TestParsing(TestCase):
 			buffer.get_lines(),
 			['test 123\n', ' test !fooo bar\n', 'duss\n'] )
 
-    # TODO - test link_type including win32 paths
+	def testURLEncoding(self):
+		'''Test encoding and decoding urls'''
+		# Try finding edge cases for detecting when we encode / decode double
+		for url, wanted in (
+			('file:///foo/bar', 'file:///foo/bar'),
+			('file:///C:/My Documents', 'file:///C:/My%20Documents'),
+			('file:///C:/My%20Documents', 'file:///C:/My%20Documents'),
+			('file:///foo/file[20%]', 'file:///foo/file%5B20%25%5D'),
+			('file:///foo/file%5B20%25%5D', 'file:///foo/file%5B20%25%5D'),
+			('file:///foo bar/foo%20bar', 'file:///foo%20bar/foo%2520bar'),
+		):
+			#~ print 'url_encode(\'%s\') == \'%s\'' % (url, url_encode(wanted))
+			self.assertEqual(url_encode(url), wanted)
+		
+		for url, wanted in (
+			('file:///foo/bar', 'file:///foo/bar'),
+			('file:///C:/My Documents', 'file:///C:/My Documents'),
+			('file:///C:/My%20Documents', 'file:///C:/My Documents'),
+			('file:///foo/file[20%]', 'file:///foo/file[20%]'),
+			('file:///foo/file%5B20%25%5D', 'file:///foo/file[20%]'),
+			('file:///foo bar/foo%20bar', 'file:///foo bar/foo%20bar'),
+		):
+			#~ print 'url_decode(\'%s\') == \'%s\'' % (url, url_decode(wanted))
+			self.assertEqual(url_decode(url), wanted)
+		
+# TODO - test link_type including win32 paths

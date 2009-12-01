@@ -60,19 +60,26 @@ PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_
 #~ print 'ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES
 
 
+def pack_urilist(uris):
+	return ''.join(["%s\n" % url_encode(uri) for uri in uris])
+
+
+def unpack_urilist(data):
+	return map(url_decode, data.strip().split('\n'))
+
+
 def parsetree_from_selectiondata(selectiondata):
 	'''Function to get a parsetree based on the selectiondata contents
 	if at all possible. Used by both copy-paste and drag-and-drop
 	methods.
 	'''
-	targetname = str(selectiondata.type)
+	targetname = str(selectiondata.target)
 	if targetname == PARSETREE_TARGET_NAME:
 		return ParseTree().fromstring(selectiondata.data)
 	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
 	or targetname in URI_TARGET_NAMES:
 		# \n seperated list of urls / pagelinks / ..
-		text = selectiondata.data
-		links = map(url_decode, text.strip().split('\n'))
+		links = unpack_urilist(selectiondata.data)
 		print 'LINKS: ', links
 		builder = TreeBuilder()
 		builder.start('zim-tree')
@@ -154,28 +161,25 @@ class Clipboard(gtk.Clipboard):
 		'''Copy a pagename to the clipboard. The pagename can be pasted by the
 		user either as a link within zim or as text outside zim.
 		'''
-		# TODO escape other '?' characters
-		uri = '%s?%s' % (url_encode(notebook.name), url_encode(page.name))
-
 		targets = [INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET]
 		targets.extend(gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))
 		self.set_with_data(
 			targets,
-			Clipboard._get_uri_data, Clipboard._clear_data,
-			(uri,)
+			Clipboard._get_pagelink_data, Clipboard._clear_data,
+			(notebook.name, page.name)
 		) or logger.warn('Failed to set data on clipboard')
 
-	def _get_uri_data(self, selectiondata, id, uris):
-		# Callback to get uri data we set on the clipboard
-		logger.debug("Cliboard data request of type '%s', we have uris", selectiondata.target)
-		text = ''.join(["%s\n" % uri for uri in uris]).encode('utf-8')
+	def _get_pagelink_data(self, selectiondata, id, data):
+		logger.debug("Cliboard data request of type '%s', we have pagelink", selectiondata.target)
+		notebookname, pagename = data
 		if id == INTERNAL_PAGELIST_TARGET_ID:
-			# remove notebook name from links - pasting internally
-			text = ''.join([l.split('?', 1)[1] for l in text.splitlines(True)])
+			text = pack_urilist((pagename,))
 			selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, text)
 		elif id == PAGELIST_TARGET_ID:
+			text = "%s?%s\n" % (url_encode(notebookname), url_encode(pagename))
 			selectiondata.set(PAGELIST_TARGET_NAME, 8, text)
 		elif id == TEXT_TARGET_ID:
+			text = "%s?%s\n" % (url_encode(notebookname), url_encode(pagename))
 			selectiondata.set_text(text)
 		else:
 			assert False, 'Unknown target id %i' % id

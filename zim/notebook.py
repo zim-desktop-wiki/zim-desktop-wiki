@@ -120,7 +120,9 @@ This is likely a glitch in the application.
 
 
 class PageExistsError(Error):
-	pass # TODO check where this should be used
+	pass
+
+	# TODO verbose description
 
 
 class PageReadOnlyError(Error):

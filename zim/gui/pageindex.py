@@ -13,7 +13,11 @@ import pango
 import logging
 
 from zim.index import IndexPath
-from zim.gui.widgets import BrowserTreeView
+from zim.notebook import Path
+from zim.gui.widgets import BrowserTreeView, ErrorDialog
+from zim.gui.clipboard import \
+	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
+	pack_urilist, unpack_urilist
 
 
 logger = logging.getLogger('zim.gui.pageindex')
@@ -40,6 +44,11 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 
 	TODO: see python gtk-2.0 tutorial for remarks about reference leaking !
 	'''
+
+	# We inherit from gtk.TreeDragSource and gtk.TreeDragDest even though
+	# we do not actually implement them. Somehow this is needed to get
+	# the TreeView to understand we support drag-and-drop even though
+	# actual work is implemented in the treeview itself.
 
 	def __init__(self, index):
 		gtk.GenericTreeModel.__init__(self)
@@ -195,20 +204,8 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			'''Turn a TreeIter into an IndexPath'''
 			return self.get_value(treeiter, 1)
 
-	def row_draggable(self, path):
-		return True
-
-	def drag_data_get(self, path, selection):
-		return False
-
-	def drag_data_delete(self, path):
-		return False
-
-	def row_drop_possible(self, path, selection):
-		return True
-
-	def drag_data_received(self, path, selection):
-		return True
+# Need to register classes defining gobject signals or overloading methods
+gobject.type_register(PageTreeStore)
 
 
 class PageTreeView(BrowserTreeView):
@@ -239,11 +236,11 @@ class PageTreeView(BrowserTreeView):
 		self.set_search_column(0)
 
 		self.enable_model_drag_source(
-			gtk.gdk.BUTTON1_MASK, (('text/x-zim-page-list', 0, 0),),
-			gtk.gdk.ACTION_LINK|gtk.gdk.ACTION_MOVE )
+			gtk.gdk.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
+			gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_MOVE )
 		self.enable_model_drag_dest(
-			(('text/x-zim-page-list', 0, 0),),
-			gtk.gdk.ACTION_LINK )
+			(INTERNAL_PAGELIST_TARGET,),
+			gtk.gdk.ACTION_MOVE )
 
 		if gtk.gtk_version > (2, 10, 0):
 			self.set_enable_tree_lines(True)
@@ -313,11 +310,51 @@ class PageTreeView(BrowserTreeView):
 		menu.popup(None, None, None, 3, 0)
 		return True
 
-	def do_drag_data_get(self, context, selection_data, info, time):
-		print 'drag GET'
+	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
+		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		model, iter = self.get_selection().get_selected()
+		path = model.get_indexpath(iter)
+		logger.debug('Drag data requested, we have internal path "%s"', path.name)
+		data = pack_urilist((path.name,))
+		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
 
-	def do_drag_data_recieved(self, context, x, y, selection_data, info, time):
-		print 'drag PUT'
+	def do_drag_data_received(self, dragcontext, x, y, selectiondata, info, time):
+		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		names = unpack_urilist(selectiondata.data)
+		assert len(names) == 1
+		source = Path(names[0])
+
+		treepath, position = self.get_dest_row_at_pos(x, y)
+		model = self.get_model()
+		iter = model.get_iter(treepath)
+		path = model.get_indexpath(iter)
+
+		if position == gtk.TREE_VIEW_DROP_BEFORE:
+			logger.debug('Dropped %s before %s', source, path)
+			dest = path.parent + source.basename
+		elif position == gtk.TREE_VIEW_DROP_AFTER:
+			logger.debug('Dropped %s after %s', source, path)
+			dest = path.parent + source.basename
+		else:
+			# gtk.TREE_VIEW_DROP_INTO_OR_BEFORE
+			# or gtk.TREE_VIEW_DROP_INTO_OR_AFTER
+			logger.debug('Dropped %s into %s', source, path)
+			dest = path + source.basename
+
+		if dest == source:
+			# TODO - how to get the row image float back like when drop is not allowed ?
+			logger.debug('Paths have same namespace, no reordering')
+			dragcontext.finish(False, False, time) # NOK
+			return
+
+		notebook = self.get_model().index.notebook
+		try:
+			notebook.move_page(source, dest)
+		except Exception, error:
+			ErrorDialog(self, error).run()
+			dragcontext.finish(False, False, time) # NOK
+		else:
+			dragcontext.finish(True, False, time) # OK
 
 	def select_page(self, path):
 		'''Select a page in the treeview, connected to the open-page signal'''

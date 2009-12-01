@@ -1423,17 +1423,17 @@ class TextView(gtk.TextView):
 			dragcontext.finish(False, False, timestamp)
 			return
 
-		logger.debug('Drag data received of type "%s"', selectiondata.type)
+		logger.debug('Drag data received of type "%s"', selectiondata.target)
 		tree = parsetree_from_selectiondata(selectiondata)
 		if tree is None:
-			logger.warn('Could not drop data type "%s"', selectiondata.type)
-			dragcontext.finish(False, False, timestamp)
+			logger.warn('Could not drop data type "%s"', selectiondata.target)
+			dragcontext.finish(False, False, timestamp) # NOK
 			return
 
 		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
 		iter = self.get_iter_at_location(x, y)
 		self.get_buffer().insert_parsetree(iter, tree)
-		dragcontext.finish(True, False, timestamp)
+		dragcontext.finish(True, False, timestamp) # OK
 
 	def do_motion_notify_event(self, event):
 		'''Event handler that triggers check_cursor_type()

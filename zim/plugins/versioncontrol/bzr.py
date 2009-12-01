@@ -19,6 +19,14 @@ except ImportError:
 
 
 class BzrlibApplication(Application):
+	'''This class is a wrapper around the bzrlib library which supports the same
+	API as an Application object for an external application. It gives command
+	arguments directly to the library to handle instead of actually spawning a
+	process to call the executable.
+
+	Falling back to using "Application(('bzr',))" instead should give the exact
+	same results. 
+	''' 
 
 	def __init__(self):
 		Application.__init__(self, ('bzr',))
@@ -79,10 +87,12 @@ class BazaarVCS(object):
 	def on_path_moved(self, fs, oldpath, newpath):
 		if newpath.ischild(self.root):
 			if oldpath.ischild(self.root):
+				# Parent of newpath needs to be versioned in order to make mv succeed
+				_bzr.run(['add', '--no-recurse', newpath.dir], cwd=self.root)
 				_bzr.run(['mv', oldpath, newpath], cwd=self.root)
 			else:
 				_bzr.run(['add', newpath], cwd=self.root)
-		# if only oldpath is ours, it is now delete - don't need to do anything
+		# if only oldpath is ours, it is now deleted - don't need to do anything
 
 	@property
 	def modified(self):

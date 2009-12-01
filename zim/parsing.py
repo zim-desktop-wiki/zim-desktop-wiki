@@ -37,21 +37,35 @@ def unescape_quoted_string(string):
 	return string
 
 
-_encode_re = re.compile(r'[^A-Za-z0-9\-\_\.\!\~\*\'\(\)\/\:]')
-# url encoding - char set from man uri(7), see relevant rfc
-# added '/' and ':' to char set for readability of uris
+_url_encode_re = re.compile(r'[^A-Za-z0-9\-\_\.\!\~\*\'\(\)\/\:]')
+	# url encoding - char set from man uri(7), see relevant rfc
+	# added '/' and ':' to char set for readability of uris
+_url_decode_re = re.compile('%([a-fA-F0-9]{2})')
+
+_unencoded_url_re = re.compile('\s|%(?![a-fA-F0-9]{2})')
+	# Not sure if everybody else out there uses the same char set,
+	# but whitespace in an url is a sure sign it is not encoded.
+	# (Also whitespace is the most problematic for wiki syntax...)
+	# Otherwise seeing a "%" without hex behind it also a good sign.
 
 def url_encode(url):
-	'''Replaces non-standard characters in urls with hex codes'''
+	'''Replaces non-standard characters in urls with hex codes.
+	This function uses some heuristics to detect when an url is encoded
+	already and avoid double-encoding it.
+	'''
 	url = url.encode('utf-8') # unicode -> utf-8
-	url = _encode_re.sub(lambda m: '%%%X' % ord(m.group(0)), url)
+	if not ('%' in url and not _unencoded_url_re.search(url)):
+		url = _url_encode_re.sub(lambda m: '%%%X' % ord(m.group(0)), url)
 	return url
 
 
-_hex_re = re.compile('%([a-fA-F0-9]{2})')
-
 def url_decode(url):
-	url = _hex_re.sub(lambda m: chr(int(m.group(1), 16)), url)
+	'''Replace url-encoding hex sequences with their proper characters.
+	This function uses some heuristics to detect when an url is not
+	encoded in the first place already and avoid double-decoding it.
+	'''
+	if '%' in url and not _unencoded_url_re.search(url):
+		url = _url_decode_re.sub(lambda m: chr(int(m.group(1), 16)), url)
 	url = url.decode('utf-8') # utf-8 -> unicode
 	return url
 
