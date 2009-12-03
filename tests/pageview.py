@@ -56,16 +56,24 @@ class TestTextBuffer(TestCase):
 		self.assertEqualDiff(resulttext, wikitext)
 
 		# Compare we are stable when loading raw tree again
+		raw = raw1.tostring()
 		with FilterNoSuchImageWarning():
 			buffer.set_parsetree(raw1)
+		self.assertEqualDiff(raw1.tostring(), raw)
+			# If this fails, set_parsetree is modifying the tree
 		raw2 = buffer.get_parsetree(raw=True)
-		self.assertEqualDiff(raw2.tostring(), raw1.tostring())
+		self.assertEqualDiff(raw2.tostring(), raw)
+			# Actual cooked roundtrip test
 
 		# Compare we are stable when loading cooked tree again
+		cooked = result1.tostring()
 		with FilterNoSuchImageWarning():
 			buffer.set_parsetree(result1)
+		self.assertEqualDiff(result1.tostring(), cooked)
+			# If this fails, set_parsetree is modifying the tree
 		result2 = buffer.get_parsetree()
-		self.assertEqualDiff(result2.tostring(), result1.tostring())
+		self.assertEqualDiff(result2.tostring(), cooked)
+			# Actual cooked roundtrip test
 
 		# Test 'raw' really preserves "errors"
 		input = '''\

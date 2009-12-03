@@ -306,8 +306,7 @@ class Dumper(DumperClass):
 					bullet = '*'
 				output.append('\t'*list_level+bullet+' ')
 				self.dump_children(element, output, list_level=list_level) # recurs
-				if not element.tail:
-					element.tail = '\n'
+				output.append('\n')
 			elif element.tag == 'pre':
 				output.append("'''\n"+element.text+"'''\n")
 			elif element.tag == 'img':

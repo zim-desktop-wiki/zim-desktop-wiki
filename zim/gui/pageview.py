@@ -399,17 +399,15 @@ class TextBuffer(gtk.TextBuffer):
 					bullet = BULLET # default to '*'
 				self.insert_bullet_at_cursor(bullet, raw=raw)
 
-				if not raw:
-					if element.tail:
-						element.tail += '\n'
-					else:
-						element.tail = '\n'
-
 				if element.text:
 					self.insert_at_cursor(element.text)
 
 				self._insert_element_children(element, list_level=list_level, raw=raw) # recurs
 				self.set_indent(None)
+
+				if not raw:
+					self.insert_at_cursor('\n')
+
 			elif element.tag == 'link':
 				self.insert_link_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':

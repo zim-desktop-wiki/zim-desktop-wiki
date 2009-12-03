@@ -355,6 +355,11 @@ class ParseTreeBuilder(object):
 			else:
 				text = '\n'
 				self._seen_eol = 1
+		if self._tail and self._last.tag == 'li' \
+		and text.startswith('\n'):
+			text = text[1:]
+			if not text.strip('\n'):
+				self._seen_eol -=1
 
 		if text:
 			assert not self._last is None, 'data seen before root element'
@@ -394,6 +399,8 @@ class ParseTreeBuilder(object):
 				else:
 					assert self._last.text is None, "internal error (text)"
 					self._last.text = text
+		else:
+			self._data = []
 
 
 	def close(self):

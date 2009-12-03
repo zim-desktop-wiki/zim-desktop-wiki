@@ -90,7 +90,9 @@ class TestTextFormat(TestCase):
 		self.assertTrue(isinstance(tree, ParseTree))
 		self.assertTrue(tree.getroot().tag == 'zim-tree')
 		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
+		xml = tree.tostring()
 		output = self.format.Dumper().dump(tree)
+		self.assertEqualDiff(tree.tostring(), xml) # check tree not modified
 		self.assertEqualDiff(output, wikitext.splitlines(True))
 
 
@@ -348,9 +350,9 @@ class StubLinker(object):
 	def img(self, src): return 'img://' + src
 
 	def icon(self, name): return 'icon://' + name
-	
 
-class TestPareTreeBuilder(TestCase):
+
+class TestParseTreeBuilder(TestCase):
 
 	def runTest(self):
 		'''Test ParseTreeBuilder class'''
@@ -374,7 +376,7 @@ dus ja
 
 bar
 </strong>
-<strike></strike><emphasis>   </emphasis>
+<strike></strike><emphasis>   </emphasis>.
 </zim-tree>'''
 
 		wanted = '''\
@@ -402,7 +404,7 @@ grrr
 
 <strong>bar</strong>
 
-   
+   .
 </zim-tree>'''
 
 		# For some reason this does not work with cElementTree.XMLBuilder ...
