@@ -57,10 +57,10 @@ KEYVALS_BACKSPACE = map(gtk.gdk.keyval_from_name, ('BackSpace',))
 KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
 KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 
-#~ KEYVALS_END_OF_WORD = map(
-	#~ gtk.gdk.unicode_to_keyval, map(ord, (' ', ')', '>', '.', '!', '?')))
+#~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
+CHARS_END_OF_WORD = (' ', ')', '>')
 KEYVALS_END_OF_WORD = map(
-	gtk.gdk.unicode_to_keyval, map(ord, (' ', ')', '>')))
+	gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD))
 
 KEYVALS_ASTERISK = (
 	gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
@@ -279,8 +279,10 @@ class TextBuffer(gtk.TextBuffer):
 		'family', 'wrap-mode', 'indent', 'underline'
 	) )
 
-	def __init__(self):
+	def __init__(self, notebook=None, page=None):
 		gtk.TextBuffer.__init__(self)
+		self.notebook = notebook
+		self.page = page
 		self._insert_tree_in_progress = False
 		self.user_action = UserAction(self)
 
@@ -438,21 +440,22 @@ class TextBuffer(gtk.TextBuffer):
 
 	def insert_link_at_cursor(self, text, href=None, **attrib):
 		'''Like insert_link() but inserts at the cursor'''
-		if href == text:
-			href = None
-		tag = self.create_link_tag(href, **attrib)
+		tag = self.create_link_tag(text, href, **attrib)
 		self._editmode_tags = \
 			filter(_is_not_link_tag, self._editmode_tags) + (tag,)
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 
-	def create_link_tag(self, href, **attrib):
+	def create_link_tag(self, text, href, **attrib):
 		tag = self.create_tag(None, **self.tag_styles['link'])
 		tag.set_priority(0) # force links to be below styles
 		tag.zim_type = 'link'
 		tag.zim_tag = 'link'
 		tag.zim_attrib = attrib
-		tag.zim_attrib['href'] = href
+		if href == text:
+			tag.zim_attrib['href'] = None
+		else:
+			tag.zim_attrib['href'] = href
 		return tag
 
 	def get_link_tag(self, iter):
@@ -608,10 +611,10 @@ class TextBuffer(gtk.TextBuffer):
 		'''Updates the textstyle and indent from a text position.
 		Triggered automatically when moving the cursor.
 		'''
-		tags = self.iter_get_zim_tags(iter)
+		tags = tuple(self.iter_get_zim_tags(iter))
 		if force or not tags == self._editmode_tags:
 			#~ print '>', [(t.zim_type, t.get_property('name')) for t in tags]
-			self._editmode_tags = tuple(tags)
+			self._editmode_tags = tags
 			for tag in tags:
 				if tag.zim_type == 'style':
 					name = tag.get_property('name')[6:]
@@ -860,9 +863,19 @@ class TextBuffer(gtk.TextBuffer):
 		'''Signal handler for insert-text signal'''
 		# First call parent for the actual insert
 		if string == '\n':
+			# Break tags that are not allowed to span over multiple lines
 			self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
 			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 			# TODO make this more robust for multiline inserts
+		elif string in CHARS_END_OF_WORD:
+			# Break links if end-of-word char is typed at end of a link
+			# without this you not insert text behind a link e.g. at the end of a line
+			links = filter(_is_link_tag, self._editmode_tags)
+			if links and end.ends_tag(links[0]):
+				self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
+				# TODO this should go into the TextView, not here
+				# Now it goes OK only because we only check single char inserts, but would break
+				# for multi char inserts from the view - fixing that here breaks insert parsetree
 
 		gtk.TextBuffer.do_insert_text(self, end, string, length)
 
@@ -886,6 +899,9 @@ class TextBuffer(gtk.TextBuffer):
 				self._do_lines_merged(iter)
 		else:
 			gtk.TextBuffer.do_delete_range(self, start, end)
+
+		self.set_editmode_from_cursor()
+		# Delete formatted word + type should not show format again
 
 	def _do_lines_merged(self, iter):
 		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
@@ -1295,7 +1311,7 @@ class TextBuffer(gtk.TextBuffer):
 		bounds = self.get_selection_bounds()
 		if bounds:
 			tree = self.get_parsetree(bounds)
-			Clipboard().set_parsetree(None, None, tree)
+			Clipboard().set_parsetree(self.notebook, self.page, tree)
 
 	def cut_clipboard(self, clipboard, default_editable):
 		if self.get_has_selection():
@@ -1383,7 +1399,7 @@ class TextView(gtk.TextView):
 	}
 
 	def __init__(self, preferences):
-		gtk.TextView.__init__(self, TextBuffer())
+		gtk.TextView.__init__(self, TextBuffer(None, None))
 		self.cursor = CURSOR_TEXT
 		self.cursor_link = None
 		self.gtkspell = None
@@ -1594,23 +1610,6 @@ class TextView(gtk.TextView):
 
 		return True
 
-	def _insert_and_emit(self, char, signal):
-		# Helper method for emitting end-of-word and end-of-line signals
-		# First insert char, then call the signal and reset the cursor. This
-		# way anything the signal does goes after the insert on the undo stack.
-		# end-of-line implies end-of-word before it
-		assert signal in ('end-of-word', 'end-of-line')
-		buffer = self.get_buffer()
-
-		with buffer.user_action:
-			if char == '\n':
-				# break textstyle when we go to the next line
-				textstyle = buffer.get_textstyle()
-				if textstyle != 'pre':
-					buffer.set_textstyle(None)
-			buffer.insert_at_cursor(char)
-
-
 	def _do_key_press_event_readonly(self, event):
 		# Key bindings in read-only mode:
 		#   Space scrolls one page
@@ -1782,7 +1781,7 @@ class TextView(gtk.TextView):
 			if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start)):
 				return False
 
-			tag = buffer.create_link_tag(match)
+			tag = buffer.create_link_tag(match, match)
 			buffer.apply_tag(tag, start, end)
 			return True
 
@@ -2351,7 +2350,7 @@ class PageView(gtk.VBox):
 
 		# now create the new buffer
 		self.page = page
-		buffer = TextBuffer()
+		buffer = TextBuffer(self.ui.notebook, self.page)
 		self.view.set_buffer(buffer)
 		tree = page.get_parsetree()
 
@@ -2813,19 +2812,21 @@ class InsertDateDialog(Dialog):
 			button=(_('_Insert'), 'gtk-ok') )  # T: Button label
 		self.buffer = buffer
 
-		# TODO store preferred format and link check in uistate
+		self.uistate.setdefault('lastusedformat', '')
+		self.uistate.setdefault('linkdate', False)
 
-		model = gtk.ListStore(str)
+		model = gtk.ListStore(str, str) # format, data
 		self.view = BrowserTreeView(model)
 		self.vbox.add(self.view)
 
 		cell_renderer = gtk.CellRendererText()
-		column = gtk.TreeViewColumn('_date_', cell_renderer, text=0)
+		column = gtk.TreeViewColumn('_date_', cell_renderer, text=1)
 		self.view.append_column(column)
 		self.view.set_headers_visible(False)
 
 		self.linkbutton = gtk.CheckButton(_('_Link to date'))
 			# T: check box in InsertDate dialog
+		self.linkbutton.set_active(self.uistate['linkdate'])
 		self.vbox.pack_start(self.linkbutton, False)
 
 		# FIXME need way to get 'raw' config file..
@@ -2834,23 +2835,37 @@ class InsertDateDialog(Dialog):
 		if not file.exists():
 			file = listdict.default
 
+		lastused = None
 		for line in file.readlines():
 			line = line.strip()
 			if line.startswith('#'): continue
 			try:
-				date = strftime(line)
-				model.append((date,))
+				format = line
+				date = strftime(format)
+				iter = model.append((format, date))
+				if format == self.uistate['lastusedformat']:
+					lastused = iter
 			except:
 				logger.exception('Could not parse date: %s', line)
+
+		if not lastused is None:
+			path = model.get_path(lastused)
+			self.view.get_selection().select_path(path)
 
 		self.view.connect('row-activated',
 			lambda *a: self.response(gtk.RESPONSE_OK) )
 
 		# TODO edit button which allows editing the config file
 
+	def save_uistate(self):
+		model, iter = self.view.get_selection().get_selected()
+		format = model[iter][0]
+		self.uistate['lastusedformat'] = format
+		self.uistate['linkdate'] = self.linkbutton.get_active()
+
 	def do_response_ok(self):
 		model, iter = self.view.get_selection().get_selected()
-		text = model[iter][0]
+		text = model[iter][1]
 		if self.linkbutton.get_active():
 			print 'TODO: link date'
 		else:
@@ -3058,10 +3073,7 @@ class InsertLinkDialog(Dialog):
 				start, end = map(
 					buffer.get_iter_at_offset, self._selection_bounds)
 				buffer.delete(start, end)
-				buffer.insert_link_at_cursor(text, href)
-			else:
-				buffer.insert_link_at_cursor(text, href)
-				buffer.insert_at_cursor(' ')
+			buffer.insert_link_at_cursor(text, href)
 
 		return True
 

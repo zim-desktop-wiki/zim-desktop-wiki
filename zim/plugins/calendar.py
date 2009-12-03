@@ -53,7 +53,7 @@ ui_xml_show_dialog = '''
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
-	('go_page_today', None, _('To_day'), '<ctrl>D', '', True), # T: menu item
+	('go_page_today', None, _('To_day'), '<Alt>D', '', True), # T: menu item
 )
 
 ui_toggle_actions = (
@@ -106,7 +106,7 @@ This is a core plugin shipping with zim.
 				self.ui.notebook.namespace_properties[ns].remove('template')
 			except KeyError:
 				pass
-		PluginClass.diconnect(self)
+		PluginClass.disconnect(self)
 
 	def do_preferences_changed(self):
 		'''Switch between calendar in the sidepane or as a dialog'''
@@ -238,7 +238,7 @@ class CalendarPluginWidget(gtk.VBox):
 		self.calendar.connect('month-changed', self.on_month_changed)
 		self.on_month_changed(self.calendar)
 		self.pack_start(self.calendar, False)
-		
+
 		self.plugin.ui.connect('open-page', self.on_open_page)
 
 	def on_calendar_activate(self, calendar):
@@ -252,13 +252,17 @@ class CalendarPluginWidget(gtk.VBox):
 		for path in self.plugin.ui.notebook.index.list_pages(namespace):
 			date = self.plugin.date_from_path(path)
 			calendar.mark_day(date.day)
-			
+
 	def on_open_page(self, ui, page, path):
 		try:
 			date = self.plugin.date_from_path(path)
 			self.calendar.select_month(date.month-1, date.year)
 		except AssertionError:
 			pass
+
+	def select_date(self, date):
+		self.calendar.select_date(date)
+		self.on_calendar_activate(self.calendar)
 
 
 class CalendarDialog(Dialog):

@@ -9,16 +9,16 @@ functionality, which works similar to the clipboard, but has a less
 straight forward API.
 '''
 
-# TODO support pasting parsetree as HTML
+# TODO support converting HTML to parsetree - need html Parser
 # TODO support for pasting image as parsetree - attach + tree ?
-# TODO check how we tie into drag & drop (e.g. image from firefox ..)
 # TODO unit test for copy - paste parsetree & page link
 
 import gtk
 import logging
 
-from zim.formats import get_format, ParseTree, TreeBuilder
 from zim.parsing import url_encode, url_decode
+from zim.formats import get_format, ParseTree, TreeBuilder
+from zim.exporter import StaticLinker
 
 
 logger = logging.getLogger('zim.gui.clipboard')
@@ -39,11 +39,16 @@ PAGELIST_TARGET_ID = 3
 PAGELIST_TARGET_NAME = 'text/x-zim-page-list'
 PAGELIST_TARGET = (PAGELIST_TARGET_NAME, 0, PAGELIST_TARGET_ID)
 
-URI_TARGET_ID = 8
+URI_TARGET_ID = 7
 URI_TARGETS = tuple(gtk.target_list_add_uri_targets(info=URI_TARGET_ID))
 	# According to docs we should provide list as arg to this function,
 	# but seems docs are not correct
 URI_TARGET_NAMES = tuple([target[0] for target in URI_TARGETS])
+
+HTML_TARGET_ID = 8
+HTML_TARGET_NAMES = ('text/html', 'HTML Format')
+	# "HTML Format" is from MS Word
+HTML_TARGETS = tuple([(name, 0, HTML_TARGET_ID) for name in HTML_TARGET_NAMES])
 
 TEXT_TARGET_ID = 9
 TEXT_TARGETS = tuple(gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))
@@ -83,11 +88,12 @@ def parsetree_from_selectiondata(selectiondata):
 		print 'LINKS: ', links
 		builder = TreeBuilder()
 		builder.start('zim-tree')
-		for link in links:
-			builder.start('link', {'href': link})
-			builder.data(link)
+		for i in range(len(links)):
+			if i > 0:
+				builder.data(' ')
+			builder.start('link', {'href': links[i]})
+			builder.data(links[i])
 			builder.end('link')
-			builder.data(' ')
 		builder.end('zim-tree')
 		return ParseTree(builder.close())
 	elif targetname in TEXT_TARGET_NAMES:
@@ -96,6 +102,30 @@ def parsetree_from_selectiondata(selectiondata):
 		return get_format('plain').Parser().parse(text.decode('utf-8'))
 	else:
 		return None
+
+
+HTML_HEAD = '''\
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<meta name="Description" content="Copy-Paste Buffer">
+<meta name="Generator" content="Zim">
+'''.strip()
+
+def wrap_html(html, target):
+	'''Fucntion to wrap html with appropriate headers based on target type'''
+	html = html.encode('utf-8')
+	if target == 'HTML Format':
+		return Win32HtmlFormat.encode(html, head=HTML_HEAD)
+	else:
+		return '''\
+<html>
+<head>
+%s
+</head>
+<body>
+%s
+</body>
+</html>
+''' % (HTML_HEAD, html)
 
 
 class Clipboard(gtk.Clipboard):
@@ -111,18 +141,27 @@ class Clipboard(gtk.Clipboard):
 		zim. The tree can be the full tree for 'page', but also a selection.
 		'''
 		targets = [PARSETREE_TARGET]
-		targets.extend(gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))
+		targets.extend(HTML_TARGETS)
+		#~ targets.extend(gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))
 		self.set_with_data(
 			targets,
 			Clipboard._get_parsetree_data, Clipboard._clear_data,
-			parsetree
+			(notebook, page, parsetree)
 		) or logger.warn('Failed to set data on clipboard')
 
-	def _get_parsetree_data(self, selectiondata, id, parsetree):
+	def _get_parsetree_data(self, selectiondata, id, data):
 		logger.debug("Cliboard data request of type '%s', we have a parsetree", selectiondata.target)
+		notebook, page, parsetree = data
 		if id == PARSETREE_TARGET_ID:
 			xml = parsetree.tostring().encode('utf-8')
 			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
+		elif id == HTML_TARGET_ID:
+			dumper = get_format('html').Dumper(
+				linker=StaticLinker('html', notebook, page) )
+			html = ''.join( dumper.dump(parsetree) )
+			html = wrap_html(html, target=selectiondata.target)
+			#~ print 'PASTING: >>>%s<<<' % html
+			selectiondata.set(selectiondata.target, 8, html)
 		elif id == TEXT_TARGET_ID:
 			dumper = get_format('wiki').Dumper()
 			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
@@ -189,9 +228,17 @@ class Clipboard(gtk.Clipboard):
 		pass
 
 	def debug_dump_contents(self):
-		'''Dumps clipboard contents to stdout - used for debug sessions'''
+		'''Interactively dumps clipboard contents to stdout - used for debug sessions'''
+		import sys
 		targets = self.wait_for_targets()
-		for target in targets:
+		print "="*80
+		print "Enter a number to see a specific target, or <Enter> to exit"
+		print "Available targets:"
+		for i in range(len(targets)):
+			print i, targets[i]
+		line = sys.stdin.readline().strip()
+		while line:
+			target = targets[int(line)]
 			print '>>>>', target
 			selection = self.wait_for_contents(target)
 			if selection:
@@ -203,3 +250,103 @@ class Clipboard(gtk.Clipboard):
 			else:
 				print '== No contents'
 			print '<<<<'
+			line = sys.stdin.readline().strip()
+
+
+class Win32HtmlFormat:
+	'''This class adds support for Windows "HTML Format" clipboard content type
+	
+	Code is based on example code from
+		http://code.activestate.com/recipes/474121/ 
+	
+	written by Phillip Piper (jppx1[at]bigfoot.com)
+
+	Also see specification at:
+		http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/windowsuserinterface/dataexchange/clipboard/htmlclipboardformat.asp
+	'''
+
+	MARKER_BLOCK_OUTPUT = \
+		"Version:1.0\r\n" \
+		"StartHTML:%09d\r\n" \
+		"EndHTML:%09d\r\n" \
+		"StartFragment:%09d\r\n" \
+		"EndFragment:%09d\r\n" \
+		"StartSelection:%09d\r\n" \
+		"EndSelection:%09d\r\n" \
+		"SourceURL:%s\r\n"
+
+	#~ MARKER_BLOCK_EX = \
+		#~ "Version:(\S+)\s+" \
+		#~ "StartHTML:(\d+)\s+" \
+		#~ "EndHTML:(\d+)\s+" \
+		#~ "StartFragment:(\d+)\s+" \
+		#~ "EndFragment:(\d+)\s+" \
+		#~ "StartSelection:(\d+)\s+" \
+		#~ "EndSelection:(\d+)\s+" \
+		#~ "SourceURL:(\S+)"
+	#~ MARKER_BLOCK_EX_RE = re.compile(MARKER_BLOCK_EX)
+
+	#~ MARKER_BLOCK = \
+		#~ "Version:(\S+)\s+" \
+		#~ "StartHTML:(\d+)\s+" \
+		#~ "EndHTML:(\d+)\s+" \
+		#~ "StartFragment:(\d+)\s+" \
+		#~ "EndFragment:(\d+)\s+" \
+		   #~ "SourceURL:(\S+)"
+	#~ MARKER_BLOCK_RE = re.compile(MARKER_BLOCK)
+
+	DEFAULT_HTML_BODY = \
+		"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\">" \
+		"<HTML><HEAD>%s</HEAD><BODY><!--StartFragment-->%s<!--EndFragment--></BODY></HTML>"
+
+	@classmethod
+	def encode(klass, fragment, selection=None, head=None, source=None):
+		if selection is None: 
+			selection = fragment
+		if source is None:
+			source = "zim://copy-pase-buffer"
+		if head is None:
+			head = ''
+
+		html = klass.DEFAULT_HTML_BODY % (head, fragment)
+		fragmentStart = html.index(fragment)
+		fragmentEnd = fragmentStart + len(fragment)
+		selectionStart = html.index(selection)
+		selectionEnd = selectionStart + len(selection)
+
+		# How long is the prefix going to be?
+		dummyPrefix = klass.MARKER_BLOCK_OUTPUT % (0, 0, 0, 0, 0, 0, source)
+		lenPrefix = len(dummyPrefix)
+
+		prefix = klass.MARKER_BLOCK_OUTPUT % (
+			lenPrefix, len(html)+lenPrefix,
+			fragmentStart+lenPrefix, fragmentEnd+lenPrefix,
+			selectionStart+lenPrefix, selectionEnd+lenPrefix,
+			source
+		)
+		return prefix + html
+
+	#~ @classmethod
+	#~ def decode(self, data):
+		#~ """
+		#~ Decode the given string to figure out the details of the HTML that's on the string
+		#~ """
+		#~ # Try the extended format first (which has an explicit selection)
+		#~ matches = self.MARKER_BLOCK_EX_RE.match(src)
+		#~ if matches:
+			#~ self.prefix = matches.group(0)
+			#~ self.htmlClipboardVersion = matches.group(1)
+			#~ self.html = src[int(matches.group(2)):int(matches.group(3))]
+			#~ self.fragment = src[int(matches.group(4)):int(matches.group(5))]
+			#~ self.selection = src[int(matches.group(6)):int(matches.group(7))]
+			#~ self.source = matches.group(8)
+		#~ else:
+			#~ # Failing that, try the version without a selection
+			#~ matches = self.MARKER_BLOCK_RE.match(src)
+			#~ if matches:
+				#~ self.prefix = matches.group(0)
+				#~ self.htmlClipboardVersion = matches.group(1)
+				#~ self.html = src[int(matches.group(2)):int(matches.group(3))]
+				#~ self.fragment = src[int(matches.group(4)):int(matches.group(5))]
+				#~ self.source = matches.group(6)
+				#~ self.selection = self.fragment

@@ -653,9 +653,10 @@ class Notebook(gobject.GObject):
 		if update_heading:
 			page = self.get_page(newpath)
 			tree = page.get_parsetree()
-			tree.set_heading(newbasename.title())
-			page.set_parsetree(tree)
-			self.store_page(page)
+			if not tree is None:
+				tree.set_heading(newbasename.title())
+				page.set_parsetree(tree)
+				self.store_page(page)
 
 		return newpath
 

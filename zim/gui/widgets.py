@@ -432,7 +432,7 @@ class Dialog(gtk.Dialog):
 		'''
 		label = gtk.Label()
 		label.set_markup('<i>%s</i>' % text)
-		self.vbox.add(label)
+		self.vbox.pack_start(label, False)
 
 	def add_fields(self, fields, table=None, trigger_response=True):
 		'''Add a number of fields to the dialog, convenience method to

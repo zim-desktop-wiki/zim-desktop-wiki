@@ -341,9 +341,12 @@ class PageTreeView(BrowserTreeView):
 			logger.debug('Dropped %s into %s', source, path)
 			dest = path + source.basename
 
-		if dest == source:
+		if path == source or dest == source:
 			# TODO - how to get the row image float back like when drop is not allowed ?
-			logger.debug('Paths have same namespace, no reordering')
+			if path == source:
+				logger.debug('Dropped page onto itself')
+			else:
+				logger.debug('Paths have same namespace, no reordering')
 			dragcontext.finish(False, False, time) # NOK
 			return
 
@@ -392,8 +395,11 @@ class PageIndex(gtk.ScrolledWindow):
 		self.treeview = PageTreeView(app)
 		self.add(self.treeview)
 
+	def is_focus(self):
+		return self.treeview.is_focus()
+
 	def grab_focus(self):
-		self.treeview.grab_focus()
+		return self.treeview.grab_focus()
 
 	def get_selected_path(self):
 		'''Returns path currently selected or None'''
