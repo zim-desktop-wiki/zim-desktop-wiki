@@ -4,3 +4,5 @@ Wiki-Format: zim 0.26
 ====== Version Control ======
 
 TODO document version control support in zim
+
+**Dependencies:** This plugin requires one of the supported version control systems to be installed. Currently only Bazaar is supported, so this application is required. In specific the "bzr" command should be available in the system path.

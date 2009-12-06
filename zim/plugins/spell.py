@@ -38,7 +38,7 @@ ui_toggle_actions = (
 class SpellPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Spell'), # T: plugin name
+		'name': _('Spell Checker'), # T: plugin name
 		'description': _('''\
 Adds spell checking support using gtkspell.
 Please make sure gtkspell is installed.
@@ -46,7 +46,7 @@ Please make sure gtkspell is installed.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
-		'help': 'Plugins:Spell',
+		'help': 'Plugins:Spell Checker',
 	}
 
 	plugin_preferences = (
@@ -77,7 +77,7 @@ This is a core plugin shipping with zim.
 			self.do_toggle_spellcheck(enable=enable)
 
 	def do_toggle_spellcheck(self, enable=None):
-		print 'do_toggle_spellcheck', enable
+		#~ print 'do_toggle_spellcheck', enable
 		if enable is None:
 			action = self.actiongroup.get_action('toggle_spellcheck')
 			enable = action.get_active()

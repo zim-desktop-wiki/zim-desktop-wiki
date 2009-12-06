@@ -69,7 +69,7 @@ ZIM_EXECUTABLE = 'zim'
 longopts = ('verbose', 'debug')
 commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual')
 commandopts = {
-	'gui': ('list',),
+	'gui': ('list', 'geometry=', 'fullscreen'),
 	'server': ('port=', 'template=', 'gui'),
 	'export': ('format=', 'template=', 'output='),
 	'index': ('output=',),
@@ -108,6 +108,8 @@ General Options:
 GUI Options:
   --list          show the list with notebooks instead of
                   opening the default notebook
+  --geometry      window size and position as WxH+X+Y
+  --fullscreen    start in fullscreen mode
 
 Server Options:
   --port          port to use (defaults to 8080)
@@ -290,7 +292,7 @@ class NotebookInterface(gobject.GObject):
 
 	def load_plugins(self):
 		'''Load the plugins defined in the preferences'''
-		self.preferences['General'].setdefault('plugins', 
+		self.preferences['General'].setdefault('plugins',
 			['calendar', 'printtobrowser', 'versioncontrol'])
 		plugins = self.preferences['General']['plugins']
 		for plugin in plugins:

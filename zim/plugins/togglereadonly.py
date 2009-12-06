@@ -38,6 +38,7 @@ locked and can not be editted by accident.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
+		'help': 'Plugins:Toggle ReadOnly',
 	}
 
 	def __init__(self, ui):

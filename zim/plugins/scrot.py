@@ -44,6 +44,7 @@ Depends on: scrot
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
+		'help': 'Plugins:Insert Screenshot',
 	}
 
 	def __init__(self, ui):

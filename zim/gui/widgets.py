@@ -12,6 +12,7 @@ import gobject
 import gtk
 import pango
 import logging
+import sys
 
 from zim.fs import *
 import zim.errors
@@ -411,6 +412,8 @@ class Dialog(gtk.Dialog):
 			self._no_ok_action = True
 		else:
 			assert False, 'BUG: unknown button type'
+		# TODO set Ok button as default widget
+		# see gtk.Window.set_default()
 
 		if text: self.add_text(text)
 		if fields: self.add_fields(fields)
@@ -696,11 +699,11 @@ class ErrorDialog(gtk.MessageDialog):
 		object.
 		'''
 		self.error = error
-		#~ if isinstance(error, basestring):
 		if isinstance(error, zim.errors.Error):
 			msg = error.msg
 			description = error.description
 		else:
+			# Other exception or string
 			msg = unicode(error)
 			description = None
 
@@ -715,7 +718,14 @@ class ErrorDialog(gtk.MessageDialog):
 	def run(self):
 		'''Runs the dialog and destroys it directly.'''
 		logger.debug('Running %s', self.__class__.__name__)
-		logger.error(self.error)
+
+		exc_info = sys.exc_info() # Check if we are in an exception handler
+		if exc_info[0] is None:
+			exc_info = None
+		logger.error(self.error, exc_info=exc_info)
+		del exc_info # Recommended in pydoc sys
+		sys.exc_clear() # Avoid showing same message again later
+
 		while True:
 			response = gtk.MessageDialog.run(self)
 			if response == gtk.RESPONSE_OK and not self.do_response_ok():

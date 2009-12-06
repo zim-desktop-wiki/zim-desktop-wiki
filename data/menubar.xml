@@ -64,6 +64,7 @@
 				<menuitem action='set_toolbar_icons_small'/>
 				<menuitem action='set_toolbar_icons_tiny'/>
 			</menu>
+			<menuitem action='toggle_fullscreen'/>
 			<separator/>
 			<placeholder name='plugin_items'/>
 			<separator/>

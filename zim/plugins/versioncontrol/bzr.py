@@ -73,6 +73,12 @@ class BazaarVCS(object):
 	def check_dependencies(klass):
 		return _bzr.tryexec()
 
+	def _ignored(self, path):
+		# Return True if we should ignore this path
+		# TODO add bzrignore patterns here
+		# for now we just hardcode zim specific logic
+		return '.zim' in path.split()
+
 	def init(self):
 		if not self.root.exists():
 			self.root.touch()
@@ -81,11 +87,11 @@ class BazaarVCS(object):
 		_bzr.run(['add', '.'], cwd=self.root) # add all existing files
 
 	def on_path_created(self, fs, path):
-		if path.ischild(self.root):
+		if path.ischild(self.root) and not self._ignored(path):
 			_bzr.run(['add', path], cwd=self.root)
 
 	def on_path_moved(self, fs, oldpath, newpath):
-		if newpath.ischild(self.root):
+		if newpath.ischild(self.root) and not self._ignored(newpath):
 			if oldpath.ischild(self.root):
 				# Parent of newpath needs to be versioned in order to make mv succeed
 				_bzr.run(['add', '--no-recurse', newpath.dir], cwd=self.root)

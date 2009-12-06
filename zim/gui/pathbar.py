@@ -78,6 +78,9 @@ class ScrolledHBox(gtk.HBox):
 			button.connect('button-press-event', self._on_button_press)
 			button.connect('button-release-event', self._on_button_release)
 			button.connect('clicked', self._on_button_clicked)
+		# TODO looks like gtk.widget_push_composite_child is intended
+		# to flag internal children versus normal children
+		# use this property + define forall to have sane API for these buttons
 
 	def __del__(self):
 		self.stop_scrolling()

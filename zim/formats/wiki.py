@@ -324,6 +324,8 @@ class Dumper(DumperClass):
 				else:
 					output.append('{{'+src+'}}')
 			elif element.tag == 'link':
+				assert 'href' in element.attrib, \
+					'BUG: link %s "%s"' % (element.attrib, element.text)
 				href = element.attrib['href']
 				if href == element.text:
 					if url_re.match(href):

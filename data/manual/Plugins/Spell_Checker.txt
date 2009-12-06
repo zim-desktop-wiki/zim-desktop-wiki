@@ -1,0 +1,9 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Spell Checker ======
+Created Friday 04 December 2009
+
+TODO
+
+**Dependencies:** This plugin requires the "gtkspell" library to be installed as well as the Python language bindings for this library. On Ubuntu or Debian systems installing the package "python-gnome2-extras" will meet these dependencies.

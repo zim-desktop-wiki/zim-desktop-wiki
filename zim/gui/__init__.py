@@ -108,6 +108,7 @@ ui_toggle_actions = (
 	('toggle_toolbar', None, _('_Toolbar'),  None, '', True, True), # T: Menu item
 	('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
 	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
+	('toggle_fullscreen',  None, _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
 )
 
 ui_pathbar_radio_actions = (
@@ -220,7 +221,8 @@ class GtkInterface(NotebookInterface):
 
 	ui_type = 'gtk'
 
-	def __init__(self, notebook=None, page=None, list=False, **opts):
+	def __init__(self, notebook=None, page=None,
+		list=False, fullscreen=False, geometry=None, **opts):
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
 		NotebookInterface.__init__(self, **opts)
 		self.preferences_register = ListDict()
@@ -273,7 +275,7 @@ class GtkInterface(NotebookInterface):
 					else: key = 'none'
 				prefs.setdefault(type, key)
 
-		self.mainwindow = MainWindow(self)
+		self.mainwindow = MainWindow(self, fullscreen, geometry)
 
 		self.add_actions(ui_actions, self)
 		self.add_toggle_actions(ui_toggle_actions, self.mainwindow)
@@ -339,12 +341,8 @@ class GtkInterface(NotebookInterface):
 			gobject.idle_add(autosave)
 			return True # keep ticking
 
-		self._autosave_timer = None
-		try:
-			gobject.timeout_add_seconds(5, schedule_autosave)
-		except AttributeError:
-			# older gobject version doesn't know about seconds
-			gobject.timeout_add(5000, schedule_autosave)
+		# older gobject version doesn't know about seconds
+		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
 
 		self.uimanager.ensure_update()
 			# prevent flashing when the toolbar is after showing the window
@@ -357,8 +355,9 @@ class GtkInterface(NotebookInterface):
 		self.quit()
 
 	def quit(self):
-		assert self.close_page(self.page)
-			# returns False if page not saved
+		if not self.close_page(self.page):
+			# Do not quit if page not saved
+			return
 
 		self.emit('quit')
 
@@ -742,8 +741,6 @@ class GtkInterface(NotebookInterface):
 		'''Save 'page', or current page when 'page' is None, by emitting the
 		'save-page' signal. Returns boolean for success.
 		'''
-		assert not self.readonly, 'BUG: can not save page when read-only'
-
 		if self._save_page_in_progress:
 			# We need this check as the SavePageErrorDialog has a timer
 			# and auto-save may trigger while we are waiting for that one...
@@ -751,15 +748,20 @@ class GtkInterface(NotebookInterface):
 
 		self._save_page_in_progress = True
 		try:
+			assert not self.readonly, 'BUG: can not save page when read-only'
+
 			if page is None:
 				page = self.mainwindow.pageview.get_page()
-			self.emit('save-page', page)
-		except:
+			assert not page.readonly, 'BUG: can not save read-only page'
+		except Exception, error:
+			SavePageErrorDialog(self, error, page).run()
 			self._save_page_in_progress = False
-			raise
-		else:
-			self._save_page_in_progress = False
-			return not page.modified
+			return False
+
+
+		self.emit('save-page', page)
+		self._save_page_in_progress = False
+		return not page.modified
 
 	def do_save_page(self, page):
 		logger.debug('Saving page: %s', page)
@@ -954,9 +956,10 @@ class MainWindow(gtk.Window):
 	toolbar, statusbar etc.
 	'''
 
-	def __init__(self, ui):
+	def __init__(self, ui, fullscreen=False, geometry=None):
 		'''Constructor'''
 		gtk.Window.__init__(self)
+		self._fullscreen = False
 		self.ui = ui
 
 		ui.connect_after('open-notebook', self.do_open_notebook)
@@ -973,7 +976,7 @@ class MainWindow(gtk.Window):
 		def do_delete_event(*a):
 			logger.debug('Action: close (delete-event)')
 			ui.close()
-			return True
+			return True # Do not destroy - let close() handle it
 		self.connect('delete-event', do_delete_event)
 
 		vbox = gtk.VBox()
@@ -1072,6 +1075,30 @@ class MainWindow(gtk.Window):
 
 		self.do_preferences_changed()
 
+		self._geometry_set = False
+		self._set_fullscreen = False
+		if geometry:
+			try:
+				self.parse_geometry(geometry)
+				self._geometry_set = True
+			except:
+				logger.exception('Parsing geometry string failed:')
+		elif fullscreen:
+			self._set_fullscreen = True
+
+	def do_window_state_event(self, event):
+		#~ print 'window-state changed:', event.changed_mask
+		#~ print 'window-state new state:', event.new_window_state
+		isfullscreen = gtk.gdk.WINDOW_STATE_FULLSCREEN
+		if bool(event.changed_mask & isfullscreen):
+			# Did not find property for this - so tracking state ourself
+			self._fullscreen = bool(event.new_window_state & isfullscreen)
+			logger.debug('Fullscreen changed: %s', self._fullscreen)
+			self._set_widgets_visable()
+			if self.actiongroup:
+				# only do this after we initalize
+				self.toggle_fullscreen(show=self._fullscreen)
+
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:
 			self.remove_accel_group(self._switch_focus_accelgroup)
@@ -1109,6 +1136,22 @@ class MainWindow(gtk.Window):
 			logger.debug('No path in focus mainwindow')
 			return None
 
+	def toggle_menubar(self, show=None):
+		self.do_toggle_menubar(show=show)
+
+	def do_toggle_menubar(self, show=None):
+		if show:
+			self.menubar.set_no_show_all(False)
+			self.menubar.show()
+		else:
+			self.menubar.hide()
+			self.menubar.set_no_show_all(True)
+
+		if self._fullscreen:
+			self.uistate['show_menubar_fullscreen'] = show
+		else:
+			self.uistate['show_menubar'] = show
+
 	def toggle_toolbar(self, show=None):
 		action = self.actiongroup.get_action('toggle_toolbar')
 		if show is None or show != action.get_active():
@@ -1128,7 +1171,10 @@ class MainWindow(gtk.Window):
 			self.toolbar.hide()
 			self.toolbar.set_no_show_all(True)
 
-		self.uistate['show_toolbar'] = show
+		if self._fullscreen:
+			self.uistate['show_toolbar_fullscreen'] = show
+		else:
+			self.uistate['show_toolbar'] = show
 
 	def do_toolbar_popup(self, toolbar, x, y, button):
 		'''Show the context menu for the toolbar'''
@@ -1154,7 +1200,27 @@ class MainWindow(gtk.Window):
 			self.statusbar.hide()
 			self.statusbar.set_no_show_all(True)
 
-		self.uistate['show_statusbar'] = show
+		if self._fullscreen:
+			self.uistate['show_statusbar_fullscreen'] = show
+		else:
+			self.uistate['show_statusbar'] = show
+
+	def toggle_fullscreen(self, show=None):
+		action = self.actiongroup.get_action('toggle_fullscreen')
+		if show is None or show != action.get_active():
+			action.activate()
+		else:
+			self.do_toggle_fullscreen(show=show)
+
+	def do_toggle_fullscreen(self, show=None):
+		if show is None:
+			action = self.actiongroup.get_action('toggle_fullscreen')
+			show = action.get_active()
+
+		if show:
+			self.fullscreen()
+		else:
+			self.unfullscreen()
 
 	def toggle_sidepane(self, show=None):
 		action = self.actiongroup.get_action('toggle_sidepane')
@@ -1232,7 +1298,10 @@ class MainWindow(gtk.Window):
 			self.pathbar_box.add(self.pathbar)
 		self.pathbar_box.show_all()
 
-		self.uistate['pathbar_type'] = style
+		if self._fullscreen:
+			self.uistate['pathbar_type_fullscreen'] = style
+		else:
+			self.uistate['pathbar_type'] = style
 
 	def set_toolbar_style(self, style):
 		'''Set the toolbar style. Style can be either
@@ -1285,32 +1354,52 @@ class MainWindow(gtk.Window):
 		# also pathbar needs history in place
 		self.uistate = ui.uistate['MainWindow']
 
-		self.uistate.setdefault('windowsize', (600, 450), check=self.uistate.is_coord)
-		w, h = self.uistate['windowsize']
-		self.set_default_size(w, h)
+		if not self._geometry_set:
+			# Ignore this is a explicit geometry was specified to the constructor
+			self.uistate.setdefault('windowsize', (600, 450), check=self.uistate.is_coord)
+			w, h = self.uistate['windowsize']
+			self.set_default_size(w, h)
 
 		self.uistate.setdefault('show_sidepane', True)
 		self.uistate.setdefault('sidepane_pos', 200)
+		self.uistate.setdefault('show_menubar', True)
+		self.uistate.setdefault('show_menubar_fullscreen', True)
+		self.uistate.setdefault('show_toolbar', True)
+		self.uistate.setdefault('show_toolbar_fullscreen', False)
+		self.uistate.setdefault('show_statusbar', True)
+		self.uistate.setdefault('show_statusbar_fullscreen', False)
+		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT)
+		self.uistate.setdefault('pathbar_type_fullscreen', PATHBAR_NONE)
+
+		self._set_widgets_visable()
 		self.toggle_sidepane(show=self.uistate['show_sidepane'])
 
-		self.uistate.setdefault('show_toolbar', True)
-		self.toggle_toolbar(show=self.uistate['show_toolbar'])
 		if 'toolbar_style' in self.uistate:
 			self.set_toolbar_style(self.uistate['toolbar_style'])
 		# else trust system default
+
 		if 'toolbar_size' in self.uistate:
 			self.set_toolbar_size(self.uistate['toolbar_size'])
 		# else trust system default
 
-		self.uistate.setdefault('show_statusbar', True)
-		self.toggle_statusbar(show=self.uistate['show_statusbar'])
-
-		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT)
-		self.set_pathbar(self.uistate['pathbar_type'])
+		self.toggle_fullscreen(show=self._set_fullscreen)
 
 		# And hook to notebook properties
 		self.on_notebook_properties_changed(notebook)
 		notebook.connect('properties-changed', self.on_notebook_properties_changed)
+
+	def _set_widgets_visable(self):
+		# Convenience method to switch visibility of all widgets
+		if self._fullscreen:
+			self.toggle_menubar(show=self.uistate['show_menubar_fullscreen'])
+			self.toggle_toolbar(show=self.uistate['show_toolbar_fullscreen'])
+			self.toggle_statusbar(show=self.uistate['show_statusbar_fullscreen'])
+			self.set_pathbar(self.uistate['pathbar_type_fullscreen'])
+		else:
+			self.toggle_menubar(show=self.uistate['show_menubar'])
+			self.toggle_toolbar(show=self.uistate['show_toolbar'])
+			self.toggle_statusbar(show=self.uistate['show_statusbar'])
+			self.set_pathbar(self.uistate['pathbar_type'])
 
 	def on_notebook_properties_changed(self, notebook):
 		self.set_title(notebook.name + ' - Zim')
@@ -1336,7 +1425,8 @@ class MainWindow(gtk.Window):
 
 	def do_close_page(self, ui, page):
 		w, h = self.get_size()
-		self.uistate['windowsize'] = (w, h)
+		if not self._fullscreen:
+			self.uistate['windowsize'] = (w, h)
 		self.uistate['sidepane_pos'] = self.hpane.get_position()
 
 	def do_textview_toggle_overwrite(self, view):
@@ -1344,6 +1434,9 @@ class MainWindow(gtk.Window):
 		if state: text = 'OVR'
 		else: text = 'INS'
 		self.statusbar_insert_label.set_text(text)
+
+# Need to register classes defining gobject signals or overloading methods
+gobject.type_register(MainWindow)
 
 
 class BackLinksMenuButton(MenuButton):
@@ -1464,11 +1557,8 @@ discarded, but you can restore the copy later.''')
 				self.timer_label.set_text('')
 				return False # remove timer
 
-		try:
-			id = gobject.timeout_add_seconds(1, timer, self)
-		except AttributeError:
-			# older gobject version doesn't know about seconds
-			id = gobject.timeout_add(1000, timer, self)
+		# older gobject version doesn't know about seconds
+		id = gobject.timeout_add(1000, timer, self)
 		ErrorDialog.run(self)
 		gobject.source_remove(id)
 

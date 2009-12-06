@@ -1,0 +1,9 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Toggle ReadOnly ======
+Created Friday 04 December 2009
+
+TODO
+
+**Dependencies:** This plugin has no additional dependencies.

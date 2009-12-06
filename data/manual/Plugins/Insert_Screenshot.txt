@@ -1,0 +1,9 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Insert Screenshot ======
+Created Friday 04 December 2009
+
+TODO
+
+**Dependencies:** This plugin requires the "scrot" application to be installed. In specific the "scrot" command should be available in the system path.

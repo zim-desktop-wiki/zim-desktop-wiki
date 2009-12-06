@@ -973,7 +973,7 @@ class Page(Path):
 		self.modified = False
 		self._parsetree = parsetree
 		self._ui_object = None
-		self.readonly = True # stores need to explicitly set readonly
+		self.readonly = True # stores need to explicitly set readonly False
 		self.properties = {}
 		if hasattr(path, '_indexpath'):
 			self._indexpath = path._indexpath

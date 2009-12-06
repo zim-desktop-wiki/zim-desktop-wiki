@@ -24,7 +24,7 @@ from zim.config import config_file
 from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.gui.widgets import Dialog, FileDialog, Button, IconButton, BrowserTreeView
+from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, Button, IconButton, BrowserTreeView
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
@@ -339,6 +339,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def insert_parsetree_at_cursor(self, tree):
 		'''Like insert_parsetree() but inserts at the cursor'''
+		#~ print 'INSERT AT CURSOR', tree.tostring()
 		self.emit('begin-insert-tree')
 		startoffset = self.get_iter_at_mark(self.get_insert()).get_offset()
 		self._editmode_tags = ()
@@ -2362,13 +2363,13 @@ class PageView(gtk.VBox):
 		try:
 			self.set_parsetree(tree)
 			page.set_ui_object(self) # only after succesful set tree in buffer
-		except:
+		except Exception, error:
+			# Maybe corrupted parse tree - prevent page to be edited or saved back
 			self.page.readonly = True
 			self.set_readonly()
-			raise
+			ErrorDialog(self.ui, error).run()
 			# TODO set error page e.g. zim.notebook.LoadingErrorPage
-			# TODO show error dialog
-			# how to trigger this for testing ?
+			# TODO add test for this catch - how to trigger this for testing ?
 
 		if cursorpos != -1:
 			buffer.place_cursor(buffer.get_iter_at_offset(cursorpos))
@@ -2400,9 +2401,14 @@ class PageView(gtk.VBox):
 
 	def get_parsetree(self):
 		buffer = self.view.get_buffer()
-		if buffer.get_modified():
-			self._parsetree = buffer.get_parsetree()
-			buffer.set_modified(False)
+		# FIXME somehow using buffering of the tree here causes 'href'
+		# attribute for links to go missing - irritating bug - 
+		# can not find out where the tree is modified.
+		# To reproduce edit page with links, navigate away, reload 
+		# from pathbar (history) - error will be key error on 'href'
+		#~ if buffer.get_modified():
+		self._parsetree = buffer.get_parsetree()
+		buffer.set_modified(False)
 		#~ print self._parsetree.tostring()
 		return self._parsetree
 

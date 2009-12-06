@@ -1,0 +1,12 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Calendar ======
+
+The Calendar Plugin adds calendar widget to zim. By default this is done by adding a calendar dialog, but optionally it can also be put in the side pane above the page index. In this calendar each date is linked to a page for that date. Pages for calendar dates are located under a specific namespace ("Calendar" by default, but this is configurable) which is subdivided by year and by month. Dates for which a page exists are marked in the calendar widget in bold.
+
+In addition to the calendar widget, this plugin also adds an action to navigate to the page for the current date. 
+
+This plugin is intended to help organize notes by date. It can for example be used to keep a journal. Another frequent use case is to put minutes of meetings or class notes on the page for the date of the meeting - possibly to work them out later in pages for the specific subject.
+
+**Dependencies:** This plugin has no additional dependencies.

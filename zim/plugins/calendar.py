@@ -79,6 +79,7 @@ month view of this special namespace.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
+		'help': 'Plugins:Calendar',
 	}
 
 	plugin_preferences = (

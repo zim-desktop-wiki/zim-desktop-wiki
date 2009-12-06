@@ -2,6 +2,19 @@ Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 
 ====== Plugins ======
-Created Wednesday 11 November 2009
 
-TODO
+The following plugins are standard included with zim:
+
+* [[+Calendar|Calendar]]
+* [[+Diagram Editor|Diagram Editor]]
+* [[+Equation Editor|Equation Editor]]
+* [[+Insert Screenshot|Insert Screenshot]]
+* [[+Link Map|Link Map]]
+* [[+Spell Checker|Spell Checker]]
+* [[+Task List|Task List]]
+* [[+Toggle ReadOnly|Toggle ReadOnly]]
+* [[+Version Control|Version Control]]
+
+Plugins can be enabled and configured in the [[Help:Preferences|preferences dialog]].
+
+A number of plugins have additional dependencies, like specific external programs, that are not required for the core functionality of zim.

@@ -26,7 +26,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [*] Pageview: enforce heading can not be indented
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
 [*] Pageview: Rich copy paste / drag drop
-[ ] Pageindex: Drag&Drop in the side pane is not working
+[*] Pageindex: Drag&Drop in the side pane is not working
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
 [ ] Links to non-exisiting pages are not indexed
