@@ -8,9 +8,7 @@ Zim will be able to export content to various formats but at the moment only exp
 
 To open op the export dialog in zim use the "//File//->//Export//" menu item. This dialog asks for a number of input fields before you can start exporting.
 
-Under **Pages** you can check "Complete notebook" if you want to export all the pages in the notebook, ~~or you can check "Page" if you want to export a selection~~.
-
-~~When you make a selection you can enter one or more pages or namespaces in the text entry field separated by spaces. namespaces always end with a ":", pages do not. The Recursive option automatically adds the coresponding namespace for each page when set.~~
+Under **Pages** you can check "Complete notebook" if you want to export all the pages in the notebook.
 
 The **Format** is fixed on "Html" for now. Later other options will be added here.
 

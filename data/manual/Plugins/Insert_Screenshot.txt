@@ -2,8 +2,7 @@ Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 
 ====== Insert Screenshot ======
-Created Friday 04 December 2009
 
-TODO
+This plugin adds a dialog that allows you to aquire a screenshot of the desktop or of a particular window and directly insert the image into the current zim page. This plugin is based on the "scrot" applications to take the actual screenshots.
 
 **Dependencies:** This plugin requires the "scrot" application to be installed. In specific the "scrot" command should be available in the system path.

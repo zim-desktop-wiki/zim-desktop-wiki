@@ -8,7 +8,7 @@ from zim.fs import *
 from zim.exporter import Exporter
 import zim.formats
 import zim.templates
-from zim.gui.widgets import Dialog, ProgressBarDialog, ErrorDialog
+from zim.gui.widgets import Dialog, ProgressBarDialog, ErrorDialog, QuestionDialog
 
 
 class ExportDialog(Dialog):
@@ -129,6 +129,9 @@ class ExportDialog(Dialog):
 					self.uistate['output_folder'])
 			except:
 				pass
+		else:
+			# Prevent from defaulting to notebook dir
+			output_folder_selector.set_filename(File('~').path)
 
 		# Index
 		self.inputs['index_page'] = gtk.Entry()
@@ -198,6 +201,16 @@ class ExportDialog(Dialog):
 				return False
 
 		dir = Dir(self.uistate['output_folder'])
+		if dir.exists() and len(dir.list()) > 0:
+			ok = QuestionDialog(self, (
+				_('Folder exists'), # T: message heading
+				_('Folder already exists and has content, '
+				  'exporting to this folder may overwrite '
+				  'exisitng files. '
+				  'Do you want to continue?' ) # T: detailed message, answers are Yes and No
+			) ).run()
+			if not ok:
+				return False
 
 		options = {}
 		for k in ('format', 'template', 'index_page'):

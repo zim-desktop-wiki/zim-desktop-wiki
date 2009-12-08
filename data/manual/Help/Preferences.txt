@@ -2,6 +2,5 @@ Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.26
 
 ====== Preferences ======
-Created Wednesday 11 November 2009
 
 TODO document pref dialog

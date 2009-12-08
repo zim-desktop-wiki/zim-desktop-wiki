@@ -13,13 +13,13 @@ If autoformatting does something you didn't intend you can reverse it by pressin
 Typing:
 
 '''
-= Heading 1 <ENTER>
+== Heading 1 <ENTER>
 '''
 
 gives you a heading 1 and typing:
 
 '''
-== Heading 2<ENTER>
+=== Heading 2<ENTER>
 '''
 
 gives you a heading 2. But in the corresponding text file these headings are marked as follows:

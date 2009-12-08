@@ -229,7 +229,7 @@ class TextBuffer(gtk.TextBuffer):
 	Signals:
 		begin-insert-tree () - Emitted at the begin of a complex insert
 		end-insert-tree () - Emitted at the end of a complex insert
-		inserted-tree (start, end, tree) - Gives inserted tree after inserting it
+		inserted-tree (start, end, tree, interactive) - Gives inserted tree after inserting it
 		textstyle-changed (style) - Emitted when textstyle at the cursor changes
 		indent-changed (level) - Emitted when the indent at the cursor changes
 		clear - emitted to clear the whole buffer before destruction
@@ -247,7 +247,7 @@ class TextBuffer(gtk.TextBuffer):
 		'insert-text': 'override',
 		'begin-insert-tree': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'end-insert-tree': (gobject.SIGNAL_RUN_LAST, None, ()),
-		'inserted-tree': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)),
+		'inserted-tree': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object)),
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'indent-changed': (gobject.SIGNAL_RUN_LAST, None, (int,)),
 		'clear': (gobject.SIGNAL_RUN_LAST, None, ())
@@ -321,10 +321,16 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			self.set_modified(False)
 
-	def insert_parsetree(self, iter, tree):
-		'''Insert a ParseTree within the existing buffer'''
+	def insert_parsetree(self, iter, tree, interactive=False):
+		'''Insert a ParseTree within the existing buffer at iter.
+
+		The boolean 'interactive' determines how current state in
+		the buffer is handled. If not interactive we break any existing
+		tags and insert the tree, otherwise we insert using the
+		formatting tags that that are present at iter.
+		'''
 		self._place_cursor(iter)
-		self.insert_parsetree_at_cursor(tree)
+		self.insert_parsetree_at_cursor(tree, interactive)
 		self._restore_cursor()
 
 	def _place_cursor(self, iter=None):
@@ -337,14 +343,14 @@ class TextBuffer(gtk.TextBuffer):
 		self.place_cursor(self.get_iter_at_mark(mark))
 		self.delete_mark(mark)
 
-	def insert_parsetree_at_cursor(self, tree):
+	def insert_parsetree_at_cursor(self, tree, interactive=False):
 		'''Like insert_parsetree() but inserts at the cursor'''
 		#~ print 'INSERT AT CURSOR', tree.tostring()
 		self.emit('begin-insert-tree')
 		startoffset = self.get_iter_at_mark(self.get_insert()).get_offset()
-		self._editmode_tags = ()
-		#~ self.set_textstyle(None)
-		# FIXME also reset indent if at start of line ?
+		if not interactive:
+			self._editmode_tags = ()
+
 		tree.decode_urls()
 		root = tree.getroot()
 		if root.text:
@@ -354,7 +360,7 @@ class TextBuffer(gtk.TextBuffer):
 		startiter = self.get_iter_at_offset(startoffset)
 		enditer = self.get_iter_at_mark(self.get_insert())
 		self.emit('end-insert-tree')
-		self.emit('inserted-tree', startiter, enditer, tree)
+		self.emit('inserted-tree', startiter, enditer, tree, interactive)
 
 	def do_begin_insert_tree(self):
 		self._insert_tree_in_progress = True
@@ -1086,6 +1092,7 @@ class TextBuffer(gtk.TextBuffer):
 							bound.get_toggled_tags(False)
 							+ bound.get_toggled_tags(True) )
 					else:
+						bound = end.copy() # just to be sure..
 						break
 
 				# But limit slice to first pixbuf
@@ -1099,7 +1106,7 @@ class TextBuffer(gtk.TextBuffer):
 
 				# And limit to end
 				if bound.compare(end) == 1:
-					bound = end
+					bound = end.copy()
 					text = iter.get_slice(end)
 
 				if filter(lambda t: t[1] == 'li', open_tags) \
@@ -1348,7 +1355,7 @@ class TextBuffer(gtk.TextBuffer):
 			self.delete_mark(mark)
 
 			self.place_cursor(iter)
-			self.insert_parsetree_at_cursor(parsetree)
+			self.insert_parsetree_at_cursor(parsetree, interactive=True)
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextBuffer)
@@ -1923,7 +1930,7 @@ class UndoStackManager:
 		self.recording_handlers = [] # handlers to be blocked when not recording
 		for signal, handler in (
 			('insert-text', self.do_insert_text),
-			#~ ('inserted-tree', self.do_insert_tree),
+			#~ ('inserted-tree', self.do_insert_tree), # TODO
 			('insert-pixbuf', self.do_insert_pixbuf),
 			('delete-range', self.do_delete_range),
 			('begin-user-action', self.do_begin_user_action),
@@ -2402,9 +2409,9 @@ class PageView(gtk.VBox):
 	def get_parsetree(self):
 		buffer = self.view.get_buffer()
 		# FIXME somehow using buffering of the tree here causes 'href'
-		# attribute for links to go missing - irritating bug - 
+		# attribute for links to go missing - irritating bug -
 		# can not find out where the tree is modified.
-		# To reproduce edit page with links, navigate away, reload 
+		# To reproduce edit page with links, navigate away, reload
 		# from pathbar (history) - error will be key error on 'href'
 		#~ if buffer.get_modified():
 		self._parsetree = buffer.get_parsetree()

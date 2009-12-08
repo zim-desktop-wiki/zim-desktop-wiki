@@ -625,6 +625,10 @@ class File(Path):
 	def copyto(self, dest):
 		'''Copy this file to 'dest'. 'dest can be either a file or a dir'''
 		assert isinstance(dest, (File, Dir))
+		if isinstance(dest, Dir):
+			assert not dest == self.dir, 'BUG: trying to copy a file to itself'
+		else:
+			assert not dest == self, 'BUG: trying to copy a file to itself'
 		logger.info('Copy %s to %s', self, dest)
 		if isinstance(dest, Dir):
 			dest.touch()

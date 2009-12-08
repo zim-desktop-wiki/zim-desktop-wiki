@@ -22,3 +22,6 @@ Gtkspell uses enchant, which manages the dictionary backends. So gtkspell is jus
 If we want to prototype without modifying gtkspell, we should re-implement the gtktextbuffer interaction and interface with enchant directly. Need to check if pyEnchant bindings are functional. If this works it would still be nice for the community to patch gtkspell itself as well, so others can benefit.
 
 Give Bert credits for the radical idea of getting rid of language as a document option.
+
+
+Note: the latest version of gtkspellcheck seems to add a menu to switch languages. THis is a good idea as well, to be able to force a certain dictionary to be used.
