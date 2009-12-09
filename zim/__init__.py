@@ -28,7 +28,7 @@ from getopt import gnu_getopt, GetoptError
 
 from zim.fs import *
 from zim.errors import Error
-from zim.config import config_file, log_basedirs, ZIM_DATA_DIR
+from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR
 
 
 if os.name == 'nt':
@@ -182,10 +182,10 @@ def main(argv):
 	if len(args) > maxargs[cmd]:
 		raise UsageError
 
-	# --manual is an alias for --gui _manual_
+	# --manual is an alias for --gui /usr/share/zim/manual
 	if cmd == 'manual':
 		cmd = 'gui'
-		args.insert(0, '_manual_')
+		args.insert(0, data_dir('manual'))
 
 	# Now figure out which options are allowed for this command
 	allowedopts = list(longopts)
@@ -336,23 +336,30 @@ class NotebookInterface(gobject.GObject):
 
 	def open_notebook(self, notebook):
 		'''Open a notebook if no notebook was set already.
-		'notebook' can be either a string or a notebook object.
-		If 'notebook' is None we check for a default notebook, if no default
-		is found a NotebookSelectionError is generated.
+		'notebook' can be either a string, a File or Dir object or a
+		Notebook object.
 
 		If the notebook is a string which also specifies a page the page
 		path is returned so it can be handled in a sub-class.
 		'''
-		from zim.notebook import get_notebook, Notebook
+		from zim.notebook import resolve_notebook, get_notebook, Notebook
 		assert self.notebook is None, 'BUG: other notebook opened already'
 		assert not notebook is None, 'BUG: no notebook specified'
 
 		logger.debug('Opening notebook: %s', notebook)
-		if isinstance(notebook, basestring):
-			nb, path = get_notebook(notebook)
+		if isinstance(notebook, (basestring, File, Dir)):
+			if isinstance(notebook, basestring):
+				nb, path = resolve_notebook(notebook)
+			else:
+				nb, path = notebook, None
+
+			if not nb is None:
+				nb = get_notebook(nb)
+
 			if nb is None:
 				raise NotebookLookupError, _('Could not find notebook: %s') % notebook
 					# T: Error when looking up a notebook
+
 			self.emit('open-notebook', nb)
 			return path
 		else:

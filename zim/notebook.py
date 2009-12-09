@@ -16,9 +16,10 @@ import logging
 
 import gobject
 
+import zim.fs
 from zim.fs import *
 from zim.errors import Error
-from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
+from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
 	config_file, data_dir, user_dirs
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type
 import zim.stores
@@ -27,77 +28,201 @@ import zim.stores
 logger = logging.getLogger('zim.notebook')
 
 
-def get_notebook(notebook):
-	'''Takes a file or dir path or a name and returns a tuple of a notebook
-	object and an optional page path or None. If the notebook was not found
-	both elements in the tuple are None.
+class NotebookList(TextConfigFile):
+	'''This class keeps a list of paths for notebook locations
+	plus a attribute 'default' for the default notebook.
 
-	The page is only incuded if the path explicitly indicates a certain page.
-	If no page is returned either the last page in the history or the home
-	page should be used as 'current' pge.
+	All values are assumed to be (file://) urls.
 	'''
-	assert notebook, 'BUG: notebook not defined'
-	if isinstance(notebook, basestring):
-		# We are not sure if it is a name or a path, try lookup
-		table = get_notebook_list()
-		notebook = unicode(notebook)
-		if notebook == '_default_':
-			if '_default_' in table and table['_default_'] in table:
-				# default is not set to a path, but to another notebook name
-				notebook = table[table['_default_']]
-			elif len(table) == 1:
-				notebook = table.values()[0]
+
+	def read(self):
+		TextConfigFile.read(self)
+		if len(self) > 0:
+			if self[0] == '[NotebookList]\n':
+				self.parse()
 			else:
-				return None, None
-		elif notebook == '_manual_':
-			notebook = data_dir('manual')
-		elif notebook in table:
-			notebook = table[notebook]
-		else:
-			pass # maybe it's a path
+				self.parse_old_format()
 
-		if isinstance(notebook, (File, Dir)):
-			pass
-		elif '/' in notebook or '\\' in notebook:
-			notebook = File(notebook).path
-			if os.path.isfile(notebook):
-				notebook = File(notebook)
-			elif os.path.isdir(notebook):
-				notebook = Dir(notebook)
-			else:
-				return None, None
-		else:
-			return None, None
+	@staticmethod
+	def _filter(line):
+		return line and not line.isspace() and not line.startswith('#')
 
-	path = None
-	if isinstance(notebook, File):
-		if notebook.basename == 'notebook.zim':
-			notebook = notebook.dir
-		else:
-			parents = list(notebook)
-			parents.reverse()
-			for p in parents:
-				if File((p, 'notebook.zim')).exists():
-					i = len(p)
-					path = notebook.path[i:]
-					if '.' in path:
-						path, _ = path.rsplit('.', 1) # remove extension
-					path = Path(path.replace('/', ':'))
-					notebook = Dir(p)
-					break
+	def parse(self):
+		'''Parses the notebook list format after reading it'''
+		assert self.pop(0) == '[NotebookList]\n'
 
-	if notebook.exists():
-		if isinstance(notebook, File):
-			return Notebook(file=notebook), path
+		# Parse key for default
+		if self[0].startswith('Default='):
+			k, v = self.pop(0).strip().split('=', 1)
+			self.default = v
 		else:
-			return Notebook(dir=notebook), path
-	else:
-		return None, None
+			self.default = None
+
+		# Parse rest of list - assumed to be urls, but we check to be sure
+		def map_to_uri(line):
+			uri = line.strip()
+			if not uri.startswith('file://'):
+				uri = File(uri).uri
+			return uri
+
+		self[:] = map(map_to_uri, filter(self._filter, self))
+
+	def parse_old_format(self):
+		'''Method for backward compatibility'''
+		# Old format is name, value pair, separated by whitespace
+		# with all other whitespace escaped by a \
+		# Default was _default_ which could refer a notebook name..
+		import re
+		fields_re = re.compile(r'(?:\\.|\S)+') # match escaped char or non-whitespace
+		escaped_re = re.compile(r'\\(.)') # match single escaped char
+		default = None
+		locations = []
+
+		lines = [line.strip() for line in filter(self._filter, self)]
+		for line in lines:
+			cols = fields_re.findall(line)
+			if len(cols) == 2:
+				name = escaped_re.sub(r'\1', cols[0])
+				path = escaped_re.sub(r'\1', cols[1])
+				if name == '_default_':
+					default = path
+				else:
+					path = Dir(path).uri
+					locations.append(path)
+					if name == default:
+						self.default = path
+
+		if not self.default and default:
+			self.default = Dir(default).uri
+
+		self[:] = locations
+
+	def write(self):
+		lines = self[:] # copy
+		lines.insert(0, '[NotebookList]')
+		lines.insert(1, 'Default=%s' % (self.default or ''))
+		lines = [line + '\n' for line in lines]
+		self.file.writelines(lines)
+
+	def get_names(self):
+		'''Generator function that yield tuples with the notebook
+		name and the notebook path.
+		'''
+		for path in self:
+			name = self.get_name(path)
+			if name:
+				yield (name, path)
+
+	def get_name(self, uri):
+		# TODO support for paths that turn out to be files
+		file = Dir(uri).file('notebook.zim')
+		if file.exists():
+			config = ConfigDictFile(file)
+			if 'name' in config['Notebook']:
+				return config['Notebook']['name']
+		return None
+
+	def get_by_name(self, name):
+		for n, path in self.get_names():
+			if n == name:
+				return path
+		else:
+			return None
+
 
 
 def get_notebook_list():
 	'''Returns a list of known notebooks'''
-	return config_file('notebooks.list')
+	# TODO use weakref here
+	return config_file('notebooks.list', klass=NotebookList)
+
+
+def resolve_notebook(string):
+	'''Takes either a notebook name or a file or dir path. For a name
+	it resolves the path by looking for a notebook of that name in the
+	notebook list. For a path it checks if this path points to a
+	notebook or to a file in a notebook.
+
+	It returns two values, a path to the notebook directory and an
+	optional page path for a file inside a notebook. If the notebook
+	was not found both values are None.
+	'''
+	assert isinstance(string, basestring)
+
+	# First try resolve as name, than as path
+	nblist = get_notebook_list()
+	filepath = nblist.get_by_name(string)
+	if filepath is None:
+		if '/' in string or '\\' in string:
+			filepath = string
+		else:
+			return None, None # not found
+
+	file = File(filepath) # Fixme need generic FS Path object here
+	if filepath.endswith('notebook.zim'):
+		return File(filepath).dir, None
+	elif file.exists(): # file exists and really is a file
+		parents = list(file)
+		parents.reverse()
+		for parent in parents:
+			if File((parent, 'notebook.zim')).exists():
+				page = file.relpath(parent)
+				if '.' in page:
+					page, _ = page.rsplit('.', 1) # remove extension
+				page = Path(page.replace('/', ':'))
+				return Dir(parent), page
+		else:
+			return None, None
+	else:
+		return Dir(file.path), None
+
+	return notebook, path
+
+
+def resolve_default_notebook():
+	'''Returns a File or Dir object for the default notebook,
+	or for the only notebook if there is only a single notebook
+	in the list.
+	'''
+	default = None
+	list = get_notebook_list()
+	if list.default:
+		default = list.default
+	elif len(list) == 1:
+		default = list[0]
+
+	if default:
+		if os.path.isfile(default):
+			return File(default)
+		else:
+			return Dir(default)
+	else:
+		return None
+
+
+def get_notebook(path):
+	'''Convenience method that constructs a notebook from either a
+	File or a Dir object.
+	'''
+	# TODO this is where the hook goes to automount etc.
+	assert isinstance(path, (File, Dir))
+	if path.exists():
+		if isinstance(path, File):
+			return Notebook(file=path)
+		else:
+			return Notebook(dir=path)
+	else:
+		return None
+
+
+def init_notebook(path, name=None):
+	'''Initialize a new notebook in a directory'''
+	assert isinstance(path, Dir)
+	path.touch()
+	config = ConfigDictFile(path.file('notebook.zim'))
+	config['Notebook']['name'] = name or path.basename
+	# TODO auto detect if we should enable the slow_fs option
+	config.write()
 
 
 class PageNameError(Error):

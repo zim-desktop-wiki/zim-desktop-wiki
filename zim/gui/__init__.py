@@ -34,7 +34,8 @@ from zim import NotebookInterface, NotebookLookupError
 from zim.fs import *
 from zim.fs import normalize_win32_share
 from zim.errors import Error
-from zim.notebook import get_notebook, get_notebook_list, Path, Page, PageNameError
+from zim.notebook import Path, Page, PageNameError, \
+	resolve_default_notebook, get_notebook, get_notebook_list
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict
 from zim.parsing import url_encode, is_win32_share_re
@@ -287,7 +288,7 @@ class GtkInterface(NotebookInterface):
 								self.mainwindow, 'do_set_toolbar_size')
 		self.add_ui(data_file('menubar.xml').read(), self)
 
-		accelmap = config_file('accelmap')
+		accelmap = config_file('accelmap').file
 		if accelmap.exists():
 			gtk.accel_map_load(accelmap.path)
 		#~ gtk.accel_map_get().connect(
@@ -522,11 +523,13 @@ class GtkInterface(NotebookInterface):
 		# Called by main() when no notebook was specified
 		# returns boolean for sucess
 		if not self._dont_use_default_notebook:
-			default, _ = get_notebook('_default_')
+			default = resolve_default_notebook()
 			if default:
-				logger.info('Opening default notebook')
-				self.open_notebook(default)
-				return not self.notebook is None
+				default = get_notebook(default)
+				if default:
+					logger.info('Opening default notebook')
+					self.open_notebook(default)
+					return not self.notebook is None
 
 		list = get_notebook_list()
 		if not list:
@@ -534,16 +537,19 @@ class GtkInterface(NotebookInterface):
 			from zim.gui.notebookdialog import AddNotebookDialog
 			fields = AddNotebookDialog(self).run()
 			if fields:
-				list[fields['name']] = fields['folder']
+				from zim.notebook import init_notebook
+				dir = Dir(fields['folder'])
+				init_notebook(dir, name=fields['name'])
+				list.append(dir.uri)
 				list.write()
-				self.open_notebook(fields['folder'])
+				self.open_notebook(dir)
 			else:
 				return False # User cancelled the dialog ?
 		else:
 			# Multiple notebooks defined and no default
 			from zim.gui.notebookdialog import NotebookDialog
 			NotebookDialog(self).run()
-			# Dialog will call open_notebok()
+			# Dialog will call open_notebook()
 
 		return not self.notebook is None
 

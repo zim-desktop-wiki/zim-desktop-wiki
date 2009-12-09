@@ -2402,9 +2402,9 @@ class PageView(gtk.VBox):
 	def get_parsetree(self):
 		buffer = self.view.get_buffer()
 		# FIXME somehow using buffering of the tree here causes 'href'
-		# attribute for links to go missing - irritating bug - 
+		# attribute for links to go missing - irritating bug -
 		# can not find out where the tree is modified.
-		# To reproduce edit page with links, navigate away, reload 
+		# To reproduce edit page with links, navigate away, reload
 		# from pathbar (history) - error will be key error on 'href'
 		#~ if buffer.get_modified():
 		self._parsetree = buffer.get_parsetree()
@@ -2833,14 +2833,8 @@ class InsertDateDialog(Dialog):
 		self.linkbutton.set_active(self.uistate['linkdate'])
 		self.vbox.pack_start(self.linkbutton, False)
 
-		# FIXME need way to get 'raw' config file..
-		listdict = config_file('dates.list')
-		file = listdict.file
-		if not file.exists():
-			file = listdict.default
-
 		lastused = None
-		for line in file.readlines():
+		for line in config_file('dates.list'):
 			line = line.strip()
 			if line.startswith('#'): continue
 			try:

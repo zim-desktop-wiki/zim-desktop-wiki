@@ -24,59 +24,73 @@ class TestGetNotebook(tests.TestCase):
 	def runTest(self):
 		root = Dir(tests.create_tmp_dir('notebook_TestGetNotebook'))
 
+		# Start empty - see this is no issue
 		list = get_notebook_list()
+		self.assertTrue(isinstance(list, NotebookList))
 		self.assertFalse(list)
 
-		nb, _ = get_notebook('_default_')
+		nb, page = resolve_notebook('foo')
 		self.assertTrue(nb is None)
-		nb, _ = get_notebook('foo')
+		nb = resolve_default_notebook()
 		self.assertTrue(nb is None)
 
+		# Non-existing dir
 		dir = root.subdir('/notebook')
-		nb, _ = get_notebook(dir.path)
-		self.assertTrue(nb is None)
-		nb, _ = get_notebook(dir)
-		self.assertTrue(nb is None)
-		
+		nb, page = resolve_notebook(dir.path)
+		self.assertEqual(nb, dir)
+
+		# Now create it
+		init_notebook(dir, name='foo')
 		file = dir.file('notebook.zim')
+		nb, page = resolve_notebook(dir.path)
+		self.assertEqual(nb, dir)
+		nb, page = resolve_notebook(file.uri)
+		self.assertEqual(nb, dir)
+		file = dir.file('foo/bar/baz.txt')
 		file.touch()
-		nb, _ = get_notebook(dir.path)
-		self.assertEqual(nb.dir, dir)
-		nb, _ = get_notebook(dir)
-		self.assertEqual(nb.dir, dir)
-		nb, _ = get_notebook(file)
-		self.assertEqual(nb.dir, dir)
-		
-		list['foo'] = dir.path
+		nb, page = resolve_notebook(file.path)
+		self.assertEqual(nb, dir)
+		self.assertEqual(page, Path('foo:bar:baz'))
+
+		# And put it in the list and resolve it by name
+		list.append(dir.uri)
 		list.write()
 		list = get_notebook_list()
 		self.assertTrue(len(list) == 1)
+		nb, page = resolve_notebook('foo')
+		self.assertEqual(nb, dir)
 
-		nb, _ = get_notebook('foo')
-		self.assertEqual(nb.dir, dir)
-		nb, _ = get_notebook('_default_')
-		self.assertEqual(nb.dir, dir)
+		# Single notebook is automatically the default
+		nb = resolve_default_notebook()
+		self.assertEqual(nb, dir)
 
-		list['_default_'] = 'foo'
+		# But not anymore after adding second notebook
+		list.append('file:///foo/bar')
 		list.write()
 		list = get_notebook_list()
 		self.assertTrue(len(list) == 2)
+		self.assertEqual(list[:], [dir.uri, 'file:///foo/bar'])
 
-		nb, _ = get_notebook('foo')
-		self.assertEqual(nb.dir, dir)
-		nb, _ = get_notebook('_default_')
-		self.assertEqual(nb.dir, dir)
+		nb, page = resolve_notebook('foo')
+		self.assertEqual(nb, dir)
+		self.assertTrue(isinstance(get_notebook(nb), Notebook))
 
-		list['bar'] = '/foo/bar'
-		del list['_default_']
-		list.write()
-		list = get_notebook_list()
-		self.assertTrue(len(list) == 2)
-
-		nb, _ = get_notebook('foo')
-		self.assertEqual(nb.dir, dir)
-		nb, _ = get_notebook('_default_')
+		nb = resolve_default_notebook()
 		self.assertTrue(nb is None)
+
+		list.default = 'file:///default/foo'
+		list.write()
+		list = get_notebook_list()
+		nb = resolve_default_notebook()
+		self.assertEqual(nb, Dir('/default/foo'))
+		self.assertEqual(get_notebook(nb), None)
+
+		# Check backward compatibility
+		file = File('tests/data/notebook-list-old-format.list')
+		wanted = [Dir('~/Notes').uri, Dir('/home/user/code/zim.debug').uri, Dir('/home/user/Foo Bar').uri]
+		list = NotebookList(file)
+		self.assertEqual(list[:], wanted)
+		self.assertEqual(list.default, Dir('/home/user/code/zim.debug').uri)
 
 
 class TestNotebook(tests.TestCase):
@@ -194,7 +208,7 @@ class TestNotebook(tests.TestCase):
 			('Foo:Bar:Baz', 'Foo:Dus', 'Foo:Dus'),
 			('Foo:Bar:Baz', 'Foo:Bar:Dus', 'Bar:Dus'),
 			('Foo:Bar', 'Dus:Ja', ':Dus:Ja'),
-		): 
+		):
 			#~ print '>', source, href, link
 			self.assertEqual(
 				self.notebook.relative_link(Path(source), Path(href)), link)
@@ -263,7 +277,7 @@ http://foo.org # urls are untouched
 		self.assertTrue(links(path, Path('Linking:Dus')))
 		self.assertTrue(links(path, Path('Linking:Foo:Bar')))
 		self.assertTrue(links(Path('Linking:Foo:Bar'), path))
-		
+
 		newpath = Path('Linking:Hmm:Ok')
 		self.assertFalse(links(newpath, Path('Linking:Dus')))
 		self.assertFalse(links(newpath, Path('Linking:Foo:Bar')))
@@ -333,7 +347,7 @@ http://foo.org # urls are untouched
 		# check relative path without Path
 		self.assertEqual(
 			self.notebook.relative_filepath(doc_root.file('foo.txt')), '/foo.txt')
-		
+
 #	def testResolveLink(self):
 #		'''Test page.resolve_link()'''
 #		page = self.notebook.get_page(':Test:foo')
