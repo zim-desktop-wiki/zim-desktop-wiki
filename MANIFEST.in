@@ -3,6 +3,7 @@
 include *.txt
 include *.py
 include *.pot
+include Makefile
 recursive-include data/ *
 prune data/manual/.zim/
 recursive-include tools/ *

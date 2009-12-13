@@ -83,6 +83,7 @@ ui_actions = (
 	('show_preferences',  'gtk-preferences', _('Pr_eferences'), '', '', True), # T: Menu item
 	('reload_page',  'gtk-refresh', _('_Reload'), '<ctrl>R', '', True), # T: Menu item
 	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', '', True), # T: Menu item
+	('open_notebook_folder', 'gtk-open', _('Open _Notebook Folder'), '', '', True), # T: Menu item
 	('open_document_root', 'gtk-open', _('Open _Document Root'), '', '', True), # T: Menu item
 	('attach_file', 'zim-attachment', _('Attach _File'), '', _('Attach external file'), False), # T: Menu item
 	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', '', False), # T: Menu item
@@ -892,13 +893,40 @@ class GtkInterface(NotebookInterface):
 				dir.touch()
 				self.open_file(dir)
 
+	def open_notebook_folder(self):
+		if self.notebook.dir:
+			self.open_file(self.notebook.dir)
+		elif self.notebook.file:
+			self.open_file(self.notebook.file.dir)
+		else:
+			assert False, 'BUG: notebook has neither dir or file'
+
 	def open_document_root(self):
 		dir = self.notebook.get_document_root()
 		if dir and dir.exists():
 			self.open_file(dir)
 
 	def edit_page_source(self):
-		pass
+		# This could also be defined as a custom tool, but defined here
+		# because we want to determine the editor dynamically
+		# We assume that the default app for a text file is a editor
+		# and not e.g. a viewer or a browser. Of course users can still
+		# define a custom tool for other editors.
+		if hasattr(self.page, 'source'):
+			file = self.page.source # TODO copy to tmp file
+		else:
+			ErrorDialog('This page does not have a source file').run()
+			return
+
+		application = get_application(
+			self.preferences['GtkInterface']['file_browser'] )
+		try:
+			application.run((file,))
+		except:
+			logger.exception('Error while running %s:', application.name)
+		else:
+			# TODO copy back tmp file
+			self.reload_page()
 
 	def show_server_gui(self):
 		# TODO instead of spawn, include in this process

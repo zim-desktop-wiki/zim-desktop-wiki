@@ -993,7 +993,8 @@ class ImageView(gtk.Layout):
 		self.checkboard = checkboard
 
 	def set_bgcolor(self, bgcolor):
-		'''Set background color, can either be a name or a spec in hex'''
+		'''Set background color, bgcolor must be in hex, e.g. "#FFF"'''
+		assert bgcolor.startswith('#'), 'BUG: Should specify colors in hex'
 		color = gtk.gdk.color_parse(bgcolor)
 			# gtk.gdk.Color(spec) only for gtk+ >= 2.14
 		self.modify_bg(gtk.STATE_NORMAL, color)

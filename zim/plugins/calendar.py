@@ -19,8 +19,6 @@ from zim.notebook import Path
 # TODO implement template for calendar pages
 #  - take into account month and year nodes as well
 
-# TODO provide suggest_link function for dates
-
 
 ui_xml = '''
 <ui>
@@ -97,10 +95,14 @@ This is a core plugin shipping with zim.
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			self.ui.add_ui(ui_xml, self)
-			self.ui.connect_after('open-notebook',
-				lambda o, n: self.do_preferences_changed() )
+			self.ui.connect_after('open-notebook', self.do_open_notebook)
+
+	def do_open_notebook(self, ui, notebook):
+		self.do_preferences_changed()
+		notebook.register_hook('suggest_link', self.suggest_link)
 
 	def disconnect(self):
+		self.ui.notebook.unregister_hook('suggest_link', self.suggest_link)
 		if self._set_template:
 			ns = self._set_template
 			try:
@@ -152,9 +154,14 @@ This is a core plugin shipping with zim.
 		year, month, day = map(int, (year, month, day))
 		return dateclass(year, month, day)
 
-	def suggest_link(self, text):
-		if date_path_re.match(path.text):
-			return Path(text)
+	def suggest_link(self, source, text):
+		#~ if date_path_re.match(path.text):
+		#~ 	return Path(text)
+		if re.match(r'^\d{4}-\d{2}-\d{2}$', text):
+			year, month, day = text.split('-')
+			year, month, day = map(int, (year, month, day))
+			date = dateclass(year, month, day)
+			return self.path_from_date(date)
 		# TODO other formats
 		else:
 			return None

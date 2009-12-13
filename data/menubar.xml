@@ -105,21 +105,23 @@
 			<menuitem action='show_search_backlinks'/>
 		</menu>
 		<menu action='tools_menu'>
-<!--
-			<menuitem action='WordCount'/>
--->
 			<placeholder name='page_tools'/>
 			<separator/>
-<!--
-			<menuitem action='edit_page_source'/>
--->
 			<menuitem action='attach_file'/>
 			<menuitem action='open_attachments_folder'/>
+			<menuitem action='open_notebook_folder'/>
 			<separator/>
 			<menuitem action='show_server_gui'/>
 			<menuitem action='open_document_root'/>
 			<separator/>
 			<menuitem action='reload_index'/>
+			<separator/>
+<!--
+			<menuitem action='edit_page_source'/>
+			<placeholder name='external_tools'/>
+			<separator/>
+			<menuitem action='manage_custom_tools'/>
+-->
 		</menu>
 		<placeholder name='plugin_menus'/>
 		<menu action='go_menu'>

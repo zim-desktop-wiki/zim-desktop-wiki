@@ -32,7 +32,7 @@ class ImageGeneratorDialog(Dialog):
 		self.vpane.set_position(150)
 		self.vbox.add(self.vpane)
 
-		self.imageview = ImageView(bgcolor='white', checkboard=False)
+		self.imageview = ImageView(bgcolor='#FFF', checkboard=False)
 		# TODO scrolled window
 		self.vpane.add1(self.imageview)
 

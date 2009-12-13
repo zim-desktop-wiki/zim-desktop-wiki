@@ -452,6 +452,7 @@ class TextBuffer(gtk.TextBuffer):
 		self._editmode_tags = self._editmode_tags[:-1]
 
 	def create_link_tag(self, text, href, **attrib):
+		assert isinstance(href, basestring)
 		tag = self.create_tag(None, **self.tag_styles['link'])
 		tag.set_priority(0) # force links to be below styles
 		tag.zim_type = 'link'
@@ -2840,6 +2841,11 @@ class InsertDateDialog(Dialog):
 		self.linkbutton.set_active(self.uistate['linkdate'])
 		self.vbox.pack_start(self.linkbutton, False)
 
+		date = strftime('%Y-%m-%d') # YYYY-MM-DD
+		self.link = self.ui.notebook.suggest_link(self.ui.page, date)
+		if not self.link:
+			self.linkbutton.set_sensitive(False)
+
 		# FIXME need way to get 'raw' config file..
 		listdict = config_file('dates.list')
 		file = listdict.file
@@ -2877,8 +2883,8 @@ class InsertDateDialog(Dialog):
 	def do_response_ok(self):
 		model, iter = self.view.get_selection().get_selected()
 		text = model[iter][1]
-		if self.linkbutton.get_active():
-			print 'TODO: link date'
+		if self.link and self.linkbutton.get_active():
+			self.buffer.insert_link_at_cursor(text, self.link.name)
 		else:
 			self.buffer.insert_at_cursor(text)
 

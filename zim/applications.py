@@ -70,7 +70,9 @@ class Application(object):
 		return cwd, argv
 
 	def run(self, args=None, cwd=None):
-		'''Run application in the foreground and wait for it to return'''
+		'''Run application in the foreground and wait for it to return.
+		An exception will be thrown if the application returns non-zero.
+		'''
 		cwd, argv = self._checkargs(cwd, args)
 		logger.info('Running: %s (cwd: %s)', argv, cwd)
 		subprocess.check_call(argv, cwd=cwd, stdout=open(os.devnull, 'w'))

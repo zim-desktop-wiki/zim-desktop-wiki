@@ -399,6 +399,35 @@ class Notebook(gobject.GObject):
 			else:
 				return parent.basename + ':' + href.relname(parent)
 
+	def register_hook(self, name, handler):
+		'''Register a handler method for a specific hook'''
+		register = '_register_%s' % name
+		if not hasattr(self, register):
+			setattr(self, register, [])
+		getattr(self, register).append(handler)
+
+	def unregister_hook(self, name, handler):
+		'''Remove a handler method for a specific hook'''
+		register = '_register_%s' % name
+		if hasattr(self, register):
+			getattr(self, register).remove(handler)
+
+	def suggest_link(self, source, word):
+		'''Suggest a link Path for 'word' or return None if no suggestion is 
+		found. By default we do not do any suggestion but plugins can
+		register handlers to add suggestions. See 'register_hook()' to
+		register a handler.
+		'''
+		if not  hasattr(self, '_register_suggest_link'):
+			return None
+
+		for handler in self._register_suggest_link:
+			link = handler(source, word)
+			if not link is None:
+				return link
+		else:
+			return None
+
 	@staticmethod
 	def cleanup_pathname(name):
 		'''Returns a safe version of name, used internally by functions like
