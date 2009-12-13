@@ -124,7 +124,7 @@ class NotebookList(TextConfigFile):
 
 	def get_by_name(self, name):
 		for n, path in self.get_names():
-			if n == name:
+			if n.lower() == name.lower():
 				return path
 		else:
 			return None
@@ -211,6 +211,15 @@ def get_notebook(path):
 			return Notebook(file=path)
 		else:
 			return Notebook(dir=path)
+	else:
+		return None
+
+
+def get_default_notebook():
+	'''Returns a Notebook object for the default notebook or None'''
+	path = resolve_default_notebook()
+	if path:
+		return get_notebook(path)
 	else:
 		return None
 

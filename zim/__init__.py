@@ -69,7 +69,7 @@ ZIM_EXECUTABLE = 'zim'
 longopts = ('verbose', 'debug')
 commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual')
 commandopts = {
-	'gui': ('list', 'geometry=', 'fullscreen'),
+	'gui': ('list', 'geometry=', 'fullscreen', 'no-daemon'),
 	'server': ('port=', 'template=', 'gui'),
 	'export': ('format=', 'template=', 'output='),
 	'index': ('output=',),
@@ -110,6 +110,7 @@ GUI Options:
                   opening the default notebook
   --geometry      window size and position as WxH+X+Y
   --fullscreen    start in fullscreen mode
+  --no-daemon     start a single instance, no daemon
 
 Server Options:
   --port          port to use (defaults to 8080)
@@ -134,8 +135,11 @@ Try 'zim --manual' for more help.
 class UsageError(Error):
 	pass
 
+
 class NotebookLookupError(Error):
-	pass # TODO: description of this error
+
+	description = _('Could not find the file or folder for this notebook')
+		# T: Error verbose description
 
 
 def main(argv):
@@ -185,7 +189,7 @@ def main(argv):
 	# --manual is an alias for --gui /usr/share/zim/manual
 	if cmd == 'manual':
 		cmd = 'gui'
-		args.insert(0, data_dir('manual'))
+		args.insert(0, data_dir('manual').path)
 
 	# Now figure out which options are allowed for this command
 	allowedopts = list(longopts)
@@ -249,9 +253,48 @@ def main(argv):
 		method = getattr(handler, 'cmd_' + cmd)
 		method(**optsdict)
 	elif cmd == 'gui':
-		import zim.gui
-		handler = zim.gui.GtkInterface(*args, **optsdict)
-		handler.main()
+		notebook = None
+		page = None
+		if args:
+			from zim.notebook import resolve_notebook
+			notebook, page = resolve_notebook(args[0])
+			if not notebook:
+				notebook = args[0]
+			if len(args) == 2:
+				page = args[1]
+
+		if 'list' in optsdict:
+			del optsdict['list'] # do not use default
+		elif not notebook:
+			import zim.notebook
+			default = zim.notebook.get_default_notebook()
+			if default:
+				notebook = default
+				logger.info('Opening default notebook')
+
+		if 'no-daemon' in optsdict:
+			import zim.gui
+			del optsdict['no-daemon']
+			if not notebook:
+				import zim.gui.notebookdialog
+				notebook = zim.gui.notebookdialog.prompt_notebook()
+				if not notebook:
+					return # User cancelled notebook dialog
+			handler = zim.gui.GtkInterface(notebook, page, **optsdict)
+			handler.main()
+		else:
+			import zim.daemon
+			proxy = zim.daemon.DaemonProxy()
+			if not notebook:
+				# Need to call this after spawning the daemon, else we
+				# have gtk loaded in the daemon process, and that causes
+				# problems with using gtk in child processes.
+				import zim.gui.notebookdialog
+				notebook = zim.gui.notebookdialog.prompt_notebook()
+				if not notebook:
+					proxy.quit_if_nochild()
+					return # User cancelled notebook dialog
+			proxy.present(notebook, page, **optsdict)
 	elif cmd == 'server':
 		import zim.www
 		handler = zim.www.Server(*args, **optsdict)

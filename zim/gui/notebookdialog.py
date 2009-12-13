@@ -5,17 +5,16 @@
 '''This module contains the notebook dialog which is used for the
 "open another notebook" action and which is shown if you start zim without
 argument. The dialog directly modifies the notebook list obtained from
-zim.notebook.get_notebook_list(). It re-uses the properties dialog to
-modify the notebook properties. A special dropdown allows settign the special
-entry for _default_ which will be openend directly the next time zim is
-started without arguments.
+zim.notebook.get_notebook_list(). A special dropdown allows settign the
+special entry for the default notebook which will be openend directly
+the next time zim is started without arguments.
 '''
 
 import gtk
 import pango
 
 from zim.fs import *
-import zim.notebook
+from zim.notebook import get_notebook_list, init_notebook
 from zim.config import data_file
 from zim.gui.widgets import Dialog, IconButton
 
@@ -23,7 +22,28 @@ OPEN_COL = 0  # column with boolean if notebook is open alreadys
 NAME_COL = 1  # column with notebook name
 PATH_COL = 2  # column with the directory path
 
-# TODO if this is the first time zim is started go directly to AddNoteook, set default and return
+
+def prompt_notebook():
+	'''Prompts the NotebookDialog and returns the result or None.
+	As a special case for first time usage it immediatly prompts for
+	the notebook location without showing the notebook list.
+	'''
+	list = get_notebook_list()
+	if not list:
+		logger.debug('First time usage - prompt for notebook folder')
+		fields = AddNotebookDialog(self).run()
+		if fields:
+			dir = Dir(fields['folder'])
+			init_notebook(dir, name=fields['name'])
+			list.append(dir.uri)
+			list.write()
+			return dir
+		else:
+			return None # User cancelled the dialog ?
+	else:
+		# Multiple notebooks defined and no default
+		return NotebookDialog(ui=None).run()
+
 
 class NotebookTreeModel(gtk.ListStore):
 	'''TreeModel that wraps a notebook list given as a ConfigList.
@@ -44,7 +64,7 @@ class NotebookTreeModel(gtk.ListStore):
 		gtk.ListStore.__init__(self, bool, str, str) # OPEN_COL, NAME_COL, PATH_COL
 
 		if notebooklist is None:
-			self.notebooklist = zim.notebook.get_notebook_list()
+			self.notebooklist = get_notebook_list()
 		else:
 			self.notebooklist = notebooklist
 
@@ -194,10 +214,19 @@ class DefaultNotebookComboBox(NotebookComboBox):
 
 
 class NotebookDialog(Dialog):
+	'''Dialog which allows the user to select a notebook from a list
+	of defined notebooks.
 
-	def __init__(self, ui):
+	Can either be run modal using run(), in which case the selected
+	notebook is returned (or None when the dialog is cancelled).
+	To run this dialog non-model a callback needs to be specified
+	which will be called with the path for the selected notebook.
+	'''
+
+	def __init__(self, ui, callback=None):
 		Dialog.__init__(self, ui, _('Open Notebook')) # T: dialog title
 		# TODO set button to "OPEN" instead of "OK"
+		self.callback = callback
 		self.set_default_size(500, 400)
 		self.set_help(':Help:Notebooks')
 
@@ -267,14 +296,16 @@ class NotebookDialog(Dialog):
 			return False
 		else:
 			path = unicode(model[iter][PATH_COL])
-			self.ui.open_notebook(path)
+			self.result = path
+			if self.callback:
+				self.callback(path)
 			return True
 
 	def do_add_notebook(self, *a):
 		fields = AddNotebookDialog(self).run()
 		if fields:
 			dir = Dir(fields['folder'])
-			zim.notebook.init_notebook(dir, name=fields['name'])
+			init_notebook(dir, name=fields['name'])
 			model = self.treeview.get_model()
 			model.append_notebook(dir.uri, name=fields['name'])
 
