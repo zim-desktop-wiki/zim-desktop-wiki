@@ -316,8 +316,8 @@ class GtkInterface(NotebookInterface):
 	def main(self):
 		'''Wrapper for gtk.main(); does not return untill program has ended.'''
 		if self.notebook is None:
-			import zim.notebookdialog
-			notebook = zim.notebookdialog.prompt_notebook()
+			import zim.gui.notebookdialog
+			notebook = zim.gui.notebookdialog.prompt_notebook()
 			if notebook:
 				self.open_notebook(notebook)
 			else:
@@ -563,7 +563,8 @@ class GtkInterface(NotebookInterface):
 			# We are already intialized, so let another process handle it
 			if self.usedaemon:
 				from zim.daemon import DaemonProxy
-				DaemonProxy().present(notebook)
+				notebook = DaemonProxy().get_notebook(notebook)
+				notebook.present()
 			else:
 				self.spawn(notebook)
 

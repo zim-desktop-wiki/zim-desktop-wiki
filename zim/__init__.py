@@ -272,9 +272,12 @@ def main(argv):
 				notebook = default
 				logger.info('Opening default notebook')
 
-		if 'no-daemon' in optsdict:
+		if 'no-daemon' in optsdict or os.name == 'nt':
 			import zim.gui
-			del optsdict['no-daemon']
+			try:
+				del optsdict['no-daemon']
+			except KeyError:
+				pass
 			if not notebook:
 				import zim.gui.notebookdialog
 				notebook = zim.gui.notebookdialog.prompt_notebook()
@@ -294,7 +297,8 @@ def main(argv):
 				if not notebook:
 					proxy.quit_if_nochild()
 					return # User cancelled notebook dialog
-			proxy.present(notebook, page, **optsdict)
+			gui = proxy.get_notebook(notebook)
+			gui.present(page, **optsdict)
 	elif cmd == 'server':
 		import zim.www
 		handler = zim.www.Server(*args, **optsdict)

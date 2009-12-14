@@ -29,13 +29,14 @@ import socket
 import gobject
 import logging
 import signal
+import time
 
 try:
 	import json # in standard lib since 2.6
 except:
 	import simplejson as json # extra dependency
 
-from zim.fs import get_tmpdir
+from zim.fs import get_tmpdir, File
 from zim.config import XDG_CACHE_HOME
 
 # FUTURE: implement a DBus based subclass for usage on the linux desktop
@@ -63,6 +64,8 @@ class DaemonError(Exception):
 
 class UnixDaemon(object):
 
+	pidfile = get_tmpdir().file('daemon.pid').path
+
 	def daemonize(self):
 		'''Spawn new process that is disasociated from current environment'''
 		showoutput = logger.isEnabledFor(logging.INFO)
@@ -83,7 +86,8 @@ class UnixDaemon(object):
 		pid = os.fork()
 		if pid > 0:
 			# exit from second parent
-			sys.exit(0)
+			File(self.pidfile).write('%i\n' % pid)
+			os._exit(0)
 
 		# Redirect standard file descriptors
 		sys.stdout.flush()
@@ -98,7 +102,8 @@ class UnixDaemon(object):
 
 		# Run daemon in child process
 		self.main()
-		sys.exit(0)
+		os.unlink(self.pidfile)
+		os._exit(0)
 
 
 class SocketDaemon(object):
@@ -106,7 +111,7 @@ class SocketDaemon(object):
 
 	# TODO common base class with the zim.www Server object ?
 
-	def __init__(self, persistent=False):
+	def __init__(self, persistent=False, modules='zim'):
 		'''Constructor. If 'persistent' is True the daemon stays alive
 		even after the last child exited. Otherwise we exit after the
 		last child exits.
@@ -123,17 +128,18 @@ class SocketDaemon(object):
 	def start(self):
 		'''Open a socket and start listening'''
 		logger.info('Starting %s', self.__class__.__name__)
+		logger.debug('Socket address: %s', self.socket_address)
 
 		# open sockets for connections
 		self.socket = socket.socket(self.socket_family)
-		self.socket.bind(self.socket_address) # TODO use socket.gethostname() for public server
+		self.socket.bind(self.socket_address)
 		self.socket.listen(5)
 
 		gobject.io_add_watch(self.socket, gobject.IO_IN,
 			lambda *a: self.do_accept_request())
 
 	def stop(self):
-		'''Close the socket and stop listening, emits the 'stopped' signal'''
+		'''Close the socket and stop listening'''
 		try:
 			self.socket.close()
 		except Exception, error:
@@ -168,54 +174,42 @@ class SocketDaemon(object):
 	def cmd_ping(self):
 		return 'Ack'
 
-	def cmd_list_notebooks(self):
-		return [child.notebook for child in self.children]
-
-	def cmd_quit_all(self):
-		for child in self.children:
-			child.quit()
-		return 'Ack'
-
-	def cmd_quit_if_nochild(self):
-		gobject.idle_add(self._check_quit_if_nochild)
-		return 'Ack'
-
-	def cmd_present(self, notebook, page=None, **opts):
-		child = self.get_child(notebook)
-		if child:
-			child.present(page, **opts)
-		else:
-			child = ChildProxy(notebook, page, **opts)
+	def cmd_vivicate(self, klass, name, *args, **kwargs):
+		id = (klass, name)
+		child = self.get_child(id)
+		if child is None:
+			child = ChildProxy(klass, id, *args, **kwargs)
 			self.children.append(child)
 			gobject.child_watch_add(child.pid, self._on_child_exit)
-		return 'Ack'
+		return True
 
-	def cmd_hide(self, notebook):
-		child = self.get_child(notebook)
+	def cmd_relay(self, id, method, *args, **kwargs):
+		child = self.get_child(id)
 		if child:
-			child.hide()
-			return 'Ack'
+			child.call(method, *args, **kwargs)
+			return True
 		else:
-			return 'NotFound'
+			return False
 
-	def cmd_quit(self, notebook):
-		child = self.get_child(notebook)
-		if child:
-			child.quit()
-			return 'Ack'
-		else:
-			return 'NotFound'
-
-	def cmd_emit(self, signal):
+	def get_child(self, id):
+		id = tuple(id)
 		for child in self.children:
-			child.emit(signal)
-
-	def get_child(self, notebook):
-		for child in self.children:
-			if child.notebook == notebook:
+			if child.id == id:
 				return child
 		else:
 			return None
+
+	def cmd_list_objects(self):
+		return [child.id for child in self.children]
+
+	#~ def cmd_quit_all(self):
+		#~ for child in self.children:
+			#~ child.quit()
+		#~ return 'Ack'
+
+	def cmd_quit_if_nochild(self):
+		gobject.idle_add(self._check_quit_if_nochild)
+		return True
 
 	def _on_child_exit(self, pid, status):
 		for child in self.children:
@@ -234,7 +228,8 @@ class SocketDaemon(object):
 			gobject.MainLoop().quit()
 			# HACK just calling MainLoop.quit()should be enough..
 			self.stop()
-			sys.exit(0)
+			os.unlink(self.pidfile)
+			os._exit(0)
 		return False # in case we are called from event
 
 
@@ -273,63 +268,69 @@ class SocketDaemonProxy(object):
 	def __init__(self):
 		# Start daemon if none exists
 		# Determine if the daemon exists by a handshake
+		# timeout on 10 seconds
+		ack = None
 		try:
-			self.ping()
+			ack = self.ping()
 		except socket.error:
 			Daemon().daemonize()
-			self.ping()
+			i = 0
+			while i < 10:
+				try:
+					ack = self.ping()
+				except socket.error:
+					i += 1
+					time.sleep(1)
+				else:
+					break
+		assert ack == 'Ack', 'Could not start daemon'
 
 	def ping(self):
 		'''Returns 'Ack' to test daemon interaction'''
 		return self._call('ping')
 
-	def list_notebooks(self):
-		'''Returns a list of open notebooks'''
-		return self._call('list_notebooks')
+	def get_object(self, klass, name, *args, **kwargs):
+		'''Returns a proxy object for an object of klass 'klass'
+		which is uniquely identified by 'name'. All other arguments
+		are passed on to the object constructor if it needs to be
+		created.
+		'''
+		assert self._call('vivicate', klass, name, *args, **kwargs)
+		return DaemonProxyObject(self, (klass, name))
 
-	def quit_all(self):
-		'''Quit all running instances'''
-		return self._call('quit_all') == 'Ack'
+	def list_objects(self):
+		'''Returns a list of tuples giving the class name and
+		object name of each running object.
+		'''
+		return map(tuple, self._call('list_objects'))
 
-	def quit_if_nochild(self):
-		'''Have the daemon check if it should quit itself'''
-		return self._call('quit_if_nochild') == 'Ack'
-
-	def present(self, notebook, page=None, **opts):
-		'''Present a specific notebook and page. Could start a new instance'''
-		notebook = self._notebook(notebook)
-		if page:
-			page = self._page(page)
-		return self._call('present', notebook, page, **opts) == 'Ack'
-		# TODO pass fullscreen and geometry
-
-	def hide(self, notebook):
-		'''Hide a specific notebook window'''
-		notebook = self._notebook(notebook)
-		return self._call('hide', notebook) == 'Ack'
-
-	def quit(self, notebook):
-		'''Quit a single notebook'''
-		notebook = self._notebook(notebook)
-		return self._call('quit', notebook) == 'Ack'
-
-	def emit(self, signal):
-		'''Broadcast a signal to all notebooks'''
-		return self._call('emit', signal) == 'Ack'
-
-	def _notebook(self, notebook):
+	def get_notebook(self, notebook):
+		'''Returns a proxy object for a GtkInterface for notebook'''
 		if isinstance(notebook, basestring):
 			assert notebook.startswith('file://')
 		else:
 			assert hasattr(notebook, 'uri')
 			notebook = notebook.uri
-		return notebook
+		klass = 'zim.gui.GtkInterface'
+		assert self._call('vivicate', klass, notebook,
+			notebook=notebook, usedaemon=True)
+		return DaemonProxyNotebookObject(self, (klass, notebook))
 
-	def _page(self, page):
-		if not isinstance(page, basestring):
-			assert hasattr(page, 'name')
-			page = page.name
-		return page
+	def list_notebooks():
+		'''Returns a list of notebook URIs for open notebooks'''
+		for klass, name in self.list_objects():
+			if klass == 'zim.gui.GtkInterface':
+				yield name
+
+	#~ def emit():
+		#~ '''Broadcast a signal to all notebooks'''
+
+	#~ def quit_all(self):
+		#~ '''Quit all running instances'''
+
+	def quit_if_nochild(self):
+		'''Have the daemon check if it should quit itself'''
+		return self._call('quit_if_nochild') == 'Ack'
 
 	def _call(self, func, *args, **kwargs):
 		s = socket.socket(Daemon.socket_family)
@@ -359,7 +360,48 @@ class SocketDaemonProxy(object):
 DaemonProxy = SocketDaemonProxy
 
 
+class DaemonProxyObject(object):
+
+	def __init__(self, daemonproxy, id):
+		self.proxy = daemonproxy
+		self.id = id
+
+	def __getattr__(self, name):
+		return lambda *a, **k: self._relay(name, *a, **k)
+
+	def _relay(self, method, *args, **kwargs):
+		return self.proxy._call('relay', self.id, method, *args, **kwargs)
+
+
+class DaemonProxyNotebookObject(DaemonProxyObject):
+
+	@property
+	def uri(self): return self.id[1]
+
+	def present(self, page=None, geometry=None, fullscreen=None):
+		'''Present a specific page and/or set window mode'''
+		if page and not isinstance(page, basestring):
+			assert hasattr(page, 'name')
+			page = page.name
+		return self._relay('present', page,
+				geometry=geometry, fullscreen=fullscreen)
+
+	def hide(self):
+		'''Hide a specific notebook window'''
+		return self._relay('hide')
+
+	def quit(self):
+		'''Quit a single notebook'''
+		return self._relay('quit')
+
+
 class UnixPipeProxy(object):
+
+	def __init__(self, klass, id, *args, **kwargs):
+		self.id = id
+		self.klass = klass
+		self.opts = (args, kwargs)
+		self.spawn()
 
 	def spawn(self):
 		r, w = os.pipe()
@@ -369,7 +411,7 @@ class UnixPipeProxy(object):
 			os.close(r)
 			self.pipe = w
 			self.pid = pid
-			logger.debug('Child spawned %i %s', self.pid, self.notebook)
+			logger.debug('Child spawned %i %s', self.pid, self.id)
 		else:
 			# child
 			os.close(w)
@@ -378,30 +420,27 @@ class UnixPipeProxy(object):
 				self._main()
 			except:
 				logger.exception('Error in child main:')
-				sys.exit(1)
+				os._exit(1)
 			else:
-				sys.exit(0)
-
-	def _send(self, func, *arg, **karg):
-		line = serialize_call(func, *arg, **karg)
-		logger.debug('Sending to child %i: %s', self.pid, line)
-		os.write(self.pipe, line)
-
-
-class ChildProxy(UnixPipeProxy):
-
-	def __init__(self, notebook, page=None, **opts):
-		self.notebook = notebook
-		self.page = page
-		self.opts = opts
-		self.spawn()
+				os._exit(0)
 
 	def _main(self):
-		'''Main function in the child process'''
+		# Main function in the child process:
+		# import class module, instantiate object,
+		# hook it to recieve calls and run main()
 
-		import zim.gui
-		gui = zim.gui.GtkInterface(self.notebook, self.page, usedaemon=True, **self.opts)
-		# TODO pass along command line options
+		# __import__ has some quirks, see the reference manual
+		modname, klassname = self.klass.rsplit('.', 1)
+		mod = __import__(modname)
+		for name in modname.split('.')[1:]:
+			mod = getattr(mod, name)
+
+		klassobj = getattr(mod, klassname)
+
+		args, kwargs = self.opts
+		obj = klassobj(*args, **kwargs)
+		#~ print '>>> klass', klassobj
+		#~ print '>>> obj', obj
 
 		def _recieve(fd, *a):
 			# For some reason things go wrong when we use fdopen().readline()
@@ -412,35 +451,31 @@ class ChildProxy(UnixPipeProxy):
 			#~ print 'GOT %s' % line
 			func, arg, karg = deserialize_call(line)
 			try:
-				handler = getattr(gui, func)
-				assert handler, 'BUG: no such method %s' % func
-				handler(*arg, **karg)
+				method = getattr(obj, func)
+				assert method, 'BUG: no such method %s.%s' % (obj.__class__.__name__, func)
+				method(*arg, **karg)
 			except:
 				logger.exception('Error in child handler:')
 			return True # keep listening
 
 		gobject.io_add_watch(self.pipe, gobject.IO_IN, _recieve)
-		gui.main()
+		obj.main()
 
-	def present(self, page=None, **opts):
-		self._send('present', page, **opts)
-
-	def hide(self):
-		self._send('hide')
-
-	def quit(self):
-		self._send('quit')
-
-	def emit(self, signal):
-		self.emit('emit', signal)
+	def call(self, func, *arg, **karg):
+		line = serialize_call(func, *arg, **karg)
+		logger.debug('Sending to child %i: %s', self.pid, line)
+		os.write(self.pipe, line)
 
 	def close(self):
-		'''Called in parent process after child process exited'''
-		logger.debug('Child exited %i %s', self.pid, self.notebook)
+		logger.debug('Child exited %i %s', self.pid, self.id)
 		try:
 			os.close(self.pipe)
 		except IOError:
 			pass
+
+
+ChildProxy = UnixPipeProxy
+
 
 
 # Debug code to have a small shell to send commands to the daemon
