@@ -1,8 +1,0 @@
-Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
-
-====== Toggle ReadOnly ======
-
-This plugin adds a toggle in the toolbar which allows switching between editing and read-only mode. In read-only mode the notebook can not be modified. This plugin is intended to prevent accidental edits while browsing pages.
-
-**Dependencies:** This plugin has no additional dependencies.

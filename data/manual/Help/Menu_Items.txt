@@ -1,0 +1,11 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Menu Items ======
+
+TODO
+
+===== View Menu =====
+
+**Notebook Editable**
+This toggle allows switching between editing and read-only mode. In read-only mode the notebook can not be modified. This feature is intended to prevent accidental edits while browsing pages.

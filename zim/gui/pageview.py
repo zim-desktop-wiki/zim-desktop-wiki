@@ -2397,8 +2397,11 @@ class PageView(gtk.VBox):
 		# one-way traffic, set page modified after modifying the buffer
 		# but not the other way
 		if buffer.get_modified() and not self.page.modified:
-			self.page.modified = True
-			self.emit('modified-changed')
+			if self.readonly:
+				logger.warn('Buffer edited while read-only - potential bug')
+			else:
+				self.page.modified = True
+				self.emit('modified-changed')
 
 	def clear(self):
 		# Called e.g. by "discard changes" maybe due to an exception in

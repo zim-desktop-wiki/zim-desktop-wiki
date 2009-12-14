@@ -17,7 +17,7 @@ logger = logging.getLogger('zim.plugins.tasklist')
 
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, initial state, read only
-	('show_tag_list', 'zim-task-list', _('Task List'), '', _('Task List'), False, True),
+	('show_task_list', 'zim-task-list', _('Task List'), '', _('Task List'), False, True),
 )
 
 ui_xml = '''
@@ -25,13 +25,13 @@ ui_xml = '''
 	<menubar name='menubar'>
 		<menu action='view_menu'>
 			<placeholder name="plugin_items">
-				<menuitem action="show_tag_list" />
+				<menuitem action="show_task_list" />
 			</placeholder>
 		</menu>
 	</menubar>
 	<toolbar name='toolbar'>
 		<placeholder name='tools'>
-			<toolitem action='show_tag_list'/>
+			<toolitem action='show_task_list'/>
 		</placeholder>
 	</toolbar>
 </ui>
@@ -68,12 +68,12 @@ This is a core plugin shipping with zim.
 			ui.add_toggle_actions(ui_toggle_actions, self)
 			ui.add_ui(ui_xml, self)
 
-	def show_tag_list(self, show=None):
-		self.toggle_action('show_tag_list', active=show)
+	def show_task_list(self, show=None):
+		self.toggle_action('show_task_list', active=show)
 
-	def do_show_tag_list(self, show=None):
+	def do_show_task_list(self, show=None):
 		if show is None:
-			action = self.actiongroup.get_action('show_tag_list')
+			action = self.actiongroup.get_action('show_task_list')
 			show = action.get_active()
 
 		dialog = TaskListDialog.unique(self, plugin=self)
@@ -144,7 +144,7 @@ class TaskListDialog(Dialog):
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
-		self.plugin.show_tag_list(False)
+		self.plugin.show_task_list(False)
 		Dialog.do_response(self, response)
 
 

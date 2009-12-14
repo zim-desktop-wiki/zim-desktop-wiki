@@ -110,6 +110,7 @@ ui_toggle_actions = (
 	('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
 	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
 	('toggle_fullscreen',  None, _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
+	('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
 )
 
 ui_pathbar_radio_actions = (
@@ -397,9 +398,8 @@ class GtkInterface(NotebookInterface):
 		'''
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		group = self.init_actiongroup(handler)
-		actions = [a[0:5]+(None,)+(a[5],) for a in actions]
+		group.add_toggle_actions([a[0:5]+(None,)+(a[5],) for a in actions])
 			# insert 'None' for callback
-		group.add_toggle_actions(actions)
 		self._connect_actions(actions, group, handler, is_toggle=True)
 
 	def init_actiongroup(self, handler):
@@ -1375,6 +1375,21 @@ class MainWindow(gtk.Window):
 
 		self.uistate['toolbar_size'] = size
 
+	def toggle_readonly(self, readonly=None):
+		action = self.actiongroup.get_action('toggle_readonly')
+		if readonly is None or readonly == action.get_active():
+			action.activate()
+		else:
+			active = not readonly
+			self.do_toggle_readonly(active=active)
+
+	def do_toggle_readonly(self, active=None):
+		if active is None:
+			action = self.actiongroup.get_action('toggle_readonly')
+			active = action.get_active()
+		readonly = not active
+		self.ui.set_readonly(readonly)
+		self.uistate['readonly'] = readonly
 
 	def do_open_notebook(self, ui, notebook):
 		# Initialize all the uistate parameters
@@ -1411,6 +1426,14 @@ class MainWindow(gtk.Window):
 		# else trust system default
 
 		self.toggle_fullscreen(show=self._set_fullscreen)
+
+		self.uistate.setdefault('readonly', False)
+		if notebook.readonly:
+			self.toggle_readonly(readonly=True)
+			action = self.actiongroup.get_action('toggle_readonly')
+			action.set_sensitive(False)
+		else:
+			self.toggle_readonly(readonly=self.uistate['readonly'])
 
 		# And hook to notebook properties
 		self.on_notebook_properties_changed(notebook)
@@ -1450,6 +1473,8 @@ class MainWindow(gtk.Window):
 			self.statusbar_backlinks_button.set_sensitive(False)
 		else:
 			self.statusbar_backlinks_button.set_sensitive(True)
+
+		#TODO: set toggle_readonly insensitive when page is readonly
 
 	def do_close_page(self, ui, page):
 		w, h = self.get_size()
@@ -1866,3 +1891,4 @@ class AttachFileDialog(FileDialog):
 			else:
 				pageview.insert_links([file])
 			return True
+

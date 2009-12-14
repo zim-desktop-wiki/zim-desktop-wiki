@@ -46,6 +46,7 @@
 			<menuitem action='show_preferences'/>
 		</menu>
 		<menu action='view_menu'>
+			<menuitem action='toggle_readonly'/>
 			<menuitem action='toggle_toolbar'/>
 			<menuitem action='toggle_statusbar'/>
 			<menuitem action='toggle_sidepane'/>
@@ -162,18 +163,19 @@
 			<toolitem action='open_page_forward'/>
 		</placeholder>
 		<separator/>
-		<placeholder name='search'/>
-		<separator/>
-		<toolitem action='insert_link'/>
+		<toolitem action='toggle_readonly'/>
 		<separator/>
 		<toolitem action='toggle_format_strong'/>
 		<toolitem action='toggle_format_emphasis'/>
 		<toolitem action='toggle_format_mark'/>
 		<toolitem action='toggle_format_strike'/>
 		<separator/>
-		<placeholder name='tools'>
-			<toolitem action='attach_file'/>
-		</placeholder>
+		<toolitem action='insert_link'/>
+		<toolitem action='attach_file'/>
+		<separator/>
+		<placeholder name='search'/>
+		<separator/>
+		<placeholder name='tools'/>
 	</toolbar>
 	<popup name='toolbar_popup'>
 		<menuitem action='set_toolbar_icons_and_text'/>

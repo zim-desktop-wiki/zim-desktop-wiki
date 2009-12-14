@@ -134,14 +134,6 @@ class PluginClass(gobject.GObject):
 			if self._is_image_generator_plugin:
 				self.ui.mainpage.pageview.unregister_image_generator_plugin(self)
 
-	def add_radio_actions(self, actions, methodname):
-		'''Define menu actions in the Gtk GUI
-
-		TODO document how an action tuple looks
-		'''
-		assert self.ui.ui_type == 'gtk'
-		self.ui.add_radio_actions(actions, handler=self, methodname=methodname)
-
 	def toggle_action(self, action, active=None):
 		'''Trigger a toggle action. If 'active' is None it is toggled, else it
 		is forced to state of 'active'. This method helps to keep the menu item
