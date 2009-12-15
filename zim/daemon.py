@@ -21,6 +21,22 @@ gui instances uses anonymous pipes.
 
 Of course the instances in turn can also connect to the socket of
 the daemon, e.g. to spawn a new instance.
+
+Any class can become the main application class of a child process.
+In most cases this will be the GtkInterFace class which is used
+to represent a single notebook window. However another example is the
+DaemonTrayIcon class in the trayicon plugin which shows a single
+tray icon for all open notebooks. A class for running a child process
+should at least implement a "main" and a "quit" method.
+
+Only security measure in this module is that on unix the socket is
+located within temp folder which has only access permissions for the
+current user. This should make it impossible for processes running as
+any other user to connect. The windows version just listens to a local
+network address and is compeletely open to localhost. Once someone
+succeeds in connecting to the socket they can call arbitrary methods
+on the interface object or instantiate new processes with arbitrary
+classes.
 '''
 
 import os
@@ -63,6 +79,7 @@ class DaemonError(Exception):
 
 
 class UnixDaemon(object):
+	'''Class with code to daemonize a process on unix'''
 
 	pidfile = get_tmpdir().file('daemon.pid').path
 
@@ -111,7 +128,7 @@ class SocketDaemon(object):
 
 	# TODO common base class with the zim.www Server object ?
 
-	def __init__(self, persistent=False, modules='zim'):
+	def __init__(self, persistent=False):
 		'''Constructor. If 'persistent' is True the daemon stays alive
 		even after the last child exited. Otherwise we exit after the
 		last child exits.
@@ -199,13 +216,17 @@ class SocketDaemon(object):
 		else:
 			return None
 
+	def cmd_emit(self, klass, name, *args, **kwargs):
+		if klass == 'all': # special case
+			children = self.children
+		else:
+			children = [c for c in self.children if c.id[0] == klass]
+
+		for child in children:
+			child.call(name, *args, **kwargs)
+
 	def cmd_list_objects(self):
 		return [child.id for child in self.children]
-
-	#~ def cmd_quit_all(self):
-		#~ for child in self.children:
-			#~ child.quit()
-		#~ return 'Ack'
 
 	def cmd_quit_if_nochild(self):
 		gobject.idle_add(self._check_quit_if_nochild)
@@ -264,6 +285,9 @@ else:
 
 
 class SocketDaemonProxy(object):
+	'''This class will be the main interface for dealing with the
+	daemon. It wraps the socket interaction in an object interface.
+	'''
 
 	def __init__(self):
 		# Start daemon if none exists
@@ -314,23 +338,30 @@ class SocketDaemonProxy(object):
 		klass = 'zim.gui.GtkInterface'
 		assert self._call('vivicate', klass, notebook,
 			notebook=notebook, usedaemon=True)
-		return DaemonProxyNotebookObject(self, (klass, notebook))
+		return DaemonProxyGtkInterfaceObject(self, (klass, notebook))
 
-	def list_notebooks():
+	def list_notebooks(self):
 		'''Returns a list of notebook URIs for open notebooks'''
 		for klass, name in self.list_objects():
 			if klass == 'zim.gui.GtkInterface':
 				yield name
 
-	#~ def emit():
-		#~ '''Broadcast a signal to all notebooks'''
-
-	#~ def quit_all(self):
-		#~ '''Quit all running instances'''
+	def emit(self, klass, name, *args, **kwargs):
+		'''Call method 'name' on all children of a certain class.
+		The special class name 'all' can be used to call this method
+		on all children, regardless of their class. **Use with care**
+		'''
+		self._call('emit', klass, name, *args, **kwargs)
 
 	def quit_if_nochild(self):
 		'''Have the daemon check if it should quit itself'''
 		return self._call('quit_if_nochild') == 'Ack'
+
+	def quit(self):
+		'''Quit the daemon gracefully by calling 'quit()' on all
+		children and waiting for them to exit.
+		'''
+		self.emit('all', 'quit')
 
 	def _call(self, func, *args, **kwargs):
 		s = socket.socket(Daemon.socket_family)
@@ -361,6 +392,9 @@ DaemonProxy = SocketDaemonProxy
 
 
 class DaemonProxyObject(object):
+	'''This is an object that represents one of the child processes
+	of the daemon to an external client.
+	'''
 
 	def __init__(self, daemonproxy, id):
 		self.proxy = daemonproxy
@@ -373,7 +407,11 @@ class DaemonProxyObject(object):
 		return self.proxy._call('relay', self.id, method, *args, **kwargs)
 
 
-class DaemonProxyNotebookObject(DaemonProxyObject):
+class DaemonProxyGtkInterfaceObject(DaemonProxyObject):
+	'''This is an object that represents one of the child processes
+	of the daemon to an external client. It adds some methods
+	specific for child processes of the GtkInterface class.
+	'''
 
 	@property
 	def uri(self): return self.id[1]
@@ -396,6 +434,10 @@ class DaemonProxyNotebookObject(DaemonProxyObject):
 
 
 class UnixPipeProxy(object):
+	'''This class wraps a child process within the daemon itself.
+	It maintains a pipe to send commands to the child but has no
+	direct way to get an answer from the child.
+	'''
 
 	def __init__(self, klass, id, *args, **kwargs):
 		self.id = id
@@ -476,34 +518,3 @@ class UnixPipeProxy(object):
 
 ChildProxy = UnixPipeProxy
 
-
-
-# Debug code to have a small shell to send commands to the daemon
-def shell():
-	'''This method is used for debugging the zim daemon. It spawns
-	a simple commandline that allows you to send commands to the
-	daemon process.
-	'''
-	import shlex
-	logging.basicConfig(
-		level=logging.DEBUG, format='%(levelname)s: %(message)s')
-
-	daemon = DaemonProxy()
-
-	print 'Enter methods to call on the daemon proxy'
-	while True:
-		sys.stdout.write('zim.daemon> ')
-		line = sys.stdin.readline().strip()
-		if not line:
-			break
-		words = shlex.split(line)
-		try:
-			cmd = words.pop(0)
-			method = getattr(daemon, cmd)
-			method(*words)
-		except:
-			logging.exception('Error in shell process:')
-
-
-if __name__ == '__main__':
-	shell()

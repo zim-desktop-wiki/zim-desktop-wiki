@@ -313,6 +313,11 @@ class GtkInterface(NotebookInterface):
 		else:
 			pass # Will check default in main()
 
+	def spawn(self, *args):
+		if not self.usedaemon:
+			args = args + ('--no-daemon',)
+		NotebookInterface.spawn(self, *args)
+
 	def main(self):
 		'''Wrapper for gtk.main(); does not return untill program has ended.'''
 		if self.notebook is None:
@@ -355,7 +360,6 @@ class GtkInterface(NotebookInterface):
 		gtk.main()
 
 	def present(self, page=None, fullscreen=None, geometry=None):
-		# Note: Can also be called by daemon
 		self.mainwindow.present()
 		if page:
 			if isinstance(page, basestring):
@@ -368,11 +372,9 @@ class GtkInterface(NotebookInterface):
 			self.mainwindow.toggle_fullscreen(show=True)
 
 	def hide(self):
-		# Note: Can also be called by daemon
 		self.mainwindow.hide()
 
 	def close(self):
-		# Note: Can also be called by daemon
 		self.quit()
 
 	def quit(self):
