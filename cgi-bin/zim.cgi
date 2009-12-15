@@ -25,8 +25,10 @@ In order to use this you need to copy this script to your webserver's
 cgi-bin directory and edit the script to set the configuration.
 '''
 
+from zim.config import data_dir
+
 config = {
-	'notebook': '_manual_',
+	'notebook': data_dir('manual'),
 	#~ 'template': 'Default.html',
 }
 

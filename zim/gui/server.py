@@ -32,8 +32,8 @@ class ServerWindow(gtk.Window):
 		self.server.connect_after('stopped', self.do_server_stopped)
 
 		def _start(*a):
-			if not self.server.interface.notebook:
-				print 'TODO: get notebook from combobox'
+			self.server.set_notebook(
+				self.notebookcombobox.get_notebook() )
 			self.server.start()
 
 		def _stop(*a): self.server.stop()
@@ -86,9 +86,6 @@ class ServerWindow(gtk.Window):
 			# T: Field in web server gui
 		self.notebookcombobox = NotebookComboBox(current=server.interface.notebook)
 		self.notebookcombobox.connect('changed', _stop)
-		self.notebookcombobox.connect('changed',
-			lambda o: self.server.set_notebook(
-						self.notebookcombobox.get_notebook()) )
 		table.attach(self.notebookcombobox, 1,2, 0,1)
 
 		open_button = IconButton('gtk-index')

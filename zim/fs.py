@@ -205,6 +205,9 @@ class UnixPath(object):
 		return parts
 
 	def relpath(self, reference):
+		'''Returns a relative path with respect to 'reference',
+		which should be a parent directory.
+		'''
 		assert self.path.startswith(reference.path)
 		i = len(reference.path)
 		path = self.path[i:]

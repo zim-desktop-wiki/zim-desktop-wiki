@@ -5,17 +5,16 @@
 '''This module contains the notebook dialog which is used for the
 "open another notebook" action and which is shown if you start zim without
 argument. The dialog directly modifies the notebook list obtained from
-zim.notebook.get_notebook_list(). It re-uses the properties dialog to
-modify the notebook properties. A special dropdown allows settign the special
-entry for _default_ which will be openend directly the next time zim is
-started without arguments.
+zim.notebook.get_notebook_list(). A special dropdown allows settign the
+special entry for the default notebook which will be openend directly
+the next time zim is started without arguments.
 '''
 
 import gtk
 import pango
 
 from zim.fs import *
-import zim.notebook
+from zim.notebook import get_notebook_list, init_notebook
 from zim.config import data_file
 from zim.gui.widgets import Dialog, IconButton
 
@@ -23,7 +22,28 @@ OPEN_COL = 0  # column with boolean if notebook is open alreadys
 NAME_COL = 1  # column with notebook name
 PATH_COL = 2  # column with the directory path
 
-# TODO if this is the first time zim is started go directly to AddNoteook, set default and return
+
+def prompt_notebook():
+	'''Prompts the NotebookDialog and returns the result or None.
+	As a special case for first time usage it immediatly prompts for
+	the notebook location without showing the notebook list.
+	'''
+	list = get_notebook_list()
+	if not list:
+		logger.debug('First time usage - prompt for notebook folder')
+		fields = AddNotebookDialog(self).run()
+		if fields:
+			dir = Dir(fields['folder'])
+			init_notebook(dir, name=fields['name'])
+			list.append(dir.uri)
+			list.write()
+			return dir
+		else:
+			return None # User cancelled the dialog ?
+	else:
+		# Multiple notebooks defined and no default
+		return NotebookDialog(ui=None).run()
+
 
 class NotebookTreeModel(gtk.ListStore):
 	'''TreeModel that wraps a notebook list given as a ConfigList.
@@ -37,77 +57,70 @@ class NotebookTreeModel(gtk.ListStore):
 	PATH_COL are avaialble.
 	'''
 
-	def __init__(self, notebooks=None):
-		'''Constructor. If "notebooks" is None, the default list as provided
-		by zim.notebook.get_notebook_list() is used.
+	def __init__(self, notebooklist=None):
+		'''Constructor. If "notebooklist" is None, the default list as
+		provided by zim.notebook.get_notebook_list() is used.
 		'''
 		gtk.ListStore.__init__(self, bool, str, str) # OPEN_COL, NAME_COL, PATH_COL
 
-		if notebooks is None:
-			self.notebooks = zim.notebook.get_notebook_list()
+		if notebooklist is None:
+			self.notebooklist = get_notebook_list()
 		else:
-			self.notebooks = notebooks
+			self.notebooklist = notebooklist
 
 		self._loading = True
-		for name, path in self.notebooks.items():
-			if not (name.startswith('_') and name.endswith('_')):
-				self.append((False, name, path))
+		for name, path in self.notebooklist.get_names():
+			self.append((False, name, path))
 		self._loading = False
 
-	def get_iter_from_notebook(self, notebook):
-		'''Returns the TreeIter for a notebook (or notebook name) or None'''
-		if not isinstance(notebook, basestring):
-			notebook = notebook.name
+	def get_iter_for_notebook(self, uri):
+		'''Returns the TreeIter for a notebook path or None'''
+		assert uri.startswith('file://')
 		for row in self:
-			if row[NAME_COL] == notebook:
+			if row[PATH_COL] == uri:
 				return row.iter
 		else:
 			return None
 
-	def append_notebook(self, notebook):
-		assert notebook.dir
-		self.append((False, notebook.name, notebook.dir.path))
+	def append_notebook(self, uri, name=None):
+		'''Append a notebook to the list. If the name is not specified
+		it will be looked up by reading the config file of the notebook.
+		Returns an iter for this notebook in the list.
+		'''
+		assert uri.startswith('file://')
+		self.notebooklist.append(uri)
+		if name is None:
+			name = self.notebooklist.get_name(uri)
+		self.append((False, name, uri))
+		self.write()
+		return len(self) - 1 # iter
 
-	def get_default(self):
+	def get_iter_for_default(self):
 		'''Returns a TreeIter for the default notebook or None'''
-		default = self.notebooks.get('_default_')
-		if not default is None:
-			return self.get_iter_from_notebook(default)
+		default = self.notebooklist.default
+		if default:
+			return self.get_iter_for_notebook(default)
 		else:
 			return None
 
-	def set_default(self, iter):
+	def set_default_from_iter(self, iter):
 		'''Set the default notebook using a TreeIter,
 		set to None to reset the default.
 		'''
 		if iter is None:
-			self.notebooks['_default_'] = None
+			self.notebooklist.default = None
 		else:
-			self.notebooks['_default_'] = unicode(self[iter][NAME_COL])
-		self.write_list()
+			self.notebooklist.default = unicode(self[iter][PATH_COL])
+		self.write()
 
-	def write_list(self):
+	def write(self):
+		'''Save the notebook list.'''
 		if self._loading:
 			return # ignore signals while first populating the list
 
-		order = []
-		for row in self:
-			name = unicode(row[NAME_COL])
-			folder = unicode(row[PATH_COL])
-			self.notebooks[name] = folder
-			order.append(name)
-
-		for name, path in self.notebooks.items():
-			if (name.startswith('_') and name.endswith('_')):
-				order.insert(0, name)
-			elif not name in order:
-				self.notebooks.pop(name)
-			else:
-				pass
-
-		self.notebooks.set_order(order)
-		#~ print ''.join(self.notebooks.dump())
-		self.notebooks.write()
+		uris = [unicode(row[PATH_COL]) for row in self]
+		self.notebooklist[:] = uris
+		self.notebooklist.write()
 
 
 class NotebookTreeView(gtk.TreeView):
@@ -144,26 +157,33 @@ class NotebookComboBox(gtk.ComboBox):
 		cell_renderer = gtk.CellRendererText()
 		self.pack_start(cell_renderer, False)
 		self.set_attributes(cell_renderer, text=NAME_COL)
+
 		if current is None:
-			self.set_active_default()
+			self.set_default_active()
 		else:
-			iter = model.get_iter_from_notebook(current)
-			if iter is None:
-				model.append_notebook(current)
-				iter = model.get_iter_from_notebook(current)
-			self.set_active_iter(iter)
+			self.set_notebook(notebook, append=True)
 
-	def set_active_default(self):
-		iter = self.get_model().get_default()
+	def set_default_active(self):
+		'''Select the default notebook in the combobox'''
+		iter = self.get_model().get_iter_for_default()
 		if iter is None:
 			self.set_active(-1)
 		else:
 			self.set_active_iter(iter)
 
-	def set_notebook(self, notebook):
-		iter = self.get_model().get_iter_from_notebook(notebook)
+	def set_notebook(self, uri, append=False):
+		'''Select a specific notebook in the combobox.
+		If 'append' is True it will appended if it didn't exist yet
+		in the notebook list.
+		'''
+		model = self.get_model()
+		iter = model.get_iter_for_notebook(uri)
 		if iter is None:
-			self.set_active(-1)
+			if append:
+				iter = model.append_notebook(uri)
+				self.set_active_iter(iter)
+			else:
+				self.set_active(-1)
 		else:
 			self.set_active_iter(iter)
 
@@ -173,42 +193,40 @@ class NotebookComboBox(gtk.ComboBox):
 			return None
 		else:
 			model = self.get_model()
-			return model[iter][NAME_COL]
+			return model[iter][PATH_COL]
 
 
 class DefaultNotebookComboBox(NotebookComboBox):
 	'''Combobox which sets the default notebook'''
 
 	def __init__(self, model=None):
-		NotebookComboBox.__init__(self, model)
-		self._block_changed = False
-		self.do_model_changed(self.get_model())
+		NotebookComboBox.__init__(self, model, current=None)
 		self.connect('changed', self.__class__.do_changed)
 
 	def do_changed(self):
 		# Set default if triggered by user action
-		if not self._block_changed:
-			model = self.get_model()
-			i = self.get_active()
-			if i >= 0:
-				model.set_default(i)
-			else:
-				model.set_default(None)
-
-	def do_model_changed(self, model):
-		# Set the combobox to display the correct row, assume the default
-		# is set to the name of one of the other notebooks.
-		# This needs to be done everytime the model changes
-		self._block_changed = True
-		self.set_active_default()
-		self._block_changed = False
+		model = self.get_model()
+		iter = self.get_active()
+		if iter >= 0:
+			model.set_default_from_iter(iter)
+		else:
+			model.set_default_from_iter(None)
 
 
 class NotebookDialog(Dialog):
+	'''Dialog which allows the user to select a notebook from a list
+	of defined notebooks.
 
-	def __init__(self, ui):
+	Can either be run modal using run(), in which case the selected
+	notebook is returned (or None when the dialog is cancelled).
+	To run this dialog non-model a callback needs to be specified
+	which will be called with the path for the selected notebook.
+	'''
+
+	def __init__(self, ui, callback=None):
 		Dialog.__init__(self, ui, _('Open Notebook')) # T: dialog title
 		# TODO set button to "OPEN" instead of "OK"
+		self.callback = callback
 		self.set_default_size(500, 400)
 		self.set_help(':Help:Notebooks')
 
@@ -241,11 +259,12 @@ class NotebookDialog(Dialog):
 		hbox.pack_start(vbbox, False)
 		add_button = gtk.Button(stock='gtk-add')
 		add_button.connect('clicked', self.do_add_notebook)
-		edit_button = gtk.Button(stock='gtk-edit')
-		edit_button.connect('clicked', self.do_edit_notebook)
+		#~ edit_button = gtk.Button(stock='gtk-edit')
+		#~ edit_button.connect('clicked', self.do_edit_notebook)
 		rm_button = gtk.Button(stock='gtk-remove')
 		rm_button.connect('clicked', self.do_remove_notebook)
-		for b in (add_button, edit_button, rm_button):
+		#~ for b in (add_button, edit_button, rm_button):
+		for b in (add_button, rm_button):
 			b.set_alignment(0.0, 0.5)
 			vbbox.add(b)
 		# FIXME buttons for "up" and "down" ?
@@ -272,43 +291,42 @@ class NotebookDialog(Dialog):
 
 	def do_response_ok(self):
 		model, iter = self.treeview.get_selection().get_selected()
-		model.write_list() # List will be read by open_notebook again..
+		model.write() # List will be read by open_notebook again..
 		if iter is None:
 			return False
 		else:
-			name = unicode(model[iter][NAME_COL])
-			self.ui.open_notebook(name)
+			path = unicode(model[iter][PATH_COL])
+			self.result = path
+			if self.callback:
+				self.callback(path)
 			return True
 
 	def do_add_notebook(self, *a):
-		properties = AddNotebookDialog(self).run()
-		if properties:
+		fields = AddNotebookDialog(self).run()
+		if fields:
+			dir = Dir(fields['folder'])
+			init_notebook(dir, name=fields['name'])
 			model = self.treeview.get_model()
-			iter = model.append()
-			model.set(iter,
-				OPEN_COL, False,
-				NAME_COL, properties['name'],
-				PATH_COL, properties['folder'] )
-			model.write_list()
+			model.append_notebook(dir.uri, name=fields['name'])
 
-	def do_edit_notebook(self, *a):
-		model, iter = self.treeview.get_selection().get_selected()
-		if iter is None:
-			return
-		name = unicode(model[iter][NAME_COL])
-		folder = unicode(model[iter][PATH_COL])
-		properties = EditNotebookDialog(self, name, folder).run()
-		if properties:
-			model.set(iter,
-				OPEN_COL, False,
-				NAME_COL, properties['name'],
-				PATH_COL, properties['folder'] )
-			model.write_list()
+	#~ def do_edit_notebook(self, *a):
+		#~ model, iter = self.treeview.get_selection().get_selected()
+		#~ if iter is None:
+			#~ return
+		#~ name = unicode(model[iter][NAME_COL])
+		#~ folder = unicode(model[iter][PATH_COL])
+		#~ properties = EditNotebookDialog(self, name, folder).run()
+		#~ if properties:
+			#~ model.set(iter,
+				#~ OPEN_COL, False,
+				#~ NAME_COL, properties['name'],
+				#~ PATH_COL, properties['folder'] )
+			#~ model.write()
 
 	def do_remove_notebook(self, *a):
 		model, iter = self.treeview.get_selection().get_selected()
 		model.remove(iter)
-		# explicitly _no_ model.write_list()
+		# explicitly _no_ model.write()
 
 
 class AddNotebookDialog(Dialog):

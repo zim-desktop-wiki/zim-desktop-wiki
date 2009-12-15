@@ -28,7 +28,7 @@ from getopt import gnu_getopt, GetoptError
 
 from zim.fs import *
 from zim.errors import Error
-from zim.config import config_file, log_basedirs, ZIM_DATA_DIR
+from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR
 
 
 if os.name == 'nt':
@@ -69,7 +69,7 @@ ZIM_EXECUTABLE = 'zim'
 longopts = ('verbose', 'debug')
 commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual')
 commandopts = {
-	'gui': ('list', 'geometry=', 'fullscreen'),
+	'gui': ('list', 'geometry=', 'fullscreen', 'no-daemon'),
 	'server': ('port=', 'template=', 'gui'),
 	'export': ('format=', 'template=', 'output='),
 	'index': ('output=',),
@@ -110,6 +110,7 @@ GUI Options:
                   opening the default notebook
   --geometry      window size and position as WxH+X+Y
   --fullscreen    start in fullscreen mode
+  --no-daemon     start a single instance, no daemon
 
 Server Options:
   --port          port to use (defaults to 8080)
@@ -134,8 +135,11 @@ Try 'zim --manual' for more help.
 class UsageError(Error):
 	pass
 
+
 class NotebookLookupError(Error):
-	pass # TODO: description of this error
+
+	description = _('Could not find the file or folder for this notebook')
+		# T: Error verbose description
 
 
 def main(argv):
@@ -182,10 +186,10 @@ def main(argv):
 	if len(args) > maxargs[cmd]:
 		raise UsageError
 
-	# --manual is an alias for --gui _manual_
+	# --manual is an alias for --gui /usr/share/zim/manual
 	if cmd == 'manual':
 		cmd = 'gui'
-		args.insert(0, '_manual_')
+		args.insert(0, data_dir('manual').path)
 
 	# Now figure out which options are allowed for this command
 	allowedopts = list(longopts)
@@ -249,9 +253,52 @@ def main(argv):
 		method = getattr(handler, 'cmd_' + cmd)
 		method(**optsdict)
 	elif cmd == 'gui':
-		import zim.gui
-		handler = zim.gui.GtkInterface(*args, **optsdict)
-		handler.main()
+		notebook = None
+		page = None
+		if args:
+			from zim.notebook import resolve_notebook
+			notebook, page = resolve_notebook(args[0])
+			if not notebook:
+				notebook = args[0]
+			if len(args) == 2:
+				page = args[1]
+
+		if 'list' in optsdict:
+			del optsdict['list'] # do not use default
+		elif not notebook:
+			import zim.notebook
+			default = zim.notebook.get_default_notebook()
+			if default:
+				notebook = default
+				logger.info('Opening default notebook')
+
+		if 'no-daemon' in optsdict or os.name == 'nt':
+			import zim.gui
+			try:
+				del optsdict['no-daemon']
+			except KeyError:
+				pass
+			if not notebook:
+				import zim.gui.notebookdialog
+				notebook = zim.gui.notebookdialog.prompt_notebook()
+				if not notebook:
+					return # User cancelled notebook dialog
+			handler = zim.gui.GtkInterface(notebook, page, **optsdict)
+			handler.main()
+		else:
+			import zim.daemon
+			proxy = zim.daemon.DaemonProxy()
+			if not notebook:
+				# Need to call this after spawning the daemon, else we
+				# have gtk loaded in the daemon process, and that causes
+				# problems with using gtk in child processes.
+				import zim.gui.notebookdialog
+				notebook = zim.gui.notebookdialog.prompt_notebook()
+				if not notebook:
+					proxy.quit_if_nochild()
+					return # User cancelled notebook dialog
+			gui = proxy.get_notebook(notebook)
+			gui.present(page, **optsdict)
 	elif cmd == 'server':
 		import zim.www
 		handler = zim.www.Server(*args, **optsdict)
@@ -336,23 +383,30 @@ class NotebookInterface(gobject.GObject):
 
 	def open_notebook(self, notebook):
 		'''Open a notebook if no notebook was set already.
-		'notebook' can be either a string or a notebook object.
-		If 'notebook' is None we check for a default notebook, if no default
-		is found a NotebookSelectionError is generated.
+		'notebook' can be either a string, a File or Dir object or a
+		Notebook object.
 
 		If the notebook is a string which also specifies a page the page
 		path is returned so it can be handled in a sub-class.
 		'''
-		from zim.notebook import get_notebook, Notebook
+		from zim.notebook import resolve_notebook, get_notebook, Notebook
 		assert self.notebook is None, 'BUG: other notebook opened already'
 		assert not notebook is None, 'BUG: no notebook specified'
 
 		logger.debug('Opening notebook: %s', notebook)
-		if isinstance(notebook, basestring):
-			nb, path = get_notebook(notebook)
+		if isinstance(notebook, (basestring, File, Dir)):
+			if isinstance(notebook, basestring):
+				nb, path = resolve_notebook(notebook)
+			else:
+				nb, path = notebook, None
+
+			if not nb is None:
+				nb = get_notebook(nb)
+
 			if nb is None:
 				raise NotebookLookupError, _('Could not find notebook: %s') % notebook
 					# T: Error when looking up a notebook
+
 			self.emit('open-notebook', nb)
 			return path
 		else:

@@ -97,7 +97,7 @@ if __name__ == '__main__':
 	import zim
 	import zim.notebook
 	import gui
-	notebook, _ = zim.notebook.get_notebook(sys.argv[1])
+	notebook = zim.notebook.get_notebook(Dir(sys.argv[1]))
 	path = notebook.resolve_path(sys.argv[2])
 	ui = zim.NotebookInterface(notebook)
 	linkmap = LinkMap(notebook, path)

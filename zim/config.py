@@ -6,6 +6,8 @@
 files according to the Freedesktop.org (XDG) Base Dir specification.
 '''
 
+# TODO: remove all mention of ConfigList if it is not being used anymore
+
 import sys
 import os
 import re
@@ -149,7 +151,7 @@ def config_dirs():
 	for dir in data_dirs():
 		yield dir
 
-def config_file(path):
+def config_file(path, klass=None):
 	'''Takes a path relative to the zim config dir and returns a file equivalent
 	to ~/.config/zim/path . Based on the file extension a ConfigDictFile object,
 	a ConfigListFile object or a normal File object is returned. In the case a
@@ -159,23 +161,25 @@ def config_file(path):
 		path = [path]
 	zimpath = ['zim'] + list(path)
 	file = XDG_CONFIG_HOME.file(zimpath)
-	if path[-1].endswith('.conf') or path[-1].endswith('.list'):
-		if path[-1].endswith('.conf'): klass = ConfigDictFile
-		else: klass = ConfigListFile
 
-		if not file.exists():
-			for dir in config_dirs():
-				default = dir.file(path)
-				if default.exists():
-					break
-			else:
-				default = None
+	if not file.exists():
+		for dir in config_dirs():
+			default = dir.file(path)
+			if default.exists():
+				break
 		else:
 			default = None
-
-		return klass(file, default=default)
 	else:
-		return file
+		default = None
+
+	if klass:
+		return klass(file, default=default)
+	elif path[-1].endswith('.conf'):
+		return ConfigDictFile(file, default=default)
+	#~ elif path[-1].endswith('.list'):
+		#~ return ConfigListFile(file, default=default)
+	else:
+		return TextConfigFile(file, default=default)
 
 def user_dirs():
 	'''Returns a dict with directories for the xdg user dirs'''
@@ -333,48 +337,48 @@ class ListDict(dict):
 				and isinstance(value[1], int)  )
 
 
-class ConfigList(ListDict):
-	'''This class supports config files that exist of two columns separated
-	by whitespace. It inherits from ListDict to ensure the list remain in
-	the same order when it is written to file again. When a file path is set
-	for this object it will be used to try reading from any from the config
-	and data directories while using the config home directory for writing.
-	'''
-
-	_fields_re = re.compile(r'(?:\\.|\S)+') # match escaped char or non-whitespace
-	_escaped_re = re.compile(r'\\(.)') # match single escaped char
-	_escape_re = re.compile(r'([\s\\])') # match chars to escape
-
-	def parse(self, text):
-		if isinstance(text, basestring):
-			text = text.splitlines(True)
-
-		for line in text:
-			line = line.strip()
-			if line.isspace() or line.startswith('#'):
-				continue
-			cols = self._fields_re.findall(line)
-			if len(cols) == 1:
-				cols.append(None) # empty string in second column
-				cols[0] = self._escaped_re.sub(r'\1', cols[0])
-			else:
-				assert len(cols) >= 2
-				if len(cols) > 2 and not cols[2].startswith('#'):
-					logger.warn('trailing data') # FIXME better warning
-				cols[0] = self._escaped_re.sub(r'\1', cols[0])
-				cols[1] = self._escaped_re.sub(r'\1', cols[1])
-			self[cols[0]] = cols[1]
-
-	def dump(self):
-		text = TextBuffer()
-		for k, v in self.items():
-			k = self._escape_re.sub(r'\\\1', k)
-			if v is None:
-				v = ''
-			else:
-				v = self._escape_re.sub(r'\\\1', v)
-			text.append("%s\t%s\n" % (k, v))
-		return text.get_lines()
+#~ class ConfigList(ListDict):
+	#~ '''This class supports config files that exist of two columns separated
+	#~ by whitespace. It inherits from ListDict to ensure the list remain in
+	#~ the same order when it is written to file again. When a file path is set
+	#~ for this object it will be used to try reading from any from the config
+	#~ and data directories while using the config home directory for writing.
+	#~ '''
+#~
+	#~ _fields_re = re.compile(r'(?:\\.|\S)+') # match escaped char or non-whitespace
+	#~ _escaped_re = re.compile(r'\\(.)') # match single escaped char
+	#~ _escape_re = re.compile(r'([\s\\])') # match chars to escape
+#~
+	#~ def parse(self, text):
+		#~ if isinstance(text, basestring):
+			#~ text = text.splitlines(True)
+#~
+		#~ for line in text:
+			#~ line = line.strip()
+			#~ if line.isspace() or line.startswith('#'):
+				#~ continue
+			#~ cols = self._fields_re.findall(line)
+			#~ if len(cols) == 1:
+				#~ cols.append(None) # empty string in second column
+				#~ cols[0] = self._escaped_re.sub(r'\1', cols[0])
+			#~ else:
+				#~ assert len(cols) >= 2
+				#~ if len(cols) > 2 and not cols[2].startswith('#'):
+					#~ logger.warn('trailing data') # FIXME better warning
+				#~ cols[0] = self._escaped_re.sub(r'\1', cols[0])
+				#~ cols[1] = self._escaped_re.sub(r'\1', cols[1])
+			#~ self[cols[0]] = cols[1]
+#~
+	#~ def dump(self):
+		#~ text = TextBuffer()
+		#~ for k, v in self.items():
+			#~ k = self._escape_re.sub(r'\\\1', k)
+			#~ if v is None:
+				#~ v = ''
+			#~ else:
+				#~ v = self._escape_re.sub(r'\\\1', v)
+			#~ text.append("%s\t%s\n" % (k, v))
+		#~ return text.get_lines()
 
 
 class ConfigDict(ListDict):
@@ -487,8 +491,34 @@ class ConfigDictFile(ConfigFile, ConfigDict):
 	pass
 
 
-class ConfigListFile(ConfigFile, ConfigList):
-	pass
+#~ class ConfigListFile(ConfigFile, ConfigList):
+	#~ pass
+
+
+class TextConfigFile(list):
+	'''Like ConfigFile, but just represents a list of lines'''
+
+	# TODO think of a way of uniting this class with ConfigFile
+
+	def __init__(self, file, default=None):
+		self.file = file
+		self.default = default
+		try:
+			self.read()
+		except ConfigPathError:
+			pass
+
+	def read(self):
+		# TODO: flush list first ?
+		if self.file.exists():
+			self[:] = self.file.readlines()
+		elif self.default:
+			self[:] = self.default.readlines()
+		else:
+			raise ConfigPathError, self.file
+
+	def write(self):
+		self.file.writelines(self)
 
 
 class HeaderParsingError(Error):

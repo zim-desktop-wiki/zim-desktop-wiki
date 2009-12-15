@@ -2849,14 +2849,8 @@ class InsertDateDialog(Dialog):
 		if not self.link:
 			self.linkbutton.set_sensitive(False)
 
-		# FIXME need way to get 'raw' config file..
-		listdict = config_file('dates.list')
-		file = listdict.file
-		if not file.exists():
-			file = listdict.default
-
 		lastused = None
-		for line in file.readlines():
+		for line in config_file('dates.list'):
 			line = line.strip()
 			if line.startswith('#'): continue
 			try:
