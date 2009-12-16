@@ -159,21 +159,23 @@ ui_preferences = (
 		# char sets in cerain international key mappings
 )
 
+
 # Load custom application icons as stock
-try:
+def load_zim_stock_icons():
 	factory = gtk.IconFactory()
 	factory.add_default()
 	for dir in data_dirs(('pixmaps')):
 		for file in dir.list():
 			i = file.rindex('.')
 			name = 'zim-'+file[:i] # e.g. checked-box.png -> zim-checked-box
-			pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
-			set = gtk.IconSet(pixbuf=pixbuf)
-			factory.add(name, set)
-except Exception:
-	import sys
-	logger.warn('Got exception while loading application icons')
-	sys.excepthook(*sys.exc_info())
+			try:
+				pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
+				set = gtk.IconSet(pixbuf=pixbuf)
+				factory.add(name, set)
+			except Exception:
+				logger.exception('Got exception while loading application icons')
+
+load_zim_stock_icons()
 
 
 KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
@@ -234,6 +236,7 @@ class GtkInterface(NotebookInterface):
 		self._save_page_in_progress = False
 		self.readonly = False
 		self.usedaemon = usedaemon
+		self.hideonclose = False
 
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
@@ -377,7 +380,10 @@ class GtkInterface(NotebookInterface):
 		self.mainwindow.hide()
 
 	def close(self):
-		self.quit()
+		if self.hideonclose:
+			self.hide()
+		else:
+			self.quit()
 
 	def quit(self):
 		# TODO: logic to hide the window

@@ -40,6 +40,7 @@ This is a core plugin shipping with zim.
 				from zim.daemon import DaemonProxy
 				self.proxyobject = DaemonProxy().get_object(
 					'zim.plugins.trayicon.DaemonTrayIcon', 'TrayIcon')
+				self.ui.hideonclose = True
 			else:
 				self.icon = StandAloneTrayIcon(self.ui)
 
@@ -47,8 +48,11 @@ This is a core plugin shipping with zim.
 		if self.icon:
 			self.icon.set_visible(False)
 			self.icon = None
+
 		if self.proxy:
 			self.proxy.quit()
+
+		self.ui.hideonclose = False
 
 	#~ def do_preferences_changed(self):
 		#~ pass
@@ -93,6 +97,10 @@ class TrayIcon(gtk.StatusIcon):
 		list = get_notebook_list()
 		self._populate_menu_notebooks(menu, list.get_names())
 
+		item = gtk.MenuItem(_('_Other...')) # T: menu item in tray icon menu
+		item.connect_object('activate', self.__class__.do_open_notebook, self)
+		menu.append(item)
+
 		menu.append(gtk.SeparatorMenuItem())
 
 		item = gtk.MenuItem(_('_Quit')) # T: menu item in tray icon menu
@@ -113,8 +121,13 @@ class TrayIcon(gtk.StatusIcon):
 	def do_present(self, uri):
 		raise NotImplementedError
 
-	def do_quit(self, uri):
+	def do_quit(self):
 		raise NotImplementedError
+
+	def do_open_notebook(self):
+		from zim.gui.notebookdialog import NotebookDialog
+		NotebookDialog.unique(self, self, callback=self.do_present).show()
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(TrayIcon)
@@ -160,6 +173,10 @@ class DaemonTrayIcon(TrayIcon):
 		self.daemon = DaemonProxy()
 
 	def main(self):
+		# Set window icon in case we open the notebook dialog
+		icon = data_file('zim.png').path
+		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
+
 		gtk.main()
 
 	def quit(self):

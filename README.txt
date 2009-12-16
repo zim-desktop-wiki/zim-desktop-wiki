@@ -71,9 +71,11 @@ dependencies check `./setup.py --requires`.
 You will at least need the following:
 
 	* gtk+ >= 2.6
-	* pygtk
-	* pygobject
-	* pyxdg
+	* python >= 2.5
+	* python-gtk
+	* python-gobject
+	* python-xdg (optional, but recommended)
+	* python-simplejson (for python <= 2.5)
 
 To verify zim is working properly on your system you can call the test suite
 using `./test.py`. Failures do not have to be critical, but in principle all
@@ -86,7 +88,41 @@ Zim can be installed from source using:
 Most plugins have additional requirements. These are listed in the plugin
 descriptions.
 
-===== Paths ====
+
+===== Ubuntu =====
+
+On Ubuntu or other debian derived systems, the following packages should be 
+installed:
+
+	* python
+	* libgtk2.0-0
+	* python-gtk2
+	* python-xdg
+
+
+===== Windows =====
+
+To install gtk, python and python-gtk on Windows see the instructions at
+http://www.pygtk.org . If you use python 2.5 you will also need to install the
+python simplejson module. This can be obtained from http://pypi.python.org .
+The python-xdg module is not usefull on Windows, so you can skip it.
+
+Once the dependencies are fulfilled you can run zim directly from the source
+directory.
+
+
+===== Mac OS X =====
+
+You can run zim on mac if you have the proper dependencies installed.
+If you are using Mac Ports packages installing the following ports should work:
+
+	* python25
+	* py25-gtk
+	* py25-simplejson
+	* py25-xdg
+
+
+===== Install Paths =====
 
 If you install in a non-default location you may need to set the PYTHONPATH
 environment variable in order for zim to find it's python modules.

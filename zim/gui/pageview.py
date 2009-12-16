@@ -1477,14 +1477,22 @@ class TextView(gtk.TextView):
 		return False # continue emit
 
 	def do_button_press_event(self, event):
+		# Need to overload some button handling here because
+		# implementation details of gtktextview.c do not use proper
+		# signals for these handlers.
 		buffer = self.get_buffer()
-		if event.button == 2 and not buffer.get_has_selection():
-			iter = self.get_iter_at_pointer()
-			clipboard = Clipboard(selection='PRIMARY')
-			buffer.paste_clipboard(clipboard, iter, self.get_editable())
-			return False
-		else:
-			return gtk.TextView.do_button_press_event(self, event)
+
+		if event.type == gtk.gdk.BUTTON_PRESS:
+			if event.button == 2 and not buffer.get_has_selection():
+				iter = self.get_iter_at_pointer()
+				clipboard = Clipboard(selection='PRIMARY')
+				buffer.paste_clipboard(clipboard, iter, self.get_editable())
+				return False
+			elif event.button == 3:
+				iter = self.get_iter_at_pointer()
+				self._set_popup_menu_mark(iter)
+
+		return gtk.TextView.do_button_press_event(self, event)
 
 	def do_button_release_event(self, event):
 		cont = gtk.TextView.do_button_release_event(self, event)
@@ -1496,6 +1504,24 @@ class TextView(gtk.TextView):
 			elif event.button == 3:
 				buffer.toggle_checkbox(iter, XCHECKED_BOX)
 		return cont # continue emit ?
+
+	def do_popup_menu(self):
+		# Hack to get called when user activates the popup-menu
+		# by a keybinding (Shift-F10 or "menu" key). Due to
+		# implementation details in gtktextview.c this method is
+		# not called when a popup is triggered by a mouse click.
+		buffer = self.get_buffer()
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		self._set_popup_menu_mark(iter)
+		return gtk.TextView.do_popup_menu(self)
+
+	def _set_popup_menu_mark(self, iter):
+		buffer = self.get_buffer()
+		mark = buffer.get_mark('zim-popup-menu')
+		if mark:
+			buffer.move_mark(mark, iter)
+		else:
+			mark = buffer.create_mark('zim-popup-menu', iter, True)
 
 	def do_key_press_event(self, event):
 		# This method defines extra key bindings for the standard input mode.
@@ -2516,7 +2542,9 @@ class PageView(gtk.VBox):
 
 	def do_populate_popup(self, menu):
 		buffer = self.view.get_buffer()
-		iter = self.view.get_iter_at_pointer()
+		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
+			# This iter can be either cursor position or pointer
+			# position, depending on how the menu was called
 		link = buffer.get_link_data(iter)
 		if link:
 			type = link_type(link['href'])
