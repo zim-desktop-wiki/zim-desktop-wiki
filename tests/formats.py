@@ -86,6 +86,7 @@ class TestTextFormat(TestCase):
 		notebook, self.page = get_test_page()
 
 	def testRoundtrip(self):
+		'''Test roundtrip for format'''
 		tree = self.format.Parser().parse(wikitext)
 		self.assertTrue(isinstance(tree, ParseTree))
 		self.assertTrue(tree.getroot().tag == 'zim-tree')
@@ -169,6 +170,7 @@ This is not a header
 
 
 	def testUnicodeBullet(self):
+		'''Test support for unicode bullets in source'''
 		input = u'''\
 A list
 • foo
@@ -186,6 +188,7 @@ A list
 		self.assertEqualDiff(output, text.splitlines(True))
 
 	def testLink(self):
+		'''Test iterator function for link'''
 		text = '[[FooBar]]' # FIXME add link type
 		tree = self.format.Parser().parse(text)
 		done = False
@@ -196,6 +199,7 @@ A list
 		self.assertTrue(done)
 
 	def testBackward(self):
+		'''Test backward compatibility for wiki format'''
 		input = u'''\
 test 1 2 3
 

@@ -35,7 +35,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 == Missing Features ==
 [*] Implement Calendar plugin
 [*] Implement insert date dialog
-[ ] Hook signal for linking - split off suggest-link from end-of-word ?
+[*] Hook signal for linking - split off suggest-link from end-of-word ?
 	* use e.g. in InsertDateDialog
 [*] Implement search + search dialog
 [*] Pageview: Finish the UndoStackManager and hook to the pageview
@@ -43,8 +43,8 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Pageview: make child items in list also (un)indent with parent
 [*] Implement TaskList plugin
 [*] Implement VersionControl plugin(s)
-[ ] Implement background deamon
-[ ] Implement TrayIcon plugin
+[*] Implement background deamon
+[*] Implement TrayIcon plugin
 [*] Implement InsertScreenshot plugin  ~~+ preference for command~~
 [*] Implement EquationEditor and DiagramEditor plugins
 [ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..
@@ -60,7 +60,6 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Implement "Open with custom command" dialog
 [ ] Implement zip and tar.gz notebooks
 [ ] Implement gjots notebooks
-[ ] WWW: Improve dialog for controlling web server
 [ ] WWW: Implement a '--public' option + add checkbox in GUI to allow remote connections (default localhost only)
 [ ] Templates: setting to determing use of <br> elements (default yes)
 [ ] Templates: need settings to enforce level of headings in output

@@ -166,8 +166,9 @@ def load_zim_stock_icons():
 	factory.add_default()
 	for dir in data_dirs(('pixmaps')):
 		for file in dir.list():
-			i = file.rindex('.')
-			name = 'zim-'+file[:i] # e.g. checked-box.png -> zim-checked-box
+			if not file.endswith('.png'):
+				continue # no all installs have svg support..
+			name = 'zim-'+file[:-4] # e.g. checked-box.png -> zim-checked-box
 			try:
 				pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
 				set = gtk.IconSet(pixbuf=pixbuf)

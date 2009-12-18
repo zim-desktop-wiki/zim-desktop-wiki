@@ -378,8 +378,17 @@ class TextBuffer(gtk.TextBuffer):
 			if isinstance(raw, basestring):
 				raw = (raw != 'False')
 
+		def force_line_start():
+			# Inserts a newline if we are not at the beginning of a line
+			# makes pasting a tree halfway in a line more sane
+			if not raw:
+				iter = self.get_iter_at_mark( self.get_insert() )
+				if not iter.starts_line():
+					self.insert_at_cursor('\n')
+
 		for element in node.getchildren():
 			if element.tag == 'p':
+				# No force line start here on purpose
 				if 'indent' in element.attrib:
 					self.set_indent(int(element.attrib['indent']))
 
@@ -395,6 +404,8 @@ class TextBuffer(gtk.TextBuffer):
 
 				self._insert_element_children(element, list_level=list_level+1, raw=raw) # recurs
 			elif element.tag == 'li':
+				force_line_start()
+				
 				if list_level < 0:
 					list_level = 0 # We skipped the <ul> - raw tree ?
 				if 'indent' in element.attrib:
@@ -404,6 +415,7 @@ class TextBuffer(gtk.TextBuffer):
 					bullet = element.attrib['bullet']
 				else:
 					bullet = BULLET # default to '*'
+
 				self.insert_bullet_at_cursor(bullet, raw=raw)
 
 				if element.text:
@@ -423,6 +435,7 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				# Text styles
 				if element.tag == 'h':
+					force_line_start()
 					tag = 'h'+str(element.attrib['level'])
 					self.set_textstyle(tag)
 				elif element.tag in self.tag_styles:
@@ -562,6 +575,15 @@ class TextBuffer(gtk.TextBuffer):
 		self._restore_cursor()
 
 	def insert_bullet_at_cursor(self, bullet, raw=False):
+		'''Insert a bullet plus a space at the cursor position.
+		If 'raw' is True the space will be omitted and the check that
+		cursor position must be at the start of a line will not be
+		enforced.
+		'''
+		if not raw:
+			insert = self.get_iter_at_mark( self.get_insert() )
+			assert insert.starts_line(), 'BUG: bullet not at line start'
+			
 		with self.user_action:
 			if bullet == BULLET:
 				if raw:
@@ -983,6 +1005,9 @@ class TextBuffer(gtk.TextBuffer):
 		If 'raw' is True you get a tree that is _not_ nicely cleaned up.
 		This raw tree should result in the exact same contents in the buffer
 		when reloaded so it can be used for e.g. by the undostack manager.
+		Also this feature allows for testability of the cleanup routines.
+		Raw parsetrees have an attribute to flag them as a raw tree, so on
+		insert we can make sure they are inserted in the same way.
 		'''
 		if bounds is None:
 			start, end = self.get_bounds()
@@ -1018,6 +1043,7 @@ class TextBuffer(gtk.TextBuffer):
 				builder.end(open_tags[-1][1])
 				open_tags.pop()
 
+			# Convert some tags on the fly
 			if tags:
 				for tag in tags[i:]:
 					t, attrib = tag.zim_tag, tag.zim_attrib
@@ -1028,8 +1054,15 @@ class TextBuffer(gtk.TextBuffer):
 							attrib = attrib.copy() # break ref with tree
 							attrib['bullet'] = bullet
 							self._iter_forward_past_bullet(iter, bullet)
+						elif not raw and not iter.starts_line():
+							# Indent not visible if it does not start at begin of line
+							t = '_ignore_'
 						else:
 							t = 'p'
+					elif t == 'pre' and not raw and not iter.starts_line():
+						# Without indenting 'pre' looks the same as 'code'
+						# Prevent turning into a seperate paragraph here
+						t = 'code'
 					elif t == 'link':
 						attrib = self.get_link_data(iter)
 						assert attrib['href'], 'Links should have a href'

@@ -1,0 +1,25 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Thu, 30 Jul 2009 21:34:55 +0200
+Modification-Date: Thu, 30 Jul 2009 21:35:35 +0200
+
+====== Storage ======
+Created Thursday 30 July 2009
+
+Ideas for new storage formats. Also see [[Attachments]]
+
+Formatting
+* Markdown
+* Mediawiki
+* Dokuwiki
+
+Storage
+* IMap
+* Mediawiki remote interface ?
+* Dokuwiki RPC interface
+
+Alternatively any storage that can be mounted through e.g. a fuse layer will just work out of the box. But may need to adjust directory layout details for other wiki types.
+
+Pages are abstract enough that any remote storage will work. However we do not include a full file manager for attachments (yet). So to make a truly remote some work would be needed to manage remote attachments as well.
+
+So we need to be able to deal with conflicts anyway. In that case checking content is not a bad idea. Have a notebook property to flag for backward compatibility and have a user visible property "all text files are pages" so peopel can choose depending on their usage. Woudl also need a one time upgrade action for old notebooks.

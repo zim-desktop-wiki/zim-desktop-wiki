@@ -1,0 +1,23 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Synchronization ======
+Created Friday 18 December 2009
+
+Multiple ways to do synchronisation
+* Version control push / pull (bazaar, subversion, git ...)
+* rsync, unison, ...
+* email
+* webmail (e.g. gmail)
+* dedicated http / webdav server
+
+The first two options are preferred because we can leave all the hassle of doing the actual sync or merge to a specialized program.
+
+Would need a trigger to determine when to sync. Probably the same as for autosaving a version in version control. E.g. when leaving the program, daily, weekly, on an explicit user action.
+
+Would like a generic plugin for this similar to versioncontrol and probably integrated with it when both are loaded. THe synchronization plugin could handle various backends.
+
+Would be nice if we can syncronize by sending diffs to email. 
+* You don't have to have a server online (and webmail accounts are cheap)
+* If you can send the email through HTTP including proxy settings you can work from any network without to much hassle
+I think bazaar can generate the diffs.

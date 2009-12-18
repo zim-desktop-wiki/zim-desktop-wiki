@@ -1,0 +1,16 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Tags ======
+
+One way to work with tags is to link pages to a special tag page and use back links to track all pages that have this tag. The main thing a tag plugin would do is add UI elements for this way of working.
+
+* Autocomplete tags, e.g. drop down if you type "@" with known tags
+* Autolink tags when they are typed
+* Make tag pages really special and autogenerate them with a list of links
+	* This could be build on top of [[SavedSearch]]
+* Tag based side pane view to replace hierarchy view
+	* This would mean caching tags per page in the index database
+* Integrate tags better in the search dialog ? 
+* Integrate tags better in the Taks List  dialog ?
+* Add a tag cload somwhere ?

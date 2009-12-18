@@ -246,9 +246,12 @@ class ParseTreeBuilder(object):
 	* Each 'p', 'pre' and 'h' should be postfixed with a newline ('\n')
 	  (as a results 'p' and 'pre' are followed by an empty line, the
 	   'h' does not end in a newline itself, so it is different)
+	* Newlines ('\n') after a <li> alement are removed (optional)
+	* The element '_ignore_' is silently ignored
 	'''
 
-	def __init__(self):
+	def __init__(self, remove_newlines_after_li=True):
+		assert remove_newlines_after_li, 'TODO'
 		self._stack = [] # stack of elements for open tags
 		self._last = None # last element opened or closed
 		self._data = [] # buffer with data
@@ -257,7 +260,9 @@ class ParseTreeBuilder(object):
 			# starts with "2" so check is ok for first top level element
 
 	def start(self, tag, attrib=None):
-		if tag in ('h', 'p', 'pre'):
+		if tag == '_ignore_':
+			return self._last
+		elif tag in ('h', 'p', 'pre'):
 			self._flush(need_eol=2)
 		else:
 			self._flush()
@@ -290,7 +295,9 @@ class ParseTreeBuilder(object):
 		return self._last
 
 	def end(self, tag):
-		if tag in ('p', 'pre'):
+		if tag == '_ignore_':
+			return None
+		elif tag in ('p', 'pre'):
 			self._flush(need_eol=1)
 		else:
 			self._flush()

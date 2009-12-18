@@ -6,11 +6,11 @@ Modification-Date: Thu, 30 Jul 2009 21:37:26 +0200
 ====== SavedSearch ======
 Created Thursday 30 July 2009
 
-voor tags of andere saved search zelfde idee als voor TODO plugin
+Saved Search would be generic interface used for e.g. by [[Task List]] plugin or a [[Tags]] plugin. It would use a table in the index database to account which page matches what search. This table would be updated all the time by hooking the queries into updates of the database.
 
--> connect naar database voor init table / index page
--> on init check of table bestaat, anders force update index
+Need two signals on index
+* One for init to create the tables
+* One on index page to run the queries
 
-Generic SavedSearch object die een query neemt als argument
-Probably sub class van Search / Query object
-Tags plugin kan die dan gebruiken
+As a seperate feature it would be nice to have special pages, which are read-only and have links to all matches. Or should this go into a special UI element, e.g. in the side pane ? 
+

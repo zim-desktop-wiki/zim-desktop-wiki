@@ -19,7 +19,4 @@ We depend on Gtk+ >= 2.6 instead of >= 2.4
 
 === File links ===
 * Dropped backward support for linking images in same namespace as dir with "./"  now only works with "../" while "./" is reserved for attachments.
-* Made paths starting with '/' always refer to the document root. Absolute paths
-  now always need the file:// syntax. (Only in the case where a notebook really
-  doesn't have a directory will the document root default to the filesystem
-  root.)
+* Made paths starting with '/' always refer to the document root. Absolute paths now always need the file:// syntax. (Only in the case where a notebook really doesn't have a directory will the document root default to the filesystem root.)

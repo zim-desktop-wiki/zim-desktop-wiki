@@ -70,7 +70,7 @@ longopts = ('verbose', 'debug')
 commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual')
 commandopts = {
 	'gui': ('list', 'geometry=', 'fullscreen', 'no-daemon'),
-	'server': ('port=', 'template=', 'gui'),
+	'server': ('port=', 'template=', 'gui', 'no-daemon'),
 	'export': ('format=', 'template=', 'output='),
 	'index': ('output=',),
 }
@@ -300,6 +300,11 @@ def main(argv):
 			gui = proxy.get_notebook(notebook)
 			gui.present(page, **optsdict)
 	elif cmd == 'server':
+		try:
+			del optsdict['no-daemon']
+		except KeyError:
+			pass
+
 		import zim.www
 		handler = zim.www.Server(*args, **optsdict)
 		handler.main()

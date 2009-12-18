@@ -36,6 +36,15 @@ def get_tree(wikitext):
 	return tree
 
 
+def get_tree_from_xml(xml):
+	# For some reason this does not work with cElementTree.XMLBuilder ...
+	from xml.etree.ElementTree import XMLTreeBuilder
+	builder = XMLTreeBuilder()
+	builder.feed(xml)
+	root = builder.close()
+	return ParseTree(root)
+
+
 class TestTextBuffer(TestCase):
 
 	def runTest(self):
@@ -81,26 +90,114 @@ class TestTextBuffer(TestCase):
 <zim-tree raw="True">
 foo<h level="1">bar</h>baz
 
-dus<pre>ja</pre>hmm
+dus <pre>ja</pre> hmm
 
 <h level="2">foo
 </h>bar
 
-dus ja <emphasis>hmm
+dus <p indent="5">ja</p> <emphasis>hmm
 dus ja
 </emphasis>grrr
 
+<li bullet="*" indent="0">Foo</li>
+<li bullet="*" indent="0">Bar</li>
 </zim-tree>'''
-		# For some reason this does not work with cElementTree.XMLBuilder ...
-		from xml.etree.ElementTree import XMLTreeBuilder
-		builder = XMLTreeBuilder()
-		builder.feed(input)
-		root = builder.close()
-		tree = ParseTree(root)
+		tree = get_tree_from_xml(input)
 		buffer.set_parsetree(tree)
+		self.assertFalse(buffer.get_modified())
+		
 		rawtree = buffer.get_parsetree(raw=True)
+		self.assertFalse(buffer.get_modified())
 		self.assertEqualDiff(rawtree.tostring(), input)
 
+		# Test errors are cleaned up correctly
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+foo
+
+<h level="1">bar</h>
+baz
+
+dus <code>ja</code> hmm
+
+<h level="2">foo</h>
+bar
+
+dus ja <emphasis>hmm</emphasis>
+<emphasis>dus ja</emphasis>
+grrr
+
+<li bullet="*" indent="0">Foo</li><li bullet="*" indent="0">Bar</li></zim-tree>'''
+		tree = buffer.get_parsetree()
+		self.assertFalse(buffer.get_modified())
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		# Test pasteing some simple text
+		buffer.set_parsetree(tree) # reset without errors
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><strong>Bold</strong></zim-tree>'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+foo
+
+<h level="1">bar</h>
+baz
+
+dus <code>ja</code> hmm
+
+<h level="2">foo</h>
+bar
+
+dus ja <emphasis>hmm</emphasis>
+<emphasis>dus ja</emphasis>
+grrr
+
+<li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0">Bar</li></zim-tree>'''
+		pastetree = get_tree_from_xml(input)
+		iter = buffer.get_iter_at_line(15)
+		iter.forward_chars(5) # position after "* Foo"
+		buffer.insert_parsetree(iter, pastetree, interactive=True)
+		tree = buffer.get_parsetree()
+		self.assertTrue(buffer.get_modified())
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		# Now paste list halfway and see result is OK
+		# because of the bullets pasting should go to a new line
+		# automatically
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><li>Foo</li><li>Bar</li>
+</zim-tree>'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+foo
+
+<h level="1">bar</h>
+baz
+<li bullet="*" indent="0">Foo</li><li bullet="*" indent="0">Bar</li>
+
+
+dus <code>ja</code> hmm
+
+<h level="2">foo</h>
+bar
+
+dus ja <emphasis>hmm</emphasis>
+<emphasis>dus ja</emphasis>
+grrr
+
+<li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0">Bar</li></zim-tree>'''
+		pastetree = get_tree_from_xml(input)
+		iter = buffer.get_iter_at_line(4)
+		iter.forward_chars(3) # position after "baz"
+		buffer.insert_parsetree(iter, pastetree, interactive=True)
+		tree = buffer.get_parsetree()
+		self.assertTrue(buffer.get_modified())
+		self.assertEqualDiff(tree.tostring(), wanted)
 
 class TestUndoStackManager(TestCase):
 

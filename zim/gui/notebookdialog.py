@@ -158,10 +158,10 @@ class NotebookComboBox(gtk.ComboBox):
 		self.pack_start(cell_renderer, False)
 		self.set_attributes(cell_renderer, text=NAME_COL)
 
-		if current is None:
-			self.set_default_active()
+		if current:
+			self.set_notebook(current, append=True)
 		else:
-			self.set_notebook(notebook, append=True)
+			self.set_default_active()
 
 	def set_default_active(self):
 		'''Select the default notebook in the combobox'''
@@ -176,6 +176,12 @@ class NotebookComboBox(gtk.ComboBox):
 		If 'append' is True it will appended if it didn't exist yet
 		in the notebook list.
 		'''
+		if isinstance(uri, basestring):
+			assert uri.startswith('file://')
+		else:
+			assert hasattr(uri, 'uri')
+			uri = uri.uri
+
 		model = self.get_model()
 		iter = model.get_iter_for_notebook(uri)
 		if iter is None:
