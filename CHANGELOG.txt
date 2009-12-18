@@ -27,5 +27,6 @@ Translations available for:
 * Czech
 * French
 * German
+* Korean
 * Ukrainian
 * Spanish

@@ -1,3 +1,10 @@
+pyzim (0.42.beta3-ubuntu1) karmic; urgency=low
+
+  [ Jaap Karrsenberg ]
+  * New beta version, includes drag n drop support and tray icon plugin
+
+ -- Jaap Karrsenberg <pardus@cpan.org>  Fri, 18 Dec 2009 22:51:00 +0100
+
 pyzim (0.42.beta2-ubuntu1) karmic; urgency=low
 
   [ Jaap Karrsenberg ]
