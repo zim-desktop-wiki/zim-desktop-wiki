@@ -1,0 +1,6 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== automatic formatting ======
+Created Thursday 24 December 2009
+

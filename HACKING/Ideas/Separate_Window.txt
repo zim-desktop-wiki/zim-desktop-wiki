@@ -1,0 +1,15 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Separate Window ======
+Created Wednesday 23 December 2009
+
+* Need to be able to manage multiple pageviews
+	* make sure we handle all by signals
+	* ui needs to track open pages instead of single page attribute -> check who accesses ui.page
+	* pageviews should coordinate to use the same model if they open the same page
+* Need class for secondairy window + own menubar / toolbar definition
+* Need option to split the window (horizontal / vertical) - once or multiple times ?
+* Need to decide up front how this combines with overloading pageview for special page types
+
+Quick hack would be to have separate windows that are strictly read-only and open links in the main window.

@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Parse Tree ======
+Created Wednesday 23 December 2009
+
+Make our internal format more HTML like. Still want to keep whitespace within paragraphs - encoding every extra space, tab and newline with an extra tag seems silly. So make every paragraph like a <pre>
+
+However for spaces between paragraphs we maybe need to be more flexible - rendering html now gets too many additional <br> elements. Use hint for number of newlines like with perl version ? Have parsetree builder clean up redundant whitespace after heading etc. Wrap everything in para elements to make structure more clear. (and properly nest list elements)
+
+How about indented part within a paragraph? Probably should use generic block element for this. Now it could be seen as a separate para, what is not necessarily what we want.
+
+Also Use "i" and "b" instead of "emphasis" and "strong" ??

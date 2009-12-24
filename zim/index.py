@@ -199,12 +199,6 @@ class Index(gobject.GObject):
 		self.notebook = notebook
 
 		if not self.dbfile:
-			# TODO index for RO notebooks
-			#~ if notebook.isreadonly \
-			#~ and not notebook.dir is None \
-			#~ and notebook.dir.file('index.db').exists():
-				#~ self.dbfile = notebook.dir.file('index.db')
-			#~ else:
 			if notebook.cache_dir is None:
 				logger.debug('No cache dir found - loading index in memory')
 				self.dbfile = ':memory:'
@@ -214,18 +208,26 @@ class Index(gobject.GObject):
 				logger.debug('Index database file: %s', self.dbfile)
 			self._connect()
 
-		def on_page_moved(o, oldpath, newpath):
+		def on_page_moved(o, oldpath, newpath, update_links):
+			# When we are the primary index and the notebook is also
+			# updating links, these calls are already done by the
+			# notebook directly
 			self.delete(oldpath)
 			self.update(newpath, background=True)
 
-		self.notebook.connect('page-created',
-			lambda o, p: self._touch_path(p) )
-			# page-created is always directly followed by page-updated
-		self.notebook.connect('page-updated',
-			lambda o, p: self._index_page(self.lookup_path(p), p) )
-		self.notebook.connect('page-moved', on_page_moved)
-		self.notebook.connect('page-deleted',
-			lambda o, p: self.delete(p) )
+		def on_page_updated(o, page):
+			indexpath = self.lookup_path(page)
+			if not indexpath:
+				indexpath = self._touch_path(page)
+			self._index_page(indexpath, page)
+
+		self.notebook.connect('move-page', lambda *a: self.ensure_update())
+		self.notebook.connect('delete-page', lambda *a: self.ensure_update())
+		# TODO - need way to flag indexpaths are no longer valid, but not rush to finish directly - rather re-schedule
+
+		self.notebook.connect_after('store-page', on_page_updated)
+		self.notebook.connect_after('move-page', on_page_moved)
+		self.notebook.connect_after('delete-page', lambda o, p: self.delete(p))
 
 	def _connect(self):
 		self.db = sqlite3.connect(
@@ -550,8 +552,9 @@ class Index(gobject.GObject):
 
 	def delete(self, path):
 		'''Delete page plus sub-pages plus forward links from the index'''
-		path = self.lookup_path(path)
-		self.emit('delete', path)
+		indexpath = self.lookup_path(path)
+		if indexpath:
+			self.emit('delete', indexpath)
 
 	def do_delete(self, path):
 		ids = [path.id]
@@ -608,6 +611,7 @@ class Index(gobject.GObject):
 		for internal use only, but can be used by other modules in
 		some cases to optimize repeated index lookups. If a parent IndexPath
 		is known this can be given to speed up the lookup.
+		If path is not indexed this method returns None.
 		'''
 		# Constructs the indexpath downward
 		if isinstance(path, IndexPath):

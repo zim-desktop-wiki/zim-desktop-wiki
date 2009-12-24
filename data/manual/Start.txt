@@ -19,3 +19,5 @@ Help section:
 Usage tips and tricks:
 * [[Usage]] 
 
+
+For development documentation please download the source package and have a look at the notes included in the "HACKING" folder and at the inline API documentation in the source.

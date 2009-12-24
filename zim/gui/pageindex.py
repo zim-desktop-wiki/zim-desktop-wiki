@@ -361,6 +361,7 @@ class PageTreeView(BrowserTreeView):
 
 	def select_page(self, path):
 		'''Select a page in the treeview, connected to the open-page signal'''
+		print 'START select page'
 		model, iter = self.get_selection().get_selected()
 		if model is None:
 			return # index not yet initialized ...
@@ -380,6 +381,7 @@ class PageTreeView(BrowserTreeView):
 			self.set_cursor(treepath)
 			self.scroll_to_cell(treepath)
 
+		print 'END select page'
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageTreeView)

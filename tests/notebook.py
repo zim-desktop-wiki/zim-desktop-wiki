@@ -10,6 +10,7 @@ from zim.fs import *
 from zim.config import config_file
 from zim.notebook import *
 from zim.index import LINK_DIR_FORWARD
+import zim.errors
 
 class TestGetNotebook(tests.TestCase):
 
@@ -96,9 +97,13 @@ class TestGetNotebook(tests.TestCase):
 class TestNotebook(tests.TestCase):
 
 	def setUp(self):
+		zim.errors.silence_signal_exception_context = True
 		if not hasattr(self, 'notebook'):
 			self.notebook = tests.get_test_notebook()
 			self.notebook.index.update()
+
+	def tearDown(self):
+		zim.errors.silence_signal_exception_context = False
 
 	def testAPI(self):
 		'''Test various notebook methods'''
@@ -166,13 +171,13 @@ class TestNotebook(tests.TestCase):
 			self.assertFalse(page.hascontent)
 
 			# let's delete the newpath again
-			self.assertTrue(self.notebook.delete_page(newpath))
+			self.notebook.delete_page(newpath)
 			page = self.notebook.get_page(newpath)
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
 
 			# delete again should silently fail
-			self.assertFalse(self.notebook.delete_page(newpath))
+			self.notebook.delete_page(newpath)
 
 		# check cleaning up works OK
 		page = self.notebook.get_page(Path('NewPage'))
@@ -267,7 +272,7 @@ http://foo.org # urls are untouched
 		def links(source, href):
 			#~ print '===='
 			for link in self.notebook.index.list_links(source, LINK_DIR_FORWARD):
-				#~ print 'LINK', link
+				#~ print 'FOUND LINK', link
 				if link.href == href:
 					return True
 			else:

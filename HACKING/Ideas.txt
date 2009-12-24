@@ -5,6 +5,14 @@ Modification-Date: Sat, 04 Apr 2009 10:56:26 +0200
 
 ====== Ideas ======
 
+How about a plugin to have a quick "scratch" pad, that concats notes to a certain page
++ commandline option to trigger this by a desktop keybinding (more sticky note like)
+Or put these stickies in a special namespace, with a top level list view
+-> file scratch + timestamps + separator
+
+Similar integration with a special window for databse plugin would make zim into a custom address book etc.
+
+-----
 
 Entries can now have inline icons now - see
 http://library.gnome.org/devel/gtk/unstable/GtkEntry.html :)

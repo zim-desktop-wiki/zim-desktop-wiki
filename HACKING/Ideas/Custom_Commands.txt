@@ -1,0 +1,51 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Custom Commands ======
+Created Wednesday 23 December 2009
+
+%f for source file as tmp file current page
+%d for attachment directory
+%s for real source file (if any)
+%n for notebook location (file or directory)
+%D for document root
+%t for selected text or word under cursor
+
+always show in menu bar
+
+Command options
+name
+description (tooltip)
+(icon)
+command
+
+option modifies notebook X-Zim-ReadOnly = True / False
+-> used to determine read-ony state + blocking
+-> if modifies we wrap into block + reload page + trigger update index
+
+Show options
+- option to show in toolbar X-Zim-ShowInToolBar = True
+- option to show in text context menu (in combo with %t) X-Zim-ShowInContextMenu = Text
+- option to show in page context menu (in combo with %f) X-Zim-ShowInContextMenu = Page
+
+.. use special names like "file_browser", "text_editor" etc. to hook into application settings in zim ?
+-> restrictions on which defaults work in foreground - but only text-editor should work in foreground
+
+--
+**Documentation**
+
+This allows you to quickly extend functionality in zim by shell scripts or other small programs. It is also useful to prototype plugin functionality without having to learn the full API for plugins.
+
+When testing out scripts that directly modify the notebook directory, make sure you have backups of your data. It might also be a good idea to enable version control and save a snapshot of the notebook before running a script.
+
+If you want to modify the wiki syntax in an automated way, it is worth considering to do your script in python and directly use the zim.formats.wiki module for parsing the wiki page. Once you take this step it becomes relatively easy to turn the script into a full plugin module later on.
+
+If your script needs e.g. a custom dialog to prompt information from the user it is advised to look into python and gtk as well. The Glade editor may help you to rapidly draw a dialog. Again, by using this framework it will be easy to turn the script into a plugin later on.
+
+One limitation of this interface is that you can not interact directly with the textbuffer. For example you can not change the cursor position or apply changes which will be undoable. To acheive this you will need to look into writing a real plugin and use the API for the text buffer.
+
+Link glade
+
+See .. for a quick introduction in python gtk with glade.
+
+See ... for information on writing plugins.

@@ -22,7 +22,7 @@ This plugin depends on Gtk+ version 2.10 or newer.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
-		'help': 'Plugins:Calendar',
+		'help': 'Plugins:Tray Icon',
 	}
 
 	#~ plugin_preferences = (
@@ -49,8 +49,8 @@ This is a core plugin shipping with zim.
 			self.icon.set_visible(False)
 			self.icon = None
 
-		if self.proxy:
-			self.proxy.quit()
+		if self.proxyobject:
+			self.proxyobject.quit()
 
 		self.ui.hideonclose = False
 

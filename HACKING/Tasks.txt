@@ -6,61 +6,42 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 
 **Also grep for TODO and FIXME tags in the code**
 
-== Art Work ==
-[*] Need icon for LinkMap plugin - re-use red boxes from zim logo ?
-[ ] Update icons for calendar / task list ?
-[ ] Improve HTML templates & CSS stylesheets for export and server use
-
 == Packaging ==
 [*] Build ubuntu / debian package
 [ ] Build windows installer (with or without Python + Gtk included)
 [ ] Add website to bazaar + tools/generate_wesite.py
-	* Include some static pages + screenshots etc.
-	* Include manual in website
-	* Include HACKING in website
-	* Store old manual somewhere and link it (but not in bazaar branch)
 [ ] Finish manual
 [ ] Update XDG cache and install mime icon on install
 
-== Defects ==
-[*] Pageview: enforce heading can not be indented
+== Defects & Missing Features ==
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
-[*] Pageview: Rich copy paste / drag drop
-[*] Pageindex: Drag&Drop in the side pane is not working
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
 [ ] Links to non-exisiting pages are not indexed
-	* Keep a table that has dead-links by basename and trigger index of source pages when a page is created with the same basename
-
-== Missing Features ==
-[*] Implement Calendar plugin
-[*] Implement insert date dialog
-[*] Hook signal for linking - split off suggest-link from end-of-word ?
-	* use e.g. in InsertDateDialog
-[*] Implement search + search dialog
-[*] Pageview: Finish the UndoStackManager and hook to the pageview
+	* While at it, replace key by mtime and add entry for top level namespace
+[ ] Pages that are removed by cleanup of empty directories do not disappear from the index
+[ ] Moving pages should 
 [ ] Pageview: implement recursive checkbox lists
 [ ] Pageview: make child items in list also (un)indent with parent
-[*] Implement TaskList plugin
-[*] Implement VersionControl plugin(s)
-[*] Implement background deamon
-[*] Implement TrayIcon plugin
-[*] Implement InsertScreenshot plugin  ~~+ preference for command~~
-[*] Implement EquationEditor and DiagramEditor plugins
 [ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..
 	* Preferences dialog should have list of mount points
 [ ] Package icons in target directory when exporting
+[ ] Dialog: improved widgets for page and namespace inputs
+	* Need ability to input top level namespace - now I can not enter empy string
 
 == New Features ==
+[ ] Add custom commands in tools menu [[Ideas:Custom Commands]] 
+[ ] Pageview: make child items in list also (un)indent with parent
 [ ] Pageview: menu controls to indent / unindent / move up move down a list item
 	* Check emission of indent-changed signal to set state of buttons
 	* Also think about keybindings for moving a line up / down or top / bottom
 [ ] Pageview: support numbered lists
-[ ] Dialog: improved widgets for page and namespace inputs
+[ ] Moving page should try to merge if namespace already exists
 [ ] Implement "Open with custom command" dialog
 [ ] Implement zip and tar.gz notebooks
 [ ] Implement gjots notebooks
 [ ] WWW: Implement a '--public' option + add checkbox in GUI to allow remote connections (default localhost only)
+[ ] Calendar needs to register additional template methods in order to refine it's template
 [ ] Templates: setting to determing use of <br> elements (default yes)
 [ ] Templates: need settings to enforce level of headings in output
 	* see ParseTree.cleanup_headings() - needs test
@@ -74,3 +55,4 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 	* Also wrap pixbufs into widgets so we can set tooltips etc.
 [ ] Add iconview with attachments at botton of pageview
 	* Use an expander or similar to show / hide
+[ ] Archive function as an alternative to delete - put it in a special namespace + add timestamp to page name

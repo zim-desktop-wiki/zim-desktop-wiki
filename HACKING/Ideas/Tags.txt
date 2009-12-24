@@ -14,3 +14,10 @@ One way to work with tags is to link pages to a special tag page and use back li
 * Integrate tags better in the search dialog ? 
 * Integrate tags better in the Taks List  dialog ?
 * Add a tag cload somwhere ?
+
+As an alternative, how about adding an entry on the bottom of the page for listing tags ?
+Separate them from content, but add them as special links in properties / contents
+Have an "+" icon that shows a popup of known tags
+Might work nicer
+
+Really need good interface to browse by tag - especially for photos

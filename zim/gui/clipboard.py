@@ -156,6 +156,14 @@ class Clipboard(gtk.Clipboard):
 			xml = parsetree.tostring().encode('utf-8')
 			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
 		elif id == HTML_TARGET_ID:
+			# FIXME - HACK - dump and parse as wiki first to work
+			# around glitches in pageview parsetree dumper
+			# main visibility when copy pasting bullet lists
+			dumper = get_format('wiki').Dumper()
+			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
+			parser = get_format('wiki').Parser()
+			parsetree = parser.parse(text)
+			#--
 			dumper = get_format('html').Dumper(
 				linker=StaticLinker('html', notebook, page) )
 			html = ''.join( dumper.dump(parsetree) )

@@ -1,0 +1,15 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Export OpenOffice ======
+Created Wednesday 23 December 2009
+
+* just zip file with XML, could handle it with etree library - but even easier as plain text
+	* use template, open zip file, look for template instructions, fill them in
+	* Need OO specific XML output - see: http://books.evc-cit.info/odbook/book.html
+
+While at it create base class for import / export xml formats
+* have a map with 1-to-1 translations
+* allow methods for specific tags that need conversion logic
+* import can ignore unknown tags (optional ?)
+

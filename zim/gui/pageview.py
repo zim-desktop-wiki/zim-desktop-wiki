@@ -405,7 +405,7 @@ class TextBuffer(gtk.TextBuffer):
 				self._insert_element_children(element, list_level=list_level+1, raw=raw) # recurs
 			elif element.tag == 'li':
 				force_line_start()
-				
+
 				if list_level < 0:
 					list_level = 0 # We skipped the <ul> - raw tree ?
 				if 'indent' in element.attrib:
@@ -583,7 +583,7 @@ class TextBuffer(gtk.TextBuffer):
 		if not raw:
 			insert = self.get_iter_at_mark( self.get_insert() )
 			assert insert.starts_line(), 'BUG: bullet not at line start'
-			
+
 		with self.user_action:
 			if bullet == BULLET:
 				if raw:
@@ -2396,10 +2396,11 @@ class PageView(gtk.VBox):
 				assert not self.view.get_buffer().get_modified(), \
 					'BUG: page changed while buffer changed as well'
 
-		for s in ('page-updated', 'page-deleted', 'page-moved'):
-			notebook.connect(s, assert_not_modified)
+		for s in ('store-page', 'delete-page', 'move-page'):
+			notebook.connect_after(s, assert_not_modified)
 
 	def set_page(self, page):
+		print 'START set page'
 		# unhook from previous page
 		if self.page:
 			self.page.set_ui_object(None)
@@ -2441,7 +2442,7 @@ class PageView(gtk.VBox):
 		if cursorpos != -1:
 			buffer.place_cursor(buffer.get_iter_at_offset(cursorpos))
 
-		self.view.scroll_mark_onscreen(buffer.get_insert())
+		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
 
 		buffer.connect('textstyle-changed', self.do_textstyle_changed)
 		buffer.connect('modified-changed',
@@ -2449,6 +2450,7 @@ class PageView(gtk.VBox):
 
 		self.undostack = UndoStackManager(buffer)
 		self.set_readonly()
+		print 'END set page'
 
 	def get_page(self): return self.page
 
@@ -2504,7 +2506,7 @@ class PageView(gtk.VBox):
 	def set_cursor_pos(self, pos):
 		buffer = self.view.get_buffer()
 		buffer.place_cursor(buffer.get_iter_at_offset(pos))
-		self.view.scroll_mark_onscreen(buffer.get_insert())
+		self.view.scroll_to_mark(buffer.get_insert(), 0.2)
 
 	def get_cursor_pos(self):
 		buffer = self.view.get_buffer()

@@ -7,6 +7,9 @@ Modification-Date: Wed, 08 Jul 2009 20:28:53 +0200
 
 Pages in this section contain help on using specific parts of the applications.
 
+Function by Menu Item
+* [[+Menu Items|Menu Items]]
+
 Organization
 * [[+Notebooks|Notebooks]]
 * [[+Pages|Pages]]

@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Tray Icon ======
+
+The Tray Icon plugin adds an icon for zim in the system tray or status bar. This icon gives quick access to the zim notebooks.
+
+Clicking on the tray icon with the left mouse will popup the current notebook if only one notebook is open, or show a menu of notebooks to choose from. If any notebooks are open this menu only contains the open notebooks.
+
+Clicking in the tray icon with the right mouse button will open a menu with all known notebooks. Also there is an option to quit zim entirely.
+
+When the notebook plugin is enabled windows are hidden when they are closed instead of closing them entirely.  Quiting a notebook will really close it. However even when all the windows have quit there is still a zim process running in the background. Select "Quit" in the tray icon menu is the only way to completely exit zim.
+

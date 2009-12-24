@@ -1,0 +1,77 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Database and Album ======
+Created Wednesday 23 December 2009
+
+Database
+
+    * Both form based notebooks and album notebooks are databses
+    * Both are record based
+    * Image name itself is record value, but also meta data like EXIF stuff..
+    * Key features that make this different from other pages
+
+    * Each page has a uniform set of attributes - the record columns
+    * Some special UI layout will be needed to show these attributes
+    * Search interface can be extended to know about these attributes
+    * Either a column based record list or thumbnail view as browsing interface replaces index sidepane
+          o for thumbnails left placement could work, for table it should be top
+    * Page name becomes much less relevant - in fact only needed for matching rest of zim
+          o key based on arbitrary ID (photo number / some other ID number)
+          o ID needs to be and remain unique because of linking - no "rename"
+          o name in side pane does not need to match this unique ID..
+    * Need to configure properties per namespace
+    * Storage may use flat file or even db file instead of separate text files
+    * Still want to associate free form text to make it wiki-like -- but pages can have multiple free-form text fields, with templates for the text..
+    * Next logical step is to have separate namespaces as "tables" and link between properties of seperate tables
+          o From there you go to business logic, like enforce relationships ... ewww :S
+
+    * In core of zim
+          o Function to deal with property tables / forms in wiki source
+          o Fucntion to deal with including these in HTML export
+          o Page property to show you can not rename it - is moving allowed than ? guess not - show error after drag-drop in side pane
+          o Side pane should support diff between real name and name to display (also do the right thing when pasting by draggin link into editor)
+                + Or allow plugin to hide namespace from side pane ?
+          o commandline argument to load plugin early, so it can subclass GTKInterface
+                + e.g. PhotoAlbum interface could derive from GTKInterface, but hide some widgets and initialize a album notebook by default
+                + but really this should be determined by the "profile" option
+    * In plugin
+          o Control extra widgets for a namespace - e.g. column view or thumbnail view
+          o Control display of a single page - e.g. form or image view
+    * Database plugin
+          o Allow user to specify form columns and layout
+          o Add table view above page
+          o Add search function ?
+          o Let user choose way to store, file per item or single file
+    * Album plugin
+          o Add thumbnail view
+          o Make pages render images
+          o Store all meta data in a flat file by default
+          o Think about fullscreen view / slideshow
+          o Think about using saved search to make collections and still show correct controls
+                + Saved search is just a page with links I guess ? Or show as a namespace ?
+                      # prefer list of links, as namespace is messing with uniqueness
+          o Think about nice gallery template to export photos to webpage
+    * Book plugin
+          o Build on database plugin
+          o Add some lib to extract to ISBN numbers (which one)
+          o Add import from list of scanned ISBN numbers
+                + Maybe put import / export CSV in dabase plugin features
+
+    * notebook property profile="photoalbum"
+    * Makes sure photoalbum plugin is loaded
+    * Makes sure plugin is managing root namespace
+    * Changes MainWindow to fine tuned view for photo collection
+    * plugin has features both use embedded in a other notebook and this "stand alone" usage
+                + first develop stand alone use to avoid complexity
+
+So concrete to add a album application:
+
+    * Write the backend for it using a flat file (XML ?) + the photo directy - allow subdirectories
+    * Have notebook support multiple children for real and add configuration options for it
+    * Add plugin to render pages in such a namespace differently (need hooks for this in pageview / mainwindow)
+
+          o First hack is to just look at first element of parsetree to be an image - optimise later with definition table logic
+    * Add support for profile option to kickstart plugin
+    * Add advanced option in "new notebooks" to assign profile
+

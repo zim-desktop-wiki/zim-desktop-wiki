@@ -580,10 +580,26 @@ class GtkInterface(NotebookInterface):
 
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook.'''
+
+		def move_away(o, path):
+			if self.page >= path:
+				self.open_page_back() \
+				or self.open_page_parent \
+				or self.open_page_home
+
+		def autosave(o, p):
+			page = self.mainwindow.pageview.get_page()
+			if page.modified:
+				self.save_page(page)
+
 		NotebookInterface.do_open_notebook(self, notebook)
 		self.history = History(notebook, self.uistate)
 		self.on_notebook_properties_changed(notebook)
 		notebook.connect('properties-changed', self.on_notebook_properties_changed)
+		notebook.connect('delete-page', autosave) # before action
+		notebook.connect('move-page', autosave) # before action
+		notebook.connect_after('delete-page', move_away)
+		notebook.connect_after('move-page', move_away) # TODO go to new location instead ?
 
 		# Start a lightweight background check of the index
 		self.notebook.index.update(background=True, checkcontents=False)
@@ -609,7 +625,7 @@ class GtkInterface(NotebookInterface):
 			return OpenPageDialog(self).run()
 
 		assert isinstance(path, Path)
-		if isinstance(path, Page):
+		if isinstance(path, Page) and path.valid:
 			page = path
 		else:
 			page = self.notebook.get_page(path)
@@ -626,6 +642,7 @@ class GtkInterface(NotebookInterface):
 
 	def do_open_page(self, page, path):
 		'''Signal handler for open-page.'''
+		print 'START do open page'
 		is_first_page = self.page is None
 		self.page = page
 
@@ -652,6 +669,7 @@ class GtkInterface(NotebookInterface):
 
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
+		print 'END do open page'
 
 	def close_page(self, page=None):
 		'''Emits the 'close-page' signal and returns boolean for success'''
@@ -1468,6 +1486,7 @@ class MainWindow(gtk.Window):
 
 	def do_open_page(self, ui, page, record):
 		'''Signal handler for open-page, updates the pageview'''
+		print 'START do open page mainwindow'
 		self.pageview.set_page(page)
 
 		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
@@ -1481,6 +1500,7 @@ class MainWindow(gtk.Window):
 			self.statusbar_backlinks_button.set_sensitive(True)
 
 		#TODO: set toggle_readonly insensitive when page is readonly
+		print 'END do open page mainwindow'
 
 	def do_close_page(self, ui, page):
 		w, h = self.get_size()
@@ -1727,7 +1747,7 @@ class ImportPageDialog(FileDialog):
 			assert not page.hascontent
 
 		page.parse('wiki', file.readlines())
-		self.ui.noetbook.store_page(page)
+		self.ui.notebook.store_page(page)
 		self.ui.open_page(page)
 		return True
 
@@ -1775,8 +1795,6 @@ class MovePageDialog(Dialog):
 			ErrorDialog(self, error).run()
 			return False
 		else:
-			if self.path == self.ui.page:
-				self.ui.open_page(newpath)
 			return True
 
 class RenamePageDialog(Dialog):
@@ -1856,10 +1874,6 @@ class DeletePageDialog(Dialog):
 			ErrorDialog(self, error).run()
 			return False
 		else:
-			if self.path == self.ui.page:
-				self.ui.open_page_back() \
-				or self.ui.open_page_parent \
-				or self.ui.open_page_home
 			return True
 
 
