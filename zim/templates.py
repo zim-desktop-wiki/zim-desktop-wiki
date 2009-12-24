@@ -65,7 +65,7 @@ import zim.formats
 from zim.errors import Error
 from zim.fs import File
 from zim.config import data_dirs
-from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string
+from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string, is_path_re
 from zim.formats import ParseTree, Element
 from zim.index import LINK_DIR_BACKWARD
 
@@ -94,13 +94,16 @@ def list_templates(format):
 
 
 def get_template(format, name):
-	'''Returns a Template object.'''
-	templates = list_templates(format)
-	#~ if not name in templates: FIXME exception type
-		#~ raise
-	file = templates[name]
+	'''Returns a Template object for a tempalte name or a file path'''
+	if is_path_re.match(name):
+		file = File(name)
+	else:
+		templates = list_templates(format)
+		#~ if not name in templates: FIXME exception type
+			#~ raise
+		file = File(templates[name])
 	logger.info('Loading template from: %s', file)
-	return Template(File(file).readlines(), format, name=file)
+	return Template(file.readlines(), format, name=file)
 
 
 class TemplateError(Error):

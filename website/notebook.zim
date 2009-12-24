@@ -1,0 +1,20 @@
+[Notebook]
+document_root=../files
+home=:index
+icon=
+name=website
+read_only=0
+slow_fs=0
+
+[GUI State]
+height=450
+pane_pos=120
+pane_vis=0
+width=600
+x=0
+y=0
+
+[Namespaces]
+:docs=Files,dir=../share/zim/doc
+
+# vim: syntax=desktop

@@ -1,0 +1,45 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: Unknown
+Modification-Date: Thu, 19 Feb 2009 19:18:17 +0100
+
+====== Downloads ======
+
+==== our $VERSION=0.28 ====
+
+**This program depends on a number of perl modules including the Glib and Gtk2 perl bindings.** Most linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier then compiling them manually or getting them from CPAN.
+
+In order to compile and install the source run:
+
+'''
+$ perl Build.PL
+$ ./Build test
+$ ./Build install
+'''
+
+More detailed instructions to build from source can be found [[:Install|here]].
+
+=== Source ===
+
+* [[/downloads/|Download]]
+* [[Extras]]
+
+=== Packages ===
+
+**Ubuntu**
+
+Unofficial ubuntu package (.deb) can be found [[/downloads/|here]]
+
+**Windows**
+
+A windows installer can be found [[http://code.google.com/p/zimdesktopwiki-windows/|here]].
+
+**Other Distributions**
+
+* [[http://www.archlinux.org/packages/8832|Archlinux]] (extra/zim)
+* [[http://packages.debian.org/unstable/x11/zim|Debian]] (x11/zim)
+* Gentoo (x11-misc/zim)
+* Sourcemage (zim)
+* Fedora Extras
+* Ubuntu (universe)
+* [[http://www.freshports.org/editors/zim|FreeBSD]]
