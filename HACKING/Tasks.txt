@@ -9,9 +9,10 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 == Packaging ==
 [*] Build ubuntu / debian package
 [ ] Build windows installer (with or without Python + Gtk included)
-[ ] Add website to bazaar + tools/generate_wesite.py
+[ ] Add website to bazaar + tools/generate_website.py
 [ ] Finish manual
-[ ] Update XDG cache and install mime icon on install
+[*] Update XDG cache and install mime icon on install
+[ ] Add man page 
 
 == Defects & Missing Features ==
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
@@ -19,8 +20,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 	* Add extra check that no files outside allowed directories are served
 [ ] Links to non-exisiting pages are not indexed
 	* While at it, replace key by mtime and add entry for top level namespace
-[ ] Pages that are removed by cleanup of empty directories do not disappear from the index
-[ ] Moving pages should 
+[ ] Pages that are removed by cleanup of empty directories do not disappear from the index 
 [ ] Pageview: implement recursive checkbox lists
 [ ] Pageview: make child items in list also (un)indent with parent
 [ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..

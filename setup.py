@@ -3,6 +3,7 @@
 import os
 import sys
 import shutil
+import subprocess
 
 from distutils.core import setup
 from distutils.command.sdist import sdist as sdist_class
@@ -15,8 +16,8 @@ from distutils import dep_util
 
 from zim import __version__, __url__
 
-import msgfmt # also distrobuted with zim
-
+import msgfmt # also distributed with zim
+import makeman # helper script
 
 try:
 	version_info = sys.version_info
@@ -63,6 +64,7 @@ def collect_data_files():
 		('share/pixmaps', ['data/zim.png']),
 		('share/applications', ['xdg/zim.desktop']),
 		('share/mime/packages', ['xdg/zim.xml']),
+		('share/man/man1', ['man/zim.1']),
 	]
 
 	# data -> PREFIX/share/zim
@@ -91,6 +93,9 @@ def fix_dist():
 	if os.path.exists('.bzr/'):
 		print 'updating bzr version-info...'
 		os.system('bzr version-info --format python > zim/_version.py')
+
+	# Generate man page
+	makeman.make()
 
 	# Add the changelog to the manual
 	# print 'copying CHANGELOG.txt -> data/manual/Changelog.txt'
@@ -154,7 +159,7 @@ class zim_build_scripts_class(build_scripts_class):
 
 
 class zim_build_class(build_class):
-	# Generate _version.py etc. and call build_trans as a subclass
+	# Generate _version.py etc. and call build_trans as a subcommand
 
 	sub_commands = build_class.sub_commands + [('build_trans', None)]
 
@@ -163,11 +168,22 @@ class zim_build_class(build_class):
 		build_class.run(self)
 
 
-# TODO trigger XDG tools
-# 'update-desktop-database'
-# 'update-mime-database', $mimedir
-# 'xdg-icon-resource install --context apps --size 64 %s' % icon
-# 'xdg-icon-resource install --context mimetypes --size 64 %s application-x-zim-notebook' % icon
+class zim_install_class(install_class):
+
+	def run(self):
+		install_class.run(self)
+
+		# Try XDG tools
+		icon = os.path.join('data', 'zim.png')
+		mimedir = os.path.join(self.install_data, 'share', 'mime')
+		for cmd in (
+			('update-desktop-database',),
+			('update-mime-database', mimedir),
+			('xdg-icon-resource', 'install', '--context', 'apps', '--size', '64', icon, '--novendor'),
+			('xdg-icon-resource', 'install', '--context', 'mimetypes',  '--size', '64', icon, 'application-x-zim-notebook'),
+		):
+			print 'Trying: ' + ' '.join(cmd)
+			subprocess.call(cmd)
 
 
 # Distutils parameters, and main function
@@ -184,6 +200,7 @@ setup(
 		'build': zim_build_class,
 		'build_trans': zim_build_trans_class,
 		'build_scripts': zim_build_scripts_class,
+		'install': zim_install_class,
 	},
 
 	# provide package properties

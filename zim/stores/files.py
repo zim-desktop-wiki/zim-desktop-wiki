@@ -187,11 +187,13 @@ class FileStorePage(Page):
 		tree = self.get_parsetree()
 		assert tree, 'BUG: Can not store a page without content'
 
-		if not isinstance(self.properties, HeadersDict):
-			assert not self.properties
+		if not self.properties:
 			self.properties = HeadersDict()
-			self.properties['Content-Type'] = 'text/x-zim-wiki'
-			self.properties['Wiki-Format'] = 'zim 0.26'
+		self.properties['Content-Type'] = 'text/x-zim-wiki'
+		self.properties['Wiki-Format'] = 'zim 0.26'
+		# TODO add Creation-Date ?
+		# Note: No "Modification-Date" here because it causes conflicts
+		# when merging branches with version control
 
 		lines = self.properties.dump()
 		lines.append('\n')

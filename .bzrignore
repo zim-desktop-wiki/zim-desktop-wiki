@@ -13,3 +13,4 @@ doxygen
 bin
 ./locale
 debian/pycompat
+./man
