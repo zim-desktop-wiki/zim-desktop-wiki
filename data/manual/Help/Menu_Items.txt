@@ -18,6 +18,9 @@ Prompt a list of known notebooks for opening another notebook. This dialog will 
 **Import Page**
 Prompts for a file path for a text file to import into this notebook. The text file is assumed to be already using the wiki formatting used by the notebook. Files saved using "Save A Copy" can be imported again by this function. The basename of the imported file will be used as the page name.
 
+**Open in New Window**
+Open the current page in a separate window. The new window will be readonly and any links clicked will open in the main window.
+
 **Save <Ctrl><S>**
 Save the current page. This function is included to not scare users that do not feel comfortable with only auto-save. However pages are being saved continuously, save there is hardly any need to explicitly save them.
 

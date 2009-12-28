@@ -7,12 +7,9 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 **Also grep for TODO and FIXME tags in the code**
 
 == Packaging ==
-[*] Build ubuntu / debian package
 [ ] Build windows installer (with or without Python + Gtk included)
 [ ] Add website to bazaar + tools/generate_website.py
 [ ] Finish manual
-[*] Update XDG cache and install mime icon on install
-[ ] Add man page 
 
 == Defects & Missing Features ==
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
@@ -28,6 +25,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Package icons in target directory when exporting
 [ ] Dialog: improved widgets for page and namespace inputs
 	* Need ability to input top level namespace - now I can not enter empy string
+[ ] Make server gui also use the daemon
 
 == New Features ==
 [ ] Add custom commands in tools menu [[Ideas:Custom Commands]] 
@@ -37,6 +35,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 	* Also think about keybindings for moving a line up / down or top / bottom
 [ ] Pageview: support numbered lists
 [ ] Moving page should try to merge if namespace already exists
+	* Prompt + check recursively no children conflict before attempt
 [ ] Implement "Open with custom command" dialog
 [ ] Implement zip and tar.gz notebooks
 [ ] Implement gjots notebooks
@@ -56,3 +55,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Add iconview with attachments at botton of pageview
 	* Use an expander or similar to show / hide
 [ ] Archive function as an alternative to delete - put it in a special namespace + add timestamp to page name
+[ ] Allow multiple pageviews to be active, e.g. in separate windows, tabs
+	* Share TextBuffers between pageviews - ref count on ui object owning the parse tree ?
+	* add menus and toolbars to separate windows
+	* remember state (and history ?) per window

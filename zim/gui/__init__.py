@@ -67,6 +67,7 @@ ui_actions = (
 	('new_page',  'gtk-new', _('_New Page...'), '<ctrl>N', '', False), # T: Menu item
 	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '', '', False), # T: Menu item
 	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', '', True), # T: Menu item
+	('open_new_window', None, _('_Open in New Window'), '', '', True), # T: Menu item
 	('import_page', None, _('_Import Page...'), '', '', False), # T: Menu item
 	('save_page', 'gtk-save', _('_Save'), '<ctrl>S', '', False), # T: Menu item
 	('save_copy', None, _('Save A _Copy...'), '', '', True), # T: Menu item
@@ -761,6 +762,12 @@ class GtkInterface(NotebookInterface):
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
 		NewPageDialog(self, namespace=self.get_path_context()).run()
+
+	def open_new_window(self, page=None):
+		'''Open page in a new window'''
+		if page is None:
+			page = self.get_path_context()
+		PageWindow(self, page).show_all()
 
 	def save_page(self, page=None):
 		'''Save 'page', or current page when 'page' is None, by emitting the
@@ -1544,6 +1551,27 @@ class BackLinksMenuButton(MenuButton):
 		MenuButton.popup_menu(self, event)
 
 
+class PageWindow(gtk.Window):
+	'''Secondairy window, showing a single page'''
+
+	def __init__(self, ui, page):
+		gtk.Window.__init__(self)
+		self.ui = ui
+		page = ui.notebook.get_page(page)
+
+		self.uistate = ui.uistate['PageWindow']
+			# TODO remember for separate windows separately
+			# e.g. use PageWindow1, PageWindow2, etc
+		self.uistate.setdefault('windowsize', (500, 400), check=self.uistate.is_coord)
+		w, h = self.uistate['windowsize']
+		self.set_default_size(w, h)
+
+		self.pageview = PageView(ui)
+		self.pageview.set_readonly(True)
+		self.pageview.set_page(page)
+		self.add(self.pageview)
+
+
 def get_window(ui):
 	'''Returns a gtk.Window object or None. Used to find the parent window
 	for dialogs.
@@ -1796,6 +1824,7 @@ class MovePageDialog(Dialog):
 			return False
 		else:
 			return True
+
 
 class RenamePageDialog(Dialog):
 

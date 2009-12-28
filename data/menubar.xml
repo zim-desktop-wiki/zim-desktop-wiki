@@ -6,6 +6,8 @@
 			<menuitem action='open_notebook'/>
 			<menuitem action='import_page'/>
 			<separator/>
+			<menuitem action='open_new_window'/>
+			<separator/>
 			<menuitem action='save_page'/>
 			<menuitem action='save_copy'/>
 			<placeholder name='versioning_actions'/>
@@ -189,6 +191,8 @@
 	<popup name='page_popup'>
 		<menuitem action='new_page'/>
 		<menuitem action='new_sub_page'/>
+		<separator/>
+		<menuitem action='open_new_window'/>
 		<separator/>
 		<menuitem action='rename_page'/>
 		<menuitem action='move_page'/>

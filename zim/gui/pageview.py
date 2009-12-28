@@ -1255,6 +1255,9 @@ class TextBuffer(gtk.TextBuffer):
 		return self._find(-1, string, flags)
 
 	def _find(self, direction, string, flags):
+		# TODO fix real case insensitive search
+		# need to replace gtk.TextIter.forward_search and
+		# gtk.TextIter.backward_search with insensitive versions
 		if not string or string.isspace():
 			return False
 		if flags is None:
@@ -1379,6 +1382,7 @@ class TextBuffer(gtk.TextBuffer):
 		clipboard.request_parsetree(self._paste_clipboard)
 
 	def _paste_clipboard(self, parsetree):
+		#~ print 'PASTE', parsetree.tostring()
 		with self.user_action:
 			if self.get_has_selection():
 				start, end = self.get_selection_bounds()
@@ -2256,6 +2260,7 @@ class PageView(gtk.VBox):
 		gtk.VBox.__init__(self)
 		self.page = None
 		self.readonly = True
+		self.readonlyset = False
 		self.undostack = None
 		self.image_generator_plugins = {}
 
@@ -2430,7 +2435,8 @@ class PageView(gtk.VBox):
 
 		try:
 			self.set_parsetree(tree)
-			page.set_ui_object(self) # only after succesful set tree in buffer
+			if not self.readonlyset: # FIXME HACK for PageWindow
+				page.set_ui_object(self) # only after succesful set tree in buffer
 		except Exception, error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
 			self.page.readonly = True
@@ -2491,9 +2497,17 @@ class PageView(gtk.VBox):
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
 
-	def set_readonly(self):
-		if self.page:
+	def set_readonly(self, readonly=None):
+		if not readonly is None:
+			self.readonlyset = readonly
+
+		if self.readonlyset:
+			self.readonly = True
+		elif self.page:
 			self.readonly = self.page.readonly or self.ui.readonly
+		else:
+			self.readonly = self.ui.readonly
+
 		self.view.set_editable(not self.readonly)
 		self.view.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
