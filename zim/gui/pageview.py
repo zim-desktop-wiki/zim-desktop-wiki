@@ -2255,12 +2255,15 @@ class PageView(gtk.VBox):
 	}
 
 
-	def __init__(self, ui):
+	def __init__(self, ui, secondairy=False):
 		self.ui = ui
 		gtk.VBox.__init__(self)
 		self.page = None
 		self.readonly = True
 		self.readonlyset = False
+		self.secondairy = secondairy
+		if secondairy:
+			self.readonlyset = True
 		self.undostack = None
 		self.image_generator_plugins = {}
 
@@ -2310,6 +2313,9 @@ class PageView(gtk.VBox):
 		self.pack_end(self.find_bar, False)
 
 		## setup GUI actions
+		if self.secondairy:
+			# HACK - divert actions from uimanager
+			self.actiongroup = gtk.ActionGroup('SecondairyPageView')
 		self.ui.add_actions(ui_actions, self)
 
 		# format actions need some custom hooks
@@ -2435,7 +2441,7 @@ class PageView(gtk.VBox):
 
 		try:
 			self.set_parsetree(tree)
-			if not self.readonlyset: # FIXME HACK for PageWindow
+			if not self.secondairy:
 				page.set_ui_object(self) # only after succesful set tree in buffer
 		except Exception, error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
@@ -2630,11 +2636,13 @@ class PageView(gtk.VBox):
 		if link:
 			item = gtk.MenuItem(_('_Remove Link'))
 			item.connect('activate', lambda o: self.remove_link(iter=iter))
+			item.set_sensitive(not self.readonly)
 			menu.prepend(item)
 
 		# edit
 		item = gtk.MenuItem(_('_Edit Link')) # T: menu item in context menu
 		item.connect('activate', lambda o: self.edit_object(iter=iter))
+		item.set_sensitive(not self.readonly)
 		menu.prepend(item)
 
 		# copy

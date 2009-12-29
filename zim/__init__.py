@@ -243,7 +243,9 @@ def main(argv):
 	logger.debug('Running command: %s', cmd)
 	if cmd in ('export', 'index'):
 		if not len(args) >= 1:
-			handler = NotebookInterface(notebook='_default_')
+			import zim.notebook
+			default = zim.notebook.get_default_notebook()
+			handler = NotebookInterface(notebook=default)
 		else:
 			handler = NotebookInterface(notebook=args[0])
 

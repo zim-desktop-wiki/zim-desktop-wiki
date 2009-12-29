@@ -1566,8 +1566,7 @@ class PageWindow(gtk.Window):
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 
-		self.pageview = PageView(ui)
-		self.pageview.set_readonly(True)
+		self.pageview = PageView(ui, secondairy=True)
 		self.pageview.set_page(page)
 		self.add(self.pageview)
 
