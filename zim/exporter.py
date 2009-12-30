@@ -77,18 +77,24 @@ class Exporter(object):
 		dirname = encode_filename(page.name)
 		filename = dirname + '.' + self.format.info['extension']
 		file = dir.file(filename)
+		attachments = self.notebook.get_attachments_dir(page)
+		self.linker.set_base(attachments.dir)
+			# FIXME, assuming standard file store layout to get correct relative links
 		fh = file.open('w')
 		self.export_page_to_fh(fh, page)
 		fh.close()
 		subdir = dir.subdir(dirname)
-		attachments = self.notebook.get_attachments_dir(page)
 		for name in attachments.list():
 			file = attachments.file(name)
 			if file.exists(): # tests os.isfile
 				file.copyto(subdir)
+			# TODO option to recurs for directories
+			# - check we don't copy the same file many times
+			# - ignore directories that belong to a page themselves
+			# - also include "attachments" in the root namespace
 
 	def export_page_to_fh(self, fh, page):
-		'''Export 'page' and print the output to open file handle 'hf'.
+		'''Export 'page' and print the output to open file handle 'fh'.
 		(Does not do anything with attachments.)
 		'''
 		if self.template is None:
@@ -101,7 +107,9 @@ class Exporter(object):
 
 class StaticLinker(BaseLinker):
 	'''Linker object for exporting a single page. It links files, images
-	and icons with absolute file paths, but can not link other pages corectly.
+	and icons with absolute or relative file paths (based on whether the
+	format supports relative links or not). Other pages are linked as
+	files.
 	'''
 
 	def __init__(self, format, notebook, path=None, document_root_url=None):
@@ -144,4 +152,10 @@ class StaticLinker(BaseLinker):
 			return ''.join((self.document_root_url.rstrip('/'), link))
 		else:
 			file = self.notebook.resolve_file(link, self.path)
-		return file.uri
+			if self.usebase and self.base:
+				relpath = file.relpath(self.base, allowupward=True)
+				if relpath and not relpath.startswith('.'):
+					relpath = './' + relpath
+				return relpath or file.uri
+			else:
+				return file.uri

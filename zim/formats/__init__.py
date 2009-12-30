@@ -55,6 +55,7 @@ to a title or subtitle in the document.
 import re
 import logging
 
+from zim.fs import Dir
 from zim.parsing import link_type, is_url_re, url_encode, url_decode
 from zim.config import data_file
 
@@ -528,13 +529,27 @@ class BaseLinker(object):
 
 	def __init__(self):
 		self._icons = {}
+		self.path = None
+		self.usebase = False
+		self.base = None
 
 	def set_path(self, path):
+		'''Set the page path for resolving links'''
 		self.path = path
+
+	def set_base(self, dir):
+		'''Set a path to use a base for linking files'''
+		assert isinstance(dir, Dir)
+		self.base = dir
+
+	def set_usebase(self, usebase):
+		'''Set whether the format supports relative files links or not'''
+		self.usebase = usebase
 
 	def link(self, link):
 		'''Returns a path or url for 'link' '''
 		# TODO optimize by hashing links seen (reset per page)
+		assert not self.path is None
 		type = link_type(link)
 		if type == 'page':
 			return self.page(link)

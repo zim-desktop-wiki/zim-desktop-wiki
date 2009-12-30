@@ -5,19 +5,16 @@ Modification-Date: Thu, 19 Feb 2009 19:18:17 +0100
 
 ====== Downloads ======
 
-==== our $VERSION=0.28 ====
-
-**This program depends on a number of perl modules including the Glib and Gtk2 perl bindings.** Most linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier then compiling them manually or getting them from CPAN.
+**This program depends on a number of modules including the python, gtk and the python-gtk bindings.** Most linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier then compiling them manually .
 
 In order to compile and install the source run:
 
 '''
-$ perl Build.PL
-$ ./Build test
-$ ./Build install
+$ ./test.py
+$ ./setup.py install
 '''
 
-More detailed instructions to build from source can be found [[:Install|here]].
+More detailed instructions to build from source can be found [[install|here]].
 
 === Source ===
 
@@ -36,7 +33,8 @@ A windows installer can be found [[http://code.google.com/p/zimdesktopwiki-windo
 
 **Other Distributions**
 
-* [[http://www.archlinux.org/packages/8832|Archlinux]] (extra/zim)
+The following distrobutions are known to include zim:
+* Archlinux (extra/zim)
 * [[http://packages.debian.org/unstable/x11/zim|Debian]] (x11/zim)
 * Gentoo (x11-misc/zim)
 * Sourcemage (zim)

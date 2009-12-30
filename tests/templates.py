@@ -183,6 +183,8 @@ Version %s
 
 class StubLinker(object):
 
+	def set_usebase(self, usebase): pass
+
 	def set_path(self, path): pass
 
 	def link(self, link): return '%s://%s' % (link_type(link), link)

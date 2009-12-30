@@ -5,7 +5,10 @@ Modification-Date: Wed, 12 Nov 2008 21:43:18 +0100
 
 ====== Screenshots ======
 
-On this page you find some screenshots of **zim** in action. Of course pictures only capture the look, not how it feels to use. 
+On this page you find some screenshots of **zim** in action. Of course pictures only capture the look, not how it feels to use, see the screencast for see a bit more of the feeling.
+
+INSERT_SCREENCAST_HERE
+Screencast thanks to [[http://productivelinux.com/2009/05/23/video-post-my-favorite-things-about-zim-wiki/trackback/|ProductiveLinux]].
 
 {{/screenshots/zim-normal.png}}
 

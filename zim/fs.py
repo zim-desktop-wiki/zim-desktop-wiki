@@ -197,21 +197,36 @@ class UnixPath(object):
 
 	def split(self):
 		'''Returns the directory parsts of the path as a list.
-		If the OS uses the concept of a drive the first part will include the drive.
+		If the OS uses the concept of a drive the first part will
+		include the drive. (So using split() to count the number of
+		path elements will not be robust for the path "/".)
 		'''
 		drive, path = os.path.splitdrive(self.path)
 		parts = path.replace('\\', '/').strip('/').split('/')
 		parts[0] = drive + os.path.sep + parts[0]
 		return parts
 
-	def relpath(self, reference):
+	def relpath(self, reference, allowupward=False):
 		'''Returns a relative path with respect to 'reference',
-		which should be a parent directory.
+		which should be a parent directory unless 'allowupward' is True.
+		If 'allowupward' is True the relative path is allowed to start
+		with '../'.
 		'''
-		assert self.path.startswith(reference.path)
+		if allowupward and not self.path.startswith(reference.path):
+			parent = self.commonparent(reference)
+			if parent is None:
+				return None
+
+			i = len(parent.path)
+			j = reference.path[i:].strip('/').count('/') + 1
+			reference = parent
+			path = '../' * j
+		else:
+			assert self.path.startswith(reference.path)
+			path = ''
+
 		i = len(reference.path)
-		path = self.path[i:]
-		path = path.lstrip('/')
+		path += self.path[i:].lstrip('/')
 		return path
 
 	def commonparent(self, other):
@@ -219,8 +234,10 @@ class UnixPath(object):
 		path = os.path.commonprefix((self.path, other.path))
 		i = path.rfind(os.path.sep) # win32 save...
 		if i >= 0:
-			path = path[:i]
-		return Dir(path)
+			return Dir(path[:i+1])
+		else:
+			# different drive ?
+			return None
 
 	def rename(self, newpath):
 		# Using shutil.move instead of os.rename because move can cross
@@ -279,9 +296,9 @@ class WindowsPath(UnixPath):
 		path = self.path.replace('\\', '/')
 		return path
 
-	def relpath(self, reference):
+	def relpath(self, reference, allowupward=False):
 		'''Relative path, explicit using unix convention for seperators'''
-		path = UnixPath.relpath(self, reference)
+		path = UnixPath.relpath(self, reference, allowupward)
 		path = path.lstrip('\\')
 		return path.replace('\\', '/')
 

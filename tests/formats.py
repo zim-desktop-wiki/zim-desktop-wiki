@@ -349,6 +349,8 @@ That's all ...<br>
 
 class StubLinker(object):
 
+	def set_usebase(self, usebase): pass
+
 	def link(self, link): return '%s://%s' % (link_type(link), link)
 
 	def img(self, src): return 'img://' + src

@@ -8,9 +8,26 @@ from subprocess import check_call
 
 from zim.fs import *
 from zim.notebook import Path, Notebook
-from zim.exporter import Exporter
+from zim.exporter import Exporter, StaticLinker
 
 # TODO add check that attachments are copied correctly
+
+class TestLinker(TestCase):
+
+	def runTest(self):
+		notebook = get_test_notebook()
+		notebook.get_store(Path(':')).dir = Dir('/source/dir/') # fake source dir
+
+		linker = StaticLinker('html', notebook)
+		linker.set_usebase(True) # normally set by html format module
+		linker.set_path(Path('foo:bar')) # normally set by exporter
+		linker.set_base(Dir('/source/dir/foo')) # normally set by exporter
+
+		self.assertEqual(linker.page('+dus'), './bar/dus.html')
+		self.assertEqual(linker.page('dus'), './dus.html')
+		self.assertEqual(linker.file('./dus.pdf'), './bar/dus.pdf')
+		self.assertEqual(linker.file('../dus.pdf'), './dus.pdf')
+		self.assertEqual(linker.file('../../dus.pdf'), '../dus.pdf')
 
 class TestExport(TestCase):
 
@@ -63,7 +80,7 @@ class TestExportCommandLine(TestExport):
 			notebook.store_page(page)
 		file = dir.file('Test/foo.txt')
 		self.assertTrue(file.exists())
-		
+
 		check_call(['python', './zim.py', '--export', '--template=Default', dir.path, '--output', self.dir.path])
 
 	def runTest(self):

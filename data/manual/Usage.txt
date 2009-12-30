@@ -5,12 +5,9 @@ Modification-Date: Fri, 13 Mar 2009 22:51:36 +0100
 
 ====== Usage ======
 
-Zim can be used in several different ways. In this section we would
-like to give some examples of possible usage patterns, but this is in
-no way an exhaustive list. Also these styles could be combined in a
-single notebook, e.g. one could dedicate a notebook to a particular
-project and combine the organizer and journal styles in using it. However it is better the have several specialized notebooks than one big dump of unrelated material.
+Zim can be used in several different ways. In this section we would like to give some examples of possible usage patterns, but this is in no way an exhaustive list. Also these styles could be combined in a single notebook, e.g. one could dedicate a notebook to a particular project and combine the organizer and journal styles in using it. However it is better the have several specialized notebooks than one big dump of unrelated material.
 
+See also [[+Getting Started|Getting Started]]
 
 ===== Topic based notebook =====
 This is the simplest use pattern where a notebook simply contains a
@@ -44,6 +41,8 @@ plugin one can write down his action items as checkbox items during
 the meeting by date and have them show up in the Task List.
 
 TODO: tags plugin ?
+
+See also [[+Getting Things Done|Getting Things Done]]
 
 
 ===== Document Editor =====
@@ -81,6 +80,7 @@ conclusions or to write down procedures to be followed etc.
 
 TODO: tags plugin ?
 
+See also: [[+Daily Journal|Daily Journal]]
 
 ===== Collection Manager =====
 In this style the notebook is used as a database of for example books,
