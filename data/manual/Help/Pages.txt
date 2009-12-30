@@ -5,9 +5,31 @@ Modification-Date: Wed, 08 Jul 2009 23:25:40 +0200
 
 ====== Pages ======
 
-TODO explain concepts
+Each [[notebooks|notebook]] consists of a set of pages. Each page can contain, text, images and links to other pages. The pages can be arranged in a hierarchical index. 
 
-TODO explain namespaces
+Page names use a ":" as a path separator for pages that are nested in the hierarchy. So the name "Foo:Bar" refers to a page names "Bar" that is nested below a page "Foo".
 
-TODO explain "new page" and "jump to"  dialogs
+'''
++ Foo
+`--- Bar
+'''
+
+The parent page is sometimes also referred to as the "namespace" of the page. So in this case the page "Bar" is said to belong to the namespace "Foo". Namespaces can be used to organize notebooks in sections of pages. Also sometimes namespaces are used for special purposes, for example the [[Plugins:Calendar|Calendar plugin]] uses a namespace "Calendar" to contain all calendar pages.
+
+TODO document valid page names
+
+TODO mention camelcase and autolinking for page names
+
+TODO mention linking of child pages with +
+
+TODO mention attachments
+
+===== New Page Dialog =====
+The New Page dialog prompts for a page name and then creates a new page with the specified name. To create a page that is nested in the hierarchy, specify it with a ":" in between the parts of the hierarchy.
+
+===== New Sub Page Dialog =====
+This dialog is similar to the New Page dialog, but it creates a new child page of the current page. So no need to specify the full hierarchy path.
+
+===== Jump To Dialog =====
+This dialog is intended to jump to a specified page. It is actually hardly different from the New Page dialog except that it resolves page names relative to the current page and does not immediately create a new page. However you can always create new pages by jumping to a page that does not yet exist and start editing.
 

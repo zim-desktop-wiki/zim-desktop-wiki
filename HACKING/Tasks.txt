@@ -8,8 +8,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 
 == Packaging ==
 [ ] Build windows installer (with or without Python + Gtk included)
-[ ] Add website to bazaar + tools/generate_website.py
-[ ] Finish manual
+[ ] Update manual (check sections that were copied from perl version and TODO tags)
 
 == Defects & Missing Features ==
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
@@ -25,6 +24,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Dialog: improved widgets for page and namespace inputs
 	* Need ability to input top level namespace - now I can not enter empy string
 [ ] Make server gui also use the daemon
+[ ] Interwiki links are not yet supported
 
 == New Features ==
 [ ] Add custom commands in tools menu [[Ideas:Custom Commands]] 

@@ -1121,7 +1121,9 @@ class TextBuffer(gtk.TextBuffer):
 				bound = iter.copy()
 				toggled = []
 				while not toggled:
-					if bound.forward_to_tag_toggle(None):
+					if not bound.is_end() and bound.forward_to_tag_toggle(None):
+						# For some reason the not is_end check is needed
+						# to prevent an odd corner case infinite loop
 						toggled = filter(_is_zim_tag,
 							bound.get_toggled_tags(False)
 							+ bound.get_toggled_tags(True) )
@@ -2832,7 +2834,7 @@ class PageView(gtk.VBox):
 	def do_toggle_format_action(self, action):
 		'''Handler that catches all actions to apply and/or toggle formats'''
 		name = action.get_name()
-		logger.debug('Action: %s (format toggle action)', name)
+		logger.debug('Action: %s (toggle_format action)', name)
 		if name.startswith('apply_format_'): style = name[13:]
 		elif name.startswith('toggle_format_'): style = name[14:]
 		else: assert False, "BUG: don't known this action"
