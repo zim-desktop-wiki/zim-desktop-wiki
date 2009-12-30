@@ -52,6 +52,7 @@ class Dumper(DumperClass):
 	def dump(self, tree):
 		assert isinstance(tree, ParseTree)
 		assert self.linker, 'HTML dumper needs a linker object'
+		self.linker.set_usebase(True)
 		output = TextBuffer()
 		self._dump_children(tree.getroot(), output, istoplevel=True)
 		return output.get_lines()

@@ -1,0 +1,14 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Home ======
+
+**Zim** brings the concept of a wiki to your desktop. Store information, link pages and edit with WYSISYG markup. Creating a new page is as easy as linking to a non-existing page. Pages are stored in a folder structure, like in an outliner, and can have attachments.
+
+This tool can be used to keep track of TODO lists or ideas, to take notes during a meeting or to draft any other kind of text (blog entries, important mails, etc.).
+
+**Zim** handles several types of markup, like headings, bullet lists and of course **bold**, //italic// and __highlighted__. This markup is saved as wiki text so you can easily edit it with other editors. Because of the autosave feature you can switch between pages and follow links while editing without worries.
+
+{{/screenshots/thumbs/zim-normal.png}}        {{/screenshots/thumbs/zim-minimal.png}}
+
+Although **zim** now exists for over 3 years there is no "1.0" version yet. This does not mean that the application is particularly un-stable (although making backups is always good practice) or only usable for linux gurus. But it does mean that the feature set is not yet complete (of course everything described in the manual is implemented). New releases are announced through [[http://freshmeat.net/projects/zim/|freshmeat]], subscribe there to get the latest updates.

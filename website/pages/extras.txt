@@ -1,0 +1,20 @@
+====== Extras ======
+
+This page contains scripts from third party contributors. They are not maintained as part of **zim** itself.
+
+==== Tomboy 2 Zim ====
+
+**by: Bengt J. Olsson, updated: April 2008**
+
+Python script to convert Tomboy notes to zim.
+
+* Website: [[http://blafs.com/diverse.html|blafs.com]]
+* The script: [[/downloads/contrib/tzim.py|tzim.py]]
+
+==== Newton2Zim ====
+
+**by: Eugene Roux, updated: November 2006**
+
+Shell script to convert Newton (<= 0.0.9) wiki syntax to zim.
+
+* The script: [[/downloads/contrib/newton2zim.sh|newton2zim.sh]]	

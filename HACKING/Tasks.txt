@@ -19,7 +19,6 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 	* While at it, replace key by mtime and add entry for top level namespace
 [ ] Pages that are removed by cleanup of empty directories do not disappear from the index 
 [ ] Pageview: implement recursive checkbox lists
-[ ] Pageview: make child items in list also (un)indent with parent
 [ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..
 	* Preferences dialog should have list of mount points
 [ ] Package icons in target directory when exporting

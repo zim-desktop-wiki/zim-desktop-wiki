@@ -75,8 +75,29 @@ class TestFS(tests.TestCase):
 
 		# TODO test get_mimetype (2 variants)
 		# TODO test rename
-		# TODO test commonparent
-		# TODO test relpath
+
+		for path1, path2, common in (
+			('/foo/bar/baz/', '/foo/dus', '/foo'),
+			('/foo/bar', '/dus/ja', '/'),
+			# TODO test for windows with C: and D: resulting in None
+		):
+			self.assertEqual(Path(path1).commonparent(Path(path2)), Dir(common))
+
+		for path1, path2, relpath in (
+			('/foo/bar/baz', '/foo', 'bar/baz'),
+		):
+			self.assertEqual(Path(path1).relpath(Path(path2)), relpath)
+
+		self.assertRaises(AssertionError, Path('/foo/bar').relpath, Path('/dus/ja'))
+
+		for path1, path2, relpath in (
+			('/foo/bar', '/dus/ja/', '../../foo/bar'),
+			('/source/dir/foo/bar/dus.pdf', '/source/dir/foo', 'bar/dus.pdf'),
+			('/source/dir/foo/dus.pdf', '/source/dir/foo', 'dus.pdf'),
+			('/source/dir/dus.pdf', '/source/dir/foo', '../dus.pdf'),
+			# TODO test for windows with C: and D: resulting in None
+		):
+			self.assertEqual(Path(path1).relpath(Path(path2), allowupward=True), relpath)
 
 	def testFileHandle(self):
 		'''Test FileHandle object'''
@@ -144,7 +165,7 @@ class TestFS(tests.TestCase):
 		# TODO test copyto
 		# TODO test moveto
 		# TODO test compare
-		
+
 	def testTmpFile(self):
 		'''Test TmpFile object'''
 		dir = get_tmpdir()

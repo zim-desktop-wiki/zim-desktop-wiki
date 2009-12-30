@@ -12,6 +12,7 @@ The following plugins are standard included with zim:
 * [[+Link Map|Link Map]]
 * [[+Spell Checker|Spell Checker]]
 * [[+Task List|Task List]]
+* [[+Tray Icon|Tray Icon]]
 * [[+Version Control|Version Control]]
 
 Plugins can be enabled and configured in the [[Help:Preferences|preferences dialog]].
