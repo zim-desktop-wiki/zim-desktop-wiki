@@ -204,27 +204,31 @@ class ParseTree(ElementTreeModule.ElementTree):
 				if link.text == href:
 					link.text = link.attrib['href']
 
-	def count(self, text, case=True):
-		'''Returns number of occurences of 'text' in this tree.
-		If 'case' is False 'text' is matched case insensitive.
-		'''
-		score = 0
-		if not case: text = text.lower()
-
+	def count(self, text):
+		'''Returns the number of occurences of 'text' in this tree.'''
+		count = 0
 		for element in self.getiterator():
 			if element.text:
-				if case:
-					score += element.text.count(text)
-				else:
-					score += element.text.lower().count(text)
-
+				count += element.text.count(text)
 			if element.tail:
-				if case:
-					score += element.tail.count(text)
-				else:
-					score += element.tail.lower().count(text)
+				count += element.tail.count(text)
 
-		return score
+		return count
+
+	def countre(self, regex):
+		'''Returns the number of matches for a regular expression
+		in this tree.
+		'''
+		count = 0
+		for element in self.getiterator():
+			if element.text:
+				newstring, n = regex.subn('', element.text)
+				count += n
+			if element.tail:
+				newstring, n = regex.subn('', element.tail)
+				count += n
+
+		return count
 
 
 count_eol_re = re.compile(r'\n+\Z')

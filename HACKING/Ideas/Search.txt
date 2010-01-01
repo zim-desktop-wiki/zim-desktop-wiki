@@ -47,11 +47,16 @@ The OR operator always takes precedence over AND (similar as e.g. in shell parsi
 
 By default we match a word both in the page content, name and back links. If a word looks like a page name (it contains a ":") we only try name and back links. When matching a word in a page name we only match from the start of the name when the word starts with a ":". This makes it easy to select namespaces like ":TODO:", which will match the page ":TODO:foo", but not the pages ":foo:TODO" or "foo:TODO:bar".
 
+For all search terms the '*' wildcard should be supported. For the Content keyword we try to match whole words only, so a wildcard is needed for partial matches.
+
 ==== Query parse tree ====
 
 The parse tree for a query exists of hashed which collect all the "AND" parts. If there are one or more "OR" operators multiple hashes will be put in an array. In the hash a word without field prefix is put in the "any" key, further each field has it's own keys in the hash. If there are multiple words for the same field the value in the hash will be an array instead of an scalar. For words that need to be excluded the key is prefixed with "not-". See the test file for examples.
 
 Since the order of evaluation of parts on both sides of an AND operator does not matter backends should check the keys in the hash in order going from light to heavy checks.
+
+===== Suggestions =====
+* Use proximity to set ranking (e.g. all terms less than 20 words apart and less than 50 words apart) 
 
 -----
 
@@ -119,6 +124,7 @@ A complex example would be to find any pages in the ":Date" namespace that link 
 Name: :Date: AND LinksTo: :Planning OR
 Name: :Code: AND Content: TODO
 '''
+
 
 === Syntax Summary ===
 

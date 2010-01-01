@@ -4,10 +4,39 @@ from tests import get_test_notebook, TestCase
 from zim.search import *
 from zim.notebook import Path
 
+class TestSearchRegex(TestCase):
+
+	def runTest(self):
+		'''Test regex compilation for search terms'''
+		for word, regex in (
+			('foo', r'\bfoo\b'),
+			('*foo', r'\b\S*foo\b'),
+			('foo*', r'\bfoo\S*\b'),
+			('*foo*', r'\b\S*foo\S*\b'),
+			('foo$', r'\bfoo\$'),
+			('foo bar', r'\bfoo\ bar\b'),
+		):
+			#print '>>', word, regex
+			self.assertEqual(Query.regex(word), re.compile(regex, re.I))
+
+
+		text = 'foo foobar FooBar Foooo Foo!'
+		regex = Query.regex('foo')
+		new, n = regex.subn('', text)
+		self.assertEqual(n, 2)
+		self.assertEqual(new, ' foobar FooBar Foooo !')
+
+		text = 'foo foobar FooBar Foooo Foo!'
+		regex = Query.regex('foo*')
+		new, n = regex.subn('', text)
+		self.assertEqual(n, 5)
+
+
 
 class TestSearch(TestCase):
 
 	def runTest(self):
+		'''Test search API'''
 		query = Query('foo bar')
 		self.assertEqual(query.root,
 			AndGroup([('content', 'foo'), ('content', 'bar')]) )

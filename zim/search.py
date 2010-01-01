@@ -89,6 +89,26 @@ class Query(object):
 		#~ print root
 		return root
 
+	@classmethod
+	def regex(klass, text, case=False):
+		'''Build a regex for a search term, expands wilcards and sets
+		case sensitivity. Tries to guess if we look for whole word or
+		not.
+		'''
+		# Build regex - first expand wildcards
+		parts = text.split('*')
+		regex = r'\S*'.join(map(re.escape, parts))
+
+		# Next add word delimiters
+		if re.search('^[\*\w]', text, re.U): regex = r'\b' + regex
+		if re.search('[\*\w]$', text, re.U): regex = regex + r'\b'
+
+		#~ print 'SEARCH REGEX: >>%s<<' % regex
+		if case:
+			return re.compile(regex)
+		else:
+			return re.compile(regex, re.I)
+
 
 class Selection(object):
 	pass
@@ -99,18 +119,18 @@ class RootSelection(Selection):
 	def __init__(self, notebook):
 		self.notebook = notebook
 
-	def filter(self, key, word):
+	def filter(self, key, word, regex):
 		#~ print self.__class__.__name__, 'filter', key, word
 		pages = []
 		scores = {}
 		if key == 'content':
 			for store in self.notebook.get_stores():
-				# TODO optimise when store has a grep function
-				# collect terms and use grep_any() and grep_all()
+				# TODO optimise by first checking the source before
+				# checking the parsetree
 				for page in store.walk():
 					tree = page.get_parsetree()
 					if tree:
-						score = tree.count(word, case=False)
+						score = tree.countre(regex)
 						if score:
 							pages.append(page)
 							scores[page] = score
@@ -138,7 +158,7 @@ class ResultsSelection(Selection):
 		self.pages = pages
 		self.scores = scores or {}
 
-	def filter(self, key, word):
+	def filter(self, key, word, regex):
 		#~ print self.__class__.__name__, 'filter', key, word
 		pages = []
 		scores = {}
@@ -146,7 +166,7 @@ class ResultsSelection(Selection):
 			for page in self.pages:
 				tree = page.get_parsetree()
 				if tree:
-					score = tree.count(word, case=False)
+					score = tree.countre(regex)
 					if score:
 						pages.append(page)
 						scores[page] = self.scores.get(page, 0) + score
@@ -161,21 +181,27 @@ class ResultsSelection(Selection):
 
 class Searcher(object):
 
+	# TODO - can we get rid of this class in favor of an
+	# SearchSelection class that ties together the notebook and the query ?
+
 	def __init__(self, notebook):
 		self.notebook = notebook
 
 	def search(self, query):
-		return self._filter_and(query.root, RootSelection(self.notebook))
+		return self._filter_and(query, query.root, RootSelection(self.notebook))
 
-	def _filter_and(self, group, selection):
+	def _filter_and(self, query, group, selection):
 		for term in group:
 			if isinstance(term, OrGroup):
-				selection = self._filter_or(term, selection)
+				selection = self._filter_or(query, term, selection)
 			else:
-				selection = selection.filter(*term)
+				key, word = term
+				regex = query.regex(word)
+				selection = selection.filter(key, word, regex)
 
 		return selection
 
-	def _filter_or(self, group, selection):
+	def _filter_or(self, query, group, selection):
 		# TODO support OR operator
 		return selection
+

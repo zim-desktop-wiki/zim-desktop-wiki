@@ -95,7 +95,6 @@ class SearchResultsTreeView(BrowserTreeView):
 			model.append((page.name, score))
 
 	def _do_open_page(self, view, path, col):
-		print 'FOO'
 		page = self.get_model()[path][0]
 		page = self.ui.notebook.resolve_path(page)
 		self.ui.open_page(page)

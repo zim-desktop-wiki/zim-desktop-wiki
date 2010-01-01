@@ -2883,17 +2883,24 @@ class PageView(gtk.VBox):
 
 	def find_next(self):
 		string = self.find_entry.get_text()
-		self.view.get_buffer().find_forward(string)
+		buffer = self.view.get_buffer()
+		buffer.find_forward(string)
+		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
 
 	def find_previous(self):
 		string = self.find_entry.get_text()
-		self.view.get_buffer().find_backward(string)
+		buffer = self.view.get_buffer()
+		buffer.find_backward(string)
+		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
 
 	def on_find_entry_changed(self, entry):
 		string = entry.get_text()
-		ok = self.view.get_buffer().find_forward(string, flags=FIND_IN_PLACE)
+		buffer = self.view.get_buffer()
+		ok = buffer.find_forward(string, flags=FIND_IN_PLACE)
 		self.find_next_button.set_sensitive(ok)
 		self.find_prev_button.set_sensitive(ok)
+		if ok:
+			self.view.scroll_to_mark(buffer.get_insert(), 0.3)
 
 	def on_find_entry_activate(self, entry):
 		self.on_find_entry_changed(entry)
