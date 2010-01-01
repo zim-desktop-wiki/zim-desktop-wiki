@@ -71,6 +71,8 @@ class TestIndex(tests.TestCase):
 		for page in pagelist:
 			self.assertTrue(page.name.startswith('Test:'))
 			self.assertTrue(page.name.count(':') == 1)
+		pagelist = self.index.list_pages(Path('Linking'))
+		self.assertTrue(Path('Linking:Dus') in pagelist)
 		pagelist = self.index.list_pages(Path('Some:Non:Existing:Path'))
 		self.assertTrue(len(pagelist) == 0)
 
@@ -133,13 +135,13 @@ class TestIndex(tests.TestCase):
 
 		# now go through the flush loop
 		self.index.flush()
-		self.assertEqual(count_pages(self.index.db), 0)
+		self.assertEqual(count_pages(self.index.db), 1)
 		self.index.update()
 		self.assertEqual(count_pages(self.index.db), origcount)
 
 		# now index only part of the tree - and repeat
 		self.index.flush()
-		self.assertEqual(count_pages(self.index.db), 0)
+		self.assertEqual(count_pages(self.index.db), 1)
 		self.index.update(Path('Test'))
 		firstcount = count_pages(self.index.db)
 		self.assertTrue(firstcount > 2)

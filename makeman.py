@@ -4,6 +4,8 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
+import os
+
 from time import strftime
 
 from zim import __version__, __url__, \
@@ -36,7 +38,10 @@ def make():
 	'''Generate man page for zim'''
 
 	tagline, about = get_about()
-
+	try:
+		os.mkdir('man')
+	except OSError:
+		pass # dir already exists 
 	manpage = open('man/zim.1', 'w')
 	manpage.write('.TH ZIM "1" "%s" "zim %s" "User Commands"\n' % (strftime('%B %Y'), __version__))
 	manpage.write('.SH NAME\nzim \- %s\n\n' % tagline)

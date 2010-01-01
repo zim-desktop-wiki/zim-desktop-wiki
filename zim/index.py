@@ -18,6 +18,11 @@ longer exist.
 Note: there are some particular problems with storing hierarchical lists in
 a asociative database. Especially lookups of page names are a bit inefficient,
 as we need to do a seperate lookup for each parent. Open for future improvement.
+
+The database also stores the version number of the zim version that
+created it. After upgrading to a new version the database will
+automatically be flushed. Thus modifications to this module will be
+transparent as long as the zim version number is updated.
 '''
 
 # Note that it is important that this module fires signals and list pages
@@ -28,6 +33,7 @@ import sqlite3
 import gobject
 import logging
 
+import zim
 from zim.notebook import Path, Link, PageNameError
 
 logger = logging.getLogger('zim.index')
@@ -36,13 +42,13 @@ LINK_DIR_FORWARD = 1
 LINK_DIR_BACKWARD = 2
 LINK_DIR_BOTH = 3
 
-# Primary keys start counting with "1", so we can use parent=0
-# for pages in the root namespace...
-# TODO: change this and have explicit entry for root...
-
-# TODO: touch pages in the database that are linked but do not exist
+ROOT_ID = 1 # Primary key starts count at 1 and first entry will be root
 
 SQL_CREATE_TABLES = '''
+create table if not exists meta (
+	key TEXT,
+	value TEXT
+);
 create table if not exists pages (
 	id INTEGER PRIMARY KEY,
 	basename TEXT,
@@ -105,10 +111,9 @@ class IndexPath(Path):
 	def parentid(self):
 		if self._indexpath and len(self._indexpath) > 1:
 			return self._indexpath[-2]
-		elif self.isroot:
-			return None
 		else:
-			return 0
+			assert self.isroot, 'BUG: only root entry can have top level indexpath'
+			return None
 
 	@property
 	def hasdata(self): return not self._row is None
@@ -119,19 +124,17 @@ class IndexPath(Path):
 		else:
 			try:
 				return self._row[attr]
-			except IndexError:
-				raise AttributeError, '%s has no attribute %s' % (self.__repr__, attr)
+			except KeyError:
+				raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
 
 	@property
 	def parent(self):
 		'''Returns IndexPath for parent path'''
-		namespace = self.namespace
-		if namespace:
-			return IndexPath(namespace, self._indexpath[:-1])
-		elif self.isroot:
+		if self.isroot:
 			return None
 		else:
-			return IndexPath(':', (0,))
+			name = self.namespace
+			return IndexPath(name, self._indexpath[:-1])
 
 	def parents(self):
 		'''Generator function for parent namespace IndexPaths including root'''
@@ -141,10 +144,10 @@ class IndexPath(Path):
 			path.pop()
 			while len(path) > 0:
 				namespace = ':'.join(path)
-				indexpath = self._indexpath[:len(path)]
+				indexpath = self._indexpath[:len(path)+1]
 				yield IndexPath(namespace, indexpath)
 				path.pop()
-		yield IndexPath(':', (0,))
+		yield IndexPath(':', (ROOT_ID,))
 
 
 class Index(gobject.GObject):
@@ -187,6 +190,7 @@ class Index(gobject.GObject):
 		self.dbfile = dbfile
 		self.db = None
 		self.notebook = None
+		self.properties = None
 		self._updating= False
 		self._update_pagelist_queue = []
 		self._index_page_queue = []
@@ -234,8 +238,12 @@ class Index(gobject.GObject):
 			str(self.dbfile), detect_types=sqlite3.PARSE_DECLTYPES)
 		self.db.row_factory = sqlite3.Row
 
-		# TODO verify database integrity and zim version number
-		self.db.executescript(SQL_CREATE_TABLES)
+		self.properties = PropertiesDict(self.db)
+		if self.properties['zim_version'] != zim.__version__:
+			# init database layout
+			self.db.executescript(SQL_CREATE_TABLES)
+			self.flush()
+			self.properties['zim_version'] = zim.__version__
 
 	def flush(self):
 		'''Flushes all database content. Can be used before calling
@@ -247,6 +255,13 @@ class Index(gobject.GObject):
 		for table in ('pages', 'pagetypes', 'links', 'linktypes'):
 			self.db.execute('drop table "%s"' % table)
 		self.db.executescript(SQL_CREATE_TABLES)
+
+		# Create root node
+		cursor = self.db.cursor()
+		cursor.execute('insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)', ('', 0, False, False))
+		assert cursor.lastrowid == 1, 'BUG: Primary key should start counting at 1'
+
+		self.db.commit()
 
 	def update(self, path=None, background=False, checkcontents=True, callback=None):
 		'''This method initiates a database update for a namespace, or,
@@ -278,15 +293,15 @@ class Index(gobject.GObject):
 		# first need to have the full tree before we can reliably resolve links
 		# and thus index content.
 
-		if path is None or path.isroot:
-			indexpath = IndexPath(':', (0,), {'hascontent': False, 'haschildren':True})
-		else:
-			indexpath = self.lookup_path(path)
-			if indexpath is None:
-				indexpath = self._touch_path(path)
-				indexpath._row['haschildren'] = True
-				indexpath._row['childrenkey'] = None
-				checkcontent = True
+		if path is None:
+			path = Path(':')
+
+		indexpath = self.lookup_path(path)
+		if indexpath is None:
+			indexpath = self._touch_path(path)
+			indexpath._row['haschildren'] = True
+			indexpath._row['childrenkey'] = None
+			checkcontent = True
 
 		self._update_pagelist_queue.append(indexpath)
 		if checkcontents and not indexpath.isroot:
@@ -355,8 +370,8 @@ class Index(gobject.GObject):
 		try:
 			cursor = self.db.cursor()
 			names = path.parts
-			parentid = 0
-			indexpath = []
+			parentid = ROOT_ID
+			indexpath = [ROOT_ID]
 			inserted = [] # newly inserted paths
 			lastparent = None # last parent that already existed
 			for i in range(len(names)):
@@ -455,16 +470,15 @@ class Index(gobject.GObject):
 
 		# Check if listing is uptodate
 		uptodate = False
-		if not path.isroot: # FIXME with explicite entry for root we also will have a indexkey for it
-			listkey = self.notebook.get_pagelist_indexkey(path)
-			if listkey and path.childrenkey == listkey:
-				uptodate = True
+		listkey = self.notebook.get_pagelist_indexkey(path)
+		if listkey and path.childrenkey == listkey:
+			uptodate = True
 
 		cursor = self.db.cursor()
 		cursor.execute('select * from pages where parent==?', (path.id,))
 
 		if path.isroot:
-			indexpath = ()
+			indexpath = (ROOT_ID,)
 		else:
 			indexpath = path._indexpath
 
@@ -510,19 +524,15 @@ class Index(gobject.GObject):
 							self._index_page_queue.append(child)
 
 				# Update index key to reflect we did our updates
-				if not path.isroot: # FIXME need explicit entry for root
-					self.db.execute(
-						'update pages set childrenkey = ? where id == ?',
-						(listkey, path.id) )
+				self.db.execute(
+					'update pages set childrenkey = ? where id == ?',
+					(listkey, path.id) )
 
-				if path.isroot:
-					self.db.commit()
-				else:
-					haschildren = len(seen) > 0
-					self.db.execute(
-						'update pages set haschildren=? where id==?',
-						(haschildren, path.id) )
-					self.db.commit()
+				haschildren = len(seen) > 0
+				self.db.execute(
+					'update pages set haschildren=? where id==?',
+					(haschildren, path.id) )
+				self.db.commit()
 			except:
 				self.db.rollback()
 				raise
@@ -580,12 +590,22 @@ class Index(gobject.GObject):
 			if parenttoggled:
 				self.emit('page-haschildren-toggled', parent)
 
-		# TODO check forward links and clean up any placeholders
-		# TODO check backward links and unlink any links going here ??
+	def cleanup_parents(self, path):
+		'''Removes any placeholders for parent pages that have no
+		content of their own, no longer have any children after
+		deleting 'path' and are not linked. (Recursive function.)
+		'''
+
+	def cleanup_linked(self, path):
+		'''Removes any placeholder that is only linked by 'path' and
+		has no content or children of itself.
+		'''
+		# INNER join get any links with no content and no children
+		# Use n_list_links to check for other links
 
 	def walk(self, path=None):
 		if path is None or path.isroot:
-			return self._walk(IndexPath(':', (0,)), ())
+			return self._walk(IndexPath(':', (ROOT_ID,)), ())
 		else:
 			path = self.lookup_path(path)
 			if path is None:
@@ -616,20 +636,24 @@ class Index(gobject.GObject):
 		# Constructs the indexpath downward
 		if isinstance(path, IndexPath):
 			return path
+		elif path.isroot:
+			cursor = self.db.cursor()
+			cursor.execute('select * from pages where id==?', (ROOT_ID,))
+			row = cursor.fetchone()
+			return IndexPath(':', (ROOT_ID,), row)
 
-		indexpath = []
-		if parent and not parent.isroot:
-			indexpath.extend(parent._indexpath)
+		if parent:
+			indexpath = list(parent._indexpath)
 		elif hasattr(path, '_indexpath'):
 			# Page objects copy the _indexpath attribute
-			indexpath.extend(path._indexpath)
+			# FIXME can this cause issues when the index is modified in between ?
+			indexpath = list(path._indexpath)
+		else:
+			indexpath = [ROOT_ID]
 
 		names = path.name.split(':')
-		if indexpath:
-			names = names[len(indexpath):] # shift X items
-			parentid = indexpath[-1]
-		else:
-			parentid = 0
+		names = names[len(indexpath)-1:] # shift X items
+		parentid = indexpath[-1]
 
 		cursor = self.db.cursor()
 		if not names: # len(indexpath) was len(names)
@@ -697,8 +721,8 @@ class Index(gobject.GObject):
 				indexpath = list(parent._indexpath)
 		else:
 			parent = Path(':')
-			parentid = 0
-			indexpath = []
+			parentid = ROOT_ID
+			indexpath = [ROOT_ID]
 
 		names = name.split(':')
 		found = []
@@ -739,9 +763,9 @@ class Index(gobject.GObject):
 		if no path is given for the root namespace of the notebook.
 		'''
 		if path is None or path.isroot:
-			parentid = 0
+			parentid = ROOT_ID
 			name = ''
-			indexpath = ()
+			indexpath = (ROOT_ID,)
 		else:
 			path = self.lookup_path(path)
 			if path is None:
@@ -836,7 +860,7 @@ class Index(gobject.GObject):
 		if not recurs:
 			return self._get_next(path)
 		elif path.haschildren:
-			# decent to first child
+			# descent to first child
 			return self.list_pages(path)[0]
 		else:
 			next = self._get_next(path)
@@ -880,3 +904,28 @@ class Index(gobject.GObject):
 
 # Need to register classes defining gobject signals
 gobject.type_register(Index)
+
+
+class PropertiesDict(object):
+	'''Wrapper for access to the meta table with properties'''
+
+	def __init__(self, db):
+		self.db = db
+
+	def __setitem__(self, k, v):
+		cursor = self.db.cursor()
+		cursor.execute('delete from meta where key=?', (k,))
+		cursor.execute('insert into meta(key, value) values (?, ?)', (k, v))
+		self.db.commit()
+
+	def __getitem__(self, k):
+		try:
+			cursor = self.db.cursor()
+			cursor.execute('select value from meta where key=?', (k,))
+			row = cursor.fetchone()
+			if row:
+				return row[0]
+			else:
+				return None
+		except sqlite3.OperationalError: # no such table: meta
+			return None

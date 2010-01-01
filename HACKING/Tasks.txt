@@ -28,6 +28,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 
 == New Features ==
 [ ] Add custom commands in tools menu [[Ideas:Custom Commands]] 
+[ ] Finish improved search support [[Ideas:Search]]
 [ ] Pageview: make child items in list also (un)indent with parent
 [ ] Pageview: menu controls to indent / unindent / move up move down a list item
 	* Check emission of indent-changed signal to set state of buttons
