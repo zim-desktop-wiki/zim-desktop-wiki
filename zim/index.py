@@ -124,7 +124,7 @@ class IndexPath(Path):
 		else:
 			try:
 				return self._row[attr]
-			except KeyError:
+			except IndexError:
 				raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
 
 	@property
@@ -216,14 +216,19 @@ class Index(gobject.GObject):
 			# When we are the primary index and the notebook is also
 			# updating links, these calls are already done by the
 			# notebook directly
+			print 'DEL OLDPATH'
 			self.delete(oldpath)
+			print 'UPDATE'
 			self.update(newpath, background=True)
 
 		def on_page_updated(o, page):
 			indexpath = self.lookup_path(page)
 			if not indexpath:
 				indexpath = self._touch_path(page)
+			links = self._get_placeholders(indexpath)
 			self._index_page(indexpath, page)
+			for link in links:
+				self.cleanup(link)
 
 		self.notebook.connect('move-page', lambda *a: self.ensure_update())
 		self.notebook.connect('delete-page', lambda *a: self.ensure_update())
@@ -252,6 +257,12 @@ class Index(gobject.GObject):
 		is connected to the index.
 		'''
 		logger.info('Flushing index')
+
+		# Drop queues
+		self._update_pagelist_queue = []
+		self._index_page_queue = []
+
+		# Drop data
 		for table in ('pages', 'pagetypes', 'links', 'linktypes'):
 			self.db.execute('drop table "%s"' % table)
 		self.db.executescript(SQL_CREATE_TABLES)
@@ -321,6 +332,7 @@ class Index(gobject.GObject):
 
 	def ensure_update(self, callback=None):
 		'''Wait till any background update is finished'''
+		print 'ENSURE'
 		if self._updating:
 			logger.info('Ensure index updated')
 			while self._do_update((False, callback)):
@@ -358,6 +370,12 @@ class Index(gobject.GObject):
 					return False
 			return True
 		else:
+			try:
+				self.cleanup_all()
+			except KeyboardInterrupt:
+				raise
+			except:
+				logger.exception('Got an exception while removing placeholders')
 			logger.info('Index update done')
 			self._updating = False
 			return False
@@ -434,8 +452,8 @@ class Index(gobject.GObject):
 
 				indexpath = self.lookup_path(link)
 				if indexpath is None:
-					#~ indexpath = self._touch_path(link) - TODO
-					continue
+					print 'TOUCH LINK', link
+					indexpath = self._touch_path(link)
 
 				self.db.execute('insert into links (source, href) values (?, ?)', (path.id, indexpath.id))
 
@@ -523,15 +541,31 @@ class Index(gobject.GObject):
 						if page.hascontent:
 							self._index_page_queue.append(child)
 
-				# Update index key to reflect we did our updates
-				self.db.execute(
-					'update pages set childrenkey = ? where id == ?',
-					(listkey, path.id) )
+				# Figure out which pages to delete - but keep placeholders
+				keep = set()
+				delete = []
+				for basename in set(children.keys()).difference(seen):
+					row = children[basename]
+					child = IndexPath(
+						path.name+':'+basename, indexpath+(row['id'],), row)
+					print 'TEST', child, child.haschildren, self.n_list_links(child, direction=LINK_DIR_BACKWARD)
+					if child.haschildren or self.n_list_links(child, direction=LINK_DIR_BACKWARD) > 0:
+						keep.add(child)
+						self.db.execute(
+							'update pages set hascontent=0, contentkey=NULL where id==?', (child.id,))
+							# If you're not in the pagelist, you don't have content
+						changes.append((child, 2))
+						if child.haschildren:
+							self._update_pagelist_queue.append(child)
+					else:
+						delete.append(child)
 
-				haschildren = len(seen) > 0
+				# Update index key to reflect we did our updates
+				haschildren = len(seen) + len(keep) > 0
 				self.db.execute(
-					'update pages set haschildren=? where id==?',
-					(haschildren, path.id) )
+					'update pages set childrenkey=?, haschildren=? where id==?',
+					(listkey, haschildren, path.id) )
+
 				self.db.commit()
 			except:
 				self.db.rollback()
@@ -550,23 +584,24 @@ class Index(gobject.GObject):
 						self.emit('page-updated', path)
 
 				# Clean up pages that disappeared
-				for basename in set(children.keys()).difference(seen):
-					row = children[basename]
-					# TODO allow for placeholders:
-					#~ if not row['hascontent']:
-						#~ pass # might be a placeholder or might store children
-					#~ else:
-					child = IndexPath(
-						path.name+':'+basename, indexpath+(row['id'],), row)
-					self.delete(child)
+				for child in delete:
+					self.emit('delete', child)
+
+				if hadchildren and not path.haschildren:
+					self.cleanup(path)
 
 	def delete(self, path):
 		'''Delete page plus sub-pages plus forward links from the index'''
 		indexpath = self.lookup_path(path)
 		if indexpath:
+			links = self._get_placeholders(indexpath)
 			self.emit('delete', indexpath)
+			self.cleanup(indexpath.parent)
+			for link in links:
+				self.cleanup(link)
 
 	def do_delete(self, path):
+		print 'DO_DELETE', path
 		ids = [path.id]
 		ids.extend(p.id for p in self.walk(path))
 		try:
@@ -590,18 +625,45 @@ class Index(gobject.GObject):
 			if parenttoggled:
 				self.emit('page-haschildren-toggled', parent)
 
-	def cleanup_parents(self, path):
-		'''Removes any placeholders for parent pages that have no
-		content of their own, no longer have any children after
-		deleting 'path' and are not linked. (Recursive function.)
+	def cleanup(self, path):
+		'''Delete path if it has no content, no children and is
+		not linked by any other page.
 		'''
+		if path.isroot:
+			return
 
-	def cleanup_linked(self, path):
-		'''Removes any placeholder that is only linked by 'path' and
-		has no content or children of itself.
+		parent = path.parent
+		if isinstance(path, IndexPath):
+			path = self.lookup_data(path)
+		else:
+			path = self.lookup_path(path)
+			if not path:
+				self.cleanup(parent) # recurs
+
+		if not (path.hascontent or path.haschildren) \
+		and self.n_list_links(path, direction=LINK_DIR_BACKWARD) == 0:
+			self.emit('delete', path)
+			self.cleanup(parent) # recurs
+
+	def cleanup_all(self):
+		'''Find and cleanup any pages without content, children and
+		backlinks.
 		'''
-		# INNER join get any links with no content and no children
-		# Use n_list_links to check for other links
+		cursor = self.db.cursor()
+		cursor.execute(
+			'select id from pages where hascontent=0 and haschildren=0')
+		for row in cursor:
+			path = self.lookup_id(row['id'])
+			self.cleanup(path)
+
+	def _get_placeholders(self, path):
+		'''Return candidates for cleanup when path is deleted'''
+		cursor = self.db.cursor()
+		cursor.execute(
+			'select pages.id from pages inner join links on links.href=pages.id '
+			'where links.source=? and pages.hascontent=0 and pages.haschildren=0',
+			(path.id,))
+		return [self.lookup_id(row['id']) for row in cursor]
 
 	def walk(self, path=None):
 		if path is None or path.isroot:
@@ -635,7 +697,10 @@ class Index(gobject.GObject):
 		'''
 		# Constructs the indexpath downward
 		if isinstance(path, IndexPath):
-			return path
+			if not path.hasdata:
+				return self.lookup_data(path)
+			else:
+				return path
 		elif path.isroot:
 			cursor = self.db.cursor()
 			cursor.execute('select * from pages where id==?', (ROOT_ID,))
@@ -679,6 +744,7 @@ class Index(gobject.GObject):
 		cursor = self.db.cursor()
 		cursor.execute('select * from pages where id==?', (path.id,))
 		path._row = cursor.fetchone()
+		assert path._row, 'Path does not exist: %s' % path
 		return path
 
 	def lookup_id(self, id):
