@@ -2487,14 +2487,9 @@ class PageView(gtk.VBox):
 
 	def get_parsetree(self):
 		buffer = self.view.get_buffer()
-		# FIXME somehow using buffering of the tree here causes 'href'
-		# attribute for links to go missing - irritating bug -
-		# can not find out where the tree is modified.
-		# To reproduce edit page with links, navigate away, reload
-		# from pathbar (history) - error will be key error on 'href'
-		#~ if buffer.get_modified():
-		self._parsetree = buffer.get_parsetree()
-		buffer.set_modified(False)
+		if buffer.get_modified():
+			self._parsetree = buffer.get_parsetree()
+			buffer.set_modified(False)
 		#~ print self._parsetree.tostring()
 		return self._parsetree
 

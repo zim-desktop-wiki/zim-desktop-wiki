@@ -1256,7 +1256,7 @@ class Page(Path):
 		if tree:
 			for tag in tree.getiterator('link'):
 				attrib = tag.attrib.copy()
-				href = tag.attrib.pop('href')
+				href = attrib.pop('href')
 				type = link_type(href)
 				yield type, href, attrib
 
