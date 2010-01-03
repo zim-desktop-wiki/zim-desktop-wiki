@@ -78,6 +78,11 @@ create table if not exists linktypes (
 
 # TODO need better support for TreePaths, e.g. as signal arguments for Treemodel
 
+# TODO need a verify_path that works like lookup_path but adds checks when path
+# already has a indexpath attribute, e.g. check basename and parent id
+# Otherwise we might be re-using stale data. Also check copying of
+# _indexpath in notebook.Path
+
 # FIXME, the idea to have some index paths with and some without data
 # was a really bad idea. Need to clean up the code as this is / will be
 # a source of obscure bugs. Remove or replace lookup_data().
@@ -216,17 +221,15 @@ class Index(gobject.GObject):
 			# When we are the primary index and the notebook is also
 			# updating links, these calls are already done by the
 			# notebook directly
-			print 'DEL OLDPATH'
 			self.delete(oldpath)
-			print 'UPDATE'
 			self.update(newpath, background=True)
 
 		def on_page_updated(o, page):
 			indexpath = self.lookup_path(page)
 			if not indexpath:
 				indexpath = self._touch_path(page)
-			links = self._get_placeholders(indexpath)
-			self._index_page(indexpath, page)
+			links = self._get_placeholders(indexpath, recurs=False)
+			self._index_pagecontents(indexpath, page)
 			for link in links:
 				self.cleanup(link)
 
@@ -332,7 +335,6 @@ class Index(gobject.GObject):
 
 	def ensure_update(self, callback=None):
 		'''Wait till any background update is finished'''
-		print 'ENSURE'
 		if self._updating:
 			logger.info('Ensure index updated')
 			while self._do_update((False, callback)):
@@ -354,7 +356,7 @@ class Index(gobject.GObject):
 				elif self._index_page_queue:
 					path = self._index_page_queue.pop(0)
 					page = self.notebook.get_page(path)
-					self._index_page(path, page)
+					self._index_pagecontents(path, page)
 			except KeyboardInterrupt:
 				raise
 			except:
@@ -429,7 +431,7 @@ class Index(gobject.GObject):
 		else:
 			return self.lookup_path(path)
 
-	def _index_page(self, path, page):
+	def _index_pagecontents(self, path, page):
 		'''Indexes page contents for page.
 
 		TODO: emit a signal for this for plugins to use
@@ -437,7 +439,7 @@ class Index(gobject.GObject):
 		#~ print '!! INDEX PAGE', path, path._indexpath
 		assert isinstance(path, IndexPath) and not path.isroot
 		try:
-			self.db.execute('delete from links where source == ?', (path.id,))
+			self.db.execute('delete from links where source==?', (path.id,))
 			for type, href, _ in page.get_links():
 				if type != 'page':
 					continue
@@ -452,18 +454,24 @@ class Index(gobject.GObject):
 
 				indexpath = self.lookup_path(link)
 				if indexpath is None:
-					print 'TOUCH LINK', link
 					indexpath = self._touch_path(link)
 
-				self.db.execute('insert into links (source, href) values (?, ?)', (path.id, indexpath.id))
+				self.db.execute(
+					'insert into links (source, href) values (?, ?)',
+					(path.id, indexpath.id) )
 
 			key = self.notebook.get_page_indexkey(page)
-			self.db.execute('update pages set contentkey = ? where id == ?', (key, path.id))
+			self.db.execute(
+				'update pages set hascontent=?, contentkey=? where id==?',
+				(page.hascontent, key, path.id) )
 			self.db.commit()
 		except:
+			#~ print '!! ERROR'
 			self.db.rollback()
 			raise
 		else:
+			#~ print '!! PAGE-UPDATED', path
+			path = self.lookup_data(path) # refresh
 			self.emit('page-updated', path)
 
 	def _update_pagelist(self, path, checkcontent):
@@ -476,35 +484,39 @@ class Index(gobject.GObject):
 		if not path.hasdata:
 			path = path.lookup_data(path)
 		hadchildren = path.haschildren
+		hadcontent = path.hascontent
 
-		def check_and_queue(path):
-			# Helper function to queue individual children
-			if path.haschildren:
-				self._update_pagelist_queue.append(path)
-			elif checkcontent:
-				pagekey = self.notebook.get_page_indexkey(path)
-				if not (pagekey and path.contentkey == pagekey):
-					self._index_page_queue.append(path)
+		if path.isroot:
+			rawpath = Path(':')
+			hascontent = False
+			indexpath = (ROOT_ID,)
+		else:
+			rawpath = self.notebook.get_page(path)
+			hascontent = rawpath.hascontent
+			indexpath = path._indexpath
 
 		# Check if listing is uptodate
-		uptodate = False
-		listkey = self.notebook.get_pagelist_indexkey(path)
-		if listkey and path.childrenkey == listkey:
-			uptodate = True
+
+		def check_and_queue(child, rawchild):
+			# Helper function to queue individual children
+			if child.haschildren:
+				self._update_pagelist_queue.append(child)
+			elif checkcontent:
+				pagekey = self.notebook.get_page_indexkey(rawchild or child)
+				if not (pagekey and child.contentkey == pagekey):
+					self._index_page_queue.append(child)
+
+		listkey = self.notebook.get_pagelist_indexkey(rawpath)
+		uptodate = listkey and path.childrenkey == listkey
 
 		cursor = self.db.cursor()
 		cursor.execute('select * from pages where parent==?', (path.id,))
-
-		if path.isroot:
-			indexpath = (ROOT_ID,)
-		else:
-			indexpath = path._indexpath
 
 		if uptodate:
 			#~ print '!! ... is up to date'
 			for row in cursor:
 				p = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],), row)
-				check_and_queue(p)
+				check_and_queue(p, None)
 		else:
 			#~ print '!! ... updating'
 			children = {}
@@ -513,13 +525,13 @@ class Index(gobject.GObject):
 			seen = set()
 			changes = []
 			try:
-				for page in self.notebook.get_pagelist(path):
+				for page in self.notebook.get_pagelist(rawpath):
 					seen.add(page.basename)
 					if page.basename in children:
 						# TODO: check if hascontent and haschildren are correct, update if incorrect + append to changes
 						row = children[page.basename]
 						p = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],), row)
-						check_and_queue(p)
+						check_and_queue(p, page)
 					else:
 						# We set haschildren to False untill we have actualy seen those
 						# children. Failing to do so will cause trouble with the
@@ -548,7 +560,6 @@ class Index(gobject.GObject):
 					row = children[basename]
 					child = IndexPath(
 						path.name+':'+basename, indexpath+(row['id'],), row)
-					print 'TEST', child, child.haschildren, self.n_list_links(child, direction=LINK_DIR_BACKWARD)
 					if child.haschildren or self.n_list_links(child, direction=LINK_DIR_BACKWARD) > 0:
 						keep.add(child)
 						self.db.execute(
@@ -563,45 +574,48 @@ class Index(gobject.GObject):
 				# Update index key to reflect we did our updates
 				haschildren = len(seen) + len(keep) > 0
 				self.db.execute(
-					'update pages set childrenkey=?, haschildren=? where id==?',
-					(listkey, haschildren, path.id) )
+					'update pages set childrenkey=?, haschildren=?, hascontent=? where id==?',
+					(listkey, haschildren, hascontent, path.id) )
 
 				self.db.commit()
 			except:
 				self.db.rollback()
 				raise
 			else:
-				path = self.lookup_data(path)
+				path = self.lookup_data(path) # refresh
 				if not path.isroot and (hadchildren != path.haschildren):
 					self.emit('page-haschildren-toggled', path)
 
+				if not path.isroot and (hadcontent != path.hascontent):
+					self.emit('page-updated', path)
+
 				# All these signals should come in proper order...
 				changes.sort(key=lambda c: c[0].basename)
-				for path, action in changes:
+				for child, action in changes:
 					if action == 1:
-						self.emit('page-inserted', path)
+						self.emit('page-inserted', child)
 					else: # action == 2:
-						self.emit('page-updated', path)
+						self.emit('page-updated', child)
 
 				# Clean up pages that disappeared
 				for child in delete:
 					self.emit('delete', child)
 
-				if hadchildren and not path.haschildren:
+				# Clean up ourselves as well if we turn out empty
+				if path.haschildren or path.hascontent:
 					self.cleanup(path)
 
 	def delete(self, path):
 		'''Delete page plus sub-pages plus forward links from the index'''
 		indexpath = self.lookup_path(path)
 		if indexpath:
-			links = self._get_placeholders(indexpath)
+			links = self._get_placeholders(indexpath, recurs=True)
 			self.emit('delete', indexpath)
 			self.cleanup(indexpath.parent)
 			for link in links:
 				self.cleanup(link)
 
 	def do_delete(self, path):
-		print 'DO_DELETE', path
 		ids = [path.id]
 		ids.extend(p.id for p in self.walk(path))
 		try:
@@ -656,23 +670,29 @@ class Index(gobject.GObject):
 			path = self.lookup_id(row['id'])
 			self.cleanup(path)
 
-	def _get_placeholders(self, path):
-		'''Return candidates for cleanup when path is deleted'''
+	def _get_placeholders(self, path, recurs):
+		'''Return candidates for cleanup when path is updated or deleted'''
+		ids = [path.id]
+		if recurs:
+			ids.extend(p.id for p in self.walk(path))
+		placeholders = []
 		cursor = self.db.cursor()
-		cursor.execute(
-			'select pages.id from pages inner join links on links.href=pages.id '
-			'where links.source=? and pages.hascontent=0 and pages.haschildren=0',
-			(path.id,))
-		return [self.lookup_id(row['id']) for row in cursor]
+		for id in ids:
+			cursor.execute(
+				'select pages.id from pages inner join links on links.href=pages.id '
+				'where links.source=? and pages.hascontent=0 and pages.haschildren=0',
+				(id,))
+			placeholders.extend(self.lookup_id(row['id']) for row in cursor)
+		return placeholders
 
 	def walk(self, path=None):
 		if path is None or path.isroot:
 			return self._walk(IndexPath(':', (ROOT_ID,)), ())
 		else:
-			path = self.lookup_path(path)
-			if path is None:
-				raise ValueError
-			return self._walk(path, path._indexpath)
+			indexpath = self.lookup_path(path)
+			if indexpath is None:
+				raise ValueError, 'no such path in the index %s' % path
+			return self._walk(indexpath, indexpath._indexpath)
 
 	def _walk(self, path, indexpath):
 		# Here path always is an IndexPath
@@ -744,7 +764,7 @@ class Index(gobject.GObject):
 		cursor = self.db.cursor()
 		cursor.execute('select * from pages where id==?', (path.id,))
 		path._row = cursor.fetchone()
-		assert path._row, 'Path does not exist: %s' % path
+		#~ assert path._row, 'Path does not exist: %s' % path
 		return path
 
 	def lookup_id(self, id):

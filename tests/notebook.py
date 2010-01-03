@@ -185,6 +185,16 @@ class TestNotebook(tests.TestCase):
 		self.assertFalse(page.haschildren)
 		self.assertFalse(page.hascontent)
 
+		#~ print '\n==== DB ===='
+		#~ self.notebook.index.ensure_update()
+		#~ cursor = self.notebook.index.db.cursor()
+		#~ cursor.execute('select * from pages')
+		#~ for row in cursor:
+			#~ print row
+		#~ cursor.execute('select * from links')
+		#~ for row in cursor:
+			#~ print row
+
 		# Try rename
 		page = self.notebook.get_page(Path('Test:wiki'))
 		self.assertTrue(page.hascontent)
@@ -195,16 +205,17 @@ class TestNotebook(tests.TestCase):
 		self.notebook.rename_page(Path('Test:wiki'), 'foo')
 		page = self.notebook.get_page(Path('Test:wiki'))
 		self.assertFalse(page.hascontent)
-		page = self.notebook.get_page(Path('Test:Foo'))
-			# we get "Foo" instead of "foo" because it is a placeholder for links
+		page = self.notebook.get_page(Path('Test:foo'))
+			# If we get an error here because notebook resolves Test:Foo
+			# probably the index did not clean up placeholders correctly
 		self.assertTrue(page.hascontent)
 
 		self.assertFalse(copy.valid)
 
-		self.notebook.rename_page(Path('Test:Foo'), 'foo')
-		page = self.notebook.get_page(Path('Test:Foo'))
-		self.assertFalse(page.hascontent)
+		self.notebook.rename_page(Path('Test:foo'), 'Foo')
 		page = self.notebook.get_page(Path('Test:foo'))
+		self.assertFalse(page.hascontent)
+		page = self.notebook.get_page(Path('Test:Foo'))
 		self.assertTrue(page.hascontent)
 
 	def testUpdateLinks(self):
