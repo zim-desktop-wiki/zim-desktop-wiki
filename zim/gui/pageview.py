@@ -300,6 +300,15 @@ class TextBuffer(gtk.TextBuffer):
 		self.textstyle = None
 		self._editmode_tags = ()
 
+		#~ import sys
+		#~ for s in (
+			#~ 'apply-tag', 'remove-tag',
+			#~ 'delete-range', 'insert-pixbuf', 'insert-text',
+			#~ 'mark-deleted', 'mark-set'
+			#~ 'changed', , 'modified-changed',
+		#~ ):
+			#~ self.connect(s, lambda *a: sys.stderr.write('>>> %s\n' % a[-1]), s)
+
 	def clear(self):
 		'''Clear all content from the buffer'''
 		self.emit('clear')
@@ -2258,8 +2267,9 @@ class PageView(gtk.VBox):
 
 
 	def __init__(self, ui, secondairy=False):
-		self.ui = ui
 		gtk.VBox.__init__(self)
+		self.ui = ui
+		self._buffer_signals = []
 		self.page = None
 		self.readonly = True
 		self.readonlyset = False
@@ -2421,12 +2431,15 @@ class PageView(gtk.VBox):
 		# for some reason keeping a copy of the previous buffer
 		# prevents a number of segfaults ...
 		# we do clear the old buffer to save some memory
-		# TODO keep stack of ~3 buffers with content for better performance
 		if self.undostack:
 			self.undostack.block()
 			self.undostack = None
+
 		self._prev_buffer = self.view.get_buffer()
-		self._prev_buffer.delete(*self._prev_buffer.get_bounds())
+		for id in self._buffer_signals:
+			self._prev_buffer.disconnect(id)
+		self._buffer_signals = []
+		self._prev_buffer.clear()
 
 		# now create the new buffer
 		self.page = page
@@ -2458,9 +2471,11 @@ class PageView(gtk.VBox):
 
 		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
 
-		buffer.connect('textstyle-changed', self.do_textstyle_changed)
-		buffer.connect('modified-changed',
-			lambda o: self.on_modified_changed(o))
+		self._buffer_signals.append(
+			buffer.connect('textstyle-changed', self.do_textstyle_changed) )
+		self._buffer_signals.append(
+			buffer.connect('modified-changed',
+				lambda o: self.on_modified_changed(o)) )
 
 		self.undostack = UndoStackManager(buffer)
 		self.set_readonly()
