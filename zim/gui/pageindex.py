@@ -246,10 +246,12 @@ class PageTreeView(BrowserTreeView):
 
 	def __init__(self, ui):
 		BrowserTreeView.__init__(self)
+		self._vivivied = None
 
 		if not ui is None: # is None in test case
 			self.ui = ui
-			self.ui.connect('open-page', lambda o, p, r: self.select_page(p))
+			self.ui.connect('open-page',
+				lambda o, p, r: self.select_page(p, vivify=True) )
 			self.ui.connect_after('open-notebook', self.do_set_notebook)
 			if not self.ui.notebook is None:
 				self.do_set_notebook(self.app, self.ui.notebook)
@@ -390,27 +392,37 @@ class PageTreeView(BrowserTreeView):
 		else:
 			dragcontext.finish(True, False, time) # OK
 
-	def select_page(self, path):
-		'''Select a page in the treeview, connected to the open-page signal'''
+	def select_page(self, path, vivify=False):
+		'''Select a page in the treeview, connected to the open-page signal.
+
+		If 'vivify' is True a placeholder for the path will be created
+		if it doesn't yet exist. However this placeholder is cleaned
+		up when another page is selected with this method unless the
+		path was modified in the mean time.
+		'''
 		print 'START select page'
 		model, iter = self.get_selection().get_selected()
 		if model is None:
 			return # index not yet initialized ...
-		#~ if not iter is None and model[iter][PAGE_COL] == pagename:
-			#~ return  # this page was selected already
 
-		# TODO unlist temporary listed items
-		# TODO temporary list new item if page does not exist
+		if iter and model[iter][PATH_COL] == path:
+			return  # this page was selected already
 
-		path = self.ui.notebook.index.lookup_path(path)
-		if path is None:
-			pass # TODO temporary list the thing in the index
-		else:
-			treepath = model.get_treepath(path)
-			self.expand_to_path(treepath)
-			self.get_selection().select_path(treepath)
-			self.set_cursor(treepath)
-			self.scroll_to_cell(treepath)
+		index = self.ui.notebook.index
+		if self._vivivied:
+			index.cleanup(self._vivivied)
+			self._vivivied = None
+
+		indexpath = index.lookup_path(path)
+		if indexpath is None:
+			indexpath = index.touch(path)
+			self._vivivied = indexpath
+
+		treepath = model.get_treepath(indexpath)
+		self.expand_to_path(treepath)
+		self.get_selection().select_path(treepath)
+		self.set_cursor(treepath)
+		self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
 
 		print 'END select page'
 

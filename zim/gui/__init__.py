@@ -295,14 +295,25 @@ class GtkInterface(NotebookInterface):
 								self.mainwindow, 'do_set_toolbar_size')
 		self.add_ui(data_file('menubar.xml').read(), self)
 
-		accelmap = config_file('accelmap').file
-		if accelmap.exists():
-			gtk.accel_map_load(accelmap.path)
-		#~ gtk.accel_map_get().connect(
-			#~ 'changed', lambda o: gtk.accelmap_save(accelmap.path) )
-
 		self.load_plugins()
 
+		self.uimanager.ensure_update()
+			# prevent flashing when the toolbar is after showing the window
+			# and do this before connecting signal below for accelmap
+
+		accelmap = config_file('accelmap').file
+		logger.debug('Accelmap: %s', accelmap.path)
+		if accelmap.exists():
+			gtk.accel_map_load(accelmap.path)
+
+		def on_accel_map_changed(o, path, key, mod):
+			logger.info('Accelerator changed for %s', path)
+			gtk.accel_map_save(accelmap.path)
+
+		gtk.accel_map_get().connect('changed', on_accel_map_changed)
+
+
+		# Deal with commandline arguments for notebook and page
 		if notebook:
 			self.open_notebook(notebook)
 			if self.notebook is None:
@@ -360,8 +371,6 @@ class GtkInterface(NotebookInterface):
 		# older gobject version doesn't know about seconds
 		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
 
-		self.uimanager.ensure_update()
-			# prevent flashing when the toolbar is after showing the window
 		self.mainwindow.show_all()
 		self.mainwindow.pageview.grab_focus()
 		gtk.main()

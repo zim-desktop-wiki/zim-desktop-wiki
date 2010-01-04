@@ -256,10 +256,15 @@ class SocketDaemon(object):
 
 class UnixSocketDaemon(UnixDaemon, SocketDaemon):
 
-	socket_family = socket.AF_UNIX
-	socket_address = get_tmpdir().file('daemon-socket').path
+	if hasattr(socket, 'AF_UNIX'):
+		socket_family = socket.AF_UNIX
+		socket_address = get_tmpdir().file('daemon-socket').path
+	else:
+		socket_family = None
+		socket_address = None
 
 	def start(self):
+		assert self.socket_family
 		if os.path.exists(self.socket_address):
 			os.remove(self.socket_address)
 		SocketDaemon.start(self)

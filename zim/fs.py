@@ -211,14 +211,18 @@ class UnixPath(object):
 		which should be a parent directory unless 'allowupward' is True.
 		If 'allowupward' is True the relative path is allowed to start
 		with '../'.
+
+		This method always returns paths using "/" as separator,
+		even on windows.
 		'''
+		sep = os.path.sep # '/' or '\'
 		if allowupward and not self.path.startswith(reference.path):
 			parent = self.commonparent(reference)
 			if parent is None:
 				return None
 
 			i = len(parent.path)
-			j = reference.path[i:].strip('/').count('/') + 1
+			j = reference.path[i:].strip(sep).count(sep) + 1
 			reference = parent
 			path = '../' * j
 		else:
@@ -226,7 +230,7 @@ class UnixPath(object):
 			path = ''
 
 		i = len(reference.path)
-		path += self.path[i:].lstrip('/')
+		path += self.path[i:].lstrip(sep).replace(sep, '/')
 		return path
 
 	def commonparent(self, other):
@@ -295,12 +299,6 @@ class WindowsPath(UnixPath):
 	def canonpath(self):
 		path = self.path.replace('\\', '/')
 		return path
-
-	def relpath(self, reference, allowupward=False):
-		'''Relative path, explicit using unix convention for seperators'''
-		path = UnixPath.relpath(self, reference, allowupward)
-		path = path.lstrip('\\')
-		return path.replace('\\', '/')
 
 
 # Determine which base class to use for classes below

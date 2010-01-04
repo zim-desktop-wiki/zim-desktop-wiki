@@ -162,7 +162,7 @@ class TestIndex(tests.TestCase):
 
 		# Check cleanup
 		path = Path('New:Nested:Path')
-		self.index._touch_path(path)
+		self.index.touch(path)
 		parent = self.index.lookup_path(path.parent)
 		self.assertTrue(parent and parent.haschildren)
 		self.index.delete(path)

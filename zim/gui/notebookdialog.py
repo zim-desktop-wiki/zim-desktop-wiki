@@ -12,11 +12,16 @@ the next time zim is started without arguments.
 
 import gtk
 import pango
+import logging
 
 from zim.fs import *
 from zim.notebook import get_notebook_list, init_notebook
 from zim.config import data_file
 from zim.gui.widgets import Dialog, IconButton
+
+
+logger = logging.getLogger('zim.gui.notebookdialog')
+
 
 OPEN_COL = 0  # column with boolean if notebook is open alreadys
 NAME_COL = 1  # column with notebook name
@@ -31,7 +36,7 @@ def prompt_notebook():
 	list = get_notebook_list()
 	if not list:
 		logger.debug('First time usage - prompt for notebook folder')
-		fields = AddNotebookDialog(self).run()
+		fields = AddNotebookDialog(ui=None).run()
 		if fields:
 			dir = Dir(fields['folder'])
 			init_notebook(dir, name=fields['name'])

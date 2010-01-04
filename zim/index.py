@@ -264,7 +264,7 @@ class Index(gobject.GObject):
 		def on_page_updated(o, page):
 			indexpath = self.lookup_path(page)
 			if not indexpath:
-				indexpath = self._touch_path(page)
+				indexpath = self.touch(page)
 			links = self._get_placeholders(indexpath, recurs=False)
 			self._index_pagecontents(indexpath, page)
 			for link in links:
@@ -351,7 +351,7 @@ class Index(gobject.GObject):
 
 		indexpath = self.lookup_path(path)
 		if indexpath is None:
-			indexpath = self._touch_path(path)
+			indexpath = self.touch(path)
 			indexpath._row['haschildren'] = True
 			indexpath._row['childrenkey'] = None
 			checkcontent = True
@@ -421,7 +421,7 @@ class Index(gobject.GObject):
 			self._updating = False
 			return False
 
-	def _touch_path(self, path):
+	def touch(self, path):
 		'''This method creates a path along with all it's parents.
 		Returns the final IndexPath. Path is created as a palceholder which
 		has neither content or children.
@@ -473,6 +473,7 @@ class Index(gobject.GObject):
 		'''
 		#~ print '!! INDEX PAGE', path, path._indexpath
 		assert isinstance(path, IndexPath) and not path.isroot
+		seen = set()
 		with self.db_commit:
 			self.db.execute('delete from links where source==?', (path.id,))
 			for type, href, _ in page.get_links():
@@ -487,13 +488,16 @@ class Index(gobject.GObject):
 				except PageNameError:
 					continue
 
-				indexpath = self.lookup_path(link)
-				if indexpath is None:
-					indexpath = self._touch_path(link)
+				if link != page and not link.name in seen:
+					# Filter out self refering links and remove doubles
+					seen.add(link.name)
+					indexpath = self.lookup_path(link)
+					if indexpath is None:
+						indexpath = self.touch(link)
 
-				self.db.execute(
-					'insert into links (source, href) values (?, ?)',
-					(path.id, indexpath.id) )
+					self.db.execute(
+						'insert into links (source, href) values (?, ?)',
+						(path.id, indexpath.id) )
 
 			key = self.notebook.get_page_indexkey(page)
 			self.db.execute(
