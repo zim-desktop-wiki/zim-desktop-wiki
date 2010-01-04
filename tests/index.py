@@ -10,6 +10,7 @@ from zim.fs import Dir
 from zim.index import Index, IndexPath, LINK_DIR_BACKWARD, LINK_DIR_BOTH
 from zim.notebook import Notebook, Path, Link
 from zim.gui.pageindex import PageTreeStore, PageTreeView
+from zim.formats import ParseTree
 
 
 def get_files_notebook(key):
@@ -71,6 +72,8 @@ class TestIndex(tests.TestCase):
 		for page in pagelist:
 			self.assertTrue(page.name.startswith('Test:'))
 			self.assertTrue(page.name.count(':') == 1)
+		pagelist = self.index.list_pages(Path('Linking'))
+		self.assertTrue(Path('Linking:Dus') in pagelist)
 		pagelist = self.index.list_pages(Path('Some:Non:Existing:Path'))
 		self.assertTrue(len(pagelist) == 0)
 
@@ -97,12 +100,20 @@ class TestIndex(tests.TestCase):
 			r = c.fetchall()
 			return len(r)
 
+		def dump_db(db):
+			c = db.cursor()
+			c.execute('select * from pages')
+			text = ''
+			for row in c:
+				text += ', '.join(map(str, row)) + '\n'
+			return text
+
 		# repeat update() to check if update is stable
 		manifest = len(self.notebook.testdata_manifest)
 		self.assertTrue(count_pages(self.index.db) >= manifest)
-		origcount = count_pages(self.index.db)
+		origdb = dump_db(self.index.db)
 		self.index.update(checkcontents=False)
-		self.assertEqual(count_pages(self.index.db), origcount)
+		self.assertEqualDiff(dump_db(self.index.db), origdb)
 
 		# indexkey
 		for path in (Path('Test'), Path('Test:foo')):
@@ -123,7 +134,7 @@ class TestIndex(tests.TestCase):
 			seen = max(seen, page.name.count(':'))
 			page = self.index.get_next(page)
 		self.assertTrue(seen >= 2)
-		
+
 		page = self.index.list_pages(None)[-1]
 		seen = 0
 		while page:
@@ -133,18 +144,50 @@ class TestIndex(tests.TestCase):
 
 		# now go through the flush loop
 		self.index.flush()
-		self.assertEqual(count_pages(self.index.db), 0)
+		self.assertEqual(count_pages(self.index.db), 1)
 		self.index.update()
-		self.assertEqual(count_pages(self.index.db), origcount)
+		self.assertEqualDiff(dump_db(self.index.db), origdb)
 
 		# now index only part of the tree - and repeat
 		self.index.flush()
-		self.assertEqual(count_pages(self.index.db), 0)
+		self.assertEqual(count_pages(self.index.db), 1)
 		self.index.update(Path('Test'))
-		firstcount = count_pages(self.index.db)
-		self.assertTrue(firstcount > 2)
+		self.assertTrue(count_pages(self.index.db) > 2)
+		partdb = dump_db(self.index.db)
 		self.index.update(Path('Test'))
-		self.assertEqual(count_pages(self.index.db), firstcount)
+		self.assertEqualDiff(dump_db(self.index.db), partdb)
+
+		# Index whole tree again
+		self.index.update()
+
+		# Check cleanup
+		path = Path('New:Nested:Path')
+		self.index._touch_path(path)
+		parent = self.index.lookup_path(path.parent)
+		self.assertTrue(parent and parent.haschildren)
+		self.index.delete(path)
+		parent = self.index.lookup_path(path.parent)
+		self.assertTrue(parent is None)
+
+		#~ # Check cleanup for links
+		links = [link.href for link in self.index.list_links(Path('roundtrip'))]
+		for p in ('foo:bar', 'Bar'):
+			self.assertTrue(Path(p) in links)
+			path = self.index.lookup_path(Path('foo:bar'))
+			self.assertTrue(path)
+
+		tree = ParseTree().fromstring('<zim-tree><link href=":foo:bar">:foo:bar</link></zim-tree>')
+		page = self.notebook.get_page(Path('roundtrip'))
+		page.set_parsetree(tree)
+		self.notebook.store_page(page)
+		path = self.index.lookup_path(Path('Bar'))
+		self.assertTrue(path is None)
+		path = self.index.lookup_path(Path('foo:bar'))
+		self.assertTrue(path)
+
+		self.notebook.delete_page(Path('roundtrip'))
+		path = self.index.lookup_path(Path('foo:bar'))
+		self.assertTrue(path is None)
 
 
 class TestIndexFiles(TestIndex):
@@ -163,6 +206,8 @@ class TestIndexFiles(TestIndex):
 
 class TestPageTreeStore(tests.TestCase):
 
+	slowTest = True
+
 	def setUp(self):
 		self.index = Index(dbfile=':memory:')
 		self.notebook = tests.get_test_notebook()
@@ -177,7 +222,7 @@ class TestPageTreeStore(tests.TestCase):
 		self.index.update()
 		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 2)
+		self.assertEqual(treestore.get_n_columns(), 5)
 
 		treeview = PageTreeView(None) # just run hidden to check errors
 		treeview.set_model(treestore)

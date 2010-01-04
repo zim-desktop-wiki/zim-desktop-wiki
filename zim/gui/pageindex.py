@@ -25,6 +25,9 @@ logger = logging.getLogger('zim.gui.pageindex')
 
 NAME_COL = 0  # column with short page name (page.basename)
 PATH_COL = 1  # column with the zim IndexPath itself
+EMPTY_COL = 2 # column to flag if the page is empty or not
+STYLE_COL = 3 # column to specify style (based on empty or not)
+FGCOLOR_COL = 4 # column to specify color (based on empty or not)
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
@@ -50,6 +53,22 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	# the TreeView to understand we support drag-and-drop even though
 	# actual work is implemented in the treeview itself.
 
+	# FIXME: Figure out how to bind cellrendere style to the
+	# EMPTY_COL so we do not need the separate style and fgcolor cols.
+	# This will also allow making style for empty pages configurable.
+
+	COLUMN_TYPES = (
+		gobject.TYPE_STRING, # NAME_COL
+		gobject.TYPE_PYOBJECT, # PATH_COL
+		bool, # EMPTY_COL
+		pango.Style, # STYLE_COL
+		gtk.gdk.Color, # FGCOLOR_COL
+	)
+
+	style = gtk.Label().get_style() # HACK - how to get default style ?
+	NORMAL_COLOR = style.text[gtk.STATE_NORMAL]
+	EMPTY_COLOR = style.text[gtk.STATE_INSENSITIVE]
+
 	def __init__(self, index):
 		gtk.GenericTreeModel.__init__(self)
 		self.index = index
@@ -73,14 +92,31 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		return 0 # no flags
 
 	def on_get_n_columns(self):
-		return 2 # two columns
+		return len(self.COLUMN_TYPES)
 
-	def on_get_column_type(self, index):
+	def on_get_column_type(self, i):
 		#~ print '>> on_get_column_type', index
-		if index == 0:
-			return gobject.TYPE_STRING
-		elif index == 1:
-			return gobject.TYPE_PYOBJECT
+		return self.COLUMN_TYPES[i]
+
+	def on_get_value(self, path, column):
+		'''Returns the data for a specific column'''
+		#~ print '>> on_get_value', path, column
+		if column == NAME_COL:
+			return path.basename
+		elif column == PATH_COL:
+			return path
+		elif column == EMPTY_COL:
+			return path.hascontent or path.haschildren
+		elif column == STYLE_COL:
+			if path.hascontent or path.haschildren:
+				return pango.STYLE_NORMAL
+			else:
+				return pango.STYLE_ITALIC
+		elif column == FGCOLOR_COL:
+			if path.hascontent or path.haschildren:
+				return self.NORMAL_COLOR
+			else:
+				return self.EMPTY_COLOR
 
 	def on_get_iter(self, treepath):
 		'''Returns an IndexPath for a TreePath or None'''
@@ -114,14 +150,6 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	def get_indexpath(self, iter):
 		'''Returns an IndexPath for a TreeIter'''
 		return self.get_user_data(iter)
-
-	def on_get_value(self, path, column):
-		'''Returns the data for a specific column'''
-		#~ print '>> on_get_value', path, column
-		if column == 0:
-			return path.basename
-		elif column == 1:
-			return path
 
 	def on_iter_next(self, path):
 		'''Returns the IndexPath for the next row on the same level or None'''
@@ -228,8 +256,11 @@ class PageTreeView(BrowserTreeView):
 
 		cell_renderer = gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
-		column = gtk.TreeViewColumn('_pages_', cell_renderer, text=NAME_COL)
+		column = gtk.TreeViewColumn('_pages_', cell_renderer,
+			text=NAME_COL, style=STYLE_COL, foreground_gdk=FGCOLOR_COL)
 		self.append_column(column)
+		#~ column = gtk.TreeViewColumn('_style_', cell_renderer, text=EXISTS_COL)
+		#~ self.append_column(column)
 		self.set_headers_visible(False)
 
 		self.set_enable_search(True)

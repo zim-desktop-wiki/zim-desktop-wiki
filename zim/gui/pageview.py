@@ -190,7 +190,7 @@ autoformat_bullets = {
 }
 
 
-class UserAction(object):
+class UserActionContext(object):
 	'''Class used for the TextBuffer.user_action attribute.
 	This allows syntax like:
 
@@ -284,7 +284,7 @@ class TextBuffer(gtk.TextBuffer):
 		self.notebook = notebook
 		self.page = page
 		self._insert_tree_in_progress = False
-		self.user_action = UserAction(self)
+		self.user_action = UserActionContext(self)
 
 		for k, v in self.tag_styles.items():
 			tag = self.create_tag('style-'+k, **v)
@@ -2487,14 +2487,9 @@ class PageView(gtk.VBox):
 
 	def get_parsetree(self):
 		buffer = self.view.get_buffer()
-		# FIXME somehow using buffering of the tree here causes 'href'
-		# attribute for links to go missing - irritating bug -
-		# can not find out where the tree is modified.
-		# To reproduce edit page with links, navigate away, reload
-		# from pathbar (history) - error will be key error on 'href'
-		#~ if buffer.get_modified():
-		self._parsetree = buffer.get_parsetree()
-		buffer.set_modified(False)
+		if buffer.get_modified():
+			self._parsetree = buffer.get_parsetree()
+			buffer.set_modified(False)
 		#~ print self._parsetree.tostring()
 		return self._parsetree
 

@@ -967,7 +967,9 @@ class GtkInterface(NotebookInterface):
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
 		dialog.show_all()
-		self.notebook.index.update(callback=lambda p: dialog.pulse(p.name))
+		index = self.notebook.index
+		index.ensure_update(callback=lambda p: dialog.pulse(p.name))
+		index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
 
 	def show_help(self, page=None):

@@ -11,6 +11,7 @@ from zim.config import config_file
 from zim.notebook import *
 from zim.index import LINK_DIR_FORWARD
 import zim.errors
+from zim.formats import ParseTree
 
 class TestGetNotebook(tests.TestCase):
 
@@ -132,7 +133,7 @@ class TestNotebook(tests.TestCase):
 		for page in self.notebook.walk():
 			self.assertTrue(isinstance(page, Page))
 			index.add(page.name)
-		self.assertEqual(index, self.notebook.testdata_manifest)
+		self.assertTrue(index.issuperset(self.notebook.testdata_manifest))
 
 	def testManipulate(self):
 		'''Test renaming, moving and deleting pages in the notebook'''
@@ -184,6 +185,16 @@ class TestNotebook(tests.TestCase):
 		self.assertFalse(page.haschildren)
 		self.assertFalse(page.hascontent)
 
+		#~ print '\n==== DB ===='
+		#~ self.notebook.index.ensure_update()
+		#~ cursor = self.notebook.index.db.cursor()
+		#~ cursor.execute('select * from pages')
+		#~ for row in cursor:
+			#~ print row
+		#~ cursor.execute('select * from links')
+		#~ for row in cursor:
+			#~ print row
+
 		# Try rename
 		page = self.notebook.get_page(Path('Test:wiki'))
 		self.assertTrue(page.hascontent)
@@ -195,7 +206,11 @@ class TestNotebook(tests.TestCase):
 		page = self.notebook.get_page(Path('Test:wiki'))
 		self.assertFalse(page.hascontent)
 		page = self.notebook.get_page(Path('Test:foo'))
+			# If we get an error here because notebook resolves Test:Foo
+			# probably the index did not clean up placeholders correctly
 		self.assertTrue(page.hascontent)
+
+		self.assertFalse(copy.valid)
 
 		self.notebook.rename_page(Path('Test:foo'), 'Foo')
 		page = self.notebook.get_page(Path('Test:foo'))
@@ -406,6 +421,7 @@ class TestPath(tests.TestCase):
 		return Path(name)
 
 	def runTest(self):
+		'''Test Path object'''
 
 		for name, namespace, basename in [
 			('Test:foo', 'Test', 'foo'),
@@ -429,6 +445,29 @@ class TestPage(TestPath):
 
 	def generator(self, name):
 		return self.notebook.get_page(Path(name))
+
+	def runTest(self):
+		'''Test Page object'''
+		TestPath.runTest(self)
+
+		tree = ParseTree().fromstring('''\
+<zim-tree>
+<link href='foo:bar'>foo:bar</link>
+<link href='bar'>bar</link>
+</zim-tree>
+'''		)
+		page = Page(Path('Foo'))
+		page.readonly = False
+		page.set_parsetree(tree)
+
+		links = list(page.get_links())
+		self.assertEqual(links, [
+			('page', 'foo:bar', {}),
+			('page', 'bar', {}),
+		] )
+
+		self.assertEqual(page.get_parsetree().tostring(), tree.tostring())
+			# ensure we didn't change the tree
 
 # TODO test get / set parse tree with and without source
 

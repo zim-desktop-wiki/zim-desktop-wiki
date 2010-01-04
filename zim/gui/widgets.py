@@ -33,6 +33,10 @@ KEYVALS_SLASH = (
 	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
 
 
+def _encode_xml(text):
+	return text.replace('>', '&gt;').replace('<', '&lt;')
+
+
 def scrolled_text_view(text=None, monospace=False):
 	'''Initializes a gtk.TextView with sane defaults for displaying a
 	piece of multiline text, wraps it in a scrolled window and returns
@@ -434,7 +438,7 @@ class Dialog(gtk.Dialog):
 		top of the dialog.
 		'''
 		label = gtk.Label()
-		label.set_markup('<i>%s</i>' % text)
+		label.set_markup('<i>%s</i>' % _encode_xml(text))
 		self.vbox.pack_start(label, False)
 
 	def add_fields(self, fields, table=None, trigger_response=True):
@@ -919,7 +923,7 @@ class ProgressBarDialog(gtk.Dialog):
 		self.set_default_size(300, 0)
 
 		label = gtk.Label()
-		label.set_markup('<b>'+text+'</b>')
+		label.set_markup('<b>'+_encode_xml(text)+'</b>')
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
 
@@ -939,7 +943,7 @@ class ProgressBarDialog(gtk.Dialog):
 		'''
 		self.progressbar.pulse()
 		if not msg is None:
-			self.msg_label.set_markup('<i>'+msg+'</i>')
+			self.msg_label.set_markup('<i>'+_encode_xml(msg)+'</i>')
 
 		while gtk.events_pending():
 			gtk.main_iteration(block=False)
