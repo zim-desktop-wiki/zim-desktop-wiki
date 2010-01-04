@@ -29,6 +29,8 @@ transparent as long as the zim version number is updated.
 # in a consistent order, if the order is not consistent or changes without
 # the apropriate signals the pageindex widget will get confused and mess up.
 
+from __future__ import with_statement
+
 import sqlite3
 import gobject
 import logging
@@ -155,6 +157,40 @@ class IndexPath(Path):
 		yield IndexPath(':', (ROOT_ID,))
 
 
+class DBCommitContext(object):
+	'''Class used for the Index.db_commit attribute.
+	This allows syntax like:
+
+		with index.db_commit:
+			cursor = index.db.get_cursor()
+			cursor.execute(...)
+
+	instead off:
+
+		try:
+			cursor = index.db.get_cursor()
+			cursor.execute(...)
+		except:
+			index.db.rollback()
+		else:
+			index.db.commit()
+	'''
+
+	def __init__(self, db):
+		self.db = db
+
+	def __enter__(self):
+		pass
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		if exc_value:
+			self.db.rollback()
+		else:
+			self.db.commit()
+
+		return False # re-raise error
+
+
 class Index(gobject.GObject):
 	'''This class wraps the database with meta data on zim pages'''
 
@@ -194,6 +230,7 @@ class Index(gobject.GObject):
 		gobject.GObject.__init__(self)
 		self.dbfile = dbfile
 		self.db = None
+		self.db_commit = None
 		self.notebook = None
 		self.properties = None
 		self._updating= False
@@ -252,6 +289,8 @@ class Index(gobject.GObject):
 			self.db.executescript(SQL_CREATE_TABLES)
 			self.flush()
 			self.properties['zim_version'] = zim.__version__
+
+		self.db_commit = DBCommitContext(self.db)
 
 	def flush(self):
 		'''Flushes all database content. Can be used before calling
@@ -387,7 +426,7 @@ class Index(gobject.GObject):
 		Returns the final IndexPath. Path is created as a palceholder which
 		has neither content or children.
 		'''
-		try:
+		with self.db_commit:
 			cursor = self.db.cursor()
 			names = path.parts
 			parentid = ROOT_ID
@@ -416,15 +455,11 @@ class Index(gobject.GObject):
 			else:
 				lastparent = None
 
-			self.db.commit()
-		except:
-			self.db.rollback()
-			raise
-		else:
-			if lastparent:
-				self.emit('page-haschildren-toggled', lastparent)
-			for path in inserted:
-				self.emit('page-inserted', path)
+		if lastparent:
+			self.emit('page-haschildren-toggled', lastparent)
+
+		for path in inserted:
+			self.emit('page-inserted', path)
 
 		if inserted:
 			return inserted[-1]
@@ -438,7 +473,7 @@ class Index(gobject.GObject):
 		'''
 		#~ print '!! INDEX PAGE', path, path._indexpath
 		assert isinstance(path, IndexPath) and not path.isroot
-		try:
+		with self.db_commit:
 			self.db.execute('delete from links where source==?', (path.id,))
 			for type, href, _ in page.get_links():
 				if type != 'page':
@@ -464,15 +499,10 @@ class Index(gobject.GObject):
 			self.db.execute(
 				'update pages set hascontent=?, contentkey=? where id==?',
 				(page.hascontent, key, path.id) )
-			self.db.commit()
-		except:
-			#~ print '!! ERROR'
-			self.db.rollback()
-			raise
-		else:
-			#~ print '!! PAGE-UPDATED', path
-			path = self.lookup_data(path) # refresh
-			self.emit('page-updated', path)
+
+		#~ print '!! PAGE-UPDATED', path
+		path = self.lookup_data(path) # refresh
+		self.emit('page-updated', path)
 
 	def _update_pagelist(self, path, checkcontent):
 		'''Checks and updates the pagelist for a path if needed and queues any
@@ -524,7 +554,7 @@ class Index(gobject.GObject):
 				children[row['basename']] = row
 			seen = set()
 			changes = []
-			try:
+			with self.db_commit:
 				for page in self.notebook.get_pagelist(rawpath):
 					seen.add(page.basename)
 					if page.basename in children:
@@ -577,33 +607,28 @@ class Index(gobject.GObject):
 					'update pages set childrenkey=?, haschildren=?, hascontent=? where id==?',
 					(listkey, haschildren, hascontent, path.id) )
 
-				self.db.commit()
-			except:
-				self.db.rollback()
-				raise
-			else:
-				path = self.lookup_data(path) # refresh
-				if not path.isroot and (hadchildren != path.haschildren):
-					self.emit('page-haschildren-toggled', path)
+				# ... commit
 
-				if not path.isroot and (hadcontent != path.hascontent):
-					self.emit('page-updated', path)
+			path = self.lookup_data(path) # refresh
+			if not path.isroot and (hadchildren != path.haschildren):
+				self.emit('page-haschildren-toggled', path)
 
-				# All these signals should come in proper order...
-				changes.sort(key=lambda c: c[0].basename)
-				for child, action in changes:
-					if action == 1:
-						self.emit('page-inserted', child)
-					else: # action == 2:
-						self.emit('page-updated', child)
+			if not path.isroot and (hadcontent != path.hascontent):
+				self.emit('page-updated', path)
 
-				# Clean up pages that disappeared
-				for child in delete:
-					self.emit('delete', child)
+			# All these signals should come in proper order...
+			changes.sort(key=lambda c: c[0].basename)
+			for child, action in changes:
+				if action == 1:
+					self.emit('page-inserted', child)
+				else: # action == 2:
+					self.emit('page-updated', child)
 
-				# Clean up ourselves as well if we turn out empty
-				if path.haschildren or path.hascontent:
-					self.cleanup(path)
+			# Clean up pages that disappeared
+			for child in delete:
+				self.emit('delete', child)
+
+			# ... we are followed by an cleanup_all() when indexing is done
 
 	def delete(self, path):
 		'''Delete page plus sub-pages plus forward links from the index'''
@@ -616,28 +641,62 @@ class Index(gobject.GObject):
 				self.cleanup(link)
 
 	def do_delete(self, path):
-		ids = [path.id]
-		ids.extend(p.id for p in self.walk(path))
-		try:
-			for id in ids:
-				self.db.execute('delete from links where source = ?', (id,))
-				self.db.execute('delete from pages where id = ?', (id,))
+		# Tries to delete path and all of it's children, but keeps
+		# pages that are placeholders and their parents
+		root = path
+		paths = [root]
+		paths.extend(list(self.walk(root)))
 
-			parenttoggled = False
-			parent = path.parent
-			if not parent.isroot and self.n_list_pages(parent) == 0:
-				parenttoggled = True
-				self.db.execute(
-					'update pages set haschildren=? where id==?', (False, parent.id) )
+		# Clean up links and content
+		with self.db_commit:
+			for path in paths:
+				self.db.execute('delete from links where source=?', (path.id,))
+				self.db.execute('update pages set hascontent=0, contentkey=NULL where id==?', (path.id,))
 
-		except:
-			self.db.rollback()
-			raise
+		# Clean up any nodes that are not a link
+		paths.reverse() # process children first
+		delete = []
+		keep = []
+		toggled = []
+		for path in paths:
+			with self.db_commit:
+				hadchildren = path.haschildren
+				haschildren = self.n_list_pages(path) > 0
+				if haschildren or self.n_list_links(path, direction=LINK_DIR_BACKWARD):
+					# Keep but check haschildren
+					keep.append(path)
+					self.db.execute(
+						'update pages set haschildren=?, childrenkey=NULL where id==?',
+						(haschildren, path.id) )
+					if hadchildren != haschildren:
+						toggled.append(path)
+				else:
+					# Delete
+					delete.append(path)
+					self.db.execute('delete from pages where id=?', (path.id,))
+			self.lookup_data(path) # refresh
+
+		if keep:
+			# signal per child
+			for path in delete:
+				self.emit('page-deleted', path)
+			for path in toggled:
+				self.emit('page-haschildren-toggled', path)
+			for path in keep:
+				self.emit('page-updated', path)
 		else:
-			self.db.commit()
-			self.emit('page-deleted', path)
-			if parenttoggled:
-				self.emit('page-haschildren-toggled', parent)
+			# signal once
+			root = self.lookup_data(root) # refresh
+			self.emit('page-deleted', root)
+
+		parent = root.parent
+		if not parent.isroot and self.n_list_pages(parent) == 0:
+			with self.db_commit:
+				self.db.execute(
+					'update pages set haschildren=0, childrenkey=NULL where id==?',
+					(parent.id,) )
+				parent = self.lookup_data(parent)
+			self.emit('page-haschildren-toggled', parent)
 
 	def cleanup(self, path):
 		'''Delete path if it has no content, no children and is

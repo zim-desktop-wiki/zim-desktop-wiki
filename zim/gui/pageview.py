@@ -190,7 +190,7 @@ autoformat_bullets = {
 }
 
 
-class UserAction(object):
+class UserActionContext(object):
 	'''Class used for the TextBuffer.user_action attribute.
 	This allows syntax like:
 
@@ -284,7 +284,7 @@ class TextBuffer(gtk.TextBuffer):
 		self.notebook = notebook
 		self.page = page
 		self._insert_tree_in_progress = False
-		self.user_action = UserAction(self)
+		self.user_action = UserActionContext(self)
 
 		for k, v in self.tag_styles.items():
 			tag = self.create_tag('style-'+k, **v)
