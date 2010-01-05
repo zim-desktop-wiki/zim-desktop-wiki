@@ -56,9 +56,25 @@ This is a core plugin shipping with zim.
 		webbrowser.open('file://%s' % file)
 
 	def print_to_file(self):
+		page = self.ui.page
+
+		# FIXME - HACK - dump and parse as wiki first to work
+		# around glitches in pageview parsetree dumper
+		# main visibility when copy pasting bullet lists
+		# Same hack in gui clipboard code
+		from zim.notebook import Path, Page
+		from zim.formats import get_format
+		parsetree = page.get_parsetree()
+		dumper = get_format('wiki').Dumper()
+		text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
+		parser = get_format('wiki').Parser()
+		parsetree = parser.parse(text)
+		page = Page(Path(page.name), parsetree=parsetree)
+		#--
+
 		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
 		template = zim.templates.get_template('html', 'Print')
-		template.set_linker(StaticLinker('html', self.ui.notebook, self.ui.page))
-		html = template.process(self.ui.notebook, self.ui.page)
+		template.set_linker(StaticLinker('html', self.ui.notebook, page))
+		html = template.process(self.ui.notebook, page)
 		file.writelines(html)
 		return file

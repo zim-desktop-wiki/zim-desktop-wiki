@@ -24,4 +24,4 @@ If we want to prototype without modifying gtkspell, we should re-implement the g
 Give Bert credits for the radical idea of getting rid of language as a document option.
 
 
-Note: the latest version of gtkspellcheck seems to add a menu to switch languages. THis is a good idea as well, to be able to force a certain dictionary to be used.
+Note: the latest version of gtkspellcheck seems to add a menu to switch languages. This is a good idea as well, to be able to force a certain dictionary to be used. This in part removes the urgency of fixing detailed language settings in zim notebooks.

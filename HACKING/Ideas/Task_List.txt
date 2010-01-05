@@ -9,8 +9,8 @@ Start by renaming TODOList to "Task List"...
 
 ----
 Keep it simple, only 2 preference options:
-[*] Inlcude all checkboxes in the task list
-[ ] Incluse lines by tag
+[*] Include all checkboxes in the task list
+[ ] Include lines by tag
    Tags: [TODO, FIXME ]
 
 Do not take into account headers anymore

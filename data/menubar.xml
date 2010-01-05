@@ -116,6 +116,9 @@
 			<separator/>
 			<menuitem action='show_server_gui'/>
 			<menuitem action='open_document_root'/>
+<!--
+			<menuitem action='open_document_folder'/>
+-->
 			<separator/>
 			<menuitem action='reload_index'/>
 			<separator/>
@@ -178,6 +181,9 @@
 		<placeholder name='search'/>
 		<separator/>
 		<placeholder name='tools'/>
+<!--
+		<toolitem action='open_document_folder'/>
+-->
 	</toolbar>
 	<popup name='toolbar_popup'>
 		<menuitem action='set_toolbar_icons_and_text'/>

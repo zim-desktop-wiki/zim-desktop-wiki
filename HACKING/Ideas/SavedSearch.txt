@@ -28,3 +28,4 @@ etc.
 
 In SQL we can query multiple properties at the same time using the "INTERSECT" operator.
 
+

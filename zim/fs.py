@@ -266,7 +266,8 @@ class UnixPath(object):
 	def get_mimetype(self):
 		try:
 			import xdg.Mime
-			return xdg.Mime.get_type(self.path, name_pri=80)
+			mimetype = xdg.Mime.get_type(self.path, name_pri=80)
+			return str(mimetype)
 		except ImportError:
 			# Fake mime typing (e.g. for win32)
 			if '.' in self.basename:

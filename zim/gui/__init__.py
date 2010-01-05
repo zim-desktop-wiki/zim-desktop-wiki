@@ -36,6 +36,7 @@ from zim.fs import normalize_win32_share
 from zim.errors import Error
 from zim.notebook import Path, Page, PageNameError, \
 	resolve_default_notebook, get_notebook, get_notebook_list
+from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict
 from zim.parsing import url_encode, is_win32_share_re
@@ -87,6 +88,7 @@ ui_actions = (
 	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', '', True), # T: Menu item
 	('open_notebook_folder', 'gtk-open', _('Open _Notebook Folder'), '', '', True), # T: Menu item
 	('open_document_root', 'gtk-open', _('Open _Document Root'), '', '', True), # T: Menu item
+	('open_document_folder', 'gtk-open', _('Open _Document Folder'), '', '', True), # T: Menu item
 	('attach_file', 'zim-attachment', _('Attach _File'), '', _('Attach external file'), False), # T: Menu item
 	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', '', False), # T: Menu item
 	('show_server_gui', None, _('Start _Web Server'), '', '', True), # T: Menu item
@@ -618,8 +620,9 @@ class GtkInterface(NotebookInterface):
 
 	def on_notebook_properties_changed(self, notebook):
 		has_doc_root = not notebook.get_document_root() is None
-		action = self.actiongroup.get_action('open_document_root')
-		action.set_sensitive(has_doc_root)
+		for action in ('open_document_root', 'open_document_folder'):
+			action = self.actiongroup.get_action(action)
+			action.set_sensitive(has_doc_root)
 
 	def open_page(self, path=None):
 		'''Emit the open-page signal. The argument 'path' can either be a Page
@@ -945,6 +948,27 @@ class GtkInterface(NotebookInterface):
 		dir = self.notebook.get_document_root()
 		if dir and dir.exists():
 			self.open_file(dir)
+
+	def open_document_folder(self):
+		dir = self.notebook.get_document_root()
+		if dir is None:
+			return
+
+		dirpath = encode_filename(self.page.name)
+		dir = Dir([dir, dirpath])
+
+		if dir.exists():
+			self.open_file(dir)
+		else:
+			question = (
+				_('Create folder?'),
+					# T: Heading in a question dialog for creating a folder
+				_('The document folder for this page does not yet exist.\nDo you want to create it now?'))
+					# T: Text in a question dialog for creating a folder
+			create = QuestionDialog(self, question).run()
+			if create:
+				dir.touch()
+				self.open_file(dir)
 
 	def edit_page_source(self):
 		# This could also be defined as a custom tool, but defined here
@@ -1941,7 +1965,7 @@ class AttachFileDialog(FileDialog):
 			file = self.dir.file(file.basename)
 			mimetype = file.get_mimetype()
 			pageview = self.ui.mainwindow.pageview
-			if mimetype.media == 'image':
+			if mimetype.startswith('image/'):
 				try:
 					pageview.insert_image(file, interactive=False)
 				except:

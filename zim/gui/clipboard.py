@@ -159,6 +159,7 @@ class Clipboard(gtk.Clipboard):
 			# FIXME - HACK - dump and parse as wiki first to work
 			# around glitches in pageview parsetree dumper
 			# main visibility when copy pasting bullet lists
+			# Same hack in print to browser plugin
 			dumper = get_format('wiki').Dumper()
 			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
 			parser = get_format('wiki').Parser()

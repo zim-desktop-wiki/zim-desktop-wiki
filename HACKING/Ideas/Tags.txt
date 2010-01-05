@@ -12,12 +12,18 @@ One way to work with tags is to link pages to a special tag page and use back li
 * Tag based side pane view to replace hierarchy view
 	* This would mean caching tags per page in the index database
 * Integrate tags better in the search dialog ? 
-* Integrate tags better in the Taks List  dialog ?
-* Add a tag cload somwhere ?
+	* special key word - register it somewhere and use property table from [[SavedSearch]]
+* Integrate tags better in the Task List  dialog ?
+	* apply page tag to all tasks in that page ?? might be confusing
+* Add a tag cloud somewhere ?
 
+Really need good interface to browse by tag - especially for photos
+
+
+---
 As an alternative, how about adding an entry on the bottom of the page for listing tags ?
 Separate them from content, but add them as special links in properties / contents
 Have an "+" icon that shows a popup of known tags
 Might work nicer
 
-Really need good interface to browse by tag - especially for photos
+-> Disadvantage is that the tags are no longer part of the text. E.g. several sections in the same page can have their own tags. If the page later gets split up, the tags go with the text, not stay with the original page.
