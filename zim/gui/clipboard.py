@@ -142,7 +142,7 @@ class Clipboard(gtk.Clipboard):
 		'''
 		targets = [PARSETREE_TARGET]
 		targets.extend(HTML_TARGETS)
-		#~ targets.extend(gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))
+		targets.extend(TEXT_TARGETS)
 		self.set_with_data(
 			targets,
 			Clipboard._get_parsetree_data, Clipboard._clear_data,
@@ -264,10 +264,10 @@ class Clipboard(gtk.Clipboard):
 
 class Win32HtmlFormat:
 	'''This class adds support for Windows "HTML Format" clipboard content type
-	
+
 	Code is based on example code from
-		http://code.activestate.com/recipes/474121/ 
-	
+		http://code.activestate.com/recipes/474121/
+
 	written by Phillip Piper (jppx1[at]bigfoot.com)
 
 	Also see specification at:
@@ -310,7 +310,7 @@ class Win32HtmlFormat:
 
 	@classmethod
 	def encode(klass, fragment, selection=None, head=None, source=None):
-		if selection is None: 
+		if selection is None:
 			selection = fragment
 		if source is None:
 			source = "zim://copy-pase-buffer"

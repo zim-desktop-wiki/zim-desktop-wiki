@@ -52,11 +52,7 @@ ui_xml_show_dialog = '''
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
 	('go_page_today', None, _('To_day'), '<Alt>D', '', True), # T: menu item
-)
-
-ui_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, initial state, readonly
-	('show_calendar', 'zim-calendar', _('Calen_dar'),  '', 'Show calendar', False, True), # T: menu item
+	('show_calendar', 'zim-calendar', _('Calen_dar'),  '', 'Show calendar', True), # T: menu item
 )
 
 KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))
@@ -93,7 +89,6 @@ This is a core plugin shipping with zim.
 		self._set_template = None
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_actions(ui_actions, self)
-			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			self.ui.add_ui(ui_xml, self)
 			self.ui.connect_after('open-notebook', self.do_open_notebook)
 
@@ -171,18 +166,9 @@ This is a core plugin shipping with zim.
 		path = self.path_from_date(today)
 		self.ui.open_page(path)
 
-	def show_calendar(self, show=None):
-		self.toggle_action('show_calendar', active=show)
-
-	def do_show_calendar(self, show=None):
-		if show is None:
-			show = self.actiongroup.get_action('show_calendar').get_active()
-
+	def show_calendar(self):
 		dialog = CalendarDialog.unique(self, self)
-		if show:
-			dialog.present()
-		else:
-			dialog.hide()
+		dialog.present()
 
 	# TODO: hook to the pageview end-of-word signal and link dates
 	#       add a preference for this
@@ -289,8 +275,3 @@ class CalendarDialog(Dialog):
 		button.connect('clicked',
 			lambda o: self.calendar_widget.select_date(dateclass.today()))
 		hbox.pack_end(button, False)
-
-	def do_response(self, response):
-		self.plugin.show_calendar(False)
-		Dialog.do_response(self, response)
-

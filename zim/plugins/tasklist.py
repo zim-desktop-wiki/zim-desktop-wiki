@@ -15,9 +15,9 @@ from zim.formats import UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 logger = logging.getLogger('zim.plugins.tasklist')
 
 
-ui_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, initial state, read only
-	('show_task_list', 'zim-task-list', _('Task List'), '', _('Task List'), False, True),
+ui_actions = (
+	# name, stock id, label, accelerator, tooltip, read only
+	('show_task_list', 'zim-task-list', _('Task List'), '', _('Task List'), True),
 )
 
 ui_xml = '''
@@ -65,22 +65,12 @@ This is a core plugin shipping with zim.
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
 		if ui.ui_type == 'gtk':
-			ui.add_toggle_actions(ui_toggle_actions, self)
+			ui.add_actions(ui_actions, self)
 			ui.add_ui(ui_xml, self)
 
-	def show_task_list(self, show=None):
-		self.toggle_action('show_task_list', active=show)
-
-	def do_show_task_list(self, show=None):
-		if show is None:
-			action = self.actiongroup.get_action('show_task_list')
-			show = action.get_active()
-
+	def show_task_list(self):
 		dialog = TaskListDialog.unique(self, plugin=self)
-		if show:
-			dialog.show_all()
-		else:
-			dialog.hide_all()
+		dialog.present()
 
 
 class TaskListDialog(Dialog):
@@ -144,7 +134,6 @@ class TaskListDialog(Dialog):
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
-		self.plugin.show_task_list(False)
 		Dialog.do_response(self, response)
 
 

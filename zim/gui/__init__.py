@@ -593,7 +593,7 @@ class GtkInterface(NotebookInterface):
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook.'''
 
-		def move_away(o, path):
+		def move_away(o, path, *a):
 			if self.page >= path:
 				self.open_page_back() \
 				or self.open_page_parent \
@@ -655,7 +655,6 @@ class GtkInterface(NotebookInterface):
 
 	def do_open_page(self, page, path):
 		'''Signal handler for open-page.'''
-		print 'START do open page'
 		is_first_page = self.page is None
 		self.page = page
 
@@ -682,7 +681,6 @@ class GtkInterface(NotebookInterface):
 
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
-		print 'END do open page'
 
 	def close_page(self, page=None):
 		'''Emits the 'close-page' signal and returns boolean for success'''
@@ -1528,7 +1526,6 @@ class MainWindow(gtk.Window):
 
 	def do_open_page(self, ui, page, record):
 		'''Signal handler for open-page, updates the pageview'''
-		print 'START do open page mainwindow'
 		self.pageview.set_page(page)
 
 		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
@@ -1542,7 +1539,6 @@ class MainWindow(gtk.Window):
 			self.statusbar_backlinks_button.set_sensitive(True)
 
 		#TODO: set toggle_readonly insensitive when page is readonly
-		print 'END do open page mainwindow'
 
 	def do_close_page(self, ui, page):
 		w, h = self.get_size()
@@ -1592,6 +1588,15 @@ class PageWindow(gtk.Window):
 	def __init__(self, ui, page):
 		gtk.Window.__init__(self)
 		self.ui = ui
+
+		self.set_title(page.name + ' - Zim')
+		if ui.notebook.icon:
+			try:
+				self.set_icon_from_file(ui.notebook.icon)
+			except gobject.GError:
+				logger.exception('Could not load icon %s', ui.notebook.icon)
+
+
 		page = ui.notebook.get_page(page)
 
 		self.uistate = ui.uistate['PageWindow']

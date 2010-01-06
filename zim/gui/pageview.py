@@ -2423,7 +2423,6 @@ class PageView(gtk.VBox):
 			notebook.connect_after(s, assert_not_modified)
 
 	def set_page(self, page):
-		print 'START set page'
 		# unhook from previous page
 		if self.page:
 			self.page.set_ui_object(None)
@@ -2479,7 +2478,6 @@ class PageView(gtk.VBox):
 
 		self.undostack = UndoStackManager(buffer)
 		self.set_readonly()
-		print 'END set page'
 
 	def get_page(self): return self.page
 
