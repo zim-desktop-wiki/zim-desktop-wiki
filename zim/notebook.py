@@ -254,6 +254,13 @@ Failed to lookup this page in the notebook storage.
 This is likely a glitch in the application.
 '''
 
+class IndexBusyError(Error):
+
+	description = '''\
+Index is still busy updating while we try to do an
+operation that needs the index.
+'''
+
 
 class PageExistsError(Error):
 	pass
@@ -675,6 +682,11 @@ class Notebook(gobject.GObject):
 		'''Move a page from 'path' to 'newpath'. If 'update_links' is
 		True all links from and to the page will be modified as well.
 		'''
+		if update_links and self.index.updating:
+			raise IndexBusyError, 'Index busy'
+			# Index need to be complete in order to be 100% sure we
+			# know all backlinks, so no way we can update links before.
+
 		page = self.get_page(path)
 		if not (page.hascontent or page.haschildren):
 			raise LookupError, 'Page does not exist: %s' % path.name

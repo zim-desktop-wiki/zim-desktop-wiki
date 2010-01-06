@@ -137,11 +137,13 @@ class IndexPath(Path):
 	@property
 	def parent(self):
 		'''Returns IndexPath for parent path'''
-		if self.isroot:
+		namespace = self.namespace
+		if namespace:
+			return IndexPath(namespace, self._indexpath[:-1])
+		elif self.isroot:
 			return None
 		else:
-			name = self.namespace
-			return IndexPath(name, self._indexpath[:-1])
+			return IndexPath(':', (ROOT_ID,))
 
 	def parents(self):
 		'''Generator function for parent namespace IndexPaths including root'''
@@ -193,6 +195,7 @@ class DBCommitContext(object):
 
 class Index(gobject.GObject):
 	'''This class wraps the database with meta data on zim pages'''
+	# TODO document signals
 
 	# Resolving links depends on the contents of the database and
 	# links to non-existing pages can create new page nodes. This has
@@ -213,13 +216,18 @@ class Index(gobject.GObject):
 	#
 	# TODO TODO TODO - finish this thought and check correctness of this blob
 
+	# Note that queues tend to become very large, so make sure to only
+	# put Paths in the queue, not Pages
+
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'page-inserted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-updated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-indexed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-haschildren-toggled': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'delete': (gobject.SIGNAL_RUN_LAST, None, (object,))
+		'delete': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'update-done': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	def __init__(self, notebook=None, dbfile=None):
@@ -233,7 +241,8 @@ class Index(gobject.GObject):
 		self.db_commit = None
 		self.notebook = None
 		self.properties = None
-		self._updating= False
+		self.updating = False
+		self._checkcontents = False
 		self._update_pagelist_queue = []
 		self._index_page_queue = []
 		if self.dbfile:
@@ -257,7 +266,7 @@ class Index(gobject.GObject):
 		def on_page_moved(o, oldpath, newpath, update_links):
 			# When we are the primary index and the notebook is also
 			# updating links, these calls are already done by the
-			# notebook directly
+			# notebook directly.
 			self.delete(oldpath)
 			self.update(newpath, background=True)
 
@@ -266,13 +275,9 @@ class Index(gobject.GObject):
 			if not indexpath:
 				indexpath = self.touch(page)
 			links = self._get_placeholders(indexpath, recurs=False)
-			self._index_pagecontents(indexpath, page)
+			self._index_page(indexpath, page)
 			for link in links:
 				self.cleanup(link)
-
-		self.notebook.connect('move-page', lambda *a: self.ensure_update())
-		self.notebook.connect('delete-page', lambda *a: self.ensure_update())
-		# TODO - need way to flag indexpaths are no longer valid, but not rush to finish directly - rather re-schedule
 
 		self.notebook.connect_after('store-page', on_page_updated)
 		self.notebook.connect_after('move-page', on_page_moved)
@@ -316,6 +321,14 @@ class Index(gobject.GObject):
 
 		self.db.commit()
 
+	def _flush_queue(self, path):
+		# Removes any pending updates for path and it's children
+		name = path.name
+		namespace = name + ':'
+		keep = lambda p: not (p.name == name or p.name.startswith(namespace))
+		self._update_pagelist_queue = filter(keep, self._update_pagelist_queue)
+		self._index_page_queue = filter(keep, self._index_page_queue)
+
 	def update(self, path=None, background=False, checkcontents=True, callback=None):
 		'''This method initiates a database update for a namespace, or,
 		if no path is given for the root namespace of the notebook. For
@@ -356,29 +369,32 @@ class Index(gobject.GObject):
 			indexpath._row['childrenkey'] = None
 			checkcontent = True
 
+		self._flush_queue(path)
 		self._update_pagelist_queue.append(indexpath)
 		if checkcontents and not indexpath.isroot:
 			self._index_page_queue.append(indexpath)
 
 		if background:
-			if not self._updating:
+			if not self.updating:
+				# Start new queue
 				logger.info('Starting background index update')
-				self._updating = True
+				self.updating = True
+				self._checkcontents = checkcontents
 				gobject.idle_add(self._do_update, (checkcontents, callback))
+			# Else let running queue pick it up
 		else:
 			logger.info('Updating index')
-			self._updating = True # just to be sure - callback could throw events
+			if self.updating:
+				checkcontents = checkcontents or self._checkcontents
 			while self._do_update((checkcontents, callback)):
 				continue
-			self._updating = False
 
 	def ensure_update(self, callback=None):
 		'''Wait till any background update is finished'''
-		if self._updating:
+		if self.updating:
 			logger.info('Ensure index updated')
-			while self._do_update((False, callback)):
+			while self._do_update((self._checkcontents, callback)):
 				continue
-			self._updating = False
 		else:
 			return
 
@@ -386,6 +402,9 @@ class Index(gobject.GObject):
 		# This returns boolean to continue or not because it can be called as an
 		# idle event handler, if a callback is used, the callback should give
 		# this boolean value.
+		# TODO can we add a percentage to the callback ?
+		# set it to None while building page listings, but set
+		# percentage once max of pageindex list is known
 		checkcontents, callback = data
 		if self._update_pagelist_queue or self._index_page_queue:
 			try:
@@ -395,13 +414,14 @@ class Index(gobject.GObject):
 				elif self._index_page_queue:
 					path = self._index_page_queue.pop(0)
 					page = self.notebook.get_page(path)
-					self._index_pagecontents(path, page)
+					self._index_page(path, page)
 			except KeyboardInterrupt:
 				raise
 			except:
 				# Catch any errors while listing & parsing all pages
 				logger.exception('Got an exception while indexing "%s":', path)
 
+			#~ print "\"%s\" %i %i" % (path.name, len(self._update_pagelist_queue), len(self._index_page_queue))
 			if not callback is None:
 				cont = callback(path)
 				if not cont is True:
@@ -418,7 +438,8 @@ class Index(gobject.GObject):
 			except:
 				logger.exception('Got an exception while removing placeholders')
 			logger.info('Index update done')
-			self._updating = False
+			self.updating = False
+			self.emit('update-done')
 			return False
 
 	def touch(self, path):
@@ -466,11 +487,14 @@ class Index(gobject.GObject):
 		else:
 			return self.lookup_path(path)
 
-	def _index_pagecontents(self, path, page):
+	def _index_page(self, path, page):
 		'''Indexes page contents for page.
 
 		TODO: emit a signal for this for plugins to use
 		'''
+		# Avoid emitting page-updated here because it triggers
+		# re-draws of the pageindex
+
 		#~ print '!! INDEX PAGE', path, path._indexpath
 		assert isinstance(path, IndexPath) and not path.isroot
 		seen = set()
@@ -504,9 +528,11 @@ class Index(gobject.GObject):
 				'update pages set hascontent=?, contentkey=? where id==?',
 				(page.hascontent, key, path.id) )
 
-		#~ print '!! PAGE-UPDATED', path
-		path = self.lookup_data(path) # refresh
-		self.emit('page-updated', path)
+		#~ print '!! PAGE-INDEX', path
+		# We don't use page-updated here to avoid triggering the
+		# treeview too often
+		#~ path = self.lookup_data(path) # refresh
+		#~ self.emit('page-indexed', page, path)
 
 	def _update_pagelist(self, path, checkcontent):
 		'''Checks and updates the pagelist for a path if needed and queues any
@@ -562,10 +588,27 @@ class Index(gobject.GObject):
 				for page in self.notebook.get_pagelist(rawpath):
 					seen.add(page.basename)
 					if page.basename in children:
-						# TODO: check if hascontent and haschildren are correct, update if incorrect + append to changes
 						row = children[page.basename]
-						p = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],), row)
-						check_and_queue(p, page)
+						if page.hascontent == row['hascontent']:
+							child = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],), row)
+							check_and_queue(child, page)
+						else:
+							# Child aquired content - let's index it
+							cursor = self.db.cursor()
+							cursor.execute(
+								'update pages set hascontent=?, contentkey=NULL where id==?',
+								(page.hascontent, row['id'],) )
+							child = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],),
+								{	'hascontent': page.hascontent,
+									'haschildren': page.haschildren,
+									'childrenkey': row['childrenkey'],
+									'contentkey': None,
+								} )
+							changes.append((child, 2))
+							if page.haschildren:
+								self._update_pagelist_queue.append(child)
+							if page.hascontent:
+								self._index_page_queue.append(child)
 					else:
 						# We set haschildren to False untill we have actualy seen those
 						# children. Failing to do so will cause trouble with the
@@ -579,7 +622,8 @@ class Index(gobject.GObject):
 						child = IndexPath(page.name, indexpath + (cursor.lastrowid,),
 							{	'hascontent': page.hascontent,
 								'haschildren': page.haschildren,
-								'childrenkey': None
+								'childrenkey': None,
+								'contentkey': None,
 							} )
 						changes.append((child, 1))
 						if page.haschildren:
@@ -647,6 +691,8 @@ class Index(gobject.GObject):
 	def do_delete(self, path):
 		# Tries to delete path and all of it's children, but keeps
 		# pages that are placeholders and their parents
+		self._flush_queue(path)
+
 		root = path
 		paths = [root]
 		paths.extend(list(self.walk(root)))

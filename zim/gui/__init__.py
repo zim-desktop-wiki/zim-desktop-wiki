@@ -842,6 +842,36 @@ class GtkInterface(NotebookInterface):
 	def move_page(self, path=None):
 		MovePageDialog(self, path=path).run()
 
+	def do_move_page(self, path, newpath, update_links, dialog=None):
+		'''Callback for MovePageDialog and PageIndex for executing
+		notebook.move_page but wrapping with all the proper exception
+		dialogs. Returns boolean for success.
+		'''
+		if self.notebook.index.updating:
+			# Ask regardless of update_links because it might very
+			# well be that the dialog thinks there are no links
+			# but they are simply not indexed yet
+			cont = QuestionDialog(dialog or self,
+				_('The index is still busy updating. Untill this'
+				  'is finished links can not be updated correctly.'
+				  'Performing the move now could break links,'
+				  'do you want to continue anyway?'
+				) # T: question dialog text
+			).run()
+			if cont:
+				update_links = False
+			else:
+				return False
+
+		try:
+			self.notebook.move_page(path, newpath, update_links)
+		except Exception, error:
+			ErrorDialog(dialog or self, error).run()
+			return False
+		else:
+			return True
+
+
 	def rename_page(self, path=None):
 		RenamePageDialog(self, path=path).run()
 
@@ -999,7 +1029,6 @@ class GtkInterface(NotebookInterface):
 			# T: Title of progressbar dialog
 		dialog.show_all()
 		index = self.notebook.index
-		index.ensure_update(callback=lambda p: dialog.pulse(p.name))
 		index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
 
@@ -1855,14 +1884,8 @@ class MovePageDialog(Dialog):
 	def do_response_ok(self):
 		parent = self.get_field('parent')
 		links = self.get_field('links')
-		try:
-			newpath = self.ui.notebook.resolve_path(parent) + self.path.basename
-			self.ui.notebook.move_page(self.path, newpath, update_links=links)
-		except Exception, error:
-			ErrorDialog(self, error).run()
-			return False
-		else:
-			return True
+		newpath = self.ui.notebook.resolve_path(parent) + self.path.basename
+		return self.ui.do_move_page(self.path, newpath, update_links=links, dialog=self)
 
 
 class RenamePageDialog(Dialog):

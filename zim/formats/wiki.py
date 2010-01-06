@@ -64,6 +64,15 @@ dumper_tags = {
 }
 
 
+def contains_links(text):
+	'''Optimisation for page.get_links()'''
+	for line in text:
+		if '[[' in line:
+			return True
+	else:
+		return False
+
+
 class Parser(ParserClass):
 
 	def __init__(self, version='zim 0.26'):

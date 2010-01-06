@@ -72,21 +72,45 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	def __init__(self, index):
 		gtk.GenericTreeModel.__init__(self)
 		self.index = index
-		#~ def log(o, p, m): print '!!', m, p, p._indexpath
-		#~ index.connect('page-inserted', log, 'page-inserted')
-		index.connect('page-inserted',
-			lambda o, p: self.emit('row-inserted',
-				self.get_treepath(p), self.create_tree_iter(p)))
-		#~ index.connect('page-updated', log, 'page-updated')
-		index.connect('page-updated',
-			lambda o, p: self.emit('row-changed',
-				self.get_treepath(p), self.create_tree_iter(p)))
-		#~ index.connect('page-haschildren-toggled', log, 'page-haschildren-toggled')
-		index.connect('page-haschildren-toggled',
-			lambda o, p: self.emit('row-has-child-toggled',
-				self.get_treepath(p), self.create_tree_iter(p)))
-		index.connect('delete',
-			lambda o, p: self.emit('row-deleted', self.get_treepath(p)))
+
+		self.set_property('leak-references', False)
+			# We do our own memory management, thank you very much
+		self._refs = {}
+
+		def on_changed(o, path, signal):
+			#~ print '!!', signal, path
+			self._flush()
+			treepath = self.get_treepath(path)
+			treeiter = self.create_tree_iter(self._ref(path))
+			self.emit(signal, treepath, treeiter)
+
+		def on_deleted(o, path):
+			#~ print '!! delete', path
+			self._flush()
+			treepath = self.get_treepath(path)
+			self.emit('row-deleted', treepath)
+
+		index.connect('page-inserted', on_changed, 'row-inserted')
+		index.connect('page-updated', on_changed, 'row-changed')
+		index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled')
+		index.connect('delete', on_deleted)
+		index.connect('update-done', lambda o: self._flush())
+
+	def _ref(self, path):
+		# Make sure we keep ref to paths long enough while they
+		# are used in an iter
+		if path.id in self._refs:
+			return self._refs[path.id]
+		else:
+			self._refs[path.id] = path
+			return path
+
+	def _flush(self):
+		# Drop references and free memory
+		#~ print '!! Freeing %i refs' % len(self._refs)
+		self.invalidate_iters()
+		del self._refs
+		self._refs = {}
 
 	def on_get_flags(self):
 		return 0 # no flags
@@ -132,7 +156,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 
 	def get_treepath(self, path):
 		'''Returns a TreePath for a given IndexPath'''
-		# There is no TreePath class in pygtk,just return tuple of integers
+		# There is no TreePath class in pygtk, just return tuple of integers
 		# FIXME this method looks quite inefficient, can we optimize it ?
 		if not isinstance(path, IndexPath):
 			path = self.index.lookup_path(path)
@@ -168,7 +192,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			next = pagelist[i]
 			next._pagelist_ref = pagelist
 			next._pagelist_index = i
-			return next
+			return self._ref(next)
 
 	def on_iter_children(self, path=None):
 		'''Returns an indexPath for the first child below path or None.
@@ -180,7 +204,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			child = pagelist[0]
 			child._pagelist_ref = pagelist
 			child._pagelist_index = 0
-			return child
+			return self._ref(child)
 		else:
 			return None
 
@@ -194,8 +218,9 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		'''Returns the number of children in a namespace. As a special case,
 		when page is None the number of pages in the root namespace is given.
 		'''
-		pagelist = self.index.list_pages(path)
-		return len(pagelist)
+		if path is None:
+			path = Path(':')
+		return self.index.n_list_pages(path)
 
 	def on_iter_nth_child(self, path, n):
 		'''Returns the nth child for a given IndexPath or None.
@@ -209,7 +234,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			child = pagelist[n]
 			child._pagelist_ref = pagelist
 			child._pagelist_index = n
-			return child
+			return self._ref(child)
 
 	def on_iter_parent(self, child):
 		'''Returns a IndexPath for parent node of child or None'''
@@ -217,7 +242,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		if parent.isroot:
 			return None
 		else:
-			return parent
+			return self._ref(parent)
 
 	# Compatibility for older version of GenericTreeModel
 	if not hasattr(gtk.GenericTreeModel, 'create_tree_iter'):
@@ -383,14 +408,10 @@ class PageTreeView(BrowserTreeView):
 			dragcontext.finish(False, False, time) # NOK
 			return
 
-		notebook = self.get_model().index.notebook
-		try:
-			notebook.move_page(source, dest)
-		except Exception, error:
-			ErrorDialog(self, error).run()
-			dragcontext.finish(False, False, time) # NOK
-		else:
+		if self.ui.do_move_page(source, dest, update_links=True):
 			dragcontext.finish(True, False, time) # OK
+		else:
+			dragcontext.finish(False, False, time) # NOK
 
 	def select_page(self, path, vivify=False):
 		'''Select a page in the treeview, connected to the open-page signal.
@@ -400,7 +421,6 @@ class PageTreeView(BrowserTreeView):
 		up when another page is selected with this method unless the
 		path was modified in the mean time.
 		'''
-		print 'START select page'
 		model, iter = self.get_selection().get_selected()
 		if model is None:
 			return # index not yet initialized ...
@@ -423,8 +443,6 @@ class PageTreeView(BrowserTreeView):
 		self.get_selection().select_path(treepath)
 		self.set_cursor(treepath)
 		self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
-
-		print 'END select page'
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageTreeView)

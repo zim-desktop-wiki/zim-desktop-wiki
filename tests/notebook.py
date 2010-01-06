@@ -150,11 +150,16 @@ class TestNotebook(tests.TestCase):
 		self.assertRaises(PageExistsError,
 			self.notebook.move_page, Path('Test:foo'), Path('TODOList'))
 
+		self.notebook.index.update(background=True)
+		self.assertTrue(self.notebook.index.updating)
+		self.assertRaises(IndexBusyError, 
+			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
 
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
 			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
 		):
+			self.notebook.index.ensure_update()
 			page = self.notebook.get_page(oldpath)
 			text = page.dump('wiki')
 			self.assertTrue(page.haschildren)
@@ -202,6 +207,7 @@ class TestNotebook(tests.TestCase):
 			# we now have a copy of the page object - this is an important
 			# part of the test - see if caching of page objects doesn't bite
 
+		self.notebook.index.ensure_update()
 		self.notebook.rename_page(Path('Test:wiki'), 'foo')
 		page = self.notebook.get_page(Path('Test:wiki'))
 		self.assertFalse(page.hascontent)
@@ -212,6 +218,7 @@ class TestNotebook(tests.TestCase):
 
 		self.assertFalse(copy.valid)
 
+		self.notebook.index.ensure_update()
 		self.notebook.rename_page(Path('Test:foo'), 'Foo')
 		page = self.notebook.get_page(Path('Test:foo'))
 		self.assertFalse(page.hascontent)

@@ -166,10 +166,11 @@ class FileStorePage(Page):
 		return bool(self._ui_object) or bool(self._parsetree) \
 			or self.source.exists()
 
-	def _fetch_parsetree(self):
+	def _fetch_parsetree(self, lines=None):
 		'''Fetch a parsetree from source or returns None'''
-		if self.source.exists():
-			lines = self.source.readlines()
+		#~ print '!! fetch tree', self
+		if lines or self.source.exists():
+			lines = lines or self.source.readlines()
 			self.properties = HeadersDict()
 			self.properties.read(lines)
 			# TODO: detect other formats by the header as well
@@ -200,3 +201,24 @@ class FileStorePage(Page):
 		lines.extend(self.format.Dumper().dump(tree))
 		self.source.writelines(lines)
 		self.modified = False
+
+	def get_links(self):
+		# Optimised version of get_links, just check if we contain
+		# links at all - if not don't bother parsing the content,
+		# but if we do only trust the parse to get it right
+		# (e.g. taking care of verbatim, escapes etc.)
+		if not (self._parsetree or self._ui_object) \
+		and hasattr(self.format, 'contains_links'):
+			#~ print '!! FileStorePage.get_links() Optimisation used'
+			if self.source.exists():
+				lines = self.source.readlines()
+				if self.format.contains_links(lines):
+					self._parsetree = self._fetch_parsetree(lines)
+					for link in Page.get_links(self):
+						yield link
+		else:
+			for link in Page.get_links(self):
+				yield link
+
+		# TODO: should we cache 'lines' as well in case we get asked
+		# for the parsetree after all ?
