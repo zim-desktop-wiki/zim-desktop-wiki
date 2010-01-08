@@ -1,0 +1,71 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+
+====== Tables ======
+Created Thursday 07 January 2010
+
+===== Wiki format =====
+
+The dokuwiki format looks quite OK - documented [[http://www.dokuwiki.org/syntax|here]].
+
+'''
+^ Heading 1      ^ Heading 2       ^ Heading 3          ^
+| Row 1 Col 1    | Row 1 Col 2     | Row 1 Col 3        |
+| Row 2 Col 1    | some colspan (note the double pipe) ||
+| Row 3 Col 1    | Row 3 Col 2     | Row 3 Col 3        |
+'''
+
+
+'''
+|              ^ Heading 1            ^ Heading 2          ^
+^ Heading 3    | Row 1 Col 2          | Row 1 Col 3        |
+^ Heading 4    | no colspan this time |                    |
+^ Heading 5    | Row 2 Col 2          | Row 2 Col 3        |
+'''
+
+
+Only disadvantage is that it may not be easy to parse this unambiguously from a page. Some "frame" around it ? E.g. 
+
+	
+
+'''
+{{{Table:
+| Foo | Bar | Baz |
+| Foo | Bar | Baz |
+}}}
+'''
+
+
+===== Rendering =====
+Can either be done with a gtk.TreeView or with a gtk.Table of TextViews. The later is preferred because it allows full use of formatting.
+
+On the other hand we could choose to have a TreeView based table that explicitly does not allow formatting.  This sounds on-zim like, but makes implementation a lot easier.
+
+In both cases we have an object embedded into the parent pageview. THis means it needs to be recognized as such when dumping the parse tree. Also the cursor in the parent view will step "over" the table instead of into it unless we overload cursor movements. Similarly we need to do something with the tab and shift-tab key bindings to cycle the cells.
+
+Will need a full set of controls to create and modify the table layout, resize cells, delete, insert etc. etc. complicated.
+
+Can we somehow unify this with outlining lists? E.g. an embedded treeview could render lists, but not in a direct editable way. The problem here is that while the cell renderer can render almost any formatting, it doesn't do cursors. **NO**, user interface for outlining is quite different from user interface for tables.
+
+A radical different approach is to somehow control tab stops over a region and essentially consider the table more like a list with tabs in them. **NO**, this will not allow for multi line cells. Also this you can not set tabs per line, this is per region. (Also we might need some tab control to make lists render somewhat nicer.)
+
+Do we need to do rendering of the cells ourselves (in effect replace gtk.Table with a custom widget) ? Probable it will be difficult to force exact cell sizes on a cell unless we do this. But as long as we assume people insert their own line breaks it is OK.
+
+See gtk.TextView.set_accepts_tab for fixing tabbing between cells.
+
+Benchmark showed textview is not so memory heavy as one might think. Of course Treeview based is lighter...
+
+===== Open issues =====
+* What are the primary use cases ? little text per cell (number, items etc.) or full formatting per cell ?
+	* Let's assume it should be free-form, but not huge (we have spreadsheet programs for that)
+* Do we need / want table headings ? Seems nice to have them for structuring content, but would complicate setting text styles for those cells. If we do probably overriding the format in those cells is the way to go.
+* Do we want rowspan / colspan ? We can allow it when based on a gtk.Table object, but does it add much ? Well, it does allow for nice spanning headers. But also adds more complexity. 
+* What happens when you paste a heading into a table - or a table into a table ??
+	* Prevent this one way or the other, only allow inline formats and images
+
+
+
+==== Related ====
+• To avoid people mis-purposing tables, make a widget for images setting the caption in a box below the image.
+
+

@@ -23,7 +23,7 @@ from zim.fs import *
 from zim.errors import Error, SignalExceptionContext, SignalRaiseExceptionContext
 from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
 	config_file, data_dir, user_dirs
-from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type
+from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type, url_encode
 import zim.stores
 
 
@@ -151,18 +151,24 @@ def resolve_notebook(string):
 	'''
 	assert isinstance(string, basestring)
 
-	# First try resolve as name, than as path
-	nblist = get_notebook_list()
-	filepath = nblist.get_by_name(string)
-	if filepath is None:
-		if '/' in string or '\\' in string:
-			filepath = string
+	page = None
+	if is_url_re.match(string):
+		assert string.startswith('file://')
+		if '?' in string:
+			filepath, page = string.split('?', 1)
 		else:
+			filepath = string
+	elif os.path.sep in string:
+		filepath = string
+	else:
+		nblist = get_notebook_list()
+		filepath = nblist.get_by_name(string)
+		if filepath is None:
 			return None, None # not found
 
 	file = File(filepath) # Fixme need generic FS Path object here
 	if filepath.endswith('notebook.zim'):
-		return File(filepath).dir, None
+		return File(filepath).dir, page
 	elif file.exists(): # file exists and really is a file
 		parents = list(file)
 		parents.reverse()
@@ -176,7 +182,7 @@ def resolve_notebook(string):
 		else:
 			return None, None
 	else:
-		return Dir(file.path), None
+		return Dir(file.path), page
 
 	return notebook, path
 
@@ -235,6 +241,33 @@ def init_notebook(path, name=None):
 	# TODO auto detect if we should enable the slow_fs option
 	config.write()
 
+
+def interwiki_link(link):
+	'''Convert an interwiki link into an url'''
+	assert isinstance(link, basestring) and '?' in link
+	key, page = link.split('?', 1)
+	url = None
+	for line in config_file('urls.list'):
+		if line.startswith(key+' ') or line.startswith(key+'\t'):
+			url = line[len(key):].strip()
+			break
+	else:
+		list = get_notebook_list()
+		for name, path in list.get_names():
+			if name.lower() == key.lower():
+				url = path + '?{NAME}'
+				break
+
+	if url and is_url_re.match(url):
+		if not ('{NAME}' in url or '{URL}' in url):
+			url += '{URL}'
+
+		url = url.replace('{NAME}', page)
+		url = url.replace('{URL}', url_encode(page))
+
+		return url
+	else:
+		return None
 
 class PageNameError(Error):
 

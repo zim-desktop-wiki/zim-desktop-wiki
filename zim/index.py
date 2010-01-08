@@ -227,7 +227,8 @@ class Index(gobject.GObject):
 		'page-haschildren-toggled': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'delete': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'update-done': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'start-update': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'end-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	def __init__(self, notebook=None, dbfile=None):
@@ -374,6 +375,9 @@ class Index(gobject.GObject):
 		if checkcontents and not indexpath.isroot:
 			self._index_page_queue.append(indexpath)
 
+		if not self.updating:
+			self.emit('start-update')
+
 		if background:
 			if not self.updating:
 				# Start new queue
@@ -439,7 +443,7 @@ class Index(gobject.GObject):
 				logger.exception('Got an exception while removing placeholders')
 			logger.info('Index update done')
 			self.updating = False
-			self.emit('update-done')
+			self.emit('end-update')
 			return False
 
 	def touch(self, path):

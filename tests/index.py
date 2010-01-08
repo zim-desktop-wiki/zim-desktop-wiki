@@ -105,7 +105,11 @@ class TestIndex(tests.TestCase):
 			c.execute('select * from pages')
 			text = ''
 			for row in c:
-				text += ', '.join(map(str, row)) + '\n'
+				# HACK iterating of sqlite3.Row objects only supported for python 2.6
+				myrow = []
+				for i in range(len(row)):
+					myrow.append(row[i])
+				text += ', '.join(map(str, myrow)) + '\n'
 			return text
 
 		# repeat update() to check if update is stable

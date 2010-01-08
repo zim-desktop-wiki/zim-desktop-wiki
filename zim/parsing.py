@@ -70,6 +70,49 @@ def url_decode(url):
 	return url
 
 
+_parse_date_re = re.compile(r'(\d{1,4})\D(\d{1,2})(?:\D(\d{1,4}))?')
+
+def parse_date(string):
+	'''Returns a tuple of (year, month, day) for a date string or None
+	if failed to parse the string. Current supported formats:
+
+		dd?-mm?
+		dd?-mm?-yy
+		dd?-mm?-yyyy
+		yyyy-mm?-dd?
+
+	Where '-' can be replaced by any separator. Any preceding or
+	trailing text will be ignored (so we can parse calendar page names
+	correctly).
+
+	TODO: Some setting to prefer US dates with mm-dd instead of dd-mm
+	TODO: More date formats ?
+	'''
+	m = _parse_date_re.search(string)
+	if m:
+		d, m, y = m.groups()
+		if len(d) == 4: y, m, d = d, m, y
+		if not d:
+			return None # yyyy-mm not supported
+
+		if not y:
+			# Guess year, based on time delta
+			from datetime import date
+			today = date.today()
+			if today.month - int(m) >= 6:
+				y = today.year + 1
+			else:
+				y = today.year
+		else:
+			y = int(y)
+			if   y < 50:   y += 2000
+			elif y < 1000: y += 1900
+
+		return tuple(map(int, (y, m, d)))
+	else:
+		return None
+
+
 class Re(object):
 	'''Wrapper around regex pattern objects which memorizes the
 	last match object and gives list access to it's capturing groups.
@@ -190,8 +233,8 @@ def link_type(link):
 	elif is_email_re.match(link): type = 'mailto'
 	elif is_win32_share_re.match(link): type = 'smb'
 	elif is_path_re.match(link): type = 'file'
+	elif is_interwiki_re.match(link): type = 'interwiki'
 	else: type = 'page'
-	# TODO interwiki
 	return type
 
 

@@ -6,7 +6,9 @@ import gobject
 import gtk
 import logging
 import re
+import datetime
 
+from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.gui.widgets import Dialog, Button, IconButton, BrowserTreeView
 from zim.formats import UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
@@ -187,6 +189,14 @@ class TagListTreeView(BrowserTreeView):
 gobject.type_register(TagListTreeView)
 
 
+style = gtk.Label().get_style() # HACK - how to get default style ?
+NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
+HIGH_COLOR = gtk.gdk.color_parse('#ff0000')
+MEDIUM_COLOR = gtk.gdk.color_parse('#ff8800')
+ALERT_COLOR = gtk.gdk.color_parse('#ffff00')
+# FIXME: should these be configurable ?
+
+
 class TaskListTreeView(BrowserTreeView):
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -203,6 +213,7 @@ class TaskListTreeView(BrowserTreeView):
 	OPEN_COL = 6 # item not closed
 
 	tag_re = re.compile(r'(?<!\S)@(\w+)\b')
+	date_re = re.compile(r'\s*\[d:(.+)\]')
 
 	def __init__(self, ui):
 		self.filter = None
@@ -218,20 +229,61 @@ class TaskListTreeView(BrowserTreeView):
 		self.total = 0
 		self.tags = {} # dict mapping tag to ref count
 		self.prio = {} # dict mapping tag to ref count
+		self.maxprio = 0
 
 		cell_renderer = gtk.CellRendererText()
 		for name, i in (
-			(_('Prio'), self.PRIO_COL), # T: Column header Task List dialog
 			(_('Task'), self.TASK_COL), # T: Column header Task List dialog
-			(_('Date'), self.DATE_COL), # T: Column header Task List dialog
 			(_('Page'), self.PAGE_COL), # T: Column header Task List dialog
 		):
 			column = gtk.TreeViewColumn(name, cell_renderer, text=i)
 			column.set_resizable(True)
 			column.set_sort_column_id(i)
-			if i == self.TASK_COL:
-				column.set_expand(True)
+			if i == self.TASK_COL: column.set_expand(True)
 			self.append_column(column)
+
+		# Add some rendering for the Prio column
+		def render_prio(col, cell, model, i):
+			prio = model.get_value(i, self.PRIO_COL)
+			cell.set_property('text', str(prio))
+			if prio == 0: color = NORMAL_COLOR
+			elif prio == self.maxprio: color = HIGH_COLOR
+			elif prio == self.maxprio - 1: color = MEDIUM_COLOR
+			elif prio == self.maxprio - 2: color = ALERT_COLOR
+			else: color = NORMAL_COLOR
+			cell.set_property('cell-background-gdk', color)
+
+		cell_renderer = gtk.CellRendererText()
+		column = gtk.TreeViewColumn(_('Prio'), cell_renderer)
+			# T: Column header Task List dialog
+		column.set_cell_data_func(cell_renderer, render_prio)
+		column.set_sort_column_id(self.PRIO_COL)
+		self.insert_column(column, 0)
+
+		# Rendering of the Date column
+		today    = str( datetime.date.today() )
+		tomorrow = str( datetime.date.today() + datetime.timedelta(days=1))
+		dayafter = str( datetime.date.today() + datetime.timedelta(days=2))
+		def render_date(col, cell, model, i):
+			date = model.get_value(i, self.DATE_COL)
+			if date == '9999':
+				cell.set_property('text', '')
+			else:
+				cell.set_property('text', date)
+				# TODO allow strftime here
+				
+			if date == today: color = HIGH_COLOR
+			elif date == tomorrow: color = MEDIUM_COLOR
+			elif date == dayafter: color = ALERT_COLOR
+			else: color = NORMAL_COLOR
+			cell.set_property('cell-background-gdk', color)
+
+		cell_renderer = gtk.CellRendererText()
+		column = gtk.TreeViewColumn(_('Date'), cell_renderer)
+			# T: Column header Task List dialog
+		column.set_cell_data_func(cell_renderer, render_date)
+		column.set_sort_column_id(self.DATE_COL)
+		self.insert_column(column, 2)
 
 		for page in ui.notebook.walk():
 			self.index_page(page)
@@ -318,7 +370,23 @@ class TaskListTreeView(BrowserTreeView):
 	def _add_task(self, page, node, open):
 		text = self._flatten(node)
 		prio = text.count('!')
-		date = '' # TODO - match date
+
+		global date # FIXME
+		date = '9999' # For sorting order this is good empty value
+
+		def set_date(match):
+			global date
+			mydate = parse_date(match.group(0))
+			if mydate and date == '9999':
+				date = '%04i-%02i-%02i' % mydate # (y, m, d)
+				#~ return match.group(0) # TEST
+				return ''
+			else:
+				# No match or we already had a date
+				return match.group(0)
+		
+		text = self.date_re.sub(set_date, text)
+
 		# TODO - determine if actionable or not
 		# TODO - call _filter_item()
 		self.real_model.append(None,
@@ -327,6 +395,7 @@ class TaskListTreeView(BrowserTreeView):
 
 		if open:
 			self.total += 1
+			self.maxprio = max(self.maxprio, prio)
 			if prio in self.prio:
 				self.prio[prio] += 1
 			else:
@@ -338,7 +407,7 @@ class TaskListTreeView(BrowserTreeView):
 				self.tags[tag] += 1
 			else:
 				self.tags[tag] = 1
-
+	
 	def _flatten(self, node):
 		text = node.text or ''
 		for child in node.getchildren():

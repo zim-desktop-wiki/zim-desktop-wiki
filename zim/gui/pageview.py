@@ -18,7 +18,7 @@ import string
 from time import strftime
 
 from zim.fs import *
-from zim.notebook import Path
+from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
 from zim.config import config_file
 from zim.formats import get_format, \
@@ -2591,19 +2591,22 @@ class PageView(gtk.VBox):
 	def do_link_clicked(self, link):
 		'''Handler for the link-clicked signal'''
 		assert isinstance(link, dict)
-		type = link_type(link['href'])
+		href = link['href']
+		type = link_type(href)
 		logger.debug('Link clicked: %s: %s' % (type, link['href']))
 
+		if type == 'interwiki':
+			href = interwiki_link(href)
+			type = link_type(href)
+
 		if type == 'page':
-			path = self.ui.notebook.resolve_path(
-				link['href'], source=self.page)
+			path = self.ui.notebook.resolve_path(href, source=self.page)
 			self.ui.open_page(path)
 		elif type == 'file':
-			path = self.ui.notebook.resolve_file(
-				link['href'], self.page)
+			path = self.ui.notebook.resolve_file(href, self.page)
 			self.ui.open_file(path)
 		else:
-			self.ui.open_url(link['href'])
+			self.ui.open_url(href)
 
 	def do_populate_popup(self, menu):
 		buffer = self.view.get_buffer()

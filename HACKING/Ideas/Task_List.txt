@@ -33,6 +33,14 @@ Changing preferences -> popup index needs to be rebuild do it now? yes/no
 
 Also TreeModel that maps that table - re-use code from PageIndex ??
 
+-----
+**Possible improvement for the Task List plugin for GTD flow**
+1. A tree view, showing hierarchy of checkbox lists and page
+2. A list view only showing outer branches which represent actionable items
+3. Distinguish a tree view showing dates for the next few days
+4. Support items that are waiting - tag @waiting or special checkbox icon
+5. Idem tasks not yet started (waiting for previous in the list to finish)
+
 ------
 
 

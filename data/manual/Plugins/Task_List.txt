@@ -9,17 +9,30 @@ The Task List plugin adds a dialog that lists open items across all pages of the
 
 **Dependencies:** This plugin has no additional dependencies.
 
-**Note:** See also the [[Usage:Getting Things Done|Getting Things Done]] use case.
+**See also:** [[Usage:Getting Things Done]]
 
 
 ===== Using Checkboxes =====
 The first way to use the task list is to define open items by checkboxes. A list like this will be interpreted as a task list and each individual line will appear in the task list dialog.
 
 [ ] Buy rice @groceries
-[ ] Call Susan to invite for diner !
+[ ] Call Susan to invite for diner [d: 5/1] !
 [ ] Print menu @desk
 
-In this example the second item will have the highest priority because of the "!", the more exclamation marks the higher the priority. Also the words with an "@" will be considered tags, so the dialog will show the tags "groceries" and "desk" which can be used for filtering the task list.
+In this example the second item will have the highest **priority** because of the "!", the more exclamation marks the higher the priority. Also the words with an "@" will be considered **tags**, so the dialog will show the tags "groceries" and "desk" which can be used for filtering the task list.
+
+A **due date** can be added by putting a date in between "[d: ]". Zim parses a couple of date formats:
+
+'''
+dd/mm		dd-mm
+dd/mm/yy	dd-mm-yy
+dd/mm/yyyy	dd-mm-yyyy
+yyyy/mm/dd	yyyy-mm-dd
+'''
+
+So you can use e.g. "[d: 5/1]", "[d: 2010-1-5]" or "[d: 5/1/10]".
+
+**Note: **dates are parse in European notation, so "dd/mm", not as "mm/dd" as is customary in the US. Unfortunately there is no way to resolve these unambiguously.
 
 ===== Using tags =====
 The second way to use the task list is by using tags like "TODO" or "FIXME" in your notes. Unfortunately this functionality has not yet been ported in this version of zim.

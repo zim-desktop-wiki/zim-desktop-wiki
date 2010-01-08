@@ -94,7 +94,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		index.connect('page-updated', on_changed, 'row-changed')
 		index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled')
 		index.connect('delete', on_deleted)
-		index.connect('update-done', lambda o: self._flush())
+		index.connect('end-update', lambda o: self._flush())
 
 	def _ref(self, path):
 		# Make sure we keep ref to paths long enough while they
@@ -450,13 +450,23 @@ gobject.type_register(PageTreeView)
 
 class PageIndex(gtk.ScrolledWindow):
 
-	def __init__(self, app):
+	def __init__(self, ui):
 		gtk.ScrolledWindow.__init__(self)
 		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		self.set_shadow_type(gtk.SHADOW_IN)
 
-		self.treeview = PageTreeView(app)
+		self.treeview = PageTreeView(ui)
 		self.add(self.treeview)
+
+		ui.connect('open-notebook', self.on_open_notebook)
+
+	def on_open_notebook(self, ui, notebook):
+		index = notebook.index
+		index.connect('start-update',
+			lambda o: ui.mainwindow.statusbar.push(2, _('Updating index...')) )
+			# T: statusbar message
+		index.connect('end-update',
+			lambda o: ui.mainwindow.statusbar.pop(2) )
 
 	def is_focus(self):
 		return self.treeview.is_focus()

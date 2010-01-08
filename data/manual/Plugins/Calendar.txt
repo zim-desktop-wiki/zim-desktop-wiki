@@ -10,3 +10,6 @@ In addition to the calendar widget, this plugin also adds an action to navigate 
 This plugin is intended to help organize notes by date. It can for example be used to keep a journal. Another frequent use case is to put minutes of meetings or class notes on the page for the date of the meeting - possibly to work them out later in pages for the specific subject.
 
 **Dependencies:** This plugin has no additional dependencies.
+
+
+**See also:** [[Usage:Daily Journal]]

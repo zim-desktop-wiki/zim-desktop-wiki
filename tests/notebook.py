@@ -87,6 +87,13 @@ class TestGetNotebook(tests.TestCase):
 		self.assertEqual(nb, Dir('/default/foo'))
 		self.assertEqual(get_notebook(nb), None)
 
+		# Check interwiki parsing
+		self.assertEqual(interwiki_link('wp?Foo'), 'http://en.wikipedia.org/wiki/Foo')
+		self.assertEqual(interwiki_link('foo?Foo'), dir.uri+'?Foo')
+		nb, page = resolve_notebook(dir.uri+'?Foo')
+		self.assertEqual(nb, dir)
+		self.assertEqual(page, 'Foo')
+
 		# Check backward compatibility
 		file = File('tests/data/notebook-list-old-format.list')
 		wanted = [Dir('~/Notes').uri, Dir('/home/user/code/zim.debug').uri, Dir('/home/user/Foo Bar').uri]
