@@ -37,7 +37,8 @@ except:
 
 # Run the application and handle some exceptions
 try:
-	zim.main(sys.argv)
+	argv = [arg.decode('utf-8') for arg in sys.argv]
+	zim.main(argv)
 except zim.GetoptError, err:
 	print >>sys.stderr, sys.argv[0]+':', err
 	sys.exit(1)

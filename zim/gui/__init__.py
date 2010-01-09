@@ -779,7 +779,7 @@ class GtkInterface(NotebookInterface):
 
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
-		NewPageDialog(self, namespace=self.get_path_context()).run()
+		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
 
 	def open_new_window(self, page=None):
 		'''Open page in a new window'''
@@ -1754,20 +1754,17 @@ class OpenPageDialog(Dialog):
 	def __init__(self, ui, namespace=None):
 		Dialog.__init__(self, ui, _('Jump to'), # T: Dialog title
 			button=(None, gtk.STOCK_JUMP_TO),
+			path_context = ui.page,
 			fields=[('name', 'page', _('Jump to Page'), None)] # T: Label for page input
 		)
 
 	def do_response_ok(self):
-		try:
-			name = self.get_field('name')
-			path = self.ui.notebook.resolve_path(name)
-				# we use resolve here on purpose - TODO add current page as ref
-		except PageNameError, error:
-			ErrorDialog(self, error).run()
-			return False
-		else:
+		path = self.get_field('name')
+		if path:
 			self.ui.open_page(path)
 			return True
+		else:
+			return False
 
 
 class NewPageDialog(Dialog):
@@ -1776,25 +1773,28 @@ class NewPageDialog(Dialog):
 	to create it.
 	'''
 
-	def __init__(self, ui, namespace=None):
-		Dialog.__init__(self, ui, _('New Page'), # T: Dialog title
+	def __init__(self, ui, path=None, subpage=False):
+		if subpage: title = _('New Sub Page') # T: Dialog title
+		else: title = _('New Page') # T: Dialog title
+
+		Dialog.__init__(self, ui, title,
 			text=_(
 				'Please note that linking to a non-existing page\n'
 				'also creates a new page automatically.'),
 				# T: Dialog text in 'new page' dialog
+			path_context=path,
 			fields=[('name', 'page', _('Page Name'), None)], # T: Input label
 			help=':Help:Pages'
 		)
-		self.namespace = namespace or Path(':')
+
+		if subpage:
+			print 'SETTING force_child'
+			pageentry = self.inputs['name']
+			pageentry.force_child = True
 
 	def do_response_ok(self):
-		try:
-			name = self.get_field('name')
-			path = self.namespace + self.ui.notebook.cleanup_pathname(name)
-		except PageNameError, error:
-			ErrorDialog(self, error).run()
-			return False
-		else:
+		path = self.get_field('name')
+		if path:
 			page = self.ui.notebook.get_page(path)
 			if page.hascontent or page.haschildren:
 				ErrorDialog(self, _('Page exists')+': %s' % page.name).run() # T: error message
@@ -1802,6 +1802,8 @@ class NewPageDialog(Dialog):
 			self.ui.open_page(page)
 			self.ui.save_page()
 			return True
+		else:
+			return False
 
 
 class SaveCopyDialog(FileDialog):
@@ -1878,8 +1880,9 @@ class MovePageDialog(Dialog):
 			'Update %i page linking to this page',
 			'Update %i pages linking to this page', i) % i
 			# T: label in MovePage dialog - %i is number of backlinks
+		self.context_page = self.path.parent
 		self.add_fields([
-			('parent', 'namespace', _('Namespace'), self.path.namespace),
+			('parent', 'namespace', _('Namespace'), self.context_page),
 				# T: Input label for namespace to move a file to
 			('links', 'bool', linkslabel, True),
 				# T: option in 'move page' dialog
@@ -1892,8 +1895,9 @@ class MovePageDialog(Dialog):
 	def do_response_ok(self):
 		parent = self.get_field('parent')
 		links = self.get_field('links')
-		newpath = self.ui.notebook.resolve_path(parent) + self.path.basename
-		return self.ui.do_move_page(self.path, newpath, update_links=links, dialog=self)
+		newpath = parent + self.path.basename
+		return self.ui.do_move_page(
+			self.path, newpath, update_links=links, dialog=self)
 
 
 class RenamePageDialog(Dialog):

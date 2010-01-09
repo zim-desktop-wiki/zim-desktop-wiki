@@ -94,6 +94,7 @@ ui_actions = (
 	('find_next', None, _('Find Ne_xt'), '<ctrl>G', '', True), # T: Menu item
 	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', '', True), # T: Menu item
 	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', '', False), # T: Menu item
+	('show_word_count', None, _('Word Count...'), '', '', True), # T: Menu item
 )
 
 ui_format_actions = (
@@ -790,8 +791,8 @@ class TextBuffer(gtk.TextBuffer):
 		if tag is None:
 			margin = 12 + self.tabstop * level # offset from left side for all lines
 			indent = -12 # offset for first line (bullet)
-			tag = self.create_tag(name, left_margin=margin, indent=indent, background='#ccc')
-			#~ tag = self.create_tag(name, left_margin=margin, indent=indent)
+			#~ tag = self.create_tag(name, left_margin=margin, indent=indent, background='#ccc')
+			tag = self.create_tag(name, left_margin=margin, indent=indent)
 			tag.zim_type = 'indent'
 			tag.zim_tag = 'indent'
 			tag.zim_attrib = {'indent': level}
@@ -2932,6 +2933,9 @@ class PageView(gtk.VBox):
 		dialog = FindAndReplaceDialog.unique(self, self)
 		dialog.present()
 
+	def show_word_count(self):
+		WordCountDialog(self).run()
+
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
 
@@ -3149,6 +3153,7 @@ class InsertLinkDialog(Dialog):
 
 	def __init__(self, ui, pageview):
 		Dialog.__init__(self, ui, _('Insert Link'), # T: Dialog title
+					path_context=pageview.page,
 					button=(_('_Link'), 'zim-link') )  # T: Dialog button
 		self.pageview = pageview
 
@@ -3184,7 +3189,9 @@ class InsertLinkDialog(Dialog):
 		return href, text
 
 	def do_response_ok(self):
-		href = self.get_field('href')
+		entry = self.inputs['href']
+		href = entry.get_text().strip()
+			# Not using PageEntry.get_path() here - keep text as typed
 		if not href:
 			return False
 
@@ -3226,6 +3233,7 @@ class EditLinkDialog(InsertLinkDialog):
 
 	def __init__(self, ui, pageview):
 		Dialog.__init__(self, ui, _('Edit Link'), # T: Dialog title
+					path_context=pageview.page,
 					button=(_('_Link'), 'zim-link') )  # T: Dialog button
 		self.pageview = pageview
 
@@ -3350,3 +3358,66 @@ class FindAndReplaceDialog(Dialog):
 		with buffer.user_action:
 			while self.replace():
 				continue
+
+
+class WordCountDialog(Dialog):
+
+	def __init__(self, pageview):
+		Dialog.__init__(self, pageview.ui,
+			_('Word Count'), buttons=gtk.BUTTONS_CLOSE) # T: Dialog title
+		self.set_resizable(False)
+
+		def count(buffer, bounds):
+			start, end = bounds
+			lines = end.get_line() - start.get_line() + 1
+			iter = start.copy()
+			words = 0
+			while iter.compare(end) < 0:
+				if iter.forward_word_end():
+					words += 1
+				else:
+					break
+			return words, lines
+
+		buffer = pageview.view.get_buffer()
+		buffercount = count(buffer, buffer.get_bounds())
+		insert = buffer.get_iter_at_mark(buffer.get_insert())
+		start = buffer.get_iter_at_line(insert.get_line())
+		end = start.copy()
+		end.forward_line()
+		paracount = count(buffer, (start, end))
+		if buffer.get_has_selection():
+			selectioncount = count(buffer, buffer.get_selection_bounds())
+		else:
+			selectioncount = (0, 0)
+
+		table = gtk.Table(3, 4)
+		table.set_row_spacings(5)
+		table.set_col_spacings(12)
+		self.vbox.add(table)
+
+		plabel = gtk.Label(_('Page')) # T: label in word count dialog
+		alabel = gtk.Label(_('Paragraph')) # T: label in word count dialog
+		slabel = gtk.Label(_('Selection')) # T: label in word count dialog
+		wlabel = gtk.Label('<b>'+_('Words')+'</b>:') # T: label in word count dialog
+		wlabel.set_use_markup(True)
+		llabel = gtk.Label('<b>'+_('Lines')+'</b>:') # T: label in word count dialog
+		llabel.set_use_markup(True)
+
+		# Heading
+		table.attach(plabel, 1,2, 0,1)
+		table.attach(alabel, 2,3, 0,1)
+		table.attach(slabel, 3,4, 0,1)
+
+		# Words
+		table.attach(wlabel, 0,1, 1,2)
+		table.attach(gtk.Label(str(buffercount[0])), 1,2, 1,2)
+		table.attach(gtk.Label(str(paracount[0])), 2,3, 1,2)
+		table.attach(gtk.Label(str(selectioncount[0])), 3,4, 1,2)
+
+		# Lines
+		table.attach(llabel, 0,1, 2,3)
+		table.attach(gtk.Label(str(buffercount[1])), 1,2, 2,3)
+		table.attach(gtk.Label(str(paracount[1])), 2,3, 2,3)
+		table.attach(gtk.Label(str(selectioncount[1])), 3,4, 2,3)
+

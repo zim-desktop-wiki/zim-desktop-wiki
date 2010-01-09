@@ -20,8 +20,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..
 	* Preferences dialog should have list of mount points
 [ ] Package icons in target directory when exporting
-[ ] Dialog: improved widgets for page and namespace inputs
-	* Need ability to input top level namespace - now I can not enter empy string
+[*] Dialog: improved widgets for page and namespace inputs
 [ ] Make server gui also use the daemon
 [*] Interwiki links are not yet supported
 

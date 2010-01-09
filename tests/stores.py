@@ -236,7 +236,7 @@ Utf8 content here
 		self.assertEqual(page.dump(format='wiki'), ['Foooo Barrr\n'])
 		ref = self.xml.replace("'", '"')
 		self.assertEqualDiff(''.join(self.store.dump()), ref)
-	
+
 
 class TestFiles(TestStoresMemory):
 	'''Test the store.files module'''
@@ -285,6 +285,16 @@ class TestFiles(TestStoresMemory):
 		self.modify(page.source.path, lambda p: open(p, 'w').write('bar'))
 		with FilterOverWriteWarning():
 			self.assertRaises(OverWriteError, self.store.store_page, page)
+
+		# test headers
+		page = self.store.get_page(Path('Test:New'))
+		page.parse('plain', 'Foo Bar')
+		self.store.store_page(page)
+		self.assertEqual(page.properties['Content-Type'], 'text/x-zim-wiki')
+		self.assertEqual(page.properties['Wiki-Format'], 'zim 0.26')
+		self.assertTrue('Creation-Date' in page.properties)
+		firstline = page.source.readlines()[0]
+		self.assertEqual(firstline, 'Content-Type: text/x-zim-wiki\n')
 
 
 class StubFile(File):

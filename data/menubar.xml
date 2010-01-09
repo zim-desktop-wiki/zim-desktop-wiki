@@ -108,6 +108,7 @@
 			<menuitem action='show_search_backlinks'/>
 		</menu>
 		<menu action='tools_menu'>
+			<menuitem action='show_word_count'/>
 			<placeholder name='page_tools'/>
 			<separator/>
 			<menuitem action='attach_file'/>

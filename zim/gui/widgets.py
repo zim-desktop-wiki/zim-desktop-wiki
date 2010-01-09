@@ -17,7 +17,7 @@ import sys
 from zim.fs import *
 import zim.errors
 import zim.config
-from zim.notebook import Path
+from zim.notebook import Path, PageNameError
 
 
 logger = logging.getLogger('zim.gui')
@@ -271,30 +271,103 @@ gobject.type_register(MenuButton)
 
 
 class PageEntry(gtk.Entry):
-	# TODO move completion logic from below to here..
 
-	# TODO highlight background for an invalid name
-	# TODO highlight for existing / non-existing page (?)
+	allow_select_root = False
+
+	def __init__(self, notebook, path=None, path_context=None):
+		'''Contructor. Needs at least a Notebook to resolve paths.
+		If a context is given this is the reference Path for resolving
+		relative links.
+		'''
+		gtk.Entry.__init__(self)
+		assert notebook, 'Page completion needs a notebook'
+		assert path_context is None or isinstance(path_context, Path)
+		self.notebook = notebook
+		self.path_context = path_context
+		self.force_child = False
+		self._completing = ''
+
+		self.completion_model = gtk.ListStore(str)
+		completion = gtk.EntryCompletion()
+		completion.set_model(self.completion_model)
+		completion.set_text_column(0)
+		completion.set_inline_completion(True)
+		self.set_completion(completion)
+
+		if path:
+			self.set_path(path)
+
+		self.connect('changed', self.__class__.do_changed)
 
 	def set_path(self, path):
-		self.set_text(path.name)
+		self.set_text(':'+path.name)
 
 	def get_path(self):
-		# TODO cleanup name etc
 		name = self.get_text().strip()
-		if name:
-			return Path(name)
-		else:
+		if not name:
 			return None
+		elif self.allow_select_root and name == ':':
+			return Path(':')
+		else:
+			if self.force_child and not name.startswith('+'):
+				name = '+' + name
+			try:
+				return self.notebook.resolve_path(name, source=self.path_context)
+			except PageNameError:
+				return None
 
 	def clear(self):
 		self.set_text('')
 		self.emit('activate')
 
+	def do_changed(self):
+		text = self.get_text()
+
+		# Figure out some hint about the namespace
+		if ':' in text:
+			# can still have context and start with '+'
+			i = text.rfind(':')
+			completing = text[:i+1]
+			prefix = completing
+		elif self.path_context:
+			if text.startswith('+'):
+				completing = ':' + self.path_context.name
+				prefix = '+'
+			else:
+				completing = ':' + self.path_context.namespace
+				prefix = ''
+		else:
+			completing = ':'
+			prefix = ''
+
+		if self.force_child and not completing.startswith('+'):
+			# Needed for new_sub_page - always force child page
+			completing = '+' + completing
+
+		# Check if we completed already for this namespace
+		if completing == self._completing:
+			return
+		self._completing = completing
+
+		# Else fill model with pages from namespace
+		self.completion_model.clear()
+
+		if completing == ':':
+			path = Path(':')
+		else:
+			try:
+				path = self.notebook.resolve_path(completing, source=self.path_context)
+			except PageNameError:
+				return
+
+		#~ print '!! COMPLETING %s context: %s prefix: %s' % (path, self.path_context, prefix)
+		for p in self.notebook.index.list_pages(path):
+			self.completion_model.append((prefix+p.basename,))
+
 
 class NamespaceEntry(PageEntry):
-	pass # TODO move completion logic from below to here..
 
+	allow_select_root = True
 
 
 def format_title(title):
@@ -358,7 +431,7 @@ class Dialog(gtk.Dialog):
 	def __init__(self, ui, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			text=None, fields=None, help=None,
-			defaultwindowsize=(-1, -1)
+			defaultwindowsize=(-1, -1), path_context=None
 		):
 		'''Constructor. 'ui' can either be the main application or some
 		other dialog from which this dialog is spwaned. 'title' is the dialog
@@ -380,6 +453,7 @@ class Dialog(gtk.Dialog):
 		self.result = None
 		self.inputs = {}
 		self.destroyed = False
+		self.path_context = path_context
 		gtk.Dialog.__init__(
 			self, parent=get_window(self.ui),
 			title=format_title(title),
@@ -509,23 +583,32 @@ class Dialog(gtk.Dialog):
 				label = gtk.Label(label+': ')
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
-				entry = gtk.Entry()
-				entry.zim_type = type
-				if not value is None:
-					entry.set_text(str(value))
-				self.inputs[name] = entry
-				table.attach(entry, 1,2, i,i+1)
-				if type == 'page':
-					self._set_page_completion(entry)
-				elif type == 'namespace':
-					self._set_namespace_completion(entry)
-				elif type in ('dir', 'file', 'image'):
-					# FIXME use inline icon for newer versions of Gtk
-					browse = gtk.Button('_Browse')
-					browse.connect('clicked', self._select_file, (type, entry))
-					table.attach(browse, 2,3, i,i+1, xoptions=gtk.FILL)
-				elif type == 'password':
-					entry.set_visibility(False)
+				if type in ('page', 'namespace'):
+					if type == 'page':
+						entry = PageEntry(self.ui.notebook, path_context=self.path_context)
+					else:
+						entry = NamespaceEntry(self.ui.notebook, path_context=self.path_context)
+					if value:
+						if isinstance(value, basestring):
+							value = Path(value)
+						entry.set_path(value)
+					self.inputs[name] = entry
+					table.attach(entry, 1,2, i,i+1)
+				else:
+					entry = gtk.Entry()
+					entry.zim_type = type
+					if not value is None:
+						entry.set_text(str(value))
+					self.inputs[name] = entry
+					table.attach(entry, 1,2, i,i+1)
+
+					if type in ('dir', 'file', 'image'):
+						# FIXME use inline icon for newer versions of Gtk
+						browse = gtk.Button('_Browse')
+						browse.connect('clicked', self._select_file, (type, entry))
+						table.attach(browse, 2,3, i,i+1, xoptions=gtk.FILL)
+					elif type == 'password':
+						entry.set_visibility(False)
 			else:
 				assert False, 'BUG: unknown field type: %s' % type
 			i += 1
@@ -560,53 +643,6 @@ class Dialog(gtk.Dialog):
 		if not file is None:
 			entry.set_text(file.path)
 
-	def _set_page_completion(self, entry):
-		# TODO: more advanced widget for this
-		if not (self.ui and hasattr(self.ui, 'notebook')):
-			logger.warn('Could not set page completion, no ui object')
-			return
-		completion = gtk.EntryCompletion()
-		model = gtk.ListStore(str)
-		completion.set_model(model)
-		completion.set_text_column(0)
-		completion.set_inline_completion(True)
-		entry.set_completion(completion)
-		entry.zim_completion_namespace = None
-		entry.connect('changed', self._update_page_completion)
-
-	def _set_namespace_completion(self, entry):
-		# TODO: more advanced widget for this
-		self._set_page_completion(entry)
-
-	def _update_page_completion(self, entry):
-		text = entry.get_text()
-		namespace = self.ui.page.namespace
-		prefix = len(namespace)+1
-		if ':' in text:
-			i = text.rfind(':')
-			if text.startswith(':'):
-				namespace = text[:i]
-				prefix = 0
-			else:
-				namespace += ':' + text[:i]
-
-		if entry.zim_completion_namespace == namespace:
-			return
-		else:
-			entry.zim_completion_namespace = namespace
-			if namespace.strip(':'):
-				namespace = self.ui.notebook.resolve_path(namespace)
-			else:
-				namespace = Path(':')
-			#~ print 'Completing', namespace
-
-		completion = entry.get_completion()
-		model = completion.get_model()
-		model.clear()
-		for p in self.ui.notebook.index.list_pages(namespace):
-			#~ print '>', p, p.name[prefix:]
-			model.append((p.name[prefix:],))
-
 	def get_field(self, name):
 		'''Returns the value of a single field'''
 		return self.get_fields()[name]
@@ -615,7 +651,9 @@ class Dialog(gtk.Dialog):
 		'''Returns a dict with values of the fields.'''
 		values = {}
 		for name, widget in self.inputs.items():
-			if isinstance(widget, gtk.Entry):
+			if isinstance(widget, (PageEntry, NamespaceEntry)):
+				values[name] = widget.get_path()
+			elif isinstance(widget, gtk.Entry):
 				values[name] = widget.get_text().strip()
 			elif isinstance(widget, gtk.ToggleButton):
 				values[name] = widget.get_active()

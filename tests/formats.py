@@ -279,8 +279,8 @@ Some Verbatim here
 
 <p>
 IMAGE: <img src="img://../my-image.png" alt="Foo Bar" width="600"><br>
-LINKS: <a href="page://:foo:bar">:foo:bar</a> <a href="file://./file.png">./file.png</a> <a href="file://file:///etc/passwd">file:///etc/passwd</a><br>
-LINKS: <a href="page://Foo">Foo</a><a href="page://Bar">Bar</a><br>
+LINKS: <a href="page://:foo:bar" title=":foo:bar">:foo:bar</a> <a href="file://./file.png" title="./file.png">./file.png</a> <a href="file://file:///etc/passwd" title="file:///etc/passwd">file:///etc/passwd</a><br>
+LINKS: <a href="page://Foo" title="Foo">Foo</a><a href="page://Bar" title="Bar">Bar</a><br>
 </p>
 
 <p style='padding-left: 30pt'>

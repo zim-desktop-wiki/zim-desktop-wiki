@@ -198,7 +198,7 @@ def main(argv):
 	# Convert options into a proper dict
 	optsdict = {}
 	for o, a in opts:
-		o = o.lstrip('-')
+		o = str(o.lstrip('-')) # no unicode for keys
 		if o in shortopts:
 			o = shortopts[o].rstrip('=')
 

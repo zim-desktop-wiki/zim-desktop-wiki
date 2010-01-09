@@ -243,7 +243,7 @@ class VersionsDialog(Dialog):
 		hbox = gtk.HBox(spacing=5)
 		vbox.pack_start(hbox, False)
 		hbox.pack_start(self.page_radio, False)
-		self.page_entry = PageEntry()
+		self.page_entry = PageEntry(self.ui.notebook)
 		self.page_entry.set_path(ui.page)
 		hbox.pack_start(self.page_entry, False)
 

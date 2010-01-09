@@ -539,7 +539,8 @@ class Notebook(gobject.GObject):
 		if startswith == ':' or source == None:
 			return index.resolve_case(name) or Path(name)
 		elif startswith == '+':
-			assert isinstance(source, Path)
+			if not source:
+				raise PageNameError, '+'+name
 			return index.resolve_case(source.name+':'+name)  \
 						or Path(source.name+':'+name)
 			# FIXME use parent as argument

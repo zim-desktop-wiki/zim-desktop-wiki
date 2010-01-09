@@ -107,7 +107,8 @@ class Dumper(DumperClass):
 				output.append('<img src="%s" alt="%s"%s>' % (src, text, opt))
 			elif element.tag == 'link':
 				href = url_encode(self.linker.link(element.attrib['href']))
-				output.append('<a href="%s">%s</a>' % (href, text))
+				title = text.replace('"', '&quot;')
+				output.append('<a href="%s" title="%s">%s</a>' % (href, title, text))
 			elif element.tag in ['emphasis', 'strong', 'mark', 'strike', 'code']:
 				if element.tag == 'mark': tag = 'u'
 				elif element.tag == 'emphasis': tag = 'em'

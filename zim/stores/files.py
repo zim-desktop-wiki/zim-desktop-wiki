@@ -17,6 +17,7 @@ once we have it resolved.
 '''
 
 import os # using os directly in get_pagelist()
+from datetime import datetime
 
 from zim.fs import *
 from zim.fs import FilteredDir
@@ -188,13 +189,18 @@ class FileStorePage(Page):
 
 		#~ print 'STORE', tree.tostring()
 		if tree.hascontent:
+			new = False
 			if not self.properties:
 				self.properties = HeadersDict()
+				new = True
 			self.properties['Content-Type'] = 'text/x-zim-wiki'
 			self.properties['Wiki-Format'] = 'zim 0.26'
-			# TODO add Creation-Date ?
+			if new:
+				now = datetime.now()
+				self.properties['Creation-Date'] = now.isoformat()
+
 			# Note: No "Modification-Date" here because it causes conflicts
-			# when merging branches with version control
+			# when merging branches with version control, use mtime from filesystem
 
 			lines = self.properties.dump()
 			lines.append('\n')
