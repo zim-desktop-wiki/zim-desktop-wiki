@@ -795,10 +795,11 @@ class Notebook(gobject.GObject):
 
 	@staticmethod
 	def _update_link_tag(tag, newhref):
+		newhref = str(newhref)
 		haschildren = bool(list(tag.getchildren()))
 		if not haschildren and tag.text == tag.attrib['href']:
 			tag.text = newhref
-		tag.attrib['href'] = str(newhref)
+		tag.attrib['href'] = newhref
 
 	def _update_links_from(self, page, oldpath):
 		logger.debug('Updating links in %s (was %s)', page, oldpath)
@@ -1205,7 +1206,17 @@ class Page(Path):
 	@property
 	def hascontent(self):
 		'''Returns whether this page has content'''
-		return bool(self._ui_object) or bool(self._parsetree)
+		if self._parsetree:
+			return self._parsetree.hascontent
+		elif self._ui_object:
+			return self._ui_object.get_parsetree().hascontent
+		else:
+			try:
+				hascontent = self._source_hascontent()
+			except NotImplementedError:
+				return False
+			else:
+				return hascontent
 
 	def get_parsetree(self):
 		'''Returns contents as a parsetree or None'''
@@ -1223,9 +1234,15 @@ class Page(Path):
 			else:
 				return self._parsetree
 
+	def _source_hascontent(self):
+		'''Method to be overloaded in sub-classes.
+		Should return a parsetree True if _fetch_parsetree() returns content.
+		'''
+		raise NotImplementedError
+
 	def _fetch_parsetree(self):
-		'''Method to be overloaded in sub-classes. Should return a parsetree
-		or None.
+		'''Method to be overloaded in sub-classes.
+		Should return a parsetree or None.
 		'''
 		raise NotImplementedError
 

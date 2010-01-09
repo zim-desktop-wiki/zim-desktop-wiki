@@ -199,6 +199,28 @@ grrr
 		self.assertTrue(buffer.get_modified())
 		self.assertEqualDiff(tree.tostring(), wanted)
 
+		# Test sanity for editing "errors"
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<li bullet="unchecked-box" indent="0">Box 1</li><li bullet="unchecked-box" indent="0">Box 2</li><li bullet="unchecked-box" indent="0">Box 3</li>
+</zim-tree>
+'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<li bullet="unchecked-box" indent="0">Box 1</li>foo <li bullet="unchecked-box" indent="0">Box 2</li><li bullet="unchecked-box" indent="0">Box 3</li>
+</zim-tree>'''
+		tree = get_tree_from_xml(input)
+		buffer.set_parsetree(tree)
+		iter = buffer.get_iter_at_line(2) # iter before checkbox
+		buffer.insert(iter, 'foo ')
+		#print buffer.get_parsetree(raw=True).tostring()
+		#print buffer.get_parsetree().tostring()
+		tree = buffer.get_parsetree()
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+
 class TestUndoStackManager(TestCase):
 
 	def runTest(self):

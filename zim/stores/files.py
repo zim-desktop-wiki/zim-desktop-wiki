@@ -161,10 +161,8 @@ class FileStorePage(Page):
 		self.source.checkoverwrite = True
 		self.readonly = not self.source.iswritable()
 
-	@property
-	def hascontent(self):
-		return bool(self._ui_object) or bool(self._parsetree) \
-			or self.source.exists()
+	def _source_hascontent(self):
+		return self.source.exists()
 
 	def _fetch_parsetree(self, lines=None):
 		'''Fetch a parsetree from source or returns None'''
@@ -188,18 +186,24 @@ class FileStorePage(Page):
 		tree = self.get_parsetree()
 		assert tree, 'BUG: Can not store a page without content'
 
-		if not self.properties:
-			self.properties = HeadersDict()
-		self.properties['Content-Type'] = 'text/x-zim-wiki'
-		self.properties['Wiki-Format'] = 'zim 0.26'
-		# TODO add Creation-Date ?
-		# Note: No "Modification-Date" here because it causes conflicts
-		# when merging branches with version control
+		#~ print 'STORE', tree.tostring()
+		if tree.hascontent:
+			if not self.properties:
+				self.properties = HeadersDict()
+			self.properties['Content-Type'] = 'text/x-zim-wiki'
+			self.properties['Wiki-Format'] = 'zim 0.26'
+			# TODO add Creation-Date ?
+			# Note: No "Modification-Date" here because it causes conflicts
+			# when merging branches with version control
 
-		lines = self.properties.dump()
-		lines.append('\n')
-		lines.extend(self.format.Dumper().dump(tree))
-		self.source.writelines(lines)
+			lines = self.properties.dump()
+			lines.append('\n')
+			lines.extend(self.format.Dumper().dump(tree))
+			self.source.writelines(lines)
+		else:
+			# Remove the file - this is not the same as remove_page()
+			self.source.cleanup()
+
 		self.modified = False
 
 	def get_links(self):

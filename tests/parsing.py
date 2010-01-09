@@ -18,6 +18,21 @@ class TestParsing(TestCase):
 		result = split_quoted_strings(string, unescape=False)
 		self.assertEquals(result, list)
 
+	def testParseDate(self):
+		'''Test parsing dates'''
+		from datetime import date
+		today = date.today()
+		self.assertEqual(parse_date('1/1'), (today.year, 1, 1)) 
+		self.assertEqual(parse_date('1-1'), (today.year, 1, 1)) 
+		self.assertEqual(parse_date('1:1'), (today.year, 1, 1)) 
+		self.assertEqual(parse_date('11/11'), (today.year, 11, 11)) 
+		self.assertEqual(parse_date('11/11/99'), (1999, 11, 11)) 
+		self.assertEqual(parse_date('11/11/11'), (2011, 11, 11)) 
+		self.assertEqual(parse_date('1/11/2001'), (2001, 11, 1)) 
+		self.assertEqual(parse_date('1-11-2001'), (2001, 11, 1)) 
+		self.assertEqual(parse_date('1:11:2001'), (2001, 11, 1)) 
+		self.assertEqual(parse_date('2001/11/1'), (2001, 11, 1)) 
+
 	def testRe(self):
 		'''Test parsing Re class'''
 		string = 'foo bar baz';

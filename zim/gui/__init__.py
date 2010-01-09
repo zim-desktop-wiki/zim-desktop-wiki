@@ -593,11 +593,19 @@ class GtkInterface(NotebookInterface):
 	def do_open_notebook(self, notebook):
 		'''Signal handler for open-notebook.'''
 
-		def move_away(o, path, *a):
+		def move_away(o, path):
 			if self.page >= path:
 				self.open_page_back() \
 				or self.open_page_parent \
 				or self.open_page_home
+
+		def follow(o, path, newpath, update_links):
+			if self.page == path:
+				self.open_page(newpath)
+			elif self.page > path:
+				newpath = newpath + self.page.relname(path)
+				newpath = Path(newpath.name) # IndexPath -> Path
+				self.open_page(newpath)
 
 		def autosave(o, p):
 			page = self.mainwindow.pageview.get_page()
@@ -611,7 +619,7 @@ class GtkInterface(NotebookInterface):
 		notebook.connect('delete-page', autosave) # before action
 		notebook.connect('move-page', autosave) # before action
 		notebook.connect_after('delete-page', move_away)
-		notebook.connect_after('move-page', move_away) # TODO go to new location instead ?
+		notebook.connect_after('move-page', follow)
 
 		# Start a lightweight background check of the index
 		self.notebook.index.update(background=True, checkcontents=False)

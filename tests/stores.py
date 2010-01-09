@@ -16,6 +16,7 @@ from zim.fs import *
 from zim.fs import OverWriteError
 from zim.notebook import Notebook, Path, LookupError, PageExistsError
 import zim.stores
+from zim.formats import ParseTree
 
 
 def walk(store, namespace=None):
@@ -182,6 +183,15 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		self.assertTrue(newpage.haschildren)
 		self.assertFalse(newpage == page)
 
+		# check hascontents
+		page = self.store.get_page(Path('NewPage'))
+		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
+		self.assertFalse(tree.hascontent)
+		page.set_parsetree(tree)
+		self.assertFalse(page.hascontent)
+		self.store.store_page(page)
+		page = self.store.get_page(Path('NewPage'))
+		self.assertFalse(page.hascontent)
 
 	# TODO test getting a non-existing page
 	# TODO test if children uses namespace objects

@@ -22,14 +22,14 @@ class ImageGeneratorDialog(Dialog):
 	# TODO: use uistate to remember pane position
 
 	def __init__(self, ui, title, generator, image=None, **opt):
-		Dialog.__init__(self, ui, title, **opt)
+		Dialog.__init__(self, ui, title, defaultwindowsize=(450, 300), **opt)
 		self.generator = generator
 		self.imagefile = None
 		self.logfile = None
 		self._existing_file = None
 
 		self.vpane = gtk.VPaned()
-		self.vpane.set_position(150)
+		self.vpane.set_position(100)
 		self.vbox.add(self.vpane)
 
 		self.imageview = ImageView(bgcolor='#FFF', checkboard=False)

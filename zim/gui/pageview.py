@@ -790,7 +790,8 @@ class TextBuffer(gtk.TextBuffer):
 		if tag is None:
 			margin = 12 + self.tabstop * level # offset from left side for all lines
 			indent = -12 # offset for first line (bullet)
-			tag = self.create_tag(name, left_margin=margin, indent=indent)
+			tag = self.create_tag(name, left_margin=margin, indent=indent, background='#ccc')
+			#~ tag = self.create_tag(name, left_margin=margin, indent=indent)
 			tag.zim_type = 'indent'
 			tag.zim_tag = 'indent'
 			tag.zim_attrib = {'indent': level}
@@ -971,7 +972,10 @@ class TextBuffer(gtk.TextBuffer):
 	def get_bullet_at_iter(self, iter):
 		if not iter.starts_line():
 			return None
+		else:
+			return self._get_bullet_at_iter(iter)
 
+	def _get_bullet_at_iter(self, iter):
 		pixbuf = iter.get_pixbuf()
 		if pixbuf:
 			if hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'icon' \
@@ -1057,7 +1061,7 @@ class TextBuffer(gtk.TextBuffer):
 				for tag in tags[i:]:
 					t, attrib = tag.zim_tag, tag.zim_attrib
 					if t == 'indent':
-						bullet = self.get_bullet_at_iter(iter)
+						bullet = self._get_bullet_at_iter(iter)
 						if bullet:
 							t = 'li'
 							attrib = attrib.copy() # break ref with tree
@@ -1096,14 +1100,21 @@ class TextBuffer(gtk.TextBuffer):
 		while iter.compare(end) == -1:
 			pixbuf = iter.get_pixbuf()
 			if pixbuf:
-				# reset all tags except indenting
-				set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
+				if pixbuf.zim_type == 'icon':
+					# Reset all tags - and let set_tags parse the bullet
+					if open_tags:
+						break_tags(open_tags[0][1])
+					set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
+				else:
+					pass # reset all tags except indenting
+					set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
+
 				pixbuf = iter.get_pixbuf() # iter may have moved
 				if pixbuf is None:
 					continue
 
 				if pixbuf.zim_type == 'icon':
-					assert False, 'BUG: Checkbox outside of indent ?'
+					logger.warn('BUG: Checkbox outside of indent ?')
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
 					if 'alt' in attrib:
@@ -1393,7 +1404,7 @@ class TextBuffer(gtk.TextBuffer):
 		clipboard.request_parsetree(self._paste_clipboard)
 
 	def _paste_clipboard(self, parsetree):
-		#~ print 'PASTE', parsetree.tostring()
+		#~ print '!! PASTE', parsetree.tostring()
 		with self.user_action:
 			if self.get_has_selection():
 				start, end = self.get_selection_bounds()

@@ -357,7 +357,8 @@ class Dialog(gtk.Dialog):
 
 	def __init__(self, ui, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			text=None, fields=None, help=None
+			text=None, fields=None, help=None,
+			defaultwindowsize=(-1, -1)
 		):
 		'''Constructor. 'ui' can either be the main application or some
 		other dialog from which this dialog is spwaned. 'title' is the dialog
@@ -388,10 +389,11 @@ class Dialog(gtk.Dialog):
 		self.vbox.set_spacing(5)
 
 		if hasattr(ui, 'uistate') and isinstance(ui.uistate, zim.config.ConfigDict):
+			assert isinstance(defaultwindowsize, tuple)
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
 			#~ print '>>', self.uistate
-			self.uistate.setdefault('windowsize', (-1, -1), check=self.uistate.is_coord)
+			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
 			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
 		else:
@@ -1089,6 +1091,8 @@ class ImageView(gtk.Layout):
 		#~ print 'Image', (wimg, himg)
 
 		# Scale pixbuf to new size
+		wimg = max(wimg, 1)
+		himg = max(himg, 1)
 		if not self.checkboard or not self._pixbuf.get_has_alpha():
 			if (wimg, himg) == (wsrc, hsrc):
 				pixbuf = self._pixbuf

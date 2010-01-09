@@ -111,6 +111,12 @@ def get_format(name):
 class ParseTree(ElementTreeModule.ElementTree):
 	'''Wrapper for zim parse trees, derives from ElementTree.'''
 
+	@property
+	def hascontent(self):
+		'''Returns True if the tree contains any content at all.'''
+		root = self.getroot()
+		return bool(root.getchildren() or root.text)
+
 	def fromstring(self, string):
 		'''Set the contents of this tree from XML representation.'''
 		parser = ElementTreeModule.XMLTreeBuilder()

@@ -496,36 +496,39 @@ class Index(gobject.GObject):
 
 		TODO: emit a signal for this for plugins to use
 		'''
-		# Avoid emitting page-updated here because it triggers
-		# re-draws of the pageindex
+		# Avoid emitting page-updated here when not needed because it
+		# triggers re-draws of the pageindex
 
 		#~ print '!! INDEX PAGE', path, path._indexpath
 		assert isinstance(path, IndexPath) and not path.isroot
 		seen = set()
+		hadcontent = path.hascontent
 		with self.db_commit:
 			self.db.execute('delete from links where source==?', (path.id,))
-			for type, href, _ in page.get_links():
-				if type != 'page':
-					continue
 
-				try:
-					link = self.notebook.resolve_path(
-						href, source=page, index=self)
-						# need to specify index=self here because we are
-						# not necessary the default index for the notebook
-				except PageNameError:
-					continue
+			if page.hascontent:
+				for type, href, _ in page.get_links():
+					if type != 'page':
+						continue
 
-				if link != page and not link.name in seen:
-					# Filter out self refering links and remove doubles
-					seen.add(link.name)
-					indexpath = self.lookup_path(link)
-					if indexpath is None:
-						indexpath = self.touch(link)
+					try:
+						link = self.notebook.resolve_path(
+							href, source=page, index=self)
+							# need to specify index=self here because we are
+							# not necessary the default index for the notebook
+					except PageNameError:
+						continue
 
-					self.db.execute(
-						'insert into links (source, href) values (?, ?)',
-						(path.id, indexpath.id) )
+					if link != page and not link.name in seen:
+						# Filter out self refering links and remove doubles
+						seen.add(link.name)
+						indexpath = self.lookup_path(link)
+						if indexpath is None:
+							indexpath = self.touch(link)
+
+						self.db.execute(
+							'insert into links (source, href) values (?, ?)',
+							(path.id, indexpath.id) )
 
 			key = self.notebook.get_page_indexkey(page)
 			self.db.execute(
@@ -534,9 +537,11 @@ class Index(gobject.GObject):
 
 		#~ print '!! PAGE-INDEX', path
 		# We don't use page-updated here to avoid triggering the
-		# treeview too often
-		#~ path = self.lookup_data(path) # refresh
 		#~ self.emit('page-indexed', page, path)
+
+		path = self.lookup_data(path) # refresh
+		if hadcontent != path.hascontent:
+			self.emit('page-updated', path)
 
 	def _update_pagelist(self, path, checkcontent):
 		'''Checks and updates the pagelist for a path if needed and queues any

@@ -483,5 +483,10 @@ class TestPage(TestPath):
 		self.assertEqual(page.get_parsetree().tostring(), tree.tostring())
 			# ensure we didn't change the tree
 
-# TODO test get / set parse tree with and without source
+		# TODO test get / set parse tree with and without source
+
+		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
+		self.assertFalse(tree.hascontent)
+		page.set_parsetree(tree)
+		self.assertFalse(page.hascontent)
 

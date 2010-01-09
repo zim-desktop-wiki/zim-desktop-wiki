@@ -82,6 +82,7 @@ def encode_filename(pagename):
 	'''
 	return pagename.replace(':', '/').replace(' ', '_')
 
+
 def decode_filename(filename):
 	'''Decodes a file basename to a pagename'''
 	return filename.replace('/', ':').replace('_', ' ')
