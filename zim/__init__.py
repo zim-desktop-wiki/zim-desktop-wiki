@@ -277,10 +277,10 @@ def main(argv):
 				notebook = default
 				logger.info('Opening default notebook')
 
-		if 'no-daemon' in optsdict or os.name == 'nt':
+		if 'no_daemon' in optsdict or os.name == 'nt':
 			import zim.gui
 			try:
-				del optsdict['no-daemon']
+				del optsdict['no_daemon']
 			except KeyError:
 				pass
 			if not notebook:
@@ -306,7 +306,7 @@ def main(argv):
 			gui.present(page, **optsdict)
 	elif cmd == 'server':
 		try:
-			del optsdict['no-daemon']
+			del optsdict['no_daemon']
 		except KeyError:
 			pass
 

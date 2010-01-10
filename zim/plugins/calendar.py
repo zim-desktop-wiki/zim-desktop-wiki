@@ -114,7 +114,14 @@ This is a core plugin shipping with zim.
 				self.ui.notebook.namespace_properties[ns].remove('template')
 			except KeyError:
 				pass
-		ns = Path(self.preferences['namespace'])
+
+		if isinstance(self.preferences['namespace'], Path):
+			ns = self.preferences['namespace']
+			self.preferences['namespace'] = ns.name
+		else:
+			self.preferences.setdefault('namespace', ':Calendar')
+			ns = self.ui.notebook.resolve_path(self.preferences['namespace'])
+
 		self.ui.notebook.namespace_properties[ns]['template'] = '_Calendar'
 		self._set_template = ns
 

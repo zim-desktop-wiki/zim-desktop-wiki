@@ -411,12 +411,16 @@ class Notebook(gobject.GObject):
 
 	def save_properties(self, **properties):
 		# Check if icon is relative
-		if self.dir and properties['icon'] \
-		and properties['icon'].startswith(self.dir.path):
+		if 'icon' in properties and properties['icon'] \
+		and self.dir and properties['icon'].startswith(self.dir.path):
 			i = len(self.dir.path)
 			path = './' + properties['icon'][i:].lstrip('/\\')
 			# TODO use proper fs routine(s) for this substitution
 			properties['icon'] = path
+
+		# Set home page as string
+		if 'home' in properties and isinstance(properties['home'], Path):
+			properties['home'] = properties['home'].name
 
 		self.config['Notebook'].update(properties)
 		self.config.write()

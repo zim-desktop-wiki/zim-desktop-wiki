@@ -294,6 +294,8 @@ class PluginConfigureDialog(Dialog):
 		self.add_fields(fields)
 
 	def do_response_ok(self):
+		# First let the plugin recieve the changes, then save them.
+		# The plugin could do som conversion on the fly (e.g. Path to string)
 		self.preferences.update(self.get_fields())
 		self.plugin.emit('preferences-changed')
 		self.ui.save_preferences()
