@@ -204,7 +204,7 @@ setup(
 	},
 
 	# provide package properties
-	name         = 'pyzim',
+	name         = 'zim',
 	version      = __version__,
 	description  = 'Zim desktop wiki',
 	author       = 'Jaap Karssenberg',
