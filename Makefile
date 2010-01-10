@@ -5,8 +5,8 @@
 
 PYTHON=`which python`
 DESTDIR=/
-BUILDIR=$(CURDIR)/debian/pyzim
-PROJECT=pyzim
+BUILDIR=$(CURDIR)/debian/zim
+PROJECT=zim
 
 all:
 	@echo "make source - Create source package"

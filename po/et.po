@@ -1,4 +1,4 @@
-# Korean translation for zim
+# Estonian translation for zim
 # Copyright (c) 2009 Rosetta Contributors and Canonical Ltd 2009
 # This file is distributed under the same license as the zim package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2009.
@@ -8,13 +8,13 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-01-09 21:46+0100\n"
-"PO-Revision-Date: 2009-12-10 04:47+0000\n"
-"Last-Translator: Elex <Unknown>\n"
-"Language-Team: Korean <ko@li.org>\n"
+"PO-Revision-Date: 2009-12-20 20:00+0000\n"
+"Last-Translator: Timo Sulg <timgluz@gmail.com>\n"
+"Language-Team: Estonian <et@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Launchpad-Export-Date: 2010-01-10 20:40+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
@@ -22,18 +22,18 @@ msgstr ""
 #. label for default application
 #: zim/applications.py:146 zim/applications.py:173
 msgid "Default"
-msgstr "기본값"
+msgstr "Vaikimisi"
 
 #. menu item to open a file with an application, %s is the app name
 #: zim/gui/applications.py:359
 #, python-format
 msgid "Open with \"%s\""
-msgstr "\"%s\"(으)로 열기"
+msgstr "Ava programmiga \"%s\""
 
 #. Dialog title
 #: zim/gui/applications.py:373
 msgid "Custom Command"
-msgstr "커스텀 명령"
+msgstr "Kohandatud käsk"
 
 #. Field in 'custom command' dialog |
 #. Input label in the 'rename page' dialog for the new name |
@@ -44,94 +44,94 @@ msgstr "커스텀 명령"
 #: zim/gui/notebookdialog.py:361 zim/gui/preferencesdialog.py:183
 #: zim/notebook.py:339
 msgid "Name"
-msgstr "이름"
+msgstr "Nimi"
 
 #. Field in 'custom command' dialog
 #: zim/gui/applications.py:378
 msgid "Command"
-msgstr "명령"
+msgstr "Käsklus"
 
 #. Title export dialog
 #: zim/gui/exportdialog.py:17
 msgid "Export"
-msgstr "내보내기"
+msgstr "Ekspordi"
 
 #. Section heading in export dialog
 #: zim/gui/exportdialog.py:24
 msgid "Pages"
-msgstr "페이지"
+msgstr "Leheküljed"
 
 #. Option in export dialog to export complete notebook |
 #. Option in versions dialog to show version for complete notebook
 #: zim/gui/exportdialog.py:27 zim/plugins/versioncontrol/__init__.py:235
 msgid "Complete _notebook"
-msgstr ""
+msgstr "Kogu _märkmik"
 
 #. Option in export dialog to export selection
 #: zim/gui/exportdialog.py:29
 msgid "_Selection"
-msgstr "선택(_S)"
+msgstr "_Valik"
 
 #. Section heading in export dialog
 #: zim/gui/exportdialog.py:49
 msgid "Output"
-msgstr "출력"
+msgstr "Väljund"
 
 #. Input label in the export dialog
 #: zim/gui/exportdialog.py:53
 msgid "Format"
-msgstr "형식"
+msgstr "Vorming"
 
 #. Option in template selection to specify another file
 #: zim/gui/exportdialog.py:77 zim/gui/exportdialog.py:81
 #: zim/gui/exportdialog.py:104 zim/gui/exportdialog.py:220
 msgid "Other..."
-msgstr "그 외..."
+msgstr "Muu..."
 
 #. Label for template selection in export dialog
 #: zim/gui/exportdialog.py:90
 msgid "Template"
-msgstr "서식"
+msgstr "Mall"
 
 #. Title of file selection dialog
 #: zim/gui/exportdialog.py:99
 msgid "Please select a template file"
-msgstr "서식 파일을 선택하세요."
+msgstr "Vali malli põhi"
 
 #. Label for folder selection in export dialog
 #: zim/gui/exportdialog.py:118
 msgid "Output folder"
-msgstr "출력 폴더"
+msgstr "Salvestamise kataloog"
 
 #. Title of file selection dialog
 #: zim/gui/exportdialog.py:120
 msgid "Please select a folder"
-msgstr "폴더를 선택하세요."
+msgstr "Palun vali kaust"
 
 #. Label for setting a name for the index of exported pages
 #: zim/gui/exportdialog.py:138
 msgid "Index page"
-msgstr "인덱스 페이지"
+msgstr "Indeksleht"
 
 #. Section heading in export dialog
 #: zim/gui/exportdialog.py:147
 msgid "Documents"
-msgstr "문서"
+msgstr "Dokumendid"
 
 #. radio option in export dialog
 #: zim/gui/exportdialog.py:155
 msgid "Link files under document root with full file path"
-msgstr "최상위 문서 아래에 전체 경로로 파일을 링크합니다."
+msgstr "Lingi dokumendi failid täisteena"
 
 #. radio option in export dialog
 #: zim/gui/exportdialog.py:161
 msgid "Map document root to URL"
-msgstr "최상위 문서를 URL로 처리합니다."
+msgstr "Teisenda dokumendi juurkataloog URLiks"
 
 #. message heading
 #: zim/gui/exportdialog.py:206
 msgid "Folder exists"
-msgstr ""
+msgstr "Kataloog on juba olemas"
 
 #. detailed message, answers are Yes and No
 #: zim/gui/exportdialog.py:207
@@ -139,31 +139,34 @@ msgid ""
 "Folder already exists and has content, exporting to this folder may "
 "overwrite exisitng files. Do you want to continue?"
 msgstr ""
+"Valitud kataloog juba  sisaldab faile. \r\n"
+"Eksportimine  antud kataloogi võib olemasolevad failid ülekirjutada.\r\n"
+"Kas soovid jätkata?"
 
 #. error message when input for export dialog not OK
 #: zim/gui/exportdialog.py:223
 msgid "Please specify a template"
-msgstr "서식을 지정하세요."
+msgstr "Määratle mall"
 
 #. error message when input for export dialog not OK
 #: zim/gui/exportdialog.py:230
 msgid "Please specify a URL for the document root"
-msgstr "최상위 문서에 대한 URL을 지정하세요."
+msgstr "Määratle dokumendi juure URL"
 
 #. Title for progressbar window
 #: zim/gui/exportdialog.py:236
 msgid "Exporting notebook"
-msgstr "노트북을 내보내는 중 ..."
+msgstr "Märkmiku eksportimine"
 
 #. button in e.g. equation editor dialog
 #: zim/gui/imagegeneratordialog.py:50
 msgid "_Preview"
-msgstr "미리보기(_P)"
+msgstr "_Eelvaade"
 
 #. button in e.g. equation editor dialog
 #: zim/gui/imagegeneratordialog.py:60
 msgid "View _Log"
-msgstr "로그 보기(_L)"
+msgstr "Vaata _logi"
 
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:128
@@ -171,85 +174,85 @@ msgid ""
 "An error occured while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
-"이미지 처리 중 오류가 발생했습니다.\n"
-"텍스트만이라도 저장할까요?"
+"Pildi genereerimine ebaõnnestus.\n"
+"Kas salvestada algtekst veast hoolimata ?"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/imagegeneratordialog.py:164
 msgid "Log file"
-msgstr "로그 파일"
+msgstr "Logifail"
 
 #. Menu title
 #: zim/gui/__init__.py:55
 msgid "_File"
-msgstr "파일(_F)"
+msgstr "_Fail"
 
 #. Menu title
 #: zim/gui/__init__.py:56
 msgid "_Edit"
-msgstr "편집(_E)"
+msgstr "_Redigeeri"
 
 #. Menu title
 #: zim/gui/__init__.py:57
 msgid "_View"
-msgstr "보기(_V)"
+msgstr "_Vaade"
 
 #. Menu title |
 #. Button label
 #: zim/gui/__init__.py:58 zim/gui/pageview.py:2947
 msgid "_Insert"
-msgstr "삽입(_I)"
+msgstr "_Lisamine"
 
 #. Menu title
 #: zim/gui/__init__.py:59
 msgid "_Search"
-msgstr "찾기(_S)"
+msgstr "_Otsing"
 
 #. Menu title
 #: zim/gui/__init__.py:60
 msgid "For_mat"
-msgstr "형식(_M)"
+msgstr "Vor_ming"
 
 #. Menu title
 #: zim/gui/__init__.py:61
 msgid "_Tools"
-msgstr "도구(_T)"
+msgstr "_Tööriistad"
 
 #. Menu title
 #: zim/gui/__init__.py:62
 msgid "_Go"
-msgstr "이동(_G)"
+msgstr "_Mine"
 
 #. Menu title
 #: zim/gui/__init__.py:63
 msgid "_Help"
-msgstr "도움말(_H)"
+msgstr "_Abi"
 
 #. Menu title
 #: zim/gui/__init__.py:64
 msgid "P_athbar"
-msgstr "경로막대(_A)"
+msgstr "F_ailitee riba"
 
 #. Menu title |
 #. Menu item
 #: zim/gui/__init__.py:65 zim/gui/__init__.py:113
 msgid "_Toolbar"
-msgstr "도구 모음(_T)"
+msgstr "_Tööriistariba"
 
 #. Menu item
 #: zim/gui/__init__.py:68
 msgid "_New Page..."
-msgstr "새로운 페이지(_N)"
+msgstr "_Uus leht..."
 
 #. Menu item
 #: zim/gui/__init__.py:69
 msgid "New S_ub Page..."
-msgstr "새로운 하위 페이지(_U)"
+msgstr "Uus A_lamleht..."
 
 #. Menu item
 #: zim/gui/__init__.py:70
 msgid "_Open Another Notebook..."
-msgstr "다른 노트북 열기 ... (_O)"
+msgstr "A_va olemasolev märkmik..."
 
 #. Menu item
 #: zim/gui/__init__.py:71
@@ -259,98 +262,98 @@ msgstr ""
 #. Menu item
 #: zim/gui/__init__.py:72
 msgid "_Import Page..."
-msgstr "페이지 가져오기 ... (_I)"
+msgstr "_Impordi leht..."
 
 #. Menu item
 #: zim/gui/__init__.py:73
 msgid "_Save"
-msgstr "저장하기(_S)"
+msgstr "_Salvesta"
 
 #. Menu item
 #: zim/gui/__init__.py:74
 msgid "Save A _Copy..."
-msgstr "사본 저장하기 ... (_C)"
+msgstr "Salvesta _koopia..."
 
 #. Menu item
 #: zim/gui/__init__.py:75
 msgid "E_xport..."
-msgstr "내보내기 ... (_X)"
+msgstr "_Ekspordi..."
 
 #. Menu item
 #: zim/gui/__init__.py:76
 msgid "_Send To..."
-msgstr "보내기 ... (_S)"
+msgstr "_Kellele saata..."
 
 #. Menu item
 #: zim/gui/__init__.py:77
 msgid "_Move Page..."
-msgstr "페이지 옮기기 ... (_M)"
+msgstr "_Liiguta leht..."
 
 #. Menu item
 #: zim/gui/__init__.py:78
 msgid "_Rename Page..."
-msgstr "페이지 이름 바꾸기 ... (_R)"
+msgstr "_Muuda lehe nimi"
 
 #. Menu item
 #: zim/gui/__init__.py:79
 msgid "_Delete Page"
-msgstr "페이지 지우기 (_D)"
+msgstr "_Kustuta leht"
 
 #. Menu item
 #: zim/gui/__init__.py:80
 msgid "Proper_ties"
-msgstr "등록 정보(_T)"
+msgstr "_Omadused"
 
 #. Menu item
 #: zim/gui/__init__.py:81
 msgid "_Close"
-msgstr "닫기(_C)"
+msgstr "_Sulge"
 
 #. Menu item |
 #. menu item in tray icon menu
 #: zim/gui/__init__.py:82 zim/plugins/trayicon.py:106
 msgid "_Quit"
-msgstr "끝내기(_Q)"
+msgstr "_Lõpeta"
 
 #. Menu item
 #: zim/gui/__init__.py:83
 msgid "_Search..."
-msgstr "찾기(_S)..."
+msgstr "_Otsing..."
 
 #. Menu item
 #: zim/gui/__init__.py:84
 msgid "Search _Backlinks..."
-msgstr "역 링크 찾기 ... (_B)"
+msgstr "Otsi tagasiviiteid..."
 
 #. Menu item
 #: zim/gui/__init__.py:85
 msgid "Copy Location"
-msgstr "위치 복사하기"
+msgstr "Kopeeri asukoht"
 
 #. Menu item
 #: zim/gui/__init__.py:86
 msgid "Pr_eferences"
-msgstr "설정(_e)"
+msgstr "_Eelistused"
 
 #. Menu item
 #: zim/gui/__init__.py:87
 msgid "_Reload"
-msgstr "다시 읽기(_R)"
+msgstr "_Lae uuesti"
 
 #. Menu item
 #: zim/gui/__init__.py:88
 msgid "Open Attachments _Folder"
-msgstr "첨부 폴더 열기 (_F)"
+msgstr "Ava _Lisanditekataloog"
 
 #. Menu item
 #: zim/gui/__init__.py:89
 msgid "Open _Notebook Folder"
-msgstr ""
+msgstr "Ava _Märkmiku kataloog"
 
 #. Menu item
 #: zim/gui/__init__.py:90
 msgid "Open _Document Root"
-msgstr "최상위 문서 열기 (_D)"
+msgstr "Ava _Dokumendi juurfail"
 
 #. Menu item
 #: zim/gui/__init__.py:91
@@ -360,212 +363,212 @@ msgstr ""
 #. Menu item
 #: zim/gui/__init__.py:92
 msgid "Attach _File"
-msgstr "파일 첨부하기(_F)"
+msgstr "Lisa fail"
 
 #. Menu item
 #: zim/gui/__init__.py:92
 msgid "Attach external file"
-msgstr "외부 파일 첨부하기"
+msgstr "Lisa olemasolev fail"
 
 #. Menu item
 #: zim/gui/__init__.py:93
 msgid "Edit _Source"
-msgstr "원본 편집하기(_S)"
+msgstr "Muuda algkoodi"
 
 #. Menu item
 #: zim/gui/__init__.py:94
 msgid "Start _Web Server"
-msgstr "웹서버 시작하기(_W)"
+msgstr "Käivita veebiserver"
 
 #. Menu item
 #: zim/gui/__init__.py:95
 msgid "Re-build Index"
-msgstr "인덱스 재생성"
+msgstr "Uuenda indekseid"
 
 #. Menu item
 #: zim/gui/__init__.py:96
 msgid "_Back"
-msgstr "뒤로(_B)"
+msgstr "_Tagasi"
 
 #. Menu item
 #: zim/gui/__init__.py:96
 msgid "Go page back"
-msgstr ""
+msgstr "Eelmine leht"
 
 #. Menu item
 #: zim/gui/__init__.py:97
 msgid "_Forward"
-msgstr "앞으로(_F)"
+msgstr "_Edasi"
 
 #. Menu item
 #: zim/gui/__init__.py:97
 msgid "Go page forward"
-msgstr ""
+msgstr "Järgmine leht"
 
 #. Menu item
 #: zim/gui/__init__.py:98
 msgid "_Parent"
-msgstr "부모(_P)"
+msgstr "Ülemleht"
 
 #. Menu item
 #: zim/gui/__init__.py:98
 msgid "Go to parent page"
-msgstr "상위 페이지로 가기"
+msgstr "Tagasi ülemlehele"
 
 #. Menu item
 #: zim/gui/__init__.py:99
 msgid "_Child"
-msgstr ""
+msgstr "Alamleht"
 
 #. Menu item
 #: zim/gui/__init__.py:99
 msgid "Go to child page"
-msgstr ""
+msgstr "Tagasi alamlehele"
 
 #. Menu item
 #: zim/gui/__init__.py:100
 msgid "_Previous in index"
-msgstr ""
+msgstr "Eelmine indeks"
 
 #. Menu item
 #: zim/gui/__init__.py:100
 msgid "Go to previous page"
-msgstr "이전 페이지로 이동합니다"
+msgstr "Eelmine lehekülg"
 
 #. Menu item
 #: zim/gui/__init__.py:101
 msgid "_Next in index"
-msgstr ""
+msgstr "Järgmine indeks"
 
 #. Menu item
 #: zim/gui/__init__.py:101
 msgid "Go to next page"
-msgstr "다음 페이지로 이동합니다"
+msgstr "Järgmine leht"
 
 #. Menu item
 #: zim/gui/__init__.py:102
 msgid "_Home"
-msgstr "홈(_H)"
+msgstr "_Kodu"
 
 #. Menu item
 #: zim/gui/__init__.py:102
 msgid "Go home"
-msgstr ""
+msgstr "Liigu koju"
 
 #. Menu item
 #: zim/gui/__init__.py:103
 msgid "_Jump To..."
-msgstr ""
+msgstr "Liigu lehele ..."
 
 #. Menu item
 #: zim/gui/__init__.py:104
 msgid "_Contents"
-msgstr ""
+msgstr "_Sisu"
 
 #. Menu item
 #: zim/gui/__init__.py:105
 msgid "_FAQ"
-msgstr "자주 묻는 질문들(_F)"
+msgstr "KKK"
 
 #. Menu item
 #: zim/gui/__init__.py:106
 msgid "_Keybindings"
-msgstr ""
+msgstr "Võtmeklahvid"
 
 #. Menu item
 #: zim/gui/__init__.py:107
 msgid "_Bugs"
-msgstr ""
+msgstr "Veateated"
 
 #. Menu item
 #: zim/gui/__init__.py:108
 msgid "_About"
-msgstr "정보(_A)"
+msgstr "_Programmist"
 
 #. Menu item
 #: zim/gui/__init__.py:114
 msgid "_Statusbar"
-msgstr "상태 표시줄(_S)"
+msgstr "_Olekuriba"
 
 #. Menu item
 #: zim/gui/__init__.py:115
 msgid "_Index"
-msgstr "색인(_I)"
+msgstr "_Indeks"
 
 #. Menu item
 #: zim/gui/__init__.py:115
 msgid "Show index"
-msgstr "색인보기"
+msgstr "Kuva indeks"
 
 #. Menu item
 #: zim/gui/__init__.py:116
 msgid "_Fullscreen"
-msgstr ""
+msgstr "_Täisekraan"
 
 #. menu item
 #: zim/gui/__init__.py:117
 msgid "Notebook _Editable"
-msgstr ""
+msgstr "Märkmik muudetav"
 
 #. menu item
 #: zim/gui/__init__.py:117
 msgid "Toggle notebook editable"
-msgstr ""
+msgstr "Luba  märkmikku kirjutamine"
 
 #. Menu item
 #: zim/gui/__init__.py:122
 msgid "_None"
-msgstr "없음(_N)"
+msgstr "_Puudub"
 
 #. Menu item
 #: zim/gui/__init__.py:123
 msgid "_Recent pages"
-msgstr "최근 페이지(_R)"
+msgstr "Eelnevad lehed"
 
 #. Menu item
 #: zim/gui/__init__.py:124
 msgid "_History"
-msgstr "기록(_H)"
+msgstr "_Ajalugu"
 
 #. Menu item
 #: zim/gui/__init__.py:125
 msgid "N_amespace"
-msgstr ""
+msgstr "Nimeruum"
 
 #. Menu item
 #: zim/gui/__init__.py:135
 msgid "Icons _And Text"
-msgstr "아이콘과 글잘 (_A)"
+msgstr "Ikoonid ja tekstid"
 
 #. Menu item
 #: zim/gui/__init__.py:136
 msgid "_Icons Only"
-msgstr "아이콘만(_I)"
+msgstr "Ainult _ikoonid"
 
 #. Menu item
 #: zim/gui/__init__.py:137
 msgid "_Text Only"
-msgstr "텍스트만(_T)"
+msgstr "Ainult tekst"
 
 #. Menu item
 #: zim/gui/__init__.py:142
 msgid "_Large Icons"
-msgstr "큰 아이콘(_L)"
+msgstr "Suured ikoonid"
 
 #. Menu item
 #: zim/gui/__init__.py:143
 msgid "_Small Icons"
-msgstr "작은 아이콘(_S)"
+msgstr "Väikesed ikoonid"
 
 #. Menu item
 #: zim/gui/__init__.py:144
 msgid "_Tiny Icons"
-msgstr "아주 작은 아이콘(_T)"
+msgstr "Pisikesed ikoonid"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:157
 msgid "Add 'tearoff' strips to the menus"
-msgstr "메뉴에 '자르는 선' 추가하기"
+msgstr "Lisa menüüle rebitavad ribad"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:159
@@ -573,6 +576,8 @@ msgid ""
 "Use <Ctrl><Space> to switch to the side pane\n"
 "(If disabled you can still use <Alt><Space>)"
 msgstr ""
+"Külgpaani aktiveerimiseks <Ctrl><Tühik>\n"
+"(kui keelatud, siis kasuta <Alt><Tühik>)"
 
 #. Error description for "no such file or folder"
 #: zim/gui/__init__.py:190
@@ -580,14 +585,14 @@ msgid ""
 "The file or folder you specified does not exist.\n"
 "Please check if you the path is correct."
 msgstr ""
-"지정한 파일 또는 폴더가 존재하지 않습니다.\n"
-"경로가 정확한지 확인하십시오."
+"Määratud faili või kataloogi ei eksisteeri.\n"
+"Palun kontrolli asukohta."
 
 #. Error message, %s will be the file path
 #: zim/gui/__init__.py:194
 #, python-format
 msgid "No such file or folder: %s"
-msgstr "파일 또는 디렏토리가 없습니다: %s"
+msgstr "Etteantud asukohas faili või kataloogi  %s ei leidu"
 
 #. question dialog text
 #: zim/gui/__init__.py:863
@@ -600,12 +605,12 @@ msgstr ""
 #. Error message
 #: zim/gui/__init__.py:959
 msgid "This page does not have an attachments folder"
-msgstr "이 페이지에는 첨부 폴더가 없습니다."
+msgstr "Antud lehte ei leidu lisanditekaustas"
 
 #. Heading in a question dialog for creating a folder
 #: zim/gui/__init__.py:966 zim/gui/__init__.py:1000
 msgid "Create folder?"
-msgstr "폴더를 생성하시겠습니까?"
+msgstr "Loo uus kataloog?"
 
 #. Text in a question dialog for creating a folder
 #: zim/gui/__init__.py:968
@@ -613,8 +618,8 @@ msgid ""
 "The attachments folder for this page does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
-"현재 페이지에는 처뭅 폴더가 존재하지 않습니다.\n"
-"지금 만드시겠습니까?"
+"Antud lehe lisanditekataloogi ei eksisteeri.\n"
+"Kas soovid selle luua?"
 
 #. Text in a question dialog for creating a folder
 #: zim/gui/__init__.py:1002
@@ -626,38 +631,38 @@ msgstr ""
 #. Title of progressbar dialog
 #: zim/gui/__init__.py:1036
 msgid "Updating index"
-msgstr "인덱스를 업데이트 하는 중"
+msgstr "Indeksite uuendamine"
 
 #. General description of zim itself
 #: zim/gui/__init__.py:1067
 msgid "A desktop wiki"
-msgstr "데스크탑 위키"
+msgstr "Töölaua wiki"
 
 #. This string needs to be translated with names of the translators for this language
 #: zim/gui/__init__.py:1072
 msgid "translator-credits"
 msgstr ""
 "Launchpad Contributions:\n"
-"  Elex https://launchpad.net/~mysticzizone"
+"  Timo Sulg https://launchpad.net/~timgluz"
 
 #. page status in statusbar
 #: zim/gui/__init__.py:1168
 msgid "readonly"
-msgstr "읽기 전용"
+msgstr "Ainult loetav"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/__init__.py:1571
 #, python-format
 msgid "%i _Backlink..."
 msgid_plural "%i _Backlinks..."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%i tagasiviide"
+msgstr[1] "%i tagasiviidet"
 
 #. Heading of error dialog
 #: zim/gui/__init__.py:1672
 #, python-format
 msgid "Could not save page: %s"
-msgstr "페이지를 저장할 수 없습니다: %s"
+msgstr "Lehe %s salvestamine ebaõnnestus"
 
 #. text in error dialog when saving page failed
 #: zim/gui/__init__.py:1674
@@ -666,26 +671,29 @@ msgid ""
 "any changes. If you save a copy changes will be also\n"
 "discarded, but you can restore the copy later."
 msgstr ""
+"Jätkamiseks salvesta lehe koopia  või  unusta muudatused. \n"
+"Kui salvestad koopia, siis muudatused jäetakse samuti vahele, \n"
+"aga saad hiljem koopia taastada."
 
 #. Button in error dialog
 #: zim/gui/__init__.py:1712
 msgid "_Discard Changes"
-msgstr "바뀐 사항 버리기(_D)"
+msgstr "_Unusta muudatused"
 
 #. Button in error dialog
 #: zim/gui/__init__.py:1717
 msgid "_Save Copy"
-msgstr "사본 저장(_S)"
+msgstr "Salvesta koopia"
 
 #. Dialog title
 #: zim/gui/__init__.py:1755
 msgid "Jump to"
-msgstr "직접 이동"
+msgstr "Liigu lehele ..."
 
 #. Label for page input
 #: zim/gui/__init__.py:1758
 msgid "Jump to Page"
-msgstr "페이지로 직접 이동"
+msgstr "Liigu lehele"
 
 #. Dialog title
 #: zim/gui/__init__.py:1777
@@ -695,129 +703,131 @@ msgstr ""
 #. Dialog title
 #: zim/gui/__init__.py:1778
 msgid "New Page"
-msgstr "새 페이지 만들기"
+msgstr "Uus leht"
 
 #. Dialog text in 'new page' dialog
 #: zim/gui/__init__.py:1782
 msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
-msgstr "존재하지 않는 페이지로 링크를 만들면 새로운 페이지가 자동으로 만들어집니다."
+msgstr ""
+"Peameeles, et mitte olemasolevale lehele viitamine\n"
+"tekitab automaatselt uue lehe."
 
 #. Input label
 #: zim/gui/__init__.py:1786
 msgid "Page Name"
-msgstr "페이지 이름"
+msgstr "Lehe nimi"
 
 #. error message
 #: zim/gui/__init__.py:1800
 msgid "Page exists"
-msgstr "페이지가 존재합니다."
+msgstr "Leht eksisteerib"
 
 #. Dialog title of file save dialog
 #: zim/gui/__init__.py:1812
 msgid "Save Copy"
-msgstr "복사본 저장"
+msgstr "Salvesta koopia"
 
 #. Dialog title
 #: zim/gui/__init__.py:1836
 msgid "Import Page"
-msgstr "페이지 가져오기"
+msgstr "Lehekülje import"
 
 #. File filter for '*.txt'
 #: zim/gui/__init__.py:1837
 msgid "Text Files"
-msgstr "텍스트 파일"
+msgstr "Tekstifailid"
 
 #. Dialog title
 #: zim/gui/__init__.py:1864
 msgid "Move Page"
-msgstr "페이지 옮기기"
+msgstr "Liiguta leht"
 
 #. Heading in 'move page' dialog - %s is the page name
 #: zim/gui/__init__.py:1877
 #, python-format
 msgid "Move page \"%s\""
-msgstr "페이지 \"%s\"를 옮깁니다."
+msgstr "Lehe %s liigutamine"
 
 #. label in MovePage dialog - %i is number of backlinks
 #: zim/gui/__init__.py:1880 zim/gui/__init__.py:1919
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%i lehe linkimine"
+msgstr[1] "%i lehe linkimine"
 
 #. Input label for namespace to move a file to |
 #. input label
 #: zim/gui/__init__.py:1885 zim/plugins/calendar.py:82
 msgid "Namespace"
-msgstr "네임스페이스"
+msgstr "Nimeruum"
 
 #. Dialog title
 #: zim/gui/__init__.py:1906
 msgid "Rename Page"
-msgstr "페이지 이름 바꾸기"
+msgstr "Lehe nime muutmine"
 
 #. label in 'rename page' dialog - %s is the page name
 #: zim/gui/__init__.py:1916
 #, python-format
 msgid "Rename page \"%s\""
-msgstr "페이지 \"%s\"의 이름을 바꿉니다."
+msgstr "Lehe \"%s\" ümbernimetamine"
 
 #. Option in the 'rename page' dialog
 #: zim/gui/__init__.py:1925
 msgid "Update the heading of this page"
-msgstr ""
+msgstr "Muuda lehe pealkirja"
 
 #. Dialog title
 #: zim/gui/__init__.py:1954
 msgid "Delete Page"
-msgstr "페이지 지우기"
+msgstr "Kustuta lehekülg"
 
 #. Heading in 'delete page' dialog - %s is the page name
 #: zim/gui/__init__.py:1966
 #, python-format
 msgid "Delete page \"%s\"?"
-msgstr "페이지 \"%s\"를 지우시겠습니까?"
+msgstr "Kas kustutada lehekülg \"%s\" ?"
 
 #. Text in 'delete page' dialog - %s is the page name
 #: zim/gui/__init__.py:1968
 #, python-format
 msgid "Page \"%s\" and all of it's sub-pages and attachments will be deleted"
-msgstr ""
+msgstr "Kustutakse leht \"%s\" ja tema alamlehed."
 
 #. Dialog title
 #: zim/gui/__init__.py:1986
 msgid "Attach File"
-msgstr "파일 첨부"
+msgstr "Faili kaasamine"
 
 #. Error dialog - %s is the full page name
 #: zim/gui/__init__.py:1995
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
-msgstr "페이지 \"%s\"는 첨부 폴더가 없습니다."
+msgstr "Lehel \"%s\" puudub lisanditekataloog."
 
 #. Column heading in 'open notebook' dialog |
 #. Field in web server gui
 #: zim/gui/notebookdialog.py:144 zim/gui/server.py:85
 msgid "Notebook"
-msgstr "노트북"
+msgstr "Märkmik"
 
 #. dialog title
 #: zim/gui/notebookdialog.py:238
 msgid "Open Notebook"
-msgstr "노트북 열기"
+msgstr "Ava märkmik"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:291
 msgid "Default notebook"
-msgstr "기본 노트북"
+msgstr "Aktiivne  märkmik"
 
 #. Dialog window title
 #: zim/gui/notebookdialog.py:345
 msgid "Add Notebook"
-msgstr "노트북 추가"
+msgstr "Lisa uus märkmik"
 
 #. help text in the 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:346
@@ -826,17 +836,17 @@ msgid ""
 "\n"
 "To create a new notebook you need to select an empty folder.\n"
 "Of course you can also select an existing zim notebook folder.\n"
-msgstr ""
+msgstr "Määra märkmiku nimi ja asukoha kataloog.\n"
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:362
 msgid "Folder"
-msgstr "폴더"
+msgstr "Kataloog"
 
 #. Dialog window title
 #: zim/gui/notebookdialog.py:377
 msgid "Edit Notebook"
-msgstr "노트북 수정하기"
+msgstr "Märkmiku edigeerimine"
 
 #. statusbar message
 #: zim/gui/pageindex.py:466
@@ -846,108 +856,108 @@ msgstr ""
 #. Menu item
 #: zim/gui/pageview.py:77
 msgid "_Undo"
-msgstr "되돌리기(_U)"
+msgstr "Võta _tagasi"
 
 #. Menu item
 #: zim/gui/pageview.py:78
 msgid "_Redo"
-msgstr "다시 실행(_R)"
+msgstr "_Taasta"
 
 #. Menu item
 #: zim/gui/pageview.py:79
 msgid "Cu_t"
-msgstr "잘라내기(_T)"
+msgstr "_Lõika"
 
 #. Menu item
 #: zim/gui/pageview.py:80
 msgid "_Copy"
-msgstr "복사하기(_C)"
+msgstr "_Kopeeri"
 
 #. Menu item
 #: zim/gui/pageview.py:81
 msgid "_Paste"
-msgstr "붙여넣기(_P)"
+msgstr "_Kleebi"
 
 #. Menu item
 #: zim/gui/pageview.py:82
 msgid "_Delete"
-msgstr "지우기(_D)"
+msgstr "_Kustuta"
 
 #. Menu item
 #: zim/gui/pageview.py:83
 msgid "Toggle Checkbox 'V'"
-msgstr ""
+msgstr "Linnuta valikkast 'V'"
 
 #. Menu item
 #: zim/gui/pageview.py:84
 msgid "Toggle Checkbox 'X'"
-msgstr ""
+msgstr "Märgista valikkast 'X'"
 
 #. Menu item
 #: zim/gui/pageview.py:85
 msgid "_Edit Link or Object..."
-msgstr ""
+msgstr "Viida või objekti redigeerimine"
 
 #. Menu item
 #: zim/gui/pageview.py:86 zim/gui/pageview.py:2662
 msgid "_Remove Link"
-msgstr "링크 제거(_R)"
+msgstr "_Eemalda viit"
 
 #. Menu item
 #: zim/gui/pageview.py:87
 msgid "_Date and Time..."
-msgstr "날짜와 시간 (_D) ..."
+msgstr "Kuupäev ja kell..."
 
 #. Menu item
 #: zim/gui/pageview.py:88
 msgid "_Image..."
-msgstr "그림(_I)..."
+msgstr "_Pilt..."
 
 #. Menu item
 #: zim/gui/pageview.py:89
 msgid "Text From _File..."
-msgstr ""
+msgstr "Tekst failist..."
 
 #. Menu item
 #: zim/gui/pageview.py:90
 msgid "E_xternal Link..."
-msgstr ""
+msgstr "Väline viit"
 
 #. Menu item
 #: zim/gui/pageview.py:91
 msgid "_Link..."
-msgstr "링크(_L)..."
+msgstr "_Viit..."
 
 #. Menu item |
 #. Dialog title
 #: zim/gui/pageview.py:91 zim/gui/pageview.py:3155
 msgid "Insert Link"
-msgstr "링크 삽입"
+msgstr "Viida lisamine"
 
 #. Menu item
 #: zim/gui/pageview.py:92
 msgid "_Clear Formatting"
-msgstr ""
+msgstr "_Puhasta vormindus"
 
 #. Menu item
 #: zim/gui/pageview.py:93
 msgid "_Find..."
-msgstr "찾기(_F)..."
+msgstr "_Otsi..."
 
 #. Menu item
 #: zim/gui/pageview.py:94
 msgid "Find Ne_xt"
-msgstr "다음 찾기(_X)"
+msgstr "Otsi _järgmine..."
 
 #. Menu item
 #: zim/gui/pageview.py:95
 msgid "Find Pre_vious"
-msgstr "이전 찾기(_V)"
+msgstr "Otsi _eelnev"
 
 #. Menu item
 #: zim/gui/pageview.py:96
 msgid "_Replace..."
-msgstr "바꾸기(_R)..."
+msgstr "_Asenda..."
 
 #. Menu item
 #: zim/gui/pageview.py:97
@@ -957,102 +967,102 @@ msgstr ""
 #. Menu item
 #: zim/gui/pageview.py:102
 msgid "Heading _1"
-msgstr "제목 _1"
+msgstr "Pealkiri _1"
 
 #. Menu item
 #: zim/gui/pageview.py:102
 msgid "Heading 1"
-msgstr "제목 1"
+msgstr "Pealkiri 1"
 
 #. Menu item
 #: zim/gui/pageview.py:103
 msgid "Heading _2"
-msgstr "제목 _2"
+msgstr "Pealkiri _2"
 
 #. Menu item
 #: zim/gui/pageview.py:103
 msgid "Heading 2"
-msgstr "제목 2"
+msgstr "Pealkiri 2"
 
 #. Menu item
 #: zim/gui/pageview.py:104
 msgid "Heading _3"
-msgstr "제목 _3"
+msgstr "Pealkiri _3"
 
 #. Menu item
 #: zim/gui/pageview.py:104
 msgid "Heading 3"
-msgstr "제목 3"
+msgstr "Pealkiri 3"
 
 #. Menu item
 #: zim/gui/pageview.py:105
 msgid "Heading _4"
-msgstr "제목 _4"
+msgstr "Pealkiri _4"
 
 #. Menu item
 #: zim/gui/pageview.py:105
 msgid "Heading 4"
-msgstr "제목 4"
+msgstr "Pealkiri 4"
 
 #. Menu item
 #: zim/gui/pageview.py:106
 msgid "Heading _5"
-msgstr "제목 _5"
+msgstr "Pealkiri _5"
 
 #. Menu item
 #: zim/gui/pageview.py:106
 msgid "Heading 5"
-msgstr "제목 5"
+msgstr "Pealkiri 5"
 
 #. Menu item
 #: zim/gui/pageview.py:107 zim/gui/pageview.py:116
 msgid "_Strong"
-msgstr "굵게 (_S)"
+msgstr "_Tugev"
 
 #. Menu item
 #: zim/gui/pageview.py:107 zim/gui/pageview.py:116
 msgid "Strong"
-msgstr "굵게"
+msgstr "Tugev"
 
 #. Menu item
 #: zim/gui/pageview.py:108 zim/gui/pageview.py:117
 msgid "_Emphasis"
-msgstr "강조 (_E)"
+msgstr "_Rõhutamine"
 
 #. Menu item
 #: zim/gui/pageview.py:108 zim/gui/pageview.py:117
 msgid "Emphasis"
-msgstr "강조"
+msgstr "Rõhutamine"
 
 #. Menu item
 #: zim/gui/pageview.py:109 zim/gui/pageview.py:118
 msgid "_Mark"
-msgstr "표시(_M)"
+msgstr "_Märgistus"
 
 #. Menu item
 #: zim/gui/pageview.py:109 zim/gui/pageview.py:118
 msgid "Mark"
-msgstr "표시"
+msgstr "Märgistus"
 
 #. Menu item
 #: zim/gui/pageview.py:110 zim/gui/pageview.py:119
 msgid "_Strike"
-msgstr "가로줄(_S)"
+msgstr "_Läbikriipsutus"
 
 #. Menu item
 #: zim/gui/pageview.py:110 zim/gui/pageview.py:119
 msgid "Strike"
-msgstr "가로줄"
+msgstr "Läbikriipsutus"
 
 #. Menu item
 #: zim/gui/pageview.py:111
 msgid "_Verbatim"
-msgstr ""
+msgstr "Eristav kujundus"
 
 #. Menu item
 #: zim/gui/pageview.py:111
 msgid "Verbatim"
-msgstr ""
+msgstr "Verbatim"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:125
@@ -1060,194 +1070,194 @@ msgid ""
 "Use the <Enter> key to follow links\n"
 "(If disabled you can still use <Alt><Enter>)"
 msgstr ""
-"링크를 따라가려면 <Enter>키를 누릅니다.\n"
-"(사용안함 상태에서도 <Alt><Enter>를 사용할 수 있습니다.)"
+"Viida avamiseks vajuta <Enter>\n"
+"(Kui keelatud, siis kasuta <ALT><ENTER>)"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:128
 msgid "Show the cursor also for pages that can not be edited"
-msgstr "편집할 수 없는 페이지에서도 커서를 보여줍니다."
+msgstr "Kuva kursor ka kirjutuskaitsud lehtedel."
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:131
 msgid "Automatically turn \"CamelCase\" words into links"
-msgstr ""
+msgstr "Teisenda \"CamelCase\" vormingus sõnad automaatselt viidaks."
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:134
 msgid "Automatically turn file paths into links"
-msgstr ""
+msgstr "Teisenda faili asukohatee automaatselt lingiks."
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:137
 msgid "Automatically select the current word when you apply formatting"
-msgstr ""
+msgstr "Formaadi lisamisel vali automaatselt käesoleav sõna"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:140
 msgid ""
 "Unindent on <BackSpace>\n"
 "(If disabled you can still use <Shift><Tab>)"
-msgstr ""
+msgstr "Veeru taandamiseks vajuta <BackSpace>"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:143
 msgid "Checking a checkbox also change any sub-items"
-msgstr ""
+msgstr "Valikasti valimine muudab samuti alamkirje väärtust."
 
 #. label for input in find bar on bottom of page
 #: zim/gui/pageview.py:2313
 msgid "Find"
-msgstr "찾기"
+msgstr "Otsi"
 
 #. button in find bar on bottom of page |
 #. Button in search & replace dialog
 #: zim/gui/pageview.py:2320 zim/gui/pageview.py:3301
 msgid "_Previous"
-msgstr "이전(_P)"
+msgstr "_Eelmine"
 
 #. button in find bar on bottom of page |
 #. Button in search & replace dialog
 #: zim/gui/pageview.py:2326 zim/gui/pageview.py:3296
 msgid "_Next"
-msgstr "다음(_N)"
+msgstr "_Järgmine"
 
 #. menu item in context menu
 #: zim/gui/pageview.py:2668
 msgid "_Edit Link"
-msgstr ""
+msgstr "Edigeeri link"
 
 #. context menu item
 #: zim/gui/pageview.py:2680
 msgid "Copy Email Address"
-msgstr "이메일 주소 복사"
+msgstr "Kopeeri e-posti aadress"
 
 #. context menu item
 #: zim/gui/pageview.py:2682
 msgid "Copy _Link"
-msgstr ""
+msgstr "Kopeeri _viit"
 
 #. menu item to open containing folder of files
 #: zim/gui/pageview.py:2694
 msgid "Open Folder"
-msgstr "폴더 열기"
+msgstr "Ava kataloog"
 
 #. menu item for sub menu with applications
 #: zim/gui/pageview.py:2703 zim/gui/pageview.py:2712
 msgid "Open With..."
-msgstr "다음으로 열기..."
+msgstr "Ava kasutades..."
 
 #. menu item to open a link or file
 #: zim/gui/pageview.py:2719
 msgid "Open"
-msgstr "열기"
+msgstr "Ava"
 
 #. Dialog title
 #: zim/gui/pageview.py:2946
 msgid "Insert Date and Time"
-msgstr "날짜과 시간을 입력"
+msgstr "Kuupäeva ja kellaaja lisamine"
 
 #. check box in InsertDate dialog
 #: zim/gui/pageview.py:2962
 msgid "_Link to date"
-msgstr ""
+msgstr "Kuupäevale viida lisamine"
 
 #. Dialog title
 #: zim/gui/pageview.py:3015
 msgid "Insert Image"
-msgstr "그림 넣기"
+msgstr "Lisa pilt"
 
 #. Dialog title
 #: zim/gui/pageview.py:3034
 msgid "Edit Image"
-msgstr "그림 편집"
+msgstr "Muuda pilti"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview.py:3052
 msgid "Location"
-msgstr "위치"
+msgstr "Asukoht"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview.py:3053
 msgid "Width"
-msgstr "너비"
+msgstr "Laius"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview.py:3054
 msgid "Height"
-msgstr "높이"
+msgstr "Kõrgus"
 
 #. Button in 'edit image' dialog
 #: zim/gui/pageview.py:3057
 msgid "_Reset Size"
-msgstr ""
+msgstr "Tühista suurus"
 
 #. Dialog title
 #: zim/gui/pageview.py:3139
 msgid "Insert Text From File"
-msgstr ""
+msgstr "Lisa failist tekst"
 
 #. Dialog button
 #: zim/gui/pageview.py:3157 zim/gui/pageview.py:3222 zim/gui/pageview.py:3237
 msgid "_Link"
-msgstr "링크(_L)"
+msgstr "_Viit"
 
 #. Input in 'insert link' dialog |
 #. Input in 'edit link' dialog
 #: zim/gui/pageview.py:3162 zim/gui/pageview.py:3227 zim/gui/pageview.py:3245
 msgid "Link to"
-msgstr "연결 대상"
+msgstr "Linkimine failiga"
 
 #. Input in 'insert link' dialog |
 #. Input in 'edit link' dialog
 #: zim/gui/pageview.py:3163 zim/gui/pageview.py:3228 zim/gui/pageview.py:3246
 msgid "Text"
-msgstr "문자열"
+msgstr "Tekst"
 
 #. Dialog title
 #: zim/gui/pageview.py:3221
 msgid "Insert External Link"
-msgstr ""
+msgstr "Lisa väline viit"
 
 #. Dialog title
 #: zim/gui/pageview.py:3235
 msgid "Edit Link"
-msgstr ""
+msgstr "Muuda viita"
 
 #. Dialog title
 #: zim/gui/pageview.py:3254
 msgid "Find and Replace"
-msgstr "찾아서 바꾸기"
+msgstr "Otsi ja asenda"
 
 #. input label in find & replace dialog
 #: zim/gui/pageview.py:3264
 msgid "Find what"
-msgstr ""
+msgstr "Otsi mida"
 
 #. checkbox option in find & replace dialog
 #: zim/gui/pageview.py:3275
 msgid "Match c_ase"
-msgstr ""
+msgstr "Tõstutundlik"
 
 #. checkbox option in find & replace dialog
 #: zim/gui/pageview.py:3280
 msgid "Whole _word"
-msgstr ""
+msgstr "Tervik sõna"
 
 #. input label in find & replace dialog
 #: zim/gui/pageview.py:3285
 msgid "Replace with"
-msgstr "바꾸기"
+msgstr "Asenda täiendiga"
 
 #. Button in search & replace dialog
 #: zim/gui/pageview.py:3306
 msgid "_Replace"
-msgstr "바꾸기(_R)"
+msgstr "_Asenda"
 
 #. Button in search & replace dialog
 #: zim/gui/pageview.py:3311
 msgid "Replace _All"
-msgstr "모두 바꾸기(_A)"
+msgstr "Asenda _kõik"
 
 #. Dialog title
 #: zim/gui/pageview.py:3367
@@ -1260,7 +1270,7 @@ msgstr ""
 #: zim/gui/pageview.py:3399 zim/gui/searchdialog.py:67
 #: zim/plugins/tasklist.py:237
 msgid "Page"
-msgstr "페이지"
+msgstr "Leht"
 
 #. label in word count dialog
 #: zim/gui/pageview.py:3400
@@ -1285,211 +1295,211 @@ msgstr ""
 #. Dialog title
 #: zim/gui/preferencesdialog.py:25
 msgid "Preferences"
-msgstr "환경설정"
+msgstr "Eelistused"
 
 #. Input for application type in preferences dialog
 #: zim/gui/preferencesdialog.py:60
 msgid "File browser"
-msgstr "파일 탐색기"
+msgstr "Faili sirvija"
 
 #. Input for application type in preferences dialog
 #: zim/gui/preferencesdialog.py:62
 msgid "Web browser"
-msgstr "웹 브라우저"
+msgstr "Veebisirvija"
 
 #. Input for application type in preferences dialog
 #: zim/gui/preferencesdialog.py:64
 msgid "Email client"
-msgstr "이메일 클라이언트"
+msgstr "E-posti rakendus"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:71
 msgid "Applications"
-msgstr "응용 프로그램"
+msgstr "Rakendused"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:75
 msgid "Plugins"
-msgstr "부가 기능"
+msgstr "Pluginad"
 
 #. Option in preferences dialog
 #: zim/gui/preferencesdialog.py:81
 msgid "Use a custom font"
-msgstr "사용자 정의 글꼴 사용"
+msgstr "Kasuta kohandatud fonti"
 
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/preferencesdialog.py:188
 msgid "Description"
-msgstr "설명"
+msgstr "Kirjeldus"
 
 #. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
 #: zim/gui/preferencesdialog.py:193 zim/plugins/versioncontrol/__init__.py:440
 msgid "Author"
-msgstr "만든이"
+msgstr "Autor"
 
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:203
 msgid "_More"
-msgstr "더보기(_M)"
+msgstr "Veel"
 
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:208
 msgid "C_onfigure"
-msgstr "설정(_O)"
+msgstr "_Seadista"
 
 #. Column in plugin tab
 #: zim/gui/preferencesdialog.py:268
 msgid "Enabled"
-msgstr "사용함"
+msgstr "Lubatud"
 
 #. Column in plugin tab
 #: zim/gui/preferencesdialog.py:271
 msgid "Plugin"
-msgstr "부가 기능"
+msgstr "Plugin"
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:278
 msgid "Configure Plugin"
-msgstr "플러그인 설정"
+msgstr "Seadista pluginat"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
 #: zim/gui/preferencesdialog.py:285
 #, python-format
 msgid "Options for plugin %s"
-msgstr ""
+msgstr "Plugina %s valikud"
 
 #. Dialog title
 #: zim/gui/propertiesdialog.py:11
 msgid "Properties"
-msgstr "속성"
+msgstr "Atribuudid"
 
 #. Section in notbook dialog
 #: zim/gui/propertiesdialog.py:13
 msgid "Notebook Properties"
-msgstr ""
+msgstr "Märkmiku atribuudid"
 
 #. Dialog title |
 #. input label
 #: zim/gui/searchdialog.py:18 zim/gui/searchdialog.py:23
 msgid "Search"
-msgstr "찾기"
+msgstr "Otsing"
 
 #. Column header search dialog
 #: zim/gui/searchdialog.py:68
 msgid "Score"
-msgstr "점수"
+msgstr "Hinnang"
 
 #. Status in web server gui
 #: zim/gui/server.py:64
 msgid "Server not started"
-msgstr "서버가 시작되지 않았습니다."
+msgstr "Server on peatatud."
 
 #. Field in web server gui for HTTLP port (e.g. port 80)
 #: zim/gui/server.py:95
 msgid "Port"
-msgstr ""
+msgstr "Port"
 
 #. Status in web server gui
 #: zim/gui/server.py:118
 msgid "Server started"
-msgstr ""
+msgstr "Server on käivitunud"
 
 #. Status in web server gui
 #: zim/gui/server.py:127
 msgid "Server stopped"
-msgstr ""
+msgstr "Server on peatatud"
 
 #. Dialog title |
 #. dialog title
 #: zim/gui/versionsdialog.py:11 zim/plugins/versioncontrol/__init__.py:215
 #: zim/plugins/versioncontrol/__init__.py:230
 msgid "Versions"
-msgstr ""
+msgstr "Versioonid"
 
 #. Filter in open file dialog, shows all files (*)
 #: zim/gui/widgets.py:874
 msgid "All Files"
-msgstr ""
+msgstr "Kõik failid"
 
 #. Filter in open file dialog, shows image files only
 #: zim/gui/widgets.py:899
 msgid "Images"
-msgstr ""
+msgstr "Pildid"
 
 #. Title of file selection dialog
 #: zim/gui/widgets.py:909
 msgid "Select File"
-msgstr ""
+msgstr "Faili valik"
 
 #. Title of folder selection dialog
 #: zim/gui/widgets.py:925
 msgid "Select Folder"
-msgstr ""
+msgstr "Vali kataloog"
 
 #. Error verbose description
 #: zim/__init__.py:141
 msgid "Could not find the file or folder for this notebook"
-msgstr ""
+msgstr "Märkmiku faili või kataloogi ei leitud"
 
 #. Error when looking up a notebook
 #: zim/__init__.py:414
 #, python-format
 msgid "Could not find notebook: %s"
-msgstr ""
+msgstr "Ei leitud märkmiku  %s"
 
 #. error description
 #: zim/notebook.py:274
 msgid "The given page name is not valid.\n"
-msgstr ""
+msgstr "Määratud lehe nimi pole korrektne.\n"
 
 #. error message
 #: zim/notebook.py:280
 #, python-format
 msgid "Invalid page name \"%s\""
-msgstr ""
+msgstr "\"%s\" ei sobi lehe nimeks."
 
 #. error message for read-only pages
 #: zim/notebook.py:309
 #, python-format
 msgid "Can not modify page: %s"
-msgstr ""
+msgstr "Lehe %s  muutmine  ebaõnnestus."
 
 #. label for properties dialog
 #: zim/notebook.py:340
 msgid "Home Page"
-msgstr ""
+msgstr "Kodulehekülg"
 
 #. label for properties dialog
 #: zim/notebook.py:341
 msgid "Icon"
-msgstr ""
+msgstr "Ikoon"
 
 #. label for properties dialog
 #: zim/notebook.py:342
 msgid "Document Root"
-msgstr ""
+msgstr "Dokumendi juur"
 
 #. label for properties dialog
 #: zim/notebook.py:343
 msgid "Slow file system"
-msgstr ""
+msgstr "Aeglane failisüsteem"
 
 #. menu item
 #: zim/plugins/calendar.py:54
 msgid "To_day"
-msgstr ""
+msgstr "Tänane"
 
 #. menu item
 #: zim/plugins/calendar.py:55
 msgid "Calen_dar"
-msgstr ""
+msgstr "Kalender"
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/calendar.py:67 zim/plugins/calendar.py:265
 msgid "Calendar"
-msgstr ""
+msgstr "Kalender"
 
 #. plugin description
 #: zim/plugins/calendar.py:68
@@ -1500,37 +1510,42 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Antud plugin teisendab nimeruumi kalendriks, \n"
+"kusjuures  üks lehekülg päeva kohta.\n"
+"Kuuvaatele lisatakse samuti juhtnupud.\n"
+"\n"
+"Tuleb vaikimisi ZIMiga kaasa.\n"
 
 #. preferences option
 #: zim/plugins/calendar.py:81
 msgid "Show calendar in sidepane instead of as dialog"
-msgstr ""
+msgstr "Kuva kalender külgpaanis"
 
 #. strftime format for current date label
 #: zim/plugins/calendar.py:221
 msgid "%A %d %B %Y"
-msgstr ""
+msgstr "%A %d %B %Y"
 
 #. button label
 #: zim/plugins/calendar.py:274
 msgid "_Today"
-msgstr ""
+msgstr "_Täna"
 
 #. menu item for insert diagram plugin
 #: zim/plugins/diagrameditor.py:30
 msgid "Dia_gram..."
-msgstr ""
+msgstr "Diagram"
 
 #. menu item for insert diagram plugin
 #: zim/plugins/diagrameditor.py:30
 msgid "Insert diagram"
-msgstr ""
+msgstr "Lisa diagram"
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/diagrameditor.py:38 zim/plugins/diagrameditor.py:85
 msgid "Insert Diagram"
-msgstr ""
+msgstr "Lisa Diagram"
 
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
@@ -1541,27 +1556,32 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Antud plugin võimaldab toimetada GraphVizi diagramme.\n"
+"\n"
+"Nõutud: GraphViz 'dot' \n"
+"\n"
+"Antud plugin tuleb vaikimisi ZIMiga kaasa.\n"
 
 #. menu item in context menu
 #: zim/plugins/diagrameditor.py:74
 msgid "_Edit Diagram"
-msgstr ""
+msgstr "Redigeeri Diagrammi"
 
 #. menu item for insert equation plugin
 #: zim/plugins/equationeditor.py:33
 msgid "E_quation..."
-msgstr ""
+msgstr "Matemaatika lausend"
 
 #. menu item for insert equation plugin
 #: zim/plugins/equationeditor.py:33
 msgid "Insert equation"
-msgstr ""
+msgstr "Matemaatika lausend"
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/equationeditor.py:41 zim/plugins/equationeditor.py:89
 msgid "Insert Equation"
-msgstr ""
+msgstr "Lisa matemaatiline lausend"
 
 #. plugin description
 #: zim/plugins/equationeditor.py:42
@@ -1572,21 +1592,26 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Plugin võimaldab kirjutada LaTex formaadis matemaatilisi lausendeid.\n"
+"\n"
+"Vajalik: latex, dvipng\n"
+"\n"
+"Vaikimisi ZIMiga kaasas.\n"
 
 #. menu item in context menu
 #: zim/plugins/equationeditor.py:78
 msgid "_Edit Equation"
-msgstr ""
+msgstr "Redigeeri matemaatilist lausendit"
 
 #. Menu item
 #: zim/plugins/linkmap/gui.py:26
 msgid "Show Link Map"
-msgstr ""
+msgstr "Kuva viidakaart"
 
 #. plugin name
 #: zim/plugins/linkmap/__init__.py:13
 msgid "Link Map"
-msgstr ""
+msgstr "Viidakaart"
 
 #. plugin description
 #: zim/plugins/linkmap/__init__.py:14
@@ -1601,16 +1626,21 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Plugin  kuvab  lehtede vahelisi seoseid graafiliselt.\n"
+"\n"
+"Sõltub: GraphViz   \n"
+"\n"
+"Plugin tuleb vaikimisi ZIMiga kaasa.\n"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:28
 msgid "_Print to Browser"
-msgstr ""
+msgstr "_Ava brauseris"
 
 #. plugin name
 #: zim/plugins/printtobrowser.py:35
 msgid "Print to Browser"
-msgstr ""
+msgstr "Ava brauseris"
 
 #. plugin description
 #: zim/plugins/printtobrowser.py:36
@@ -1623,17 +1653,23 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Antud plugin võimaldab printida märkmiku.\n"
+"Märkmik eksporditakse HTML-i kujule ning\n"
+"avatakse brauseris, kus on võimalik antud HTML\n"
+"fail välja printida.\n"
+"\n"
+"Vaikimisi ZIMiga kaasas.\n"
 
 #. menu item for insert screenshot plugin
 #: zim/plugins/scrot.py:27
 msgid "_Screenshot..."
-msgstr ""
+msgstr "Ekraanitõmmis"
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/scrot.py:36 zim/plugins/scrot.py:66
 msgid "Insert Screenshot"
-msgstr ""
+msgstr "Sisesta ekraanitõmmis"
 
 #. plugin description
 #: zim/plugins/scrot.py:37
@@ -1646,41 +1682,47 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Rakenduse scrot wrapper. Võimaldab võtta ekraanitõmmise ja\n"
+" jooksvalt lisada  ZIM aktiivsele lehel.\n"
+"\n"
+"Sõltub: scrot\n"
+"\n"
+"Vaikimisi tuleb ZIMiga kaasa.\n"
 
 #. option in 'insert screenshot' dialog
 #: zim/plugins/scrot.py:67
 msgid "Capture whole screen"
-msgstr ""
+msgstr "Tervikekraani tõmmis."
 
 #. option in 'insert screenshot' dialog
 #: zim/plugins/scrot.py:68
 msgid "Select window or region"
-msgstr ""
+msgstr "Vali aken või piirkond"
 
 #. input in 'insert screenshot' dialog
 #: zim/plugins/scrot.py:74
 msgid "Delay"
-msgstr ""
+msgstr "Viide"
 
 #. label behind timer
 #: zim/plugins/scrot.py:79
 msgid "seconds"
-msgstr ""
+msgstr "sekundid"
 
 #. Error message in "insert screenshot" dialog
 #: zim/plugins/scrot.py:110
 msgid "Some error occured while running \"scrot\""
-msgstr ""
+msgstr "Scroti käivitamisel esines vigu"
 
 #. menu item
 #: zim/plugins/spell.py:35
 msgid "Check _spelling"
-msgstr ""
+msgstr "Kontrolli õigekirja"
 
 #. plugin name
 #: zim/plugins/spell.py:41
 msgid "Spell Checker"
-msgstr ""
+msgstr "Õigekirjakontroll"
 
 #. plugin description
 #: zim/plugins/spell.py:42
@@ -1690,13 +1732,18 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Plugin lisab õigekirjakontrolli.\n"
+"\n"
+"Sõltub: gtkspell\n"
+"\n"
+"Vaikimisi tuleb ZIMiga kaasa.\n"
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/tasklist.py:22 zim/plugins/tasklist.py:47
 #: zim/plugins/tasklist.py:81
 msgid "Task List"
-msgstr ""
+msgstr "Ülesandeloend"
 
 #. plugin description
 #: zim/plugins/tasklist.py:48
@@ -1711,46 +1758,46 @@ msgstr ""
 #. Input label
 #: zim/plugins/tasklist.py:109
 msgid "Filter"
-msgstr ""
+msgstr "Filter"
 
 #. Button
 #: zim/plugins/tasklist.py:114
 msgid "_Filter"
-msgstr ""
+msgstr "_Filter"
 
 #. Label for statistics in Task List, %i is the number of tasks
 #: zim/plugins/tasklist.py:129
 #, python-format
 msgid "%i open item"
 msgid_plural "%i open items"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%i avatud kirje"
+msgstr[1] "%i avatud kirjeid"
 
 #. Column header for tag list in Task List dialog
 #: zim/plugins/tasklist.py:154
 msgid "Tags"
-msgstr ""
+msgstr "Sildid"
 
 #. "tag" for showing all tasks
 #: zim/plugins/tasklist.py:175
 msgid "All"
-msgstr ""
+msgstr "Kõik"
 
 #. Column header Task List dialog
 #: zim/plugins/tasklist.py:236
 msgid "Task"
-msgstr ""
+msgstr "Ülesanne"
 
 #. Column header Task List dialog
 #: zim/plugins/tasklist.py:257
 msgid "Prio"
-msgstr ""
+msgstr "Prio"
 
 #. Column header Task List dialog |
 #. Column header versions dialog
 #: zim/plugins/tasklist.py:282 zim/plugins/versioncontrol/__init__.py:439
 msgid "Date"
-msgstr ""
+msgstr "Kuupäev"
 
 #. plugin name
 #: zim/plugins/trayicon.py:16
@@ -1770,27 +1817,27 @@ msgstr ""
 #. tooltip for tray icon
 #: zim/plugins/trayicon.py:67
 msgid "Zim Desktop Wiki"
-msgstr "짐 데스크탑 위키"
+msgstr "Zim Töölaua Viki"
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:100
 msgid "_Other..."
-msgstr ""
+msgstr "_Muu..."
 
 #. menu item
 #: zim/plugins/versioncontrol/__init__.py:39
 msgid "S_ave Version..."
-msgstr ""
+msgstr "Salvesta versioon"
 
 #. menu item
 #: zim/plugins/versioncontrol/__init__.py:40
 msgid "_Versions..."
-msgstr ""
+msgstr "Versioonid"
 
 #. plugin name
 #: zim/plugins/versioncontrol/__init__.py:47
 msgid "Version Control"
-msgstr ""
+msgstr "Versioonihaldus"
 
 #. plugin description
 #: zim/plugins/versioncontrol/__init__.py:48
@@ -1801,21 +1848,26 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Plugin lisab märkmikute versioonihalduse.\n"
+"\n"
+"Sõltub: Bazaari versioonihaldussüsteemist\n"
+"\n"
+"Vaikimisi ZIMiga kaasas.\n"
 
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:60
 msgid "Autosave version on regular intervals"
-msgstr ""
+msgstr "Salvesta versioon regulaarse ajavahemiku järel"
 
 #. default version comment for auto-saved versions
 #: zim/plugins/versioncontrol/__init__.py:127
 msgid "Automatically saved version from zim"
-msgstr ""
+msgstr "ZIMi automaatselt salvestatud versioonid"
 
 #. Question dialog
 #: zim/plugins/versioncontrol/__init__.py:136
 msgid "Enable Version Control?"
-msgstr ""
+msgstr "Luba versioonihaldus"
 
 #. Detailed question
 #: zim/plugins/versioncontrol/__init__.py:137
@@ -1823,36 +1875,38 @@ msgid ""
 "Version control is currently not enabled for this notebook.\n"
 "Do you want to enable it?"
 msgstr ""
+"Versioonihaldus ei ole hetkel lubatud.\n"
+"Kas soovid seda lubada?"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:171
 msgid "Save Version"
-msgstr ""
+msgstr "Salvesta versioon"
 
 #. Dialog text
 #: zim/plugins/versioncontrol/__init__.py:175
 msgid "Please enter a comment for this version"
-msgstr ""
+msgstr "Sisesta versiooni kommentaar"
 
 #. default version comment in the "save version" dialog
 #: zim/plugins/versioncontrol/__init__.py:180
 msgid "Saved version from zim"
-msgstr ""
+msgstr "ZIMi salvestatud versioonid"
 
 #. section for version details in "save version" dialog
 #: zim/plugins/versioncontrol/__init__.py:188
 msgid "Details"
-msgstr ""
+msgstr "Detailid"
 
 #. Option in versions dialog to show version for single page
 #: zim/plugins/versioncontrol/__init__.py:237
 msgid "_Page"
-msgstr ""
+msgstr "_Lehekülg"
 
 #. Button label
 #: zim/plugins/versioncontrol/__init__.py:251
 msgid "View _Annotated"
-msgstr ""
+msgstr "Vaata märgitud"
 
 #. Help text in versions dialog
 #: zim/plugins/versioncontrol/__init__.py:256
@@ -1860,36 +1914,38 @@ msgid ""
 "Select a version to see changes between that version and the current\n"
 "state. Or select multiple versions to see changes between those versions.\n"
 msgstr ""
+"Vali  salvestatud versioon erisuste kuvamiseks käesoleva versioonist.\n"
+"Võib valida üks või mitu versiooni.\n"
 
 #. version details
 #: zim/plugins/versioncontrol/__init__.py:278
 msgid "Comment"
-msgstr ""
+msgstr "Kommentaar"
 
 #. Button label
 #: zim/plugins/versioncontrol/__init__.py:294
 msgid "_Restore Version"
-msgstr ""
+msgstr "_Taasta Versioon"
 
 #. button in versions dialog for diff
 #: zim/plugins/versioncontrol/__init__.py:299
 msgid "Show _Changes"
-msgstr ""
+msgstr "Kuva _Muudatused"
 
 #. button in versions dialog for side by side comparison
 #: zim/plugins/versioncontrol/__init__.py:305
 msgid "_Side by Side"
-msgstr ""
+msgstr "_Rea-reahaaval"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:384
 msgid "Annotated Page Source"
-msgstr ""
+msgstr "Märgistatud lehe algkood"
 
 #. Confirmation question
 #: zim/plugins/versioncontrol/__init__.py:393
 msgid "Restore page to saved version?"
-msgstr ""
+msgstr "Taasta leht salvestatud versioonist"
 
 #. Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
 #: zim/plugins/versioncontrol/__init__.py:394
@@ -1900,13 +1956,17 @@ msgid ""
 "\n"
 "All changes since the last saved version will be lost !"
 msgstr ""
+"Kas soovid taastada lehed: %(page)s\n"
+"eelnevalt salvestatud versioonist: %(version)s ?\n"
+"\n"
+"Kõik muudatused alates viimasest versioonist lähevad kaduma!"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:408
 msgid "Changes"
-msgstr ""
+msgstr "Muudatused"
 
 #. Column header versions dialog
 #: zim/plugins/versioncontrol/__init__.py:438
 msgid "Rev"
-msgstr ""
+msgstr "Rev"

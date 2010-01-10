@@ -44,10 +44,10 @@ def make():
 		pass # dir already exists 
 	manpage = open('man/zim.1', 'w')
 	manpage.write('.TH ZIM "1" "%s" "zim %s" "User Commands"\n' % (strftime('%B %Y'), __version__))
-	manpage.write('.SH NAME\nzim \- %s\n\n' % tagline)
-	manpage.write('.SH SYNOPSIS\n%s\n' % usagehelp)
+	manpage.write('.SH NAME\nzim \\- %s\n\n' % tagline)
+	manpage.write('.SH SYNOPSIS\n%s\n' % usagehelp.replace('-', r'\-'))
 	manpage.write('.SH DESCRIPTION\n%s\n' % about)
-	manpage.write('.SH OPTIONS\n%s\n' % optionhelp)
+	manpage.write('.SH OPTIONS\n%s\n' % optionhelp.replace('-', r'\-'))
 	manpage.write('.SH AUTHOR\n%s\n\n' % __author__)
 	manpage.write( '''\
 .SH "SEE ALSO"
