@@ -11,36 +11,30 @@ INSERT_SCREENCAST_HERE
 Screencast thanks to [[http://productivelinux.com/2009/05/23/video-post-my-favorite-things-about-zim-wiki/trackback/|ProductiveLinux]].
 
 {{/screenshots/zim-normal.png}}
-
 //The editor window with all widgets visible//
 
 
 {{/screenshots/zim-minimal.png}}
-
 //Minimalistic editor window with a checkbox list and some links//
 
 
 {{/screenshots/zim-image-open.png}}
-
 //Showing "open with" item for embedded image//
 
 
 {{/screenshots/zim-calendar.png}}
-
 //Showing the calendar and spell checking in action//
 
 
-{{/screenshots/zim-versions.png}}
+{{/screenshots/zim-tasklist.png}}
+//Showing the task list dialog//
 
-//The versions control dialog//
+
+{{/screenshots/zim-versions.png}}
+//The version control dialog//
 
 
 {{/screenshots/zim-equation-editor.png}}
+//Showing the latex equation editor//
 
-//Showing the latex EquationEditor plugin//
-
-
-{{/screenshots/zim-man.png}}
-
-//Zim as man page reader -// "''zim --man''"
 

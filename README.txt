@@ -75,7 +75,8 @@ You will at least need the following:
 	* python-gtk
 	* python-gobject
 	* python-xdg (optional, but recommended)
-	* python-simplejson (for python <= 2.5)
+	* xdg-utils (optional, but recommended)
+	* python-simplejson (for python < 2.6)
 
 To verify zim is working properly on your system you can call the test suite
 using `./test.py`. Failures do not have to be critical, but in principle all

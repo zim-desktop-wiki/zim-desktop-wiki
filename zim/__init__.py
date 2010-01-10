@@ -71,7 +71,7 @@ commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual')
 commandopts = {
 	'gui': ('list', 'geometry=', 'fullscreen', 'no-daemon'),
 	'server': ('port=', 'template=', 'gui', 'no-daemon'),
-	'export': ('format=', 'template=', 'output='),
+	'export': ('format=', 'template=', 'output=', 'root-url='),
 	'index': ('output=',),
 }
 shortopts = {
@@ -121,6 +121,7 @@ Export Options:
   --format        format to use (defaults to 'html')
   --template      name of the template to use
   -o, --output    output directory
+  --root-url      url to use for the document root
 
   You can use the export option to print a single page to stdout.
   When exporting a whole notebook you need to provide a directory.
@@ -198,13 +199,15 @@ def main(argv):
 	# Convert options into a proper dict
 	optsdict = {}
 	for o, a in opts:
-		o = str(o.lstrip('-')) # no unicode for keys
+		o = str(o.lstrip('-')) # str() -> no unicode for keys
 		if o in shortopts:
 			o = shortopts[o].rstrip('=')
 
 		if o+'=' in allowedopts:
+			o = o.replace('-', '_')
 			optsdict[o] = a
 		elif o in allowedopts:
+			o = o.replace('-', '_')
 			optsdict[o] = True
 		else:
 			raise GetoptError, ("--%s no allowed in combination with --%s" % (o, cmd), o)
@@ -431,10 +434,10 @@ class NotebookInterface(gobject.GObject):
 				notebook.cache_dir.file('state.conf') )
 		# TODO read profile preferences file if one is set in the notebook
 
-	def cmd_export(self, format='html', template=None, page=None, output=None):
+	def cmd_export(self, format='html', template=None, page=None, output=None, root_url=None):
 		'''Method called when doing a commandline export'''
 		import zim.exporter
-		exporter = zim.exporter.Exporter(self.notebook, format, template)
+		exporter = zim.exporter.Exporter(self.notebook, format, template, document_root_url=root_url)
 
 		if page:
 			path = self.notebook.resolve_path(page)

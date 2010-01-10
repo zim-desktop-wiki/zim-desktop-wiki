@@ -1,10 +1,10 @@
 [Notebook]
-document_root=../files
-home=:index
+document_root=../files/
+home=index
 icon=
 name=website
 read_only=0
-slow_fs=0
+slow_fs=False
 
 [GUI State]
 height=450
@@ -17,4 +17,3 @@ y=0
 [Namespaces]
 :docs=Files,dir=../share/zim/doc
 
-# vim: syntax=desktop
