@@ -539,6 +539,7 @@ class BaseLinker(object):
 
 	def __init__(self):
 		self._icons = {}
+		self._links = {}
 		self.path = None
 		self.usebase = False
 		self.base = None
@@ -546,6 +547,7 @@ class BaseLinker(object):
 	def set_path(self, path):
 		'''Set the page path for resolving links'''
 		self.path = path
+		self._links = {}
 
 	def set_base(self, dir):
 		'''Set a path to use a base for linking files'''
@@ -558,21 +560,21 @@ class BaseLinker(object):
 
 	def link(self, link):
 		'''Returns a path or url for 'link' '''
-		# TODO optimize by hashing links seen (reset per page)
 		assert not self.path is None
-		type = link_type(link)
-		if type == 'page':
-			return self.page(link)
-		elif type == 'file':
-			return self.file(link)
-		elif type == 'mailto':
-			if link.startswith('mailto:'):
-				return link
+		if not link in self._links:
+			type = link_type(link)
+			if type == 'page':    href = self.page(link)
+			elif type == 'file':  href = self.file(link)
+			elif type == 'mailto':
+				if link.startswith('mailto:'):
+					href = link
+				else:
+					href = 'mailto:' + link
 			else:
-				return 'mailto:' + link
-		else:
-			# I dunno, some url ?
-			return link
+				# I dunno, some url ?
+				href = link
+			self._links[link] = href
+		return self._links[link]
 
 	def img(self, src):
 		'''Returns a path or url for image file 'src' '''

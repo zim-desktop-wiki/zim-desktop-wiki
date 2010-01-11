@@ -7,6 +7,7 @@
 import logging
 
 from zim.fs import *
+from zim.config import data_file
 from zim.formats import get_format, BaseLinker
 from zim.templates import get_template
 from zim.notebook import Page, IndexPage, PageNameError
@@ -52,7 +53,15 @@ class Exporter(object):
 		export will be cancelled.
 		'''
 		logger.info('Exporting notebook to %s', dir)
+		self.linker.target_dir = dir # Needed to resolve icons
 
+		# Copy icons
+		for name in ('checked-box', 'unchecked-box', 'xchecked-box'):
+			icon = data_file('pixmaps/%s.png' % name)
+			file = dir.file('_icons/'+name+'.png')
+			icon.copyto(file)
+
+		# Export the pages
 		for page in self.notebook.walk():
 			if page.hascontent:
 				self.export_page(dir, page)
@@ -60,11 +69,13 @@ class Exporter(object):
 					logger.warn('Export cancelled')
 					return False
 
+		# Generate index page
 		if self.index_page:
 			page = IndexPage(self.notebook)
 			page.name = self.index_page # HACK
 			self.export_page(dir, page)
 
+		self.linker.target_dir = None # reset
 		logger.info('Export done')
 		return True
 
@@ -80,6 +91,7 @@ class Exporter(object):
 		attachments = self.notebook.get_attachments_dir(page)
 		self.linker.set_base(attachments.dir)
 			# FIXME, assuming standard file store layout to get correct relative links
+		self.linker.target_file = file
 		fh = file.open('w')
 		self.export_page_to_fh(fh, page)
 		fh.close()
@@ -119,7 +131,16 @@ class StaticLinker(BaseLinker):
 		self.notebook = notebook
 		self.path = path
 		self.document_root_url = document_root_url
+		self.target_dir = None
+		self.target_file = None
 		self._extension = '.' + format.info['extension']
+
+	def icon(self, name):
+		if self.target_dir and self.target_file:
+			file = self.target_dir.file('_icons/'+name+'.png')
+			return self._filepath(file, self.target_file)
+		else:
+			return BaseLinker.icon(self, name)
 
 	def page(self, link):
 		try:
@@ -153,9 +174,13 @@ class StaticLinker(BaseLinker):
 		else:
 			file = self.notebook.resolve_file(link, self.path)
 			if self.usebase and self.base:
-				relpath = file.relpath(self.base, allowupward=True)
-				if relpath and not relpath.startswith('.'):
-					relpath = './' + relpath
-				return relpath or file.uri
+				return self._filepath(file, self.base)
 			else:
 				return file.uri
+
+	def _filepath(self, file, ref):
+		relpath = file.relpath(ref, allowupward=True)
+		if relpath and not relpath.startswith('.'):
+			relpath = './' + relpath
+		return relpath or file.uri
+

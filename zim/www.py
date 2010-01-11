@@ -34,13 +34,6 @@ from zim.stores import encode_filename
 logger = logging.getLogger('zim.www')
 
 
-# TODO FIXME HACK - this translation needs to be done when exporting
-icons = {}
-for icon in ('checked-box.png', 'xchecked-box.png', 'unchecked-box.png'):
-	file = data_file('pixmaps/'+icon)
-	icons[file.path] = icon
-
-
 class WWWError(Error):
 
 	statusstring = {
@@ -143,9 +136,8 @@ class WWWInterface(NotebookInterface):
 				path = '/'
 			elif path == '/favicon.ico':
 				path = '/+icons/favicon.ico'
-			elif path in icons:
-				# TODO FIXME HACK - this translation needs to be done when exporting
-				path = '/+icons/' + icons[path]
+			elif path.startswith('/%2B'):
+				path = '/+' + path[4:] # HACK, very local decoding
 
 			if self.notebook is None:
 				raise NoConfigError
@@ -357,6 +349,9 @@ class WWWLinker(BaseLinker):
 		BaseLinker.__init__(self)
 		self.notebook = notebook
 		self.path = path
+
+	def icon(self, name):
+		return '/+icons/%s.png' % name
 
 	def page(self, link):
 		try:
