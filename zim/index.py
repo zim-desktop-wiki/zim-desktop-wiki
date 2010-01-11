@@ -630,7 +630,7 @@ class Index(gobject.GObject):
 							(page.basename, path.id, page.hascontent, False))
 						child = IndexPath(page.name, indexpath + (cursor.lastrowid,),
 							{	'hascontent': page.hascontent,
-								'haschildren': page.haschildren,
+								'haschildren': False,
 								'childrenkey': None,
 								'contentkey': None,
 							} )
@@ -674,7 +674,7 @@ class Index(gobject.GObject):
 				self.emit('page-updated', path)
 
 			# All these signals should come in proper order...
-			changes.sort(key=lambda c: c[0].basename)
+			changes.sort(key=lambda c: c[0].basename.lower())
 			for child, action in changes:
 				if action == 1:
 					self.emit('page-inserted', child)
@@ -845,14 +845,8 @@ class Index(gobject.GObject):
 			row = cursor.fetchone()
 			return IndexPath(':', (ROOT_ID,), row)
 
-		if parent:
-			indexpath = list(parent._indexpath)
-		elif hasattr(path, '_indexpath'):
-			# Page objects copy the _indexpath attribute
-			# FIXME can this cause issues when the index is modified in between ?
-			indexpath = list(path._indexpath)
-		else:
-			indexpath = [ROOT_ID]
+		if parent: indexpath = list(parent._indexpath)
+		else:      indexpath = [ROOT_ID]
 
 		names = path.name.split(':')
 		names = names[len(indexpath)-1:] # shift X items

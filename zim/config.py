@@ -13,9 +13,9 @@ import os
 import re
 import logging
 
-try:
+if sys.version_info >= (2, 6):
 	import json # in standard lib since 2.6
-except:
+else:
 	import simplejson as json # extra dependency
 
 from zim.fs import *

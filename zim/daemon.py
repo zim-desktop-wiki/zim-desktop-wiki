@@ -47,13 +47,8 @@ import logging
 import signal
 import time
 
-try:
-	import json # in standard lib since 2.6
-except:
-	import simplejson as json # extra dependency
-
 from zim.fs import get_tmpdir, File
-from zim.config import XDG_CACHE_HOME
+from zim.config import XDG_CACHE_HOME, json
 
 # FUTURE: implement a DBus based subclass for usage on the linux desktop
 

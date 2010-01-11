@@ -6,6 +6,8 @@
 
 import tests
 
+import gtk
+
 from zim.fs import Dir
 from zim.index import Index, IndexPath, LINK_DIR_BACKWARD, LINK_DIR_BOTH
 from zim.notebook import Notebook, Path, Link
@@ -210,8 +212,6 @@ class TestIndexFiles(TestIndex):
 
 class TestPageTreeStore(tests.TestCase):
 
-	slowTest = True
-
 	def setUp(self):
 		self.index = Index(dbfile=':memory:')
 		self.notebook = tests.get_test_notebook()
@@ -221,12 +221,24 @@ class TestPageTreeStore(tests.TestCase):
 		'''Test PageTreeStore index interface'''
 		# This is one big test instead of seperate sub tests because in the
 		# subclass we generate a file based notebook in setUp, and we do not
-		# want to do that many times
+		# want to do that many times.
+		# Hooking up the treeview as well just to see if we get any errors
+		# From the order the signals are generated.
 
-		self.index.update()
+		ui = StubUI()
+		treeview = PageTreeView(ui)
 		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 5)
+		treeview.set_model(treestore)
+
+		def process_events(*a):
+			while gtk.events_pending():
+				gtk.main_iteration(block=False)
+			return True # continue
+
+		self.index.update(callback=process_events)
+		process_events()
 
 		treeview = PageTreeView(None) # just run hidden to check errors
 		treeview.set_model(treestore)
@@ -304,7 +316,7 @@ class TestPageTreeStore(tests.TestCase):
 		del treestore
 		self.index.flush()
 		treestore = PageTreeStore(self.index)
-		self.index.update()
+		self.index.update(callback=process_events)
 
 
 class TestPageTreeStoreFiles(TestPageTreeStore):
@@ -318,3 +330,15 @@ class TestPageTreeStoreFiles(TestPageTreeStore):
 	def runTest(self):
 		'''Test PageTreeStore index interface with files index'''
 		TestPageTreeStore.runTest(self)
+
+
+class StubUI(object):
+
+	page = None
+	notebook = None
+
+	def connect(*a):
+		pass
+
+	def connect_after(*a):
+		pass

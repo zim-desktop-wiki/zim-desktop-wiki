@@ -1203,10 +1203,6 @@ class Page(Path):
 		self._ui_object = None
 		self.readonly = True # stores need to explicitly set readonly False
 		self.properties = {}
-		if hasattr(path, '_indexpath'):
-			self._indexpath = path._indexpath
-			# Keeping this data around will speed things up when this page
-			# is used for index lookups
 
 	@property
 	def hascontent(self):

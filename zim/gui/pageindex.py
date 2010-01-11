@@ -75,12 +75,13 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 
 		self.set_property('leak-references', False)
 			# We do our own memory management, thank you very much
-		self._refs = {}
+		self._refs = []
 
 		def on_changed(o, path, signal):
 			#~ print '!!', signal, path
 			self._flush()
 			treepath = self.get_treepath(path)
+			#~ print '!!', signal, path, treepath
 			treeiter = self.create_tree_iter(self._ref(path))
 			self.emit(signal, treepath, treeiter)
 
@@ -99,18 +100,15 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	def _ref(self, path):
 		# Make sure we keep ref to paths long enough while they
 		# are used in an iter
-		if path.id in self._refs:
-			return self._refs[path.id]
-		else:
-			self._refs[path.id] = path
-			return path
+		self._refs.append(path)
+		return path
 
 	def _flush(self):
 		# Drop references and free memory
 		#~ print '!! Freeing %i refs' % len(self._refs)
 		self.invalidate_iters()
 		del self._refs
-		self._refs = {}
+		self._refs = []
 
 	def on_get_flags(self):
 		return 0 # no flags
@@ -212,7 +210,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		'''Returns True if indexPath path has children'''
 		if not path.hasdata:
 			path = self.index.lookup_data(path)
-		return path.haschildren
+		return bool(path.haschildren)
 
 	def on_iter_n_children(self, path=None):
 		'''Returns the number of children in a namespace. As a special case,
@@ -238,6 +236,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 
 	def on_iter_parent(self, child):
 		'''Returns a IndexPath for parent node of child or None'''
+		#~ print '>> on_iter_parent', child
 		parent = child.parent
 		if parent.isroot:
 			return None
@@ -435,8 +434,11 @@ class PageTreeView(BrowserTreeView):
 
 		indexpath = index.lookup_path(path)
 		if indexpath is None:
-			indexpath = index.touch(path)
-			self._vivivied = indexpath
+			if vivify:
+				indexpath = index.touch(path)
+				self._vivivied = indexpath
+			else:
+				return
 
 		treepath = model.get_treepath(indexpath)
 		self.expand_to_path(treepath)
