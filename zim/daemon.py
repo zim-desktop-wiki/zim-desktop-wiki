@@ -92,7 +92,7 @@ class UnixDaemon(object):
 		# Decouple from parent environment
 		os.chdir("/")
 		os.setsid()
-		os.umask(0)
+		# Do not set umask here - we want to keep that part of env
 
 		# Second fork
 		pid = os.fork()

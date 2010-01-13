@@ -625,6 +625,8 @@ class Notebook(gobject.GObject):
 		resolve_path() to parse user input.
 		'''
 		orig = name
+		name = name.replace('_', ' ')
+			# Avoid duplicates with and without '_' in index
 		name = ':'.join( map(unicode.strip,
 				filter(lambda n: len(n)>0, unicode(name).split(':')) ) )
 

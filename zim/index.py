@@ -164,13 +164,13 @@ class DBCommitContext(object):
 	This allows syntax like:
 
 		with index.db_commit:
-			cursor = index.db.get_cursor()
+			cursor = index.db.cursor()
 			cursor.execute(...)
 
 	instead off:
 
 		try:
-			cursor = index.db.get_cursor()
+			cursor = index.db.cursor()
 			cursor.execute(...)
 		except:
 			index.db.rollback()
