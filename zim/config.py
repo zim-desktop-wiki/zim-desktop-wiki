@@ -276,10 +276,15 @@ class ListDict(dict):
 				klass = basestring
 			if not self[k] is None and not v is None \
 			and not isinstance(self[k], klass):
-				logger.warn(
-					'Invalid config value for %s: "%s" - should be of type %s',
-					k, self[k], klass)
-				self.__setitem__(k, v)
+				if klass is tuple and isinstance(self[k], list):
+					# Needed because json does not know difference list or tuple
+					v = tuple(self[k])
+					self.__setitem__(k, v)
+				else:
+					logger.warn(
+						'Invalid config value for %s: "%s" - should be of type %s',
+						k, self[k], klass)
+					self.__setitem__(k, v)
 		else:
 			if not check(self[k]):
 				logger.warn(

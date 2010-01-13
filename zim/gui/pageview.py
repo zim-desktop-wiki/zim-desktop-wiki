@@ -804,7 +804,15 @@ class TextBuffer(gtk.TextBuffer):
 			return False
 
 		end = start.copy()
-		end.forward_line()
+		if not end.forward_to_line_end():
+			# last line of buffer - without \n indent is not visible for empty line
+			self._place_cursor(end)
+			self.insert(end, '\n')
+			_, end = self.get_bounds()
+			start = end.copy()
+			start.backward_line()
+			self._restore_cursor()
+
 		tags = filter(_is_indent_tag, start.get_tags())
 		if tags:
 			assert len(tags) == 1, 'BUG: overlapping indent tags'
@@ -1197,9 +1205,7 @@ class TextBuffer(gtk.TextBuffer):
 		iter = self.get_iter_at_mark(self.get_insert())
 		iter = self.get_iter_at_line(iter.get_line())
 		end = iter.copy()
-		end.forward_line()
-		if end.get_line() != iter.get_line():
-			end.backward_char()
+		end.forward_to_line_end()
 		self.select_range(iter, end)
 
 	def select_word(self):

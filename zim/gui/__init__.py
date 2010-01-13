@@ -1873,6 +1873,7 @@ class MovePageDialog(Dialog):
 
 		i = self.ui.notebook.index.n_list_links(
 					self.path, zim.index.LINK_DIR_BACKWARD)
+		# FIXME need to get also links to child pages
 
 		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
 			# T: Heading in 'move page' dialog - %s is the page name
@@ -1888,9 +1889,10 @@ class MovePageDialog(Dialog):
 				# T: option in 'move page' dialog
 		])
 
-		if i == 0:
-			self.inputs['links'].set_active(False)
-			self.inputs['links'].set_sensitive(False)
+		# SEE FIXME above
+		#~ if i == 0:
+			#~ self.inputs['links'].set_active(False)
+			#~ self.inputs['links'].set_sensitive(False)
 
 	def do_response_ok(self):
 		parent = self.get_field('parent')
