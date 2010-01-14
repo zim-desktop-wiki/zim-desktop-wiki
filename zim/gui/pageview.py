@@ -215,6 +215,38 @@ class UserActionContext(object):
 		self.buffer.end_user_action()
 
 
+class SaveCursorContext(object):
+	'''Class used by TextBuffer.tmp_cursor().
+	This allows syntax like:
+
+		with buffer.tmp_cursor(iter):
+			# some manipulation using iter as cursor position
+
+		# old cursor position restored
+
+	Basically it keeps a mark for the old cursor and restores it
+	after exiting the context.
+	'''
+
+	def __init__(self, buffer, iter=None):
+		self.buffer = buffer
+		self.iter = iter
+		self.mark = None
+
+	def __enter__(self):
+		buffer = self.buffer
+		cursor = buffer.get_iter_at_mark(buffer.get_insert())
+		self.mark = buffer.create_mark(None, cursor, left_gravity=True)
+		if self.iter:
+			buffer.place_cursor(self.iter)
+
+	def __exit__(self, *a):
+		buffer = self.buffer
+		iter = buffer.get_iter_at_mark(self.mark)
+		buffer.place_cursor(iter)
+		buffer.delete_mark(self.mark)
+
+
 class TextBuffer(gtk.TextBuffer):
 	'''Zim subclass of gtk.TextBuffer.
 
@@ -339,19 +371,12 @@ class TextBuffer(gtk.TextBuffer):
 		tags and insert the tree, otherwise we insert using the
 		formatting tags that that are present at iter.
 		'''
-		self._place_cursor(iter)
-		self.insert_parsetree_at_cursor(tree, interactive)
-		self._restore_cursor()
+		with self.tmp_cursor(iter):
+			self.insert_parsetree_at_cursor(tree, interactive)
 
-	def _place_cursor(self, iter=None):
-		self.create_mark('zim-textbuffer-orig-insert',
-			self.get_iter_at_mark(self.get_insert()), True)
-		self.place_cursor(iter)
-
-	def _restore_cursor(self):
-		mark = self.get_mark('zim-textbuffer-orig-insert')
-		self.place_cursor(self.get_iter_at_mark(mark))
-		self.delete_mark(mark)
+	def tmp_cursor(self, iter=None):
+		'''Returns a SaveCursorContext object'''
+		return SaveCursorContext(self, iter)
 
 	def insert_parsetree_at_cursor(self, tree, interactive=False):
 		'''Like insert_parsetree() but inserts at the cursor'''
@@ -462,9 +487,8 @@ class TextBuffer(gtk.TextBuffer):
 
 	def insert_link(self, iter, text, href, **attrib):
 		'''Insert a link into the buffer at iter'''
-		self._place_cursor(iter)
-		self.insert_link_at_cursor(text, href, **attrib)
-		self._restore_cursor()
+		with self.tmp_cursor(iter):
+			self.insert_link_at_cursor(text, href, **attrib)
 
 	def insert_link_at_cursor(self, text, href=None, **attrib):
 		'''Like insert_link() but inserts at the cursor'''
@@ -580,9 +604,8 @@ class TextBuffer(gtk.TextBuffer):
 		self.insert_icon(iter, stock)
 
 	def insert_bullet(self, iter, bullet):
-		self._place_cursor(iter)
-		self.insert_bullet_at_cursor(bullet)
-		self._restore_cursor()
+		with self.tmp_cursor(iter):
+			self.insert_bullet_at_cursor(bullet)
 
 	def insert_bullet_at_cursor(self, bullet, raw=False):
 		'''Insert a bullet plus a space at the cursor position.
@@ -733,7 +756,9 @@ class TextBuffer(gtk.TextBuffer):
 
 	def remove_textstyle_tags(self, start, end):
 		'''Removes all textstyle tags from a range'''
+		# Also remove links untill we support links nested in tags
 		self.smart_remove_tags(_is_style_tag, start, end)
+		self.smart_remove_tags(_is_link_tag, start, end)
 		self.set_editmode_from_cursor()
 
 	def smart_remove_tags(self, func, start, end):
@@ -805,13 +830,16 @@ class TextBuffer(gtk.TextBuffer):
 
 		end = start.copy()
 		if not end.forward_to_line_end():
+			# FIXME code below can only be enabled when indent and list tags are split up
+			# otherwise inserting a bullet at the end of the buffer goes wrong
 			# last line of buffer - without \n indent is not visible for empty line
-			self._place_cursor(end)
-			self.insert(end, '\n')
-			_, end = self.get_bounds()
-			start = end.copy()
-			start.backward_line()
-			self._restore_cursor()
+			#~ with self.tmp_cursor():
+				# Use tmp cursor in case we are cursor position
+				#~ self.insert(end, '\n')
+				#~ _, end = self.get_bounds()
+				#~ start = end.copy()
+				#~ start.backward_line()
+			pass
 
 		tags = filter(_is_indent_tag, start.get_tags())
 		if tags:
@@ -1678,7 +1706,7 @@ class TextView(gtk.TextView):
 			# inserted but is used to select an option in an input mode e.g.
 			# to select between various chinese characters. See lp:460438
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
-			mark = buffer.create_mark(None, insert)
+			mark = buffer.create_mark(None, insert, left_gravity=False)
 			iter = insert.copy()
 			iter.backward_char()
 
@@ -2349,25 +2377,49 @@ class PageView(gtk.VBox):
 		self.ui.add_actions(ui_actions, self)
 
 		# format actions need some custom hooks
-		actiongroup = self.ui.init_actiongroup(self)
+		actiongroup = self.actiongroup
 		actiongroup.add_actions(ui_format_actions)
 		actiongroup.add_toggle_actions(ui_format_toggle_actions)
+
 		for name in [a[0] for a in ui_format_actions]:
 			action = actiongroup.get_action(name)
 			action.zim_readonly = False
+			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
+
 		for name in [a[0] for a in ui_format_toggle_actions]:
 			action = actiongroup.get_action(name)
 			action.zim_readonly = False
+			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
 
-		# extra keybinding - FIXME needs switch on read-only
+
+		# HACK, this makes sure we do not hijack keybindings like
+		# ^C and ^V while we are not focus (e.g. paste in find bar)
+		def set_actiongroup_sensitive(o, e, sensitive):
+			# Immitate logic in self.set_readonly()
+			if sensitive:
+				for action in self.actiongroup.list_actions():
+					action.set_sensitive(
+						action.zim_readonly or not self.readonly)
+			else:
+				for action in self.actiongroup.list_actions():
+						action.set_sensitive(False)
+
+		self.view.connect('focus-in-event', set_actiongroup_sensitive, True)
+		self.view.connect('focus-out-event', set_actiongroup_sensitive, False)
+
+
+		# Extra keybinding for undo - default is <Shift><Ctrl>Z (see HIG)
+		def do_undo(*a):
+			if not self.readonly:
+				self.redo()
+
 		y = gtk.gdk.unicode_to_keyval(ord('y'))
 		group = self.ui.uimanager.get_accel_group()
 		group.connect_group( # <Ctrl>Y
 				y, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
-				lambda *a: self.redo())
-
+				do_undo)
 
 		PageView.style = config_file('style.conf')
 		self.on_preferences_changed(self.ui)
@@ -2581,6 +2633,7 @@ class PageView(gtk.VBox):
 
 	def do_textstyle_changed(self, buffer, style):
 		# set statusbar
+		#~ print '>>> SET STYLE', style
 		if style: label = style.title()
 		else: label = 'None'
 		self.ui.mainwindow.statusbar_style_label.set_text(label)
@@ -2590,10 +2643,13 @@ class PageView(gtk.VBox):
 			action = self.actiongroup.get_action(name)
 			self._show_toggle(action, False)
 
+		#~ print '==='
+
 		if style:
 			action = self.actiongroup.get_action('toggle_format_'+style)
 			if not action is None:
 				self._show_toggle(action, True)
+		#~ print '<<<'
 
 	def _show_toggle(self, action, state):
 		action.handler_block_by_func(self.do_toggle_format_action)
@@ -2872,6 +2928,10 @@ class PageView(gtk.VBox):
 	def toggle_format(self, format):
 		buffer = self.view.get_buffer()
 		if not buffer.textstyle == format:
+			# Only autoselect non formatted content - otherwise not
+			# consistent when trying to break a formatted region
+			# Could be improved by making autoselect refuse to select
+			# formatted content
 			ishead = format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
 			self.autoselect(selectline=ishead)
 		buffer.toggle_textstyle(format, interactive=True)

@@ -1409,7 +1409,7 @@ class MainWindow(gtk.Window):
 
 		if style == PATHBAR_NONE:
 			self.pathbar_box.hide()
-			return
+			klass = None
 		elif style == PATHBAR_HISTORY:
 			klass = HistoryPathBar
 		elif style == PATHBAR_RECENT:
@@ -1419,13 +1419,14 @@ class MainWindow(gtk.Window):
 		else:
 			assert False, 'BUG: Unknown pathbar type %s' % style
 
-		if not (self.pathbar and self.pathbar.__class__ == klass):
-			for child in self.pathbar_box.get_children():
-				self.pathbar_box.remove(child)
-			self.pathbar = klass(self.ui, spacing=3)
-			self.pathbar.set_history(self.ui.history)
-			self.pathbar_box.add(self.pathbar)
-		self.pathbar_box.show_all()
+		if not style == PATHBAR_NONE:
+			if not (self.pathbar and self.pathbar.__class__ == klass):
+				for child in self.pathbar_box.get_children():
+					self.pathbar_box.remove(child)
+				self.pathbar = klass(self.ui, spacing=3)
+				self.pathbar.set_history(self.ui.history)
+				self.pathbar_box.add(self.pathbar)
+			self.pathbar_box.show_all()
 
 		if self._fullscreen:
 			self.uistate['pathbar_type_fullscreen'] = style
