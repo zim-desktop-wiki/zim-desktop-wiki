@@ -2324,6 +2324,7 @@ class PageView(gtk.VBox):
 			self.readonlyset = True
 		self.undostack = None
 		self.image_generator_plugins = {}
+		self._current_toggle_action = None
 
 		self.preferences = self.ui.preferences['PageView']
 		self.ui.register_preferences('PageView', ui_preferences)
@@ -2632,29 +2633,38 @@ class PageView(gtk.VBox):
 				logger.debug('Removed plugin %s for image type "%s"', plugin, type)
 
 	def do_textstyle_changed(self, buffer, style):
-		# set statusbar
 		#~ print '>>> SET STYLE', style
+
+		# set statusbar
 		if style: label = style.title()
 		else: label = 'None'
 		self.ui.mainwindow.statusbar_style_label.set_text(label)
 
 		# set toolbar toggles
+		if style:
+			style_toggle = 'toggle_format_'+style
+		else:
+			style_toggle = None
+
+		# Here we explicitly never change the toggle that initiated
+		# the change (_current_toggle_action). Somehow touching this
+		# toggle action will cause a new 'activate' signal to be fired,
+		# *after* we go out of this function and thus after the unblock.
+		# If we are lucky this second signal just undoes our current
+		# action. If we are unlucky, it puts us in an infinite loop...
+		# Not sure of the root cause, probably due to gtk+ internals.
+		# There is no proper way to block it, so we need to avoid
+		# calling it in the first place.
 		for name in [a[0] for a in ui_format_toggle_actions]:
 			action = self.actiongroup.get_action(name)
-			self._show_toggle(action, False)
+			if name == self._current_toggle_action:
+				continue
+			else:
+				action.handler_block_by_func(self.do_toggle_format_action)
+				action.set_active(name == style_toggle)
+				action.handler_unblock_by_func(self.do_toggle_format_action)
 
-		#~ print '==='
-
-		if style:
-			action = self.actiongroup.get_action('toggle_format_'+style)
-			if not action is None:
-				self._show_toggle(action, True)
 		#~ print '<<<'
-
-	def _show_toggle(self, action, state):
-		action.handler_block_by_func(self.do_toggle_format_action)
-		action.set_active(state)
-		action.handler_unblock_by_func(self.do_toggle_format_action)
 
 	def do_link_enter(self, link):
 		self.ui.mainwindow.statusbar.push(1, 'Go to "%s"' % link['href'])
@@ -2920,10 +2930,12 @@ class PageView(gtk.VBox):
 		'''Handler that catches all actions to apply and/or toggle formats'''
 		name = action.get_name()
 		logger.debug('Action: %s (toggle_format action)', name)
+		self._current_toggle_action = name
 		if name.startswith('apply_format_'): style = name[13:]
 		elif name.startswith('toggle_format_'): style = name[14:]
 		else: assert False, "BUG: don't known this action"
 		self.toggle_format(style)
+		self._current_toggle_action = None
 
 	def toggle_format(self, format):
 		buffer = self.view.get_buffer()
