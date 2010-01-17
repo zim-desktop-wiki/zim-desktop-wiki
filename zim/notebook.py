@@ -13,6 +13,7 @@ the 'stores' namespace.
 from __future__ import with_statement
 
 import os
+import re
 import weakref
 import logging
 
@@ -308,6 +309,10 @@ class PageReadOnlyError(Error):
 	def __init__(self, page):
 		self.msg = _('Can not modify page: %s') % page.name
 			# T: error message for read-only pages
+
+
+_first_char_re = re.compile(r'^\W', re.UNICODE)
+
 
 class Notebook(gobject.GObject):
 	'''Main class to access a notebook. Proxies between backend Store
@@ -623,13 +628,8 @@ class Notebook(gobject.GObject):
 	def cleanup_pathname(name):
 		'''Returns a safe version of name, used internally by functions like
 		resolve_path() to parse user input.
+		It raises a PageNameError when the name is not valid
 		'''
-		orig = name
-		name = name.replace('_', ' ')
-			# Avoid duplicates with and without '_' in index
-		name = ':'.join( map(unicode.strip,
-				filter(lambda n: len(n)>0, unicode(name).split(':')) ) )
-
 		# Reserved characters are:
 		# The ':' is reserrved as seperator
 		# The '?' is reserved to encode url style options
@@ -641,9 +641,28 @@ class Notebook(gobject.GObject):
 		# Zim version < 0.42 restricted all special charachters but
 		# white listed ".", "-", "_", "(", ")", ":" and "%".
 
-		# TODO check for illegal characters in the name
+		# For file system we should reserve (win32 & posix)
+		# "\", "/", ":", "*", "?", '"', "<", ">", "|"
 
-		if not name or name.isspace():
+		orig = name
+		name = name.replace('_', ' ')
+			# Avoid duplicates with and without '_' (e.g. in index)
+			# Note that leading "_" is stripped, due to strip() below
+
+		for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|"):
+			if char in name:
+				raise PageNameError, orig
+
+		parts = map(unicode.strip, filter(
+			lambda n: len(n)>0, unicode(name).split(':') ) )
+
+		for part in parts:
+			if _first_char_re.match(part):
+				raise PageNameError, orig
+
+		name = ':'.join(parts)
+
+		if not name:
 			raise PageNameError, orig
 
 		return name
@@ -924,7 +943,7 @@ class Notebook(gobject.GObject):
 		if filename.startswith('~') or filename.startswith('file:/'):
 			return File(filename)
 		elif filename.startswith('/'):
-			dir = self.get_document_root() or Dir('~')
+			dir = self.get_document_root() or Dir('/')
 			return dir.file(filename)
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):

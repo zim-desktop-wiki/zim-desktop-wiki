@@ -72,9 +72,15 @@ class Store(StoreClass):
 			if file.startswith('.') or file.startswith('_'):
 				continue # no hidden files or directories
 			elif file.endswith('.txt'): # TODO: do not hard code extension
-				names.add(decode_filename(file[:-4]))
+				if ' ' in file:
+					logger.warn('Ignoring file: "%s" invalid file name', file)
+				else:
+					names.add(decode_filename(file[:-4]))
 			elif os.path.isdir( os.path.join(dir.path, file) ):
-				names.add(decode_filename(file))
+				if ' ' in file:
+					logger.warn('Ignoring file: "%s" invalid file name', file)
+				else:
+					names.add(decode_filename(file))
 			else:
 				pass # unknown file type
 

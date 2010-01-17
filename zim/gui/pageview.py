@@ -2687,18 +2687,21 @@ class PageView(gtk.VBox):
 		type = link_type(href)
 		logger.debug('Link clicked: %s: %s' % (type, link['href']))
 
-		if type == 'interwiki':
-			href = interwiki_link(href)
-			type = link_type(href)
+		try:
+			if type == 'interwiki':
+				href = interwiki_link(href)
+				type = link_type(href)
 
-		if type == 'page':
-			path = self.ui.notebook.resolve_path(href, source=self.page)
-			self.ui.open_page(path)
-		elif type == 'file':
-			path = self.ui.notebook.resolve_file(href, self.page)
-			self.ui.open_file(path)
-		else:
-			self.ui.open_url(href)
+			if type == 'page':
+				path = self.ui.notebook.resolve_path(href, source=self.page)
+				self.ui.open_page(path)
+			elif type == 'file':
+				path = self.ui.notebook.resolve_file(href, self.page)
+				self.ui.open_file(path)
+			else:
+				self.ui.open_url(href)
+		except Exception, error:
+			ErrorDialog(self.ui, error).run()
 
 	def do_populate_popup(self, menu):
 		buffer = self.view.get_buffer()
@@ -3249,8 +3252,10 @@ class InsertLinkDialog(Dialog):
 			('href', 'page', _('Link to'), href), # T: Input in 'insert link' dialog
 			('text', 'string', _('Text'), text) # T: Input in 'insert link' dialog
 		])
+		self._hook_text_entry()
 
 	def _get_link(self):
+		# Get link and text from the text buffer
 		href = ''
 		text = ''
 		buffer = self.pageview.view.get_buffer()
@@ -3274,6 +3279,16 @@ class InsertLinkDialog(Dialog):
 			self._selection_bounds = None
 
 		return href, text
+
+	def _hook_text_entry(self):
+		# Hook text entry to copy text from link when apropriate
+		href = self.inputs['href'].get_text()
+		text = self.inputs['text'].get_text()
+		if not text or text == href:
+			hrefentry = self.inputs['href']
+			textentry = self.inputs['text']
+			hrefentry.connect('changed',
+				lambda o: textentry.set_text(hrefentry.get_text()) )
 
 	def do_response_ok(self):
 		entry = self.inputs['href']
@@ -3309,11 +3324,14 @@ class InsertExternalLinkDialog(InsertLinkDialog):
 					button=(_('_Link'), 'zim-link') )  # T: Dialog button
 		self.pageview = pageview
 
+		# FIXME - do we need an input type for file OR url ?
+		# if so, also update EditLinkDialog
 		href, text = self._get_link()
 		self.add_fields([
 			('href', 'file', _('Link to'), href), # T: Input in 'insert link' dialog
 			('text', 'string', _('Text'), text), # T: Input in 'insert link' dialog
 		])
+		self._hook_text_entry()
 
 
 class EditLinkDialog(InsertLinkDialog):
@@ -3326,12 +3344,13 @@ class EditLinkDialog(InsertLinkDialog):
 
 		href, text = self._get_link()
 		type = link_type(href)
-		if type == 'file': input = 'file'
-		else: input = 'page'
+		if type == 'page': input = 'page' # Same as InsertLinkDialog
+		else:              input = 'file' # Same as InsertExternalLinkDialog
 		self.add_fields([
 			('href', input, _('Link to'), href), # T: Input in 'edit link' dialog
 			('text', 'string', _('Text'), text), # T: Input in 'edit link' dialog
 		])
+		self._hook_text_entry()
 
 
 class FindAndReplaceDialog(Dialog):

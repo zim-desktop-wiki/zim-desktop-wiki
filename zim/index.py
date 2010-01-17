@@ -985,6 +985,12 @@ class Index(gobject.GObject):
 		return len(self.list_pages(path))
 
 	def list_links(self, path, direction=LINK_DIR_FORWARD):
+		'''Return Link objects for each link from or to path.
+		Direction can be:
+			LINK_DIR_FORWARD	for links from path
+			LINK_DIR_BACKWARD	for links to path
+			LINK_DIR_FORWARD	for links from and to path
+		'''
 		path = self.lookup_path(path)
 		if path:
 			cursor = self.db.cursor()
@@ -1006,12 +1012,28 @@ class Index(gobject.GObject):
 
 				yield Link(source, href)
 
+	def list_links_to_tree(self, path, direction=LINK_DIR_FORWARD):
+		'''Like list_links() but recursive for sub pages below path'''
+		for link in self.list_links(path, direction):
+			yield link
+
+		for child in self.walk(path):
+			for link in self.list_links(child, direction):
+				yield link
+
 	def n_list_links(self, path, direction=LINK_DIR_FORWARD):
-		'''Like list_lins() but returns only the number of links instead
+		'''Like list_links() but returns only the number of links instead
 		of the links themselves.
 		'''
 		# TODO optimize this one
 		return len(list(self.list_links(path, direction)))
+
+	def n_list_links_to_tree(self, path, direction=LINK_DIR_FORWARD):
+		'''Like list_links_to_tree() but returns only the number of links instead
+		of the links themselves.
+		'''
+		# TODO optimize this one
+		return len(list(self.list_links_to_tree(path, direction)))
 
 	def get_previous(self, path, recurs=True):
 		'''Returns the previous page in the index. If 'recurs' is False it stays

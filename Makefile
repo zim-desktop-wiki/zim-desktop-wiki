@@ -9,9 +9,13 @@ BUILDIR=$(CURDIR)/debian/zim
 PROJECT=zim
 
 all:
-	@echo "make source - Create source package"
+	$(PYTHON) setup.py build
+
+help:
+	@echo "make - Build sources"
 	@echo "make test - Run test suite"
 	@echo "make install - Install on local system"
+	@echo "make source - Create source package"
 	@echo "make buildrpm - Generate a rpm package"
 	@echo "make builddeb - Generate a deb package"
 	@echo "make clean - Get rid of scratch and byte files"
@@ -35,9 +39,10 @@ builddeb:
 	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ../*
 	# build the package
 	dpkg-buildpackage -i -I -rfakeroot
+	# clean up build files
+	$(MAKE) -f $(CURDIR)/debian/rules clean
 
 clean:
 	$(PYTHON) setup.py clean
-	$(MAKE) -f $(CURDIR)/debian/rules clean
-	rm -rf build/ MANIFEST tests/tmp/
+	rm -rf build/ MANIFEST tests/tmp/ locale/ man/
 	find . -name '*.pyc' -delete

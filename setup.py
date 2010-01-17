@@ -185,6 +185,11 @@ class zim_install_class(install_class):
 			print 'Trying: ' + ' '.join(cmd)
 			subprocess.call(cmd)
 
+		# xdg-icon-resource installs:
+		# /usr/local/share/icons/hicolor/64x64/mimetypes/gnome-mime-application-x-zim-notebook.png
+		# /usr/local/share/icons/hicolor/64x64/mimetypes/application-x-zim-notebook.png
+		# /usr/local/share/icons/hicolor/64x64/apps/zim.png
+
 
 # Distutils parameters, and main function
 

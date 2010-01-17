@@ -10,6 +10,7 @@ import datetime
 
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
+from zim.notebook import Path
 from zim.gui.widgets import Dialog, Button, IconButton, BrowserTreeView, SingleClickTreeView
 from zim.formats import UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 
@@ -188,9 +189,9 @@ class TagListTreeView(SingleClickTreeView):
 
 style = gtk.Label().get_style() # HACK - how to get default style ?
 NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
-HIGH_COLOR = gtk.gdk.color_parse('#ff0000')
-MEDIUM_COLOR = gtk.gdk.color_parse('#ff8800')
-ALERT_COLOR = gtk.gdk.color_parse('#ffff00')
+HIGH_COLOR = gtk.gdk.color_parse('#EF2929') # red (from Tango style guide)
+MEDIUM_COLOR = gtk.gdk.color_parse('#FCAF3E') # orange ("idem")
+ALERT_COLOR = gtk.gdk.color_parse('#FCE94F') # yellow ("idem")
 # FIXME: should these be configurable ?
 
 
@@ -243,7 +244,7 @@ class TaskListTreeView(BrowserTreeView):
 		def render_prio(col, cell, model, i):
 			prio = model.get_value(i, self.PRIO_COL)
 			cell.set_property('text', str(prio))
-			if prio >= 3: color = ALERT_COLOR
+			if prio >= 3: color = HIGH_COLOR
 			elif prio == 2: color = MEDIUM_COLOR
 			elif prio == 1: color = ALERT_COLOR
 			else: color = NORMAL_COLOR
@@ -267,7 +268,7 @@ class TaskListTreeView(BrowserTreeView):
 			else:
 				cell.set_property('text', date)
 				# TODO allow strftime here
-				
+
 			if date <= today: color = HIGH_COLOR
 			elif date == tomorrow: color = MEDIUM_COLOR
 			elif date == dayafter: color = ALERT_COLOR
@@ -357,7 +358,7 @@ class TaskListTreeView(BrowserTreeView):
 
 	def do_row_activated(self, path, column):
 		model = self.get_model()
-		page = self.ui.notebook.resolve_path( model[path][self.PAGE_COL] )
+		page = Path( model[path][self.PAGE_COL] )
 		#~ task = ...
 		self.ui.open_page(page)
 		#~ self.ui.mainwindow.pageview.search(task)
@@ -396,7 +397,7 @@ class TaskListTreeView(BrowserTreeView):
 			else:
 				# No match or we already had a date
 				return match.group(0)
-		
+
 		text = self.date_re.sub(set_date, text)
 
 		# TODO - determine if actionable or not
@@ -419,7 +420,7 @@ class TaskListTreeView(BrowserTreeView):
 				self.tags[tag] += 1
 			else:
 				self.tags[tag] = 1
-	
+
 	def _flatten(self, node):
 		text = node.text or ''
 		for child in node.getchildren():

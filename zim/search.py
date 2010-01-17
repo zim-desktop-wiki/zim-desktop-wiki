@@ -148,6 +148,7 @@ class RootSelection(Selection):
 							pages.append(page)
 							scores[page] = score
 		elif key == 'linksto':
+			# TODO - handle PageNameError exception in resolve
 			path = self.notebook.resolve_path(word)
 			links = self.notebook.index.list_links(path, LINK_DIR_BACKWARD)
 			for link in links:

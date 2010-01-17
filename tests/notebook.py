@@ -331,6 +331,7 @@ http://foo.org # urls are untouched
 			('::foo:bar:', 'foo:bar'),
 			(':foo', 'foo'),
 			(':Bar', 'Bar'),
+			(':Foo (Bar)', 'Foo (Bar)'),
 			# TODO more ambigous test cases
 		): self.assertEqual(
 			self.notebook.resolve_path(name), Path(wanted) )
@@ -348,6 +349,8 @@ http://foo.org # urls are untouched
 			self.notebook.resolve_path(name, Path(ns)), Path(wanted) )
 
 		self.assertRaises(PageNameError, self.notebook.resolve_path, ':::')
+		self.assertRaises(PageNameError, self.notebook.resolve_path, '/foo')
+		self.assertRaises(PageNameError, self.notebook.resolve_path, ':foo:(bar)')
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''

@@ -17,7 +17,7 @@ import sys
 from zim.fs import *
 import zim.errors
 import zim.config
-from zim.notebook import Path, PageNameError
+from zim.notebook import Notebook, Path, PageNameError
 
 
 logger = logging.getLogger('zim.gui')
@@ -277,6 +277,10 @@ class PageEntry(gtk.Entry):
 
 	allow_select_root = False
 
+	style = gtk.Entry().get_style() # HACK - how to get default style ?
+	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
+	ERROR_COLOR = gtk.gdk.color_parse('#EF7F7F') # light red (derived from Tango style guide)
+
 	def __init__(self, notebook, path=None, path_context=None):
 		'''Contructor. Needs at least a Notebook to resolve paths.
 		If a context is given this is the reference Path for resolving
@@ -324,7 +328,19 @@ class PageEntry(gtk.Entry):
 		self.emit('activate')
 
 	def do_changed(self):
-		text = self.get_text()
+		text = self.get_text().strip()
+
+		if not text:
+			self.modify_base(gtk.STATE_NORMAL, self.NORMAL_COLOR)
+			return
+
+		try:
+			text = Notebook.cleanup_pathname(text)
+		except PageNameError:
+			self.modify_base(gtk.STATE_NORMAL, self.ERROR_COLOR)
+			return
+		else:
+			self.modify_base(gtk.STATE_NORMAL, self.NORMAL_COLOR)
 
 		# Figure out some hint about the namespace
 		if ':' in text:
@@ -593,8 +609,10 @@ class Dialog(gtk.Dialog):
 						entry = NamespaceEntry(self.ui.notebook, path_context=self.path_context)
 					if value:
 						if isinstance(value, basestring):
-							value = Path(value)
-						entry.set_path(value)
+							entry.set_text(value)
+						else:
+							assert isinstance(value, Path)
+							entry.set_path(value)
 					self.inputs[name] = entry
 					table.attach(entry, 1,2, i,i+1)
 				else:

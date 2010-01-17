@@ -1872,9 +1872,8 @@ class MovePageDialog(Dialog):
 		if isinstance(self.path, Page) and self.path.modified:
 			assert self.ui.save_page(self.path)
 
-		i = self.ui.notebook.index.n_list_links(
-					self.path, zim.index.LINK_DIR_BACKWARD)
-		# FIXME need to get also links to child pages
+		i = self.ui.notebook.index.n_list_links_to_tree(
+					self.path, zim.index.LINK_DIR_BACKWARD )
 
 		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
 			# T: Heading in 'move page' dialog - %s is the page name
@@ -1882,6 +1881,7 @@ class MovePageDialog(Dialog):
 			'Update %i page linking to this page',
 			'Update %i pages linking to this page', i) % i
 			# T: label in MovePage dialog - %i is number of backlinks
+			# TODO update lable to reflect that links can also be to child pages
 		self.context_page = self.path.parent
 		self.add_fields([
 			('parent', 'namespace', _('Namespace'), self.context_page),
@@ -1890,10 +1890,9 @@ class MovePageDialog(Dialog):
 				# T: option in 'move page' dialog
 		])
 
-		# SEE FIXME above
-		#~ if i == 0:
-			#~ self.inputs['links'].set_active(False)
-			#~ self.inputs['links'].set_sensitive(False)
+		if i == 0:
+			self.inputs['links'].set_active(False)
+			self.inputs['links'].set_sensitive(False)
 
 	def do_response_ok(self):
 		parent = self.get_field('parent')
@@ -1913,8 +1912,8 @@ class RenamePageDialog(Dialog):
 			self.path = path
 		assert self.path, 'Need a page here'
 
-		i = self.ui.notebook.index.n_list_links(
-					self.path, zim.index.LINK_DIR_BACKWARD)
+		i = self.ui.notebook.index.n_list_links_to_tree(
+					self.path, zim.index.LINK_DIR_BACKWARD )
 
 		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
 			# T: label in 'rename page' dialog - %s is the page name
@@ -1922,6 +1921,7 @@ class RenamePageDialog(Dialog):
 			'Update %i page linking to this page',
 			'Update %i pages linking to this page', i) % i
 			# T: label in MovePage dialog - %i is number of backlinks
+			# TODO update lable to reflect that links can also be to child pages
 		self.add_fields([
 			('name', 'string', _('Name'), self.path.basename),
 				# T: Input label in the 'rename page' dialog for the new name

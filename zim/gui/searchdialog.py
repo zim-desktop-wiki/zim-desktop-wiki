@@ -5,6 +5,7 @@
 import gtk
 import logging
 
+from zim.notebook import Path
 from zim.gui.widgets import Dialog, BrowserTreeView
 from zim.search import *
 
@@ -96,8 +97,7 @@ class SearchResultsTreeView(BrowserTreeView):
 			model.append((page.name, score))
 
 	def _do_open_page(self, view, path, col):
-		page = self.get_model()[path][0]
-		page = self.ui.notebook.resolve_path(page)
+		page = Path( self.get_model()[path][0] )
 		self.ui.open_page(page)
 
 		# Popup find dialog with same query
