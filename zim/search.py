@@ -46,6 +46,8 @@ class Query(object):
 
 	# TODO support + and - operators
 
+	# TODO document data tree of query object
+
 	def __init__(self, string):
 		self.string = string
 		self.root = self._parse_query(string)
@@ -88,6 +90,17 @@ class Query(object):
 
 		#~ print root
 		return root
+
+	@property
+	def simple_match(self):
+		'''Used to determine a simple matching string to be used
+		in the find method in the pageview. Used in SearchDialog.
+		'''
+		if len(self.root) == 1 and isinstance(self.root[0], tuple) \
+		and self.root[0][0] == 'content':
+			return self.root[0][1]
+		else:
+			return None
 
 	@classmethod
 	def regex(klass, text, case=False):

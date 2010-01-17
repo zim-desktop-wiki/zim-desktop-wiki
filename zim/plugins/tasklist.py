@@ -10,7 +10,7 @@ import datetime
 
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
-from zim.gui.widgets import Dialog, Button, IconButton, BrowserTreeView
+from zim.gui.widgets import Dialog, Button, IconButton, BrowserTreeView, SingleClickTreeView
 from zim.formats import UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 
 
@@ -139,7 +139,7 @@ class TaskListDialog(Dialog):
 		Dialog.do_response(self, response)
 
 
-class TagListTreeView(BrowserTreeView):
+class TagListTreeView(SingleClickTreeView):
 	'''TreeView with a single column 'Tags' which shows all tags available
 	in a TaskListTreeView. Selecting a tag will filter the task list to
 	only show tasks with that tag.
@@ -147,7 +147,8 @@ class TagListTreeView(BrowserTreeView):
 
 	def __init__(self, task_list):
 		model = gtk.ListStore(str, bool) # tag name, is seperator bool
-		BrowserTreeView.__init__(self, model)
+		SingleClickTreeView.__init__(self, model)
+		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
 		self.task_list = task_list
 
 		cell_renderer = gtk.CellRendererText()
@@ -158,16 +159,18 @@ class TagListTreeView(BrowserTreeView):
 		self.set_row_separator_func(lambda m, i: m[i][1])
 			# just returns the bool in the second column
 
+		self.get_selection().connect('changed', self.on_selection_changed)
+
 		self.on_update(task_list)
 		task_list.connect('updated', self.on_update)
 
-	def get_tag(self):
-		'''Returns current selected tag, or None for all tags'''
-		model, iter = self.get_selection().get_selected()
-		if model.get_path(iter) == (0,):
+	def get_tags(self):
+		'''Returns current selected tags, or None for all tags'''
+		model, paths = self.get_selection().get_selected_rows()
+		if not paths or (0,) in paths:
 			return None
 		else:
-			return model[iter][0]
+			return [model[path][0] for path in paths]
 
 	def on_update(self, task_list):
 		model = self.get_model()
@@ -178,15 +181,9 @@ class TagListTreeView(BrowserTreeView):
 		for tag in sorted(self.task_list.get_tags()):
 			model.append((tag, False))
 
-	def do_row_activated(self, path, col):
-		if path == (0,):
-			self.task_list.set_tag_filter(None)
-		else:
-			model = self.get_model()
-			self.task_list.set_tag_filter(model[path][0])
-
-# Need to register classes defining gobject signals
-gobject.type_register(TagListTreeView)
+	def on_selection_changed(self, selection):
+		tags = self.get_tags()
+		self.task_list.set_tag_filter(tags)
 
 
 style = gtk.Label().get_style() # HACK - how to get default style ?
@@ -246,10 +243,9 @@ class TaskListTreeView(BrowserTreeView):
 		def render_prio(col, cell, model, i):
 			prio = model.get_value(i, self.PRIO_COL)
 			cell.set_property('text', str(prio))
-			if prio == 0: color = NORMAL_COLOR
-			elif prio == self.maxprio: color = HIGH_COLOR
-			elif prio == self.maxprio - 1: color = MEDIUM_COLOR
-			elif prio == self.maxprio - 2: color = ALERT_COLOR
+			if prio >= 3: color = ALERT_COLOR
+			elif prio == 2: color = MEDIUM_COLOR
+			elif prio == 1: color = ALERT_COLOR
 			else: color = NORMAL_COLOR
 			cell.set_property('cell-background-gdk', color)
 
@@ -272,7 +268,7 @@ class TaskListTreeView(BrowserTreeView):
 				cell.set_property('text', date)
 				# TODO allow strftime here
 				
-			if date == today: color = HIGH_COLOR
+			if date <= today: color = HIGH_COLOR
 			elif date == tomorrow: color = MEDIUM_COLOR
 			elif date == dayafter: color = ALERT_COLOR
 			else: color = NORMAL_COLOR
@@ -299,22 +295,32 @@ class TaskListTreeView(BrowserTreeView):
 		# TODO - switch between tree view and list view
 
 	def set_filter(self, string):
-		self.filter = string
+		# TODO allow more complex queries here - same parse as for search
+		if string:
+			inverse = False
+			if string.lower().startswith('not '):
+				# Quick HACK to support e.g. "not @waiting"
+				inverse = True
+				string = string[4:]
+			self.filter = (inverse, string.strip())
+		else:
+			self.filter = None
 		self._eval_filter()
 
 	def get_tags(self):
+		'''Returns list of all tags that are in use for tasks'''
 		return self.tags.keys()
 
 	def get_statistics(self):
-		highest = max(self.prio.keys())
-		keys = range(highest+1)
-		stats = [self.prio.get(k, 0) for k in keys]
+		highest = max([0] + self.prio.keys())
+		stats = [self.prio.get(k, 0) for k in range(highest+1)]
 		stats.reverse() # highest first
 		return self.total, stats
 
-	def set_tag_filter(self, tag):
-		if tag:
-			self.tag_filter = '@'+tag
+	def set_tag_filter(self, tags):
+		# TODO support multiple tags
+		if tags:
+			self.tag_filter = ["@"+tag for tag in tags]
 		else:
 			self.tag_filter = None
 		self._eval_filter()
@@ -324,23 +330,29 @@ class TaskListTreeView(BrowserTreeView):
 		self.real_model.foreach(self._filter_item)
 
 	def _filter_item(self, model, path, iter):
-		filterout = False
+		visible = True
 
-		if self.tag_filter:
-			if not self.tag_filter in model[iter][self.TASK_COL]:
-				filterout |= True
+		if not (model[iter][self.ACT_COL] and model[iter][self.OPEN_COL]):
+			visible = False
 
-		if self.filter:
-			if not (
-				self.filter in model[iter][self.TASK_COL]
-				or self.filter in model[iter][self.PAGE_COL]
-			):
-				filterout |= True
+		if visible and self.tag_filter:
+			match = False
+			description = model[iter][self.TASK_COL]
+			for tag in self.tag_filter:
+				if tag in description:
+					match = True
+					break
+			if not match:
+				visible = False
 
-		filterout |= not (
-			model[iter][self.ACT_COL] and model[iter][self.OPEN_COL]) # TODO
+		if visible and self.filter:
+			inverse, string = self.filter
+			match = string in model[iter][self.TASK_COL] \
+				or string in model[iter][self.PAGE_COL]
+			if (not inverse and not match) or (inverse and match):
+				visible = False
 
-		model[iter][self.VIS_COL] = not filterout
+		model[iter][self.VIS_COL] = visible
 
 
 	def do_row_activated(self, path, column):

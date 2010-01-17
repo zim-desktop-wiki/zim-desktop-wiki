@@ -60,6 +60,7 @@ class SearchResultsTreeView(BrowserTreeView):
 		model = gtk.ListStore(str, int) # page, rank
 		BrowserTreeView.__init__(self, model)
 		self.ui = ui
+		self.query = None
 		self.searcher = Searcher(ui.notebook)
 
 		cell_renderer = gtk.CellRendererText()
@@ -84,8 +85,8 @@ class SearchResultsTreeView(BrowserTreeView):
 			return
 		logger.info('Searching for: %s', query)
 
-		query = Query(query)
-		result = self.searcher.search(query)
+		self.query = Query(query)
+		result = self.searcher.search(self.query)
 		# TODO need callback here
 
 		model = self.get_model()
@@ -98,3 +99,8 @@ class SearchResultsTreeView(BrowserTreeView):
 		page = self.get_model()[path][0]
 		page = self.ui.notebook.resolve_path(page)
 		self.ui.open_page(page)
+
+		# Popup find dialog with same query
+		if self.query and self.query.simple_match:
+			string = self.query.simple_match
+			self.ui.mainwindow.pageview.show_find(string)

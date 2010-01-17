@@ -89,6 +89,9 @@ class IconButton(gtk.Button):
 
 
 class SingleClickTreeView(gtk.TreeView):
+	'''Treeview subclass for trees that want single-click behavior,
+	but do allow multiple items to be selected.
+	'''
 
 	mask = gtk.gdk.SHIFT_MASK | gtk.gdk.CONTROL_MASK
 

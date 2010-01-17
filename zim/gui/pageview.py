@@ -1407,6 +1407,14 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		return bool(self.get_selection_bounds())
 
+	def iter_in_selection(self, iter):
+		'''Returns True if 'iter' is within the current selection'''
+		bounds = self.get_selection_bounds()
+		return bounds \
+			and bounds[0].compare(iter) <= 0 \
+			and bounds[1].compare(iter) >= 0
+		# not using iter.in_range to be inclusive of bounds
+
 	def copy_clipboard(self, clipboard):
 		bounds = self.get_selection_bounds()
 		if bounds:
@@ -2860,7 +2868,8 @@ class PageView(gtk.VBox):
 	def remove_link(self, iter=None):
 		buffer = self.view.get_buffer()
 
-		if not buffer.get_has_selection():
+		if not buffer.get_has_selection() \
+		or not buffer.iter_in_selection(iter):
 			if iter:
 				buffer.place_cursor(iter)
 			buffer.select_link()
