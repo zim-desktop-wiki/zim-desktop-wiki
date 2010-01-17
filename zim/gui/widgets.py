@@ -966,10 +966,13 @@ class ProgressBarDialog(gtk.Dialog):
         background process, either be overloadig this class, or by checking the
 	return value of pulse().
 
-	TODO: also support percentage mode
+	If you know up front how often pulse() will be called supply this
+	number to the constructor in order to get the bar to display a percentage.
+	Otherwise the bar will just bounce up and down without indication of remaining
+	time.
 	'''
 
-	def __init__(self, ui, text):
+	def __init__(self, ui, text, total=None):
 		self.ui = ui
 		self.cancelled = False
 		gtk.Dialog.__init__(
@@ -996,14 +999,27 @@ class ProgressBarDialog(gtk.Dialog):
 		self.msg_label.set_ellipsize(pango.ELLIPSIZE_START)
 		self.vbox.pack_start(self.msg_label, False)
 
+		self.set_total(total)
+
+	def set_total(self, total):
+		self.total = total
+		self.count = 0
+
 	def pulse(self, msg=None):
 		'''Sets an optional message and moves forward the progress bar. Will also
 		handle all pending Gtk events, so interface keeps responsive during a background
 		job. This method returns True untill the 'Cancel' button has been pressed, this
 		boolean could be used to decide if the ackground job should continue or not.
 		'''
-		self.progressbar.pulse()
-		if not msg is None:
+		if self.total and self.count < self.total:
+			self.count += 1
+			fraction = float(self.count) / self.total
+			self.progressbar.set_fraction(fraction)
+			self.progressbar.set_text('%i%%' % int(fraction * 100))
+		else:
+			self.progressbar.pulse()
+
+		if msg:
 			self.msg_label.set_markup('<i>'+_encode_xml(msg)+'</i>')
 
 		while gtk.events_pending():

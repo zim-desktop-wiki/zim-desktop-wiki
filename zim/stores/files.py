@@ -17,6 +17,7 @@ once we have it resolved.
 '''
 
 import os # using os directly in get_pagelist()
+import logging
 from datetime import datetime
 
 from zim.fs import *
@@ -25,6 +26,9 @@ from zim.formats import get_format
 from zim.notebook import Path, Page, LookupError, PageExistsError
 from zim.stores import StoreClass, encode_filename, decode_filename
 from zim.config import HeadersDict
+from zim.formats.wiki import WIKI_FORMAT_VERSION # FIXME hard coded preference for wiki format
+
+logger = logging.getLogger('zim.stores.files')
 
 
 class Store(StoreClass):
@@ -167,6 +171,7 @@ class FileStorePage(Page):
 		self.format = format
 		self.source.checkoverwrite = True
 		self.readonly = not self.source.iswritable()
+		self.properties = None
 
 	def _source_hascontent(self):
 		return self.source.exists()
@@ -196,17 +201,22 @@ class FileStorePage(Page):
 		#~ print 'STORE', tree.tostring()
 		if tree.hascontent:
 			new = False
-			if not self.properties:
+			if self.properties is None:
 				self.properties = HeadersDict()
 				new = True
 			self.properties['Content-Type'] = 'text/x-zim-wiki'
-			self.properties['Wiki-Format'] = 'zim 0.26'
+			self.properties['Wiki-Format'] = WIKI_FORMAT_VERSION
 			if new:
 				now = datetime.now()
 				self.properties['Creation-Date'] = now.isoformat()
 
 			# Note: No "Modification-Date" here because it causes conflicts
 			# when merging branches with version control, use mtime from filesystem
+			# If we see this header, remove it because it will not be updated.
+			try:
+				del self.properties['Modification-Date']
+			except:
+				pass
 
 			lines = self.properties.dump()
 			lines.append('\n')

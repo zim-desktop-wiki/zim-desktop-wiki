@@ -373,6 +373,8 @@ class GtkInterface(NotebookInterface):
 		# older gobject version doesn't know about seconds
 		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
 
+		self.check_notebook_needs_upgrade()
+
 		self.mainwindow.show_all()
 		self.mainwindow.pageview.grab_focus()
 		gtk.main()
@@ -625,6 +627,32 @@ class GtkInterface(NotebookInterface):
 		self.notebook.index.update(background=True, checkcontents=False)
 
 		self.set_readonly(notebook.readonly)
+
+	def check_notebook_needs_upgrade(self):
+		if not self.notebook.needs_upgrade:
+			return
+
+		ok = QuestionDialog(None, (
+			_('Upgrade Notebook?'), # T: Short question for question prompt
+			_('This notebook was created by an older of version of zim.\n'
+			  'Do you want to upgrade it to the latest version now?\n\n'
+			  'Upgrading will take some time and may make various changes\n'
+			  'to the notebook. In general it is a good idea to make a\n'
+			  'backup before doing this.\n\n'
+			  'If you choose not to upgrade now, some features\n'
+			  'may not work as expected') # T: Explanation for question to upgrade notebook
+		) ).run()
+
+		if not ok:
+			return
+
+		dialog = ProgressBarDialog(self, _('Upgrading notebook'))
+			# T: Title of progressbar dialog
+		dialog.show_all()
+		self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
+		dialog.set_total(self.notebook.index.n_all_pages())
+		self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
+		dialog.destroy()
 
 	def on_notebook_properties_changed(self, notebook):
 		has_doc_root = not notebook.get_document_root() is None

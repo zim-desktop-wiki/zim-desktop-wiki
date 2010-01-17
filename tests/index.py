@@ -10,7 +10,7 @@ import gtk
 
 from zim.fs import Dir
 from zim.index import Index, IndexPath, LINK_DIR_BACKWARD, LINK_DIR_BOTH
-from zim.notebook import Notebook, Path, Link
+from zim.notebook import Notebook, Path, Link, init_notebook
 from zim.gui.pageindex import PageTreeStore, PageTreeView
 from zim.formats import ParseTree
 
@@ -19,6 +19,7 @@ def get_files_notebook(key):
 	# We fill the notebook using the store interface, as this test comes before
 	# the notebook test, but after the store test.
 	dir = Dir(tests.create_tmp_dir('index_'+key))
+	init_notebook(dir)
 	notebook = Notebook(dir=dir)
 	store = notebook.get_store(':')
 	manifest = []

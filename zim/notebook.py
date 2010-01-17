@@ -30,6 +30,8 @@ import zim.stores
 
 logger = logging.getLogger('zim.notebook')
 
+DATA_FORMAT_VERSION = (0, 4)
+
 
 class NotebookList(TextConfigFile):
 	'''This class keeps a list of paths for notebook locations
@@ -239,6 +241,7 @@ def init_notebook(path, name=None):
 	path.touch()
 	config = ConfigDictFile(path.file('notebook.zim'))
 	config['Notebook']['name'] = name or path.basename
+	config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
 	# TODO auto detect if we should enable the slow_fs option
 	config.write()
 
@@ -392,6 +395,10 @@ class Notebook(gobject.GObject):
 
 		if self.config is None:
 			self.config = ConfigDict()
+			self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
+		else:
+			if self.needs_upgrade:
+				logger.warn('This notebook needs to be upgraded to the latest data format')
 
 		self.config['Notebook'].setdefault('name', None, klass=basestring)
 		self.config['Notebook'].setdefault('home', ':Home', klass=basestring)
@@ -666,6 +673,39 @@ class Notebook(gobject.GObject):
 			raise PageNameError, orig
 
 		return name
+
+	@staticmethod
+	def cleanup_pathname_zim028(name):
+		'''Like cleanup_pathname(), but applies logic as it was in
+		zim 0.28 which replaces illegal characters by "_" instead of
+		throwing an exception. Needed to fix broken links in older
+		notebooks.
+		'''
+		# OLD CODE WAS:
+		# $name =~ s/^:*/:/ unless $rel;	# absolute name
+		# $name =~ s/:+$//;					# not a namespace
+		# $name =~ s/::+/:/g;				# replace multiple ":"
+		# $name =~ s/[^:\w\.\-\(\)\%]/_/g;	# replace forbidden chars
+		# $name =~ s/(:+)[\_\.\-\(\)]+/$1/g;	# remove non-letter at begin
+		# $name =~ s/_+(:|$)/$1/g;			# remove trailing underscore
+
+		forbidden_re = re.compile(r'[^\w\.\-\(\)]', re.UNICODE)
+		non_letter_re = re.compile(r'^\W+', re.UNICODE)
+
+		prefix = ''
+		if name[0] in (':', '.', '+'):
+			prefix = name[0]
+			name = name[1:]
+
+		path = []
+		for n in filter(len, name.split(':')):
+			n = forbidden_re.sub('_', n) # replace forbidden chars
+			n = non_letter_re.sub('', n) # remove non-letter at begin
+			n = n.rstrip('_') # remove trailing underscore
+			if len(n):
+				path.append(n)
+
+		return prefix + ':'.join(path)
 
 	def get_page(self, path):
 		'''Returns a Page object. This method uses a weakref dictionary to
@@ -1042,6 +1082,93 @@ class Notebook(gobject.GObject):
 	def get_page_indexkey(self, path):
 		store = self.get_store(path)
 		return store.get_page_indexkey(path)
+
+	@property
+	def needs_upgrade(self):
+		try:
+			version = str(self.config['Notebook']['version'])
+			version = tuple(version.split('.'))
+			return version < DATA_FORMAT_VERSION
+		except KeyError:
+			return True
+
+	def upgrade_notebook(self, callback=None):
+		'''Tries to update older notebook to format supported by the
+		latest version.
+		'''
+		# Currently we just assume upgrade from zim < 0.43
+		# may need to add more sophisticated logic later..
+		#
+		# We check for links based on old pagename cleanup rules
+		# also we write every page, just to be sure they are stored in
+		# the latest wiki format.
+		logger.info('Notebook update started')
+		self.index.ensure_update(callback=callback)
+
+		candidate_re = re.compile('[\W_]')
+		for page in self.walk():
+			if callback:
+				cont = callback(page)
+				if not cont:
+					logger.info('Notebook update cancelled')
+					return
+
+			try:
+				tree = page.get_parsetree()
+			except:
+				# Some issue we can't fix
+				logger.exception('Error while parsing page: "%s"', page.name)
+				tree = None
+
+			if tree is None:
+				continue
+
+			changed = False
+			for tag in tree.getiterator('link'):
+				href = tag.attrib['href']
+				type = link_type(href)
+				if type == 'page' and candidate_re.search(href):
+					# Skip if we can resolve it already
+					try:
+						link = self.resolve_path(href, source=page)
+						link = self.get_page(link)
+					except:
+						pass
+					else:
+						if link and link.hascontent:
+							# Do not check haschildren here, children could be placeholders as well
+							continue
+
+					# Otherwise check if old version would have found a match
+					try:
+						newhref = self.cleanup_pathname_zim028(href)
+						if newhref != href:
+							link = self.resolve_path(newhref, source=page)
+							link = self.get_page(link)
+						else:
+							link = None
+					except:
+						pass
+					else:
+						if link and link.hascontent:
+							# Do not check haschildren here, children could be placeholders as well
+							tag.attrib['href'] = newhref
+							changed = True
+							logger.info('Changed link "%s" to "%s"', href, newhref)
+
+			# Store this page
+			try:
+				if changed:
+					page.set_parsetree(tree)
+
+				self.store_page(page)
+			except:
+				logger.exception('Could not store page: "%s"', page.name)
+
+		# Update the version and we are done
+		self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
+		self.config.write()
+		logger.info('Notebook update done')
 
 # Need to register classes defining gobject signals
 gobject.type_register(Notebook)

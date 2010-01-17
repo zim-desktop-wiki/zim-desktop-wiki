@@ -979,6 +979,12 @@ class Index(gobject.GObject):
 			IndexPath(name+':'+r['basename'], indexpath+(r['id'],), r)
 				for r in cursor ]
 
+	def n_all_pages(self):
+		'''Returns number of pages in this notebook'''
+		cursor = self.db.cursor()
+		cursor.execute('select id from pages')
+		return len( list(cursor) )
+
 	def n_list_pages(self, path):
 		'''Returns the number of pages below path'''
 		# TODO optimize this one

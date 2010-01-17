@@ -9,6 +9,10 @@ import re
 from zim.formats import *
 from zim.parsing import Re, TextBuffer, url_re
 
+
+WIKI_FORMAT_VERSION = 'zim 0.4'
+
+
 info = {
 	'name':  'Wiki text',
 	'mime':  'text/x-zim-wiki',
@@ -75,8 +79,8 @@ def contains_links(text):
 
 class Parser(ParserClass):
 
-	def __init__(self, version='zim 0.26'):
-		self.backward = version != 'zim 0.26'
+	def __init__(self, version=WIKI_FORMAT_VERSION):
+		self.backward = version != WIKI_FORMAT_VERSION
 
 	def parse(self, input):
 		# Read the file and divide into paragraphs on the fly.
