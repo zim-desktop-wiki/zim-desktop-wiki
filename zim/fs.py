@@ -286,7 +286,7 @@ class WindowsPath(UnixPath):
 	@staticmethod
 	def _abspath(path):
 		# Strip leading / for absolute paths
-		if re.match(r'^[/\\][A-Z]:[/\\]', path):
+		if re.match(r'^[/\\][A-Za-z]:[/\\]', path):
 			path = path[1:]
 		return os.path.abspath(path)
 
