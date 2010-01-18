@@ -80,7 +80,7 @@ def contains_links(text):
 class Parser(ParserClass):
 
 	def __init__(self, version=WIKI_FORMAT_VERSION):
-		self.backward = version != WIKI_FORMAT_VERSION
+		self.backward = version not in ('zim 0.26', WIKI_FORMAT_VERSION)
 
 	def parse(self, input):
 		# Read the file and divide into paragraphs on the fly.

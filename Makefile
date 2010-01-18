@@ -1,8 +1,3 @@
-# $Id: Makefile,v 1.6.1 2009/08/26 17:04:35 Bart de Koning Exp $
-# 
-# Based on Makefile v 1.6 2008/10/29 01:01:35 by ghantoos
-# http://ghantoos.org/2008/10/19/creating-a-deb-package-from-a-python-setuppy/#setuppy
-
 PYTHON=`which python`
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/zim
@@ -33,13 +28,7 @@ buildrpm:
 	$(PYTHON) setup.py bdist_rpm --post-install=rpm/postinstall --pre-uninstall=rpm/preuninstall
 
 builddeb:
-	# build the source package in the parent directory
-	# then rename it to project_version.orig.tar.gz
-	$(PYTHON) setup.py sdist $(COMPILE) --dist-dir=../ --prune
-	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ../*
-	# build the package
 	dpkg-buildpackage -i -I -rfakeroot
-	# clean up build files
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 
 clean:

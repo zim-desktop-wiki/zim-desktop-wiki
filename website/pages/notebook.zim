@@ -5,6 +5,7 @@ icon=
 name=website
 read_only=0
 slow_fs=False
+version=0.4
 
 [GUI State]
 height=450

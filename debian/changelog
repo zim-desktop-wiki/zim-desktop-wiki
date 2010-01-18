@@ -1,3 +1,9 @@
+zim (0.43) karmic; urgency=low
+
+  * Updated to release 0.43 
+
+ -- Jaap Karrsenberg <pardus@cpan.org>  Mon, 18 Jan 2010 00:57:45 +0100
+
 zim (0.42) karmic; urgency=low
 
   * Initial release.

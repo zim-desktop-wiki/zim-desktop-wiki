@@ -1,3 +1,6 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+
 ====== Extras ======
 
 This page contains scripts from third party contributors. They are not maintained as part of **zim** itself.

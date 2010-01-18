@@ -4,6 +4,27 @@ Jaap Karssenberg <pardus@cpan.org>
 This branch is the Python rewrite and starts with version 0.42. 
 Lower version numbers for zim correspond to the Perl branch.
 
+=== 0.43 - Sun 17 Jan 2010 ===
+This is a bug fix release with fixes for most important issues found in 0.42
+
+* Added update method for data format for older notebooks
+* Fixed bug with duplicates showing in the index
+* Fixed bug with indexing on first time opening a notebook
+* Fixed bug with format toggle buttons in the toolbar
+* Fixed bug with permissions for files created by zim
+* Fixed bug with selection for remove_link
+* Fixed bug with default path for document_root
+* Fixed bug with updating links to children of moved pages
+* Added strict check for illegal characters in page names
+* Improved PageEntry to highlight illegal page names
+* Improved user interaction for Edit Link and Insert Link dialogs 
+* Trigger Find when a page is opened from the Search dialog
+* Allow selecting multiple tags in Task List plugin
+* Allow negative queries in Task List, like "not @waiting"
+* Checkbox icons are now included in export
+* Fixed import of simplejson for pyton 2.5 specific
+* Translations added for: English (United Kingdom), Greek and Polish
+
 === 0.42 - Sun 10 Jan 2010 ===
 This is the first release after a complete re-write of zim in python. 
 Functionality should be more or less similar to Perl branch version 0.28,
@@ -28,13 +49,5 @@ Additional issues addressed in this release:
 * Allow user to quit individual notebooks even when the tray icon is in effect 
 * Check for pages that are changed offline now employs MD5 sum to be more robust
 
-Translations available for:
-* Dutch
-* Estonian
-* Czech
-* French
-* German
-* Korean
-* Ukrainian
-* Simplified Chinese
-* Spanish
+Translations available for: Dutch, Estonian, Czech, French, German, Korean,
+Ukrainian, Simplified Chinese and Spanish

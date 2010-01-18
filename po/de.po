@@ -8,14 +8,14 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-01-09 21:46+0100\n"
-"PO-Revision-Date: 2010-01-10 14:03+0000\n"
+"PO-Revision-Date: 2010-01-14 18:00+0000\n"
 "Last-Translator: Klaus Vormweg <klaus.vormweg@gmx.de>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2010-01-10 20:40+0000\n"
+"X-Launchpad-Export-Date: 2010-01-17 20:12+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
 #. label for default webbrowser |
@@ -65,7 +65,7 @@ msgstr "Seiten"
 #. Option in versions dialog to show version for complete notebook
 #: zim/gui/exportdialog.py:27 zim/plugins/versioncontrol/__init__.py:235
 msgid "Complete _notebook"
-msgstr "Komplettes Notebook"
+msgstr "Komplettes Notizbuch"
 
 #. Option in export dialog to export selection
 #: zim/gui/exportdialog.py:29
@@ -174,13 +174,13 @@ msgid ""
 "An error occured while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
-"Während des Erstellen des Abbilds trat ein Fehler auf.\n"
+"Während des Erstellen der Grafik trat ein Fehler auf.\n"
 "Möchten Sie den Quelltext trotzdem speichern?"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/imagegeneratordialog.py:164
 msgid "Log file"
-msgstr "Logbuch"
+msgstr "Protokolldatei"
 
 #. Menu title
 #: zim/gui/__init__.py:55
@@ -577,7 +577,7 @@ msgid ""
 "(If disabled you can still use <Alt><Space>)"
 msgstr ""
 "<Strg><Leertaste> wechselt zur Seitenleiste\n"
-"(Alternativ <Alt>>Leertaste>)"
+"(Alternativ <Alt><Leertaste>)"
 
 #. Error description for "no such file or folder"
 #: zim/gui/__init__.py:190
@@ -585,14 +585,14 @@ msgid ""
 "The file or folder you specified does not exist.\n"
 "Please check if you the path is correct."
 msgstr ""
-"Die angegebene Datei oder der Ordner existiert nicht.\n"
+"Die angegebene Datei oder das Verzeichnis existiert nicht.\n"
 "Bitte überprüfen Sie ob die Pfadangabe korrekt ist."
 
 #. Error message, %s will be the file path
 #: zim/gui/__init__.py:194
 #, python-format
 msgid "No such file or folder: %s"
-msgstr "Keine solche Datei oder Ordner: %s"
+msgstr "Datei oder Verzeichnis %s existiert nicht"
 
 #. question dialog text
 #: zim/gui/__init__.py:863
@@ -602,7 +602,7 @@ msgid ""
 "continue anyway?"
 msgstr ""
 "Der Index wird gerade erneuert. Bis das beendet ist, können Links nicht "
-"korrekt erneuert werden. Wenn Sie weitermachen, siend einige Links u.U. "
+"korrekt erneuert werden. Wenn Sie weitermachen, sind einige Links u.U. "
 "fehlerhaft. Wollen Sie trotzdem weitermachen?"
 
 #. Error message
@@ -695,12 +695,12 @@ msgstr "_Kopie speichern"
 #. Dialog title
 #: zim/gui/__init__.py:1755
 msgid "Jump to"
-msgstr "Springe zu"
+msgstr "Gehe zu"
 
 #. Label for page input
 #: zim/gui/__init__.py:1758
 msgid "Jump to Page"
-msgstr "Springe zu Seite"
+msgstr "Gehe zur Seite"
 
 #. Dialog title
 #: zim/gui/__init__.py:1777
@@ -1210,12 +1210,12 @@ msgstr "Größe zu_rücksetzen"
 #. Dialog title
 #: zim/gui/pageview.py:3139
 msgid "Insert Text From File"
-msgstr "Text aus datei einfügen"
+msgstr "Text aus Datei einfügen"
 
 #. Dialog button
 #: zim/gui/pageview.py:3157 zim/gui/pageview.py:3222 zim/gui/pageview.py:3237
 msgid "_Link"
-msgstr "_Link"
+msgstr "_Verknüpfung"
 
 #. Input in 'insert link' dialog |
 #. Input in 'edit link' dialog
@@ -1232,7 +1232,7 @@ msgstr "Text"
 #. Dialog title
 #: zim/gui/pageview.py:3221
 msgid "Insert External Link"
-msgstr "Externen Link einfügen"
+msgstr "Externe Verknüpfung einfügen"
 
 #. Dialog title
 #: zim/gui/pageview.py:3235
@@ -1529,7 +1529,7 @@ msgstr ""
 "mit einer Seite pro Tag. Für diesen speziellen Namensraum wird \n"
 "ein Dialog mit einer Monatsübersicht erzeugt.\n"
 "\n"
-"Dieses Plugin wird mit Zim ausgeliefert.\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. preferences option
 #: zim/plugins/calendar.py:81
@@ -1637,13 +1637,12 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Diese Plugin erzeugt eine grafische Übersicht der Link-Struktur des "
+"Dieses Plugin erzeugt eine grafische Übersicht der Link-Struktur des "
 "Notizbuchs. Es zeigt ein einer Art \"Mind-Map\" die Beziehungen der Seiten "
-"untereinander.\n"
+"untereinander an.\n"
+"Dieses Plugin setzt voraus, dass Sie GraphViz installiert haben.\n"
 "\n"
-"Diese Plugin setzt voraus, dass Sie GraphViz installiert haben.\n"
-"\n"
-"Diese Plugin gehört zum Liefrumfang von Zim.\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:28
@@ -1742,7 +1741,7 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Diese Plugin stellt eine Rechtschreibprüfung mithilfe von \n"
+"Dieses Plugin stellt eine Rechtschreibprüfung mithilfe von \n"
 "GtkSpell zur Verfügung. GtkSpell muss dazu installiert sein.\n"
 "\n"
 "Dieses Plugin gehört zum Lieferumfang von Zim.\n"
@@ -1767,7 +1766,7 @@ msgstr ""
 "offene Ankreuzkästchen oder Elemente, die mit 'FIXME' oder 'TODO' markiert "
 "wurden.\n"
 "\n"
-"Diese Plugin gehört zum Lieferumfang von Zim.\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. Input label
 #: zim/plugins/tasklist.py:109
@@ -1827,11 +1826,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Die Plugin fügt ein Informationssymbol zum Benachrichtigungsfeld hinzu\n"
-"\n"
+"Dieses Plugin fügt ein Informationssymbol zum Benachrichtigungsfeld hinzu\n"
 "Sie benötigen Gtk+ ab der Version 2.10, um es einsetzen zu können.\n"
 "\n"
-"Diese Plugin gehört zum Lieferumfang von Zim.\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. tooltip for tray icon
 #: zim/plugins/trayicon.py:67
@@ -1870,7 +1868,7 @@ msgstr ""
 "Dieses Plugin ermöglicht die Versionskontrolle für Notizbücher.\n"
 "Es basiert auf dem Bazaar Versionskontrollsystem.\n"
 "\n"
-"Diese Plugin gehört zum Lieferumfang von Zim.\n"
+"Dieses Plugin gehört zum Lieferumfang von Zim.\n"
 
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:60

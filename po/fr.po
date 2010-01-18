@@ -8,14 +8,14 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-01-09 21:46+0100\n"
-"PO-Revision-Date: 2010-01-10 09:52+0000\n"
-"Last-Translator: Rui Nibau <ruinibau@yahoo.fr>\n"
+"PO-Revision-Date: 2010-01-13 17:49+0000\n"
+"Last-Translator: Raphael Hertzog <hertzog@debian.org>\n"
 "Language-Team: French <fr@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Launchpad-Export-Date: 2010-01-10 20:40+0000\n"
+"X-Launchpad-Export-Date: 2010-01-17 20:12+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
 #. label for default webbrowser |
@@ -121,7 +121,9 @@ msgstr "Documents"
 #. radio option in export dialog
 #: zim/gui/exportdialog.py:155
 msgid "Link files under document root with full file path"
-msgstr "Lier les fichiers dans la racine du document avec le chemin complet"
+msgstr ""
+"Lier les fichiers présents dans l'arborescence des documents avec des "
+"chemins complets"
 
 #. radio option in export dialog
 #: zim/gui/exportdialog.py:161
@@ -160,7 +162,7 @@ msgstr "Export du bloc-notes"
 #. button in e.g. equation editor dialog
 #: zim/gui/imagegeneratordialog.py:50
 msgid "_Preview"
-msgstr "Aperçu"
+msgstr "_Aperçu"
 
 #. button in e.g. equation editor dialog
 #: zim/gui/imagegeneratordialog.py:60
@@ -327,7 +329,7 @@ msgstr "Rechercher les _rétroliens"
 #. Menu item
 #: zim/gui/__init__.py:85
 msgid "Copy Location"
-msgstr "Emplacement pour copier"
+msgstr "Copier l'emplacement"
 
 #. Menu item
 #: zim/gui/__init__.py:86
@@ -452,7 +454,7 @@ msgstr "_Accueil"
 #. Menu item
 #: zim/gui/__init__.py:102
 msgid "Go home"
-msgstr "Allez à l'acceuil"
+msgstr "Allez à l'accueil"
 
 #. Menu item
 #: zim/gui/__init__.py:103
@@ -605,7 +607,7 @@ msgstr ""
 #. Error message
 #: zim/gui/__init__.py:959
 msgid "This page does not have an attachments folder"
-msgstr "Cette page n'a pas de dossier de destination"
+msgstr "Cette page n'a pas de dossier pour pièces jointes"
 
 #. Heading in a question dialog for creating a folder
 #: zim/gui/__init__.py:966 zim/gui/__init__.py:1000
@@ -618,8 +620,8 @@ msgid ""
 "The attachments folder for this page does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
-"Le dossier de destination pour cette page n'existe pas.\n"
-"Voulez vous la créer maintenant ?"
+"Le dossier pour les pièces jointes de cette page n'existe pas encore.\n"
+"Voulez vous le créer maintenant ?"
 
 #. Text in a question dialog for creating a folder
 #: zim/gui/__init__.py:1002
@@ -648,6 +650,7 @@ msgstr ""
 "Launchpad Contributions:\n"
 "  Kernel https://launchpad.net/~larrieuandy\n"
 "  Quentin THEURET https://launchpad.net/~quentin-theuret\n"
+"  Raphael Hertzog https://launchpad.net/~hertzog\n"
 "  Rui Nibau https://launchpad.net/~ruinibau\n"
 "  Steve Grosbois https://launchpad.net/~steve.grosbois"
 
@@ -668,7 +671,7 @@ msgstr[1] "%i _rétro-liens"
 #: zim/gui/__init__.py:1672
 #, python-format
 msgid "Could not save page: %s"
-msgstr "Ne peut pas sauver la page : %s"
+msgstr "Impossible de sauvegarder la page : %s"
 
 #. text in error dialog when saving page failed
 #: zim/gui/__init__.py:1674
@@ -755,7 +758,7 @@ msgstr "Déplacer la page"
 #: zim/gui/__init__.py:1877
 #, python-format
 msgid "Move page \"%s\""
-msgstr "Déplacer la page \"%s\""
+msgstr "Déplacer la page « %s »"
 
 #. label in MovePage dialog - %i is number of backlinks
 #: zim/gui/__init__.py:1880 zim/gui/__init__.py:1919
@@ -815,7 +818,7 @@ msgstr "Joindre un fichier"
 #: zim/gui/__init__.py:1995
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
-msgstr "La page \"%s\" n'a pas de dossier de destination"
+msgstr "La page « %s » n'a pas de dossier pour les pièces jointes"
 
 #. Column heading in 'open notebook' dialog |
 #. Field in web server gui
@@ -836,7 +839,7 @@ msgstr "Carnet par défaut"
 #. Dialog window title
 #: zim/gui/notebookdialog.py:345
 msgid "Add Notebook"
-msgstr "Ajouter une note"
+msgstr "Ajouter un bloc-note"
 
 #. help text in the 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:346
@@ -846,12 +849,10 @@ msgid ""
 "To create a new notebook you need to select an empty folder.\n"
 "Of course you can also select an existing zim notebook folder.\n"
 msgstr ""
-"S'il vous plaît, donner un nom et un ficher pour ce block-note.\n"
+"Sélectionnez un nom et un dossier pour le bloc-note.\n"
 "\n"
-"Pour créer un nouveau block note, vous avez besoin de sélectionner un "
-"dossier vide.\n"
-"Bien sûr, vous pouvez aussi sélectionner un dossier de block note déjà "
-"existant.\n"
+"Pour créer un nouveau bloc-note, il faut sélectionner un dossier vide.\n"
+"Vous pouvez également choisir le dossier d'un bloc-note existant.\n"
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:362
@@ -861,7 +862,7 @@ msgstr "Dossier"
 #. Dialog window title
 #: zim/gui/notebookdialog.py:377
 msgid "Edit Notebook"
-msgstr "Editer le block note"
+msgstr "Éditer le bloc-note"
 
 #. statusbar message
 #: zim/gui/pageindex.py:466
@@ -911,7 +912,7 @@ msgstr "(Dé)Cocher la case 'X'"
 #. Menu item
 #: zim/gui/pageview.py:85
 msgid "_Edit Link or Object..."
-msgstr "_Editer Lien ou Objet..."
+msgstr "É_diter lien ou objet..."
 
 #. Menu item
 #: zim/gui/pageview.py:86 zim/gui/pageview.py:2662
@@ -957,7 +958,7 @@ msgstr "_Effacer les styles"
 #. Menu item
 #: zim/gui/pageview.py:93
 msgid "_Find..."
-msgstr "_Rehercher"
+msgstr "_Rechercher..."
 
 #. Menu item
 #: zim/gui/pageview.py:94
@@ -1085,8 +1086,8 @@ msgid ""
 "Use the <Enter> key to follow links\n"
 "(If disabled you can still use <Alt><Enter>)"
 msgstr ""
-"Utiliser la touche <Enter> pour suivre les liens\n"
-"(Si c'était désactivé vous pouvez toujours utilisé <Alt><Enter>"
+"Utiliser la touche <Entrée> pour suivre les liens\n"
+"(si désactivé vous pouvez encore employer <Alt><Entrée>)"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:128
@@ -1147,7 +1148,7 @@ msgstr "Mo_difier le lien"
 #. context menu item
 #: zim/gui/pageview.py:2680
 msgid "Copy Email Address"
-msgstr "Copier le courriel"
+msgstr "Copier l'adresse électronique"
 
 #. context menu item
 #: zim/gui/pageview.py:2682
@@ -1212,7 +1213,7 @@ msgstr "_Supprimer la taille"
 #. Dialog title
 #: zim/gui/pageview.py:3139
 msgid "Insert Text From File"
-msgstr "Insérer le texte depuis le fichier"
+msgstr "Insérer du texte depuis un fichier"
 
 #. Dialog button
 #: zim/gui/pageview.py:3157 zim/gui/pageview.py:3222 zim/gui/pageview.py:3237
@@ -1274,7 +1275,7 @@ msgstr "Re_mplacer"
 #. Button in search & replace dialog
 #: zim/gui/pageview.py:3311
 msgid "Replace _All"
-msgstr "Remplacer _Tout"
+msgstr "Remplacer _tout"
 
 #. Dialog title
 #: zim/gui/pageview.py:3367
@@ -1373,12 +1374,12 @@ msgstr "Actif"
 #. Column in plugin tab
 #: zim/gui/preferencesdialog.py:271
 msgid "Plugin"
-msgstr "Module"
+msgstr "Greffon"
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:278
 msgid "Configure Plugin"
-msgstr "Configurer le module"
+msgstr "Configurer le greffon"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
 #: zim/gui/preferencesdialog.py:285
@@ -1394,7 +1395,7 @@ msgstr "Propriétés"
 #. Section in notbook dialog
 #: zim/gui/propertiesdialog.py:13
 msgid "Notebook Properties"
-msgstr "Propriété du Block Notes"
+msgstr "Propriétés du bloc-note"
 
 #. Dialog title |
 #. input label
@@ -1410,7 +1411,7 @@ msgstr "Résultat"
 #. Status in web server gui
 #: zim/gui/server.py:64
 msgid "Server not started"
-msgstr "Le serveur n'a pas démarrer"
+msgstr "Serveur non-démarré"
 
 #. Field in web server gui for HTTLP port (e.g. port 80)
 #: zim/gui/server.py:95
@@ -1420,12 +1421,12 @@ msgstr "Port"
 #. Status in web server gui
 #: zim/gui/server.py:118
 msgid "Server started"
-msgstr "Le Serveur a démarré"
+msgstr "Serveur démarré"
 
 #. Status in web server gui
 #: zim/gui/server.py:127
 msgid "Server stopped"
-msgstr "Le serseur s'est arreté"
+msgstr "Serveur arrêté"
 
 #. Dialog title |
 #. dialog title
@@ -1463,18 +1464,18 @@ msgstr "Impossible de trouver le fichier ou le dossier de ce bloc-notes"
 #: zim/__init__.py:414
 #, python-format
 msgid "Could not find notebook: %s"
-msgstr "Ne peut pas trouver le block notes: %s"
+msgstr "Impossible de trouver le bloc-note : %s"
 
 #. error description
 #: zim/notebook.py:274
 msgid "The given page name is not valid.\n"
-msgstr "Le nom de page donnée n'est pas valide\n"
+msgstr "Le nom de page indiqué n'est pas valide\n"
 
 #. error message
 #: zim/notebook.py:280
 #, python-format
 msgid "Invalid page name \"%s\""
-msgstr "Nom de la page invalide \"%s\""
+msgstr "Nom de page invalide « %s »"
 
 #. error message for read-only pages
 #: zim/notebook.py:309
@@ -1537,7 +1538,7 @@ msgstr ""
 #: zim/plugins/calendar.py:81
 msgid "Show calendar in sidepane instead of as dialog"
 msgstr ""
-"Monter la barre latérale du calendrier à la place d'une barre de dialogue"
+"Montrer le calendrier dans un panneau latéral au lieu d'une boîte de dialogue"
 
 #. strftime format for current date label
 #: zim/plugins/calendar.py:221
@@ -1687,7 +1688,7 @@ msgstr "_Capture d'écran..."
 #. dialog title
 #: zim/plugins/scrot.py:36 zim/plugins/scrot.py:66
 msgid "Insert Screenshot"
-msgstr "Insérer une capture d'écrand"
+msgstr "Insérer une capture d'écran"
 
 #. plugin description
 #: zim/plugins/scrot.py:37
@@ -1700,10 +1701,12 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Ce greffon est utilise l'application \"scrot\".\n"
-"Il permet de prendre des captures d'écran et\n"
-"de l'insérer dans une page Zim.\n"
+"Ce greffon utilise l'application \"scrot\".\n"
+"Il permet de prendre une capture d'écran et\n"
+"de l'insérer directement dans une page Zim.\n"
+"\n"
 "Dépend de: scrot\n"
+"\n"
 "Le greffon est livré avec Zim\n"
 
 #. option in 'insert screenshot' dialog
