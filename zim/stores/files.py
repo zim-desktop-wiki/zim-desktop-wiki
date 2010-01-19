@@ -40,7 +40,8 @@ class Store(StoreClass):
 		'''
 		StoreClass.__init__(self, notebook, path)
 		self.dir = dir
-		assert self.store_has_dir()
+		st_has_dir = self.store_has_dir()
+		assert st_has_dir
 		self.format = get_format('wiki') # TODO make configable
 
 	def _get_file(self, path):
