@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Unknown
-Modification-Date: Fri, 24 Jul 2009 19:56:30 +0200
 
 ====== HACKING ======
 

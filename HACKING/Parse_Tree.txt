@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Tue, 19 May 2009 19:48:40 +0200
-Modification-Date: Sat, 18 Jul 2009 16:00:00 +0200
 
 ====== Parse Tree ======
 

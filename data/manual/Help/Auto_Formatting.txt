@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Unknown
-Modification-Date: Sat, 08 Nov 2008 11:17:01 +0100
 
 ====== Auto Formatting ======
 

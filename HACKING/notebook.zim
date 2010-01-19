@@ -5,7 +5,5 @@ home=:Start
 icon=
 name=HACKING
 slow_fs=False
+version=0.4
 
-[Namespaces]
-
-# vim: syntax=desktop

@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 
 ====== Tables ======
 Created Thursday 07 January 2010
@@ -66,6 +66,6 @@ Benchmark showed textview is not so memory heavy as one might think. Of course T
 
 
 ==== Related ====
-• To avoid people mis-purposing tables, make a widget for images setting the caption in a box below the image.
+* To avoid people mis-purposing tables, make a widget for images setting the caption in a box below the image.
 
 

@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Unknown
-Modification-Date: Sat, 04 Apr 2009 10:56:34 +0200
 
 ====== Inline latex ======
 Created Tuesday 24 March 2009

@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Wed, 24 Jun 2009 23:42:30 +0200
-Modification-Date: Wed, 24 Jun 2009 23:44:50 +0200
 
 ====== Writing plugins ======
 

@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Thu, 09 Apr 2009 21:23:30 +0200
-Modification-Date: Thu, 09 Apr 2009 21:43:47 +0200
 
 ====== Config Files ======
 
