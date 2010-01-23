@@ -8,6 +8,7 @@ import logging
 
 from zim.fs import File
 from zim.plugins import PluginClass
+from zim.errors import Error
 
 from zim.gui.widgets import SingleClickTreeView, Dialog, PageEntry, IconButton, scrolled_text_view, QuestionDialog
 
@@ -39,6 +40,15 @@ ui_actions = (
 	('save_version', 'gtk-save-as', _('S_ave Version...'), '<ctrl><shift>S', '', False), # T: menu item
 	('show_versions', None, _('_Versions...'), '', '', True), # T: menu item
 )
+
+
+class NoChangesError(Error):
+
+	description = _('There are no changes in this notebook since the last version that was saved') # T: verbose error description
+
+	def __init__(self, root):
+		self.msg = _('No changes since last version')
+		# T: Short error descriotion
 
 
 class VersionControlPlugin(PluginClass):
@@ -122,11 +132,11 @@ This is a core plugin shipping with zim.
 		if self.ui.page and self.ui.page.modified:
 			self.ui.save_page()
 
-		if self.vcs.modified:
+		try:
 			logger.info('Automatically saving version')
 			self.vcs.commit(_('Automatically saved version from zim'))
 				# T: default version comment for auto-saved versions
-		else:
+		except NoChangesError:
 			logger.debug('No autosave version needed - no changes')
 
 	def save_version(self):

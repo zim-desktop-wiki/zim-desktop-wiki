@@ -24,7 +24,8 @@ from zim.config import config_file
 from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, Button, IconButton, BrowserTreeView
+from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, \
+	Button, IconButton, BrowserTreeView, InputEntry
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
@@ -45,10 +46,6 @@ bullet_types = {
 bullets = {}
 for bullet in bullet_types:
 	bullets[bullet_types[bullet]] = bullet
-
-FIND_IN_PLACE = 1
-FIND_CASE_SENSITIVE = 2
-FIND_WHOLE_WORD = 4
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVALS_HOME = map(gtk.gdk.keyval_from_name, ('Home', 'KP_Home'))
@@ -304,6 +301,7 @@ class TextBuffer(gtk.TextBuffer):
 		'code': {'family': 'monospace'},
 		'pre': {'family': 'monospace', 'wrap-mode': 'none'},
 		'link': {'foreground': 'blue'},
+		'find-highlight': {'background': 'orange'},
 	}
 
 	# possible attributes for styles in tag_styles
@@ -318,8 +316,11 @@ class TextBuffer(gtk.TextBuffer):
 		self.page = page
 		self._insert_tree_in_progress = False
 		self.user_action = UserActionContext(self)
+		self.finder = TextFinder(self)
 
 		for k, v in self.tag_styles.items():
+			if k in ('link', 'find-highlight'):
+				continue # these are not proper styles
 			tag = self.create_tag('style-'+k, **v)
 			tag.zim_type = 'style'
 			if k in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
@@ -350,6 +351,9 @@ class TextBuffer(gtk.TextBuffer):
 		self.set_textstyle(None)
 		self.set_indent(None)
 		self.delete(*self.get_bounds())
+
+	def get_insert_iter(self):
+		return self.get_iter_at_mark(self.get_insert())
 
 	def set_parsetree(self, tree):
 		'''Load a new ParseTree in the buffer, first flushes existing content'''
@@ -1296,83 +1300,6 @@ class TextBuffer(gtk.TextBuffer):
 
 		return True
 
-	def find_forward(self, string, flags=None):
-		'''Highlight the next occurence of 'string', returns True if
-		the string was found.
-
-		Flags can be:
-			FIND_IN_PLACE - do not move forward if iter is at a match alread
-			FIND_CASE_SENSITIVE - check case of matches
-			FIND_WHOLE_WORD - only match whole words
-		'''
-		return self._find(1, string, flags)
-
-	def find_backward(self, string, flags=None):
-		'''Like find_forward() but in the opposite direction'''
-		return self._find(-1, string, flags)
-
-	def _find(self, direction, string, flags):
-		# TODO fix real case insensitive search
-		# need to replace gtk.TextIter.forward_search and
-		# gtk.TextIter.backward_search with insensitive versions
-		if not string or string.isspace():
-			return False
-		if flags is None:
-			flags = 0
-		checkcase = bool(flags & FIND_CASE_SENSITIVE)
-
-		def check_iter(iter):
-			bound = iter.copy()
-			bound.forward_chars(len(string))
-			match = iter.get_slice(bound)
-			if (not checkcase and match.lower() == string.lower()) \
-			or match == string:
-				if flags & FIND_WHOLE_WORD \
-				and not (iter.starts_word() and bound.ends_word()):
-					return False
-
-				self.select_range(iter, bound)
-				return True
-			else:
-				return False
-
-		iter = self.get_iter_at_mark(self.get_insert())
-		if flags & FIND_IN_PLACE and check_iter(iter):
-				return True
-
-		start, end = self.get_bounds()
-		if direction == 1: # forward
-			iter.forward_char() # else will behave like FIND_IN_PLACE
-			func = gtk.TextIter.forward_search
-			part1 = (iter, end)
-			part1 = (iter, end)
-			part2 = (start, iter.copy())
-		else: # backward
-			func = gtk.TextIter.backward_search
-			part1 = (iter, start)
-			part2 = (end, iter.copy())
-
-		iter, limit = part1
-		bound = func(iter, string, flags=(), limit=limit)
-		while bound and not check_iter(bound[0]):
-			bound = func(bound[0], string, flags=(), limit=limit)
-
-		if not bound:
-			iter, limit = part2
-			bound = func(iter, string, flags=(), limit=limit)
-			while bound and not check_iter(bound[0]):
-				bound = func(iter, string, flags=(), limit=limit)
-
-		if not bound:
-			self.unset_selection()
-			return False
-		else:
-			return True
-
-	def unset_selection(self):
-		iter = self.get_iter_at_mark(self.get_insert())
-		self.select_range(iter, iter)
-
 	def iter_backward_word_start(self, iter):
 		'''Like gtk.TextIter.backward_word_start() but less intelligent.
 		This method does not take into account the language and just skips
@@ -1414,6 +1341,10 @@ class TextBuffer(gtk.TextBuffer):
 			and bounds[0].compare(iter) <= 0 \
 			and bounds[1].compare(iter) >= 0
 		# not using iter.in_range to be inclusive of bounds
+
+	def unset_selection(self):
+		iter = self.get_iter_at_mark(self.get_insert())
+		self.select_range(iter, iter)
 
 	def copy_clipboard(self, clipboard):
 		bounds = self.get_selection_bounds()
@@ -1464,10 +1395,217 @@ class TextBuffer(gtk.TextBuffer):
 gobject.type_register(TextBuffer)
 
 
+FIND_CASE_SENSITIVE = 1
+FIND_WHOLE_WORD = 2
+FIND_REGEX = 4
+
+class TextFinder(object):
+	'''This class defines a helper object for the textbuffer which
+	takes care of searching. You can get an instance of this class
+	from the textbuffer.finder attribute.
+	'''
+
+	def __init__(self, textbuffer):
+		self.buffer = textbuffer
+		self.regex = None
+		self.string = None
+		self.flags = 0
+		
+		self.highlight = False
+		self.highlight_tag = self.buffer.create_tag(
+			None, **self.buffer.tag_styles['find-highlight'] )
+	
+	def get_settings(self):
+		'''Returns the current search string, flags and highlight state'''
+		return self.string, self.flags, self.highlight
+
+	def find(self, string, flags=0):
+		'''Select the next occurence of 'string', returns True if
+		the string was found.
+
+		Flags can be:
+			FIND_CASE_SENSITIVE - check case of matches
+			FIND_WHOLE_WORD - only match whole words
+			FIND_REGEX - input is a regular expression
+		'''
+		assert isinstance(string, basestring)
+		self.string = string
+		self.flags = flags
+
+		if not flags & FIND_REGEX:
+			string = re.escape(string)
+			
+		if flags & FIND_WHOLE_WORD:
+			string = '\\b' + string + '\\b'
+
+		if flags & FIND_CASE_SENSITIVE:
+			self.regex = re.compile(string, re.U)
+		else:
+			self.regex = re.compile(string, re.U | re.I)
+
+		#~ print '!! FIND "%s"' % self.regex.pattern
+
+		if self.highlight:
+			self._update_highlight()
+
+		iter = self.buffer.get_insert_iter()
+		return self._find_next(iter)
+
+	def find_next(self):
+		'''Skip to the next match and select it'''
+		iter = self.buffer.get_insert_iter()
+		iter.forward_char() # Skip current position
+		return self._find_next(iter)
+
+	def _find_next(self, iter):
+		# Common functionality between find() and find_next()
+		# Looking for a match starting at iter
+		if self.regex is None:
+			self.buffer.unset_selection()
+			return False
+
+
+		line = iter.get_line()
+		lastline = self.buffer.get_end_iter().get_line()
+		for start, end, _ in self._check_range(line, lastline, 1):
+			if start.compare(iter) == -1:
+				continue
+			else:
+				self.buffer.select_range(start, end)
+				return True
+		for start, end, _ in self._check_range(0, line, 1):
+			self.buffer.select_range(start, end)
+			return True
+
+		self.buffer.unset_selection()
+		return False
+
+
+	def find_previous(self):
+		'''Skip back to the previous match and select it'''
+		if self.regex is None:
+			self.buffer.unset_selection()
+			return False
+
+		iter = self.buffer.get_insert_iter()
+		line = iter.get_line()
+		lastline = self.buffer.get_end_iter().get_line()
+		for start, end, _ in self._check_range(line, 0, -1):
+			if start.compare(iter) != -1:
+				continue
+			else:
+				self.buffer.select_range(start, end)
+				return True
+		for start, end, _ in self._check_range(lastline, line, -1):
+			self.buffer.select_range(start, end)
+			return True
+
+		self.buffer.unset_selection()
+		return False
+
+
+	def set_highlight(self, highlight):
+		self.highlight = highlight
+		self._update_highlight()
+		# TODO we could connect to buffer signals to update highlighting
+		# when the buffer is modified.
+
+	def _update_highlight(self):
+		# Clear highlighting
+		tag = self.highlight_tag
+		start, end = self.buffer.get_bounds()
+		self.buffer.remove_tag(tag, start, end)
+
+		# Set highlighting
+		if self.highlight:
+			lastline = end.get_line()
+			for start, end, _ in self._check_range(0, lastline, 1):
+				self.buffer.apply_tag(tag, start, end)
+
+	def _check_range(self, firstline, lastline, step):
+		# Generator for matches in a line. Arguments are start and
+		# end line numbers and a step size (1 or -1). If the step is 
+		# negative results are yielded in reversed order. Yields pair
+		# of TextIter's for begin and end of the match as well as the
+		# match obejct.
+		assert self.regex
+		for line in range(firstline, lastline+step, step):
+			start = self.buffer.get_iter_at_line(line)
+			if start.ends_line():
+				continue
+			end = start.copy()
+			end.forward_to_line_end()
+			text = start.get_slice(end)
+			matches = self.regex.finditer(text)
+			if step == -1:
+				matches = list(matches)
+				matches.reverse()
+			for match in matches:
+				startiter = self.buffer.get_iter_at_line_offset(
+					line, match.start() )
+				enditer = self.buffer.get_iter_at_line_offset(
+					line, match.end() )
+				yield startiter, enditer, match
+
+	def replace(self, string):
+		'''Replace current match with 'string'. In case of a regex
+		find and replace the string will be expanded with terms from 
+		the regex. Returns boolean for success.
+		'''
+		iter = self.buffer.get_insert_iter()
+		if not self._find_next(iter):
+			return False
+
+		iter = self.buffer.get_insert_iter()
+		line = iter.get_line()
+		for start, end, match in self._check_range(line, line, 1):
+			if start.equal(iter):
+				if self.flags & FIND_REGEX:
+					string = match.expand(string)
+
+				offset = start.get_offset()
+				with self.buffer.user_action:
+					self.buffer.delete(start, end)
+					self.buffer.insert_at_cursor(string)
+
+				start = self.buffer.get_iter_at_offset(offset)
+				end = self.buffer.get_iter_at_offset(offset+len(string))
+				self.buffer.select_range(start, end)
+
+				return True
+		else:
+			return False
+
+		self._update_highlight()
+
+	def replace_all(self, string):
+		'''Like replace() but replaces all matches in the buffer'''
+		# Avoid looping when replace value matches query
+
+		matches = []
+		orig = string
+		lastline = self.buffer.get_end_iter().get_line()
+		for start, end, match in self._check_range(0, lastline, 1):
+			if self.flags & FIND_REGEX:
+				string = match.expand(orig)
+			matches.append((start.get_offset(), end.get_offset(), string))
+
+		matches.reverse() # work our way back top keep offsets valid
+
+		with self.buffer.user_action:
+			with self.buffer.tmp_cursor():
+				for start, end, string in matches:
+					start = self.buffer.get_iter_at_offset(start)
+					end = self.buffer.get_iter_at_offset(end)
+					self.buffer.delete(start, end)
+					self.buffer.insert(start, string)
+
+		self._update_highlight()
+
+
 CURSOR_TEXT = gtk.gdk.Cursor(gtk.gdk.XTERM)
 CURSOR_LINK = gtk.gdk.Cursor(gtk.gdk.HAND2)
 CURSOR_WIDGET = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
-
 
 class TextView(gtk.TextView):
 	'''Custom TextView class. Takes care of additional key bindings and on-mouse-over for links.
@@ -2350,34 +2488,9 @@ class PageView(gtk.VBox):
 		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
 
 		## Create search box
-		self.find_bar = gtk.HBox(spacing=5)
-		self.find_bar.connect('key-press-event', self.on_find_bar_key_press_event)
-
-		self.find_bar.pack_start(gtk.Label(_('Find')+': '), False)
-			# T: label for input in find bar on bottom of page
-		self.find_entry = gtk.Entry()
-		self.find_entry.connect('changed', self.on_find_entry_changed)
-		self.find_entry.connect('activate', self.on_find_entry_activate)
-		self.find_bar.pack_start(self.find_entry, False)
-
-		self.find_prev_button = Button(_('_Previous'), gtk.STOCK_GO_BACK)
-			# T: button in find bar on bottom of page
-		self.find_prev_button.connect_object('clicked', self.__class__.find_previous, self)
-		self.find_prev_button.set_sensitive(False)
-		self.find_bar.pack_start(self.find_prev_button, False)
-
-		self.find_next_button = Button(_('_Next'), gtk.STOCK_GO_FORWARD)
-			# T: button in find bar on bottom of page
-		self.find_next_button.connect_object('clicked', self.__class__.find_next, self)
-		self.find_next_button.set_sensitive(False)
-		self.find_bar.pack_start(self.find_next_button, False)
-
-		close_button = IconButton(gtk.STOCK_CLOSE, relief=False)
-		close_button.connect_object('clicked', self.__class__.hide_find, self)
-		self.find_bar.pack_end(close_button, False)
-
-		self.find_bar.set_no_show_all(True)
+		self.find_bar = FindBar(textview=self.view)
 		self.pack_end(self.find_bar, False)
+		self.find_bar.hide()
 
 		## setup GUI actions
 		if self.secondairy:
@@ -2973,54 +3086,29 @@ class PageView(gtk.VBox):
 			return False
 
 	def show_find(self, string=None):
-		self.find_bar.set_no_show_all(False)
-		self.find_bar.show_all()
-
-		if string is None:
-			self.find_entry.grab_focus()
-		else:
-			self.find_entry.set_text(string)
+		self.find_bar.show()
+		self.find_bar.set_from_buffer()
+		if string:
+			self.find_bar.find(string)
 			self.view.grab_focus()
+		else:
+			self.find_bar.grab_focus()
 
 	def hide_find(self):
-		self.find_bar.hide_all()
-		self.find_bar.set_no_show_all(True)
+		self.find_bar.hide()
 		self.view.grab_focus()
-
-	def on_find_bar_key_press_event(self, widget, event):
-		if event.keyval == KEYVAL_ESC:
-			self.hide_find()
-			return True
-		else:
-			return False
 
 	def find_next(self):
-		string = self.find_entry.get_text()
-		buffer = self.view.get_buffer()
-		buffer.find_forward(string)
-		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
+		self.find_bar.show()
+		self.find_bar.find_next()
 
 	def find_previous(self):
-		string = self.find_entry.get_text()
-		buffer = self.view.get_buffer()
-		buffer.find_backward(string)
-		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
-
-	def on_find_entry_changed(self, entry):
-		string = entry.get_text()
-		buffer = self.view.get_buffer()
-		ok = buffer.find_forward(string, flags=FIND_IN_PLACE)
-		self.find_next_button.set_sensitive(ok)
-		self.find_prev_button.set_sensitive(ok)
-		if ok:
-			self.view.scroll_to_mark(buffer.get_insert(), 0.3)
-
-	def on_find_entry_activate(self, entry):
-		self.on_find_entry_changed(entry)
-		self.view.grab_focus()
+		self.find_bar.show()
+		self.find_bar.find_previous()
 
 	def show_find_and_replace(self):
-		dialog = FindAndReplaceDialog.unique(self, self)
+		dialog = FindAndReplaceDialog.unique(self, self.ui, self.view)
+		dialog.set_from_buffer()
 		dialog.present()
 
 	def show_word_count(self):
@@ -3353,12 +3441,168 @@ class EditLinkDialog(InsertLinkDialog):
 		self._hook_text_entry()
 
 
-class FindAndReplaceDialog(Dialog):
+class FindWidget(object):
+	'''Base class for FindBar and FindAndReplaceDialog'''
 
-	def __init__(self, pageview):
-		Dialog.__init__(self, pageview.ui,
+	def __init__(self, textview):
+		self.textview = textview
+		
+		self.find_entry = InputEntry()
+		self.find_entry.connect_object(
+			'changed', self.__class__.on_find_entry_changed, self)
+		self.find_entry.connect_object(
+			'activate', self.__class__.on_find_entry_activate, self)
+
+		self.next_button = Button(_('_Next'), gtk.STOCK_GO_FORWARD)
+			# T: button in find bar and find & replace dialog
+		self.next_button.connect_object(
+			'clicked', self.__class__.find_next, self)
+		self.next_button.set_sensitive(False)
+
+		self.previous_button = Button(_('_Previous'), gtk.STOCK_GO_BACK)
+			# T: button in find bar and find & replace dialog
+		self.previous_button.connect_object(
+			'clicked', self.__class__.find_previous, self)
+		self.previous_button.set_sensitive(False)
+
+		self.case_option_checkbox = gtk.CheckButton(_('Match _case'))
+			# T: checkbox option in find bar and find & replace dialog
+		self.case_option_checkbox.connect_object(
+			'toggled', self.__class__.on_find_entry_changed, self)
+
+		self.word_option_checkbox = gtk.CheckButton(_('Whole _word'))
+			# T: checkbox option in find bar and find & replace dialog
+		self.word_option_checkbox.connect_object(
+			'toggled', self.__class__.on_find_entry_changed, self)
+
+		self.regex_option_checkbox = gtk.CheckButton(_('_Regular expression'))
+			# T: checkbox option in find bar and find & replace dialog
+		self.regex_option_checkbox.connect_object(
+			'toggled', self.__class__.on_find_entry_changed, self)
+
+		self.highlight_checkbox = gtk.CheckButton(_('_Highlight'))
+			# T: checkbox option in find bar and find & replace dialog
+		self.highlight_checkbox.connect_object(
+			'toggled', self.__class__.on_highlight_toggled, self)
+
+	@property
+	def _flags(self):
+		flags = 0
+		if self.case_option_checkbox.get_active():
+			flags = flags & FIND_CASE_SENSITIVE
+		if self.word_option_checkbox.get_active():
+			flags = flags & FIND_WHOLE_WORD
+		if self.regex_option_checkbox.get_active():
+			flags = flags & FIND_REGEX
+		return flags
+
+	def set_from_buffer(self):
+		'''Copies settings from last find in the buffer. Uses the
+		selected text for find if there is a selection.
+		'''
+		buffer = self.textview.get_buffer()
+		string, flags, highlight = buffer.finder.get_settings()
+		bounds = buffer.get_selection_bounds()
+		if bounds:
+			start, end = bounds
+			string = start.get_slice(end)
+		self.find(string, flags, highlight)
+
+	def on_find_entry_changed(self):
+		string = self.find_entry.get_text()
+		buffer = self.textview.get_buffer()
+		ok = buffer.finder.find(string, flags=self._flags)
+
+		if not string:
+			self.find_entry.set_input_valid(True)
+		else:
+			self.find_entry.set_input_valid(ok)
+			
+		for button in (self.next_button, self.previous_button):
+			button.set_sensitive(ok)
+
+		if ok:
+			self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
+		
+	def on_find_entry_activate(self):
+		self.on_find_entry_changed()
+
+	def on_highlight_toggled(self):
+		highlight = self.highlight_checkbox.get_active()
+		buffer = self.textview.get_buffer()
+		buffer.finder.set_highlight(highlight)
+
+	def find(self, string, flags=None, highlight=False):
+		if string:
+			self.find_entry.set_text(string)
+		self.case_option_checkbox.set_active(flags & FIND_CASE_SENSITIVE)
+		self.word_option_checkbox.set_active(flags & FIND_WHOLE_WORD)
+		self.regex_option_checkbox.set_active(flags & FIND_REGEX)
+		self.highlight_checkbox.set_active(highlight)
+			
+	def find_next(self):
+		buffer = self.textview.get_buffer()
+		buffer.finder.find_next()
+		self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
+
+	def find_previous(self):
+		buffer = self.textview.get_buffer()
+		buffer.finder.find_previous()
+		self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
+
+
+class FindBar(FindWidget, gtk.HBox):
+
+	# TODO use smaller buttons ?
+
+	def __init__(self, textview):
+		gtk.HBox.__init__(self, spacing=5)
+		FindWidget.__init__(self, textview)
+
+		self.pack_start(gtk.Label(_('Find')+': '), False)
+			# T: label for input in find bar on bottom of page	
+		self.pack_start(self.find_entry, False)
+		self.pack_start(self.previous_button, False)
+		self.pack_start(self.next_button, False)
+		self.pack_start(self.case_option_checkbox, False)
+		self.pack_start(self.highlight_checkbox, False)
+
+		close_button = IconButton(gtk.STOCK_CLOSE, relief=False)
+		close_button.connect_object('clicked', self.__class__.hide, self)
+		self.pack_end(close_button, False)
+
+	def grab_focus(self):
+		self.find_entry.grab_focus()
+		
+	def show(self):
+		self.set_no_show_all(False)
+		self.show_all()
+
+	def hide(self):
+		gtk.HBox.hide(self)
+		self.set_no_show_all(True)
+
+	def on_find_entry_activate(self):
+		self.on_find_entry_changed()
+		self.textview.grab_focus()
+
+	def do_key_press_event(self, event):
+		if event.keyval == KEYVAL_ESC:
+			self.hide()
+			return True
+		else:
+			return gtk.HBox.do_key_press_event(self, event)
+
+# Need to register classes defining gobject signals
+gobject.type_register(FindBar)
+
+
+class FindAndReplaceDialog(FindWidget, Dialog):
+
+	def __init__(self, ui, textview):
+		Dialog.__init__(self, ui,
 			_('Find and Replace'), buttons=gtk.BUTTONS_CLOSE) # T: Dialog title
-		self.view = pageview.view
+		FindWidget.__init__(self, textview)
 
 		hbox = gtk.HBox(spacing=12)
 		hbox.set_border_width(12)
@@ -3371,43 +3615,23 @@ class FindAndReplaceDialog(Dialog):
 			# T: input label in find & replace dialog
 		label.set_alignment(0.0, 0.5)
 		vbox.add(label)
-
-		self.find_entry = gtk.Entry()
-		self.find_entry.set_text( pageview.find_entry.get_text() )
-		self.find_entry.connect('changed', self.on_find_entry_changed)
-		self.find_entry.connect('activate', self.on_find_entry_changed)
 		vbox.add(self.find_entry)
-
-		self.case_option = gtk.CheckButton(_('Match c_ase'))
-			# T: checkbox option in find & replace dialog
-		self.case_option.connect('toggled', self.on_find_entry_changed)
-		vbox.add(self.case_option)
-
-		self.word_option = gtk.CheckButton(_('Whole _word'))
-			# T: checkbox option in find & replace dialog
-		self.word_option.connect('toggled', self.on_find_entry_changed)
-		vbox.add(self.word_option)
+		vbox.add(self.case_option_checkbox)
+		vbox.add(self.word_option_checkbox)
+		vbox.add(self.regex_option_checkbox)
+		vbox.add(self.highlight_checkbox)
 
 		label = gtk.Label(_('Replace with')+': ')
 			# T: input label in find & replace dialog
 		label.set_alignment(0.0, 0.5)
 		vbox.add(label)
-
 		self.replace_entry = gtk.Entry()
 		vbox.add(self.replace_entry)
 
 		self.bbox = gtk.VButtonBox()
 		hbox.add(self.bbox)
-
-		next_button = Button(_('_Next'), gtk.STOCK_GO_FORWARD)
-			# T: Button in search & replace dialog
-		next_button.connect_object('clicked', self.__class__.find_next, self)
-		self.bbox.add(next_button)
-
-		prev_button = Button(_('_Previous'), gtk.STOCK_GO_BACK)
-			# T: Button in search & replace dialog
-		prev_button.connect_object('clicked', self.__class__.find_previous, self)
-		self.bbox.add(prev_button)
+		self.bbox.add(self.next_button)
+		self.bbox.add(self.previous_button)
 
 		replace_button = Button(_('_Replace'), gtk.STOCK_FIND_AND_REPLACE)
 			# T: Button in search & replace dialog
@@ -3419,51 +3643,15 @@ class FindAndReplaceDialog(Dialog):
 		all_button.connect_object('clicked', self.__class__.replace_all, self)
 		self.bbox.add(all_button)
 
-
-	@property
-	def _flags(self):
-		flags = 0
-		if self.case_option.get_active():
-			flags = flags | FIND_CASE_SENSITIVE
-		if self.word_option.get_active():
-			flags = flags | FIND_WHOLE_WORD
-		return flags
-
-	def find_next(self):
-		string = self.find_entry.get_text()
-		self.view.get_buffer().find_forward(string, flags=self._flags)
-
-	def find_previous(self):
-		string = self.find_entry.get_text()
-		self.view.get_buffer().find_backward(string, flags=self._flags)
-
-	def on_find_entry_changed(self, widget):
-		string = self.find_entry.get_text()
-		flags= FIND_IN_PLACE | self._flags
-		ok = self.view.get_buffer().find_forward(string, flags=flags)
-
-		for button in self.bbox.get_children():
-			if isinstance(button, gtk.Button):
-				button.set_sensitive(ok)
-
 	def replace(self):
-		string = self.find_entry.get_text()
-		flags= FIND_IN_PLACE | self._flags
-		if self.view.get_buffer().find_forward(string, flags=flags):
-			buffer = self.view.get_buffer()
-			assert buffer.get_has_selection(), 'BUG: find returned OK, but no selection ?'
-			with buffer.user_action:
-				buffer.delete_selection(False, self.view.get_editable())
-				buffer.insert_at_cursor(self.replace_entry.get_text())
-			return True
-		else:
-			return False
+		string = self.replace_entry.get_text()
+		buffer = self.textview.get_buffer()
+		buffer.finder.replace(string)
 
 	def replace_all(self):
-		buffer = self.view.get_buffer()
-		with buffer.user_action:
-			while self.replace():
-				continue
+		string = self.replace_entry.get_text()
+		buffer = self.textview.get_buffer()
+		buffer.finder.replace_all(string)
 
 
 class WordCountDialog(Dialog):

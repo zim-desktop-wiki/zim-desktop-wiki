@@ -4,9 +4,12 @@
 
 import os
 import logging
+import subprocess
 
 from zim.fs import FS
 from zim.applications import Application
+from zim.plugins.versioncontrol import NoChangesError
+
 
 logger = logging.getLogger('zim.vcs.bzr')
 # TODO check if bzrlib also uses logging for output
@@ -121,7 +124,14 @@ class BazaarVCS(object):
 
 	def commit(self, msg):
 		_bzr.run(['add'], cwd=self.root)
-		_bzr.run(['commit', '-m', msg], cwd=self.root)
+		try:
+			_bzr.run(['commit', '-m', msg], cwd=self.root)
+		except subprocess.CalledProcessError, error:
+			if error.returncode == 3:
+				raise NoChangesError(self.root)
+			else:
+				raise # just re-raise current error
+
 
 	def revert(self, version=None, file=None):
 		rev = self._revision_arg(version)

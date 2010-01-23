@@ -40,9 +40,9 @@ This is a core plugin shipping with zim.
 				from zim.daemon import DaemonProxy
 				self.proxyobject = DaemonProxy().get_object(
 					'zim.plugins.trayicon.DaemonTrayIcon', 'TrayIcon')
-				self.ui.hideonclose = True
 			else:
 				self.icon = StandAloneTrayIcon(self.ui)
+			self.ui.hideonclose = True
 
 	def disconnect(self):
 		if self.icon:
