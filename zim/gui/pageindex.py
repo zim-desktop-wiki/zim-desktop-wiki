@@ -81,15 +81,19 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			#~ print '!!', signal, path
 			self._flush()
 			treepath = self.get_treepath(path)
-			#~ print '!!', signal, path, treepath
-			treeiter = self.create_tree_iter(self._ref(path))
-			self.emit(signal, treepath, treeiter)
+			if treepath:
+				#~ print '!!', signal, path, treepath
+				treeiter = self.create_tree_iter(self._ref(path))
+				self.emit(signal, treepath, treeiter)
+			# If treepath is None the row does not exist anymore
 
 		def on_deleted(o, path):
 			#~ print '!! delete', path
 			self._flush()
 			treepath = self.get_treepath(path)
-			self.emit('row-deleted', treepath)
+			if treepath:
+				self.emit('row-deleted', treepath)
+			# If treepath is None the row does not exist anymore
 
 		index.connect('page-inserted', on_changed, 'row-inserted')
 		index.connect('page-updated', on_changed, 'row-changed')
@@ -163,8 +167,11 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		treepath = []
 		for parent in path.parents():
 			pagelist = self.index.list_pages(parent)
-			treepath.insert(0, pagelist.index(path))
-			path = parent
+			try:
+				treepath.insert(0, pagelist.index(path))
+				path = parent
+			except ValueError:
+				return None
 		return tuple(treepath)
 
 	on_get_path = get_treepath # alias for GenericTreeModel API

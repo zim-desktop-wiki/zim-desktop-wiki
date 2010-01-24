@@ -63,6 +63,7 @@ class TestParsing(TestCase):
 			('file:///foo/file[20%]', 'file:///foo/file%5B20%25%5D'),
 			('file:///foo/file%5B20%25%5D', 'file:///foo/file%5B20%25%5D'),
 			('file:///foo bar/foo%20bar', 'file:///foo%20bar/foo%2520bar'),
+			(u'http://foo/monkey\u2019s', 'http://foo/monkey%E2%80%99s'), # Multibyte unicode char
 		):
 			#~ print 'url_encode(\'%s\') == \'%s\'' % (url, url_encode(wanted))
 			self.assertEqual(url_encode(url), wanted)
@@ -74,6 +75,7 @@ class TestParsing(TestCase):
 			('file:///foo/file[20%]', 'file:///foo/file[20%]'),
 			('file:///foo/file%5B20%25%5D', 'file:///foo/file[20%]'),
 			('file:///foo bar/foo%20bar', 'file:///foo bar/foo%20bar'),
+			('http://foo/monkey%E2%80%99s', u'http://foo/monkey\u2019s'), # Multibyte unicode char
 		):
 			#~ print 'url_decode(\'%s\') == \'%s\'' % (url, url_decode(wanted))
 			self.assertEqual(url_decode(url), wanted)

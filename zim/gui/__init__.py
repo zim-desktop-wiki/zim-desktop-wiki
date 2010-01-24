@@ -68,7 +68,7 @@ ui_actions = (
 	('new_page',  'gtk-new', _('_New Page...'), '<ctrl>N', '', False), # T: Menu item
 	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '', '', False), # T: Menu item
 	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', '', True), # T: Menu item
-	('open_new_window', None, _('_Open in New Window'), '', '', True), # T: Menu item
+	('open_new_window', None, _('Open in New _Window'), '', '', True), # T: Menu item
 	('import_page', None, _('_Import Page...'), '', '', False), # T: Menu item
 	('save_page', 'gtk-save', _('_Save'), '<ctrl>S', '', False), # T: Menu item
 	('save_copy', None, _('Save A _Copy...'), '', '', True), # T: Menu item
@@ -380,6 +380,7 @@ class GtkInterface(NotebookInterface):
 		gtk.main()
 
 	def present(self, page=None, fullscreen=None, geometry=None):
+		'''Present a specific page the main window and/or set window mode'''
 		self.mainwindow.present()
 		if page:
 			if isinstance(page, basestring):
@@ -391,7 +392,17 @@ class GtkInterface(NotebookInterface):
 		elif fullscreen:
 			self.mainwindow.toggle_fullscreen(show=True)
 
+	def toggle_present(self):
+		'''Present main window if it is not on top, but hide if it is.
+		Used by the TrayIcon to toggle visibility of the window.
+		'''
+		if self.mainwindow.is_active():
+			self.mainwindow.hide()
+		else:
+			self.mainwindow.present()
+
 	def hide(self):
+		'''Hide the main window (this is not the same as minimize)'''
 		self.mainwindow.hide()
 
 	def close(self):

@@ -17,6 +17,7 @@ import re
 import string
 from time import strftime
 
+import zim.fs
 from zim.fs import *
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
@@ -516,6 +517,9 @@ class TextBuffer(gtk.TextBuffer):
 		return tag
 
 	def get_link_tag(self, iter):
+		# Explicitly left gravity, otherwise position behind the link
+		# would alos be consifered part of the link. Position before the
+		# link is included here.
 		for tag in iter.get_tags():
 			if hasattr(tag, 'zim_type') and tag.zim_type == 'link':
 				return tag
@@ -1410,11 +1414,11 @@ class TextFinder(object):
 		self.regex = None
 		self.string = None
 		self.flags = 0
-		
+
 		self.highlight = False
 		self.highlight_tag = self.buffer.create_tag(
 			None, **self.buffer.tag_styles['find-highlight'] )
-	
+
 	def get_settings(self):
 		'''Returns the current search string, flags and highlight state'''
 		return self.string, self.flags, self.highlight
@@ -1434,7 +1438,7 @@ class TextFinder(object):
 
 		if not flags & FIND_REGEX:
 			string = re.escape(string)
-			
+
 		if flags & FIND_WHOLE_WORD:
 			string = '\\b' + string + '\\b'
 
@@ -1524,7 +1528,7 @@ class TextFinder(object):
 
 	def _check_range(self, firstline, lastline, step):
 		# Generator for matches in a line. Arguments are start and
-		# end line numbers and a step size (1 or -1). If the step is 
+		# end line numbers and a step size (1 or -1). If the step is
 		# negative results are yielded in reversed order. Yields pair
 		# of TextIter's for begin and end of the match as well as the
 		# match obejct.
@@ -1549,7 +1553,7 @@ class TextFinder(object):
 
 	def replace(self, string):
 		'''Replace current match with 'string'. In case of a regex
-		find and replace the string will be expanded with terms from 
+		find and replace the string will be expanded with terms from
 		the regex. Returns boolean for success.
 		'''
 		iter = self.buffer.get_insert_iter()
@@ -1828,8 +1832,12 @@ class TextView(gtk.TextView):
 		elif event.keyval in KEYVALS_ENTER:
 			# Enter can trigger links
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			link = buffer.get_link_data(iter)
-			if link:
+			tag = buffer.get_link_tag(iter)
+			if tag and not iter.begins_tag(tag):
+				# get_link_tag() is left gravitating, we additionally
+				# exclude the position in front of the link.
+				# As a result you can not "Enter" a 1 character link,
+				# this is by design.
 				if (self.preferences['follow_on_enter']
 				or event.state & gtk.gdk.MOD1_MASK): # MOD1 == Alt
 					self.click_link(iter)
@@ -2793,7 +2801,7 @@ class PageView(gtk.VBox):
 	def do_link_leave(self, link):
 		self.ui.mainwindow.statusbar.pop(1)
 
-	def do_link_clicked(self, link):
+	def do_link_clicked(self, link, new_window=False):
 		'''Handler for the link-clicked signal'''
 		assert isinstance(link, dict)
 		href = link['href']
@@ -2807,7 +2815,10 @@ class PageView(gtk.VBox):
 
 			if type == 'page':
 				path = self.ui.notebook.resolve_path(href, source=self.page)
-				self.ui.open_page(path)
+				if new_window:
+					self.ui.open_new_window(path)
+				else:
+					self.ui.open_page(path)
 			elif type == 'file':
 				path = self.ui.notebook.resolve_file(href, self.page)
 				self.ui.open_file(path)
@@ -2911,8 +2922,15 @@ class PageView(gtk.VBox):
 			item.set_submenu(submenu)
 
 		# open
+		if type == 'page':
+			item = gtk.MenuItem(_('Open in New _Window'))
+				# T: menu item to open a link
+			item.connect(
+				'activate', lambda o: self.do_link_clicked(link, new_window=True))
+			menu.prepend(item)
+
 		if type != 'image' and link:
-			item = gtk.MenuItem(_('Open'))
+			item = gtk.MenuItem(_('_Open'))
 				# T: menu item to open a link or file
 			if file and not file.exists():
 				item.set_sensitive(False)
@@ -3386,11 +3404,12 @@ class InsertLinkDialog(Dialog):
 			return False
 
 		type = link_type(href)
-		if type == 'file':
+		if type == 'file' and zim.fs.isabs(href):
+			# Try making the path relative
 			file = File(href)
 			page = self.pageview.page
 			notebook = self.ui.notebook
-			href = notebook.relative_filepath(file, page) or file.uri
+			href = notebook.relative_filepath(file, page) or file
 
 		text = self.get_field('text') or href
 
@@ -3446,7 +3465,7 @@ class FindWidget(object):
 
 	def __init__(self, textview):
 		self.textview = textview
-		
+
 		self.find_entry = InputEntry()
 		self.find_entry.connect_object(
 			'changed', self.__class__.on_find_entry_changed, self)
@@ -3517,13 +3536,13 @@ class FindWidget(object):
 			self.find_entry.set_input_valid(True)
 		else:
 			self.find_entry.set_input_valid(ok)
-			
+
 		for button in (self.next_button, self.previous_button):
 			button.set_sensitive(ok)
 
 		if ok:
 			self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
-		
+
 	def on_find_entry_activate(self):
 		self.on_find_entry_changed()
 
@@ -3539,7 +3558,7 @@ class FindWidget(object):
 		self.word_option_checkbox.set_active(flags & FIND_WHOLE_WORD)
 		self.regex_option_checkbox.set_active(flags & FIND_REGEX)
 		self.highlight_checkbox.set_active(highlight)
-			
+
 	def find_next(self):
 		buffer = self.textview.get_buffer()
 		buffer.finder.find_next()
@@ -3560,7 +3579,7 @@ class FindBar(FindWidget, gtk.HBox):
 		FindWidget.__init__(self, textview)
 
 		self.pack_start(gtk.Label(_('Find')+': '), False)
-			# T: label for input in find bar on bottom of page	
+			# T: label for input in find bar on bottom of page
 		self.pack_start(self.find_entry, False)
 		self.pack_start(self.previous_button, False)
 		self.pack_start(self.next_button, False)
@@ -3573,7 +3592,7 @@ class FindBar(FindWidget, gtk.HBox):
 
 	def grab_focus(self):
 		self.find_entry.grab_focus()
-		
+
 	def show(self):
 		self.set_no_show_all(False)
 		self.show_all()
