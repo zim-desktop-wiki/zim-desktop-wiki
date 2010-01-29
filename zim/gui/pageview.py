@@ -2930,7 +2930,7 @@ class PageView(gtk.VBox):
 			menu.prepend(item)
 
 		if type != 'image' and link:
-			item = gtk.MenuItem(_('_Open'))		
+			item = gtk.MenuItem(_('_Open'))
 				# T: menu item to open a link or file
 			if file and not file.exists():
 				item.set_sensitive(False)
