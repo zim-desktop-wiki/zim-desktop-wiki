@@ -25,7 +25,7 @@ from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, Button, IconButton, BrowserTreeView
-from zim.gui.applications import OpenWithMenu
+from zim.gui.applications import OpenWithMenu, get_application
 from zim.gui.clipboard import Clipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
 
@@ -1602,7 +1602,7 @@ class TextView(gtk.TextView):
 		if not buffer.get_has_selection():
 			iter = self.get_iter_at_pointer()
 			if event.button == 1:
-				self.click_link(iter) or buffer.toggle_checkbox(iter)
+				self.click_link(iter) or buffer.toggle_checkbox(iter)									
 			elif event.button == 3:
 				buffer.toggle_checkbox(iter, XCHECKED_BOX)
 		return cont # continue emit ?
@@ -2702,6 +2702,13 @@ class PageView(gtk.VBox):
 				self.ui.open_url(href)
 		except Exception, error:
 			ErrorDialog(self.ui, error).run()
+			    
+	def do_image_double_clicked(self, file):
+		'''Handler for the image-double-clicked signal
+		Currently only hooked up to "Open" context menu item, since
+		double-click events don't seem to work.		
+		'''
+		get_application('startfile').spawn([file])
 
 	def do_populate_popup(self, menu):
 		buffer = self.view.get_buffer()
@@ -2798,7 +2805,16 @@ class PageView(gtk.VBox):
 			item.set_submenu(submenu)
 
 		# open
-		if type != 'image' and link:
+		if type == 'image':
+			item = gtk.MenuItem(_('Open'))
+			if file and file.exists():
+				item.connect_object(
+					'activate', PageView.do_image_double_clicked, self, file)
+			else: 
+				item.set_sensitive(False)
+			menu.prepend(item)
+
+		elif link:
 			item = gtk.MenuItem(_('Open'))
 				# T: menu item to open a link or file
 			if file and not file.exists():
