@@ -210,7 +210,7 @@ class TaskListTreeView(BrowserTreeView):
 	ACT_COL = 5 # actionable - no children
 	OPEN_COL = 6 # item not closed
 
-	tag_re = re.compile(r'(?<!\S)@(\w+)\b')
+	tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
 	date_re = re.compile(r'\s*\[d:(.+)\]')
 
 	def __init__(self, ui):

@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Fri, 24 Jul 2009 19:41:30 +0200
-Modification-Date: Fri, 24 Jul 2009 19:44:15 +0200
 
 ====== Daily Journal ======
 

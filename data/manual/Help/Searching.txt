@@ -1,19 +1,25 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
 
 ====== Searching ======
 
 There are two kinds of searching in zim: searching within a page, this is called **Find**, and searching through multiple pages, this is called **Search**.
 
 ===== Find =====
-The "//Search//->//Find//..." menu item  triggers a search box at the bottom of the page. By typing a word here you can find occurrences of this word in the current page. You can use either the ''<Alt>N'' and ''<Alt>P'' or the ''<Ctrl>G'' and ''<Shift><Ctrl>G'' keybindings to go to the next/previous occurrence.
+The "//Search//->//Find//..." menu item  triggers a search box at the bottom of the page. By typing a word here you can find occurrences of this word in the current page. You can use either the ''<Alt>N'' and ''<Alt>P'' or the ''<Ctrl>G'' and ''<Shift><Ctrl>G'' keybindings to go to the next/previous occurrence. If the word you type can not be found the box turns red and the buttons become insensitive.
 
-This search is not case sensitive and matches everywhere in the page. For more advances searched you can use the "Find and Replace' dialog.
+The **Match case** check-box makes the search case sensitive. The **Highlight** check-box toggles highlighting for all results in the buffer.
 
 ===== Find and Replace =====
 The "//Search//->//Replace...//" menu item triggers a dialog for find and replace in the current page. The "Next" and "Previous" buttons can be used to find the next or previous occurrence without replacing. The "Replace" button can be used to replace one occurrence only. The "Replace all" button can be used to replace all occurrences in the current page at once.
 
-The "Match case" check-box toggles case sensitivity. The search is by default not case sensitive. But it can be useful to match case when looking for names or acronyms.
+The **Match case** check-box toggles case sensitivity. The search is by default not case sensitive. But it can be useful to match case when looking for names or acronyms.
 
-The "Whole word" check-box toggles whether partial word matches are included. This is especially useful when looking for rather short words.
+The **Whole word** check-box toggles whether partial word matches are included. This is especially useful when looking for rather short words.
+
+The **Regular expressions** check-box toggles advanced search and replace where "regular expressions" can be used to matched text patterns. When this option is enabled also escapes in the replacement string will be expanded and groups in the pattern can be referenced in the replacement string. See the [[http://docs.python.org/library/re.html|python documentation]] documentation for details on the syntax for regular expressions.
+
+The **Highlight** check-box toggles highlighting for all results in the buffer.
 
 ===== Search =====
 The "//Search//->//Search//..." menu item triggers the search dialog to pop up. This dialog allows you to search for pages that contain a certain word.

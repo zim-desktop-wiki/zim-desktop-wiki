@@ -767,6 +767,8 @@ class Index(gobject.GObject):
 		parent = path.parent
 		if isinstance(path, IndexPath):
 			path = self.lookup_data(path)
+			if not path._row:
+				return # apparently it disappeared already
 		else:
 			path = self.lookup_path(path)
 			if not path:

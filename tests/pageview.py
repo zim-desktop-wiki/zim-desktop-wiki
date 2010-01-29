@@ -354,6 +354,122 @@ class TestUndoStackManager(TestCase):
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo <strong>barr</strong> baz</zim-tree>")
 
 
+class TestFind(TestCase):
+
+	def runTest(self):
+		buffer = TextBuffer()
+		finder = buffer.finder
+		buffer.set_text('''\
+FOO FooBar FOOBAR
+FooBaz Foo Bar
+foo Bar Baz Foo
+''')
+		buffer.place_cursor(buffer.get_start_iter())
+
+		def check(line, offset, string):
+			#~ print 'CHECK', line, offset, text
+			cursor = buffer.get_insert_iter()
+			#~ print '  GOT', cursor.get_line(), cursor.get_line_offset()
+			self.assertEqual(cursor.get_line(), line)
+			self.assertEqual(cursor.get_line_offset(), offset)
+
+			if string:
+				bound = buffer.get_selection_bounds()
+				self.assertTrue(bound)
+				selection = bound[0].get_slice(bound[1])
+				self.assertEqual(selection, string)
+
+		# Check normal usage, case-insensitive
+		for text in ('f', 'fo', 'foo', 'fo', 'f', 'F', 'Fo', 'Foo'):
+			finder.find(text)
+			check(0, 0, text.upper())
+
+		finder.find('Grr')
+		check(0, 0, '')
+
+		finder.find('Foob')
+		check(0, 4, 'FooB')
+
+		for line, offset, text in (
+			(0, 11, 'FOOB'),
+			(1, 0, 'FooB'),
+			(0, 4, 'FooB'),
+		):
+			finder.find_next()
+			check(line, offset, text)
+
+		for line, offset, text in (
+			(1, 0, 'FooB'),
+			(0, 11, 'FOOB'),
+			(0, 4, 'FooB'),
+		):
+			finder.find_previous()
+			check(line, offset, text)
+
+		# Case sensitive
+		finder.find('Foo', FIND_CASE_SENSITIVE)
+		check(0, 4, 'Foo')
+
+		for line, offset, text in (
+			(1, 0, 'Foo'),
+			(1, 7, 'Foo'),
+			(2, 12, 'Foo'),
+			(0, 4, 'Foo'),
+		):
+			finder.find_next()
+			check(line, offset, text)
+
+		# Whole word
+		finder.find('Foo', FIND_WHOLE_WORD)
+		check(1, 7, 'Foo')
+
+		for line, offset, text in (
+			(2, 0, 'foo'),
+			(2, 12, 'Foo'),
+			(0, 0, 'FOO'),
+			(1, 7, 'Foo'),
+		):
+			finder.find_next()
+			check(line, offset, text)
+			
+		# Regular expression
+		finder.find(r'Foo\s*Bar', FIND_REGEX | FIND_CASE_SENSITIVE)
+		check(1, 7, 'Foo Bar')
+		finder.find_next()
+		check(0, 4, 'FooBar')
+
+		# Highlight - just check it doesn't crash
+		finder.set_highlight(True)
+		finder.set_highlight(False)
+
+		# Now check replace
+		finder.find('Foo(\w*)', FIND_REGEX) # not case sensitive!
+		check(0, 4, 'FooBar')
+
+		finder.replace('Dus')
+		check(0, 4, 'Dus')
+		bounds = buffer.get_bounds()
+		text = buffer.get_slice(*bounds)
+		wanted = '''\
+FOO Dus FOOBAR
+FooBaz Foo Bar
+foo Bar Baz Foo
+'''
+		self.assertEqualDiff(text, wanted)
+
+		finder.replace_all('dus*\\1*')
+		bounds = buffer.get_bounds()
+		text = buffer.get_slice(*bounds)
+		wanted = '''\
+dus** Dus dus*BAR*
+dus*Baz* dus** Bar
+dus** Bar Baz dus**
+'''
+		self.assertEqualDiff(text, wanted)
+		self.assertEqual(buffer.get_insert_iter().get_offset(), 6)
+
+
+
 #~ def press(widget, char):
 	#~ event = gtk.gdk.Event(gtk.gdk.KEY_PRESS)
 	#~ event.keyval = int( gtk.gdk.unicode_to_keyval(ord(char)) )

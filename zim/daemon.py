@@ -424,6 +424,13 @@ class DaemonProxyGtkInterfaceObject(DaemonProxyObject):
 		return self._relay('present', page,
 				geometry=geometry, fullscreen=fullscreen)
 
+
+	def toggle_present(self):
+		'''Present main window if it is not on top, but hide if it is.
+		Used by the TrayIcon to toggle visibility of the window.
+		'''
+		return self._relay('toggle_present')
+
 	def hide(self):
 		'''Hide a specific notebook window'''
 		return self._relay('hide')

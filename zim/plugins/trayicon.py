@@ -40,9 +40,9 @@ This is a core plugin shipping with zim.
 				from zim.daemon import DaemonProxy
 				self.proxyobject = DaemonProxy().get_object(
 					'zim.plugins.trayicon.DaemonTrayIcon', 'TrayIcon')
-				self.ui.hideonclose = True
 			else:
 				self.icon = StandAloneTrayIcon(self.ui)
+			self.ui.hideonclose = True
 
 	def disconnect(self):
 		if self.icon:
@@ -74,7 +74,7 @@ class TrayIcon(gtk.StatusIcon):
 			self.do_popup_menu(button=1)
 		elif len(notebooks) == 1:
 			# Only one open notebook - present it
-			self.do_present(notebooks[0][1])
+			self.do_activate_notebook(notebooks[0][1])
 		else:
 			# Let the user choose from the open notebooks
 			self.do_popup_menu_open_notebooks(list=notebooks)
@@ -115,10 +115,10 @@ class TrayIcon(gtk.StatusIcon):
 		for name, uri in list:
 			#~ print '>>>', name, uri
 			item = gtk.MenuItem(name)
-			item.connect('activate', lambda o, u: self.do_present(u), uri)
+			item.connect('activate', lambda o, u: self.do_activate_notebook(u), uri)
 			menu.append(item)
 
-	def do_present(self, uri):
+	def do_activate_notebook(self, uri):
 		raise NotImplementedError
 
 	def do_quit(self):
@@ -126,7 +126,7 @@ class TrayIcon(gtk.StatusIcon):
 
 	def do_open_notebook(self):
 		from zim.gui.notebookdialog import NotebookDialog
-		NotebookDialog.unique(self, self, callback=self.do_present).show()
+		NotebookDialog.unique(self, self, callback=self.do_activate_notebook).show()
 
 
 # Need to register classes defining gobject signals
@@ -152,11 +152,12 @@ class StandAloneTrayIcon(TrayIcon):
 		notebook = self.ui.notebook
 		return [(notebook.name, notebook.uri)]
 
-	def do_present(self, uri):
+	def do_activate_notebook(self, uri):
 		if uri == self.ui.notebook.uri:
-			self.ui.present()
+			self.ui.toggle_present()
 		else:
 			self.ui.open_notebook(uri)
+			# Can not toggle, so just open it
 
 	def do_quit(self):
 		self.ui.quit()
@@ -188,8 +189,8 @@ class DaemonTrayIcon(TrayIcon):
 			name = list.get_name(uri) or uri
 			yield name, uri
 
-	def do_present(self, uri):
-		self.daemon.get_notebook(uri).present()
+	def do_activate_notebook(self, uri):
+		self.daemon.get_notebook(uri).toggle_present()
 
 	def do_quit(self):
 		self.daemon.quit()

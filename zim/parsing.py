@@ -65,8 +65,11 @@ def url_decode(url):
 	encoded in the first place already and avoid double-decoding it.
 	'''
 	if '%' in url and not _unencoded_url_re.search(url):
+		# We can have multiple escapes combine into a unicode char
+		# so first decode to bytes by 'chr()', then decode utf8
+		url = url.encode('utf-8') # prevent unicode errors substituting one code at a time
 		url = _url_decode_re.sub(lambda m: chr(int(m.group(1), 16)), url)
-	url = url.decode('utf-8') # utf-8 -> unicode
+	url = url.decode('utf-8')
 	return url
 
 

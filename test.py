@@ -162,6 +162,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 		modules = [ 'tests.'+name for name in args ]
 	else:
 		suite.addTest(TestCompileAll())
+		suite.addTest(TestNotebookUpgrade())
 		modules = [ 'tests.'+name for name in tests.__all__ ]
 
 	for name in modules:
@@ -308,6 +309,17 @@ class TestCompileAll(unittest.TestCase):
 		for file in pyfiles:
 			module = file[:-3].replace('/', '.')
 			assert __import__(module)
+
+
+class TestNotebookUpgrade(unittest.TestCase):
+
+	def runTest(self):
+		'''Test if included notebooks are up to date'''
+		from zim.fs import Dir
+		from zim.notebook import get_notebook
+		for path in ('data/manual', 'HACKING'):
+			notebook = get_notebook(Dir(path))
+			self.assertTrue(not notebook.needs_upgrade)
 
 
 if __name__ == '__main__':

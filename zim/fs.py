@@ -50,6 +50,10 @@ __all__ = ['Dir', 'File']
 logger = logging.getLogger('zim.fs')
 
 
+def isabs(path):
+	return path.startswith('file:/') or os.path.isabs(path)
+
+
 def get_tmpdir():
 	import tempfile
 	root = tempfile.gettempdir()

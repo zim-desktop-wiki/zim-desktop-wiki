@@ -273,20 +273,39 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 gobject.type_register(MenuButton)
 
 
-class PageEntry(gtk.Entry):
-
-	allow_select_root = False
+class InputEntry(gtk.Entry):
+	'''Sub-class of gtk.Entry with support for highlighting errors'''
 
 	style = gtk.Entry().get_style() # HACK - how to get default style ?
 	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
 	ERROR_COLOR = gtk.gdk.color_parse('#EF7F7F') # light red (derived from Tango style guide)
+
+	def __init__(self):
+		gtk.Entry.__init__(self)
+		self.input_valid = True
+
+	def get_input_valid(self):
+		return self.input_valid
+
+	def set_input_valid(self, valid):
+		'''Set input valid or invalid state'''
+		self.input_valid = valid
+		if valid:
+			self.modify_base(gtk.STATE_NORMAL, self.NORMAL_COLOR)
+		else:
+			self.modify_base(gtk.STATE_NORMAL, self.ERROR_COLOR)
+
+
+class PageEntry(InputEntry):
+
+	allow_select_root = False
 
 	def __init__(self, notebook, path=None, path_context=None):
 		'''Contructor. Needs at least a Notebook to resolve paths.
 		If a context is given this is the reference Path for resolving
 		relative links.
 		'''
-		gtk.Entry.__init__(self)
+		InputEntry.__init__(self)
 		assert notebook, 'Page completion needs a notebook'
 		assert path_context is None or isinstance(path_context, Path)
 		self.notebook = notebook
@@ -331,16 +350,16 @@ class PageEntry(gtk.Entry):
 		text = self.get_text().strip()
 
 		if not text:
-			self.modify_base(gtk.STATE_NORMAL, self.NORMAL_COLOR)
+			self.set_input_valid(True)
 			return
 
 		try:
 			text = Notebook.cleanup_pathname(text)
 		except PageNameError:
-			self.modify_base(gtk.STATE_NORMAL, self.ERROR_COLOR)
+			self.set_input_valid(False)
 			return
 		else:
-			self.modify_base(gtk.STATE_NORMAL, self.NORMAL_COLOR)
+			self.set_input_valid(True)
 
 		# Figure out some hint about the namespace
 		if ':' in text:
