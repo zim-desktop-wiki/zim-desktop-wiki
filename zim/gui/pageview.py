@@ -3103,13 +3103,13 @@ class PageView(gtk.VBox):
 		else:
 			return False
 
-	def show_find(self, string=None):
+	def show_find(self, string=None, flags=0, highlight=False):
 		self.find_bar.show()
-		self.find_bar.set_from_buffer()
 		if string:
-			self.find_bar.find(string)
+			self.find_bar.find(string, flags, highlight)
 			self.view.grab_focus()
 		else:
+			self.find_bar.set_from_buffer()
 			self.find_bar.grab_focus()
 
 	def hide_find(self):
@@ -3551,7 +3551,7 @@ class FindWidget(object):
 		buffer = self.textview.get_buffer()
 		buffer.finder.set_highlight(highlight)
 
-	def find(self, string, flags=None, highlight=False):
+	def find(self, string, flags=0, highlight=False):
 		if string:
 			self.find_entry.set_text(string)
 		self.case_option_checkbox.set_active(flags & FIND_CASE_SENSITIVE)

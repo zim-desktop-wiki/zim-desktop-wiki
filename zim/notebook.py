@@ -651,12 +651,16 @@ class Notebook(gobject.GObject):
 		# For file system we should reserve (win32 & posix)
 		# "\", "/", ":", "*", "?", '"', "<", ">", "|"
 
+		# Allowing '%' will cause problems with sql wildcards sooner
+		# or later - also for url decoding ambiguity it is better to
+		# keep this one reserved
+
 		orig = name
 		name = name.replace('_', ' ')
 			# Avoid duplicates with and without '_' (e.g. in index)
 			# Note that leading "_" is stripped, due to strip() below
 
-		for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|"):
+		for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%"):
 			if char in name:
 				raise PageNameError, orig
 
@@ -1202,6 +1206,9 @@ class Path(object):
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)
+
+	def __hash__(self):
+		return self.name.__hash__()
 
 	def __eq__(self, other):
 		'''Paths are equal when their names are the same'''

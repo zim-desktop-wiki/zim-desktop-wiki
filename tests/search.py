@@ -8,6 +8,8 @@ class TestSearchRegex(TestCase):
 
 	def runTest(self):
 		'''Test regex compilation for search terms'''
+		regex_func = SearchSelection(notebook=None)._content_regex
+
 		for word, regex in (
 			('foo', r'\bfoo\b'),
 			('*foo', r'\b\S*foo\b'),
@@ -17,17 +19,17 @@ class TestSearchRegex(TestCase):
 			('foo bar', r'\bfoo\ bar\b'),
 		):
 			#print '>>', word, regex
-			self.assertEqual(Query.regex(word), re.compile(regex, re.I))
+			self.assertEqual(regex_func(word), re.compile(regex, re.I))
 
 
 		text = 'foo foobar FooBar Foooo Foo!'
-		regex = Query.regex('foo')
+		regex = regex_func('foo')
 		new, n = regex.subn('', text)
 		self.assertEqual(n, 2)
 		self.assertEqual(new, ' foobar FooBar Foooo !')
 
 		text = 'foo foobar FooBar Foooo Foo!'
-		regex = Query.regex('foo*')
+		regex = regex_func('foo*')
 		new, n = regex.subn('', text)
 		self.assertEqual(n, 5)
 
@@ -35,35 +37,124 @@ class TestSearchRegex(TestCase):
 
 class TestSearch(TestCase):
 
+	def setUp(self):
+		self.notebook = get_test_notebook()
+
 	def runTest(self):
 		'''Test search API'''
+		self.notebook.index.update()
+		results = SearchSelection(self.notebook)
+
 		query = Query('foo bar')
-		self.assertEqual(query.root,
-			AndGroup([('content', 'foo'), ('content', 'bar')]) )
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [
+				QueryTerm('contentorname', 'foo'),
+				QueryTerm('contentorname', 'bar')
+			] )
+		results.search(query)
+		#~ print results
+		self.assertTrue(len(results) > 0)
+		self.assertFalse(Path('TODOList:foo') in results)
+		self.assertTrue(Path('Test:foo') in results)
+		self.assertTrue(Path('Test:foo:bar') in results)
+		self.assertTrue(set(results.scores.keys()) == results)
+		self.assertTrue(all(results.scores.values()))
 
-		notebook = get_test_notebook()
-		searcher = Searcher(notebook)
-		result = searcher.search(query)
-		self.assertTrue(isinstance(result, ResultsSelection))
-		self.assertTrue(len(result.pages) > 0)
-		#~ print result.pages
-		self.assertTrue(Path('Test:foo') in result.pages)
-		self.assertTrue(Path('Test:foo:bar') in result.pages)
-		scores = [result.scores[p] for p in result.pages]
-		self.assertTrue(all(scores))
+		query = Query('+TODO -bar')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [
+				QueryTerm('contentorname', 'TODO'),
+				QueryTerm('contentorname', 'bar', inverse=True)
+			] )
+		results.search(query)
+		#~ print results
+		self.assertTrue(len(results) > 0)
+		self.assertTrue(Path('TODOList:foo') in results)
+		self.assertFalse(Path('Test:foo') in results)
+		self.assertFalse(Path('Test:foo:bar') in results)
+		self.assertTrue(set(results.scores.keys()) == results)
+		self.assertTrue(all(results.scores.values()))
 
-		#~ print result.pages
+		query = Query('TODO not bar')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [
+				QueryTerm('contentorname', 'TODO'),
+				QueryTerm('contentorname', 'bar', inverse=True)
+			] )
+		results.search(query)
+		#~ print results
+		self.assertTrue(len(results) > 0)
+		self.assertTrue(Path('TODOList:foo') in results)
+		self.assertFalse(Path('Test:foo') in results)
+		self.assertFalse(Path('Test:foo:bar') in results)
+		self.assertTrue(set(results.scores.keys()) == results)
+		self.assertTrue(all(results.scores.values()))
 
-		notebook.index.update()
+		query = Query('TODO or bar')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertTrue(query.root[0].operator == OPERATOR_OR)
+		self.assertEqual(query.root, [ [
+				QueryTerm('contentorname', 'TODO'),
+				QueryTerm('contentorname', 'bar')
+			] ] )
+		results.search(query)
+		#~ print results
+		self.assertTrue(len(results) > 0)
+		self.assertTrue(Path('TODOList:foo') in results)
+		self.assertTrue(Path('Test:foo') in results)
+		self.assertTrue(Path('Test:foo:bar') in results)
+		self.assertTrue(set(results.scores.keys()) == results)
+		self.assertTrue(all(results.scores.values()))
+
 		query = Query('LinksTo: "Linking:Foo:Bar"')
-		self.assertEqual(query.root,
-			AndGroup([('linksto', 'Linking:Foo:Bar')]) )
-		result = searcher.search(query)
-		self.assertTrue(isinstance(result, ResultsSelection))
-		self.assertTrue(Path('Linking:Dus:Ja') in result.pages)
-		scores = [result.scores[p] for p in result.pages]
-		self.assertTrue(all(scores))
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('linksto', 'Linking:Foo:Bar')])
+		results.search(query)
+		#~ print results
+		self.assertTrue(Path('Linking:Dus:Ja') in results)
+		self.assertTrue(set(results.scores.keys()) == results)
+		self.assertTrue(all(results.scores.values()))
 
-		#~ print result.pages
+		query = Query('LinksFrom: "Linking:Dus:Ja"')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Linking:Dus:Ja')])
+		query = Query('Links: "Linking:Dus:Ja"') # alias for LinksFrom
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Linking:Dus:Ja')])
+		results.search(query)
+		#~ print results
+		self.assertTrue(Path('Linking:Foo:Bar') in results)
+		self.assertTrue(set(results.scores.keys()) == results)
+		self.assertTrue(all(results.scores.values()))
 
-# TODO subclass with file based notebook to test the 'grep' optimalisation
+		# TODO test ContentOrName versus Content
+		# TODO test NOT LinksFrom / LinksTo
+		# TODO test Name and Namespace
+
+
+def get_files_notebook(name):
+	from tests import create_tmp_dir, get_test_data
+	from zim.fs import Dir
+	from zim.notebook import init_notebook, Notebook
+
+	dir = Dir(create_tmp_dir(name))
+	init_notebook(dir)
+	notebook = Notebook(dir=dir)
+	for name, text in get_test_data('wiki'):
+		page = notebook.get_page(Path(name))
+		page.parse('wiki', text)
+		notebook.store_page(page)
+
+	return notebook
+
+
+class TestSearchFiles(TestSearch):
+
+	slowTest = True
+
+	def setUp(self):
+		self.notebook = get_files_notebook('search_TestSearchFiles')
+
+	def runTest(self):
+		'''Test search API with file based notebook'''
+		TestSearch.runTest(self)
