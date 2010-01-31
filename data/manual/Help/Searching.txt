@@ -22,11 +22,7 @@ The **Regular expressions** check-box toggles advanced search and replace where 
 The **Highlight** check-box toggles highlighting for all results in the buffer.
 
 ===== Search =====
-The "//Search//->//Search//..." menu item triggers the search dialog to pop up. This dialog allows you to search for pages that contain a certain word.
-
-The "Match case" check-box toggles case sensitivity. The search is by default not case sensitive. But it can be useful to match case when looking for names or acronyms.
-
-The "Whole word" check-box toggles whether partial word matches are included. This is especially useful when looking for rather short words.
+The "//Search//->//Search//..." menu item triggers the search dialog to pop up. This dialog allows you to e.g. search for pages that contain a certain word. See below for the query syntax supported by this dialog for advanced usage.
 
 You can have multiple search dialogs open at the same time.
 
@@ -34,3 +30,91 @@ You can have multiple search dialogs open at the same time.
 As a special case you can search for a page name. Instead of a full text search a cache lookup will be done and a list is shown of pages linking to the page you searched for. Page names are defined as words containing a ":" character in this context.
 
 When you open the "//Search//->//Search Back links//..." menu item you get the same Search dialog as with //Search// but the name of the current page is filled in already. The same dialog can be triggered by clicking on the "Back links" area in the status bar.
+
+===== Search Query Syntax =====
+
+=== Summary ===
+**Operators:**
++ -
+AND and &&
+OR or ||
+NOT
+
+**Keywords:**
+Content:
+Name:
+NameSpace:
+Links:
+LinksFrom:
+LinksTo:
+
+
+=== Details ===
+By default if you enter a couple of words in the search dialog zim looks for pages that contain all of these words in either in the page name or in the page contents. For multiple words an implicit AND operator is assumed. The following queries are all equivalent:
+
+'''
+foo bar
+foo AND bar
+foo and bar
+foo && bar
++foo +bar
+'''
+
+To exclude pages that match a certain word from your query prefix the word with a "-" or the NOT operator. So to look for pages that contain "foo" but not "bar" try one of these:
+
+'''
+foo -bar
++foo -bar
+'''
+
+
+'''
+foo AND NOT bar
+'''
+
+Multiple queries can be combined using the OR operator, so to find any pages matching "foo" or "bar" you can try:
+
+'''
+foo OR bar
+foo or bar
+foor || bar
+'''
+
+To match strings containing whitespace or that look like operators you need to put the sting between double quotes, so to look for a literal string "foo bar" and a literal "+1" try:
+
+'''
+"foo bar"  "+1"
+'''
+
+To match partial words as well you can use a "''*''" as wildcard. So the following query will match all words starting with "Some", like "Someday", "Someplace" etc.
+
+'''
+Some*
+'''
+
+So far we just searched for words in the page contents and page names. If you want more control you can use keywords to specify a specific page property. For example to only match pages by name you can use:
+
+'''
+Name: *foo*
+'''
+
+This query only returns pages that contain "foo" in the page name without looking at their content. Other known field are "Content", "Namespace", "Links", "linksFrom" and "LinksTo". 
+
+The "Content" keyword only matches page contents.
+
+The "Namespace" keyword limits the query to a certain sub-tree in the index.
+
+The "Links" and "LinksFrom" keywords return all pages linked by a certain page while "LinksTo" returns all pages that link to a certain page, this is used to find back links.
+
+To exclude all pages linking to ":Done" try:
+
+'''
+NOT LinksTo: ":Done"
+'''
+
+A complex example would be to find any pages in the ":Date" namespace that link to ":Planning". 
+
+'''
+namespace: Date and linksto: Planning
+'''
+

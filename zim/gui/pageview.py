@@ -1419,9 +1419,14 @@ class TextFinder(object):
 		self.highlight_tag = self.buffer.create_tag(
 			None, **self.buffer.tag_styles['find-highlight'] )
 
-	def get_settings(self):
+	def get_state(self):
 		'''Returns the current search string, flags and highlight state'''
 		return self.string, self.flags, self.highlight
+
+	def set_state(self, string, flags, highlight):
+		if not string is None:
+			self._parse_query(string, flags)
+			self.set_highlight(highlight)
 
 	def find(self, string, flags=0):
 		'''Select the next occurence of 'string', returns True if
@@ -1432,6 +1437,16 @@ class TextFinder(object):
 			FIND_WHOLE_WORD - only match whole words
 			FIND_REGEX - input is a regular expression
 		'''
+		self._parse_query(string, flags)
+		#~ print '!! FIND "%s"' % self.regex.pattern
+
+		if self.highlight:
+			self._update_highlight()
+
+		iter = self.buffer.get_insert_iter()
+		return self._find_next(iter)
+
+	def _parse_query(self, string, flags):
 		assert isinstance(string, basestring)
 		self.string = string
 		self.flags = flags
@@ -1446,14 +1461,6 @@ class TextFinder(object):
 			self.regex = re.compile(string, re.U)
 		else:
 			self.regex = re.compile(string, re.U | re.I)
-
-		#~ print '!! FIND "%s"' % self.regex.pattern
-
-		if self.highlight:
-			self._update_highlight()
-
-		iter = self.buffer.get_insert_iter()
-		return self._find_next(iter)
 
 	def find_next(self):
 		'''Skip to the next match and select it'''
@@ -1506,7 +1513,6 @@ class TextFinder(object):
 
 		self.buffer.unset_selection()
 		return False
-
 
 	def set_highlight(self, highlight):
 		self.highlight = highlight
@@ -2635,6 +2641,8 @@ class PageView(gtk.VBox):
 			self.undostack = None
 
 		self._prev_buffer = self.view.get_buffer()
+		finderstate = self._prev_buffer.finder.get_state()
+
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
 		self._buffer_signals = []
@@ -2675,6 +2683,8 @@ class PageView(gtk.VBox):
 		self._buffer_signals.append(
 			buffer.connect('modified-changed',
 				lambda o: self.on_modified_changed(o)) )
+
+		buffer.finder.set_state(*finderstate) # maintain state
 
 		self.undostack = UndoStackManager(buffer)
 		self.set_readonly()
@@ -3520,7 +3530,7 @@ class FindWidget(object):
 		selected text for find if there is a selection.
 		'''
 		buffer = self.textview.get_buffer()
-		string, flags, highlight = buffer.finder.get_settings()
+		string, flags, highlight = buffer.finder.get_state()
 		bounds = buffer.get_selection_bounds()
 		if bounds:
 			start, end = bounds
@@ -3558,6 +3568,10 @@ class FindWidget(object):
 		self.word_option_checkbox.set_active(flags & FIND_WHOLE_WORD)
 		self.regex_option_checkbox.set_active(flags & FIND_REGEX)
 		self.highlight_checkbox.set_active(highlight)
+
+		# Force update
+		self.on_find_entry_changed()
+		self.on_highlight_toggled()
 
 	def find_next(self):
 		buffer = self.textview.get_buffer()

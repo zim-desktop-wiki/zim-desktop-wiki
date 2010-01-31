@@ -36,103 +36,10 @@ Main points are:
 * Any Google-like search should do the expected
 * Don't cater for complex queries (hence sub-queries/braces are left out)
 
-So just 3 logical ops: AND, OR and NOT and some aliases (and, &&, +, or, ||, -). No grouping or sub-queries and only one quoting style. Only difference is that we need a space after a field selector because page names can also contain ":".
+So just 3 logical ops: AND, OR and NOT and some aliases (and, &&, +, or, ||, -). No grouping or sub-queries and only one quoting style. Only difference is that we need a space after a field selector because page names can also contain ":". 
 
-If you want more complex queries you might start considering putting you pages in a database and write a plugin that accepts SQL queries for this backend. For the average user the complexity allow by the current syntax will be more than enough.
-
-==== Syntax details ====
-
-The OR operator always takes precedence over AND (similar as e.g. in shell parsing). Thus parts seperated by an OR can be considered seperate queries and we just add the results. Parts seperated by an AND can be evaluated in arbitrary order. Since AND is the default we simply remove "AND", "&&" and "+" from the query while parsing.
-
-By default we match a word both in the page content, name and back links. If a word looks like a page name (it contains a ":") we only try name and back links. When matching a word in a page name we only match from the start of the name when the word starts with a ":". This makes it easy to select namespaces like ":TODO:", which will match the page ":TODO:foo", but not the pages ":foo:TODO" or "foo:TODO:bar".
-
-For all search terms the '*' wildcard should be supported. For the Content keyword we try to match whole words only, so a wildcard is needed for partial matches.
-
-==== Query parse tree ====
-
-The parse tree for a query exists of hashed which collect all the "AND" parts. If there are one or more "OR" operators multiple hashes will be put in an array. In the hash a word without field prefix is put in the "any" key, further each field has it's own keys in the hash. If there are multiple words for the same field the value in the hash will be an array instead of an scalar. For words that need to be excluded the key is prefixed with "not-". See the test file for examples.
-
-Since the order of evaluation of parts on both sides of an AND operator does not matter backends should check the keys in the hash in order going from light to heavy checks.
+For the average user the complexity allow by the current syntax will be more than enough.
 
 ===== Suggestions =====
 * Use proximity to set ranking (e.g. all terms less than 20 words apart and less than 50 words apart) 
 
------
-
-====== User doc ======
-
-===== Search =====
-.. 8< ..
-See "Query syntax" below for advanced usage.
-.. 8< ..
-
-===== Query syntax =====
-By default if you enter a couple of words in the search dialog Zim looks for pages that contain all of these words in some way. For multiple words an implicite AND operator is assumed. The following queries are all equivalent:
-
-'''
-foo bar
-foo AND bar
-foo and bar
-foo && bar
-+foo +bar
-'''
-
-
-To exclude pages that match a certain word from your query prefix the word with a "-". So to look for pages that contain "foo" but not "bar" try one of these:
-
-'''
-foo -bar
-+foo -bar
-'''
-
-Multiple queries can be combined using the OR operator, so to find any pages matching "foo" or "bar" you can try:
-
-'''
-foo OR bar
-foo or bar
-foor || bar
-'''
-
-
-To match strings containing whitespace or that look like operators you need to put the sting between double quotes, so to look for a literal string "foo bar" and a literal "+1" try:
-
-'''
-"foo bar"  "-1"
-'''
-
-
-You can specify a field to look in as follows:
-
-'''
-Name: foo
-'''
-
-
-This query only returns pages that contain "foo" in the page name without looking at their content. Other known field are "Content", "Links" and "LinksTo". "Links" returns all pages linked by a certain page. "LinksTo" returns all pages that link to a certain page, this is used to find back links.
-
-To exclude all pages linking to ":Done" try:
-
-'''
-LinksTo: -":Done"
-'''
-
-
-A complex example would be to find any pages in the ":Date" namespace that link to ":Planning" and any pages in the ":Code" namespace that match "TODO". This query can be given as:
-
-'''
-Name: :Date: AND LinksTo: :Planning OR
-Name: :Code: AND Content: TODO
-'''
-
-
-=== Syntax Summary ===
-
-Operators:
-	+ -
-	AND and &&
-	OR or ||
-Fields:
-	Content:
-	Name:
-	Links:
-	LinksTo:

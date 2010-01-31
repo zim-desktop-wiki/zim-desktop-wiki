@@ -115,6 +115,15 @@ class TestSearch(TestCase):
 		self.assertTrue(set(results.scores.keys()) == results)
 		self.assertTrue(all(results.scores.values()))
 
+		query = Query('NOT LinksTo:"Linking:Foo:Bar"')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('linksto', 'Linking:Foo:Bar', True)])
+		results.search(query)
+		#~ print results
+		self.assertFalse(Path('Linking:Dus:Ja') in results)
+		self.assertTrue(set(results.scores.keys()) == results)
+		self.assertTrue(all(results.scores.values()))
+
 		query = Query('LinksFrom: "Linking:Dus:Ja"')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
 		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Linking:Dus:Ja')])
@@ -128,7 +137,6 @@ class TestSearch(TestCase):
 		self.assertTrue(all(results.scores.values()))
 
 		# TODO test ContentOrName versus Content
-		# TODO test NOT LinksFrom / LinksTo
 		# TODO test Name and Namespace
 
 

@@ -31,7 +31,16 @@ For the name keyword a '*' is allowed on both sides
 For content '*' can occur on both sides, but does not match withspace
 '''
 
-# TODO keyword for deadlinks
+# TODO keyword for deadlinks, keyword for pages with no content
+
+# Queries are parsed into trees of groups of search terms
+# Terms have a keyword and a string to look for
+# When we start searching we walks through this tree and assemble the
+# results. In theory we fully support nested groups, but the current
+# query syntax doesn't allow them. So for now trees will only consist
+# of a toplevel AND group possibly with nested OR groups one level
+# below it.
+
 
 import re
 
@@ -306,7 +315,6 @@ class SearchSelection(PageSelection):
 			for path in generator:
 				if regex.match(path.name):
 					results.add(path)
-					self._count_score(path, 1)
 
 		elif term.keyword in ('linksfrom', 'linksto'):
 			if term.keyword == 'linksfrom': dir = LINK_DIR_FORWARD
@@ -332,11 +340,9 @@ class SearchSelection(PageSelection):
 			if dir == LINK_DIR_FORWARD:
 				for link in links:
 					results.add(link.href)
-					self._count_score(link.href, 1)
 			else:
 				for link in links:
 					results.add(link.source)
-					self._count_score(link.source, 1)
 
 		else:
 			assert False, 'BUG: unknown keyword: %s' % term.keyword
@@ -348,6 +354,9 @@ class SearchSelection(PageSelection):
 				for p in index.walk():
 					scope.add(p)
 			results = scope - results
+
+		for path in results:
+			self._count_score(path, 1)
 
 		return results
 

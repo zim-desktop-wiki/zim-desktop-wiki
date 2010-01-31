@@ -53,10 +53,6 @@ class SearchDialog(Dialog):
 
 class SearchResultsTreeView(BrowserTreeView):
 
-	# We only store page names, not page object as the page objects in the
-	# results can use up a lot of memory because they contain all content.
-	# TODO: this might needs to be optimised...
-
 	def __init__(self, ui):
 		model = gtk.ListStore(str, int) # page, rank
 		BrowserTreeView.__init__(self, model)
