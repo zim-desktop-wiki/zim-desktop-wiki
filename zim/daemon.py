@@ -319,7 +319,9 @@ class SocketDaemonProxy(object):
 		are passed on to the object constructor if it needs to be
 		created.
 		'''
-		assert self._call('vivicate', klass, name, *args, **kwargs)
+		if not self._call('vivicate', klass, name, *args, **kwargs):
+			raise AssertionError, 'Call failed'
+			# assert statement could be optimized away
 		return DaemonProxyObject(self, (klass, name))
 
 	def list_objects(self):
@@ -336,8 +338,9 @@ class SocketDaemonProxy(object):
 			assert hasattr(notebook, 'uri')
 			notebook = notebook.uri
 		klass = 'zim.gui.GtkInterface'
-		assert self._call('vivicate', klass, notebook,
-			notebook=notebook, usedaemon=True)
+		if not self._call('vivicate', klass, notebook, notebook=notebook, usedaemon=True):
+			raise AssertionError, 'Call failed'
+			# assert statement could be optimized away
 		return DaemonProxyGtkInterfaceObject(self, (klass, notebook))
 
 	def list_notebooks(self):

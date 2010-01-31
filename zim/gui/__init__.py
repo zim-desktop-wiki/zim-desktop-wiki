@@ -695,7 +695,9 @@ class GtkInterface(NotebookInterface):
 			# redundant calls.
 			return
 		elif self.page:
-			assert self.close_page(self.page)
+			if not self.close_page(self.page):
+				raise AssertionError, 'Could not close page'
+				# assert statement could be optimized away
 
 		logger.info('Open page: %s (%s)', page, path)
 		self.emit('open-page', page, path)
@@ -955,8 +957,10 @@ class GtkInterface(NotebookInterface):
 			self.preferences['GtkInterface']['tearoff_menus'] )
 
 	def reload_page(self):
-		if self.page.modified:
-			assert self.save_page(self.page)
+		if self.page.modified \
+		and not self.save_page(self.page):
+			raise AssertionError, 'Could not save page'
+			# assert statement could be optimized away
 		self.notebook.flush_page_cache(self.page)
 		self.open_page(self.notebook.get_page(self.page))
 
@@ -1908,8 +1912,11 @@ class MovePageDialog(Dialog):
 			self.path = path
 		assert self.path, 'Need a page here'
 
-		if isinstance(self.path, Page) and self.path.modified:
-			assert self.ui.save_page(self.path)
+		if isinstance(self.path, Page) \
+		and self.path.modified \
+		and not self.ui.save_page(self.path):
+			raise AssertionError, 'Could not save page'
+			# assert statement could be optimized away
 
 		i = self.ui.notebook.index.n_list_links_to_tree(
 					self.path, zim.index.LINK_DIR_BACKWARD )

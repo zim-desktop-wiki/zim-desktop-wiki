@@ -48,7 +48,7 @@ def _set_basedirs():
 	if os.path.isfile('./zim.py'):
 		scriptdir = '.' # maybe running module in test / debug
 	else:
-		scriptdir = os.path.dirname(sys.argv[0])
+		scriptdir = os.path.dirname(os.path.abspath(sys.argv[0]))
 	zim_data_dir = Dir(scriptdir + '/data')
 	if zim_data_dir.exists():
 		ZIM_DATA_DIR = zim_data_dir

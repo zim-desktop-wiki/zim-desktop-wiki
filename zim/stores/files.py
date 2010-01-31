@@ -40,7 +40,9 @@ class Store(StoreClass):
 		'''
 		StoreClass.__init__(self, notebook, path)
 		self.dir = dir
-		assert self.store_has_dir()
+		if not self.store_has_dir():
+			raise AssertionError, 'File store needs directory'
+			# not using assert here because it could be optimized away
 		self.format = get_format('wiki') # TODO make configable
 
 	def _get_file(self, path):

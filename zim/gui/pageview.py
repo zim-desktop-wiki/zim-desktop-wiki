@@ -2621,9 +2621,10 @@ class PageView(gtk.VBox):
 	def on_open_notebook(self, ui, notebook):
 
 		def assert_not_modified(page, *a):
-			if page == self.page:
-				assert not self.view.get_buffer().get_modified(), \
-					'BUG: page changed while buffer changed as well'
+			if page == self.page \
+			and self.view.get_buffer().get_modified():
+				raise AssertionError, 'BUG: page changed while buffer changed as well'
+				# not using assert here because it could be optimized away
 
 		for s in ('store-page', 'delete-page', 'move-page'):
 			notebook.connect_after(s, assert_not_modified)
