@@ -206,10 +206,10 @@ is_url_re = Re('^(\w[\w\+\-\.]+)://')
 is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')
 	# "mailto:" address
 	# name "@" host
-is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Z]:\\)')
+is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Za-z]:\\)')
 	# / ~/ ./ ../ ~user/  .\ ..\ ~\ ~user\
 	# X:\
-is_win32_path_re = Re(r'^[A-Z]:[\\/]')
+is_win32_path_re = Re(r'^[A-Za-z]:[\\/]')
 	# X:\ (or X:/)
 is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# \\host\share
