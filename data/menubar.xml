@@ -126,9 +126,9 @@
 <!--
 			<menuitem action='edit_page_source'/>
 			<placeholder name='external_tools'/>
+-->
 			<separator/>
 			<menuitem action='manage_custom_tools'/>
--->
 		</menu>
 		<placeholder name='plugin_menus'/>
 		<menu action='go_menu'>

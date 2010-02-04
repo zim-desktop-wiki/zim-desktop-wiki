@@ -93,6 +93,7 @@ ui_actions = (
 	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', '', False), # T: Menu item
 	('show_server_gui', None, _('Start _Web Server'), '', '', True), # T: Menu item
 	('reload_index', None, _('Re-build Index'), '', '', False), # T: Menu item
+	('manage_custom_tools', 'gtk-preferences', _('Custom _Tools'), '', '', True), # T: Menu item
 	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back'), True), # T: Menu item
 	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward'), True), # T: Menu item
 	('open_page_parent', 'gtk-go-up', _('_Parent'), '<alt>Up', _('Go to parent page'), True), # T: Menu item
@@ -1039,6 +1040,10 @@ class GtkInterface(NotebookInterface):
 		index = self.notebook.index
 		index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
+
+	def manage_custom_tools(self):
+		from zim.gui.customtools import CustomToolManagerDialog
+		CustomToolManagerDialog(self).run()
 
 	def show_help(self, page=None):
 		if page:

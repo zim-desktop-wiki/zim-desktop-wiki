@@ -124,7 +124,7 @@ def get_helper_applications(type):
 			if not entry.key in seen:
 				helpers.append(entry)
 				seen.add(entry.key)
-	
+
 	if not 'startfile' in seen:
 		helpers.append( get_application('startfile') )
 
@@ -383,3 +383,66 @@ class CustomCommandDialog(Dialog):
 		file = create_helper_application(self.type, fields['name'], fields['exec'])
 		self.result = file
 		return True
+
+
+class CustomTool(DesktopEntryFile):
+	'''This is a specialized desktop entry type that is used for
+	custom tools for the "Tools" menu in zim. It uses a non-standard
+	Exec spec with zim specific escapes for "X-Zim-ExecTool".
+
+		%f for source file as tmp file current page
+		%d for attachment directory
+		%s for real source file (if any)
+		%n for notebook location (file or directory)
+		%D for document root
+		%t for selected text or word under cursor
+
+	Other additional keys are:
+		X-Zim-ReadOnly				boolean
+		X-Zim-ShowInToolBar			boolean
+		X-Zim-ShowInContextMenu		'None', 'Text' or 'Page'
+	'''
+
+	@property
+	def isreadonly(self):
+		return self['Desktop Entry']['X-Zim-ReadOnly']
+
+	@property
+	def showintoolbar(self):
+		return self['Desktop Entry']['X-Zim-ShowInToolBar']
+
+	@property
+	def showincontextmenu(self):
+		return self['Desktop Entry']['X-Zim-ShowInContextMenu']
+
+	def parse_exec(self, args=None):
+		'''Returns a list of command and arguments that can be used to
+		open this application. Args can be either File objects or urls.
+		'''
+		assert isinstance(args, tuple) and len(args) == 3
+		notebook, page, pageview = args
+
+		cmd = split_quoted_strings(self['Desktop Entry']['X-Zim-ExecTool'])
+		if '%f' in args:
+			pass # TODO generate tmp page
+
+		if '%d' in args:
+			pass # TODO
+
+		if '%s' in args:
+			if hasattr(page, 'source') and isinstance(page.source, File):
+				args[args.index('%s')] = page.source.path
+
+		if '%n' in args:
+			pass # TODO
+
+		if '%D' in args:
+			pass # TODO
+
+		if '%t' in args:
+			text = pageview.get_selection() or pageview.get_word()
+			args[args.index('%t')] = text
+
+		return tuple(cmd)
+
+	_cmd = parse_exec # To hook into Application.spawn and Application.run

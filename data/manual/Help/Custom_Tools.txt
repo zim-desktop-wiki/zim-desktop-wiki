@@ -1,0 +1,17 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.26
+Creation-Date: 2010-01-12T23:10:58.385788
+
+====== Custom Tools ======
+Created Tuesday 12 January 2010
+
+TODO
+
+When defining a command, you can use the following codes:
+
+	%f for page source as a temporary file
+	%d for the attachment directory of the current page
+	%s for the real page source file (if any)
+	%n for the notebook location (file or folder)
+	%D for the document root (if any)
+	%t for the selected text or word under cursor
