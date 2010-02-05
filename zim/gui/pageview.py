@@ -3539,7 +3539,7 @@ class FindWidget(object):
 		self.find(string, flags, highlight)
 
 	def on_find_entry_changed(self):
-		string = self.find_entry.get_text()
+		string = unicode(self.find_entry.get_text(), 'utf-8')
 		buffer = self.textview.get_buffer()
 		ok = buffer.finder.find(string, flags=self._flags)
 
