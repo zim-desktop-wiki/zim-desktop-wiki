@@ -1783,10 +1783,10 @@ class NewPageDialog(Dialog):
 		else: title = _('New Page') # T: Dialog title
 
 		Dialog.__init__(self, ui, title,
-			text=_(
+			help_text=_(
 				'Please note that linking to a non-existing page\n'
 				'also creates a new page automatically.'),
-				# T: Dialog text in 'new page' dialog
+			# T: Dialog text in 'new page' dialog
 			path_context=path,
 			fields=[('name', 'page', _('Page Name'), None)], # T: Input label
 			help=':Help:Pages'

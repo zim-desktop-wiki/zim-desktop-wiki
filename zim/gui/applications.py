@@ -16,8 +16,8 @@ import gtk
 import gobject
 
 from zim.fs import *
-from zim.config import data_dirs, XDG_DATA_HOME, XDG_DATA_DIRS, \
-	ConfigDict, ConfigFile, json
+from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
+	config_file, data_dirs, ConfigDict, ConfigFile, json
 from zim.parsing import split_quoted_strings
 from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import Dialog, ErrorDialog
@@ -156,25 +156,30 @@ def create_helper_application(type, Name, Exec, **param):
 	return _create_application(dir, Name, Exec, **param)
 
 
-def _create_application(dir, Name, Exec, **param):
+def _create_application(dir, Name, Exec, klass=None, **param):
 	n = Name.lower() + '-usercreated'
 	key = n
-	file = dir.file('applications', key + '.desktop')
+	file = dir.file(key + '.desktop')
 	i = 0
 	while file.exists():
 		assert i < 1000, 'BUG: Infinite loop ?'
 		i += 1
 		key = n + '-' + str(i)
-		file = dir.file('applications', key + '.desktop')
-	entry = DesktopEntryFile(file)
+		file = dir.file(key + '.desktop')
+
+	if klass is None:
+		klass = DesktopEntryFile
+	entry = klass(file)
+	type = param.pop('Type', 'Application')
 	entry['Desktop Entry'].update(
-		Type='Application',
+		Type=type,
 		Version=1.0,
 		NoDisplay=True,
 		Name=Name,
-		Exec=Exec
+		Exec=Exec,
 		**param
 	)
+
 	assert entry.isvalid(), 'BUG: created invalid desktop entry'
 	entry.write()
 	return entry
@@ -193,6 +198,7 @@ class DesktopEntryDict(ConfigDict, Application):
 		'''
 		entry = self['Desktop Entry']
 		try:
+			# TODO re-write without asserts -> can be optimized away
 			assert 'Type' in entry and entry['Type'] == 'Application', '"Type" missing or invalid'
 			assert 'Name' in entry, '"Name" missing'
 			assert 'Exec' in entry, '"Exec" missing'
@@ -222,13 +228,12 @@ class DesktopEntryDict(ConfigDict, Application):
 	def cmd(self):
 		return split_quoted_strings(self['Desktop Entry']['Exec'])
 
-	def get_pixbuf(self):
-		if 'Icon' in self['Desktop Entry']:
-			icon = self['Desktop Entry']['Icon']
-		else:
+	def get_pixbuf(self, size):
+		icon = self['Desktop Entry'].get('Icon', None)
+		if not icon:
 			return None
 
-		w, h = gtk.icon_size_lookup(gtk.ICON_SIZE_MENU)
+		w, h = gtk.icon_size_lookup(size)
 		if '/' in icon:
 			if os.path.isfile(icon):
 				return gtk.gdk.pixbuf_new_from_file_at_size(icon, w, h)
@@ -308,7 +313,7 @@ class DesktopEntryDict(ConfigDict, Application):
 
 	_cmd = parse_exec # To hook into Application.spawn and Application.run
 
-	def _decode_desktop_value(self, value):
+	def _decode_value(self, value):
 		if value == 'true': return True
 		elif value == 'false': return False
 		else:
@@ -319,10 +324,11 @@ class DesktopEntryDict(ConfigDict, Application):
 				return json.loads('"%s"' % value.replace('"', '\\"')) # force string
 
 	def _encode_value(self, value):
-		if value is True: return 'true'
+		if value is None: return ''
+		elif value is True: return 'true'
 		elif value is False: return 'false'
 		elif isinstance(value, int) or isinstance(value, float):
-			value = value.__str__()
+			return value.__str__()
 		else:
 			assert isinstance(value, basestring), 'Desktop files can not store complex data'
 			return json.dumps(value)[1:-1] # get rid of quotes
@@ -362,7 +368,7 @@ class DesktopEntryMenuItem(gtk.ImageMenuItem):
 		self.entry = entry
 
 		if hasattr(entry, 'get_pixbuf'):
-			pixbuf = entry.get_pixbuf()
+			pixbuf = entry.get_pixbuf(gtk.ICON_SIZE_MENU)
 			if pixbuf:
 				self.set_image(gtk.image_new_from_pixbuf(pixbuf))
 
@@ -385,6 +391,108 @@ class CustomCommandDialog(Dialog):
 		return True
 
 
+class CustomToolManager(object):
+	'''Manager for dealing with the desktop files which are used to
+	store custom tools.
+
+	This object is iterable and maintains a specific order for tools
+	to be shown in in the UI.
+	'''
+
+	def __init__(self):
+		self.names = []
+		self.tools = {}
+		self._read_list()
+
+	def _read_list(self):
+		list = config_file('customtools/customtools.list')
+		seen = set()
+		for line in list:
+			name = line.strip()
+			if not name in seen:
+				seen.add(name)
+				self.names.append(name)
+
+	def _write_list(self):
+		list = config_file('customtools/customtools.list')
+		list[:] = [name + '\n' for name in self.names]
+		list.write()
+
+	def get_tool(self, name):
+		'''Returns a CustomTool object for 'name' or None.
+		Caches files ones they are read.
+		'''
+		if not name in self.tools:
+			tool = config_file('customtools/%s.desktop' % name, klass=CustomTool)
+			self.tools[name] = tool
+
+		return self.tools[name]
+
+	def __iter__(self):
+		for name in self.names:
+			tool = self.get_tool(name)
+			if tool and tool.isvalid():
+				yield tool
+
+	def create(self, Name, **properties):
+		'''Create a new tool. 'properties' should at least include
+		Name, Comment, Icon, X-Zim-ExecTool, X-Zim-ReadOnly and
+		X-Zim-ShowInToolBar. Returns a new CustomTool object.
+		'''
+		# Set sane default for X-Zim-ShowInContextMenus
+		if not 'X-Zim-ShowInContextMenu' in properties:
+			cmd = split_quoted_strings(properties['X-Zim-ExecTool'])
+			if any(c in cmd for c in ['%f', '%d', '%s']):
+				context = 'Page'
+			elif '%t' in cmd:
+				context = 'Text'
+			else:
+				context = None
+			properties['X-Zim-ShowInContextMenu'] = context
+
+		properties['Type'] = 'X-Zim-CustomTool'
+
+		dir = XDG_CONFIG_HOME.subdir('zim/customtools')
+		tool = _create_application(dir, Name, '', klass=CustomTool, **properties)
+		self.tools[tool.key] = tool
+		self.names.append(tool.key)
+		self._write_list()
+
+		return tool
+
+	def delete(self, tool):
+		'''Delete a tool from the list and remove the desktop file'''
+		if not isinstance(tool, CustomTool):
+			tool = self.get_tool(tool)
+		tool.file.remove()
+		self.tools.pop(tool.key)
+		self.names.remove(tool.key)
+		self._write_list()
+
+	def index(self, tool):
+		'''Returns the index position for a specific tool'''
+		if isinstance(tool, CustomTool):
+			tool = tool.key
+		return self.names.index(tool)
+
+	def reorder(self, tool, i):
+		'''Move a tool to a specific index position in the list'''
+		if not 0 <= i < len(self.names):
+			return
+
+		if isinstance(tool, CustomTool):
+			tool = tool.key
+
+		j = self.names.index(tool)
+		self.names.pop(j)
+		self.names.insert(i, tool)
+		# Insert before i. If i was before old position indeed before
+		# old item at that position. However if i was after old position
+		# if shifted due to the pop(), now it inserts after the old item.
+		# This is intended behavior to make all moves posible.
+		self._write_list()
+
+
 class CustomTool(DesktopEntryFile):
 	'''This is a specialized desktop entry type that is used for
 	custom tools for the "Tools" menu in zim. It uses a non-standard
@@ -402,6 +510,39 @@ class CustomTool(DesktopEntryFile):
 		X-Zim-ShowInToolBar			boolean
 		X-Zim-ShowInContextMenu		'None', 'Text' or 'Page'
 	'''
+
+	def isvalid(self):
+		'''Validate all the required fields are set. Assumes we only
+		use desktop files to describe applications. Returns boolean
+		for success.
+		'''
+		entry = self['Desktop Entry']
+		try:
+			# TODO re-write without asserts -> can be optimized away
+			assert 'Type' in entry and entry['Type'] == 'X-Zim-CustomTool', '"Type" missing or invalid'
+			assert 'Name' in entry, '"Name" missing'
+			assert 'X-Zim-ExecTool' in entry, '"X-Zim-ExecTool" missing'
+			assert 'X-Zim-ReadOnly' in entry, '"X-Zim-ReadOnly" missing'
+			assert 'X-Zim-ShowInToolBar' in entry, '"X-Zim-ShowInToolBar" missing'
+			assert 'X-Zim-ShowInContextMenu' in entry, '"X-Zim-ShowInContextMenu" missing'
+			if 'Version' in entry:
+				assert entry['Version'] == 1.0, 'Version invalid'
+		except AssertionError:
+			logger.exception('Invalid desktop entry:')
+			return False
+		else:
+			return True
+
+	def get_pixbuf(self, size):
+		pixbuf = DesktopEntryDict.get_pixbuf(self, size)
+		if pixbuf is None:
+			pixbuf = gtk.Label().render_icon(gtk.STOCK_EXECUTE, size)
+			# FIXME hack to use arbitrary widget to render icon
+		return pixbuf
+
+	@property
+	def execcmd(self):
+		return self['Desktop Entry']['X-Zim-ExecTool']
 
 	@property
 	def isreadonly(self):
@@ -423,23 +564,23 @@ class CustomTool(DesktopEntryFile):
 		notebook, page, pageview = args
 
 		cmd = split_quoted_strings(self['Desktop Entry']['X-Zim-ExecTool'])
-		if '%f' in args:
+		if '%f' in cmd:
 			pass # TODO generate tmp page
 
-		if '%d' in args:
+		if '%d' in cmd:
 			pass # TODO
 
-		if '%s' in args:
+		if '%s' in cmd:
 			if hasattr(page, 'source') and isinstance(page.source, File):
 				args[args.index('%s')] = page.source.path
 
-		if '%n' in args:
+		if '%n' in cmd:
 			pass # TODO
 
-		if '%D' in args:
+		if '%D' in cmd:
 			pass # TODO
 
-		if '%t' in args:
+		if '%t' in cmd:
 			text = pageview.get_selection() or pageview.get_word()
 			args[args.index('%t')] = text
 

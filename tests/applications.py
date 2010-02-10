@@ -4,9 +4,10 @@
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
 import tests
-from tests import TestCase
+from tests import TestCase, create_tmp_dir
 
 import os
+import gtk
 
 from zim.gui.applications import *
 
@@ -55,7 +56,7 @@ class TestApplications(TestCase):
 			entry['Desktop Entry']['Exec'] = app
 			result = entry.parse_exec(args)
 			self.assertEqual(result, wanted)
-		
+
 		entry['Desktop Entry']['Icon'] = 'xxx'
 		entry.file = File('/foo.desktop')
 		for app, args, wanted in (
@@ -72,3 +73,82 @@ class TestApplications(TestCase):
 			self.assertEqual(result, wanted)
 
 
+class TestCustomTools(TestCase):
+
+	def runTest(self):
+		'''Test CustomTool API'''
+		# initialize the list
+		manager = CustomToolManager()
+		self.assertEqual(list(manager), [])
+		self.assertEqual(list(manager.names), [])
+
+		# add a tool
+		properties = {
+			'Name': 'Foo',
+			'Comment': 'Test 1 2 3',
+			'Icon': '',
+			'X-Zim-ExecTool': 'foo %t',
+			'X-Zim-ReadOnly': False,
+			'X-Zim-ShowInToolBar': True,
+		}
+		tool = manager.create(**properties)
+		self.assertEqual(list(manager), [tool])
+		self.assertEqual(list(manager.names), ['foo-usercreated'])
+
+		self.assertTrue(tool.isvalid)
+		self.assertEqual(tool.name, 'Foo')
+		self.assertEqual(tool.comment, 'Test 1 2 3')
+		self.assertFalse(tool.isreadonly)
+		self.assertTrue(tool.showintoolbar)
+		self.assertTrue(tool.get_pixbuf(gtk.ICON_SIZE_MENU))
+		self.assertEqual(tool.showincontextmenu, 'Text') # Auto generated
+
+		# test file saved correctly
+		#~ from pprint import pprint
+		#~ pprint(tool)
+		lines = tool.dump()
+		self.assertTrue(len(lines) > 5)
+		lines = tool.file.readlines()
+		self.assertTrue(len(lines) > 5)
+
+		# refresh list
+		manager = CustomToolManager()
+		self.assertEqual(list(manager), [tool])
+		self.assertEqual(list(manager.names), ['foo-usercreated'])
+
+		# add a second tool
+		tool1 = tool
+		properties = {
+			'Name': 'Foo',
+			'Comment': 'Test 1 2 3',
+			'Icon': None,
+			'X-Zim-ExecTool': 'foo %f',
+			'X-Zim-ReadOnly': False,
+			'X-Zim-ShowInToolBar': True,
+		}
+		tool = manager.create(**properties)
+		self.assertEqual(list(manager), [tool1, tool])
+		self.assertEqual(list(manager.names), ['foo-usercreated', 'foo-usercreated-1'])
+
+		self.assertTrue(tool.isvalid)
+		self.assertEqual(tool.name, 'Foo')
+		self.assertEqual(tool.comment, 'Test 1 2 3')
+		self.assertFalse(tool.isreadonly)
+		self.assertTrue(tool.showintoolbar)
+		self.assertTrue(tool.get_pixbuf(gtk.ICON_SIZE_MENU))
+		self.assertEqual(tool.showincontextmenu, 'Page') # Auto generated
+
+		# switch order
+		i = manager.index(tool)
+		self.assertTrue(i == 1)
+		manager.reorder(tool, 0)
+		i = manager.index(tool)
+		self.assertTrue(i == 0)
+		self.assertEqual(list(manager.names), ['foo-usercreated-1', 'foo-usercreated'])
+
+		# delete
+		file = tool1.file
+		self.assertTrue(file.exists())
+		manager.delete(tool1)
+		self.assertEqual(list(manager.names), ['foo-usercreated-1'])
+		self.assertFalse(file.exists())

@@ -342,25 +342,26 @@ class NotebookDialog(Dialog):
 
 class AddNotebookDialog(Dialog):
 
-	title = _('Add Notebook') # T: Dialog window title
-	text = _('''\
-Please select a name and a folder for the notebook.
-
-To create a new notebook you need to select an empty folder.
-Of course you can also select an existing zim notebook folder.
-''') # T: help text in the 'Add Notebook' dialog
-
 	def __init__(self, ui, name=None, folder=None):
-		Dialog.__init__(self, ui, self.title)
+		Dialog.__init__(self, ui, _('Add Notebook')) # T: Dialog window title
+
+		label = gtk.Label(_('Please select a name and a folder for the notebook.')) # T: Label in Add Notebook dialog
+		label.set_alignment(0.0, 0.5)
+		self.vbox.pack_start(label, False)
+
+
 		if name is None and folder is None:
 			name = 'Notes'
 			folder = '~/Notes'
-		if self.text:
-			self.add_text(self.text)
 		self.add_fields((
 			('name', 'string', _('Name'), name), # T: input field in 'Add Notebook' dialog
 			('folder', 'dir', _('Folder'), folder), # T: input field in 'Add Notebook' dialog
 		))
+
+		self.add_help_text('''\
+To create a new notebook you need to select an empty folder.
+Of course you can also select an existing zim notebook folder.
+''') # T: help text in the 'Add Notebook' dialog
 
 	def do_response_ok(self):
 		name = self.get_field('name')
@@ -370,9 +371,3 @@ Of course you can also select an existing zim notebook folder.
 			return True
 		else:
 			return False
-
-
-class EditNotebookDialog(AddNotebookDialog):
-
-	title = _('Edit Notebook') # T: Dialog window title
-	text = None
