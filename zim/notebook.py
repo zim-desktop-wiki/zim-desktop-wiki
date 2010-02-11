@@ -929,10 +929,10 @@ class Notebook(gobject.GObject):
 
 	def rename_page(self, path, newbasename,
 						update_heading=True, update_links=True):
-		'''Rename page to a page in the same namespace but with a new basename.
-		If 'update_heading' is True the first heading in the page will be updated to it's
-		new name.  If 'update_links' is True all links from and to the page will be
-		modified as well.
+		'''Rename page to a page in the same namespace but with a new
+		basename. If 'update_heading' is True the first heading in the
+		page will be updated to it's new name.  If 'update_links' is
+		True all links from and to the page will be modified as well.
 		'''
 		logger.debug('Rename %s to "%s" (%s, %s)',
 			path, newbasename, update_heading, update_links)
@@ -946,10 +946,11 @@ class Notebook(gobject.GObject):
 
 		self.move_page(path, newpath, update_links=update_links)
 		if update_heading:
+			import zim.parsing
 			page = self.get_page(newpath)
 			tree = page.get_parsetree()
 			if not tree is None:
-				tree.set_heading(newbasename.title())
+				tree.set_heading(zim.parsing.title(newbasename))
 				page.set_parsetree(tree)
 				self.store_page(page)
 

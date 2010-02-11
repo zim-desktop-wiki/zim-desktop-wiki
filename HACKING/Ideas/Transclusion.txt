@@ -1,0 +1,46 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2010-02-01T21:44:14.249245
+
+====== Transclusion ======
+Created Monday 01 February 2010
+
+**Problem**:
+How to incorporate non-wiki text in a wiki page
+
+**Examples**:
+Embedded code snippets, with syntax highlighting
+Embedded views for external files, e.g. code or logs or ..
+
+**Concepts**:
+Embedded text: source is stored within the wiki page itself
+Embedded view: source is stored externally - transclusion
+Images are an example of external files that are viewed in the page,
+but are not stored in the wiki page.
+For the equation editor we also want embedded latex, but still render as image
+
+**Details**:
+Some code for including arbitrary source types, ''{{{mimetype\n...\n}}}''
+Some code for including files ''{{file}}'' (like images, but for
+non-image mimetypes as well)
+Generic container for these parts in the parse tree - probably one
+container type for all mimetype, including images
+Pageview should support embedded widgets (not just pixbufs) (also wrap
+images in a widget ?)
+Any image file can be rendered by default as it is now
+Any text file can be rendered with a gtksourceview
+For included text add some methods to open the file with an external
+program (same as for images)
+Have a method to register mimetype handlers, e.g. for rendering equations
+Each object type also need some code for exporting, fallback to either
+text or image
+
+Bonus would be to detect changes in the source file and refresh the
+object in real time
+Could check on regular intervals, but maybe adds to much IO overhead
+
+**Other**
+Equation rendering handler would compute md5 of text and use that as
+basis for image name, put it in a cache directory
+Handler for equations should play nicely with latex export, but
+produce image for any other export type

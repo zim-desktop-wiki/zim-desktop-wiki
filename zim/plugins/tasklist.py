@@ -303,7 +303,7 @@ class TaskListTreeView(BrowserTreeView):
 				# Quick HACK to support e.g. "not @waiting"
 				inverse = True
 				string = string[4:]
-			self.filter = (inverse, string.strip())
+			self.filter = (inverse, string.strip().lower())
 		else:
 			self.filter = None
 		self._eval_filter()
@@ -321,7 +321,7 @@ class TaskListTreeView(BrowserTreeView):
 	def set_tag_filter(self, tags):
 		# TODO support multiple tags
 		if tags:
-			self.tag_filter = ["@"+tag for tag in tags]
+			self.tag_filter = ["@"+tag.lower() for tag in tags]
 		else:
 			self.tag_filter = None
 		self._eval_filter()
@@ -331,14 +331,18 @@ class TaskListTreeView(BrowserTreeView):
 		self.real_model.foreach(self._filter_item)
 
 	def _filter_item(self, model, path, iter):
+		# This method filters case insensitive because both filters and
+		# text are first converted to lower case text.
 		visible = True
 
 		if not (model[iter][self.ACT_COL] and model[iter][self.OPEN_COL]):
 			visible = False
 
+		description = model[iter][self.TASK_COL].lower()
+		pagename = model[iter][self.PAGE_COL].lower()
+
 		if visible and self.tag_filter:
 			match = False
-			description = model[iter][self.TASK_COL]
 			for tag in self.tag_filter:
 				if tag in description:
 					match = True
@@ -348,13 +352,11 @@ class TaskListTreeView(BrowserTreeView):
 
 		if visible and self.filter:
 			inverse, string = self.filter
-			match = string in model[iter][self.TASK_COL] \
-				or string in model[iter][self.PAGE_COL]
+			match = string in description or string in pagename
 			if (not inverse and not match) or (inverse and match):
 				visible = False
 
 		model[iter][self.VIS_COL] = visible
-
 
 	def do_row_activated(self, path, column):
 		model = self.get_model()

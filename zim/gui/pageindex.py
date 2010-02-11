@@ -277,12 +277,12 @@ class PageTreeView(BrowserTreeView):
 
 	def __init__(self, ui):
 		BrowserTreeView.__init__(self)
-		self._vivivied = None
+		self._cleanup = None
 
 		if not ui is None: # is None in test case
 			self.ui = ui
 			self.ui.connect('open-page',
-				lambda o, p, r: self.select_page(p, vivify=True) )
+				lambda o, p, r: self.on_open_page(p) )
 			self.ui.connect_after('open-notebook', self.do_set_notebook)
 			if not self.ui.notebook is None:
 				self.do_set_notebook(self.app, self.ui.notebook)
@@ -316,13 +316,13 @@ class PageTreeView(BrowserTreeView):
 	def do_set_notebook(self, ui, notebook):
 		self.set_model(PageTreeStore(notebook.index))
 		if not ui.page is None:
-			self.select_page(ui.page)
+			self.on_open_page(ui.page)
 		self.get_model().connect('row-inserted', self.on_row_inserted)
 
 	def on_row_inserted(self, model, treepath, iter):
 		path = model.get_indexpath(iter)
 		if path == self.ui.page:
-			self.select_page(self.ui.page)
+			self.on_open_page(self.ui.page)
 
 	def do_row_activated(self, treepath, column):
 		'''Handler for the row-activated signal, emits page-activated'''
@@ -419,39 +419,46 @@ class PageTreeView(BrowserTreeView):
 		else:
 			dragcontext.finish(False, False, time) # NOK
 
-	def select_page(self, path, vivify=False):
-		'''Select a page in the treeview, connected to the open-page signal.
+	def on_open_page(self, path):
+		index = self.ui.notebook.index
+		model = self.get_model()
 
-		If 'vivify' is True a placeholder for the path will be created
-		if it doesn't yet exist. However this placeholder is cleaned
-		up when another page is selected with this method unless the
-		path was modified in the mean time.
-		'''
+		treepath = self.select_page(path)
+		if treepath is None:
+			path = index.touch(path)
+			treepath = self.select_page(path)
+			assert treepath, 'BUG: failed to touch placeholder'
+
+		if self._cleanup and self._cleanup.valid():
+			mytreepath = self._cleanup.get_path()
+			indexpath = model.get_indexpath( model.get_iter(mytreepath) )
+			#~ print '!! CLEANUP', indexpath
+			index.cleanup(indexpath)
+
+		self._cleanup = gtk.TreeRowReference(model, treepath)
+
+	def select_page(self, path):
+		'''Select a page in the treeview, returns the treepath or None'''
+		#~ print '!! SELECT', path
+		index = self.ui.notebook.index
 		model, iter = self.get_selection().get_selected()
 		if model is None:
-			return # index not yet initialized ...
+			return None # index not yet initialized ...
 
 		if iter and model[iter][PATH_COL] == path:
-			return  # this page was selected already
-
-		index = self.ui.notebook.index
-		if self._vivivied:
-			index.cleanup(self._vivivied)
-			self._vivivied = None
+			return model.get_path(iter) # this page was selected already
 
 		indexpath = index.lookup_path(path)
 		if indexpath is None:
-			if vivify:
-				indexpath = index.touch(path)
-				self._vivivied = indexpath
-			else:
-				return
+			return None
 
 		treepath = model.get_treepath(indexpath)
 		self.expand_to_path(treepath)
 		self.get_selection().select_path(treepath)
 		self.set_cursor(treepath)
 		self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
+
+		return treepath
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageTreeView)

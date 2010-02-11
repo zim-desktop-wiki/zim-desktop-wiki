@@ -5,6 +5,7 @@
 '''This module contains utilities for parsing strings and text'''
 
 import re
+import string
 
 
 def split_quoted_strings(string, unescape=True):
@@ -114,6 +115,24 @@ def parse_date(string):
 		return tuple(map(int, (y, m, d)))
 	else:
 		return None
+
+
+# These sets adjust to the current locale - so not same as "[a-z]" ..
+# Must be kidding - no classes for this in the regex engine !?
+_classes = {'upper': string.uppercase}
+upper_re = re.compile(r'[%(upper)s]' % _classes)
+del _classes
+
+def title(string):
+	'''Slightly smarter version of str.title(). Does not "downgrade"
+	words that already have upper case in it.
+	'''
+	def titleword(match):
+		word = match.group(0)
+		if upper_re.search(word): return word
+		else: return word.title()
+
+	return re.sub(r'\w+', titleword, string, re.U)
 
 
 class Re(object):

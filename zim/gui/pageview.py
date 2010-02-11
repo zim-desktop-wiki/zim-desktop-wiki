@@ -137,6 +137,9 @@ ui_preferences = (
 	('unindent_on_backspace', 'bool', 'Editing',
 		_('Unindent on <BackSpace>\n(If disabled you can still use <Shift><Tab>)'), True),
 		# T: option in preferences dialog
+	('recursive_indentlist', 'bool', 'Editing',
+		_('(Un-)Indenting a list item also change any sub-items'), True),
+		# T: option in preferences dialog
 	('recursive_checklist', 'bool', 'Editing',
 		_('Checking a checkbox also change any sub-items'), False),
 		# T: option in preferences dialog
@@ -172,14 +175,14 @@ file_re = Re(r'''(
 
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
-classes = {
+_classes = {
 	'upper': string.uppercase,
 	'lower': string.lowercase,
 	'letters': string.letters
 }
-camelcase_re = Re(r'[%(upper)s]+[%(lower)s]+[%(upper)s]+\w*$' % classes)
-twoletter_re = re.compile(r'[%(letters)s]{2}' % classes)
-del classes
+camelcase_re = Re(r'[%(upper)s]+[%(lower)s]+[%(upper)s]+\w*$' % _classes)
+twoletter_re = re.compile(r'[%(letters)s]{2}' % _classes)
+del _classes
 
 autoformat_bullets = {
 	'*': BULLET,
@@ -187,6 +190,8 @@ autoformat_bullets = {
 	'[*]': CHECKED_BOX,
 	'[x]': XCHECKED_BOX,
 }
+
+CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
 
 
 class UserActionContext(object):
@@ -264,6 +269,7 @@ class TextBuffer(gtk.TextBuffer):
 		textstyle-changed (style) - Emitted when textstyle at the cursor changes
 		indent-changed (level) - Emitted when the indent at the cursor changes
 		clear - emitted to clear the whole buffer before destruction
+		undo-save-cursor (iter) - emitted in some specific case where the undo stack should lock the current cursor position
 	'''
 
 	# We rely on the priority of gtk TextTags to sort links before styles,
@@ -281,7 +287,8 @@ class TextBuffer(gtk.TextBuffer):
 		'inserted-tree': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object)),
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'indent-changed': (gobject.SIGNAL_RUN_LAST, None, (int,)),
-		'clear': (gobject.SIGNAL_RUN_LAST, None, ())
+		'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -611,6 +618,21 @@ class TextBuffer(gtk.TextBuffer):
 		iter = self.get_iter_at_mark(self.get_insert())
 		self.insert_icon(iter, stock)
 
+	def set_bullet(self, line, bullet):
+		'''Sets the bullet type for a line, deleting the current bullet
+		if any.
+		'''
+		iter = self.get_iter_at_line(line)
+		with self.tmp_cursor():
+			with self.user_action:
+				mark = self.create_mark(None, iter)
+				bound = iter.copy()
+				# FIXME should have a delete_bullet function
+				self.iter_forward_past_bullet(bound)
+				self.delete(iter, bound)
+				self.insert_bullet(self.get_iter_at_mark(mark), bullet)
+				self.delete_mark(mark)
+
 	def insert_bullet(self, iter, bullet):
 		with self.tmp_cursor(iter):
 			self.insert_bullet_at_cursor(bullet)
@@ -634,6 +656,20 @@ class TextBuffer(gtk.TextBuffer):
 			elif bullet in bullet_types:
 				stock = bullet_types[bullet]
 				self.insert_icon_at_cursor(stock)
+
+				## HACK
+				# Since undo will record this insert before we applied
+				# the indent, and since get_parse_tree skips checkbox icons
+				# without indent this is necessary to keep the undo stack
+				# correct.
+				if not filter(_is_indent_tag, self._editmode_tags):
+					indenttag = self._get_indent_tag(0)
+					end = self.get_insert_iter()
+					start = end.copy()
+					start.backward_char()
+					self.apply_tag(indenttag, start, end)
+				##
+
 				if not raw:
 					self.insert_at_cursor(' ')
 			else:
@@ -647,7 +683,6 @@ class TextBuffer(gtk.TextBuffer):
 				iter = self.get_iter_at_mark(self.get_insert())
 				self.set_indent_for_line(0, iter.get_line())
 					# bullets always need indenting
-
 
 	def set_textstyle(self, name):
 		'''Sets the current text style. This style will be applied
@@ -853,8 +888,11 @@ class TextBuffer(gtk.TextBuffer):
 		if tags:
 			assert len(tags) == 1, 'BUG: overlapping indent tags'
 			self.remove_tag(tags[0], start, end)
-		tag = self._get_indent_tag(level)
-		self.apply_tag(tag, start, end)
+
+		if not level is None:
+			tag = self._get_indent_tag(level)
+			self.apply_tag(tag, start, end)
+
 		self.set_modified(True)
 		return True
 
@@ -1012,7 +1050,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def get_bullet(self, line):
 		iter = self.get_iter_at_line(line)
-		return self._get_bullet(iter)
+		return self._get_bullet_at_iter(iter)
 
 	def get_bullet_at_iter(self, iter):
 		if not iter.starts_line():
@@ -1045,17 +1083,18 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return False
 
-	def _iter_forward_past_bullet(self, iter, bullet):
+	def _iter_forward_past_bullet(self, iter, bullet, raw=False):
 		assert bullet in (BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX)
 		# other bullet types might need to skip different number of char etc.
 		iter.forward_char()
 		bound = iter.copy()
 		bound.forward_char()
-		while iter.get_text(bound) == ' ':
-			if iter.forward_char():
-				bound.forward_char()
-			else:
-				break
+		if not raw:
+			while iter.get_text(bound) == ' ':
+				if iter.forward_char():
+					bound.forward_char()
+				else:
+					break
 
 	def get_parsetree(self, bounds=None, raw=False):
 		'''Returns a parse tree for the page contents.
@@ -1111,7 +1150,7 @@ class TextBuffer(gtk.TextBuffer):
 							t = 'li'
 							attrib = attrib.copy() # break ref with tree
 							attrib['bullet'] = bullet
-							self._iter_forward_past_bullet(iter, bullet)
+							self._iter_forward_past_bullet(iter, bullet, raw=raw)
 						elif not raw and not iter.starts_line():
 							# Indent not visible if it does not start at begin of line
 							t = '_ignore_'
@@ -1142,6 +1181,7 @@ class TextBuffer(gtk.TextBuffer):
 
 		# And now the actual loop going through the buffer
 		iter = start.copy()
+		set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
 		while iter.compare(end) == -1:
 			pixbuf = iter.get_pixbuf()
 			if pixbuf:
@@ -1397,6 +1437,208 @@ class TextBuffer(gtk.TextBuffer):
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextBuffer)
+
+
+class TextBufferList(list):
+	'''This class represents a bullet or checkbox list in a TextBuffer.
+	It is used to perform recursive actions on the list.
+
+	TextBufferList objects will become invalid after any modification
+	to the buffer that changes the line count within the list. Using
+	them after such modification will result in errors.
+	'''
+
+	# This class is a list of tuples, each tuple is a pair of
+	# (linenumber, indentlevel, bullettype)
+
+	LINE_COL = 0
+	INDENT_COL = 1
+	BULLET_COL = 2
+
+	@classmethod
+	def new_from_iter(self, textbuffer, iter):
+		'''Returns a row id and a TextBufferList object for the list
+		around 'iter'. Both will be None if 'iter' is not part of a list.
+		'''
+		# check iter
+		if textbuffer.get_bullet(iter.get_line()) is None:
+			return None, None
+
+		# find start of list
+		start = iter.get_line()
+		for line in range(start, -1, -1):
+			if textbuffer.get_bullet(line) is None:
+				break # TODO skip lines with whitespace
+			else:
+				start = line
+
+		# find end of list
+		end = iter.get_line()
+		lastline = textbuffer.get_end_iter().get_line()
+		for line in range(end, lastline+1, 1):
+			if textbuffer.get_bullet(line) is None:
+				break # TODO skip lines with whitespace
+			else:
+				end = line
+
+		list = TextBufferList(textbuffer, start, end)
+		row = list.get_row_from_iter(iter)
+		#~ print '!! LIST %i..%i ROW %i' % (start, end, row)
+		return row, list
+
+	def __init__(self, textbuffer, firstline, lastline):
+		self.buffer = textbuffer
+		self.firstline = firstline
+		self.lastline = lastline
+		for line in range(firstline, lastline+1):
+			bullet = self.buffer.get_bullet(line)
+			iter = self.buffer.get_iter_at_line(line)
+			indent = int(self.buffer.get_indent(iter))
+			if bullet:
+				self.append((line, indent, bullet))
+
+	def get_row_from_iter(self, iter):
+		'''Returns a row id for an iter within the list range or None'''
+		line = iter.get_line()
+		for i in range(len(self)):
+			if self[i][self.LINE_COL] == line:
+				return i
+		else:
+			return None
+
+	def can_indent(self, row):
+		'''Nodes can only be indented if they are on top of the list
+		or when there is some node above them to serve as new parent node.
+		This avoids indenting two levels below the parent.
+		'''
+		if row == 0:
+			return True
+		else:
+			parents = self._parents(row)
+			if row-1 in parents:
+				return False # we are first child
+			else:
+				return True
+
+	def can_unindent(self, row):
+		'''Nodes can only unindent when they have indenting in the fist place'''
+		return self[row][self.INDENT_COL] > 0
+
+	def indent(self, row):
+		'''Indent a row and all it's child nodes'''
+		if not self.can_indent(row):
+			return False
+		with self.buffer.user_action:
+			self._indent(row, 1)
+		return True
+
+	def unindent(self, row):
+		'''Un-indent a row and all it's child nodes'''
+		if not self.can_unindent(row):
+			return False
+		with self.buffer.user_action:
+			self._indent(row, -1)
+		return True
+
+	def _indent(self, row, step):
+		level = self[row][self.INDENT_COL]
+		self._indent_row(row, step)
+		if row == 0:
+			# Indent the whole list
+			for i in range(1, len(self)):
+				self._indent_row(i, step)
+		else:
+			for i in range(row+1, len(self)):
+				if self[i][self.INDENT_COL] > level:
+					self._indent_row(i, step)
+				else:
+					break
+
+	def _indent_row(self, row, step):
+		line, level, bullet = self[row]
+		newlevel = level + step
+		if self.buffer.set_indent_for_line(newlevel, line):
+			self.buffer.set_editmode_from_cursor() # also updates indent tag
+			self[row] = (line, newlevel, bullet)
+
+	def update_checkbox(self, row, state):
+		'''(Un-)Check the checkbox at a row and synchronize child
+		nodes and parent nodes. The new 'state' can be any of
+		CHECKED_BOX, UNCHECKED_BOX, or XCHECKED_BOX.
+		'''
+		assert state in CHECKBOXES
+		with self.buffer.user_action:
+			self._change_bullet_type(row, state)
+			if state == UNCHECKED_BOX:
+				self._update_uncheckbox(row)
+			else:
+				self._update_checkbox(row, state)
+
+	def _update_uncheckbox(self, row):
+		# When a row is unchecked, it's children are untouched but
+		# all parents will be unchecked as well
+		for parent in self._parents(row):
+			if self[parent][self.BULLET_COL] not in CHECKBOXES:
+				continue # ignore non-checkbox bullet
+
+			self._change_bullet_type(parent, UNCHECKED_BOX)
+
+	def _update_checkbox(self, row, state):
+		# If a row is checked, all un-checked children are updated as
+		# well. For parent nodes we first check consistency of all
+		# children before we check them.
+
+		# First synchronize down
+		level = self[row][self.INDENT_COL]
+		for i in range(row+1, len(self)):
+			if self[i][self.INDENT_COL] > level:
+				if self[i][self.BULLET_COL] == UNCHECKED_BOX:
+					self._change_bullet_type(i, state)
+				else:
+					# ignore non-checkbox bullet
+					# ignore xchecked items etc.
+					pass
+			else:
+				break
+
+		# Then go up, checking direct children for each parent
+		# if children are inconsistent, do not change the parent
+		# and break off updating parents. Do overwrite parents that
+		# are already checked with a different type.
+		for parent in self._parents(row):
+			if self[parent][self.BULLET_COL] not in CHECKBOXES:
+				continue # ignore non-checkbox bullet
+
+			consistent = True
+			level = self[parent][self.INDENT_COL]
+			for i in range(parent+1, len(self)):
+				if self[i][self.INDENT_COL] <= level:
+					break
+				elif self[i][self.INDENT_COL] == level+1 \
+				and self[i][self.BULLET_COL] in CHECKBOXES \
+				and self[i][self.BULLET_COL] != state:
+					consistent = False
+					break
+
+			if consistent:
+				self._change_bullet_type(parent, state)
+			else:
+				break
+
+	def _change_bullet_type(self, row, bullettype):
+		line, indent, _ = self[row]
+		self.buffer.set_bullet(line, bullettype)
+		self[row] = (line, indent, bullettype)
+
+	def _parents(self, row):
+		# Collect row ids of parent nodes
+		parents = []
+		level = self[row][self.INDENT_COL]
+		for i in range(row, -1, -1):
+			if self[i][self.INDENT_COL] < level:
+				parents.append(i)
+				level = self[i][self.INDENT_COL]
+		return parents
 
 
 FIND_CASE_SENSITIVE = 1
@@ -1803,8 +2045,8 @@ class TextView(gtk.TextView):
 		and not event.state & gtk.gdk.CONTROL_MASK):
 			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
-			realhome, ourhome = self.get_home_positions(insert)
-			if insert.equal(ourhome): iter = realhome
+			home, ourhome = self.get_visual_home_positions(insert)
+			if insert.equal(ourhome): iter = home
 			else: iter = ourhome
 			if event.state & gtk.gdk.SHIFT_MASK:
 				buffer.move_mark_by_name('insert', iter)
@@ -1813,24 +2055,29 @@ class TextView(gtk.TextView):
 			handled = True
 		elif event.keyval in KEYVALS_TAB and not event.state:
 			# Tab at start of line indents
-			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			realhome, ourhome = self.get_home_positions(iter)
-			if iter.compare(ourhome) < 1:
-				iter = buffer.get_iter_at_mark(buffer.get_insert())
-				iter = buffer.get_iter_at_line(iter.get_line())
-				with buffer.user_action:
+			iter = buffer.get_insert_iter()
+			home, ourhome = self.get_visual_home_positions(iter)
+			if home.starts_line() and iter.compare(ourhome) < 1:
+				row, list = TextBufferList.new_from_iter(buffer, iter)
+				if list and self.preferences['recursive_indentlist']:
+					list.indent(row)
+				else:
 					buffer.increment_indent(iter)
 				handled = True
-		elif (event.keyval in KEYVALS_LEFT_TAB
+		elif event.keyval in KEYVALS_LEFT_TAB \
 		or (event.keyval in KEYVALS_BACKSPACE
-			and self.preferences['unindent_on_backspace']) and not event.state):
+			and self.preferences['unindent_on_backspace']) \
+		and not event.state:
 			# Backspace or Ctrl-Tab unindents line
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			realhome, ourhome = self.get_home_positions(iter)
-			if iter.compare(ourhome) < 1:
-				with buffer.user_action:
-					iter = buffer.get_iter_at_line(iter.get_line())
+			home, ourhome = self.get_visual_home_positions(iter)
+			if home.starts_line() and iter.compare(ourhome) < 1:
+				row, list = TextBufferList.new_from_iter(buffer, iter)
+				if list and self.preferences['recursive_indentlist']:
+					done = list.unindent(row)
+				else:
 					done = buffer.decrement_indent(iter)
+
 				if event.keyval in KEYVALS_BACKSPACE and not done:
 					handled = False # do a normal backspace
 				else:
@@ -1878,8 +2125,8 @@ class TextView(gtk.TextView):
 			if iter.get_text(insert) != char:
 				return True
 
-			# TODO How to tell the undo stack that we want this cursor back on the next undo ?
 			with buffer.user_action:
+				buffer.emit('undo-save-cursor', insert)
 				start = iter.copy()
 				if buffer.iter_backward_word_start(start):
 					word = start.get_text(iter)
@@ -2021,20 +2268,21 @@ class TextView(gtk.TextView):
 		else:
 			return False
 
-	def get_home_positions(self, iter):
+	def get_visual_home_positions(self, iter):
 		'''Returns two text iters. If we are on a word wrapped line, both point
 		to the begin of the visual line (which is not the actual paragraph
 		start). If the visual begin happens to be the real line start the first
 		iter will give the real line start while the second will give the start
 		of the actual content on the line (so after skipping bullets and
-		whitespace) while the second. In that case the two iters specify a
-		range that may contain bullets or whitespace at the start of the line.
+		whitespace). In that case the two iters specify a range that may
+		contain bullets or whitespace at the start of the line.
 		'''
-		realhome = iter.copy()
-		if not self.starts_display_line(realhome):
-			self.backward_display_line_start(realhome)
-		if realhome.starts_line():
-			ourhome = realhome.copy()
+		home = iter.copy()
+		if not self.starts_display_line(home):
+			self.backward_display_line_start(home)
+
+		if home.starts_line():
+			ourhome = home.copy()
 			self.get_buffer().iter_forward_past_bullet(ourhome)
 			bound = ourhome.copy()
 			bound.forward_char()
@@ -2043,10 +2291,10 @@ class TextView(gtk.TextView):
 					bound.forward_char()
 				else:
 					break
-			return realhome, ourhome
+			return home, ourhome
 		else:
 			# only start visual line, not start of real line
-			return realhome, realhome.copy()
+			return home, home.copy()
 
 	def do_end_of_word(self, start, end, word, char):
 		buffer = self.get_buffer()
@@ -2121,13 +2369,16 @@ class TextView(gtk.TextView):
 		elif not buffer.get_bullet_at_iter(start) is None:
 			ourhome = start.copy()
 			buffer.iter_forward_past_bullet(ourhome)
-			if ourhome.equal(end): # line with bullet but no text
+			nextline = end.copy()
+			nextline.forward_line()
+			if ourhome.equal(end) and nextline.ends_line():
+				# line with bullet but no text - break list if no text on next line
 				buffer.delete(start, end)
+				if buffer.set_indent_for_line(None, start.get_line()):
+					buffer.set_editmode_from_cursor() # also updates indent tag
 			else: # we are part of bullet list - set indent + bullet
-				iter = end.copy()
-				iter.forward_line()
 				bullet = buffer.get_bullet_at_iter(start)
-				buffer.insert_bullet(iter, bullet)
+				buffer.insert_bullet(nextline, bullet)
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)
@@ -2136,14 +2387,16 @@ gobject.type_register(TextView)
 class UndoActionGroup(list):
 	'''Container for a set of undo actions, will be undone, redone in a single step'''
 
-	__slots__ = ('can_merge')
+	__slots__ = ('can_merge', 'cursor')
 
 	def __init__(self):
 		self.can_merge = False
+		self.cursor = None
 
 	def reversed(self):
 		'''Returns a new UndoActionGroup with the reverse actions of this group'''
 		group = UndoActionGroup()
+		group.cursor = self.cursor
 		for action in self:
 			# constants are defined such that negating them reverses the action
 			action = (-action[0],) + action[1:]
@@ -2210,6 +2463,7 @@ class UndoStackManager:
 
 		self.recording_handlers = [] # handlers to be blocked when not recording
 		for signal, handler in (
+			('undo-save-cursor', self.do_save_cursor),
 			('insert-text', self.do_insert_text),
 			#~ ('inserted-tree', self.do_insert_tree), # TODO
 			('insert-pixbuf', self.do_insert_pixbuf),
@@ -2269,6 +2523,9 @@ class UndoStackManager:
 		self.undo_count = 0
 		self.block_count = 0
 		self.block()
+
+	def do_save_cursor(self, buffer, iter):
+		self.group.cursor = iter.get_offset()
 
 	def do_begin_user_action(self, buffer):
 		'''Start a group of actions that will be undone / redone as a single action'''
@@ -2333,12 +2590,14 @@ class UndoStackManager:
 
 		start = iter.get_offset()
 		end = start + 1
+		#~ print 'INSERT PIXBUF at %i' % start
 		self.group.append((self.ACTION_INSERT, start, end, None))
 		self.group.can_merge = False
 		self.insert_pending = True
 
 	def flush_insert(self):
 		# For insert actually getting the tree is delayed when possible
+
 		def _flush_group(group):
 			for i in reversed(range(len(group))):
 				action, start, end, tree = group[i]
@@ -2346,6 +2605,7 @@ class UndoStackManager:
 					bounds = (self.buffer.get_iter_at_offset(start),
 								self.buffer.get_iter_at_offset(end))
 					tree = self.buffer.get_parsetree(bounds, raw=True)
+					#~ print 'FLUSH %i to %i\n\t%s' % (start, end, tree.tostring())
 					group[i] = (self.ACTION_INSERT, start, end, tree)
 				else:
 					return False
@@ -2365,6 +2625,7 @@ class UndoStackManager:
 		bounds = (start, end)
 		tree = self.buffer.get_parsetree(bounds, raw=True)
 		start, end = start.get_offset(), end.get_offset()
+		#~ print 'DELETE RANGE from %i to %i\n\t%s' % (start, end, tree.tostring())
 		self.group.append((self.ACTION_DELETE, start, end, tree))
 		self.group.can_merge = False
 
@@ -2444,9 +2705,11 @@ class UndoStackManager:
 			elif action == self.ACTION_DELETE:
 				#~ print 'DELETING'
 				self.buffer.place_cursor(iter)
+				#~ tree = self.buffer.get_parsetree((iter, bound), raw=True)
 				self.buffer.delete(iter, bound)
-				# TODO - replace what is on the stack with what is being deleted
-				# log warning BUG if the two do not match
+				#~ if tree.tostring() != data.tostring():
+					#~ logger.warn('Mismatch in undo stack\n%s\n%s\n', tree.tostring(), data.tostring())
+				# TODO - enable this check and fix all warnings in test suite
 			elif action == self.ACTION_APPLY_TAG:
 				#~ print 'APPLYING', data
 				self.buffer.apply_tag(data, iter, bound)
@@ -2457,6 +2720,10 @@ class UndoStackManager:
 				self.buffer.place_cursor(bound)
 			else:
 				assert False, 'BUG: unknown action type'
+
+		if not actiongroup.cursor is None:
+			iter = self.buffer.get_iter_at_offset(actiongroup.cursor)
+			self.buffer.place_cursor(iter)
 
 		self.unblock()
 
@@ -2979,13 +3246,24 @@ class PageView(gtk.VBox):
 
 	def _toggled_checkbox(self, checkbox):
 		buffer = self.view.get_buffer()
-		if buffer.get_has_selection():
-			buffer.foreach_line_in_selection(buffer.toggle_checkbox, checkbox)
-		else:
+		if self.preferences['recursive_checklist']:
+			# TODO not toggling here...
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			if not iter.starts_line():
-				iter = buffer.get_iter_at_line(iter.get_line())
-			buffer.toggle_checkbox(iter, checkbox)
+			row, list = TextBufferList.new_from_iter(buffer, iter)
+			if buffer.get_has_selection():
+				func = lambda iter: list.update_checkbox(list.row_from_iter(iter), checkbox)
+				buffer.foreach_line_in_selection(func)
+			else:
+				list.update_checkbox(row, checkbox)
+		else:
+			# TODO do this through the TextBufferList interface as well ?
+			if buffer.get_has_selection():
+				buffer.foreach_line_in_selection(buffer.toggle_checkbox, checkbox)
+			else:
+				iter = buffer.get_iter_at_mark(buffer.get_insert())
+				if not iter.starts_line():
+					iter = buffer.get_iter_at_line(iter.get_line())
+				buffer.toggle_checkbox(iter, checkbox)
 
 	def edit_object(self, iter=None):
 		buffer = self.view.get_buffer()

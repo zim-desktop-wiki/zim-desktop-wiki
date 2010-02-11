@@ -354,7 +354,16 @@ class PageEntry(InputEntry):
 			return
 
 		try:
-			text = Notebook.cleanup_pathname(text)
+			if text != ':':
+				# Clean up, but keep the end ":" chars
+				orig = text
+				text = Notebook.cleanup_pathname(text)
+				if orig[0] == ':' and text[0] != ':':
+					text = ':' + text
+				if orig[-1] == ':' and text[-1] != ':':
+					text = text + ':'
+			else:
+				pass
 		except PageNameError:
 			self.set_input_valid(False)
 			return
@@ -362,15 +371,18 @@ class PageEntry(InputEntry):
 			self.set_input_valid(True)
 
 		# Figure out some hint about the namespace
+		anchored = False
 		if ':' in text:
 			# can still have context and start with '+'
 			i = text.rfind(':')
 			completing = text[:i+1]
 			prefix = completing
+			anchored = True
 		elif self.path_context:
 			if text.startswith('+'):
 				completing = ':' + self.path_context.name
 				prefix = '+'
+				anchored = True
 			else:
 				completing = ':' + self.path_context.namespace
 				prefix = ''
@@ -381,6 +393,7 @@ class PageEntry(InputEntry):
 		if self.force_child and not completing.startswith('+'):
 			# Needed for new_sub_page - always force child page
 			completing = '+' + completing
+			anchored = True
 
 		# Check if we completed already for this namespace
 		if completing == self._completing:
@@ -398,6 +411,7 @@ class PageEntry(InputEntry):
 			except PageNameError:
 				return
 
+		# TODO also add parent namespaces in case text did not contain any ':' (anchored == False)
 		#~ print '!! COMPLETING %s context: %s prefix: %s' % (path, self.path_context, prefix)
 		for p in self.notebook.index.list_pages(path):
 			self.completion_model.append((prefix+p.basename,))

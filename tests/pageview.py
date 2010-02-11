@@ -99,13 +99,13 @@ dus <p indent="5">ja</p> <emphasis>hmm
 dus ja
 </emphasis>grrr
 
-<li bullet="*" indent="0">Foo</li>
-<li bullet="*" indent="0">Bar</li>
+<li bullet="*" indent="0"> Foo</li>
+<li bullet="*" indent="0"> Bar</li>
 </zim-tree>'''
 		tree = get_tree_from_xml(input)
 		buffer.set_parsetree(tree)
 		self.assertFalse(buffer.get_modified())
-		
+
 		rawtree = buffer.get_parsetree(raw=True)
 		self.assertFalse(buffer.get_modified())
 		self.assertEqualDiff(rawtree.tostring(), input)
@@ -431,7 +431,7 @@ foo Bar Baz Foo
 		):
 			finder.find_next()
 			check(line, offset, text)
-			
+
 		# Regular expression
 		finder.find(r'Foo\s*Bar', FIND_REGEX | FIND_CASE_SENSITIVE)
 		check(1, 7, 'Foo Bar')
@@ -469,31 +469,399 @@ dus** Bar Baz dus**
 		self.assertEqual(buffer.get_insert_iter().get_offset(), 6)
 
 
+class TestLists(TestCase):
 
-#~ def press(widget, char):
-	#~ event = gtk.gdk.Event(gtk.gdk.KEY_PRESS)
-	#~ event.keyval = int( gtk.gdk.unicode_to_keyval(ord(char)) )
-	#~ event.string = char
-	#~ widget.event(event)
-#~
-#~ class TestTextView(TestCase):
-#~
-	#~ preferences = {
-	#~ }
-#~
-	#~ def runTest(self):
-		#~ view = TextView(self.preferences)
-		#~ buffer = TextBuffer()
-		#~ view.set_buffer(buffer)
-		#~ undomanager = UndoStackManager(buffer)
-#~
-		#~ # Need a window to get the widget realized
-		#~ window = gtk.Window()
-		#~ window.add(view)
+	def runTest(self):
+		'''Test interaction for lists'''
+
+		buffer = TextBuffer()
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="*" indent="0"> Foo</li>
+<li bullet="*" indent="0"> Bar</li>
+<li bullet="*" indent="1"> Bar 1</li>
+<li bullet="*" indent="2"> Bar 1.1</li>
+<li bullet="*" indent="1"> Bar 2</li>
+<li bullet="*" indent="1"> Bar 3</li>
+<li bullet="*" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = get_tree_from_xml(input)
+		buffer.set_parsetree(tree)
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), input) # just a sanity check
+
+		undomanager = UndoStackManager(buffer)
+
+		# check list initializes properly
+		iter = buffer.get_iter_at_line(3) # Bar 1
+		row, list = TextBufferList.new_from_iter(buffer, iter)
+		self.assertEqual(list.firstline, 1)
+		self.assertEqual(list.lastline, 7)
+		self.assertEqual(row, 2)
+		self.assertEqual(list, [
+			(1, 0, '*'),
+			(2, 0, '*'),
+			(3, 1, '*'),
+			(4, 2, '*'),
+			(5, 1, '*'),
+			(6, 1, '*'),
+			(7, 0, '*'),
+		] )
+
+		# Exercise indenting
+		iter = buffer.get_iter_at_line(3) # Bar 1
+		row, list = TextBufferList.new_from_iter(buffer, iter)
+		self.assertFalse(list.can_indent(row))
+		self.assertFalse(list.indent(row))
+
+		iter = buffer.get_iter_at_line(2) # Bar
+		row, list = TextBufferList.new_from_iter(buffer, iter)
+		self.assertTrue(list.can_indent(row))
+		self.assertTrue(list.indent(row))
+		self.assertFalse(list.can_indent(row))
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="*" indent="0"> Foo</li>
+<li bullet="*" indent="1"> Bar</li>
+<li bullet="*" indent="2"> Bar 1</li>
+<li bullet="*" indent="3"> Bar 1.1</li>
+<li bullet="*" indent="2"> Bar 2</li>
+<li bullet="*" indent="2"> Bar 3</li>
+<li bullet="*" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		iter = buffer.get_iter_at_line(7) # Baz
+		row, list = TextBufferList.new_from_iter(buffer, iter)
+		self.assertFalse(list.can_unindent(row))
+		self.assertFalse(list.unindent(row))
+
+		iter = buffer.get_iter_at_line(3) # Bar 1
+		row, list = TextBufferList.new_from_iter(buffer, iter)
+		self.assertTrue(list.can_unindent(row))
+		self.assertTrue(list.unindent(row))
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="*" indent="0"> Foo</li>
+<li bullet="*" indent="1"> Bar</li>
+<li bullet="*" indent="1"> Bar 1</li>
+<li bullet="*" indent="2"> Bar 1.1</li>
+<li bullet="*" indent="2"> Bar 2</li>
+<li bullet="*" indent="2"> Bar 3</li>
+<li bullet="*" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		for line in (2, 5, 6): # Bar, Bar 2 & Bar 3
+			iter = buffer.get_iter_at_line(line)
+			row, list = TextBufferList.new_from_iter(buffer, iter)
+			self.assertTrue(list.can_unindent(row))
+			self.assertTrue(list.unindent(row))
+
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), input)
+
+		# Test undo / redo for indenting and lists
+		for i in range(3):
+			self.assertTrue(undomanager.undo())
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		while undomanager.undo():
+			pass
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), input)
+
+		while undomanager.redo():
+			pass
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), input)
+
+		for i in range(3):
+			self.assertTrue(undomanager.undo())
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+
+		# Exercize recursive checkbox lists
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="unchecked-box" indent="0"> Foo</li>
+<li bullet="unchecked-box" indent="0"> Bar</li>
+<li bullet="unchecked-box" indent="1"> Bar 1</li>
+<li bullet="unchecked-box" indent="2"> Bar 1.1</li>
+<li bullet="unchecked-box" indent="1"> Bar 2</li>
+<li bullet="unchecked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = get_tree_from_xml(input)
+		buffer.set_parsetree(tree)
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), input) # just a sanity check
+
+		undomanager = UndoStackManager(buffer)
+
+
+		iter = buffer.get_iter_at_line(2) # Bar
+		row, list = TextBufferList.new_from_iter(buffer, iter)
+		list.update_checkbox(row, CHECKED_BOX)
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="unchecked-box" indent="0"> Foo</li>
+<li bullet="checked-box" indent="0"> Bar</li>
+<li bullet="checked-box" indent="1"> Bar 1</li>
+<li bullet="checked-box" indent="2"> Bar 1.1</li>
+<li bullet="checked-box" indent="1"> Bar 2</li>
+<li bullet="checked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		list.update_checkbox(row, UNCHECKED_BOX)
+		iter = buffer.get_iter_at_line(3) # Bar 1
+		row = list.get_row_from_iter(iter)
+		list.update_checkbox(row, XCHECKED_BOX)
+		iter = buffer.get_iter_at_line(5) # Bar 2
+		row = list.get_row_from_iter(iter)
+		list.update_checkbox(row, UNCHECKED_BOX)
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="unchecked-box" indent="0"> Foo</li>
+<li bullet="unchecked-box" indent="0"> Bar</li>
+<li bullet="xchecked-box" indent="1"> Bar 1</li>
+<li bullet="checked-box" indent="2"> Bar 1.1</li>
+<li bullet="unchecked-box" indent="1"> Bar 2</li>
+<li bullet="checked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		iter = buffer.get_iter_at_line(5) # Bar 2
+		row = list.get_row_from_iter(iter)
+		list.update_checkbox(row, CHECKED_BOX)
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="unchecked-box" indent="0"> Foo</li>
+<li bullet="unchecked-box" indent="0"> Bar</li>
+<li bullet="xchecked-box" indent="1"> Bar 1</li>
+<li bullet="checked-box" indent="2"> Bar 1.1</li>
+<li bullet="checked-box" indent="1"> Bar 2</li>
+<li bullet="checked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		iter = buffer.get_iter_at_line(4) # Bar 1.1
+		row = list.get_row_from_iter(iter)
+		list.update_checkbox(row, UNCHECKED_BOX)
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="unchecked-box" indent="0"> Foo</li>
+<li bullet="unchecked-box" indent="0"> Bar</li>
+<li bullet="unchecked-box" indent="1"> Bar 1</li>
+<li bullet="unchecked-box" indent="2"> Bar 1.1</li>
+<li bullet="checked-box" indent="1"> Bar 2</li>
+<li bullet="checked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		wantedpre1 = wanted
+		iter = buffer.get_iter_at_line(4) # Bar 1.1
+		row = list.get_row_from_iter(iter)
+		list.update_checkbox(row, CHECKED_BOX)
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="unchecked-box" indent="0"> Foo</li>
+<li bullet="checked-box" indent="0"> Bar</li>
+<li bullet="checked-box" indent="1"> Bar 1</li>
+<li bullet="checked-box" indent="2"> Bar 1.1</li>
+<li bullet="checked-box" indent="1"> Bar 2</li>
+<li bullet="checked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		# Test indenting / unindenting the whole list
+		wantedpre = wanted
+		iter = buffer.get_iter_at_line(1) # Foo
+		row = list.get_row_from_iter(iter)
+		list.indent(row)
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="unchecked-box" indent="1"> Foo</li>
+<li bullet="checked-box" indent="1"> Bar</li>
+<li bullet="checked-box" indent="2"> Bar 1</li>
+<li bullet="checked-box" indent="3"> Bar 1.1</li>
+<li bullet="checked-box" indent="2"> Bar 2</li>
+<li bullet="checked-box" indent="2"> Bar 3</li>
+<li bullet="unchecked-box" indent="1"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		list.unindent(row)
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wantedpre)
+
+		# Test undo / redo for indenting and lists
+		for xml in (wanted, wantedpre, wantedpre1):
+			self.assertTrue(undomanager.undo())
+			tree = buffer.get_parsetree(raw=True)
+			self.assertEqualDiff(tree.tostring(), xml)
+
+		for xml in (wantedpre, wanted, wantedpre):
+			self.assertTrue(undomanager.redo())
+			tree = buffer.get_parsetree(raw=True)
+			self.assertEqualDiff(tree.tostring(), xml)
+
+		while undomanager.undo():
+			pass
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), input)
+
+		while undomanager.redo():
+			pass
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wantedpre)
+
+
+def press(widget, string):
+	for char in string:
+		event = gtk.gdk.Event(gtk.gdk.KEY_PRESS)
+		if char == '\n':
+			event.keyval = int( gtk.gdk.keyval_from_name('Return') )
+		elif char == '\t':
+			event.keyval = int( gtk.gdk.keyval_from_name('Tab') )
+		else:
+			event.keyval = int( gtk.gdk.unicode_to_keyval(ord(char)) )
+		event.string = char
+		#gtk.main_do_event(event)
+		#assert widget.event(event) # Returns True if event was handled
+		#while gtk.events_pending():
+		#	gtk.main_iteration()
+		widget.emit('key-press-event', event)
+
+
+class TestTextView(TestCase):
+
+	def setUp(self):
+		# Initialize default preferences from module
+		self.preferences = {}
+		for pref in ui_preferences:
+			self.preferences[pref[0]] = pref[-1]
+
+	def runTest(self):
+		print '\n!! Two GtkWarnings expected here for gdk display !!'
+		view = TextView(self.preferences)
+		buffer = TextBuffer()
+		view.set_buffer(buffer)
+		undomanager = UndoStackManager(buffer)
+
+		# Need a window to get the widget realized
+		window = gtk.Window()
+		window.add(view)
+		view.realize()
 		#~ window.show_all()
-#~
-		#~ press(view, '*')
-		#~ press(view, '\n')
-		#~ start, end = buffer.get_bounds()
-		#~ self.assertEqual(buffer.get_text(start, end), '*\n')
+		#~ view.grab_focus()
 
+		press(view, 'aaa\n')
+		start, end = buffer.get_bounds()
+		self.assertEqual(buffer.get_text(start, end), 'aaa\n')
+			# Just checking test routines work
+
+		# Test bullet & indenting logic
+		press(view, '* foo')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+<li bullet="*" indent="0"> foo</li></zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		press(view, '\n')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+<li bullet="*" indent="0"> foo</li>
+<li bullet="*" indent="0"> </li></zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		start, end = buffer.get_bounds()
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		press(view, '\tduss')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+<li bullet="*" indent="0"> foo</li>
+<li bullet="*" indent="1"> duss</li></zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		press(view, '\n')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+<li bullet="*" indent="0"> foo</li>
+<li bullet="*" indent="1"> duss</li>
+<li bullet="*" indent="1"> </li></zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		press(view, 'CamelCase\n')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+<li bullet="*" indent="0"> foo</li>
+<li bullet="*" indent="1"> duss</li>
+<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> </li></zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		press(view, '\n')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+<li bullet="*" indent="0"> foo</li>
+<li bullet="*" indent="1"> duss</li>
+<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+
+		# TODO unindenting
+		# TODO checkboxes
+		# TODO Auto formatting of various link types
+		# TODO enter on link, before link, after link

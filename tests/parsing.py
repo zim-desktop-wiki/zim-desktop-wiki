@@ -22,16 +22,24 @@ class TestParsing(TestCase):
 		'''Test parsing dates'''
 		from datetime import date
 		today = date.today()
-		self.assertEqual(parse_date('1/1'), (today.year, 1, 1)) 
-		self.assertEqual(parse_date('1-1'), (today.year, 1, 1)) 
-		self.assertEqual(parse_date('1:1'), (today.year, 1, 1)) 
-		self.assertEqual(parse_date('11/11'), (today.year, 11, 11)) 
-		self.assertEqual(parse_date('11/11/99'), (1999, 11, 11)) 
-		self.assertEqual(parse_date('11/11/11'), (2011, 11, 11)) 
-		self.assertEqual(parse_date('1/11/2001'), (2001, 11, 1)) 
-		self.assertEqual(parse_date('1-11-2001'), (2001, 11, 1)) 
-		self.assertEqual(parse_date('1:11:2001'), (2001, 11, 1)) 
-		self.assertEqual(parse_date('2001/11/1'), (2001, 11, 1)) 
+		self.assertEqual(parse_date('1/1'), (today.year, 1, 1))
+		self.assertEqual(parse_date('1-1'), (today.year, 1, 1))
+		self.assertEqual(parse_date('1:1'), (today.year, 1, 1))
+		self.assertEqual(parse_date('11/11'), (today.year, 11, 11))
+		self.assertEqual(parse_date('11/11/99'), (1999, 11, 11))
+		self.assertEqual(parse_date('11/11/11'), (2011, 11, 11))
+		self.assertEqual(parse_date('1/11/2001'), (2001, 11, 1))
+		self.assertEqual(parse_date('1-11-2001'), (2001, 11, 1))
+		self.assertEqual(parse_date('1:11:2001'), (2001, 11, 1))
+		self.assertEqual(parse_date('2001/11/1'), (2001, 11, 1))
+
+	def testTitle(self):
+		for string, wanted in (
+			('foo bar', 'Foo Bar'),
+			('FooBar baz', 'FooBar Baz'),
+			('dusJa check123', 'dusJa Check123'),
+		):
+			self.assertEqual(title(string), wanted)
 
 	def testRe(self):
 		'''Test parsing Re class'''
@@ -67,7 +75,7 @@ class TestParsing(TestCase):
 		):
 			#~ print 'url_encode(\'%s\') == \'%s\'' % (url, url_encode(wanted))
 			self.assertEqual(url_encode(url), wanted)
-		
+
 		for url, wanted in (
 			('file:///foo/bar', 'file:///foo/bar'),
 			('file:///C:/My Documents', 'file:///C:/My Documents'),
@@ -79,5 +87,5 @@ class TestParsing(TestCase):
 		):
 			#~ print 'url_decode(\'%s\') == \'%s\'' % (url, url_decode(wanted))
 			self.assertEqual(url_decode(url), wanted)
-		
+
 # TODO - test link_type including win32 paths
