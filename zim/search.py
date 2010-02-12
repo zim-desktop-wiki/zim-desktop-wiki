@@ -459,6 +459,6 @@ class SearchSelection(PageSelection):
 
 		#~ print 'SEARCH REGEX: >>%s<<' % regex
 		if case:
-			return re.compile(regex)
+			return re.compile(regex, re.U)
 		else:
-			return re.compile(regex, re.I)
+			return re.compile(regex, re.U | re.I)

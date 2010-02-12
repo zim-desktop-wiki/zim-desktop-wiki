@@ -164,14 +164,14 @@ heading_re = Re(r'^(={2,7})\s*(.*)\s*(\1)?$')
 page_re = Re(r'''(
 	  [\w\.\-\(\)]*(?: :[\w\.\-\(\)]{2,} )+:?
 	| \+\w[\w\.\-\(\)]+(?: :[\w\.\-\(\)]{2,} )*:?
-)$''', re.X) # e.g. namespace:page or +subpage, but not word without ':' or '+'
-interwiki_re = Re(r'\w[\w\+\-\.]+\?\w\S+$') # name?page, where page can be any url style
+)$''', re.X | re.U) # e.g. namespace:page or +subpage, but not word without ':' or '+'
+interwiki_re = Re(r'\w[\w\+\-\.]+\?\w\S+$', re.U) # name?page, where page can be any url style
 file_re = Re(r'''(
 	  ~/[^/\s]
 	| ~[^/\s]*/
 	| \.\.?/
 	| /[^/\s]
-)\S*$''', re.X) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
+)\S*$''', re.X | re.U) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
 
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
@@ -987,6 +987,7 @@ class TextBuffer(gtk.TextBuffer):
 			# Break tags that are not allowed to span over multiple lines
 			self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
 			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
+			self.emit('textstyle-changed', None)
 			# TODO make this more robust for multiline inserts
 		elif string in CHARS_END_OF_WORD:
 			# Break links if end-of-word char is typed at end of a link
@@ -2754,7 +2755,9 @@ class PageView(gtk.VBox):
 		self._current_toggle_action = None
 
 		self.preferences = self.ui.preferences['PageView']
-		self.ui.register_preferences('PageView', ui_preferences)
+		if not self.secondairy:
+			# HACK avoid registerign a second time
+			self.ui.register_preferences('PageView', ui_preferences)
 
 		self.view = TextView(preferences=self.preferences)
 		swindow = gtk.ScrolledWindow()
@@ -3817,7 +3820,7 @@ class FindWidget(object):
 		self.find(string, flags, highlight)
 
 	def on_find_entry_changed(self):
-		string = self.find_entry.get_text()
+		string = unicode(self.find_entry.get_text(), 'utf-8')
 		buffer = self.textview.get_buffer()
 		ok = buffer.finder.find(string, flags=self._flags)
 

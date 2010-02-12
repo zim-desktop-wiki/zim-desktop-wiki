@@ -151,7 +151,7 @@ Special attention may be needed to run xdg update commands in a post-install
 script. Recommended commands are:
 
 	update-desktop-database
-	update-mime-database
+	update-mime-database /usr/share/mime
 	xdg-icon-resource install --context mimetypes \
 		--size 64 zim.png application-x-zim-notebook
 
@@ -172,6 +172,6 @@ you should add you new .po file to the po/ directory.
 
 After adding the .po file(s) you can compile the translation using:
 
-	./setup build_trans
+	./setup.py build_trans
 
 

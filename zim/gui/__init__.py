@@ -1186,7 +1186,7 @@ class MainWindow(gtk.Window):
 		vbox2.pack_start(self.pathbar_box, False)
 
 		self.pageview = PageView(ui)
-		self.pageview.view.connect(
+		self.pageview.view.connect_after(
 			'toggle-overwrite', self.do_textview_toggle_overwrite)
 		vbox2.add(self.pageview)
 

@@ -19,7 +19,7 @@ class TestSearchRegex(TestCase):
 			('foo bar', r'\bfoo\ bar\b'),
 		):
 			#print '>>', word, regex
-			self.assertEqual(regex_func(word), re.compile(regex, re.I))
+			self.assertEqual(regex_func(word), re.compile(regex, re.I | re.U))
 
 
 		text = 'foo foobar FooBar Foooo Foo!'

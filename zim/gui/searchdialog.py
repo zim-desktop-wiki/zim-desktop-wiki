@@ -45,7 +45,8 @@ class SearchDialog(Dialog):
 
 
 		def search(*a):
-			self.results_treeview.set_query( self.query_entry.get_text() )
+			string = unicode(self.query_entry.get_text(), 'utf-8')
+			self.results_treeview.set_query( string )
 
 		button.connect('clicked', search)
 		self.query_entry.connect('activate', search)
