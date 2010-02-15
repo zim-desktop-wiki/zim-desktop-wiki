@@ -7,7 +7,7 @@ You can either link pages or urls. Urls are recognized because they start with e
 
 * Links containing a '/' are considerd links to external files
 * Links that start with a ':' are resolved from the root namespace
-* Links that start with a '.' are resolved in the namespace below the current page
+* Links that start with a '+' are resolved in the namespace below the current page
 * Links that contain a '?' are interwiki links, see below.
 * All other links are resolved within the path from the root to the current page
 

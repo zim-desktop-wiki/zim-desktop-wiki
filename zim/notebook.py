@@ -878,20 +878,23 @@ class Notebook(gobject.GObject):
 			return
 
 		for tag in tree.getiterator('link'):
-			href = tag.attrib['href']
-			type = link_type(href)
-			if type == 'page':
-				hrefpath = self.resolve_path(href, source=page)
-				oldhrefpath = self.resolve_path(href, source=oldpath)
-				#~ print 'LINK', oldhrefpath, '->', hrefpath
-				if hrefpath != oldhrefpath:
-					if hrefpath >= page and oldhrefpath >= oldpath:
-						#~ print '\t.. Ignore'
-						pass
-					else:
-						newhref = self.relative_link(page, oldhrefpath)
-						#~ print '\t->', newhref
-						self._update_link_tag(tag, newhref)
+			try:
+				href = tag.attrib['href']
+				type = link_type(href)
+				if type == 'page':
+					hrefpath = self.resolve_path(href, source=page)
+					oldhrefpath = self.resolve_path(href, source=oldpath)
+					#~ print 'LINK', oldhrefpath, '->', hrefpath
+					if hrefpath != oldhrefpath:
+						if hrefpath >= page and oldhrefpath >= oldpath:
+							#~ print '\t.. Ignore'
+							pass
+						else:
+							newhref = self.relative_link(page, oldhrefpath)
+							#~ print '\t->', newhref
+							self._update_link_tag(tag, newhref)
+			except:
+				logger.exception('Error while updating link "%s"', href)
 
 		page.set_parsetree(tree)
 
@@ -907,23 +910,26 @@ class Notebook(gobject.GObject):
 			return
 
 		for tag in tree.getiterator('link'):
-			href = tag.attrib['href']
-			type = link_type(href)
-			if type == 'page':
-				hrefpath = self.resolve_path(href, source=page)
-				#~ print 'LINK', hrefpath
-				if hrefpath == oldpath:
-					newhrefpath = newpath
-					#~ print '\t==', oldpath, '->', newhrefpath
-				elif hrefpath > oldpath:
-					rel = hrefpath.relname(oldpath)
-					newhrefpath = newpath + rel
-					#~ print '\t>', oldpath, '->', newhrefpath
-				else:
-					continue
+			try:
+				href = tag.attrib['href']
+				type = link_type(href)
+				if type == 'page':
+					hrefpath = self.resolve_path(href, source=page)
+					#~ print 'LINK', hrefpath
+					if hrefpath == oldpath:
+						newhrefpath = newpath
+						#~ print '\t==', oldpath, '->', newhrefpath
+					elif hrefpath > oldpath:
+						rel = hrefpath.relname(oldpath)
+						newhrefpath = newpath + rel
+						#~ print '\t>', oldpath, '->', newhrefpath
+					else:
+						continue
 
-				newhref = self.relative_link(page, newhrefpath)
-				self._update_link_tag(tag, newhref)
+					newhref = self.relative_link(page, newhrefpath)
+					self._update_link_tag(tag, newhref)
+			except:
+				logger.exception('Error while updating link "%s"', href)
 
 		page.set_parsetree(tree)
 

@@ -468,6 +468,8 @@ class PageIndex(gtk.ScrolledWindow):
 
 	def __init__(self, ui):
 		gtk.ScrolledWindow.__init__(self)
+		self.ui = ui
+
 		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		self.set_shadow_type(gtk.SHADOW_IN)
 
@@ -497,3 +499,10 @@ class PageIndex(gtk.ScrolledWindow):
 			return None
 		else:
 			return model.get_indexpath(iter)
+
+	def reload_model(self):
+		'''Re-initialize the treeview model. This is called when
+		reloading the index to get rid of out-of-sync model errors
+		without need to close the app first.
+		'''
+		self.treeview.do_set_notebook(self.ui, self.ui.notebook)

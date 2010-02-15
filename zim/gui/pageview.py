@@ -1284,6 +1284,7 @@ class TextBuffer(gtk.TextBuffer):
 		end = iter.copy()
 		end.forward_to_line_end()
 		self.select_range(iter, end)
+		return True
 
 	def select_word(self):
 		'''Selects the word at the cursor, if any. Returns True for success'''
@@ -3200,9 +3201,12 @@ class PageView(gtk.VBox):
 			item = gtk.MenuItem(_('Open With...'))
 			menu.prepend(item)
 			submenu = OpenWithMenu(link['href'], mimetype='text/html')
-			item.set_submenu(submenu)
+			if submenu.get_children():
+				item.set_submenu(submenu)
+			else:
+				item.set_sensitive(False)
 
-		# open
+		# open in new window
 		if type == 'page':
 			item = gtk.MenuItem(_('Open in New _Window'))
 				# T: menu item to open a link
@@ -3210,18 +3214,20 @@ class PageView(gtk.VBox):
 				'activate', lambda o: self.do_link_clicked(link, new_window=True))
 			menu.prepend(item)
 
-		if type != 'image' and link:
-			item = gtk.MenuItem(_('_Open'))
-				# T: menu item to open a link or file
-			if file and not file.exists():
-				item.set_sensitive(False)
-			else:
-				item.connect_object(
-					'activate', PageView.do_link_clicked, self, link)
-			menu.prepend(item)
+		# open
+		if type == 'image':
+			link = {'href': file.uri}
+
+		item = gtk.MenuItem(_('_Open'))
+			# T: menu item to open a link or file
+		if file and not file.exists():
+			item.set_sensitive(False)
+		else:
+			item.connect_object(
+				'activate', PageView.do_link_clicked, self, link)
+		menu.prepend(item)
 
 		menu.show_all()
-
 
 	def undo(self):
 		self.undostack.undo()
@@ -3352,14 +3358,23 @@ class PageView(gtk.VBox):
 		InsertLinkDialog(self.ui, self).run()
 
 	def clear_formatting(self):
-		has_selection = self.autoselect()
-
 		buffer = self.view.get_buffer()
-		if has_selection:
+		mark = buffer.create_mark(None, buffer.get_insert_iter())
+		selected = self.autoselect()
+
+		if buffer.get_has_selection():
 			start, end = buffer.get_selection_bounds()
 			buffer.remove_textstyle_tags(start, end)
+			if selected:
+				# If we keep the selection we can not continue typing
+				# so remove the selection and restore the cursor.
+				buffer.unset_selection()
+				buffer.place_cursor(buffer.get_iter_at_mark(mark))
 		else:
 			buffer.set_textstyle(None)
+
+		buffer.delete_mark(mark)
+
 
 	def do_toggle_format_action(self, action):
 		'''Handler that catches all actions to apply and/or toggle formats'''
@@ -3374,19 +3389,35 @@ class PageView(gtk.VBox):
 
 	def toggle_format(self, format):
 		buffer = self.view.get_buffer()
+		selected = False
+		mark = buffer.create_mark(None, buffer.get_insert_iter())
+
 		if not buffer.textstyle == format:
 			# Only autoselect non formatted content - otherwise not
 			# consistent when trying to break a formatted region
 			# Could be improved by making autoselect refuse to select
 			# formatted content
 			ishead = format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
-			self.autoselect(selectline=ishead)
+			selected = self.autoselect(selectline=ishead)
+
 		buffer.toggle_textstyle(format, interactive=True)
 
+		if selected:
+			# If we keep the selection we can not continue typing
+			# so remove the selection and restore the cursor.
+			buffer.unset_selection()
+			buffer.place_cursor(buffer.get_iter_at_mark(mark))
+		buffer.delete_mark(mark)
+
 	def autoselect(self, selectline=False):
+		'''Auto select either a word or a line. Returns True when this
+		function changed the selection. Does not do anything if a
+		selection is present already or when the preference for auto-
+		select is set to False.
+		'''
 		buffer = self.view.get_buffer()
 		if buffer.get_has_selection():
-			return True
+			return False
 		elif self.preferences['autoselect']:
 			if selectline:
 				return buffer.select_line()
@@ -3508,9 +3539,25 @@ class InsertImageDialog(FileDialog):
 		if file:
 			self.set_file(file)
 
+		self.uistate.setdefault('attach_inserted_images', False)
+		checkbox = gtk.CheckButton(_('Attach image first'))
+			# T: checkbox in the "Insert Image" dialog
+		checkbox.set_active(self.uistate['attach_inserted_images'])
+		self.filechooser.set_extra_widget(checkbox)
+
 	def do_response_ok(self):
 		file = self.get_file()
 		if file is None: return False
+
+		checkbox = self.filechooser.get_extra_widget()
+		self.uistate['attach_inserted_images'] = checkbox.get_active()
+		if self.uistate['attach_inserted_images']:
+			# Similar code in zim.gui.AttachFileDialog
+			dir = self.ui.notebook.get_attachments_dir(self.path)
+			if not file.dir == dir:
+				file.copyto(dir)
+				file = dir.file(file.basename)
+
 		src = self.ui.notebook.relative_filepath(file, self.path) or file.uri
 		self.buffer.insert_image_at_cursor(file, src)
 		return True
@@ -3682,7 +3729,7 @@ class InsertLinkDialog(Dialog):
 		# Hook text entry to copy text from link when apropriate
 		href = self.inputs['href'].get_text()
 		text = self.inputs['text'].get_text()
-		if not text or text == href:
+		if not self._selection_bounds and (not text or text == href):
 			hrefentry = self.inputs['href']
 			textentry = self.inputs['text']
 			hrefentry.connect('changed',

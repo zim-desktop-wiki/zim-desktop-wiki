@@ -1076,6 +1076,8 @@ class GtkInterface(NotebookInterface):
 		self.spawn('--server', '--gui', self.notebook.uri)
 
 	def reload_index(self):
+		self.mainwindow.pageindex.reload_model()
+			# Flush any sync error in treemodel
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
 		dialog.show_all()
@@ -2045,22 +2047,33 @@ class AttachFileDialog(FileDialog):
 				# T: Error dialog - %s is the full page name
 			raise Exception, 'Page "%s" does not have a folder for attachments' % self.path
 
+		self.uistate.setdefault('insert_attached_images', True)
+		checkbox = gtk.CheckButton(_('Insert images as link'))
+			# T: checkbox in the "Attach File" dialog
+		checkbox.set_active(not self.uistate['insert_attached_images'])
+		self.filechooser.set_extra_widget(checkbox)
+
 	def do_response_ok(self):
 		file = self.get_file()
 		if file is None:
 			return False
+
+		checkbox = self.filechooser.get_extra_widget()
+		self.uistate['insert_attached_images'] = not checkbox.get_active()
+			# Similar code in zim.gui.InsertImageDialog
+
+		file.copyto(self.dir)
+		file = self.dir.file(file.basename)
+		mimetype = file.get_mimetype()
+		pageview = self.ui.mainwindow.pageview
+		if self.uistate['insert_attached_images'] \
+		and mimetype.startswith('image/'):
+			try:
+				pageview.insert_image(file, interactive=False)
+			except:
+				logger.exception('Could not insert image')
+				pageview.insert_links([file]) # image type not supported?
 		else:
-			file.copyto(self.dir)
-			file = self.dir.file(file.basename)
-			mimetype = file.get_mimetype()
-			pageview = self.ui.mainwindow.pageview
-			if mimetype.startswith('image/'):
-				try:
-					pageview.insert_image(file, interactive=False)
-				except:
-					logger.exception('Could not insert image')
-					pageview.insert_links([file]) # image type not supported?
-			else:
-				pageview.insert_links([file])
-			return True
+			pageview.insert_links([file])
+		return True
 
