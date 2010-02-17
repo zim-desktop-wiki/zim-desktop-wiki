@@ -18,6 +18,7 @@ from zim.fs import *
 import zim.errors
 import zim.config
 from zim.notebook import Notebook, Path, PageNameError
+from zim.parsing import link_type
 
 
 logger = logging.getLogger('zim.gui')
@@ -422,6 +423,21 @@ class NamespaceEntry(PageEntry):
 	allow_select_root = True
 
 
+class LinkEntry(PageEntry):
+	'''Sub-class of PageEntry that also accepts file links and urls'''
+
+	def do_changed(self):
+		text = self.get_text()
+		if text:
+			type = link_type(text)
+			if type == 'page':
+				PageEntry.do_changed(self)
+			else:
+				self.set_input_valid(True)
+		else:
+			self.set_input_valid(True)
+
+
 def format_title(title):
 	'''Formats a window title (in fact just adds " - Zim" to the end).'''
 	assert not title.lower().endswith(' zim')
@@ -590,6 +606,7 @@ class Dialog(gtk.Dialog):
 		will call response_ok(). Set to False if more forms will follow in the
 		same dialog.
 		'''
+		# FIXME FIXME FIXME - this code needs to go in a special class for constructing forms
 		if table is None:
 			table = gtk.Table()
 			table.set_border_width(5)
@@ -631,12 +648,14 @@ class Dialog(gtk.Dialog):
 					pass
 				self.inputs[name] = combobox
 				table.attach(combobox, 1,2, i,i+1)
-			elif type in ('string', 'password', 'page', 'namespace', 'dir', 'file', 'image'):
+			elif type in ('string', 'password', 'link', 'page', 'namespace', 'dir', 'file', 'image'):
 				label = gtk.Label(label+': ')
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
-				if type in ('page', 'namespace'):
-					if type == 'page':
+				if type in ('link', 'page', 'namespace'):
+					if type == 'link':
+						entry = LinkEntry(self.ui.notebook, path_context=self.path_context)
+					elif type == 'page':
 						entry = PageEntry(self.ui.notebook, path_context=self.path_context)
 					else:
 						entry = NamespaceEntry(self.ui.notebook, path_context=self.path_context)
@@ -648,6 +667,13 @@ class Dialog(gtk.Dialog):
 							entry.set_path(value)
 					self.inputs[name] = entry
 					table.attach(entry, 1,2, i,i+1)
+
+					if type == 'link':
+						# FIXME use inline icon for newer versions of Gtk
+						# redundant code from below
+						browse = gtk.Button('_Browse')
+						browse.connect('clicked', self._select_file, (type, entry))
+						table.attach(browse, 2,3, i,i+1, xoptions=gtk.FILL)
 				else:
 					entry = gtk.Entry()
 					entry.zim_type = type

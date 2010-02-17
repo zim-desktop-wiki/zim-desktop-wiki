@@ -273,16 +273,29 @@ class UnixPath(object):
 			mimetype = xdg.Mime.get_type(self.path, name_pri=80)
 			return str(mimetype)
 		except ImportError:
+			logger.info("xdg.Mime doesn't exist - use file extension")
 			# Fake mime typing (e.g. for win32)
 			if '.' in self.basename:
 				_, ext = self.basename.rsplit('.', 1)
 				if ext == 'txt':
 					return 'text/plain'
 				else:
+					# Fallback for platform without xdg mimeinfo
+					# we can still use a stub mimetype based on the
+					# file extension. However for pageview it is nice
+					# to use proper image/... mimetypes so it knows this
+					# file can be inserted as image.
+					# FIXME check if we can port this to gio instead of using gtk
+					# alternative is to hard code list with globs (copy from mimeinfo)
+					import gtk
+					# See if it's an image
+					for format in gtk.gdk.pixbuf_get_formats():
+						if ext in format['extensions']:
+							return format['mime_types'][0]
+					# Not an image
 					return 'x-file-extension/%s' % ext
 			else:
 				return 'application/octet-stream'
-
 
 
 class WindowsPath(UnixPath):

@@ -251,8 +251,9 @@ class CalendarPluginWidget(gtk.VBox):
 		calendar.clear_marks()
 		namespace = self.plugin.path_for_month_from_date( calendar.get_date() )
 		for path in self.plugin.ui.notebook.index.list_pages(namespace):
-			date = self.plugin.date_from_path(path)
-			calendar.mark_day(date.day)
+			if date_path_re.match(path.name):
+				date = self.plugin.date_from_path(path)
+				calendar.mark_day(date.day)
 
 	def on_open_page(self, ui, page, path):
 		try:

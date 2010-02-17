@@ -85,7 +85,6 @@ ui_actions = (
 	('insert_date', None, _('_Date and Time...'), '<ctrl>D', '', False), # T: Menu item
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
-	('insert_external_link', 'zim-link', _('E_xternal Link...'), '', '', False), # T: Menu item
 	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
 	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', '', False), # T: Menu item
 	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', '', True), # T: Menu item
@@ -3281,7 +3280,7 @@ class PageView(gtk.VBox):
 
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		if buffer.get_link_tag(iter):
-			return EditLinkDialog(self.ui, self).run()
+			return InsertLinkDialog(self.ui, self).run()
 
 		image = buffer.get_image_data(iter)
 		if not image:
@@ -3322,9 +3321,6 @@ class PageView(gtk.VBox):
 
 	def insert_text_from_file(self):
 		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
-
-	def insert_external_link(self):
-		InsertExternalLinkDialog(self.ui, self).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links plus
@@ -3687,22 +3683,31 @@ class InsertTextFromFileDialog(FileDialog):
 class InsertLinkDialog(Dialog):
 
 	def __init__(self, ui, pageview):
-		Dialog.__init__(self, ui, _('Insert Link'), # T: Dialog title
+		self.pageview = pageview
+		href, text = self._get_link_from_buffer()
+
+		if href: title = _('Edit Link') # T: Dialog title
+		else: title = _('Insert Link') # T: Dialog title
+
+		Dialog.__init__(self, ui, title,
 					path_context=pageview.page,
 					button=(_('_Link'), 'zim-link') )  # T: Dialog button
-		self.pageview = pageview
-
-		href, text = self._get_link()
 		self.add_fields([
-			('href', 'page', _('Link to'), href), # T: Input in 'insert link' dialog
+			('href', 'link', _('Link to'), href), # T: Input in 'insert link' dialog
 			('text', 'string', _('Text'), text) # T: Input in 'insert link' dialog
 		])
-		self._hook_text_entry()
 
-	def _get_link(self):
+		# Hook text entry to copy text from link when apropriate
+		if not self._selection_bounds and (not text or text == href):
+			hrefentry = self.inputs['href']
+			textentry = self.inputs['text']
+			hrefentry.connect('changed',
+				lambda o: textentry.set_text(hrefentry.get_text()) )
+
+	def _get_link_from_buffer(self):
 		# Get link and text from the text buffer
-		href = ''
-		text = ''
+		href, text = '', ''
+
 		buffer = self.pageview.view.get_buffer()
 		if not buffer.get_has_selection():
 			link = buffer.select_link()
@@ -3724,16 +3729,6 @@ class InsertLinkDialog(Dialog):
 			self._selection_bounds = None
 
 		return href, text
-
-	def _hook_text_entry(self):
-		# Hook text entry to copy text from link when apropriate
-		href = self.inputs['href'].get_text()
-		text = self.inputs['text'].get_text()
-		if not self._selection_bounds and (not text or text == href):
-			hrefentry = self.inputs['href']
-			textentry = self.inputs['text']
-			hrefentry.connect('changed',
-				lambda o: textentry.set_text(hrefentry.get_text()) )
 
 	def do_response_ok(self):
 		entry = self.inputs['href']
@@ -3761,42 +3756,6 @@ class InsertLinkDialog(Dialog):
 			buffer.insert_link_at_cursor(text, href)
 
 		return True
-
-
-class InsertExternalLinkDialog(InsertLinkDialog):
-
-	def __init__(self, ui, pageview):
-		Dialog.__init__(self, ui, _('Insert External Link'), # T: Dialog title
-					button=(_('_Link'), 'zim-link') )  # T: Dialog button
-		self.pageview = pageview
-
-		# FIXME - do we need an input type for file OR url ?
-		# if so, also update EditLinkDialog
-		href, text = self._get_link()
-		self.add_fields([
-			('href', 'file', _('Link to'), href), # T: Input in 'insert link' dialog
-			('text', 'string', _('Text'), text), # T: Input in 'insert link' dialog
-		])
-		self._hook_text_entry()
-
-
-class EditLinkDialog(InsertLinkDialog):
-
-	def __init__(self, ui, pageview):
-		Dialog.__init__(self, ui, _('Edit Link'), # T: Dialog title
-					path_context=pageview.page,
-					button=(_('_Link'), 'zim-link') )  # T: Dialog button
-		self.pageview = pageview
-
-		href, text = self._get_link()
-		type = link_type(href)
-		if type == 'page': input = 'page' # Same as InsertLinkDialog
-		else:              input = 'file' # Same as InsertExternalLinkDialog
-		self.add_fields([
-			('href', input, _('Link to'), href), # T: Input in 'edit link' dialog
-			('text', 'string', _('Text'), text), # T: Input in 'edit link' dialog
-		])
-		self._hook_text_entry()
 
 
 class FindWidget(object):

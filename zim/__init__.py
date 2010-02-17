@@ -352,7 +352,10 @@ class NotebookInterface(gobject.GObject):
 		self.preferences['General'].setdefault('plugins',
 			['calendar', 'printtobrowser', 'versioncontrol'])
 		plugins = self.preferences['General']['plugins']
-		for plugin in plugins:
+		plugins = set(plugins) # Eliminate doubles
+		# Plugins should not have dependency on order of being added
+		# just add sort to make behavior predictable.
+		for plugin in sorted(plugins):
 			self.load_plugin(plugin)
 
 	def load_plugin(self, name):

@@ -80,7 +80,6 @@
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='insert_text_from_file'/>
-			<menuitem action='insert_external_link'/>
 			<menuitem action='insert_link'/>
 		</menu>
 		<menu action='format_menu'>
