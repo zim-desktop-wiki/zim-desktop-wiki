@@ -55,7 +55,7 @@ class Dumper(DumperClass):
 		self.linker.set_usebase(True)
 		output = TextBuffer()
 		self._dump_children(tree.getroot(), output, istoplevel=True)
-		return output.get_lines()
+		return output.get_lines(end_with_newline=not tree.ispartial)
 
 	def _dump_children(self, list, output, istoplevel=False):
 		for element in list.getchildren():

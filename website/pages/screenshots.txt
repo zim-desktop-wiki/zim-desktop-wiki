@@ -22,7 +22,11 @@ Screencast thanks to [[http://productivelinux.com/2009/05/23/video-post-my-favor
 
 
 {{/screenshots/zim-calendar.png}}
-//Showing the calendar and spell checking in action//
+//Showing the calendar dialog//
+
+
+{{/screenshots/zim-calendar-embedded.png}}
+//Showing the alternative embedded calendar view//
 
 
 {{/screenshots/zim-tasklist.png}}

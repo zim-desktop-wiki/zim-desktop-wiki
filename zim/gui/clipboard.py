@@ -172,9 +172,18 @@ class Clipboard(gtk.Clipboard):
 			#~ print 'PASTING: >>>%s<<<' % html
 			selectiondata.set(selectiondata.target, 8, html)
 		elif id == TEXT_TARGET_ID:
+			# FIXME no using wiki although plain is preferred
+			# because plain does not yet support lists etc.
 			dumper = get_format('wiki').Dumper()
 			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
 			selectiondata.set_text(text)
+
+			# Pasting as 'plain' text because wiki syntax more often than not looks
+			# strange in external applications. Would need extra menu item to
+			# "copy as wiki text".
+			#dumper = get_format('plain').Dumper()
+			#text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
+			#selectiondata.set_text(text)
 		else:
 			assert False, 'Unknown target id %i' % id
 

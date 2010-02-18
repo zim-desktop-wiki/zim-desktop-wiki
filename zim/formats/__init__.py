@@ -117,6 +117,20 @@ class ParseTree(ElementTreeModule.ElementTree):
 		root = self.getroot()
 		return bool(root.getchildren() or root.text)
 
+	@property
+	def ispartial(self):
+		'''Returns True when this tree is a segment of a page
+		(like a copy-paste buffer).
+		'''
+		return self.getroot().attrib.get('partial', False)
+
+	@property
+	def israw(self):
+		'''Returns True when this is a raw tree (which is representation
+		of TextBuffer, but not really valid).
+		'''
+		return self.getroot().attrib.get('raw', False)
+
 	def fromstring(self, string):
 		'''Set the contents of this tree from XML representation.'''
 		parser = ElementTreeModule.XMLTreeBuilder()

@@ -1,0 +1,11 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2010-02-01T20:25:10.913079
+
+====== Donations ======
+
+Zim is completely free software, free as in open source and free as in free beer. However if you feel like stimulating further development of zim, you can make a donation using the paypal button below.
+
+INSERT_PAYPAL_BUTTON_HERE 
+
+In the paypal form there is a link "Suggestions and Comments" (it is a bit small but it is there when you confirm the donation). Feel free to use this text field to tell me what is on your whish list for future development. I can not promise to implement every feature that gets mentioned in a donation, but it will certainly be taken into consideration. If enough funds come in we will set up bounties for other developers that want to work on nominated features as well.

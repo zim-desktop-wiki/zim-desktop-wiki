@@ -267,10 +267,10 @@ class TextBuffer(list):
 	internally.
 	'''
 
-	def get_lines(self):
+	def get_lines(self, end_with_newline=True):
 		'''Returns a proper list of lines'''
 		lines = ''.join(self).splitlines(True)
-		if lines and not lines[-1].endswith('\n'):
+		if end_with_newline and lines and not lines[-1].endswith('\n'):
 			lines[-1] += '\n'
 		return lines
 

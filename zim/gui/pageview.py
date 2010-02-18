@@ -1108,15 +1108,18 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		if bounds is None:
 			start, end = self.get_bounds()
+			attrib = {}
 		else:
 			start, end = bounds
+			attrib = {'partial': True}
 
 		if raw:
 			builder = TreeBuilder()
-			builder.start('zim-tree', {'raw': True})
+			attrib['raw'] = True
+			builder.start('zim-tree', attrib)
 		else:
 			builder = ParseTreeBuilder()
-			builder.start('zim-tree')
+			builder.start('zim-tree', attrib)
 
 		open_tags = []
 		def set_tags(iter, tags):

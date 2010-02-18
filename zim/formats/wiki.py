@@ -286,7 +286,7 @@ class Dumper(DumperClass):
 		assert isinstance(tree, ParseTree)
 		output = TextBuffer()
 		self.dump_children(tree.getroot(), output)
-		return output.get_lines()
+		return output.get_lines(end_with_newline=not tree.ispartial)
 
 	def dump_children(self, list, output, list_level=-1):
 		if list.text:
