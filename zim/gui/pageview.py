@@ -2561,6 +2561,19 @@ class PageView(gtk.VBox):
 	def get_scroll_pos(self):
 		pass # FIXME get scroll position
 
+	def get_selection(self):
+		buffer = self.view.get_buffer()
+		bounds = buffer.get_selection_bounds()
+		if bounds:
+			return bounds[0].get_text(bounds[1])
+		else:
+			return None
+
+	def get_word(self):
+		buffer = self.view.get_buffer()
+		buffer.select_word()
+		return self.get_selection()
+
 	def register_image_generator_plugin(self, plugin, type):
 		assert not 'type' in self.image_generator_plugins, \
 			'Already have plugin for image type "%s"' % type
@@ -2621,6 +2634,19 @@ class PageView(gtk.VBox):
 			self.ui.open_url(href)
 
 	def do_populate_popup(self, menu):
+		# Add custom tool
+		# FIXME need way to (deep)copy widgets in the menu
+		#~ toolmenu = self.ui.uimanager.get_widget('/text_popup')
+		#~ tools = [tool for tool in toolmenu.get_children()
+					#~ if not isinstance(tool, gtk.SeparatorMenuItem)]
+		#~ print '>>> TOOLS', tools
+		#~ if tools:
+			#~ menu.prepend(gtk.SeparatorMenuItem())
+			#~ for tool in tools:
+				#~ tool.reparent(menu)
+
+		# Add options for links
+
 		buffer = self.view.get_buffer()
 		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
 			# This iter can be either cursor position or pointer

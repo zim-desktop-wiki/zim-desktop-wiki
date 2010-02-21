@@ -59,7 +59,7 @@ class CustomToolManagerDialog(Dialog):
 			tool = self.manager.get_tool(name)
 			properties = EditCustomToolDialog(self, tool=tool).run()
 			if properties:
-				tool['Desktop Entry'].update(**properties)
+				tool.update(**properties)
 				tool.write()
 		self.listview.refresh()
 
@@ -75,6 +75,7 @@ class CustomToolManagerDialog(Dialog):
 			i = self.manager.index(name)
 			self.manager.reorder(name, i + step)
 			self.listview.refresh()
+			self.listview.select(i+step)
 
 
 class CustomToolList(gtk.TreeView):
@@ -109,6 +110,10 @@ class CustomToolList(gtk.TreeView):
 			return model[iter][self.NAME_COL]
 		else:
 			return None
+
+	def select(self, i):
+		path = (i,)
+		self.get_selection.select_path(path)
 
 	def refresh(self):
 		model = self.get_model()

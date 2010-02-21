@@ -781,6 +781,11 @@ class ErrorDialog(gtk.MessageDialog):
 		if isinstance(error, zim.errors.Error):
 			msg = error.msg
 			description = error.description
+		elif isinstance(error, EnvironmentError): # e.g. OSError or IOError
+			msg = error.strerror
+			if hasattr(error, 'filename') and error.filename:
+				msg += ': ' + error.filename
+			description = None
 		else:
 			# Other exception or string
 			msg = unicode(error)

@@ -16,6 +16,7 @@ import gtk
 import gobject
 
 from zim.fs import *
+from zim.fs import TmpFile
 from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
 	config_file, data_dirs, ConfigDict, ConfigFile, json
 from zim.parsing import split_quoted_strings
@@ -171,7 +172,7 @@ def _create_application(dir, Name, Exec, klass=None, **param):
 		klass = DesktopEntryFile
 	entry = klass(file)
 	type = param.pop('Type', 'Application')
-	entry['Desktop Entry'].update(
+	entry.update(
 		Type=type,
 		Version=1.0,
 		NoDisplay=True,
@@ -313,6 +314,9 @@ class DesktopEntryDict(ConfigDict, Application):
 
 	_cmd = parse_exec # To hook into Application.spawn and Application.run
 
+	def update(self, E=None, **F):
+		self['Desktop Entry'].update(E, **F)
+
 	def _decode_value(self, value):
 		if value == 'true': return True
 		elif value == 'false': return False
@@ -439,19 +443,7 @@ class CustomToolManager(object):
 		Name, Comment, Icon, X-Zim-ExecTool, X-Zim-ReadOnly and
 		X-Zim-ShowInToolBar. Returns a new CustomTool object.
 		'''
-		# Set sane default for X-Zim-ShowInContextMenus
-		if not 'X-Zim-ShowInContextMenu' in properties:
-			cmd = split_quoted_strings(properties['X-Zim-ExecTool'])
-			if any(c in cmd for c in ['%f', '%d', '%s']):
-				context = 'Page'
-			elif '%t' in cmd:
-				context = 'Text'
-			else:
-				context = None
-			properties['X-Zim-ShowInContextMenu'] = context
-
 		properties['Type'] = 'X-Zim-CustomTool'
-
 		dir = XDG_CONFIG_HOME.subdir('zim/customtools')
 		tool = _create_application(dir, Name, '', klass=CustomTool, **properties)
 		self.tools[tool.key] = tool
@@ -493,7 +485,7 @@ class CustomToolManager(object):
 		self._write_list()
 
 
-class CustomTool(DesktopEntryFile):
+class CustomToolDict(DesktopEntryDict):
 	'''This is a specialized desktop entry type that is used for
 	custom tools for the "Tools" menu in zim. It uses a non-standard
 	Exec spec with zim specific escapes for "X-Zim-ExecTool".
@@ -509,6 +501,9 @@ class CustomTool(DesktopEntryFile):
 		X-Zim-ReadOnly				boolean
 		X-Zim-ShowInToolBar			boolean
 		X-Zim-ShowInContextMenu		'None', 'Text' or 'Page'
+
+	These tools should always be executed with 3 arguments: notebook,
+	page & pageview.
 	'''
 
 	def isvalid(self):
@@ -541,6 +536,10 @@ class CustomTool(DesktopEntryFile):
 		return pixbuf
 
 	@property
+	def icon(self):
+		return self['Desktop Entry'].get('Icon', gtk.STOCK_EXECUTE)
+
+	@property
 	def execcmd(self):
 		return self['Desktop Entry']['X-Zim-ExecTool']
 
@@ -560,30 +559,64 @@ class CustomTool(DesktopEntryFile):
 		'''Returns a list of command and arguments that can be used to
 		open this application. Args can be either File objects or urls.
 		'''
-		assert isinstance(args, tuple) and len(args) == 3
+		if not (isinstance(args, tuple) and len(args) == 3):
+			raise AssertionError, 'Custom commands needs 3 arguments'
+			# assert statement could be optimized away
 		notebook, page, pageview = args
 
 		cmd = split_quoted_strings(self['Desktop Entry']['X-Zim-ExecTool'])
 		if '%f' in cmd:
-			pass # TODO generate tmp page
+			self._tmpfile = TmpFile('tmp-page-source.txt')
+			self._tmpfile.writelines(page.dump('wiki'))
+			cmd[cmd.index('%f')] = self._tmpfile.path
 
 		if '%d' in cmd:
-			pass # TODO
+			cmd[cmd.index('%d')] = notebook.get_attachments_dir(page) or ''
 
 		if '%s' in cmd:
 			if hasattr(page, 'source') and isinstance(page.source, File):
-				args[args.index('%s')] = page.source.path
+				cmd[cmd.index('%s')] = page.source.path
+			else:
+				cmd[cmd.index('%s')] = ''
 
 		if '%n' in cmd:
-			pass # TODO
+			cmd[cmd.index('%n')] = File(notebook.uri).path
 
 		if '%D' in cmd:
-			pass # TODO
+			cmd[cmd.index('%D')] = notebook.get_document_root() or ''
 
 		if '%t' in cmd:
 			text = pageview.get_selection() or pageview.get_word()
-			args[args.index('%t')] = text
+			cmd[cmd.index('%t')] = text or ''
+			# FIXME - need to substitute this in arguments + url encoding
 
 		return tuple(cmd)
 
 	_cmd = parse_exec # To hook into Application.spawn and Application.run
+
+	def run(self, args):
+		self._tmpfile = None
+		Application.run(self, args)
+		if self._tmpfile:
+			notebook, page, pageview = args
+			page.parse('wiki', self._tmpfile.readlines())
+			self._tmpfile = None
+
+	def update(self, E=None, **F):
+		self['Desktop Entry'].update(E, **F)
+
+		# Set sane default for X-Zim-ShowInContextMenus
+		if not (E and 'X-Zim-ShowInContextMenu' in E) \
+		and not 'X-Zim-ShowInContextMenu' in F:
+			cmd = split_quoted_strings(self['Desktop Entry']['X-Zim-ExecTool'])
+			if any(c in cmd for c in ['%f', '%d', '%s']):
+				context = 'Page'
+			elif '%t' in cmd:
+				context = 'Text'
+			else:
+				context = None
+			self['Desktop Entry']['X-Zim-ShowInContextMenu'] = context
+
+
+class CustomTool(CustomToolDict, DesktopEntryFile):
+	pass

@@ -10,6 +10,9 @@ import os
 import gtk
 
 from zim.gui.applications import *
+from zim.notebook import Path
+from zim.fs import Dir, TmpFile
+
 
 def replace(l, old, new):
 	l = list(l)
@@ -75,8 +78,8 @@ class TestApplications(TestCase):
 
 class TestCustomTools(TestCase):
 
-	def runTest(self):
-		'''Test CustomTool API'''
+	def testManager(self):
+		'''Test CustomToolManager API'''
 		# initialize the list
 		manager = CustomToolManager()
 		self.assertEqual(list(manager), [])
@@ -152,3 +155,49 @@ class TestCustomTools(TestCase):
 		manager.delete(tool1)
 		self.assertEqual(list(manager.names), ['foo-usercreated-1'])
 		self.assertFalse(file.exists())
+
+	def testParseExec(self):
+		'''Test parsing of custom tool Exec strings'''
+		# %f for source file as tmp file current page
+		# %d for attachment directory
+		# %s for real source file (if any)
+		# %n for notebook location (file or directory)
+		# %D for document root
+		# %t for selected text or word under cursor
+
+		notebook = tests.get_test_notebook()
+		page = notebook.get_page(Path('Test:Foo'))
+		pageview = StubPageView()
+		args = (notebook, page, pageview)
+
+		tmpfile = TmpFile('tmp-page-source.txt').path
+		dir = Dir(tests.create_tmp_dir('applications_TestCustomTools'))
+		notebook.dir = dir # fake file store
+		notebook._stores[''].dir = dir # fake file store
+
+		tool = CustomToolDict()
+		tool.update( {
+			'Name': 'Test',
+			'Description': 'Test 1 2 3',
+			'X-Zim-ExecTool': 'foo',
+		} )
+		for cmd, wanted in (
+			('foo %f', ('foo', tmpfile)),
+			('foo %d', ('foo', dir.subdir('Test/Foo'))),
+			('foo %s', ('foo', '')), # no file source
+			('foo %n', ('foo', dir.path)),
+			('foo %D', ('foo', '')), # no document root
+			('foo %t', ('foo', 'FooBar')),
+		):
+			#~ print '>>>', cmd
+			tool['Desktop Entry']['X-Zim-ExecTool'] = cmd
+			self.assertEqual(tool.parse_exec(args), wanted)
+
+
+class StubPageView(object):
+
+	def get_selection(self):
+		return None
+
+	def get_word(self):
+		return 'FooBar'

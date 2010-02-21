@@ -440,8 +440,10 @@ class ConfigFile(ListDict):
 	def read(self):
 		# TODO: flush dict first ?
 		if self.file.exists():
+			logger.debug('Loading %s', self.file.path)
 			self.parse(self.file.readlines())
 		elif self.default:
+			logger.debug('Loading %s', self.default.path)
 			self.parse(self.default.readlines())
 		else:
 			raise ConfigPathError, self.file
