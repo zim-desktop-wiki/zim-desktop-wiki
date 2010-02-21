@@ -89,6 +89,34 @@ class IconButton(gtk.Button):
 			self.set_relief(gtk.RELIEF_NONE)
 
 
+class IconChooserButton(gtk.Button):
+	'''Button with a stock icon, but no label.'''
+
+	def __init__(self, stock=gtk.STOCK_MISSING_IMAGE):
+		gtk.Button.__init__(self)
+		self.file = None
+		image = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_DIALOG)
+		self.add(image)
+		self.set_alignment(0.5, 0.5)
+
+	def do_clicked(self):
+		dialog = SelectFileDialog(self)
+		dialog.add_filter_images()
+		file = dialog.run()
+		if file:
+			image = self.get_child()
+			size = max(image.size_request()) # HACK to get icon size
+			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
+			image.set_from_pixbuf(pixbuf)
+			self.file = file
+
+	def get_file(self):
+		return self.file
+
+# Need to register classes defining / overriding gobject signals
+gobject.type_register(IconChooserButton)
+
+
 class SingleClickTreeView(gtk.TreeView):
 	'''Treeview subclass for trees that want single-click behavior,
 	but do allow multiple items to be selected.
@@ -126,7 +154,6 @@ class SingleClickTreeView(gtk.TreeView):
 
 		def is_rubber_banding_active(self):
 			return False
-
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(SingleClickTreeView)
@@ -498,7 +525,7 @@ class Dialog(gtk.Dialog):
 
 	def __init__(self, ui, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			text=None, fields=None, help=None,
+			help_text=None, fields=None, help=None,
 			defaultwindowsize=(-1, -1), path_context=None
 		):
 		'''Constructor. 'ui' can either be the main application or some
@@ -514,8 +541,8 @@ class Dialog(gtk.Dialog):
 		item to use instead of the default 'Ok' button (either stock or label
 		can be None).
 
-		Options 'text', 'fields' and 'help' will be past on to add_text(),
-		add_fields() and set_help() respectively.
+		Options 'help_text', 'fields' and 'help' will be past on to
+		add_help_text(), add_fields() and set_help() respectively.
 		'''
 		self.ui = ui
 		self.result = None
@@ -563,7 +590,7 @@ class Dialog(gtk.Dialog):
 		# TODO set Ok button as default widget
 		# see gtk.Window.set_default()
 
-		if text: self.add_text(text)
+		if help_text: self.add_help_text(help_text)
 		if fields: self.add_fields(fields)
 		if help: self.set_help(help)
 
@@ -577,13 +604,21 @@ class Dialog(gtk.Dialog):
 		self.action_area.add(button)
 		self.action_area.set_child_secondary(button, True)
 
-	def add_text(self, text):
-		'''Adds a label in italics. Intended for informational text at the
-		top of the dialog.
+	def add_help_text(self, text):
+		'''Adds a label with an info icon in front of it. Intended for
+		iformational text in dialogs.
 		'''
-		label = gtk.Label()
-		label.set_markup('<i>%s</i>' % _encode_xml(text))
-		self.vbox.pack_start(label, False)
+		hbox = gtk.HBox(spacing=12)
+		self.vbox.pack_start(hbox, False)
+
+		image = gtk.image_new_from_stock(gtk.STOCK_INFO, gtk.ICON_SIZE_BUTTON)
+		image.set_alignment(0.5, 0.0)
+		hbox.pack_start(image, False)
+
+		label = gtk.Label(text)
+		label.set_use_markup(True)
+		label.set_alignment(0.0, 0.0)
+		hbox.add(label)
 
 	def add_fields(self, fields, table=None, trigger_response=True):
 		'''Add a number of fields to the dialog, convenience method to
@@ -826,6 +861,11 @@ class ErrorDialog(gtk.MessageDialog):
 		if isinstance(error, zim.errors.Error):
 			msg = error.msg
 			description = error.description
+		elif isinstance(error, EnvironmentError): # e.g. OSError or IOError
+			msg = error.strerror
+			if hasattr(error, 'filename') and error.filename:
+				msg += ': ' + error.filename
+			description = None
 		else:
 			# Other exception or string
 			msg = unicode(error)

@@ -122,12 +122,9 @@
 			<separator/>
 			<menuitem action='reload_index'/>
 			<separator/>
-<!--
-			<menuitem action='edit_page_source'/>
-			<placeholder name='external_tools'/>
+			<placeholder name='custom_tools'/>
 			<separator/>
 			<menuitem action='manage_custom_tools'/>
--->
 		</menu>
 		<placeholder name='plugin_menus'/>
 		<menu action='go_menu'>
@@ -205,7 +202,12 @@
 		<menuitem action='delete_page'/>
 		<placeholder name='page_modification_actions'/>
 		<separator/>
+		<placeholder name='tools'/>
+		<separator/>
 		<menuitem action='show_properties'/>
+	</popup>
+	<popup name='text_popup'>
+		<placeholder name='tools'/>
 	</popup>
 </ui>
 

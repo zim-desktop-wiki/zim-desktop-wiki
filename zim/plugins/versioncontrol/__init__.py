@@ -182,7 +182,8 @@ class SaveVersionDialog(Dialog):
 			button=(None, 'gtk-save'), help='Plugins:Version Control')
 		self.vcs = vcs
 
-		self.add_text(_("Please enter a comment for this version")) # T: Dialog text
+		self.vbox.pack_start(
+			gtk.Label(_("Please enter a comment for this version")), False)  # T: Dialog text
 
 		vpaned = gtk.VPaned()
 		self.vbox.add(vpaned)

@@ -38,8 +38,9 @@ def set_environ():
 		'XDG_CONFIG_DIRS': './tests/tmp/config',
 		'XDG_CACHE_HOME': './tests/tmp/cache'
 	})
-	if not os.path.isdir(tmpdir):
-		os.mkdir(tmpdir)
+	if os.path.isdir(tmpdir):
+		shutil.rmtree(tmpdir)
+	os.mkdir(tmpdir)
 
 
 def create_tmp_dir(name):
@@ -90,7 +91,7 @@ def _get_test_data_wiki():
 	for node in tree.getiterator(tag='page'):
 		name = node.attrib['name']
 		text = unicode(node.text.lstrip('\n'))
-		test_data.append((name, text)) 
+		test_data.append((name, text))
 	return tuple(test_data)
 
 

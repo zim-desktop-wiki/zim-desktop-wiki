@@ -176,8 +176,6 @@ def config_file(path, klass=None):
 		return klass(file, default=default)
 	elif path[-1].endswith('.conf'):
 		return ConfigDictFile(file, default=default)
-	#~ elif path[-1].endswith('.list'):
-		#~ return ConfigListFile(file, default=default)
 	else:
 		return TextConfigFile(file, default=default)
 
@@ -240,6 +238,13 @@ class ListDict(dict):
 				if isinstance(v, ListDict):
 					v.set_modified(False)
 
+	def update(D, E=None, **F):
+		if E and hasattr(E, 'keys'):
+			for k in E: D[k] = E[k]
+		elif E:
+			for (k, v) in E: D[k] = v
+		for k in F: D[k] = F[k]
+
 	def __setitem__(self, k, v):
 		dict.__setitem__(self, k, v)
 		self._modified = True
@@ -292,6 +297,9 @@ class ListDict(dict):
 				self.__setitem__(k, v)
 		return self[k]
 
+	def keys(self):
+		return self.order[:]
+
 	def items(self):
 		return map(lambda k: (k, self[k]), self.order)
 
@@ -342,50 +350,6 @@ class ListDict(dict):
 				and isinstance(value[1], int)  )
 
 
-#~ class ConfigList(ListDict):
-	#~ '''This class supports config files that exist of two columns separated
-	#~ by whitespace. It inherits from ListDict to ensure the list remain in
-	#~ the same order when it is written to file again. When a file path is set
-	#~ for this object it will be used to try reading from any from the config
-	#~ and data directories while using the config home directory for writing.
-	#~ '''
-#~
-	#~ _fields_re = re.compile(r'(?:\\.|\S)+') # match escaped char or non-whitespace
-	#~ _escaped_re = re.compile(r'\\(.)') # match single escaped char
-	#~ _escape_re = re.compile(r'([\s\\])') # match chars to escape
-#~
-	#~ def parse(self, text):
-		#~ if isinstance(text, basestring):
-			#~ text = text.splitlines(True)
-#~
-		#~ for line in text:
-			#~ line = line.strip()
-			#~ if line.isspace() or line.startswith('#'):
-				#~ continue
-			#~ cols = self._fields_re.findall(line)
-			#~ if len(cols) == 1:
-				#~ cols.append(None) # empty string in second column
-				#~ cols[0] = self._escaped_re.sub(r'\1', cols[0])
-			#~ else:
-				#~ assert len(cols) >= 2
-				#~ if len(cols) > 2 and not cols[2].startswith('#'):
-					#~ logger.warn('trailing data') # FIXME better warning
-				#~ cols[0] = self._escaped_re.sub(r'\1', cols[0])
-				#~ cols[1] = self._escaped_re.sub(r'\1', cols[1])
-			#~ self[cols[0]] = cols[1]
-#~
-	#~ def dump(self):
-		#~ text = TextBuffer()
-		#~ for k, v in self.items():
-			#~ k = self._escape_re.sub(r'\\\1', k)
-			#~ if v is None:
-				#~ v = ''
-			#~ else:
-				#~ v = self._escape_re.sub(r'\\\1', v)
-			#~ text.append("%s\t%s\n" % (k, v))
-		#~ return text.get_lines()
-
-
 class ConfigDict(ListDict):
 	'''Config object which wraps a dict of dicts.
 	These are represented as INI files where each sub-dict is a section.
@@ -411,7 +375,7 @@ class ConfigDict(ListDict):
 				section = self[name]
 			elif '=' in line:
 				parameter, value = line.split('=', 1)
-				parameter = parameter.rstrip()
+				parameter = str(parameter.rstrip()) # no unicode
 				try:
 					value = self._decode_value(value.lstrip())
 					section[parameter] = value
@@ -481,8 +445,10 @@ class ConfigFile(ListDict):
 	def read(self):
 		# TODO: flush dict first ?
 		if self.file.exists():
+			logger.debug('Loading %s', self.file.path)
 			self.parse(self.file.readlines())
 		elif self.default:
+			logger.debug('Loading %s', self.default.path)
 			self.parse(self.default.readlines())
 		else:
 			raise ConfigPathError, self.file
@@ -494,10 +460,6 @@ class ConfigFile(ListDict):
 
 class ConfigDictFile(ConfigFile, ConfigDict):
 	pass
-
-
-#~ class ConfigListFile(ConfigFile, ConfigList):
-	#~ pass
 
 
 class TextConfigFile(list):

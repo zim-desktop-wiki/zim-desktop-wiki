@@ -47,7 +47,7 @@ from zim.gui.pageview import PageView
 from zim.gui.widgets import Button, MenuButton, \
 	Dialog, ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
 from zim.gui.clipboard import Clipboard
-from zim.gui.applications import get_application
+from zim.gui.applications import get_application, CustomToolManager
 
 logger = logging.getLogger('zim.gui')
 
@@ -93,6 +93,7 @@ ui_actions = (
 	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', '', False), # T: Menu item
 	('show_server_gui', None, _('Start _Web Server'), '', '', True), # T: Menu item
 	('reload_index', None, _('Re-build Index'), '', '', False), # T: Menu item
+	('manage_custom_tools', 'gtk-preferences', _('Custom _Tools'), '', '', True), # T: Menu item
 	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back'), True), # T: Menu item
 	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward'), True), # T: Menu item
 	('open_page_parent', 'gtk-go-up', _('_Parent'), '<alt>Up', _('Go to parent page'), True), # T: Menu item
@@ -298,6 +299,10 @@ class GtkInterface(NotebookInterface):
 		self.add_ui(data_file('menubar.xml').read(), self)
 
 		self.load_plugins()
+
+		self._custom_tool_ui_id = None
+		self._custom_tool_actiongroup = None
+		self.load_custom_tools()
 
 		self.uimanager.ensure_update()
 			# prevent flashing when the toolbar is after showing the window
@@ -1085,6 +1090,86 @@ class GtkInterface(NotebookInterface):
 		index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
 
+	def manage_custom_tools(self):
+		from zim.gui.customtools import CustomToolManagerDialog
+		CustomToolManagerDialog(self).run()
+		self.load_custom_tools()
+
+	def load_custom_tools(self):
+		manager = CustomToolManager()
+
+		# Remove old actions
+		if self._custom_tool_ui_id:
+			self.uimanager.remove_ui(self._custom_tool_ui_id)
+
+		if self._custom_tool_actiongroup:
+			self.uimanager.remove_action_group(self._custom_tool_actiongroup)
+
+		# Load new actions
+		actions = []
+		for tool in manager:
+			# FIXME probably need to generate stock icon first if icon is file path
+			action = (tool.key, tool.icon, tool.name, '', tool.comment, self.exec_custom_tool)
+			actions.append(action)
+		self._custom_tool_actiongroup = gtk.ActionGroup('custom_tools')
+		self._custom_tool_actiongroup.add_actions(actions)
+
+		menulines = ["<menuitem action='%s'/>\n" % tool.key for tool in manager]
+		toollines = ["<toolitem action='%s'/>\n" % tool.key for tool in manager if tool.showintoolbar]
+		textlines = ["<menuitem action='%s'/>\n" % tool.key for tool in manager if tool.showincontextmenu == 'Text']
+		pagelines = ["<menuitem action='%s'/>\n" % tool.key for tool in manager if tool.showincontextmenu == 'Page']
+		ui = """\
+<ui>
+	<menubar name='menubar'>
+		<menu action='tools_menu'>
+			<placeholder name='custom_tools'>
+			 %s
+			</placeholder>
+		</menu>
+	</menubar>
+	<toolbar name='toolbar'>
+		<placeholder name='tools'>
+		%s
+		</placeholder>
+	</toolbar>
+	<popup name='text_popup'>
+		<placeholder name='tools'>
+		%s
+		</placeholder>
+	</popup>
+	<popup name='page_popup'>
+		<placeholder name='tools'>
+		%s
+		</placeholder>
+	</popup>
+</ui>
+""" % (
+	''.join(menulines), ''.join(toollines),
+	''.join(textlines), ''.join(pagelines)
+)
+
+		self.uimanager.insert_action_group(self._custom_tool_actiongroup)
+		self._custom_tool_ui_id = self.uimanager.add_ui_from_string(ui)
+
+		# TODO also support toolbar, need to add icons to icon factory etc.
+
+	def exec_custom_tool(self, action):
+		manager = CustomToolManager()
+		tool = manager.get_tool(action.get_name())
+		logger.info('Execute custom tool %s', tool.name)
+		args = (self.notebook, self.page, self.mainwindow.pageview)
+		try:
+			if tool.isreadonly:
+				tool.spawn(args)
+			else:
+				tool.run(args)
+				self.reload_page()
+				#~ self.notebook.index.update(background=True)
+				# TODO instead of using run, use spawn and show dialog
+				# with cancel button. Dialog blocks ui.
+		except Exception, error:
+			ErrorDialog(self, error).run()
+
 	def show_help(self, page=None):
 		if page:
 			self.spawn('--manual', page)
@@ -1824,10 +1909,10 @@ class NewPageDialog(Dialog):
 		else: title = _('New Page') # T: Dialog title
 
 		Dialog.__init__(self, ui, title,
-			text=_(
+			help_text=_(
 				'Please note that linking to a non-existing page\n'
 				'also creates a new page automatically.'),
-				# T: Dialog text in 'new page' dialog
+			# T: Dialog text in 'new page' dialog
 			path_context=path,
 			fields=[('name', 'page', _('Page Name'), None)], # T: Input label
 			help=':Help:Pages'
