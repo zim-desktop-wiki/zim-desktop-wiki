@@ -32,7 +32,7 @@ Link to another page like this:
 '''
 [[foo]]  links to page in the current namespace or parents
 [[:foo]] links to page in the root namespace
-[[.foo]] links to page in a subnamespace
+[[+foo]] links to page in a subnamespace
 
 [[foo|bar]] links to "foo" but display "bar"
 '''

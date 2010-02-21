@@ -866,22 +866,23 @@ class TextBuffer(gtk.TextBuffer):
 		return tag
 
 	def set_indent_for_line(self, level, line):
-		start = self.get_iter_at_line(line)
+		start, end = self.get_line_bounds(line)
 		if filter(_is_heading_tag, start.get_tags()):
 			return False
 
-		end = start.copy()
-		if not end.forward_to_line_end():
-			# FIXME code below can only be enabled when indent and list tags are split up
-			# otherwise inserting a bullet at the end of the buffer goes wrong
-			# last line of buffer - without \n indent is not visible for empty line
+		# FIXME code below can only be enabled when indent and list tags are split up
+		# otherwise inserting a bullet at the end of the buffer goes wrong
+		# last line of buffer - without \n indent is not visible for empty line
+		#~ if end.is_end():
 			#~ with self.tmp_cursor():
 				# Use tmp cursor in case we are cursor position
 				#~ self.insert(end, '\n')
 				#~ _, end = self.get_bounds()
 				#~ start = end.copy()
 				#~ start.backward_line()
-			pass
+
+		if start.equal(end):
+			return False # empty line
 
 		tags = filter(_is_indent_tag, start.get_tags())
 		if tags:
@@ -1373,6 +1374,12 @@ class TextBuffer(gtk.TextBuffer):
 					iter.backward_char()
 
 		return iter.compare(orig)
+
+	def get_line_bounds(self, line):
+		start = self.get_iter_at_line(line)
+		end = start.copy()
+		end.forward_line()
+		return start, end
 
 	def get_has_selection(self):
 		'''Returns boolean whether there is a selection or not.
@@ -2371,18 +2378,39 @@ class TextView(gtk.TextView):
 				buffer.get_iter_at_mark(mark), heading, 'style-h'+str(level))
 			buffer.delete_mark(mark)
 		elif not buffer.get_bullet_at_iter(start) is None:
+			# we are part of bullet list
 			ourhome = start.copy()
 			buffer.iter_forward_past_bullet(ourhome)
-			nextline = end.copy()
-			nextline.forward_line()
-			if ourhome.equal(end) and nextline.ends_line():
+			newlinestart = end.copy()
+			newlinestart.forward_line()
+			if ourhome.equal(end) and newlinestart.ends_line():
 				# line with bullet but no text - break list if no text on next line
+				line, newline = start.get_line(), newlinestart.get_line()
 				buffer.delete(start, end)
-				if buffer.set_indent_for_line(None, start.get_line()):
-					buffer.set_editmode_from_cursor() # also updates indent tag
-			else: # we are part of bullet list - set indent + bullet
+				buffer.set_indent_for_line(None, line)
+				buffer.set_indent_for_line(None, newline)
+			else:
+				# determine indent
+				newline = newlinestart.get_line()
+				indent = buffer.get_indent(start)
+				nextlinestart = newlinestart.copy()
+				if nextlinestart.forward_line() \
+				and buffer.get_bullet_at_iter(nextlinestart):
+					nextindent = buffer.get_indent(nextlinestart)
+					if nextindent >= indent:
+						# we are at the head of a sublist
+						indent = nextindent
+
+				# add bullet on new line
 				bullet = buffer.get_bullet_at_iter(start)
-				buffer.insert_bullet(nextline, bullet)
+				if bullet in (CHECKED_BOX, XCHECKED_BOX):
+					bullet = UNCHECKED_BOX
+				buffer.insert_bullet(newlinestart, bullet)
+
+				# apply indent
+				buffer.set_indent_for_line(indent, newline)
+
+			buffer.set_editmode_from_cursor() # also updates indent tag
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)

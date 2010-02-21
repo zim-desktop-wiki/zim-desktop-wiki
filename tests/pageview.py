@@ -860,6 +860,22 @@ class TestTextView(TestCase):
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqualDiff(tree.tostring(), wanted)
 
+		iter = buffer.get_iter_at_line(1)
+		iter.forward_to_line_end() # behind "foo"
+		buffer.place_cursor(iter)
+		press(view, '\n')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+<li bullet="*" indent="0"> foo</li>
+<li bullet="*" indent="1"> </li>
+<li bullet="*" indent="1"> duss</li>
+<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
 
 		# TODO unindenting
 		# TODO checkboxes
