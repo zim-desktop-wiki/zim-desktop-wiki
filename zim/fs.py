@@ -267,7 +267,14 @@ class UnixPath(object):
 		'''
 		return os.path.isdir(self.path)
 
+	def isimage(self):
+		'''Returns True if the file is an image type. But no guarantee
+		it is actually supported by gtk.
+		'''
+		return self.get_mimetype().startswith('image/')
+
 	def get_mimetype(self):
+		'''Returns the mimetype as a string like e.g. "text/plain"'''
 		try:
 			import xdg.Mime
 			mimetype = xdg.Mime.get_type(self.path, name_pri=80)
@@ -282,9 +289,9 @@ class UnixPath(object):
 				else:
 					# Fallback for platform without xdg mimeinfo
 					# we can still use a stub mimetype based on the
-					# file extension. However for pageview it is nice
-					# to use proper image/... mimetypes so it knows this
-					# file can be inserted as image.
+					# file extension. However we try to detect images
+					# so isimage() gives correct info to the GUI how
+					# to handle e.g. a file after drag & drop.
 					# FIXME check if we can port this to gio instead of using gtk
 					# alternative is to hard code list with globs (copy from mimeinfo)
 					import gtk

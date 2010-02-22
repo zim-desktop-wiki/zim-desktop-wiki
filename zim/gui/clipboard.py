@@ -16,6 +16,7 @@ straight forward API.
 import gtk
 import logging
 
+from zim.fs import File
 from zim.parsing import url_encode, url_decode
 from zim.formats import get_format, ParseTree, TreeBuilder
 from zim.exporter import StaticLinker
@@ -85,17 +86,31 @@ def parsetree_from_selectiondata(selectiondata):
 	or targetname in URI_TARGET_NAMES:
 		# \n seperated list of urls / pagelinks / ..
 		links = unpack_urilist(selectiondata.data)
-		print 'LINKS: ', links
+		#~ print 'LINKS: ', links
 		builder = TreeBuilder()
 		builder.start('zim-tree')
 		for i in range(len(links)):
 			if i > 0:
 				builder.data(' ')
-			builder.start('link', {'href': links[i]})
-			builder.data(links[i])
-			builder.end('link')
+
+			isimage = False
+			if links[i].startswith('file:/'):
+				try:
+					isimage = File(links[i]).isimage()
+				except:
+					pass
+
+			if isimage:
+				builder.start('img', {'src': links[i]})
+				builder.end('img')
+			else:
+				builder.start('link', {'href': links[i]})
+				builder.data(links[i])
+				builder.end('link')
 		builder.end('zim-tree')
-		return ParseTree(builder.close())
+		tree = ParseTree(builder.close())
+		tree.resolve_images()
+		return tree
 	elif targetname in TEXT_TARGET_NAMES:
 		# plain text parser should highlight urls etc.
 		text = selectiondata.get_text()

@@ -474,6 +474,7 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor('\n')
 
 			elif element.tag == 'link':
+				self.set_textstyle(None) # Needed for interactive insert tree after paste
 				self.insert_link_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
@@ -1282,12 +1283,17 @@ class TextBuffer(gtk.TextBuffer):
 
 	def select_line(self):
 		'''selects the line at the cursor'''
+		# Differs from get_line_bounds because we exclude the trailing
+		# line break while get_line_bounds selects these
 		iter = self.get_iter_at_mark(self.get_insert())
 		iter = self.get_iter_at_line(iter.get_line())
-		end = iter.copy()
-		end.forward_to_line_end()
-		self.select_range(iter, end)
-		return True
+		if iter.ends_line():
+			return False
+		else:
+			end = iter.copy()
+			end.forward_to_line_end()
+			self.select_range(iter, end)
+			return True
 
 	def select_word(self):
 		'''Selects the word at the cursor, if any. Returns True for success'''

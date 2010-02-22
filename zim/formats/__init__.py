@@ -55,7 +55,7 @@ to a title or subtitle in the document.
 import re
 import logging
 
-from zim.fs import Dir
+from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, url_encode, url_decode
 from zim.config import data_file
 
@@ -198,13 +198,18 @@ class ParseTree(ElementTreeModule.ElementTree):
 			heading.attrib['level'] = newlevel
 			path.append((level, newlevel))
 
-	def resolve_images(self, notebook, path):
+	def resolve_images(self, notebook=None, path=None):
 		'''Resolves the source files for all images relative to a page path	and
 		adds a '_src_file' attribute to the elements with the full file path.
 		'''
-		for element in self.getiterator('img'):
-			filepath = element.attrib['src']
-			element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
+		if notebook is None:
+			for element in self.getiterator('img'):
+				filepath = element.attrib['src']
+				element.attrib['_src_file'] = File(filepath)
+		else:
+			for element in self.getiterator('img'):
+				filepath = element.attrib['src']
+				element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
 
 	def encode_urls(self):
 		'''Calls encode_url() on all links that contain urls'''

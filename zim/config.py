@@ -275,14 +275,25 @@ class ListDict(dict):
 		'''
 		if not k in self:
 			self.__setitem__(k, v)
-		elif check is None:
-			klass = klass or v.__class__
+		elif check:
+			if not check(self[k]):
+				logger.warn(
+					'Invalid config value for %s: "%s"', k, self[k])
+				self.__setitem__(k, v)
+		else:
+			if klass is None:
+				if v is None:
+					return self[k] # noting we can do
+				else:
+					klass = v.__class__
+
 			if issubclass(klass, basestring):
 				klass = basestring
-			if not self[k] is None and not v is None \
+
+			if not (self[k] is None and v is None) \
 			and not isinstance(self[k], klass):
 				if klass is tuple and isinstance(self[k], list):
-					# Needed because json does not know difference list or tuple
+					# Special case because json does not know difference list or tuple
 					v = tuple(self[k])
 					self.__setitem__(k, v)
 				else:
@@ -290,11 +301,10 @@ class ListDict(dict):
 						'Invalid config value for %s: "%s" - should be of type %s',
 						k, self[k], klass)
 					self.__setitem__(k, v)
-		else:
-			if not check(self[k]):
-				logger.warn(
-					'Invalid config value for %s: "%s"', k, self[k])
+			elif klass is basestring and v and not self[k]:
+				# Special case to avoid empty string
 				self.__setitem__(k, v)
+
 		return self[k]
 
 	def keys(self):

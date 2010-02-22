@@ -2135,7 +2135,7 @@ class AttachFileDialog(FileDialog):
 		self.uistate.setdefault('insert_attached_images', True)
 		checkbox = gtk.CheckButton(_('Insert images as link'))
 			# T: checkbox in the "Attach File" dialog
-		checkbox.set_active(not self.uistate['insert_attached_images'])
+		checkbox.set_active(self.uistate['insert_attached_images'])
 		self.filechooser.set_extra_widget(checkbox)
 
 	def do_response_ok(self):
@@ -2144,15 +2144,13 @@ class AttachFileDialog(FileDialog):
 			return False
 
 		checkbox = self.filechooser.get_extra_widget()
-		self.uistate['insert_attached_images'] = not checkbox.get_active()
+		self.uistate['insert_attached_images'] = checkbox.get_active()
 			# Similar code in zim.gui.InsertImageDialog
 
 		file.copyto(self.dir)
 		file = self.dir.file(file.basename)
-		mimetype = file.get_mimetype()
 		pageview = self.ui.mainwindow.pageview
-		if self.uistate['insert_attached_images'] \
-		and mimetype.startswith('image/'):
+		if self.uistate['insert_attached_images'] and file.isimage():
 			try:
 				pageview.insert_image(file, interactive=False)
 			except:

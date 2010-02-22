@@ -7,11 +7,11 @@ Lower version numbers for zim correspond to the Perl branch.
 === 0.44 - Wed 17 Feb 2010 ===
 This release adds improved query syntax for search and several bug fixes
 
-* Implemented more advanged search syntax - see manual for details
+* Implemented more advanced search syntax - see manual for details
 * Implemented recursive checkbox usage and recursive indenting bullet lists
 * Merged "Insert Link" and "Insert External Link" dialogs
 * Added options to insert attached images and attach inserted images 
-* Support for recognizing image attachement on windows
+* Support for recognizing image attachment on windows
 * Fixed bug for lower case drive letters in windows paths
 * Fixed bug with non-date links in the calendar namespace
 * Fixed bug with invalid page names during move page 

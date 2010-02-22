@@ -11,7 +11,9 @@ import datetime
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.notebook import Path
-from zim.gui.widgets import Dialog, Button, IconButton, BrowserTreeView, SingleClickTreeView
+from zim.gui.widgets import Dialog, Button, IconButton,  \
+	BrowserTreeView, SingleClickTreeView, \
+	gtk_get_style
 from zim.formats import UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 
 
@@ -187,7 +189,7 @@ class TagListTreeView(SingleClickTreeView):
 		self.task_list.set_tag_filter(tags)
 
 
-style = gtk.Label().get_style() # HACK - how to get default style ?
+style = gtk_get_style()
 NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
 HIGH_COLOR = gtk.gdk.color_parse('#EF2929') # red (from Tango style guide)
 MEDIUM_COLOR = gtk.gdk.color_parse('#FCAF3E') # orange ("idem")

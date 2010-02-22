@@ -60,6 +60,15 @@ def scrolled_text_view(text=None, monospace=False):
 	return window, textview
 
 
+def gtk_get_style():
+	'''Returns a gtk.Style object for the current theme style.
+	This function is a bit of a hack, but works.
+	'''
+	w = gtk.Window()
+	w.realize()
+	return w.get_style()
+
+
 class Button(gtk.Button):
 	'''This class overloads the constructor of the default gtk.Button
 	class. The purpose is to change the behavior in such a way that stock
@@ -304,7 +313,7 @@ gobject.type_register(MenuButton)
 class InputEntry(gtk.Entry):
 	'''Sub-class of gtk.Entry with support for highlighting errors'''
 
-	style = gtk.Entry().get_style() # HACK - how to get default style ?
+	style = gtk_get_style()
 	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
 	ERROR_COLOR = gtk.gdk.color_parse('#EF7F7F') # light red (derived from Tango style guide)
 
@@ -382,12 +391,14 @@ class PageEntry(InputEntry):
 			return
 
 		try:
-			if text != ':':
+			if text != ':' and text != '+':
 				# Clean up, but keep the end ":" chars
 				orig = text
-				text = Notebook.cleanup_pathname(text)
+				text = Notebook.cleanup_pathname(text.lstrip('+'))
 				if orig[0] == ':' and text[0] != ':':
 					text = ':' + text
+				elif orig[0] == '+':
+					text = '+' + text
 				if orig[-1] == ':' and text[-1] != ':':
 					text = text + ':'
 			else:
@@ -948,7 +959,7 @@ class FileDialog(Dialog):
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			text=None, fields=None, help=None
+			help_text=None, fields=None, help=None
 		):
 		if button is None:
 			if action == gtk.FILE_CHOOSER_ACTION_OPEN:
@@ -957,7 +968,7 @@ class FileDialog(Dialog):
 				button = (None, gtk.STOCK_SAVE)
 			# else Ok will do
 		Dialog.__init__(self, ui, title,
-			buttons=buttons, button=button, text=text, help=help)
+			buttons=buttons, button=button, help_text=help_text, help=help)
 		if self.uistate['windowsize'] == (-1, -1):
 			self.uistate['windowsize'] = (500, 400)
 			self.set_default_size(500, 400)

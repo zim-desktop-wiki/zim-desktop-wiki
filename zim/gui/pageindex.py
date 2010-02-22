@@ -14,7 +14,7 @@ import logging
 
 from zim.index import IndexPath
 from zim.notebook import Path
-from zim.gui.widgets import BrowserTreeView, ErrorDialog
+from zim.gui.widgets import BrowserTreeView, ErrorDialog, gtk_get_style
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist, unpack_urilist
@@ -65,7 +65,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		gtk.gdk.Color, # FGCOLOR_COL
 	)
 
-	style = gtk.Label().get_style() # HACK - how to get default style ?
+	style = gtk_get_style()
 	NORMAL_COLOR = style.text[gtk.STATE_NORMAL]
 	EMPTY_COLOR = style.text[gtk.STATE_INSENSITIVE]
 

@@ -166,6 +166,13 @@ class TestFS(tests.TestCase):
 		# TODO test moveto
 		# TODO test compare
 
+		# test mimetype
+		#file = File('test.txt')
+		#self.assertFalse(file.isimage())
+		#file = File('test.jpg')
+		#self.assertTrue(file.isimage())
+		# Test fails because no globs database in test environment
+
 	def testTmpFile(self):
 		'''Test TmpFile object'''
 		dir = get_tmpdir()
