@@ -1148,7 +1148,7 @@ class GtkInterface(NotebookInterface):
 	''.join(textlines), ''.join(pagelines)
 )
 
-		self.uimanager.insert_action_group(self._custom_tool_actiongroup)
+		self.uimanager.insert_action_group(self._custom_tool_actiongroup, 0)
 		self._custom_tool_ui_id = self.uimanager.add_ui_from_string(ui)
 
 		# TODO also support toolbar, need to add icons to icon factory etc.

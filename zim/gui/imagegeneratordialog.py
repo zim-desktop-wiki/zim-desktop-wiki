@@ -16,7 +16,7 @@ class ImageGeneratorDialog(Dialog):
 	'''Base class for use by plugins that generate and insert an image
 	based on textual user input. This is used e.g. by the equation editor
 	and similar plugins. The dialog provides text input and an image view
-	for showing previes.
+	for showing previews.
 	'''
 
 	# TODO: use uistate to remember pane position

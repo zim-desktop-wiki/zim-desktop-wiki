@@ -19,7 +19,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Make server gui also use the daemon
 
 == New Features ==
-[ ] Add custom commands in tools menu [[Ideas:Custom Commands]] 
+[*] Add custom commands in tools menu Custom Commands 
 [ ] Add search selection in export
 [ ] Pageview: menu controls to indent / unindent / move up move down a list item
 	* Check emission of indent-changed signal to set state of buttons

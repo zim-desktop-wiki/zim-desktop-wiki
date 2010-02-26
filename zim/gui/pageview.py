@@ -1697,7 +1697,7 @@ class TextFinder(object):
 			FIND_REGEX - input is a regular expression
 		'''
 		self._parse_query(string, flags)
-		#~ print '!! FIND "%s"' % self.regex.pattern
+		#~ print '!! FIND "%s" (%s, %s)' % (self.regex.pattern, string, flags)
 
 		if self.highlight:
 			self._update_highlight()
@@ -3869,11 +3869,11 @@ class FindWidget(object):
 	def _flags(self):
 		flags = 0
 		if self.case_option_checkbox.get_active():
-			flags = flags & FIND_CASE_SENSITIVE
+			flags = flags | FIND_CASE_SENSITIVE
 		if self.word_option_checkbox.get_active():
-			flags = flags & FIND_WHOLE_WORD
+			flags = flags | FIND_WHOLE_WORD
 		if self.regex_option_checkbox.get_active():
-			flags = flags & FIND_REGEX
+			flags = flags | FIND_REGEX
 		return flags
 
 	def set_from_buffer(self):

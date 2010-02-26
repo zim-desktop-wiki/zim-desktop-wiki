@@ -257,8 +257,8 @@ class UnixPath(object):
 		FS.emit('path-moved', self, newpath)
 		self.dir.cleanup()
 
-	# FIXME we could define overloaded operators same as for notebook.Path
 	def ischild(self, parent):
+		'''Returns True if this path is a child path of parent'''
 		return self.path.startswith(parent.path + os.path.sep)
 
 	def isdir(self):

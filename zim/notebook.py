@@ -593,7 +593,7 @@ class Notebook(gobject.GObject):
 		'''
 		if href == source:
 			return href.basename
-		elif href > source:
+		elif href.ischild(source):
 			return '+' + href.relname(source)
 		else:
 			parent = source.commonparent(href)
@@ -848,7 +848,7 @@ class Notebook(gobject.GObject):
 				self.index.update(newpath)
 				#~ print backlinkpages
 				for p in backlinkpages:
-					if p == path or p > path:
+					if p == path or p.ischild(path):
 						continue
 					page = self.get_page(p)
 					self._update_links_in_page(page, path, newpath)
@@ -886,7 +886,8 @@ class Notebook(gobject.GObject):
 					oldhrefpath = self.resolve_path(href, source=oldpath)
 					#~ print 'LINK', oldhrefpath, '->', hrefpath
 					if hrefpath != oldhrefpath:
-						if hrefpath >= page and oldhrefpath >= oldpath:
+						if (hrefpath == page or hrefpath.ischild(page)) \
+						and (oldhrefpath == oldpath or oldhrefpath.ischild(oldpath)):
 							#~ print '\t.. Ignore'
 							pass
 						else:
@@ -919,7 +920,7 @@ class Notebook(gobject.GObject):
 					if hrefpath == oldpath:
 						newhrefpath = newpath
 						#~ print '\t==', oldpath, '->', newhrefpath
-					elif hrefpath > oldpath:
+					elif hrefpath.ischild(oldpath):
 						rel = hrefpath.relname(oldpath)
 						newhrefpath = newpath + rel
 						#~ print '\t>', oldpath, '->', newhrefpath
@@ -1185,6 +1186,9 @@ class Notebook(gobject.GObject):
 gobject.type_register(Notebook)
 
 
+import warnings
+
+
 class Path(object):
 	'''This is the parent class for the Page class. It contains the name
 	of the page and is used instead of the actual page object by methods
@@ -1227,25 +1231,29 @@ class Path(object):
 	def __ne__(self, other):
 		return not self.__eq__(other)
 
+	def __add__(self, name):
+		'''"path + name" is an alias for path.child(name)'''
+		return self.child(name)
+
 	def __lt__(self, other):
 		'''`self < other` evaluates True when self is a parent of other'''
+		warnings.warn('Usage of Path.__lt__ is deprecated', DeprecationWarning, 2)
 		return self.isroot or other.name.startswith(self.name+':')
 
 	def __le__(self, other):
 		'''`self <= other` is True if `self == other or self < other`'''
+		warnings.warn('Usage of Path.__le__ is deprecated', DeprecationWarning, 2)
 		return self.__eq__(other) or self.__lt__(other)
 
 	def __gt__(self, other):
 		'''`self > other` evaluates True when self is a child of other'''
+		warnings.warn('Usage of Path.__gt__ is deprecated', DeprecationWarning, 2)
 		return other.isroot or self.name.startswith(other.name+':')
 
 	def __ge__(self, other):
 		'''`self >= other` is True if `self == other or self > other`'''
+		warnings.warn('Usage of Path.__ge__ is deprecated', DeprecationWarning, 2)
 		return self.__eq__(other) or self.__gt__(other)
-
-	def __add__(self, name):
-		'''"path + name" is an alias for path.child(name)'''
-		return self.child(name)
 
 	@property
 	def parts(self):
@@ -1312,6 +1320,10 @@ class Path(object):
 			return Path(self.name+':'+name)
 		else: # we are the top level root namespace
 			return Path(name)
+
+	def ischild(self, parent):
+		'''Returns True if this path is a child of 'parent' '''
+		return parent.isroot or self.name.startswith(parent.name + ':')
 
 	def commonparent(self, other):
 		parent = []

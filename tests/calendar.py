@@ -27,7 +27,7 @@ class TestCalendarPlugin(TestCase):
 			plugin.preferences['namespace'] = namespace.name
 			path = plugin.path_from_date(today)
 			self.assertTrue(isinstance(path, Path))
-			self.assertTrue(path > namespace)
+			self.assertTrue(path.ischild(namespace))
 			date = plugin.date_from_path(path)
 			self.assertTrue(isinstance(date, dateclass))
 			self.assertEqual(date, today)

@@ -12,7 +12,7 @@ class LinkMapPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Link Map'), # T: plugin name
 		'description': _('''\
-This plugin provides a dialog with a grahical
+This plugin provides a dialog with a graphical
 representation of the linking structure of the
 notebook. It can be used as a kind of "mind map"
 showing how pages relate.
@@ -35,8 +35,7 @@ This is a core plugin shipping with zim.
 			self.gui = False
 
 	def disconnect(self):
-		if self.gui:
-			self.gui.disconnect
+		pass
 
 
 class LinkMap(object):
