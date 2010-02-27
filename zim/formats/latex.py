@@ -46,8 +46,8 @@ class Dumper(DumperClass):
 
 	def dump(self, tree):
 		assert isinstance(tree, ParseTree)
-		assert self.linker, 'HTML dumper needs a linker object'
-		self.linker.set_usebase(True)
+		assert self.linker, 'LaTeX dumper needs a linker object'
+		self.linker.set_usebase(False)
 		output = TextBuffer()
 		self.dump_children(tree.getroot(),output)
 		return output.get_lines()
@@ -96,15 +96,14 @@ class Dumper(DumperClass):
 				output.append(element.text)
 				output.append('\n\\end{verbatim}\n')
 			elif element.tag == 'img':
-				#handle equations from equationeditor
-				filename = element.attrib['src'].split('/')[-1]
-				print filename
-				if filename[:8] == 'equation':
-					eqpath = self.linker.link(element.attrib['src'])
-				#TODO: handle file not found case
-					output.append('\\begin{math}\n')
-					output.append('\\input{%s}\n'%eqpath[:-4])
-					output.append('\\end{math}')
+				if 'type' in element.attrib:
+					if element.attrib['type'] == 'equation':
+						eqpath = self.linker.link(element.attrib['src'])
+						eqfid = open(eqpath[6:-4] + '.tex','r')
+						output.append('\\begin{math}\n')
+						output.extend(eqfid.readlines())
+						output.append('\n\\end{math}')
+						eqfid.close()
 				else:
 				#TODO: Handle options
 					output.append('\\includegraphics{%s}'% self.linker.link(element.attrib['src']))
