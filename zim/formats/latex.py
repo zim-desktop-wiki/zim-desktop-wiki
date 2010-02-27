@@ -19,7 +19,7 @@ info = {
 bullets = {
 	'\\item[\\Square] ': UNCHECKED_BOX,
 	'\\item[\\XBox] ': XCHECKED_BOX,
-	'\\item[\CheckedBox] ': CHECKED_BOX,
+	'\\item[\\CheckedBox] ': CHECKED_BOX,
 	'\\item ': BULLET,
 }
 # reverse dict
@@ -29,7 +29,15 @@ for bullet in bullets:
 
 def tex_encode(text):
 	if not text is None:
-		text = text.replace('_', '\_')
+		#TODO: non-hacky solution
+		text = text.replace('\\','SOMETHINGWHICHIHOPEWILLNEVERTURNUPINATEXTOTHERWISETHISWILLSCREWUP')
+		text = text.replace('&','\\&')
+		text = text.replace('$','\\$ ')
+		text = text.replace('^','\\^{}')
+		text = text.replace('%','\\%')
+		text = text.replace('#','\\# ')
+		text = text.replace('_', '\\_')
+		text = text.replace('SOMETHINGWHICHIHOPEWILLNEVERTURNUPINATEXTOTHERWISETHISWILLSCREWUP','$\\backslash$')
 		return text
 	else:
 		return ''
@@ -46,7 +54,7 @@ class Dumper(DumperClass):
 
 	def dump_children(self, list, output, list_level = -1):
 		if list.text:
-			output.append(list.text)
+			output.append(tex_encode(list.text))
 
 		for element in list.getchildren():
 			text = tex_encode(element.text)
@@ -68,11 +76,11 @@ class Dumper(DumperClass):
 				level = int(element.attrib['level'])
 				if level < 1: level = 1
 				elif level > 5: level = 5
-				if   level == 1: output.append('\\chapter{'+element.text+'}')
-				elif level == 2: output.append('\\section{'+element.text+'}')
-				elif level == 3: output.append('\\subsection{'+element.text+'}')
-				elif level == 4: output.append('\\subsubsection{'+element.text+'}')
-				elif level == 4: output.append('\\paragraph{'+element.text+'}')
+				if   level == 1: output.append('\\chapter{'+text+'}')
+				elif level == 2: output.append('\\section{'+text+'}')
+				elif level == 3: output.append('\\subsection{'+text+'}')
+				elif level == 4: output.append('\\subsubsection{'+text+'}')
+				elif level == 4: output.append('\\paragraph{'+text+'}')
 			elif element.tag == 'li':
 				if 'indent' in element.attrib:
 					list_level = int(element.attrib['indent'])
@@ -81,32 +89,32 @@ class Dumper(DumperClass):
 				else:
 					bullet = '\\item '
 				output.append('\t'*list_level+bullet)
-				self.dump_children(element, output, list_level=list_level) # recurs
+				self.dump_children(element, output, list_level=list_level) # recurse
 				output.append('\n')
 			elif element.tag == 'pre':
 				output.append('\n\\begin{verbatim}\n')
-				output.append(text.element)
+				output.append(element.text)
 				output.append('\n\\end{verbatim}\n')
 			elif element.tag == 'img':
-				output.append('\\includegraphics{%s}'%url_encode(self.linker.link(element.attrib['src'])))
+				output.append('\\includegraphics{%s}'% self.linker.link(element.attrib['src']))
 				#TODO: Handle options
 			elif element.tag == 'link':
-				href = url_encode(self.linker.link(element.attrib['href']))
+				href = self.linker.link(element.attrib['href'])
 				output.append('\\href{%s}{%s}' % (href, text))
 			elif element.tag == 'emphasis':
-				output.append('\\emph{'+element.text+'}')
+				output.append('\\emph{'+text+'}')
 			elif element.tag == 'strong':
-				output.append('\\textbf{'+element.text+'}')
+				output.append('\\textbf{'+text+'}')
 			elif element.tag == 'mark':
-				output.append('\\underline{'+element.text+'}')
+				output.append('\\underline{'+text+'}')
 			elif element.tag == 'strike':
-				output.append('\\sout{'+element.text+'}')
+				output.append('\\sout{'+text+'}')
 			elif element.tag == 'code':
-				success = false
+				success = False
 				for delim in '+*|$&%!-_':
-					if not delim in element.text:
-						success = true
-						output.append('\\verb'+delim+element.text+delim)
+					if not delim in text:
+						success = True
+						output.append('\\verb'+delim+text+delim)
 				if not success:
 					assert False, 'Found no suitable delimiter for verbatim text: %s' % element
 					pass
@@ -114,4 +122,4 @@ class Dumper(DumperClass):
 				assert False, 'Unknown node type: %s' % element
 
 			if element.tail:
-				output.append(element.tail)
+				output.append(tex_encode(element.tail))
