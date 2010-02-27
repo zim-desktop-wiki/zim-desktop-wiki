@@ -96,8 +96,18 @@ class Dumper(DumperClass):
 				output.append(element.text)
 				output.append('\n\\end{verbatim}\n')
 			elif element.tag == 'img':
-				output.append('\\includegraphics{%s}'% self.linker.link(element.attrib['src']))
+				#handle equations from equationeditor
+				filename = element.attrib['src'].split('/')[-1]
+				print filename
+				if filename[:8] == 'equation':
+					eqpath = self.linker.link(element.attrib['src'])
+				#TODO: handle file not found case
+					output.append('\\begin{math}\n')
+					output.append('\\input{%s}\n'%eqpath[:-4])
+					output.append('\\end{math}')
+				else:
 				#TODO: Handle options
+					output.append('\\includegraphics{%s}'% self.linker.link(element.attrib['src']))
 			elif element.tag == 'link':
 				href = self.linker.link(element.attrib['href'])
 				output.append('\\href{%s}{%s}' % (href, text))
