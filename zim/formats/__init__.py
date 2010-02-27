@@ -93,7 +93,7 @@ BULLET = '*'
 
 def list_formats(type):
 	if type == EXPORT_FORMAT:
-		return ['HTML']
+		return ['HTML','LaTeX']
 	else:
 		assert False, 'TODO'
 
@@ -105,6 +105,7 @@ def get_format(name):
 	mod = __import__('zim.formats.'+name)
 	mod = getattr(mod, 'formats')
 	mod = getattr(mod, name)
+	print mod
 	return mod
 
 
