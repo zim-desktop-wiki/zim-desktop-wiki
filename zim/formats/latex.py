@@ -104,9 +104,21 @@ class Dumper(DumperClass):
 						output.extend(eqfid.readlines())
 						output.append('\n\\end{math}')
 						eqfid.close()
-				else:
-				#TODO: Handle options
-					output.append('\\includegraphics{%s}'% self.linker.link(element.attrib['src']))
+					elif element.attrib['type'] == 'None':
+						if 'width' in element.attrib and not 'height' in element.attrib:
+							options = 'width=%s, keepaspectratio=true'%element.attrib['width']
+						elif 'height' in element.attrib and not 'width' in element.attrib:
+							options = 'height=%s, keepaspectratio=true'%element.attrib['height']
+						elif 'height' in element.attrib and 'width' in element.attrib:
+							options = 'width=%s, height=%s'%(element.attrib['width'],element.attrib['height'])
+						else:
+							options = ''
+
+						image = '\\includegraphics[%s]{%s}'%(options,self.linker.link(element.attrib['src'])[6:])
+						if 'href' in element.attrib:
+							output.append('\\href{%s}{%s}'%(element.attrib['href'],image))
+						else:
+							output.append(image)
 			elif element.tag == 'link':
 				href = self.linker.link(element.attrib['href'])
 				output.append('\\href{%s}{%s}' % (href, text))
