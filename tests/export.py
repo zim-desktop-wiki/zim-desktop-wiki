@@ -7,7 +7,7 @@ from tests import TestCase, create_tmp_dir, get_test_notebook, get_test_data
 from subprocess import check_call
 
 from zim.fs import *
-from zim.notebook import Path, Notebook
+from zim.notebook import Path, Notebook, init_notebook
 from zim.exporter import Exporter, StaticLinker
 
 # TODO add check that attachments are copied correctly
@@ -73,6 +73,7 @@ class TestExportCommandLine(TestExport):
 
 	def export(self):
 		dir = Dir(create_tmp_dir('export_SourceFiles'))
+		init_notebook(dir)
 		notebook = Notebook(dir=dir)
 		for name, text in get_test_data('wiki'):
 			page = notebook.get_page(Path(name))

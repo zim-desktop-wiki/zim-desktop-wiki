@@ -1,27 +1,17 @@
-pyzim (0.42.beta3-ubuntu1) karmic; urgency=low
+zim (0.44) karmic; urgency=low
 
-  [ Jaap Karrsenberg ]
-  * New beta version, includes drag n drop support and tray icon plugin
+  * Updated to release 0.44 
 
- -- Jaap Karrsenberg <pardus@cpan.org>  Fri, 18 Dec 2009 22:51:00 +0100
+ -- Jaap Karrsenberg <pardus@cpan.org>  Thu, 18 Feb 2010 19:07:28 +0100
 
-pyzim (0.42.beta2-ubuntu1) karmic; urgency=low
+zim (0.43) karmic; urgency=low
 
-  [ Jaap Karrsenberg ]
-  * New beta version, includes version control plugin
+  * Updated to release 0.43 
 
- -- Jaap Karrsenberg <pardus@cpan.org>  Thu, 29 Nov 2009 22:56:00 +0100
+ -- Jaap Karrsenberg <pardus@cpan.org>  Mon, 18 Jan 2010 00:57:45 +0100
 
-pyzim (0.42.beta1-ubuntu1) karmic; urgency=low
+zim (0.42) karmic; urgency=low
 
-  [ Jaap Karrsenberg ]
-  * Updated debian control files for beta release
-
- -- Jaap Karrsenberg <pardus@cpan.org>  Thu, 12 Nov 2009 00:25:08 +0100
-
-pyzim (0.42.alpha2-ubuntu1) jaunty; urgency=low
-
-  [ Bart de Koning ]
   * Initial release.
 
- -- Bart de Koning <bratdaking@gmail.com>  Wed, 26 Aug 2009 15:03:33 +0200
+ -- Jaap Karrsenberg <pardus@cpan.org>  Sun, 10 Jan 2010 22:30:13 +0100

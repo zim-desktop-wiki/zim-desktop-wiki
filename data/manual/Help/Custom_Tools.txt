@@ -1,0 +1,44 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+
+====== Custom Tools ======
+
+Zim allows you to define custom tools to extend the basic functionality with simple functions that can be handled by an external program or script. The custom tool manager allows you to quickly extend functionality in zim by shell scripts or other external programs. It is also useful to prototype plugin functionality without having to learn the full API for plugins. 
+
+===== Add a custom tool =====
+To add a custom tool, open up the custom tool manager dialog using the menu item //Tools// -> //Custom Tools//. Now press the "Add" icon button and zim will prompt for the properties of a new tool.
+
+The **Name** is used in the tools menu for this tool and is mandatory. 
+
+The **Description** should be a slightly more verbose description of this tool. It is used for example as the tooltip for toolbar items.
+
+The **Command** ...
+
+When defining a command, you can use the following parameters to supply the external program with some context information from within zim:
+
+**%f**	for page source as a temporary file
+**%d**	for the attachment directory of the current page
+**%s**	for the real page source file (if any)
+**%n**	for the notebook location (file or folder)
+**%D**	for the document root (if any)
+**%t** 	for the selected text or word under cursor	
+
+The optional **Icon** is used for toolbar items and for menu items depending on your Gtk appearance settings.
+
+Then there is the checkbox **Command does not modify data**. Enable this option if your tool only read data but does not modify it. In that case zim will execute the application in the background and keep running. Otherwise, if your tool does modify data, zim has to wait for it to finish and reload the current page.
+
+The chcekbox **Show in the toolbar** determines if this tool will be added to the toolbar or not.
+
+Tools are always visible in the "Tools" menu in the main window. Depending on the parameters they take, they may also be shown in the context menus for pages or for selected text in the editor.
+
+
+===== Developing custom tool scripts =====
+If you start writing scripts for custom tools that go further than just calling another program directly here are some tips:
+
+When testing out scripts that directly modify the notebook directory, make sure you have backups of your data. It might also be a good idea to enable version control and save a snapshot of the notebook before running a script.
+
+If you want to modify the wiki syntax in an automated way, it is worth considering to do your script in python and directly use the ''zim.formats.wiki'' module for parsing the wiki page. Once you take this step it becomes relatively easy to turn the script into a full plugin module later on.
+
+If your script needs e.g. a custom dialog to prompt information from the user it is advised to look into python and gtk as well. The Glade editor may help you to rapidly draw a dialog. Again, by using this framework it will be easy to turn the script into a plugin later on.
+
+One limitation of these custom tools is that you can not interact directly with the textbuffer. For example you can not change the cursor position or apply changes which will be undoable. To achieve this you will need to look into writing a real plugin and use the API for the text buffer.

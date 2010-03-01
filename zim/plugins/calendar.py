@@ -114,7 +114,14 @@ This is a core plugin shipping with zim.
 				self.ui.notebook.namespace_properties[ns].remove('template')
 			except KeyError:
 				pass
-		ns = Path(self.preferences['namespace'])
+
+		if isinstance(self.preferences['namespace'], Path):
+			ns = self.preferences['namespace']
+			self.preferences['namespace'] = ns.name
+		else:
+			self.preferences.setdefault('namespace', ':Calendar')
+			ns = self.ui.notebook.resolve_path(self.preferences['namespace'])
+
 		self.ui.notebook.namespace_properties[ns]['template'] = '_Calendar'
 		self._set_template = ns
 
@@ -244,8 +251,9 @@ class CalendarPluginWidget(gtk.VBox):
 		calendar.clear_marks()
 		namespace = self.plugin.path_for_month_from_date( calendar.get_date() )
 		for path in self.plugin.ui.notebook.index.list_pages(namespace):
-			date = self.plugin.date_from_path(path)
-			calendar.mark_day(date.day)
+			if date_path_re.match(path.name):
+				date = self.plugin.date_from_path(path)
+				calendar.mark_day(date.day)
 
 	def on_open_page(self, ui, page, path):
 		try:

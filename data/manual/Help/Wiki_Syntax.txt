@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Unknown
-Modification-Date: Sat, 08 Nov 2008 11:14:38 +0100
 
 ====== Syntax ======
 
@@ -33,7 +32,7 @@ Link to another page like this:
 '''
 [[foo]]  links to page in the current namespace or parents
 [[:foo]] links to page in the root namespace
-[[.foo]] links to page in a subnamespace
+[[+foo]] links to page in a subnamespace
 
 [[foo|bar]] links to "foo" but display "bar"
 '''

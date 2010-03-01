@@ -50,6 +50,10 @@ __all__ = ['Dir', 'File']
 logger = logging.getLogger('zim.fs')
 
 
+def isabs(path):
+	return path.startswith('file:/') or os.path.isabs(path)
+
+
 def get_tmpdir():
 	import tempfile
 	root = tempfile.gettempdir()
@@ -253,8 +257,8 @@ class UnixPath(object):
 		FS.emit('path-moved', self, newpath)
 		self.dir.cleanup()
 
-	# FIXME we could define overloaded operators same as for notebook.Path
 	def ischild(self, parent):
+		'''Returns True if this path is a child path of parent'''
 		return self.path.startswith(parent.path + os.path.sep)
 
 	def isdir(self):
@@ -263,22 +267,42 @@ class UnixPath(object):
 		'''
 		return os.path.isdir(self.path)
 
+	def isimage(self):
+		'''Returns True if the file is an image type. But no guarantee
+		it is actually supported by gtk.
+		'''
+		return self.get_mimetype().startswith('image/')
+
 	def get_mimetype(self):
+		'''Returns the mimetype as a string like e.g. "text/plain"'''
 		try:
 			import xdg.Mime
 			mimetype = xdg.Mime.get_type(self.path, name_pri=80)
 			return str(mimetype)
 		except ImportError:
+			logger.info("xdg.Mime doesn't exist - use file extension")
 			# Fake mime typing (e.g. for win32)
 			if '.' in self.basename:
 				_, ext = self.basename.rsplit('.', 1)
 				if ext == 'txt':
 					return 'text/plain'
 				else:
+					# Fallback for platform without xdg mimeinfo
+					# we can still use a stub mimetype based on the
+					# file extension. However we try to detect images
+					# so isimage() gives correct info to the GUI how
+					# to handle e.g. a file after drag & drop.
+					# FIXME check if we can port this to gio instead of using gtk
+					# alternative is to hard code list with globs (copy from mimeinfo)
+					import gtk
+					# See if it's an image
+					for format in gtk.gdk.pixbuf_get_formats():
+						if ext in format['extensions']:
+							return format['mime_types'][0]
+					# Not an image
 					return 'x-file-extension/%s' % ext
 			else:
 				return 'application/octet-stream'
-
 
 
 class WindowsPath(UnixPath):
@@ -286,7 +310,7 @@ class WindowsPath(UnixPath):
 	@staticmethod
 	def _abspath(path):
 		# Strip leading / for absolute paths
-		if re.match(r'^[/\\][A-Z]:[/\\]', path):
+		if re.match(r'^[/\\][A-Za-z]:[/\\]', path):
 			path = path[1:]
 		return os.path.abspath(path)
 

@@ -5,6 +5,7 @@
 import gtk
 import logging
 
+from zim.notebook import Path
 from zim.gui.widgets import Dialog, BrowserTreeView
 from zim.search import *
 
@@ -44,7 +45,8 @@ class SearchDialog(Dialog):
 
 
 		def search(*a):
-			self.results_treeview.set_query( self.query_entry.get_text() )
+			string = unicode(self.query_entry.get_text(), 'utf-8')
+			self.results_treeview.set_query( string )
 
 		button.connect('clicked', search)
 		self.query_entry.connect('activate', search)
@@ -52,15 +54,12 @@ class SearchDialog(Dialog):
 
 class SearchResultsTreeView(BrowserTreeView):
 
-	# We only store page names, not page object as the page objects in the
-	# results can use up a lot of memory because they contain all content.
-	# TODO: this might needs to be optimised...
-
 	def __init__(self, ui):
 		model = gtk.ListStore(str, int) # page, rank
 		BrowserTreeView.__init__(self, model)
 		self.ui = ui
-		self.searcher = Searcher(ui.notebook)
+		self.query = None
+		self.selection = SearchSelection(ui.notebook)
 
 		cell_renderer = gtk.CellRendererText()
 		for name, i in (
@@ -84,17 +83,20 @@ class SearchResultsTreeView(BrowserTreeView):
 			return
 		logger.info('Searching for: %s', query)
 
-		query = Query(query)
-		result = self.searcher.search(query)
+		self.query = Query(query)
+		self.selection.search(self.query)
 		# TODO need callback here
 
 		model = self.get_model()
 		model.clear()
-		for page in result.pages:
-			score = result.scores[page]
-			model.append((page.name, score))
+		for path in sorted(self.selection, key=lambda p: p.name):
+			model.append((path.name, self.selection.scores[path]))
 
 	def _do_open_page(self, view, path, col):
-		page = self.get_model()[path][0]
-		page = self.ui.notebook.resolve_path(page)
+		page = Path( self.get_model()[path][0] )
 		self.ui.open_page(page)
+
+		# Popup find dialog with same query
+		if self.query and self.query.simple_match:
+			string = self.query.simple_match
+			self.ui.mainwindow.pageview.show_find(string, highlight=True)

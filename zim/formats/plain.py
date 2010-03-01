@@ -24,6 +24,9 @@ class Parser(ParserClass):
 	# TODO parse constructs like *bold* and /italic/ same as in email,
 	# but do not remove the "*" and "/", just display text 1:1
 
+	# TODO also try at least to parse bullet and checkbox lists
+	# common base class with wiki format
+
 	def parse(self, input):
 		if isinstance(input, basestring):
 			input = input.splitlines(True)
@@ -60,4 +63,4 @@ class Dumper(DumperClass):
 			if not element.tail is None:
 				output.append(element.tail)
 
-		return output.get_lines()
+		return output.get_lines(end_with_newline=not tree.ispartial)

@@ -1,14 +1,15 @@
-Source: pyzim
+Source: zim
 Section: utils
 Priority: optional
 Maintainer: Jaap Karssenberg <pardus@cpan.org>
-Standards-Version: 3.8.0
-Build-Depends: debhelper (>=7), python-support (>= 0.8), cdbs (>= 0.4.49), xdg-utils, python (>= 2.6), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg
+Standards-Version: 3.8.3
+Build-Depends: debhelper (>=7), python-support (>= 0.8), cdbs (>= 0.4.49), python (>= 2.6)
+Build-Depends-Indep: xdg-utils
 
-Package: pyzim
+Package: zim
 Architecture: all
 Homepage: http://zim-wiki.org/
-Depends: ${misc:Depends}, ${python:Depends}
+Depends: ${misc:Depends}, ${python:Depends}, xdg-utils, python (>= 2.6), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg
 Recommends: desktop-file-utils, bzr, subversion
 Suggests: scrot
 Conflicts: zim (<= 0.41)

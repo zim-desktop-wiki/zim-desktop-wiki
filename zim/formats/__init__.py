@@ -55,7 +55,7 @@ to a title or subtitle in the document.
 import re
 import logging
 
-from zim.fs import Dir
+from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, url_encode, url_decode
 from zim.config import data_file
 
@@ -116,6 +116,20 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''Returns True if the tree contains any content at all.'''
 		root = self.getroot()
 		return bool(root.getchildren() or root.text)
+
+	@property
+	def ispartial(self):
+		'''Returns True when this tree is a segment of a page
+		(like a copy-paste buffer).
+		'''
+		return self.getroot().attrib.get('partial', False)
+
+	@property
+	def israw(self):
+		'''Returns True when this is a raw tree (which is representation
+		of TextBuffer, but not really valid).
+		'''
+		return self.getroot().attrib.get('raw', False)
 
 	def fromstring(self, string):
 		'''Set the contents of this tree from XML representation.'''
@@ -184,13 +198,18 @@ class ParseTree(ElementTreeModule.ElementTree):
 			heading.attrib['level'] = newlevel
 			path.append((level, newlevel))
 
-	def resolve_images(self, notebook, path):
+	def resolve_images(self, notebook=None, path=None):
 		'''Resolves the source files for all images relative to a page path	and
 		adds a '_src_file' attribute to the elements with the full file path.
 		'''
-		for element in self.getiterator('img'):
-			filepath = element.attrib['src']
-			element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
+		if notebook is None:
+			for element in self.getiterator('img'):
+				filepath = element.attrib['src']
+				element.attrib['_src_file'] = File(filepath)
+		else:
+			for element in self.getiterator('img'):
+				filepath = element.attrib['src']
+				element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
 
 	def encode_urls(self):
 		'''Calls encode_url() on all links that contain urls'''
@@ -539,6 +558,7 @@ class BaseLinker(object):
 
 	def __init__(self):
 		self._icons = {}
+		self._links = {}
 		self.path = None
 		self.usebase = False
 		self.base = None
@@ -546,6 +566,7 @@ class BaseLinker(object):
 	def set_path(self, path):
 		'''Set the page path for resolving links'''
 		self.path = path
+		self._links = {}
 
 	def set_base(self, dir):
 		'''Set a path to use a base for linking files'''
@@ -558,21 +579,21 @@ class BaseLinker(object):
 
 	def link(self, link):
 		'''Returns a path or url for 'link' '''
-		# TODO optimize by hashing links seen (reset per page)
 		assert not self.path is None
-		type = link_type(link)
-		if type == 'page':
-			return self.page(link)
-		elif type == 'file':
-			return self.file(link)
-		elif type == 'mailto':
-			if link.startswith('mailto:'):
-				return link
+		if not link in self._links:
+			type = link_type(link)
+			if type == 'page':    href = self.page(link)
+			elif type == 'file':  href = self.file(link)
+			elif type == 'mailto':
+				if link.startswith('mailto:'):
+					href = link
+				else:
+					href = 'mailto:' + link
 			else:
-				return 'mailto:' + link
-		else:
-			# I dunno, some url ?
-			return link
+				# I dunno, some url ?
+				href = link
+			self._links[link] = href
+		return self._links[link]
 
 	def img(self, src):
 		'''Returns a path or url for image file 'src' '''

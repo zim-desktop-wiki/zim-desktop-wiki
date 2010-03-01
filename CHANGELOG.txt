@@ -1,32 +1,69 @@
 ===== Changes for zim =====
-Jaap Karssenberg pardus@cpan.org
+Jaap Karssenberg <pardus@cpan.org>
 
 This branch is the Python rewrite and starts with version 0.42. 
 Lower version numbers for zim correspond to the Perl branch.
 
-=== 0.42 - ... ===
-Functionality should be similar to Perl branch version 0.28.
+=== 0.44 - Wed 17 Feb 2010 ===
+This release adds improved query syntax for search and several bug fixes
+
+* Implemented more advanced search syntax - see manual for details
+* Implemented recursive checkbox usage and recursive indenting bullet lists
+* Merged "Insert Link" and "Insert External Link" dialogs
+* Added options to insert attached images and attach inserted images 
+* Support for recognizing image attachment on windows
+* Fixed bug for lower case drive letters in windows paths
+* Fixed bug with non-date links in the calendar namespace
+* Fixed bug with invalid page names during move page 
+* Fixed bugs with unicode in search, find, task list tags, auto-linking pages 
+  and in url encoding
+* Several fixes in behavior of the page index widget
+* Added translations for Russian and Swedish
+
+=== 0.43 - Sun 17 Jan 2010 ===
+This is a bug fix release with fixes for most important issues found in 0.42
+
+* Added update method for data format for older notebooks
+* Fixed bug with duplicates showing in the index
+* Fixed bug with indexing on first time opening a notebook
+* Fixed bug with format toggle buttons in the toolbar
+* Fixed bug with permissions for files created by zim
+* Fixed bug with selection for remove_link
+* Fixed bug with default path for document_root
+* Fixed bug with updating links to children of moved pages
+* Added strict check for illegal characters in page names
+* Improved PageEntry to highlight illegal page names
+* Improved user interaction for Edit Link and Insert Link dialogs 
+* Trigger Find when a page is opened from the Search dialog
+* Allow selecting multiple tags in Task List plugin
+* Allow negative queries in Task List, like "not @waiting"
+* Checkbox icons are now included in export
+* Fixed import of simplejson for pyton 2.5 specific
+* Translations added for: English (United Kingdom), Greek and Polish
+
+=== 0.42 - Sun 10 Jan 2010 ===
+This is the first release after a complete re-write of zim in python. 
+Functionality should be more or less similar to Perl branch version 0.28,
+but details may vary.
+
 Additional issues addressed in this release:
 
-* Moving a page also moves sub-pages and attachments - lp #269090, lp #350537
-* Deleting a page also deletes sub-pages and attachements - lp #320433
-* After deleting a page the user is moved away from that page - lp #297681
-* Wrapped lines in bullet lists are indented properly - lp #277580
-* Added a web-based interface to read zim notebooks - lp #208604
-* Distinguising between "move page" and "rename page" - lp #269076
-* Menu actions like "Rename Page (F2)" now follow the focus and work in the side pane as well - lp #373287
-* Page title can be updated automatically when moving a page - lp #304552
-* "Link" action behaves more like inserting an object instead of aplying formatting - lp #341608
-* File links are now inserted showing only the basename of the file - lp #336365
-* Dialogs spawned from another dialog will pop over it - lp #283417
-* Dialogs remember their window size - lp #227160
-* Check for pages that are changed offline now employs MD5 sum to be more robust - lp #299673
+* Moving a page also moves sub-pages and attachments
+* Deleting a page also deletes sub-pages and attachments
+* After deleting a page the user is moved away from that page
+* Wrapped lines in bullet lists are indented properly
+* Better desktop integration using the default webbrowser and email client
+* Added a web-based interface to read zim notebooks
+* Task List now supports tags
+* Distinguishing between "move page" and "rename page"
+* Menu actions like "Rename Page (F2)" now follow the focus and work in the side pane as well
+* Page title can be updated automatically when moving a page
+* "Link" action behaves more like inserting an object instead of applying formatting
+* File links are now inserted showing only the basename of the file
+* Dialogs spawned from another dialog will pop over it
+* Dialogs remember their window size
+* Allow user to quit individual notebooks even when the tray icon is in effect 
+* Check for pages that are changed offline now employs MD5 sum to be more robust
 
-Translations available for:
-* Dutch
-* Czech
-* French
-* German
-* Korean
-* Ukrainian
-* Spanish
+Translations available for: Dutch, Estonian, Czech, French, German, Korean,
+Ukrainian, Simplified Chinese and Spanish

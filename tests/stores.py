@@ -291,7 +291,7 @@ class TestFiles(TestStoresMemory):
 		page.parse('plain', 'Foo Bar')
 		self.store.store_page(page)
 		self.assertEqual(page.properties['Content-Type'], 'text/x-zim-wiki')
-		self.assertEqual(page.properties['Wiki-Format'], 'zim 0.26')
+		self.assertEqual(page.properties['Wiki-Format'], 'zim 0.4')
 		self.assertTrue('Creation-Date' in page.properties)
 		firstline = page.source.readlines()[0]
 		self.assertEqual(firstline, 'Content-Type: text/x-zim-wiki\n')

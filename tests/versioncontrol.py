@@ -44,6 +44,8 @@ class TestBazaar(TestCase):
 
 	def runTest(self):
 		'''Test Bazaar version control'''
+		print '\n!! Some raw output from Bazaar expected here !!'
+
 		root = get_tmp_dir('versioncontrol_TestBazaar')
 		vcs = BazaarVCS(root)
 		vcs.init()

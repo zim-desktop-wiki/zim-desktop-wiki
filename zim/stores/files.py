@@ -17,6 +17,7 @@ once we have it resolved.
 '''
 
 import os # using os directly in get_pagelist()
+import logging
 from datetime import datetime
 
 from zim.fs import *
@@ -25,6 +26,9 @@ from zim.formats import get_format
 from zim.notebook import Path, Page, LookupError, PageExistsError
 from zim.stores import StoreClass, encode_filename, decode_filename
 from zim.config import HeadersDict
+from zim.formats.wiki import WIKI_FORMAT_VERSION # FIXME hard coded preference for wiki format
+
+logger = logging.getLogger('zim.stores.files')
 
 
 class Store(StoreClass):
@@ -36,7 +40,9 @@ class Store(StoreClass):
 		'''
 		StoreClass.__init__(self, notebook, path)
 		self.dir = dir
-		assert self.store_has_dir()
+		if not self.store_has_dir():
+			raise AssertionError, 'File store needs directory'
+			# not using assert here because it could be optimized away
 		self.format = get_format('wiki') # TODO make configable
 
 	def _get_file(self, path):
@@ -72,9 +78,15 @@ class Store(StoreClass):
 			if file.startswith('.') or file.startswith('_'):
 				continue # no hidden files or directories
 			elif file.endswith('.txt'): # TODO: do not hard code extension
-				names.add(decode_filename(file[:-4]))
+				if ' ' in file:
+					logger.warn('Ignoring file: "%s" invalid file name', file)
+				else:
+					names.add(decode_filename(file[:-4]))
 			elif os.path.isdir( os.path.join(dir.path, file) ):
-				names.add(decode_filename(file))
+				if ' ' in file:
+					logger.warn('Ignoring file: "%s" invalid file name', file)
+				else:
+					names.add(decode_filename(file))
 			else:
 				pass # unknown file type
 
@@ -161,6 +173,7 @@ class FileStorePage(Page):
 		self.format = format
 		self.source.checkoverwrite = True
 		self.readonly = not self.source.iswritable()
+		self.properties = None
 
 	def _source_hascontent(self):
 		return self.source.exists()
@@ -190,17 +203,22 @@ class FileStorePage(Page):
 		#~ print 'STORE', tree.tostring()
 		if tree.hascontent:
 			new = False
-			if not self.properties:
+			if self.properties is None:
 				self.properties = HeadersDict()
 				new = True
 			self.properties['Content-Type'] = 'text/x-zim-wiki'
-			self.properties['Wiki-Format'] = 'zim 0.26'
+			self.properties['Wiki-Format'] = WIKI_FORMAT_VERSION
 			if new:
 				now = datetime.now()
 				self.properties['Creation-Date'] = now.isoformat()
 
 			# Note: No "Modification-Date" here because it causes conflicts
 			# when merging branches with version control, use mtime from filesystem
+			# If we see this header, remove it because it will not be updated.
+			try:
+				del self.properties['Modification-Date']
+			except:
+				pass
 
 			lines = self.properties.dump()
 			lines.append('\n')
@@ -211,24 +229,3 @@ class FileStorePage(Page):
 			self.source.cleanup()
 
 		self.modified = False
-
-	def get_links(self):
-		# Optimised version of get_links, just check if we contain
-		# links at all - if not don't bother parsing the content,
-		# but if we do only trust the parse to get it right
-		# (e.g. taking care of verbatim, escapes etc.)
-		if not (self._parsetree or self._ui_object) \
-		and hasattr(self.format, 'contains_links'):
-			#~ print '!! FileStorePage.get_links() Optimisation used'
-			if self.source.exists():
-				lines = self.source.readlines()
-				if self.format.contains_links(lines):
-					self._parsetree = self._fetch_parsetree(lines)
-					for link in Page.get_links(self):
-						yield link
-		else:
-			for link in Page.get_links(self):
-				yield link
-
-		# TODO: should we cache 'lines' as well in case we get asked
-		# for the parsetree after all ?

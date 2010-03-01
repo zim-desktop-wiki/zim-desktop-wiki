@@ -139,6 +139,9 @@ bar baz
 
 •• Search Me ••
 </page>
+<page name="Test:Foo Bar:Dus Ja Hmm">
+Testing with whitespace in page name
+</page>
 <page name="roundtrip">
 ====== Head1 ======
 

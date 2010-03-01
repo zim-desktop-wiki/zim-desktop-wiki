@@ -17,6 +17,7 @@ import re
 import string
 from time import strftime
 
+import zim.fs
 from zim.fs import *
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
@@ -24,7 +25,8 @@ from zim.config import config_file
 from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, Button, IconButton, BrowserTreeView
+from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, \
+	Button, IconButton, BrowserTreeView, InputEntry
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
@@ -45,10 +47,6 @@ bullet_types = {
 bullets = {}
 for bullet in bullet_types:
 	bullets[bullet_types[bullet]] = bullet
-
-FIND_IN_PLACE = 1
-FIND_CASE_SENSITIVE = 2
-FIND_WHOLE_WORD = 4
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVALS_HOME = map(gtk.gdk.keyval_from_name, ('Home', 'KP_Home'))
@@ -87,7 +85,6 @@ ui_actions = (
 	('insert_date', None, _('_Date and Time...'), '<ctrl>D', '', False), # T: Menu item
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
-	('insert_external_link', 'zim-link', _('E_xternal Link...'), '', '', False), # T: Menu item
 	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
 	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', '', False), # T: Menu item
 	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', '', True), # T: Menu item
@@ -139,6 +136,9 @@ ui_preferences = (
 	('unindent_on_backspace', 'bool', 'Editing',
 		_('Unindent on <BackSpace>\n(If disabled you can still use <Shift><Tab>)'), True),
 		# T: option in preferences dialog
+	('recursive_indentlist', 'bool', 'Editing',
+		_('(Un-)Indenting a list item also change any sub-items'), True),
+		# T: option in preferences dialog
 	('recursive_checklist', 'bool', 'Editing',
 		_('Checking a checkbox also change any sub-items'), False),
 		# T: option in preferences dialog
@@ -163,25 +163,25 @@ heading_re = Re(r'^(={2,7})\s*(.*)\s*(\1)?$')
 page_re = Re(r'''(
 	  [\w\.\-\(\)]*(?: :[\w\.\-\(\)]{2,} )+:?
 	| \+\w[\w\.\-\(\)]+(?: :[\w\.\-\(\)]{2,} )*:?
-)$''', re.X) # e.g. namespace:page or +subpage, but not word without ':' or '+'
-interwiki_re = Re(r'\w[\w\+\-\.]+\?\w\S+$') # name?page, where page can be any url style
+)$''', re.X | re.U) # e.g. namespace:page or +subpage, but not word without ':' or '+'
+interwiki_re = Re(r'\w[\w\+\-\.]+\?\w\S+$', re.U) # name?page, where page can be any url style
 file_re = Re(r'''(
 	  ~/[^/\s]
 	| ~[^/\s]*/
 	| \.\.?/
 	| /[^/\s]
-)\S*$''', re.X) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
+)\S*$''', re.X | re.U) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
 
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
-classes = {
+_classes = {
 	'upper': string.uppercase,
 	'lower': string.lowercase,
 	'letters': string.letters
 }
-camelcase_re = Re(r'[%(upper)s]+[%(lower)s]+[%(upper)s]+\w*$' % classes)
-twoletter_re = re.compile(r'[%(letters)s]{2}' % classes)
-del classes
+camelcase_re = Re(r'[%(upper)s]+[%(lower)s]+[%(upper)s]+\w*$' % _classes)
+twoletter_re = re.compile(r'[%(letters)s]{2}' % _classes)
+del _classes
 
 autoformat_bullets = {
 	'*': BULLET,
@@ -189,6 +189,8 @@ autoformat_bullets = {
 	'[*]': CHECKED_BOX,
 	'[x]': XCHECKED_BOX,
 }
+
+CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
 
 
 class UserActionContext(object):
@@ -215,6 +217,38 @@ class UserActionContext(object):
 		self.buffer.end_user_action()
 
 
+class SaveCursorContext(object):
+	'''Class used by TextBuffer.tmp_cursor().
+	This allows syntax like:
+
+		with buffer.tmp_cursor(iter):
+			# some manipulation using iter as cursor position
+
+		# old cursor position restored
+
+	Basically it keeps a mark for the old cursor and restores it
+	after exiting the context.
+	'''
+
+	def __init__(self, buffer, iter=None):
+		self.buffer = buffer
+		self.iter = iter
+		self.mark = None
+
+	def __enter__(self):
+		buffer = self.buffer
+		cursor = buffer.get_iter_at_mark(buffer.get_insert())
+		self.mark = buffer.create_mark(None, cursor, left_gravity=True)
+		if self.iter:
+			buffer.place_cursor(self.iter)
+
+	def __exit__(self, *a):
+		buffer = self.buffer
+		iter = buffer.get_iter_at_mark(self.mark)
+		buffer.place_cursor(iter)
+		buffer.delete_mark(self.mark)
+
+
 class TextBuffer(gtk.TextBuffer):
 	'''Zim subclass of gtk.TextBuffer.
 
@@ -234,6 +268,7 @@ class TextBuffer(gtk.TextBuffer):
 		textstyle-changed (style) - Emitted when textstyle at the cursor changes
 		indent-changed (level) - Emitted when the indent at the cursor changes
 		clear - emitted to clear the whole buffer before destruction
+		undo-save-cursor (iter) - emitted in some specific case where the undo stack should lock the current cursor position
 	'''
 
 	# We rely on the priority of gtk TextTags to sort links before styles,
@@ -251,7 +286,8 @@ class TextBuffer(gtk.TextBuffer):
 		'inserted-tree': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object)),
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'indent-changed': (gobject.SIGNAL_RUN_LAST, None, (int,)),
-		'clear': (gobject.SIGNAL_RUN_LAST, None, ())
+		'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -272,6 +308,7 @@ class TextBuffer(gtk.TextBuffer):
 		'code': {'family': 'monospace'},
 		'pre': {'family': 'monospace', 'wrap-mode': 'none'},
 		'link': {'foreground': 'blue'},
+		'find-highlight': {'background': 'orange'},
 	}
 
 	# possible attributes for styles in tag_styles
@@ -286,8 +323,11 @@ class TextBuffer(gtk.TextBuffer):
 		self.page = page
 		self._insert_tree_in_progress = False
 		self.user_action = UserActionContext(self)
+		self.finder = TextFinder(self)
 
 		for k, v in self.tag_styles.items():
+			if k in ('link', 'find-highlight'):
+				continue # these are not proper styles
 			tag = self.create_tag('style-'+k, **v)
 			tag.zim_type = 'style'
 			if k in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
@@ -319,6 +359,9 @@ class TextBuffer(gtk.TextBuffer):
 		self.set_indent(None)
 		self.delete(*self.get_bounds())
 
+	def get_insert_iter(self):
+		return self.get_iter_at_mark(self.get_insert())
+
 	def set_parsetree(self, tree):
 		'''Load a new ParseTree in the buffer, first flushes existing content'''
 		self.clear()
@@ -339,19 +382,12 @@ class TextBuffer(gtk.TextBuffer):
 		tags and insert the tree, otherwise we insert using the
 		formatting tags that that are present at iter.
 		'''
-		self._place_cursor(iter)
-		self.insert_parsetree_at_cursor(tree, interactive)
-		self._restore_cursor()
+		with self.tmp_cursor(iter):
+			self.insert_parsetree_at_cursor(tree, interactive)
 
-	def _place_cursor(self, iter=None):
-		self.create_mark('zim-textbuffer-orig-insert',
-			self.get_iter_at_mark(self.get_insert()), True)
-		self.place_cursor(iter)
-
-	def _restore_cursor(self):
-		mark = self.get_mark('zim-textbuffer-orig-insert')
-		self.place_cursor(self.get_iter_at_mark(mark))
-		self.delete_mark(mark)
+	def tmp_cursor(self, iter=None):
+		'''Returns a SaveCursorContext object'''
+		return SaveCursorContext(self, iter)
 
 	def insert_parsetree_at_cursor(self, tree, interactive=False):
 		'''Like insert_parsetree() but inserts at the cursor'''
@@ -438,6 +474,7 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor('\n')
 
 			elif element.tag == 'link':
+				self.set_textstyle(None) # Needed for interactive insert tree after paste
 				self.insert_link_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
@@ -462,9 +499,8 @@ class TextBuffer(gtk.TextBuffer):
 
 	def insert_link(self, iter, text, href, **attrib):
 		'''Insert a link into the buffer at iter'''
-		self._place_cursor(iter)
-		self.insert_link_at_cursor(text, href, **attrib)
-		self._restore_cursor()
+		with self.tmp_cursor(iter):
+			self.insert_link_at_cursor(text, href, **attrib)
 
 	def insert_link_at_cursor(self, text, href=None, **attrib):
 		'''Like insert_link() but inserts at the cursor'''
@@ -488,6 +524,9 @@ class TextBuffer(gtk.TextBuffer):
 		return tag
 
 	def get_link_tag(self, iter):
+		# Explicitly left gravity, otherwise position behind the link
+		# would alos be consifered part of the link. Position before the
+		# link is included here.
 		for tag in iter.get_tags():
 			if hasattr(tag, 'zim_type') and tag.zim_type == 'link':
 				return tag
@@ -579,10 +618,24 @@ class TextBuffer(gtk.TextBuffer):
 		iter = self.get_iter_at_mark(self.get_insert())
 		self.insert_icon(iter, stock)
 
+	def set_bullet(self, line, bullet):
+		'''Sets the bullet type for a line, deleting the current bullet
+		if any.
+		'''
+		iter = self.get_iter_at_line(line)
+		with self.tmp_cursor():
+			with self.user_action:
+				mark = self.create_mark(None, iter)
+				bound = iter.copy()
+				# FIXME should have a delete_bullet function
+				self.iter_forward_past_bullet(bound)
+				self.delete(iter, bound)
+				self.insert_bullet(self.get_iter_at_mark(mark), bullet)
+				self.delete_mark(mark)
+
 	def insert_bullet(self, iter, bullet):
-		self._place_cursor(iter)
-		self.insert_bullet_at_cursor(bullet)
-		self._restore_cursor()
+		with self.tmp_cursor(iter):
+			self.insert_bullet_at_cursor(bullet)
 
 	def insert_bullet_at_cursor(self, bullet, raw=False):
 		'''Insert a bullet plus a space at the cursor position.
@@ -603,6 +656,20 @@ class TextBuffer(gtk.TextBuffer):
 			elif bullet in bullet_types:
 				stock = bullet_types[bullet]
 				self.insert_icon_at_cursor(stock)
+
+				## HACK
+				# Since undo will record this insert before we applied
+				# the indent, and since get_parse_tree skips checkbox icons
+				# without indent this is necessary to keep the undo stack
+				# correct.
+				if not filter(_is_indent_tag, self._editmode_tags):
+					indenttag = self._get_indent_tag(0)
+					end = self.get_insert_iter()
+					start = end.copy()
+					start.backward_char()
+					self.apply_tag(indenttag, start, end)
+				##
+
 				if not raw:
 					self.insert_at_cursor(' ')
 			else:
@@ -616,7 +683,6 @@ class TextBuffer(gtk.TextBuffer):
 				iter = self.get_iter_at_mark(self.get_insert())
 				self.set_indent_for_line(0, iter.get_line())
 					# bullets always need indenting
-
 
 	def set_textstyle(self, name):
 		'''Sets the current text style. This style will be applied
@@ -733,7 +799,9 @@ class TextBuffer(gtk.TextBuffer):
 
 	def remove_textstyle_tags(self, start, end):
 		'''Removes all textstyle tags from a range'''
+		# Also remove links untill we support links nested in tags
 		self.smart_remove_tags(_is_style_tag, start, end)
+		self.smart_remove_tags(_is_link_tag, start, end)
 		self.set_editmode_from_cursor()
 
 	def smart_remove_tags(self, func, start, end):
@@ -799,18 +867,33 @@ class TextBuffer(gtk.TextBuffer):
 		return tag
 
 	def set_indent_for_line(self, level, line):
-		start = self.get_iter_at_line(line)
+		start, end = self.get_line_bounds(line)
 		if filter(_is_heading_tag, start.get_tags()):
 			return False
 
-		end = start.copy()
-		end.forward_line()
+		# FIXME code below can only be enabled when indent and list tags are split up
+		# otherwise inserting a bullet at the end of the buffer goes wrong
+		# last line of buffer - without \n indent is not visible for empty line
+		#~ if end.is_end():
+			#~ with self.tmp_cursor():
+				# Use tmp cursor in case we are cursor position
+				#~ self.insert(end, '\n')
+				#~ _, end = self.get_bounds()
+				#~ start = end.copy()
+				#~ start.backward_line()
+
+		if start.equal(end):
+			return False # empty line
+
 		tags = filter(_is_indent_tag, start.get_tags())
 		if tags:
 			assert len(tags) == 1, 'BUG: overlapping indent tags'
 			self.remove_tag(tags[0], start, end)
-		tag = self._get_indent_tag(level)
-		self.apply_tag(tag, start, end)
+
+		if not level is None:
+			tag = self._get_indent_tag(level)
+			self.apply_tag(tag, start, end)
+
 		self.set_modified(True)
 		return True
 
@@ -905,6 +988,7 @@ class TextBuffer(gtk.TextBuffer):
 			# Break tags that are not allowed to span over multiple lines
 			self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
 			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
+			self.emit('textstyle-changed', None)
 			# TODO make this more robust for multiline inserts
 		elif string in CHARS_END_OF_WORD:
 			# Break links if end-of-word char is typed at end of a link
@@ -968,7 +1052,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def get_bullet(self, line):
 		iter = self.get_iter_at_line(line)
-		return self._get_bullet(iter)
+		return self._get_bullet_at_iter(iter)
 
 	def get_bullet_at_iter(self, iter):
 		if not iter.starts_line():
@@ -1001,17 +1085,18 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return False
 
-	def _iter_forward_past_bullet(self, iter, bullet):
+	def _iter_forward_past_bullet(self, iter, bullet, raw=False):
 		assert bullet in (BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX)
 		# other bullet types might need to skip different number of char etc.
 		iter.forward_char()
 		bound = iter.copy()
 		bound.forward_char()
-		while iter.get_text(bound) == ' ':
-			if iter.forward_char():
-				bound.forward_char()
-			else:
-				break
+		if not raw:
+			while iter.get_text(bound) == ' ':
+				if iter.forward_char():
+					bound.forward_char()
+				else:
+					break
 
 	def get_parsetree(self, bounds=None, raw=False):
 		'''Returns a parse tree for the page contents.
@@ -1025,15 +1110,18 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		if bounds is None:
 			start, end = self.get_bounds()
+			attrib = {}
 		else:
 			start, end = bounds
+			attrib = {'partial': True}
 
 		if raw:
 			builder = TreeBuilder()
-			builder.start('zim-tree', {'raw': True})
+			attrib['raw'] = True
+			builder.start('zim-tree', attrib)
 		else:
 			builder = ParseTreeBuilder()
-			builder.start('zim-tree')
+			builder.start('zim-tree', attrib)
 
 		open_tags = []
 		def set_tags(iter, tags):
@@ -1067,7 +1155,7 @@ class TextBuffer(gtk.TextBuffer):
 							t = 'li'
 							attrib = attrib.copy() # break ref with tree
 							attrib['bullet'] = bullet
-							self._iter_forward_past_bullet(iter, bullet)
+							self._iter_forward_past_bullet(iter, bullet, raw=raw)
 						elif not raw and not iter.starts_line():
 							# Indent not visible if it does not start at begin of line
 							t = '_ignore_'
@@ -1098,6 +1186,7 @@ class TextBuffer(gtk.TextBuffer):
 
 		# And now the actual loop going through the buffer
 		iter = start.copy()
+		set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
 		while iter.compare(end) == -1:
 			pixbuf = iter.get_pixbuf()
 			if pixbuf:
@@ -1194,13 +1283,17 @@ class TextBuffer(gtk.TextBuffer):
 
 	def select_line(self):
 		'''selects the line at the cursor'''
+		# Differs from get_line_bounds because we exclude the trailing
+		# line break while get_line_bounds selects these
 		iter = self.get_iter_at_mark(self.get_insert())
 		iter = self.get_iter_at_line(iter.get_line())
-		end = iter.copy()
-		end.forward_line()
-		if end.get_line() != iter.get_line():
-			end.backward_char()
-		self.select_range(iter, end)
+		if iter.ends_line():
+			return False
+		else:
+			end = iter.copy()
+			end.forward_to_line_end()
+			self.select_range(iter, end)
+			return True
 
 	def select_word(self):
 		'''Selects the word at the cursor, if any. Returns True for success'''
@@ -1262,83 +1355,6 @@ class TextBuffer(gtk.TextBuffer):
 
 		return True
 
-	def find_forward(self, string, flags=None):
-		'''Highlight the next occurence of 'string', returns True if
-		the string was found.
-
-		Flags can be:
-			FIND_IN_PLACE - do not move forward if iter is at a match alread
-			FIND_CASE_SENSITIVE - check case of matches
-			FIND_WHOLE_WORD - only match whole words
-		'''
-		return self._find(1, string, flags)
-
-	def find_backward(self, string, flags=None):
-		'''Like find_forward() but in the opposite direction'''
-		return self._find(-1, string, flags)
-
-	def _find(self, direction, string, flags):
-		# TODO fix real case insensitive search
-		# need to replace gtk.TextIter.forward_search and
-		# gtk.TextIter.backward_search with insensitive versions
-		if not string or string.isspace():
-			return False
-		if flags is None:
-			flags = 0
-		checkcase = bool(flags & FIND_CASE_SENSITIVE)
-
-		def check_iter(iter):
-			bound = iter.copy()
-			bound.forward_chars(len(string))
-			match = iter.get_slice(bound)
-			if (not checkcase and match.lower() == string.lower()) \
-			or match == string:
-				if flags & FIND_WHOLE_WORD \
-				and not (iter.starts_word() and bound.ends_word()):
-					return False
-
-				self.select_range(iter, bound)
-				return True
-			else:
-				return False
-
-		iter = self.get_iter_at_mark(self.get_insert())
-		if flags & FIND_IN_PLACE and check_iter(iter):
-				return True
-
-		start, end = self.get_bounds()
-		if direction == 1: # forward
-			iter.forward_char() # else will behave like FIND_IN_PLACE
-			func = gtk.TextIter.forward_search
-			part1 = (iter, end)
-			part1 = (iter, end)
-			part2 = (start, iter.copy())
-		else: # backward
-			func = gtk.TextIter.backward_search
-			part1 = (iter, start)
-			part2 = (end, iter.copy())
-
-		iter, limit = part1
-		bound = func(iter, string, flags=(), limit=limit)
-		while bound and not check_iter(bound[0]):
-			bound = func(bound[0], string, flags=(), limit=limit)
-
-		if not bound:
-			iter, limit = part2
-			bound = func(iter, string, flags=(), limit=limit)
-			while bound and not check_iter(bound[0]):
-				bound = func(iter, string, flags=(), limit=limit)
-
-		if not bound:
-			self.unset_selection()
-			return False
-		else:
-			return True
-
-	def unset_selection(self):
-		iter = self.get_iter_at_mark(self.get_insert())
-		self.select_range(iter, iter)
-
 	def iter_backward_word_start(self, iter):
 		'''Like gtk.TextIter.backward_word_start() but less intelligent.
 		This method does not take into account the language and just skips
@@ -1365,6 +1381,12 @@ class TextBuffer(gtk.TextBuffer):
 
 		return iter.compare(orig)
 
+	def get_line_bounds(self, line):
+		start = self.get_iter_at_line(line)
+		end = start.copy()
+		end.forward_line()
+		return start, end
+
 	def get_has_selection(self):
 		'''Returns boolean whether there is a selection or not.
 
@@ -1372,6 +1394,18 @@ class TextBuffer(gtk.TextBuffer):
 		reproduced here for backward compatibility.
 		'''
 		return bool(self.get_selection_bounds())
+
+	def iter_in_selection(self, iter):
+		'''Returns True if 'iter' is within the current selection'''
+		bounds = self.get_selection_bounds()
+		return bounds \
+			and bounds[0].compare(iter) <= 0 \
+			and bounds[1].compare(iter) >= 0
+		# not using iter.in_range to be inclusive of bounds
+
+	def unset_selection(self):
+		iter = self.get_iter_at_mark(self.get_insert())
+		self.select_range(iter, iter)
 
 	def copy_clipboard(self, clipboard):
 		bounds = self.get_selection_bounds()
@@ -1422,10 +1456,425 @@ class TextBuffer(gtk.TextBuffer):
 gobject.type_register(TextBuffer)
 
 
+class TextBufferList(list):
+	'''This class represents a bullet or checkbox list in a TextBuffer.
+	It is used to perform recursive actions on the list.
+
+	TextBufferList objects will become invalid after any modification
+	to the buffer that changes the line count within the list. Using
+	them after such modification will result in errors.
+	'''
+
+	# This class is a list of tuples, each tuple is a pair of
+	# (linenumber, indentlevel, bullettype)
+
+	LINE_COL = 0
+	INDENT_COL = 1
+	BULLET_COL = 2
+
+	@classmethod
+	def new_from_iter(self, textbuffer, iter):
+		'''Returns a row id and a TextBufferList object for the list
+		around 'iter'. Both will be None if 'iter' is not part of a list.
+		'''
+		# check iter
+		if textbuffer.get_bullet(iter.get_line()) is None:
+			return None, None
+
+		# find start of list
+		start = iter.get_line()
+		for line in range(start, -1, -1):
+			if textbuffer.get_bullet(line) is None:
+				break # TODO skip lines with whitespace
+			else:
+				start = line
+
+		# find end of list
+		end = iter.get_line()
+		lastline = textbuffer.get_end_iter().get_line()
+		for line in range(end, lastline+1, 1):
+			if textbuffer.get_bullet(line) is None:
+				break # TODO skip lines with whitespace
+			else:
+				end = line
+
+		list = TextBufferList(textbuffer, start, end)
+		row = list.get_row_from_iter(iter)
+		#~ print '!! LIST %i..%i ROW %i' % (start, end, row)
+		return row, list
+
+	def __init__(self, textbuffer, firstline, lastline):
+		self.buffer = textbuffer
+		self.firstline = firstline
+		self.lastline = lastline
+		for line in range(firstline, lastline+1):
+			bullet = self.buffer.get_bullet(line)
+			iter = self.buffer.get_iter_at_line(line)
+			indent = int(self.buffer.get_indent(iter))
+			if bullet:
+				self.append((line, indent, bullet))
+
+	def get_row_from_iter(self, iter):
+		'''Returns a row id for an iter within the list range or None'''
+		line = iter.get_line()
+		for i in range(len(self)):
+			if self[i][self.LINE_COL] == line:
+				return i
+		else:
+			return None
+
+	def can_indent(self, row):
+		'''Nodes can only be indented if they are on top of the list
+		or when there is some node above them to serve as new parent node.
+		This avoids indenting two levels below the parent.
+		'''
+		if row == 0:
+			return True
+		else:
+			parents = self._parents(row)
+			if row-1 in parents:
+				return False # we are first child
+			else:
+				return True
+
+	def can_unindent(self, row):
+		'''Nodes can only unindent when they have indenting in the fist place'''
+		return self[row][self.INDENT_COL] > 0
+
+	def indent(self, row):
+		'''Indent a row and all it's child nodes'''
+		if not self.can_indent(row):
+			return False
+		with self.buffer.user_action:
+			self._indent(row, 1)
+		return True
+
+	def unindent(self, row):
+		'''Un-indent a row and all it's child nodes'''
+		if not self.can_unindent(row):
+			return False
+		with self.buffer.user_action:
+			self._indent(row, -1)
+		return True
+
+	def _indent(self, row, step):
+		level = self[row][self.INDENT_COL]
+		self._indent_row(row, step)
+		if row == 0:
+			# Indent the whole list
+			for i in range(1, len(self)):
+				self._indent_row(i, step)
+		else:
+			for i in range(row+1, len(self)):
+				if self[i][self.INDENT_COL] > level:
+					self._indent_row(i, step)
+				else:
+					break
+
+	def _indent_row(self, row, step):
+		line, level, bullet = self[row]
+		newlevel = level + step
+		if self.buffer.set_indent_for_line(newlevel, line):
+			self.buffer.set_editmode_from_cursor() # also updates indent tag
+			self[row] = (line, newlevel, bullet)
+
+	def update_checkbox(self, row, state):
+		'''(Un-)Check the checkbox at a row and synchronize child
+		nodes and parent nodes. The new 'state' can be any of
+		CHECKED_BOX, UNCHECKED_BOX, or XCHECKED_BOX.
+		'''
+		assert state in CHECKBOXES
+		with self.buffer.user_action:
+			self._change_bullet_type(row, state)
+			if state == UNCHECKED_BOX:
+				self._update_uncheckbox(row)
+			else:
+				self._update_checkbox(row, state)
+
+	def _update_uncheckbox(self, row):
+		# When a row is unchecked, it's children are untouched but
+		# all parents will be unchecked as well
+		for parent in self._parents(row):
+			if self[parent][self.BULLET_COL] not in CHECKBOXES:
+				continue # ignore non-checkbox bullet
+
+			self._change_bullet_type(parent, UNCHECKED_BOX)
+
+	def _update_checkbox(self, row, state):
+		# If a row is checked, all un-checked children are updated as
+		# well. For parent nodes we first check consistency of all
+		# children before we check them.
+
+		# First synchronize down
+		level = self[row][self.INDENT_COL]
+		for i in range(row+1, len(self)):
+			if self[i][self.INDENT_COL] > level:
+				if self[i][self.BULLET_COL] == UNCHECKED_BOX:
+					self._change_bullet_type(i, state)
+				else:
+					# ignore non-checkbox bullet
+					# ignore xchecked items etc.
+					pass
+			else:
+				break
+
+		# Then go up, checking direct children for each parent
+		# if children are inconsistent, do not change the parent
+		# and break off updating parents. Do overwrite parents that
+		# are already checked with a different type.
+		for parent in self._parents(row):
+			if self[parent][self.BULLET_COL] not in CHECKBOXES:
+				continue # ignore non-checkbox bullet
+
+			consistent = True
+			level = self[parent][self.INDENT_COL]
+			for i in range(parent+1, len(self)):
+				if self[i][self.INDENT_COL] <= level:
+					break
+				elif self[i][self.INDENT_COL] == level+1 \
+				and self[i][self.BULLET_COL] in CHECKBOXES \
+				and self[i][self.BULLET_COL] != state:
+					consistent = False
+					break
+
+			if consistent:
+				self._change_bullet_type(parent, state)
+			else:
+				break
+
+	def _change_bullet_type(self, row, bullettype):
+		line, indent, _ = self[row]
+		self.buffer.set_bullet(line, bullettype)
+		self[row] = (line, indent, bullettype)
+
+	def _parents(self, row):
+		# Collect row ids of parent nodes
+		parents = []
+		level = self[row][self.INDENT_COL]
+		for i in range(row, -1, -1):
+			if self[i][self.INDENT_COL] < level:
+				parents.append(i)
+				level = self[i][self.INDENT_COL]
+		return parents
+
+
+FIND_CASE_SENSITIVE = 1
+FIND_WHOLE_WORD = 2
+FIND_REGEX = 4
+
+class TextFinder(object):
+	'''This class defines a helper object for the textbuffer which
+	takes care of searching. You can get an instance of this class
+	from the textbuffer.finder attribute.
+	'''
+
+	def __init__(self, textbuffer):
+		self.buffer = textbuffer
+		self.regex = None
+		self.string = None
+		self.flags = 0
+
+		self.highlight = False
+		self.highlight_tag = self.buffer.create_tag(
+			None, **self.buffer.tag_styles['find-highlight'] )
+
+	def get_state(self):
+		'''Returns the current search string, flags and highlight state'''
+		return self.string, self.flags, self.highlight
+
+	def set_state(self, string, flags, highlight):
+		if not string is None:
+			self._parse_query(string, flags)
+			self.set_highlight(highlight)
+
+	def find(self, string, flags=0):
+		'''Select the next occurence of 'string', returns True if
+		the string was found.
+
+		Flags can be:
+			FIND_CASE_SENSITIVE - check case of matches
+			FIND_WHOLE_WORD - only match whole words
+			FIND_REGEX - input is a regular expression
+		'''
+		self._parse_query(string, flags)
+		#~ print '!! FIND "%s" (%s, %s)' % (self.regex.pattern, string, flags)
+
+		if self.highlight:
+			self._update_highlight()
+
+		iter = self.buffer.get_insert_iter()
+		return self._find_next(iter)
+
+	def _parse_query(self, string, flags):
+		assert isinstance(string, basestring)
+		self.string = string
+		self.flags = flags
+
+		if not flags & FIND_REGEX:
+			string = re.escape(string)
+
+		if flags & FIND_WHOLE_WORD:
+			string = '\\b' + string + '\\b'
+
+		if flags & FIND_CASE_SENSITIVE:
+			self.regex = re.compile(string, re.U)
+		else:
+			self.regex = re.compile(string, re.U | re.I)
+
+	def find_next(self):
+		'''Skip to the next match and select it'''
+		iter = self.buffer.get_insert_iter()
+		iter.forward_char() # Skip current position
+		return self._find_next(iter)
+
+	def _find_next(self, iter):
+		# Common functionality between find() and find_next()
+		# Looking for a match starting at iter
+		if self.regex is None:
+			self.buffer.unset_selection()
+			return False
+
+
+		line = iter.get_line()
+		lastline = self.buffer.get_end_iter().get_line()
+		for start, end, _ in self._check_range(line, lastline, 1):
+			if start.compare(iter) == -1:
+				continue
+			else:
+				self.buffer.select_range(start, end)
+				return True
+		for start, end, _ in self._check_range(0, line, 1):
+			self.buffer.select_range(start, end)
+			return True
+
+		self.buffer.unset_selection()
+		return False
+
+
+	def find_previous(self):
+		'''Skip back to the previous match and select it'''
+		if self.regex is None:
+			self.buffer.unset_selection()
+			return False
+
+		iter = self.buffer.get_insert_iter()
+		line = iter.get_line()
+		lastline = self.buffer.get_end_iter().get_line()
+		for start, end, _ in self._check_range(line, 0, -1):
+			if start.compare(iter) != -1:
+				continue
+			else:
+				self.buffer.select_range(start, end)
+				return True
+		for start, end, _ in self._check_range(lastline, line, -1):
+			self.buffer.select_range(start, end)
+			return True
+
+		self.buffer.unset_selection()
+		return False
+
+	def set_highlight(self, highlight):
+		self.highlight = highlight
+		self._update_highlight()
+		# TODO we could connect to buffer signals to update highlighting
+		# when the buffer is modified.
+
+	def _update_highlight(self):
+		# Clear highlighting
+		tag = self.highlight_tag
+		start, end = self.buffer.get_bounds()
+		self.buffer.remove_tag(tag, start, end)
+
+		# Set highlighting
+		if self.highlight:
+			lastline = end.get_line()
+			for start, end, _ in self._check_range(0, lastline, 1):
+				self.buffer.apply_tag(tag, start, end)
+
+	def _check_range(self, firstline, lastline, step):
+		# Generator for matches in a line. Arguments are start and
+		# end line numbers and a step size (1 or -1). If the step is
+		# negative results are yielded in reversed order. Yields pair
+		# of TextIter's for begin and end of the match as well as the
+		# match obejct.
+		assert self.regex
+		for line in range(firstline, lastline+step, step):
+			start = self.buffer.get_iter_at_line(line)
+			if start.ends_line():
+				continue
+			end = start.copy()
+			end.forward_to_line_end()
+			text = start.get_slice(end)
+			matches = self.regex.finditer(text)
+			if step == -1:
+				matches = list(matches)
+				matches.reverse()
+			for match in matches:
+				startiter = self.buffer.get_iter_at_line_offset(
+					line, match.start() )
+				enditer = self.buffer.get_iter_at_line_offset(
+					line, match.end() )
+				yield startiter, enditer, match
+
+	def replace(self, string):
+		'''Replace current match with 'string'. In case of a regex
+		find and replace the string will be expanded with terms from
+		the regex. Returns boolean for success.
+		'''
+		iter = self.buffer.get_insert_iter()
+		if not self._find_next(iter):
+			return False
+
+		iter = self.buffer.get_insert_iter()
+		line = iter.get_line()
+		for start, end, match in self._check_range(line, line, 1):
+			if start.equal(iter):
+				if self.flags & FIND_REGEX:
+					string = match.expand(string)
+
+				offset = start.get_offset()
+				with self.buffer.user_action:
+					self.buffer.delete(start, end)
+					self.buffer.insert_at_cursor(string)
+
+				start = self.buffer.get_iter_at_offset(offset)
+				end = self.buffer.get_iter_at_offset(offset+len(string))
+				self.buffer.select_range(start, end)
+
+				return True
+		else:
+			return False
+
+		self._update_highlight()
+
+	def replace_all(self, string):
+		'''Like replace() but replaces all matches in the buffer'''
+		# Avoid looping when replace value matches query
+
+		matches = []
+		orig = string
+		lastline = self.buffer.get_end_iter().get_line()
+		for start, end, match in self._check_range(0, lastline, 1):
+			if self.flags & FIND_REGEX:
+				string = match.expand(orig)
+			matches.append((start.get_offset(), end.get_offset(), string))
+
+		matches.reverse() # work our way back top keep offsets valid
+
+		with self.buffer.user_action:
+			with self.buffer.tmp_cursor():
+				for start, end, string in matches:
+					start = self.buffer.get_iter_at_offset(start)
+					end = self.buffer.get_iter_at_offset(end)
+					self.buffer.delete(start, end)
+					self.buffer.insert(start, string)
+
+		self._update_highlight()
+
+
 CURSOR_TEXT = gtk.gdk.Cursor(gtk.gdk.XTERM)
 CURSOR_LINK = gtk.gdk.Cursor(gtk.gdk.HAND2)
 CURSOR_WIDGET = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR)
-
 
 class TextView(gtk.TextView):
 	'''Custom TextView class. Takes care of additional key bindings and on-mouse-over for links.
@@ -1613,8 +2062,8 @@ class TextView(gtk.TextView):
 		and not event.state & gtk.gdk.CONTROL_MASK):
 			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
-			realhome, ourhome = self.get_home_positions(insert)
-			if insert.equal(ourhome): iter = realhome
+			home, ourhome = self.get_visual_home_positions(insert)
+			if insert.equal(ourhome): iter = home
 			else: iter = ourhome
 			if event.state & gtk.gdk.SHIFT_MASK:
 				buffer.move_mark_by_name('insert', iter)
@@ -1623,24 +2072,29 @@ class TextView(gtk.TextView):
 			handled = True
 		elif event.keyval in KEYVALS_TAB and not event.state:
 			# Tab at start of line indents
-			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			realhome, ourhome = self.get_home_positions(iter)
-			if iter.compare(ourhome) < 1:
-				iter = buffer.get_iter_at_mark(buffer.get_insert())
-				iter = buffer.get_iter_at_line(iter.get_line())
-				with buffer.user_action:
+			iter = buffer.get_insert_iter()
+			home, ourhome = self.get_visual_home_positions(iter)
+			if home.starts_line() and iter.compare(ourhome) < 1:
+				row, list = TextBufferList.new_from_iter(buffer, iter)
+				if list and self.preferences['recursive_indentlist']:
+					list.indent(row)
+				else:
 					buffer.increment_indent(iter)
 				handled = True
-		elif (event.keyval in KEYVALS_LEFT_TAB
+		elif event.keyval in KEYVALS_LEFT_TAB \
 		or (event.keyval in KEYVALS_BACKSPACE
-			and self.preferences['unindent_on_backspace']) and not event.state):
+			and self.preferences['unindent_on_backspace']) \
+		and not event.state:
 			# Backspace or Ctrl-Tab unindents line
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			realhome, ourhome = self.get_home_positions(iter)
-			if iter.compare(ourhome) < 1:
-				with buffer.user_action:
-					iter = buffer.get_iter_at_line(iter.get_line())
+			home, ourhome = self.get_visual_home_positions(iter)
+			if home.starts_line() and iter.compare(ourhome) < 1:
+				row, list = TextBufferList.new_from_iter(buffer, iter)
+				if list and self.preferences['recursive_indentlist']:
+					done = list.unindent(row)
+				else:
 					done = buffer.decrement_indent(iter)
+
 				if event.keyval in KEYVALS_BACKSPACE and not done:
 					handled = False # do a normal backspace
 				else:
@@ -1648,8 +2102,12 @@ class TextView(gtk.TextView):
 		elif event.keyval in KEYVALS_ENTER:
 			# Enter can trigger links
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			link = buffer.get_link_data(iter)
-			if link:
+			tag = buffer.get_link_tag(iter)
+			if tag and not iter.begins_tag(tag):
+				# get_link_tag() is left gravitating, we additionally
+				# exclude the position in front of the link.
+				# As a result you can not "Enter" a 1 character link,
+				# this is by design.
 				if (self.preferences['follow_on_enter']
 				or event.state & gtk.gdk.MOD1_MASK): # MOD1 == Alt
 					self.click_link(iter)
@@ -1672,7 +2130,7 @@ class TextView(gtk.TextView):
 			# inserted but is used to select an option in an input mode e.g.
 			# to select between various chinese characters. See lp:460438
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
-			mark = buffer.create_mark(None, insert)
+			mark = buffer.create_mark(None, insert, left_gravity=False)
 			iter = insert.copy()
 			iter.backward_char()
 
@@ -1684,8 +2142,8 @@ class TextView(gtk.TextView):
 			if iter.get_text(insert) != char:
 				return True
 
-			# TODO How to tell the undo stack that we want this cursor back on the next undo ?
 			with buffer.user_action:
+				buffer.emit('undo-save-cursor', insert)
 				start = iter.copy()
 				if buffer.iter_backward_word_start(start):
 					word = start.get_text(iter)
@@ -1827,20 +2285,21 @@ class TextView(gtk.TextView):
 		else:
 			return False
 
-	def get_home_positions(self, iter):
+	def get_visual_home_positions(self, iter):
 		'''Returns two text iters. If we are on a word wrapped line, both point
 		to the begin of the visual line (which is not the actual paragraph
 		start). If the visual begin happens to be the real line start the first
 		iter will give the real line start while the second will give the start
 		of the actual content on the line (so after skipping bullets and
-		whitespace) while the second. In that case the two iters specify a
-		range that may contain bullets or whitespace at the start of the line.
+		whitespace). In that case the two iters specify a range that may
+		contain bullets or whitespace at the start of the line.
 		'''
-		realhome = iter.copy()
-		if not self.starts_display_line(realhome):
-			self.backward_display_line_start(realhome)
-		if realhome.starts_line():
-			ourhome = realhome.copy()
+		home = iter.copy()
+		if not self.starts_display_line(home):
+			self.backward_display_line_start(home)
+
+		if home.starts_line():
+			ourhome = home.copy()
 			self.get_buffer().iter_forward_past_bullet(ourhome)
 			bound = ourhome.copy()
 			bound.forward_char()
@@ -1849,10 +2308,10 @@ class TextView(gtk.TextView):
 					bound.forward_char()
 				else:
 					break
-			return realhome, ourhome
+			return home, ourhome
 		else:
 			# only start visual line, not start of real line
-			return realhome, realhome.copy()
+			return home, home.copy()
 
 	def do_end_of_word(self, start, end, word, char):
 		buffer = self.get_buffer()
@@ -1925,15 +2384,39 @@ class TextView(gtk.TextView):
 				buffer.get_iter_at_mark(mark), heading, 'style-h'+str(level))
 			buffer.delete_mark(mark)
 		elif not buffer.get_bullet_at_iter(start) is None:
+			# we are part of bullet list
 			ourhome = start.copy()
 			buffer.iter_forward_past_bullet(ourhome)
-			if ourhome.equal(end): # line with bullet but no text
+			newlinestart = end.copy()
+			newlinestart.forward_line()
+			if ourhome.equal(end) and newlinestart.ends_line():
+				# line with bullet but no text - break list if no text on next line
+				line, newline = start.get_line(), newlinestart.get_line()
 				buffer.delete(start, end)
-			else: # we are part of bullet list - set indent + bullet
-				iter = end.copy()
-				iter.forward_line()
+				buffer.set_indent_for_line(None, line)
+				buffer.set_indent_for_line(None, newline)
+			else:
+				# determine indent
+				newline = newlinestart.get_line()
+				indent = buffer.get_indent(start)
+				nextlinestart = newlinestart.copy()
+				if nextlinestart.forward_line() \
+				and buffer.get_bullet_at_iter(nextlinestart):
+					nextindent = buffer.get_indent(nextlinestart)
+					if nextindent >= indent:
+						# we are at the head of a sublist
+						indent = nextindent
+
+				# add bullet on new line
 				bullet = buffer.get_bullet_at_iter(start)
-				buffer.insert_bullet(iter, bullet)
+				if bullet in (CHECKED_BOX, XCHECKED_BOX):
+					bullet = UNCHECKED_BOX
+				buffer.insert_bullet(newlinestart, bullet)
+
+				# apply indent
+				buffer.set_indent_for_line(indent, newline)
+
+			buffer.set_editmode_from_cursor() # also updates indent tag
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)
@@ -1942,14 +2425,16 @@ gobject.type_register(TextView)
 class UndoActionGroup(list):
 	'''Container for a set of undo actions, will be undone, redone in a single step'''
 
-	__slots__ = ('can_merge')
+	__slots__ = ('can_merge', 'cursor')
 
 	def __init__(self):
 		self.can_merge = False
+		self.cursor = None
 
 	def reversed(self):
 		'''Returns a new UndoActionGroup with the reverse actions of this group'''
 		group = UndoActionGroup()
+		group.cursor = self.cursor
 		for action in self:
 			# constants are defined such that negating them reverses the action
 			action = (-action[0],) + action[1:]
@@ -2016,6 +2501,7 @@ class UndoStackManager:
 
 		self.recording_handlers = [] # handlers to be blocked when not recording
 		for signal, handler in (
+			('undo-save-cursor', self.do_save_cursor),
 			('insert-text', self.do_insert_text),
 			#~ ('inserted-tree', self.do_insert_tree), # TODO
 			('insert-pixbuf', self.do_insert_pixbuf),
@@ -2075,6 +2561,9 @@ class UndoStackManager:
 		self.undo_count = 0
 		self.block_count = 0
 		self.block()
+
+	def do_save_cursor(self, buffer, iter):
+		self.group.cursor = iter.get_offset()
 
 	def do_begin_user_action(self, buffer):
 		'''Start a group of actions that will be undone / redone as a single action'''
@@ -2139,12 +2628,14 @@ class UndoStackManager:
 
 		start = iter.get_offset()
 		end = start + 1
+		#~ print 'INSERT PIXBUF at %i' % start
 		self.group.append((self.ACTION_INSERT, start, end, None))
 		self.group.can_merge = False
 		self.insert_pending = True
 
 	def flush_insert(self):
 		# For insert actually getting the tree is delayed when possible
+
 		def _flush_group(group):
 			for i in reversed(range(len(group))):
 				action, start, end, tree = group[i]
@@ -2152,6 +2643,7 @@ class UndoStackManager:
 					bounds = (self.buffer.get_iter_at_offset(start),
 								self.buffer.get_iter_at_offset(end))
 					tree = self.buffer.get_parsetree(bounds, raw=True)
+					#~ print 'FLUSH %i to %i\n\t%s' % (start, end, tree.tostring())
 					group[i] = (self.ACTION_INSERT, start, end, tree)
 				else:
 					return False
@@ -2171,6 +2663,7 @@ class UndoStackManager:
 		bounds = (start, end)
 		tree = self.buffer.get_parsetree(bounds, raw=True)
 		start, end = start.get_offset(), end.get_offset()
+		#~ print 'DELETE RANGE from %i to %i\n\t%s' % (start, end, tree.tostring())
 		self.group.append((self.ACTION_DELETE, start, end, tree))
 		self.group.can_merge = False
 
@@ -2250,9 +2743,11 @@ class UndoStackManager:
 			elif action == self.ACTION_DELETE:
 				#~ print 'DELETING'
 				self.buffer.place_cursor(iter)
+				#~ tree = self.buffer.get_parsetree((iter, bound), raw=True)
 				self.buffer.delete(iter, bound)
-				# TODO - replace what is on the stack with what is being deleted
-				# log warning BUG if the two do not match
+				#~ if tree.tostring() != data.tostring():
+					#~ logger.warn('Mismatch in undo stack\n%s\n%s\n', tree.tostring(), data.tostring())
+				# TODO - enable this check and fix all warnings in test suite
 			elif action == self.ACTION_APPLY_TAG:
 				#~ print 'APPLYING', data
 				self.buffer.apply_tag(data, iter, bound)
@@ -2263,6 +2758,10 @@ class UndoStackManager:
 				self.buffer.place_cursor(bound)
 			else:
 				assert False, 'BUG: unknown action type'
+
+		if not actiongroup.cursor is None:
+			iter = self.buffer.get_iter_at_offset(actiongroup.cursor)
+			self.buffer.place_cursor(iter)
 
 		self.unblock()
 
@@ -2290,9 +2789,12 @@ class PageView(gtk.VBox):
 			self.readonlyset = True
 		self.undostack = None
 		self.image_generator_plugins = {}
+		self._current_toggle_action = None
 
 		self.preferences = self.ui.preferences['PageView']
-		self.ui.register_preferences('PageView', ui_preferences)
+		if not self.secondairy:
+			# HACK avoid registerign a second time
+			self.ui.register_preferences('PageView', ui_preferences)
 
 		self.view = TextView(preferences=self.preferences)
 		swindow = gtk.ScrolledWindow()
@@ -2307,34 +2809,9 @@ class PageView(gtk.VBox):
 		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
 
 		## Create search box
-		self.find_bar = gtk.HBox(spacing=5)
-		self.find_bar.connect('key-press-event', self.on_find_bar_key_press_event)
-
-		self.find_bar.pack_start(gtk.Label(_('Find')+': '), False)
-			# T: label for input in find bar on bottom of page
-		self.find_entry = gtk.Entry()
-		self.find_entry.connect('changed', self.on_find_entry_changed)
-		self.find_entry.connect('activate', self.on_find_entry_activate)
-		self.find_bar.pack_start(self.find_entry, False)
-
-		self.find_prev_button = Button(_('_Previous'), gtk.STOCK_GO_BACK)
-			# T: button in find bar on bottom of page
-		self.find_prev_button.connect_object('clicked', self.__class__.find_previous, self)
-		self.find_prev_button.set_sensitive(False)
-		self.find_bar.pack_start(self.find_prev_button, False)
-
-		self.find_next_button = Button(_('_Next'), gtk.STOCK_GO_FORWARD)
-			# T: button in find bar on bottom of page
-		self.find_next_button.connect_object('clicked', self.__class__.find_next, self)
-		self.find_next_button.set_sensitive(False)
-		self.find_bar.pack_start(self.find_next_button, False)
-
-		close_button = IconButton(gtk.STOCK_CLOSE, relief=False)
-		close_button.connect_object('clicked', self.__class__.hide_find, self)
-		self.find_bar.pack_end(close_button, False)
-
-		self.find_bar.set_no_show_all(True)
+		self.find_bar = FindBar(textview=self.view)
 		self.pack_end(self.find_bar, False)
+		self.find_bar.hide()
 
 		## setup GUI actions
 		if self.secondairy:
@@ -2343,25 +2820,49 @@ class PageView(gtk.VBox):
 		self.ui.add_actions(ui_actions, self)
 
 		# format actions need some custom hooks
-		actiongroup = self.ui.init_actiongroup(self)
+		actiongroup = self.actiongroup
 		actiongroup.add_actions(ui_format_actions)
 		actiongroup.add_toggle_actions(ui_format_toggle_actions)
+
 		for name in [a[0] for a in ui_format_actions]:
 			action = actiongroup.get_action(name)
 			action.zim_readonly = False
+			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
+
 		for name in [a[0] for a in ui_format_toggle_actions]:
 			action = actiongroup.get_action(name)
 			action.zim_readonly = False
+			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
 
-		# extra keybinding - FIXME needs switch on read-only
+
+		# HACK, this makes sure we do not hijack keybindings like
+		# ^C and ^V while we are not focus (e.g. paste in find bar)
+		def set_actiongroup_sensitive(o, e, sensitive):
+			# Immitate logic in self.set_readonly()
+			if sensitive:
+				for action in self.actiongroup.list_actions():
+					action.set_sensitive(
+						action.zim_readonly or not self.readonly)
+			else:
+				for action in self.actiongroup.list_actions():
+						action.set_sensitive(False)
+
+		self.view.connect('focus-in-event', set_actiongroup_sensitive, True)
+		self.view.connect('focus-out-event', set_actiongroup_sensitive, False)
+
+
+		# Extra keybinding for undo - default is <Shift><Ctrl>Z (see HIG)
+		def do_undo(*a):
+			if not self.readonly:
+				self.redo()
+
 		y = gtk.gdk.unicode_to_keyval(ord('y'))
 		group = self.ui.uimanager.get_accel_group()
 		group.connect_group( # <Ctrl>Y
 				y, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
-				lambda *a: self.redo())
-
+				do_undo)
 
 		PageView.style = config_file('style.conf')
 		self.on_preferences_changed(self.ui)
@@ -2427,9 +2928,10 @@ class PageView(gtk.VBox):
 	def on_open_notebook(self, ui, notebook):
 
 		def assert_not_modified(page, *a):
-			if page == self.page:
-				assert not self.view.get_buffer().get_modified(), \
-					'BUG: page changed while buffer changed as well'
+			if page == self.page \
+			and self.view.get_buffer().get_modified():
+				raise AssertionError, 'BUG: page changed while buffer changed as well'
+				# not using assert here because it could be optimized away
 
 		for s in ('store-page', 'delete-page', 'move-page'):
 			notebook.connect_after(s, assert_not_modified)
@@ -2447,6 +2949,8 @@ class PageView(gtk.VBox):
 			self.undostack = None
 
 		self._prev_buffer = self.view.get_buffer()
+		finderstate = self._prev_buffer.finder.get_state()
+
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
 		self._buffer_signals = []
@@ -2487,6 +2991,8 @@ class PageView(gtk.VBox):
 		self._buffer_signals.append(
 			buffer.connect('modified-changed',
 				lambda o: self.on_modified_changed(o)) )
+
+		buffer.finder.set_state(*finderstate) # maintain state
 
 		self.undostack = UndoStackManager(buffer)
 		self.set_readonly()
@@ -2561,6 +3067,19 @@ class PageView(gtk.VBox):
 	def get_scroll_pos(self):
 		pass # FIXME get scroll position
 
+	def get_selection(self):
+		buffer = self.view.get_buffer()
+		bounds = buffer.get_selection_bounds()
+		if bounds:
+			return bounds[0].get_text(bounds[1])
+		else:
+			return None
+
+	def get_word(self):
+		buffer = self.view.get_buffer()
+		buffer.select_word()
+		return self.get_selection()
+
 	def register_image_generator_plugin(self, plugin, type):
 		assert not 'type' in self.image_generator_plugins, \
 			'Already have plugin for image type "%s"' % type
@@ -2574,25 +3093,38 @@ class PageView(gtk.VBox):
 				logger.debug('Removed plugin %s for image type "%s"', plugin, type)
 
 	def do_textstyle_changed(self, buffer, style):
+		#~ print '>>> SET STYLE', style
+
 		# set statusbar
 		if style: label = style.title()
 		else: label = 'None'
 		self.ui.mainwindow.statusbar_style_label.set_text(label)
 
 		# set toolbar toggles
+		if style:
+			style_toggle = 'toggle_format_'+style
+		else:
+			style_toggle = None
+
+		# Here we explicitly never change the toggle that initiated
+		# the change (_current_toggle_action). Somehow touching this
+		# toggle action will cause a new 'activate' signal to be fired,
+		# *after* we go out of this function and thus after the unblock.
+		# If we are lucky this second signal just undoes our current
+		# action. If we are unlucky, it puts us in an infinite loop...
+		# Not sure of the root cause, probably due to gtk+ internals.
+		# There is no proper way to block it, so we need to avoid
+		# calling it in the first place.
 		for name in [a[0] for a in ui_format_toggle_actions]:
 			action = self.actiongroup.get_action(name)
-			self._show_toggle(action, False)
+			if name == self._current_toggle_action:
+				continue
+			else:
+				action.handler_block_by_func(self.do_toggle_format_action)
+				action.set_active(name == style_toggle)
+				action.handler_unblock_by_func(self.do_toggle_format_action)
 
-		if style:
-			action = self.actiongroup.get_action('toggle_format_'+style)
-			if not action is None:
-				self._show_toggle(action, True)
-
-	def _show_toggle(self, action, state):
-		action.handler_block_by_func(self.do_toggle_format_action)
-		action.set_active(state)
-		action.handler_unblock_by_func(self.do_toggle_format_action)
+		#~ print '<<<'
 
 	def do_link_enter(self, link):
 		self.ui.mainwindow.statusbar.push(1, 'Go to "%s"' % link['href'])
@@ -2600,27 +3132,46 @@ class PageView(gtk.VBox):
 	def do_link_leave(self, link):
 		self.ui.mainwindow.statusbar.pop(1)
 
-	def do_link_clicked(self, link):
+	def do_link_clicked(self, link, new_window=False):
 		'''Handler for the link-clicked signal'''
 		assert isinstance(link, dict)
 		href = link['href']
 		type = link_type(href)
 		logger.debug('Link clicked: %s: %s' % (type, link['href']))
 
-		if type == 'interwiki':
-			href = interwiki_link(href)
-			type = link_type(href)
+		try:
+			if type == 'interwiki':
+				href = interwiki_link(href)
+				type = link_type(href)
 
-		if type == 'page':
-			path = self.ui.notebook.resolve_path(href, source=self.page)
-			self.ui.open_page(path)
-		elif type == 'file':
-			path = self.ui.notebook.resolve_file(href, self.page)
-			self.ui.open_file(path)
-		else:
-			self.ui.open_url(href)
+			if type == 'page':
+				path = self.ui.notebook.resolve_path(href, source=self.page)
+				if new_window:
+					self.ui.open_new_window(path)
+				else:
+					self.ui.open_page(path)
+			elif type == 'file':
+				path = self.ui.notebook.resolve_file(href, self.page)
+				self.ui.open_file(path)
+			else:
+				self.ui.open_url(href)
+		except Exception, error:
+			ErrorDialog(self.ui, error).run()
 
 	def do_populate_popup(self, menu):
+		# Add custom tool
+		# FIXME need way to (deep)copy widgets in the menu
+		#~ toolmenu = self.ui.uimanager.get_widget('/text_popup')
+		#~ tools = [tool for tool in toolmenu.get_children()
+					#~ if not isinstance(tool, gtk.SeparatorMenuItem)]
+		#~ print '>>> TOOLS', tools
+		#~ if tools:
+			#~ menu.prepend(gtk.SeparatorMenuItem())
+			#~ for tool in tools:
+				#~ tool.reparent(menu)
+
+		# Add options for links
+
 		buffer = self.view.get_buffer()
 		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
 			# This iter can be either cursor position or pointer
@@ -2712,21 +3263,33 @@ class PageView(gtk.VBox):
 			item = gtk.MenuItem(_('Open With...'))
 			menu.prepend(item)
 			submenu = OpenWithMenu(link['href'], mimetype='text/html')
-			item.set_submenu(submenu)
-
-		# open
-		if type != 'image' and link:
-			item = gtk.MenuItem(_('Open'))
-				# T: menu item to open a link or file
-			if file and not file.exists():
-				item.set_sensitive(False)
+			if submenu.get_children():
+				item.set_submenu(submenu)
 			else:
-				item.connect_object(
-					'activate', PageView.do_link_clicked, self, link)
+				item.set_sensitive(False)
+
+		# open in new window
+		if type == 'page':
+			item = gtk.MenuItem(_('Open in New _Window'))
+				# T: menu item to open a link
+			item.connect(
+				'activate', lambda o: self.do_link_clicked(link, new_window=True))
 			menu.prepend(item)
 
-		menu.show_all()
+		# open
+		if type == 'image':
+			link = {'href': file.uri}
 
+		item = gtk.MenuItem(_('_Open'))
+			# T: menu item to open a link or file
+		if file and not file.exists():
+			item.set_sensitive(False)
+		else:
+			item.connect_object(
+				'activate', PageView.do_link_clicked, self, link)
+		menu.prepend(item)
+
+		menu.show_all()
 
 	def undo(self):
 		self.undostack.undo()
@@ -2754,13 +3317,24 @@ class PageView(gtk.VBox):
 
 	def _toggled_checkbox(self, checkbox):
 		buffer = self.view.get_buffer()
-		if buffer.get_has_selection():
-			buffer.foreach_line_in_selection(buffer.toggle_checkbox, checkbox)
-		else:
+		if self.preferences['recursive_checklist']:
+			# TODO not toggling here...
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			if not iter.starts_line():
-				iter = buffer.get_iter_at_line(iter.get_line())
-			buffer.toggle_checkbox(iter, checkbox)
+			row, list = TextBufferList.new_from_iter(buffer, iter)
+			if buffer.get_has_selection():
+				func = lambda iter: list.update_checkbox(list.row_from_iter(iter), checkbox)
+				buffer.foreach_line_in_selection(func)
+			else:
+				list.update_checkbox(row, checkbox)
+		else:
+			# TODO do this through the TextBufferList interface as well ?
+			if buffer.get_has_selection():
+				buffer.foreach_line_in_selection(buffer.toggle_checkbox, checkbox)
+			else:
+				iter = buffer.get_iter_at_mark(buffer.get_insert())
+				if not iter.starts_line():
+					iter = buffer.get_iter_at_line(iter.get_line())
+				buffer.toggle_checkbox(iter, checkbox)
 
 	def edit_object(self, iter=None):
 		buffer = self.view.get_buffer()
@@ -2769,7 +3343,7 @@ class PageView(gtk.VBox):
 
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		if buffer.get_link_tag(iter):
-			return EditLinkDialog(self.ui, self).run()
+			return InsertLinkDialog(self.ui, self).run()
 
 		image = buffer.get_image_data(iter)
 		if not image:
@@ -2788,7 +3362,8 @@ class PageView(gtk.VBox):
 	def remove_link(self, iter=None):
 		buffer = self.view.get_buffer()
 
-		if not buffer.get_has_selection():
+		if not buffer.get_has_selection() \
+		or not buffer.iter_in_selection(iter):
 			if iter:
 				buffer.place_cursor(iter)
 			buffer.select_link()
@@ -2809,9 +3384,6 @@ class PageView(gtk.VBox):
 
 	def insert_text_from_file(self):
 		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
-
-	def insert_external_link(self):
-		InsertExternalLinkDialog(self.ui, self).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links plus
@@ -2845,35 +3417,66 @@ class PageView(gtk.VBox):
 		InsertLinkDialog(self.ui, self).run()
 
 	def clear_formatting(self):
-		has_selection = self.autoselect()
-
 		buffer = self.view.get_buffer()
-		if has_selection:
+		mark = buffer.create_mark(None, buffer.get_insert_iter())
+		selected = self.autoselect()
+
+		if buffer.get_has_selection():
 			start, end = buffer.get_selection_bounds()
 			buffer.remove_textstyle_tags(start, end)
+			if selected:
+				# If we keep the selection we can not continue typing
+				# so remove the selection and restore the cursor.
+				buffer.unset_selection()
+				buffer.place_cursor(buffer.get_iter_at_mark(mark))
 		else:
 			buffer.set_textstyle(None)
+
+		buffer.delete_mark(mark)
+
 
 	def do_toggle_format_action(self, action):
 		'''Handler that catches all actions to apply and/or toggle formats'''
 		name = action.get_name()
 		logger.debug('Action: %s (toggle_format action)', name)
+		self._current_toggle_action = name
 		if name.startswith('apply_format_'): style = name[13:]
 		elif name.startswith('toggle_format_'): style = name[14:]
 		else: assert False, "BUG: don't known this action"
 		self.toggle_format(style)
+		self._current_toggle_action = None
 
 	def toggle_format(self, format):
 		buffer = self.view.get_buffer()
+		selected = False
+		mark = buffer.create_mark(None, buffer.get_insert_iter())
+
 		if not buffer.textstyle == format:
+			# Only autoselect non formatted content - otherwise not
+			# consistent when trying to break a formatted region
+			# Could be improved by making autoselect refuse to select
+			# formatted content
 			ishead = format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
-			self.autoselect(selectline=ishead)
+			selected = self.autoselect(selectline=ishead)
+
 		buffer.toggle_textstyle(format, interactive=True)
 
+		if selected:
+			# If we keep the selection we can not continue typing
+			# so remove the selection and restore the cursor.
+			buffer.unset_selection()
+			buffer.place_cursor(buffer.get_iter_at_mark(mark))
+		buffer.delete_mark(mark)
+
 	def autoselect(self, selectline=False):
+		'''Auto select either a word or a line. Returns True when this
+		function changed the selection. Does not do anything if a
+		selection is present already or when the preference for auto-
+		select is set to False.
+		'''
 		buffer = self.view.get_buffer()
 		if buffer.get_has_selection():
-			return True
+			return False
 		elif self.preferences['autoselect']:
 			if selectline:
 				return buffer.select_line()
@@ -2882,55 +3485,30 @@ class PageView(gtk.VBox):
 		else:
 			return False
 
-	def show_find(self, string=None):
-		self.find_bar.set_no_show_all(False)
-		self.find_bar.show_all()
-
-		if string is None:
-			self.find_entry.grab_focus()
-		else:
-			self.find_entry.set_text(string)
+	def show_find(self, string=None, flags=0, highlight=False):
+		self.find_bar.show()
+		if string:
+			self.find_bar.find(string, flags, highlight)
 			self.view.grab_focus()
+		else:
+			self.find_bar.set_from_buffer()
+			self.find_bar.grab_focus()
 
 	def hide_find(self):
-		self.find_bar.hide_all()
-		self.find_bar.set_no_show_all(True)
+		self.find_bar.hide()
 		self.view.grab_focus()
-
-	def on_find_bar_key_press_event(self, widget, event):
-		if event.keyval == KEYVAL_ESC:
-			self.hide_find()
-			return True
-		else:
-			return False
 
 	def find_next(self):
-		string = self.find_entry.get_text()
-		buffer = self.view.get_buffer()
-		buffer.find_forward(string)
-		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
+		self.find_bar.show()
+		self.find_bar.find_next()
 
 	def find_previous(self):
-		string = self.find_entry.get_text()
-		buffer = self.view.get_buffer()
-		buffer.find_backward(string)
-		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
-
-	def on_find_entry_changed(self, entry):
-		string = entry.get_text()
-		buffer = self.view.get_buffer()
-		ok = buffer.find_forward(string, flags=FIND_IN_PLACE)
-		self.find_next_button.set_sensitive(ok)
-		self.find_prev_button.set_sensitive(ok)
-		if ok:
-			self.view.scroll_to_mark(buffer.get_insert(), 0.3)
-
-	def on_find_entry_activate(self, entry):
-		self.on_find_entry_changed(entry)
-		self.view.grab_focus()
+		self.find_bar.show()
+		self.find_bar.find_previous()
 
 	def show_find_and_replace(self):
-		dialog = FindAndReplaceDialog.unique(self, self)
+		dialog = FindAndReplaceDialog.unique(self, self.ui, self.view)
+		dialog.set_from_buffer()
 		dialog.present()
 
 	def show_word_count(self):
@@ -3020,9 +3598,25 @@ class InsertImageDialog(FileDialog):
 		if file:
 			self.set_file(file)
 
+		self.uistate.setdefault('attach_inserted_images', False)
+		checkbox = gtk.CheckButton(_('Attach image first'))
+			# T: checkbox in the "Insert Image" dialog
+		checkbox.set_active(self.uistate['attach_inserted_images'])
+		self.filechooser.set_extra_widget(checkbox)
+
 	def do_response_ok(self):
 		file = self.get_file()
 		if file is None: return False
+
+		checkbox = self.filechooser.get_extra_widget()
+		self.uistate['attach_inserted_images'] = checkbox.get_active()
+		if self.uistate['attach_inserted_images']:
+			# Similar code in zim.gui.AttachFileDialog
+			dir = self.ui.notebook.get_attachments_dir(self.path)
+			if not file.dir == dir:
+				file.copyto(dir)
+				file = dir.file(file.basename)
+
 		src = self.ui.notebook.relative_filepath(file, self.path) or file.uri
 		self.buffer.insert_image_at_cursor(file, src)
 		return True
@@ -3152,20 +3746,31 @@ class InsertTextFromFileDialog(FileDialog):
 class InsertLinkDialog(Dialog):
 
 	def __init__(self, ui, pageview):
-		Dialog.__init__(self, ui, _('Insert Link'), # T: Dialog title
+		self.pageview = pageview
+		href, text = self._get_link_from_buffer()
+
+		if href: title = _('Edit Link') # T: Dialog title
+		else: title = _('Insert Link') # T: Dialog title
+
+		Dialog.__init__(self, ui, title,
 					path_context=pageview.page,
 					button=(_('_Link'), 'zim-link') )  # T: Dialog button
-		self.pageview = pageview
-
-		href, text = self._get_link()
 		self.add_fields([
-			('href', 'page', _('Link to'), href), # T: Input in 'insert link' dialog
+			('href', 'link', _('Link to'), href), # T: Input in 'insert link' dialog
 			('text', 'string', _('Text'), text) # T: Input in 'insert link' dialog
 		])
 
-	def _get_link(self):
-		href = ''
-		text = ''
+		# Hook text entry to copy text from link when apropriate
+		if not self._selection_bounds and (not text or text == href):
+			hrefentry = self.inputs['href']
+			textentry = self.inputs['text']
+			hrefentry.connect('changed',
+				lambda o: textentry.set_text(hrefentry.get_text()) )
+
+	def _get_link_from_buffer(self):
+		# Get link and text from the text buffer
+		href, text = '', ''
+
 		buffer = self.pageview.view.get_buffer()
 		if not buffer.get_has_selection():
 			link = buffer.select_link()
@@ -3196,11 +3801,12 @@ class InsertLinkDialog(Dialog):
 			return False
 
 		type = link_type(href)
-		if type == 'file':
+		if type == 'file' and zim.fs.isabs(href):
+			# Try making the path relative
 			file = File(href)
 			page = self.pageview.page
 			notebook = self.ui.notebook
-			href = notebook.relative_filepath(file, page) or file.uri
+			href = notebook.relative_filepath(file, page) or file
 
 		text = self.get_field('text') or href
 
@@ -3215,44 +3821,172 @@ class InsertLinkDialog(Dialog):
 		return True
 
 
-class InsertExternalLinkDialog(InsertLinkDialog):
+class FindWidget(object):
+	'''Base class for FindBar and FindAndReplaceDialog'''
 
-	def __init__(self, ui, pageview):
-		Dialog.__init__(self, ui, _('Insert External Link'), # T: Dialog title
-					button=(_('_Link'), 'zim-link') )  # T: Dialog button
-		self.pageview = pageview
+	def __init__(self, textview):
+		self.textview = textview
 
-		href, text = self._get_link()
-		self.add_fields([
-			('href', 'file', _('Link to'), href), # T: Input in 'insert link' dialog
-			('text', 'string', _('Text'), text), # T: Input in 'insert link' dialog
-		])
+		self.find_entry = InputEntry()
+		self.find_entry.connect_object(
+			'changed', self.__class__.on_find_entry_changed, self)
+		self.find_entry.connect_object(
+			'activate', self.__class__.on_find_entry_activate, self)
+
+		self.next_button = Button(_('_Next'), gtk.STOCK_GO_FORWARD)
+			# T: button in find bar and find & replace dialog
+		self.next_button.connect_object(
+			'clicked', self.__class__.find_next, self)
+		self.next_button.set_sensitive(False)
+
+		self.previous_button = Button(_('_Previous'), gtk.STOCK_GO_BACK)
+			# T: button in find bar and find & replace dialog
+		self.previous_button.connect_object(
+			'clicked', self.__class__.find_previous, self)
+		self.previous_button.set_sensitive(False)
+
+		self.case_option_checkbox = gtk.CheckButton(_('Match _case'))
+			# T: checkbox option in find bar and find & replace dialog
+		self.case_option_checkbox.connect_object(
+			'toggled', self.__class__.on_find_entry_changed, self)
+
+		self.word_option_checkbox = gtk.CheckButton(_('Whole _word'))
+			# T: checkbox option in find bar and find & replace dialog
+		self.word_option_checkbox.connect_object(
+			'toggled', self.__class__.on_find_entry_changed, self)
+
+		self.regex_option_checkbox = gtk.CheckButton(_('_Regular expression'))
+			# T: checkbox option in find bar and find & replace dialog
+		self.regex_option_checkbox.connect_object(
+			'toggled', self.__class__.on_find_entry_changed, self)
+
+		self.highlight_checkbox = gtk.CheckButton(_('_Highlight'))
+			# T: checkbox option in find bar and find & replace dialog
+		self.highlight_checkbox.connect_object(
+			'toggled', self.__class__.on_highlight_toggled, self)
+
+	@property
+	def _flags(self):
+		flags = 0
+		if self.case_option_checkbox.get_active():
+			flags = flags | FIND_CASE_SENSITIVE
+		if self.word_option_checkbox.get_active():
+			flags = flags | FIND_WHOLE_WORD
+		if self.regex_option_checkbox.get_active():
+			flags = flags | FIND_REGEX
+		return flags
+
+	def set_from_buffer(self):
+		'''Copies settings from last find in the buffer. Uses the
+		selected text for find if there is a selection.
+		'''
+		buffer = self.textview.get_buffer()
+		string, flags, highlight = buffer.finder.get_state()
+		bounds = buffer.get_selection_bounds()
+		if bounds:
+			start, end = bounds
+			string = start.get_slice(end)
+		self.find(string, flags, highlight)
+
+	def on_find_entry_changed(self):
+		string = unicode(self.find_entry.get_text(), 'utf-8')
+		buffer = self.textview.get_buffer()
+		ok = buffer.finder.find(string, flags=self._flags)
+
+		if not string:
+			self.find_entry.set_input_valid(True)
+		else:
+			self.find_entry.set_input_valid(ok)
+
+		for button in (self.next_button, self.previous_button):
+			button.set_sensitive(ok)
+
+		if ok:
+			self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
+
+	def on_find_entry_activate(self):
+		self.on_find_entry_changed()
+
+	def on_highlight_toggled(self):
+		highlight = self.highlight_checkbox.get_active()
+		buffer = self.textview.get_buffer()
+		buffer.finder.set_highlight(highlight)
+
+	def find(self, string, flags=0, highlight=False):
+		if string:
+			self.find_entry.set_text(string)
+		self.case_option_checkbox.set_active(flags & FIND_CASE_SENSITIVE)
+		self.word_option_checkbox.set_active(flags & FIND_WHOLE_WORD)
+		self.regex_option_checkbox.set_active(flags & FIND_REGEX)
+		self.highlight_checkbox.set_active(highlight)
+
+		# Force update
+		self.on_find_entry_changed()
+		self.on_highlight_toggled()
+
+	def find_next(self):
+		buffer = self.textview.get_buffer()
+		buffer.finder.find_next()
+		self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
+
+	def find_previous(self):
+		buffer = self.textview.get_buffer()
+		buffer.finder.find_previous()
+		self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
 
 
-class EditLinkDialog(InsertLinkDialog):
+class FindBar(FindWidget, gtk.HBox):
 
-	def __init__(self, ui, pageview):
-		Dialog.__init__(self, ui, _('Edit Link'), # T: Dialog title
-					path_context=pageview.page,
-					button=(_('_Link'), 'zim-link') )  # T: Dialog button
-		self.pageview = pageview
+	# TODO use smaller buttons ?
 
-		href, text = self._get_link()
-		type = link_type(href)
-		if type == 'file': input = 'file'
-		else: input = 'page'
-		self.add_fields([
-			('href', input, _('Link to'), href), # T: Input in 'edit link' dialog
-			('text', 'string', _('Text'), text), # T: Input in 'edit link' dialog
-		])
+	def __init__(self, textview):
+		gtk.HBox.__init__(self, spacing=5)
+		FindWidget.__init__(self, textview)
+
+		self.pack_start(gtk.Label(_('Find')+': '), False)
+			# T: label for input in find bar on bottom of page
+		self.pack_start(self.find_entry, False)
+		self.pack_start(self.previous_button, False)
+		self.pack_start(self.next_button, False)
+		self.pack_start(self.case_option_checkbox, False)
+		self.pack_start(self.highlight_checkbox, False)
+
+		close_button = IconButton(gtk.STOCK_CLOSE, relief=False)
+		close_button.connect_object('clicked', self.__class__.hide, self)
+		self.pack_end(close_button, False)
+
+	def grab_focus(self):
+		self.find_entry.grab_focus()
+
+	def show(self):
+		self.set_no_show_all(False)
+		self.show_all()
+
+	def hide(self):
+		gtk.HBox.hide(self)
+		self.set_no_show_all(True)
+
+	def on_find_entry_activate(self):
+		self.on_find_entry_changed()
+		self.textview.grab_focus()
+
+	def do_key_press_event(self, event):
+		if event.keyval == KEYVAL_ESC:
+			self.hide()
+			return True
+		else:
+			return gtk.HBox.do_key_press_event(self, event)
+
+# Need to register classes defining gobject signals
+gobject.type_register(FindBar)
 
 
-class FindAndReplaceDialog(Dialog):
+class FindAndReplaceDialog(FindWidget, Dialog):
 
-	def __init__(self, pageview):
-		Dialog.__init__(self, pageview.ui,
+	def __init__(self, ui, textview):
+		Dialog.__init__(self, ui,
 			_('Find and Replace'), buttons=gtk.BUTTONS_CLOSE) # T: Dialog title
-		self.view = pageview.view
+		FindWidget.__init__(self, textview)
 
 		hbox = gtk.HBox(spacing=12)
 		hbox.set_border_width(12)
@@ -3265,43 +3999,23 @@ class FindAndReplaceDialog(Dialog):
 			# T: input label in find & replace dialog
 		label.set_alignment(0.0, 0.5)
 		vbox.add(label)
-
-		self.find_entry = gtk.Entry()
-		self.find_entry.set_text( pageview.find_entry.get_text() )
-		self.find_entry.connect('changed', self.on_find_entry_changed)
-		self.find_entry.connect('activate', self.on_find_entry_changed)
 		vbox.add(self.find_entry)
-
-		self.case_option = gtk.CheckButton(_('Match c_ase'))
-			# T: checkbox option in find & replace dialog
-		self.case_option.connect('toggled', self.on_find_entry_changed)
-		vbox.add(self.case_option)
-
-		self.word_option = gtk.CheckButton(_('Whole _word'))
-			# T: checkbox option in find & replace dialog
-		self.word_option.connect('toggled', self.on_find_entry_changed)
-		vbox.add(self.word_option)
+		vbox.add(self.case_option_checkbox)
+		vbox.add(self.word_option_checkbox)
+		vbox.add(self.regex_option_checkbox)
+		vbox.add(self.highlight_checkbox)
 
 		label = gtk.Label(_('Replace with')+': ')
 			# T: input label in find & replace dialog
 		label.set_alignment(0.0, 0.5)
 		vbox.add(label)
-
 		self.replace_entry = gtk.Entry()
 		vbox.add(self.replace_entry)
 
 		self.bbox = gtk.VButtonBox()
 		hbox.add(self.bbox)
-
-		next_button = Button(_('_Next'), gtk.STOCK_GO_FORWARD)
-			# T: Button in search & replace dialog
-		next_button.connect_object('clicked', self.__class__.find_next, self)
-		self.bbox.add(next_button)
-
-		prev_button = Button(_('_Previous'), gtk.STOCK_GO_BACK)
-			# T: Button in search & replace dialog
-		prev_button.connect_object('clicked', self.__class__.find_previous, self)
-		self.bbox.add(prev_button)
+		self.bbox.add(self.next_button)
+		self.bbox.add(self.previous_button)
 
 		replace_button = Button(_('_Replace'), gtk.STOCK_FIND_AND_REPLACE)
 			# T: Button in search & replace dialog
@@ -3313,51 +4027,15 @@ class FindAndReplaceDialog(Dialog):
 		all_button.connect_object('clicked', self.__class__.replace_all, self)
 		self.bbox.add(all_button)
 
-
-	@property
-	def _flags(self):
-		flags = 0
-		if self.case_option.get_active():
-			flags = flags | FIND_CASE_SENSITIVE
-		if self.word_option.get_active():
-			flags = flags | FIND_WHOLE_WORD
-		return flags
-
-	def find_next(self):
-		string = self.find_entry.get_text()
-		self.view.get_buffer().find_forward(string, flags=self._flags)
-
-	def find_previous(self):
-		string = self.find_entry.get_text()
-		self.view.get_buffer().find_backward(string, flags=self._flags)
-
-	def on_find_entry_changed(self, widget):
-		string = self.find_entry.get_text()
-		flags= FIND_IN_PLACE | self._flags
-		ok = self.view.get_buffer().find_forward(string, flags=flags)
-
-		for button in self.bbox.get_children():
-			if isinstance(button, gtk.Button):
-				button.set_sensitive(ok)
-
 	def replace(self):
-		string = self.find_entry.get_text()
-		flags= FIND_IN_PLACE | self._flags
-		if self.view.get_buffer().find_forward(string, flags=flags):
-			buffer = self.view.get_buffer()
-			assert buffer.get_has_selection(), 'BUG: find returned OK, but no selection ?'
-			with buffer.user_action:
-				buffer.delete_selection(False, self.view.get_editable())
-				buffer.insert_at_cursor(self.replace_entry.get_text())
-			return True
-		else:
-			return False
+		string = self.replace_entry.get_text()
+		buffer = self.textview.get_buffer()
+		buffer.finder.replace(string)
 
 	def replace_all(self):
-		buffer = self.view.get_buffer()
-		with buffer.user_action:
-			while self.replace():
-				continue
+		string = self.replace_entry.get_text()
+		buffer = self.textview.get_buffer()
+		buffer.finder.replace_all(string)
 
 
 class WordCountDialog(Dialog):

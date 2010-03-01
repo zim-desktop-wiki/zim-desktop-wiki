@@ -13,6 +13,7 @@ the 'stores' namespace.
 from __future__ import with_statement
 
 import os
+import re
 import weakref
 import logging
 
@@ -28,6 +29,8 @@ import zim.stores
 
 
 logger = logging.getLogger('zim.notebook')
+
+DATA_FORMAT_VERSION = (0, 4)
 
 
 class NotebookList(TextConfigFile):
@@ -238,6 +241,7 @@ def init_notebook(path, name=None):
 	path.touch()
 	config = ConfigDictFile(path.file('notebook.zim'))
 	config['Notebook']['name'] = name or path.basename
+	config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
 	# TODO auto detect if we should enable the slow_fs option
 	config.write()
 
@@ -308,6 +312,10 @@ class PageReadOnlyError(Error):
 	def __init__(self, page):
 		self.msg = _('Can not modify page: %s') % page.name
 			# T: error message for read-only pages
+
+
+_first_char_re = re.compile(r'^\W', re.UNICODE)
+
 
 class Notebook(gobject.GObject):
 	'''Main class to access a notebook. Proxies between backend Store
@@ -387,6 +395,10 @@ class Notebook(gobject.GObject):
 
 		if self.config is None:
 			self.config = ConfigDict()
+			self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
+		else:
+			if self.needs_upgrade:
+				logger.warn('This notebook needs to be upgraded to the latest data format')
 
 		self.config['Notebook'].setdefault('name', None, klass=basestring)
 		self.config['Notebook'].setdefault('home', ':Home', klass=basestring)
@@ -411,12 +423,16 @@ class Notebook(gobject.GObject):
 
 	def save_properties(self, **properties):
 		# Check if icon is relative
-		if self.dir and properties['icon'] \
-		and properties['icon'].startswith(self.dir.path):
+		if 'icon' in properties and properties['icon'] \
+		and self.dir and properties['icon'].startswith(self.dir.path):
 			i = len(self.dir.path)
 			path = './' + properties['icon'][i:].lstrip('/\\')
 			# TODO use proper fs routine(s) for this substitution
 			properties['icon'] = path
+
+		# Set home page as string
+		if 'home' in properties and isinstance(properties['home'], Path):
+			properties['home'] = properties['home'].name
 
 		self.config['Notebook'].update(properties)
 		self.config.write()
@@ -577,7 +593,7 @@ class Notebook(gobject.GObject):
 		'''
 		if href == source:
 			return href.basename
-		elif href > source:
+		elif href.ischild(source):
 			return '+' + href.relname(source)
 		else:
 			parent = source.commonparent(href)
@@ -619,11 +635,8 @@ class Notebook(gobject.GObject):
 	def cleanup_pathname(name):
 		'''Returns a safe version of name, used internally by functions like
 		resolve_path() to parse user input.
+		It raises a PageNameError when the name is not valid
 		'''
-		orig = name
-		name = ':'.join( map(unicode.strip,
-				filter(lambda n: len(n)>0, unicode(name).split(':')) ) )
-
 		# Reserved characters are:
 		# The ':' is reserrved as seperator
 		# The '?' is reserved to encode url style options
@@ -635,12 +648,68 @@ class Notebook(gobject.GObject):
 		# Zim version < 0.42 restricted all special charachters but
 		# white listed ".", "-", "_", "(", ")", ":" and "%".
 
-		# TODO check for illegal characters in the name
+		# For file system we should reserve (win32 & posix)
+		# "\", "/", ":", "*", "?", '"', "<", ">", "|"
 
-		if not name or name.isspace():
+		# Allowing '%' will cause problems with sql wildcards sooner
+		# or later - also for url decoding ambiguity it is better to
+		# keep this one reserved
+
+		orig = name
+		name = name.replace('_', ' ')
+			# Avoid duplicates with and without '_' (e.g. in index)
+			# Note that leading "_" is stripped, due to strip() below
+
+		for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%"):
+			if char in name:
+				raise PageNameError, orig
+
+		parts = map(unicode.strip, filter(
+			lambda n: len(n)>0, unicode(name).split(':') ) )
+
+		for part in parts:
+			if _first_char_re.match(part):
+				raise PageNameError, orig
+
+		name = ':'.join(parts)
+
+		if not name:
 			raise PageNameError, orig
 
 		return name
+
+	@staticmethod
+	def cleanup_pathname_zim028(name):
+		'''Like cleanup_pathname(), but applies logic as it was in
+		zim 0.28 which replaces illegal characters by "_" instead of
+		throwing an exception. Needed to fix broken links in older
+		notebooks.
+		'''
+		# OLD CODE WAS:
+		# $name =~ s/^:*/:/ unless $rel;	# absolute name
+		# $name =~ s/:+$//;					# not a namespace
+		# $name =~ s/::+/:/g;				# replace multiple ":"
+		# $name =~ s/[^:\w\.\-\(\)\%]/_/g;	# replace forbidden chars
+		# $name =~ s/(:+)[\_\.\-\(\)]+/$1/g;	# remove non-letter at begin
+		# $name =~ s/_+(:|$)/$1/g;			# remove trailing underscore
+
+		forbidden_re = re.compile(r'[^\w\.\-\(\)]', re.UNICODE)
+		non_letter_re = re.compile(r'^\W+', re.UNICODE)
+
+		prefix = ''
+		if name[0] in (':', '.', '+'):
+			prefix = name[0]
+			name = name[1:]
+
+		path = []
+		for n in filter(len, name.split(':')):
+			n = forbidden_re.sub('_', n) # replace forbidden chars
+			n = non_letter_re.sub('', n) # remove non-letter at begin
+			n = n.rstrip('_') # remove trailing underscore
+			if len(n):
+				path.append(n)
+
+		return prefix + ':'.join(path)
 
 	def get_page(self, path):
 		'''Returns a Page object. This method uses a weakref dictionary to
@@ -779,7 +848,7 @@ class Notebook(gobject.GObject):
 				self.index.update(newpath)
 				#~ print backlinkpages
 				for p in backlinkpages:
-					if p == path or p > path:
+					if p == path or p.ischild(path):
 						continue
 					page = self.get_page(p)
 					self._update_links_in_page(page, path, newpath)
@@ -809,20 +878,24 @@ class Notebook(gobject.GObject):
 			return
 
 		for tag in tree.getiterator('link'):
-			href = tag.attrib['href']
-			type = link_type(href)
-			if type == 'page':
-				hrefpath = self.resolve_path(href, source=page)
-				oldhrefpath = self.resolve_path(href, source=oldpath)
-				#~ print 'LINK', oldhrefpath, '->', hrefpath
-				if hrefpath != oldhrefpath:
-					if hrefpath >= page and oldhrefpath >= oldpath:
-						#~ print '\t.. Ignore'
-						pass
-					else:
-						newhref = self.relative_link(page, oldhrefpath)
-						#~ print '\t->', newhref
-						self._update_link_tag(tag, newhref)
+			try:
+				href = tag.attrib['href']
+				type = link_type(href)
+				if type == 'page':
+					hrefpath = self.resolve_path(href, source=page)
+					oldhrefpath = self.resolve_path(href, source=oldpath)
+					#~ print 'LINK', oldhrefpath, '->', hrefpath
+					if hrefpath != oldhrefpath:
+						if (hrefpath == page or hrefpath.ischild(page)) \
+						and (oldhrefpath == oldpath or oldhrefpath.ischild(oldpath)):
+							#~ print '\t.. Ignore'
+							pass
+						else:
+							newhref = self.relative_link(page, oldhrefpath)
+							#~ print '\t->', newhref
+							self._update_link_tag(tag, newhref)
+			except:
+				logger.exception('Error while updating link "%s"', href)
 
 		page.set_parsetree(tree)
 
@@ -838,32 +911,35 @@ class Notebook(gobject.GObject):
 			return
 
 		for tag in tree.getiterator('link'):
-			href = tag.attrib['href']
-			type = link_type(href)
-			if type == 'page':
-				hrefpath = self.resolve_path(href, source=page)
-				#~ print 'LINK', hrefpath
-				if hrefpath == oldpath:
-					newhrefpath = newpath
-					#~ print '\t==', oldpath, '->', newhrefpath
-				elif hrefpath > oldpath:
-					rel = hrefpath.relname(oldpath)
-					newhrefpath = newpath + rel
-					#~ print '\t>', oldpath, '->', newhrefpath
-				else:
-					continue
+			try:
+				href = tag.attrib['href']
+				type = link_type(href)
+				if type == 'page':
+					hrefpath = self.resolve_path(href, source=page)
+					#~ print 'LINK', hrefpath
+					if hrefpath == oldpath:
+						newhrefpath = newpath
+						#~ print '\t==', oldpath, '->', newhrefpath
+					elif hrefpath.ischild(oldpath):
+						rel = hrefpath.relname(oldpath)
+						newhrefpath = newpath + rel
+						#~ print '\t>', oldpath, '->', newhrefpath
+					else:
+						continue
 
-				newhref = self.relative_link(page, newhrefpath)
-				self._update_link_tag(tag, newhref)
+					newhref = self.relative_link(page, newhrefpath)
+					self._update_link_tag(tag, newhref)
+			except:
+				logger.exception('Error while updating link "%s"', href)
 
 		page.set_parsetree(tree)
 
 	def rename_page(self, path, newbasename,
 						update_heading=True, update_links=True):
-		'''Rename page to a page in the same namespace but with a new basename.
-		If 'update_heading' is True the first heading in the page will be updated to it's
-		new name.  If 'update_links' is True all links from and to the page will be
-		modified as well.
+		'''Rename page to a page in the same namespace but with a new
+		basename. If 'update_heading' is True the first heading in the
+		page will be updated to it's new name.  If 'update_links' is
+		True all links from and to the page will be modified as well.
 		'''
 		logger.debug('Rename %s to "%s" (%s, %s)',
 			path, newbasename, update_heading, update_links)
@@ -877,10 +953,11 @@ class Notebook(gobject.GObject):
 
 		self.move_page(path, newpath, update_links=update_links)
 		if update_heading:
+			import zim.parsing
 			page = self.get_page(newpath)
 			tree = page.get_parsetree()
 			if not tree is None:
-				tree.set_heading(newbasename.title())
+				tree.set_heading(zim.parsing.title(newbasename))
 				page.set_parsetree(tree)
 				self.store_page(page)
 
@@ -918,7 +995,7 @@ class Notebook(gobject.GObject):
 		if filename.startswith('~') or filename.startswith('file:/'):
 			return File(filename)
 		elif filename.startswith('/'):
-			dir = self.get_document_root() or Dir('~')
+			dir = self.get_document_root() or Dir('/')
 			return dir.file(filename)
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):
@@ -1018,8 +1095,98 @@ class Notebook(gobject.GObject):
 		store = self.get_store(path)
 		return store.get_page_indexkey(path)
 
+	@property
+	def needs_upgrade(self):
+		try:
+			version = str(self.config['Notebook']['version'])
+			version = tuple(version.split('.'))
+			return version < DATA_FORMAT_VERSION
+		except KeyError:
+			return True
+
+	def upgrade_notebook(self, callback=None):
+		'''Tries to update older notebook to format supported by the
+		latest version.
+		'''
+		# Currently we just assume upgrade from zim < 0.43
+		# may need to add more sophisticated logic later..
+		#
+		# We check for links based on old pagename cleanup rules
+		# also we write every page, just to be sure they are stored in
+		# the latest wiki format.
+		logger.info('Notebook update started')
+		self.index.ensure_update(callback=callback)
+
+		candidate_re = re.compile('[\W_]')
+		for page in self.walk():
+			if callback:
+				cont = callback(page)
+				if not cont:
+					logger.info('Notebook update cancelled')
+					return
+
+			try:
+				tree = page.get_parsetree()
+			except:
+				# Some issue we can't fix
+				logger.exception('Error while parsing page: "%s"', page.name)
+				tree = None
+
+			if tree is None:
+				continue
+
+			changed = False
+			for tag in tree.getiterator('link'):
+				href = tag.attrib['href']
+				type = link_type(href)
+				if type == 'page' and candidate_re.search(href):
+					# Skip if we can resolve it already
+					try:
+						link = self.resolve_path(href, source=page)
+						link = self.get_page(link)
+					except:
+						pass
+					else:
+						if link and link.hascontent:
+							# Do not check haschildren here, children could be placeholders as well
+							continue
+
+					# Otherwise check if old version would have found a match
+					try:
+						newhref = self.cleanup_pathname_zim028(href)
+						if newhref != href:
+							link = self.resolve_path(newhref, source=page)
+							link = self.get_page(link)
+						else:
+							link = None
+					except:
+						pass
+					else:
+						if link and link.hascontent:
+							# Do not check haschildren here, children could be placeholders as well
+							tag.attrib['href'] = newhref
+							changed = True
+							logger.info('Changed link "%s" to "%s"', href, newhref)
+
+			# Store this page
+			try:
+				if changed:
+					page.set_parsetree(tree)
+
+				self.store_page(page)
+			except:
+				logger.exception('Could not store page: "%s"', page.name)
+
+		# Update the version and we are done
+		self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
+		self.config.write()
+		logger.info('Notebook update done')
+
 # Need to register classes defining gobject signals
 gobject.type_register(Notebook)
+
+
+import warnings
 
 
 class Path(object):
@@ -1051,6 +1218,9 @@ class Path(object):
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)
 
+	def __hash__(self):
+		return self.name.__hash__()
+
 	def __eq__(self, other):
 		'''Paths are equal when their names are the same'''
 		if isinstance(other, Path):
@@ -1061,25 +1231,29 @@ class Path(object):
 	def __ne__(self, other):
 		return not self.__eq__(other)
 
+	def __add__(self, name):
+		'''"path + name" is an alias for path.child(name)'''
+		return self.child(name)
+
 	def __lt__(self, other):
 		'''`self < other` evaluates True when self is a parent of other'''
+		warnings.warn('Usage of Path.__lt__ is deprecated', DeprecationWarning, 2)
 		return self.isroot or other.name.startswith(self.name+':')
 
 	def __le__(self, other):
 		'''`self <= other` is True if `self == other or self < other`'''
+		warnings.warn('Usage of Path.__le__ is deprecated', DeprecationWarning, 2)
 		return self.__eq__(other) or self.__lt__(other)
 
 	def __gt__(self, other):
 		'''`self > other` evaluates True when self is a child of other'''
+		warnings.warn('Usage of Path.__gt__ is deprecated', DeprecationWarning, 2)
 		return other.isroot or self.name.startswith(other.name+':')
 
 	def __ge__(self, other):
 		'''`self >= other` is True if `self == other or self > other`'''
+		warnings.warn('Usage of Path.__ge__ is deprecated', DeprecationWarning, 2)
 		return self.__eq__(other) or self.__gt__(other)
-
-	def __add__(self, name):
-		'''"path + name" is an alias for path.child(name)'''
-		return self.child(name)
 
 	@property
 	def parts(self):
@@ -1147,6 +1321,10 @@ class Path(object):
 		else: # we are the top level root namespace
 			return Path(name)
 
+	def ischild(self, parent):
+		'''Returns True if this path is a child of 'parent' '''
+		return parent.isroot or self.name.startswith(parent.name + ':')
+
 	def commonparent(self, other):
 		parent = []
 		parts = self.parts
@@ -1199,10 +1377,6 @@ class Page(Path):
 		self._ui_object = None
 		self.readonly = True # stores need to explicitly set readonly False
 		self.properties = {}
-		if hasattr(path, '_indexpath'):
-			self._indexpath = path._indexpath
-			# Keeping this data around will speed things up when this page
-			# is used for index lookups
 
 	@property
 	def hascontent(self):

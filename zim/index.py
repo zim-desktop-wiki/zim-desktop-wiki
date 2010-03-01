@@ -164,13 +164,13 @@ class DBCommitContext(object):
 	This allows syntax like:
 
 		with index.db_commit:
-			cursor = index.db.get_cursor()
+			cursor = index.db.cursor()
 			cursor.execute(...)
 
 	instead off:
 
 		try:
-			cursor = index.db.get_cursor()
+			cursor = index.db.cursor()
 			cursor.execute(...)
 		except:
 			index.db.rollback()
@@ -638,7 +638,7 @@ class Index(gobject.GObject):
 							(page.basename, path.id, page.hascontent, False))
 						child = IndexPath(page.name, indexpath + (cursor.lastrowid,),
 							{	'hascontent': page.hascontent,
-								'haschildren': page.haschildren,
+								'haschildren': False,
 								'childrenkey': None,
 								'contentkey': None,
 							} )
@@ -682,7 +682,7 @@ class Index(gobject.GObject):
 				self.emit('page-updated', path)
 
 			# All these signals should come in proper order...
-			changes.sort(key=lambda c: c[0].basename)
+			changes.sort(key=lambda c: c[0].basename.lower())
 			for child, action in changes:
 				if action == 1:
 					self.emit('page-inserted', child)
@@ -770,6 +770,8 @@ class Index(gobject.GObject):
 		parent = path.parent
 		if isinstance(path, IndexPath):
 			path = self.lookup_data(path)
+			if not path._row:
+				return # apparently it disappeared already
 		else:
 			path = self.lookup_path(path)
 			if not path:
@@ -848,14 +850,8 @@ class Index(gobject.GObject):
 			row = cursor.fetchone()
 			return IndexPath(':', (ROOT_ID,), row)
 
-		if parent:
-			indexpath = list(parent._indexpath)
-		elif hasattr(path, '_indexpath'):
-			# Page objects copy the _indexpath attribute
-			# FIXME can this cause issues when the index is modified in between ?
-			indexpath = list(path._indexpath)
-		else:
-			indexpath = [ROOT_ID]
+		if parent: indexpath = list(parent._indexpath)
+		else:      indexpath = [ROOT_ID]
 
 		names = path.name.split(':')
 		names = names[len(indexpath)-1:] # shift X items
@@ -988,12 +984,24 @@ class Index(gobject.GObject):
 			IndexPath(name+':'+r['basename'], indexpath+(r['id'],), r)
 				for r in cursor ]
 
+	def n_all_pages(self):
+		'''Returns number of pages in this notebook'''
+		cursor = self.db.cursor()
+		cursor.execute('select id from pages')
+		return len( list(cursor) )
+
 	def n_list_pages(self, path):
 		'''Returns the number of pages below path'''
 		# TODO optimize this one
 		return len(self.list_pages(path))
 
 	def list_links(self, path, direction=LINK_DIR_FORWARD):
+		'''Return Link objects for each link from or to path.
+		Direction can be:
+			LINK_DIR_FORWARD	for links from path
+			LINK_DIR_BACKWARD	for links to path
+			LINK_DIR_FORWARD	for links from and to path
+		'''
 		path = self.lookup_path(path)
 		if path:
 			cursor = self.db.cursor()
@@ -1015,12 +1023,28 @@ class Index(gobject.GObject):
 
 				yield Link(source, href)
 
+	def list_links_to_tree(self, path, direction=LINK_DIR_FORWARD):
+		'''Like list_links() but recursive for sub pages below path'''
+		for link in self.list_links(path, direction):
+			yield link
+
+		for child in self.walk(path):
+			for link in self.list_links(child, direction):
+				yield link
+
 	def n_list_links(self, path, direction=LINK_DIR_FORWARD):
-		'''Like list_lins() but returns only the number of links instead
+		'''Like list_links() but returns only the number of links instead
 		of the links themselves.
 		'''
 		# TODO optimize this one
 		return len(list(self.list_links(path, direction)))
+
+	def n_list_links_to_tree(self, path, direction=LINK_DIR_FORWARD):
+		'''Like list_links_to_tree() but returns only the number of links instead
+		of the links themselves.
+		'''
+		# TODO optimize this one
+		return len(list(self.list_links_to_tree(path, direction)))
 
 	def get_previous(self, path, recurs=True):
 		'''Returns the previous page in the index. If 'recurs' is False it stays

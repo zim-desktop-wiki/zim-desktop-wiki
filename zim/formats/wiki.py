@@ -9,6 +9,10 @@ import re
 from zim.formats import *
 from zim.parsing import Re, TextBuffer, url_re
 
+
+WIKI_FORMAT_VERSION = 'zim 0.4'
+
+
 info = {
 	'name':  'Wiki text',
 	'mime':  'text/x-zim-wiki',
@@ -75,8 +79,8 @@ def contains_links(text):
 
 class Parser(ParserClass):
 
-	def __init__(self, version='zim 0.26'):
-		self.backward = version != 'zim 0.26'
+	def __init__(self, version=WIKI_FORMAT_VERSION):
+		self.backward = version not in ('zim 0.26', WIKI_FORMAT_VERSION)
 
 	def parse(self, input):
 		# Read the file and divide into paragraphs on the fly.
@@ -282,7 +286,7 @@ class Dumper(DumperClass):
 		assert isinstance(tree, ParseTree)
 		output = TextBuffer()
 		self.dump_children(tree.getroot(), output)
-		return output.get_lines()
+		return output.get_lines(end_with_newline=not tree.ispartial)
 
 	def dump_children(self, list, output, list_level=-1):
 		if list.text:

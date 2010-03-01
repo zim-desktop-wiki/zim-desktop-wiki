@@ -5,6 +5,7 @@
 '''This module contains utilities for parsing strings and text'''
 
 import re
+import string
 
 
 def split_quoted_strings(string, unescape=True):
@@ -65,8 +66,11 @@ def url_decode(url):
 	encoded in the first place already and avoid double-decoding it.
 	'''
 	if '%' in url and not _unencoded_url_re.search(url):
+		# We can have multiple escapes combine into a unicode char
+		# so first decode to bytes by 'chr()', then decode utf8
+		url = url.encode('utf-8') # prevent unicode errors substituting one code at a time
 		url = _url_decode_re.sub(lambda m: chr(int(m.group(1), 16)), url)
-	url = url.decode('utf-8') # utf-8 -> unicode
+	url = url.decode('utf-8')
 	return url
 
 
@@ -111,6 +115,24 @@ def parse_date(string):
 		return tuple(map(int, (y, m, d)))
 	else:
 		return None
+
+
+# These sets adjust to the current locale - so not same as "[a-z]" ..
+# Must be kidding - no classes for this in the regex engine !?
+_classes = {'upper': string.uppercase}
+upper_re = re.compile(r'[%(upper)s]' % _classes)
+del _classes
+
+def title(string):
+	'''Slightly smarter version of str.title(). Does not "downgrade"
+	words that already have upper case in it.
+	'''
+	def titleword(match):
+		word = match.group(0)
+		if upper_re.search(word): return word
+		else: return word.title()
+
+	return re.sub(r'\w+', titleword, string, re.U)
 
 
 class Re(object):
@@ -203,10 +225,10 @@ is_url_re = Re('^(\w[\w\+\-\.]+)://')
 is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')
 	# "mailto:" address
 	# name "@" host
-is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Z]:\\)')
+is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Za-z]:\\)')
 	# / ~/ ./ ../ ~user/  .\ ..\ ~\ ~user\
 	# X:\
-is_win32_path_re = Re(r'^[A-Z]:[\\/]')
+is_win32_path_re = Re(r'^[A-Za-z]:[\\/]')
 	# X:\ (or X:/)
 is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# \\host\share
@@ -245,10 +267,10 @@ class TextBuffer(list):
 	internally.
 	'''
 
-	def get_lines(self):
+	def get_lines(self, end_with_newline=True):
 		'''Returns a proper list of lines'''
 		lines = ''.join(self).splitlines(True)
-		if lines and not lines[-1].endswith('\n'):
+		if end_with_newline and lines and not lines[-1].endswith('\n'):
 			lines[-1] += '\n'
 		return lines
 

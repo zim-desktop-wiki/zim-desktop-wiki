@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Wed, 12 Aug 2009 13:22:10 +0200
-Modification-Date: Wed, 12 Aug 2009 21:36:13 +0200
 
 ====== Task List ======
 

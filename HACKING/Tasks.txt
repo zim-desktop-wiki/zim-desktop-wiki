@@ -1,5 +1,5 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 
 ====== Tasks ======
@@ -14,20 +14,13 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Pageview: Para indenting tags and bullet offset tags need to be split up
 [ ] WWW: check resolving of files and icons for web server
 	* Add extra check that no files outside allowed directories are served
-[*] Links to non-exisiting pages are not indexed
-[*] Pages that are removed by cleanup of empty directories do not disappear from the index 
-[ ] Pageview: implement recursive checkbox lists
 [ ] Implement Fuse filesystem plugins for auto-mounting sshfs / encfs / ..
 	* Preferences dialog should have list of mount points
-[ ] Package icons in target directory when exporting
-[*] Dialog: improved widgets for page and namespace inputs
 [ ] Make server gui also use the daemon
-[*] Interwiki links are not yet supported
 
 == New Features ==
-[ ] Add custom commands in tools menu [[Ideas:Custom Commands]] 
-[ ] Finish improved search support [[Ideas:Search]]
-[ ] Pageview: make child items in list also (un)indent with parent
+[*] Add custom commands in tools menu Custom Commands 
+[ ] Add search selection in export
 [ ] Pageview: menu controls to indent / unindent / move up move down a list item
 	* Check emission of indent-changed signal to set state of buttons
 	* Also think about keybindings for moving a line up / down or top / bottom

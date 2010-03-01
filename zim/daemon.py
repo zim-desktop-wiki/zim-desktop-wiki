@@ -47,13 +47,8 @@ import logging
 import signal
 import time
 
-try:
-	import json # in standard lib since 2.6
-except:
-	import simplejson as json # extra dependency
-
 from zim.fs import get_tmpdir, File
-from zim.config import XDG_CACHE_HOME
+from zim.config import XDG_CACHE_HOME, json
 
 # FUTURE: implement a DBus based subclass for usage on the linux desktop
 
@@ -97,7 +92,7 @@ class UnixDaemon(object):
 		# Decouple from parent environment
 		os.chdir("/")
 		os.setsid()
-		os.umask(0)
+		# Do not set umask here - we want to keep that part of env
 
 		# Second fork
 		pid = os.fork()
@@ -324,7 +319,9 @@ class SocketDaemonProxy(object):
 		are passed on to the object constructor if it needs to be
 		created.
 		'''
-		assert self._call('vivicate', klass, name, *args, **kwargs)
+		if not self._call('vivicate', klass, name, *args, **kwargs):
+			raise AssertionError, 'Call failed'
+			# assert statement could be optimized away
 		return DaemonProxyObject(self, (klass, name))
 
 	def list_objects(self):
@@ -341,8 +338,9 @@ class SocketDaemonProxy(object):
 			assert hasattr(notebook, 'uri')
 			notebook = notebook.uri
 		klass = 'zim.gui.GtkInterface'
-		assert self._call('vivicate', klass, notebook,
-			notebook=notebook, usedaemon=True)
+		if not self._call('vivicate', klass, notebook, notebook=notebook, usedaemon=True):
+			raise AssertionError, 'Call failed'
+			# assert statement could be optimized away
 		return DaemonProxyGtkInterfaceObject(self, (klass, notebook))
 
 	def list_notebooks(self):
@@ -428,6 +426,13 @@ class DaemonProxyGtkInterfaceObject(DaemonProxyObject):
 			page = page.name
 		return self._relay('present', page,
 				geometry=geometry, fullscreen=fullscreen)
+
+
+	def toggle_present(self):
+		'''Present main window if it is not on top, but hide if it is.
+		Used by the TrayIcon to toggle visibility of the window.
+		'''
+		return self._relay('toggle_present')
 
 	def hide(self):
 		'''Hide a specific notebook window'''

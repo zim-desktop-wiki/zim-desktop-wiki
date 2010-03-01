@@ -17,7 +17,8 @@ import sys
 from zim.fs import *
 import zim.errors
 import zim.config
-from zim.notebook import Path, PageNameError
+from zim.notebook import Notebook, Path, PageNameError
+from zim.parsing import link_type
 
 
 logger = logging.getLogger('zim.gui')
@@ -59,6 +60,15 @@ def scrolled_text_view(text=None, monospace=False):
 	return window, textview
 
 
+def gtk_get_style():
+	'''Returns a gtk.Style object for the current theme style.
+	This function is a bit of a hack, but works.
+	'''
+	w = gtk.Window()
+	w.realize()
+	return w.get_style()
+
+
 class Button(gtk.Button):
 	'''This class overloads the constructor of the default gtk.Button
 	class. The purpose is to change the behavior in such a way that stock
@@ -88,7 +98,38 @@ class IconButton(gtk.Button):
 			self.set_relief(gtk.RELIEF_NONE)
 
 
+class IconChooserButton(gtk.Button):
+	'''Button with a stock icon, but no label.'''
+
+	def __init__(self, stock=gtk.STOCK_MISSING_IMAGE):
+		gtk.Button.__init__(self)
+		self.file = None
+		image = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_DIALOG)
+		self.add(image)
+		self.set_alignment(0.5, 0.5)
+
+	def do_clicked(self):
+		dialog = SelectFileDialog(self)
+		dialog.add_filter_images()
+		file = dialog.run()
+		if file:
+			image = self.get_child()
+			size = max(image.size_request()) # HACK to get icon size
+			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
+			image.set_from_pixbuf(pixbuf)
+			self.file = file
+
+	def get_file(self):
+		return self.file
+
+# Need to register classes defining / overriding gobject signals
+gobject.type_register(IconChooserButton)
+
+
 class SingleClickTreeView(gtk.TreeView):
+	'''Treeview subclass for trees that want single-click behavior,
+	but do allow multiple items to be selected.
+	'''
 
 	mask = gtk.gdk.SHIFT_MASK | gtk.gdk.CONTROL_MASK
 
@@ -122,7 +163,6 @@ class SingleClickTreeView(gtk.TreeView):
 
 		def is_rubber_banding_active(self):
 			return False
-
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(SingleClickTreeView)
@@ -270,7 +310,30 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 gobject.type_register(MenuButton)
 
 
-class PageEntry(gtk.Entry):
+class InputEntry(gtk.Entry):
+	'''Sub-class of gtk.Entry with support for highlighting errors'''
+
+	style = gtk_get_style()
+	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
+	ERROR_COLOR = gtk.gdk.color_parse('#EF7F7F') # light red (derived from Tango style guide)
+
+	def __init__(self):
+		gtk.Entry.__init__(self)
+		self.input_valid = True
+
+	def get_input_valid(self):
+		return self.input_valid
+
+	def set_input_valid(self, valid):
+		'''Set input valid or invalid state'''
+		self.input_valid = valid
+		if valid:
+			self.modify_base(gtk.STATE_NORMAL, self.NORMAL_COLOR)
+		else:
+			self.modify_base(gtk.STATE_NORMAL, self.ERROR_COLOR)
+
+
+class PageEntry(InputEntry):
 
 	allow_select_root = False
 
@@ -279,7 +342,7 @@ class PageEntry(gtk.Entry):
 		If a context is given this is the reference Path for resolving
 		relative links.
 		'''
-		gtk.Entry.__init__(self)
+		InputEntry.__init__(self)
 		assert notebook, 'Page completion needs a notebook'
 		assert path_context is None or isinstance(path_context, Path)
 		self.notebook = notebook
@@ -321,18 +384,44 @@ class PageEntry(gtk.Entry):
 		self.emit('activate')
 
 	def do_changed(self):
-		text = self.get_text()
+		text = self.get_text().strip()
+
+		if not text:
+			self.set_input_valid(True)
+			return
+
+		try:
+			if text != ':' and text != '+':
+				# Clean up, but keep the end ":" chars
+				orig = text
+				text = Notebook.cleanup_pathname(text.lstrip('+'))
+				if orig[0] == ':' and text[0] != ':':
+					text = ':' + text
+				elif orig[0] == '+':
+					text = '+' + text
+				if orig[-1] == ':' and text[-1] != ':':
+					text = text + ':'
+			else:
+				pass
+		except PageNameError:
+			self.set_input_valid(False)
+			return
+		else:
+			self.set_input_valid(True)
 
 		# Figure out some hint about the namespace
+		anchored = False
 		if ':' in text:
 			# can still have context and start with '+'
 			i = text.rfind(':')
 			completing = text[:i+1]
 			prefix = completing
+			anchored = True
 		elif self.path_context:
 			if text.startswith('+'):
 				completing = ':' + self.path_context.name
 				prefix = '+'
+				anchored = True
 			else:
 				completing = ':' + self.path_context.namespace
 				prefix = ''
@@ -343,6 +432,7 @@ class PageEntry(gtk.Entry):
 		if self.force_child and not completing.startswith('+'):
 			# Needed for new_sub_page - always force child page
 			completing = '+' + completing
+			anchored = True
 
 		# Check if we completed already for this namespace
 		if completing == self._completing:
@@ -360,6 +450,7 @@ class PageEntry(gtk.Entry):
 			except PageNameError:
 				return
 
+		# TODO also add parent namespaces in case text did not contain any ':' (anchored == False)
 		#~ print '!! COMPLETING %s context: %s prefix: %s' % (path, self.path_context, prefix)
 		for p in self.notebook.index.list_pages(path):
 			self.completion_model.append((prefix+p.basename,))
@@ -368,6 +459,21 @@ class PageEntry(gtk.Entry):
 class NamespaceEntry(PageEntry):
 
 	allow_select_root = True
+
+
+class LinkEntry(PageEntry):
+	'''Sub-class of PageEntry that also accepts file links and urls'''
+
+	def do_changed(self):
+		text = self.get_text()
+		if text:
+			type = link_type(text)
+			if type == 'page':
+				PageEntry.do_changed(self)
+			else:
+				self.set_input_valid(True)
+		else:
+			self.set_input_valid(True)
 
 
 def format_title(title):
@@ -430,7 +536,7 @@ class Dialog(gtk.Dialog):
 
 	def __init__(self, ui, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			text=None, fields=None, help=None,
+			help_text=None, fields=None, help=None,
 			defaultwindowsize=(-1, -1), path_context=None
 		):
 		'''Constructor. 'ui' can either be the main application or some
@@ -446,8 +552,8 @@ class Dialog(gtk.Dialog):
 		item to use instead of the default 'Ok' button (either stock or label
 		can be None).
 
-		Options 'text', 'fields' and 'help' will be past on to add_text(),
-		add_fields() and set_help() respectively.
+		Options 'help_text', 'fields' and 'help' will be past on to
+		add_help_text(), add_fields() and set_help() respectively.
 		'''
 		self.ui = ui
 		self.result = None
@@ -495,7 +601,7 @@ class Dialog(gtk.Dialog):
 		# TODO set Ok button as default widget
 		# see gtk.Window.set_default()
 
-		if text: self.add_text(text)
+		if help_text: self.add_help_text(help_text)
 		if fields: self.add_fields(fields)
 		if help: self.set_help(help)
 
@@ -509,13 +615,21 @@ class Dialog(gtk.Dialog):
 		self.action_area.add(button)
 		self.action_area.set_child_secondary(button, True)
 
-	def add_text(self, text):
-		'''Adds a label in italics. Intended for informational text at the
-		top of the dialog.
+	def add_help_text(self, text):
+		'''Adds a label with an info icon in front of it. Intended for
+		iformational text in dialogs.
 		'''
-		label = gtk.Label()
-		label.set_markup('<i>%s</i>' % _encode_xml(text))
-		self.vbox.pack_start(label, False)
+		hbox = gtk.HBox(spacing=12)
+		self.vbox.pack_start(hbox, False)
+
+		image = gtk.image_new_from_stock(gtk.STOCK_INFO, gtk.ICON_SIZE_BUTTON)
+		image.set_alignment(0.5, 0.0)
+		hbox.pack_start(image, False)
+
+		label = gtk.Label(text)
+		label.set_use_markup(True)
+		label.set_alignment(0.0, 0.0)
+		hbox.add(label)
 
 	def add_fields(self, fields, table=None, trigger_response=True):
 		'''Add a number of fields to the dialog, convenience method to
@@ -538,6 +652,7 @@ class Dialog(gtk.Dialog):
 		will call response_ok(). Set to False if more forms will follow in the
 		same dialog.
 		'''
+		# FIXME FIXME FIXME - this code needs to go in a special class for constructing forms
 		if table is None:
 			table = gtk.Table()
 			table.set_border_width(5)
@@ -579,21 +694,32 @@ class Dialog(gtk.Dialog):
 					pass
 				self.inputs[name] = combobox
 				table.attach(combobox, 1,2, i,i+1)
-			elif type in ('string', 'password', 'page', 'namespace', 'dir', 'file', 'image'):
+			elif type in ('string', 'password', 'link', 'page', 'namespace', 'dir', 'file', 'image'):
 				label = gtk.Label(label+': ')
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
-				if type in ('page', 'namespace'):
-					if type == 'page':
+				if type in ('link', 'page', 'namespace'):
+					if type == 'link':
+						entry = LinkEntry(self.ui.notebook, path_context=self.path_context)
+					elif type == 'page':
 						entry = PageEntry(self.ui.notebook, path_context=self.path_context)
 					else:
 						entry = NamespaceEntry(self.ui.notebook, path_context=self.path_context)
 					if value:
 						if isinstance(value, basestring):
-							value = Path(value)
-						entry.set_path(value)
+							entry.set_text(value)
+						else:
+							assert isinstance(value, Path)
+							entry.set_path(value)
 					self.inputs[name] = entry
 					table.attach(entry, 1,2, i,i+1)
+
+					if type == 'link':
+						# FIXME use inline icon for newer versions of Gtk
+						# redundant code from below
+						browse = gtk.Button('_Browse')
+						browse.connect('clicked', self._select_file, (type, entry))
+						table.attach(browse, 2,3, i,i+1, xoptions=gtk.FILL)
 				else:
 					entry = gtk.Entry()
 					entry.zim_type = type
@@ -746,6 +872,11 @@ class ErrorDialog(gtk.MessageDialog):
 		if isinstance(error, zim.errors.Error):
 			msg = error.msg
 			description = error.description
+		elif isinstance(error, EnvironmentError): # e.g. OSError or IOError
+			msg = error.strerror
+			if hasattr(error, 'filename') and error.filename:
+				msg += ': ' + error.filename
+			description = None
 		else:
 			# Other exception or string
 			msg = unicode(error)
@@ -828,7 +959,7 @@ class FileDialog(Dialog):
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			text=None, fields=None, help=None
+			help_text=None, fields=None, help=None
 		):
 		if button is None:
 			if action == gtk.FILE_CHOOSER_ACTION_OPEN:
@@ -837,7 +968,7 @@ class FileDialog(Dialog):
 				button = (None, gtk.STOCK_SAVE)
 			# else Ok will do
 		Dialog.__init__(self, ui, title,
-			buttons=buttons, button=button, text=text, help=help)
+			buttons=buttons, button=button, help_text=help_text, help=help)
 		if self.uistate['windowsize'] == (-1, -1):
 			self.uistate['windowsize'] = (500, 400)
 			self.set_default_size(500, 400)
@@ -945,10 +1076,13 @@ class ProgressBarDialog(gtk.Dialog):
         background process, either be overloadig this class, or by checking the
 	return value of pulse().
 
-	TODO: also support percentage mode
+	If you know up front how often pulse() will be called supply this
+	number to the constructor in order to get the bar to display a percentage.
+	Otherwise the bar will just bounce up and down without indication of remaining
+	time.
 	'''
 
-	def __init__(self, ui, text):
+	def __init__(self, ui, text, total=None):
 		self.ui = ui
 		self.cancelled = False
 		gtk.Dialog.__init__(
@@ -975,14 +1109,27 @@ class ProgressBarDialog(gtk.Dialog):
 		self.msg_label.set_ellipsize(pango.ELLIPSIZE_START)
 		self.vbox.pack_start(self.msg_label, False)
 
+		self.set_total(total)
+
+	def set_total(self, total):
+		self.total = total
+		self.count = 0
+
 	def pulse(self, msg=None):
 		'''Sets an optional message and moves forward the progress bar. Will also
 		handle all pending Gtk events, so interface keeps responsive during a background
 		job. This method returns True untill the 'Cancel' button has been pressed, this
 		boolean could be used to decide if the ackground job should continue or not.
 		'''
-		self.progressbar.pulse()
-		if not msg is None:
+		if self.total and self.count < self.total:
+			self.count += 1
+			fraction = float(self.count) / self.total
+			self.progressbar.set_fraction(fraction)
+			self.progressbar.set_text('%i%%' % int(fraction * 100))
+		else:
+			self.progressbar.pulse()
+
+		if msg:
 			self.msg_label.set_markup('<i>'+_encode_xml(msg)+'</i>')
 
 		while gtk.events_pending():

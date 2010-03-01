@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Fri, 13 Mar 2009 22:49:34 +0100
-Modification-Date: Fri, 13 Mar 2009 22:49:51 +0100
 
 ====== Link Map ======
 

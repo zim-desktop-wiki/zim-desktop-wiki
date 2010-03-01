@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Sat, 04 Apr 2009 10:58:28 +0200
-Modification-Date: Sun, 07 Jun 2009 19:54:00 +0200
 
 ====== LIMITATIONS ======
 

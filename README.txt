@@ -75,7 +75,8 @@ You will at least need the following:
 	* python-gtk
 	* python-gobject
 	* python-xdg (optional, but recommended)
-	* python-simplejson (for python <= 2.5)
+	* xdg-utils (optional, but recommended)
+	* python-simplejson (for python < 2.6)
 
 To verify zim is working properly on your system you can call the test suite
 using `./test.py`. Failures do not have to be critical, but in principle all
@@ -150,7 +151,7 @@ Special attention may be needed to run xdg update commands in a post-install
 script. Recommended commands are:
 
 	update-desktop-database
-	update-mime-database
+	update-mime-database /usr/share/mime
 	xdg-icon-resource install --context mimetypes \
 		--size 64 zim.png application-x-zim-notebook
 
@@ -171,6 +172,6 @@ you should add you new .po file to the po/ directory.
 
 After adding the .po file(s) you can compile the translation using:
 
-	./setup build_trans
+	./setup.py build_trans
 
 

@@ -40,7 +40,9 @@ class Store(memory.Store):
 	def __init__(self, notebook, path, file=None):
 		memory.Store.__init__(self, notebook, path)
 		self.file = file
-		assert self.store_has_file()
+		if not self.store_has_file():
+			raise AssertionError, 'XMl store needs file'
+			# not using assert here because it could be optimized away
 		self.format = get_format('wiki') # FIXME store format in XML header
 		if self.file.exists():
 			self.parse(self.file.read())

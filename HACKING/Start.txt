@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Unknown
-Modification-Date: Fri, 24 Jul 2009 19:56:30 +0200
 
 ====== HACKING ======
 
@@ -83,7 +82,7 @@ See the python style guide for best practices. Some items to keep in mind:
 
 * GUI classes are only allowed to construct widgets and wire signals.  Any actual manipulation of pages, notebooks etc. should go elsewhere.
 * Signal handlers have a method name starting with "do_"
-* Use "assert" for checks that could be removed when code is stable
+* Only use "assert" for checks that could be removed when code is stable, these statements could be optimized away
 * Do not rely on ''__doc__'' on run time, this data could be optimized away
 * Have a look e.g. at zim.parsing and zim.gui.widgets for common code snippets
 

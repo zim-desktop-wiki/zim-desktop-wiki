@@ -1,7 +1,6 @@
 Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.26
+Wiki-Format: zim 0.4
 Creation-Date: Thu, 30 Jul 2009 21:37:25 +0200
-Modification-Date: Thu, 30 Jul 2009 21:37:26 +0200
 
 ====== SavedSearch ======
 Created Thursday 30 July 2009

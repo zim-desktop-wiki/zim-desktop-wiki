@@ -45,7 +45,9 @@ class Store(memory.Store):
 		self.format = get_format('plain')
 		if 'file' in args:
 			self.file = file
-		assert self.has_file()
+		if not self.has_file():
+			raise AssertionError, 'Gjots store needs file'
+			# not using assert here because it could be optimized away
 		self.read_file()
 
 	def read_file(self):
