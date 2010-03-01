@@ -373,6 +373,9 @@ class GtkInterface(NotebookInterface):
 		# older gobject version doesn't know about seconds
 		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
 
+		for plugin in self.plugins:
+			plugin.finalize_ui(self)
+
 		self.mainwindow.show_all()
 		self.mainwindow.pageview.grab_focus()
 		gtk.main()

@@ -2,6 +2,8 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
+from __future__ import with_statement
+
 import gobject
 import gtk
 import logging
@@ -39,6 +41,25 @@ ui_xml = '''
 </ui>
 '''
 
+
+SQL_CREATE_TABLES = '''
+create table if not exists tasklist (
+	id INTEGER PRIMARY KEY,
+	source INTEGER,
+	parent INTEGER,
+	open BOOLEAN,
+	actionable BOOLEAN,
+	prio INTEGER,
+	due TEXT,
+	description TEXT
+);
+'''
+
+
+tag_re = re.compile(r'(?<!\S)@(\w+)\b')
+date_re = re.compile(r'\s*\[d:(.+)\]')
+
+
 # FUTURE: add an interface for this plugin in the WWW frontend
 
 class TaskListPlugin(PluginClass):
@@ -64,16 +85,115 @@ This is a core plugin shipping with zim.
 		# TODO: option to limit to specific namespace
 	)
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
+	def initialize_ui(self, ui):
 		if ui.ui_type == 'gtk':
 			ui.add_actions(ui_actions, self)
 			ui.add_ui(ui_xml, self)
+
+	def finalize_notebook(self, notebook):
+		self.index = notebook.index
+		self.index.connect('initialize-db', self.do_initialize_db)
+		self.index.connect('flush-db', self.do_flush_db)
+		self.index.connect('page-indexed', self.index_page)
+		self.index.connect('page-deleted', self.remove_page)
+		self.do_initialize_db(self.index)
+
+	def do_initialize_db(self, index):
+		with index.db_commit:
+			index.db.executescript(SQL_CREATE_TABLES)
+
+	def do_flush_db(self, index):
+		with index.db_commit:
+			index.db.execute('drop table "tasklist"')
+
+	def index_page(self, index, path, page):
+		#~ print '>>>>>', path, page, page.hascontent
+		#~ self.emit('updated')
+		self.remove_page(index, path)
+
+		tree = page.get_parsetree()
+		if not tree:
+			return
+
+		print '!! Checking for tasks in', path
+		for element in tree.getiterator('li'):
+			bullet = element.get('bullet')
+			if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
+				open = bullet == UNCHECKED_BOX
+				self._add_task(path, element, open)
+
+	def _add_task(self, path, node, open):
+		'!! Found tasks in ', path
+		text = self._flatten(node)
+		prio = text.count('!')
+
+		global date # FIXME
+		date = '9999' # For sorting order this is good empty value
+
+		def set_date(match):
+			global date
+			mydate = parse_date(match.group(0))
+			if mydate and date == '9999':
+				date = '%04i-%02i-%02i' % mydate # (y, m, d)
+				#~ return match.group(0) # TEST
+				return ''
+			else:
+				# No match or we already had a date
+				return match.group(0)
+
+		text = date_re.sub(set_date, text)
+
+		# TODO - determine if actionable or not
+		with self.index.db_commit:
+			self.index.db.execute(
+				'insert into tasklist(source, parent, open, actionable, prio, due, description)'
+				'values (?, ?, ?, ?, ?, ?, ?)',
+				(path.id, 0, open, False, prio, date, text)
+			)
+
+		#~ if open:
+			#~ self.total += 1
+			#~ self.maxprio = max(self.maxprio, prio)
+			#~ if prio in self.prio:
+				#~ self.prio[prio] += 1
+			#~ else:
+				#~ self.prio[prio] = 1
+
+		#~ tags = set(tag_re.findall(text))
+		#~ for tag in tags:
+			#~ if tag in self.tags:
+				#~ self.tags[tag] += 1
+			#~ else:
+				#~ self.tags[tag] = 1
+
+	def _flatten(self, node):
+		text = node.text or ''
+		for child in node.getchildren():
+			if child.tag != 'li':
+				text += self._flatten(child) # recurs
+				text += child.tail or ''
+		return text
+
+	def remove_page(self, index, path):
+		with index.db_commit:
+			cursor = index.db.execute(
+				'delete from tasklist where source=?', (path.id,) )
+
+	def list_tasks(self):
+		cursor = self.index.db.cursor()
+		cursor.execute('select * from tasklist')
+		for row in cursor:
+			yield row
+
+	def get_path(self, task):
+		return self.index.lookup_id(task['source'])
 
 	def show_task_list(self):
 		dialog = TaskListDialog.unique(self, plugin=self)
 		dialog.present()
 
+
+# TODO allow more complex queries for filter, in particular (NOT tag AND tag)
 
 class TaskListDialog(Dialog):
 
@@ -90,7 +210,7 @@ class TaskListDialog(Dialog):
 		self.vbox.add(self.hpane)
 
 		# Task list
-		self.task_list = TaskListTreeView(self.ui)
+		self.task_list = TaskListTreeView(self.ui, plugin)
 		scrollwindow = gtk.ScrolledWindow()
 		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
@@ -131,8 +251,8 @@ class TaskListDialog(Dialog):
 			text += ' (' + '/'.join(map(str, stats)) + ')'
 			self.statistics_label.set_text(text)
 
-		set_statistics(self.task_list)
-		self.task_list.connect('updated', set_statistics)
+		#~ set_statistics(self.task_list)
+		#~ self.task_list.connect('updated', set_statistics)
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
@@ -212,20 +332,18 @@ class TaskListTreeView(BrowserTreeView):
 	ACT_COL = 5 # actionable - no children
 	OPEN_COL = 6 # item not closed
 
-	tag_re = re.compile(r'(?<!\S)@(\w+)\b')
-	date_re = re.compile(r'\s*\[d:(.+)\]')
-
-	def __init__(self, ui):
+	def __init__(self, ui, plugin):
 		self.filter = None
 		self.tag_filter = None
 		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool)
-			# Vis, Prio, Task, Date, Page, Open, Act
+			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL
 		model = self.real_model.filter_new()
 		model.set_visible_column(self.VIS_COL)
 		model = gtk.TreeModelSort(model)
 		model.set_sort_column_id(self.PRIO_COL, gtk.SORT_DESCENDING)
 		BrowserTreeView.__init__(self, model)
 		self.ui = ui
+		self.plugin = plugin
 		self.total = 0
 		self.tags = {} # dict mapping tag to ref count
 		self.prio = {} # dict mapping tag to ref count
@@ -271,7 +389,7 @@ class TaskListTreeView(BrowserTreeView):
 			else:
 				cell.set_property('text', date)
 				# TODO allow strftime here
-				
+
 			if date == today: color = HIGH_COLOR
 			elif date == tomorrow: color = MEDIUM_COLOR
 			elif date == dayafter: color = ALERT_COLOR
@@ -285,18 +403,21 @@ class TaskListTreeView(BrowserTreeView):
 		column.set_sort_column_id(self.DATE_COL)
 		self.insert_column(column, 2)
 
-		for page in ui.notebook.walk():
-			self.index_page(page)
-			# TODO do not hang here while indexing...
-			# TODO cache this in database
+		self.refresh()
 
-		# TODO connect to notebok signals for updating ?
+	def refresh(self):
+		self.real_model.clear()
+		paths = {}
+		for row in self.plugin.list_tasks():
+			if not row['source'] in paths:
+				paths[row['source']] = self.plugin.get_path(row)
+			path = paths[row['source']]
+			self.real_model.append(None,
+				(open, row['prio'], row['description'], row['due'], path.name, row['actionable'], row['open'])
+			)
+			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL
 
-	#~ def show_closed(self, bool):
-		# TODO - also show closed items
-
-	#~ def show_tree(self, bool):
-		# TODO - switch between tree view and list view
+		# TODO re-apply the filters -- now we just check 'open'
 
 	def set_filter(self, string):
 		self.filter = string
@@ -349,72 +470,6 @@ class TaskListTreeView(BrowserTreeView):
 		#~ task = ...
 		self.ui.open_page(page)
 		#~ self.ui.mainwindow.pageview.search(task)
-
-	def index_page(self, page):
-		#~ self._delete_page(page)
-		self._index_page(page)
-		self.emit('updated')
-
-	def _index_page(self, page):
-		logger.debug('Task List indexing page: %s', page)
-		tree = page.get_parsetree()
-		if not tree:
-			return
-
-		for element in tree.getiterator('li'):
-			bullet = element.get('bullet')
-			if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
-				open = bullet == UNCHECKED_BOX
-				self._add_task(page, element, open)
-
-	def _add_task(self, page, node, open):
-		text = self._flatten(node)
-		prio = text.count('!')
-
-		global date # FIXME
-		date = '9999' # For sorting order this is good empty value
-
-		def set_date(match):
-			global date
-			mydate = parse_date(match.group(0))
-			if mydate and date == '9999':
-				date = '%04i-%02i-%02i' % mydate # (y, m, d)
-				#~ return match.group(0) # TEST
-				return ''
-			else:
-				# No match or we already had a date
-				return match.group(0)
-		
-		text = self.date_re.sub(set_date, text)
-
-		# TODO - determine if actionable or not
-		# TODO - call _filter_item()
-		self.real_model.append(None,
-			(open, prio, text, date, page.name, True, open) )
-			# Vis, Prio, Task, Date, Page, Act, Open
-
-		if open:
-			self.total += 1
-			self.maxprio = max(self.maxprio, prio)
-			if prio in self.prio:
-				self.prio[prio] += 1
-			else:
-				self.prio[prio] = 1
-
-		tags = set(self.tag_re.findall(text))
-		for tag in tags:
-			if tag in self.tags:
-				self.tags[tag] += 1
-			else:
-				self.tags[tag] = 1
-	
-	def _flatten(self, node):
-		text = node.text or ''
-		for child in node.getchildren():
-			if child.tag != 'li':
-				text += self._flatten(child) # recurs
-				text += child.tail or ''
-		return text
 
 # Need to register classes defining gobject signals
 gobject.type_register(TaskListTreeView)

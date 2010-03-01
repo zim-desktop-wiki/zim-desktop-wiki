@@ -102,7 +102,10 @@ class PluginClass(gobject.GObject):
 				self.preferences.setdefault(key, default)
 		self.uistate = ListDict()
 		self._is_image_generator_plugin = False
+		self.initialize_ui(ui)
 		self.ui.connect_after('open-notebook', self._merge_uistate)
+			# FIXME with new plugin API should not need this merging
+		self.ui.connect_object_after('open-notebook', self.__class__.finalize_notebook, self)
 
 	def _merge_uistate(self, *a):
 		# As a convenience we provide a uistate dict directly after
@@ -116,6 +119,35 @@ class PluginClass(gobject.GObject):
 			self.uistate = self.ui.uistate[section]
 			for key, value in defaults.items():
 				self.uistate.setdefault(key, value)
+
+	def initialize_ui(self, ui):
+		'''Callback called during contruction of the ui.
+		Can be overloaded by subclasses.
+		'''
+		# FIXME more documentation how / when to use this
+		pass
+
+	def initialize_notebook(self, notebook):
+		'''Callback called before contruction of the notebook.
+		Can be overloaded by subclasses.
+		'''
+		# TODO actually hook up this callback - need it for fuse plugin
+		# FIXME more documentation how / when to use this
+		pass
+
+	def finalize_notebook(self, notebook):
+		'''Callback called once the notebook object is created and set.
+		Can be overloaded by subclasses.
+		'''
+		# FIXME more documentation how / when to use this
+		pass
+
+	def finalize_ui(self, ui):
+		'''Callback called just before entering the main loop.
+		Can be overloaded by subclasses.
+		'''
+		# FIXME more documentation how / when to use this
+		pass
 
 	def do_preferences_changed(self):
 		'''Handler called when preferences are changed by the user.
