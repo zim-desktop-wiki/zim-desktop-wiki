@@ -3705,7 +3705,7 @@ class EditImageDialog(Dialog):
 	def do_height_changed(self):
 		if self._block: return
 		self._image_data.pop('width', None)
-		self._image_data['height'] = self.get_field('height')
+		self._image_data['height'] = float(self.get_field('height'))
 		w = int(self._ratio * self._image_data['height'])
 		self._block = True
 		self.inputs['width'].set_value(w)

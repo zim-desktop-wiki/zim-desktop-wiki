@@ -634,7 +634,7 @@ class Dialog(gtk.Dialog):
 	def add_fields(self, fields, table=None, trigger_response=True):
 		'''Add a number of fields to the dialog, convenience method to
 		construct simple forms. The argument 'fields' should be a list of
-		field definitions; each definition is a tupple of:
+		field definitions; each definition is a tuple of:
 
 			* The field name
 			* The field type
@@ -676,6 +676,7 @@ class Dialog(gtk.Dialog):
 				v, min, max = value
 				button.set_value(v)
 				button.set_range(min, max)
+				button.set_increments(1,5)
 				self.inputs[name] = button
 				table.attach(button, 1,2, i,i+1)
 			elif type == 'list':
