@@ -96,6 +96,9 @@ class Dumper(DumperClass):
 				output.append(element.text)
 				output.append('\n\\end{verbatim}\n')
 			elif element.tag == 'img':
+				#we try to get images about the same visual size, therefore need to specify dot density
+				#96 dpi seems to be common for computer monitors
+				dpi = 96
 				if 'type' in element.attrib:
 					if element.attrib['type'] == 'equation':
 						eqpath = self.linker.link(element.attrib['src'])
@@ -106,11 +109,9 @@ class Dumper(DumperClass):
 						eqfid.close()
 					elif element.attrib['type'] == 'None':
 						if 'width' in element.attrib and not 'height' in element.attrib:
-							options = 'width=%s, keepaspectratio=true'%element.attrib['width']
+							options = 'width=%fin, keepaspectratio=true'%(float(element.attrib['width'])/dpi)
 						elif 'height' in element.attrib and not 'width' in element.attrib:
-							options = 'height=%s, keepaspectratio=true'%element.attrib['height']
-						elif 'height' in element.attrib and 'width' in element.attrib:
-							options = 'width=%s, height=%s'%(element.attrib['width'],element.attrib['height'])
+							options = 'height=%fin, keepaspectratio=true'%(float(element.attrib['height'])/dpi)
 						else:
 							options = ''
 
@@ -121,7 +122,7 @@ class Dumper(DumperClass):
 							output.append(image)
 			elif element.tag == 'link':
 				href = self.linker.link(element.attrib['href'])
-				output.append('\\href{%s}{%s}' % (href, text))
+				output.append('\\href{%s}{%s}\n' % (href, text))
 			elif element.tag == 'emphasis':
 				output.append('\\emph{'+text+'}')
 			elif element.tag == 'strong':
@@ -136,6 +137,7 @@ class Dumper(DumperClass):
 					if not delim in text:
 						success = True
 						output.append('\\verb'+delim+text+delim)
+						break
 				if not success:
 					assert False, 'Found no suitable delimiter for verbatim text: %s' % element
 					pass

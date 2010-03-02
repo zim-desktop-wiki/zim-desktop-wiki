@@ -28,7 +28,7 @@ Supported tags:
 * link for links, attribute href gives the target
 * img for images, attributes src, width, height an optionally href
 	* any text set on these elements should be rendered as alt
-	* class can be used to control plugin functionality, e.g. class=latex-equation
+	* type can be used to control plugin functionality, e.g. type=equation
 
 Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
@@ -105,7 +105,6 @@ def get_format(name):
 	mod = __import__('zim.formats.'+name)
 	mod = getattr(mod, 'formats')
 	mod = getattr(mod, name)
-	print mod
 	return mod
 
 
