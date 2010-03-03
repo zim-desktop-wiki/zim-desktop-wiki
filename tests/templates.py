@@ -143,7 +143,7 @@ class TestPageProxy(TestCase):
 **foo bar !**
 ''')
 		self.assertTrue(len(page.dump('html', linker=StubLinker())) > 0)
-		proxy = PageProxy(Notebook(), page, zim.formats.get_format('html'), StubLinker())
+		proxy = PageProxy(Notebook(), page, zim.formats.get_format('html'), StubLinker(), {})
 		self.assertEqual(proxy.name, page.name)
 		self.assertEqual(proxy.namespace, page.namespace)
 		self.assertEqual(proxy.basename, page.basename)

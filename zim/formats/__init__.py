@@ -507,8 +507,9 @@ class DumperClass(object):
 	'Dumper' which inherits from this base class.
 	'''
 
-	def __init__(self, linker=None):
+	def __init__(self, linker=None, template_options=None):
 		self.linker = linker
+		self.template_options = template_options or {}
 
 	def dump(self, tree):
 		'''ABSTRACT METHOD needs to be overloaded by sub-classes.
