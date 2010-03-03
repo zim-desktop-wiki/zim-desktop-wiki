@@ -347,6 +347,18 @@ That's all ...<br>
 		self.assertEqualDiff(output, html.splitlines(True))
 
 
+class TestLatexFormat(TestCase):
+
+	def runTest(self):
+		format = get_format('latex')
+
+		input = r'\foo $ % ^ \% bar'
+		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar'
+		self.assertEqual(format.tex_encode(input), wanted)
+
+		# TODO more testing for latex
+		# TODO test template_options.document_type
+
 class StubLinker(object):
 
 	def set_usebase(self, usebase): pass

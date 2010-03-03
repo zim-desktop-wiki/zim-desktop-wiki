@@ -2,6 +2,7 @@
 
 '''This modules handles export of LaTeX Code'''
 
+import re
 
 from zim.formats import *
 from zim.parsing import TextBuffer, url_re
@@ -27,20 +28,25 @@ bullet_types = {}
 for bullet in bullets:
 	bullet_types[bullets[bullet]] = bullet
 
+
+encode_re = re.compile(r'(\&|\$|\^|\%|\#|\_|\\)')
+encode_dict = {
+	'\\': '$\\backslash$',
+	'&': '\\$',
+	'$': '\\$ ',
+	'^': '\\^{}',
+	'%': '\\%',
+	'#': '\\# ',
+	'_': '\\_',
+}
+
+
 def tex_encode(text):
 	if not text is None:
-		#TODO: non-hacky solution
-		text = text.replace('\\','SOMETHINGWHICHIHOPEWILLNEVERTURNUPINATEXTOTHERWISETHISWILLSCREWUP')
-		text = text.replace('&','\\&')
-		text = text.replace('$','\\$ ')
-		text = text.replace('^','\\^{}')
-		text = text.replace('%','\\%')
-		text = text.replace('#','\\# ')
-		text = text.replace('_', '\\_')
-		text = text.replace('SOMETHINGWHICHIHOPEWILLNEVERTURNUPINATEXTOTHERWISETHISWILLSCREWUP','$\\backslash$')
-		return text
+		return encode_re.sub(lambda m: encode_dict[m.group(1)], text)
 	else:
 		return ''
+
 
 class Dumper(DumperClass):
 
@@ -48,8 +54,14 @@ class Dumper(DumperClass):
 		assert isinstance(tree, ParseTree)
 		assert self.linker, 'LaTeX dumper needs a linker object'
 		self.linker.set_usebase(False)
+
+		self.document_type = self.template_options.get('document_type')
+			# Option set in template - potentially tainted value
+		if not self.document_type in ('report', 'book'):
+			self.document_type = 'report' # arbitrary default
+
 		output = TextBuffer()
-		self.dump_children(tree.getroot(),output)
+		self.dump_children(tree.getroot(), output)
 		return output.get_lines()
 
 	def dump_children(self, list, output, list_level = -1):
