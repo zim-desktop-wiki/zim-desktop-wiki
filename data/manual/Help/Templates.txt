@@ -9,25 +9,11 @@ Templates are also used to initalize new pages.
 
 ===== Templates for export =====
 
-**"Default"**
-This is a simple template intended as a base for custom styles. It has an inline style definition that is intended to match the (default) look of zim.
+For a list of templates for exporting see [[Help:Export]] and subpages. 
 
-**"Presentation"**
-Template with a little more color than "Default". It is intended to convert a set of pages in an online presentation quickly. Simple javascript included for some basic keybindings:
+===== Template options =====
 
-'''
-Enter             next page
-Spacebar          next page
-backspace         previous page
-'''
-
-**"Print"**
-This is a plain template intended for printing pages. It is use by the "Print to Browser" plugin.
-
-**"SlideShow (S5)"**
-Template based on S5. S5 is "A Simple Standards-Based Slide Show System", which mean a slide show system completely written in html and javascript. Therefor these slide shows can be presented using a browser and be put on a website. See [[http://meyerweb.com/eric/tools/s5/|the S5 website]] for more information.
-
-Note that in order to use the output from this template you need to download the S5 package and copy the "ui" directory from the package to the same directory where you export your slideshow to.
+Templates can also set template options that influence the generated output, by setting key-value pairs like in the example below. A list of available template options for a output format can be found at [[Help:Export]] and subpages.
 
 ===== Special templates =====
 
@@ -39,6 +25,8 @@ This template is used to initialize new pages. The default contains a header wit
 Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/templates'' by default. You can add templates you use more often there. To modify a template copy it to the ''~/.local/...'' directory and edit it.
 
 Template syntax:
+
+
 
 '''
 [% var %]                   # interpolates a variable
@@ -57,6 +45,11 @@ Template syntax:
 
 [% strftime("%c") %]		# current time stamp
 [% strftime("%c", var) %]   # date from variable
+'''
+
+
+'''
+[% options.option_name = value %] # set the template option option_name to value
 '''
 
 Available variables:
