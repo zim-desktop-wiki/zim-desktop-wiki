@@ -22,3 +22,7 @@ class testPlugins(TestCase):
 		self.assertTrue('spell' in plugins)
 		self.assertTrue('linkmap' in plugins)
 
+	def testDependencies(self):
+		plugin = zim.plugins.get_plugin('tasklist')
+		assert plugin.check_dependencies()
+

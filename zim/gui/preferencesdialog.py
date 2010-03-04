@@ -213,7 +213,8 @@ class PluginsTab(gtk.HBox):
 
 	def do_row_activated(self, treeview, path, col):
 		active = treeview.get_model()[path][0]
-		klass = treeview.get_model()[path][2]
+		activatable = treeview.get_model()[path][1]
+		klass = treeview.get_model()[path][3]
 		self._klass = klass
 		self.name_label.set_text(klass.plugin_info['name'].strip())
 		self.description_label.set_text(klass.plugin_info['description'].strip())
@@ -231,7 +232,8 @@ class PluginsTab(gtk.HBox):
 class PluginsTreeModel(gtk.ListStore):
 
 	def __init__(self, ui):
-		gtk.ListStore.__init__(self, bool, str, object)
+		#columns are: loaded, activable, name, plugin instance
+		gtk.ListStore.__init__(self, bool, bool, str, object)
 		self.ui = ui
 		loaded = [p.__class__ for p in self.ui.plugins]
 		for name in zim.plugins.list_plugins():
@@ -242,10 +244,16 @@ class PluginsTreeModel(gtk.ListStore):
 				continue
 			else:
 				l = klass in loaded
-				self.append((l, klass.plugin_info['name'], klass))
+				a = klass.check_dependencies()
+				if not a and l:
+					self.ui.unload_plugin(klass.plugin_key)
+					l = False
+				self.append((l, a, klass.plugin_info['name'], klass))
 
 	def do_toggle_path(self, path):
-		loaded, name, klass = self[path]
+		loaded, activatable, name, klass = self[path]
+		if not activatable:
+			return
 		if loaded:
 			self.ui.unload_plugin(klass.plugin_key)
 			self[path][0] = False
@@ -265,10 +273,10 @@ class PluginsTreeView(BrowserTreeView):
 		cellrenderer = gtk.CellRendererToggle()
 		cellrenderer.connect('toggled', lambda o, p: model.do_toggle_path(p))
 		self.append_column(
-			gtk.TreeViewColumn(_('Enabled'), cellrenderer, active=0))
+			gtk.TreeViewColumn(_('Enabled'), cellrenderer, active=0, activatable=1))
 			# T: Column in plugin tab
 		self.append_column(
-			gtk.TreeViewColumn(_('Plugin'), gtk.CellRendererText(), text=1))
+			gtk.TreeViewColumn(_('Plugin'), gtk.CellRendererText(), text=2))
 			# T: Column in plugin tab
 
 

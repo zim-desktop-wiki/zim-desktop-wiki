@@ -117,6 +117,11 @@ class PluginClass(gobject.GObject):
 			for key, value in defaults.items():
 				self.uistate.setdefault(key, value)
 
+	@classmethod
+	def check_dependencies(klass):
+		'''This method returns a boolean indicating if all dependencies are met'''
+		return True
+
 	def do_preferences_changed(self):
 		'''Handler called when preferences are changed by the user.
 		Can be overloaded by sub classes to apply relevant changes.

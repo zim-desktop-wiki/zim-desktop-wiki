@@ -9,6 +9,7 @@ import logging
 from zim.fs import File
 from zim.plugins import PluginClass
 from zim.errors import Error
+from zim.applications import Application
 
 from zim.gui.widgets import SingleClickTreeView, Dialog, PageEntry, IconButton, scrolled_text_view, QuestionDialog
 
@@ -87,6 +88,10 @@ This is a core plugin shipping with zim.
 				if self.preferences['autosave']:
 					self.autosave()
 			self.ui.connect('quit', on_quit)
+
+	@classmethod
+	def check_dependencies(klass):
+		return Application(('bzr',)).tryexec()
 
 	def detect_vcs(self):
 		dir = self._get_notebook_dir()

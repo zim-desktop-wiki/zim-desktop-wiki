@@ -53,6 +53,10 @@ This is a core plugin shipping with zim.
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
 
+	@classmethod
+	def check_dependencies(klass):
+		return Application(('scrot',)).tryexec()
+
 	def insert_screenshot(self):
 		dialog = InsertScreenshotDialog.unique(self, self.ui)
 		dialog.show_all()

@@ -63,6 +63,10 @@ This is a core plugin shipping with zim.
 			self.ui.connect_after('open-page', self.do_open_page)
 
 	@classmethod
+	def check_dependencies(klass):
+		return not gtkspell == None	
+
+	@classmethod
 	def check(cls):
 		if gtkspell is None:
 			return False, 'Could not load gtkspell'
