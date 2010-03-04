@@ -36,8 +36,8 @@ The result from this template can not be compiled on its own, it is designed to 
 
 === document_type ===
 
-Possible values: 'report', 'article'
-Default: 'article'
+Possible values: 'report', 'article', 'book'
+Default: 'report'
 
 The exported LaTeX code will use only commands suitable for the given document class (e.g. sectioning commands).
 

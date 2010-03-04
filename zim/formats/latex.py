@@ -23,6 +23,32 @@ bullets = {
 	'\\item[\\CheckedBox] ': CHECKED_BOX,
 	'\\item ': BULLET,
 }
+
+sectioning = {
+	'report': {
+		1:'\\chapter{%s}',
+		2:'\\section{%s}',
+		3:'\\subsection{%s}',
+		4:'\\subsubsection{%s}',
+		5:'\\paragraph{%s}'
+	},
+	'article': {
+		1:'\\section{%s}',
+		2:'\\subsection{%s}',
+		3:'\\subsubsection{%s}',
+		4:'\\paragraph{%s}',
+		5:'\\subparagraph{%s}'
+	},
+	'book': {
+		1:'\\part{%s}',
+		2:'\\chapter{%s}',
+		3:'\\section{%s}',
+		4:'\\subsection{%s}',
+		5:'\\subsubsection{%s}'
+	}
+}
+
+
 # reverse dict
 bullet_types = {}
 for bullet in bullets:
@@ -57,8 +83,10 @@ class Dumper(DumperClass):
 
 		self.document_type = self.template_options.get('document_type')
 			# Option set in template - potentially tainted value
-		if not self.document_type in ('report', 'book'):
+		if not self.document_type in ('report', 'article','book'):
 			self.document_type = 'report' # arbitrary default
+
+		logger.info('used document type: %s'%self.document_type)
 
 		output = TextBuffer()
 		self.dump_children(tree.getroot(), output)
@@ -88,11 +116,7 @@ class Dumper(DumperClass):
 				level = int(element.attrib['level'])
 				if level < 1: level = 1
 				elif level > 5: level = 5
-				if   level == 1: output.append('\\chapter{'+text+'}')
-				elif level == 2: output.append('\\section{'+text+'}')
-				elif level == 3: output.append('\\subsection{'+text+'}')
-				elif level == 4: output.append('\\subsubsection{'+text+'}')
-				elif level == 4: output.append('\\paragraph{'+text+'}')
+				output.append(sectioning[self.document_type][level]%(text))
 			elif element.tag == 'li':
 				if 'indent' in element.attrib:
 					list_level = int(element.attrib['indent'])
