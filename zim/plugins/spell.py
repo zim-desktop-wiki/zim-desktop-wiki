@@ -41,7 +41,6 @@ class SpellPlugin(PluginClass):
 		'name': _('Spell Checker'), # T: plugin name
 		'description': _('''\
 Adds spell checking support using gtkspell.
-Please make sure gtkspell is installed.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
@@ -64,14 +63,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return not gtkspell == None	
-
-	@classmethod
-	def check(cls):
-		if gtkspell is None:
-			return False, 'Could not load gtkspell'
-		else:
-			return True
+		return [('gtkspell',not gtkspell is None)]	
 
 	def toggle_spellcheck(self, enable=None):
 		action = self.actiongroup.get_action('toggle_spellcheck')

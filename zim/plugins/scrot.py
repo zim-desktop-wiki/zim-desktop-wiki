@@ -39,8 +39,6 @@ This plugin is a wrapper for the "scrot" application.
 It allows taking a screenshot and directly insert it
 in a zim page.
 
-Depends on: scrot
-
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
@@ -55,7 +53,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return Application(('scrot',)).tryexec()
+		return [('scrot',Application(('scrot',)).tryexec())]
 
 	def insert_screenshot(self):
 		dialog = InsertScreenshotDialog.unique(self, self.ui)

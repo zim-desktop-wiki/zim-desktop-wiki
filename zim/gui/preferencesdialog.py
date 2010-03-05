@@ -155,9 +155,6 @@ class PreferencesDialog(Dialog):
 
 class PluginsTab(gtk.HBox):
 
-	# TODO defined checks for plugin dependencies and grey them out here if
-	# the check fails - or give an error popup with the result of the check
-
 	def __init__(self, dialog):
 		gtk.HBox.__init__(self, spacing=12)
 		self.set_border_width(5)
@@ -190,6 +187,10 @@ class PluginsTab(gtk.HBox):
 		self.description_label = gtk.Label()
 		self.description_label.set_alignment(0.0, 0.5)
 		vbox.pack_start(self.description_label, False) # FIXME run through plain format to make links
+		vbox.pack_start(heading('\n'+_('Dependencies')),False)
+		self.dep_label = gtk.Label()
+		self.dep_label.set_alignment(0.0, 0.5)
+		vbox.pack_start(self.dep_label, False)
 		vbox.pack_start(heading('\n'+_('Author')), False)
 			# T: Heading in plugins tab of preferences dialog
 		self.author_label= gtk.Label()
@@ -216,8 +217,28 @@ class PluginsTab(gtk.HBox):
 		activatable = treeview.get_model()[path][1]
 		klass = treeview.get_model()[path][3]
 		self._klass = klass
+		#construct dependency list, missing dependencies are marked red
+		space = False
+		depend_label = ''
+		dependencies = klass.check_dependencies()
+		for text, met in dependencies:
+			if space:
+				depend_label += ' '
+			else:
+				space = True
+			if met:
+				depend_label += text
+			else:
+				depend_label += '<span color="red">' + text + '</span>'
+		if depend_label == '':
+			depend_label = 'No dependencies'
+
 		self.name_label.set_text(klass.plugin_info['name'].strip())
 		self.description_label.set_text(klass.plugin_info['description'].strip())
+		if not activatable:
+			self.dep_label.set_markup(depend_label)
+		else:
+			self.dep_label.set_text(depend_label)
 		self.author_label.set_text(klass.plugin_info['author'].strip() + '\n')
 		self.configure_button.set_sensitive(active and bool(klass.plugin_preferences))
 		self.plugin_help_button.set_sensitive('help' in klass.plugin_info)
@@ -244,11 +265,14 @@ class PluginsTreeModel(gtk.ListStore):
 				continue
 			else:
 				l = klass in loaded
-				a = klass.check_dependencies()
-				if not a and l:
+				dependencies = klass.check_dependencies()
+				activatable = True
+				for dep in dependencies:
+					activatable = activatable and dep[1]	
+				if not activatable and l:
 					self.ui.unload_plugin(klass.plugin_key)
 					l = False
-				self.append((l, a, klass.plugin_info['name'], klass))
+				self.append((l, activatable, klass.plugin_info['name'], klass))
 
 	def do_toggle_path(self, path):
 		loaded, activatable, name, klass = self[path]
