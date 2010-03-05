@@ -23,6 +23,14 @@ class testPlugins(TestCase):
 		self.assertTrue('linkmap' in plugins)
 
 	def testDependencies(self):
-		plugin = zim.plugins.get_plugin('tasklist')
-		assert plugin.check_dependencies()
+		'''test if all plugins provide correct dependency infos'''
+		plugins = zim.plugins.list_plugins()
+		for name in plugins:
+			plugin = zim.plugins.get_plugin(name)
+			dep = plugin.check_dependencies()
+			assert isinstance(dep,list)
+			for i in range(len(dep)):
+				assert isinstance(dep[i],tuple)
+				assert isinstance(dep[i][0],str)
+				assert isinstance(dep[i][1],bool)
 
