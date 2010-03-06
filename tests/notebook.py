@@ -141,6 +141,7 @@ class TestNotebook(tests.TestCase):
 			self.assertTrue(isinstance(page, Page))
 			index.add(page.name)
 		self.assertTrue(index.issuperset(self.notebook.testdata_manifest))
+		print str(self.notebook.testdata_manifest)
 
 	def testManipulate(self):
 		'''Test renaming, moving and deleting pages in the notebook'''

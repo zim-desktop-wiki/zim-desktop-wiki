@@ -349,14 +349,20 @@ That's all ...<br>
 
 class TestLatexFormat(TestCase):
 
-	def runTest(self):
+	def testEncode(self):
+		'''test the escaping of certain characters'''
 		format = get_format('latex')
 
 		input = r'\foo $ % ^ \% bar'
 		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar'
 		self.assertEqual(format.tex_encode(input), wanted)
 
-		# TODO more testing for latex
+	def testExport(self):
+		'''test the export of a wiki page to latex'''
+		format = get_format('LaTeX')
+		testpage = get_test_data_page('wiki','Test:wiki')
+		tree = get_format('wiki').Parser().parse(testpage)
+		output = format.Dumper(linker=StubLinker()).dump(tree)
 		# TODO test template_options.document_type
 
 class StubLinker(object):
