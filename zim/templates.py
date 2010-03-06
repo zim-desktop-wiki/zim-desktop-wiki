@@ -207,9 +207,9 @@ class GenericTemplate(object):
 					token = GETToken(string[3:])
 				elif self._token_re.match(string):
 					raise TemplateSyntaxError, 'Unknown directive: %s' % self._token_re[1]
-				elif string.find('=') >= 0:	# imlpicite SET
+				elif string.find('=') >= 0:	# implicit SET
 					token = SETToken(string)
-				else:  # imlicite GET
+				else:  # implicit GET
 					token = GETToken(string)
 				self.stack[-1].append(token)
 
@@ -272,7 +272,7 @@ class Template(GenericTemplate):
 		# Caching last processed dict because any pages in the dict
 		# will be cached using a weakref dict. Assuming we process multiple
 		# pages after each other, and they share links like home / previous /
-		# next etc. this will is a cheap optimization.
+		# next etc. this is a cheap optimization.
 		self._last_dict = dict
 		return output
 

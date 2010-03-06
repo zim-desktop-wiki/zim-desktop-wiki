@@ -17,11 +17,12 @@ info = {
 	'export':	True,
 }
 
-bullets = {
-	'\\item[\\Square] ': UNCHECKED_BOX,
-	'\\item[\\XBox] ': XCHECKED_BOX,
-	'\\item[\\CheckedBox] ': CHECKED_BOX,
-	'\\item ': BULLET,
+# reverse dict
+bullet_types = {
+	UNCHECKED_BOX : '\\item[\\Square] ',
+	XCHECKED_BOX  : '\\item[\\XBox] ',
+	CHECKED_BOX   : '\\item[\\CheckedBox] ',
+	BULLET        : '\\item ',
 }
 
 sectioning = {
@@ -48,11 +49,6 @@ sectioning = {
 	}
 }
 
-
-# reverse dict
-bullet_types = {}
-for bullet in bullets:
-	bullet_types[bullets[bullet]] = bullet
 
 
 encode_re = re.compile(r'(\&|\$|\^|\%|\#|\_|\\)')
@@ -123,7 +119,7 @@ class Dumper(DumperClass):
 				if 'bullet' in element.attrib:
 					bullet = bullet_types[element.attrib['bullet']]
 				else:
-					bullet = '\\item '
+					bullet = bullet_types[BULLET]
 				output.append('\t'*list_level+bullet)
 				self.dump_children(element, output, list_level=list_level) # recurse
 				output.append('\n')
@@ -169,6 +165,7 @@ class Dumper(DumperClass):
 				output.append('\\sout{'+text+'}')
 			elif element.tag == 'code':
 				success = False
+				#Here we try several possible delimiters for the inline verb command of LaTeX
 				for delim in '+*|$&%!-_':
 					if not delim in text:
 						success = True
