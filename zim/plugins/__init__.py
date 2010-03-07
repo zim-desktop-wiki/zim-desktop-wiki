@@ -31,6 +31,9 @@ def list_plugins():
 	# FIXME how should this work for e.g. for python eggs ??
 	plugins = set()
 	for dir in sys.path:
+		if os.path.basename(dir) == 'zim.exe':
+			# path is an executable, not a folder -- examime containing folder
+			dir = os.path.dirname(dir)
 		dir = Dir((dir, 'zim', 'plugins'))
 		if not dir.exists():
 			continue
