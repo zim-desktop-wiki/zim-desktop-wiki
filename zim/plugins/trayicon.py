@@ -44,6 +44,10 @@ This is a core plugin shipping with zim.
 				self.icon = StandAloneTrayIcon(self.ui)
 			self.ui.hideonclose = True
 
+	@classmethod
+	def check_dependencies(klass):
+		return [('GTK > 2.10',gtk.gtk_version > (2, 10, 0))]
+
 	def disconnect(self):
 		if self.icon:
 			self.icon.set_visible(False)
