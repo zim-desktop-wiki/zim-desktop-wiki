@@ -117,6 +117,19 @@ class PluginClass(gobject.GObject):
 			for key, value in defaults.items():
 				self.uistate.setdefault(key, value)
 
+	@classmethod
+	def check_dependencies_ok(klass):
+		'''Like check_dependencies, but just returns boolean'''
+		return all(dep[1] for dep in klass.check_dependencies())
+
+	@classmethod
+	def check_dependencies(klass):
+		'''This method checks which dependencies are met'''
+		#returns a list of tuples, one for each dependency.
+		#each tuple contains a string with the name of the dependency and a
+		#boolean indicating if it is fulfilled
+		return []
+
 	def do_preferences_changed(self):
 		'''Handler called when preferences are changed by the user.
 		Can be overloaded by sub classes to apply relevant changes.

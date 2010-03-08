@@ -359,11 +359,13 @@ class NotebookInterface(gobject.GObject):
 			self.load_plugin(plugin)
 
 	def load_plugin(self, name):
-		'''Load a single plugin by name'''
+		'''Load a single plugin by name, returns boolean for success'''
 		assert isinstance(name, basestring)
 		import zim.plugins
 		try:
 			klass = zim.plugins.get_plugin(name)
+			if not klass.check_dependencies_ok():
+				raise AssertionError, 'Dependencies failed'
 			plugin = klass(self)
 		except:
 			logger.exception('Failed to load plugin %s', name)

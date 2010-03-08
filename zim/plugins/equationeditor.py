@@ -42,8 +42,6 @@ class InsertEquationPlugin(PluginClass):
 		'description': _('''\
 This plugin provides an equation editor for zim based on latex.
 
-Depends on: latex, dvipng
-
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'help': ':Plugins:Equation Editor',
@@ -52,10 +50,8 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return Application(latexcmd).tryexec() \
-		and Application(dvipngcmd).tryexec()
-		# TODO feedback a readon for use in popup etc
-		# TODO nicer interface for this - note also test uses this
+		return [('latex',Application(latexcmd).tryexec()), \
+		('dvipng',Application(dvipngcmd).tryexec())]
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)

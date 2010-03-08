@@ -155,9 +155,6 @@ class PreferencesDialog(Dialog):
 
 class PluginsTab(gtk.HBox):
 
-	# TODO defined checks for plugin dependencies and grey them out here if
-	# the check fails - or give an error popup with the result of the check
-
 	def __init__(self, dialog):
 		gtk.HBox.__init__(self, spacing=12)
 		self.set_border_width(5)
@@ -190,6 +187,12 @@ class PluginsTab(gtk.HBox):
 		self.description_label = gtk.Label()
 		self.description_label.set_alignment(0.0, 0.5)
 		vbox.pack_start(self.description_label, False) # FIXME run through plain format to make links
+		vbox.pack_start(heading('\n'+_('Dependencies')),False)
+			# T: Heading in plugins tab of preferences dialog
+		self.dep_label = gtk.Label()
+		self.dep_label.set_alignment(0.0, 0.5)
+		vbox.pack_start(self.dep_label, False)
+
 		vbox.pack_start(heading('\n'+_('Author')), False)
 			# T: Heading in plugins tab of preferences dialog
 		self.author_label= gtk.Label()
@@ -213,10 +216,31 @@ class PluginsTab(gtk.HBox):
 
 	def do_row_activated(self, treeview, path, col):
 		active = treeview.get_model()[path][0]
-		klass = treeview.get_model()[path][2]
+		klass = treeview.get_model()[path][3]
 		self._klass = klass
+
+		#construct dependency list, missing dependencies are marked red
+		space = False
+		depend_label = ''
+		def format_dependency(dependency):
+			text, ok = dependency
+			text = text.replace('>', '&gt;').replace('<', '&lt;') # encode XML
+			if ok:
+				text += ' - ' + _('OK') # T: dependency is OK
+			else:
+				text = '<span color="red">%s - %s</span>' % (text, _('Failed'))
+					# T: dependency failed
+			return u'\u2022 ' + text + '\n'  # unicode bullet
+
+		dependencies = klass.check_dependencies()
+		if dependencies:
+			dep_text = ''.join(map(format_dependency, dependencies))
+		else:
+			dep_text = _('No dependencies') # T: label in plugin info in preferences dialog
+
 		self.name_label.set_text(klass.plugin_info['name'].strip())
 		self.description_label.set_text(klass.plugin_info['description'].strip())
+		self.dep_label.set_markup(dep_text)
 		self.author_label.set_text(klass.plugin_info['author'].strip() + '\n')
 		self.configure_button.set_sensitive(active and bool(klass.plugin_preferences))
 		self.plugin_help_button.set_sensitive('help' in klass.plugin_info)
@@ -231,7 +255,8 @@ class PluginsTab(gtk.HBox):
 class PluginsTreeModel(gtk.ListStore):
 
 	def __init__(self, ui):
-		gtk.ListStore.__init__(self, bool, str, object)
+		#columns are: loaded, activable, name, plugin instance
+		gtk.ListStore.__init__(self, bool, bool, str, object)
 		self.ui = ui
 		loaded = [p.__class__ for p in self.ui.plugins]
 		for name in zim.plugins.list_plugins():
@@ -241,11 +266,15 @@ class PluginsTreeModel(gtk.ListStore):
 				logger.exception('Could not load plugin %s', name)
 				continue
 			else:
-				l = klass in loaded
-				self.append((l, klass.plugin_info['name'], klass))
+				isloaded = klass in loaded
+				activatable = klass.check_dependencies_ok()
+				self.append((isloaded, activatable, klass.plugin_info['name'], klass))
 
 	def do_toggle_path(self, path):
-		loaded, name, klass = self[path]
+		loaded, activatable, name, klass = self[path]
+		if not activatable:
+			return
+
 		if loaded:
 			self.ui.unload_plugin(klass.plugin_key)
 			self[path][0] = False
@@ -265,10 +294,10 @@ class PluginsTreeView(BrowserTreeView):
 		cellrenderer = gtk.CellRendererToggle()
 		cellrenderer.connect('toggled', lambda o, p: model.do_toggle_path(p))
 		self.append_column(
-			gtk.TreeViewColumn(_('Enabled'), cellrenderer, active=0))
+			gtk.TreeViewColumn(_('Enabled'), cellrenderer, active=0, activatable=1))
 			# T: Column in plugin tab
 		self.append_column(
-			gtk.TreeViewColumn(_('Plugin'), gtk.CellRendererText(), text=1))
+			gtk.TreeViewColumn(_('Plugin'), gtk.CellRendererText(), text=2))
 			# T: Column in plugin tab
 
 

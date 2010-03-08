@@ -37,10 +37,10 @@ class TestBazaar(TestCase):
 
 	@classmethod
 	def skipTest(klass):
-		if BazaarVCS.check_dependencies():
-			return False
+		if not BazaarVCS.check_dependencies():
+			return 'Missing dependencies'
 		else:
-			return 'Bazaar not found'
+			return False
 
 	def runTest(self):
 		'''Test Bazaar version control'''

@@ -346,7 +346,11 @@ class Dumper(DumperClass):
 					else:
 						output.append('[['+href+']]')
 				else:
-					output.append('[['+href+'|'+element.text+']]')
+					if element.text:
+						output.append('[['+href+'|'+element.text+']]')
+					else:
+						output.append('[['+href+']]')
+						
 			elif element.tag in dumper_tags:
 				tag = dumper_tags[element.tag]
 				output.append(tag+element.text+tag)

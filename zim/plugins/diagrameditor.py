@@ -39,8 +39,6 @@ class InsertDiagramPlugin(PluginClass):
 		'description': _('''\
 This plugin provides an diagram editor for zim based on GraphViz.
 
-Depends on: the GraphViz 'dot' command
-
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'help': ':Plugins:Diagram Editor',
@@ -49,9 +47,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return Application(dotcmd).tryexec()
-		# TODO feedback a readon for use in popup etc
-		# TODO nicer interface for this - note also test uses this
+		return [("GraphViz",Application(dotcmd).tryexec())]
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
