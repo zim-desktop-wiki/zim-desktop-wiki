@@ -172,11 +172,15 @@ class StaticLinker(BaseLinker):
 		if self.document_root_url and link.startswith('/'):
 			return ''.join((self.document_root_url.rstrip('/'), link))
 		else:
-			file = self.notebook.resolve_file(link, self.path)
-			if self.usebase and self.base:
-				return self._filepath(file, self.base)
-			else:
-				return file.uri
+			try:
+				file = self.notebook.resolve_file(link, self.path)
+				if self.usebase and self.base:
+					return self._filepath(file, self.base)
+				else:
+					return file.uri
+			except:
+				# typical error is a non-local file:// uri
+				return link
 
 	def _filepath(self, file, ref):
 		relpath = file.relpath(ref, allowupward=True)

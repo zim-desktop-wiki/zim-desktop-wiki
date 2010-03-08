@@ -59,6 +59,7 @@ arbitrary code from templates.
 import re
 import logging
 from time import strftime, strptime
+from copy import deepcopy
 
 import zim
 import zim.formats
@@ -206,9 +207,9 @@ class GenericTemplate(object):
 					token = GETToken(string[3:])
 				elif self._token_re.match(string):
 					raise TemplateSyntaxError, 'Unknown directive: %s' % self._token_re[1]
-				elif string.find('=') >= 0:	# imlpicite SET
+				elif string.find('=') >= 0:	# implicit SET
 					token = SETToken(string)
-				else:  # imlicite GET
+				else:  # implicit GET
 					token = GETToken(string)
 				self.stack[-1].append(token)
 
@@ -255,18 +256,23 @@ class Template(GenericTemplate):
 		'''Processes the template with a dict giving a set a standard
 		parameters for 'page' and returns a list of lines.
 		'''
+		options = {} # this dict is accesible from the template and is
+		             # passed on to the format
 		dict = {
 			'zim': { 'version': zim.__version__ },
-			'page': PageProxy(notebook, page, self.format, self.linker),
+			'page': PageProxy(
+				notebook, page,
+				self.format, self.linker, options),
 			'strftime': TemplateFunction(self.strftime),
-			'url': TemplateFunction(self.url)
+			'url': TemplateFunction(self.url),
+			'options': options
 		}
 		output = GenericTemplate.process(self, dict)
 
 		# Caching last processed dict because any pages in the dict
 		# will be cached using a weakref dict. Assuming we process multiple
 		# pages after each other, and they share links like home / previous /
-		# next etc. this will is a cheap optimization.
+		# next etc. this is a cheap optimization.
 		self._last_dict = dict
 		return output
 
@@ -582,13 +588,14 @@ class TemplateDict(object):
 class PageProxy(object):
 	'''Exposes a single page object to the template.'''
 
-	def __init__(self, notebook, page, format, linker):
+	def __init__(self, notebook, page, format, linker, options):
 		'''Constructor takes the page object to expose and a format.'''
 		# private attributes should be shielded by the template engine
 		self._page = page
 		self._notebook = notebook
 		self._format = format
 		self._linker = linker
+		self._options = options
 		self._treeproxy_obj = None
 
 	def _treeproxy(self):
@@ -626,7 +633,9 @@ class PageProxy(object):
 		for type, name, _ in self._page.get_links():
 			if type == 'page':
 				page = self._notebook.get_page(name)
-				yield PageProxy(self._notebook, page, self._format, self._linker)
+				yield PageProxy(
+					self._notebook, page,
+					self._format, self._linker, self._options)
 
 	@property
 	def backlinks(self):
@@ -659,7 +668,10 @@ class ParseTreeProxy(object):
 			format = self._pageproxy._format
 			linker = self._pageproxy._linker
 			linker.set_path(self._pageproxy._page)
-			return ''.join(format.Dumper(linker=linker).dump(body))
+			dumper = format.Dumper(
+				linker=linker,
+				template_options=self._pageproxy._options )
+			return ''.join(dumper.dump(body))
 
 	def _split_head(self, tree):
 		if not hasattr(self, '_servered_head'):

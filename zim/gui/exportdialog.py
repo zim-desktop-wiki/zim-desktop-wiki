@@ -69,7 +69,9 @@ class ExportDialog(Dialog):
 		# Template
 		def set_templates(formats_combobox, templates_combobox):
 			format = formats_combobox.get_active_text()
-			# TODO clear templates_combobox
+			#clear combobox
+			templates_model = templates_combobox.get_model()
+			templates_model.clear()
 			template_dict = zim.templates.list_templates(format)
 			templates = sorted(template_dict.keys())
 			for name in templates:
@@ -85,7 +87,7 @@ class ExportDialog(Dialog):
 					i = templates.index(template)
 					templates_combobox.set_active(i)
 				except ValueError:
-					pass
+					templates_combobox.set_active(0)
 
 		table.attach(gtk.Label(_('Template')+': '), 0,1, 1,2)
 			# T: Label for template selection in export dialog

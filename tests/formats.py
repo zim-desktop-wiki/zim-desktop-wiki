@@ -347,6 +347,26 @@ That's all ...<br>
 		self.assertEqualDiff(output, html.splitlines(True))
 
 
+class TestLatexFormat(TestCase):
+
+	def testEncode(self):
+		'''test the escaping of certain characters'''
+		format = get_format('latex')
+
+		input = r'\foo $ % ^ \% bar'
+		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar'
+		self.assertEqual(format.tex_encode(input), wanted)
+
+	def testExport(self):
+		'''test the export of a wiki page to latex'''
+		format = get_format('LaTeX')
+		testpage = get_test_data_page('wiki','Test:wiki')
+		tree = get_format('wiki').Parser().parse(testpage)
+		output = format.Dumper(linker=StubLinker()).dump(tree)
+		self.assertTrue('\chapter{Foo Bar}\n' in output)
+
+		# TODO test template_options.document_type
+
 class StubLinker(object):
 
 	def set_usebase(self, usebase): pass
