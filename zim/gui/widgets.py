@@ -878,6 +878,8 @@ class ErrorDialog(gtk.MessageDialog):
 			if hasattr(error, 'filename') and error.filename:
 				msg += ': ' + error.filename
 			description = None
+		elif isinstance(error, tuple):
+			msg, description = error
 		else:
 			# Other exception or string
 			msg = unicode(error)

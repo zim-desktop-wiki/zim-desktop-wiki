@@ -2790,6 +2790,7 @@ class PageView(gtk.VBox):
 		self.undostack = None
 		self.image_generator_plugins = {}
 		self._current_toggle_action = None
+		self._showing_template = False
 
 		self.preferences = self.ui.preferences['PageView']
 		if not self.secondairy:
@@ -2968,9 +2969,11 @@ class PageView(gtk.VBox):
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
 			cursorpos = -1
+		else:
+			template = None
 
 		try:
-			self.set_parsetree(tree)
+			self.set_parsetree(tree, bool(template))
 			if not self.secondairy:
 				page.set_ui_object(self) # only after succesful set tree in buffer
 		except Exception, error:
@@ -3015,21 +3018,26 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		buffer.clear()
 		buffer.set_modified(False)
+		self._showing_template = False
 
 	def get_parsetree(self):
-		buffer = self.view.get_buffer()
-		if buffer.get_modified():
-			self._parsetree = buffer.get_parsetree()
-			buffer.set_modified(False)
-		#~ print self._parsetree.tostring()
-		return self._parsetree
+		if self._showing_template:
+			return None
+		else:
+			buffer = self.view.get_buffer()
+			if buffer.get_modified():
+				self._parsetree = buffer.get_parsetree()
+				buffer.set_modified(False)
+			#~ print self._parsetree.tostring()
+			return self._parsetree
 
-	def set_parsetree(self, tree):
+	def set_parsetree(self, tree, istemplate=False):
 		buffer = self.view.get_buffer()
 		assert not buffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
 		tree.resolve_images(self.ui.notebook, self.page)
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
+		self._showing_template = istemplate
 
 	def set_readonly(self, readonly=None):
 		if not readonly is None:

@@ -56,7 +56,7 @@ def url_encode(url):
 	'''
 	url = url.encode('utf-8') # unicode -> utf-8
 	if not ('%' in url and not _unencoded_url_re.search(url)):
-		url = _url_encode_re.sub(lambda m: '%%%X' % ord(m.group(0)), url)
+		url = _url_encode_re.sub(lambda m: '%%%02X' % ord(m.group(0)), url)
 	return url
 
 

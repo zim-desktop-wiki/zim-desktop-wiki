@@ -1384,7 +1384,11 @@ class Page(Path):
 		if self._parsetree:
 			return self._parsetree.hascontent
 		elif self._ui_object:
-			return self._ui_object.get_parsetree().hascontent
+			tree = self._ui_object.get_parsetree()
+			if tree:
+				return tree.hascontent
+			else:
+				return False
 		else:
 			try:
 				hascontent = self._source_hascontent()

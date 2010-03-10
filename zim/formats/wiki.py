@@ -119,6 +119,11 @@ class Parser(ParserClass):
 		builder = TreeBuilder()
 		builder.start('zim-tree')
 		for para in paras:
+			# HACK this char is recognized as line end by splitlines()
+			# but not matched by \n in a regex. Hope there are no other
+			# exceptions like it (crosses fingers)
+			para = para.replace(u'\u2028', '\n')
+
 			if not self.backward and parser_re['blockstart'].search(para):
 				self._parse_block(builder, para)
 			elif self.backward and not para.isspace() \
@@ -350,7 +355,7 @@ class Dumper(DumperClass):
 						output.append('[['+href+'|'+element.text+']]')
 					else:
 						output.append('[['+href+']]')
-						
+
 			elif element.tag in dumper_tags:
 				tag = dumper_tags[element.tag]
 				output.append(tag+element.text+tag)

@@ -99,6 +99,11 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		index.connect('page-updated', on_changed, 'row-changed')
 		index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled')
 		index.connect('delete', on_deleted)
+			# FIXME - there is still a bug here - this signal can be fired for a page
+			# that is not really deleted, but turned into a placeholder. So we should
+			# use the page-deleted signal, however that does not allow to use get_treepath ...
+			# Solution is treepath support in Index and add this info in the page-deleted
+			# signal.
 		index.connect('end-update', lambda o: self._flush())
 
 	def _ref(self, path):
