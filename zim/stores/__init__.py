@@ -63,8 +63,9 @@ If a page list for a non-existing path is requested, the store can just
 return an empty list.
 '''
 
-import sys
+from __future__ import with_statement
 
+import sys
 
 from zim.fs import *
 from zim.parsing import is_url_re
@@ -122,12 +123,13 @@ class StoreClass():
 		'''
 		raise NotImplementedError
 
-	def store_page_async(self, page, callback, data):
+	def store_page_async(self, page, lock, callback, data):
 		'''OPTIONAL METHOD, could be implemented by sub-classes. In this
 		base class it defaults to store_page()
 		'''
 		try:
-			self.store_page(page)
+			with lock:
+				self.store_page(page)
 		except:
 			if callback:
 				exc_info = sys.exc_info()

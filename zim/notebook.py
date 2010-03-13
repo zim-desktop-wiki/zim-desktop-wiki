@@ -25,6 +25,7 @@ from zim.errors import Error, SignalExceptionContext, SignalRaiseExceptionContex
 from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
 	config_file, data_dir, user_dirs
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type, url_encode
+from zim.async import AsyncLock
 import zim.stores
 
 
@@ -331,6 +332,13 @@ class Notebook(gobject.GObject):
 	handler connected normally will run before the actual action.
 	Use "connect_after()" to install handlers after storing, moving
 	or deleting a page.
+
+	Notebook objects have a 'lock' attribute with a AsyncLock object.
+	This lock is used when storing pages. In general this lock is not
+	needed when only reading data from the notebook. However it should
+	be used when doing operations that need a fixed state, e.g.
+	exporting the notebook or when executing version control commands
+	on the storage directory.
 	'''
 
 	# TODO add checks for read-only page in much more methods
@@ -366,6 +374,7 @@ class Notebook(gobject.GObject):
 		self.name = None
 		self.icon = None
 		self.config = config
+		self.lock = AsyncLock()
 
 		if dir:
 			assert isinstance(dir, Dir)
@@ -752,17 +761,20 @@ class Notebook(gobject.GObject):
 
 	def get_pagelist(self, path):
 		'''Returns a list of page objects.'''
-		store = self.get_store(path)
-		return store.get_pagelist(path)
+		with self.lock:
+			store = self.get_store(path)
+			list = store.get_pagelist(path)
 		# TODO: add sub-stores in this namespace if any
+		return list
 
 	def store_page(self, page):
 		'''Store a page permanently. Commits the parse tree from the page
 		object to the backend store.
 		'''
 		assert page.valid, 'BUG: page object no longer valid'
-		with SignalExceptionContext(self, 'store-page'):
-			self.emit('store-page', page)
+		with self.lock:
+			with SignalExceptionContext(self, 'store-page'):
+				self.emit('store-page', page)
 
 	def store_page_async(self, page, callback=None, data=None):
 		'''Like store_page but asynchronous. Falls back to store_page
@@ -782,13 +794,14 @@ class Notebook(gobject.GObject):
 		want to use this interface e.g. from the UI.
 		'''
 		# TODO: make consistent with store-page signal
+
 		# Note that we do not assume here that async function is always
 		# performed by zim.async. Different backends could have their
 		# native support for asynchronous actions. So we do not return
 		# an AsyncOperation object to prevent lock in.
 		# This assumption may change in the future.
 		store = self.get_store(page)
-		store.store_page_async(page, callback, data)
+		store.store_page_async(page, self.lock, callback, data)
 
 	def do_store_page(self, page):
 		with SignalRaiseExceptionContext(self, 'store-page'):

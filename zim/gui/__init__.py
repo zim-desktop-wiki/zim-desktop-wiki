@@ -196,6 +196,13 @@ class NoSuchFileError(Error):
 			# T: Error message, %s will be the file path
 
 
+def schedule_on_idle(function, args=()):
+	def callback():
+		function(*args)
+		return False # delete signal
+	gobject.idle_add(callback)
+
+
 class GtkInterface(NotebookInterface):
 	'''Main class for the zim Gtk interface. This object wraps a single
 	notebook and provides actions to manipulate and access this notebook.
@@ -370,14 +377,10 @@ class GtkInterface(NotebookInterface):
 		# async interface also helps, but we need to account for cases
 		# where asynchronous actions are not supported.
 
-		def autosave():
+		def schedule_autosave():
 			page = self.mainwindow.pageview.get_page()
 			if page.modified:
-				self.save_page(page)
-			return False # remove signal
-
-		def schedule_autosave():
-			gobject.idle_add(autosave)
+				schedule_on_idle(self.save_page_async, (page,))
 			return True # keep ticking
 
 		# older gobject version doesn't know about seconds
@@ -629,6 +632,7 @@ class GtkInterface(NotebookInterface):
 				self.open_page(newpath)
 
 		def autosave(o, p):
+			# Here we explicitly do not save async
 			page = self.mainwindow.pageview.get_page()
 			if page.modified:
 				self.save_page(page)
@@ -748,7 +752,7 @@ class GtkInterface(NotebookInterface):
 
 	def do_close_page(self, page):
 		if page.modified:
-			self.save_page(page)
+			self.save_page(page) # No async here -- for now
 
 		current = self.history.get_current()
 		if current == page:
@@ -756,7 +760,7 @@ class GtkInterface(NotebookInterface):
 			current.scroll = self.mainwindow.pageview.get_scroll_pos()
 
 		if self.uistate.modified:
-			self.uistate.write_async()
+			schedule_on_idle(self.uistate.write_async)
 
 	def open_page_back(self):
 		record = self.history.get_previous()
@@ -865,6 +869,15 @@ class GtkInterface(NotebookInterface):
 		except Exception, error:
 			logger.exception('Failed to save page: %s', page.name)
 			SavePageErrorDialog(self, error, page).run()
+
+	def save_page_async(self, page=None):
+		print '!! SAVE PAGE ASYNC'
+		# TODO consolidate with store-page signal
+		# TODO error handling
+		if page is None:
+			page = self.mainwindow.pageview.get_page()
+		assert not page.readonly, 'BUG: can not save read-only page'
+		self.notebook.store_page_async(page)
 
 	def save_copy(self):
 		'''Offer to save a copy of a page in the source format, so it can be
