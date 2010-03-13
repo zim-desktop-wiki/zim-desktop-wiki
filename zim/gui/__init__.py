@@ -365,6 +365,11 @@ class GtkInterface(NotebookInterface):
 			else:
 				self.open_page_home()
 
+		# We schedule the autosave on idle to try to make it impact
+		# the performance of the applciation less. Of course using the
+		# async interface also helps, but we need to account for cases
+		# where asynchronous actions are not supported.
+
 		def autosave():
 			page = self.mainwindow.pageview.get_page()
 			if page.modified:
@@ -426,8 +431,6 @@ class GtkInterface(NotebookInterface):
 
 		if self.uistate.modified:
 			self.uistate.write()
-			# This is normally done on idle after close_page(), but here no
-			# idle event will follow because we go directly to main_quit()
 
 		self.mainwindow.destroy()
 		gtk.main_quit()
@@ -752,12 +755,8 @@ class GtkInterface(NotebookInterface):
 			current.cursor = self.mainwindow.pageview.get_cursor_pos()
 			current.scroll = self.mainwindow.pageview.get_scroll_pos()
 
-		def save_uistate():
-			if self.uistate.modified:
-				self.uistate.write()
-			return False # only run once
-
-		save_uistate()
+		if self.uistate.modified:
+			self.uistate.write_async()
 
 	def open_page_back(self):
 		record = self.history.get_previous()
@@ -954,7 +953,7 @@ class GtkInterface(NotebookInterface):
 
 	def save_preferences(self):
 		if self.preferences.modified:
-			self.preferences.write()
+			self.preferences.write_async()
 			self.emit('preferences-changed')
 
 	def do_preferences_changed(self):

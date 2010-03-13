@@ -764,6 +764,32 @@ class Notebook(gobject.GObject):
 		with SignalExceptionContext(self, 'store-page'):
 			self.emit('store-page', page)
 
+	def store_page_async(self, page, callback=None, data=None):
+		'''Like store_page but asynchronous. Falls back to store_page
+		when the backend does not support asynchronous operation.
+
+		If you add a callback function it will be called after the
+		page was stored (in the main thread). Callback is called like:
+
+			callback(ok, exc_info, data)
+
+			* 'ok' is True is the page was stored OK
+			* 'exc_info' is a 3 tuple in case an error occured
+			  or None when no error occured
+			* 'data' is the data given to the constructor
+
+		The callback should be used to do proper error handling if you
+		want to use this interface e.g. from the UI.
+		'''
+		# TODO: make consistent with store-page signal
+		# Note that we do not assume here that async function is always
+		# performed by zim.async. Different backends could have their
+		# native support for asynchronous actions. So we do not return
+		# an AsyncOperation object to prevent lock in.
+		# This assumption may change in the future.
+		store = self.get_store(page)
+		store.store_page_async(page, callback, data)
+
 	def do_store_page(self, page):
 		with SignalRaiseExceptionContext(self, 'store-page'):
 			store = self.get_store(page)

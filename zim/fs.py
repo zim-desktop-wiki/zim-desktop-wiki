@@ -31,6 +31,8 @@ folder is created, moved or deleted.
 # represent the same file but independently manage the mtime and md5
 # checksums to ensure the file is what they think it should be.
 
+from __future__ import with_statement
+
 import gobject
 
 import os
@@ -43,6 +45,7 @@ from StringIO import StringIO
 
 from zim.errors import Error
 from zim.parsing import url_encode, url_decode
+from zim.async import AsyncOperation, AsyncLock
 
 
 __all__ = ['Dir', 'File']
@@ -498,17 +501,24 @@ class File(Path):
 	difficult to loose file contents when something goes wrong during
 	the writing.
 
-	When 'checkoverwrite' this class checks mtime to prevent overwriting a
-	file that was changed on disk, if mtime fails MD5 sums are used to verify
-	before raising an exception. However this check only works when using
-	read(), readlines(), write() or writelines(), but not when calling open()
-	directly. Unfortunately this logic is not atomic, so your mileage may vary.
+	When 'checkoverwrite' is True this class checks mtime to prevent
+	overwriting a file that was changed on disk, if mtime fails MD5 sums
+	are used to verify before raising an exception. However this check
+	only works when using read(), readlines(), write() or writelines(),
+	but not when calling open() directly. Unfortunately this logic is
+	not atomic, so your mileage may vary.
+
+	The *_async functions can be used to read or write files in a separate
+	thread. See zim.async for details. An AsyncLock is used to ensure
+	reading and writing is done sequentally between several threads.
+	However, this does not work atomic when using open() directly.
 	'''
 
 	def __init__(self, path, checkoverwrite=False):
 		Path.__init__(self, path)
 		self.checkoverwrite = checkoverwrite
 		self._mtime = None
+		self._lock = AsyncLock()
 
 	def __eq__(self, other):
 		if isinstance(other, File):
@@ -538,21 +548,22 @@ class File(Path):
 		if encoding:
 			mode += 'b'
 
-		if mode in ('w', 'wb'):
-			tmp = self.path + '.zim.new~'
-			fh = FileHandle(tmp, mode=mode, on_close=self._on_write)
-		else:
-			fh = open(self.path, mode=mode)
+		with self._lock:
+			if mode in ('w', 'wb'):
+				tmp = self.path + '.zim.new~'
+				fh = FileHandle(tmp, mode=mode, on_close=self._on_write)
+			else:
+				fh = open(self.path, mode=mode)
 
-		if encoding:
-			# code copied from codecs.open() to wrap our FileHandle objects
-			info = codecs.lookup(encoding)
-			srw = codecs.StreamReaderWriter(
-				fh, info.streamreader, info.streamwriter, 'strict')
-			srw.encoding = encoding
-			return srw
-		else:
-			return fh
+			if encoding:
+				# code copied from codecs.open() to wrap our FileHandle objects
+				info = codecs.lookup(encoding)
+				srw = codecs.StreamReaderWriter(
+					fh, info.streamreader, info.streamwriter, 'strict')
+				srw.encoding = encoding
+				return srw
+			else:
+				return fh
 
 	def _on_write(self):
 		# flush and sync are already done before close()
@@ -583,6 +594,9 @@ class File(Path):
 			FS.emit('path-created', self)
 
 	def read(self, encoding='utf-8'):
+		'''Returns the content as string, or an empty string if
+		this file does not exist.
+		'''
 		if not self.exists():
 			return ''
 		else:
@@ -591,7 +605,19 @@ class File(Path):
 			self._checkoverwrite(content)
 			return _convert_newlines(content)
 
+	def read_async(self, callback=None, data=None):
+		'''Like read() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'. Try operation.result for content.
+		'''
+		operation = AsyncOperation(self.read, callback=callback, data=data)
+		operation.start()
+		return operation
+
 	def readlines(self):
+		'''Returns the content as list of lines, or an empty list if
+		this file does not exist.
+		'''
 		if not self.exists():
 			return []
 		else:
@@ -600,19 +626,52 @@ class File(Path):
 			self._checkoverwrite(content)
 			return map(_convert_newlines, content)
 
+	def readlines_async(self, callback=None, data=None):
+		'''Like readlines() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'. Try operation.result for content.
+		'''
+		operation = AsyncOperation(self.readlines, callback=callback, data=data)
+		operation.start()
+		return operation
+
 	def write(self, text):
+		'''Overwrite file with text'''
 		self._assertoverwrite()
-		file = self.open('w')
-		file.write(text)
-		file.close()
+		with self._lock:
+			file = self.open('w')
+			file.write(text)
+			file.close()
 		self._checkoverwrite(text)
 
+	def write_async(self, text, callback=None, data=None):
+		'''Like write() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'.
+		'''
+		#~ print '!! ASYNC WRITE'
+		operation = AsyncOperation(self.write, (text,), callback=callback, data=data)
+		operation.start()
+		return operation
+
 	def writelines(self, lines):
+		'''Overwrite file with a list of lines'''
 		self._assertoverwrite()
-		file = self.open('w')
-		file.writelines(lines)
-		file.close()
+		with self._lock:
+			file = self.open('w')
+			file.writelines(lines)
+			file.close()
 		self._checkoverwrite(lines)
+
+	def writelines_async(self, text, callback=None, data=None):
+		'''Like writelines() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'.
+		'''
+		#~ print '!! ASYNC WRITE'
+		operation = AsyncOperation(self.writelines, (text,), callback=callback, data=data)
+		operation.start()
+		return operation
 
 	def _checkoverwrite(self, content):
 		if self.checkoverwrite:
