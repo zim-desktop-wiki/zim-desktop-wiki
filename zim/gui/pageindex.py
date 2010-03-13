@@ -154,6 +154,13 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		# Path (0,) is the first item in the root namespace
 		# Path (2, 4) is the 5th child of the 3rd item
 		#~ print '>> on_get_iter', treepath
+
+		# Here we flush to have a regular flush e.g. during scrolling
+		# the widget. Bit arbitrary to do it here, but does work.
+		# When changing this check for memory leaks while scrolling a
+		# (long) index.
+		self._flush()
+
 		iter = None
 		for i in treepath:
 			iter = self.on_iter_nth_child(iter, i)

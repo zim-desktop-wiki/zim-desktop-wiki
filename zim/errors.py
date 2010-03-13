@@ -64,7 +64,7 @@ class SignalExceptionContext(object):
 		_signal_exception_context_stack.append(self)
 		return self
 
-	def __exit__(self, exc_type, exc_value, traceback):
+	def __exit__(self, exc_type, exc_value, exc_tb):
 		assert _signal_exception_context_stack[-1] == self
 		_signal_exception_context_stack.pop()
 
@@ -74,7 +74,15 @@ class SignalExceptionContext(object):
 		elif self.exc_info:
 			# re-raise the error
 			#~ print '>>>', self.exc_info
-			raise self.exc_info[1]
+			exc_type, exc_value, _ = self.exc_info
+			if isinstance(exc_value, exc_type):
+				error = exc_value
+			else:
+				error = exc_type(exc_value)
+
+			#~ import traceback
+			#~ traceback.print_exception(*self.exc_info)
+			raise error
 		else:
 			pass
 
@@ -117,12 +125,12 @@ class SignalRaiseExceptionContext(object):
 	def __enter__(self):
 		return self
 
-	def __exit__(self, exc_type, exc_value, traceback):
+	def __exit__(self, exc_type, exc_value, exc_tb):
 		if exc_type and _signal_exception_context_stack:
 			frame = _signal_exception_context_stack[-1]
 			if frame.object == self.object \
 			and frame.signal == self.signal:
-				frame.exc_info = (exc_type, exc_value, traceback)
+				frame.exc_info = (exc_type, exc_value, exc_tb)
 				self.object.stop_emission(self.signal)
 
 		return silence_signal_exception_context

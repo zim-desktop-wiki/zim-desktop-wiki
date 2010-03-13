@@ -26,7 +26,8 @@ from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, \
-	Button, IconButton, BrowserTreeView, InputEntry
+	Button, IconButton, BrowserTreeView, InputEntry, \
+	rotate_pixbuf
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
@@ -579,6 +580,7 @@ class TextBuffer(gtk.TextBuffer):
 				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, w, h)
 			else:
 				pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+			pixbuf = rotate_pixbuf(pixbuf)
 		except:
 			#~ logger.exception('Could not load image: %s', file)
 			logger.warn('No such image: %s', file)
@@ -3005,6 +3007,7 @@ class PageView(gtk.VBox):
 	def on_modified_changed(self, buffer):
 		# one-way traffic, set page modified after modifying the buffer
 		# but not the other way
+		self._showing_template = False
 		if buffer.get_modified() and not self.page.modified:
 			if self.readonly:
 				logger.warn('Buffer edited while read-only - potential bug')

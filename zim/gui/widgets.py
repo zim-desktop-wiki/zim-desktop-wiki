@@ -69,6 +69,26 @@ def gtk_get_style():
 	return w.get_style()
 
 
+def rotate_pixbuf(pixbuf):
+	'''If the pixbuf has asociated data for the image rotation
+	(e.g. EXIF for photos) it will rotate the pixbuf to the correct
+	orientation. Returns a new version of the pixbuf or the pixbuf itself.
+	'''
+	# Values for orientation seen in some random snippet in gtkpod
+	o = pixbuf.get_option('orientation')
+	if o: o = int(o)
+	if o == 3: # 180 degrees
+		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_UPSIDEDOWN)
+	elif o == 6: # 270 degrees
+		print 'ROTATING counter clockwise'
+		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_CLOCKWISE)
+	elif o == 9: # 90 degrees
+		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_COUNTERCLOCKWISE)
+	else:
+		# No rotation info, older gtk version, or advanced transpose
+		return pixbuf
+
+
 class Button(gtk.Button):
 	'''This class overloads the constructor of the default gtk.Button
 	class. The purpose is to change the behavior in such a way that stock

@@ -1944,8 +1944,13 @@ class NewPageDialog(Dialog):
 			if page.hascontent or page.haschildren:
 				ErrorDialog(self, _('Page exists')+': %s' % page.name).run() # T: error message
 				return False
-			self.ui.open_page(page)
+
+			template = self.ui.notebook.get_template(page)
+			tree = template.process_to_parsetree(self.ui.notebook, page)
+			page.set_parsetree(tree)
 			self.ui.save_page()
+
+			self.ui.open_page(page)
 			return True
 		else:
 			return False
