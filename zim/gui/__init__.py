@@ -326,6 +326,7 @@ class GtkInterface(NotebookInterface):
 
 		gtk.accel_map_get().connect('changed', on_accel_map_changed)
 
+		self.do_preferences_changed()
 
 		# Deal with commandline arguments for notebook and page
 		if notebook:
@@ -618,7 +619,7 @@ class GtkInterface(NotebookInterface):
 		'''Signal handler for open-notebook.'''
 
 		def move_away(o, path):
-			if self.page >= path:
+			if path == self.page or self.page.ischild(path):
 				self.open_page_back() \
 				or self.open_page_parent \
 				or self.open_page_home
@@ -626,7 +627,7 @@ class GtkInterface(NotebookInterface):
 		def follow(o, path, newpath, update_links):
 			if self.page == path:
 				self.open_page(newpath)
-			elif self.page > path:
+			elif self.page.ischild(path):
 				newpath = newpath + self.page.relname(path)
 				newpath = Path(newpath.name) # IndexPath -> Path
 				self.open_page(newpath)
@@ -898,7 +899,8 @@ class GtkInterface(NotebookInterface):
 
 	def email_page(self):
 		text = ''.join(self.page.dump(format='plain'))
-		url = url_encode('mailto:?subject=%s&body=%s' % (self.page.name, text))
+		url = 'mailto:?subject=%s&body=%s' % (url_encode(self.page.name),
+				url_encode(text))
 		self.open_url(url)
 
 	def import_page(self):
@@ -942,7 +944,18 @@ class GtkInterface(NotebookInterface):
 		RenamePageDialog(self, path=path).run()
 
 	def delete_page(self, path=None):
-		DeletePageDialog(self, path=path).run()
+		if path is None:
+			path = self.get_path_context()
+
+		page = self.notebook.get_page(path)
+		if page.hascontent or page.haschildren:
+			DeletePageDialog(self, path=page).run()
+		else:
+			ErrorDialog(self, (
+				_('Page does not exist'), # T: short error description
+				_('This page does not exist, so it can not be deleted')
+					# T: long error description
+			) ).run()
 
 	def show_properties(self):
 		from zim.gui.propertiesdialog import PropertiesDialog
@@ -1246,6 +1259,7 @@ class MainWindow(gtk.Window):
 		# hide or destroy the window.
 		def do_delete_event(*a):
 			logger.debug('Action: close (delete-event)')
+			self.hide() # look more responsive
 			ui.close()
 			return True # Do not destroy - let close() handle it
 		self.connect('delete-event', do_delete_event)
@@ -1942,8 +1956,13 @@ class NewPageDialog(Dialog):
 			if page.hascontent or page.haschildren:
 				ErrorDialog(self, _('Page exists')+': %s' % page.name).run() # T: error message
 				return False
-			self.ui.open_page(page)
+
+			template = self.ui.notebook.get_template(page)
+			tree = template.process_to_parsetree(self.ui.notebook, page)
+			page.set_parsetree(tree)
 			self.ui.save_page()
+
+			self.ui.open_page(page)
 			return True
 		else:
 			return False

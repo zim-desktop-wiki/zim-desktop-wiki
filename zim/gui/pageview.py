@@ -26,7 +26,8 @@ from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, \
-	Button, IconButton, BrowserTreeView, InputEntry
+	Button, IconButton, BrowserTreeView, InputEntry, \
+	rotate_pixbuf
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
@@ -579,6 +580,7 @@ class TextBuffer(gtk.TextBuffer):
 				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, w, h)
 			else:
 				pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+			pixbuf = rotate_pixbuf(pixbuf)
 		except:
 			#~ logger.exception('Could not load image: %s', file)
 			logger.warn('No such image: %s', file)
@@ -2790,6 +2792,7 @@ class PageView(gtk.VBox):
 		self.undostack = None
 		self.image_generator_plugins = {}
 		self._current_toggle_action = None
+		self._showing_template = False
 
 		self.preferences = self.ui.preferences['PageView']
 		if not self.secondairy:
@@ -2968,9 +2971,11 @@ class PageView(gtk.VBox):
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
 			cursorpos = -1
+		else:
+			template = None
 
 		try:
-			self.set_parsetree(tree)
+			self.set_parsetree(tree, bool(template))
 			if not self.secondairy:
 				page.set_ui_object(self) # only after succesful set tree in buffer
 		except Exception, error:
@@ -3002,6 +3007,7 @@ class PageView(gtk.VBox):
 	def on_modified_changed(self, buffer):
 		# one-way traffic, set page modified after modifying the buffer
 		# but not the other way
+		self._showing_template = False
 		if buffer.get_modified() and not self.page.modified:
 			if self.readonly:
 				logger.warn('Buffer edited while read-only - potential bug')
@@ -3015,21 +3021,26 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		buffer.clear()
 		buffer.set_modified(False)
+		self._showing_template = False
 
 	def get_parsetree(self):
-		buffer = self.view.get_buffer()
-		if buffer.get_modified():
-			self._parsetree = buffer.get_parsetree()
-			buffer.set_modified(False)
-		#~ print self._parsetree.tostring()
-		return self._parsetree
+		if self._showing_template:
+			return None
+		else:
+			buffer = self.view.get_buffer()
+			if buffer.get_modified():
+				self._parsetree = buffer.get_parsetree()
+				buffer.set_modified(False)
+			#~ print self._parsetree.tostring()
+			return self._parsetree
 
-	def set_parsetree(self, tree):
+	def set_parsetree(self, tree, istemplate=False):
 		buffer = self.view.get_buffer()
 		assert not buffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
 		tree.resolve_images(self.ui.notebook, self.page)
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
+		self._showing_template = istemplate
 
 	def set_readonly(self, readonly=None):
 		if not readonly is None:
