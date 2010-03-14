@@ -441,13 +441,16 @@ class PageTreeView(BrowserTreeView):
 			treepath = self.select_page(path)
 			assert treepath, 'BUG: failed to touch placeholder'
 
+		rowreference = gtk.TreeRowReference(model, treepath)
+			# make reference before cleanup - als path may have changed
+
 		if self._cleanup and self._cleanup.valid():
 			mytreepath = self._cleanup.get_path()
 			indexpath = model.get_indexpath( model.get_iter(mytreepath) )
 			#~ print '!! CLEANUP', indexpath
 			index.cleanup(indexpath)
 
-		self._cleanup = gtk.TreeRowReference(model, treepath)
+		self._cleanup = rowreference
 
 	def select_page(self, path):
 		'''Select a page in the treeview, returns the treepath or None'''

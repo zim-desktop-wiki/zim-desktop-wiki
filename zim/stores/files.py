@@ -17,6 +17,7 @@ once we have it resolved.
 '''
 
 import os # using os directly in get_pagelist()
+import sys
 import logging
 from datetime import datetime
 
@@ -204,7 +205,31 @@ class FileStorePage(Page):
 		self._store_lines(lines)
 		self.modified = False
 
+	def _store_async(self, lock, callback, data):
+		# Get lines before forking a new thread, otherwise the parsetree
+		# could change in a non-atomic way in the GUI in the mean time
+		try:
+			lines = self._dump()
+		except Exception, error:
+			if callback:
+				exc_info = sys.exc_info()
+				callback(False, error, exc_info, data)
+			return
+		else:
+			self.modified = False
+
+		#~ print '!! STORE PAGE ASYNC in files'
+		operation = AsyncOperation(
+			self._store_lines, (lines,), lock=lock, callback=callback, data=data)
+		operation.start()
+
 	def _store_lines(self, lines):
+		# Enable these lines to test error handling in the UI
+		#~ import random
+		#~ if random.random() > 0.5:
+			#~ raise IOError, 'This is a test error'
+		###
+
 		if lines:
 			self.source.writelines(lines)
 		else:
@@ -212,19 +237,6 @@ class FileStorePage(Page):
 			self.source.cleanup()
 
 		return True # Need to return True for async callback
-
-	def _store_async(self, lock, callback, data):
-		# Get lines before forking a new thread, otherwise the parsetree
-		# could change in a non-atomic way in the GUI in the mean time
-		lines = self._dump()
-			# TODO handle errors in dump
-		self.modified = False
-
-		print '!! STORE PAGE ASYNC in files'
-		operation = AsyncOperation(
-			self._store_lines, (lines,), lock=lock, callback=callback, data=data)
-		operation.start()
-		return operation
 
 	def _dump(self):
 		'''Returns the page source'''

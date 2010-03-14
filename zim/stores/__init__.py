@@ -130,13 +130,13 @@ class StoreClass():
 		try:
 			with lock:
 				self.store_page(page)
-		except:
+		except Exception, error:
 			if callback:
 				exc_info = sys.exc_info()
-				callback(False, exc_info, data)
+				callback(False, error, exc_info, data)
 		else:
 			if callback:
-				callback(True, None, data)
+				callback(True, None, None, data)
 
 	def move_page(self, path, newpath):
 		'''ABSTRACT METHOD, must be implemented in sub-class if store is

@@ -656,7 +656,7 @@ class File(Path):
 		Returns a AsyncOperation object, see there for documentation
 		for 'callback'.
 		'''
-		print '!! ASYNC WRITE'
+		#~ print '!! ASYNC WRITE'
 		operation = AsyncOperation(
 			self._write, (text,), lock=self._lock, callback=callback, data=data)
 		operation.start()
@@ -679,7 +679,7 @@ class File(Path):
 		Returns a AsyncOperation object, see there for documentation
 		for 'callback'.
 		'''
-		print '!! ASYNC WRITE'
+		#~ print '!! ASYNC WRITE'
 		operation = AsyncOperation(
 			self._writelines, (text,), lock=self._lock, callback=callback, data=data)
 		operation.start()

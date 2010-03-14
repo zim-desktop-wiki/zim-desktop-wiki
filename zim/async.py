@@ -61,8 +61,8 @@ class AsyncOperation(threading.Thread):
 			callback(value, exc_info, data)
 
 			* 'value' is the return value of the function
-			* 'exc_info' is a 3 tuple in case an error occured
-			  or None when no error occured
+			* 'error' is an Exception object or None
+			* 'exc_info' is a 3 tuple of sys.exc_info() or None
 			* 'data' is the data given to the constructor
 		'''
 		self.result = None
@@ -70,14 +70,14 @@ class AsyncOperation(threading.Thread):
 		def wrapper(function, args, kwargs, lock, callback, data):
 			try:
 				self.result = function(*args, **kwargs)
-			except Exception:
+			except Exception, error:
 				if lock:
 					lock.release()
 
 				if callback:
 					exc_info = sys.exc_info()
 					call_in_main_thread(
-						callback, (data, self.result, exc_info) )
+						callback, (self.result, error, exc_info, data) )
 				else:
 					logger.exception('Error in AsyncOperation')
 			else:
@@ -86,7 +86,7 @@ class AsyncOperation(threading.Thread):
 
 				if callback:
 					call_in_main_thread(
-						callback, (self.result, None, data) )
+						callback, (self.result, None, None, data) )
 
 		myargs = (function, args, kwargs, lock, callback, data)
 		threading.Thread.__init__(self, target=wrapper, args=myargs)

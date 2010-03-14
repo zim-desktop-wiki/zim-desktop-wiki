@@ -21,7 +21,7 @@ import gobject
 
 import zim.fs
 from zim.fs import *
-from zim.errors import Error, SignalExceptionContext, SignalRaiseExceptionContext
+from zim.errors import Error
 from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
 	config_file, data_dir, user_dirs
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type, url_encode
@@ -323,15 +323,20 @@ class Notebook(gobject.GObject):
 	and Index objects on the one hand and the gui application on the other
 
 	This class has the following signals:
-		* store-page (page)
+		* store-page (page) - emitted before actually storing the page
+		* stored-page (page) - emitted after storing the page
 		* move-page (oldpath, newpath, update_links)
+		* moved-page (oldpath, newpath, update_links)
 		* delete-page (path)
+		* deleted-page (path)
 		* properties-changed ()
 
-	All signals are defined with the SIGNAL_RUN_LAST type, so any
-	handler connected normally will run before the actual action.
-	Use "connect_after()" to install handlers after storing, moving
-	or deleting a page.
+	Signals for store, move and delete are defined double with one
+	emitted before the action and the other after the action run
+	succesfully. THis is done this way because exceptions thrown from
+	a signal handler are difficult to handle. For store_async() the
+	'page-stored' signal is emitted after scheduling the store, but
+	potentially before it was really executed.
 
 	Notebook objects have a 'lock' attribute with a AsyncLock object.
 	This lock is used when storing pages. In general this lock is not
@@ -346,8 +351,11 @@ class Notebook(gobject.GObject):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'store-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'stored-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'move-page': (gobject.SIGNAL_RUN_LAST, None, (object, object, bool)),
+		'moved-page': (gobject.SIGNAL_RUN_LAST, None, (object, object, bool)),
 		'delete-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'deleted-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'properties-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 	}
 
@@ -772,9 +780,10 @@ class Notebook(gobject.GObject):
 		object to the backend store.
 		'''
 		assert page.valid, 'BUG: page object no longer valid'
-		with self.lock:
-			with SignalExceptionContext(self, 'store-page'):
-				self.emit('store-page', page)
+		self.emit('store-page', page)
+		store = self.get_store(page)
+		store.store_page(page)
+		self.emit('stored-page', page)
 
 	def store_page_async(self, page, callback=None, data=None):
 		'''Like store_page but asynchronous. Falls back to store_page
@@ -786,8 +795,8 @@ class Notebook(gobject.GObject):
 			callback(ok, exc_info, data)
 
 			* 'ok' is True is the page was stored OK
-			* 'exc_info' is a 3 tuple in case an error occured
-			  or None when no error occured
+			* 'error' is an Exception object or None
+			* 'exc_info' is a 3 tuple of sys.exc_info() or None
 			* 'data' is the data given to the constructor
 
 		The callback should be used to do proper error handling if you
@@ -800,13 +809,11 @@ class Notebook(gobject.GObject):
 		# native support for asynchronous actions. So we do not return
 		# an AsyncOperation object to prevent lock in.
 		# This assumption may change in the future.
+		assert page.valid, 'BUG: page object no longer valid'
+		self.emit('store-page', page)
 		store = self.get_store(page)
 		store.store_page_async(page, self.lock, callback, data)
-
-	def do_store_page(self, page):
-		with SignalRaiseExceptionContext(self, 'store-page'):
-			store = self.get_store(page)
-			store.store_page(page)
+		self.emit('stored-page', page)
 
 	def revert_page(self, page):
 		'''Reloads the parse tree from the store into the page object.
@@ -834,64 +841,62 @@ class Notebook(gobject.GObject):
 			raise LookupError, 'Page does not exist: %s' % path.name
 		assert not page.modified, 'BUG: moving a page with uncomitted changes'
 
-		with SignalExceptionContext(self, 'move-page'):
-			self.emit('move-page', path, newpath, update_links)
-
-	def do_move_page(self, path, newpath, update_links):
+		self.emit('move-page', path, newpath, update_links)
 		logger.debug('Move %s to %s (%s)', path, newpath, update_links)
 
-		with SignalRaiseExceptionContext(self, 'move-page'):
-			# Collect backlinks
-			if update_links:
-				from zim.index import LINK_DIR_BACKWARD
-				backlinkpages = set(
+		# Collect backlinks
+		if update_links:
+			from zim.index import LINK_DIR_BACKWARD
+			backlinkpages = set(
+				l.source for l in
+					self.index.list_links(path, LINK_DIR_BACKWARD) )
+			for child in self.index.walk(path):
+				backlinkpages.update(set(
 					l.source for l in
-						self.index.list_links(path, LINK_DIR_BACKWARD) )
-				for child in self.index.walk(path):
-					backlinkpages.update(set(
-						l.source for l in
-							self.index.list_links(path, LINK_DIR_BACKWARD) ))
+						self.index.list_links(path, LINK_DIR_BACKWARD) ))
 
-			# Do the actual move
-			store = self.get_store(path)
-			newstore = self.get_store(newpath)
-			if newstore == store:
-				store.move_page(path, newpath)
-			else:
-				assert False, 'TODO: move between stores'
-				# recursive + move attachments as well
+		# Do the actual move
+		store = self.get_store(path)
+		newstore = self.get_store(newpath)
+		if newstore == store:
+			store.move_page(path, newpath)
+		else:
+			assert False, 'TODO: move between stores'
+			# recursive + move attachments as well
 
-			self.flush_page_cache(path)
-			self.flush_page_cache(newpath)
+		self.flush_page_cache(path)
+		self.flush_page_cache(newpath)
 
-			# Update links in moved pages
-			page = self.get_page(newpath)
-			if page.hascontent:
-				self._update_links_from(page, path)
-				store = self.get_store(page)
-				store.store_page(page)
-				# do not use self.store_page because it emits signals
-			for child in self._no_index_walk(newpath):
-				if not child.hascontent:
+		# Update links in moved pages
+		page = self.get_page(newpath)
+		if page.hascontent:
+			self._update_links_from(page, path)
+			store = self.get_store(page)
+			store.store_page(page)
+			# do not use self.store_page because it emits signals
+		for child in self._no_index_walk(newpath):
+			if not child.hascontent:
+				continue
+			oldpath = path + child.relname(newpath)
+			self._update_links_from(child, oldpath)
+			store = self.get_store(child)
+			store.store_page(child)
+			# do not use self.store_page because it emits signals
+
+		# Update links to the moved page tree
+		if update_links:
+			# Need this indexed before we can resolve links to it
+			self.index.delete(path)
+			self.index.update(newpath)
+			#~ print backlinkpages
+			for p in backlinkpages:
+				if p == path or p.ischild(path):
 					continue
-				oldpath = path + child.relname(newpath)
-				self._update_links_from(child, oldpath)
-				store = self.get_store(child)
-				store.store_page(child)
-				# do not use self.store_page because it emits signals
+				page = self.get_page(p)
+				self._update_links_in_page(page, path, newpath)
+				self.store_page(page)
 
-			# Update links to the moved page tree
-			if update_links:
-				# Need this indexed before we can resolve links to it
-				self.index.delete(path)
-				self.index.update(newpath)
-				#~ print backlinkpages
-				for p in backlinkpages:
-					if p == path or p.ischild(path):
-						continue
-					page = self.get_page(p)
-					self._update_links_in_page(page, path, newpath)
-					self.store_page(page)
+		self.emit('moved-page', path, newpath, update_links)
 
 	def _no_index_walk(self, path):
 		'''Walking that can be used when the index is not in sync'''
@@ -1003,14 +1008,12 @@ class Notebook(gobject.GObject):
 		return newpath
 
 	def delete_page(self, path):
-		with SignalExceptionContext(self, 'delete-page'):
-			self.emit('delete-page', path)
-
-	def do_delete_page(self, path):
-		with SignalRaiseExceptionContext(self, 'delete-page'):
-			store = self.get_store(path)
-			store.delete_page(path)
-			self.flush_page_cache(path)
+		self.emit('delete-page', path)
+		store = self.get_store(path)
+		store.delete_page(path)
+		self.flush_page_cache(path)
+		path = Path(path.name)
+		self.emit('deleted-page', path)
 
 	def resolve_file(self, filename, path):
 		'''Resolves a file or directory path relative to a page. Returns a
