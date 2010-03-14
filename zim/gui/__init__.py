@@ -928,13 +928,6 @@ class GtkInterface(NotebookInterface):
 		'''
 		SaveCopyDialog(self).run()
 
-	def save_version(self):
-		pass
-
-	def show_versions(self):
-		from zim.gui.versionsdialog import VersionDialog
-		VersionDialog(self).run()
-
 	def show_export(self):
 		from zim.gui.exportdialog import ExportDialog
 		ExportDialog(self).run()

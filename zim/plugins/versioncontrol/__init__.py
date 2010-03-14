@@ -2,6 +2,8 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
+from __future__ import with_statement
+
 import gtk
 
 import logging
@@ -41,6 +43,15 @@ ui_actions = (
 	('save_version', 'gtk-save-as', _('S_ave Version...'), '<ctrl><shift>S', '', False), # T: menu item
 	('show_versions', None, _('_Versions...'), '', '', True), # T: menu item
 )
+
+
+def async_commit_with_error(ui, vcs, msg):
+	'''Convenience method to wrap vcs.commit_async'''
+	def callback(ok, error, exc_info, data):
+		if error:
+			logger.error('Error during async commit', exc_info=exc_info)
+			ErrorDialog(ui, error).run()
+	vcs.commit_async(msg, callback=callback)
 
 
 class NoChangesError(Error):
@@ -139,8 +150,10 @@ This is a core plugin shipping with zim.
 
 		try:
 			logger.info('Automatically saving version')
-			self.vcs.commit(_('Automatically saved version from zim'))
-				# T: default version comment for auto-saved versions
+			with self.ui.notebook.lock:
+				async_commit_with_error(self.ui, self.vcs,
+					_('Automatically saved version from zim') )
+					# T: default version comment for auto-saved versions
 		except NoChangesError:
 			logger.debug('No autosave version needed - no changes')
 
@@ -157,7 +170,8 @@ This is a core plugin shipping with zim.
 		if self.ui.page.modified:
 			self.ui.save_page()
 
-		SaveVersionDialog(self.ui, self.vcs).run()
+		with self.ui.notebook.lock:
+			SaveVersionDialog(self.ui, self.vcs).run()
 
 	def init_vcs(self, vcs):
 		dir = self._get_notebook_dir()
@@ -168,7 +182,8 @@ This is a core plugin shipping with zim.
 			assert False, 'Unkown VCS: %s' % vcs
 
 		if self.vcs:
-			self.vcs.init()
+			with self.ui.notebook.lock:
+				self.vcs.init()
 			self.actiongroup.get_action('show_versions').set_sensitive(True)
 
 	def show_versions(self):
@@ -213,11 +228,12 @@ class SaveVersionDialog(Dialog):
 
 
 	def do_response_ok(self):
+		# notebook.lock already set by plugin.save_version()
 		buffer = self.textview.get_buffer()
 		start, end = buffer.get_bounds()
 		msg = buffer.get_text(start, end, False).strip()
 		if msg:
-			self.vcs.commit(msg)
+			async_commit_with_error(self.ui, self.vcs, msg)
 			return True
 		else:
 			return False
