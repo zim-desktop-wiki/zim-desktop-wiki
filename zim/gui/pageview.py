@@ -143,6 +143,9 @@ ui_preferences = (
 	('recursive_checklist', 'bool', 'Editing',
 		_('Checking a checkbox also change any sub-items'), False),
 		# T: option in preferences dialog
+	('auto_reformat', 'bool', 'Editing',
+		_('Reformat wiki markup on the fly'), False),
+		# T: option in preferences dialog
 )
 
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
@@ -172,6 +175,12 @@ file_re = Re(r'''(
 	| \.\.?/
 	| /[^/\s]
 )\S*$''', re.X | re.U) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
+
+markup_re = {'style-strong' : Re(r'(\*{2})(.*)\1'),
+	'style-emphasis' : Re(r'(\/{2})(.*)\1'),
+	'style-mark' : Re(r'(_{2})(.*)\1'),
+	'style-pre' : Re(r'(\'{2})(.*)\1'),
+	'style-strike' : Re(r'(~{2})(.*)\1')}
 
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
@@ -2362,6 +2371,23 @@ class TextView(gtk.TextView):
 			apply_link(file_re[0])
 		elif self.preferences['autolink_camelcase'] and camelcase_re.match(word):
 			apply_link(camelcase_re[0])
+		elif self.preferences['auto_reformat']:
+			handled = False
+			linestart = buffer.get_iter_at_line(end.get_line())
+			partial_line = linestart.get_slice(end)
+			for style,re in markup_re.items():
+				if not re.search(partial_line) == None:
+					matchstart = linestart.copy()
+					matchstart.forward_chars(re.start())
+					matchend = linestart.copy()
+					matchend.forward_chars(re.end())
+					if filter(_is_not_indent_tag,buffer.iter_get_zim_tags(matchstart)) \
+					or filter(_is_not_indent_tag,buffer.iter_get_zim_tags(matchend)):
+						continue
+					buffer.delete(matchstart,matchend)
+					buffer.insert_with_tags_by_name(matchstart,re[2],style)
+					handled_here = True
+					break
 		else:
 			handled = False
 
