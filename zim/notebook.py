@@ -841,6 +841,9 @@ class Notebook(gobject.GObject):
 			raise LookupError, 'Page does not exist: %s' % path.name
 		assert not page.modified, 'BUG: moving a page with uncomitted changes'
 
+		if path == newpath:
+			return
+
 		self.emit('move-page', path, newpath, update_links)
 		logger.debug('Move %s to %s (%s)', path, newpath, update_links)
 
