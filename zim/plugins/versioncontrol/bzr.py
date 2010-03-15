@@ -2,6 +2,8 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
+from __future__ import with_statement
+
 import os
 import logging
 import subprocess

@@ -13,7 +13,8 @@ from zim.plugins import PluginClass
 from zim.errors import Error
 from zim.applications import Application
 
-from zim.gui.widgets import SingleClickTreeView, Dialog, PageEntry, IconButton, scrolled_text_view, QuestionDialog
+from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
+	PageEntry, IconButton, SingleClickTreeView, scrolled_text_view
 
 # FUTURE allow vcs modules like bzr to have their own UI classes
 # these can add additional menu items e.g. Tools->Bazaar-> ...
@@ -45,12 +46,15 @@ ui_actions = (
 )
 
 
-def async_commit_with_error(ui, vcs, msg):
+def async_commit_with_error(ui, vcs, msg, skip_no_changes=False):
 	'''Convenience method to wrap vcs.commit_async'''
 	def callback(ok, error, exc_info, data):
 		if error:
-			logger.error('Error during async commit', exc_info=exc_info)
-			ErrorDialog(ui, error).run()
+			if isinstance(error, NoChangesError) and skip_no_changes:
+				logger.debug('No autosave version needed - no changes')
+			else:
+				logger.error('Error during async commit', exc_info=exc_info)
+				ErrorDialog(ui, error).run()
 	vcs.commit_async(msg, callback=callback)
 
 
@@ -148,14 +152,12 @@ This is a core plugin shipping with zim.
 		if self.ui.page and self.ui.page.modified:
 			self.ui.save_page()
 
-		try:
-			logger.info('Automatically saving version')
-			with self.ui.notebook.lock:
-				async_commit_with_error(self.ui, self.vcs,
-					_('Automatically saved version from zim') )
-					# T: default version comment for auto-saved versions
-		except NoChangesError:
-			logger.debug('No autosave version needed - no changes')
+		logger.info('Automatically saving version')
+		with self.ui.notebook.lock:
+			async_commit_with_error(self.ui, self.vcs,
+				_('Automatically saved version from zim'),
+				skip_no_changes=True )
+				# T: default version comment for auto-saved versions
 
 	def save_version(self):
 		if not self.vcs:

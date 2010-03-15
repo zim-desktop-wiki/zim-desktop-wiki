@@ -39,7 +39,7 @@ def set_environ():
 		'XDG_CACHE_HOME': './tests/tmp/cache_home'
 	})
 	if os.path.isdir(tmpdir):
-		shutil.rmtree(tmpdir)
+		shutil.rmtree(unicode(tmpdir))
 	os.mkdir(tmpdir)
 
 

@@ -8,7 +8,7 @@ class TestSearchRegex(TestCase):
 
 	def runTest(self):
 		'''Test regex compilation for search terms'''
-		regex_func = SearchSelection(notebook=None)._content_regex
+		regex_func = SearchSelection(None)._content_regex
 
 		for word, regex in (
 			('foo', r'\bfoo\b'),
