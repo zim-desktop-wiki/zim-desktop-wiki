@@ -31,6 +31,8 @@ folder is created, moved or deleted.
 # represent the same file but independently manage the mtime and md5
 # checksums to ensure the file is what they think it should be.
 
+from __future__ import with_statement
+
 import gobject
 
 import os
@@ -43,6 +45,7 @@ from StringIO import StringIO
 
 from zim.errors import Error
 from zim.parsing import url_encode, url_decode
+from zim.async import AsyncOperation, AsyncLock
 
 
 __all__ = ['Dir', 'File']
@@ -535,17 +538,24 @@ class File(Path):
 	difficult to loose file contents when something goes wrong during
 	the writing.
 
-	When 'checkoverwrite' this class checks mtime to prevent overwriting a
-	file that was changed on disk, if mtime fails MD5 sums are used to verify
-	before raising an exception. However this check only works when using
-	read(), readlines(), write() or writelines(), but not when calling open()
-	directly. Unfortunately this logic is not atomic, so your mileage may vary.
+	When 'checkoverwrite' is True this class checks mtime to prevent
+	overwriting a file that was changed on disk, if mtime fails MD5 sums
+	are used to verify before raising an exception. However this check
+	only works when using read(), readlines(), write() or writelines(),
+	but not when calling open() directly. Unfortunately this logic is
+	not atomic, so your mileage may vary.
+
+	The *_async functions can be used to read or write files in a separate
+	thread. See zim.async for details. An AsyncLock is used to ensure
+	reading and writing is done sequentally between several threads.
+	However, this does not work when using open() directly.
 	'''
 
 	def __init__(self, path, checkoverwrite=False):
 		Path.__init__(self, path)
 		self.checkoverwrite = checkoverwrite
 		self._mtime = None
+		self._lock = AsyncLock()
 
 	def __eq__(self, other):
 		if isinstance(other, File):
@@ -620,6 +630,24 @@ class File(Path):
 			FS.emit('path-created', self)
 
 	def read(self, encoding='utf-8'):
+		'''Returns the content as string, or an empty string if
+		this file does not exist.
+		'''
+		with self._lock:
+			text = self._read(encoding)
+		return text
+
+	def read_async(self, callback=None, data=None):
+		'''Like read() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'. Try operation.result for content.
+		'''
+		operation = AsyncOperation(
+			self._read, lock=self._lock, callback=callback, data=data)
+		operation.start()
+		return operation
+
+	def _read(self, encoding='utf-8'):
 		if not self.exists():
 			return ''
 		else:
@@ -629,6 +657,24 @@ class File(Path):
 			return _convert_newlines(content)
 
 	def readlines(self):
+		'''Returns the content as list of lines, or an empty list if
+		this file does not exist.
+		'''
+		with self._lock:
+			lines = self._readlines()
+		return lines
+
+	def readlines_async(self, callback=None, data=None):
+		'''Like readlines() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'. Try operation.result for content.
+		'''
+		operation = AsyncOperation(
+			self._readlines, lock=self._lock, callback=callback, data=data)
+		operation.start()
+		return operation
+
+	def _readlines(self):
 		if not self.exists():
 			return []
 		else:
@@ -638,6 +684,22 @@ class File(Path):
 			return map(_convert_newlines, content)
 
 	def write(self, text):
+		'''Overwrite file with text'''
+		with self._lock:
+			self._write(text)
+
+	def write_async(self, text, callback=None, data=None):
+		'''Like write() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'.
+		'''
+		#~ print '!! ASYNC WRITE'
+		operation = AsyncOperation(
+			self._write, (text,), lock=self._lock, callback=callback, data=data)
+		operation.start()
+		return operation
+
+	def _write(self, text):
 		self._assertoverwrite()
 		file = self.open('w')
 		file.write(text)
@@ -645,6 +707,22 @@ class File(Path):
 		self._checkoverwrite(text)
 
 	def writelines(self, lines):
+		'''Overwrite file with a list of lines'''
+		with self._lock:
+			self._writelines(lines)
+
+	def writelines_async(self, text, callback=None, data=None):
+		'''Like writelines() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'.
+		'''
+		#~ print '!! ASYNC WRITE'
+		operation = AsyncOperation(
+			self._writelines, (text,), lock=self._lock, callback=callback, data=data)
+		operation.start()
+		return operation
+
+	def _writelines(self, lines):
 		self._assertoverwrite()
 		file = self.open('w')
 		file.writelines(lines)
@@ -681,21 +759,23 @@ class File(Path):
 		if self.exists():
 			return
 		else:
-			io = self.open('w')
-			io.write('')
-			io.close()
+			with self._lock:
+				io = self.open('w')
+				io.write('')
+				io.close()
 
 	def remove(self):
 		'''Remove this file and any related temporary files we made.
 		Ignores if page did not exist in the first place.
 		'''
 		logger.info('Remove file: %s', self)
-		if os.path.isfile(self.path):
-			os.remove(self.path)
+		with self._lock:
+			if os.path.isfile(self.path):
+				os.remove(self.path)
 
-		tmp = self.path + '.zim.new~'
-		if os.path.isfile(tmp):
-			os.remove(tmp)
+			tmp = self.path + '.zim.new~'
+			if os.path.isfile(tmp):
+				os.remove(tmp)
 
 	def cleanup(self):
 		'''Remove this file and deletes any empty parent directories.'''

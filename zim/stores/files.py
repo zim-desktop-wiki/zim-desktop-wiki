@@ -17,11 +17,13 @@ once we have it resolved.
 '''
 
 import os # using os directly in get_pagelist()
+import sys
 import logging
 from datetime import datetime
 
 from zim.fs import *
 from zim.fs import FilteredDir
+from zim.async import AsyncOperation
 from zim.formats import get_format
 from zim.notebook import Path, Page, LookupError, PageExistsError
 from zim.stores import StoreClass, encode_filename, decode_filename
@@ -95,7 +97,10 @@ class Store(StoreClass):
 
 	def store_page(self, page):
 		# FIXME assert page is ours and page is FilePage
-		page._store_parsetree()
+		page._store()
+
+	def store_page_async(self, page, lock, callback, data):
+		page._store_async(lock, callback, data)
 
 	def move_page(self, path, newpath):
 		file = self._get_file(path)
@@ -195,10 +200,49 @@ class FileStorePage(Page):
 		else:
 			return None
 
-	def _store_parsetree(self):
-		'''Save a parse tree to page source'''
+	def _store(self):
+		lines = self._dump()
+		self._store_lines(lines)
+		self.modified = False
+
+	def _store_async(self, lock, callback, data):
+		# Get lines before forking a new thread, otherwise the parsetree
+		# could change in a non-atomic way in the GUI in the mean time
+		try:
+			lines = self._dump()
+		except Exception, error:
+			if callback:
+				exc_info = sys.exc_info()
+				callback(False, error, exc_info, data)
+			return
+		else:
+			self.modified = False
+
+		#~ print '!! STORE PAGE ASYNC in files'
+		operation = AsyncOperation(
+			self._store_lines, (lines,), lock=lock, callback=callback, data=data)
+		operation.start()
+
+	def _store_lines(self, lines):
+		# Enable these lines to test error handling in the UI
+		#~ import random
+		#~ if random.random() > 0.5:
+			#~ raise IOError, 'This is a test error'
+		###
+
+		if lines:
+			self.source.writelines(lines)
+		else:
+			# Remove the file - this is not the same as remove_page()
+			self.source.cleanup()
+
+		return True # Need to return True for async callback
+
+	def _dump(self):
+		'''Returns the page source'''
 		tree = self.get_parsetree()
-		assert tree, 'BUG: Can not store a page without content'
+		if tree is None:
+			raise AssertionError, 'BUG: Can not store a page without content'
 
 		#~ print 'STORE', tree.tostring()
 		if tree.hascontent:
@@ -223,9 +267,6 @@ class FileStorePage(Page):
 			lines = self.properties.dump()
 			lines.append('\n')
 			lines.extend(self.format.Dumper().dump(tree))
-			self.source.writelines(lines)
+			return lines
 		else:
-			# Remove the file - this is not the same as remove_page()
-			self.source.cleanup()
-
-		self.modified = False
+			return []

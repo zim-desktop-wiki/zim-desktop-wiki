@@ -103,7 +103,7 @@ added:
 		self.assertEqual(vcs.get_diff(), ['=== No Changes\n'])
 
 		file.write('foo\nbaz\n')
-		vcs.commit('test 2')
+		vcs.commit_async('test 2')
 		diff = vcs.get_diff(versions=(1, 2))
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqualDiff(diff, '''\

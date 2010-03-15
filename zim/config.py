@@ -467,6 +467,12 @@ class ConfigFile(ListDict):
 		self.file.writelines(self.dump())
 		self.set_modified(False)
 
+	def write_async(self):
+		operation = self.file.writelines_async(self.dump())
+		# TODO do we need async error handling here ?
+		self.set_modified(False)
+		return operation
+
 
 class ConfigDictFile(ConfigFile, ConfigDict):
 	pass

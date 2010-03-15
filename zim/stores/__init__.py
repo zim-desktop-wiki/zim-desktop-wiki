@@ -63,6 +63,10 @@ If a page list for a non-existing path is requested, the store can just
 return an empty list.
 '''
 
+from __future__ import with_statement
+
+import sys
+
 from zim.fs import *
 from zim.parsing import is_url_re
 
@@ -118,6 +122,21 @@ class StoreClass():
 		Store a page in the backend storage.
 		'''
 		raise NotImplementedError
+
+	def store_page_async(self, page, lock, callback, data):
+		'''OPTIONAL METHOD, could be implemented by sub-classes. In this
+		base class it defaults to store_page()
+		'''
+		try:
+			with lock:
+				self.store_page(page)
+		except Exception, error:
+			if callback:
+				exc_info = sys.exc_info()
+				callback(False, error, exc_info, data)
+		else:
+			if callback:
+				callback(True, None, None, data)
 
 	def move_page(self, path, newpath):
 		'''ABSTRACT METHOD, must be implemented in sub-class if store is

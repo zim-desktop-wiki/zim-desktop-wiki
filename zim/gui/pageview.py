@@ -2936,8 +2936,8 @@ class PageView(gtk.VBox):
 				raise AssertionError, 'BUG: page changed while buffer changed as well'
 				# not using assert here because it could be optimized away
 
-		for s in ('store-page', 'delete-page', 'move-page'):
-			notebook.connect_after(s, assert_not_modified)
+		for s in ('stored-page', 'deleted-page', 'moved-page'):
+			notebook.connect(s, assert_not_modified)
 
 	def set_page(self, page):
 		# unhook from previous page
