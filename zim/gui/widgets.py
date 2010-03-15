@@ -80,7 +80,6 @@ def rotate_pixbuf(pixbuf):
 	if o == 3: # 180 degrees
 		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_UPSIDEDOWN)
 	elif o == 6: # 270 degrees
-		print 'ROTATING counter clockwise'
 		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_CLOCKWISE)
 	elif o == 9: # 90 degrees
 		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_COUNTERCLOCKWISE)

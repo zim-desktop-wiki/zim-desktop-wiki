@@ -50,6 +50,53 @@ __all__ = ['Dir', 'File']
 logger = logging.getLogger('zim.fs')
 
 
+xdgmime = None
+mimetypes = None
+try:
+	import xdg.Mime as xdgmime
+except ImportError:
+	logger.warn("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+	import mimetypes
+
+
+IMAGE_EXTENSIONS = (
+	# Gleaned from gtk.gdk.get_formats()
+	'bmp', # image/bmp
+	'gif', # image/gif
+	'icns', # image/x-icns
+	'ico', # image/x-icon
+	'cur', # image/x-icon
+	'jp2', # image/jp2
+	'jpc', # image/jp2
+	'jpx', # image/jp2
+	'j2k', # image/jp2
+	'jpf', # image/jp2
+	'jpeg', # image/jpeg
+	'jpe', # image/jpeg
+	'jpg', # image/jpeg
+	'pcx', # image/x-pcx
+	'png', # image/png
+	'pnm', # image/x-portable-anymap
+	'pbm', # image/x-portable-anymap
+	'pgm', # image/x-portable-anymap
+	'ppm', # image/x-portable-anymap
+	'ras', # image/x-cmu-raster
+	'tga', # image/x-tga
+	'targa', # image/x-tga
+	'tiff', # image/tiff
+	'tif', # image/tiff
+	'wbmp', # image/vnd.wap.wbmp
+	'xbm', # image/x-xbitmap
+	'xpm', # image/x-xpixmap
+	'wmf', # image/x-wmf
+	'apm', # image/x-wmf
+	'svg', # image/svg+xml
+	'svgz', # image/svg+xml
+	'svg.gz', # image/svg+xml
+)
+
+
+
 def isabs(path):
 	return path.startswith('file:/') or os.path.isabs(path)
 
@@ -269,40 +316,30 @@ class UnixPath(object):
 
 	def isimage(self):
 		'''Returns True if the file is an image type. But no guarantee
-		it is actually supported by gtk.
+		this image type is actually supported by gtk.
 		'''
+
+		# Quick shortcut to be able to load images in the gui even if
+		# we have no proper mimetype support
+		basename = self.basename
+		if '.' in self.basename:
+			_, ext = self.basename.rsplit('.', 1)
+			if ext in IMAGE_EXTENSIONS:
+				return True
+
 		return self.get_mimetype().startswith('image/')
 
 	def get_mimetype(self):
 		'''Returns the mimetype as a string like e.g. "text/plain"'''
-		try:
-			import xdg.Mime
-			mimetype = xdg.Mime.get_type(self.path, name_pri=80)
+		if xdgmime:
+			mimetype = xdgmime.get_type(self.path, name_pri=80)
 			return str(mimetype)
-		except ImportError:
-			logger.info("xdg.Mime doesn't exist - use file extension")
-			# Fake mime typing (e.g. for win32)
-			if '.' in self.basename:
-				_, ext = self.basename.rsplit('.', 1)
-				if ext == 'txt':
-					return 'text/plain'
-				else:
-					# Fallback for platform without xdg mimeinfo
-					# we can still use a stub mimetype based on the
-					# file extension. However we try to detect images
-					# so isimage() gives correct info to the GUI how
-					# to handle e.g. a file after drag & drop.
-					# FIXME check if we can port this to gio instead of using gtk
-					# alternative is to hard code list with globs (copy from mimeinfo)
-					import gtk
-					# See if it's an image
-					for format in gtk.gdk.pixbuf_get_formats():
-						if ext in format['extensions']:
-							return format['mime_types'][0]
-					# Not an image
-					return 'x-file-extension/%s' % ext
-			else:
-				return 'application/octet-stream'
+		else:
+			mimetype, encoding = mimetypes.guess_type(self.path, strict=False)
+			if encoding == 'gzip': return 'application/x-gzip'
+			elif encoding == 'bzip': return 'application/x-bzip'
+			elif encoding == 'compress': return 'application/x-compress'
+			else: return mimetype or 'application/octet-stream'
 
 
 class WindowsPath(UnixPath):
