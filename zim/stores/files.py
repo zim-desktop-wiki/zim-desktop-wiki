@@ -16,11 +16,11 @@ When doing a lookup we try to be case insensitive, but preserve case
 once we have it resolved.
 '''
 
-import os # using os directly in get_pagelist()
 import sys
 import logging
 from datetime import datetime
 
+import zim.fs
 from zim.fs import *
 from zim.fs import FilteredDir
 from zim.async import AsyncOperation
@@ -84,7 +84,7 @@ class Store(StoreClass):
 					logger.warn('Ignoring file: "%s" invalid file name', file)
 				else:
 					names.add(decode_filename(file[:-4]))
-			elif os.path.isdir( os.path.join(dir.path, file) ):
+			elif zim.fs.isdir( zim.fs.joinpath(dir.path, file) ):
 				if ' ' in file:
 					logger.warn('Ignoring file: "%s" invalid file name', file)
 				else:

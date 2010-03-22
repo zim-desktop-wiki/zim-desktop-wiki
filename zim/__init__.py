@@ -26,6 +26,7 @@ import logging
 
 from getopt import gnu_getopt, GetoptError
 
+import zim.fs
 from zim.fs import *
 from zim.errors import Error
 from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR
@@ -45,7 +46,7 @@ if os.name == 'nt':
 			os.environ['HOME'] = home
 
 assert os.environ['USER'], 'ERROR: environment variable $USER not set'
-assert os.path.isdir(os.environ['HOME']), 'ERROR: environment variable $HOME not set correctly'
+assert zim.fs.isdir(os.environ['HOME']), 'ERROR: environment variable $HOME not set correctly'
 
 
 if ZIM_DATA_DIR:

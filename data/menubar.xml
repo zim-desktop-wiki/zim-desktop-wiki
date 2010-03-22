@@ -203,8 +203,10 @@
 		<placeholder name='page_modification_actions'/>
 		<separator/>
 		<placeholder name='tools'/>
+<!--
 		<separator/>
 		<menuitem action='show_properties'/>
+-->
 	</popup>
 	<popup name='text_popup'>
 		<placeholder name='tools'/>

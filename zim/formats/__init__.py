@@ -292,8 +292,10 @@ class ParseTreeBuilder(object):
 	def start(self, tag, attrib=None):
 		if tag == '_ignore_':
 			return self._last
-		elif tag in ('h', 'p', 'pre'):
+		elif tag == 'h':
 			self._flush(need_eol=2)
+		elif tag in ('p', 'pre'):
+			self._flush(need_eol=1)
 		else:
 			self._flush()
 		#~ print 'START', tag

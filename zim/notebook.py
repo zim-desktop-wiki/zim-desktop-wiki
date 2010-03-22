@@ -204,7 +204,7 @@ def resolve_default_notebook():
 		default = list[0]
 
 	if default:
-		if os.path.isfile(default):
+		if zim.fs.isfile(default):
 			return File(default)
 		else:
 			return Dir(default)

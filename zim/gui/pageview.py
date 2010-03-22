@@ -70,6 +70,10 @@ KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
 KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
+# States that influence keybindings - we use this to explicitly
+# exclude other states. E.g. MOD2_MASK seems to be set when either
+# numlock or fn keys are active, resulting in keybindings failing
+KEYSTATES = (gtk.gdk.CONTROL_MASK, gtk.gdk.SHIFT_MASK, gtk.gdk.MOD1_MASK)
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
@@ -512,7 +516,10 @@ class TextBuffer(gtk.TextBuffer):
 		self._editmode_tags = self._editmode_tags[:-1]
 
 	def create_link_tag(self, text, href, **attrib):
+		if isinstance(href, File):
+			href = href.uri
 		assert isinstance(href, basestring)
+
 		tag = self.create_tag(None, **self.tag_styles['link'])
 		tag.set_priority(0) # force links to be below styles
 		tag.zim_type = 'link'
@@ -2072,7 +2079,7 @@ class TextView(gtk.TextView):
 			else:
 				buffer.place_cursor(iter)
 			handled = True
-		elif event.keyval in KEYVALS_TAB and not event.state:
+		elif event.keyval in KEYVALS_TAB and not event.state in KEYSTATES:
 			# Tab at start of line indents
 			iter = buffer.get_insert_iter()
 			home, ourhome = self.get_visual_home_positions(iter)
@@ -2086,7 +2093,7 @@ class TextView(gtk.TextView):
 		elif event.keyval in KEYVALS_LEFT_TAB \
 		or (event.keyval in KEYVALS_BACKSPACE
 			and self.preferences['unindent_on_backspace']) \
-		and not event.state:
+		and not event.state in KEYSTATES:
 			# Backspace or Ctrl-Tab unindents line
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(iter)
@@ -2318,7 +2325,7 @@ class TextView(gtk.TextView):
 	def do_end_of_word(self, start, end, word, char):
 		buffer = self.get_buffer()
 		handled = True
-		#~ print 'WORD >>%s<<' % word
+		#~ print 'WORD >>%s<< CHAR >>%s<<' % (word, char)
 
 		if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start)) \
 		or filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end)):
