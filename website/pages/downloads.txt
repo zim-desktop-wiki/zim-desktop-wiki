@@ -4,7 +4,7 @@ Creation-Date: Unknown
 
 ====== Downloads ======
 
-===== Latest release: 0.44 =====
+===== Latest release: 0.45 =====
 
 **This program depends on a number of modules including the python, gtk and the python-gtk bindings.** Most linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier then compiling them manually .
 
@@ -42,3 +42,5 @@ The following distrobutions are known to include zim:
 * Fedora Extras
 * Ubuntu (universe)
 * [[http://www.freshports.org/editors/zim|FreeBSD]]
+* Mandriva ([[http://petos.cz/rpms|unofficial repository]])
+* openSUSE ([[http://software.opensuse.org/search?baseproject=ALL&p=1&q=zim|unofficial packages]])

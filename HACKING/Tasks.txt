@@ -40,7 +40,7 @@ Creation-Date: Sat, 04 Apr 2009 10:54:39 +0200
 [ ] Templates: Need option to split body on H1 and HR
 	* Needed for S5 output - multiple slides in one page
 	* Also want to be able to control headings per slide
-[ ] Templates: Add the option to include special pages into the template, e.g. index page
+[*] Templates: Add the option to include special pages into the template, e.g. index page
 [ ] Pageview: add support for arbitrary widgets, so we can have objects
 	* Also wrap pixbufs into widgets so we can set tooltips etc.
 [ ] Add iconview with attachments at botton of pageview
