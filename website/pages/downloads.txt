@@ -42,3 +42,5 @@ The following distrobutions are known to include zim:
 * Fedora Extras
 * Ubuntu (universe)
 * [[http://www.freshports.org/editors/zim|FreeBSD]]
+* Mandriva ([[http://petos.cz/rpms|unofficial repository]])
+* openSUSE ([[http://software.opensuse.org/search?baseproject=ALL&p=1&q=zim|unofficial packages]])
