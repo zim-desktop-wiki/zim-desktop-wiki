@@ -237,6 +237,7 @@ class ExportDialog(Dialog):
 
 		dialog = ProgressBarDialog(self, _('Exporting notebook'))
 			# T: Title for progressbar window
+			# TODO make progressbar a context manager - now it stays alive in case of an error during the export
 		dialog.show_all()
 		exporter.export_all(dir, callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()

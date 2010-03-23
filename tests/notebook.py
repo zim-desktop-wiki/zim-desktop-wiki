@@ -159,7 +159,7 @@ class TestNotebook(tests.TestCase):
 
 		self.notebook.index.update(background=True)
 		self.assertTrue(self.notebook.index.updating)
-		self.assertRaises(IndexBusyError, 
+		self.assertRaises(IndexBusyError,
 			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
 
 		for oldpath, newpath in (
@@ -493,3 +493,19 @@ class TestPage(TestPath):
 		page.set_parsetree(tree)
 		self.assertFalse(page.hascontent)
 
+
+class TestIndexPage(tests.TestCase):
+
+	def setUp(self):
+		self.notebook = tests.get_test_notebook()
+		self.notebook.index.update()
+
+	def runTest(self):
+		'''Test index page generation'''
+		indexpage = IndexPage(self.notebook, Path(':'))
+		tree = indexpage.get_parsetree()
+		self.assertTrue(tree)
+		links = [link[1] for link in indexpage.get_links()]
+		self.assertTrue(len(links) > 1)
+		#~ print links
+		self.assertTrue('Test:foo' in links)

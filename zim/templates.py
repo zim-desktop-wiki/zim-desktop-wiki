@@ -252,21 +252,39 @@ class Template(GenericTemplate):
 	def set_linker(self, linker):
 		self.linker = linker
 
-	def process(self, notebook, page):
+	def process(self, notebook, page, pages=None):
 		'''Processes the template with a dict giving a set a standard
 		parameters for 'page' and returns a list of lines.
+
+		The attribute 'pages' can be used to supply page objects for
+		special pages, like 'next', 'previous', 'index' and 'home'.
 		'''
 		options = {} # this dict is accesible from the template and is
 		             # passed on to the format
+
+		if pages:
+			mypages = pages
+			pages = {}
+			for key in mypages.keys():
+				if not mypages[key] is None:
+					pages[key] = PageProxy(
+						notebook, mypages[key],
+						self.format, self.linker, options)
+		else:
+			pages = {}
+
 		dict = {
 			'zim': { 'version': zim.__version__ },
 			'page': PageProxy(
 				notebook, page,
 				self.format, self.linker, options),
+			'pages': pages,
 			'strftime': TemplateFunction(self.strftime),
 			'url': TemplateFunction(self.url),
 			'options': options
 		}
+
+		self.linker.set_path(page) # this is later reset in body() but we need it here for first part of the template
 		output = GenericTemplate.process(self, dict)
 
 		# Caching last processed dict because any pages in the dict
@@ -298,9 +316,18 @@ class Template(GenericTemplate):
 			return strftime(format, timestamp)
 
 	@staticmethod
-	def url(dict, pagename):
+	def url(dict, link):
 		'''Static method callable from the template, returns a string'''
-		return pagename # FIXME page to url function
+		if link is None:
+			return ''
+		elif not isinstance(link, basestring):
+			link = ':' + link.name # special page link index ?
+
+		linker = dict[TemplateParam('page')]._linker # bit of a hack
+		if linker:
+			return linker.link(link)
+		else:
+			return link
 
 
 class TemplateTokenList(list):
@@ -640,9 +667,9 @@ class PageProxy(object):
 	@property
 	def backlinks(self):
 		blinks = self._notebook.index.list_links(self._page, LINK_DIR_BACKWARD)
-		#~ for link in blinks:
-		#~	page = self._notebook.get_page(link.href)
-		#~	yield PageProxy(self._notebook, page)
+		for link in blinks:
+			source = self._notebook.get_page(link.source)
+			yield PageProxy(self._notebook, source, self._format, self._linker, self._options)
 
 
 class ParseTreeProxy(object):

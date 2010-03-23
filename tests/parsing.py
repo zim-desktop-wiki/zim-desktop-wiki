@@ -63,29 +63,24 @@ class TestParsing(TestCase):
 
 	def testURLEncoding(self):
 		'''Test encoding and decoding urls'''
-		# Try finding edge cases for detecting when we encode / decode double
-		for url, wanted in (
-			('file:///foo/bar', 'file:///foo/bar'),
-			('file:///C:/My Documents', 'file:///C:/My%20Documents'),
-			('file:///C:/My%20Documents', 'file:///C:/My%20Documents'),
-			('file:///foo/file[20%]', 'file:///foo/file%5B20%25%5D'),
-			('file:///foo/file%5B20%25%5D', 'file:///foo/file%5B20%25%5D'),
-			('file:///foo bar/foo%20bar', 'file:///foo%20bar/foo%2520bar'),
-			(u'http://foo/monkey\u2019s', 'http://foo/monkey%E2%80%99s'), # Multibyte unicode char
+		for url, readable in (
+			('file:///foo/file%25%20%5D', 'file:///foo/file%25 %5D'),
+			('http://foo/bar%20monkey%E2%80%99s', u'http://foo/bar monkey\u2019s'), # Multibyte unicode char
 		):
-			#~ print 'url_encode(\'%s\') == \'%s\'' % (url, url_encode(wanted))
-			self.assertEqual(url_encode(url), wanted)
+			self.assertEqual(url_decode(url, mode=URL_ENCODE_READABLE), readable)
+			self.assertEqual(url_decode(readable, mode=URL_ENCODE_READABLE), readable)
+			self.assertEqual(url_encode(url, mode=URL_ENCODE_READABLE), url)
+			self.assertEqual(url_encode(readable, mode=URL_ENCODE_READABLE), url)
 
-		for url, wanted in (
-			('file:///foo/bar', 'file:///foo/bar'),
-			('file:///C:/My Documents', 'file:///C:/My Documents'),
-			('file:///C:/My%20Documents', 'file:///C:/My Documents'),
-			('file:///foo/file[20%]', 'file:///foo/file[20%]'),
-			('file:///foo/file%5B20%25%5D', 'file:///foo/file[20%]'),
-			('file:///foo bar/foo%20bar', 'file:///foo bar/foo%20bar'),
-			('http://foo/monkey%E2%80%99s', u'http://foo/monkey\u2019s'), # Multibyte unicode char
+		for path, encoded in (
+			('/foo/file% ]', '/foo/file%25%20%5D'),
+			(u'/foo/bar monkey\u2019s', '/foo/bar%20monkey%E2%80%99s'),
 		):
-			#~ print 'url_decode(\'%s\') == \'%s\'' % (url, url_decode(wanted))
-			self.assertEqual(url_decode(url), wanted)
+			self.assertEqual(url_encode(path, mode=URL_ENCODE_PATH), encoded)
+			self.assertEqual(url_decode(encoded, mode=URL_ENCODE_PATH), path)
+
+		self.assertEqual(url_encode('foo?bar/baz', mode=URL_ENCODE_DATA), 'foo%3Fbar%2Fbaz')
+		self.assertEqual(url_decode('foo%3Fbar%2Fbaz', mode=URL_ENCODE_DATA), 'foo?bar/baz')
+
 
 # TODO - test link_type including win32 paths

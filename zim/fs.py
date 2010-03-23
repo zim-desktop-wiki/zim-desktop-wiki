@@ -122,8 +122,7 @@ def normalize_win32_share(path):
 	else:
 		if path.startswith('\\\\'):
 			# \\host\share\.. -> smb://host/share/..
-			path = 'smb:' + path.replace('\\', '/')
-			path = url_encode(path)
+			path = 'smb:' + url_encode(path.replace('\\', '/'))
 
 	return path
 
@@ -199,11 +198,12 @@ class UnixPath(object):
 		# Spec is file:/// or file://host/
 		# But file:/ is sometimes used by non-compliant apps
 		# Windows uses file:///C:/ which is compliant
-		if uri.startswith('file:///'): return uri[7:]
-		elif uri.startswith('file://localhost/'): return uri[16:]
+		if uri.startswith('file:///'): uri = uri[7:]
+		elif uri.startswith('file://localhost/'): uri = uri[16:]
 		elif uri.startswith('file://'): assert False, 'Can not handle non-local file uris'
-		elif uri.startswith('file:/'): return uri[5:]
+		elif uri.startswith('file:/'): uri = uri[5:]
 		else: assert False, 'Not a file uri: %s' % uri
+		return url_decode(uri)
 
 	def __iter__(self):
 		parts = self.split()
@@ -242,7 +242,7 @@ class UnixPath(object):
 	@property
 	def uri(self):
 		'''File uri property'''
-		return 'file://'+self.path
+		return 'file://' + url_encode(self.path)
 
 	@property
 	def dir(self):

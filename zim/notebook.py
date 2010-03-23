@@ -1588,7 +1588,9 @@ class IndexPage(Page):
 		add_namespace(self)
 		builder.end('page')
 
-		return zim.formats.ParseTree(builder.close())
+		tree = zim.formats.ParseTree(builder.close())
+		#~ print "!!!", tree.tostring()
+		return tree
 
 
 class Link(object):

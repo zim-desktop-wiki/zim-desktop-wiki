@@ -39,7 +39,7 @@ from zim.notebook import Path, Page, PageNameError, \
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict
-from zim.parsing import url_encode, is_win32_share_re
+from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re
 from zim.history import History, HistoryRecord
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
@@ -934,8 +934,10 @@ class GtkInterface(NotebookInterface):
 
 	def email_page(self):
 		text = ''.join(self.page.dump(format='plain'))
-		url = 'mailto:?subject=%s&body=%s' % (url_encode(self.page.name),
-				url_encode(text))
+		url = 'mailto:?subject=%s&body=%s' % (
+			url_encode(self.page.name, mode=URL_ENCODE_DATA),
+			url_encode(text, mode=URL_ENCODE_DATA),
+		)
 		self.open_url(url)
 
 	def import_page(self):

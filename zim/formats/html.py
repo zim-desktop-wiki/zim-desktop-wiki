@@ -10,7 +10,7 @@
 import re
 
 from zim.formats import *
-from zim.parsing import TextBuffer, link_type, url_encode
+from zim.parsing import TextBuffer, link_type
 
 info = {
 	'name':  'Html',
@@ -92,21 +92,21 @@ class Dumper(DumperClass):
 				output.append('</ul>\n')
 			elif element.tag == 'li':
 				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
-					icon = url_encode(self.linker.icon(element.attrib['bullet']))
+					icon = self.linker.icon(element.attrib['bullet'])
 					output += ['<li style="list-style-image: url(%s)">' % icon, text]
 				else:
 					output += ['<li>', text]
 				self._dump_children(element, output) # recurs
 				output.append('</li>\n')
 			elif element.tag == 'img':
-				src = url_encode(self.linker.img(element.attrib['src']))
+				src = self.linker.img(element.attrib['src'])
 				opt = ''
 				for o in ('width', 'height'):
 					if o in element.attrib and int(element.attrib[o]) > 0:
 						opt = ' %s="%s"' % (o, element.attrib[o])
 				output.append('<img src="%s" alt="%s"%s>' % (src, text, opt))
 			elif element.tag == 'link':
-				href = url_encode(self.linker.link(element.attrib['href']))
+				href = self.linker.link(element.attrib['href'])
 				title = text.replace('"', '&quot;')
 				output.append('<a href="%s" title="%s">%s</a>' % (href, title, text))
 			elif element.tag in ['emphasis', 'strong', 'mark', 'strike', 'code']:
