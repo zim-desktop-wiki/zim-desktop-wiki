@@ -4,6 +4,11 @@ Jaap Karssenberg <pardus@cpan.org>
 This branch is the Python rewrite and starts with version 0.42. 
 Lower version numbers for zim correspond to the Perl branch.
 
+=== 0.46 - Wed 24 Mar 2010 ===
+Bug fix release
+
+* Fixed critical bug preventing the creation of new pages.
+
 === 0.45 - Tue 23 Mar 2010 ===
 This release adds several new features as well as many bug fixes.
 

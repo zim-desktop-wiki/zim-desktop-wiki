@@ -95,7 +95,7 @@ def list_templates(format):
 
 
 def get_template(format, name):
-	'''Returns a Template object for a tempalte name or a file path'''
+	'''Returns a Template object for a template name or a file path'''
 	if is_path_re.match(name):
 		file = File(name)
 	else:
@@ -284,7 +284,11 @@ class Template(GenericTemplate):
 			'options': options
 		}
 
-		self.linker.set_path(page) # this is later reset in body() but we need it here for first part of the template
+		if self.linker:
+			self.linker.set_path(page) 
+			# this is later reset in body() but we need it here for 
+			# first part of the template
+
 		output = GenericTemplate.process(self, dict)
 
 		# Caching last processed dict because any pages in the dict
@@ -694,10 +698,13 @@ class ParseTreeProxy(object):
 			head, body = self._split_head(self._tree)
 			format = self._pageproxy._format
 			linker = self._pageproxy._linker
-			linker.set_path(self._pageproxy._page)
+			if linker:
+				linker.set_path(self._pageproxy._page)
+
 			dumper = format.Dumper(
 				linker=linker,
 				template_options=self._pageproxy._options )
+
 			return ''.join(dumper.dump(body))
 
 	def _split_head(self, tree):
