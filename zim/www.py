@@ -29,6 +29,7 @@ from zim.fs import *
 from zim.formats import ParseTree, TreeBuilder, BaseLinker
 from zim.config import data_file
 from zim.stores import encode_filename
+from zim.parsing import url_encode
 
 
 logger = logging.getLogger('zim.www')
@@ -351,7 +352,7 @@ class WWWLinker(BaseLinker):
 		self.path = path
 
 	def icon(self, name):
-		return '/+icons/%s.png' % name
+		return url_encode('/+icons/%s.png' % name)
 
 	def page(self, link):
 		try:
@@ -359,7 +360,7 @@ class WWWLinker(BaseLinker):
 		except PageNameError:
 			return ''
 		else:
-			return '/' + encode_filename(page.name) + '.html'
+			return url_encode('/' + encode_filename(page.name) + '.html')
 			# TODO use script location as root for cgi-bin
 
 	def file(self, link):

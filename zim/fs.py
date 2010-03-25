@@ -122,8 +122,7 @@ def normalize_win32_share(path):
 	else:
 		if path.startswith('\\\\'):
 			# \\host\share\.. -> smb://host/share/..
-			path = 'smb:' + path.replace('\\', '/')
-			path = url_encode(path)
+			path = 'smb:' + url_encode(path.replace('\\', '/'))
 
 	return path
 
@@ -155,6 +154,21 @@ gobject.type_register(_FS)
 FS = _FS()
 
 
+def joinpath(*parts):
+	'''Wrapper for os.path.join()'''
+	return os.path.join(*parts)
+
+
+def isdir(path):
+	'''Unicode save version of os.path.isdir()'''
+	return os.path.isdir(path.encode('utf-8'))
+
+
+def isfile(path):
+	'''Unicode save version of os.path.isfile()'''
+	return os.path.isfile(path.encode('utf-8'))
+
+
 class UnixPath(object):
 	'''Parent class for Dir and File objects'''
 
@@ -184,11 +198,12 @@ class UnixPath(object):
 		# Spec is file:/// or file://host/
 		# But file:/ is sometimes used by non-compliant apps
 		# Windows uses file:///C:/ which is compliant
-		if uri.startswith('file:///'): return uri[7:]
-		elif uri.startswith('file://localhost/'): return uri[16:]
+		if uri.startswith('file:///'): uri = uri[7:]
+		elif uri.startswith('file://localhost/'): uri = uri[16:]
 		elif uri.startswith('file://'): assert False, 'Can not handle non-local file uris'
-		elif uri.startswith('file:/'): return uri[5:]
+		elif uri.startswith('file:/'): uri = uri[5:]
 		else: assert False, 'Not a file uri: %s' % uri
+		return url_decode(uri)
 
 	def __iter__(self):
 		parts = self.split()
@@ -227,7 +242,7 @@ class UnixPath(object):
 	@property
 	def uri(self):
 		'''File uri property'''
-		return 'file://'+self.path
+		return 'file://' + url_encode(self.path)
 
 	@property
 	def dir(self):
@@ -241,7 +256,7 @@ class UnixPath(object):
 
 	def iswritable(self):
 		if self.exists():
-			return os.access(self.path, os.W_OK)
+			return os.access(self.path.encode('utf-8'), os.W_OK)
 		else:
 			return self.dir.iswritable() # recurs
 
@@ -315,7 +330,7 @@ class UnixPath(object):
 		'''Used to detect if e.g. a File object should have really been
 		a Dir object
 		'''
-		return os.path.isdir(self.path)
+		return isdir(self.path)
 
 	def isimage(self):
 		'''Returns True if the file is an image type. But no guarantee
@@ -387,7 +402,7 @@ class Dir(Path):
 
 	def exists(self):
 		'''Returns True if the dir exists and is actually a dir'''
-		return os.path.isdir(self.path)
+		return isdir(self.path)
 
 	def list(self):
 		'''Returns a list of names for files and subdirectories'''
@@ -565,7 +580,7 @@ class File(Path):
 
 	def exists(self):
 		'''Returns True if the file exists and is actually a file'''
-		return os.path.isfile(self.path)
+		return isfile(self.path)
 
 	def open(self, mode='r', encoding='utf-8'):
 		'''Returns an io object for reading or writing.
@@ -604,14 +619,14 @@ class File(Path):
 	def _on_write(self):
 		# flush and sync are already done before close()
 		tmp = self.path + '.zim.new~'
-		assert os.path.isfile(tmp)
+		assert isfile(tmp)
 		if isinstance(self, WindowsPath):
 			# On Windows, if dst already exists, OSError will be raised
 			# and no atomic operation to rename the file :(
-			if os.path.isfile(self.path):
+			if isfile(self.path):
 				isnew = False
 				back = self.path + '~'
-				if os.path.isfile(back):
+				if isfile(back):
 					os.remove(back)
 				os.rename(self.path, back)
 				os.rename(tmp, self.path)
@@ -621,7 +636,7 @@ class File(Path):
 				os.rename(tmp, self.path)
 		else:
 			# On UNix, dst already exists it is replaced in an atomic operation
-			isnew = not os.path.isfile(self.path)
+			isnew = not isfile(self.path)
 			os.rename(tmp, self.path)
 
 		logger.debug('Wrote %s', self)
@@ -770,11 +785,11 @@ class File(Path):
 		'''
 		logger.info('Remove file: %s', self)
 		with self._lock:
-			if os.path.isfile(self.path):
+			if isfile(self.path):
 				os.remove(self.path)
 
 			tmp = self.path + '.zim.new~'
-			if os.path.isfile(tmp):
+			if isfile(tmp):
 				os.remove(tmp)
 
 	def cleanup(self):

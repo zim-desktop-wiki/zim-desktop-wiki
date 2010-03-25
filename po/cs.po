@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2010-02-17 22:05+0100\n"
-"PO-Revision-Date: 2010-01-30 19:17+0000\n"
-"Last-Translator: Konki <pavel.konkol@seznam.cz>\n"
+"POT-Creation-Date: 2010-03-08 20:47+0100\n"
+"PO-Revision-Date: 2010-03-21 19:17+0000\n"
+"Last-Translator: Vlastimil Ott <linux@e-ott.info>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Launchpad-Export-Date: 2010-02-18 08:24+0000\n"
+"X-Launchpad-Export-Date: 2010-03-22 18:48+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
 #. label for default webbrowser |
@@ -25,31 +25,98 @@ msgid "Default"
 msgstr "Výchozí"
 
 #. menu item to open a file with an application, %s is the app name
-#: zim/gui/applications.py:359
+#: zim/gui/applications.py:369
 #, python-format
 msgid "Open with \"%s\""
 msgstr "Otevřít pomocí \"%s\""
 
 #. Dialog title
-#: zim/gui/applications.py:373
+#: zim/gui/applications.py:383
 msgid "Custom Command"
 msgstr "Vlastní příkaz"
 
 #. Field in 'custom command' dialog |
+#. Input in "Edit Custom Tool" dialog |
 #. Input label in the 'rename page' dialog for the new name |
 #. input field in 'Add Notebook' dialog |
 #. Heading in plugins tab of preferences dialog |
 #. label for properties dialog
-#: zim/gui/applications.py:377 zim/gui/__init__.py:1974
-#: zim/gui/notebookdialog.py:361 zim/gui/preferencesdialog.py:183
-#: zim/notebook.py:347
+#: zim/gui/applications.py:387 zim/gui/customtools.py:149
+#: zim/gui/__init__.py:2059 zim/gui/notebookdialog.py:357
+#: zim/gui/preferencesdialog.py:180 zim/notebook.py:347
 msgid "Name"
 msgstr "Název"
 
-#. Field in 'custom command' dialog
-#: zim/gui/applications.py:378
+#. Field in 'custom command' dialog |
+#. Input in "Edit Custom Tool" dialog
+#: zim/gui/applications.py:388 zim/gui/customtools.py:151
 msgid "Command"
 msgstr "Příkaz"
+
+#. Dialog title
+#: zim/gui/customtools.py:18
+msgid "Custom Tools"
+msgstr "Vlastní nástroje"
+
+#. help text in "Custom Tools" dialog
+#: zim/gui/customtools.py:23
+msgid ""
+"You can configure custom tools that will appear\n"
+"in the tool menu and in the tool bar or context menus."
+msgstr ""
+"Můžete si nastavit vlastní programy, zobrazí se v nabídce Nástroje,\n"
+" v nástrojové liště a v kontextové nabídce."
+
+#. Dialog title
+#: zim/gui/customtools.py:130
+msgid "Edit Custom Tool"
+msgstr "Upravit vlastní nástroj"
+
+#. Input in "Edit Custom Tool" dialog |
+#. Heading in plugins tab of preferences dialog
+#: zim/gui/customtools.py:150 zim/gui/preferencesdialog.py:185
+msgid "Description"
+msgstr "Popis"
+
+#. Input in "Edit Custom Tool" dialog |
+#. label for properties dialog
+#: zim/gui/customtools.py:156 zim/notebook.py:349
+msgid "Icon"
+msgstr "Ikona"
+
+#. Input in "Edit Custom Tool" dialog
+#: zim/gui/customtools.py:165
+msgid "Command does not modify data"
+msgstr "Příkaz nezmění data"
+
+#. Input in "Edit Custom Tool" dialog
+#: zim/gui/customtools.py:166
+msgid "Show in the toolbar"
+msgstr "Zobrazit v nástrojové liště"
+
+#. Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
+#: zim/gui/customtools.py:169
+msgid ""
+"To following parameters will be substituted\n"
+"in the command when it is executed:\n"
+"<tt>\n"
+"<b>%f</b> the page source as a temporary file\n"
+"<b>%d</b> the attachment directory of the current page\n"
+"<b>%s</b> the real page source file (if any)\n"
+"<b>%n</b> the notebook location (file or folder)\n"
+"<b>%D</b> the document root (if any)\n"
+"<b>%t</b> the selected text or word under cursor\n"
+"</tt>\n"
+msgstr ""
+"Následující parametry budou při spuštění předány programu:\n"
+"<tt>\n"
+"<b>%f</b> - zdroj stránky jako dočasný soubor\n"
+"<b>%d</b> - adresář s přílohami současné stránky\n"
+"<b>%s</b> - skutečný soubor se zdrojem stránky (pokud existuje)\n"
+"<b>%n</b> - umístění sešitu (soubor nebo adresář)\n"
+"<b>%D</b> - kořen dokumentu (pokud existuje)\n"
+"<b>%t</b> - vybraný text, nebo slovo pod kurzorem\n"
+"</tt>\n"
 
 #. Title export dialog
 #: zim/gui/exportdialog.py:17
@@ -63,7 +130,7 @@ msgstr "Stránky"
 
 #. Option in export dialog to export complete notebook |
 #. Option in versions dialog to show version for complete notebook
-#: zim/gui/exportdialog.py:27 zim/plugins/versioncontrol/__init__.py:245
+#: zim/gui/exportdialog.py:27 zim/plugins/versioncontrol/__init__.py:251
 msgid "Complete _notebook"
 msgstr "Kompletní sešit"
 
@@ -83,58 +150,58 @@ msgid "Format"
 msgstr "Formát"
 
 #. Option in template selection to specify another file
-#: zim/gui/exportdialog.py:77 zim/gui/exportdialog.py:81
-#: zim/gui/exportdialog.py:104 zim/gui/exportdialog.py:220
+#: zim/gui/exportdialog.py:79 zim/gui/exportdialog.py:83
+#: zim/gui/exportdialog.py:106 zim/gui/exportdialog.py:222
 msgid "Other..."
 msgstr "Další..."
 
 #. Label for template selection in export dialog
-#: zim/gui/exportdialog.py:90
+#: zim/gui/exportdialog.py:92
 msgid "Template"
 msgstr "Šablona"
 
 #. Title of file selection dialog
-#: zim/gui/exportdialog.py:99
+#: zim/gui/exportdialog.py:101
 msgid "Please select a template file"
 msgstr "Vyberte prosím soubor se šablonou"
 
 #. Label for folder selection in export dialog
-#: zim/gui/exportdialog.py:118
+#: zim/gui/exportdialog.py:120
 msgid "Output folder"
 msgstr "Výstupní složka"
 
 #. Title of file selection dialog
-#: zim/gui/exportdialog.py:120
+#: zim/gui/exportdialog.py:122
 msgid "Please select a folder"
 msgstr "Vyberte, prosím, složku"
 
 #. Label for setting a name for the index of exported pages
-#: zim/gui/exportdialog.py:138
+#: zim/gui/exportdialog.py:140
 msgid "Index page"
 msgstr "Stránka s indexem"
 
 #. Section heading in export dialog
-#: zim/gui/exportdialog.py:147
+#: zim/gui/exportdialog.py:149
 msgid "Documents"
 msgstr "Dokumenty"
 
 #. radio option in export dialog
-#: zim/gui/exportdialog.py:155
+#: zim/gui/exportdialog.py:157
 msgid "Link files under document root with full file path"
 msgstr "Odkazovat soubory v kořenové složce dokumentu absolutní cestou"
 
 #. radio option in export dialog
-#: zim/gui/exportdialog.py:161
+#: zim/gui/exportdialog.py:163
 msgid "Map document root to URL"
 msgstr "Převést kořen dokumentu na URL"
 
 #. message heading
-#: zim/gui/exportdialog.py:206
+#: zim/gui/exportdialog.py:208
 msgid "Folder exists"
 msgstr "Složka existuje"
 
 #. detailed message, answers are Yes and No
-#: zim/gui/exportdialog.py:207
+#: zim/gui/exportdialog.py:209
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
 "overwrite exisitng files. Do you want to continue?"
@@ -143,17 +210,17 @@ msgstr ""
 "přepsány. Chcete pokračovat?"
 
 #. error message when input for export dialog not OK
-#: zim/gui/exportdialog.py:223
+#: zim/gui/exportdialog.py:225
 msgid "Please specify a template"
 msgstr "Nastavte, prosím, šablonu"
 
 #. error message when input for export dialog not OK
-#: zim/gui/exportdialog.py:230
+#: zim/gui/exportdialog.py:232
 msgid "Please specify a URL for the document root"
 msgstr "Nastavte, prosím, URL pro kořen dokumentu"
 
 #. Title for progressbar window
-#: zim/gui/exportdialog.py:236
+#: zim/gui/exportdialog.py:238
 msgid "Exporting notebook"
 msgstr "Probíhá export sešitu"
 
@@ -198,7 +265,7 @@ msgstr "_Zobrazit"
 
 #. Menu title |
 #. Button label
-#: zim/gui/__init__.py:58 zim/gui/pageview.py:3462
+#: zim/gui/__init__.py:58 zim/gui/pageview.py:3525
 msgid "_Insert"
 msgstr "_Vložit"
 
@@ -234,7 +301,7 @@ msgstr "Ukazatel struktury"
 
 #. Menu title |
 #. Menu item
-#: zim/gui/__init__.py:65 zim/gui/__init__.py:113
+#: zim/gui/__init__.py:65 zim/gui/__init__.py:114
 msgid "_Toolbar"
 msgstr "_Nástrojová lišta"
 
@@ -255,9 +322,9 @@ msgstr "_Otevřít jiný sešit"
 
 #. Menu item |
 #. menu item to open a link
-#: zim/gui/__init__.py:71 zim/gui/pageview.py:3210
+#: zim/gui/__init__.py:71 zim/gui/pageview.py:3273
 msgid "Open in New _Window"
-msgstr ""
+msgstr "Otevřít v novém _okně"
 
 #. Menu item
 #: zim/gui/__init__.py:72
@@ -311,7 +378,7 @@ msgstr "_Zavřít"
 
 #. Menu item |
 #. menu item in tray icon menu
-#: zim/gui/__init__.py:82 zim/plugins/trayicon.py:106
+#: zim/gui/__init__.py:82 zim/plugins/trayicon.py:110
 msgid "_Quit"
 msgstr "U_končit"
 
@@ -387,191 +454,196 @@ msgstr "Aktualizovat index"
 
 #. Menu item
 #: zim/gui/__init__.py:96
+msgid "Custom _Tools"
+msgstr "_Vlastní nástroje"
+
+#. Menu item
+#: zim/gui/__init__.py:97
 msgid "_Back"
 msgstr "_Zpět"
 
 #. Menu item
-#: zim/gui/__init__.py:96
+#: zim/gui/__init__.py:97
 msgid "Go page back"
 msgstr "Přejít o stranu zpět"
 
 #. Menu item
-#: zim/gui/__init__.py:97
+#: zim/gui/__init__.py:98
 msgid "_Forward"
 msgstr "_Vpřed"
 
 #. Menu item
-#: zim/gui/__init__.py:97
+#: zim/gui/__init__.py:98
 msgid "Go page forward"
 msgstr "Přejít o stranu vpřed"
 
 #. Menu item
-#: zim/gui/__init__.py:98
+#: zim/gui/__init__.py:99
 msgid "_Parent"
 msgstr "O úroveň _výš"
 
 #. Menu item
-#: zim/gui/__init__.py:98
+#: zim/gui/__init__.py:99
 msgid "Go to parent page"
 msgstr "Přejít na nadřazenou stránku"
 
 #. Menu item
-#: zim/gui/__init__.py:99
+#: zim/gui/__init__.py:100
 msgid "_Child"
 msgstr "O úroveň _níž"
 
 #. Menu item
-#: zim/gui/__init__.py:99
+#: zim/gui/__init__.py:100
 msgid "Go to child page"
 msgstr "Přejít na podřízenou stránku"
 
 #. Menu item
-#: zim/gui/__init__.py:100
+#: zim/gui/__init__.py:101
 msgid "_Previous in index"
 msgstr "Pře_dchozí v indexu"
 
 #. Menu item
-#: zim/gui/__init__.py:100
+#: zim/gui/__init__.py:101
 msgid "Go to previous page"
 msgstr "Přejít na předchozí stránku"
 
 #. Menu item
-#: zim/gui/__init__.py:101
+#: zim/gui/__init__.py:102
 msgid "_Next in index"
 msgstr "_Následující v indexu"
 
 #. Menu item
-#: zim/gui/__init__.py:101
+#: zim/gui/__init__.py:102
 msgid "Go to next page"
 msgstr "Přejít na následující stránku"
 
 #. Menu item
-#: zim/gui/__init__.py:102
+#: zim/gui/__init__.py:103
 msgid "_Home"
 msgstr "_Domů"
 
 #. Menu item
-#: zim/gui/__init__.py:102
+#: zim/gui/__init__.py:103
 msgid "Go home"
 msgstr "Přejít na startovní stránku"
 
 #. Menu item
-#: zim/gui/__init__.py:103
+#: zim/gui/__init__.py:104
 msgid "_Jump To..."
 msgstr "Skočit na..."
 
 #. Menu item
-#: zim/gui/__init__.py:104
+#: zim/gui/__init__.py:105
 msgid "_Contents"
 msgstr "_Obsah"
 
 #. Menu item
-#: zim/gui/__init__.py:105
+#: zim/gui/__init__.py:106
 msgid "_FAQ"
 msgstr "Časté _otázky"
 
 #. Menu item
-#: zim/gui/__init__.py:106
+#: zim/gui/__init__.py:107
 msgid "_Keybindings"
 msgstr "_Klávesové zkratky"
 
 #. Menu item
-#: zim/gui/__init__.py:107
+#: zim/gui/__init__.py:108
 msgid "_Bugs"
 msgstr "_Chyby"
 
 #. Menu item
-#: zim/gui/__init__.py:108
+#: zim/gui/__init__.py:109
 msgid "_About"
 msgstr "_O programu"
 
 #. Menu item
-#: zim/gui/__init__.py:114
+#: zim/gui/__init__.py:115
 msgid "_Statusbar"
 msgstr "_Stavový řádek"
 
 #. Menu item
-#: zim/gui/__init__.py:115
+#: zim/gui/__init__.py:116
 msgid "_Index"
 msgstr "_Index"
 
 #. Menu item
-#: zim/gui/__init__.py:115
+#: zim/gui/__init__.py:116
 msgid "Show index"
 msgstr "Zobrazit index"
 
 #. Menu item
-#: zim/gui/__init__.py:116
+#: zim/gui/__init__.py:117
 msgid "_Fullscreen"
 msgstr "_Celoobrazovkový režim"
 
 #. menu item
-#: zim/gui/__init__.py:117
+#: zim/gui/__init__.py:118
 msgid "Notebook _Editable"
 msgstr "Sešit lze _upravovat"
 
 #. menu item
-#: zim/gui/__init__.py:117
+#: zim/gui/__init__.py:118
 msgid "Toggle notebook editable"
 msgstr "Přepnout: sešit lze upravovat"
 
 #. Menu item
-#: zim/gui/__init__.py:122
+#: zim/gui/__init__.py:123
 msgid "_None"
 msgstr "Žá_dný"
 
 #. Menu item
-#: zim/gui/__init__.py:123
+#: zim/gui/__init__.py:124
 msgid "_Recent pages"
 msgstr "_Nedávné stránky"
 
 #. Menu item
-#: zim/gui/__init__.py:124
+#: zim/gui/__init__.py:125
 msgid "_History"
 msgstr "_Historie"
 
 #. Menu item
-#: zim/gui/__init__.py:125
+#: zim/gui/__init__.py:126
 msgid "N_amespace"
 msgstr "_Jmenný prostor"
 
 #. Menu item
-#: zim/gui/__init__.py:135
+#: zim/gui/__init__.py:136
 msgid "Icons _And Text"
 msgstr "Ikony a _text"
 
 #. Menu item
-#: zim/gui/__init__.py:136
+#: zim/gui/__init__.py:137
 msgid "_Icons Only"
 msgstr "Pouze ik_ony"
 
 #. Menu item
-#: zim/gui/__init__.py:137
+#: zim/gui/__init__.py:138
 msgid "_Text Only"
 msgstr "Pouze t_ext"
 
 #. Menu item
-#: zim/gui/__init__.py:142
+#: zim/gui/__init__.py:143
 msgid "_Large Icons"
 msgstr "_Velké ikony"
 
 #. Menu item
-#: zim/gui/__init__.py:143
+#: zim/gui/__init__.py:144
 msgid "_Small Icons"
 msgstr "_Malé ikony"
 
 #. Menu item
-#: zim/gui/__init__.py:144
+#: zim/gui/__init__.py:145
 msgid "_Tiny Icons"
 msgstr "D_robné ikony"
 
 #. Option in the preferences dialog
-#: zim/gui/__init__.py:157
+#: zim/gui/__init__.py:158
 msgid "Add 'tearoff' strips to the menus"
 msgstr "Připojit k nabídkám odtrhávací proužky"
 
 #. Option in the preferences dialog
-#: zim/gui/__init__.py:159
+#: zim/gui/__init__.py:160
 msgid ""
 "Use <Ctrl><Space> to switch to the side pane\n"
 "(If disabled you can still use <Alt><Space>)"
@@ -580,7 +652,7 @@ msgstr ""
 "(Pokud to nepůjde, můžete použít Alt a mezerník)"
 
 #. Error description for "no such file or folder"
-#: zim/gui/__init__.py:190
+#: zim/gui/__init__.py:191
 msgid ""
 "The file or folder you specified does not exist.\n"
 "Please check if you the path is correct."
@@ -589,18 +661,18 @@ msgstr ""
 "Ověřte prosím, že je cesta správná."
 
 #. Error message, %s will be the file path
-#: zim/gui/__init__.py:194
+#: zim/gui/__init__.py:195
 #, python-format
 msgid "No such file or folder: %s"
 msgstr "Soubor nebo složka neexistuje: %s"
 
 #. Short question for question prompt
-#: zim/gui/__init__.py:647
+#: zim/gui/__init__.py:652
 msgid "Upgrade Notebook?"
 msgstr "Zvýšit verze programů v přenosném počítači?"
 
 #. Explanation for question to upgrade notebook
-#: zim/gui/__init__.py:648
+#: zim/gui/__init__.py:653
 msgid ""
 "This notebook was created by an older of version of zim.\n"
 "Do you want to upgrade it to the latest version now?\n"
@@ -612,14 +684,22 @@ msgid ""
 "If you choose not to upgrade now, some features\n"
 "may not work as expected"
 msgstr ""
+"Tento sešit byl vytvořen starší verzí Zimu.\n"
+"Chcete jej aktualizovat na aktuální verzi?\n"
+"\n"
+"Aktualizace bude chvíli trvat a může se na obsahu sešitu projevit.\n"
+"Měli byste si určitě udělat zálohu sešitu.\n"
+"\n"
+"Pokud se rozhodnete, že aktualizovat nebudete,\n"
+"některé funkce nebudou pracovat tak, jak očekáváte."
 
 #. Title of progressbar dialog
-#: zim/gui/__init__.py:660
+#: zim/gui/__init__.py:665
 msgid "Upgrading notebook"
 msgstr "Zvyšuji verze programů v přenosném počítači"
 
 #. question dialog text
-#: zim/gui/__init__.py:904
+#: zim/gui/__init__.py:909
 msgid ""
 "The index is still busy updating. Untill thisis finished links can not be "
 "updated correctly.Performing the move now could break links,do you want to "
@@ -630,17 +710,17 @@ msgstr ""
 "Přesunutí v tomto okamžiku může odkazy poškodit. Chcete pokračovat?"
 
 #. Error message
-#: zim/gui/__init__.py:1002
+#: zim/gui/__init__.py:1007
 msgid "This page does not have an attachments folder"
 msgstr "Stránka nemá složku s přílohami"
 
 #. Heading in a question dialog for creating a folder
-#: zim/gui/__init__.py:1009 zim/gui/__init__.py:1043
+#: zim/gui/__init__.py:1014 zim/gui/__init__.py:1048
 msgid "Create folder?"
 msgstr "Vytvořit složku?"
 
 #. Text in a question dialog for creating a folder
-#: zim/gui/__init__.py:1011
+#: zim/gui/__init__.py:1016
 msgid ""
 "The attachments folder for this page does not yet exist.\n"
 "Do you want to create it now?"
@@ -649,7 +729,7 @@ msgstr ""
 "Chcete ji vytvořit?"
 
 #. Text in a question dialog for creating a folder
-#: zim/gui/__init__.py:1045
+#: zim/gui/__init__.py:1050
 msgid ""
 "The document folder for this page does not yet exist.\n"
 "Do you want to create it now?"
@@ -658,30 +738,31 @@ msgstr ""
 "Chcete ji vytvořit?"
 
 #. Title of progressbar dialog
-#: zim/gui/__init__.py:1081
+#: zim/gui/__init__.py:1086
 msgid "Updating index"
 msgstr "Probíhá aktualizace indexu"
 
 #. General description of zim itself
-#: zim/gui/__init__.py:1112
+#: zim/gui/__init__.py:1197
 msgid "A desktop wiki"
 msgstr "Desktopová wiki"
 
 #. This string needs to be translated with names of the translators for this language
-#: zim/gui/__init__.py:1117
+#: zim/gui/__init__.py:1202
 msgid "translator-credits"
 msgstr ""
 "Launchpad Contributions:\n"
+"  Jakub Kozisek https://launchpad.net/~kozisek-j\n"
 "  Konki https://launchpad.net/~pavel-konkol\n"
 "  Vlastimil Ott https://launchpad.net/~vlastimil"
 
 #. page status in statusbar
-#: zim/gui/__init__.py:1213
+#: zim/gui/__init__.py:1298
 msgid "readonly"
 msgstr "jen ke čtení"
 
 #. Label for button with backlinks in statusbar
-#: zim/gui/__init__.py:1617
+#: zim/gui/__init__.py:1702
 #, python-format
 msgid "%i _Backlink..."
 msgid_plural "%i _Backlinks..."
@@ -690,13 +771,13 @@ msgstr[1] "%i zpětné odkazy"
 msgstr[2] "%i zpětných odkazů"
 
 #. Heading of error dialog
-#: zim/gui/__init__.py:1718
+#: zim/gui/__init__.py:1803
 #, python-format
 msgid "Could not save page: %s"
 msgstr "Stránku %s nelze uložit"
 
 #. text in error dialog when saving page failed
-#: zim/gui/__init__.py:1720
+#: zim/gui/__init__.py:1805
 msgid ""
 "To continue you can save a copy of this page or discard\n"
 "any changes. If you save a copy changes will be also\n"
@@ -707,37 +788,37 @@ msgstr ""
 "ale kopii můžete později obnovit."
 
 #. Button in error dialog
-#: zim/gui/__init__.py:1758
+#: zim/gui/__init__.py:1843
 msgid "_Discard Changes"
 msgstr "_Zahodit změny"
 
 #. Button in error dialog
-#: zim/gui/__init__.py:1763
+#: zim/gui/__init__.py:1848
 msgid "_Save Copy"
 msgstr "Uložit _kopii"
 
 #. Dialog title
-#: zim/gui/__init__.py:1801
+#: zim/gui/__init__.py:1886
 msgid "Jump to"
 msgstr "Skočit na"
 
 #. Label for page input
-#: zim/gui/__init__.py:1804
+#: zim/gui/__init__.py:1889
 msgid "Jump to Page"
 msgstr "Skočit na stránku"
 
 #. Dialog title
-#: zim/gui/__init__.py:1823
+#: zim/gui/__init__.py:1908
 msgid "New Sub Page"
 msgstr "Nová podstránka"
 
 #. Dialog title
-#: zim/gui/__init__.py:1824
+#: zim/gui/__init__.py:1909
 msgid "New Page"
 msgstr "Nová stránka"
 
 #. Dialog text in 'new page' dialog
-#: zim/gui/__init__.py:1828
+#: zim/gui/__init__.py:1913
 msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
@@ -746,43 +827,43 @@ msgstr ""
 "bude automaticky vytvořena."
 
 #. Input label
-#: zim/gui/__init__.py:1832
+#: zim/gui/__init__.py:1917
 msgid "Page Name"
 msgstr "Název stránky"
 
 #. error message
-#: zim/gui/__init__.py:1846
+#: zim/gui/__init__.py:1931
 msgid "Page exists"
 msgstr "Stránka již existuje"
 
 #. Dialog title of file save dialog
-#: zim/gui/__init__.py:1858
+#: zim/gui/__init__.py:1943
 msgid "Save Copy"
 msgstr "Uložit kopii"
 
 #. Dialog title
-#: zim/gui/__init__.py:1882
+#: zim/gui/__init__.py:1967
 msgid "Import Page"
 msgstr "Importovat stránku"
 
 #. File filter for '*.txt'
-#: zim/gui/__init__.py:1883
+#: zim/gui/__init__.py:1968
 msgid "Text Files"
 msgstr "Textové soubory"
 
 #. Dialog title
-#: zim/gui/__init__.py:1910
+#: zim/gui/__init__.py:1995
 msgid "Move Page"
 msgstr "Přesunout stránku"
 
 #. Heading in 'move page' dialog - %s is the page name
-#: zim/gui/__init__.py:1926
+#: zim/gui/__init__.py:2011
 #, python-format
 msgid "Move page \"%s\""
 msgstr "Přesunout stránku %s"
 
 #. label in MovePage dialog - %i is number of backlinks
-#: zim/gui/__init__.py:1929 zim/gui/__init__.py:1969
+#: zim/gui/__init__.py:2014 zim/gui/__init__.py:2054
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
@@ -792,59 +873,59 @@ msgstr[2] "Aktualizovat %i stránek, které sem odkazují"
 
 #. Input label for namespace to move a file to |
 #. input label
-#: zim/gui/__init__.py:1935 zim/plugins/calendar.py:82
+#: zim/gui/__init__.py:2020 zim/plugins/calendar.py:82
 msgid "Namespace"
 msgstr "Jmenný prostor"
 
 #. Dialog title
-#: zim/gui/__init__.py:1956
+#: zim/gui/__init__.py:2041
 msgid "Rename Page"
 msgstr "Přejmenovat stránku"
 
 #. label in 'rename page' dialog - %s is the page name
-#: zim/gui/__init__.py:1966
+#: zim/gui/__init__.py:2051
 #, python-format
 msgid "Rename page \"%s\""
 msgstr "Přejmenovat stránku %s"
 
 #. Option in the 'rename page' dialog
-#: zim/gui/__init__.py:1976
+#: zim/gui/__init__.py:2061
 msgid "Update the heading of this page"
 msgstr "Aktualizovat záhlaví stránky"
 
 #. Dialog title
-#: zim/gui/__init__.py:2005
+#: zim/gui/__init__.py:2090
 msgid "Delete Page"
 msgstr "Smazat stránku"
 
 #. Heading in 'delete page' dialog - %s is the page name
-#: zim/gui/__init__.py:2017
+#: zim/gui/__init__.py:2102
 #, python-format
 msgid "Delete page \"%s\"?"
 msgstr "Smazat stránku %s?"
 
 #. Text in 'delete page' dialog - %s is the page name
-#: zim/gui/__init__.py:2019
+#: zim/gui/__init__.py:2104
 #, python-format
 msgid "Page \"%s\" and all of it's sub-pages and attachments will be deleted"
 msgstr ""
 "Stránka %s a všechny její podřízené stránky a také přílohy budou smazány"
 
 #. Dialog title
-#: zim/gui/__init__.py:2037
+#: zim/gui/__init__.py:2122
 msgid "Attach File"
 msgstr "Připojit soubor"
 
 #. Error dialog - %s is the full page name
-#: zim/gui/__init__.py:2046
+#: zim/gui/__init__.py:2131
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
 msgstr "Stránka %s nemá složku pro přílohy"
 
 #. checkbox in the "Attach File" dialog
-#: zim/gui/__init__.py:2051
+#: zim/gui/__init__.py:2136
 msgid "Insert images as link"
-msgstr ""
+msgstr "Vložit obrázky jako odkaz"
 
 #. Column heading in 'open notebook' dialog |
 #. Field in web server gui
@@ -863,32 +944,19 @@ msgid "Default notebook"
 msgstr "Výchozí sešit"
 
 #. Dialog window title
-#: zim/gui/notebookdialog.py:345
+#: zim/gui/notebookdialog.py:346
 msgid "Add Notebook"
 msgstr "Přidat sešit"
 
-#. help text in the 'Add Notebook' dialog
-#: zim/gui/notebookdialog.py:346
-msgid ""
-"Please select a name and a folder for the notebook.\n"
-"\n"
-"To create a new notebook you need to select an empty folder.\n"
-"Of course you can also select an existing zim notebook folder.\n"
-msgstr ""
-"Vyberte prosím název a složku pro sešit.\n"
-"\n"
-"Pokud chcete vytvořit nový sešit, musíte vybrat prázdnou složku.\n"
-"Můžete ale samozřejmě vybrat složku, ve které už nějaký sešit existuje.\n"
+#. Label in Add Notebook dialog
+#: zim/gui/notebookdialog.py:348
+msgid "Please select a name and a folder for the notebook."
+msgstr "Vyberte prosím název a složku pro sešit."
 
 #. input field in 'Add Notebook' dialog
-#: zim/gui/notebookdialog.py:362
+#: zim/gui/notebookdialog.py:358
 msgid "Folder"
 msgstr "Složka"
-
-#. Dialog window title
-#: zim/gui/notebookdialog.py:377
-msgid "Edit Notebook"
-msgstr "Upravit sešit"
 
 #. statusbar message
 #: zim/gui/pageindex.py:484
@@ -941,7 +1009,7 @@ msgid "_Edit Link or Object..."
 msgstr "_Upravit odkaz nebo objekt"
 
 #. Menu item
-#: zim/gui/pageview.py:84 zim/gui/pageview.py:3150
+#: zim/gui/pageview.py:84 zim/gui/pageview.py:3213
 msgid "_Remove Link"
 msgstr "Odst_ranit odkaz"
 
@@ -967,7 +1035,7 @@ msgstr "_Odkaz"
 
 #. Menu item |
 #. Dialog title
-#: zim/gui/pageview.py:88 zim/gui/pageview.py:3690
+#: zim/gui/pageview.py:88 zim/gui/pageview.py:3753
 msgid "Insert Link"
 msgstr "Vložit odkaz"
 
@@ -1142,7 +1210,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview.py:140
 msgid "(Un-)Indenting a list item also change any sub-items"
-msgstr ""
+msgstr "Odsazení položky seznamu ovlivní i podpoložky"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:143
@@ -1150,195 +1218,195 @@ msgid "Checking a checkbox also change any sub-items"
 msgstr "Zatržení přepínače změní také jeho podpoložky"
 
 #. menu item in context menu
-#: zim/gui/pageview.py:3156
+#: zim/gui/pageview.py:3219
 msgid "_Edit Link"
 msgstr "_Upravit odkaz"
 
 #. context menu item
-#: zim/gui/pageview.py:3168
+#: zim/gui/pageview.py:3231
 msgid "Copy Email Address"
 msgstr "Kopírovat e-mailovou adresu"
 
 #. context menu item
-#: zim/gui/pageview.py:3170
+#: zim/gui/pageview.py:3233
 msgid "Copy _Link"
 msgstr "Kopírovat _odkaz"
 
 #. menu item to open containing folder of files
-#: zim/gui/pageview.py:3182
+#: zim/gui/pageview.py:3245
 msgid "Open Folder"
 msgstr "Otevřít složku"
 
 #. menu item for sub menu with applications
-#: zim/gui/pageview.py:3191 zim/gui/pageview.py:3200
+#: zim/gui/pageview.py:3254 zim/gui/pageview.py:3263
 msgid "Open With..."
 msgstr "Otevřít pomocí..."
 
 #. menu item to open a link or file
-#: zim/gui/pageview.py:3220
+#: zim/gui/pageview.py:3283
 msgid "_Open"
-msgstr ""
+msgstr "_Otevřít"
 
 #. Dialog title
-#: zim/gui/pageview.py:3461
+#: zim/gui/pageview.py:3524
 msgid "Insert Date and Time"
 msgstr "Vložit datum a čas"
 
 #. check box in InsertDate dialog
-#: zim/gui/pageview.py:3477
+#: zim/gui/pageview.py:3540
 msgid "_Link to date"
 msgstr "_Odkaz na datum"
 
 #. Dialog title
-#: zim/gui/pageview.py:3530
+#: zim/gui/pageview.py:3593
 msgid "Insert Image"
 msgstr "Vložit obrázek"
 
 #. checkbox in the "Insert Image" dialog
-#: zim/gui/pageview.py:3539
+#: zim/gui/pageview.py:3602
 msgid "Attach image first"
-msgstr ""
+msgstr "Nejprve připojit obrázek"
 
 #. Dialog title
-#: zim/gui/pageview.py:3565
+#: zim/gui/pageview.py:3628
 msgid "Edit Image"
 msgstr "Upravit obrázek"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:3583
+#: zim/gui/pageview.py:3646
 msgid "Location"
 msgstr "Umístění"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:3584
+#: zim/gui/pageview.py:3647
 msgid "Width"
 msgstr "Šířka"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:3585
+#: zim/gui/pageview.py:3648
 msgid "Height"
 msgstr "Výška"
 
 #. Button in 'edit image' dialog
-#: zim/gui/pageview.py:3588
+#: zim/gui/pageview.py:3651
 msgid "_Reset Size"
 msgstr "_Původní velikost"
 
 #. Dialog title
-#: zim/gui/pageview.py:3670
+#: zim/gui/pageview.py:3733
 msgid "Insert Text From File"
 msgstr "Vložit text ze souboru"
 
 #. Dialog title
-#: zim/gui/pageview.py:3689
+#: zim/gui/pageview.py:3752
 msgid "Edit Link"
 msgstr "Upravit odkaz"
 
 #. Dialog button
-#: zim/gui/pageview.py:3694
+#: zim/gui/pageview.py:3757
 msgid "_Link"
 msgstr "_Odkaz"
 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview.py:3696
+#: zim/gui/pageview.py:3759
 msgid "Link to"
 msgstr "Odkaz na"
 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview.py:3697
+#: zim/gui/pageview.py:3760
 msgid "Text"
 msgstr "Text"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview.py:3773
+#: zim/gui/pageview.py:3836
 msgid "_Next"
 msgstr "_Další"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview.py:3779
+#: zim/gui/pageview.py:3842
 msgid "_Previous"
 msgstr "_Předchozí"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:3785
+#: zim/gui/pageview.py:3848
 msgid "Match _case"
-msgstr ""
+msgstr "Rozlišovat _velikost"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:3790
+#: zim/gui/pageview.py:3853
 msgid "Whole _word"
 msgstr "_Celá slova"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:3795
+#: zim/gui/pageview.py:3858
 msgid "_Regular expression"
 msgstr "_Regulární výraz"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:3800
+#: zim/gui/pageview.py:3863
 msgid "_Highlight"
 msgstr "_Zvýraznění"
 
 #. label for input in find bar on bottom of page
-#: zim/gui/pageview.py:3883
+#: zim/gui/pageview.py:3946
 msgid "Find"
 msgstr "Najít"
 
 #. Dialog title
-#: zim/gui/pageview.py:3925
+#: zim/gui/pageview.py:3988
 msgid "Find and Replace"
 msgstr "Najít a zaměnit"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview.py:3935
+#: zim/gui/pageview.py:3998
 msgid "Find what"
 msgstr "Najít výraz"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview.py:3945
+#: zim/gui/pageview.py:4008
 msgid "Replace with"
 msgstr "Nahradit výrazem"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview.py:3957
+#: zim/gui/pageview.py:4020
 msgid "_Replace"
 msgstr "_Nahradit"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview.py:3962
+#: zim/gui/pageview.py:4025
 msgid "Replace _All"
 msgstr "Nahradit _vše"
 
 #. Dialog title
-#: zim/gui/pageview.py:3982
+#: zim/gui/pageview.py:4045
 msgid "Word Count"
 msgstr "Počet slov"
 
 #. label in word count dialog |
 #. Column header search dialog |
 #. Column header Task List dialog
-#: zim/gui/pageview.py:4014 zim/gui/searchdialog.py:66
-#: zim/plugins/tasklist.py:235
+#: zim/gui/pageview.py:4077 zim/gui/searchdialog.py:66
+#: zim/plugins/tasklist.py:237
 msgid "Page"
 msgstr "Stránka"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:4015
+#: zim/gui/pageview.py:4078
 msgid "Paragraph"
 msgstr "Odstavec"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:4016
+#: zim/gui/pageview.py:4079
 msgid "Selection"
 msgstr "Výběr"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:4017
+#: zim/gui/pageview.py:4080
 msgid "Words"
 msgstr "Slov"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:4019
+#: zim/gui/pageview.py:4082
 msgid "Lines"
 msgstr "Řádků"
 
@@ -1378,43 +1446,58 @@ msgid "Use a custom font"
 msgstr "Použít vlastní písmo"
 
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/preferencesdialog.py:188
-msgid "Description"
-msgstr "Popis"
+#: zim/gui/preferencesdialog.py:190
+msgid "Dependencies"
+msgstr "Závislosti"
 
 #. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
-#: zim/gui/preferencesdialog.py:193 zim/plugins/versioncontrol/__init__.py:450
+#: zim/gui/preferencesdialog.py:196 zim/plugins/versioncontrol/__init__.py:456
 msgid "Author"
 msgstr "Autor"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:203
+#: zim/gui/preferencesdialog.py:206
 msgid "_More"
 msgstr "_Více"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:208
+#: zim/gui/preferencesdialog.py:211
 msgid "C_onfigure"
 msgstr "_Nastavit"
 
+#. dependency is OK
+#: zim/gui/preferencesdialog.py:230
+msgid "OK"
+msgstr "OK"
+
+#. dependency failed
+#: zim/gui/preferencesdialog.py:232
+msgid "Failed"
+msgstr "Nevyřešeny"
+
+#. label in plugin info in preferences dialog
+#: zim/gui/preferencesdialog.py:240
+msgid "No dependencies"
+msgstr "Bez závislostí"
+
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:268
+#: zim/gui/preferencesdialog.py:303
 msgid "Enabled"
 msgstr "Povoleno"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:271
+#: zim/gui/preferencesdialog.py:306
 msgid "Plugin"
 msgstr "Zásuvný modul"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:278
+#: zim/gui/preferencesdialog.py:313
 msgid "Configure Plugin"
 msgstr "Nastavit zásuvný modul"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
-#: zim/gui/preferencesdialog.py:285
+#: zim/gui/preferencesdialog.py:320
 #, python-format
 msgid "Options for plugin %s"
 msgstr "Možnosti zásuvného modulu %s"
@@ -1462,28 +1545,28 @@ msgstr "Server zastaven"
 
 #. Dialog title |
 #. dialog title
-#: zim/gui/versionsdialog.py:11 zim/plugins/versioncontrol/__init__.py:225
-#: zim/plugins/versioncontrol/__init__.py:240
+#: zim/gui/versionsdialog.py:11 zim/plugins/versioncontrol/__init__.py:231
+#: zim/plugins/versioncontrol/__init__.py:246
 msgid "Versions"
 msgstr "Verze"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:954
+#: zim/gui/widgets.py:1006
 msgid "All Files"
 msgstr "Všechny soubory"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:979
+#: zim/gui/widgets.py:1031
 msgid "Images"
 msgstr "Obrázky"
 
 #. Title of file selection dialog
-#: zim/gui/widgets.py:989
+#: zim/gui/widgets.py:1041
 msgid "Select File"
 msgstr "Vybrat soubor"
 
 #. Title of folder selection dialog
-#: zim/gui/widgets.py:1005
+#: zim/gui/widgets.py:1057
 msgid "Select Folder"
 msgstr "Vybrat složku"
 
@@ -1519,11 +1602,6 @@ msgstr "Nelze upravit stránku %s"
 #: zim/notebook.py:348
 msgid "Home Page"
 msgstr "Domovská stránka"
-
-#. label for properties dialog
-#: zim/notebook.py:349
-msgid "Icon"
-msgstr "Ikona"
 
 #. label for properties dialog
 #: zim/notebook.py:350
@@ -1593,7 +1671,7 @@ msgstr "Vložit diagram"
 
 #. plugin name |
 #. dialog title
-#: zim/plugins/diagrameditor.py:38 zim/plugins/diagrameditor.py:85
+#: zim/plugins/diagrameditor.py:38 zim/plugins/diagrameditor.py:81
 msgid "Insert Diagram"
 msgstr "Vložit diagram"
 
@@ -1602,16 +1680,14 @@ msgstr "Vložit diagram"
 msgid ""
 "This plugin provides an diagram editor for zim based on GraphViz.\n"
 "\n"
-"Depends on: the GraphViz 'dot' command\n"
-"\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Zásuvný modul poskytuje editor diagramů založený na GraphViz.\n"
-"Závisí na příkazu 'dot' z balíku GraphViz.\n"
-"Základní modul dodávaný se zimem.\n"
+"Modul poskytuje editor diagramů založený na GraphViz.\n"
+"\n"
+"Základní modul dodávaný se Zimem.\n"
 
 #. menu item in context menu
-#: zim/plugins/diagrameditor.py:74
+#: zim/plugins/diagrameditor.py:70
 msgid "_Edit Diagram"
 msgstr "_Upravit diagram"
 
@@ -1627,7 +1703,7 @@ msgstr "Vložit rovnici"
 
 #. plugin name |
 #. dialog title
-#: zim/plugins/equationeditor.py:41 zim/plugins/equationeditor.py:89
+#: zim/plugins/equationeditor.py:41 zim/plugins/equationeditor.py:85
 msgid "Insert Equation"
 msgstr "Vložit rovnici"
 
@@ -1636,16 +1712,14 @@ msgstr "Vložit rovnici"
 msgid ""
 "This plugin provides an equation editor for zim based on latex.\n"
 "\n"
-"Depends on: latex, dvipng\n"
-"\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Modul poskytuje editor rovnic založený na LaTeXu.\n"
-"Závisí na balících LaTeX a dvipng.\n"
-"Základní modul dodávaný se zimem.\n"
+"Modul poskytuje editor rovnic založený na LaTeX.\n"
+"\n"
+"Základní modul dodávaný se Zimem.\n"
 
 #. menu item in context menu
-#: zim/plugins/equationeditor.py:78
+#: zim/plugins/equationeditor.py:74
 msgid "_Edit Equation"
 msgstr "_Upravit rovnici"
 
@@ -1655,30 +1729,24 @@ msgid "Show Link Map"
 msgstr "Zobrazit mapu odkazů"
 
 #. plugin name
-#: zim/plugins/linkmap/__init__.py:13
+#: zim/plugins/linkmap/__init__.py:14
 msgid "Link Map"
 msgstr "Mapa odkazů"
 
 #. plugin description
-#: zim/plugins/linkmap/__init__.py:14
+#: zim/plugins/linkmap/__init__.py:15
 msgid ""
-"This plugin provides a dialog with a grahical\n"
+"This plugin provides a dialog with a graphical\n"
 "representation of the linking structure of the\n"
 "notebook. It can be used as a kind of \"mind map\"\n"
 "showing how pages relate.\n"
 "\n"
-"This plugin depends on GraphViz, please make\n"
-"sure it is installed.\n"
-"\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Modul zobrazuje okno s grafickým znázorněním \n"
-"struktury odkazů v sešitě.\n"
-"Lze ji chápat jako druh myšlenkové mapy, \n"
-"která ukazuje, jak spolu stránky souvisejí.\n"
-"Modul závisí na programu GraphViz, ujistěte se, \n"
-"že ho máte nainstalovaný.\n"
-"Tohle je základní modul dodávaný se Zimem.\n"
+"Modul zobrazuje okno se strukturou sešitu. Můžete ho použít jako \n"
+"myšlenkovou mapu - zobrazuje vztahy mezi stránkami.\n"
+"\n"
+"Základní modul dodávaný se Zimem.\n"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:28
@@ -1715,7 +1783,7 @@ msgstr "_Snímek obrazovky..."
 
 #. plugin name |
 #. dialog title
-#: zim/plugins/scrot.py:36 zim/plugins/scrot.py:66
+#: zim/plugins/scrot.py:36 zim/plugins/scrot.py:68
 msgid "Insert Screenshot"
 msgstr "Vložit snímek obrazovky"
 
@@ -1726,38 +1794,36 @@ msgid ""
 "It allows taking a screenshot and directly insert it\n"
 "in a zim page.\n"
 "\n"
-"Depends on: scrot\n"
-"\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Modul umožňuje použít program 'scrot',\n"
-"který slouží pro snímání obrazovky.\n"
-"Obrázek je možné přímo vložit do stránky.\n"
-"Závisí na programu 'scrot'.\n"
-"Základní modul dodávaný se zimem.\n"
+"Modul využívá program \"scrot\" pro sejmutí\n"
+"snímku obrazovky. Obrázek můžete ihned\n"
+"vložit do stránky.\n"
+"\n"
+"Základní modul dodávaný se Zimem.\n"
 
 #. option in 'insert screenshot' dialog
-#: zim/plugins/scrot.py:67
+#: zim/plugins/scrot.py:69
 msgid "Capture whole screen"
 msgstr "Sejmout celou obrazovku"
 
 #. option in 'insert screenshot' dialog
-#: zim/plugins/scrot.py:68
+#: zim/plugins/scrot.py:70
 msgid "Select window or region"
 msgstr "Vybrat okno nebo oblast"
 
 #. input in 'insert screenshot' dialog
-#: zim/plugins/scrot.py:74
+#: zim/plugins/scrot.py:76
 msgid "Delay"
 msgstr "Prodleva"
 
 #. label behind timer
-#: zim/plugins/scrot.py:79
+#: zim/plugins/scrot.py:81
 msgid "seconds"
 msgstr "sekund"
 
 #. Error message in "insert screenshot" dialog
-#: zim/plugins/scrot.py:110
+#: zim/plugins/scrot.py:112
 msgid "Some error occured while running \"scrot\""
 msgstr "Při spuštění programu scrot došlo k chybě"
 
@@ -1775,24 +1841,22 @@ msgstr "Kontrola překlepů"
 #: zim/plugins/spell.py:42
 msgid ""
 "Adds spell checking support using gtkspell.\n"
-"Please make sure gtkspell is installed.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Poskytuje kontrolu překlepů pomocí programu gtkspell.\n"
-"Ujistěte se, že je tento program nainstalovaný.\n"
+"Modul zajišťuje kontrolu překlepů pomocí GtkSpell.\n"
 "\n"
-"Tohle je základní modul dodávaný se Zimem.\n"
+"Základní modul dodávaný se Zimem.\n"
 
 #. plugin name |
 #. dialog title
-#: zim/plugins/tasklist.py:23 zim/plugins/tasklist.py:48
-#: zim/plugins/tasklist.py:82
+#: zim/plugins/tasklist.py:25 zim/plugins/tasklist.py:50
+#: zim/plugins/tasklist.py:84
 msgid "Task List"
 msgstr "Seznam úkolů"
 
 #. plugin description
-#: zim/plugins/tasklist.py:49
+#: zim/plugins/tasklist.py:51
 msgid ""
 "This plugin adds a dialog showing all open tasks in\n"
 "this notebook. Open tasks can be either open checkboxes\n"
@@ -1808,46 +1872,47 @@ msgstr ""
 "Základní modul dodávaný se zimem.\n"
 
 #. Input label
-#: zim/plugins/tasklist.py:110
+#: zim/plugins/tasklist.py:112
 msgid "Filter"
 msgstr "Filtr"
 
 #. Button
-#: zim/plugins/tasklist.py:115
+#: zim/plugins/tasklist.py:117
 msgid "_Filter"
 msgstr "_Filtr"
 
 #. Label for statistics in Task List, %i is the number of tasks
-#: zim/plugins/tasklist.py:130
+#: zim/plugins/tasklist.py:132
 #, python-format
 msgid "%i open item"
 msgid_plural "%i open items"
-msgstr[0] "%i otevřít položku"
-msgstr[1] "%i otevřít položky"
+msgstr[0] "%i otevřená položka"
+msgstr[1] "%i otevřené položky"
+msgstr[2] "%i otevřených položek"
 
 #. Column header for tag list in Task List dialog
-#: zim/plugins/tasklist.py:156
+#: zim/plugins/tasklist.py:158
 msgid "Tags"
 msgstr "Štítky"
 
 #. "tag" for showing all tasks
-#: zim/plugins/tasklist.py:179
+#: zim/plugins/tasklist.py:181
 msgid "All"
 msgstr "Všechny"
 
 #. Column header Task List dialog
-#: zim/plugins/tasklist.py:234
+#: zim/plugins/tasklist.py:236
 msgid "Task"
 msgstr "Úkol"
 
 #. Column header Task List dialog
-#: zim/plugins/tasklist.py:254
+#: zim/plugins/tasklist.py:256
 msgid "Prio"
 msgstr "Priorita"
 
 #. Column header Task List dialog |
 #. Column header versions dialog
-#: zim/plugins/tasklist.py:279 zim/plugins/versioncontrol/__init__.py:449
+#: zim/plugins/tasklist.py:281 zim/plugins/versioncontrol/__init__.py:455
 msgid "Date"
 msgstr "Datum"
 
@@ -1870,43 +1935,43 @@ msgstr ""
 "Základní modul dodávaný se zimem.\n"
 
 #. tooltip for tray icon
-#: zim/plugins/trayicon.py:67
+#: zim/plugins/trayicon.py:71
 msgid "Zim Desktop Wiki"
 msgstr "Zim Desktop Wiki"
 
 #. menu item in tray icon menu
-#: zim/plugins/trayicon.py:100
+#: zim/plugins/trayicon.py:104
 msgid "_Other..."
 msgstr "_Další..."
 
 #. menu item
-#: zim/plugins/versioncontrol/__init__.py:40
+#: zim/plugins/versioncontrol/__init__.py:41
 msgid "S_ave Version..."
 msgstr "Uložit v_erzi..."
 
 #. menu item
-#: zim/plugins/versioncontrol/__init__.py:41
+#: zim/plugins/versioncontrol/__init__.py:42
 msgid "_Versions..."
 msgstr "_Verze..."
 
 #. verbose error description
-#: zim/plugins/versioncontrol/__init__.py:47
+#: zim/plugins/versioncontrol/__init__.py:48
 msgid ""
 "There are no changes in this notebook since the last version that was saved"
-msgstr ""
+msgstr "Od poslední uložené verze nevznikly v sešitě žádné změny."
 
 #. Short error descriotion
-#: zim/plugins/versioncontrol/__init__.py:50
+#: zim/plugins/versioncontrol/__init__.py:51
 msgid "No changes since last version"
 msgstr "Žádné změny od poslední verze"
 
 #. plugin name
-#: zim/plugins/versioncontrol/__init__.py:57
+#: zim/plugins/versioncontrol/__init__.py:58
 msgid "Version Control"
 msgstr "Správa verzí"
 
 #. plugin description
-#: zim/plugins/versioncontrol/__init__.py:58
+#: zim/plugins/versioncontrol/__init__.py:59
 msgid ""
 "This plugin adds version control for notebooks.\n"
 "\n"
@@ -1919,22 +1984,22 @@ msgstr ""
 "Základní modul dodávaný se zimem.\n"
 
 #. Label for plugin preference
-#: zim/plugins/versioncontrol/__init__.py:70
+#: zim/plugins/versioncontrol/__init__.py:71
 msgid "Autosave version on regular intervals"
 msgstr "Automaticky ukládat verze v pravidelných intervalech"
 
 #. default version comment for auto-saved versions
-#: zim/plugins/versioncontrol/__init__.py:137
+#: zim/plugins/versioncontrol/__init__.py:142
 msgid "Automatically saved version from zim"
 msgstr "Verze uložená automaticky zimem"
 
 #. Question dialog
-#: zim/plugins/versioncontrol/__init__.py:146
+#: zim/plugins/versioncontrol/__init__.py:151
 msgid "Enable Version Control?"
 msgstr "Povolit správu verzí?"
 
 #. Detailed question
-#: zim/plugins/versioncontrol/__init__.py:147
+#: zim/plugins/versioncontrol/__init__.py:152
 msgid ""
 "Version control is currently not enabled for this notebook.\n"
 "Do you want to enable it?"
@@ -1943,37 +2008,37 @@ msgstr ""
 "Chcete ji povolit?"
 
 #. dialog title
-#: zim/plugins/versioncontrol/__init__.py:181
+#: zim/plugins/versioncontrol/__init__.py:186
 msgid "Save Version"
 msgstr "Uložit verzi"
 
 #. Dialog text
-#: zim/plugins/versioncontrol/__init__.py:185
+#: zim/plugins/versioncontrol/__init__.py:191
 msgid "Please enter a comment for this version"
 msgstr "Vložte prosím k této verzi komentář"
 
 #. default version comment in the "save version" dialog
-#: zim/plugins/versioncontrol/__init__.py:190
+#: zim/plugins/versioncontrol/__init__.py:196
 msgid "Saved version from zim"
 msgstr "Verze uložená zimem"
 
 #. section for version details in "save version" dialog
-#: zim/plugins/versioncontrol/__init__.py:198
+#: zim/plugins/versioncontrol/__init__.py:204
 msgid "Details"
 msgstr "Detaily"
 
 #. Option in versions dialog to show version for single page
-#: zim/plugins/versioncontrol/__init__.py:247
+#: zim/plugins/versioncontrol/__init__.py:253
 msgid "_Page"
 msgstr "_Stránku"
 
 #. Button label
-#: zim/plugins/versioncontrol/__init__.py:261
+#: zim/plugins/versioncontrol/__init__.py:267
 msgid "View _Annotated"
 msgstr "Zobrazit _komentované"
 
 #. Help text in versions dialog
-#: zim/plugins/versioncontrol/__init__.py:266
+#: zim/plugins/versioncontrol/__init__.py:272
 msgid ""
 "Select a version to see changes between that version and the current\n"
 "state. Or select multiple versions to see changes between those versions.\n"
@@ -1983,37 +2048,37 @@ msgstr ""
 "Nebo vyberte více verzí a uvidíte rozdíly mezi nimi.\n"
 
 #. version details
-#: zim/plugins/versioncontrol/__init__.py:288
+#: zim/plugins/versioncontrol/__init__.py:294
 msgid "Comment"
 msgstr "Komentář"
 
 #. Button label
-#: zim/plugins/versioncontrol/__init__.py:304
+#: zim/plugins/versioncontrol/__init__.py:310
 msgid "_Restore Version"
 msgstr "O_bnovit verzi"
 
 #. button in versions dialog for diff
-#: zim/plugins/versioncontrol/__init__.py:309
+#: zim/plugins/versioncontrol/__init__.py:315
 msgid "Show _Changes"
 msgstr "Zobrazit _změny"
 
 #. button in versions dialog for side by side comparison
-#: zim/plugins/versioncontrol/__init__.py:315
+#: zim/plugins/versioncontrol/__init__.py:321
 msgid "_Side by Side"
 msgstr "_Jedna ku jedné"
 
 #. dialog title
-#: zim/plugins/versioncontrol/__init__.py:394
+#: zim/plugins/versioncontrol/__init__.py:400
 msgid "Annotated Page Source"
 msgstr "Komentovaný zdroj stránky"
 
 #. Confirmation question
-#: zim/plugins/versioncontrol/__init__.py:403
+#: zim/plugins/versioncontrol/__init__.py:409
 msgid "Restore page to saved version?"
 msgstr "Obnovit stránku na uloženou verzi?"
 
 #. Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
-#: zim/plugins/versioncontrol/__init__.py:404
+#: zim/plugins/versioncontrol/__init__.py:410
 #, python-format
 msgid ""
 "Do you want to restore page: %(page)s\n"
@@ -2026,12 +2091,12 @@ msgstr ""
 "Všechny změny od poslední uložené verze budou ztraceny!"
 
 #. dialog title
-#: zim/plugins/versioncontrol/__init__.py:418
+#: zim/plugins/versioncontrol/__init__.py:424
 msgid "Changes"
 msgstr "Změny"
 
 #. Column header versions dialog
-#: zim/plugins/versioncontrol/__init__.py:448
+#: zim/plugins/versioncontrol/__init__.py:454
 msgid "Rev"
 msgstr "Rev"
 

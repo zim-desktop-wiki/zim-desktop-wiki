@@ -14,6 +14,7 @@ import subprocess
 
 import gobject
 
+import zim.fs
 
 logger = logging.getLogger('zim.applications')
 
@@ -42,7 +43,7 @@ class Application(object):
 
 		for dir in os.environ['PATH'].split(os.pathsep):
 			file = os.sep.join((dir, cmd))
-			if os.path.isfile(file):
+			if zim.fs.isfile(file):
 				return file
 		else:
 			return None

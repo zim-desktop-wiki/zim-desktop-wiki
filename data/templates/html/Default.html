@@ -27,16 +27,24 @@
 
 <!-- Header -->
 
-[% IF page.previous -%]
-	[ <a href='[% url( page.previous ) %]'>Prev</a> ]
+[% IF pages.previous -%]
+	[ <a href='[% url(pages.previous) %]'>Prev</a> ]
 [%- ELSE -%]
 	[ <span class='insen'>Prev</span> ]
 [%- END %]
 
-	[ <a href='/'>Index</a> ]
+[% IF page.properties.type == 'namespace-index' -%]
+	[ <span class='insen'>Index</span> ]
+[%- ELSE -%]
+	[% IF pages.index -%]
+		[ <a href='[% url(pages.index) %]'>Index</a> ]
+	[%- ELSE -%]
+		[ <a href='/'>Index</a> ]
+	[%- END %]
+[%- END %]
 
-[% IF page.next -%]
-	[ <a href='[% url( page.next ) %]'>Next</a> ]
+[% IF pages.next -%]
+	[ <a href='[% url(pages.next) %]'>Next</a> ]
 [%- ELSE -%]
 	[ <span class='insen'>Next</span> ]
 [%- END %]
@@ -64,7 +72,7 @@
 [% IF page.backlinks -%]
 	Backlinks:
 	[%- FOREACH link = page.backlinks -%]
-		<a href='[% link.file %]'>[% link.name %]</a></li>
+		<a href='[% url(link) %]'>[% link.name %]</a></li>
 	[%- END -%]
 [%- ELSE -%]
 	No backlinks to this page.

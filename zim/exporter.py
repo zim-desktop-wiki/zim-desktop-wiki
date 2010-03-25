@@ -10,8 +10,9 @@ from zim.fs import *
 from zim.config import data_file
 from zim.formats import get_format, BaseLinker
 from zim.templates import get_template
-from zim.notebook import Page, IndexPage, PageNameError
+from zim.notebook import Path, Page, IndexPage, PageNameError
 from zim.stores import encode_filename
+from zim.parsing import url_encode
 
 logger = logging.getLogger('zim.exporter')
 
@@ -28,10 +29,14 @@ class Exporter(object):
 		'document_root_url' is used to prefix any file links that start with '/'.
 		'''
 		self.notebook = notebook
-		self.index_page = index_page
 		self.document_root_url = document_root_url
 		self.linker = StaticLinker(format, notebook,
 						document_root_url=document_root_url)
+
+		if index_page:
+			self.index_page = notebook.cleanup_pathname(index_page)
+		else:
+			self.index_page = None
 
 		if isinstance(format, basestring):
 			self.format = get_format(format)
@@ -61,30 +66,59 @@ class Exporter(object):
 			file = dir.file('_icons/'+name+'.png')
 			icon.copyto(file)
 
+		# Set special pages
+		if self.index_page:
+			indexpage = Page(Path(self.index_page))
+		else:
+			indexpage = None
+
+		pages = {
+			'index': indexpage,
+			'home': self.notebook.get_home_page(),
+		}
+
 		# Export the pages
+		prev, current, next = None, None, None
 		for page in self.notebook.walk():
 			if page.hascontent:
-				self.export_page(dir, page)
-				if callback and not callback(page):
-					logger.warn('Export cancelled')
-					return False
+				prev, current, next = current, next, page # shift
+				if current:
+					pages['previous'] = prev
+					pages['next'] = next
+					self.export_page(dir, current, pages)
+					if callback and not callback(current):
+						logger.warn('Export cancelled')
+						return False
+
+		prev, current, next = current, next, None # shift once more
+		if current:
+			pages['previous'] = prev
+			pages['next'] = next
+			self.export_page(dir, current, pages)
+			if callback and not callback(current):
+				logger.warn('Export cancelled')
+				return False
 
 		# Generate index page
-		if self.index_page:
-			page = IndexPage(self.notebook)
-			page.name = self.index_page # HACK
-			self.export_page(dir, page)
+		if indexpage:
+			_page = IndexPage(self.notebook, Path(':'))
+			# Bit of a HACK here - need better support for these index pages
+			indexpage.readonly = False
+			indexpage.set_parsetree(_page.get_parsetree())
+			indexpage.readonly = True
+			self.export_page(dir, indexpage)
 
 		self.linker.target_dir = None # reset
 		logger.info('Export done')
 		return True
 
-	def export_page(self, dir, page):
+	def export_page(self, dir, page, pages=None):
 		'''Export 'page' to a file below 'dir'. Path below 'dir' will be
 		determined by the namespace of 'page'. Attachments wil also be
 		copied along.
 		'''
 		logger.info('Exporting %s', page.name)
+
 		dirname = encode_filename(page.name)
 		filename = dirname + '.' + self.format.info['extension']
 		file = dir.file(filename)
@@ -92,9 +126,11 @@ class Exporter(object):
 		self.linker.set_base(attachments.dir)
 			# FIXME, assuming standard file store layout to get correct relative links
 		self.linker.target_file = file
+
 		fh = file.open('w')
-		self.export_page_to_fh(fh, page)
+		self.export_page_to_fh(fh, page, pages)
 		fh.close()
+
 		subdir = dir.subdir(dirname)
 		for name in attachments.list():
 			file = attachments.file(name)
@@ -105,7 +141,7 @@ class Exporter(object):
 			# - ignore directories that belong to a page themselves
 			# - also include "attachments" in the root namespace
 
-	def export_page_to_fh(self, fh, page):
+	def export_page_to_fh(self, fh, page, pages=None):
 		'''Export 'page' and print the output to open file handle 'fh'.
 		(Does not do anything with attachments.)
 		'''
@@ -113,7 +149,7 @@ class Exporter(object):
 			self.linker.set_path(page)
 			lines = page.dump(self.format, linker=self.linker)
 		else:
-			lines = self.template.process(self.notebook, page)
+			lines = self.template.process(self.notebook, page, pages)
 		fh.writelines(l.encode('utf-8') for l in lines)
 
 
@@ -166,7 +202,7 @@ class StaticLinker(BaseLinker):
 				path = '../' * uppath.count(':') or './'
 				path += encode_filename(downpath) + self._extension
 			#~ print '>>>', path
-			return path
+			return url_encode(path)
 
 	def file(self, link):
 		if self.document_root_url and link.startswith('/'):
@@ -186,5 +222,5 @@ class StaticLinker(BaseLinker):
 		relpath = file.relpath(ref, allowupward=True)
 		if relpath and not relpath.startswith('.'):
 			relpath = './' + relpath
-		return relpath or file.uri
+		return url_encode(relpath) or file.uri
 

@@ -180,6 +180,13 @@ Version %s
 		result = Template(input, 'html', linker=StubLinker()).process(Notebook(), page)
 		self.assertEqualDiff(result, wantedresult.splitlines(True))
 
+		# Check new page template
+		notebook, page = tests.get_test_page('Some New None existing page')
+		template = notebook.get_template(page)
+		tree = template.process_to_parsetree(notebook, page) # No linker !
+		self.assertEqualDiff(tree.find('/h').text, u'Some New None existing page')
+
+		
 
 class StubLinker(object):
 

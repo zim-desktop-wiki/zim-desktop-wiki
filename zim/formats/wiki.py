@@ -109,7 +109,7 @@ class Parser(ParserClass):
 		para_isspace = False
 		for line in input:
 			# Try start new para when switching between text and empty lines or back
-			if line.isspace() != para_isspace:
+			if line.isspace() != para_isspace or parser_re['blockstart'].match(line):
 				if para_start():
 					para_isspace = line.isspace() # decide type of new para
 			paras[-1] += line

@@ -33,6 +33,6 @@ builddeb:
 
 clean:
 	$(PYTHON) setup.py clean
-	rm -rf build/ MANIFEST tests/tmp/ locale/ man/
+	rm -rf build/ MANIFEST tests/tmp/ locale/ man/ xdg/hicolor
 	find . -name '*.pyc' -delete
 	rm -fr debian/zim* debian/files debian/python-module-stampdir/

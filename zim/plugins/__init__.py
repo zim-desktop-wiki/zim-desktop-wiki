@@ -7,6 +7,7 @@ import types
 import os
 import sys
 
+import zim.fs
 from zim.fs import Dir
 from zim.config import ListDict
 
@@ -39,7 +40,7 @@ def list_plugins():
 				continue
 			elif candidate.endswith('.py'):
 				plugins.add(candidate[:-3])
-			elif os.path.isdir(dir.path+'/'+candidate) \
+			elif zim.fs.isdir(dir.path+'/'+candidate) \
 			and os.path.exists(dir.path+'/'+candidate+'/__init__.py'):
 				plugins.add(candidate)
 			else:

@@ -4,8 +4,9 @@
 
 import re
 
+from zim.fs import File
 from zim.formats import *
-from zim.parsing import TextBuffer, url_re
+from zim.parsing import TextBuffer
 
 info = {
 	'name':		'LaTeX',
@@ -135,8 +136,8 @@ class Dumper(DumperClass):
 				if 'type' in element.attrib and element.attrib['type'] == 'equation':
 					try:
 						# Try to find the source, otherwise fall back to image
-						eqpath = self.linker.link(element.attrib['src'])
-						eqfid = open(eqpath[6:-4] + '.tex','r')
+						equri = self.linker.link(element.attrib['src'])
+						eqfid = File(url_decode(equri[:-4] + '.tex'))
 						output.append('\\begin{math}\n')
 						output.extend(eqfid.readlines())
 						output.append('\n\\end{math}')
@@ -156,8 +157,8 @@ class Dumper(DumperClass):
 					else:
 						options = ''
 
-					image = '\\includegraphics[%s]{%s}' \
-						% ( options, self.linker.link(element.attrib['src'])[6:] )
+					imagepath = File(self.linker.link(element.attrib['src'])).path
+					image = '\\includegraphics[%s]{%s}' % (options, imagepath)
 					if 'href' in element.attrib:
 						output.append('\\href{%s}{%s}' % (element.attrib['href'], image))
 					else:

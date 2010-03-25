@@ -847,7 +847,11 @@ class Dialog(gtk.Dialog):
 		'''
 		if id == gtk.RESPONSE_OK and not self._no_ok_action:
 			logger.debug('Dialog response OK')
-			self.destroyed = self.do_response_ok()
+			try:
+				self.destroyed = self.do_response_ok()
+			except Exception, error:
+				ErrorDialog(self.ui, error).run()
+				self.destroyed = False
 		else:
 			self.destroyed = True
 
