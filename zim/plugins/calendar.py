@@ -9,7 +9,7 @@ import re
 from datetime import date as dateclass
 
 from zim.plugins import PluginClass
-from zim.gui import Dialog
+from zim.gui import maemo, Dialog
 from zim.gui.widgets import Button
 from zim.notebook import Path
 
@@ -60,7 +60,7 @@ KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
 date_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}:\d{2}$')
 
-
+	
 class CalendarPlugin(PluginClass):
 
 	plugin_info = {
@@ -280,6 +280,13 @@ class CalendarDialog(Dialog):
 		hbox = gtk.HBox()
 		self.vbox.add(hbox)
 		button = Button(_('_Today'), gtk.STOCK_JUMP_TO) # T: button label
-		button.connect('clicked',
-			lambda o: self.calendar_widget.select_date(dateclass.today()))
+		button.connect('clicked', self.do_today )
 		hbox.pack_end(button, False)
+		button = Button(stock=gtk.STOCK_CLOSE) # T: button label
+		button.connect('clicked',
+			lambda o: self.destroy())
+		hbox.pack_start(button, False)
+		
+	def do_today(self, event):
+		self.calendar_widget.select_date(dateclass.today())
+		if maemo: self.destroy()

@@ -14,6 +14,7 @@ import pango
 import logging
 import sys
 
+from zim.gui import maemo	
 from zim.fs import *
 import zim.errors
 import zim.config
@@ -325,6 +326,7 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 		self.button.set_active(False)
 		self.button.handler_unblock(self._clicked_signal)
 
+
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(MenuButton)
 
@@ -584,8 +586,9 @@ class Dialog(gtk.Dialog):
 			title=format_title(title),
 			flags=gtk.DIALOG_NO_SEPARATOR,
 		)
-		self.set_border_width(10)
-		self.vbox.set_spacing(5)
+		if not(maemo):
+			self.set_border_width(10)
+			self.vbox.set_spacing(5)
 
 		if hasattr(ui, 'uistate') and isinstance(ui.uistate, zim.config.ConfigDict):
 			assert isinstance(defaultwindowsize, tuple)
@@ -593,7 +596,10 @@ class Dialog(gtk.Dialog):
 			self.uistate = ui.uistate[key]
 			#~ print '>>', self.uistate
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
-			w, h = self.uistate['windowsize']
+			if not(maemo):
+				w, h = self.uistate['windowsize']
+			else:
+				w, h = defaultwindowsize
 			self.set_default_size(w, h)
 		else:
 			self.uistate = { # used in tests/debug
@@ -855,9 +861,10 @@ class Dialog(gtk.Dialog):
 		else:
 			self.destroyed = True
 
-		w, h = self.get_size()
-		self.uistate['windowsize'] = (w, h)
-		self.save_uistate()
+		if not(maemo):
+			w, h = self.get_size()
+			self.uistate['windowsize'] = (w, h)
+			self.save_uistate()
 
 		if self.destroyed:
 			self.destroy()
@@ -995,9 +1002,12 @@ class FileDialog(Dialog):
 			# else Ok will do
 		Dialog.__init__(self, ui, title,
 			buttons=buttons, button=button, help_text=help_text, help=help)
-		if self.uistate['windowsize'] == (-1, -1):
+		if self.uistate['windowsize'] == (-1, -1) and not(maemo):
 			self.uistate['windowsize'] = (500, 400)
 			self.set_default_size(500, 400)
+		elif maemo:
+			self.uistate['windowsize'] = (800, 480)
+			self.set_default_size(800, 480)
 		self.filechooser = gtk.FileChooserWidget(action=action)
 		self.filechooser.set_do_overwrite_confirmation(True)
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
@@ -1175,6 +1185,7 @@ class ProgressBarDialog(gtk.Dialog):
 
 	#def do_destroy(self):
 	#	logger.debug('Closed ProgressBarDialog')
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(ProgressBarDialog)

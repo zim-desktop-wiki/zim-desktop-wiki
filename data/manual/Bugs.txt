@@ -7,4 +7,5 @@ Creation-Date: Wed, 08 Jul 2009 23:26:35 +0200
 Bugs can be reported in the bug tracker at http://bugs.launchpad.net/zim.
 
 Please see the [[FAQ]] before filing a bug report.
-
+Please, report bugs under maemo devices in the garage page at http://zim.garage
+.maemo.org

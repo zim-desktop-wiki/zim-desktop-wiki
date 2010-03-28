@@ -8,6 +8,7 @@ import logging
 import re
 import datetime
 
+from zim.gui import maemo
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.notebook import Path
@@ -43,6 +44,7 @@ ui_xml = '''
 '''
 
 # FUTURE: add an interface for this plugin in the WWW frontend
+
 
 class TaskListPlugin(PluginClass):
 
@@ -82,9 +84,10 @@ class TaskListDialog(Dialog):
 
 	def __init__(self, plugin):
 		Dialog.__init__(self, plugin.ui, _('Task List'), # T: dialog title
-			buttons=gtk.BUTTONS_CLOSE, help=':Help:Plugins:Task List')
+			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List')
 		self.plugin = plugin
-
+		if maemo:
+			self.resize(800,480)
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 		self.hpane = gtk.HPaned()
@@ -94,6 +97,7 @@ class TaskListDialog(Dialog):
 
 		# Task list
 		self.task_list = TaskListTreeView(self.ui)
+		self.task_list.set_headers_visible(True)
 		scrollwindow = gtk.ScrolledWindow()
 		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
@@ -239,7 +243,11 @@ class TaskListTreeView(BrowserTreeView):
 			column = gtk.TreeViewColumn(name, cell_renderer, text=i)
 			column.set_resizable(True)
 			column.set_sort_column_id(i)
-			if i == self.TASK_COL: column.set_expand(True)
+			if i == self.TASK_COL: 
+				column.set_expand(True)
+				if maemo:
+					column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+					column.set_fixed_width(250)
 			self.append_column(column)
 
 		# Add some rendering for the Prio column

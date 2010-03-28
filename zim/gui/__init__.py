@@ -28,6 +28,13 @@ import os
 import logging
 import gobject
 import gtk
+try:
+	import hildon
+	gtkWindow=hildon.Window
+	maemo=True
+except:
+	gtkWindow=gtk.Window
+	maemo=False
 
 import zim
 from zim import NotebookInterface, NotebookLookupError
@@ -153,7 +160,18 @@ TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
-ui_preferences = (
+if maemo:
+	ui_preferences = (
+	# key, type, category, label, default
+	('tearoff_menus', 'bool', None, None, False),
+		# T: Option in the preferences dialog not shown.
+		# Maemo can't have tearoff_menus
+	('toggle_on_ctrlspace', 'bool', None, None, True),
+		# T: Option in the preferences dialog not shown.
+		# There is no ALT key on maemo devices
+	)
+else:
+	ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
@@ -295,6 +313,13 @@ class GtkInterface(NotebookInterface):
 			'file_browser': ['xdg-open', 'startfile'],
 			'web_browser': ['xdg-open', 'startfile']
 		}
+		if maemo:
+			apps = {
+				'email_client': ['modest', 'startfile'],
+				'file_browser': ['hildon-mime-summon', 'startfile'],
+				'web_browser': ['webbrowser', 'webbrowser']
+			}
+			
 		for type in apps.keys():
 			prefs = self.preferences['GtkInterface']
 			if type in prefs and prefs[type] \
@@ -335,6 +360,16 @@ class GtkInterface(NotebookInterface):
 		self.uimanager.ensure_update()
 			# prevent flashing when the toolbar is after showing the window
 			# and do this before connecting signal below for accelmap
+		if maemo:
+			# Move the menu to the hildon menu
+			menu=gtk.Menu()
+			for child in self.mainwindow.menubar.get_children():
+				child.reparent(menu)
+			self.mainwindow.set_menu(menu)
+			# Hardware fullscreen key is F6 in Nxxx devices
+			self.mainwindow.connect('key-press-event',
+				lambda o, event: event.keyval == gtk.keysyms.F6
+					and self.mainwindow.toggle_fullscreen())
 
 		accelmap = config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
@@ -601,8 +636,10 @@ class GtkInterface(NotebookInterface):
 		for p in preferences:
 			key, type, category, label, default = p
 			self.preferences[section].setdefault(key, default)
-			register.setdefault(category, [])
-			register[category].append((section, key, type, label))
+			# Preferences with None category won't be shown in the preferences dialog
+			if category:
+				register.setdefault(category, [])
+				register[category].append((section, key, type, label))
 
 	def get_path_context(self):
 		'''Returns the current 'context' for actions that want a path to start
@@ -1271,7 +1308,7 @@ class GtkInterface(NotebookInterface):
 gobject.type_register(GtkInterface)
 
 
-class MainWindow(gtk.Window):
+class MainWindow(gtkWindow):
 	'''Main window of the application, showing the page index in the side
 	pane and a pageview with the current page. Alse includes the menubar,
 	toolbar, statusbar etc.
@@ -1279,7 +1316,7 @@ class MainWindow(gtk.Window):
 
 	def __init__(self, ui, fullscreen=False, geometry=None):
 		'''Constructor'''
-		gtk.Window.__init__(self)
+		gtkWindow.__init__(self)
 		self._fullscreen = False
 		self.ui = ui
 
@@ -1340,6 +1377,9 @@ class MainWindow(gtk.Window):
 			'toggle-overwrite', self.do_textview_toggle_overwrite)
 		vbox2.add(self.pageview)
 
+		# maemo window menu requires this approach because it is a popup dialog
+		self.pageindex.treeview.connect('focus-in-event', lambda sender, e, me: me.pageview.disable_actiongroup(), self)
+		
 		# create statusbar
 		hbox = gtk.HBox(spacing=0)
 		vbox.pack_start(hbox, False, True, False)
@@ -1421,12 +1461,13 @@ class MainWindow(gtk.Window):
 
 		space = gtk.gdk.unicode_to_keyval(ord(' '))
 		group = gtk.AccelGroup()
-		group.connect_group( # <Alt><Space>
-			space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
-			self.do_switch_focus)
 		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Ctrl><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
+				self.do_switch_focus)
+		else:
+			group.connect_group( # <Alt><Space>
+				space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
 				self.do_switch_focus)
 
 		self.add_accel_group(group)
@@ -1697,7 +1738,10 @@ class MainWindow(gtk.Window):
 		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_menubar_fullscreen', True)
 		self.uistate.setdefault('show_toolbar', True)
-		self.uistate.setdefault('show_toolbar_fullscreen', False)
+		if maemo:
+			self.uistate.setdefault('show_toolbar_fullscreen', True)
+		else:
+			self.uistate.setdefault('show_toolbar_fullscreen', False)
 		self.uistate.setdefault('show_statusbar', True)
 		self.uistate.setdefault('show_statusbar_fullscreen', False)
 		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT)
@@ -1813,11 +1857,11 @@ class BackLinksMenuButton(MenuButton):
 		MenuButton.popup_menu(self, event)
 
 
-class PageWindow(gtk.Window):
+class PageWindow(gtkWindow):
 	'''Secondairy window, showing a single page'''
 
 	def __init__(self, ui, page):
-		gtk.Window.__init__(self)
+		gtkWindow.__init__(self)
 		self.ui = ui
 
 		self.set_title(page.name + ' - Zim')
@@ -2169,7 +2213,7 @@ class DeletePageDialog(Dialog):
 		label = gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
 			# T: Heading in 'delete page' dialog - %s is the page name
-		long = _('Page "%s" and all of it\'s sub-pages and attachments will be deleted') % self.path.name
+		long = _('Page "%s" and all of it\'s sub-pages\nand attachments will be deleted') % self.path.name
 			# T: Text in 'delete page' dialog - %s is the page name
 		label.set_markup('<b>'+short+'</b>\n\n'+long)
 		hbox.add(label)

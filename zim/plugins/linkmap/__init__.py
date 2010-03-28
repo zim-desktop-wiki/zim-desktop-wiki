@@ -39,7 +39,6 @@ This is a core plugin shipping with zim.
 	def disconnect(self):
 		pass
 
-
 class LinkMap(object):
 
 	def __init__(self, notebook, path, depth=2):

@@ -9,6 +9,7 @@ from zim.fs import TmpFile
 from zim.plugins import PluginClass
 from zim.gui.widgets import Dialog, ErrorDialog
 from zim.applications import Application
+from zim.gui import maemo
 
 ui_xml = '''
 <ui>
@@ -35,7 +36,8 @@ class InsertScreenshotPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Insert Screenshot'), # T: plugin name
 		'description': _('''\
-This plugin is a wrapper for the "scrot" application.
+This plugin is a wrapper for the "scrot" ("screenshot-tool"
+on maemo) application.
 It allows taking a screenshot and directly insert it
 in a zim page.
 
@@ -53,7 +55,11 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('scrot',Application(('scrot',)).tryexec())]
+		if maemo:
+			dependency = ('screenshot-tool', Application(('screenshot-tool',)).tryexec())
+		else:
+			dependency = ('scrot',Application(('scrot',)).tryexec())
+		return [dependency]
 
 	def insert_screenshot(self):
 		dialog = InsertScreenshotDialog.unique(self, self.ui)
@@ -66,10 +72,11 @@ class InsertScreenshotDialog(Dialog):
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Insert Screenshot')) # T: dialog title
-		self.screen_radio = gtk.RadioButton(None, _('Capture whole screen')) # T: option in 'insert screenshot' dialog
-		self.select_radio = gtk.RadioButton(self.screen_radio, _('Select window or region')) # T: option in 'insert screenshot' dialog
-		self.vbox.add(self.screen_radio)
-		self.vbox.add(self.select_radio)
+		if not(maemo):
+			self.screen_radio = gtk.RadioButton(None, _('Capture whole screen')) # T: option in 'insert screenshot' dialog
+			self.select_radio = gtk.RadioButton(self.screen_radio, _('Select window or region')) # T: option in 'insert screenshot' dialog
+			self.vbox.add(self.screen_radio)
+			self.vbox.add(self.select_radio)
 
 		hbox = gtk.HBox()
 		self.vbox.add(hbox)
@@ -81,23 +88,29 @@ class InsertScreenshotDialog(Dialog):
 		hbox.add(gtk.Label(' '+_('seconds'))) # T: label behind timer
 
 	def do_response_ok(self):
+		if maemo:
+			SCROT_COMMAND = 'screenshot-tool'
+		else:
+			SCROT_COMMAND = 'scrot'
+			
 		tmpfile = TmpFile('insert-screenshot.png')
 		options = ()
 
-		if self.select_radio.get_active():
-			options += ('--select', '--border')
-			# Interactively select a window or rectangle with the mouse.
-			# When selecting a window, grab wm border too
-		else:
-			options += ('--multidisp',)
-			# For multiple heads, grab shot from each and join them together.
+		if not(maemo):
+			if self.select_radio.get_active():
+				options += ('--select', '--border')
+				# Interactively select a window or rectangle with the mouse.
+				# When selecting a window, grab wm border too
+			else:
+				options += ('--multidisp',)
+				# For multiple heads, grab shot from each and join them together.
 
 		delay = self.time_spin.get_value_as_int()
 		if delay > 0:
-			options += ('--delay', str(delay))
+			options += ('-d', str(delay))
 			# Wait NUM seconds before taking a shot.
 
-		scrot = Application(('scrot',) + options)
+		scrot = Application((SCROT_COMMAND,) + options)
 
 		def callback(status, tmpfile):
 			if status == scrot.STATUS_OK:
@@ -109,7 +122,7 @@ class InsertScreenshotDialog(Dialog):
 				self.ui.mainwindow.pageview.insert_image(file, interactive=False)
 			else:
 				ErrorDialog(self.ui,
-					_('Some error occured while running "scrot"')).run()
+					_('Some error occured while running "')+SCROT_COMMAND+'"').run()
 					# T: Error message in "insert screenshot" dialog
 
 		tmpfile.dir.touch()

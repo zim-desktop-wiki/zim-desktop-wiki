@@ -19,6 +19,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 '''
 
 import os
+import os.path
 import sys
 import gettext
 import gobject
@@ -31,6 +32,7 @@ from zim.fs import *
 from zim.errors import Error
 from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR
 
+logger = logging.getLogger('zim')
 
 if os.name == 'nt':
 	# Windows specific environment variables
@@ -45,9 +47,11 @@ if os.name == 'nt':
 			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
 			os.environ['HOME'] = home
 
-assert os.environ['USER'], 'ERROR: environment variable $USER not set'
 assert zim.fs.isdir(os.environ['HOME']), 'ERROR: environment variable $HOME not set correctly'
-
+if not(os.environ.has_key('USER')):
+	#Maemo doesn't define $USER
+	os.environ['USER'] = os.path.basename(os.environ['HOME'])
+	logger.info('Environment variable $USER not set')
 
 if ZIM_DATA_DIR:
 	# We are running from a source dir - use the locale data included there
@@ -58,10 +62,6 @@ else:
 	localedir = None
 
 gettext.install('zim', localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
-
-
-logger = logging.getLogger('zim')
-
 
 ZIM_EXECUTABLE = 'zim'
 

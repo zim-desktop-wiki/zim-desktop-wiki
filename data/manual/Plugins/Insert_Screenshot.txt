@@ -5,4 +5,4 @@ Wiki-Format: zim 0.4
 
 This plugin adds a dialog that allows you to aquire a screenshot of the desktop or of a particular window and directly insert the image into the current zim page. This plugin is based on the "scrot" applications to take the actual screenshots.
 
-**Dependencies:** This plugin requires the "scrot" application to be installed. In specific the "scrot" command should be available in the system path.
+**Dependencies:** This plugin requires the "scrot" (or "screenshot-tool" in maemo devices) application to be installed. In specific the "scrot" command should be available in the system path.
