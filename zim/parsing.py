@@ -309,6 +309,20 @@ class Re(object):
 				result.append(item)
 		return result
 
+	def start(self,group=0):
+		'''Return the indices of the start of the substring matched by group;
+		group defaults to zero (meaning the whole matched substring). Return -1 if
+		group exists but did not contribute to the match. See re.matchobject for
+		details'''
+		return self.m.start(group)
+
+	def end(self,group=0):
+		'''Return the indices of the end of the substring matched by group;
+		group defaults to zero (meaning the whole matched substring). Return -1 if
+		group exists but did not contribute to the match. See re.matchobject for
+		details'''
+		return self.m.end(group)
+
 # Some often used regexes
 is_url_re = Re('^(\w[\w\+\-\.]+)://')
 	# scheme "://"

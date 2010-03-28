@@ -289,6 +289,14 @@ class GtkInterface(NotebookInterface):
 
 		self.register_preferences('GtkInterface', ui_preferences)
 
+		# Hidden setting to force the gtk bell off. Otherwise it
+		# can bell every time you reach the begin or end of the text
+		# buffer. Especially specific gtk version on windows.
+		# See bug lp:546920
+		self.preferences['GtkInterface'].setdefault('gtk_bell', False)
+		if not self.preferences['GtkInterface']['gtk_bell']:
+			gtk.rc_parse_string('gtk-error-bell = 0')
+
 		# Set default applications
 		apps = {
 			'email_client': ['xdg-email', 'startfile'],
