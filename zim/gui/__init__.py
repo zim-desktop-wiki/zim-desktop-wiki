@@ -1153,15 +1153,28 @@ class GtkInterface(NotebookInterface):
 		# TODO instead of spawn, include in this process
 		self.spawn('--server', '--gui', self.notebook.uri)
 
-	def reload_index(self):
-		self.mainwindow.pageindex.reload_model()
-			# Flush any sync error in treemodel
+	def reload_index(self, flush=False):
+		'''Show a progress bar while updating the notebook index.
+		Returns True unless the user cancelled the action.
+		'''
+		# First make the index stop updating
+		self.mainwindow.pageindex.disconnect_model()
+
+		# Update the model
+		index = self.notebook.index
+		if flush:
+			index.flush()
+
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
 		dialog.show_all()
-		index = self.notebook.index
 		index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
+
+		# And reconnect the model - flushing out any sync error in treemodel
+		self.mainwindow.pageindex.reload_model()
+
+		return not dialog.cancelled
 
 	def manage_custom_tools(self):
 		from zim.gui.customtools import CustomToolManagerDialog

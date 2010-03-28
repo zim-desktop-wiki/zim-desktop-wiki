@@ -230,7 +230,6 @@ class Index(gobject.GObject):
 		'start-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'end-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'initialize-db': (gobject.SIGNAL_RUN_LAST, None, ()),
-		'flush-db': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	def __init__(self, notebook=None, dbfile=None):
@@ -294,8 +293,7 @@ class Index(gobject.GObject):
 
 		self.properties = PropertiesDict(self.db)
 		if self.properties['zim_version'] != zim.__version__:
-			# init database layout
-			self.emit('initialize-db')
+			# flush content and init database layout
 			self.flush()
 			self.properties['zim_version'] = zim.__version__
 
@@ -316,20 +314,22 @@ class Index(gobject.GObject):
 		self._index_page_queue = []
 
 		# Drop data
-		self.emit('flush-db')
+		with self.db_commit:
+			cursor = self.db.cursor()
+			cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+			for table in [row[0] for row in cursor.fetchall()]:
+				cursor.execute('DROP TABLE "%s"' % table)
+
 		self.emit('initialize-db')
 
 		# Create root node
-		cursor = self.db.cursor()
-		cursor.execute('insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)', ('', 0, False, False))
-		assert cursor.lastrowid == 1, 'BUG: Primary key should start counting at 1'
-
-		self.db.commit()
-
-	def do_flush_db(self):
 		with self.db_commit:
-			for table in ('pages', 'pagetypes', 'links', 'linktypes'):
-				self.db.execute('drop table "%s"' % table)
+			cursor = self.db.cursor()
+			cursor.execute('insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)', ('', 0, False, False))
+			assert cursor.lastrowid == 1, 'BUG: Primary key should start counting at 1'
+
+		# Set meta properties
+		self.properties['zim_version'] = zim.__version__
 
 	def _flush_queue(self, path):
 		# Removes any pending updates for path and it's children
@@ -544,11 +544,11 @@ class Index(gobject.GObject):
 				'update pages set hascontent=?, contentkey=? where id==?',
 				(page.hascontent, key, path.id) )
 
-		#~ print '!! PAGE-INDEX', path
 		path = self.lookup_data(path) # refresh
 		if hadcontent != path.hascontent:
 			self.emit('page-updated', path)
 
+		#~ print '!! PAGE-INDEXED', path
 		self.emit('page-indexed', path, page)
 
 	def _update_pagelist(self, path, checkcontent):

@@ -980,6 +980,34 @@ class QuestionDialog(gtk.MessageDialog):
 		return answer
 
 
+class MessageDialog(gtk.MessageDialog):
+
+	def __init__(self, ui, msg):
+		'''Constructor. 'ui' can either be the main application or some
+		other dialog. The message can also be a tuple containing a short
+		question and a longer explanation, this is prefered for look&feel.
+		'''
+		if isinstance(msg, tuple):
+			msg, text = msg
+		else:
+			text = None
+
+		self.response = None
+		gtk.MessageDialog.__init__(
+			self, parent=get_window(ui),
+			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK,
+			message_format=msg
+		)
+		if text:
+			self.format_secondary_text(text)
+
+	def run(self):
+		'''Runs the dialog and destroys it directly.'''
+		logger.debug('Running MessageDialog')
+		gtk.MessageDialog.run(self)
+		self.destroy()
+
+
 class FileDialog(Dialog):
 	'''File chooser dialog, adds a filechooser widget to Dialog.'''
 

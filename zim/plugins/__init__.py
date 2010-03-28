@@ -97,9 +97,9 @@ class PluginClass(gobject.GObject):
 	@classmethod
 	def check_dependencies(klass):
 		'''This method checks which dependencies are met. It should return a list of tuples,
-		each consisting of a string with the name of the dependency and a boolean indicating 
-		if it is fulfilled or not. If a plugin has no dependencies it should return an empty
-		list (which is what the abse class does).
+		one for each dependency, with a string giving the name of the dependency and a boolean
+		indicating if it is fulfilled or not. When a plugin has no dependencies an empty list
+		should be returned (which is done in the base class).
 		'''
 		return []
 
@@ -115,12 +115,23 @@ class PluginClass(gobject.GObject):
 		self.preferences = self.ui.preferences[section]
 		for key, type, label, default in self.plugin_preferences:
 				self.preferences.setdefault(key, default)
-		self.uistate = ListDict()
+
 		self._is_image_generator_plugin = False
-		self.initialize_ui(ui)
-		self.ui.connect_after('open-notebook', self._merge_uistate)
-			# FIXME with new plugin API should not need this merging
-		self.ui.connect_object_after('open-notebook', self.__class__.finalize_notebook, self)
+
+		if self.ui.notebook:
+			section = self.__class__.__name__
+			self.uistate = self.ui.uistate[section]
+			self.initialize_ui(ui)
+
+			self.finalize_notebook(self.ui.notebook)
+		else:
+			self.uistate = ListDict()
+			self.initialize_ui(ui)
+			self.ui.connect_after('open-notebook', self._merge_uistate)
+				# FIXME with new plugin API should not need this merging
+
+			self.ui.connect_object_after('open-notebook',
+				self.__class__.finalize_notebook, self)
 
 	def _merge_uistate(self, *a):
 		# As a convenience we provide a uistate dict directly after

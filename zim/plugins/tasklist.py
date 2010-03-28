@@ -14,7 +14,7 @@ from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.notebook import Path
 from zim.gui.widgets import Dialog, Button, IconButton,  \
-	BrowserTreeView, SingleClickTreeView, \
+	BrowserTreeView, SingleClickTreeView, MessageDialog, \
 	gtk_get_style
 from zim.formats import UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 
@@ -44,6 +44,8 @@ ui_xml = '''
 </ui>
 '''
 
+SQL_FORMAT_VERSION = (0, 4)
+SQL_FORMAT_VERSION_STRING = "0.4"
 
 SQL_CREATE_TABLES = '''
 create table if not exists tasklist (
@@ -88,28 +90,43 @@ This is a core plugin shipping with zim.
 		# TODO: option to limit to specific namespace
 	)
 
+	def __init__(self, ui):
+		PluginClass.__init__(self, ui)
+		self.db_initialized = False
+
 	def initialize_ui(self, ui):
 		if ui.ui_type == 'gtk':
 			ui.add_actions(ui_actions, self)
 			ui.add_ui(ui_xml, self)
 
 	def finalize_notebook(self, notebook):
+		# This is done regardsless of the ui type of the application
 		self.index = notebook.index
-		self.index.connect('initialize-db', self.do_initialize_db)
-		self.index.connect('flush-db', self.do_flush_db)
+		self.index.connect_after('initialize-db', self.initialize_db)
 		self.index.connect('page-indexed', self.index_page)
 		self.index.connect('page-deleted', self.remove_page)
-		self.do_initialize_db(self.index)
 
-	def do_initialize_db(self, index):
+		db_version = self.index.properties['plugin_tasklist_format']
+		if db_version == SQL_FORMAT_VERSION_STRING:
+			self.db_initialized = True
+
+	def initialize_db(self, index):
 		with index.db_commit:
 			index.db.executescript(SQL_CREATE_TABLES)
+		self.index.properties['plugin_tasklist_format'] = SQL_FORMAT_VERSION_STRING
+		self.db_initialized = True
 
-	def do_flush_db(self, index):
-		with index.db_commit:
-			index.db.execute('drop table "tasklist"')
+	def disconnect(self):
+		self.index.properties['plugin_tasklist_format'] = 0
+		if self.db_initialized:
+			try:
+				self.index.db.execute('DROP TABLE "tasklist"')
+			except:
+				logger.exception('Could not drop table:')
 
 	def index_page(self, index, path, page):
+		if not self.db_initialized: return
+
 		#~ print '>>>>>', path, page, page.hascontent
 		#~ self.emit('updated')
 		self.remove_page(index, path)
@@ -118,7 +135,7 @@ This is a core plugin shipping with zim.
 		if not tree:
 			return
 
-		print '!! Checking for tasks in', path
+		#~ print '!! Checking for tasks in', path
 		for element in tree.getiterator('li'):
 			bullet = element.get('bullet')
 			if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
@@ -126,7 +143,7 @@ This is a core plugin shipping with zim.
 				self._add_task(path, element, open)
 
 	def _add_task(self, path, node, open):
-		'!! Found tasks in ', path
+		#~ '!! Found tasks in ', path
 		text = self._flatten(node)
 		prio = text.count('!')
 
@@ -178,20 +195,41 @@ This is a core plugin shipping with zim.
 		return text
 
 	def remove_page(self, index, path):
+		if not self.db_initialized: return
+
 		with index.db_commit:
 			cursor = index.db.execute(
 				'delete from tasklist where source=?', (path.id,) )
 
 	def list_tasks(self):
-		cursor = self.index.db.cursor()
-		cursor.execute('select * from tasklist')
-		for row in cursor:
-			yield row
+		if self.db_initialized:
+			cursor = self.index.db.cursor()
+			cursor.execute('select * from tasklist')
+			for row in cursor:
+				yield row
 
 	def get_path(self, task):
 		return self.index.lookup_id(task['source'])
 
 	def show_task_list(self):
+		if not self.db_initialized:
+			MessageDialog(self.ui, (
+				_('Need to index the notebook'),
+				# T: Short message text on first time use of task list plugin
+				_('This is the first time the task list is opened.\n'
+				  'Therefore the index needs to be rebuild.\n'
+				  'Depending on the size of the notebook this can\n'
+				  'take up to several minutes. Next time you use the\n'
+				  'task list this will not be needed again.' )
+				# T: Long message text on first time use of task list plugin
+			) ).run()
+			logger.info('Tasklist not initialized, need to rebuild index')
+			finished = self.ui.reload_index(flush=True)
+			# Flush + Reload will also initialize task list
+			if not finished:
+				self.db_initialized = False
+				return
+
 		dialog = TaskListDialog.unique(self, plugin=self)
 		dialog.present()
 
