@@ -13,8 +13,8 @@ class TestDiagramEditor(TestCase):
 
 	@classmethod
 	def skipTest(klass):
-		if not InsertDiagramPlugin.check_dependencies():
-			return 'GraphViz \'dot\' command not found'
+		if not InsertDiagramPlugin.check_dependencies_ok():
+			return 'Missing dependencies'
 		else:
 			return False
 

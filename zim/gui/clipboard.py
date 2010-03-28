@@ -17,7 +17,7 @@ import gtk
 import logging
 
 from zim.fs import File
-from zim.parsing import url_encode, url_decode
+from zim.parsing import is_url_re, url_encode, url_decode, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, TreeBuilder
 from zim.exporter import StaticLinker
 
@@ -65,13 +65,29 @@ PARSETREE_ACCEPT_TARGETS = (
 PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_TARGETS])
 #~ print 'ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES
 
+# Mimetype text/uri-list is used for drag n drop of URLs
+# it is plain text encoded list of urls, seperated by \r\n
+# Since not all apps foolow the standard exactly, do allow for
+# just \n separated lists.
+#
+# Zim page links are also encoded in this format, but no url encoding
+# is applied and no scheme is used. The target mimetype can be used to
+# distinguish between proper uri lists and lists of page names.
 
-def pack_urilist(uris):
-	return ''.join(["%s\n" % url_encode(uri) for uri in uris])
+def pack_urilist(links):
+	text = ''
+	for link in links:
+		link = link.encode('utf-8')
+		if is_url_re.match(link):
+			link = url_encode(link, mode=URL_ENCODE_READABLE) # just to be sure
+		text += '%s\r\n' % link
+	return text
 
 
-def unpack_urilist(data):
-	return map(url_decode, data.strip().split('\n'))
+def unpack_urilist(text):
+	# FIXME be tolerant here for file://path/to/file uris here
+	lines = text.splitlines() # takes care of \r\n
+	return [line.decode('utf-8') for line in lines]
 
 
 def parsetree_from_selectiondata(selectiondata):
@@ -84,9 +100,8 @@ def parsetree_from_selectiondata(selectiondata):
 		return ParseTree().fromstring(selectiondata.data)
 	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
 	or targetname in URI_TARGET_NAMES:
-		# \n seperated list of urls / pagelinks / ..
 		links = unpack_urilist(selectiondata.data)
-		#~ print 'LINKS: ', links
+		print 'LINKS: ', links
 		builder = TreeBuilder()
 		builder.start('zim-tree')
 		for i in range(len(links)):
@@ -110,9 +125,12 @@ def parsetree_from_selectiondata(selectiondata):
 		builder.end('zim-tree')
 		tree = ParseTree(builder.close())
 		tree.resolve_images()
+		tree.decode_urls()
 		return tree
 	elif targetname in TEXT_TARGET_NAMES:
 		# plain text parser should highlight urls etc.
+		# FIXME some apps drop text/uri-list as a text/plain mimetype
+		# try to catch this situation by a check here
 		text = selectiondata.get_text()
 		return get_format('plain').Parser().parse(text.decode('utf-8'))
 	else:
@@ -248,10 +266,12 @@ class Clipboard(gtk.Clipboard):
 			text = pack_urilist((pagename,))
 			selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, text)
 		elif id == PAGELIST_TARGET_ID:
-			text = "%s?%s\n" % (url_encode(notebookname), url_encode(pagename))
+			link = "%s?%s\r\n" % (notebookname, pagename)
+			text = pack_urilist((link,))
 			selectiondata.set(PAGELIST_TARGET_NAME, 8, text)
 		elif id == TEXT_TARGET_ID:
-			text = "%s?%s\n" % (url_encode(notebookname), url_encode(pagename))
+			link = "%s?%s\r\n" % (notebookname, pagename)
+			text = pack_urilist((link,))
 			selectiondata.set_text(text)
 		else:
 			assert False, 'Unknown target id %i' % id

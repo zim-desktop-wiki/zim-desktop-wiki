@@ -22,5 +22,7 @@ perl -i -pe 's{INSERT_PAYPAL_BUTTON_HERE}{<form action="https://www.paypal.com/c
 <input type="hidden" name="hosted_button_id" value="11297015">
 <input type="image" src="https://www.paypal.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
 <img alt="" border="0" src="https://www.paypal.com/nl_NL/i/scr/pixel.gif" width="1" height="1">
-</form>}' html/donations.html
+</form>}' html/contribute.html
+
+perl -i -pe 's{http://www.zim-wiki.org/wiki/doku.php%3Fid%3D}{http://www.zim-wiki.org/wiki/doku.php?id=}'  html/contribute.html
 

@@ -143,7 +143,7 @@ class TestPageProxy(TestCase):
 **foo bar !**
 ''')
 		self.assertTrue(len(page.dump('html', linker=StubLinker())) > 0)
-		proxy = PageProxy(Notebook(), page, zim.formats.get_format('html'), StubLinker())
+		proxy = PageProxy(Notebook(), page, zim.formats.get_format('html'), StubLinker(), {})
 		self.assertEqual(proxy.name, page.name)
 		self.assertEqual(proxy.namespace, page.namespace)
 		self.assertEqual(proxy.basename, page.basename)
@@ -180,6 +180,13 @@ Version %s
 		result = Template(input, 'html', linker=StubLinker()).process(Notebook(), page)
 		self.assertEqualDiff(result, wantedresult.splitlines(True))
 
+		# Check new page template
+		notebook, page = tests.get_test_page('Some New None existing page')
+		template = notebook.get_template(page)
+		tree = template.process_to_parsetree(notebook, page) # No linker !
+		self.assertEqualDiff(tree.find('/h').text, u'Some New None existing page')
+
+		
 
 class StubLinker(object):
 

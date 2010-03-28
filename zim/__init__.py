@@ -3,7 +3,7 @@
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.44'
+__version__ = '0.46'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <pardus@cpan.org>'
 __copyright__ = 'Copyright 2008, 2009 Jaap Karssenberg <pardus@cpan.org>'
@@ -26,6 +26,7 @@ import logging
 
 from getopt import gnu_getopt, GetoptError
 
+import zim.fs
 from zim.fs import *
 from zim.errors import Error
 from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR
@@ -45,7 +46,7 @@ if os.name == 'nt':
 			os.environ['HOME'] = home
 
 assert os.environ['USER'], 'ERROR: environment variable $USER not set'
-assert os.path.isdir(os.environ['HOME']), 'ERROR: environment variable $HOME not set correctly'
+assert zim.fs.isdir(os.environ['HOME']), 'ERROR: environment variable $HOME not set correctly'
 
 
 if ZIM_DATA_DIR:
@@ -359,11 +360,13 @@ class NotebookInterface(gobject.GObject):
 			self.load_plugin(plugin)
 
 	def load_plugin(self, name):
-		'''Load a single plugin by name'''
+		'''Load a single plugin by name, returns boolean for success'''
 		assert isinstance(name, basestring)
 		import zim.plugins
 		try:
 			klass = zim.plugins.get_plugin(name)
+			if not klass.check_dependencies_ok():
+				raise AssertionError, 'Dependencies failed'
 			plugin = klass(self)
 		except:
 			logger.exception('Failed to load plugin %s', name)

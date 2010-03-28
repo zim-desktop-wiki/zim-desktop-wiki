@@ -15,6 +15,7 @@ import logging
 import gtk
 import gobject
 
+import zim.fs
 from zim.fs import *
 from zim.fs import TmpFile
 from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
@@ -236,7 +237,7 @@ class DesktopEntryDict(ConfigDict, Application):
 
 		w, h = gtk.icon_size_lookup(size)
 		if '/' in icon:
-			if os.path.isfile(icon):
+			if zim.fs.isfile(icon):
 				return gtk.gdk.pixbuf_new_from_file_at_size(icon, w, h)
 			else:
 				return None

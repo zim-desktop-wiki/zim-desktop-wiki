@@ -109,7 +109,7 @@ class Parser(ParserClass):
 		para_isspace = False
 		for line in input:
 			# Try start new para when switching between text and empty lines or back
-			if line.isspace() != para_isspace:
+			if line.isspace() != para_isspace or parser_re['blockstart'].match(line):
 				if para_start():
 					para_isspace = line.isspace() # decide type of new para
 			paras[-1] += line
@@ -119,6 +119,11 @@ class Parser(ParserClass):
 		builder = TreeBuilder()
 		builder.start('zim-tree')
 		for para in paras:
+			# HACK this char is recognized as line end by splitlines()
+			# but not matched by \n in a regex. Hope there are no other
+			# exceptions like it (crosses fingers)
+			para = para.replace(u'\u2028', '\n')
+
 			if not self.backward and parser_re['blockstart'].search(para):
 				self._parse_block(builder, para)
 			elif self.backward and not para.isspace() \
@@ -346,7 +351,11 @@ class Dumper(DumperClass):
 					else:
 						output.append('[['+href+']]')
 				else:
-					output.append('[['+href+'|'+element.text+']]')
+					if element.text:
+						output.append('[['+href+'|'+element.text+']]')
+					else:
+						output.append('[['+href+']]')
+
 			elif element.tag in dumper_tags:
 				tag = dumper_tags[element.tag]
 				output.append(tag+element.text+tag)

@@ -13,8 +13,8 @@ class TestEquationEditor(TestCase):
 
 	@classmethod
 	def skipTest(klass):
-		if not InsertEquationPlugin.check_dependencies():
-			return 'latex and/or dvipng not found'
+		if not InsertEquationPlugin.check_dependencies_ok():
+			return 'Missing dependencies'
 		else:
 			return False
 

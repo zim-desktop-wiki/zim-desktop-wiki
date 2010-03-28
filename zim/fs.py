@@ -31,6 +31,8 @@ folder is created, moved or deleted.
 # represent the same file but independently manage the mtime and md5
 # checksums to ensure the file is what they think it should be.
 
+from __future__ import with_statement
+
 import gobject
 
 import os
@@ -43,11 +45,59 @@ from StringIO import StringIO
 
 from zim.errors import Error
 from zim.parsing import url_encode, url_decode
+from zim.async import AsyncOperation, AsyncLock
 
 
 __all__ = ['Dir', 'File']
 
 logger = logging.getLogger('zim.fs')
+
+
+xdgmime = None
+mimetypes = None
+try:
+	import xdg.Mime as xdgmime
+except ImportError:
+	logger.warn("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+	import mimetypes
+
+
+IMAGE_EXTENSIONS = (
+	# Gleaned from gtk.gdk.get_formats()
+	'bmp', # image/bmp
+	'gif', # image/gif
+	'icns', # image/x-icns
+	'ico', # image/x-icon
+	'cur', # image/x-icon
+	'jp2', # image/jp2
+	'jpc', # image/jp2
+	'jpx', # image/jp2
+	'j2k', # image/jp2
+	'jpf', # image/jp2
+	'jpeg', # image/jpeg
+	'jpe', # image/jpeg
+	'jpg', # image/jpeg
+	'pcx', # image/x-pcx
+	'png', # image/png
+	'pnm', # image/x-portable-anymap
+	'pbm', # image/x-portable-anymap
+	'pgm', # image/x-portable-anymap
+	'ppm', # image/x-portable-anymap
+	'ras', # image/x-cmu-raster
+	'tga', # image/x-tga
+	'targa', # image/x-tga
+	'tiff', # image/tiff
+	'tif', # image/tiff
+	'wbmp', # image/vnd.wap.wbmp
+	'xbm', # image/x-xbitmap
+	'xpm', # image/x-xpixmap
+	'wmf', # image/x-wmf
+	'apm', # image/x-wmf
+	'svg', # image/svg+xml
+	'svgz', # image/svg+xml
+	'svg.gz', # image/svg+xml
+)
+
 
 
 def isabs(path):
@@ -72,8 +122,7 @@ def normalize_win32_share(path):
 	else:
 		if path.startswith('\\\\'):
 			# \\host\share\.. -> smb://host/share/..
-			path = 'smb:' + path.replace('\\', '/')
-			path = url_encode(path)
+			path = 'smb:' + url_encode(path.replace('\\', '/'))
 
 	return path
 
@@ -105,6 +154,21 @@ gobject.type_register(_FS)
 FS = _FS()
 
 
+def joinpath(*parts):
+	'''Wrapper for os.path.join()'''
+	return os.path.join(*parts)
+
+
+def isdir(path):
+	'''Unicode save version of os.path.isdir()'''
+	return os.path.isdir(path.encode('utf-8'))
+
+
+def isfile(path):
+	'''Unicode save version of os.path.isfile()'''
+	return os.path.isfile(path.encode('utf-8'))
+
+
 class UnixPath(object):
 	'''Parent class for Dir and File objects'''
 
@@ -134,11 +198,12 @@ class UnixPath(object):
 		# Spec is file:/// or file://host/
 		# But file:/ is sometimes used by non-compliant apps
 		# Windows uses file:///C:/ which is compliant
-		if uri.startswith('file:///'): return uri[7:]
-		elif uri.startswith('file://localhost/'): return uri[16:]
+		if uri.startswith('file:///'): uri = uri[7:]
+		elif uri.startswith('file://localhost/'): uri = uri[16:]
 		elif uri.startswith('file://'): assert False, 'Can not handle non-local file uris'
-		elif uri.startswith('file:/'): return uri[5:]
+		elif uri.startswith('file:/'): uri = uri[5:]
 		else: assert False, 'Not a file uri: %s' % uri
+		return url_decode(uri)
 
 	def __iter__(self):
 		parts = self.split()
@@ -177,7 +242,7 @@ class UnixPath(object):
 	@property
 	def uri(self):
 		'''File uri property'''
-		return 'file://'+self.path
+		return 'file://' + url_encode(self.path)
 
 	@property
 	def dir(self):
@@ -191,7 +256,7 @@ class UnixPath(object):
 
 	def iswritable(self):
 		if self.exists():
-			return os.access(self.path, os.W_OK)
+			return os.access(self.path.encode('utf-8'), os.W_OK)
 		else:
 			return self.dir.iswritable() # recurs
 
@@ -265,44 +330,34 @@ class UnixPath(object):
 		'''Used to detect if e.g. a File object should have really been
 		a Dir object
 		'''
-		return os.path.isdir(self.path)
+		return isdir(self.path)
 
 	def isimage(self):
 		'''Returns True if the file is an image type. But no guarantee
-		it is actually supported by gtk.
+		this image type is actually supported by gtk.
 		'''
+
+		# Quick shortcut to be able to load images in the gui even if
+		# we have no proper mimetype support
+		basename = self.basename
+		if '.' in self.basename:
+			_, ext = self.basename.rsplit('.', 1)
+			if ext in IMAGE_EXTENSIONS:
+				return True
+
 		return self.get_mimetype().startswith('image/')
 
 	def get_mimetype(self):
 		'''Returns the mimetype as a string like e.g. "text/plain"'''
-		try:
-			import xdg.Mime
-			mimetype = xdg.Mime.get_type(self.path, name_pri=80)
+		if xdgmime:
+			mimetype = xdgmime.get_type(self.path, name_pri=80)
 			return str(mimetype)
-		except ImportError:
-			logger.info("xdg.Mime doesn't exist - use file extension")
-			# Fake mime typing (e.g. for win32)
-			if '.' in self.basename:
-				_, ext = self.basename.rsplit('.', 1)
-				if ext == 'txt':
-					return 'text/plain'
-				else:
-					# Fallback for platform without xdg mimeinfo
-					# we can still use a stub mimetype based on the
-					# file extension. However we try to detect images
-					# so isimage() gives correct info to the GUI how
-					# to handle e.g. a file after drag & drop.
-					# FIXME check if we can port this to gio instead of using gtk
-					# alternative is to hard code list with globs (copy from mimeinfo)
-					import gtk
-					# See if it's an image
-					for format in gtk.gdk.pixbuf_get_formats():
-						if ext in format['extensions']:
-							return format['mime_types'][0]
-					# Not an image
-					return 'x-file-extension/%s' % ext
-			else:
-				return 'application/octet-stream'
+		else:
+			mimetype, encoding = mimetypes.guess_type(self.path, strict=False)
+			if encoding == 'gzip': return 'application/x-gzip'
+			elif encoding == 'bzip': return 'application/x-bzip'
+			elif encoding == 'compress': return 'application/x-compress'
+			else: return mimetype or 'application/octet-stream'
 
 
 class WindowsPath(UnixPath):
@@ -347,7 +402,7 @@ class Dir(Path):
 
 	def exists(self):
 		'''Returns True if the dir exists and is actually a dir'''
-		return os.path.isdir(self.path)
+		return isdir(self.path)
 
 	def list(self):
 		'''Returns a list of names for files and subdirectories'''
@@ -498,17 +553,24 @@ class File(Path):
 	difficult to loose file contents when something goes wrong during
 	the writing.
 
-	When 'checkoverwrite' this class checks mtime to prevent overwriting a
-	file that was changed on disk, if mtime fails MD5 sums are used to verify
-	before raising an exception. However this check only works when using
-	read(), readlines(), write() or writelines(), but not when calling open()
-	directly. Unfortunately this logic is not atomic, so your mileage may vary.
+	When 'checkoverwrite' is True this class checks mtime to prevent
+	overwriting a file that was changed on disk, if mtime fails MD5 sums
+	are used to verify before raising an exception. However this check
+	only works when using read(), readlines(), write() or writelines(),
+	but not when calling open() directly. Unfortunately this logic is
+	not atomic, so your mileage may vary.
+
+	The *_async functions can be used to read or write files in a separate
+	thread. See zim.async for details. An AsyncLock is used to ensure
+	reading and writing is done sequentally between several threads.
+	However, this does not work when using open() directly.
 	'''
 
 	def __init__(self, path, checkoverwrite=False):
 		Path.__init__(self, path)
 		self.checkoverwrite = checkoverwrite
 		self._mtime = None
+		self._lock = AsyncLock()
 
 	def __eq__(self, other):
 		if isinstance(other, File):
@@ -518,7 +580,7 @@ class File(Path):
 
 	def exists(self):
 		'''Returns True if the file exists and is actually a file'''
-		return os.path.isfile(self.path)
+		return isfile(self.path)
 
 	def open(self, mode='r', encoding='utf-8'):
 		'''Returns an io object for reading or writing.
@@ -557,14 +619,14 @@ class File(Path):
 	def _on_write(self):
 		# flush and sync are already done before close()
 		tmp = self.path + '.zim.new~'
-		assert os.path.isfile(tmp)
+		assert isfile(tmp)
 		if isinstance(self, WindowsPath):
 			# On Windows, if dst already exists, OSError will be raised
 			# and no atomic operation to rename the file :(
-			if os.path.isfile(self.path):
+			if isfile(self.path):
 				isnew = False
 				back = self.path + '~'
-				if os.path.isfile(back):
+				if isfile(back):
 					os.remove(back)
 				os.rename(self.path, back)
 				os.rename(tmp, self.path)
@@ -574,7 +636,7 @@ class File(Path):
 				os.rename(tmp, self.path)
 		else:
 			# On UNix, dst already exists it is replaced in an atomic operation
-			isnew = not os.path.isfile(self.path)
+			isnew = not isfile(self.path)
 			os.rename(tmp, self.path)
 
 		logger.debug('Wrote %s', self)
@@ -583,6 +645,24 @@ class File(Path):
 			FS.emit('path-created', self)
 
 	def read(self, encoding='utf-8'):
+		'''Returns the content as string, or an empty string if
+		this file does not exist.
+		'''
+		with self._lock:
+			text = self._read(encoding)
+		return text
+
+	def read_async(self, callback=None, data=None):
+		'''Like read() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'. Try operation.result for content.
+		'''
+		operation = AsyncOperation(
+			self._read, lock=self._lock, callback=callback, data=data)
+		operation.start()
+		return operation
+
+	def _read(self, encoding='utf-8'):
 		if not self.exists():
 			return ''
 		else:
@@ -592,6 +672,24 @@ class File(Path):
 			return _convert_newlines(content)
 
 	def readlines(self):
+		'''Returns the content as list of lines, or an empty list if
+		this file does not exist.
+		'''
+		with self._lock:
+			lines = self._readlines()
+		return lines
+
+	def readlines_async(self, callback=None, data=None):
+		'''Like readlines() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'. Try operation.result for content.
+		'''
+		operation = AsyncOperation(
+			self._readlines, lock=self._lock, callback=callback, data=data)
+		operation.start()
+		return operation
+
+	def _readlines(self):
 		if not self.exists():
 			return []
 		else:
@@ -601,6 +699,22 @@ class File(Path):
 			return map(_convert_newlines, content)
 
 	def write(self, text):
+		'''Overwrite file with text'''
+		with self._lock:
+			self._write(text)
+
+	def write_async(self, text, callback=None, data=None):
+		'''Like write() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'.
+		'''
+		#~ print '!! ASYNC WRITE'
+		operation = AsyncOperation(
+			self._write, (text,), lock=self._lock, callback=callback, data=data)
+		operation.start()
+		return operation
+
+	def _write(self, text):
 		self._assertoverwrite()
 		file = self.open('w')
 		file.write(text)
@@ -608,6 +722,22 @@ class File(Path):
 		self._checkoverwrite(text)
 
 	def writelines(self, lines):
+		'''Overwrite file with a list of lines'''
+		with self._lock:
+			self._writelines(lines)
+
+	def writelines_async(self, text, callback=None, data=None):
+		'''Like writelines() but as asynchronous operation.
+		Returns a AsyncOperation object, see there for documentation
+		for 'callback'.
+		'''
+		#~ print '!! ASYNC WRITE'
+		operation = AsyncOperation(
+			self._writelines, (text,), lock=self._lock, callback=callback, data=data)
+		operation.start()
+		return operation
+
+	def _writelines(self, lines):
 		self._assertoverwrite()
 		file = self.open('w')
 		file.writelines(lines)
@@ -644,21 +774,23 @@ class File(Path):
 		if self.exists():
 			return
 		else:
-			io = self.open('w')
-			io.write('')
-			io.close()
+			with self._lock:
+				io = self.open('w')
+				io.write('')
+				io.close()
 
 	def remove(self):
 		'''Remove this file and any related temporary files we made.
 		Ignores if page did not exist in the first place.
 		'''
 		logger.info('Remove file: %s', self)
-		if os.path.isfile(self.path):
-			os.remove(self.path)
+		with self._lock:
+			if isfile(self.path):
+				os.remove(self.path)
 
-		tmp = self.path + '.zim.new~'
-		if os.path.isfile(tmp):
-			os.remove(tmp)
+			tmp = self.path + '.zim.new~'
+			if isfile(tmp):
+				os.remove(tmp)
 
 	def cleanup(self):
 		'''Remove this file and deletes any empty parent directories.'''

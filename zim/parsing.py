@@ -37,41 +37,131 @@ def unescape_quoted_string(string):
 		string = escape_re.sub(replace, string)
 	return string
 
+# URL encoding / decoding is a bit more tricky than it seems:
+#
+# === From man 7 url ===
+# Reserved chars:   ; / ? : @ & = + $ ,
+# Unreserved chars: A-Z a-z 0-9 - _ . ! ~ * ' ( )
+# although heuristics could have a problem with . ! or ' at end of url
+# All other chars are not allowed and need escaping
+# Unicode chars need to be encoded as utf-8 and then as several escapes
+#
+# === Usage ===
+# Encode all - encode all chars
+#   e.g. for encoding parts of a file:// uri
+#   for encoding data for mailto:?subject=...
+#	return ascii
+# Encode path - encode all except /
+#   convenience method for file paths
+#	return ascii
+# Encode readable - encode space & utf-8, keep other escapes
+#	for pageview -> external (e.g. clipboard)
+#	assume reserved is (still) encoded properly
+#	return ascii
+# Decode all - decode all chars
+#   e.g. for decoding file:// uris
+#	return unicode
+# Decode readable - decode space, utf-8, keep other escapes
+#   for source / external (e.g. clipboard) -> pageview
+#	assume it is encoded properly to start with
+#	return unicode
+#
+# space is really just ' ', other whithespace characters like tab or
+# newline should not appear in the first place - so do not facilitate
+# them.
+#
+# In wiki source we use fully escaped URLs. In theory we could allow
+# for utf-8 characters, but this adds complexity. Also it could break
+# external usage of the text files.
+#
+# === From man 7 utf-8 ===
+# * The classic US-ASCII characters are encoded simply as bytes 0x00 to 0x7f
+# * All UCS characters > 0x7f are encoded as a multi-byte sequence
+#   consisting only of bytes in the range 0x80 to 0xfd, so no ASCII byte
+#   can appear as part of another character
+# * The bytes 0xfe and 0xff are never used in the UTF-8 encoding.
+#
+# So checking ranges makes sure utf-8 is really outside of ascii set,
+# and does not e.g. include "%".
 
-_url_encode_re = re.compile(r'[^A-Za-z0-9\-\_\.\!\~\*\'\(\)\/\:]')
-	# url encoding - char set from man uri(7), see relevant rfc
-	# added '/' and ':' to char set for readability of uris
+URL_ENCODE_DATA = 0 # all
+URL_ENCODE_PATH = 1	# all except '/'
+URL_ENCODE_READABLE = 2 # only space and utf-8
+
+_url_encode_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)]') # unreserved
+_url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)/]') # unreserved + /
+
+def _url_encode(match):
+	return '%%%02X' % ord(match.group(0))
+
+def _url_encode_readable(match):
+	i = ord(match.group(0))
+	if i == 32 or i > 127: # space or utf-8
+		return '%%%02X' % i
+	else: # do not encode
+		return match.group(0)
+
+def url_encode(url, mode=URL_ENCODE_PATH):
+	'''Replaces non-standard characters in urls with hex codes.
+
+	Mode can be:
+		URL_ENCODE_DATA - encode all un-safe chars
+		URL_ENCODE_PATH - encode all un-safe chars except '/'
+		URL_ENCODE_READABLE - encode whitespace and all unicode characters
+
+	The mode URL_ENCODE_READABLE can be applied to urls that are already
+	encoded because they do not touch the "%" character. The modes
+	URL_ENCODE_DATA and URL_ENCODE_PATH can only be applied to strings
+	that are known not to be encoded.
+
+	The encoded URL is returned as an ASCII string.
+	'''
+	url = url.encode('utf-8') # unicode -> utf-8, so encode one byte at a time
+
+	if mode == URL_ENCODE_DATA:
+		return _url_encode_re.sub(_url_encode, url)
+	elif mode == URL_ENCODE_PATH:
+		return _url_encode_path_re.sub(_url_encode, url)
+	elif mode == URL_ENCODE_READABLE:
+		return _url_encode_re.sub(_url_encode_readable, url)
+	else:
+		assert False, 'BUG: Unknown url encoding mode'
+
+
 _url_decode_re = re.compile('%([a-fA-F0-9]{2})')
 
-_unencoded_url_re = re.compile('\s|%(?![a-fA-F0-9]{2})')
-	# Not sure if everybody else out there uses the same char set,
-	# but whitespace in an url is a sure sign it is not encoded.
-	# (Also whitespace is the most problematic for wiki syntax...)
-	# Otherwise seeing a "%" without hex behind it also a good sign.
+def _url_decode(match):
+	return chr(int(match.group(1), 16))
 
-def url_encode(url):
-	'''Replaces non-standard characters in urls with hex codes.
-	This function uses some heuristics to detect when an url is encoded
-	already and avoid double-encoding it.
-	'''
-	url = url.encode('utf-8') # unicode -> utf-8
-	if not ('%' in url and not _unencoded_url_re.search(url)):
-		url = _url_encode_re.sub(lambda m: '%%%X' % ord(m.group(0)), url)
-	return url
+def _url_decode_readable(match):
+	i = int(match.group(1), 16)
+	if i == 32 or i > 127: # space or utf-8
+		return chr(i)
+	else: # do not decode
+		return match.group(0)
 
-
-def url_decode(url):
+def url_decode(url, mode=URL_ENCODE_PATH):
 	'''Replace url-encoding hex sequences with their proper characters.
-	This function uses some heuristics to detect when an url is not
-	encoded in the first place already and avoid double-decoding it.
+
+	Mode can be:
+		URL_ENCODE_DATA - decode all chars
+		URL_ENCODE_PATH - same as URL_ENCODE_DATA
+		URL_ENCODE_READABLE - decode only whitespace and unicode characters
+
+	The mode URL_ENCODE_READABLE will not decode any other characters,
+	so urls decoded with these modes can still contain escape sequences.
+	They are save fo usage within zim, but should be re-encoded with
+	URL_ENCODE_READABLE before handing them to an external program.
+
+	The result is returned as a unicode string.
 	'''
-	if '%' in url and not _unencoded_url_re.search(url):
-		# We can have multiple escapes combine into a unicode char
-		# so first decode to bytes by 'chr()', then decode utf8
-		url = url.encode('utf-8') # prevent unicode errors substituting one code at a time
-		url = _url_decode_re.sub(lambda m: chr(int(m.group(1), 16)), url)
-	url = url.decode('utf-8')
-	return url
+	url = url.encode('utf-8') # in case url is already unicode
+	if mode in (URL_ENCODE_DATA, URL_ENCODE_PATH):
+		return _url_decode_re.sub(_url_decode, url).decode('utf-8')
+	elif mode == URL_ENCODE_READABLE:
+		return _url_decode_re.sub(_url_decode_readable, url).decode('utf-8')
+	else:
+		assert False, 'BUG: Unknown url encoding mode'
 
 
 _parse_date_re = re.compile(r'(\d{1,4})\D(\d{1,2})(?:\D(\d{1,4}))?')
@@ -219,6 +309,20 @@ class Re(object):
 				result.append(item)
 		return result
 
+	def start(self,group=0):
+		'''Return the indices of the start of the substring matched by group;
+		group defaults to zero (meaning the whole matched substring). Return -1 if
+		group exists but did not contribute to the match. See re.matchobject for
+		details'''
+		return self.m.start(group)
+
+	def end(self,group=0):
+		'''Return the indices of the end of the substring matched by group;
+		group defaults to zero (meaning the whole matched substring). Return -1 if
+		group exists but did not contribute to the match. See re.matchobject for
+		details'''
+		return self.m.end(group)
+
 # Some often used regexes
 is_url_re = Re('^(\w[\w\+\-\.]+)://')
 	# scheme "://"
@@ -235,6 +339,7 @@ is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# smb://host/share
 is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
 	# identifyer "?" path
+
 
 _classes = {'c': r'[^\s"<>\']'} # limit the character class a bit
 url_re = Re(r'''(

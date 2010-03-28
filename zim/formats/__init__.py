@@ -28,7 +28,7 @@ Supported tags:
 * link for links, attribute href gives the target
 * img for images, attributes src, width, height an optionally href
 	* any text set on these elements should be rendered as alt
-	* class can be used to control plugin functionality, e.g. class=latex-equation
+	* type can be used to control plugin functionality, e.g. type=equation
 
 Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
@@ -56,7 +56,8 @@ import re
 import logging
 
 from zim.fs import Dir, File
-from zim.parsing import link_type, is_url_re, url_encode, url_decode
+from zim.parsing import link_type, is_url_re, \
+	url_encode, url_decode, URL_ENCODE_READABLE
 from zim.config import data_file
 
 
@@ -93,7 +94,7 @@ BULLET = '*'
 
 def list_formats(type):
 	if type == EXPORT_FORMAT:
-		return ['HTML']
+		return ['HTML','LaTeX']
 	else:
 		assert False, 'TODO'
 
@@ -211,21 +212,25 @@ class ParseTree(ElementTreeModule.ElementTree):
 				filepath = element.attrib['src']
 				element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
 
-	def encode_urls(self):
-		'''Calls encode_url() on all links that contain urls'''
+	def encode_urls(self, mode=URL_ENCODE_READABLE):
+		'''Calls encode_url() on all links that contain urls.
+		See zim.parsing for details. Modifies the parse tree.
+		'''
 		for link in self.getiterator('link'):
 			href = link.attrib['href']
 			if is_url_re.match(href):
-				link.attrib['href'] = url_encode(href)
+				link.attrib['href'] = url_encode(href, mode=mode)
 				if link.text == href:
 					link.text = link.attrib['href']
 
-	def decode_urls(self):
-		'''Calls decode_url() on all links that contain urls'''
+	def decode_urls(self, mode=URL_ENCODE_READABLE):
+		'''Calls decode_url() on all links that contain urls.
+		See zim.parsing for details. Modifies the parse tree.
+		'''
 		for link in self.getiterator('link'):
 			href = link.attrib['href']
 			if is_url_re.match(href):
-				link.attrib['href'] = url_decode(href)
+				link.attrib['href'] = url_decode(href, mode=mode)
 				if link.text == href:
 					link.text = link.attrib['href']
 
@@ -292,8 +297,10 @@ class ParseTreeBuilder(object):
 	def start(self, tag, attrib=None):
 		if tag == '_ignore_':
 			return self._last
-		elif tag in ('h', 'p', 'pre'):
+		elif tag == 'h':
 			self._flush(need_eol=2)
+		elif tag in ('p', 'pre'):
+			self._flush(need_eol=1)
 		else:
 			self._flush()
 		#~ print 'START', tag
@@ -507,8 +514,9 @@ class DumperClass(object):
 	'Dumper' which inherits from this base class.
 	'''
 
-	def __init__(self, linker=None):
+	def __init__(self, linker=None, template_options=None):
 		self.linker = linker
+		self.template_options = template_options or {}
 
 	def dump(self, tree):
 		'''ABSTRACT METHOD needs to be overloaded by sub-classes.
@@ -551,9 +559,10 @@ class DumperClass(object):
 
 
 class BaseLinker(object):
-	'''Base class for linker objects. Linker object translate links in zim pages
-	to either paths or urls. Paths should be interpreted relative to the
-	document in the way this is done in html.
+	'''Base class for linker objects. Linker object translate links in
+	zim pages to (relative) URLs. Relative URLs start with "./" or "../"
+	and should be interpreted in the same way as in HTML. Both URLs and
+	relative URLs are already URL encoded.
 	'''
 
 	def __init__(self):
@@ -578,7 +587,7 @@ class BaseLinker(object):
 		self.usebase = usebase
 
 	def link(self, link):
-		'''Returns a path or url for 'link' '''
+		'''Returns a url for 'link' '''
 		assert not self.path is None
 		if not link in self._links:
 			type = link_type(link)
@@ -596,11 +605,11 @@ class BaseLinker(object):
 		return self._links[link]
 
 	def img(self, src):
-		'''Returns a path or url for image file 'src' '''
+		'''Returns a url for image file 'src' '''
 		return self.file(src)
 
 	def icon(self, name):
-		'''Returns a path or url for an icon'''
+		'''Returns a url for an icon'''
 		if not name in self._icons:
 			self._icons[name] = data_file('pixmaps/%s.png' % name).uri
 		return self._icons[name]

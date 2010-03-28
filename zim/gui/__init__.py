@@ -39,7 +39,7 @@ from zim.notebook import Path, Page, PageNameError, \
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict
-from zim.parsing import url_encode, is_win32_share_re
+from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re
 from zim.history import History, HistoryRecord
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
@@ -186,6 +186,14 @@ load_zim_stock_icons()
 KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
+def schedule_on_idle(function, args=()):
+	'''Helper function to schedule stuff that can be done later'''
+	def callback():
+		function(*args)
+		return False # delete signal
+	gobject.idle_add(callback)
+
+
 class NoSuchFileError(Error):
 
 	description = _('The file or folder you specified does not exist.\nPlease check if you the path is correct.')
@@ -196,6 +204,26 @@ class NoSuchFileError(Error):
 			# T: Error message, %s will be the file path
 
 
+class RLock(object):
+	'''Kind of re-entrant lock that keeps a stack count'''
+
+	__slots__ = ('count',)
+
+	def __init__(self):
+		self.count = 0
+
+	def __nonzero__(self):
+		return self.count > 0
+
+	def increment(self):
+		self.count += 1
+
+	def decrement(self):
+		if self.count == 0:
+			raise AssertionError, 'BUG: RLock count can not go below zero'
+		self.count -= 1
+
+
 class GtkInterface(NotebookInterface):
 	'''Main class for the zim Gtk interface. This object wraps a single
 	notebook and provides actions to manipulate and access this notebook.
@@ -203,8 +231,6 @@ class GtkInterface(NotebookInterface):
 	Signals:
 	* open-page (page, path)
 	  Called when opening another page, see open_page() for details
-	* save-page (page)
-	  Called when a page is saved
 	* close-page (page)
 	  Called when closing a page, typically just before a new page is opened
 	  and before closing the application
@@ -222,7 +248,6 @@ class GtkInterface(NotebookInterface):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-		'save-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
@@ -238,7 +263,10 @@ class GtkInterface(NotebookInterface):
 		self.preferences_register = ListDict()
 		self.page = None
 		self.history = None
-		self._save_page_in_progress = False
+		self._autosave_lock = RLock()
+			# used to prevent autosave triggering while we are
+			# doing a (async) save, or when we have an error during
+			# saving.
 		self.readonly = False
 		self.usedaemon = usedaemon
 		self.hideonclose = False
@@ -260,6 +288,14 @@ class GtkInterface(NotebookInterface):
 		''')
 
 		self.register_preferences('GtkInterface', ui_preferences)
+
+		# Hidden setting to force the gtk bell off. Otherwise it
+		# can bell every time you reach the begin or end of the text
+		# buffer. Especially specific gtk version on windows.
+		# See bug lp:546920
+		self.preferences['GtkInterface'].setdefault('gtk_bell', False)
+		if not self.preferences['GtkInterface']['gtk_bell']:
+			gtk.rc_parse_string('gtk-error-bell = 0')
 
 		# Set default applications
 		apps = {
@@ -319,6 +355,7 @@ class GtkInterface(NotebookInterface):
 
 		gtk.accel_map_get().connect('changed', on_accel_map_changed)
 
+		self.do_preferences_changed()
 
 		# Deal with commandline arguments for notebook and page
 		if notebook:
@@ -365,14 +402,18 @@ class GtkInterface(NotebookInterface):
 			else:
 				self.open_page_home()
 
+		# We schedule the autosave on idle to try to make it impact
+		# the performance of the applciation less. Of course using the
+		# async interface also helps, but we need to account for cases
+		# where asynchronous actions are not supported.
+
 		def autosave():
 			page = self.mainwindow.pageview.get_page()
-			if page.modified:
-				self.save_page(page)
-			return False # remove signal
+			if page.modified and not self._autosave_lock:
+					self.save_page_async(page)
 
 		def schedule_autosave():
-			gobject.idle_add(autosave)
+			schedule_on_idle(autosave)
 			return True # keep ticking
 
 		# older gobject version doesn't know about seconds
@@ -429,8 +470,6 @@ class GtkInterface(NotebookInterface):
 
 		if self.uistate.modified:
 			self.uistate.write()
-			# This is normally done on idle after close_page(), but here no
-			# idle event will follow because we go directly to main_quit()
 
 		self.mainwindow.destroy()
 		gtk.main_quit()
@@ -615,7 +654,7 @@ class GtkInterface(NotebookInterface):
 		'''Signal handler for open-notebook.'''
 
 		def move_away(o, path):
-			if self.page >= path:
+			if path == self.page or self.page.ischild(path):
 				self.open_page_back() \
 				or self.open_page_parent \
 				or self.open_page_home
@@ -623,14 +662,16 @@ class GtkInterface(NotebookInterface):
 		def follow(o, path, newpath, update_links):
 			if self.page == path:
 				self.open_page(newpath)
-			elif self.page > path:
+			elif self.page.ischild(path):
 				newpath = newpath + self.page.relname(path)
 				newpath = Path(newpath.name) # IndexPath -> Path
 				self.open_page(newpath)
 
 		def autosave(o, p):
+			# Here we explicitly do not save async
+			# and also explicitly no need for _autosave_lock
 			page = self.mainwindow.pageview.get_page()
-			if page.modified:
+			if p == page and page.modified:
 				self.save_page(page)
 
 		NotebookInterface.do_open_notebook(self, notebook)
@@ -639,8 +680,8 @@ class GtkInterface(NotebookInterface):
 		notebook.connect('properties-changed', self.on_notebook_properties_changed)
 		notebook.connect('delete-page', autosave) # before action
 		notebook.connect('move-page', autosave) # before action
-		notebook.connect_after('delete-page', move_away)
-		notebook.connect_after('move-page', follow)
+		notebook.connect('deleted-page', move_away)
+		notebook.connect('moved-page', follow)
 
 		# Start a lightweight background check of the index
 		self.notebook.index.update(background=True, checkcontents=False)
@@ -748,19 +789,15 @@ class GtkInterface(NotebookInterface):
 
 	def do_close_page(self, page):
 		if page.modified:
-			self.save_page(page)
+			self.save_page(page) # No async here -- for now
 
 		current = self.history.get_current()
 		if current == page:
 			current.cursor = self.mainwindow.pageview.get_cursor_pos()
 			current.scroll = self.mainwindow.pageview.get_scroll_pos()
 
-		def save_uistate():
-			if self.uistate.modified:
-				self.uistate.write()
-			return False # only run once
-
-		save_uistate()
+		if self.uistate.modified:
+			schedule_on_idle(self.uistate.write_async)
 
 	def open_page_back(self):
 		record = self.history.get_previous()
@@ -837,38 +874,64 @@ class GtkInterface(NotebookInterface):
 		PageWindow(self, page).show_all()
 
 	def save_page(self, page=None):
-		'''Save 'page', or current page when 'page' is None, by emitting the
-		'save-page' signal. Returns boolean for success.
+		'''Save 'page', or current page when 'page' is None.
+		Returns boolean for success.
 		'''
-		if self._save_page_in_progress:
-			# We need this check as the SavePageErrorDialog has a timer
-			# and auto-save may trigger while we are waiting for that one...
-			return False
+		page = self._save_page_check_page(page)
+		if page is None:
+			return
 
-		self._save_page_in_progress = True
-		try:
-			assert not self.readonly, 'BUG: can not save page when read-only'
-
-			if page is None:
-				page = self.mainwindow.pageview.get_page()
-			assert not page.readonly, 'BUG: can not save read-only page'
-		except Exception, error:
-			SavePageErrorDialog(self, error, page).run()
-			self._save_page_in_progress = False
-			return False
-
-
-		self.emit('save-page', page)
-		self._save_page_in_progress = False
-		return not page.modified
-
-	def do_save_page(self, page):
 		logger.debug('Saving page: %s', page)
 		try:
 			self.notebook.store_page(page)
 		except Exception, error:
 			logger.exception('Failed to save page: %s', page.name)
+			self._autosave_lock.increment()
+				# We need this flag to prevent autosave trigger while we
+				# are showing the SavePageErrorDialog
 			SavePageErrorDialog(self, error, page).run()
+			self._autosave_lock.decrement()
+
+		return not page.modified
+
+	def save_page_async(self, page=None):
+		page = self._save_page_check_page(page)
+		if page is None:
+			return
+
+		logger.debug('Saving page (async): %s', page)
+
+		def callback(ok, error, exc_info, name):
+			# This callback is called back here in the main thread.
+			# We fetch the page again just to be sure in case of strange
+			# edge cases. The SavePageErrorDialog will just take the
+			# current state of the page, not the state that it had in
+			# the async thread. This is done on purpose, current state
+			# is what the user is concerned with anyway.
+			#~ print '!!', ok, exc_info, name
+			if exc_info:
+				page = self.notebook.get_page(Path(name))
+				logger.error('Failed to save page: %s', page.name, exc_info=exc_info)
+				SavePageErrorDialog(self, error, page).run()
+			self._autosave_lock.decrement()
+
+		self._autosave_lock.increment()
+			# Prevent any new auto save to be scheduled while we are
+			# still busy with this call.
+		self.notebook.store_page_async(page, callback=callback, data=page.name)
+
+	def _save_page_check_page(self, page):
+		# Code shared between save_page() and save_page_async()
+		try:
+			assert not self.readonly, 'BUG: can not save page when read-only'
+			if page is None:
+				page = self.mainwindow.pageview.get_page()
+			assert not page.readonly, 'BUG: can not save read-only page'
+		except Exception, error:
+			SavePageErrorDialog(self, error, page).run()
+			return None
+		else:
+			return page
 
 	def save_copy(self):
 		'''Offer to save a copy of a page in the source format, so it can be
@@ -876,20 +939,16 @@ class GtkInterface(NotebookInterface):
 		'''
 		SaveCopyDialog(self).run()
 
-	def save_version(self):
-		pass
-
-	def show_versions(self):
-		from zim.gui.versionsdialog import VersionDialog
-		VersionDialog(self).run()
-
 	def show_export(self):
 		from zim.gui.exportdialog import ExportDialog
 		ExportDialog(self).run()
 
 	def email_page(self):
 		text = ''.join(self.page.dump(format='plain'))
-		url = url_encode('mailto:?subject=%s&body=%s' % (self.page.name, text))
+		url = 'mailto:?subject=%s&body=%s' % (
+			url_encode(self.page.name, mode=URL_ENCODE_DATA),
+			url_encode(text, mode=URL_ENCODE_DATA),
+		)
 		self.open_url(url)
 
 	def import_page(self):
@@ -933,7 +992,18 @@ class GtkInterface(NotebookInterface):
 		RenamePageDialog(self, path=path).run()
 
 	def delete_page(self, path=None):
-		DeletePageDialog(self, path=path).run()
+		if path is None:
+			path = self.get_path_context()
+
+		page = self.notebook.get_page(path)
+		if page.hascontent or page.haschildren:
+			DeletePageDialog(self, path=page).run()
+		else:
+			ErrorDialog(self, (
+				_('Page does not exist'), # T: short error description
+				_('This page does not exist, so it can not be deleted')
+					# T: long error description
+			) ).run()
 
 	def show_properties(self):
 		from zim.gui.propertiesdialog import PropertiesDialog
@@ -957,7 +1027,7 @@ class GtkInterface(NotebookInterface):
 
 	def save_preferences(self):
 		if self.preferences.modified:
-			self.preferences.write()
+			self.preferences.write_async()
 			self.emit('preferences-changed')
 
 	def do_preferences_changed(self):
@@ -1237,6 +1307,7 @@ class MainWindow(gtk.Window):
 		# hide or destroy the window.
 		def do_delete_event(*a):
 			logger.debug('Action: close (delete-event)')
+			self.hide() # look more responsive
 			ui.close()
 			return True # Do not destroy - let close() handle it
 		self.connect('delete-event', do_delete_event)
@@ -1289,24 +1360,6 @@ class MainWindow(gtk.Window):
 		self.statusbar.push(0, '<page>')
 		hbox.add(self.statusbar)
 
-		def update_statusbar(*a):
-			page = self.pageview.get_page()
-			if not page:
-				return
-			label = page.name
-			# TODO if page is read-only
-			if page.modified:
-				label += '*'
-			if self.ui.readonly or page.readonly:
-				label += ' ['+_('readonly')+']' # T: page status in statusbar
-			self.statusbar.pop(0)
-			self.statusbar.push(0, label)
-
-		self.pageview.connect('modified-changed', update_statusbar)
-		self.ui.connect_after('open-page', update_statusbar)
-		self.ui.connect_after('save-page', update_statusbar)
-		self.ui.connect_after('readonly-changed', update_statusbar)
-
 		def statusbar_element(string, size):
 			frame = gtk.Frame()
 			frame.set_shadow_type(gtk.SHADOW_IN)
@@ -1347,6 +1400,18 @@ class MainWindow(gtk.Window):
 				logger.exception('Parsing geometry string failed:')
 		elif fullscreen:
 			self._set_fullscreen = True
+
+	def do_update_statusbar(self, *a):
+		page = self.pageview.get_page()
+		if not page:
+			return
+		label = page.name
+		if page.modified:
+			label += '*'
+		if self.ui.readonly or page.readonly:
+			label += ' ['+_('readonly')+']' # T: page status in statusbar
+		self.statusbar.pop(0)
+		self.statusbar.push(0, label)
 
 	def do_window_state_event(self, event):
 		#~ print 'window-state changed:', event.changed_mask
@@ -1674,6 +1739,12 @@ class MainWindow(gtk.Window):
 		self.on_notebook_properties_changed(notebook)
 		notebook.connect('properties-changed', self.on_notebook_properties_changed)
 
+		# Hook up the statusbar
+		self.ui.connect_after('open-page', self.do_update_statusbar)
+		self.ui.connect_after('readonly-changed', self.do_update_statusbar)
+		self.pageview.connect('modified-changed', self.do_update_statusbar)
+		notebook.connect_after('stored-page', self.do_update_statusbar)
+
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets
 		if self._fullscreen:
@@ -1933,8 +2004,13 @@ class NewPageDialog(Dialog):
 			if page.hascontent or page.haschildren:
 				ErrorDialog(self, _('Page exists')+': %s' % page.name).run() # T: error message
 				return False
-			self.ui.open_page(page)
+
+			template = self.ui.notebook.get_template(page)
+			tree = template.process_to_parsetree(self.ui.notebook, page)
+			page.set_parsetree(tree)
 			self.ui.save_page()
+
+			self.ui.open_page(page)
 			return True
 		else:
 			return False

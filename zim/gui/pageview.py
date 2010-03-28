@@ -26,7 +26,8 @@ from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, \
-	Button, IconButton, BrowserTreeView, InputEntry
+	Button, IconButton, BrowserTreeView, InputEntry, \
+	rotate_pixbuf
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
@@ -69,6 +70,10 @@ KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
 KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
+# States that influence keybindings - we use this to explicitly
+# exclude other states. E.g. MOD2_MASK seems to be set when either
+# numlock or fn keys are active, resulting in keybindings failing
+KEYSTATES = (gtk.gdk.CONTROL_MASK, gtk.gdk.SHIFT_MASK, gtk.gdk.MOD1_MASK)
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
@@ -142,6 +147,9 @@ ui_preferences = (
 	('recursive_checklist', 'bool', 'Editing',
 		_('Checking a checkbox also change any sub-items'), False),
 		# T: option in preferences dialog
+	('auto_reformat', 'bool', 'Editing',
+		_('Reformat wiki markup on the fly'), False),
+		# T: option in preferences dialog
 )
 
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
@@ -171,6 +179,12 @@ file_re = Re(r'''(
 	| \.\.?/
 	| /[^/\s]
 )\S*$''', re.X | re.U) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
+
+markup_re = {'style-strong' : Re(r'(\*{2})(.*)\1'),
+	'style-emphasis' : Re(r'(\/{2})(.*)\1'),
+	'style-mark' : Re(r'(_{2})(.*)\1'),
+	'style-pre' : Re(r'(\'{2})(.*)\1'),
+	'style-strike' : Re(r'(~{2})(.*)\1')}
 
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
@@ -511,7 +525,10 @@ class TextBuffer(gtk.TextBuffer):
 		self._editmode_tags = self._editmode_tags[:-1]
 
 	def create_link_tag(self, text, href, **attrib):
+		if isinstance(href, File):
+			href = href.uri
 		assert isinstance(href, basestring)
+
 		tag = self.create_tag(None, **self.tag_styles['link'])
 		tag.set_priority(0) # force links to be below styles
 		tag.zim_type = 'link'
@@ -579,6 +596,7 @@ class TextBuffer(gtk.TextBuffer):
 				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, w, h)
 			else:
 				pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+			pixbuf = rotate_pixbuf(pixbuf)
 		except:
 			#~ logger.exception('Could not load image: %s', file)
 			logger.warn('No such image: %s', file)
@@ -2070,7 +2088,7 @@ class TextView(gtk.TextView):
 			else:
 				buffer.place_cursor(iter)
 			handled = True
-		elif event.keyval in KEYVALS_TAB and not event.state:
+		elif event.keyval in KEYVALS_TAB and not event.state in KEYSTATES:
 			# Tab at start of line indents
 			iter = buffer.get_insert_iter()
 			home, ourhome = self.get_visual_home_positions(iter)
@@ -2084,7 +2102,7 @@ class TextView(gtk.TextView):
 		elif event.keyval in KEYVALS_LEFT_TAB \
 		or (event.keyval in KEYVALS_BACKSPACE
 			and self.preferences['unindent_on_backspace']) \
-		and not event.state:
+		and not event.state in KEYSTATES:
 			# Backspace or Ctrl-Tab unindents line
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(iter)
@@ -2316,7 +2334,7 @@ class TextView(gtk.TextView):
 	def do_end_of_word(self, start, end, word, char):
 		buffer = self.get_buffer()
 		handled = True
-		#~ print 'WORD >>%s<<' % word
+		#~ print 'WORD >>%s<< CHAR >>%s<<' % (word, char)
 
 		if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start)) \
 		or filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end)):
@@ -2360,6 +2378,23 @@ class TextView(gtk.TextView):
 			apply_link(file_re[0])
 		elif self.preferences['autolink_camelcase'] and camelcase_re.match(word):
 			apply_link(camelcase_re[0])
+		elif self.preferences['auto_reformat']:
+			handled = False
+			linestart = buffer.get_iter_at_line(end.get_line())
+			partial_line = linestart.get_slice(end)
+			for style,re in markup_re.items():
+				if not re.search(partial_line) == None:
+					matchstart = linestart.copy()
+					matchstart.forward_chars(re.start())
+					matchend = linestart.copy()
+					matchend.forward_chars(re.end())
+					if filter(_is_not_indent_tag,buffer.iter_get_zim_tags(matchstart)) \
+					or filter(_is_not_indent_tag,buffer.iter_get_zim_tags(matchend)):
+						continue
+					buffer.delete(matchstart,matchend)
+					buffer.insert_with_tags_by_name(matchstart,re[2],style)
+					handled_here = True
+					break
 		else:
 			handled = False
 
@@ -2790,6 +2825,7 @@ class PageView(gtk.VBox):
 		self.undostack = None
 		self.image_generator_plugins = {}
 		self._current_toggle_action = None
+		self._showing_template = False
 
 		self.preferences = self.ui.preferences['PageView']
 		if not self.secondairy:
@@ -2933,8 +2969,8 @@ class PageView(gtk.VBox):
 				raise AssertionError, 'BUG: page changed while buffer changed as well'
 				# not using assert here because it could be optimized away
 
-		for s in ('store-page', 'delete-page', 'move-page'):
-			notebook.connect_after(s, assert_not_modified)
+		for s in ('stored-page', 'deleted-page', 'moved-page'):
+			notebook.connect(s, assert_not_modified)
 
 	def set_page(self, page):
 		# unhook from previous page
@@ -2968,9 +3004,11 @@ class PageView(gtk.VBox):
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
 			cursorpos = -1
+		else:
+			template = None
 
 		try:
-			self.set_parsetree(tree)
+			self.set_parsetree(tree, bool(template))
 			if not self.secondairy:
 				page.set_ui_object(self) # only after succesful set tree in buffer
 		except Exception, error:
@@ -3002,6 +3040,7 @@ class PageView(gtk.VBox):
 	def on_modified_changed(self, buffer):
 		# one-way traffic, set page modified after modifying the buffer
 		# but not the other way
+		self._showing_template = False
 		if buffer.get_modified() and not self.page.modified:
 			if self.readonly:
 				logger.warn('Buffer edited while read-only - potential bug')
@@ -3015,21 +3054,26 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		buffer.clear()
 		buffer.set_modified(False)
+		self._showing_template = False
 
 	def get_parsetree(self):
-		buffer = self.view.get_buffer()
-		if buffer.get_modified():
-			self._parsetree = buffer.get_parsetree()
-			buffer.set_modified(False)
-		#~ print self._parsetree.tostring()
-		return self._parsetree
+		if self._showing_template:
+			return None
+		else:
+			buffer = self.view.get_buffer()
+			if buffer.get_modified():
+				self._parsetree = buffer.get_parsetree()
+				buffer.set_modified(False)
+			#~ print self._parsetree.tostring()
+			return self._parsetree
 
-	def set_parsetree(self, tree):
+	def set_parsetree(self, tree, istemplate=False):
 		buffer = self.view.get_buffer()
 		assert not buffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
 		tree.resolve_images(self.ui.notebook, self.page)
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
+		self._showing_template = istemplate
 
 	def set_readonly(self, readonly=None):
 		if not readonly is None:
@@ -3705,7 +3749,7 @@ class EditImageDialog(Dialog):
 	def do_height_changed(self):
 		if self._block: return
 		self._image_data.pop('width', None)
-		self._image_data['height'] = self.get_field('height')
+		self._image_data['height'] = float(self.get_field('height'))
 		w = int(self._ratio * self._image_data['height'])
 		self._block = True
 		self.inputs['width'].set_value(w)

@@ -282,9 +282,9 @@ class Index(gobject.GObject):
 			for link in links:
 				self.cleanup(link)
 
-		self.notebook.connect_after('store-page', on_page_updated)
-		self.notebook.connect_after('move-page', on_page_moved)
-		self.notebook.connect_after('delete-page', lambda o, p: self.delete(p))
+		self.notebook.connect('stored-page', on_page_updated)
+		self.notebook.connect('moved-page', on_page_moved)
+		self.notebook.connect('deleted-page', lambda o, p: self.delete(p))
 
 	def _connect(self):
 		self.db = sqlite3.connect(

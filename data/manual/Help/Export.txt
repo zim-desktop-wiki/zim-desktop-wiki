@@ -4,13 +4,13 @@ Creation-Date: Unknown
 
 ====== Exporting ======
 
-Zim will be able to export content to various formats but at the moment only exporting to (simple) Html is supported.
+Zim will be able to export content to various formats. At the moment only exporting to (simple) [[Help:Export:HTML|HTML]] and [[Help:Export:LaTeX|LaTeX]] is supported.
 
 To open op the export dialog in zim use the "//File//->//Export//" menu item. This dialog asks for a number of input fields before you can start exporting.
 
 Under **Pages** you can check "Complete notebook" if you want to export all the pages in the notebook.
 
-The **Format** is fixed on "Html" for now. Later other options will be added here.
+The **Format** allows the choice of the output format.
 
 The **Template** field asks you to select a template file (see below). When you select "''Other...''" in the combo box you can browse for another file in the input field below the combo box.
 
@@ -23,7 +23,7 @@ The **Documents** section allows you to choose what you want to do with linked f
 TODO explain document root somewhere
 
 ===== Templates =====
-The export code only produces the tags that represent the content of the page. It does not add elements like a <head> section. [[Templates]] are used to create complete Html pages. A few standard templates are packaged with zim, but you can also make your own.
+The export code only produces the tags that represent the content of the page. [[Templates]] are used to create complete output. A few standard templates are packaged  with zim, see the pages for the output formats for a list and descriptions. You can also make your own.
 
 ===== Exporting from the commandline =====
 Try something like:

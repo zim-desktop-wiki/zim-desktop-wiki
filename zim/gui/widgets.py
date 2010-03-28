@@ -69,6 +69,25 @@ def gtk_get_style():
 	return w.get_style()
 
 
+def rotate_pixbuf(pixbuf):
+	'''If the pixbuf has asociated data for the image rotation
+	(e.g. EXIF for photos) it will rotate the pixbuf to the correct
+	orientation. Returns a new version of the pixbuf or the pixbuf itself.
+	'''
+	# Values for orientation seen in some random snippet in gtkpod
+	o = pixbuf.get_option('orientation')
+	if o: o = int(o)
+	if o == 3: # 180 degrees
+		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_UPSIDEDOWN)
+	elif o == 6: # 270 degrees
+		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_CLOCKWISE)
+	elif o == 9: # 90 degrees
+		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_COUNTERCLOCKWISE)
+	else:
+		# No rotation info, older gtk version, or advanced transpose
+		return pixbuf
+
+
 class Button(gtk.Button):
 	'''This class overloads the constructor of the default gtk.Button
 	class. The purpose is to change the behavior in such a way that stock
@@ -634,7 +653,7 @@ class Dialog(gtk.Dialog):
 	def add_fields(self, fields, table=None, trigger_response=True):
 		'''Add a number of fields to the dialog, convenience method to
 		construct simple forms. The argument 'fields' should be a list of
-		field definitions; each definition is a tupple of:
+		field definitions; each definition is a tuple of:
 
 			* The field name
 			* The field type
@@ -676,6 +695,7 @@ class Dialog(gtk.Dialog):
 				v, min, max = value
 				button.set_value(v)
 				button.set_range(min, max)
+				button.set_increments(1,5)
 				self.inputs[name] = button
 				table.attach(button, 1,2, i,i+1)
 			elif type == 'list':
@@ -827,7 +847,11 @@ class Dialog(gtk.Dialog):
 		'''
 		if id == gtk.RESPONSE_OK and not self._no_ok_action:
 			logger.debug('Dialog response OK')
-			self.destroyed = self.do_response_ok()
+			try:
+				self.destroyed = self.do_response_ok()
+			except Exception, error:
+				ErrorDialog(self.ui, error).run()
+				self.destroyed = False
 		else:
 			self.destroyed = True
 
@@ -877,6 +901,8 @@ class ErrorDialog(gtk.MessageDialog):
 			if hasattr(error, 'filename') and error.filename:
 				msg += ': ' + error.filename
 			description = None
+		elif isinstance(error, tuple):
+			msg, description = error
 		else:
 			# Other exception or string
 			msg = unicode(error)

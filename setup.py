@@ -65,6 +65,11 @@ def collect_data_files():
 		('share/applications', ['xdg/zim.desktop']),
 		('share/mime/packages', ['xdg/zim.xml']),
 		('share/man/man1', ['man/zim.1']),
+		('share/icons/hicolor/64x64/mimetypes', [
+			'xdg/hicolor/gnome-mime-application-x-zim-notebook.png',
+			'xdg/hicolor/application-x-zim-notebook.png'
+		] ),
+		('share/icons/hicolor/64x64/apps', ['data/zim.png']),
 	]
 
 	# data -> PREFIX/share/zim
@@ -101,6 +106,15 @@ def fix_dist():
 	# print 'copying CHANGELOG.txt -> data/manual/Changelog.txt'
 	# shutil.copy('CHANGELOG.txt', 'data/manual/Changelog.txt')
 
+	# Copy the zim icon a couple of times
+	if os.path.exists('xdg/hicolor'):
+		shutil.rmtree('xdg/hicolor')
+	os.mkdir('xdg/hicolor')
+	for name in (
+		'gnome-mime-application-x-zim-notebook.png',
+		'application-x-zim-notebook.png'
+	):
+		shutil.copy('data/zim.png', 'xdg/hicolor/' + name)
 
 # Overloaded commands
 
@@ -179,8 +193,8 @@ class zim_install_class(install_class):
 		for cmd in (
 			('update-desktop-database',),
 			('update-mime-database', mimedir),
-			('xdg-icon-resource', 'install', '--context', 'apps', '--size', '64', icon, '--novendor'),
-			('xdg-icon-resource', 'install', '--context', 'mimetypes',  '--size', '64', icon, 'application-x-zim-notebook'),
+			#('xdg-icon-resource', 'install', '--context', 'apps', '--size', '64', icon, '--novendor'),
+			#('xdg-icon-resource', 'install', '--context', 'mimetypes',  '--size', '64', icon, 'application-x-zim-notebook'),
 		):
 			print 'Trying: ' + ' '.join(cmd)
 			subprocess.call(cmd)

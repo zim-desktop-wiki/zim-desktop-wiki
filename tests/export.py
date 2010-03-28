@@ -66,7 +66,8 @@ class TestExportFullOptions(TestExport):
 		TestExport.runTest(self)
 		file = self.dir.file('index.html')
 		self.assertTrue(file.exists())
-		# print file.read() TODO check content of index
+		indexcontent = file.read()
+		self.assertTrue('<a href="./Test/foo.html" title="foo">foo</a>' in indexcontent)
 
 
 class TestExportCommandLine(TestExport):

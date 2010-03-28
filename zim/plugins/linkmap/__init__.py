@@ -6,6 +6,7 @@
 
 from zim.plugins import PluginClass
 from zim.index import LINK_DIR_BOTH
+from zim.applications import Application
 
 class LinkMapPlugin(PluginClass):
 
@@ -16,9 +17,6 @@ This plugin provides a dialog with a graphical
 representation of the linking structure of the
 notebook. It can be used as a kind of "mind map"
 showing how pages relate.
-
-This plugin depends on GraphViz, please make
-sure it is installed.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
@@ -33,6 +31,10 @@ This is a core plugin shipping with zim.
 			self.gui = gui.GtkLinkMap(self.ui)
 		else:
 			self.gui = False
+
+	@classmethod
+	def check_dependencies(klass):
+		return [('GraphViz',Application(('fdp',)).tryexec())]
 
 	def disconnect(self):
 		pass

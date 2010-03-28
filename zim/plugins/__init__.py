@@ -7,6 +7,7 @@ import types
 import os
 import sys
 
+import zim.fs
 from zim.fs import Dir
 from zim.config import ListDict
 
@@ -39,7 +40,7 @@ def list_plugins():
 				continue
 			elif candidate.endswith('.py'):
 				plugins.add(candidate[:-3])
-			elif os.path.isdir(dir.path+'/'+candidate) \
+			elif zim.fs.isdir(dir.path+'/'+candidate) \
 			and os.path.exists(dir.path+'/'+candidate+'/__init__.py'):
 				plugins.add(candidate)
 			else:
@@ -87,6 +88,20 @@ class PluginClass(gobject.GObject):
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 
 	}
+
+	@classmethod
+	def check_dependencies_ok(klass):
+		'''Like check_dependencies, but just returns boolean'''
+		return all(dep[1] for dep in klass.check_dependencies())
+
+	@classmethod
+	def check_dependencies(klass):
+		'''This method checks which dependencies are met. It should return a list of tuples,
+		each consisting of a string with the name of the dependency and a boolean indicating 
+		if it is fulfilled or not. If a plugin has no dependencies it should return an empty
+		list (which is what the abse class does).
+		'''
+		return []
 
 	def __init__(self, ui):
 		gobject.GObject.__init__(self)

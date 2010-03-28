@@ -18,6 +18,7 @@ if sys.version_info >= (2, 6):
 else:
 	import simplejson as json # extra dependency
 
+import zim.fs
 from zim.fs import *
 from zim.errors import Error
 from zim.parsing import TextBuffer, split_quoted_strings
@@ -45,7 +46,7 @@ def _set_basedirs():
 	global XDG_CACHE_HOME
 
 	# Detect if we are running from the source dir
-	if os.path.isfile('./zim.py'):
+	if zim.fs.isfile('./zim.py'):
 		scriptdir = '.' # maybe running module in test / debug
 	else:
 		scriptdir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -466,6 +467,12 @@ class ConfigFile(ListDict):
 	def write(self):
 		self.file.writelines(self.dump())
 		self.set_modified(False)
+
+	def write_async(self):
+		operation = self.file.writelines_async(self.dump())
+		# TODO do we need async error handling here ?
+		self.set_modified(False)
+		return operation
 
 
 class ConfigDictFile(ConfigFile, ConfigDict):

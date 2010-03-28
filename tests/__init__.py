@@ -32,14 +32,14 @@ def set_environ():
 	tmpdir = './tests/tmp/'
 	os.environ.update({
 		'TMP': tmpdir,
-		'XDG_DATA_HOME': './tests/tmp/share',
-		'XDG_DATA_DIRS': './tests/tmp/share',
-		'XDG_CONFIG_HOME': './tests/tmp/config',
-		'XDG_CONFIG_DIRS': './tests/tmp/config',
-		'XDG_CACHE_HOME': './tests/tmp/cache'
+		'XDG_DATA_HOME': './tests/tmp/data_home',
+		'XDG_DATA_DIRS': './tests/tmp/data_dir',
+		'XDG_CONFIG_HOME': './tests/tmp/config_home',
+		'XDG_CONFIG_DIRS': './tests/tmp/config_dir',
+		'XDG_CACHE_HOME': './tests/tmp/cache_home'
 	})
 	if os.path.isdir(tmpdir):
-		shutil.rmtree(tmpdir)
+		shutil.rmtree(unicode(tmpdir))
 	os.mkdir(tmpdir)
 
 

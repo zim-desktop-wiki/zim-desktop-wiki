@@ -1,0 +1,73 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+
+====== Contribute ======
+Also see the development page on launchpage here: https://launchpad.net/zim
+
+===== Donations =====
+Zim is completely free software, free as in open source and free as in free beer. However if you feel like stimulating further development of zim, you can make a donation using the paypal button below.
+
+INSERT_PAYPAL_BUTTON_HERE 
+
+In the paypal form there is a link "Suggestions and Comments" (it is a bit small but it is there when you confirm the donation). Feel free to use this text field to tell me what is on your whish list for future development. I can not promise to implement every feature that gets mentioned in a donation, but it will certainly be taken into consideration. If enough funds come in we will set up bounties for other developers that want to work on nominated features as well.
+
+===== Development Planning =====
+To see what is going on, please have look at [[http://www.zim-wiki.org/wiki/|the wiki]]. It has a good topic list of things that are being worked on and things that still need an owner.
+
+Below you will find bounties set for specific feature requests. Of course you are always free to work on something else.
+
+===== Manual Updates =====
+Manual updates can be submitted in [[http://www.zim-wiki.org/wiki/|the wiki]] or as patches (see below).
+
+===== Translation updates =====
+See [[translations]] on how to update translation files.
+
+===== Bounties =====
+Bounties are offered for specific outstanding feature requests. 
+
+* To apply for a bounty please let us know up front you are going to work on it, and we will flag it here as "taken". Otherwise you risk someone else taking it while you are hacking away.
+* This "lock" will be for a limitted time frame, if it expires it will become available again for others to work on it.
+* Also discuss the way you want to implement the feature up front, so we can make sure the result will fit the rest of the application.
+* Any code submitted for a bounty should be released as open source under GPL v2 so it can be included in zim.
+* Code should be documented and commented properly and have unittest test cases where applicable.
+* The bounty will be awarded after code review and testing be me (Jaap).
+* To recieve the bounty you should have a paypal account.
+* These guidelines are subject to change as we see fit.
+
+
+If you want to work on a bounty send an email to pardus@cpan.org so we can discuss the implementation details etc.
+
+
+=== Open bounties: ===
+
+**Support for sorting pages by tags**
+Amount: 50 Euro
+Details: see [[http://www.zim-wiki.org/wiki/doku.php%3Fid%3Dsupporting_tags|this page]] for details
+
+**Support for resolving syncing conflicts in pages**
+Amount: 50 Euro
+Details: see [[http://www.zim-wiki.org/wiki/doku.php%3Fid%3Dresolving_syncing_conflicts|this page]] for details
+
+//More bounties will be set as more donations come in. Subscribe to the mailing list to get notifications of updates.//
+
+
+
+===== Patches =====
+The simple way to create patches is to download the source tar ball for the latest release. After you are done hacking take a diff (use "''diff -rwu''") and mail it to pardus@cpan.org.
+
+If you want the full revision controlled source tree you will need the Bazaar version control system. To check out the current tree from launchpad run:
+
+'''
+$ bzr branch lp:zim
+'''
+
+This will give you a local copy to hack on. When working on a large feature please commit changes to your local branch regularly so we have a detailed log of what changed later on. When you are done just run:
+
+'''
+$ bzr send -o some-description.patch
+'''
+
+and mail the resulting file to pardus@cpan.org. This file contains the whole patch set and can easily be merged in the upstream repository.
+
+===== Contact =====
+To join the zim mailing list you need to join the "[[https://launchpad.net/~zim-wiki|zim-wiki]]" team in launchpad. This mailing list is used for synchronizing releases and the occasional brainstorm session. But feel free to mail all your comments, questions and rants to me personally as well.
