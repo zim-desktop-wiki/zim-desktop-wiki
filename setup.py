@@ -28,6 +28,10 @@ except:
 	sys.exit(1)
 
 
+# Get environment parameter
+MAEMO = 'MAEMO' in os.environ and os.environ['MAEMO']
+
+
 # Helper routines
 
 def collect_packages():
@@ -81,6 +85,16 @@ def collect_data_files():
 		files = filter(include_file, files)
 		files = [os.path.join(dir, f) for f in files]
 		data_files.append((target, files))
+
+	if MAEMO:
+		# Remove default .desktop files and replace with our set
+		prefix = os.path.join('share', 'zim', 'applications')
+		for i in reversed(range(len(data_files))):
+			if data_files[i][0].startswith(prefix):
+				data_files.pop(i)
+
+		files = [f for f in os.listdir('maemo/applications') if f.endswith('.desktop')]
+		data_files.append((prefix, files))
 
 	# .po files -> PREFIX/share/locale/..
 	for pofile in [f for f in os.listdir('po') if f.endswith('.po')]:
@@ -211,6 +225,10 @@ dependencies = ['gobject', 'gtk', 'xdg']
 if version_info == (2, 5):
 	dependencies.append('simplejson')
 
+if MAEMO:
+	scripts = ['zim.py', 'maemo/modest-mailto.sh']
+else:
+	scripts = ['zim.py']
 
 setup(
 	# wire overload commands
@@ -230,7 +248,7 @@ setup(
 	author_email = 'pardus@cpan.org',
 	license      = 'GPL',
 	url          = __url__,
-	scripts      = ['zim.py'],
+	scripts      = scripts,
 	packages     = collect_packages(),
 	data_files   = collect_data_files(),
 	requires     = dependencies
