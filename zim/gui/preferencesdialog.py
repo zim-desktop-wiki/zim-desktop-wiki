@@ -9,7 +9,7 @@ import logging
 import zim.plugins
 from zim.gui.applications import \
 	get_application, get_helper_applications, CustomCommandDialog
-from zim.gui.widgets import Dialog, Button, BrowserTreeView
+from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view
 from zim.gui.pageview import PageView
 from zim.gui import maemo
 
@@ -175,20 +175,11 @@ class PluginsTab(gtk.HBox):
 		self.add(vbox)
 
 		# Textview with scrollbars to show plugins info. Required by small screen devices
-		textview = gtk.TextView()
+		swindow, textview = scrolled_text_view()
 		textview.set_cursor_visible(False)
-		textview.set_editable(False)
-		bold_tag = gtk.TextTag('bold')
-		bold_tag.set_property('weight', pango.WEIGHT_BOLD)
-		red_tag = gtk.TextTag('red')
-		red_tag.set_property('foreground', '#FF0000')
-		self.plugin_info_textbuffer = textview.get_buffer()
-		self.plugin_info_textbuffer.get_tag_table().add(bold_tag)
-		self.plugin_info_textbuffer.get_tag_table().add(red_tag)
-		swindow = gtk.ScrolledWindow()
-		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		swindow.add(textview)
-
+		self.textbuffer = textview.get_buffer()
+		self.textbuffer.create_tag('bold', weight=pango.WEIGHT_BOLD)
+		self.textbuffer.create_tag('red', foreground='#FF0000')
 		vbox.pack_start(swindow, True)
 
 		hbox = gtk.HBox(spacing=5)
@@ -210,28 +201,50 @@ class PluginsTab(gtk.HBox):
 		active = treeview.get_model()[path][0]
 		klass = treeview.get_model()[path][3]
 		self._klass = klass
+
 		# Insert plugin info into textview with proper formatting
-		self.plugin_info_textbuffer.delete(self.plugin_info_textbuffer.get_start_iter(), self.plugin_info_textbuffer.get_end_iter())
-		self.plugin_info_textbuffer.insert_with_tags_by_name(self.plugin_info_textbuffer.get_end_iter(), _('Name'), 'bold')
-		self.plugin_info_textbuffer.insert(self.plugin_info_textbuffer.get_end_iter(), '\n'+klass.plugin_info['name'].strip() + '\n\n')
-		self.plugin_info_textbuffer.insert_with_tags_by_name(self.plugin_info_textbuffer.get_end_iter(), _('Description'), 'bold')
-		self.plugin_info_textbuffer.insert(self.plugin_info_textbuffer.get_end_iter(), '\n'+klass.plugin_info['description'].strip() + '\n\n')
-		self.plugin_info_textbuffer.insert_with_tags_by_name(self.plugin_info_textbuffer.get_end_iter(), _('Dependencies'), 'bold')
-		
+		self.textbuffer.delete(*self.textbuffer.get_bounds()) # clear
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			_('Name') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		self.textbuffer.insert(
+			self.textbuffer.get_end_iter(),
+			klass.plugin_info['name'].strip() + '\n\n')
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			_('Description') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		self.textbuffer.insert(
+			self.textbuffer.get_end_iter(),
+			klass.plugin_info['description'].strip() + '\n\n')
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			_('Dependencies') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+
 		#construct dependency list, missing dependencies are marked red
 		dependencies = klass.check_dependencies()
 		if not(dependencies):
-			self.plugin_info_textbuffer.insert(self.plugin_info_textbuffer.get_end_iter(), '\n'+_('No dependencies'))
+			self.textbuffer.insert(
+				self.textbuffer.get_end_iter(),
+				_('No dependencies') + '\n') # T: label in plugin info in preferences dialog
 		else:
 			for dependency in dependencies:
 				text, ok = dependency
 				if ok:
-					self.plugin_info_textbuffer.insert(self.plugin_info_textbuffer.get_end_iter(),u'\n\u2022 ' + text + ' - ' + _('OK')) # T: dependency is OK
+					self.textbuffer.insert(
+						self.textbuffer.get_end_iter(),
+						u'\u2022 ' + text + ' - ' + _('OK') + '\n') # T: dependency is OK
 				else:
-					self.plugin_info_textbuffer.insert_with_tags_by_name(self.plugin_info_textbuffer.get_end_iter(), u'\n\u2022 ' + text +' - ' + _('Failed'), 'red') # T: dependency failed
-		
-		self.plugin_info_textbuffer.insert_with_tags_by_name(self.plugin_info_textbuffer.get_end_iter(), '\n\n' + _('Author'), 'bold')
-		self.plugin_info_textbuffer.insert(self.plugin_info_textbuffer.get_end_iter(), '\n'+klass.plugin_info['author'].strip())
+					self.textbuffer.insert_with_tags_by_name(
+						self.textbuffer.get_end_iter(),
+						u'\u2022 ' + text +' - ' + _('Failed') + '\n', 'red') # T: dependency failed
+
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			'\n' + _('Author') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		self.textbuffer.insert(
+			self.textbuffer.get_end_iter(),
+			klass.plugin_info['author'].strip())
+
 		self.configure_button.set_sensitive(active and bool(klass.plugin_preferences))
 		self.plugin_help_button.set_sensitive('help' in klass.plugin_info)
 

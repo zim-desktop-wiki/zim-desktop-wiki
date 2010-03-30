@@ -26,7 +26,7 @@ from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, \
-	Button, IconButton, BrowserTreeView, InputEntry, \
+	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	rotate_pixbuf
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
@@ -59,9 +59,9 @@ KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 
 # Maemo hildon input method keyboard doesn't emit keypress events except for TAB, ENTER and BACKSPACE
 #~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
-CHARS_END_OF_WORD = ('\t',' ', ')', '>')
+CHARS_END_OF_WORD = ('\t', ' ', ')', '>')
 KEYVALS_END_OF_WORD = map(
-	gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD[1:])) + KEYVALS_TAB
+	gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD)) + KEYVALS_TAB
 
 KEYVALS_ASTERISK = (
 	gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
@@ -123,38 +123,7 @@ ui_format_toggle_actions = (
 	('toggle_format_strike', 'gtk-strikethrough', _('_Strike'), '', _('Strike')),
 )
 
-if maemo:
-	ui_preferences = (
-	# key, type, category, label, default
-	('follow_on_enter', 'bool', None,
-		None, True),
-		# T: option in preferences dialog not shown
-		# There is no ALT key on maemo devices
-	('read_only_cursor', 'bool', 'Interface',
-		_('Show the cursor also for pages that can not be edited'), False),
-		# T: option in preferences dialog
-	('autolink_camelcase', 'bool', 'Editing',
-		_('Automatically turn "CamelCase" words into links'), True),
-		# T: option in preferences dialog
-	('autolink_files', 'bool', 'Editing',
-		_('Automatically turn file paths into links'), True),
-		# T: option in preferences dialog
-	('autoselect', 'bool', 'Editing',
-		_('Automatically select the current word when you apply formatting'), True),
-		# T: option in preferences dialog
-	('unindent_on_backspace', 'bool', None,
-		None, True), 
-		# T: option in preferences dialog not shown
-		# There is no hardware TAB key on maemo devices
-	('recursive_indentlist', 'bool', 'Editing',
-		_('(Un-)Indenting a list item also change any sub-items'), True),
-		# T: option in preferences dialog
-	('recursive_checklist', 'bool', 'Editing',
-		_('Checking a checkbox also change any sub-items'), False),
-		# T: option in preferences dialog
-	)
-else:
-	ui_preferences = (
+ui_preferences = (
 	# key, type, category, label, default
 	('follow_on_enter', 'bool', 'Interface',
 		_('Use the <Enter> key to follow links\n(If disabled you can still use <Alt><Enter>)'), True),
@@ -181,6 +150,21 @@ else:
 		_('Checking a checkbox also change any sub-items'), False),
 		# T: option in preferences dialog
 )
+
+if maemo:
+	# Manipulate preferences with Maemo specific settings
+	ui_preferences = list(ui_preferences)
+	for i in range(len(ui_preferences)):
+		if ui_preferences[i][0] == 'follow_on_enter':
+			ui_preferences[i] = \
+				('follow_on_enter', 'bool', None, None, True),
+				# There is no ALT key on maemo devices
+		elif ui_preferences[i][0] == 'unindent_on_backspace':
+			ui_preferences[i] = \
+				('unindent_on_backspace', 'bool', None, None, True),
+				# There is no hardware TAB key on maemo devices
+	ui_preferences = tuple(ui_preferences)
+
 
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
 _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
@@ -221,12 +205,13 @@ camelcase_re = Re(r'[%(upper)s]+[%(lower)s]+[%(upper)s]+\w*$' % _classes)
 twoletter_re = re.compile(r'[%(letters)s]{2}' % _classes)
 del _classes
 
+# E.g. Maemo devices have no hardware [] keys,
+# so allow () to be used for the same purpose
 autoformat_bullets = {
 	'*': BULLET,
 	'[]': UNCHECKED_BOX,
 	'[*]': CHECKED_BOX,
 	'[x]': XCHECKED_BOX,
-	# Maemo devices have no hardware [] keys, allow () to be used for the same purpose
 	'()': UNCHECKED_BOX,
 	'(*)': CHECKED_BOX,
 	'(x)': XCHECKED_BOX,
@@ -1383,7 +1368,13 @@ class TextBuffer(gtk.TextBuffer):
 		self.smart_remove_tags(_is_link_tag, start, end)
 		self.set_editmode_from_cursor()
 
-	def toggle_checkbox(self, iter, checkbox_type = None):
+	def toggle_checkbox(self, iter, checkbox_type=None):
+		'''Toggles checkbox at iter. If checkbox_type is given, it
+		toggles between this type and unchecked. Otherwise it rotates
+		through unchecked, checked and xchecked.
+		'''
+		# <F12> and <Shift><F12> specify checkbox_type
+		# but left mouse click does not
 		bullet = self.get_bullet_at_iter(iter)
 		if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
 			if checkbox_type:
@@ -1392,7 +1383,8 @@ class TextBuffer(gtk.TextBuffer):
 				else:
 					icon = bullet_types[checkbox_type]
 			else:
-				next = (list(CHECKBOXES).index(bullet) + 1) % len(CHECKBOXES)
+				i = CHECKBOXES.index(bullet)
+				next = (i + 1) % len(CHECKBOXES)
 				icon = bullet_types[CHECKBOXES[next]]
 		else:
 			return False
@@ -2389,7 +2381,8 @@ class TextView(gtk.TextView):
 			buffer.apply_tag(tag, start, end)
 			return True
 
-		if (char == ' ' or char == chr(9)) and start.starts_line() and word in autoformat_bullets:
+		if (char == ' ' or char == '\t') and start.starts_line() \
+		and word in autoformat_bullets:
 			# format bullet and checkboxes
 			end.forward_char() # also overwrite the space triggering the action
 			mark = buffer.create_mark(None, end)
@@ -2863,7 +2856,6 @@ class PageView(gtk.VBox):
 
 		## Create search box
 		self.find_bar = FindBar(textview=self.view)
-		self.find_bar.connect('focus-in-event', lambda sender, e, me: me.disable_actiongroup(), self)
 		self.pack_end(self.find_bar, False)
 		self.find_bar.hide()
 
@@ -2890,13 +2882,6 @@ class PageView(gtk.VBox):
 			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
 
-
-		# HACK, this makes sure we do not hijack keybindings like
-		# ^C and ^V while we are not focus (e.g. paste in find bar)
-		# Under maemo the menu gets the focus, so we can't just use the
-		# focus-out event, and must wire the focus-in event of the affected widgets
-		self.view.connect('focus-in-event', lambda sender, e, me: me.enable_actiongroup(), self)
-
 		# Extra keybinding for undo - default is <Shift><Ctrl>Z (see HIG)
 		def do_undo(*a):
 			if not self.readonly:
@@ -2915,14 +2900,6 @@ class PageView(gtk.VBox):
 		self.ui.connect('open-notebook', self.on_open_notebook)
 		self.ui.connect_object('readonly-changed', PageView.set_readonly, self)
 
-	def enable_actiongroup(self):
-		for action in self.actiongroup.list_actions():
-			action.set_sensitive(action.zim_readonly or not self.readonly)
-
-	def disable_actiongroup(self):
-		for action in self.actiongroup.list_actions():
-			action.set_sensitive(False)
-		
 	def grab_focus(self):
 		self.view.grab_focus()
 
@@ -2978,6 +2955,22 @@ class PageView(gtk.VBox):
 				TextBuffer.tag_styles[tag] = attrib
 
 	def on_open_notebook(self, ui, notebook):
+		# HACK, this makes sure we do not hijack keybindings like
+		# ^C and ^V while we are not focus (e.g. paste in find bar)
+		# Put it here to ensure mainwindow is initialized.
+		def set_actiongroup_sensitive(window, widget):
+			#~ print '!! FOCUS SET:', widget
+			# Immitate logic in self.set_readonly()
+			sensitive = widget is self.view
+			if sensitive:
+				for action in self.actiongroup.list_actions():
+					action.set_sensitive(
+						action.zim_readonly or not self.readonly)
+			else:
+				for action in self.actiongroup.list_actions():
+						action.set_sensitive(False)
+		window = self.get_toplevel()
+		window.connect('set-focus', set_actiongroup_sensitive)
 
 		def assert_not_modified(page, *a):
 			if page == self.page \
@@ -3881,9 +3874,9 @@ class InsertLinkDialog(Dialog):
 		return True
 
 
-class FindWidget(gtk.Widget):
+class FindWidget(object):
 	'''Base class for FindBar and FindAndReplaceDialog'''
-	
+
 	def __init__(self, textview):
 		self.textview = textview
 
@@ -3892,49 +3885,39 @@ class FindWidget(gtk.Widget):
 			'changed', self.__class__.on_find_entry_changed, self)
 		self.find_entry.connect_object(
 			'activate', self.__class__.on_find_entry_activate, self)
-		self.find_entry.connect('focus-in-event', self.__emit_focus_in_event)
-		
+
 		self.next_button = Button(_('_Next'), gtk.STOCK_GO_FORWARD)
 			# T: button in find bar and find & replace dialog
 		self.next_button.connect_object(
 			'clicked', self.__class__.find_next, self)
-		self.next_button.connect('focus-in-event', self.__emit_focus_in_event)
 		self.next_button.set_sensitive(False)
 
 		self.previous_button = Button(_('_Previous'), gtk.STOCK_GO_BACK)
 			# T: button in find bar and find & replace dialog
 		self.previous_button.connect_object(
 			'clicked', self.__class__.find_previous, self)
-		self.previous_button.connect('focus-in-event', self.__emit_focus_in_event)
 		self.previous_button.set_sensitive(False)
 
 		self.case_option_checkbox = gtk.CheckButton(_('Match _case'))
 			# T: checkbox option in find bar and find & replace dialog
 		self.case_option_checkbox.connect_object(
 			'toggled', self.__class__.on_find_entry_changed, self)
-		self.case_option_checkbox.connect('focus-in-event', self.__emit_focus_in_event)
 
 		self.word_option_checkbox = gtk.CheckButton(_('Whole _word'))
 			# T: checkbox option in find bar and find & replace dialog
 		self.word_option_checkbox.connect_object(
 			'toggled', self.__class__.on_find_entry_changed, self)
-		self.word_option_checkbox.connect('focus-in-event', self.__emit_focus_in_event)
 
 		self.regex_option_checkbox = gtk.CheckButton(_('_Regular expression'))
 			# T: checkbox option in find bar and find & replace dialog
 		self.regex_option_checkbox.connect_object(
 			'toggled', self.__class__.on_find_entry_changed, self)
-		self.regex_option_checkbox.connect('focus-in-event', self.__emit_focus_in_event)
 
 		self.highlight_checkbox = gtk.CheckButton(_('_Highlight'))
 			# T: checkbox option in find bar and find & replace dialog
 		self.highlight_checkbox.connect_object(
 			'toggled', self.__class__.on_highlight_toggled, self)
-		self.highlight_checkbox.connect('focus-in-event', self.__emit_focus_in_event)
 
-	def __emit_focus_in_event(self, o, e):
-		self.emit('focus-in-event', e)
-		
 	@property
 	def _flags(self):
 		flags = 0
@@ -4019,23 +4002,19 @@ class FindBar(FindWidget, gtk.HBox):
 		self.pack_start(self.previous_button, False)
 		self.pack_start(self.next_button, False)
 		if maemo:
-			# Nxx0 devices have not enough space for so many widgets, so let's put options in a menu button.
-			options_button = gtk.MenuToolButton(None,None)
-			options_menu = gtk.Menu()
-			item1 = gtk.CheckMenuItem(self.case_option_checkbox.get_label())
-			item1.connect('toggled', lambda sender, me: me.case_option_checkbox.set_active(sender.get_active()),self)
-			item1.show()
-			options_menu.append(item1)
-			item2 = gtk.CheckMenuItem(self.highlight_checkbox.get_label())
-			item2.connect('toggled', lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()),self)
-			item2.show()
-			options_menu.append(item2)
-			options_menu.show()
-			options_button.set_menu(options_menu)
-			self.pack_start(options_button, False)
-			# HACK: remove button
-			b = options_button.get_children()[0]
-			b.remove(b.get_children()[0])
+			# Maemo Nxx0 devices have not enough space for so many
+			# widgets, so let's put options in a menu button.
+			menu = gtk.Menu()
+			item = gtk.CheckMenuItem(self.case_option_checkbox.get_label())
+			item.connect('toggled',
+				lambda sender, me: me.case_option_checkbox.set_active(sender.get_active()), self)
+			menu.append(item)
+			item = gtk.CheckMenuItem(self.highlight_checkbox.get_label())
+			item.connect('toggled',
+				lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()),self)
+			menu.append(item)
+			button = MenuButton(_('_Options'), menu) # T: Options button
+			self.pack_start(button, False)
 		else:
 			self.pack_start(self.case_option_checkbox, False)
 			self.pack_start(self.highlight_checkbox, False)

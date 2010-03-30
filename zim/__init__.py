@@ -19,7 +19,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 '''
 
 import os
-import os.path
 import sys
 import gettext
 import gobject
@@ -32,26 +31,8 @@ from zim.fs import *
 from zim.errors import Error
 from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR
 
+
 logger = logging.getLogger('zim')
-
-if os.name == 'nt':
-	# Windows specific environment variables
-	# os.environ does not support setdefault() ...
-	if not 'USER' in os.environ or not os.environ['USER']:
-		os.environ['USER'] =  os.environ['USERNAME']
-
-	if not 'HOME' in os.environ or not os.environ['HOME']:
-		if 'USERPROFILE' in os.environ:
-			os.environ['HOME'] = os.environ['USERPROFILE']
-		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
-			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
-			os.environ['HOME'] = home
-
-assert zim.fs.isdir(os.environ['HOME']), 'ERROR: environment variable $HOME not set correctly'
-if not(os.environ.has_key('USER')):
-	#Maemo doesn't define $USER
-	os.environ['USER'] = os.path.basename(os.environ['HOME'])
-	logger.info('Environment variable $USER not set')
 
 if ZIM_DATA_DIR:
 	# We are running from a source dir - use the locale data included there

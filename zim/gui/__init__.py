@@ -160,26 +160,27 @@ TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
-if maemo:
-	ui_preferences = (
-	# key, type, category, label, default
-	('tearoff_menus', 'bool', None, None, False),
-		# T: Option in the preferences dialog not shown.
-		# Maemo can't have tearoff_menus
-	('toggle_on_ctrlspace', 'bool', None, None, True),
-		# T: Option in the preferences dialog not shown.
-		# There is no ALT key on maemo devices
-	)
-else:
-	ui_preferences = (
+
+ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
 	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)'), False),
 		# T: Option in the preferences dialog
 		# default value is False because this is mapped to switch between
-		# char sets in cerain international key mappings
+		# char sets in certain international key mappings
 )
+
+if maemo:
+	# Maemo specific settngs
+	ui_preferences = (
+		# key, type, category, label, default
+		('tearoff_menus', 'bool', None, None, False),
+			# Maemo can't have tearoff_menus
+		('toggle_on_ctrlspace', 'bool', None, None, True),
+			# There is no ALT key on maemo devices
+	)
+
 
 
 # Load custom application icons as stock
@@ -319,7 +320,7 @@ class GtkInterface(NotebookInterface):
 				'file_browser': ['hildon-mime-summon', 'startfile'],
 				'web_browser': ['webbrowser', 'webbrowser']
 			}
-			
+
 		for type in apps.keys():
 			prefs = self.preferences['GtkInterface']
 			if type in prefs and prefs[type] \
@@ -1379,7 +1380,7 @@ class MainWindow(gtkWindow):
 
 		# maemo window menu requires this approach because it is a popup dialog
 		self.pageindex.treeview.connect('focus-in-event', lambda sender, e, me: me.pageview.disable_actiongroup(), self)
-		
+
 		# create statusbar
 		hbox = gtk.HBox(spacing=0)
 		vbox.pack_start(hbox, False, True, False)

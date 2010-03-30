@@ -14,7 +14,7 @@ import pango
 import logging
 import sys
 
-from zim.gui import maemo	
+from zim.gui import maemo
 from zim.fs import *
 import zim.errors
 import zim.config
@@ -269,14 +269,23 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 			self.label = gtk.Label()
 			self.label.set_markup_with_mnemonic(label)
 		else:
-			assert isinstance(label, gtk.Widget)
+			assert isinstance(label, gtk.Label)
 			self.label = label
+
 		self.menu = menu
 		self.button = gtk.ToggleButton()
 		if status_bar_style:
 			self.button.set_name('zim-statusbar-menubutton')
 			self.button.set_relief(gtk.RELIEF_NONE)
-		self.button.add(self.label)
+			widget = self.label
+		else:
+			arrow = gtk.Arrow(gtk.ARROW_UP, gtk.SHADOW_NONE)
+			widget = gtk.HBox(spacing=3)
+			widget.pack_start(self.label, False)
+			widget.pack_start(arrow, False)
+
+
+		self.button.add(widget)
 		# We need to wrap stuff in an eventbox in order to get the gdk.Window
 		# which we need to get coordinates when positioning the menu
 		self.eventbox = gtk.EventBox()

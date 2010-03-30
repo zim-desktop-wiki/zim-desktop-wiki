@@ -36,9 +36,7 @@ class InsertScreenshotPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Insert Screenshot'), # T: plugin name
 		'description': _('''\
-This plugin is a wrapper for the "scrot" ("screenshot-tool"
-on maemo) application.
-It allows taking a screenshot and directly insert it
+This plugin  allows taking a screenshot and directly insert it
 in a zim page.
 
 This is a core plugin shipping with zim.
@@ -92,7 +90,7 @@ class InsertScreenshotDialog(Dialog):
 			SCROT_COMMAND = 'screenshot-tool'
 		else:
 			SCROT_COMMAND = 'scrot'
-			
+
 		tmpfile = TmpFile('insert-screenshot.png')
 		options = ()
 

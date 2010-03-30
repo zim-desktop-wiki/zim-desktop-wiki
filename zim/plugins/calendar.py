@@ -60,7 +60,7 @@ KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
 date_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}:\d{2}$')
 
-	
+
 class CalendarPlugin(PluginClass):
 
 	plugin_info = {
@@ -270,23 +270,18 @@ class CalendarPluginWidget(gtk.VBox):
 class CalendarDialog(Dialog):
 
 	def __init__(self, plugin):
-		Dialog.__init__(self, plugin.ui, _('Calendar'), buttons=None) # T: dialog title
+		Dialog.__init__(self, plugin.ui, _('Calendar'), buttons=gtk.BUTTONS_CLOSE) # T: dialog title
 		self.set_resizable(False)
 		self.plugin = plugin
 
 		self.calendar_widget = CalendarPluginWidget(plugin)
 		self.vbox.add(self.calendar_widget)
 
-		hbox = gtk.HBox()
-		self.vbox.add(hbox)
 		button = Button(_('_Today'), gtk.STOCK_JUMP_TO) # T: button label
 		button.connect('clicked', self.do_today )
-		hbox.pack_end(button, False)
-		button = Button(stock=gtk.STOCK_CLOSE) # T: button label
-		button.connect('clicked',
-			lambda o: self.destroy())
-		hbox.pack_start(button, False)
-		
+		self.action_area.add(button)
+		self.action_area.set_child_secondary(button, True)
+
 	def do_today(self, event):
 		self.calendar_widget.select_date(dateclass.today())
 		if maemo: self.destroy()
