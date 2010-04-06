@@ -13,9 +13,10 @@ import datetime
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.notebook import Path
-from zim.gui.widgets import Dialog, Button, IconButton,  \
-	BrowserTreeView, SingleClickTreeView, MessageDialog, \
-	gtk_get_style
+from zim.gui.widgets import gtk_get_style, \
+	Dialog, MessageDialog, \
+	Button, IconButton, MenuButton, \
+	BrowserTreeView, SingleClickTreeView
 from zim.formats import UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 
 
@@ -67,7 +68,15 @@ date_re = re.compile(r'\s*\[d:(.+)\]')
 
 # FUTURE: add an interface for this plugin in the WWW frontend
 
+# TODO allow more complex queries for filter, in particular (NOT tag AND tag)
+
+
 class TaskListPlugin(PluginClass):
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'tasklist-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+	}
 
 	plugin_info = {
 		'name': _('Task List'), # T: plugin name
@@ -105,6 +114,7 @@ This is a core plugin shipping with zim.
 		self.index.connect_after('initialize-db', self.initialize_db)
 		self.index.connect('page-indexed', self.index_page)
 		self.index.connect('page-deleted', self.remove_page)
+		# We don't care about pages that are moved
 
 		db_version = self.index.properties['plugin_tasklist_format']
 		if db_version == SQL_FORMAT_VERSION_STRING:
@@ -128,8 +138,7 @@ This is a core plugin shipping with zim.
 		if not self.db_initialized: return
 
 		#~ print '>>>>>', path, page, page.hascontent
-		#~ self.emit('updated')
-		self.remove_page(index, path)
+		tasksfound = self.remove_page(index, path, _emit=False)
 
 		tree = page.get_parsetree()
 		if not tree:
@@ -141,6 +150,10 @@ This is a core plugin shipping with zim.
 			if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
 				open = bullet == UNCHECKED_BOX
 				self._add_task(path, element, open)
+				tasksfound = True
+
+		if tasksfound:
+			self.emit('tasklist-changed')
 
 	def _add_task(self, path, node, open):
 		#~ '!! Found tasks in ', path
@@ -168,23 +181,8 @@ This is a core plugin shipping with zim.
 			self.index.db.execute(
 				'insert into tasklist(source, parent, open, actionable, prio, due, description)'
 				'values (?, ?, ?, ?, ?, ?, ?)',
-				(path.id, 0, open, False, prio, date, text)
+				(path.id, 0, open, True, prio, date, text)
 			)
-
-		#~ if open:
-			#~ self.total += 1
-			#~ self.maxprio = max(self.maxprio, prio)
-			#~ if prio in self.prio:
-				#~ self.prio[prio] += 1
-			#~ else:
-				#~ self.prio[prio] = 1
-
-		#~ tags = set(tag_re.findall(text))
-		#~ for tag in tags:
-			#~ if tag in self.tags:
-				#~ self.tags[tag] += 1
-			#~ else:
-				#~ self.tags[tag] = 1
 
 	def _flatten(self, node):
 		text = node.text or ''
@@ -194,12 +192,20 @@ This is a core plugin shipping with zim.
 				text += child.tail or ''
 		return text
 
-	def remove_page(self, index, path):
+	def remove_page(self, index, path, _emit=True):
 		if not self.db_initialized: return
 
+		tasksfound = False
 		with index.db_commit:
-			cursor = index.db.execute(
+			cursor = index.db.cursor()
+			cursor.execute(
 				'delete from tasklist where source=?', (path.id,) )
+			tasksfound = cursor.rowcount > 0
+
+		if tasksfound and _emit:
+			self.emit('tasklist-changed')
+
+		return tasksfound
 
 	def list_tasks(self):
 		if self.db_initialized:
@@ -233,8 +239,9 @@ This is a core plugin shipping with zim.
 		dialog = TaskListDialog.unique(self, plugin=self)
 		dialog.present()
 
+# Need to register classes defining gobject signals
+gobject.type_register(TaskListPlugin)
 
-# TODO allow more complex queries for filter, in particular (NOT tag AND tag)
 
 class TaskListDialog(Dialog):
 
@@ -281,6 +288,18 @@ class TaskListDialog(Dialog):
 		clear_button.connect('clicked',
 			lambda o: (filter_entry.set_text(''), filter_entry.activate()))
 
+		# Dropdown with options - TODO
+		#~ menu = gtk.Menu()
+		#~ showtree = gtk.CheckMenuItem(_('Show _Tree')) # T: menu item in options menu
+		#~ menu.append(showtree)
+		#~ menu.append(gtk.SeparatorMenuItem())
+		#~ showall = gtk.RadioMenuItem(None, _('Show _All Items')) # T: menu item in options menu
+		#~ showopen = gtk.RadioMenuItem(showall, _('Show _Open Items')) # T: menu item in options menu
+		#~ menu.append(showall)
+		#~ menu.append(showopen)
+		#~ menubutton = MenuButton(_('_Options'), menu) # T: Button label
+		#~ hbox.pack_start(menubutton, False)
+
 		# Statistics label
 		self.statistics_label = gtk.Label()
 		hbox.pack_end(self.statistics_label, False)
@@ -292,8 +311,8 @@ class TaskListDialog(Dialog):
 			text += ' (' + '/'.join(map(str, stats)) + ')'
 			self.statistics_label.set_text(text)
 
-		#~ set_statistics(self.task_list)
-		#~ self.task_list.connect('updated', set_statistics)
+		set_statistics(self.task_list)
+		self.task_list.connect('changed', set_statistics)
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
@@ -322,8 +341,8 @@ class TagListTreeView(SingleClickTreeView):
 
 		self.get_selection().connect('changed', self.on_selection_changed)
 
-		self.on_update(task_list)
-		task_list.connect('updated', self.on_update)
+		self.refresh(task_list)
+		task_list.connect('changed', self.refresh)
 
 	def get_tags(self):
 		'''Returns current selected tags, or None for all tags'''
@@ -333,7 +352,8 @@ class TagListTreeView(SingleClickTreeView):
 		else:
 			return [model[path][0] for path in paths]
 
-	def on_update(self, task_list):
+	def refresh(self, task_list):
+		# FIXME make sure selection is not reset when refreshing
 		model = self.get_model()
 		model.clear()
 		model.append((_('All'), False)) # T: "tag" for showing all tasks
@@ -359,7 +379,7 @@ class TaskListTreeView(BrowserTreeView):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'updated': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	VIS_COL = 0 # visible
@@ -382,10 +402,6 @@ class TaskListTreeView(BrowserTreeView):
 		BrowserTreeView.__init__(self, model)
 		self.ui = ui
 		self.plugin = plugin
-		self.total = 0
-		self.tags = {} # dict mapping tag to ref count
-		self.prio = {} # dict mapping tag to ref count
-		self.maxprio = 0
 
 		cell_renderer = gtk.CellRendererText()
 		for name, i in (
@@ -441,6 +457,7 @@ class TaskListTreeView(BrowserTreeView):
 		self.insert_column(column, 2)
 
 		self.refresh()
+		self.plugin.connect_object('tasklist-changed', self.__class__.refresh, self)
 
 	def refresh(self):
 		self.real_model.clear()
@@ -449,12 +466,12 @@ class TaskListTreeView(BrowserTreeView):
 			if not row['source'] in paths:
 				paths[row['source']] = self.plugin.get_path(row)
 			path = paths[row['source']]
-			self.real_model.append(None,
-				(open, row['prio'], row['description'], row['due'], path.name, row['actionable'], row['open'])
-			)
-			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL
+			modelrow = [False, row['prio'], row['description'], row['due'], path.name, row['actionable'], row['open']]
+						# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL
+			modelrow[0] = self._filter_item(modelrow)
+			self.real_model.append(None, modelrow)
 
-		# TODO re-apply the filters -- now we just check 'open'
+		self.emit('changed')
 
 	def set_filter(self, string):
 		# TODO allow more complex queries here - same parse as for search
@@ -471,16 +488,41 @@ class TaskListTreeView(BrowserTreeView):
 
 	def get_tags(self):
 		'''Returns list of all tags that are in use for tasks'''
-		return self.tags.keys()
+		tags = set()
+
+		def collect(model, path, iter):
+			# also count hidden rows here
+			desc = model[iter][self.TASK_COL].decode('utf-8')
+			for match in tag_re.findall(desc):
+				tags.add(match)
+
+		self.real_model.foreach(collect)
+
+		return tags
 
 	def get_statistics(self):
-		highest = max([0] + self.prio.keys())
-		stats = [self.prio.get(k, 0) for k in range(highest+1)]
-		stats.reverse() # highest first
-		return self.total, stats
+		statsbyprio = {}
+
+		def count(model, path, iter):
+			# only count open items
+			row = model[iter]
+			if row[self.OPEN_COL]:
+				prio = row[self.PRIO_COL]
+				statsbyprio.setdefault(prio, 0)
+				statsbyprio[prio] += 1
+
+		self.real_model.foreach(count)
+
+		if statsbyprio:
+			total = reduce(int.__add__, statsbyprio.values())
+			highest = max([0] + statsbyprio.keys())
+			stats = [statsbyprio.get(k, 0) for k in range(highest+1)]
+			stats.reverse() # highest first
+			return total, stats
+		else:
+			return 0, []
 
 	def set_tag_filter(self, tags):
-		# TODO support multiple tags
 		if tags:
 			self.tag_filter = ["@"+tag.lower() for tag in tags]
 		else:
@@ -489,18 +531,23 @@ class TaskListTreeView(BrowserTreeView):
 
 	def _eval_filter(self):
 		logger.debug('Filtering with tag: %s, filter: %s', self.tag_filter, self.filter)
-		self.real_model.foreach(self._filter_item)
 
-	def _filter_item(self, model, path, iter):
+		def filter(model, path, iter):
+			visible = self._filter_item(model[iter])
+			model[iter][self.VIS_COL] = visible
+
+		self.real_model.foreach(filter)
+
+	def _filter_item(self, modelrow):
 		# This method filters case insensitive because both filters and
 		# text are first converted to lower case text.
 		visible = True
 
-		if not (model[iter][self.ACT_COL] and model[iter][self.OPEN_COL]):
+		if not (modelrow[self.ACT_COL] and modelrow[self.OPEN_COL]):
 			visible = False
 
-		description = model[iter][self.TASK_COL].lower()
-		pagename = model[iter][self.PAGE_COL].lower()
+		description = modelrow[self.TASK_COL].lower()
+		pagename = modelrow[self.PAGE_COL].lower()
 
 		if visible and self.tag_filter:
 			match = False
@@ -517,7 +564,7 @@ class TaskListTreeView(BrowserTreeView):
 			if (not inverse and not match) or (inverse and match):
 				visible = False
 
-		model[iter][self.VIS_COL] = visible
+		return visible
 
 	def do_row_activated(self, path, column):
 		model = self.get_model()
