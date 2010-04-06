@@ -253,6 +253,8 @@ def main(argv):
 		else:
 			handler = NotebookInterface(notebook=args[0])
 
+		handler.load_plugins() # should this go somewhere else ?
+
 		if len(args) == 2:
 			optsdict['page'] = args[1]
 
@@ -314,7 +316,6 @@ def main(argv):
 		import zim.www
 		handler = zim.www.Server(*args, **optsdict)
 		handler.main()
-
 
 
 class NotebookInterface(gobject.GObject):

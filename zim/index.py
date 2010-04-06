@@ -223,12 +223,13 @@ class Index(gobject.GObject):
 	__gsignals__ = {
 		'page-inserted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-updated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'page-indexed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-indexed': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'page-haschildren-toggled': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'delete': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'start-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'end-update': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'initialize-db': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	def __init__(self, notebook=None, dbfile=None):
@@ -288,15 +289,17 @@ class Index(gobject.GObject):
 		self.db = sqlite3.connect(
 			str(self.dbfile), detect_types=sqlite3.PARSE_DECLTYPES)
 		self.db.row_factory = sqlite3.Row
+		self.db_commit = DBCommitContext(self.db)
 
 		self.properties = PropertiesDict(self.db)
 		if self.properties['zim_version'] != zim.__version__:
-			# init database layout
-			self.db.executescript(SQL_CREATE_TABLES)
+			# flush content and init database layout
 			self.flush()
 			self.properties['zim_version'] = zim.__version__
 
-		self.db_commit = DBCommitContext(self.db)
+	def do_initialize_db(self):
+		with self.db_commit:
+			self.db.executescript(SQL_CREATE_TABLES)
 
 	def flush(self):
 		'''Flushes all database content. Can be used before calling
@@ -311,16 +314,22 @@ class Index(gobject.GObject):
 		self._index_page_queue = []
 
 		# Drop data
-		for table in ('pages', 'pagetypes', 'links', 'linktypes'):
-			self.db.execute('drop table "%s"' % table)
-		self.db.executescript(SQL_CREATE_TABLES)
+		with self.db_commit:
+			cursor = self.db.cursor()
+			cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+			for table in [row[0] for row in cursor.fetchall()]:
+				cursor.execute('DROP TABLE "%s"' % table)
+
+		self.emit('initialize-db')
 
 		# Create root node
-		cursor = self.db.cursor()
-		cursor.execute('insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)', ('', 0, False, False))
-		assert cursor.lastrowid == 1, 'BUG: Primary key should start counting at 1'
+		with self.db_commit:
+			cursor = self.db.cursor()
+			cursor.execute('insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)', ('', 0, False, False))
+			assert cursor.lastrowid == 1, 'BUG: Primary key should start counting at 1'
 
-		self.db.commit()
+		# Set meta properties
+		self.properties['zim_version'] = zim.__version__
 
 	def _flush_queue(self, path):
 		# Removes any pending updates for path and it's children
@@ -535,13 +544,12 @@ class Index(gobject.GObject):
 				'update pages set hascontent=?, contentkey=? where id==?',
 				(page.hascontent, key, path.id) )
 
-		#~ print '!! PAGE-INDEX', path
-		# We don't use page-updated here to avoid triggering the
-		#~ self.emit('page-indexed', page, path)
-
 		path = self.lookup_data(path) # refresh
 		if hadcontent != path.hascontent:
 			self.emit('page-updated', path)
+
+		#~ print '!! PAGE-INDEXED', path
+		self.emit('page-indexed', path, page)
 
 	def _update_pagelist(self, path, checkcontent):
 		'''Checks and updates the pagelist for a path if needed and queues any
@@ -735,18 +743,13 @@ class Index(gobject.GObject):
 					self.db.execute('delete from pages where id=?', (path.id,))
 			self.lookup_data(path) # refresh
 
-		if keep:
-			# signal per child
-			for path in delete:
-				self.emit('page-deleted', path)
-			for path in toggled:
-				self.emit('page-haschildren-toggled', path)
-			for path in keep:
-				self.emit('page-updated', path)
-		else:
-			# signal once
-			root = self.lookup_data(root) # refresh
-			self.emit('page-deleted', root)
+		# emit signals
+		for path in delete:
+			self.emit('page-deleted', path)
+		for path in toggled:
+			self.emit('page-haschildren-toggled', path)
+		for path in keep:
+			self.emit('page-updated', path)
 
 		parent = root.parent
 		if not parent.isroot and self.n_list_pages(parent) == 0:

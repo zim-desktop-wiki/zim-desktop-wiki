@@ -34,6 +34,11 @@ KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
 KEYVAL_L = gtk.gdk.unicode_to_keyval(ord('l'))
 
 
+#~ import gc
+#~ gc.set_debug(gc.DEBUG_LEAK)
+#~ gc.set_debug(gc.DEBUG_STATS)
+
+
 class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	'''Custom TreeModel that is integrated closely with the Index object.
 	In fact it is jsut an API layer translating between the gtk.TreeView and
@@ -57,6 +62,20 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	# EMPTY_COL so we do not need the separate style and fgcolor cols.
 	# This will also allow making style for empty pages configurable.
 
+	# This model does it own memory management for outstanding treeiter
+	# objects. The reason is that we otherwise leak references and as
+	# a result leak a huge number of unused IndexPath objects, consuming
+	# a lot of memory. The downside is that we now need to track the
+	# IndexPath objects ourselves to ensure they are not collected by
+	# the garbage collectore while still being used. And we need to
+	# flush regularly to prevent collecting a huge number of these objects
+	# again. Ideally we want to flush after every operation using treeiters.
+	# We achieve this by scheduling the flushing on the main loop idle
+	# event. This has the result that iters are valid within the same
+	# operation but can not be caried between events. (Of course you
+	# should not do that in the first place and use a TreeRowReference
+	# instead.)
+
 	COLUMN_TYPES = (
 		gobject.TYPE_STRING, # NAME_COL
 		gobject.TYPE_PYOBJECT, # PATH_COL
@@ -76,6 +95,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		self.set_property('leak-references', False)
 			# We do our own memory management, thank you very much
 		self._refs = []
+		self._flush_scheduled = False
 
 		def on_changed(o, path, signal):
 			#~ print '!!', signal, path
@@ -95,29 +115,48 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 				self.emit('row-deleted', treepath)
 			# If treepath is None the row does not exist anymore
 
-		index.connect('page-inserted', on_changed, 'row-inserted')
-		index.connect('page-updated', on_changed, 'row-changed')
-		index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled')
-		index.connect('delete', on_deleted)
-			# FIXME - there is still a bug here - this signal can be fired for a page
+		self._signals = (
+			index.connect('page-inserted', on_changed, 'row-inserted'),
+			index.connect('page-updated', on_changed, 'row-changed'),
+			index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled'),
+			index.connect('delete', on_deleted)
+		)
+			# FIXME - there is still a bug here - this delete signal can be fired for a page
 			# that is not really deleted, but turned into a placeholder. So we should
 			# use the page-deleted signal, however that does not allow to use get_treepath ...
 			# Solution is treepath support in Index and add this info in the page-deleted
 			# signal.
-		index.connect('end-update', lambda o: self._flush())
+
+	def disconnect(self):
+		'''Stop the model from listening to the inxed. Used to
+		unhook the model before reloading the index.
+		'''
+		for id in self._signals:
+			self.index.disconnect(id)
 
 	def _ref(self, path):
 		# Make sure we keep ref to paths long enough while they
-		# are used in an iter
+		# are used in an iter. But also schedule a flush to execute as
+		# soon as the loop is idle again.
+		# Explicitly don't re-use the object we have already cached here
+		# database state may have changed since they were used the first
+		# time.
 		self._refs.append(path)
+		if not self._flush_scheduled:
+			gobject.idle_add(self._flush)
+			self._flush_scheduled = True
 		return path
 
 	def _flush(self):
 		# Drop references and free memory
 		#~ print '!! Freeing %i refs' % len(self._refs)
 		self.invalidate_iters()
-		del self._refs
-		self._refs = []
+		for path in self._refs:
+			path._pagelist_ref = None
+			# Failing to delete this ref manually will cause memory leak
+		self._refs = [] # del _refs - keep no ref to this list
+		self._flush_scheduled = False
+		return False # In case we are called from idle signal
 
 	def on_get_flags(self):
 		return 0 # no flags
@@ -154,24 +193,20 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		# Path (0,) is the first item in the root namespace
 		# Path (2, 4) is the 5th child of the 3rd item
 		#~ print '>> on_get_iter', treepath
-
-		# Here we flush to have a regular flush e.g. during scrolling
-		# the widget. Bit arbitrary to do it here, but does work.
-		# When changing this check for memory leaks while scrolling a
-		# (long) index.
-		self._flush()
-
+		#~ self._flush()
 		iter = None
 		for i in treepath:
 			iter = self.on_iter_nth_child(iter, i)
 			if iter is None:
 				break
+		#~ print 'N REFS %i' % len(self._refs)
 		return iter
 
 	def get_treepath(self, path):
 		'''Returns a TreePath for a given IndexPath'''
 		# There is no TreePath class in pygtk, just return tuple of integers
 		# FIXME this method looks quite inefficient, can we optimize it ?
+		#~ print '>> on_get_path', path
 		if not isinstance(path, IndexPath):
 			path = self.index.lookup_path(path)
 			if path is None or path.isroot:
@@ -207,8 +242,8 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			return None
 		else:
 			next = pagelist[i]
-			next._pagelist_ref = pagelist
-			next._pagelist_index = i
+			#~ next._pagelist_ref = pagelist
+			#~ next._pagelist_index = i
 			return self._ref(next)
 
 	def on_iter_children(self, path=None):
@@ -219,8 +254,8 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		pagelist = self.index.list_pages(path)
 		if pagelist:
 			child = pagelist[0]
-			child._pagelist_ref = pagelist
-			child._pagelist_index = 0
+			#~ child._pagelist_ref = pagelist
+			#~ child._pagelist_index = 0
 			return self._ref(child)
 		else:
 			return None
@@ -249,8 +284,8 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			return None
 		else:
 			child = pagelist[n]
-			child._pagelist_ref = pagelist
-			child._pagelist_index = n
+			#~ child._pagelist_ref = pagelist
+			#~ child._pagelist_index = n
 			return self._ref(child)
 
 	def on_iter_parent(self, child):
@@ -326,6 +361,7 @@ class PageTreeView(BrowserTreeView):
 
 
 	def do_set_notebook(self, ui, notebook):
+		self._cleanup = None # else it might be pointing to old model
 		self.set_model(PageTreeStore(notebook.index))
 		if not ui.page is None:
 			self.on_open_page(ui.page)
@@ -468,10 +504,11 @@ class PageTreeView(BrowserTreeView):
 			return None
 
 		treepath = model.get_treepath(indexpath)
-		self.expand_to_path(treepath)
-		self.get_selection().select_path(treepath)
-		self.set_cursor(treepath)
-		self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
+		if not treepath is None:
+			self.expand_to_path(treepath)
+			self.get_selection().select_path(treepath)
+			self.set_cursor(treepath)
+			self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
 
 		return treepath
 
@@ -514,6 +551,13 @@ class PageIndex(gtk.ScrolledWindow):
 			return None
 		else:
 			return model.get_indexpath(iter)
+
+	def disconnect_model(self):
+		'''Stop the model from listening to the inxed. Used to
+		unhook the model before reloading the index. Typically
+		should be followed by reload_model().
+		'''
+		self.treeview.get_model().disconnect()
 
 	def reload_model(self):
 		'''Re-initialize the treeview model. This is called when
