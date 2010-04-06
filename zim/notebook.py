@@ -649,10 +649,13 @@ class Notebook(gobject.GObject):
 			return None
 
 	@staticmethod
-	def cleanup_pathname(name):
+	def cleanup_pathname(name, purge=False):
 		'''Returns a safe version of name, used internally by functions like
 		resolve_path() to parse user input.
 		It raises a PageNameError when the name is not valid
+
+		If 'purge' is True any invalid characters will be removed,
+		otherwise they will result in a PageNameError exception.
 		'''
 		# Reserved characters are:
 		# The ':' is reserrved as seperator
@@ -668,6 +671,8 @@ class Notebook(gobject.GObject):
 		# For file system we should reserve (win32 & posix)
 		# "\", "/", ":", "*", "?", '"', "<", ">", "|"
 
+		# Do not allow '\n' for obvious reasons
+
 		# Allowing '%' will cause problems with sql wildcards sooner
 		# or later - also for url decoding ambiguity it is better to
 		# keep this one reserved
@@ -677,9 +682,13 @@ class Notebook(gobject.GObject):
 			# Avoid duplicates with and without '_' (e.g. in index)
 			# Note that leading "_" is stripped, due to strip() below
 
-		for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%"):
-			if char in name:
-				raise PageNameError, orig
+		if purge:
+			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\n"):
+				name = name.replace(char, '')
+		else:
+			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\n"):
+				if char in name:
+					raise PageNameError, orig
 
 		parts = map(unicode.strip, filter(
 			lambda n: len(n)>0, unicode(name).split(':') ) )
@@ -745,6 +754,19 @@ class Notebook(gobject.GObject):
 			# TODO - set haschildren if page maps to a store namespace
 			self._page_cache[path.name] = page
 			return page
+
+	def get_new_page(self, path):
+		'''Like get_page() but guarantees the page does not yet exist.
+		Will add a number to make name unique.
+		'''
+		i = 0
+		base = path.name
+		page = self.get_page(path)
+		while page.hascontent or page.haschildren:
+			i += 1
+			path = Path(base + ' %i' % i)
+			page = self.get_page(path)
+		return page
 
 	def flush_page_cache(self, path):
 		'''Remove a page from the page cache, calling get_page() after this

@@ -667,7 +667,7 @@ class GtkInterface(NotebookInterface):
 				newpath = Path(newpath.name) # IndexPath -> Path
 				self.open_page(newpath)
 
-		def autosave(o, p):
+		def autosave(o, p, *a):
 			# Here we explicitly do not save async
 			# and also explicitly no need for _autosave_lock
 			page = self.mainwindow.pageview.get_page()
@@ -866,6 +866,16 @@ class GtkInterface(NotebookInterface):
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
+
+	def new_page_from_text(self, text, name=None):
+		if not name:
+			name = self.notebook.cleanup_pathname(
+				text[:30].replace(':', ''), purge=True)
+		path = self.notebook.resolve_path(name)
+		page = self.notebook.get_new_page(path)
+		page.parse('plain', text)
+		self.notebook.store_page(page)
+		self.open_page(page)
 
 	def open_new_window(self, page=None):
 		'''Open page in a new window'''

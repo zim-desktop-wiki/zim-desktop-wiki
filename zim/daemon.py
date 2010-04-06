@@ -78,6 +78,9 @@ class UnixDaemon(object):
 
 	pidfile = get_tmpdir().file('daemon.pid').path
 
+	def start_daemon(self):
+		self.daemonize()
+
 	def daemonize(self):
 		'''Spawn new process that is disasociated from current environment'''
 		showoutput = logger.isEnabledFor(logging.INFO)
@@ -113,6 +116,24 @@ class UnixDaemon(object):
 			os.dup2(se.fileno(), sys.stderr.fileno())
 
 		# Run daemon in child process
+		self.main()
+		os.unlink(self.pidfile)
+		os._exit(0)
+
+
+class WindowsDaemon(object):
+	'''No clean way to daemonize on windows. Instead we just spawn a new
+	process.'''
+
+	pidfile = get_tmpdir().file('daemon.pid').path
+
+	def start_daemon(self):
+		from zim import ZIM_EXECUTABLE
+		os.spawn((ZIM_EXECUTABLE, '--daemon'))
+
+	def daemonize(self):
+		'''Daemonize current process, does not return'''
+		File(self.pidfile).write('%i\n' % os.getpid())
 		self.main()
 		os.unlink(self.pidfile)
 		os._exit(0)
@@ -265,7 +286,7 @@ class UnixSocketDaemon(UnixDaemon, SocketDaemon):
 		SocketDaemon.start(self)
 
 
-class WindowsSocketDaemon(UnixDaemon, SocketDaemon):
+class WindowsSocketDaemon(WindowsDaemon, SocketDaemon):
 
 	# No named sockets avaialble on windows, need to use a network socket.
 	# Let's hope nobody is using the same port number
@@ -297,7 +318,7 @@ class SocketDaemonProxy(object):
 		try:
 			ack = self.ping()
 		except socket.error:
-			Daemon().daemonize()
+			Daemon().start_daemon()
 			i = 0
 			while i < 10:
 				try:
@@ -426,7 +447,6 @@ class DaemonProxyGtkInterfaceObject(DaemonProxyObject):
 			page = page.name
 		return self._relay('present', page,
 				geometry=geometry, fullscreen=fullscreen)
-
 
 	def toggle_present(self):
 		'''Present main window if it is not on top, but hide if it is.

@@ -211,7 +211,7 @@ def main(argv):
 			o = o.replace('-', '_')
 			optsdict[o] = True
 		else:
-			raise GetoptError, ("--%s no allowed in combination with --%s" % (o, cmd), o)
+			raise GetoptError, ("--%s is not allowed in combination with --%s" % (o, cmd), o)
 
 	# --port is the only option that is not of type string
 	if 'port' in optsdict and not optsdict['port'] is None:
@@ -306,6 +306,7 @@ def main(argv):
 					proxy.quit_if_nochild()
 					return # User cancelled notebook dialog
 			gui = proxy.get_notebook(notebook)
+
 			gui.present(page, **optsdict)
 	elif cmd == 'server':
 		try:
