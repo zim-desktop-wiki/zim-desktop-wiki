@@ -831,8 +831,8 @@ class GtkInterface(NotebookInterface):
 		if not record is None:
 			self.open_page(record)
 		else:
-			child = self.notebook.index.list_pages(self.page)[0]
-			self.open_page(child)
+			pages = list(self.notebook.index.list_pages(self.page))
+			self.open_page(pages[0])
 		return True
 
 	def open_page_previous(self):

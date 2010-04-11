@@ -616,6 +616,11 @@ class Notebook(gobject.GObject):
 			parent = source.commonparent(href)
 			if parent.isroot:
 				return ':' + href.name
+			elif parent == source.parent:
+				if parent == href:
+					return href.basename
+				else:
+					return href.relname(parent)
 			else:
 				return parent.basename + ':' + href.relname(parent)
 
@@ -751,6 +756,12 @@ class Notebook(gobject.GObject):
 		else:
 			store = self.get_store(path)
 			page = store.get_page(path)
+			indexpath = self.index.lookup_path(path)
+			if indexpath and indexpath.haschildren:
+				page.haschildren = True
+				# page might be the parent of a placeholder, in that case
+				# the index knows it has children, but the store does not
+
 			# TODO - set haschildren if page maps to a store namespace
 			self._page_cache[path.name] = page
 			return page
@@ -872,13 +883,12 @@ class Notebook(gobject.GObject):
 		# Collect backlinks
 		if update_links:
 			from zim.index import LINK_DIR_BACKWARD
-			backlinkpages = set(
-				l.source for l in
-					self.index.list_links(path, LINK_DIR_BACKWARD) )
+			backlinkpages = set()
+			for l in self.index.list_links(path, LINK_DIR_BACKWARD):
+				backlinkpages.add(l.source)
 			for child in self.index.walk(path):
-				backlinkpages.update(set(
-					l.source for l in
-						self.index.list_links(path, LINK_DIR_BACKWARD) ))
+				for l in self.index.list_links(child, LINK_DIR_BACKWARD):
+					backlinkpages.add(l.source)
 
 		# Do the actual move
 		store = self.get_store(path)
@@ -895,7 +905,7 @@ class Notebook(gobject.GObject):
 		# Update links in moved pages
 		page = self.get_page(newpath)
 		if page.hascontent:
-			self._update_links_from(page, path)
+			self._update_links_from(page, path, page, path)
 			store = self.get_store(page)
 			store.store_page(page)
 			# do not use self.store_page because it emits signals
@@ -903,7 +913,7 @@ class Notebook(gobject.GObject):
 			if not child.hascontent:
 				continue
 			oldpath = path + child.relname(newpath)
-			self._update_links_from(child, oldpath)
+			self._update_links_from(child, oldpath, newpath, path)
 			store = self.get_store(child)
 			store.store_page(child)
 			# do not use self.store_page because it emits signals
@@ -940,7 +950,7 @@ class Notebook(gobject.GObject):
 			tag.text = newhref
 		tag.attrib['href'] = newhref
 
-	def _update_links_from(self, page, oldpath):
+	def _update_links_from(self, page, oldpath, parent, oldparent):
 		logger.debug('Updating links in %s (was %s)', page, oldpath)
 		tree = page.get_parsetree()
 		if not tree:
@@ -963,6 +973,17 @@ class Notebook(gobject.GObject):
 							newhref = self.relative_link(page, oldhrefpath)
 							#~ print '\t->', newhref
 							self._update_link_tag(tag, newhref)
+					elif (hrefpath == oldparent or hrefpath.ischild(oldparent)):
+						# Special case where we e.g. link to our own children using
+						# a common parent between old and new path as an anchor for resolving
+						newhrefpath = parent
+						if hrefpath.ischild(oldparent):
+							newhrefpath = parent + hrefpath.relname(oldparent)
+						newhref = self.relative_link(page, newhrefpath)
+						#~ print '\t->', newhref
+						self._update_link_tag(tag, newhref)
+					else:
+						pass
 			except:
 				logger.exception('Error while updating link "%s"', href)
 

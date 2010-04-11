@@ -103,9 +103,10 @@ def get_test_notebook(format='wiki'):
 	store = notebook.add_store(Path(':'), 'memory')
 	manifest = []
 	for name, text in get_test_data(format):
-			manifest.append(name)
-			store.set_node(Path(name), text)
+		manifest.append(name)
+		store.set_node(Path(name), text)
 	notebook.testdata_manifest = expand_manifest(manifest)
+	notebook.index.update()
 	return notebook
 
 
@@ -129,6 +130,16 @@ def get_test_page(name='Foo'):
 	notebook = Notebook()
 	notebook.add_store(Path(':'), 'memory')
 	return notebook, notebook.get_page(Path(name))
+
+
+def print_index(index):
+	print '==== INDEX ===='
+	for page in index.walk():
+		print page.name, page.hascontent, page.haschildren
+		for link in index.list_links(page):
+			print '\t->', link.href.name
+	print '==============='
+
 
 
 class TestCase(unittest.TestCase):

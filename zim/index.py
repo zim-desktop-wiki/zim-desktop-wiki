@@ -29,6 +29,13 @@ transparent as long as the zim version number is updated.
 # in a consistent order, if the order is not consistent or changes without
 # the apropriate signals the pageindex widget will get confused and mess up.
 
+# TODO: split off functions to walk the tree into a "index view" object
+# this will allow alternative views, custom sorted, alphabetical, date etc.
+# Maybe we can include some of the caching function now implemented in
+# the pageindex model to deal with treepaths into such view objects.
+# In the main gui use the same view for the navigation keybindings
+# as is used for the treeview in the main window to keep them in sync.
+
 from __future__ import with_statement
 
 import sqlite3
@@ -93,7 +100,7 @@ class IndexPath(Path):
 	'''Like Path but adds more attributes, functions as an iterator for
 	rows in the table with pages.'''
 
-	__slots__ = ('_indexpath', '_row', '_pagelist_ref', '_pagelist_index')
+	__slots__ = ('_indexpath', '_row')
 
 	def __init__(self, name, indexpath, row=None):
 		'''Constructore, needs at least a full path name and a tuple of index
@@ -105,11 +112,6 @@ class IndexPath(Path):
 		Path.__init__(self, name)
 		self._indexpath = tuple(indexpath)
 		self._row = row
-		self._pagelist_ref = None
-		self._pagelist_index = None
-		# The pagelist attributes are not used in this module, but the
-		# slot is reserved for usage in the PageTreeStore class to cache
-		# a pagelist instead of doing the same query over and over again.
 
 	@property
 	def id(self): return self._indexpath[-1]
@@ -226,7 +228,7 @@ class Index(gobject.GObject):
 		'page-indexed': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'page-haschildren-toggled': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'page-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'delete': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-to-be-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)), # HACK
 		'start-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'end-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'initialize-db': (gobject.SIGNAL_RUN_LAST, None, ()),
@@ -269,6 +271,7 @@ class Index(gobject.GObject):
 			# When we are the primary index and the notebook is also
 			# updating links, these calls are already done by the
 			# notebook directly.
+			#~ print '!! on_page_moved', oldpath, newpath, update_links
 			self.delete(oldpath)
 			self.update(newpath, background=True)
 
@@ -691,7 +694,7 @@ class Index(gobject.GObject):
 
 			# Clean up pages that disappeared
 			for child in delete:
-				self.emit('delete', child)
+				self._delete(child)
 
 			# ... we are followed by an cleanup_all() when indexing is done
 
@@ -700,12 +703,12 @@ class Index(gobject.GObject):
 		indexpath = self.lookup_path(path)
 		if indexpath:
 			links = self._get_placeholders(indexpath, recurs=True)
-			self.emit('delete', indexpath)
+			self._delete(indexpath)
 			self.cleanup(indexpath.parent)
 			for link in links:
 				self.cleanup(link)
 
-	def do_delete(self, path):
+	def _delete(self, path):
 		# Tries to delete path and all of it's children, but keeps
 		# pages that are placeholders and their parents
 		self._flush_queue(path)
@@ -726,30 +729,30 @@ class Index(gobject.GObject):
 		keep = []
 		toggled = []
 		for path in paths:
+			hadchildren = path.haschildren
+			haschildren = self.n_list_pages(path) > 0
+			placeholder = haschildren or self.n_list_links(path, direction=LINK_DIR_BACKWARD)
+			if not placeholder:
+				self.emit('page-to-be-deleted', path) # HACK needed to signal the page index
 			with self.db_commit:
-				hadchildren = path.haschildren
-				haschildren = self.n_list_pages(path) > 0
-				if haschildren or self.n_list_links(path, direction=LINK_DIR_BACKWARD):
+				if placeholder:
 					# Keep but check haschildren
 					keep.append(path)
 					self.db.execute(
 						'update pages set haschildren=?, childrenkey=NULL where id==?',
 						(haschildren, path.id) )
-					if hadchildren != haschildren:
-						toggled.append(path)
 				else:
 					# Delete
 					delete.append(path)
 					self.db.execute('delete from pages where id=?', (path.id,))
-			self.lookup_data(path) # refresh
 
-		# emit signals
-		for path in delete:
-			self.emit('page-deleted', path)
-		for path in toggled:
-			self.emit('page-haschildren-toggled', path)
-		for path in keep:
-			self.emit('page-updated', path)
+			self.lookup_data(path) # refresh
+			if placeholder:
+				self.emit('page-updated', path)
+				if hadchildren != haschildren:
+					self.emit('page-haschildren-toggled', path)
+			else:
+				self.emit('page-deleted', path)
 
 		parent = root.parent
 		if not parent.isroot and self.n_list_pages(parent) == 0:
@@ -779,7 +782,7 @@ class Index(gobject.GObject):
 
 		if not (path.hascontent or path.haschildren) \
 		and self.n_list_links(path, direction=LINK_DIR_BACKWARD) == 0:
-			self.emit('delete', path)
+			self._delete(path)
 			self.cleanup(parent) # recurs
 
 	def cleanup_all(self):
@@ -962,8 +965,8 @@ class Index(gobject.GObject):
 		return IndexPath(':'.join(found), indexpath, row)
 
 	def list_pages(self, path):
-		'''Returns a list of IndexPath objects for the sub-pages of 'path', or,
-		if no path is given for the root namespace of the notebook.
+		'''Generator yielding IndexPath objects for the sub-pages of
+		'path', or, if no path is given for the root namespace of the notebook.
 		'''
 		if path is None or path.isroot:
 			parentid = ROOT_ID
@@ -971,29 +974,70 @@ class Index(gobject.GObject):
 			indexpath = (ROOT_ID,)
 		else:
 			path = self.lookup_path(path)
-			if path is None:
-				return []
-			parentid = path.id
-			name = path.name
-			indexpath = path._indexpath
+			if not path is None:
+				parentid = path.id
+				name = path.name
+				indexpath = path._indexpath
+			else:
+				parentid = None
 
-		cursor = self.db.cursor()
-		cursor.execute('select * from pages where parent==? order by lower(basename)', (parentid,))
-			# FIXME, this lower is not utf8 proof
-		return [
-			IndexPath(name+':'+r['basename'], indexpath+(r['id'],), r)
-				for r in cursor ]
+		if not parentid is None:
+			cursor = self.db.cursor()
+			cursor.execute('select * from pages where parent==? order by lower(basename)', (parentid,))
+				# FIXME, this lower is not utf8 proof
+			for row in cursor:
+				yield IndexPath(
+						name+':'+row['basename'],
+						indexpath+(row['id'],),
+						row)
+
+	def list_pages_n(self, path, offset, limit=20):
+		'''Like list_pages() but returns a limitted slice of the list
+		as a list'''
+		# FIXME clean up redundant code with list_pages()
+		if path is None or path.isroot:
+			parentid = ROOT_ID
+			name = ''
+			indexpath = (ROOT_ID,)
+		else:
+			path = self.lookup_path(path)
+			if not path is None:
+				parentid = path.id
+				name = path.name
+				indexpath = path._indexpath
+			else:
+				parentid = None
+
+		if not parentid is None:
+			cursor = self.db.cursor()
+			cursor.execute('select * from pages where parent==? order by lower(basename) limit ? offset ?', (parentid, limit, offset))
+				# FIXME, this lower is not utf8 proof
+			for row in cursor:
+				yield IndexPath(
+						name+':'+row['basename'],
+						indexpath+(row['id'],),
+						row)
 
 	def n_all_pages(self):
 		'''Returns number of pages in this notebook'''
 		cursor = self.db.cursor()
-		cursor.execute('select id from pages')
-		return len( list(cursor) )
+		cursor.execute('select count(*) from pages')
+		row = cursor.fetchone()
+		return int(row[0])
 
 	def n_list_pages(self, path):
 		'''Returns the number of pages below path'''
-		# TODO optimize this one
-		return len(self.list_pages(path))
+		if path is None or path.isroot:
+			parentid = ROOT_ID
+		else:
+			path = self.lookup_path(path)
+			if path is None:
+				return 0
+			parentid = path.id
+		cursor = self.db.cursor()
+		cursor.execute('select count(*) from pages where parent==?', (parentid,))
+		row = cursor.fetchone()
+		return int(row[0])
 
 	def list_links(self, path, direction=LINK_DIR_FORWARD):
 		'''Return Link objects for each link from or to path.
@@ -1036,20 +1080,35 @@ class Index(gobject.GObject):
 		'''Like list_links() but returns only the number of links instead
 		of the links themselves.
 		'''
-		# TODO optimize this one
-		return len(list(self.list_links(path, direction)))
+		path = self.lookup_path(path)
+		if not path:
+			return 0
+
+		cursor = self.db.cursor()
+		if direction == LINK_DIR_FORWARD:
+			cursor.execute('select count(*) from links where source == ?', (path.id,))
+		elif direction == LINK_DIR_BOTH:
+			cursor.execute('select count(*) from links where source == ? or href == ?', (path.id, path.id))
+		else:
+			cursor.execute('select count(*) from links where href == ?', (path.id,))
+		row = cursor.fetchone()
+		return int(row[0])
 
 	def n_list_links_to_tree(self, path, direction=LINK_DIR_FORWARD):
 		'''Like list_links_to_tree() but returns only the number of links instead
 		of the links themselves.
 		'''
 		# TODO optimize this one
-		return len(list(self.list_links_to_tree(path, direction)))
+		n = self.n_list_links(path, direction)
+		for child in self.walk(path):
+			n += self.n_list_links(child, direction)
+		return n
 
 	def get_previous(self, path, recurs=True):
 		'''Returns the previous page in the index. If 'recurs' is False it stays
 		in the same namespace as path, but by default it crossing namespaces and
 		walks the whole tree.
+		TODO: this method should move to a "view" object giving specific sorting etc.
 		'''
 		path = self.lookup_path(path)
 		if path is None or path.isroot:
@@ -1067,12 +1126,13 @@ class Index(gobject.GObject):
 			else:
 				# decent to deepest child of previous path
 				while prev.haschildren:
-					prev = self.list_pages(prev)[-1]
+					pages = list(self.list_pages(prev))
+					prev = pages[-1]
 			return prev
 
 	def _get_prev(self, path):
 		'''Atomic function for get_previous()'''
-		pagelist = self.list_pages(path.parent)
+		pagelist = list(self.list_pages(path.parent))
 		i = pagelist.index(path)
 		if i > 0:
 			return pagelist[i-1]
@@ -1083,6 +1143,7 @@ class Index(gobject.GObject):
 		'''Returns the next page in the index. If 'recurs' is False it stays
 		in the same namespace as path, but by default it crossing namespaces and
 		walks the whole tree.
+		TODO: this method should move to a "view" object giving specific sorting etc.
 		'''
 		path = self.lookup_path(path)
 		if path is None or path.isroot:
@@ -1092,7 +1153,8 @@ class Index(gobject.GObject):
 			return self._get_next(path)
 		elif path.haschildren:
 			# descent to first child
-			return self.list_pages(path)[0]
+			pages = list(self.list_pages(path))
+			return pages[0]
 		else:
 			next = self._get_next(path)
 			if next is None:
@@ -1107,7 +1169,7 @@ class Index(gobject.GObject):
 
 	def _get_next(self, path):
 		'''Atomic function for get_next()'''
-		pagelist = self.list_pages(path.parent)
+		pagelist = list(self.list_pages(path.parent))
 		i = pagelist.index(path)
 		if i+1 < len(pagelist):
 			return pagelist[i+1]
