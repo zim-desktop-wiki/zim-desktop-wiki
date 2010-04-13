@@ -334,15 +334,18 @@ class SocketDaemonProxy(object):
 		'''Returns 'Ack' to test daemon interaction'''
 		return self._call('ping')
 
+	def run(self, klass, name, *args, **kwargs):
+		if not self._call('vivicate', klass, name, *args, **kwargs):
+			raise AssertionError, 'Call failed'
+			# assert statement could be optimized away
+
 	def get_object(self, klass, name, *args, **kwargs):
 		'''Returns a proxy object for an object of klass 'klass'
 		which is uniquely identified by 'name'. All other arguments
 		are passed on to the object constructor if it needs to be
 		created.
 		'''
-		if not self._call('vivicate', klass, name, *args, **kwargs):
-			raise AssertionError, 'Call failed'
-			# assert statement could be optimized away
+		self.run(klass, name, *args, **kwargs)
 		return DaemonProxyObject(self, (klass, name))
 
 	def list_objects(self):

@@ -869,8 +869,11 @@ class GtkInterface(NotebookInterface):
 
 	def new_page_from_text(self, text, name=None):
 		if not name:
+			name = text.strip()[:30]
+			if '\n' in name:
+				name, _ = name.split('\n', 1)
 			name = self.notebook.cleanup_pathname(
-				text[:30].replace(':', ''), purge=True)
+				name.replace(':', ''), purge=True)
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_new_page(path)
 		page.parse('plain', text)

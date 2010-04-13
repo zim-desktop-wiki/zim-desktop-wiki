@@ -68,12 +68,14 @@ ZIM_EXECUTABLE = 'zim'
 
 # All commandline options in various groups
 longopts = ('verbose', 'debug')
-commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual')
+commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual', 'plugin', 'daemon')
 commandopts = {
 	'gui': ('list', 'geometry=', 'fullscreen', 'no-daemon'),
 	'server': ('port=', 'template=', 'gui', 'no-daemon'),
 	'export': ('format=', 'template=', 'output=', 'root-url='),
 	'index': ('output=',),
+	'plugin': (),
+	'daemon': (),
 }
 shortopts = {
 	'v': 'version', 'h': 'help',
@@ -91,6 +93,7 @@ usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
    or: zim --export [OPTIONS] NOTEBOOK [PAGE]
    or: zim --index  [OPTIONS] NOTEBOOK
    or: zim --server [OPTIONS] [NOTEBOOK]
+   or: zim --plugin PLUGIN [ARGUMENTS]
    or: zim --manual [OPTIONS] [PAGE]
    or: zim --help
 '''
@@ -100,6 +103,7 @@ General Options:
   --server        run the web server
   --export        export to a different format
   --index         build an index for a notebook
+  --plugin        call a specific plugin function
   --manual        open the user manual
   -V, --verbose   print information to terminal
   -D, --debug     print debug messages
@@ -185,7 +189,7 @@ def main(argv):
 		return
 
 	# Otherwise check the number of arguments
-	if len(args) > maxargs[cmd]:
+	if cmd in maxargs and len(args) > maxargs[cmd]:
 		raise UsageError
 
 	# --manual is an alias for --gui /usr/share/zim/manual
@@ -317,6 +321,19 @@ def main(argv):
 		import zim.www
 		handler = zim.www.Server(*args, **optsdict)
 		handler.main()
+	elif cmd == 'daemon':
+		# just start the daemon, nothing else
+		import zim.daemon
+		proxy = zim.daemon.DaemonProxy()
+		proxy.ping()
+	elif cmd == 'plugin':
+		import zim.plugins
+		try:
+			pluginname = args.pop(0)
+		except IndexError:
+			raise UsageError
+		module = zim.plugins.get_plugin_module(pluginname)
+		module.main(None, *args)
 
 
 class NotebookInterface(gobject.GObject):

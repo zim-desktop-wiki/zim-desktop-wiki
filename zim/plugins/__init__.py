@@ -11,13 +11,20 @@ import zim.fs
 from zim.fs import Dir
 from zim.config import ListDict
 
-def get_plugin(pluginname):
-	'''Returns the plugin class object for a given name'''
+
+def get_plugin_module(pluginname):
+	'''Returns the plugin module object for a given name'''
 	# __import__ has some quirks, see the reference manual
 	pluginname = pluginname.lower()
 	mod = __import__('zim.plugins.'+pluginname)
 	mod = getattr(mod, 'plugins')
 	mod = getattr(mod, pluginname)
+	return mod
+
+
+def get_plugin(pluginname):
+	'''Returns the plugin class object for a given name'''
+	mod = get_plugin_module(pluginname)
 	for name in dir(mod):
 		obj = getattr(mod, name)
 		if ( isinstance(obj, (type, types.ClassType)) # is a class

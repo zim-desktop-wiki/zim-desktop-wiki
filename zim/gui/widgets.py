@@ -362,7 +362,6 @@ class PageEntry(InputEntry):
 		relative links.
 		'''
 		InputEntry.__init__(self)
-		assert notebook, 'Page completion needs a notebook'
 		assert path_context is None or isinstance(path_context, Path)
 		self.notebook = notebook
 		self.path_context = path_context
@@ -394,9 +393,14 @@ class PageEntry(InputEntry):
 			if self.force_child and not name.startswith('+'):
 				name = '+' + name
 			try:
-				return self.notebook.resolve_path(name, source=self.path_context)
+				if self.notebook:
+					path = self.notebook.resolve_path(name, source=self.path_context)
+				else:
+					path = Path(name)
 			except PageNameError:
 				return None
+			else:
+				return path
 
 	def clear(self):
 		self.set_text('')
@@ -427,6 +431,9 @@ class PageEntry(InputEntry):
 			return
 		else:
 			self.set_input_valid(True)
+
+		if not self.notebook:
+			return # no completion without a notebook
 
 		# Figure out some hint about the namespace
 		anchored = False
@@ -719,12 +726,14 @@ class Dialog(gtk.Dialog):
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
 				if type in ('link', 'page', 'namespace'):
+					if self.ui: notebook = self.ui.notebook
+					else: notebook = None
 					if type == 'link':
-						entry = LinkEntry(self.ui.notebook, path_context=self.path_context)
+						entry = LinkEntry(notebook, path_context=self.path_context)
 					elif type == 'page':
-						entry = PageEntry(self.ui.notebook, path_context=self.path_context)
+						entry = PageEntry(notebook, path_context=self.path_context)
 					else:
-						entry = NamespaceEntry(self.ui.notebook, path_context=self.path_context)
+						entry = NamespaceEntry(notebook, path_context=self.path_context)
 					if value:
 						if isinstance(value, basestring):
 							entry.set_text(value)
