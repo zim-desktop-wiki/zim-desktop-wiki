@@ -10,6 +10,18 @@ if len(sys.argv) == 1:
 shutil.rmtree("windows/release/data", True)
 shutil.copytree("data", "windows/release/data")
 
+# If you installed GTK to a different folder, change these lines:
+shutil.rmtree("windows/release/etc", True)
+shutil.copytree("c:/Program Files/Common Files/GTK/2.0/etc", "windows/release/etc")
+shutil.rmtree("windows/release/lib", True)
+shutil.copytree("c:/Program Files/Common Files/GTK/2.0/lib", "windows/release/lib")
+shutil.rmtree("windows/release/share", True)
+shutil.copytree("c:/Program Files/Common Files/GTK/2.0/share", "windows/release/share")
+
+# copy plugins folder so Preferences dialog can iterate through them
+shutil.rmtree("windows/release/zim", True)
+shutil.copytree("zim/plugins", "windows/release/zim/plugins")
+
 # create main.exe
 setup(
     options = {"py2exe": {"compressed": 0,
@@ -22,6 +34,6 @@ setup(
     zipfile = None,
     windows = [{
             "script": "zim.py",
-            "icon_resources": [(1, "website/files/favicon.ico")]
+            "icon_resources": [(1, "data/pixmaps/favicon.ico")]
         }],
 )
