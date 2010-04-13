@@ -29,17 +29,17 @@ Requirements
 
 Building Zim
 
-1. Checkout or update a copy of pyzim from lp:zim .
+1. Checkout or update a copy of pyzim from "lp:zim".
 
-2. Run ./build_win32.py .
+2. In the Zim root folder, run "windows\env.cmd" if your GTK binary folder isn't already in your PATH environment variable.
 
-3. Make sure it built okay by running ./windows/release/zim.exe
+3. Run "[path-to-python]\python.exe windows\build_win32.py".
+
+3. Make sure it built okay by running ".\windows\zim\zim.exe"
 
 
 Packaging the Installer
 
-1. Edit ./windows/build/create-zim-setup.nsi . You must MANUALLY set the variables VER and BUILDDATE.
+1. Run ./windows/create-zim-setup.nsi .
 
-2. Run ./windows/build/create-zim-setup.nsi .
-
-3. Find its output in ./windows/release/Zim-setup-*.exe and test it.
+2. Find its output in ./dist/Zim-setup-*.exe and test it.

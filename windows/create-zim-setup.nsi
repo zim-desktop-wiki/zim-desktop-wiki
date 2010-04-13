@@ -2,15 +2,17 @@
 
 ; Define your application name
 !define APPNAME "Zim Desktop Wiki"
-!define VER "0.44"
-!define BUILDDATE "2010-03-07"
+
+; Define VER and BUILDDATE
+!include "version-and-date.nsi"
+
 !define APPNAMEANDVERSION "Zim Desktop Wiki ${VER} for Windows"
 
 ; Main Install settings
 Name "${APPNAMEANDVERSION}"
 InstallDir "$PROGRAMFILES\Zim Desktop Wiki"
 InstallDirRegKey HKLM "Software\${APPNAME}" ""
-OutFile "..\release\Zim-setup-${VER}_${BUILDDATE}.exe"
+OutFile "..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
 
 ; Modern interface settings
 !include "MUI.nsh"
@@ -23,7 +25,7 @@ OutFile "..\release\Zim-setup-${VER}_${BUILDDATE}.exe"
 
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP "zim-logo-big.bmp" ; optional
-!define MUI_ICON "..\release\data\pixmaps\favicon.ico"
+!define MUI_ICON "zim\data\pixmaps\favicon.ico"
 
 !define MUI_DIRECTORYPAGE_TEXT_TOP \
 	"Setup will install ${APPNAME} in the following folder. \
@@ -55,8 +57,8 @@ Section "-Main program" SecMain
 
 	; Set Section Files and Shortcuts
 	SetOutPath "$INSTDIR\"
-	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "..\release\*.*"
-	File /oname=zim.ico "..\release\data\pixmaps\favicon.ico"
+	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "zim\*.*"
+	File /oname=zim.ico "zim\data\pixmaps\favicon.ico"
 
 SectionEnd
 
@@ -122,7 +124,7 @@ SectionGroupEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecDesktopShortcut} "Install a shortcut to Zim on your Desktop."
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecAssociate} "Associate .zim files with Zim."
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecUninstall} "Create uninstaller and registry keys necessary for uninstallation."
-	!insertmacro MUI_DESCRIPTION_TEXT ${GroupPortable} "Install to portable storage device."
+	!insertmacro MUI_DESCRIPTION_TEXT ${GroupPortable} "Install to portable storage device. (Work in progress! Uses %USERPROFILE% folder when running.)"
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecPortable} "Set the installed application to portable mode (does not use Registry nor My Documents or Program Files folders)."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
