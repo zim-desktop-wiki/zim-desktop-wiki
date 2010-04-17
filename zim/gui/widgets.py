@@ -1178,12 +1178,18 @@ class ProgressBarDialog(gtk.Dialog):
 		self.total = total
 		self.count = 0
 
-	def pulse(self, msg=None):
+	def pulse(self, msg=None, count=None, total=None):
 		'''Sets an optional message and moves forward the progress bar. Will also
 		handle all pending Gtk events, so interface keeps responsive during a background
 		job. This method returns True untill the 'Cancel' button has been pressed, this
 		boolean could be used to decide if the ackground job should continue or not.
 		'''
+		if total and total != self.total:
+			self.set_total(total)
+			self.count = count or 0
+		elif count:
+			self.count = count - 1
+
 		if self.total and self.count < self.total:
 			self.count += 1
 			fraction = float(self.count) / self.total

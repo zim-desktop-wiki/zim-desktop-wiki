@@ -969,13 +969,36 @@ class GtkInterface(NotebookInterface):
 		ImportPageDialog(self).run()
 
 	def move_page(self, path=None):
+		'''Prompt dialog for moving a page'''
 		MovePageDialog(self, path=path).run()
 
-	def do_move_page(self, path, newpath, update_links, dialog=None):
+	def do_move_page(self, path, newpath, update_links):
 		'''Callback for MovePageDialog and PageIndex for executing
 		notebook.move_page but wrapping with all the proper exception
 		dialogs. Returns boolean for success.
 		'''
+		return self._wrap_move_page(
+			lambda update_links, callback: self.notebook.move_page(
+				path, newpath, update_links, callback),
+			update_links
+		)
+
+	def rename_page(self, path=None):
+		'''Prompt a dialog for renaming a page'''
+		RenamePageDialog(self, path=path).run()
+
+	def do_rename_page(self, path, newbasename, update_heading=True, update_links=True):
+		'''Callback for RenamePageDialog for executing
+		notebook.rename_page but wrapping with all the proper exception
+		dialogs. Returns boolean for success.
+		'''
+		return self._wrap_move_page(
+			lambda update_links, callback: self.notebook.rename_page(
+				path, newbasename, update_heading, update_links, callback),
+			update_links
+		)
+
+	def _wrap_move_page(self, func, update_links):
 		if self.notebook.index.updating:
 			# Ask regardless of update_links because it might very
 			# well be that the dialog thinks there are no links
@@ -983,7 +1006,7 @@ class GtkInterface(NotebookInterface):
 			cont = QuestionDialog(dialog or self,
 				_('The index is still busy updating. Untill this'
 				  'is finished links can not be updated correctly.'
-				  'Performing the move now could break links,'
+				  'Performing this action now could break links,'
 				  'do you want to continue anyway?'
 				) # T: question dialog text
 			).run()
@@ -992,17 +1015,20 @@ class GtkInterface(NotebookInterface):
 			else:
 				return False
 
+		dialog = ProgressBarDialog(self, _('Updating Links'))
+			# T: Title of progressbar dialog
+		dialog.show_all()
+		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
+
 		try:
-			self.notebook.move_page(path, newpath, update_links)
+			func(update_links, callback)
 		except Exception, error:
-			ErrorDialog(dialog or self, error).run()
+			ErrorDialog(self, error).run()
+			dialog.destroy()
 			return False
 		else:
+			dialog.destroy()
 			return True
-
-
-	def rename_page(self, path=None):
-		RenamePageDialog(self, path=path).run()
 
 	def delete_page(self, path=None):
 		if path is None:
@@ -2136,8 +2162,13 @@ class MovePageDialog(Dialog):
 		parent = self.get_field('parent')
 		links = self.get_field('links')
 		newpath = parent + self.path.basename
-		return self.ui.do_move_page(
-			self.path, newpath, update_links=links, dialog=self)
+		self.hide() # hide this dialog before showing the progressbar
+		ok = self.ui.do_move_page(self.path, newpath, update_links=links)
+		if ok:
+			return True
+		else:
+			self.show() # prompt again
+			return False
 
 
 class RenamePageDialog(Dialog):
@@ -2177,17 +2208,14 @@ class RenamePageDialog(Dialog):
 		name = self.get_field('name')
 		head = self.get_field('head')
 		links = self.get_field('links')
-		try:
-			newpath = self.ui.notebook.rename_page(self.path,
-				newbasename=name, update_heading=head, update_links=links)
-		except Exception, error:
-			ErrorDialog(self, error).run()
-			return False
-		else:
-			if self.path == self.ui.page:
-				self.ui.open_page(newpath)
+		self.hide() # hide this dialog before showing the progressbar
+		ok = self.ui.do_rename_page(
+			self.path, newbasename=name, update_heading=head, update_links=links)
+		if ok:
 			return True
-
+		else:
+			self.show() # prompt again
+			return False
 
 class DeletePageDialog(Dialog):
 

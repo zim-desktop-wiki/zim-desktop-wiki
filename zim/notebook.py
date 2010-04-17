@@ -860,7 +860,7 @@ class Notebook(gobject.GObject):
 		page.set_parsetree(storedpage.get_parsetree())
 		page.modified = False
 
-	def move_page(self, path, newpath, update_links=True):
+	def move_page(self, path, newpath, update_links=True, callback=None):
 		'''Move a page from 'path' to 'newpath'. If 'update_links' is
 		True all links from and to the page will be modified as well.
 		'''
@@ -905,6 +905,7 @@ class Notebook(gobject.GObject):
 		# Update links in moved pages
 		page = self.get_page(newpath)
 		if page.hascontent:
+			if callback: callback(page)
 			self._update_links_from(page, path, page, path)
 			store = self.get_store(page)
 			store.store_page(page)
@@ -912,6 +913,7 @@ class Notebook(gobject.GObject):
 		for child in self._no_index_walk(newpath):
 			if not child.hascontent:
 				continue
+			if callback: callback(child)
 			oldpath = path + child.relname(newpath)
 			self._update_links_from(child, oldpath, newpath, path)
 			store = self.get_store(child)
@@ -924,10 +926,12 @@ class Notebook(gobject.GObject):
 			self.index.delete(path)
 			self.index.update(newpath)
 			#~ print backlinkpages
+			total = len(backlinkpages)
 			for p in backlinkpages:
 				if p == path or p.ischild(path):
 					continue
 				page = self.get_page(p)
+				if callback: callback(page, total=total)
 				self._update_links_in_page(page, path, newpath)
 				self.store_page(page)
 
@@ -1024,8 +1028,7 @@ class Notebook(gobject.GObject):
 
 		page.set_parsetree(tree)
 
-	def rename_page(self, path, newbasename,
-						update_heading=True, update_links=True):
+	def rename_page(self, path, newbasename, update_heading=True, update_links=True, callback=None):
 		'''Rename page to a page in the same namespace but with a new
 		basename. If 'update_heading' is True the first heading in the
 		page will be updated to it's new name.  If 'update_links' is
@@ -1041,7 +1044,7 @@ class Notebook(gobject.GObject):
 			newpath = self.index.resolve_case(
 				newbasename, namespace=path.parent) or newpath
 
-		self.move_page(path, newpath, update_links=update_links)
+		self.move_page(path, newpath, update_links, callback)
 		if update_heading:
 			import zim.parsing
 			page = self.get_page(newpath)
