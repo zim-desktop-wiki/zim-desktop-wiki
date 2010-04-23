@@ -985,7 +985,7 @@ class FileDialog(Dialog):
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			help_text=None, fields=None, help=None
+			help_text=None, fields=None, help=None, multiple=False
 		):
 		if button is None:
 			if action == gtk.FILE_CHOOSER_ACTION_OPEN:
@@ -1000,6 +1000,7 @@ class FileDialog(Dialog):
 			self.set_default_size(500, 400)
 		self.filechooser = gtk.FileChooserWidget(action=action)
 		self.filechooser.set_do_overwrite_confirmation(True)
+		self.filechooser.set_select_multiple(multiple)
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
 		self.vbox.add(self.filechooser)
 		# FIXME hook to expander to resize window
@@ -1012,11 +1013,16 @@ class FileDialog(Dialog):
 
 	def get_file(self):
 		'''Wrapper for filechooser.get_filename().
-		Returns a File object or None.
+		Returns a File object or None (if multiple=False)
+		 or a list of File objects (if multiple=True).
 		'''
-		path = self.filechooser.get_filename()
-		if path is None: return None
-		else: return File(path)
+		if self.filechooser.get_select_multiple():
+			path = self.filechooser.get_filenames()
+			return map(lambda x: File(x),path)
+		else:
+			path = self.filechooser.get_filename()
+			if path is None: return None
+			else: return File(path)
 
 	def get_dir(self):
 		'''Wrapper for filechooser.get_filename().

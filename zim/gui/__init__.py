@@ -2187,7 +2187,7 @@ class DeletePageDialog(Dialog):
 class AttachFileDialog(FileDialog):
 
 	def __init__(self, ui, path=None):
-		FileDialog.__init__(self, ui, _('Attach File')) # T: Dialog title
+		FileDialog.__init__(self, ui, _('Attach File'),multiple=True) # T: Dialog title
 		if path is None:
 			self.path = self.ui.get_path_context()
 		else:
@@ -2207,24 +2207,25 @@ class AttachFileDialog(FileDialog):
 		self.filechooser.set_extra_widget(checkbox)
 
 	def do_response_ok(self):
-		file = self.get_file()
-		if file is None:
+		files = self.get_file()
+		if len(files) == 0:
 			return False
 
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['insert_attached_images'] = checkbox.get_active()
 			# Similar code in zim.gui.InsertImageDialog
 
-		file.copyto(self.dir)
-		file = self.dir.file(file.basename)
-		pageview = self.ui.mainwindow.pageview
-		if self.uistate['insert_attached_images'] and file.isimage():
-			try:
-				pageview.insert_image(file, interactive=False)
-			except:
-				logger.exception('Could not insert image')
-				pageview.insert_links([file]) # image type not supported?
-		else:
-			pageview.insert_links([file])
-		return True
+		for file in files:
+			file.copyto(self.dir)
+			file = self.dir.file(file.basename)
+			pageview = self.ui.mainwindow.pageview
+			if self.uistate['insert_attached_images'] and file.isimage():
+				try:
+					pageview.insert_image(file, interactive=False)
+				except:
+					logger.exception('Could not insert image')
+					pageview.insert_links([file]) # image type not supported?
+			else:
+				pageview.insert_links([file])
 
+		return True
