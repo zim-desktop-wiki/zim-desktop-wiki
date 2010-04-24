@@ -1358,11 +1358,11 @@ class ImageView(gtk.Layout):
 				pixbuf = self._pixbuf
 			else:
 				pixbuf = self._pixbuf.scale_simple(
-							wimg, himg, gtk.gdk.INTERP_HYPER)
+							wimg, himg, gtk.gdk.INTERP_NEAREST)
 		else:
 			# Generate checkboard background while scaling
 			pixbuf = self._pixbuf.composite_color_simple(
-				wimg, himg, gtk.gdk.INTERP_HYPER,
+				wimg, himg, gtk.gdk.INTERP_NEAREST,
 				255, 16, self._lightgrey.pixel, self._darkgrey.pixel )
 
 		# And align the image in the layout
