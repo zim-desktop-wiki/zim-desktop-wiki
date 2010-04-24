@@ -289,6 +289,14 @@ class GtkInterface(NotebookInterface):
 
 		self.register_preferences('GtkInterface', ui_preferences)
 
+		# Hidden setting to force the gtk bell off. Otherwise it
+		# can bell every time you reach the begin or end of the text
+		# buffer. Especially specific gtk version on windows.
+		# See bug lp:546920
+		self.preferences['GtkInterface'].setdefault('gtk_bell', False)
+		if not self.preferences['GtkInterface']['gtk_bell']:
+			gtk.rc_parse_string('gtk-error-bell = 0')
+
 		# Set default applications
 		apps = {
 			'email_client': ['xdg-email', 'startfile'],
@@ -410,6 +418,9 @@ class GtkInterface(NotebookInterface):
 
 		# older gobject version doesn't know about seconds
 		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
+
+		for plugin in self.plugins:
+			plugin.finalize_ui(self)
 
 		self.check_notebook_needs_upgrade()
 
@@ -656,7 +667,7 @@ class GtkInterface(NotebookInterface):
 				newpath = Path(newpath.name) # IndexPath -> Path
 				self.open_page(newpath)
 
-		def autosave(o, p):
+		def autosave(o, p, *a):
 			# Here we explicitly do not save async
 			# and also explicitly no need for _autosave_lock
 			page = self.mainwindow.pageview.get_page()
@@ -820,8 +831,8 @@ class GtkInterface(NotebookInterface):
 		if not record is None:
 			self.open_page(record)
 		else:
-			child = self.notebook.index.list_pages(self.page)[0]
-			self.open_page(child)
+			pages = list(self.notebook.index.list_pages(self.page))
+			self.open_page(pages[0])
 		return True
 
 	def open_page_previous(self):
@@ -855,6 +866,19 @@ class GtkInterface(NotebookInterface):
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
+
+	def new_page_from_text(self, text, name=None):
+		if not name:
+			name = text.strip()[:30]
+			if '\n' in name:
+				name, _ = name.split('\n', 1)
+			name = self.notebook.cleanup_pathname(
+				name.replace(':', ''), purge=True)
+		path = self.notebook.resolve_path(name)
+		page = self.notebook.get_new_page(path)
+		page.parse('plain', text)
+		self.notebook.store_page(page)
+		self.open_page(page)
 
 	def open_new_window(self, page=None):
 		'''Open page in a new window'''
@@ -945,13 +969,36 @@ class GtkInterface(NotebookInterface):
 		ImportPageDialog(self).run()
 
 	def move_page(self, path=None):
+		'''Prompt dialog for moving a page'''
 		MovePageDialog(self, path=path).run()
 
-	def do_move_page(self, path, newpath, update_links, dialog=None):
+	def do_move_page(self, path, newpath, update_links):
 		'''Callback for MovePageDialog and PageIndex for executing
 		notebook.move_page but wrapping with all the proper exception
 		dialogs. Returns boolean for success.
 		'''
+		return self._wrap_move_page(
+			lambda update_links, callback: self.notebook.move_page(
+				path, newpath, update_links, callback),
+			update_links
+		)
+
+	def rename_page(self, path=None):
+		'''Prompt a dialog for renaming a page'''
+		RenamePageDialog(self, path=path).run()
+
+	def do_rename_page(self, path, newbasename, update_heading=True, update_links=True):
+		'''Callback for RenamePageDialog for executing
+		notebook.rename_page but wrapping with all the proper exception
+		dialogs. Returns boolean for success.
+		'''
+		return self._wrap_move_page(
+			lambda update_links, callback: self.notebook.rename_page(
+				path, newbasename, update_heading, update_links, callback),
+			update_links
+		)
+
+	def _wrap_move_page(self, func, update_links):
 		if self.notebook.index.updating:
 			# Ask regardless of update_links because it might very
 			# well be that the dialog thinks there are no links
@@ -959,7 +1006,7 @@ class GtkInterface(NotebookInterface):
 			cont = QuestionDialog(dialog or self,
 				_('The index is still busy updating. Untill this'
 				  'is finished links can not be updated correctly.'
-				  'Performing the move now could break links,'
+				  'Performing this action now could break links,'
 				  'do you want to continue anyway?'
 				) # T: question dialog text
 			).run()
@@ -968,17 +1015,20 @@ class GtkInterface(NotebookInterface):
 			else:
 				return False
 
+		dialog = ProgressBarDialog(self, _('Updating Links'))
+			# T: Title of progressbar dialog
+		dialog.show_all()
+		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
+
 		try:
-			self.notebook.move_page(path, newpath, update_links)
+			func(update_links, callback)
 		except Exception, error:
-			ErrorDialog(dialog or self, error).run()
+			ErrorDialog(self, error).run()
+			dialog.destroy()
 			return False
 		else:
+			dialog.destroy()
 			return True
-
-
-	def rename_page(self, path=None):
-		RenamePageDialog(self, path=path).run()
 
 	def delete_page(self, path=None):
 		if path is None:
@@ -1142,15 +1192,28 @@ class GtkInterface(NotebookInterface):
 		# TODO instead of spawn, include in this process
 		self.spawn('--server', '--gui', self.notebook.uri)
 
-	def reload_index(self):
-		self.mainwindow.pageindex.reload_model()
-			# Flush any sync error in treemodel
+	def reload_index(self, flush=False):
+		'''Show a progress bar while updating the notebook index.
+		Returns True unless the user cancelled the action.
+		'''
+		# First make the index stop updating
+		self.mainwindow.pageindex.disconnect_model()
+
+		# Update the model
+		index = self.notebook.index
+		if flush:
+			index.flush()
+
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
 		dialog.show_all()
-		index = self.notebook.index
 		index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
+
+		# And reconnect the model - flushing out any sync error in treemodel
+		self.mainwindow.pageindex.reload_model()
+
+		return not dialog.cancelled
 
 	def manage_custom_tools(self):
 		from zim.gui.customtools import CustomToolManagerDialog
@@ -2099,8 +2162,13 @@ class MovePageDialog(Dialog):
 		parent = self.get_field('parent')
 		links = self.get_field('links')
 		newpath = parent + self.path.basename
-		return self.ui.do_move_page(
-			self.path, newpath, update_links=links, dialog=self)
+		self.hide() # hide this dialog before showing the progressbar
+		ok = self.ui.do_move_page(self.path, newpath, update_links=links)
+		if ok:
+			return True
+		else:
+			self.show() # prompt again
+			return False
 
 
 class RenamePageDialog(Dialog):
@@ -2140,17 +2208,14 @@ class RenamePageDialog(Dialog):
 		name = self.get_field('name')
 		head = self.get_field('head')
 		links = self.get_field('links')
-		try:
-			newpath = self.ui.notebook.rename_page(self.path,
-				newbasename=name, update_heading=head, update_links=links)
-		except Exception, error:
-			ErrorDialog(self, error).run()
-			return False
-		else:
-			if self.path == self.ui.page:
-				self.ui.open_page(newpath)
+		self.hide() # hide this dialog before showing the progressbar
+		ok = self.ui.do_rename_page(
+			self.path, newbasename=name, update_heading=head, update_links=links)
+		if ok:
 			return True
-
+		else:
+			self.show() # prompt again
+			return False
 
 class DeletePageDialog(Dialog):
 

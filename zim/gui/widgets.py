@@ -362,7 +362,6 @@ class PageEntry(InputEntry):
 		relative links.
 		'''
 		InputEntry.__init__(self)
-		assert notebook, 'Page completion needs a notebook'
 		assert path_context is None or isinstance(path_context, Path)
 		self.notebook = notebook
 		self.path_context = path_context
@@ -394,9 +393,14 @@ class PageEntry(InputEntry):
 			if self.force_child and not name.startswith('+'):
 				name = '+' + name
 			try:
-				return self.notebook.resolve_path(name, source=self.path_context)
+				if self.notebook:
+					path = self.notebook.resolve_path(name, source=self.path_context)
+				else:
+					path = Path(name)
 			except PageNameError:
 				return None
+			else:
+				return path
 
 	def clear(self):
 		self.set_text('')
@@ -427,6 +431,9 @@ class PageEntry(InputEntry):
 			return
 		else:
 			self.set_input_valid(True)
+
+		if not self.notebook:
+			return # no completion without a notebook
 
 		# Figure out some hint about the namespace
 		anchored = False
@@ -719,12 +726,14 @@ class Dialog(gtk.Dialog):
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
 				if type in ('link', 'page', 'namespace'):
+					if self.ui: notebook = self.ui.notebook
+					else: notebook = None
 					if type == 'link':
-						entry = LinkEntry(self.ui.notebook, path_context=self.path_context)
+						entry = LinkEntry(notebook, path_context=self.path_context)
 					elif type == 'page':
-						entry = PageEntry(self.ui.notebook, path_context=self.path_context)
+						entry = PageEntry(notebook, path_context=self.path_context)
 					else:
-						entry = NamespaceEntry(self.ui.notebook, path_context=self.path_context)
+						entry = NamespaceEntry(notebook, path_context=self.path_context)
 					if value:
 						if isinstance(value, basestring):
 							entry.set_text(value)
@@ -980,6 +989,34 @@ class QuestionDialog(gtk.MessageDialog):
 		return answer
 
 
+class MessageDialog(gtk.MessageDialog):
+
+	def __init__(self, ui, msg):
+		'''Constructor. 'ui' can either be the main application or some
+		other dialog. The message can also be a tuple containing a short
+		question and a longer explanation, this is prefered for look&feel.
+		'''
+		if isinstance(msg, tuple):
+			msg, text = msg
+		else:
+			text = None
+
+		self.response = None
+		gtk.MessageDialog.__init__(
+			self, parent=get_window(ui),
+			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK,
+			message_format=msg
+		)
+		if text:
+			self.format_secondary_text(text)
+
+	def run(self):
+		'''Runs the dialog and destroys it directly.'''
+		logger.debug('Running MessageDialog')
+		gtk.MessageDialog.run(self)
+		self.destroy()
+
+
 class FileDialog(Dialog):
 	'''File chooser dialog, adds a filechooser widget to Dialog.'''
 
@@ -1147,12 +1184,18 @@ class ProgressBarDialog(gtk.Dialog):
 		self.total = total
 		self.count = 0
 
-	def pulse(self, msg=None):
+	def pulse(self, msg=None, count=None, total=None):
 		'''Sets an optional message and moves forward the progress bar. Will also
 		handle all pending Gtk events, so interface keeps responsive during a background
 		job. This method returns True untill the 'Cancel' button has been pressed, this
 		boolean could be used to decide if the ackground job should continue or not.
 		'''
+		if total and total != self.total:
+			self.set_total(total)
+			self.count = count or 0
+		elif count:
+			self.count = count - 1
+
 		if self.total and self.count < self.total:
 			self.count += 1
 			fraction = float(self.count) / self.total

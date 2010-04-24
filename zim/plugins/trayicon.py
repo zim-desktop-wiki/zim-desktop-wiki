@@ -10,6 +10,22 @@ from zim.config import data_file
 from zim.notebook import get_notebook_list
 
 
+def main(daemonproxy, *args):
+	assert daemonproxy is None, 'Not (yet) intended as daemon child'
+
+	import os
+	assert not os.name == 'nt', 'RPC not supported on windows'
+
+	# HACK to start daemon from separate process
+	# we are not allowed to fork since we already loaded gtk
+	from subprocess import check_call
+	from zim import ZIM_EXECUTABLE
+	check_call([ZIM_EXECUTABLE, '--daemon'])
+
+	from zim.daemon import DaemonProxy
+	DaemonProxy().run('zim.plugins.trayicon.DaemonTrayIcon', 'TrayIcon')
+
+
 class TrayIconPlugin(PluginClass):
 
 	plugin_info = {

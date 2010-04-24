@@ -41,6 +41,7 @@ class StubUI(object):
 		self.notebook = tests.get_test_notebook()
 		self.page = self.notebook.get_page(Path('Test:foo'))
 		self.preferences = ConfigDict()
+		self.uistate = ConfigDict()
 	
 	def connect(*a): pass
 

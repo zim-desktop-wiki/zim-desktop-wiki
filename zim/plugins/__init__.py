@@ -11,13 +11,20 @@ import zim.fs
 from zim.fs import Dir
 from zim.config import ListDict
 
-def get_plugin(pluginname):
-	'''Returns the plugin class object for a given name'''
+
+def get_plugin_module(pluginname):
+	'''Returns the plugin module object for a given name'''
 	# __import__ has some quirks, see the reference manual
 	pluginname = pluginname.lower()
 	mod = __import__('zim.plugins.'+pluginname)
 	mod = getattr(mod, 'plugins')
 	mod = getattr(mod, pluginname)
+	return mod
+
+
+def get_plugin(pluginname):
+	'''Returns the plugin class object for a given name'''
+	mod = get_plugin_module(pluginname)
 	for name in dir(mod):
 		obj = getattr(mod, name)
 		if ( isinstance(obj, (type, types.ClassType)) # is a class
@@ -89,6 +96,20 @@ class PluginClass(gobject.GObject):
 
 	}
 
+	@classmethod
+	def check_dependencies_ok(klass):
+		'''Like check_dependencies, but just returns boolean'''
+		return all(dep[1] for dep in klass.check_dependencies())
+
+	@classmethod
+	def check_dependencies(klass):
+		'''This method checks which dependencies are met. It should return a list of tuples,
+		one for each dependency, with a string giving the name of the dependency and a boolean
+		indicating if it is fulfilled or not. When a plugin has no dependencies an empty list
+		should be returned (which is done in the base class).
+		'''
+		return []
+
 	def __init__(self, ui):
 		gobject.GObject.__init__(self)
 		self.ui = ui
@@ -101,9 +122,23 @@ class PluginClass(gobject.GObject):
 		self.preferences = self.ui.preferences[section]
 		for key, type, label, default in self.plugin_preferences:
 				self.preferences.setdefault(key, default)
-		self.uistate = ListDict()
+
 		self._is_image_generator_plugin = False
-		self.ui.connect_after('open-notebook', self._merge_uistate)
+
+		if self.ui.notebook:
+			section = self.__class__.__name__
+			self.uistate = self.ui.uistate[section]
+			self.initialize_ui(ui)
+
+			self.finalize_notebook(self.ui.notebook)
+		else:
+			self.uistate = ListDict()
+			self.initialize_ui(ui)
+			self.ui.connect_after('open-notebook', self._merge_uistate)
+				# FIXME with new plugin API should not need this merging
+
+			self.ui.connect_object_after('open-notebook',
+				self.__class__.finalize_notebook, self)
 
 	def _merge_uistate(self, *a):
 		# As a convenience we provide a uistate dict directly after
@@ -118,18 +153,34 @@ class PluginClass(gobject.GObject):
 			for key, value in defaults.items():
 				self.uistate.setdefault(key, value)
 
-	@classmethod
-	def check_dependencies_ok(klass):
-		'''Like check_dependencies, but just returns boolean'''
-		return all(dep[1] for dep in klass.check_dependencies())
+	def initialize_ui(self, ui):
+		'''Callback called during contruction of the ui.
+		Can be overloaded by subclasses.
+		'''
+		# FIXME more documentation how / when to use this
+		pass
 
-	@classmethod
-	def check_dependencies(klass):
-		'''This method checks which dependencies are met'''
-		#returns a list of tuples, one for each dependency.
-		#each tuple contains a string with the name of the dependency and a
-		#boolean indicating if it is fulfilled
-		return []
+	def initialize_notebook(self, notebook):
+		'''Callback called before contruction of the notebook.
+		Can be overloaded by subclasses.
+		'''
+		# TODO actually hook up this callback - need it for fuse plugin
+		# FIXME more documentation how / when to use this
+		pass
+
+	def finalize_notebook(self, notebook):
+		'''Callback called once the notebook object is created and set.
+		Can be overloaded by subclasses.
+		'''
+		# FIXME more documentation how / when to use this
+		pass
+
+	def finalize_ui(self, ui):
+		'''Callback called just before entering the main loop.
+		Can be overloaded by subclasses.
+		'''
+		# FIXME more documentation how / when to use this
+		pass
 
 	def do_preferences_changed(self):
 		'''Handler called when preferences are changed by the user.
