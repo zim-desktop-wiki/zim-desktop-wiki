@@ -2188,6 +2188,8 @@ class AttachFileDialog(FileDialog):
 
 	def __init__(self, ui, path=None):
 		FileDialog.__init__(self, ui, _('Attach File'),multiple=True) # T: Dialog title
+		self.uistate.setdefault('last_attachment_folder','~')
+		self.filechooser.set_current_folder(self.uistate['last_attachment_folder'])
 		if path is None:
 			self.path = self.ui.get_path_context()
 		else:
@@ -2213,6 +2215,7 @@ class AttachFileDialog(FileDialog):
 
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['insert_attached_images'] = checkbox.get_active()
+		self.uistate['last_attachment_folder'] = self.filechooser.get_current_folder()
 			# Similar code in zim.gui.InsertImageDialog
 
 		for file in files:
