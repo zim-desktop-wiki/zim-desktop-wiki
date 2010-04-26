@@ -13,4 +13,4 @@ When the notebook plugin is enabled windows are hidden when they are closed inst
 
 **Dependencies:** This plugin has no additional dependencies if you use gtk+ version 2.10 or newer. It is not available for older releases.
 
-
+**Commandline:** The following command will just start the trayicon without opening a zim notebook: ''zim --plugin trayicon''

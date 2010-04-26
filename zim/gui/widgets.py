@@ -1022,7 +1022,7 @@ class FileDialog(Dialog):
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			help_text=None, fields=None, help=None
+			help_text=None, fields=None, help=None, multiple=False
 		):
 		if button is None:
 			if action == gtk.FILE_CHOOSER_ACTION_OPEN:
@@ -1037,6 +1037,7 @@ class FileDialog(Dialog):
 			self.set_default_size(500, 400)
 		self.filechooser = gtk.FileChooserWidget(action=action)
 		self.filechooser.set_do_overwrite_confirmation(True)
+		self.filechooser.set_select_multiple(multiple)
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
 		self.vbox.add(self.filechooser)
 		# FIXME hook to expander to resize window
@@ -1054,6 +1055,13 @@ class FileDialog(Dialog):
 		path = self.filechooser.get_filename()
 		if path is None: return None
 		else: return File(path)
+
+	def get_files(self):
+		'''Like get_file() but returns a list of File objects.
+		Useful in combination with the option "multiple".
+		'''
+		path = self.filechooser.get_filenames()
+		return map(lambda x: File(x),path)
 
 	def get_dir(self):
 		'''Wrapper for filechooser.get_filename().
@@ -1352,11 +1360,11 @@ class ImageView(gtk.Layout):
 				pixbuf = self._pixbuf
 			else:
 				pixbuf = self._pixbuf.scale_simple(
-							wimg, himg, gtk.gdk.INTERP_HYPER)
+							wimg, himg, gtk.gdk.INTERP_NEAREST)
 		else:
 			# Generate checkboard background while scaling
 			pixbuf = self._pixbuf.composite_color_simple(
-				wimg, himg, gtk.gdk.INTERP_HYPER,
+				wimg, himg, gtk.gdk.INTERP_NEAREST,
 				255, 16, self._lightgrey.pixel, self._darkgrey.pixel )
 
 		# And align the image in the layout
