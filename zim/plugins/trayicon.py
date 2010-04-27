@@ -114,6 +114,12 @@ class TrayIcon(gtk.StatusIcon):
 	def do_popup_menu(self, button=3, activate_time=0):
 		menu = gtk.Menu()
 
+		item = gtk.MenuItem(_('_Create Note...')) # T: menu item in tray icon menu
+		item.connect_object('activate', self.__class__.do_create_note, self)
+		menu.append(item)
+
+		menu.append(gtk.SeparatorMenuItem())
+
 		list = get_notebook_list()
 		self._populate_menu_notebooks(menu, list.get_names())
 
@@ -147,6 +153,11 @@ class TrayIcon(gtk.StatusIcon):
 	def do_open_notebook(self):
 		from zim.gui.notebookdialog import NotebookDialog
 		NotebookDialog.unique(self, self, callback=self.do_activate_notebook).show()
+
+	def do_create_note(self):
+		from zim.plugins.dropwindow import DropWindowDialog
+		dialog = DropWindowDialog(None, {})
+		dialog.show()
 
 
 # Need to register classes defining gobject signals

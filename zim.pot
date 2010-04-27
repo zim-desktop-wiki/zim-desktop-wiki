@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-04-06 22:13+0200\n"
+"POT-Creation-Date: 2010-04-27 21:24+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -41,7 +41,7 @@ msgstr ""
 #. Heading in plugins tab of preferences dialog | 
 #. label for properties dialog
 #: zim/gui/applications.py:388 zim/gui/customtools.py:149
-#: zim/gui/__init__.py:2151 zim/gui/notebookdialog.py:357
+#: zim/gui/__init__.py:2195 zim/gui/notebookdialog.py:357
 #: zim/gui/preferencesdialog.py:180 zim/notebook.py:363
 msgid "Name"
 msgstr ""
@@ -362,7 +362,7 @@ msgstr ""
 
 #. Menu item | 
 #. menu item in tray icon menu
-#: zim/gui/__init__.py:82 zim/plugins/trayicon.py:110
+#: zim/gui/__init__.py:82 zim/plugins/trayicon.py:132
 msgid "_Quit"
 msgstr ""
 
@@ -671,69 +671,74 @@ msgid "Upgrading notebook"
 msgstr ""
 
 #. question dialog text
-#: zim/gui/__init__.py:971
+#: zim/gui/__init__.py:1007
 msgid ""
 "The index is still busy updating. Untill thisis finished links can not be "
-"updated correctly.Performing the move now could break links,do you want to "
-"continue anyway?"
+"updated correctly.Performing this action now could break links,do you want "
+"to continue anyway?"
+msgstr ""
+
+#. Title of progressbar dialog
+#: zim/gui/__init__.py:1018
+msgid "Updating Links"
 msgstr ""
 
 #. short error description
-#: zim/gui/__init__.py:1003
+#: zim/gui/__init__.py:1042
 msgid "Page does not exist"
 msgstr ""
 
 #. long error description
-#: zim/gui/__init__.py:1004
+#: zim/gui/__init__.py:1043
 msgid "This page does not exist, so it can not be deleted"
 msgstr ""
 
 #. Error message
-#: zim/gui/__init__.py:1080
+#: zim/gui/__init__.py:1119
 msgid "This page does not have an attachments folder"
 msgstr ""
 
 #. Heading in a question dialog for creating a folder
-#: zim/gui/__init__.py:1087 zim/gui/__init__.py:1121
+#: zim/gui/__init__.py:1126 zim/gui/__init__.py:1160
 msgid "Create folder?"
 msgstr ""
 
 #. Text in a question dialog for creating a folder
-#: zim/gui/__init__.py:1089
+#: zim/gui/__init__.py:1128
 msgid ""
 "The attachments folder for this page does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
 
 #. Text in a question dialog for creating a folder
-#: zim/gui/__init__.py:1123
+#: zim/gui/__init__.py:1162
 msgid ""
 "The document folder for this page does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
 
 #. Title of progressbar dialog
-#: zim/gui/__init__.py:1168
+#: zim/gui/__init__.py:1207
 msgid "Updating index"
 msgstr ""
 
 #. General description of zim itself
-#: zim/gui/__init__.py:1283
+#: zim/gui/__init__.py:1322
 msgid "A desktop wiki"
 msgstr ""
 
 #. This string needs to be translated with names of the translators for this language
-#: zim/gui/__init__.py:1288
+#: zim/gui/__init__.py:1327
 msgid "translator-credits"
 msgstr ""
 
 #. page status in statusbar
-#: zim/gui/__init__.py:1425
+#: zim/gui/__init__.py:1464
 msgid "readonly"
 msgstr ""
 
 #. Label for button with backlinks in statusbar
-#: zim/gui/__init__.py:1789
+#: zim/gui/__init__.py:1828
 #, python-format
 msgid "%i _Backlink..."
 msgid_plural "%i _Backlinks..."
@@ -741,13 +746,13 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Heading of error dialog
-#: zim/gui/__init__.py:1890
+#: zim/gui/__init__.py:1929
 #, python-format
 msgid "Could not save page: %s"
 msgstr ""
 
 #. text in error dialog when saving page failed
-#: zim/gui/__init__.py:1892
+#: zim/gui/__init__.py:1931
 msgid ""
 "To continue you can save a copy of this page or discard\n"
 "any changes. If you save a copy changes will be also\n"
@@ -755,80 +760,81 @@ msgid ""
 msgstr ""
 
 #. Button in error dialog
-#: zim/gui/__init__.py:1930
+#: zim/gui/__init__.py:1969
 msgid "_Discard Changes"
 msgstr ""
 
 #. Button in error dialog
-#: zim/gui/__init__.py:1935
+#: zim/gui/__init__.py:1974
 msgid "_Save Copy"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/__init__.py:1973
+#: zim/gui/__init__.py:2012
 msgid "Jump to"
 msgstr ""
 
 #. Label for page input
-#: zim/gui/__init__.py:1976
+#: zim/gui/__init__.py:2015
 msgid "Jump to Page"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/__init__.py:1995
+#: zim/gui/__init__.py:2034
 msgid "New Sub Page"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/__init__.py:1996
+#: zim/gui/__init__.py:2035
 msgid "New Page"
 msgstr ""
 
 #. Dialog text in 'new page' dialog
-#: zim/gui/__init__.py:2000
+#: zim/gui/__init__.py:2039
 msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
 msgstr ""
 
-#. Input label
-#: zim/gui/__init__.py:2004
+#. Input label | 
+#. text entry field
+#: zim/gui/__init__.py:2043 zim/plugins/dropwindow.py:119
 msgid "Page Name"
 msgstr ""
 
 #. error message
-#: zim/gui/__init__.py:2018
+#: zim/gui/__init__.py:2057
 msgid "Page exists"
 msgstr ""
 
 #. Dialog title of file save dialog
-#: zim/gui/__init__.py:2035
+#: zim/gui/__init__.py:2074
 msgid "Save Copy"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/__init__.py:2059
+#: zim/gui/__init__.py:2098
 msgid "Import Page"
 msgstr ""
 
 #. File filter for '*.txt'
-#: zim/gui/__init__.py:2060
+#: zim/gui/__init__.py:2099
 msgid "Text Files"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/__init__.py:2087
+#: zim/gui/__init__.py:2126
 msgid "Move Page"
 msgstr ""
 
 #. Heading in 'move page' dialog - %s is the page name
-#: zim/gui/__init__.py:2103
+#: zim/gui/__init__.py:2142
 #, python-format
 msgid "Move page \"%s\""
 msgstr ""
 
 #. label in MovePage dialog - %i is number of backlinks
-#: zim/gui/__init__.py:2106 zim/gui/__init__.py:2146
+#: zim/gui/__init__.py:2145 zim/gui/__init__.py:2190
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
@@ -836,63 +842,67 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Input label for namespace to move a file to | 
-#. input label
-#: zim/gui/__init__.py:2112 zim/plugins/calendar.py:82
+#. input label | 
+#. text entry field
+#: zim/gui/__init__.py:2151 zim/plugins/calendar.py:82
+#: zim/plugins/dropwindow.py:118
 msgid "Namespace"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/__init__.py:2133
+#: zim/gui/__init__.py:2177
 msgid "Rename Page"
 msgstr ""
 
 #. label in 'rename page' dialog - %s is the page name
-#: zim/gui/__init__.py:2143
+#: zim/gui/__init__.py:2187
 #, python-format
 msgid "Rename page \"%s\""
 msgstr ""
 
 #. Option in the 'rename page' dialog
-#: zim/gui/__init__.py:2153
+#: zim/gui/__init__.py:2197
 msgid "Update the heading of this page"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/__init__.py:2182
+#: zim/gui/__init__.py:2223
 msgid "Delete Page"
 msgstr ""
 
 #. Heading in 'delete page' dialog - %s is the page name
-#: zim/gui/__init__.py:2194
+#: zim/gui/__init__.py:2235
 #, python-format
 msgid "Delete page \"%s\"?"
 msgstr ""
 
 #. Text in 'delete page' dialog - %s is the page name
-#: zim/gui/__init__.py:2196
+#: zim/gui/__init__.py:2237
 #, python-format
 msgid "Page \"%s\" and all of it's sub-pages and attachments will be deleted"
 msgstr ""
 
 #. Dialog title
-#: zim/gui/__init__.py:2214
+#: zim/gui/__init__.py:2255
 msgid "Attach File"
 msgstr ""
 
 #. Error dialog - %s is the full page name
-#: zim/gui/__init__.py:2223
+#: zim/gui/__init__.py:2266
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
 msgstr ""
 
 #. checkbox in the "Attach File" dialog
-#: zim/gui/__init__.py:2228
+#: zim/gui/__init__.py:2271
 msgid "Insert images as link"
 msgstr ""
 
 #. Column heading in 'open notebook' dialog | 
-#. Field in web server gui
+#. Field in web server gui | 
+#. Field to select Notebook from drop down list
 #: zim/gui/notebookdialog.py:144 zim/gui/server.py:85
+#: zim/plugins/dropwindow.py:110
 msgid "Notebook"
 msgstr ""
 
@@ -922,7 +932,7 @@ msgid "Folder"
 msgstr ""
 
 #. statusbar message
-#: zim/gui/pageindex.py:536
+#: zim/gui/pageindex.py:598
 msgid "Updating index..."
 msgstr ""
 
@@ -1515,32 +1525,32 @@ msgid "Versions"
 msgstr ""
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:1059
+#: zim/gui/widgets.py:1076
 msgid "All Files"
 msgstr ""
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:1084
+#: zim/gui/widgets.py:1101
 msgid "Images"
 msgstr ""
 
 #. Title of file selection dialog
-#: zim/gui/widgets.py:1094
+#: zim/gui/widgets.py:1111
 msgid "Select File"
 msgstr ""
 
 #. Title of folder selection dialog
-#: zim/gui/widgets.py:1110
+#: zim/gui/widgets.py:1127
 msgid "Select Folder"
 msgstr ""
 
 #. Error verbose description
-#: zim/__init__.py:143
+#: zim/__init__.py:147
 msgid "Could not find the file or folder for this notebook"
 msgstr ""
 
 #. Error when looking up a notebook
-#: zim/__init__.py:424
+#: zim/__init__.py:442
 #, python-format
 msgid "Could not find notebook: %s"
 msgstr ""
@@ -1645,6 +1655,20 @@ msgstr ""
 #. menu item in context menu
 #: zim/plugins/diagrameditor.py:70
 msgid "_Edit Diagram"
+msgstr ""
+
+#. plugin name
+#: zim/plugins/dropwindow.py:59 zim/plugins/dropwindow.py:82
+msgid "Drop Window"
+msgstr ""
+
+#. plugin description
+#: zim/plugins/dropwindow.py:60
+msgid ""
+"This plugin adds a dialog to quickly drop some text or clipboard\n"
+"content into a zim page.\n"
+"\n"
+"This is a core plugin shipping with zim.\n"
 msgstr ""
 
 #. menu item for insert equation plugin
@@ -1860,12 +1884,12 @@ msgid "Date"
 msgstr ""
 
 #. plugin name
-#: zim/plugins/trayicon.py:16
+#: zim/plugins/trayicon.py:32
 msgid "Tray Icon"
 msgstr ""
 
 #. plugin description
-#: zim/plugins/trayicon.py:17
+#: zim/plugins/trayicon.py:33
 msgid ""
 "This plugin adds a tray icon for quick access.\n"
 "\n"
@@ -1875,12 +1899,17 @@ msgid ""
 msgstr ""
 
 #. tooltip for tray icon
-#: zim/plugins/trayicon.py:71
+#: zim/plugins/trayicon.py:87
 msgid "Zim Desktop Wiki"
 msgstr ""
 
 #. menu item in tray icon menu
-#: zim/plugins/trayicon.py:104
+#: zim/plugins/trayicon.py:117
+msgid "_Create Note..."
+msgstr ""
+
+#. menu item in tray icon menu
+#: zim/plugins/trayicon.py:126
 msgid "_Other..."
 msgstr ""
 
