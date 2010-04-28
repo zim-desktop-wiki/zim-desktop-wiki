@@ -817,7 +817,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def remove_textstyle_tags(self, start, end):
 		'''Removes all textstyle tags from a range'''
-		# Also remove links untill we support links nested in tags
+		# Also remove links until we support links nested in tags
 		self.smart_remove_tags(_is_style_tag, start, end)
 		self.smart_remove_tags(_is_link_tag, start, end)
 		self.set_editmode_from_cursor()
@@ -2568,7 +2568,7 @@ class UndoStackManager:
 			#~ self.__class__._flush_if_typing, self)
 
 	def block(self):
-		'''Block listening to events from the textbuffer untill further notice.
+		'''Block listening to events from the textbuffer until further notice.
 		Any change in between will not be undo-able (and mess up the undo stack)
 		unless it is recorded explicitly. Keeps count of number of calls to
 		block() and unblock().

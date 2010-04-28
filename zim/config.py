@@ -539,7 +539,7 @@ class HeadersDict(ListDict):
 
 	def read(self, lines):
 		'''Checks for headers at the start of the list of lines and if any
-		reads them into the dict untill the first empty line. Will shift any
+		reads them into the dict until the first empty line. Will shift any
 		lines belonging to the header block, so after this method returns the
 		input does no longer contain the header block.
 		'''

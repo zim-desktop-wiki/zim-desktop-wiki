@@ -381,7 +381,7 @@ class GtkInterface(NotebookInterface):
 		NotebookInterface.spawn(self, *args)
 
 	def main(self):
-		'''Wrapper for gtk.main(); does not return untill program has ended.'''
+		'''Wrapper for gtk.main(); does not return until program has ended.'''
 		if self.notebook is None:
 			import zim.gui.notebookdialog
 			notebook = zim.gui.notebookdialog.prompt_notebook()
@@ -1004,9 +1004,9 @@ class GtkInterface(NotebookInterface):
 			# well be that the dialog thinks there are no links
 			# but they are simply not indexed yet
 			cont = QuestionDialog(dialog or self,
-				_('The index is still busy updating. Untill this'
-				  'is finished links can not be updated correctly.'
-				  'Performing this action now could break links,'
+				_('The index is still busy updating. Until this '
+				  'is finished links can not be updated correctly. '
+				  'Performing this action now could break links, '
 				  'do you want to continue anyway?'
 				) # T: question dialog text
 			).run()
