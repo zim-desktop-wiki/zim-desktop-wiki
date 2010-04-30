@@ -232,8 +232,11 @@ class ExportDialog(Dialog):
 				ErrorDialog(self, _('Please specify a URL for the document root')).run()
 					# T: error message when input for export dialog not OK
 				return False
-
-		exporter = Exporter(self.ui.notebook, **options)
+		try:
+			exporter = Exporter(self.ui.notebook, **options)
+		except:
+			ErrorDialog(self, _('The template you have chosen seems to be invalid')).run()
+			return False
 
 		dialog = ProgressBarDialog(self, _('Exporting notebook'))
 			# T: Title for progressbar window
