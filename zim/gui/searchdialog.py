@@ -10,7 +10,7 @@ from zim.gui.widgets import Dialog, BrowserTreeView
 from zim.search import *
 
 
-logger = logging.getLogger('zim.gui.searhdialog')
+logger = logging.getLogger('zim.gui.searchdialog')
 
 
 class SearchDialog(Dialog):

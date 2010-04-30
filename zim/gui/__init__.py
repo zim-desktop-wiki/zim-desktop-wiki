@@ -48,6 +48,7 @@ from zim.gui.widgets import Button, MenuButton, \
 	Dialog, ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import get_application, CustomToolManager
+from zim.gui.searchdialog import SearchDialog
 
 logger = logging.getLogger('zim.gui')
 
@@ -1038,11 +1039,19 @@ class GtkInterface(NotebookInterface):
 		if page.hascontent or page.haschildren:
 			DeletePageDialog(self, path=page).run()
 		else:
-			ErrorDialog(self, (
-				_('Page does not exist'), # T: short error description
-				_('This page does not exist, so it can not be deleted')
-					# T: long error description
-			) ).run()
+			unlink = QuestionDialog(self,
+				(_('Cannot delete placeholder page.'),
+				 _('This is a placeholder page. It does not have content, '
+				'but at least one link on this page exists. To remove the '
+				'placeholder page, you have to remove all links on this '
+				'page. Do you want to show a list of all pages containing '
+				'these links?'))).run()
+			if unlink:
+				if self.notebook.index.updating:
+					# Index need to be complete in order to be 100% sure we
+					# know all backlinks, so no way we can update links before.
+					raise IndexBusyError, 'Index busy'
+				SearchDialog(self,'LinksTo: "%s"' % (self.page.name,)).run()
 
 	def show_properties(self):
 		from zim.gui.propertiesdialog import PropertiesDialog
