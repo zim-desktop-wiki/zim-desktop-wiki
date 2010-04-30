@@ -4009,6 +4009,8 @@ class FindBar(FindWidget, gtk.HBox):
 	def hide(self):
 		gtk.HBox.hide(self)
 		self.set_no_show_all(True)
+		buffer = self.textview.get_buffer()
+		buffer.finder.set_highlight(False)
 
 	def on_find_entry_activate(self):
 		self.on_find_entry_changed()
