@@ -59,6 +59,35 @@ def list_plugins():
 	return plugins
 
 
+class PluginClassMeta(gobject.GObjectMeta):
+	'''Meta class for objects inheriting from PluginClass. It adds
+	wrappers to several methods to call proper call backs.
+	'''
+
+	def __init__(klass, name, bases, dictionary):
+		originit = klass.__init__
+
+		#~ print 'DECORATE INIT', klass
+		def decoratedinit(self, ui, *arg, **kwarg):
+			# Calls initialize_ui and finalize_notebooks *after* __init__
+			#~ print 'INIT', self
+			originit(self, ui, *arg, **kwarg)
+			if not self.__class__ is klass:
+				return # Avoid wrapping both base class and sub classes
+
+			if self.ui.notebook:
+				self.initialize_ui(ui)
+				self.finalize_notebook(self.ui.notebook)
+			else:
+				self.initialize_ui(ui)
+				self.ui.connect_after('open-notebook', self._merge_uistate)
+					# FIXME with new plugin API should not need this merging
+				self.ui.connect_object_after('open-notebook',
+					self.__class__.finalize_notebook, self)
+
+		klass.__init__ = decoratedinit
+
+
 class PluginClass(gobject.GObject):
 	'''Base class for plugins. Every module containing a plugin should
 	have exactly one class derived from this base class. That class
@@ -89,15 +118,16 @@ class PluginClass(gobject.GObject):
 	the preferences dialog.
 	'''
 
-	plugin_info = {}
-
-	plugin_preferences = ()
+	__metaclass__ = PluginClassMeta
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-
 	}
+
+	plugin_info = {}
+
+	plugin_preferences = ()
 
 	@classmethod
 	def check_dependencies_ok(klass):
@@ -131,17 +161,8 @@ class PluginClass(gobject.GObject):
 		if self.ui.notebook:
 			section = self.__class__.__name__
 			self.uistate = self.ui.uistate[section]
-			self.initialize_ui(ui)
-
-			self.finalize_notebook(self.ui.notebook)
 		else:
 			self.uistate = ListDict()
-			self.initialize_ui(ui)
-			self.ui.connect_after('open-notebook', self._merge_uistate)
-				# FIXME with new plugin API should not need this merging
-
-			self.ui.connect_object_after('open-notebook',
-				self.__class__.finalize_notebook, self)
 
 	def _merge_uistate(self, *a):
 		# As a convenience we provide a uistate dict directly after

@@ -6,7 +6,7 @@ import gobject
 import gtk
 
 from zim.plugins import PluginClass
-from zim.config import data_file
+from zim.config import data_file, config_file
 from zim.notebook import get_notebook_list
 
 
@@ -41,23 +41,27 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Tray Icon',
 	}
 
-	#~ plugin_preferences = (
+	plugin_preferences = (
 		# key, type, label, default
-		#~ ('standalone', 'bool', _('Show a separate tray icon for each notebook'), False), # T: preferences option
-	#~ )
+		('classic', 'bool', _('Classic trayicon, no menu on left click'), False), # T: preferences option
+		#~ ('standalone', 'bool', _('Show a separate icon for each notebook'), False), # T: preferences option
+	)
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
 		self.icon = None
 		self.proxyobject = None
+
+	def initialize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
-			if ui.usedaemon:
-			#~ and not self.preferences['standalone']
+			if ui.usedaemon :
+			#~ and not self.preferences['standalone']:
 				from zim.daemon import DaemonProxy
 				self.proxyobject = DaemonProxy().get_object(
 					'zim.plugins.trayicon.DaemonTrayIcon', 'TrayIcon')
 			else:
-				self.icon = StandAloneTrayIcon(self.ui)
+				self.icon = StandAloneTrayIcon(self.ui, self.preferences)
+
 			self.ui.hideonclose = True
 
 	@classmethod
@@ -74,8 +78,9 @@ This is a core plugin shipping with zim.
 
 		self.ui.hideonclose = False
 
-	#~ def do_preferences_changed(self):
-		#~ pass
+	def do_preferences_changed(self):
+		if self.proxyobject:
+			self.proxyobject.on_preferences_changed(self.preferences)
 
 
 class TrayIcon(gtk.StatusIcon):
@@ -88,30 +93,43 @@ class TrayIcon(gtk.StatusIcon):
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 
 	def do_activate(self):
-		notebooks = list(self._list_open_notebooks())
-		if len(notebooks) == 0:
-			# No open notebooks, prompt full list
-			self.do_popup_menu(button=1)
-		elif len(notebooks) == 1:
-			# Only one open notebook - present it
-			self.do_activate_notebook(notebooks[0][1])
+		open_notebooks = list(self._list_open_notebooks())
+		if self.preferences['classic']:
+			# Classic behavior, try show crrent notebook
+			if len(open_notebooks) == 0:
+				# No open notebooks, open default or prompt full list
+				notebooks = get_notebook_list()
+				if notebooks.default:
+					self.do_activate_notebook(notebooks.default)
+				else:
+					self.do_popup_menu_notebooks(notebooks)
+			elif len(open_notebooks) == 1:
+				# Only one open notebook - present it
+				self.do_activate_notebook(open_notebooks[0][1])
+			else:
+				# Let the user choose from the open notebooks
+				self.do_popup_menu_notebooks(open_notebooks)
 		else:
-			# Let the user choose from the open notebooks
-			self.do_popup_menu_open_notebooks(list=notebooks)
+			# New (app-indicator style) behavior, always show the menu
+			# FIXME menu pops down immediatly on button-up -- need time ??
+			self.do_popup_menu(button=1)
 
 	def _list_open_notebooks(self):
 		raise NotImplementedError
 
-	def do_popup_menu_open_notebooks(self, button=1, activate_time=0, list=None):
-		if list is None:
-			list = self._list_open_notebooks()
-
+	def do_popup_menu_notebooks(self, list, button=1, activate_time=0):
 		menu = gtk.Menu()
+
+		item = gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
+		item.set_sensitive(False)
+		menu.append(item)
+
 		self._populate_menu_notebooks(menu, list)
 		menu.show_all()
 		menu.popup(None, None, gtk.status_icon_position_menu, button, activate_time, self)
 
 	def do_popup_menu(self, button=3, activate_time=0):
+		#~ print '>>', button, activate_time
 		menu = gtk.Menu()
 
 		item = gtk.MenuItem(_('_Create Note...')) # T: menu item in tray icon menu
@@ -120,10 +138,15 @@ class TrayIcon(gtk.StatusIcon):
 
 		menu.append(gtk.SeparatorMenuItem())
 
+		item = gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
+		item.set_sensitive(False)
+		menu.append(item)
+
 		list = get_notebook_list()
 		self._populate_menu_notebooks(menu, list.get_names())
 
-		item = gtk.MenuItem(_('_Other...')) # T: menu item in tray icon menu
+		item = gtk.MenuItem('  '+_('_Other...'))  # Hack - using '  ' to indent visually
+			# T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_open_notebook, self)
 		menu.append(item)
 
@@ -138,9 +161,10 @@ class TrayIcon(gtk.StatusIcon):
 
 	def _populate_menu_notebooks(self, menu, list):
 		# Populate the menu with a list of notebooks
+		# TODO put checkbox behind open notebooks when we run in daemon mode
 		for name, uri in list:
 			#~ print '>>>', name, uri
-			item = gtk.MenuItem(name)
+			item = gtk.MenuItem('  ' + name) # Hack - using '  ' to indent visually
 			item.connect('activate', lambda o, u: self.do_activate_notebook(u), uri)
 			menu.append(item)
 
@@ -169,10 +193,11 @@ class StandAloneTrayIcon(TrayIcon):
 	single stand-alone notebook.
 	'''
 
-	def __init__(self, ui):
+	def __init__(self, ui, preferences):
 		TrayIcon.__init__(self)
 		self.ui = ui
 		self.ui.connect('open-notebook', self.on_open_notebook)
+		self.preferences = preferences
 
 	def on_open_notebook(self, ui, notebook):
 		self.set_tooltip(notebook.name)
@@ -204,12 +229,20 @@ class DaemonTrayIcon(TrayIcon):
 		TrayIcon.__init__(self)
 		self.daemon = DaemonProxy()
 
+		# init preferences
+		preferences = config_file('preferences.conf')
+		self.preferences = preferences['TrayIconPlugin']
+		for key, type, label, default in TrayIconPlugin.plugin_preferences:
+			self.preferences.setdefault(key, default)
+
 	def main(self):
 		# Set window icon in case we open the notebook dialog
 		icon = data_file('zim.png').path
 		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
-
 		gtk.main()
+
+	def on_preferences_changed(self, preferences):
+		self.preferences = preferences
 
 	def quit(self):
 		gtk.main_quit()

@@ -560,6 +560,10 @@ class Dialog(gtk.Dialog):
 		setattr(handler, attr, weakref.ref(dialog))
 		return dialog
 
+	@property
+	def destroyed(self): return not self.has_user_ref_count
+		# Returns True when dialog has been destroyed
+
 	def __init__(self, ui, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			help_text=None, fields=None, help=None,
@@ -584,12 +588,11 @@ class Dialog(gtk.Dialog):
 		self.ui = ui
 		self.result = None
 		self.inputs = {}
-		self.destroyed = False
 		self.path_context = path_context
 		gtk.Dialog.__init__(
 			self, parent=get_window(self.ui),
 			title=format_title(title),
-			flags=gtk.DIALOG_NO_SEPARATOR,
+			flags=gtk.DIALOG_NO_SEPARATOR|gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
@@ -825,10 +828,8 @@ class Dialog(gtk.Dialog):
 		Returns the 'result' attribute of the dialog if any.
 		'''
 		self.show_all()
-		assert not self.destroyed, 'BUG: re-using dialog after it was closed'
 		while not self.destroyed:
 			gtk.Dialog.run(self)
-			# will be broken when _close is set from do_response()
 		return self.result
 
 	def present(self):
@@ -840,7 +841,6 @@ class Dialog(gtk.Dialog):
 
 	def show_all(self):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
-		assert not self.destroyed, 'BUG: re-using dialog after it was closed'
 		logger.debug('Opening dialog "%s"', self.title)
 		gtk.Dialog.show_all(self)
 
@@ -857,18 +857,18 @@ class Dialog(gtk.Dialog):
 		if id == gtk.RESPONSE_OK and not self._no_ok_action:
 			logger.debug('Dialog response OK')
 			try:
-				self.destroyed = self.do_response_ok()
+				destroy = self.do_response_ok()
 			except Exception, error:
 				ErrorDialog(self.ui, error).run()
-				self.destroyed = False
+				destroy = False
 		else:
-			self.destroyed = True
+			destroy = True
 
 		w, h = self.get_size()
 		self.uistate['windowsize'] = (w, h)
 		self.save_uistate()
 
-		if self.destroyed:
+		if destroy:
 			self.destroy()
 			logger.debug('Closed dialog "%s"', self.title[:-6])
 
