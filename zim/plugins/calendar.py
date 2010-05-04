@@ -144,18 +144,19 @@ This is a core plugin shipping with zim.
 		self.ui.notebook.namespace_properties[ns]['template'] = '_Calendar'
 		self._set_template = ns
 
-		if self.preferences['embedded']:
-			if self.ui_id_show_dialog:
-				self.ui.remove_ui(self, self.ui_id_show_dialog)
-				self.ui_id_show_dialog = None
+		if self.ui.ui_type == 'gtk':
+			if self.preferences['embedded']:
+				if self.ui_id_show_dialog:
+					self.ui.remove_ui(self, self.ui_id_show_dialog)
+					self.ui_id_show_dialog = None
 
-			self.connect_embedded_widget()
-		else:
-			self.disconnect_embedded_widget()
+				self.connect_embedded_widget()
+			else:
+				self.disconnect_embedded_widget()
 
-			if not self.ui_id_show_dialog:
-				self.ui_id_show_dialog = \
-					self.ui.add_ui(ui_xml_show_dialog, self)
+				if not self.ui_id_show_dialog:
+					self.ui_id_show_dialog = \
+						self.ui.add_ui(ui_xml_show_dialog, self)
 
 	def path_from_date(self, date):
 		return Path( self.preferences['namespace']

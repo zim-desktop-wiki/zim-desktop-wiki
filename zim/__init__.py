@@ -224,11 +224,11 @@ def main(argv):
 		except ValueError:
 			raise GetoptError, ("--port takes an integer argument", 'port')
 
-	# set loggin output level for logging root
-	level = logging.WARNING
+	# set loggin output level for logging root (format has been set in zim.py)
+	level = logging.WARN
 	if optsdict.pop('verbose', False): level = logging.INFO
 	if optsdict.pop('debug', False): level = logging.DEBUG # no "elif" !
-	logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
+	logging.getLogger().setLevel(level)
 
 	logger.info('This is zim %s', __version__)
 	if level == logging.DEBUG:
@@ -271,7 +271,9 @@ def main(argv):
 			from zim.notebook import resolve_notebook
 			notebook, page = resolve_notebook(args[0])
 			if not notebook:
-				notebook = args[0]
+				notebook = File(args[0]).uri
+				# make sure daemon approves of this uri and proper
+				# error dialog is shown as a result by GtkInterface
 			if len(args) == 2:
 				page = args[1]
 
