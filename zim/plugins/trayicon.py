@@ -10,6 +10,14 @@ from zim.config import data_file, config_file
 from zim.notebook import get_notebook_list
 
 
+# Try if we are on Ubunutu with app-indicator support
+try:
+	import appindicator
+except ImportError:
+	appindicator = None
+
+
+
 def main(daemonproxy, *args):
 	assert daemonproxy is None, 'Not (yet) intended as daemon child'
 
@@ -22,8 +30,14 @@ def main(daemonproxy, *args):
 	from zim import ZIM_EXECUTABLE
 	check_call([ZIM_EXECUTABLE, '--daemon'])
 
+	preferences = {'classic': False} # TODO get this from config file
+
 	from zim.daemon import DaemonProxy
-	DaemonProxy().run('zim.plugins.trayicon.DaemonTrayIcon', 'TrayIcon')
+	if appindicator and not preferences['classic']:
+		klass = 'zim.plugins.trayicon.AppIndicatorTrayIcon'
+	else:
+		klass = 'zim.plugins.trayicon.DaemonTrayIcon'
+	DaemonProxy().run(klass, 'TrayIcon', preferences)
 
 
 class TrayIconPlugin(PluginClass):
@@ -56,9 +70,15 @@ This is a core plugin shipping with zim.
 		if self.ui.ui_type == 'gtk':
 			if ui.usedaemon :
 			#~ and not self.preferences['standalone']:
+				if appindicator and not self.preferences['classic']:
+					klass = 'zim.plugins.trayicon.AppIndicatorTrayIcon'
+				else:
+					klass = 'zim.plugins.trayicon.DaemonTrayIcon'
+				# TODO re-init this if preferences change
 				from zim.daemon import DaemonProxy
-				self.proxyobject = DaemonProxy().get_object(
-					'zim.plugins.trayicon.DaemonTrayIcon', 'TrayIcon')
+				preferences = dict(self.preferences)
+				self.proxyobject = DaemonProxy().get_object(klass, 'TrayIcon', preferences)
+					# getting the object implicitly starts it, if it didn't exist yet
 			else:
 				self.icon = StandAloneTrayIcon(self.ui, self.preferences)
 
@@ -79,15 +99,85 @@ This is a core plugin shipping with zim.
 		self.ui.hideonclose = False
 
 	def do_preferences_changed(self):
+		# TODO replace this by a signal in the daemon
 		if self.proxyobject:
 			self.proxyobject.on_preferences_changed(self.preferences)
 
 
-class TrayIcon(gtk.StatusIcon):
-	'''Base class for the zim tray icon'''
+class TrayIconBase(object):
+	'''Base class for the zim tray icon.
+	Contains code to create the tray icon menus.
+	'''
 
-	def __init__(self):
+	def get_trayicon_menu(self):
+		'''Returns the main 'tray icon menu'''
+		menu = gtk.Menu()
+
+		item = gtk.MenuItem(_('_Create Note...')) # T: menu item in tray icon menu
+		item.connect_object('activate', self.__class__.do_create_note, self)
+		menu.append(item)
+
+		menu.append(gtk.SeparatorMenuItem())
+
+		list = get_notebook_list()
+		self.populate_menu_with_notebooks(menu, list.get_names())
+
+		item = gtk.MenuItem('  '+_('_Other...'))  # Hack - using '  ' to indent visually
+			# T: menu item in tray icon menu
+		item.connect_object('activate', self.__class__.do_open_notebook, self)
+		menu.append(item)
+
+		menu.append(gtk.SeparatorMenuItem())
+
+		item = gtk.MenuItem(_('_Quit')) # T: menu item in tray icon menu
+		item.connect_object('activate', self.__class__.do_quit, self)
+		menu.append(item)
+
+		return menu
+
+	def populate_menu_with_notebooks(self, menu, list):
+		'''Populate a menu with a list of notebooks'''
+		# TODO put checkbox behind open notebooks when we run in daemon mode
+		item = gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
+		item.set_sensitive(False)
+		menu.append(item)
+
+		for name, uri in list:
+			#~ print '>>>', name, uri
+			item = gtk.MenuItem('  ' + name) # Hack - using '  ' to indent visually
+			item.connect('activate', lambda o, u: self.do_activate_notebook(u), uri)
+			menu.append(item)
+
+	def do_activate_notebook(self, uri):
+		'''Open a specific notebook.
+		To be overloaded in child class.
+		'''
+		raise NotImplementedError
+
+	def do_quit(self):
+		'''Quit zim.
+		To be overloaded in child class.
+		'''
+		raise NotImplementedError
+
+	def do_open_notebook(self):
+		'''Opens the notebook dialogs'''
+		from zim.gui.notebookdialog import NotebookDialog
+		NotebookDialog.unique(self, self, callback=self.do_activate_notebook).show()
+
+	def do_create_note(self):
+		'''Show a dialog to create a new note'''
+		from zim.plugins.dropwindow import DropWindowDialog
+		dialog = DropWindowDialog(None, {})
+		dialog.show()
+
+
+class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
+	'''Base class for a tray icon based on gtk.StatusIcon'''
+
+	def __init__(self, preferences):
 		gtk.StatusIcon.__init__(self)
+		self.preferences = preferences
 		self.set_from_file(data_file('zim.png').path)
 		self.set_tooltip(_('Zim Desktop Wiki')) # T: tooltip for tray icon
 		self.connect('popup-menu', self.__class__.do_popup_menu)
@@ -119,96 +209,44 @@ class TrayIcon(gtk.StatusIcon):
 
 	def do_popup_menu_notebooks(self, list, button=1, activate_time=0):
 		menu = gtk.Menu()
-
-		item = gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
-		item.set_sensitive(False)
-		menu.append(item)
-
-		self._populate_menu_notebooks(menu, list)
+		self.populate_menu_with_notebooks(menu, list)
 		menu.show_all()
 		menu.popup(None, None, gtk.status_icon_position_menu, button, activate_time, self)
 
 	def do_popup_menu(self, button=3, activate_time=0):
 		#~ print '>>', button, activate_time
-		menu = gtk.Menu()
-
-		item = gtk.MenuItem(_('_Create Note...')) # T: menu item in tray icon menu
-		item.connect_object('activate', self.__class__.do_create_note, self)
-		menu.append(item)
-
-		menu.append(gtk.SeparatorMenuItem())
-
-		item = gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
-		item.set_sensitive(False)
-		menu.append(item)
-
-		list = get_notebook_list()
-		self._populate_menu_notebooks(menu, list.get_names())
-
-		item = gtk.MenuItem('  '+_('_Other...'))  # Hack - using '  ' to indent visually
-			# T: menu item in tray icon menu
-		item.connect_object('activate', self.__class__.do_open_notebook, self)
-		menu.append(item)
-
-		menu.append(gtk.SeparatorMenuItem())
-
-		item = gtk.MenuItem(_('_Quit')) # T: menu item in tray icon menu
-		item.connect_object('activate', self.__class__.do_quit, self)
-		menu.append(item)
-
+		menu = self.get_trayicon_menu()
 		menu.show_all()
 		menu.popup(None, None, gtk.status_icon_position_menu, button, activate_time, self)
 
-	def _populate_menu_notebooks(self, menu, list):
-		# Populate the menu with a list of notebooks
-		# TODO put checkbox behind open notebooks when we run in daemon mode
-		for name, uri in list:
-			#~ print '>>>', name, uri
-			item = gtk.MenuItem('  ' + name) # Hack - using '  ' to indent visually
-			item.connect('activate', lambda o, u: self.do_activate_notebook(u), uri)
-			menu.append(item)
-
-	def do_activate_notebook(self, uri):
-		raise NotImplementedError
-
-	def do_quit(self):
-		raise NotImplementedError
-
-	def do_open_notebook(self):
-		from zim.gui.notebookdialog import NotebookDialog
-		NotebookDialog.unique(self, self, callback=self.do_activate_notebook).show()
-
-	def do_create_note(self):
-		from zim.plugins.dropwindow import DropWindowDialog
-		dialog = DropWindowDialog(None, {})
-		dialog.show()
+# Need to register classes overriding gobject signals
+gobject.type_register(StatusIconTrayIcon)
 
 
-# Need to register classes defining gobject signals
-gobject.type_register(TrayIcon)
-
-
-class StandAloneTrayIcon(TrayIcon):
+class StandAloneTrayIcon(StatusIconTrayIcon):
 	'''This class defines the tray icon used for a
 	single stand-alone notebook.
 	'''
 
 	def __init__(self, ui, preferences):
-		TrayIcon.__init__(self)
+		StatusIconTrayIcon.__init__(self, {'classic': True})
+			# Stand-alone icon always uses classic behavior
 		self.ui = ui
 		self.ui.connect('open-notebook', self.on_open_notebook)
-		self.preferences = preferences
 
 	def on_open_notebook(self, ui, notebook):
+		# TODO hook this to finalize_notebook in the plugin
 		self.set_tooltip(notebook.name)
 		if notebook.icon:
 			self.set_from_file(notebook.icon)
 
 	def _list_open_notebooks(self):
+		# No daemon, so we only know one open notebook
 		notebook = self.ui.notebook
 		return [(notebook.name, notebook.uri)]
 
 	def do_activate_notebook(self, uri):
+		# Open a notebook using the ui object
 		if uri == self.ui.notebook.uri:
 			self.ui.toggle_present()
 		else:
@@ -219,21 +257,15 @@ class StandAloneTrayIcon(TrayIcon):
 		self.ui.quit()
 
 
-class DaemonTrayIcon(TrayIcon):
-	'''This class defines the tray icon used in combination with the
-	daemon process. It runs as a separate child process.
+class DaemonTrayIconMixin(object):
+	'''Mixin class for using the tray icon in combination with the
+	daemon process. Sub classes should run as a separate child process.
 	'''
 
-	def __init__(self):
+	def __init__(self, preferences):
 		from zim.daemon import DaemonProxy
-		TrayIcon.__init__(self)
 		self.daemon = DaemonProxy()
-
-		# init preferences
-		preferences = config_file('preferences.conf')
-		self.preferences = preferences['TrayIconPlugin']
-		for key, type, label, default in TrayIconPlugin.plugin_preferences:
-			self.preferences.setdefault(key, default)
+		self.preferences = preferences
 
 	def main(self):
 		# Set window icon in case we open the notebook dialog
@@ -259,3 +291,29 @@ class DaemonTrayIcon(TrayIcon):
 	def do_quit(self):
 		self.daemon.quit()
 
+
+class DaemonTrayIcon(DaemonTrayIconMixin, StatusIconTrayIcon):
+	'''Trayicon using the daemon and based on gtk.StatusIcon'''
+
+	def __init__(self, preferences):
+		StatusIconTrayIcon.__init__(self, preferences)
+		DaemonTrayIconMixin.__init__(self, preferences)
+
+
+class AppIndicatorTrayIcon(DaemonTrayIconMixin, TrayIconBase):
+	'''Trayicon using the daemon and based on appindicator'''
+
+	def __init__(self, preferences):
+		DaemonTrayIconMixin.__init__(self, preferences)
+
+		self.appindicator = appindicator.Indicator(
+			'zim-desktop-wiki', 'zim', appindicator.CATEGORY_APPLICATION_STATUS)
+		self.appindicator.set_status(appindicator.STATUS_ACTIVE)
+		# Should we use PASSIVE when no notebook is open ?
+		menu = self.get_trayicon_menu()
+		menu.show_all()
+		self.appindicator.set_menu(menu)
+
+		#~ def log(*a):
+			#~ print '!!! SHOW', a
+		#~ menu.connect('show', log)
