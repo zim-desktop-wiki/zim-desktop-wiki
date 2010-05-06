@@ -24,6 +24,9 @@ The index keeps pages that are linked by other pages even if you delete them. To
 === I would like zim to hide in the system tray. ===
 There is a [[Plugins:Tray Icon|Tray Icon plugin]] which can be enabled from the Preferences dialog.
 
+=== I would like to start zim hidden in the system tray. ===
+You can call the [[Plugins:Tray Icon|Tray Icon plugin]] with the command "''zim --plugin trayicon''"
+
 === Can I make zim appear with a global keybinding? ===
 By default zim will  only run a single instance of each notebook. Trying to open the same notebook again will just pop the corresponding window to the foreground. So you can set a default notebook (see [[Help:Notebooks|Notebooks]]) and just make a global key binding run the command "''zim''". 
 
@@ -31,7 +34,7 @@ By default zim will  only run a single instance of each notebook. Trying to open
 Yes. Copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit as you see fit. See the [[Help:Config Files|Config Files]] page for the syntax of this file.
 
 === Can I have encrypted notebooks? ===
-Zim notebooks do not support encryption or password protection natively. However you can use for example [[http://www.arg0.net/encfs|encfs]] to encrypt your notebooks. ~~and have zim mount and unmount them automatically.~~
+Zim notebooks do not support encryption or password protection natively. However you can use for example [[http://www.arg0.net/encfs|encfs]] to encrypt your notebooks.
 
 === Can I have full calendaring in zim? ===
 Well, if you really want to, you can use zim as your agenda. However, the Calendar feature is more intended to keep various kinds of journals or logbooks. I'm very hesitant to add calendaring features because these are usually tied to email applications. I admit that it would be really cool to link notes, emails and appointments, but I have no plans to extend zim to become an email reader.
@@ -41,3 +44,16 @@ Yes it does. See the download page on the website for more notes on installing o
 
 === Does it run on OS X? ===
 Yes it does. You can install the dependencies usign [[http://www.macports.org/|Mac Ports]].
+
+=== I want to move/backup/syncronize a zim notebook. Which files do I need to take care of? ===
+The visible files in the notebook folder contain all data of notes and attachments.
+
+=== What is the hidden .zim folder in my notebook folder? ===
+The hidden .zim folder contains only caches and GUI state. It doesn't contain any information that can not be recreated on the fly.
+
+=== I switched from the perl version to the python version and miss my favorite feature. ===
+Some features of the perl version of zim are not yet implemented in the python version.
+
+=== I have a useful trick or tip. How can I share it with other users? ===
+You can have a look at the [[http://www.zim-wiki.org/wiki/doku.php|zim documentation wiki]]. It has a section dedicated to [[http://www.zim-wiki.org/wiki/doku.php?id=tips_and_tricks|tricks and tips]]. Or write a mail to the mailing list, see the [[https://launchpad.net/~zim-wiki|team page]] on launchpad
+

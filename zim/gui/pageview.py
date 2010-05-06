@@ -792,7 +792,7 @@ class TextBuffer(gtk.TextBuffer):
 				if '\n' in text:
 					name = 'pre'
 			tag = self.get_tag_table().lookup('style-'+name)
-			had_tag = self.range_has_tag(start, end, tag)
+			had_tag = self.range_has_tag(tag, start, end)
 			self.remove_textstyle_tags(start, end)
 			if not had_tag:
 				self.apply_tag(tag, start, end)
@@ -802,7 +802,7 @@ class TextBuffer(gtk.TextBuffer):
 
 			self.set_editmode_from_cursor()
 
-	def range_has_tag(self, start, end, tag):
+	def range_has_tag(self, tag, start, end):
 		'''Check if a certain tag appears anywhere in a certain range'''
 		# test right gravity for start iter, but left gravity for end iter
 		if tag in start.get_tags() \
@@ -814,6 +814,26 @@ class TextBuffer(gtk.TextBuffer):
 				return iter.compare(end) < 0
 			else:
 				return False
+
+ 	def range_has_tags(self, func, start, end):
+		'''Like range_has_tag() but uses a function to check for
+		multiple tags.
+		'''
+		# test right gravity for start iter, but left gravity for end iter
+		if any(filter(func, start.get_tags())) \
+		or any(filter(func, self.iter_get_zim_tags(end))):
+			return True
+		else:
+			iter = start.copy()
+			iter.forward_to_tag_toggle(None)
+			while iter.compare(end) == -1:
+				if any(filter(func, iter.get_tags())):
+					return True
+
+				if not iter.forward_to_tag_toggle(None):
+					return False
+
+			return False
 
 	def remove_textstyle_tags(self, start, end):
 		'''Removes all textstyle tags from a range'''
@@ -2344,13 +2364,10 @@ class TextView(gtk.TextView):
 		def apply_link(match):
 			#~ print "LINK >>%s<<" % word
 			start = end.copy()
-			if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end)):
-				return False
 			if not start.backward_chars(len(match)):
 				return False
-			if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start)):
+			if buffer.range_has_tags(_is_not_indent_tag, start, end):
 				return False
-
 			tag = buffer.create_link_tag(match, match)
 			buffer.apply_tag(tag, start, end)
 			return True

@@ -17,11 +17,13 @@ from zim.plugins.versioncontrol import NoChangesError
 logger = logging.getLogger('zim.vcs.bzr')
 # TODO check if bzrlib also uses logging for output
 
-try:
-    import bzrlib.commands as bzrlib
-except ImportError:
-	logger.warn('Could not load bzrlib - falling back to calling bzr as external program')
-	bzrlib = None
+
+# Disabled using bzrlib for now as this seems to conflict with threading - see lp: 555257
+#~ try:
+#~     import bzrlib.commands as bzrlib
+#~ except ImportError:
+#~ 	logger.warn('Could not load bzrlib - falling back to calling bzr as external program')
+bzrlib = None
 
 
 class BzrlibApplication(Application):

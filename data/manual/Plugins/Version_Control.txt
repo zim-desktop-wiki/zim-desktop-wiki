@@ -9,14 +9,14 @@ Zim's default installation ships with a Version Control Plugin. To enable it, go
 **Dependencies:** This plugin requires one of the supported version control systems to be installed. Currently only Bazaar is supported, so this application is required. In specific the "bzr" command should be available in the system path.
 
 ===== Introduction =====
-If you want to keep track of your changes or if you want to collaborate on a Zim Wiki with as a team, Version Control is the best way to go. Zim integrates very well with existing Version Control Software because all relevant data is stored in plain text files.
+If you want to keep track of your changes or if you want to collaborate on a Zim Wiki as a team, Version Control is the best way to go. Zim integrates very well with existing Version Control Software because all relevant data is stored in plain text files.
 
 ===== Usage =====
 To save the current state of the Notebook, choose ''File -> Save Version...'' from the Main Menu and confirm that you want to enable Version Control. In the next window add a comment describing the changes (probably something like "yeah, first version" at this point) and confirm by clicking Save.
 You can browse the complete history of saved versions by selecting ''File -> Versions...'' from the Main Menu. You can view and restore previous versions of your Notebook and view all your changes between two versions in the window that open.
 
 ===== Sharing =====
-TODO here should be documented how to share the newly created repository with your colaborators...
+TODO here should be documented how to share the newly created repository with your collaborators...
 
 ===== Details =====
 Technically speaking a local repository is created when enabling Version Control -- a [[http://bazaar.canonical.com/en/|Bazaar]] repository to be precise. Every time you save a version, another revision is checked in. Zim just uses the Bazaar application, so you can always view and export your history using standard Bazaar tools.
@@ -36,3 +36,8 @@ You can and should ignore the following items however:
 * anything you manually put into or below the root folder you do not want to be in your repository
 
 The files in the .zim folder are caches of the index and some client configuration (window sizes, scroll position etc.) and some of it is in binary format, so you do not need or want it in your repository.
+
+If you want for some reason stop using version control and throw away all history, you can do the following:
+* disable the version control plugin
+* quit zim
+* remove the .bzr folder and .bzrignore file from your notebook
