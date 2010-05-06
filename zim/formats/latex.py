@@ -1,4 +1,6 @@
-# TODO: Licence Header and Copyright
+# -*- coding: utf-8 -*-
+
+# Copyright 2008 Johannes Reinhardt <jreinhardt@ist-dein-freund.de>
 
 '''This modules handles export of LaTeX Code'''
 
