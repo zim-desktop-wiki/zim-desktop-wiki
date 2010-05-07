@@ -134,8 +134,8 @@ class TrayIconBase(object):
 
 		menu.append(gtk.SeparatorMenuItem())
 
-		list = get_notebook_list()
-		self.populate_menu_with_notebooks(menu, list.get_names())
+		notebooks = self.list_all_notebooks()
+		self.populate_menu_with_notebooks(menu, notebooks)
 
 		item = gtk.MenuItem('  '+_('_Other...'))  # Hack - using '  ' to indent visually
 			# T: menu item in tray icon menu
@@ -150,14 +150,36 @@ class TrayIconBase(object):
 
 		return menu
 
-	def populate_menu_with_notebooks(self, menu, list):
+	def list_configured_notebooks(self):
+		# returns (name, uri) pairs
+		return get_notebook_list().get_names()
+
+	def list_open_notebooks(self):
+		# should return (name, uri) pairs
+		raise NotImplementedError
+
+	def list_all_notebooks(self):
+		uris = set()
+		notebooks = []
+		for nlist in (
+			self.list_configured_notebooks(),
+			self.list_open_notebooks()
+		):
+			for name, uri in nlist:
+				if not uri in uris:
+					uris.add(uri)
+					notebooks.append((name, uri))
+		notebooks.sort()
+		return notebooks
+
+	def populate_menu_with_notebooks(self, menu, notebooks):
 		'''Populate a menu with a list of notebooks'''
 		# TODO put checkbox behind open notebooks when we run in daemon mode
 		item = gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
 		item.set_sensitive(False)
 		menu.append(item)
 
-		for name, uri in list:
+		for name, uri in notebooks:
 			#~ print '>>>', name, uri
 			item = gtk.MenuItem('  ' + name) # Hack - using '  ' to indent visually
 			item.connect('activate', lambda o, u: self.do_activate_notebook(u), uri)
@@ -197,7 +219,7 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 
 	def do_activate(self):
-		open_notebooks = list(self._list_open_notebooks())
+		open_notebooks = list(self.list_open_notebooks())
 		if len(open_notebooks) == 0:
 			# No open notebooks, open default or prompt full list
 			notebooks = get_notebook_list()
@@ -211,9 +233,6 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 		else:
 			# Let the user choose from the open notebooks
 			self.do_popup_menu_notebooks(open_notebooks)
-
-	def _list_open_notebooks(self):
-		raise NotImplementedError
 
 	def do_popup_menu_notebooks(self, list, button=1, activate_time=0):
 		menu = gtk.Menu()
@@ -247,7 +266,7 @@ class StandAloneTrayIcon(StatusIconTrayIcon):
 		if notebook.icon:
 			self.set_from_file(notebook.icon)
 
-	def _list_open_notebooks(self):
+	def list_open_notebooks(self):
 		# No daemon, so we only know one open notebook
 		notebook = self.ui.notebook
 		return [(notebook.name, notebook.uri)]
@@ -282,7 +301,7 @@ class DaemonTrayIconMixin(object):
 	def quit(self):
 		gtk.main_quit()
 
-	def _list_open_notebooks(self):
+	def list_open_notebooks(self):
 		list = get_notebook_list()
 		for uri in self.daemon.list_notebooks():
 			name = list.get_name(uri) or uri
@@ -313,10 +332,12 @@ class AppIndicatorTrayIcon(DaemonTrayIconMixin, TrayIconBase):
 			'zim-desktop-wiki', 'zim', appindicator.CATEGORY_APPLICATION_STATUS)
 		self.appindicator.set_status(appindicator.STATUS_ACTIVE)
 		# Should we use PASSIVE when no notebook is open ?
+
+		self.on_notebook_list_changed()
+		self.daemon.connect_object('notebook-list-changed', self)
+
+	def on_notebook_list_changed(self):
 		menu = self.get_trayicon_menu()
 		menu.show_all()
 		self.appindicator.set_menu(menu)
 
-		#~ def log(*a):
-			#~ print '!!! SHOW', a
-		#~ menu.connect('show', log)
