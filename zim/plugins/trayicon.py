@@ -30,14 +30,15 @@ def main(daemonproxy, *args):
 	from zim import ZIM_EXECUTABLE
 	check_call([ZIM_EXECUTABLE, '--daemon'])
 
-	preferences = {'classic': False} # TODO get this from config file
+	preferences = config_file('preferences.conf')['TrayIconPlugin']
+	preferences.setdefault('classic', False)
 
 	from zim.daemon import DaemonProxy
 	if appindicator and not preferences['classic']:
 		klass = 'zim.plugins.trayicon.AppIndicatorTrayIcon'
 	else:
 		klass = 'zim.plugins.trayicon.DaemonTrayIcon'
-	DaemonProxy().run(klass, 'TrayIcon', preferences)
+	DaemonProxy().run(klass, 'TrayIcon')
 
 
 class TrayIconPlugin(PluginClass):
@@ -57,38 +58,52 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = (
 		# key, type, label, default
-		('classic', 'bool', _('Classic trayicon, no menu on left click'), False), # T: preferences option
+		('classic', 'bool', _('Classic trayicon,\ndo not use new style status icon on Ubuntu'), False), # T: preferences option
 		#~ ('standalone', 'bool', _('Show a separate icon for each notebook'), False), # T: preferences option
 	)
-
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		self.icon = None
-		self.proxyobject = None
-
-	def initialize_ui(self, ui):
-		if self.ui.ui_type == 'gtk':
-			if ui.usedaemon :
-			#~ and not self.preferences['standalone']:
-				if appindicator and not self.preferences['classic']:
-					klass = 'zim.plugins.trayicon.AppIndicatorTrayIcon'
-				else:
-					klass = 'zim.plugins.trayicon.DaemonTrayIcon'
-				# TODO re-init this if preferences change
-				from zim.daemon import DaemonProxy
-				preferences = dict(self.preferences)
-				self.proxyobject = DaemonProxy().get_object(klass, 'TrayIcon', preferences)
-					# getting the object implicitly starts it, if it didn't exist yet
-			else:
-				self.icon = StandAloneTrayIcon(self.ui, self.preferences)
-
-			self.ui.hideonclose = True
 
 	@classmethod
 	def check_dependencies(klass):
 		return [('GTK >= 2.10',gtk.gtk_version >= (2, 10, 0))]
 
+	def __init__(self, ui):
+		PluginClass.__init__(self, ui)
+		self._trayicon_class = None
+		self.icon = None
+		self.proxyobject = None
+
+	def initialize_ui(self, ui):
+		if self.ui.ui_type == 'gtk':
+			self.connect_trayicon()
+			self.ui.hideonclose = True
+
+	def connect_trayicon(self):
+			klass = self.get_trayicon_class()
+			if issubclass(klass, DaemonTrayIconMixin):
+				string = 'zim.plugins.trayicon.' + klass.__name__
+				from zim.daemon import DaemonProxy
+				self.proxyobject = DaemonProxy().get_object(string, 'TrayIcon')
+					# getting the object implicitly starts it, if it didn't exist yet
+			else:
+				self.icon = klass(self.ui)
+
+			self._trayicon_class = klass
+
+	def get_trayicon_class(self):
+			if self.ui.usedaemon :
+			#~ and not self.preferences['standalone']:
+				if appindicator and not self.preferences['classic']:
+					return AppIndicatorTrayIcon
+				else:
+					return DaemonTrayIcon
+			else:
+				self.icon = StandAloneTrayIcon(self.ui)
+
 	def disconnect(self):
+		self.disconnect_trayicon()
+		self.ui.hideonclose = False
+
+	def disconnect_trayicon(self):
 		if self.icon:
 			self.icon.set_visible(False)
 			self.icon = None
@@ -96,12 +111,12 @@ This is a core plugin shipping with zim.
 		if self.proxyobject:
 			self.proxyobject.quit()
 
-		self.ui.hideonclose = False
-
 	def do_preferences_changed(self):
-		# TODO replace this by a signal in the daemon
-		if self.proxyobject:
-			self.proxyobject.on_preferences_changed(self.preferences)
+		if self.ui.ui_type == 'gtk':
+			klass = self.get_trayicon_class()
+			if not klass is self._trayicon_class:
+				self.disconnect_trayicon()
+				self.connect_trayicon()
 
 
 class TrayIconBase(object):
@@ -175,34 +190,27 @@ class TrayIconBase(object):
 class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 	'''Base class for a tray icon based on gtk.StatusIcon'''
 
-	def __init__(self, preferences):
+	def __init__(self):
 		gtk.StatusIcon.__init__(self)
-		self.preferences = preferences
 		self.set_from_file(data_file('zim.png').path)
 		self.set_tooltip(_('Zim Desktop Wiki')) # T: tooltip for tray icon
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 
 	def do_activate(self):
 		open_notebooks = list(self._list_open_notebooks())
-		if self.preferences['classic']:
-			# Classic behavior, try show crrent notebook
-			if len(open_notebooks) == 0:
-				# No open notebooks, open default or prompt full list
-				notebooks = get_notebook_list()
-				if notebooks.default:
-					self.do_activate_notebook(notebooks.default)
-				else:
-					self.do_popup_menu_notebooks(notebooks)
-			elif len(open_notebooks) == 1:
-				# Only one open notebook - present it
-				self.do_activate_notebook(open_notebooks[0][1])
+		if len(open_notebooks) == 0:
+			# No open notebooks, open default or prompt full list
+			notebooks = get_notebook_list()
+			if notebooks.default:
+				self.do_activate_notebook(notebooks.default)
 			else:
-				# Let the user choose from the open notebooks
-				self.do_popup_menu_notebooks(open_notebooks)
+				self.do_popup_menu_notebooks(notebooks)
+		elif len(open_notebooks) == 1:
+			# Only one open notebook - present it
+			self.do_activate_notebook(open_notebooks[0][1])
 		else:
-			# New (app-indicator style) behavior, always show the menu
-			# FIXME menu pops down immediatly on button-up -- need time ??
-			self.do_popup_menu(button=1)
+			# Let the user choose from the open notebooks
+			self.do_popup_menu_notebooks(open_notebooks)
 
 	def _list_open_notebooks(self):
 		raise NotImplementedError
@@ -228,9 +236,8 @@ class StandAloneTrayIcon(StatusIconTrayIcon):
 	single stand-alone notebook.
 	'''
 
-	def __init__(self, ui, preferences):
-		StatusIconTrayIcon.__init__(self, {'classic': True})
-			# Stand-alone icon always uses classic behavior
+	def __init__(self, ui):
+		StatusIconTrayIcon.__init__(self)
 		self.ui = ui
 		self.ui.connect('open-notebook', self.on_open_notebook)
 
@@ -262,19 +269,15 @@ class DaemonTrayIconMixin(object):
 	daemon process. Sub classes should run as a separate child process.
 	'''
 
-	def __init__(self, preferences):
+	def __init__(self):
 		from zim.daemon import DaemonProxy
 		self.daemon = DaemonProxy()
-		self.preferences = preferences
 
 	def main(self):
 		# Set window icon in case we open the notebook dialog
 		icon = data_file('zim.png').path
 		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
 		gtk.main()
-
-	def on_preferences_changed(self, preferences):
-		self.preferences = preferences
 
 	def quit(self):
 		gtk.main_quit()
@@ -295,16 +298,16 @@ class DaemonTrayIconMixin(object):
 class DaemonTrayIcon(DaemonTrayIconMixin, StatusIconTrayIcon):
 	'''Trayicon using the daemon and based on gtk.StatusIcon'''
 
-	def __init__(self, preferences):
-		StatusIconTrayIcon.__init__(self, preferences)
-		DaemonTrayIconMixin.__init__(self, preferences)
+	def __init__(self):
+		StatusIconTrayIcon.__init__(self)
+		DaemonTrayIconMixin.__init__(self)
 
 
 class AppIndicatorTrayIcon(DaemonTrayIconMixin, TrayIconBase):
 	'''Trayicon using the daemon and based on appindicator'''
 
-	def __init__(self, preferences):
-		DaemonTrayIconMixin.__init__(self, preferences)
+	def __init__(self):
+		DaemonTrayIconMixin.__init__(self)
 
 		self.appindicator = appindicator.Indicator(
 			'zim-desktop-wiki', 'zim', appindicator.CATEGORY_APPLICATION_STATUS)
