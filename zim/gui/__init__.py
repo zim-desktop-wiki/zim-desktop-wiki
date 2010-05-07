@@ -776,7 +776,6 @@ class GtkInterface(NotebookInterface):
 			self.mainwindow.pageview.set_cursor_pos(historyrecord.cursor)
 			self.mainwindow.pageview.set_scroll_pos(historyrecord.scroll)
 
-
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
 
@@ -1831,6 +1830,8 @@ class MainWindow(gtk.Window):
 			self.statusbar_backlinks_button.set_sensitive(False)
 		else:
 			self.statusbar_backlinks_button.set_sensitive(True)
+
+		self.pageview.grab_focus()
 
 		#TODO: set toggle_readonly insensitive when page is readonly
 

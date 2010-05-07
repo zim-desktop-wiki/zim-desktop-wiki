@@ -168,7 +168,10 @@ def resolve_notebook(string):
 		nblist = get_notebook_list()
 		filepath = nblist.get_by_name(string)
 		if filepath is None:
-			return None, None # not found
+			if os.path.exists(string):
+				filepath = string # fall back to file path
+			else:
+				return None, None # not found
 
 	file = File(filepath) # Fixme need generic FS Path object here
 	if filepath.endswith('notebook.zim'):
