@@ -121,6 +121,7 @@
 -->
 			<separator/>
 			<menuitem action='reload_index'/>
+			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='edit_page_source'/>
 			<placeholder name='custom_tools'/>
