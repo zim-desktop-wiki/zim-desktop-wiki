@@ -16,7 +16,7 @@ from zim.gui.notebookdialog import NotebookComboBox
 
 
 usagehelp = '''\
-usage: zim --plugin dropwindow [OPTIONS]
+usage: zim --plugin createnoted [OPTIONS]
 
 Options:
   notebook=URI      Select the notebook in the dialog
@@ -49,14 +49,14 @@ def main(daemonproxy, *args):
 	icon = data_file('zim.png').path
 	gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
 
-	dialog = DropWindowDialog(None, options)
+	dialog = CreateNoteDialog(None, options)
 	dialog.run()
 
 
-class DropWindowPlugin(PluginClass):
+class CreateNotePlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Drop Window'), # T: plugin name
+		'name': _('Create Note'), # T: plugin name
 		'description': _('''\
 This plugin adds a dialog to quickly drop some text or clipboard
 content into a zim page.
@@ -72,19 +72,20 @@ This is a core plugin shipping with zim.
 	#~ )
 
 	def show(self):
-		dialog = DropWindowDialog.unique(self, None)
+		dialog = CreateNoteDialog.unique(self, None)
 		dialog.show()
 
 
-class DropWindowDialog(Dialog):
+class CreateNoteDialog(Dialog):
 
 	def __init__(self, ui, options):
-		Dialog.__init__(self, ui, _('Drop Window'))
+		self.config = config_file('createnote.conf')
+		self.uistate = self.config['CreateNoteDialog']
+
+		Dialog.__init__(self, ui, _('Create Note'))
 		self._updating_title = False
 		self._title_set_manually = False
 
-		self.config = config_file('dropwindow.conf')
-		self.uistate = self.config['DropWindowDialog']
 		self.uistate.setdefault('lastnotebook', None)
 		if self.uistate['lastnotebook']:
 			notebook = self.uistate['lastnotebook']
@@ -97,11 +98,6 @@ class DropWindowDialog(Dialog):
 		notebook = options.get('notebook') or notebook
 		namespace = options.get('namespace') or namespace
 		basename = options.get('basename')
-
-		self.uistate.setdefault(
-			'windowsize', (-1, -1), check=self.uistate.is_coord)
-		w, h = self.uistate['windowsize']
-		self.set_default_size(w, h)
 
 		table = gtk.Table()
 		self.vbox.pack_start(table, False)

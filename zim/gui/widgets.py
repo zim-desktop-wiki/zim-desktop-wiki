@@ -597,18 +597,22 @@ class Dialog(gtk.Dialog):
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 
-		if hasattr(ui, 'uistate') and isinstance(ui.uistate, zim.config.ConfigDict):
+		if hasattr(self, 'uistate'):
+			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
+		elif hasattr(ui, 'uistate') \
+		and isinstance(ui.uistate, zim.config.ConfigDict):
 			assert isinstance(defaultwindowsize, tuple)
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
-			#~ print '>>', self.uistate
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
-			w, h = self.uistate['windowsize']
-			self.set_default_size(w, h)
+			#~ print '>>', self.uistate
 		else:
 			self.uistate = { # used in tests/debug
 				'windowsize': (-1, -1)
 			}
+
+		w, h = self.uistate['windowsize']
+		self.set_default_size(w, h)
 
 		self._no_ok_action = False
 		if not button is None:

@@ -203,8 +203,8 @@ class TrayIconBase(object):
 
 	def do_create_note(self):
 		'''Show a dialog to create a new note'''
-		from zim.plugins.dropwindow import DropWindowDialog
-		dialog = DropWindowDialog(None, {})
+		from zim.plugins.createnote import CreateNoteDialog
+		dialog = CreateNoteDialog(None, {})
 		dialog.show()
 
 
