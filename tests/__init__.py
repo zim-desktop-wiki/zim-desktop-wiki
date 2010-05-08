@@ -5,6 +5,7 @@
 '''Zim test suite'''
 
 import os
+import sys
 import shutil
 import unittest
 import gettext
@@ -39,7 +40,7 @@ def set_environ():
 		'XDG_CACHE_HOME': './tests/tmp/cache_home'
 	})
 	if os.path.isdir(tmpdir):
-		shutil.rmtree(unicode(tmpdir))
+		shutil.rmtree(tmpdir)
 	os.mkdir(tmpdir)
 
 
@@ -50,11 +51,7 @@ def create_tmp_dir(name):
 	'''
 	dir = os.path.join('tests', 'tmp', name)
 	if os.path.exists(dir):
-		# Make sure to hand unicode to rmtree - looks like it filters
-		# through to listdir somewhere...
-		if not isinstance(dir, unicode):
-			dir = dir.decode('utf-8')
-		shutil.rmtree(dir)
+		shutil.rmtree(dir.encode(sys.getfilesystemencoding()))
 	assert not os.path.exists(dir) # make real sure
 	os.makedirs(dir)
 	assert os.path.exists(dir) # make real sure

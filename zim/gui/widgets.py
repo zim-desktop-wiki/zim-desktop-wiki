@@ -384,7 +384,7 @@ class PageEntry(InputEntry):
 		self.set_text(':'+path.name)
 
 	def get_path(self):
-		name = self.get_text().strip()
+		name = self.get_text().decode('utf-8').strip()
 		if not name:
 			return None
 		elif self.allow_select_root and name == ':':
@@ -407,7 +407,7 @@ class PageEntry(InputEntry):
 		self.emit('activate')
 
 	def do_changed(self):
-		text = self.get_text().strip()
+		text = self.get_text().decode('utf-8').strip()
 
 		if not text:
 			self.set_input_valid(True)
@@ -491,7 +491,7 @@ class LinkEntry(PageEntry):
 	'''Sub-class of PageEntry that also accepts file links and urls'''
 
 	def do_changed(self):
-		text = self.get_text()
+		text = self.get_text().decode('utf-8').strip()
 		if text:
 			type = link_type(text)
 			if type == 'page':
@@ -812,7 +812,7 @@ class Dialog(gtk.Dialog):
 			if isinstance(widget, (PageEntry, NamespaceEntry)):
 				values[name] = widget.get_path()
 			elif isinstance(widget, gtk.Entry):
-				values[name] = widget.get_text().strip()
+				values[name] = widget.get_text().decode('utf-8').strip()
 			elif isinstance(widget, gtk.ToggleButton):
 				values[name] = widget.get_active()
 			elif isinstance(widget, gtk.ComboBox):
@@ -1052,7 +1052,7 @@ class FileDialog(Dialog):
 		'''Wrapper for filechooser.get_filename().
 		Returns a File object or None.
 		'''
-		path = self.filechooser.get_filename()
+		path = self.filechooser.get_filename().decode('utf-8')
 		if path is None: return None
 		else: return File(path)
 
@@ -1060,14 +1060,15 @@ class FileDialog(Dialog):
 		'''Like get_file() but returns a list of File objects.
 		Useful in combination with the option "multiple".
 		'''
-		path = self.filechooser.get_filenames()
-		return map(lambda x: File(x),path)
+		paths = [path.decode('utf-8')
+				for path in self.filechooser.get_filenames()]
+		return [File(path) for path in paths]
 
 	def get_dir(self):
 		'''Wrapper for filechooser.get_filename().
 		Returns a Dir object or None.
 		'''
-		path = self.filechooser.get_filename()
+		path = self.filechooser.get_filename().decode('utf-8')
 		if path is None: return None
 		else: return Dir(path)
 

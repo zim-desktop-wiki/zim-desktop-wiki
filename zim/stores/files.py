@@ -66,9 +66,6 @@ class Store(StoreClass):
 	def get_page(self, path):
 		file = self._get_file(path)
 		dir = self._get_dir(path)
-		# TODO check if file exists and if it is writable
-		#	return None if does not exist and can not be created
-		#	set read-only when exists but not writable
 		return FileStorePage(path,
 				haschildren=dir.exists(), source=file, format=self.format)
 
@@ -76,6 +73,8 @@ class Store(StoreClass):
 		dir = self._get_dir(path)
 		names = set() # collide files and dirs with same name
 
+		# We skip files with a space in them, because we can not resolve
+		# them uniquely.
 		for file in dir.list():
 			if file.startswith('.') or file.startswith('_'):
 				continue # no hidden files or directories

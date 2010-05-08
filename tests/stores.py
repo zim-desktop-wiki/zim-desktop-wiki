@@ -63,6 +63,25 @@ class FilterOverWriteWarning(object):
 		return not record.getMessage().startswith('mtime check failed')
 
 
+class TestUtils(tests.TestCase):
+
+	def testFilenameEncodeing(self):
+		'''Test mapping page names to filenames'''
+		import zim.fs
+		realencoding = zim.fs.ENCODING
+		try:
+			zim.fs.ENCODING = 'ascii'
+			pagename = u'utf8:\u03b1\u03b2\u03b3'
+			filename = zim.stores.encode_filename(pagename)
+			self.assertEqual(filename, 'utf8/%CE%B1%CE%B2%CE%B3')
+			roundtrip = zim.stores.decode_filename(filename)
+			self.assertEqual(roundtrip, pagename)
+			zim.fs.ENCODING = realencoding
+		except Exception, error:
+			zim.fs.ENCODING = realencoding
+			raise
+
+
 class TestReadOnlyStore(object):
 
 	# This class does not inherit from TestCase itself as it is used
