@@ -47,7 +47,7 @@ from zim.gui.pageview import PageView
 from zim.gui.widgets import Button, MenuButton, \
 	Dialog, ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
 from zim.gui.clipboard import Clipboard
-from zim.gui.applications import get_application, CustomToolManager
+from zim.gui.applications import get_application, get_default_application, CustomToolManager
 
 logger = logging.getLogger('zim.gui')
 
@@ -1165,27 +1165,48 @@ class GtkInterface(NotebookInterface):
 				dir.touch()
 				self.open_file(dir)
 
-	def edit_page_source(self):
+	def edit_page_source(self, page=None):
+		'''Edit page source or source of a config file. Will keep
+		application hanging untill done.
+		'''
 		# This could also be defined as a custom tool, but defined here
 		# because we want to determine the editor dynamically
 		# We assume that the default app for a text file is a editor
 		# and not e.g. a viewer or a browser. Of course users can still
 		# define a custom tool for other editors.
+		if not page:
+			page = self.page
 		if hasattr(self.page, 'source'):
-			file = self.page.source # TODO copy to tmp file
+			file = self.page.source
 		else:
 			ErrorDialog('This page does not have a source file').run()
 			return
 
-		application = get_application(
-			self.preferences['GtkInterface']['file_browser'] )
+		if self._edit_file(file):
+			if page == self.page:
+				self.reload_page()
+
+	def edit_config_file(self, configfile):
+		if not configfile.file.exists():
+			if configfile.default.exists():
+				configfile.default.copyto(configfile.file)
+			else:
+				configfile.file.touch()
+		self._edit_file(configfile.file)
+
+	def _edit_file(self, file):
+		# We hope the application we get here does not return before
+		# editing is done, but unfortunately we have no way to force
+		# this. So may e.g. open a new tab in an existing window and
+		# return immediatly.
+		application = get_default_application('text/plain')
 		try:
 			application.run((file,))
 		except:
 			logger.exception('Error while running %s:', application.name)
+			return False
 		else:
-			# TODO copy back tmp file
-			self.reload_page()
+			return True
 
 	def show_server_gui(self):
 		# TODO instead of spawn, include in this process

@@ -122,6 +122,7 @@
 			<separator/>
 			<menuitem action='reload_index'/>
 			<separator/>
+			<menuitem action='edit_page_source'/>
 			<placeholder name='custom_tools'/>
 			<separator/>
 			<menuitem action='manage_custom_tools'/>

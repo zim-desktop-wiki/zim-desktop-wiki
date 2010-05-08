@@ -3597,6 +3597,8 @@ class InsertDateDialog(Dialog):
 		column = gtk.TreeViewColumn('_date_', cell_renderer, text=1)
 		self.view.append_column(column)
 		self.view.set_headers_visible(False)
+		self.view.connect('row-activated',
+			lambda *a: self.response(gtk.RESPONSE_OK) )
 
 		self.linkbutton = gtk.CheckButton(_('_Link to date'))
 			# T: check box in InsertDate dialog
@@ -3608,7 +3610,17 @@ class InsertDateDialog(Dialog):
 		if not self.link:
 			self.linkbutton.set_sensitive(False)
 
+		button = gtk.Button(stock=gtk.STOCK_EDIT)
+		button.connect('clicked', self.on_edit)
+		self.action_area.add(button)
+		self.action_area.reorder_child(button, 1)
+
+		self.load_file()
+
+	def load_file(self):
 		lastused = None
+		model = self.view.get_model()
+		model.clear()
 		for line in config_file('dates.list'):
 			line = line.strip()
 			if line.startswith('#'): continue
@@ -3625,16 +3637,16 @@ class InsertDateDialog(Dialog):
 			path = model.get_path(lastused)
 			self.view.get_selection().select_path(path)
 
-		self.view.connect('row-activated',
-			lambda *a: self.response(gtk.RESPONSE_OK) )
-
-		# TODO edit button which allows editing the config file
-
 	def save_uistate(self):
 		model, iter = self.view.get_selection().get_selected()
 		format = model[iter][0]
 		self.uistate['lastusedformat'] = format
 		self.uistate['linkdate'] = self.linkbutton.get_active()
+
+	def on_edit(self, button):
+		file = config_file('dates.list')
+		if self.ui.edit_config_file(file):
+			self.load_file()
 
 	def do_response_ok(self):
 		model, iter = self.view.get_selection().get_selected()

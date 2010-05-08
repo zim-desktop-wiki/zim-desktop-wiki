@@ -59,7 +59,7 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('classic', 'bool', _('Classic trayicon,\ndo not use new style status icon on Ubuntu'), False), # T: preferences option
-		#~ ('standalone', 'bool', _('Show a separate icon for each notebook'), False), # T: preferences option
+		('standalone', 'bool', _('Show a separate icon for each notebook'), False), # T: preferences option
 	)
 
 	@classmethod
@@ -90,14 +90,13 @@ This is a core plugin shipping with zim.
 			self._trayicon_class = klass
 
 	def get_trayicon_class(self):
-			if self.ui.usedaemon :
-			#~ and not self.preferences['standalone']:
+			if self.ui.usedaemon and not self.preferences['standalone']:
 				if appindicator and not self.preferences['classic']:
 					return AppIndicatorTrayIcon
 				else:
 					return DaemonTrayIcon
 			else:
-				self.icon = StandAloneTrayIcon(self.ui)
+				return StandAloneTrayIcon
 
 	def disconnect(self):
 		self.disconnect_trayicon()

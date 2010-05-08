@@ -93,8 +93,26 @@ def get_applications(mimetype):
 	return entries
 
 
-def get_default_application(mimetype):
-	pass # TODO: get default from defaults.list
+def get_default_application(mimetype, fallback=True):
+	'''Get default application based on 'applications/defaults.list'.
+	Default to first entry from get_applications() if no default is
+	found and 'fallback' is True. Returns None if nothing is found at all.
+	'''
+	application = None
+	for dir in _application_dirs():
+		file = dir.file('defaults.list')
+		for line in file.readlines():
+			if line.startswith(mimetype+'='):
+				_, name = line.split('=', 1)
+				name = name.strip()
+				application = get_application(name)
+				break
+		if application:
+			break
+	else:
+		if fallback:
+			application = get_applications(mimetype)[0]
+	return application
 
 
 def set_default_application(mimetype, name):
