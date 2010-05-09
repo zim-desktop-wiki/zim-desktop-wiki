@@ -487,7 +487,7 @@ class WindowsPath(UnixPath):
 		if re.match(r'^[/\\]+[A-Za-z]:[/\\]', path):
 			path = path.lstrip('/').lstrip('\\')
 		self.path = os.path.abspath(path)
-		self.encodedpath = encode(self.path)
+		self.encodedpath = self.path # so encodedpath in unicode
 
 	@property
 	def uri(self):
@@ -751,7 +751,7 @@ class File(Path):
 	def _on_write(self):
 		# flush and sync are already done before close()
 		tmp = self.encodedpath + '.zim.new~'
-		assert isfile(tmp)
+		assert os.path.isfile(tmp)
 		if isinstance(self, WindowsPath):
 			# On Windows, if dst already exists, OSError will be raised
 			# and no atomic operation to rename the file :(

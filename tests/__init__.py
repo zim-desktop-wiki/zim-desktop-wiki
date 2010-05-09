@@ -39,6 +39,10 @@ def set_environ():
 		'XDG_CONFIG_DIRS': './tests/tmp/config_dir',
 		'XDG_CACHE_HOME': './tests/tmp/cache_home'
 	})
+	if os.name == 'nt':
+		tmpdir = unicode(tmpdir)
+	else:
+		tmpdir = tmpdir.encode(sys.getfilesystemencoding())
 	if os.path.isdir(tmpdir):
 		shutil.rmtree(tmpdir)
 	os.mkdir(tmpdir)
@@ -50,8 +54,12 @@ def create_tmp_dir(name):
 	is called.
 	'''
 	dir = os.path.join('tests', 'tmp', name)
+	if os.name == 'nt':
+		dir = unicode(dir)
+	else:
+		dir = dir.encode(sys.getfilesystemencoding())
 	if os.path.exists(dir):
-		shutil.rmtree(dir.encode(sys.getfilesystemencoding()))
+		shutil.rmtree(dir)
 	assert not os.path.exists(dir) # make real sure
 	os.makedirs(dir)
 	assert os.path.exists(dir) # make real sure
