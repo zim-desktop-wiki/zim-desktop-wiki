@@ -7,9 +7,8 @@ import time
 
 from zim.fs import TmpFile
 from zim.plugins import PluginClass
-from zim.gui.widgets import Dialog, ErrorDialog
+from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
 from zim.applications import Application
-from zim.gui import maemo
 
 ui_xml = '''
 <ui>
@@ -28,6 +27,11 @@ ui_actions = (
 	('insert_screenshot', None, _('_Screenshot...'), '', '', False),
 		# T: menu item for insert screenshot plugin
 )
+
+if ui_environment['platform'] == 'maemo':
+	COMMAND = 'screenshot-tool'
+else:
+	COMMAND = 'scrot'
 
 
 class InsertScreenshotPlugin(PluginClass):
@@ -53,11 +57,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		if maemo:
-			dependency = ('screenshot-tool', Application(('screenshot-tool',)).tryexec())
-		else:
-			dependency = ('scrot',Application(('scrot',)).tryexec())
-		return [dependency]
+		return (COMMAND, Application((COMMAND,)).tryexec())
 
 	def insert_screenshot(self):
 		dialog = InsertScreenshotDialog.unique(self, self.ui)
@@ -70,7 +70,7 @@ class InsertScreenshotDialog(Dialog):
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Insert Screenshot')) # T: dialog title
-		if not(maemo):
+		if COMMAND == 'scrot':
 			self.screen_radio = gtk.RadioButton(None, _('Capture whole screen')) # T: option in 'insert screenshot' dialog
 			self.select_radio = gtk.RadioButton(self.screen_radio, _('Select window or region')) # T: option in 'insert screenshot' dialog
 			self.vbox.add(self.screen_radio)
@@ -86,15 +86,10 @@ class InsertScreenshotDialog(Dialog):
 		hbox.add(gtk.Label(' '+_('seconds'))) # T: label behind timer
 
 	def do_response_ok(self):
-		if maemo:
-			SCROT_COMMAND = 'screenshot-tool'
-		else:
-			SCROT_COMMAND = 'scrot'
-
 		tmpfile = TmpFile('insert-screenshot.png')
 		options = ()
 
-		if not(maemo):
+		if COMMAND == 'scrot':
 			if self.select_radio.get_active():
 				options += ('--select', '--border')
 				# Interactively select a window or rectangle with the mouse.
@@ -108,10 +103,10 @@ class InsertScreenshotDialog(Dialog):
 			options += ('-d', str(delay))
 			# Wait NUM seconds before taking a shot.
 
-		scrot = Application((SCROT_COMMAND,) + options)
+		helper = Application((COMMAND,) + options)
 
 		def callback(status, tmpfile):
-			if status == scrot.STATUS_OK:
+			if status == helper.STATUS_OK:
 				name = time.strftime('screenshot_%Y-%m-%d-%H%M%S.png')
 				page = self.ui.page
 				dir = self.ui.notebook.get_attachments_dir(page)
@@ -120,9 +115,9 @@ class InsertScreenshotDialog(Dialog):
 				self.ui.mainwindow.pageview.insert_image(file, interactive=False)
 			else:
 				ErrorDialog(self.ui,
-					_('Some error occured while running "')+SCROT_COMMAND+'"').run()
-					# T: Error message in "insert screenshot" dialog
+					_('Some error occured while running "%s"') % COMMAND).run()
+					# T: Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 
 		tmpfile.dir.touch()
-		scrot.spawn((tmpfile,), callback, tmpfile)
+		helper.spawn((tmpfile,), callback, tmpfile)
 		return True

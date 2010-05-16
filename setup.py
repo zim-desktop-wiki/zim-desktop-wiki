@@ -28,8 +28,13 @@ except:
 	sys.exit(1)
 
 
-# Get environment parameter
-MAEMO = 'MAEMO' in os.environ and os.environ['MAEMO']
+# Get environment parameter for building for maemo
+# We don't use auto-detection here because we want to be able to 
+# cross-compile a maemo package on another platform
+build_target = os.environ.get('ZIM_BUILD_TARGET') or 'default'
+assert build_target in ('default', 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
+if build_target == 'maemo':
+	print 'Building for Maemo...'
 
 
 # Helper routines
@@ -86,7 +91,7 @@ def collect_data_files():
 		files = [os.path.join(dir, f) for f in files]
 		data_files.append((target, files))
 
-	if MAEMO:
+	if build_target == 'maemo':
 		# Remove default .desktop files and replace with our set
 		prefix = os.path.join('share', 'zim', 'applications')
 		for i in reversed(range(len(data_files))):
@@ -225,7 +230,7 @@ dependencies = ['gobject', 'gtk', 'xdg']
 if version_info == (2, 5):
 	dependencies.append('simplejson')
 
-if MAEMO:
+if build_target == 'maemo':
 	scripts = ['zim.py', 'maemo/modest-mailto.sh']
 else:
 	scripts = ['zim.py']

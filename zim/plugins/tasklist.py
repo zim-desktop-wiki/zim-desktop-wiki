@@ -8,11 +8,11 @@ import logging
 import re
 import datetime
 
-from zim.gui import maemo
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.notebook import Path
-from zim.gui.widgets import Dialog, Button, IconButton,  \
+from zim.gui.widgets import ui_environment, \
+	Dialog, Button, IconButton,  \
 	BrowserTreeView, SingleClickTreeView, \
 	gtk_get_style
 from zim.formats import UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
@@ -83,11 +83,15 @@ This is a core plugin shipping with zim.
 class TaskListDialog(Dialog):
 
 	def __init__(self, plugin):
+		if ui_environment['platform'] == 'maemo':
+			defaultsize = (800,480)
+		else:
+			defaultsize = (-1, -1)
+
 		Dialog.__init__(self, plugin.ui, _('Task List'), # T: dialog title
+			defaultwindowsize=defaultsize,
 			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List')
 		self.plugin = plugin
-		if maemo:
-			self.resize(800,480)
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 		self.hpane = gtk.HPaned()
@@ -243,11 +247,13 @@ class TaskListTreeView(BrowserTreeView):
 			column = gtk.TreeViewColumn(name, cell_renderer, text=i)
 			column.set_resizable(True)
 			column.set_sort_column_id(i)
-			if i == self.TASK_COL: 
+			if i == self.TASK_COL:
 				column.set_expand(True)
-				if maemo:
+				if ui_environment['platform'] == 'maemo':
 					column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 					column.set_fixed_width(250)
+					# FIXME probably should also limit the size of this
+					# column on other platforms ...
 			self.append_column(column)
 
 		# Add some rendering for the Prio column

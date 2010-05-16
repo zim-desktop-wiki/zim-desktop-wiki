@@ -5,8 +5,7 @@
 import gtk
 
 from zim._lib import xdot
-from zim.gui.widgets import Dialog, IconButton
-from zim.gui import maemo
+from zim.gui.widgets import ui_environment, Dialog, IconButton
 
 from zim.plugins.linkmap import LinkMap
 
@@ -44,11 +43,12 @@ class GtkLinkMap():
 class LinkMapDialog(Dialog):
 
 	def __init__(self, ui, linkmap):
-		Dialog.__init__(self, ui, 'LinkMap', buttons=gtk.BUTTONS_CLOSE)
-		if maemo:
-			self.resize(800,480)
+		if ui_environment['platform'] == 'maemo':
+			defaultsize = (800, 480) # FIXME why do we need a larger size here ?
 		else:
-			self.set_default_size(400, 400)
+			defaultsize = (400, 400)
+		Dialog.__init__(self, ui, 'LinkMap',
+			defaultwindowsize=defaultsize, buttons=gtk.BUTTONS_CLOSE)
 		self.linkmap = linkmap
 
 		hbox = gtk.HBox(spacing=5)

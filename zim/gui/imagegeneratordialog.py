@@ -6,8 +6,8 @@ import gtk
 import logging
 
 from zim.fs import *
-from zim.gui.widgets import Dialog, ImageView, Button, QuestionDialog, scrolled_text_view
-from zim.gui import maemo
+from zim.gui.widgets import ui_environment, \
+	Dialog, ImageView, Button, QuestionDialog, scrolled_text_view
 
 logger = logging.getLogger('zim.gui')
 
@@ -22,11 +22,11 @@ class ImageGeneratorDialog(Dialog):
 	# TODO: use uistate to remember pane position
 
 	def __init__(self, ui, title, generator, image=None, **opt):
-		if maemo:
-			WSIZE=(600,480)
+		if ui_environment['platform'] == 'maemo':
+			defaultsize = (600,480) # FIXME why is a larger size needed ??
 		else:
-			WSIZE=(450,300)
-		Dialog.__init__(self, ui, title, defaultwindowsize=WSIZE, **opt)
+			defaultsize = (450,300)
+		Dialog.__init__(self, ui, title, defaultwindowsize=defaultsize, **opt)
 		self.generator = generator
 		self.imagefile = None
 		self.logfile = None

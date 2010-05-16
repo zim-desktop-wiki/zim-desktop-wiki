@@ -28,13 +28,6 @@ import os
 import logging
 import gobject
 import gtk
-try:
-	import hildon
-	gtkWindow=hildon.Window
-	maemo=True
-except:
-	gtkWindow=gtk.Window
-	maemo=False
 
 import zim
 from zim import NotebookInterface, NotebookLookupError
@@ -51,8 +44,10 @@ from zim.history import History, HistoryRecord
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
-from zim.gui.widgets import Button, MenuButton, \
-	Dialog, ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
+from zim.gui.widgets import ui_environment, \
+	Button, MenuButton, \
+	Window, Dialog, \
+	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import get_application, CustomToolManager
 
@@ -171,7 +166,7 @@ ui_preferences = (
 		# char sets in certain international key mappings
 )
 
-if maemo:
+if ui_environment['platform'] == 'maemo':
 	# Maemo specific settngs
 	ui_preferences = (
 		# key, type, category, label, default
@@ -314,11 +309,11 @@ class GtkInterface(NotebookInterface):
 			'file_browser': ['xdg-open', 'startfile'],
 			'web_browser': ['xdg-open', 'startfile']
 		}
-		if maemo:
+		if ui_environment['platform'] == 'maemo':
 			apps = {
-				'email_client': ['modest', 'startfile'],
-				'file_browser': ['hildon-mime-summon', 'startfile'],
-				'web_browser': ['webbrowser', 'webbrowser']
+				'email_client': ['modest'],
+				'file_browser': ['hildon-mime-summon'],
+				'web_browser': ['webbrowser']
 			}
 
 		for type in apps.keys():
@@ -352,25 +347,34 @@ class GtkInterface(NotebookInterface):
 								self.mainwindow, 'do_set_toolbar_size')
 		self.add_ui(data_file('menubar.xml').read(), self)
 
+		if ui_environment['platform'] == 'maemo':
+			# Hardware fullscreen key is F6 in Nxxx devices
+			group = gtk.AccelGroup()
+			group.connect_group(
+				gtk.gdk.keyval_from_name('Left'), 0, gtk.ACCEL_VISIBLE,
+				lambda o: self.mainwindow.toggle_fullscreen() )
+			self.mainwindow.add_accel_group(group)
+
 		self.load_plugins()
 
 		self._custom_tool_ui_id = None
 		self._custom_tool_actiongroup = None
 		self.load_custom_tools()
 
-		self.uimanager.ensure_update()
-			# prevent flashing when the toolbar is after showing the window
-			# and do this before connecting signal below for accelmap
-		if maemo:
+		if ui_environment['platform'] == 'maemo':
 			# Move the menu to the hildon menu
-			menu=gtk.Menu()
+			menu = gtk.Menu()
 			for child in self.mainwindow.menubar.get_children():
 				child.reparent(menu)
 			self.mainwindow.set_menu(menu)
-			# Hardware fullscreen key is F6 in Nxxx devices
-			self.mainwindow.connect('key-press-event',
-				lambda o, event: event.keyval == gtk.keysyms.F6
-					and self.mainwindow.toggle_fullscreen())
+			self.mainwindow.menubar.hide()
+			# FIXME need to check the effect of this hack when plugins
+			# load menu items, e.g. when they are enabled from the
+			# preferences menu.
+
+		self.uimanager.ensure_update()
+			# prevent flashing when the toolbar is after showing the window
+			# and do this before connecting signal below for accelmap
 
 		accelmap = config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
@@ -1309,7 +1313,7 @@ class GtkInterface(NotebookInterface):
 gobject.type_register(GtkInterface)
 
 
-class MainWindow(gtkWindow):
+class MainWindow(Window):
 	'''Main window of the application, showing the page index in the side
 	pane and a pageview with the current page. Alse includes the menubar,
 	toolbar, statusbar etc.
@@ -1317,7 +1321,7 @@ class MainWindow(gtkWindow):
 
 	def __init__(self, ui, fullscreen=False, geometry=None):
 		'''Constructor'''
-		gtkWindow.__init__(self)
+		Window.__init__(self)
 		self._fullscreen = False
 		self.ui = ui
 
@@ -1377,9 +1381,6 @@ class MainWindow(gtkWindow):
 		self.pageview.view.connect_after(
 			'toggle-overwrite', self.do_textview_toggle_overwrite)
 		vbox2.add(self.pageview)
-
-		# maemo window menu requires this approach because it is a popup dialog
-		self.pageindex.treeview.connect('focus-in-event', lambda sender, e, me: me.pageview.disable_actiongroup(), self)
 
 		# create statusbar
 		hbox = gtk.HBox(spacing=0)
@@ -1462,13 +1463,13 @@ class MainWindow(gtkWindow):
 
 		space = gtk.gdk.unicode_to_keyval(ord(' '))
 		group = gtk.AccelGroup()
+		group.connect_group( # <Alt><Space>
+			space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
+			self.do_switch_focus)
+
 		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Ctrl><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
-				self.do_switch_focus)
-		else:
-			group.connect_group( # <Alt><Space>
-				space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
 				self.do_switch_focus)
 
 		self.add_accel_group(group)
@@ -1739,7 +1740,8 @@ class MainWindow(gtkWindow):
 		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_menubar_fullscreen', True)
 		self.uistate.setdefault('show_toolbar', True)
-		if maemo:
+		if ui_environment['platform'] == 'maemo':
+			# FIXME - why is this needed ??
 			self.uistate.setdefault('show_toolbar_fullscreen', True)
 		else:
 			self.uistate.setdefault('show_toolbar_fullscreen', False)
@@ -1858,11 +1860,11 @@ class BackLinksMenuButton(MenuButton):
 		MenuButton.popup_menu(self, event)
 
 
-class PageWindow(gtkWindow):
+class PageWindow(Window):
 	'''Secondairy window, showing a single page'''
 
 	def __init__(self, ui, page):
-		gtkWindow.__init__(self)
+		Window.__init__(self)
 		self.ui = ui
 
 		self.set_title(page.name + ' - Zim')

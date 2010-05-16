@@ -25,13 +25,13 @@ from zim.config import config_file
 from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, \
+from zim.gui.widgets import ui_environment, \
+	Dialog, FileDialog, ErrorDialog, \
 	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	rotate_pixbuf
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
-from zim.gui import maemo
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -58,6 +58,7 @@ KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
 KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 
 # Maemo hildon input method keyboard doesn't emit keypress events except for TAB, ENTER and BACKSPACE
+# FIXME this comment makes a statement without a conclusion
 #~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
 CHARS_END_OF_WORD = ('\t', ' ', ')', '>')
 KEYVALS_END_OF_WORD = map(
@@ -151,7 +152,7 @@ ui_preferences = (
 		# T: option in preferences dialog
 )
 
-if maemo:
+if ui_environment['platform'] == 'maemo':
 	# Manipulate preferences with Maemo specific settings
 	ui_preferences = list(ui_preferences)
 	for i in range(len(ui_preferences)):
@@ -4001,9 +4002,15 @@ class FindBar(FindWidget, gtk.HBox):
 		self.pack_start(self.find_entry, False)
 		self.pack_start(self.previous_button, False)
 		self.pack_start(self.next_button, False)
-		if maemo:
-			# Maemo Nxx0 devices have not enough space for so many
+		if ui_environment['smallscreen']:
+			# E.g. Maemo Nxx0 devices have not enough space for so many
 			# widgets, so let's put options in a menu button.
+			# FIXME need to rewrite this hack to integrate nicely with
+			# the FindWidget base class
+			# FIXME ideally behavior would switch on the fly based on
+			# actual screensize - can we detect when these widgets
+			# fit or not ? (And re-draw when the screensize changes ?)
+			# Alternatively we can always put options in this menu
 			menu = gtk.Menu()
 			item = gtk.CheckMenuItem(self.case_option_checkbox.get_label())
 			item.connect('toggled',

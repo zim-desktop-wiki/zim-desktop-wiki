@@ -17,8 +17,7 @@ import logging
 from zim.fs import *
 from zim.notebook import get_notebook_list, init_notebook
 from zim.config import data_file
-from zim.gui.widgets import Dialog, IconButton
-from zim.gui import maemo
+from zim.gui.widgets import ui_environment, Dialog, IconButton
 
 
 logger = logging.getLogger('zim.gui.notebookdialog')
@@ -351,8 +350,8 @@ class AddNotebookDialog(Dialog):
 		self.vbox.pack_start(label, False)
 		if name is None and folder is None:
 			name = 'Notes'
-			if maemo:
-				folder = '~/MyDocs/Notes'
+			if ui_environment['platform'] == 'maemo':
+				folder = '~/MyDocs/Notes' # FIXME is 'MyDocs' an official folder on maemo ?
 			else:
 				folder = '~/Notes'
 		self.add_fields((

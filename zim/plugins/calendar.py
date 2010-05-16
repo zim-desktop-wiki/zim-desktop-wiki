@@ -9,8 +9,7 @@ import re
 from datetime import date as dateclass
 
 from zim.plugins import PluginClass
-from zim.gui import maemo, Dialog
-from zim.gui.widgets import Button
+from zim.gui.widgets import Dialog, Button
 from zim.notebook import Path
 
 
@@ -280,8 +279,7 @@ class CalendarDialog(Dialog):
 		button = Button(_('_Today'), gtk.STOCK_JUMP_TO) # T: button label
 		button.connect('clicked', self.do_today )
 		self.action_area.add(button)
-		self.action_area.set_child_secondary(button, True)
+		self.action_area.reorder_child(button, 0)
 
 	def do_today(self, event):
 		self.calendar_widget.select_date(dateclass.today())
-		if maemo: self.destroy()

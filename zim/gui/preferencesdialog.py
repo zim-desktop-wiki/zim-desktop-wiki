@@ -11,7 +11,6 @@ from zim.gui.applications import \
 	get_application, get_helper_applications, CustomCommandDialog
 from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view
 from zim.gui.pageview import PageView
-from zim.gui import maemo
 
 
 logger = logging.getLogger('zim.gui.preferencesdialog')
@@ -27,8 +26,9 @@ class PreferencesDialog(Dialog):
 		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
-		if maemo:
-			self.resize(800,480)
+		#~ if maemo:
+			#~ self.resize(800,480)
+
 		# Dynamic tabs
 		for category, preferences in ui.preferences_register.items():
 			table = gtk.Table()

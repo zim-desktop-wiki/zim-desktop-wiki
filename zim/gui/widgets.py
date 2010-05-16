@@ -14,7 +14,6 @@ import pango
 import logging
 import sys
 
-from zim.gui import maemo
 from zim.fs import *
 import zim.errors
 import zim.config
@@ -33,6 +32,27 @@ KEYVALS_ASTERISK = (
 KEYVALS_SLASH = (
 	gtk.gdk.unicode_to_keyval(ord('\\')),
 	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
+
+
+# UI Environment config. Would properly belong in zim.gui.__init__
+# but defined here to avoid unnecessary dependencies on zim.gui
+ui_environment = {
+	'platform': None, # platform name to trigger platform specific optimizations
+	'maxscreensize': None, # max screensize _if_ fixed by the platform
+	'smallscreen': False, # trigger optimizations for small screens
+}
+
+
+# Check for Maemo environment
+try:
+	import hildon
+	Window = hildon.Window
+	ui_environment['platform'] = 'maemo'
+	ui_environment['maxscreensize'] = (800, 480)
+	ui_environment['smallscreen'] = True
+except ImportError:
+	Window = gtk.Window
+
 
 
 def _encode_xml(text):
@@ -595,24 +615,21 @@ class Dialog(gtk.Dialog):
 			title=format_title(title),
 			flags=gtk.DIALOG_NO_SEPARATOR,
 		)
-		if not(maemo):
+		if not ui_environment['smallscreen']:
 			self.set_border_width(10)
 			self.vbox.set_spacing(5)
 
+		assert isinstance(defaultwindowsize, tuple)
 		if hasattr(ui, 'uistate') and isinstance(ui.uistate, zim.config.ConfigDict):
-			assert isinstance(defaultwindowsize, tuple)
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
 			#~ print '>>', self.uistate
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
-			if not(maemo):
-				w, h = self.uistate['windowsize']
-			else:
-				w, h = defaultwindowsize
+			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
 		else:
 			self.uistate = { # used in tests/debug
-				'windowsize': (-1, -1)
+				'windowsize': defaultwindowsize
 			}
 
 		self._no_ok_action = False
@@ -870,7 +887,7 @@ class Dialog(gtk.Dialog):
 		else:
 			self.destroyed = True
 
-		if not(maemo):
+		if ui_environment['platform'] != 'maemo':
 			w, h = self.get_size()
 			self.uistate['windowsize'] = (w, h)
 			self.save_uistate()
@@ -1009,14 +1026,15 @@ class FileDialog(Dialog):
 			elif action == gtk.FILE_CHOOSER_ACTION_SAVE:
 				button = (None, gtk.STOCK_SAVE)
 			# else Ok will do
-		Dialog.__init__(self, ui, title,
+
+		if ui_environment['platform'] == 'maemo':
+			defaultsize = (800, 480)
+		else:
+			defaultsize = (500, 400)
+
+		Dialog.__init__(self, ui, title, defaultwindowsize=defaultsize,
 			buttons=buttons, button=button, help_text=help_text, help=help)
-		if self.uistate['windowsize'] == (-1, -1) and not(maemo):
-			self.uistate['windowsize'] = (500, 400)
-			self.set_default_size(500, 400)
-		elif maemo:
-			self.uistate['windowsize'] = (800, 480)
-			self.set_default_size(800, 480)
+
 		self.filechooser = gtk.FileChooserWidget(action=action)
 		self.filechooser.set_do_overwrite_confirmation(True)
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
