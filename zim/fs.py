@@ -8,7 +8,7 @@ Used as a base library for most other zim modules.
 
 FIXME more docs
 
-There is a singleton object to represent the whole filesystem. THis
+There is a singleton object to represent the whole filesystem. This
 is stored in 'zim.fs.FS'. This object provides signals when a file or
 folder is created, moved or deleted.
 
