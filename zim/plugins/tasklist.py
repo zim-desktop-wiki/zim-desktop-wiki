@@ -145,17 +145,30 @@ This is a core plugin shipping with zim.
 			return
 
 		#~ print '!! Checking for tasks in', path
+		tasks = []
 		for element in tree.getiterator('li'):
 			bullet = element.get('bullet')
 			if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
 				open = bullet == UNCHECKED_BOX
-				self._add_task(path, element, open)
-				tasksfound = True
+				tasks.append(self._parse_task(path, element, open))
+		
+		if tasks:
+			tasksfound = True
+
+		# Much more efficient to do insert here at once for all tasks
+		# rather than do it one by one while parsing the page.
+		with self.index.db_commit:
+			self.index.db.executemany(
+				'insert into tasklist(source, parent, open, actionable, prio, due, description)'
+				'values (?, ?, ?, ?, ?, ?, ?)',
+				tasks
+			)
 
 		if tasksfound:
 			self.emit('tasklist-changed')
 
-	def _add_task(self, path, node, open):
+	def _parse_task(self, path, node, open):
+		# TODO - determine if actionable or not
 		#~ '!! Found tasks in ', path
 		text = self._flatten(node)
 		prio = text.count('!')
@@ -175,14 +188,8 @@ This is a core plugin shipping with zim.
 				return match.group(0)
 
 		text = date_re.sub(set_date, text)
-
-		# TODO - determine if actionable or not
-		with self.index.db_commit:
-			self.index.db.execute(
-				'insert into tasklist(source, parent, open, actionable, prio, due, description)'
-				'values (?, ?, ?, ?, ?, ?, ?)',
-				(path.id, 0, open, True, prio, date, text)
-			)
+		return (path.id, 0, open, True, prio, date, text)
+			# (source, parent, open, actionable, prio, due, description)
 
 	def _flatten(self, node):
 		text = node.text or ''

@@ -43,7 +43,7 @@ Well, if you really want to, you can use zim as your agenda. However, the Calend
 Yes it does. See the download page on the website for more notes on installing on the win32 platform.
 
 === Does it run on OS X? ===
-Yes it does. You can install the dependencies usign [[http://www.macports.org/|Mac Ports]].
+Yes it does. You can install the dependencies using [[http://www.macports.org/|Mac Ports]].
 
 === I want to move/backup/syncronize a zim notebook. Which files do I need to take care of? ===
 The visible files in the notebook folder contain all data of notes and attachments.

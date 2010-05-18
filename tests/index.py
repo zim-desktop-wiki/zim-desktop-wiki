@@ -212,6 +212,11 @@ class TestIndexFiles(TestIndex):
 		TestIndex.runTest(self)
 
 
+def color_to_string(color):
+	# helper method for comparing gtk.gdk.Color objects
+	return '%i,%i,%i' % (color.red, color.green, color.blue)
+
+
 class TestPageTreeStore(tests.TestCase):
 
 	def setUp(self):
@@ -294,13 +299,18 @@ class TestPageTreeStore(tests.TestCase):
 			self.assertEqual(indexpath, page)
 			self.assertEqual(treestore.get_value(iter, NAME_COL), page.basename)
 			self.assertEqual(treestore.get_value(iter, PATH_COL), page)
-			self.assertEqual(treestore.get_value(iter, EMPTY_COL), page.hascontent or page.haschildren)
 			if page.hascontent or page.haschildren:
+				self.assertEqual(treestore.get_value(iter, EMPTY_COL), False)
 				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_NORMAL)
-				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
+				self.assertEqual(
+					color_to_string( treestore.get_value(iter, FGCOLOR_COL) ),
+					color_to_string( treestore.NORMAL_COLOR) )
 			else:
+				self.assertEqual(treestore.get_value(iter, EMPTY_COL), True)
 				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_ITALIC)
-				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.EMPTY_COLOR)
+				self.assertEqual(
+					color_to_string( treestore.get_value(iter, FGCOLOR_COL) ),
+					color_to_string( treestore.EMPTY_COLOR) )
 			self.assertEqual(treestore.get_path(iter), tuple(path))
 			if indexpath.haschildren:
 				self.assertTrue(treestore.iter_has_child(iter))

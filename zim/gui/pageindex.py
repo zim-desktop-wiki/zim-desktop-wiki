@@ -172,7 +172,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		elif column == PATH_COL:
 			return path
 		elif column == EMPTY_COL:
-			return path.hascontent or path.haschildren
+			return not path.hascontent and not path.haschildren
 		elif column == STYLE_COL:
 			if path.hascontent or path.haschildren:
 				return pango.STYLE_NORMAL
