@@ -189,24 +189,38 @@ if ENCODING.upper() in (
 	ENCODING = 'utf-8'
 
 
-def encode(path):
-	if isinstance(path, unicode):
-		try:
-			return path.encode(ENCODING)
-		except UnicodeEncodeError:
-			raise Error, 'BUG: invalid filename %s' % path
-	else:
-		return path
+if os.name == 'nt':
+	def encode(path):
+		if isinstance(path, unicode):
+			return path
+		else:
+			return unicode(path)
+
+	def decode(path):
+		if isinstance(path, unicode):
+			return path
+		else:
+			return unicode(path)
+
+else:
+	def encode(path):
+		if isinstance(path, unicode):
+			try:
+				return path.encode(ENCODING)
+			except UnicodeEncodeError:
+				raise Error, 'BUG: invalid filename %s' % path
+		else:
+			return path
 
 
-def decode(path):
-	if isinstance(path, unicode):
-		try:
-			return path.decode(ENCODING)
-		except UnicodeDecodeError:
-			raise Error, 'BUG: invalid filename %s' % path
-	else:
-		return path
+	def decode(path):
+		if isinstance(path, unicode):
+			try:
+				return path.decode(ENCODING)
+			except UnicodeDecodeError:
+				raise Error, 'BUG: invalid filename %s' % path
+		else:
+			return path
 
 
 def isabs(path):
@@ -355,7 +369,7 @@ class UnixPath(object):
 	@property
 	def basename(self):
 		'''Basename property'''
-		return decode(os.path.basename(self.encodedpath))
+		return os.path.basename(self.path) # encoding safe
 
 	@property
 	def uri(self):
@@ -365,7 +379,7 @@ class UnixPath(object):
 	@property
 	def dir(self):
 		'''Returns a Dir object for the parent dir'''
-		path = decode(os.path.dirname(self.encodedpath))
+		path = os.path.dirname(self.path) # encoding safe
 		return Dir(path)
 
 	def exists(self):
@@ -388,8 +402,8 @@ class UnixPath(object):
 		include the drive. (So using split() to count the number of
 		path elements will not be robust for the path "/".)
 		'''
-		drive, path = os.path.splitdrive(self.encodedpath)
-		parts = decode(path).replace('\\', '/').strip('/').split('/')
+		drive, path = os.path.splitdrive(self.path)
+		parts = path.replace('\\', '/').strip('/').split('/')
 		parts[0] = drive + os.path.sep + parts[0]
 		return parts
 
@@ -423,17 +437,17 @@ class UnixPath(object):
 
 	def commonparent(self, other):
 		'''Returns a common path between self and other as a Dir object.'''
-		path = os.path.commonprefix((self.encodedpath, other.encodedpath))
+		path = os.path.commonprefix((self.path, other.path)) # encoding safe
 		i = path.rfind(os.path.sep) # win32 save...
 		if i >= 0:
-			return Dir(decode(path[:i+1]))
+			return Dir(path[:i+1])
 		else:
 			# different drive ?
 			return None
 
 	def rename(self, newpath):
 		# Using shutil.move instead of os.rename because move can cross
-		# file system boundies, but rename can not
+		# file system boundries, while rename can not
 		logger.info('Rename %s to %s', self, newpath)
 		newpath.dir.touch()
 		# TODO: check against newpath existing and being a directory
@@ -530,19 +544,33 @@ class Dir(Path):
 		will throw warnings if those are encountered.
 		Hidden files are silently ignored.
 		'''
-		# For os.listdir(path) if path is _not_ a Unicode object, the
-		# result will be a list of byte strings. We can decode them
-		# ourselves.
-		if self.exists():
-			files = []
-			for file in os.listdir(self.encodedpath):
-				if file.startswith('.'):
-					continue # skip hidden files
+		files = []
+		if isinstance(self, UnixPath):
+			# For os.listdir(path) if path is _not_ a Unicode object, the
+			# result will be a list of byte strings. We can decode them
+			# ourselves.
+			for file in self._list():
 				try:
 					files.append(file.decode(ENCODING))
 				except UnicodeDecodeError:
 					logger.warn('Ignoring file: "%s" invalid file name', file)
-			files.sort()
+		else:
+			# For windows encodedpath is in fact just unicode and things
+			# go a bit differently
+			for file in self._list():
+				if isinstance(file, unicode):
+					files.append(file)
+				else:
+					logger.warn('Ignoring file: "%s" invalid file name', file)
+		files.sort()
+		return files
+
+	def _list(self):
+		if self.exists():
+			files = []
+			for file in os.listdir(self.encodedpath):
+				if not file.startswith('.'): # skip hidden files
+					files.append(file)
 			return files
 		else:
 			return []
@@ -592,7 +620,7 @@ class Dir(Path):
 
 	def file(self, path):
 		'''Returns a File object for a path relative to this directory'''
-		assert isinstance(path, (File, basestring, list, tuple))
+		assert isinstance(path, (Path, basestring, list, tuple))
 		if isinstance(path, File):
 			file = path
 		elif isinstance(path, basestring):
@@ -626,7 +654,7 @@ class Dir(Path):
 
 	def subdir(self, path):
 		'''Returns a Dir object for a path relative to this directory'''
-		assert isinstance(path, (File, basestring, list, tuple))
+		assert isinstance(path, (Path, basestring, list, tuple))
 		if isinstance(path, Dir):
 			dir = path
 		elif isinstance(path, basestring):
