@@ -40,6 +40,11 @@ Building Zim
 
 Packaging the Installer
 
-1. Run ./windows/create-zim-setup.nsi .
+1. Create or modify ./windows/version-and-date.nsi . (Fill in the appropriate values.)
 
-2. Find its output in ./dist/Zim-setup-*.exe and test it.
+   !define VER "version_number_goes_here"
+   !define BUILDDATE "yyyy-mm-dd"
+
+2. Run ./windows/create-zim-setup.nsi .
+
+3. Find its output in ./dist/Zim-setup-*.exe and test it.
