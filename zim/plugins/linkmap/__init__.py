@@ -34,7 +34,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('GraphViz',Application(('dot',)).tryexec())]
+		return [('GraphViz',Application(('fdp',)).tryexec())]
 
 	def disconnect(self):
 		pass

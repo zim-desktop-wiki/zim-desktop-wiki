@@ -66,7 +66,10 @@ return an empty list.
 from __future__ import with_statement
 
 import sys
+import re
+import codecs
 
+import zim.fs
 from zim.fs import *
 from zim.parsing import is_url_re
 
@@ -80,15 +83,60 @@ def get_store(name):
 	return mod
 
 
+def _url_encode_on_error(error):
+	string = error.object
+	section = string[error.start:error.end].encode('utf-8')
+	replace = u''
+	for char in section:
+		replace += u'%%%02X' % ord(char)
+	return replace, error.end
+
+codecs.register_error('urlencode', _url_encode_on_error)
+
+
 def encode_filename(pagename):
 	'''Encodes a pagename to a filename. Namespaces are mapped to directories.
 	Returns basename without extension.
+	Characters not allowed for the filesystem are encoded with url encoding.
 	'''
+	assert not '%' in pagename # just to be sure
+	if zim.fs.ENCODING != 'utf-8':
+		# if not utf-8 we may not be able to encode all characters
+		# enforce safe encoding, but do not actually encode here
+		if zim.fs.ENCODING == 'mbcs':
+			# We can not trust this encoding on windows it maps to '?' 
+			# or equivalent characters (like 'a' for 'alpha') instead of
+			# throwing encoding errors :(
+			# So we do it ourselves *sigh*
+			recoded = pagename.encode('mbcs').decode('mbcs')
+			if recoded != pagename:
+				# some unencodable character encountered - find out which one
+				assert len(recoded) == len(pagename)
+				for i in range(len(pagename)-1, -1, -1): # count backwards
+					if recoded[i] != pagename[i]:
+						string = pagename[i].encode('utf-8')
+						replace = ''
+						for char in string:
+							replace += '%%%02X' % ord(char)
+						pagename = pagename[:i] + replace + pagename[i+1:]
+		else:
+			pagename = pagename.encode(zim.fs.ENCODING, 'urlencode')
+			pagename = pagename.decode(zim.fs.ENCODING)
 	return pagename.replace(':', '/').replace(' ', '_')
+
+
+_url_decode_re = re.compile('%([a-fA-F0-9]{2})')
+
+def _url_decode(match):
+	return chr(int(match.group(1), 16))
 
 
 def decode_filename(filename):
 	'''Decodes a file basename to a pagename'''
+	if zim.fs.ENCODING != 'utf-8':
+		filename = filename.encode('utf-8')
+		filename = _url_decode_re.sub(_url_decode, filename)
+		filename = filename.decode('utf-8')
 	return filename.replace('/', ':').replace('_', ' ')
 
 

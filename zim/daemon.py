@@ -37,6 +37,10 @@ network address and is compeletely open to localhost. Once someone
 succeeds in connecting to the socket they can call arbitrary methods
 on the interface object or instantiate new processes with arbitrary
 classes.
+
+
+Signals supported by the daemon:
+  * notebook-list-changed - emitted when it is likely the notebook list changed
 '''
 
 import os
@@ -69,6 +73,7 @@ def deserialize_call(line):
 		kwargs = dict([(str(key), value) for key, value in kwargs.items()])
 	return func, args, kwargs
 
+
 class DaemonError(Exception):
 	pass
 
@@ -77,6 +82,9 @@ class UnixDaemon(object):
 	'''Class with code to daemonize a process on unix'''
 
 	pidfile = get_tmpdir().file('daemon.pid').path
+
+	def start_daemon(self):
+		self.daemonize()
 
 	def daemonize(self):
 		'''Spawn new process that is disasociated from current environment'''
@@ -118,6 +126,24 @@ class UnixDaemon(object):
 		os._exit(0)
 
 
+class WindowsDaemon(object):
+	'''No clean way to daemonize on windows. Instead we just spawn a new
+	process.'''
+
+	pidfile = get_tmpdir().file('daemon.pid').path
+
+	def start_daemon(self):
+		from zim import ZIM_EXECUTABLE
+		os.spawn((ZIM_EXECUTABLE, '--daemon'))
+
+	def daemonize(self):
+		'''Daemonize current process, does not return'''
+		File(self.pidfile).write('%i\n' % os.getpid())
+		self.main()
+		os.unlink(self.pidfile)
+		os._exit(0)
+
+
 class SocketDaemon(object):
 	'''Makes the daemon listen for instructions from a socket'''
 
@@ -129,6 +155,7 @@ class SocketDaemon(object):
 		last child exits.
 		'''
 		self.children = []
+		self.signals = {}
 		self.persistent = persistent
 
 	def main(self):
@@ -193,6 +220,7 @@ class SocketDaemon(object):
 			child = ChildProxy(klass, id, *args, **kwargs)
 			self.children.append(child)
 			gobject.child_watch_add(child.pid, self._on_child_exit)
+			self.cmd_emit('notebook-list-changed')
 		return True
 
 	def cmd_relay(self, id, method, *args, **kwargs):
@@ -211,7 +239,7 @@ class SocketDaemon(object):
 		else:
 			return None
 
-	def cmd_emit(self, klass, name, *args, **kwargs):
+	def cmd_relay_all(self, klass, name, *args, **kwargs):
 		if klass == 'all': # special case
 			children = self.children
 		else:
@@ -223,20 +251,47 @@ class SocketDaemon(object):
 	def cmd_list_objects(self):
 		return [child.id for child in self.children]
 
+	def cmd_connect_object(self, signal, id):
+		if not signal in self.signals:
+			self.signals[signal] = []
+
+		if not id in self.signals[signal]:
+			self.signals[signal].append(id)
+
+	def cmd_emit(self, signal, *args):
+		if signal in self.signals:
+			logger.debug('Emitting signal: %s', signal)
+			handler = 'on_' + signal.replace('-', '_')
+			for id in self.signals[signal]:
+				child = self.get_child(id)
+				if child:
+					child.call(handler, *args)
+		else:
+			logger.debug('No such signal: %s', signal)
+
 	def cmd_quit_if_nochild(self):
 		gobject.idle_add(self._check_quit_if_nochild)
 		return True
+
+	def cmd_quit(self):
+		for child in self.children:
+			child.call('quit')
 
 	def _on_child_exit(self, pid, status):
 		for child in self.children:
 			if child.pid == pid:
 				child.close()
 				self.children.remove(child)
+				id = child.id
+				for list in self.signals.values():
+					if id in list:
+						list.remove(id)
 				break
 		else:
 			logger.warn('Child exiting that is not in our list %i', pid)
 
 		self._check_quit_if_nochild()
+		self.cmd_emit('notebook-list-changed')
 
 	def _check_quit_if_nochild(self):
 		if not self.persistent and not self.children:
@@ -265,7 +320,7 @@ class UnixSocketDaemon(UnixDaemon, SocketDaemon):
 		SocketDaemon.start(self)
 
 
-class WindowsSocketDaemon(UnixDaemon, SocketDaemon):
+class WindowsSocketDaemon(WindowsDaemon, SocketDaemon):
 
 	# No named sockets avaialble on windows, need to use a network socket.
 	# Let's hope nobody is using the same port number
@@ -297,7 +352,7 @@ class SocketDaemonProxy(object):
 		try:
 			ack = self.ping()
 		except socket.error:
-			Daemon().daemonize()
+			Daemon().start_daemon()
 			i = 0
 			while i < 10:
 				try:
@@ -313,15 +368,18 @@ class SocketDaemonProxy(object):
 		'''Returns 'Ack' to test daemon interaction'''
 		return self._call('ping')
 
+	def run(self, klass, name, *args, **kwargs):
+		if not self._call('vivicate', klass, name, *args, **kwargs):
+			raise AssertionError, 'Call failed'
+			# assert statement could be optimized away
+
 	def get_object(self, klass, name, *args, **kwargs):
 		'''Returns a proxy object for an object of klass 'klass'
 		which is uniquely identified by 'name'. All other arguments
 		are passed on to the object constructor if it needs to be
 		created.
 		'''
-		if not self._call('vivicate', klass, name, *args, **kwargs):
-			raise AssertionError, 'Call failed'
-			# assert statement could be optimized away
+		self.run(klass, name, *args, **kwargs)
 		return DaemonProxyObject(self, (klass, name))
 
 	def list_objects(self):
@@ -349,12 +407,23 @@ class SocketDaemonProxy(object):
 			if klass == 'zim.gui.GtkInterface':
 				yield name
 
-	def emit(self, klass, name, *args, **kwargs):
-		'''Call method 'name' on all children of a certain class.
-		The special class name 'all' can be used to call this method
-		on all children, regardless of their class. **Use with care**
+	def connect_object(self, signal, object):
+		'''Connect the current child process to a signal from the
+		daemon. The object provided must be the main object in the
+		child process. This object must have a method called "on_signal".
 		'''
-		self._call('emit', klass, name, *args, **kwargs)
+		assert isinstance(signal, basestring)
+		assert not '_' in signal
+		assert hasattr(object, 'zim_daemon_child_id'), \
+			'This object is not the main object in the child process'
+		id = object.zim_daemon_child_id
+		return self._call('connect_object', signal, id) == 'Ack'
+
+	def emit(self, signal, *args):
+		'''Have the daemon emit a signal'''
+		assert isinstance(signal, basestring)
+		assert not '_' in signal
+		return self._call('emit', signal, *args) == 'Ack'
 
 	def quit_if_nochild(self):
 		'''Have the daemon check if it should quit itself'''
@@ -364,7 +433,7 @@ class SocketDaemonProxy(object):
 		'''Quit the daemon gracefully by calling 'quit()' on all
 		children and waiting for them to exit.
 		'''
-		self.emit('all', 'quit')
+		self._call('quit') == 'Ack'
 
 	def _call(self, func, *args, **kwargs):
 		s = socket.socket(Daemon.socket_family)
@@ -427,7 +496,6 @@ class DaemonProxyGtkInterfaceObject(DaemonProxyObject):
 		return self._relay('present', page,
 				geometry=geometry, fullscreen=fullscreen)
 
-
 	def toggle_present(self):
 		'''Present main window if it is not on top, but hide if it is.
 		Used by the TrayIcon to toggle visibility of the window.
@@ -488,6 +556,8 @@ class UnixPipeProxy(object):
 			mod = getattr(mod, name)
 
 		klassobj = getattr(mod, klassname)
+		klassobj.zim_daemon_child_id = self.id
+			# HACK - want this attribute set up before __init__, so we set it on the klass
 
 		args, kwargs = self.opts
 		obj = klassobj(*args, **kwargs)

@@ -7,6 +7,7 @@ The following plugins are standard included with zim:
 
 * [[+Calendar|Calendar]]
 * [[+Diagram Editor|Diagram Editor]]
+* [[Plugins:Create Note|Create Note]]
 * [[+Equation Editor|Equation Editor]]
 * [[+Insert Screenshot|Insert Screenshot]]
 * [[+Link Map|Link Map]]

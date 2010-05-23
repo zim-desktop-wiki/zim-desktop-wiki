@@ -13,9 +13,7 @@ import time
 import logging
 
 from zim.fs import *
-from zim.fs import Path, FileHandle, OverWriteError, TmpFile, get_tmpdir, normalize_win32_share
-
-# TODO: also test dir.new_file()
+from zim.fs import Path, FileHandle, OverWriteError, TmpFile, get_tmpdir, normalize_win32_share, PathLookupError, FilteredDir, isabs, joinpath
 
 
 logger = logging.getLogger('zim.fs')
@@ -47,6 +45,11 @@ class TestFS(tests.TestCase):
 				self.assertEqual(normalize_win32_share(share), url)
 				self.assertEqual(normalize_win32_share(url), url)
 
+		self.assertTrue(isabs('/foo/bar'))
+		self.assertFalse(isabs('./bar'))
+
+		self.assertEqual(joinpath('foo', 'bar'), os.sep.join(('foo', 'bar')))
+
 	def testPath(self):
 		'''Test Path object'''
 		path = Path(['foo', 'bar'])
@@ -73,15 +76,16 @@ class TestFS(tests.TestCase):
 					['/foo', '/foo/bar', '/foo/bar/baz'])
 		self.assertEqual(dirs, wanted)
 
-		# TODO test get_mimetype (2 variants)
-		# TODO test rename
-
 		for path1, path2, common in (
 			('/foo/bar/baz/', '/foo/dus', '/foo'),
 			('/foo/bar', '/dus/ja', '/'),
-			# TODO test for windows with C: and D: resulting in None
 		):
 			self.assertEqual(Path(path1).commonparent(Path(path2)), Dir(common))
+
+		if os.name == 'nt':
+			path1 = 'C:\foo\bar'
+			path2 = 'D:\foo\bar\baz'
+			self.assertEqual(Path(path1).commonparent(Path(path2)), None)
 
 		for path1, path2, relpath in (
 			('/foo/bar/baz', '/foo', 'bar/baz'),
@@ -95,9 +99,16 @@ class TestFS(tests.TestCase):
 			('/source/dir/foo/bar/dus.pdf', '/source/dir/foo', 'bar/dus.pdf'),
 			('/source/dir/foo/dus.pdf', '/source/dir/foo', 'dus.pdf'),
 			('/source/dir/dus.pdf', '/source/dir/foo', '../dus.pdf'),
-			# TODO test for windows with C: and D: resulting in None
 		):
 			self.assertEqual(Path(path1).relpath(Path(path2), allowupward=True), relpath)
+
+		if os.name == 'nt':
+			path1 = 'C:\foo\bar'
+			path2 = 'D:\foo\bar\baz'
+			self.assertEqual(Path(path1).relpath(Path(path2), allowupward=True), None)
+
+		self.assertEqual(Path('/foo') + 'bar', Path('/foo/bar'))
+
 
 	def testFileHandle(self):
 		'''Test FileHandle object'''
@@ -162,16 +173,32 @@ class TestFS(tests.TestCase):
 		file.write('Some lines\r\nWith win32 newlines\r\n')
 		file = File(tmpdir+'/newlines.txt')
 		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines\n')
-		# TODO test copyto
-		# TODO test moveto
-		# TODO test compare
+
+		# test compare & copyto
+		file1 = File(tmpdir + '/foo.txt')
+		file2 = File(tmpdir + '/bar.txt')
+		file1.write('foo\nbar\n')
+		file2.write('foo\nbar\n')
+		self.assertTrue(file1.compare(file2))
+		file2.write('foo\nbar\nbaz\n')
+		self.assertFalse(file1.compare(file2))
+		file2.copyto(file1)
+		self.assertTrue(file1.compare(file2))
+
+		# rename is being used when testing Dir
 
 		# test mimetype
-		#file = File('test.txt')
-		#self.assertFalse(file.isimage())
-		#file = File('test.jpg')
-		#self.assertTrue(file.isimage())
-		# Test fails because no globs database in test environment
+		file = File('test.txt')
+		self.assertFalse(file.isimage())
+		file = File('test.jpg')
+		self.assertTrue(file.isimage())
+
+		file = File(tmpdir+'/foo/')
+		self.assertFalse(file.isdir())
+
+		dir = Dir(tmpdir+'/foo/')
+		dir.touch()
+		self.assertTrue(file.isdir())
 
 	def testTmpFile(self):
 		'''Test TmpFile object'''
@@ -185,10 +212,6 @@ class TestFS(tests.TestCase):
 		tmpdir = tests.create_tmp_dir('fs_testDir')
 		dir = Dir(tmpdir+'/foo/bar')
 		assert not dir.exists()
-		# TODO test list()
-
-		# TODO - test file(FILE), + test exception
-		# TODO - test subdir(DIR), + test excepion
 
 		file1 = dir.file('unique.txt')
 		file1.touch()
@@ -199,8 +222,40 @@ class TestFS(tests.TestCase):
 		self.assertEqual(file2.basename, 'unique001.txt')
 		self.assertEqual(file3.basename, 'unique002.txt')
 
-		# TODO test remove_children
-		# TODO test cleanup
+		self.assertEqual(dir.list(), ['unique.txt', 'unique001.txt'])
+			# we did not touch unique002.txt, so don't want to see it show up here
+
+		file1.rename(dir.file('foo.txt'))
+		self.assertEqual(file1.basename, 'unique.txt') # don't update the object !
+		self.assertEqual(dir.list(), ['foo.txt', 'unique001.txt'])
+
+		file1 = dir.file('foo.txt')
+		file1.rename(dir.subdir('foo').file('bar.txt'))
+		self.assertEqual(dir.list(), ['foo', 'unique001.txt'])
+		self.assertEqual(dir.subdir('foo').list(), ['bar.txt'])
+
+		fdir = FilteredDir(dir)
+		fdir.ignore('*.txt')
+		self.assertEqual(fdir.list(), ['foo'])
+
+		self.assertEqual(File((dir, 'foo.txt')), dir.file('foo.txt'))
+		self.assertEqual(dir.file(File((dir, 'foo.txt'))), dir.file('foo.txt'))
+		self.assertRaises(PathLookupError, dir.file, File('/foo/bar.txt')) # not below dir
+
+		self.assertEqual(Dir((dir, 'bar')), dir.subdir('bar'))
+		self.assertEqual(dir.subdir(Dir((dir, 'bar'))), dir.subdir('bar'))
+		self.assertRaises(PathLookupError, dir.subdir, Dir('/foo/bar')) # not below dir
+
+		self.assertRaises(OSError, dir.remove) # dir not empty
+		self.assertTrue(dir.exists())
+		dir.cleanup()
+		self.assertTrue(dir.exists())
+		dir.remove_children()
+		self.assertEqual(dir.list(), [])
+		self.assertTrue(dir.exists())
+		dir.remove()
+		self.assertFalse(dir.exists())
+		self.assertEqual(dir.list(), []) # list non-existing dir
 
 
 class TestFileOverwrite(tests.TestCase):

@@ -63,7 +63,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('gtkspell',not gtkspell is None)]	
+		return [('gtkspell',not gtkspell is None)]
 
 	def toggle_spellcheck(self, enable=None):
 		action = self.actiongroup.get_action('toggle_spellcheck')
@@ -80,20 +80,21 @@ This is a core plugin shipping with zim.
 
 		textview = self.ui.mainwindow.pageview.view
 		if enable:
-			# TODO check language in page / notebook / default
 			if self.spell is None:
 				lang = self.preferences['language'] or None
 				self.spell = gtkspell.Spell(textview, lang)
-				textview.gtkspell = self.spell # used by hardcoded hook in pageview
+				textview.gtkspell = self.spell # HACK used by hardcoded hook in pageview
 			else:
 				pass
 		else:
 			if self.spell is None:
 				pass
 			else:
-				self.spell.detach()
+				if textview.gtkspell \
+				and textview.gtkspell == self.spell:
+					textview.gtkspell.detach()
+					textview.gtkspell = None
 				self.spell = None
-				textview.gtkspell = None
 
 		self.uistate['active'] = enable
 		return False # we can be called from idle event

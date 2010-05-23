@@ -63,6 +63,45 @@ class FilterOverWriteWarning(object):
 		return not record.getMessage().startswith('mtime check failed')
 
 
+class TestUtils(tests.TestCase):
+
+	def testFilenameEncodeing(self):
+		'''Test mapping page names to filenames'''
+		import zim.fs
+		realencoding = zim.fs.ENCODING
+		try:
+			zim.fs.ENCODING = 'utf-8'
+			pagename = u'utf8:\u03b1\u03b2\u03b3'
+			filename = zim.stores.encode_filename(pagename)
+			self.assertEqual(filename, u'utf8/\u03b1\u03b2\u03b3')
+			roundtrip = zim.stores.decode_filename(filename)
+			self.assertEqual(roundtrip, pagename)
+
+			zim.fs.ENCODING = 'ascii'
+			pagename = u'utf8:\u03b1\u03b2\u03b3'
+			filename = zim.stores.encode_filename(pagename)
+			self.assertEqual(filename, u'utf8/%CE%B1%CE%B2%CE%B3')
+			roundtrip = zim.stores.decode_filename(filename)
+			self.assertEqual(roundtrip, pagename)
+
+			zim.fs.ENCODING = 'gb2312'
+			pagename = u'utf8:\u2022:\u4e2d\u6587:foo' # u2022 can not be encoded in gb2312
+			filename = zim.stores.encode_filename(pagename)
+			self.assertEqual(filename, u'utf8/%E2%80%A2/\u4e2d\u6587/foo')
+			roundtrip = zim.stores.decode_filename(filename)
+			self.assertEqual(roundtrip, pagename)
+		except Exception:
+			zim.fs.ENCODING = realencoding
+			raise
+		else:
+			zim.fs.ENCODING = realencoding
+
+		# try roundtrip with actual current encoding
+		pagename = u'utf8:\u03b1\u03b2\u03b3:\u2022:\u4e2d\u6587:foo'
+		filename = zim.stores.encode_filename(pagename)
+		roundtrip = zim.stores.decode_filename(filename)
+		self.assertEqual(roundtrip, pagename)
+
 class TestReadOnlyStore(object):
 
 	# This class does not inherit from TestCase itself as it is used

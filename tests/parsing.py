@@ -66,6 +66,12 @@ class TestParsing(TestCase):
 		for url, readable in (
 			('file:///foo/file%25%20%5D', 'file:///foo/file%25 %5D'),
 			('http://foo/bar%20monkey%E2%80%99s', u'http://foo/bar monkey\u2019s'), # Multibyte unicode char
+
+			# from bug report lp:545712
+			('http://www.moneydj.com/e/newage/JAVA%B4%FA%B8%D5%B0%CF.htm',
+				'http://www.moneydj.com/e/newage/JAVA%B4%FA%B8%D5%B0%CF.htm'),
+			('http://www.moneydj.com/e/newage/JAVA%20%B4%FA%B8%D5%B0%CF.htm',
+				'http://www.moneydj.com/e/newage/JAVA %B4%FA%B8%D5%B0%CF.htm'),
 		):
 			self.assertEqual(url_decode(url, mode=URL_ENCODE_READABLE), readable)
 			self.assertEqual(url_decode(readable, mode=URL_ENCODE_READABLE), readable)
@@ -81,6 +87,8 @@ class TestParsing(TestCase):
 
 		self.assertEqual(url_encode('foo?bar/baz', mode=URL_ENCODE_DATA), 'foo%3Fbar%2Fbaz')
 		self.assertEqual(url_decode('foo%3Fbar%2Fbaz', mode=URL_ENCODE_DATA), 'foo?bar/baz')
+		# from bug report lp:545712
+		self.assertEqual(url_decode('%B4%FA%B8%D5%B0%CF', mode=URL_ENCODE_DATA), '\xb4\xfa\xb8\xd5\xb0\xcf')
 
 
 # TODO - test link_type including win32 paths

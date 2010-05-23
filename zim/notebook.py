@@ -168,7 +168,10 @@ def resolve_notebook(string):
 		nblist = get_notebook_list()
 		filepath = nblist.get_by_name(string)
 		if filepath is None:
-			return None, None # not found
+			if os.path.exists(string):
+				filepath = string # fall back to file path
+			else:
+				return None, None # not found
 
 	file = File(filepath) # Fixme need generic FS Path object here
 	if filepath.endswith('notebook.zim'):
@@ -616,6 +619,11 @@ class Notebook(gobject.GObject):
 			parent = source.commonparent(href)
 			if parent.isroot:
 				return ':' + href.name
+			elif parent == source.parent:
+				if parent == href:
+					return href.basename
+				else:
+					return href.relname(parent)
 			else:
 				return parent.basename + ':' + href.relname(parent)
 
@@ -649,10 +657,13 @@ class Notebook(gobject.GObject):
 			return None
 
 	@staticmethod
-	def cleanup_pathname(name):
+	def cleanup_pathname(name, purge=False):
 		'''Returns a safe version of name, used internally by functions like
 		resolve_path() to parse user input.
 		It raises a PageNameError when the name is not valid
+
+		If 'purge' is True any invalid characters will be removed,
+		otherwise they will result in a PageNameError exception.
 		'''
 		# Reserved characters are:
 		# The ':' is reserrved as seperator
@@ -668,6 +679,8 @@ class Notebook(gobject.GObject):
 		# For file system we should reserve (win32 & posix)
 		# "\", "/", ":", "*", "?", '"', "<", ">", "|"
 
+		# Do not allow '\n' for obvious reasons
+
 		# Allowing '%' will cause problems with sql wildcards sooner
 		# or later - also for url decoding ambiguity it is better to
 		# keep this one reserved
@@ -677,9 +690,13 @@ class Notebook(gobject.GObject):
 			# Avoid duplicates with and without '_' (e.g. in index)
 			# Note that leading "_" is stripped, due to strip() below
 
-		for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%"):
-			if char in name:
-				raise PageNameError, orig
+		if purge:
+			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\n"):
+				name = name.replace(char, '')
+		else:
+			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\n"):
+				if char in name:
+					raise PageNameError, orig
 
 		parts = map(unicode.strip, filter(
 			lambda n: len(n)>0, unicode(name).split(':') ) )
@@ -742,9 +759,28 @@ class Notebook(gobject.GObject):
 		else:
 			store = self.get_store(path)
 			page = store.get_page(path)
+			indexpath = self.index.lookup_path(path)
+			if indexpath and indexpath.haschildren:
+				page.haschildren = True
+				# page might be the parent of a placeholder, in that case
+				# the index knows it has children, but the store does not
+
 			# TODO - set haschildren if page maps to a store namespace
 			self._page_cache[path.name] = page
 			return page
+
+	def get_new_page(self, path):
+		'''Like get_page() but guarantees the page does not yet exist.
+		Will add a number to make name unique.
+		'''
+		i = 0
+		base = path.name
+		page = self.get_page(path)
+		while page.hascontent or page.haschildren:
+			i += 1
+			path = Path(base + ' %i' % i)
+			page = self.get_page(path)
+		return page
 
 	def flush_page_cache(self, path):
 		'''Remove a page from the page cache, calling get_page() after this
@@ -827,7 +863,7 @@ class Notebook(gobject.GObject):
 		page.set_parsetree(storedpage.get_parsetree())
 		page.modified = False
 
-	def move_page(self, path, newpath, update_links=True):
+	def move_page(self, path, newpath, update_links=True, callback=None):
 		'''Move a page from 'path' to 'newpath'. If 'update_links' is
 		True all links from and to the page will be modified as well.
 		'''
@@ -841,19 +877,21 @@ class Notebook(gobject.GObject):
 			raise LookupError, 'Page does not exist: %s' % path.name
 		assert not page.modified, 'BUG: moving a page with uncomitted changes'
 
+		if path == newpath:
+			return
+
 		self.emit('move-page', path, newpath, update_links)
 		logger.debug('Move %s to %s (%s)', path, newpath, update_links)
 
 		# Collect backlinks
 		if update_links:
 			from zim.index import LINK_DIR_BACKWARD
-			backlinkpages = set(
-				l.source for l in
-					self.index.list_links(path, LINK_DIR_BACKWARD) )
+			backlinkpages = set()
+			for l in self.index.list_links(path, LINK_DIR_BACKWARD):
+				backlinkpages.add(l.source)
 			for child in self.index.walk(path):
-				backlinkpages.update(set(
-					l.source for l in
-						self.index.list_links(path, LINK_DIR_BACKWARD) ))
+				for l in self.index.list_links(child, LINK_DIR_BACKWARD):
+					backlinkpages.add(l.source)
 
 		# Do the actual move
 		store = self.get_store(path)
@@ -870,15 +908,17 @@ class Notebook(gobject.GObject):
 		# Update links in moved pages
 		page = self.get_page(newpath)
 		if page.hascontent:
-			self._update_links_from(page, path)
+			if callback: callback(page)
+			self._update_links_from(page, path, page, path)
 			store = self.get_store(page)
 			store.store_page(page)
 			# do not use self.store_page because it emits signals
 		for child in self._no_index_walk(newpath):
 			if not child.hascontent:
 				continue
+			if callback: callback(child)
 			oldpath = path + child.relname(newpath)
-			self._update_links_from(child, oldpath)
+			self._update_links_from(child, oldpath, newpath, path)
 			store = self.get_store(child)
 			store.store_page(child)
 			# do not use self.store_page because it emits signals
@@ -889,10 +929,12 @@ class Notebook(gobject.GObject):
 			self.index.delete(path)
 			self.index.update(newpath)
 			#~ print backlinkpages
+			total = len(backlinkpages)
 			for p in backlinkpages:
 				if p == path or p.ischild(path):
 					continue
 				page = self.get_page(p)
+				if callback: callback(page, total=total)
 				self._update_links_in_page(page, path, newpath)
 				self.store_page(page)
 
@@ -915,7 +957,7 @@ class Notebook(gobject.GObject):
 			tag.text = newhref
 		tag.attrib['href'] = newhref
 
-	def _update_links_from(self, page, oldpath):
+	def _update_links_from(self, page, oldpath, parent, oldparent):
 		logger.debug('Updating links in %s (was %s)', page, oldpath)
 		tree = page.get_parsetree()
 		if not tree:
@@ -938,6 +980,17 @@ class Notebook(gobject.GObject):
 							newhref = self.relative_link(page, oldhrefpath)
 							#~ print '\t->', newhref
 							self._update_link_tag(tag, newhref)
+					elif (hrefpath == oldparent or hrefpath.ischild(oldparent)):
+						# Special case where we e.g. link to our own children using
+						# a common parent between old and new path as an anchor for resolving
+						newhrefpath = parent
+						if hrefpath.ischild(oldparent):
+							newhrefpath = parent + hrefpath.relname(oldparent)
+						newhref = self.relative_link(page, newhrefpath)
+						#~ print '\t->', newhref
+						self._update_link_tag(tag, newhref)
+					else:
+						pass
 			except:
 				logger.exception('Error while updating link "%s"', href)
 
@@ -978,8 +1031,7 @@ class Notebook(gobject.GObject):
 
 		page.set_parsetree(tree)
 
-	def rename_page(self, path, newbasename,
-						update_heading=True, update_links=True):
+	def rename_page(self, path, newbasename, update_heading=True, update_links=True, callback=None):
 		'''Rename page to a page in the same namespace but with a new
 		basename. If 'update_heading' is True the first heading in the
 		page will be updated to it's new name.  If 'update_links' is
@@ -995,7 +1047,7 @@ class Notebook(gobject.GObject):
 			newpath = self.index.resolve_case(
 				newbasename, namespace=path.parent) or newpath
 
-		self.move_page(path, newpath, update_links=update_links)
+		self.move_page(path, newpath, update_links, callback)
 		if update_heading:
 			import zim.parsing
 			page = self.get_page(newpath)

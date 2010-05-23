@@ -27,6 +27,16 @@ class SearchDialog(Dialog):
 		button = gtk.Button(stock=gtk.STOCK_FIND)
 		hbox.pack_start(button, False)
 
+		help_text = _(
+			'For advanced search you can use operators like\n'
+			'AND, OR and NOT. See the help page for more details.'
+		) # T: help text for the search dialog
+		if gtk.gtk_version >= (2, 12, 0):
+			self.query_entry.set_tooltip_text(help_text)
+		else:
+			tooltips = gtk.Tooltips()
+			tooltips.set_tip(self.query_entry, help_text)
+
 		# TODO advanced query editor
 		# TODO checkbox _('Match c_ase')
 		# TODO checkbox _('Whole _word')
@@ -99,4 +109,5 @@ class SearchResultsTreeView(BrowserTreeView):
 		# Popup find dialog with same query
 		if self.query and self.query.simple_match:
 			string = self.query.simple_match
+			string.strip('*') # support partial matches
 			self.ui.mainwindow.pageview.show_find(string, highlight=True)

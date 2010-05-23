@@ -362,7 +362,6 @@ class PageEntry(InputEntry):
 		relative links.
 		'''
 		InputEntry.__init__(self)
-		assert notebook, 'Page completion needs a notebook'
 		assert path_context is None or isinstance(path_context, Path)
 		self.notebook = notebook
 		self.path_context = path_context
@@ -385,7 +384,7 @@ class PageEntry(InputEntry):
 		self.set_text(':'+path.name)
 
 	def get_path(self):
-		name = self.get_text().strip()
+		name = self.get_text().decode('utf-8').strip()
 		if not name:
 			return None
 		elif self.allow_select_root and name == ':':
@@ -394,16 +393,21 @@ class PageEntry(InputEntry):
 			if self.force_child and not name.startswith('+'):
 				name = '+' + name
 			try:
-				return self.notebook.resolve_path(name, source=self.path_context)
+				if self.notebook:
+					path = self.notebook.resolve_path(name, source=self.path_context)
+				else:
+					path = Path(name)
 			except PageNameError:
 				return None
+			else:
+				return path
 
 	def clear(self):
 		self.set_text('')
 		self.emit('activate')
 
 	def do_changed(self):
-		text = self.get_text().strip()
+		text = self.get_text().decode('utf-8').strip()
 
 		if not text:
 			self.set_input_valid(True)
@@ -427,6 +431,9 @@ class PageEntry(InputEntry):
 			return
 		else:
 			self.set_input_valid(True)
+
+		if not self.notebook:
+			return # no completion without a notebook
 
 		# Figure out some hint about the namespace
 		anchored = False
@@ -484,7 +491,7 @@ class LinkEntry(PageEntry):
 	'''Sub-class of PageEntry that also accepts file links and urls'''
 
 	def do_changed(self):
-		text = self.get_text()
+		text = self.get_text().decode('utf-8').strip()
 		if text:
 			type = link_type(text)
 			if type == 'page':
@@ -553,6 +560,10 @@ class Dialog(gtk.Dialog):
 		setattr(handler, attr, weakref.ref(dialog))
 		return dialog
 
+	@property
+	def destroyed(self): return not self.has_user_ref_count
+		# Returns True when dialog has been destroyed
+
 	def __init__(self, ui, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			help_text=None, fields=None, help=None,
@@ -577,28 +588,31 @@ class Dialog(gtk.Dialog):
 		self.ui = ui
 		self.result = None
 		self.inputs = {}
-		self.destroyed = False
 		self.path_context = path_context
 		gtk.Dialog.__init__(
 			self, parent=get_window(self.ui),
 			title=format_title(title),
-			flags=gtk.DIALOG_NO_SEPARATOR,
+			flags=gtk.DIALOG_NO_SEPARATOR|gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 
-		if hasattr(ui, 'uistate') and isinstance(ui.uistate, zim.config.ConfigDict):
+		if hasattr(self, 'uistate'):
+			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
+		elif hasattr(ui, 'uistate') \
+		and isinstance(ui.uistate, zim.config.ConfigDict):
 			assert isinstance(defaultwindowsize, tuple)
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
-			#~ print '>>', self.uistate
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
-			w, h = self.uistate['windowsize']
-			self.set_default_size(w, h)
+			#~ print '>>', self.uistate
 		else:
 			self.uistate = { # used in tests/debug
 				'windowsize': (-1, -1)
 			}
+
+		w, h = self.uistate['windowsize']
+		self.set_default_size(w, h)
 
 		self._no_ok_action = False
 		if not button is None:
@@ -719,12 +733,14 @@ class Dialog(gtk.Dialog):
 				label.set_alignment(0.0, 0.5)
 				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
 				if type in ('link', 'page', 'namespace'):
+					if self.ui: notebook = self.ui.notebook
+					else: notebook = None
 					if type == 'link':
-						entry = LinkEntry(self.ui.notebook, path_context=self.path_context)
+						entry = LinkEntry(notebook, path_context=self.path_context)
 					elif type == 'page':
-						entry = PageEntry(self.ui.notebook, path_context=self.path_context)
+						entry = PageEntry(notebook, path_context=self.path_context)
 					else:
-						entry = NamespaceEntry(self.ui.notebook, path_context=self.path_context)
+						entry = NamespaceEntry(notebook, path_context=self.path_context)
 					if value:
 						if isinstance(value, basestring):
 							entry.set_text(value)
@@ -800,7 +816,7 @@ class Dialog(gtk.Dialog):
 			if isinstance(widget, (PageEntry, NamespaceEntry)):
 				values[name] = widget.get_path()
 			elif isinstance(widget, gtk.Entry):
-				values[name] = widget.get_text().strip()
+				values[name] = widget.get_text().decode('utf-8').strip()
 			elif isinstance(widget, gtk.ToggleButton):
 				values[name] = widget.get_active()
 			elif isinstance(widget, gtk.ComboBox):
@@ -816,10 +832,8 @@ class Dialog(gtk.Dialog):
 		Returns the 'result' attribute of the dialog if any.
 		'''
 		self.show_all()
-		assert not self.destroyed, 'BUG: re-using dialog after it was closed'
 		while not self.destroyed:
 			gtk.Dialog.run(self)
-			# will be broken when _close is set from do_response()
 		return self.result
 
 	def present(self):
@@ -831,7 +845,6 @@ class Dialog(gtk.Dialog):
 
 	def show_all(self):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
-		assert not self.destroyed, 'BUG: re-using dialog after it was closed'
 		logger.debug('Opening dialog "%s"', self.title)
 		gtk.Dialog.show_all(self)
 
@@ -848,18 +861,18 @@ class Dialog(gtk.Dialog):
 		if id == gtk.RESPONSE_OK and not self._no_ok_action:
 			logger.debug('Dialog response OK')
 			try:
-				self.destroyed = self.do_response_ok()
+				destroy = self.do_response_ok()
 			except Exception, error:
 				ErrorDialog(self.ui, error).run()
-				self.destroyed = False
+				destroy = False
 		else:
-			self.destroyed = True
+			destroy = True
 
 		w, h = self.get_size()
 		self.uistate['windowsize'] = (w, h)
 		self.save_uistate()
 
-		if self.destroyed:
+		if destroy:
 			self.destroy()
 			logger.debug('Closed dialog "%s"', self.title[:-6])
 
@@ -980,12 +993,40 @@ class QuestionDialog(gtk.MessageDialog):
 		return answer
 
 
+class MessageDialog(gtk.MessageDialog):
+
+	def __init__(self, ui, msg):
+		'''Constructor. 'ui' can either be the main application or some
+		other dialog. The message can also be a tuple containing a short
+		question and a longer explanation, this is prefered for look&feel.
+		'''
+		if isinstance(msg, tuple):
+			msg, text = msg
+		else:
+			text = None
+
+		self.response = None
+		gtk.MessageDialog.__init__(
+			self, parent=get_window(ui),
+			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK,
+			message_format=msg
+		)
+		if text:
+			self.format_secondary_text(text)
+
+	def run(self):
+		'''Runs the dialog and destroys it directly.'''
+		logger.debug('Running MessageDialog')
+		gtk.MessageDialog.run(self)
+		self.destroy()
+
+
 class FileDialog(Dialog):
 	'''File chooser dialog, adds a filechooser widget to Dialog.'''
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			help_text=None, fields=None, help=None
+			help_text=None, fields=None, help=None, multiple=False
 		):
 		if button is None:
 			if action == gtk.FILE_CHOOSER_ACTION_OPEN:
@@ -1000,6 +1041,7 @@ class FileDialog(Dialog):
 			self.set_default_size(500, 400)
 		self.filechooser = gtk.FileChooserWidget(action=action)
 		self.filechooser.set_do_overwrite_confirmation(True)
+		self.filechooser.set_select_multiple(multiple)
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
 		self.vbox.add(self.filechooser)
 		# FIXME hook to expander to resize window
@@ -1014,15 +1056,23 @@ class FileDialog(Dialog):
 		'''Wrapper for filechooser.get_filename().
 		Returns a File object or None.
 		'''
-		path = self.filechooser.get_filename()
+		path = self.filechooser.get_filename().decode('utf-8')
 		if path is None: return None
 		else: return File(path)
+
+	def get_files(self):
+		'''Like get_file() but returns a list of File objects.
+		Useful in combination with the option "multiple".
+		'''
+		paths = [path.decode('utf-8')
+				for path in self.filechooser.get_filenames()]
+		return [File(path) for path in paths]
 
 	def get_dir(self):
 		'''Wrapper for filechooser.get_filename().
 		Returns a Dir object or None.
 		'''
-		path = self.filechooser.get_filename()
+		path = self.filechooser.get_filename().decode('utf-8')
 		if path is None: return None
 		else: return Dir(path)
 
@@ -1141,12 +1191,18 @@ class ProgressBarDialog(gtk.Dialog):
 		self.total = total
 		self.count = 0
 
-	def pulse(self, msg=None):
+	def pulse(self, msg=None, count=None, total=None):
 		'''Sets an optional message and moves forward the progress bar. Will also
 		handle all pending Gtk events, so interface keeps responsive during a background
 		job. This method returns True untill the 'Cancel' button has been pressed, this
 		boolean could be used to decide if the ackground job should continue or not.
 		'''
+		if total and total != self.total:
+			self.set_total(total)
+			self.count = count or 0
+		elif count:
+			self.count = count - 1
+
 		if self.total and self.count < self.total:
 			self.count += 1
 			fraction = float(self.count) / self.total
@@ -1309,11 +1365,11 @@ class ImageView(gtk.Layout):
 				pixbuf = self._pixbuf
 			else:
 				pixbuf = self._pixbuf.scale_simple(
-							wimg, himg, gtk.gdk.INTERP_HYPER)
+							wimg, himg, gtk.gdk.INTERP_NEAREST)
 		else:
 			# Generate checkboard background while scaling
 			pixbuf = self._pixbuf.composite_color_simple(
-				wimg, himg, gtk.gdk.INTERP_HYPER,
+				wimg, himg, gtk.gdk.INTERP_NEAREST,
 				255, 16, self._lightgrey.pixel, self._darkgrey.pixel )
 
 		# And align the image in the layout

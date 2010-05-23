@@ -145,15 +145,13 @@ you need to set the data path like this:
 
 To build a tree in a target directory you can use:
 
-	./setup.py install --root=/path/to/package/build/dir
+	./setup.py install --root=/path/to/package/build/dir --skip-cmd
 
 Special attention may be needed to run xdg update commands in a post-install
 script. Recommended commands are:
 
 	update-desktop-database
 	update-mime-database /usr/share/mime
-	xdg-icon-resource install --context mimetypes \
-		--size 64 zim.png application-x-zim-notebook
 
 
 

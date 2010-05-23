@@ -147,6 +147,9 @@ ui_preferences = (
 	('recursive_checklist', 'bool', 'Editing',
 		_('Checking a checkbox also change any sub-items'), False),
 		# T: option in preferences dialog
+	('auto_reformat', 'bool', 'Editing',
+		_('Reformat wiki markup on the fly'), False),
+		# T: option in preferences dialog
 )
 
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
@@ -176,6 +179,12 @@ file_re = Re(r'''(
 	| \.\.?/
 	| /[^/\s]
 )\S*$''', re.X | re.U) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
+
+markup_re = {'style-strong' : Re(r'(\*{2})(.*)\1'),
+	'style-emphasis' : Re(r'(\/{2})(.*)\1'),
+	'style-mark' : Re(r'(_{2})(.*)\1'),
+	'style-pre' : Re(r'(\'{2})(.*)\1'),
+	'style-strike' : Re(r'(~{2})(.*)\1')}
 
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
@@ -783,7 +792,7 @@ class TextBuffer(gtk.TextBuffer):
 				if '\n' in text:
 					name = 'pre'
 			tag = self.get_tag_table().lookup('style-'+name)
-			had_tag = self.range_has_tag(start, end, tag)
+			had_tag = self.range_has_tag(tag, start, end)
 			self.remove_textstyle_tags(start, end)
 			if not had_tag:
 				self.apply_tag(tag, start, end)
@@ -793,7 +802,7 @@ class TextBuffer(gtk.TextBuffer):
 
 			self.set_editmode_from_cursor()
 
-	def range_has_tag(self, start, end, tag):
+	def range_has_tag(self, tag, start, end):
 		'''Check if a certain tag appears anywhere in a certain range'''
 		# test right gravity for start iter, but left gravity for end iter
 		if tag in start.get_tags() \
@@ -805,6 +814,26 @@ class TextBuffer(gtk.TextBuffer):
 				return iter.compare(end) < 0
 			else:
 				return False
+
+ 	def range_has_tags(self, func, start, end):
+		'''Like range_has_tag() but uses a function to check for
+		multiple tags.
+		'''
+		# test right gravity for start iter, but left gravity for end iter
+		if any(filter(func, start.get_tags())) \
+		or any(filter(func, self.iter_get_zim_tags(end))):
+			return True
+		else:
+			iter = start.copy()
+			iter.forward_to_tag_toggle(None)
+			while iter.compare(end) == -1:
+				if any(filter(func, iter.get_tags())):
+					return True
+
+				if not iter.forward_to_tag_toggle(None):
+					return False
+
+			return False
 
 	def remove_textstyle_tags(self, start, end):
 		'''Removes all textstyle tags from a range'''
@@ -2335,13 +2364,10 @@ class TextView(gtk.TextView):
 		def apply_link(match):
 			#~ print "LINK >>%s<<" % word
 			start = end.copy()
-			if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end)):
-				return False
 			if not start.backward_chars(len(match)):
 				return False
-			if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start)):
+			if buffer.range_has_tags(_is_not_indent_tag, start, end):
 				return False
-
 			tag = buffer.create_link_tag(match, match)
 			buffer.apply_tag(tag, start, end)
 			return True
@@ -2369,6 +2395,23 @@ class TextView(gtk.TextView):
 			apply_link(file_re[0])
 		elif self.preferences['autolink_camelcase'] and camelcase_re.match(word):
 			apply_link(camelcase_re[0])
+		elif self.preferences['auto_reformat']:
+			handled = False
+			linestart = buffer.get_iter_at_line(end.get_line())
+			partial_line = linestart.get_slice(end)
+			for style,re in markup_re.items():
+				if not re.search(partial_line) == None:
+					matchstart = linestart.copy()
+					matchstart.forward_chars(re.start())
+					matchend = linestart.copy()
+					matchend.forward_chars(re.end())
+					if filter(_is_not_indent_tag,buffer.iter_get_zim_tags(matchstart)) \
+					or filter(_is_not_indent_tag,buffer.iter_get_zim_tags(matchend)):
+						continue
+					buffer.delete(matchstart,matchend)
+					buffer.insert_with_tags_by_name(matchstart,re[2],style)
+					handled_here = True
+					break
 		else:
 			handled = False
 
@@ -3554,6 +3597,8 @@ class InsertDateDialog(Dialog):
 		column = gtk.TreeViewColumn('_date_', cell_renderer, text=1)
 		self.view.append_column(column)
 		self.view.set_headers_visible(False)
+		self.view.connect('row-activated',
+			lambda *a: self.response(gtk.RESPONSE_OK) )
 
 		self.linkbutton = gtk.CheckButton(_('_Link to date'))
 			# T: check box in InsertDate dialog
@@ -3565,7 +3610,17 @@ class InsertDateDialog(Dialog):
 		if not self.link:
 			self.linkbutton.set_sensitive(False)
 
+		button = gtk.Button(stock=gtk.STOCK_EDIT)
+		button.connect('clicked', self.on_edit)
+		self.action_area.add(button)
+		self.action_area.reorder_child(button, 1)
+
+		self.load_file()
+
+	def load_file(self):
 		lastused = None
+		model = self.view.get_model()
+		model.clear()
 		for line in config_file('dates.list'):
 			line = line.strip()
 			if line.startswith('#'): continue
@@ -3582,16 +3637,16 @@ class InsertDateDialog(Dialog):
 			path = model.get_path(lastused)
 			self.view.get_selection().select_path(path)
 
-		self.view.connect('row-activated',
-			lambda *a: self.response(gtk.RESPONSE_OK) )
-
-		# TODO edit button which allows editing the config file
-
 	def save_uistate(self):
 		model, iter = self.view.get_selection().get_selected()
 		format = model[iter][0]
 		self.uistate['lastusedformat'] = format
 		self.uistate['linkdate'] = self.linkbutton.get_active()
+
+	def on_edit(self, button):
+		file = config_file('dates.list')
+		if self.ui.edit_config_file(file):
+			self.load_file()
 
 	def do_response_ok(self):
 		model, iter = self.view.get_selection().get_selected()
