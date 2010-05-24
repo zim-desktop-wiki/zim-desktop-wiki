@@ -26,9 +26,16 @@ shutil.copytree("c:/Program Files/Common Files/GTK/2.0/share", "windows/build/sh
 # Use function from distutils because shutil.copytree fails when destination folder exists
 distutils.dir_util.copy_tree("locale", "windows/build/share/locale", update=1)
 
-# copy plugins folder so Preferences dialog can iterate through them
+# Copy plugins folder so Preferences dialog can iterate through them
 shutil.rmtree("windows/build/zim", True)
 shutil.copytree("zim/plugins", "windows/build/zim/plugins")
+
+# Copy the hicolor icon theme from windows folder because it's missing from Gtk/win32 distro
+os.makedirs("windows/build/share/icons/hicolor")
+shutil.copyfile(
+	"windows/hicolor-icon-theme__index.theme",
+	"windows/build/share/icons/hicolor/index.theme"
+)
 
 # print out version number
 f = open("windows/version-and-date.nsi", "w")
