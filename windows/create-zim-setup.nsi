@@ -57,7 +57,7 @@ Section "-Main program" SecMain
 
 	; Set Section Files and Shortcuts
 	SetOutPath "$INSTDIR\"
-	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "zim\*.*"
+	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "build\*.*"
 	File /oname=zim.ico "zim\data\pixmaps\favicon.ico"
 
 SectionEnd
