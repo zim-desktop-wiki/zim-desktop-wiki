@@ -25,7 +25,7 @@ OutFile "..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
 
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP "zim-logo-big.bmp" ; optional
-!define MUI_ICON "zim\data\pixmaps\favicon.ico"
+!define MUI_ICON "zim.ico"
 
 !define MUI_DIRECTORYPAGE_TEXT_TOP \
 	"Setup will install ${APPNAME} in the following folder. \
@@ -58,7 +58,7 @@ Section "-Main program" SecMain
 	; Set Section Files and Shortcuts
 	SetOutPath "$INSTDIR\"
 	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "build\*.*"
-	File /oname=zim.ico "zim\data\pixmaps\favicon.ico"
+	File "zim.ico"
 
 SectionEnd
 
