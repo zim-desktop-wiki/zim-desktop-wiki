@@ -332,7 +332,7 @@ class Re(object):
 # Some often used regexes
 is_url_re = Re('^(\w[\w\+\-\.]+)://')
 	# scheme "://"
-is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')
+is_email_re = Re('^(mailto:)?\S+\@\S+\.\w+$')
 	# "mailto:" address
 	# name "@" host
 is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Za-z]:\\)')
@@ -360,9 +360,12 @@ url_re = Re(r'''(
 	# but we do not want to match "[http://foo.org]"
 	# See rfc/3986 for the official -but unpractical- regex
 
+
 def link_type(link):
 	'''Function that retuns a link type for urls and page links'''
-	if is_url_re.match(link): type = is_url_re[1]
+	if is_url_re.match(link):
+		if link.startswith('zim+'): type = 'zim-notebook'
+		else: type = is_url_re[1]
 	elif is_email_re.match(link): type = 'mailto'
 	elif is_win32_share_re.match(link): type = 'smb'
 	elif is_path_re.match(link): type = 'file'

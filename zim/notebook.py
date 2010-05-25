@@ -157,9 +157,11 @@ def resolve_notebook(string):
 
 	page = None
 	if is_url_re.match(string):
+		if string.startswith('zim+'): string = string[4:]
 		assert string.startswith('file://')
 		if '?' in string:
 			filepath, page = string.split('?', 1)
+			page = Path(page)
 		else:
 			filepath = string
 	elif os.path.sep in string:
@@ -176,7 +178,7 @@ def resolve_notebook(string):
 	file = File(filepath) # Fixme need generic FS Path object here
 	if filepath.endswith('notebook.zim'):
 		return File(filepath).dir, page
-	elif file.exists(): # file exists and really is a file
+	elif not page and file.exists(): # file exists and really is a file
 		parents = list(file)
 		parents.reverse()
 		for parent in parents:
@@ -261,9 +263,9 @@ def interwiki_link(link):
 			break
 	else:
 		list = get_notebook_list()
-		for name, path in list.get_names():
+		for name, uri in list.get_names():
 			if name.lower() == key.lower():
-				url = path + '?{NAME}'
+				url = 'zim+' + uri + '?{NAME}'
 				break
 
 	if url and is_url_re.match(url):

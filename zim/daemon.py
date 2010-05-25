@@ -391,6 +391,7 @@ class SocketDaemonProxy(object):
 	def get_notebook(self, notebook):
 		'''Returns a proxy object for a GtkInterface for notebook'''
 		if isinstance(notebook, basestring):
+			if notebook.startswith('zim+'): notebook = notebook[4:]
 			assert notebook.startswith('file://')
 		else:
 			assert hasattr(notebook, 'uri')

@@ -387,7 +387,7 @@ class NotebookInterface(gobject.GObject):
 		try:
 			klass = zim.plugins.get_plugin(name)
 			if not klass.check_dependencies_ok():
-				raise AssertionError, 'Dependencies failed'
+				raise AssertionError, 'Dependencies failed for plugin %s' % name
 			plugin = klass(self)
 		except:
 			logger.exception('Failed to load plugin %s', name)

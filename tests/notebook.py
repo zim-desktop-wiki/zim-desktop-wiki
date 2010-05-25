@@ -90,7 +90,7 @@ class TestGetNotebook(tests.TestCase):
 
 		# Check interwiki parsing
 		self.assertEqual(interwiki_link('wp?Foo'), 'http://en.wikipedia.org/wiki/Foo')
-		self.assertEqual(interwiki_link('foo?Foo'), dir.uri+'?Foo')
+		self.assertEqual(interwiki_link('foo?Foo'), 'zim+'+dir.uri+'?Foo')
 		nb, page = resolve_notebook(dir.uri+'?Foo')
 		self.assertEqual(nb, dir)
 		self.assertEqual(page, 'Foo')

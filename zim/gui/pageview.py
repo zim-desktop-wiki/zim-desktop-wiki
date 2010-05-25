@@ -3204,6 +3204,7 @@ class PageView(gtk.VBox):
 			if type == 'interwiki':
 				href = interwiki_link(href)
 				type = link_type(href)
+				# could be file, url, or notebook
 
 			if type == 'page':
 				path = self.ui.notebook.resolve_path(href, source=self.page)
@@ -3214,6 +3215,8 @@ class PageView(gtk.VBox):
 			elif type == 'file':
 				path = self.ui.notebook.resolve_file(href, self.page)
 				self.ui.open_file(path)
+			elif type == 'zim-notebook':
+				self.ui.open_notebook(href)
 			else:
 				self.ui.open_url(href)
 		except Exception, error:
