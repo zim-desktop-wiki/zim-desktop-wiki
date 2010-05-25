@@ -10,6 +10,12 @@ The Task List plugin adds a dialog that lists open items across all pages of the
 
 **See also:** [[Usage:Getting Things Done]]
 
+===== Options =====
+This plugin has two options that can be configured:
+
+If the option "**Consider all checkboxes as tasks**" is enabled any checkboxes found will appear in the task list. If it is disabled only checkboxes that have a task label (like FIXME or TODO) will appear in the list.
+
+The option "**Labels marking tasks**" gives a comma separated list of labels that are used to flag tasks. By default these are "TODO" and "FIXME" but this can be customized.
 
 ===== Using Checkboxes =====
 The first way to use the task list is to define open items by checkboxes. A list like this will be interpreted as a task list and each individual line will appear in the task list dialog.
@@ -33,5 +39,9 @@ So you can use e.g. "[d: 5/1]", "[d: 2010-1-5]" or "[d: 5/1/10]".
 
 **Note: **dates are parse in European notation, so "dd/mm", not as "mm/dd" as is customary in the US. Unfortunately there is no way to resolve these unambiguously.
 
-===== Using tags =====
-The second way to use the task list is by using tags like "TODO" or "FIXME" in your notes. Unfortunately this functionality has not yet been ported in this version of zim.
+===== Using labels =====
+The second way to use the task list is by using labels like "TODO" or "FIXME" in your notes. Labels can appear at the start of a line or directly after a checkbox. The rest of the lines is parsed the same as a task description after a checkbox. So the following will also be considered a task:
+
+	FIXME: finish the previous paragraph
+
+Different labels can be used similar to tags to distinguish different categories of tasks. 

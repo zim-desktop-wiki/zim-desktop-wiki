@@ -289,6 +289,8 @@ class Parser(ParserClass):
 
 class Dumper(DumperClass):
 
+	# TODO check commonality with dumper in plain.py
+
 	def dump(self, tree):
 		#~ print 'DUMP WIKI', tree.tostring()
 		assert isinstance(tree, ParseTree)
@@ -368,6 +370,3 @@ class Dumper(DumperClass):
 
 			if element.tail:
 				output.append(element.tail)
-
-
-

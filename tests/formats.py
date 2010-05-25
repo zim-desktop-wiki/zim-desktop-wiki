@@ -79,6 +79,7 @@ class TestParseTree(TestCase):
 		text = tree.tostring()
 		self.assertEqualDiff(text, wanted)
 
+
 class TestTextFormat(TestCase):
 
 	def setUp(self):
@@ -86,7 +87,7 @@ class TestTextFormat(TestCase):
 		notebook, self.page = get_test_page()
 
 	def testRoundtrip(self):
-		'''Test roundtrip for format'''
+		'''Test roundtrip for plain text'''
 		tree = self.format.Parser().parse(wikitext)
 		self.assertTrue(isinstance(tree, ParseTree))
 		self.assertTrue(tree.getroot().tag == 'zim-tree')
@@ -96,6 +97,66 @@ class TestTextFormat(TestCase):
 		self.assertEqualDiff(tree.tostring(), xml) # check tree not modified
 		self.assertEqualDiff(output, wikitext.splitlines(True))
 
+	def testDumping(self):
+		'''Test dumping page to plain text'''
+		tree = get_format('wiki').Parser().parse(wikitext)
+		text = self.format.Dumper().dump(tree)
+		wanted = '''\
+Head1
+
+Head 2
+
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat. Duis aute irure dolor in
+reprehenderit in voluptate velit esse cillum dolore eu fugiat
+nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
+sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+Some Verbatim here
+
+	Indented and all: //foo//
+
+IMAGE: Foo Bar
+LINKS: :foo:bar ./file.png file:///etc/passwd
+LINKS: FooBar
+
+	Some indented
+	paragraphs go here ...
+
+
+./equation003.png?type=equation
+
+
+Let's try these bold, italic, underline and strike
+And some //verbatim//
+And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
+
+A list
+* foo
+	* bar
+	* baz
+
+And a checkbox list
+[ ] item 1
+	[*] sub item 1
+		* Some normal bullet
+	[x] sub item 2
+	[ ] sub item 3
+[ ] item 2
+[ ] item 3
+	[x] item FOOOOOO !
+
+----
+
+====
+This is not a header
+
+That's all ...
+'''
+		self.assertEqualDiff(text, wanted.splitlines(True))
+
 
 class TestWikiFormat(TestTextFormat):
 
@@ -103,6 +164,14 @@ class TestWikiFormat(TestTextFormat):
 		#~ TestTextFormat.setUp(self)
 		self.format = get_format('wiki')
 		notebook, self.page = get_test_page()
+
+	def testRoundtrip(self):
+		'''Test roundtrip for wiki text'''
+		TestTextFormat.testRoundtrip(self)
+
+
+	def testDumping(self):
+		pass
 
 	#~ def testHeaders(self):
 		#~ text = '''\
@@ -168,7 +237,6 @@ This is not a header
 		t = self.format.Parser().parse(wikitext)
 		self.assertEqualDiff(t.tostring(), tree)
 
-
 	def testUnicodeBullet(self):
 		'''Test support for unicode bullets in source'''
 		input = u'''\
@@ -231,6 +299,7 @@ test 4 5 6
 		self.assertEqualDiff(t.tostring(), xml)
 		output = self.format.Dumper().dump(t)
 		self.assertEqualDiff(output, wanted.splitlines(True))
+
 
 class TestHtmlFormat(TestCase):
 
@@ -366,6 +435,7 @@ class TestLatexFormat(TestCase):
 		self.assertTrue('\chapter{Foo Bar}\n' in output)
 
 		# TODO test template_options.document_type
+
 
 class StubLinker(object):
 

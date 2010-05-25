@@ -6,7 +6,7 @@
 __version__ = '0.46'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <pardus@cpan.org>'
-__copyright__ = 'Copyright 2008, 2009 Jaap Karssenberg <pardus@cpan.org>'
+__copyright__ = 'Copyright 2008 - 2010 Jaap Karssenberg <pardus@cpan.org>'
 __license__='''\
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

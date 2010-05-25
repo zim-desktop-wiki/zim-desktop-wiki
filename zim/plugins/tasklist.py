@@ -17,7 +17,7 @@ from zim.gui.widgets import gtk_get_style, \
 	Dialog, MessageDialog, \
 	Button, IconButton, MenuButton, \
 	BrowserTreeView, SingleClickTreeView
-from zim.formats import UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
+from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 
 
 logger = logging.getLogger('zim.plugins.tasklist')
@@ -93,10 +93,10 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = (
 		# key, type, label, default
-		# ('use_checkboxes', 'bool', _('Use checkboxes'), True),
+		('all_checkboxes', 'bool', _('Consider all checkboxes as tasks'), True),
 			# T: label for plugin preferences dialog
-		# TODO: option for tags
-		# TODO: option to limit to specific namespace
+		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO'),
+			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 	)
 
 	def __init__(self, ui):
@@ -120,57 +120,154 @@ This is a core plugin shipping with zim.
 		if db_version == SQL_FORMAT_VERSION_STRING:
 			self.db_initialized = True
 
+		self._set_preferences()
+
 	def initialize_db(self, index):
 		with index.db_commit:
 			index.db.executescript(SQL_CREATE_TABLES)
 		self.index.properties['plugin_tasklist_format'] = SQL_FORMAT_VERSION_STRING
 		self.db_initialized = True
 
+	def do_preferences_changed(self):
+		self._drop_table()
+		self._set_preferences()
+
+	def _set_preferences(self):
+		self.all_checkboxes = self.preferences['all_checkboxes']
+		self.task_labels = [s.strip() for s in self.preferences['labels'].split(',')]
+		regex = '(' + '|'.join(map(re.escape, self.task_labels)) + ')'
+		self.task_label_re = re.compile(regex)
+
 	def disconnect(self):
+		self._drop_table()
+		PluginClass.disconnect(self)
+
+	def _drop_table(self):
 		self.index.properties['plugin_tasklist_format'] = 0
 		if self.db_initialized:
 			try:
 				self.index.db.execute('DROP TABLE "tasklist"')
 			except:
 				logger.exception('Could not drop table:')
+			else:
+				self.db_initialized = False
+		else:
+			try:
+				self.index.db.execute('DROP TABLE "tasklist"')
+			except:
+				pass
 
 	def index_page(self, index, path, page):
 		if not self.db_initialized: return
-
 		#~ print '>>>>>', path, page, page.hascontent
 		tasksfound = self.remove_page(index, path, _emit=False)
 
-		tree = page.get_parsetree()
-		if not tree:
+		parsetree = page.get_parsetree()
+		if not parsetree:
 			return
 
+		if page._ui_object:
+			# FIXME - HACK - dump and parse as wiki first to work
+			# around glitches in pageview parsetree dumper
+			# make sure we get paragraphs and bullets are nested properly
+			# Same hack in gui clipboard code
+			dumper = get_format('wiki').Dumper()
+			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
+			parser = get_format('wiki').Parser()
+			parsetree = parser.parse(text)
+
 		#~ print '!! Checking for tasks in', path
-		tasks = []
-		for element in tree.getiterator('li'):
-			bullet = element.get('bullet')
-			if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
-				open = bullet == UNCHECKED_BOX
-				tasks.append(self._parse_task(path, element, open))
-		
+		tasks = self.extract_tasks(parsetree)
 		if tasks:
 			tasksfound = True
 
-		# Much more efficient to do insert here at once for all tasks
-		# rather than do it one by one while parsing the page.
-		with self.index.db_commit:
-			self.index.db.executemany(
-				'insert into tasklist(source, parent, open, actionable, prio, due, description)'
-				'values (?, ?, ?, ?, ?, ?, ?)',
-				tasks
-			)
+			# Much more efficient to do insert here at once for all tasks
+			# rather than do it one by one while parsing the page.
+			with self.index.db_commit:
+				self.index.db.executemany(
+					'insert into tasklist(source, parent, open, actionable, prio, due, description)'
+					'values (%i, 0, ?, ?, ?, ?, ?)' % path.id,
+					tasks
+				)
 
 		if tasksfound:
 			self.emit('tasklist-changed')
 
-	def _parse_task(self, path, node, open):
+	def extract_tasks(self, parsetree):
+		'''Extract all tasks from a parsetree.
+		Returns tuples for each tasks with following properties:
+			(open, actionable, prio, due, description)
+		'''
+		tasks = []
+
+		for node in parsetree.findall('p'):
+			lines = self._flatten_para(node)
+			# Check first line for task list header
+			# TODO
+			# Check line by line
+			for item in lines:
+				if isinstance(item, tuple):
+					# checkbox
+					if self.all_checkboxes \
+					or (self.task_labels and self.task_label_re.match(item[2])):
+						open = item[0] == UNCHECKED_BOX
+						tasks.append(self._parse_task(item[2], level=item[1], open=open))
+				else:
+					# normal line
+					if self.task_labels and self.task_label_re.match(item):
+						tasks.append(self._parse_task(item))
+
+		return tasks
+
+	def _flatten_para(self, para):
+		# Returns a list which is a mix of normal lines of text and
+		# tuples for checkbox items. Checkbox item tuples consist of
+		# the checkbox type, the indenting level and the text.
+		items = []
+
+		text = para.text or ''
+		for child in para.getchildren():
+			if child.tag == 'ul':
+				if text:
+					items += text.splitlines()
+				items += self._flatten_list(child)
+				text = child.tail or ''
+			else:
+				text += self._flatten(child)
+				text += child.tail or ''
+
+		if text:
+			items += text.splitlines()
+
+		return items
+
+	def _flatten_list(self, list, list_level=0):
+		# Handle bullet lists
+		items = []
+		for node in list.getchildren():
+			if node.tag == 'ul':
+				items += self._flatten_list(node, list_level+1) # recurs
+			elif node.tag == 'li':
+				bullet = node.get('bullet')
+				text = self._flatten(node)
+				if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
+					items.append((bullet, list_level, text))
+				else:
+					items.append(text)
+			else:
+				pass # should not occur - ignore silently
+		return items
+
+	def _flatten(self, node):
+		# Just flatten everything to text
+		text = node.text or ''
+		for child in node.getchildren():
+			text += self._flatten(child) # recurs
+			text += child.tail or ''
+		return text
+
+	def _parse_task(self, text, level=0, open=True):
 		# TODO - determine if actionable or not
-		#~ '!! Found tasks in ', path
-		text = self._flatten(node)
 		prio = text.count('!')
 
 		global date # FIXME
@@ -188,16 +285,9 @@ This is a core plugin shipping with zim.
 				return match.group(0)
 
 		text = date_re.sub(set_date, text)
-		return (path.id, 0, open, True, prio, date, text)
-			# (source, parent, open, actionable, prio, due, description)
+		return (open, True, prio, date, text)
+			# (open, actionable, prio, due, description)
 
-	def _flatten(self, node):
-		text = node.text or ''
-		for child in node.getchildren():
-			if child.tag != 'li':
-				text += self._flatten(child) # recurs
-				text += child.tail or ''
-		return text
 
 	def remove_page(self, index, path, _emit=True):
 		if not self.db_initialized: return
@@ -254,13 +344,14 @@ class TaskListDialog(Dialog):
 
 	def __init__(self, plugin):
 		Dialog.__init__(self, plugin.ui, _('Task List'), # T: dialog title
-			buttons=gtk.BUTTONS_CLOSE, help=':Help:Plugins:Task List')
+			buttons=gtk.BUTTONS_CLOSE, help=':Help:Plugins:Task List',
+			defaultwindowsize=(550, 400) )
 		self.plugin = plugin
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 		self.hpane = gtk.HPaned()
-		self.uistate.setdefault('hpane_pos', 72)
+		self.uistate.setdefault('hpane_pos', 75)
 		self.hpane.set_position(self.uistate['hpane_pos'])
 		self.vbox.add(self.hpane)
 
@@ -353,9 +444,24 @@ class TagListTreeView(SingleClickTreeView):
 
 	def get_tags(self):
 		'''Returns current selected tags, or None for all tags'''
+		tags = self._get_selected()
+		for label in self.task_list.plugin.task_labels:
+			if label in tags:
+				tags.remove(label)
+		return tags or None
+
+	def get_labels(self):
+		'''Returns current selected labels'''
+		labels = []
+		for tag in self._get_selected():
+			if tag in self.task_list.plugin.task_labels:
+				labels.append(tag)
+		return labels or None
+
+	def _get_selected(self):
 		model, paths = self.get_selection().get_selected_rows()
 		if not paths or (0,) in paths:
-			return None
+			return []
 		else:
 			return [model[path][0] for path in paths]
 
@@ -364,14 +470,17 @@ class TagListTreeView(SingleClickTreeView):
 		model = self.get_model()
 		model.clear()
 		model.append((_('All'), False)) # T: "tag" for showing all tasks
-		# TODO - any other special tags ?
+		for label in task_list.plugin.task_labels:
+			model.append((label, False))
 		model.append(('', True)) # separator
 		for tag in sorted(self.task_list.get_tags()):
 			model.append((tag, False))
 
 	def on_selection_changed(self, selection):
 		tags = self.get_tags()
+		labels = self.get_labels()
 		self.task_list.set_tag_filter(tags)
+		self.task_list.set_label_filter(labels)
 
 
 style = gtk_get_style()
@@ -400,6 +509,7 @@ class TaskListTreeView(BrowserTreeView):
 	def __init__(self, ui, plugin):
 		self.filter = None
 		self.tag_filter = None
+		self.label_filter = None
 		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool)
 			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL
 		model = self.real_model.filter_new()
@@ -536,8 +646,15 @@ class TaskListTreeView(BrowserTreeView):
 			self.tag_filter = None
 		self._eval_filter()
 
+	def set_label_filter(self, labels):
+		if labels:
+			self.label_filter = labels
+		else:
+			self.label_filter = None
+		self._eval_filter()
+
 	def _eval_filter(self):
-		logger.debug('Filtering with tag: %s, filter: %s', self.tag_filter, self.filter)
+		logger.debug('Filtering with labels: %s tags: %s, filter: %s', self.label_filter, self.tag_filter, self.filter)
 
 		def filter(model, path, iter):
 			visible = self._filter_item(model[iter])
@@ -553,19 +670,28 @@ class TaskListTreeView(BrowserTreeView):
 		if not (modelrow[self.ACT_COL] and modelrow[self.OPEN_COL]):
 			visible = False
 
+		if visible and self.label_filter:
+			# Any labels need to be present
+			description = modelrow[self.TASK_COL]
+			for label in self.label_filter:
+				if label in description:
+					break
+			else:
+				visible = False # no label found
+
 		description = modelrow[self.TASK_COL].lower()
 		pagename = modelrow[self.PAGE_COL].lower()
 
 		if visible and self.tag_filter:
-			match = False
+			# And any tag should match
 			for tag in self.tag_filter:
 				if tag in description:
-					match = True
 					break
-			if not match:
-				visible = False
+			else:
+				visible = False # no tag found
 
 		if visible and self.filter:
+			# And finally the filter string should match
 			inverse, string = self.filter
 			match = string in description or string in pagename
 			if (not inverse and not match) or (inverse and match):
