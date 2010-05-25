@@ -372,7 +372,7 @@ class NotebookInterface(gobject.GObject):
 	def load_plugins(self):
 		'''Load the plugins defined in the preferences'''
 		self.preferences['General'].setdefault('plugins',
-			['calendar', 'printtobrowser', 'versioncontrol'])
+			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
 		plugins = self.preferences['General']['plugins']
 		plugins = set(plugins) # Eliminate doubles
 		# Plugins should not have dependency on order of being added
@@ -391,7 +391,7 @@ class NotebookInterface(gobject.GObject):
 			plugin = klass(self)
 		except:
 			logger.exception('Failed to load plugin %s', name)
-			return
+			return None
 		else:
 			self.plugins.append(plugin)
 			logger.debug('Loaded plugin %s (%s)', name, plugin)
@@ -400,6 +400,8 @@ class NotebookInterface(gobject.GObject):
 		if not name in self.preferences['General']['plugins']:
 			self.preferences['General']['plugins'].append(name)
 			self.preferences.write()
+
+		return plugin
 
 	def unload_plugin(self, plugin):
 		'''Remove a plugin'''

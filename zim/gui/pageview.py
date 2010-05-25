@@ -3626,7 +3626,7 @@ class InsertDateDialog(Dialog):
 		model.clear()
 		for line in config_file('dates.list'):
 			line = line.strip()
-			if line.startswith('#'): continue
+			if not line or line.startswith('#'): continue
 			try:
 				format = line
 				date = strftime(format)

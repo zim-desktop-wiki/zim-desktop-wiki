@@ -260,6 +260,7 @@ class GtkInterface(NotebookInterface):
 		fullscreen=False, geometry=None, usedaemon=False):
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
 		NotebookInterface.__init__(self)
+		self._finalize_ui = False
 		self.preferences_register = ListDict()
 		self.page = None
 		self.history = None
@@ -375,6 +376,11 @@ class GtkInterface(NotebookInterface):
 		else:
 			pass # Will check default in main()
 
+	def load_plugin(self, name):
+		plugin = NotebookInterface.load_plugin(self, name)
+		if plugin and self._finalize_ui:
+			plugin.finalize_ui(self)
+
 	def spawn(self, *args):
 		if not self.usedaemon:
 			args = args + ('--no-daemon',)
@@ -419,6 +425,7 @@ class GtkInterface(NotebookInterface):
 		# older gobject version doesn't know about seconds
 		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
 
+		self._finalize_ui = True
 		for plugin in self.plugins:
 			plugin.finalize_ui(self)
 
