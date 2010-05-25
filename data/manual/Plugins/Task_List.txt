@@ -45,3 +45,11 @@ The second way to use the task list is by using labels like "TODO" or "FIXME" in
 	FIXME: finish the previous paragraph
 
 Different labels can be used similar to tags to distinguish different categories of tasks. 
+
+As a special case labels can be used to flag a whole list being a task list. In that case the tag needs to start a new paragraph and be on a line by itself before the first checkbox. This usage is especially useful when the option "Consider all checkboxes as tasks" is turned off. Any tags on this first line will be applied to the whole list. However no other words should appear as that would make this first line a regular item and cause the list to be ignored. An example of this usage is as follows:
+
+TODO: @home
+[ ] Call Susan to invite for diner [d: 5/1] !
+[ ] Print menu @desk
+
+Now both items will get the tag "@home" appended.

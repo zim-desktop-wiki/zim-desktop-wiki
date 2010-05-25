@@ -203,7 +203,22 @@ This is a core plugin shipping with zim.
 		for node in parsetree.findall('p'):
 			lines = self._flatten_para(node)
 			# Check first line for task list header
-			# TODO
+			globaltags = []
+			if len(lines) >= 2 \
+			and isinstance(lines[0], basestring) \
+			and isinstance(lines[1], tuple) \
+			and self.task_labels and self.task_label_re.match(lines[0]):
+				for word in lines[0].split()[1:]:
+					if word.startswith('@'):
+						globaltags.append(word)
+					else:
+						# not a header after all
+						globaltags = []
+						break
+				else:
+					# no break occured - all OK
+					lines.pop(0)
+
 			# Check line by line
 			for item in lines:
 				if isinstance(item, tuple):
@@ -211,11 +226,11 @@ This is a core plugin shipping with zim.
 					if self.all_checkboxes \
 					or (self.task_labels and self.task_label_re.match(item[2])):
 						open = item[0] == UNCHECKED_BOX
-						tasks.append(self._parse_task(item[2], level=item[1], open=open))
+						tasks.append(self._parse_task(item[2], level=item[1], open=open, tags=globaltags))
 				else:
 					# normal line
 					if self.task_labels and self.task_label_re.match(item):
-						tasks.append(self._parse_task(item))
+						tasks.append(self._parse_task(item, tags=globaltags))
 
 		return tasks
 
@@ -266,7 +281,7 @@ This is a core plugin shipping with zim.
 			text += child.tail or ''
 		return text
 
-	def _parse_task(self, text, level=0, open=True):
+	def _parse_task(self, text, level=0, open=True, tags=None):
 		# TODO - determine if actionable or not
 		prio = text.count('!')
 
@@ -283,6 +298,11 @@ This is a core plugin shipping with zim.
 			else:
 				# No match or we already had a date
 				return match.group(0)
+
+		if tags:
+			for tag in tags:
+				if not tag in text:
+					text += ' ' + tag
 
 		text = date_re.sub(set_date, text)
 		return (open, True, prio, date, text)
