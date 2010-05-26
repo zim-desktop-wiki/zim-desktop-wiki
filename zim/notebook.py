@@ -868,19 +868,24 @@ class Notebook(gobject.GObject):
 	def move_page(self, path, newpath, update_links=True, callback=None):
 		'''Move a page from 'path' to 'newpath'. If 'update_links' is
 		True all links from and to the page will be modified as well.
+		The original page 'path' does not have to exist, this is usefull
+		to update links for a placeholder. If 'newpath' exists a
+		PageExistsError error will be raised.
 		'''
+		if path == newpath:
+			return
+
 		if update_links and self.index.updating:
 			raise IndexBusyError, 'Index busy'
 			# Index need to be complete in order to be 100% sure we
 			# know all backlinks, so no way we can update links before.
 
 		page = self.get_page(path)
-		if not (page.hascontent or page.haschildren):
-			raise LookupError, 'Page does not exist: %s' % path.name
 		assert not page.modified, 'BUG: moving a page with uncomitted changes'
 
-		if path == newpath:
-			return
+		newpage = self.get_page(newpath)
+		if newpage.exists():
+			raise PageExistsError, 'Page already exists: %s' % newpath.name
 
 		self.emit('move-page', path, newpath, update_links)
 		logger.debug('Move %s to %s (%s)', path, newpath, update_links)
@@ -891,18 +896,21 @@ class Notebook(gobject.GObject):
 			backlinkpages = set()
 			for l in self.index.list_links(path, LINK_DIR_BACKWARD):
 				backlinkpages.add(l.source)
-			for child in self.index.walk(path):
-				for l in self.index.list_links(child, LINK_DIR_BACKWARD):
-					backlinkpages.add(l.source)
 
-		# Do the actual move
-		store = self.get_store(path)
-		newstore = self.get_store(newpath)
-		if newstore == store:
-			store.move_page(path, newpath)
-		else:
-			assert False, 'TODO: move between stores'
-			# recursive + move attachments as well
+			if page.haschildren:
+				for child in self.index.walk(path):
+					for l in self.index.list_links(child, LINK_DIR_BACKWARD):
+						backlinkpages.add(l.source)
+
+		# Do the actual move (if the page exists)
+		if page.exists():
+			store = self.get_store(path)
+			newstore = self.get_store(newpath)
+			if newstore == store:
+				store.move_page(path, newpath)
+			else:
+				assert False, 'TODO: move between stores'
+				# recursive + move attachments as well
 
 		self.flush_page_cache(path)
 		self.flush_page_cache(newpath)
@@ -1492,6 +1500,9 @@ class Page(Path):
 				return False
 			else:
 				return hascontent
+
+	def exists(self):
+		return self.haschildren or self.hascontent
 
 	def get_parsetree(self):
 		'''Returns contents as a parsetree or None'''

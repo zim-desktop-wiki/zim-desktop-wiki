@@ -2212,6 +2212,9 @@ class RenamePageDialog(Dialog):
 			self.path = path
 		assert self.path, 'Need a page here'
 
+		page = self.ui.notebook.get_page(self.path)
+		existing = (page.hascontent or page.haschildren)
+
 		i = self.ui.notebook.index.n_list_links_to_tree(
 					self.path, zim.index.LINK_DIR_BACKWARD )
 
@@ -2225,11 +2228,15 @@ class RenamePageDialog(Dialog):
 		self.add_fields([
 			('name', 'string', _('Name'), self.path.basename),
 				# T: Input label in the 'rename page' dialog for the new name
-			('head', 'bool', _('Update the heading of this page'), True),
+			('head', 'bool', _('Update the heading of this page'), existing),
 				# T: Option in the 'rename page' dialog
 			('links', 'bool', linkslabel, True),
 				# T: Option in the 'rename page' dialog
 		])
+
+		if not existing:
+			self.inputs['head'].set_active(False)
+			self.inputs['head'].set_sensitive(False)
 
 		if i == 0:
 			self.inputs['links'].set_active(False)
@@ -2247,6 +2254,7 @@ class RenamePageDialog(Dialog):
 		else:
 			self.show() # prompt again
 			return False
+
 
 class DeletePageDialog(Dialog):
 

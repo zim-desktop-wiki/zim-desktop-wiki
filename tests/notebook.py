@@ -151,10 +151,14 @@ class TestNotebook(tests.TestCase):
 			page = self.notebook.get_page(path)
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
+			self.assertFalse(page.exists())
+
+		for path in (Path('Test:foo'), Path('TODOList')):
+			page = self.notebook.get_page(path)
+			self.assertTrue(page.haschildren or page.hascontent)
+			self.assertTrue(page.exists())
 
 		# check errors
-		self.assertRaises(LookupError,
-			self.notebook.move_page, Path('NewPage'), Path('Test:BAR'))
 		self.assertRaises(PageExistsError,
 			self.notebook.move_page, Path('Test:foo'), Path('TODOList'))
 
@@ -163,6 +167,11 @@ class TestNotebook(tests.TestCase):
 		self.assertRaises(IndexBusyError,
 			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
 
+		# non-existing page - just check no errors here
+		self.notebook.index.ensure_update()
+		self.notebook.move_page(Path('NewPage'), Path('Test:NewPage')),
+		
+		# Test actual moving
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
 			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
