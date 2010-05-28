@@ -1037,18 +1037,7 @@ class GtkInterface(NotebookInterface):
 			return True
 
 	def delete_page(self, path=None):
-		if path is None:
-			path = self.get_path_context()
-
-		page = self.notebook.get_page(path)
-		if page.hascontent or page.haschildren:
-			DeletePageDialog(self, path=page).run()
-		else:
-			ErrorDialog(self, (
-				_('Page does not exist'), # T: short error description
-				_('This page does not exist, so it can not be deleted')
-					# T: long error description
-			) ).run()
+		DeletePageDialog(self, path).run()
 
 	def show_properties(self):
 		from zim.gui.propertiesdialog import PropertiesDialog
@@ -2268,23 +2257,53 @@ class DeletePageDialog(Dialog):
 
 		hbox = gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
+
 		img = gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DIALOG)
-		hbox.add(img)
+		hbox.pack_start(img, False)
+
+		vbox = gtk.VBox(spacing=5)
+		hbox.add(vbox)
+
 		label = gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
 			# T: Heading in 'delete page' dialog - %s is the page name
-		long = _('Page "%s" and all of it\'s sub-pages and attachments will be deleted') % self.path.name
+		long = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
 			# T: Text in 'delete page' dialog - %s is the page name
 		label.set_markup('<b>'+short+'</b>\n\n'+long)
-		hbox.add(label)
+		vbox.pack_start(label, False)
+
+		i = self.ui.notebook.index.n_list_links_to_tree(
+					self.path, zim.index.LINK_DIR_BACKWARD )
+		linkslabel = ngettext(
+			'Remove links from %i page linking to this page',
+			'Remove links from %i pages linking to this page', i) % i
+			# T: label in DeletePage dialog - %i is number of backlinks
+			# TODO update lable to reflect that links can also be to child pages
+		self.links_checkbox = gtk.CheckButton(label=linkslabel)
+		vbox.pack_start(self.links_checkbox, False)
+
+		if i == 0:
+			self.links_checkbox.set_active(False)
+			self.links_checkbox.set_sensitive(False)
+		else:
+			self.links_checkbox.set_active(True)
 
 	def do_response_ok(self):
+		update_links = self.links_checkbox.get_active()
+
+		dialog = ProgressBarDialog(self, _('Removing Links'))
+			# T: Title of progressbar dialog
+		dialog.show_all()
+		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
+
 		try:
-			self.ui.notebook.delete_page(self.path)
+			self.ui.notebook.delete_page(self.path, update_links, callback)
 		except Exception, error:
 			ErrorDialog(self, error).run()
+			dialog.destroy()
 			return False
 		else:
+			dialog.destroy()
 			return True
 
 

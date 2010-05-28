@@ -170,7 +170,7 @@ class TestNotebook(tests.TestCase):
 		# non-existing page - just check no errors here
 		self.notebook.index.ensure_update()
 		self.notebook.move_page(Path('NewPage'), Path('Test:NewPage')),
-		
+
 		# Test actual moving
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
@@ -200,19 +200,51 @@ class TestNotebook(tests.TestCase):
 		page.parse('plain', 'foo bar\n')
 		self.notebook.store_page(page)
 
+		page = self.notebook.get_page(Path('SomePageWithLinks'))
+		page.parse('wiki',
+			'[[:AnotherNewPage:Foo:bar]]\n'
+			'**bold** [[:AnotherNewPage]]\n' )
+		self.notebook.store_page(page)
+
 		page = self.notebook.get_page(Path('AnotherNewPage'))
 		self.assertTrue(page.haschildren)
 		self.assertFalse(page.hascontent)
+		nlinks = self.notebook.index.n_list_links_to_tree(page, LINK_DIR_BACKWARD)
+		self.assertEqual(nlinks, 2)
 
-		self.notebook.delete_page(path)
+		self.notebook.delete_page(Path('AnotherNewPage:Foo:bar'))
 		page = self.notebook.get_page(path)
 		self.assertFalse(page.haschildren)
 		self.assertFalse(page.hascontent)
-		self.notebook.delete_page(newpath) # should fail silently
+		self.assertRaises(ValueError,
+			self.notebook.index.n_list_links_to_tree, page, LINK_DIR_BACKWARD)
+			# if links are removed and placeholder is cleaned up the
+			# page doesn't exist anymore in the index so we get this error
+
+		page = self.notebook.get_page(Path('SomePageWithLinks'))
+		content = page.dump('wiki')
+		self.assertEqual(''.join(content),
+			':AnotherNewPage:Foo:bar\n'
+			'**bold** [[:AnotherNewPage]]\n' )
+
+		self.notebook.delete_page(path) # now should fail silently
 
 		page = self.notebook.get_page(Path('AnotherNewPage'))
 		self.assertFalse(page.haschildren)
 		self.assertFalse(page.hascontent)
+		nlinks = self.notebook.index.n_list_links_to_tree(page, LINK_DIR_BACKWARD)
+		self.assertEqual(nlinks, 1)
+		self.notebook.delete_page(page)
+		self.assertRaises(ValueError,
+			self.notebook.index.n_list_links_to_tree, page, LINK_DIR_BACKWARD)
+			# if links are removed and placeholder is cleaned up the
+			# page doesn't exist anymore in the index so we get this error
+
+		page = self.notebook.get_page(Path('SomePageWithLinks'))
+		content = page.dump('wiki')
+		self.assertEqual(''.join(content),
+			':AnotherNewPage:Foo:bar\n'
+			'**bold** :AnotherNewPage\n' )
 
 		#~ print '\n==== DB ===='
 		#~ self.notebook.index.ensure_update()

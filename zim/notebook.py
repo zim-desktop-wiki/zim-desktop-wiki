@@ -1069,13 +1069,86 @@ class Notebook(gobject.GObject):
 
 		return newpath
 
-	def delete_page(self, path):
+	def delete_page(self, path, update_links=True, callback=None):
+		'''Delete a page. If 'update_links' is True pages linking to the
+		deleted page will be updated and the link are removed.
+		'''
+		# Collect backlinks
+		if update_links:
+			from zim.index import LINK_DIR_BACKWARD
+			backlinkpages = set()
+			for l in self.index.list_links(path, LINK_DIR_BACKWARD):
+				backlinkpages.add(l.source)
+
+			page = self.get_page(path)
+			if page.haschildren:
+				for child in self.index.walk(path):
+					for l in self.index.list_links(child, LINK_DIR_BACKWARD):
+						backlinkpages.add(l.source)
+
+		# actual delete
 		self.emit('delete-page', path)
 		store = self.get_store(path)
 		store.delete_page(path)
 		self.flush_page_cache(path)
 		path = Path(path.name)
+
+		# Update links to the deleted page tree
+		if update_links:
+			#~ print backlinkpages
+			total = len(backlinkpages)
+			for p in backlinkpages:
+				if p == path or p.ischild(path):
+					continue
+				page = self.get_page(p)
+				if callback: callback(page, total=total)
+				self._remove_links_in_page(page, path)
+				self.store_page(page)
+
+		# let everybody know what happened
 		self.emit('deleted-page', path)
+
+	def _remove_links_in_page(self, page, path):
+		logger.debug('Removing links in %s to %s', page, path)
+		tree = page.get_parsetree()
+		if not tree:
+			logger.warn('Page turned out to be empty: %s', page)
+			return
+
+		def walk_links(parent):
+			# Yields parent element, previous element and link element.
+			# we actually yield links in reverse order, so removal
+			# algorithm works for consequetive links as well.
+			children = parent.getchildren()
+			for i in range(len(children)-1, -1, -1):
+				if children[i].tag == 'link':
+					if i > 0: yield parent, children[i-1], children[i]
+					else: yield parent, None, children[i]
+				for items in walk_links(children[i]): # recurs
+					yield items
+
+		for parent, prev, element in walk_links(tree.getroot()):
+			try:
+				href = element.attrib['href']
+				type = link_type(href)
+				if type == 'page':
+					hrefpath = self.resolve_path(href, source=page)
+					#~ print 'LINK', hrefpath
+					if hrefpath == path \
+					or hrefpath.ischild(path):
+						# Remove the link
+						text = (element.text or '') + (element.tail or '')
+						if not prev is None:
+							prev.tail = (prev.tail or '') + text
+						else:
+							parent.text = (parent.text or '') + text
+						parent.remove(element)
+					else:
+						continue
+			except:
+				logger.exception('Error while removing link "%s"', href)
+
+		page.set_parsetree(tree)
 
 	def resolve_file(self, filename, path):
 		'''Resolves a file or directory path relative to a page. Returns a
