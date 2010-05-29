@@ -189,7 +189,9 @@ if ENCODING.upper() in (
 	ENCODING = 'utf-8'
 
 
-if os.name == 'nt':
+if ENCODING == 'mbcs':
+	# Encoding 'mbcs' means we run on windows and filesystem can handle utf-8 natively
+	# so here we just convert everything to unicode strings
 	def encode(path):
 		if isinstance(path, unicode):
 			return path
@@ -203,6 +205,7 @@ if os.name == 'nt':
 			return unicode(path)
 
 else:
+	# Here we encode files to filesystem encoding. Fails if encoding is not possible.
 	def encode(path):
 		if isinstance(path, unicode):
 			try:
@@ -210,7 +213,7 @@ else:
 			except UnicodeEncodeError:
 				raise Error, 'BUG: invalid filename %s' % path
 		else:
-			return path
+			return path # assume encoding is correct
 
 
 	def decode(path):
@@ -220,7 +223,7 @@ else:
 			except UnicodeDecodeError:
 				raise Error, 'BUG: invalid filename %s' % path
 		else:
-			return path
+			return path # assume encoding is correct
 
 
 def isabs(path):
@@ -545,22 +548,23 @@ class Dir(Path):
 		Hidden files are silently ignored.
 		'''
 		files = []
-		if isinstance(self, UnixPath):
-			# For os.listdir(path) if path is _not_ a Unicode object, the
-			# result will be a list of byte strings. We can decode them
-			# ourselves.
-			for file in self._list():
-				try:
-					files.append(file.decode(ENCODING))
-				except UnicodeDecodeError:
-					logger.warn('Ignoring file: "%s" invalid file name', file)
-		else:
-			# For windows encodedpath is in fact just unicode and things
-			# go a bit differently
+		if ENCODING == 'mbcs':
+			# We are running on windows and os.listdir will handle unicode natively
+			assert isinstance(self.encodedpath, unicode)
 			for file in self._list():
 				if isinstance(file, unicode):
 					files.append(file)
 				else:
+					logger.warn('Ignoring file: "%s" invalid file name', file)
+		else:
+			# If filesystem does not handle unicode natively and path for
+			# os.listdir(path) is _not_ a unicode object, the result will 
+			# be a list of byte strings. We can decode them ourselves.
+			assert not isinstance(self.encodedpath, unicode)
+			for file in self._list():
+				try:
+					files.append(file.decode(ENCODING))
+				except UnicodeDecodeError:
 					logger.warn('Ignoring file: "%s" invalid file name', file)
 		files.sort()
 		return files
