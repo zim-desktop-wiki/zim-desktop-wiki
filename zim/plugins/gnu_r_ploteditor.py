@@ -41,14 +41,8 @@ ui_xml = '''
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, read only
-	(	'insert_gnu_r_plot',		# name
-		None,						# stock id
-		_('_Insert GNU R Plot...'), # label
-		'',							# accelerator
-		_('Insert GNU R Plot'), 	# tooltip
-		False						# read only
-	),
-	# T: menu item for insert plot plugin
+	('insert_gnu_r_plot', None, _('GNU _R Plot...'), '', '', False),
+		# T: menu item for insert plot plugin
 )
 
 
