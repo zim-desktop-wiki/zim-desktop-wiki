@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-05-29 11:43+0200\n"
+"POT-Creation-Date: 2010-05-30 00:18+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1748,7 +1748,7 @@ msgid "Insert GNU R Plot"
 msgstr ""
 
 #. plugin description
-#: zim/plugins/gnu_r_ploteditor.py:53 zim/plugins/ploteditor.py:53
+#: zim/plugins/gnu_r_ploteditor.py:53
 msgid "This plugin provides a plot editor for zim based on GNU R.\n"
 msgstr ""
 
@@ -1801,27 +1801,6 @@ msgid ""
 "showing how pages relate.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
-msgstr ""
-
-#. menu item for insert plot plugin
-#: zim/plugins/ploteditor.py:44
-msgid "_Plot..."
-msgstr ""
-
-#. menu item for insert plot plugin
-#: zim/plugins/ploteditor.py:44
-msgid "Insert plot"
-msgstr ""
-
-#. plugin name | 
-#. dialog title
-#: zim/plugins/ploteditor.py:52 zim/plugins/ploteditor.py:93
-msgid "Insert Plot"
-msgstr ""
-
-#. menu item in context menu
-#: zim/plugins/ploteditor.py:82
-msgid "_Edit plot"
 msgstr ""
 
 #. menu item
