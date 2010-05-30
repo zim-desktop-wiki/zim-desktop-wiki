@@ -224,8 +224,13 @@ def main(argv):
 		except ValueError:
 			raise GetoptError, ("--port takes an integer argument", 'port')
 
-	# set loggin output level for logging root (format has been set in zim.py)
-	level = logging.WARN
+	# set logging output level for logging root (format has been set in zim.py)
+	if not ZIM_EXECUTABLE[-4:].lower() == '.exe':
+		# for most platforms
+		level = logging.WARN
+	else:
+		# if running from Windows compiled .exe
+		level = logging.ERROR
 	if optsdict.pop('verbose', False): level = logging.INFO
 	if optsdict.pop('debug', False): level = logging.DEBUG # no "elif" !
 	logging.getLogger().setLevel(level)
