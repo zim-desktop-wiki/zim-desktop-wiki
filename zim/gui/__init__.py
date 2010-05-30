@@ -260,6 +260,7 @@ class GtkInterface(NotebookInterface):
 		fullscreen=False, geometry=None, usedaemon=False):
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
 		NotebookInterface.__init__(self)
+		self._finalize_ui = False
 		self.preferences_register = ListDict()
 		self.page = None
 		self.history = None
@@ -375,6 +376,11 @@ class GtkInterface(NotebookInterface):
 		else:
 			pass # Will check default in main()
 
+	def load_plugin(self, name):
+		plugin = NotebookInterface.load_plugin(self, name)
+		if plugin and self._finalize_ui:
+			plugin.finalize_ui(self)
+
 	def spawn(self, *args):
 		if not self.usedaemon:
 			args = args + ('--no-daemon',)
@@ -419,6 +425,7 @@ class GtkInterface(NotebookInterface):
 		# older gobject version doesn't know about seconds
 		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
 
+		self._finalize_ui = True
 		for plugin in self.plugins:
 			plugin.finalize_ui(self)
 
@@ -1030,18 +1037,7 @@ class GtkInterface(NotebookInterface):
 			return True
 
 	def delete_page(self, path=None):
-		if path is None:
-			path = self.get_path_context()
-
-		page = self.notebook.get_page(path)
-		if page.hascontent or page.haschildren:
-			DeletePageDialog(self, path=page).run()
-		else:
-			ErrorDialog(self, (
-				_('Page does not exist'), # T: short error description
-				_('This page does not exist, so it can not be deleted')
-					# T: long error description
-			) ).run()
+		DeletePageDialog(self, path).run()
 
 	def show_properties(self):
 		from zim.gui.propertiesdialog import PropertiesDialog
@@ -1103,6 +1099,8 @@ class GtkInterface(NotebookInterface):
 			self.open_file(File(url))
 		elif url.startswith('mailto:'):
 			self._openwith(self.preferences['GtkInterface']['email_client'], (url,))
+		elif url.startswith('zim+'):
+			self.open_notebook(url)
 		else:
 			if is_win32_share_re.match(url):
 				url = normalize_win32_share(url)
@@ -2203,6 +2201,9 @@ class RenamePageDialog(Dialog):
 			self.path = path
 		assert self.path, 'Need a page here'
 
+		page = self.ui.notebook.get_page(self.path)
+		existing = (page.hascontent or page.haschildren)
+
 		i = self.ui.notebook.index.n_list_links_to_tree(
 					self.path, zim.index.LINK_DIR_BACKWARD )
 
@@ -2216,11 +2217,15 @@ class RenamePageDialog(Dialog):
 		self.add_fields([
 			('name', 'string', _('Name'), self.path.basename),
 				# T: Input label in the 'rename page' dialog for the new name
-			('head', 'bool', _('Update the heading of this page'), True),
+			('head', 'bool', _('Update the heading of this page'), existing),
 				# T: Option in the 'rename page' dialog
 			('links', 'bool', linkslabel, True),
 				# T: Option in the 'rename page' dialog
 		])
+
+		if not existing:
+			self.inputs['head'].set_active(False)
+			self.inputs['head'].set_sensitive(False)
 
 		if i == 0:
 			self.inputs['links'].set_active(False)
@@ -2239,6 +2244,7 @@ class RenamePageDialog(Dialog):
 			self.show() # prompt again
 			return False
 
+
 class DeletePageDialog(Dialog):
 
 	def __init__(self, ui, path=None):
@@ -2251,23 +2257,53 @@ class DeletePageDialog(Dialog):
 
 		hbox = gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
+
 		img = gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DIALOG)
-		hbox.add(img)
+		hbox.pack_start(img, False)
+
+		vbox = gtk.VBox(spacing=5)
+		hbox.add(vbox)
+
 		label = gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
 			# T: Heading in 'delete page' dialog - %s is the page name
-		long = _('Page "%s" and all of it\'s sub-pages and attachments will be deleted') % self.path.name
+		long = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
 			# T: Text in 'delete page' dialog - %s is the page name
 		label.set_markup('<b>'+short+'</b>\n\n'+long)
-		hbox.add(label)
+		vbox.pack_start(label, False)
+
+		i = self.ui.notebook.index.n_list_links_to_tree(
+					self.path, zim.index.LINK_DIR_BACKWARD )
+		linkslabel = ngettext(
+			'Remove links from %i page linking to this page',
+			'Remove links from %i pages linking to this page', i) % i
+			# T: label in DeletePage dialog - %i is number of backlinks
+			# TODO update lable to reflect that links can also be to child pages
+		self.links_checkbox = gtk.CheckButton(label=linkslabel)
+		vbox.pack_start(self.links_checkbox, False)
+
+		if i == 0:
+			self.links_checkbox.set_active(False)
+			self.links_checkbox.set_sensitive(False)
+		else:
+			self.links_checkbox.set_active(True)
 
 	def do_response_ok(self):
+		update_links = self.links_checkbox.get_active()
+
+		dialog = ProgressBarDialog(self, _('Removing Links'))
+			# T: Title of progressbar dialog
+		dialog.show_all()
+		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
+
 		try:
-			self.ui.notebook.delete_page(self.path)
+			self.ui.notebook.delete_page(self.path, update_links, callback)
 		except Exception, error:
 			ErrorDialog(self, error).run()
+			dialog.destroy()
 			return False
 		else:
+			dialog.destroy()
 			return True
 
 
@@ -2292,7 +2328,7 @@ class AttachFileDialog(FileDialog):
 		self.uistate.setdefault('insert_attached_images', True)
 		checkbox = gtk.CheckButton(_('Insert images as link'))
 			# T: checkbox in the "Attach File" dialog
-		checkbox.set_active(self.uistate['insert_attached_images'])
+		checkbox.set_active(not self.uistate['insert_attached_images'])
 		self.filechooser.set_extra_widget(checkbox)
 
 	def do_response_ok(self):
@@ -2301,7 +2337,7 @@ class AttachFileDialog(FileDialog):
 			return False
 
 		checkbox = self.filechooser.get_extra_widget()
-		self.uistate['insert_attached_images'] = checkbox.get_active()
+		self.uistate['insert_attached_images'] = not checkbox.get_active()
 		self.uistate['last_attachment_folder'] = self.filechooser.get_current_folder()
 			# Similar code in zim.gui.InsertImageDialog
 

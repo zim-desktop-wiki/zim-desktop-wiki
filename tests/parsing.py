@@ -91,4 +91,28 @@ class TestParsing(TestCase):
 		self.assertEqual(url_decode('%B4%FA%B8%D5%B0%CF', mode=URL_ENCODE_DATA), '\xb4\xfa\xb8\xd5\xb0\xcf')
 
 
-# TODO - test link_type including win32 paths
+	def testLinkType(self):
+		'''Test link_type()'''
+		for href, type in (
+			('zim+file://foo/bar?dus.txt', 'zim-notebook'),
+			('file://foo/bar', 'file'),
+			('http://foo/bar', 'http'),
+			('http://192.168.168.100', 'http'),
+			('file+ssh://foo/bar', 'file+ssh'),
+			('mailto:foo@bar.com', 'mailto'),
+			('mailto:foo.com', 'page'),
+			('foo@bar.com', 'mailto'),
+			('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('http:foo@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('./foo/bar', 'file'),
+			('/foo/bar', 'file'),
+			('~/foo', 'file'),
+			('C:\\foo', 'file'),
+			('wp?foo', 'interwiki'),
+			('http://foo?bar', 'http'),
+			('\\\\host\\foo\\bar', 'smb'),
+			('foo', 'page'),
+			('foo:bar', 'page'),
+		):
+			#~ print '>>', href
+			self.assertEqual(link_type(href), type)

@@ -100,28 +100,13 @@ def encode_filename(pagename):
 	Characters not allowed for the filesystem are encoded with url encoding.
 	'''
 	assert not '%' in pagename # just to be sure
-	if zim.fs.ENCODING != 'utf-8':
+	if not zim.fs.ENCODING in ('utf-8', 'mbcs'):
 		# if not utf-8 we may not be able to encode all characters
 		# enforce safe encoding, but do not actually encode here
-		if zim.fs.ENCODING == 'mbcs':
-			# We can not trust this encoding on windows it maps to '?' 
-			# or equivalent characters (like 'a' for 'alpha') instead of
-			# throwing encoding errors :(
-			# So we do it ourselves *sigh*
-			recoded = pagename.encode('mbcs').decode('mbcs')
-			if recoded != pagename:
-				# some unencodable character encountered - find out which one
-				assert len(recoded) == len(pagename)
-				for i in range(len(pagename)-1, -1, -1): # count backwards
-					if recoded[i] != pagename[i]:
-						string = pagename[i].encode('utf-8')
-						replace = ''
-						for char in string:
-							replace += '%%%02X' % ord(char)
-						pagename = pagename[:i] + replace + pagename[i+1:]
-		else:
-			pagename = pagename.encode(zim.fs.ENCODING, 'urlencode')
-			pagename = pagename.decode(zim.fs.ENCODING)
+		# ('mbcs' means we are running on windows and filesystem can
+		# handle unicode natively )
+		pagename = pagename.encode(zim.fs.ENCODING, 'urlencode')
+		pagename = pagename.decode(zim.fs.ENCODING)
 	return pagename.replace(':', '/').replace(' ', '_')
 
 

@@ -28,8 +28,7 @@ See also [[+Getting Things Done|Getting Things Done]]
 ===== Document Editor =====
 TODO general description
 
-For this use the Task List plugin can be used to flag places in the document that are not yet finished or need more attention. Typically one would configure the Task List to use keywords, with that usages one can have inline comments in the document using the tags "TODO" and "FIXME". The Task List dialog then gives a list of places where one
-needs to come back later.
+For this use the Task List plugin can be used to flag places in the document that are not yet finished or need more attention. Typically one would configure the Task List to use labels, with that usages one can have inline comments in the document using the tags "TODO" and "FIXME". The Task List dialog then gives a list of places where one needs to come back later.
 
 If the same notebook contains both notes on the document and the polished text it is useful to be able to only export the polished text without the notes. In order to this one can either separate notes and final text in different namespaces or one can create an "index" page listing links to all the pages that are part of the final document. That way one can make the selection in the export dialog to only export the relevant sections.
 

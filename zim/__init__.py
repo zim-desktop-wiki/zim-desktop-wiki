@@ -6,7 +6,7 @@
 __version__ = '0.46'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <pardus@cpan.org>'
-__copyright__ = 'Copyright 2008, 2009 Jaap Karssenberg <pardus@cpan.org>'
+__copyright__ = 'Copyright 2008 - 2010 Jaap Karssenberg <pardus@cpan.org>'
 __license__='''\
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -372,7 +372,7 @@ class NotebookInterface(gobject.GObject):
 	def load_plugins(self):
 		'''Load the plugins defined in the preferences'''
 		self.preferences['General'].setdefault('plugins',
-			['calendar', 'printtobrowser', 'versioncontrol'])
+			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
 		plugins = self.preferences['General']['plugins']
 		plugins = set(plugins) # Eliminate doubles
 		# Plugins should not have dependency on order of being added
@@ -387,11 +387,11 @@ class NotebookInterface(gobject.GObject):
 		try:
 			klass = zim.plugins.get_plugin(name)
 			if not klass.check_dependencies_ok():
-				raise AssertionError, 'Dependencies failed'
+				raise AssertionError, 'Dependencies failed for plugin %s' % name
 			plugin = klass(self)
 		except:
 			logger.exception('Failed to load plugin %s', name)
-			return
+			return None
 		else:
 			self.plugins.append(plugin)
 			logger.debug('Loaded plugin %s (%s)', name, plugin)
@@ -400,6 +400,8 @@ class NotebookInterface(gobject.GObject):
 		if not name in self.preferences['General']['plugins']:
 			self.preferences['General']['plugins'].append(name)
 			self.preferences.write()
+
+		return plugin
 
 	def unload_plugin(self, plugin):
 		'''Remove a plugin'''
