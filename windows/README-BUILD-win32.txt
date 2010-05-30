@@ -23,23 +23,34 @@ Requirements
 5. Install NSIS from
    http://nsis.sourceforge.net/Download
 
-5a. You will also want to download Venis IX if you want to edit the NSIS script in an IDE. (The script is a plain text file, though, if you don't want to use an IDE.)
-   http://nsis.sourceforge.net/Venis_IX
+5a. You will also want to download Venis IX if you want to edit the 
+    NSIS script in an IDE. (The script is a plain text file, though, 
+    if you don't want to use an IDE.) 
+    http://nsis.sourceforge.net/Venis_IX
 
 
 Building Zim
 
-1. Checkout or update a copy of pyzim from "lp:zim".
+1. Look at "windows\env.cmd" -- make sure that your paths to GTK and 
+   Python binaries are correct.
 
-2. In the Zim root folder, run "windows\env.cmd" if your GTK binary folder isn't already in your PATH environment variable.
+2. Run "windows\env.cmd" to initialize your $PATH environment variable..
 
-3. Run "[path-to-python]\python.exe windows\build_win32.py".
+3. Run "python.exe windows\build_win32.py".
 
-3. Make sure it built okay by running ".\windows\zim\zim.exe"
+4. Make sure it built okay by running ".\windows\build\zim.exe".
 
 
 Packaging the Installer
 
-1. Run ./windows/create-zim-setup.nsi .
+1. Build zim.exe (see steps above)
 
-2. Find its output in ./dist/Zim-setup-*.exe and test it.
+1a. Check ./windows/version-and-date.nsi
+
+   !define VER "version_number_goes_here"
+   !define BUILDDATE "yyyy-mm-dd"
+
+2. Run ./windows/create-zim-setup.nsi .
+
+3. Find its output in ./dist/Zim-setup-*.exe and test it.
+

@@ -5,6 +5,11 @@ import sys
 import shutil
 import subprocess
 
+try:
+	import py2exe
+except ImportError:
+	py2exe = None
+
 from distutils.core import setup
 from distutils.command.sdist import sdist as sdist_class
 from distutils.command.build import build as build_class
@@ -222,6 +227,28 @@ if version_info == (2, 5):
 	dependencies.append('simplejson')
 
 
+if py2exe:
+	py2exeoptions = {
+		'windows': [ {
+			"script": "zim.py",
+			"icon_resources": [(1, "data/pixmaps/favicon.ico")]
+		} ],
+		'zipfile': None,
+		'options': {
+			"py2exe": {
+				"compressed": 0,
+				"optimize": 2,
+				"ascii": 1,
+				"bundle_files": 3,
+				"packages": ["encodings", "cairo", "atk", "pangocairo", "zim", "bzrlib"],
+				"dist_dir" : "windows/build"
+			}
+		}
+	}
+else:
+	py2exeoptions = {}
+
+
 setup(
 	# wire overload commands
 	cmdclass = {
@@ -243,6 +270,8 @@ setup(
 	scripts      = ['zim.py'],
 	packages     = collect_packages(),
 	data_files   = collect_data_files(),
-	requires     = dependencies
+	requires     = dependencies,
+
+	**py2exeoptions
 )
 
