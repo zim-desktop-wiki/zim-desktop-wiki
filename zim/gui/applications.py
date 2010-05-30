@@ -211,6 +211,10 @@ class DesktopEntryDict(ConfigDict, Application):
 	about an external application.
 	'''
 
+	@property
+	def key(self):
+		return '__anon__' # no mapping to .desktop file
+
 	def isvalid(self):
 		'''Validate all the required fields are set. Assumes we only
 		use desktop files to describe applications. Returns boolean
@@ -354,7 +358,7 @@ class DesktopEntryDict(ConfigDict, Application):
 			return value.__str__()
 		else:
 			assert isinstance(value, basestring), 'Desktop files can not store complex data'
-			return json.dumps(value)[1:-1] # get rid of quotes
+			return json.dumps(value)[1:-1].replace('\\"', '"') # get rid of quotes
 
 
 class DesktopEntryFile(ConfigFile, DesktopEntryDict):
@@ -531,6 +535,8 @@ class CustomToolDict(DesktopEntryDict):
 		for success.
 		'''
 		entry = self['Desktop Entry']
+		#~ import pprint
+		#~ pprint.pprint(entry)
 		try:
 			# TODO re-write without asserts -> can be optimized away
 			assert 'Type' in entry and entry['Type'] == 'X-Zim-CustomTool', '"Type" missing or invalid'
@@ -542,7 +548,7 @@ class CustomToolDict(DesktopEntryDict):
 			if 'Version' in entry:
 				assert entry['Version'] == 1.0, 'Version invalid'
 		except AssertionError:
-			logger.exception('Invalid desktop entry:')
+			logger.exception('Invalid desktop entry "%s":', self.key)
 			return False
 		else:
 			return True

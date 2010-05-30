@@ -116,11 +116,12 @@ class CustomToolList(gtk.TreeView):
 		self.get_selection.select_path(path)
 
 	def refresh(self):
+		from zim.gui.widgets import _encode_xml
 		model = self.get_model()
 		model.clear()
 		for tool in self.manager:
 			pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_BUTTON)
-			text = '<b>%s</b>\n%s' % (tool.name, tool.comment)
+			text = '<b>%s</b>\n%s' % (_encode_xml(tool.name), _encode_xml(tool.comment))
 			model.append((pixbuf, text, tool.key))
 
 
@@ -181,6 +182,6 @@ in the command when it is executed:
 
 	def do_response_ok(self):
 		fields = self.get_fields()
-		fields['icon'] = self.iconbutton.get_file()
+		fields['Icon'] = self.iconbutton.get_file()
 		self.result = fields
 		return True
