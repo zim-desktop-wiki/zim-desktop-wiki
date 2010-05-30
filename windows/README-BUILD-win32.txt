@@ -29,9 +29,9 @@ Requirements
 
 Building Zim
 
-1. Run "[path-to-python]\python.exe setup.py build" to create a standard build. (Needed to get translation files.)
+1. Checkout or update a copy of pyzim from "lp:zim".
 
-2. Checkout or update a copy of pyzim from "lp:zim".
+2. Run "[path-to-python]\python.exe setup.py build" to create a standard build. (Needed to get translation files.)
 
 3. Look at "windows\env.cmd" -- make sure that your paths to GTK and Python binaries are correct.
 
