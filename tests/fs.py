@@ -296,3 +296,58 @@ class TestFileOverwrite(tests.TestCase):
 			file.write('foo')
 		self.assertEquals(file.read(), 'foo')
 
+
+class TestSymlinks(tests.TestCase):
+
+	slowTest = True
+
+	@staticmethod
+	def skipTest():
+		if not hasattr(os, 'symlink'):
+			return 'OS does not supprot symlinks'
+		else:
+			return False
+
+	def runTest(self):
+		'''Test file operations are safe for symlinks'''
+
+		# Set up a file structue with a symlink
+		tmpdir = tests.create_tmp_dir('fs_TestSymLinks')
+		targetdir = Dir(tmpdir + '/target')
+		targetdir.file('foo.txt').touch()
+		targetfile = File(tmpdir + '/target.txt')
+		targetfile.write('foo\n')
+
+		dir = Dir(tmpdir + '/data')
+		file = dir.file('bar.txt')
+		file.touch()
+		os.symlink(targetdir.path, dir.path + '/link')
+		os.symlink(targetfile.path, dir.path + '/link.txt')
+
+		# Test transparent access to the linked data
+		linkedfile = dir.file('link.txt')
+		self.assertTrue(linkedfile.read(), 'foo\n')
+		self.assertEqual(dir.list(), ['bar.txt', 'link', 'link.txt'])
+		linkeddir = dir.subdir('link')
+		self.assertEqual(linkeddir.list(), ['foo.txt'])
+
+		# Test modifying a linked file
+		linkedfile.write('bar\n')
+		self.assertTrue(linkedfile.read(), 'bar\n')
+		self.assertTrue(targetfile.read(), 'bar\n')
+		linkedfile.rename(dir.file('renamed_link.txt'))
+		self.assertEqual(dir.list(), ['bar.txt', 'link', 'renamed_link.txt'])
+		linkedfile = dir.file('renamed_link.txt')
+		linkedfile.write('foobar\n')
+		self.assertTrue(linkedfile.read(), 'foobar\n')
+		self.assertTrue(targetfile.read(), 'foobar\n')
+
+		# Test removing the links (but not the data)
+		linkedfile.remove()
+		self.assertFalse(linkedfile.exists())
+		self.assertTrue(targetfile.exists())
+		self.assertTrue(targetfile.read(), 'foobar\n')
+		dir.remove_children()
+		self.assertEqual(dir.list(), [])
+		self.assertTrue(targetdir.exists())
+		self.assertEqual(targetdir.list(), ['foo.txt'])

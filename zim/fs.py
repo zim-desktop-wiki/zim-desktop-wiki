@@ -268,6 +268,17 @@ def normalize_win32_share(path):
 	return path
 
 
+def lrmdir(path):
+	'''Like os.rmdir but handles symlinks gracefully'''
+	try:
+		os.rmdir(path)
+	except OSError:
+		if os.path.islink(path) and os.path.isdir(path):
+			os.unlink(path)
+		else:
+			raise
+
+
 class PathLookupError(Error):
 	pass # TODO description
 
@@ -558,7 +569,7 @@ class Dir(Path):
 					logger.warn('Ignoring file: "%s" invalid file name', file)
 		else:
 			# If filesystem does not handle unicode natively and path for
-			# os.listdir(path) is _not_ a unicode object, the result will 
+			# os.listdir(path) is _not_ a unicode object, the result will
 			# be a list of byte strings. We can decode them ourselves.
 			assert not isinstance(self.encodedpath, unicode)
 			for file in self._list():
@@ -590,7 +601,7 @@ class Dir(Path):
 	def remove(self):
 		'''Remove this dir, fails if dir is non-empty.'''
 		logger.info('Remove dir: %s', self)
-		os.rmdir(self.encodedpath)
+		lrmdir(self.encodedpath)
 
 	def cleanup(self):
 		'''Removes this dir and any empty parent dirs.
@@ -616,11 +627,14 @@ class Dir(Path):
 		'''
 		assert self.path and self.path != '/'
 		logger.info('Remove file tree: %s', self)
-		for root, dirs, files in os.walk(self.encodedpath, topdown=False):
+		for root, dirs, files in os.walk(self.encodedpath, topdown=False, followlinks=False):
+			# walk should not decent into symlinked folders
+			# remove() and rmdir() both should remove a symlink rather
+			# than the target of the link
 			for name in files:
 				os.remove(os.path.join(root, name))
 			for name in dirs:
-				os.rmdir(os.path.join(root, name))
+				lrmdir(os.path.join(root, name))
 
 	def file(self, path):
 		'''Returns a File object for a path relative to this directory'''
