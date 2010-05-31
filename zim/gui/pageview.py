@@ -321,6 +321,8 @@ class TextBuffer(gtk.TextBuffer):
 		'strike': {'strikethrough': 'true', 'foreground': 'grey'},
 		'code': {'family': 'monospace'},
 		'pre': {'family': 'monospace', 'wrap-mode': 'none'},
+		'sub': {'rise': -3500, 'scale':0.7},
+		'sup': {'rise': 7500, 'scale':0.7},
 		'link': {'foreground': 'blue'},
 		'find-highlight': {'background': 'orange'},
 	}
