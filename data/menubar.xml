@@ -93,6 +93,8 @@
 			<menuitem action='apply_format_emphasis'/>
 			<menuitem action='apply_format_mark'/>
 			<menuitem action='apply_format_strike'/>
+			<menuitem action='apply_format_sub'/>
+			<menuitem action='apply_format_sup'/>
 			<menuitem action='apply_format_code'/>
 			<separator/>
 			<menuitem action='clear_formatting'/>
