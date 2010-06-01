@@ -128,6 +128,10 @@ class Dumper(DumperClass):
 				output.append('\n\\begin{verbatim}\n')
 				output.append(element.text)
 				output.append('\n\\end{verbatim}\n')
+			elif element.tag == 'sub':
+				output.append('$_{%s}$' % element.text)
+			elif element.tag == 'sup':
+				output.append('$^{%s}$' % element.text)
 			elif element.tag == 'img':
 				#we try to get images about the same visual size, therefore need to specify dot density
 				#96 dpi seems to be common for computer monitors
