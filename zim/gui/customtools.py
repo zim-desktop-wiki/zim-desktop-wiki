@@ -120,7 +120,7 @@ class CustomToolList(gtk.TreeView):
 		model = self.get_model()
 		model.clear()
 		for tool in self.manager:
-			pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_BUTTON)
+			pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_MENU)
 			text = '<b>%s</b>\n%s' % (_encode_xml(tool.name), _encode_xml(tool.comment))
 			model.append((pixbuf, text, tool.key))
 
@@ -153,7 +153,11 @@ class EditCustomToolDialog(Dialog):
 		), trigger_response=False)
 
 		# FIXME need ui builder to take care of this as well
-		self.iconbutton = IconChooserButton(stock=gtk.STOCK_EXECUTE)
+		if tool:
+			iconpixbuf = tool.get_pixbuf(gtk.ICON_SIZE_DIALOG)
+		else:
+			iconpixbuf = None
+		self.iconbutton = IconChooserButton(stock=gtk.STOCK_EXECUTE, pixbuf=iconpixbuf)
 		label = gtk.Label(_('Icon')+':') # T: Input in "Edit Custom Tool" dialog
 		label.set_alignment(0.0, 0.5)
 		hbox = gtk.HBox()
@@ -182,6 +186,6 @@ in the command when it is executed:
 
 	def do_response_ok(self):
 		fields = self.get_fields()
-		fields['Icon'] = self.iconbutton.get_file()
+		fields['Icon'] = self.iconbutton.get_file().path
 		self.result = fields
 		return True

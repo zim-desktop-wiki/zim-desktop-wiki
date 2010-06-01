@@ -339,6 +339,7 @@ class GtkInterface(NotebookInterface):
 
 		self._custom_tool_ui_id = None
 		self._custom_tool_actiongroup = None
+		self._custom_tool_iconfactory = None
 		self.load_custom_tools()
 
 		self.uimanager.ensure_update()
@@ -1248,12 +1249,30 @@ class GtkInterface(NotebookInterface):
 		if self._custom_tool_actiongroup:
 			self.uimanager.remove_action_group(self._custom_tool_actiongroup)
 
+		if self._custom_tool_iconfactory:
+			self._custom_tool_iconfactory.remove_default()
+
 		# Load new actions
 		actions = []
+		factory = gtk.IconFactory()
+		factory.add_default()
 		for tool in manager:
-			# FIXME probably need to generate stock icon first if icon is file path
-			action = (tool.key, tool.icon, tool.name, '', tool.comment, self.exec_custom_tool)
+			icon = tool.icon
+			if '/' in icon or '\\' in icon:
+				# Assume icon is a file path - add it to IconFactory
+				icon = 'zim-custom-tool' + tool.key
+				try:
+					pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_LARGE_TOOLBAR)
+					set = gtk.IconSet(pixbuf=pixbuf)
+					factory.add(icon, set)
+				except Exception:
+					logger.exception('Got exception while loading application icons')
+					icon = None
+
+			action = (tool.key, icon, tool.name, '', tool.comment, self.exec_custom_tool)
 			actions.append(action)
+
+		self._custom_tool_iconfactory = factory
 		self._custom_tool_actiongroup = gtk.ActionGroup('custom_tools')
 		self._custom_tool_actiongroup.add_actions(actions)
 
@@ -1293,8 +1312,6 @@ class GtkInterface(NotebookInterface):
 
 		self.uimanager.insert_action_group(self._custom_tool_actiongroup, 0)
 		self._custom_tool_ui_id = self.uimanager.add_ui_from_string(ui)
-
-		# TODO also support toolbar, need to add icons to icon factory etc.
 
 	def exec_custom_tool(self, action):
 		manager = CustomToolManager()

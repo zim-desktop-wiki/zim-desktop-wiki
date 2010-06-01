@@ -258,7 +258,7 @@ class DesktopEntryDict(ConfigDict, Application):
 			return None
 
 		w, h = gtk.icon_size_lookup(size)
-		if '/' in icon:
+		if '/' in icon or '\\' in icon:
 			if zim.fs.isfile(icon):
 				return gtk.gdk.pixbuf_new_from_file_at_size(icon, w, h)
 			else:

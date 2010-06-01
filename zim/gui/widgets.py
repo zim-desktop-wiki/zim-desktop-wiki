@@ -120,23 +120,33 @@ class IconButton(gtk.Button):
 class IconChooserButton(gtk.Button):
 	'''Button with a stock icon, but no label.'''
 
-	def __init__(self, stock=gtk.STOCK_MISSING_IMAGE):
+	def __init__(self, stock=gtk.STOCK_MISSING_IMAGE, pixbuf=None):
+		'''Constructor with initial image. If a pixbuf is given it is
+		used instead of the stock icon.
+		'''
 		gtk.Button.__init__(self)
 		self.file = None
-		image = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_DIALOG)
+		image = gtk.Image()
 		self.add(image)
 		self.set_alignment(0.5, 0.5)
+		if pixbuf:
+			image.set_from_pixbuf(pixbuf)
+		else:
+			image.set_from_stock(stock, gtk.ICON_SIZE_DIALOG)
 
 	def do_clicked(self):
 		dialog = SelectFileDialog(self)
 		dialog.add_filter_images()
 		file = dialog.run()
 		if file:
-			image = self.get_child()
-			size = max(image.size_request()) # HACK to get icon size
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
-			image.set_from_pixbuf(pixbuf)
-			self.file = file
+			self.set_file(file)
+
+	def set_file(self, file):
+		image = self.get_child()
+		size = max(image.size_request()) # HACK to get icon size
+		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
+		image.set_from_pixbuf(pixbuf)
+		self.file = file
 
 	def get_file(self):
 		return self.file
