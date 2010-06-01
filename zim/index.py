@@ -630,7 +630,7 @@ class Index(gobject.GObject):
 							if page.hascontent:
 								self._index_page_queue.append(child)
 					else:
-						# We set haschildren to False untill we have actualy seen those
+						# We set haschildren to False until we have actualy seen those
 						# children. Failing to do so will cause trouble with the
 						# gtk.TreeModel interface to the database, which can not handle
 						# nodes that say they have children but fail to deliver when

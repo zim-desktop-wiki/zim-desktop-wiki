@@ -261,8 +261,11 @@ class ExportDialog(Dialog):
 				ErrorDialog(self, _('Please specify a URL for the document root')).run()
 					# T: error message when input for export dialog not OK
 				return False
-
-		exporter = Exporter(self.ui.notebook, **options)
+		try:
+			exporter = Exporter(self.ui.notebook, **options)
+		except Exception, error:
+			ErrorDialog(self, error).run()
+			return False
 
 		if selection == 'all':
 			dialog = ProgressBarDialog(self, _('Exporting notebook'))

@@ -53,7 +53,7 @@ about the actual existence of the page etc.
 
 If a non-exising page is requested the store should check if we are allowed
 to create the page. If so, a new page object should be returned, but actually
-creating the page can be delayed untill content is stored in it. Creating
+creating the page can be delayed until content is stored in it. Creating
 the page also implicitly creates all of it's parents page, since it should
 be visible in the hierarchy of page listings. If we are not allowed to create
 the page (e.g. in case of a read-only notebook) no page object should be
