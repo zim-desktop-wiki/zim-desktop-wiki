@@ -37,21 +37,22 @@ def get_plugin(pluginname):
 def list_plugins():
 	'''Returns a set of available plugin names'''
 	# FIXME how should this work for e.g. for python eggs ??
+	# for windows exe we now package plugins separately
 	plugins = set()
 	for dir in sys.path:
 		if os.path.basename(dir) == 'zim.exe':
 			# path is an executable, not a folder -- examine containing folder
 			dir = os.path.dirname(dir)
 		dir = Dir((dir, 'zim', 'plugins'))
-		if not dir.exists():
-			continue
 		for candidate in dir.list():
 			if candidate.startswith('_'):
 				continue
 			elif candidate.endswith('.py'):
+				#~ print '>> FOUND %s.py in %s' % (candidate, dir.path)
 				plugins.add(candidate[:-3])
 			elif zim.fs.isdir(dir.path+'/'+candidate) \
 			and os.path.exists(dir.path+'/'+candidate+'/__init__.py'):
+				#~ print '>> FOUND %s/__init__.py in %s' % (candidate, dir.path)
 				plugins.add(candidate)
 			else:
 				pass

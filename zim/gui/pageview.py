@@ -715,6 +715,9 @@ class TextBuffer(gtk.TextBuffer):
 
 		if not name is None:
 			tag = self.get_tag_table().lookup('style-'+name)
+			if _is_heading_tag(tag):
+				self._editmode_tags = \
+					filter(_is_not_indent_tag, self._editmode_tags)
 			self._editmode_tags = self._editmode_tags + (tag,)
 
 		if not self._insert_tree_in_progress:
@@ -759,6 +762,8 @@ class TextBuffer(gtk.TextBuffer):
 		# For example:
 		# <indent level=1>foo\n</indent><cursor><indent level=2>bar</indent>
 		#	in this case new text should get indent level 2 -> right gravity
+		# <indent level=1>foo</indent><cursor><indent level=2>\nbar</indent>
+		#	in this case new text should get indent level 1 -> left gravity
 		# <indent level=1>foo\n</indent><indent level=2>bar</indent><cursor>\n
 		#	in this case new text should also get indent level 2 -> left gravity
 		start_tags = set(filter(_is_not_line_based_tag, iter.get_toggled_tags(True)))
@@ -767,9 +772,12 @@ class TextBuffer(gtk.TextBuffer):
 			iter.get_tags() )
 
 		end_tags = filter(_is_zim_tag, iter.get_toggled_tags(False))
-		if filter(_is_line_based_tag, tags):
-			# already have a right gravity line-based tag
+		if iter.starts_line() and filter(_is_line_based_tag, tags):
+			# we have a right gravity line-based tag for this line
 			end_tags = filter(_is_not_line_based_tag, end_tags)
+		elif filter(_is_line_based_tag, end_tags):
+			# else take line based tags from left side current line
+			tags = filter(_is_not_line_based_tag, tags)
 		tags.extend(end_tags)
 
 		tags.sort(key=lambda tag: tag.get_priority())

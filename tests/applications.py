@@ -90,7 +90,7 @@ class TestCustomTools(TestCase):
 			'Name': 'Foo',
 			'Comment': 'Test 1 2 3',
 			'Icon': '',
-			'X-Zim-ExecTool': 'foo %t',
+			'X-Zim-ExecTool': 'foo %t "quoted"',
 			'X-Zim-ReadOnly': False,
 			'X-Zim-ShowInToolBar': True,
 		}
