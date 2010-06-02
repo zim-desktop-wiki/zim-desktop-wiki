@@ -118,6 +118,9 @@ Some Verbatim here
 
 	Indented and all: //foo//
 
+	Also block-indentation of verbatim is possible.
+		Even with additional per-line indentation
+
 IMAGE: Foo Bar
 LINKS: :foo:bar ./file.png file:///etc/passwd
 LINKS: FooBar
@@ -207,6 +210,9 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 <pre>Some Verbatim here
 
 	Indented and all: //foo//
+</pre>
+<pre indent="1">Also block-indentation of verbatim is possible.
+	Even with additional per-line indentation
 </pre>
 <p>IMAGE: <img src="../my-image.png" width="600">Foo Bar</img>
 LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
@@ -344,6 +350,11 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.<br>
 Some Verbatim here
 
 	Indented and all: //foo//
+</pre>
+
+<pre style='padding-left: 30pt'>
+Also block-indentation of verbatim is possible.
+	Even with additional per-line indentation
 </pre>
 
 <p>

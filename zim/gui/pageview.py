@@ -493,6 +493,14 @@ class TextBuffer(gtk.TextBuffer):
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
 				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
+			elif element.tag == 'pre':
+				if 'indent' in element.attrib:
+					self.set_indent(int(element.attrib['indent']))
+				self.set_textstyle(element.tag)
+				if element.text:
+					self.insert_at_cursor(element.text)
+				self.set_textstyle(None)
+				self.set_indent(None)
 			else:
 				# Text styles
 				if element.tag == 'h':
@@ -1193,6 +1201,7 @@ class TextBuffer(gtk.TextBuffer):
 
 			# Convert some tags on the fly
 			if tags:
+				continue_attrib = {}
 				for tag in tags[i:]:
 					t, attrib = tag.zim_tag, tag.zim_attrib
 					if t == 'indent':
@@ -1205,12 +1214,22 @@ class TextBuffer(gtk.TextBuffer):
 						elif not raw and not iter.starts_line():
 							# Indent not visible if it does not start at begin of line
 							t = '_ignore_'
+						elif len(filter(lambda t: t.zim_tag == 'pre', tags[i:])):
+							# Indent of 'pre' blocks handled in subsequent iteration
+							continue_attrib.update(attrib)
+							continue
 						else:
 							t = 'p'
 					elif t == 'pre' and not raw and not iter.starts_line():
 						# Without indenting 'pre' looks the same as 'code'
 						# Prevent turning into a seperate paragraph here
 						t = 'code'
+					elif t == 'pre':
+						if attrib:
+							attrib.update(continue_attrib)
+						else:
+							attrib = continue_attrib
+						continue_attrib = {}
 					elif t == 'link':
 						attrib = self.get_link_data(iter)
 						assert attrib['href'], 'Links should have a href'
