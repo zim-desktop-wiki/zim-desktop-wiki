@@ -493,6 +493,14 @@ class TextBuffer(gtk.TextBuffer):
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
 				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
+			elif element.tag == 'pre':
+				if 'indent' in element.attrib:
+					self.set_indent(int(element.attrib['indent']))
+				self.set_textstyle(element.tag)
+				if element.text:
+					self.insert_at_cursor(element.text)
+				self.set_textstyle(None)
+				self.set_indent(None)
 			else:
 				# Text styles
 				if element.tag == 'h':
@@ -711,6 +719,9 @@ class TextBuffer(gtk.TextBuffer):
 
 		if not name is None:
 			tag = self.get_tag_table().lookup('style-'+name)
+			if _is_heading_tag(tag):
+				self._editmode_tags = \
+					filter(_is_not_indent_tag, self._editmode_tags)
 			self._editmode_tags = self._editmode_tags + (tag,)
 
 		if not self._insert_tree_in_progress:
@@ -755,6 +766,8 @@ class TextBuffer(gtk.TextBuffer):
 		# For example:
 		# <indent level=1>foo\n</indent><cursor><indent level=2>bar</indent>
 		#	in this case new text should get indent level 2 -> right gravity
+		# <indent level=1>foo</indent><cursor><indent level=2>\nbar</indent>
+		#	in this case new text should get indent level 1 -> left gravity
 		# <indent level=1>foo\n</indent><indent level=2>bar</indent><cursor>\n
 		#	in this case new text should also get indent level 2 -> left gravity
 		start_tags = set(filter(_is_not_line_based_tag, iter.get_toggled_tags(True)))
@@ -763,9 +776,12 @@ class TextBuffer(gtk.TextBuffer):
 			iter.get_tags() )
 
 		end_tags = filter(_is_zim_tag, iter.get_toggled_tags(False))
-		if filter(_is_line_based_tag, tags):
-			# already have a right gravity line-based tag
+		if iter.starts_line() and filter(_is_line_based_tag, tags):
+			# we have a right gravity line-based tag for this line
 			end_tags = filter(_is_not_line_based_tag, end_tags)
+		elif filter(_is_line_based_tag, end_tags):
+			# else take line based tags from left side current line
+			tags = filter(_is_not_line_based_tag, tags)
 		tags.extend(end_tags)
 
 		tags.sort(key=lambda tag: tag.get_priority())
@@ -837,7 +853,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def remove_textstyle_tags(self, start, end):
 		'''Removes all textstyle tags from a range'''
-		# Also remove links untill we support links nested in tags
+		# Also remove links until we support links nested in tags
 		self.smart_remove_tags(_is_style_tag, start, end)
 		self.smart_remove_tags(_is_link_tag, start, end)
 		self.set_editmode_from_cursor()
@@ -1185,6 +1201,7 @@ class TextBuffer(gtk.TextBuffer):
 
 			# Convert some tags on the fly
 			if tags:
+				continue_attrib = {}
 				for tag in tags[i:]:
 					t, attrib = tag.zim_tag, tag.zim_attrib
 					if t == 'indent':
@@ -1197,12 +1214,22 @@ class TextBuffer(gtk.TextBuffer):
 						elif not raw and not iter.starts_line():
 							# Indent not visible if it does not start at begin of line
 							t = '_ignore_'
+						elif len(filter(lambda t: t.zim_tag == 'pre', tags[i:])):
+							# Indent of 'pre' blocks handled in subsequent iteration
+							continue_attrib.update(attrib)
+							continue
 						else:
 							t = 'p'
 					elif t == 'pre' and not raw and not iter.starts_line():
 						# Without indenting 'pre' looks the same as 'code'
 						# Prevent turning into a seperate paragraph here
 						t = 'code'
+					elif t == 'pre':
+						if attrib:
+							attrib.update(continue_attrib)
+						else:
+							attrib = continue_attrib
+						continue_attrib = {}
 					elif t == 'link':
 						attrib = self.get_link_data(iter)
 						assert attrib['href'], 'Links should have a href'
@@ -2585,7 +2612,7 @@ class UndoStackManager:
 			#~ self.__class__._flush_if_typing, self)
 
 	def block(self):
-		'''Block listening to events from the textbuffer untill further notice.
+		'''Block listening to events from the textbuffer until further notice.
 		Any change in between will not be undo-able (and mess up the undo stack)
 		unless it is recorded explicitly. Keeps count of number of calls to
 		block() and unblock().
@@ -4041,6 +4068,8 @@ class FindBar(FindWidget, gtk.HBox):
 	def hide(self):
 		gtk.HBox.hide(self)
 		self.set_no_show_all(True)
+		buffer = self.textview.get_buffer()
+		buffer.finder.set_highlight(False)
 
 	def on_find_entry_activate(self):
 		self.on_find_entry_changed()

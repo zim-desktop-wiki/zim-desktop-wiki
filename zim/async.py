@@ -51,7 +51,7 @@ class AsyncOperation(threading.Thread):
 		'''Construct a new thread. You can pass it a function to
 		execute and its arguments and keyword arguments.
 
-		If a lock object is provided start() will block untill the lock
+		If a lock object is provided start() will block until the lock
 		is available and we will release the lock once the operation is
 		done.
 

@@ -39,8 +39,8 @@ for bullet in bullets:
 	bullet_types[bullets[bullet]] = bullet
 
 parser_re = {
-	'blockstart': re.compile("\A(''')\s*?\n"),
-	'pre':        re.compile("\A'''\s*?(^.*?)^'''\s*\Z", re.M | re.S),
+	'blockstart': re.compile("\A(\t*''')\s*?\n"),
+	'pre':        re.compile("\A(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*\Z", re.M | re.S),
 	'splithead':  re.compile('^(==+[ \t]+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)[ \t]+(.*?)([ \t]+==+)?[ \t]*\n?)\Z"),
 	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % bullet_re, re.M),
@@ -149,8 +149,15 @@ class Parser(ParserClass):
 				logger.warn('Block does not match pre >>>\n%s<<<', block)
 				builder.data(block)
 			else:
-				builder.start('pre')
-				builder.data(m.group(1))
+				indent = self._determine_indent(block)
+				block = m.group('content')
+				if indent > 0:
+					builder.start('pre', {'indent': indent})
+					block = ''.join(
+						map(lambda line: line[indent:], block.splitlines(True)))
+				else:
+					builder.start('pre')
+				builder.data(block)
 				builder.end('pre')
 		else:
 			builder.start('pre')
@@ -331,7 +338,14 @@ class Dumper(DumperClass):
 				self.dump_children(element, output, list_level=list_level) # recurs
 				output.append('\n')
 			elif element.tag == 'pre':
-				output.append("'''\n"+element.text+"'''\n")
+				indent = 0
+				if 'indent' in element.attrib:
+					indent = int(element.attrib['indent'])
+				myoutput = TextBuffer()
+				myoutput.append("'''\n"+element.text+"'''\n")
+				if indent:
+					myoutput.prefix_lines('\t'*indent)
+				output.extend(myoutput)
 			elif element.tag == 'img':
 				src = element.attrib['src']
 				opts = []

@@ -161,6 +161,11 @@ Some Verbatim here
 	Indented and all: //foo//
 '''
 
+	'''
+	Also block-indentation of verbatim is possible.
+		Even with additional per-line indentation
+	'''
+
 IMAGE: {{../my-image.png?width=600|Foo Bar}}
 LINKS: [[:foo:bar]] [[./file.png]] file:///etc/passwd
 LINKS: [[Foo]][[Bar]]

@@ -126,6 +126,15 @@ class Dumper(DumperClass):
 					output.append(element.text)
 				else:
 					output.append(href)
+			elif element.tag == 'pre':
+				indent = 0
+				if 'indent' in element.attrib:
+					indent = int(element.attrib['indent'])
+				myoutput = TextBuffer()
+				myoutput.append(element.text)
+				if indent:
+					myoutput.prefix_lines('\t'*indent)
+				output.extend(myoutput)
 			elif element.text:
 				output.append(element.text)
 			else:

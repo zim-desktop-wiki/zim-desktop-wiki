@@ -2,8 +2,6 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
-
 from tests import TestCase
 
 import zim.plugins
@@ -11,26 +9,27 @@ import zim.plugins
 class testPlugins(TestCase):
 	'''FIXME'''
 
-	def testGetPlugin(self):
-		'''Test loading a plugin'''
-		plugin = zim.plugins.get_plugin('spell')
-		self.assertTrue(plugin.plugin_info['name'])
+	def runTest(self):
+		'''Test loading plugins and meta data'''
 
-	def testListPlugins(self):
 		plugins = zim.plugins.list_plugins()
 		self.assertTrue(len(plugins) > 0)
 		self.assertTrue('spell' in plugins)
 		self.assertTrue('linkmap' in plugins)
 
-	def testDependencies(self):
-		'''test if all plugins provide correct dependency infos'''
-		plugins = zim.plugins.list_plugins()
 		for name in plugins:
+			#~ print '>>', name
 			plugin = zim.plugins.get_plugin(name)
-			dep = plugin.check_dependencies()
-			assert isinstance(dep,list)
-			for i in range(len(dep)):
-				assert isinstance(dep[i],tuple)
-				assert isinstance(dep[i][0],str)
-				assert isinstance(dep[i][1],bool)
 
+			# test plugin info
+			self.assertTrue(plugin.plugin_info['name'])
+			self.assertTrue(plugin.plugin_info['description'])
+			self.assertTrue(plugin.plugin_info['author'])
+
+			# test dependencies data
+			dep = plugin.check_dependencies()
+			self.assertTrue(isinstance(dep,list))
+			for i in range(len(dep)):
+				self.assertTrue(isinstance(dep[i],tuple))
+				self.assertTrue(isinstance(dep[i][0],str))
+				self.assertTrue(isinstance(dep[i][1],bool))
