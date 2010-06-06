@@ -196,19 +196,19 @@ class zim_build_class(build_class):
 class zim_install_class(install_class):
 
 	user_options = install_class.user_options + \
-		[('skip-cmd', None, "don't run external commands (for packaging)")]
+		[('skip-xdg-cmd', None, "don't run XDG update commands (for packaging)")]
 	
 	boolean_options = install_class.boolean_options + \
-		['skip-cmd']
+		['skip-xdg-cmd']
 
 	def initialize_options(self):
 		install_class.initialize_options(self)
-		self.skip_cmd = 0
+		self.skip_xdg_cmd = 0
 	
 	def run(self):
 		install_class.run(self)
 
-		if not self.skip_cmd:
+		if not self.skip_xdg_cmd:
 			# Try XDG tools
 			mimedir = os.path.join(self.install_data, 'share', 'mime')
 			for cmd in (

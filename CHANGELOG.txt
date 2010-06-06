@@ -2,14 +2,40 @@
 Jaap Karssenberg <pardus@cpan.org>
 
 This branch is the Python rewrite and starts with version 0.42. 
-Lower version numbers for zim correspond to the Perl branch.
+Earlier version numbers for zim correspond to the Perl branch.
 
 
 === 0.47 - Sun  6 Jun 2010 ===
+Big release with lots of new functionality but also many bug fixes
 
-
+* Significant performance improvements for the page index widget
+* Task list plugin now uses the index databse to store tasks, this makes
+  opening the dialog much faster. Also the dialog is updated on synchronous
+  as soon as changes in the current page are saved.
+* Added support for "TODO" and "FIXME" tags in task list plugin, as a special
+  case headers above checkbox lists are supported as well
+* Added "create note" dialog to quickly paste text into any zim notebook,
+  it is available from the trayicon menu and can be called by a commandline
+  switch
+* Support added for new "app-indicator" trayicon for Ubuntu 10.4
+* Added support to start trayicon by a commandline switch
+* Option added to reformat wiki text on the fly (Johannes Reinhardt)
+* Attach file dialog can now handle multiple files at once (Johannes Reinhardt)
+* Layout for linkmap improved by switching to the 'fdp' renderer
+* Added new plugin "Insert Symbols" for inserting e.g. unicode characters
+* Added new plugin to insert and edit plots using GNU R (Lee Braiden)
+* Added scripts needed to build a windows installer and fixed various issues 
+  relating to proper operation of zim when compiled as windows executable
+* Added option to delete links when deleting a page or placeholder
+* Added option to "move" placeholder by updating links
+* Fixed bug with interwiki links to other notebooks
+* Fixed various bugs due to unicode file names on windows and non-utf8 
+  filesystems on other platforms
+* Fixed bug with non-utf8 unicode in urls
+* Fixed bugs with calendar plugin when embedded in side pane
+* Fixed support for icons for custom tools
+* Fixed bug with indented verbatim blocks (Fabian Moser)
 * Added translation for Traditional Chinese
-
 
 === 0.46 - Wed 24 Mar 2010 ===
 Bug fix release

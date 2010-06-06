@@ -1,29 +1,35 @@
+zim (0.47) lucid; urgency=low
+
+  * Updated to release 0.47
+
+ -- Jaap Karssenberg <pardus@cpan.org>  Sun, 06 Jun 2010 21:35:11 +0200
+
 zim (0.46) karmic; urgency=low
 
   * Update to release 0.46 
 
- -- Jaap Karrsenberg <pardus@cpan.org>  Wed, 24 Mar 2010 22:00:44 +0100
+ -- Jaap Karssenberg <pardus@cpan.org>  Wed, 24 Mar 2010 22:00:44 +0100
 
 zim (0.45) karmic; urgency=low
 
   * Updated to release 0.45
 
- -- Jaap Karrsenberg <pardus@cpan.org>  Tue, 23 Mar 2010 22:22:21 +0100
+ -- Jaap Karssenberg <pardus@cpan.org>  Tue, 23 Mar 2010 22:22:21 +0100
 
 zim (0.44) karmic; urgency=low
 
   * Updated to release 0.44 
 
- -- Jaap Karrsenberg <pardus@cpan.org>  Thu, 18 Feb 2010 19:07:28 +0100
+ -- Jaap Karssenberg <pardus@cpan.org>  Thu, 18 Feb 2010 19:07:28 +0100
 
 zim (0.43) karmic; urgency=low
 
   * Updated to release 0.43 
 
- -- Jaap Karrsenberg <pardus@cpan.org>  Mon, 18 Jan 2010 00:57:45 +0100
+ -- Jaap Karssenberg <pardus@cpan.org>  Mon, 18 Jan 2010 00:57:45 +0100
 
 zim (0.42) karmic; urgency=low
 
   * Initial release.
 
- -- Jaap Karrsenberg <pardus@cpan.org>  Sun, 10 Jan 2010 22:30:13 +0100
+ -- Jaap Karssenberg <pardus@cpan.org>  Sun, 10 Jan 2010 22:30:13 +0100
