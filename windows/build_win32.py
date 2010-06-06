@@ -21,21 +21,23 @@ subprocess.check_call(['python.exe', 'setup.py', 'py2exe'])
 # update "data" folder
 shutil.copytree("data", "windows/build/data")
 
-# If you installed GTK to a different folder, change these lines:
-shutil.copytree("c:/Program Files/Common Files/GTK/2.0/etc", "windows/build/etc")
-shutil.copytree("c:/Program Files/Common Files/GTK/2.0/lib", "windows/build/lib")
-shutil.copytree("c:/Program Files/Common Files/GTK/2.0/share", "windows/build/share")
-
-# Copy translation files
 # Use function from distutils because shutil.copytree 
 # fails when destination folder exists
+
+# If you installed GTK to a different folder, change these lines:
+distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.0/etc", "windows/build/etc", update=1)
+distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.0/lib", "windows/build/lib", update=1)
+distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.0/share", "windows/build/share", update=1)
+
+# Copy translation files
 distutils.dir_util.copy_tree("locale", "windows/build/share/locale", update=1)
 
 # Copy plugins folder so Preferences dialog can iterate through them
-shutil.copytree("zim/plugins", "windows/build/zim/plugins")
+distutils.dir_util.copy_tree("zim/plugins", "windows/build/zim/plugins", update=1)
 
 # Copy the hicolor icon theme from windows folder because it's missing from Gtk/win32 distro
-os.makedirs("windows/build/share/icons/hicolor")
+if not os.path.exists("windows/build/share/icons/hicolor"):
+	os.makedirs("windows/build/share/icons/hicolor")
 shutil.copyfile(
 	"windows/hicolor-icon-theme__index.theme",
 	"windows/build/share/icons/hicolor/index.theme"
