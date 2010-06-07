@@ -9,7 +9,7 @@ Earlier version numbers for zim correspond to the Perl branch.
 Big release with lots of new functionality but also many bug fixes
 
 * Significant performance improvements for the page index widget
-* Task list plugin now uses the index databse to store tasks, this makes
+* Task list plugin now uses the index database to store tasks, this makes
   opening the dialog much faster. Also the dialog is updated on synchronous
   as soon as changes in the current page are saved.
 * Added support for "TODO" and "FIXME" tags in task list plugin, as a special
