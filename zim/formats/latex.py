@@ -148,7 +148,6 @@ class Dumper(DumperClass):
 						output.append('\\begin{math}\n')
 						output.extend(eqfid.readlines())
 						output.append('\n\\end{math}')
-						eqfid.close()
 					except:
 						logger.exception('Could not find latex equation:')
 					else:
