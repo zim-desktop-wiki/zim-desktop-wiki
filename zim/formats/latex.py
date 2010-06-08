@@ -81,9 +81,10 @@ class Dumper(DumperClass):
 		self.document_type = self.template_options.get('document_type')
 			# Option set in template - potentially tainted value
 		if not self.document_type in ('report', 'article','book'):
+			logger.info('option dict %s does not contain suitable document type. Using default'%self.document_type)
 			self.document_type = 'report' # arbitrary default
-
-		logger.info('used document type: %s'%self.document_type)
+		else:
+			logger.info('used document type: %s'%self.document_type)
 
 		output = TextBuffer()
 		self.dump_children(tree.getroot(), output)
