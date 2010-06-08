@@ -5,6 +5,11 @@ import sys
 import shutil
 import subprocess
 
+try:
+	import py2exe
+except ImportError:
+	py2exe = None
+
 from distutils.core import setup
 from distutils.command.sdist import sdist as sdist_class
 from distutils.command.build import build as build_class
@@ -71,6 +76,11 @@ def collect_data_files():
 		] ),
 		('share/icons/hicolor/64x64/apps', ['data/zim.png']),
 	]
+	# Paths for mimeicons taken from xdg-icon-resource
+	# xdg-icon-resource installs:
+	# /usr/local/share/icons/hicolor/64x64/mimetypes/gnome-mime-application-x-zim-notebook.png
+	# /usr/local/share/icons/hicolor/64x64/mimetypes/application-x-zim-notebook.png
+	# /usr/local/share/icons/hicolor/64x64/apps/zim.png
 
 	# data -> PREFIX/share/zim
 	for dir, dirs, files in os.walk('data'):
@@ -115,6 +125,7 @@ def fix_dist():
 		'application-x-zim-notebook.png'
 	):
 		shutil.copy('data/zim.png', 'xdg/hicolor/' + name)
+
 
 # Overloaded commands
 
@@ -184,25 +195,29 @@ class zim_build_class(build_class):
 
 class zim_install_class(install_class):
 
+	user_options = install_class.user_options + \
+		[('skip-cmd', None, "don't run external commands (for packaging)")]
+	
+	boolean_options = install_class.boolean_options + \
+		['skip-cmd']
+
+	def initialize_options(self):
+		install_class.initialize_options(self)
+		self.skip_cmd = 0
+	
 	def run(self):
 		install_class.run(self)
 
-		# Try XDG tools
-		icon = os.path.join('data', 'zim.png')
-		mimedir = os.path.join(self.install_data, 'share', 'mime')
-		for cmd in (
-			('update-desktop-database',),
-			('update-mime-database', mimedir),
-			#('xdg-icon-resource', 'install', '--context', 'apps', '--size', '64', icon, '--novendor'),
-			#('xdg-icon-resource', 'install', '--context', 'mimetypes',  '--size', '64', icon, 'application-x-zim-notebook'),
-		):
-			print 'Trying: ' + ' '.join(cmd)
-			subprocess.call(cmd)
+		if not self.skip_cmd:
+			# Try XDG tools
+			mimedir = os.path.join(self.install_data, 'share', 'mime')
+			for cmd in (
+				('update-desktop-database',),
+				('update-mime-database', mimedir),
+			):
+				print 'Trying: ' + ' '.join(cmd)
+				subprocess.call(cmd)
 
-		# xdg-icon-resource installs:
-		# /usr/local/share/icons/hicolor/64x64/mimetypes/gnome-mime-application-x-zim-notebook.png
-		# /usr/local/share/icons/hicolor/64x64/mimetypes/application-x-zim-notebook.png
-		# /usr/local/share/icons/hicolor/64x64/apps/zim.png
 
 
 # Distutils parameters, and main function
@@ -210,6 +225,28 @@ class zim_install_class(install_class):
 dependencies = ['gobject', 'gtk', 'xdg']
 if version_info == (2, 5):
 	dependencies.append('simplejson')
+
+
+if py2exe:
+	py2exeoptions = {
+		'windows': [ {
+			"script": "zim.py",
+			"icon_resources": [(1, "data/pixmaps/favicon.ico")]
+		} ],
+		'zipfile': None,
+		'options': {
+			"py2exe": {
+				"compressed": 0,
+				"optimize": 2,
+				"ascii": 1,
+				"bundle_files": 3,
+				"packages": ["encodings", "cairo", "atk", "pangocairo", "zim", "bzrlib"],
+				"dist_dir" : "windows/build"
+			}
+		}
+	}
+else:
+	py2exeoptions = {}
 
 
 setup(
@@ -233,6 +270,8 @@ setup(
 	scripts      = ['zim.py'],
 	packages     = collect_packages(),
 	data_files   = collect_data_files(),
-	requires     = dependencies
+	requires     = dependencies,
+
+	**py2exeoptions
 )
 

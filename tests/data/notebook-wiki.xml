@@ -161,6 +161,11 @@ Some Verbatim here
 	Indented and all: //foo//
 '''
 
+	'''
+	Also block-indentation of verbatim is possible.
+		Even with additional per-line indentation
+	'''
+
 IMAGE: {{../my-image.png?width=600|Foo Bar}}
 LINKS: [[:foo:bar]] [[./file.png]] file:///etc/passwd
 LINKS: [[Foo]][[Bar]]
@@ -238,6 +243,16 @@ Created שלישי 07 אפריל 2009
 מכניקת מוצקים 2
 A line in English, should be left aligned.
 דינמיקה
+</page>
+<page name="utf8:中文">
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2010-05-10T01:02:12.859000
+
+====== 中文 ======
+Created Monday 10 May 2010
+
+this page title is chinese.
 </page>
 <page name="Linking:Foo:Bar">
 Foo Bar !

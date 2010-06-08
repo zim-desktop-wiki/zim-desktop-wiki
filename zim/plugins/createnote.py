@@ -16,7 +16,7 @@ from zim.gui.notebookdialog import NotebookComboBox
 
 
 usagehelp = '''\
-usage: zim --plugin dropwindow [OPTIONS]
+usage: zim --plugin createnoted [OPTIONS]
 
 Options:
   notebook=URI      Select the notebook in the dialog
@@ -49,14 +49,32 @@ def main(daemonproxy, *args):
 	icon = data_file('zim.png').path
 	gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
 
-	dialog = DropWindowDialog(None, options)
+	dialog = CreateNoteDialog(None, options)
 	dialog.run()
 
 
-class DropWindowPlugin(PluginClass):
+ui_actions = (
+	# name, stock id, label, accelerator, tooltip, read only
+	('show_create_note', 'gtk-new', _('_Create Note...'), '', '', True), # T: menu item
+)
+
+ui_xml = '''
+<ui>
+	<menubar name='menubar'>
+		<menu action='tools_menu'>
+			<placeholder name="plugin_items">
+				<menuitem action="show_create_note" />
+			</placeholder>
+		</menu>
+	</menubar>
+</ui>
+'''
+
+
+class CreateNotePlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Drop Window'), # T: plugin name
+		'name': _('Create Note'), # T: plugin name
 		'description': _('''\
 This plugin adds a dialog to quickly drop some text or clipboard
 content into a zim page.
@@ -71,49 +89,30 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 	#~ )
 
-	def show(self):
-		dialog = DropWindowDialog.unique(self, None)
+	def initialize_ui(self, ui):
+		if ui.ui_type == 'gtk':
+			ui.add_actions(ui_actions, self)
+			ui.add_ui(ui_xml, self)
+
+	def show_create_note(self):
+		dialog = BoundCreateNoteDialog.unique(self, self.ui, {})
 		dialog.show()
 
 
-class DropWindowDialog(Dialog):
+class BoundCreateNoteDialog(Dialog):
+	'''Dialog bound to a specific notebook'''
 
 	def __init__(self, ui, options):
-		Dialog.__init__(self, ui, _('Drop Window'))
+		Dialog.__init__(self, ui, _('Create Note'))
 		self._updating_title = False
 		self._title_set_manually = False
 
-		self.config = config_file('dropwindow.conf')
-		self.uistate = self.config['DropWindowDialog']
-		self.uistate.setdefault('lastnotebook', None)
-		if self.uistate['lastnotebook']:
-			notebook = self.uistate['lastnotebook']
-			self.config['Namespaces'].setdefault(notebook, None)
-			namespace = self.config['Namespaces'][notebook]
-		else:
-			notebook = None
-			namespace = None
+		self.uistate.setdefault('namespace', None)
+		namespace = self.uistate['namespace']
 
-		notebook = options.get('notebook') or notebook
-		namespace = options.get('namespace') or namespace
-		basename = options.get('basename')
+		self._init_inputs(namespace, None, options)
 
-		self.uistate.setdefault(
-			'windowsize', (-1, -1), check=self.uistate.is_coord)
-		w, h = self.uistate['windowsize']
-		self.set_default_size(w, h)
-
-		table = gtk.Table()
-		self.vbox.pack_start(table, False)
-
-		# TODO dropdown could use an option "Other..."
-		label = gtk.Label(_('Notebook')+': ')
-		label.set_alignment(0.0, 0.5)
-		table.attach(label, 0,1, 0,1, xoptions=gtk.FILL)
-			# T: Field to select Notebook from drop down list
-		self.notebookcombobox = NotebookComboBox(current=notebook)
-		table.attach(self.notebookcombobox, 1,2, 0,1)
-
+	def _init_inputs(self, namespace, basename, options, table=None):
 		self.add_fields( (
 				('namespace', 'namespace', _('Namespace'), namespace), # T: text entry field
 				('basename', 'page', _('Page Name'), basename) # T: text entry field
@@ -125,7 +124,6 @@ class DropWindowDialog(Dialog):
 		self.textview.set_editable(True)
 		self.vbox.add(window)
 
-		self.notebookcombobox.connect('changed', self.on_notebook_changed)
 		self.inputs['basename'].connect('changed', self.on_title_changed)
 		self.textview.get_buffer().connect('changed', self.on_text_changed)
 
@@ -145,13 +143,8 @@ class DropWindowDialog(Dialog):
 		if text:
 			self.textview.get_buffer().set_text(text)
 
-	def on_notebook_changed(self, o):
-		notebook = self.notebookcombobox.get_notebook()
-		self.uistate['lastnotebook'] = notebook
-		self.config['Namespaces'].setdefault(notebook, None)
-		namespace = self.config['Namespaces'][notebook]
-		if namespace:
-			self.inputs['namespace'].set_text(namespace)
+	def save_uistate(self):
+		self.uistate['namespace'] = self.inputs['namespace'].get_text()
 
 	def on_title_changed(self, o):
 		if not self._updating_title:
@@ -175,11 +168,8 @@ class DropWindowDialog(Dialog):
 		and self.inputs['basename'].get_input_valid() ):
 			return False
 
-		notebook = self.notebookcombobox.get_notebook()
 		namespace = self.inputs['namespace'].get_text()
 		basename = self.inputs['basename'].get_text()
-		self.uistate['lastnotebook'] = notebook
-		self.config['Namespaces'][notebook] = namespace
 
 		if not namespace or not basename:
 			return False
@@ -188,17 +178,74 @@ class DropWindowDialog(Dialog):
 		bounds = buffer.get_bounds()
 		text = buffer.get_text(*bounds)
 
+		self._create_note(text, namespace + ':' + basename)
+		return True
+
+	def _create_note(self, text, name):
+		self.ui.new_page_from_text(text, name)
+
+
+class CreateNoteDialog(BoundCreateNoteDialog):
+	'''Dialog which includes a notebook chooser'''
+
+	def __init__(self, ui, options):
+		self.config = config_file('createnote.conf')
+		self.uistate = self.config['CreateNoteDialog']
+
+		Dialog.__init__(self, ui, _('Create Note'))
+		self._updating_title = False
+		self._title_set_manually = False
+
+		self.uistate.setdefault('lastnotebook', None)
+		if self.uistate['lastnotebook']:
+			notebook = self.uistate['lastnotebook']
+			self.config['Namespaces'].setdefault(notebook, None)
+			namespace = self.config['Namespaces'][notebook]
+		else:
+			notebook = None
+			namespace = None
+
+		notebook = options.get('notebook') or notebook
+		namespace = options.get('namespace') or namespace
+		basename = options.get('basename')
+
+		table = gtk.Table()
+		self.vbox.pack_start(table, False)
+
+		# TODO dropdown could use an option "Other..."
+		label = gtk.Label(_('Notebook')+': ')
+		label.set_alignment(0.0, 0.5)
+		table.attach(label, 0,1, 0,1, xoptions=gtk.FILL)
+			# T: Field to select Notebook from drop down list
+		self.notebookcombobox = NotebookComboBox(current=notebook)
+		self.notebookcombobox.connect('changed', self.on_notebook_changed)
+		table.attach(self.notebookcombobox, 1,2, 0,1)
+
+		self._init_inputs(namespace, basename, options, table)
+
+	def save_uistate(self):
+		notebook = self.notebookcombobox.get_notebook()
+		self.uistate['lastnotebook'] = notebook
+		self.config['Namespaces'][notebook] = self.inputs['namespace'].get_text()
+		self.config.write()
+
+	def on_notebook_changed(self, o):
+		notebook = self.notebookcombobox.get_notebook()
+		self.uistate['lastnotebook'] = notebook
+		self.config['Namespaces'].setdefault(notebook, None)
+		namespace = self.config['Namespaces'][notebook]
+		if namespace:
+			self.inputs['namespace'].set_text(namespace)
+
+	def _create_note(self, text, name):
 		# HACK to start daemon from separate process
 		# we are not allowed to fork since we already loaded gtk
 		from subprocess import check_call
 		from zim import ZIM_EXECUTABLE
 		check_call([ZIM_EXECUTABLE, '--daemon'])
 
+		notebook = self.notebookcombobox.get_notebook()
+
 		gui = DaemonProxy().get_notebook(notebook)
-		gui.new_page_from_text(text, namespace + ':' + basename)
+		gui.new_page_from_text(text, name)
 		gui.present()
-		return True
-
-	def save_uistate(self):
-		self.config.write()
-

@@ -2,14 +2,13 @@ Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.4
 Creation-Date: 2010-04-24T13:49:51.331910
 
-====== Dropwindow ======
-Created Samstag 24 April 2010
+====== Create Note ======
 
-The Dropwindow plugin offers a small dialog for inserting notes into a notebook. It is invoked from the commandline and can therefore easily be bound to keyboard short cuts or used in scripts.
+The "Create Note" plugin offers a quick dialog for inserting notes into a notebook. It can be invoked from the commandline and can therefore easily be bound to keyboard shortcuts or used in scripts.
 
 **Dependencies:** This plugin has no additional dependencies.
 
-**Commandline: **''zim'' --plugin dropwindow [OPTIONS]
+**Commandline: **''zim'' --plugin createnote [OPTIONS]
 
 **Options:**
 * notebook=URI    Select the notebook in the dialog

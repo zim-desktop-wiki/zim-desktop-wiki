@@ -120,23 +120,33 @@ class IconButton(gtk.Button):
 class IconChooserButton(gtk.Button):
 	'''Button with a stock icon, but no label.'''
 
-	def __init__(self, stock=gtk.STOCK_MISSING_IMAGE):
+	def __init__(self, stock=gtk.STOCK_MISSING_IMAGE, pixbuf=None):
+		'''Constructor with initial image. If a pixbuf is given it is
+		used instead of the stock icon.
+		'''
 		gtk.Button.__init__(self)
 		self.file = None
-		image = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_DIALOG)
+		image = gtk.Image()
 		self.add(image)
 		self.set_alignment(0.5, 0.5)
+		if pixbuf:
+			image.set_from_pixbuf(pixbuf)
+		else:
+			image.set_from_stock(stock, gtk.ICON_SIZE_DIALOG)
 
 	def do_clicked(self):
 		dialog = SelectFileDialog(self)
 		dialog.add_filter_images()
 		file = dialog.run()
 		if file:
-			image = self.get_child()
-			size = max(image.size_request()) # HACK to get icon size
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
-			image.set_from_pixbuf(pixbuf)
-			self.file = file
+			self.set_file(file)
+
+	def set_file(self, file):
+		image = self.get_child()
+		size = max(image.size_request()) # HACK to get icon size
+		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
+		image.set_from_pixbuf(pixbuf)
+		self.file = file
 
 	def get_file(self):
 		return self.file
@@ -384,7 +394,7 @@ class PageEntry(InputEntry):
 		self.set_text(':'+path.name)
 
 	def get_path(self):
-		name = self.get_text().strip()
+		name = self.get_text().decode('utf-8').strip()
 		if not name:
 			return None
 		elif self.allow_select_root and name == ':':
@@ -407,7 +417,7 @@ class PageEntry(InputEntry):
 		self.emit('activate')
 
 	def do_changed(self):
-		text = self.get_text().strip()
+		text = self.get_text().decode('utf-8').strip()
 
 		if not text:
 			self.set_input_valid(True)
@@ -491,7 +501,7 @@ class LinkEntry(PageEntry):
 	'''Sub-class of PageEntry that also accepts file links and urls'''
 
 	def do_changed(self):
-		text = self.get_text()
+		text = self.get_text().decode('utf-8').strip()
 		if text:
 			type = link_type(text)
 			if type == 'page':
@@ -597,18 +607,22 @@ class Dialog(gtk.Dialog):
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 
-		if hasattr(ui, 'uistate') and isinstance(ui.uistate, zim.config.ConfigDict):
+		if hasattr(self, 'uistate'):
+			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
+		elif hasattr(ui, 'uistate') \
+		and isinstance(ui.uistate, zim.config.ConfigDict):
 			assert isinstance(defaultwindowsize, tuple)
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
-			#~ print '>>', self.uistate
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
-			w, h = self.uistate['windowsize']
-			self.set_default_size(w, h)
+			#~ print '>>', self.uistate
 		else:
 			self.uistate = { # used in tests/debug
 				'windowsize': (-1, -1)
 			}
+
+		w, h = self.uistate['windowsize']
+		self.set_default_size(w, h)
 
 		self._no_ok_action = False
 		if not button is None:
@@ -812,7 +826,7 @@ class Dialog(gtk.Dialog):
 			if isinstance(widget, (PageEntry, NamespaceEntry)):
 				values[name] = widget.get_path()
 			elif isinstance(widget, gtk.Entry):
-				values[name] = widget.get_text().strip()
+				values[name] = widget.get_text().decode('utf-8').strip()
 			elif isinstance(widget, gtk.ToggleButton):
 				values[name] = widget.get_active()
 			elif isinstance(widget, gtk.ComboBox):
@@ -1052,7 +1066,7 @@ class FileDialog(Dialog):
 		'''Wrapper for filechooser.get_filename().
 		Returns a File object or None.
 		'''
-		path = self.filechooser.get_filename()
+		path = self.filechooser.get_filename().decode('utf-8')
 		if path is None: return None
 		else: return File(path)
 
@@ -1060,14 +1074,15 @@ class FileDialog(Dialog):
 		'''Like get_file() but returns a list of File objects.
 		Useful in combination with the option "multiple".
 		'''
-		path = self.filechooser.get_filenames()
-		return map(lambda x: File(x),path)
+		paths = [path.decode('utf-8')
+				for path in self.filechooser.get_filenames()]
+		return [File(path) for path in paths]
 
 	def get_dir(self):
 		'''Wrapper for filechooser.get_filename().
 		Returns a Dir object or None.
 		'''
-		path = self.filechooser.get_filename()
+		path = self.filechooser.get_filename().decode('utf-8')
 		if path is None: return None
 		else: return Dir(path)
 

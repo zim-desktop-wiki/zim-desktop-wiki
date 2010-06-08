@@ -47,8 +47,7 @@ from zim.gui.pageview import PageView
 from zim.gui.widgets import Button, MenuButton, \
 	Dialog, ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
 from zim.gui.clipboard import Clipboard
-from zim.gui.applications import get_application, CustomToolManager
-from zim.gui.searchdialog import SearchDialog
+from zim.gui.applications import get_application, get_default_application, CustomToolManager
 
 logger = logging.getLogger('zim.gui')
 
@@ -261,6 +260,7 @@ class GtkInterface(NotebookInterface):
 		fullscreen=False, geometry=None, usedaemon=False):
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
 		NotebookInterface.__init__(self)
+		self._finalize_ui = False
 		self.preferences_register = ListDict()
 		self.page = None
 		self.history = None
@@ -339,6 +339,7 @@ class GtkInterface(NotebookInterface):
 
 		self._custom_tool_ui_id = None
 		self._custom_tool_actiongroup = None
+		self._custom_tool_iconfactory = None
 		self.load_custom_tools()
 
 		self.uimanager.ensure_update()
@@ -375,6 +376,11 @@ class GtkInterface(NotebookInterface):
 					self.open_page(page)
 		else:
 			pass # Will check default in main()
+
+	def load_plugin(self, name):
+		plugin = NotebookInterface.load_plugin(self, name)
+		if plugin and self._finalize_ui:
+			plugin.finalize_ui(self)
 
 	def spawn(self, *args):
 		if not self.usedaemon:
@@ -420,6 +426,7 @@ class GtkInterface(NotebookInterface):
 		# older gobject version doesn't know about seconds
 		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
 
+		self._finalize_ui = True
 		for plugin in self.plugins:
 			plugin.finalize_ui(self)
 
@@ -1031,26 +1038,7 @@ class GtkInterface(NotebookInterface):
 			return True
 
 	def delete_page(self, path=None):
-		if path is None:
-			path = self.get_path_context()
-
-		page = self.notebook.get_page(path)
-		if page.hascontent or page.haschildren:
-			DeletePageDialog(self, path=page).run()
-		else:
-			unlink = QuestionDialog(self,
-				(_('Cannot delete placeholder page.'),
-				 _('This is a placeholder page. It does not have content, '
-				'but at least one link on this page exists. To remove the '
-				'placeholder page, you have to remove all links on this '
-				'page. Do you want to show a list of all pages containing '
-				'these links?'))).run()
-			if unlink:
-				if self.notebook.index.updating:
-					# Index need to be complete in order to be 100% sure we
-					# know all backlinks, so no way we can update links before.
-					raise IndexBusyError, 'Index busy'
-				SearchDialog(self,'LinksTo: "%s"' % (self.page.name,)).run()
+		DeletePageDialog(self, path).run()
 
 	def show_properties(self):
 		from zim.gui.propertiesdialog import PropertiesDialog
@@ -1112,6 +1100,8 @@ class GtkInterface(NotebookInterface):
 			self.open_file(File(url))
 		elif url.startswith('mailto:'):
 			self._openwith(self.preferences['GtkInterface']['email_client'], (url,))
+		elif url.startswith('zim+'):
+			self.open_notebook(url)
 		else:
 			if is_win32_share_re.match(url):
 				url = normalize_win32_share(url)
@@ -1174,27 +1164,48 @@ class GtkInterface(NotebookInterface):
 				dir.touch()
 				self.open_file(dir)
 
-	def edit_page_source(self):
+	def edit_page_source(self, page=None):
+		'''Edit page source or source of a config file. Will keep
+		application hanging untill done.
+		'''
 		# This could also be defined as a custom tool, but defined here
 		# because we want to determine the editor dynamically
 		# We assume that the default app for a text file is a editor
 		# and not e.g. a viewer or a browser. Of course users can still
 		# define a custom tool for other editors.
+		if not page:
+			page = self.page
 		if hasattr(self.page, 'source'):
-			file = self.page.source # TODO copy to tmp file
+			file = self.page.source
 		else:
 			ErrorDialog('This page does not have a source file').run()
 			return
 
-		application = get_application(
-			self.preferences['GtkInterface']['file_browser'] )
+		if self._edit_file(file):
+			if page == self.page:
+				self.reload_page()
+
+	def edit_config_file(self, configfile):
+		if not configfile.file.exists():
+			if configfile.default.exists():
+				configfile.default.copyto(configfile.file)
+			else:
+				configfile.file.touch()
+		self._edit_file(configfile.file)
+
+	def _edit_file(self, file):
+		# We hope the application we get here does not return before
+		# editing is done, but unfortunately we have no way to force
+		# this. So may e.g. open a new tab in an existing window and
+		# return immediatly.
+		application = get_default_application('text/plain')
 		try:
 			application.run((file,))
 		except:
 			logger.exception('Error while running %s:', application.name)
+			return False
 		else:
-			# TODO copy back tmp file
-			self.reload_page()
+			return True
 
 	def show_server_gui(self):
 		# TODO instead of spawn, include in this process
@@ -1238,12 +1249,30 @@ class GtkInterface(NotebookInterface):
 		if self._custom_tool_actiongroup:
 			self.uimanager.remove_action_group(self._custom_tool_actiongroup)
 
+		if self._custom_tool_iconfactory:
+			self._custom_tool_iconfactory.remove_default()
+
 		# Load new actions
 		actions = []
+		factory = gtk.IconFactory()
+		factory.add_default()
 		for tool in manager:
-			# FIXME probably need to generate stock icon first if icon is file path
-			action = (tool.key, tool.icon, tool.name, '', tool.comment, self.exec_custom_tool)
+			icon = tool.icon
+			if '/' in icon or '\\' in icon:
+				# Assume icon is a file path - add it to IconFactory
+				icon = 'zim-custom-tool' + tool.key
+				try:
+					pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_LARGE_TOOLBAR)
+					set = gtk.IconSet(pixbuf=pixbuf)
+					factory.add(icon, set)
+				except Exception:
+					logger.exception('Got exception while loading application icons')
+					icon = None
+
+			action = (tool.key, icon, tool.name, '', tool.comment, self.exec_custom_tool)
 			actions.append(action)
+
+		self._custom_tool_iconfactory = factory
 		self._custom_tool_actiongroup = gtk.ActionGroup('custom_tools')
 		self._custom_tool_actiongroup.add_actions(actions)
 
@@ -1283,8 +1312,6 @@ class GtkInterface(NotebookInterface):
 
 		self.uimanager.insert_action_group(self._custom_tool_actiongroup, 0)
 		self._custom_tool_ui_id = self.uimanager.add_ui_from_string(ui)
-
-		# TODO also support toolbar, need to add icons to icon factory etc.
 
 	def exec_custom_tool(self, action):
 		manager = CustomToolManager()
@@ -2191,6 +2218,9 @@ class RenamePageDialog(Dialog):
 			self.path = path
 		assert self.path, 'Need a page here'
 
+		page = self.ui.notebook.get_page(self.path)
+		existing = (page.hascontent or page.haschildren)
+
 		i = self.ui.notebook.index.n_list_links_to_tree(
 					self.path, zim.index.LINK_DIR_BACKWARD )
 
@@ -2204,11 +2234,15 @@ class RenamePageDialog(Dialog):
 		self.add_fields([
 			('name', 'string', _('Name'), self.path.basename),
 				# T: Input label in the 'rename page' dialog for the new name
-			('head', 'bool', _('Update the heading of this page'), True),
+			('head', 'bool', _('Update the heading of this page'), existing),
 				# T: Option in the 'rename page' dialog
 			('links', 'bool', linkslabel, True),
 				# T: Option in the 'rename page' dialog
 		])
+
+		if not existing:
+			self.inputs['head'].set_active(False)
+			self.inputs['head'].set_sensitive(False)
 
 		if i == 0:
 			self.inputs['links'].set_active(False)
@@ -2227,6 +2261,7 @@ class RenamePageDialog(Dialog):
 			self.show() # prompt again
 			return False
 
+
 class DeletePageDialog(Dialog):
 
 	def __init__(self, ui, path=None):
@@ -2239,23 +2274,53 @@ class DeletePageDialog(Dialog):
 
 		hbox = gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
+
 		img = gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DIALOG)
-		hbox.add(img)
+		hbox.pack_start(img, False)
+
+		vbox = gtk.VBox(spacing=5)
+		hbox.add(vbox)
+
 		label = gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
 			# T: Heading in 'delete page' dialog - %s is the page name
-		long = _('Page "%s" and all of it\'s sub-pages and attachments will be deleted') % self.path.name
+		long = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
 			# T: Text in 'delete page' dialog - %s is the page name
 		label.set_markup('<b>'+short+'</b>\n\n'+long)
-		hbox.add(label)
+		vbox.pack_start(label, False)
+
+		i = self.ui.notebook.index.n_list_links_to_tree(
+					self.path, zim.index.LINK_DIR_BACKWARD )
+		linkslabel = ngettext(
+			'Remove links from %i page linking to this page',
+			'Remove links from %i pages linking to this page', i) % i
+			# T: label in DeletePage dialog - %i is number of backlinks
+			# TODO update lable to reflect that links can also be to child pages
+		self.links_checkbox = gtk.CheckButton(label=linkslabel)
+		vbox.pack_start(self.links_checkbox, False)
+
+		if i == 0:
+			self.links_checkbox.set_active(False)
+			self.links_checkbox.set_sensitive(False)
+		else:
+			self.links_checkbox.set_active(True)
 
 	def do_response_ok(self):
+		update_links = self.links_checkbox.get_active()
+
+		dialog = ProgressBarDialog(self, _('Removing Links'))
+			# T: Title of progressbar dialog
+		dialog.show_all()
+		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
+
 		try:
-			self.ui.notebook.delete_page(self.path)
+			self.ui.notebook.delete_page(self.path, update_links, callback)
 		except Exception, error:
 			ErrorDialog(self, error).run()
+			dialog.destroy()
 			return False
 		else:
+			dialog.destroy()
 			return True
 
 
@@ -2280,7 +2345,7 @@ class AttachFileDialog(FileDialog):
 		self.uistate.setdefault('insert_attached_images', True)
 		checkbox = gtk.CheckButton(_('Insert images as link'))
 			# T: checkbox in the "Attach File" dialog
-		checkbox.set_active(self.uistate['insert_attached_images'])
+		checkbox.set_active(not self.uistate['insert_attached_images'])
 		self.filechooser.set_extra_widget(checkbox)
 
 	def do_response_ok(self):
@@ -2289,7 +2354,7 @@ class AttachFileDialog(FileDialog):
 			return False
 
 		checkbox = self.filechooser.get_extra_widget()
-		self.uistate['insert_attached_images'] = checkbox.get_active()
+		self.uistate['insert_attached_images'] = not checkbox.get_active()
 		self.uistate['last_attachment_folder'] = self.filechooser.get_current_folder()
 			# Similar code in zim.gui.InsertImageDialog
 

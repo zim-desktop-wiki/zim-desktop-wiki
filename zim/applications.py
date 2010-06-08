@@ -65,9 +65,10 @@ class Application(object):
 
 	def _checkargs(self, cwd, args):
 		assert args is None or isinstance(args, (tuple, list))
-		argv = [a.encode('utf-8') for a in self._cmd(args)]
+		encoding = zim.fs.ENCODING
+		argv = [a.encode(encoding) for a in self._cmd(args)]
 		if cwd:
-			cwd = unicode(cwd).encode('utf-8')
+			cwd = unicode(cwd).encode(encoding)
 		return cwd, argv
 
 	def run(self, args=None, cwd=None):
@@ -108,8 +109,6 @@ class Application(object):
 		# TODO: can we build this based on os.spawn ? - seems this method fails on win32
 		cwd, argv = self._checkargs(cwd, args)
 		opts = {}
-		if cwd:
-			opts['cwd'] = unicode(cwd).encode('utf-8')
 
 		flags = gobject.SPAWN_SEARCH_PATH
 		if callback:

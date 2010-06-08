@@ -85,7 +85,7 @@ class Exporter(object):
 				if current:
 					pages['previous'] = prev
 					pages['next'] = next
-					self.export_page(dir, current, pages)
+					self.export_page(dir, current, pages, use_namespace=True)
 					if callback and not callback(current):
 						logger.warn('Export cancelled')
 						return False
@@ -94,7 +94,7 @@ class Exporter(object):
 		if current:
 			pages['previous'] = prev
 			pages['next'] = next
-			self.export_page(dir, current, pages)
+			self.export_page(dir, current, pages, use_namespace=True)
 			if callback and not callback(current):
 				logger.warn('Export cancelled')
 				return False
@@ -106,20 +106,23 @@ class Exporter(object):
 			indexpage.readonly = False
 			indexpage.set_parsetree(_page.get_parsetree())
 			indexpage.readonly = True
-			self.export_page(dir, indexpage)
+			self.export_page(dir, indexpage, use_namespace=True)
 
 		self.linker.target_dir = None # reset
 		logger.info('Export done')
 		return True
 
-	def export_page(self, dir, page, pages=None):
+	def export_page(self, dir, page, pages=None, use_namespace=False):
 		'''Export 'page' to a file below 'dir'. Path below 'dir' will be
 		determined by the namespace of 'page'. Attachments wil also be
 		copied along.
 		'''
 		logger.info('Exporting %s', page.name)
 
-		dirname = encode_filename(page.name)
+		if use_namespace:
+			dirname = encode_filename(page.name)
+		else:
+			dirname = encode_filename(page.basename)
 		filename = dirname + '.' + self.format.info['extension']
 		file = dir.file(filename)
 		attachments = self.notebook.get_attachments_dir(page)

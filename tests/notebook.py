@@ -90,10 +90,10 @@ class TestGetNotebook(tests.TestCase):
 
 		# Check interwiki parsing
 		self.assertEqual(interwiki_link('wp?Foo'), 'http://en.wikipedia.org/wiki/Foo')
-		self.assertEqual(interwiki_link('foo?Foo'), dir.uri+'?Foo')
-		nb, page = resolve_notebook(dir.uri+'?Foo')
+		self.assertEqual(interwiki_link('foo?Foo'), 'zim+' + dir.uri + '?Foo')
+		nb, page = resolve_notebook(dir.uri + '?Foo')
 		self.assertEqual(nb, dir)
-		self.assertEqual(page, 'Foo')
+		self.assertEqual(page, Path('Foo'))
 
 		# Check backward compatibility
 		file = File('tests/data/notebook-list-old-format.list')
@@ -151,10 +151,14 @@ class TestNotebook(tests.TestCase):
 			page = self.notebook.get_page(path)
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
+			self.assertFalse(page.exists())
+
+		for path in (Path('Test:foo'), Path('TODOList')):
+			page = self.notebook.get_page(path)
+			self.assertTrue(page.haschildren or page.hascontent)
+			self.assertTrue(page.exists())
 
 		# check errors
-		self.assertRaises(LookupError,
-			self.notebook.move_page, Path('NewPage'), Path('Test:BAR'))
 		self.assertRaises(PageExistsError,
 			self.notebook.move_page, Path('Test:foo'), Path('TODOList'))
 
@@ -163,6 +167,11 @@ class TestNotebook(tests.TestCase):
 		self.assertRaises(IndexBusyError,
 			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
 
+		# non-existing page - just check no errors here
+		self.notebook.index.ensure_update()
+		self.notebook.move_page(Path('NewPage'), Path('Test:NewPage')),
+
+		# Test actual moving
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
 			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
@@ -191,19 +200,51 @@ class TestNotebook(tests.TestCase):
 		page.parse('plain', 'foo bar\n')
 		self.notebook.store_page(page)
 
+		page = self.notebook.get_page(Path('SomePageWithLinks'))
+		page.parse('wiki',
+			'[[:AnotherNewPage:Foo:bar]]\n'
+			'**bold** [[:AnotherNewPage]]\n' )
+		self.notebook.store_page(page)
+
 		page = self.notebook.get_page(Path('AnotherNewPage'))
 		self.assertTrue(page.haschildren)
 		self.assertFalse(page.hascontent)
+		nlinks = self.notebook.index.n_list_links_to_tree(page, LINK_DIR_BACKWARD)
+		self.assertEqual(nlinks, 2)
 
-		self.notebook.delete_page(path)
+		self.notebook.delete_page(Path('AnotherNewPage:Foo:bar'))
 		page = self.notebook.get_page(path)
 		self.assertFalse(page.haschildren)
 		self.assertFalse(page.hascontent)
-		self.notebook.delete_page(newpath) # should fail silently
+		self.assertRaises(ValueError,
+			self.notebook.index.n_list_links_to_tree, page, LINK_DIR_BACKWARD)
+			# if links are removed and placeholder is cleaned up the
+			# page doesn't exist anymore in the index so we get this error
+
+		page = self.notebook.get_page(Path('SomePageWithLinks'))
+		content = page.dump('wiki')
+		self.assertEqual(''.join(content),
+			':AnotherNewPage:Foo:bar\n'
+			'**bold** [[:AnotherNewPage]]\n' )
+
+		self.notebook.delete_page(path) # now should fail silently
 
 		page = self.notebook.get_page(Path('AnotherNewPage'))
 		self.assertFalse(page.haschildren)
 		self.assertFalse(page.hascontent)
+		nlinks = self.notebook.index.n_list_links_to_tree(page, LINK_DIR_BACKWARD)
+		self.assertEqual(nlinks, 1)
+		self.notebook.delete_page(page)
+		self.assertRaises(ValueError,
+			self.notebook.index.n_list_links_to_tree, page, LINK_DIR_BACKWARD)
+			# if links are removed and placeholder is cleaned up the
+			# page doesn't exist anymore in the index so we get this error
+
+		page = self.notebook.get_page(Path('SomePageWithLinks'))
+		content = page.dump('wiki')
+		self.assertEqual(''.join(content),
+			':AnotherNewPage:Foo:bar\n'
+			'**bold** :AnotherNewPage\n' )
 
 		#~ print '\n==== DB ===='
 		#~ self.notebook.index.ensure_update()

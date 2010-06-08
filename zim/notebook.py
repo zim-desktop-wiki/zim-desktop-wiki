@@ -157,9 +157,11 @@ def resolve_notebook(string):
 
 	page = None
 	if is_url_re.match(string):
+		if string.startswith('zim+'): string = string[4:]
 		assert string.startswith('file://')
 		if '?' in string:
 			filepath, page = string.split('?', 1)
+			page = Path(page)
 		else:
 			filepath = string
 	elif os.path.sep in string:
@@ -176,7 +178,7 @@ def resolve_notebook(string):
 	file = File(filepath) # Fixme need generic FS Path object here
 	if filepath.endswith('notebook.zim'):
 		return File(filepath).dir, page
-	elif file.exists(): # file exists and really is a file
+	elif not page and file.exists(): # file exists and really is a file
 		parents = list(file)
 		parents.reverse()
 		for parent in parents:
@@ -261,9 +263,9 @@ def interwiki_link(link):
 			break
 	else:
 		list = get_notebook_list()
-		for name, path in list.get_names():
+		for name, uri in list.get_names():
 			if name.lower() == key.lower():
-				url = path + '?{NAME}'
+				url = 'zim+' + uri + '?{NAME}'
 				break
 
 	if url and is_url_re.match(url):
@@ -866,19 +868,24 @@ class Notebook(gobject.GObject):
 	def move_page(self, path, newpath, update_links=True, callback=None):
 		'''Move a page from 'path' to 'newpath'. If 'update_links' is
 		True all links from and to the page will be modified as well.
+		The original page 'path' does not have to exist, this is usefull
+		to update links for a placeholder. If 'newpath' exists a
+		PageExistsError error will be raised.
 		'''
+		if path == newpath:
+			return
+
 		if update_links and self.index.updating:
 			raise IndexBusyError, 'Index busy'
 			# Index need to be complete in order to be 100% sure we
 			# know all backlinks, so no way we can update links before.
 
 		page = self.get_page(path)
-		if not (page.hascontent or page.haschildren):
-			raise LookupError, 'Page does not exist: %s' % path.name
 		assert not page.modified, 'BUG: moving a page with uncomitted changes'
 
-		if path == newpath:
-			return
+		newpage = self.get_page(newpath)
+		if newpage.exists():
+			raise PageExistsError, 'Page already exists: %s' % newpath.name
 
 		self.emit('move-page', path, newpath, update_links)
 		logger.debug('Move %s to %s (%s)', path, newpath, update_links)
@@ -889,18 +896,21 @@ class Notebook(gobject.GObject):
 			backlinkpages = set()
 			for l in self.index.list_links(path, LINK_DIR_BACKWARD):
 				backlinkpages.add(l.source)
-			for child in self.index.walk(path):
-				for l in self.index.list_links(child, LINK_DIR_BACKWARD):
-					backlinkpages.add(l.source)
 
-		# Do the actual move
-		store = self.get_store(path)
-		newstore = self.get_store(newpath)
-		if newstore == store:
-			store.move_page(path, newpath)
-		else:
-			assert False, 'TODO: move between stores'
-			# recursive + move attachments as well
+			if page.haschildren:
+				for child in self.index.walk(path):
+					for l in self.index.list_links(child, LINK_DIR_BACKWARD):
+						backlinkpages.add(l.source)
+
+		# Do the actual move (if the page exists)
+		if page.exists():
+			store = self.get_store(path)
+			newstore = self.get_store(newpath)
+			if newstore == store:
+				store.move_page(path, newpath)
+			else:
+				assert False, 'TODO: move between stores'
+				# recursive + move attachments as well
 
 		self.flush_page_cache(path)
 		self.flush_page_cache(newpath)
@@ -1059,13 +1069,86 @@ class Notebook(gobject.GObject):
 
 		return newpath
 
-	def delete_page(self, path):
+	def delete_page(self, path, update_links=True, callback=None):
+		'''Delete a page. If 'update_links' is True pages linking to the
+		deleted page will be updated and the link are removed.
+		'''
+		# Collect backlinks
+		if update_links:
+			from zim.index import LINK_DIR_BACKWARD
+			backlinkpages = set()
+			for l in self.index.list_links(path, LINK_DIR_BACKWARD):
+				backlinkpages.add(l.source)
+
+			page = self.get_page(path)
+			if page.haschildren:
+				for child in self.index.walk(path):
+					for l in self.index.list_links(child, LINK_DIR_BACKWARD):
+						backlinkpages.add(l.source)
+
+		# actual delete
 		self.emit('delete-page', path)
 		store = self.get_store(path)
 		store.delete_page(path)
 		self.flush_page_cache(path)
 		path = Path(path.name)
+
+		# Update links to the deleted page tree
+		if update_links:
+			#~ print backlinkpages
+			total = len(backlinkpages)
+			for p in backlinkpages:
+				if p == path or p.ischild(path):
+					continue
+				page = self.get_page(p)
+				if callback: callback(page, total=total)
+				self._remove_links_in_page(page, path)
+				self.store_page(page)
+
+		# let everybody know what happened
 		self.emit('deleted-page', path)
+
+	def _remove_links_in_page(self, page, path):
+		logger.debug('Removing links in %s to %s', page, path)
+		tree = page.get_parsetree()
+		if not tree:
+			logger.warn('Page turned out to be empty: %s', page)
+			return
+
+		def walk_links(parent):
+			# Yields parent element, previous element and link element.
+			# we actually yield links in reverse order, so removal
+			# algorithm works for consequetive links as well.
+			children = parent.getchildren()
+			for i in range(len(children)-1, -1, -1):
+				if children[i].tag == 'link':
+					if i > 0: yield parent, children[i-1], children[i]
+					else: yield parent, None, children[i]
+				for items in walk_links(children[i]): # recurs
+					yield items
+
+		for parent, prev, element in walk_links(tree.getroot()):
+			try:
+				href = element.attrib['href']
+				type = link_type(href)
+				if type == 'page':
+					hrefpath = self.resolve_path(href, source=page)
+					#~ print 'LINK', hrefpath
+					if hrefpath == path \
+					or hrefpath.ischild(path):
+						# Remove the link
+						text = (element.text or '') + (element.tail or '')
+						if not prev is None:
+							prev.tail = (prev.tail or '') + text
+						else:
+							parent.text = (parent.text or '') + text
+						parent.remove(element)
+					else:
+						continue
+			except:
+				logger.exception('Error while removing link "%s"', href)
+
+		page.set_parsetree(tree)
 
 	def resolve_file(self, filename, path):
 		'''Resolves a file or directory path relative to a page. Returns a
@@ -1490,6 +1573,9 @@ class Page(Path):
 				return False
 			else:
 				return hascontent
+
+	def exists(self):
+		return self.haschildren or self.hascontent
 
 	def get_parsetree(self):
 		'''Returns contents as a parsetree or None'''

@@ -493,6 +493,14 @@ class TextBuffer(gtk.TextBuffer):
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
 				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
+			elif element.tag == 'pre':
+				if 'indent' in element.attrib:
+					self.set_indent(int(element.attrib['indent']))
+				self.set_textstyle(element.tag)
+				if element.text:
+					self.insert_at_cursor(element.text)
+				self.set_textstyle(None)
+				self.set_indent(None)
 			else:
 				# Text styles
 				if element.tag == 'h':
@@ -711,6 +719,9 @@ class TextBuffer(gtk.TextBuffer):
 
 		if not name is None:
 			tag = self.get_tag_table().lookup('style-'+name)
+			if _is_heading_tag(tag):
+				self._editmode_tags = \
+					filter(_is_not_indent_tag, self._editmode_tags)
 			self._editmode_tags = self._editmode_tags + (tag,)
 
 		if not self._insert_tree_in_progress:
@@ -755,6 +766,8 @@ class TextBuffer(gtk.TextBuffer):
 		# For example:
 		# <indent level=1>foo\n</indent><cursor><indent level=2>bar</indent>
 		#	in this case new text should get indent level 2 -> right gravity
+		# <indent level=1>foo</indent><cursor><indent level=2>\nbar</indent>
+		#	in this case new text should get indent level 1 -> left gravity
 		# <indent level=1>foo\n</indent><indent level=2>bar</indent><cursor>\n
 		#	in this case new text should also get indent level 2 -> left gravity
 		start_tags = set(filter(_is_not_line_based_tag, iter.get_toggled_tags(True)))
@@ -763,9 +776,12 @@ class TextBuffer(gtk.TextBuffer):
 			iter.get_tags() )
 
 		end_tags = filter(_is_zim_tag, iter.get_toggled_tags(False))
-		if filter(_is_line_based_tag, tags):
-			# already have a right gravity line-based tag
+		if iter.starts_line() and filter(_is_line_based_tag, tags):
+			# we have a right gravity line-based tag for this line
 			end_tags = filter(_is_not_line_based_tag, end_tags)
+		elif filter(_is_line_based_tag, end_tags):
+			# else take line based tags from left side current line
+			tags = filter(_is_not_line_based_tag, tags)
 		tags.extend(end_tags)
 
 		tags.sort(key=lambda tag: tag.get_priority())
@@ -1185,6 +1201,7 @@ class TextBuffer(gtk.TextBuffer):
 
 			# Convert some tags on the fly
 			if tags:
+				continue_attrib = {}
 				for tag in tags[i:]:
 					t, attrib = tag.zim_tag, tag.zim_attrib
 					if t == 'indent':
@@ -1197,12 +1214,22 @@ class TextBuffer(gtk.TextBuffer):
 						elif not raw and not iter.starts_line():
 							# Indent not visible if it does not start at begin of line
 							t = '_ignore_'
+						elif len(filter(lambda t: t.zim_tag == 'pre', tags[i:])):
+							# Indent of 'pre' blocks handled in subsequent iteration
+							continue_attrib.update(attrib)
+							continue
 						else:
 							t = 'p'
 					elif t == 'pre' and not raw and not iter.starts_line():
 						# Without indenting 'pre' looks the same as 'code'
 						# Prevent turning into a seperate paragraph here
 						t = 'code'
+					elif t == 'pre':
+						if attrib:
+							attrib.update(continue_attrib)
+						else:
+							attrib = continue_attrib
+						continue_attrib = {}
 					elif t == 'link':
 						attrib = self.get_link_data(iter)
 						assert attrib['href'], 'Links should have a href'
@@ -3204,6 +3231,7 @@ class PageView(gtk.VBox):
 			if type == 'interwiki':
 				href = interwiki_link(href)
 				type = link_type(href)
+				# could be file, url, or notebook
 
 			if type == 'page':
 				path = self.ui.notebook.resolve_path(href, source=self.page)
@@ -3214,6 +3242,8 @@ class PageView(gtk.VBox):
 			elif type == 'file':
 				path = self.ui.notebook.resolve_file(href, self.page)
 				self.ui.open_file(path)
+			elif type == 'zim-notebook':
+				self.ui.open_notebook(href)
 			else:
 				self.ui.open_url(href)
 		except Exception, error:
@@ -3597,6 +3627,8 @@ class InsertDateDialog(Dialog):
 		column = gtk.TreeViewColumn('_date_', cell_renderer, text=1)
 		self.view.append_column(column)
 		self.view.set_headers_visible(False)
+		self.view.connect('row-activated',
+			lambda *a: self.response(gtk.RESPONSE_OK) )
 
 		self.linkbutton = gtk.CheckButton(_('_Link to date'))
 			# T: check box in InsertDate dialog
@@ -3608,10 +3640,20 @@ class InsertDateDialog(Dialog):
 		if not self.link:
 			self.linkbutton.set_sensitive(False)
 
+		button = gtk.Button(stock=gtk.STOCK_EDIT)
+		button.connect('clicked', self.on_edit)
+		self.action_area.add(button)
+		self.action_area.reorder_child(button, 1)
+
+		self.load_file()
+
+	def load_file(self):
 		lastused = None
+		model = self.view.get_model()
+		model.clear()
 		for line in config_file('dates.list'):
 			line = line.strip()
-			if line.startswith('#'): continue
+			if not line or line.startswith('#'): continue
 			try:
 				format = line
 				date = strftime(format)
@@ -3625,16 +3667,16 @@ class InsertDateDialog(Dialog):
 			path = model.get_path(lastused)
 			self.view.get_selection().select_path(path)
 
-		self.view.connect('row-activated',
-			lambda *a: self.response(gtk.RESPONSE_OK) )
-
-		# TODO edit button which allows editing the config file
-
 	def save_uistate(self):
 		model, iter = self.view.get_selection().get_selected()
 		format = model[iter][0]
 		self.uistate['lastusedformat'] = format
 		self.uistate['linkdate'] = self.linkbutton.get_active()
+
+	def on_edit(self, button):
+		file = config_file('dates.list')
+		if self.ui.edit_config_file(file):
+			self.load_file()
 
 	def do_response_ok(self):
 		model, iter = self.view.get_selection().get_selected()

@@ -8,8 +8,13 @@ from zim.fs import *
 from zim.exporter import Exporter
 import zim.formats
 import zim.templates
+from zim.stores import encode_filename
 from zim.gui.widgets import Dialog, ProgressBarDialog, ErrorDialog, QuestionDialog
 
+
+# TODO this dialog should become a wizard (gtk.Assistent), getting to big now
+# wizard allows switching control for output between dir (multiple epages)
+# and file (single page)
 
 class ExportDialog(Dialog):
 
@@ -24,22 +29,28 @@ class ExportDialog(Dialog):
 		self._add_with_frame(vbox, '<b>'+_('Pages')+'</b>')
 			# T: Section heading in export dialog
 
-		all_pages_radio = gtk.RadioButton(None, _('Complete _notebook'))
+		self.all_pages_radio = gtk.RadioButton(None, _('Complete _notebook'))
 			# T: Option in export dialog to export complete notebook
-		selection_radio = gtk.RadioButton(all_pages_radio, _('_Selection'))
+		self.selection_radio = gtk.RadioButton(self.all_pages_radio, _('_Selection'))
+			# T: Option in export dialog to export selection
+		self.single_page_radio = gtk.RadioButton(self.all_pages_radio, _('Single _page'))
 			# T: Option in export dialog to export selection
 		#~ recursive_box = gtk.CheckButton('Recursive')
-		vbox.add(all_pages_radio)
-		vbox.add(selection_radio)
-		selection_radio.set_sensitive(False)
-		vbox.add(gtk.Label('TODO: selection input'))
+		vbox.add(self.all_pages_radio)
+		#~ vbox.add(self.selection_radio)
+		vbox.add(self.single_page_radio)
 		#~ vbox.add(recursive_box)
 		#~ recursive_box.set_sensitive(False)
 
-		self.uistate.setdefault('pages', 'all')
-		self.uistate.setdefault('selection', '')
+		self.uistate.setdefault('selection', 'all')
+		if self.uistate['selection'] == 'all':
+			self.all_pages_radio.set_active(True)
+		elif self.uistate['selection'] == 'selection':
+			self.selection_radio.set_active(True)
+		elif self.uistate['selection'] == 'page':
+			self.single_page_radio.set_active(True)
+
 		#~ self.uistate.setdefault('recursive_selection', False)
-		# FIXME wire these
 
 		# Output ------------------------
 		table = gtk.Table(5, 3)
@@ -196,6 +207,10 @@ class ExportDialog(Dialog):
 		self.uistate['index_page'] = self.inputs['index_page'].get_text()
 		self.uistate['document_root_url'] = self.inputs['document_root_url'].get_text()
 		self.uistate['use_document_root_url'] = self.use_document_root_url.get_active()
+		if self.all_pages_radio.get_active(): selection = 'all'
+		elif self.selection_radio.get_active(): selection = 'selection'
+		elif self.single_page_radio.get_active(): selection = 'page'
+		self.uistate['selection'] = selection
 
 		for k in ('format', 'template', 'output_folder'):
 			if not self.uistate[k]: # ignore empty string as well
@@ -203,16 +218,30 @@ class ExportDialog(Dialog):
 				return False
 
 		dir = Dir(self.uistate['output_folder'])
-		if dir.exists() and len(dir.list()) > 0:
-			ok = QuestionDialog(self, (
-				_('Folder exists'), # T: message heading
-				_('Folder already exists and has content, '
-				  'exporting to this folder may overwrite '
-				  'exisitng files. '
-				  'Do you want to continue?' ) # T: detailed message, answers are Yes and No
-			) ).run()
-			if not ok:
-				return False
+		if selection == 'all':
+			if dir.exists() and len(dir.list()) > 0:
+				ok = QuestionDialog(self, (
+					_('Folder exists'), # T: message heading
+					_('Folder already exists and has content, '
+					  'exporting to this folder may overwrite '
+					  'exisitng files. '
+					  'Do you want to continue?' ) # T: detailed message, answers are Yes and No
+				) ).run()
+				if not ok:
+					return False
+		else:
+			page = self.ui.page
+			ext = zim.formats.get_format(self.uistate['format']).info['extension']
+			file = dir.file(encode_filename(page.basename) + '.' + ext)
+			# FIXME duplicate code from exporter to get filename
+			if file.exists():
+				ok = QuestionDialog(self, (
+					_('File exists'), # T: message heading
+					_('This file already exists.\n'
+					  'Do you want to overwrite it?' ) # T: detailed message, answers are Yes and No
+				) ).run()
+				if not ok:
+					return False
 
 		options = {}
 		for k in ('format', 'template', 'index_page'):
@@ -234,14 +263,21 @@ class ExportDialog(Dialog):
 				return False
 		try:
 			exporter = Exporter(self.ui.notebook, **options)
-		except:
-			ErrorDialog(self, _('The template you have chosen seems to be invalid')).run()
+		except Exception, error:
+			ErrorDialog(self, error).run()
 			return False
 
-		dialog = ProgressBarDialog(self, _('Exporting notebook'))
-			# T: Title for progressbar window
-			# TODO make progressbar a context manager - now it stays alive in case of an error during the export
-		dialog.show_all()
-		exporter.export_all(dir, callback=lambda p: dialog.pulse(p.name))
-		dialog.destroy()
+		if selection == 'all':
+			dialog = ProgressBarDialog(self, _('Exporting notebook'))
+				# T: Title for progressbar window
+				# TODO make progressbar a context manager - now it stays alive in case of an error during the export
+			dialog.show_all()
+			exporter.export_all(dir, callback=lambda p: dialog.pulse(p.name))
+			dialog.destroy()
+		elif selection == 'selection':
+			pass # TODO
+		elif selection == 'page':
+			page = self.ui.page # TODO make this a user input
+			exporter.export_page(dir, page)
+
 		return True

@@ -9,8 +9,13 @@ Clicking on the tray icon with the left mouse will popup the current notebook if
 
 Clicking in the tray icon with the right mouse button will open a menu with all known notebooks. Also there is an option to quit zim entirely.
 
-When the notebook plugin is enabled windows are hidden when they are closed instead of closing them entirely.  Quiting a notebook will really close it. However even when all the windows have quit there is still a zim process running in the background. Select "Quit" in the tray icon menu is the only way to completely exit zim.
+When this plugin is enabled windows are hidden when they are closed instead of closing them entirely.  Quiting a notebook will really close it. However even when all the windows have quit there is still a zim process running in the background. Select "Quit" in the tray icon menu is the only way to completely exit zim.
 
 **Dependencies:** This plugin has no additional dependencies if you use gtk+ version 2.10 or newer. It is not available for older releases.
 
 **Commandline:** The following command will just start the trayicon without opening a zim notebook: ''zim --plugin trayicon''
+
+==== Options ====
+For Ubuntu 10.4 and newer the new style "app-indicator" tray icon is supported. This tray icon is integrated with the Ubuntu system tray menu and always shows a menu on left mouse click. If you prefer the classic style instead you can select the "**classic trayicon**" option in the plugin preferences.
+
+If rhe "**stand alone**" option is enabled each open notebook will have it's own trayicon instead of one trayicon for all notebooks. This option overrules the "classic trayicon" option.
