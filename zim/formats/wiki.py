@@ -263,12 +263,15 @@ class Parser(ParserClass):
 
 		list = parser_re['img'].sublist(parse_image, list)
 
+
+		# Put URLs here because urls can appear in links or image tags, but other markup
+		# can appear in links, like '//' or '__'
+		list = url_re.sublist(
+				lambda match: ('link', {'href':match[1]}, match[1]) , list)
+
 		for style in 'strong', 'mark', 'strike':
 			list = parser_re[style].sublist(
 					lambda match: (style, {}, match[1]) , list)
-
-		list = url_re.sublist(
-				lambda match: ('link', {'href':match[1]}, match[1]) , list)
 
 		for style in 'emphasis',:
 			list = parser_re[style].sublist(
@@ -357,8 +360,9 @@ class Dumper(DumperClass):
 						output.append('[['+href+']]')
 
 			elif element.tag in dumper_tags:
-				tag = dumper_tags[element.tag]
-				output.append(tag+element.text+tag)
+				if element.text:
+					tag = dumper_tags[element.tag]
+					output.append(tag+element.text+tag)
 			else:
 				assert False, 'Unknown node type: %s' % element
 
