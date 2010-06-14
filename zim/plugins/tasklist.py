@@ -726,6 +726,42 @@ class TaskListTreeView(BrowserTreeView):
 		self.ui.open_page(page)
 		#~ self.ui.mainwindow.pageview.search(task) # FIXME
 
+	def do_button_release_event(self, event):
+		'''Handler for button-release-event, triggers popup menu'''
+		if event.button == 3:
+			self.emit('popup-menu')# FIXME do we need to pass x/y and button ?
+			return True
+		else:
+			return BrowserTreeView.do_button_release_event(self, event)
+
+	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
+		menu = gtk.Menu()
+		item = gtk.MenuItem(_("_Copy")) # T: menu item in context menu
+		item.connect_object('activate', self.__class__.copy_to_clipboard, self)
+		menu.append(item)
+		menu.show_all()
+		menu.popup(None, None, None, 3, 0)
+		return True
+
+	def copy_to_clipboard(self):
+		'''Exports currently visable elements from the tasks list'''
+		logger.debug('Exporting to clipboard current view of task list.')
+		model = self.get_model()
+		tasks = ""
+		for row in model:
+			# only open items
+			if row[self.OPEN_COL]:
+				tags = set()
+				vis, prio, desc, due, path_name, actionable, opn = row
+				if due == "9999": due = "-"
+				for match in tag_re.findall(desc.decode("UTF-8")):
+					tags.add(match)
+					tasks += "Description: %s\nPriority: %s,  Actionable: %s,  Open: %s,  Due: %s\nPath: %s,  Tags: %s\n\n" % (desc, prio, actionable, opn, due, path_name, ", ".join(tags))
+		tasks += "Number of tasks: %s. Exported: %s UTC." \
+				% (len(model), str(datetime.datetime.utcnow())[:-7])
+		#~ print tasks
+		gtk.Clipboard().set_text(tasks.decode("UTF-8"))
+
 # Need to register classes defining gobject signals
 gobject.type_register(TaskListTreeView)
 
