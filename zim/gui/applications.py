@@ -93,8 +93,26 @@ def get_applications(mimetype):
 	return entries
 
 
-def get_default_application(mimetype):
-	pass # TODO: get default from defaults.list
+def get_default_application(mimetype, fallback=True):
+	'''Get default application based on 'applications/defaults.list'.
+	Default to first entry from get_applications() if no default is
+	found and 'fallback' is True. Returns None if nothing is found at all.
+	'''
+	application = None
+	for dir in _application_dirs():
+		file = dir.file('defaults.list')
+		for line in file.readlines():
+			if line.startswith(mimetype+'='):
+				_, name = line.split('=', 1)
+				name = name.strip()
+				application = get_application(name)
+				break
+		if application:
+			break
+	else:
+		if fallback:
+			application = get_applications(mimetype)[0]
+	return application
 
 
 def set_default_application(mimetype, name):
@@ -193,6 +211,10 @@ class DesktopEntryDict(ConfigDict, Application):
 	about an external application.
 	'''
 
+	@property
+	def key(self):
+		return '__anon__' # no mapping to .desktop file
+
 	def isvalid(self):
 		'''Validate all the required fields are set. Assumes we only
 		use desktop files to describe applications. Returns boolean
@@ -236,7 +258,7 @@ class DesktopEntryDict(ConfigDict, Application):
 			return None
 
 		w, h = gtk.icon_size_lookup(size)
-		if '/' in icon:
+		if '/' in icon or '\\' in icon:
 			if zim.fs.isfile(icon):
 				return gtk.gdk.pixbuf_new_from_file_at_size(icon, w, h)
 			else:
@@ -336,7 +358,7 @@ class DesktopEntryDict(ConfigDict, Application):
 			return value.__str__()
 		else:
 			assert isinstance(value, basestring), 'Desktop files can not store complex data'
-			return json.dumps(value)[1:-1] # get rid of quotes
+			return json.dumps(value)[1:-1].replace('\\"', '"') # get rid of quotes
 
 
 class DesktopEntryFile(ConfigFile, DesktopEntryDict):
@@ -513,6 +535,8 @@ class CustomToolDict(DesktopEntryDict):
 		for success.
 		'''
 		entry = self['Desktop Entry']
+		#~ import pprint
+		#~ pprint.pprint(entry)
 		try:
 			# TODO re-write without asserts -> can be optimized away
 			assert 'Type' in entry and entry['Type'] == 'X-Zim-CustomTool', '"Type" missing or invalid'
@@ -524,7 +548,7 @@ class CustomToolDict(DesktopEntryDict):
 			if 'Version' in entry:
 				assert entry['Version'] == 1.0, 'Version invalid'
 		except AssertionError:
-			logger.exception('Invalid desktop entry:')
+			logger.exception('Invalid desktop entry "%s":', self.key)
 			return False
 		else:
 			return True

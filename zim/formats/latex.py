@@ -125,8 +125,15 @@ class Dumper(DumperClass):
 				self.dump_children(element, output, list_level=list_level) # recurse
 				output.append('\n')
 			elif element.tag == 'pre':
+				indent = 0
+				if 'indent' in element.attrib:
+					indent = int(element.attrib['indent'])
+				myoutput = TextBuffer()
+				myoutput.append(element.text)
+				if indent:
+					myoutput.prefix_lines('    ' * indent)
 				output.append('\n\\begin{verbatim}\n')
-				output.append(element.text)
+				output.extend(myoutput)
 				output.append('\n\\end{verbatim}\n')
 			elif element.tag == 'img':
 				#we try to get images about the same visual size, therefore need to specify dot density

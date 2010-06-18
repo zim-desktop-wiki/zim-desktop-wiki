@@ -83,15 +83,16 @@ This is a core plugin shipping with zim.
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
-		self.sidepane_widget = None
-		self.ui_id_show_dialog = None
+		self.sidepane_widget = None # For the embedded version
+		self.ui_id_show_dialog = None # For the 'show dialog' action
 		self._set_template = None
+
+	def initialize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
-			self.ui.connect_after('open-notebook', self.do_open_notebook)
 
-	def do_open_notebook(self, ui, notebook):
+	def finalize_notebook(self, notebook):
 		self.do_preferences_changed()
 		notebook.register_hook('suggest_link', self.suggest_link)
 
@@ -103,7 +104,22 @@ This is a core plugin shipping with zim.
 				self.ui.notebook.namespace_properties[ns].remove('template')
 			except KeyError:
 				pass
+		self.disconnect_embedded_widget()
 		PluginClass.disconnect(self)
+
+	def connect_embedded_widget(self):
+		if not self.sidepane_widget:
+			sidepane = self.ui.mainwindow.sidepane
+			self.sidepane_widget = CalendarPluginWidget(self)
+			sidepane.pack_start(self.sidepane_widget, False)
+			sidepane.reorder_child(self.sidepane_widget, 0)
+			self.sidepane_widget.show_all()
+
+	def disconnect_embedded_widget(self):
+		if self.sidepane_widget:
+			sidepane = self.ui.mainwindow.sidepane
+			sidepane.remove(self.sidepane_widget)
+			self.sidepane_widget = None
 
 	def do_preferences_changed(self):
 		'''Switch between calendar in the sidepane or as a dialog'''
@@ -115,39 +131,39 @@ This is a core plugin shipping with zim.
 				pass
 
 		if isinstance(self.preferences['namespace'], Path):
-			ns = self.preferences['namespace']
-			self.preferences['namespace'] = ns.name
+			ns = self.preferences['namespace'].name
+			self.preferences['namespace'] = ns
 		else:
 			self.preferences.setdefault('namespace', ':Calendar')
-			ns = self.ui.notebook.resolve_path(self.preferences['namespace'])
+			ns = self.preferences['namespace']
+			ns = self.ui.notebook.resolve_path(ns)
+			ns = ns.name
+			self.preferences['namespace'] = ns
 
 		self.ui.notebook.namespace_properties[ns]['template'] = '_Calendar'
 		self._set_template = ns
 
-		sidepane = self.ui.mainwindow.sidepane
-		if self.preferences['embedded']:
-			if self.ui_id_show_dialog:
-				self.ui.remove_ui(self, self.ui_id_show_dialog)
-				self.ui_id_show_dialog = None
+		if self.ui.ui_type == 'gtk':
+			if self.preferences['embedded']:
+				if self.ui_id_show_dialog:
+					self.ui.remove_ui(self, self.ui_id_show_dialog)
+					self.ui_id_show_dialog = None
 
-			self.sidepane_widget = CalendarPluginWidget(self)
-			sidepane.pack_start(self.sidepane_widget, False)
-			sidepane.reorder_child(self.sidepane_widget, 0)
-			self.sidepane_widget.show_all()
-		else:
-			if self.sidepane_widget:
-				sidepane.remove(self.sidepane_widget)
-				self.sidepane_widget = None
+				self.connect_embedded_widget()
+			else:
+				self.disconnect_embedded_widget()
 
-			self.ui_id_show_dialog = self.ui.add_ui(ui_xml_show_dialog, self)
+				if not self.ui_id_show_dialog:
+					self.ui_id_show_dialog = \
+						self.ui.add_ui(ui_xml_show_dialog, self)
 
 	def path_from_date(self, date):
-		return Path(
-			self.preferences['namespace'] + ':' + date.strftime('%Y:%m:%d') )
+		return Path( self.preferences['namespace']
+						+ ':' + date.strftime('%Y:%m:%d') )
 
 	def path_for_month_from_date(self, date):
-		return Path(
-			self.preferences['namespace'] + ':' + date.strftime('%Y:%m') )
+		return Path( self.preferences['namespace']
+						+ ':' + date.strftime('%Y:%m') )
 
 	def date_from_path(self, path):
 		assert date_path_re.match(path.name), 'Not an date path: %s' % path.name

@@ -3,10 +3,10 @@
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.46'
+__version__ = '0.47'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <pardus@cpan.org>'
-__copyright__ = 'Copyright 2008, 2009 Jaap Karssenberg <pardus@cpan.org>'
+__copyright__ = 'Copyright 2008 - 2010 Jaap Karssenberg <pardus@cpan.org>'
 __license__='''\
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,12 +49,14 @@ ZIM_EXECUTABLE = 'zim'
 
 # All commandline options in various groups
 longopts = ('verbose', 'debug')
-commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual')
+commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual', 'plugin', 'daemon')
 commandopts = {
 	'gui': ('list', 'geometry=', 'fullscreen', 'no-daemon'),
 	'server': ('port=', 'template=', 'gui', 'no-daemon'),
 	'export': ('format=', 'template=', 'output=', 'root-url='),
 	'index': ('output=',),
+	'plugin': (),
+	'daemon': (),
 }
 shortopts = {
 	'v': 'version', 'h': 'help',
@@ -72,6 +74,7 @@ usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
    or: zim --export [OPTIONS] NOTEBOOK [PAGE]
    or: zim --index  [OPTIONS] NOTEBOOK
    or: zim --server [OPTIONS] [NOTEBOOK]
+   or: zim --plugin PLUGIN [ARGUMENTS]
    or: zim --manual [OPTIONS] [PAGE]
    or: zim --help
 '''
@@ -81,6 +84,7 @@ General Options:
   --server        run the web server
   --export        export to a different format
   --index         build an index for a notebook
+  --plugin        call a specific plugin function
   --manual        open the user manual
   -V, --verbose   print information to terminal
   -D, --debug     print debug messages
@@ -166,7 +170,7 @@ def main(argv):
 		return
 
 	# Otherwise check the number of arguments
-	if len(args) > maxargs[cmd]:
+	if cmd in maxargs and len(args) > maxargs[cmd]:
 		raise UsageError
 
 	# --manual is an alias for --gui /usr/share/zim/manual
@@ -192,7 +196,7 @@ def main(argv):
 			o = o.replace('-', '_')
 			optsdict[o] = True
 		else:
-			raise GetoptError, ("--%s no allowed in combination with --%s" % (o, cmd), o)
+			raise GetoptError, ("--%s is not allowed in combination with --%s" % (o, cmd), o)
 
 	# --port is the only option that is not of type string
 	if 'port' in optsdict and not optsdict['port'] is None:
@@ -201,11 +205,16 @@ def main(argv):
 		except ValueError:
 			raise GetoptError, ("--port takes an integer argument", 'port')
 
-	# set loggin output level for logging root
-	level = logging.WARNING
+	# set logging output level for logging root (format has been set in zim.py)
+	if not ZIM_EXECUTABLE[-4:].lower() == '.exe':
+		# for most platforms
+		level = logging.WARN
+	else:
+		# if running from Windows compiled .exe
+		level = logging.ERROR
 	if optsdict.pop('verbose', False): level = logging.INFO
 	if optsdict.pop('debug', False): level = logging.DEBUG # no "elif" !
-	logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
+	logging.getLogger().setLevel(level)
 
 	logger.info('This is zim %s', __version__)
 	if level == logging.DEBUG:
@@ -234,6 +243,8 @@ def main(argv):
 		else:
 			handler = NotebookInterface(notebook=args[0])
 
+		handler.load_plugins() # should this go somewhere else ?
+
 		if len(args) == 2:
 			optsdict['page'] = args[1]
 
@@ -246,7 +257,9 @@ def main(argv):
 			from zim.notebook import resolve_notebook
 			notebook, page = resolve_notebook(args[0])
 			if not notebook:
-				notebook = args[0]
+				notebook = File(args[0]).uri
+				# make sure daemon approves of this uri and proper
+				# error dialog is shown as a result by GtkInterface
 			if len(args) == 2:
 				page = args[1]
 
@@ -285,6 +298,7 @@ def main(argv):
 					proxy.quit_if_nochild()
 					return # User cancelled notebook dialog
 			gui = proxy.get_notebook(notebook)
+
 			gui.present(page, **optsdict)
 	elif cmd == 'server':
 		try:
@@ -295,7 +309,19 @@ def main(argv):
 		import zim.www
 		handler = zim.www.Server(*args, **optsdict)
 		handler.main()
-
+	elif cmd == 'daemon':
+		# just start the daemon, nothing else
+		import zim.daemon
+		proxy = zim.daemon.DaemonProxy()
+		proxy.ping()
+	elif cmd == 'plugin':
+		import zim.plugins
+		try:
+			pluginname = args.pop(0)
+		except IndexError:
+			raise UsageError
+		module = zim.plugins.get_plugin_module(pluginname)
+		module.main(None, *args)
 
 
 class NotebookInterface(gobject.GObject):
@@ -332,7 +358,7 @@ class NotebookInterface(gobject.GObject):
 	def load_plugins(self):
 		'''Load the plugins defined in the preferences'''
 		self.preferences['General'].setdefault('plugins',
-			['calendar', 'printtobrowser', 'versioncontrol'])
+			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
 		plugins = self.preferences['General']['plugins']
 		plugins = set(plugins) # Eliminate doubles
 		# Plugins should not have dependency on order of being added
@@ -347,11 +373,11 @@ class NotebookInterface(gobject.GObject):
 		try:
 			klass = zim.plugins.get_plugin(name)
 			if not klass.check_dependencies_ok():
-				raise AssertionError, 'Dependencies failed'
+				raise AssertionError, 'Dependencies failed for plugin %s' % name
 			plugin = klass(self)
 		except:
 			logger.exception('Failed to load plugin %s', name)
-			return
+			return None
 		else:
 			self.plugins.append(plugin)
 			logger.debug('Loaded plugin %s (%s)', name, plugin)
@@ -360,6 +386,8 @@ class NotebookInterface(gobject.GObject):
 		if not name in self.preferences['General']['plugins']:
 			self.preferences['General']['plugins'].append(name)
 			self.preferences.write()
+
+		return plugin
 
 	def unload_plugin(self, plugin):
 		'''Remove a plugin'''

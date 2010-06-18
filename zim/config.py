@@ -455,6 +455,9 @@ class ConfigDict(ListDict):
 		elif value is True: return 'True'
 		elif value is False: return 'False'
 		elif value is None: return 'None'
+		elif isinstance(value, object) and value.__class__.__name__ == 'Path':
+			# Hack to avoid importing Path here to test isinstance
+			return value.name
 		else:
 			return json.dumps(value, separators=(',',':'))
 				# specify separators for compact encoding
@@ -561,7 +564,7 @@ class HeadersDict(ListDict):
 
 	def read(self, lines):
 		'''Checks for headers at the start of the list of lines and if any
-		reads them into the dict untill the first empty line. Will shift any
+		reads them into the dict until the first empty line. Will shift any
 		lines belonging to the header block, so after this method returns the
 		input does no longer contain the header block.
 		'''

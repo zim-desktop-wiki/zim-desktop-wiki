@@ -150,6 +150,9 @@ ui_preferences = (
 	('recursive_checklist', 'bool', 'Editing',
 		_('Checking a checkbox also change any sub-items'), False),
 		# T: option in preferences dialog
+	('auto_reformat', 'bool', 'Editing',
+		_('Reformat wiki markup on the fly'), False),
+		# T: option in preferences dialog
 )
 
 if ui_environment['platform'] == 'maemo':
@@ -194,6 +197,12 @@ file_re = Re(r'''(
 	| \.\.?/
 	| /[^/\s]
 )\S*$''', re.X | re.U) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
+
+markup_re = {'style-strong' : Re(r'(\*{2})(.*)\1'),
+	'style-emphasis' : Re(r'(\/{2})(.*)\1'),
+	'style-mark' : Re(r'(_{2})(.*)\1'),
+	'style-pre' : Re(r'(\'{2})(.*)\1'),
+	'style-strike' : Re(r'(~{2})(.*)\1')}
 
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
@@ -507,6 +516,14 @@ class TextBuffer(gtk.TextBuffer):
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
 				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
+			elif element.tag == 'pre':
+				if 'indent' in element.attrib:
+					self.set_indent(int(element.attrib['indent']))
+				self.set_textstyle(element.tag)
+				if element.text:
+					self.insert_at_cursor(element.text)
+				self.set_textstyle(None)
+				self.set_indent(None)
 			else:
 				# Text styles
 				if element.tag == 'h':
@@ -725,6 +742,9 @@ class TextBuffer(gtk.TextBuffer):
 
 		if not name is None:
 			tag = self.get_tag_table().lookup('style-'+name)
+			if _is_heading_tag(tag):
+				self._editmode_tags = \
+					filter(_is_not_indent_tag, self._editmode_tags)
 			self._editmode_tags = self._editmode_tags + (tag,)
 
 		if not self._insert_tree_in_progress:
@@ -769,6 +789,8 @@ class TextBuffer(gtk.TextBuffer):
 		# For example:
 		# <indent level=1>foo\n</indent><cursor><indent level=2>bar</indent>
 		#	in this case new text should get indent level 2 -> right gravity
+		# <indent level=1>foo</indent><cursor><indent level=2>\nbar</indent>
+		#	in this case new text should get indent level 1 -> left gravity
 		# <indent level=1>foo\n</indent><indent level=2>bar</indent><cursor>\n
 		#	in this case new text should also get indent level 2 -> left gravity
 		start_tags = set(filter(_is_not_line_based_tag, iter.get_toggled_tags(True)))
@@ -777,9 +799,12 @@ class TextBuffer(gtk.TextBuffer):
 			iter.get_tags() )
 
 		end_tags = filter(_is_zim_tag, iter.get_toggled_tags(False))
-		if filter(_is_line_based_tag, tags):
-			# already have a right gravity line-based tag
+		if iter.starts_line() and filter(_is_line_based_tag, tags):
+			# we have a right gravity line-based tag for this line
 			end_tags = filter(_is_not_line_based_tag, end_tags)
+		elif filter(_is_line_based_tag, end_tags):
+			# else take line based tags from left side current line
+			tags = filter(_is_not_line_based_tag, tags)
 		tags.extend(end_tags)
 
 		tags.sort(key=lambda tag: tag.get_priority())
@@ -806,7 +831,7 @@ class TextBuffer(gtk.TextBuffer):
 				if '\n' in text:
 					name = 'pre'
 			tag = self.get_tag_table().lookup('style-'+name)
-			had_tag = self.range_has_tag(start, end, tag)
+			had_tag = self.range_has_tag(tag, start, end)
 			self.remove_textstyle_tags(start, end)
 			if not had_tag:
 				self.apply_tag(tag, start, end)
@@ -816,7 +841,7 @@ class TextBuffer(gtk.TextBuffer):
 
 			self.set_editmode_from_cursor()
 
-	def range_has_tag(self, start, end, tag):
+	def range_has_tag(self, tag, start, end):
 		'''Check if a certain tag appears anywhere in a certain range'''
 		# test right gravity for start iter, but left gravity for end iter
 		if tag in start.get_tags() \
@@ -829,9 +854,29 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				return False
 
+ 	def range_has_tags(self, func, start, end):
+		'''Like range_has_tag() but uses a function to check for
+		multiple tags.
+		'''
+		# test right gravity for start iter, but left gravity for end iter
+		if any(filter(func, start.get_tags())) \
+		or any(filter(func, self.iter_get_zim_tags(end))):
+			return True
+		else:
+			iter = start.copy()
+			iter.forward_to_tag_toggle(None)
+			while iter.compare(end) == -1:
+				if any(filter(func, iter.get_tags())):
+					return True
+
+				if not iter.forward_to_tag_toggle(None):
+					return False
+
+			return False
+
 	def remove_textstyle_tags(self, start, end):
 		'''Removes all textstyle tags from a range'''
-		# Also remove links untill we support links nested in tags
+		# Also remove links until we support links nested in tags
 		self.smart_remove_tags(_is_style_tag, start, end)
 		self.smart_remove_tags(_is_link_tag, start, end)
 		self.set_editmode_from_cursor()
@@ -1179,6 +1224,7 @@ class TextBuffer(gtk.TextBuffer):
 
 			# Convert some tags on the fly
 			if tags:
+				continue_attrib = {}
 				for tag in tags[i:]:
 					t, attrib = tag.zim_tag, tag.zim_attrib
 					if t == 'indent':
@@ -1191,12 +1237,22 @@ class TextBuffer(gtk.TextBuffer):
 						elif not raw and not iter.starts_line():
 							# Indent not visible if it does not start at begin of line
 							t = '_ignore_'
+						elif len(filter(lambda t: t.zim_tag == 'pre', tags[i:])):
+							# Indent of 'pre' blocks handled in subsequent iteration
+							continue_attrib.update(attrib)
+							continue
 						else:
 							t = 'p'
 					elif t == 'pre' and not raw and not iter.starts_line():
 						# Without indenting 'pre' looks the same as 'code'
 						# Prevent turning into a seperate paragraph here
 						t = 'code'
+					elif t == 'pre':
+						if attrib:
+							attrib.update(continue_attrib)
+						else:
+							attrib = continue_attrib
+						continue_attrib = {}
 					elif t == 'link':
 						attrib = self.get_link_data(iter)
 						assert attrib['href'], 'Links should have a href'
@@ -2371,13 +2427,10 @@ class TextView(gtk.TextView):
 		def apply_link(match):
 			#~ print "LINK >>%s<<" % word
 			start = end.copy()
-			if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end)):
-				return False
 			if not start.backward_chars(len(match)):
 				return False
-			if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start)):
+			if buffer.range_has_tags(_is_not_indent_tag, start, end):
 				return False
-
 			tag = buffer.create_link_tag(match, match)
 			buffer.apply_tag(tag, start, end)
 			return True
@@ -2406,6 +2459,23 @@ class TextView(gtk.TextView):
 			apply_link(file_re[0])
 		elif self.preferences['autolink_camelcase'] and camelcase_re.match(word):
 			apply_link(camelcase_re[0])
+		elif self.preferences['auto_reformat']:
+			handled = False
+			linestart = buffer.get_iter_at_line(end.get_line())
+			partial_line = linestart.get_slice(end)
+			for style,re in markup_re.items():
+				if not re.search(partial_line) == None:
+					matchstart = linestart.copy()
+					matchstart.forward_chars(re.start())
+					matchend = linestart.copy()
+					matchend.forward_chars(re.end())
+					if filter(_is_not_indent_tag,buffer.iter_get_zim_tags(matchstart)) \
+					or filter(_is_not_indent_tag,buffer.iter_get_zim_tags(matchend)):
+						continue
+					buffer.delete(matchstart,matchend)
+					buffer.insert_with_tags_by_name(matchstart,re[2],style)
+					handled_here = True
+					break
 		else:
 			handled = False
 
@@ -2579,7 +2649,7 @@ class UndoStackManager:
 			#~ self.__class__._flush_if_typing, self)
 
 	def block(self):
-		'''Block listening to events from the textbuffer untill further notice.
+		'''Block listening to events from the textbuffer until further notice.
 		Any change in between will not be undo-able (and mess up the undo stack)
 		unless it is recorded explicitly. Keeps count of number of calls to
 		block() and unblock().
@@ -3197,6 +3267,7 @@ class PageView(gtk.VBox):
 			if type == 'interwiki':
 				href = interwiki_link(href)
 				type = link_type(href)
+				# could be file, url, or notebook
 
 			if type == 'page':
 				path = self.ui.notebook.resolve_path(href, source=self.page)
@@ -3207,6 +3278,8 @@ class PageView(gtk.VBox):
 			elif type == 'file':
 				path = self.ui.notebook.resolve_file(href, self.page)
 				self.ui.open_file(path)
+			elif type == 'zim-notebook':
+				self.ui.open_notebook(href)
 			else:
 				self.ui.open_url(href)
 		except Exception, error:
@@ -3590,6 +3663,8 @@ class InsertDateDialog(Dialog):
 		column = gtk.TreeViewColumn('_date_', cell_renderer, text=1)
 		self.view.append_column(column)
 		self.view.set_headers_visible(False)
+		self.view.connect('row-activated',
+			lambda *a: self.response(gtk.RESPONSE_OK) )
 
 		self.linkbutton = gtk.CheckButton(_('_Link to date'))
 			# T: check box in InsertDate dialog
@@ -3601,10 +3676,20 @@ class InsertDateDialog(Dialog):
 		if not self.link:
 			self.linkbutton.set_sensitive(False)
 
+		button = gtk.Button(stock=gtk.STOCK_EDIT)
+		button.connect('clicked', self.on_edit)
+		self.action_area.add(button)
+		self.action_area.reorder_child(button, 1)
+
+		self.load_file()
+
+	def load_file(self):
 		lastused = None
+		model = self.view.get_model()
+		model.clear()
 		for line in config_file('dates.list'):
 			line = line.strip()
-			if line.startswith('#'): continue
+			if not line or line.startswith('#'): continue
 			try:
 				format = line
 				date = strftime(format)
@@ -3618,16 +3703,16 @@ class InsertDateDialog(Dialog):
 			path = model.get_path(lastused)
 			self.view.get_selection().select_path(path)
 
-		self.view.connect('row-activated',
-			lambda *a: self.response(gtk.RESPONSE_OK) )
-
-		# TODO edit button which allows editing the config file
-
 	def save_uistate(self):
 		model, iter = self.view.get_selection().get_selected()
 		format = model[iter][0]
 		self.uistate['lastusedformat'] = format
 		self.uistate['linkdate'] = self.linkbutton.get_active()
+
+	def on_edit(self, button):
+		file = config_file('dates.list')
+		if self.ui.edit_config_file(file):
+			self.load_file()
 
 	def do_response_ok(self):
 		model, iter = self.view.get_selection().get_selected()
@@ -4040,6 +4125,8 @@ class FindBar(FindWidget, gtk.HBox):
 	def hide(self):
 		gtk.HBox.hide(self)
 		self.set_no_show_all(True)
+		buffer = self.textview.get_buffer()
+		buffer.finder.set_highlight(False)
 
 	def on_find_entry_activate(self):
 		self.on_find_entry_changed()

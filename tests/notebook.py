@@ -9,9 +9,10 @@ import tests
 from zim.fs import *
 from zim.config import config_file
 from zim.notebook import *
-from zim.index import LINK_DIR_FORWARD
+from zim.index import *
 import zim.errors
 from zim.formats import ParseTree
+
 
 class TestGetNotebook(tests.TestCase):
 
@@ -89,10 +90,10 @@ class TestGetNotebook(tests.TestCase):
 
 		# Check interwiki parsing
 		self.assertEqual(interwiki_link('wp?Foo'), 'http://en.wikipedia.org/wiki/Foo')
-		self.assertEqual(interwiki_link('foo?Foo'), dir.uri+'?Foo')
-		nb, page = resolve_notebook(dir.uri+'?Foo')
+		self.assertEqual(interwiki_link('foo?Foo'), 'zim+' + dir.uri + '?Foo')
+		nb, page = resolve_notebook(dir.uri + '?Foo')
 		self.assertEqual(nb, dir)
-		self.assertEqual(page, 'Foo')
+		self.assertEqual(page, Path('Foo'))
 
 		# Check backward compatibility
 		file = File('tests/data/notebook-list-old-format.list')
@@ -150,10 +151,14 @@ class TestNotebook(tests.TestCase):
 			page = self.notebook.get_page(path)
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
+			self.assertFalse(page.exists())
+
+		for path in (Path('Test:foo'), Path('TODOList')):
+			page = self.notebook.get_page(path)
+			self.assertTrue(page.haschildren or page.hascontent)
+			self.assertTrue(page.exists())
 
 		# check errors
-		self.assertRaises(LookupError,
-			self.notebook.move_page, Path('NewPage'), Path('Test:BAR'))
 		self.assertRaises(PageExistsError,
 			self.notebook.move_page, Path('Test:foo'), Path('TODOList'))
 
@@ -162,6 +167,11 @@ class TestNotebook(tests.TestCase):
 		self.assertRaises(IndexBusyError,
 			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
 
+		# non-existing page - just check no errors here
+		self.notebook.index.ensure_update()
+		self.notebook.move_page(Path('NewPage'), Path('Test:NewPage')),
+
+		# Test actual moving
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
 			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
@@ -176,6 +186,7 @@ class TestNotebook(tests.TestCase):
 			# newpath should exist and look like the old one
 			page = self.notebook.get_page(newpath)
 			self.assertTrue(page.haschildren)
+			text = [l.replace('[[foo:bar]]', '[[+bar]]') for l in text] # fix one updated link
 			self.assertEqual(page.dump('wiki'), text)
 
 			# oldpath should be deleted
@@ -183,19 +194,57 @@ class TestNotebook(tests.TestCase):
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
 
-			# let's delete the newpath again
-			self.notebook.delete_page(newpath)
-			page = self.notebook.get_page(newpath)
-			self.assertFalse(page.haschildren)
-			self.assertFalse(page.hascontent)
+		# Check delete and cleanup
+		path = Path('AnotherNewPage:Foo:bar')
+		page = self.notebook.get_page(path)
+		page.parse('plain', 'foo bar\n')
+		self.notebook.store_page(page)
 
-			# delete again should silently fail
-			self.notebook.delete_page(newpath)
+		page = self.notebook.get_page(Path('SomePageWithLinks'))
+		page.parse('wiki',
+			'[[:AnotherNewPage:Foo:bar]]\n'
+			'**bold** [[:AnotherNewPage]]\n' )
+		self.notebook.store_page(page)
 
-		# check cleaning up works OK
-		page = self.notebook.get_page(Path('NewPage'))
+		page = self.notebook.get_page(Path('AnotherNewPage'))
+		self.assertTrue(page.haschildren)
+		self.assertFalse(page.hascontent)
+		nlinks = self.notebook.index.n_list_links_to_tree(page, LINK_DIR_BACKWARD)
+		self.assertEqual(nlinks, 2)
+
+		self.notebook.delete_page(Path('AnotherNewPage:Foo:bar'))
+		page = self.notebook.get_page(path)
 		self.assertFalse(page.haschildren)
 		self.assertFalse(page.hascontent)
+		self.assertRaises(ValueError,
+			self.notebook.index.n_list_links_to_tree, page, LINK_DIR_BACKWARD)
+			# if links are removed and placeholder is cleaned up the
+			# page doesn't exist anymore in the index so we get this error
+
+		page = self.notebook.get_page(Path('SomePageWithLinks'))
+		content = page.dump('wiki')
+		self.assertEqual(''.join(content),
+			':AnotherNewPage:Foo:bar\n'
+			'**bold** [[:AnotherNewPage]]\n' )
+
+		self.notebook.delete_page(path) # now should fail silently
+
+		page = self.notebook.get_page(Path('AnotherNewPage'))
+		self.assertFalse(page.haschildren)
+		self.assertFalse(page.hascontent)
+		nlinks = self.notebook.index.n_list_links_to_tree(page, LINK_DIR_BACKWARD)
+		self.assertEqual(nlinks, 1)
+		self.notebook.delete_page(page)
+		self.assertRaises(ValueError,
+			self.notebook.index.n_list_links_to_tree, page, LINK_DIR_BACKWARD)
+			# if links are removed and placeholder is cleaned up the
+			# page doesn't exist anymore in the index so we get this error
+
+		page = self.notebook.get_page(Path('SomePageWithLinks'))
+		content = page.dump('wiki')
+		self.assertEqual(''.join(content),
+			':AnotherNewPage:Foo:bar\n'
+			'**bold** :AnotherNewPage\n' )
 
 		#~ print '\n==== DB ===='
 		#~ self.notebook.index.ensure_update()
@@ -240,38 +289,53 @@ class TestNotebook(tests.TestCase):
 			('Foo:Bar', 'Foo:Bar', 'Bar'),
 			('Foo:Bar', 'Foo:Bar:Baz', '+Baz'),
 			('Foo:Bar:Baz', 'Foo:Dus', 'Foo:Dus'),
-			('Foo:Bar:Baz', 'Foo:Bar:Dus', 'Bar:Dus'),
+			('Foo:Bar:Baz', 'Foo:Bar:Dus', 'Dus'),
 			('Foo:Bar', 'Dus:Ja', ':Dus:Ja'),
+			('Foo:Bar', 'Foo:Ja', 'Ja'),
+			('Foo:Bar:Baz', 'Foo:Bar', 'Bar'),
 		):
 			#~ print '>', source, href, link
 			self.assertEqual(
 				self.notebook.relative_link(Path(source), Path(href)), link)
 
 		# update the page that was moved itself
-		# moving from Dus:Baz to Foo:Bar:Baz
+		# moving from Dus:Baz to Foo:Bar:Baz or renaming to Dus:Bar
 		text = u'''\
 http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
-[[Baz:Ja]] # relative link that does not need change
-[[Dus:Ja]] # relative link that needs updating
-[[Dus:Ja|Grrr]] # relative link that needs updating - with name
-[[:Foo:Bar:Dus]] # Link that could be mde relative, but isn't
+[[Baz:Ja]] # relative link that does not need change on move, but does on rename
+[[Dus:Ja]] # relative link that needs updating on move, but not on rename
+[[Dus:Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
+[[:Foo:Bar:Dus]] # Link that could be made relative, but isn't
 '''
-		wanted = u'''\
+		wanted1 = u'''\
 http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
-[[Baz:Ja]] # relative link that does not need change
-[[:Dus:Ja]] # relative link that needs updating
-[[:Dus:Ja|Grrr]] # relative link that needs updating - with name
-[[:Foo:Bar:Dus]] # Link that could be mde relative, but isn't
+[[Baz:Ja]] # relative link that does not need change on move, but does on rename
+[[:Dus:Ja]] # relative link that needs updating on move, but not on rename
+[[:Dus:Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
+[[:Foo:Bar:Dus]] # Link that could be made relative, but isn't
+'''
+		wanted2 = u'''\
+http://foo.org # urls are untouched
+[[:Hmmm:OK]] # link way outside move
+[[+Ja]] # relative link that does not need change on move, but does on rename
+[[Dus:Ja]] # relative link that needs updating on move, but not on rename
+[[Dus:Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
+[[:Foo:Bar:Dus]] # Link that could be made relative, but isn't
 '''
 		notebook, page = tests.get_test_page('Foo:Bar:Baz')
 		page.parse('wiki', text)
-		notebook._update_links_from(page, Path('Dus:Baz'))
-		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted)
+		notebook._update_links_from(page, Path('Dus:Baz'), page,  Path('Dus:Baz'))
+		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted1)
+
+		notebook, page = tests.get_test_page('Dus:Bar')
+		page.parse('wiki', text)
+		notebook._update_links_from(page, Path('Dus:Baz'), page, Path('Dus:Baz'))
+		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted2)
 
 		# updating links to the page that was moved
-		# moving from Dus:Baz to Foo:Bar:Baz - updating links in Dus:Ja
+		# moving from Dus:Baz to Foo:Bar:Baz or renaming to Dus:Bar - updating links in Dus:Ja
 		text = u'''\
 http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
@@ -282,7 +346,7 @@ http://foo.org # urls are untouched
 [[:Dus:Baz:Hmm]] # absolute link that needs updating
 [[:Dus:Baz:Hmm:Ja]] # absolute link that needs updating
 '''
-		wanted = u'''\
+		wanted1 = u'''\
 http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
 [[:Foo:Bar:Baz:Ja]] # relative link that needs updating
@@ -292,10 +356,25 @@ http://foo.org # urls are untouched
 [[:Foo:Bar:Baz:Hmm]] # absolute link that needs updating
 [[:Foo:Bar:Baz:Hmm:Ja]] # absolute link that needs updating
 '''
+		wanted2 = u'''\
+http://foo.org # urls are untouched
+[[:Hmmm:OK]] # link way outside move
+[[Bar:Ja]] # relative link that needs updating
+[[Bar:Ja|Grr]] # relative link that needs updating - with name
+[[Dus:Foo]] # relative link that does not need updating
+[[Bar]] # absolute link that needs updating
+[[Bar:Hmm]] # absolute link that needs updating
+[[Bar:Hmm:Ja]] # absolute link that needs updating
+'''
 		notebook, page = tests.get_test_page('Dus:Ja')
 		page.parse('wiki', text)
 		notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Foo:Bar:Baz'))
-		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted)
+		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted1)
+
+		notebook, page = tests.get_test_page('Dus:Ja')
+		page.parse('wiki', text)
+		notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Dus:Bar'))
+		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted2)
 
 		# now test actual move on full notebook
 		def links(source, href):
@@ -308,15 +387,20 @@ http://foo.org # urls are untouched
 				return False
 
 		path = Path('Linking:Dus:Ja')
+		newpath = Path('Linking:Hmm:Ok')
+
 		self.assertTrue(links(path, Path('Linking:Dus')))
 		self.assertTrue(links(path, Path('Linking:Foo:Bar')))
 		self.assertTrue(links(Path('Linking:Foo:Bar'), path))
-
-		newpath = Path('Linking:Hmm:Ok')
 		self.assertFalse(links(newpath, Path('Linking:Dus')))
 		self.assertFalse(links(newpath, Path('Linking:Foo:Bar')))
 		self.assertFalse(links(Path('Linking:Foo:Bar'), newpath))
+
 		self.notebook.move_page(path, newpath, update_links=True)
+
+		self.assertFalse(links(path, Path('Linking:Dus')))
+		self.assertFalse(links(path, Path('Linking:Foo:Bar')))
+		self.assertFalse(links(Path('Linking:Foo:Bar'), path))
 		self.assertTrue(links(newpath, Path('Linking:Dus')))
 		self.assertTrue(links(newpath, Path('Linking:Foo:Bar')))
 		self.assertTrue(links(Path('Linking:Foo:Bar'), newpath))
@@ -509,3 +593,66 @@ class TestIndexPage(tests.TestCase):
 		self.assertTrue(len(links) > 1)
 		#~ print links
 		self.assertTrue('Test:foo' in links)
+
+
+class TestNewNotebook(tests.TestCase):
+
+	def setUp(self):
+		self.notebook = Notebook(index=Index(dbfile=':memory:'))
+		self.notebook.add_store(Path(':'), 'memory')
+		# Explicitly not run index.update() here
+
+	def runTest(self):
+		'''Try populating a notebook from scratch'''
+		# Based on bug lp:511481 - should reproduce bug with updating links to child pages
+		notebook = self.notebook
+		index = self.notebook.index
+
+		for name, text in (
+			('page1', 'Foo bar\n'),
+			('page1:child', 'I have backlinks !\n'),
+			('page2', '[[page1:child]] !\n'),
+			('page3', 'Hmm\n'),
+		):
+			path = Path(name)
+			page = self.notebook.get_page(path)
+			page.parse('wiki', text)
+			notebook.store_page(page)
+
+		for name, forw, backw in (
+			('page1', 0, 0),
+			('page1:child', 0, 1),
+			('page2', 1, 0),
+			('page3', 0, 0),
+			('page3:page1', 0, 0),
+			('page3:page1:child', 0, 0),
+		):
+			path = Path(name)
+			#~ print path, \
+				#~ list(index.list_links(path, LINK_DIR_FORWARD)), \
+				#~ list(index.list_links(path, LINK_DIR_BACKWARD))
+			self.assertEqual(
+				index.n_list_links(path, LINK_DIR_FORWARD), forw)
+			self.assertEqual(
+				index.n_list_links(path, LINK_DIR_BACKWARD), backw)
+
+		notebook.move_page(Path('page1'), Path('page3:page1'))
+		for name, forw, backw in (
+			('page1', 0, 0),
+			('page1:child', 0, 0),
+			('page2', 1, 0),
+			('page3', 0, 0),
+			('page3:page1', 0, 0),
+			('page3:page1:child', 0, 1),
+		):
+			path = Path(name)
+			#~ print path, \
+				#~ list(index.list_links(path, LINK_DIR_FORWARD)), \
+				#~ list(index.list_links(path, LINK_DIR_BACKWARD))
+			self.assertEqual(
+				index.n_list_links(path, LINK_DIR_FORWARD), forw)
+			self.assertEqual(
+				index.n_list_links(path, LINK_DIR_BACKWARD), backw)
+
+		text = ''.join(notebook.get_page(Path('page3:page1:child')).dump('wiki'))
+		self.assertEqual(text, 'I have backlinks !\n')

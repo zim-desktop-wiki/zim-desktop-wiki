@@ -6,7 +6,7 @@ Creation-Date: Wed, 08 Jul 2009 20:27:21 +0200
 
 The **GTD** methodology basically calls for maintaining lists of all loose ends that need be taken care of. The idea is that when all things that need to be done are recorded on a list it will give you peace because you do not have to keep them in your mind all the time. However it is essential that you can access the lists and sort through them so you always know what the next thing is that you can do given the time and tools available at a certain moment.
 
-For those not familiar with the book either read it or check any of the  numerous websites discussing it. The book follows a flowchart of the life of a task, which looks more or less like this:
+For those not familiar with the book either read it or check any of the numerous websites discussing it. The book follows a flowchart of the life of a task, which looks more or less like this:
 
 
     {{../GTD_flowchart.png}}
@@ -18,7 +18,7 @@ As the book only describes the methodology it leaves room to the user how to imp
 ==== How I implement GTD in Zim ====
 
 === Notebook Layout ===
-First create a new notebook to be used specific as a task tracker. Create namespaces for the various categories. I use "Projects", "SomeDay" and "Thrash" for current, incubating and dormant projects respectively. There are two special pages, one called "INBOX" which is a generic dump for incoming stuff and one called "Chores" (which is in the projects namespace), which is a generic list of tasks that do not belong to any particular project.
+First create a new notebook to be used specific as a task tracker. Create namespaces for the various categories. I use "Projects", "SomeDay" and "Trash" for current, incubating and dormant projects respectively. There are two special pages, one called "INBOX" which is a generic dump for incoming stuff and one called "Chores" (which is in the projects namespace), which is a generic list of tasks that do not belong to any particular project.
 
 
 '''
@@ -47,7 +47,7 @@ In addition I find it useful to keep a section with notes as well. These are bit
 === Defining Tasks ===
 As I already mentioned, small single tasks go into the "Projects:Chores" list. But tasks that are more complex or have multiple sub-tasks become projects and these get their own page below the "Projects" namespace. These project pages can in turn have child pages for example with related information, minutes of meeting etc..  
 
-One of the advantages of free-form editing is that you do not need to know what is going to happen with a task righ from the start. Some projects start out as a project with a well defined goal, others first live on the "Chores" page as a bunch of related tasks until they take up too much room and get moved out to their own page.
+One of the advantages of free-form editing is that you do not need to know what is going to happen with a task right from the start. Some projects start out as a project with a well defined goal, others first live on the "Chores" page as a bunch of related tasks until they take up too much room and get moved out to their own page.
 
 To define individual tasks I use [[Help:Check Boxes|checkboxes]]. This forces the main description to be a single line, which is good to make sure each task clearly states a physical action. Of course just below the checkbox their can be a whole paragraph or even many sub-pages with all the details. If the description sounds more like a topic than like an action probably it should be divided in smaller items that actually are actions. You should only define tasks within the "Projects" namespace, but you can put them anywhere on the pages. For example if you use a child page of a project page to take minutes of meeting and you get some action item, just put a checkbox for the task right there -- there is no need to first navigate to a main task list.
 

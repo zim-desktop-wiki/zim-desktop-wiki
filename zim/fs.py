@@ -8,7 +8,7 @@ Used as a base library for most other zim modules.
 
 FIXME more docs
 
-There is a singleton object to represent the whole filesystem. THis
+There is a singleton object to represent the whole filesystem. This
 is stored in 'zim.fs.FS'. This object provides signals when a file or
 folder is created, moved or deleted.
 
@@ -22,6 +22,83 @@ folder is created, moved or deleted.
 # (Remember the ext4 issue with truncated files in case of failure within
 # 60s after write. This way of working should prevent that kind of issue.)
 
+# ----
+
+# Unicode notes from: http://kofoto.rosdahl.net/wiki/UnicodeInPython
+# no guarantees that this is correct, but most detailed info I could find.
+#
+# On Unix, the file system encoding is taken from the locale settings.
+# On Windows, the encoding is always mbcs, which indicates that the
+# "wide" versions of API calls should be used.
+#
+# Note: File system operations raise a UnicodeEncodeError if given a
+# path that can't be encoded in the encoding returned by
+# sys.getfilesystemencoding().
+#
+# os.listdir(u"path") returns Unicode strings for names that
+# can be decoded with sys.getfilesystemencoding() but silently returns
+# byte strings for names that can't be decoded. That is, the return
+# value of os.listdir(u"path") is potentially a mixed list of Unicode
+# and byte strings.
+#
+# os.readlink chokes on Unicode strings that aren't coercable to the
+# default encoding. The argument must therefore be a byte string.
+# (Not applicable to Windows.)
+#
+# glob.glob(u"pattern") does not return Unicode strings.
+#
+# On Unix, os.path.abspath throws UnicodeDecodeError when given a
+# Unicode string with a relative path and os.getcwd() returns a
+# non-ASCII binary string (or rather: a
+# non-sys.getdefaultencoding()-encoded binary string). Therefore, the
+# argument must be a byte string. On Windows, however, the argument
+# must be a Unicode string so that the "wide" API calls are used.
+#
+# os.path.realpath behaves the same way as os.path.abspath.
+#
+# os.path.expanduser (on both UNIX and Windows) doesn't handle Unicode
+# when ~ expands to a non-ASCII path. Therefore, a byte string must be
+# passed in and the result decoded.
+#
+# Environment variables in the os.environ dictionary are byte strings
+# (both names and values).
+
+# So we need to encode paths before handing them over to these
+# filesystem functions and catch any UnicodeEncodeError errors.
+# Also we use this encoding for decoding filesystem paths. However if
+# we get some unexpected encoding from the filesystem we are in serious
+# trouble, as it will be difficult to resolve. So we refuse to handle
+# files with inconsistend encoding.
+#
+# Fortunately the only place where we (should) get arbitrary unicode
+# paths are page names, so we should apply url encoding when mapping
+# page names to file names. Seems previous versions of zim simply
+# failed in this case when the page name contained characters outside
+# of the set supported by the encoding supported.
+#
+# Seems zim was broken before for non-utf-8 filesystems as soon as you
+# use characters in page names that did not fit in the filesystem
+# encoding scheme. So no need for compatibility function, just try to
+# do the right thing.
+#
+# As a special case we map ascii to utf-8 because LANG=C will set encoding
+# to ascii and this is usually not what the user intended. Also utf-8
+# is the most common filesystem encoding on modern perating systems.
+
+# Note that we do this logic for the filesystem encoding - however the
+# file contents remain utf-8.
+# TODO could try fallback to locale if decoding utf-8 fails for file contents
+
+# From other sources:
+# about os.path.supports_unicode_filenames:
+# The only two platforms that currently support unicode filenames properly
+# are Windows NT/XP and MacOSX, and for one of them
+# os.path.supports_unicode_filenames returns False :(
+# see http://python.org/sf/767645
+# So don't rely on it.
+
+# ----
+
 # It could be considered to use a weakref dictionary to ensure the same
 # identity for objects representing the same physical file. (Like we do
 # for page objects in zim.notebook.) However this is not done for a good
@@ -30,6 +107,9 @@ folder is created, moved or deleted.
 # So it is e.g. possible to have multiple instances of File() which
 # represent the same file but independently manage the mtime and md5
 # checksums to ensure the file is what they think it should be.
+#
+# TODO - we could support weakref for directories to allow locking via
+# the dir object
 
 from __future__ import with_statement
 
@@ -37,6 +117,7 @@ import gobject
 
 import os
 import re
+import sys
 import shutil
 import errno
 import codecs
@@ -58,7 +139,10 @@ mimetypes = None
 try:
 	import xdg.Mime as xdgmime
 except ImportError:
-	logger.warn("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+	if os.name != 'nt':
+		logger.warn("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+	else:
+		pass # Ignore this error on Windows; doesn't come with xdg.Mime
 	import mimetypes
 
 
@@ -99,9 +183,69 @@ IMAGE_EXTENSIONS = (
 )
 
 
+ENCODING = sys.getfilesystemencoding()
+if ENCODING.upper() in (
+	'ASCII', 'US-ASCII', 'ANSI_X3.4-1968', 'ISO646-US', # some aliases for ascii
+	'LATIN1', 'ISO-8859-1', 'ISO_8859-1', 'ISO_8859-1:1987', # aliases for latin1
+):
+	logger.warn('Filesystem encoding is set to ASCII or Latin1, using UTF-8 instead')
+	ENCODING = 'utf-8'
+
+
+if ENCODING == 'mbcs':
+	# Encoding 'mbcs' means we run on windows and filesystem can handle utf-8 natively
+	# so here we just convert everything to unicode strings
+	def encode(path):
+		if isinstance(path, unicode):
+			return path
+		else:
+			return unicode(path)
+
+	def decode(path):
+		if isinstance(path, unicode):
+			return path
+		else:
+			return unicode(path)
+
+else:
+	# Here we encode files to filesystem encoding. Fails if encoding is not possible.
+	def encode(path):
+		if isinstance(path, unicode):
+			try:
+				return path.encode(ENCODING)
+			except UnicodeEncodeError:
+				raise Error, 'BUG: invalid filename %s' % path
+		else:
+			return path # assume encoding is correct
+
+
+	def decode(path):
+		if isinstance(path, unicode):
+			try:
+				return path.decode(ENCODING)
+			except UnicodeDecodeError:
+				raise Error, 'BUG: invalid filename %s' % path
+		else:
+			return path # assume encoding is correct
+
 
 def isabs(path):
 	return path.startswith('file:/') or os.path.isabs(path)
+
+
+def isdir(path):
+	'''Unicode safe wrapper for os.path.isdir()'''
+	return os.path.isdir(encode(path))
+
+
+def isfile(path):
+	'''Unicode safe wrapper for os.path.isfile()'''
+	return os.path.isfile(encode(path))
+
+
+def joinpath(*parts):
+	'''Wrapper for os.path.join()'''
+	return os.path.join(*parts)
 
 
 def get_tmpdir():
@@ -125,6 +269,17 @@ def normalize_win32_share(path):
 			path = 'smb:' + url_encode(path.replace('\\', '/'))
 
 	return path
+
+
+def lrmdir(path):
+	'''Like os.rmdir but handles symlinks gracefully'''
+	try:
+		os.rmdir(path)
+	except OSError:
+		if os.path.islink(path) and os.path.isdir(path):
+			os.unlink(path)
+		else:
+			raise
 
 
 class PathLookupError(Error):
@@ -154,44 +309,33 @@ gobject.type_register(_FS)
 FS = _FS()
 
 
-def joinpath(*parts):
-	'''Wrapper for os.path.join()'''
-	return os.path.join(*parts)
-
-
-def isdir(path):
-	'''Unicode save version of os.path.isdir()'''
-	return os.path.isdir(path.encode('utf-8'))
-
-
-def isfile(path):
-	'''Unicode save version of os.path.isfile()'''
-	return os.path.isfile(path.encode('utf-8'))
-
-
 class UnixPath(object):
 	'''Parent class for Dir and File objects'''
 
 	def __init__(self, path):
-		if isinstance(path, (list, tuple)):
-			path = map(unicode, path)
-				# Any path objects in list will also be flattened
-			path = os.path.sep.join(path)
-				# os.path.join is too intelligent for it's own good
-				# just join with the path seperator..
-		elif isinstance(path, Path):
-			path = path.path
+		if isinstance(path, Path):
+			self.path = path.path
+			self.encodedpath = path.encodedpath
+			return
+
+		try:
+			if isinstance(path, (list, tuple)):
+				path = map(unicode, path)
+					# Flatten objects - strings should be unicode or ascii already
+				path = os.path.sep.join(path)
+					# os.path.join is too intelligent for it's own good
+					# just join with the path seperator..
+			else:
+				path = unicode(path) # make sure we can decode
+		except UnicodeDecodeError:
+			raise Error, 'BUG: invalid input, file names should be in ascii, or given as unicode'
 
 		if path.startswith('file:/'):
 			path = self._parse_uri(path)
 		elif path.startswith('~'):
-			path = os.path.expanduser(path)
+			path = decode(os.path.expanduser(encode(path)))
 
-		self.path = self._abspath(path)
-
-	@staticmethod
-	def _abspath(path):
-		return os.path.abspath(path)
+		self._set_path(path) # overloaded in WindowsPath
 
 	@staticmethod
 	def _parse_uri(uri):
@@ -204,6 +348,11 @@ class UnixPath(object):
 		elif uri.startswith('file:/'): uri = uri[5:]
 		else: assert False, 'Not a file uri: %s' % uri
 		return url_decode(uri)
+
+	def _set_path(self, path):
+		# For unix we need to use proper encoding
+		self.encodedpath = os.path.abspath(encode(path))
+		self.path = decode(self.encodedpath)
 
 	def __iter__(self):
 		parts = self.split()
@@ -237,7 +386,7 @@ class UnixPath(object):
 	@property
 	def basename(self):
 		'''Basename property'''
-		return os.path.basename(self.path)
+		return os.path.basename(self.path) # encoding safe
 
 	@property
 	def uri(self):
@@ -247,7 +396,7 @@ class UnixPath(object):
 	@property
 	def dir(self):
 		'''Returns a Dir object for the parent dir'''
-		path = os.path.dirname(self.path)
+		path = os.path.dirname(self.path) # encoding safe
 		return Dir(path)
 
 	def exists(self):
@@ -256,12 +405,12 @@ class UnixPath(object):
 
 	def iswritable(self):
 		if self.exists():
-			return os.access(self.path.encode('utf-8'), os.W_OK)
+			return os.access(self.encodedpath, os.W_OK)
 		else:
 			return self.dir.iswritable() # recurs
 
 	def mtime(self):
-		stat_result = os.stat(self.path)
+		stat_result = os.stat(self.encodedpath)
 		return stat_result.st_mtime
 
 	def split(self):
@@ -285,17 +434,18 @@ class UnixPath(object):
 		even on windows.
 		'''
 		sep = os.path.sep # '/' or '\'
-		if allowupward and not self.path.startswith(reference.path):
+		refdir = reference.path + sep
+		if allowupward and not self.path.startswith(refdir):
 			parent = self.commonparent(reference)
 			if parent is None:
-				return None
+				return None # maybe on different drive under win32
 
 			i = len(parent.path)
-			j = reference.path[i:].strip(sep).count(sep) + 1
+			j = refdir[i:].strip(sep).count(sep) + 1
 			reference = parent
 			path = '../' * j
 		else:
-			assert self.path.startswith(reference.path)
+			assert self.path.startswith(refdir)
 			path = ''
 
 		i = len(reference.path)
@@ -304,7 +454,7 @@ class UnixPath(object):
 
 	def commonparent(self, other):
 		'''Returns a common path between self and other as a Dir object.'''
-		path = os.path.commonprefix((self.path, other.path))
+		path = os.path.commonprefix((self.path, other.path)) # encoding safe
 		i = path.rfind(os.path.sep) # win32 save...
 		if i >= 0:
 			return Dir(path[:i+1])
@@ -314,11 +464,11 @@ class UnixPath(object):
 
 	def rename(self, newpath):
 		# Using shutil.move instead of os.rename because move can cross
-		# file system boundies, but rename can not
+		# file system boundries, while rename can not
 		logger.info('Rename %s to %s', self, newpath)
 		newpath.dir.touch()
 		# TODO: check against newpath existing and being a directory
-		shutil.move(self.path, newpath.path)
+		shutil.move(self.encodedpath, newpath.encodedpath)
 		FS.emit('path-moved', self, newpath)
 		self.dir.cleanup()
 
@@ -330,7 +480,7 @@ class UnixPath(object):
 		'''Used to detect if e.g. a File object should have really been
 		a Dir object
 		'''
-		return isdir(self.path)
+		return os.path.isdir(self.encodedpath)
 
 	def isimage(self):
 		'''Returns True if the file is an image type. But no guarantee
@@ -362,12 +512,13 @@ class UnixPath(object):
 
 class WindowsPath(UnixPath):
 
-	@staticmethod
-	def _abspath(path):
-		# Strip leading / for absolute paths
-		if re.match(r'^[/\\][A-Za-z]:[/\\]', path):
-			path = path[1:]
-		return os.path.abspath(path)
+	def _set_path(self, path):
+		# For windows unicode is supported natively,
+		# but may need to strip leading / for absolute paths
+		if re.match(r'^[/\\]+[A-Za-z]:[/\\]', path):
+			path = path.lstrip('/').lstrip('\\')
+		self.path = os.path.abspath(path)
+		self.encodedpath = self.path # so encodedpath in unicode
 
 	@property
 	def uri(self):
@@ -402,19 +553,42 @@ class Dir(Path):
 
 	def exists(self):
 		'''Returns True if the dir exists and is actually a dir'''
-		return isdir(self.path)
+		return os.path.isdir(self.encodedpath)
 
 	def list(self):
-		'''Returns a list of names for files and subdirectories'''
-		# For os.listdir(path) if path is a Unicode object, the result
-		# will be a list of Unicode objects.
-		path = self.path
-		if not isinstance(path, unicode):
-			path = path.decode('utf-8')
+		'''Returns a list of names for files and subdirectories.
+		Will not return names that could not be decoded properly and
+		will throw warnings if those are encountered.
+		Hidden files are silently ignored.
+		'''
+		files = []
+		if ENCODING == 'mbcs':
+			# We are running on windows and os.listdir will handle unicode natively
+			assert isinstance(self.encodedpath, unicode)
+			for file in self._list():
+				if isinstance(file, unicode):
+					files.append(file)
+				else:
+					logger.warn('Ignoring file: "%s" invalid file name', file)
+		else:
+			# If filesystem does not handle unicode natively and path for
+			# os.listdir(path) is _not_ a unicode object, the result will
+			# be a list of byte strings. We can decode them ourselves.
+			assert not isinstance(self.encodedpath, unicode)
+			for file in self._list():
+				try:
+					files.append(file.decode(ENCODING))
+				except UnicodeDecodeError:
+					logger.warn('Ignoring file: "%s" invalid file name', file)
+		files.sort()
+		return files
 
+	def _list(self):
 		if self.exists():
-			files = [f for f in os.listdir(path) if not f.startswith('.')]
-			files.sort()
+			files = []
+			for file in os.listdir(self.encodedpath):
+				if not file.startswith('.'): # skip hidden files
+					files.append(file)
 			return files
 		else:
 			return []
@@ -422,7 +596,7 @@ class Dir(Path):
 	def touch(self):
 		'''Create this dir and any parent directories that do not yet exist'''
 		try:
-			os.makedirs(self.path)
+			os.makedirs(self.encodedpath)
 		except OSError, e:
 			if e.errno != errno.EEXIST:
 				raise
@@ -430,7 +604,7 @@ class Dir(Path):
 	def remove(self):
 		'''Remove this dir, fails if dir is non-empty.'''
 		logger.info('Remove dir: %s', self)
-		os.rmdir(self.path)
+		lrmdir(self.encodedpath)
 
 	def cleanup(self):
 		'''Removes this dir and any empty parent dirs.
@@ -442,7 +616,7 @@ class Dir(Path):
 			return True
 
 		try:
-			os.removedirs(self.path)
+			os.removedirs(self.encodedpath)
 		except OSError:
 			return False # probably dir not empty
 		else:
@@ -456,15 +630,18 @@ class Dir(Path):
 		'''
 		assert self.path and self.path != '/'
 		logger.info('Remove file tree: %s', self)
-		for root, dirs, files in os.walk(self.path, topdown=False):
+		for root, dirs, files in os.walk(self.encodedpath, topdown=False, followlinks=False):
+			# walk should not decent into symlinked folders
+			# remove() and rmdir() both should remove a symlink rather
+			# than the target of the link
 			for name in files:
 				os.remove(os.path.join(root, name))
 			for name in dirs:
-				os.rmdir(os.path.join(root, name))
+				lrmdir(os.path.join(root, name))
 
 	def file(self, path):
 		'''Returns a File object for a path relative to this directory'''
-		assert isinstance(path, (File, basestring, list, tuple))
+		assert isinstance(path, (Path, basestring, list, tuple))
 		if isinstance(path, File):
 			file = path
 		elif isinstance(path, basestring):
@@ -481,20 +658,24 @@ class Dir(Path):
 		'''
 		file = self.file(path)
 		basename = file.basename
-		if '.' in basename: basename = basename.split('.', 1)
-		else: basename = (basename, '')
+		if '.' in basename:
+			basename, ext = basename.split('.', 1)
+		else:
+			ext = ''
 		dir = file.dir
 		i = 0
 		while file.exists():
 			logger.debug('File exists "%s" trying increment', file)
 			i += 1
-			file = dir.file(
-				''.join((basename[0], '%03i' % i, '.', basename[1])) )
+			newname = basename + '%03i' % i
+			if ext:
+				newname += '.' + ext
+			file = dir.file(newname)
 		return file
 
 	def subdir(self, path):
 		'''Returns a Dir object for a path relative to this directory'''
-		assert isinstance(path, (File, basestring, list, tuple))
+		assert isinstance(path, (Path, basestring, list, tuple))
 		if isinstance(path, Dir):
 			dir = path
 		elif isinstance(path, basestring):
@@ -580,7 +761,7 @@ class File(Path):
 
 	def exists(self):
 		'''Returns True if the file exists and is actually a file'''
-		return isfile(self.path)
+		return os.path.isfile(self.encodedpath)
 
 	def open(self, mode='r', encoding='utf-8'):
 		'''Returns an io object for reading or writing.
@@ -601,10 +782,10 @@ class File(Path):
 			mode += 'b'
 
 		if mode in ('w', 'wb'):
-			tmp = self.path + '.zim.new~'
+			tmp = self.encodedpath + '.zim.new~'
 			fh = FileHandle(tmp, mode=mode, on_close=self._on_write)
 		else:
-			fh = open(self.path, mode=mode)
+			fh = open(self.encodedpath, mode=mode)
 
 		if encoding:
 			# code copied from codecs.open() to wrap our FileHandle objects
@@ -618,26 +799,26 @@ class File(Path):
 
 	def _on_write(self):
 		# flush and sync are already done before close()
-		tmp = self.path + '.zim.new~'
-		assert isfile(tmp)
+		tmp = self.encodedpath + '.zim.new~'
+		assert os.path.isfile(tmp)
 		if isinstance(self, WindowsPath):
 			# On Windows, if dst already exists, OSError will be raised
 			# and no atomic operation to rename the file :(
-			if isfile(self.path):
+			if os.path.isfile(self.encodedpath):
 				isnew = False
-				back = self.path + '~'
-				if isfile(back):
+				back = self.encodedpath + '~'
+				if os.path.isfile(back):
 					os.remove(back)
-				os.rename(self.path, back)
-				os.rename(tmp, self.path)
+				os.rename(self.encodedpath, back)
+				os.rename(tmp, self.encodedpath)
 				os.remove(back)
 			else:
 				isnew = True
-				os.rename(tmp, self.path)
+				os.rename(tmp, self.encodedpath)
 		else:
 			# On UNix, dst already exists it is replaced in an atomic operation
-			isnew = not isfile(self.path)
-			os.rename(tmp, self.path)
+			isnew = not os.path.isfile(self.encodedpath)
+			os.rename(tmp, self.encodedpath)
 
 		logger.debug('Wrote %s', self)
 
@@ -785,11 +966,11 @@ class File(Path):
 		'''
 		logger.info('Remove file: %s', self)
 		with self._lock:
-			if isfile(self.path):
-				os.remove(self.path)
+			if os.path.isfile(self.encodedpath):
+				os.remove(self.encodedpath)
 
-			tmp = self.path + '.zim.new~'
-			if isfile(tmp):
+			tmp = self.encodedpath + '.zim.new~'
+			if os.path.isfile(tmp):
 				os.remove(tmp)
 
 	def cleanup(self):
@@ -809,12 +990,12 @@ class File(Path):
 			dest.touch()
 		else:
 			dest.dir.touch()
-		shutil.copy(self.path, dest.path)
+		shutil.copy(self.encodedpath, dest.encodedpath)
 		# TODO - not hooked with FS signals
 
 	def compare(self, other):
 		'''Uses MD5 to tell you if files are the same or not.
-		This can e.g. be used to detect case-insensitive filsystems
+		This can e.g. be used to detect case-insensitive filesystems
 		when renaming files.
 		'''
 		def md5(file):

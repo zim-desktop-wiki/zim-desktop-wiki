@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys
+import logging
 
 # Check if we run the correct python version
 try:
@@ -11,6 +12,8 @@ except:
 	print >> sys.stderr, 'ERROR: zim needs python >= 2.5   (but < 3.0)'
 	sys.exit(1)
 
+# Preliminary initalization of logging because modules can throw warnings at import
+logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
 
 # Try importing our modules
 import zim
@@ -37,7 +40,8 @@ except:
 
 # Run the application and handle some exceptions
 try:
-	argv = [arg.decode('utf-8') for arg in sys.argv]
+	encoding = sys.getfilesystemencoding() # not 100% sure this is correct
+	argv = [arg.decode(encoding) for arg in sys.argv]
 	zim.main(argv)
 except zim.GetoptError, err:
 	print >>sys.stderr, sys.argv[0]+':', err

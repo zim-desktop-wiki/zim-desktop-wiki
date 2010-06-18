@@ -55,7 +55,7 @@ class LinkMapDialog(Dialog):
 		self.vbox.add(hbox)
 
 		self.xdotview = xdot.DotWidget()
-		self.xdotview.set_filter('neato')
+		self.xdotview.set_filter('fdp')
 		self.xdotview.set_dotcode(linkmap.get_dotcode())
 		self.xdotview.connect('clicked', self.on_node_clicked)
 		hbox.add(self.xdotview)

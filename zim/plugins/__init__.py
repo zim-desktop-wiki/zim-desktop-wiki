@@ -6,18 +6,29 @@ import gobject
 import types
 import os
 import sys
+import logging
 
 import zim.fs
 from zim.fs import Dir
 from zim.config import ListDict
 
-def get_plugin(pluginname):
-	'''Returns the plugin class object for a given name'''
+
+logger = logging.getLogger('zim.plugins')
+
+
+def get_plugin_module(pluginname):
+	'''Returns the plugin module object for a given name'''
 	# __import__ has some quirks, see the reference manual
 	pluginname = pluginname.lower()
 	mod = __import__('zim.plugins.'+pluginname)
 	mod = getattr(mod, 'plugins')
 	mod = getattr(mod, pluginname)
+	return mod
+
+
+def get_plugin(pluginname):
+	'''Returns the plugin class object for a given name'''
+	mod = get_plugin_module(pluginname)
 	for name in dir(mod):
 		obj = getattr(mod, name)
 		if ( isinstance(obj, (type, types.ClassType)) # is a class
@@ -30,23 +41,62 @@ def get_plugin(pluginname):
 def list_plugins():
 	'''Returns a set of available plugin names'''
 	# FIXME how should this work for e.g. for python eggs ??
+	# for windows exe we now package plugins separately
 	plugins = set()
 	for dir in sys.path:
-		dir = Dir((dir, 'zim', 'plugins'))
-		if not dir.exists():
+		try:
+			dir = dir.decode(zim.fs.ENCODING)
+		except UnicodeDecodeError:
+			logger.exception('Could not decode path "%s"', dir)
 			continue
+
+		if os.path.basename(dir) == 'zim.exe':
+			# path is an executable, not a folder -- examine containing folder
+			dir = os.path.dirname(dir)
+		dir = Dir((dir, 'zim', 'plugins'))
 		for candidate in dir.list():
 			if candidate.startswith('_'):
 				continue
 			elif candidate.endswith('.py'):
+				#~ print '>> FOUND %s.py in %s' % (candidate, dir.path)
 				plugins.add(candidate[:-3])
 			elif zim.fs.isdir(dir.path+'/'+candidate) \
 			and os.path.exists(dir.path+'/'+candidate+'/__init__.py'):
+				#~ print '>> FOUND %s/__init__.py in %s' % (candidate, dir.path)
 				plugins.add(candidate)
 			else:
 				pass
 
 	return plugins
+
+
+class PluginClassMeta(gobject.GObjectMeta):
+	'''Meta class for objects inheriting from PluginClass. It adds
+	wrappers to several methods to call proper call backs.
+	'''
+
+	def __init__(klass, name, bases, dictionary):
+		originit = klass.__init__
+
+		#~ print 'DECORATE INIT', klass
+		def decoratedinit(self, ui, *arg, **kwarg):
+			# Calls initialize_ui and finalize_notebooks *after* __init__
+			#~ print 'INIT', self
+			originit(self, ui, *arg, **kwarg)
+			if not self.__class__ is klass:
+				return # Avoid wrapping both base class and sub classes
+
+			if self.ui.notebook:
+				self.initialize_ui(ui)
+				self.finalize_notebook(self.ui.notebook)
+			else:
+				self.initialize_ui(ui)
+				self.ui.connect_after('open-notebook', self._merge_uistate)
+					# FIXME with new plugin API should not need this merging
+				self.ui.connect_object_after('open-notebook',
+					self.__class__.finalize_notebook, self)
+
+		klass.__init__ = decoratedinit
 
 
 class PluginClass(gobject.GObject):
@@ -79,15 +129,30 @@ class PluginClass(gobject.GObject):
 	the preferences dialog.
 	'''
 
-	plugin_info = {}
-
-	plugin_preferences = ()
+	__metaclass__ = PluginClassMeta
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-
 	}
+
+	plugin_info = {}
+
+	plugin_preferences = ()
+
+	@classmethod
+	def check_dependencies_ok(klass):
+		'''Like check_dependencies, but just returns boolean'''
+		return all(dep[1] for dep in klass.check_dependencies())
+
+	@classmethod
+	def check_dependencies(klass):
+		'''This method checks which dependencies are met. It should return a list of tuples,
+		one for each dependency, with a string giving the name of the dependency and a boolean
+		indicating if it is fulfilled or not. When a plugin has no dependencies an empty list
+		should be returned (which is done in the base class).
+		'''
+		return []
 
 	def __init__(self, ui):
 		gobject.GObject.__init__(self)
@@ -101,9 +166,14 @@ class PluginClass(gobject.GObject):
 		self.preferences = self.ui.preferences[section]
 		for key, type, label, default in self.plugin_preferences:
 				self.preferences.setdefault(key, default)
-		self.uistate = ListDict()
+
 		self._is_image_generator_plugin = False
-		self.ui.connect_after('open-notebook', self._merge_uistate)
+
+		if self.ui.notebook:
+			section = self.__class__.__name__
+			self.uistate = self.ui.uistate[section]
+		else:
+			self.uistate = ListDict()
 
 	def _merge_uistate(self, *a):
 		# As a convenience we provide a uistate dict directly after
@@ -118,18 +188,34 @@ class PluginClass(gobject.GObject):
 			for key, value in defaults.items():
 				self.uistate.setdefault(key, value)
 
-	@classmethod
-	def check_dependencies_ok(klass):
-		'''Like check_dependencies, but just returns boolean'''
-		return all(dep[1] for dep in klass.check_dependencies())
+	def initialize_ui(self, ui):
+		'''Callback called during contruction of the ui.
+		Can be overloaded by subclasses.
+		'''
+		# FIXME more documentation how / when to use this
+		pass
 
-	@classmethod
-	def check_dependencies(klass):
-		'''This method checks which dependencies are met'''
-		#returns a list of tuples, one for each dependency.
-		#each tuple contains a string with the name of the dependency and a
-		#boolean indicating if it is fulfilled
-		return []
+	def initialize_notebook(self, notebook):
+		'''Callback called before contruction of the notebook.
+		Can be overloaded by subclasses.
+		'''
+		# TODO actually hook up this callback - need it for fuse plugin
+		# FIXME more documentation how / when to use this
+		pass
+
+	def finalize_notebook(self, notebook):
+		'''Callback called once the notebook object is created and set.
+		Can be overloaded by subclasses.
+		'''
+		# FIXME more documentation how / when to use this
+		pass
+
+	def finalize_ui(self, ui):
+		'''Callback called just before entering the main loop.
+		Can be overloaded by subclasses.
+		'''
+		# FIXME more documentation how / when to use this
+		pass
 
 	def do_preferences_changed(self):
 		'''Handler called when preferences are changed by the user.

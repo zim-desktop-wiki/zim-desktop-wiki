@@ -156,13 +156,19 @@ def url_decode(url, mode=URL_ENCODE_PATH):
 	The result is returned as a unicode string.
 	'''
 	url = url.encode('utf-8') # in case url is already unicode
-	if mode in (URL_ENCODE_DATA, URL_ENCODE_PATH):
-		return _url_decode_re.sub(_url_decode, url).decode('utf-8')
-	elif mode == URL_ENCODE_READABLE:
-		return _url_decode_re.sub(_url_decode_readable, url).decode('utf-8')
-	else:
-		assert False, 'BUG: Unknown url encoding mode'
-
+	try:
+		if mode in (URL_ENCODE_DATA, URL_ENCODE_PATH):
+			return _url_decode_re.sub(_url_decode, url).decode('utf-8')
+		elif mode == URL_ENCODE_READABLE:
+			return _url_decode_re.sub(_url_decode_readable, url).decode('utf-8')
+		else:
+			assert False, 'BUG: Unknown url encoding mode'
+	except UnicodeDecodeError:
+		# Someone did not exactly follow the recommendations in the spec...
+		if mode in (URL_ENCODE_DATA, URL_ENCODE_PATH):
+			return _url_decode_re.sub(_url_decode, url)
+		elif mode == URL_ENCODE_READABLE:
+			return url.replace('%20', ' ')
 
 _parse_date_re = re.compile(r'(\d{1,4})\D(\d{1,2})(?:\D(\d{1,4}))?')
 
@@ -309,10 +315,24 @@ class Re(object):
 				result.append(item)
 		return result
 
+	def start(self,group=0):
+		'''Return the indices of the start of the substring matched by group;
+		group defaults to zero (meaning the whole matched substring). Return -1 if
+		group exists but did not contribute to the match. See re.matchobject for
+		details'''
+		return self.m.start(group)
+
+	def end(self,group=0):
+		'''Return the indices of the end of the substring matched by group;
+		group defaults to zero (meaning the whole matched substring). Return -1 if
+		group exists but did not contribute to the match. See re.matchobject for
+		details'''
+		return self.m.end(group)
+
 # Some often used regexes
 is_url_re = Re('^(\w[\w\+\-\.]+)://')
 	# scheme "://"
-is_email_re = Re('^mailto:|^\S+\@\S+\.\w+$')
+is_email_re = Re('^(mailto:)?\S+\@\S+\.\w+$')
 	# "mailto:" address
 	# name "@" host
 is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Za-z]:\\)')
@@ -340,9 +360,12 @@ url_re = Re(r'''(
 	# but we do not want to match "[http://foo.org]"
 	# See rfc/3986 for the official -but unpractical- regex
 
+
 def link_type(link):
 	'''Function that retuns a link type for urls and page links'''
-	if is_url_re.match(link): type = is_url_re[1]
+	if is_url_re.match(link):
+		if link.startswith('zim+'): type = 'zim-notebook'
+		else: type = is_url_re[1]
 	elif is_email_re.match(link): type = 'mailto'
 	elif is_win32_share_re.match(link): type = 'smb'
 	elif is_path_re.match(link): type = 'file'

@@ -49,7 +49,7 @@ from zim.gui.widgets import ui_environment, \
 	Window, Dialog, \
 	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
 from zim.gui.clipboard import Clipboard
-from zim.gui.applications import get_application, CustomToolManager
+from zim.gui.applications import get_application, get_default_application, CustomToolManager
 
 logger = logging.getLogger('zim.gui')
 
@@ -274,6 +274,7 @@ class GtkInterface(NotebookInterface):
 		fullscreen=False, geometry=None, usedaemon=False):
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
 		NotebookInterface.__init__(self)
+		self._finalize_ui = False
 		self.preferences_register = ListDict()
 		self.page = None
 		self.history = None
@@ -302,6 +303,14 @@ class GtkInterface(NotebookInterface):
 		''')
 
 		self.register_preferences('GtkInterface', ui_preferences)
+
+		# Hidden setting to force the gtk bell off. Otherwise it
+		# can bell every time you reach the begin or end of the text
+		# buffer. Especially specific gtk version on windows.
+		# See bug lp:546920
+		self.preferences['GtkInterface'].setdefault('gtk_bell', False)
+		if not self.preferences['GtkInterface']['gtk_bell']:
+			gtk.rc_parse_string('gtk-error-bell = 0')
 
 		# Set default applications
 		apps = {
@@ -359,6 +368,7 @@ class GtkInterface(NotebookInterface):
 
 		self._custom_tool_ui_id = None
 		self._custom_tool_actiongroup = None
+		self._custom_tool_iconfactory = None
 		self.load_custom_tools()
 
 		if ui_environment['platform'] == 'maemo':
@@ -407,13 +417,18 @@ class GtkInterface(NotebookInterface):
 		else:
 			pass # Will check default in main()
 
+	def load_plugin(self, name):
+		plugin = NotebookInterface.load_plugin(self, name)
+		if plugin and self._finalize_ui:
+			plugin.finalize_ui(self)
+
 	def spawn(self, *args):
 		if not self.usedaemon:
 			args = args + ('--no-daemon',)
 		NotebookInterface.spawn(self, *args)
 
 	def main(self):
-		'''Wrapper for gtk.main(); does not return untill program has ended.'''
+		'''Wrapper for gtk.main(); does not return until program has ended.'''
 		if self.notebook is None:
 			import zim.gui.notebookdialog
 			notebook = zim.gui.notebookdialog.prompt_notebook()
@@ -450,6 +465,10 @@ class GtkInterface(NotebookInterface):
 
 		# older gobject version doesn't know about seconds
 		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
+
+		self._finalize_ui = True
+		for plugin in self.plugins:
+			plugin.finalize_ui(self)
 
 		self.check_notebook_needs_upgrade()
 
@@ -698,7 +717,7 @@ class GtkInterface(NotebookInterface):
 				newpath = Path(newpath.name) # IndexPath -> Path
 				self.open_page(newpath)
 
-		def autosave(o, p):
+		def autosave(o, p, *a):
 			# Here we explicitly do not save async
 			# and also explicitly no need for _autosave_lock
 			page = self.mainwindow.pageview.get_page()
@@ -807,7 +826,6 @@ class GtkInterface(NotebookInterface):
 			self.mainwindow.pageview.set_cursor_pos(historyrecord.cursor)
 			self.mainwindow.pageview.set_scroll_pos(historyrecord.scroll)
 
-
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
 
@@ -862,8 +880,8 @@ class GtkInterface(NotebookInterface):
 		if not record is None:
 			self.open_page(record)
 		else:
-			child = self.notebook.index.list_pages(self.page)[0]
-			self.open_page(child)
+			pages = list(self.notebook.index.list_pages(self.page))
+			self.open_page(pages[0])
 		return True
 
 	def open_page_previous(self):
@@ -897,6 +915,19 @@ class GtkInterface(NotebookInterface):
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
+
+	def new_page_from_text(self, text, name=None):
+		if not name:
+			name = text.strip()[:30]
+			if '\n' in name:
+				name, _ = name.split('\n', 1)
+			name = self.notebook.cleanup_pathname(
+				name.replace(':', ''), purge=True)
+		path = self.notebook.resolve_path(name)
+		page = self.notebook.get_new_page(path)
+		page.parse('plain', text)
+		self.notebook.store_page(page)
+		self.open_page(page)
 
 	def open_new_window(self, page=None):
 		'''Open page in a new window'''
@@ -987,21 +1018,44 @@ class GtkInterface(NotebookInterface):
 		ImportPageDialog(self).run()
 
 	def move_page(self, path=None):
+		'''Prompt dialog for moving a page'''
 		MovePageDialog(self, path=path).run()
 
-	def do_move_page(self, path, newpath, update_links, dialog=None):
+	def do_move_page(self, path, newpath, update_links):
 		'''Callback for MovePageDialog and PageIndex for executing
 		notebook.move_page but wrapping with all the proper exception
 		dialogs. Returns boolean for success.
 		'''
+		return self._wrap_move_page(
+			lambda update_links, callback: self.notebook.move_page(
+				path, newpath, update_links, callback),
+			update_links
+		)
+
+	def rename_page(self, path=None):
+		'''Prompt a dialog for renaming a page'''
+		RenamePageDialog(self, path=path).run()
+
+	def do_rename_page(self, path, newbasename, update_heading=True, update_links=True):
+		'''Callback for RenamePageDialog for executing
+		notebook.rename_page but wrapping with all the proper exception
+		dialogs. Returns boolean for success.
+		'''
+		return self._wrap_move_page(
+			lambda update_links, callback: self.notebook.rename_page(
+				path, newbasename, update_heading, update_links, callback),
+			update_links
+		)
+
+	def _wrap_move_page(self, func, update_links):
 		if self.notebook.index.updating:
 			# Ask regardless of update_links because it might very
 			# well be that the dialog thinks there are no links
 			# but they are simply not indexed yet
 			cont = QuestionDialog(dialog or self,
-				_('The index is still busy updating. Untill this'
-				  'is finished links can not be updated correctly.'
-				  'Performing the move now could break links,'
+				_('The index is still busy updating. Until this '
+				  'is finished links can not be updated correctly. '
+				  'Performing this action now could break links, '
 				  'do you want to continue anyway?'
 				) # T: question dialog text
 			).run()
@@ -1010,31 +1064,23 @@ class GtkInterface(NotebookInterface):
 			else:
 				return False
 
+		dialog = ProgressBarDialog(self, _('Updating Links'))
+			# T: Title of progressbar dialog
+		dialog.show_all()
+		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
+
 		try:
-			self.notebook.move_page(path, newpath, update_links)
+			func(update_links, callback)
 		except Exception, error:
-			ErrorDialog(dialog or self, error).run()
+			ErrorDialog(self, error).run()
+			dialog.destroy()
 			return False
 		else:
+			dialog.destroy()
 			return True
 
-
-	def rename_page(self, path=None):
-		RenamePageDialog(self, path=path).run()
-
 	def delete_page(self, path=None):
-		if path is None:
-			path = self.get_path_context()
-
-		page = self.notebook.get_page(path)
-		if page.hascontent or page.haschildren:
-			DeletePageDialog(self, path=page).run()
-		else:
-			ErrorDialog(self, (
-				_('Page does not exist'), # T: short error description
-				_('This page does not exist, so it can not be deleted')
-					# T: long error description
-			) ).run()
+		DeletePageDialog(self, path).run()
 
 	def show_properties(self):
 		from zim.gui.propertiesdialog import PropertiesDialog
@@ -1096,6 +1142,8 @@ class GtkInterface(NotebookInterface):
 			self.open_file(File(url))
 		elif url.startswith('mailto:'):
 			self._openwith(self.preferences['GtkInterface']['email_client'], (url,))
+		elif url.startswith('zim+'):
+			self.open_notebook(url)
 		else:
 			if is_win32_share_re.match(url):
 				url = normalize_win32_share(url)
@@ -1158,41 +1206,75 @@ class GtkInterface(NotebookInterface):
 				dir.touch()
 				self.open_file(dir)
 
-	def edit_page_source(self):
+	def edit_page_source(self, page=None):
+		'''Edit page source or source of a config file. Will keep
+		application hanging untill done.
+		'''
 		# This could also be defined as a custom tool, but defined here
 		# because we want to determine the editor dynamically
 		# We assume that the default app for a text file is a editor
 		# and not e.g. a viewer or a browser. Of course users can still
 		# define a custom tool for other editors.
+		if not page:
+			page = self.page
 		if hasattr(self.page, 'source'):
-			file = self.page.source # TODO copy to tmp file
+			file = self.page.source
 		else:
 			ErrorDialog('This page does not have a source file').run()
 			return
 
-		application = get_application(
-			self.preferences['GtkInterface']['file_browser'] )
+		if self._edit_file(file):
+			if page == self.page:
+				self.reload_page()
+
+	def edit_config_file(self, configfile):
+		if not configfile.file.exists():
+			if configfile.default.exists():
+				configfile.default.copyto(configfile.file)
+			else:
+				configfile.file.touch()
+		self._edit_file(configfile.file)
+
+	def _edit_file(self, file):
+		# We hope the application we get here does not return before
+		# editing is done, but unfortunately we have no way to force
+		# this. So may e.g. open a new tab in an existing window and
+		# return immediatly.
+		application = get_default_application('text/plain')
 		try:
 			application.run((file,))
 		except:
 			logger.exception('Error while running %s:', application.name)
+			return False
 		else:
-			# TODO copy back tmp file
-			self.reload_page()
+			return True
 
 	def show_server_gui(self):
 		# TODO instead of spawn, include in this process
 		self.spawn('--server', '--gui', self.notebook.uri)
 
-	def reload_index(self):
-		self.mainwindow.pageindex.reload_model()
-			# Flush any sync error in treemodel
+	def reload_index(self, flush=False):
+		'''Show a progress bar while updating the notebook index.
+		Returns True unless the user cancelled the action.
+		'''
+		# First make the index stop updating
+		self.mainwindow.pageindex.disconnect_model()
+
+		# Update the model
+		index = self.notebook.index
+		if flush:
+			index.flush()
+
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
 		dialog.show_all()
-		index = self.notebook.index
 		index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
+
+		# And reconnect the model - flushing out any sync error in treemodel
+		self.mainwindow.pageindex.reload_model()
+
+		return not dialog.cancelled
 
 	def manage_custom_tools(self):
 		from zim.gui.customtools import CustomToolManagerDialog
@@ -1209,12 +1291,30 @@ class GtkInterface(NotebookInterface):
 		if self._custom_tool_actiongroup:
 			self.uimanager.remove_action_group(self._custom_tool_actiongroup)
 
+		if self._custom_tool_iconfactory:
+			self._custom_tool_iconfactory.remove_default()
+
 		# Load new actions
 		actions = []
+		factory = gtk.IconFactory()
+		factory.add_default()
 		for tool in manager:
-			# FIXME probably need to generate stock icon first if icon is file path
-			action = (tool.key, tool.icon, tool.name, '', tool.comment, self.exec_custom_tool)
+			icon = tool.icon
+			if '/' in icon or '\\' in icon:
+				# Assume icon is a file path - add it to IconFactory
+				icon = 'zim-custom-tool' + tool.key
+				try:
+					pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_LARGE_TOOLBAR)
+					set = gtk.IconSet(pixbuf=pixbuf)
+					factory.add(icon, set)
+				except Exception:
+					logger.exception('Got exception while loading application icons')
+					icon = None
+
+			action = (tool.key, icon, tool.name, '', tool.comment, self.exec_custom_tool)
 			actions.append(action)
+
+		self._custom_tool_iconfactory = factory
 		self._custom_tool_actiongroup = gtk.ActionGroup('custom_tools')
 		self._custom_tool_actiongroup.add_actions(actions)
 
@@ -1254,8 +1354,6 @@ class GtkInterface(NotebookInterface):
 
 		self.uimanager.insert_action_group(self._custom_tool_actiongroup, 0)
 		self._custom_tool_ui_id = self.uimanager.add_ui_from_string(ui)
-
-		# TODO also support toolbar, need to add icons to icon factory etc.
 
 	def exec_custom_tool(self, action):
 		manager = CustomToolManager()
@@ -1816,6 +1914,8 @@ class MainWindow(Window):
 		else:
 			self.statusbar_backlinks_button.set_sensitive(True)
 
+		self.pageview.grab_focus()
+
 		#TODO: set toggle_readonly insensitive when page is readonly
 
 	def do_close_page(self, ui, page):
@@ -2146,8 +2246,13 @@ class MovePageDialog(Dialog):
 		parent = self.get_field('parent')
 		links = self.get_field('links')
 		newpath = parent + self.path.basename
-		return self.ui.do_move_page(
-			self.path, newpath, update_links=links, dialog=self)
+		self.hide() # hide this dialog before showing the progressbar
+		ok = self.ui.do_move_page(self.path, newpath, update_links=links)
+		if ok:
+			return True
+		else:
+			self.show() # prompt again
+			return False
 
 
 class RenamePageDialog(Dialog):
@@ -2159,6 +2264,9 @@ class RenamePageDialog(Dialog):
 		else:
 			self.path = path
 		assert self.path, 'Need a page here'
+
+		page = self.ui.notebook.get_page(self.path)
+		existing = (page.hascontent or page.haschildren)
 
 		i = self.ui.notebook.index.n_list_links_to_tree(
 					self.path, zim.index.LINK_DIR_BACKWARD )
@@ -2173,11 +2281,15 @@ class RenamePageDialog(Dialog):
 		self.add_fields([
 			('name', 'string', _('Name'), self.path.basename),
 				# T: Input label in the 'rename page' dialog for the new name
-			('head', 'bool', _('Update the heading of this page'), True),
+			('head', 'bool', _('Update the heading of this page'), existing),
 				# T: Option in the 'rename page' dialog
 			('links', 'bool', linkslabel, True),
 				# T: Option in the 'rename page' dialog
 		])
+
+		if not existing:
+			self.inputs['head'].set_active(False)
+			self.inputs['head'].set_sensitive(False)
 
 		if i == 0:
 			self.inputs['links'].set_active(False)
@@ -2187,16 +2299,14 @@ class RenamePageDialog(Dialog):
 		name = self.get_field('name')
 		head = self.get_field('head')
 		links = self.get_field('links')
-		try:
-			newpath = self.ui.notebook.rename_page(self.path,
-				newbasename=name, update_heading=head, update_links=links)
-		except Exception, error:
-			ErrorDialog(self, error).run()
-			return False
-		else:
-			if self.path == self.ui.page:
-				self.ui.open_page(newpath)
+		self.hide() # hide this dialog before showing the progressbar
+		ok = self.ui.do_rename_page(
+			self.path, newbasename=name, update_heading=head, update_links=links)
+		if ok:
 			return True
+		else:
+			self.show() # prompt again
+			return False
 
 
 class DeletePageDialog(Dialog):
@@ -2211,30 +2321,62 @@ class DeletePageDialog(Dialog):
 
 		hbox = gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
+
 		img = gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DIALOG)
-		hbox.add(img)
+		hbox.pack_start(img, False)
+
+		vbox = gtk.VBox(spacing=5)
+		hbox.add(vbox)
+
 		label = gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
 			# T: Heading in 'delete page' dialog - %s is the page name
-		long = _('Page "%s" and all of it\'s sub-pages\nand attachments will be deleted') % self.path.name
+		long = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
 			# T: Text in 'delete page' dialog - %s is the page name
 		label.set_markup('<b>'+short+'</b>\n\n'+long)
-		hbox.add(label)
+		vbox.pack_start(label, False)
+
+		i = self.ui.notebook.index.n_list_links_to_tree(
+					self.path, zim.index.LINK_DIR_BACKWARD )
+		linkslabel = ngettext(
+			'Remove links from %i page linking to this page',
+			'Remove links from %i pages linking to this page', i) % i
+			# T: label in DeletePage dialog - %i is number of backlinks
+			# TODO update lable to reflect that links can also be to child pages
+		self.links_checkbox = gtk.CheckButton(label=linkslabel)
+		vbox.pack_start(self.links_checkbox, False)
+
+		if i == 0:
+			self.links_checkbox.set_active(False)
+			self.links_checkbox.set_sensitive(False)
+		else:
+			self.links_checkbox.set_active(True)
 
 	def do_response_ok(self):
+		update_links = self.links_checkbox.get_active()
+
+		dialog = ProgressBarDialog(self, _('Removing Links'))
+			# T: Title of progressbar dialog
+		dialog.show_all()
+		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
+
 		try:
-			self.ui.notebook.delete_page(self.path)
+			self.ui.notebook.delete_page(self.path, update_links, callback)
 		except Exception, error:
 			ErrorDialog(self, error).run()
+			dialog.destroy()
 			return False
 		else:
+			dialog.destroy()
 			return True
 
 
 class AttachFileDialog(FileDialog):
 
 	def __init__(self, ui, path=None):
-		FileDialog.__init__(self, ui, _('Attach File')) # T: Dialog title
+		FileDialog.__init__(self, ui, _('Attach File'), multiple=True) # T: Dialog title
+		self.uistate.setdefault('last_attachment_folder','~')
+		self.filechooser.set_current_folder(self.uistate['last_attachment_folder'])
 		if path is None:
 			self.path = self.ui.get_path_context()
 		else:
@@ -2250,28 +2392,30 @@ class AttachFileDialog(FileDialog):
 		self.uistate.setdefault('insert_attached_images', True)
 		checkbox = gtk.CheckButton(_('Insert images as link'))
 			# T: checkbox in the "Attach File" dialog
-		checkbox.set_active(self.uistate['insert_attached_images'])
+		checkbox.set_active(not self.uistate['insert_attached_images'])
 		self.filechooser.set_extra_widget(checkbox)
 
 	def do_response_ok(self):
-		file = self.get_file()
-		if file is None:
+		files = self.get_files()
+		if not files:
 			return False
 
 		checkbox = self.filechooser.get_extra_widget()
-		self.uistate['insert_attached_images'] = checkbox.get_active()
+		self.uistate['insert_attached_images'] = not checkbox.get_active()
+		self.uistate['last_attachment_folder'] = self.filechooser.get_current_folder()
 			# Similar code in zim.gui.InsertImageDialog
 
-		file.copyto(self.dir)
-		file = self.dir.file(file.basename)
-		pageview = self.ui.mainwindow.pageview
-		if self.uistate['insert_attached_images'] and file.isimage():
-			try:
-				pageview.insert_image(file, interactive=False)
-			except:
-				logger.exception('Could not insert image')
-				pageview.insert_links([file]) # image type not supported?
-		else:
-			pageview.insert_links([file])
-		return True
+		for file in files:
+			file.copyto(self.dir)
+			file = self.dir.file(file.basename)
+			pageview = self.ui.mainwindow.pageview
+			if self.uistate['insert_attached_images'] and file.isimage():
+				try:
+					pageview.insert_image(file, interactive=False)
+				except:
+					logger.exception('Could not insert image')
+					pageview.insert_links([file]) # image type not supported?
+			else:
+				pageview.insert_links([file])
 
+		return True

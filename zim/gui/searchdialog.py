@@ -10,7 +10,7 @@ from zim.gui.widgets import Dialog, BrowserTreeView
 from zim.search import *
 
 
-logger = logging.getLogger('zim.gui.searhdialog')
+logger = logging.getLogger('zim.gui.searchdialog')
 
 
 class SearchDialog(Dialog):
@@ -26,6 +26,16 @@ class SearchDialog(Dialog):
 		hbox.add(self.query_entry)
 		button = gtk.Button(stock=gtk.STOCK_FIND)
 		hbox.pack_start(button, False)
+
+		help_text = _(
+			'For advanced search you can use operators like\n'
+			'AND, OR and NOT. See the help page for more details.'
+		) # T: help text for the search dialog
+		if gtk.gtk_version >= (2, 12, 0):
+			self.query_entry.set_tooltip_text(help_text)
+		else:
+			tooltips = gtk.Tooltips()
+			tooltips.set_tip(self.query_entry, help_text)
 
 		# TODO advanced query editor
 		# TODO checkbox _('Match c_ase')
@@ -93,10 +103,11 @@ class SearchResultsTreeView(BrowserTreeView):
 			model.append((path.name, self.selection.scores[path]))
 
 	def _do_open_page(self, view, path, col):
-		page = Path( self.get_model()[path][0] )
+		page = Path( self.get_model()[path][0].decode('utf-8') )
 		self.ui.open_page(page)
 
 		# Popup find dialog with same query
 		if self.query and self.query.simple_match:
 			string = self.query.simple_match
+			string.strip('*') # support partial matches
 			self.ui.mainwindow.pageview.show_find(string, highlight=True)
