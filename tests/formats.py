@@ -153,6 +153,8 @@ And a checkbox list
 
 ----
 
+Some sub- and superscript like x2 and H2O
+
 ====
 This is not a header
 
@@ -234,6 +236,8 @@ And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 <p>And a checkbox list
 <ul><li bullet="unchecked-box">item 1</li><ul><li bullet="checked-box">sub item 1</li><ul><li bullet="*">Some normal bullet</li></ul><li bullet="xchecked-box">sub item 2</li><li bullet="unchecked-box">sub item 3</li></ul><li bullet="unchecked-box">item 2</li><li bullet="unchecked-box">item 3</li><ul><li bullet="xchecked-box">item FOOOOOO !</li></ul></ul></p>
 <p>----
+</p>
+<p>Some sub- and superscript like x<sup>2</sup> and H<sub>2</sub>O
 </p>
 <p>====
 This is not a header
@@ -413,6 +417,10 @@ And a checkbox list<br>
 
 <p>
 ----<br>
+</p>
+
+<p>
+Some sub- and superscript like x<sup>2</sup> and H<sub>2</sub>O<br>
 </p>
 
 <p>

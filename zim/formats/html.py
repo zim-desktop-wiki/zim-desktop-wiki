@@ -112,7 +112,7 @@ class Dumper(DumperClass):
 				href = self.linker.link(element.attrib['href'])
 				title = text.replace('"', '&quot;')
 				output.append('<a href="%s" title="%s">%s</a>' % (href, title, text))
-			elif element.tag in ['emphasis', 'strong', 'mark', 'strike', 'code']:
+			elif element.tag in ['emphasis', 'strong', 'mark', 'strike', 'code','sub','sup']:
 				if element.tag == 'mark': tag = 'u'
 				elif element.tag == 'emphasis': tag = 'em'
 				else: tag = element.tag

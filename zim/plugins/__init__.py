@@ -6,10 +6,14 @@ import gobject
 import types
 import os
 import sys
+import logging
 
 import zim.fs
 from zim.fs import Dir
 from zim.config import ListDict
+
+
+logger = logging.getLogger('zim.plugins')
 
 
 def get_plugin_module(pluginname):
@@ -40,6 +44,12 @@ def list_plugins():
 	# for windows exe we now package plugins separately
 	plugins = set()
 	for dir in sys.path:
+		try:
+			dir = dir.decode(zim.fs.ENCODING)
+		except UnicodeDecodeError:
+			logger.exception('Could not decode path "%s"', dir)
+			continue
+
 		if os.path.basename(dir) == 'zim.exe':
 			# path is an executable, not a folder -- examine containing folder
 			dir = os.path.dirname(dir)

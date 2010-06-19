@@ -2,17 +2,21 @@ Source: zim
 Section: utils
 Priority: optional
 Maintainer: Jaap Karssenberg <pardus@cpan.org>
-Standards-Version: 3.8.3
-Build-Depends: debhelper (>=7), python-support (>= 0.8), cdbs (>= 0.4.49), python (>= 2.6)
+Standards-Version: 3.8.4
+Build-Depends: debhelper (>= 7.4.12), python-support (>= 0.8), xdg-utils, python (>= 2.5), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg, python-simplejson | python (>= 2.6)
 Build-Depends-Indep: xdg-utils
 
 Package: zim
 Architecture: all
 Homepage: http://zim-wiki.org/
-Depends: ${misc:Depends}, ${python:Depends}, xdg-utils, python (>= 2.6), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg
-Recommends: desktop-file-utils, bzr, subversion
-Suggests: scrot
-Conflicts: zim (<= 0.41)
+Depends: ${python:Depends}, ${misc:Depends}, python-gtk2, python-xdg, python-simplejson | python (>= 2.6)
+# python-gtkspell required for the spell checker plugin
+Recommends: python-gtkspell
+# graphviz required for the link map/diagram plugins
+# bzr required for the version control plugin
+# scrot required for the screenshot plugin
+# dvipng required for the "equation" plugin
+Suggests: bzr, graphviz, scrot, dvipng
 Description: A Desktop Wiki Editor
  Zim brings the concept of a wiki to your desktop. Store
  information, link pages and edit with WYSISYG markup.

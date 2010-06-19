@@ -55,6 +55,8 @@ parser_re = {
 	'emphasis': Re('//(?!/)(.+?)//'),
 	'strong':   Re('\*\*(?!\*)(.+?)\*\*'),
 	'mark':     Re('__(?!_)(.+?)__'),
+	'sub':	    Re('_\{(?!~)(.+?)\}'),
+	'sup':	    Re('\^\{(?!~)(.+?)\}'),
 	'strike':   Re('~~(?!~)(.+?)~~'),
 	'code':     Re("''(?!')(.+?)''"),
 }
@@ -276,7 +278,7 @@ class Parser(ParserClass):
 		list = url_re.sublist(
 				lambda match: ('link', {'href':match[1]}, match[1]) , list)
 
-		for style in 'strong', 'mark', 'strike':
+		for style in 'strong', 'mark', 'strike','sub', 'sup':
 			list = parser_re[style].sublist(
 					lambda match: (style, {}, match[1]) , list)
 
@@ -360,6 +362,10 @@ class Dumper(DumperClass):
 					output.append('{{'+src+'|'+element.text+'}}')
 				else:
 					output.append('{{'+src+'}}')
+			elif element.tag == 'sub':
+				output.append("_{%s}" % element.text)
+			elif element.tag == 'sup':
+				output.append("^{%s}" % element.text)
 			elif element.tag == 'link':
 				assert 'href' in element.attrib, \
 					'BUG: link %s "%s"' % (element.attrib, element.text)

@@ -94,6 +94,8 @@
 			<menuitem action='apply_format_mark'/>
 			<menuitem action='apply_format_strike'/>
 			<menuitem action='apply_format_code'/>
+			<menuitem action='apply_format_sub'/>
+			<menuitem action='apply_format_sup'/>
 			<separator/>
 			<menuitem action='clear_formatting'/>
 		</menu>

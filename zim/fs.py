@@ -630,8 +630,8 @@ class Dir(Path):
 		'''
 		assert self.path and self.path != '/'
 		logger.info('Remove file tree: %s', self)
-		for root, dirs, files in os.walk(self.encodedpath, topdown=False, followlinks=False):
-			# walk should not decent into symlinked folders
+		for root, dirs, files in os.walk(self.encodedpath, topdown=False):
+			# walk should not decent into symlinked folders by default
 			# remove() and rmdir() both should remove a symlink rather
 			# than the target of the link
 			for name in files:

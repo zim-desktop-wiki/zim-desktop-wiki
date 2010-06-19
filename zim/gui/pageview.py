@@ -110,6 +110,8 @@ ui_format_actions = (
 	('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<ctrl>I', _('Emphasis')), # T: Menu item
 	('apply_format_mark', 'gtk-underline', _('_Mark'), '<ctrl>U', _('Mark')), # T: Menu item
 	('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<ctrl>K', _('Strike')), # T: Menu item
+	('apply_format_sub', None, _('_Subscript'), '', _('_Subscript')), # T: Menu item
+	('apply_format_sup', None, _('_Superscript'), '', _('_Superscript')),
 	('apply_format_code', None, _('_Verbatim'), '<ctrl>T', _('Verbatim')), # T: Menu item
 )
 
@@ -321,6 +323,8 @@ class TextBuffer(gtk.TextBuffer):
 		'strike': {'strikethrough': 'true', 'foreground': 'grey'},
 		'code': {'family': 'monospace'},
 		'pre': {'family': 'monospace', 'wrap-mode': 'none'},
+		'sub': {'rise': -3500, 'scale':0.7},
+		'sup': {'rise': 7500, 'scale':0.7},
 		'link': {'foreground': 'blue'},
 		'find-highlight': {'background': 'orange'},
 	}

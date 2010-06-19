@@ -6,6 +6,9 @@ DEB_PYTHON_SYSTEM := pysupport
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/python-distutils.mk
 
+DEB_PYTHON_INSTALL_ARGS_ALL += --skip-xdg-cmd
+	# Do not trigger XDG update commands
+
 clean::
 	rm -rf build build-stamp configure-stamp build/ MANIFEST
 	dh_clean

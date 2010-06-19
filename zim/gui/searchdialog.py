@@ -103,7 +103,7 @@ class SearchResultsTreeView(BrowserTreeView):
 			model.append((path.name, self.selection.scores[path]))
 
 	def _do_open_page(self, view, path, col):
-		page = Path( self.get_model()[path][0] )
+		page = Path( self.get_model()[path][0].decode('utf-8') )
 		self.ui.open_page(page)
 
 		# Popup find dialog with same query
