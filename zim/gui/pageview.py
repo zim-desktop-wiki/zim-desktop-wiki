@@ -2139,7 +2139,8 @@ class TextView(gtk.TextView):
 			# Tab at start of line indents
 			iter = buffer.get_insert_iter()
 			home, ourhome = self.get_visual_home_positions(iter)
-			if home.starts_line() and iter.compare(ourhome) < 1:
+			if home.starts_line() and iter.compare(ourhome) < 1 \
+			and not filter(_is_pre_tag, iter.get_tags()):
 				row, list = TextBufferList.new_from_iter(buffer, iter)
 				if list and self.preferences['recursive_indentlist']:
 					list.indent(row)
@@ -2153,7 +2154,8 @@ class TextView(gtk.TextView):
 			# Backspace or Ctrl-Tab unindents line
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(iter)
-			if home.starts_line() and iter.compare(ourhome) < 1:
+			if home.starts_line() and iter.compare(ourhome) < 1 \
+			and not filter(_is_pre_tag, iter.get_tags()):
 				row, list = TextBufferList.new_from_iter(buffer, iter)
 				if list and self.preferences['recursive_indentlist']:
 					done = list.unindent(row)
