@@ -8,6 +8,7 @@ import gtk
 from zim.plugins import PluginClass
 from zim.config import data_file, config_file
 from zim.notebook import get_notebook_list
+from zim.gui.widgets import gtk_window_set_default_icon
 
 
 # Try if we are on Ubunutu with app-indicator support
@@ -213,7 +214,7 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 
 	def __init__(self):
 		gtk.StatusIcon.__init__(self)
-		self.set_from_file(data_file('zim.png').path)
+		self.set_from_icon_name('zim')
 		self.set_tooltip(_('Zim Desktop Wiki')) # T: tooltip for tray icon
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 
@@ -293,8 +294,7 @@ class DaemonTrayIconMixin(object):
 
 	def main(self):
 		# Set window icon in case we open the notebook dialog
-		icon = data_file('zim.png').path
-		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
+		gtk_window_set_default_icon()
 		gtk.main()
 
 	def quit(self):

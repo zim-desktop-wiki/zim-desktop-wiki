@@ -11,7 +11,8 @@ from zim.plugins import PluginClass
 from zim.config import config_file, data_file
 from zim.notebook import Notebook
 from zim.daemon import DaemonProxy
-from zim.gui.widgets import Dialog, scrolled_text_view, IconButton
+from zim.gui.widgets import Dialog, scrolled_text_view, IconButton, \
+	gtk_window_set_default_icon
 from zim.gui.notebookdialog import NotebookComboBox
 
 
@@ -46,8 +47,7 @@ def main(daemonproxy, *args):
 		print usagehelp
 		return
 
-	icon = data_file('zim.png').path
-	gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
+	gtk_window_set_default_icon()
 
 	dialog = CreateNoteDialog(None, options)
 	dialog.run()
