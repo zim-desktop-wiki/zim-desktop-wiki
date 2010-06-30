@@ -9,22 +9,26 @@ from datetime import date as dateclass
 
 from zim.plugins import PluginClass
 from zim.config import config_file, data_file
-from zim.notebook import Notebook
+from zim.notebook import Notebook, PageNameError
 from zim.daemon import DaemonProxy
 from zim.gui.widgets import Dialog, scrolled_text_view, IconButton
 from zim.gui.notebookdialog import NotebookComboBox
+from zim.templates import GenericTemplate, StrftimeFunction
 
 
 usagehelp = '''\
 usage: zim --plugin createnoted [OPTIONS]
 
 Options:
-  notebook=URI      Select the notebook in the dialog
-  namespace=STRING  Fill in the namespace in the dialog
-  basename=STRING   Fill in the page name in the dialog
-  text=TEXT         Provide the text directly
-  input=stdin       Provide the text on stdin
-  input=clipboard   Take the text from the clipboard
+  notebook=URI       Select the notebook in the dialog
+  namespace=STRING   Fill in the namespace in the dialog
+  basename=STRING    Fill in the page name in the dialog
+  text=TEXT          Provide the text directly
+  input=stdin        Provide the text on stdin
+  input=clipboard    Take the text from the clipboard
+  base64             Text is encoded in base64
+                     expects utf-8 after base64 decoding
+  option:url=STRING  Set template parameter
 '''
 
 
@@ -35,12 +39,19 @@ def main(daemonproxy, *args):
 	assert not os.name == 'nt', 'RPC not supported on windows'
 
 	options = {}
+	template_options = {}
 	for arg in args:
+		if arg.startswith('option:'):
+			arg = arg[7:]
+			dict = template_options
+		else:
+			dict = options
+
 		if '=' in arg:
 			key, value = arg.split('=', 1)
-			options[key] = value
+			dict[key] = value
 		else:
-			options[arg] = True
+			dict[arg] = True
 
 	if 'help' in options:
 		print usagehelp
@@ -49,7 +60,7 @@ def main(daemonproxy, *args):
 	icon = data_file('zim.png').path
 	gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
 
-	dialog = CreateNoteDialog(None, options)
+	dialog = CreateNoteDialog(None, options, template_options)
 	dialog.run()
 
 
@@ -102,7 +113,7 @@ This is a core plugin shipping with zim.
 class BoundCreateNoteDialog(Dialog):
 	'''Dialog bound to a specific notebook'''
 
-	def __init__(self, ui, options):
+	def __init__(self, ui, options, template_options):
 		Dialog.__init__(self, ui, _('Create Note'))
 		self._updating_title = False
 		self._title_set_manually = False
@@ -110,9 +121,9 @@ class BoundCreateNoteDialog(Dialog):
 		self.uistate.setdefault('namespace', None)
 		namespace = self.uistate['namespace']
 
-		self._init_inputs(namespace, None, options)
+		self._init_inputs(namespace, None, options, template_options)
 
-	def _init_inputs(self, namespace, basename, options, table=None):
+	def _init_inputs(self, namespace, basename, options, template_options, table=None):
 		self.add_fields( (
 				('namespace', 'namespace', _('Namespace'), namespace), # T: text entry field
 				('basename', 'page', _('Page Name'), basename) # T: text entry field
@@ -141,7 +152,34 @@ class BoundCreateNoteDialog(Dialog):
 			text = None
 
 		if text:
-			self.textview.get_buffer().set_text(text)
+			if 'base64' in options and options['base64']:
+				import base64
+				text = base64.b64decode(text)
+			if not isinstance(text, unicode):
+				text = text.decode('utf-8')
+		else:
+			text = ''
+
+		file = data_file('templates/_createnote.txt')
+		template = GenericTemplate(file.readlines(), name=file)
+		template_options = template_options.copy()
+		template_options.update({
+			'text': text,
+			'strftime': StrftimeFunction(),
+		} )
+		output = template.process(template_options)
+		buffer = self.textview.get_buffer()
+		buffer.set_text(''.join(output))
+		begin, end = buffer.get_bounds()
+		buffer.place_cursor(begin)
+
+	def run(self):
+		self.textview.grab_focus()
+		Dialog.run(self)
+
+	def show(self):
+		self.textview.grab_focus()
+		Dialog.show(self)
 
 	def save_uistate(self):
 		self.uistate['namespace'] = self.inputs['namespace'].get_text()
@@ -159,8 +197,11 @@ class BoundCreateNoteDialog(Dialog):
 			title = title.replace(':', '')
 			if '\n' in title:
 				title, _ = title.split('\n', 1)
-			title = Notebook.cleanup_pathname(title, purge=True)
-			self.inputs['basename'].set_text(title)
+			try:
+				title = Notebook.cleanup_pathname(title, purge=True)
+				self.inputs['basename'].set_text(title)
+			except PageNameError:
+				pass
 			self._updating_title = False
 
 	def do_response_ok(self):
@@ -171,7 +212,7 @@ class BoundCreateNoteDialog(Dialog):
 		namespace = self.inputs['namespace'].get_text()
 		basename = self.inputs['basename'].get_text()
 
-		if not namespace or not basename:
+		if not basename:
 			return False
 
 		buffer = self.textview.get_buffer()
@@ -188,7 +229,7 @@ class BoundCreateNoteDialog(Dialog):
 class CreateNoteDialog(BoundCreateNoteDialog):
 	'''Dialog which includes a notebook chooser'''
 
-	def __init__(self, ui, options):
+	def __init__(self, ui, options, template_options):
 		self.config = config_file('createnote.conf')
 		self.uistate = self.config['CreateNoteDialog']
 
@@ -221,7 +262,7 @@ class CreateNoteDialog(BoundCreateNoteDialog):
 		self.notebookcombobox.connect('changed', self.on_notebook_changed)
 		table.attach(self.notebookcombobox, 1,2, 0,1)
 
-		self._init_inputs(namespace, basename, options, table)
+		self._init_inputs(namespace, basename, options, template_options, table)
 
 	def save_uistate(self):
 		notebook = self.notebookcombobox.get_notebook()

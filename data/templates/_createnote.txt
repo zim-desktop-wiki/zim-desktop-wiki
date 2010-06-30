@@ -1,0 +1,6 @@
+[% text %]
+
+[% IF url -%]
+Source: [% url %]
+[% END -%]
+//[% strftime("%A %d %B %Y") %]//
