@@ -153,7 +153,7 @@ class Dumper(DumperClass):
 						equri = self.linker.link(element.attrib['src'])
 						eqfid = File(url_decode(equri[:-4] + '.tex'))
 						output.append('\\begin{math}\n')
-						output.extend(eqfid.readlines())
+						output.extend(eqfid.read().strip())
 						output.append('\n\\end{math}')
 					except:
 						logger.exception('Could not find latex equation:')
