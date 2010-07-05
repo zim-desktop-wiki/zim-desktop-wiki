@@ -113,10 +113,10 @@ ui_actions = (
 
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, initial state, readonly
-	('toggle_toolbar', None, _('_Toolbar'),  None, '', True, True), # T: Menu item
+	('toggle_toolbar', None, _('_Toolbar'),  '<ctrl>M', '', True, True), # T: Menu item
 	('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
 	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
-	('toggle_fullscreen',  None, _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
+	('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
 	('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
 )
 
@@ -166,7 +166,7 @@ ui_preferences = (
 		# char sets in certain international key mappings
 )
 
-if ui_environment['platform'] == 'maemo':
+if ui_environment['platform'].startswith('maemo'):
 	# Maemo specific settngs
 	ui_preferences = (
 		# key, type, category, label, default
@@ -286,6 +286,16 @@ class GtkInterface(NotebookInterface):
 		self.usedaemon = usedaemon
 		self.hideonclose = False
 
+		if ui_environment['platform'].startswith('maemo'):
+			#Maemo gtk UI bugfix: expander-size is set to 0
+			gtk.rc_parse_string('''style "toolkit"
+			{
+        	GtkTreeView::expander-size = 12
+			}
+
+			class "GtkTreeView" style "toolkit"
+			''')
+
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
 
@@ -318,7 +328,7 @@ class GtkInterface(NotebookInterface):
 			'file_browser': ['xdg-open', 'startfile'],
 			'web_browser': ['xdg-open', 'startfile']
 		}
-		if ui_environment['platform'] == 'maemo':
+		if ui_environment['platform'].startswith('maemo'):
 			apps = {
 				'email_client': ['modest'],
 				'file_browser': ['hildon-mime-summon'],
@@ -354,15 +364,24 @@ class GtkInterface(NotebookInterface):
 								self.mainwindow, 'do_set_toolbar_style')
 		self.add_radio_actions(ui_toolbar_size_radio_actions,
 								self.mainwindow, 'do_set_toolbar_size')
-		self.add_ui(data_file('menubar.xml').read(), self)
+		# Allow menubar/toolbar to customized for different platforms
+		if ui_environment['platform']:
+			fname = 'menubar-'+ui_environment['platform']+'.xml'
+		else:
+			fname = 'menubar.xml'
+		self.add_ui(data_file(fname).read(), self)
 
-		if ui_environment['platform'] == 'maemo':
-			# Hardware fullscreen key is F6 in Nxxx devices
-			group = gtk.AccelGroup()
-			group.connect_group(
-				gtk.gdk.keyval_from_name('Left'), 0, gtk.ACCEL_VISIBLE,
-				lambda o: self.mainwindow.toggle_fullscreen() )
-			self.mainwindow.add_accel_group(group)
+		if ui_environment['platform'].startswith('maemo'):
+			# Hardware fullscreen key is F6 in N8xx devices
+			#group = gtk.AccelGroup()
+			#group.connect_group(
+			#	gtk.gdk.keyval_from_name('F6'), 0, gtk.ACCEL_VISIBLE,
+			#	lambda o: self.mainwindow.toggle_fullscreen() )
+			#self.mainwindow.add_accel_group(group)
+			# AccelGroup doesn't seem to work, so do it with keypress events
+			self.mainwindow.connect('key-press-event',
+				lambda o, event: event.keyval == gtk.keysyms.F6
+					and self.mainwindow.toggle_fullscreen())
 
 		self.load_plugins()
 
@@ -371,20 +390,31 @@ class GtkInterface(NotebookInterface):
 		self._custom_tool_iconfactory = None
 		self.load_custom_tools()
 
-		if ui_environment['platform'] == 'maemo':
+		self.uimanager.ensure_update()
+			# prevent flashing when the toolbar is after showing the window
+			# and do this before connecting signal below for accelmap
+			# this has to run before moving the menu in maemo enviroments
+			# so the menuitems are linked to the menubar
+
+		if ui_environment['platform'].startswith('maemo'):
 			# Move the menu to the hildon menu
 			menu = gtk.Menu()
 			for child in self.mainwindow.menubar.get_children():
 				child.reparent(menu)
 			self.mainwindow.set_menu(menu)
+			# This works when plugins load submenu items, 
+			# e.g. when they are enabled from the preferences menu,
+			# as long as they do not change the main menubar
 			self.mainwindow.menubar.hide()
-			# FIXME need to check the effect of this hack when plugins
-			# load menu items, e.g. when they are enabled from the
-			# preferences menu.
-
-		self.uimanager.ensure_update()
-			# prevent flashing when the toolbar is after showing the window
-			# and do this before connecting signal below for accelmap
+			# Localize the fullscreen button in the toolbar
+			for i in range(self.mainwindow.toolbar.get_n_items()):
+				self.fsbutton = None
+				toolitem = self.mainwindow.toolbar.get_nth_item(i)
+				if isinstance(toolitem, gtk.ToolButton):
+					if toolitem.get_stock_id() == 'gtk-fullscreen':
+						self.fsbutton = toolitem
+						self.fsbutton.tap_and_hold_setup(menu) # attach app menu to fullscreen button for N900
+						break
 
 		accelmap = config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
@@ -1419,6 +1449,7 @@ class MainWindow(Window):
 
 	def __init__(self, ui, fullscreen=False, geometry=None):
 		'''Constructor'''
+		
 		Window.__init__(self)
 		self._fullscreen = False
 		self.ui = ui
@@ -1485,7 +1516,9 @@ class MainWindow(Window):
 		vbox.pack_start(hbox, False, True, False)
 
 		self.statusbar = gtk.Statusbar()
-		#~ self.statusbar.set_has_resize_grip(False)
+		if ui_environment['platform'].startswith('maemo'):
+			# Maemo windows aren't resizeable so it makes no sense to show the resize grip
+			self.statusbar.set_has_resize_grip(False)
 		self.statusbar.push(0, '<page>')
 		hbox.add(self.statusbar)
 
@@ -1554,6 +1587,9 @@ class MainWindow(Window):
 			if self.actiongroup:
 				# only do this after we initalize
 				self.toggle_fullscreen(show=self._fullscreen)
+		# Maemo UI bugfix: If ancestor method is not called the window
+		# will have borders when fullscreen
+		Window.do_window_state_event(self, event)
 
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:
@@ -1838,8 +1874,8 @@ class MainWindow(Window):
 		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_menubar_fullscreen', True)
 		self.uistate.setdefault('show_toolbar', True)
-		if ui_environment['platform'] == 'maemo':
-			# FIXME - why is this needed ??
+		if ui_environment['platform'].startswith('maemo'):
+			# N900 lacks menu and fullscreen hardware buttons, UI must provide them
 			self.uistate.setdefault('show_toolbar_fullscreen', True)
 		else:
 			self.uistate.setdefault('show_toolbar_fullscreen', False)

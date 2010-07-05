@@ -22,11 +22,17 @@ class ImageGeneratorDialog(Dialog):
 	# TODO: use uistate to remember pane position
 
 	def __init__(self, ui, title, generator, image=None, **opt):
-		if ui_environment['platform'] == 'maemo':
-			defaultsize = (600,480) # FIXME why is a larger size needed ??
+		if ui_environment['platform'].startswith('maemo'):
+			defaultsize = (450,480) 
+			# Use maximum available vertical space because decorations take
+			# too much real state
 		else:
 			defaultsize = (450,300)
 		Dialog.__init__(self, ui, title, defaultwindowsize=defaultsize, **opt)
+		if ui_environment['platform'].startswith('maemo'):
+			self.resize(450,480)
+			# Force maximum dialog size under maemo, otherwise
+			# we'll end with a too small dialog and no way to resize it
 		self.generator = generator
 		self.imagefile = None
 		self.logfile = None

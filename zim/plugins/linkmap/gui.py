@@ -43,13 +43,20 @@ class GtkLinkMap():
 class LinkMapDialog(Dialog):
 
 	def __init__(self, ui, linkmap):
-		if ui_environment['platform'] == 'maemo':
-			defaultsize = (800, 480) # FIXME why do we need a larger size here ?
+		if ui_environment['platform'].startswith('maemo'):
+			defaultsize = (800, 480) 
+			# The dialog hides the main window, so use all available screen anyway
+			# setting defaultsize doesn't work because maemo makes the dialog
+			# window as small as possible to fit the window's internal widgets
 		else:
 			defaultsize = (400, 400)
 		Dialog.__init__(self, ui, 'LinkMap',
 			defaultwindowsize=defaultsize, buttons=gtk.BUTTONS_CLOSE)
 		self.linkmap = linkmap
+		if ui_environment['platform'].startswith('maemo'):
+			self.resize(800,480)
+			# Force maximum dialog size under maemo, otherwise
+			# we'll end with a too small dialog and no way to resize it
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.add(hbox)

@@ -13,11 +13,10 @@ import datetime
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.notebook import Path
-from zim.gui.widgets import ui_environment, \
+from zim.gui.widgets import ui_environment, gtk_get_style,\
 	Dialog, MessageDialog, \
 	Button, IconButton, MenuButton, \
-	BrowserTreeView, SingleClickTreeView, \
-	gtk_get_style
+	BrowserTreeView, SingleClickTreeView
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 
 
@@ -364,15 +363,19 @@ gobject.type_register(TaskListPlugin)
 class TaskListDialog(Dialog):
 
 	def __init__(self, plugin):
-		if ui_environment['platform'] == 'maemo':
-			defaultsize = (800,480)
+		if ui_environment['platform'].startswith('maemo'):
+			defaultsize = (800, 480)
 		else:
-			defaultsize = (-1, -1)
+			defaultsize = (550, 400)
 
 		Dialog.__init__(self, plugin.ui, _('Task List'), # T: dialog title
-			defaultwindowsize=defaultsize,
-			buttons=gtk.BUTTONS_CLOSE, help=':Help:Plugins:Task List')
+			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
+			defaultwindowsize=defaultsize )
 		self.plugin = plugin
+		if ui_environment['platform'].startswith('maemo'):
+			self.resize(800,480)
+			# Force maximum dialog size under maemo, otherwise
+			# we'll end with a too small dialog and no way to resize it
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 		self.hpane = gtk.HPaned()
@@ -382,7 +385,7 @@ class TaskListDialog(Dialog):
 
 		# Task list
 		self.task_list = TaskListTreeView(self.ui, plugin)
-		self.task_list.set_headers_visible(True)
+		self.task_list.set_headers_visible(True) #Fix for maemo
 		scrollwindow = gtk.ScrolledWindow()
 		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
@@ -556,7 +559,7 @@ class TaskListTreeView(BrowserTreeView):
 			column.set_sort_column_id(i)
 			if i == self.TASK_COL:
 				column.set_expand(True)
-				if ui_environment['platform'] == 'maemo':
+				if ui_environment['platform'].startswith('maemo'):
 					column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 					column.set_fixed_width(250)
 					# FIXME probably should also limit the size of this

@@ -58,7 +58,7 @@ KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
 KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 
 # Maemo hildon input method keyboard doesn't emit keypress events except for TAB, ENTER and BACKSPACE
-# FIXME this comment makes a statement without a conclusion
+# so we provide TAB as an alternative END_OF_WORD key that works with the current keypress event driven implementation
 #~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
 CHARS_END_OF_WORD = ('\t', ' ', ')', '>')
 KEYVALS_END_OF_WORD = map(
@@ -155,17 +155,17 @@ ui_preferences = (
 		# T: option in preferences dialog
 )
 
-if ui_environment['platform'] == 'maemo':
+if ui_environment['platform'].startswith('maemo'):
 	# Manipulate preferences with Maemo specific settings
 	ui_preferences = list(ui_preferences)
 	for i in range(len(ui_preferences)):
 		if ui_preferences[i][0] == 'follow_on_enter':
 			ui_preferences[i] = \
-				('follow_on_enter', 'bool', None, None, True),
+				('follow_on_enter', 'bool', None, None, True)
 				# There is no ALT key on maemo devices
 		elif ui_preferences[i][0] == 'unindent_on_backspace':
 			ui_preferences[i] = \
-				('unindent_on_backspace', 'bool', None, None, True),
+				('unindent_on_backspace', 'bool', None, None, True)
 				# There is no hardware TAB key on maemo devices
 	ui_preferences = tuple(ui_preferences)
 
@@ -1440,7 +1440,7 @@ class TextBuffer(gtk.TextBuffer):
 				else:
 					icon = bullet_types[checkbox_type]
 			else:
-				i = CHECKBOXES.index(bullet)
+				i = list(CHECKBOXES).index(bullet) # use list() to be python 2.5 compatible
 				next = (i + 1) % len(CHECKBOXES)
 				icon = bullet_types[CHECKBOXES[next]]
 		else:
@@ -4093,8 +4093,11 @@ class FindBar(FindWidget, gtk.HBox):
 			# FIXME need to rewrite this hack to integrate nicely with
 			# the FindWidget base class
 			# FIXME ideally behavior would switch on the fly based on
-			# actual screensize - can we detect when these widgets
-			# fit or not ? (And re-draw when the screensize changes ?)
+			# actual screensize - we can detect when these widgets
+			# fit or not by using "x_size, y_size = mywidget.window.get_size()"
+			# or "mywidget.get_allocation().width" to get the widgets and window size
+			# and probably re-draw when the screensize or windowsize changes 
+			# by listening to window resize events.
 			# Alternatively we can always put options in this menu
 			menu = gtk.Menu()
 			item = gtk.CheckMenuItem(self.case_option_checkbox.get_label())
@@ -4105,7 +4108,11 @@ class FindBar(FindWidget, gtk.HBox):
 			item.connect('toggled',
 				lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()),self)
 			menu.append(item)
-			button = MenuButton(_('_Options'), menu) # T: Options button
+			if ui_environment['platform'].startswith('maemo'):
+				label = '' # maemo UI convention: up arrow button with no label
+			else:
+				label = _('Options')
+			button = MenuButton(label, menu) # T: Options button
 			self.pack_start(button, False)
 		else:
 			self.pack_start(self.case_option_checkbox, False)

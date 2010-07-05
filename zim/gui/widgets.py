@@ -37,7 +37,7 @@ KEYVALS_SLASH = (
 # UI Environment config. Would properly belong in zim.gui.__init__
 # but defined here to avoid unnecessary dependencies on zim.gui
 ui_environment = {
-	'platform': None, # platform name to trigger platform specific optimizations
+	'platform': '', # platform name to trigger platform specific optimizations
 	'maxscreensize': None, # max screensize _if_ fixed by the platform
 	'smallscreen': False, # trigger optimizations for small screens
 }
@@ -47,7 +47,10 @@ ui_environment = {
 try:
 	import hildon
 	Window = hildon.Window
-	ui_environment['platform'] = 'maemo'
+	if hasattr(Window,'set_app_menu'):
+		ui_environment['platform'] = 'maemo5'
+	else:
+		ui_environment['platform'] = 'maemo4'
 	ui_environment['maxscreensize'] = (800, 480)
 	ui_environment['smallscreen'] = True
 except ImportError:
@@ -643,10 +646,11 @@ class Dialog(gtk.Dialog):
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
 		elif hasattr(ui, 'uistate') \
 		and isinstance(ui.uistate, zim.config.ConfigDict):
+			assert isinstance(defaultwindowsize, tuple)
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
-			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
 			#~ print '>>', self.uistate
+			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
 		else:
 			self.uistate = { # used in tests/debug
 				'windowsize': defaultwindowsize
@@ -909,7 +913,7 @@ class Dialog(gtk.Dialog):
 		else:
 			destroy = True
 
-		if ui_environment['platform'] != 'maemo':
+		if not(ui_environment['platform'].startswith('maemo')):
 			w, h = self.get_size()
 			self.uistate['windowsize'] = (w, h)
 			self.save_uistate()
@@ -1077,7 +1081,7 @@ class FileDialog(Dialog):
 				button = (None, gtk.STOCK_SAVE)
 			# else Ok will do
 
-		if ui_environment['platform'] == 'maemo':
+		if ui_environment['platform'].startswith('maemo'):
 			defaultsize = (800, 480)
 		else:
 			defaultsize = (500, 400)

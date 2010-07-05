@@ -108,7 +108,8 @@ def collect_data_files():
 			if data_files[i][0].startswith(prefix):
 				data_files.pop(i)
 
-		files = [f for f in os.listdir('maemo/applications') if f.endswith('.desktop')]
+		files = ['maemo/applications/%s' % f
+				for f in os.listdir('maemo/applications') if f.endswith('.desktop')]
 		data_files.append((prefix, files))
 
 	# .po files -> PREFIX/share/locale/..
