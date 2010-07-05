@@ -53,9 +53,18 @@ try:
 		ui_environment['platform'] = 'maemo4'
 	ui_environment['maxscreensize'] = (800, 480)
 	ui_environment['smallscreen'] = True
+
+	# Maemo gtk UI bugfix: expander-size is set to 0 by default
+	gtk.rc_parse_string('''\
+style "toolkit"
+{
+	GtkTreeView::expander-size = 12
+}
+
+class "GtkTreeView" style "toolkit"
+''' )
 except ImportError:
 	Window = gtk.Window
-
 
 
 def _encode_xml(text):
@@ -646,16 +655,15 @@ class Dialog(gtk.Dialog):
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
 		elif hasattr(ui, 'uistate') \
 		and isinstance(ui.uistate, zim.config.ConfigDict):
-			assert isinstance(defaultwindowsize, tuple)
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
-			#~ print '>>', self.uistate
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
 		else:
 			self.uistate = { # used in tests/debug
 				'windowsize': defaultwindowsize
 			}
 
+		#~ print '>>', self.uistate
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 

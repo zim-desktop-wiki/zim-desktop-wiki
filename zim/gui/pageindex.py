@@ -144,7 +144,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled'),
 			index.connect('page-to-be-deleted', on_deleted),
 		)
-		# The page-to-be-deleted signal is a hack so we have time to ensure we know the 
+		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
 		# treepath of this indexpath - once we get page-deleted it is to late to get this
 
 	def disconnect(self):
@@ -428,10 +428,9 @@ class PageTreeView(BrowserTreeView):
 			# so need signal after construction preferenes dialog
 
 		if ui_environment['platform'].startswith('maemo'):
-			#Maemo gtk UI bugfix: expanders are hidden by default
+			# Maemo gtk UI bugfix: expanders are hidden by default
 			self.set_property('level-indentation',0)
 			self.set_property('show-expanders',1)
-
 
 	def do_set_notebook(self, ui, notebook):
 		self._cleanup = None # else it might be pointing to old model

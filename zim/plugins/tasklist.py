@@ -385,7 +385,7 @@ class TaskListDialog(Dialog):
 
 		# Task list
 		self.task_list = TaskListTreeView(self.ui, plugin)
-		self.task_list.set_headers_visible(True) #Fix for maemo
+		self.task_list.set_headers_visible(True) # Fix for maemo
 		scrollwindow = gtk.ScrolledWindow()
 		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		scrollwindow.set_shadow_type(gtk.SHADOW_IN)

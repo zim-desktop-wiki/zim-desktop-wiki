@@ -113,7 +113,7 @@ ui_actions = (
 
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, initial state, readonly
-	('toggle_toolbar', None, _('_Toolbar'),  '<ctrl>M', '', True, True), # T: Menu item
+	('toggle_toolbar', None, _('_Toolbar'),  '', '', True, True), # T: Menu item
 	('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
 	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
 	('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
@@ -286,16 +286,6 @@ class GtkInterface(NotebookInterface):
 		self.usedaemon = usedaemon
 		self.hideonclose = False
 
-		if ui_environment['platform'].startswith('maemo'):
-			#Maemo gtk UI bugfix: expander-size is set to 0
-			gtk.rc_parse_string('''style "toolkit"
-			{
-        	GtkTreeView::expander-size = 12
-			}
-
-			class "GtkTreeView" style "toolkit"
-			''')
-
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
 
@@ -373,12 +363,6 @@ class GtkInterface(NotebookInterface):
 
 		if ui_environment['platform'].startswith('maemo'):
 			# Hardware fullscreen key is F6 in N8xx devices
-			#group = gtk.AccelGroup()
-			#group.connect_group(
-			#	gtk.gdk.keyval_from_name('F6'), 0, gtk.ACCEL_VISIBLE,
-			#	lambda o: self.mainwindow.toggle_fullscreen() )
-			#self.mainwindow.add_accel_group(group)
-			# AccelGroup doesn't seem to work, so do it with keypress events
 			self.mainwindow.connect('key-press-event',
 				lambda o, event: event.keyval == gtk.keysyms.F6
 					and self.mainwindow.toggle_fullscreen())
@@ -391,21 +375,21 @@ class GtkInterface(NotebookInterface):
 		self.load_custom_tools()
 
 		self.uimanager.ensure_update()
-			# prevent flashing when the toolbar is after showing the window
-			# and do this before connecting signal below for accelmap
-			# this has to run before moving the menu in maemo enviroments
-			# so the menuitems are linked to the menubar
+			# Prevent flashing when the toolbar is after showing the window
+			# and do this before connecting signal below for accelmap.
+			# For maemo ensure all items are initialized before moving
+			# them to the hildon menu
 
 		if ui_environment['platform'].startswith('maemo'):
 			# Move the menu to the hildon menu
+			# This is save for later updates of the menus (e.g. by plugins)
+			# as long as the toplevel menus are not changed
 			menu = gtk.Menu()
 			for child in self.mainwindow.menubar.get_children():
 				child.reparent(menu)
 			self.mainwindow.set_menu(menu)
-			# This works when plugins load submenu items, 
-			# e.g. when they are enabled from the preferences menu,
-			# as long as they do not change the main menubar
 			self.mainwindow.menubar.hide()
+
 			# Localize the fullscreen button in the toolbar
 			for i in range(self.mainwindow.toolbar.get_n_items()):
 				self.fsbutton = None
@@ -1448,8 +1432,6 @@ class MainWindow(Window):
 	'''
 
 	def __init__(self, ui, fullscreen=False, geometry=None):
-		'''Constructor'''
-		
 		Window.__init__(self)
 		self._fullscreen = False
 		self.ui = ui
@@ -1587,9 +1569,11 @@ class MainWindow(Window):
 			if self.actiongroup:
 				# only do this after we initalize
 				self.toggle_fullscreen(show=self._fullscreen)
-		# Maemo UI bugfix: If ancestor method is not called the window
-		# will have borders when fullscreen
-		Window.do_window_state_event(self, event)
+
+		if ui_environment['platform'].startswith('maemo'):
+			# Maemo UI bugfix: If ancestor method is not called the window
+			# will have borders when fullscreen
+			Window.do_window_state_event(self, event)
 
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:

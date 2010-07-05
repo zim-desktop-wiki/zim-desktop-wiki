@@ -209,7 +209,7 @@ class Calendar(gtk.Calendar):
 	def __init__(self):
 		gtk.Calendar.__init__(self)
 		self.selected = False
-		
+
 	def do_key_press_event(self, event):
 		handled = gtk.Calendar.do_key_press_event(self, event)
 		if handled and (event.keyval in KEYVALS_SPACE
@@ -226,7 +226,7 @@ class Calendar(gtk.Calendar):
 
 	def do_day_selected(self):
 		self.selected = True
-		
+
 	def select_date(self, date):
 		'''Set selected date using a datetime oject'''
 		self.select_month(date.month - 1, date.year)
@@ -263,17 +263,17 @@ class CalendarPluginWidget(gtk.VBox):
 		self.pack_start(self.calendar, False)
 
 		self.plugin.ui.connect('open-page', self.on_open_page)
-		self.__select_date_cb = None
+		self._select_date_cb = None
 
 	def set_select_date_callback(self, func):
-		self.__select_date_cb = func
+		self._select_date_cb = func
 
 	def on_calendar_activate(self, calendar):
 		path = self.plugin.path_from_date( calendar.get_date() )
 		if path != self.plugin.ui.page:
 			self.plugin.ui.open_page(path)
-		if callable(self.__select_date_cb):
-			self.__select_date_cb(calendar.get_date())
+		if callable(self._select_date_cb):
+			self._select_date_cb(calendar.get_date())
 
 	def on_month_changed(self, calendar):
 		calendar.clear_marks()
@@ -321,6 +321,6 @@ class CalendarDialog(Dialog):
 				self.dateshown = date
 			else:
 				self.emit('close')
-	
+
 	def do_today(self, event):
 		self.calendar_widget.select_date(dateclass.today())

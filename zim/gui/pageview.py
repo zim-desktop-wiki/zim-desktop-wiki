@@ -4096,7 +4096,7 @@ class FindBar(FindWidget, gtk.HBox):
 			# actual screensize - we can detect when these widgets
 			# fit or not by using "x_size, y_size = mywidget.window.get_size()"
 			# or "mywidget.get_allocation().width" to get the widgets and window size
-			# and probably re-draw when the screensize or windowsize changes 
+			# and probably re-draw when the screensize or windowsize changes
 			# by listening to window resize events.
 			# Alternatively we can always put options in this menu
 			menu = gtk.Menu()
@@ -4109,10 +4109,10 @@ class FindBar(FindWidget, gtk.HBox):
 				lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()),self)
 			menu.append(item)
 			if ui_environment['platform'].startswith('maemo'):
-				label = '' # maemo UI convention: up arrow button with no label
+				# maemo UI convention: up arrow button with no label
+				button = MenuButton('', menu)
 			else:
-				label = _('Options')
-			button = MenuButton(label, menu) # T: Options button
+				button = MenuButton(_('Options'), menu) # T: Options button
 			self.pack_start(button, False)
 		else:
 			self.pack_start(self.case_option_checkbox, False)
