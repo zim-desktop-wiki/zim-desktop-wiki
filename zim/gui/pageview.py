@@ -155,7 +155,7 @@ ui_preferences = (
 		# T: option in preferences dialog
 )
 
-if ui_environment['platform'].startswith('maemo'):
+if ui_environment['platform'] == 'maemo':
 	# Manipulate preferences with Maemo specific settings
 	ui_preferences = list(ui_preferences)
 	for i in range(len(ui_preferences)):
@@ -4108,7 +4108,7 @@ class FindBar(FindWidget, gtk.HBox):
 			item.connect('toggled',
 				lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()),self)
 			menu.append(item)
-			if ui_environment['platform'].startswith('maemo'):
+			if ui_environment['platform'] == 'maemo':
 				# maemo UI convention: up arrow button with no label
 				button = MenuButton('', menu)
 			else:

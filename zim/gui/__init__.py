@@ -166,7 +166,7 @@ ui_preferences = (
 		# char sets in certain international key mappings
 )
 
-if ui_environment['platform'].startswith('maemo'):
+if ui_environment['platform'] == 'maemo':
 	# Maemo specific settngs
 	ui_preferences = (
 		# key, type, category, label, default
@@ -318,7 +318,7 @@ class GtkInterface(NotebookInterface):
 			'file_browser': ['xdg-open', 'startfile'],
 			'web_browser': ['xdg-open', 'startfile']
 		}
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			apps = {
 				'email_client': ['modest'],
 				'file_browser': ['hildon-mime-summon'],
@@ -354,14 +354,15 @@ class GtkInterface(NotebookInterface):
 								self.mainwindow, 'do_set_toolbar_style')
 		self.add_radio_actions(ui_toolbar_size_radio_actions,
 								self.mainwindow, 'do_set_toolbar_size')
-		# Allow menubar/toolbar to customized for different platforms
-		if ui_environment['platform']:
-			fname = 'menubar-'+ui_environment['platform']+'.xml'
+
+		if ui_environment['platform'] == 'maemo':
+			# Customized menubar for maemo, specific for maemo version
+			fname = 'menubar-' + ui_environment['maemo_version'] + '.xml'
 		else:
 			fname = 'menubar.xml'
 		self.add_ui(data_file(fname).read(), self)
 
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			# Hardware fullscreen key is F6 in N8xx devices
 			self.mainwindow.connect('key-press-event',
 				lambda o, event: event.keyval == gtk.keysyms.F6
@@ -380,7 +381,7 @@ class GtkInterface(NotebookInterface):
 			# For maemo ensure all items are initialized before moving
 			# them to the hildon menu
 
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			# Move the menu to the hildon menu
 			# This is save for later updates of the menus (e.g. by plugins)
 			# as long as the toplevel menus are not changed
@@ -1498,7 +1499,7 @@ class MainWindow(Window):
 		vbox.pack_start(hbox, False, True, False)
 
 		self.statusbar = gtk.Statusbar()
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			# Maemo windows aren't resizeable so it makes no sense to show the resize grip
 			self.statusbar.set_has_resize_grip(False)
 		self.statusbar.push(0, '<page>')
@@ -1570,7 +1571,7 @@ class MainWindow(Window):
 				# only do this after we initalize
 				self.toggle_fullscreen(show=self._fullscreen)
 
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			# Maemo UI bugfix: If ancestor method is not called the window
 			# will have borders when fullscreen
 			Window.do_window_state_event(self, event)
@@ -1858,7 +1859,7 @@ class MainWindow(Window):
 		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_menubar_fullscreen', True)
 		self.uistate.setdefault('show_toolbar', True)
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			# N900 lacks menu and fullscreen hardware buttons, UI must provide them
 			self.uistate.setdefault('show_toolbar_fullscreen', True)
 		else:

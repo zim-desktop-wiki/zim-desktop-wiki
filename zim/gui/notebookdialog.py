@@ -350,7 +350,7 @@ class AddNotebookDialog(Dialog):
 		self.vbox.pack_start(label, False)
 		if name is None and folder is None:
 			name = 'Notes'
-			if ui_environment['platform'].startswith('maemo'):
+			if ui_environment['platform'] == 'maemo':
 				folder = '~/MyDocs/Notes' # 'MyDocs' is the "Device" folder on maemo
 			else:
 				folder = '~/Notes'

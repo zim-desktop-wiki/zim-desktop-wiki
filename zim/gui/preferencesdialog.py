@@ -26,8 +26,6 @@ class PreferencesDialog(Dialog):
 		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
-		#~ if ui_environment['platform'].startswith('maemo'):
-			#~ self.resize(800,480)
 
 		# Dynamic tabs
 		for category, preferences in ui.preferences_register.items():

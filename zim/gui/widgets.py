@@ -37,7 +37,7 @@ KEYVALS_SLASH = (
 # UI Environment config. Would properly belong in zim.gui.__init__
 # but defined here to avoid unnecessary dependencies on zim.gui
 ui_environment = {
-	'platform': '', # platform name to trigger platform specific optimizations
+	'platform': None, # platform name to trigger platform specific optimizations
 	'maxscreensize': None, # max screensize _if_ fixed by the platform
 	'smallscreen': False, # trigger optimizations for small screens
 }
@@ -47,10 +47,11 @@ ui_environment = {
 try:
 	import hildon
 	Window = hildon.Window
+	ui_environment['platform'] = 'maemo'
 	if hasattr(Window,'set_app_menu'):
-		ui_environment['platform'] = 'maemo5'
+		ui_environment['maemo_version'] = 'maemo5'
 	else:
-		ui_environment['platform'] = 'maemo4'
+		ui_environment['maemo_version'] = 'maemo4'
 	ui_environment['maxscreensize'] = (800, 480)
 	ui_environment['smallscreen'] = True
 
@@ -921,7 +922,7 @@ class Dialog(gtk.Dialog):
 		else:
 			destroy = True
 
-		if not(ui_environment['platform'].startswith('maemo')):
+		if ui_environment['platform'] != 'maemo':
 			w, h = self.get_size()
 			self.uistate['windowsize'] = (w, h)
 			self.save_uistate()
@@ -1089,7 +1090,7 @@ class FileDialog(Dialog):
 				button = (None, gtk.STOCK_SAVE)
 			# else Ok will do
 
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			defaultsize = (800, 480)
 		else:
 			defaultsize = (500, 400)

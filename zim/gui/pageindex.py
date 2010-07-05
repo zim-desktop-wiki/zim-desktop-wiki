@@ -427,7 +427,7 @@ class PageTreeView(BrowserTreeView):
 			# need to grey out preference for gtk < 2.10
 			# so need signal after construction preferenes dialog
 
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			# Maemo gtk UI bugfix: expanders are hidden by default
 			self.set_property('level-indentation',0)
 			self.set_property('show-expanders',1)

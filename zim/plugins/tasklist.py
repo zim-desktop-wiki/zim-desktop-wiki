@@ -363,7 +363,7 @@ gobject.type_register(TaskListPlugin)
 class TaskListDialog(Dialog):
 
 	def __init__(self, plugin):
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			defaultsize = (800, 480)
 		else:
 			defaultsize = (550, 400)
@@ -372,7 +372,7 @@ class TaskListDialog(Dialog):
 			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
 			defaultwindowsize=defaultsize )
 		self.plugin = plugin
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			self.resize(800,480)
 			# Force maximum dialog size under maemo, otherwise
 			# we'll end with a too small dialog and no way to resize it
@@ -559,7 +559,7 @@ class TaskListTreeView(BrowserTreeView):
 			column.set_sort_column_id(i)
 			if i == self.TASK_COL:
 				column.set_expand(True)
-				if ui_environment['platform'].startswith('maemo'):
+				if ui_environment['platform'] == 'maemo':
 					column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 					column.set_fixed_width(250)
 					# FIXME probably should also limit the size of this

@@ -313,7 +313,7 @@ class CalendarDialog(Dialog):
 		self.dateshown = dateclass.today()
 
 	def on_select_date(self, date):
-		if ui_environment['platform'].startswith('maemo'):
+		if ui_environment['platform'] == 'maemo':
 			# match the user usage pattern
 			# close the dialog once a explicit selection is made
 			# since it is modal and the mainwindow can't be reached
