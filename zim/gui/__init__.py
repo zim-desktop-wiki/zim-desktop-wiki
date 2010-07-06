@@ -14,7 +14,7 @@ the application to define additional actions. See the methods
 add_actions() and add_ui() for wrappers around this functionality.
 A second mechanism is that for simple options other classes can
 register a preference to be shown in the PreferencesDialog. See
-the register_prererences() mmethod. NOTE: the plugin base class
+the register_prererences() method. NOTE: the plugin base class
 has it's own wrappers for these things. Plugin writers should
 look there first.
 
@@ -862,7 +862,7 @@ class GtkInterface(NotebookInterface):
 		self.open_page(self.notebook.get_home_page())
 
 	def new_page(self):
-		'''opens a dialog like 'open_page(None)'. Subtle difference is
+		'''opens a dialog like 'open_page()'. Subtle difference is
 		that this page is saved directly, so it is pesistent if the user
 		navigates away without first adding content. Though subtle this
 		is expected behavior for users not yet fully aware of the automatic
@@ -875,6 +875,10 @@ class GtkInterface(NotebookInterface):
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
 
 	def new_page_from_text(self, text, name=None):
+		'''Create a new page and set text directly. If no name is given
+		the first line of the text is used as basename. If the page
+		already exists a number is added to force a unique page name.
+		'''
 		if not name:
 			name = text.strip()[:30]
 			if '\n' in name:
@@ -884,6 +888,14 @@ class GtkInterface(NotebookInterface):
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_new_page(path)
 		page.parse('plain', text)
+		self.notebook.store_page(page)
+		self.open_page(page)
+
+	def append_text_to_page(self, name, text):
+		'''Append text to an (exising) page'''
+		path = self.notebook.resolve_path(name)
+		page = self.notebook.get_page(path)
+		page.parse('plain', text, append=True)
 		self.notebook.store_page(page)
 		self.open_page(page)
 

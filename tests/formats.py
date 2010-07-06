@@ -79,6 +79,33 @@ class TestParseTree(TestCase):
 		text = tree.tostring()
 		self.assertEqualDiff(text, wanted)
 
+	def testExtend(self):
+		tree1 = ParseTree().fromstring(self.xml)
+		tree2 = ParseTree().fromstring(self.xml)
+		tree = tree1 + tree2
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<h level="1">Head 1</h>
+<h level="2">Head 2</h>
+<h level="3">Head 3</h>
+<h level="2">Head 4</h>
+<h level="5">Head 5</h>
+<h level="4">Head 6</h>
+<h level="5">Head 7</h>
+<h level="6">Head 8</h>
+
+<h level="1">Head 1</h>
+<h level="2">Head 2</h>
+<h level="3">Head 3</h>
+<h level="2">Head 4</h>
+<h level="5">Head 5</h>
+<h level="4">Head 6</h>
+<h level="5">Head 7</h>
+<h level="6">Head 8</h>
+</zim-tree>'''
+		text = tree.tostring()
+		self.assertEqualDiff(text, wanted)
 
 class TestTextFormat(TestCase):
 

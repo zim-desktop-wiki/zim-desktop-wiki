@@ -394,8 +394,14 @@ class PageEntry(InputEntry):
 		self.set_text(':'+path.name)
 
 	def get_path(self):
+		'''Returns a valid Path object or None. If None is returned
+		the widget is flagged as invalid. So e.g. in a dialog you can
+		get a path and refuse to close a dialog if the path is None and
+		the user will automatically be alerted to the missing input.
+		'''
 		name = self.get_text().decode('utf-8').strip()
 		if not name:
+			self.set_input_valid(False)
 			return None
 		elif self.allow_select_root and name == ':':
 			return Path(':')
@@ -408,6 +414,7 @@ class PageEntry(InputEntry):
 				else:
 					path = Path(name)
 			except PageNameError:
+				self.set_input_valid(False)
 				return None
 			else:
 				return path
@@ -696,6 +703,7 @@ class Dialog(gtk.Dialog):
 		same dialog.
 		'''
 		# FIXME FIXME FIXME - this code needs to go in a special class for constructing forms
+		# when doing so define all input types as constants
 		if table is None:
 			table = gtk.Table()
 			table.set_border_width(5)
@@ -757,6 +765,9 @@ class Dialog(gtk.Dialog):
 						else:
 							assert isinstance(value, Path)
 							entry.set_path(value)
+					entry._zim_form_label = label # HACK used in create note plugin
+							# need separate step to go from definition to widgets to catch this
+							# then feed widgets to function to build form
 					self.inputs[name] = entry
 					table.attach(entry, 1,2, i,i+1)
 
@@ -771,6 +782,7 @@ class Dialog(gtk.Dialog):
 					entry.zim_type = type
 					if not value is None:
 						entry.set_text(str(value))
+					entry._zim_form_label = label # HACK used in create note plugin
 					self.inputs[name] = entry
 					table.attach(entry, 1,2, i,i+1)
 

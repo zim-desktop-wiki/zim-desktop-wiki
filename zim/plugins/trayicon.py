@@ -127,8 +127,8 @@ class TrayIconBase(object):
 		'''Returns the main 'tray icon menu'''
 		menu = gtk.Menu()
 
-		item = gtk.MenuItem(_('_Create Note...')) # T: menu item in tray icon menu
-		item.connect_object('activate', self.__class__.do_create_note, self)
+		item = gtk.MenuItem(_('_Quick Note...')) # T: menu item in tray icon menu
+		item.connect_object('activate', self.__class__.do_quick_note, self)
 		menu.append(item)
 
 		menu.append(gtk.SeparatorMenuItem())
@@ -201,10 +201,10 @@ class TrayIconBase(object):
 		from zim.gui.notebookdialog import NotebookDialog
 		NotebookDialog.unique(self, self, callback=self.do_activate_notebook).show()
 
-	def do_create_note(self):
-		'''Show a dialog to create a new note'''
-		from zim.plugins.createnote import CreateNoteDialog
-		dialog = CreateNoteDialog(None, {})
+	def do_quick_note(self):
+		'''Show the dialog from the quicknote plugin'''
+		from zim.plugins.quicknote import QuickNoteDialog
+		dialog = QuickNoteDialog(None, {})
 		dialog.show()
 
 

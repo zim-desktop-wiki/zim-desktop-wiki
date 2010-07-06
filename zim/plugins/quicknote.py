@@ -17,7 +17,7 @@ from zim.templates import GenericTemplate, StrftimeFunction
 
 
 usagehelp = '''\
-usage: zim --plugin createnoted [OPTIONS]
+usage: zim --plugin quicknoted [OPTIONS]
 
 Options:
   notebook=URI       Select the notebook in the dialog
@@ -52,29 +52,52 @@ def main(daemonproxy, *args):
 			dict[key] = value
 		else:
 			dict[arg] = True
+	#~ print 'OPTIONS:', options, template_options
+
 
 	if 'help' in options:
 		print usagehelp
 		return
 
+	if 'input' in options:
+		if options['input'] == 'stdin':
+			import sys
+			text = sys.stdin.read()
+		elif options['input'] == 'clipboard':
+			text = \
+				gtk.Clipboard(selection='PRIMARY').wait_for_text() \
+				or gtk.Clipboard(selection='CLIPBOARD').wait_for_text()
+	else:
+		text = options.get('text')
+
+	if text and options.get('base64'):
+		import base64
+		text = base64.b64decode(text)
+
+	if text and not isinstance(text, unicode):
+		text = text.decode('utf-8')
+
 	icon = data_file('zim.png').path
 	gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
 
-	dialog = CreateNoteDialog(None, options, template_options)
+	dialog = QuickNoteDialog(None,
+		options.get('notebook'),
+		options.get('namespace'), options.get('basename'),
+		text, template_options )
 	dialog.run()
 
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, read only
-	('show_create_note', 'gtk-new', _('_Create Note...'), '', '', True), # T: menu item
+	('show_quick_note', 'gtk-new', _('Quick Note...'), '', '', True), # T: menu item
 )
 
 ui_xml = '''
 <ui>
 	<menubar name='menubar'>
-		<menu action='tools_menu'>
-			<placeholder name="plugin_items">
-				<menuitem action="show_create_note" />
+		<menu action='file_menu'>
+			<placeholder name="open_items">
+				<menuitem action="show_quick_note" />
 			</placeholder>
 		</menu>
 	</menubar>
@@ -82,10 +105,10 @@ ui_xml = '''
 '''
 
 
-class CreateNotePlugin(PluginClass):
+class QuickNotePlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Create Note'), # T: plugin name
+		'name': _('Quick Note'), # T: plugin name
 		'description': _('''\
 This plugin adds a dialog to quickly drop some text or clipboard
 content into a zim page.
@@ -93,7 +116,7 @@ content into a zim page.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
-		'help': 'Plugins:Drop Window',
+		'help': 'Plugins:Quick Note',
 	}
 
 	#~ plugin_preferences = (
@@ -105,32 +128,56 @@ This is a core plugin shipping with zim.
 			ui.add_actions(ui_actions, self)
 			ui.add_ui(ui_xml, self)
 
-	def show_create_note(self):
-		dialog = BoundCreateNoteDialog.unique(self, self.ui, {})
+	def show_quick_note(self):
+		dialog = BoundQuickNoteDialog.unique(self, self.ui, {})
 		dialog.show()
 
 
-class BoundCreateNoteDialog(Dialog):
+class BoundQuickNoteDialog(Dialog):
 	'''Dialog bound to a specific notebook'''
 
-	def __init__(self, ui, options, template_options):
-		Dialog.__init__(self, ui, _('Create Note'))
+	def __init__(self, ui, namespace=None, basename=None, text=None, template_options=None):
+		Dialog.__init__(self, ui, _('Quick Note'))
 		self._updating_title = False
 		self._title_set_manually = False
 
 		self.uistate.setdefault('namespace', None)
-		namespace = self.uistate['namespace']
+		namespace = namespace or self.uistate['namespace']
 
-		self._init_inputs(namespace, None, options, template_options)
+		self._init_inputs(namespace, basename, text, template_options)
 
-	def _init_inputs(self, namespace, basename, options, template_options, table=None):
-		self.add_fields( (
+	def _init_inputs(self, namespace, basename, text, template_options, table=None):
+		if template_options is None: template_options = {}
+		else: template_options = template_options.copy()
+
+		# Set up the inputs and set page/ namespace to switch on
+		# toggling the checkbox
+		table = self.add_fields( (
+				('page', 'page', _('Page'), namespace),
 				('namespace', 'namespace', _('Namespace'), namespace), # T: text entry field
-				('basename', 'page', _('Page Name'), basename) # T: text entry field
-			), table=table, trigger_response=False,
-		)
+				('newpage', 'bool', _('Create a new page for each note'), False),
+				('basename', 'page', _('Title'), basename) # T: text entry field
+			), table=table, trigger_response=False )
 
-		window, textview = scrolled_text_view(text=options.get('text', None))
+		self.inputs['page'].set_no_show_all(True)
+		self.inputs['page']._zim_form_label.set_no_show_all(True)
+		self.inputs['namespace'].set_no_show_all(True)
+		self.inputs['namespace']._zim_form_label.set_no_show_all(True)
+
+		def switch_input(*a):
+			newpage = self.inputs['newpage'].get_active()
+			self.inputs['page'].set_visible(not newpage)
+			self.inputs['page']._zim_form_label.set_visible(not newpage)
+			self.inputs['namespace'].set_visible(newpage)
+			self.inputs['namespace']._zim_form_label.set_visible(newpage)
+			self.inputs['basename'].set_sensitive(newpage)
+
+		switch_input()
+		self.inputs['newpage'].connect('toggled', switch_input)
+
+		# Add the main textview and hook up the basename field to
+		# sync with first line of the textview
+		window, textview = scrolled_text_view()
 		self.textview = textview
 		self.textview.set_editable(True)
 		self.vbox.add(window)
@@ -138,33 +185,11 @@ class BoundCreateNoteDialog(Dialog):
 		self.inputs['basename'].connect('changed', self.on_title_changed)
 		self.textview.get_buffer().connect('changed', self.on_text_changed)
 
-		if 'text' in options:
-			text = options['text']
-		elif 'input' in options:
-			if options['input'] == 'stdin':
-				import sys
-				text = sys.stdin.read()
-			elif options['input'] == 'clipboard':
-				text = gtk.Clipboard(selection='PRIMARY').wait_for_text()
-				if not text:
-					text = gtk.Clipboard(selection='CLIPBOARD').wait_for_text()
-		else:
-			text = None
-
-		if text:
-			if 'base64' in options and options['base64']:
-				import base64
-				text = base64.b64decode(text)
-			if not isinstance(text, unicode):
-				text = text.decode('utf-8')
-		else:
-			text = ''
-
-		file = data_file('templates/_createnote.txt')
+		# Initialize text from template
+		file = data_file('templates/_quicknote.txt')
 		template = GenericTemplate(file.readlines(), name=file)
-		template_options = template_options.copy()
 		template_options.update({
-			'text': text,
+			'text': text or '',
 			'strftime': StrftimeFunction(),
 		} )
 		output = template.process(template_options)
@@ -182,7 +207,11 @@ class BoundCreateNoteDialog(Dialog):
 		Dialog.show(self)
 
 	def save_uistate(self):
-		self.uistate['namespace'] = self.inputs['namespace'].get_text()
+		self.uistate['newpage'] = self.inputs['newpage'].get_active()
+		if self.uistate['newpage']:
+			self.uistate['namespace'] = self.inputs['namespace'].get_text()
+		else:
+			self.uistate['namespace'] = self.inputs['page'].get_text()
 
 	def on_title_changed(self, o):
 		if not self._updating_title:
@@ -204,51 +233,57 @@ class BoundCreateNoteDialog(Dialog):
 				pass
 			self._updating_title = False
 
-	def do_response_ok(self):
-		if not (self.inputs['namespace'].get_input_valid()
-		and self.inputs['basename'].get_input_valid() ):
-			return False
-
+	def do_response_ok(self, get_ui=None):
+		newpage = self.inputs['newpage'].get_active()
+		page = self.inputs['page'].get_text()
 		namespace = self.inputs['namespace'].get_text()
 		basename = self.inputs['basename'].get_text()
-
-		if not basename:
-			return False
 
 		buffer = self.textview.get_buffer()
 		bounds = buffer.get_bounds()
 		text = buffer.get_text(*bounds)
 
-		self._create_note(text, namespace + ':' + basename)
+		if newpage:
+			if not self.inputs['namespace'].get_input_valid() \
+			or not self.inputs['basename'].get_input_valid():
+				return False
+			elif not basename:
+				self.inputs['basename'].set_input_valid(False)
+				return False
+
+			if get_ui: ui = get_ui()
+			else: ui = self.ui
+			ui.new_page_from_text(text, namespace + ':' + basename)
+		else:
+			if not self.inputs['page'].get_input_valid() \
+			or not page:
+				self.inputs['page'].set_input_valid(False)
+				return False
+
+			if get_ui: ui = get_ui()
+			else: ui = self.ui
+			ui.append_text_to_page(page, '\n----\n'+text)
+
+		ui.present()
 		return True
 
-	def _create_note(self, text, name):
-		self.ui.new_page_from_text(text, name)
 
-
-class CreateNoteDialog(BoundCreateNoteDialog):
+class QuickNoteDialog(BoundQuickNoteDialog):
 	'''Dialog which includes a notebook chooser'''
 
-	def __init__(self, ui, options, template_options):
-		self.config = config_file('createnote.conf')
-		self.uistate = self.config['CreateNoteDialog']
+	def __init__(self, ui, notebook=None, namespace=None, basename=None, text=None, template_options=None):
+		self.config = config_file('quicknote.conf')
+		self.uistate = self.config['QuickNoteDialog']
 
-		Dialog.__init__(self, ui, _('Create Note'))
+		Dialog.__init__(self, ui, _('Quick Note'))
 		self._updating_title = False
 		self._title_set_manually = False
 
 		self.uistate.setdefault('lastnotebook', None)
 		if self.uistate['lastnotebook']:
-			notebook = self.uistate['lastnotebook']
+			notebook = notebook or self.uistate['lastnotebook']
 			self.config['Namespaces'].setdefault(notebook, None)
-			namespace = self.config['Namespaces'][notebook]
-		else:
-			notebook = None
-			namespace = None
-
-		notebook = options.get('notebook') or notebook
-		namespace = options.get('namespace') or namespace
-		basename = options.get('basename')
+			namespace = namespace or self.config['Namespaces'][notebook]
 
 		table = gtk.Table()
 		self.vbox.pack_start(table, False)
@@ -262,12 +297,16 @@ class CreateNoteDialog(BoundCreateNoteDialog):
 		self.notebookcombobox.connect('changed', self.on_notebook_changed)
 		table.attach(self.notebookcombobox, 1,2, 0,1)
 
-		self._init_inputs(namespace, basename, options, template_options, table)
+		self._init_inputs(namespace, basename, text, template_options, table)
 
 	def save_uistate(self):
 		notebook = self.notebookcombobox.get_notebook()
 		self.uistate['lastnotebook'] = notebook
-		self.config['Namespaces'][notebook] = self.inputs['namespace'].get_text()
+		self.uistate['newpage'] = self.inputs['newpage'].get_active()
+		if self.uistate['newpage']:
+			self.config['Namespaces'][notebook] = self.inputs['namespace'].get_text()
+		else:
+			self.config['Namespaces'][notebook] = self.inputs['page'].get_text()
 		self.config.write()
 
 	def on_notebook_changed(self, o):
@@ -278,15 +317,16 @@ class CreateNoteDialog(BoundCreateNoteDialog):
 		if namespace:
 			self.inputs['namespace'].set_text(namespace)
 
-	def _create_note(self, text, name):
-		# HACK to start daemon from separate process
-		# we are not allowed to fork since we already loaded gtk
-		from subprocess import check_call
-		from zim import ZIM_EXECUTABLE
-		check_call([ZIM_EXECUTABLE, '--daemon'])
+	def do_response_ok(self):
+		def get_ui():
+			# HACK to start daemon from separate process
+			# we are not allowed to fork since we already loaded gtk
+			from subprocess import check_call
+			from zim import ZIM_EXECUTABLE
+			check_call([ZIM_EXECUTABLE, '--daemon'])
 
-		notebook = self.notebookcombobox.get_notebook()
+			notebook = self.notebookcombobox.get_notebook()
+			return DaemonProxy().get_notebook(notebook)
 
-		gui = DaemonProxy().get_notebook(notebook)
-		gui.new_page_from_text(text, name)
-		gui.present()
+		return BoundQuickNoteDialog.do_response_ok(self, get_ui)
+

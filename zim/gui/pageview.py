@@ -3905,6 +3905,7 @@ class InsertLinkDialog(Dialog):
 		href = entry.get_text().strip()
 			# Not using PageEntry.get_path() here - keep text as typed
 		if not href:
+			entry.set_input_valid(False)
 			return False
 
 		type = link_type(href)
