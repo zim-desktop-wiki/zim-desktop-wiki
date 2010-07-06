@@ -38,6 +38,40 @@ def _encode_xml(text):
 	return text.replace('>', '&gt;').replace('<', '&lt;')
 
 
+def gtk_window_set_default_icon():
+	from zim.config import ZIM_DATA_DIR, XDG_DATA_HOME, XDG_DATA_DIRS
+	iconlist = []
+	if ZIM_DATA_DIR:
+		dir = ZIM_DATA_DIR + '../icons'
+		for name in ('zim16.png', 'zim32.png', 'zim48.png'):
+			file = dir.file(name)
+			if file.exists():
+				pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+				iconlist.append(pixbuf)
+	else:
+		sizes = ['16x16', '32x32', '48x48']
+		for dir in [XDG_DATA_HOME] + XDG_DATA_DIRS:
+			for size in sizes:
+				file = dir.file('icons/hicolor/%s/apps/zim.png' % size)
+				if file.exists():
+					sizes.remove(size)
+					pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+					iconlist.append(pixbuf)
+			if not sizes:
+				break
+
+	if not iconlist:
+		# fall back to data/zim.png
+		file = data_file('zim.png')
+		pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+		iconlist.append(pixbuf)
+			
+
+	if len(iconlist) < 3:
+		logger.warn('Could not find all icon sizes for the application icon')
+	gtk.window_set_default_icon_list(*iconlist)
+
+
 def scrolled_text_view(text=None, monospace=False):
 	'''Initializes a gtk.TextView with sane defaults for displaying a
 	piece of multiline text, wraps it in a scrolled window and returns

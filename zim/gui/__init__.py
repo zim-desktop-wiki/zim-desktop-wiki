@@ -45,7 +45,8 @@ from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
 from zim.gui.widgets import Button, MenuButton, \
-	Dialog, ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
+	Dialog, ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, \
+	gtk_window_set_default_icon
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import get_application, get_default_application, CustomToolManager
 
@@ -275,8 +276,7 @@ class GtkInterface(NotebookInterface):
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
 
-		icon = data_file('zim.png').path
-		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
+		gtk_window_set_default_icon()
 
 		self.uimanager = gtk.UIManager()
 		self.uimanager.add_ui_from_string('''
