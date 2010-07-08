@@ -1916,7 +1916,7 @@ class BackLinksMenuButton(MenuButton):
 
 		self.menu.add(gtk.TearoffMenuItem())
 			# TODO: hook tearoff to trigger search dialog
-		links.sort(key=lambda a: a.source.name)
+
 		for link in links:
 			item = gtk.MenuItem(link.source.name)
 			item.connect_object('activate', self.ui.open_page, link.source)

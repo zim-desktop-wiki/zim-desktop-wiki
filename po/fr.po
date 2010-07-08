@@ -956,7 +956,7 @@ msgstr ""
 #, python-format
 msgid "Remove links from %i page linking to this page"
 msgid_plural "Remove links from %i pages linking to this page"
-msgstr[0] "Supprimer les liens de la page pointant sur cette page"
+msgstr[0] "Supprimer les liens de %i page pointant sur cette page"
 msgstr[1] "Supprimer les liens des %i pages pointant sur cette page"
 
 #. Title of progressbar dialog

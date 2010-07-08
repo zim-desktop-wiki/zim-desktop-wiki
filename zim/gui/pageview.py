@@ -3486,7 +3486,10 @@ class PageView(gtk.VBox):
 		'''
 		links = list(links)
 		for i in range(len(links)):
-			if isinstance(links[i], File):
+			if isinstance(links[i], Path):
+				links[i] = links[i].name
+				continue
+			elif isinstance(links[i], File):
 				file = links[i]
 			else:
 				type = link_type(links[i])
