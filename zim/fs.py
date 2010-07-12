@@ -295,6 +295,7 @@ class FileNotFoundError(PathLookupError):
 	def __init__(self, file):
 		self.file = file
 		self.msg = _('No such file: %s') % file.path
+			# T: message for FileNotFoundError
 
 
 # TODO actually hook the signal for deleting files and folders

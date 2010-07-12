@@ -156,7 +156,7 @@ class BoundQuickNoteDialog(Dialog):
 		table = self.add_fields( (
 				('page', 'page', _('Page'), namespace),
 				('namespace', 'namespace', _('Namespace'), namespace), # T: text entry field
-				('newpage', 'bool', _('Create a new page for each note'), False),
+				('newpage', 'bool', _('Create a new page for each note'), False), # T: checkbox in Quick Note dialog
 				('basename', 'page', _('Title'), basename) # T: text entry field
 			), table=table, trigger_response=False )
 
