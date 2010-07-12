@@ -112,18 +112,36 @@ class Exporter(object):
 		logger.info('Export done')
 		return True
 
-	def export_page(self, dir, page, pages=None, use_namespace=False):
-		'''Export 'page' to a file below 'dir'. Path below 'dir' will be
-		determined by the namespace of 'page'. Attachments wil also be
+	def export_page(self, dir, page, pages=None, use_namespace=False, filename=None, dirname=None):
+		'''Export 'page' to a file below 'dir'. Attachments wil also be
 		copied along.
+
+		If only a page is given that output file will have the same
+		basename as the page. If 'use_namespace' is set to True the
+		path below 'dir' will be determined by the namespace of 'page'.
+		The attachment directory will match the name of the file but
+		without extension.
+
+		Alternatively when a filename is given it will be used. If
+		needed the apropriate file extension is added to the name.
+		Similar the dirname option can be used to specify the directory
+		for attachments, otherwise it is derived from the filename.
 		'''
 		logger.info('Exporting %s', page.name)
 
-		if use_namespace:
-			dirname = encode_filename(page.name)
-		else:
-			dirname = encode_filename(page.basename)
-		filename = dirname + '.' + self.format.info['extension']
+		if filename is None:
+			if use_namespace:
+				filename = encode_filename(page.name)
+			else:
+				filename = encode_filename(page.basename)
+
+		extension = '.' + self.format.info['extension']
+		if not filename.endswith(extension):
+			filename += extension
+
+		if dirname is None:
+			dirname = filename[:-len(extension)]
+
 		file = dir.file(filename)
 		attachments = self.notebook.get_attachments_dir(page)
 		self.linker.set_base(attachments.dir)

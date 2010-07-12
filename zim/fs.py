@@ -290,6 +290,13 @@ class OverWriteError(Error):
 	pass # TODO description
 
 
+class FileNotFoundError(PathLookupError):
+
+	def __init__(self, file):
+		self.file = file
+		self.msg = _('No such file: %s') % file.path
+
+
 # TODO actually hook the signal for deleting files and folders
 
 class _FS(gobject.GObject):
@@ -826,8 +833,8 @@ class File(Path):
 			FS.emit('path-created', self)
 
 	def read(self, encoding='utf-8'):
-		'''Returns the content as string, or an empty string if
-		this file does not exist.
+		'''Returns the content as string. Raises a
+		FileNotFoundError exception when the file does not exist.
 		'''
 		with self._lock:
 			text = self._read(encoding)
@@ -838,23 +845,25 @@ class File(Path):
 		Returns a AsyncOperation object, see there for documentation
 		for 'callback'. Try operation.result for content.
 		'''
+		if not self.exists():
+			raise FileNotFoundError(self)
 		operation = AsyncOperation(
 			self._read, lock=self._lock, callback=callback, data=data)
 		operation.start()
 		return operation
 
 	def _read(self, encoding='utf-8'):
-		if not self.exists():
-			return ''
-		else:
+		try:
 			file = self.open('r', encoding)
 			content = file.read()
 			self._checkoverwrite(content)
 			return _convert_newlines(content)
+		except IOError:
+			raise FileNotFoundError(self)
 
 	def readlines(self):
-		'''Returns the content as list of lines, or an empty list if
-		this file does not exist.
+		'''Returns the content as list of lines. Raises a
+		FileNotFoundError exception when the file does not exist.
 		'''
 		with self._lock:
 			lines = self._readlines()
@@ -865,19 +874,21 @@ class File(Path):
 		Returns a AsyncOperation object, see there for documentation
 		for 'callback'. Try operation.result for content.
 		'''
+		if not self.exists():
+			raise FileNotFoundError(self)
 		operation = AsyncOperation(
 			self._readlines, lock=self._lock, callback=callback, data=data)
 		operation.start()
 		return operation
 
 	def _readlines(self):
-		if not self.exists():
-			return []
-		else:
+		try:
 			file = self.open('r')
 			content = file.readlines()
 			self._checkoverwrite(content)
 			return map(_convert_newlines, content)
+		except IOError:
+			raise FileNotFoundError(self)
 
 	def write(self, text):
 		'''Overwrite file with text'''

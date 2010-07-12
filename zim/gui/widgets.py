@@ -65,7 +65,7 @@ def gtk_window_set_default_icon():
 		file = data_file('zim.png')
 		pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
 		iconlist.append(pixbuf)
-			
+
 
 	if len(iconlist) < 3:
 		logger.warn('Could not find all icon sizes for the application icon')
@@ -410,6 +410,7 @@ class PageEntry(InputEntry):
 		self.notebook = notebook
 		self.path_context = path_context
 		self.force_child = False
+		self.force_existing = False
 		self._completing = ''
 
 		self.completion_model = gtk.ListStore(str)
@@ -451,6 +452,10 @@ class PageEntry(InputEntry):
 				self.set_input_valid(False)
 				return None
 			else:
+				if self.force_existing:
+					page = self.notebook.get_page(path)
+					if not (page and page.exists()):
+						return None
 				return path
 
 	def clear(self):
@@ -482,6 +487,10 @@ class PageEntry(InputEntry):
 			return
 		else:
 			self.set_input_valid(True)
+
+		if self.force_existing:
+			path = self.get_path()
+			self.set_input_valid(not path is None)
 
 		if not self.notebook:
 			return # no completion without a notebook
@@ -746,6 +755,16 @@ class Dialog(gtk.Dialog):
 			self.vbox.add(table)
 		i = table.get_property('n-rows')
 
+		def _hook_label_to_widget(label, widget):
+			# Hook label to follow state of entry widget
+			def _sync_state(widget, spec):
+				label.set_sensitive(widget.get_sensitive())
+				label.set_visible(widget.get_visible())
+				label.set_no_show_all(widget.get_no_show_all())
+
+			for property in ('visible', 'no-show-all', 'sensitive'):
+				widget.connect_after('notify::%s' % property, _sync_state)
+
 		for field in fields:
 			name, type, label, value = field
 			if type == 'bool':
@@ -762,6 +781,7 @@ class Dialog(gtk.Dialog):
 				button.set_value(v)
 				button.set_range(min, max)
 				button.set_increments(1,5)
+				_hook_label_to_widget(label, button)
 				self.inputs[name] = button
 				table.attach(button, 1,2, i,i+1)
 			elif type == 'list':
@@ -799,9 +819,8 @@ class Dialog(gtk.Dialog):
 						else:
 							assert isinstance(value, Path)
 							entry.set_path(value)
-					entry._zim_form_label = label # HACK used in create note plugin
-							# need separate step to go from definition to widgets to catch this
-							# then feed widgets to function to build form
+
+					_hook_label_to_widget(label, entry)
 					self.inputs[name] = entry
 					table.attach(entry, 1,2, i,i+1)
 
@@ -816,7 +835,8 @@ class Dialog(gtk.Dialog):
 					entry.zim_type = type
 					if not value is None:
 						entry.set_text(str(value))
-					entry._zim_form_label = label # HACK used in create note plugin
+
+					_hook_label_to_widget(label, entry)
 					self.inputs[name] = entry
 					table.attach(entry, 1,2, i,i+1)
 
@@ -1290,6 +1310,236 @@ class ProgressBarDialog(gtk.Dialog):
 
 # Need to register classes defining gobject signals
 gobject.type_register(ProgressBarDialog)
+
+
+class Assistant(Dialog):
+	'''Dialog with multi-page input, sometimes also revert to as a
+	"wizard". Similar to gtk.Assistent but does not derive from that
+	class for lack of flexibility in setting the dialog layout.
+
+	Each "page" in the assistant is a step in the work flow. Pages
+	should inherit from the AssistantPage class. Pages share the
+	'uistate' dict with assistant object, and can also use this to
+	communicate state to another page. So each step can change it's
+	look based on state set in the previous step.
+
+	Sub-classes can freely manipulate the flow of pages e.g. by
+	overloading the previous_page() and next_page() methods.
+	'''
+
+	def __init__(self, ui, title, **options):
+		Dialog.__init__(self, ui, title, **options)
+		self.set_border_width(5)
+		self._pages = []
+		self._page = -1
+		self._uistate = self.uistate
+		self.uistate = self._uistate.copy()
+		# Use temporary state, so we can cancel the wizard
+
+		buttons = [b for b in self.action_area.get_children()
+			if not self.action_area.child_get_property(b, 'secondary')]
+		#~ print [b.get_label() for b in buttons]
+		self.ok_button = buttons[0] # HACK: not sure this order fixed
+		self.ok_button.set_no_show_all(True)
+
+		self.back_button = gtk.Button(stock=gtk.STOCK_GO_BACK)
+		self.back_button.connect_object('clicked', self.__class__.previous_page, self)
+		self.action_area.add(self.back_button)
+
+		self.forw_button = gtk.Button(stock=gtk.STOCK_GO_FORWARD)
+		self.forw_button.set_no_show_all(True)
+		self.forw_button.connect_object('clicked', self.__class__.next_page, self)
+		self.action_area.add(self.forw_button)
+
+		self.action_area.reorder_child(self.ok_button, -1)
+
+	def append_page(self, page):
+		'''Append a page'''
+		assert isinstance(page, AssistantPage)
+		self._pages.append(page)
+
+	def run(self):
+		assert self._pages
+		self.set_page(0)
+		Dialog.run(self)
+
+	def get_pages(self):
+		'''Returns a list with AssistantPage objects'''
+		return self._pages
+
+	def set_page(self, i):
+		'''Go to page i in the assistant'''
+		if i < 0 or i >= len(self._pages):
+			return False
+
+		# Wrap up previous page
+		if self._page > -1:
+			try: # hack needed for filechooser valid in gtk < 2.12
+				self._pages[self._page]._check_valid()
+			except Exception, error:
+				ErrorDialog(self, error).run()
+				return False
+			else:
+				self._pages[self._page].save_uistate()
+
+		# Remove previous page
+		for child in self.vbox.get_children():
+			if not isinstance(child, gtk.ButtonBox):
+				self.vbox.remove(child)
+
+		self._page = i
+		page = self._pages[self._page]
+
+		# Add page title - use same color as used by gtkassistent.c
+		ebox = gtk.EventBox()
+		style = gtk_get_style()
+		ebox.modify_fg(gtk.STATE_NORMAL, style.fg[gtk.STATE_SELECTED])
+		ebox.modify_bg(gtk.STATE_NORMAL, style.bg[gtk.STATE_SELECTED])
+
+		hbox = gtk.HBox()
+		hbox.set_border_width(5)
+		ebox.add(hbox)
+		self.vbox.pack_start(ebox, False)
+
+		label = gtk.Label()
+		label.set_markup('<b>' + page.title + '</b>')
+		hbox.pack_start(label, False)
+		label = gtk.Label()
+		label.set_markup('<b>(%i/%i)</b>' % (self._page+1, len(self._pages)))
+		hbox.pack_end(label, False)
+
+		# Add actual page
+		self.vbox.add(page)
+		self.vbox.show_all()
+		page.init_uistate()
+
+		self.back_button.set_sensitive(self._page > 0)
+		if self._page < len(self._pages) - 1:
+			self.forw_button.show()
+			self.ok_button.hide()
+		else:
+			self.forw_button.hide()
+			self.ok_button.show()
+
+		self._update_valid()
+		page.connect('input-valid-changed', self._update_valid)
+
+		return True
+
+	def _update_valid(self, *a):
+		page = self._pages[self._page]
+		ok = page.get_input_valid()
+		self.forw_button.set_sensitive(ok)
+		self.ok_button.set_sensitive(ok)
+
+	def next_page(self):
+		'''Go forward to the next page'''
+		return self.set_page(self._page + 1)
+
+	def previous_page(self):
+		'''Go back to the previous page'''
+		return self.set_page(self._page - 1)
+
+	def do_response(self, id):
+		self._pages[self._page].save_uistate()
+		if id == gtk.RESPONSE_OK:
+			self._uistate.update(self.uistate)
+		Dialog.do_response(self, id)
+
+
+class AssistantPage(gtk.VBox):
+	'''Base class for pages in an Assistant dialog. Should have an
+	attribute 'title'. Also will have an attribute 'uistate' which
+	is set by the constructor to link to the dialog. This uistate is
+	shared between all pages in the same dialog.
+
+	The input needs to be valid before the user is allowed to continue.
+	You can set valid state directly or use the convenience functions
+	to hook widgets that need to be valid.
+	'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'input-valid-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+	}
+
+	title = ''
+
+	def __init__(self, assistant):
+		gtk.VBox.__init__(self)
+		self.set_border_width(5)
+		self.uistate = assistant.uistate
+		self._input_valid = False
+		self._input_valid_widgets = []
+
+	def init_uistate(self):
+		'''Hook called when a new page is shown in the dialog. Should
+		be used to update uistate according to input of other pages.
+		'''
+		pass
+
+	def save_uistate(self):
+		'''Hook called when leaving the current page. Should set uistate
+		to reflect user input. Should not fail on validation.
+		'''
+		pass
+
+	def set_input_valid(self, valid):
+		self._input_valid = valid
+		self.emit('input-valid-changed')
+
+	def get_input_valid(self):
+		return self._input_valid
+
+	def add_validation_widget(self, widget):
+		'''Hook an InputEntry or gtk.FileChooese object for input
+		validation. If the widget is visible and sensitive it needs
+		to be valid in order for the page to be valid.
+
+		For FileChooser objects being valid means a file or folder
+		was selected.
+		'''
+		if isinstance(widget, gtk.FileChooser):
+			if gtk.gtk_version >= (2, 12, 0):
+				widget.connect_after('file-set', self._update_valid)
+		else:
+			widget.connect_after('changed', self._update_valid)
+
+		widget.connect_after('notify::sensitive', self._update_valid)
+		widget.connect_after('notify::visible', self._update_valid)
+
+		self._input_valid_widgets.append(widget)
+		self._update_valid()
+
+	def _update_valid(self, *a):
+		valid = True
+		for widget in self._input_valid_widgets:
+			if not widget.get_property('sensitive') \
+			or not widget.get_property('visible'):
+				continue
+
+			if isinstance(widget, gtk.FileChooser):
+				if gtk.gtk_version >= (2, 12, 0):
+					valid = not widget.get_filename() is None
+				else:
+					pass
+			else:
+				valid = widget.get_input_valid()
+
+		self.set_input_valid(valid)
+
+	def _check_valid(self):
+		# Called in a try .. except block before finalizing page
+		# needed because missing signal for filechooserbutton in gtk < 2.12
+		for widget in self._input_valid_widgets:
+			if isinstance(widget, gtk.FileChooser) \
+			and widget.get_property('sensitive') \
+			and widget.get_property('visible'):
+				if widget.get_filename() is None:
+					raise AssertionError, 'Missing file name'
+
+# Need to register classes defining gobject signals
+gobject.type_register(AssistantPage)
 
 
 class ImageView(gtk.Layout):

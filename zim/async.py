@@ -58,7 +58,7 @@ class AsyncOperation(threading.Thread):
 		If you add a callback function it will be called in the main
 		thread after the function is finished. Callback is called like:
 
-			callback(value, exc_info, data)
+			callback(value, error, exc_info, data)
 
 			* 'value' is the return value of the function
 			* 'error' is an Exception object or None

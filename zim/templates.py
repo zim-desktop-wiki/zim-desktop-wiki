@@ -94,17 +94,22 @@ def list_templates(format):
 	return templates
 
 
-def get_template(format, name):
-	'''Returns a Template object for a template name or a file path'''
-	if is_path_re.match(name):
-		file = File(name)
+def get_template(format, template):
+	'''Returns a Template object for a template name, file path, or File object'''
+	if isinstance(template, File):
+		file = template
 	else:
-		templates = list_templates(format)
-		#~ if not name in templates: FIXME exception type
-			#~ raise
-		file = File(templates[name])
+		if not is_path_re.match(template):
+			try:
+				templates = list_templates(format)
+				file = File(templates[template])
+			except KeyError:
+				file = File(template)
+		else:
+			file = File(template)
+
 	logger.info('Loading template from: %s', file)
-	return Template(file.readlines(), format, name=file)
+	return Template(file.readlines(), format, name=file.path)
 
 
 class TemplateError(Error):

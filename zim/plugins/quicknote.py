@@ -161,16 +161,12 @@ class BoundQuickNoteDialog(Dialog):
 			), table=table, trigger_response=False )
 
 		self.inputs['page'].set_no_show_all(True)
-		self.inputs['page']._zim_form_label.set_no_show_all(True)
 		self.inputs['namespace'].set_no_show_all(True)
-		self.inputs['namespace']._zim_form_label.set_no_show_all(True)
 
 		def switch_input(*a):
 			newpage = self.inputs['newpage'].get_active()
 			self.inputs['page'].set_visible(not newpage)
-			self.inputs['page']._zim_form_label.set_visible(not newpage)
 			self.inputs['namespace'].set_visible(newpage)
-			self.inputs['namespace']._zim_form_label.set_visible(newpage)
 			self.inputs['basename'].set_sensitive(newpage)
 
 		switch_input()
