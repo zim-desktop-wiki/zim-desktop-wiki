@@ -1,0 +1,29 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2010-04-03T23:35:33.816582
+
+====== Importing External Files ======
+
+**Pages in Zim**
+Pages in Zim are stored as text files in normal folders and subfolders in your file system.
+The file name is used as page name. The hierarchical structure is similar to the one appearing in the index. The file names should contain **no blanks**; instead use underlines. So a filename can look like this: "Help_on_creating_notebooks.txt" or "HelpOnCreatingNotebooks.txt".
+
+Important: The content of the text file must be UTF-8 or ASCII encoded.  If you are not familiar with character encoding, please read http://en.wikipedia.org/wiki/Character_encoding.
+
+Some word processors allow checking the encoding, e.g. with the small editor Mousepad load the file, then click Save as, then the button on the bottom right just above the save button should show UTF-8. If not and if you cannot save with this configuration Zim will not work. You can also use the Geany editor for the same purposes.
+
+The filename should be encoded in the proper encoding for your file system. You can easily check this by making sure your operating system default file browser shows the file names correctly. There are a number of characters that are forbidden in page names, these are: "?", "#", "/", "\\", "*", '"', "<", ">", "|" and "%". These are forbidden because they have a special meanign in the zim wiki syntax or because they can not be encoded on common file systems.
+
+**Moving pages into an existing notebook: **
+If you have just a few pages then use the import function, see the menu item //Files// -> //Import page...// .
+
+If you have a larger number of pages that conform with the page description above, then close  Zim, move these pages either into an existing subfolder to the other pages of the existing Zim Notebook folder or create a new subfolder inside the Zim Notebook folder. Reopen the Notebook and the pages and the new subfolder should appear. Rebuilding the index may take quite some time, if you have added many pages.
+
+It may be advisable to click Tools / Re-build Index
+
+**Creating a new Notebook**
+If you wish to create a new notebook, e.g. from data from another application that allows to export its content as text files, you can create a new notebook folder and move the files in as described above.
+
+Now open zim and go to the menu item //File// -> //Open Another Notebook...// . In the dialog that appears you can add a new notebook and specify the folder you just created. You will get a warning that the folder is not empty, but this can be ignored in this case. Now you can open the newly added notebook from the dialog.
+
+The notebook that opens should show pages corresponding to the file structure you created in the folder.

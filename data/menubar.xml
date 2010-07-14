@@ -5,6 +5,7 @@
 			<menuitem action='new_sub_page'/>
 			<menuitem action='open_notebook'/>
 			<menuitem action='import_page'/>
+			<placeholder name='open_items'/>
 			<separator/>
 			<menuitem action='open_new_window'/>
 			<separator/>

@@ -21,8 +21,7 @@ import logging
 from datetime import datetime
 
 import zim.fs
-from zim.fs import *
-from zim.fs import FilteredDir
+from zim.fs import File, Dir, FilteredDir, FileNotFoundError
 from zim.async import AsyncOperation
 from zim.formats import get_format
 from zim.notebook import Path, Page, LookupError, PageExistsError
@@ -185,7 +184,7 @@ class FileStorePage(Page):
 	def _fetch_parsetree(self, lines=None):
 		'''Fetch a parsetree from source or returns None'''
 		#~ print '!! fetch tree', self
-		if lines or self.source.exists():
+		try:
 			lines = lines or self.source.readlines()
 			self.properties = HeadersDict()
 			self.properties.read(lines)
@@ -196,7 +195,7 @@ class FileStorePage(Page):
 				version = 'Unknown'
 			parser = self.format.Parser(version)
 			return parser.parse(lines)
-		else:
+		except FileNotFoundError:
 			return None
 
 	def _store(self):

@@ -5,10 +5,14 @@
 '''This modules handles export of LaTeX Code'''
 
 import re
+import logging
 
 from zim.fs import File
 from zim.formats import *
 from zim.parsing import TextBuffer
+
+logger = logging.getLogger('zim.formats.latex')
+
 
 info = {
 	'name':		'LaTeX',
@@ -83,7 +87,7 @@ class Dumper(DumperClass):
 		self.document_type = self.template_options.get('document_type')
 			# Option set in template - potentially tainted value
 		if not self.document_type in ('report', 'article','book'):
-			logger.info('option dict %s does not contain suitable document type. Using default'%self.document_type)
+			logger.warn('No document type set in template, assuming "report"')
 			self.document_type = 'report' # arbitrary default
 		else:
 			logger.info('used document type: %s'%self.document_type)

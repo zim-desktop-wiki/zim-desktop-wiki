@@ -94,17 +94,22 @@ def list_templates(format):
 	return templates
 
 
-def get_template(format, name):
-	'''Returns a Template object for a template name or a file path'''
-	if is_path_re.match(name):
-		file = File(name)
+def get_template(format, template):
+	'''Returns a Template object for a template name, file path, or File object'''
+	if isinstance(template, File):
+		file = template
 	else:
-		templates = list_templates(format)
-		#~ if not name in templates: FIXME exception type
-			#~ raise
-		file = File(templates[name])
+		if not is_path_re.match(template):
+			try:
+				templates = list_templates(format)
+				file = File(templates[template])
+			except KeyError:
+				file = File(template)
+		else:
+			file = File(template)
+
 	logger.info('Loading template from: %s', file)
-	return Template(file.readlines(), format, name=file)
+	return Template(file.readlines(), format, name=file.path)
 
 
 class TemplateError(Error):
@@ -224,8 +229,11 @@ class GenericTemplate(object):
 						raise TemplateSyntaxError, "unmatched '[%'"
 					append_text(pre)
 					if cmd.startswith('-'): # '[%-'
-						if isinstance(self.stack[-1][-1], basestring):
-							self.stack[-1][-1] = self.stack[-1][-1].rstrip()
+						try:
+							if isinstance(self.stack[-1][-1], basestring):
+								self.stack[-1][-1] = self.stack[-1][-1].rstrip()
+						except IndexError:
+							pass
 					if cmd.endswith('-'): # '-%]'
 						line = line.lstrip()
 					cmd = cmd.strip('-')
@@ -279,14 +287,14 @@ class Template(GenericTemplate):
 				notebook, page,
 				self.format, self.linker, options),
 			'pages': pages,
-			'strftime': TemplateFunction(self.strftime),
+			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
 			'options': options
 		}
 
 		if self.linker:
-			self.linker.set_path(page) 
-			# this is later reset in body() but we need it here for 
+			self.linker.set_path(page)
+			# this is later reset in body() but we need it here for
 			# first part of the template
 
 		output = GenericTemplate.process(self, dict)
@@ -302,22 +310,6 @@ class Template(GenericTemplate):
 		'''Like process, but returns a parse tree instead of text'''
 		lines = self.process(notebook, page)
 		return self.format.Parser().parse(lines)
-
-	@staticmethod
-	def strftime(dict, format, timestamp=None):
-		'''Static method callable from the template, returns a string'''
-		if timestamp is None:
-			return strftime(format)
-		elif isinstance(timestamp, basestring):
-			# TODO generalize this - now hardcoded for Calendar plugin
-			match = re.search(r'\d{4}:\d{2}:\d{2}', timestamp)
-			if match:
-				timestamp = strptime(match.group(0), '%Y:%m:%d')
-				return strftime(format, timestamp)
-			else:
-				return None
-		else:
-			return strftime(format, timestamp)
 
 	@staticmethod
 	def url(dict, link):
@@ -466,6 +458,7 @@ class FOREACHToken(TemplateToken):
 
 		return output
 
+
 class TemplateLiteral(unicode):
 
 	def evaluate(self, dict):
@@ -547,6 +540,27 @@ class TemplateFunction(object):
 
 	def __call__(self, *args):
 		return self.function(*args)
+
+
+class StrftimeFunction(TemplateFunction):
+	'''Template function wrapper for strftime'''
+
+	def __init__(self):
+		pass
+
+	def __call__(self, dict, format, timestamp=None):
+		if timestamp is None:
+			return strftime(format)
+		elif isinstance(timestamp, basestring):
+			# TODO generalize this - now hardcoded for Calendar plugin
+			match = re.search(r'\d{4}:\d{2}:\d{2}', timestamp)
+			if match:
+				timestamp = strptime(match.group(0), '%Y:%m:%d')
+				return strftime(format, timestamp)
+			else:
+				return None
+		else:
+			return strftime(format, timestamp)
 
 
 class TemplateDict(object):

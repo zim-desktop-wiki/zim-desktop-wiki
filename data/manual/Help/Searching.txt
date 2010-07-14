@@ -22,25 +22,32 @@ The **Regular expressions** check-box toggles advanced search and replace where 
 The **Highlight** check-box toggles highlighting for all results in the buffer.
 
 ===== Search =====
-The "//Search//->//Search//..." menu item triggers the search dialog to pop up. This dialog allows you to e.g. search for pages that contain a certain word. See below for the query syntax supported by this dialog for advanced usage.
+The "//Search//->//Search//..." menu item triggers the search dialog to pop up. This dialog allows you to e.g. search for pages that contain a certain word. You can have multiple search dialogs open at the same time. 
 
-You can have multiple search dialogs open at the same time.
+You can not only search for multiple words, but zim also allows using more refined search queries. See below for the query syntax supported by this dialog for advanced usage.
 
-==== Back links ====
-As a special case you can search for a page name. Instead of a full text search a cache lookup will be done and a list is shown of pages linking to the page you searched for. Page names are defined as words containing a ":" character in this context.
+A normal search runs through all the pages of the notebook. Special searches, such as searching for links or namespaces, search only part of the index and are correspondingly faster, which may be important for large notebooks with hundreds to thousands of pages.
 
-When you open the "//Search//->//Search Back links//..." menu item you get the same Search dialog as with //Search// but the name of the current page is filled in already. The same dialog can be triggered by clicking on the "Back links" area in the status bar.
+===== Back links =====
+This is the last item in the Search menu. As a special case you can search for a page name. Instead of a full text search a cache lookup will be done and a list is shown of pages linking to the page you searched for. Page names are defined as words containing a ":" character in this context.
+
+When you open the "//Search//->//Search Back links//..." menu item you get the same Search dialog as with //Search// but the name of the current page is filled in already. 
+
+As an alternative you can click on the "Back links" area in the status bar, this will pop up a menu with all back links to the current page.
+
+
 
 ===== Search Query Syntax =====
+This section describes the query syntax that can be used in the search dialog.
 
 === Summary ===
-**Operators:**
-+ -
-AND and &&
-OR or ||
-NOT
 
-**Keywords:**
+**Operators:**
++ AND and &&	all the words  must be on the page
+OR or ||			any one of the words must be on the page
+- NOT			the page may not contain this word
+
+**Keywords:**	//details on keyword searches below//
 Content:
 Name:
 NameSpace:
@@ -50,7 +57,11 @@ LinksTo:
 
 
 === Details ===
-By default if you enter a couple of words in the search dialog zim looks for pages that contain all of these words in either in the page name or in the page contents. For multiple words an implicit AND operator is assumed. The following queries are all equivalent:
+The Boolean operators AND NOT OR give you great flexibility in searching. If you have large, long-term notebooks, it is worth the learning curve.
+
+AND is the default: it serves to narrow your search by stipulating that 2 or more terms appear on the same page
+
+As in most search programs (e.g. Google and Yahoo) logical AND is **implied** by default: If you enter a couple of words in the search dialog zim looks for pages that contain all of these words in either in the page name or in the page contents. For multiple words an implicit AND operator is assumed. >>If you search pages containing both words foo and bar, the following queries are all equivalent:
 
 '''
 foo bar
@@ -60,49 +71,80 @@ foo && bar
 +foo +bar
 '''
 
-To exclude pages that match a certain word from your query prefix the word with a "-" or the NOT operator. So to look for pages that contain "foo" but not "bar" try one of these:
+To exclude pages that contain a certain word from your query prefix the word with a "-" or the NOT operator. It is the opposite of AND. So to look for pages that contain "foo" but not "bar" try one of these:
 
 '''
 foo -bar
 +foo -bar
-'''
-
-
-'''
+foo NOT bar
 foo AND NOT bar
 '''
 
-Multiple queries can be combined using the OR operator, so to find any pages matching "foo" or "bar" you can try:
+For pages that contain neither "foo" nor "bar":
+
+'''
+-foo - bar
+NOT foo NOT bar
+NOT foo AND NOT bar
+'''
+
+OR is helpful is you are not sure, which exact word occurs in your text. You can enter words with similar meaning that might have occurred on the page you are looking for.
+In our example the OR operator serves for finding pages containing either "foo" or "bar" or both , so to find any pages matching "foo" or "bar" the following operators yield the same results:
 
 '''
 foo OR bar
 foo or bar
-foor || bar
+foo || bar
 '''
 
-To match strings containing whitespace or that look like operators you need to put the sting between double quotes, so to look for a literal string "foo bar" and a literal "+1" try:
+When combining the operators AND has precedence over OR. So a query like:
 
-'''
-"foo bar"  "+1"
-'''
+	''foo OR bar AND dus''
 
-To match partial words as well you can use a "''*''" as wildcard. So the following query will match all words starting with "Some", like "Someday", "Someplace" etc.
+gives all pages that contain "dus" plus either "foo" or "bar" or both.
+
+To match phrases, i.e. strings containing whitespace (blanks), or to match things that look like operators, you need to put the string between double quotes. So when looking for a literal string "foo bar" and a literal "+1" use:
+
+	''"foo bar" and "+1"''
+
+To match partial words you can use a "''*''" as wildcard. So the following query 
 
 '''
 Some*
 '''
 
-So far we just searched for words in the page contents and page names. If you want more control you can use keywords to specify a specific page property. For example to only match pages by name you can use:
+will match all words starting with "Some", like "Someday", "Someplace" etc.
+
+
+**Keyword searches: **
+So far we just searched for words in the page contents and page names. If you want more control you can use keywords to specify a specific page property. Such searches limit the scope of the search, they are not only more specific, but in some cases also much faster than normal searches.  The keywords for defined fields of pages are:
+ 
+	**Content:**
+	**Name:**
+	**NameSpace:**
+	**Links:**
+	**LinksFrom:**
+	**LinksTo:**
+
+ For example to only search the page names you can use:
 
 '''
 Name: *foo*
 '''
 
-This query only returns pages that contain "foo" in the page name without looking at their content. Other known field are "Content", "Namespace", "Links", "linksFrom" and "LinksTo". 
+This query only returns pages that contain "foo" in the page name without looking at their content. 
 
-The "Content" keyword only matches page contents.
+The "Content:" keyword only matches page contents and excludes e.g. page names.
 
-The "Namespace" keyword limits the query to a certain sub-tree in the index.
+ Content: foo AND NOT Name: *foo*
+
+will find pages that have foo written somewhere in their page content but that do not contain "foo" in the page name.
+
+The "NameSpace:" keyword limits the query to pages in the index name space below the one named . Essentially, the namespace is what you see in the index panel. The exact namespace as needed for the search is visible on the bottom left in the status bar.
+
+Suppose under Home you have the page "photo" as top level page with multiple pages below it and you want to search only the photo part of your large notebook. You want to find all entries about depth of field or its abbreviation DoF, so you type the following search: 
+
+	''Namespace: Home:photo "depth of field" or dof''
 
 The "Links" and "LinksFrom" keywords return all pages linked by a certain page while "LinksTo" returns all pages that link to a certain page, this is used to find back links.
 

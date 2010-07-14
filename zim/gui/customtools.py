@@ -186,6 +186,8 @@ in the command when it is executed:
 
 	def do_response_ok(self):
 		fields = self.get_fields()
-		fields['Icon'] = self.iconbutton.get_file().path
+		iconfile = self.iconbutton.get_file()
+		if iconfile:
+			fields['Icon'] = iconfile.path
 		self.result = fields
 		return True

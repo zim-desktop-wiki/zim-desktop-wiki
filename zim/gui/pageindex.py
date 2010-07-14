@@ -16,6 +16,7 @@ from zim.index import IndexPath
 from zim.notebook import Path
 from zim.gui.widgets import BrowserTreeView, ErrorDialog, gtk_get_style
 from zim.gui.clipboard import \
+	Clipboard, \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist, unpack_urilist
 
@@ -143,7 +144,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled'),
 			index.connect('page-to-be-deleted', on_deleted),
 		)
-		# The page-to-be-deleted signal is a hack so we have time to ensure we know the 
+		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
 		# treepath of this indexpath - once we get page-deleted it is to late to get this
 
 	def disconnect(self):
@@ -460,12 +461,16 @@ class PageTreeView(BrowserTreeView):
 		handled = True
 		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
 
-		# FIXME Ctrl-C ad Ctrl-L are masked by standard actions - need to switch those with focus
 		if event.state & gtk.gdk.CONTROL_MASK:
 			if event.keyval == KEYVAL_C:
-				print 'TODO copy location'
+				#~ print '!! copy location'
+				page = self.get_selected_path()
+				if page:
+					Clipboard().set_pagelink(self.ui.notebook, page)
 			elif event.keyval == KEYVAL_L:
-				print 'TODO insert link'
+				#~ print '!! insert link'
+				page = self.get_selected_path()
+				self.ui.mainwindow.pageview.insert_links([page])
 			else:
 				handled = False
 		else:
@@ -574,6 +579,14 @@ class PageTreeView(BrowserTreeView):
 
 		return treepath
 
+	def get_selected_path(self):
+		'''Returns path currently selected or None'''
+		model, iter = self.get_selection().get_selected()
+		if model is None or iter is None:
+			return None
+		else:
+			return model.get_indexpath(iter)
+
 # Need to register classes defining gobject signals
 gobject.type_register(PageTreeView)
 
@@ -608,11 +621,7 @@ class PageIndex(gtk.ScrolledWindow):
 
 	def get_selected_path(self):
 		'''Returns path currently selected or None'''
-		model, iter = self.treeview.get_selection().get_selected()
-		if model is None or iter is None:
-			return None
-		else:
-			return model.get_indexpath(iter)
+		return self.treeview.get_selected_path()
 
 	def disconnect_model(self):
 		'''Stop the model from listening to the inxed. Used to
