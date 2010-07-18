@@ -2,13 +2,12 @@ Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.4
 Creation-Date: 2010-04-24T13:49:51.331910
 
-====== Create Note ======
-
-The "Create Note" plugin offers a quick dialog for inserting notes into a notebook. It can be invoked from the commandline and can therefore easily be bound to keyboard shortcuts or used in scripts.
+====== Quick Note ======
+The "Quick Note" plugin offers a dialog for inserting quick notes into a notebook. It can be invoked from the commandline and can therefore easily be bound to keyboard shortcuts or used in scripts.
 
 **Dependencies:** This plugin has no additional dependencies.
 
-**Commandline: **''zim'' --plugin createnote [OPTIONS]
+**Commandline: **''zim'' --plugin quicknote [OPTIONS]
 
 **Options:**
 * notebook=URI    Select the notebook in the dialog
@@ -17,3 +16,4 @@ The "Create Note" plugin offers a quick dialog for inserting notes into a notebo
 * text=TEXT    Provide the text directly
 * input=stdin    Provide the text on stdin
 * input=clipboard    Take the text from the clipboard
+* option:url=STRING  Set template parameter

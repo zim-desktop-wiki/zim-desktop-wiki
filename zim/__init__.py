@@ -3,7 +3,7 @@
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.46'
+__version__ = '0.47'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <pardus@cpan.org>'
 __copyright__ = 'Copyright 2008 - 2010 Jaap Karssenberg <pardus@cpan.org>'
@@ -237,7 +237,8 @@ def main(argv):
 
 	logger.info('This is zim %s', __version__)
 	if level == logging.DEBUG:
-		logger.debug('Python version is %s' % str(sys.version_info))
+		logger.debug('Python version is %s', str(sys.version_info))
+		logger.debug('Platform is %s', os.name)
 		try:
 			from zim._version import version_info
 			logger.debug(

@@ -1621,6 +1621,14 @@ class Page(Path):
 
 		self.modified = True
 
+	def append_parsetree(self, tree):
+		'''Append to the current parsetree'''
+		ourtree = self.get_parsetree()
+		if ourtree:
+			self.set_parsetree(ourtree + tree)
+		else:
+			self.set_parsetree(tree)
+
 	def set_ui_object(self, object):
 		'''Set a temporary hook to fetch the parse tree. Used by the gtk ui to
 		'lock' pages that are being edited. Set to None to break the lock.
@@ -1654,17 +1662,21 @@ class Page(Path):
 		else:
 			return []
 
-	def parse(self, format, text):
+	def parse(self, format, text, append=False):
 		'''Convenience method that parses text and sets the parse tree
 		for this page. Format can be either a format module or a string which
 		can be passed to formats.get_format(). Text can be either a string or
-		a list or iterable of lines.
+		a list or iterable of lines. If 'append' is True the text is
+		appended instead of replacing current content.
 		'''
 		if isinstance(format, basestring):
 			import zim.formats
 			format = zim.formats.get_format(format)
 
-		self.set_parsetree(format.Parser().parse(text))
+		if append:
+			self.append_parsetree(format.Parser().parse(text))
+		else:
+			self.set_parsetree(format.Parser().parse(text))
 
 	def get_links(self):
 		'''Generator for a list of tuples of type, href and attrib for links

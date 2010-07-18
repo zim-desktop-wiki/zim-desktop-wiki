@@ -110,6 +110,8 @@ ui_format_actions = (
 	('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<ctrl>I', _('Emphasis')), # T: Menu item
 	('apply_format_mark', 'gtk-underline', _('_Mark'), '<ctrl>U', _('Mark')), # T: Menu item
 	('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<ctrl>K', _('Strike')), # T: Menu item
+	('apply_format_sub', None, _('_Subscript'), '', _('_Subscript')), # T: Menu item
+	('apply_format_sup', None, _('_Superscript'), '', _('_Superscript')), # T: Menu item
 	('apply_format_code', None, _('_Verbatim'), '<ctrl>T', _('Verbatim')), # T: Menu item
 )
 
@@ -321,6 +323,8 @@ class TextBuffer(gtk.TextBuffer):
 		'strike': {'strikethrough': 'true', 'foreground': 'grey'},
 		'code': {'family': 'monospace'},
 		'pre': {'family': 'monospace', 'wrap-mode': 'none'},
+		'sub': {'rise': -3500, 'scale':0.7},
+		'sup': {'rise': 7500, 'scale':0.7},
 		'link': {'foreground': 'blue'},
 		'find-highlight': {'background': 'orange'},
 	}
@@ -3482,7 +3486,10 @@ class PageView(gtk.VBox):
 		'''
 		links = list(links)
 		for i in range(len(links)):
-			if isinstance(links[i], File):
+			if isinstance(links[i], Path):
+				links[i] = links[i].name
+				continue
+			elif isinstance(links[i], File):
 				file = links[i]
 			else:
 				type = link_type(links[i])
@@ -3901,6 +3908,7 @@ class InsertLinkDialog(Dialog):
 		href = entry.get_text().strip()
 			# Not using PageEntry.get_path() here - keep text as typed
 		if not href:
+			entry.set_input_valid(False)
 			return False
 
 		type = link_type(href)

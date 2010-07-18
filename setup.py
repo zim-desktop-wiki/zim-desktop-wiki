@@ -66,31 +66,28 @@ def include_file(file):
 def collect_data_files():
 	# Search for data files to be installed in share/
 	data_files = [
-		('share/pixmaps', ['data/zim.png']),
+		('share/man/man1', ['man/zim.1']),
 		('share/applications', ['xdg/zim.desktop']),
 		('share/mime/packages', ['xdg/zim.xml']),
-		('share/man/man1', ['man/zim.1']),
-		('share/icons/hicolor/64x64/mimetypes', [
-			'xdg/hicolor/gnome-mime-application-x-zim-notebook.png',
-			'xdg/hicolor/application-x-zim-notebook.png'
-		] ),
-		('share/icons/hicolor/64x64/apps', ['data/zim.png']),
+		('share/pixmaps', ['xdg/hicolor/48x48/apps/zim.png']),
 	]
-	# Paths for mimeicons taken from xdg-icon-resource
-	# xdg-icon-resource installs:
-	# /usr/local/share/icons/hicolor/64x64/mimetypes/gnome-mime-application-x-zim-notebook.png
-	# /usr/local/share/icons/hicolor/64x64/mimetypes/application-x-zim-notebook.png
-	# /usr/local/share/icons/hicolor/64x64/apps/zim.png
+
+	# xdg/hicolor -> PREFIX/share/icons/hicolor
+	for dir, dirs, files in os.walk('xdg/hicolor'):
+		if files:
+			target = os.path.join('share', 'icons', dir[4:])
+			files = [os.path.join(dir, f) for f in files]
+			data_files.append((target, files))
 
 	# data -> PREFIX/share/zim
 	for dir, dirs, files in os.walk('data'):
 		if '.zim' in dirs:
 			dirs.remove('.zim')
 		target = os.path.join('share', 'zim', dir[5:])
-
-		files = filter(include_file, files)
-		files = [os.path.join(dir, f) for f in files]
-		data_files.append((target, files))
+		if files:
+			files = filter(include_file, files)
+			files = [os.path.join(dir, f) for f in files]
+			data_files.append((target, files))
 
 	# .po files -> PREFIX/share/locale/..
 	for pofile in [f for f in os.listdir('po') if f.endswith('.po')]:
@@ -99,7 +96,9 @@ def collect_data_files():
 		target = os.path.join('share', modir)
 		data_files.append((target, [mofile]))
 
-	#~ print 'Data files: ', data_files
+	#~ import pprint
+	#~ print 'Data files: '
+	#~ pprint.pprint(data_files)
 	return data_files
 
 
@@ -116,15 +115,33 @@ def fix_dist():
 	# print 'copying CHANGELOG.txt -> data/manual/Changelog.txt'
 	# shutil.copy('CHANGELOG.txt', 'data/manual/Changelog.txt')
 
-	# Copy the zim icon a couple of times
+	# Copy the zim icons a couple of times
+	# Paths for mimeicons taken from xdg-icon-resource
+	# xdg-icon-resource installs:
+	# /usr/local/share/icons/hicolor/.../mimetypes/gnome-mime-application-x-zim-notebook.png
+	# /usr/local/share/icons/hicolor/.../mimetypes/application-x-zim-notebook.png
+	# /usr/local/share/icons/hicolor/.../apps/zim.png
+
 	if os.path.exists('xdg/hicolor'):
 		shutil.rmtree('xdg/hicolor')
-	os.mkdir('xdg/hicolor')
+	os.makedirs('xdg/hicolor/scalable/apps')
+	os.makedirs('xdg/hicolor/scalable/mimetypes')
 	for name in (
-		'gnome-mime-application-x-zim-notebook.png',
-		'application-x-zim-notebook.png'
+		'apps/zim.svg',
+		'mimetypes/gnome-mime-application-x-zim-notebook.svg',
+		'mimetypes/application-x-zim-notebook.svg'
 	):
-		shutil.copy('data/zim.png', 'xdg/hicolor/' + name)
+		shutil.copy('icons/zim48.svg', 'xdg/hicolor/scalable/' + name)
+	for size in ('16', '22', '24', '32', '48'):
+		dir = size + 'x' + size
+		os.makedirs('xdg/hicolor/%s/apps' % dir)
+		os.makedirs('xdg/hicolor/%s/mimetypes' % dir)
+		for name in (
+			'apps/zim.png',
+			'mimetypes/gnome-mime-application-x-zim-notebook.png',
+			'mimetypes/application-x-zim-notebook.png'
+		):
+			shutil.copy('icons/zim%s.png' % size, 'xdg/hicolor/'  + dir + '/' + name)
 
 
 # Overloaded commands
@@ -196,19 +213,19 @@ class zim_build_class(build_class):
 class zim_install_class(install_class):
 
 	user_options = install_class.user_options + \
-		[('skip-cmd', None, "don't run external commands (for packaging)")]
+		[('skip-xdg-cmd', None, "don't run XDG update commands (for packaging)")]
 	
 	boolean_options = install_class.boolean_options + \
-		['skip-cmd']
+		['skip-xdg-cmd']
 
 	def initialize_options(self):
 		install_class.initialize_options(self)
-		self.skip_cmd = 0
+		self.skip_xdg_cmd = 0
 	
 	def run(self):
 		install_class.run(self)
 
-		if not self.skip_cmd:
+		if not self.skip_xdg_cmd:
 			# Try XDG tools
 			mimedir = os.path.join(self.install_data, 'share', 'mime')
 			for cmd in (

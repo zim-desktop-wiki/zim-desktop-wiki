@@ -24,7 +24,7 @@ class Error(Exception):
 	user should be translated.
 	'''
 
-	description = 'Unspecified error...'
+	description = ''
 
 	def __init__(self, msg):
 		self.msg = msg

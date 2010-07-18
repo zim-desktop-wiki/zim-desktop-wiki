@@ -16,7 +16,7 @@ so "foo AND NOT bar OR baz" means AND(foo, OR(NOT(bar), baz))
 Supported keywords:
  	Content:
  	Name:
-	Namespace:	# alias for Name: XXX:*
+	Namespace:	# alias for Name XXX or Name: XXX:*
 	Links:		# forward - alias for linksfrom
  	LinksFrom:	# forward
  	LinksTo:	# backward
@@ -139,9 +139,6 @@ class Query(object):
 				string = unescape_quoted_string(string)
 				if keyword == 'links':
 					keyword = 'linksfrom'
-				elif keyword == 'namespace':
-					keyword = 'name'
-					string = string.strip('*').strip(':') + ':*'
 				tokens.append(QueryTerm(keyword, string))
 			else:
 				w = unescape_quoted_string(w)
@@ -305,13 +302,18 @@ class SearchSelection(PageSelection):
 		results = set()
 		index = self.notebook.index
 
-		if term.keyword == 'name':
+		if term.keyword in ('name', 'namespace'):
 			if scope:
 				generator = iter(scope)
 			else:
 				generator = index.walk()
 
-			regex = self._name_regex(term.string)
+			if term.keyword == 'namespace':
+				regex = self._namespace_regex(term.string)
+			else:
+				regex = self._name_regex(term.string)
+
+			#~ print '!! REGEX: ' + regex.pattern
 			for path in generator:
 				if regex.match(path.name):
 					results.add(path)
@@ -438,6 +440,16 @@ class SearchSelection(PageSelection):
 			postfix = r'$'
 
 		regex = prefix + re.escape(string) + postfix
+
+		if case:
+			return re.compile(regex)
+		else:
+			return re.compile(regex, re.I)
+
+	def _namespace_regex(self, string, case=False):
+		# like _name_regex but adds recursive descent below the page
+		namespace = re.escape( string.strip('*:') )
+		regex = r'^(' + namespace + '|' + namespace + ':)$'
 
 		if case:
 			return re.compile(regex)

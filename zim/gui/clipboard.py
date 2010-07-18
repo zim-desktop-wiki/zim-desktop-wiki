@@ -270,9 +270,7 @@ class Clipboard(gtk.Clipboard):
 			text = pack_urilist((link,))
 			selectiondata.set(PAGELIST_TARGET_NAME, 8, text)
 		elif id == TEXT_TARGET_ID:
-			link = "%s?%s\r\n" % (notebookname, pagename)
-			text = pack_urilist((link,))
-			selectiondata.set_text(text)
+			selectiondata.set_text(pagename)
 		else:
 			assert False, 'Unknown target id %i' % id
 

@@ -172,10 +172,23 @@ none=None
 
 	def testLookup(self):
 		'''Test lookup of config files'''
-		XDG_CONFIG_DIRS[0].file('zim/preferences.conf').touch()
+		home = XDG_CONFIG_HOME.file('zim/preferences.conf')
+		default =  XDG_CONFIG_DIRS[0].file('zim/preferences.conf')
+		self.assertFalse(home.exists())
+		self.assertFalse(default.exists())
+
+		default.write('[TestData]\nfile=default\n')
 		file = config_file('preferences.conf')
 		self.assertTrue(isinstance(file, ConfigDictFile))
-		self.assertTrue(file.default.exists())
+		self.assertEqual(file.file, home)
+		self.assertEqual(file.default, default)
+		self.assertEqual(file['TestData']['file'], 'default')
+		
+		home.write('[TestData]\nfile=home\n')
+		file = config_file('preferences.conf')
+		self.assertTrue(isinstance(file, ConfigDictFile))
+		self.assertEqual(file['TestData']['file'], 'home')
+
 		file = config_file('notebooks.list')
 		#~ self.assertTrue(isinstance(file, ConfigListFile))
 		self.assertTrue(isinstance(file, TextConfigFile))

@@ -5,6 +5,7 @@
 			<menuitem action='new_sub_page'/>
 			<menuitem action='open_notebook'/>
 			<menuitem action='import_page'/>
+			<placeholder name='open_items'/>
 			<separator/>
 			<menuitem action='open_new_window'/>
 			<separator/>
@@ -94,6 +95,8 @@
 			<menuitem action='apply_format_mark'/>
 			<menuitem action='apply_format_strike'/>
 			<menuitem action='apply_format_code'/>
+			<menuitem action='apply_format_sub'/>
+			<menuitem action='apply_format_sup'/>
 			<separator/>
 			<menuitem action='clear_formatting'/>
 		</menu>
