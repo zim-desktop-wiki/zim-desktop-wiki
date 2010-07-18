@@ -374,7 +374,11 @@ gobject.type_register(MenuButton)
 
 
 class InputEntry(gtk.Entry):
-	'''Sub-class of gtk.Entry with support for highlighting errors'''
+	'''Sub-class of gtk.Entry with support for highlighting errors.
+	Also does utf-8 decoding on the proper moments.
+	'''
+
+	# TODO add default hook to set validation function
 
 	style = gtk_get_style()
 	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
@@ -383,6 +387,15 @@ class InputEntry(gtk.Entry):
 	def __init__(self):
 		gtk.Entry.__init__(self)
 		self.input_valid = True
+
+	def get_text(self):
+		'''Like gtk.Entry.get_text() but with utf-8 decoding and
+		trailing whitespace stripped.
+		'''
+		text = gtk.Entry.get_text(self)
+		if not text is None:
+			text = text.decode('utf-8').rstrip()
+		return text
 
 	def get_input_valid(self):
 		return self.input_valid
@@ -874,7 +887,11 @@ class Dialog(gtk.Dialog):
 		if type == 'dir':
 			dialog = SelectFolderDialog(self)
 		else:
-			dialog = SelectFileDialog(self)
+			if type == 'output-file':
+				action = gtk.FILE_CHOOSER_ACTION_SAVE
+			else:
+				action = gtk.FILE_CHOOSER_ACTION_OPEN
+			dialog = SelectFileDialog(self, action=action)
 			if type == 'image':
 				dialog.add_filter_images()
 		file = dialog.run()
@@ -1189,9 +1206,10 @@ class FileDialog(Dialog):
 
 class SelectFileDialog(FileDialog):
 
-	def __init__(self, ui, title=_('Select File')):
+	def __init__(self, ui, title=_('Select File'), action=gtk.FILE_CHOOSER_ACTION_OPEN):
 		# T: Title of file selection dialog
 		FileDialog.__init__(self, ui, title)
+		self.filechooser.set_action(action)
 		self.file = None
 
 	def do_response_ok(self):

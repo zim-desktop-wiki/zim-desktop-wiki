@@ -228,11 +228,12 @@ class Server(gobject.GObject):
 		'stopped': (gobject.SIGNAL_RUN_LAST, None, [])
 	}
 
-	def __init__(self, notebook=None, port=8080, gui=False, **opts):
+	def __init__(self, notebook=None, port=8080, gui=False, public=True, **opts):
 		gobject.GObject.__init__(self)
 		self.socket = None
 		self.running = False
 		self.set_port(port)
+		self.public = public
 
 		import wsgiref.handlers
 		self.handlerclass = wsgiref.handlers.SimpleHandler
@@ -277,7 +278,10 @@ class Server(gobject.GObject):
 
 		# open sockets for connections
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.socket.bind(("localhost", self.port)) # TODO use socket.gethostname() for public server
+		hostname = '' # means all interfaces
+		if not self.public:
+			hostname = 'localhost'
+		self.socket.bind((hostname, self.port))
 		self.socket.listen(5)
 
 		gobject.io_add_watch(self.socket, gobject.IO_IN,

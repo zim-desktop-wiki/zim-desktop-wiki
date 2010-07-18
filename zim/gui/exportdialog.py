@@ -10,7 +10,7 @@ import zim.formats
 import zim.templates
 from zim.stores import encode_filename
 from zim.gui.widgets import Dialog, ProgressBarDialog, ErrorDialog, QuestionDialog
-from zim.gui.widgets import Assistant, AssistantPage, PageEntry
+from zim.gui.widgets import Assistant, AssistantPage, PageEntry, InputEntry
 
 
 def form_factory(inputs, table=None):
@@ -78,6 +78,14 @@ def help_text_factory(text):
 	hbox.add(label)
 
 	return hbox
+
+
+def file_entry_factory(dialog, type):
+	# HACK - duplicate code from widgets.Dialog - needs refactoring
+	entry = InputEntry()
+	browse = gtk.Button('_Browse')
+	browse.connect('clicked', dialog._select_file, (type, entry))
+	return entry, browse
 
 
 class ExportDialog(Assistant):
@@ -296,7 +304,7 @@ class FormatPage(AssistantPage):
 			_('Map document root to URL')+': ' )
 			# T: radio option in export dialog
 
-		self.document_root_url_entry = gtk.Entry()
+		self.document_root_url_entry = InputEntry()
 		self.document_root_url_entry.set_sensitive(False)
 		if assistant.ui.notebook.get_document_root():
 			self.use_document_root_url.connect('toggled',
@@ -363,28 +371,33 @@ class OutputPage(AssistantPage):
 	title = _('Select the output file or folder') # T: title of step in export dialog
 
 	def __init__(self, assistant):
-		# FIXME FIXME FIXME - single file export needs other control than filechooserbutton !
 		AssistantPage.__init__(self, assistant)
+
+		entry, button = file_entry_factory(assistant, 'dir')
+		self.output_folder_hbox = gtk.HBox(spacing=12)
+		self.output_folder_hbox.add(entry)
+		self.output_folder_hbox.pack_end(button, False)
+		self.output_folder_entry = entry
+		# TODO validation for these entries
+
+		self.index_page_entry = InputEntry()
+		# TODO validation for this entry - valid name, but not existing
+
+		entry, button = file_entry_factory(assistant, 'output-file')
+		self.output_file_hbox = gtk.HBox(spacing=12)
+		self.output_file_hbox.add(entry)
+		self.output_file_hbox.pack_end(button, False)
+		self.output_file_entry = entry
+		# TODO validation for these entries
+
 		# TODO add attachments folder selection when single page is exported
 
-		self.output_folder_selector = gtk.FileChooserButton(_('Please select a folder'))
-			# T: Title of file selection dialog
-		self.output_folder_selector.set_action(gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
-		self.add_validation_widget(self.output_folder_selector)
-
-		self.index_page_entry = gtk.Entry()
-
-		self.output_file_selector = gtk.FileChooserButton(_('Please select a file'))
-			# T: Title of file selection dialog
-		self.output_file_selector.set_action(gtk.FILE_CHOOSER_ACTION_SAVE)
-		self.add_validation_widget(self.output_file_selector)
-
 		table = form_factory( [
-			(_('Output folder'), self.output_folder_selector),
+			(_('Output folder'), self.output_folder_hbox),
 				# T: Label for folder selection in export dialog
 			(_('Index page'), self.index_page_entry),
 				# T: Label for setting a name for the index of exported pages
-			(_('Output file'), self.output_file_selector)
+			(_('Output file'), self.output_file_hbox)
 				# T: Label for file selection in export dialog
 		] )
 		self.pack_start(table, False)
@@ -394,9 +407,10 @@ class OutputPage(AssistantPage):
 		# on whether we selected full notebook or single page in the
 		# first page
 		show_file = self.uistate.get('selection') == 'page'
-		self.output_folder_selector.set_visible(not show_file)
+
+		self.output_folder_hbox.set_visible(not show_file)
 		self.index_page_entry.set_visible(not show_file)
-		self.output_file_selector.set_visible(show_file)
+		self.output_file_hbox.set_visible(show_file)
 
 		if show_file:
 			basename = self.uistate['selected_page'].basename
@@ -405,24 +419,22 @@ class OutputPage(AssistantPage):
 			self.uistate.setdefault('output_file', filename)
 			# TODO rememeber last file output folder
 
-		for param, selector in (
-			('output_folder', self.output_folder_selector),
-			('output_file', self.output_file_selector),
+		for param, entry in (
+			('output_folder', self.output_folder_entry),
+			('output_file', self.output_file_entry),
 		):
 			if self.uistate.get(param):
 				try:
-					selector.set_filename(self.uistate[param])
+					entry.set_text(self.uistate[param])
 				except:
 					pass
 
 	def save_uistate(self):
-		for param, selector in (
-			('output_folder', self.output_folder_selector),
-			('output_file', self.output_file_selector),
+		for param, entry in (
+			('output_folder', self.output_folder_entry),
+			('output_file', self.output_file_entry),
 		):
-			value = selector.get_filename()
-			if not value is None:
-				value = value.decode('utf-8')
+			value = entry.get_text()
 			self.uistate[param] = value
 
-		self.uistate['index_page'] = self.index_page_entry.get_text().strip().encode('utf-8')
+		self.uistate['index_page'] = self.index_page_entry.get_text()

@@ -356,7 +356,6 @@ class TextBuffer(gtk.TextBuffer):
 				tag.zim_tag = k
 				tag.zim_attrib = None
 
-		self.textstyle = None
 		self._editmode_tags = ()
 
 		#~ import sys
@@ -420,7 +419,7 @@ class TextBuffer(gtk.TextBuffer):
 		if root.text:
 			self.insert_at_cursor(root.text)
 		self._insert_element_children(root)
-		self.set_editmode_from_cursor()
+		self.update_editmode()
 		startiter = self.get_iter_at_offset(startoffset)
 		enditer = self.get_iter_at_mark(self.get_insert())
 		self.emit('end-insert-tree')
@@ -431,7 +430,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def do_end_insert_tree(self):
 		self._insert_tree_in_progress = False
-		self.set_editmode_from_cursor(force=True)
+		self.emit('textstyle-changed', self.get_textstyle())
 			# emitting textstyle-changed is skipped while loading the tree
 
 	def _insert_element_children(self, node, list_level=-1, raw=False):
@@ -588,10 +587,8 @@ class TextBuffer(gtk.TextBuffer):
 		if iter.equal(self.get_iter_at_mark(self.get_insert())):
 			gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
 		else:
-			mode = self._editmode_tags
-			self.set_editmode_from_iter(iter)
-			gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
-			self._editmode_tags = mode
+			with self.tmp_cursor(iter):
+				gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
 
 	def insert_image(self, iter, file, src, **attrib):
 		'''Insert an image linked to file 'file' but showing 'src' as link to
@@ -740,16 +737,24 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return None
 
-	def set_editmode_from_cursor(self, force=False):
-		iter = self.get_iter_at_mark(self.get_insert())
-		self.set_editmode_from_iter(iter, force=force)
-
-	def set_editmode_from_iter(self, iter, force=False):
-		'''Updates the textstyle and indent from a text position.
+	def update_editmode(self, force=False):
+		'''Updates the textstyle and indent state.
 		Triggered automatically when moving the cursor.
 		'''
-		tags = tuple(self.iter_get_zim_tags(iter))
-		if force or not tags == self._editmode_tags:
+		bounds = self.get_selection_bounds()
+		if bounds:
+			# For selection we set editmode base on whole range
+			tags = []
+			for tag in filter(_is_zim_tag, bounds[0].get_tags()):
+				if self.whole_range_has_tag(tag, *bounds):
+					tags.append(tag)
+		else:
+			# Otherwise base on cursor
+			iter = self.get_iter_at_mark(self.get_insert())
+			tags = self.iter_get_zim_tags(iter)
+
+		tags = tuple(tags)
+		if not tags == self._editmode_tags:
 			#~ print '>', [(t.zim_type, t.get_property('name')) for t in tags]
 			self._editmode_tags = tags
 			for tag in tags:
@@ -791,15 +796,17 @@ class TextBuffer(gtk.TextBuffer):
 		tags.sort(key=lambda tag: tag.get_priority())
 		return tags
 
-	def do_textstyle_changed(self, name):
-		self.textstyle = name
-
 	def toggle_textstyle(self, name, interactive=False):
 		'''If there is a selection toggle the text style of the selection,
 		otherwise toggle the text style of the cursor.
+
+		For selections we remove the tag if the whole range had the
+		tag. If some part of the range does not have the tag we apply
+		the tag. This is needed to be consistent with the format button
+		behavior if a single tag applies to any range.
 		'''
 		if not self.get_has_selection():
-			if self.textstyle == name:
+			if name == self.get_textstyle():
 				self.set_textstyle(None)
 			else:
 				self.set_textstyle(name)
@@ -812,7 +819,7 @@ class TextBuffer(gtk.TextBuffer):
 				if '\n' in text:
 					name = 'pre'
 			tag = self.get_tag_table().lookup('style-'+name)
-			had_tag = self.range_has_tag(tag, start, end)
+			had_tag = self.whole_range_has_tag(tag, start, end)
 			self.remove_textstyle_tags(start, end)
 			if not had_tag:
 				self.apply_tag(tag, start, end)
@@ -820,7 +827,19 @@ class TextBuffer(gtk.TextBuffer):
 			if interactive:
 				self.emit('end-user-action')
 
-			self.set_editmode_from_cursor()
+			self.update_editmode()
+
+	def whole_range_has_tag(self, tag, start, end):
+		'''Check if a certain tag is applied to the whole range or not.'''
+		if tag in start.get_tags() \
+		and tag in self.iter_get_zim_tags(end):
+			iter = start.copy()
+			if iter.forward_to_tag_toggle(tag):
+				return iter.compare(end) >= 0
+			else:
+				return True
+		else:
+			return False
 
 	def range_has_tag(self, tag, start, end):
 		'''Check if a certain tag appears anywhere in a certain range'''
@@ -860,7 +879,7 @@ class TextBuffer(gtk.TextBuffer):
 		# Also remove links until we support links nested in tags
 		self.smart_remove_tags(_is_style_tag, start, end)
 		self.smart_remove_tags(_is_link_tag, start, end)
-		self.set_editmode_from_cursor()
+		self.update_editmode()
 
 	def smart_remove_tags(self, func, start, end):
 		'''This method removes tags over a range based on a function to test if a
@@ -958,7 +977,7 @@ class TextBuffer(gtk.TextBuffer):
 	def increment_indent(self, iter):
 		level = self.get_indent(iter)
 		if self.set_indent_for_line(level+1, iter.get_line()):
-			self.set_editmode_from_cursor() # also updates indent tag
+			self.update_editmode() # also updates indent tag
 			return True
 		else:
 			return False
@@ -966,7 +985,7 @@ class TextBuffer(gtk.TextBuffer):
 	def decrement_indent(self, iter):
 		level = self.get_indent(iter)
 		if level > 0 and self.set_indent_for_line(level-1, iter.get_line()):
-			self.set_editmode_from_cursor() # also updates indent tag
+			self.update_editmode() # also updates indent tag
 			return True
 		else:
 			return False
@@ -1035,9 +1054,9 @@ class TextBuffer(gtk.TextBuffer):
 		self.select_range(start, end)
 
 	def do_mark_set(self, iter, mark):
-		if mark.get_name() == 'insert':
-			self.set_editmode_from_iter(iter)
 		gtk.TextBuffer.do_mark_set(self, iter, mark)
+		if mark.get_name() in ('insert', 'selection_bound'):
+			self.update_editmode()
 
 	def do_insert_text(self, end, string, length):
 		'''Signal handler for insert-text signal'''
@@ -1081,7 +1100,7 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			gtk.TextBuffer.do_delete_range(self, start, end)
 
-		self.set_editmode_from_cursor()
+		self.update_editmode()
 		# Delete formatted word + type should not show format again
 
 	def _do_lines_merged(self, iter):
@@ -1098,7 +1117,7 @@ class TextBuffer(gtk.TextBuffer):
 			if _is_line_based_tag(tag):
 				self.apply_tag(tag, iter, end)
 
-		self.set_editmode_from_cursor()
+		self.update_editmode()
 
 	def do_insert_pixbuf(self, end, pixbuf):
 		gtk.TextBuffer.do_insert_pixbuf(self, end, pixbuf)
@@ -1313,6 +1332,9 @@ class TextBuffer(gtk.TextBuffer):
 				# But limit slice to first pixbuf
 				# FUTURE: also limit slice to any embeddded widget
 				text = iter.get_slice(bound)
+				if text.startswith(PIXBUF_CHR):
+					text = text[1:] # special case - we see this char, but get_pixbuf already returned None, so skip it
+
 				if PIXBUF_CHR in text:
 					i = text.index(PIXBUF_CHR)
 					bound = iter.copy()
@@ -1404,7 +1426,7 @@ class TextBuffer(gtk.TextBuffer):
 	def remove_link(self, start, end):
 		'''Removes any links between start and end'''
 		self.smart_remove_tags(_is_link_tag, start, end)
-		self.set_editmode_from_cursor()
+		self.update_editmode()
 
 	def toggle_checkbox(self, iter, checkbox_type=CHECKED_BOX):
 		bullet = self.get_bullet_at_iter(iter)
@@ -1644,7 +1666,7 @@ class TextBufferList(list):
 		line, level, bullet = self[row]
 		newlevel = level + step
 		if self.buffer.set_indent_for_line(newlevel, line):
-			self.buffer.set_editmode_from_cursor() # also updates indent tag
+			self.buffer.update_editmode() # also updates indent tag
 			self[row] = (line, newlevel, bullet)
 
 	def update_checkbox(self, row, state):
@@ -2499,7 +2521,7 @@ class TextView(gtk.TextView):
 				# apply indent
 				buffer.set_indent_for_line(indent, newline)
 
-			buffer.set_editmode_from_cursor() # also updates indent tag
+			buffer.update_editmode() # also updates indent tag
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)
@@ -3532,7 +3554,6 @@ class PageView(gtk.VBox):
 
 		buffer.delete_mark(mark)
 
-
 	def do_toggle_format_action(self, action):
 		'''Handler that catches all actions to apply and/or toggle formats'''
 		name = action.get_name()
@@ -3549,7 +3570,7 @@ class PageView(gtk.VBox):
 		selected = False
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 
-		if not buffer.textstyle == format:
+		if format != buffer.get_textstyle():
 			# Only autoselect non formatted content - otherwise not
 			# consistent when trying to break a formatted region
 			# Could be improved by making autoselect refuse to select
@@ -3713,6 +3734,20 @@ class InsertImageDialog(FileDialog):
 			# T: checkbox in the "Insert Image" dialog
 		checkbox.set_active(self.uistate['attach_inserted_images'])
 		self.filechooser.set_extra_widget(checkbox)
+
+		self.preview_widget = gtk.Image()
+		self.filechooser.set_preview_widget(self.preview_widget)
+		self.filechooser.connect('update-preview', self.on_update_preview)
+
+	def on_update_preview(self, *a):
+		filename = self.filechooser.get_preview_filename()
+		try:
+			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(filename, 128, 128)
+			self.preview_widget.set_from_pixbuf(pixbuf)
+			self.filechooser.set_preview_widget_active(True)
+		except:
+			self.filechooser.set_preview_widget_active(False)
+		return
 
 	def do_response_ok(self):
 		file = self.get_file()
