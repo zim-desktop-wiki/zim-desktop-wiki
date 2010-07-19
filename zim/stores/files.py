@@ -110,7 +110,7 @@ class Store(StoreClass):
 		newdir = self._get_dir(newpath)
 		if (newfile.exists() or newdir.exists()):
 			if file.path.lower() == newfile.path.lower() \
-			and file.compare(newfile):
+			and (not newfile.exists() or file.compare(newfile)):
 					pass # renaming on case-insensitive filesystem
 			else:
 				raise PageExistsError, 'Page already exists: %s' % newpath.name

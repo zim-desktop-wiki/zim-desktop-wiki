@@ -164,10 +164,14 @@ class BoundQuickNoteDialog(Dialog):
 		self.inputs['namespace'].set_no_show_all(True)
 
 		def switch_input(*a):
-			newpage = self.inputs['newpage'].get_active()
-			self.inputs['page'].set_visible(not newpage)
-			self.inputs['namespace'].set_visible(newpage)
-			self.inputs['basename'].set_sensitive(newpage)
+			if self.inputs['newpage'].get_active():
+				self.inputs['page'].hide()
+				self.inputs['namespace'].show()
+				self.inputs['basename'].set_sensitive(True)
+			else:
+				self.inputs['page'].show()
+				self.inputs['namespace'].hide()
+				self.inputs['basename'].set_sensitive(False)
 
 		switch_input()
 		self.inputs['newpage'].connect('toggled', switch_input)

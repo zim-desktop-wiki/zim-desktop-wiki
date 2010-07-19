@@ -62,9 +62,15 @@ def gtk_window_set_default_icon():
 
 	if not iconlist:
 		# fall back to data/zim.png
-		file = data_file('zim.png')
+		file = zim.config.data_file('zim.png')
 		pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
 		iconlist.append(pixbuf)
+
+		# also register it as stock since theme apparently is not found
+		factory = gtk.IconFactory()
+		factory.add_default()
+		set = gtk.IconSet(pixbuf=pixbuf)
+		factory.add('zim', set)
 
 
 	if len(iconlist) < 3:
@@ -771,9 +777,13 @@ class Dialog(gtk.Dialog):
 		def _hook_label_to_widget(label, widget):
 			# Hook label to follow state of entry widget
 			def _sync_state(widget, spec):
-				label.set_sensitive(widget.get_sensitive())
-				label.set_visible(widget.get_visible())
+				label.set_sensitive(widget.get_property('sensitive'))
 				label.set_no_show_all(widget.get_no_show_all())
+				if widget.get_property('visible'):
+					label.show()
+				else:
+					label.hide()
+
 
 			for property in ('visible', 'no-show-all', 'sensitive'):
 				widget.connect_after('notify::%s' % property, _sync_state)

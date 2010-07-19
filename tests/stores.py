@@ -221,6 +221,7 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		newpage = self.store.get_page(Path('UTF8'))
 		self.assertTrue(newpage.haschildren)
 		self.assertFalse(newpage == page)
+		# TODO here we only move dir case insensitive - also test file 
 
 		# check hascontents
 		page = self.store.get_page(Path('NewPage'))

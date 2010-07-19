@@ -75,6 +75,8 @@ def get_applications(mimetype):
 	key = '%s=' % mimetype
 	for dir in _application_dirs():
 		cache = dir.file('mimeinfo.cache')
+		if not cache.exists():
+			continue
 		for line in cache.readlines():
 			if line.startswith(key):
 				for basename in line[len(key):].strip().split(';'):
@@ -101,6 +103,8 @@ def get_default_application(mimetype, fallback=True):
 	application = None
 	for dir in _application_dirs():
 		file = dir.file('defaults.list')
+		if not file.exists():
+			continue
 		for line in file.readlines():
 			if line.startswith(mimetype+'='):
 				_, name = line.split('=', 1)
@@ -111,7 +115,9 @@ def get_default_application(mimetype, fallback=True):
 			break
 	else:
 		if fallback:
-			application = get_applications(mimetype)[0]
+			applications = get_applications(mimetype)
+			if applications:
+				application = applications[0]
 	return application
 
 

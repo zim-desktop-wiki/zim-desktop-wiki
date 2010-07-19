@@ -6,6 +6,7 @@ include *.pot
 include Makefile
 recursive-include data/ *
 prune data/manual/.zim/
+recursive-include icons/ *
 recursive-include tools/ *
 recursive-include xdg/ *
 recursive-include po/ *

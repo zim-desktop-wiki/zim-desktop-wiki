@@ -34,9 +34,12 @@ def form_factory(inputs, table=None):
 	def _hook_label_to_widget(label, widget):
 		# Hook label to follow state of entry widget
 		def _sync_state(widget, spec):
-			label.set_sensitive(widget.get_sensitive())
-			label.set_visible(widget.get_visible())
+			label.set_sensitive(widget.get_property('sensitive'))
 			label.set_no_show_all(widget.get_no_show_all())
+			if widget.get_property('visible'):
+				label.show()
+			else:
+				label.hide()
 
 		for property in ('visible', 'no-show-all', 'sensitive'):
 			widget.connect_after('notify::%s' % property, _sync_state)
@@ -307,8 +310,9 @@ class FormatPage(AssistantPage):
 		self.document_root_url_entry = InputEntry()
 		self.document_root_url_entry.set_sensitive(False)
 		if assistant.ui.notebook.get_document_root():
+			self.uistate.setdefault('use_document_root_url', False)
 			self.use_document_root_url.connect('toggled',
-				lambda o: document_root_url_entry.set_sensitive(o.get_active()) )
+				lambda o: self.document_root_url_entry.set_sensitive(o.get_active()) )
 			self.use_document_root_url.set_active(self.uistate['use_document_root_url'])
 		else:
 			self.use_document_root_url.set_sensitive(False)
@@ -408,9 +412,14 @@ class OutputPage(AssistantPage):
 		# first page
 		show_file = self.uistate.get('selection') == 'page'
 
-		self.output_folder_hbox.set_visible(not show_file)
-		self.index_page_entry.set_visible(not show_file)
-		self.output_file_hbox.set_visible(show_file)
+		if show_file:
+			self.output_folder_hbox.hide()
+			self.index_page_entry.hide()
+			self.output_file_hbox.show()
+		else:
+			self.output_folder_hbox.show()
+			self.index_page_entry.show()
+			self.output_file_hbox.hide()
 
 		if show_file:
 			basename = self.uistate['selected_page'].basename
