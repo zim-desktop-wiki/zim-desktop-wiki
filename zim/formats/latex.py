@@ -1,4 +1,6 @@
-# TODO: Licence Header and Copyright
+# -*- coding: utf-8 -*-
+
+# Copyright 2008 Johannes Reinhardt <jreinhardt@ist-dein-freund.de>
 
 '''This modules handles export of LaTeX Code'''
 
@@ -87,8 +89,8 @@ class Dumper(DumperClass):
 		if not self.document_type in ('report', 'article','book'):
 			logger.warn('No document type set in template, assuming "report"')
 			self.document_type = 'report' # arbitrary default
-
-		logger.info('used document type: %s'%self.document_type)
+		else:
+			logger.info('used document type: %s'%self.document_type)
 
 		output = TextBuffer()
 		self.dump_children(tree.getroot(), output)
@@ -155,9 +157,8 @@ class Dumper(DumperClass):
 						equri = self.linker.link(element.attrib['src'])
 						eqfid = File(url_decode(equri[:-4] + '.tex'))
 						output.append('\\begin{math}\n')
-						output.extend(eqfid.readlines())
+						output.extend(eqfid.read().strip())
 						output.append('\n\\end{math}')
-						eqfid.close()
 					except:
 						logger.exception('Could not find latex equation:')
 					else:
