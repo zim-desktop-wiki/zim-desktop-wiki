@@ -33,6 +33,15 @@ except:
 	sys.exit(1)
 
 
+# Get environment parameter for building for maemo
+# We don't use auto-detection here because we want to be able to 
+# cross-compile a maemo package on another platform
+build_target = os.environ.get('ZIM_BUILD_TARGET') or 'default'
+assert build_target in ('default', 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
+if build_target == 'maemo':
+	print 'Building for Maemo...'
+
+
 # Helper routines
 
 def collect_packages():
@@ -88,6 +97,17 @@ def collect_data_files():
 			files = filter(include_file, files)
 			files = [os.path.join(dir, f) for f in files]
 			data_files.append((target, files))
+
+	if build_target == 'maemo':
+		# Remove default .desktop files and replace with our set
+		prefix = os.path.join('share', 'zim', 'applications')
+		for i in reversed(range(len(data_files))):
+			if data_files[i][0].startswith(prefix):
+				data_files.pop(i)
+
+		files = ['maemo/applications/%s' % f
+				for f in os.listdir('maemo/applications') if f.endswith('.desktop')]
+		data_files.append((prefix, files))
 
 	# .po files -> PREFIX/share/locale/..
 	for pofile in [f for f in os.listdir('po') if f.endswith('.po')]:
@@ -243,6 +263,10 @@ dependencies = ['gobject', 'gtk', 'xdg']
 if version_info == (2, 5):
 	dependencies.append('simplejson')
 
+if build_target == 'maemo':
+	scripts = ['zim.py', 'maemo/modest-mailto.sh']
+else:
+	scripts = ['zim.py']
 
 if py2exe:
 	py2exeoptions = {
@@ -284,7 +308,7 @@ setup(
 	author_email = 'pardus@cpan.org',
 	license      = 'GPL',
 	url          = __url__,
-	scripts      = ['zim.py'],
+	scripts      = scripts,
 	packages     = collect_packages(),
 	data_files   = collect_data_files(),
 	requires     = dependencies,

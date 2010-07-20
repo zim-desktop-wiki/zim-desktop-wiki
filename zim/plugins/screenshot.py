@@ -7,7 +7,7 @@ import time
 
 from zim.fs import TmpFile
 from zim.plugins import PluginClass
-from zim.gui.widgets import Dialog, ErrorDialog
+from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
 from zim.applications import Application
 
 ui_xml = '''
@@ -28,6 +28,11 @@ ui_actions = (
 		# T: menu item for insert screenshot plugin
 )
 
+if ui_environment['platform'] == 'maemo':
+	COMMAND = 'screenshot-tool'
+else:
+	COMMAND = 'scrot'
+
 
 class InsertScreenshotPlugin(PluginClass):
 	'''FIXME'''
@@ -35,8 +40,7 @@ class InsertScreenshotPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Insert Screenshot'), # T: plugin name
 		'description': _('''\
-This plugin is a wrapper for the "scrot" application.
-It allows taking a screenshot and directly insert it
+This plugin  allows taking a screenshot and directly insert it
 in a zim page.
 
 This is a core plugin shipping with zim.
@@ -53,7 +57,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('scrot',Application(('scrot',)).tryexec())]
+		return (COMMAND, Application((COMMAND,)).tryexec())
 
 	def insert_screenshot(self):
 		dialog = InsertScreenshotDialog.unique(self, self.ui)
@@ -66,10 +70,11 @@ class InsertScreenshotDialog(Dialog):
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Insert Screenshot')) # T: dialog title
-		self.screen_radio = gtk.RadioButton(None, _('Capture whole screen')) # T: option in 'insert screenshot' dialog
-		self.select_radio = gtk.RadioButton(self.screen_radio, _('Select window or region')) # T: option in 'insert screenshot' dialog
-		self.vbox.add(self.screen_radio)
-		self.vbox.add(self.select_radio)
+		if COMMAND == 'scrot':
+			self.screen_radio = gtk.RadioButton(None, _('Capture whole screen')) # T: option in 'insert screenshot' dialog
+			self.select_radio = gtk.RadioButton(self.screen_radio, _('Select window or region')) # T: option in 'insert screenshot' dialog
+			self.vbox.add(self.screen_radio)
+			self.vbox.add(self.select_radio)
 
 		hbox = gtk.HBox()
 		self.vbox.add(hbox)
@@ -84,23 +89,24 @@ class InsertScreenshotDialog(Dialog):
 		tmpfile = TmpFile('insert-screenshot.png')
 		options = ()
 
-		if self.select_radio.get_active():
-			options += ('--select', '--border')
-			# Interactively select a window or rectangle with the mouse.
-			# When selecting a window, grab wm border too
-		else:
-			options += ('--multidisp',)
-			# For multiple heads, grab shot from each and join them together.
+		if COMMAND == 'scrot':
+			if self.select_radio.get_active():
+				options += ('--select', '--border')
+				# Interactively select a window or rectangle with the mouse.
+				# When selecting a window, grab wm border too
+			else:
+				options += ('--multidisp',)
+				# For multiple heads, grab shot from each and join them together.
 
 		delay = self.time_spin.get_value_as_int()
 		if delay > 0:
-			options += ('--delay', str(delay))
+			options += ('-d', str(delay))
 			# Wait NUM seconds before taking a shot.
 
-		scrot = Application(('scrot',) + options)
+		helper = Application((COMMAND,) + options)
 
 		def callback(status, tmpfile):
-			if status == scrot.STATUS_OK:
+			if status == helper.STATUS_OK:
 				name = time.strftime('screenshot_%Y-%m-%d-%H%M%S.png')
 				page = self.ui.page
 				dir = self.ui.notebook.get_attachments_dir(page)
@@ -109,9 +115,9 @@ class InsertScreenshotDialog(Dialog):
 				self.ui.mainwindow.pageview.insert_image(file, interactive=False)
 			else:
 				ErrorDialog(self.ui,
-					_('Some error occured while running "scrot"')).run()
-					# T: Error message in "insert screenshot" dialog
+					_('Some error occured while running "%s"') % COMMAND).run()
+					# T: Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 
 		tmpfile.dir.touch()
-		scrot.spawn((tmpfile,), callback, tmpfile)
+		helper.spawn((tmpfile,), callback, tmpfile)
 		return True

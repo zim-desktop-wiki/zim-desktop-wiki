@@ -34,6 +34,40 @@ KEYVALS_SLASH = (
 	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
 
 
+# UI Environment config. Would properly belong in zim.gui.__init__
+# but defined here to avoid unnecessary dependencies on zim.gui
+ui_environment = {
+	'platform': None, # platform name to trigger platform specific optimizations
+	'maxscreensize': None, # max screensize _if_ fixed by the platform
+	'smallscreen': False, # trigger optimizations for small screens
+}
+
+
+# Check for Maemo environment
+try:
+	import hildon
+	Window = hildon.Window
+	ui_environment['platform'] = 'maemo'
+	if hasattr(Window,'set_app_menu'):
+		ui_environment['maemo_version'] = 'maemo5'
+	else:
+		ui_environment['maemo_version'] = 'maemo4'
+	ui_environment['maxscreensize'] = (800, 480)
+	ui_environment['smallscreen'] = True
+
+	# Maemo gtk UI bugfix: expander-size is set to 0 by default
+	gtk.rc_parse_string('''\
+style "toolkit"
+{
+	GtkTreeView::expander-size = 12
+}
+
+class "GtkTreeView" style "toolkit"
+''' )
+except ImportError:
+	Window = gtk.Window
+
+
 def _encode_xml(text):
 	return text.replace('>', '&gt;').replace('<', '&lt;')
 
@@ -318,14 +352,23 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 			self.label = gtk.Label()
 			self.label.set_markup_with_mnemonic(label)
 		else:
-			assert isinstance(label, gtk.Widget)
+			assert isinstance(label, gtk.Label)
 			self.label = label
+
 		self.menu = menu
 		self.button = gtk.ToggleButton()
 		if status_bar_style:
 			self.button.set_name('zim-statusbar-menubutton')
 			self.button.set_relief(gtk.RELIEF_NONE)
-		self.button.add(self.label)
+			widget = self.label
+		else:
+			arrow = gtk.Arrow(gtk.ARROW_UP, gtk.SHADOW_NONE)
+			widget = gtk.HBox(spacing=3)
+			widget.pack_start(self.label, False)
+			widget.pack_start(arrow, False)
+
+
+		self.button.add(widget)
 		# We need to wrap stuff in an eventbox in order to get the gdk.Window
 		# which we need to get coordinates when positioning the menu
 		self.eventbox = gtk.EventBox()
@@ -374,6 +417,7 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 		self.button.handler_block(self._clicked_signal)
 		self.button.set_active(False)
 		self.button.handler_unblock(self._clicked_signal)
+
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(MenuButton)
@@ -673,23 +717,23 @@ class Dialog(gtk.Dialog):
 			title=format_title(title),
 			flags=gtk.DIALOG_NO_SEPARATOR|gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
-		self.set_border_width(10)
-		self.vbox.set_spacing(5)
+		if not ui_environment['smallscreen']:
+			self.set_border_width(10)
+			self.vbox.set_spacing(5)
 
 		if hasattr(self, 'uistate'):
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
 		elif hasattr(ui, 'uistate') \
 		and isinstance(ui.uistate, zim.config.ConfigDict):
-			assert isinstance(defaultwindowsize, tuple)
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
-			#~ print '>>', self.uistate
 		else:
 			self.uistate = { # used in tests/debug
-				'windowsize': (-1, -1)
+				'windowsize': defaultwindowsize
 			}
 
+		#~ print '>>', self.uistate
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 
@@ -971,9 +1015,10 @@ class Dialog(gtk.Dialog):
 		else:
 			destroy = True
 
-		w, h = self.get_size()
-		self.uistate['windowsize'] = (w, h)
-		self.save_uistate()
+		if ui_environment['platform'] != 'maemo':
+			w, h = self.get_size()
+			self.uistate['windowsize'] = (w, h)
+			self.save_uistate()
 
 		if destroy:
 			self.destroy()
@@ -1137,11 +1182,15 @@ class FileDialog(Dialog):
 			elif action == gtk.FILE_CHOOSER_ACTION_SAVE:
 				button = (None, gtk.STOCK_SAVE)
 			# else Ok will do
-		Dialog.__init__(self, ui, title,
+
+		if ui_environment['platform'] == 'maemo':
+			defaultsize = (800, 480)
+		else:
+			defaultsize = (500, 400)
+
+		Dialog.__init__(self, ui, title, defaultwindowsize=defaultsize,
 			buttons=buttons, button=button, help_text=help_text, help=help)
-		if self.uistate['windowsize'] == (-1, -1):
-			self.uistate['windowsize'] = (500, 400)
-			self.set_default_size(500, 400)
+
 		self.filechooser = gtk.FileChooserWidget(action=action)
 		self.filechooser.set_do_overwrite_confirmation(True)
 		self.filechooser.set_select_multiple(multiple)
@@ -1335,6 +1384,7 @@ class ProgressBarDialog(gtk.Dialog):
 
 	#def do_destroy(self):
 	#	logger.debug('Closed ProgressBarDialog')
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(ProgressBarDialog)

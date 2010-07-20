@@ -70,14 +70,11 @@ The main point in separating active projects in the "Projects" namespace from no
 As an extension I also use the [[Plugins:Calendar|Calendar plugin]] to have a journal page for each day with notes from meetings etc. Action items from meetings may live there, but this usage is a bit at odds with the use of the INBOX page. At least I can reference discussion notes of a certain date from a project page etc.
 
 === Summary ===
-* Each action belongs to an open project - "Chores" is the collection
-bucket for small tasks
+* Each action belongs to an open project - "Chores" is the collection bucket for small tasks
 * Open projects go in the "Projects" namespace
-* Open projects should have a clearly defined goal which can be
-evaluated and stamped "finished" at a certain point in time
+* Open projects should have a clearly defined goal which can be evaluated and stamped "finished" at a certain point in time
 * Otherwise they go in either "SomeDay" or "Archive"
-* Each action should have a checkbox - possible follow up actions can
-have normal bullets if they are not actionable yet
+* Each action should have a checkbox - possible follow up actions can have normal bullets if they are not actionable yet
 * Tags on action are used to generate lists
 * Some tickler lists can have their own pages, like "Loans"
 

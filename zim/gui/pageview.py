@@ -25,8 +25,9 @@ from zim.config import config_file
 from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, \
-	Button, IconButton, BrowserTreeView, InputEntry, \
+from zim.gui.widgets import ui_environment, \
+	Dialog, FileDialog, ErrorDialog, \
+	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	rotate_pixbuf
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
@@ -57,9 +58,9 @@ KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
 KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 
 #~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
-CHARS_END_OF_WORD = (' ', ')', '>')
+CHARS_END_OF_WORD = ('\t', ' ', ')', '>')
 KEYVALS_END_OF_WORD = map(
-	gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD))
+	gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD)) + KEYVALS_TAB
 
 KEYVALS_ASTERISK = (
 	gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
@@ -154,6 +155,21 @@ ui_preferences = (
 		# T: option in preferences dialog
 )
 
+if ui_environment['platform'] == 'maemo':
+	# Manipulate preferences with Maemo specific settings
+	ui_preferences = list(ui_preferences)
+	for i in range(len(ui_preferences)):
+		if ui_preferences[i][0] == 'follow_on_enter':
+			ui_preferences[i] = \
+				('follow_on_enter', 'bool', None, None, True)
+				# There is no ALT key on maemo devices
+		elif ui_preferences[i][0] == 'unindent_on_backspace':
+			ui_preferences[i] = \
+				('unindent_on_backspace', 'bool', None, None, True)
+				# There is no hardware TAB key on maemo devices
+	ui_preferences = tuple(ui_preferences)
+
+
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
 _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
@@ -199,11 +215,16 @@ camelcase_re = Re(r'[%(upper)s]+[%(lower)s]+[%(upper)s]+\w*$' % _classes)
 twoletter_re = re.compile(r'[%(letters)s]{2}' % _classes)
 del _classes
 
+# E.g. Maemo devices have no hardware [] keys,
+# so allow () to be used for the same purpose
 autoformat_bullets = {
 	'*': BULLET,
 	'[]': UNCHECKED_BOX,
 	'[*]': CHECKED_BOX,
 	'[x]': XCHECKED_BOX,
+	'()': UNCHECKED_BOX,
+	'(*)': CHECKED_BOX,
+	'(x)': XCHECKED_BOX,
 }
 
 CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
@@ -1428,13 +1449,24 @@ class TextBuffer(gtk.TextBuffer):
 		self.smart_remove_tags(_is_link_tag, start, end)
 		self.update_editmode()
 
-	def toggle_checkbox(self, iter, checkbox_type=CHECKED_BOX):
+	def toggle_checkbox(self, iter, checkbox_type=None):
+		'''Toggles checkbox at iter. If checkbox_type is given, it
+		toggles between this type and unchecked. Otherwise it rotates
+		through unchecked, checked and xchecked.
+		'''
+		# <F12> and <Shift><F12> specify checkbox_type
+		# but left mouse click does not
 		bullet = self.get_bullet_at_iter(iter)
 		if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
-			if bullet == checkbox_type:
-				icon = bullet_types[UNCHECKED_BOX]
+			if checkbox_type:
+				if bullet == checkbox_type:
+					icon = bullet_types[UNCHECKED_BOX]
+				else:
+					icon = bullet_types[checkbox_type]
 			else:
-				icon = bullet_types[checkbox_type]
+				i = list(CHECKBOXES).index(bullet) # use list() to be python 2.5 compatible
+				next = (i + 1) % len(CHECKBOXES)
+				icon = bullet_types[CHECKBOXES[next]]
 		else:
 			return False
 
@@ -2130,6 +2162,7 @@ class TextView(gtk.TextView):
 		# methods below. Returns boolean whether we handled the event, this
 		# determines if the event is finished, or it should continue to be
 		# emited to any other handlers.
+		# Note that on maemo only TAB triggers this method, other keys avod it somehow
 
 		handled = False
 		buffer = self.get_buffer()
@@ -2227,6 +2260,8 @@ class TextView(gtk.TextView):
 
 			if event.keyval in KEYVALS_ENTER:
 				char = '\n'
+			elif event.keyval in KEYVALS_TAB:
+				char = '\t'
 			else:
 				char = unichr(gtk.gdk.keyval_to_unicode(event.keyval))
 
@@ -2425,7 +2460,8 @@ class TextView(gtk.TextView):
 			buffer.apply_tag(tag, start, end)
 			return True
 
-		if char == ' ' and start.starts_line() and word in autoformat_bullets:
+		if (char == ' ' or char == '\t') and start.starts_line() \
+		and word in autoformat_bullets:
 			# format bullet and checkboxes
 			end.forward_char() # also overwrite the space triggering the action
 			mark = buffer.create_mark(None, end)
@@ -2942,23 +2978,6 @@ class PageView(gtk.VBox):
 			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
 
-
-		# HACK, this makes sure we do not hijack keybindings like
-		# ^C and ^V while we are not focus (e.g. paste in find bar)
-		def set_actiongroup_sensitive(o, e, sensitive):
-			# Immitate logic in self.set_readonly()
-			if sensitive:
-				for action in self.actiongroup.list_actions():
-					action.set_sensitive(
-						action.zim_readonly or not self.readonly)
-			else:
-				for action in self.actiongroup.list_actions():
-						action.set_sensitive(False)
-
-		self.view.connect('focus-in-event', set_actiongroup_sensitive, True)
-		self.view.connect('focus-out-event', set_actiongroup_sensitive, False)
-
-
 		# Extra keybinding for undo - default is <Shift><Ctrl>Z (see HIG)
 		def do_undo(*a):
 			if not self.readonly:
@@ -3032,6 +3051,22 @@ class PageView(gtk.VBox):
 				TextBuffer.tag_styles[tag] = attrib
 
 	def on_open_notebook(self, ui, notebook):
+		# HACK, this makes sure we do not hijack keybindings like
+		# ^C and ^V while we are not focus (e.g. paste in find bar)
+		# Put it here to ensure mainwindow is initialized.
+		def set_actiongroup_sensitive(window, widget):
+			#~ print '!! FOCUS SET:', widget
+			# Immitate logic in self.set_readonly()
+			sensitive = widget is self.view
+			if sensitive:
+				for action in self.actiongroup.list_actions():
+					action.set_sensitive(
+						action.zim_readonly or not self.readonly)
+			else:
+				for action in self.actiongroup.list_actions():
+						action.set_sensitive(False)
+		window = self.get_toplevel()
+		window.connect('set-focus', set_actiongroup_sensitive)
 
 		def assert_not_modified(page, *a):
 			if page == self.page \
@@ -4094,8 +4129,36 @@ class FindBar(FindWidget, gtk.HBox):
 		self.pack_start(self.find_entry, False)
 		self.pack_start(self.previous_button, False)
 		self.pack_start(self.next_button, False)
-		self.pack_start(self.case_option_checkbox, False)
-		self.pack_start(self.highlight_checkbox, False)
+		if ui_environment['smallscreen']:
+			# E.g. Maemo Nxx0 devices have not enough space for so many
+			# widgets, so let's put options in a menu button.
+			# FIXME need to rewrite this hack to integrate nicely with
+			# the FindWidget base class
+			# FIXME ideally behavior would switch on the fly based on
+			# actual screensize - we can detect when these widgets
+			# fit or not by using "x_size, y_size = mywidget.window.get_size()"
+			# or "mywidget.get_allocation().width" to get the widgets and window size
+			# and probably re-draw when the screensize or windowsize changes
+			# by listening to window resize events.
+			# Alternatively we can always put options in this menu
+			menu = gtk.Menu()
+			item = gtk.CheckMenuItem(self.case_option_checkbox.get_label())
+			item.connect('toggled',
+				lambda sender, me: me.case_option_checkbox.set_active(sender.get_active()), self)
+			menu.append(item)
+			item = gtk.CheckMenuItem(self.highlight_checkbox.get_label())
+			item.connect('toggled',
+				lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()),self)
+			menu.append(item)
+			if ui_environment['platform'] == 'maemo':
+				# maemo UI convention: up arrow button with no label
+				button = MenuButton('', menu)
+			else:
+				button = MenuButton(_('Options'), menu) # T: Options button
+			self.pack_start(button, False)
+		else:
+			self.pack_start(self.case_option_checkbox, False)
+			self.pack_start(self.highlight_checkbox, False)
 
 		close_button = IconButton(gtk.STOCK_CLOSE, relief=False)
 		close_button.connect_object('clicked', self.__class__.hide, self)

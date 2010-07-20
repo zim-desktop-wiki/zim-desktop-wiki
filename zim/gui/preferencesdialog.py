@@ -2,13 +2,14 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
+import pango
 import gtk
 import logging
 
 import zim.plugins
 from zim.gui.applications import \
 	get_application, get_helper_applications, CustomCommandDialog
-from zim.gui.widgets import Dialog, Button, BrowserTreeView
+from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view
 from zim.gui.pageview import PageView
 
 
@@ -171,33 +172,13 @@ class PluginsTab(gtk.HBox):
 		vbox = gtk.VBox()
 		self.add(vbox)
 
-		def heading(text):
-			label = gtk.Label()
-			label.set_markup('<b>%s</b>' % text)
-			label.set_alignment(0.0, 0.5)
-			return label
-
-		vbox.pack_start(heading(_('Name')), False)
-			# T: Heading in plugins tab of preferences dialog
-		self.name_label = gtk.Label()
-		self.name_label.set_alignment(0.0, 0.5)
-		vbox.pack_start(self.name_label, False)
-		vbox.pack_start(heading('\n'+_('Description')), False)
-			# T: Heading in plugins tab of preferences dialog
-		self.description_label = gtk.Label()
-		self.description_label.set_alignment(0.0, 0.5)
-		vbox.pack_start(self.description_label, False) # FIXME run through plain format to make links
-		vbox.pack_start(heading('\n'+_('Dependencies')),False)
-			# T: Heading in plugins tab of preferences dialog
-		self.dep_label = gtk.Label()
-		self.dep_label.set_alignment(0.0, 0.5)
-		vbox.pack_start(self.dep_label, False)
-
-		vbox.pack_start(heading('\n'+_('Author')), False)
-			# T: Heading in plugins tab of preferences dialog
-		self.author_label= gtk.Label()
-		self.author_label.set_alignment(0.0, 0.5)
-		vbox.pack_start(self.author_label, False) # FIXME idem
+		# Textview with scrollbars to show plugins info. Required by small screen devices
+		swindow, textview = scrolled_text_view()
+		textview.set_cursor_visible(False)
+		self.textbuffer = textview.get_buffer()
+		self.textbuffer.create_tag('bold', weight=pango.WEIGHT_BOLD)
+		self.textbuffer.create_tag('red', foreground='#FF0000')
+		vbox.pack_start(swindow, True)
 
 		hbox = gtk.HBox(spacing=5)
 		vbox.pack_end(hbox, False)
@@ -219,29 +200,49 @@ class PluginsTab(gtk.HBox):
 		klass = treeview.get_model()[path][3]
 		self._klass = klass
 
+		# Insert plugin info into textview with proper formatting
+		self.textbuffer.delete(*self.textbuffer.get_bounds()) # clear
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			_('Name') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		self.textbuffer.insert(
+			self.textbuffer.get_end_iter(),
+			klass.plugin_info['name'].strip() + '\n\n')
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			_('Description') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		self.textbuffer.insert(
+			self.textbuffer.get_end_iter(),
+			klass.plugin_info['description'].strip() + '\n\n')
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			_('Dependencies') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+
 		#construct dependency list, missing dependencies are marked red
-		space = False
-		depend_label = ''
-		def format_dependency(dependency):
-			text, ok = dependency
-			text = text.replace('>', '&gt;').replace('<', '&lt;') # encode XML
-			if ok:
-				text += ' - ' + _('OK') # T: dependency is OK
-			else:
-				text = '<span color="red">%s - %s</span>' % (text, _('Failed'))
-					# T: dependency failed
-			return u'\u2022 ' + text + '\n'  # unicode bullet
-
 		dependencies = klass.check_dependencies()
-		if dependencies:
-			dep_text = ''.join(map(format_dependency, dependencies))
+		if not(dependencies):
+			self.textbuffer.insert(
+				self.textbuffer.get_end_iter(),
+				_('No dependencies') + '\n') # T: label in plugin info in preferences dialog
 		else:
-			dep_text = _('No dependencies') # T: label in plugin info in preferences dialog
+			for dependency in dependencies:
+				text, ok = dependency
+				if ok:
+					self.textbuffer.insert(
+						self.textbuffer.get_end_iter(),
+						u'\u2022 ' + text + ' - ' + _('OK') + '\n') # T: dependency is OK
+				else:
+					self.textbuffer.insert_with_tags_by_name(
+						self.textbuffer.get_end_iter(),
+						u'\u2022 ' + text +' - ' + _('Failed') + '\n', 'red') # T: dependency failed
 
-		self.name_label.set_text(klass.plugin_info['name'].strip())
-		self.description_label.set_text(klass.plugin_info['description'].strip())
-		self.dep_label.set_markup(dep_text)
-		self.author_label.set_text(klass.plugin_info['author'].strip() + '\n')
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			'\n' + _('Author') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		self.textbuffer.insert(
+			self.textbuffer.get_end_iter(),
+			klass.plugin_info['author'].strip())
+
 		self.configure_button.set_sensitive(active and bool(klass.plugin_preferences))
 		self.plugin_help_button.set_sensitive('help' in klass.plugin_info)
 

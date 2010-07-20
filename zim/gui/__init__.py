@@ -44,9 +44,10 @@ from zim.history import History, HistoryRecord
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
-from zim.gui.widgets import Button, MenuButton, \
-	Dialog, ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, \
-	gtk_window_set_default_icon
+from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
+	Button, MenuButton, \
+	Window, Dialog, \
+	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import get_application, get_default_application, CustomToolManager
 
@@ -112,13 +113,23 @@ ui_actions = (
 
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, initial state, readonly
-	('toggle_toolbar', None, _('_Toolbar'),  None, '', True, True), # T: Menu item
+	('toggle_toolbar', None, _('_Toolbar'),  '', '', True, True), # T: Menu item
 	('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
 	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
-	('toggle_fullscreen',  None, _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
+	('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
 	('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
 )
 
+if ui_environment['platform'] == 'maemo':
+	ui_toggle_actions = (
+		# name, stock id, label, accelerator, tooltip, initial state, readonly
+		('toggle_toolbar', None, _('_Toolbar'),  '<ctrl>M', '', True, True), # T: Menu item
+		('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
+		('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
+		('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
+		('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
+	)
+    
 ui_pathbar_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
 	('set_pathbar_none', None, _('_None'),  None, None, 0), # T: Menu item
@@ -154,6 +165,7 @@ TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
+
 ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
@@ -161,8 +173,19 @@ ui_preferences = (
 	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)'), False),
 		# T: Option in the preferences dialog
 		# default value is False because this is mapped to switch between
-		# char sets in cerain international key mappings
+		# char sets in certain international key mappings
 )
+
+if ui_environment['platform'] == 'maemo':
+	# Maemo specific settngs
+	ui_preferences = (
+		# key, type, category, label, default
+		('tearoff_menus', 'bool', None, None, False),
+			# Maemo can't have tearoff_menus
+		('toggle_on_ctrlspace', 'bool', None, None, True),
+			# There is no ALT key on maemo devices
+	)
+
 
 
 # Load custom application icons as stock
@@ -304,6 +327,13 @@ class GtkInterface(NotebookInterface):
 			'file_browser': ['xdg-open', 'startfile'],
 			'web_browser': ['xdg-open', 'startfile']
 		}
+		if ui_environment['platform'] == 'maemo':
+			apps = {
+				'email_client': ['modest'],
+				'file_browser': ['hildon-mime-summon'],
+				'web_browser': ['webbrowser']
+			}
+
 		for type in apps.keys():
 			prefs = self.preferences['GtkInterface']
 			if type in prefs and prefs[type] \
@@ -333,7 +363,19 @@ class GtkInterface(NotebookInterface):
 								self.mainwindow, 'do_set_toolbar_style')
 		self.add_radio_actions(ui_toolbar_size_radio_actions,
 								self.mainwindow, 'do_set_toolbar_size')
-		self.add_ui(data_file('menubar.xml').read(), self)
+
+		if ui_environment['platform'] == 'maemo':
+			# Customized menubar for maemo, specific for maemo version
+			fname = 'menubar-' + ui_environment['maemo_version'] + '.xml'
+		else:
+			fname = 'menubar.xml'
+		self.add_ui(data_file(fname).read(), self)
+
+		if ui_environment['platform'] == 'maemo':
+			# Hardware fullscreen key is F6 in N8xx devices
+			self.mainwindow.connect('key-press-event',
+				lambda o, event: event.keyval == gtk.keysyms.F6
+					and self.mainwindow.toggle_fullscreen())
 
 		self.load_plugins()
 
@@ -343,8 +385,30 @@ class GtkInterface(NotebookInterface):
 		self.load_custom_tools()
 
 		self.uimanager.ensure_update()
-			# prevent flashing when the toolbar is after showing the window
-			# and do this before connecting signal below for accelmap
+			# Prevent flashing when the toolbar is after showing the window
+			# and do this before connecting signal below for accelmap.
+			# For maemo ensure all items are initialized before moving
+			# them to the hildon menu
+
+		if ui_environment['platform'] == 'maemo':
+			# Move the menu to the hildon menu
+			# This is save for later updates of the menus (e.g. by plugins)
+			# as long as the toplevel menus are not changed
+			menu = gtk.Menu()
+			for child in self.mainwindow.menubar.get_children():
+				child.reparent(menu)
+			self.mainwindow.set_menu(menu)
+			self.mainwindow.menubar.hide()
+
+			# Localize the fullscreen button in the toolbar
+			for i in range(self.mainwindow.toolbar.get_n_items()):
+				self.fsbutton = None
+				toolitem = self.mainwindow.toolbar.get_nth_item(i)
+				if isinstance(toolitem, gtk.ToolButton):
+					if toolitem.get_stock_id() == 'gtk-fullscreen':
+						self.fsbutton = toolitem
+						self.fsbutton.tap_and_hold_setup(menu) # attach app menu to fullscreen button for N900
+						break
 
 		accelmap = config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
@@ -620,8 +684,10 @@ class GtkInterface(NotebookInterface):
 		for p in preferences:
 			key, type, category, label, default = p
 			self.preferences[section].setdefault(key, default)
-			register.setdefault(category, [])
-			register[category].append((section, key, type, label))
+			# Preferences with None category won't be shown in the preferences dialog
+			if category:
+				register.setdefault(category, [])
+				register[category].append((section, key, type, label))
 
 	def get_path_context(self):
 		'''Returns the current 'context' for actions that want a path to start
@@ -1381,15 +1447,14 @@ class GtkInterface(NotebookInterface):
 gobject.type_register(GtkInterface)
 
 
-class MainWindow(gtk.Window):
+class MainWindow(Window):
 	'''Main window of the application, showing the page index in the side
 	pane and a pageview with the current page. Alse includes the menubar,
 	toolbar, statusbar etc.
 	'''
 
 	def __init__(self, ui, fullscreen=False, geometry=None):
-		'''Constructor'''
-		gtk.Window.__init__(self)
+		Window.__init__(self)
 		self._fullscreen = False
 		self.ui = ui
 
@@ -1455,7 +1520,9 @@ class MainWindow(gtk.Window):
 		vbox.pack_start(hbox, False, True, False)
 
 		self.statusbar = gtk.Statusbar()
-		#~ self.statusbar.set_has_resize_grip(False)
+		if ui_environment['platform'] == 'maemo':
+			# Maemo windows aren't resizeable so it makes no sense to show the resize grip
+			self.statusbar.set_has_resize_grip(False)
 		self.statusbar.push(0, '<page>')
 		hbox.add(self.statusbar)
 
@@ -1525,6 +1592,11 @@ class MainWindow(gtk.Window):
 				# only do this after we initalize
 				self.toggle_fullscreen(show=self._fullscreen)
 
+		if ui_environment['platform'] == 'maemo':
+			# Maemo UI bugfix: If ancestor method is not called the window
+			# will have borders when fullscreen
+			Window.do_window_state_event(self, event)
+
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:
 			self.remove_accel_group(self._switch_focus_accelgroup)
@@ -1534,6 +1606,7 @@ class MainWindow(gtk.Window):
 		group.connect_group( # <Alt><Space>
 			space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
 			self.do_switch_focus)
+
 		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Ctrl><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
@@ -1807,7 +1880,11 @@ class MainWindow(gtk.Window):
 		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_menubar_fullscreen', True)
 		self.uistate.setdefault('show_toolbar', True)
-		self.uistate.setdefault('show_toolbar_fullscreen', False)
+		if ui_environment['platform'] == 'maemo':
+			# N900 lacks menu and fullscreen hardware buttons, UI must provide them
+			self.uistate.setdefault('show_toolbar_fullscreen', True)
+		else:
+			self.uistate.setdefault('show_toolbar_fullscreen', False)
 		self.uistate.setdefault('show_statusbar', True)
 		self.uistate.setdefault('show_statusbar_fullscreen', False)
 		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT)
@@ -1925,11 +2002,11 @@ class BackLinksMenuButton(MenuButton):
 		MenuButton.popup_menu(self, event)
 
 
-class PageWindow(gtk.Window):
+class PageWindow(Window):
 	'''Secondairy window, showing a single page'''
 
 	def __init__(self, ui, page):
-		gtk.Window.__init__(self)
+		Window.__init__(self)
 		self.ui = ui
 
 		self.set_title(page.name + ' - Zim')
