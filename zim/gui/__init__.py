@@ -120,6 +120,16 @@ ui_toggle_actions = (
 	('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
 )
 
+if ui_environment['platform'] == 'maemo':
+	ui_toggle_actions = (
+		# name, stock id, label, accelerator, tooltip, initial state, readonly
+		('toggle_toolbar', None, _('_Toolbar'),  '<ctrl>M', '', True, True), # T: Menu item
+		('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
+		('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
+		('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
+		('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
+	)
+    
 ui_pathbar_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
 	('set_pathbar_none', None, _('_None'),  None, None, 0), # T: Menu item

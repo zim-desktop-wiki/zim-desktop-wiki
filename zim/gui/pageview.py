@@ -57,8 +57,6 @@ KEYVALS_BACKSPACE = map(gtk.gdk.keyval_from_name, ('BackSpace',))
 KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
 KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 
-# Maemo hildon input method keyboard doesn't emit keypress events except for TAB, ENTER and BACKSPACE
-# so we provide TAB as an alternative END_OF_WORD key that works with the current keypress event driven implementation
 #~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
 CHARS_END_OF_WORD = ('\t', ' ', ')', '>')
 KEYVALS_END_OF_WORD = map(
@@ -2138,6 +2136,7 @@ class TextView(gtk.TextView):
 		# methods below. Returns boolean whether we handled the event, this
 		# determines if the event is finished, or it should continue to be
 		# emited to any other handlers.
+		# Note that on maemo only TAB triggers this method, other keys avod it somehow
 
 		handled = False
 		buffer = self.get_buffer()
