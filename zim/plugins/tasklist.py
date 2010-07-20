@@ -134,7 +134,11 @@ This is a core plugin shipping with zim.
 
 	def _set_preferences(self):
 		self.all_checkboxes = self.preferences['all_checkboxes']
-		self.task_labels = [s.strip() for s in self.preferences['labels'].split(',')]
+		string = self.preferences['labels'].strip(' ,')
+		if string:
+			self.task_labels = [s.strip() for s in self.preferences['labels'].split(',')]
+		else:
+			self.task_labels = []
 		regex = '(' + '|'.join(map(re.escape, self.task_labels)) + ')'
 		self.task_label_re = re.compile(regex)
 
