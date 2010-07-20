@@ -197,8 +197,10 @@ class PluginsTab(gtk.HBox):
 
 	def do_row_activated(self, treeview, path, col):
 		active = treeview.get_model()[path][0]
+		name = treeview.get_model()[path][2]
 		klass = treeview.get_model()[path][3]
 		self._klass = klass
+		logger.debug('Loading description for "%s"', name)
 
 		# Insert plugin info into textview with proper formatting
 		self.textbuffer.delete(*self.textbuffer.get_bounds()) # clear
@@ -263,12 +265,12 @@ class PluginsTreeModel(gtk.ListStore):
 		for name in zim.plugins.list_plugins():
 			try:
 				klass = zim.plugins.get_plugin(name)
+				isloaded = klass in loaded
+				activatable = klass.check_dependencies_ok()
 			except:
 				logger.exception('Could not load plugin %s', name)
 				continue
 			else:
-				isloaded = klass in loaded
-				activatable = klass.check_dependencies_ok()
 				self.append((isloaded, activatable, klass.plugin_info['name'], klass))
 
 	def do_toggle_path(self, path):
