@@ -4,6 +4,8 @@ Jaap Karssenberg <pardus@cpan.org>
 This branch is the Python rewrite and starts with version 0.42. 
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.48 - .. ===
+* Added translations for Croatian and Slovak
 
 === 0.47 - Sun  6 Jun 2010 ===
 Big release with lots of new functionality but also many bug fixes
