@@ -1519,7 +1519,16 @@ class Assistant(Dialog):
 		return self.set_page(self._page - 1)
 
 	def do_response(self, id):
-		self._pages[self._page].save_uistate()
+		# Wrap up previous page
+		if self._page > -1:
+			try: # hack needed for filechooser valid in gtk < 2.12
+				self._pages[self._page]._check_valid()
+			except Exception, error:
+				ErrorDialog(self, error).run()
+				return False
+			else:
+				self._pages[self._page].save_uistate()
+
 		if id == gtk.RESPONSE_OK:
 			self._uistate.update(self.uistate)
 		Dialog.do_response(self, id)
@@ -1547,7 +1556,7 @@ class AssistantPage(gtk.VBox):
 		gtk.VBox.__init__(self)
 		self.set_border_width(5)
 		self.uistate = assistant.uistate
-		self._input_valid = False
+		self._input_valid = True
 		self._input_valid_widgets = []
 
 	def init_uistate(self):
@@ -1607,14 +1616,18 @@ class AssistantPage(gtk.VBox):
 		self.set_input_valid(valid)
 
 	def _check_valid(self):
-		# Called in a try .. except block before finalizing page
+		# HACK: Called in a try .. except block before finalizing page
 		# needed because missing signal for filechooserbutton in gtk < 2.12
-		for widget in self._input_valid_widgets:
-			if isinstance(widget, gtk.FileChooser) \
-			and widget.get_property('sensitive') \
-			and widget.get_property('visible'):
-				if widget.get_filename() is None:
-					raise AssertionError, 'Missing file name'
+		# We can remove it when we get rid of using filechooserbuttons
+		if self._input_valid_widgets:
+			for widget in self._input_valid_widgets:
+				if isinstance(widget, gtk.FileChooser) \
+				and widget.get_property('sensitive') \
+				and widget.get_property('visible'):
+					if widget.get_filename() is None:
+						raise AssertionError, 'Missing file name'
+		else:
+			return self.get_input_valid()
 
 # Need to register classes defining gobject signals
 gobject.type_register(AssistantPage)

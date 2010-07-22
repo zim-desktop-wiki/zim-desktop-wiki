@@ -532,7 +532,7 @@ class WindowsPath(UnixPath):
 	def uri(self):
 		'''File uri property with win32 logic'''
 		# win32 paths do not start with '/', so add another one
-		return 'file:///'+self.canonpath
+		return 'file:///' + url_encode(self.canonpath)
 
 	@property
 	def canonpath(self):
@@ -771,11 +771,10 @@ class File(Path):
 		'''Returns True if the file exists and is actually a file'''
 		return os.path.isfile(self.encodedpath)
 
-	def open(self, mode='r', encoding='utf-8'):
+	def open(self, mode='r'):
 		'''Returns an io object for reading or writing.
 		Opening a non-exisiting file for writing will cause the whole path
 		to this file to be created on the fly.
-		To open the raw file specify 'encoding=None'.
 		'''
 		assert mode in ('r', 'w')
 		if mode == 'w':
@@ -786,24 +785,19 @@ class File(Path):
 			else:
 				pass # exists and writable
 
-		if encoding:
-			mode += 'b'
-
-		if mode in ('w', 'wb'):
+		mode += 'b'
+		if mode == 'wb':
 			tmp = self.encodedpath + '.zim.new~'
 			fh = FileHandle(tmp, mode=mode, on_close=self._on_write)
 		else:
 			fh = open(self.encodedpath, mode=mode)
 
-		if encoding:
-			# code copied from codecs.open() to wrap our FileHandle objects
-			info = codecs.lookup(encoding)
-			srw = codecs.StreamReaderWriter(
-				fh, info.streamreader, info.streamwriter, 'strict')
-			srw.encoding = encoding
-			return srw
-		else:
-			return fh
+		# code copied from codecs.open() to wrap our FileHandle objects
+		info = codecs.lookup('utf-8')
+		srw = codecs.StreamReaderWriter(
+			fh, info.streamreader, info.streamwriter, 'strict')
+		srw.encoding = 'utf-8'
+		return srw
 
 	def _on_write(self):
 		# flush and sync are already done before close()
@@ -833,12 +827,27 @@ class File(Path):
 		if isnew:
 			FS.emit('path-created', self)
 
-	def read(self, encoding='utf-8'):
+	def raw(self):
+		'''Like read() but without encoding and newline logic.
+		Used to read binary data, e.g. when serving files over www.
+		Note that this function also does not integrates with checking
+		mtime, so intended for read only usage.
+		'''
+		with self._lock:
+			try:
+				fh = open(self.encodedpath, mode='rb')
+				content = fh.read()
+				fh.close()
+				return content
+			except IOError:
+				raise FileNotFoundError(self)
+
+	def read(self):
 		'''Returns the content as string. Raises a
 		FileNotFoundError exception when the file does not exist.
 		'''
 		with self._lock:
-			text = self._read(encoding)
+			text = self._read()
 		return text
 
 	def read_async(self, callback=None, data=None):
@@ -853,9 +862,9 @@ class File(Path):
 		operation.start()
 		return operation
 
-	def _read(self, encoding='utf-8'):
+	def _read(self):
 		try:
-			file = self.open('r', encoding)
+			file = self.open('r')
 			content = file.read()
 			self._checkoverwrite(content)
 			return _convert_newlines(content)

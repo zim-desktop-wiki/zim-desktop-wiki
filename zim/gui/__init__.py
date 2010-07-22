@@ -129,7 +129,7 @@ if ui_environment['platform'] == 'maemo':
 		('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
 		('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
 	)
-    
+
 ui_pathbar_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
 	('set_pathbar_none', None, _('_None'),  None, None, 0), # T: Menu item
@@ -1434,6 +1434,9 @@ class GtkInterface(NotebookInterface):
 		dialog.set_version(zim.__version__)
 		dialog.set_comments(_('A desktop wiki'))
 			# T: General description of zim itself
+		file = data_file('zim.png')
+		pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+		dialog.set_logo(pixbuf)
 		dialog.set_copyright(zim.__copyright__)
 		dialog.set_license(zim.__license__)
 		dialog.set_authors([zim.__author__])

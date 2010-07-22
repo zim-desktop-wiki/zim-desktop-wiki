@@ -447,3 +447,16 @@ class OutputPage(AssistantPage):
 			self.uistate[param] = value
 
 		self.uistate['index_page'] = self.index_page_entry.get_text()
+
+	def _check_valid(self):
+		# HACK - really needs special validating widget
+		print '='*80
+		show_file = self.uistate.get('selection') == 'page'
+		if show_file: entry = self.output_file_entry
+		else: entry = self.output_folder_entry
+
+		value = entry.get_text().strip()
+		print '>>', value
+		if not value:
+			raise AssertionError, 'Missing file or folder'
+		return True
