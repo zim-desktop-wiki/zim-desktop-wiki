@@ -414,7 +414,7 @@ class WWWLinker(BaseLinker):
 
 		if link.startswith('/'):
 			# document root
-			return url_encode('/+docs/' + path.lstrip('/'))
+			return url_encode('/+docs/' + link.lstrip('/'))
 			# TODO use script location as root for cgi-bin
 			# TODO allow alternative document root for cgi-bin
 		else:

@@ -9,6 +9,7 @@ prune data/manual/.zim/
 recursive-include icons/ *
 recursive-include tools/ *
 recursive-include xdg/ *
+prune xdg/hicolor/
 recursive-include po/ *
 recursive-include cgi-bin/ *
 recursive-include contrib/ *

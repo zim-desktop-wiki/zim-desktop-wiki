@@ -4,7 +4,7 @@ Creation-Date: Unknown
 
 ====== Downloads ======
 
-===== Latest release: 0.47 =====
+===== Latest release: 0.48 =====
 
 **This program depends on a number of modules including the python, gtk and the python-gtk bindings.** Most linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier then compiling them manually .
 
@@ -30,7 +30,7 @@ Unofficial ubuntu package (.deb) can be found [[/downloads/|here]]
 
 **Windows**
 
-A windows installer can be found [[http://code.google.com/p/zimdesktopwiki-windows/|here]].
+A windows installer can be found [[http://www.glump.net/software/zim|here]].
 
 **Other Distributions**
 
