@@ -143,7 +143,7 @@ class PreferencesDialog(Dialog):
 			combobox = self.inputs.pop(type)
 			name = combobox.get_active_text()
 			name_map = getattr(self, '%s_map' % type)
-			self.ui.preferences['GtkInterface'][type] = name_map[name]
+			self.ui.preferences['GtkInterface'][type] = name_map.get(name)
 
 		fields = self.get_fields()
 		#~ print fields

@@ -323,9 +323,9 @@ class GtkInterface(NotebookInterface):
 
 		# Set default applications
 		apps = {
-			'email_client': ['xdg-email', 'startfile'],
-			'file_browser': ['xdg-open', 'startfile'],
-			'web_browser': ['xdg-open', 'startfile']
+			'email_client': ['xdg-email', 'startfile', 'open'],
+			'file_browser': ['xdg-open', 'startfile', 'open'],
+			'web_browser': ['xdg-open', 'startfile', 'open']
 		}
 		if ui_environment['platform'] == 'maemo':
 			apps = {
@@ -349,8 +349,10 @@ class GtkInterface(NotebookInterface):
 						key = k
 						break
 				if key is None:
-					if helpers: key = helpers[0].key
-					else: key = 'none'
+					if helpers:
+						key = helpers[0].key
+					else:
+						logger.warn('No helper application defined for %s', type)
 				prefs.setdefault(type, key)
 
 		self.mainwindow = MainWindow(self, fullscreen, geometry)
@@ -1402,7 +1404,7 @@ class GtkInterface(NotebookInterface):
 			else:
 				tool.run(args)
 				self.reload_page()
-				#~ self.notebook.index.update(background=True)
+				self.notebook.index.update(background=True)
 				# TODO instead of using run, use spawn and show dialog
 				# with cancel button. Dialog blocks ui.
 		except Exception, error:
@@ -2174,7 +2176,6 @@ class NewPageDialog(Dialog):
 		)
 
 		if subpage:
-			print 'SETTING force_child'
 			pageentry = self.inputs['name']
 			pageentry.force_child = True
 
@@ -2189,9 +2190,8 @@ class NewPageDialog(Dialog):
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
 			page.set_parsetree(tree)
-			self.ui.save_page()
-
 			self.ui.open_page(page)
+			self.ui.save_page() # Save new page directly
 			return True
 		else:
 			return False
