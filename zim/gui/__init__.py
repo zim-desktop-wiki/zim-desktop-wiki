@@ -596,8 +596,14 @@ class GtkInterface(NotebookInterface):
 			handler.actiongroup = None
 
 	@staticmethod
-	def _log_action(action, *a):
-		logger.debug('Action: %s', action.get_name())
+	def _action_handler(action, method):
+		name = action.get_name()
+		logger.debug('Action: %s', name)
+		try:
+			method()
+		except Exception, error:
+			ErrorDialog(None, error).run()
+			# error dialog also does logging automatically
 
 	def _connect_actions(self, actions, group, handler, is_toggle=False):
 		for name, readonly in [(a[0], a[-1]) for a in actions if not a[0].endswith('_menu')]:
@@ -605,9 +611,8 @@ class GtkInterface(NotebookInterface):
 			action.zim_readonly = readonly
 			if is_toggle: name = 'do_' + name
 			assert hasattr(handler, name), 'No method defined for action %s' % name
-			method = getattr(handler.__class__, name)
-			action.connect('activate', self._log_action)
-			action.connect_object('activate', method, handler)
+			method = getattr(handler, name)
+			action.connect('activate', self._action_handler, method)
 			if self.readonly and not action.zim_readonly:
 				action.set_sensitive(False)
 
@@ -624,10 +629,9 @@ class GtkInterface(NotebookInterface):
 		assert hasattr(handler, methodname), 'No such method %s' % methodname
 		group = self.init_actiongroup(handler)
 		group.add_radio_actions(actions)
-		method = getattr(handler.__class__, methodname)
+		method = getattr(handler, methodname)
 		action = group.get_action(actions[0][0])
-		action.connect('changed', self._log_action)
-		action.connect_object('changed', method, handler)
+		action.connect('changed', self._action_handler, method)
 
 	def add_ui(self, xml, handler):
 		'''Wrapper for gtk.UIManager.add_ui_from_string(xml)'''

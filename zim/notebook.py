@@ -248,7 +248,6 @@ def init_notebook(path, name=None):
 	config = ConfigDictFile(path.file('notebook.zim'))
 	config['Notebook']['name'] = name or path.basename
 	config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
-	# TODO auto detect if we should enable the slow_fs option
 	config.write()
 
 
@@ -369,7 +368,7 @@ class Notebook(gobject.GObject):
 		('home', 'page', _('Home Page')), # T: label for properties dialog
 		('icon', 'image', _('Icon')), # T: label for properties dialog
 		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
-		('slow_fs', 'bool', _('Slow file system')), # T: label for properties dialog
+		('shared', 'bool', _('Shared Notebook')), # T: label for properties dialog
 		#~ ('autosave', 'bool', _('Auto-version when closing the notebook')),
 			# T: label for properties dialog
 	)
@@ -393,12 +392,16 @@ class Notebook(gobject.GObject):
 			assert isinstance(dir, Dir)
 			self.dir = dir
 			self.readonly = not dir.iswritable()
-			self.cache_dir = dir.subdir('.zim')
-			if self.readonly or not self.cache_dir.iswritable():
-				self.cache_dir = self._cache_dir(dir)
-			logger.debug('Cache dir: %s', self.cache_dir)
+
 			if self.config is None:
 				self.config = ConfigDictFile(dir.file('notebook.zim'))
+
+			self.cache_dir = dir.subdir('.zim')
+			if self.readonly or self.config['Notebook'].get('shared') \
+			or not self.cache_dir.iswritable():
+				self.cache_dir = self._cache_dir(dir)
+			logger.debug('Cache dir: %s', self.cache_dir)
+
 			# TODO check if config defined root namespace
 			self.add_store(Path(':'), 'files') # set root
 			# TODO add other namespaces from config
@@ -426,7 +429,7 @@ class Notebook(gobject.GObject):
 		self.config['Notebook'].setdefault('home', ':Home', klass=basestring)
 		self.config['Notebook'].setdefault('icon', None, klass=basestring)
 		self.config['Notebook'].setdefault('document_root', None, klass=basestring)
-		self.config['Notebook'].setdefault('slow_fs', False)
+		self.config['Notebook'].setdefault('shared', False)
 		self.do_properties_changed()
 
 	@property
@@ -483,8 +486,7 @@ class Notebook(gobject.GObject):
 		else:
 			self.icon = None
 
-		# Set FS property
-		if config['slow_fs']: print 'TODO: hook slow_fs property'
+		# TODO - can we switch cache_dir on run time when 'shared' chagned ?
 
 	def add_store(self, path, store, **args):
 		'''Add a store to the notebook to handle a specific path and all

@@ -1062,10 +1062,14 @@ class ErrorDialog(gtk.MessageDialog):
 			if hasattr(error, 'filename') and error.filename:
 				msg += ': ' + error.filename
 			description = None
+		elif isinstance(error, Exception):
+			msg = _('Looks like you found a bug') # T: generic error dialog
+			description = error.__class__.__name__ + ': ' + error.message
+			# TODO: add widget with stack trace in this case
 		elif isinstance(error, tuple):
 			msg, description = error
 		else:
-			# Other exception or string
+			# other object or string
 			msg = unicode(error)
 			description = None
 
