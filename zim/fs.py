@@ -297,6 +297,27 @@ class FileNotFoundError(PathLookupError):
 		self.msg = _('No such file: %s') % file.path
 			# T: message for FileNotFoundError
 
+class FileConflictError(Error):
+
+
+	def __init__(self, file):
+		self.file = file
+		self.msg = _('File conflict: %s') % file.path
+			# T: message for File Conflict Error
+		
+		self.description = _('''\
+There is a lock file for this file. This means an error occured last 
+time we tried to save it and no recovery could be done. Only way
+to resolve this is to do a manual recovery. Check for a file ending
+in '.zim-orig~' and either remove it or rename it to the original file
+name.
+''')
+		# T: description for File Conflict Error
+		# normally this property is defined as calss property, but 
+		# zim.fs is loaded before gettext bindings are setup, so
+		# defer using them till here
+
+
 
 # TODO actually hook the signal for deleting files and folders
 
@@ -725,15 +746,6 @@ class FilteredDir(Dir):
 		return files
 
 
-
-def _convert_newlines(text):
-	'''Method to strip out any \\r characters. This is needed because
-	we typically read in binary mode and therefore do not use the
-	universal newlines feature.
-	'''
-	return text.replace('\r', '')
-
-
 class File(Path):
 	'''OO wrapper for files. Implements more complex logic than
 	the default python file objects. On writing we first write to a
@@ -755,11 +767,29 @@ class File(Path):
 	However, this does not work when using open() directly.
 	'''
 
-	def __init__(self, path, checkoverwrite=False):
+	# For the atomic write we use .zim-new~ and .zim-orig~
+	# In case we encouter a left over .zim-new~ we must ignore it, something went
+	# wrong while writing, but original was not overwritten. May well be that .zim-new~ is
+	# just empty (truncated) or contains incomplete data.
+	# In case we encounter a left over .zim-orig~ and no normal file, we should 
+	# restore it because something went wrong between moving the old file out of
+	# the way and moving in the new one. (Windows only)
+
+	def __init__(self, path, checkoverwrite=False, endofline=None):
 		Path.__init__(self, path)
 		self.checkoverwrite = checkoverwrite
+		self.endofline = endofline
 		self._mtime = None
 		self._lock = AsyncLock()
+		if isinstance(self, WindowsPath):
+			back = self.encodedpath + '.zim-orig~'
+			if not os.path.isfile(self.encodedpath) \
+			and os.path.isfile(back):
+				logger.warn('Recovering file: %s', self.path)
+				try:
+					os.rename(back, self.encodedpath)
+				except:
+					raise FileConflictError, self
 
 	def __eq__(self, other):
 		if isinstance(other, File):
@@ -776,6 +806,11 @@ class File(Path):
 		Opening a non-exisiting file for writing will cause the whole path
 		to this file to be created on the fly.
 		'''
+		if isinstance(self, WindowsPath):
+			back = self.encodedpath + '.zim-orig~'
+			if os.path.isfile(back):
+				raise FileConflictError, self
+
 		assert mode in ('r', 'w')
 		if mode == 'w':
 			if not self.iswritable():
@@ -787,7 +822,7 @@ class File(Path):
 
 		mode += 'b'
 		if mode == 'wb':
-			tmp = self.encodedpath + '.zim.new~'
+			tmp = self.encodedpath + '.zim-new~'
 			fh = FileHandle(tmp, mode=mode, on_close=self._on_write)
 		else:
 			fh = open(self.encodedpath, mode=mode)
@@ -801,24 +836,59 @@ class File(Path):
 
 	def _on_write(self):
 		# flush and sync are already done before close()
-		tmp = self.encodedpath + '.zim.new~'
+		tmp = self.encodedpath + '.zim-new~'
 		assert os.path.isfile(tmp)
 		if isinstance(self, WindowsPath):
 			# On Windows, if dst already exists, OSError will be raised
-			# and no atomic operation to rename the file :(
-			if os.path.isfile(self.encodedpath):
-				isnew = False
-				back = self.encodedpath + '~'
-				if os.path.isfile(back):
-					os.remove(back)
-				os.rename(self.encodedpath, back)
-				os.rename(tmp, self.encodedpath)
-				os.remove(back)
-			else:
-				isnew = True
-				os.rename(tmp, self.encodedpath)
+			# and no atomic operation to rename the file - so we need
+			# to do it in two steps, with possible failure in between :(
+			# needed to introduce check in __init__ and FileConflictError
+			# in order to deal with this.
+			# In addition we see errors "File used by other process" on rename,
+			# probably due to antivirus, desktopsearch or similar - added re-try
+			# for those...
+			try:
+				if os.path.isfile(self.encodedpath):
+					isnew = False
+					back = self.encodedpath + '.zim-orig~'
+					os.rename(self.encodedpath, back)
+					try:
+						os.rename(tmp, self.encodedpath)
+					except Exception, error:
+						# Try to restore the original and re-raise the exception
+						try:
+							os.rename(back, self.encodedpath)
+						except:
+							pass
+						raise error
+					else:
+						# Clean up the original
+						os.remove(back)
+				else:
+					isnew = True
+					os.rename(tmp, self.encodedpath)
+			except WindowsError, error:
+				if error.errno == 13:
+					for i in range(1, 4):
+						logger.warn('File locked by other process: %s\nRe-try %i, sleeping for 1 sec.', self.path, i)
+						import time
+						time.sleep(1)
+						try:
+							if os.path.isfile(self.encodedpath):
+								os.rename(self.encodedpath, back)
+							os.rename(tmp, self.encodedpath)
+						except WindowsError, error:
+							if error.errno == 13 and i < 3:
+								continue
+							else:
+								raise
+						else:
+							break
+				else:
+					raise
 		else:
-			# On UNix, dst already exists it is replaced in an atomic operation
+			# On Unix, if dst already exists it is replaced in an atomic operation
+			# And other processes reading our file will not block moving it :)
 			isnew = not os.path.isfile(self.encodedpath)
 			os.rename(tmp, self.encodedpath)
 
@@ -867,7 +937,8 @@ class File(Path):
 			file = self.open('r')
 			content = file.read()
 			self._checkoverwrite(content)
-			return _convert_newlines(content)
+			return content.replace('\r', '')
+				# Internally we use unix line ends - so strip out \r
 		except IOError:
 			raise FileNotFoundError(self)
 
@@ -894,9 +965,10 @@ class File(Path):
 	def _readlines(self):
 		try:
 			file = self.open('r')
-			content = file.readlines()
-			self._checkoverwrite(content)
-			return map(_convert_newlines, content)
+			lines = file.readlines()
+			self._checkoverwrite(lines)
+			return [line.replace('\r', '') for line in lines]
+				# Internally we use unix line ends - so strip out \r
 		except IOError:
 			raise FileNotFoundError(self)
 
@@ -916,8 +988,21 @@ class File(Path):
 		operation.start()
 		return operation
 
+	def get_endofline(self):
+		'''Returns the end-of-line character(s) to be used when writing this file'''
+		if self.endofline is None:
+			if isinstance(self, WindowsPath): return '\r\n'
+			else: return '\n'
+		else:
+			assert self.endofline in ('unix', 'dos')
+			if self.endofline == 'dos': return '\r\n'
+			else: return '\n'
+
 	def _write(self, text):
 		self._assertoverwrite()
+		endofline = self.get_endofline()
+		if endofline != '\n':
+			text = text.replace('\n', endofline)
 		file = self.open('w')
 		file.write(text)
 		file.close()
@@ -941,6 +1026,9 @@ class File(Path):
 
 	def _writelines(self, lines):
 		self._assertoverwrite()
+		endofline = self.get_endofline()
+		if endofline != '\n':
+			lines = [line.replace('\n', endofline) for line in lines]
 		file = self.open('w')
 		file.writelines(lines)
 		file.close()
@@ -953,6 +1041,10 @@ class File(Path):
 
 	def _assertoverwrite(self):
 		# do not prohibit writing without reading first
+		if isinstance(self, WindowsPath):
+			back = self.encodedpath + '.zim-orig~'
+			if os.path.isfile(back):
+				raise FileConflictError, self
 
 		def md5(content):
 			import hashlib
@@ -990,7 +1082,7 @@ class File(Path):
 			if os.path.isfile(self.encodedpath):
 				os.remove(self.encodedpath)
 
-			tmp = self.encodedpath + '.zim.new~'
+			tmp = self.encodedpath + '.zim-new~'
 			if os.path.isfile(tmp):
 				os.remove(tmp)
 

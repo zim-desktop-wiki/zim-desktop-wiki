@@ -149,7 +149,7 @@ class TestFS(tests.TestCase):
 		except IOError:
 			del fh
 		self.assertEqual(file.readlines(), ['c\n', 'd\n'])
-		self.assertTrue(os.path.isfile(file.path+'.zim.new~'))
+		self.assertTrue(os.path.isfile(file.path+'.zim-new~'))
 
 		# test read-only
 		path = tmpdir+'/read-only-file.txt'

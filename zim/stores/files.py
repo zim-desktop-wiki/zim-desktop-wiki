@@ -51,7 +51,10 @@ class Store(StoreClass):
 		assert path != self.namespace, 'Can not get a file for the toplevel namespace'
 		name = path.relname(self.namespace)
 		filepath = encode_filename(name)+'.txt' # FIXME hard coded extension
-		return File([self.dir, filepath])
+		file = self.dir.file(filepath)
+		file.checkoverwrite = True
+		file.endofline = self.notebook.endofline
+		return file
 
 	def _get_dir(self, path):
 		'''Returns a dir object for a notebook path'''
@@ -60,7 +63,7 @@ class Store(StoreClass):
 		else:
 			name = path.relname(self.namespace)
 			dirpath = encode_filename(name)
-			return Dir([self.dir, dirpath])
+			return self.dir.subdir(dirpath)
 
 	def get_page(self, path):
 		file = self._get_file(path)
@@ -174,7 +177,6 @@ class FileStorePage(Page):
 		Page.__init__(self, path, haschildren)
 		self.source = source
 		self.format = format
-		self.source.checkoverwrite = True
 		self.readonly = not self.source.iswritable()
 		self.properties = None
 

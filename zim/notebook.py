@@ -248,6 +248,9 @@ def init_notebook(path, name=None):
 	config = ConfigDictFile(path.file('notebook.zim'))
 	config['Notebook']['name'] = name or path.basename
 	config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
+	if os.name == 'nt': endofline = 'dos'
+	else: endofline = 'unix'
+	config['Notebook']['endofline'] = endofline
 	config.write()
 
 
@@ -430,6 +433,11 @@ class Notebook(gobject.GObject):
 		self.config['Notebook'].setdefault('icon', None, klass=basestring)
 		self.config['Notebook'].setdefault('document_root', None, klass=basestring)
 		self.config['Notebook'].setdefault('shared', False)
+		if os.name == 'nt': endofline = 'dos'
+		else: endofline = 'unix'
+		self.config['Notebook'].setdefault('endofline', endofline,
+			check=lambda v: v in ('dos', 'unix') )
+
 		self.do_properties_changed()
 
 	@property
@@ -440,6 +448,10 @@ class Notebook(gobject.GObject):
 			return self.dir.uri
 		else:
 			return self.file.uri
+
+	@property
+	def endofline(self):
+		return self.config['Notebook']['endofline']
 
 	def _cache_dir(self, dir):
 		from zim.config import XDG_CACHE_HOME
