@@ -68,7 +68,7 @@ ui_actions = (
 
 	# name, stock id, label, accelerator, tooltip, readonly
 	('new_page',  'gtk-new', _('_New Page...'), '<ctrl>N', '', False), # T: Menu item
-	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '', '', False), # T: Menu item
+	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '<shift><ctrl>N', '', False), # T: Menu item
 	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', '', True), # T: Menu item
 	('open_new_window', None, _('Open in New _Window'), '', '', True), # T: Menu item
 	('import_page', None, _('_Import Page...'), '', '', False), # T: Menu item
@@ -595,15 +595,18 @@ class GtkInterface(NotebookInterface):
 			self.uimanager.remove_action_group(handler.actiongroup)
 			handler.actiongroup = None
 
-	@staticmethod
-	def _action_handler(action, method):
+	def _action_handler(self, action, method, *arg):
 		name = action.get_name()
 		logger.debug('Action: %s', name)
 		try:
-			method()
+			method(*arg)
 		except Exception, error:
 			ErrorDialog(None, error).run()
 			# error dialog also does logging automatically
+
+	def _radio_action_handler(self, object, action, method):
+		# radio action object is not active radio action
+		self._action_handler(action, method, action.get_name())
 
 	def _connect_actions(self, actions, group, handler, is_toggle=False):
 		for name, readonly in [(a[0], a[-1]) for a in actions if not a[0].endswith('_menu')]:
@@ -619,19 +622,21 @@ class GtkInterface(NotebookInterface):
 	def add_radio_actions(self, actions, handler, methodname):
 		'''Wrapper for gtk.ActionGroup.add_radio_actions(actions),
 		"handler" is the object that these actions belong to and
-		"methodname" gives the callback to be called on changes in this group.
-		(See doc on gtk.RadioAction 'changed' signal for this callback.)
+		"methodname" gives the callback to be called on changes in this
+		group this method will be called for any change with the name of
+		the active action as only argument.
 		'''
 		# A bit different from the other two methods since radioactions
 		# come in mutual exclusive groups. Only need to connect to one
-		# action to get signals from whole group.
+		# action to get signals from whole group. But need to pass on
+		# the name of the active action
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		assert hasattr(handler, methodname), 'No such method %s' % methodname
 		group = self.init_actiongroup(handler)
 		group.add_radio_actions(actions)
 		method = getattr(handler, methodname)
 		action = group.get_action(actions[0][0])
-		action.connect('changed', self._action_handler, method)
+		action.connect('changed', self._radio_action_handler, method)
 
 	def add_ui(self, xml, handler):
 		'''Wrapper for gtk.UIManager.add_ui_from_string(xml)'''
@@ -940,7 +945,7 @@ class GtkInterface(NotebookInterface):
 		is expected behavior for users not yet fully aware of the automatic
 		create/save/delete behavior in zim.
 		'''
-		NewPageDialog(self).run()
+		NewPageDialog(self, path=self.get_path_context()).run()
 
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
@@ -1782,8 +1787,7 @@ class MainWindow(Window):
 		assert style in ('none', 'recent', 'history', 'path')
 		self.actiongroup.get_action('set_pathbar_'+style).activate()
 
-	def do_set_pathbar(self, action):
-		name = action.get_name()
+	def do_set_pathbar(self, name):
 		style = name[12:] # len('set_pathbar_') == 12
 
 		if style == PATHBAR_NONE:
@@ -1819,8 +1823,7 @@ class MainWindow(Window):
 		assert style in ('icons_and_text', 'icons_only', 'text_only'), style
 		self.actiongroup.get_action('set_toolbar_'+style).activate()
 
-	def do_set_toolbar_style(self, action):
-		name = action.get_name()
+	def do_set_toolbar_style(self, name):
 		style = name[12:] # len('set_toolbar_') == 12
 
 		if style == TOOLBAR_ICONS_AND_TEXT:
@@ -1841,8 +1844,7 @@ class MainWindow(Window):
 		assert size in ('large', 'small', 'tiny'), size
 		self.actiongroup.get_action('set_toolbar_icons_'+size).activate()
 
-	def do_set_toolbar_size(self, action):
-		name = action.get_name()
+	def do_set_toolbar_size(self, name):
 		size = name[18:] # len('set_toolbar_icons_') == 18
 
 		if size == TOOLBAR_ICONS_LARGE:
@@ -2175,13 +2177,22 @@ class NewPageDialog(Dialog):
 				'also creates a new page automatically.'),
 			# T: Dialog text in 'new page' dialog
 			path_context=path,
-			fields=[('name', 'page', _('Page Name'), None)], # T: Input label
+			fields=[
+				#~ ('namespace', 'namespace', _('Namespace'), path.parent), # T: Input label
+				('name', 'page', _('Page Name'), None), # T: Input label
+			],
 			help=':Help:Pages'
 		)
 
-		if subpage:
-			pageentry = self.inputs['name']
-			pageentry.force_child = True
+		#~ if subpage:
+			#~ self.inputs['name'].force_child = True
+			#~ self.inputs['namespace'].set_path(path)
+			#~ self.inputs['namespace'].set_sensitive(False)
+
+		#~ self.inputs['name'].grab_focus()
+
+		# FIXME using namespace here need integration between pagename
+		# and namespace widget
 
 	def do_response_ok(self):
 		path = self.get_field('name')

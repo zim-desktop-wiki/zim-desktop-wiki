@@ -964,24 +964,18 @@ class TextBuffer(gtk.TextBuffer):
 			tag.zim_attrib = {'indent': level}
 		return tag
 
-	def set_indent_for_line(self, level, line):
+	def set_indent_for_line(self, level, line, interactive=False):
 		start, end = self.get_line_bounds(line)
 		if filter(_is_heading_tag, start.get_tags()):
 			return False
 
-		# FIXME code below can only be enabled when indent and list tags are split up
-		# otherwise inserting a bullet at the end of the buffer goes wrong
-		# last line of buffer - without \n indent is not visible for empty line
-		#~ if end.is_end():
-			#~ with self.tmp_cursor():
-				# Use tmp cursor in case we are cursor position
-				#~ self.insert(end, '\n')
-				#~ _, end = self.get_bounds()
-				#~ start = end.copy()
-				#~ start.backward_line()
-
-		if start.equal(end):
-			return False # empty line
+		if start.equal(end) and interactive:
+			# Without content effect of indenting is not visible
+			# end-of-line gives content to empty line, but last line
+			# may not have end-of-line.
+			with self.tmp_cursor():
+				self.insert(end, '\n')
+				start, end = self.get_line_bounds(line)
 
 		tags = filter(_is_indent_tag, start.get_tags())
 		if tags:
@@ -995,17 +989,18 @@ class TextBuffer(gtk.TextBuffer):
 		self.set_modified(True)
 		return True
 
-	def increment_indent(self, iter):
+	def increment_indent(self, iter, interactive=False):
 		level = self.get_indent(iter)
-		if self.set_indent_for_line(level+1, iter.get_line()):
+		if self.set_indent_for_line(level+1, iter.get_line(), interactive):
 			self.update_editmode() # also updates indent tag
 			return True
 		else:
 			return False
 
-	def decrement_indent(self, iter):
+	def decrement_indent(self, iter, interactive=False):
 		level = self.get_indent(iter)
-		if level > 0 and self.set_indent_for_line(level-1, iter.get_line()):
+		if level > 0 \
+		and self.set_indent_for_line(level-1, iter.get_line(), interactive):
 			self.update_editmode() # also updates indent tag
 			return True
 		else:
@@ -2203,7 +2198,7 @@ class TextView(gtk.TextView):
 				if list and self.preferences['recursive_indentlist']:
 					list.indent(row)
 				else:
-					buffer.increment_indent(iter)
+					buffer.increment_indent(iter, interactive=True)
 				handled = True
 		elif event.keyval in KEYVALS_LEFT_TAB \
 		or (event.keyval in KEYVALS_BACKSPACE
@@ -2217,7 +2212,7 @@ class TextView(gtk.TextView):
 				if list and self.preferences['recursive_indentlist']:
 					done = list.unindent(row)
 				else:
-					done = buffer.decrement_indent(iter)
+					done = buffer.decrement_indent(iter, interactive=True)
 
 				if event.keyval in KEYVALS_BACKSPACE and not done:
 					handled = False # do a normal backspace

@@ -135,8 +135,10 @@ def main(argv):
 
 	# FIXME - this returns python.exe on my windows test
 	ZIM_EXECUTABLE = argv[0]
-	if '/' in ZIM_EXECUTABLE or '\\' in ZIM_EXECUTABLE:
-		ZIM_EXECUTABLE = File(ZIM_EXECUTABLE).path # abs path
+	zim_exec_file = File(ZIM_EXECUTABLE)
+	if zim_exec_file.exists():
+		# We were given an absolute path, e.g. "python ./zim.py"
+		ZIM_EXECUTABLE = zim_exec_file.path
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
