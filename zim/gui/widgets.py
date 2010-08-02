@@ -34,6 +34,40 @@ KEYVALS_SLASH = (
 	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
 
 
+# UI Environment config. Would properly belong in zim.gui.__init__
+# but defined here to avoid unnecessary dependencies on zim.gui
+ui_environment = {
+	'platform': None, # platform name to trigger platform specific optimizations
+	'maxscreensize': None, # max screensize _if_ fixed by the platform
+	'smallscreen': False, # trigger optimizations for small screens
+}
+
+
+# Check for Maemo environment
+try:
+	import hildon
+	Window = hildon.Window
+	ui_environment['platform'] = 'maemo'
+	if hasattr(Window,'set_app_menu'):
+		ui_environment['maemo_version'] = 'maemo5'
+	else:
+		ui_environment['maemo_version'] = 'maemo4'
+	ui_environment['maxscreensize'] = (800, 480)
+	ui_environment['smallscreen'] = True
+
+	# Maemo gtk UI bugfix: expander-size is set to 0 by default
+	gtk.rc_parse_string('''\
+style "toolkit"
+{
+	GtkTreeView::expander-size = 12
+}
+
+class "GtkTreeView" style "toolkit"
+''' )
+except ImportError:
+	Window = gtk.Window
+
+
 def _encode_xml(text):
 	return text.replace('>', '&gt;').replace('<', '&lt;')
 
@@ -62,9 +96,15 @@ def gtk_window_set_default_icon():
 
 	if not iconlist:
 		# fall back to data/zim.png
-		file = data_file('zim.png')
+		file = zim.config.data_file('zim.png')
 		pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
 		iconlist.append(pixbuf)
+
+		# also register it as stock since theme apparently is not found
+		factory = gtk.IconFactory()
+		factory.add_default()
+		set = gtk.IconSet(pixbuf=pixbuf)
+		factory.add('zim', set)
 
 
 	if len(iconlist) < 3:
@@ -312,14 +352,23 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 			self.label = gtk.Label()
 			self.label.set_markup_with_mnemonic(label)
 		else:
-			assert isinstance(label, gtk.Widget)
+			assert isinstance(label, gtk.Label)
 			self.label = label
+
 		self.menu = menu
 		self.button = gtk.ToggleButton()
 		if status_bar_style:
 			self.button.set_name('zim-statusbar-menubutton')
 			self.button.set_relief(gtk.RELIEF_NONE)
-		self.button.add(self.label)
+			widget = self.label
+		else:
+			arrow = gtk.Arrow(gtk.ARROW_UP, gtk.SHADOW_NONE)
+			widget = gtk.HBox(spacing=3)
+			widget.pack_start(self.label, False)
+			widget.pack_start(arrow, False)
+
+
+		self.button.add(widget)
 		# We need to wrap stuff in an eventbox in order to get the gdk.Window
 		# which we need to get coordinates when positioning the menu
 		self.eventbox = gtk.EventBox()
@@ -369,12 +418,17 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 		self.button.set_active(False)
 		self.button.handler_unblock(self._clicked_signal)
 
+
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(MenuButton)
 
 
 class InputEntry(gtk.Entry):
-	'''Sub-class of gtk.Entry with support for highlighting errors'''
+	'''Sub-class of gtk.Entry with support for highlighting errors.
+	Also does utf-8 decoding on the proper moments.
+	'''
+
+	# TODO add default hook to set validation function
 
 	style = gtk_get_style()
 	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
@@ -383,6 +437,15 @@ class InputEntry(gtk.Entry):
 	def __init__(self):
 		gtk.Entry.__init__(self)
 		self.input_valid = True
+
+	def get_text(self):
+		'''Like gtk.Entry.get_text() but with utf-8 decoding and
+		trailing whitespace stripped.
+		'''
+		text = gtk.Entry.get_text(self)
+		if not text is None:
+			text = text.decode('utf-8').rstrip()
+		return text
 
 	def get_input_valid(self):
 		return self.input_valid
@@ -654,23 +717,23 @@ class Dialog(gtk.Dialog):
 			title=format_title(title),
 			flags=gtk.DIALOG_NO_SEPARATOR|gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
-		self.set_border_width(10)
-		self.vbox.set_spacing(5)
+		if not ui_environment['smallscreen']:
+			self.set_border_width(10)
+			self.vbox.set_spacing(5)
 
 		if hasattr(self, 'uistate'):
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
 		elif hasattr(ui, 'uistate') \
 		and isinstance(ui.uistate, zim.config.ConfigDict):
-			assert isinstance(defaultwindowsize, tuple)
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
 			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
-			#~ print '>>', self.uistate
 		else:
 			self.uistate = { # used in tests/debug
-				'windowsize': (-1, -1)
+				'windowsize': defaultwindowsize
 			}
 
+		#~ print '>>', self.uistate
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 
@@ -758,9 +821,13 @@ class Dialog(gtk.Dialog):
 		def _hook_label_to_widget(label, widget):
 			# Hook label to follow state of entry widget
 			def _sync_state(widget, spec):
-				label.set_sensitive(widget.get_sensitive())
-				label.set_visible(widget.get_visible())
+				label.set_sensitive(widget.get_property('sensitive'))
 				label.set_no_show_all(widget.get_no_show_all())
+				if widget.get_property('visible'):
+					label.show()
+				else:
+					label.hide()
+
 
 			for property in ('visible', 'no-show-all', 'sensitive'):
 				widget.connect_after('notify::%s' % property, _sync_state)
@@ -874,7 +941,11 @@ class Dialog(gtk.Dialog):
 		if type == 'dir':
 			dialog = SelectFolderDialog(self)
 		else:
-			dialog = SelectFileDialog(self)
+			if type == 'output-file':
+				action = gtk.FILE_CHOOSER_ACTION_SAVE
+			else:
+				action = gtk.FILE_CHOOSER_ACTION_OPEN
+			dialog = SelectFileDialog(self, action=action)
 			if type == 'image':
 				dialog.add_filter_images()
 		file = dialog.run()
@@ -944,9 +1015,10 @@ class Dialog(gtk.Dialog):
 		else:
 			destroy = True
 
-		w, h = self.get_size()
-		self.uistate['windowsize'] = (w, h)
-		self.save_uistate()
+		if ui_environment['platform'] != 'maemo':
+			w, h = self.get_size()
+			self.uistate['windowsize'] = (w, h)
+			self.save_uistate()
 
 		if destroy:
 			self.destroy()
@@ -1110,11 +1182,15 @@ class FileDialog(Dialog):
 			elif action == gtk.FILE_CHOOSER_ACTION_SAVE:
 				button = (None, gtk.STOCK_SAVE)
 			# else Ok will do
-		Dialog.__init__(self, ui, title,
+
+		if ui_environment['platform'] == 'maemo':
+			defaultsize = (800, 480)
+		else:
+			defaultsize = (500, 400)
+
+		Dialog.__init__(self, ui, title, defaultwindowsize=defaultsize,
 			buttons=buttons, button=button, help_text=help_text, help=help)
-		if self.uistate['windowsize'] == (-1, -1):
-			self.uistate['windowsize'] = (500, 400)
-			self.set_default_size(500, 400)
+
 		self.filechooser = gtk.FileChooserWidget(action=action)
 		self.filechooser.set_do_overwrite_confirmation(True)
 		self.filechooser.set_select_multiple(multiple)
@@ -1189,9 +1265,10 @@ class FileDialog(Dialog):
 
 class SelectFileDialog(FileDialog):
 
-	def __init__(self, ui, title=_('Select File')):
+	def __init__(self, ui, title=_('Select File'), action=gtk.FILE_CHOOSER_ACTION_OPEN):
 		# T: Title of file selection dialog
 		FileDialog.__init__(self, ui, title)
+		self.filechooser.set_action(action)
 		self.file = None
 
 	def do_response_ok(self):
@@ -1307,6 +1384,7 @@ class ProgressBarDialog(gtk.Dialog):
 
 	#def do_destroy(self):
 	#	logger.debug('Closed ProgressBarDialog')
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(ProgressBarDialog)
@@ -1441,7 +1519,16 @@ class Assistant(Dialog):
 		return self.set_page(self._page - 1)
 
 	def do_response(self, id):
-		self._pages[self._page].save_uistate()
+		# Wrap up previous page
+		if self._page > -1:
+			try: # hack needed for filechooser valid in gtk < 2.12
+				self._pages[self._page]._check_valid()
+			except Exception, error:
+				ErrorDialog(self, error).run()
+				return False
+			else:
+				self._pages[self._page].save_uistate()
+
 		if id == gtk.RESPONSE_OK:
 			self._uistate.update(self.uistate)
 		Dialog.do_response(self, id)
@@ -1469,7 +1556,7 @@ class AssistantPage(gtk.VBox):
 		gtk.VBox.__init__(self)
 		self.set_border_width(5)
 		self.uistate = assistant.uistate
-		self._input_valid = False
+		self._input_valid = True
 		self._input_valid_widgets = []
 
 	def init_uistate(self):
@@ -1529,14 +1616,18 @@ class AssistantPage(gtk.VBox):
 		self.set_input_valid(valid)
 
 	def _check_valid(self):
-		# Called in a try .. except block before finalizing page
+		# HACK: Called in a try .. except block before finalizing page
 		# needed because missing signal for filechooserbutton in gtk < 2.12
-		for widget in self._input_valid_widgets:
-			if isinstance(widget, gtk.FileChooser) \
-			and widget.get_property('sensitive') \
-			and widget.get_property('visible'):
-				if widget.get_filename() is None:
-					raise AssertionError, 'Missing file name'
+		# We can remove it when we get rid of using filechooserbuttons
+		if self._input_valid_widgets:
+			for widget in self._input_valid_widgets:
+				if isinstance(widget, gtk.FileChooser) \
+				and widget.get_property('sensitive') \
+				and widget.get_property('visible'):
+					if widget.get_filename() is None:
+						raise AssertionError, 'Missing file name'
+		else:
+			return self.get_input_valid()
 
 # Need to register classes defining gobject signals
 gobject.type_register(AssistantPage)

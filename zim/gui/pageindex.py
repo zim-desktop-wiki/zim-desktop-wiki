@@ -14,7 +14,8 @@ import logging
 
 from zim.index import IndexPath
 from zim.notebook import Path
-from zim.gui.widgets import BrowserTreeView, ErrorDialog, gtk_get_style
+from zim.gui.widgets import ui_environment, BrowserTreeView, \
+	ErrorDialog, gtk_get_style
 from zim.gui.clipboard import \
 	Clipboard, \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
@@ -427,6 +428,10 @@ class PageTreeView(BrowserTreeView):
 			# need to grey out preference for gtk < 2.10
 			# so need signal after construction preferenes dialog
 
+		if ui_environment['platform'] == 'maemo':
+			# Maemo gtk UI bugfix: expanders are hidden by default
+			self.set_property('level-indentation',0)
+			self.set_property('show-expanders',1)
 
 	def do_set_notebook(self, ui, notebook):
 		self._cleanup = None # else it might be pointing to old model

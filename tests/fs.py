@@ -137,14 +137,6 @@ class TestFS(tests.TestCase):
 		self.assertFalse(os.path.isfile(tmpdir+'/foo/bar/baz.txt'))
 		self.assertFalse(os.path.isdir(tmpdir+'/foo'))
 
-		# without codecs
-		file = File(tmpdir+'/foo.txt')
-		fh = file.open('w', encoding=None)
-		self.assertTrue(isinstance(fh, FileHandle))
-		fh.write('tja')
-		fh.close()
-
-		# with codecs
 		file = File(tmpdir+'/bar.txt')
 		file.writelines(['c\n', 'd\n'])
 		self.assertEqual(file.readlines(), ['c\n', 'd\n'])

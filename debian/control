@@ -3,8 +3,7 @@ Section: utils
 Priority: optional
 Maintainer: Jaap Karssenberg <pardus@cpan.org>
 Standards-Version: 3.8.4
-Build-Depends: debhelper (>= 7.4.12), python-support (>= 0.8), xdg-utils, python (>= 2.5), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg, python-simplejson | python (>= 2.6)
-Build-Depends-Indep: xdg-utils
+Build-Depends: debhelper (>= 7.4.12), cdbs, python-support (>= 0.8), xdg-utils, python (>= 2.5), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg, python-simplejson | python (>= 2.6)
 
 Package: zim
 Architecture: all

@@ -18,12 +18,34 @@ if sys.version_info >= (2, 6):
 else:
 	import simplejson as json # extra dependency
 
-from zim.fs import isfile, Dir, FileNotFoundError
+from zim.fs import isfile, isdir, Dir, FileNotFoundError
 from zim.errors import Error
 from zim.parsing import TextBuffer, split_quoted_strings
 
 
 logger = logging.getLogger('zim.config')
+
+
+if os.name == 'nt':
+	# Windows specific environment variables
+	# os.environ does not support setdefault() ...
+	if not 'USER' in os.environ or not os.environ['USER']:
+		os.environ['USER'] =  os.environ['USERNAME']
+
+	if not 'HOME' in os.environ or not os.environ['HOME']:
+		if 'USERPROFILE' in os.environ:
+			os.environ['HOME'] = os.environ['USERPROFILE']
+		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
+			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
+			os.environ['HOME'] = home
+
+assert isdir(os.environ['HOME']), \
+	'ERROR: environment variable $HOME not set correctly'
+
+if not 'USER' in os.environ or not os.environ['USER']:
+	# E.g. Maemo doesn't define $USER
+	os.environ['USER'] = os.path.basename(os.environ['HOME'])
+	logger.info('Environment variable $USER was not set')
 
 
 ZIM_DATA_DIR = None

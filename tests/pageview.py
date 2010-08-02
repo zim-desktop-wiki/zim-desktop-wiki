@@ -220,6 +220,15 @@ grrr
 		tree = buffer.get_parsetree()
 		self.assertEqualDiff(tree.tostring(), wanted)
 
+		# Check how robust we are for placeholder utf8 character
+		buffer = TextBuffer()
+		buffer.insert_at_cursor(u'foo \uFFFC bar')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>foo  bar</zim-tree>'''
+		tree = buffer.get_parsetree()
+		self.assertEqualDiff(tree.tostring(), wanted)
+
 
 class TestUndoStackManager(TestCase):
 

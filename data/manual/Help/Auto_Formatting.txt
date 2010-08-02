@@ -37,4 +37,4 @@ This feature can be turned off in the [[Preferences]].
 Also when you type a internet url like http://perl.org it will automatically be identified as a link.
 
 ===== Bullets and Checkboxes =====
-Another example of auto-formatting is that "* " at the beginning of a line gets converted to a bullet automatically. Typing either "[ ] ", "[*] " or "[x] " will give your different kinds of [[Check Boxes]].
+Another example of auto-formatting is that "* " at the beginning of a line gets converted to a bullet automatically. Typing either "[] ", "[*] ", "[x] " or "() ", "(*) ", "(x) " will give your different kinds of [[Check Boxes]].

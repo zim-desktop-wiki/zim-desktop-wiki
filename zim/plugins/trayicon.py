@@ -105,7 +105,7 @@ This is a core plugin shipping with zim.
 
 	def disconnect_trayicon(self):
 		if self.icon:
-			self.icon.set_visible(False)
+			self.icon.set_property('visible', False)
 			self.icon = None
 
 		if self.proxyobject:

@@ -1,0 +1,226 @@
+<ui>
+	<menubar name='menubar'>
+		<menu action='file_menu'>
+			<menuitem action='new_page'/>
+			<menuitem action='new_sub_page'/>
+			<menuitem action='open_notebook'/>
+			<menuitem action='import_page'/>
+			<separator/>
+			<menuitem action='open_new_window'/>
+			<separator/>
+			<menuitem action='save_page'/>
+			<menuitem action='save_copy'/>
+			<placeholder name='versioning_actions'/>
+			<separator/>
+			<menuitem action='show_export'/>
+			<placeholder name='print_actions'/>
+			<menuitem action='email_page'/>
+			<separator/>
+			<menuitem action='rename_page'/>
+			<menuitem action='move_page'/>
+			<menuitem action='delete_page'/>
+			<placeholder name='page_modification_actions'/>
+			<separator/>
+			<menuitem action='show_properties'/>
+			<separator/>
+			<menuitem action='close'/>
+			<menuitem action='quit'/>
+		</menu>
+		<menu action='edit_menu'>
+			<menuitem action='undo'/>
+			<menuitem action='redo'/>
+			<separator/>
+			<menuitem action='cut'/>
+			<menuitem action='copy'/>
+			<menuitem action='paste'/>
+			<menuitem action='delete'/>
+			<separator/>
+			<menuitem action='toggle_checkbox'/>
+			<menuitem action='xtoggle_checkbox'/>
+			<separator/>
+			<menuitem action='edit_object'/>
+			<menuitem action='remove_link'/>
+			<separator/>
+			<placeholder name='edit_page'/>
+			<separator/>
+			<menuitem action='copy_location'/>
+			<separator/>
+			<menuitem action='show_preferences'/>
+		</menu>
+		<menu action='view_menu'>
+			<menuitem action='toggle_readonly'/>
+			<menuitem action='toggle_toolbar'/>
+			<menuitem action='toggle_statusbar'/>
+			<menuitem action='toggle_sidepane'/>
+			<menu action='pathbar_menu'>
+				<menuitem action='set_pathbar_none'/>
+				<menuitem action='set_pathbar_recent'/>
+				<menuitem action='set_pathbar_history'/>
+				<menuitem action='set_pathbar_path'/>
+			</menu>
+			<menu action='toolbar_menu'>
+				<menuitem action='set_toolbar_icons_and_text'/>
+				<menuitem action='set_toolbar_icons_only'/>
+				<menuitem action='set_toolbar_text_only'/>
+				<separator/>
+				<menuitem action='set_toolbar_icons_large'/>
+				<menuitem action='set_toolbar_icons_small'/>
+				<menuitem action='set_toolbar_icons_tiny'/>
+			</menu>
+			<menuitem action='toggle_fullscreen'/>
+			<separator/>
+			<placeholder name='plugin_items'/>
+			<separator/>
+			<menuitem action='reload_page'/>
+		</menu>
+		<menu action='insert_menu'>
+			<menuitem action='insert_date'/>
+			<separator/>
+			<menuitem action='insert_image'/>
+			<placeholder name='plugin_items'/>
+			<separator/>
+			<menuitem action='insert_text_from_file'/>
+			<menuitem action='insert_link'/>
+		</menu>
+		<menu action='format_menu'>
+			<menuitem action='apply_format_h1'/>
+			<menuitem action='apply_format_h2'/>
+			<menuitem action='apply_format_h3'/>
+			<menuitem action='apply_format_h4'/>
+			<menuitem action='apply_format_h5'/>
+			<separator/>
+			<menuitem action='apply_format_strong'/>
+			<menuitem action='apply_format_emphasis'/>
+			<menuitem action='apply_format_mark'/>
+			<menuitem action='apply_format_strike'/>
+			<menuitem action='apply_format_code'/>
+			<separator/>
+			<menuitem action='clear_formatting'/>
+		</menu>
+		<menu action='search_menu'>
+			<menuitem action='show_find'/>
+			<menuitem action='find_next'/>
+			<menuitem action='find_previous'/>
+			<menuitem action='show_find_and_replace'/>
+			<separator/>
+			<menuitem action='show_search'/>
+			<menuitem action='show_search_backlinks'/>
+		</menu>
+		<menu action='tools_menu'>
+			<menuitem action='show_word_count'/>
+			<placeholder name='page_tools'/>
+			<separator/>
+			<menuitem action='attach_file'/>
+			<menuitem action='open_attachments_folder'/>
+			<menuitem action='open_notebook_folder'/>
+			<separator/>
+			<menuitem action='show_server_gui'/>
+			<menuitem action='open_document_root'/>
+<!--
+			<menuitem action='open_document_folder'/>
+-->
+			<separator/>
+			<menuitem action='reload_index'/>
+			<separator/>
+			<placeholder name='custom_tools'/>
+			<separator/>
+			<menuitem action='manage_custom_tools'/>
+		</menu>
+		<placeholder name='plugin_menus'/>
+		<menu action='go_menu'>
+			<menuitem action='open_page_back'/>
+			<menuitem action='open_page_forward'/>
+			<separator/>
+			<menuitem action='open_page_parent'/>
+			<menuitem action='open_page_child'/>
+			<menuitem action='open_page_next'/>
+			<menuitem action='open_page_previous'/>
+			<separator/>
+			<placeholder name='plugin_items'/>
+			<separator/>
+			<menuitem action='open_page_home'/>
+			<menuitem action='open_page'/>
+		</menu>
+		<menu action='help_menu'>
+			<menuitem action='show_help'/>
+			<menuitem action='show_help_faq'/>
+			<menuitem action='show_help_keys'/>
+			<menuitem action='show_help_bugs'/>
+			<separator/>
+			<menuitem action='show_about'/>
+		</menu>
+	</menubar>
+	<toolbar name='toolbar'>
+		<placeholder name='file'/>
+		<separator/>
+		<placeholder name='view'>
+<!--
+			<toolitem action='toggle_fullscreen'/>
+-->
+			<toolitem action='toggle_sidepane'/>
+		</placeholder>
+		<separator/>
+		<placeholder name='edit'>
+			<toolitem action='undo'/>
+			<toolitem action='redo'/>
+			<separator/>
+			<toolitem action='copy'/>
+			<toolitem action='paste'/>
+		</placeholder>
+		<separator/>
+		<placeholder name='go'>
+<!--
+			<toolitem action='open_page_home'/>
+			<toolitem action='open_page_back'/>
+			<toolitem action='open_page_forward'/>
+-->
+		</placeholder>
+		<separator/>
+		<toolitem action='toggle_readonly'/>
+		<separator/>
+		<toolitem action='toggle_format_strong'/>
+		<toolitem action='toggle_format_emphasis'/>
+		<toolitem action='toggle_format_mark'/>
+		<toolitem action='toggle_format_strike'/>
+		<separator/>
+		<toolitem action='insert_link'/>
+		<toolitem action='attach_file'/>
+		<separator/>
+		<placeholder name='search'/>
+		<separator/>
+		<placeholder name='tools'/>
+<!--
+		<toolitem action='open_document_folder'/>
+-->
+	</toolbar>
+	<popup name='toolbar_popup'>
+		<menuitem action='set_toolbar_icons_and_text'/>
+		<menuitem action='set_toolbar_icons_only'/>
+		<menuitem action='set_toolbar_text_only'/>
+		<separator/>
+		<menuitem action='set_toolbar_icons_large'/>
+		<menuitem action='set_toolbar_icons_small'/>
+		<menuitem action='set_toolbar_icons_tiny'/>
+	</popup>
+	<popup name='page_popup'>
+		<menuitem action='new_page'/>
+		<menuitem action='new_sub_page'/>
+		<separator/>
+		<menuitem action='open_new_window'/>
+		<separator/>
+		<menuitem action='rename_page'/>
+		<menuitem action='move_page'/>
+		<menuitem action='delete_page'/>
+		<placeholder name='page_modification_actions'/>
+		<separator/>
+		<placeholder name='tools'/>
+<!--
+		<separator/>
+		<menuitem action='show_properties'/>
+-->
+	</popup>
+	<popup name='text_popup'>
+		<placeholder name='tools'/>
+	</popup>
+</ui>
+

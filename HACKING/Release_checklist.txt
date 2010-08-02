@@ -16,7 +16,7 @@ Merge translations:
 * Merge it with tools/import-launchpad-translations.py
 
 Prepare the package:
-* Set version in zim/__init__.py
+* Set version in ''zim/__init__.py''
 * Update CHANGELOG.txt -- see `bzr visualize` for changes
 * Update debian changes -- run e.g. `debchange -v 0.46`
 * Optionally merge branch with website updates since previous release

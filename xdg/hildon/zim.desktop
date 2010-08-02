@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0.0
+Encoding=UTF-8
+Type=Application
+Name=Zim
+Comment=A desktop wiki and all purpose TODO and GTD application
+Exec=/usr/bin/zim --no-daemon
+Icon=zim

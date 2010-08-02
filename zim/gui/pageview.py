@@ -25,8 +25,9 @@ from zim.config import config_file
 from zim.formats import get_format, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.gui.widgets import Dialog, FileDialog, ErrorDialog, \
-	Button, IconButton, BrowserTreeView, InputEntry, \
+from zim.gui.widgets import ui_environment, \
+	Dialog, FileDialog, ErrorDialog, \
+	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	rotate_pixbuf
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
@@ -57,9 +58,9 @@ KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
 KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 
 #~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
-CHARS_END_OF_WORD = (' ', ')', '>')
+CHARS_END_OF_WORD = ('\t', ' ', ')', '>')
 KEYVALS_END_OF_WORD = map(
-	gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD))
+	gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD)) + KEYVALS_TAB
 
 KEYVALS_ASTERISK = (
 	gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
@@ -154,6 +155,21 @@ ui_preferences = (
 		# T: option in preferences dialog
 )
 
+if ui_environment['platform'] == 'maemo':
+	# Manipulate preferences with Maemo specific settings
+	ui_preferences = list(ui_preferences)
+	for i in range(len(ui_preferences)):
+		if ui_preferences[i][0] == 'follow_on_enter':
+			ui_preferences[i] = \
+				('follow_on_enter', 'bool', None, None, True)
+				# There is no ALT key on maemo devices
+		elif ui_preferences[i][0] == 'unindent_on_backspace':
+			ui_preferences[i] = \
+				('unindent_on_backspace', 'bool', None, None, True)
+				# There is no hardware TAB key on maemo devices
+	ui_preferences = tuple(ui_preferences)
+
+
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
 _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
 _is_not_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type != 'indent'
@@ -199,11 +215,16 @@ camelcase_re = Re(r'[%(upper)s]+[%(lower)s]+[%(upper)s]+\w*$' % _classes)
 twoletter_re = re.compile(r'[%(letters)s]{2}' % _classes)
 del _classes
 
+# E.g. Maemo devices have no hardware [] keys,
+# so allow () to be used for the same purpose
 autoformat_bullets = {
 	'*': BULLET,
 	'[]': UNCHECKED_BOX,
 	'[*]': CHECKED_BOX,
 	'[x]': XCHECKED_BOX,
+	'()': UNCHECKED_BOX,
+	'(*)': CHECKED_BOX,
+	'(x)': XCHECKED_BOX,
 }
 
 CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
@@ -356,7 +377,6 @@ class TextBuffer(gtk.TextBuffer):
 				tag.zim_tag = k
 				tag.zim_attrib = None
 
-		self.textstyle = None
 		self._editmode_tags = ()
 
 		#~ import sys
@@ -420,7 +440,7 @@ class TextBuffer(gtk.TextBuffer):
 		if root.text:
 			self.insert_at_cursor(root.text)
 		self._insert_element_children(root)
-		self.set_editmode_from_cursor()
+		self.update_editmode()
 		startiter = self.get_iter_at_offset(startoffset)
 		enditer = self.get_iter_at_mark(self.get_insert())
 		self.emit('end-insert-tree')
@@ -431,7 +451,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def do_end_insert_tree(self):
 		self._insert_tree_in_progress = False
-		self.set_editmode_from_cursor(force=True)
+		self.emit('textstyle-changed', self.get_textstyle())
 			# emitting textstyle-changed is skipped while loading the tree
 
 	def _insert_element_children(self, node, list_level=-1, raw=False):
@@ -588,10 +608,8 @@ class TextBuffer(gtk.TextBuffer):
 		if iter.equal(self.get_iter_at_mark(self.get_insert())):
 			gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
 		else:
-			mode = self._editmode_tags
-			self.set_editmode_from_iter(iter)
-			gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
-			self._editmode_tags = mode
+			with self.tmp_cursor(iter):
+				gtk.TextBuffer.insert_pixbuf(self, iter, pixbuf)
 
 	def insert_image(self, iter, file, src, **attrib):
 		'''Insert an image linked to file 'file' but showing 'src' as link to
@@ -740,16 +758,24 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return None
 
-	def set_editmode_from_cursor(self, force=False):
-		iter = self.get_iter_at_mark(self.get_insert())
-		self.set_editmode_from_iter(iter, force=force)
-
-	def set_editmode_from_iter(self, iter, force=False):
-		'''Updates the textstyle and indent from a text position.
+	def update_editmode(self, force=False):
+		'''Updates the textstyle and indent state.
 		Triggered automatically when moving the cursor.
 		'''
-		tags = tuple(self.iter_get_zim_tags(iter))
-		if force or not tags == self._editmode_tags:
+		bounds = self.get_selection_bounds()
+		if bounds:
+			# For selection we set editmode base on whole range
+			tags = []
+			for tag in filter(_is_zim_tag, bounds[0].get_tags()):
+				if self.whole_range_has_tag(tag, *bounds):
+					tags.append(tag)
+		else:
+			# Otherwise base on cursor
+			iter = self.get_iter_at_mark(self.get_insert())
+			tags = self.iter_get_zim_tags(iter)
+
+		tags = tuple(tags)
+		if not tags == self._editmode_tags:
 			#~ print '>', [(t.zim_type, t.get_property('name')) for t in tags]
 			self._editmode_tags = tags
 			for tag in tags:
@@ -791,15 +817,17 @@ class TextBuffer(gtk.TextBuffer):
 		tags.sort(key=lambda tag: tag.get_priority())
 		return tags
 
-	def do_textstyle_changed(self, name):
-		self.textstyle = name
-
 	def toggle_textstyle(self, name, interactive=False):
 		'''If there is a selection toggle the text style of the selection,
 		otherwise toggle the text style of the cursor.
+
+		For selections we remove the tag if the whole range had the
+		tag. If some part of the range does not have the tag we apply
+		the tag. This is needed to be consistent with the format button
+		behavior if a single tag applies to any range.
 		'''
 		if not self.get_has_selection():
-			if self.textstyle == name:
+			if name == self.get_textstyle():
 				self.set_textstyle(None)
 			else:
 				self.set_textstyle(name)
@@ -812,7 +840,7 @@ class TextBuffer(gtk.TextBuffer):
 				if '\n' in text:
 					name = 'pre'
 			tag = self.get_tag_table().lookup('style-'+name)
-			had_tag = self.range_has_tag(tag, start, end)
+			had_tag = self.whole_range_has_tag(tag, start, end)
 			self.remove_textstyle_tags(start, end)
 			if not had_tag:
 				self.apply_tag(tag, start, end)
@@ -820,7 +848,19 @@ class TextBuffer(gtk.TextBuffer):
 			if interactive:
 				self.emit('end-user-action')
 
-			self.set_editmode_from_cursor()
+			self.update_editmode()
+
+	def whole_range_has_tag(self, tag, start, end):
+		'''Check if a certain tag is applied to the whole range or not.'''
+		if tag in start.get_tags() \
+		and tag in self.iter_get_zim_tags(end):
+			iter = start.copy()
+			if iter.forward_to_tag_toggle(tag):
+				return iter.compare(end) >= 0
+			else:
+				return True
+		else:
+			return False
 
 	def range_has_tag(self, tag, start, end):
 		'''Check if a certain tag appears anywhere in a certain range'''
@@ -860,7 +900,7 @@ class TextBuffer(gtk.TextBuffer):
 		# Also remove links until we support links nested in tags
 		self.smart_remove_tags(_is_style_tag, start, end)
 		self.smart_remove_tags(_is_link_tag, start, end)
-		self.set_editmode_from_cursor()
+		self.update_editmode()
 
 	def smart_remove_tags(self, func, start, end):
 		'''This method removes tags over a range based on a function to test if a
@@ -958,7 +998,7 @@ class TextBuffer(gtk.TextBuffer):
 	def increment_indent(self, iter):
 		level = self.get_indent(iter)
 		if self.set_indent_for_line(level+1, iter.get_line()):
-			self.set_editmode_from_cursor() # also updates indent tag
+			self.update_editmode() # also updates indent tag
 			return True
 		else:
 			return False
@@ -966,7 +1006,7 @@ class TextBuffer(gtk.TextBuffer):
 	def decrement_indent(self, iter):
 		level = self.get_indent(iter)
 		if level > 0 and self.set_indent_for_line(level-1, iter.get_line()):
-			self.set_editmode_from_cursor() # also updates indent tag
+			self.update_editmode() # also updates indent tag
 			return True
 		else:
 			return False
@@ -1035,9 +1075,9 @@ class TextBuffer(gtk.TextBuffer):
 		self.select_range(start, end)
 
 	def do_mark_set(self, iter, mark):
-		if mark.get_name() == 'insert':
-			self.set_editmode_from_iter(iter)
 		gtk.TextBuffer.do_mark_set(self, iter, mark)
+		if mark.get_name() in ('insert', 'selection_bound'):
+			self.update_editmode()
 
 	def do_insert_text(self, end, string, length):
 		'''Signal handler for insert-text signal'''
@@ -1081,7 +1121,7 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			gtk.TextBuffer.do_delete_range(self, start, end)
 
-		self.set_editmode_from_cursor()
+		self.update_editmode()
 		# Delete formatted word + type should not show format again
 
 	def _do_lines_merged(self, iter):
@@ -1098,7 +1138,7 @@ class TextBuffer(gtk.TextBuffer):
 			if _is_line_based_tag(tag):
 				self.apply_tag(tag, iter, end)
 
-		self.set_editmode_from_cursor()
+		self.update_editmode()
 
 	def do_insert_pixbuf(self, end, pixbuf):
 		gtk.TextBuffer.do_insert_pixbuf(self, end, pixbuf)
@@ -1313,6 +1353,9 @@ class TextBuffer(gtk.TextBuffer):
 				# But limit slice to first pixbuf
 				# FUTURE: also limit slice to any embeddded widget
 				text = iter.get_slice(bound)
+				if text.startswith(PIXBUF_CHR):
+					text = text[1:] # special case - we see this char, but get_pixbuf already returned None, so skip it
+
 				if PIXBUF_CHR in text:
 					i = text.index(PIXBUF_CHR)
 					bound = iter.copy()
@@ -1404,15 +1447,26 @@ class TextBuffer(gtk.TextBuffer):
 	def remove_link(self, start, end):
 		'''Removes any links between start and end'''
 		self.smart_remove_tags(_is_link_tag, start, end)
-		self.set_editmode_from_cursor()
+		self.update_editmode()
 
-	def toggle_checkbox(self, iter, checkbox_type=CHECKED_BOX):
+	def toggle_checkbox(self, iter, checkbox_type=None):
+		'''Toggles checkbox at iter. If checkbox_type is given, it
+		toggles between this type and unchecked. Otherwise it rotates
+		through unchecked, checked and xchecked.
+		'''
+		# <F12> and <Shift><F12> specify checkbox_type
+		# but left mouse click does not
 		bullet = self.get_bullet_at_iter(iter)
 		if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
-			if bullet == checkbox_type:
-				icon = bullet_types[UNCHECKED_BOX]
+			if checkbox_type:
+				if bullet == checkbox_type:
+					icon = bullet_types[UNCHECKED_BOX]
+				else:
+					icon = bullet_types[checkbox_type]
 			else:
-				icon = bullet_types[checkbox_type]
+				i = list(CHECKBOXES).index(bullet) # use list() to be python 2.5 compatible
+				next = (i + 1) % len(CHECKBOXES)
+				icon = bullet_types[CHECKBOXES[next]]
 		else:
 			return False
 
@@ -1644,7 +1698,7 @@ class TextBufferList(list):
 		line, level, bullet = self[row]
 		newlevel = level + step
 		if self.buffer.set_indent_for_line(newlevel, line):
-			self.buffer.set_editmode_from_cursor() # also updates indent tag
+			self.buffer.update_editmode() # also updates indent tag
 			self[row] = (line, newlevel, bullet)
 
 	def update_checkbox(self, row, state):
@@ -2108,6 +2162,7 @@ class TextView(gtk.TextView):
 		# methods below. Returns boolean whether we handled the event, this
 		# determines if the event is finished, or it should continue to be
 		# emited to any other handlers.
+		# Note that on maemo only TAB triggers this method, other keys avod it somehow
 
 		handled = False
 		buffer = self.get_buffer()
@@ -2205,6 +2260,8 @@ class TextView(gtk.TextView):
 
 			if event.keyval in KEYVALS_ENTER:
 				char = '\n'
+			elif event.keyval in KEYVALS_TAB:
+				char = '\t'
 			else:
 				char = unichr(gtk.gdk.keyval_to_unicode(event.keyval))
 
@@ -2403,7 +2460,8 @@ class TextView(gtk.TextView):
 			buffer.apply_tag(tag, start, end)
 			return True
 
-		if char == ' ' and start.starts_line() and word in autoformat_bullets:
+		if (char == ' ' or char == '\t') and start.starts_line() \
+		and word in autoformat_bullets:
 			# format bullet and checkboxes
 			end.forward_char() # also overwrite the space triggering the action
 			mark = buffer.create_mark(None, end)
@@ -2499,7 +2557,7 @@ class TextView(gtk.TextView):
 				# apply indent
 				buffer.set_indent_for_line(indent, newline)
 
-			buffer.set_editmode_from_cursor() # also updates indent tag
+			buffer.update_editmode() # also updates indent tag
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)
@@ -2920,23 +2978,6 @@ class PageView(gtk.VBox):
 			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
 
-
-		# HACK, this makes sure we do not hijack keybindings like
-		# ^C and ^V while we are not focus (e.g. paste in find bar)
-		def set_actiongroup_sensitive(o, e, sensitive):
-			# Immitate logic in self.set_readonly()
-			if sensitive:
-				for action in self.actiongroup.list_actions():
-					action.set_sensitive(
-						action.zim_readonly or not self.readonly)
-			else:
-				for action in self.actiongroup.list_actions():
-						action.set_sensitive(False)
-
-		self.view.connect('focus-in-event', set_actiongroup_sensitive, True)
-		self.view.connect('focus-out-event', set_actiongroup_sensitive, False)
-
-
 		# Extra keybinding for undo - default is <Shift><Ctrl>Z (see HIG)
 		def do_undo(*a):
 			if not self.readonly:
@@ -3010,6 +3051,22 @@ class PageView(gtk.VBox):
 				TextBuffer.tag_styles[tag] = attrib
 
 	def on_open_notebook(self, ui, notebook):
+		# HACK, this makes sure we do not hijack keybindings like
+		# ^C and ^V while we are not focus (e.g. paste in find bar)
+		# Put it here to ensure mainwindow is initialized.
+		def set_actiongroup_sensitive(window, widget):
+			#~ print '!! FOCUS SET:', widget
+			# Immitate logic in self.set_readonly()
+			sensitive = widget is self.view
+			if sensitive:
+				for action in self.actiongroup.list_actions():
+					action.set_sensitive(
+						action.zim_readonly or not self.readonly)
+			else:
+				for action in self.actiongroup.list_actions():
+						action.set_sensitive(False)
+		window = self.get_toplevel()
+		window.connect('set-focus', set_actiongroup_sensitive)
 
 		def assert_not_modified(page, *a):
 			if page == self.page \
@@ -3532,7 +3589,6 @@ class PageView(gtk.VBox):
 
 		buffer.delete_mark(mark)
 
-
 	def do_toggle_format_action(self, action):
 		'''Handler that catches all actions to apply and/or toggle formats'''
 		name = action.get_name()
@@ -3549,7 +3605,7 @@ class PageView(gtk.VBox):
 		selected = False
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 
-		if not buffer.textstyle == format:
+		if format != buffer.get_textstyle():
 			# Only autoselect non formatted content - otherwise not
 			# consistent when trying to break a formatted region
 			# Could be improved by making autoselect refuse to select
@@ -3713,6 +3769,20 @@ class InsertImageDialog(FileDialog):
 			# T: checkbox in the "Insert Image" dialog
 		checkbox.set_active(self.uistate['attach_inserted_images'])
 		self.filechooser.set_extra_widget(checkbox)
+
+		self.preview_widget = gtk.Image()
+		self.filechooser.set_preview_widget(self.preview_widget)
+		self.filechooser.connect('update-preview', self.on_update_preview)
+
+	def on_update_preview(self, *a):
+		filename = self.filechooser.get_preview_filename()
+		try:
+			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(filename, 128, 128)
+			self.preview_widget.set_from_pixbuf(pixbuf)
+			self.filechooser.set_preview_widget_active(True)
+		except:
+			self.filechooser.set_preview_widget_active(False)
+		return
 
 	def do_response_ok(self):
 		file = self.get_file()
@@ -4000,7 +4070,7 @@ class FindWidget(object):
 		self.find(string, flags, highlight)
 
 	def on_find_entry_changed(self):
-		string = unicode(self.find_entry.get_text(), 'utf-8')
+		string = self.find_entry.get_text()
 		buffer = self.textview.get_buffer()
 		ok = buffer.finder.find(string, flags=self._flags)
 
@@ -4059,8 +4129,36 @@ class FindBar(FindWidget, gtk.HBox):
 		self.pack_start(self.find_entry, False)
 		self.pack_start(self.previous_button, False)
 		self.pack_start(self.next_button, False)
-		self.pack_start(self.case_option_checkbox, False)
-		self.pack_start(self.highlight_checkbox, False)
+		if ui_environment['smallscreen']:
+			# E.g. Maemo Nxx0 devices have not enough space for so many
+			# widgets, so let's put options in a menu button.
+			# FIXME need to rewrite this hack to integrate nicely with
+			# the FindWidget base class
+			# FIXME ideally behavior would switch on the fly based on
+			# actual screensize - we can detect when these widgets
+			# fit or not by using "x_size, y_size = mywidget.window.get_size()"
+			# or "mywidget.get_allocation().width" to get the widgets and window size
+			# and probably re-draw when the screensize or windowsize changes
+			# by listening to window resize events.
+			# Alternatively we can always put options in this menu
+			menu = gtk.Menu()
+			item = gtk.CheckMenuItem(self.case_option_checkbox.get_label())
+			item.connect('toggled',
+				lambda sender, me: me.case_option_checkbox.set_active(sender.get_active()), self)
+			menu.append(item)
+			item = gtk.CheckMenuItem(self.highlight_checkbox.get_label())
+			item.connect('toggled',
+				lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()),self)
+			menu.append(item)
+			if ui_environment['platform'] == 'maemo':
+				# maemo UI convention: up arrow button with no label
+				button = MenuButton('', menu)
+			else:
+				button = MenuButton(_('Options'), menu) # T: Options button
+			self.pack_start(button, False)
+		else:
+			self.pack_start(self.case_option_checkbox, False)
+			self.pack_start(self.highlight_checkbox, False)
 
 		close_button = IconButton(gtk.STOCK_CLOSE, relief=False)
 		close_button.connect_object('clicked', self.__class__.hide, self)
