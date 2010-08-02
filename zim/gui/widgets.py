@@ -1161,7 +1161,8 @@ class MessageDialog(gtk.MessageDialog):
 		gtk.MessageDialog.__init__(
 			self, parent=get_window(ui),
 			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK,
-			message_format=msg
+			message_format=msg,
+			flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
 		if text:
 			self.format_secondary_text(text)

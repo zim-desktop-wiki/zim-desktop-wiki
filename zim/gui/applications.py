@@ -128,7 +128,7 @@ def set_default_application(mimetype, name):
 def get_helper_applications(type):
 	'''Returns a list of known applications that can be used as a helper
 	of a certain type.
-	Type can e.g. be 'web_browser', 'file_browser' or 'email_client'.
+	Type can e.g. be 'web_browser', 'file_browser', 'email_client' or 'text_editor'.
 	'''
 	# Be aware that X-Zim-AppType can be a list of types
 	seen = set()
@@ -147,6 +147,11 @@ def get_helper_applications(type):
 
 	if type == 'web_browser':
 		for entry in get_applications('text/html'):
+			if not entry.key in seen:
+				helpers.append(entry)
+				seen.add(entry.key)
+	elif type == 'text_editor':
+		for entry in get_applications('text/plain'):
 			if not entry.key in seen:
 				helpers.append(entry)
 				seen.add(entry.key)

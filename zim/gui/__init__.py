@@ -47,7 +47,7 @@ from zim.gui.pageview import PageView
 from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
 	Button, MenuButton, \
 	Window, Dialog, \
-	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
+	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import get_application, get_default_application, CustomToolManager
 
@@ -325,13 +325,15 @@ class GtkInterface(NotebookInterface):
 		apps = {
 			'email_client': ['xdg-email', 'startfile', 'open'],
 			'file_browser': ['xdg-open', 'startfile', 'open'],
-			'web_browser': ['xdg-open', 'startfile', 'open']
+			'web_browser': ['xdg-open', 'startfile', 'open'],
+			'text_editor': ['xdg-open', 'startfile', 'open'],
 		}
 		if ui_environment['platform'] == 'maemo':
 			apps = {
 				'email_client': ['modest'],
 				'file_browser': ['hildon-mime-summon'],
-				'web_browser': ['webbrowser']
+				'web_browser': ['webbrowser'],
+				'text_editor': [], # FIXME
 			}
 
 		for type in apps.keys():
@@ -1179,26 +1181,34 @@ class GtkInterface(NotebookInterface):
 			# TODO if isinstance(File) check default application for mime type
 			# this is needed once we can set default app from "open with.." menu
 			self._openwith(
-				self.preferences['GtkInterface']['file_browser'], (file,) )
+				self.preferences['GtkInterface']['file_browser'], file)
 		else:
-			ErrorDialog(self, NoSuchFileError(file)).run()
+			raise NoSuchFileError, file
 
 	def open_url(self, url):
 		assert isinstance(url, basestring)
 		if url.startswith('file:/'):
 			self.open_file(File(url))
 		elif url.startswith('mailto:'):
-			self._openwith(self.preferences['GtkInterface']['email_client'], (url,))
+			self._openwith(self.preferences['GtkInterface']['email_client'], url)
 		elif url.startswith('zim+'):
 			self.open_notebook(url)
+		elif url.startswith('outlook:') and hasattr(os, 'startfile'):
+			# Special case for outlook folder paths on windows
+			os.startfile(url)
 		else:
 			if is_win32_share_re.match(url):
 				url = normalize_win32_share(url)
-			self._openwith(self.preferences['GtkInterface']['web_browser'], (url,))
+			self._openwith(self.preferences['GtkInterface']['web_browser'], url)
 
-	def _openwith(self, name, args):
-		entry = get_application(name)
-		entry.spawn(args)
+	def _openwith(self, app, uri):
+		def check_error(status):
+			if status != 0:
+					ErrorDialog(self, _('Could not open: %s') % uri).run()
+					# T: error when external application fails
+
+		entry = get_application(app)
+		entry.spawn((uri,), callback=check_error)
 
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -1270,9 +1280,9 @@ class GtkInterface(NotebookInterface):
 			ErrorDialog('This page does not have a source file').run()
 			return
 
-		if self._edit_file(file):
-			if page == self.page:
-				self.reload_page()
+		self.edit_file(file, istextfile=True)
+		if page == self.page:
+			self.reload_page()
 
 	def edit_config_file(self, configfile):
 		if not configfile.file.exists():
@@ -1280,21 +1290,46 @@ class GtkInterface(NotebookInterface):
 				configfile.default.copyto(configfile.file)
 			else:
 				configfile.file.touch()
-		self._edit_file(configfile.file)
+		self.edit_file(configfile.file, istextfile=True)
 
-	def _edit_file(self, file):
-		# We hope the application we get here does not return before
-		# editing is done, but unfortunately we have no way to force
-		# this. So may e.g. open a new tab in an existing window and
-		# return immediatly.
-		application = get_default_application('text/plain')
-		try:
-			application.run((file,))
-		except:
-			logger.exception('Error while running %s:', application.name)
-			return False
-		else:
-			return True
+	def edit_file(self, file, istextfile=None):
+		'''Edit a file with and external application and wait. Spawns a dialog to block the zim gui
+		while the axternal application is running. Dialog is closed automatically when the application
+		exits after modifying the file. If the file is unmodified the user needs to click the "Done"
+		button in the dialog because we can not know if the application was really done or just forked.
+
+		If 'istextfile' is True the text editor from the preferences menu is used, if it is False the
+		file browser is used and if it is None we check the mimetype.
+		'''
+		if not file.exists():
+			raise NoSuchFileError, file
+
+		oldmtime = file.mtime()
+
+		dialog = MessageDialog(self, (
+			_('Editing file: %s') % file.basename,
+			_('You are editing a file in an external application. You can close this dialog when you are done')
+		) )
+
+		def check_close_dialog(status):
+			if status != 0:
+				dialog.destroy()
+				ErrorDialog(self, _('Could not open: %s') % uri).run()
+					# T: error when external application fails
+			else:
+				newmtime = file.mtime()
+				if newmtime != oldmtime:
+					dialog.destroy()
+
+		if istextfile is None:
+			istextfile = file.get_mimetype().startswith('text/')
+
+		if istextfile: app = 'text_editor'
+		else:          app = 'file_browser'
+
+		entry = get_application(self.preferences['GtkInterface'][app])
+		entry.spawn((file,), callback=check_close_dialog)
+		dialog.run()
 
 	def show_server_gui(self):
 		# TODO instead of spawn, include in this process

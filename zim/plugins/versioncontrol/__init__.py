@@ -168,6 +168,8 @@ This is a core plugin shipping with zim.
 				  "Do you want to enable it?" ) # T: Detailed question
 			) ).run():
 				self.init_vcs('bzr')
+			else:
+				return
 
 		if self.ui.page.modified:
 			self.ui.save_page()

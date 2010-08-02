@@ -5,5 +5,5 @@ Exec=xdg-open
 TryExec=xdg-open
 Icon=file-manager
 NoDisplay=true
-X-Zim-AppType=file_browser;web_browser
+X-Zim-AppType=file_browser;web_browser;text_editor
 Name=Default (xdg)

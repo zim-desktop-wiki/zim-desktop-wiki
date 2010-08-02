@@ -64,8 +64,10 @@ class PreferencesDialog(Dialog):
 				# T: Input for application type in preferences dialog
 			('email_client', 'list', _('Email client'), (None, ())),
 				# T: Input for application type in preferences dialog
+			('text_editor', 'list', _('Text Editor'), (None, ())),
+				# T: Input for application type in preferences dialog
 		), table=table, trigger_response=False)
-		for type in ('file_browser', 'web_browser', 'email_client'):
+		for type in ('file_browser', 'web_browser', 'email_client', 'text_editor'):
 			self._append_applications(type)
 		vbox = gtk.VBox()
 		vbox.pack_start(table, False)

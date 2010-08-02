@@ -191,7 +191,7 @@ class StartFile(Application):
 
 	def spawn(self, args, callback=None):
 		if callback:
-			raise NotImplementedError, 'StartFile can not handle callback'
+			logger.warn('os.startfile does not support a callback')
 
 		for file in args:
 			path = os.path.normpath(unicode(file))
