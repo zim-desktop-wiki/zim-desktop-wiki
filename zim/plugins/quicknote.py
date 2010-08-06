@@ -27,8 +27,9 @@ Options:
   text=TEXT          Provide the text directly
   input=stdin        Provide the text on stdin
   input=clipboard    Take the text from the clipboard
-  base64             Text is encoded in base64
-                     expects utf-8 after base64 decoding
+  encoding=base64    Text is encoded in base64
+  encoding=url       Text is url encoded
+                     (In both cases expects utf-8 after decoding)
   option:url=STRING  Set template parameter
 '''
 
@@ -71,9 +72,15 @@ def main(daemonproxy, *args):
 	else:
 		text = options.get('text')
 
-	if text and options.get('base64'):
-		import base64
-		text = base64.b64decode(text)
+	if text and options.get('encoding'):
+		if options['encoding'] == 'base64':
+			import base64
+			text = base64.b64decode(text)
+		elif options['encoding'] == 'url':
+			from zim.parsing import url_decode, URL_ENCODE_DATA
+			text = url_decode(text, mode=URL_ENCODE_DATA)
+		else:
+			raise AssertionError, 'Unknown encoding: %s' % options['encoding']
 
 	if text and not isinstance(text, unicode):
 		text = text.decode('utf-8')

@@ -49,7 +49,7 @@ from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
 	Window, Dialog, \
 	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog
 from zim.gui.clipboard import Clipboard
-from zim.gui.applications import get_application, get_default_application, CustomToolManager
+from zim.gui.applications import ApplicationManager, CustomToolManager
 
 logger = logging.getLogger('zim.gui')
 
@@ -321,41 +321,21 @@ class GtkInterface(NotebookInterface):
 		if not self.preferences['GtkInterface']['gtk_bell']:
 			gtk.rc_parse_string('gtk-error-bell = 0')
 
-		# Set default applications
-		apps = {
-			'email_client': ['xdg-email', 'startfile', 'open'],
-			'file_browser': ['xdg-open', 'startfile', 'open'],
-			'web_browser': ['xdg-open', 'startfile', 'open'],
-			'text_editor': ['xdg-open', 'startfile', 'open'],
-		}
-		if ui_environment['platform'] == 'maemo':
-			apps = {
-				'email_client': ['modest'],
-				'file_browser': ['hildon-mime-summon'],
-				'web_browser': ['webbrowser'],
-				'text_editor': [], # FIXME
-			}
-
-		for type in apps.keys():
-			prefs = self.preferences['GtkInterface']
-			if type in prefs and prefs[type] \
-			and isinstance(prefs[type], basestring):
-				pass # preference is set, no need to set default
-			else:
-				from zim.gui.applications import get_helper_applications
-				key = None
-				helpers = get_helper_applications(type)
-				keys = [entry.key for entry in helpers]
-				for k in apps[type]: # prefered keys
-					if k in keys:
-						key = k
-						break
-				if key is None:
-					if helpers:
-						key = helpers[0].key
-					else:
-						logger.warn('No helper application defined for %s', type)
-				prefs.setdefault(type, key)
+		# Set default applications - check if we already have a default
+		# to prevent unnessecary and relatively slow tryexec() checks
+		manager = ApplicationManager()
+		for type in (
+			'file_browser',
+			'web_browser',
+			'email_client',
+			'text_editor'
+		):
+			if not self.preferences['GtkInterface'].get(type):
+				default = manager.get_default_helper(type)
+				if default:
+					self.preferences['GtkInterface'].setdefault(type, default.key)
+				else:
+					logger.warn('No helper application defined for %s', type)
 
 		self.mainwindow = MainWindow(self, fullscreen, geometry)
 
@@ -1207,7 +1187,7 @@ class GtkInterface(NotebookInterface):
 					ErrorDialog(self, _('Could not open: %s') % uri).run()
 					# T: error when external application fails
 
-		entry = get_application(app)
+		entry = ApplicationManager().get_application(app)
 		entry.spawn((uri,), callback=check_error)
 
 	def open_attachments_folder(self):
@@ -1327,7 +1307,7 @@ class GtkInterface(NotebookInterface):
 		if istextfile: app = 'text_editor'
 		else:          app = 'file_browser'
 
-		entry = get_application(self.preferences['GtkInterface'][app])
+		entry = ApplicationManager().get_application(self.preferences['GtkInterface'][app])
 		entry.spawn((file,), callback=check_close_dialog)
 		dialog.run()
 

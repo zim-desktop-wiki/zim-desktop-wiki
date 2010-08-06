@@ -16,4 +16,6 @@ The "Quick Note" plugin offers a dialog for inserting quick notes into a noteboo
 * text=TEXT    Provide the text directly
 * input=stdin    Provide the text on stdin
 * input=clipboard    Take the text from the clipboard
+* encoding=url	url encoded utf-8 text
+* encoding=base64	base64 encoded utf-8 text
 * option:url=STRING  Set template parameter

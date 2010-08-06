@@ -7,8 +7,7 @@ import gtk
 import logging
 
 import zim.plugins
-from zim.gui.applications import \
-	get_application, get_helper_applications, CustomCommandDialog
+from zim.gui.applications import ApplicationManager, NewApplicationDialog
 from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view
 from zim.gui.pageview import PageView
 
@@ -21,6 +20,9 @@ class PreferencesDialog(Dialog):
 	a tab with plugins. Options are not defined here, but need to be
 	registered using GtkInterface.register_preferences().
 	'''
+
+	OTHER_APP = _('Other Application') + '...'
+		# T: label to pop dialog with more applications in 'open with' menu
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
@@ -67,7 +69,12 @@ class PreferencesDialog(Dialog):
 			('text_editor', 'list', _('Text Editor'), (None, ())),
 				# T: Input for application type in preferences dialog
 		), table=table, trigger_response=False)
-		for type in ('file_browser', 'web_browser', 'email_client', 'text_editor'):
+		for type in (
+			'file_browser',
+			'web_browser',
+			'email_client',
+			'text_editor'
+		):
 			self._append_applications(type)
 		vbox = gtk.VBox()
 		vbox.pack_start(table, False)
@@ -107,12 +114,12 @@ class PreferencesDialog(Dialog):
 		hbox.pack_start(self.fontbutton, False)
 
 	def _append_applications(self, type):
-		# TODO search for other options
+		manager = ApplicationManager()
 
 		current = self.ui.preferences['GtkInterface'][type]
-		apps = get_helper_applications(type)
+		apps = manager.list_helpers(type)
 		if not current in [app.key for app in apps]:
-			app = get_application(current)
+			app = manager.get_application(current)
 			if app:
 				apps.insert(0, app)
 			else:
@@ -127,11 +134,33 @@ class PreferencesDialog(Dialog):
 			name_map[name] = app.key
 			combobox.append_text(name)
 
+		combobox.append_text(self.OTHER_APP)
+		combobox.connect('changed', self._on_combo_changed, type)
+
+		combobox.current_app = 0
 		try:
 			active = [app.key for app in apps].index(current)
+			combobox.current_app = active
 			combobox.set_active(active)
 		except ValueError:
 			pass
+
+	def _on_combo_changed(self, combobox, type):
+		name = combobox.get_active_text()
+		if name == self.OTHER_APP:
+			app = NewApplicationDialog(self, type=type).run()
+			if app:
+				# add new application and select it
+				len = combobox.get_model().iter_n_children(None)
+				name = app.name
+				name_map = getattr(self, '%s_map' % type)
+				name_map[name] = app.key
+				combobox.insert_text(len-2, name)
+				combobox.set_active(len-2)
+			else:
+				# dialog was cancelled - set back to current
+				active = combobox.current_app
+				combobox.set_active(active)
 
 	def do_response_ok(self):
 		if self.use_custom_font.get_active():
@@ -141,7 +170,12 @@ class PreferencesDialog(Dialog):
 		PageView.style['TextView']['font'] = font
 		PageView.style.write()
 
-		for type in ('file_browser', 'web_browser', 'email_client'):
+		for type in (
+			'file_browser',
+			'web_browser',
+			'email_client',
+			'text_editor',
+		):
 			combobox = self.inputs.pop(type)
 			name = combobox.get_active_text()
 			name_map = getattr(self, '%s_map' % type)

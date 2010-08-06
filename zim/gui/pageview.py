@@ -2040,6 +2040,7 @@ class TextView(gtk.TextView):
 		self.set_left_margin(10)
 		self.set_right_margin(5)
 		self.set_wrap_mode(gtk.WRAP_WORD)
+		self.set_pixels_above_lines(3) # para spacing - esp for bullet lists etc.
 		self.preferences = preferences
 		actions = gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE | gtk.gdk.ACTION_LINK
 		self.drag_dest_set(0, PARSETREE_ACCEPT_TARGETS, actions)
