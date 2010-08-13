@@ -1079,7 +1079,9 @@ class TextBuffer(gtk.TextBuffer):
 		# First call parent for the actual insert
 		if string == '\n':
 			# Break tags that are not allowed to span over multiple lines
-			self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
+			self._editmode_tags = filter(
+				lambda tag: _is_pre_tag(tag) or _is_not_style_tag(tag), 
+				self._editmode_tags)
 			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 			self.emit('textstyle-changed', None)
 			# TODO make this more robust for multiline inserts
