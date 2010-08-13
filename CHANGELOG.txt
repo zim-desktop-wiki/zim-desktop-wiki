@@ -4,6 +4,22 @@ Jaap Karssenberg <pardus@cpan.org>
 This branch is the Python rewrite and starts with version 0.42. 
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.48 - Thu 22 Jul 2010 ===
+* Added support for sub- and superscript format - by Michael Mulqueen
+* Updated the export dialog to an Assistant interface
+* Renamed "Create Note" plugin to "Quick Note"
+* Improved the "Quick Note" plugin to support appending to pages and 
+  support templates
+* Fixed webserver to be available from remote hosts and to support files
+  and attachments
+* Merged support for Maemo platform with fixes for zim on a small screen
+  - by Miguel Angel Alvarez
+* Updated zim icon and artwork
+* Several fixes for latex export - by Johannes Reinhardt
+* Fixed inconsistency in formatting buttons for selections
+* Fixed bug that prevented adding custom tools without icon
+* Fixed bug with deleting directories on windows
+* Added translations for Catalan, Croatian and Slovak
 
 === 0.47 - Sun  6 Jun 2010 ===
 Big release with lots of new functionality but also many bug fixes

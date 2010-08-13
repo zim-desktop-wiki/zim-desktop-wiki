@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Firefox (maemo)
+Exec=fennec %u
+TryExec=fennec
+Terminal=false
+Type=Application
+Icon=fennec
+X-Zim-AppType=web_browser

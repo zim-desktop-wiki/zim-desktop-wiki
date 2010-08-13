@@ -33,6 +33,15 @@ except:
 	sys.exit(1)
 
 
+# Get environment parameter for building for maemo
+# We don't use auto-detection here because we want to be able to 
+# cross-compile a maemo package on another platform
+build_target = os.environ.get('ZIM_BUILD_TARGET') or 'default'
+assert build_target in ('default', 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
+if build_target == 'maemo':
+	print 'Building for Maemo...'
+
+
 # Helper routines
 
 def collect_packages():
@@ -66,31 +75,39 @@ def include_file(file):
 def collect_data_files():
 	# Search for data files to be installed in share/
 	data_files = [
-		('share/pixmaps', ['data/zim.png']),
+		('share/man/man1', ['man/zim.1']),
 		('share/applications', ['xdg/zim.desktop']),
 		('share/mime/packages', ['xdg/zim.xml']),
-		('share/man/man1', ['man/zim.1']),
-		('share/icons/hicolor/64x64/mimetypes', [
-			'xdg/hicolor/gnome-mime-application-x-zim-notebook.png',
-			'xdg/hicolor/application-x-zim-notebook.png'
-		] ),
-		('share/icons/hicolor/64x64/apps', ['data/zim.png']),
+		('share/pixmaps', ['xdg/hicolor/48x48/apps/zim.png']),
 	]
-	# Paths for mimeicons taken from xdg-icon-resource
-	# xdg-icon-resource installs:
-	# /usr/local/share/icons/hicolor/64x64/mimetypes/gnome-mime-application-x-zim-notebook.png
-	# /usr/local/share/icons/hicolor/64x64/mimetypes/application-x-zim-notebook.png
-	# /usr/local/share/icons/hicolor/64x64/apps/zim.png
+
+	# xdg/hicolor -> PREFIX/share/icons/hicolor
+	for dir, dirs, files in os.walk('xdg/hicolor'):
+		if files:
+			target = os.path.join('share', 'icons', dir[4:])
+			files = [os.path.join(dir, f) for f in files]
+			data_files.append((target, files))
 
 	# data -> PREFIX/share/zim
 	for dir, dirs, files in os.walk('data'):
 		if '.zim' in dirs:
 			dirs.remove('.zim')
 		target = os.path.join('share', 'zim', dir[5:])
+		if files:
+			files = filter(include_file, files)
+			files = [os.path.join(dir, f) for f in files]
+			data_files.append((target, files))
 
-		files = filter(include_file, files)
-		files = [os.path.join(dir, f) for f in files]
-		data_files.append((target, files))
+	if build_target == 'maemo':
+		# Remove default .desktop files and replace with our set
+		prefix = os.path.join('share', 'zim', 'applications')
+		for i in reversed(range(len(data_files))):
+			if data_files[i][0].startswith(prefix):
+				data_files.pop(i)
+
+		files = ['maemo/applications/%s' % f
+				for f in os.listdir('maemo/applications') if f.endswith('.desktop')]
+		data_files.append((prefix, files))
 
 	# .po files -> PREFIX/share/locale/..
 	for pofile in [f for f in os.listdir('po') if f.endswith('.po')]:
@@ -99,7 +116,9 @@ def collect_data_files():
 		target = os.path.join('share', modir)
 		data_files.append((target, [mofile]))
 
-	#~ print 'Data files: ', data_files
+	#~ import pprint
+	#~ print 'Data files: '
+	#~ pprint.pprint(data_files)
 	return data_files
 
 
@@ -116,15 +135,33 @@ def fix_dist():
 	# print 'copying CHANGELOG.txt -> data/manual/Changelog.txt'
 	# shutil.copy('CHANGELOG.txt', 'data/manual/Changelog.txt')
 
-	# Copy the zim icon a couple of times
+	# Copy the zim icons a couple of times
+	# Paths for mimeicons taken from xdg-icon-resource
+	# xdg-icon-resource installs:
+	# /usr/local/share/icons/hicolor/.../mimetypes/gnome-mime-application-x-zim-notebook.png
+	# /usr/local/share/icons/hicolor/.../mimetypes/application-x-zim-notebook.png
+	# /usr/local/share/icons/hicolor/.../apps/zim.png
+
 	if os.path.exists('xdg/hicolor'):
 		shutil.rmtree('xdg/hicolor')
-	os.mkdir('xdg/hicolor')
+	os.makedirs('xdg/hicolor/scalable/apps')
+	os.makedirs('xdg/hicolor/scalable/mimetypes')
 	for name in (
-		'gnome-mime-application-x-zim-notebook.png',
-		'application-x-zim-notebook.png'
+		'apps/zim.svg',
+		'mimetypes/gnome-mime-application-x-zim-notebook.svg',
+		'mimetypes/application-x-zim-notebook.svg'
 	):
-		shutil.copy('data/zim.png', 'xdg/hicolor/' + name)
+		shutil.copy('icons/zim48.svg', 'xdg/hicolor/scalable/' + name)
+	for size in ('16', '22', '24', '32', '48'):
+		dir = size + 'x' + size
+		os.makedirs('xdg/hicolor/%s/apps' % dir)
+		os.makedirs('xdg/hicolor/%s/mimetypes' % dir)
+		for name in (
+			'apps/zim.png',
+			'mimetypes/gnome-mime-application-x-zim-notebook.png',
+			'mimetypes/application-x-zim-notebook.png'
+		):
+			shutil.copy('icons/zim%s.png' % size, 'xdg/hicolor/'  + dir + '/' + name)
 
 
 # Overloaded commands
@@ -226,6 +263,10 @@ dependencies = ['gobject', 'gtk', 'xdg']
 if version_info == (2, 5):
 	dependencies.append('simplejson')
 
+if build_target == 'maemo':
+	scripts = ['zim.py', 'maemo/modest-mailto.sh']
+else:
+	scripts = ['zim.py']
 
 if py2exe:
 	py2exeoptions = {
@@ -267,7 +308,7 @@ setup(
 	author_email = 'pardus@cpan.org',
 	license      = 'GPL',
 	url          = __url__,
-	scripts      = ['zim.py'],
+	scripts      = scripts,
 	packages     = collect_packages(),
 	data_files   = collect_data_files(),
 	requires     = dependencies,

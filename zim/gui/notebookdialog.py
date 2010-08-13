@@ -17,7 +17,7 @@ import logging
 from zim.fs import *
 from zim.notebook import get_notebook_list, init_notebook
 from zim.config import data_file
-from zim.gui.widgets import Dialog, IconButton
+from zim.gui.widgets import ui_environment, Dialog, IconButton
 
 
 logger = logging.getLogger('zim.gui.notebookdialog')
@@ -348,11 +348,12 @@ class AddNotebookDialog(Dialog):
 		label = gtk.Label(_('Please select a name and a folder for the notebook.')) # T: Label in Add Notebook dialog
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
-
-
 		if name is None and folder is None:
 			name = 'Notes'
-			folder = '~/Notes'
+			if ui_environment['platform'] == 'maemo':
+				folder = '~/MyDocs/Notes' # 'MyDocs' is the "Device" folder on maemo
+			else:
+				folder = '~/Notes'
 		self.add_fields((
 			('name', 'string', _('Name'), name), # T: input field in 'Add Notebook' dialog
 			('folder', 'dir', _('Folder'), folder), # T: input field in 'Add Notebook' dialog

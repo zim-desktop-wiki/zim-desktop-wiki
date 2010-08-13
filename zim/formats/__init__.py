@@ -132,6 +132,25 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''
 		return self.getroot().attrib.get('raw', False)
 
+	def extend(self, tree):
+		# Do we need a deepcopy here ?
+		myroot = self.getroot()
+		otherroot = tree.getroot()
+		if otherroot.text:
+			children = myroot.getchildren()
+			if children:
+				last = children[-1]
+				last.tail = (last.tail or '') + otherroot.text
+			else:
+				myroot.text = (myroot.text or '') + otherroot.text
+
+		for element in otherroot.getchildren():
+			myroot.append(element)
+
+		return self
+
+	__add__ = extend
+
 	def fromstring(self, string):
 		'''Set the contents of this tree from XML representation.'''
 		parser = ElementTreeModule.XMLTreeBuilder()

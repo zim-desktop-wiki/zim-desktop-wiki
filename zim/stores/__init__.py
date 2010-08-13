@@ -227,7 +227,10 @@ class StoreClass():
 			return isinstance(self.dir, Dir)
 		elif hasattr(self.notebook, 'dir'):
 			path = self.namespace.name.replace(':', '/')
-			self.dir = Dir([self.notebook.dir, path])
+			if path.strip(':') == '':
+				self.dir = self.notebook.dir
+			else:
+				self.dir = self.notebook.dir.subdir(path)
 			return True
 		else:
 			return False

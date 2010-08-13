@@ -14,7 +14,7 @@ the application to define additional actions. See the methods
 add_actions() and add_ui() for wrappers around this functionality.
 A second mechanism is that for simple options other classes can
 register a preference to be shown in the PreferencesDialog. See
-the register_prererences() mmethod. NOTE: the plugin base class
+the register_prererences() method. NOTE: the plugin base class
 has it's own wrappers for these things. Plugin writers should
 look there first.
 
@@ -44,10 +44,12 @@ from zim.history import History, HistoryRecord
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
-from zim.gui.widgets import Button, MenuButton, \
-	Dialog, ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog
+from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
+	Button, MenuButton, \
+	Window, Dialog, \
+	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog
 from zim.gui.clipboard import Clipboard
-from zim.gui.applications import get_application, get_default_application, CustomToolManager
+from zim.gui.applications import ApplicationManager, CustomToolManager
 
 logger = logging.getLogger('zim.gui')
 
@@ -66,7 +68,7 @@ ui_actions = (
 
 	# name, stock id, label, accelerator, tooltip, readonly
 	('new_page',  'gtk-new', _('_New Page...'), '<ctrl>N', '', False), # T: Menu item
-	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '', '', False), # T: Menu item
+	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '<shift><ctrl>N', '', False), # T: Menu item
 	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', '', True), # T: Menu item
 	('open_new_window', None, _('Open in New _Window'), '', '', True), # T: Menu item
 	('import_page', None, _('_Import Page...'), '', '', False), # T: Menu item
@@ -111,12 +113,22 @@ ui_actions = (
 
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, initial state, readonly
-	('toggle_toolbar', None, _('_Toolbar'),  None, '', True, True), # T: Menu item
+	('toggle_toolbar', None, _('_Toolbar'),  '', '', True, True), # T: Menu item
 	('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
 	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
-	('toggle_fullscreen',  None, _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
+	('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
 	('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
 )
+
+if ui_environment['platform'] == 'maemo':
+	ui_toggle_actions = (
+		# name, stock id, label, accelerator, tooltip, initial state, readonly
+		('toggle_toolbar', None, _('_Toolbar'),  '<ctrl>M', '', True, True), # T: Menu item
+		('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
+		('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
+		('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
+		('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
+	)
 
 ui_pathbar_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
@@ -153,6 +165,7 @@ TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
+
 ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
@@ -160,8 +173,19 @@ ui_preferences = (
 	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)'), False),
 		# T: Option in the preferences dialog
 		# default value is False because this is mapped to switch between
-		# char sets in cerain international key mappings
+		# char sets in certain international key mappings
 )
+
+if ui_environment['platform'] == 'maemo':
+	# Maemo specific settngs
+	ui_preferences = (
+		# key, type, category, label, default
+		('tearoff_menus', 'bool', None, None, False),
+			# Maemo can't have tearoff_menus
+		('toggle_on_ctrlspace', 'bool', None, None, True),
+			# There is no ALT key on maemo devices
+	)
+
 
 
 # Load custom application icons as stock
@@ -275,8 +299,7 @@ class GtkInterface(NotebookInterface):
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
 
-		icon = data_file('zim.png').path
-		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
+		gtk_window_set_default_icon()
 
 		self.uimanager = gtk.UIManager()
 		self.uimanager.add_ui_from_string('''
@@ -298,30 +321,21 @@ class GtkInterface(NotebookInterface):
 		if not self.preferences['GtkInterface']['gtk_bell']:
 			gtk.rc_parse_string('gtk-error-bell = 0')
 
-		# Set default applications
-		apps = {
-			'email_client': ['xdg-email', 'startfile'],
-			'file_browser': ['xdg-open', 'startfile'],
-			'web_browser': ['xdg-open', 'startfile']
-		}
-		for type in apps.keys():
-			prefs = self.preferences['GtkInterface']
-			if type in prefs and prefs[type] \
-			and isinstance(prefs[type], basestring):
-				pass # preference is set, no need to set default
-			else:
-				from zim.gui.applications import get_helper_applications
-				key = None
-				helpers = get_helper_applications(type)
-				keys = [entry.key for entry in helpers]
-				for k in apps[type]: # prefered keys
-					if k in keys:
-						key = k
-						break
-				if key is None:
-					if helpers: key = helpers[0].key
-					else: key = 'none'
-				prefs.setdefault(type, key)
+		# Set default applications - check if we already have a default
+		# to prevent unnessecary and relatively slow tryexec() checks
+		manager = ApplicationManager()
+		for type in (
+			'file_browser',
+			'web_browser',
+			'email_client',
+			'text_editor'
+		):
+			if not self.preferences['GtkInterface'].get(type):
+				default = manager.get_default_helper(type)
+				if default:
+					self.preferences['GtkInterface'].setdefault(type, default.key)
+				else:
+					logger.warn('No helper application defined for %s', type)
 
 		self.mainwindow = MainWindow(self, fullscreen, geometry)
 
@@ -333,7 +347,19 @@ class GtkInterface(NotebookInterface):
 								self.mainwindow, 'do_set_toolbar_style')
 		self.add_radio_actions(ui_toolbar_size_radio_actions,
 								self.mainwindow, 'do_set_toolbar_size')
-		self.add_ui(data_file('menubar.xml').read(), self)
+
+		if ui_environment['platform'] == 'maemo':
+			# Customized menubar for maemo, specific for maemo version
+			fname = 'menubar-' + ui_environment['maemo_version'] + '.xml'
+		else:
+			fname = 'menubar.xml'
+		self.add_ui(data_file(fname).read(), self)
+
+		if ui_environment['platform'] == 'maemo':
+			# Hardware fullscreen key is F6 in N8xx devices
+			self.mainwindow.connect('key-press-event',
+				lambda o, event: event.keyval == gtk.keysyms.F6
+					and self.mainwindow.toggle_fullscreen())
 
 		self.load_plugins()
 
@@ -343,8 +369,30 @@ class GtkInterface(NotebookInterface):
 		self.load_custom_tools()
 
 		self.uimanager.ensure_update()
-			# prevent flashing when the toolbar is after showing the window
-			# and do this before connecting signal below for accelmap
+			# Prevent flashing when the toolbar is after showing the window
+			# and do this before connecting signal below for accelmap.
+			# For maemo ensure all items are initialized before moving
+			# them to the hildon menu
+
+		if ui_environment['platform'] == 'maemo':
+			# Move the menu to the hildon menu
+			# This is save for later updates of the menus (e.g. by plugins)
+			# as long as the toplevel menus are not changed
+			menu = gtk.Menu()
+			for child in self.mainwindow.menubar.get_children():
+				child.reparent(menu)
+			self.mainwindow.set_menu(menu)
+			self.mainwindow.menubar.hide()
+
+			# Localize the fullscreen button in the toolbar
+			for i in range(self.mainwindow.toolbar.get_n_items()):
+				self.fsbutton = None
+				toolitem = self.mainwindow.toolbar.get_nth_item(i)
+				if isinstance(toolitem, gtk.ToolButton):
+					if toolitem.get_stock_id() == 'gtk-fullscreen':
+						self.fsbutton = toolitem
+						self.fsbutton.tap_and_hold_setup(menu) # attach app menu to fullscreen button for N900
+						break
 
 		accelmap = config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
@@ -529,9 +577,18 @@ class GtkInterface(NotebookInterface):
 			self.uimanager.remove_action_group(handler.actiongroup)
 			handler.actiongroup = None
 
-	@staticmethod
-	def _log_action(action, *a):
-		logger.debug('Action: %s', action.get_name())
+	def _action_handler(self, action, method, *arg):
+		name = action.get_name()
+		logger.debug('Action: %s', name)
+		try:
+			method(*arg)
+		except Exception, error:
+			ErrorDialog(None, error).run()
+			# error dialog also does logging automatically
+
+	def _radio_action_handler(self, object, action, method):
+		# radio action object is not active radio action
+		self._action_handler(action, method, action.get_name())
 
 	def _connect_actions(self, actions, group, handler, is_toggle=False):
 		for name, readonly in [(a[0], a[-1]) for a in actions if not a[0].endswith('_menu')]:
@@ -539,29 +596,29 @@ class GtkInterface(NotebookInterface):
 			action.zim_readonly = readonly
 			if is_toggle: name = 'do_' + name
 			assert hasattr(handler, name), 'No method defined for action %s' % name
-			method = getattr(handler.__class__, name)
-			action.connect('activate', self._log_action)
-			action.connect_object('activate', method, handler)
+			method = getattr(handler, name)
+			action.connect('activate', self._action_handler, method)
 			if self.readonly and not action.zim_readonly:
 				action.set_sensitive(False)
 
 	def add_radio_actions(self, actions, handler, methodname):
 		'''Wrapper for gtk.ActionGroup.add_radio_actions(actions),
 		"handler" is the object that these actions belong to and
-		"methodname" gives the callback to be called on changes in this group.
-		(See doc on gtk.RadioAction 'changed' signal for this callback.)
+		"methodname" gives the callback to be called on changes in this
+		group this method will be called for any change with the name of
+		the active action as only argument.
 		'''
 		# A bit different from the other two methods since radioactions
 		# come in mutual exclusive groups. Only need to connect to one
-		# action to get signals from whole group.
+		# action to get signals from whole group. But need to pass on
+		# the name of the active action
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		assert hasattr(handler, methodname), 'No such method %s' % methodname
 		group = self.init_actiongroup(handler)
 		group.add_radio_actions(actions)
-		method = getattr(handler.__class__, methodname)
+		method = getattr(handler, methodname)
 		action = group.get_action(actions[0][0])
-		action.connect('changed', self._log_action)
-		action.connect_object('changed', method, handler)
+		action.connect('changed', self._radio_action_handler, method)
 
 	def add_ui(self, xml, handler):
 		'''Wrapper for gtk.UIManager.add_ui_from_string(xml)'''
@@ -620,8 +677,10 @@ class GtkInterface(NotebookInterface):
 		for p in preferences:
 			key, type, category, label, default = p
 			self.preferences[section].setdefault(key, default)
-			register.setdefault(category, [])
-			register[category].append((section, key, type, label))
+			# Preferences with None category won't be shown in the preferences dialog
+			if category:
+				register.setdefault(category, [])
+				register[category].append((section, key, type, label))
 
 	def get_path_context(self):
 		'''Returns the current 'context' for actions that want a path to start
@@ -862,19 +921,23 @@ class GtkInterface(NotebookInterface):
 		self.open_page(self.notebook.get_home_page())
 
 	def new_page(self):
-		'''opens a dialog like 'open_page(None)'. Subtle difference is
+		'''opens a dialog like 'open_page()'. Subtle difference is
 		that this page is saved directly, so it is pesistent if the user
 		navigates away without first adding content. Though subtle this
 		is expected behavior for users not yet fully aware of the automatic
 		create/save/delete behavior in zim.
 		'''
-		NewPageDialog(self).run()
+		NewPageDialog(self, path=self.get_path_context()).run()
 
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
 
 	def new_page_from_text(self, text, name=None):
+		'''Create a new page and set text directly. If no name is given
+		the first line of the text is used as basename. If the page
+		already exists a number is added to force a unique page name.
+		'''
 		if not name:
 			name = text.strip()[:30]
 			if '\n' in name:
@@ -884,6 +947,14 @@ class GtkInterface(NotebookInterface):
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_new_page(path)
 		page.parse('plain', text)
+		self.notebook.store_page(page)
+		self.open_page(page)
+
+	def append_text_to_page(self, name, text):
+		'''Append text to an (exising) page'''
+		path = self.notebook.resolve_path(name)
+		page = self.notebook.get_page(path)
+		page.parse('plain', text, append=True)
 		self.notebook.store_page(page)
 		self.open_page(page)
 
@@ -1090,26 +1161,34 @@ class GtkInterface(NotebookInterface):
 			# TODO if isinstance(File) check default application for mime type
 			# this is needed once we can set default app from "open with.." menu
 			self._openwith(
-				self.preferences['GtkInterface']['file_browser'], (file,) )
+				self.preferences['GtkInterface']['file_browser'], file)
 		else:
-			ErrorDialog(self, NoSuchFileError(file)).run()
+			raise NoSuchFileError, file
 
 	def open_url(self, url):
 		assert isinstance(url, basestring)
 		if url.startswith('file:/'):
 			self.open_file(File(url))
 		elif url.startswith('mailto:'):
-			self._openwith(self.preferences['GtkInterface']['email_client'], (url,))
+			self._openwith(self.preferences['GtkInterface']['email_client'], url)
 		elif url.startswith('zim+'):
 			self.open_notebook(url)
+		elif url.startswith('outlook:') and hasattr(os, 'startfile'):
+			# Special case for outlook folder paths on windows
+			os.startfile(url)
 		else:
 			if is_win32_share_re.match(url):
 				url = normalize_win32_share(url)
-			self._openwith(self.preferences['GtkInterface']['web_browser'], (url,))
+			self._openwith(self.preferences['GtkInterface']['web_browser'], url)
 
-	def _openwith(self, name, args):
-		entry = get_application(name)
-		entry.spawn(args)
+	def _openwith(self, app, uri):
+		def check_error(status):
+			if status != 0:
+					ErrorDialog(self, _('Could not open: %s') % uri).run()
+					# T: error when external application fails
+
+		entry = ApplicationManager().get_application(app)
+		entry.spawn((uri,), callback=check_error)
 
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -1181,9 +1260,9 @@ class GtkInterface(NotebookInterface):
 			ErrorDialog('This page does not have a source file').run()
 			return
 
-		if self._edit_file(file):
-			if page == self.page:
-				self.reload_page()
+		self.edit_file(file, istextfile=True)
+		if page == self.page:
+			self.reload_page()
 
 	def edit_config_file(self, configfile):
 		if not configfile.file.exists():
@@ -1191,21 +1270,46 @@ class GtkInterface(NotebookInterface):
 				configfile.default.copyto(configfile.file)
 			else:
 				configfile.file.touch()
-		self._edit_file(configfile.file)
+		self.edit_file(configfile.file, istextfile=True)
 
-	def _edit_file(self, file):
-		# We hope the application we get here does not return before
-		# editing is done, but unfortunately we have no way to force
-		# this. So may e.g. open a new tab in an existing window and
-		# return immediatly.
-		application = get_default_application('text/plain')
-		try:
-			application.run((file,))
-		except:
-			logger.exception('Error while running %s:', application.name)
-			return False
-		else:
-			return True
+	def edit_file(self, file, istextfile=None):
+		'''Edit a file with and external application and wait. Spawns a dialog to block the zim gui
+		while the axternal application is running. Dialog is closed automatically when the application
+		exits after modifying the file. If the file is unmodified the user needs to click the "Done"
+		button in the dialog because we can not know if the application was really done or just forked.
+
+		If 'istextfile' is True the text editor from the preferences menu is used, if it is False the
+		file browser is used and if it is None we check the mimetype.
+		'''
+		if not file.exists():
+			raise NoSuchFileError, file
+
+		oldmtime = file.mtime()
+
+		dialog = MessageDialog(self, (
+			_('Editing file: %s') % file.basename,
+			_('You are editing a file in an external application. You can close this dialog when you are done')
+		) )
+
+		def check_close_dialog(status):
+			if status != 0:
+				dialog.destroy()
+				ErrorDialog(self, _('Could not open: %s') % uri).run()
+					# T: error when external application fails
+			else:
+				newmtime = file.mtime()
+				if newmtime != oldmtime:
+					dialog.destroy()
+
+		if istextfile is None:
+			istextfile = file.get_mimetype().startswith('text/')
+
+		if istextfile: app = 'text_editor'
+		else:          app = 'file_browser'
+
+		entry = ApplicationManager().get_application(self.preferences['GtkInterface'][app])
+		entry.spawn((file,), callback=check_close_dialog)
+		dialog.run()
 
 	def show_server_gui(self):
 		# TODO instead of spawn, include in this process
@@ -1324,7 +1428,7 @@ class GtkInterface(NotebookInterface):
 			else:
 				tool.run(args)
 				self.reload_page()
-				#~ self.notebook.index.update(background=True)
+				self.notebook.index.update(background=True)
 				# TODO instead of using run, use spawn and show dialog
 				# with cancel button. Dialog blocks ui.
 		except Exception, error:
@@ -1356,6 +1460,9 @@ class GtkInterface(NotebookInterface):
 		dialog.set_version(zim.__version__)
 		dialog.set_comments(_('A desktop wiki'))
 			# T: General description of zim itself
+		file = data_file('zim.png')
+		pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+		dialog.set_logo(pixbuf)
 		dialog.set_copyright(zim.__copyright__)
 		dialog.set_license(zim.__license__)
 		dialog.set_authors([zim.__author__])
@@ -1369,15 +1476,14 @@ class GtkInterface(NotebookInterface):
 gobject.type_register(GtkInterface)
 
 
-class MainWindow(gtk.Window):
+class MainWindow(Window):
 	'''Main window of the application, showing the page index in the side
 	pane and a pageview with the current page. Alse includes the menubar,
 	toolbar, statusbar etc.
 	'''
 
 	def __init__(self, ui, fullscreen=False, geometry=None):
-		'''Constructor'''
-		gtk.Window.__init__(self)
+		Window.__init__(self)
 		self._fullscreen = False
 		self.ui = ui
 
@@ -1443,7 +1549,9 @@ class MainWindow(gtk.Window):
 		vbox.pack_start(hbox, False, True, False)
 
 		self.statusbar = gtk.Statusbar()
-		#~ self.statusbar.set_has_resize_grip(False)
+		if ui_environment['platform'] == 'maemo':
+			# Maemo windows aren't resizeable so it makes no sense to show the resize grip
+			self.statusbar.set_has_resize_grip(False)
 		self.statusbar.push(0, '<page>')
 		hbox.add(self.statusbar)
 
@@ -1513,6 +1621,11 @@ class MainWindow(gtk.Window):
 				# only do this after we initalize
 				self.toggle_fullscreen(show=self._fullscreen)
 
+		if ui_environment['platform'] == 'maemo':
+			# Maemo UI bugfix: If ancestor method is not called the window
+			# will have borders when fullscreen
+			Window.do_window_state_event(self, event)
+
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:
 			self.remove_accel_group(self._switch_focus_accelgroup)
@@ -1522,6 +1635,7 @@ class MainWindow(gtk.Window):
 		group.connect_group( # <Alt><Space>
 			space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
 			self.do_switch_focus)
+
 		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Ctrl><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
@@ -1688,8 +1802,7 @@ class MainWindow(gtk.Window):
 		assert style in ('none', 'recent', 'history', 'path')
 		self.actiongroup.get_action('set_pathbar_'+style).activate()
 
-	def do_set_pathbar(self, action):
-		name = action.get_name()
+	def do_set_pathbar(self, name):
 		style = name[12:] # len('set_pathbar_') == 12
 
 		if style == PATHBAR_NONE:
@@ -1725,8 +1838,7 @@ class MainWindow(gtk.Window):
 		assert style in ('icons_and_text', 'icons_only', 'text_only'), style
 		self.actiongroup.get_action('set_toolbar_'+style).activate()
 
-	def do_set_toolbar_style(self, action):
-		name = action.get_name()
+	def do_set_toolbar_style(self, name):
 		style = name[12:] # len('set_toolbar_') == 12
 
 		if style == TOOLBAR_ICONS_AND_TEXT:
@@ -1747,8 +1859,7 @@ class MainWindow(gtk.Window):
 		assert size in ('large', 'small', 'tiny'), size
 		self.actiongroup.get_action('set_toolbar_icons_'+size).activate()
 
-	def do_set_toolbar_size(self, action):
-		name = action.get_name()
+	def do_set_toolbar_size(self, name):
 		size = name[18:] # len('set_toolbar_icons_') == 18
 
 		if size == TOOLBAR_ICONS_LARGE:
@@ -1795,7 +1906,11 @@ class MainWindow(gtk.Window):
 		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_menubar_fullscreen', True)
 		self.uistate.setdefault('show_toolbar', True)
-		self.uistate.setdefault('show_toolbar_fullscreen', False)
+		if ui_environment['platform'] == 'maemo':
+			# N900 lacks menu and fullscreen hardware buttons, UI must provide them
+			self.uistate.setdefault('show_toolbar_fullscreen', True)
+		else:
+			self.uistate.setdefault('show_toolbar_fullscreen', False)
 		self.uistate.setdefault('show_statusbar', True)
 		self.uistate.setdefault('show_statusbar_fullscreen', False)
 		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT)
@@ -1904,7 +2019,7 @@ class BackLinksMenuButton(MenuButton):
 
 		self.menu.add(gtk.TearoffMenuItem())
 			# TODO: hook tearoff to trigger search dialog
-
+		links.sort(key=lambda a: a.source.name)
 		for link in links:
 			item = gtk.MenuItem(link.source.name)
 			item.connect_object('activate', self.ui.open_page, link.source)
@@ -1913,11 +2028,11 @@ class BackLinksMenuButton(MenuButton):
 		MenuButton.popup_menu(self, event)
 
 
-class PageWindow(gtk.Window):
+class PageWindow(Window):
 	'''Secondairy window, showing a single page'''
 
 	def __init__(self, ui, page):
-		gtk.Window.__init__(self)
+		Window.__init__(self)
 		self.ui = ui
 
 		self.set_title(page.name + ' - Zim')
@@ -2077,14 +2192,22 @@ class NewPageDialog(Dialog):
 				'also creates a new page automatically.'),
 			# T: Dialog text in 'new page' dialog
 			path_context=path,
-			fields=[('name', 'page', _('Page Name'), None)], # T: Input label
+			fields=[
+				#~ ('namespace', 'namespace', _('Namespace'), path.parent), # T: Input label
+				('name', 'page', _('Page Name'), None), # T: Input label
+			],
 			help=':Help:Pages'
 		)
 
-		if subpage:
-			print 'SETTING force_child'
-			pageentry = self.inputs['name']
-			pageentry.force_child = True
+		#~ if subpage:
+			#~ self.inputs['name'].force_child = True
+			#~ self.inputs['namespace'].set_path(path)
+			#~ self.inputs['namespace'].set_sensitive(False)
+
+		#~ self.inputs['name'].grab_focus()
+
+		# FIXME using namespace here need integration between pagename
+		# and namespace widget
 
 	def do_response_ok(self):
 		path = self.get_field('name')
@@ -2097,9 +2220,8 @@ class NewPageDialog(Dialog):
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
 			page.set_parsetree(tree)
-			self.ui.save_page()
-
 			self.ui.open_page(page)
+			self.ui.save_page() # Save new page directly
 			return True
 		else:
 			return False

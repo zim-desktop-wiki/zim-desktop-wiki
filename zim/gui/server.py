@@ -11,7 +11,7 @@ import gtk
 import webbrowser # FIXME replace with XDG aware method
 
 from zim.config import data_file
-from zim.gui.widgets import IconButton
+from zim.gui.widgets import IconButton, gtk_window_set_default_icon
 from zim.gui.notebookdialog import NotebookComboBox, NotebookDialog
 
 stock_started = ('gtk-yes', gtk.ICON_SIZE_DIALOG)
@@ -22,8 +22,7 @@ class ServerWindow(gtk.Window):
 	def __init__(self, server):
 		'''Constructor needs a Server object to control'''
 		gtk.Window.__init__(self)
-		self.set_icon_from_file(data_file('zim.png').path)
-			# TODO new icon for WWW frontend
+		gtk_window_set_default_icon() # FIXME - should go in main
 		self.set_border_width(10)
 		self.connect('destroy', lambda a: gtk.main_quit())
 

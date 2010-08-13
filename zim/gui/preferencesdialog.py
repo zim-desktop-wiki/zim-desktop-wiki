@@ -2,13 +2,13 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
+import pango
 import gtk
 import logging
 
 import zim.plugins
-from zim.gui.applications import \
-	get_application, get_helper_applications, CustomCommandDialog
-from zim.gui.widgets import Dialog, Button, BrowserTreeView
+from zim.gui.applications import ApplicationManager, NewApplicationDialog
+from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view
 from zim.gui.pageview import PageView
 
 
@@ -20,6 +20,9 @@ class PreferencesDialog(Dialog):
 	a tab with plugins. Options are not defined here, but need to be
 	registered using GtkInterface.register_preferences().
 	'''
+
+	OTHER_APP = _('Other Application') + '...'
+		# T: label to pop dialog with more applications in 'open with' menu
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
@@ -63,8 +66,15 @@ class PreferencesDialog(Dialog):
 				# T: Input for application type in preferences dialog
 			('email_client', 'list', _('Email client'), (None, ())),
 				# T: Input for application type in preferences dialog
+			('text_editor', 'list', _('Text Editor'), (None, ())),
+				# T: Input for application type in preferences dialog
 		), table=table, trigger_response=False)
-		for type in ('file_browser', 'web_browser', 'email_client'):
+		for type in (
+			'file_browser',
+			'web_browser',
+			'email_client',
+			'text_editor'
+		):
 			self._append_applications(type)
 		vbox = gtk.VBox()
 		vbox.pack_start(table, False)
@@ -104,12 +114,12 @@ class PreferencesDialog(Dialog):
 		hbox.pack_start(self.fontbutton, False)
 
 	def _append_applications(self, type):
-		# TODO search for other options
+		manager = ApplicationManager()
 
 		current = self.ui.preferences['GtkInterface'][type]
-		apps = get_helper_applications(type)
+		apps = manager.list_helpers(type)
 		if not current in [app.key for app in apps]:
-			app = get_application(current)
+			app = manager.get_application(current)
 			if app:
 				apps.insert(0, app)
 			else:
@@ -124,11 +134,33 @@ class PreferencesDialog(Dialog):
 			name_map[name] = app.key
 			combobox.append_text(name)
 
+		combobox.append_text(self.OTHER_APP)
+		combobox.connect('changed', self._on_combo_changed, type)
+
+		combobox.current_app = 0
 		try:
 			active = [app.key for app in apps].index(current)
+			combobox.current_app = active
 			combobox.set_active(active)
 		except ValueError:
 			pass
+
+	def _on_combo_changed(self, combobox, type):
+		name = combobox.get_active_text()
+		if name == self.OTHER_APP:
+			app = NewApplicationDialog(self, type=type).run()
+			if app:
+				# add new application and select it
+				len = combobox.get_model().iter_n_children(None)
+				name = app.name
+				name_map = getattr(self, '%s_map' % type)
+				name_map[name] = app.key
+				combobox.insert_text(len-2, name)
+				combobox.set_active(len-2)
+			else:
+				# dialog was cancelled - set back to current
+				active = combobox.current_app
+				combobox.set_active(active)
 
 	def do_response_ok(self):
 		if self.use_custom_font.get_active():
@@ -138,11 +170,16 @@ class PreferencesDialog(Dialog):
 		PageView.style['TextView']['font'] = font
 		PageView.style.write()
 
-		for type in ('file_browser', 'web_browser', 'email_client'):
+		for type in (
+			'file_browser',
+			'web_browser',
+			'email_client',
+			'text_editor',
+		):
 			combobox = self.inputs.pop(type)
 			name = combobox.get_active_text()
 			name_map = getattr(self, '%s_map' % type)
-			self.ui.preferences['GtkInterface'][type] = name_map[name]
+			self.ui.preferences['GtkInterface'][type] = name_map.get(name)
 
 		fields = self.get_fields()
 		#~ print fields
@@ -171,33 +208,13 @@ class PluginsTab(gtk.HBox):
 		vbox = gtk.VBox()
 		self.add(vbox)
 
-		def heading(text):
-			label = gtk.Label()
-			label.set_markup('<b>%s</b>' % text)
-			label.set_alignment(0.0, 0.5)
-			return label
-
-		vbox.pack_start(heading(_('Name')), False)
-			# T: Heading in plugins tab of preferences dialog
-		self.name_label = gtk.Label()
-		self.name_label.set_alignment(0.0, 0.5)
-		vbox.pack_start(self.name_label, False)
-		vbox.pack_start(heading('\n'+_('Description')), False)
-			# T: Heading in plugins tab of preferences dialog
-		self.description_label = gtk.Label()
-		self.description_label.set_alignment(0.0, 0.5)
-		vbox.pack_start(self.description_label, False) # FIXME run through plain format to make links
-		vbox.pack_start(heading('\n'+_('Dependencies')),False)
-			# T: Heading in plugins tab of preferences dialog
-		self.dep_label = gtk.Label()
-		self.dep_label.set_alignment(0.0, 0.5)
-		vbox.pack_start(self.dep_label, False)
-
-		vbox.pack_start(heading('\n'+_('Author')), False)
-			# T: Heading in plugins tab of preferences dialog
-		self.author_label= gtk.Label()
-		self.author_label.set_alignment(0.0, 0.5)
-		vbox.pack_start(self.author_label, False) # FIXME idem
+		# Textview with scrollbars to show plugins info. Required by small screen devices
+		swindow, textview = scrolled_text_view()
+		textview.set_cursor_visible(False)
+		self.textbuffer = textview.get_buffer()
+		self.textbuffer.create_tag('bold', weight=pango.WEIGHT_BOLD)
+		self.textbuffer.create_tag('red', foreground='#FF0000')
+		vbox.pack_start(swindow, True)
 
 		hbox = gtk.HBox(spacing=5)
 		vbox.pack_end(hbox, False)
@@ -216,32 +233,54 @@ class PluginsTab(gtk.HBox):
 
 	def do_row_activated(self, treeview, path, col):
 		active = treeview.get_model()[path][0]
+		name = treeview.get_model()[path][2]
 		klass = treeview.get_model()[path][3]
 		self._klass = klass
+		logger.debug('Loading description for "%s"', name)
+
+		# Insert plugin info into textview with proper formatting
+		self.textbuffer.delete(*self.textbuffer.get_bounds()) # clear
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			_('Name') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		self.textbuffer.insert(
+			self.textbuffer.get_end_iter(),
+			klass.plugin_info['name'].strip() + '\n\n')
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			_('Description') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		self.textbuffer.insert(
+			self.textbuffer.get_end_iter(),
+			klass.plugin_info['description'].strip() + '\n\n')
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			_('Dependencies') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
 
 		#construct dependency list, missing dependencies are marked red
-		space = False
-		depend_label = ''
-		def format_dependency(dependency):
-			text, ok = dependency
-			text = text.replace('>', '&gt;').replace('<', '&lt;') # encode XML
-			if ok:
-				text += ' - ' + _('OK') # T: dependency is OK
-			else:
-				text = '<span color="red">%s - %s</span>' % (text, _('Failed'))
-					# T: dependency failed
-			return u'\u2022 ' + text + '\n'  # unicode bullet
-
 		dependencies = klass.check_dependencies()
-		if dependencies:
-			dep_text = ''.join(map(format_dependency, dependencies))
+		if not(dependencies):
+			self.textbuffer.insert(
+				self.textbuffer.get_end_iter(),
+				_('No dependencies') + '\n') # T: label in plugin info in preferences dialog
 		else:
-			dep_text = _('No dependencies') # T: label in plugin info in preferences dialog
+			for dependency in dependencies:
+				text, ok = dependency
+				if ok:
+					self.textbuffer.insert(
+						self.textbuffer.get_end_iter(),
+						u'\u2022 ' + text + ' - ' + _('OK') + '\n') # T: dependency is OK
+				else:
+					self.textbuffer.insert_with_tags_by_name(
+						self.textbuffer.get_end_iter(),
+						u'\u2022 ' + text +' - ' + _('Failed') + '\n', 'red') # T: dependency failed
 
-		self.name_label.set_text(klass.plugin_info['name'].strip())
-		self.description_label.set_text(klass.plugin_info['description'].strip())
-		self.dep_label.set_markup(dep_text)
-		self.author_label.set_text(klass.plugin_info['author'].strip() + '\n')
+		self.textbuffer.insert_with_tags_by_name(
+			self.textbuffer.get_end_iter(),
+			'\n' + _('Author') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		self.textbuffer.insert(
+			self.textbuffer.get_end_iter(),
+			klass.plugin_info['author'].strip())
+
 		self.configure_button.set_sensitive(active and bool(klass.plugin_preferences))
 		self.plugin_help_button.set_sensitive('help' in klass.plugin_info)
 
@@ -262,12 +301,12 @@ class PluginsTreeModel(gtk.ListStore):
 		for name in zim.plugins.list_plugins():
 			try:
 				klass = zim.plugins.get_plugin(name)
+				isloaded = klass in loaded
+				activatable = klass.check_dependencies_ok()
 			except:
 				logger.exception('Could not load plugin %s', name)
 				continue
 			else:
-				isloaded = klass in loaded
-				activatable = klass.check_dependencies_ok()
 				self.append((isloaded, activatable, klass.plugin_info['name'], klass))
 
 	def do_toggle_path(self, path):

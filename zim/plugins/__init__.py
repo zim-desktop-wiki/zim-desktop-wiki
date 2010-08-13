@@ -38,12 +38,16 @@ def get_plugin(pluginname):
 			return obj
 
 
-def list_plugins():
-	'''Returns a set of available plugin names'''
+def list_plugins(_path=None):
+	'''Returns a set of available plugin names
+	The _path argument is reserved for testing, it allows to override the
+	search path for plugins.
+	'''
 	# FIXME how should this work for e.g. for python eggs ??
 	# for windows exe we now package plugins separately
 	plugins = set()
-	for dir in sys.path:
+	path = _path or sys.path
+	for dir in path:
 		try:
 			dir = dir.decode(zim.fs.ENCODING)
 		except UnicodeDecodeError:

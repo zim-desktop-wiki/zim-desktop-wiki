@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Exec=modest-mailto.sh
+TryExec=modest-mailto.sh
+Icon=qgn_list_messagin
+NoDisplay=true
+X-Zim-AppType=email_client
+Name=Modest (maemo)

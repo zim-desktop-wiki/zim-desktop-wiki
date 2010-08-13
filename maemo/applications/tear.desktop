@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Tear (maemo)
+Exec=tear %u
+TryExec=tear
+Terminal=false
+Type=Application
+Icon=tear
+X-Zim-AppType=web_browser

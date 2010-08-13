@@ -16,7 +16,7 @@ Merge translations:
 * Merge it with tools/import-launchpad-translations.py
 
 Prepare the package:
-* Set version in zim/__init__.py
+* Set version in ''zim/__init__.py''
 * Update CHANGELOG.txt -- see `bzr visualize` for changes
 * Update debian changes -- run e.g. `debchange -v 0.46`
 * Optionally merge branch with website updates since previous release
@@ -40,8 +40,8 @@ Build release packages:
 
 Publish the release:
 * Upload website
-* Upload tar.gz and deb pacakges
-* Write release notes	
+* Upload tar.gz and deb packages
+* Write release notes
 * Announce on freshmeat
 * Announce on launchpad
 * Announce on gnome files 

@@ -18,13 +18,34 @@ if sys.version_info >= (2, 6):
 else:
 	import simplejson as json # extra dependency
 
-import zim.fs
-from zim.fs import *
+from zim.fs import isfile, isdir, Dir, FileNotFoundError
 from zim.errors import Error
 from zim.parsing import TextBuffer, split_quoted_strings
 
 
 logger = logging.getLogger('zim.config')
+
+
+if os.name == 'nt':
+	# Windows specific environment variables
+	# os.environ does not support setdefault() ...
+	if not 'USER' in os.environ or not os.environ['USER']:
+		os.environ['USER'] =  os.environ['USERNAME']
+
+	if not 'HOME' in os.environ or not os.environ['HOME']:
+		if 'USERPROFILE' in os.environ:
+			os.environ['HOME'] = os.environ['USERPROFILE']
+		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
+			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
+			os.environ['HOME'] = home
+
+assert isdir(os.environ['HOME']), \
+	'ERROR: environment variable $HOME not set correctly'
+
+if not 'USER' in os.environ or not os.environ['USER']:
+	# E.g. Maemo doesn't define $USER
+	os.environ['USER'] = os.path.basename(os.environ['HOME'])
+	logger.info('Environment variable $USER was not set')
 
 
 ZIM_DATA_DIR = None
@@ -46,7 +67,7 @@ def _set_basedirs():
 	global XDG_CACHE_HOME
 
 	# Detect if we are running from the source dir
-	if zim.fs.isfile('./zim.py'):
+	if isfile('./zim.py'):
 		scriptdir = '.' # maybe running module in test / debug
 	else:
 		scriptdir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -184,32 +205,23 @@ def user_dirs():
 	'''Returns a dict with directories for the xdg user dirs'''
 	dirs = {}
 	file = XDG_CONFIG_HOME.file('user-dirs.dirs')
-	for line in file.readlines():
-		line = line.strip()
-		if line.isspace() or line.startswith('#'):
-			continue
-		else:
-			try:
-				assert '=' in line
-				key, value = line.split('=', 1)
-				value = os.path.expandvars(value.strip('"'))
-				dirs[key] = Dir(value)
-			except:
-				logger.exception('Exception while parsing %s', file)
+	try:
+		for line in file.readlines():
+			line = line.strip()
+			if line.isspace() or line.startswith('#'):
+				continue
+			else:
+				try:
+					assert '=' in line
+					key, value = line.split('=', 1)
+					value = os.path.expandvars(value.strip('"'))
+					dirs[key] = Dir(value)
+				except:
+					logger.exception('Exception while parsing %s', file)
+	except FileNotFoundError:
+		pass
 	return dirs
 
-
-class ConfigPathError(Error):
-
-	description = '''\
-A config file was not found and did not have a default either.
-This ould mean that the paths for locating config files are
-not set correctly.
-'''
-
-	def __init__(self, file):
-		self.file = file
-		self.msg = 'No default config found for %s' % file
 
 class ListDict(dict):
 	'''Class that behaves like a dict but keeps items in same order.
@@ -433,7 +445,7 @@ class ConfigDict(ListDict):
 		elif value is True: return 'True'
 		elif value is False: return 'False'
 		elif value is None: return 'None'
-		elif isinstance(value, object) and value.__class__.__name__ == 'Path':
+		elif isinstance(value, object) and value.__class__.__name__.endswith('Path'):
 			# Hack to avoid importing Path here to test isinstance
 			return value.name
 		else:
@@ -453,19 +465,20 @@ class ConfigFile(ListDict):
 		try:
 			self.read()
 			self.set_modified(False)
-		except ConfigPathError:
+		except FileNotFoundError:
 			pass
 
 	def read(self):
 		# TODO: flush dict first ?
-		if self.file.exists():
+		try:
 			logger.debug('Loading %s', self.file.path)
 			self.parse(self.file.readlines())
-		elif self.default:
-			logger.debug('Loading %s', self.default.path)
-			self.parse(self.default.readlines())
-		else:
-			raise ConfigPathError, self.file
+		except FileNotFoundError:
+			if self.default:
+				logger.debug('File not found, loading %s', self.default.path)
+				self.parse(self.default.readlines())
+			else:
+				raise
 
 	def write(self):
 		self.file.writelines(self.dump())
@@ -492,17 +505,18 @@ class TextConfigFile(list):
 		self.default = default
 		try:
 			self.read()
-		except ConfigPathError:
+		except FileNotFoundError:
 			pass
 
 	def read(self):
 		# TODO: flush list first ?
-		if self.file.exists():
+		try:
 			self[:] = self.file.readlines()
-		elif self.default:
-			self[:] = self.default.readlines()
-		else:
-			raise ConfigPathError, self.file
+		except FileNotFoundError:
+			if self.default:
+				self[:] = self.default.readlines()
+			else:
+				raise
 
 	def write(self):
 		self.file.writelines(self)

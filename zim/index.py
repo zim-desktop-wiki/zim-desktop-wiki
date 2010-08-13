@@ -771,7 +771,7 @@ class Index(gobject.GObject):
 			return
 
 		parent = path.parent
-		if isinstance(path, IndexPath):
+		if not isinstance(path, IndexPath):
 			path = self.lookup_data(path)
 			if not path._row:
 				return # apparently it disappeared already
@@ -779,6 +779,7 @@ class Index(gobject.GObject):
 			path = self.lookup_path(path)
 			if not path:
 				self.cleanup(parent) # recurs
+				return # path does not exist in table
 
 		if not (path.hascontent or path.haschildren) \
 		and self.n_list_links(path, direction=LINK_DIR_BACKWARD) == 0:

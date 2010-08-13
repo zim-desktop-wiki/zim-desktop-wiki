@@ -9,7 +9,9 @@ You can have multiple notebooks, for example for separate projects. Or you can h
 
 See [[Usage]] for more tips on how to use notebooks for specific tasks.
 
-**When you run zim for the first time** you will get asked for a new folder to store the notebook. This will no become the defaul notebook, everytime you start zim this notebook is opened directly. If you whish to use more than one notebook you can create additional notebooks from the the "Open notebook" dialog (see the "//File//->//Open Another Notebook//" menu item).
+**When you run zim for the first time** you will get asked for a new folder to store the notebook. This will now become the default notebook, everytime you start zim this notebook is opened directly. If you whish to use more than one notebook you can create additional notebooks from the the "Open notebook" dialog (see the "//File//->//Open Another Notebook//" menu item).
+
+See also the notebook properties in the [[Properties|Properties dialog.]]
 
 ===== Open Notebook Dialog =====
 The "Open notebook" dialog allows you to select from multiple notebooks, or to add new notebooks. When you **add** a notebook you will be asked for the folder to store the notebook. This can either be an new (empty) folder or an existing notebook folder. 

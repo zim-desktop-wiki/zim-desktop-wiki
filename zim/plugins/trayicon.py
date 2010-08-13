@@ -8,6 +8,7 @@ import gtk
 from zim.plugins import PluginClass
 from zim.config import data_file, config_file
 from zim.notebook import get_notebook_list
+from zim.gui.widgets import gtk_window_set_default_icon
 
 
 # Try if we are on Ubunutu with app-indicator support
@@ -104,7 +105,7 @@ This is a core plugin shipping with zim.
 
 	def disconnect_trayicon(self):
 		if self.icon:
-			self.icon.set_visible(False)
+			self.icon.set_property('visible', False)
 			self.icon = None
 
 		if self.proxyobject:
@@ -127,8 +128,8 @@ class TrayIconBase(object):
 		'''Returns the main 'tray icon menu'''
 		menu = gtk.Menu()
 
-		item = gtk.MenuItem(_('_Create Note...')) # T: menu item in tray icon menu
-		item.connect_object('activate', self.__class__.do_create_note, self)
+		item = gtk.MenuItem(_('_Quick Note...')) # T: menu item in tray icon menu
+		item.connect_object('activate', self.__class__.do_quick_note, self)
 		menu.append(item)
 
 		menu.append(gtk.SeparatorMenuItem())
@@ -201,10 +202,10 @@ class TrayIconBase(object):
 		from zim.gui.notebookdialog import NotebookDialog
 		NotebookDialog.unique(self, self, callback=self.do_activate_notebook).show()
 
-	def do_create_note(self):
-		'''Show a dialog to create a new note'''
-		from zim.plugins.createnote import CreateNoteDialog
-		dialog = CreateNoteDialog(None, {})
+	def do_quick_note(self):
+		'''Show the dialog from the quicknote plugin'''
+		from zim.plugins.quicknote import QuickNoteDialog
+		dialog = QuickNoteDialog(None, {})
 		dialog.show()
 
 
@@ -213,7 +214,7 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 
 	def __init__(self):
 		gtk.StatusIcon.__init__(self)
-		self.set_from_file(data_file('zim.png').path)
+		self.set_from_icon_name('zim')
 		self.set_tooltip(_('Zim Desktop Wiki')) # T: tooltip for tray icon
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 
@@ -293,8 +294,7 @@ class DaemonTrayIconMixin(object):
 
 	def main(self):
 		# Set window icon in case we open the notebook dialog
-		icon = data_file('zim.png').path
-		gtk.window_set_default_icon(gtk.gdk.pixbuf_new_from_file(icon))
+		gtk_window_set_default_icon()
 		gtk.main()
 
 	def quit(self):

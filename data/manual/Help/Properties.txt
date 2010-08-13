@@ -13,6 +13,6 @@ The notebook **Icon** is an image that is used together with the name to identif
 
 The **Document Root** is a special folder which contains documents that can be linked from the notebook. To link files in this folder start the links with a "/" (see [[Links]] for more details). This folder is typically used for notebooks that are published as web page. When [[Export|exporting]] the notebook to html the document root can be mapped to a special URL.
 
-The **Slow file system** setting tells zim that the notebook is located somewhere where file access is slow. For example cache files will then be written to the user home directory cache instead of the cache directory in the notebook folder itself. 
+The **Shared Notebook** setting tells zim that the notebook is on a shared file system, or is located somewhere where file access is slow. In this case cache files will be written to the user home directory cache instead of the cache directory in the notebook folder itself. 
 
 Disadvantage of storing information about the notebook outside the notebook folder is that for example for encrypted notebooks this cache data is not encrypted anymore.

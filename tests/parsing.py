@@ -22,10 +22,12 @@ class TestParsing(TestCase):
 		'''Test parsing dates'''
 		from datetime import date
 		today = date.today()
-		self.assertEqual(parse_date('1/1'), (today.year, 1, 1))
-		self.assertEqual(parse_date('1-1'), (today.year, 1, 1))
-		self.assertEqual(parse_date('1:1'), (today.year, 1, 1))
-		self.assertEqual(parse_date('11/11'), (today.year, 11, 11))
+		year = today.year
+		if today.month > 6:
+			year += 1 # Starting July next year January is closer
+		self.assertEqual(parse_date('1/1'), (year, 1, 1))
+		self.assertEqual(parse_date('1-1'), (year, 1, 1))
+		self.assertEqual(parse_date('1:1'), (year, 1, 1))
 		self.assertEqual(parse_date('11/11/99'), (1999, 11, 11))
 		self.assertEqual(parse_date('11/11/11'), (2011, 11, 11))
 		self.assertEqual(parse_date('1/11/2001'), (2001, 11, 1))

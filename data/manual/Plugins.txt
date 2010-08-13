@@ -7,12 +7,12 @@ The following plugins are standard included with zim:
 
 * [[+Calendar|Calendar]]
 * [[+Diagram Editor|Diagram Editor]]
-* [[Plugins:Create Note|Create Note]]
 * [[+Equation Editor|Equation Editor]]
 * [[+GNU R Plot Editor|GNU R Plot Editor]]
 * [[+Insert Screenshot|Insert Screenshot]]
 * [[+Insert Symbol|Insert Symbol]]
 * [[+Link Map|Link Map]]
+* [[+Quick Note|Quick Note]]
 * [[+Spell Checker|Spell Checker]]
 * [[+Task List|Task List]]
 * [[+Tray Icon|Tray Icon]]

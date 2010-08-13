@@ -2,9 +2,6 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-# TODO needs more options like
-#		-p --port INT	set port number
-#		-P --public 	allow connections from outside
 # TODO check client host for security
 # TODO setting for doc_root_url when running in CGI mode
 # TODO support "etg" and "if-none-match' headers at least for icons
@@ -25,7 +22,7 @@ import urllib
 from zim import NotebookInterface
 from zim.errors import Error
 from zim.notebook import Path, Page, IndexPage, PageNameError
-from zim.fs import *
+from zim.fs import File, Dir, FileNotFoundError
 from zim.formats import ParseTree, TreeBuilder, BaseLinker
 from zim.config import data_file
 from zim.stores import encode_filename
@@ -38,6 +35,7 @@ logger = logging.getLogger('zim.www')
 class WWWError(Error):
 
 	statusstring = {
+		'403': 'Forbidden',
 		'404': 'Not Found',
 		'405': 'Method Not Allowed',
 		'500': 'Internal Server Error',
@@ -72,6 +70,16 @@ You tried to open a page that does not exist.
 		if not isinstance(page, basestring):
 			page = page.name
 		WWWError.__init__(self, 'No such page: %s' % page, status='404')
+
+
+class PathNotValidError(WWWError):
+
+	description = '''\
+The requested path is not valid
+'''
+
+	def __init__(self):
+		WWWError.__init__(self, 'Invalid path', status='403')
 
 
 class WWWInterface(NotebookInterface):
@@ -131,7 +139,17 @@ class WWWInterface(NotebookInterface):
 			if not environ['REQUEST_METHOD'] in methods:
 				raise WWWError('405', headers=[('Allow', ', '.join(methods))])
 
-			# TODO clean up path from any '../' (and ..\)
+			# cleanup path
+			#~ print 'INPUT', path
+			path = path.replace('\\', '/') # make it windows save
+			isdir = path.endswith('/')
+			parts = [p for p in path.split('/') if p and not p == '.']
+			if [p for p in parts if p.startswith('.')]:
+				# exclude .. and all hidden files from possible paths
+				raise PathNotValidError()
+			path = '/' + '/'.join(parts)
+			if isdir and not path == '/': path += '/'
+			#~ print 'PATH', path
 
 			if not path:
 				path = '/'
@@ -146,17 +164,30 @@ class WWWInterface(NotebookInterface):
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
 				content = self.render_index()
 			elif path.startswith('/+docs/'):
-				pass # TODO document root
-			elif path.startswith('/+file/'):
-				pass # TODO attachment or raw source
-			elif path.startswith('/+icons/'):
-				# TODO check if favicon is overridden or something
-				file = data_file('pixmaps/%s' % path[8:])
-				if path.endswith('.png'):
-					headers['Content-Type'] = 'image/png'
-				elif path.endswith('.ico'):
-					headers['Content-Type'] = 'image/vnd.microsoft.icon'
-				content = [file.read(encoding=None)]
+				dir = self.notebook.get_document_root()
+				if not dir:
+					raise PageNotFoundError(path)
+				file = dir.file(path[7:])
+				content = [file.raw()]
+					# Will raise FileNotFound when file does not exist
+				headers['Content-Type'] = file.get_mimetype()
+ 			elif path.startswith('/+file/'):
+				file = self.notebook.dir.file(path[7:])
+					# TODO: need abstraction for getting file from top level dir ?
+				content = [file.raw()]
+					# Will raise FileNotFound when file does not exist
+				headers['Content-Type'] = file.get_mimetype()
+ 			elif path.startswith('/+icons/'):
+ 				# TODO check if favicon is overridden or something
+ 				file = data_file('pixmaps/%s' % path[8:])
+				content = [file.raw()]
+					# Will raise FileNotFound when file does not exist
+ 				if path.endswith('.png'):
+ 					headers['Content-Type'] = 'image/png'
+ 				elif path.endswith('.ico'):
+ 					headers['Content-Type'] = 'image/vnd.microsoft.icon'
+ 				else:
+					raise PathNotValidError()
 			else:
 				# Must be a page or a namespace (html file or directory path)
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
@@ -180,8 +211,11 @@ class WWWInterface(NotebookInterface):
 			headerlist = []
 			headers = Headers(headerlist)
 			headers.add_header('Content-Type', 'text/plain', charset='utf-8')
-			if isinstance(error, WWWError):
+			if isinstance(error, (WWWError, FileNotFoundError)):
 				logger.error(error.msg)
+				if isinstance(error, FileNotFoundError):
+					error = PageNotFound(path)
+					# show url path instead of file path
 				if error.headers:
 					header.extend(error.headers)
 				start_response(error.status, headerlist)
@@ -228,11 +262,12 @@ class Server(gobject.GObject):
 		'stopped': (gobject.SIGNAL_RUN_LAST, None, [])
 	}
 
-	def __init__(self, notebook=None, port=8080, gui=False, **opts):
+	def __init__(self, notebook=None, port=8080, gui=False, public=True, **opts):
 		gobject.GObject.__init__(self)
 		self.socket = None
 		self.running = False
 		self.set_port(port)
+		self.public = public
 
 		import wsgiref.handlers
 		self.handlerclass = wsgiref.handlers.SimpleHandler
@@ -277,7 +312,10 @@ class Server(gobject.GObject):
 
 		# open sockets for connections
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.socket.bind(("localhost", self.port)) # TODO use socket.gethostname() for public server
+		hostname = '' # means all interfaces
+		if not self.public:
+			hostname = 'localhost'
+		self.socket.bind((hostname, self.port))
 		self.socket.listen(5)
 
 		gobject.io_add_watch(self.socket, gobject.IO_IN,
@@ -364,7 +402,33 @@ class WWWLinker(BaseLinker):
 			# TODO use script location as root for cgi-bin
 
 	def file(self, link):
-		return 'TODO' # TODO link files
-		# doc_root -> /+file/...
-		# attachment /path/to/page/+file/..
-		# other as file:// uri
+		# cleanup the path
+		isabs = link.startswith('/')
+		isdir = link.endswith('/')
+		link = link.replace('\\', '/')
+		parts = [p for p in link.split('/') if p and not p == '.']
+		# TODO fold '..'
+		link = '/'.join(parts)
+		if isabs and link != '/': link = '/' + link
+		if isdir and link != '/': link += '/'
+
+		if link.startswith('/'):
+			# document root
+			return url_encode('/+docs/' + link.lstrip('/'))
+			# TODO use script location as root for cgi-bin
+			# TODO allow alternative document root for cgi-bin
+		else:
+			# attachment or external file
+			try:
+				file = self.notebook.resolve_file(link, self.path)
+				if file.ischild(self.notebook.dir):
+					# attachment
+					relpath = file.relpath(self.notebook.dir)
+						# TODO: need abstract interface for this
+					return url_encode('/+file/' + relpath)
+				else:
+					# external file -> file://
+					return file.uri
+			except:
+				# typical error is a non-local file:// uri
+				return link

@@ -13,7 +13,7 @@ import datetime
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.notebook import Path
-from zim.gui.widgets import gtk_get_style, \
+from zim.gui.widgets import ui_environment, gtk_get_style,\
 	Dialog, MessageDialog, \
 	Button, IconButton, MenuButton, \
 	BrowserTreeView, SingleClickTreeView
@@ -134,7 +134,11 @@ This is a core plugin shipping with zim.
 
 	def _set_preferences(self):
 		self.all_checkboxes = self.preferences['all_checkboxes']
-		self.task_labels = [s.strip() for s in self.preferences['labels'].split(',')]
+		string = self.preferences['labels'].strip(' ,')
+		if string:
+			self.task_labels = [s.strip() for s in self.preferences['labels'].split(',')]
+		else:
+			self.task_labels = []
 		regex = '(' + '|'.join(map(re.escape, self.task_labels)) + ')'
 		self.task_label_re = re.compile(regex)
 
@@ -363,11 +367,19 @@ gobject.type_register(TaskListPlugin)
 class TaskListDialog(Dialog):
 
 	def __init__(self, plugin):
-		Dialog.__init__(self, plugin.ui, _('Task List'), # T: dialog title
-			buttons=gtk.BUTTONS_CLOSE, help=':Help:Plugins:Task List',
-			defaultwindowsize=(550, 400) )
-		self.plugin = plugin
+		if ui_environment['platform'] == 'maemo':
+			defaultsize = (800, 480)
+		else:
+			defaultsize = (550, 400)
 
+		Dialog.__init__(self, plugin.ui, _('Task List'), # T: dialog title
+			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
+			defaultwindowsize=defaultsize )
+		self.plugin = plugin
+		if ui_environment['platform'] == 'maemo':
+			self.resize(800,480)
+			# Force maximum dialog size under maemo, otherwise
+			# we'll end with a too small dialog and no way to resize it
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 		self.hpane = gtk.HPaned()
@@ -377,6 +389,7 @@ class TaskListDialog(Dialog):
 
 		# Task list
 		self.task_list = TaskListTreeView(self.ui, plugin)
+		self.task_list.set_headers_visible(True) # Fix for maemo
 		scrollwindow = gtk.ScrolledWindow()
 		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
@@ -548,7 +561,13 @@ class TaskListTreeView(BrowserTreeView):
 			column = gtk.TreeViewColumn(name, cell_renderer, text=i)
 			column.set_resizable(True)
 			column.set_sort_column_id(i)
-			if i == self.TASK_COL: column.set_expand(True)
+			if i == self.TASK_COL:
+				column.set_expand(True)
+				if ui_environment['platform'] == 'maemo':
+					column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+					column.set_fixed_width(250)
+					# FIXME probably should also limit the size of this
+					# column on other platforms ...
 			self.append_column(column)
 
 		# Add some rendering for the Prio column
@@ -722,9 +741,45 @@ class TaskListTreeView(BrowserTreeView):
 	def do_row_activated(self, path, column):
 		model = self.get_model()
 		page = Path( model[path][self.PAGE_COL] )
-		#~ task = ...
+		task = unicode(model[path][self.TASK_COL])
 		self.ui.open_page(page)
-		#~ self.ui.mainwindow.pageview.search(task) # FIXME
+		self.ui.mainwindow.pageview.view.get_buffer().finder.find(task)
+
+	def do_button_release_event(self, event):
+		'''Handler for button-release-event, triggers popup menu'''
+		if event.button == 3:
+			self.emit('popup-menu')# FIXME do we need to pass x/y and button ?
+			return True
+		else:
+			return BrowserTreeView.do_button_release_event(self, event)
+
+	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
+		menu = gtk.Menu()
+		item = gtk.MenuItem(_("_Copy")) # T: menu item in context menu
+		item.connect_object('activate', self.__class__.copy_to_clipboard, self)
+		menu.append(item)
+		menu.show_all()
+		menu.popup(None, None, None, 3, 0)
+		return True
+
+	def copy_to_clipboard(self):
+		'''Exports currently visable elements from the tasks list'''
+		logger.debug('Exporting to clipboard current view of task list.')
+		model = self.get_model()
+		tasks = ""
+		for row in model:
+			# only open items
+			if row[self.OPEN_COL]:
+				tags = set()
+				vis, prio, desc, due, path_name, actionable, opn = row
+				if due == "9999": due = "-"
+				for match in tag_re.findall(desc.decode("UTF-8")):
+					tags.add(match)
+					tasks += "Description: %s\nPriority: %s,  Actionable: %s,  Open: %s,  Due: %s\nPath: %s,  Tags: %s\n\n" % (desc, prio, actionable, opn, due, path_name, ", ".join(tags))
+		tasks += "Number of tasks: %s. Exported: %s UTC." \
+				% (len(model), str(datetime.datetime.utcnow())[:-7])
+		#~ print tasks
+		gtk.Clipboard().set_text(tasks.decode("UTF-8"))
 
 # Need to register classes defining gobject signals
 gobject.type_register(TaskListTreeView)

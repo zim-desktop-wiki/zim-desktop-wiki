@@ -37,6 +37,10 @@ class SearchDialog(Dialog):
 			tooltips = gtk.Tooltips()
 			tooltips.set_tip(self.query_entry, help_text)
 
+		self.namespacecheckbox = gtk.CheckButton(_('Limit search to current namespace'))
+			# T: checkbox option in search dialog
+		self.vbox.pack_start(self.namespacecheckbox, False)
+
 		# TODO advanced query editor
 		# TODO checkbox _('Match c_ase')
 		# TODO checkbox _('Whole _word')
@@ -56,6 +60,9 @@ class SearchDialog(Dialog):
 
 		def search(*a):
 			string = unicode(self.query_entry.get_text(), 'utf-8')
+			if self.namespacecheckbox.get_active():
+				string = 'Namespace: "%s" ' % self.ui.page.name + string
+			#~ print '!! QUERY: ' + string
 			self.results_treeview.set_query( string )
 
 		button.connect('clicked', search)

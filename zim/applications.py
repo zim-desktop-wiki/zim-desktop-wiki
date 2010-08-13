@@ -41,12 +41,19 @@ class Application(object):
 			cmd = cmd + '.exe'
 			# Automagically convert command names on windows
 
-		for dir in os.environ['PATH'].split(os.pathsep):
-			file = os.sep.join((dir, cmd))
-			if zim.fs.isfile(file):
-				return file
+		if zim.fs.isabs(cmd):
+			if zim.fs.isfile(cmd):
+				return cmd
+			else:
+				return None
 		else:
-			return None
+			# lookup in PATH
+			for dir in os.environ['PATH'].split(os.pathsep):
+				file = os.sep.join((dir, cmd))
+				if zim.fs.isfile(file):
+					return file
+			else:
+				return None
 
 	def _cmd(self, args):
 		# substitute args in the command - to be overloaded by child classes
@@ -184,7 +191,7 @@ class StartFile(Application):
 
 	def spawn(self, args, callback=None):
 		if callback:
-			raise NotImplementedError, 'StartFile can not handle callback'
+			logger.warn('os.startfile does not support a callback')
 
 		for file in args:
 			path = os.path.normpath(unicode(file))

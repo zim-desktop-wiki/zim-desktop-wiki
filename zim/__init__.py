@@ -3,7 +3,7 @@
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.47'
+__version__ = '0.48'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <pardus@cpan.org>'
 __copyright__ = 'Copyright 2008 - 2010 Jaap Karssenberg <pardus@cpan.org>'
@@ -32,22 +32,7 @@ from zim.errors import Error
 from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR
 
 
-if os.name == 'nt':
-	# Windows specific environment variables
-	# os.environ does not support setdefault() ...
-	if not 'USER' in os.environ or not os.environ['USER']:
-		os.environ['USER'] =  os.environ['USERNAME']
-
-	if not 'HOME' in os.environ or not os.environ['HOME']:
-		if 'USERPROFILE' in os.environ:
-			os.environ['HOME'] = os.environ['USERPROFILE']
-		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
-			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
-			os.environ['HOME'] = home
-
-assert os.environ['USER'], 'ERROR: environment variable $USER not set'
-assert zim.fs.isdir(os.environ['HOME']), 'ERROR: environment variable $HOME not set correctly'
-
+logger = logging.getLogger('zim')
 
 if ZIM_DATA_DIR:
 	# We are running from a source dir - use the locale data included there
@@ -58,10 +43,6 @@ else:
 	localedir = None
 
 gettext.install('zim', localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
-
-
-logger = logging.getLogger('zim')
-
 
 ZIM_EXECUTABLE = 'zim'
 
@@ -154,8 +135,10 @@ def main(argv):
 
 	# FIXME - this returns python.exe on my windows test
 	ZIM_EXECUTABLE = argv[0]
-	if '/' in ZIM_EXECUTABLE or '\\' in ZIM_EXECUTABLE:
-		ZIM_EXECUTABLE = File(ZIM_EXECUTABLE).path # abs path
+	zim_exec_file = File(ZIM_EXECUTABLE)
+	if zim_exec_file.exists():
+		# We were given an absolute path, e.g. "python ./zim.py"
+		ZIM_EXECUTABLE = zim_exec_file.path
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())

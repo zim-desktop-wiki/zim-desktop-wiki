@@ -21,8 +21,7 @@ import logging
 from datetime import datetime
 
 import zim.fs
-from zim.fs import *
-from zim.fs import FilteredDir
+from zim.fs import File, Dir, FilteredDir, FileNotFoundError
 from zim.async import AsyncOperation
 from zim.formats import get_format
 from zim.notebook import Path, Page, LookupError, PageExistsError
@@ -52,7 +51,10 @@ class Store(StoreClass):
 		assert path != self.namespace, 'Can not get a file for the toplevel namespace'
 		name = path.relname(self.namespace)
 		filepath = encode_filename(name)+'.txt' # FIXME hard coded extension
-		return File([self.dir, filepath])
+		file = self.dir.file(filepath)
+		file.checkoverwrite = True
+		file.endofline = self.notebook.endofline
+		return file
 
 	def _get_dir(self, path):
 		'''Returns a dir object for a notebook path'''
@@ -61,7 +63,7 @@ class Store(StoreClass):
 		else:
 			name = path.relname(self.namespace)
 			dirpath = encode_filename(name)
-			return Dir([self.dir, dirpath])
+			return self.dir.subdir(dirpath)
 
 	def get_page(self, path):
 		file = self._get_file(path)
@@ -111,7 +113,7 @@ class Store(StoreClass):
 		newdir = self._get_dir(newpath)
 		if (newfile.exists() or newdir.exists()):
 			if file.path.lower() == newfile.path.lower() \
-			and file.compare(newfile):
+			and (not newfile.exists() or file.compare(newfile)):
 					pass # renaming on case-insensitive filesystem
 			else:
 				raise PageExistsError, 'Page already exists: %s' % newpath.name
@@ -175,7 +177,6 @@ class FileStorePage(Page):
 		Page.__init__(self, path, haschildren)
 		self.source = source
 		self.format = format
-		self.source.checkoverwrite = True
 		self.readonly = not self.source.iswritable()
 		self.properties = None
 
@@ -185,7 +186,7 @@ class FileStorePage(Page):
 	def _fetch_parsetree(self, lines=None):
 		'''Fetch a parsetree from source or returns None'''
 		#~ print '!! fetch tree', self
-		if lines or self.source.exists():
+		try:
 			lines = lines or self.source.readlines()
 			self.properties = HeadersDict()
 			self.properties.read(lines)
@@ -196,7 +197,7 @@ class FileStorePage(Page):
 				version = 'Unknown'
 			parser = self.format.Parser(version)
 			return parser.parse(lines)
-		else:
+		except FileNotFoundError:
 			return None
 
 	def _store(self):

@@ -174,6 +174,10 @@ class InsertSymbolDialog(Dialog):
 			self.plugin.load_file()
 			self.load_symbols()
 
+	def run(self):
+		self.iconview.grab_focus()
+		Dialog.run(self)
+
 	def do_response_ok(self):
 		text = self.textentry.get_text()
 		text = text.decode('utf-8')
