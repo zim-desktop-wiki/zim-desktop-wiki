@@ -525,6 +525,9 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
 				self.set_indent(None)
+			elif element.tag == 'tag':
+				if element.text:
+					self.insert_at_cursor(element.text)
 			else:
 				# Text styles
 				if element.tag == 'h':
@@ -600,6 +603,37 @@ class TextBuffer(gtk.TextBuffer):
 					end.forward_to_tag_toggle(tag)
 				link['href'] = start.get_text(end)
 			return link
+		else:
+			return None
+
+	def get_tag_tag(self, iter):
+		# Explicitly left gravity, otherwise position behind the tag
+		# would alos be consifered part of the tag. Position before the
+		# tag is included here.
+		for tag in iter.get_tags():
+			if hasattr(tag, 'zim_type') and tag.zim_type == 'tag':
+				return tag
+		else:
+			return None
+
+	def get_tag_data(self, iter):
+		'''Returns the dict with tag properties for a tag at iter.
+		Fails silently and returns None when there is no tag at iter.
+		'''
+		tag = self.get_tag_tag(iter)
+
+		if tag:
+			attrib = tag.zim_attrib.copy()
+			if attrib['name'] is None:
+				# Copy text content as href
+				start = iter.copy()
+				if not start.begins_tag(tag):
+					start.backward_to_tag_toggle(tag)
+				end = iter.copy()
+				if not end.ends_tag(tag):
+					end.forward_to_tag_toggle(tag)
+				attrib['name'] = start.get_text(end)
+			return attrib
 		else:
 			return None
 
@@ -1272,6 +1306,9 @@ class TextBuffer(gtk.TextBuffer):
 					elif t == 'link':
 						attrib = self.get_link_data(iter)
 						assert attrib['href'], 'Links should have a href'
+					elif t == 'tag':
+						attrib = self.get_tag_data(iter)
+						assert attrib['name'], 'Tags should have a name'
 					builder.start(t, attrib)
 					open_tags.append((tag, t))
 
