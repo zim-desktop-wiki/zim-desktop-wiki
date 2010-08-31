@@ -223,7 +223,8 @@ class StaticLinker(BaseLinker):
 				path = '../' * uppath.count(':') or './'
 				path += encode_filename(downpath) + self._extension
 			#~ print '>>>', path
-			return url_encode(path)
+			# convert spaces back to underscores
+			return url_encode(path.replace(' ', '_'))
 
 	def file(self, link):
 		if self.document_root_url and link.startswith('/'):
