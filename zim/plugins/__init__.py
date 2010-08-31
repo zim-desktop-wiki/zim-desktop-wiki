@@ -15,6 +15,57 @@ from zim.config import ListDict
 
 logger = logging.getLogger('zim.plugins')
 
+def user_site_packages():
+	'''
+	In Python 2.6 has been introduced feature "Per-user site-packages Directory"
+	<http://docs.python.org/whatsnew/2.6.html#pep-370-per-user-site-packages-directory>
+	This function backports this feature to Python 2.5.
+	'''
+
+	if sys.version_info[0:2] == (2, 5):
+		if os.name == 'nt':
+			if 'APPDATA' in os.environ:
+				dir = Dir([os.environ['APPDATA'],
+				'Python/Python25/site-packages']).path
+			else:
+				dir = None
+		else:
+			dir = Dir('~/.local/lib/python2.5/site-packages').path;
+
+		if dir and not dir in sys.path: sys.path.append(dir)
+
+
+user_site_packages()
+
+def plugin_dirs(_path=None):
+	'''
+	Generator of possible plugin directories.
+	The _path argument is reserved for testing, it allows to override the
+	search path.
+	'''
+	path = _path or sys.path
+	for dir in path:
+		try:
+			dir = dir.decode(zim.fs.ENCODING)
+		except UnicodeDecodeError:
+			logger.exception('Could not decode path "%s"', dir)
+			continue
+
+		if os.path.basename(dir) == 'zim.exe':
+			# path is an executable, not a folder -- examine containing folder
+			dir = os.path.dirname(dir)
+
+		dir = Dir((dir, 'zim', 'plugins'))
+		if dir.exists(): yield dir
+
+# extend path for importing and searching plugins
+try:
+	for plugin_dir in plugin_dirs():
+		if plugin_dir.path not in __path__:
+			__path__.append(plugin_dir.path)
+except NameError, e:
+	# During test is not __path__ defined?
+	__path__ = [i.path for i in plugin_dirs()]
 
 def get_plugin_module(pluginname):
 	'''Returns the plugin module object for a given name'''
@@ -46,18 +97,14 @@ def list_plugins(_path=None):
 	# FIXME how should this work for e.g. for python eggs ??
 	# for windows exe we now package plugins separately
 	plugins = set()
-	path = _path or sys.path
-	for dir in path:
-		try:
-			dir = dir.decode(zim.fs.ENCODING)
-		except UnicodeDecodeError:
-			logger.exception('Could not decode path "%s"', dir)
-			continue
 
-		if os.path.basename(dir) == 'zim.exe':
-			# path is an executable, not a folder -- examine containing folder
-			dir = os.path.dirname(dir)
-		dir = Dir((dir, 'zim', 'plugins'))
+	# We now use __path__ instead of searching "zim/plugin" directories
+	# in sys.path directories. This ensure that found plugins can be
+	# imported.
+	path = _path or __path__
+
+	for dir in path:
+		dir = Dir(dir)
 		for candidate in dir.list():
 			if candidate.startswith('_'):
 				continue

@@ -11,8 +11,8 @@ class testPlugins(TestCase):
 
 	def runTest(self):
 		'''Test loading plugins and meta data'''
-
-		plugins = zim.plugins.list_plugins(_path=['.'])
+		plugin_path = [i.path for i in zim.plugins.plugin_dirs(_path=['.'])]
+		plugins = zim.plugins.list_plugins(_path=plugin_path)
 		self.assertTrue(len(plugins) > 0)
 		self.assertTrue('spell' in plugins)
 		self.assertTrue('linkmap' in plugins)
