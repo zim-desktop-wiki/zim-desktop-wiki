@@ -531,8 +531,7 @@ baz
 
 dus
 <pre>ja
-</pre>
-hmm
+</pre>hmm
 
 <h level="2">foo</h>
 bar

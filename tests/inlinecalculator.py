@@ -46,8 +46,8 @@ class TestPrintToBrowser(TestCase):
 			self.assertEqual(result, wanted)
 		
 
-		self.assertRaises(NameError, plugin.process_text, 'open("/etc/passwd")') # global
-		self.assertRaises(NameError, plugin.process_text, 'self') # local
+		self.assertRaises(Exception, plugin.process_text, 'open("/etc/passwd")') # global
+		self.assertRaises(Exception, plugin.process_text, 'self') # local
 
 
 class StubUI(object):

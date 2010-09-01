@@ -1079,7 +1079,9 @@ class TextBuffer(gtk.TextBuffer):
 		# First call parent for the actual insert
 		if string == '\n':
 			# Break tags that are not allowed to span over multiple lines
-			self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
+			self._editmode_tags = filter(
+				lambda tag: _is_pre_tag(tag) or _is_not_style_tag(tag), 
+				self._editmode_tags)
 			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 			self.emit('textstyle-changed', None)
 			# TODO make this more robust for multiline inserts
@@ -2194,7 +2196,8 @@ class TextView(gtk.TextView):
 			# Tab at start of line indents
 			iter = buffer.get_insert_iter()
 			home, ourhome = self.get_visual_home_positions(iter)
-			if home.starts_line() and iter.compare(ourhome) < 1:
+			if home.starts_line() and iter.compare(ourhome) < 1 \
+			and not filter(_is_pre_tag, iter.get_tags()):
 				row, list = TextBufferList.new_from_iter(buffer, iter)
 				if list and self.preferences['recursive_indentlist']:
 					list.indent(row)
@@ -2208,7 +2211,8 @@ class TextView(gtk.TextView):
 			# Backspace or Ctrl-Tab unindents line
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(iter)
-			if home.starts_line() and iter.compare(ourhome) < 1:
+			if home.starts_line() and iter.compare(ourhome) < 1 \
+			and not filter(_is_pre_tag, iter.get_tags()):
 				row, list = TextBufferList.new_from_iter(buffer, iter)
 				if list and self.preferences['recursive_indentlist']:
 					done = list.unindent(row)
@@ -2304,21 +2308,53 @@ class TextView(gtk.TextView):
 		#   > Quotes whole selection with '>'
 		handled = True
 		buffer = self.get_buffer()
-
+			
+		def delete_char(iter):
+			# Deletes the character at the iterator position
+			next = iter.copy()
+			if next.forward_char():
+				buffer.delete(iter, next)
+			
 		def decrement_indent():
-			# For selection decrement first check if all lines have indent
-			level = []
-			buffer.strip_selection()
-			buffer.foreach_line_in_selection(
-				lambda i: level.append(buffer.get_indent(i)) )
-			if level and min(level) > 0:
-				return buffer.foreach_line_in_selection(buffer.decrement_indent)
+			# Check if inside verbatim block AND entire selection without tag toggle
+			iter = buffer.get_insert_iter()
+			if filter(_is_pre_tag, iter.get_tags()) \
+			and not find_tag_toggle():
+				missing_tabs = []
+				check_tab = lambda iter: (iter.get_char() == '\t') or missing_tabs.append(1) 
+				buffer.foreach_line_in_selection(check_tab)
+				if len(missing_tabs) == 0:
+					return buffer.foreach_line_in_selection(delete_char)
+				else:
+					return False
 			else:
-				return False
+				# For selection decrement first check if all lines have indent
+				level = []
+				buffer.strip_selection()
+				buffer.foreach_line_in_selection(
+					lambda i: level.append(buffer.get_indent(i)) )
+				if level and min(level) > 0:
+					return buffer.foreach_line_in_selection(buffer.decrement_indent)
+				else:
+					return False
+			
+		def find_tag_toggle():
+			# Checks if there are any tag changes within the selection 
+			start, end = buffer.get_selection_bounds()
+			toggle = start.copy()
+			toggle.forward_to_tag_toggle(None)
+			return toggle.compare(end) < 0
 
 		with buffer.user_action:
 			if event.keyval in KEYVALS_TAB:
-				buffer.foreach_line_in_selection(buffer.increment_indent)
+				# Check if inside verbatim block AND entire selection without tag toggle
+				iter = buffer.get_insert_iter()
+				if filter(_is_pre_tag, iter.get_tags()) \
+				and not find_tag_toggle():
+					prepend_tab = lambda iter: buffer.insert(iter, '\t')
+					buffer.foreach_line_in_selection(prepend_tab)
+				else:
+					buffer.foreach_line_in_selection(buffer.increment_indent)
 			elif event.keyval in KEYVALS_LEFT_TAB:
 				decrement_indent()
 			elif event.keyval in KEYVALS_BACKSPACE \

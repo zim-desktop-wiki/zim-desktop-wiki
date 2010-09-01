@@ -39,8 +39,8 @@ for bullet in bullets:
 	bullet_types[bullets[bullet]] = bullet
 
 parser_re = {
-	'blockstart': re.compile("\A(\t*''')\s*?\n"),
-	'pre':        re.compile("\A(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*\Z", re.M | re.S),
+	'blockstart': re.compile("^(\t*''')\s*?\n", re.M),
+	'pre':        re.compile("^(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*\n", re.M | re.S),
 	'splithead':  re.compile('^(==+[ \t]+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)[ \t]+(.*?)([ \t]+==+)?[ \t]*\n?)\Z"),
 	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % bullet_re, re.M),
@@ -107,11 +107,21 @@ class Parser(ParserClass):
 			# Else append empty paragraph to start new para
 			paras.append('')
 			return True
-
+		
+		def blocks_closed():
+			# This function checks if there are unfinished blocks in the last 
+			# paragraph.
+			if len(paras[-1]) == 0:
+				return True
+			# Eliminate closed blocks
+			nonblock = parser_re['pre'].split(paras[-1])
+			#  Blocks are closed if none is opened at the end
+			return parser_re['blockstart'].search(nonblock[-1]) == None
+			
 		para_isspace = False
 		for line in input:
 			# Try start new para when switching between text and empty lines or back
-			if line.isspace() != para_isspace or parser_re['blockstart'].match(line):
+			if line.isspace() != para_isspace and blocks_closed():
 				if para_start():
 					para_isspace = line.isspace() # decide type of new para
 			paras[-1] += line
@@ -126,19 +136,24 @@ class Parser(ParserClass):
 			# exceptions like it (crosses fingers)
 			para = para.replace(u'\u2028', '\n')
 
-			if not self.backward and parser_re['blockstart'].search(para):
-				self._parse_block(builder, para)
-			elif self.backward and not para.isspace() \
+			if self.backward and not para.isspace() \
 			and not parser_re['unindented_line'].search(para):
 				self._parse_block(builder, para)
 			else:
-				parts = parser_re['splithead'].split(para)
-				for i, p in enumerate(parts):
-					if i % 2:
-						# odd elements in the list are headings after split
-						self._parse_head(builder, p)
-					elif len(p) > 0:
-						self._parse_para(builder, p)
+				block_parts = parser_re['pre'].split(para)
+				for i, b in enumerate(block_parts):
+					if i % 3 == 0:
+						# Text paragraph
+						parts = parser_re['splithead'].split(b)
+						for j, p in enumerate(parts):
+							if j % 2:
+								# odd elements in the list are headings after split
+								self._parse_head(builder, p)
+							elif len(p) > 0:
+								self._parse_para(builder, p)
+					elif i % 3 == 1:
+						# Block
+						self._parse_block(builder, b + '\n' + block_parts[i+1] + b + '\n')
 
 		builder.end('zim-tree')
 		return ParseTree(builder.close())
