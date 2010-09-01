@@ -19,7 +19,7 @@ __all__ = [
 	'history', 'plugins',
 	'export', 'www', 'search',
 	'pageview',
-	'calendar', 'printtobrowser', 'versioncontrol',
+	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'equationeditor', 'diagrameditor',
 ]
 
