@@ -105,7 +105,8 @@ class TestParsing(TestCase):
 			('mailto:foo.com', 'page'),
 			('foo@bar.com', 'mailto'),
 			('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
-			('http:foo@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('mid:foo@bar.org', 'mid'),
+			('cid:foo@bar.org', 'cid'),
 			('./foo/bar', 'file'),
 			('/foo/bar', 'file'),
 			('~/foo', 'file'),

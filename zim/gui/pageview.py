@@ -1080,7 +1080,7 @@ class TextBuffer(gtk.TextBuffer):
 		if string == '\n':
 			# Break tags that are not allowed to span over multiple lines
 			self._editmode_tags = filter(
-				lambda tag: _is_pre_tag(tag) or _is_not_style_tag(tag), 
+				lambda tag: _is_pre_tag(tag) or _is_not_style_tag(tag),
 				self._editmode_tags)
 			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 			self.emit('textstyle-changed', None)
@@ -2036,6 +2036,7 @@ class TextView(gtk.TextView):
 
 	def __init__(self, preferences):
 		gtk.TextView.__init__(self, TextBuffer(None, None))
+		self.set_name('zim-pageview')
 		self.cursor = CURSOR_TEXT
 		self.cursor_link = None
 		self.gtkspell = None
@@ -2308,20 +2309,20 @@ class TextView(gtk.TextView):
 		#   > Quotes whole selection with '>'
 		handled = True
 		buffer = self.get_buffer()
-			
+
 		def delete_char(iter):
 			# Deletes the character at the iterator position
 			next = iter.copy()
 			if next.forward_char():
 				buffer.delete(iter, next)
-			
+
 		def decrement_indent():
 			# Check if inside verbatim block AND entire selection without tag toggle
 			iter = buffer.get_insert_iter()
 			if filter(_is_pre_tag, iter.get_tags()) \
 			and not find_tag_toggle():
 				missing_tabs = []
-				check_tab = lambda iter: (iter.get_char() == '\t') or missing_tabs.append(1) 
+				check_tab = lambda iter: (iter.get_char() == '\t') or missing_tabs.append(1)
 				buffer.foreach_line_in_selection(check_tab)
 				if len(missing_tabs) == 0:
 					return buffer.foreach_line_in_selection(delete_char)
@@ -2337,9 +2338,9 @@ class TextView(gtk.TextView):
 					return buffer.foreach_line_in_selection(buffer.decrement_indent)
 				else:
 					return False
-			
+
 		def find_tag_toggle():
-			# Checks if there are any tag changes within the selection 
+			# Checks if there are any tag changes within the selection
 			start, end = buffer.get_selection_bounds()
 			toggle = start.copy()
 			toggle.forward_to_tag_toggle(None)
@@ -4291,6 +4292,7 @@ class WordCountDialog(Dialog):
 		def count(buffer, bounds):
 			start, end = bounds
 			lines = end.get_line() - start.get_line() + 1
+			chars = end.get_offset() - start.get_offset()
 			iter = start.copy()
 			words = 0
 			while iter.compare(end) < 0:
@@ -4298,7 +4300,7 @@ class WordCountDialog(Dialog):
 					words += 1
 				else:
 					break
-			return words, lines
+			return lines, words, chars
 
 		buffer = pageview.view.get_buffer()
 		buffercount = count(buffer, buffer.get_bounds())
@@ -4310,7 +4312,7 @@ class WordCountDialog(Dialog):
 		if buffer.get_has_selection():
 			selectioncount = count(buffer, buffer.get_selection_bounds())
 		else:
-			selectioncount = (0, 0)
+			selectioncount = (0, 0, 0)
 
 		table = gtk.Table(3, 4)
 		table.set_row_spacings(5)
@@ -4321,24 +4323,32 @@ class WordCountDialog(Dialog):
 		alabel = gtk.Label(_('Paragraph')) # T: label in word count dialog
 		slabel = gtk.Label(_('Selection')) # T: label in word count dialog
 		wlabel = gtk.Label('<b>'+_('Words')+'</b>:') # T: label in word count dialog
-		wlabel.set_use_markup(True)
 		llabel = gtk.Label('<b>'+_('Lines')+'</b>:') # T: label in word count dialog
-		llabel.set_use_markup(True)
+		clabel = gtk.Label('<b>'+_('Characters')+'</b>:') # T: label in word count dialog
+
+		for label in (wlabel, llabel, clabel):
+			label.set_use_markup(True)
+			label.set_alignment(0.0, 0.5)
 
 		# Heading
 		table.attach(plabel, 1,2, 0,1)
 		table.attach(alabel, 2,3, 0,1)
 		table.attach(slabel, 3,4, 0,1)
 
-		# Words
-		table.attach(wlabel, 0,1, 1,2)
+		# Lines
+		table.attach(llabel, 0,1, 1,2)
 		table.attach(gtk.Label(str(buffercount[0])), 1,2, 1,2)
 		table.attach(gtk.Label(str(paracount[0])), 2,3, 1,2)
 		table.attach(gtk.Label(str(selectioncount[0])), 3,4, 1,2)
 
-		# Lines
-		table.attach(llabel, 0,1, 2,3)
+		# Words
+		table.attach(wlabel, 0,1, 2,3)
 		table.attach(gtk.Label(str(buffercount[1])), 1,2, 2,3)
 		table.attach(gtk.Label(str(paracount[1])), 2,3, 2,3)
 		table.attach(gtk.Label(str(selectioncount[1])), 3,4, 2,3)
 
+		# Characters
+		table.attach(clabel, 0,1, 3,4)
+		table.attach(gtk.Label(str(buffercount[2])), 1,2, 3,4)
+		table.attach(gtk.Label(str(paracount[2])), 2,3, 3,4)
+		table.attach(gtk.Label(str(selectioncount[2])), 3,4, 3,4)

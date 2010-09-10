@@ -332,9 +332,10 @@ class Re(object):
 # Some often used regexes
 is_url_re = Re('^(\w[\w\+\-\.]+)://')
 	# scheme "://"
-is_email_re = Re('^(mailto:)?\S+\@\S+\.\w+$')
+is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+$')
 	# "mailto:" address
 	# name "@" host
+	# but exclude other uris like mid: and cid:
 is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Za-z]:\\)')
 	# / ~/ ./ ../ ~user/  .\ ..\ ~\ ~user\
 	# X:\
@@ -367,6 +368,12 @@ def link_type(link):
 		if link.startswith('zim+'): type = 'zim-notebook'
 		else: type = is_url_re[1]
 	elif is_email_re.match(link): type = 'mailto'
+	elif '@' in link and (
+		link.startswith('mid:') or
+		link.startswith('cid:')
+	):
+		return link[:3]
+		# email message uris, see RFC 2392
 	elif is_win32_share_re.match(link): type = 'smb'
 	elif is_path_re.match(link): type = 'file'
 	elif is_interwiki_re.match(link): type = 'interwiki'

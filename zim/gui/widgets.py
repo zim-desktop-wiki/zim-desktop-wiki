@@ -1064,7 +1064,7 @@ class ErrorDialog(gtk.MessageDialog):
 			description = None
 		elif isinstance(error, Exception):
 			msg = _('Looks like you found a bug') # T: generic error dialog
-			description = error.__class__.__name__ + ': ' + error.message
+			description = error.__class__.__name__ + ': ' + unicode(error)
 			# TODO: add widget with stack trace in this case
 		elif isinstance(error, tuple):
 			msg, description = error

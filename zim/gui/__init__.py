@@ -933,22 +933,28 @@ class GtkInterface(NotebookInterface):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
 
-	def new_page_from_text(self, text, name=None):
+	def new_page_from_text(self, text, name=None, open_page=False):
 		'''Create a new page and set text directly. If no name is given
 		the first line of the text is used as basename. If the page
 		already exists a number is added to force a unique page name.
 		'''
+		# The 'open_page' argument is a bit of a hack for remote calls
+		# it is needed because the remote function doesn't know the
+		# exact page name we creates...
 		if not name:
 			name = text.strip()[:30]
 			if '\n' in name:
 				name, _ = name.split('\n', 1)
-			name = self.notebook.cleanup_pathname(
-				name.replace(':', ''), purge=True)
+			name = self.notebook.cleanup_pathname(name.replace(':', ''), purge=True)
+		else:
+			name = self.notebook.cleanup_pathname(name, purge=True)
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_new_page(path)
 		page.parse('plain', text)
 		self.notebook.store_page(page)
-		self.open_page(page)
+		if open_page:
+			self.open_page(page)
+		return page
 
 	def append_text_to_page(self, name, text):
 		'''Append text to an (exising) page'''
@@ -956,7 +962,6 @@ class GtkInterface(NotebookInterface):
 		page = self.notebook.get_page(path)
 		page.parse('plain', text, append=True)
 		self.notebook.store_page(page)
-		self.open_page(page)
 
 	def open_new_window(self, page=None):
 		'''Open page in a new window'''
@@ -1160,8 +1165,7 @@ class GtkInterface(NotebookInterface):
 		if file.exists():
 			# TODO if isinstance(File) check default application for mime type
 			# this is needed once we can set default app from "open with.." menu
-			self._openwith(
-				self.preferences['GtkInterface']['file_browser'], file)
+			self.open_with('file_browser', file)
 		else:
 			raise NoSuchFileError, file
 
@@ -1170,7 +1174,7 @@ class GtkInterface(NotebookInterface):
 		if url.startswith('file:/'):
 			self.open_file(File(url))
 		elif url.startswith('mailto:'):
-			self._openwith(self.preferences['GtkInterface']['email_client'], url)
+			self.open_with('email_client', url)
 		elif url.startswith('zim+'):
 			self.open_notebook(url)
 		elif url.startswith('outlook:') and hasattr(os, 'startfile'):
@@ -1179,14 +1183,21 @@ class GtkInterface(NotebookInterface):
 		else:
 			if is_win32_share_re.match(url):
 				url = normalize_win32_share(url)
-			self._openwith(self.preferences['GtkInterface']['web_browser'], url)
+			self.open_with('web_browser', url)
 
-	def _openwith(self, app, uri):
+	def open_with(self, app_type, uri):
+		'''Open an uri or an url with a specific app type. Type can be
+		'file_browser', 'web_browser' or 'email_client'.
+
+		NOTE: only use this method when you need to force the app type,
+		otherwise use either open_file() or open_url().
+		'''
 		def check_error(status):
 			if status != 0:
 					ErrorDialog(self, _('Could not open: %s') % uri).run()
 					# T: error when external application fails
 
+		app = self.preferences['GtkInterface'][app_type]
 		entry = ApplicationManager().get_application(app)
 		entry.spawn((uri,), callback=check_error)
 
@@ -2198,6 +2209,9 @@ class NewPageDialog(Dialog):
 			],
 			help=':Help:Pages'
 		)
+
+		if subpage:
+			self.inputs['name'].force_child = True
 
 		#~ if subpage:
 			#~ self.inputs['name'].force_child = True

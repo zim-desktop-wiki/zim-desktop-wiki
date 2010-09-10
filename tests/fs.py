@@ -14,6 +14,7 @@ import logging
 
 from zim.fs import *
 from zim.fs import Path, FileHandle, OverWriteError, TmpFile, get_tmpdir, normalize_win32_share, PathLookupError, FilteredDir, isabs, joinpath
+from zim.errors import Error
 
 
 logger = logging.getLogger('zim.fs')
@@ -109,6 +110,14 @@ class TestFS(tests.TestCase):
 
 		self.assertEqual(Path('/foo') + 'bar', Path('/foo/bar'))
 
+		# Test unicode compat
+		utf8 = u'\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'
+		path = Path(utf8)
+		self.assertTrue(path.path.endswith(utf8))
+		self.assertRaises(Error, Path, utf8.encode('utf-8'))
+		path = Path((utf8, 'foo'))
+		self.assertTrue(path.path.endswith(os.sep.join((utf8, 'foo'))))
+		self.assertRaises(Error, Path, (utf8.encode('utf-8'), 'foo'))
 
 	def testFileHandle(self):
 		'''Test FileHandle object'''

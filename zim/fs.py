@@ -221,12 +221,12 @@ else:
 
 	def decode(path):
 		if isinstance(path, unicode):
+			return path # assume encoding is correct
+		else:
 			try:
 				return path.decode(ENCODING)
 			except UnicodeDecodeError:
 				raise Error, 'BUG: invalid filename %s' % path
-		else:
-			return path # assume encoding is correct
 
 
 def isabs(path):
@@ -304,16 +304,16 @@ class FileConflictError(Error):
 		self.file = file
 		self.msg = _('File conflict: %s') % file.path
 			# T: message for File Conflict Error
-		
+
 		self.description = _('''\
-There is a lock file for this file. This means an error occured last 
+There is a lock file for this file. This means an error occured last
 time we tried to save it and no recovery could be done. Only way
 to resolve this is to do a manual recovery. Check for a file ending
 in '.zim-orig~' and either remove it or rename it to the original file
 name.
 ''')
 		# T: description for File Conflict Error
-		# normally this property is defined as calss property, but 
+		# normally this property is defined as calss property, but
 		# zim.fs is loaded before gettext bindings are setup, so
 		# defer using them till here
 
@@ -771,7 +771,7 @@ class File(Path):
 	# In case we encouter a left over .zim-new~ we must ignore it, something went
 	# wrong while writing, but original was not overwritten. May well be that .zim-new~ is
 	# just empty (truncated) or contains incomplete data.
-	# In case we encounter a left over .zim-orig~ and no normal file, we should 
+	# In case we encounter a left over .zim-orig~ and no normal file, we should
 	# restore it because something went wrong between moving the old file out of
 	# the way and moving in the new one. (Windows only)
 
