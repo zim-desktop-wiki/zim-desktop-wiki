@@ -168,8 +168,13 @@ class PluginClass(gobject.GObject):
 			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tupels'
 		section = self.__class__.__name__
 		self.preferences = self.ui.preferences[section]
-		for key, type, label, default in self.plugin_preferences:
-				self.preferences.setdefault(key, default)
+		for pref in self.plugin_preferences:
+				if len(pref) == 4:
+					key, type, label, default = pref
+					self.preferences.setdefault(key, default)
+				else:
+					key, type, label, default, check = pref
+					self.preferences.setdefault(key, default, check=check)
 
 		self._is_image_generator_plugin = False
 

@@ -165,9 +165,39 @@ none=None
 		conf.set_modified(False)
 		self.assertEqual(conf['Foo'].setdefault('foobar', 5), 0)
 		self.assertEqual(conf['Bar'].setdefault('check', 3.14), 1.333)
-		self.assertEqual(conf['Bar'].setdefault('check', None), 1.333)
-		self.assertEqual(conf['Bar'].setdefault('check', 'foo', klass=float), 1.333)
-		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), check=conf.is_coord), (33,44))
+		self.assertEqual(conf['Bar'].setdefault('check', None, float), 1.333)
+		self.assertEqual(conf['Bar'].setdefault('check', 'foo', float), 1.333)
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), value_is_coord), (33,44))
+		self.assertEqual(conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'tja'))), 'tja')
+		self.assertFalse(conf.modified)
+
+		conf['Foo']['tja'] = [33, 44]
+		conf.set_modified(False)
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4)), (33,44))
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), tuple), (33,44))
+		self.assertFalse(conf.modified)
+
+		conf['Foo']['tja'] = [33, 44]
+		conf.set_modified(False)
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), value_allow_empty), (33,44))
+		self.assertFalse(conf.modified)
+
+		conf.set_modified(False)
+		self.assertEqual(conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'bar'))), 'foo')
+		self.assertTrue(conf.modified)
+
+		conf.set_modified(False)
+		self.assertEqual(conf['Bar'].setdefault('check', 10, int), 10)
+		self.assertTrue(conf.modified)
+
+		conf['Bar']['string'] = ''
+		conf.set_modified(False)
+		self.assertEqual(conf['Bar'].setdefault('string', 'foo'), 'foo')
+		self.assertTrue(conf.modified)
+
+		conf['Bar']['string'] = ''
+		conf.set_modified(False)
+		self.assertEqual(conf['Bar'].setdefault('string', 'foo', value_allow_empty), '')
 		self.assertFalse(conf.modified)
 
 	def testLookup(self):
@@ -183,7 +213,7 @@ none=None
 		self.assertEqual(file.file, home)
 		self.assertEqual(file.default, default)
 		self.assertEqual(file['TestData']['file'], 'default')
-		
+
 		home.write('[TestData]\nfile=home\n')
 		file = config_file('preferences.conf')
 		self.assertTrue(isinstance(file, ConfigDictFile))

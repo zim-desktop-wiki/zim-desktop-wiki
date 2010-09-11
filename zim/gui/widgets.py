@@ -17,6 +17,7 @@ import sys
 from zim.fs import *
 import zim.errors
 import zim.config
+from zim.config import value_is_coord
 from zim.notebook import Notebook, Path, PageNameError
 from zim.parsing import link_type
 
@@ -722,12 +723,12 @@ class Dialog(gtk.Dialog):
 			self.vbox.set_spacing(5)
 
 		if hasattr(self, 'uistate'):
-			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
+			self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		elif hasattr(ui, 'uistate') \
 		and isinstance(ui.uistate, zim.config.ConfigDict):
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
-			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
+			self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		else:
 			self.uistate = { # used in tests/debug
 				'windowsize': defaultwindowsize

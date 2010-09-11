@@ -38,7 +38,7 @@ from zim.notebook import Path, Page, PageNameError, \
 	resolve_default_notebook, get_notebook, get_notebook_list
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
-from zim.config import data_file, config_file, data_dirs, ListDict
+from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord
 from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re
 from zim.history import History, HistoryRecord
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
@@ -1908,7 +1908,7 @@ class MainWindow(Window):
 
 		if not self._geometry_set:
 			# Ignore this is a explicit geometry was specified to the constructor
-			self.uistate.setdefault('windowsize', (600, 450), check=self.uistate.is_coord)
+			self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
 			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
 
@@ -2059,7 +2059,7 @@ class PageWindow(Window):
 		self.uistate = ui.uistate['PageWindow']
 			# TODO remember for separate windows separately
 			# e.g. use PageWindow1, PageWindow2, etc
-		self.uistate.setdefault('windowsize', (500, 400), check=self.uistate.is_coord)
+		self.uistate.setdefault('windowsize', (500, 400), check=value_is_coord)
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 

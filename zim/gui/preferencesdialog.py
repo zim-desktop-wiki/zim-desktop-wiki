@@ -356,9 +356,16 @@ class PluginConfigureDialog(Dialog):
 
 		fields = []
 		self.preferences = dialog.ui.preferences[klass.__name__]
-		for key, type, label, default in klass.plugin_preferences:
-			self.preferences.setdefault(key, default) # just to be sure
+		for pref in klass.plugin_preferences:
+			if len(pref) == 4:
+				key, type, label, default = pref
+				self.preferences.setdefault(key, default) # just to be sure
+			else:
+				key, type, label, default, check = pref
+				self.preferences.setdefault(key, default, check=check) # just to be sure
+
 			fields.append((key, type, label, self.preferences[key]))
+
 		self.add_fields(fields)
 
 	def do_response_ok(self):

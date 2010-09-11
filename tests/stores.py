@@ -221,7 +221,7 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		newpage = self.store.get_page(Path('UTF8'))
 		self.assertTrue(newpage.haschildren)
 		self.assertFalse(newpage == page)
-		# TODO here we only move dir case insensitive - also test file 
+		# TODO here we only move dir case insensitive - also test file
 
 		# check hascontents
 		page = self.store.get_page(Path('NewPage'))
@@ -285,7 +285,7 @@ class TestFiles(TestStoresMemory):
 
 	def setUp(self):
 		TestStoresMemory.setUp(self)
-		tmpdir = tests.create_tmp_dir('stores_TestFiles')
+		tmpdir = tests.create_tmp_dir(u'stores_TestFiles_\u0421\u0430\u0439')
 		self.dir = Dir([tmpdir, 'store-files'])
 		self.mem = self.store
 		store = zim.stores.get_store('files')
