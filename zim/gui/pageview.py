@@ -471,7 +471,7 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor('\n')
 
 		for element in node.getchildren():
-			if element.tag == 'p':
+			if element.tag in ('p', 'div'):
 				# No force line start here on purpose
 				if 'indent' in element.attrib:
 					self.set_indent(int(element.attrib['indent']))
@@ -483,10 +483,13 @@ class TextBuffer(gtk.TextBuffer):
 
 				self.set_indent(None)
 			elif element.tag == 'ul':
-				if element.text:
-					self.insert_at_cursor(element.text)
+				if 'indent' in element.attrib:
+					indent = int(element.attrib['indent'])
+					self._insert_element_children(element, list_level=indent, raw=raw) # recurs
+				else:
+					self._insert_element_children(element, list_level=list_level+1, raw=raw) # recurs
 
-				self._insert_element_children(element, list_level=list_level+1, raw=raw) # recurs
+				self.set_indent(None)
 			elif element.tag == 'li':
 				force_line_start()
 
@@ -1260,7 +1263,7 @@ class TextBuffer(gtk.TextBuffer):
 							continue_attrib.update(attrib)
 							continue
 						else:
-							t = 'p'
+							t = 'div'
 					elif t == 'pre' and not raw and not iter.starts_line():
 						# Without indenting 'pre' looks the same as 'code'
 						# Prevent turning into a seperate paragraph here

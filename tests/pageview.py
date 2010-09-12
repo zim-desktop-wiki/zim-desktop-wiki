@@ -57,6 +57,7 @@ class TestTextBuffer(TestCase):
 
 		raw1 = buffer.get_parsetree(raw=True)
 		result1 = buffer.get_parsetree()
+		#~ print tree.tostring()
 		#~ print result1.tostring()
 		#~ self.assertEqualDiff(result1.tostring(), tree.tostring())
 
@@ -95,7 +96,7 @@ dus <pre>ja</pre> hmm
 <h level="2">foo
 </h>bar
 
-dus <p indent="5">ja</p> <emphasis>hmm
+dus <div indent="5">ja</div> <emphasis>hmm
 dus ja
 </emphasis>grrr
 
