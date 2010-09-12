@@ -300,10 +300,10 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		self._updating_title = False
 		self._title_set_manually = False
 
-		self.uistate.setdefault('lastnotebook', None)
+		self.uistate.setdefault('lastnotebook', None, basestring)
 		if self.uistate['lastnotebook']:
 			notebook = notebook or self.uistate['lastnotebook']
-			self.config['Namespaces'].setdefault(notebook, None)
+			self.config['Namespaces'].setdefault(notebook, None, basestring)
 			namespace = namespace or self.config['Namespaces'][notebook]
 
 		table = gtk.Table()

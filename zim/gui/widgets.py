@@ -118,7 +118,7 @@ def scrolled_text_view(text=None, monospace=False):
 	piece of multiline text, wraps it in a scrolled window and returns
 	both the window and the textview.
 	'''
-	textview = gtk.TextView()
+	textview = gtk.TextView(TextBuffer())
 	textview.set_editable(False)
 	textview.set_wrap_mode(gtk.WRAP_WORD)
 	textview.set_left_margin(5)
@@ -133,6 +133,24 @@ def scrolled_text_view(text=None, monospace=False):
 	window.set_shadow_type(gtk.SHADOW_IN)
 	window.add(textview)
 	return window, textview
+
+
+class TextBuffer(gtk.TextBuffer):
+	'''Sub-class of gtk.TextBuffer that does utf-8 decoding on get_text
+	and get_slice.
+	'''
+
+	def get_text(self, start, end, include_hidden_chars=True):
+		text = gtk.TextBuffer.get_text(self, start, end, include_hidden_chars)
+		if text:
+			text = text.decode('utf-8')
+		return text
+
+	def get_slice(self, start, end, include_hidden_chars=True):
+		text = gtk.TextBuffer.get_slice(self, start, end, include_hidden_chars)
+		if text:
+			text = text.decode('utf-8')
+		return text
 
 
 def gtk_get_style():
