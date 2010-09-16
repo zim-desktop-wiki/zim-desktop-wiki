@@ -13,7 +13,7 @@ import time
 import logging
 
 from zim.fs import *
-from zim.fs import OverWriteError
+from zim.fs import FileWriteError
 from zim.notebook import Notebook, Path, LookupError, PageExistsError
 import zim.stores
 from zim.formats import ParseTree
@@ -324,7 +324,7 @@ class TestFiles(TestStoresMemory):
 		self.assertTrue('BARRR' in ''.join(page.dump('plain')))
 		self.modify(page.source.path, lambda p: open(p, 'w').write('bar'))
 		with FilterOverWriteWarning():
-			self.assertRaises(OverWriteError, self.store.store_page, page)
+			self.assertRaises(FileWriteError, self.store.store_page, page)
 
 		# test headers
 		page = self.store.get_page(Path('Test:New'))
