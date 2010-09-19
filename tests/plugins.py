@@ -6,14 +6,15 @@ from tests import TestCase
 
 import zim.plugins
 
+zim.plugins.path = ['.'] # override default search path
+
 class testPlugins(TestCase):
 	'''FIXME'''
 
 	def runTest(self):
 		'''Test loading plugins and meta data'''
-
-		plugins = zim.plugins.list_plugins(_path=['.'])
-		self.assertTrue(len(plugins) > 0)
+		plugins = zim.plugins.list_plugins()
+		self.assertTrue(len(plugins) > 10)
 		self.assertTrue('spell' in plugins)
 		self.assertTrue('linkmap' in plugins)
 

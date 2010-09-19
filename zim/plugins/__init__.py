@@ -16,6 +16,49 @@ from zim.config import ListDict
 logger = logging.getLogger('zim.plugins')
 
 
+def user_site_packages_directory():
+	'''In Python 2.6 has been introduced feature "Per-user site-packages Directory"
+	<http://docs.python.org/whatsnew/2.6.html#pep-370-per-user-site-packages-directory>
+	This function backports this feature to Python 2.5.
+	'''
+	if os.name == 'nt':
+		if 'APPDATA' in os.environ:
+			dir = Dir([os.environ['APPDATA'],
+						'Python/Python25/site-packages'])
+			return dir.path
+		else:
+			return None
+	else:
+		dir = Dir('~/.local/lib/python2.5/site-packages')
+		return dir.path
+
+# Add the per-user site-packages directory to the system path
+if sys.version_info[0:2] == (2, 5):
+	dir = user_site_packages_directory()
+	if dir and not dir in sys.path:
+		sys.path.append(dir)
+
+
+def _check_path(path):
+	'''Checks e.g. sys.path and filters folders that can be decoded'''
+	mypath = []
+	for dir in path:
+		try:
+			dir = dir.decode(zim.fs.ENCODING)
+		except UnicodeDecodeError:
+			logger.exception('Could not decode path "%s"', dir)
+			continue
+
+		if os.path.basename(dir) == 'zim.exe':
+			# path is an executable, not a folder -- examine containing folder
+			dir = os.path.dirname(dir)
+
+		mypath.append(dir)
+
+# check path for importing and searching plugins
+path = _check_path(sys.path)
+
+
 def get_plugin_module(pluginname):
 	'''Returns the plugin module object for a given name'''
 	# __import__ has some quirks, see the reference manual
@@ -38,27 +81,18 @@ def get_plugin(pluginname):
 			return obj
 
 
-def list_plugins(_path=None):
-	'''Returns a set of available plugin names
-	The _path argument is reserved for testing, it allows to override the
-	search path for plugins.
+def list_plugins():
+	'''Returns a set of available plugin names. Directories that are
+	searched depend on zim.plugins.path, which by default is a filtered
+	version of sys.path.
 	'''
 	# FIXME how should this work for e.g. for python eggs ??
 	# for windows exe we now package plugins separately
 	plugins = set()
-	path = _path or sys.path
-	for dir in path:
-		try:
-			dir = dir.decode(zim.fs.ENCODING)
-		except UnicodeDecodeError:
-			logger.exception('Could not decode path "%s"', dir)
-			continue
 
-		if os.path.basename(dir) == 'zim.exe':
-			# path is an executable, not a folder -- examine containing folder
-			dir = os.path.dirname(dir)
+	for dir in path:
 		dir = Dir((dir, 'zim', 'plugins'))
-		for candidate in dir.list():
+		for candidate in dir.list(): # returns [] if dir does not exist
 			if candidate.startswith('_'):
 				continue
 			elif candidate.endswith('.py'):
