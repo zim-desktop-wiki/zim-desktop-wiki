@@ -998,10 +998,21 @@ class UnixFile(Path):
 		# as we would like.)
 		#
 		# This function should not prohibit writing without reading first.
-		if self._mtime and self._mtime != self.mtime():
-			logger.warn('mtime check failed for %s, trying md5', self.path)
-			if _md5(self._content) != _md5(self.open('r').read()):
-				raise FileWriteError, 'File changed on disk: %s' % self.path
+		# Also we just write the file if it went missing in between
+		if self._mtime:
+			try:
+				mtime = self.mtime()
+			except OSError:
+				if not  os.path.isfile(self.encodedpath):
+					logger.critical('File missing: %s', self.path)
+					return
+				else:
+					raise
+
+			if not self._mtime == mtime:
+				logger.warn('mtime check failed for %s, trying md5', self.path)
+				if _md5(self._content) != _md5(self.open('r').read()):
+					raise FileWriteError, 'File changed on disk: %s' % self.path
 
 	def touch(self):
 		'''Create this file and any parent directories if it does not yet exist.
@@ -1132,7 +1143,10 @@ class WindowsFile(UnixFile):
 				os.remove(orig)
 			self._rename(self.encodedpath, orig) # Step 2.
 			self._rename(tmp, self.encodedpath)  # Step 3.
-			os.remove(orig) # Step 4. (Don't bother if it fails)
+			try:
+				os.remove(orig) # Step 4.
+			except OSError:
+				pass # If it fails we try again on next write
 		else:
 			isnew = True
 			self._rename(tmp, self.encodedpath)
@@ -1140,6 +1154,10 @@ class WindowsFile(UnixFile):
 		logger.debug('Wrote %s', self)
 		if isnew:
 			FS.emit('path-created', self)
+
+		# FIXME - ideally we should run checkoverwrite() before emitting
+		# this signal, however that means we need the content as well
+		# here ...
 
 	@staticmethod
 	def _rename(src, dst):

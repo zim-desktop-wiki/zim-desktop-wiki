@@ -10,26 +10,22 @@ import tests
 
 import os
 import time
-import logging
 
 from zim.fs import *
 from zim.fs import Path, FileHandle, FileWriteError, TmpFile, get_tmpdir, normalize_win32_share, PathLookupError, FileNotFoundError, FilteredDir, isabs, joinpath
 from zim.errors import Error
 
 
-logger = logging.getLogger('zim.fs')
+class FilterOverWriteWarning(tests.LoggingFilter):
+
+	logger = 'zim.fs'
+	message = 'mtime check failed'
 
 
-class FilterOverWriteWarning(object):
+class FilterFileMissingWarning(tests.LoggingFilter):
 
-	def __enter__(self):
-		logger.addFilter(self)
-
-	def __exit__(self, *a):
-		logger.removeFilter(self)
-
-	def filter(self, record):
-		return not record.getMessage().startswith('mtime check failed')
+	logger = 'zim.fs'
+	message = 'File missing:'
 
 
 class TestFS(tests.TestCase):
@@ -304,15 +300,26 @@ class TestFileOverwrite(tests.TestCase):
 
 	def runTest(self):
 		'''Test file overwrite check'''
+		# Check we can write without reading
 		file = File(self.path, checkoverwrite=True)
 		file.write('bar')
 		self.assertEquals(file.read(), 'bar')
+
+		# Check edge case where file goes missing after read or write
+		os.remove(file.encodedpath)
+		self.assertFalse(file.exists())
+		with FilterFileMissingWarning():
+			file.write('bar')
+		self.assertEquals(file.read(), 'bar')
+
+		# Check overwrite error when content changed
 		self.modify(lambda p: open(p, 'w').write('XXX'))
 			# modify mtime and content
 		with FilterOverWriteWarning():
 			self.assertRaises(FileWriteError, file.write, 'foo')
 		self.assertEquals(file.read(), 'XXX')
 
+		# Check md5 check passes
 		file = File(self.path, checkoverwrite=True)
 		file.write('bar')
 		self.modify(lambda p: open(p, 'w').write('bar'))

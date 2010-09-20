@@ -2,8 +2,10 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
+from __future__ import with_statement
+
 import tests
-from tests import TestCase
+from tests import TestCase, LoggingFilter
 
 import os
 
@@ -11,6 +13,12 @@ from zim.fs import *
 from zim.config import *
 from zim.notebook import Path
 import zim.config
+
+
+class FilterInvalidConfigWarning(LoggingFilter):
+
+	logger = 'zim.config'
+	message = 'Invalid config value'
 
 
 class TestDirsTestSetup(TestCase):
@@ -183,16 +191,21 @@ none=None
 		self.assertFalse(conf.modified)
 
 		conf.set_modified(False)
-		self.assertEqual(conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'bar'))), 'foo')
+		with FilterInvalidConfigWarning():
+			self.assertEqual(
+			conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'bar'))),
+			'foo')
 		self.assertTrue(conf.modified)
 
 		conf.set_modified(False)
-		self.assertEqual(conf['Bar'].setdefault('check', 10, int), 10)
+		with FilterInvalidConfigWarning():
+			self.assertEqual(conf['Bar'].setdefault('check', 10, int), 10)
 		self.assertTrue(conf.modified)
 
 		conf['Bar']['string'] = ''
 		conf.set_modified(False)
-		self.assertEqual(conf['Bar'].setdefault('string', 'foo'), 'foo')
+		with FilterInvalidConfigWarning():
+			self.assertEqual(conf['Bar'].setdefault('string', 'foo'), 'foo')
 		self.assertTrue(conf.modified)
 
 		conf['Bar']['string'] = ''

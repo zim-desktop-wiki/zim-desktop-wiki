@@ -8,6 +8,7 @@ import os
 import sys
 import shutil
 import unittest
+import logging
 import gettext
 import xml.etree.cElementTree as etree
 
@@ -148,7 +149,7 @@ def print_index(index):
 
 
 class TestCase(unittest.TestCase):
-	'''FIXME'''
+	'''Base class for test cases'''
 
 	def run(self, *args):
 		unittest.TestCase.run(self, *args)
@@ -219,3 +220,28 @@ class TestCase(unittest.TestCase):
 			return
 
 		raise self.failureException, msg.encode('utf-8')
+
+
+class LoggingFilter(object):
+	'''Base class for logging filters that can be used as a context
+	using the "with" keyword. To subclass it you only need to set the
+	logger to be used and (the begin of) the message to filter.
+	'''
+
+	logger = None
+	message = None
+
+	def __init__(self, logger=None, message=None):
+		if logger: self.logger = logger
+		if message: self.message = message
+
+		self.loggerobj = logging.getLogger(self.logger)
+
+	def __enter__(self):
+		self.loggerobj.addFilter(self)
+
+	def __exit__(self, *a):
+		self.loggerobj.removeFilter(self)
+
+	def filter(self, record):
+		return not record.getMessage().startswith(self.message)

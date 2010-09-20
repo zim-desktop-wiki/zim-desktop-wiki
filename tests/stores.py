@@ -10,7 +10,6 @@ import tests
 
 import os
 import time
-import logging
 
 from zim.fs import *
 from zim.fs import FileWriteError
@@ -48,19 +47,10 @@ def ascii_page_tree(store, namespace=None, level=0):
 	return text
 
 
-logger = logging.getLogger('zim.fs')
+class FilterOverWriteWarning(tests.LoggingFilter):
 
-
-class FilterOverWriteWarning(object):
-
-	def __enter__(self):
-		logger.addFilter(self)
-
-	def __exit__(self, *a):
-		logger.removeFilter(self)
-
-	def filter(self, record):
-		return not record.getMessage().startswith('mtime check failed')
+	logger = 'zim.fs'
+	message = 'mtime check failed'
 
 
 class TestUtils(tests.TestCase):
