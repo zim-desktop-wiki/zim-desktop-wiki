@@ -178,12 +178,11 @@ On Ubuntu or Debian install package 'python-coverage'.
 	mylib = os.path.abspath('./zim')
 	for module in [m for m in sys.modules.keys()
 			if m == 'zim' or m.startswith('zim.')]:
-		if sys.modules[module] is None:
-			continue
-		file = sys.modules[module].__file__
-		assert file.startswith(mylib), \
-			'Module %s was loaded from %s' % (module, file)
-
+				if sys.modules[module] is None:
+					continue
+				file = sys.modules[module].__file__
+				assert file.startswith(mylib), \
+					'Module %s was loaded from %s' % (module, file)
 
 	if coverage:
 		coverage.stop()

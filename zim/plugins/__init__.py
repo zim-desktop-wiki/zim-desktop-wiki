@@ -34,15 +34,25 @@ def user_site_packages_directory():
 
 # Add the per-user site-packages directory to the system path
 if sys.version_info[0:2] == (2, 5):
-	dir = user_site_packages_directory()
-	if dir and not dir in sys.path:
-		sys.path.append(dir)
+	userdir = user_site_packages_directory()
+	if userdir and not userdir in sys.path:
+		sys.path.insert(0, userdir)
 
 
-def _check_path(path):
-	'''Checks e.g. sys.path and filters folders that can be decoded'''
-	mypath = []
-	for dir in path:
+def set_plugin_search_path():
+	'''Sets __path__ for the zim.plugins pacakge. This determines what
+	directories are searched when importing plugin packages in the
+	zim.plugins namespace. This function looks at sys.path and would
+	need to be run again if sys.path is modified after loading this
+	package.
+	'''
+	global __path__
+	__path__ = [] # flush completely
+	# We don't even keep the directory of this source file because we
+	# want order in __path__ match order in sys.path, so per-user
+	# folder takes proper precedence
+
+	for dir in sys.path:
 		try:
 			dir = dir.decode(zim.fs.ENCODING)
 		except UnicodeDecodeError:
@@ -53,10 +63,15 @@ def _check_path(path):
 			# path is an executable, not a folder -- examine containing folder
 			dir = os.path.dirname(dir)
 
-		mypath.append(dir)
+		if dir == '':
+			dir = '.'
 
-# check path for importing and searching plugins
-path = _check_path(sys.path)
+		dir = os.path.sep.join((dir, 'zim', 'plugins'))
+		#~ print '>> PLUGIN DIR', dir
+		__path__.append(dir)
+
+# extend path for importing and searching plugins
+set_plugin_search_path()
 
 
 def get_plugin_module(pluginname):
@@ -82,16 +97,18 @@ def get_plugin(pluginname):
 
 
 def list_plugins():
-	'''Returns a set of available plugin names. Directories that are
-	searched depend on zim.plugins.path, which by default is a filtered
-	version of sys.path.
-	'''
+	'''Returns a set of available plugin names'''
+	# Only listing folders in __path__ because this parameter determines
+	# what folders will considered when importing sub-modules of the
+	# this package once this module is loaded.
+
 	# FIXME how should this work for e.g. for python eggs ??
 	# for windows exe we now package plugins separately
+
 	plugins = set()
 
-	for dir in path:
-		dir = Dir((dir, 'zim', 'plugins'))
+	for dir in __path__:
+		dir = Dir(dir)
 		for candidate in dir.list(): # returns [] if dir does not exist
 			if candidate.startswith('_'):
 				continue
