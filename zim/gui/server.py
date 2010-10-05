@@ -11,7 +11,7 @@ import gtk
 import webbrowser # FIXME replace with XDG aware method
 
 from zim.config import data_file
-from zim.gui.widgets import IconButton, gtk_window_set_default_icon
+from zim.gui.widgets import IconButton, gtk_window_set_default_icon, ErrorDialog
 from zim.gui.notebookdialog import NotebookComboBox, NotebookDialog
 
 stock_started = ('gtk-yes', gtk.ICON_SIZE_DIALOG)
@@ -31,11 +31,18 @@ class ServerWindow(gtk.Window):
 		self.server.connect_after('stopped', self.do_server_stopped)
 
 		def _start(*a):
-			self.server.set_notebook(
-				self.notebookcombobox.get_notebook() )
-			self.server.start()
+			try:
+				self.server.set_notebook(
+					self.notebookcombobox.get_notebook() )
+				self.server.start()
+			except Exception, error:
+				ErrorDialog(self, error).run()
 
-		def _stop(*a): self.server.stop()
+		def _stop(*a):
+			try:
+				self.server.stop()
+			except Exception, error:
+				ErrorDialog(self, error).run()
 
 		# Build the interface
 		vbox = gtk.VBox()

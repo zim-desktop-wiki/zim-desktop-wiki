@@ -31,7 +31,7 @@ ui_xml = '''
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
-	('eval_math', None, _('Evaluate _Math'), '<Ctrl>=', '', False), # T: menu item
+	('eval_math', None, _('Evaluate _Math'), '', '', False), # T: menu item
 )
 
 

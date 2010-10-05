@@ -268,6 +268,7 @@ class Server(gobject.GObject):
 		self.running = False
 		self.set_port(port)
 		self.public = public
+		self._io_event = None
 
 		import wsgiref.handlers
 		self.handlerclass = wsgiref.handlers.SimpleHandler
@@ -318,7 +319,8 @@ class Server(gobject.GObject):
 		self.socket.bind((hostname, self.port))
 		self.socket.listen(5)
 
-		gobject.io_add_watch(self.socket, gobject.IO_IN,
+		self._io_event = gobject.io_add_watch(
+			self.socket, gobject.IO_IN,
 			lambda *a: self.do_accept_request())
 
 		self.running = True
@@ -328,6 +330,10 @@ class Server(gobject.GObject):
 		'''Close the socket and stop listening, emits the 'stopped' signal'''
 		if not self.running:
 			return # ignore silently
+
+		if self._io_event:
+			gobject.source_remove(self._io_event)
+			self._io_event = None
 
 		try:
 			self.socket.close()

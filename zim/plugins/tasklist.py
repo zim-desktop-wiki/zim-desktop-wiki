@@ -617,11 +617,18 @@ class TaskListTreeView(BrowserTreeView):
 		self.plugin.connect_object('tasklist-changed', self.__class__.refresh, self)
 
 	def refresh(self):
-		self.real_model.clear()
+		self.real_model.clear() # flush
+
+		# First cache + sort tasks to ensure stability of the list
+		rows = list(self.plugin.list_tasks())
 		paths = {}
-		for row in self.plugin.list_tasks():
+		for row in rows:
 			if not row['source'] in paths:
 				paths[row['source']] = self.plugin.get_path(row)
+
+		rows.sort(key=lambda r: paths[r['source']].name)
+
+		for row in rows:
 			path = paths[row['source']]
 			modelrow = [False, row['prio'], row['description'], row['due'], path.name, row['actionable'], row['open']]
 						# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL

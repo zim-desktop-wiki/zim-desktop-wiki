@@ -183,7 +183,7 @@ class TestCustomTools(TestCase):
 		} )
 		for cmd, wanted in (
 			('foo %f', ('foo', tmpfile)),
-			('foo %d', ('foo', dir.subdir('Test/Foo'))),
+			('foo %d', ('foo', dir.subdir('Test/Foo').path)),
 			('foo %s', ('foo', '')), # no file source
 			('foo %n', ('foo', dir.path)),
 			('foo %D', ('foo', '')), # no document root

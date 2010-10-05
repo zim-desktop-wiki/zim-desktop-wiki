@@ -886,8 +886,9 @@ class UnixFile(Path):
 			file = self.open('r')
 			content = file.read()
 			self._checkoverwrite(content)
-			return content.replace('\r', '')
+			return content.replace('\r', '').replace('\x00', '')
 				# Internally we use unix line ends - so strip out \r
+				# And remove any NULL byte since they skrew up parsing
 		except IOError:
 			raise FileNotFoundError(self)
 
@@ -916,8 +917,9 @@ class UnixFile(Path):
 			file = self.open('r')
 			lines = file.readlines()
 			self._checkoverwrite(lines)
-			return [line.replace('\r', '') for line in lines]
+			return [line.replace('\r', '').replace('\x00', '') for line in lines]
 				# Internally we use unix line ends - so strip out \r
+				# And remove any NULL byte since they skrew up parsing
 		except IOError:
 			raise FileNotFoundError(self)
 

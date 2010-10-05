@@ -213,24 +213,6 @@ def parse_date(string):
 		return None
 
 
-# These sets adjust to the current locale - so not same as "[a-z]" ..
-# Must be kidding - no classes for this in the regex engine !?
-_classes = {'upper': string.uppercase}
-upper_re = re.compile(r'[%(upper)s]' % _classes)
-del _classes
-
-def title(string):
-	'''Slightly smarter version of str.title(). Does not "downgrade"
-	words that already have upper case in it.
-	'''
-	def titleword(match):
-		word = match.group(0)
-		if upper_re.search(word): return word
-		else: return word.title()
-
-	return re.sub(r'\w+', titleword, string, re.U)
-
-
 class Re(object):
 	'''Wrapper around regex pattern objects which memorizes the
 	last match object and gives list access to it's capturing groups.

@@ -20,7 +20,6 @@ logger = logging.getLogger('zim.applications')
 
 
 class Application(object):
-	'''FIXME'''
 
 	STATUS_OK = 0
 
@@ -72,10 +71,9 @@ class Application(object):
 
 	def _checkargs(self, cwd, args):
 		assert args is None or isinstance(args, (tuple, list))
-		encoding = zim.fs.ENCODING
-		argv = [a.encode(encoding) for a in self._cmd(args)]
+		argv = [a.encode(zim.fs.ENCODING) for a in self._cmd(args)]
 		if cwd:
-			cwd = unicode(cwd).encode(encoding)
+			cwd = unicode(cwd).encode(zim.fs.ENCODING)
 		return cwd, argv
 
 	def run(self, args=None, cwd=None):

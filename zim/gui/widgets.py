@@ -262,8 +262,11 @@ class SingleClickTreeView(gtk.TreeView):
 		and not self.is_rubber_banding_active():
 			x, y = map(int, event.get_coords())
 				# map to int to surpress deprecation warning :S
+				# note that get_coords() gives back (0, 0) when cursor
+				# is outside the treeview window (e.g. drag & drop that
+				# was started inside the tree - see bug lp:646987)
 			info = self.get_path_at_pos(x, y)
-			if not info is None:
+			if x > 0 and y > 0 and not info is None:
 				path, column, x, y = info
 				if self.get_selection().path_is_selected(path):
 					self.row_activated(path, column)

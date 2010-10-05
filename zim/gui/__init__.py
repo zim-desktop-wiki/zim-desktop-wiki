@@ -480,6 +480,9 @@ class GtkInterface(NotebookInterface):
 
 		self.check_notebook_needs_upgrade()
 
+		self.save_preferences()
+			# if prefs are modified during init we should save them
+
 		self.mainwindow.show_all()
 		self.mainwindow.pageview.grab_focus()
 		gtk.main()

@@ -1072,11 +1072,10 @@ class Notebook(gobject.GObject):
 
 		self.move_page(path, newpath, update_links, callback)
 		if update_heading:
-			import zim.parsing
 			page = self.get_page(newpath)
 			tree = page.get_parsetree()
 			if not tree is None:
-				tree.set_heading(zim.parsing.title(newbasename))
+				tree.set_heading(newbasename.capitalize())
 				page.set_parsetree(tree)
 				self.store_page(page)
 

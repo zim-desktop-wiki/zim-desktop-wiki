@@ -555,7 +555,8 @@ class TextBuffer(gtk.TextBuffer):
 		'''Like insert_link() but inserts at the cursor'''
 		tag = self.create_link_tag(text, href, **attrib)
 		self._editmode_tags = \
-			filter(_is_not_link_tag, self._editmode_tags) + (tag,)
+			filter(_is_not_link_tag,
+				filter(_is_not_style_tag, self._editmode_tags) ) + (tag,)
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 

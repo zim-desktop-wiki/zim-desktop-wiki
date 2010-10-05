@@ -360,14 +360,18 @@ class NotebookInterface(gobject.GObject):
 
 	def load_plugins(self):
 		'''Load the plugins defined in the preferences'''
-		self.preferences['General'].setdefault('plugins',
-			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
+		default = ['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol']
+		self.preferences['General'].setdefault('plugins', default)
 		plugins = self.preferences['General']['plugins']
 		plugins = set(plugins) # Eliminate doubles
 		# Plugins should not have dependency on order of being added
 		# just add sort to make behavior predictable.
-		for plugin in sorted(plugins):
-			self.load_plugin(plugin)
+		for name in sorted(plugins):
+			self.load_plugin(name)
+
+		loaded = [p.plugin_key for p in self.plugins]
+		if set(loaded) != plugins:
+			self.preferences['General']['plugins'] = sorted(loaded)
 
 	def load_plugin(self, name):
 		'''Load a single plugin by name, returns boolean for success'''
@@ -388,7 +392,6 @@ class NotebookInterface(gobject.GObject):
 		plugin.plugin_key = name
 		if not name in self.preferences['General']['plugins']:
 			self.preferences['General']['plugins'].append(name)
-			self.preferences.write()
 
 		return plugin
 
