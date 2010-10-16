@@ -321,6 +321,23 @@ class _FS(gobject.GObject):
 		'path-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
+	def __init__(self):
+		gobject.GObject.__init__(self)
+		self._lock = AsyncLock()
+
+	def get_async_lock(self, path):
+		'''Return a lock for async operation for path'''
+		# FUTURE: we may actually use path to allow parallel async
+		# operations for files & folders that do not belong to the
+		# same tree. Problem there is that we do not aquire the lock
+		# in this method. So we need a new kind of lock type that can
+		# track dependency on other locks.
+		# Make sure to allow for the fact that other obejcts can keep
+		# the lock that are returned here indefinitely for re-use.
+		# But for now we keep things simple.
+		assert isinstance(path, UnixPath)
+		return self._lock
+
 # Need to register classes defining gobject signals
 gobject.type_register(_FS)
 
@@ -485,9 +502,11 @@ class UnixPath(object):
 		# Using shutil.move instead of os.rename because move can cross
 		# file system boundries, while rename can not
 		logger.info('Rename %s to %s', self, newpath)
-		newpath.dir.touch()
-		# TODO: check against newpath existing and being a directory
-		shutil.move(self.encodedpath, newpath.encodedpath)
+		with FS.get_async_lock(self):
+			# Do we also need a lock for newpath (could be the same as lock for self) ?
+			# TODO: check against newpath existing and being a directory
+			newpath.dir.touch()
+			shutil.move(self.encodedpath, newpath.encodedpath)
 		FS.emit('path-moved', self, newpath)
 		self.dir.cleanup()
 
@@ -784,7 +803,7 @@ class UnixFile(Path):
 		self.checkoverwrite = checkoverwrite
 		self.endofline = endofline
 		self._mtime = None
-		self._lock = AsyncLock()
+		self._lock = FS.get_async_lock(self)
 
 	def __eq__(self, other):
 		if isinstance(other, File):
@@ -840,11 +859,8 @@ class UnixFile(Path):
 		if not os.path.isfile(tmp):
 			raise AssertionError, 'BUG: File should exist: %s' % tmp
 
-		isnew = not os.path.isfile(self.encodedpath)
 		os.rename(tmp, self.encodedpath)
 		logger.debug('Wrote %s', self)
-		if isnew:
-			FS.emit('path-created', self)
 
 	def raw(self):
 		'''Like read() but without encoding and newline logic.
@@ -927,6 +943,7 @@ class UnixFile(Path):
 		'''Overwrite file with text'''
 		with self._lock:
 			self._write(text)
+		self._check_isnew()
 
 	def write_async(self, text, callback=None, data=None):
 		'''Like write() but as asynchronous operation.
@@ -934,8 +951,12 @@ class UnixFile(Path):
 		for 'callback'.
 		'''
 		#~ print '!! ASYNC WRITE'
+		def mycallback(result, error, *args):
+			if error is None: self._check_isnew()
+			if callback: callback(result, error, *args)
+
 		operation = AsyncOperation(
-			self._write, (text,), lock=self._lock, callback=callback, data=data)
+			self._write, (text,), lock=self._lock, callback=mycallback, data=data)
 		operation.start()
 		return operation
 
@@ -951,6 +972,8 @@ class UnixFile(Path):
 
 	def _write(self, text):
 		self._assertoverwrite()
+		self._isnew = not os.path.isfile(self.encodedpath)
+			# Put this check here because here we are sure to have a lock
 		endofline = self.get_endofline()
 		if endofline != '\n':
 			text = text.replace('\n', endofline)
@@ -959,10 +982,20 @@ class UnixFile(Path):
 		file.close()
 		self._checkoverwrite(text)
 
+	def _check_isnew(self):
+		# Make sure the 'path-created' signal is emitted in the main
+		# thread, so do not put this in _write(), but call from write()
+		# or from async callback.
+		# Also make sur this is called after lock is released to prevent
+		# deadlock when event handler tries to access the file.
+		if self._isnew:
+			FS.emit('path-created', self)
+
 	def writelines(self, lines):
 		'''Overwrite file with a list of lines'''
 		with self._lock:
 			self._writelines(lines)
+		self._check_isnew()
 
 	def writelines_async(self, text, callback=None, data=None):
 		'''Like writelines() but as asynchronous operation.
@@ -970,13 +1003,19 @@ class UnixFile(Path):
 		for 'callback'.
 		'''
 		#~ print '!! ASYNC WRITE'
+		def mycallback(result, error, *args):
+			if error is None: self._check_isnew()
+			if callback: callback(result, error, *args)
+
 		operation = AsyncOperation(
-			self._writelines, (text,), lock=self._lock, callback=callback, data=data)
+			self._writelines, (text,), lock=self._lock, callback=mycallback, data=data)
 		operation.start()
 		return operation
 
 	def _writelines(self, lines):
 		self._assertoverwrite()
+		self._isnew = not os.path.isfile(self.encodedpath)
+			# Put this check here because here we are sure to have a lock
 		endofline = self.get_endofline()
 		if endofline != '\n':
 			lines = [line.replace('\n', endofline) for line in lines]
@@ -1139,7 +1178,6 @@ class WindowsFile(UnixFile):
 			raise AssertionError, 'BUG: File should exist: %s' % tmp
 
 		if os.path.isfile(self.encodedpath):
-			isnew = False
 			orig = self.encodedpath + '.zim-orig~'
 			if os.path.isfile(orig):
 				os.remove(orig)
@@ -1150,16 +1188,9 @@ class WindowsFile(UnixFile):
 			except OSError:
 				pass # If it fails we try again on next write
 		else:
-			isnew = True
 			self._rename(tmp, self.encodedpath)
 
 		logger.debug('Wrote %s', self)
-		if isnew:
-			FS.emit('path-created', self)
-
-		# FIXME - ideally we should run checkoverwrite() before emitting
-		# this signal, however that means we need the content as well
-		# here ...
 
 	@staticmethod
 	def _rename(src, dst):

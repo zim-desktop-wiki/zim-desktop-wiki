@@ -390,6 +390,10 @@ class Notebook(gobject.GObject):
 		self.icon = None
 		self.config = config
 		self.lock = AsyncLock()
+			# We don't use FS.get_async_lock() at this level. A store
+			# backend will automatically trigger this when it calls any
+			# async file operations. This one is more abstract for the
+			# notebook as a whole, regardless of storage
 
 		if dir:
 			assert isinstance(dir, Dir)

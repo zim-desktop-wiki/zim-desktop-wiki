@@ -10,7 +10,7 @@ import subprocess
 
 from zim.fs import FS
 from zim.applications import Application
-from zim.async import AsyncOperation, AsyncLock
+from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
 
 
@@ -74,7 +74,7 @@ class BazaarVCS(object):
 
 	def __init__(self, dir):
 		self.root = dir
-		self.lock = AsyncLock()
+		self.lock = FS.get_async_lock(self.root)
 		FS.connect('path-created', self.on_path_created)
 		FS.connect('path-moved', self.on_path_moved)
 		FS.connect('path-deleted', self.on_path_deleted)
@@ -97,10 +97,6 @@ class BazaarVCS(object):
 			_bzr.run(['init'], cwd=self.root)
 			_bzr.run(['ignore', '**/.zim/'], cwd=self.root) # ignore cache
 			_bzr.run(['add', '.'], cwd=self.root) # add all existing files
-
-	# FIXME shouldn't these 3 callbacks respect notebook.lock ?
-	# or can we save ourselves a lot of trouble with a generic
-	# FS.lock ?
 
 	def on_path_created(self, fs, path):
 		if path.ischild(self.root) and not self._ignored(path):
