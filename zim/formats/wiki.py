@@ -323,7 +323,7 @@ class Parser(ParserClass):
 					lambda match: (style, {}, match[1]) , list)
 
 		list = parser_re['tag'].sublist(
-				lambda match: ('tag', {'name': match['name']}, '@'+match['name']), list)
+				lambda match: ('tag', {'name': match['name']}, "@%s" % match['name']), list)
 
 		for item in list:
 			if isinstance(item, tuple):

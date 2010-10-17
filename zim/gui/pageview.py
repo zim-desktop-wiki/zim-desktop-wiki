@@ -181,6 +181,8 @@ _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
 _is_not_style_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'style')
 _is_link_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'link'
 _is_not_link_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'link')
+_is_tag_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'tag'
+_is_not_tag_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'tag')
 
 PIXBUF_CHR = u'\uFFFC'
 
@@ -203,6 +205,8 @@ markup_re = {'style-strong' : Re(r'(\*{2})(.*)\1'),
 	'style-mark' : Re(r'(_{2})(.*)\1'),
 	'style-pre' : Re(r'(\'{2})(.*)\1'),
 	'style-strike' : Re(r'(~{2})(.*)\1')}
+
+tag_re = Re(r'^(@\w+)$')
 
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
@@ -347,6 +351,7 @@ class TextBuffer(gtk.TextBuffer):
 		'sub': {'rise': -3500, 'scale':0.7},
 		'sup': {'rise': 7500, 'scale':0.7},
 		'link': {'foreground': 'blue'},
+		'tag': {'foreground': 'blue'},
 		'find-highlight': {'background': 'orange'},
 	}
 
@@ -517,6 +522,9 @@ class TextBuffer(gtk.TextBuffer):
 			elif element.tag == 'link':
 				self.set_textstyle(None) # Needed for interactive insert tree after paste
 				self.insert_link_at_cursor(element.text, **element.attrib)
+			elif element.tag == 'tag':
+				self.set_textstyle(None) # Needed for interactive insert tree after paste
+				self.insert_tag_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
 				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
@@ -528,9 +536,6 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
 				self.set_indent(None)
-			elif element.tag == 'tag':
-				if element.text:
-					self.insert_at_cursor(element.text)
 			else:
 				# Text styles
 				if element.tag == 'h':
@@ -610,6 +615,29 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return None
 
+	def insert_tag(self, iter, text, **attrib):
+		'''Insert a tag into the buffer at iter'''
+		with self.tmp_cursor(iter):
+			self.insert_tag_at_cursor(text, **attrib)
+
+	def insert_tag_at_cursor(self, text, **attrib):
+		'''Like insert_tag() but inserts at the cursor'''
+		tag = self.create_tag_tag(text, **attrib)
+		self._editmode_tags = \
+			filter(_is_not_tag_tag,
+				filter(_is_not_style_tag, self._editmode_tags) ) + (tag,)
+		self.insert_at_cursor(text)
+		self._editmode_tags = self._editmode_tags[:-1]
+
+	def create_tag_tag(self, text, **attrib):
+		tag = self.create_tag(None, **self.tag_styles['tag'])
+		tag.set_priority(0) # force tags to be below styles
+		tag.zim_type = 'tag'
+		tag.zim_tag = 'tag'
+		tag.zim_attrib = attrib
+		tag.zim_attrib['name'] = None
+		return tag
+
 	def get_tag_tag(self, iter):
 		# Explicitly left gravity, otherwise position behind the tag
 		# would alos be consifered part of the tag. Position before the
@@ -628,15 +656,14 @@ class TextBuffer(gtk.TextBuffer):
 
 		if tag:
 			attrib = tag.zim_attrib.copy()
-			if attrib['name'] is None:
-				# Copy text content as href
-				start = iter.copy()
-				if not start.begins_tag(tag):
-					start.backward_to_tag_toggle(tag)
-				end = iter.copy()
-				if not end.ends_tag(tag):
-					end.forward_to_tag_toggle(tag)
-				attrib['name'] = start.get_text(end)
+			# Copy text content as name
+			start = iter.copy()
+			if not start.begins_tag(tag):
+				start.backward_to_tag_toggle(tag)
+			end = iter.copy()
+			if not end.ends_tag(tag):
+				end.forward_to_tag_toggle(tag)
+			attrib['name'] = start.get_text(end)[1:]
 			return attrib
 		else:
 			return None
@@ -2523,6 +2550,17 @@ class TextView(gtk.TextView):
 			# DO not auto-format if any zim tags are applied except for indent
 			return
 
+		def apply_tag(match):
+			#~ print "TAG >>%s<<" % word
+			start = end.copy()
+			if not start.backward_chars(len(match)):
+				return False
+			if buffer.range_has_tags(_is_not_indent_tag, start, end):
+				return False
+			tag = buffer.create_tag_tag(match)
+			buffer.apply_tag(tag, start, end)
+			return True
+
 		def apply_link(match):
 			#~ print "LINK >>%s<<" % word
 			start = end.copy()
@@ -2543,6 +2581,8 @@ class TextView(gtk.TextView):
 			buffer.insert_bullet(
 				buffer.get_iter_at_mark(mark), autoformat_bullets[word])
 			buffer.delete_mark(mark)
+		elif tag_re.match(word):
+			apply_tag(tag_re[0])
 		elif url_re.match(word):
 			apply_link(url_re[0])
 		elif page_re.match(word):

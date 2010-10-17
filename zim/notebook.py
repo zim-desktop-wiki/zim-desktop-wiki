@@ -1723,9 +1723,9 @@ class Page(Path):
 		'''
 		tree = self.get_parsetree()
 		if tree:
-			for tag in tree.getiterator('tag'):
+			for tag in tree.iter('tag'):
 				attrib = tag.attrib.copy()
-				name = attrib.pop('name')
+				name = tag.text
 				yield name, attrib
 
 class IndexPage(Page):
