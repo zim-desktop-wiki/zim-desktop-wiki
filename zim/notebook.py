@@ -1715,18 +1715,17 @@ class Page(Path):
 				yield type, href, attrib
 
 	def get_tags(self):
-		'''Generator for a list of tuples of name and attrib for tags
-		in the parsetree.
-
-		This gives the raw tags, if you want nice Tag objects use
-		index.list_tags() instead.
+		'''Generator of an unordered list of unique tuples of name and attrib 
+		for tags in the parsetree.
 		'''
 		tree = self.get_parsetree()
 		if tree:
+			tags = {}
 			for tag in tree.iter('tag'):
-				attrib = tag.attrib.copy()
-				name = tag.text
-				yield name, attrib
+				tags[tag.text] = tag.attrib.copy()
+			for tag, attrib in tags.iteritems():
+				yield tag, attrib
+			
 
 class IndexPage(Page):
 	'''Page displaying a namespace index'''
