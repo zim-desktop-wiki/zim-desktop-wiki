@@ -1787,3 +1787,14 @@ class Link(object):
 
 	def __repr__(self):
 		return '<%s: %s to %s (%s)>' % (self.__class__.__name__, self.source, self.href, self.type)
+
+class Tagged(object):
+
+	__slots__ = ('source', 'tag')
+
+	def __init__(self, source, tag):
+		self.source = source
+		self.tag = tag
+
+	def __repr__(self):
+		return '<%s: %s tagged %s>' % (self.__class__.__name__, self.source, self.tag)

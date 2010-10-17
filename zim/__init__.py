@@ -3,7 +3,7 @@
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.48'
+__version__ = '0.48.tags1'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <pardus@cpan.org>'
 __copyright__ = 'Copyright 2008 - 2010 Jaap Karssenberg <pardus@cpan.org>'

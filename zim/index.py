@@ -43,7 +43,7 @@ import gobject
 import logging
 
 import zim
-from zim.notebook import Path, Link, PageNameError
+from zim.notebook import Path, Link, Tagged, PageNameError
 
 logger = logging.getLogger('zim.index')
 
@@ -82,6 +82,14 @@ create table if not exists links (
 create table if not exists linktypes (
 	id INTEGER PRIMARY KEY,
 	label TEXT
+);
+create table if not exists tags (
+	id INTEGER PRIMARY KEY,
+	name TEXT
+);
+create table if not exists tagsources (
+	source INTEGER,
+	tag INTEGER
 );
 '''
 
@@ -159,6 +167,33 @@ class IndexPath(Path):
 				yield IndexPath(namespace, indexpath)
 				path.pop()
 		yield IndexPath(':', (ROOT_ID,))
+
+
+class IndexTag:
+	'''Index representation of a tag'''
+
+	__slots__ = ('name', '_indextag', '_row')
+
+	def __init__(self, name, indextag, row=None):
+		self.name = name.lstrip('@')
+		self.name = unicode(self.name)
+		self._indextag = indextag
+		self._row = row
+
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self.name)
+
+	@property
+	def id(self): return self._indextag
+
+	def __getattr__(self, attr):
+		if self._row is None:
+			raise AttributeError, 'This IndexTag does not contain row data'
+		else:
+			try:
+				return self._row[attr]
+			except IndexError:
+				raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
 
 
 class DBCommitContext(object):
@@ -513,7 +548,8 @@ class Index(gobject.GObject):
 
 		#~ print '!! INDEX PAGE', path, path._indexpath
 		assert isinstance(path, IndexPath) and not path.isroot
-		seen = set()
+		seen_links = set()
+		seen_tags = set()
 		hadcontent = path.hascontent
 		with self.db_commit:
 			self.db.execute('delete from links where source==?', (path.id,))
@@ -531,9 +567,9 @@ class Index(gobject.GObject):
 					except PageNameError:
 						continue
 
-					if link != page and not link.name in seen:
+					if link != page and not link.name in seen_links:
 						# Filter out self refering links and remove doubles
-						seen.add(link.name)
+						seen_links.add(link.name)
 						indexpath = self.lookup_path(link)
 						if indexpath is None:
 							indexpath = self.touch(link)
@@ -541,7 +577,20 @@ class Index(gobject.GObject):
 						self.db.execute(
 							'insert into links (source, href) values (?, ?)',
 							(path.id, indexpath.id) )
-
+				for _, attrib in page.get_tags():
+					name = attrib['name']
+					if not name in seen_tags:
+						seen_tags.add(name)
+						indextag = self.lookup_tagname(name)
+						if indextag is None:
+							cursor = self.db.cursor()
+							cursor.execute(
+								'insert into tags(name) values (?)', (name,))
+							indextag = IndexTag(name, cursor.lastrowid)
+						self.db.execute(
+							'insert into tagsources (source, tag) values (?, ?)',
+							(path.id, indextag.id,))
+						
 			key = self.notebook.get_page_indexkey(page)
 			self.db.execute(
 				'update pages set hascontent=?, contentkey=? where id==?',
@@ -908,6 +957,24 @@ class Index(gobject.GObject):
 			parent = myrow['parent']
 
 		return IndexPath(':'.join(names), indexpath, row)
+	
+	def lookup_tagname(self, name):
+		'''Returns an IndexTag for the named tag.'''
+		cursor = self.db.cursor()
+		cursor.execute('select * from tags where name==?', (name,))
+		row = cursor.fetchone()
+		if row is None:
+			return None # no such id !?
+		return IndexTag(row['name'], row['id'], row)
+
+	def lookup_tagid(self, id):
+		'''Returns an IndexTag for an index id.'''
+		cursor = self.db.cursor()
+		cursor.execute('select * from tags where id==?', (id,))
+		row = cursor.fetchone()
+		if row is None:
+			return None # no such id !?
+		return IndexTag(row['name'], row['id'], row)
 
 	def resolve_case(self, name, namespace=None):
 		'''Construct an IndexPath or Path by doing a case insensitive lookups
@@ -1039,6 +1106,27 @@ class Index(gobject.GObject):
 		cursor.execute('select count(*) from pages where parent==?', (parentid,))
 		row = cursor.fetchone()
 		return int(row[0])
+
+	def get_tags(self, path):
+		path = self.lookup_path(path)
+		if path:
+			cursor = self.db.cursor()
+			cursor.execute('select * from tagsources where source == ?', (path.id,))
+			for source in cursor:
+				assert source['source'] == path.id
+				source = path
+				tag = self.lookup_tagid(source['tag'])
+				yield Tagged(source, tag)
+				
+	def get_tagged(self, name):
+		tag = self.lookup_tagname(name)
+		if tag:
+			cursor = self.db.cursor()
+			cursor.execute('select * from tagsources where tag == ?', (tag.id,))
+			for tagsource in cursor:
+				assert tagsource['tag'] == tag.id
+				source = self.lookup_id(tagsource['source'])
+				yield Tagged(source, tag)
 
 	def list_links(self, path, direction=LINK_DIR_FORWARD):
 		'''Return Link objects for each link from or to path.

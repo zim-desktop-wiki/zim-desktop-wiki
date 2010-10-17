@@ -66,21 +66,21 @@ class TagviewPluginWidget(gtk.VBox):
 		self.plugin.ui.connect('open-page', self.on_open_page)	
 
 	def on_open_page(self, ui, page, path):
-		try:
-			self.textbuffer.delete(*self.textbuffer.get_bounds())		
-			for _, attrib in page.get_tags():
-				self.textbuffer.insert_at_cursor(attrib['name'] + ", ")
-			self.textbuffer.insert_at_cursor("\n")
-			if not self.notebook_connected:
-				ui.notebook.connect('stored-page', self.on_page_updated)
-		except AssertionError:
-			pass
+		self.update_view(page)
+		if not self.notebook_connected:
+			ui.notebook.connect('stored-page', self.on_page_updated)
 		
 	def on_page_updated(self, o, page):
-		try:			
-			self.textbuffer.delete(*self.textbuffer.get_bounds())
-			for _, attrib in page.get_tags():
-				self.textbuffer.insert_at_cursor(attrib['name'] + ", ")
-			self.textbuffer.insert_at_cursor("\n")
-		except AssertionError:
-			pass
+		self.update_view(page)
+		
+	def update_view(self, page):
+		self.textbuffer.delete(*self.textbuffer.get_bounds())
+		index = self.plugin.ui.notebook.index
+		for _, attrib in page.get_tags():
+			name = attrib['name']
+			line = name + " ("
+			for tagged in index.get_tagged(name):
+				line += tagged.source.name + ", "
+			line += ")\n"
+			self.textbuffer.insert_at_cursor(line)
+		
