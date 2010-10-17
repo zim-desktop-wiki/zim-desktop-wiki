@@ -4,8 +4,6 @@
 
 '''Plugin to serve as work-around for the lack of printing support'''
 
-import webbrowser
-
 from zim.fs import TmpFile
 from zim.plugins import PluginClass
 import zim.templates
@@ -53,7 +51,9 @@ This is a core plugin shipping with zim.
 
 	def print_to_browser(self):
 		file = self.print_to_file()
-		webbrowser.open('file://%s' % file)
+		self.ui.open_with('web_browser', 'file://%s' % file)
+			# Force web browser here - otherwise it goes to the file
+			# browser which can have unexpected results
 
 	def print_to_file(self):
 		page = self.ui.page

@@ -102,7 +102,7 @@ class Dumper(DumperClass):
 
 		for element in list.getchildren():
 			text = tex_encode(element.text)
-			if element.tag == 'p':
+			if element.tag in ('p', 'div'):
 				if 'indent' in element.attrib:
 					indent = int(element.attrib['indent'])
 				else:

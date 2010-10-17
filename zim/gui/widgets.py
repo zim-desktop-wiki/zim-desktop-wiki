@@ -17,6 +17,7 @@ import sys
 from zim.fs import *
 import zim.errors
 import zim.config
+from zim.config import value_is_coord
 from zim.notebook import Notebook, Path, PageNameError
 from zim.parsing import link_type
 
@@ -117,7 +118,7 @@ def scrolled_text_view(text=None, monospace=False):
 	piece of multiline text, wraps it in a scrolled window and returns
 	both the window and the textview.
 	'''
-	textview = gtk.TextView()
+	textview = gtk.TextView(TextBuffer())
 	textview.set_editable(False)
 	textview.set_wrap_mode(gtk.WRAP_WORD)
 	textview.set_left_margin(5)
@@ -132,6 +133,24 @@ def scrolled_text_view(text=None, monospace=False):
 	window.set_shadow_type(gtk.SHADOW_IN)
 	window.add(textview)
 	return window, textview
+
+
+class TextBuffer(gtk.TextBuffer):
+	'''Sub-class of gtk.TextBuffer that does utf-8 decoding on get_text
+	and get_slice.
+	'''
+
+	def get_text(self, start, end, include_hidden_chars=True):
+		text = gtk.TextBuffer.get_text(self, start, end, include_hidden_chars)
+		if text:
+			text = text.decode('utf-8')
+		return text
+
+	def get_slice(self, start, end, include_hidden_chars=True):
+		text = gtk.TextBuffer.get_slice(self, start, end, include_hidden_chars)
+		if text:
+			text = text.decode('utf-8')
+		return text
 
 
 def gtk_get_style():
@@ -243,8 +262,11 @@ class SingleClickTreeView(gtk.TreeView):
 		and not self.is_rubber_banding_active():
 			x, y = map(int, event.get_coords())
 				# map to int to surpress deprecation warning :S
+				# note that get_coords() gives back (0, 0) when cursor
+				# is outside the treeview window (e.g. drag & drop that
+				# was started inside the tree - see bug lp:646987)
 			info = self.get_path_at_pos(x, y)
-			if not info is None:
+			if x > 0 and y > 0 and not info is None:
 				path, column, x, y = info
 				if self.get_selection().path_is_selected(path):
 					self.row_activated(path, column)
@@ -722,12 +744,12 @@ class Dialog(gtk.Dialog):
 			self.vbox.set_spacing(5)
 
 		if hasattr(self, 'uistate'):
-			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
+			self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		elif hasattr(ui, 'uistate') \
 		and isinstance(ui.uistate, zim.config.ConfigDict):
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
-			self.uistate.setdefault('windowsize', defaultwindowsize, check=self.uistate.is_coord)
+			self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		else:
 			self.uistate = { # used in tests/debug
 				'windowsize': defaultwindowsize
@@ -1064,7 +1086,7 @@ class ErrorDialog(gtk.MessageDialog):
 			description = None
 		elif isinstance(error, Exception):
 			msg = _('Looks like you found a bug') # T: generic error dialog
-			description = error.__class__.__name__ + ': ' + error.message
+			description = error.__class__.__name__ + ': ' + unicode(error)
 			# TODO: add widget with stack trace in this case
 		elif isinstance(error, tuple):
 			msg, description = error

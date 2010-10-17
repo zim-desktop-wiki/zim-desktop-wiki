@@ -178,13 +178,17 @@ LINKS: [[Foo]][[Bar]]
 
 
 Let's try these **bold**, //italic//, __underline__ and ~~strike~~
-And some ''//verbatim//''
+	And some ''//verbatim//'' with an indent halfway the paragraph
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 
 A list
 * foo
 	* ~~bar~~
 	* baz
+And an indented list
+	* foo
+		* ~~bar~~
+		* baz
 
 And a checkbox list
 [ ] item 1

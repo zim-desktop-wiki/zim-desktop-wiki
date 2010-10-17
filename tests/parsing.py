@@ -35,14 +35,6 @@ class TestParsing(TestCase):
 		self.assertEqual(parse_date('1:11:2001'), (2001, 11, 1))
 		self.assertEqual(parse_date('2001/11/1'), (2001, 11, 1))
 
-	def testTitle(self):
-		for string, wanted in (
-			('foo bar', 'Foo Bar'),
-			('FooBar baz', 'FooBar Baz'),
-			('dusJa check123', 'dusJa Check123'),
-		):
-			self.assertEqual(title(string), wanted)
-
 	def testRe(self):
 		'''Test parsing Re class'''
 		string = 'foo bar baz';
@@ -105,7 +97,8 @@ class TestParsing(TestCase):
 			('mailto:foo.com', 'page'),
 			('foo@bar.com', 'mailto'),
 			('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
-			('http:foo@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('mid:foo@bar.org', 'mid'),
+			('cid:foo@bar.org', 'cid'),
 			('./foo/bar', 'file'),
 			('/foo/bar', 'file'),
 			('~/foo', 'file'),

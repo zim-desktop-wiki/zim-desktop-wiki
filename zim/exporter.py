@@ -212,18 +212,20 @@ class StaticLinker(BaseLinker):
 			if parent == self.path:
 				path = './' + self.path.basename + '/'
 				downpath = page.relname(parent)
-				path += encode_filename(downpath) + self._extension
+				path += downpath
 			elif parent == page:
 				uppath = self.path.relname(parent)
 				path = '../' * (uppath.count(':') + 1)
-				path += encode_filename(page.basename) + self._extension
+				path += page.basename
 			else:
 				uppath = self.path.relname(parent)
 				downpath = page.relname(parent)
 				path = '../' * uppath.count(':') or './'
-				path += encode_filename(downpath) + self._extension
+				path += downpath
+
+			path = encode_filename(path) + self._extension
 			#~ print '>>>', path
-			return url_encode(path)
+			return url_encode(path.replace(' ', '_'))
 
 	def file(self, link):
 		if self.document_root_url and link.startswith('/'):

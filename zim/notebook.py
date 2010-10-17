@@ -390,6 +390,10 @@ class Notebook(gobject.GObject):
 		self.icon = None
 		self.config = config
 		self.lock = AsyncLock()
+			# We don't use FS.get_async_lock() at this level. A store
+			# backend will automatically trigger this when it calls any
+			# async file operations. This one is more abstract for the
+			# notebook as a whole, regardless of storage
 
 		if dir:
 			assert isinstance(dir, Dir)
@@ -428,15 +432,14 @@ class Notebook(gobject.GObject):
 			if self.needs_upgrade:
 				logger.warn('This notebook needs to be upgraded to the latest data format')
 
-		self.config['Notebook'].setdefault('name', None, klass=basestring)
-		self.config['Notebook'].setdefault('home', ':Home', klass=basestring)
-		self.config['Notebook'].setdefault('icon', None, klass=basestring)
-		self.config['Notebook'].setdefault('document_root', None, klass=basestring)
+		self.config['Notebook'].setdefault('name', None, check=basestring)
+		self.config['Notebook'].setdefault('home', ':Home', check=basestring)
+		self.config['Notebook'].setdefault('icon', None, check=basestring)
+		self.config['Notebook'].setdefault('document_root', None, check=basestring)
 		self.config['Notebook'].setdefault('shared', False)
 		if os.name == 'nt': endofline = 'dos'
 		else: endofline = 'unix'
-		self.config['Notebook'].setdefault('endofline', endofline,
-			check=lambda v: v in ('dos', 'unix') )
+		self.config['Notebook'].setdefault('endofline', endofline, check=set(('dos', 'unix')))
 
 		self.do_properties_changed()
 
@@ -1073,11 +1076,10 @@ class Notebook(gobject.GObject):
 
 		self.move_page(path, newpath, update_links, callback)
 		if update_heading:
-			import zim.parsing
 			page = self.get_page(newpath)
 			tree = page.get_parsetree()
 			if not tree is None:
-				tree.set_heading(zim.parsing.title(newbasename))
+				tree.set_heading(newbasename.capitalize())
 				page.set_parsetree(tree)
 				self.store_page(page)
 
@@ -1405,6 +1407,11 @@ class Path(object):
 			self.name = ''
 		else:
 			self.name = name.strip(':')
+
+		try:
+			self.name = unicode(self.name)
+		except UnicodeDecodeError:
+			raise Error, 'BUG: invalid input, page names should be in ascii, or given as unicode'
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)

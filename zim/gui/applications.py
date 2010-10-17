@@ -673,7 +673,11 @@ class CustomToolDict(DesktopEntryDict):
 			cmd[cmd.index('%f')] = self._tmpfile.path
 
 		if '%d' in cmd:
-			cmd[cmd.index('%d')] = notebook.get_attachments_dir(page) or ''
+			dir = notebook.get_attachments_dir(page)
+			if dir:
+				cmd[cmd.index('%d')] = dir.path
+			else:
+				cmd[cmd.index('%d')] = ''
 
 		if '%s' in cmd:
 			if hasattr(page, 'source') and isinstance(page.source, File):
@@ -685,7 +689,11 @@ class CustomToolDict(DesktopEntryDict):
 			cmd[cmd.index('%n')] = File(notebook.uri).path
 
 		if '%D' in cmd:
-			cmd[cmd.index('%D')] = notebook.get_document_root() or ''
+			dir = notebook.get_document_root()
+			if dir:
+				cmd[cmd.index('%D')] = dir.path
+			else:
+				cmd[cmd.index('%D')] = ''
 
 		if '%t' in cmd:
 			text = pageview.get_selection() or pageview.get_word()

@@ -18,6 +18,7 @@ from zim.gui.widgets import ui_environment, gtk_get_style,\
 	Button, IconButton, MenuButton, \
 	BrowserTreeView, SingleClickTreeView
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
+from zim.config import value_allow_empty
 
 
 logger = logging.getLogger('zim.plugins.tasklist')
@@ -95,7 +96,7 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 		('all_checkboxes', 'bool', _('Consider all checkboxes as tasks'), True),
 			# T: label for plugin preferences dialog
-		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO'),
+		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', value_allow_empty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 	)
 
@@ -616,11 +617,18 @@ class TaskListTreeView(BrowserTreeView):
 		self.plugin.connect_object('tasklist-changed', self.__class__.refresh, self)
 
 	def refresh(self):
-		self.real_model.clear()
+		self.real_model.clear() # flush
+
+		# First cache + sort tasks to ensure stability of the list
+		rows = list(self.plugin.list_tasks())
 		paths = {}
-		for row in self.plugin.list_tasks():
+		for row in rows:
 			if not row['source'] in paths:
 				paths[row['source']] = self.plugin.get_path(row)
+
+		rows.sort(key=lambda r: paths[r['source']].name)
+
+		for row in rows:
 			path = paths[row['source']]
 			modelrow = [False, row['prio'], row['description'], row['due'], path.name, row['actionable'], row['open']]
 						# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL

@@ -158,17 +158,21 @@ class BoundQuickNoteDialog(Dialog):
 		if template_options is None: template_options = {}
 		else: template_options = template_options.copy()
 
+		self.uistate.setdefault('open_page', True)
+		self.uistate.setdefault('new_page', True)
+
 		# Set up the inputs and set page/ namespace to switch on
 		# toggling the checkbox
 		table = self.add_fields( (
 				('page', 'page', _('Page'), namespace),
 				('namespace', 'namespace', _('Namespace'), namespace), # T: text entry field
-				('newpage', 'bool', _('Create a new page for each note'), False), # T: checkbox in Quick Note dialog
-				('basename', 'page', _('Title'), basename) # T: text entry field
+				('newpage', 'bool', _('Create a new page for each note'), True), # T: checkbox in Quick Note dialog
+				('basename', 'string', _('Title'), basename) # T: text entry field
 			), table=table, trigger_response=False )
 
 		self.inputs['page'].set_no_show_all(True)
 		self.inputs['namespace'].set_no_show_all(True)
+		self.inputs['newpage'].set_active(self.uistate['newpage'])
 
 		def switch_input(*a):
 			if self.inputs['newpage'].get_active():
@@ -182,6 +186,11 @@ class BoundQuickNoteDialog(Dialog):
 
 		switch_input()
 		self.inputs['newpage'].connect('toggled', switch_input)
+
+		self.open_page = gtk.CheckButton(_('_Open new page'))
+		self.open_page.set_active(self.uistate['open_page'])
+		self.action_area.pack_start(self.open_page, False)
+		self.action_area.set_child_secondary(self.open_page, True)
 
 		# Add the main textview and hook up the basename field to
 		# sync with first line of the textview
@@ -216,6 +225,7 @@ class BoundQuickNoteDialog(Dialog):
 
 	def save_uistate(self):
 		self.uistate['newpage'] = self.inputs['newpage'].get_active()
+		self.uistate['open_page'] = self.open_page.get_active()
 		if self.uistate['newpage']:
 			self.uistate['namespace'] = self.inputs['namespace'].get_text()
 		else:
@@ -246,14 +256,14 @@ class BoundQuickNoteDialog(Dialog):
 		page = self.inputs['page'].get_text()
 		namespace = self.inputs['namespace'].get_text()
 		basename = self.inputs['basename'].get_text()
+		open_page = self.open_page.get_active()
 
 		buffer = self.textview.get_buffer()
 		bounds = buffer.get_bounds()
 		text = buffer.get_text(*bounds)
 
 		if newpage:
-			if not self.inputs['namespace'].get_input_valid() \
-			or not self.inputs['basename'].get_input_valid():
+			if not self.inputs['namespace'].get_input_valid():
 				return False
 			elif not basename:
 				self.inputs['basename'].set_input_valid(False)
@@ -261,7 +271,9 @@ class BoundQuickNoteDialog(Dialog):
 
 			if get_ui: ui = get_ui()
 			else: ui = self.ui
-			ui.new_page_from_text(text, namespace + ':' + basename)
+			page = ui.new_page_from_text(text, namespace + ':' + basename, open_page)
+			if open_page:
+				ui.present()
 		else:
 			if not self.inputs['page'].get_input_valid() \
 			or not page:
@@ -271,8 +283,9 @@ class BoundQuickNoteDialog(Dialog):
 			if get_ui: ui = get_ui()
 			else: ui = self.ui
 			ui.append_text_to_page(page, '\n----\n'+text)
+			if open_page:
+				ui.present(page) # also works with proxy
 
-		ui.present()
 		return True
 
 
@@ -287,10 +300,10 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		self._updating_title = False
 		self._title_set_manually = False
 
-		self.uistate.setdefault('lastnotebook', None)
+		self.uistate.setdefault('lastnotebook', None, basestring)
 		if self.uistate['lastnotebook']:
 			notebook = notebook or self.uistate['lastnotebook']
-			self.config['Namespaces'].setdefault(notebook, None)
+			self.config['Namespaces'].setdefault(notebook, None, basestring)
 			namespace = namespace or self.config['Namespaces'][notebook]
 
 		table = gtk.Table()
@@ -311,6 +324,7 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		notebook = self.notebookcombobox.get_notebook()
 		self.uistate['lastnotebook'] = notebook
 		self.uistate['newpage'] = self.inputs['newpage'].get_active()
+		self.uistate['open_page'] = self.open_page.get_active()
 		if self.uistate['newpage']:
 			self.config['Namespaces'][notebook] = self.inputs['namespace'].get_text()
 		else:

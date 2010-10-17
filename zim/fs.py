@@ -221,12 +221,12 @@ else:
 
 	def decode(path):
 		if isinstance(path, unicode):
+			return path # assume encoding is correct
+		else:
 			try:
 				return path.decode(ENCODING)
 			except UnicodeDecodeError:
 				raise Error, 'BUG: invalid filename %s' % path
-		else:
-			return path # assume encoding is correct
 
 
 def isabs(path):
@@ -282,11 +282,22 @@ def lrmdir(path):
 			raise
 
 
+def _md5(content):
+	import hashlib
+	m = hashlib.md5()
+	if isinstance(content, basestring):
+		m.update(content)
+	else:
+		for l in content:
+			m.update(l)
+	return m.digest()
+
+
 class PathLookupError(Error):
 	pass # TODO description
 
 
-class OverWriteError(Error):
+class FileWriteError(Error):
 	pass # TODO description
 
 
@@ -296,27 +307,6 @@ class FileNotFoundError(PathLookupError):
 		self.file = file
 		self.msg = _('No such file: %s') % file.path
 			# T: message for FileNotFoundError
-
-class FileConflictError(Error):
-
-
-	def __init__(self, file):
-		self.file = file
-		self.msg = _('File conflict: %s') % file.path
-			# T: message for File Conflict Error
-		
-		self.description = _('''\
-There is a lock file for this file. This means an error occured last 
-time we tried to save it and no recovery could be done. Only way
-to resolve this is to do a manual recovery. Check for a file ending
-in '.zim-orig~' and either remove it or rename it to the original file
-name.
-''')
-		# T: description for File Conflict Error
-		# normally this property is defined as calss property, but 
-		# zim.fs is loaded before gettext bindings are setup, so
-		# defer using them till here
-
 
 
 # TODO actually hook the signal for deleting files and folders
@@ -330,6 +320,23 @@ class _FS(gobject.GObject):
 		'path-moved': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'path-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
+
+	def __init__(self):
+		gobject.GObject.__init__(self)
+		self._lock = AsyncLock()
+
+	def get_async_lock(self, path):
+		'''Return a lock for async operation for path'''
+		# FUTURE: we may actually use path to allow parallel async
+		# operations for files & folders that do not belong to the
+		# same tree. Problem there is that we do not aquire the lock
+		# in this method. So we need a new kind of lock type that can
+		# track dependency on other locks.
+		# Make sure to allow for the fact that other obejcts can keep
+		# the lock that are returned here indefinitely for re-use.
+		# But for now we keep things simple.
+		assert isinstance(path, UnixPath)
+		return self._lock
 
 # Need to register classes defining gobject signals
 gobject.type_register(_FS)
@@ -495,9 +502,11 @@ class UnixPath(object):
 		# Using shutil.move instead of os.rename because move can cross
 		# file system boundries, while rename can not
 		logger.info('Rename %s to %s', self, newpath)
-		newpath.dir.touch()
-		# TODO: check against newpath existing and being a directory
-		shutil.move(self.encodedpath, newpath.encodedpath)
+		with FS.get_async_lock(self):
+			# Do we also need a lock for newpath (could be the same as lock for self) ?
+			# TODO: check against newpath existing and being a directory
+			newpath.dir.touch()
+			shutil.move(self.encodedpath, newpath.encodedpath)
 		FS.emit('path-moved', self, newpath)
 		self.dir.cleanup()
 
@@ -553,7 +562,12 @@ class WindowsPath(UnixPath):
 	def uri(self):
 		'''File uri property with win32 logic'''
 		# win32 paths do not start with '/', so add another one
-		return 'file:///' + url_encode(self.canonpath)
+		# and avoid url encoding the second ":" in "file:///C:/..."
+		path = self.canonpath # replaces \ with /
+		if re.match('[A-Za-z]:/', path):
+			return 'file:///' + path[:2] + url_encode(path[2:])
+		else:
+			return 'file:///' + url_encode(path)
 
 	@property
 	def canonpath(self):
@@ -746,7 +760,7 @@ class FilteredDir(Dir):
 		return files
 
 
-class File(Path):
+class UnixFile(Path):
 	'''OO wrapper for files. Implements more complex logic than
 	the default python file objects. On writing we first write to a
 	temporary files, then flush and sync and finally replace the file we
@@ -767,29 +781,29 @@ class File(Path):
 	However, this does not work when using open() directly.
 	'''
 
-	# For the atomic write we use .zim-new~ and .zim-orig~
-	# In case we encouter a left over .zim-new~ we must ignore it, something went
-	# wrong while writing, but original was not overwritten. May well be that .zim-new~ is
-	# just empty (truncated) or contains incomplete data.
-	# In case we encounter a left over .zim-orig~ and no normal file, we should 
-	# restore it because something went wrong between moving the old file out of
-	# the way and moving in the new one. (Windows only)
+	# For atomic write we first write a tmp file which has the extension
+	# .zim-new~ when is was written succesfully we replace the actual file
+	# with the tmp file. Because rename is atomic on POSIX platforms and
+	# replaces the existing file this either succeeds or not, it can never
+	# truncate the existing file but fail to write the new file. So if writing
+	# fails we should always at least have the old file still present.
+	# If we encounter a left over .zim-new~ we ignore it since it may be
+	# corrupted.
+	#
+	# For Window the behavior is more complicated, see the WindowsFile class
+	# below.
+	#
+	# Note that the mechanism to avoid overwriting files that changed on disks
+	# does not prevent conflicts when two processes try to write to the same
+	# file at the same time. This is a hard problem that is currently not
+	# addressed in this implementation.
 
 	def __init__(self, path, checkoverwrite=False, endofline=None):
 		Path.__init__(self, path)
 		self.checkoverwrite = checkoverwrite
 		self.endofline = endofline
 		self._mtime = None
-		self._lock = AsyncLock()
-		if isinstance(self, WindowsPath):
-			back = self.encodedpath + '.zim-orig~'
-			if not os.path.isfile(self.encodedpath) \
-			and os.path.isfile(back):
-				logger.warn('Recovering file: %s', self.path)
-				try:
-					os.rename(back, self.encodedpath)
-				except:
-					raise FileConflictError, self
+		self._lock = FS.get_async_lock(self)
 
 	def __eq__(self, other):
 		if isinstance(other, File):
@@ -806,15 +820,14 @@ class File(Path):
 		Opening a non-exisiting file for writing will cause the whole path
 		to this file to be created on the fly.
 		'''
-		if isinstance(self, WindowsPath):
-			back = self.encodedpath + '.zim-orig~'
-			if os.path.isfile(back):
-				raise FileConflictError, self
-
+		# When we open for writing, we actually open the tmp file
+		# and return a FileHandle object that will call _on_write()
+		# when it is closed. This handler will take care of replacing
+		# the actual file with the newly written tmp file.
 		assert mode in ('r', 'w')
 		if mode == 'w':
 			if not self.iswritable():
-				raise OverWriteError, 'File is not writable'
+				raise FileWriteError, _('File is not writable') # T: Error message
 			elif not self.exists():
 				self.dir.touch()
 			else:
@@ -835,67 +848,19 @@ class File(Path):
 		return srw
 
 	def _on_write(self):
-		# flush and sync are already done before close()
+		# Handler executed after successfull writing the .zim-new~ tmp file
+		# to replace the actual file with the tmp file.
+		# Note that flush() and sync() are already done before close()
+		#
+		# On Unix, for rename() if dest already exists it is replaced in an
+		# atomic operation. And other processes reading our file will not
+		# block moving it :)
 		tmp = self.encodedpath + '.zim-new~'
-		assert os.path.isfile(tmp)
-		if isinstance(self, WindowsPath):
-			# On Windows, if dst already exists, OSError will be raised
-			# and no atomic operation to rename the file - so we need
-			# to do it in two steps, with possible failure in between :(
-			# needed to introduce check in __init__ and FileConflictError
-			# in order to deal with this.
-			# In addition we see errors "File used by other process" on rename,
-			# probably due to antivirus, desktopsearch or similar - added re-try
-			# for those...
-			try:
-				if os.path.isfile(self.encodedpath):
-					isnew = False
-					back = self.encodedpath + '.zim-orig~'
-					os.rename(self.encodedpath, back)
-					try:
-						os.rename(tmp, self.encodedpath)
-					except Exception, error:
-						# Try to restore the original and re-raise the exception
-						try:
-							os.rename(back, self.encodedpath)
-						except:
-							pass
-						raise error
-					else:
-						# Clean up the original
-						os.remove(back)
-				else:
-					isnew = True
-					os.rename(tmp, self.encodedpath)
-			except WindowsError, error:
-				if error.errno == 13:
-					for i in range(1, 4):
-						logger.warn('File locked by other process: %s\nRe-try %i, sleeping for 1 sec.', self.path, i)
-						import time
-						time.sleep(1)
-						try:
-							if os.path.isfile(self.encodedpath):
-								os.rename(self.encodedpath, back)
-							os.rename(tmp, self.encodedpath)
-						except WindowsError, error:
-							if error.errno == 13 and i < 3:
-								continue
-							else:
-								raise
-						else:
-							break
-				else:
-					raise
-		else:
-			# On Unix, if dst already exists it is replaced in an atomic operation
-			# And other processes reading our file will not block moving it :)
-			isnew = not os.path.isfile(self.encodedpath)
-			os.rename(tmp, self.encodedpath)
+		if not os.path.isfile(tmp):
+			raise AssertionError, 'BUG: File should exist: %s' % tmp
 
+		os.rename(tmp, self.encodedpath)
 		logger.debug('Wrote %s', self)
-
-		if isnew:
-			FS.emit('path-created', self)
 
 	def raw(self):
 		'''Like read() but without encoding and newline logic.
@@ -937,8 +902,9 @@ class File(Path):
 			file = self.open('r')
 			content = file.read()
 			self._checkoverwrite(content)
-			return content.replace('\r', '')
+			return content.replace('\r', '').replace('\x00', '')
 				# Internally we use unix line ends - so strip out \r
+				# And remove any NULL byte since they skrew up parsing
 		except IOError:
 			raise FileNotFoundError(self)
 
@@ -967,8 +933,9 @@ class File(Path):
 			file = self.open('r')
 			lines = file.readlines()
 			self._checkoverwrite(lines)
-			return [line.replace('\r', '') for line in lines]
+			return [line.replace('\r', '').replace('\x00', '') for line in lines]
 				# Internally we use unix line ends - so strip out \r
+				# And remove any NULL byte since they skrew up parsing
 		except IOError:
 			raise FileNotFoundError(self)
 
@@ -976,6 +943,7 @@ class File(Path):
 		'''Overwrite file with text'''
 		with self._lock:
 			self._write(text)
+		self._check_isnew()
 
 	def write_async(self, text, callback=None, data=None):
 		'''Like write() but as asynchronous operation.
@@ -983,8 +951,12 @@ class File(Path):
 		for 'callback'.
 		'''
 		#~ print '!! ASYNC WRITE'
+		def mycallback(result, error, *args):
+			if error is None: self._check_isnew()
+			if callback: callback(result, error, *args)
+
 		operation = AsyncOperation(
-			self._write, (text,), lock=self._lock, callback=callback, data=data)
+			self._write, (text,), lock=self._lock, callback=mycallback, data=data)
 		operation.start()
 		return operation
 
@@ -1000,6 +972,8 @@ class File(Path):
 
 	def _write(self, text):
 		self._assertoverwrite()
+		self._isnew = not os.path.isfile(self.encodedpath)
+			# Put this check here because here we are sure to have a lock
 		endofline = self.get_endofline()
 		if endofline != '\n':
 			text = text.replace('\n', endofline)
@@ -1008,10 +982,20 @@ class File(Path):
 		file.close()
 		self._checkoverwrite(text)
 
+	def _check_isnew(self):
+		# Make sure the 'path-created' signal is emitted in the main
+		# thread, so do not put this in _write(), but call from write()
+		# or from async callback.
+		# Also make sur this is called after lock is released to prevent
+		# deadlock when event handler tries to access the file.
+		if self._isnew:
+			FS.emit('path-created', self)
+
 	def writelines(self, lines):
 		'''Overwrite file with a list of lines'''
 		with self._lock:
 			self._writelines(lines)
+		self._check_isnew()
 
 	def writelines_async(self, text, callback=None, data=None):
 		'''Like writelines() but as asynchronous operation.
@@ -1019,13 +1003,19 @@ class File(Path):
 		for 'callback'.
 		'''
 		#~ print '!! ASYNC WRITE'
+		def mycallback(result, error, *args):
+			if error is None: self._check_isnew()
+			if callback: callback(result, error, *args)
+
 		operation = AsyncOperation(
-			self._writelines, (text,), lock=self._lock, callback=callback, data=data)
+			self._writelines, (text,), lock=self._lock, callback=mycallback, data=data)
 		operation.start()
 		return operation
 
 	def _writelines(self, lines):
 		self._assertoverwrite()
+		self._isnew = not os.path.isfile(self.encodedpath)
+			# Put this check here because here we are sure to have a lock
 		endofline = self.get_endofline()
 		if endofline != '\n':
 			lines = [line.replace('\n', endofline) for line in lines]
@@ -1035,31 +1025,35 @@ class File(Path):
 		self._checkoverwrite(lines)
 
 	def _checkoverwrite(self, content):
+		# Set properties needed by assertoverwrite for the in-memory object
 		if self.checkoverwrite:
 			self._mtime = self.mtime()
 			self._content = content
 
 	def _assertoverwrite(self):
-		# do not prohibit writing without reading first
-		if isinstance(self, WindowsPath):
-			back = self.encodedpath + '.zim-orig~'
-			if os.path.isfile(back):
-				raise FileConflictError, self
+		# When we read a file and than write it, this method asserts the file
+		# did not change in between (e.g. by another process, or another async
+		# function of our own process). We use properties of this object instance
+		# We check the timestamp, if that does not match we check md5 to be sure.
+		# (Sometimes e.g. netwerk filesystems do not maintain timestamps as strict
+		# as we would like.)
+		#
+		# This function should not prohibit writing without reading first.
+		# Also we just write the file if it went missing in between
+		if self._mtime:
+			try:
+				mtime = self.mtime()
+			except OSError:
+				if not  os.path.isfile(self.encodedpath):
+					logger.critical('File missing: %s', self.path)
+					return
+				else:
+					raise
 
-		def md5(content):
-			import hashlib
-			m = hashlib.md5()
-			if isinstance(content, basestring):
-				m.update(content)
-			else:
-				for l in content:
-					m.update(l)
-			return m.digest()
-
-		if self._mtime and self._mtime != self.mtime():
-			logger.warn('mtime check failed for %s, trying md5', self.path)
-			if md5(self._content) != md5(self.open('r').read()):
-				raise OverWriteError, 'File changed on disk: %s' % self.path
+			if not self._mtime == mtime:
+				logger.warn('mtime check failed for %s, trying md5', self.path)
+				if _md5(self._content) != _md5(self.open('r').read()):
+					raise FileWriteError, 'File changed on disk: %s' % self.path
 
 	def touch(self):
 		'''Create this file and any parent directories if it does not yet exist.
@@ -1111,13 +1105,142 @@ class File(Path):
 		This can e.g. be used to detect case-insensitive filesystems
 		when renaming files.
 		'''
-		def md5(file):
-			import hashlib
-			m = hashlib.md5()
-			m.update(file.read())
-			return m.digest()
+		return _md5(self.read()) == _md5(other.read())
 
-		return md5(self) == md5(other)
+
+class WindowsFile(UnixFile):
+
+	# For the "atomic" write on Windows we use .zim-new~ and .zim-orig~.
+	# When writing a new file, the sequence is the same as on Unix: we
+	# write a tmp file and move it into place. However on windows the
+	# rename() function does not allow replacing an existing file, so
+	# there is no atomic operation to move the tmp file into place.
+	# What we do instead:
+	#
+	# 1. Write file.zim-new~
+	# 2. Move file to file.zim-orig~
+	# 3. Move file.zim-new~ to file
+	# 4. Remove file.zim-orig~
+	#
+	# But now we have to consider recovering the file if any of these
+	# steps fails:
+	#   * If we have .zim-new~ and the actual file either step 1 or 2
+	#     failed, in this case the .zim-new~ file can be corrupted, so
+	#     keep the file itself
+	#   * If we have .zim-new~ and .zim-orig~ but the actual file is
+	#     missing, step 3 failed. We use .zim-new~ because probably
+	#     step 1 succeeded.
+	#   * If we have the actual file and .zim-orig~ step 4 failed, we
+	#     can throw away the .zim-orig~ file.
+	#   * If we only have a .zim-orig~ file step 4 failed, was not
+	#     recovered and maybe the file was removed (remove cleans up the
+	#     .zim-new~). So we can not recover - file does not exist.
+	#   * If only have a .zim-new~ file maybe writing a new file failed,
+	#     the .zim-new~ file can be corrupted - so we can not recover
+	#   * If we have all 3 files some combination of actions happened,
+	#     keep using the actual file.
+	#
+	# So this results in two rules:
+	#
+	# 1. if the actual file exists, use it
+	# 2. if the actual file does no exist but both .zim-new~ and .zim-orig~
+	#    exist, use the .zim-new~ file.
+	#
+	# In any other cases we can not recover. What we can do is make a backup
+	# of .zim-orig~ for future manual recovery.
+
+	def __init__(self, path, checkoverwrite=False, endofline=None):
+		UnixFile.__init__(self, path, checkoverwrite, endofline)
+		self._recover() # just to be sure
+
+	def exists(self):
+		'''Returns True if the file exists and is actually a file'''
+		orig = self.encodedpath + '.zim-orig~'
+		new = self.encodedpath + '.zim-new~'
+		return os.path.isfile(self.encodedpath) or \
+			(os.path.isfile(new) and os.path.isfile(orig))
+			# if both new and orig exists, we can recover
+
+	def open(self, mode='r'):
+		self._recover() # just to be sure
+		return UnixFile.open(self, mode)
+
+	def _on_write(self):
+		# Handler executed after successfull writing the .zim-new~ tmp file
+		# to replace the actual file with the tmp file.
+		# Note that flush() and sync() are already done before close()
+		#
+		# On Windows, rename() does not allow atomic replace, so we need
+		# more logic. Also we want to be robust for errors when file is
+		# temporarily locked by e.g. a virus scanner.
+		tmp = self.encodedpath + '.zim-new~'
+		if not os.path.isfile(tmp):
+			raise AssertionError, 'BUG: File should exist: %s' % tmp
+
+		if os.path.isfile(self.encodedpath):
+			orig = self.encodedpath + '.zim-orig~'
+			if os.path.isfile(orig):
+				os.remove(orig)
+			self._rename(self.encodedpath, orig) # Step 2.
+			self._rename(tmp, self.encodedpath)  # Step 3.
+			try:
+				os.remove(orig) # Step 4.
+			except OSError:
+				pass # If it fails we try again on next write
+		else:
+			self._rename(tmp, self.encodedpath)
+
+		logger.debug('Wrote %s', self)
+
+	@staticmethod
+	def _rename(src, dst):
+		# Wrapper for os.rename which handles the timeout for errors when file
+		# is locked. Tries 10 times after 1s then fails.
+		i = 0
+		while True:
+			try:
+				os.rename(src, dst)
+			except WindowsError, error:
+				if error.errno == 13 and i < 10:
+					# errno 13 means locked by other process
+					i += 1
+					logger.warn('File locked by other process: %s\nRe-try %i', src, i)
+					import time
+					time.sleep(1)
+				else:
+					raise
+			else:
+				break
+
+	def _recover(self):
+		# Try and recover the file after errors in writing the file,
+		# see comment in class header.
+		if os.path.isfile(self.encodedpath):
+			return # no recovery needed
+
+		orig = self.encodedpath + '.zim-orig~'
+		new = self.encodedpath + '.zim-new~'
+		def backup_orig(orig):
+			bak = self.encodedpath + '.bak~'
+			i = 1
+			while os.path.isfile(bak):
+				bak = self.encodedpath + '.bak%i~' % i
+				i += 1
+			self._rename(orig, bak)
+			logger.warn('Left over file found: %s\nBacked up to: %s', orig, bak)
+
+		if os.path.isfile(new) and os.path.isfile(orig):
+			self._rename(new, self.encodedpath)
+			backup_orig(orig)
+		elif os.path.isfile(orig):
+			backup_orig(orig)
+
+
+# Determine which base class to use for files
+if os.name == 'nt':
+	File = WindowsFile
+else:
+	File = UnixFile
 
 
 class TmpFile(File):

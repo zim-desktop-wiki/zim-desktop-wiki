@@ -4,28 +4,17 @@
 
 from __future__ import with_statement
 
-from tests import TestCase, get_test_data_page, get_test_page
-
-import logging
+from tests import TestCase, LoggingFilter, get_test_data_page, get_test_page
 
 from zim.fs import *
 from zim.formats import wiki, ParseTree
 from zim.gui.pageview import *
 
 
-logger = logging.getLogger('zim.gui.pageview')
+class FilterNoSuchImageWarning(LoggingFilter):
 
-
-class FilterNoSuchImageWarning(object):
-
-	def __enter__(self):
-		logger.addFilter(self)
-
-	def __exit__(self, *a):
-		logger.removeFilter(self)
-
-	def filter(self, record):
-		return not record.getMessage().startswith('No such image:')
+	logger = 'zim.gui.pageview'
+	message = 'No such image:'
 
 
 def get_tree(wikitext):
@@ -57,6 +46,7 @@ class TestTextBuffer(TestCase):
 
 		raw1 = buffer.get_parsetree(raw=True)
 		result1 = buffer.get_parsetree()
+		#~ print tree.tostring()
 		#~ print result1.tostring()
 		#~ self.assertEqualDiff(result1.tostring(), tree.tostring())
 
@@ -95,7 +85,7 @@ dus <pre>ja</pre> hmm
 <h level="2">foo
 </h>bar
 
-dus <p indent="5">ja</p> <emphasis>hmm
+dus <div indent="5">ja</div> <emphasis>hmm
 dus ja
 </emphasis>grrr
 

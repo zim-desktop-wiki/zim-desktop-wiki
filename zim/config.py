@@ -12,6 +12,7 @@ import sys
 import os
 import re
 import logging
+import types
 
 if sys.version_info >= (2, 6):
 	import json # in standard lib since 2.6
@@ -223,6 +224,63 @@ def user_dirs():
 	return dirs
 
 
+def value_check_class(value, default):
+	'''Check function for setdefault() which implements the default
+	behavior by checking classes of the value and the default.
+	No need to specify this function directly as it is the default.
+	'''
+	klass = default.__class__
+
+	if issubclass(klass, basestring):
+		klass = basestring
+		if not value: # Special case to avoid empty string
+			return default
+
+	if klass is tuple and isinstance(value, list):
+		return tuple(value)
+	elif not isinstance(value, klass):
+		return default
+	else:
+		return value
+
+
+def value_allow_empty(value, default):
+	'''Check function for setdefault() which follows the default
+	behavior checking classes, but allows the configured value to
+	be empty.
+	'''
+	# Same as value_check_class() but without special case for basestring
+	klass = default.__class__
+
+	if issubclass(klass, basestring):
+		klass = basestring
+
+	if klass is tuple and isinstance(value, list):
+		return tuple(value)
+	elif not isinstance(value, klass):
+		return default
+	else:
+		return value
+
+
+def value_is_coord(value, default):
+	'''Check function for setdefault() which enforces a coordinate
+	(a tuple or list of 2 ints).
+	'''
+	if isinstance(value, list):
+		value = tuple(value)
+
+	if (
+		isinstance(value, tuple)
+		and len(value) == 2
+		and isinstance(value[0], int)
+		and isinstance(value[1], int)
+	):
+		return value
+	else:
+		return default
+
+
 class ListDict(dict):
 	'''Class that behaves like a dict but keeps items in same order.
 	Used as base class for e.g. for config objects were writing should be
@@ -275,50 +333,77 @@ class ListDict(dict):
 	# Would expect that setdefault() triggers __setitem__
 	# but this seems not to be the case in the standard implementation
 	# And we added some extra functionality here
-	def setdefault(self, k, v=None, klass=None, check=None):
-		'''Like dict.setdefault() but with some extra restriction because we
-		assume un-safe user input. If 'klass' is given the existing value
-		will be checked to be of that class and reset to default if it is not.
-		Alternatively 'check' can be a function that needs to return True
-		in order to keep the existing value. If no class and no function
-		is given is it will compare the classes of the set value and the
-		default to ensure we get what we expect. (An exception is made when
-		value is None, in that case it is good practise to always specify
-		a class or check function.)
+	def setdefault(self, key, default, check=None):
+		'''Like dict.setdefault() but with some extra restriction
+		because we assume un-safe user input. If no extra arguments
+		are given it will compare the classes of the set value and the
+		default to ensure we get what we expect. An exception is made
+		when value is None, in that case it is good practise to always
+		specify a class or check function. When the default is a string
+		we check the value to be an instance of basestring (ignoring
+		difference between str and unicode). Another special case is when
+		the default is a tuple and the value is a list, in this case the
+		value will be cast to a tuple.
+
+		If 'check' is given and is a class the existing value will be
+		checked to be of that class and reset to default if it is not.
+		Same spacial case for tuples applies here.
+
+		If 'check' is given and it is a function it will be used to
+		check the value in the dictionary if it exists. The check
+		function should have two arguments, first is the value to be
+		tested, the second is the default value given to setdefault().
+		The return value will be used in the config dict.
+
+		If 'check' is given and is a set the value will be tested
+		against this set.
 		'''
-		if not k in self:
-			self.__setitem__(k, v)
-		elif check:
-			if not check(self[k]):
-				logger.warn(
-					'Invalid config value for %s: "%s"', k, self[k])
-				self.__setitem__(k, v)
-		else:
-			if klass is None:
-				if v is None:
-					return self[k] # noting we can do
-				else:
-					klass = v.__class__
+		if not key in self:
+			self.__setitem__(key, default)
+			return self[key]
 
-			if issubclass(klass, basestring):
-				klass = basestring
+		if check is None:
+			assert not default is None, 'Bad practise to set default to None without check'
+			check = value_check_class
 
-			if not (self[k] is None and v is None) \
-			and not isinstance(self[k], klass):
-				if klass is tuple and isinstance(self[k], list):
+		if isinstance(check, (type, types.ClassType)): # is a class
+			klass = check
+			if not isinstance(self[key], klass):
+				if klass is tuple and isinstance(self[key], list):
 					# Special case because json does not know difference list or tuple
-					v = tuple(self[k])
-					self.__setitem__(k, v)
+					modified = self.modified
+					self.__setitem__(key, tuple(self[key]))
+					self.set_modified(modified) # don't change modified state
 				else:
 					logger.warn(
 						'Invalid config value for %s: "%s" - should be of type %s',
-						k, self[k], klass)
-					self.__setitem__(k, v)
-			elif klass is basestring and v and not self[k]:
-				# Special case to avoid empty string
-				self.__setitem__(k, v)
+						key, self[key], klass)
+					self.__setitem__(key, default)
+			else:
+				pass # value is OK
+		elif isinstance(check, set):
+			if not self[key] in check:
+				logger.warn(
+						'Invalid config value for %s: "%s" - should be one of %s',
+						key, self[key], unicode(check))
+				self.__setitem__(key, default)
+			else:
+				pass # value is OK
+		else: # assume callable
+			v = check(self[key], default)
+			if isinstance(v, tuple) and isinstance(self[key], list) \
+			and v == tuple(self[key]):
+				# Special case because json does not know difference list or tuple
+				modified = self.modified
+				self.__setitem__(key, v)
+				self.set_modified(modified) # don't change modified state
+			elif v != self[key]:
+				logger.warn(
+					'Invalid config value for %s: "%s"',
+					key, self[key])
+				self.__setitem__(key, v)
 
-		return self[k]
+		return self[key]
 
 	def keys(self):
 		return self.order[:]
@@ -341,36 +426,6 @@ class ListDict(dict):
 		neworder = set(order)
 		assert neworder == oldorder
 		self.order = order
-
-	def check_is_int(self, key, default):
-		'''Asserts that the value for 'key' is an int. If this is not
-		the case or when no value is set at all for 'key'.
-		'''
-		if not key in self:
-			self[key] = default
-		elif not isinstance(self[key], int):
-			logger.warn('Invalid config value for %s: "%s" - should be an integer')
-			self[key] = default
-
-	def check_is_float(self, key, default):
-		'''Asserts that the value for 'key' is a float. If this is not
-		the case or when no value is set at all for 'key'.
-		'''
-		if not key in self:
-			self[key] = default
-		elif not isinstance(self[key], float):
-			logger.warn('Invalid config value for %s: "%s" - should be a decimal number')
-			self[key] = default
-
-	@staticmethod
-	def is_coord(value):
-		'''Returns True if value is a coordinate (a tuple or list of 2 ints).
-		Can be used in combination with setdefault() to enforce data types.
-		'''
-		return (isinstance(value, (tuple, list))
-				and len(value) == 2
-				and isinstance(value[0], int)
-				and isinstance(value[1], int)  )
 
 
 class ConfigDict(ListDict):
