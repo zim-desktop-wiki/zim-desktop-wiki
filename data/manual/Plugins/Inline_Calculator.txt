@@ -28,3 +28,68 @@ Apart from single line expressions you can also do multi-line summations and sub
 	--- +
 
 In this case the cursor needs to be below the summation when you trigger the evaluation.
+
+===== Functions =====
+The following functions are available:
+
+From standard python functions
+'''
+abs
+ord
+chr
+hex
+oct
+'''
+
+From math and cmath modules in standard python library:
+'''
+atan2
+fmod
+frexp
+hypot
+ldexp
+modf
+acos
+asin
+atan
+cos
+cosh
+sin
+sinh
+tan
+tanh
+exp
+log10
+sqrt
+'''
+
+Other:
+'''
+degrees
+radians
+log
+real
+imag
+sign
+log2
+gcd
+lcm
+phase
+conj
+round
+floor
+ceil
+'''
+
+Synonyms:
+'''
+mag - same as abs()
+angle - same as phase()
+
+'''
+''Constants:''
+'''
+e
+pi
+j
+'''
