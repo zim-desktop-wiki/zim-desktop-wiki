@@ -149,7 +149,7 @@ class BoundQuickNoteDialog(Dialog):
 		self._updating_title = False
 		self._title_set_manually = False
 
-		self.uistate.setdefault('namespace', None)
+		self.uistate.setdefault('namespace', None, basestring)
 		namespace = namespace or self.uistate['namespace']
 
 		self._init_inputs(namespace, basename, text, template_options)
@@ -334,7 +334,7 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 	def on_notebook_changed(self, o):
 		notebook = self.notebookcombobox.get_notebook()
 		self.uistate['lastnotebook'] = notebook
-		self.config['Namespaces'].setdefault(notebook, None)
+		self.config['Namespaces'].setdefault(notebook, None, basestring)
 		namespace = self.config['Namespaces'][notebook]
 		if namespace:
 			self.inputs['namespace'].set_text(namespace)
