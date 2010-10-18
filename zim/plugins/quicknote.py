@@ -187,7 +187,7 @@ class BoundQuickNoteDialog(Dialog):
 		switch_input()
 		self.inputs['newpage'].connect('toggled', switch_input)
 
-		self.open_page = gtk.CheckButton(_('_Open new page'))
+		self.open_page = gtk.CheckButton(_('_Open new page')) # T: Option in quicknote dialog
 		self.open_page.set_active(self.uistate['open_page'])
 		self.action_area.pack_start(self.open_page, False)
 		self.action_area.set_child_secondary(self.open_page, True)

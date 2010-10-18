@@ -1302,7 +1302,9 @@ class GtkInterface(NotebookInterface):
 
 		dialog = MessageDialog(self, (
 			_('Editing file: %s') % file.basename,
+				# T: main text for dialog for editing external files
 			_('You are editing a file in an external application. You can close this dialog when you are done')
+				# T: description for dialog for editing external files
 		) )
 
 		def check_close_dialog(status):
