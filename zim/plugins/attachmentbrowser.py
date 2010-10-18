@@ -9,10 +9,10 @@
 #
 # Bugs:
 # textrendering is slow
-# problems with Umlaut in filenames 
+# problems with Umlaut in filenames
 # TODO:
 # * integer plugin_preferences do not to work as expected (zim bug?)
-# * toggle: inital toolbar button state wrong  
+# * toggle: inital toolbar button state wrong
 # * toggle-btn icon
 # [ ] draw frames around thumbnails (in the view)
 # [*] where to store thumbnails?
@@ -21,15 +21,15 @@
 #    [ ] store fileinfo in thumbnails
 #    [ ] dont thumb small images
 #    [ ] thmubs for other formats: word,openoffice,...
-#    [ ] textrendering: syntax-hl 
+#    [ ] textrendering: syntax-hl
 # [ ] preview in textarea (see emacs+speedbar)
 # [*] dont start all thumbnailing processes at a time, and make them nice 10
-# [*] small and lager thumbs 
+# [*] small and lager thumbs
 # [ ] use mimtype and extension
 # [*] rethumb broken (e.g. shutdown while thumbnailing)
 # [ ] code cleanup
 # [ ] new gui concept for zim : sidepane r/l,bottom- and top pane both with tabs (see gedit)
-# [ ] show file infos in tooltip (size, camera,... what else?) 
+# [ ] show file infos in tooltip (size, camera,... what else?)
 # [*] update icon when thumbnail is ready
 # [ ] mimi-type specific icons
 # [ ] evaluate imagemagick python libs
@@ -37,7 +37,7 @@
 # [ ] libgsf thumbnailer
 # [ ] use thumbnailes/settings from gnome or other DEs
 # [ ] make a reference implementation for thumbnail spec
-# [ ] rewrite thumbnail spec 
+# [ ] rewrite thumbnail spec
 # http://ubuntuforums.org/showthread.php?t=76566
 #
 #
@@ -143,9 +143,10 @@ class AttachmentBrowserPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Atachment Browser'), # T: plugin name
 		'description': _('''\
-This shows the storage directory of the current page as icon view at bottom pane.
-ImageMagick dependencies: 
-	html-preview: html2ps
+This plugin shows the attachments folder of the current page as an
+icon view at bottom pane.
+
+This plugin is still under development.
 '''), # T: plugin description
 		'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>',
 		'help': 'Plugins:AttachmentBrowser',
@@ -157,7 +158,7 @@ ImageMagick dependencies:
 	#	('preview_size', 'int', _('Tooltip preview size [px]'), (THUMB_SIZE_MIN,480,THUMB_SIZE_MAX)), # T: input label
 	#	('thumb_quality', 'int', _('Preview jpeg Quality [0..100]'), (0,50,100)), # T: input label
 	#)
-	
+
 	@classmethod
 	def check_dependencies(klass):
 		return [("ImageMagick",Application(('convert',None)).tryexec())]
@@ -166,7 +167,7 @@ ImageMagick dependencies:
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
 		self.bottompane_widget = None
-		self.scrollpane = None		
+		self.scrollpane = None
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			#self.ui.add_actions(ui_actions, self)
@@ -193,7 +194,7 @@ ImageMagick dependencies:
 			self.scrollpane.add_with_viewport(self.bottompane_widget)
 			bottompane.pack_end(self.scrollpane, False)
 		#bottompane.pack_end(self.bottompane_widget, False)
-		
+
 		#bottompane.reorder_child(self.bottompane_widget, 0)
 		self.handlerID_do_open_notebook=self.ui.connect_after('open-notebook', self.do_open_notebook)
 		#self.bottompane_widget.show_all()
@@ -208,12 +209,12 @@ ImageMagick dependencies:
 
 	def do_preferences_changed(self):
 		#print self.preferences['icon_size']
-		
+
 		# bug?
-		# 
+		#
 		# self.preferences['icon_size'] is integer after  changeing it
-		# but must be (min,val,max) for the dialog, which is strange 
-		
+		# but must be (min,val,max) for the dialog, which is strange
+
 		self.add_to_mainwindow()
 
 
@@ -274,7 +275,7 @@ class ThumbnailManager():
 	def get_thumbnailfilename(self,filename,size):
 		'''generates md5 hash and appedns ist to local thums storage '''
 		file_hash = hashlib.md5('file://'+filename).hexdigest()
-		#  ~/.thumbnails/normal 
+		#  ~/.thumbnails/normal
 		# it is a png file and name is the md5 hash calculated earlier
 		if (size<=THUMB_SIZE_NORMAL):
 			fn = os.path.join(LOCAL_THUMB_STORAGE_NORMAL,file_hash) + '.png'
@@ -283,7 +284,7 @@ class ThumbnailManager():
 		return fn
 
 	def get_tmp_thumbnailfilename(self,filename,size):
-		file_hash = hashlib.md5('file://'+filename).hexdigest()    
+		file_hash = hashlib.md5('file://'+filename).hexdigest()
 		return os.path.join(tempfile.gettempdir(),file_hash+str(os.getpid())+'-'+str(size)+'.png')
 
 	def get_fail_thumbnailfilename(self,filename):
@@ -305,7 +306,7 @@ class ThumbnailManager():
 			return pixbuf
 		except:
 			logger.debug('  Error converting Image')
-		
+
 
 
 	def _file_to_image_magick(self,infile,outfile,w,h,fileinfo=None):
@@ -359,7 +360,7 @@ class ThumbnailManager():
 				if (len(line)>(w/24+12) ):
 					textcont+='\n'
 			logger.debug('  trying TXT')
-			
+
 			txttopng_cmd = ('convert','-font','Courier','-size', size)# '-frame', '1' )
 			txttopng = Application(txttopng_cmd)
 			txttopng.run((textcont,outfile))
@@ -386,7 +387,7 @@ class ThumbnailManager():
 			fileinfo=self._file_to_image_magick(infile,tmpfile,w,h,None)
 			if (fileinfo):
 				pixbuf=self._file_to_image_pixbbuf(tmpfile,outfile,w,h,fileinfo)
-				try: 
+				try:
 					os.remove(tmpfile)
 				except:
 					pass #print "cant del tmpfile"
@@ -396,7 +397,7 @@ class ThumbnailManager():
 			fileinfo=self._file_to_image_txt(infile,tmpfile,w,h,None)
 			if (fileinfo):
 				pixbuf=self._file_to_image_pixbbuf(tmpfile,outfile,w,h,fileinfo)
-				try: 
+				try:
 					os.remove(tmpfile)
 				except:
 					pass  #print "cant del tmpfile"
@@ -419,7 +420,7 @@ class ThumbnailManager():
 			tmpfile=self.get_tmp_thumbnailfilename(filenameabs,size)
 			if (not os.path.isfile(tmpfile)) and (not os.path.isfile(thumbfile)):
 				pixbuf=self.file_to_image(filenameabs,thumbfile,tmpfile,w,h)
-				
+
 			if pixbuf:
 				if (item[2]):
 					#print 'job done try callback'
@@ -434,7 +435,7 @@ class ThumbnailManager():
 
 
 	def start_queue_worker(self):
-		#print 'start_queue_worker' 
+		#print 'start_queue_worker'
 		#print '  remaining jobs:' + str(len(self.queue))
 		#print '  current job: '+ self.queue[-1][0]
 		if not self.worker_is_active:
@@ -450,7 +451,7 @@ class ThumbnailManager():
 	def enqueue(self,filenameabs,size,set_pixbuf_callback,callbackparm):
 		#logger.debug ("Thumbnail enqueued:" +filenameabs+","+str(size)+","+str(pixbuf))
 		# start thumb generator in bg, if not allready
-		
+
 		# dont enqueue twice
 		found=False
 		for e in self.queue:
@@ -474,7 +475,7 @@ class ThumbnailManager():
 	def get_thumbnail(self,filenameabs,size,set_pixbuf_callback=None,parm=None):
 		''' create a pixbuffer
 			load the thumb if available
-			else load smaller thumbnail 
+			else load smaller thumbnail
 			  and genertate thumb asyncr'''
 		#print 'get_thumbnail(' , filenameabs ,size
 
@@ -512,7 +513,7 @@ class ThumbnailManager():
 						return None
 					#else:
 					#print "  ignore old marked as fail"
-						
+
 					#else: remove fail-mark
 
 				# enque for background creation
@@ -522,7 +523,7 @@ class ThumbnailManager():
 				logger.debug('  load alternavie size')
 				thumbfile=self.get_thumbnailfilename(filenameabs,size_alt)
 				if (os.path.isfile(thumbfile)) and (os.stat(thumbfile).st_mtime > os.stat(filenameabs).st_mtime):
-						try: 
+						try:
 							logger.debug('  load alt thumbnail')
 							pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(thumbfile,size,size)
 							return pixbuf
@@ -533,7 +534,7 @@ class ThumbnailManager():
 				# enque for background creation
 
 
-							
+
 		# race codidion: if the tb generator finisches first
 		# the caller must take care for the icon
 		#logger.debug('  Fallback: stock icon')
@@ -572,8 +573,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		self.fileview.connect_object('button-press-event',AttachmentBrowserPluginWidget.on_button_press_event, self)
 		#self.fileview.set_tooltip_column(2) # filename as tooltip
 		self.fileview.props.has_tooltip = True
-		# custom tooltip	
-		self.fileview.connect("query-tooltip", self.query_tooltip_icon_view_cb)  	
+		# custom tooltip
+		self.fileview.connect("query-tooltip", self.query_tooltip_icon_view_cb)
 
 
 	def on_button_press_event(self,event):
@@ -605,10 +606,10 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			return
 		if (self.plugin.uistate['active'] ):
 			self.plugin.add_to_mainwindow()
-		
+
 		filelist = os.listdir(path)
 		for filename in filelist:
-			#	self.textbuffer.insert_at_cursor(filename+'\n')		
+			#	self.textbuffer.insert_at_cursor(filename+'\n')
 			filenameabs=path+os.sep+filename
 			# only for existing files
 			# and not for blocked
@@ -631,24 +632,24 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 	def do_populate_popup(self, menu,pathinfo):
 		# print "do_populate_popup"
 		file= File(self.store.get_value(self.store.get_iter(pathinfo),2)+os.sep+self.store.get_value(self.store.get_iter(pathinfo),0))
-		
+
 		# open with & open folder
 		item = gtk.MenuItem(_('Open Folder'))
 			# T: menu item to open containing folder of files
 		menu.prepend(item)
-		
+
 		dir = file.dir
 		if dir.exists():
 			item.connect('activate', lambda o: self.plugin.ui.open_file(dir))
 		else:
 			item.set_sensitive(False)
-		
+
 		item = gtk.MenuItem(_('Open With...'))
 		menu.prepend(item)
-		
+
 		submenu = OpenWithMenu(file)
 		item.set_submenu(submenu)
-		
+
 		menu.show_all()
 
 
@@ -662,9 +663,9 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			filename=model.get(iter, 0)[0]
 			filepath=model.get(iter, 2)[0]
 			filenameabs=filepath+os.sep+filename
-			
+
 			tooltip.set_icon(self.thumbman.get_thumbnail(filenameabs,PREVIEW_SIZE))
-			
+
 			widget.set_tooltip_item(tooltip, path)
 			return True
 
