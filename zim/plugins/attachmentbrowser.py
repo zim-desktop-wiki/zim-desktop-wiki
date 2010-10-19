@@ -141,7 +141,7 @@ PREVIEW_SIZE = 396
 class AttachmentBrowserPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Atachment Browser'), # T: plugin name
+		'name': _('Attachment Browser'), # T: plugin name
 		'description': _('''\
 This plugin shows the attachments folder of the current page as an
 icon view at bottom pane.

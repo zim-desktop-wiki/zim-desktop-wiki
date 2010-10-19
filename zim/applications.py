@@ -153,7 +153,11 @@ class WebBrowser(Application):
 
 	def __init__(self):
 		import webbrowser
-		self.controller = webbrowser.get()
+		self.controller = None
+		try:
+			self.controller = webbrowser.get()
+		except webbrowser.Error:
+			pass # webbrowser throws an error when no browser is found
 
 	def tryexec(self):
 		return not self.controller is None

@@ -1202,7 +1202,10 @@ class GtkInterface(NotebookInterface):
 
 		app = self.preferences['GtkInterface'][app_type]
 		entry = ApplicationManager().get_application(app)
-		entry.spawn((uri,), callback=check_error)
+		try:
+			entry.spawn((uri,), callback=check_error)
+		except NotImplementedError:
+			entry.spawn((uri,)) # E.g. webbrowser module
 
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)
