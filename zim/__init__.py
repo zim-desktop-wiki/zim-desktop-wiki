@@ -53,7 +53,7 @@ commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual', 'pl
 commandopts = {
 	'gui': ('list', 'geometry=', 'fullscreen', 'no-daemon'),
 	'server': ('port=', 'template=', 'gui', 'no-daemon'),
-	'export': ('format=', 'template=', 'output=', 'root-url='),
+	'export': ('format=', 'template=', 'output=', 'root-url=', 'index-page='),
 	'index': ('output=',),
 	'plugin': (),
 	'daemon': (),
@@ -108,6 +108,7 @@ Export Options:
   --template      name of the template to use
   -o, --output    output directory
   --root-url      url to use for the document root
+  --index-page    index page name
 
   You can use the export option to print a single page to stdout.
   When exporting a whole notebook you need to provide a directory.
@@ -455,10 +456,10 @@ class NotebookInterface(gobject.GObject):
 				notebook.cache_dir.file('state.conf') )
 		# TODO read profile preferences file if one is set in the notebook
 
-	def cmd_export(self, format='html', template=None, page=None, output=None, root_url=None):
+	def cmd_export(self, format='html', template=None, page=None, output=None, root_url=None, index_page=None):
 		'''Method called when doing a commandline export'''
 		import zim.exporter
-		exporter = zim.exporter.Exporter(self.notebook, format, template, document_root_url=root_url)
+		exporter = zim.exporter.Exporter(self.notebook, format, template, document_root_url=root_url, index_page=index_page)
 
 		if page:
 			path = self.notebook.resolve_path(page)
