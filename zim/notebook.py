@@ -1721,7 +1721,7 @@ class Page(Path):
 		tree = self.get_parsetree()
 		if tree:
 			tags = {}
-			for tag in tree.iter('tag'):
+			for tag in tree.getiterator('tag'):
 				tags[tag.text] = tag.attrib.copy()
 			for tag, attrib in tags.iteritems():
 				yield tag, attrib

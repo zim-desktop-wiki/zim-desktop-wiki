@@ -89,7 +89,8 @@ create table if not exists tags (
 );
 create table if not exists tagsources (
 	source INTEGER,
-	tag INTEGER
+	tag INTEGER,
+	CONSTRAINT uc_TagOnce UNIQUE (source, tag)
 );
 '''
 
@@ -577,6 +578,7 @@ class Index(gobject.GObject):
 						self.db.execute(
 							'insert into links (source, href) values (?, ?)',
 							(path.id, indexpath.id) )
+						
 				for _, attrib in page.get_tags():
 					name = attrib['name']
 					if not name in seen_tags:
@@ -587,10 +589,15 @@ class Index(gobject.GObject):
 							cursor.execute(
 								'insert into tags(name) values (?)', (name,))
 							indextag = IndexTag(name, cursor.lastrowid)
-						self.db.execute(
-							'insert into tagsources (source, tag) values (?, ?)',
-							(path.id, indextag.id,))
-						
+						try:
+							self.db.execute(
+								'insert into tagsources (source, tag) values (?, ?)',
+								(path.id, indextag.id,))
+						except sqlite3.IntegrityError:
+							# Catch already existing entries
+							continue
+							
+							
 			key = self.notebook.get_page_indexkey(page)
 			self.db.execute(
 				'update pages set hascontent=?, contentkey=? where id==?',

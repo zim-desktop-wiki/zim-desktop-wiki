@@ -68,9 +68,9 @@ class TagviewPluginWidget(gtk.VBox):
 	def on_open_page(self, ui, page, path):
 		self.update_view(page)
 		if not self.notebook_connected:
-			ui.notebook.connect('stored-page', self.on_page_updated)
+			ui.notebook.index.connect('page-indexed', self.on_page_indexed)
 		
-	def on_page_updated(self, o, page):
+	def on_page_indexed(self, o, path, page):
 		self.update_view(page)
 		
 	def update_view(self, page):
