@@ -1224,9 +1224,12 @@ class TextBuffer(gtk.TextBuffer):
 
 		open_tags = []
 		def set_tags(iter, tags):
-			'''This function changes the parse tree based on the TextTags in
-			effect for the next section of text.
-			'''
+			# This function changes the parse tree based on the TextTags in
+			# effect for the next section of text.
+			# It does so be keeping the stack of open tags and compare it
+			# with the new set of tags in order to decide which of the
+			# tags can be closed and which new ones need to be opened.
+			#
 			# We assume that by definition we only get one tag for each tag
 			# type and that we get tags in such an order that the one we get
 			# first should be closed first while closing later ones breaks the
@@ -1280,6 +1283,14 @@ class TextBuffer(gtk.TextBuffer):
 						assert attrib['href'], 'Links should have a href'
 					builder.start(t, attrib)
 					open_tags.append((tag, t))
+					if t == 'li':
+						break
+						# HACK - ignore any other tags because we moved
+						# the cursor - needs also a break_tags before
+						# which is special cased below
+						# TODO: cleaner solution for this issue -
+						# maybe easier when tags for list and indent
+						# are separated ?
 
 		def break_tags(type):
 			# Forces breaking the stack of open tags on the level of 'tag'
@@ -1333,6 +1344,13 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				# Set tags
 				copy = iter.copy()
+
+				bullet = self._get_bullet_at_iter(iter)
+				if bullet:
+					break_tags('indent')
+					# This is part of the HACK for bullets in
+					# set_tags()
+
 				set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
 				if not iter.equal(copy): # iter moved
 					continue
