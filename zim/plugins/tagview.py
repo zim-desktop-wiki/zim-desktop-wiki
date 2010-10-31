@@ -147,8 +147,7 @@ This plugin loads the tag user interface.
 		if not self.sidepane_widget:
 			sidepane = self.ui.mainwindow.sidepane
 			self.sidepane_widget = TagviewPluginWidget(self)
-			sidepane.pack_start(self.sidepane_widget, False)
-			sidepane.reorder_child(self.sidepane_widget, 0)
+			sidepane.add(self.sidepane_widget)
 			self.sidepane_widget.show_all()
 
 	def disconnect_embedded_widget(self):
@@ -158,26 +157,15 @@ This plugin loads the tag user interface.
 			self.sidepane_widget = None
 
 
-class TagviewPluginWidget(gtk.VBox):
+class TagviewPluginWidget(gtk.ScrolledWindow):
 
 	def __init__(self, plugin):
-		gtk.VBox.__init__(self)
+		gtk.ScrolledWindow.__init__(self)
 		self.plugin = plugin
 
-		label = gtk.Label('Tags')
-		self.pack_start(label, False)
-
-		sw = gtk.ScrolledWindow()
-		sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		sw.set_shadow_type(gtk.SHADOW_IN)
+		self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		self.set_shadow_type(gtk.SHADOW_IN)
 		
-		#textview = gtk.TextView()
-		#self.textbuffer = textview.get_buffer()
-		#sw.add(textview)
 		self.treeview = TagTreeView(self.plugin.ui)
-		sw.add(self.treeview)
-		
-		sw.show()
-		#self.treeview.show()
-		self.pack_start(sw, False)
-		
+		self.add(self.treeview)
+				

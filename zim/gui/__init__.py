@@ -1534,7 +1534,7 @@ class MainWindow(Window):
 		self.hpane = gtk.HPaned()
 		self.hpane.set_position(175)
 		vbox.add(self.hpane)
-		self.sidepane = gtk.VBox(spacing=5)
+		self.sidepane = gtk.VPaned()
 		self.hpane.add1(self.sidepane)
 
 		self.sidepane.connect('key-press-event',
