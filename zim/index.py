@@ -186,6 +186,9 @@ class IndexTag:
 
 	@property
 	def id(self): return self._indextag
+	
+	@property
+	def hasdata(self): return not self._row is None
 
 	def __getattr__(self, attr):
 		if self._row is None:
@@ -583,7 +586,7 @@ class Index(gobject.GObject):
 					name = attrib['name']
 					if not name in seen_tags:
 						seen_tags.add(name)
-						indextag = self.lookup_tagname(name)
+						indextag = self.lookup_tag(name)
 						if indextag is None:
 							cursor = self.db.cursor()
 							cursor.execute(
@@ -965,14 +968,24 @@ class Index(gobject.GObject):
 
 		return IndexPath(':'.join(names), indexpath, row)
 	
-	def lookup_tagname(self, name):
+	def lookup_tag(self, tag):
 		'''Returns an IndexTag for the named tag.'''
-		cursor = self.db.cursor()
-		cursor.execute('select * from tags where name==?', (name,))
-		row = cursor.fetchone()
-		if row is None:
-			return None # no such id !?
-		return IndexTag(row['name'], row['id'], row)
+		if isinstance(tag, IndexTag):
+			if not tag.hasdata:
+				# lookup tag data
+				cursor = self.db.cursor()
+				cursor.execute('select * from tags where id==?', (tag.id,))
+				tag._row = cursor.fetchone()
+				if tag._row is None:
+					return None # no such id !?
+			return tag
+		else:
+			cursor = self.db.cursor()
+			cursor.execute('select * from tags where name==?', (tag,))
+			row = cursor.fetchone()
+			if row is None:
+				return None # no such name !?
+			return IndexTag(row['name'], row['id'], row)
 
 	def lookup_tagid(self, id):
 		'''Returns an IndexTag for an index id.'''
@@ -1038,6 +1051,33 @@ class Index(gobject.GObject):
 
 		if not parent.isroot: found.insert(0, parent.name)
 		return IndexPath(':'.join(found), indexpath, row)
+
+	def list_tags(self, path):
+		yield self.list_tags_n(path, None, None)
+
+	def list_tags_n(self, path, offset, limit=20):
+		'''Like list_tags() but returns a limitted slice of the list
+		as a list'''
+		if path is None:
+			cursor = self.db.cursor()
+			if offset is None:
+				cursor.execute('select * from tags order by lower(name)')
+			else:
+				cursor.execute('select * from tags order by lower(name) limit ? offset ?', (limit, offset))
+			# FIXME, this lower is not utf8 proof
+			for row in cursor:
+				yield IndexTag(row['name'], row['id'], row)
+		else:
+			path = self.lookup_path(path)
+			if path:
+				cursor = self.db.cursor()
+				if offset is None:
+					cursor.execute('select * from tagsources where source == ?', (path.id,))
+				else:
+					cursor.execute('select * from tagsources where source == ? order by lower(name) limit ? offset ?', (path.id, limit, offset))
+				for row in cursor:
+					assert row['source'] == path.id
+					yield self.lookup_tagid(row['tag'])
 
 	def list_pages(self, path):
 		'''Generator yielding IndexPath objects for the sub-pages of
@@ -1125,15 +1165,20 @@ class Index(gobject.GObject):
 				tag = self.lookup_tagid(source['tag'])
 				yield Tagged(source, tag)
 				
-	def get_tagged(self, name):
-		tag = self.lookup_tagname(name)
+	def list_tagged(self, tag):
+		yield self.list_tagged_n(tag, None, None)
+				
+	def list_tagged_n(self, tag, offset, limit=20):
+		tag = self.lookup_tag(tag)
 		if tag:
 			cursor = self.db.cursor()
-			cursor.execute('select * from tagsources where tag == ?', (tag.id,))
-			for tagsource in cursor:
-				assert tagsource['tag'] == tag.id
-				source = self.lookup_id(tagsource['source'])
-				yield Tagged(source, tag)
+			if offset is None:
+				cursor.execute('select * from tagsources where tag == ?', (tag.id,))
+			else:
+				cursor.execute('select * from tagsources where tag == ? limit ? offset ?', (tag.id, limit, offset))
+			for row in cursor:
+				assert row['tag'] == tag.id
+				yield self.lookup_id(row['source'])
 
 	def list_links(self, path, direction=LINK_DIR_FORWARD):
 		'''Return Link objects for each link from or to path.
