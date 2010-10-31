@@ -29,6 +29,7 @@ class TestLinker(TestCase):
 		self.assertEqual(linker.file('../dus.pdf'), './dus.pdf')
 		self.assertEqual(linker.file('../../dus.pdf'), '../dus.pdf')
 
+
 class TestExport(TestCase):
 
 	slowTest = True
@@ -70,7 +71,7 @@ class TestExportFullOptions(TestExport):
 		self.assertTrue('<a href="./Test/foo.html" title="foo">foo</a>' in indexcontent)
 
 
-class TestExportCommandLine(TestExport):
+class TestExportCommandLine(TestExportFullOptions):
 
 	def export(self):
 		dir = Dir(create_tmp_dir('export_SourceFiles'))
@@ -83,10 +84,10 @@ class TestExportCommandLine(TestExport):
 		file = dir.file('Test/foo.txt')
 		self.assertTrue(file.exists())
 
-		check_call(['python', './zim.py', '--export', '--template=Default', dir.path, '--output', self.dir.path])
+		check_call(['python', './zim.py', '--export', '--template=Default', dir.path, '--output', self.dir.path, '--index-page', 'index'])
 
 	def runTest(self):
 		'''Test export notebook to html from commandline'''
-		TestExport.runTest(self)
+		TestExportFullOptions.runTest(self)
 
 # TODO test export single page from command line

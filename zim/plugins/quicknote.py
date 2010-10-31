@@ -149,7 +149,7 @@ class BoundQuickNoteDialog(Dialog):
 		self._updating_title = False
 		self._title_set_manually = False
 
-		self.uistate.setdefault('namespace', None)
+		self.uistate.setdefault('namespace', None, basestring)
 		namespace = namespace or self.uistate['namespace']
 
 		self._init_inputs(namespace, basename, text, template_options)
@@ -187,7 +187,7 @@ class BoundQuickNoteDialog(Dialog):
 		switch_input()
 		self.inputs['newpage'].connect('toggled', switch_input)
 
-		self.open_page = gtk.CheckButton(_('_Open new page'))
+		self.open_page = gtk.CheckButton(_('_Open new page')) # T: Option in quicknote dialog
 		self.open_page.set_active(self.uistate['open_page'])
 		self.action_area.pack_start(self.open_page, False)
 		self.action_area.set_child_secondary(self.open_page, True)
@@ -334,7 +334,7 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 	def on_notebook_changed(self, o):
 		notebook = self.notebookcombobox.get_notebook()
 		self.uistate['lastnotebook'] = notebook
-		self.config['Namespaces'].setdefault(notebook, None)
+		self.config['Namespaces'].setdefault(notebook, None, basestring)
 		namespace = self.config['Namespaces'][notebook]
 		if namespace:
 			self.inputs['namespace'].set_text(namespace)

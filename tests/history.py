@@ -101,6 +101,32 @@ class TestHistory(TestCase):
 		self.assertEqual(history.get_child(Path('Test')), Path('Test:wiki'))
 		self.assertEqual(history.get_grandchild(Path('Test')), Path('Test:wiki'))
 
+	def testDeletedNotInUnique(self):
+		'''Test if deleted pages and their children show up in unique history list'''
+		history = History(self.notebook)
+		for page in self.pages:
+			history.append(page)
+		for page in self.pages:
+			history.append(page)	
+			
+		uniques = list(history.get_unique())
+		self.assertEqual(len(uniques), len(self.pages))
+		
+		history._on_page_deleted(self.pages[0])
+		uniques = list(history.get_unique())
+		self.assertTrue(len(uniques) < len(self.pages))
+		
+		history._on_page_stored(self.pages[0])
+		uniques = list(history.get_unique())
+		self.assertEqual(len(uniques), len(self.pages))
+		
+		for page in self.pages:
+			history._on_page_deleted(page)
+		uniques = list(history.get_unique())
+		self.assertEqual(len(uniques), 0)
+		self.assertTrue(len(list(history.get_history())) > 0)		
+
+		
 	def testSerialize(self):
 		'''Test parsing the history from the state file'''
 		uistate = ConfigDict()

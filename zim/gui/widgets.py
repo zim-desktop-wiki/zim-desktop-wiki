@@ -1482,10 +1482,14 @@ class Assistant(Dialog):
 			try: # hack needed for filechooser valid in gtk < 2.12
 				self._pages[self._page]._check_valid()
 			except Exception, error:
-				ErrorDialog(self, error).run()
-				return False
-			else:
-				self._pages[self._page].save_uistate()
+				if self._page > i:
+					# Going back - so don't give an error
+					pass
+				else:
+					ErrorDialog(self, error).run()
+					return False
+
+			self._pages[self._page].save_uistate()
 
 		# Remove previous page
 		for child in self.vbox.get_children():
@@ -1546,18 +1550,19 @@ class Assistant(Dialog):
 		return self.set_page(self._page - 1)
 
 	def do_response(self, id):
-		# Wrap up previous page
-		if self._page > -1:
-			try: # hack needed for filechooser valid in gtk < 2.12
-				self._pages[self._page]._check_valid()
-			except Exception, error:
-				ErrorDialog(self, error).run()
-				return False
-			else:
-				self._pages[self._page].save_uistate()
-
 		if id == gtk.RESPONSE_OK:
+			# Wrap up previous page
+			if self._page > -1:
+				try: # hack needed for filechooser valid in gtk < 2.12
+					self._pages[self._page]._check_valid()
+				except Exception, error:
+					ErrorDialog(self, error).run()
+					return False
+				else:
+					self._pages[self._page].save_uistate()
+
 			self._uistate.update(self.uistate)
+
 		Dialog.do_response(self, id)
 
 

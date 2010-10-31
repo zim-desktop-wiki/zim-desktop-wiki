@@ -1202,7 +1202,10 @@ class GtkInterface(NotebookInterface):
 
 		app = self.preferences['GtkInterface'][app_type]
 		entry = ApplicationManager().get_application(app)
-		entry.spawn((uri,), callback=check_error)
+		try:
+			entry.spawn((uri,), callback=check_error)
+		except NotImplementedError:
+			entry.spawn((uri,)) # E.g. webbrowser module
 
 	def open_attachments_folder(self):
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -1302,7 +1305,9 @@ class GtkInterface(NotebookInterface):
 
 		dialog = MessageDialog(self, (
 			_('Editing file: %s') % file.basename,
+				# T: main text for dialog for editing external files
 			_('You are editing a file in an external application. You can close this dialog when you are done')
+				# T: description for dialog for editing external files
 		) )
 
 		def check_close_dialog(status):

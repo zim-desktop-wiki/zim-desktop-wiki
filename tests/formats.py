@@ -485,8 +485,8 @@ class TestLatexFormat(TestCase):
 		'''test the escaping of certain characters'''
 		format = get_format('latex')
 
-		input = r'\foo $ % ^ \% bar'
-		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar'
+		input = r'\foo $ % ^ \% bar < >'
+		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar \textless \textgreater'
 		self.assertEqual(format.tex_encode(input), wanted)
 
 	def testExport(self):
