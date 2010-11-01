@@ -458,7 +458,10 @@ class Notebook(gobject.GObject):
 
 	def _cache_dir(self, dir):
 		from zim.config import XDG_CACHE_HOME
-		path = 'notebook-' + dir.path.replace('/', '_').strip('_')
+		if os.name == 'nt':
+			path = 'notebook-' + dir.path.replace('\\', '_').replace(':', '').strip('_')
+		else:
+			path = 'notebook-' + dir.path.replace('/', '_').strip('_')
 		return XDG_CACHE_HOME.subdir(('zim', path))
 
 	def save_properties(self, **properties):
