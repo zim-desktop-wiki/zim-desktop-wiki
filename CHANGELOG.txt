@@ -4,6 +4,10 @@ Jaap Karssenberg <pardus@cpan.org>
 This branch is the Python rewrite and starts with version 0.42. 
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.49 - ... ===
+* Added translations for Hungarian, Italian and Slovak
+
+
 === 0.48 - Thu 22 Jul 2010 ===
 * Added support for sub- and superscript format - by Michael Mulqueen
 * Updated the export dialog to an Assistant interface
