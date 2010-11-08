@@ -210,6 +210,24 @@ grrr
 		tree = buffer.get_parsetree()
 		self.assertEqualDiff(tree.tostring(), wanted)
 
+		# Strange bug let to second bullet disappearing in this case
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<li bullet="*" indent="1">Box 1</li><li bullet="*" indent="1">Box 2</li><li bullet="*" indent="1">Box 3</li>
+</zim-tree>'''
+		tree = get_tree_from_xml(input)
+		buffer.set_parsetree(tree)
+		iter = buffer.get_iter_at_line(2) # iter before checkbox
+		bound = iter.copy()
+		bound.forward_char()
+		buffer.select_range(iter, bound)
+		buffer.toggle_textstyle('strike')
+		#~ print buffer.get_parsetree(raw=True).tostring()
+		#~ print buffer.get_parsetree().tostring()
+		tree = buffer.get_parsetree()
+		self.assertEqualDiff(tree.tostring(), input)
+
 		# Check how robust we are for placeholder utf8 character
 		buffer = TextBuffer()
 		buffer.insert_at_cursor(u'foo \uFFFC bar')

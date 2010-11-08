@@ -4,7 +4,7 @@ import sys
 import tarfile
 import re
 
-MIN_TRANLATIONS = 175
+MIN_TRANLATIONS = 300
 
 def count_messages(file):
 	return count('msgid', file)

@@ -271,6 +271,8 @@ class Index(gobject.GObject):
 		'start-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'end-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'initialize-db': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'tag-inserted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'tag-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	def __init__(self, notebook=None, dbfile=None):
@@ -554,9 +556,12 @@ class Index(gobject.GObject):
 		assert isinstance(path, IndexPath) and not path.isroot
 		seen_links = set()
 		seen_tags = set()
+		inserted_tags = []
+		purged_tags = []
 		hadcontent = path.hascontent
 		with self.db_commit:
 			self.db.execute('delete from links where source==?', (path.id,))
+			self.db.execute('delete from tagsources where source==?', (path.id,))
 
 			if page.hascontent:
 				for type, href, _ in page.get_links():
@@ -592,6 +597,7 @@ class Index(gobject.GObject):
 							cursor.execute(
 								'insert into tags(name) values (?)', (name,))
 							indextag = IndexTag(name, cursor.lastrowid)
+							inserted_tags.append(indextag)
 						try:
 							self.db.execute(
 								'insert into tagsources (source, tag) values (?, ?)',
@@ -605,10 +611,24 @@ class Index(gobject.GObject):
 			self.db.execute(
 				'update pages set hascontent=?, contentkey=? where id==?',
 				(page.hascontent, key, path.id) )
+			
+			# Purge tag table
+			cursor = self.db.cursor()
+			self.db.execute('select * from tags where id not in (select tag from tagsources)')
+			for row in cursor:
+				purged_tags.append(IndexTag(row['name'], row['id'], row))
+			self.db.execute('delete from tags where id not in (select tag from tagsources)')
+			
 
 		path = self.lookup_data(path) # refresh
 		if hadcontent != path.hascontent:
 			self.emit('page-updated', path)
+
+		for tag in purged_tags:
+			self.emit('tag-deleted', tag)
+			
+		for tag in inserted_tags:
+			self.emit('tag-inserted', tag)
 
 		#~ print '!! PAGE-INDEXED', path
 		self.emit('page-indexed', path, page)
@@ -1053,7 +1073,7 @@ class Index(gobject.GObject):
 		return IndexPath(':'.join(found), indexpath, row)
 
 	def list_tags(self, path):
-		yield self.list_tags_n(path, None, None)
+		return self.list_tags_n(path, None, None)
 
 	def list_tags_n(self, path, offset, limit=20):
 		'''Like list_tags() but returns a limitted slice of the list
@@ -1166,7 +1186,7 @@ class Index(gobject.GObject):
 				yield Tagged(source, tag)
 				
 	def list_tagged(self, tag):
-		yield self.list_tagged_n(tag, None, None)
+		return self.list_tagged_n(tag, None, None)
 				
 	def list_tagged_n(self, tag, offset, limit=20):
 		tag = self.lookup_tag(tag)

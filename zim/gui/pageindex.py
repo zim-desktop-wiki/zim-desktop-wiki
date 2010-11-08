@@ -120,7 +120,12 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			# We do our own memory management, thank you very much
 		self._cache = {}
 		self._flush_scheduled = False
+		
+		self._connect()
 
+	def _connect(self):
+		'''May be overridden by descendants (e.g. TagTreeStore).'''
+		
 		def on_changed(o, path, signal):
 			#~ print '!!', signal, path
 			self._flush()
@@ -140,10 +145,10 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			self._flush()
 
 		self._signals = (
-			index.connect('page-inserted', on_changed, 'row-inserted'),
-			index.connect('page-updated', on_changed, 'row-changed'),
-			index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled'),
-			index.connect('page-to-be-deleted', on_deleted),
+			self.index.connect('page-inserted', on_changed, 'row-inserted'),
+			self.index.connect('page-updated', on_changed, 'row-changed'),
+			self.index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled'),
+			self.index.connect('page-to-be-deleted', on_deleted),
 		)
 		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
 		# treepath of this indexpath - once we get page-deleted it is to late to get this

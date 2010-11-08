@@ -9,6 +9,36 @@ from zim.index import IndexTag
 
 class TagTreeStore(PageTreeStore):
 	
+	def __init__(self, index):
+		self._reverse_cache = {}
+		PageTreeStore.__init__(self, index)
+	
+	def _connect(self):
+		def on_page_changed(o, path, signal):
+			#~ print '!!', signal, path
+			self._flush()
+			treepaths = self.get_treepaths(path)
+			for treepath in treepaths:
+				#~ print '!!', signal, path, treepath
+				treeiter = self.get_iter(treepath)
+				self.emit(signal, treepath, treeiter)
+
+		def on_page_deleted(o, path):
+			#~ print '!! delete', path
+			treepaths = self.get_treepaths(path)
+			for treepath in treepaths:
+				self.emit('row-deleted', treepath)
+			self._flush()
+
+		self._signals = (
+			self.index.connect('page-inserted', on_page_changed, 'row-inserted'),
+			self.index.connect('page-updated', on_page_changed, 'row-changed'),
+			self.index.connect('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
+			self.index.connect('page-to-be-deleted', on_page_deleted),
+		)
+		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
+		# treepath of this indexpath - once we get page-deleted it is to late to get this
+	
 	def _get_iter(self, treepath):
 		'''Convert the tree hierarchy to a PageTreeIter'''
 		# Take care of caching and make sure we keep ref to paths long
@@ -50,9 +80,51 @@ class TagTreeStore(PageTreeStore):
 		self._schedule_flush()
 		return self._cache.get(treepath, None)
 	
-	def get_treepath(self, path):
-		'''Convert a Zim path to tree hierarchy'''
-		return None
+	def _flush(self):
+		self._reverse_cache = {}
+		return PageTreeStore._flush(self)
+	
+	def get_treepaths(self, path):
+		'''Convert a Zim path to tree hierarchy, in general results in multiple
+		 matches
+		'''
+		if path.isroot:
+			raise ValueError
+
+		if not isinstance(path, IndexPath):
+			path = self.index.lookup_path(path)
+			if path is None:
+				return None
+
+		# See if it is in cache already
+		if path in self._reverse_cache:
+			#~ print '>>> Return from cache', reverse_cache[path]
+			return self._reverse_cache[path]
+
+		# Try getting it while populating cache
+		paths = list(path.parents())
+		paths.pop() # get rid of root namespace as parent
+		paths.insert(0, path)
+		
+		child = None
+		childpath = ()
+		treepaths = []
+		all_tags = [t.id for t in self.index.list_tags(None)]
+		
+		for p in paths:
+			if not child is None:
+				childpath += (list(self.index.list_pages(p)).index(child),)
+			# Get tags of this path
+			for t in self.index.list_tags(p):
+				ttagged = list(self.index.list_tagged(t))
+				treepaths.append((all_tags.index(t.id), ttagged.index(p)) + childpath)
+			child = p 
+			
+		self._reverse_cache.setdefault(p, treepaths)
+
+		#~ print '>>> Return', treepath
+		self._schedule_flush()
+		return treepaths
 
 	def on_iter_has_child(self, iter):
 		'''Returns True if the iter has children'''
@@ -108,7 +180,7 @@ class TagTreeView(PageTreeView):
 		self.get_model().connect('row-inserted', self.on_row_inserted)
 
 	def on_open_page(self, path):
-		pass # Multiple selection
+		self.get_model()
 	
 	def do_row_activated(self, treepath, column):
 		'''Handler for the row-activated signal, emits page-activated if a 
@@ -119,6 +191,18 @@ class TagTreeView(PageTreeView):
 			# Only pages (no tags) can be activated
 			path = model.get_indexpath(iter)		
 			self.emit('page-activated', path)
+			
+	def select_page(self, path):
+		'''Select a page in the treeview, returns the treepath or None'''
+		#~ print '!! SELECT', path
+		model, iter = self.get_selection().get_selected()
+		if model is None:
+			return None # index not yet initialized ...
+
+		if iter and model[iter][PATH_COL] == path:
+			return model.get_path(iter) # this page was selected already
+
+		return None # No multiple selection
 
 class TagviewPlugin(PluginClass):
 
