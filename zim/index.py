@@ -273,6 +273,7 @@ class Index(gobject.GObject):
 		'initialize-db': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'tag-inserted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'tag-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'tag-to-be-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)), # HACK
 	}
 
 	def __init__(self, notebook=None, dbfile=None):
@@ -612,13 +613,13 @@ class Index(gobject.GObject):
 				'update pages set hascontent=?, contentkey=? where id==?',
 				(page.hascontent, key, path.id) )
 			
-			# Purge tag table
-			cursor = self.db.cursor()
-			self.db.execute('select * from tags where id not in (select tag from tagsources)')
-			for row in cursor:
-				purged_tags.append(IndexTag(row['name'], row['id'], row))
-			self.db.execute('delete from tags where id not in (select tag from tagsources)')
-			
+		# Purge tag table
+		cursor = self.db.cursor()
+		cursor.execute('select id, name from tags where id not in (select tag from tagsources)')
+		for row in cursor:
+			purged_tags.append(IndexTag(row['name'], row['id'], row))
+			self.emit('tag-to-be-deleted', purged_tags[-1])
+		self.db.execute('delete from tags where id not in (select tag from tagsources)')
 
 		path = self.lookup_data(path) # refresh
 		if hadcontent != path.hascontent:

@@ -15,7 +15,7 @@ class TagTreeStore(PageTreeStore):
 	
 	def _connect(self):
 		def on_page_changed(o, path, signal):
-			#~ print '!!', signal, path
+			print '!!', signal, path
 			self._flush()
 			treepaths = self.get_treepaths(path)
 			for treepath in treepaths:
@@ -24,10 +24,25 @@ class TagTreeStore(PageTreeStore):
 				self.emit(signal, treepath, treeiter)
 
 		def on_page_deleted(o, path):
-			#~ print '!! delete', path
+			print '!! page delete', path
 			treepaths = self.get_treepaths(path)
 			for treepath in treepaths:
 				self.emit('row-deleted', treepath)
+			self._flush()
+			
+		def on_tag_changed(o, tag, signal):
+			self._flush()
+			all_tags = [t.id for t in self.index.list_tags(None)]
+			treepath = (all_tags.index(tag.id),)
+			print '!!', signal, tag, treepath
+			treeiter = self.get_iter(treepath)
+			self.emit(signal, treepath, treeiter)
+			
+		def on_tag_deleted(o, tag):
+			print '!! tag delete', tag
+			all_tags = [t.id for t in self.index.list_tags(None)]
+			treepath = (all_tags.index(tag.id),)
+			self.emit('row-deleted', treepath)
 			self._flush()
 
 		self._signals = (
@@ -35,6 +50,8 @@ class TagTreeStore(PageTreeStore):
 			self.index.connect('page-updated', on_page_changed, 'row-changed'),
 			self.index.connect('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
 			self.index.connect('page-to-be-deleted', on_page_deleted),
+			self.index.connect('tag-inserted', on_tag_changed, 'row-inserted'),
+			self.index.connect('tag-to-be-deleted', on_tag_deleted),
 		)
 		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
 		# treepath of this indexpath - once we get page-deleted it is to late to get this
@@ -129,7 +146,8 @@ class TagTreeStore(PageTreeStore):
 	def on_iter_has_child(self, iter):
 		'''Returns True if the iter has children'''
 		if isinstance(iter.indexpath, IndexTag):
-			return True
+			all_tags = [t.id for t in self.index.list_tags(None)]
+			return iter.indexpath.id in all_tags
 		else:
 			return PageTreeStore.on_iter_has_child(self, iter)
 
