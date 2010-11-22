@@ -271,7 +271,8 @@ class Index(gobject.GObject):
 		'start-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'end-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'initialize-db': (gobject.SIGNAL_RUN_LAST, None, ()),
-		'tag-inserted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'tag-created': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'tag-inserted': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'tag-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'tag-to-be-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)), # HACK
 	}
@@ -558,8 +559,14 @@ class Index(gobject.GObject):
 		seen_links = set()
 		seen_tags = set()
 		inserted_tags = []
+		created_tags = []
 		purged_tags = []
 		hadcontent = path.hascontent
+		
+		# Initialise seen tags
+		for tag in self.list_tags(path):
+			seen_tags.add(tag.name)
+		
 		with self.db_commit:
 			self.db.execute('delete from links where source==?', (path.id,))
 			self.db.execute('delete from tagsources where source==?', (path.id,))
@@ -598,6 +605,8 @@ class Index(gobject.GObject):
 							cursor.execute(
 								'insert into tags(name) values (?)', (name,))
 							indextag = IndexTag(name, cursor.lastrowid)
+							created_tags.append(indextag)
+						else:
 							inserted_tags.append(indextag)
 						try:
 							self.db.execute(
@@ -613,13 +622,13 @@ class Index(gobject.GObject):
 				'update pages set hascontent=?, contentkey=? where id==?',
 				(page.hascontent, key, path.id) )
 			
-		# Purge tag table
-		cursor = self.db.cursor()
-		cursor.execute('select id, name from tags where id not in (select tag from tagsources)')
-		for row in cursor:
-			purged_tags.append(IndexTag(row['name'], row['id'], row))
-			self.emit('tag-to-be-deleted', purged_tags[-1])
-		self.db.execute('delete from tags where id not in (select tag from tagsources)')
+			# Purge tag table
+			cursor = self.db.cursor()
+			cursor.execute('select id, name from tags where id not in (select tag from tagsources)')
+			for row in cursor:
+				purged_tags.append(IndexTag(row['name'], row['id'], row))
+				self.emit('tag-to-be-deleted', purged_tags[-1])
+			self.db.execute('delete from tags where id not in (select tag from tagsources)')
 
 		path = self.lookup_data(path) # refresh
 		if hadcontent != path.hascontent:
@@ -627,9 +636,12 @@ class Index(gobject.GObject):
 
 		for tag in purged_tags:
 			self.emit('tag-deleted', tag)
+
+		for tag in created_tags:
+			self.emit('tag-created', tag)
 			
 		for tag in inserted_tags:
-			self.emit('tag-inserted', tag)
+			self.emit('tag-inserted', tag, path)
 
 		#~ print '!! PAGE-INDEXED', path
 		self.emit('page-indexed', path, page)

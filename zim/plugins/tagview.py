@@ -29,20 +29,32 @@ class TagTreeStore(PageTreeStore):
 			for treepath in treepaths:
 				self.emit('row-deleted', treepath)
 			self._flush()
-			
-		def on_tag_changed(o, tag, signal):
+
+		def on_tag_created(o, tag):
 			self._flush()
 			all_tags = [t.id for t in self.index.list_tags(None)]
 			treepath = (all_tags.index(tag.id),)
-			print '!!', signal, tag, treepath
 			treeiter = self.get_iter(treepath)
-			self.emit(signal, treepath, treeiter)
+			print '!! tag created', tag, treepath
+			# Notify the view
+			self.row_inserted(treepath, treeiter)
+			self.row_has_child_toggled(treepath, treeiter)
+			
+		def on_tag_inserted(o, tag, path):
+			self._flush()
+			all_tags = [t.id for t in self.index.list_tags(None)]
+			all_tagged = [p.id for p in self.index.list_tagged(tag)]
+			treepath = (all_tags.index(tag.id), all_tagged.index(path.id))
+			treeiter = self.get_iter(treepath)
+			print '!! tag inserted', tag, treepath
+			# Notify the view
+			self.row_inserted(treepath, treeiter)
 			
 		def on_tag_deleted(o, tag):
 			print '!! tag delete', tag
 			all_tags = [t.id for t in self.index.list_tags(None)]
 			treepath = (all_tags.index(tag.id),)
-			self.emit('row-deleted', treepath)
+			self.row_deleted(treepath)
 			self._flush()
 
 		self._signals = (
@@ -50,7 +62,9 @@ class TagTreeStore(PageTreeStore):
 			self.index.connect('page-updated', on_page_changed, 'row-changed'),
 			self.index.connect('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
 			self.index.connect('page-to-be-deleted', on_page_deleted),
-			self.index.connect('tag-inserted', on_tag_changed, 'row-inserted'),
+			# TODO: Treat tag-inserted and new tag differently
+			self.index.connect('tag-created', on_tag_created),
+			self.index.connect('tag-inserted', on_tag_inserted),
 			self.index.connect('tag-to-be-deleted', on_tag_deleted),
 		)
 		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
@@ -269,5 +283,6 @@ class TagviewPluginWidget(gtk.ScrolledWindow):
 		self.set_shadow_type(gtk.SHADOW_IN)
 		
 		self.treeview = TagTreeView(self.plugin.ui)
+		self.treeview.set_name('zim-tagindex')
 		self.add(self.treeview)
 				
