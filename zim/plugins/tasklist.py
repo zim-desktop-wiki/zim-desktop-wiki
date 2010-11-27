@@ -783,7 +783,7 @@ class TaskListTreeView(BrowserTreeView):
 				if due == "9999": due = "-"
 				for match in tag_re.findall(desc.decode("UTF-8")):
 					tags.add(match)
-					tasks += "Description: %s\nPriority: %s,  Actionable: %s,  Open: %s,  Due: %s\nPath: %s,  Tags: %s\n\n" % (desc, prio, actionable, opn, due, path_name, ", ".join(tags))
+				tasks += "Description: %s\nPriority: %s,  Actionable: %s,  Open: %s,  Due: %s\nPath: %s,  Tags: %s\n\n" % (desc, prio, actionable, opn, due, path_name, ", ".join(tags))
 		tasks += "Number of tasks: %s. Exported: %s UTC." \
 				% (len(model), str(datetime.datetime.utcnow())[:-7])
 		#~ print tasks
