@@ -2,6 +2,7 @@
 
 import sys
 import logging
+import os
 
 # Check if we run the correct python version
 try:
@@ -11,6 +12,12 @@ try:
 except:
 	print >> sys.stderr, 'ERROR: zim needs python >= 2.5   (but < 3.0)'
 	sys.exit(1)
+
+# Win32: must setup log file or it tries to write to $PROGRAMFILES
+if os.name == "nt":
+	err_stream = open(os.path.expandvars("%USERPROFILE%\\.config\\zim\\zim.log"), "w")
+	sys.stdout = err_stream
+	sys.stderr = err_stream
 
 # Preliminary initalization of logging because modules can throw warnings at import
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
