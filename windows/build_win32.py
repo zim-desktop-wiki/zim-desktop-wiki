@@ -38,7 +38,7 @@ for file in files:
 distutils.dir_util.copy_tree("icons", "windows/build/icons", update=1)
 
 # Copy translation files
-distutils.dir_util.copy_tree("locale", "windows/build/share/locale", update=1)
+distutils.dir_util.copy_tree("locale", "windows/build/locale", update=1)
 
 # Copy plugins folder so Preferences dialog can iterate through them
 distutils.dir_util.copy_tree("zim/plugins", "windows/build/zim/plugins", update=1)
