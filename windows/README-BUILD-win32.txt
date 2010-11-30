@@ -9,7 +9,7 @@ Requirements
 2. Download the latest GTK+ bundle for Windows from
    http://ftp.gnome.org/pub/GNOME/binaries/win32/gtk+/[newest version]/gtk+-bundle*.zip
    Extract that Zip file to
-   C:\Program Files\Common Files\GTK\2.0
+   C:\Program Files\Common Files\GTK\2.22
 
 3. Install PyCairo, PyGObject, and PyGTK from
    http://ftp.gnome.org/pub/GNOME/binaries/win32/pycairo/[newest version]/pycairo-*.win32*.exe
