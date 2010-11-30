@@ -16,6 +16,10 @@ Requirements
    http://ftp.gnome.org/pub/GNOME/binaries/win32/pygobject/[newest version]/pygobject-*.win32*.exe
    http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/[newest version]/pygtk-*.win32*.exe
 
+4. Jpeg for Windows
+   http://gnuwin32.sourceforge.net/packages/jpeg.htm
+   Get jpeg62.dll and put it in ./windows .
+
 4. Install Bazaar using the PYTHON-BASED installer from
    http://wiki.bazaar.canonical.com/WindowsDownloads
    The build script depends on Bazaar.

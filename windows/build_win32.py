@@ -53,6 +53,9 @@ shutil.copyfile(
 	"windows/build/share/icons/hicolor/index.theme"
 )
 
+# Copy jpeg62.dll
+shutil.copyfile("windows/jpeg62.dll", "windows/build/jpeg62.dll")
+
 # print out version number
 f = open("windows/version-and-date.nsi", "w")
 f.write('!define VER "%s"\n' % __version__)
