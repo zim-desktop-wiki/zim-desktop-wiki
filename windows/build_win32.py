@@ -29,6 +29,8 @@ shutil.copytree("data", "windows/build/data")
 distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.22/etc", "windows/build/etc", update=1)
 distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.22/lib", "windows/build/lib", update=1)
 distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.22/share", "windows/build/share", update=1)
+shutil.rmtree("windows/build/share/doc", True)
+shutil.rmtree("windows/build/share/gtk-doc", True)
 files = glob.iglob(os.path.join("c:/Program Files/Common Files/GTK/2.22/bin", "*.exe"))
 for file in files:
     if os.path.isfile(file):
