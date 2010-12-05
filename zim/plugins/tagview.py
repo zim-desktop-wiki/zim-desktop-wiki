@@ -15,7 +15,7 @@ class TagTreeStore(PageTreeStore):
 	
 	def _connect(self):
 		def on_page_changed(o, path, signal):
-			print '!!', signal, path
+			#~ print '!!', signal, path
 			self._flush()
 			treepaths = self.get_treepaths(path)
 			for treepath in treepaths:
@@ -24,7 +24,7 @@ class TagTreeStore(PageTreeStore):
 				self.emit(signal, treepath, treeiter)
 
 		def on_page_deleted(o, path):
-			print '!! page delete', path
+			#~ print '!! page delete', path
 			treepaths = self.get_treepaths(path)
 			for treepath in treepaths:
 				self.emit('row-deleted', treepath)
@@ -35,10 +35,8 @@ class TagTreeStore(PageTreeStore):
 			all_tags = [t.id for t in self.index.list_tags(None)]
 			treepath = (all_tags.index(tag.id),)
 			treeiter = self.get_iter(treepath)
-			print '!! tag created', tag, treepath
-			# Notify the view
+			#~ print '!! tag created', tag, treepath
 			self.row_inserted(treepath, treeiter)
-			self.row_has_child_toggled(treepath, treeiter)
 			
 		def on_tag_inserted(o, tag, path):
 			self._flush()
@@ -46,14 +44,25 @@ class TagTreeStore(PageTreeStore):
 			all_tagged = [p.id for p in self.index.list_tagged(tag)]
 			treepath = (all_tags.index(tag.id), all_tagged.index(path.id))
 			treeiter = self.get_iter(treepath)
-			print '!! tag inserted', tag, treepath
-			# Notify the view
+			#~ print '!! tag inserted', tag, treepath
 			self.row_inserted(treepath, treeiter)
+			if not path.hasdata:
+				path = self.index.lookup_data(path)
+			if path.haschildren:
+				self.row_has_child_toggled(treepath, treeiter)
+
+		def on_tag_removed(o, tag, path):
+			all_tags = [t.id for t in self.index.list_tags(None)]
+			all_tagged = [p.id for p in self.index.list_tagged(tag)]
+			treepath = (all_tags.index(tag.id), all_tagged.index(path.id))
+			#~ print '!! tag removed', tag, treepath
+			self.row_deleted(treepath)
+			self._flush()
 			
 		def on_tag_deleted(o, tag):
-			print '!! tag delete', tag
 			all_tags = [t.id for t in self.index.list_tags(None)]
 			treepath = (all_tags.index(tag.id),)
+			#~ print '!! tag deleted', tag, treepath
 			self.row_deleted(treepath)
 			self._flush()
 
@@ -65,6 +74,7 @@ class TagTreeStore(PageTreeStore):
 			# TODO: Treat tag-inserted and new tag differently
 			self.index.connect('tag-created', on_tag_created),
 			self.index.connect('tag-inserted', on_tag_inserted),
+			self.index.connect('tag-to-be-removed', on_tag_removed),
 			self.index.connect('tag-to-be-deleted', on_tag_deleted),
 		)
 		# The page-to-be-deleted signal is a hack so we have time to ensure we know the

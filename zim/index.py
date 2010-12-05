@@ -38,6 +38,7 @@ transparent as long as the zim version number is updated.
 
 from __future__ import with_statement
 
+import string
 import sqlite3
 import gobject
 import logging
@@ -273,6 +274,8 @@ class Index(gobject.GObject):
 		'initialize-db': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'tag-created': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'tag-inserted': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
+		'tag-removed': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
+		'tag-to-be-removed': (gobject.SIGNAL_RUN_LAST, None, (object, object)), # HACK
 		'tag-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'tag-to-be-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)), # HACK
 	}
@@ -557,19 +560,23 @@ class Index(gobject.GObject):
 		#~ print '!! INDEX PAGE', path, path._indexpath
 		assert isinstance(path, IndexPath) and not path.isroot
 		seen_links = set()
-		seen_tags = set()
-		inserted_tags = []
-		created_tags = []
-		purged_tags = []
+		
 		hadcontent = path.hascontent
+		
+		had_tags = set()
+		has_tags = set()
+		
+		created_tags = []
+		removed_tags = []
+		purged_tags = []
 		
 		# Initialise seen tags
 		for tag in self.list_tags(path):
-			seen_tags.add(tag.name)
+			had_tags.add(tag.id)
+		
 		
 		with self.db_commit:
 			self.db.execute('delete from links where source==?', (path.id,))
-			self.db.execute('delete from tagsources where source==?', (path.id,))
 
 			if page.hascontent:
 				for type, href, _ in page.get_links():
@@ -596,18 +603,20 @@ class Index(gobject.GObject):
 							(path.id, indexpath.id) )
 						
 				for _, attrib in page.get_tags():
-					name = attrib['name']
-					if not name in seen_tags:
-						seen_tags.add(name)
-						indextag = self.lookup_tag(name)
-						if indextag is None:
-							cursor = self.db.cursor()
-							cursor.execute(
-								'insert into tags(name) values (?)', (name,))
-							indextag = IndexTag(name, cursor.lastrowid)
-							created_tags.append(indextag)
-						else:
-							inserted_tags.append(indextag)
+					tag = attrib['name']
+					indextag = self.lookup_tag(tag)
+					if indextag is None:
+						# Create tag
+						cursor = self.db.cursor()
+						cursor.execute(
+							'insert into tags(name) values (?)', (tag,))
+						indextag = IndexTag(tag, cursor.lastrowid)
+						created_tags.append(indextag)
+					
+					if not (indextag.id in had_tags or 
+						    indextag.id in has_tags):
+						# Insert tag
+						has_tags.add(indextag.id)
 						try:
 							self.db.execute(
 								'insert into tagsources (source, tag) values (?, ?)',
@@ -615,6 +624,8 @@ class Index(gobject.GObject):
 						except sqlite3.IntegrityError:
 							# Catch already existing entries
 							continue
+					else:
+						has_tags.add(indextag.id)
 							
 							
 			key = self.notebook.get_page_indexkey(page)
@@ -622,8 +633,20 @@ class Index(gobject.GObject):
 				'update pages set hascontent=?, contentkey=? where id==?',
 				(page.hascontent, key, path.id) )
 			
-			# Purge tag table
 			cursor = self.db.cursor()
+
+			# Mark removed tags
+			scope = 'from tagsources where source==' + str(path.id)
+			if len(has_tags) > 0:
+				scope += ' and tag not in (' + \
+					string.join([str(i) for i in has_tags], ', ') + ')'
+			cursor.execute('select tag ' + scope)
+			for row in cursor:
+				removed_tags.append(self.lookup_tagid(row['tag']))
+				self.emit('tag-to-be-removed', removed_tags[-1], path)
+			self.db.execute('delete ' + scope)
+
+			# Purge tag table
 			cursor.execute('select id, name from tags where id not in (select tag from tagsources)')
 			for row in cursor:
 				purged_tags.append(IndexTag(row['name'], row['id'], row))
@@ -631,17 +654,21 @@ class Index(gobject.GObject):
 			self.db.execute('delete from tags where id not in (select tag from tagsources)')
 
 		path = self.lookup_data(path) # refresh
+		
 		if hadcontent != path.hascontent:
 			self.emit('page-updated', path)
 
-		for tag in purged_tags:
-			self.emit('tag-deleted', tag)
-
 		for tag in created_tags:
 			self.emit('tag-created', tag)
+		
+		for tag in has_tags.difference(had_tags):
+			self.emit('tag-inserted', self.lookup_tagid(tag), path)
 			
-		for tag in inserted_tags:
-			self.emit('tag-inserted', tag, path)
+		for tag in removed_tags:
+			self.emit('tag-removed', tag, path)
+			
+		for tag in purged_tags:
+			self.emit('tag-deleted', tag)
 
 		#~ print '!! PAGE-INDEXED', path
 		self.emit('page-indexed', path, page)

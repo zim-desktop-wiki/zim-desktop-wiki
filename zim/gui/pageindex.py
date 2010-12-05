@@ -407,7 +407,7 @@ class PageTreeView(BrowserTreeView):
 				lambda o, p, r: self.on_open_page(p) )
 			self.ui.connect_after('open-notebook', self.do_set_notebook)
 			if not self.ui.notebook is None:
-				self.do_set_notebook(self.app, self.ui.notebook)
+				self.do_set_notebook(self.ui, self.ui.notebook)
 
 		cell_renderer = gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
