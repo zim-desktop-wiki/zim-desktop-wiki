@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import gtk
+import pango
 
 from zim.plugins import PluginClass
-from zim.gui.pageindex import *
-from zim.index import IndexTag
+from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
+	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL
+from zim.index import IndexPath, IndexTag
 
 
 class TagTreeStore(PageTreeStore):
@@ -246,15 +248,30 @@ class TagTreeView(PageTreeView):
 
 		return None # No multiple selection
 
-class TagviewPlugin(PluginClass):
+
+class TagTreePluginWidget(gtk.ScrolledWindow):
+
+	def __init__(self, plugin):
+		gtk.ScrolledWindow.__init__(self)
+		self.plugin = plugin
+
+		self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		self.set_shadow_type(gtk.SHADOW_IN)
+		
+		self.treeview = TagTreeView(self.plugin.ui)
+		self.treeview.set_name('zim-tagindex')
+		self.add(self.treeview)
+
+
+class TagTreePlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Tagview'), # T: plugin name
+		'name': _('Tag tree'), # T: plugin name
 		'description': _('''\
-This plugin loads the tag user interface.
+This plugin provides a tree-view based on the tags contained on a page.
 '''), # T: plugin description
 		'author': 'Fabian Moser',
-		'help': 'Plugins:Tagview',
+		'help': 'Plugins:Tag Tree',
 	}
 
 	def __init__(self, ui):
@@ -272,7 +289,7 @@ This plugin loads the tag user interface.
 	def connect_embedded_widget(self):
 		if not self.sidepane_widget:
 			sidepane = self.ui.mainwindow.sidepane
-			self.sidepane_widget = TagviewPluginWidget(self)
+			self.sidepane_widget = TagTreePluginWidget(self)
 			sidepane.add(self.sidepane_widget)
 			self.sidepane_widget.show_all()
 
@@ -281,18 +298,3 @@ This plugin loads the tag user interface.
 			sidepane = self.ui.mainwindow.sidepane
 			sidepane.remove(self.sidepane_widget)
 			self.sidepane_widget = None
-
-
-class TagviewPluginWidget(gtk.ScrolledWindow):
-
-	def __init__(self, plugin):
-		gtk.ScrolledWindow.__init__(self)
-		self.plugin = plugin
-
-		self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		self.set_shadow_type(gtk.SHADOW_IN)
-		
-		self.treeview = TagTreeView(self.plugin.ui)
-		self.treeview.set_name('zim-tagindex')
-		self.add(self.treeview)
-				
