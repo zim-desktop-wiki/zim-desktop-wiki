@@ -273,9 +273,10 @@ class Index(gobject.GObject):
 		'end-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'initialize-db': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'tag-created': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'tag-inserted': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-		'tag-removed': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-		'tag-to-be-removed': (gobject.SIGNAL_RUN_LAST, None, (object, object)), # HACK
+		'tag-inserted': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)),
+		'tag-to-be-inserted': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)), # HACK
+		'tag-removed': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)),
+		'tag-to-be-removed': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)), # HACK
 		'tag-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'tag-to-be-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)), # HACK
 	}
@@ -567,8 +568,7 @@ class Index(gobject.GObject):
 		has_tags = set()
 		
 		created_tags = []
-		removed_tags = []
-		purged_tags = []
+		deleted_tags = []
 		
 		# Initialise seen tags
 		for tag in self.list_tags(path):
@@ -612,45 +612,38 @@ class Index(gobject.GObject):
 							'insert into tags(name) values (?)', (tag,))
 						indextag = IndexTag(tag, cursor.lastrowid)
 						created_tags.append(indextag)
-					
-					if not (indextag.id in had_tags or 
-						    indextag.id in has_tags):
-						# Insert tag
-						has_tags.add(indextag.id)
-						try:
-							self.db.execute(
-								'insert into tagsources (source, tag) values (?, ?)',
-								(path.id, indextag.id,))
-						except sqlite3.IntegrityError:
-							# Catch already existing entries
-							continue
-					else:
-						has_tags.add(indextag.id)
+					has_tags.add(indextag.id)
 							
 							
 			key = self.notebook.get_page_indexkey(page)
 			self.db.execute(
 				'update pages set hascontent=?, contentkey=? where id==?',
 				(page.hascontent, key, path.id) )
-			
-			cursor = self.db.cursor()
 
-			# Mark removed tags
-			scope = 'from tagsources where source==' + str(path.id)
-			if len(has_tags) > 0:
-				scope += ' and tag not in (' + \
-					string.join([str(i) for i in has_tags], ', ') + ')'
-			cursor.execute('select tag ' + scope)
-			for row in cursor:
-				removed_tags.append(self.lookup_tagid(row['tag']))
-				self.emit('tag-to-be-removed', removed_tags[-1], path)
-			self.db.execute('delete ' + scope)
+			# Insert tags
+			for i, tag in enumerate(has_tags.difference(had_tags)):
+				self.emit('tag-to-be-inserted', self.lookup_tagid(tag), path, (len(had_tags) == 0) and (i == 0))
+				try:
+					self.db.execute(
+						'insert into tagsources (source, tag) values (?, ?)',
+						(path.id, tag,))
+				except sqlite3.IntegrityError:
+					# Catch already existing entries
+					pass
 
+			# Remove tags
+			removed_tags = had_tags.difference(has_tags)
+			for i, tag in enumerate(removed_tags):
+				self.emit('tag-to-be-removed', self.lookup_tagid(tag), path, (len(has_tags) == 0) and (i == len(removed_tags)-1))
+				self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag))
+
+		with self.db_commit:
 			# Purge tag table
+			cursor = self.db.cursor()
 			cursor.execute('select id, name from tags where id not in (select tag from tagsources)')
 			for row in cursor:
-				purged_tags.append(IndexTag(row['name'], row['id'], row))
-				self.emit('tag-to-be-deleted', purged_tags[-1])
+				deleted_tags.append(IndexTag(row['name'], row['id'], row))
+				self.emit('tag-to-be-deleted', deleted_tags[-1])
 			self.db.execute('delete from tags where id not in (select tag from tagsources)')
 
 		path = self.lookup_data(path) # refresh
@@ -661,13 +654,13 @@ class Index(gobject.GObject):
 		for tag in created_tags:
 			self.emit('tag-created', tag)
 		
-		for tag in has_tags.difference(had_tags):
-			self.emit('tag-inserted', self.lookup_tagid(tag), path)
+		for i, tag in enumerate(has_tags.difference(had_tags)):
+			self.emit('tag-inserted', self.lookup_tagid(tag), path, (len(had_tags) == 0) and (i == 0))
 			
-		for tag in removed_tags:
-			self.emit('tag-removed', tag, path)
+		for i, tag in enumerate(removed_tags):
+			self.emit('tag-removed', tag, path, (len(has_tags) == 0) and (i == len(removed_tags)-1))
 			
-		for tag in purged_tags:
+		for tag in deleted_tags:
 			self.emit('tag-deleted', tag)
 
 		#~ print '!! PAGE-INDEXED', path
@@ -1030,6 +1023,9 @@ class Index(gobject.GObject):
 	
 	def lookup_tag(self, tag):
 		'''Returns an IndexTag for the named tag.'''
+		# Support 'None' as untagged
+		if tag is None:
+			return None
 		if isinstance(tag, IndexTag):
 			if not tag.hasdata:
 				# lookup tag data
@@ -1112,12 +1108,10 @@ class Index(gobject.GObject):
 		if not parent.isroot: found.insert(0, parent.name)
 		return IndexPath(':'.join(found), indexpath, row)
 
-	def list_tags(self, path):
-		return self.list_tags_n(path, None, None)
-
-	def list_tags_n(self, path, offset, limit=20):
-		'''Like list_tags() but returns a limitted slice of the list
-		as a list'''
+	def list_tags(self, path, offset=None, limit=20):
+		'''
+		Returns the tags on a given path or all, if the path is None.
+		'''
 		if path is None:
 			cursor = self.db.cursor()
 			if offset is None:
@@ -1225,10 +1219,10 @@ class Index(gobject.GObject):
 				tag = self.lookup_tagid(source['tag'])
 				yield Tagged(source, tag)
 				
-	def list_tagged(self, tag):
-		return self.list_tagged_n(tag, None, None)
-				
-	def list_tagged_n(self, tag, offset, limit=20):
+	def list_tagged(self, tag, offset=None, limit=20):
+		'''
+		Determine the pages tagged with a given tag.
+		'''
 		tag = self.lookup_tag(tag)
 		if tag:
 			cursor = self.db.cursor()
@@ -1239,6 +1233,18 @@ class Index(gobject.GObject):
 			for row in cursor:
 				assert row['tag'] == tag.id
 				yield self.lookup_id(row['source'])
+				
+	def list_untagged(self, offset=None, limit=20):
+		'''
+		Determine the untagged pages. 
+		'''
+		cursor = self.db.cursor()
+		if offset is None:
+			cursor.execute('select id from pages where id != ? and id not in (select source from tagsources)', (ROOT_ID,))
+		else:
+			cursor.execute('select id from pages where id != ? and id not in (select source from tagsources) limit ? offset ?', (ROOT_ID, limit, offset))
+		for row in cursor:
+			yield self.lookup_id(row['id'])
 
 	def list_links(self, path, direction=LINK_DIR_FORWARD):
 		'''Return Link objects for each link from or to path.
@@ -1276,6 +1282,44 @@ class Index(gobject.GObject):
 		for child in self.walk(path):
 			for link in self.list_links(child, direction):
 				yield link
+
+	def n_list_tags(self, path):
+		'''
+		Like list_tags() but returns the number of tags.
+		'''
+		cursor = self.db.cursor()
+		if path is None:
+			cursor.execute('select count(*) from tags')
+		else:
+			path = self.lookup_path(path)
+			if not path:
+				return 0
+			cursor.execute('select count(*) from tagsources where source==?', (path.id,))
+			
+		row = cursor.fetchone()
+		return int(row[0])
+
+	def n_list_tagged(self, tag):
+		'''Like list_tagged() but returns only the number of tagged pages 
+		instead	of the pages themselves.
+		'''
+		tag = self.lookup_tag(tag)
+		if tag:
+			cursor = self.db.cursor()
+			cursor.execute('select count(*) from tagsources where tag == ?', (tag.id,))
+			row = cursor.fetchone()
+			return int(row[0])
+		else:
+			return 0
+
+	def n_list_untagged(self):
+		'''Like list_untagged() but returns only the number of untagged pages 
+		instead	of the pages themselves.
+		'''
+		cursor = self.db.cursor()
+		cursor.execute('select count(*) from pages where id != ? and id not in (select source from tagsources)', (ROOT_ID,))
+		row = cursor.fetchone()
+		return int(row[0])
 
 	def n_list_links(self, path, direction=LINK_DIR_FORWARD):
 		'''Like list_links() but returns only the number of links instead
