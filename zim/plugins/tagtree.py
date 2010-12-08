@@ -339,11 +339,13 @@ This plugin provides a tree-view based on the tags contained on a page.
 		if not self.sidepane_widget:
 			sidepane = self.ui.mainwindow.sidepane
 			self.sidepane_widget = TagTreePluginWidget(self)
-			sidepane.add(self.sidepane_widget)
+			sidepane.append_page(self.sidepane_widget, None)
 			self.sidepane_widget.show_all()
 
 	def disconnect_embedded_widget(self):
 		if self.sidepane_widget:
 			sidepane = self.ui.mainwindow.sidepane
-			sidepane.remove(self.sidepane_widget)
+			pagenum = sidepane.page_num(self.sidepane_widget)
+			if not pagenum is None: 
+				sidepane.remove_page(pagenum)
 			self.sidepane_widget = None

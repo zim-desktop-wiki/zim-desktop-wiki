@@ -1539,16 +1539,15 @@ class MainWindow(Window):
 		self.hpane = gtk.HPaned()
 		self.hpane.set_position(175)
 		vbox.add(self.hpane)
-		self.sidepane = gtk.VPaned()
+		self.sidepane = gtk.Notebook()
 		self.hpane.add1(self.sidepane)
 
 		self.sidepane.connect('key-press-event',
 			lambda o, event: event.keyval == KEYVAL_ESC
 				and self.toggle_sidepane())
 
-
 		self.pageindex = PageIndex(ui)
-		self.sidepane.add(self.pageindex)
+		self.sidepane.append_page(self.pageindex, None)
 
 		vbox2 = gtk.VBox()
 		self.hpane.add2(vbox2)
