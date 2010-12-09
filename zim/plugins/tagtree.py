@@ -3,11 +3,17 @@
 import gtk
 import pango
 import itertools
+import logging
+
 
 from zim.plugins import PluginClass
 from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
 	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL
 from zim.index import IndexPath, IndexTag
+from zim.gui.clipboard import INTERNAL_PAGELIST_TARGET_NAME, pack_urilist
+
+
+logger = logging.getLogger('zim.plugins.tagtree')
 
 
 class TagTreeStore(PageTreeStore):
@@ -296,6 +302,18 @@ class TagTreeView(PageTreeView):
 			return model.get_path(iter) # this page was selected already
 
 		return None # No multiple selection
+
+	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
+		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		model, iter = self.get_selection().get_selected()
+		path = model.get_indexpath(iter)
+		if isinstance(path, IndexTag):
+			link = '@' + path.name
+		else:
+			link = path.name
+		logger.debug('Drag data requested, we have internal tag/path "%s"', link)
+		data = pack_urilist((link,))
+		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
 
 
 class TagTreePluginWidget(gtk.ScrolledWindow):

@@ -1725,7 +1725,7 @@ class Page(Path):
 		if tree:
 			tags = {}
 			for tag in tree.getiterator('tag'):
-				tags[tag.text] = tag.attrib.copy()
+				tags[tag.text.strip()] = tag.attrib.copy()
 			for tag, attrib in tags.iteritems():
 				yield tag, attrib
 			

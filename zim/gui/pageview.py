@@ -663,7 +663,7 @@ class TextBuffer(gtk.TextBuffer):
 			end = iter.copy()
 			if not end.ends_tag(tag):
 				end.forward_to_tag_toggle(tag)
-			attrib['name'] = start.get_text(end)[1:]
+			attrib['name'] = start.get_text(end)[1:].strip()
 			return attrib
 		else:
 			return None
@@ -1141,6 +1141,22 @@ class TextBuffer(gtk.TextBuffer):
 
 	def do_insert_text(self, end, string, length):
 		'''Signal handler for insert-text signal'''
+		
+		def end_or_protect_tags(string, length):
+			tags = filter(_is_tag_tag, self._editmode_tags)
+			if tags:
+				if end.ends_tag(tags[0]):
+					# End tags if end-of-word char is typed at end of a tag
+					# without this you not insert text behind a tag e.g. at the end of a line
+					self._editmode_tags = filter(_is_not_tag_tag, self._editmode_tags)
+				else:
+					# Forbid breaking a tag
+					return '', 0
+				# TODO this should go into the TextView, not here
+				# Now it goes OK only because we only check single char inserts, but would break
+				# for multi char inserts from the view - fixing that here breaks insert parsetree
+			return string, length			
+		
 		# First call parent for the actual insert
 		if string == '\n':
 			# Break tags that are not allowed to span over multiple lines
@@ -1150,6 +1166,9 @@ class TextBuffer(gtk.TextBuffer):
 			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 			self.emit('textstyle-changed', None)
 			# TODO make this more robust for multiline inserts
+			
+			string, length = end_or_protect_tags(string, length)
+			
 		elif string in CHARS_END_OF_WORD:
 			# Break links if end-of-word char is typed at end of a link
 			# without this you not insert text behind a link e.g. at the end of a line
@@ -1159,6 +1178,9 @@ class TextBuffer(gtk.TextBuffer):
 				# TODO this should go into the TextView, not here
 				# Now it goes OK only because we only check single char inserts, but would break
 				# for multi char inserts from the view - fixing that here breaks insert parsetree
+				
+			string, length = end_or_protect_tags(string, length)
+
 
 		gtk.TextBuffer.do_insert_text(self, end, string, length)
 

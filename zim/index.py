@@ -603,7 +603,7 @@ class Index(gobject.GObject):
 							(path.id, indexpath.id) )
 						
 				for _, attrib in page.get_tags():
-					tag = attrib['name']
+					tag = attrib['name'].strip()
 					indextag = self.lookup_tag(tag)
 					if indextag is None:
 						# Create tag

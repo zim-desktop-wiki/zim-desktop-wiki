@@ -118,6 +118,10 @@ def parsetree_from_selectiondata(selectiondata):
 			if isimage:
 				builder.start('img', {'src': links[i]})
 				builder.end('img')
+			elif links[i].startswith('@'):
+				builder.start('tag', {'name': links[i][1:]})
+				builder.data(links[i])
+				builder.end('tag')
 			else:
 				builder.start('link', {'href': links[i]})
 				builder.data(links[i])
