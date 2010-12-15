@@ -141,9 +141,9 @@ class Dumper(DumperClass):
 				myoutput.append(element.text)
 				if indent:
 					myoutput.prefix_lines('    ' * indent)
-				output.append('\n\\begin{verbatim}\n')
+				output.append('\n\\begin{lstlisting}\n')
 				output.extend(myoutput)
-				output.append('\n\\end{verbatim}\n')
+				output.append('\n\\end{lstlisting}\n')
 			elif element.tag == 'sub':
 				output.append('$_{%s}$' % element.text)
 			elif element.tag == 'sup':
@@ -190,7 +190,7 @@ class Dumper(DumperClass):
 			elif element.tag == 'strong':
 				output.append('\\textbf{'+text+'}')
 			elif element.tag == 'mark':
-				output.append('\\underline{'+text+'}')
+				output.append('\\uline{'+text+'}')
 			elif element.tag == 'strike':
 				output.append('\\sout{'+text+'}')
 			elif element.tag == 'code':
@@ -199,7 +199,7 @@ class Dumper(DumperClass):
 				for delim in '+*|$&%!-_':
 					if not delim in text:
 						success = True
-						output.append('\\verb'+delim+text+delim)
+						output.append('\\lstinline'+delim+text+delim)
 						break
 				if not success:
 					assert False, 'Found no suitable delimiter for verbatim text: %s' % element
