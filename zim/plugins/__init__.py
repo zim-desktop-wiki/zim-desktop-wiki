@@ -16,6 +16,64 @@ from zim.config import ListDict
 logger = logging.getLogger('zim.plugins')
 
 
+def user_site_packages_directory():
+	'''In Python 2.6 has been introduced feature "Per-user site-packages Directory"
+	<http://docs.python.org/whatsnew/2.6.html#pep-370-per-user-site-packages-directory>
+	This function backports this feature to Python 2.5.
+	'''
+	if os.name == 'nt':
+		if 'APPDATA' in os.environ:
+			dir = Dir([os.environ['APPDATA'],
+						'Python/Python25/site-packages'])
+			return dir.path
+		else:
+			return None
+	else:
+		dir = Dir('~/.local/lib/python2.5/site-packages')
+		return dir.path
+
+# Add the per-user site-packages directory to the system path
+if sys.version_info[0:2] == (2, 5):
+	userdir = user_site_packages_directory()
+	if userdir and not userdir in sys.path:
+		sys.path.insert(0, userdir)
+
+
+def set_plugin_search_path():
+	'''Sets __path__ for the zim.plugins pacakge. This determines what
+	directories are searched when importing plugin packages in the
+	zim.plugins namespace. This function looks at sys.path and would
+	need to be run again if sys.path is modified after loading this
+	package.
+	'''
+	global __path__
+	__path__ = [] # flush completely
+	# We don't even keep the directory of this source file because we
+	# want order in __path__ match order in sys.path, so per-user
+	# folder takes proper precedence
+
+	for dir in sys.path:
+		try:
+			dir = dir.decode(zim.fs.ENCODING)
+		except UnicodeDecodeError:
+			logger.exception('Could not decode path "%s"', dir)
+			continue
+
+		if os.path.basename(dir) == 'zim.exe':
+			# path is an executable, not a folder -- examine containing folder
+			dir = os.path.dirname(dir)
+
+		if dir == '':
+			dir = '.'
+
+		dir = os.path.sep.join((dir, 'zim', 'plugins'))
+		#~ print '>> PLUGIN DIR', dir
+		__path__.append(dir)
+
+# extend path for importing and searching plugins
+set_plugin_search_path()
+
+
 def get_plugin_module(pluginname):
 	'''Returns the plugin module object for a given name'''
 	# __import__ has some quirks, see the reference manual
@@ -38,27 +96,20 @@ def get_plugin(pluginname):
 			return obj
 
 
-def list_plugins(_path=None):
-	'''Returns a set of available plugin names
-	The _path argument is reserved for testing, it allows to override the
-	search path for plugins.
-	'''
+def list_plugins():
+	'''Returns a set of available plugin names'''
+	# Only listing folders in __path__ because this parameter determines
+	# what folders will considered when importing sub-modules of the
+	# this package once this module is loaded.
+
 	# FIXME how should this work for e.g. for python eggs ??
 	# for windows exe we now package plugins separately
-	plugins = set()
-	path = _path or sys.path
-	for dir in path:
-		try:
-			dir = dir.decode(zim.fs.ENCODING)
-		except UnicodeDecodeError:
-			logger.exception('Could not decode path "%s"', dir)
-			continue
 
-		if os.path.basename(dir) == 'zim.exe':
-			# path is an executable, not a folder -- examine containing folder
-			dir = os.path.dirname(dir)
-		dir = Dir((dir, 'zim', 'plugins'))
-		for candidate in dir.list():
+	plugins = set()
+
+	for dir in __path__:
+		dir = Dir(dir)
+		for candidate in dir.list(): # returns [] if dir does not exist
 			if candidate.startswith('_'):
 				continue
 			elif candidate.endswith('.py'):
@@ -168,8 +219,13 @@ class PluginClass(gobject.GObject):
 			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tupels'
 		section = self.__class__.__name__
 		self.preferences = self.ui.preferences[section]
-		for key, type, label, default in self.plugin_preferences:
-				self.preferences.setdefault(key, default)
+		for pref in self.plugin_preferences:
+				if len(pref) == 4:
+					key, type, label, default = pref
+					self.preferences.setdefault(key, default)
+				else:
+					key, type, label, default, check = pref
+					self.preferences.setdefault(key, default, check=check)
 
 		self._is_image_generator_plugin = False
 

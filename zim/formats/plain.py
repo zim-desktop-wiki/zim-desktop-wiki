@@ -83,7 +83,7 @@ class Dumper(DumperClass):
 			output.append(list.text)
 
 		for element in list.getchildren():
-			if element.tag == 'p':
+			if element.tag in ('p', 'div'):
 				indent = 0
 				if 'indent' in element.attrib:
 					indent = int(element.attrib['indent'])
@@ -93,7 +93,14 @@ class Dumper(DumperClass):
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
 			elif element.tag == 'ul':
-				self.dump_children(element, output, list_level=list_level+1) # recurs
+				indent = 0
+				if 'indent' in element.attrib:
+					indent = int(element.attrib['indent'])
+				myoutput = TextBuffer()
+				self.dump_children(element, myoutput, list_level=list_level+1) # recurs
+				if indent:
+					myoutput.prefix_lines('\t'*indent)
+				output.extend(myoutput)
 			elif element.tag == 'li':
 				if 'indent' in element.attrib:
 					list_level = int(element.attrib['indent'])

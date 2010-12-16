@@ -39,8 +39,8 @@ for bullet in bullets:
 	bullet_types[bullets[bullet]] = bullet
 
 parser_re = {
-	'blockstart': re.compile("\A(\t*''')\s*?\n"),
-	'pre':        re.compile("\A(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*\Z", re.M | re.S),
+	'blockstart': re.compile("^(\t*''')\s*?\n", re.M),
+	'pre':        re.compile("^(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*\n", re.M | re.S),
 	'splithead':  re.compile('^(==+[ \t]+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)[ \t]+(.*?)([ \t]+==+)?[ \t]*\n?)\Z"),
 	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % bullet_re, re.M),
@@ -108,10 +108,20 @@ class Parser(ParserClass):
 			paras.append('')
 			return True
 
+		def blocks_closed():
+			# This function checks if there are unfinished blocks in the last
+			# paragraph.
+			if len(paras[-1]) == 0:
+				return True
+			# Eliminate closed blocks
+			nonblock = parser_re['pre'].split(paras[-1])
+			#  Blocks are closed if none is opened at the end
+			return parser_re['blockstart'].search(nonblock[-1]) == None
+
 		para_isspace = False
 		for line in input:
 			# Try start new para when switching between text and empty lines or back
-			if line.isspace() != para_isspace or parser_re['blockstart'].match(line):
+			if line.isspace() != para_isspace and blocks_closed():
 				if para_start():
 					para_isspace = line.isspace() # decide type of new para
 			paras[-1] += line
@@ -126,19 +136,24 @@ class Parser(ParserClass):
 			# exceptions like it (crosses fingers)
 			para = para.replace(u'\u2028', '\n')
 
-			if not self.backward and parser_re['blockstart'].search(para):
-				self._parse_block(builder, para)
-			elif self.backward and not para.isspace() \
+			if self.backward and not para.isspace() \
 			and not parser_re['unindented_line'].search(para):
 				self._parse_block(builder, para)
 			else:
-				parts = parser_re['splithead'].split(para)
-				for i, p in enumerate(parts):
-					if i % 2:
-						# odd elements in the list are headings after split
-						self._parse_head(builder, p)
-					elif len(p) > 0:
-						self._parse_para(builder, p)
+				block_parts = parser_re['pre'].split(para)
+				for i, b in enumerate(block_parts):
+					if i % 3 == 0:
+						# Text paragraph
+						parts = parser_re['splithead'].split(b)
+						for j, p in enumerate(parts):
+							if j % 2:
+								# odd elements in the list are headings after split
+								self._parse_head(builder, p)
+							elif len(p) > 0:
+								self._parse_para(builder, p)
+					elif i % 3 == 1:
+						# Block
+						self._parse_block(builder, b + '\n' + block_parts[i+1] + b + '\n')
 
 		builder.end('zim-tree')
 		return ParseTree(builder.close())
@@ -181,22 +196,38 @@ class Parser(ParserClass):
 		'''Parse a normal paragraph'''
 		if para.isspace():
 			builder.data(para)
-		else:
-			indent = self._determine_indent(para)
-			if indent > 0:
-				builder.start('p', {'indent': indent})
-				para = ''.join(
-					map(lambda line: line[indent:], para.splitlines(True)) )
-			else:
-				builder.start('p')
-			parts = parser_re['splitlist'].split(para)
-			for i, p in enumerate(parts):
-				if i % 2:
-					# odd elements in the list are lists after split
-					self._parse_list(builder, p)
-				elif len(p) > 0:
-					self._parse_text(builder, p)
-			builder.end('p')
+			return
+
+		builder.start('p')
+
+		parts = parser_re['splitlist'].split(para)
+		for i, p in enumerate(parts):
+			if i % 2:
+				# odd elements in the list are lists after split
+				self._parse_list(builder, p)
+			elif len(p) > 0:
+				# non-list part of the paragraph
+				indent = 0
+				for line in p.splitlines(True):
+					# parse indenting per line...
+
+					m = parser_re['indent'].match(line)
+					if m: myindent = len(m.group(1))
+					else: myindent = 0
+
+					if myindent != indent:
+						if indent > 0:
+							builder.end('div')
+						if myindent > 0:
+							builder.start('div', {'indent': myindent})
+						indent = myindent
+
+					self._parse_text(builder, line[indent:])
+
+				if indent > 0:
+					builder.end('div')
+
+		builder.end('p')
 
 	def _determine_indent(self, text):
 		lvl = 999 # arbitrary large value
@@ -210,15 +241,17 @@ class Parser(ParserClass):
 
 	def _parse_list(self, builder, list):
 		'''Parse a bullet list'''
-		#~ m = parser_re['listitem'].match(list)
-		#~ assert m, 'Line does not match a list item: %s' % line
-		#~ prefix = m.group(1)
-		#~ level = prefix.replace(' '*TABSTOP, '\t').count('\t')
-		level = 0
-		for i in range(-1, level):
+
+		indent = self._determine_indent(list)
+		lines = list.splitlines()
+		if indent > 0:
+			lines = [line[indent:] for line in lines]
+			builder.start('ul', {'indent': indent})
+		else:
 			builder.start('ul')
 
-		for line in list.splitlines():
+		level = 0 # relative to indent
+		for line in lines:
 			m = parser_re['listitem'].match(line)
 			assert m, 'Line does not match a list item: >>%s<<' % line
 			prefix, bullet, text = m.groups()
@@ -312,7 +345,7 @@ class Dumper(DumperClass):
 			output.append(list.text)
 
 		for element in list.getchildren():
-			if element.tag == 'p':
+			if element.tag in ('p', 'div'):
 				indent = 0
 				if 'indent' in element.attrib:
 					indent = int(element.attrib['indent'])
@@ -322,7 +355,14 @@ class Dumper(DumperClass):
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
 			elif element.tag == 'ul':
-				self.dump_children(element, output, list_level=list_level+1) # recurs
+				indent = 0
+				if 'indent' in element.attrib:
+					indent = int(element.attrib['indent'])
+				myoutput = TextBuffer()
+				self.dump_children(element, myoutput, list_level=list_level+1) # recurs
+				if indent:
+					myoutput.prefix_lines('\t'*indent)
+				output.extend(myoutput)
 			elif element.tag == 'h':
 				level = int(element.attrib['level'])
 				if level < 1:   level = 1

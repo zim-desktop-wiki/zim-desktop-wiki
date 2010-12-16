@@ -71,8 +71,8 @@ class Dumper(DumperClass):
 					output += ['<', tag, ' dir=\'rtl\'>', text, '</', tag, '>']
 				else:
 					output += ['<', tag, '>', text, '</', tag, '>']
-			elif element.tag == 'p':
-				tag = 'p'
+			elif element.tag in ('p', 'div'):
+				tag = element.tag
 				if self.isrtl(element):
 					tag += ' dir=\'rtl\''
 				if 'indent' in element.attrib:
@@ -80,7 +80,7 @@ class Dumper(DumperClass):
 					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
 				output += ['<', tag, '>\n', text]
 				self._dump_children(element, output) # recurs
-				output.append('</p>\n')
+				output.append('</%s>\n' % element.tag)
 			elif element.tag == 'pre':
 				tag = 'pre'
 				if self.isrtl(element):
@@ -90,7 +90,11 @@ class Dumper(DumperClass):
 					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
 				output += ['<', tag, '>\n', text, '</pre>\n']
 			elif element.tag is 'ul':
-				output += ['<ul>\n', text]
+				tag = 'ul'
+				if 'indent' in element.attrib:
+					level = int(element.attrib['indent'])
+					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
+				output += ['<' + tag + '>\n', text]
 				self._dump_children(element, output) # recurs
 				output.append('</ul>\n')
 			elif element.tag == 'li':

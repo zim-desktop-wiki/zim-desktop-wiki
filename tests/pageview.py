@@ -4,9 +4,8 @@
 
 from __future__ import with_statement
 
-from tests import TestCase, get_test_data_page, get_test_page, MockObject
-
-import logging
+from tests import TestCase, LoggingFilter, MockObject, \ 
+	get_test_data_page, get_test_page
 
 from zim.fs import *
 from zim.formats import wiki, ParseTree
@@ -14,19 +13,10 @@ from zim.notebook import Path
 from zim.gui.pageview import *
 
 
-logger = logging.getLogger('zim.gui.pageview')
+class FilterNoSuchImageWarning(LoggingFilter):
 
-
-class FilterNoSuchImageWarning(object):
-
-	def __enter__(self):
-		logger.addFilter(self)
-
-	def __exit__(self, *a):
-		logger.removeFilter(self)
-
-	def filter(self, record):
-		return not record.getMessage().startswith('No such image:')
+	logger = 'zim.gui.pageview'
+	message = 'No such image:'
 
 
 def get_tree(wikitext):
@@ -58,6 +48,7 @@ class TestTextBuffer(TestCase):
 
 		raw1 = buffer.get_parsetree(raw=True)
 		result1 = buffer.get_parsetree()
+		#~ print tree.tostring()
 		#~ print result1.tostring()
 		#~ self.assertEqualDiff(result1.tostring(), tree.tostring())
 
@@ -96,7 +87,7 @@ dus <pre>ja</pre> hmm
 <h level="2">foo
 </h>bar
 
-dus <p indent="5">ja</p> <emphasis>hmm
+dus <div indent="5">ja</div> <emphasis>hmm
 dus ja
 </emphasis>grrr
 
@@ -220,6 +211,24 @@ grrr
 		#print buffer.get_parsetree().tostring()
 		tree = buffer.get_parsetree()
 		self.assertEqualDiff(tree.tostring(), wanted)
+
+		# Strange bug let to second bullet disappearing in this case
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<li bullet="*" indent="1">Box 1</li><li bullet="*" indent="1">Box 2</li><li bullet="*" indent="1">Box 3</li>
+</zim-tree>'''
+		tree = get_tree_from_xml(input)
+		buffer.set_parsetree(tree)
+		iter = buffer.get_iter_at_line(2) # iter before checkbox
+		bound = iter.copy()
+		bound.forward_char()
+		buffer.select_range(iter, bound)
+		buffer.toggle_textstyle('strike')
+		#~ print buffer.get_parsetree(raw=True).tostring()
+		#~ print buffer.get_parsetree().tostring()
+		tree = buffer.get_parsetree()
+		self.assertEqualDiff(tree.tostring(), input)
 
 		# Check how robust we are for placeholder utf8 character
 		buffer = TextBuffer()

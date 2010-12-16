@@ -21,7 +21,6 @@ import gobject
 
 from zim.notebook import Path
 
-
 MAX_HISTORY = 25
 
 
@@ -92,6 +91,21 @@ class History(gobject.GObject):
 		self.uistate.setdefault('pages', {})
 		self.uistate.setdefault('history', [])
 		self.uistate.setdefault('current', len(self.history)-1)
+		
+		
+		# yy: renaming pages also renames their history
+		self.notebook = notebook
+		self.notebook.connect('moved-page', lambda o, a, b, c: self._on_page_moved(a,b,c))
+
+		# yy: deleted pages should not show up in "recent pages" view but still be visible in "history"
+		self.notebook.connect('deleted-page', lambda o, a: self._on_page_deleted(a))
+		self.notebook.connect('stored-page', lambda o, a: self._on_page_stored(a))		
+		self.deletedpages = set()
+		for h in self.history:
+			p = self.notebook.get_page(Path(h))
+			if not p.exists():
+				self.deletedpages.add(h)
+		
 
 	current = property(
 		lambda self: self.uistate['current'],
@@ -103,6 +117,22 @@ class History(gobject.GObject):
 
 	@property
 	def pages(self): return self.uistate['pages']
+
+	def _on_page_deleted(self, page):
+		self.deletedpages.add(page.name)
+		self.emit('changed')
+
+	def _on_page_stored(self, page):		
+		self.deletedpages.discard(page.name)
+		self.emit('changed')
+
+	def _on_page_moved(self, oldpath, newpath, update_links):
+		# replace all occurences of oldpath.name with newpath.name in history
+		for i in range(0, len(self.history)):
+			if self.history[i].startswith(oldpath.name):
+				self.history[i] = self.history[i].replace(oldpath.name, newpath.name)
+		self.emit('changed')
+	
 
 	def append(self, page):
 		if self.current != -1:
@@ -119,6 +149,9 @@ class History(gobject.GObject):
 			self.history.append(page.name)
 		self.current = -1
 			# this assignment always triggers "modified" on the ListDict
+
+		if not page.exists():
+			self.deletedpages.add(page.name)
 
 		self.emit('changed')
 
@@ -185,10 +218,20 @@ class History(gobject.GObject):
 	def get_unique(self):
 		'''Generator function that yields unique records'''
 		seen = set()
-		for i in range(len(self.history)-1, -1, -1):
-			if not self.history[i] in seen:
+		for i in range(len(self.history)-1, -1, -1):	
+			if not self.history[i] in seen and not self._page_is_deleted(self.history[i]):
 				seen.add(self.history[i])
 				yield HistoryRecord(self, i)
-
+				
+	def _page_is_deleted(self, page):
+		'''Checks if given page has been deleted'''
+		parent = ""
+		for p in page.split(":"):
+			parent = parent + p
+			if parent in self.deletedpages:
+				return True
+			parent = parent + ":"
+		return False
+			
 
 gobject.type_register(History)

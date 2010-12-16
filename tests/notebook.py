@@ -25,7 +25,7 @@ class TestGetNotebook(tests.TestCase):
 			file.remove()
 
 	def runTest(self):
-		root = Dir(tests.create_tmp_dir('notebook_TestGetNotebook'))
+		root = Dir(tests.create_tmp_dir(u'notebook_TestGetNotebook_\u0421\u0430\u0439'))
 
 		# Start empty - see this is no issue
 		list = get_notebook_list()

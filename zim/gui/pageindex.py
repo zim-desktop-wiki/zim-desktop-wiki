@@ -393,6 +393,7 @@ class PageTreeView(BrowserTreeView):
 
 	def __init__(self, ui):
 		BrowserTreeView.__init__(self)
+		self.set_name('zim-pageindex')
 		self._cleanup = None
 
 		if not ui is None: # is None in test case

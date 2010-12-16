@@ -213,24 +213,6 @@ def parse_date(string):
 		return None
 
 
-# These sets adjust to the current locale - so not same as "[a-z]" ..
-# Must be kidding - no classes for this in the regex engine !?
-_classes = {'upper': string.uppercase}
-upper_re = re.compile(r'[%(upper)s]' % _classes)
-del _classes
-
-def title(string):
-	'''Slightly smarter version of str.title(). Does not "downgrade"
-	words that already have upper case in it.
-	'''
-	def titleword(match):
-		word = match.group(0)
-		if upper_re.search(word): return word
-		else: return word.title()
-
-	return re.sub(r'\w+', titleword, string, re.U)
-
-
 class Re(object):
 	'''Wrapper around regex pattern objects which memorizes the
 	last match object and gives list access to it's capturing groups.
@@ -332,9 +314,10 @@ class Re(object):
 # Some often used regexes
 is_url_re = Re('^(\w[\w\+\-\.]+)://')
 	# scheme "://"
-is_email_re = Re('^(mailto:)?\S+\@\S+\.\w+$')
+is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+$')
 	# "mailto:" address
 	# name "@" host
+	# but exclude other uris like mid: and cid:
 is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Za-z]:\\)')
 	# / ~/ ./ ../ ~user/  .\ ..\ ~\ ~user\
 	# X:\
@@ -367,6 +350,12 @@ def link_type(link):
 		if link.startswith('zim+'): type = 'zim-notebook'
 		else: type = is_url_re[1]
 	elif is_email_re.match(link): type = 'mailto'
+	elif '@' in link and (
+		link.startswith('mid:') or
+		link.startswith('cid:')
+	):
+		return link[:3]
+		# email message uris, see RFC 2392
 	elif is_win32_share_re.match(link): type = 'smb'
 	elif is_path_re.match(link): type = 'file'
 	elif is_interwiki_re.match(link): type = 'interwiki'

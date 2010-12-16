@@ -4,7 +4,7 @@
 
 from __future__ import with_statement
 
-from tests import TestCase, get_test_notebook
+from tests import TestCase, LoggingFilter, get_test_notebook
 
 import sys
 from cStringIO import StringIO
@@ -16,19 +16,11 @@ from zim.www import WWWInterface
 
 # TODO how to test fetching from a socket while mainloop is running ?
 
-logger = logging.getLogger('zim.www')
 
+class Filter404(LoggingFilter):
 
-class Filter404(object):
-
-	def __enter__(self):
-		logger.addFilter(self)
-
-	def __exit__(self, *a):
-		logger.removeFilter(self)
-
-	def filter(self, record):
-		return not record.getMessage().startswith('404 Not Found')
+	logger = 'zim.www'
+	message = '404 Not Found'
 
 
 

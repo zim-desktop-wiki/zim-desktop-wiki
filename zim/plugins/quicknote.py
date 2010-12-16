@@ -149,7 +149,7 @@ class BoundQuickNoteDialog(Dialog):
 		self._updating_title = False
 		self._title_set_manually = False
 
-		self.uistate.setdefault('namespace', None)
+		self.uistate.setdefault('namespace', None, basestring)
 		namespace = namespace or self.uistate['namespace']
 
 		self.form = InputForm(notebook=self.ui.notebook)
@@ -165,23 +165,27 @@ class BoundQuickNoteDialog(Dialog):
 		self.form.add_inputs( (
 				('page', 'page', _('Page')),
 				('namespace', 'namespace', _('Namespace')), # T: text entry field
-				('newpage', 'bool', _('Create a new page for each note')), # T: checkbox in Quick Note dialog
+				('new_page', 'bool', _('Create a new page for each note')), # T: checkbox in Quick Note dialog
 				('basename', 'string', _('Title')) # T: text entry field
 			) )
 		self.form.update({
 				'page': namespace,
 				'namespace': namespace,
-				'newpage': False,
+				'new_page': False,
 				'basename': basename,
 			} )
+
+		self.uistate.setdefault('open_page', True)
+		self.uistate.setdefault('new_page', True)
 
 		# Set up the inputs and set page/ namespace to switch on
 		# toggling the checkbox
 		self.form.widgets['page'].set_no_show_all(True)
 		self.form.widgets['namespace'].set_no_show_all(True)
+		self.form['new_page'] = bool(self.uistate['new_page'])
 
 		def switch_input(*a):
-			if self.form['newpage']:
+			if self.form['new_page']:
 				self.form.widgets['page'].hide()
 				self.form.widgets['namespace'].show()
 				self.form.widgets['basename'].set_sensitive(True)
@@ -191,7 +195,12 @@ class BoundQuickNoteDialog(Dialog):
 				self.form.widgets['basename'].set_sensitive(False)
 
 		switch_input()
-		self.form.widgets['newpage'].connect('toggled', switch_input)
+		self.form.widgets['new_page'].connect('toggled', switch_input)
+
+		self.open_page = gtk.CheckButton(_('_Open new page')) # T: Option in quicknote dialog
+		self.open_page.set_active(self.uistate['open_page'])
+		self.action_area.pack_start(self.open_page, False)
+		self.action_area.set_child_secondary(self.open_page, True)
 
 		# Add the main textview and hook up the basename field to
 		# sync with first line of the textview
@@ -225,8 +234,9 @@ class BoundQuickNoteDialog(Dialog):
 		Dialog.show(self)
 
 	def save_uistate(self):
-		self.uistate['newpage'] = self.form['newpage']
-		if self.uistate['newpage']:
+		self.uistate['new_page'] = self.form['new_page']
+		self.uistate['open_page'] = self.open_page.get_active()
+		if self.uistate['new_page']:
 			self.uistate['namespace'] = self.form['namespace']
 		else:
 			self.uistate['namespace'] = self.form['page']
@@ -256,7 +266,7 @@ class BoundQuickNoteDialog(Dialog):
 		bounds = buffer.get_bounds()
 		text = buffer.get_text(*bounds)
 
-		if self.form['newpage']:
+		if self.form['new_page']:
 			if not self.form.widgets['namespace'].get_input_valid() \
 			or not self.form['basename']:
 				return False
@@ -265,6 +275,8 @@ class BoundQuickNoteDialog(Dialog):
 			else: ui = self.ui
 			path = self.form['namespace'].name + ':' + self.form['basename']
 			ui.new_page_from_text(text, path)
+			if self.open_page.get_active():
+				ui.present()
 		else:
 			if not self.form.widgets['page'].get_input_valid() \
 			or not self.form['page']:
@@ -274,8 +286,9 @@ class BoundQuickNoteDialog(Dialog):
 			else: ui = self.ui
 			path = self.form['page'].name
 			ui.append_text_to_page(path, '\n----\n'+text)
+			if self.open_page.get_active():
+				ui.present(page) # also works with proxy
 
-		ui.present()
 		return True
 
 
@@ -290,10 +303,10 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		self._updating_title = False
 		self._title_set_manually = False
 
-		self.uistate.setdefault('lastnotebook', None)
+		self.uistate.setdefault('lastnotebook', None, basestring)
 		if self.uistate['lastnotebook']:
 			notebook = notebook or self.uistate['lastnotebook']
-			self.config['Namespaces'].setdefault(notebook, None)
+			self.config['Namespaces'].setdefault(notebook, None, basestring)
 			namespace = namespace or self.config['Namespaces'][notebook]
 
 		self.form = InputForm()
@@ -313,8 +326,9 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 	def save_uistate(self):
 		notebook = self.notebookcombobox.get_notebook()
 		self.uistate['lastnotebook'] = notebook
-		self.uistate['newpage'] = self.form['newpage']
-		if self.uistate['newpage']:
+		self.uistate['new_page'] = self.form['new_page']
+		self.uistate['open_page'] = self.open_page.get_active()
+		if self.uistate['new_page']:
 			self.config['Namespaces'][notebook] = self.form['namespace']
 		else:
 			self.config['Namespaces'][notebook] = self.form['page']
@@ -323,7 +337,7 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 	def on_notebook_changed(self, o):
 		notebook = self.notebookcombobox.get_notebook()
 		self.uistate['lastnotebook'] = notebook
-		self.config['Namespaces'].setdefault(notebook, None)
+		self.config['Namespaces'].setdefault(notebook, None, basestring)
 		namespace = self.config['Namespaces'][notebook]
 		if namespace:
 			self.form['namespace'] = namespace

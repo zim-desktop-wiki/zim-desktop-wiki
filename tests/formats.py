@@ -160,13 +160,17 @@ LINKS: FooBar
 
 
 Let's try these bold, italic, underline and strike
-And some //verbatim//
+	And some //verbatim// with an indent halfway the paragraph
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 
 A list
 * foo
 	* bar
 	* baz
+And an indented list
+	* foo
+		* bar
+		* baz
 
 And a checkbox list
 [ ] item 1
@@ -247,19 +251,20 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
 LINKS: <link href="Foo">Foo</link><link href="Bar">Bar</link>
 </p>
-<p indent="1">Some indented
+<p><div indent="1">Some indented
 paragraphs go here ...
-</p>
+</div></p>
 
 <p><img src="./equation003.png" type="equation" />
 </p>
 
 <p>Let's try these <strong>bold</strong>, <emphasis>italic</emphasis>, <mark>underline</mark> and <strike>strike</strike>
-And some <code>//verbatim//</code>
-And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
+<div indent="1">And some <code>//verbatim//</code> with an indent halfway the paragraph
+</div>And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
 </p>
 <p>A list
-<ul><li bullet="*">foo</li><ul><li bullet="*"><strike>bar</strike></li><li bullet="*">baz</li></ul></ul></p>
+<ul><li bullet="*">foo</li><ul><li bullet="*"><strike>bar</strike></li><li bullet="*">baz</li></ul></ul>And an indented list
+<ul indent="1"><li bullet="*">foo</li><ul><li bullet="*"><strike>bar</strike></li><li bullet="*">baz</li></ul></ul></p>
 <p>And a checkbox list
 <ul><li bullet="unchecked-box">item 1</li><ul><li bullet="checked-box">sub item 1</li><ul><li bullet="*">Some normal bullet</li></ul><li bullet="xchecked-box">sub item 2</li><li bullet="unchecked-box">sub item 3</li></ul><li bullet="unchecked-box">item 2</li><li bullet="unchecked-box">item 3</li><ul><li bullet="xchecked-box">item FOOOOOO !</li></ul></ul></p>
 <p>----
@@ -394,9 +399,11 @@ LINKS: <a href="page://:foo:bar" title=":foo:bar">:foo:bar</a> <a href="file://.
 LINKS: <a href="page://Foo" title="Foo">Foo</a><a href="page://Bar" title="Bar">Bar</a><br>
 </p>
 
-<p style='padding-left: 30pt'>
+<p>
+<div style='padding-left: 30pt'>
 Some indented<br>
 paragraphs go here ...<br>
+</div>
 </p>
 
 
@@ -407,13 +414,23 @@ paragraphs go here ...<br>
 
 <p>
 Let's try these <strong>bold</strong>, <em>italic</em>, <u>underline</u> and <strike>strike</strike><br>
-And some <code>//verbatim//</code><br>
+<div style='padding-left: 30pt'>
+And some <code>//verbatim//</code> with an indent halfway the paragraph<br>
+</div>
 And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_<br>
 </p>
 
 <p>
 A list<br>
 <ul>
+<li>foo</li>
+<ul>
+<li><strike>bar</strike></li>
+<li>baz</li>
+</ul>
+</ul>
+And an indented list<br>
+<ul style='padding-left: 30pt'>
 <li>foo</li>
 <ul>
 <li><strike>bar</strike></li>
@@ -468,8 +485,8 @@ class TestLatexFormat(TestCase):
 		'''test the escaping of certain characters'''
 		format = get_format('latex')
 
-		input = r'\foo $ % ^ \% bar'
-		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar'
+		input = r'\foo $ % ^ \% bar < >'
+		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar \textless \textgreater'
 		self.assertEqual(format.tex_encode(input), wanted)
 
 	def testExport(self):
@@ -531,8 +548,7 @@ baz
 
 dus
 <pre>ja
-</pre>
-hmm
+</pre>hmm
 
 <h level="2">foo</h>
 bar

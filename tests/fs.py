@@ -10,25 +10,22 @@ import tests
 
 import os
 import time
-import logging
 
 from zim.fs import *
-from zim.fs import Path, FileHandle, OverWriteError, TmpFile, get_tmpdir, normalize_win32_share, PathLookupError, FilteredDir, isabs, joinpath
+from zim.fs import Path, FileHandle, FileWriteError, TmpFile, get_tmpdir, normalize_win32_share, PathLookupError, FileNotFoundError, FilteredDir, isabs, joinpath
+from zim.errors import Error
 
 
-logger = logging.getLogger('zim.fs')
+class FilterOverWriteWarning(tests.LoggingFilter):
+
+	logger = 'zim.fs'
+	message = 'mtime check failed'
 
 
-class FilterOverWriteWarning(object):
+class FilterFileMissingWarning(tests.LoggingFilter):
 
-	def __enter__(self):
-		logger.addFilter(self)
-
-	def __exit__(self, *a):
-		logger.removeFilter(self)
-
-	def filter(self, record):
-		return not record.getMessage().startswith('mtime check failed')
+	logger = 'zim.fs'
+	message = 'File missing:'
 
 
 class TestFS(tests.TestCase):
@@ -109,6 +106,14 @@ class TestFS(tests.TestCase):
 
 		self.assertEqual(Path('/foo') + 'bar', Path('/foo/bar'))
 
+		# Test unicode compat
+		string = u'\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'
+		path = Path(string)
+		self.assertTrue(path.path.endswith(string))
+		#~ self.assertRaises(Error, Path, string.encode('utf-8'))
+		path = Path((string, 'foo'))
+		self.assertTrue(path.path.endswith(os.sep.join((string, 'foo'))))
+		#~ self.assertRaises(Error, Path, (string.encode('utf-8'), 'foo'))
 
 	def testFileHandle(self):
 		'''Test FileHandle object'''
@@ -149,14 +154,38 @@ class TestFS(tests.TestCase):
 		except IOError:
 			del fh
 		self.assertEqual(file.readlines(), ['c\n', 'd\n'])
-		self.assertTrue(os.path.isfile(file.path+'.zim-new~'))
+		self.assertTrue(os.path.isfile(file.encodedpath+'.zim-new~'))
+
+		# test recovery on windows
+		if os.name == 'nt':
+			new = file.encodedpath+'.zim-new~'
+			orig = file.encodedpath+'.zim-orig~'
+			bak = file.encodedpath+'.bak~'
+			os.remove(file.encodedpath) # don't clean up folder
+			open(new, 'w').write('NEW\n')
+			open(orig, 'w').write('ORIG\n')
+			self.assertTrue(file.exists())
+			self.assertEqual(file.read(), 'NEW\n')
+			self.assertFalse(os.path.isfile(new))
+			self.assertFalse(os.path.isfile(orig))
+			self.assertTrue(os.path.isfile(file.encodedpath))
+			self.assertTrue(os.path.isfile(bak))
+
+			bak1 = file.encodedpath+'.bak1~'
+			os.remove(file.encodedpath) # don't clean up folder
+			open(orig, 'w').write('ORIG 1\n')
+			self.assertFalse(file.exists())
+			self.assertRaises(FileNotFoundError, file.read)
+			self.assertFalse(os.path.isfile(orig))
+			self.assertTrue(os.path.isfile(bak))
+			self.assertTrue(os.path.isfile(bak1))
 
 		# test read-only
 		path = tmpdir+'/read-only-file.txt'
 		open(path, 'w').write('test 123')
 		os.chmod(path, 0444)
 		file = File(path)
-		self.assertRaises(OverWriteError, file.write, 'Overwritten!')
+		self.assertRaises(FileWriteError, file.write, 'Overwritten!')
 		os.chmod(path, 0644) # make it removable again
 
 		# with windows line-ends
@@ -271,15 +300,26 @@ class TestFileOverwrite(tests.TestCase):
 
 	def runTest(self):
 		'''Test file overwrite check'''
+		# Check we can write without reading
 		file = File(self.path, checkoverwrite=True)
 		file.write('bar')
 		self.assertEquals(file.read(), 'bar')
+
+		# Check edge case where file goes missing after read or write
+		os.remove(file.encodedpath)
+		self.assertFalse(file.exists())
+		with FilterFileMissingWarning():
+			file.write('bar')
+		self.assertEquals(file.read(), 'bar')
+
+		# Check overwrite error when content changed
 		self.modify(lambda p: open(p, 'w').write('XXX'))
 			# modify mtime and content
 		with FilterOverWriteWarning():
-			self.assertRaises(OverWriteError, file.write, 'foo')
+			self.assertRaises(FileWriteError, file.write, 'foo')
 		self.assertEquals(file.read(), 'XXX')
 
+		# Check md5 check passes
 		file = File(self.path, checkoverwrite=True)
 		file.write('bar')
 		self.modify(lambda p: open(p, 'w').write('bar'))
@@ -313,8 +353,8 @@ class TestSymlinks(tests.TestCase):
 		dir = Dir(tmpdir + '/data')
 		file = dir.file('bar.txt')
 		file.touch()
-		os.symlink(targetdir.path, dir.path + '/link')
-		os.symlink(targetfile.path, dir.path + '/link.txt')
+		os.symlink(targetdir.encodedpath, dir.encodedpath + '/link')
+		os.symlink(targetfile.encodedpath, dir.encodedpath + '/link.txt')
 
 		# Test transparent access to the linked data
 		linkedfile = dir.file('link.txt')

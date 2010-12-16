@@ -471,7 +471,7 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor('\n')
 
 		for element in node.getchildren():
-			if element.tag == 'p':
+			if element.tag in ('p', 'div'):
 				# No force line start here on purpose
 				if 'indent' in element.attrib:
 					self.set_indent(int(element.attrib['indent']))
@@ -483,10 +483,13 @@ class TextBuffer(gtk.TextBuffer):
 
 				self.set_indent(None)
 			elif element.tag == 'ul':
-				if element.text:
-					self.insert_at_cursor(element.text)
+				if 'indent' in element.attrib:
+					indent = int(element.attrib['indent'])
+					self._insert_element_children(element, list_level=indent, raw=raw) # recurs
+				else:
+					self._insert_element_children(element, list_level=list_level+1, raw=raw) # recurs
 
-				self._insert_element_children(element, list_level=list_level+1, raw=raw) # recurs
+				self.set_indent(None)
 			elif element.tag == 'li':
 				force_line_start()
 
@@ -552,7 +555,8 @@ class TextBuffer(gtk.TextBuffer):
 		'''Like insert_link() but inserts at the cursor'''
 		tag = self.create_link_tag(text, href, **attrib)
 		self._editmode_tags = \
-			filter(_is_not_link_tag, self._editmode_tags) + (tag,)
+			filter(_is_not_link_tag,
+				filter(_is_not_style_tag, self._editmode_tags) ) + (tag,)
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 
@@ -1079,7 +1083,9 @@ class TextBuffer(gtk.TextBuffer):
 		# First call parent for the actual insert
 		if string == '\n':
 			# Break tags that are not allowed to span over multiple lines
-			self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
+			self._editmode_tags = filter(
+				lambda tag: _is_pre_tag(tag) or _is_not_style_tag(tag),
+				self._editmode_tags)
 			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 			self.emit('textstyle-changed', None)
 			# TODO make this more robust for multiline inserts
@@ -1218,9 +1224,12 @@ class TextBuffer(gtk.TextBuffer):
 
 		open_tags = []
 		def set_tags(iter, tags):
-			'''This function changes the parse tree based on the TextTags in
-			effect for the next section of text.
-			'''
+			# This function changes the parse tree based on the TextTags in
+			# effect for the next section of text.
+			# It does so be keeping the stack of open tags and compare it
+			# with the new set of tags in order to decide which of the
+			# tags can be closed and which new ones need to be opened.
+			#
 			# We assume that by definition we only get one tag for each tag
 			# type and that we get tags in such an order that the one we get
 			# first should be closed first while closing later ones breaks the
@@ -1258,7 +1267,7 @@ class TextBuffer(gtk.TextBuffer):
 							continue_attrib.update(attrib)
 							continue
 						else:
-							t = 'p'
+							t = 'div'
 					elif t == 'pre' and not raw and not iter.starts_line():
 						# Without indenting 'pre' looks the same as 'code'
 						# Prevent turning into a seperate paragraph here
@@ -1274,6 +1283,14 @@ class TextBuffer(gtk.TextBuffer):
 						assert attrib['href'], 'Links should have a href'
 					builder.start(t, attrib)
 					open_tags.append((tag, t))
+					if t == 'li':
+						break
+						# HACK - ignore any other tags because we moved
+						# the cursor - needs also a break_tags before
+						# which is special cased below
+						# TODO: cleaner solution for this issue -
+						# maybe easier when tags for list and indent
+						# are separated ?
 
 		def break_tags(type):
 			# Forces breaking the stack of open tags on the level of 'tag'
@@ -1327,6 +1344,13 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				# Set tags
 				copy = iter.copy()
+
+				bullet = self._get_bullet_at_iter(iter)
+				if bullet:
+					break_tags('indent')
+					# This is part of the HACK for bullets in
+					# set_tags()
+
 				set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
 				if not iter.equal(copy): # iter moved
 					continue
@@ -2034,6 +2058,7 @@ class TextView(gtk.TextView):
 
 	def __init__(self, preferences):
 		gtk.TextView.__init__(self, TextBuffer(None, None))
+		self.set_name('zim-pageview')
 		self.cursor = CURSOR_TEXT
 		self.cursor_link = None
 		self.gtkspell = None
@@ -2194,7 +2219,8 @@ class TextView(gtk.TextView):
 			# Tab at start of line indents
 			iter = buffer.get_insert_iter()
 			home, ourhome = self.get_visual_home_positions(iter)
-			if home.starts_line() and iter.compare(ourhome) < 1:
+			if home.starts_line() and iter.compare(ourhome) < 1 \
+			and not filter(_is_pre_tag, iter.get_tags()):
 				row, list = TextBufferList.new_from_iter(buffer, iter)
 				if list and self.preferences['recursive_indentlist']:
 					list.indent(row)
@@ -2208,7 +2234,8 @@ class TextView(gtk.TextView):
 			# Backspace or Ctrl-Tab unindents line
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(iter)
-			if home.starts_line() and iter.compare(ourhome) < 1:
+			if home.starts_line() and iter.compare(ourhome) < 1 \
+			and not filter(_is_pre_tag, iter.get_tags()):
 				row, list = TextBufferList.new_from_iter(buffer, iter)
 				if list and self.preferences['recursive_indentlist']:
 					done = list.unindent(row)
@@ -2305,20 +2332,52 @@ class TextView(gtk.TextView):
 		handled = True
 		buffer = self.get_buffer()
 
+		def delete_char(iter):
+			# Deletes the character at the iterator position
+			next = iter.copy()
+			if next.forward_char():
+				buffer.delete(iter, next)
+
 		def decrement_indent():
-			# For selection decrement first check if all lines have indent
-			level = []
-			buffer.strip_selection()
-			buffer.foreach_line_in_selection(
-				lambda i: level.append(buffer.get_indent(i)) )
-			if level and min(level) > 0:
-				return buffer.foreach_line_in_selection(buffer.decrement_indent)
+			# Check if inside verbatim block AND entire selection without tag toggle
+			iter = buffer.get_insert_iter()
+			if filter(_is_pre_tag, iter.get_tags()) \
+			and not find_tag_toggle():
+				missing_tabs = []
+				check_tab = lambda iter: (iter.get_char() == '\t') or missing_tabs.append(1)
+				buffer.foreach_line_in_selection(check_tab)
+				if len(missing_tabs) == 0:
+					return buffer.foreach_line_in_selection(delete_char)
+				else:
+					return False
 			else:
-				return False
+				# For selection decrement first check if all lines have indent
+				level = []
+				buffer.strip_selection()
+				buffer.foreach_line_in_selection(
+					lambda i: level.append(buffer.get_indent(i)) )
+				if level and min(level) > 0:
+					return buffer.foreach_line_in_selection(buffer.decrement_indent)
+				else:
+					return False
+
+		def find_tag_toggle():
+			# Checks if there are any tag changes within the selection
+			start, end = buffer.get_selection_bounds()
+			toggle = start.copy()
+			toggle.forward_to_tag_toggle(None)
+			return toggle.compare(end) < 0
 
 		with buffer.user_action:
 			if event.keyval in KEYVALS_TAB:
-				buffer.foreach_line_in_selection(buffer.increment_indent)
+				# Check if inside verbatim block AND entire selection without tag toggle
+				iter = buffer.get_insert_iter()
+				if filter(_is_pre_tag, iter.get_tags()) \
+				and not find_tag_toggle():
+					prepend_tab = lambda iter: buffer.insert(iter, '\t')
+					buffer.foreach_line_in_selection(prepend_tab)
+				else:
+					buffer.foreach_line_in_selection(buffer.increment_indent)
 			elif event.keyval in KEYVALS_LEFT_TAB:
 				decrement_indent()
 			elif event.keyval in KEYVALS_BACKSPACE \
@@ -4283,6 +4342,7 @@ class WordCountDialog(Dialog):
 		def count(buffer, bounds):
 			start, end = bounds
 			lines = end.get_line() - start.get_line() + 1
+			chars = end.get_offset() - start.get_offset()
 			iter = start.copy()
 			words = 0
 			while iter.compare(end) < 0:
@@ -4290,7 +4350,7 @@ class WordCountDialog(Dialog):
 					words += 1
 				else:
 					break
-			return words, lines
+			return lines, words, chars
 
 		buffer = pageview.view.get_buffer()
 		buffercount = count(buffer, buffer.get_bounds())
@@ -4302,7 +4362,7 @@ class WordCountDialog(Dialog):
 		if buffer.get_has_selection():
 			selectioncount = count(buffer, buffer.get_selection_bounds())
 		else:
-			selectioncount = (0, 0)
+			selectioncount = (0, 0, 0)
 
 		table = gtk.Table(3, 4)
 		table.set_row_spacings(5)
@@ -4313,24 +4373,32 @@ class WordCountDialog(Dialog):
 		alabel = gtk.Label(_('Paragraph')) # T: label in word count dialog
 		slabel = gtk.Label(_('Selection')) # T: label in word count dialog
 		wlabel = gtk.Label('<b>'+_('Words')+'</b>:') # T: label in word count dialog
-		wlabel.set_use_markup(True)
 		llabel = gtk.Label('<b>'+_('Lines')+'</b>:') # T: label in word count dialog
-		llabel.set_use_markup(True)
+		clabel = gtk.Label('<b>'+_('Characters')+'</b>:') # T: label in word count dialog
+
+		for label in (wlabel, llabel, clabel):
+			label.set_use_markup(True)
+			label.set_alignment(0.0, 0.5)
 
 		# Heading
 		table.attach(plabel, 1,2, 0,1)
 		table.attach(alabel, 2,3, 0,1)
 		table.attach(slabel, 3,4, 0,1)
 
-		# Words
-		table.attach(wlabel, 0,1, 1,2)
+		# Lines
+		table.attach(llabel, 0,1, 1,2)
 		table.attach(gtk.Label(str(buffercount[0])), 1,2, 1,2)
 		table.attach(gtk.Label(str(paracount[0])), 2,3, 1,2)
 		table.attach(gtk.Label(str(selectioncount[0])), 3,4, 1,2)
 
-		# Lines
-		table.attach(llabel, 0,1, 2,3)
+		# Words
+		table.attach(wlabel, 0,1, 2,3)
 		table.attach(gtk.Label(str(buffercount[1])), 1,2, 2,3)
 		table.attach(gtk.Label(str(paracount[1])), 2,3, 2,3)
 		table.attach(gtk.Label(str(selectioncount[1])), 3,4, 2,3)
 
+		# Characters
+		table.attach(clabel, 0,1, 3,4)
+		table.attach(gtk.Label(str(buffercount[2])), 1,2, 3,4)
+		table.attach(gtk.Label(str(paracount[2])), 2,3, 3,4)
+		table.attach(gtk.Label(str(selectioncount[2])), 3,4, 3,4)

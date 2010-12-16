@@ -10,10 +10,9 @@ import tests
 
 import os
 import time
-import logging
 
 from zim.fs import *
-from zim.fs import OverWriteError
+from zim.fs import FileWriteError
 from zim.notebook import Notebook, Path, LookupError, PageExistsError
 import zim.stores
 from zim.formats import ParseTree
@@ -48,19 +47,10 @@ def ascii_page_tree(store, namespace=None, level=0):
 	return text
 
 
-logger = logging.getLogger('zim.fs')
+class FilterOverWriteWarning(tests.LoggingFilter):
 
-
-class FilterOverWriteWarning(object):
-
-	def __enter__(self):
-		logger.addFilter(self)
-
-	def __exit__(self, *a):
-		logger.removeFilter(self)
-
-	def filter(self, record):
-		return not record.getMessage().startswith('mtime check failed')
+	logger = 'zim.fs'
+	message = 'mtime check failed'
 
 
 class TestUtils(tests.TestCase):
@@ -221,7 +211,7 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		newpage = self.store.get_page(Path('UTF8'))
 		self.assertTrue(newpage.haschildren)
 		self.assertFalse(newpage == page)
-		# TODO here we only move dir case insensitive - also test file 
+		# TODO here we only move dir case insensitive - also test file
 
 		# check hascontents
 		page = self.store.get_page(Path('NewPage'))
@@ -285,7 +275,7 @@ class TestFiles(TestStoresMemory):
 
 	def setUp(self):
 		TestStoresMemory.setUp(self)
-		tmpdir = tests.create_tmp_dir('stores_TestFiles')
+		tmpdir = tests.create_tmp_dir(u'stores_TestFiles_\u0421\u0430\u0439')
 		self.dir = Dir([tmpdir, 'store-files'])
 		self.mem = self.store
 		store = zim.stores.get_store('files')
@@ -324,7 +314,7 @@ class TestFiles(TestStoresMemory):
 		self.assertTrue('BARRR' in ''.join(page.dump('plain')))
 		self.modify(page.source.path, lambda p: open(p, 'w').write('bar'))
 		with FilterOverWriteWarning():
-			self.assertRaises(OverWriteError, self.store.store_page, page)
+			self.assertRaises(FileWriteError, self.store.store_page, page)
 
 		# test headers
 		page = self.store.get_page(Path('Test:New'))

@@ -71,3 +71,20 @@ Known properties for Tags:
 * **wrap**_**mode**: "''none"'', ...
 * **indent**: //integer//
 
+==== GtkRC file ====
+Gtk+ has it's own config file that allows you to customize how things look. This is the gtkrc file and it is typically saved as ''~/.gtkrc-2.0'' in the home directory. Some widgets have a name so you can set specific options for those widgets. Widgets that have a name in zim are:
+
+* The textview showing the page: zim-pageview
+* The treeview showing the page index: zim-pageindex
+
+You can for example set the font used in the index by adding this to your gtkrc file:
+
+	'''
+	style "zim-pageindex-style"
+	{
+		font_name = "Sans 8"
+	}
+	widget "*.zim-pageindex" style "zim-pageindex-style"
+	'''
+
+Check the internet for more examples.

@@ -12,7 +12,7 @@ from zim.fs import File
 from zim.plugins import PluginClass
 from zim.errors import Error
 from zim.applications import Application
-
+from zim.config import value_is_coord
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 	PageEntry, IconButton, SingleClickTreeView, scrolled_text_view
 
@@ -252,7 +252,7 @@ class VersionsDialog(Dialog):
 			buttons=gtk.BUTTONS_CLOSE, help='Plugins:Version Control')
 		self.vcs = vcs
 
-		self.uistate.setdefault('windowsize', (600, 500), check=self.uistate.is_coord)
+		self.uistate.setdefault('windowsize', (600, 500), check=value_is_coord)
 		self.uistate.setdefault('vpanepos', 300)
 
 		self.vpaned = gtk.VPaned()

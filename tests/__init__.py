@@ -8,6 +8,7 @@ import os
 import sys
 import shutil
 import unittest
+import logging
 import gettext
 import xml.etree.cElementTree as etree
 
@@ -20,7 +21,7 @@ __all__ = [
 	'history', 'plugins',
 	'export', 'www', 'search',
 	'widgets', 'gui', 'pageview',
-	'calendar', 'printtobrowser', 'versioncontrol',
+	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'equationeditor', 'diagrameditor',
 ]
 
@@ -153,7 +154,7 @@ def print_index(index):
 
 
 class TestCase(unittest.TestCase):
-	'''FIXME'''
+	'''Base class for test cases'''
 
 	def run(self, *args):
 		unittest.TestCase.run(self, *args)
@@ -226,7 +227,6 @@ class TestCase(unittest.TestCase):
 		raise self.failureException, msg.encode('utf-8')
 
 
-
 class MockObject(object):
 	'''Base class for mock objects. Any attribute is automatically
 	vivicated as a method which results None. Alternatively mock
@@ -258,3 +258,28 @@ class MockObject(object):
 
 		setattr(self, name, my_mock_method)
 		return my_mock_method
+
+
+class LoggingFilter(object):
+	'''Base class for logging filters that can be used as a context
+	using the "with" keyword. To subclass it you only need to set the
+	logger to be used and (the begin of) the message to filter.
+	'''
+
+	logger = None
+	message = None
+
+	def __init__(self, logger=None, message=None):
+		if logger: self.logger = logger
+		if message: self.message = message
+
+		self.loggerobj = logging.getLogger(self.logger)
+
+	def __enter__(self):
+		self.loggerobj.addFilter(self)
+
+	def __exit__(self, *a):
+		self.loggerobj.removeFilter(self)
+
+	def filter(self, record):
+		return not record.getMessage().startswith(self.message)

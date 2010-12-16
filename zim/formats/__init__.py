@@ -411,14 +411,14 @@ class ParseTreeBuilder(object):
 			self._seen_eol = need_eol
 
 		# Fix prefix newlines
-		if self._tail and self._last.tag in ('h', 'p', 'pre') \
+		if self._tail and self._last.tag in ('h', 'p') \
 		and not text.startswith('\n'):
 			if text:
 				text = '\n' + text
 			else:
 				text = '\n'
 				self._seen_eol = 1
-		if self._tail and self._last.tag == 'li' \
+		elif self._tail and self._last.tag == 'li' \
 		and text.startswith('\n'):
 			text = text[1:]
 			if not text.strip('\n'):
