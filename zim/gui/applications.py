@@ -474,23 +474,22 @@ class NewApplicationDialog(Dialog):
 		Dialog.__init__(self, ui, _('Custom Command')) # T: Dialog title
 		self.apptype = type
 		self.mimetype = mimetype
-		self.add_fields( (
-			('name', 'string', _('Name'), ''), # T: Field in 'custom command' dialog
-			('exec', 'string', _('Command'), ''), # T: Field in 'custom command' dialog
+		self.add_form( (
+			('name', 'string', _('Name')), # T: Field in 'custom command' dialog
+			('exec', 'string', _('Command')), # T: Field in 'custom command' dialog
 		) )
 
 	def do_response_ok(self):
-		fields = self.get_fields()
-		if not (fields['name'] and fields['exec']):
+		name = self.form['name']
+		cmd = self.form['exec']
+		if not (name and cmd):
 			return False
 
 		manager = ApplicationManager()
 		if self.mimetype:
-			application = manager.create(
-				self.mimetype, fields['name'], fields['exec'] )
+			application = manager.create(self.mimetype, name, cmd)
 		else:
-			application = manager.create_helper(
-				self.apptype, fields['name'], fields['exec'] )
+			application = manager.create_helper(self.apptype, name, cmd)
 		self.result = application
 		return True
 

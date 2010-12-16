@@ -134,6 +134,20 @@ def scrolled_text_view(text=None, monospace=False):
 	return window, textview
 
 
+def gtk_combobox_set_active_text(combobox, text):
+	'''Like gtk.ComboBox.set_active() but takes a string instead of an
+	index. Will match this string agains the list of options and select
+	the correct index. Raises a ValueError when the string is not found
+	in the list. Intended as companion of gtk.ComboBox.get_active_text().
+	'''
+	model = combobox.get_model()
+	for i, value in enumerate(model):
+		if value[0] == text:
+			return combobox.set_active(i)
+	else:
+		raise ValueError, text
+
+
 def gtk_get_style():
 	'''Returns a gtk.Style object for the current theme style.
 	This function is a bit of a hack, but works.
@@ -160,6 +174,100 @@ def rotate_pixbuf(pixbuf):
 	else:
 		# No rotation info, older gtk version, or advanced transpose
 		return pixbuf
+
+
+def help_text_factory(text):
+	'''Create a label with an info icon in front of it. Intended for
+	iformational text in dialogs.
+	'''
+	hbox = gtk.HBox(spacing=12)
+
+	image = gtk.image_new_from_stock(gtk.STOCK_INFO, gtk.ICON_SIZE_BUTTON)
+	image.set_alignment(0.5, 0.0)
+	hbox.pack_start(image, False)
+
+	label = gtk.Label(text)
+	label.set_use_markup(True)
+	label.set_alignment(0.0, 0.0)
+	hbox.add(label)
+
+	return hbox
+
+def _do_sync_widget_state(widget, a, subject):
+	# Signal handler to update state of subject based on state of widget
+	subject.set_sensitive(widget.get_property('sensitive'))
+	subject.set_no_show_all(widget.get_no_show_all())
+	if widget.get_property('visible'):
+		subject.show()
+	else:
+		subject.hide()
+
+def _do_sync_widget_state_check_active(widget, *a):
+	if len(a) == 1: subject = a[0]
+	else: subject = a[1]
+	_do_sync_widget_state(widget, '', subject)
+	subject.set_sensitive(widget.get_active())
+
+
+def _sync_widget_state(widget, subject, check_active=False):
+	# Hook label or secondairy widget to follow state of e.g. entry widget
+	# check_active is only meaningfull if widget is a togglebutton and
+	# will also add a dependency on the active state of the widget
+	check_active = check_active and hasattr(widget, 'get_active')
+
+	if check_active:
+		func = _do_sync_widget_state_check_active
+	else:
+		func = _do_sync_widget_state
+
+	func(widget, '', subject)
+	for property in ('visible', 'no-show-all', 'sensitive'):
+		widget.connect_after('notify::%s' % property, func, subject)
+
+	if check_active:
+		subject.set_sensitive(widget.get_active())
+		widget.connect_after('toggled', func, subject)
+
+
+def input_table_factory(inputs, table=None):
+	'''Takes a list of inputs and returns a table with nice layout
+	for those inputs. Inputs in the list given should be either a
+	gtk widget or a tuple of a string and one or more widgets.
+	If a tuple is given and the first item is 'None', the widget
+	will be lined out in the 2nd column. A 'None' value in the input
+	list represents an empty row in the table.
+
+	Only use this function directly if you want a completely custom
+	input form. For standard forms see the InputForm class.
+	'''
+	if table is None:
+		table = gtk.Table()
+		table.set_border_width(5)
+		table.set_row_spacings(5)
+		table.set_col_spacings(12)
+	i = table.get_property('n-rows')
+
+	for input in inputs:
+		if input is None:
+			table.attach(gtk.Label(' '), 0,2, i,i+1, xoptions=gtk.FILL)
+			# HACK: force empty row to have height of label
+		elif isinstance(input, tuple):
+			text = input[0]
+			if not text is None:
+				label = gtk.Label(text + ':')
+				label.set_alignment(0.0, 0.5)
+				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
+				_sync_widget_state(input[1], label)
+			for j, widget in enumerate(input[1:]):
+				table.attach(widget, j+1,j+2, i,i+1)
+				if j > 0:
+					_sync_widget_state(input[1], widget)
+		else:
+			widget = input
+			table.attach(widget, 0,2, i,i+1)
+		i += 1
+
+	return table
 
 
 class Button(gtk.Button):
@@ -209,7 +317,7 @@ class IconChooserButton(gtk.Button):
 			image.set_from_stock(stock, gtk.ICON_SIZE_DIALOG)
 
 	def do_clicked(self):
-		dialog = SelectFileDialog(self)
+		dialog = FileDialog(self)
 		dialog.add_filter_images()
 		file = dialog.run()
 		if file:
@@ -423,40 +531,567 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 gobject.type_register(MenuButton)
 
 
-class InputEntry(gtk.Entry):
-	'''Sub-class of gtk.Entry with support for highlighting errors.
-	Also does utf-8 decoding on the proper moments.
+class InputForm(gtk.Table):
+	'''Class wrapping a table with input widgets. Takes care of
+	managing the widgets and presenting a nice layout.
+
+	Instances of this class can accessed as a dict to get and set the
+	values of the various input widgets by name.
+
+	To access the widgets directly (e.g. to wire more signals) there
+	is an attribute 'widgets' which contains a dict of input widgets
+	by name.
+
+	Signals:
+	  * last-activated: this signal is emitted when the last widget in
+	    the form is activated, can be used to trigger a default response
+	    in a dialog.
+	  * input-valid-changes: valid state the form changed
 	'''
 
-	# TODO add default hook to set validation function
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'last-activated': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'input-valid-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+	}
+
+	# Supported input widgets:
+	#	CheckButton
+	#	RadioButton
+	#	SpinButton
+	#	ComboBox (text based)
+	#	PageEntry / NamespaceEntry / LinkEntry
+	#	InputEntry
+
+	# Because of naming used to map radio buttons into a group
+	# we can't use the keys of the widget mapping one-on-one for
+	# the value mapping. This is why we keep the attribute '_keys'.
+
+	# TODO actually add support for radio check boxes
+	# specify like "name:option"
+
+	def __init__(self, inputs=None, values=None, depends=None, notebook=None):
+		'''Constructor.
+		The 'inputs' are passed to add_inputs() and 'values' are passed
+		to update(). The option 'depends' can be a dict which key values
+		pairs are passed on to depends().
+		You need to set 'notebook' to get completion in page inputs.
+		'''
+		gtk.Table.__init__(self)
+		self.set_border_width(5)
+		self.set_row_spacings(5)
+		self.set_col_spacings(12)
+
+		self.notebook = notebook
+		self._input_valid = True
+		self._keys = [] # names of options - radiogroups are represented as a single item
+		self.widgets = {} # all widgets - contains individual radiobuttons
+		self._widgets = [] # sequence for widgets in self.widgets
+
+		if inputs:
+			self.add_inputs(inputs)
+
+		if depends:
+			for k, v in depends.items():
+				self.depends(k, v)
+
+		if values:
+			self.update(values)
+
+	def add_inputs(self, inputs):
+		'''Turns a list of field descriptions into a list of widgets.
+		This list can be given to layout_table() to turn it into a form.
+
+		The argument 'inputs' should be a list of
+		input definitions; each definition is a tuple of:
+
+			* The input name
+			* The input type
+			* The label to put in front of the input field
+
+		The following field types are supported:
+			* 'bool' - checkbox
+			* 'option' - radiocheckbox
+			* 'int' - integer spin button
+			* 'choice' - a drop downlist for multiple choice
+			* 'string' - text entry
+			* 'password' - text entry with chars hidden
+			* 'page' - PageEntry
+			* 'namespace' - NamespaceEntry
+			* 'link' - LinkEntry
+			* 'dir' - input for existing folder
+			* 'file' - input for existing file
+			* 'image' - like 'file' but specific for images
+			* 'output-file' - input for new or existing file
+
+		The option 'option' can be used to have groups of checkboxes.
+		In this case the name should exist of two parts separated by a
+		':', first part is the group name and the second part the key for
+		this option. This way multiple options of the same group can be
+		specified as separate widgets. Only the group name will show up
+		as a key in the form, the value will be the option name of the
+		selected radio button. So you can have names like "select:all"
+		and "select:page" which will result in two radiobuttons. The
+		form will have a key "select" which has either a value "all" or
+		a value "page".
+
+		The 'int' and 'choice' options need an extra argument to specify
+		the allowed inputs. For 'int' this should be a tuple with the
+		minimum and maximum values. For 'choice' it should be a list
+		with the items to choose from.
+
+		The 'page', 'namespace' and 'link' options have an optional
+		extra argument which gives the reference path for resolving
+		relative paths.
+
+		A None value in the input list will result in additional row
+		spacing in the form.
+		'''
+
+		# For options we use rsplit to split group and option name.
+		# The reason for this that if there are any other ":" separated
+		# parts they belong to the group name, not the option name.
+		# (This is used in e.g. the preference dialog to encode sections
+		# where an option goes in the config.)
+
+		widgets = []
+
+		for input in inputs:
+			if input is None:
+				widgets.append(None)
+				continue
+
+			if len(input) == 4:
+				name, type, label, extra = input
+			else:
+				name, type, label = input
+				extra = None
+
+			if type == 'bool':
+				widgets.append(gtk.CheckButton(label=label))
+
+			elif type == 'option':
+				assert ':' in name, 'BUG: options should have name of the form "group:key"'
+				key, _ = name.rsplit(':', 1)
+					# using rsplit to assure another ':' in the
+					# group name is harmless
+				group = self._get_radiogroup(key)
+				if not group:
+					group = None # we are the first widget
+				else:
+					group = group[0][1] # link first widget in group
+				widgets.append(gtk.RadioButton(group=group, label=label))
+
+			elif type == 'int':
+				button = gtk.SpinButton()
+				button.set_range(*extra)
+				button.set_increments(1, 5)
+				widgets.append((label, button))
+
+			elif type == 'choice':
+				combobox = gtk.combo_box_new_text()
+				for option in extra:
+					combobox.append_text(option)
+				widgets.append((label, combobox))
+
+			elif type == 'link':
+				#~ assert self.notebook
+				entry = LinkEntry(self.notebook, path_context=extra)
+				# FIXME use inline icon for newer versions of Gtk
+				button = gtk.Button('_Browse')
+				button.connect('clicked', self._select_file, (type, entry))
+				widgets.append((label, entry, button))
+
+			elif type == 'page':
+				#~ assert self.notebook
+				entry = PageEntry(self.notebook, path_context=extra)
+				widgets.append((label, entry))
+
+			elif type == 'namespace':
+				#~ assert self.notebook
+				entry = NamespaceEntry(self.notebook, path_context=extra)
+				widgets.append((label, entry))
+
+			elif type in ('dir', 'file', 'image', 'output-file'):
+				if type == 'dir':
+					entry = FolderEntry()
+				else:
+					new = (type == 'output-file')
+					entry = FileEntry(new=new)
+
+				# FIXME use inline icon for newer versions of Gtk
+				button = gtk.Button('_Browse')
+				button.connect('clicked', self._select_file, entry)
+				widgets.append((label, entry, button))
+
+			elif type in ('string', 'password'):
+				entry = InputEntry()
+				entry.zim_type = type
+				if type == 'password':
+					entry.set_visibility(False)
+				widgets.append((label, entry))
+
+			else:
+				assert False, 'BUG: unknown field type: %s' % type
+
+			# Register widget
+			widget = widgets[-1]
+			if isinstance(widget, tuple):
+				widget = widget[1]
+			self.widgets[name] = widget
+			self._widgets.append(name)
+			if ':' in name:
+				# radio button - only add group once
+				group, _ = name.split(':', 1)
+				if not group in self._keys:
+					self._keys.append(group)
+			else:
+				self._keys.append(name)
+
+			# Connect activate signal
+			if isinstance(widget, gtk.Entry):
+				widget.connect('activate', self.on_activate_widget)
+			elif isinstance(widget, gtk.ComboBox):
+				widget.connect('changed', self.on_activate_widget)
+			else:
+				pass
+
+			# Connect valid state
+			if isinstance(widget, InputEntry):
+				widget.connect('input-valid-changed', self._check_input_valid)
+				for property in ('visible', 'sensitive'):
+					widget.connect_after('notify::%s' % property, self._check_input_valid)
+
+		input_table_factory(widgets, table=self)
+
+		self._check_input_valid() # update our state
+
+	def _select_file(self, button, entry):
+		'''Triggered by the 'browse' button for file entries'''
+		if entry.action == gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER:
+			title = _('Select Folder') # T: dialog title
+		elif entry.action == gtk.FILE_CHOOSER_ACTION_SAVE:
+			title = _('Select File') # T: dialog title
+		else:
+			# FIXME
+			#~ if type == 'image':
+				#~ title = _('Select Image') # T: dialog title
+			#~ else:
+			title = _('Select File') # T: dialog title
+
+		dialog = FileDialog(self, title, entry.action)
+		path = entry.get_path()
+		if path:
+			dialog.set_file(path)
+		# FIXME
+		#~ if type == 'image':
+			#~ dialog.add_filter_images()
+
+		file = dialog.run()
+		if not file is None:
+			entry.set_path(file)
+
+	def on_activate_widget(self, widget):
+		'''Calls focus_next() or emits last-activated when last widget
+		was activated.
+		'''
+		if not self._focus_next(widget):
+			self.emit('last-activated')
+
+	def focus_first(self):
+		'''Focusses the first input in the form'''
+		return self._focus_next(None)
+
+	def focus_next(self):
+		'''Focusses the next input in the form'''
+		widget = self.get_focus_child()
+		if widget:
+			return self._focus_next(widget)
+		else:
+			return False
+
+	def _focus_next(self, widget):
+		if widget is None:
+			i = 0
+		else:
+			for k, v in self.widgets.items():
+				if v == widget:
+					i = self._widgets.index(k) + 1
+					break
+			else:
+				raise ValueError
+
+		for k in self._widgets[i:]:
+			widget = self.widgets[k]
+			if widget.get_sensitive() \
+			and widget.get_property('visible'):
+				widget.grab_focus()
+				return True
+		else:
+			return False
+
+	def depends(self, subject, object):
+		'''Both argument should be names of widgets in the form. This
+		method makes behavior of 'subject' depend on state of 'object'.
+		E.g. subject will only be sensitive when object is active and
+		subject will be hidden when object is hidden.
+		'''
+		subject = self.widgets[subject]
+		object = self.widgets[object]
+		_sync_widget_state(object, subject, check_active=True)
+
+	def get_input_valid(self):
+		'''Returns combined state of all active widgets in the form'''
+		return self._input_valid
+
+	def _check_input_valid(self, *a):
+		# Called by signals when widget state changes
+		#~ print '-'*42
+		valid = []
+		for name in self._widgets:
+			widget = self.widgets[name]
+			if isinstance(widget, InputEntry)  \
+			and widget.get_property('visible') \
+			and widget.get_property('sensitive'):
+				valid.append(self.widgets[name].get_input_valid())
+				#~ print '>', name, valid[-1]
+		#~ print '=', all(valid)
+
+		valid = all(valid)
+		if self._input_valid != valid:
+			self._input_valid = valid
+			self.emit('input-valid-changed')
+
+	def _get_radiogroup(self, name):
+		name += ':'
+		group = [k for k in self._widgets if k.startswith(name)]
+		return [(k, self.widgets[k]) for k in group]
+
+	def __getitem__(self, key):
+		if not key in self._keys:
+			raise KeyError, key
+		elif key in self.widgets:
+			widget = self.widgets[key]
+			if isinstance(widget, (PageEntry, NamespaceEntry)):
+				return widget.get_path()
+			elif isinstance(widget, FSPathEntry):
+				return widget.get_path()
+			elif isinstance(widget, InputEntry):
+				return widget.get_text()
+			elif isinstance(widget, gtk.CheckButton):
+				return widget.get_active()
+			elif isinstance(widget, gtk.ComboBox):
+				return widget.get_active_text()
+			elif isinstance(widget, gtk.SpinButton):
+				return int(widget.get_value())
+			else:
+				raise TypeError, widget.__class__.name
+		else:
+			# Group of RadioButtons
+			for name, widget in self._get_radiogroup(key):
+				if widget.get_active():
+					_, name = name.rsplit(':', 1)
+						# using rsplit to assure another ':' in the
+						# group name is harmless
+					return name
+
+	def __setitem__(self, key, value):
+		if not key in self._keys:
+			raise KeyError, key
+		elif key in self.widgets:
+			widget = self.widgets[key]
+			if isinstance(widget, (PageEntry, NamespaceEntry)):
+				if isinstance(value, Path):
+					widget.set_path(value)
+				else:
+					widget.set_text(value or '')
+			elif isinstance(widget, FSPathEntry):
+				if isinstance(value, (File, Dir)):
+					widget.set_path(value)
+				else:
+					widget.set_text(value or '')
+			elif isinstance(widget, InputEntry):
+				value = value or ''
+				widget.set_text(value)
+			elif isinstance(widget, gtk.CheckButton):
+				widget.set_active(value)
+			elif isinstance(widget, gtk.ComboBox):
+				gtk_combobox_set_active_text(widget, value)
+			elif isinstance(widget, gtk.SpinButton):
+				widget.set_value(value)
+			else:
+				raise TypeError, widget.__class__.name
+		else:
+			# RadioButton
+			widget = self.widgets[key + ':' + value]
+			widget.set_active(True)
+
+	def __iter__(self):
+		return iter(self._keys)
+
+	def __contains__(self, key):
+		return key in self._keys
+
+	def keys(self):
+		return self._keys
+
+	def items(self):
+		return [(k, self[k]) for k in self._keys]
+
+	def update(self, map):
+		'''Similar to dict.update(). Updates any values for existing
+		inputs from the mapping while silently ignoring other keys in
+		the map.
+		'''
+		for key, value in map.items():
+			if key in self._keys:
+				self[key] = value
+
+	def copy(self):
+		'''Returns a normal dict with values for all widgets in the form'''
+		values = {}
+		for key in self._keys:
+			values[key] = self[key]
+		return values
+
+# Need to register classes defining / overriding gobject signals
+gobject.type_register(InputForm)
+
+
+class InputEntry(gtk.Entry):
+	'''Sub-class of gtk.Entry with support for highlighting errors.
+	Use this class as a  generic replacement for gtk.Entry to avoid
+	utf-8 issues.
+
+	The constructor takes a function for checking if the content is
+	valid. If not set the state is always set to valid after the user
+	modifies the text. The way this can be used is to set state to
+	invalid e.g. in a dialog response handler. This will show the user
+	what widget to modify. After typing try again. Providing a method
+	to give immediate feedback to the user is of course better.
+
+	Signals:
+	  * input-valid-changes: valid state the form changed
+	'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'input-valid-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+	}
 
 	style = gtk_get_style()
 	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
 	ERROR_COLOR = gtk.gdk.color_parse('#EF7F7F') # light red (derived from Tango style guide)
 
-	def __init__(self):
+	def __init__(self, check=None, allow_empty=True, show_empty_invalid=False):
+		'''Constructor takes a validation function 'check'. This
+		function is called with the current text as argument and
+		should return boolean.
+
+		As an alternative you can set 'allow_empty' to False to do
+		validation only on the fact if there is content or not.
+
+		The 'show_empty_invalid' determines if we also show a red
+		background when the entry is still empty.
+		'''
 		gtk.Entry.__init__(self)
-		self.input_valid = True
+		self.allow_empty = allow_empty
+		self.show_empty_invalid = show_empty_invalid
+		self.check_func = check
+		self._input_valid = False
+		self.do_changed() # Initialize state
+		self.connect('changed', self.__class__.do_changed)
 
 	def get_text(self):
 		'''Like gtk.Entry.get_text() but with utf-8 decoding and
-		trailing whitespace stripped.
+		whitespace stripped.
 		'''
 		text = gtk.Entry.get_text(self)
-		if not text is None:
-			text = text.decode('utf-8').rstrip()
-		return text
+		if not text: return ''
+		else: return text.decode('utf-8').strip()
 
 	def get_input_valid(self):
-		return self.input_valid
+		return self._input_valid
 
 	def set_input_valid(self, valid):
 		'''Set input valid or invalid state'''
-		self.input_valid = valid
-		if valid:
+		if valid == self._input_valid:
+			return
+
+		if valid \
+		or (not self.get_text() and not self.show_empty_invalid):
 			self.modify_base(gtk.STATE_NORMAL, self.NORMAL_COLOR)
 		else:
 			self.modify_base(gtk.STATE_NORMAL, self.ERROR_COLOR)
+
+		self._input_valid = valid
+		self.emit('input-valid-changed')
+
+	def do_changed(self):
+		'''Check if content is valid'''
+		text = self.get_text() or ''
+		if self.check_func:
+			self.set_input_valid(self.check_func(text))
+		else:
+			self.set_input_valid(bool(text) or self.allow_empty)
+
+# Need to register classes defining / overriding gobject signals
+gobject.type_register(InputEntry)
+
+
+class FSPathEntry(InputEntry):
+	'''Base class for FileEntry and FolderENtry, should not be
+	used directly.
+	'''
+
+	def __init__(self):
+		InputEntry.__init__(self, allow_empty=False)
+
+	def set_path(self, path):
+		# TODO display home as ~/
+		self.set_text(path.path)
+
+	def get_path(self):
+		text = self.get_text()
+		if text:
+			return self._class(text)
+		else:
+			return None
+
+	# TODO file / folder completion in the entry
+
+
+class FileEntry(FSPathEntry):
+
+	def __init__(self, file=None, new=False):
+		'''Construcor. If 'new' is True the intention is a new
+		file (e.g. output file), or to overwrite an existing
+		file. If 'new' is False only existing files can be selected.
+		'''
+		FSPathEntry.__init__(self)
+		self._class = File
+		if new: self.action = gtk.FILE_CHOOSER_ACTION_SAVE
+		else: self.action = gtk.FILE_CHOOSER_ACTION_OPEN
+
+		if file:
+			self.set_file()
+
+	set_file = FSPathEntry.set_path
+	get_file = FSPathEntry.get_path
+
+
+class FolderEntry(FSPathEntry):
+
+	def __init__(self, folder=None):
+		FSPathEntry.__init__(self)
+		self._class = Dir
+		self.action = gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER
+
+		if folder:
+			self.set_folder(folder)
+
+	set_folder = FSPathEntry.set_path
+	get_folder = FSPathEntry.get_path
 
 
 class PageEntry(InputEntry):
@@ -464,11 +1099,13 @@ class PageEntry(InputEntry):
 	allow_select_root = False
 
 	def __init__(self, notebook, path=None, path_context=None):
-		'''Contructor. Needs at least a Notebook to resolve paths.
+		'''Contructor. Typically needs a Notebook to resolve paths and
+		show completion, but can be used with notebook=None if really
+		needed.
 		If a context is given this is the reference Path for resolving
 		relative links.
 		'''
-		InputEntry.__init__(self)
+		InputEntry.__init__(self, allow_empty=False)
 		assert path_context is None or isinstance(path_context, Path)
 		self.notebook = notebook
 		self.path_context = path_context
@@ -485,8 +1122,6 @@ class PageEntry(InputEntry):
 
 		if path:
 			self.set_path(path)
-
-		self.connect('changed', self.__class__.do_changed)
 
 	def set_path(self, path):
 		self.set_text(':'+path.name)
@@ -526,7 +1161,7 @@ class PageEntry(InputEntry):
 		self.emit('activate')
 
 	def do_changed(self):
-		text = self.get_text().decode('utf-8').strip()
+		text = self.get_text()
 
 		if not text:
 			self.set_input_valid(True)
@@ -690,7 +1325,7 @@ class Dialog(gtk.Dialog):
 	def __init__(self, ui, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			help_text=None, fields=None, help=None,
-			defaultwindowsize=(-1, -1), path_context=None
+			defaultwindowsize=(-1, -1)
 		):
 		'''Constructor. 'ui' can either be the main application or some
 		other dialog from which this dialog is spwaned. 'title' is the dialog
@@ -705,13 +1340,12 @@ class Dialog(gtk.Dialog):
 		item to use instead of the default 'Ok' button (either stock or label
 		can be None).
 
-		Options 'help_text', 'fields' and 'help' will be past on to
-		add_help_text(), add_fields() and set_help() respectively.
+		Options 'help_text' and 'help' will be past on to
+		add_help_text() and set_help() respectively.
 		'''
 		self.ui = ui
 		self.result = None
 		self.inputs = {}
-		self.path_context = path_context
 		gtk.Dialog.__init__(
 			self, parent=get_window(self.ui),
 			title=format_title(title),
@@ -758,7 +1392,6 @@ class Dialog(gtk.Dialog):
 		# see gtk.Window.set_default()
 
 		if help_text: self.add_help_text(help_text)
-		if fields: self.add_fields(fields)
 		if help: self.set_help(help)
 
 	def set_help(self, pagename):
@@ -775,204 +1408,26 @@ class Dialog(gtk.Dialog):
 		'''Adds a label with an info icon in front of it. Intended for
 		iformational text in dialogs.
 		'''
-		hbox = gtk.HBox(spacing=12)
+		hbox = help_text_factory(text)
 		self.vbox.pack_start(hbox, False)
 
-		image = gtk.image_new_from_stock(gtk.STOCK_INFO, gtk.ICON_SIZE_BUTTON)
-		image.set_alignment(0.5, 0.0)
-		hbox.pack_start(image, False)
+	def add_form(self, inputs, values=None, depends=None, trigger_response=True):
+		'''Convenience method to construct simple forms. Inputs are
+		speccified with 'inputs', see the InputForm class for details.
 
-		label = gtk.Label(text)
-		label.set_use_markup(True)
-		label.set_alignment(0.0, 0.0)
-		hbox.add(label)
-
-	def add_fields(self, fields, table=None, trigger_response=True):
-		'''Add a number of fields to the dialog, convenience method to
-		construct simple forms. The argument 'fields' should be a list of
-		field definitions; each definition is a tuple of:
-
-			* The field name
-			* The field type
-			* The label to put in front of the input field
-			* The initial value of the field
-
-		The following field types are supported: 'bool', 'int', 'list',
-		'string', 'password', 'page', 'namespace', 'dir', 'file' and 'image'.
-
-		If 'table' is specified the fields are added to that table, otherwise
-		a new table is constructed and added to the dialog. Returns the table
-		to allow building a form in multiple calls.
-
-		If 'trigger_response' is True pressing <Enter> in the last Entry widget
-		will call response_ok(). Set to False if more forms will follow in the
-		same dialog.
+		If 'trigger_response' is True pressing <Enter> in the last Entry
+		widget will call response_ok(). Set to False if more forms
+		will follow in the same dialog.
 		'''
-		# FIXME FIXME FIXME - this code needs to go in a special class for constructing forms
-		# when doing so define all input types as constants
-		if table is None:
-			table = gtk.Table()
-			table.set_border_width(5)
-			table.set_row_spacings(5)
-			table.set_col_spacings(12)
-			self.vbox.add(table)
-		i = table.get_property('n-rows')
-
-		def _hook_label_to_widget(label, widget):
-			# Hook label to follow state of entry widget
-			def _sync_state(widget, spec):
-				label.set_sensitive(widget.get_property('sensitive'))
-				label.set_no_show_all(widget.get_no_show_all())
-				if widget.get_property('visible'):
-					label.show()
-				else:
-					label.hide()
-
-
-			for property in ('visible', 'no-show-all', 'sensitive'):
-				widget.connect_after('notify::%s' % property, _sync_state)
-
-		for field in fields:
-			name, type, label, value = field
-			if type == 'bool':
-				button = gtk.CheckButton(label=label)
-				button.set_active(value or False)
-				self.inputs[name] = button
-				table.attach(button, 0,2, i,i+1)
-			elif type == 'int':
-				label = gtk.Label(label+':')
-				label.set_alignment(0.0, 0.5)
-				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
-				button = gtk.SpinButton()
-				v, min, max = value
-				button.set_value(v)
-				button.set_range(min, max)
-				button.set_increments(1,5)
-				_hook_label_to_widget(label, button)
-				self.inputs[name] = button
-				table.attach(button, 1,2, i,i+1)
-			elif type == 'list':
-				label = gtk.Label(label+':')
-				label.set_alignment(0.0, 0.5)
-				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
-				value, options = value
-				combobox = gtk.combo_box_new_text()
-				for option in options:
-					combobox.append_text(str(option))
-				try:
-					active = list(options).index(value)
-						# list() needed for python 2.5 compat
-					combobox.set_active(active)
-				except ValueError:
-					pass
-				self.inputs[name] = combobox
-				table.attach(combobox, 1,2, i,i+1)
-			elif type in ('string', 'password', 'link', 'page', 'namespace', 'dir', 'file', 'image'):
-				label = gtk.Label(label+': ')
-				label.set_alignment(0.0, 0.5)
-				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
-				if type in ('link', 'page', 'namespace'):
-					if self.ui: notebook = self.ui.notebook
-					else: notebook = None
-					if type == 'link':
-						entry = LinkEntry(notebook, path_context=self.path_context)
-					elif type == 'page':
-						entry = PageEntry(notebook, path_context=self.path_context)
-					else:
-						entry = NamespaceEntry(notebook, path_context=self.path_context)
-					if value:
-						if isinstance(value, basestring):
-							entry.set_text(value)
-						else:
-							assert isinstance(value, Path)
-							entry.set_path(value)
-
-					_hook_label_to_widget(label, entry)
-					self.inputs[name] = entry
-					table.attach(entry, 1,2, i,i+1)
-
-					if type == 'link':
-						# FIXME use inline icon for newer versions of Gtk
-						# redundant code from below
-						browse = gtk.Button('_Browse')
-						browse.connect('clicked', self._select_file, (type, entry))
-						table.attach(browse, 2,3, i,i+1, xoptions=gtk.FILL)
-				else:
-					entry = gtk.Entry()
-					entry.zim_type = type
-					if not value is None:
-						entry.set_text(str(value))
-
-					_hook_label_to_widget(label, entry)
-					self.inputs[name] = entry
-					table.attach(entry, 1,2, i,i+1)
-
-					if type in ('dir', 'file', 'image'):
-						# FIXME use inline icon for newer versions of Gtk
-						browse = gtk.Button('_Browse')
-						browse.connect('clicked', self._select_file, (type, entry))
-						table.attach(browse, 2,3, i,i+1, xoptions=gtk.FILL)
-					elif type == 'password':
-						entry.set_visibility(False)
-			else:
-				assert False, 'BUG: unknown field type: %s' % type
-			i += 1
-
-		def focus_next(o, next):
-			next.grab_focus()
-
-		for i in range(len(fields)-1):
-			name = fields[i][0]
-			next = fields[i+1][0]
-			try:
-				self.inputs[name].connect('activate', focus_next, self.inputs[next])
-			except Exception:
-				pass
-
-		if trigger_response:
-			last = fields[-1][0]
-			self.inputs[last].connect('activate', lambda o: self.response_ok())
-
-		return table
-
-	def _select_file(self, button, data):
-		'''Triggered by the 'browse' button for file entries'''
-		type, entry = data
-		if type == 'dir':
-			dialog = SelectFolderDialog(self)
+		if hasattr(self.ui, 'notebook'):
+			notebook = self.ui.notebook
 		else:
-			if type == 'output-file':
-				action = gtk.FILE_CHOOSER_ACTION_SAVE
-			else:
-				action = gtk.FILE_CHOOSER_ACTION_OPEN
-			dialog = SelectFileDialog(self, action=action)
-			if type == 'image':
-				dialog.add_filter_images()
-		file = dialog.run()
-		if not file is None:
-			entry.set_text(file.path)
-
-	def get_field(self, name):
-		'''Returns the value of a single field'''
-		return self.get_fields()[name]
-
-	def get_fields(self):
-		'''Returns a dict with values of the fields.'''
-		values = {}
-		for name, widget in self.inputs.items():
-			if isinstance(widget, (PageEntry, NamespaceEntry)):
-				values[name] = widget.get_path()
-			elif isinstance(widget, gtk.Entry):
-				values[name] = widget.get_text().decode('utf-8').strip()
-			elif isinstance(widget, gtk.ToggleButton):
-				values[name] = widget.get_active()
-			elif isinstance(widget, gtk.ComboBox):
-				values[name] = widget.get_active_text()
-			elif isinstance(widget, gtk.SpinButton):
-				values[name] = int(widget.get_value())
-			else:
-				assert False, 'BUG: unkown widget in inputs'
-		return values
+			notebook = None
+		self.form = InputForm(inputs, values, depends, notebook)
+		if trigger_response:
+			self.form.connect('last-activated', lambda o: self.response_ok())
+		self.vbox.pack_start(self.form, False)
+		return self.form
 
 	def run(self):
 		'''Calls show_all() followed by gtk.Dialog.run().
@@ -998,6 +1453,17 @@ class Dialog(gtk.Dialog):
 	def response_ok(self):
 		'''Trigger the response signal with an 'Ok' response type.'''
 		self.response(gtk.RESPONSE_OK)
+
+	def assert_response_ok(self):
+		'''Like response_ok(), but will force False return value
+		to raise an error. Also it explicitly does not handle errors
+		with an error dialog but just let them go through.
+		Intended for use by the test suite.
+		'''
+		assert self.do_response_ok() is True
+		self.save_uistate()
+		self.destroy()
+		return self.result
 
 	def do_response(self, id):
 		'''Handler for the response signal, dispatches to do_response_ok()
@@ -1179,7 +1645,7 @@ class FileDialog(Dialog):
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			help_text=None, fields=None, help=None, multiple=False
+			help_text=None, help=None, multiple=False
 		):
 		if button is None:
 			if action == gtk.FILE_CHOOSER_ACTION_OPEN:
@@ -1201,21 +1667,21 @@ class FileDialog(Dialog):
 		self.filechooser.set_select_multiple(multiple)
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
 		self.vbox.add(self.filechooser)
-		# FIXME hook to expander to resize window
-		if fields:
-			self.add_fields(fields)
+		# FIXME hook to expander to resize window for FILE_CHOOSER_ACTION_SAVE
 
 	def set_file(self, file):
 		'''Wrapper for filechooser.set_filename()'''
-		self.filechooser.set_file(file.path)
+		ok = self.filechooser.set_filename(file.path)
+		if not ok:
+			raise Exception, 'Could not set filename: %s' % file.path
 
 	def get_file(self):
 		'''Wrapper for filechooser.get_filename().
 		Returns a File object or None.
 		'''
-		path = self.filechooser.get_filename().decode('utf-8')
+		path = self.filechooser.get_filename()
 		if path is None: return None
-		else: return File(path)
+		else: return File(path.decode('utf-8'))
 
 	def get_files(self):
 		'''Like get_file() but returns a list of File objects.
@@ -1267,39 +1733,29 @@ class FileDialog(Dialog):
 		self.filechooser.set_filter(filter)
 		return filter
 
-
-class SelectFileDialog(FileDialog):
-
-	def __init__(self, ui, title=_('Select File'), action=gtk.FILE_CHOOSER_ACTION_OPEN):
-		# T: Title of file selection dialog
-		FileDialog.__init__(self, ui, title)
-		self.filechooser.set_action(action)
-		self.file = None
-
 	def do_response_ok(self):
-		self.file = self.get_file()
-		return not self.file is None
+		'''Default responce handler. Will check filechooser action and
+		whether or not we select multiple files or dirs and set result
+		of the dialog accordingly, so the method run() wil return the
+		selected file(s) or folder(s).
+		'''
+		action = self.filechooser.get_action()
+		multiple = self.filechooser.get_select_multiple()
+		if action in (
+			gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
+			gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER
+		):
+			if multiple:
+				self.result = self.get_dirs()
+			else:
+				self.result = self.get_dir()
+		else:
+			if multiple:
+				self.result = self.get_files()
+			else:
+				self.result = self.get_file()
 
-	def run(self):
-		FileDialog.run(self)
-		return self.file
-
-
-class SelectFolderDialog(FileDialog):
-
-	def __init__(self, ui, title=_('Select Folder')):
-		# T: Title of folder selection dialog
-		FileDialog.__init__(self, ui, title,
-			action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
-		self.dir = None
-
-	def do_response_ok(self):
-		self.dir = self.get_dir()
-		return not self.dir is None
-
-	def run(self):
-		FileDialog.run(self)
-		return self.dir
+		return bool(self.result)
 
 
 class ProgressBarDialog(gtk.Dialog):
@@ -1404,7 +1860,9 @@ class Assistant(Dialog):
 	should inherit from the AssistantPage class. Pages share the
 	'uistate' dict with assistant object, and can also use this to
 	communicate state to another page. So each step can change it's
-	look based on state set in the previous step.
+	look based on state set in the previous step. (This is sometimes
+	called a "Whiteboard" design pattern: each page can access the
+	same "whiteboard" that is the uistate dict.)
 
 	Sub-classes can freely manipulate the flow of pages e.g. by
 	overloading the previous_page() and next_page() methods.
@@ -1439,6 +1897,7 @@ class Assistant(Dialog):
 	def append_page(self, page):
 		'''Append a page'''
 		assert isinstance(page, AssistantPage)
+		page.connect('input-valid-changed', self._update_valid)
 		self._pages.append(page)
 
 	def run(self):
@@ -1457,13 +1916,7 @@ class Assistant(Dialog):
 
 		# Wrap up previous page
 		if self._page > -1:
-			try: # hack needed for filechooser valid in gtk < 2.12
-				self._pages[self._page]._check_valid()
-			except Exception, error:
-				ErrorDialog(self, error).run()
-				return False
-			else:
-				self._pages[self._page].save_uistate()
+			self._pages[self._page].save_uistate()
 
 		# Remove previous page
 		for child in self.vbox.get_children():
@@ -1505,7 +1958,6 @@ class Assistant(Dialog):
 			self.ok_button.show()
 
 		self._update_valid()
-		page.connect('input-valid-changed', self._update_valid)
 
 		return True
 
@@ -1526,13 +1978,7 @@ class Assistant(Dialog):
 	def do_response(self, id):
 		# Wrap up previous page
 		if self._page > -1:
-			try: # hack needed for filechooser valid in gtk < 2.12
-				self._pages[self._page]._check_valid()
-			except Exception, error:
-				ErrorDialog(self, error).run()
-				return False
-			else:
-				self._pages[self._page].save_uistate()
+			self._pages[self._page].save_uistate()
 
 		if id == gtk.RESPONSE_OK:
 			self._uistate.update(self.uistate)
@@ -1561,8 +2007,9 @@ class AssistantPage(gtk.VBox):
 		gtk.VBox.__init__(self)
 		self.set_border_width(5)
 		self.uistate = assistant.uistate
+		self.assistant = assistant
 		self._input_valid = True
-		self._input_valid_widgets = []
+		self.form = None
 
 	def init_uistate(self):
 		'''Hook called when a new page is shown in the dialog. Should
@@ -1576,63 +2023,34 @@ class AssistantPage(gtk.VBox):
 		'''
 		pass
 
-	def set_input_valid(self, valid):
-		self._input_valid = valid
-		self.emit('input-valid-changed')
+	def add_form(self, inputs, values=None, depends=None):
+		'''Convenience method to construct simple forms. Inputs are
+		speccified with 'inputs', see the InputForm class for details.
+		'''
+		self.form = InputForm(inputs, values, depends, notebook=self.assistant.ui.notebook)
+		self.form.connect('input-valid-changed', lambda o: self.check_input_valid())
+		self.pack_start(self.form, False)
+		self.check_input_valid()
+		return self.form
 
 	def get_input_valid(self):
+		'''Returns current valid state'''
 		return self._input_valid
 
-	def add_validation_widget(self, widget):
-		'''Hook an InputEntry or gtk.FileChooese object for input
-		validation. If the widget is visible and sensitive it needs
-		to be valid in order for the page to be valid.
-
-		For FileChooser objects being valid means a file or folder
-		was selected.
+	def check_input_valid(self):
+		'''Called when valid state of some widget is changed and emits
+		the input-valid-signal when this affects the total valid state.
+		By default only checks state of the main form, if any, but
+		can be overloaded in subclasses.
 		'''
-		if isinstance(widget, gtk.FileChooser):
-			if gtk.gtk_version >= (2, 12, 0):
-				widget.connect_after('file-set', self._update_valid)
+		if self.form:
+			valid = self.form.get_input_valid()
 		else:
-			widget.connect_after('changed', self._update_valid)
+			valid = True
 
-		widget.connect_after('notify::sensitive', self._update_valid)
-		widget.connect_after('notify::visible', self._update_valid)
-
-		self._input_valid_widgets.append(widget)
-		self._update_valid()
-
-	def _update_valid(self, *a):
-		valid = True
-		for widget in self._input_valid_widgets:
-			if not widget.get_property('sensitive') \
-			or not widget.get_property('visible'):
-				continue
-
-			if isinstance(widget, gtk.FileChooser):
-				if gtk.gtk_version >= (2, 12, 0):
-					valid = not widget.get_filename() is None
-				else:
-					pass
-			else:
-				valid = widget.get_input_valid()
-
-		self.set_input_valid(valid)
-
-	def _check_valid(self):
-		# HACK: Called in a try .. except block before finalizing page
-		# needed because missing signal for filechooserbutton in gtk < 2.12
-		# We can remove it when we get rid of using filechooserbuttons
-		if self._input_valid_widgets:
-			for widget in self._input_valid_widgets:
-				if isinstance(widget, gtk.FileChooser) \
-				and widget.get_property('sensitive') \
-				and widget.get_property('visible'):
-					if widget.get_filename() is None:
-						raise AssertionError, 'Missing file name'
-		else:
-			return self.get_input_valid()
+		if self._input_valid != valid:
+			self._input_valid = valid
+			self.emit('input-valid-changed')
 
 # Need to register classes defining gobject signals
 gobject.type_register(AssistantPage)

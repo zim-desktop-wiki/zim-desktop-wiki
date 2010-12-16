@@ -123,7 +123,7 @@ class PluginClass(gobject.GObject):
 	Each item in this list should in turn be tuple containing four items:
 
 		* the key in the config file
-		* an option type (see Dialog.add_fields() for more details)
+		* an option type (see InputForm.add_inputs for more details)
 		* a label to show in the dialog
 		* a default value
 

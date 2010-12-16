@@ -3757,8 +3757,6 @@ class InsertImageDialog(FileDialog):
 		self.buffer = buffer
 		self.path = path
 		self.add_filter_images()
-		if file:
-			self.set_file(file)
 
 		self.uistate.setdefault('attach_inserted_images', False)
 		checkbox = gtk.CheckButton(_('Attach image first'))
@@ -3769,6 +3767,9 @@ class InsertImageDialog(FileDialog):
 		self.preview_widget = gtk.Image()
 		self.filechooser.set_preview_widget(self.preview_widget)
 		self.filechooser.connect('update-preview', self.on_update_preview)
+
+		if file:
+			self.set_file(file)
 
 	def on_update_preview(self, *a):
 		filename = self.filechooser.get_preview_filename()
@@ -3811,18 +3812,22 @@ class EditImageDialog(Dialog):
 			iter.backward_char()
 			image_data = self.buffer.get_image_data(iter)
 			assert image_data, 'No image found'
-		self._image_data = image_data
+		self._image_data = image_data.copy()
 		self._iter = iter.get_offset()
 
 		src = image_data['src']
 		if '?' in src:
 			i = src.find('?')
 			src = src[:i]
-		self.add_fields([
-			('file', 'image', _('Location'), src), # T: Input in 'edit image' dialog
-			('width', 'int', _('Width'), (0, 0, 0)), # T: Input in 'edit image' dialog
-			('height', 'int', _('Height'), (0, 0, 0)) # T: Input in 'edit image' dialog
-		])
+
+		self.add_form( [
+			('file', 'image', _('Location')), # T: Input in 'edit image' dialog
+			('width', 'int', _('Width'), (0, 1)), # T: Input in 'edit image' dialog
+			('height', 'int', _('Height'), (0, 1)) # T: Input in 'edit image' dialog
+		],
+			{'file': src}
+			# range for width and height are set in set_ranges()
+		)
 
 		reset_button = gtk.Button(_('_Reset Size'))
 			# T: Button in 'edit image' dialog
@@ -3832,63 +3837,66 @@ class EditImageDialog(Dialog):
 
 		reset_button.connect_object('clicked',
 			self.__class__.reset_dimensions, self)
-		#~ self.inputs['file'].connect_object('activate',
+		#~ self.form.widgets['file'].connect_object('activate',
 			#~ self.__class__.reset_dimensions, self)
-		self.inputs['width'].connect_object('value-changed',
+		self.form.widgets['width'].connect_object('value-changed',
 			self.__class__.do_width_changed, self)
-		self.inputs['height'].connect_object('value-changed',
+		self.form.widgets['height'].connect_object('value-changed',
 			self.__class__.do_height_changed, self)
 
-		self._set_dimension = None
-		image_data = image_data.copy()
+		# Init ranges based on original
 		self.reset_dimensions()
+
+		# Set current scale if any
 		if 'width' in image_data:
-			self.inputs['width'].set_value(int(image_data['width']))
+			self.form.widgets['width'].set_value(int(image_data['width']))
 		elif 'height' in image_data:
-			self.inputs['height'].set_value(int(image_data['height']))
+			self.form.widgets['height'].set_value(int(image_data['height']))
 
 	def reset_dimensions(self):
 		self._image_data.pop('width', None)
 		self._image_data.pop('height', None)
-		filename = self.get_field('file')
+		width = self.form.widgets['width']
+		height = self.form.widgets['height']
+		filename = self.form['file']
 		file = self.ui.notebook.resolve_file(filename, self.path)
 		try:
 			info, w, h = gtk.gdk.pixbuf_get_file_info(file.path)
 		except:
 			logger.warn('Could not get size for image: %s', file.path)
-			self.inputs['width'].set_sensitive(False)
-			self.inputs['height'].set_sensitive(False)
+			width.set_sensitive(False)
+			height.set_sensitive(False)
 		else:
-			self.inputs['width'].set_sensitive(True)
-			self.inputs['height'].set_sensitive(True)
+			width.set_sensitive(True)
+			height.set_sensitive(True)
 			self._block = True
-			self.inputs['width'].set_range(0, 4*w)
-			self.inputs['width'].set_value(w)
-			self.inputs['height'].set_range(0, 4*w)
-			self.inputs['height'].set_value(h)
+			width.set_range(0, 4*w)
+			width.set_value(w)
+			height.set_range(0, 4*w)
+			height.set_value(h)
 			self._block = False
 			self._ratio = float(w)/ h
 
 	def do_width_changed(self):
 		if self._block: return
 		self._image_data.pop('height', None)
-		self._image_data['width'] = self.get_field('width')
+		self._image_data['width'] = self.form['width']
 		h = int(float(self._image_data['width']) / self._ratio)
 		self._block = True
-		self.inputs['height'].set_value(h)
+		self.form['height'] = h
 		self._block = False
 
 	def do_height_changed(self):
 		if self._block: return
 		self._image_data.pop('width', None)
-		self._image_data['height'] = float(self.get_field('height'))
+		self._image_data['height'] = float(self.form['height'])
 		w = int(self._ratio * self._image_data['height'])
 		self._block = True
-		self.inputs['width'].set_value(w)
+		self.form['width'] = w
 		self._block = False
 
 	def do_response_ok(self):
-		filename = self.get_field('file')
+		filename = self.form['file']
 		file = self.ui.notebook.resolve_file(filename, self.path)
 		attrib = self._image_data
 		attrib['src'] = self.ui.notebook.relative_filepath(file, self.path) or file.uri
@@ -3929,19 +3937,23 @@ class InsertLinkDialog(Dialog):
 		else: title = _('Insert Link') # T: Dialog title
 
 		Dialog.__init__(self, ui, title,
-					path_context=pageview.page,
-					button=(_('_Link'), 'zim-link') )  # T: Dialog button
-		self.add_fields([
-			('href', 'link', _('Link to'), href), # T: Input in 'insert link' dialog
-			('text', 'string', _('Text'), text) # T: Input in 'insert link' dialog
-		])
+			button=(_('_Link'), 'zim-link') )  # T: Dialog button
+
+		self.add_form([
+			('href', 'link', _('Link to'), pageview.page), # T: Input in 'insert link' dialog
+			('text', 'string', _('Text')) # T: Input in 'insert link' dialog
+		], {
+			'href': href,
+			'text': text,
+		} )
 
 		# Hook text entry to copy text from link when apropriate
-		if not self._selection_bounds and (not text or text == href):
-			hrefentry = self.inputs['href']
-			textentry = self.inputs['text']
-			hrefentry.connect('changed',
-				lambda o: textentry.set_text(hrefentry.get_text()) )
+		self.form.widgets['href'].connect('changed', self.on_href_changed)
+		self.form.widgets['text'].connect('changed', self.on_text_changed)
+		if self._selection_bounds or (text and text != href):
+			self._copy_text = False
+		else:
+			self._copy_text = True
 
 	def _get_link_from_buffer(self):
 		# Get link and text from the text buffer
@@ -3969,12 +3981,28 @@ class InsertLinkDialog(Dialog):
 
 		return href, text
 
+	def _get_href(self):
+		# Not using PageEntry.get_path() here - keep text as typed
+		return self.form.widgets['href'].get_text()
+
+	def on_href_changed(self, o):
+		# Check if we can also update text
+		if not self._copy_text: return
+
+		self._copy_text = False # block on_text_changed()
+		self.form['text'] = self._get_href()
+		self._copy_text = True
+
+	def on_text_changed(self, o):
+		# Check if we should stop updating text
+		if not self._copy_text: return
+
+		self._copy_text = self._get_href() == self.form['text']
+
 	def do_response_ok(self):
-		entry = self.inputs['href']
-		href = entry.get_text().strip()
-			# Not using PageEntry.get_path() here - keep text as typed
+		href = self._get_href()
 		if not href:
-			entry.set_input_valid(False)
+			self.form.widgets['href'].set_input_valid(False)
 			return False
 
 		type = link_type(href)
@@ -3985,7 +4013,7 @@ class InsertLinkDialog(Dialog):
 			notebook = self.ui.notebook
 			href = notebook.relative_filepath(file, page) or file
 
-		text = self.get_field('text') or href
+		text = self.form['text'] or href
 
 		buffer = self.pageview.view.get_buffer()
 		with buffer.user_action:
@@ -4216,7 +4244,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 			# T: input label in find & replace dialog
 		label.set_alignment(0.0, 0.5)
 		vbox.add(label)
-		self.replace_entry = gtk.Entry()
+		self.replace_entry = InputEntry()
 		vbox.add(self.replace_entry)
 
 		self.bbox = gtk.VButtonBox()
