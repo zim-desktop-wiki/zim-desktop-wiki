@@ -1082,7 +1082,7 @@ class Notebook(gobject.GObject):
 			page = self.get_page(newpath)
 			tree = page.get_parsetree()
 			if not tree is None:
-				tree.set_heading(newbasename.capitalize())
+				tree.set_heading(newbasename)
 				page.set_parsetree(tree)
 				self.store_page(page)
 

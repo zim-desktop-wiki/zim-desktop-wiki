@@ -188,13 +188,15 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''
 		root = self.getroot()
 		children = root.getchildren()
+		tail = "\n"
 		if children:
 			first = children[0]
 			if first.tag == 'h' and first.attrib['level'] >= level:
+				tail = first.tail # Keep trailing text
 				root.remove(first)
 		heading = Element('h', {'level': level})
 		heading.text = text
-		heading.tail = "\n"
+		heading.tail = tail
 		root.insert(0, heading)
 
 	def cleanup_headings(self, offset=0, max=6):

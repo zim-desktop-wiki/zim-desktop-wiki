@@ -333,8 +333,9 @@ class GtkInterface(NotebookInterface):
 			if not self.preferences['GtkInterface'].get(type):
 				default = manager.get_default_helper(type)
 				if default:
-					self.preferences['GtkInterface'].setdefault(type, default.key)
+					self.preferences['GtkInterface'][type] = default.key
 				else:
+					self.preferences['GtkInterface'][type] = None
 					logger.warn('No helper application defined for %s', type)
 
 		self.mainwindow = MainWindow(self, fullscreen, geometry)
@@ -953,7 +954,7 @@ class GtkInterface(NotebookInterface):
 			name = self.notebook.cleanup_pathname(name, purge=True)
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_new_page(path)
-		page.parse('plain', text)
+		page.parse('wiki', text) # FIXME format hard coded
 		self.notebook.store_page(page)
 		if open_page:
 			self.open_page(page)
@@ -963,7 +964,7 @@ class GtkInterface(NotebookInterface):
 		'''Append text to an (exising) page'''
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_page(path)
-		page.parse('plain', text, append=True)
+		page.parse('wiki', text, append=True) # FIXME format hard coded
 		self.notebook.store_page(page)
 
 	def open_new_window(self, page=None):
@@ -1550,6 +1551,14 @@ class MainWindow(Window):
 		self.pageindex = PageIndex(ui)
 		self.sidepane.add(self.pageindex)
 
+		def check_focus_sidepane(window, widget):
+			focus = widget == self.pageindex
+				# FIXME - what if we have more widgets in side pane ?
+			if not focus:
+				self.on_sidepane_lost_focus()
+
+		self.connect('set-focus', check_focus_sidepane)
+
 		vbox2 = gtk.VBox()
 		self.hpane.add2(vbox2)
 
@@ -1653,12 +1662,12 @@ class MainWindow(Window):
 		group = gtk.AccelGroup()
 		group.connect_group( # <Alt><Space>
 			space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
-			self.do_switch_focus)
+			self.toggle_focus_sidepane)
 
 		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Ctrl><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
-				self.do_switch_focus)
+				self.toggle_focus_sidepane)
 
 		self.add_accel_group(group)
 		self._switch_focus_accelgroup = group
@@ -1795,7 +1804,11 @@ class MainWindow(Window):
 		self._sidepane_autoclose = False
 		self.uistate['show_sidepane'] = show
 
-	def do_switch_focus(self, *a):
+	def toggle_focus_sidepane(self, *a):
+		'''Switch focus between the textview and the sidepane.
+		Automatically opens the sidepane if it is closed
+		(but sets a property to automatically close it again).
+		'''
 		action = self.actiongroup.get_action('toggle_sidepane')
 		if action.get_active():
 			# side pane open
@@ -1813,6 +1826,12 @@ class MainWindow(Window):
 			self.pageindex.grab_focus()
 
 		return True # we are called from an event handler
+
+	def on_sidepane_lost_focus(self):
+		action = self.actiongroup.get_action('toggle_sidepane')
+		if self._sidepane_autoclose and action.get_active():
+			# Sidepane open and should close automatic
+			self.toggle_sidepane(show=False)
 
 	def set_pathbar(self, style):
 		'''Set the pathbar. Style can be either PATHBAR_NONE,

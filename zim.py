@@ -15,7 +15,10 @@ except:
 
 # Win32: must setup log file or it tries to write to $PROGRAMFILES
 if os.name == "nt":
-	err_stream = open(os.path.expandvars("%USERPROFILE%\\.config\\zim\\zim.log"), "w")
+	import tempfile
+	dir = tempfile.gettempdir()
+	os.makedirs(dir) # Make sure it exists
+	err_stream = open(dir + "\\zim.log", "w")
 	sys.stdout = err_stream
 	sys.stderr = err_stream
 
