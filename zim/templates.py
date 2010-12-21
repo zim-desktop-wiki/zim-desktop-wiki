@@ -25,10 +25,15 @@ Syntax is loosely based on the syntax of the perl Template Toolkit
 	[% GET page.name %] or just [% page.name %]
 	[% SET foo = 'Foo !' %] or just [ foo = 'Foo !' ]
 	[% IF param %] ... [% ELSE %] ... [% END %]
+	[% IF param == value %] ... [% ELSE %] ... [% END %]
+	[% IF param %] ... [% ELSIF param %] ... [% ELSE %] ... [% END %]
 	[% FOREACH name IN param %] ... [% name %] ... [% END %]
 	or [% FOREACH name = param %] ...
 	or [% FOREACH name IN ['foo', 'bar', 'baz'] %] ...
 	[% strftime('%c', param) %]
+
+Use a "[%-" instead of "[%" or "-%]" instead of "%]" will strip
+newlines left or right of the tag.
 
 Available parameters are 'zim.version' and 'page', all available
 attributes for 'page' are defined in the PageProxy class.
@@ -51,15 +56,15 @@ arbitrary code from templates.
 * There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
 
-# TODO pages.previous, pages.next, pages.home and pages.index
 # TODO add a directive [% INCLUDE template_name %]
 # TODO put token classes in a dict to allow extension by subclasses
-# TODO give plugins a way to access the TemplateDict before processing a page
 
 import re
 import logging
-from time import strftime, strptime
+import datetime
 from copy import deepcopy
+
+import gobject
 
 import zim
 import zim.formats
@@ -88,6 +93,8 @@ def list_templates(format):
 		for file in dir.list():
 			i = file.rfind('.') # match begin of file extension
 			if i >= 0:
+				if '~' in file[i:]:
+					continue # Ignore tmp files etc.
 				#~ templates[file[0:i]] = dir.file(file) FIXME
 				import os
 				templates[file[0:i]] = os.path.join(dir.path, file)
@@ -144,6 +151,33 @@ not availabel, or it can be a glitch in the program.
 '''
 
 
+class _TemplateManager(gobject.GObject):
+	'''Singleton object used for hooking signals so plugins can be notified
+	when a template is used.
+
+	Currently only supports one signal:
+	  * process-page (manager, template, page, dict)
+	    Called just before the page is processed. Plugins can extend functionality
+	    available to the template by putting parameters or template functions in
+	    'dict'. Plugins should not modify page!
+	'''
+
+	# In theory it would be better to do this without a singleton, but in that
+	# case there would need to be an instance of this object per NotebookInterface
+	# object. Not impossible, but not needed for now.
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'process-page': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)),
+	}
+
+# Need to register classes defining gobject signals
+gobject.type_register(_TemplateManager)
+
+
+TemplateManager = _TemplateManager()
+
+
 class GenericTemplate(object):
 	'''Base template class'''
 
@@ -188,15 +222,25 @@ class GenericTemplate(object):
 			if string.startswith('IF'):
 				token = IFToken(string[2:])
 				self.stack[-1].append(token)
-				self.stack.append(token.if_block)
+				self.stack.append(token.blocks[0])
+			elif string.startswith('ELSIF'):
+				self.stack.pop()
+				try:
+					iftoken = self.stack[-1][-1]
+					assert isinstance(iftoken, IFToken)
+				except:
+					raise TemplateSyntaxError, 'ELSIF outside IF block'
+				block = iftoken.add_block(string[5:])
+				self.stack.append(block)
 			elif string.startswith('ELSE'):
 				self.stack.pop()
 				try:
-					token = self.stack[-1][-1]
-					assert isinstance(token, IFToken)
+					iftoken = self.stack[-1][-1]
+					assert isinstance(iftoken, IFToken)
 				except:
 					raise TemplateSyntaxError, 'ELSE outside IF block'
-				self.stack.append(token.else_block)
+				block = iftoken.add_block()
+				self.stack.append(block)
 			elif string.startswith('FOREACH'):
 				token = FOREACHToken(string[7:])
 				self.stack[-1].append(token)
@@ -297,6 +341,7 @@ class Template(GenericTemplate):
 			# this is later reset in body() but we need it here for
 			# first part of the template
 
+		TemplateManager.emit('process-page', self, page, dict)
 		output = GenericTemplate.process(self, dict)
 
 		# Caching last processed dict because any pages in the dict
@@ -413,27 +458,49 @@ class SETToken(TemplateToken):
 class IFToken(TemplateToken):
 
 	def __init__(self, string):
-		(var, sep, val) = string.partition('==')
-		self.expr = self.parse_expr(var)
-		if sep:
-			self.val = self.parse_expr(val)
+		self.blocks = []
+		self.add_block(string)
+
+	def add_block(self, string=None):
+		self.blocks.append(TemplateTokenList())
+		if not string is None:
+			# IF or ELSIF block
+			(var, sep, val) = string.partition('==')
+			var = self.parse_expr(var)
+			if sep:
+				val = self.parse_expr(val)
+			else:
+				val = None
+
+			self.blocks[-1].if_statement = (var, val)
 		else:
-			self.val = None
-		self.if_block = TemplateTokenList()
-		self.else_block = TemplateTokenList()
+			# ELSE block
+			self.blocks[-1].if_statement = None
+
+		return self.blocks[-1]
 
 	def process(self, dict):
-		var = self.expr.evaluate(dict)
-		if not self.val is None:
-			val = self.val.evaluate(dict)
-			bool = var == val
-		else:
-			bool = var
+		for block in self.blocks:
+			if block.if_statement is None:
+				# ELSE block
+				assert block == self.blocks[-1]
+				return block.process(dict)
+			else:
+				# IF or ELSIF block
+				var, val = block.if_statement
+				var = var.evaluate(dict)
+				if val is None:
+					ok = bool(var)
+				else:
+					val = val.evaluate(dict)
+					ok = (var == val)
 
-		if bool:
-			return self.if_block.process(dict)
+				if ok:
+					return block.process(dict)
+				else:
+					continue
 		else:
-			return self.else_block.process(dict)
+			return []
 
 
 class FOREACHToken(TemplateToken):
@@ -548,19 +615,14 @@ class StrftimeFunction(TemplateFunction):
 	def __init__(self):
 		pass
 
-	def __call__(self, dict, format, timestamp=None):
-		if timestamp is None:
-			return strftime(format)
-		elif isinstance(timestamp, basestring):
-			# TODO generalize this - now hardcoded for Calendar plugin
-			match = re.search(r'\d{4}:\d{2}:\d{2}', timestamp)
-			if match:
-				timestamp = strptime(match.group(0), '%Y:%m:%d')
-				return strftime(format, timestamp)
-			else:
-				return None
+	def __call__(self, dict, format, date=None):
+		format = str(format) # Needed to please datetime.strftime()
+		if date is None:
+			return datetime.datetime.now().strftime(format)
+		elif isinstance(date, (datetime.date, datetime.datetime)):
+			return date.strftime(format)
 		else:
-			return strftime(format, timestamp)
+			raise AssertionError, 'Not a datetime object: %s', date
 
 
 class TemplateDict(object):

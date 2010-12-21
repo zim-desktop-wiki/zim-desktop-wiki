@@ -1,2 +1,9 @@
-======= [% strftime("%A %d %b %Y", page.name) %] =======
-
+[% IF calendar_plugin.page_type == 'day' -%]
+======= [% strftime("%A %d %b %Y", calendar_plugin.date) %] =======
+[%- ELSIF calendar_plugin.page_type == 'month' -%]
+======= [% strftime("%B %Y", calendar_plugin.date) %] =======
+[%- ELSIF calendar_plugin.page_type == 'year' -%]
+======= Year [% strftime("%Y", calendar_plugin.date) %] =======
+[%- ELSE -%]
+TEMPLATE ERROR - NO DATE
+[%- END %]
