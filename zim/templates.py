@@ -61,13 +61,13 @@ arbitrary code from templates.
 
 import re
 import logging
-import datetime
 from copy import deepcopy
 
 import gobject
 
 import zim
 import zim.formats
+import zim.datetimetz as datetime
 from zim.errors import Error
 from zim.fs import File
 from zim.config import data_dirs
@@ -618,7 +618,7 @@ class StrftimeFunction(TemplateFunction):
 	def __call__(self, dict, format, date=None):
 		format = str(format) # Needed to please datetime.strftime()
 		if date is None:
-			return datetime.datetime.now().strftime(format)
+			return datetime.now().strftime(format)
 		elif isinstance(date, (datetime.date, datetime.datetime)):
 			return date.strftime(format)
 		else:

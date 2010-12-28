@@ -18,9 +18,9 @@ once we have it resolved.
 
 import sys
 import logging
-from datetime import datetime
 
 import zim.fs
+import zim.datetimetz as datetime
 from zim.fs import File, Dir, FilteredDir, FileNotFoundError
 from zim.async import AsyncOperation
 from zim.formats import get_format

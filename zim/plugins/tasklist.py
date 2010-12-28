@@ -6,10 +6,11 @@ from __future__ import with_statement
 
 import gobject
 import gtk
+import pango
 import logging
 import re
-import datetime
 
+import zim.datetimetz as datetime
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.notebook import Path
@@ -96,9 +97,14 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 		('all_checkboxes', 'bool', _('Consider all checkboxes as tasks'), True),
 			# T: label for plugin preferences dialog
+		('tag_by_page', 'bool', _('Turn page name into tags for task items'), False),
+			# T: label for plugin preferences dialog
 		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', value_allow_empty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 	)
+	_rebuild_on_preferences = ['all_checkboxes', 'labels']
+		# Rebuild database table if any of these preferences changed.
+		# But leave it alone if others change.
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
@@ -130,10 +136,14 @@ This is a core plugin shipping with zim.
 		self.db_initialized = True
 
 	def do_preferences_changed(self):
-		self._drop_table()
+		new_preferences = self._serialize_rebuild_on_preferences()
+		if new_preferences != self._current_preferences:
+			self._drop_table()
 		self._set_preferences()
 
 	def _set_preferences(self):
+		self._current_preferences = self._serialize_rebuild_on_preferences()
+
 		self.all_checkboxes = self.preferences['all_checkboxes']
 		string = self.preferences['labels'].strip(' ,')
 		if string:
@@ -142,6 +152,13 @@ This is a core plugin shipping with zim.
 			self.task_labels = []
 		regex = '(' + '|'.join(map(re.escape, self.task_labels)) + ')'
 		self.task_label_re = re.compile(regex)
+
+	def _serialize_rebuild_on_preferences(self):
+		# string mapping settings that influence building the table
+		string = ''
+		for pref in self._rebuild_on_preferences:
+			string += str(self.preferences[pref])
+		return string
 
 	def disconnect(self):
 		self._drop_table()
@@ -247,7 +264,9 @@ This is a core plugin shipping with zim.
 
 		text = para.text or ''
 		for child in para.getchildren():
-			if child.tag == 'ul':
+			if child.tag == 'strike':
+				continue # Ignore strike out text
+			elif child.tag == 'ul':
 				if text:
 					items += text.splitlines()
 				items += self._flatten_list(child)
@@ -554,23 +573,6 @@ class TaskListTreeView(BrowserTreeView):
 		self.ui = ui
 		self.plugin = plugin
 
-		cell_renderer = gtk.CellRendererText()
-		for name, i in (
-			(_('Task'), self.TASK_COL), # T: Column header Task List dialog
-			(_('Page'), self.PAGE_COL), # T: Column header Task List dialog
-		):
-			column = gtk.TreeViewColumn(name, cell_renderer, text=i)
-			column.set_resizable(True)
-			column.set_sort_column_id(i)
-			if i == self.TASK_COL:
-				column.set_expand(True)
-				if ui_environment['platform'] == 'maemo':
-					column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-					column.set_fixed_width(250)
-					# FIXME probably should also limit the size of this
-					# column on other platforms ...
-			self.append_column(column)
-
 		# Add some rendering for the Prio column
 		def render_prio(col, cell, model, i):
 			prio = model.get_value(i, self.PRIO_COL)
@@ -586,7 +588,22 @@ class TaskListTreeView(BrowserTreeView):
 			# T: Column header Task List dialog
 		column.set_cell_data_func(cell_renderer, render_prio)
 		column.set_sort_column_id(self.PRIO_COL)
-		self.insert_column(column, 0)
+		self.append_column(column)
+
+		# Rendering for task description column
+		cell_renderer = gtk.CellRendererText()
+		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
+		column = gtk.TreeViewColumn(_('Task'), cell_renderer, text=self.TASK_COL)
+				# T: Column header Task List dialog
+		column.set_resizable(True)
+		column.set_sort_column_id(self.TASK_COL)
+		column.set_expand(True)
+		if ui_environment['platform'] == 'maemo':
+			column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+			column.set_fixed_width(250)
+			# FIXME probably should also limit the size of this
+			# column on other platforms ...
+		self.append_column(column)
 
 		# Rendering of the Date column
 		today    = str( datetime.date.today() )
@@ -611,8 +628,17 @@ class TaskListTreeView(BrowserTreeView):
 			# T: Column header Task List dialog
 		column.set_cell_data_func(cell_renderer, render_date)
 		column.set_sort_column_id(self.DATE_COL)
-		self.insert_column(column, 2)
+		self.append_column(column)
 
+		# Rendering for page name column
+		cell_renderer = gtk.CellRendererText()
+		column = gtk.TreeViewColumn(_('Page'), cell_renderer, text=self.PAGE_COL)
+				# T: Column header Task List dialog
+		column.set_resizable(True)
+		column.set_sort_column_id(self.PAGE_COL)
+		self.append_column(column)
+
+		# Finalize
 		self.refresh()
 		self.plugin.connect_object('tasklist-changed', self.__class__.refresh, self)
 
@@ -655,10 +681,18 @@ class TaskListTreeView(BrowserTreeView):
 		tags = set()
 
 		def collect(model, path, iter):
-			# also count hidden rows here
-			desc = model[iter][self.TASK_COL].decode('utf-8')
+			row = model[iter]
+			if not row[self.OPEN_COL]:
+				return # only count open items
+
+			desc = row[self.TASK_COL].decode('utf-8')
 			for match in tag_re.findall(desc):
 				tags.add(match)
+
+			if self.plugin.preferences['tag_by_page']:
+				name = row[self.PAGE_COL].decode('utf-8')
+				for part in name.split(':'):
+					tags.add(part)
 
 		self.real_model.foreach(collect)
 
@@ -688,7 +722,7 @@ class TaskListTreeView(BrowserTreeView):
 
 	def set_tag_filter(self, tags):
 		if tags:
-			self.tag_filter = ["@"+tag.lower() for tag in tags]
+			self.tag_filter = [tag.lower() for tag in tags]
 		else:
 			self.tag_filter = None
 		self._eval_filter()
@@ -730,10 +764,15 @@ class TaskListTreeView(BrowserTreeView):
 		pagename = modelrow[self.PAGE_COL].lower()
 
 		if visible and self.tag_filter:
-			# And any tag should match
+			# And any tag should match (or pagename if tag_by_page)
 			for tag in self.tag_filter:
-				if tag in description:
-					break
+				if self.plugin.preferences['tag_by_page']:
+					if '@'+tag in description \
+					or tag in pagename.split(':'):
+						break # keep visible True
+				else:
+					if '@'+tag in description:
+						break # keep visible True
 			else:
 				visible = False # no tag found
 
@@ -783,9 +822,9 @@ class TaskListTreeView(BrowserTreeView):
 				if due == "9999": due = "-"
 				for match in tag_re.findall(desc.decode("UTF-8")):
 					tags.add(match)
-				tasks += "Description: %s\nPriority: %s,  Actionable: %s,  Open: %s,  Due: %s\nPath: %s,  Tags: %s\n\n" % (desc, prio, actionable, opn, due, path_name, ", ".join(tags))
-		tasks += "Number of tasks: %s. Exported: %s UTC." \
-				% (len(model), str(datetime.datetime.utcnow())[:-7])
+					tasks += "Description: %s\nPriority: %s,  Actionable: %s,  Open: %s,  Due: %s\nPath: %s,  Tags: %s\n\n" % (desc, prio, actionable, opn, due, path_name, ", ".join(tags))
+		tasks += "Number of tasks: %s. Exported: %s" \
+				% (len(model), str(datetime.now()))
 		#~ print tasks
 		gtk.Clipboard().set_text(tasks.decode("UTF-8"))
 
