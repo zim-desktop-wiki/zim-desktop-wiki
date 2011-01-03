@@ -47,7 +47,8 @@ from zim.gui.pageview import PageView
 from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
 	Button, MenuButton, \
 	Window, Dialog, \
-	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog
+	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog, \
+	PromptExistingFileDialog
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import ApplicationManager, CustomToolManager
 
@@ -694,7 +695,7 @@ class GtkInterface(NotebookInterface):
 		the application. Used e.g. by plugins that want to add some
 		widget to specific windows.
 		'''
-		print 'WINDOW:', window
+		#~ print 'WINDOW:', window
 		self.emit('new-window', window)
 
 	def do_new_window(self, window):
@@ -1178,7 +1179,29 @@ class GtkInterface(NotebookInterface):
 		self.open_page(self.notebook.get_page(self.page))
 
 	def attach_file(self, path=None):
+		'''Show the AttachFileDialog'''
 		AttachFileDialog(self, path=path).run()
+
+	def do_attach_file(self, path, file, force_overwrite=False):
+		'''Callback for AttachFileDialog and InsertImageDialog
+		When 'force_overwrite' is False the user will be prompted in
+		case the new file has the same name as an existing attachment.
+		Returns the (new) filename or None when the action was canceled.
+		'''
+		namechanged = False
+		dir = self.notebook.get_attachments_dir(path)
+		if dir is None:
+			raise Error, '%s does not have an attachments dir' % path
+
+		dest = dir.file(file.basename)
+		if dest.exists() and not force_overwrite:
+			dialog = PromptExistingFileDialog(self, dest)
+			dest = dialog.run()
+			if dest is None:
+				return None	# dialog was cancelled
+
+		file.copyto(dest)
+		return dest
 
 	def open_file(self, file):
 		'''Open either a File or a Dir in the file browser'''
@@ -2186,7 +2209,6 @@ discarded, but you can restore the copy later.''')
 		ErrorDialog.run(self)
 		gobject.source_remove(id)
 
-
 class OpenPageDialog(Dialog):
 	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.
 	Prompts for a page name and navigate to that page on 'Ok'.
@@ -2503,8 +2525,8 @@ class AttachFileDialog(FileDialog):
 			self.path = path
 		assert self.path, 'Need a page here'
 
-		self.dir = self.ui.notebook.get_attachments_dir(self.path)
-		if self.dir is None:
+		dir = self.ui.notebook.get_attachments_dir(self.path)
+		if dir is None:
 			ErrorDialog(_('Page "%s" does not have a folder for attachments') % self.path)
 				# T: Error dialog - %s is the full page name
 			raise Exception, 'Page "%s" does not have a folder for attachments' % self.path
@@ -2526,8 +2548,10 @@ class AttachFileDialog(FileDialog):
 			# Similar code in zim.gui.InsertImageDialog
 
 		for file in files:
-			file.copyto(self.dir)
-			file = self.dir.file(file.basename)
+			file = self.ui.do_attach_file(self.path, file)
+			if file is None:
+				return False # Cancelled overwrite dialog
+
 			pageview = self.ui.mainwindow.pageview
 			if self.uistate['insert_attached_images'] and file.isimage():
 				try:

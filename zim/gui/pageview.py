@@ -3811,7 +3811,7 @@ class InsertImageDialog(FileDialog):
 
 	def __init__(self, ui, buffer, path, file=None):
 		FileDialog.__init__(
-			self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN)
+			self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN, preview=True)
 			# T: Dialog title
 		self.buffer = buffer
 		self.path = path
@@ -3822,23 +3822,11 @@ class InsertImageDialog(FileDialog):
 			# T: checkbox in the "Insert Image" dialog
 		checkbox.set_active(self.uistate['attach_inserted_images'])
 		self.filechooser.set_extra_widget(checkbox)
-
-		self.preview_widget = gtk.Image()
-		self.filechooser.set_preview_widget(self.preview_widget)
-		self.filechooser.connect('update-preview', self.on_update_preview)
+		self.uistate.setdefault('last_image_folder','~')
+		self.filechooser.set_current_folder(self.uistate['last_image_folder'])
 
 		if file:
 			self.set_file(file)
-
-	def on_update_preview(self, *a):
-		filename = self.filechooser.get_preview_filename()
-		try:
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(filename, 128, 128)
-			self.preview_widget.set_from_pixbuf(pixbuf)
-			self.filechooser.set_preview_widget_active(True)
-		except:
-			self.filechooser.set_preview_widget_active(False)
-		return
 
 	def do_response_ok(self):
 		file = self.get_file()
@@ -3846,12 +3834,14 @@ class InsertImageDialog(FileDialog):
 
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['attach_inserted_images'] = checkbox.get_active()
+		self.uistate['last_image_folder'] = self.filechooser.get_current_folder()
 		if self.uistate['attach_inserted_images']:
 			# Similar code in zim.gui.AttachFileDialog
 			dir = self.ui.notebook.get_attachments_dir(self.path)
 			if not file.dir == dir:
-				file.copyto(dir)
-				file = dir.file(file.basename)
+				file = self.ui.do_attach_file(self.path, file)
+				if file is None:
+					return False # Cancelled overwrite dialog
 
 		src = self.ui.notebook.relative_filepath(file, self.path) or file.uri
 		self.buffer.insert_image_at_cursor(file, src)

@@ -35,7 +35,7 @@ class TestInputEntry(TestCase):
 		self.assertFalse(entry.get_input_valid())
 
 		# and with a function
-		entry = InputEntry(check=lambda text: text.startswith('a'))
+		entry = InputEntry(check_func=lambda text: text.startswith('a'))
 		self.assertFalse(entry.get_input_valid())
 		entry.set_text(u'foo bar')
 		self.assertFalse(entry.get_input_valid())

@@ -13,6 +13,7 @@ import gtk
 import pango
 import logging
 import sys
+import os
 
 from zim.fs import *
 import zim.errors
@@ -336,7 +337,7 @@ class IconChooserButton(gtk.Button):
 			image.set_from_stock(stock, gtk.ICON_SIZE_DIALOG)
 
 	def do_clicked(self):
-		dialog = FileDialog(self)
+		dialog = FileDialog(self, _('Select File'), preview=True) # T: dialog title
 		dialog.add_filter_images()
 		file = dialog.run()
 		if file:
@@ -1005,7 +1006,7 @@ class InputEntry(gtk.Entry):
 	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
 	ERROR_COLOR = gtk.gdk.color_parse('#EF7F7F') # light red (derived from Tango style guide)
 
-	def __init__(self, check=None, allow_empty=True, show_empty_invalid=False):
+	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False):
 		'''Constructor takes a validation function 'check'. This
 		function is called with the current text as argument and
 		should return boolean.
@@ -1019,10 +1020,15 @@ class InputEntry(gtk.Entry):
 		gtk.Entry.__init__(self)
 		self.allow_empty = allow_empty
 		self.show_empty_invalid = show_empty_invalid
-		self.check_func = check
+		self.check_func = check_func
 		self._input_valid = False
 		self.do_changed() # Initialize state
 		self.connect('changed', self.__class__.do_changed)
+
+	def set_check_func(self, check_func):
+		'''Set a function to check whether input is valid or not'''
+		self.check_func = check_func
+		self.do_changed()
 
 	def get_text(self):
 		'''Like gtk.Entry.get_text() but with utf-8 decoding and
@@ -1579,7 +1585,7 @@ class Dialog(gtk.Dialog):
 
 	def __init__(self, ui, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			help_text=None, fields=None, help=None,
+			help_text=None, help=None,
 			defaultwindowsize=(-1, -1)
 		):
 		'''Constructor. 'ui' can either be the main application or some
@@ -1901,8 +1907,13 @@ class FileDialog(Dialog):
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			help_text=None, help=None, multiple=False
+			help_text=None, help=None, multiple=False, preview=False
 		):
+		'''Constructor
+		If 'multiple' is True the dialog will allow selecting multiple
+		files at once. If 'preview' is True image previews are shown.
+		Other arguments are passed on to Dialog.__init__().
+		'''
 		if button is None:
 			if action == gtk.FILE_CHOOSER_ACTION_OPEN:
 				button = (None, gtk.STOCK_OPEN)
@@ -1924,6 +1935,29 @@ class FileDialog(Dialog):
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
 		self.vbox.add(self.filechooser)
 		# FIXME hook to expander to resize window for FILE_CHOOSER_ACTION_SAVE
+
+		if preview:
+			self.preview_widget = gtk.Image()
+			self.filechooser.set_preview_widget(self.preview_widget)
+			self.filechooser.connect('update-preview', self.on_update_preview)
+		else:
+			self.preview_widget = None
+
+	def on_update_preview(self, *a):
+		filename = self.filechooser.get_preview_filename()
+		try:
+			info, w, h = gtk.gdk.pixbuf_get_file_info(filename)
+			if w <= 128 and h <= 128:
+				# Show icons etc. on real size
+				pixbuf = gtk.gdk.pixbuf_new_from_file(filename)
+			else:
+				# Scale other images to fit the window
+				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(filename, 128, 128)
+			self.preview_widget.set_from_pixbuf(pixbuf)
+			self.filechooser.set_preview_widget_active(True)
+		except:
+			self.filechooser.set_preview_widget_active(False)
+		return
 
 	def set_file(self, file):
 		'''Wrapper for filechooser.set_filename()'''
@@ -2468,3 +2502,76 @@ class ImageView(gtk.Layout):
 # Need to register classes defining gobject signals
 gobject.type_register(ImageView)
 
+
+class PromptExistingFileDialog(Dialog):
+	'''Dialog that is used e.g. when a file should be attached to zim,
+	but a file with the same name already exists in the attachment
+	directory. This Dialog allows to suggest a new name or overwrite
+	the existing one.
+
+	For this dialog 'run()' will return either the original file
+	(for overwrite), a new file, or None when the dialog was cancelled.
+	'''
+
+	def __init__(self, ui, file):
+		Dialog.__init__(self, ui, _('File Exists'), buttons=None) # T: Dialog title
+		self.add_help_text( _('''\
+A file with the name <b>"%s"</b> already exists.
+You can use another name or overwrite the existing file.''' % file.basename),
+		) # T: Dialog text in 'new filename' dialog
+		self.old_file = file
+		self.dir = file.dir
+
+		suggested_filename = file.dir.new_file(file.basename).basename
+		self.add_form((
+				('name', 'string', _('Filename')), # T: Input label
+			), {
+				'name': suggested_filename
+			}
+		)
+		self.form.widgets['name'].set_check_func(self._check_valid)
+
+		# all buttons are defined in this class, to get the ordering right
+		# [show folder]      [overwrite] [cancel] [ok]
+		button = gtk.Button(_('_Browse'))
+		button.connect('clicked', self.do_show_folder)
+		self.action_area.add(button)
+		self.action_area.set_child_secondary(button, True)
+
+		button = gtk.Button(_('Overwrite'))
+		button.connect('clicked', self.do_response_overwrite)
+		self.add_action_widget(button, gtk.RESPONSE_NONE)
+
+		self.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+		self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+		self._no_ok_action = False
+
+		self.form.widgets['name'].connect('focus-in-event',	self._on_focus)
+
+	def _on_focus(self, widget, event):
+		# filename length without suffix
+		length = len(os.path.splitext(widget.get_text())[0])
+		widget.select_region(0, length)
+
+	def _check_valid(self, filename):
+		# Only valid when same dir and does not yet exist
+		file = self.dir.file(filename)
+		return file.dir == self.dir and not file.exists()
+
+	def do_show_folder(self, *a):
+		self.ui.open_file(self.dir)
+
+	def do_response_overwrite(self, *a):
+		logger.info('Overwriting %s', self.old_file.path)
+		self.result = self.old_file
+
+	def do_response_ok(self):
+		if not self.form.widgets['name'].get_input_valid():
+			return False
+
+		newfile = self.dir.file(self.form['name'])
+		logger.info('Selected %s', newfile.path)
+		assert newfile.dir == self.dir # just to be real sure
+		assert not newfile.exists() # just to be real sure
+		self.result = newfile
+		return True
