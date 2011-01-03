@@ -47,7 +47,7 @@ ui_environment = {
 # Check for Maemo environment
 try:
 	import hildon
-	Window = hildon.Window
+	gtkwindowclass = hildon.Window
 	ui_environment['platform'] = 'maemo'
 	if hasattr(Window,'set_app_menu'):
 		ui_environment['maemo_version'] = 'maemo5'
@@ -66,7 +66,7 @@ style "toolkit"
 class "GtkTreeView" style "toolkit"
 ''' )
 except ImportError:
-	Window = gtk.Window
+	gtkwindowclass = gtk.Window
 
 
 def _encode_xml(text):
@@ -1300,6 +1300,239 @@ def get_window(ui):
 		return None
 
 
+def register_window(window):
+	'''Register this instance with the zim application, if not done
+	so already.
+	'''
+	if ( not hasattr(window, '_zim_window_registered') \
+		or not window._zim_window_registered ) \
+	and hasattr(window, 'ui') \
+	and hasattr(window.ui, 'register_new_window'):
+		window.ui.register_new_window(window)
+		window._zim_window_registered = True
+
+
+# Some constants used to position widgets in the window panes
+TOP = 0
+BOTTOM = 1
+
+LEFT_PANE = 0
+RIGHT_PANE = 1
+TOP_PANE = 2
+BOTTOM_PANE = 3
+
+class Window(gtkwindowclass):
+	'''Wrapper for the gtk.Window class that will take care of hooking
+	the window into the application framework and adds entry points
+	so plugins can add side panes etc. It will divide the window
+	horizontally in 3 panes, and the center pane again verticaly in 3.
+	The result is something like this:
+
+		+-----------------------------+
+		|menu                         |
+		+-----+----------------+------+
+		|     |  top pane      |      |
+		|     |                |      |
+		| s   +----------------+  s   |
+		| i   | Main widget    |  i   |
+		| d   |                |  d   |
+		| e   |                |  e   |
+		| b   +----------------+  b   |
+		| a   |tabs|           |  a   |
+		| r   | bottom pane    |  r   |
+		|     |                |      |
+		+----------------------+------+
+
+	Of course any pane that is not used will not been shown. The
+	important thing is to create placeholders where plugins *might*
+	want to add some widget.
+	'''
+
+	def __init__(self):
+		gtkwindowclass.__init__(self)
+
+		self._zim_window_main = gtk.VBox()
+		self._zim_window_left_pane = gtk.HPaned()
+		self._zim_window_right_pane = gtk.HPaned()
+		self._zim_window_top_pane = gtk.VPaned()
+		self._zim_window_bottom_pane = gtk.VPaned()
+
+		self._zim_window_left = gtk.VBox()
+		self._zim_window_right = gtk.VBox()
+		self._zim_window_top = gtk.VBox()
+		self._zim_window_bottom = gtk.VBox()
+
+		self._zim_window_left_notebook = gtk.Notebook()
+		self._zim_window_right_notebook = gtk.Notebook()
+		self._zim_window_top_notebook = gtk.Notebook()
+		self._zim_window_bottom_notebook = gtk.Notebook()
+
+		self._zim_window_left.add(self._zim_window_left_notebook)
+		self._zim_window_right.add(self._zim_window_right_notebook)
+		self._zim_window_top.add(self._zim_window_top_notebook)
+		self._zim_window_bottom.add(self._zim_window_bottom_notebook)
+
+		self._zim_window_top_special = gtk.VBox()
+
+		gtkwindowclass.add(self, self._zim_window_main)
+		self._zim_window_main.add(self._zim_window_left_pane)
+		self._zim_window_left_pane.add1(self._zim_window_left)
+		self._zim_window_left_pane.add2(self._zim_window_right_pane)
+		self._zim_window_right_pane.add1(self._zim_window_top_special)
+		self._zim_window_right_pane.add2(self._zim_window_right)
+		self._zim_window_top_special.add(self._zim_window_top_pane)
+		self._zim_window_top_pane.add1(self._zim_window_top)
+		self._zim_window_top_pane.add2(self._zim_window_bottom_pane)
+		self._zim_window_bottom_pane.add2(self._zim_window_bottom)
+
+		for box in (
+			self._zim_window_left,
+			self._zim_window_right,
+			self._zim_window_top,
+			self._zim_window_bottom,
+		):
+			box.set_no_show_all(True)
+
+		for nb in (
+			self._zim_window_left_notebook,
+			self._zim_window_right_notebook,
+			self._zim_window_top_notebook,
+			self._zim_window_bottom_notebook,
+		):
+			nb.set_no_show_all(True)
+			nb.set_show_tabs(False)
+			nb.set_show_border(False)
+
+	def add(self, widget):
+		'''Add the main widget'''
+		self._zim_window_bottom_pane.add1(widget)
+
+	def add_bar(self, widget, position):
+		'''Add a bar to top or bottom of the window. Used e.g. to add
+		menu-, tool- & status-bars. Position can be either 'TOP' or
+		'BOTTOM'.
+		'''
+		self._zim_window_main.pack_start(widget, False)
+
+		if position == TOP:
+			# reshuffle widget to go above main widgets
+			i = self._zim_window_main.child_get_property(
+					self._zim_window_left_pane, 'position')
+			self._zim_window_main.reorder_child(widget, i)
+
+	def add_tab(self, title, widget, pane):
+		'''Add a tab in one of the panes, 'pane' can be one of
+		'LEFT_PANE', 'RIGHT_PANE', 'TOP_PANE' or 'BOTTOM_PANE'.
+		'''
+		assert pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE)
+
+		if pane == LEFT_PANE: nb = self._zim_window_left_notebook
+		elif pane == RIGHT_PANE: nb = self._zim_window_right_notebook
+		elif pane == TOP_PANE: nb = self._zim_window_top_notebook
+		elif pane == BOTTOM_PANE: nb = self._zim_window_bottom_notebook
+
+		nb.append_page(widget, tab_label=gtk.Label(title))
+		if nb.get_n_pages() > 1:
+			nb.set_show_tabs(True)
+
+		nb.set_no_show_all(False)
+		nb.show()
+
+		parent = nb.get_parent()
+		parent.set_no_show_all(False)
+		parent.show()
+
+	def add_widget(self, widget, pane, position):
+		'''Add a widget in one of the panes without using a tab,
+		'pane' can be either 'LEFT_PANE' or 'RIGHT_PANE' (placing
+		widgets in 'TOP_PANE' or 'BOTTOM_PANE' is currently not
+		supported), 'position' can be either 'TOP' or 'BOTTOM'.
+
+		Placing a widget in TOP_PANE, TOP, is supported as a special
+		case, but should not be used by plugins.
+		'''
+		assert not isinstance(widget, gtk.Notebook), 'Please don\'t do this'
+		assert pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE)
+		assert position in (TOP, BOTTOM)
+
+		if pane in (TOP_PANE, BOTTOM_PANE):
+			if pane == TOP_PANE and position == TOP:
+				# Special case for top widget outside of pane
+				# used especially for PathBar
+				self._zim_window_top_special.pack_start(widget, False)
+				self._zim_window_top_special.reorder_child(widget, 0)
+			else:
+				raise NotImplementedError
+		elif pane in (LEFT_PANE, RIGHT_PANE):
+			if pane == LEFT_PANE:
+				vbox = self._zim_window_left
+			else:
+				vbox = self._zim_window_right
+
+			vbox.pack_start(widget, False)
+			if position == TOP:
+				vbox.reorder_child(widget, 0) # TODO shuffle above notebook
+			vbox.set_no_show_all(False)
+			vbox.show()
+		else:
+			raise AssertionError, "Unsupported argument for 'pane'"
+
+	def remove(self, widget):
+		'''Remove widget from any pane'''
+		for box in (
+			self._zim_window_left,
+			self._zim_window_right,
+			self._zim_window_top,
+			self._zim_window_bottom,
+			self._zim_window_top_special,
+			self._zim_window_left_notebook,
+			self._zim_window_right_notebook,
+			self._zim_window_top_notebook,
+			self._zim_window_bottom_notebook,
+		):
+			if not widget in box.get_children():
+				continue
+				# Note: try .. except .. causes GErrors here :(
+
+			box.remove(widget)
+
+			# Hide containers if they are empty
+			if box == self._zim_window_top_special:
+				pass # special case
+			elif isinstance(box, gtk.VBox):
+				children = box.get_children()
+				if len(children) == 1:
+					assert isinstance(children[0], gtk.Notebook)
+					if children[0].get_n_pages() == 0:
+						box.set_no_show_all(True)
+						box.hide()
+			else:
+				assert isinstance(box, gtk.Notebook)
+				i = box.get_n_pages()
+				if i == 0:
+					box.set_no_show_all(True)
+					box.hide()
+					parent = box.get_parent()
+					if len(parent.get_children()) == 1:
+						parent.set_no_show_all(True)
+						parent.hide()
+				elif i == 1:
+					box.set_show_tabs(False)
+			return
+		else:
+			raise ValueError, 'Widget not found in this window'
+
+	def pack_start(self, *a):
+		raise NotImplementedError, "Use add() instead"
+
+	def show(self):
+		self.show_all()
+
+	def show_all(self):
+		register_window(self)
+		gtkwindowclass.show_all(self)
+
+
 class Dialog(gtk.Dialog):
 	'''Wrapper around gtk.Dialog used for most zim dialogs.
 	It adds a number of convenience routines to build dialogs.
@@ -1470,6 +1703,7 @@ class Dialog(gtk.Dialog):
 	def show_all(self):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
 		logger.debug('Opening dialog "%s"', self.title)
+		register_window(self)
 		gtk.Dialog.show_all(self)
 
 	def response_ok(self):

@@ -39,4 +39,23 @@ class TestCoding(TestCase):
 
 	def testImportFuture(self):
 		'''Check python 2.5 compatibility'''
-		print '>>>> TODO check import __future__ with_statement' 
+		for file, code in self.list_code():
+			import_seen = False
+			in_comment = False
+			n = 0
+			for line in code.splitlines():
+				n += 1
+				line = line.lstrip()
+				if line.startswith('from __future__ ') \
+				and 'with_statement' in line.split():
+					import_seen = True
+				elif in_comment:
+					if line.endswith("'''"):
+						in_comment = False
+					else:
+						pass
+				elif line.startswith("'''"):
+					in_comment = True
+				elif line.startswith('with '):
+					self.assertTrue(import_seen, '%s missing with_statement import from __future__ ("with" seen on line %i)' % (file, n))
+ 

@@ -258,6 +258,8 @@ class GtkInterface(NotebookInterface):
 	* close-page (page)
 	  Called when closing a page, typically just before a new page is opened
 	  and before closing the application
+	* new-window (window)
+	  Called when a new window is created, can be used as a hook by plugins
 	* preferences-changed
 	  Emitted after the user changed the preferences
 	  (typically triggered by the preferences dialog)
@@ -273,6 +275,7 @@ class GtkInterface(NotebookInterface):
 	__gsignals__ = {
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'new-window': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'quit': (gobject.SIGNAL_RUN_LAST, None, ()),
@@ -684,6 +687,18 @@ class GtkInterface(NotebookInterface):
 			if category:
 				register.setdefault(category, [])
 				register[category].append((section, key, type, label))
+
+
+	def register_new_window(self, window):
+		'''Called by windows and dialog to register themselves with
+		the application. Used e.g. by plugins that want to add some
+		widget to specific windows.
+		'''
+		print 'WINDOW:', window
+		self.emit('new-window', window)
+
+	def do_new_window(self, window):
+		pass # TODO: keep register of pageviews
 
 	def get_path_context(self):
 		'''Returns the current 'context' for actions that want a path to start
@@ -1530,23 +1545,18 @@ class MainWindow(Window):
 			return True # Do not destroy - let close() handle it
 		self.connect('delete-event', do_delete_event)
 
-		vbox = gtk.VBox()
-		self.add(vbox)
+		# setup the window layout
+		from zim.gui.widgets import TOP, BOTTOM, TOP_PANE, LEFT_PANE
 
 		# setup menubar and toolbar
 		self.add_accel_group(ui.uimanager.get_accel_group())
 		self.menubar = ui.uimanager.get_widget('/menubar')
 		self.toolbar = ui.uimanager.get_widget('/toolbar')
 		self.toolbar.connect('popup-context-menu', self.do_toolbar_popup)
-		vbox.pack_start(self.menubar, False)
-		vbox.pack_start(self.toolbar, False)
+		self.add_bar(self.menubar, TOP)
+		self.add_bar(self.toolbar, TOP)
 
-		# split window in side pane and editor
-		self.hpane = gtk.HPaned()
-		self.hpane.set_position(175)
-		vbox.add(self.hpane)
-		self.sidepane = gtk.VBox(spacing=5)
-		self.hpane.add1(self.sidepane)
+		self.sidepane = self._zim_window_left # FIXME - get rid of sidepane attribute
 
 		self.sidepane.connect('key-press-event',
 			lambda o, event: event.keyval == KEYVAL_ESC
@@ -1554,24 +1564,21 @@ class MainWindow(Window):
 
 
 		self.pageindex = PageIndex(ui)
-		self.sidepane.add(self.pageindex)
-
-		vbox2 = gtk.VBox()
-		self.hpane.add2(vbox2)
+		self.add_tab(_('Index'), self.pageindex, LEFT_PANE)
 
 		self.pathbar = None
 		self.pathbar_box = gtk.HBox() # FIXME other class for this ?
 		self.pathbar_box.set_border_width(3)
-		vbox2.pack_start(self.pathbar_box, False)
+		self.add_widget(self.pathbar_box, TOP_PANE, TOP)
 
 		self.pageview = PageView(ui)
 		self.pageview.view.connect_after(
 			'toggle-overwrite', self.do_textview_toggle_overwrite)
-		vbox2.add(self.pageview)
+		self.add(self.pageview)
 
 		# create statusbar
 		hbox = gtk.HBox(spacing=0)
-		vbox.pack_start(hbox, False, True, False)
+		self.add_bar(hbox, BOTTOM)
 
 		self.statusbar = gtk.Statusbar()
 		if ui_environment['platform'] == 'maemo':
@@ -1790,10 +1797,10 @@ class MainWindow(Window):
 		if show:
 			self.sidepane.set_no_show_all(False)
 			self.sidepane.show_all()
-			self.hpane.set_position(self.uistate['sidepane_pos'])
+			self._zim_window_left_pane.set_position(self.uistate['sidepane_pos'])
 			self.pageindex.grab_focus()
 		else:
-			self.uistate['sidepane_pos'] = self.hpane.get_position()
+			self.uistate['sidepane_pos'] = self._zim_window_left_pane.get_position()
 			self.sidepane.hide_all()
 			self.sidepane.set_no_show_all(True)
 			self.pageview.grab_focus()
@@ -2015,7 +2022,7 @@ class MainWindow(Window):
 		w, h = self.get_size()
 		if not self._fullscreen:
 			self.uistate['windowsize'] = (w, h)
-		self.uistate['sidepane_pos'] = self.hpane.get_position()
+		self.uistate['sidepane_pos'] = self._zim_window_left_pane.get_position()
 
 	def do_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()

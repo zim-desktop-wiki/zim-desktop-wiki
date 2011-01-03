@@ -319,6 +319,25 @@ class PluginClass(gobject.GObject):
 			method = getattr(self, 'do_'+name)
 			method(active)
 
+	#~ def remember_decorated_window(self, window):
+		#~ import weakref
+		#~ if not hasattr(self, '_decorated_windows'):
+			#~ self._decorated_windows = []
+		#~ ref = weakref.ref(window, self._clean_decorated_windows_list)
+		#~ self._decorated_windows.append(ref)
+
+	#~ def _clean_decorated_windows_list(self, *a):
+		#~ self._decorated_windows = [
+			#~ ref for ref in self._decorated_windows
+				#~ if not ref() is None ]
+
+	#~ def get_decorated_windows(self):
+		#~ if not hasattr(self, '_decorated_windows'):
+			#~ return []
+		#~ else:
+			#~ self._clean_decorated_windows_list()
+			#~ return [ref() for ref in self._decorated_windows]
+
 	def register_image_generator_plugin(self, type):
 		self.ui.mainwindow.pageview.register_image_generator_plugin(self, type)
 		self._is_image_generator_pluging = True

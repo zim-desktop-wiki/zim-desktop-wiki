@@ -4,7 +4,7 @@
 
 from __future__ import with_statement
 
-from tests import TestCase, LoggingFilter, MockObject, \ 
+from tests import TestCase, LoggingFilter, MockObject, \
 	get_test_data_page, get_test_page
 
 from zim.fs import *
