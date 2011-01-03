@@ -261,13 +261,16 @@
 \clubs	9827
 \hearts	9829
 \diams	9830
+\pm	177
+\neq	8800  # not equal to sign (may also use =/= )
 
 ## Additional typography ##
 # See http://en.wikipedia.org/wiki/Arrow_%28symbol%29 for more codes
 # convert hex -> decimal before using here
 -->	8594
 ==>	8658
-
+--	8212  # em dash aka &mdash; in HTML
+=/=	8800  # not equal to sign (may also use \neq)
 
 ## Suggestions for more shortcuts are welcome - please file in bug tracker ##
 
