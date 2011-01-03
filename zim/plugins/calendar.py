@@ -112,17 +112,15 @@ This is a core plugin shipping with zim.
 		PluginClass.disconnect(self)
 
 	def connect_embedded_widget(self):
+		from zim.gui.widgets import LEFT_PANE, TOP
 		if not self.sidepane_widget:
-			sidepane = self.ui.mainwindow.sidepane
 			self.sidepane_widget = CalendarPluginWidget(self)
-			sidepane.pack_start(self.sidepane_widget, False)
-			sidepane.reorder_child(self.sidepane_widget, 0)
 			self.sidepane_widget.show_all()
+			self.ui.mainwindow.add_widget(self.sidepane_widget, LEFT_PANE, TOP)
 
 	def disconnect_embedded_widget(self):
 		if self.sidepane_widget:
-			sidepane = self.ui.mainwindow.sidepane
-			sidepane.remove(self.sidepane_widget)
+			self.ui.mainwindow.remove(self.sidepane_widget)
 			self.sidepane_widget = None
 
 	def do_preferences_changed(self):

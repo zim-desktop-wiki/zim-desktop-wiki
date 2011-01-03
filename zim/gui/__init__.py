@@ -47,7 +47,8 @@ from zim.gui.pageview import PageView
 from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
 	Button, MenuButton, \
 	Window, Dialog, \
-	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog
+	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog, \
+	PromptExistingFileDialog
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import ApplicationManager, CustomToolManager
 
@@ -258,6 +259,8 @@ class GtkInterface(NotebookInterface):
 	* close-page (page)
 	  Called when closing a page, typically just before a new page is opened
 	  and before closing the application
+	* new-window (window)
+	  Called when a new window is created, can be used as a hook by plugins
 	* preferences-changed
 	  Emitted after the user changed the preferences
 	  (typically triggered by the preferences dialog)
@@ -273,6 +276,7 @@ class GtkInterface(NotebookInterface):
 	__gsignals__ = {
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'new-window': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'quit': (gobject.SIGNAL_RUN_LAST, None, ()),
@@ -672,7 +676,7 @@ class GtkInterface(NotebookInterface):
 		config file. Each preference is a tuple consisting of:
 
 		* the key in the config file
-		* an option type (see Dialog.add_fields() for more details)
+		* an option type (see InputForm() for more details)
 		* a category (the tab in which the option will be shown)
 		* a label to show in the dialog
 		* a default value
@@ -685,6 +689,18 @@ class GtkInterface(NotebookInterface):
 			if category:
 				register.setdefault(category, [])
 				register[category].append((section, key, type, label))
+
+
+	def register_new_window(self, window):
+		'''Called by windows and dialog to register themselves with
+		the application. Used e.g. by plugins that want to add some
+		widget to specific windows.
+		'''
+		#~ print 'WINDOW:', window
+		self.emit('new-window', window)
+
+	def do_new_window(self, window):
+		pass # TODO: keep register of pageviews
 
 	def get_path_context(self):
 		'''Returns the current 'context' for actions that want a path to start
@@ -950,8 +966,12 @@ class GtkInterface(NotebookInterface):
 			if '\n' in name:
 				name, _ = name.split('\n', 1)
 			name = self.notebook.cleanup_pathname(name.replace(':', ''), purge=True)
+		elif isinstance(name, Path):
+			name = name.name
+			name = self.notebook.cleanup_pathname(name, purge=True)
 		else:
 			name = self.notebook.cleanup_pathname(name, purge=True)
+
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_new_page(path)
 		page.parse('wiki', text) # FIXME format hard coded
@@ -962,6 +982,8 @@ class GtkInterface(NotebookInterface):
 
 	def append_text_to_page(self, name, text):
 		'''Append text to an (exising) page'''
+		if isinstance(name, Path):
+			name = name.name
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_page(path)
 		page.parse('wiki', text, append=True) # FIXME format hard coded
@@ -1158,7 +1180,29 @@ class GtkInterface(NotebookInterface):
 		self.open_page(self.notebook.get_page(self.page))
 
 	def attach_file(self, path=None):
+		'''Show the AttachFileDialog'''
 		AttachFileDialog(self, path=path).run()
+
+	def do_attach_file(self, path, file, force_overwrite=False):
+		'''Callback for AttachFileDialog and InsertImageDialog
+		When 'force_overwrite' is False the user will be prompted in
+		case the new file has the same name as an existing attachment.
+		Returns the (new) filename or None when the action was canceled.
+		'''
+		namechanged = False
+		dir = self.notebook.get_attachments_dir(path)
+		if dir is None:
+			raise Error, '%s does not have an attachments dir' % path
+
+		dest = dir.file(file.basename)
+		if dest.exists() and not force_overwrite:
+			dialog = PromptExistingFileDialog(self, dest)
+			dest = dialog.run()
+			if dest is None:
+				return None	# dialog was cancelled
+
+		file.copyto(dest)
+		return dest
 
 	def open_file(self, file):
 		'''Open either a File or a Dir in the file browser'''
@@ -1525,23 +1569,18 @@ class MainWindow(Window):
 			return True # Do not destroy - let close() handle it
 		self.connect('delete-event', do_delete_event)
 
-		vbox = gtk.VBox()
-		self.add(vbox)
+		# setup the window layout
+		from zim.gui.widgets import TOP, BOTTOM, TOP_PANE, LEFT_PANE
 
 		# setup menubar and toolbar
 		self.add_accel_group(ui.uimanager.get_accel_group())
 		self.menubar = ui.uimanager.get_widget('/menubar')
 		self.toolbar = ui.uimanager.get_widget('/toolbar')
 		self.toolbar.connect('popup-context-menu', self.do_toolbar_popup)
-		vbox.pack_start(self.menubar, False)
-		vbox.pack_start(self.toolbar, False)
+		self.add_bar(self.menubar, TOP)
+		self.add_bar(self.toolbar, TOP)
 
-		# split window in side pane and editor
-		self.hpane = gtk.HPaned()
-		self.hpane.set_position(175)
-		vbox.add(self.hpane)
-		self.sidepane = gtk.VBox(spacing=5)
-		self.hpane.add1(self.sidepane)
+		self.sidepane = self._zim_window_left # FIXME - get rid of sidepane attribute
 
 		self.sidepane.connect('key-press-event',
 			lambda o, event: event.keyval == KEYVAL_ESC
@@ -1549,7 +1588,7 @@ class MainWindow(Window):
 
 
 		self.pageindex = PageIndex(ui)
-		self.sidepane.add(self.pageindex)
+		self.add_tab(_('Index'), self.pageindex, LEFT_PANE)
 
 		def check_focus_sidepane(window, widget):
 			focus = widget == self.pageindex
@@ -1559,22 +1598,19 @@ class MainWindow(Window):
 
 		self.connect('set-focus', check_focus_sidepane)
 
-		vbox2 = gtk.VBox()
-		self.hpane.add2(vbox2)
-
 		self.pathbar = None
 		self.pathbar_box = gtk.HBox() # FIXME other class for this ?
 		self.pathbar_box.set_border_width(3)
-		vbox2.pack_start(self.pathbar_box, False)
+		self.add_widget(self.pathbar_box, TOP_PANE, TOP)
 
 		self.pageview = PageView(ui)
 		self.pageview.view.connect_after(
 			'toggle-overwrite', self.do_textview_toggle_overwrite)
-		vbox2.add(self.pageview)
+		self.add(self.pageview)
 
 		# create statusbar
 		hbox = gtk.HBox(spacing=0)
-		vbox.pack_start(hbox, False, True, False)
+		self.add_bar(hbox, BOTTOM)
 
 		self.statusbar = gtk.Statusbar()
 		if ui_environment['platform'] == 'maemo':
@@ -1793,10 +1829,10 @@ class MainWindow(Window):
 		if show:
 			self.sidepane.set_no_show_all(False)
 			self.sidepane.show_all()
-			self.hpane.set_position(self.uistate['sidepane_pos'])
+			self._zim_window_left_pane.set_position(self.uistate['sidepane_pos'])
 			self.pageindex.grab_focus()
 		else:
-			self.uistate['sidepane_pos'] = self.hpane.get_position()
+			self.uistate['sidepane_pos'] = self._zim_window_left_pane.get_position()
 			self.sidepane.hide_all()
 			self.sidepane.set_no_show_all(True)
 			self.pageview.grab_focus()
@@ -2028,7 +2064,7 @@ class MainWindow(Window):
 		w, h = self.get_size()
 		if not self._fullscreen:
 			self.uistate['windowsize'] = (w, h)
-		self.uistate['sidepane_pos'] = self.hpane.get_position()
+		self.uistate['sidepane_pos'] = self._zim_window_left_pane.get_position()
 
 	def do_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()
@@ -2192,21 +2228,22 @@ discarded, but you can restore the copy later.''')
 		ErrorDialog.run(self)
 		gobject.source_remove(id)
 
-
 class OpenPageDialog(Dialog):
 	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.
 	Prompts for a page name and navigate to that page on 'Ok'.
 	'''
 
-	def __init__(self, ui, namespace=None):
+	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Jump to'), # T: Dialog title
 			button=(None, gtk.STOCK_JUMP_TO),
-			path_context = ui.page,
-			fields=[('name', 'page', _('Jump to Page'), None)] # T: Label for page input
+		)
+
+		self.add_form(
+			[('page', 'page', _('Jump to Page'), ui.page)] # T: Label for page input
 		)
 
 	def do_response_ok(self):
-		path = self.get_field('name')
+		path = self.form['page']
 		if path:
 			self.ui.open_page(path)
 			return True
@@ -2229,34 +2266,22 @@ class NewPageDialog(Dialog):
 				'Please note that linking to a non-existing page\n'
 				'also creates a new page automatically.'),
 			# T: Dialog text in 'new page' dialog
-			path_context=path,
-			fields=[
-				#~ ('namespace', 'namespace', _('Namespace'), path.parent), # T: Input label
-				('name', 'page', _('Page Name'), None), # T: Input label
-			],
 			help=':Help:Pages'
 		)
 
+		self.add_form([
+			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
+		] )
+
 		if subpage:
-			self.inputs['name'].force_child = True
-
-		#~ if subpage:
-			#~ self.inputs['name'].force_child = True
-			#~ self.inputs['namespace'].set_path(path)
-			#~ self.inputs['namespace'].set_sensitive(False)
-
-		#~ self.inputs['name'].grab_focus()
-
-		# FIXME using namespace here need integration between pagename
-		# and namespace widget
+			self.form.widgets['page'].force_child = True
 
 	def do_response_ok(self):
-		path = self.get_field('name')
+		path = self.form['page']
 		if path:
 			page = self.ui.notebook.get_page(path)
 			if page.hascontent or page.haschildren:
-				ErrorDialog(self, _('Page exists')+': %s' % page.name).run() # T: error message
-				return False
+				raise Error, _('Page exists')+': %s' % page.name
 
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
@@ -2336,34 +2361,41 @@ class MovePageDialog(Dialog):
 			raise AssertionError, 'Could not save page'
 			# assert statement could be optimized away
 
-		i = self.ui.notebook.index.n_list_links_to_tree(
-					self.path, zim.index.LINK_DIR_BACKWARD )
-
 		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
 			# T: Heading in 'move page' dialog - %s is the page name
-		linkslabel = ngettext(
+
+		indexpath = self.ui.notebook.index.lookup_path(self.path)
+		if indexpath:
+			i = self.ui.notebook.index.n_list_links_to_tree(
+					indexpath, zim.index.LINK_DIR_BACKWARD )
+		else:
+			i = 0
+
+		label = ngettext(
 			'Update %i page linking to this page',
 			'Update %i pages linking to this page', i) % i
 			# T: label in MovePage dialog - %i is number of backlinks
 			# TODO update lable to reflect that links can also be to child pages
 		self.context_page = self.path.parent
-		self.add_fields([
+		self.add_form([
 			('parent', 'namespace', _('Namespace'), self.context_page),
 				# T: Input label for namespace to move a file to
-			('links', 'bool', linkslabel, True),
+			('update', 'bool', label),
 				# T: option in 'move page' dialog
 		])
 
 		if i == 0:
-			self.inputs['links'].set_active(False)
-			self.inputs['links'].set_sensitive(False)
+			self.form['update'] = False
+			self.form.widgets['update'].set_sensitive(False)
+		else:
+			self.form['update'] = True
 
 	def do_response_ok(self):
-		parent = self.get_field('parent')
-		links = self.get_field('links')
+		parent = self.form['parent']
+		update = self.form['update']
 		newpath = parent + self.path.basename
 		self.hide() # hide this dialog before showing the progressbar
-		ok = self.ui.do_move_page(self.path, newpath, update_links=links)
+		ok = self.ui.do_move_page(self.path, newpath, update)
 		if ok:
 			return True
 		else:
@@ -2384,40 +2416,49 @@ class RenamePageDialog(Dialog):
 		page = self.ui.notebook.get_page(self.path)
 		existing = (page.hascontent or page.haschildren)
 
-		i = self.ui.notebook.index.n_list_links_to_tree(
-					self.path, zim.index.LINK_DIR_BACKWARD )
-
 		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
 			# T: label in 'rename page' dialog - %s is the page name
-		linkslabel = ngettext(
+
+		indexpath = self.ui.notebook.index.lookup_path(self.path)
+		if indexpath:
+			i = self.ui.notebook.index.n_list_links_to_tree(
+					indexpath, zim.index.LINK_DIR_BACKWARD )
+		else:
+			i = 0
+
+		label = ngettext(
 			'Update %i page linking to this page',
 			'Update %i pages linking to this page', i) % i
 			# T: label in MovePage dialog - %i is number of backlinks
-			# TODO update lable to reflect that links can also be to child pages
-		self.add_fields([
-			('name', 'string', _('Name'), self.path.basename),
+			# TODO update label to reflect that links can also be to child pages
+
+		self.add_form([
+			('name', 'string', _('Name')),
 				# T: Input label in the 'rename page' dialog for the new name
-			('head', 'bool', _('Update the heading of this page'), existing),
+			('head', 'bool', _('Update the heading of this page')),
 				# T: Option in the 'rename page' dialog
-			('links', 'bool', linkslabel, True),
+			('update', 'bool', label),
 				# T: Option in the 'rename page' dialog
-		])
+		], {
+			'name': self.path.basename,
+			'head': existing,
+			'update': True,
+		})
 
 		if not existing:
-			self.inputs['head'].set_active(False)
-			self.inputs['head'].set_sensitive(False)
+			self.form['head'] = False
+			self.form.widgets['head'].set_sensitive(False)
 
 		if i == 0:
-			self.inputs['links'].set_active(False)
-			self.inputs['links'].set_sensitive(False)
+			self.form['update'] = False
+			self.form.widgets['update'].set_sensitive(False)
 
 	def do_response_ok(self):
-		name = self.get_field('name')
-		head = self.get_field('head')
-		links = self.get_field('links')
+		name = self.form['name']
+		head = self.form['head']
+		update = self.form['update']
 		self.hide() # hide this dialog before showing the progressbar
-		ok = self.ui.do_rename_page(
-			self.path, newbasename=name, update_heading=head, update_links=links)
+		ok = self.ui.do_rename_page(self.path, name, head, update)
 		if ok:
 			return True
 		else:
@@ -2452,14 +2493,19 @@ class DeletePageDialog(Dialog):
 		label.set_markup('<b>'+short+'</b>\n\n'+long)
 		vbox.pack_start(label, False)
 
-		i = self.ui.notebook.index.n_list_links_to_tree(
-					self.path, zim.index.LINK_DIR_BACKWARD )
-		linkslabel = ngettext(
+		indexpath = self.ui.notebook.index.lookup_path(self.path)
+		if indexpath:
+			i = self.ui.notebook.index.n_list_links_to_tree(
+					indexpath, zim.index.LINK_DIR_BACKWARD )
+		else:
+			i = 0
+
+		label = ngettext(
 			'Remove links from %i page linking to this page',
 			'Remove links from %i pages linking to this page', i) % i
 			# T: label in DeletePage dialog - %i is number of backlinks
 			# TODO update lable to reflect that links can also be to child pages
-		self.links_checkbox = gtk.CheckButton(label=linkslabel)
+		self.links_checkbox = gtk.CheckButton(label=label)
 		vbox.pack_start(self.links_checkbox, False)
 
 		if i == 0:
@@ -2479,9 +2525,8 @@ class DeletePageDialog(Dialog):
 		try:
 			self.ui.notebook.delete_page(self.path, update_links, callback)
 		except Exception, error:
-			ErrorDialog(self, error).run()
 			dialog.destroy()
-			return False
+			raise
 		else:
 			dialog.destroy()
 			return True
@@ -2499,8 +2544,8 @@ class AttachFileDialog(FileDialog):
 			self.path = path
 		assert self.path, 'Need a page here'
 
-		self.dir = self.ui.notebook.get_attachments_dir(self.path)
-		if self.dir is None:
+		dir = self.ui.notebook.get_attachments_dir(self.path)
+		if dir is None:
 			ErrorDialog(_('Page "%s" does not have a folder for attachments') % self.path)
 				# T: Error dialog - %s is the full page name
 			raise Exception, 'Page "%s" does not have a folder for attachments' % self.path
@@ -2522,8 +2567,10 @@ class AttachFileDialog(FileDialog):
 			# Similar code in zim.gui.InsertImageDialog
 
 		for file in files:
-			file.copyto(self.dir)
-			file = self.dir.file(file.basename)
+			file = self.ui.do_attach_file(self.path, file)
+			if file is None:
+				return False # Cancelled overwrite dialog
+
 			pageview = self.ui.mainwindow.pageview
 			if self.uistate['insert_attached_images'] and file.isimage():
 				try:

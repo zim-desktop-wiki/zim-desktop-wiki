@@ -378,16 +378,21 @@ class AddNotebookDialog(Dialog):
 		label = gtk.Label(_('Please select a name and a folder for the notebook.')) # T: Label in Add Notebook dialog
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
+
 		if name is None and folder is None:
 			name = 'Notes'
 			if ui_environment['platform'] == 'maemo':
 				folder = '~/MyDocs/Notes' # 'MyDocs' is the "Device" folder on maemo
 			else:
 				folder = '~/Notes'
-		self.add_fields((
-			('name', 'string', _('Name'), name), # T: input field in 'Add Notebook' dialog
-			('folder', 'dir', _('Folder'), folder), # T: input field in 'Add Notebook' dialog
-		))
+
+		self.add_form((
+			('name', 'string', _('Name')), # T: input field in 'Add Notebook' dialog
+			('folder', 'dir', _('Folder')), # T: input field in 'Add Notebook' dialog
+		), {
+			'name': name,
+			'folder': folder,
+		} )
 
 		self.add_help_text('''\
 To create a new notebook you need to select an empty folder.
@@ -395,8 +400,8 @@ Of course you can also select an existing zim notebook folder.
 ''') # T: help text in the 'Add Notebook' dialog
 
 	def do_response_ok(self):
-		name = self.get_field('name')
-		folder = self.get_field('folder')
+		name = self.form['name']
+		folder = self.form['folder']
 		if name and folder:
 			self.result = {'name': name, 'folder': folder}
 			return True

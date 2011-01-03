@@ -6,7 +6,7 @@ import gtk
 import logging
 
 from zim.notebook import Path
-from zim.gui.widgets import Dialog, BrowserTreeView
+from zim.gui.widgets import Dialog, BrowserTreeView, InputEntry
 from zim.search import *
 
 
@@ -22,7 +22,7 @@ class SearchDialog(Dialog):
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 		hbox.pack_start(gtk.Label(_('Search')+': '), False) # T: input label
-		self.query_entry = gtk.Entry()
+		self.query_entry = InputEntry()
 		hbox.add(self.query_entry)
 		button = gtk.Button(stock=gtk.STOCK_FIND)
 		hbox.pack_start(button, False)
@@ -59,7 +59,7 @@ class SearchDialog(Dialog):
 
 
 		def search(*a):
-			string = unicode(self.query_entry.get_text(), 'utf-8')
+			string = self.query_entry.get_text()
 			if self.namespacecheckbox.get_active():
 				string = 'Namespace: "%s" ' % self.ui.page.name + string
 			#~ print '!! QUERY: ' + string

@@ -16,7 +16,7 @@ from zim.plugins import PluginClass
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, gtk_get_style,\
 	Dialog, MessageDialog, \
-	Button, IconButton, MenuButton, \
+	InputEntry, Button, IconButton, MenuButton, \
 	BrowserTreeView, SingleClickTreeView
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 from zim.config import value_allow_empty
@@ -426,7 +426,7 @@ class TaskListDialog(Dialog):
 
 		# Filter input
 		hbox.pack_start(gtk.Label(_('Filter')+': '), False) # T: Input label
-		filter_entry = gtk.Entry()
+		filter_entry = InputEntry()
 		hbox.pack_start(filter_entry, False)
 		clear_button = IconButton('gtk-clear')
 		hbox.pack_start(clear_button, False)

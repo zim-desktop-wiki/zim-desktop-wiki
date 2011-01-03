@@ -8,7 +8,7 @@ import logging
 
 import zim.plugins
 from zim.gui.applications import ApplicationManager, NewApplicationDialog
-from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view
+from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view, InputForm
 from zim.gui.pageview import PageView
 
 
@@ -30,23 +30,25 @@ class PreferencesDialog(Dialog):
 		self.vbox.add(gtknotebook)
 
 		# Dynamic tabs
+		self.forms = []
 		for category, preferences in ui.preferences_register.items():
-			table = gtk.Table()
-			table.set_border_width(5)
-			table.set_row_spacings(12)
-			table.set_col_spacings(12)
 			vbox = gtk.VBox()
-			vbox.pack_start(table, False)
 			gtknotebook.append_page(vbox, gtk.Label(category))
+
 			fields = []
+			sections = {}
 			for p in preferences:
 				section, key, type, label = p
-				value = ui.preferences[section][key]
-				fields.append(((section, key), type, label, value))
-				# a tuple is hashable and can be used as field name...
-			self.add_fields(fields, table=table, trigger_response=False)
+				fields.append((key, type, label))
+				sections[key] = section
+
+			form = InputForm(fields, ui.preferences[section])
+			form.preferences_sections = sections
+			vbox.pack_start(form, False)
+			self.forms.append(form)
+
 			if category == 'Interface':
-				self._add_font_selection(table, vbox)
+				self._add_font_selection(form, vbox)
 
 		# Styles tab
 		#~ gtknotebook.append_page(StylesTab(self), gtk.Label('Styles'))
@@ -55,31 +57,25 @@ class PreferencesDialog(Dialog):
 		#~ gtknotebook.append_page(KeyBindingsTab(self), gtk.Label('Key bindings'))
 
 		# Applications tab
-		table = gtk.Table()
-		table.set_border_width(5)
-		table.set_row_spacings(12)
-		table.set_col_spacings(12)
-		self.add_fields( (
-			('file_browser', 'list', _('File browser'), (None, ())),
-				# T: Input for application type in preferences dialog
-			('web_browser', 'list', _('Web browser'), (None, ())),
-				# T: Input for application type in preferences dialog
-			('email_client', 'list', _('Email client'), (None, ())),
-				# T: Input for application type in preferences dialog
-			('text_editor', 'list', _('Text Editor'), (None, ())),
-				# T: Input for application type in preferences dialog
-		), table=table, trigger_response=False)
-		for type in (
-			'file_browser',
-			'web_browser',
-			'email_client',
-			'text_editor'
-		):
-			self._append_applications(type)
 		vbox = gtk.VBox()
-		vbox.pack_start(table, False)
 		gtknotebook.append_page(vbox, gtk.Label(_('Applications')))
 				# T: Heading in preferences dialog
+
+		form = InputForm( (
+			('file_browser', 'choice', _('File browser'), ()),
+				# T: Input for application type in preferences dialog
+			('web_browser', 'choice', _('Web browser'), ()),
+				# T: Input for application type in preferences dialog
+			('email_client', 'choice', _('Email client'), ()),
+				# T: Input for application type in preferences dialog
+			('text_editor', 'choice', _('Text Editor'), ()),
+				# T: Input for application type in preferences dialog
+		) )
+		for type, widget in form.widgets.items():
+			self._append_applications(type, widget)
+
+		vbox.pack_start(form, False)
+		self.applicationsform = form
 
 		# Plugins tab
 		gtknotebook.append_page(PluginsTab(self), gtk.Label(_('Plugins')))
@@ -87,11 +83,10 @@ class PreferencesDialog(Dialog):
 
 	def _add_font_selection(self, table, vbox):
 		# need to hardcode this, can not register it as a preference
-		self.add_fields((
-			('use_custom_font', 'bool', _('Use a custom font'), False),),
-				# T: Option in preferences dialog
-			table=table, trigger_response=False)
-		self.use_custom_font = self.inputs.pop('use_custom_font')
+		table.add_inputs( (
+			('use_custom_font', 'bool', _('Use a custom font')),
+		) )
+		table.preferences_sections['use_custom_font'] = 'Interface'
 
 		self.fontbutton = gtk.FontButton()
 		self.fontbutton.set_sensitive(False)
@@ -100,11 +95,12 @@ class PreferencesDialog(Dialog):
 			if font:
 				self.fontbutton.set_font_name(font)
 				self.fontbutton.set_sensitive(True)
-				self.use_custom_font.set_active(True)
+				table['use_custom_font'] = True
 		except KeyError:
 			pass
-		self.use_custom_font.connect('toggled',
-			lambda o: self.fontbutton.set_sensitive(self.use_custom_font.get_active()))
+
+		table.widgets['use_custom_font'].connect('toggled',
+			lambda o: self.fontbutton.set_sensitive(o.get_active()) )
 
 		# HACK - how to do proper layout fontbutton ?
 		self.fontbutton.set_size_request(200, -1)
@@ -113,7 +109,7 @@ class PreferencesDialog(Dialog):
 		hbox.pack_start(gtk.Label('\t\t'), False)
 		hbox.pack_start(self.fontbutton, False)
 
-	def _append_applications(self, type):
+	def _append_applications(self, type, widget):
 		manager = ApplicationManager()
 
 		current = self.ui.preferences['GtkInterface'][type]
@@ -129,20 +125,19 @@ class PreferencesDialog(Dialog):
 		name_map = {}
 		setattr(self, '%s_map' % type, name_map)
 
-		combobox = self.inputs[type]
 		for app in apps:
 			name = app.name
 			name_map[name] = app.key
-			combobox.append_text(name)
+			widget.append_text(name)
 
-		combobox.append_text(self.OTHER_APP)
-		combobox.connect('changed', self._on_combo_changed, type)
+		widget.append_text(self.OTHER_APP)
+		widget.connect('changed', self._on_combo_changed, type)
 
-		combobox.current_app = 0
+		widget.current_app = 0
 		try:
 			active = [app.key for app in apps].index(current)
-			combobox.current_app = active
-			combobox.set_active(active)
+			widget.current_app = active
+			widget.set_active(active)
 		except ValueError:
 			pass
 
@@ -164,29 +159,27 @@ class PreferencesDialog(Dialog):
 				combobox.set_active(active)
 
 	def do_response_ok(self):
-		if self.use_custom_font.get_active():
+		# Get applications
+		for type, name in self.applicationsform.items():
+			name_map = getattr(self, '%s_map' % type)
+			self.ui.preferences['GtkInterface'][type] = name_map.get(name)
+
+		# Get dynamic tabs
+		for form in self.forms:
+			for key, value in form.items():
+				section = form.preferences_sections[key]
+				self.ui.preferences[section][key] = value
+
+		# Set font
+		custom = self.ui.preferences['Interface'].pop('use_custom_font')
+		if custom:
 			font = self.fontbutton.get_font_name()
 		else:
 			font = None
 		PageView.style['TextView']['font'] = font
-		PageView.style.write()
+		PageView.style.write() # HACK
 
-		for type in (
-			'file_browser',
-			'web_browser',
-			'email_client',
-			'text_editor',
-		):
-			combobox = self.inputs.pop(type)
-			name = combobox.get_active_text()
-			name_map = getattr(self, '%s_map' % type)
-			self.ui.preferences['GtkInterface'][type] = name_map.get(name)
-
-		fields = self.get_fields()
-		#~ print fields
-		for key, value in fields.items():
-			section, key = key
-			self.ui.preferences[section][key] = value
+		# Save all
 		self.ui.save_preferences()
 		return True
 
@@ -365,14 +358,14 @@ class PluginConfigureDialog(Dialog):
 				key, type, label, default, check = pref
 				self.preferences.setdefault(key, default, check=check) # just to be sure
 
-			fields.append((key, type, label, self.preferences[key]))
+			fields.append((key, type, label))
 
-		self.add_fields(fields)
+		self.add_form(fields, self.preferences)
 
 	def do_response_ok(self):
 		# First let the plugin recieve the changes, then save them.
 		# The plugin could do som conversion on the fly (e.g. Path to string)
-		self.preferences.update(self.get_fields())
+		self.preferences.update(self.form)
 		self.plugin.emit('preferences-changed')
 		self.ui.save_preferences()
 		return True

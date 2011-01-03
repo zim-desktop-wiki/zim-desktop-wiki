@@ -145,12 +145,15 @@ class EditCustomToolDialog(Dialog):
 			readonly = False
 			toolbar = False
 
-
-		table = self.add_fields((
-			('Name', 'string', _('Name'), name), # T: Input in "Edit Custom Tool" dialog
-			('Comment', 'string', _('Description'), comment), # T: Input in "Edit Custom Tool" dialog
-			('X-Zim-ExecTool', 'string', _('Command'), execcmd), # T: Input in "Edit Custom Tool" dialog
-		), trigger_response=False)
+		self.add_form((
+			('Name', 'string', _('Name')), # T: Input in "Edit Custom Tool" dialog
+			('Comment', 'string', _('Description')), # T: Input in "Edit Custom Tool" dialog
+			('X-Zim-ExecTool', 'string', _('Command')), # T: Input in "Edit Custom Tool" dialog
+		), {
+			'Name': name,
+			'Comment': comment,
+			'X-Zim-ExecTool': execcmd,
+		}, trigger_response=False)
 
 		# FIXME need ui builder to take care of this as well
 		if tool:
@@ -161,15 +164,19 @@ class EditCustomToolDialog(Dialog):
 		label = gtk.Label(_('Icon')+':') # T: Input in "Edit Custom Tool" dialog
 		label.set_alignment(0.0, 0.5)
 		hbox = gtk.HBox()
-		i = table.get_property('n-rows')
-		table.attach(label, 0,1, i,i+1, xoptions=0)
-		table.attach(hbox, 1,2, i,i+1)
+		i = self.form.get_property('n-rows')
+		self.form.attach(label, 0,1, i,i+1, xoptions=0)
+		self.form.attach(hbox, 1,2, i,i+1)
 		hbox.pack_start(self.iconbutton, False)
 
-		self.add_fields((
-			('X-Zim-ReadOnly', 'bool', _('Command does not modify data'), readonly), # T: Input in "Edit Custom Tool" dialog
-			('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar'), toolbar), # T: Input in "Edit Custom Tool" dialog
-		), table=table, trigger_response=False)
+		self.form.add_inputs((
+			('X-Zim-ReadOnly', 'bool', _('Command does not modify data')), # T: Input in "Edit Custom Tool" dialog
+			('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar')), # T: Input in "Edit Custom Tool" dialog
+		))
+		self.form.update({
+			'X-Zim-ReadOnly': readonly,
+			'X-Zim-ShowInToolBar': toolbar,
+		})
 
 		self.add_help_text(_('''\
 To following parameters will be substituted
@@ -185,9 +192,7 @@ in the command when it is executed:
 ''') ) # T: Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
 
 	def do_response_ok(self):
-		fields = self.get_fields()
-		iconfile = self.iconbutton.get_file()
-		if iconfile:
-			fields['Icon'] = iconfile.path
+		fields = self.form.copy()
+		fields['Icon'] = self.iconbutton.get_file() or None
 		self.result = fields
 		return True

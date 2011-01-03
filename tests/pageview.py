@@ -4,10 +4,12 @@
 
 from __future__ import with_statement
 
-from tests import TestCase, LoggingFilter, get_test_data_page, get_test_page
+from tests import TestCase, LoggingFilter, MockObject, \
+	get_test_data_page, get_test_page
 
 from zim.fs import *
 from zim.formats import wiki, ParseTree
+from zim.notebook import Path
 from zim.gui.pageview import *
 
 
@@ -982,3 +984,120 @@ foo
 		# TODO checkboxes
 		# TODO Auto formatting of various link types
 		# TODO enter on link, before link, after link
+
+
+class TestPageviewDialogs(TestCase):
+
+	def runTest(self):
+		'''Test input/output of various pageview dialogs'''
+		## Insert Date dialog
+		ui = MockUI()
+		buffer = MockBuffer()
+		ui.notebook.mock_method('suggest_link', Path(':suggested_link'))
+
+		dialog = InsertDateDialog(ui, buffer)
+		dialog.linkbutton.set_active(False)
+		dialog.view.get_selection().select_path((0,))
+		dialog.assert_response_ok()
+		self.assertEqual(buffer.mock_calls[-1][0], 'insert_at_cursor')
+
+		dialog = InsertDateDialog(ui, buffer)
+		dialog.linkbutton.set_active(True)
+		dialog.view.get_selection().select_path((0,))
+		dialog.assert_response_ok()
+		self.assertEqual(buffer.mock_calls[-1][0], 'insert_link_at_cursor')
+
+		## Insert Image dialog
+		ui = MockUI()
+		buffer = MockBuffer()
+		file = File('data/zim.png')
+		dialog = InsertImageDialog(ui, buffer, Path(':some_page'), file)
+		self.assertTrue(dialog.filechooser.get_preview_widget_active())
+		#~ self.assertEqual(dialog.get_file(), file)
+		#~ dialog.assert_response_ok()
+		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_image_at_cursor')
+
+		## Edit Image dialog
+		ui = MockUI()
+		file = File('data/zim.png')
+		ui.notebook.mock_method('resolve_file', file)
+		buffer = TextBuffer()
+		buffer.insert_image_at_cursor(file, file.uri)
+		dialog = EditImageDialog(ui, buffer, Path(':some_page'))
+		self.assertEqual(dialog.form['width'], 48)
+		self.assertEqual(dialog.form['height'], 48)
+		dialog.form['width'] = 100
+		self.assertEqual(dialog.form['width'], 100)
+		self.assertEqual(dialog.form['height'], 100)
+		dialog.reset_dimensions()
+		self.assertEqual(dialog.form['width'], 48)
+		self.assertEqual(dialog.form['height'], 48)
+		dialog.form['height'] = 24
+		self.assertEqual(dialog.form['width'], 24)
+		self.assertEqual(dialog.form['height'], 24)
+		dialog.assert_response_ok()
+		iter = buffer.get_iter_at_offset(0)
+		self.assertEqual(buffer.get_image_data(iter), {
+			'src': file.uri,
+			'_src_file': file,
+			'height': 24,
+		})
+
+		## Insert text from file dialog
+		ui = MockUI()
+		buffer = MockBuffer()
+		dialog = InsertTextFromFileDialog(ui, buffer)
+		#~ dialog.set_file()
+		#~ dialog.assert_response_ok()
+		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_parsetree_at_cursor')
+
+		## Insert Link dialog
+		ui = MockUI()
+		ui.notebook.index = MockObject()
+		ui.notebook.index.mock_method('list_pages', [])
+		pageview = MockObject()
+		pageview.page = Path('Test:foo:bar')
+		textview = TextView({})
+		pageview.view = textview
+		dialog = InsertLinkDialog(ui, pageview)
+		dialog.form.widgets['href'].set_text('Foo')
+		dialog.assert_response_ok()
+		buffer = textview.get_buffer()
+		self.assertEqual(buffer.get_text(*buffer.get_bounds()), 'Foo')
+
+		## Find And Replace dialog
+		ui = MockUI()
+		textview = TextView({})
+		buffer = textview.get_buffer()
+		buffer.set_text('''\
+foo bar foooobar
+foo bar bazzz baz
+''')
+		dialog = FindAndReplaceDialog(ui, textview)
+		dialog.find_entry.set_text('foo')
+		dialog.replace_entry.set_text('dus')
+		dialog.word_option_checkbox.set_active(True)
+		dialog.replace()
+		dialog.replace_all()
+		self.assertEqual(buffer.get_text(*buffer.get_bounds()), '''\
+dus bar foooobar
+dus bar bazzz baz
+''')
+
+		## Word Count dialog
+		pageview = MockObject()
+		pageview.view = textview
+		pageview.ui = MockUI()
+		dialog = WordCountDialog(pageview)
+		dialog.destroy() # nothing to test really
+
+
+class MockUI(MockObject):
+
+	def __init__(self):
+		self.mainwindow = None
+		self.notebook = MockObject()
+
+
+class MockBuffer(MockObject):
+	pass
