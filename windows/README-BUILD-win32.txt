@@ -9,12 +9,16 @@ Requirements
 2. Download the latest GTK+ bundle for Windows from
    http://ftp.gnome.org/pub/GNOME/binaries/win32/gtk+/[newest version]/gtk+-bundle*.zip
    Extract that Zip file to
-   C:\Program Files\Common Files\GTK\2.0
+   C:\Program Files\Common Files\GTK\2.22
 
 3. Install PyCairo, PyGObject, and PyGTK from
    http://ftp.gnome.org/pub/GNOME/binaries/win32/pycairo/[newest version]/pycairo-*.win32*.exe
    http://ftp.gnome.org/pub/GNOME/binaries/win32/pygobject/[newest version]/pygobject-*.win32*.exe
    http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/[newest version]/pygtk-*.win32*.exe
+
+4. Jpeg for Windows
+   http://gnuwin32.sourceforge.net/packages/jpeg.htm
+   Get jpeg62.dll and put it in ./windows .
 
 4. Install Bazaar using the PYTHON-BASED installer from
    http://wiki.bazaar.canonical.com/WindowsDownloads

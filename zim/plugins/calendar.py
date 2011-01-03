@@ -6,11 +6,12 @@ import gobject
 import gtk
 
 import re
-from datetime import date as dateclass
+import datetime
 
 from zim.plugins import PluginClass
 from zim.gui.widgets import ui_environment, Dialog, Button
 from zim.notebook import Path
+from zim.templates import TemplateManager
 
 
 # FUTURE: Use calendar.HTMLCalendar from core libs to render this plugin in www
@@ -58,6 +59,8 @@ KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'
 KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
 date_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}:\d{2}$')
+month_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}$')
+year_path_re = re.compile(r'^(.*:)?\d{4}$')
 
 
 class CalendarPlugin(PluginClass):
@@ -91,6 +94,7 @@ This is a core plugin shipping with zim.
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
+			TemplateManager.connect('process-page', self.on_process_page_template)
 
 	def finalize_notebook(self, notebook):
 		self.do_preferences_changed()
@@ -156,18 +160,45 @@ This is a core plugin shipping with zim.
 						self.ui.add_ui(ui_xml_show_dialog, self)
 
 	def path_from_date(self, date):
+		'''Returns the path for a calendar page for a specific date'''
 		return Path( self.preferences['namespace']
 						+ ':' + date.strftime('%Y:%m:%d') )
 
 	def path_for_month_from_date(self, date):
+		'''Returns the namespace path for a certain month'''
 		return Path( self.preferences['namespace']
 						+ ':' + date.strftime('%Y:%m') )
 
 	def date_from_path(self, path):
+		'''Returns a datetime.date object for a calendar page'''
 		assert date_path_re.match(path.name), 'Not an date path: %s' % path.name
 		year, month, day = path.name.rsplit(':', 3)[-3:]
 		year, month, day = map(int, (year, month, day))
-		return dateclass(year, month, day)
+		return datetime.date(year, month, day)
+
+	def on_process_page_template(self, manager, template, page, dict):
+		'''Callback called when parsing a template, e.g. when exposting a page
+		or for the template used to create a new page. Will set parameters in
+		the template dict to be used in the template.
+		'''
+		year, month, day = 0, 1, 1
+		if date_path_re.match(page.name):
+			type = 'day'
+			year, month, day = page.name.rsplit(':', 3)[-3:]
+		elif month_path_re.match(page.name):
+			type = 'month'
+			year, month = page.name.rsplit(':', 2)[-2:]
+		elif year_path_re.match(page.name):
+			type = 'year'
+			year = page.name.rsplit(':', 1)[-1]
+		else:
+			return # Not a calendar page
+
+		year, month, day = map(int, (year, month, day))
+		dict['calendar_plugin'] = {
+			'page_type': type,
+			'date': datetime.date(year, month, day)
+		}
 
 	def suggest_link(self, source, text):
 		#~ if date_path_re.match(path.text):
@@ -175,14 +206,14 @@ This is a core plugin shipping with zim.
 		if re.match(r'^\d{4}-\d{2}-\d{2}$', text):
 			year, month, day = text.split('-')
 			year, month, day = map(int, (year, month, day))
-			date = dateclass(year, month, day)
+			date = datetime.date(year, month, day)
 			return self.path_from_date(date)
 		# TODO other formats
 		else:
 			return None
 
 	def go_page_today(self):
-		today = dateclass.today()
+		today = datetime.date.today()
 		path = self.path_from_date(today)
 		self.ui.open_page(path)
 
@@ -233,7 +264,7 @@ class Calendar(gtk.Calendar):
 	def get_date(self):
 		'''Get the datetime object for the selected date'''
 		year, month, day = gtk.Calendar.get_date(self)
-		return dateclass(year, month + 1, day)
+		return datetime.date(year, month + 1, day)
 
 # Need to register classes defining gobject signals
 gobject.type_register(Calendar)
@@ -246,7 +277,7 @@ class CalendarPluginWidget(gtk.VBox):
 		self.plugin = plugin
 
 		format = _('%A %d %B %Y').replace(' 0', ' ') # T: strftime format for current date label
-		label = gtk.Label(dateclass.today().strftime(str(format)))
+		label = gtk.Label(datetime.date.today().strftime(str(format)))
 			# str() needed for python 2.5 compatibility
 		self.pack_start(label, False)
 
@@ -308,7 +339,7 @@ class CalendarDialog(Dialog):
 		button.connect('clicked', self.do_today )
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 0)
-		self.dateshown = dateclass.today()
+		self.dateshown = datetime.date.today()
 
 	def on_select_date(self, date):
 		if ui_environment['platform'] == 'maemo':
@@ -321,4 +352,4 @@ class CalendarDialog(Dialog):
 				self.emit('close')
 
 	def do_today(self, event):
-		self.calendar_widget.select_date(dateclass.today())
+		self.calendar_widget.select_date(datetime.date.today())

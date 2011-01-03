@@ -109,7 +109,7 @@ class Dumper(DumperClass):
 				src = self.linker.img(element.attrib['src'])
 				opt = ''
 				for o in ('width', 'height'):
-					if o in element.attrib and int(element.attrib[o]) > 0:
+					if o in element.attrib and int(float(element.attrib[o])) > 0:
 						opt = ' %s="%s"' % (o, element.attrib[o])
 				output.append('<img src="%s" alt="%s"%s>' % (src, text, opt))
 			elif element.tag == 'link':

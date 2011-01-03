@@ -458,7 +458,10 @@ class Notebook(gobject.GObject):
 
 	def _cache_dir(self, dir):
 		from zim.config import XDG_CACHE_HOME
-		path = 'notebook-' + dir.path.replace('/', '_').strip('_')
+		if os.name == 'nt':
+			path = 'notebook-' + dir.path.replace('\\', '_').replace(':', '').strip('_')
+		else:
+			path = 'notebook-' + dir.path.replace('/', '_').strip('_')
 		return XDG_CACHE_HOME.subdir(('zim', path))
 
 	def save_properties(self, **properties):
@@ -1082,7 +1085,7 @@ class Notebook(gobject.GObject):
 			page = self.get_page(newpath)
 			tree = page.get_parsetree()
 			if not tree is None:
-				tree.set_heading(newbasename.capitalize())
+				tree.set_heading(newbasename)
 				page.set_parsetree(tree)
 				self.store_page(page)
 

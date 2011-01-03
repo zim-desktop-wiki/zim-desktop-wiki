@@ -114,7 +114,8 @@ class PreferencesDialog(Dialog):
 
 		current = self.ui.preferences['GtkInterface'][type]
 		apps = manager.list_helpers(type)
-		if not current in [app.key for app in apps]:
+		if not current is None \
+		and not current in [app.key for app in apps]:
 			app = manager.get_application(current)
 			if app:
 				apps.insert(0, app)

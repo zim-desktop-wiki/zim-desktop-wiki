@@ -4,6 +4,29 @@ Jaap Karssenberg <pardus@cpan.org>
 This branch is the Python rewrite and starts with version 0.42. 
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.49 - Tue 2 Nov 2010 ===
+* Added experimental Attachment Browser plugin - by Thorsten Hackbarth
+* Added Inline Calculator plugin
+* Made file writing logic on windows more robust to avoid conflicts
+* Fixed bug with unicode characters in notebook path
+* Fixed 'shared' property for notebooks
+* Patch to update history when pages are deleted or moved - by Yelve Yakut
+* Patch backporting per-user site-packages dir for python 2.5 - by Jiří Janoušek
+* Fix for bug with spaces in links in exported HTML - by Jiří Janoušek
+* Fixed bug forcing empty lines after an indented section
+* Patch for indenting in verbatim paragraphs - by Fabian Moser
+* Fixed bug with unicode handling for file paths
+* Added names for pageindex and pageview widgets for use in gtkrc
+* Patch to jump to task within page - by Thomas Liebertraut
+* Added option for setting custom applications in the preferences
+* Fixed printtobrowser plugin to use proper preference for web browser
+* Added default application /usr/bin/open for Mac
+* Imporved behavior of 'Edit Source'
+* Added checkbox to quicknote dialog to open the new page or not
+* Added support for outlook:// urls and special cased mid: and cid: uris
+* Added translations for Hungarian, Italian and Slovak
+
+
 === 0.48 - Thu 22 Jul 2010 ===
 * Added support for sub- and superscript format - by Michael Mulqueen
 * Updated the export dialog to an Assistant interface
