@@ -373,6 +373,9 @@ class UnixPath(object):
 
 		self._set_path(path) # overloaded in WindowsPath
 
+	def serialize_zim_config(self):
+		return self.path
+
 	@staticmethod
 	def _parse_uri(uri):
 		# Spec is file:/// or file://host/

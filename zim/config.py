@@ -506,11 +506,8 @@ class ConfigDict(ListDict):
 		elif value is True: return 'True'
 		elif value is False: return 'False'
 		elif value is None: return 'None'
-		elif isinstance(value, object) and value.__class__.__name__.endswith('Path'):
-			# Hack to avoid importing Path here to test isinstance
-			return value.name
-		elif isinstance(value, (File, Dir)):
-			return value.path
+		elif hasattr(value, 'serialize_zim_config'):
+			return value.serialize_zim_config()
 		else:
 			return json.dumps(value, separators=(',',':'))
 				# specify separators for compact encoding

@@ -257,10 +257,12 @@ def report_coverage(coverage):
 <head>
 <title>Test Coverage Index</title>
 <style>
-	.good  { background-color: #9f9; text-align: right }
-	.close { background-color: #ff9; text-align: right }
-	.bad   { background-color: #f99; text-align: right }
-	.int   { text-align: right }
+	.good    { background-color: #9f9; text-align: right }
+	.close   { background-color: #cf9; text-align: right }
+	.ontrack { background-color: #ff9; text-align: right }
+	.lacking { background-color: #fc9; text-align: right }
+	.bad     { background-color: #f99; text-align: right }
+	.int     { text-align: right }
 </style>
 </head>
 <body>
@@ -272,8 +274,10 @@ def report_coverage(coverage):
 	total_stat = reduce(int.__add__, [r[2] for r in index])
 	total_exec = reduce(int.__add__, [r[3] for r in index])
 	total_perc = int( float(total_exec) / total_stat * 100 )
-	if total_perc == 100: type = 'good'
-	elif total_perc > 80: type = 'close'
+	if percentage >= 90: type = 'good'
+	elif percentage >= 80: type = 'close'
+	elif percentage >= 60: type = 'ontrack'
+	elif percentage >= 40: type = 'lacking'
 	else: type = 'bad'
 	html.write('<tr><td><b>Total</b></td>'
 		       '<td class="int">%i</td><td class="int">%i</td>'
@@ -284,8 +288,10 @@ def report_coverage(coverage):
 		pyfile, htmlfile, statements, executed = report
 		if statements: percentage = int( float(executed) / statements * 100 )
 		else: percentage = 100
-		if percentage == 100: type = 'good'
-		elif percentage > 80: type = 'close'
+		if percentage >= 90: type = 'good'
+		elif percentage >= 80: type = 'close'
+		elif percentage >= 60: type = 'ontrack'
+		elif percentage >= 40: type = 'lacking'
 		else: type = 'bad'
 		html.write('<tr><td><a href="%s">%s</a></td>'
 		           '<td class="int">%i</td><td class="int">%i</td>'

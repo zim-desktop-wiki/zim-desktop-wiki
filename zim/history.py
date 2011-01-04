@@ -5,66 +5,73 @@
 '''This module contains the history class.
 
 The history can be represented as a list of pages with extra columns for the
-cursor and scroll positions. One additional setting is used to give the current
+cursor and scroll positions. One additional property is used to give the current
 page in that list. All entries before the current position can be accessed by
 navigating backward, all entries ahead of the current position can be accessed
-by navigating forward. The same page can occur multiple times in the list, each
-of these occurences should be a reference to the same record to keep
-the cursor and scroll position in sync.
-
-The history does not use the same database files as used by the index because
-there could be multiple histories for on the same notebook, e.g. for multiple
-users.
+by navigating forward. The same page can occur multiple times in the list.
 '''
 
 import gobject
+import logging
 
 from zim.notebook import Path
+from zim.config import json
 
 MAX_HISTORY = 25
 
 
-class HistoryRecord(Path):
+logger = logging.getLogger('zim.history')
+
+
+class HistoryPath(Path):
 	'''Path withsome additional info from the history'''
 
-	__slots__ = ('history', 'i')
+	__slots__ = ('cursor', 'scroll', 'deleted', 'is_first', 'is_last')
 
-	def __init__(self, history, i):
-		Path.__init__(self, history.history[i])
-		self.history = history
-		self.i = i
+	def __init__(self, name, cursor, scroll):
+		Path.__init__(self, name)
+		self.scroll = scroll
+		self.cursor = cursor
+		self.deleted = False
+		self.is_first = False
+		self.is_last = False
 
-	@property
-	def valid(self):
-		return self.history.history[self.i] == self.name
+	def exists(self):
+		return not self.deleted
 
-	@property
-	def is_first(self): return self.i == 0
 
-	@property
-	def is_last(self): return self.i == len(self.history.history) - 1
+class HistoryList(list):
+	# Wrapper for a list of HistoryPaths which takes care of (de-)serialization
+	# when saving in the config
 
-	def get_cursor(self):
-		if self.name in self.history.pages:
-			return self.history.pages[self.name][0]
+	def __init__(self, list):
+		# Convert list from config to use Path objects
+		try:
+			for name, cursor, scroll in list:
+				self.append(HistoryPath(name, cursor, scroll))
+		except:
+			logger.exception('Could not parse history list:')
+
+	def __getitem__(self, i):
+		path = list.__getitem__(self, i)
+		if i == 0:
+			path.is_first = True
+			path.is_last = False
+		elif i == len(self) - 1:
+			path.is_first = False
+			path.is_last = True
 		else:
-			return None
+			path.is_first = False
+			path.is_last = False
+		return path
 
-	def set_cursor(self, value):
-		self.history.pages[self.name] = (value, self.scroll)
+	def index(self, path):
+		ids = [id(p) for p in self]
+		return ids.index(id(path))
 
-	cursor = property(get_cursor, set_cursor)
-
-	def get_scroll(self):
-		if self.name in self.history.pages:
-			return self.history.pages[self.name][1]
-		else:
-			return None
-
-	def set_scroll(self, value):
-		self.history.pages[self.name] = (self.cursor, value)
-
-	scroll = property(get_scroll, set_scroll)
+	def serialize_zim_config(self):
+		data = [(path.name, path.cursor, path.scroll) for path in self]
+		return json.dumps(data, separators=(',',':'))
 
 
 class History(gobject.GObject):
@@ -74,7 +81,6 @@ class History(gobject.GObject):
 		* changed - emitted whenever something changes
 	'''
 	# TODO should inherit from the selection object ?
-	# TODO connect to notebook signals to stay in sync
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -83,155 +89,163 @@ class History(gobject.GObject):
 
 	def __init__(self, notebook, uistate=None):
 		gobject.GObject.__init__(self)
+		self.notebook = notebook
 		if uistate is None:
 			self.uistate = {}
 		else:
 			self.uistate = uistate['History']
 
-		self.uistate.setdefault('pages', {})
+		# Initialize history list and ensure current is within range
 		self.uistate.setdefault('history', [])
 		self.uistate.setdefault('current', len(self.history)-1)
-		
-		
-		# yy: renaming pages also renames their history
-		self.notebook = notebook
+
+		self.uistate['history'] = HistoryList(self.uistate['history'])
+
+		if self.current < 0 or self.current > len(self.history) - 1:
+			self.current = len(self.history)-1
+
+		# Check pages exist
+		index = self.notebook.index
+		seen = {}
+		for path in self.history:
+			if not path.name in seen:
+				indexpath = index.lookup_path(path)
+				if indexpath is None:
+					exists = False
+				else:
+					exists = indexpath.exists()
+				seen[path.name] = exists
+
+			path.deleted = not seen[path.name]
+
+		# Connect to notebook
 		self.notebook.connect('moved-page', lambda o, a, b, c: self._on_page_moved(a,b,c))
-
-		# yy: deleted pages should not show up in "recent pages" view but still be visible in "history"
 		self.notebook.connect('deleted-page', lambda o, a: self._on_page_deleted(a))
-		self.notebook.connect('stored-page', lambda o, a: self._on_page_stored(a))		
-		self.deletedpages = set()
-		for h in self.history:
-			p = self.notebook.get_page(Path(h))
-			if not p.exists():
-				self.deletedpages.add(h)
-		
+		self.notebook.connect('stored-page', lambda o, a: self._on_page_stored(a))
 
+	# read / write property
 	current = property(
 		lambda self: self.uistate['current'],
 		lambda self, value: self.uistate.__setitem__('current', value) )
 
-	history = property(
-		lambda self: self.uistate['history'],
-		lambda self, value: self.uistate.__setitem__('history', value) )
-
 	@property
-	def pages(self): return self.uistate['pages']
+	def history(self):
+		return self.uistate['history']
 
 	def _on_page_deleted(self, page):
-		self.deletedpages.add(page.name)
-		self.emit('changed')
+		# Flag page and children as deleted
+		changed = False
+		for path in self.history:
+			if path == page or path.ischild(page):
+				path.deleted = True
+				changed = True
 
-	def _on_page_stored(self, page):		
-		self.deletedpages.discard(page.name)
-		self.emit('changed')
+		if changed:
+			self.emit('changed')
+
+	def _on_page_stored(self, page):
+		# Flag page exists
+		changed = False
+		for path in self.history:
+			if path == page:
+				path.deleted = False
+				changed = True
+
+		if changed:
+			self.emit('changed')
 
 	def _on_page_moved(self, oldpath, newpath, update_links):
-		# replace all occurences of oldpath.name with newpath.name in history
-		for i in range(0, len(self.history)):
-			if self.history[i].startswith(oldpath.name):
-				self.history[i] = self.history[i].replace(oldpath.name, newpath.name)
-		self.emit('changed')
-	
+		# Update paths to reflect new position while keeping other data
+		changed = False
+		for path in self.history:
+			if path == oldpath:
+				path.name = newpath.name
+				changed = True
+			elif path.ischild(oldpath):
+				newchild = newpath + path.relname(oldpath)
+				path.name = newchild.name
+				changed = True
+
+		if changed:
+			self.emit('changed')
 
 	def append(self, page):
-		if self.current != -1:
-			self.history = self.history[:self.current+1] # drop forward stack
+		# drop forward stack
+		while len(self.history) - 1 > self.current:
+			self.history.pop()
 
+		# purge old entries
 		while len(self.history) >= MAX_HISTORY:
-			n = self.history.pop(0)
-			if not n in self.history: # name can appear multipel times
-				self.pages.pop(n)
+			self.history.pop(0)
 
-		if self.history and self.history[-1] == page.name:
+		if self.history and self.history[-1] == page:
 			pass
 		else:
-			self.history.append(page.name)
-		self.current = -1
-			# this assignment always triggers "modified" on the ListDict
+			path = HistoryPath(page.name, 0, 0)
+			path.deleted = not page.exists()
+			self.history.append(path)
 
-		if not page.exists():
-			self.deletedpages.add(page.name)
+		self.current = len(self.history) - 1
+			# this assignment always triggers "modified" on the ListDict
 
 		self.emit('changed')
 
 	def get_current(self):
 		if self.history:
-			if self.current < 0:
-				self.current = len(self.history) + self.current
-			return HistoryRecord(self, self.current)
+			return self.history[self.current]
 		else:
 			return None
 
-	def set_current(self, record):
-		assert record.valid
-		self.current = record.i
+	def set_current(self, path):
+		assert isinstance(path, HistoryPath)
+		self.current = self.history.index(path)
+			# fails if path not in history
 
-	def get_previous(self, step=1):
-		if self.history:
-			if self.current < 0:
-				self.current = len(self.history) + self.current
-
-			if self.current == 0:
-				return None
-			else:
-				return HistoryRecord(self, self.current-1)
+	def get_previous(self):
+		if len(self.history) > 1 and self.current > 0:
+			return self.history[self.current - 1]
 		else:
 			return None
 
-	def get_next(self, step=1):
-		if self.history:
-			if self.current == -1 or self.current+1 == len(self.history):
-				return None
-			else:
-				return HistoryRecord(self, self.current+1)
+	def get_next(self):
+		if self.current < len(self.history) - 1:
+			return self.history[self.current + 1]
 		else:
 			return None
 
 	def get_child(self, path):
 		'''Returns a path for a direct child of path or None'''
-		namespace = path.name + ':'
 		for i in range(len(self.history)-1, -1, -1):
-			if self.history[i].startswith(namespace):
-				name = self.history[i]
-				parts = name[len(namespace):].split(':')
-				return Path(namespace+parts[0])
+			if self.history[i].ischild(path):
+				relname = self.history[i].relname(path)
+				basename = relname.split(':')[0]
+				return path + basename
 		else:
 			return None
 
 	def get_grandchild(self, path):
 		'''Returns a path for the deepest child of path that could be found or None'''
-		namespace = path.name + ':'
+		child = path
 		for i in range(len(self.history)-1, -1, -1):
-			if self.history[i].startswith(namespace):
-				namespace = self.history[i] + ':'
+			if self.history[i].ischild(child):
+				child = self.history[i]
 
-		child = Path(namespace)
 		if child == path: return None
 		else: return child
 
 	def get_history(self):
 		'''Generator function that yields history records, latest first'''
 		for i in range(len(self.history)-1, -1, -1):
-			yield HistoryRecord(self, i)
+			yield self.history[i]
 
 	def get_unique(self):
 		'''Generator function that yields unique records'''
 		seen = set()
-		for i in range(len(self.history)-1, -1, -1):	
-			if not self.history[i] in seen and not self._page_is_deleted(self.history[i]):
-				seen.add(self.history[i])
-				yield HistoryRecord(self, i)
-				
-	def _page_is_deleted(self, page):
-		'''Checks if given page has been deleted'''
-		parent = ""
-		for p in page.split(":"):
-			parent = parent + p
-			if parent in self.deletedpages:
-				return True
-			parent = parent + ":"
-		return False
-			
+		for i in range(len(self.history)-1, -1, -1):
+			path = self.history[i]
+			if not path in seen and not path.deleted:
+				seen.add(path)
+				yield path
+
 
 gobject.type_register(History)

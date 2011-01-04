@@ -14,10 +14,11 @@ except:
 	sys.exit(1)
 
 # Win32: must setup log file or it tries to write to $PROGRAMFILES
-if os.name == "nt":
+if os.name == "nt" and sys.argv[0].endswith('.exe'):
 	import tempfile
 	dir = tempfile.gettempdir()
-	os.makedirs(dir) # Make sure it exists
+	if not os.path.isdir(dir):
+		os.makedirs(dir)
 	err_stream = open(dir + "\\zim.log", "w")
 	sys.stdout = err_stream
 	sys.stderr = err_stream

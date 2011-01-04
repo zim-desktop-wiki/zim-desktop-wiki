@@ -1419,6 +1419,9 @@ class Path(object):
 		except UnicodeDecodeError:
 			raise Error, 'BUG: invalid input, page names should be in ascii, or given as unicode'
 
+	def serialize_zim_config(self):
+		return self.name
+
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)
 

@@ -40,7 +40,7 @@ from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord
 from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re
-from zim.history import History, HistoryRecord
+from zim.history import History, HistoryPath
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
@@ -810,7 +810,7 @@ class GtkInterface(NotebookInterface):
 	def open_page(self, path=None):
 		'''Emit the open-page signal. The argument 'path' can either be a Page
 		or a Path object. If 'page' is None a dialog is shown
-		to specify the page. If 'path' is a HistoryRecord we assume that this
+		to specify the page. If 'path' is a HistoryPath we assume that this
 		call is the result of a history action and the page is not added to
 		the history. The original path object is given as the second argument
 		in the signal, so handlers can inspect how this method was called.
@@ -848,7 +848,7 @@ class GtkInterface(NotebookInterface):
 		parent = self.actiongroup.get_action('open_page_parent')
 		child = self.actiongroup.get_action('open_page_child')
 
-		if isinstance(path, HistoryRecord):
+		if isinstance(path, HistoryPath):
 			historyrecord = path
 			self.history.set_current(path)
 			back.set_sensitive(not path.is_first)
