@@ -466,12 +466,15 @@ class Notebook(gobject.GObject):
 
 	def save_properties(self, **properties):
 		# Check if icon is relative
-		if 'icon' in properties and properties['icon'] \
-		and self.dir and properties['icon'].startswith(self.dir.path):
-			i = len(self.dir.path)
-			path = './' + properties['icon'][i:].lstrip('/\\')
-			# TODO use proper fs routine(s) for this substitution
-			properties['icon'] = path
+		icon = properties.get('icon')
+		if icon:
+			if isinstance(icon, basestring):
+				icon = File(icon)
+
+			if self.dir and icon.ischild(self.dir):
+				properties['icon'] = icon.relpath(self.dir)
+			else:
+				properties['icon'] = icon.path
 
 		# Set home page as string
 		if 'home' in properties and isinstance(properties['home'], Path):
@@ -1082,7 +1085,7 @@ class Notebook(gobject.GObject):
 			page = self.get_page(newpath)
 			tree = page.get_parsetree()
 			if not tree is None:
-				tree.set_heading(newbasename.capitalize())
+				tree.set_heading(newbasename)
 				page.set_parsetree(tree)
 				self.store_page(page)
 
@@ -1415,6 +1418,9 @@ class Path(object):
 			self.name = unicode(self.name)
 		except UnicodeDecodeError:
 			raise Error, 'BUG: invalid input, page names should be in ascii, or given as unicode'
+
+	def serialize_zim_config(self):
+		return self.name
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)

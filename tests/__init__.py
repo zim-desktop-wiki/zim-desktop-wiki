@@ -14,12 +14,13 @@ import xml.etree.cElementTree as etree
 
 
 __all__ = [
-	'errors', 'parsing', 'fs', 'config', 'applications',
+	'coding', 'translations',
+	'errors', 'parsing', 'fs', 'config', 'applications', 'async',
 	'formats', 'templates',
 	'stores', 'index', 'notebook',
 	'history', 'plugins',
 	'export', 'www', 'search',
-	'pageview',
+	'widgets', 'gui', 'pageview',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'equationeditor', 'diagrameditor',
 ]
@@ -47,6 +48,9 @@ def set_environ():
 	if os.path.isdir(tmpdir):
 		shutil.rmtree(tmpdir)
 	os.mkdir(tmpdir)
+
+	hicolor = os.environ['XDG_DATA_DIRS'] + '/icons/hicolor'
+	os.makedirs(hicolor)
 
 
 def create_tmp_dir(name):
@@ -76,6 +80,7 @@ def get_test_data(format):
 		_test_data_wiki = _get_test_data_wiki()
 
 	for name, text in _test_data_wiki:
+		#~ print '>', name
 		yield name, text
 
 
@@ -220,6 +225,39 @@ class TestCase(unittest.TestCase):
 			return
 
 		raise self.failureException, msg.encode('utf-8')
+
+
+class MockObject(object):
+	'''Base class for mock objects. Any attribute is automatically
+	vivicated as a method which results None. Alternatively mock
+	methods can be installed with mock_method(). Attributes that are
+	not methods need to be initialized explicitly.
+
+	All method call are logged, so they can be inspected. The attribute
+	'mock_calls' has a list of tuples with mock methods and arguments in
+	order they have been called.
+	'''
+
+	def __init__(self):
+		self.mock_calls = []
+
+	def __getattr__(self, name):
+		'''Automatically mock methods'''
+		return self.mock_method(name, None)
+
+	def mock_method(self, name, return_value):
+		'''Installs a mock method with a given name that returns
+		a given value.
+		'''
+		def my_mock_method(*arg, **kwarg):
+			call = [name] + list(arg)
+			if kwarg:
+				call.append(kwarg)
+			self.mock_calls.append(tuple(call))
+			return return_value
+
+		setattr(self, name, my_mock_method)
+		return my_mock_method
 
 
 class LoggingFilter(object):

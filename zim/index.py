@@ -146,6 +146,9 @@ class IndexPath(Path):
 			except IndexError:
 				raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
 
+	def exists(self):
+		return self.haschildren or self.hascontent
+
 	@property
 	def parent(self):
 		'''Returns IndexPath for parent path'''

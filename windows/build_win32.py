@@ -26,10 +26,12 @@ shutil.copytree("data", "windows/build/data")
 # fails when destination folder exists
 
 # If you installed GTK to a different folder, change these lines:
-distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.0/etc", "windows/build/etc", update=1)
-distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.0/lib", "windows/build/lib", update=1)
-distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.0/share", "windows/build/share", update=1)
-files = glob.iglob(os.path.join("c:/Program Files/Common Files/GTK/2.0/bin", "*.exe"))
+distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.22/etc", "windows/build/etc", update=1)
+distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.22/lib", "windows/build/lib", update=1)
+distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.22/share", "windows/build/share", update=1)
+shutil.rmtree("windows/build/share/doc", True)
+shutil.rmtree("windows/build/share/gtk-doc", True)
+files = glob.iglob(os.path.join("c:/Program Files/Common Files/GTK/2.22/bin", "*.exe"))
 for file in files:
     if os.path.isfile(file):
         shutil.copy2(file, "windows/build")
@@ -38,7 +40,7 @@ for file in files:
 distutils.dir_util.copy_tree("icons", "windows/build/icons", update=1)
 
 # Copy translation files
-distutils.dir_util.copy_tree("locale", "windows/build/share/locale", update=1)
+distutils.dir_util.copy_tree("locale", "windows/build/locale", update=1)
 
 # Copy plugins folder so Preferences dialog can iterate through them
 distutils.dir_util.copy_tree("zim/plugins", "windows/build/zim/plugins", update=1)
@@ -50,6 +52,9 @@ shutil.copyfile(
 	"windows/hicolor-icon-theme__index.theme",
 	"windows/build/share/icons/hicolor/index.theme"
 )
+
+# Copy jpeg62.dll
+shutil.copyfile("windows/jpeg62.dll", "windows/build/jpeg62.dll")
 
 # print out version number
 f = open("windows/version-and-date.nsi", "w")

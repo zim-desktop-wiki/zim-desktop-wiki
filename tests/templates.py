@@ -121,7 +121,7 @@ class TestTemplateSet(TestCase):
 			format = os.path.basename(dir)
 			if format == 'templates':
 				continue # skip top level dir
-			files = [f for f in files if not f.startswith('.')]
+			files = [f for f in files if not f.startswith('.') and not '~' in f]
 			templates = list_templates(format)
 			self.assertTrue(len(files) > 0)
 			self.assertEqual(len(templates), len(files))

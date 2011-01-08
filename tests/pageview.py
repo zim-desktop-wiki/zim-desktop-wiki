@@ -4,10 +4,12 @@
 
 from __future__ import with_statement
 
-from tests import TestCase, LoggingFilter, get_test_data_page, get_test_page
+from tests import TestCase, LoggingFilter, MockObject, \
+	get_test_data_page, get_test_page
 
 from zim.fs import *
 from zim.formats import wiki, ParseTree
+from zim.notebook import Path
 from zim.gui.pageview import *
 
 
@@ -37,7 +39,7 @@ def get_tree_from_xml(xml):
 class TestTextBuffer(TestCase):
 
 	def runTest(self):
-		'''Test serialization of the page view textbuffer'''
+		'''Test serialization and interaction of the page view textbuffer'''
 		wikitext = get_test_data_page('wiki', 'roundtrip')
 		tree = get_tree(wikitext)
 		buffer = TextBuffer()
@@ -123,7 +125,7 @@ grrr
 		self.assertFalse(buffer.get_modified())
 		self.assertEqualDiff(tree.tostring(), wanted)
 
-		# Test pasteing some simple text
+		# Test pasting some simple text
 		buffer.set_parsetree(tree) # reset without errors
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -145,10 +147,12 @@ dus ja <emphasis>hmm</emphasis>
 <emphasis>dus ja</emphasis>
 grrr
 
-<li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0">Bar</li></zim-tree>'''
+<li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0"><strong>Bold</strong>Bar</li></zim-tree>'''
 		pastetree = get_tree_from_xml(input)
 		iter = buffer.get_iter_at_line(15)
 		iter.forward_chars(5) # position after "* Foo"
+		buffer.insert_parsetree(iter, pastetree, interactive=True)
+		iter = buffer.get_iter_at_line(16) # position before bullet "* Bar"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
 		tree = buffer.get_parsetree()
 		self.assertTrue(buffer.get_modified())
@@ -180,7 +184,7 @@ dus ja <emphasis>hmm</emphasis>
 <emphasis>dus ja</emphasis>
 grrr
 
-<li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0">Bar</li></zim-tree>'''
+<li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0"><strong>Bold</strong>Bar</li></zim-tree>'''
 		pastetree = get_tree_from_xml(input)
 		iter = buffer.get_iter_at_line(4)
 		iter.forward_chars(3) # position after "baz"
@@ -199,11 +203,11 @@ grrr
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<li bullet="unchecked-box" indent="0">Box 1</li>foo <li bullet="unchecked-box" indent="0">Box 2</li><li bullet="unchecked-box" indent="0">Box 3</li>
+<li bullet="unchecked-box" indent="0">Box 1</li><li bullet="unchecked-box" indent="0">foo Box 2</li><li bullet="unchecked-box" indent="0">Box 3</li>
 </zim-tree>'''
 		tree = get_tree_from_xml(input)
 		buffer.set_parsetree(tree)
-		iter = buffer.get_iter_at_line(2) # iter before checkbox
+		iter = buffer.get_iter_at_line(2) # iter *before* checkbox
 		buffer.insert(iter, 'foo ')
 		#print buffer.get_parsetree(raw=True).tostring()
 		#print buffer.get_parsetree().tostring()
@@ -237,6 +241,49 @@ grrr
 		tree = buffer.get_parsetree()
 		self.assertEqualDiff(tree.tostring(), wanted)
 
+		# Test merge lines logic on delete
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><h level="1">Foo</h>
+
+<h level="2">Bar</h>
+
+<li bullet="*" indent="0">List item 0</li>
+<li bullet="*" indent="1">List item 1</li></zim-tree>'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><h level="1">FooBar</h>
+
+List item 0
+
+<div indent="1">List item 1</div>
+</zim-tree>'''
+		# Note: we don't insert extra newlines, but <li> assumes them
+		tree = get_tree_from_xml(input)
+		buffer.set_parsetree(tree)
+		tree = buffer.get_parsetree()
+		self.assertEqualDiff(tree.tostring(), input)
+
+		iter = buffer.get_iter_at_line(2) # before h2
+		bound = iter.copy()
+		iter.backward_chars(2) # after h1
+		buffer.delete(iter, bound)
+
+		iter = buffer.get_iter_at_line(2) # list item 0
+		bound = iter.copy()
+		bound.forward_chars(2) # Behind bullet
+		buffer.delete(iter, bound)
+
+		iter = buffer.get_iter_at_line(4) # list item 1
+		bound = iter.copy()
+		bound.forward_chars(2) # Behind bullet
+		buffer.delete(iter, bound)
+
+		#~ print buffer.get_parsetree(raw=True).tostring()
+		#~ print buffer.get_parsetree().tostring()
+		tree = buffer.get_parsetree()
+		self.assertEqualDiff(tree.tostring(), wanted)
+
 
 class TestUndoStackManager(TestCase):
 
@@ -249,23 +296,37 @@ class TestUndoStackManager(TestCase):
 
 		with FilterNoSuchImageWarning():
 			buffer._insert_element_children(tree.getroot())
-				# Use private method to circumvent begin-insert-tree signal etc.
+				# Use private method to circumvent begin-insert-tree
+				# signal etc. so we get undo stack for inserting
 
+		# First test is to check we have a continuous undo stack after
+		# inserting a parse tree. Nota bene, if this test fails, the
+		# insert_parsetree() function is not strictly serial, which
+		# probably breaks proper formatting e.g. when pasting a tree
+		# half way in a line.
 		#~ import pprint
 		#~ undomanager.flush_insert()
+		#~ def tostring(data):
+			#~ if hasattr(data, 'tostring'):
+				#~ return data.tostring()[39:]
+			#~ else:
+				#~ return data.get_property('name')
 		i = 0
 		for group in undomanager.stack + [undomanager.group]:
 			#~ pprint.pprint(
-				#~ [(a[0], a[1], a[2], a[3].tostring()[39:]) for a in group] )
+				#~ [(a[0], a[1], a[2], tostring(a[3])) for a in group] )
 			for action in group:
 				self.assertEqual(action[1], i) # assert undo stack is continous
 				i = action[2]
 		self.assertTrue(len(undomanager.stack) > 10) # check we recorded something
 
+		# Now we iterate through the tree to verify we get a proper
+		# state at every step of the stack, then we redo to check we
+		# get back what we had
 		buffertree1 = buffer.get_parsetree(raw=True)
 
 		while undomanager.undo():
-			continue
+			_ = buffer.get_parsetree() # just check for no warnings
 
 		emptytree = buffer.get_parsetree(raw=True)
 		self.assertEqualDiff(emptytree.tostring(),
@@ -273,7 +334,7 @@ class TestUndoStackManager(TestCase):
 
 		with FilterNoSuchImageWarning():
 			while undomanager.redo():
-				continue
+				_ = buffer.get_parsetree() # just check for no warnings
 
 		buffertree2 = buffer.get_parsetree(raw=True)
 		self.assertEqualDiff(buffertree2.tostring(), buffertree1.tostring())
@@ -289,7 +350,7 @@ class TestUndoStackManager(TestCase):
 		self.assertTrue(len(undomanager.stack) == 0)
 		undomanager.unblock()
 
-		# test merging
+		# Test merging
 		for c in 'fooo barr baz':
 			with buffer.user_action:
 				buffer.insert_at_cursor(c)
@@ -633,7 +694,7 @@ Tja
 
 		iter = buffer.get_iter_at_line(2) # Bar
 		row, list = TextBufferList.new_from_iter(buffer, iter)
-		list.update_checkbox(row, CHECKED_BOX)
+		list.set_bullet(row, CHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
@@ -649,13 +710,11 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqualDiff(tree.tostring(), wanted)
 
-		list.update_checkbox(row, UNCHECKED_BOX)
-		iter = buffer.get_iter_at_line(3) # Bar 1
-		row = list.get_row_from_iter(iter)
-		list.update_checkbox(row, XCHECKED_BOX)
-		iter = buffer.get_iter_at_line(5) # Bar 2
-		row = list.get_row_from_iter(iter)
-		list.update_checkbox(row, UNCHECKED_BOX)
+		list.set_bullet(row, UNCHECKED_BOX)
+		row = list.get_row_at_line(3) # Bar 1
+		list.set_bullet(row, XCHECKED_BOX)
+		row = list.get_row_at_line(5) # Bar 2
+		list.set_bullet(row, UNCHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
@@ -671,9 +730,8 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqualDiff(tree.tostring(), wanted)
 
-		iter = buffer.get_iter_at_line(5) # Bar 2
-		row = list.get_row_from_iter(iter)
-		list.update_checkbox(row, CHECKED_BOX)
+		row = list.get_row_at_line(5) # Bar 2
+		list.set_bullet(row, CHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
@@ -689,9 +747,8 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqualDiff(tree.tostring(), wanted)
 
-		iter = buffer.get_iter_at_line(4) # Bar 1.1
-		row = list.get_row_from_iter(iter)
-		list.update_checkbox(row, UNCHECKED_BOX)
+		row = list.get_row_at_line(4) # Bar 1.1
+		list.set_bullet(row, UNCHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
@@ -708,9 +765,8 @@ Tja
 		self.assertEqualDiff(tree.tostring(), wanted)
 
 		wantedpre1 = wanted
-		iter = buffer.get_iter_at_line(4) # Bar 1.1
-		row = list.get_row_from_iter(iter)
-		list.update_checkbox(row, CHECKED_BOX)
+		row = list.get_row_at_line(4) # Bar 1.1
+		list.set_bullet(row, CHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
@@ -728,8 +784,7 @@ Tja
 
 		# Test indenting / unindenting the whole list
 		wantedpre = wanted
-		iter = buffer.get_iter_at_line(1) # Foo
-		row = list.get_row_from_iter(iter)
+		row = list.get_row_at_line(1) # Foo
 		list.indent(row)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -877,6 +932,37 @@ class TestTextView(TestCase):
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqualDiff(tree.tostring(), wanted)
 
+		# selection + * to toggle bullets
+		start = buffer.get_iter_at_line(1) # before foo
+		end = buffer.get_iter_at_line(4) # empty line !
+		buffer.select_range(start, end)
+		press(view, '*')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+foo
+<div indent="1">duss
+<link href="CamelCase">CamelCase</link>
+</div>
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		start = buffer.get_iter_at_line(1) # before foo
+		end = buffer.get_iter_at_line(4) # empty line !
+		buffer.select_range(start, end)
+		press(view, '*')
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+<li bullet="*" indent="0"> foo</li>
+<li bullet="*" indent="1"> duss</li>
+<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
 		iter = buffer.get_iter_at_line(1)
 		iter.forward_to_line_end() # behind "foo"
 		buffer.place_cursor(iter)
@@ -898,3 +984,120 @@ class TestTextView(TestCase):
 		# TODO checkboxes
 		# TODO Auto formatting of various link types
 		# TODO enter on link, before link, after link
+
+
+class TestPageviewDialogs(TestCase):
+
+	def runTest(self):
+		'''Test input/output of various pageview dialogs'''
+		## Insert Date dialog
+		ui = MockUI()
+		buffer = MockBuffer()
+		ui.notebook.mock_method('suggest_link', Path(':suggested_link'))
+
+		dialog = InsertDateDialog(ui, buffer)
+		dialog.linkbutton.set_active(False)
+		dialog.view.get_selection().select_path((0,))
+		dialog.assert_response_ok()
+		self.assertEqual(buffer.mock_calls[-1][0], 'insert_at_cursor')
+
+		dialog = InsertDateDialog(ui, buffer)
+		dialog.linkbutton.set_active(True)
+		dialog.view.get_selection().select_path((0,))
+		dialog.assert_response_ok()
+		self.assertEqual(buffer.mock_calls[-1][0], 'insert_link_at_cursor')
+
+		## Insert Image dialog
+		ui = MockUI()
+		buffer = MockBuffer()
+		file = File('data/zim.png')
+		dialog = InsertImageDialog(ui, buffer, Path(':some_page'), file)
+		self.assertTrue(dialog.filechooser.get_preview_widget_active())
+		#~ self.assertEqual(dialog.get_file(), file)
+		#~ dialog.assert_response_ok()
+		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_image_at_cursor')
+
+		## Edit Image dialog
+		ui = MockUI()
+		file = File('data/zim.png')
+		ui.notebook.mock_method('resolve_file', file)
+		buffer = TextBuffer()
+		buffer.insert_image_at_cursor(file, file.uri)
+		dialog = EditImageDialog(ui, buffer, Path(':some_page'))
+		self.assertEqual(dialog.form['width'], 48)
+		self.assertEqual(dialog.form['height'], 48)
+		dialog.form['width'] = 100
+		self.assertEqual(dialog.form['width'], 100)
+		self.assertEqual(dialog.form['height'], 100)
+		dialog.reset_dimensions()
+		self.assertEqual(dialog.form['width'], 48)
+		self.assertEqual(dialog.form['height'], 48)
+		dialog.form['height'] = 24
+		self.assertEqual(dialog.form['width'], 24)
+		self.assertEqual(dialog.form['height'], 24)
+		dialog.assert_response_ok()
+		iter = buffer.get_iter_at_offset(0)
+		self.assertEqual(buffer.get_image_data(iter), {
+			'src': file.uri,
+			'_src_file': file,
+			'height': 24,
+		})
+
+		## Insert text from file dialog
+		ui = MockUI()
+		buffer = MockBuffer()
+		dialog = InsertTextFromFileDialog(ui, buffer)
+		#~ dialog.set_file()
+		#~ dialog.assert_response_ok()
+		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_parsetree_at_cursor')
+
+		## Insert Link dialog
+		ui = MockUI()
+		ui.notebook.index = MockObject()
+		ui.notebook.index.mock_method('list_pages', [])
+		pageview = MockObject()
+		pageview.page = Path('Test:foo:bar')
+		textview = TextView({})
+		pageview.view = textview
+		dialog = InsertLinkDialog(ui, pageview)
+		dialog.form.widgets['href'].set_text('Foo')
+		dialog.assert_response_ok()
+		buffer = textview.get_buffer()
+		self.assertEqual(buffer.get_text(*buffer.get_bounds()), 'Foo')
+
+		## Find And Replace dialog
+		ui = MockUI()
+		textview = TextView({})
+		buffer = textview.get_buffer()
+		buffer.set_text('''\
+foo bar foooobar
+foo bar bazzz baz
+''')
+		dialog = FindAndReplaceDialog(ui, textview)
+		dialog.find_entry.set_text('foo')
+		dialog.replace_entry.set_text('dus')
+		dialog.word_option_checkbox.set_active(True)
+		dialog.replace()
+		dialog.replace_all()
+		self.assertEqual(buffer.get_text(*buffer.get_bounds()), '''\
+dus bar foooobar
+dus bar bazzz baz
+''')
+
+		## Word Count dialog
+		pageview = MockObject()
+		pageview.view = textview
+		pageview.ui = MockUI()
+		dialog = WordCountDialog(pageview)
+		dialog.destroy() # nothing to test really
+
+
+class MockUI(MockObject):
+
+	def __init__(self):
+		self.mainwindow = None
+		self.notebook = MockObject()
+
+
+class MockBuffer(MockObject):
+	pass

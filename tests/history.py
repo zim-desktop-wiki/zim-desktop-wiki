@@ -7,7 +7,7 @@
 from tests import TestCase, get_test_notebook
 
 import zim.history
-from zim.history import History, HistoryRecord
+from zim.history import History, HistoryPath
 from zim.notebook import Path
 from zim.config import ConfigDict
 
@@ -22,7 +22,7 @@ class TestHistory(TestCase):
 
 	def _assertCurrent(self, history, page):
 		current = history.get_current()
-		self.assertTrue(isinstance(current, HistoryRecord))
+		self.assertTrue(isinstance(current, HistoryPath))
 		self.assertEqual(current.name, page.name)
 
 	def testLinear(self):
@@ -32,6 +32,7 @@ class TestHistory(TestCase):
 		for page in self.pages:
 			history.append(page)
 		self.assertEqual(len(history.history), len(self.pages))
+		self.assertEqual(history.current, len(self.pages) - 1)
 
 		self._assertCurrent(history, self.pages[-1])
 
@@ -62,6 +63,34 @@ class TestHistory(TestCase):
 		self._assertCurrent(history, self.pages[-1])
 		self.assertTrue(history.get_next() is None)
 		self.assertTrue(history.get_current().is_last)
+
+		# Add page multiple times
+		i = len(history.history)
+		path = Path(history.history[-1].name)
+		for j in range(5):
+			history.append(path)
+		self.assertEqual(len(history.history), i)
+		self.assertEqual(history.current, i - 1)
+
+		# Test dropping forward stack
+		path1 = history.history[10]
+		path2 = history.history[-1]
+		history.set_current(path1)
+		self.assertEqual(history.current, 10)
+		self.assertEqual(len(history.history), len(self.pages))
+
+		history.append(path2)
+		self.assertEqual(history.current, 11)
+		self.assertEqual(len(history.history), 12)
+
+		# Test max entries
+		old = zim.history.MAX_HISTORY
+		zim.history.MAX_HISTORY = 3
+		for page in self.pages:
+			history.append(page)
+		zim.history.MAX_HISTORY = old
+
+		self.assertEqual(len(history.history), 3)
 
 	def testUnique(self):
 		'''Get recent pages from history'''
@@ -101,32 +130,62 @@ class TestHistory(TestCase):
 		self.assertEqual(history.get_child(Path('Test')), Path('Test:wiki'))
 		self.assertEqual(history.get_grandchild(Path('Test')), Path('Test:wiki'))
 
+	def testMovePage(self):
+		'''Test history is updated for moved pages'''
+		history = History(self.notebook)
+		for page in self.pages:
+			history.append(page)
+
+		self.assertTrue(Path('Test:wiki') in history.history)
+
+		history._on_page_moved(Path('Test'), Path('New'), False)
+		self.assertFalse(Path('Test:wiki') in history.history)
+		self.assertTrue(Path('New:wiki') in history.history)
+
+		history._on_page_moved(Path('New'), Path('Test'), False)
+		self.assertFalse(Path('New:wiki') in history.history)
+		self.assertTrue(Path('Test:wiki') in history.history)
+
+		self.assertEqual(history.history, self.pages)
+
 	def testDeletedNotInUnique(self):
 		'''Test if deleted pages and their children show up in unique history list'''
 		history = History(self.notebook)
 		for page in self.pages:
 			history.append(page)
 		for page in self.pages:
-			history.append(page)	
-			
+			history.append(page)
+
+		self.assertEqual(len(history.history), 2 * len(self.pages))
+
 		uniques = list(history.get_unique())
 		self.assertEqual(len(uniques), len(self.pages))
-		
+
 		history._on_page_deleted(self.pages[0])
 		uniques = list(history.get_unique())
 		self.assertTrue(len(uniques) < len(self.pages))
-		
+		i = len(uniques)
+
 		history._on_page_stored(self.pages[0])
 		uniques = list(history.get_unique())
-		self.assertEqual(len(uniques), len(self.pages))
-		
+		self.assertEqual(len(uniques), i + 1)
+			# Not same as len(self.pages) because of deleted children
+
 		for page in self.pages:
 			history._on_page_deleted(page)
 		uniques = list(history.get_unique())
 		self.assertEqual(len(uniques), 0)
-		self.assertTrue(len(list(history.get_history())) > 0)		
 
-		
+		self.assertEqual(
+			len(list(history.get_history())),
+			2 * len(self.pages)  )
+
+		for page in self.pages:
+			history._on_page_stored(page)
+		uniques = list(history.get_unique())
+		self.assertEqual(len(uniques), len(self.pages))
+
+
 	def testSerialize(self):
 		'''Test parsing the history from the state file'''
 		uistate = ConfigDict()

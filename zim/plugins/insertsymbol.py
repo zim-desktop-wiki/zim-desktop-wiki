@@ -6,7 +6,7 @@ import gtk
 import logging
 
 from zim.plugins import PluginClass
-from zim.gui.widgets import Dialog, Button
+from zim.gui.widgets import Dialog, Button, InputEntry
 from zim.config import config_file
 
 
@@ -111,7 +111,7 @@ class InsertSymbolDialog(Dialog):
 			defaultwindowsize=(350, 400) )
 		self.plugin = plugin
 
-		self.textentry = gtk.Entry()
+		self.textentry = InputEntry()
 		self.vbox.pack_start(self.textentry, False)
 
 		# TODO make this iconview single-click
@@ -180,7 +180,6 @@ class InsertSymbolDialog(Dialog):
 
 	def do_response_ok(self):
 		text = self.textentry.get_text()
-		text = text.decode('utf-8')
 		textview = self.plugin.pageview.view
 		buffer = textview.get_buffer()
 		buffer.insert_at_cursor(text)

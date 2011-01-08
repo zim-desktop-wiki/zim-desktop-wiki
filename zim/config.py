@@ -19,7 +19,7 @@ if sys.version_info >= (2, 6):
 else:
 	import simplejson as json # extra dependency
 
-from zim.fs import isfile, isdir, Dir, FileNotFoundError
+from zim.fs import isfile, isdir, File, Dir, FileNotFoundError
 from zim.errors import Error
 from zim.parsing import TextBuffer, split_quoted_strings
 
@@ -291,6 +291,12 @@ class ListDict(dict):
 		self.order = []
 		self._modified = False
 
+	def copy(self):
+		'''Shallow copy'''
+		new = self.__class__()
+		new.update(self)
+		return new
+
 	@property
 	def modified(self):
 		'''Recursive property'''
@@ -500,9 +506,8 @@ class ConfigDict(ListDict):
 		elif value is True: return 'True'
 		elif value is False: return 'False'
 		elif value is None: return 'None'
-		elif isinstance(value, object) and value.__class__.__name__.endswith('Path'):
-			# Hack to avoid importing Path here to test isinstance
-			return value.name
+		elif hasattr(value, 'serialize_zim_config'):
+			return value.serialize_zim_config()
 		else:
 			return json.dumps(value, separators=(',',':'))
 				# specify separators for compact encoding

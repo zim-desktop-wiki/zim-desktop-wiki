@@ -17,14 +17,15 @@ class PropertiesDialog(Dialog):
 		fields = []
 		config = self.ui.notebook.config['Notebook']
 		for name, type, label in self.ui.notebook.properties:
-			fields.append((name, type, label, config[name]))
-		self.add_fields(fields)
+			fields.append((name, type, label))
+		self.add_form(fields, values=config)
 		if self.ui.readonly:
-			for widget in self.inputs.values():
+			for widget in self.form.widgets.values():
 				widget.set_sensitive(False)
 
 	def do_response_ok(self):
 		if not self.ui.readonly:
-			properties = self.get_fields()
+			properties = self.form.copy()
+			print properties
 			self.ui.notebook.save_properties(**properties)
 		return True

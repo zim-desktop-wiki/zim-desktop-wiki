@@ -11,6 +11,7 @@ from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
 	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL
 from zim.index import IndexPath, IndexTag
 from zim.gui.clipboard import INTERNAL_PAGELIST_TARGET_NAME, pack_urilist
+from zim.gui.widgets import LEFT_PANE
 
 
 logger = logging.getLogger('zim.plugins.tagtree')
@@ -355,9 +356,8 @@ This plugin provides a tree-view based on the tags contained on a page.
 
 	def connect_embedded_widget(self):
 		if not self.sidepane_widget:
-			sidepane = self.ui.mainwindow.sidepane
 			self.sidepane_widget = TagTreePluginWidget(self)
-			sidepane.append_page(self.sidepane_widget, None)
+			self.ui.mainwindow.add_tab(_('Tags'), self.sidepane_widget, LEFT_PANE)
 			self.sidepane_widget.show_all()
 
 	def disconnect_embedded_widget(self):
@@ -367,3 +367,6 @@ This plugin provides a tree-view based on the tags contained on a page.
 			if not pagenum is None: 
 				sidepane.remove_page(pagenum)
 			self.sidepane_widget = None
+
+# vim: autoindent noexpandtab shiftwidth=4 tabstop=4
+

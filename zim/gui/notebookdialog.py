@@ -15,7 +15,7 @@ import pango
 import logging
 
 from zim.fs import *
-from zim.notebook import get_notebook_list, init_notebook
+from zim.notebook import get_notebook_list, init_notebook, Notebook
 from zim.config import data_file
 from zim.gui.widgets import ui_environment, Dialog, IconButton
 
@@ -23,9 +23,11 @@ from zim.gui.widgets import ui_environment, Dialog, IconButton
 logger = logging.getLogger('zim.gui.notebookdialog')
 
 
-OPEN_COL = 0  # column with boolean if notebook is open alreadys
-NAME_COL = 1  # column with notebook name
-PATH_COL = 2  # column with the directory path
+OPEN_COL = 0   # column with boolean if notebook is open alreadys
+NAME_COL = 1   # column with notebook name
+PATH_COL = 2   # column with the directory path
+TEXT_COL = 3   # column with a formatted containing name and path
+PIXBUF_COL = 4 # column containing the notebook icon
 
 
 def prompt_notebook():
@@ -52,11 +54,13 @@ def prompt_notebook():
 
 class NotebookTreeModel(gtk.ListStore):
 	'''TreeModel that wraps a notebook list given as a ConfigList.
-	It exposes 3 columns:
+	It exposes 5 columns:
 
 		* bool, True is the notebook is opened already
 		* str, name of the notebook
 		* str, dir path of the notebook
+		* str, formatted string containg the name and path
+		* gtk.gdk.Pixbuf, the icon of the notebook
 
 	To get the correct column numbers the constants OPEN_COL, NAME_COL and
 	PATH_COL are avaialble.
@@ -66,7 +70,8 @@ class NotebookTreeModel(gtk.ListStore):
 		'''Constructor. If "notebooklist" is None, the default list as
 		provided by zim.notebook.get_notebook_list() is used.
 		'''
-		gtk.ListStore.__init__(self, bool, str, str) # OPEN_COL, NAME_COL, PATH_COL
+		gtk.ListStore.__init__(self, bool, str, str, str, gtk.gdk.Pixbuf)
+			# OPEN_COL, NAME_COL, PATH_COL TEXT_COL PIXBUF_COL
 
 		if notebooklist is None:
 			self.notebooklist = get_notebook_list()
@@ -74,8 +79,16 @@ class NotebookTreeModel(gtk.ListStore):
 			self.notebooklist = notebooklist
 
 		self._loading = True
+		w, h = gtk.icon_size_lookup(gtk.ICON_SIZE_MENU)
 		for name, path in self.notebooklist.get_names():
-			self.append((False, name, path))
+			text = self.get_notebook_pango(name, path)
+			notebook = Notebook(dir=Dir(path))
+			if notebook.icon and File(notebook.icon).exists():
+					pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(notebook.icon, w, h)
+			else:
+				# TODO: how to get zims default icon?
+				pixbuf = None
+			self.append((False, name, path, text, pixbuf))
 		self._loading = False
 
 	def get_iter_for_notebook(self, uri):
@@ -96,7 +109,8 @@ class NotebookTreeModel(gtk.ListStore):
 		self.notebooklist.append(uri)
 		if name is None:
 			name = self.notebooklist.get_name(uri)
-		self.append((False, name, uri))
+		text = self.get_notebook_pango(name, uri)
+		self.append((False, name, uri, text, None))
 		self.write()
 		return len(self) - 1 # iter
 
@@ -127,6 +141,13 @@ class NotebookTreeModel(gtk.ListStore):
 		self.notebooklist[:] = uris
 		self.notebooklist.write()
 
+	def get_notebook_pango(self, name, path):
+		from zim.gui.widgets import _encode_xml
+		text = '<b>%s</b>\n<span foreground="#5a5a5a" size="small">%s: %s</span>' % \
+				(_encode_xml(name), _('Folder'), _encode_xml(path.replace('file://', '')))
+				# T: Path label in 'open notebook' dialog
+		return text
+
 
 class NotebookTreeView(gtk.TreeView):
 
@@ -139,12 +160,21 @@ class NotebookTreeView(gtk.TreeView):
 		self.set_rules_hint(True)
 		self.set_reorderable(True)
 
+		cell_renderer = gtk.CellRendererPixbuf()
+		column = gtk.TreeViewColumn(None, cell_renderer, pixbuf=PIXBUF_COL)
+		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		w, h = gtk.icon_size_lookup(gtk.ICON_SIZE_MENU)
+		column.set_fixed_width(w*2)
+		self.append_column(column)
+
 		cell_renderer = gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
-		column = gtk.TreeViewColumn(_('Notebook'), cell_renderer, text=NAME_COL)
+		cell_renderer.set_fixed_height_from_font(2)
+		column = gtk.TreeViewColumn(_('Notebook'), cell_renderer, markup=TEXT_COL)
 			# T: Column heading in 'open notebook' dialog
 		column.set_sort_column_id(NAME_COL)
 		self.append_column(column)
+
 
 
 class NotebookComboBox(gtk.ComboBox):
@@ -348,16 +378,21 @@ class AddNotebookDialog(Dialog):
 		label = gtk.Label(_('Please select a name and a folder for the notebook.')) # T: Label in Add Notebook dialog
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
+
 		if name is None and folder is None:
 			name = 'Notes'
 			if ui_environment['platform'] == 'maemo':
 				folder = '~/MyDocs/Notes' # 'MyDocs' is the "Device" folder on maemo
 			else:
 				folder = '~/Notes'
-		self.add_fields((
-			('name', 'string', _('Name'), name), # T: input field in 'Add Notebook' dialog
-			('folder', 'dir', _('Folder'), folder), # T: input field in 'Add Notebook' dialog
-		))
+
+		self.add_form((
+			('name', 'string', _('Name')), # T: input field in 'Add Notebook' dialog
+			('folder', 'dir', _('Folder')), # T: input field in 'Add Notebook' dialog
+		), {
+			'name': name,
+			'folder': folder,
+		} )
 
 		self.add_help_text('''\
 To create a new notebook you need to select an empty folder.
@@ -365,8 +400,8 @@ Of course you can also select an existing zim notebook folder.
 ''') # T: help text in the 'Add Notebook' dialog
 
 	def do_response_ok(self):
-		name = self.get_field('name')
-		folder = self.get_field('folder')
+		name = self.form['name']
+		folder = self.form['folder']
 		if name and folder:
 			self.result = {'name': name, 'folder': folder}
 			return True

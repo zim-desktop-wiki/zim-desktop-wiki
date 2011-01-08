@@ -4,6 +4,8 @@
 # License:  same as zim (gpl)
 #
 # ChangeLog
+# 2011-01-02 Fixed use of uistate and updated for new framework to add to the mainwindow (Jaap)
+# 2010-11-14 Fixed Bug 664551
 # 2010-08-31 freedesktop.org thumnail spec mostly implemented
 # 2010-06-29 1st working version
 #
@@ -28,7 +30,7 @@
 # [ ] use mimtype and extension
 # [*] rethumb broken (e.g. shutdown while thumbnailing)
 # [ ] code cleanup
-# [ ] new gui concept for zim : sidepane r/l,bottom- and top pane both with tabs (see gedit)
+# [*] new gui concept for zim : sidepane r/l,bottom- and top pane both with tabs (see gedit)
 # [ ] show file infos in tooltip (size, camera,... what else?)
 # [*] update icon when thumbnail is ready
 # [ ] mimi-type specific icons
@@ -71,8 +73,7 @@ from zim.async import AsyncOperation, AsyncLock
 
 
 from zim.plugins import PluginClass
-from zim.gui import Dialog
-from zim.gui.widgets import Button
+from zim.gui.widgets import Button, BOTTOM_PANE
 from zim.notebook import Path
 from zim.stores import encode_filename
 from zim.fs import *
@@ -84,7 +85,7 @@ from zim.gui.applications import OpenWithMenu
 
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
-	('toggle_fileview', gtk.STOCK_MISSING_IMAGE, _('AttachmentBrowser'),  '', 'Show Attachment Folder',False, True), # T: menu item
+	('toggle_fileview', gtk.STOCK_OPEN, _('AttachmentBrowser'),  '', 'Show Attachment Folder',False, True), # T: menu item
 )
 
 
@@ -163,84 +164,58 @@ This plugin is still under development.
 	def check_dependencies(klass):
 		return [("ImageMagick",Application(('convert',None)).tryexec())]
 
-
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		self.bottompane_widget = None
-		self.scrollpane = None
+	def initialize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
+			self.widget = AttachmentBrowserPluginWidget(self)
+
+			self.window = gtk.ScrolledWindow()
+			self.window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+			self.window.add_with_viewport(self.widget)
+
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			#self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
-		self.ui.connect_after('open-notebook', self.do_open_notebook)
 
-
-	def do_open_notebook(self, ui, notebook):
-		self.do_preferences_changed()
-		#notebook.register_hook('suggest_link', self.suggest_link)
-
-
-	def disconnect(self):
-		PluginClass.disconnect(self)
-
-
-	def add_to_mainwindow(self):
-		bottompane = self.ui.mainwindow.pageview.get_parent()
-		if self.bottompane_widget is None:
-			self.bottompane_widget = AttachmentBrowserPluginWidget(self)
-			self.scrollpane=gtk.ScrolledWindow()
-			self.scrollpane.set_size_request(-1,THUMB_SIZE_NORMAL+32)
-			self.scrollpane.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-			self.scrollpane.add_with_viewport(self.bottompane_widget)
-			bottompane.pack_end(self.scrollpane, False)
-		#bottompane.pack_end(self.bottompane_widget, False)
-
-		#bottompane.reorder_child(self.bottompane_widget, 0)
-		self.handlerID_do_open_notebook=self.ui.connect_after('open-notebook', self.do_open_notebook)
-		#self.bottompane_widget.show_all()
-		self.scrollpane.show_all()
-
-
-	def remove_from_mainwindow(self):
-		if self.bottompane_widget is not None:
-			#doesnt work:? self.ui.disconnect(self.handlerID_do_open_notebook)
-			self.scrollpane.hide_all()
-
-
-	def do_preferences_changed(self):
-		#print self.preferences['icon_size']
-
-		# bug?
-		#
-		# self.preferences['icon_size'] is integer after  changeing it
-		# but must be (min,val,max) for the dialog, which is strange
-
-		self.add_to_mainwindow()
-
+	def finalize_ui(self, ui):
+		if self.ui.ui_type == 'gtk':
+			self.widget.on_open_page(self.ui, self.ui.page, self.ui.page)
+			self.uistate.setdefault('active', True)
+			self.toggle_fileview(enable=self.uistate['active'])
 
 	def toggle_fileview(self, enable=None):
-		action = self.actiongroup.get_action('toggle_fileview')
-		if enable is None or enable != action.get_active():
-			action.activate()
-		else:
-			self.do_toggle_fileview(enable=enable)
-
+		self.toggle_action('toggle_fileview', active=enable)
 
 	def do_toggle_fileview(self, enable=None):
 		#~ print 'do_toggle_fileview', enable
 		if enable is None:
 			action = self.actiongroup.get_action('toggle_fileview')
 			enable = action.get_active()
+
 		if enable:
-			# print "enabled"
-			self.add_to_mainwindow()
+			if not self.window.get_property('visible'):
+				self.ui.mainwindow.add_tab(_('Attachments'), self.window, BOTTOM_PANE)
+				self.window.show_all()
+				self.widget.refresh()
+			self.uistate['active'] = True
 		else:
-			# print "disabled"
-			self.remove_from_mainwindow()
-		self.uistate['active'] = enable
-		return False # we can be called from idle event
+			if self.window.get_property('visible'):
+				self.window.hide_all()
+				self.ui.mainwindow.remove(self.window)
+			self.uistate['active'] = False
 
+	def disconnect(self):
+		self.do_toggle_fileview(enable=False)
 
+		PluginClass.disconnect(self)
+
+	#~ def do_preferences_changed(self):
+		#~ print "do_preferences_changed"
+		#print self.preferences['icon_size']
+
+		# bug?
+		#
+		# self.preferences['icon_size'] is integer after  changeing it
+		# but must be (min,val,max) for the dialog, which is strange
 
 
 class Fileview(gtk.IconView):
@@ -556,6 +531,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 	}
 	def __init__(self, plugin):
 		gtk.HBox.__init__(self)
+		self.path=None
 		self.plugin = plugin
 		self.thumbman = ThumbnailManager()
 		self.fileview = Fileview()
@@ -594,23 +570,30 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 				return True
 		return False
 
+	def set_current_folder(self, path):
+		print "set_current_folder", path
+		self.clear()
+		self.path = path
 
-	def set_current_folder(self,path):
+		if self.get_property('visible'):
+			self.refresh()
+
+	def clear(self):
 		self.store.clear()
 		self.thumbman.clear()
-		if not os.path.isdir(path):
-			# TODO maybe hide myself
-			# FIXME: ugly hack
-			if (self.plugin.uistate['active']):
-				self.plugin.remove_from_mainwindow()
-			return
-		if (self.plugin.uistate['active'] ):
-			self.plugin.add_to_mainwindow()
+		self.path = None
 
-		filelist = os.listdir(path)
+	def refresh(self):
+		if self.path is None \
+		or not os.path.isdir(self.path):
+			# Show empty view
+			self.clear()
+			return
+
+		filelist = os.listdir(self.path)
 		for filename in filelist:
 			#	self.textbuffer.insert_at_cursor(filename+'\n')
-			filenameabs=path+os.sep+filename
+			filenameabs=self.path+os.sep+filename
 			# only for existing files
 			# and not for blocked
 			if os.path.isfile(filenameabs) and filename[0]!='.': #.encode('utf-8')):
@@ -618,7 +601,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 				# TODO: icon by mime-type
 				pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE,gtk.ICON_SIZE_DIALOG)
 				# TODO: thumbman with callback
-				listelement=self.store.append( [filename,pixbuf,path] )
+				listelement=self.store.append( [filename,pixbuf,self.path] )
 				pixbuf=self.thumbman.get_thumbnail(filenameabs,THUMB_SIZE_NORMAL,self.set_thumb,listelement)
 				if pixbuf is not None:
 					self.set_thumb(listelement,pixbuf)
