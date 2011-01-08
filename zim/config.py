@@ -332,9 +332,13 @@ class ListDict(dict):
 		dict.__delitem__(self, k)
 		self.order.remove(k)
 
+	def __iter__(self):
+		return iter(self.order)
+
 	def pop(self, k):
 		v = dict.pop(self, k)
 		self.order.remove(k)
+		return v
 
 	# Would expect that setdefault() triggers __setitem__
 	# but this seems not to be the case in the standard implementation
@@ -415,14 +419,14 @@ class ListDict(dict):
 		return self.order[:]
 
 	def items(self):
-		return map(lambda k: (k, self[k]), self.order)
+		return tuple(map(lambda k: (k, self[k]), self.order))
 
 	def set_order(self, order):
 		'''Change the order in which items are listed by setting a list
 		of keys. Keys not in the list are moved to the end. Keys that are in
 		the list but not in the dict will be ignored.
 		'''
-		order = order[:] # copy
+		order = list(order[:]) # copy and convert
 		oldorder = set(self.order)
 		neworder = set(order)
 		for k in neworder - oldorder: # keys not in the dict

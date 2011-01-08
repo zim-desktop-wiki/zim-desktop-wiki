@@ -590,6 +590,9 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			self.clear()
 			return
 
+		self.store.clear()
+		self.thumbman.clear()
+
 		filelist = os.listdir(self.path)
 		for filename in filelist:
 			#	self.textbuffer.insert_at_cursor(filename+'\n')

@@ -155,8 +155,8 @@ class WWWInterface(NotebookInterface):
 				path = '/'
 			elif path == '/favicon.ico':
 				path = '/+icons/favicon.ico'
-			elif path.startswith('/%2B'):
-				path = '/+' + path[4:] # HACK, very local decoding
+			else:
+			    path = urllib.unquote(path)
 
 			if self.notebook is None:
 				raise NoConfigError
@@ -198,7 +198,6 @@ class WWWInterface(NotebookInterface):
 				else:
 					raise PageNotFoundError(path)
 
-				pagename = urllib.unquote(pagename)
 				path = self.notebook.resolve_path(pagename)
 				page = self.notebook.get_page(path)
 				if page.hascontent:
@@ -214,7 +213,7 @@ class WWWInterface(NotebookInterface):
 			if isinstance(error, (WWWError, FileNotFoundError)):
 				logger.error(error.msg)
 				if isinstance(error, FileNotFoundError):
-					error = PageNotFound(path)
+					error = PageNotFoundError(path)
 					# show url path instead of file path
 				if error.headers:
 					header.extend(error.headers)

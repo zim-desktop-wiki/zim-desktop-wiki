@@ -251,8 +251,8 @@ def _sync_widget_state(widget, subject, check_active=False):
 
 def input_table_factory(inputs, table=None):
 	'''Takes a list of inputs and returns a table with nice layout
-	for those inputs. Inputs in the list given should be either a
-	gtk widget or a tuple of a string and one or more widgets.
+	for those inputs. Inputs in the list given should be either 'None',
+	a gtk widget, or a tuple of a string and one or more widgets.
 	If a tuple is given and the first item is 'None', the widget
 	will be lined out in the 2nd column. A 'None' value in the input
 	list represents an empty row in the table.
@@ -269,22 +269,30 @@ def input_table_factory(inputs, table=None):
 
 	for input in inputs:
 		if input is None:
-			table.attach(gtk.Label(' '), 0,2, i,i+1, xoptions=gtk.FILL)
+			table.attach(gtk.Label(' '), 0,1, i,i+1, xoptions=gtk.FILL)
 			# HACK: force empty row to have height of label
 		elif isinstance(input, tuple):
 			text = input[0]
-			if not text is None:
+			if text:
 				label = gtk.Label(text + ':')
 				label.set_alignment(0.0, 0.5)
-				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
-				_sync_widget_state(input[1], label)
+			else:
+				label = gtk.Label(' '*4) # minimum label width
+
+			table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
+			_sync_widget_state(input[1], label)
+
 			for j, widget in enumerate(input[1:]):
-				table.attach(widget, j+1,j+2, i,i+1)
+				table.attach(widget, j+1,j+2, i,i+1, xoptions=gtk.FILL)
 				if j > 0:
 					_sync_widget_state(input[1], widget)
 		else:
 			widget = input
-			table.attach(widget, 0,2, i,i+1)
+			table.attach(widget, 0,4, i,i+1)
+				# We span 4 columns here so in case these widgets are
+				# the widest in the tables (e.g. checkbox + label)
+				# they don't force expanded size on first 3 columns
+				# (e.g. label + entry + button).
 		i += 1
 
 	return table
@@ -1141,9 +1149,8 @@ class PageEntry(InputEntry):
 		self.force_existing = False
 		self._completing = ''
 
-		self.completion_model = gtk.ListStore(str)
 		completion = gtk.EntryCompletion()
-		completion.set_model(self.completion_model)
+		completion.set_model(gtk.ListStore(str))
 		completion.set_text_column(0)
 		completion.set_inline_completion(True)
 		self.set_completion(completion)
@@ -1252,7 +1259,9 @@ class PageEntry(InputEntry):
 		self._completing = completing
 
 		# Else fill model with pages from namespace
-		self.completion_model.clear()
+		completion = self.get_completion()
+		model = completion.get_model()
+		model.clear()
 
 		if completing == ':':
 			path = Path(':')
@@ -1265,7 +1274,9 @@ class PageEntry(InputEntry):
 		# TODO also add parent namespaces in case text did not contain any ':' (anchored == False)
 		#~ print '!! COMPLETING %s context: %s prefix: %s' % (path, self.path_context, prefix)
 		for p in self.notebook.index.list_pages(path):
-			self.completion_model.append((prefix+p.basename,))
+			model.append((prefix+p.basename,))
+
+		completion.complete()
 
 
 class NamespaceEntry(PageEntry):

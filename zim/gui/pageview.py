@@ -3668,7 +3668,7 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 
 		if not buffer.get_has_selection() \
-		or not buffer.iter_in_selection(iter):
+		or (iter and not buffer.iter_in_selection(iter)):
 			if iter:
 				buffer.place_cursor(iter)
 			buffer.select_link()

@@ -274,10 +274,10 @@ def report_coverage(coverage):
 	total_stat = reduce(int.__add__, [r[2] for r in index])
 	total_exec = reduce(int.__add__, [r[3] for r in index])
 	total_perc = int( float(total_exec) / total_stat * 100 )
-	if percentage >= 90: type = 'good'
-	elif percentage >= 80: type = 'close'
-	elif percentage >= 60: type = 'ontrack'
-	elif percentage >= 40: type = 'lacking'
+	if total_perc >= 90: type = 'good'
+	elif total_perc >= 80: type = 'close'
+	elif total_perc >= 60: type = 'ontrack'
+	elif total_perc >= 40: type = 'lacking'
 	else: type = 'bad'
 	html.write('<tr><td><b>Total</b></td>'
 		       '<td class="int">%i</td><td class="int">%i</td>'

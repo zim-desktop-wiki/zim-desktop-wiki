@@ -22,6 +22,7 @@ __all__ = [
 	'export', 'www', 'search',
 	'widgets', 'gui', 'pageview',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
+	'tasklist',
 	'equationeditor', 'diagrameditor',
 ]
 
