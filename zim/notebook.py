@@ -110,6 +110,15 @@ class NotebookList(TextConfigFile):
 		lines = [line + '\n' for line in lines]
 		self.file.writelines(lines)
 
+	def get_default(self):
+		'''Returns uri for the default notebook'''
+		if self.default:
+			return self.default
+		elif len(self) == 1:
+			return self[0]
+		else:
+			return None
+
 	def get_names(self):
 		'''Generator function that yield tuples with the notebook
 		name and the notebook path.
@@ -120,6 +129,7 @@ class NotebookList(TextConfigFile):
 				yield (name, path)
 
 	def get_name(self, uri):
+		'''Find the name for the notebook at 'uri' '''
 		# TODO support for paths that turn out to be files
 		file = Dir(uri).file('notebook.zim')
 		if file.exists():
@@ -129,6 +139,7 @@ class NotebookList(TextConfigFile):
 		return None
 
 	def get_by_name(self, name):
+		'''Get the uri for a notebook'''
 		for n, path in self.get_names():
 			if n.lower() == name.lower():
 				return path
@@ -201,12 +212,7 @@ def resolve_default_notebook():
 	or for the only notebook if there is only a single notebook
 	in the list.
 	'''
-	default = None
-	list = get_notebook_list()
-	if list.default:
-		default = list.default
-	elif len(list) == 1:
-		default = list[0]
+	default = get_notebook_list().get_default()
 
 	if default:
 		if zim.fs.isfile(default):

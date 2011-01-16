@@ -3384,18 +3384,29 @@ class PageView(gtk.VBox):
 	def get_scroll_pos(self):
 		pass # FIXME get scroll position
 
-	def get_selection(self):
+	def get_selection(self, format=None):
+		'''Convenience method to get the current selection. If you
+		specify 'format' (e.g. 'wiki' or 'html') the returned text
+		is formatted.
+		'''
 		buffer = self.view.get_buffer()
 		bounds = buffer.get_selection_bounds()
 		if bounds:
-			return bounds[0].get_text(bounds[1])
+			if format:
+				tree = buffer.get_parsetree(bounds)
+				dumper = get_format(format).Dumper()
+				lines = dumper.dump(tree)
+				return ''.join(lines)
+			else:
+				return bounds[0].get_text(bounds[1])
 		else:
 			return None
 
-	def get_word(self):
+	def get_word(self, format=None):
+		'''Convenience method to get the word that is under the cursor'''
 		buffer = self.view.get_buffer()
 		buffer.select_word()
-		return self.get_selection()
+		return self.get_selection(format)
 
 	def register_image_generator_plugin(self, plugin, type):
 		assert not 'type' in self.image_generator_plugins, \

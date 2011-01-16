@@ -188,6 +188,7 @@ in the command when it is executed:
 <b>%n</b> the notebook location (file or folder)
 <b>%D</b> the document root (if any)
 <b>%t</b> the selected text or word under cursor
+<b>%T</b> the selected text including wiki formatting
 </tt>
 ''') ) # T: Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
 

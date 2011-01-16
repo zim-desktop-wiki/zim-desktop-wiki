@@ -11,6 +11,7 @@ from zim.fs import *
 from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
+from zim.config import ConfigDict
 
 
 class FilterNoSuchImageWarning(LoggingFilter):
@@ -986,6 +987,31 @@ foo
 		# TODO enter on link, before link, after link
 
 
+class TestPageView(TestCase):
+
+	def runTest(self):
+		PageView.actiongroup = MockObject() # use class attribute to fake ui init
+		PageView.actiongroup.mock_method('get_action', MockObject())
+
+		ui = MockUI()
+		ui.uimanager = MockObject()
+		ui.uimanager.mock_method('get_accel_group', MockObject())
+
+		pageview = PageView(ui)
+		buffer = pageview.view.get_buffer()
+		buffer.set_text('''\
+Foo bar
+Baz
+''')
+		iter = buffer.get_iter_at_offset(5)
+		buffer.place_cursor(iter)
+		self.assertEqual(pageview.get_word(), 'bar')
+		self.assertEqual(pageview.get_selection(), 'bar')
+		self.assertEqual(pageview.get_selection(format='wiki'), 'bar')
+
+		# TODO much more here
+
+
 class TestPageviewDialogs(TestCase):
 
 	def runTest(self):
@@ -1095,8 +1121,14 @@ dus bar bazzz baz
 class MockUI(MockObject):
 
 	def __init__(self):
+		MockObject.__init__(self)
 		self.mainwindow = None
 		self.notebook = MockObject()
+		self.preferences = ConfigDict()
+
+	def register_preferences(self, section, list):
+		for key, type, category, label, default in list:
+			self.preferences[section][key] = default
 
 
 class MockBuffer(MockObject):

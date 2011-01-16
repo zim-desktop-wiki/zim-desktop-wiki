@@ -832,7 +832,7 @@ class InputForm(gtk.Table):
 		'''Calls focus_next() or emits last-activated when last widget
 		was activated.
 		'''
-		if not self._focus_next(widget):
+		if not self._focus_next(widget, activatable=True):
 			self.emit('last-activated')
 
 	def focus_first(self):
@@ -847,7 +847,10 @@ class InputForm(gtk.Table):
 		else:
 			return False
 
-	def _focus_next(self, widget):
+	def _focus_next(self, widget, activatable=False):
+		# If 'activatable' is True we only focus widgets that have
+		# an 'activated' signal (mainly just TextEntries). This is used
+		# to fine tune the last-activated signal
 		if widget is None:
 			i = 0
 		else:
@@ -861,7 +864,11 @@ class InputForm(gtk.Table):
 		for k in self._widgets[i:]:
 			widget = self.widgets[k]
 			if widget.get_sensitive() \
-			and widget.get_property('visible'):
+			and widget.get_property('visible') \
+			and not (
+				activatable
+				and not isinstance(widget, (gtk.Entry, gtk.ComboBox))
+			):
 				widget.grab_focus()
 				return True
 		else:

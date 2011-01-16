@@ -595,6 +595,7 @@ class CustomToolDict(DesktopEntryDict):
 		%n for notebook location (file or directory)
 		%D for document root
 		%t for selected text or word under cursor
+		%T for the selected text including wiki formatting
 
 	Other additional keys are:
 		X-Zim-ReadOnly				boolean
@@ -697,6 +698,11 @@ class CustomToolDict(DesktopEntryDict):
 		if '%t' in cmd:
 			text = pageview.get_selection() or pageview.get_word()
 			cmd[cmd.index('%t')] = text or ''
+			# FIXME - need to substitute this in arguments + url encoding
+
+		if '%T' in cmd:
+			text = pageview.get_selection(format='wiki') or pageview.get_word(format='wiki')
+			cmd[cmd.index('%T')] = text or ''
 			# FIXME - need to substitute this in arguments + url encoding
 
 		return tuple(cmd)
