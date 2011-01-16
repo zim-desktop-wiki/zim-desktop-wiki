@@ -35,6 +35,7 @@ gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
 def set_environ():
 	tmpdir = './tests/tmp/'
 	os.environ.update({
+		'ZIM_TEST_RUNNING': 'True',
 		'TMP': tmpdir,
 		'XDG_DATA_HOME': './tests/tmp/data_home',
 		'XDG_DATA_DIRS': './tests/tmp/data_dir',

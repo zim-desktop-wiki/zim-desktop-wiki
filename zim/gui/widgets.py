@@ -26,6 +26,12 @@ from zim.parsing import link_type
 logger = logging.getLogger('zim.gui')
 
 
+if os.environ.get('ZIM_TEST_RUNNING'):
+	TEST_MODE = True
+else:
+	TEST_MODE = False
+
+
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVAL_LEFT = gtk.gdk.keyval_from_name('Left')
 KEYVAL_RIGHT = gtk.gdk.keyval_from_name('Right')
@@ -1719,7 +1725,8 @@ class Dialog(gtk.Dialog):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
 		logger.debug('Opening dialog "%s"', self.title)
 		register_window(self)
-		gtk.Dialog.show_all(self)
+		if not TEST_MODE:
+			gtk.Dialog.show_all(self)
 
 	def response_ok(self):
 		'''Trigger the response signal with an 'Ok' response type.'''
@@ -2135,7 +2142,8 @@ class ProgressBarDialog(gtk.Dialog):
 	def show_all(self):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
 		logger.debug('Opening ProgressBarDialog')
-		gtk.Dialog.show_all(self)
+		if not TEST_MODE:
+			gtk.Dialog.show_all(self)
 
 	def do_response(self, id):
 		'''Handles the response signal and calls the 'cancel' callback.'''

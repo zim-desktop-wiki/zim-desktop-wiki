@@ -12,19 +12,85 @@ class TestClipboard(TestCase):
 
 	def runTest(self):
 		'''Test clipboard interaction'''
-		from zim.gui.clipboard import Clipboard
+		from zim.gui.clipboard import *
 		clipboard = Clipboard()
 
+		# tree -> ..
 		notebook = get_test_notebook()
 		page = notebook.get_page(Path('Test:wiki'))
 		parsetree = page.get_parsetree()
+
 		clipboard.set_parsetree(notebook, page, parsetree)
 		newtree = clipboard.request_parsetree(None, block=True)
 		self.assertEqual(newtree.tostring(), parsetree.tostring())
 
+		import zim.formats
+		text = 'some **bold** text'
+		parsetree = zim.formats.get_format('plain').Parser().parse(text.decode('utf-8'))
+		clipboard.set_parsetree(notebook, page, parsetree)
+
+		wanted = 'some **bold** text\n'
+		text = clipboard.wait_for_text()
+		self.assertEqualDiff(text, wanted)
+
+		wanted = '''\
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<meta name="Description" content="Copy-Paste Buffer">
+<meta name="Generator" content="Zim">
+</head>
+<body>
+<p>
+some <strong>bold</strong> text<br>
+</p>
+
+</body>
+</html>
+'''
+		selection = clipboard.wait_for_contents('text/html')
+		self.assertEqualDiff(selection.data, wanted)
+
+		wanted = '''\
+Version:1.0\r
+StartHTML:000000185\r
+EndHTML:000000527\r
+StartFragment:000000450\r
+EndFragment:000000495\r
+StartSelection:000000450\r
+EndSelection:000000495\r
+SourceURL:zim://copy-pase-buffer\r
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"><HTML><HEAD><meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<meta name="Description" content="Copy-Paste Buffer">
+<meta name="Generator" content="Zim"></HEAD><BODY><!--StartFragment--><p>
+some <strong>bold</strong> text<br>
+</p>
+<!--EndFragment--></BODY></HTML>'''
+		selection = clipboard.wait_for_contents('HTML Format')
+		self.assertEqualDiff(selection.data, wanted)
+
+
+		# pagelink -> ..
+		clipboard.set_pagelink(notebook, page)
+
+		selection = clipboard.wait_for_contents(INTERNAL_PAGELIST_TARGET_NAME)
+		self.assertEqual(selection.data, 'Test:wiki\r\n')
+
+		selection = clipboard.wait_for_contents(PAGELIST_TARGET_NAME)
+		self.assertEqual(selection.data, 'Unnamed Notebook?Test:wiki\r\n')
+
 		wanted = '''\
 <?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="Test:wiki">Test:wiki</link></zim-tree>'''
-		clipboard.set_pagelink(notebook, page)
+		newtree = clipboard.request_parsetree(None, block=True)
+		self.assertEqual(newtree.tostring(), wanted)
+
+		text = clipboard.wait_for_text()
+		self.assertEqual(text, 'Test:wiki')
+
+		# text -> tree
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>some string</zim-tree>'''
+		clipboard.set_text('some string')
 		newtree = clipboard.request_parsetree(None, block=True)
 		self.assertEqual(newtree.tostring(), wanted)
 

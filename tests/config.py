@@ -212,6 +212,18 @@ none=None
 		self.assertEqual(conf['Bar'].setdefault('string', 'foo', allow_empty=True), '')
 		self.assertFalse(conf.modified)
 
+		conf['Bar']['string'] = ''
+		conf.set_modified(False)
+		self.assertEqual(conf['Bar'].setdefault('string', 'foo', check_class_allow_empty), '')
+		self.assertFalse(conf.modified)
+
+		conf['Bar']['string'] = 3
+		conf.set_modified(False)
+		with FilterInvalidConfigWarning():
+			self.assertEqual(conf['Bar'].setdefault('string', 'foo', check_class_allow_empty), 'foo')
+		self.assertTrue(conf.modified)
+
+
 	def testLookup(self):
 		'''Test lookup of config files'''
 		home = XDG_CONFIG_HOME.file('zim/preferences.conf')

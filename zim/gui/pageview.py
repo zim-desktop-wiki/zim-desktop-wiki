@@ -2147,7 +2147,6 @@ class TextView(gtk.TextView):
 		self.set_left_margin(10)
 		self.set_right_margin(5)
 		self.set_wrap_mode(gtk.WRAP_WORD)
-		self.set_pixels_above_lines(3) # para spacing - esp for bullet lists etc.
 		self.preferences = preferences
 		actions = gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE | gtk.gdk.ACTION_LINK
 		self.drag_dest_set(0, PARSETREE_ACCEPT_TARGETS, actions)
@@ -3167,10 +3166,10 @@ class PageView(gtk.VBox):
 		self.style['TextView'].setdefault('tabs', None, int)
 			# Don't set a default here as not to break pages that were
 			# created before this setting was introduced.
-		self.style['TextView'].setdefault('linespacing', None, int)
+		self.style['TextView'].setdefault('linespacing', 3)
 		self.style['TextView'].setdefault('font', None, basestring)
 		self.style['TextView'].setdefault('justify', None, basestring)
-		print self.style['TextView']
+		#~ print self.style['TextView']
 
 		TextBuffer.pixels_indent = self.style['TextView']['indent']
 

@@ -273,7 +273,7 @@ class Clipboard(gtk.Clipboard):
 			text = pack_urilist((pagename,))
 			selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, text)
 		elif id == PAGELIST_TARGET_ID:
-			link = "%s?%s\r\n" % (notebookname, pagename)
+			link = "%s?%s" % (notebookname, pagename)
 			text = pack_urilist((link,))
 			selectiondata.set(PAGELIST_TARGET_NAME, 8, text)
 		elif id == TEXT_TARGET_ID:
@@ -284,31 +284,6 @@ class Clipboard(gtk.Clipboard):
 	def _clear_data(self, data):
 		# Callback to clear our cliboard data - pass because we keep no state
 		pass
-
-	def debug_dump_contents(self):
-		'''Interactively dumps clipboard contents to stdout - used for debug sessions'''
-		import sys
-		targets = self.wait_for_targets()
-		print "="*80
-		print "Enter a number to see a specific target, or <Enter> to exit"
-		print "Available targets:"
-		for i in range(len(targets)):
-			print i, targets[i]
-		line = sys.stdin.readline().strip()
-		while line:
-			target = targets[int(line)]
-			print '>>>>', target
-			selection = self.wait_for_contents(target)
-			if selection:
-				text = selection.get_text()
-				if not text is None:
-					print '== Text:', text
-				else:
-					print '== Data:', selection.data
-			else:
-				print '== No contents'
-			print '<<<<'
-			line = sys.stdin.readline().strip()
 
 
 class Win32HtmlFormat:

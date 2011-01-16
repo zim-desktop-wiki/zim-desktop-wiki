@@ -422,7 +422,7 @@ class ListDict(dict):
 			except AssertionError, error:
 				logger.warn(
 					'Invalid config value for %s: "%s" - %s',
-					key, self[key], error.message)
+					key, self[key], error.args[0])
 				self.__setitem__(key, default)
 
 		return self[key]
