@@ -135,13 +135,12 @@ class TestFileDialog(TestCase):
 
 	def runTest(self):
 		tmp_dir = create_tmp_dir('widgets_TestFileDialog')
-		ui = MockUI()
 
 		file = File((tmp_dir, 'test.txt'))
 		file.write('test 123')
 		self.assertTrue(file.exists())
 
-		dialog = FileDialog(ui, 'Test')
+		dialog = FileDialog(None, 'Test')
 		dialog.set_file(file)
 		#~ myfile = dialog.get_file()
 		#~ self.assertTrue(myfile)
@@ -154,10 +153,5 @@ class TestFileDialog(TestCase):
 		# TODO select folder
 
 		# TODO add filters
-
-
-class MockUI(object):
-
-	mainwindow = None
 
 

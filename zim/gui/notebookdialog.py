@@ -143,8 +143,8 @@ class NotebookTreeModel(gtk.ListStore):
 
 	def get_notebook_pango(self, name, path):
 		from zim.gui.widgets import _encode_xml
-		text = '<b>%s</b>\n<span foreground="#5a5a5a" size="small">%s: %s</span>' % \
-				(_encode_xml(name), _('Folder'), _encode_xml(path.replace('file://', '')))
+		text = '<b>%s</b>\n<span foreground="#5a5a5a" size="small">%s</span>' % \
+				(_encode_xml(name), _encode_xml(path.replace('file://', '')))
 				# T: Path label in 'open notebook' dialog
 		return text
 

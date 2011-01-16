@@ -30,7 +30,7 @@ class PreferencesDialog(Dialog):
 		self.vbox.add(gtknotebook)
 
 		# Dynamic tabs
-		self.forms = []
+		self.forms = {}
 		for category, preferences in ui.preferences_register.items():
 			vbox = gtk.VBox()
 			gtknotebook.append_page(vbox, gtk.Label(category))
@@ -47,7 +47,7 @@ class PreferencesDialog(Dialog):
 			form = InputForm(fields, values)
 			form.preferences_sections = sections
 			vbox.pack_start(form, False)
-			self.forms.append(form)
+			self.forms[category] = form
 
 			if category == 'Interface':
 				self._add_font_selection(form)
@@ -91,6 +91,7 @@ class PreferencesDialog(Dialog):
 		table.preferences_sections['use_custom_font'] = 'GtkInterface'
 
 		self.fontbutton = gtk.FontButton()
+		self.fontbutton.set_use_font(True) # preview in button
 		self.fontbutton.set_sensitive(False)
 		try:
 			font = PageView.style['TextView']['font']
@@ -163,7 +164,7 @@ class PreferencesDialog(Dialog):
 			self.ui.preferences['GtkInterface'][type] = name_map.get(name)
 
 		# Get dynamic tabs
-		for form in self.forms:
+		for form in self.forms.values():
 			for key, value in form.items():
 				section = form.preferences_sections[key]
 				self.ui.preferences[section][key] = value

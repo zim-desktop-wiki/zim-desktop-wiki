@@ -31,7 +31,7 @@ ui_actions = (
 )
 
 
-class CalendarPlugin(PluginClass):
+class InsertSymbolPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Insert Symbol'), # T: plugin name

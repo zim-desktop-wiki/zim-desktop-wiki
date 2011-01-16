@@ -224,43 +224,25 @@ def user_dirs():
 	return dirs
 
 
-def value_check_class(value, default):
-	'''Check function for setdefault() which implements the default
-	behavior by checking classes of the value and the default.
-	No need to specify this function directly as it is the default.
+def check_class_allow_empty(value, default):
+	'''Check function for setdefault() which ensures the value is of
+	the same class as the default but allows it to be empty. THis is
+	the same as the default behavior when "allow_empty" is True.
+
+	Only reason to use this function is for places where setdefault()
+	is called indirectly, e.g. with arguments from plugin preferences.
 	'''
 	klass = default.__class__
-
-	if issubclass(klass, basestring):
-		klass = basestring
-		if not value: # Special case to avoid empty string
-			return default
-
-	if klass is tuple and isinstance(value, list):
-		return tuple(value)
-	elif not isinstance(value, klass):
-		return default
-	else:
-		return value
-
-
-def value_allow_empty(value, default):
-	'''Check function for setdefault() which follows the default
-	behavior checking classes, but allows the configured value to
-	be empty.
-	'''
-	# Same as value_check_class() but without special case for basestring
-	klass = default.__class__
-
 	if issubclass(klass, basestring):
 		klass = basestring
 
-	if klass is tuple and isinstance(value, list):
-		return tuple(value)
-	elif not isinstance(value, klass):
-		return default
-	else:
+	if value in ('', None) or isinstance(value, klass):
 		return value
+	elif klass is tuple and isinstance(value, list):
+		# Special case because json does not know difference list or tuple
+		return tuple(value)
+	else:
+		raise AssertionError, 'should be of type: %s' % klass
 
 
 def value_is_coord(value, default):
@@ -278,7 +260,7 @@ def value_is_coord(value, default):
 	):
 		return value
 	else:
-		return default
+		raise AssertionError, 'should be coordinate (tuple of int)'
 
 
 class ListDict(dict):
@@ -343,7 +325,7 @@ class ListDict(dict):
 	# Would expect that setdefault() triggers __setitem__
 	# but this seems not to be the case in the standard implementation
 	# And we added some extra functionality here
-	def setdefault(self, key, default, check=None):
+	def setdefault(self, key, default, check=None, allow_empty=False):
 		'''Like dict.setdefault() but with some extra restriction
 		because we assume un-safe user input. If no extra arguments
 		are given it will compare the classes of the set value and the
@@ -361,12 +343,23 @@ class ListDict(dict):
 
 		If 'check' is given and it is a function it will be used to
 		check the value in the dictionary if it exists. The check
-		function should have two arguments, first is the value to be
-		tested, the second is the default value given to setdefault().
-		The return value will be used in the config dict.
+		function gets the current value and the default value as
+		arguments. The function should raise an AssertionError when the
+		value is not ok. The return value of the function is used to
+		replace the current value, so the check function can coerce
+		values into the proper form (but don't use this to return a
+		default!).
+		( Note that 'assert' statements in the code can be removed
+		by code optimization, so explicitly call 'raise' to raise the
+		AssertionError. )
 
 		If 'check' is given and is a set the value will be tested
 		against this set.
+
+		If 'allow_empty' is True values are also allowed to be empty
+		string or None. This is used for optional parameters in the
+		config. By default 'allow_empty' is False but it is set to
+		True implicitely when the default value is None or ''.
 		'''
 		if not key in self:
 			self.__setitem__(key, default)
@@ -374,10 +367,22 @@ class ListDict(dict):
 
 		if check is None:
 			assert not default is None, 'Bad practise to set default to None without check'
-			check = value_check_class
+			klass = default.__class__
+			if issubclass(klass, basestring):
+				klass = basestring
+			check = klass
+
+		if default in ('', None):
+			allow_empty = True
+
+		if allow_empty and self[key] in ('', None):
+			return self[key]
 
 		if isinstance(check, (type, types.ClassType)): # is a class
 			klass = check
+			if not (allow_empty and default in ('', None)):
+				assert isinstance(default, klass), 'Default does not have correct class'
+
 			if not isinstance(self[key], klass):
 				if klass is tuple and isinstance(self[key], list):
 					# Special case because json does not know difference list or tuple
@@ -389,9 +394,18 @@ class ListDict(dict):
 						'Invalid config value for %s: "%s" - should be of type %s',
 						key, self[key], klass)
 					self.__setitem__(key, default)
+			elif self[key] == '':
+					# Special case for empty string
+					logger.warn(
+						'Invalid config value for %s: "%s" - not allowed to be empty',
+						key, self[key])
+					self.__setitem__(key, default)
 			else:
 				pass # value is OK
 		elif isinstance(check, set):
+			if not (allow_empty and default in ('', None)):
+				assert default in check, 'Default is not within allows set'
+
 			if not self[key] in check:
 				logger.warn(
 						'Invalid config value for %s: "%s" - should be one of %s',
@@ -400,18 +414,16 @@ class ListDict(dict):
 			else:
 				pass # value is OK
 		else: # assume callable
-			v = check(self[key], default)
-			if isinstance(v, tuple) and isinstance(self[key], list) \
-			and v == tuple(self[key]):
-				# Special case because json does not know difference list or tuple
-				modified = self.modified
+			modified = self.modified
+			try:
+				v = check(self[key], default)
 				self.__setitem__(key, v)
-				self.set_modified(modified) # don't change modified state
-			elif v != self[key]:
+				self.set_modified(modified)
+			except AssertionError, error:
 				logger.warn(
-					'Invalid config value for %s: "%s"',
-					key, self[key])
-				self.__setitem__(key, v)
+					'Invalid config value for %s: "%s" - %s',
+					key, self[key], error.message)
+				self.__setitem__(key, default)
 
 		return self[key]
 
@@ -451,6 +463,10 @@ class ConfigDict(ListDict):
 		return dict.__getitem__(self, k)
 
 	def parse(self, text):
+		'''Parse 'text' and set values based on this input'''
+		# Note that we explicitly do _not_ support comments on the end
+		# of a line. This is because "#" could be a valid character in
+		# a config value.
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
 		section = None
@@ -495,6 +511,9 @@ class ConfigDict(ListDict):
 			return json.loads('"%s"' % value.replace('"', '\\"')) # force string
 
 	def dump(self):
+		'''Returns a list of lines with text representation of the
+		dict. Used to write as a config file.
+		'''
 		lines = []
 		for section, parameters in self.items():
 			if parameters:

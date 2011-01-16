@@ -174,7 +174,6 @@ none=None
 		self.assertEqual(conf['Foo'].setdefault('foobar', 5), 0)
 		self.assertEqual(conf['Bar'].setdefault('check', 3.14), 1.333)
 		self.assertEqual(conf['Bar'].setdefault('check', None, float), 1.333)
-		self.assertEqual(conf['Bar'].setdefault('check', 'foo', float), 1.333)
 		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), value_is_coord), (33,44))
 		self.assertEqual(conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'tja'))), 'tja')
 		self.assertFalse(conf.modified)
@@ -187,7 +186,7 @@ none=None
 
 		conf['Foo']['tja'] = [33, 44]
 		conf.set_modified(False)
-		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), value_allow_empty), (33,44))
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), allow_empty=True), (33,44))
 		self.assertFalse(conf.modified)
 
 		conf.set_modified(False)
@@ -210,7 +209,7 @@ none=None
 
 		conf['Bar']['string'] = ''
 		conf.set_modified(False)
-		self.assertEqual(conf['Bar'].setdefault('string', 'foo', value_allow_empty), '')
+		self.assertEqual(conf['Bar'].setdefault('string', 'foo', allow_empty=True), '')
 		self.assertFalse(conf.modified)
 
 	def testLookup(self):

@@ -345,7 +345,7 @@ class TextBuffer(gtk.TextBuffer):
 	}
 
 	# style attributes
-	tabstop = 30 # pixels
+	pixels_indent = 30
 
 	# text tags supported by the editor and default stylesheet
 	tag_styles = {
@@ -990,11 +990,11 @@ class TextBuffer(gtk.TextBuffer):
 				elif bullet == UNCHECKED_BOX: stylename = 'unchecked-checkbox'
 				elif bullet == XCHECKED_BOX: stylename = 'xchecked-checkbox'
 				else: raise AssertionError, 'BUG: Unkown bullet type'
-				margin = 12 + self.tabstop * level # offset from left side for all lines
+				margin = 12 + self.pixels_indent * level # offset from left side for all lines
 				indent = -12 # offset for first line (bullet)
 				tag = self.create_tag(name, left_margin=margin, indent=indent, **self.tag_styles[stylename])
 			else:
-				margin = 12 + self.tabstop * level
+				margin = 12 + self.pixels_indent * level
 				tag = self.create_tag(name, left_margin=margin, **self.tag_styles['indent'])
 				# Note: I would think the + 12 is not needed here, but
 				# the effect in the view is different than expected,
@@ -3163,20 +3163,34 @@ class PageView(gtk.VBox):
 		'''(Re-)loads style definition from the config. While running this
 		config is found as the class attribute 'style'.
 		'''
-		try:
+		self.style['TextView'].setdefault('indent', TextBuffer.pixels_indent)
+		self.style['TextView'].setdefault('tabs', None, int)
+			# Don't set a default here as not to break pages that were
+			# created before this setting was introduced.
+		self.style['TextView'].setdefault('linespacing', None, int)
+		self.style['TextView'].setdefault('font', None, basestring)
+		self.style['TextView'].setdefault('justify', None, basestring)
+		print self.style['TextView']
+
+		TextBuffer.pixels_indent = self.style['TextView']['indent']
+
+		if self.style['TextView']['tabs']:
+			tabarray = pango.TabArray(1, True) # Initial size, position in pixels
+			tabarray.set_tab(0, pango.TAB_LEFT, self.style['TextView']['tabs'])
+				# We just set the size for one tab, apparently this gets
+				# copied automaticlly when a new tab is created by the textbuffer
+			self.view.set_tabs(tabarray)
+
+		if self.style['TextView']['linespacing']:
+			self.view.set_pixels_below_lines(self.style['TextView']['linespacing'])
+
+		if self.style['TextView']['font']:
 			font = pango.FontDescription(self.style['TextView']['font'])
-		except KeyError:
-			self.view.modify_font(None)
-		else:
 			self.view.modify_font(font)
+		else:
+			self.view.modify_font(None)
 
-		if 'tabstop' in self.style['TextView'] \
-		and isinstance(self.style['TextView']['tabstop'], int):
-			tabstop = self.style['TextView']['tabstop']
-			if tabstop > 0:
-				TextBuffer.tabstop = tabstop
-
-		if 'justify' in self.style['TextView']:
+		if self.style['TextView']['justify']:
 			try:
 				const = self.style['TextView']['justify']
 				assert hasattr(gtk, const), 'No such constant: gtk.%s' % const

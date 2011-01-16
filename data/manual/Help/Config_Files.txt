@@ -48,6 +48,7 @@ Example:
 '''
 [TextView]
 tabs = 40
+font = Sans 10
 
 [Tag bold]
 weight = PANGO_WEIGHT_BOLD
@@ -57,7 +58,11 @@ style = italic
 '''
 
 Known properties for TextView:
-* **tabs**: //integer//	 - position of the tab stop in pixels
+* **indent**: //integer//	- indenting step size in pixels
+* **tabs**: //integer//	- tab size in pizels
+* **linespacing**: //integer//	- line spacing in pixels
+* **justify**: ''JUSTIFY_LEFT'', ''JUSTIFY_FILL'', ...
+* **font**: //string//
 
 Known style tags:
 * **h1**, **h2**, **h3**, **h4**, **h5**, **h6**: various headings

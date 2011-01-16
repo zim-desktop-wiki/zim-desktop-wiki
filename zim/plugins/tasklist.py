@@ -19,7 +19,7 @@ from zim.gui.widgets import ui_environment, gtk_get_style,\
 	InputEntry, Button, IconButton, MenuButton, \
 	BrowserTreeView, SingleClickTreeView
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
-from zim.config import value_allow_empty
+from zim.config import check_class_allow_empty
 
 
 logger = logging.getLogger('zim.plugins.tasklist')
@@ -99,7 +99,7 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog
 		('tag_by_page', 'bool', _('Turn page name into tags for task items'), False),
 			# T: label for plugin preferences dialog
-		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', value_allow_empty),
+		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', check_class_allow_empty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 	)
 	_rebuild_on_preferences = ['all_checkboxes', 'labels']

@@ -101,7 +101,7 @@ def parsetree_from_selectiondata(selectiondata):
 	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
 	or targetname in URI_TARGET_NAMES:
 		links = unpack_urilist(selectiondata.data)
-		print 'LINKS: ', links
+		#~ print 'LINKS: ', links
 		builder = TreeBuilder()
 		builder.start('zim-tree')
 		for i in range(len(links)):
@@ -220,10 +220,13 @@ class Clipboard(gtk.Clipboard):
 		else:
 			assert False, 'Unknown target id %i' % id
 
-	def request_parsetree(self, callback):
+	def request_parsetree(self, callback, block=False):
 		'''Request a parsetree from the clipboard if possible. Because pasting
 		is asynchronous a callback needs to be provided to accept the parsetree.
 		This callback just gets the parsetree as single argument.
+
+		If 'block' is True the operation is blocking. This is only intended
+		for testing and should not be used for real functionality.
 		'''
 		targets = self.wait_for_targets()
 		logger.debug('Targets available for paste: %s, we want parsetree', targets)
@@ -243,7 +246,11 @@ class Clipboard(gtk.Clipboard):
 
 		if name:
 			logger.debug('Requesting data for %s', name)
-			self.request_contents(name, request_parsetree_data)
+			if block:
+				selectiondata = self.wait_for_contents(name)
+				return parsetree_from_selectiondata(selectiondata)
+			else:
+				self.request_contents(name, request_parsetree_data)
 		else:
 			logger.warn('Could not paste - no compatible data types on clipboard')
 

@@ -125,25 +125,26 @@ This is a core plugin shipping with zim.
 
 	def do_preferences_changed(self):
 		'''Switch between calendar in the sidepane or as a dialog'''
-		if self._set_template:
-			ns = self._set_template
-			try:
-				self.ui.notebook.namespace_properties[ns].remove('template')
-			except KeyError:
-				pass
+		if self.ui.notebook:
+			if self._set_template:
+				ns = self._set_template
+				try:
+					self.ui.notebook.namespace_properties[ns].remove('template')
+				except KeyError:
+					pass
 
-		if isinstance(self.preferences['namespace'], Path):
-			ns = self.preferences['namespace'].name
-			self.preferences['namespace'] = ns
-		else:
-			self.preferences.setdefault('namespace', ':Calendar')
-			ns = self.preferences['namespace']
-			ns = self.ui.notebook.resolve_path(ns)
-			ns = ns.name
-			self.preferences['namespace'] = ns
+			if isinstance(self.preferences['namespace'], Path):
+				ns = self.preferences['namespace'].name
+				self.preferences['namespace'] = ns
+			else:
+				self.preferences.setdefault('namespace', ':Calendar')
+				ns = self.preferences['namespace']
+				ns = self.ui.notebook.resolve_path(ns)
+				ns = ns.name
+				self.preferences['namespace'] = ns
 
-		self.ui.notebook.namespace_properties[ns]['template'] = '_Calendar'
-		self._set_template = ns
+			self.ui.notebook.namespace_properties[ns]['template'] = '_Calendar'
+			self._set_template = ns
 
 		if self.ui.ui_type == 'gtk':
 			if self.preferences['embedded']:

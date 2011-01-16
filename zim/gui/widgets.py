@@ -1628,17 +1628,15 @@ class Dialog(gtk.Dialog):
 			self.vbox.set_spacing(5)
 
 		if hasattr(self, 'uistate'):
-			self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
+			assert isinstance(self.uistate, zim.config.ListDict) # just to be sure
 		elif hasattr(ui, 'uistate') \
 		and isinstance(ui.uistate, zim.config.ConfigDict):
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
-			self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		else:
-			self.uistate = { # used in tests/debug
-				'windowsize': defaultwindowsize
-			}
+			self.uistate = zim.config.ListDict()
 
+		self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		#~ print '>>', self.uistate
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
@@ -2210,6 +2208,13 @@ class Assistant(Dialog):
 		'''Returns a list with AssistantPage objects'''
 		return self._pages
 
+	def get_page(self):
+		'''Returns the current page object'''
+		if self._page > -1:
+			return self._pages[self._page]
+		else:
+			return None
+
 	def set_page(self, i):
 		'''Go to page i in the assistant'''
 		if i < 0 or i >= len(self._pages):
@@ -2280,17 +2285,28 @@ class Assistant(Dialog):
 		if id == gtk.RESPONSE_OK:
 			# Wrap up previous page
 			if self._page > -1:
-				try: # hack needed for filechooser valid in gtk < 2.12
-					self._pages[self._page]._check_valid()
-				except Exception, error:
-					ErrorDialog(self, error).run()
-					return False
-				else:
-					self._pages[self._page].save_uistate()
+				self._pages[self._page].save_uistate()
 
 			self._uistate.update(self.uistate)
 
 		Dialog.do_response(self, id)
+
+	def assert_response_ok(self):
+		'''Like response_ok(), but will force False return value
+		to raise an error. Also it explicitly does not handle errors
+		with an error dialog but just let them go through.
+		Intended for use by the test suite.
+		'''
+		# Wrap up previous page
+		if self._page > -1:
+			self._pages[self._page].save_uistate()
+
+		self._uistate.update(self.uistate)
+
+		assert self.do_response_ok() is True
+		self.save_uistate()
+		self.destroy()
+		return self.result
 
 
 class AssistantPage(gtk.VBox):
