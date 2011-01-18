@@ -1,3 +1,9 @@
+zim (0.49ubuntu1) natty; urgency=low
+
+  * Rewrote description in debian/control to be more informative (LP:613303)
+
+ -- Chris Wilson <afrowildo@gmail.com>  Sun, 16 Jan 2011 11:34:25 +0000
+
 zim (0.49) maverick; urgency=low
 
   * Updated to release 0.49 
