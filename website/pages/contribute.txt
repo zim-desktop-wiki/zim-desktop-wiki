@@ -40,13 +40,17 @@ If you want to work on a bounty send an email to pardus@cpan.org so we can discu
 
 === Open bounties: ===
 
-**Support for sorting pages by tags**
+**Support for sorting pages by tags - **//taken, work in progress//
 Amount: 50 Euro
-Details: see [[http://www.zim-wiki.org/wiki/doku.php%3Fid%3Dsupporting_tags|this page]] for details
+Details: see [[http://www.zim-wiki.org/wiki/doku.php?id=supporting_tags|this page]] for details
 
-**Support for resolving syncing conflicts in pages**
-Amount: 50 Euro
-Details: see [[http://www.zim-wiki.org/wiki/doku.php%3Fid%3Dresolving_syncing_conflicts|this page]] for details
+**Support for resolving syncing conflicts in pages - **//open//
+Amount: 100 Euro
+Details: see [[http://www.zim-wiki.org/wiki/doku.php?id=resolving_syncing_conflicts|this page]] for details
+
+**Support for embedded tables** - //open// 
+Amount: 100 Euro
+Details: see [[http://zim-wiki.org/wiki/doku.php?id=support_tables|this page]] for details
 
 //More bounties will be set as more donations come in. Subscribe to the mailing list to get notifications of updates.//
 
