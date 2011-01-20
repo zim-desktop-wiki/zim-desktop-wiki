@@ -286,6 +286,70 @@ List item 0
 		self.assertEqualDiff(tree.tostring(), wanted)
 
 
+
+		# Exercize recursive checkbox lists
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="unchecked-box" indent="0"> Foo</li>
+<li bullet="unchecked-box" indent="0"> Bar</li>
+<li bullet="unchecked-box" indent="1"> Bar 1</li>
+<li bullet="unchecked-box" indent="2"> Bar 1.1</li>
+<li bullet="unchecked-box" indent="1"> Bar 2</li>
+<li bullet="unchecked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = get_tree_from_xml(input)
+		buffer.set_parsetree(tree)
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), input) # just a sanity check
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="xchecked-box" indent="0"> Foo</li>
+<li bullet="checked-box" indent="0"> Bar</li>
+<li bullet="xchecked-box" indent="1"> Bar 1</li>
+<li bullet="checked-box" indent="2"> Bar 1.1</li>
+<li bullet="checked-box" indent="1"> Bar 2</li>
+<li bullet="checked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		buffer.toggle_checkbox(2, recursive=True) # Bar
+		buffer.toggle_checkbox(3, recursive=True) # Bar 1
+			# After first click all children become checked
+			# After second click one becomes xchecked
+		buffer.place_cursor(buffer.get_iter_at_line(1)) # Foo
+		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX)
+			# Like <Shift><F12> on first list item line
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="xchecked-box" indent="0"> Foo</li>
+<li bullet="unchecked-box" indent="0"> Bar</li>
+<li bullet="unchecked-box" indent="1"> Bar 1</li>
+<li bullet="unchecked-box" indent="2"> Bar 1.1</li>
+<li bullet="unchecked-box" indent="1"> Bar 2</li>
+<li bullet="unchecked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		start = buffer.get_iter_at_line(2) # Bar
+		end = buffer.get_iter_at_line(6) # Bar 3
+		end.forward_to_line_end()
+		buffer.select_range(start, end)
+		buffer.toggle_checkbox_for_cursor_or_selection(CHECKED_BOX, recursive=True)
+			# Like keypress would trigger while selection present
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+
+
 class TestUndoStackManager(TestCase):
 
 	def runTest(self):

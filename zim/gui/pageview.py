@@ -1068,7 +1068,7 @@ class TextBuffer(gtk.TextBuffer):
 		level = self.get_indent(line)
 		return self.set_indent(line, level-1, interactive)
 
-	def foreach_line_in_selection(self, func, userdata=None):
+	def foreach_line_in_selection(self, func, *args, **kwarg):
 		'''Like foreach_line() but iterates over all lines covering
 		the current selection.
 		Returns False if there is no selection, True otherwise.
@@ -1076,23 +1076,19 @@ class TextBuffer(gtk.TextBuffer):
 		bounds = self.get_selection_bounds()
 		if bounds:
 			start, end = bounds
-			self.foreach_line(start.get_line(), end.get_line(), func, userdata)
+			self.foreach_line(start.get_line(), end.get_line(), func, *args, **kwarg)
 			return True
 		else:
 			return False
 
-	def foreach_line(self, first, last, func, userdata=None):
+	def foreach_line(self, first, last, func, *args, **kwarg):
 		'''Iterates over all lines covering 'first' to 'last' and calls
-		'func' for each line. The callback one argument, which is
-		the line number. Optionally an extra argument can be given
-		by 'userdata'.
+		'func' for each line. The callback gets one argument, which is
+		the line number. Any additional arguments will also be passed
+		along.
 		'''
-		if userdata is None:
-			for line in range(first, last+1):
-				func(line)
-		else:
-			for line in range(first, last+1):
-				func(line, userdata)
+		for line in range(first, last+1):
+			func(line, *args, **kwarg)
 
 	def strip_selection(self):
 		'''Limits the selection by excluding whitespace (e.g. empty lines) from
@@ -1550,16 +1546,17 @@ class TextBuffer(gtk.TextBuffer):
 		self.smart_remove_tags(_is_link_tag, start, end)
 		self.update_editmode()
 
-	def toggle_checkbox(self, line, checkbox_type=None):
+	def toggle_checkbox(self, line, checkbox_type=None, recursive=False):
 		'''Toggles checkbox at a specific line. If checkbox_type is
 		given, it toggles between this type and unchecked. Otherwise
 		it rotates through unchecked, checked and xchecked.
 		Returns True for success, False if no checkbox was found.
 		'''
-		# <F12> and <Shift><F12> specify checkbox_type
-		# but left mouse click does not
+		# For mouse click no checkbox type is given, so we cycle
+		# For <F12> and <Shift><F12> checkbox_type is given so we toggle
+		# between the two
 		bullet = self.get_bullet(line)
-		if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
+		if bullet in CHECKBOXES:
 			if checkbox_type:
 				if bullet == checkbox_type:
 					newbullet = UNCHECKED_BOX
@@ -1572,8 +1569,21 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return False
 
-		self.set_bullet(line, newbullet)
+		if recursive:
+			row, clist = TextBufferList.new_from_line(self, line)
+			clist.set_bullet(row, newbullet)
+		else:
+			self.set_bullet(line, newbullet)
+
 		return True
+
+	def toggle_checkbox_for_cursor_or_selection(self, checkbox_type=None, recursive=False):
+		'''Like toggle_checkbox() but applies to current line or current selection.'''
+		if self.get_has_selection():
+			self.foreach_line_in_selection(self.toggle_checkbox, checkbox_type, recursive)
+		else:
+			line = self.get_insert_iter().get_line()
+			return self.toggle_checkbox(line, checkbox_type, recursive)
 
 	def iter_backward_word_start(self, iter):
 		'''Like gtk.TextIter.backward_word_start() but less intelligent.
@@ -1695,6 +1705,14 @@ class TextBufferList(list):
 	LINE_COL = 0
 	INDENT_COL = 1
 	BULLET_COL = 2
+
+	@classmethod
+	def new_from_line(self, textbuffer, line):
+		'''Returns a row id and a TextBufferList object for the list
+		around 'line'. Both will be None if 'line' is not part of a list.
+		'''
+		iter = textbuffer.get_iter_at_line(line)
+		return self.new_from_iter(textbuffer, iter)
 
 	@classmethod
 	def new_from_iter(self, textbuffer, iter):
@@ -2563,7 +2581,9 @@ class TextView(gtk.TextView):
 		'''
 		if iter.get_line_offset() < 2:
 			# Only position 0 or 1 can map to a checkbox
-			return self.get_buffer().toggle_checkbox(iter.get_line(), checkbox_type)
+			buffer = self.get_buffer()
+			recurs = self.preferences['recursive_checklist']
+			return buffer.toggle_checkbox(iter.get_line(), checkbox_type, recurs)
 		else:
 			return False
 
@@ -3641,29 +3661,14 @@ class PageView(gtk.VBox):
 		self.view.emit('delete-from-cursor', gtk.DELETE_CHARS, 1)
 
 	def toggle_checkbox(self):
-		self._toggled_checkbox(CHECKED_BOX)
+		buffer = self.view.get_buffer()
+		recurs = self.preferences['recursive_checklist']
+		buffer.toggle_checkbox_for_cursor_or_selection(CHECKED_BOX, recurs)
 
 	def xtoggle_checkbox(self):
-		self._toggled_checkbox(XCHECKED_BOX)
-
-	def _toggled_checkbox(self, checkbox):
 		buffer = self.view.get_buffer()
-		if self.preferences['recursive_checklist']:
-			# TODO not toggling here...
-			iter = buffer.get_iter_at_mark(buffer.get_insert())
-			row, list = TextBufferList.new_from_iter(buffer, iter)
-			if buffer.get_has_selection():
-				func = lambda l: list.set_bullet(list.get_row_at_line(l), checkbox)
-				buffer.foreach_line_in_selection(func)
-			else:
-				list.set_bullet(row, checkbox)
-		else:
-			# TODO do this through the TextBufferList interface as well ?
-			if buffer.get_has_selection():
-				buffer.foreach_line_in_selection(buffer.toggle_checkbox, checkbox)
-			else:
-				iter = buffer.get_iter_at_mark(buffer.get_insert())
-				buffer.toggle_checkbox(iter.get_line(), checkbox)
+		recurs = self.preferences['recursive_checklist']
+		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX, recurs)
 
 	def edit_object(self, iter=None):
 		buffer = self.view.get_buffer()

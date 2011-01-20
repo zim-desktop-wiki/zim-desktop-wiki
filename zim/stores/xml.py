@@ -12,7 +12,6 @@ an attribute 'name' giving it's basename, so the file can look like this:
 	<section>
 	<page name="Foo">
 	Some text in page Foo
-	</page>
 	<page name="Bar">
 	This is text in page 'Foo:Bar'
 	</page>
