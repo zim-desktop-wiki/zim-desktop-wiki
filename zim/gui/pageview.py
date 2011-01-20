@@ -1191,7 +1191,7 @@ class TextBuffer(gtk.TextBuffer):
 		def end_or_protect_tags(string, length):
 			tags = filter(_is_tag_tag, self._editmode_tags)
 			if tags:
-				if end.ends_tag(tags[0]):
+				if iter.ends_tag(tags[0]):
 					# End tags if end-of-word char is typed at end of a tag
 					# without this you not insert text behind a tag e.g. at the end of a line
 					self._editmode_tags = filter(_is_not_tag_tag, self._editmode_tags)
@@ -1226,7 +1226,7 @@ class TextBuffer(gtk.TextBuffer):
 			# Break links if end-of-word char is typed at end of a link
 			# without this you not insert text behind a link e.g. at the end of a line
 			links = filter(_is_link_tag, self._editmode_tags)
-			if links and end.ends_tag(links[0]):
+			if links and iter.ends_tag(links[0]):
 				self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 				# TODO this should go into the TextView, not here
 				# Now it goes OK only because we only check single char inserts, but would break
@@ -1303,14 +1303,6 @@ class TextBuffer(gtk.TextBuffer):
 				self.apply_tag(tag, iter, end)
 
 		self.update_editmode()
-
-	def do_insert_pixbuf(self, end, pixbuf):
-		gtk.TextBuffer.do_insert_pixbuf(self, end, pixbuf)
-		start = end.copy()
-		start.backward_char()
-		self.remove_all_tags(start, end)
-		for tag in self._editmode_tags:
-			self.apply_tag(tag, start, end)
 
 	def get_bullet(self, line):
 		iter = self.get_iter_at_line(line)
