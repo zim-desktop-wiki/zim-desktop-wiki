@@ -313,7 +313,11 @@ class DesktopEntryDict(ConfigDict, Application):
 		if not icon:
 			return None
 
+		if isinstance(icon, File):
+			icon = icon.path
+
 		w, h = gtk.icon_size_lookup(size)
+
 		if '/' in icon or '\\' in icon:
 			if zim.fs.isfile(icon):
 				return gtk.gdk.pixbuf_new_from_file_at_size(icon, w, h)
@@ -412,6 +416,8 @@ class DesktopEntryDict(ConfigDict, Application):
 		elif value is False: return 'false'
 		elif isinstance(value, int) or isinstance(value, float):
 			return value.__str__()
+		elif isinstance(value, File):
+			return value.path # Icon can be file
 		else:
 			assert isinstance(value, basestring), 'Desktop files can not store complex data'
 			return json.dumps(value)[1:-1].replace('\\"', '"') # get rid of quotes

@@ -19,6 +19,7 @@ class PropertiesDialog(Dialog):
 		for name, type, label in self.ui.notebook.properties:
 			fields.append((name, type, label))
 		self.add_form(fields, values=config)
+		self.form.widgets['icon'].set_use_relative_paths(self.ui.notebook)
 		if self.ui.readonly:
 			for widget in self.form.widgets.values():
 				widget.set_sensitive(False)

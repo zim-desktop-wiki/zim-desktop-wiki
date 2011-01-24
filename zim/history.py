@@ -24,11 +24,18 @@ logger = logging.getLogger('zim.history')
 
 
 class HistoryPath(Path):
-	'''Path withsome additional info from the history'''
+	'''Path withsome additional info from the history.
+
+	Adds attributes 'cursor', 'scroll', 'is_first' and 'is_last'.
+	Both 'cursor' and 'scroll' give a position within the page and
+	should be integer, or None when undefined.
+	Both 'is_first' and 'is_last' are boolean and show whether this
+	record is the first or last record in the history.
+	'''
 
 	__slots__ = ('cursor', 'scroll', 'deleted', 'is_first', 'is_last')
 
-	def __init__(self, name, cursor, scroll):
+	def __init__(self, name, cursor=None, scroll=None):
 		Path.__init__(self, name)
 		self.scroll = scroll
 		self.cursor = cursor
@@ -37,6 +44,9 @@ class HistoryPath(Path):
 		self.is_last = False
 
 	def exists(self):
+		'''Returns whether the history thinks this page still exists or
+		not. Soft test, for hard test need to get the real page itself.
+		'''
 		return not self.deleted
 
 
@@ -181,7 +191,7 @@ class History(gobject.GObject):
 		if self.history and self.history[-1] == page:
 			pass
 		else:
-			path = HistoryPath(page.name, 0, 0)
+			path = HistoryPath(page.name)
 			path.deleted = not page.exists()
 			self.history.append(path)
 

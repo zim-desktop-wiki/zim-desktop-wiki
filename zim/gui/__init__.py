@@ -2573,11 +2573,10 @@ class AttachFileDialog(FileDialog):
 
 			pageview = self.ui.mainwindow.pageview
 			if self.uistate['insert_attached_images'] and file.isimage():
-				try:
-					pageview.insert_image(file, interactive=False)
-				except:
-					logger.exception('Could not insert image')
-					pageview.insert_links([file]) # image type not supported?
+				ok = pageview.insert_image(file, interactive=False)
+				if not ok: # image type not supported?
+					logger.info('Could not insert image: %s', file)
+					pageview.insert_links([file])
 			else:
 				pageview.insert_links([file])
 

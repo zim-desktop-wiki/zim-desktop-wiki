@@ -455,11 +455,17 @@ class TextBuffer(gtk.TextBuffer):
 	def insert_parsetree_at_cursor(self, tree, interactive=False):
 		'''Like insert_parsetree() but inserts at the cursor'''
 		#~ print 'INSERT AT CURSOR', tree.tostring()
-		self.emit('begin-insert-tree')
+
+		# Check tree
+		root = tree.getroot()
+		assert root.tag == 'zim-tree'
+		raw = root.attrib.get('raw')
+		if isinstance(raw, basestring):
+			raw = (raw != 'False')
 
 		# Check if we are at a bullet or checkbox line
 		iter = self.get_iter_at_mark(self.get_insert())
-		if iter.starts_line():
+		if not raw and iter.starts_line():
 			bullet = self._get_bullet_at_iter(iter)
 			if bullet:
 				self._iter_forward_past_bullet(iter, bullet)
@@ -472,17 +478,28 @@ class TextBuffer(gtk.TextBuffer):
 		tree.decode_urls()
 
 		# Actual insert
-		root = tree.getroot()
-		if root.text:
-			self.insert_at_cursor(root.text)
-		self._insert_element_children(root)
-		self.update_editmode()
-
-		# Emit signals
-		startiter = self.get_iter_at_offset(startoffset)
-		enditer = self.get_iter_at_mark(self.get_insert())
-		self.emit('end-insert-tree')
-		self.emit('inserted-tree', startiter, enditer, tree, interactive)
+		modified = self.get_modified()
+		try:
+			self.emit('begin-insert-tree')
+			if root.text:
+				self.insert_at_cursor(root.text)
+			self._insert_element_children(root, raw=raw)
+		except:
+			# Try to recover buffer state before raising
+			self.update_editmode()
+			startiter = self.get_iter_at_offset(startoffset)
+			enditer = self.get_iter_at_mark(self.get_insert())
+			self.delete(start, end)
+			self.set_modified(modified)
+			self.emit('end-insert-tree')
+			raise
+		else:
+			# Signal the tree that was inserted
+			self.update_editmode()
+			startiter = self.get_iter_at_offset(startoffset)
+			enditer = self.get_iter_at_mark(self.get_insert())
+			self.emit('end-insert-tree')
+			self.emit('inserted-tree', startiter, enditer, tree, interactive)
 
 	def do_begin_insert_tree(self):
 		self._insert_tree_in_progress = True
@@ -495,10 +512,6 @@ class TextBuffer(gtk.TextBuffer):
 	def _insert_element_children(self, node, list_level=-1, raw=False):
 		# FIXME should load list_level from cursor position
 		#~ list_level = get_indent --- with bullets at indent 0 this is not bullet proof...
-		if node.tag == 'zim-tree' and 'raw' in node.attrib:
-			raw = node.attrib['raw']
-			if isinstance(raw, basestring):
-				raw = (raw != 'False')
 
 		def set_indent(level, bullet=None):
 			# Need special set_indent() function here because the normal
@@ -829,31 +842,52 @@ class TextBuffer(gtk.TextBuffer):
 
 	def iter_get_zim_tags(self, iter):
 		'''Like gtk.TextIter.get_tags() but only returns our own tags and
-		assumes inline tags (like 'strong', 'emphasis' etc.) have "left gravity".
-		The "line based" tags (like 'indent', 'h', 'pre') gravitate both ways
-		(but not at the same time). This method is used to determing which tags
-		should be applied to newly inserted text at 'iter'.
-		'''
-		# For example:
-		# <indent level=1>foo\n</indent><cursor><indent level=2>bar</indent>
-		#	in this case new text should get indent level 2 -> right gravity
-		# <indent level=1>foo</indent><cursor><indent level=2>\nbar</indent>
-		#	in this case new text should get indent level 1 -> left gravity
-		# <indent level=1>foo\n</indent><indent level=2>bar</indent><cursor>\n
-		#	in this case new text should also get indent level 2 -> left gravity
-		start_tags = set(filter(_is_not_line_based_tag, iter.get_toggled_tags(True)))
-		tags = filter(
-			lambda tag: _is_zim_tag(tag) and not tag in start_tags,
-			iter.get_tags() )
+		assumes inline tags (like 'strong', 'emphasis' etc.) have "left gravity"
+		(which means that you copy formatting ending to the left of you but not
+		formatting starting to the right of you). For "line based" tags 
+		(like 'indent', 'h', 'pre') some additional logic is used to keep them
+		consistent on a line (so at the start of the line, we do copy formatting
+		starting to the left of us for these tags) and not inadvertedly copy 
+		formatting from the previous line.
 
+		This method is used to determing which tags should be applied to newly 
+		inserted text at 'iter'.
+		'''
+		# Current logic works without additional indent set in do_end_of_line due to
+		# the fact that the "\n" also caries formatting. So putting a new \n at the end
+		# of e.g. an indented line will result in two indent formatted \n characters.
+		# The start of the new line is in between and has continious indent formatting.
+		start_tags = filter(_is_zim_tag, iter.get_toggled_tags(True))
+		tags = filter(_is_zim_tag, iter.get_tags())
+		for tag in start_tags:
+			if tag in tags:
+				tags.remove(tag)
 		end_tags = filter(_is_zim_tag, iter.get_toggled_tags(False))
-		if iter.starts_line() and filter(_is_line_based_tag, tags):
-			# we have a right gravity line-based tag for this line
-			end_tags = filter(_is_not_line_based_tag, end_tags)
-		elif filter(_is_line_based_tag, end_tags):
-			# else take line based tags from left side current line
-			tags = filter(_is_not_line_based_tag, tags)
-		tags.extend(end_tags)
+		# So now we have 3 separate sets with tags ending here, starting here 
+		# and being continuous here. Result will be continuous tags and ending tags
+		# but logic for line based tags can mix in tags starting here and filter out
+		# tags ending here.
+
+		if iter.starts_line():
+			# Force only use tags from the right in order to prevent tag from previous
+			# line "spilling over", allow starting tags to be used to prevent breaking
+			# a line based tag on this line (e.g. type at start of heading should be
+			# formatted as heading)
+			tags += filter(_is_line_based_tag, start_tags)
+			tags += filter(_is_not_line_based_tag, end_tags)
+		elif iter.ends_line():
+			# Force only use tags from the left in order to prevent tag from next
+			# line "spilling over" (should not happen, since \n after end of line is
+			# still formatted with same line based tag as rest of line, but handled
+			# anyway to be robust to edge cases)
+			tags += end_tags
+		else:
+			# Take any tag from left or right, with left taking precendence
+			# HACK: We assume line based tags are mutually exclusive
+			#       if this assumption breaks down need to check by tag type
+			tags += end_tags
+			if not filter(_is_line_based_tag, tags):
+				tags += filter(_is_line_based_tag, start_tags)
 
 		tags.sort(key=lambda tag: tag.get_priority())
 		return tags
@@ -1124,7 +1158,7 @@ class TextBuffer(gtk.TextBuffer):
 		'''Signal handler for insert-text signal'''
 
 		# Check if we are at a bullet or checkbox line
-		if iter.starts_line():
+		if not self._insert_tree_in_progress and iter.starts_line():
 			bullet = self._get_bullet_at_iter(iter)
 			if bullet:
 				self._iter_forward_past_bullet(iter, bullet)
@@ -1143,7 +1177,7 @@ class TextBuffer(gtk.TextBuffer):
 			# Break links if end-of-word char is typed at end of a link
 			# without this you not insert text behind a link e.g. at the end of a line
 			links = filter(_is_link_tag, self._editmode_tags)
-			if links and end.ends_tag(links[0]):
+			if links and iter.ends_tag(links[0]):
 				self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 				# TODO this should go into the TextView, not here
 				# Now it goes OK only because we only check single char inserts, but would break
@@ -1185,19 +1219,18 @@ class TextBuffer(gtk.TextBuffer):
 
 	def do_delete_range(self, start, end):
 		# Wrap actual delete to hook _do_lines_merged
-		if start.get_line() != end.get_line():
-			with self.user_action:
-				mark = self.create_mark(None, start)
+		with self.user_action:
+			if start.get_line() != end.get_line():
 				gtk.TextBuffer.do_delete_range(self, start, end)
-				iter = self.get_iter_at_mark(mark)
-				self.delete_mark(mark)
-				self._do_lines_merged(iter)
-		else:
-			gtk.TextBuffer.do_delete_range(self, start, end)
+				self._do_lines_merged(start)
+			else:
+				gtk.TextBuffer.do_delete_range(self, start, end)
 
-		# Check if we have deleted some bullet item
-		if start.starts_line() and self.get_indent(start.get_line()) == 0:
-			self.update_indent(start.get_line(), None)
+			# Check if we have deleted some bullet item
+			if start.starts_line() \
+			and self.get_indent(start.get_line()) == 0 \
+			and not self.get_bullet_at_iter(start):
+				self.update_indent(start.get_line(), None)
 
 		# Delete formatted word followed by typing should not show format again
 		self.update_editmode()
@@ -2340,16 +2373,30 @@ class TextView(gtk.TextView):
 			home, ourhome = self.get_visual_home_positions(iter)
 			if home.starts_line() and iter.compare(ourhome) < 1 \
 			and not filter(_is_pre_tag, iter.get_tags()):
-				row, list = TextBufferList.new_from_iter(buffer, iter)
-				if list and self.preferences['recursive_indentlist']:
-					done = list.unindent(row)
-				else:
-					done = buffer.unindent(iter.get_line(), interactive=True)
-
-				if event.keyval in KEYVALS_BACKSPACE and not done:
-					handled = False # do a normal backspace
-				else:
+				bullet = buffer.get_bullet_at_iter(home)
+				indent = buffer.get_indent(home.get_line())
+				if event.keyval in KEYVALS_BACKSPACE \
+				and bullet and indent == 0 and not iter.equal(home):
+					# Delete bullet at start of line (if iter not before bullet)
+					buffer.delete(home, ourhome)
 					handled = True
+				elif indent == 0 or indent is None:
+					# Nothing to unindent
+					pass
+				elif bullet:
+					# Unindent list maybe recursive
+					row, list = TextBufferList.new_from_iter(buffer, iter)
+					if list and self.preferences['recursive_indentlist']:
+						handled = list.unindent(row)
+					else:
+						handled = buffer.unindent(iter.get_line(), interactive=True)
+				else:
+					# Unindent normal text
+					handled = buffer.unindent(iter.get_line(), interactive=True)
+
+			if event.keyval in KEYVALS_LEFT_TAB:
+				handled = True # Prevent <Shift><Tab> to insert a Tab if unindent fails
+
 		elif event.keyval in KEYVALS_ENTER:
 			# Enter can trigger links
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
@@ -2364,7 +2411,6 @@ class TextView(gtk.TextView):
 					self.click_link(iter)
 				# else do not insert newline, just ignore
 				handled = True
-
 
 		if handled:
 			return True # end of event chain
@@ -2732,6 +2778,7 @@ class TextView(gtk.TextView):
 				buffer.set_indent(newline, indent)
 
 			buffer.update_editmode() # also updates indent tag
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(TextView)
@@ -3567,7 +3614,10 @@ class PageView(gtk.VBox):
 			menu.prepend(item)
 
 		# edit
-		item = gtk.MenuItem(_('_Edit Link')) # T: menu item in context menu
+		if type == 'image':
+			item = gtk.MenuItem(_('_Edit Properties')) # T: menu item in context menu for image
+		else:
+			item = gtk.MenuItem(_('_Edit Link')) # T: menu item in context menu
 		item.connect('activate', lambda o: self.edit_object(iter=iter))
 		item.set_sensitive(not self.readonly)
 		menu.prepend(item)
@@ -3709,12 +3759,24 @@ class PageView(gtk.VBox):
 		InsertDateDialog(self.ui, self.view.get_buffer()).run()
 
 	def insert_image(self, file=None, type=None, interactive=True):
+		'''Insert an image in the text buffer at the cursor position.
+		If 'interactive' is True we run the InsertImageDialog, otherwise
+		the image is inserted immediatly. Returns True when image exists,
+		is of a supported file type and insert was succesful, False
+		otherwise.
+		'''
 		if interactive:
 			InsertImageDialog(self.ui, self.view.get_buffer(), self.page, file).run()
 		else:
+			# Check if file is supported, otherwise unsupported file
+			# results in broken image icon
 			assert isinstance(file, File)
+			if not (file.exists() and gtk.gdk.pixbuf_get_file_info(file.path)):
+				return False
+
 			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
 			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
+			return True
 
 	def insert_text_from_file(self):
 		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
@@ -3959,6 +4021,11 @@ class InsertImageDialog(FileDialog):
 		file = self.get_file()
 		if file is None: return False
 
+		if not gtk.gdk.pixbuf_get_file_info(file.path):
+			ErrorDialog(self, _('File type not supported: %s' % file.get_mimetype())).run()
+				# T: Error message when trying to insert a not supported file as image
+			return False
+
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['attach_inserted_images'] = checkbox.get_active()
 		self.uistate['last_image_folder'] = self.filechooser.get_current_folder()
@@ -4004,6 +4071,8 @@ class EditImageDialog(Dialog):
 			{'file': src}
 			# range for width and height are set in set_ranges()
 		)
+		self.form.widgets['file'].set_use_relative_paths(ui.notebook, path)
+			# Show relative paths
 
 		reset_button = gtk.Button(_('_Reset Size'))
 			# T: Button in 'edit image' dialog
@@ -4034,8 +4103,7 @@ class EditImageDialog(Dialog):
 		self._image_data.pop('height', None)
 		width = self.form.widgets['width']
 		height = self.form.widgets['height']
-		filename = self.form['file']
-		file = self.ui.notebook.resolve_file(filename, self.path)
+		file = self.form['file']
 		try:
 			info, w, h = gtk.gdk.pixbuf_get_file_info(file.path)
 		except:
@@ -4072,8 +4140,7 @@ class EditImageDialog(Dialog):
 		self._block = False
 
 	def do_response_ok(self):
-		filename = self.form['file']
-		file = self.ui.notebook.resolve_file(filename, self.path)
+		file = self.form['file']
 		attrib = self._image_data
 		attrib['src'] = self.ui.notebook.relative_filepath(file, self.path) or file.uri
 
@@ -4157,37 +4224,33 @@ class InsertLinkDialog(Dialog):
 
 		return href, text
 
-	def _get_href(self):
-		# Not using PageEntry.get_path() here - keep text as typed
-		return self.form.widgets['href'].get_text()
-
 	def on_href_changed(self, o):
 		# Check if we can also update text
 		if not self._copy_text: return
 
 		self._copy_text = False # block on_text_changed()
-		self.form['text'] = self._get_href()
+		self.form['text'] = self.form['href']
 		self._copy_text = True
 
 	def on_text_changed(self, o):
 		# Check if we should stop updating text
 		if not self._copy_text: return
 
-		self._copy_text = self._get_href() == self.form['text']
+		self._copy_text = self.form['href'] == self.form['text']
 
 	def do_response_ok(self):
-		href = self._get_href()
+		href = self.form['href']
 		if not href:
 			self.form.widgets['href'].set_input_valid(False)
 			return False
 
 		type = link_type(href)
-		if type == 'file' and zim.fs.isabs(href):
+		if type == 'file':
 			# Try making the path relative
-			file = File(href)
+			file = self.form.widgets['href'].get_file()
 			page = self.pageview.page
 			notebook = self.ui.notebook
-			href = notebook.relative_filepath(file, page) or file
+			href = notebook.relative_filepath(file, page) or file.uri
 
 		text = self.form['text'] or href
 

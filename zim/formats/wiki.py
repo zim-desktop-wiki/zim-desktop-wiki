@@ -394,7 +394,7 @@ class Dumper(DumperClass):
 				for k, v in element.attrib.items():
 					if k == 'src' or k.startswith('_'):
 						continue
-					else:
+					elif v: # skip None, "" and 0
 						opts.append('%s=%s' % (k, v))
 				if opts:
 					src += '?%s' % '&'.join(opts)

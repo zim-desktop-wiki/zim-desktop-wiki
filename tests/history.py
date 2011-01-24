@@ -40,6 +40,12 @@ class TestHistory(TestCase):
 		self.assertEqual(pages[0], history.get_current())
 		self.assertEqual(len(pages), len(self.pages))
 
+		self.assertEqual(pages[0].cursor, None)
+			# Newly appended pages should not have the cursor
+			# set - pageview has logic to do the right thing when
+			# no cursor is set. Setting default e.g. 0 will 
+			# overrule this logic.
+
 		# walk backwards
 		for i in range(2, len(self.pages)+1):
 			prev = history.get_previous()

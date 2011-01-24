@@ -679,7 +679,7 @@ class InputForm(gtk.Table):
 
 		The 'page', 'namespace' and 'link' options have an optional
 		extra argument which gives the reference path for resolving
-		relative paths.
+		relative paths. This also requires the notebook to be set.
 
 		A None value in the input list will result in additional row
 		spacing in the form.
@@ -736,7 +736,7 @@ class InputForm(gtk.Table):
 				entry = LinkEntry(self.notebook, path_context=extra)
 				# FIXME use inline icon for newer versions of Gtk
 				button = gtk.Button('_Browse')
-				button.connect('clicked', self._select_file, (type, entry))
+				button.connect_object('clicked', entry.__class__.popup_dialog, entry)
 				widgets.append((label, entry, button))
 
 			elif type == 'page':
@@ -756,9 +756,11 @@ class InputForm(gtk.Table):
 					new = (type == 'output-file')
 					entry = FileEntry(new=new)
 
+				entry.file_type_hint = type
+
 				# FIXME use inline icon for newer versions of Gtk
 				button = gtk.Button('_Browse')
-				button.connect('clicked', self._select_file, entry)
+				button.connect_object('clicked', entry.__class__.popup_dialog, entry)
 				widgets.append((label, entry, button))
 
 			elif type in ('string', 'password'):
@@ -802,31 +804,6 @@ class InputForm(gtk.Table):
 		input_table_factory(widgets, table=self)
 
 		self._check_input_valid() # update our state
-
-	def _select_file(self, button, entry):
-		'''Triggered by the 'browse' button for file entries'''
-		if entry.action == gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER:
-			title = _('Select Folder') # T: dialog title
-		elif entry.action == gtk.FILE_CHOOSER_ACTION_SAVE:
-			title = _('Select File') # T: dialog title
-		else:
-			# FIXME
-			#~ if type == 'image':
-				#~ title = _('Select Image') # T: dialog title
-			#~ else:
-			title = _('Select File') # T: dialog title
-
-		dialog = FileDialog(self, title, entry.action)
-		path = entry.get_path()
-		if path:
-			dialog.set_file(path)
-		# FIXME
-		#~ if type == 'image':
-			#~ dialog.add_filter_images()
-
-		file = dialog.run()
-		if not file is None:
-			entry.set_path(file)
 
 	def on_activate_widget(self, widget):
 		'''Calls focus_next() or emits last-activated when last widget
@@ -916,7 +893,9 @@ class InputForm(gtk.Table):
 			raise KeyError, key
 		elif key in self.widgets:
 			widget = self.widgets[key]
-			if isinstance(widget, (PageEntry, NamespaceEntry)):
+			if isinstance(widget, LinkEntry):
+				return widget.get_text() # Could be either page or file
+			elif isinstance(widget, (PageEntry, NamespaceEntry)):
 				return widget.get_path()
 			elif isinstance(widget, FSPathEntry):
 				return widget.get_path()
@@ -944,7 +923,10 @@ class InputForm(gtk.Table):
 			raise KeyError, key
 		elif key in self.widgets:
 			widget = self.widgets[key]
-			if isinstance(widget, (PageEntry, NamespaceEntry)):
+			if isinstance(widget, LinkEntry):
+				assert isinstance(value, basestring)
+				widget.set_text(value)
+			elif isinstance(widget, (PageEntry, NamespaceEntry)):
 				if isinstance(value, Path):
 					widget.set_path(value)
 				else:
@@ -1089,28 +1071,91 @@ gobject.type_register(InputEntry)
 
 
 class FSPathEntry(InputEntry):
-	'''Base class for FileEntry and FolderENtry, should not be
+	'''Base class for FileEntry and FolderEntry, should not be
 	used directly.
+
+	A notebook and page can be specified to make the entry show
+	paths relative to the notebook (based on notebook.resolve_file()
+	and notebook.relative_filepath() ). Otherwise paths will show
+	absolute paths. Since relative paths can start with "/" when a
+	document dir is set, this can result in absolute paths being shown
+	as file uris in the entry.
 	'''
 
+	# TODO file / folder completion in the entry (think about rel paths!)
+	# wire LinkENtry to use this completion
+
 	def __init__(self):
+		'''Constructor, notebook and path are used for relative paths'''
 		InputEntry.__init__(self, allow_empty=False)
+		self.notebook = None
+		self.notebookpath = None
+		self.action = None
+		self.file_type_hint = None
+
+	def set_use_relative_paths(self, notebook, path=None):
+		'''Set the notebook and path to be used for relative paths. Set
+		notebook=None to disable relative paths.
+		'''
+		self.notebook = notebook
+		self.notebookpath = path
 
 	def set_path(self, path):
-		# TODO display home as ~/
-		self.set_text(path.path)
+		if self.notebook:
+			text = self.notebook.relative_filepath(path, self.notebookpath)
+			if text is None:
+				if self.notebook.get_document_root():
+					text = path.uri
+				else:
+					text = path.path
+			self.set_text(text)
+		else:
+			home = Dir('~')
+			if path.ischild(home):
+				self.set_text('~/'+path.relpath(home))
+			else:
+				self.set_text(path.path)
 
 	def get_path(self):
 		text = self.get_text()
 		if text:
+			if self.notebook:
+				path = self.notebook.resolve_file(text, self.notebookpath)
+				if path:
+					return self._class(path.path)
+
 			return self._class(text)
 		else:
 			return None
 
-	# TODO file / folder completion in the entry
+	def popup_dialog(self):
+		'''Run a dialog to browser for a file or folder.
+		Used by the 'browse' button in input forms.
+		'''
+		window = self.get_toplevel()
+		if self.action == gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER:
+			title = _('Select Folder') # T: dialog title
+		elif self.file_type_hint == 'image':
+			title = _('Select Image') # T: dialog title
+		else:
+			title = _('Select File') # T: dialog title
+
+		dialog = FileDialog(window, title, self.action)
+		if self.file_type_hint == 'image':
+			dialog.add_filter_images()
+
+		path = FSPathEntry.get_path(self) # overloaded in LinkEntry
+		if path:
+			dialog.set_file(path)
+
+		file = dialog.run()
+		if not file is None:
+			FSPathEntry.set_path(self, file)
 
 
 class FileEntry(FSPathEntry):
+
+	_class = File
 
 	def __init__(self, file=None, new=False):
 		'''Construcor. If 'new' is True the intention is a new
@@ -1118,12 +1163,12 @@ class FileEntry(FSPathEntry):
 		file. If 'new' is False only existing files can be selected.
 		'''
 		FSPathEntry.__init__(self)
-		self._class = File
+		self.file_type_hint = 'file'
 		if new: self.action = gtk.FILE_CHOOSER_ACTION_SAVE
 		else: self.action = gtk.FILE_CHOOSER_ACTION_OPEN
 
 		if file:
-			self.set_file()
+			self.set_file(file)
 
 	set_file = FSPathEntry.set_path
 	get_file = FSPathEntry.get_path
@@ -1131,9 +1176,11 @@ class FileEntry(FSPathEntry):
 
 class FolderEntry(FSPathEntry):
 
+	_class = Dir
+
 	def __init__(self, folder=None):
 		FSPathEntry.__init__(self)
-		self._class = Dir
+		self.file_type_hint = 'dir'
 		self.action = gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER
 
 		if folder:
@@ -1297,8 +1344,17 @@ class NamespaceEntry(PageEntry):
 	allow_select_root = True
 
 
-class LinkEntry(PageEntry):
+class LinkEntry(PageEntry, FileEntry):
 	'''Sub-class of PageEntry that also accepts file links and urls'''
+
+	_class = File
+
+	def __init__(self, notebook, path=None, path_context=None):
+		PageEntry.__init__(self, notebook, path=None, path_context=None)
+		self.notebook = notebook
+		self.notebookpath = path_context
+		self.action = gtk.FILE_CHOOSER_ACTION_OPEN
+		self.file_type_hint = None
 
 	def do_changed(self):
 		text = self.get_text().decode('utf-8').strip()
@@ -1306,6 +1362,8 @@ class LinkEntry(PageEntry):
 			type = link_type(text)
 			if type == 'page':
 				PageEntry.do_changed(self)
+			#~ elif type == 'file':
+				#~ FileEntry.do_changed(self)
 			else:
 				self.set_input_valid(True)
 		else:
