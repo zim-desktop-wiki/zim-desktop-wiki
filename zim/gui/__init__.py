@@ -1588,7 +1588,7 @@ class MainWindow(Window):
 
 
 		self.pageindex = PageIndex(ui)
-		self.add_tab(_('Index'), self.pageindex, LEFT_PANE)
+		self.add_tab(_('Index'), self.pageindex, LEFT_PANE) # T: Label for pageindex tab
 
 		def check_focus_sidepane(window, widget):
 			focus = widget == self.pageindex
@@ -2281,7 +2281,7 @@ class NewPageDialog(Dialog):
 		if path:
 			page = self.ui.notebook.get_page(path)
 			if page.hascontent or page.haschildren:
-				raise Error, _('Page exists')+': %s' % page.name
+				raise Error, _('Page exists')+': %s' % page.name				# T: Error when creating new page
 
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)

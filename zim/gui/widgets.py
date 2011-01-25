@@ -2638,12 +2638,12 @@ You can use another name or overwrite the existing file.''' % file.basename),
 
 		# all buttons are defined in this class, to get the ordering right
 		# [show folder]      [overwrite] [cancel] [ok]
-		button = gtk.Button(_('_Browse'))
+		button = gtk.Button(_('_Browse')) # T: Button label
 		button.connect('clicked', self.do_show_folder)
 		self.action_area.add(button)
 		self.action_area.set_child_secondary(button, True)
 
-		button = gtk.Button(_('Overwrite'))
+		button = gtk.Button(_('Overwrite')) # T: Button label
 		button.connect('clicked', self.do_response_overwrite)
 		self.add_action_widget(button, gtk.RESPONSE_NONE)
 

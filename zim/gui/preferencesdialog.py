@@ -86,7 +86,8 @@ class PreferencesDialog(Dialog):
 	def _add_font_selection(self, table):
 		# need to hardcode this, can not register it as a preference
 		table.add_inputs( (
-			('use_custom_font', 'bool', _('Use a custom font')),
+			('use_custom_font', 'bool', _('Use a custom font')), 
+			# T: option in preferences dialog
 		) )
 		table.preferences_sections['use_custom_font'] = 'GtkInterface'
 

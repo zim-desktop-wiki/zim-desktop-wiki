@@ -190,6 +190,7 @@ This plugin is still under development.
 				# HACK, using default window size here
 			if not self.widget.get_property('visible'):
 				self.ui.mainwindow.add_tab(_('Attachments'), self.widget, BOTTOM_PANE)
+					# T: label for attachment browser pane
 				self.widget.show_all()
 				self.widget.refresh()
 				self.ui.mainwindow._zim_window_bottom_pane.set_position(
@@ -367,8 +368,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 
 		# TODO stat file for size and m_time
 
-		f_label = _('Name') # label for file name
-		s_label = _('Size') # label for file size
+		f_label = _('Name') # T: label for file name
+		s_label = _('Size') # T: label for file size
 		m_label = _('Modified') # T: label for file modification date
 		tooltip.set_markup(
 			"<b>%s:</b> %s\n <b>%s:</b> %s\n<b>%s:</b> %s" % (
