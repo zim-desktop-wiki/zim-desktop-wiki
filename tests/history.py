@@ -2,8 +2,6 @@
 
 # Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
 
-'''FIXME'''
-
 from tests import TestCase, get_test_notebook
 
 import zim.history
@@ -12,7 +10,6 @@ from zim.notebook import Path
 from zim.config import ConfigDict
 
 class TestHistory(TestCase):
-	'''FIXME'''
 
 	def setUp(self):
 		zim.history.MAX_HISTORY = 100
@@ -43,7 +40,7 @@ class TestHistory(TestCase):
 		self.assertEqual(pages[0].cursor, None)
 			# Newly appended pages should not have the cursor
 			# set - pageview has logic to do the right thing when
-			# no cursor is set. Setting default e.g. 0 will 
+			# no cursor is set. Setting default e.g. 0 will
 			# overrule this logic.
 
 		# walk backwards
@@ -210,8 +207,7 @@ class TestHistory(TestCase):
 		# check state
 		#~ import pprint
 		#~ pprint.pprint(uistate)
-		self.assertEqual(len(uistate['History']['history']), len(history.history))
-		#~ self.assertEqual(len(uistate['History']['pages']), len(history.history))
+		self.assertEqual(len(uistate['History']['list']), len(history.history))
 		self.assertEqual(uistate['History']['current'], len(history.history)-3)
 
 		# clone uistate by text
@@ -220,8 +216,7 @@ class TestHistory(TestCase):
 		newuistate.parse(lines)
 
 		# check new state
-		self.assertEqual(len(uistate['History']['history']), len(history.history))
-		#~ self.assertEqual(len(newuistate['History']['pages']), len(history.history))
+		self.assertEqual(len(uistate['History']['list']), len(history.history))
 		self.assertEqual(newuistate['History']['current'], len(history.history)-3)
 
 		# and compare resulting history object

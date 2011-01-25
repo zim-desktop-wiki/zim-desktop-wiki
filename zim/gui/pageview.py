@@ -465,7 +465,8 @@ class TextBuffer(gtk.TextBuffer):
 
 		# Check if we are at a bullet or checkbox line
 		iter = self.get_iter_at_mark(self.get_insert())
-		if not raw and iter.starts_line():
+		if not raw and iter.starts_line() \
+		and not tree.get_ends_with_newline():
 			bullet = self._get_bullet_at_iter(iter)
 			if bullet:
 				self._iter_forward_past_bullet(iter, bullet)
@@ -844,13 +845,13 @@ class TextBuffer(gtk.TextBuffer):
 		'''Like gtk.TextIter.get_tags() but only returns our own tags and
 		assumes inline tags (like 'strong', 'emphasis' etc.) have "left gravity"
 		(which means that you copy formatting ending to the left of you but not
-		formatting starting to the right of you). For "line based" tags 
+		formatting starting to the right of you). For "line based" tags
 		(like 'indent', 'h', 'pre') some additional logic is used to keep them
 		consistent on a line (so at the start of the line, we do copy formatting
-		starting to the left of us for these tags) and not inadvertedly copy 
+		starting to the left of us for these tags) and not inadvertedly copy
 		formatting from the previous line.
 
-		This method is used to determing which tags should be applied to newly 
+		This method is used to determing which tags should be applied to newly
 		inserted text at 'iter'.
 		'''
 		# Current logic works without additional indent set in do_end_of_line due to
@@ -863,7 +864,7 @@ class TextBuffer(gtk.TextBuffer):
 			if tag in tags:
 				tags.remove(tag)
 		end_tags = filter(_is_zim_tag, iter.get_toggled_tags(False))
-		# So now we have 3 separate sets with tags ending here, starting here 
+		# So now we have 3 separate sets with tags ending here, starting here
 		# and being continuous here. Result will be continuous tags and ending tags
 		# but logic for line based tags can mix in tags starting here and filter out
 		# tags ending here.
@@ -1158,7 +1159,8 @@ class TextBuffer(gtk.TextBuffer):
 		'''Signal handler for insert-text signal'''
 
 		# Check if we are at a bullet or checkbox line
-		if not self._insert_tree_in_progress and iter.starts_line():
+		if not self._insert_tree_in_progress and iter.starts_line() \
+		and not string.endswith('\n'):
 			bullet = self._get_bullet_at_iter(iter)
 			if bullet:
 				self._iter_forward_past_bullet(iter, bullet)
@@ -1250,14 +1252,6 @@ class TextBuffer(gtk.TextBuffer):
 				self.apply_tag(tag, iter, end)
 
 		self.update_editmode()
-
-	def do_insert_pixbuf(self, end, pixbuf):
-		gtk.TextBuffer.do_insert_pixbuf(self, end, pixbuf)
-		start = end.copy()
-		start.backward_char()
-		self.remove_all_tags(start, end)
-		for tag in self._editmode_tags:
-			self.apply_tag(tag, start, end)
 
 	def get_bullet(self, line):
 		iter = self.get_iter_at_line(line)
@@ -1435,7 +1429,7 @@ class TextBuffer(gtk.TextBuffer):
 					continue
 
 				if pixbuf.zim_type == 'icon':
-					raise AssertionError, 'BUG: Checkbox outside of indent ?'
+					#~ raise AssertionError, 'BUG: Checkbox outside of indent ?'
 					logger.warn('BUG: Checkbox outside of indent ?')
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()

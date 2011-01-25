@@ -840,7 +840,7 @@ class InputForm(gtk.Table):
 
 		for k in self._widgets[i:]:
 			widget = self.widgets[k]
-			if widget.get_sensitive() \
+			if widget.get_property('sensitive') \
 			and widget.get_property('visible') \
 			and not (
 				activatable
@@ -1435,6 +1435,11 @@ class Window(gtkwindowclass):
 	important thing is to create placeholders where plugins *might*
 	want to add some widget.
 	'''
+
+	# TODO generalized way to set pane position and pane visibility
+	#      in the uistate and load again
+	# TODO generalized way to have a "show pane" button in the toolbar
+	#      - general button when multiple tabs, other name of one tab in button ???
 
 	def __init__(self):
 		gtkwindowclass.__init__(self)

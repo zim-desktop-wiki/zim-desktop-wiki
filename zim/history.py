@@ -106,10 +106,12 @@ class History(gobject.GObject):
 			self.uistate = uistate['History']
 
 		# Initialize history list and ensure current is within range
-		self.uistate.setdefault('history', [])
+		# previous version (<= 0.49) used attributes 'pages' and 'history'
+		# so we can not use those without breaking backward compatibility
+		self.uistate.setdefault('list', [])
 		self.uistate.setdefault('current', len(self.history)-1)
 
-		self.uistate['history'] = HistoryList(self.uistate['history'])
+		self.uistate['list'] = HistoryList(self.uistate['list'])
 
 		if self.current < 0 or self.current > len(self.history) - 1:
 			self.current = len(self.history)-1
@@ -140,7 +142,7 @@ class History(gobject.GObject):
 
 	@property
 	def history(self):
-		return self.uistate['history']
+		return self.uistate['list']
 
 	def _on_page_deleted(self, page):
 		# Flag page and children as deleted

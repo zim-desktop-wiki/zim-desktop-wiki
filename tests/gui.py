@@ -7,12 +7,13 @@ from zim.fs import File, Dir
 
 import zim.gui
 
+from zim.gui.clipboard import *
+
 
 class TestClipboard(TestCase):
 
 	def runTest(self):
 		'''Test clipboard interaction'''
-		from zim.gui.clipboard import *
 		clipboard = Clipboard()
 
 		# tree -> ..
@@ -183,7 +184,7 @@ class TestDialogs(TestCase):
 
 		dialog = zim.gui.MovePageDialog(self.ui, path=Path('Test:foo:bar'))
 		self.assertTrue(dialog.form['update'])
-		self.assertTrue(dialog.form.widgets['update'].get_sensitive())
+		self.assertTrue(dialog.form.widgets['update'].get_property('sensitive'))
 		dialog.form['parent'] = Path('New')
 		dialog.assert_response_ok()
 		self.assertEqual(self.ui.mock_calls[-1],
@@ -191,7 +192,7 @@ class TestDialogs(TestCase):
 
 		dialog = zim.gui.MovePageDialog(self.ui, path=Path('New:bar'))
 		self.assertFalse(dialog.form['update'])
-		self.assertFalse(dialog.form.widgets['update'].get_sensitive())
+		self.assertFalse(dialog.form.widgets['update'].get_property('sensitive'))
 		dialog.form['parent'] = Path('foo')
 		dialog.assert_response_ok()
 		self.assertEqual(self.ui.mock_calls[-1],
@@ -204,9 +205,9 @@ class TestDialogs(TestCase):
 
 		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('Test:foo:bar'))
 		self.assertTrue(dialog.form['update'])
-		self.assertTrue(dialog.form.widgets['update'].get_sensitive())
+		self.assertTrue(dialog.form.widgets['update'].get_property('sensitive'))
 		self.assertTrue(dialog.form['head'])
-		self.assertTrue(dialog.form.widgets['head'].get_sensitive())
+		self.assertTrue(dialog.form.widgets['head'].get_property('sensitive'))
 		dialog.form['name'] = 'New'
 		dialog.assert_response_ok()
 		self.assertEqual(self.ui.mock_calls[-1],
@@ -214,9 +215,9 @@ class TestDialogs(TestCase):
 
 		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('New:bar'))
 		self.assertFalse(dialog.form['update'])
-		self.assertFalse(dialog.form.widgets['update'].get_sensitive())
+		self.assertFalse(dialog.form.widgets['update'].get_property('sensitive'))
 		self.assertFalse(dialog.form['head'])
-		self.assertFalse(dialog.form.widgets['head'].get_sensitive())
+		self.assertFalse(dialog.form.widgets['head'].get_property('sensitive'))
 		dialog.form['name'] = 'New'
 		dialog.assert_response_ok()
 		self.assertEqual(self.ui.mock_calls[-1],
@@ -227,11 +228,11 @@ class TestDialogs(TestCase):
 		# just check inputs are OK - skip output
 		dialog = zim.gui.DeletePageDialog(self.ui, path=Path('Test:foo:bar'))
 		self.assertTrue(dialog.links_checkbox.get_active())
-		self.assertTrue(dialog.links_checkbox.get_sensitive())
+		self.assertTrue(dialog.links_checkbox.get_property('sensitive'))
 
 		dialog = zim.gui.DeletePageDialog(self.ui, path=Path('New'))
 		self.assertFalse(dialog.links_checkbox.get_active())
-		self.assertFalse(dialog.links_checkbox.get_sensitive())
+		self.assertFalse(dialog.links_checkbox.get_property('sensitive'))
 
 		dialog.assert_response_ok()
 

@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright 2010 Thorsten Hackbarth <thorsten.hackbarth@gmx.de>
+#           2011 Jaap Karssenberg <pardus@cpan.org>
 # License:  same as zim (gpl)
 #
 # ChangeLog
+# 2011-01-25 Refactored widget and plugin code (Jaap)
+#		tested on gtk < 2.12 (tooltip interface)
+#		add pref for image magick (convert cmd exists on win32 but is not the same)
+#		added buttons to side of widget
 # 2011-01-02 Fixed use of uistate and updated for new framework to add to the mainwindow (Jaap)
 # 2010-11-14 Fixed Bug 664551
 # 2010-08-31 freedesktop.org thumnail spec mostly implemented
@@ -14,8 +19,6 @@
 # problems with Umlaut in filenames
 # TODO:
 # * integer plugin_preferences do not to work as expected (zim bug?)
-# * toggle: inital toolbar button state wrong
-# * toggle-btn icon
 # [ ] draw frames around thumbnails (in the view)
 # [*] where to store thumbnails?
 #   freedesktop.org: ~/.thumbnails/  (gnome/nautilus)
@@ -27,13 +30,15 @@
 # [ ] preview in textarea (see emacs+speedbar)
 # [*] dont start all thumbnailing processes at a time, and make them nice 10
 # [*] small and lager thumbs
-# [ ] use mimtype and extension
+# [ ] use mimetype and extension
 # [*] rethumb broken (e.g. shutdown while thumbnailing)
 # [ ] code cleanup
+#    [*] clean up plugin class and widget
+#    [ ] refactor thumbnailer
 # [*] new gui concept for zim : sidepane r/l,bottom- and top pane both with tabs (see gedit)
 # [ ] show file infos in tooltip (size, camera,... what else?)
 # [*] update icon when thumbnail is ready
-# [ ] mimi-type specific icons
+# [ ] mimetype specific icons
 # [ ] evaluate imagemagick python libs
 # [ ] thumbnailers as plugins
 # [ ] libgsf thumbnailer
@@ -41,7 +46,6 @@
 # [ ] make a reference implementation for thumbnail spec
 # [ ] rewrite thumbnail spec
 # http://ubuntuforums.org/showthread.php?t=76566
-#
 #
 # tooltip example
 #  http://nullege.com/codes/show/src@pygtk-2.14.1@examples@pygtk-demo@demos@tooltip.py/160/gtk.gdk.Color
@@ -52,40 +56,33 @@
 '''Zim plugin to display files in attachments folder.'''
 
 import hashlib # for thumbfilenames
-import shutil
 import tempfile
-
+import os
+import re
+import logging
 
 import gobject
 import gtk
-
 import pango
 
-import os
-import stat
-import time
-
-import re
-import logging
-from datetime import date as dateclass
 
 from zim.async import AsyncOperation, AsyncLock
-
-
 from zim.plugins import PluginClass
-from zim.gui.widgets import Button, BOTTOM_PANE
+from zim.gui.widgets import Button, BOTTOM_PANE, IconButton
 from zim.notebook import Path
 from zim.stores import encode_filename
 from zim.fs import *
 from zim.errors import Error
-logger = logging.getLogger('zim.plugins.attachmentbrowser')
 from zim.applications import Application
 from zim.gui.applications import OpenWithMenu
 
 
+logger = logging.getLogger('zim.plugins.attachmentbrowser')
+
+
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
-	('toggle_fileview', gtk.STOCK_OPEN, _('AttachmentBrowser'),  '', 'Show Attachment Folder',False, True), # T: menu item
+	('toggle_fileview', gtk.STOCK_DIRECTORY, _('AttachmentBrowser'),  '', 'Show Attachment Folder',False, True), # T: menu item
 )
 
 
@@ -153,34 +150,31 @@ This plugin is still under development.
 		#~ 'help': 'Plugins:AttachmentBrowser',
 	}
 
-	#plugin_preferences = (
+	plugin_preferences = (
 	#	# key, type, label, default
 	#	('icon_size', 'int', _('Icon size [px]'), [ICON_SIZE_MIN,128,ICON_SIZE_MAX]), # T: preferences option
 	#	('preview_size', 'int', _('Tooltip preview size [px]'), (THUMB_SIZE_MIN,480,THUMB_SIZE_MAX)), # T: input label
 	#	('thumb_quality', 'int', _('Preview jpeg Quality [0..100]'), (0,50,100)), # T: input label
-	#)
+		('use_imagemagick', 'bool', _('Use ImageMagick for thumbnailing'), False), # T: input label
+	)
 
-	@classmethod
-	def check_dependencies(klass):
-		return [("ImageMagick",Application(('convert',None)).tryexec())]
+	#~ @classmethod
+	#~ def check_dependencies(klass):
+		#~ return [("ImageMagick",Application(('convert',None)).tryexec())]
 
 	def initialize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
-			self.widget = AttachmentBrowserPluginWidget(self)
-
-			self.window = gtk.ScrolledWindow()
-			self.window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-			self.window.add_with_viewport(self.widget)
-
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			#self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
 
 	def finalize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
+			self.widget = AttachmentBrowserPluginWidget(self.ui, self.preferences)
 			self.widget.on_open_page(self.ui, self.ui.page, self.ui.page)
 			self.uistate.setdefault('active', True)
 			self.toggle_fileview(enable=self.uistate['active'])
+			self.ui.connect('close-page', self.on_close_page)
 
 	def toggle_fileview(self, enable=None):
 		self.toggle_action('toggle_fileview', active=enable)
@@ -192,44 +186,208 @@ This plugin is still under development.
 			enable = action.get_active()
 
 		if enable:
-			if not self.window.get_property('visible'):
-				self.ui.mainwindow.add_tab(_('Attachments'), self.window, BOTTOM_PANE)
-				self.window.show_all()
+			self.uistate.setdefault('bottompane_pos', int(450 - 1.5*THUMB_SIZE_NORMAL))
+				# HACK, using default window size here
+			if not self.widget.get_property('visible'):
+				self.ui.mainwindow.add_tab(_('Attachments'), self.widget, BOTTOM_PANE)
+				self.widget.show_all()
 				self.widget.refresh()
+				self.ui.mainwindow._zim_window_bottom_pane.set_position(
+					self.uistate['bottompane_pos'])
+					# FIXME - method for this in Window class
 			self.uistate['active'] = True
 		else:
-			if self.window.get_property('visible'):
-				self.window.hide_all()
-				self.ui.mainwindow.remove(self.window)
+			if self.widget.get_property('visible'):
+				self.uistate['bottompane_pos'] = \
+					self.ui.mainwindow._zim_window_bottom_pane.get_position()
+					# FIXME - method for this in Window class
+				self.widget.hide_all()
+				self.ui.mainwindow.remove(self.widget)
 			self.uistate['active'] = False
+
+	def on_close_page(self, *a):
+		if self.widget.get_property('visible'):
+			self.uistate['bottompane_pos'] = \
+				self.ui.mainwindow._zim_window_bottom_pane.get_position()
+				# FIXME - method for this in Window class
 
 	def disconnect(self):
 		self.do_toggle_fileview(enable=False)
 
 		PluginClass.disconnect(self)
 
-	#~ def do_preferences_changed(self):
-		#~ print "do_preferences_changed"
-		#print self.preferences['icon_size']
-
-		# bug?
-		#
-		# self.preferences['icon_size'] is integer after  changeing it
-		# but must be (min,val,max) for the dialog, which is strange
+	def do_preferences_changed(self):
+		if self.widget.get_property('visible'):
+			self.widget.refresh() # re-start thumbnailing with other settings
 
 
-class Fileview(gtk.IconView):
-	'''Custom fileview widget class. Adds an 'activate' signal for what i dont know yet'''
+BASENAME_COL = 0
+PIXBUF_COL = 1
 
-	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'activate': (gobject.SIGNAL_RUN_LAST, None, ()),
-	}
+
+class AttachmentBrowserPluginWidget(gtk.HBox):
+
+	def __init__(self, ui, preferences):
+		gtk.HBox.__init__(self)
+		self.ui = ui
+		self.preferences = preferences
+		self.dir = None
+
+		self.thumbman = ThumbnailManager(preferences)
+
+		self.fileview = gtk.IconView()
+
+		self.store = gtk.ListStore(str, gtk.gdk.Pixbuf) # BASENAME_COL, PIXBUF_COL
+
+		self.fileview = gtk.IconView(self.store)
+		self.fileview.set_text_column(BASENAME_COL)
+		self.fileview.set_pixbuf_column(PIXBUF_COL)
+
+		window = gtk.ScrolledWindow()
+		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		window.set_shadow_type(gtk.SHADOW_IN)
+		window.add(self.fileview)
+		self.add(window)
+
+		self.buttonbox = gtk.VBox()
+		self.pack_end(self.buttonbox, False)
+
+		open_folder_button = IconButton(gtk.STOCK_OPEN, relief=False)
+		open_folder_button.connect('clicked', lambda o: self.ui.open_attachments_folder())
+		self.buttonbox.pack_start(open_folder_button, False)
+
+		refresh_button = IconButton(gtk.STOCK_REFRESH, relief=False)
+		refresh_button.connect('clicked', lambda o: self.refresh())
+		self.buttonbox.pack_start(refresh_button, False)
+
+		self.ui.connect('open-page', self.on_open_page)
+
+		self.fileview.connect('button-press-event', self.on_button_press_event)
+		self.fileview.connect('item-activated', self.on_item_activated)
+
+		if gtk.gtk_version >= (2, 12):
+			# custom tooltip
+			self.fileview.props.has_tooltip = True
+			self.fileview.connect("query-tooltip", self.query_tooltip_icon_view_cb)
+
+	def on_open_page(self, ui, page, path):
+		self.set_folder(ui.notebook.get_attachments_dir(page))
+
+	def set_folder(self, dir):
+		#~ print "set_folder", dir
+		if dir != self.dir:
+			self.dir = dir
+			if self.get_property('visible'):
+				self.refresh()
+
+	def refresh(self):
+		self.store.clear()
+		self.thumbman.clear()
+
+		if self.dir is None or not self.dir.exists():
+			self.fileview.set_sensitive(False)
+			return # Show empty view
+		else:
+			self.fileview.set_sensitive(True)
+
+		for name in self.dir.list():
+			# If dir is an attachment folder, sub-pages maybe filtered out already
+			file = self.dir.file(name)
+			if file.isdir():
+				continue # Ignore subfolders -- FIXME ?
+
+			pixbuf = self.thumbman.get_thumbnail(file, THUMB_SIZE_NORMAL, self.set_thumb, file)
+			if not pixbuf:
+				# TODO: icon by mime-type
+				pixbuf = self.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_BUTTON)
+
+			self.store.append((name, pixbuf)) # BASENAME_COL, PIXBUF_COL
+
+	def set_thumb(self, file, pixbuf):
+		'''callback to replace the placeholder icon by a background generated thumbnail'''
+		if not file.dir == self.dir:
+			return
+
+		name = file.basename
+		def update(model, path, iter):
+			if model[iter][BASENAME_COL] == name:
+				model[iter][PIXBUF_COL] = pixbuf
+
+		self.store.foreach(update)
+
+	def on_item_activated(self, iconview, path):
+		iter = self.store.get_iter(path)
+		file = self.dir.file(self.store[iter][BASENAME_COL])
+		self.ui.open_file(file)
+
+	def on_button_press_event(self, iconview, event):
+		# print 'on_button_press_event'
+		if event.button == 3:
+			popup_menu=gtk.Menu()
+			x = int(event.x)
+			y = int(event.y)
+			time = event.time
+			pathinfo = self.fileview.get_path_at_pos(x, y)
+			if pathinfo is not None:
+				self.fileview.grab_focus()
+				popup_menu.popup(None, None, None, event.button, time)
+				self.do_populate_popup(popup_menu, pathinfo)
+					# FIXME should use a signal here
+				return True
+		return False
+
+	def do_populate_popup(self, menu, pathinfo):
+		# print "do_populate_popup"
+		iter = self.store.get_iter(pathinfo)
+		file = self.dir.file(self.store[iter][BASENAME_COL])
+
+		item = gtk.MenuItem(_('Open With...')) # T: menu item
+		menu.prepend(item)
+
+		submenu = OpenWithMenu(file)
+		item.set_submenu(submenu)
+
+		item = gtk.MenuItem(_('_Open')) # T: menu item to open file or folder
+		item.connect('activate', lambda o: self.ui.open_file(file))
+		menu.prepend(item)
+
+		menu.show_all()
+
+	def query_tooltip_icon_view_cb(self, widget, x, y, keyboard_tip, tooltip):
+		context = widget.get_tooltip_context(x, y, keyboard_tip)
+		if not context:
+			return False
+
+		model, path, iter = context
+		name = model[iter][BASENAME_COL]
+		file = self.dir.file(name)
+		pixbuf = self.thumbman.get_thumbnail(file, PREVIEW_SIZE)
+		if not pixbuf:
+			pixbuf = model[iter][PIXBUF_COL]
+
+		# TODO stat file for size and m_time
+
+		f_label = _('Name') # label for file name
+		s_label = _('Size') # label for file size
+		m_label = _('Modified') # T: label for file modification date
+		tooltip.set_markup(
+			"<b>%s:</b> %s\n <b>%s:</b> %s\n<b>%s:</b> %s" % (
+				f_label, name,
+				s_label, 'TODO',
+				m_label, 'TODO',
+			))
+		tooltip.set_icon(pixbuf)
+		widget.set_tooltip_item(tooltip, path)
+
+		return True
+
 
 
 class ThumbnailManager():
 	''' Thumbnail handling following freedesktop.org spec mostly'''
-	def __init__(self):
+
+	def __init__(self, preferences):
+		self.preferences = preferences
 		self.queue=[]
 		self.worker_is_active=False
 		self.lock = AsyncLock()
@@ -281,8 +439,6 @@ class ThumbnailManager():
 			return pixbuf
 		except:
 			logger.debug('  Error converting Image')
-
-
 
 	def _file_to_image_magick(self,infile,outfile,w,h,fileinfo=None):
 		''' pdf to thumbnail '''
@@ -350,6 +506,9 @@ class ThumbnailManager():
 		pixbuf=self._file_to_image_pixbbuf(infile,outfile,w,h,None)
 		if pixbuf:
 			return pixbuf
+		elif not self.preferences['use_imagemagick']:
+			return
+
 		extension=infile.split(".")[-1].upper()
 		#print extension
 		#touch the tmpfile first
@@ -357,6 +516,7 @@ class ThumbnailManager():
 
 		magickextensions=('SVG','PDF','PS','EPS','DVI','DJVU','RAW','DOT','HTML','HTM','TTF','XCF')
 		textextensions=('SH','BAT','TXT','C','C++','CPP','H','H++','HPP','PY','PL') #'AVI','MPG','M2V','M4V','MPEG'
+
 
 		if extension in magickextensions:
 			fileinfo=self._file_to_image_magick(infile,tmpfile,w,h,None)
@@ -447,11 +607,12 @@ class ThumbnailManager():
 		self.queue=[]
 
 
-	def get_thumbnail(self,filenameabs,size,set_pixbuf_callback=None,parm=None):
+	def get_thumbnail(self, file, size, set_pixbuf_callback=None, parm=None):
 		''' create a pixbuffer
 			load the thumb if available
 			else load smaller thumbnail
 			  and genertate thumb asyncr'''
+		filenameabs = file.path
 		#print 'get_thumbnail(' , filenameabs ,size
 
 		# FIXME size handling
@@ -519,148 +680,4 @@ class ThumbnailManager():
 		#return pixbuf
 		return None
 
-
-
-# Need to register classes defining gobject signals
-gobject.type_register(Fileview)
-
-
-class AttachmentBrowserPluginWidget(gtk.HBox):
-	__gsignals__ = {
-		'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-	}
-	def __init__(self, plugin):
-		gtk.HBox.__init__(self)
-		self.path=None
-		self.plugin = plugin
-		self.thumbman = ThumbnailManager()
-		self.fileview = Fileview()
-		self.store = None
-		self.store=gtk.ListStore(str, gtk.gdk.Pixbuf,str) #gtk.TextBuffer()
-		#self.fileview.set_buffer(self.textbuffer)
-		self.fileview.set_model(self.store)
-		self.fileview.set_text_column(0)
-		self.fileview.set_pixbuf_column(1)
-
-		self.pack_start(self.fileview, True)
-
-		self.plugin.ui.connect('open-page', self.on_open_page)
-
-		self.fileview.connect_object('button-press-event',AttachmentBrowserPluginWidget.on_button_press_event, self)
-		#self.fileview.set_tooltip_column(2) # filename as tooltip
-		self.fileview.props.has_tooltip = True
-		# custom tooltip
-		self.fileview.connect("query-tooltip", self.query_tooltip_icon_view_cb)
-
-
-	def on_button_press_event(self,event):
-		# print 'on_button_press_event'
-		if event.button == 3:
-			popup_menu=gtk.Menu()
-			x = int(event.x)
-			y = int(event.y)
-			time = event.time
-			#iteminfo = self.fileview.get_item_at_pos(x, y)
-			pathinfo = self.fileview.get_path_at_pos(x, y)
-			if pathinfo is not None:
-				self.fileview.grab_focus()
-				#print self.store.get_value(self.store.get_iter(pathinfo),2)
-				popup_menu.popup(None, None, None, event.button, time)
-				self.do_populate_popup(popup_menu,pathinfo)
-				return True
-		return False
-
-	def set_current_folder(self, path):
-		print "set_current_folder", path
-		self.clear()
-		self.path = path
-
-		if self.get_property('visible'):
-			self.refresh()
-
-	def clear(self):
-		self.store.clear()
-		self.thumbman.clear()
-		self.path = None
-
-	def refresh(self):
-		if self.path is None \
-		or not os.path.isdir(self.path):
-			# Show empty view
-			self.clear()
-			return
-
-		self.store.clear()
-		self.thumbman.clear()
-
-		filelist = os.listdir(self.path)
-		for filename in filelist:
-			#	self.textbuffer.insert_at_cursor(filename+'\n')
-			filenameabs=self.path+os.sep+filename
-			# only for existing files
-			# and not for blocked
-			if os.path.isfile(filenameabs) and filename[0]!='.': #.encode('utf-8')):
-				widget = gtk.HBox() # Need *some* widget here...
-				# TODO: icon by mime-type
-				pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE,gtk.ICON_SIZE_DIALOG)
-				# TODO: thumbman with callback
-				listelement=self.store.append( [filename,pixbuf,self.path] )
-				pixbuf=self.thumbman.get_thumbnail(filenameabs,THUMB_SIZE_NORMAL,self.set_thumb,listelement)
-				if pixbuf is not None:
-					self.set_thumb(listelement,pixbuf)
-
-
-	def set_thumb(self,listelement,pixbuf):
-		'''callback to replace the placeholder icon by a background generated thumbnail'''
-		self.store.set(listelement,1,pixbuf)
-
-
-	def do_populate_popup(self, menu,pathinfo):
-		# print "do_populate_popup"
-		file= File(self.store.get_value(self.store.get_iter(pathinfo),2)+os.sep+self.store.get_value(self.store.get_iter(pathinfo),0))
-
-		# open with & open folder
-		item = gtk.MenuItem(_('Open Folder'))
-			# T: menu item to open containing folder of files
-		menu.prepend(item)
-
-		dir = file.dir
-		if dir.exists():
-			item.connect('activate', lambda o: self.plugin.ui.open_file(dir))
-		else:
-			item.set_sensitive(False)
-
-		item = gtk.MenuItem(_('Open With...'))
-		menu.prepend(item)
-
-		submenu = OpenWithMenu(file)
-		item.set_submenu(submenu)
-
-		menu.show_all()
-
-
-	def query_tooltip_icon_view_cb(self, widget, x, y, keyboard_tip, tooltip):
-		if not widget.get_tooltip_context(x, y, keyboard_tip):
-			return False
-		else:
-			model, path, iter = widget.get_tooltip_context(x, y, keyboard_tip)
-			value = model.get(iter, 0)
-			tooltip.set_markup("<b>Filename: </b> %s \n <b>Size: </b> %s \n <b>Date: </b> %s" %(value[0],'(UNKNOWN)','(UNKNOWN)'))
-			filename=model.get(iter, 0)[0]
-			filepath=model.get(iter, 2)[0]
-			filenameabs=filepath+os.sep+filename
-
-			tooltip.set_icon(self.thumbman.get_thumbnail(filenameabs,PREVIEW_SIZE))
-
-			widget.set_tooltip_item(tooltip, path)
-			return True
-
-
-	def on_open_page(self, ui, page, path):
-		try:
-			#print path
-			#print encode_filename(page.name)
-			self.set_current_folder(str(self.plugin.ui.notebook.get_attachments_dir(page)+os.sep))
-		except AssertionError:
-			pass
 
