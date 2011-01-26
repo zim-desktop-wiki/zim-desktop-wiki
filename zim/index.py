@@ -571,7 +571,6 @@ class Index(gobject.GObject):
 		has_tags = set()
 		
 		created_tags = []
-		deleted_tags = []
 		
 		# Initialise seen tags
 		for tag in self.list_tags(path):
@@ -640,14 +639,6 @@ class Index(gobject.GObject):
 				self.emit('tag-to-be-removed', self.lookup_tagid(tag), path, (len(has_tags) == 0) and (i == len(removed_tags)-1))
 				self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag))
 
-		with self.db_commit:
-			# Purge tag table
-			cursor = self.db.cursor()
-			cursor.execute('select id, name from tags where id not in (select tag from tagsources)')
-			for row in cursor:
-				deleted_tags.append(IndexTag(row['name'], row['id'], row))
-				self.emit('tag-to-be-deleted', deleted_tags[-1])
-			self.db.execute('delete from tags where id not in (select tag from tagsources)')
 
 		path = self.lookup_data(path) # refresh
 		
@@ -662,12 +653,24 @@ class Index(gobject.GObject):
 			
 		for i, tag in enumerate(removed_tags):
 			self.emit('tag-removed', tag, path, (len(has_tags) == 0) and (i == len(removed_tags)-1))
-			
-		for tag in deleted_tags:
-			self.emit('tag-deleted', tag)
+
+		self._purge_tag_table()
 
 		#~ print '!! PAGE-INDEXED', path
 		self.emit('page-indexed', path, page)
+		
+	def _purge_tag_table(self):
+		deleted_tags = []
+		with self.db_commit:
+			# Purge tag table
+			cursor = self.db.cursor()
+			cursor.execute('select id, name from tags where id not in (select tag from tagsources)')
+			for row in cursor:
+				deleted_tags.append(IndexTag(row['name'], row['id'], row))
+				self.emit('tag-to-be-deleted', deleted_tags[-1])
+			self.db.execute('delete from tags where id not in (select tag from tagsources)')
+		for tag in deleted_tags:
+			self.emit('tag-deleted', tag)
 
 	def _update_pagelist(self, path, checkcontent):
 		'''Checks and updates the pagelist for a path if needed and queues any
@@ -837,6 +840,16 @@ class Index(gobject.GObject):
 			for path in paths:
 				self.db.execute('delete from links where source=?', (path.id,))
 				self.db.execute('update pages set hascontent=0, contentkey=NULL where id==?', (path.id,))
+				
+		# Clean up tags
+		for path in paths:
+			with self.db_commit:
+				tags = list(self.get_tags(path))
+				for i, tag in enumerate(tags):
+					self.emit('tag-to-be-removed', tag.tag, tag.source, i == len(tags) - 1)
+					self.db.execute('delete from tagsources where source==? and tag==?', (tag.source.id, tag.tag.id))
+			for i, tag in enumerate(tags):
+				self.emit('tag-removed', tag.tag, tag.source, i == len(tags) - 1)
 
 		# Clean up any nodes that are not a link
 		paths.reverse() # process children first
@@ -1218,9 +1231,8 @@ class Index(gobject.GObject):
 			cursor.execute('select * from tagsources where source == ?', (path.id,))
 			for source in cursor:
 				assert source['source'] == path.id
-				source = path
 				tag = self.lookup_tagid(source['tag'])
-				yield Tagged(source, tag)
+				yield Tagged(path, tag)
 				
 	def list_tagged(self, tag, offset=None, limit=20):
 		'''
