@@ -17,18 +17,21 @@ class TestCoding(TestCase):
 		if not self._code_files:
 			self._read_code()
 			assert len(self._code_files) > 10
-		return copy.deepcopy(self._code_files)	
+		return copy.deepcopy(self._code_files)
 
 	def _read_code(self):
 		self._code_files = []
-		for dir, dirs, files in os.walk('zim'):
-			for basename in files:
-				if basename.endswith('.py'):
-					file = dir + '/' + basename
-					#print 'READING', file
-					fh = open(file)
-					self._code_files.append((file, fh.read()))
-					fh.close()
+		for root in ('zim', 'tests'):
+			for dir, dirs, files in os.walk(root):
+				if 'coding.py' in files:
+					files.remove('coding.py') # Skip this file itself
+				for basename in files:
+					if basename.endswith('.py'):
+						file = dir + '/' + basename
+						#print 'READING', file
+						fh = open(file)
+						self._code_files.append((file, fh.read()))
+						fh.close()
 
 	def testWrongMethog(self):
 		'''Check for a couple of constructs to be avoided'''
@@ -36,6 +39,7 @@ class TestCoding(TestCase):
 			self.assertFalse('gtk.Entry(' in code, '%s uses gtk.Entry - use zim.gui.widgets.InputEntry instead' % file)
 			self.assertFalse('get_visible(' in code, '%s uses get_visible() - use get_property() instead' % file)
 			self.assertFalse('set_visible(' in code, '%s uses set_visible() - use set_property() instead' % file)
+			self.assertFalse('get_sensitive(' in code, '%s uses get_sensitive() - requires Gtk >= 2.18 - use set_property() instead' % file)
 
 	def testImportFuture(self):
 		'''Check python 2.5 compatibility'''
@@ -58,4 +62,4 @@ class TestCoding(TestCase):
 					in_comment = True
 				elif line.startswith('with '):
 					self.assertTrue(import_seen, '%s missing with_statement import from __future__ ("with" seen on line %i)' % (file, n))
- 
+

@@ -8,7 +8,7 @@ import logging
 
 import zim.plugins
 from zim.gui.applications import ApplicationManager, NewApplicationDialog
-from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view, InputForm
+from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view, InputForm, input_table_factory
 from zim.gui.pageview import PageView
 
 
@@ -30,25 +30,27 @@ class PreferencesDialog(Dialog):
 		self.vbox.add(gtknotebook)
 
 		# Dynamic tabs
-		self.forms = []
+		self.forms = {}
 		for category, preferences in ui.preferences_register.items():
 			vbox = gtk.VBox()
 			gtknotebook.append_page(vbox, gtk.Label(category))
 
 			fields = []
+			values = {}
 			sections = {}
 			for p in preferences:
 				section, key, type, label = p
 				fields.append((key, type, label))
+				values[key] = ui.preferences[section][key]
 				sections[key] = section
 
-			form = InputForm(fields, ui.preferences[section])
+			form = InputForm(fields, values)
 			form.preferences_sections = sections
 			vbox.pack_start(form, False)
-			self.forms.append(form)
+			self.forms[category] = form
 
 			if category == 'Interface':
-				self._add_font_selection(form, vbox)
+				self._add_font_selection(form)
 
 		# Styles tab
 		#~ gtknotebook.append_page(StylesTab(self), gtk.Label('Styles'))
@@ -81,14 +83,16 @@ class PreferencesDialog(Dialog):
 		gtknotebook.append_page(PluginsTab(self), gtk.Label(_('Plugins')))
 				# T: Heading in preferences dialog
 
-	def _add_font_selection(self, table, vbox):
+	def _add_font_selection(self, table):
 		# need to hardcode this, can not register it as a preference
 		table.add_inputs( (
-			('use_custom_font', 'bool', _('Use a custom font')),
+			('use_custom_font', 'bool', _('Use a custom font')), 
+			# T: option in preferences dialog
 		) )
-		table.preferences_sections['use_custom_font'] = 'Interface'
+		table.preferences_sections['use_custom_font'] = 'GtkInterface'
 
 		self.fontbutton = gtk.FontButton()
+		self.fontbutton.set_use_font(True) # preview in button
 		self.fontbutton.set_sensitive(False)
 		try:
 			font = PageView.style['TextView']['font']
@@ -102,12 +106,8 @@ class PreferencesDialog(Dialog):
 		table.widgets['use_custom_font'].connect('toggled',
 			lambda o: self.fontbutton.set_sensitive(o.get_active()) )
 
-		# HACK - how to do proper layout fontbutton ?
-		self.fontbutton.set_size_request(200, -1)
-		hbox = gtk.HBox()
-		vbox.pack_start(hbox, False)
-		hbox.pack_start(gtk.Label('\t\t'), False)
-		hbox.pack_start(self.fontbutton, False)
+		self.fontbutton.set_size_request(100, -1)
+		input_table_factory(((None, self.fontbutton),), table)
 
 	def _append_applications(self, type, widget):
 		manager = ApplicationManager()
@@ -165,19 +165,19 @@ class PreferencesDialog(Dialog):
 			self.ui.preferences['GtkInterface'][type] = name_map.get(name)
 
 		# Get dynamic tabs
-		for form in self.forms:
+		for form in self.forms.values():
 			for key, value in form.items():
 				section = form.preferences_sections[key]
 				self.ui.preferences[section][key] = value
 
-		# Set font
-		custom = self.ui.preferences['Interface'].pop('use_custom_font')
+		# Set font - special case, consider it a HACK
+		custom = self.ui.preferences['GtkInterface'].pop('use_custom_font')
 		if custom:
 			font = self.fontbutton.get_font_name()
 		else:
 			font = None
 		PageView.style['TextView']['font'] = font
-		PageView.style.write() # HACK
+		PageView.style.write()
 
 		# Save all
 		self.ui.save_preferences()

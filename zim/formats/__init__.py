@@ -281,6 +281,19 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 		return count
 
+	def get_ends_with_newline(self):
+		'''Checks whether this tree ends in a newline or not'''
+		newline = False
+		for element in self.getiterator():
+			if element.tail:
+				newline = element.tail.endswith('\n')
+			elif element.tag in ('li', 'h'):
+				newline = True
+			elif element.text:
+				newline = element.text.endswith('\n')
+
+		return newline
+
 
 count_eol_re = re.compile(r'\n+\Z')
 split_para_re = re.compile(r'((?:^[ \t]*\n){2,})', re.M)

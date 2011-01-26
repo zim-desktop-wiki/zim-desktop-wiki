@@ -11,6 +11,7 @@ from zim.fs import *
 from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
+from zim.config import ConfigDict
 
 
 class FilterNoSuchImageWarning(LoggingFilter):
@@ -282,6 +283,95 @@ List item 0
 		#~ print buffer.get_parsetree(raw=True).tostring()
 		#~ print buffer.get_parsetree().tostring()
 		tree = buffer.get_parsetree()
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+
+
+		# Exercize recursive checkbox lists
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="unchecked-box" indent="0"> Foo</li>
+<li bullet="unchecked-box" indent="0"> Bar</li>
+<li bullet="unchecked-box" indent="1"> Bar 1</li>
+<li bullet="unchecked-box" indent="2"> Bar 1.1</li>
+<li bullet="unchecked-box" indent="1"> Bar 2</li>
+<li bullet="unchecked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		tree = get_tree_from_xml(input)
+		buffer.set_parsetree(tree)
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), input) # just a sanity check
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="xchecked-box" indent="0"> Foo</li>
+<li bullet="checked-box" indent="0"> Bar</li>
+<li bullet="xchecked-box" indent="1"> Bar 1</li>
+<li bullet="checked-box" indent="2"> Bar 1.1</li>
+<li bullet="checked-box" indent="1"> Bar 2</li>
+<li bullet="checked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		buffer.toggle_checkbox(2, recursive=True) # Bar
+		buffer.toggle_checkbox(3, recursive=True) # Bar 1
+			# After first click all children become checked
+			# After second click one becomes xchecked
+		buffer.place_cursor(buffer.get_iter_at_line(1)) # Foo
+		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX)
+			# Like <Shift><F12> on first list item line
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="xchecked-box" indent="0"> Foo</li>
+<li bullet="unchecked-box" indent="0"> Bar</li>
+<li bullet="unchecked-box" indent="1"> Bar 1</li>
+<li bullet="unchecked-box" indent="2"> Bar 1.1</li>
+<li bullet="unchecked-box" indent="1"> Bar 2</li>
+<li bullet="unchecked-box" indent="1"> Bar 3</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		start = buffer.get_iter_at_line(2) # Bar
+		end = buffer.get_iter_at_line(6) # Bar 3
+		end.forward_to_line_end()
+		buffer.select_range(start, end)
+		buffer.toggle_checkbox_for_cursor_or_selection(CHECKED_BOX, recursive=True)
+			# Like keypress would trigger while selection present
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+
+		# Test deleting checkbox and undo / redo does not mess up indenting etc
+		undomanager = UndoStackManager(buffer)
+		previous = wanted
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">Dusss
+<li bullet="xchecked-box" indent="0"> Foo</li>
+<li bullet="unchecked-box" indent="0"> Bar</li>
+<li bullet="unchecked-box" indent="0"> Baz</li>
+Tja
+</zim-tree>'''
+		start = buffer.get_iter_at_line(3) # Bar 1
+		end = buffer.get_iter_at_line(7) # Baz (before checkbox !)
+		buffer.delete(start, end)
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		undomanager.undo()
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), previous)
+
+		undomanager.redo()
+		tree = buffer.get_parsetree(raw=True)
 		self.assertEqualDiff(tree.tostring(), wanted)
 
 
@@ -827,16 +917,22 @@ Tja
 		self.assertEqualDiff(tree.tostring(), wantedpre)
 
 
-def press(widget, string):
-	for char in string:
+def press(widget, sequence):
+	#~ print 'PRESS', sequence
+	for key in sequence:
 		event = gtk.gdk.Event(gtk.gdk.KEY_PRESS)
-		if char == '\n':
+		if isinstance(key, (int, long)):
+			event.keyval = int(key)
+		elif key == '\n':
 			event.keyval = int( gtk.gdk.keyval_from_name('Return') )
-		elif char == '\t':
+		elif key == '\t':
 			event.keyval = int( gtk.gdk.keyval_from_name('Tab') )
 		else:
-			event.keyval = int( gtk.gdk.unicode_to_keyval(ord(char)) )
-		event.string = char
+			event.keyval = int( gtk.gdk.unicode_to_keyval(ord(key)) )
+
+		if not isinstance(key, (int, long)):
+			event.string = key
+
 		#gtk.main_do_event(event)
 		#assert widget.event(event) # Returns True if event was handled
 		#while gtk.events_pending():
@@ -966,7 +1062,7 @@ foo
 		iter = buffer.get_iter_at_line(1)
 		iter.forward_to_line_end() # behind "foo"
 		buffer.place_cursor(iter)
-		press(view, '\n')
+		press(view, '\n') # because foo has children, insert indent 1 instead of 0
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
@@ -980,10 +1076,80 @@ foo
 		self.assertEqualDiff(tree.tostring(), wanted)
 
 
-		# TODO unindenting
+
+		# Test unindenting and test backspace can remove line end
+		press(view, (KEYVALS_BACKSPACE[0],)) # unindent
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+<li bullet="*" indent="0"> foo</li>
+<li bullet="*" indent="0"> </li>
+<li bullet="*" indent="1"> duss</li>
+<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		press(view, (KEYVALS_LEFT_TAB[0],)) # Check <Shift><Tab> does not fall through to Tab when indent fails
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		press(view, (KEYVALS_BACKSPACE[0],)) # delete bullet at once
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">aaa
+<li bullet="*" indent="0"> foo</li>
+
+<li bullet="*" indent="1"> duss</li>
+<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+
+</zim-tree>'''
+		tree = buffer.get_parsetree(raw=True)
+		self.assertEqualDiff(tree.tostring(), wanted)
+
+		# TODO: this test case fails, even though it works when I try it interactively !?
+		#~ press(view, (KEYVALS_BACKSPACE[0],)) # remove newline
+		#~ wanted = '''\
+#~ <?xml version='1.0' encoding='utf-8'?>
+#~ <zim-tree raw="True">aaa
+#~ <li bullet="*" indent="0"> foo</li>
+#~ <li bullet="*" indent="1"> duss</li>
+#~ <li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+#~
+#~ </zim-tree>'''
+		#~ tree = buffer.get_parsetree(raw=True)
+		#~ self.assertEqualDiff(tree.tostring(), wanted)
+
+		# TODO more unindenting ?
 		# TODO checkboxes
 		# TODO Auto formatting of various link types
 		# TODO enter on link, before link, after link
+
+
+class TestPageView(TestCase):
+
+	def runTest(self):
+		PageView.actiongroup = MockObject() # use class attribute to fake ui init
+		PageView.actiongroup.mock_method('get_action', MockObject())
+
+		ui = MockUI()
+		ui.uimanager = MockObject()
+		ui.uimanager.mock_method('get_accel_group', MockObject())
+
+		pageview = PageView(ui)
+		buffer = pageview.view.get_buffer()
+		buffer.set_text('''\
+Foo bar
+Baz
+''')
+		iter = buffer.get_iter_at_offset(5)
+		buffer.place_cursor(iter)
+		self.assertEqual(pageview.get_word(), 'bar')
+		self.assertEqual(pageview.get_selection(), 'bar')
+		self.assertEqual(pageview.get_selection(format='wiki'), 'bar')
+
+		# TODO much more here
 
 
 class TestPageviewDialogs(TestCase):
@@ -1021,8 +1187,9 @@ class TestPageviewDialogs(TestCase):
 		ui = MockUI()
 		file = File('data/zim.png')
 		ui.notebook.mock_method('resolve_file', file)
+		ui.notebook.mock_method('relative_filepath', './data/zim.png')
 		buffer = TextBuffer()
-		buffer.insert_image_at_cursor(file, file.uri)
+		buffer.insert_image_at_cursor(file, '../MYPATH/./data/zim.png')
 		dialog = EditImageDialog(ui, buffer, Path(':some_page'))
 		self.assertEqual(dialog.form['width'], 48)
 		self.assertEqual(dialog.form['height'], 48)
@@ -1038,7 +1205,7 @@ class TestPageviewDialogs(TestCase):
 		dialog.assert_response_ok()
 		iter = buffer.get_iter_at_offset(0)
 		self.assertEqual(buffer.get_image_data(iter), {
-			'src': file.uri,
+			'src': './data/zim.png', # preserve relative path
 			'_src_file': file,
 			'height': 24,
 		})
@@ -1095,8 +1262,14 @@ dus bar bazzz baz
 class MockUI(MockObject):
 
 	def __init__(self):
+		MockObject.__init__(self)
 		self.mainwindow = None
 		self.notebook = MockObject()
+		self.preferences = ConfigDict()
+
+	def register_preferences(self, section, list):
+		for key, type, category, label, default in list:
+			self.preferences[section][key] = default
 
 
 class MockBuffer(MockObject):

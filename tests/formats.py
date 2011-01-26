@@ -4,7 +4,7 @@
 
 '''Test cases for the zim.formats module.'''
 
-from tests import TestCase, get_test_data_page, get_test_page
+from tests import TestCase, get_test_data_page, get_test_page, LoggingFilter
 
 from zim.formats import *
 from zim.notebook import Link
@@ -479,6 +479,12 @@ That's all ...<br>
 		self.assertEqualDiff(output, html.splitlines(True))
 
 
+class LatexLoggingFilter(LoggingFilter):
+
+	logger = 'zim.formats.latex'
+	message = 'No document type set in template'
+
+
 class TestLatexFormat(TestCase):
 
 	def testEncode(self):
@@ -491,11 +497,12 @@ class TestLatexFormat(TestCase):
 
 	def testExport(self):
 		'''test the export of a wiki page to latex'''
-		format = get_format('LaTeX')
-		testpage = get_test_data_page('wiki','Test:wiki')
-		tree = get_format('wiki').Parser().parse(testpage)
-		output = format.Dumper(linker=StubLinker()).dump(tree)
-		self.assertTrue('\chapter{Foo Bar}\n' in output)
+		with LatexLoggingFilter():
+			format = get_format('LaTeX')
+			testpage = get_test_data_page('wiki','Test:wiki')
+			tree = get_format('wiki').Parser().parse(testpage)
+			output = format.Dumper(linker=StubLinker()).dump(tree)
+			self.assertTrue('\chapter{Foo Bar}\n' in output)
 
 		# TODO test template_options.document_type
 

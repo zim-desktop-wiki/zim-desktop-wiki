@@ -45,6 +45,67 @@ class TestInputEntry(TestCase):
 		self.assertFalse(entry.get_input_valid())
 
 
+class TestFileEntry(TestCase):
+
+	def runTest(self):
+		'''Test FileEntry widget'''
+		notebook = get_test_notebook()
+		notebook.index.update()
+
+		dir = Dir(create_tmp_dir('widgets_TestFileEntry'))
+		path = Path('Foo:Bar')
+		notebook.dir = dir
+		notebook.get_store(path).dir = dir
+
+		home = Dir('~')
+
+		entry = FileEntry()
+		for file, text in (
+			(home.file('zim-test.txt'), '~/zim-test.txt'),
+			(File('/test.txt'), '/test.txt'),
+		):
+			entry.set_file(file)
+			self.assertEqual(entry.get_text(), text)
+			self.assertEqual(entry.get_file(), file)
+
+
+		entry.set_use_relative_paths(notebook, path)
+
+		for file, text in (
+			(home.file('zim-test.txt'), '~/zim-test.txt'),
+			(dir.file('Foo/Bar/test.txt'), './test.txt'),
+			(File('/test.txt'), '/test.txt'),
+		):
+			entry.set_file(file)
+			self.assertEqual(entry.get_text(), text)
+			self.assertEqual(entry.get_file(), file)
+
+		notebook.config['Notebook']['document_root'] = './notebook_document_root'
+		doc_root = notebook.get_document_root()
+
+		for file, text in (
+			(home.file('zim-test.txt'), '~/zim-test.txt'),
+			(dir.file('Foo/Bar/test.txt'), './test.txt'),
+			(File('/test.txt'), 'file:///test.txt'),
+			(doc_root.file('test.txt'), '/test.txt'),
+		):
+			entry.set_file(file)
+			self.assertEqual(entry.get_text(), text)
+			self.assertEqual(entry.get_file(), file)
+
+		entry.set_use_relative_paths(notebook, None)
+
+		for file, text in (
+			(home.file('zim-test.txt'), '~/zim-test.txt'),
+			(dir.file('Foo/Bar/test.txt'), './Foo/Bar/test.txt'),
+			(File('/test.txt'), 'file:///test.txt'),
+			(doc_root.file('test.txt'), '/test.txt'),
+		):
+			entry.set_file(file)
+			self.assertEqual(entry.get_text(), text)
+			self.assertEqual(entry.get_file(), file)
+
+
 class TestInputForm(TestCase):
 
 	def runTest(self):
@@ -135,13 +196,12 @@ class TestFileDialog(TestCase):
 
 	def runTest(self):
 		tmp_dir = create_tmp_dir('widgets_TestFileDialog')
-		ui = MockUI()
 
 		file = File((tmp_dir, 'test.txt'))
 		file.write('test 123')
 		self.assertTrue(file.exists())
 
-		dialog = FileDialog(ui, 'Test')
+		dialog = FileDialog(None, 'Test')
 		dialog.set_file(file)
 		#~ myfile = dialog.get_file()
 		#~ self.assertTrue(myfile)
@@ -154,10 +214,5 @@ class TestFileDialog(TestCase):
 		# TODO select folder
 
 		# TODO add filters
-
-
-class MockUI(object):
-
-	mainwindow = None
 
 

@@ -26,6 +26,12 @@ from zim.parsing import link_type
 logger = logging.getLogger('zim.gui')
 
 
+if os.environ.get('ZIM_TEST_RUNNING'):
+	TEST_MODE = True
+else:
+	TEST_MODE = False
+
+
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVAL_LEFT = gtk.gdk.keyval_from_name('Left')
 KEYVAL_RIGHT = gtk.gdk.keyval_from_name('Right')
@@ -251,8 +257,8 @@ def _sync_widget_state(widget, subject, check_active=False):
 
 def input_table_factory(inputs, table=None):
 	'''Takes a list of inputs and returns a table with nice layout
-	for those inputs. Inputs in the list given should be either a
-	gtk widget or a tuple of a string and one or more widgets.
+	for those inputs. Inputs in the list given should be either 'None',
+	a gtk widget, or a tuple of a string and one or more widgets.
 	If a tuple is given and the first item is 'None', the widget
 	will be lined out in the 2nd column. A 'None' value in the input
 	list represents an empty row in the table.
@@ -269,22 +275,30 @@ def input_table_factory(inputs, table=None):
 
 	for input in inputs:
 		if input is None:
-			table.attach(gtk.Label(' '), 0,2, i,i+1, xoptions=gtk.FILL)
+			table.attach(gtk.Label(' '), 0,1, i,i+1, xoptions=gtk.FILL)
 			# HACK: force empty row to have height of label
 		elif isinstance(input, tuple):
 			text = input[0]
-			if not text is None:
+			if text:
 				label = gtk.Label(text + ':')
 				label.set_alignment(0.0, 0.5)
-				table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
-				_sync_widget_state(input[1], label)
+			else:
+				label = gtk.Label(' '*4) # minimum label width
+
+			table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
+			_sync_widget_state(input[1], label)
+
 			for j, widget in enumerate(input[1:]):
-				table.attach(widget, j+1,j+2, i,i+1)
+				table.attach(widget, j+1,j+2, i,i+1, xoptions=gtk.FILL)
 				if j > 0:
 					_sync_widget_state(input[1], widget)
 		else:
 			widget = input
-			table.attach(widget, 0,2, i,i+1)
+			table.attach(widget, 0,4, i,i+1)
+				# We span 4 columns here so in case these widgets are
+				# the widest in the tables (e.g. checkbox + label)
+				# they don't force expanded size on first 3 columns
+				# (e.g. label + entry + button).
 		i += 1
 
 	return table
@@ -665,7 +679,7 @@ class InputForm(gtk.Table):
 
 		The 'page', 'namespace' and 'link' options have an optional
 		extra argument which gives the reference path for resolving
-		relative paths.
+		relative paths. This also requires the notebook to be set.
 
 		A None value in the input list will result in additional row
 		spacing in the form.
@@ -722,7 +736,7 @@ class InputForm(gtk.Table):
 				entry = LinkEntry(self.notebook, path_context=extra)
 				# FIXME use inline icon for newer versions of Gtk
 				button = gtk.Button('_Browse')
-				button.connect('clicked', self._select_file, (type, entry))
+				button.connect_object('clicked', entry.__class__.popup_dialog, entry)
 				widgets.append((label, entry, button))
 
 			elif type == 'page':
@@ -742,9 +756,11 @@ class InputForm(gtk.Table):
 					new = (type == 'output-file')
 					entry = FileEntry(new=new)
 
+				entry.file_type_hint = type
+
 				# FIXME use inline icon for newer versions of Gtk
 				button = gtk.Button('_Browse')
-				button.connect('clicked', self._select_file, entry)
+				button.connect_object('clicked', entry.__class__.popup_dialog, entry)
 				widgets.append((label, entry, button))
 
 			elif type in ('string', 'password'):
@@ -789,36 +805,11 @@ class InputForm(gtk.Table):
 
 		self._check_input_valid() # update our state
 
-	def _select_file(self, button, entry):
-		'''Triggered by the 'browse' button for file entries'''
-		if entry.action == gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER:
-			title = _('Select Folder') # T: dialog title
-		elif entry.action == gtk.FILE_CHOOSER_ACTION_SAVE:
-			title = _('Select File') # T: dialog title
-		else:
-			# FIXME
-			#~ if type == 'image':
-				#~ title = _('Select Image') # T: dialog title
-			#~ else:
-			title = _('Select File') # T: dialog title
-
-		dialog = FileDialog(self, title, entry.action)
-		path = entry.get_path()
-		if path:
-			dialog.set_file(path)
-		# FIXME
-		#~ if type == 'image':
-			#~ dialog.add_filter_images()
-
-		file = dialog.run()
-		if not file is None:
-			entry.set_path(file)
-
 	def on_activate_widget(self, widget):
 		'''Calls focus_next() or emits last-activated when last widget
 		was activated.
 		'''
-		if not self._focus_next(widget):
+		if not self._focus_next(widget, activatable=True):
 			self.emit('last-activated')
 
 	def focus_first(self):
@@ -833,7 +824,10 @@ class InputForm(gtk.Table):
 		else:
 			return False
 
-	def _focus_next(self, widget):
+	def _focus_next(self, widget, activatable=False):
+		# If 'activatable' is True we only focus widgets that have
+		# an 'activated' signal (mainly just TextEntries). This is used
+		# to fine tune the last-activated signal
 		if widget is None:
 			i = 0
 		else:
@@ -846,8 +840,12 @@ class InputForm(gtk.Table):
 
 		for k in self._widgets[i:]:
 			widget = self.widgets[k]
-			if widget.get_sensitive() \
-			and widget.get_property('visible'):
+			if widget.get_property('sensitive') \
+			and widget.get_property('visible') \
+			and not (
+				activatable
+				and not isinstance(widget, (gtk.Entry, gtk.ComboBox))
+			):
 				widget.grab_focus()
 				return True
 		else:
@@ -895,7 +893,9 @@ class InputForm(gtk.Table):
 			raise KeyError, key
 		elif key in self.widgets:
 			widget = self.widgets[key]
-			if isinstance(widget, (PageEntry, NamespaceEntry)):
+			if isinstance(widget, LinkEntry):
+				return widget.get_text() # Could be either page or file
+			elif isinstance(widget, (PageEntry, NamespaceEntry)):
 				return widget.get_path()
 			elif isinstance(widget, FSPathEntry):
 				return widget.get_path()
@@ -923,7 +923,10 @@ class InputForm(gtk.Table):
 			raise KeyError, key
 		elif key in self.widgets:
 			widget = self.widgets[key]
-			if isinstance(widget, (PageEntry, NamespaceEntry)):
+			if isinstance(widget, LinkEntry):
+				assert isinstance(value, basestring)
+				widget.set_text(value)
+			elif isinstance(widget, (PageEntry, NamespaceEntry)):
 				if isinstance(value, Path):
 					widget.set_path(value)
 				else:
@@ -1068,28 +1071,91 @@ gobject.type_register(InputEntry)
 
 
 class FSPathEntry(InputEntry):
-	'''Base class for FileEntry and FolderENtry, should not be
+	'''Base class for FileEntry and FolderEntry, should not be
 	used directly.
+
+	A notebook and page can be specified to make the entry show
+	paths relative to the notebook (based on notebook.resolve_file()
+	and notebook.relative_filepath() ). Otherwise paths will show
+	absolute paths. Since relative paths can start with "/" when a
+	document dir is set, this can result in absolute paths being shown
+	as file uris in the entry.
 	'''
 
+	# TODO file / folder completion in the entry (think about rel paths!)
+	# wire LinkENtry to use this completion
+
 	def __init__(self):
+		'''Constructor, notebook and path are used for relative paths'''
 		InputEntry.__init__(self, allow_empty=False)
+		self.notebook = None
+		self.notebookpath = None
+		self.action = None
+		self.file_type_hint = None
+
+	def set_use_relative_paths(self, notebook, path=None):
+		'''Set the notebook and path to be used for relative paths. Set
+		notebook=None to disable relative paths.
+		'''
+		self.notebook = notebook
+		self.notebookpath = path
 
 	def set_path(self, path):
-		# TODO display home as ~/
-		self.set_text(path.path)
+		if self.notebook:
+			text = self.notebook.relative_filepath(path, self.notebookpath)
+			if text is None:
+				if self.notebook.get_document_root():
+					text = path.uri
+				else:
+					text = path.path
+			self.set_text(text)
+		else:
+			home = Dir('~')
+			if path.ischild(home):
+				self.set_text('~/'+path.relpath(home))
+			else:
+				self.set_text(path.path)
 
 	def get_path(self):
 		text = self.get_text()
 		if text:
+			if self.notebook:
+				path = self.notebook.resolve_file(text, self.notebookpath)
+				if path:
+					return self._class(path.path)
+
 			return self._class(text)
 		else:
 			return None
 
-	# TODO file / folder completion in the entry
+	def popup_dialog(self):
+		'''Run a dialog to browser for a file or folder.
+		Used by the 'browse' button in input forms.
+		'''
+		window = self.get_toplevel()
+		if self.action == gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER:
+			title = _('Select Folder') # T: dialog title
+		elif self.file_type_hint == 'image':
+			title = _('Select Image') # T: dialog title
+		else:
+			title = _('Select File') # T: dialog title
+
+		dialog = FileDialog(window, title, self.action)
+		if self.file_type_hint == 'image':
+			dialog.add_filter_images()
+
+		path = FSPathEntry.get_path(self) # overloaded in LinkEntry
+		if path:
+			dialog.set_file(path)
+
+		file = dialog.run()
+		if not file is None:
+			FSPathEntry.set_path(self, file)
 
 
 class FileEntry(FSPathEntry):
+
+	_class = File
 
 	def __init__(self, file=None, new=False):
 		'''Construcor. If 'new' is True the intention is a new
@@ -1097,12 +1163,12 @@ class FileEntry(FSPathEntry):
 		file. If 'new' is False only existing files can be selected.
 		'''
 		FSPathEntry.__init__(self)
-		self._class = File
+		self.file_type_hint = 'file'
 		if new: self.action = gtk.FILE_CHOOSER_ACTION_SAVE
 		else: self.action = gtk.FILE_CHOOSER_ACTION_OPEN
 
 		if file:
-			self.set_file()
+			self.set_file(file)
 
 	set_file = FSPathEntry.set_path
 	get_file = FSPathEntry.get_path
@@ -1110,9 +1176,11 @@ class FileEntry(FSPathEntry):
 
 class FolderEntry(FSPathEntry):
 
+	_class = Dir
+
 	def __init__(self, folder=None):
 		FSPathEntry.__init__(self)
-		self._class = Dir
+		self.file_type_hint = 'dir'
 		self.action = gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER
 
 		if folder:
@@ -1141,9 +1209,8 @@ class PageEntry(InputEntry):
 		self.force_existing = False
 		self._completing = ''
 
-		self.completion_model = gtk.ListStore(str)
 		completion = gtk.EntryCompletion()
-		completion.set_model(self.completion_model)
+		completion.set_model(gtk.ListStore(str))
 		completion.set_text_column(0)
 		completion.set_inline_completion(True)
 		self.set_completion(completion)
@@ -1252,7 +1319,9 @@ class PageEntry(InputEntry):
 		self._completing = completing
 
 		# Else fill model with pages from namespace
-		self.completion_model.clear()
+		completion = self.get_completion()
+		model = completion.get_model()
+		model.clear()
 
 		if completing == ':':
 			path = Path(':')
@@ -1265,7 +1334,9 @@ class PageEntry(InputEntry):
 		# TODO also add parent namespaces in case text did not contain any ':' (anchored == False)
 		#~ print '!! COMPLETING %s context: %s prefix: %s' % (path, self.path_context, prefix)
 		for p in self.notebook.index.list_pages(path):
-			self.completion_model.append((prefix+p.basename,))
+			model.append((prefix+p.basename,))
+
+		completion.complete()
 
 
 class NamespaceEntry(PageEntry):
@@ -1273,8 +1344,17 @@ class NamespaceEntry(PageEntry):
 	allow_select_root = True
 
 
-class LinkEntry(PageEntry):
+class LinkEntry(PageEntry, FileEntry):
 	'''Sub-class of PageEntry that also accepts file links and urls'''
+
+	_class = File
+
+	def __init__(self, notebook, path=None, path_context=None):
+		PageEntry.__init__(self, notebook, path=None, path_context=None)
+		self.notebook = notebook
+		self.notebookpath = path_context
+		self.action = gtk.FILE_CHOOSER_ACTION_OPEN
+		self.file_type_hint = None
 
 	def do_changed(self):
 		text = self.get_text().decode('utf-8').strip()
@@ -1282,6 +1362,8 @@ class LinkEntry(PageEntry):
 			type = link_type(text)
 			if type == 'page':
 				PageEntry.do_changed(self)
+			#~ elif type == 'file':
+				#~ FileEntry.do_changed(self)
 			else:
 				self.set_input_valid(True)
 		else:
@@ -1353,6 +1435,11 @@ class Window(gtkwindowclass):
 	important thing is to create placeholders where plugins *might*
 	want to add some widget.
 	'''
+
+	# TODO generalized way to set pane position and pane visibility
+	#      in the uistate and load again
+	# TODO generalized way to have a "show pane" button in the toolbar
+	#      - general button when multiple tabs, other name of one tab in button ???
 
 	def __init__(self):
 		gtkwindowclass.__init__(self)
@@ -1617,17 +1704,15 @@ class Dialog(gtk.Dialog):
 			self.vbox.set_spacing(5)
 
 		if hasattr(self, 'uistate'):
-			self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
+			assert isinstance(self.uistate, zim.config.ListDict) # just to be sure
 		elif hasattr(ui, 'uistate') \
 		and isinstance(ui.uistate, zim.config.ConfigDict):
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
-			self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		else:
-			self.uistate = { # used in tests/debug
-				'windowsize': defaultwindowsize
-			}
+			self.uistate = zim.config.ListDict()
 
+		self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		#~ print '>>', self.uistate
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
@@ -1710,7 +1795,8 @@ class Dialog(gtk.Dialog):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
 		logger.debug('Opening dialog "%s"', self.title)
 		register_window(self)
-		gtk.Dialog.show_all(self)
+		if not TEST_MODE:
+			gtk.Dialog.show_all(self)
 
 	def response_ok(self):
 		'''Trigger the response signal with an 'Ok' response type.'''
@@ -2126,7 +2212,8 @@ class ProgressBarDialog(gtk.Dialog):
 	def show_all(self):
 		'''Logs debug info and calls gtk.Dialog.show_all()'''
 		logger.debug('Opening ProgressBarDialog')
-		gtk.Dialog.show_all(self)
+		if not TEST_MODE:
+			gtk.Dialog.show_all(self)
 
 	def do_response(self, id):
 		'''Handles the response signal and calls the 'cancel' callback.'''
@@ -2199,6 +2286,13 @@ class Assistant(Dialog):
 		'''Returns a list with AssistantPage objects'''
 		return self._pages
 
+	def get_page(self):
+		'''Returns the current page object'''
+		if self._page > -1:
+			return self._pages[self._page]
+		else:
+			return None
+
 	def set_page(self, i):
 		'''Go to page i in the assistant'''
 		if i < 0 or i >= len(self._pages):
@@ -2269,17 +2363,28 @@ class Assistant(Dialog):
 		if id == gtk.RESPONSE_OK:
 			# Wrap up previous page
 			if self._page > -1:
-				try: # hack needed for filechooser valid in gtk < 2.12
-					self._pages[self._page]._check_valid()
-				except Exception, error:
-					ErrorDialog(self, error).run()
-					return False
-				else:
-					self._pages[self._page].save_uistate()
+				self._pages[self._page].save_uistate()
 
 			self._uistate.update(self.uistate)
 
 		Dialog.do_response(self, id)
+
+	def assert_response_ok(self):
+		'''Like response_ok(), but will force False return value
+		to raise an error. Also it explicitly does not handle errors
+		with an error dialog but just let them go through.
+		Intended for use by the test suite.
+		'''
+		# Wrap up previous page
+		if self._page > -1:
+			self._pages[self._page].save_uistate()
+
+		self._uistate.update(self.uistate)
+
+		assert self.do_response_ok() is True
+		self.save_uistate()
+		self.destroy()
+		return self.result
 
 
 class AssistantPage(gtk.VBox):
@@ -2533,12 +2638,12 @@ You can use another name or overwrite the existing file.''' % file.basename),
 
 		# all buttons are defined in this class, to get the ordering right
 		# [show folder]      [overwrite] [cancel] [ok]
-		button = gtk.Button(_('_Browse'))
+		button = gtk.Button(_('_Browse')) # T: Button label
 		button.connect('clicked', self.do_show_folder)
 		self.action_area.add(button)
 		self.action_area.set_child_secondary(button, True)
 
-		button = gtk.Button(_('Overwrite'))
+		button = gtk.Button(_('Overwrite')) # T: Button label
 		button.connect('clicked', self.do_response_overwrite)
 		self.add_action_widget(button, gtk.RESPONSE_NONE)
 

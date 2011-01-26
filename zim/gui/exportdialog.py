@@ -35,7 +35,7 @@ class ExportDialog(Assistant):
 		if options['template'] == '__file__':
 			options['template'] = self.uistate['template_file']
 
-		if self.uistate['use_document_root_url']:
+		if self.uistate['document_root_url'] == 'url':
 			options['document_root_url'] = self.uistate['document_root_url']
 
 		try:
@@ -48,7 +48,7 @@ class ExportDialog(Assistant):
 			dir = Dir(self.uistate['output_folder'])
 			if dir.exists() and len(dir.list()) > 0:
 				ok = QuestionDialog(self, (
-					_('Folder exists'), # T: message heading
+					_('Folder exists: %s') % dir.path, # T: message heading
 					_('Folder already exists and has content, '
 					  'exporting to this folder may overwrite '
 					  'exisitng files. '
@@ -200,8 +200,7 @@ class FormatPage(AssistantPage):
 		self.uistate.setdefault('format', 'HTML')
 		self.uistate.setdefault('template', 'Default')
 		self.uistate.setdefault('template_file', '')
-		self.uistate.setdefault('document_root', 'absolute')
-		#~ self.uistate.setdefault('document_root', 'absolute', check=('absolute', 'url'))
+		self.uistate.setdefault('document_root', 'absolute', check=('absolute', 'url'))
 		self.uistate.setdefault('document_root_url', '')
 
 		try:
@@ -250,9 +249,9 @@ class OutputPage(AssistantPage):
 		# Switch between folder selection or file selection based
 		# on whether we selected full notebook or single page in the
 		# first page
-		self.uistate.setdefault('folder', '')
-		self.uistate.setdefault('index', '')
-		self.uistate.setdefault('file', '')
+		self.uistate.setdefault('output_folder', '')
+		self.uistate.setdefault('index_page', '')
+		self.uistate.setdefault('output_file', '')
 
 		show_file = self.uistate.get('selection') == 'page'
 		if show_file:
@@ -279,4 +278,4 @@ class OutputPage(AssistantPage):
 	def save_uistate(self):
 		self.uistate['output_file'] = self.form['file']
 		self.uistate['output_folder'] = self.form['folder']
-		self.uistate['index'] = self.form['index']
+		self.uistate['index_page'] = self.form['index']

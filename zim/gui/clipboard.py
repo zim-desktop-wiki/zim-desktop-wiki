@@ -101,7 +101,7 @@ def parsetree_from_selectiondata(selectiondata):
 	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
 	or targetname in URI_TARGET_NAMES:
 		links = unpack_urilist(selectiondata.data)
-		print 'LINKS: ', links
+		#~ print 'LINKS: ', links
 		builder = TreeBuilder()
 		builder.start('zim-tree')
 		for i in range(len(links)):
@@ -224,10 +224,13 @@ class Clipboard(gtk.Clipboard):
 		else:
 			assert False, 'Unknown target id %i' % id
 
-	def request_parsetree(self, callback):
+	def request_parsetree(self, callback, block=False):
 		'''Request a parsetree from the clipboard if possible. Because pasting
 		is asynchronous a callback needs to be provided to accept the parsetree.
 		This callback just gets the parsetree as single argument.
+
+		If 'block' is True the operation is blocking. This is only intended
+		for testing and should not be used for real functionality.
 		'''
 		targets = self.wait_for_targets()
 		logger.debug('Targets available for paste: %s, we want parsetree', targets)
@@ -247,7 +250,11 @@ class Clipboard(gtk.Clipboard):
 
 		if name:
 			logger.debug('Requesting data for %s', name)
-			self.request_contents(name, request_parsetree_data)
+			if block:
+				selectiondata = self.wait_for_contents(name)
+				return parsetree_from_selectiondata(selectiondata)
+			else:
+				self.request_contents(name, request_parsetree_data)
 		else:
 			logger.warn('Could not paste - no compatible data types on clipboard')
 
@@ -270,7 +277,7 @@ class Clipboard(gtk.Clipboard):
 			text = pack_urilist((pagename,))
 			selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, text)
 		elif id == PAGELIST_TARGET_ID:
-			link = "%s?%s\r\n" % (notebookname, pagename)
+			link = "%s?%s" % (notebookname, pagename)
 			text = pack_urilist((link,))
 			selectiondata.set(PAGELIST_TARGET_NAME, 8, text)
 		elif id == TEXT_TARGET_ID:
@@ -281,31 +288,6 @@ class Clipboard(gtk.Clipboard):
 	def _clear_data(self, data):
 		# Callback to clear our cliboard data - pass because we keep no state
 		pass
-
-	def debug_dump_contents(self):
-		'''Interactively dumps clipboard contents to stdout - used for debug sessions'''
-		import sys
-		targets = self.wait_for_targets()
-		print "="*80
-		print "Enter a number to see a specific target, or <Enter> to exit"
-		print "Available targets:"
-		for i in range(len(targets)):
-			print i, targets[i]
-		line = sys.stdin.readline().strip()
-		while line:
-			target = targets[int(line)]
-			print '>>>>', target
-			selection = self.wait_for_contents(target)
-			if selection:
-				text = selection.get_text()
-				if not text is None:
-					print '== Text:', text
-				else:
-					print '== Data:', selection.data
-			else:
-				print '== No contents'
-			print '<<<<'
-			line = sys.stdin.readline().strip()
 
 
 class Win32HtmlFormat:

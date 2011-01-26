@@ -19,7 +19,7 @@ from zim.gui.widgets import ui_environment, gtk_get_style,\
 	InputEntry, Button, IconButton, MenuButton, \
 	BrowserTreeView, SingleClickTreeView
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
-from zim.config import value_allow_empty
+from zim.config import check_class_allow_empty
 
 
 logger = logging.getLogger('zim.plugins.tasklist')
@@ -99,7 +99,7 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog
 		('tag_by_page', 'bool', _('Turn page name into tags for task items'), False),
 			# T: label for plugin preferences dialog
-		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', value_allow_empty),
+		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', check_class_allow_empty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 	)
 	_rebuild_on_preferences = ['all_checkboxes', 'labels']
@@ -144,7 +144,6 @@ This is a core plugin shipping with zim.
 	def _set_preferences(self):
 		self._current_preferences = self._serialize_rebuild_on_preferences()
 
-		self.all_checkboxes = self.preferences['all_checkboxes']
 		string = self.preferences['labels'].strip(' ,')
 		if string:
 			self.task_labels = [s.strip() for s in self.preferences['labels'].split(',')]
@@ -225,6 +224,7 @@ This is a core plugin shipping with zim.
 		for node in parsetree.findall('p'):
 			lines = self._flatten_para(node)
 			# Check first line for task list header
+			istasklist = False
 			globaltags = []
 			if len(lines) >= 2 \
 			and isinstance(lines[0], basestring) \
@@ -240,12 +240,13 @@ This is a core plugin shipping with zim.
 				else:
 					# no break occured - all OK
 					lines.pop(0)
+					istasklist = True
 
 			# Check line by line
 			for item in lines:
 				if isinstance(item, tuple):
 					# checkbox
-					if self.all_checkboxes \
+					if istasklist or self.preferences['all_checkboxes'] \
 					or (self.task_labels and self.task_label_re.match(item[2])):
 						open = item[0] == UNCHECKED_BOX
 						tasks.append(self._parse_task(item[2], level=item[1], open=open, tags=globaltags))

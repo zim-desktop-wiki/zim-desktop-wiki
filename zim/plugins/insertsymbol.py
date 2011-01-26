@@ -31,7 +31,7 @@ ui_actions = (
 )
 
 
-class CalendarPlugin(PluginClass):
+class InsertSymbolPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Insert Symbol'), # T: plugin name
@@ -92,15 +92,26 @@ This is a core plugin shipping with zim.
 			yield symbol, shortcut
 
 	def insert_symbol(self):
+		'''Run the InsertSymbolDialog'''
 		InsertSymbolDialog(self.ui, self).run()
 
 	def on_end_of_word(self, textview, start, end, word, char):
-		if word in self.symbols:
+		'''Handler for the end-of-word signal from the textview'''
+		# We check for non-space char because e.g. typing "-->" will 
+		# emit end-of-word with "--" as word and ">" as character. 
+		# This should be distinguished from the case when e.g. typing 
+		# "-- " emits end-of-word with "--" as word and " " (space) as 
+		# the char.
+		if not char.isspace():
+			return
+
+		symbol = self.symbols.get(word)
+		if symbol:
 			pos = start.get_offset()
 			buffer = textview.get_buffer()
 			buffer.delete(start, end)
 			iter = buffer.get_iter_at_offset(pos)
-			buffer.insert(iter, self.symbols[word])
+			buffer.insert(iter, symbol)
 			textview.stop_emission('end-of-word')
 
 class InsertSymbolDialog(Dialog):

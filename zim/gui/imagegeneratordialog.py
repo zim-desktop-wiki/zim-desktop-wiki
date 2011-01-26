@@ -43,16 +43,15 @@ class ImageGeneratorDialog(Dialog):
 		self.vbox.add(self.vpane)
 
 		self.imageview = ImageView(bgcolor='#FFF', checkboard=False)
-		# TODO scrolled window
 		self.vpane.add1(self.imageview)
+		# TODO scrolled window and option to zoom in / real size
 
-		self.textview = gtk.TextView()
-		# TODO scrolled window
+		window, textview = scrolled_text_view(monospace=True)
+		self.textview = textview
+		self.textview.set_editable(True)
+		self.vpane.add2(window)
 		# TODO supply at least an Undo stack for this textview
 		# or optionally subclass from gtksourceview
-		self.textview.set_left_margin(5)
-		self.textview.set_right_margin(5)
-		self.vpane.add2(self.textview)
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)

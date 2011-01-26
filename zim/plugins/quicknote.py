@@ -147,7 +147,7 @@ class BoundQuickNoteDialog(Dialog):
 	def __init__(self, ui, namespace=None, basename=None, text=None, template_options=None):
 		Dialog.__init__(self, ui, _('Quick Note'))
 		self._updating_title = False
-		self._title_set_manually = False
+		self._title_set_manually = not basename is None
 
 		self.uistate.setdefault('namespace', None, basestring)
 		namespace = namespace or self.uistate['namespace']
@@ -177,6 +177,9 @@ class BoundQuickNoteDialog(Dialog):
 
 		self.uistate.setdefault('open_page', True)
 		self.uistate.setdefault('new_page', True)
+
+		if basename:
+			self.uistate['new_page'] = True # Be consistent with input
 
 		# Set up the inputs and set page/ namespace to switch on
 		# toggling the checkbox
@@ -301,7 +304,7 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 
 		Dialog.__init__(self, ui, _('Quick Note'))
 		self._updating_title = False
-		self._title_set_manually = False
+		self._title_set_manually = not basename is None
 
 		self.uistate.setdefault('lastnotebook', None, basestring)
 		if self.uistate['lastnotebook']:

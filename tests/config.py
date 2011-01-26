@@ -174,7 +174,6 @@ none=None
 		self.assertEqual(conf['Foo'].setdefault('foobar', 5), 0)
 		self.assertEqual(conf['Bar'].setdefault('check', 3.14), 1.333)
 		self.assertEqual(conf['Bar'].setdefault('check', None, float), 1.333)
-		self.assertEqual(conf['Bar'].setdefault('check', 'foo', float), 1.333)
 		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), value_is_coord), (33,44))
 		self.assertEqual(conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'tja'))), 'tja')
 		self.assertFalse(conf.modified)
@@ -187,7 +186,7 @@ none=None
 
 		conf['Foo']['tja'] = [33, 44]
 		conf.set_modified(False)
-		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), value_allow_empty), (33,44))
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), allow_empty=True), (33,44))
 		self.assertFalse(conf.modified)
 
 		conf.set_modified(False)
@@ -210,8 +209,20 @@ none=None
 
 		conf['Bar']['string'] = ''
 		conf.set_modified(False)
-		self.assertEqual(conf['Bar'].setdefault('string', 'foo', value_allow_empty), '')
+		self.assertEqual(conf['Bar'].setdefault('string', 'foo', allow_empty=True), '')
 		self.assertFalse(conf.modified)
+
+		conf['Bar']['string'] = ''
+		conf.set_modified(False)
+		self.assertEqual(conf['Bar'].setdefault('string', 'foo', check_class_allow_empty), '')
+		self.assertFalse(conf.modified)
+
+		conf['Bar']['string'] = 3
+		conf.set_modified(False)
+		with FilterInvalidConfigWarning():
+			self.assertEqual(conf['Bar'].setdefault('string', 'foo', check_class_allow_empty), 'foo')
+		self.assertTrue(conf.modified)
+
 
 	def testLookup(self):
 		'''Test lookup of config files'''
@@ -257,31 +268,57 @@ none=None
 		self.assertEqual(val, 'ja')
 		keys.append('dus')
 
+		self.assertEquals(mydict.keys(), keys)
+		self.assertEquals([k for k in mydict], keys)
+
 		mykeys = [k for k, v in mydict.items()]
 		self.assertEquals(mykeys, keys)
+		myval = [v for k, v in mydict.items()]
+		self.assertEquals(myval, ['dusss', 'dusss', 'dusss', 'ja'])
 
-	#~ def testConfigList(self):
-		#~ '''Test ConfigList class'''
-		#~ input = u'''\
-#~ foo	bar
-	#~ dusss ja
-#~ # comments get taken out
-#~ some\ space he\ re # even here
-#~ empty
-#~ '''
-		#~ output = u'''\
-#~ foo\tbar
-#~ dusss\tja
-#~ some\\ space\the\\ re
-#~ empty\t
-#~ '''
-		#~ keys = ['foo', 'dusss', 'some space', 'empty']
-		#~ mydict = ConfigList()
-		#~ mydict.parse(input)
-		#~ mykeys = [k for k, v in mydict.items()]
-		#~ self.assertEquals(mykeys, keys)
-		#~ result = mydict.dump()
-		#~ self.assertEqualDiff(result, output.splitlines(True))
+		val = mydict.pop('bar')
+		self.assertEqual(val, 'dusss')
+		self.assertEqual(mydict.keys(), ['foo', 'baz', 'dus'])
+
+		mydict.update({'bar': 'barrr'}, tja='ja ja')
+		self.assertEquals(mydict.items(), (
+			('foo', 'dusss'),
+			('baz', 'dusss'),
+			('dus', 'ja'),
+			('bar', 'barrr'),
+			('tja', 'ja ja'),
+		))
+
+		del mydict['tja']
+		self.assertEquals(mydict.items(), (
+			('foo', 'dusss'),
+			('baz', 'dusss'),
+			('dus', 'ja'),
+			('bar', 'barrr'),
+		))
+
+		mydict.update((('tja', 'ja ja'), ('baz', 'bazzz')))
+		self.assertEquals(mydict.items(), (
+			('foo', 'dusss'),
+			('baz', 'bazzz'),
+			('dus', 'ja'),
+			('bar', 'barrr'),
+			('tja', 'ja ja'),
+		))
+
+		newdict = mydict.copy()
+		self.assertTrue(isinstance(newdict, ListDict))
+		self.assertEquals(newdict.items(), mydict.items())
+
+		mydict.set_order(('baz', 'bar', 'foo', 'boooo', 'dus'))
+		self.assertEquals(mydict.items(), (
+			('baz', 'bazzz'),
+			('bar', 'barrr'),
+			('foo', 'dusss'),
+			('dus', 'ja'),
+			('tja', 'ja ja'),
+		))
+		self.assertTrue(isinstance(mydict.order, list))
 
 
 class TestHeaders(TestCase):
@@ -373,6 +410,8 @@ class TestHierarchicDict(TestCase):
 		dict = HierarchicDict()
 		dict['foo']['key1'] = 'foo'
 		self.assertEqual(dict['foo:bar:baz']['key1'], 'foo')
+		self.assertEqual(dict['foo:bar:baz'].get('key1'), 'foo')
+		self.assertEqual(dict['foo:bar:baz'].get('key7'), None)
 		dict['foo:bar']['key1'] = 'bar'
 		self.assertEqual(dict['foo:bar:baz']['key1'], 'bar')
 		self.assertEqual(dict['foo']['key1'], 'foo')
@@ -381,3 +420,4 @@ class TestHierarchicDict(TestCase):
 		self.assertEqual(dict[Path('foo:bar:baz')]['key1'], 'foo')
 		dict['']['key2'] = 'FOO'
 		self.assertEqual(dict[Path('foo:bar:baz')]['key2'], 'FOO')
+

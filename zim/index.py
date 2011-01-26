@@ -680,7 +680,7 @@ class Index(gobject.GObject):
 		#~ print '!! UPDATE LIST', path, path._indexpath
 		assert isinstance(path, IndexPath)
 		if not path.hasdata:
-			path = path.lookup_data(path)
+			path = self.lookup_data(path)
 		hadchildren = path.haschildren
 		hadcontent = path.hascontent
 

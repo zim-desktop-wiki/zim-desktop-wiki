@@ -164,6 +164,7 @@ class TestCustomTools(TestCase):
 		# %n for notebook location (file or directory)
 		# %D for document root
 		# %t for selected text or word under cursor
+		# %T for selected text or word under cursor with wiki format
 
 		notebook = tests.get_test_notebook()
 		page = notebook.get_page(Path('Test:Foo'))
@@ -188,6 +189,7 @@ class TestCustomTools(TestCase):
 			('foo %n', ('foo', dir.path)),
 			('foo %D', ('foo', '')), # no document root
 			('foo %t', ('foo', 'FooBar')),
+			('foo %T', ('foo', '**FooBar**')),
 		):
 			#~ print '>>>', cmd
 			tool['Desktop Entry']['X-Zim-ExecTool'] = cmd
@@ -196,8 +198,11 @@ class TestCustomTools(TestCase):
 
 class StubPageView(object):
 
-	def get_selection(self):
+	def get_selection(self, format=None):
 		return None
 
-	def get_word(self):
-		return 'FooBar'
+	def get_word(self, format=None):
+		if format:
+			return '**FooBar**'
+		else:
+			return 'FooBar'

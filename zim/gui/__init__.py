@@ -1587,7 +1587,7 @@ class MainWindow(Window):
 				and self.toggle_sidepane())
 
 		self.pageindex = PageIndex(ui)
-		self.add_tab(_('Index'), self.pageindex, LEFT_PANE)
+		self.add_tab(_('Index'), self.pageindex, LEFT_PANE) # T: Label for pageindex tab
 
 		def check_focus_sidepane(window, widget):
 			focus = widget == self.pageindex
@@ -2280,7 +2280,7 @@ class NewPageDialog(Dialog):
 		if path:
 			page = self.ui.notebook.get_page(path)
 			if page.hascontent or page.haschildren:
-				raise Error, _('Page exists')+': %s' % page.name
+				raise Error, _('Page exists')+': %s' % page.name				# T: Error when creating new page
 
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
@@ -2572,11 +2572,10 @@ class AttachFileDialog(FileDialog):
 
 			pageview = self.ui.mainwindow.pageview
 			if self.uistate['insert_attached_images'] and file.isimage():
-				try:
-					pageview.insert_image(file, interactive=False)
-				except:
-					logger.exception('Could not insert image')
-					pageview.insert_links([file]) # image type not supported?
+				ok = pageview.insert_image(file, interactive=False)
+				if not ok: # image type not supported?
+					logger.info('Could not insert image: %s', file)
+					pageview.insert_links([file])
 			else:
 				pageview.insert_links([file])
 

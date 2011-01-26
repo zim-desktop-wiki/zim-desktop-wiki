@@ -110,6 +110,15 @@ class NotebookList(TextConfigFile):
 		lines = [line + '\n' for line in lines]
 		self.file.writelines(lines)
 
+	def get_default(self):
+		'''Returns uri for the default notebook'''
+		if self.default:
+			return self.default
+		elif len(self) == 1:
+			return self[0]
+		else:
+			return None
+
 	def get_names(self):
 		'''Generator function that yield tuples with the notebook
 		name and the notebook path.
@@ -120,6 +129,7 @@ class NotebookList(TextConfigFile):
 				yield (name, path)
 
 	def get_name(self, uri):
+		'''Find the name for the notebook at 'uri' '''
 		# TODO support for paths that turn out to be files
 		file = Dir(uri).file('notebook.zim')
 		if file.exists():
@@ -129,6 +139,7 @@ class NotebookList(TextConfigFile):
 		return None
 
 	def get_by_name(self, name):
+		'''Get the uri for a notebook'''
 		for n, path in self.get_names():
 			if n.lower() == name.lower():
 				return path
@@ -201,12 +212,7 @@ def resolve_default_notebook():
 	or for the only notebook if there is only a single notebook
 	in the list.
 	'''
-	default = None
-	list = get_notebook_list()
-	if list.default:
-		default = list.default
-	elif len(list) == 1:
-		default = list[0]
+	default = get_notebook_list().get_default()
 
 	if default:
 		if zim.fs.isfile(default):
@@ -1172,24 +1178,25 @@ class Notebook(gobject.GObject):
 
 		page.set_parsetree(tree)
 
-	def resolve_file(self, filename, path):
-		'''Resolves a file or directory path relative to a page. Returns a
-		File object. However the file does not have to exist.
+	def resolve_file(self, filename, path=None):
+		'''Resolves a file or directory path relative to a page or
+		Notebook. Returns a File object. However the file does not
+		have to exist.
 
-		File urls and paths that start with '~/' or '~user/' are considered
-		absolute paths and are returned unmodified.
+		File urls and paths that start with '~/' or '~user/' are
+		considered absolute paths and the corresponding File objects
+		are returned. Also handles windows absolute paths.
 
 		In case the file path starts with '/' the the path is taken relative
 		to the document root - this can e.g. be a parent directory of the
-		notebook. Defaults to the home dir.
+		notebook. Defaults to the filesystem root when no document root
+		is set.
 
 		Other paths are considered attachments and are resolved relative
-		to the namespce below the page.
-
-		Because this is used to resolve file links and is supposed to be
-		platform independent it tries to convert windows filenames to
-		unix equivalents.
+		to the namespace below the page. If no path is given but the
+		notebook has a root folder, this folder is used as base path.
 		'''
+		assert isinstance(filename, basestring)
 		filename = filename.replace('\\', '/')
 		if filename.startswith('~') or filename.startswith('file:/'):
 			return File(filename)
@@ -1202,35 +1209,27 @@ class Notebook(gobject.GObject):
 				# make absolute on unix
 			return File(filename)
 		else:
-			# TODO - how to deal with '..' in the middle of the path ?
-			filepath = [p for p in filename.split('/') if len(p) and p != '.']
-			if not filepath: # filename is e.g. "."
-				return self.get_attachments_dir(path)
-			pagepath = path.name.split(':')
-			filename = filepath.pop()
-			while filepath and filepath[0] == '..':
-				if not pagepath:
-					print 'TODO: handle paths relative to notebook but outside notebook dir'
-					return File('/TODO')
-				else:
-					filepath.pop(0)
-					pagepath.pop()
-			pagename = ':'+':'.join(pagepath + filepath)
-			dir = self.get_attachments_dir(Path(pagename))
-			return dir.file(filename)
+			if path:
+				dir = self.get_attachments_dir(path)
+			else:
+				assert self.dir, 'Can not resolve relative path for notebook without root folder'
+				dir = self.dir
+
+			return File((dir, filename))
 
 	def relative_filepath(self, file, path=None):
-		'''Returns a filepath relative to either the documents dir (/xxx), the
-		attachments dir (if a path is given) (./xxx or ../xxx) or the users
-		home dir (~/xxx). Returns None otherwise.
+		'''Returns a filepath relative to either the documents dir
+		(/xxx), the attachments dir (if a path is given) or the notebook
+		folder (./xxx or ../xxx) or the users home dir (~/xxx).
+		Returns None otherwise.
 
-		Intended as the counter part of resolve_file().
-		Typically this function is used to present the user with readable paths
-		or to shorten the paths inserted in the wiki code. It is advised to
+		Intended as the counter part of resolve_file(). Typically this
+		function is used to present the user with readable paths or to
+		shorten the paths inserted in the wiki code. It is advised to
 		use file uris for links that can not be made relative.
 		'''
+		root = self.dir
 		if path:
-			root = self.dir
 			dir = self.get_attachments_dir(path)
 			if file.ischild(dir):
 				return './'+file.relpath(dir)
@@ -1240,6 +1239,8 @@ class Notebook(gobject.GObject):
 				downpath = file.relpath(parent)
 				up = 1 + uppath.count('/')
 				return '../'*up + downpath
+		elif root and file.ischild(root):
+				return './'+file.relpath(root)
 
 		dir = self.get_document_root()
 		if dir and file.ischild(dir):

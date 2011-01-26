@@ -2,7 +2,7 @@
 
 # Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
 
-from tests import TestCase, create_tmp_dir, get_test_notebook, get_test_data
+from tests import TestCase, MockObject, create_tmp_dir, get_test_notebook, get_test_data
 
 from subprocess import check_call
 
@@ -91,3 +91,70 @@ class TestExportCommandLine(TestExportFullOptions):
 		TestExportFullOptions.runTest(self)
 
 # TODO test export single page from command line
+
+
+class TestExportDialog(TestCase):
+
+	slowTest = True
+
+	def runTest(self):
+		from zim.gui.exportdialog import ExportDialog
+
+		dir = Dir(create_tmp_dir('export_ExportDialog'))
+
+		notebook = get_test_notebook()
+		notebook.get_store(Path(':')).dir = Dir('/foo/bar') # fake source dir
+		notebook.index.update()
+
+		ui = MockObject()
+		ui.notebook = notebook
+		ui.mainwindow = None
+
+		## Test export all pages
+		dialog = ExportDialog(ui)
+		dialog.set_page(0)
+
+		page = dialog.get_page()
+		page.form['selection'] = 'all'
+		dialog.next_page()
+
+		page = dialog.get_page()
+		page.form['format'] = 'HTML'
+		page.form['template'] = 'Print'
+		dialog.next_page()
+
+		page = dialog.get_page()
+		page.form['folder'] = dir
+		page.form['index'] = 'INDEX_PAGE'
+		dialog.assert_response_ok()
+
+		file = dir.file('Test/foo.html')
+		self.assertTrue(file.exists())
+		text = file.read()
+		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
+		self.assertTrue('<h1>Foo</h1>' in text)
+
+
+		## Test export single page
+		dialog = ExportDialog(ui)
+		dialog.set_page(0)
+
+		page = dialog.get_page()
+		page.form['selection'] = 'page'
+		page.form['page'] = 'Test:foo'
+		dialog.next_page()
+
+		page = dialog.get_page()
+		page.form['format'] = 'HTML'
+		page.form['template'] = 'Print'
+		dialog.next_page()
+
+		page = dialog.get_page()
+		page.form['file'] = dir.file('SINGLE_FILE_EXPORT.html').path
+		dialog.assert_response_ok()
+
+		file = dir.file('SINGLE_FILE_EXPORT.html')
+		self.assertTrue(file.exists())
+		text = file.read()
+		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
+		self.assertTrue('<h1>Foo</h1>' in text)
