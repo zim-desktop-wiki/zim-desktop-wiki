@@ -948,7 +948,7 @@ class GtkInterface(NotebookInterface):
 		create/save/delete behavior in zim.
 		'''
 		NewPageDialog(self, path=self.get_path_context()).run()
-		
+
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
