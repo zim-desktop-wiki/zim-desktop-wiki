@@ -1265,12 +1265,14 @@ class Notebook(gobject.GObject):
 		if path: return Dir(path)
 		else: return None
 
-	def get_template(self, path, tpl='_New'):
+	def get_template(self, path, template=None):
 		'''Returns a template object for path. Typically used to set initial
 		content for a new page.
+		Requested template overwrite namespace template
 		'''
 		from zim.templates import get_template
-		template = self.namespace_properties[path].get('template', tpl)
+		if template is None:
+			template = self.namespace_properties[path].get('template', '_New')
 		logger.debug('Found template \'%s\' for %s', template, path)
 		return get_template('wiki', template)
 

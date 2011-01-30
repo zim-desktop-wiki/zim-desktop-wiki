@@ -2270,19 +2270,28 @@ class NewPageDialog(Dialog):
 		)
 
 		from zim.templates import list_templates
-		# XXX	why '_' at the beginning of filename ?
 		# TODO	load templates defined in notebook
 		templates = [tpl[1:] for tpl in sorted(list_templates('wiki'))] 
-		
+
 		self.add_form([
 			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: choice label
 		], None, None, False )
-		
-		self.form.widgets['template'].set_active(templates.index('New'))
+
+		self.form.widgets['template'].set_active(templates.index(self.__get_default_template(path)))
 
 		if subpage:
 			self.form.widgets['page'].force_child = True
+
+	def __get_default_template(self, path):
+		"""Returns the name of a default template : the one defined for the
+		current namespace (underscore trimmed) or 'New'.
+		"""
+		if path is not None:
+			tpl = self.ui.notebook.namespace_properties[path].get('template', None)
+			if tpl is not None:
+				return tpl[1:]
+		return 'New'
 
 	def do_response_ok(self):
 		tpl = '_' + self.form.widgets['template'].get_active_text()
