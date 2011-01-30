@@ -1249,6 +1249,8 @@ class TextBuffer(gtk.TextBuffer):
 
 		for tag in self.iter_get_zim_tags(iter):
 			if _is_line_based_tag(tag):
+				if tag.zim_tag == 'pre':
+					self.smart_remove_tags(_is_zim_tag, iter, end)
 				self.apply_tag(tag, iter, end)
 
 		self.update_editmode()

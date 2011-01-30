@@ -393,6 +393,9 @@ class SocketDaemonProxy(object):
 		if isinstance(notebook, basestring):
 			if notebook.startswith('zim+'): notebook = notebook[4:]
 			assert notebook.startswith('file://')
+			if '?' in notebook:
+				logger.warn('BUG: get_notebook() called with interwiki link')
+				notebook, pagename = notebook.split('?', 1)
 		else:
 			assert hasattr(notebook, 'uri')
 			notebook = notebook.uri

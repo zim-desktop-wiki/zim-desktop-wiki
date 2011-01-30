@@ -732,8 +732,15 @@ class GtkInterface(NotebookInterface):
 			# We are already intialized, so let another process handle it
 			if self.usedaemon:
 				from zim.daemon import DaemonProxy
+				if isinstance(notebook, basestring) \
+				and notebook.startswith('zim+') \
+				and '?' in notebook:
+					# Interwiki link with page name attached
+					notebook, pagename = notebook.split('?', 1)
+				else:
+					pagename = None
 				notebook = DaemonProxy().get_notebook(notebook)
-				notebook.present()
+				notebook.present(page=pagename)
 			else:
 				self.spawn(notebook)
 
