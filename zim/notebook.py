@@ -1268,7 +1268,7 @@ class Notebook(gobject.GObject):
 	def get_template(self, path, template=None):
 		'''Returns a template object for path. Typically used to set initial
 		content for a new page.
-		Requested template overwrite namespace template
+		Requested template overwrites namespace template
 		'''
 		from zim.templates import get_template
 		if template is None:

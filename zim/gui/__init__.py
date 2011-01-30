@@ -2284,8 +2284,8 @@ class NewPageDialog(Dialog):
 			self.form.widgets['page'].force_child = True
 
 	def __get_default_template(self, path):
-		"""Returns the name of a default template : the one defined for the
-		current namespace (underscore trimmed) or 'New'.
+		"""Returns default template name : namespace template (underscore trimmed) 
+		or 'New'.
 		"""
 		if path is not None:
 			tpl = self.ui.notebook.namespace_properties[path].get('template', None)
