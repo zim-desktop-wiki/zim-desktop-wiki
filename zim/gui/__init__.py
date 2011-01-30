@@ -949,9 +949,6 @@ class GtkInterface(NotebookInterface):
 		'''
 		NewPageDialog(self, path=self.get_path_context()).run()
 		
-	def new_page_template(self):
-		NewPageTemplateDialog(self, path=self.get_path_context()).run()
-		
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
@@ -2273,8 +2270,8 @@ class NewPageDialog(Dialog):
 		)
 
 		from zim.templates import list_templates
-		# XXX why '_' at the beginning of filename
-		# XXX templates defined for each format ?
+		# XXX	why '_' at the beginning of filename ?
+		# TODO	load templates defined in notebook
 		templates = [tpl[1:] for tpl in sorted(list_templates('wiki'))] 
 		
 		self.add_form([
@@ -2282,7 +2279,6 @@ class NewPageDialog(Dialog):
 			('template', 'choice', _('Page Template'), templates) # T: choice label
 		], None, None, False )
 		
-		# XXX Default template define for each notebook / namespace ?
 		self.form.widgets['template'].set_active(templates.index('New'))
 
 		if subpage:
