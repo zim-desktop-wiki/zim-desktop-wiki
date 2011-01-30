@@ -948,7 +948,10 @@ class GtkInterface(NotebookInterface):
 		create/save/delete behavior in zim.
 		'''
 		NewPageDialog(self, path=self.get_path_context()).run()
-
+		
+	def new_page_template(self):
+		NewPageTemplateDialog(self, path=self.get_path_context()).run()
+		
 	def new_sub_page(self):
 		'''Same as new_page() but sets the namespace widget one level deeper'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
@@ -2269,21 +2272,31 @@ class NewPageDialog(Dialog):
 			help=':Help:Pages'
 		)
 
+		from zim.templates import list_templates
+		# XXX why '_' at the beginning of filename
+		# XXX templates defined for each format ?
+		templates = [tpl[1:] for tpl in sorted(list_templates('wiki'))] 
+		
 		self.add_form([
 			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
-		] )
+			('template', 'choice', _('Page Template'), templates) # T: choice label
+		], None, None, False )
+		
+		# XXX Default template define for each notebook / namespace ?
+		self.form.widgets['template'].set_active(templates.index('New'))
 
 		if subpage:
 			self.form.widgets['page'].force_child = True
 
 	def do_response_ok(self):
+		tpl = '_' + self.form.widgets['template'].get_active_text()
 		path = self.form['page']
 		if path:
 			page = self.ui.notebook.get_page(path)
 			if page.hascontent or page.haschildren:
 				raise Error, _('Page exists')+': %s' % page.name				# T: Error when creating new page
 
-			template = self.ui.notebook.get_template(page)
+			template = self.ui.notebook.get_template(page, tpl)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
 			page.set_parsetree(tree)
 			self.ui.open_page(page)
