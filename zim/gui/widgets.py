@@ -1201,13 +1201,14 @@ class PageEntry(InputEntry):
 		If a context is given this is the reference Path for resolving
 		relative links.
 		'''
-		InputEntry.__init__(self, allow_empty=False)
-		assert path_context is None or isinstance(path_context, Path)
 		self.notebook = notebook
 		self.path_context = path_context
 		self.force_child = False
 		self.force_existing = False
 		self._completing = ''
+
+		InputEntry.__init__(self, allow_empty=False)
+		assert path_context is None or isinstance(path_context, Path)
 
 		completion = gtk.EntryCompletion()
 		completion.set_model(gtk.ListStore(str))
@@ -1258,7 +1259,8 @@ class PageEntry(InputEntry):
 	def do_changed(self):
 		text = self.get_text()
 
-		if not text:
+		# FIXME: why should pageentry always allow empty input ?
+		if not text and not self.force_existing:
 			self.set_input_valid(True)
 			return
 
