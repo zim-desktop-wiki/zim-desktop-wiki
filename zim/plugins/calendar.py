@@ -143,7 +143,7 @@ This is a core plugin shipping with zim.
 				ns = ns.name
 				self.preferences['namespace'] = ns
 
-			self.ui.notebook.namespace_properties[ns]['template'] = '_Calendar'
+			self.ui.notebook.namespace_properties[ns]['template'] = 'Calendar'
 			self._set_template = ns
 
 		if self.ui.ui_type == 'gtk':

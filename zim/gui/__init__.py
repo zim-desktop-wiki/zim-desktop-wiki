@@ -41,6 +41,7 @@ from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord
 from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re
 from zim.history import History, HistoryPath
+from zim.templates import list_templates, get_template
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
@@ -2282,28 +2283,39 @@ class NewPageDialog(Dialog):
 			help=':Help:Pages'
 		)
 
+		templates = list_templates('wiki')
 		self.add_form([
 			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
-		] )
+			('template', 'choice', _('Page Template'), templates) # T: Choice label
+		], None, None, False )
+
+		if path:
+			default = ui.notebook.namespace_properties[path]['template']
+		else:
+			default = ui.notebook.namespace_properties['']['template'] # root space default
+		self.form['template'] = default
 
 		if subpage:
 			self.form.widgets['page'].force_child = True
 
+		# TODO: reset default when page input changed
+
 	def do_response_ok(self):
 		path = self.form['page']
-		if path:
-			page = self.ui.notebook.get_page(path)
-			if page.hascontent or page.haschildren:
-				raise Error, _('Page exists')+': %s' % page.name				# T: Error when creating new page
-
-			template = self.ui.notebook.get_template(page)
-			tree = template.process_to_parsetree(self.ui.notebook, page)
-			page.set_parsetree(tree)
-			self.ui.open_page(page)
-			self.ui.save_page() # Save new page directly
-			return True
-		else:
+		if not path:
 			return False
+
+		page = self.ui.notebook.get_page(path)
+		if page.hascontent or page.haschildren:
+			raise Error, _('Page exists')+': %s' % page.name
+				# T: Error when creating new page
+
+		template = get_template('wiki', self.form['template'])
+		tree = template.process_to_parsetree(self.ui.notebook, page)
+		page.set_parsetree(tree)
+		self.ui.open_page(page)
+		self.ui.save_page() # Save new page directly
+		return True
 
 
 class SaveCopyDialog(FileDialog):
