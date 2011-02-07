@@ -49,7 +49,8 @@ from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
 	Button, MenuButton, \
 	Window, Dialog, \
 	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog, \
-	PromptExistingFileDialog
+	PromptExistingFileDialog, \
+	scrolled_text_view
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import ApplicationManager, CustomToolManager
 
@@ -2538,6 +2539,24 @@ class DeletePageDialog(Dialog):
 			self.links_checkbox.set_sensitive(False)
 		else:
 			self.links_checkbox.set_active(True)
+
+
+		# TODO use expander here
+		dir = self.ui.notebook.get_attachments_dir(self.path)
+		text = dir.get_file_tree_as_text(raw=True)
+		n = len([l for l in text.splitlines() if not l.endswith('/')])
+
+		string = ngettext('%i file will be deleted', '%i files will be deleted', n) % n
+			# T: label in the DeletePage dialog to warn user of attachments being deleted
+		if n > 0:
+			string = '<b>'+string+'</b>'
+
+		label = gtk.Label()
+		label.set_markup('\n'+string+':')
+		self.vbox.add(label)
+		window, textview = scrolled_text_view(text, monospace=True)
+		window.set_size_request(250, 200)
+		self.vbox.add(window)
 
 	def do_response_ok(self):
 		update_links = self.links_checkbox.get_active()

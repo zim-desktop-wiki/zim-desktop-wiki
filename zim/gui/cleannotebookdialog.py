@@ -76,7 +76,7 @@ def get_orphaned_files(notebook):
 			tree = page.get_parsetree()
 			for link in extract_links(tree.getroot()):
 				try:
-					file = notebook.resolve_file(link)
+					file = notebook.resolve_file(link, page)
 				except AssertionError:
 					pass
 				else:
@@ -201,7 +201,7 @@ class CleanNotebookDialog(Dialog):
 	def run(self):
 		if len(self.treeview.model) == 0:
 			logger.info("No orphaned files found.")
-			MessageDialog(self.ui, _('No orphaned files found.')).run()
+			MessageDialog(self.ui, _('No orphaned files found.')).run() # T: Message dialog in "Clean Attachments"
 			self.destroy()
 			return True
 		else:

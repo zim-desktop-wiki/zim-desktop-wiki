@@ -106,6 +106,10 @@ ui_actions = (
 	('remove_link', None, _('_Remove Link'), '', '', False), # T: Menu item
 	('insert_date', None, _('_Date and Time...'), '<ctrl>D', '', False), # T: Menu item
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
+	('insert_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item
+	('insert_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
+	('apply_format_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item),
+	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
 	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
 	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', '', False), # T: Menu item
@@ -3773,6 +3777,34 @@ class PageView(gtk.VBox):
 			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
 			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
 			return True
+
+	def insert_bullet_list(self):
+		self._start_bullet(BULLET)
+
+	def insert_checkbox_list(self):
+		self._start_bullet(UNCHECKED_BOX)
+
+	def _start_bullet(self, bullet_type):
+		buffer = self.view.get_buffer()
+		line = buffer.get_insert_iter().get_line()
+
+		with buffer.user_action:
+			iter = buffer.get_iter_at_line(line)
+			buffer.insert(iter, '\n')
+			buffer.set_bullet(line, bullet_type)
+			iter = buffer.get_iter_at_line(line)
+			iter.forward_to_line_end()
+			buffer.place_cursor(iter)
+
+	def apply_format_bullet_list(self):
+		self._apply_bullet(BULLET)
+
+	def apply_format_checkbox_list(self):
+		self._apply_bullet(UNCHECKED_BOX)
+
+	def _apply_bullet(self, bullet_type):
+		buffer = self.view.get_buffer()
+		buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type)
 
 	def insert_text_from_file(self):
 		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
