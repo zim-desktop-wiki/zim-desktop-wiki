@@ -4,6 +4,12 @@ Jaap Karssenberg <pardus@cpan.org>
 This branch is the Python rewrite and starts with version 0.42. 
 Earlier version numbers for zim correspond to the Perl branch.
 
+
+=== 0.50 - ... ===
+...
+* Added translation for Danish
+
+
 === 0.49 - Tue 2 Nov 2010 ===
 * Added experimental Attachment Browser plugin - by Thorsten Hackbarth
 * Added Inline Calculator plugin
