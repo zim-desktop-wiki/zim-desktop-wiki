@@ -90,7 +90,7 @@ def unpack_urilist(text):
 	return [line.decode('utf-8') for line in lines]
 
 
-def parsetree_from_selectiondata(selectiondata):
+def parsetree_from_selectiondata(selectiondata, notebook=None, page=None):
 	'''Function to get a parsetree based on the selectiondata contents
 	if at all possible. Used by both copy-paste and drag-and-drop
 	methods.
@@ -116,7 +116,11 @@ def parsetree_from_selectiondata(selectiondata):
 					pass
 
 			if isimage:
-				builder.start('img', {'src': links[i]})
+				src = links[i]
+				if notebook:
+					file = File(src)
+					src = notebook.relative_filepath(file, page) or file.path
+				builder.start('img', {'src': src})
 				builder.end('img')
 			else:
 				builder.start('link', {'href': links[i]})
@@ -124,7 +128,7 @@ def parsetree_from_selectiondata(selectiondata):
 				builder.end('link')
 		builder.end('zim-tree')
 		tree = ParseTree(builder.close())
-		tree.resolve_images()
+		tree.resolve_images(notebook, page)
 		tree.decode_urls()
 		return tree
 	elif targetname in TEXT_TARGET_NAMES:
@@ -220,7 +224,7 @@ class Clipboard(gtk.Clipboard):
 		else:
 			assert False, 'Unknown target id %i' % id
 
-	def request_parsetree(self, callback, block=False):
+	def request_parsetree(self, callback, notebook=None, page=None, block=False):
 		'''Request a parsetree from the clipboard if possible. Because pasting
 		is asynchronous a callback needs to be provided to accept the parsetree.
 		This callback just gets the parsetree as single argument.
@@ -241,7 +245,7 @@ class Clipboard(gtk.Clipboard):
 			name = None
 
 		def request_parsetree_data(self, selectiondata, data):
-			tree = parsetree_from_selectiondata(selectiondata)
+			tree = parsetree_from_selectiondata(selectiondata, notebook, page)
 			callback(tree)
 
 		if name:
