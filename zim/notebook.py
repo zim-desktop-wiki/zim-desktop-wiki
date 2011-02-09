@@ -1230,6 +1230,11 @@ class Notebook(gobject.GObject):
 		shorten the paths inserted in the wiki code. It is advised to
 		use file uris for links that can not be made relative.
 		'''
+		
+		dir = self.get_document_root()
+		if dir and file.ischild(dir):
+			return '/'+file.relpath(dir)
+		
 		root = self.dir
 		if path:
 			dir = self.get_attachments_dir(path)
@@ -1244,9 +1249,6 @@ class Notebook(gobject.GObject):
 		elif root and file.ischild(root):
 				return './'+file.relpath(root)
 
-		dir = self.get_document_root()
-		if dir and file.ischild(dir):
-			return '/'+file.relpath(dir)
 
 		dir = Dir('~')
 		if file.ischild(dir):
