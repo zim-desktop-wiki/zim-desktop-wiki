@@ -1703,7 +1703,7 @@ class TextBuffer(gtk.TextBuffer):
 			self.create_mark('zim-paste-position', iter, left_gravity=False)
 
 		#~ clipboard.debug_dump_contents()
-		clipboard.request_parsetree(self._paste_clipboard)
+		clipboard.request_parsetree(self._paste_clipboard, self.notebook, self.page)
 
 	def _paste_clipboard(self, parsetree):
 		#~ print '!! PASTE', parsetree.tostring()
@@ -2232,7 +2232,8 @@ class TextView(gtk.TextView):
 			return
 
 		logger.debug('Drag data received of type "%s"', selectiondata.target)
-		tree = parsetree_from_selectiondata(selectiondata)
+		buffer = self.get_buffer()
+		tree = parsetree_from_selectiondata(selectiondata, buffer.notebook, buffer.page)
 		if tree is None:
 			logger.warn('Could not drop data type "%s"', selectiondata.target)
 			dragcontext.finish(False, False, timestamp) # NOK
@@ -2240,7 +2241,7 @@ class TextView(gtk.TextView):
 
 		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
 		iter = self.get_iter_at_location(x, y)
-		self.get_buffer().insert_parsetree(iter, tree)
+		buffer.insert_parsetree(iter, tree)
 		dragcontext.finish(True, False, timestamp) # OK
 
 	def do_motion_notify_event(self, event):

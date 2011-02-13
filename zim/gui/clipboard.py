@@ -17,7 +17,7 @@ import gtk
 import logging
 
 from zim.fs import File
-from zim.parsing import is_url_re, url_encode, url_decode, URL_ENCODE_READABLE
+from zim.parsing import is_url_re, url_encode, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, TreeBuilder
 from zim.exporter import StaticLinker
 
@@ -40,6 +40,12 @@ PAGELIST_TARGET_ID = 3
 PAGELIST_TARGET_NAME = 'text/x-zim-page-list'
 PAGELIST_TARGET = (PAGELIST_TARGET_NAME, 0, PAGELIST_TARGET_ID)
 
+IMAGE_TARGET_ID = 6
+IMAGE_TARGETS = tuple(gtk.target_list_add_image_targets(info=IMAGE_TARGET_ID))
+	# According to docs we should provide list as arg to this function,
+	# but seems docs are not correct
+IMAGE_TARGET_NAMES = tuple([target[0] for target in IMAGE_TARGETS])
+
 URI_TARGET_ID = 7
 URI_TARGETS = tuple(gtk.target_list_add_uri_targets(info=URI_TARGET_ID))
 	# According to docs we should provide list as arg to this function,
@@ -61,9 +67,10 @@ TEXT_TARGET_NAMES = tuple([target[0] for target in TEXT_TARGETS])
 PARSETREE_ACCEPT_TARGETS = (
 	PARSETREE_TARGET,
 	INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET,
-) + URI_TARGETS + TEXT_TARGETS
+) + IMAGE_TARGETS + URI_TARGETS + TEXT_TARGETS
 PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_TARGETS])
 #~ print 'ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES
+
 
 # Mimetype text/uri-list is used for drag n drop of URLs
 # it is plain text encoded list of urls, seperated by \r\n
@@ -90,17 +97,7 @@ def unpack_urilist(text):
 	return [line.decode('utf-8') for line in lines]
 
 
-def parsetree_from_selectiondata(selectiondata):
-	'''Function to get a parsetree based on the selectiondata contents
-	if at all possible. Used by both copy-paste and drag-and-drop
-	methods.
-	'''
-	targetname = str(selectiondata.target)
-	if targetname == PARSETREE_TARGET_NAME:
-		return ParseTree().fromstring(selectiondata.data)
-	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
-	or targetname in URI_TARGET_NAMES:
-		links = unpack_urilist(selectiondata.data)
+def _file_link_tree(links, notebook, page):
 		#~ print 'LINKS: ', links
 		builder = TreeBuilder()
 		builder.start('zim-tree')
@@ -116,7 +113,9 @@ def parsetree_from_selectiondata(selectiondata):
 					pass
 
 			if isimage:
-				builder.start('img', {'src': links[i]})
+				file = File(links[i])
+				src = notebook.relative_filepath(file, page) or file.path
+				builder.start('img', {'src': src})
 				builder.end('img')
 			else:
 				builder.start('link', {'href': links[i]})
@@ -124,15 +123,74 @@ def parsetree_from_selectiondata(selectiondata):
 				builder.end('link')
 		builder.end('zim-tree')
 		tree = ParseTree(builder.close())
-		tree.resolve_images()
+		tree.resolve_images(notebook, page)
 		tree.decode_urls()
 		return tree
+
+
+def _get_image_info(targetname):
+	# Target name for images is supposed to be mimetype, we check
+	# in available pixbuf writers for this type and return the
+	# format name and file extension
+	for format in gtk.gdk.pixbuf_get_formats():
+		if not targetname in format['mime_types']:
+			continue
+
+		if format['is_writable']:
+			return format['name'], format['extensions'][0]
+		else:
+			return None, None
+	else:
+		return None, None
+
+
+def parsetree_from_selectiondata(selectiondata, notebook, page=None):
+	'''Function to get a parsetree based on the selectiondata contents
+	if at all possible. Used by both copy-paste and drag-and-drop
+	methods.
+
+	The 'notebook' and optional 'page' arguments are used to format
+	links relative to the page which is the target for the pasting or
+	drop operation.
+
+	For image data, the parameters notebook and page are used
+	to save the image to the correct attachment folder and return a
+	parsetree with the correct image link.
+	'''
+	targetname = str(selectiondata.target)
+	if targetname == PARSETREE_TARGET_NAME:
+		return ParseTree().fromstring(selectiondata.data)
+	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
+	or targetname in URI_TARGET_NAMES:
+		links = unpack_urilist(selectiondata.data)
+		return _file_link_tree(links, notebook, page)
 	elif targetname in TEXT_TARGET_NAMES:
 		# plain text parser should highlight urls etc.
 		# FIXME some apps drop text/uri-list as a text/plain mimetype
 		# try to catch this situation by a check here
 		text = selectiondata.get_text()
 		return get_format('plain').Parser().parse(text.decode('utf-8'))
+	elif targetname in IMAGE_TARGET_NAMES:
+		# save image
+		pixbuf = selectiondata.get_pixbuf()
+		if not pixbuf:
+			return None
+
+		dir = notebook.get_attachments_dir(page)
+		if not dir.exists():
+			logger.debug("Creating attachment dir: %s", dir)
+			dir.touch()
+
+		format, extension = _get_image_info(targetname)
+		if format is None:
+			format, extension = 'png', 'png' # default to png format
+
+		file = dir.new_file('pasted_image.%s' % extension)
+		logger.debug("Saving image from clipboard to %s", file)
+		pixbuf.save(file.path, format)
+
+		links = [file.uri]
+		return _file_link_tree(links, notebook, page)
 	else:
 		return None
 
@@ -220,10 +278,14 @@ class Clipboard(gtk.Clipboard):
 		else:
 			assert False, 'Unknown target id %i' % id
 
-	def request_parsetree(self, callback, block=False):
+	def request_parsetree(self, callback, notebook, page=None, block=False):
 		'''Request a parsetree from the clipboard if possible. Because pasting
 		is asynchronous a callback needs to be provided to accept the parsetree.
 		This callback just gets the parsetree as single argument.
+
+		For image data, the parameters notebook and page are used
+		to save the image to the correct attachment folder and return a
+		parsetree with the correct image link.
 
 		If 'block' is True the operation is blocking. This is only intended
 		for testing and should not be used for real functionality.
@@ -241,14 +303,14 @@ class Clipboard(gtk.Clipboard):
 			name = None
 
 		def request_parsetree_data(self, selectiondata, data):
-			tree = parsetree_from_selectiondata(selectiondata)
+			tree = parsetree_from_selectiondata(selectiondata, notebook, page)
 			callback(tree)
 
 		if name:
 			logger.debug('Requesting data for %s', name)
 			if block:
 				selectiondata = self.wait_for_contents(name)
-				return parsetree_from_selectiondata(selectiondata)
+				return parsetree_from_selectiondata(selectiondata, notebook, page)
 			else:
 				self.request_contents(name, request_parsetree_data)
 		else:

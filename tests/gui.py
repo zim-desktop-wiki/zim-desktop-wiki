@@ -15,16 +15,20 @@ class TestClipboard(TestCase):
 	def runTest(self):
 		'''Test clipboard interaction'''
 		clipboard = Clipboard()
-
-		# tree -> ..
 		notebook = get_test_notebook()
-		page = notebook.get_page(Path('Test:wiki'))
-		parsetree = page.get_parsetree()
+		tmp_dir = create_tmp_dir('gui_Clipboard')
+		notebook.get_store(Path(':')).dir = Dir(tmp_dir) # fake source dir
 
-		clipboard.set_parsetree(notebook, page, parsetree)
-		newtree = clipboard.request_parsetree(None, block=True)
-		self.assertEqual(newtree.tostring(), parsetree.tostring())
+		# tree roundtrip
+		for pagename in ('Test:wiki', 'roundtrip'):
+			page = notebook.get_page(Path(pagename))
+			parsetree = page.get_parsetree()
 
+			clipboard.set_parsetree(notebook, page, parsetree)
+			newtree = clipboard.request_parsetree(None, notebook, block=True)
+			self.assertEqual(newtree.tostring(), parsetree.tostring())
+
+		# tree -> ...
 		import zim.formats
 		text = 'some **bold** text'
 		parsetree = zim.formats.get_format('plain').Parser().parse(text.decode('utf-8'))
@@ -72,6 +76,7 @@ some <strong>bold</strong> text<br>
 
 
 		# pagelink -> ..
+		page = notebook.get_page(Path('Test:wiki'))
 		clipboard.set_pagelink(notebook, page)
 
 		selection = clipboard.wait_for_contents(INTERNAL_PAGELIST_TARGET_NAME)
@@ -82,18 +87,70 @@ some <strong>bold</strong> text<br>
 
 		wanted = '''\
 <?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="Test:wiki">Test:wiki</link></zim-tree>'''
-		newtree = clipboard.request_parsetree(None, block=True)
+		newtree = clipboard.request_parsetree(None, notebook, page, block=True)
 		self.assertEqual(newtree.tostring(), wanted)
 
 		text = clipboard.wait_for_text()
 		self.assertEqual(text, 'Test:wiki')
 
+
 		# text -> tree
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>\n<zim-tree>some string</zim-tree>'''
 		clipboard.set_text('some string')
-		newtree = clipboard.request_parsetree(None, block=True)
+		newtree = clipboard.request_parsetree(None, notebook, block=True)
 		self.assertEqual(newtree.tostring(), wanted)
+
+
+		# file -> tree
+		page = notebook.get_page(Path('Test:wiki'))
+		targets = [('text/uri-list', 0, 0)]
+
+		def my_get_data(clipboard, selectiondata, id, file):
+			selectiondata.set_uris([file.uri])
+
+		def my_clear_data(*a):
+			pass
+
+		file = File('/foo/bar/baz.txt')
+		clipboard.set_with_data(targets, my_get_data, my_clear_data, file)
+		tree = clipboard.request_parsetree(None, notebook, page, block=True)
+		img = tree.find('link')
+		rel_path = img.get('href')
+		self.assertEqual(notebook.resolve_file(rel_path, page), file)
+
+		file = File('./data/zim.png')
+		clipboard.set_with_data(targets, my_get_data, my_clear_data, file)
+		tree = clipboard.request_parsetree(None, notebook, page, block=True)
+		img = tree.find('img')
+		file_obj = img.get('_src_file')
+		self.assertEqual(file_obj, file)
+		rel_path = img.get('src')
+		self.assertEqual(notebook.resolve_file(rel_path, page), file)
+
+
+		# image -> tree
+		page = notebook.get_page(Path('Test:wiki'))
+		targets = [('image/png', 0, 0)]
+
+		def my_get_data(clipboard, selectiondata, id, file):
+			pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+			selectiondata.set_pixbuf(pixbuf)
+
+		def my_clear_data(*a):
+			pass
+
+		file = File('./data/zim.png')
+		clipboard.set_with_data(targets, my_get_data, my_clear_data, file)
+		tree = clipboard.request_parsetree(None, notebook, page, block=True)
+		img = tree.find('img')
+		file_obj = img.get('_src_file')
+		self.assertFalse(file_obj == file)
+		self.assertTrue(file_obj.exists())
+		self.assertTrue(file_obj.isimage())
+		self.assertTrue(file_obj.path.endswith('.png'))
+		rel_path = img.get('src')
+		self.assertEqual(notebook.resolve_file(rel_path, page), file_obj)
 
 
 class TestDialogs(TestCase):
