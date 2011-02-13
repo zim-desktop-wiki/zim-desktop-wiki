@@ -40,7 +40,9 @@ for bullet in bullets:
 
 parser_re = {
 	'blockstart': re.compile("^(\t*''')\s*?\n", re.M),
+	'objstart': re.compile("(\{\{\{)\s*\w+\s*:.*?\n"),
 	'pre':        re.compile("^(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*\n", re.M | re.S),
+	'obj':        re.compile("(?P<escape>\{\{\{)(?P<content>.*?)^(?:\}\}\})", re.M | re.S),
 	'splithead':  re.compile('^(==+[ \t]+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)[ \t]+(.*?)([ \t]+==+)?[ \t]*\n?)\Z"),
 	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % bullet_re, re.M),
@@ -59,6 +61,9 @@ parser_re = {
 	'sup':	    Re('\^\{(?!~)(.+?)\}'),
 	'strike':   Re('~~(?!~)(.+?)~~'),
 	'code':     Re("''(?!')(.+?)''"),
+	
+	# double quotes are escaped by duplicating them: foo="bar""baz"""
+	'param':  re.compile('(\w+)\s*\=\s*"((?:[^"]|"{2})*)"'),
 }
 
 dumper_tags = {
@@ -97,13 +102,25 @@ class Parser(ParserClass):
 			# Returns boolean for success
 			if len(paras[-1]) == 0:
 				return False
+							
 			blockmatch = parser_re['blockstart'].search(paras[-1])
 			if blockmatch:
+				# Verbatim block detected
 				quote = blockmatch.group()
 				blockend = re.search('\n'+quote+'\s*\Z', paras[-1])
 				if not blockend:
 					# We are in a block that is not closed yet
 					return False
+
+			blockmatch = parser_re['objstart'].search(paras[-1])
+			if blockmatch:
+				# Custom object block detected
+				quote = '\}\}\}'
+				blockend = re.search('\n'+quote, paras[-1])
+				if not blockend:
+					# We are in a block that is not closed yet
+					return False
+			
 			# Else append empty paragraph to start new para
 			paras.append('')
 			return True
@@ -113,10 +130,18 @@ class Parser(ParserClass):
 			# paragraph.
 			if len(paras[-1]) == 0:
 				return True
-			# Eliminate closed blocks
+					
+			# Eliminate closed verbatim blocks
 			nonblock = parser_re['pre'].split(paras[-1])
 			#  Blocks are closed if none is opened at the end
-			return parser_re['blockstart'].search(nonblock[-1]) == None
+			if parser_re['blockstart'].search(nonblock[-1]) != None:
+				# verbatim block hasn't been closed yet
+				return False
+
+			# Eliminate closed object-blocks
+			nonblock = parser_re['obj'].split(paras[-1])
+			#  Blocks are closed if none is opened at the end
+			return parser_re['objstart'].search(nonblock[-1]) == None
 
 		para_isspace = False
 		for line in input:
@@ -143,14 +168,22 @@ class Parser(ParserClass):
 				block_parts = parser_re['pre'].split(para)
 				for i, b in enumerate(block_parts):
 					if i % 3 == 0:
-						# Text paragraph
-						parts = parser_re['splithead'].split(b)
-						for j, p in enumerate(parts):
-							if j % 2:
-								# odd elements in the list are headings after split
-								self._parse_head(builder, p)
-							elif len(p) > 0:
-								self._parse_para(builder, p)
+						# Object-blocks and non-verbatim text
+						block_parts2 = parser_re['obj'].split(b)
+						for j, c in enumerate(block_parts2):
+							if j % 3 == 0:
+								# Text paragraph
+								parts = parser_re['splithead'].split(c)
+								for k, p in enumerate(parts):
+									if k % 2:
+										# odd elements in the list are headings after split
+										self._parse_head(builder, p)
+									elif len(p) > 0:
+										self._parse_para(builder, p)
+							elif j % 3 == 2:
+								# Object-blocks
+								logger.debug("block:%s", c)
+								self._parse_object(builder, c)
 					elif i % 3 == 1:
 						# Block
 						self._parse_block(builder, b + '\n' + block_parts[i+1] + b + '\n')
@@ -327,7 +360,25 @@ class Parser(ParserClass):
 				builder.end(tag)
 			else:
 				builder.data(item)
+				
+	def _parse_object(self, builder, obj):
+		'''Parse a object-block'''
+		obj = obj.splitlines(False)
+		logger.debug("Custom object: %s", obj)
+		header = obj[0].split(':', 1)
+		type = header[0].strip().lower()
+		attrib = {}
+		iter = parser_re['param'].finditer(header[1])
+		for match in iter:
+			attrib[match.group(1)] = match.group(2).replace('""', '"') 
+					
+		attrib['type'] = type
 
+		
+		builder.start('object', attrib)
+		if len(obj) == 1: builder.data("")
+		else: builder.data("\n".join(obj[1:]))
+		builder.end('object')
 
 class Dumper(DumperClass):
 
@@ -387,6 +438,16 @@ class Dumper(DumperClass):
 				myoutput.append("'''\n"+element.text+"'''\n")
 				if indent:
 					myoutput.prefix_lines('\t'*indent)
+				output.extend(myoutput)
+			elif element.tag == 'object':
+				if "type" in element.attrib:
+					output.append("{{{" + element.attrib["type"] + ":");
+					del element.attrib["type"]
+					for key, value in element.attrib.items():
+						output.append(' %s="%s"' % (key, value.replace('"', '""')))
+					output.append("\n" + element.text + "\n}}}")
+				else:
+					output.append("{{{\n" + element.text + "\n}}}")
 				output.extend(myoutput)
 			elif element.tag == 'img':
 				src = element.attrib['src']

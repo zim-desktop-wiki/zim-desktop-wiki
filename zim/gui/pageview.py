@@ -494,7 +494,7 @@ class TextBuffer(gtk.TextBuffer):
 			self.update_editmode()
 			startiter = self.get_iter_at_offset(startoffset)
 			enditer = self.get_iter_at_mark(self.get_insert())
-			self.delete(start, end)
+			self.delete(startiter, enditer)
 			self.set_modified(modified)
 			self.emit('end-insert-tree')
 			raise
@@ -619,6 +619,8 @@ class TextBuffer(gtk.TextBuffer):
 				elif element.tag in self.static_style_tags:
 					self.set_textstyle(element.tag)
 				else:
+					logger.debug("Unknown tag : %s, %s, %s", element.tag,
+								element.attrib, element.text)
 					assert False, 'Unknown tag: %s' % element.tag
 
 				if element.text:
