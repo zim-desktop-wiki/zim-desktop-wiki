@@ -1230,24 +1230,45 @@ class Notebook(gobject.GObject):
 		shorten the paths inserted in the wiki code. It is advised to
 		use file uris for links that can not be made relative.
 		'''
-		root = self.dir
+		notebook_root = self.dir
+		document_root = self.get_document_root()
+		
+		# Idea: Because Python is not statically typed language it would
+		# be helpful to somehow mark the type of arguments if it's not
+		# obvious. For example here it wasn't easy for me to determine
+		# type of `path` (zim.notebook.Path, zim.fs.Path,
+		# zim.notebook.Page or zim.stores.files.FileStorePage?)
+		# -- Jiří Janoušek
+		# P.S. This note can be removed :-)
+		
+		#assert not path or isinstance(path, zim.stores.files.FileStorePage),\
+		#	"Wrong type: %s" % type(path)
+		
+		if document_root and notebook_root and path \
+		and document_root.ischild(notebook_root) \
+		and file.ischild(document_root):
+			logger.debug("relative_filepath, path type: %s", type(path))
+			if isinstance(path, zim.stores.files.FileStorePage) \
+			and not path.source.ischild(document_root.dir):
+				return '/'+file.relpath(document_root)
+		
 		if path:
 			dir = self.get_attachments_dir(path)
 			if file.ischild(dir):
 				return './'+file.relpath(dir)
-			elif root and file.ischild(root) and dir.ischild(root):
+			elif notebook_root and file.ischild(notebook_root) \
+			and dir.ischild(notebook_root):
 				parent = file.commonparent(dir)
 				uppath = dir.relpath(parent)
 				downpath = file.relpath(parent)
 				up = 1 + uppath.count('/')
 				return '../'*up + downpath
-		elif root and file.ischild(root):
-				return './'+file.relpath(root)
-
-		dir = self.get_document_root()
-		if dir and file.ischild(dir):
-			return '/'+file.relpath(dir)
-
+		elif notebook_root and file.ischild(notebook_root):
+			return './'+file.relpath(notebook_root)
+			
+		if document_root and file.ischild(document_root):
+			return '/'+file.relpath(document_root)
+		
 		dir = Dir('~')
 		if file.ischild(dir):
 			return '~/'+file.relpath(dir)
