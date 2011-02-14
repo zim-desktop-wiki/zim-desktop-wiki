@@ -81,6 +81,13 @@ class Dumper(DumperClass):
 				output += ['<', tag, '>\n', text]
 				self._dump_children(element, output) # recurs
 				output.append('</%s>\n' % element.tag)
+			elif element.tag == 'object':
+				object_output = self.dump_object(element)
+				if object_output:
+					output += object_output
+				else:
+					# Fallback to verbatim paragraph
+					output += ['<pre>\n', text, '</pre>\n']
 			elif element.tag == 'pre':
 				tag = 'pre'
 				if self.isrtl(element):

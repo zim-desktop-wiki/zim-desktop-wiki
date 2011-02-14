@@ -559,7 +559,12 @@ class DumperClass(object):
 		lines of text.
 		'''
 		raise NotImplementedError
-
+	
+	def dump_object(self, obj):
+		'''Dumps object using proper ObjectManager. Returns None on failure.'''
+		# TODO dump object
+		return None
+	
 	def isrtl(self, element):
 		'''Returns True if the parse tree below element starts with
 		characters in a RTL script. This is e.g. needed to produce correct

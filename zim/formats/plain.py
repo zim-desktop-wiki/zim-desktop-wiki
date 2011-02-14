@@ -133,6 +133,13 @@ class Dumper(DumperClass):
 					output.append(element.text)
 				else:
 					output.append(href)
+			elif element.tag == 'object':
+				object_output = self.dump_object(element)
+				if object_output:
+					output += object_output
+				else:
+					# Fallback to verbatim paragraph
+					output.append(element.text)
 			elif element.tag == 'pre':
 				indent = 0
 				if 'indent' in element.attrib:

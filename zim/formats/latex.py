@@ -133,6 +133,16 @@ class Dumper(DumperClass):
 				output.append('\t'*list_level+bullet)
 				self.dump_children(element, output, list_level=list_level) # recurse
 				output.append('\n')
+			elif element.tag == 'object':
+				object_output = self.dump_object(element)
+				if object_output:
+					output += object_output
+				else:
+					# Fallback to verbatim paragraph
+					output.append('\n\\begin{lstlisting}\n')
+					output.append(element.text)
+					output.append('\n\\end{lstlisting}\n')
+				
 			elif element.tag == 'pre':
 				indent = 0
 				if 'indent' in element.attrib:
