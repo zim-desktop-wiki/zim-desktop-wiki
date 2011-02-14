@@ -370,7 +370,7 @@ class Parser(ParserClass):
 		attrib = {}
 		iter = parser_re['param'].finditer(header[1])
 		for match in iter:
-			attrib[match.group(1)] = match.group(2).replace('""', '"') 
+			attrib[match.group(1).lower()] = match.group(2).replace('""', '"') 
 					
 		attrib['type'] = type
 
@@ -448,7 +448,6 @@ class Dumper(DumperClass):
 					output.append("\n" + element.text + "\n}}}")
 				else:
 					output.append("{{{\n" + element.text + "\n}}}")
-				output.extend(myoutput)
 			elif element.tag == 'img':
 				src = element.attrib['src']
 				opts = []

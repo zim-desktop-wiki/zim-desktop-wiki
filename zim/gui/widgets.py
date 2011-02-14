@@ -2740,3 +2740,15 @@ You can use another name or overwrite the existing file.''' % file.basename),
 		assert not newfile.exists() # just to be real sure
 		self.result = newfile
 		return True
+
+class CustomObjectBin(gtk.EventBox):
+	'''CustomObjectBin adds border and set arrow as mouse cursor'''
+	def __init__(self):
+		gtk.EventBox.__init__(self)
+		self.set_border_width(5)
+	
+	def do_realize(self):
+		gtk.EventBox.do_realize(self)
+		self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
+		
+gobject.type_register(CustomObjectBin)

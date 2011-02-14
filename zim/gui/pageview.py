@@ -32,6 +32,7 @@ from zim.gui.widgets import ui_environment, \
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
+from zim.objectmanager import ObjectManager
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -328,6 +329,8 @@ class TextBuffer(gtk.TextBuffer):
 		* undo-save-cursor (iter)
 		  emitted in some specific case where the undo stack should
 		  lock the current cursor position
+		* insert-object (object element) - request inserting of custom
+			object
 	'''
 
 	# We rely on the priority of gtk TextTags to sort links before styles,
@@ -346,6 +349,7 @@ class TextBuffer(gtk.TextBuffer):
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -610,6 +614,8 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
 				set_indent(None)
+			elif element.tag == 'object':
+				self.emit('insert-object', element)
 			else:
 				# Text styles
 				if element.tag == 'h':
@@ -1205,7 +1211,25 @@ class TextBuffer(gtk.TextBuffer):
 		self.remove_all_tags(start, iter)
 		for tag in self._editmode_tags:
 			self.apply_tag(tag, start, iter)
+	
+	def insert_child_anchor(self, iter, anchor):
+		# Make sure we always apply the correct tags when inserting an object
+		if iter.equal(self.get_iter_at_mark(self.get_insert())):
+			gtk.TextBuffer.insert_child_anchor(self, iter, anchor)
+		else:
+			with self.tmp_cursor(iter):
+				gtk.TextBuffer.insert_child_anchor(self, iter, anchor)
+				
+	def do_insert_child_anchor(self, iter, anchor):
+		# Like do_insert_pixbuf()
+		gtk.TextBuffer.do_insert_child_anchor(self, iter, anchor)
 
+		start = iter.copy()
+		start.backward_char()
+		self.remove_all_tags(start, iter)
+		for tag in filter(_is_indent_tag, self._editmode_tags):
+			self.apply_tag(tag, start, iter)
+			
 	def insert_pixbuf(self, iter, pixbuf):
 		# Make sure we always apply the correct tags when inserting a pixbuf
 		if iter.equal(self.get_iter_at_mark(self.get_insert())):
@@ -1422,6 +1446,7 @@ class TextBuffer(gtk.TextBuffer):
 		set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
 		while iter.compare(end) == -1:
 			pixbuf = iter.get_pixbuf()
+			anchor = iter.get_child_anchor()
 			if pixbuf:
 				if pixbuf.zim_type == 'icon':
 					# Reset all tags - and let set_tags parse the bullet
@@ -1453,7 +1478,21 @@ class TextBuffer(gtk.TextBuffer):
 					assert False, 'BUG: unknown pixbuf type'
 
 				iter.forward_char()
-			# FUTURE: elif embedded widget
+			
+			# embedded widget
+			elif anchor:
+				set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
+				anchor = iter.get_child_anchor() # iter may have moved
+				if anchor is None:
+					continue
+				manager = anchor.manager
+				logger.debug(manager.get_data())
+				logger.debug(manager.get_attrib())
+				builder.start('object', manager.get_attrib())
+				builder.data(manager.get_data())
+				builder.end('object')
+				manager.set_modified(False)
+				iter.forward_char()
 			else:
 				# Set tags
 				copy = iter.copy()
@@ -1482,8 +1521,7 @@ class TextBuffer(gtk.TextBuffer):
 						bound = end.copy() # just to be sure..
 						break
 
-				# But limit slice to first pixbuf
-				# FUTURE: also limit slice to any embeddded widget
+				# But limit slice to first pixbuf or any embeddded widget
 				text = iter.get_slice(bound)
 				if text.startswith(PIXBUF_CHR):
 					text = text[1:] # special case - we see this char, but get_pixbuf already returned None, so skip it
@@ -3329,7 +3367,12 @@ class PageView(gtk.VBox):
 
 		self._prev_buffer = self.view.get_buffer()
 		finderstate = self._prev_buffer.finder.get_state()
-
+		
+		for child in self.view.get_children():
+			self.view.remove(child)
+			if hasattr(child, "_zim_objmanager"):
+				del child._zim_objmanager
+		
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
 		self._buffer_signals = []
@@ -3338,6 +3381,7 @@ class PageView(gtk.VBox):
 		# now create the new buffer
 		self.page = page
 		buffer = TextBuffer(self.ui.notebook, self.page)
+		buffer.connect('insert-object', self.insert_object)
 		self.view.set_buffer(buffer)
 		tree = page.get_parsetree()
 
@@ -3390,7 +3434,7 @@ class PageView(gtk.VBox):
 			else:
 				self.page.modified = True
 				self.emit('modified-changed')
-
+				
 	def clear(self):
 		# Called e.g. by "discard changes" maybe due to an exception in
 		# buffer.get_parse_tree() - so just drop everything...
@@ -3942,10 +3986,29 @@ class PageView(gtk.VBox):
 
 	def show_word_count(self):
 		WordCountDialog(self).run()
-
+	
+	def insert_object(self, buffer, obj):
+		manager = ObjectManager.get_object(obj, self.ui)
+		widget = manager.get_widget()
+		widget._zim_objmanager = manager
+		def on_modified_changed(obj):
+			if obj.get_modified() and not buffer.get_modified():
+				buffer.set_modified(True)
+		manager.connect('modified-changed', on_modified_changed)
+		iter = buffer.get_insert_iter()
+		anchor = ObjectAnchor(manager)
+		buffer.insert_child_anchor(iter, anchor)
+		self.view.add_child_at_anchor(widget, anchor)
+		widget.show_all()
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
 
+class ObjectAnchor(gtk.TextChildAnchor):
+	def __init__(self, manager):
+		self.manager = manager
+		gtk.TextChildAnchor.__init__(self)
+
+gobject.type_register(ObjectAnchor)
 
 class InsertDateDialog(Dialog):
 
