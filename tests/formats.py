@@ -4,6 +4,8 @@
 
 '''Test cases for the zim.formats module.'''
 
+from __future__ import with_statement
+
 from tests import TestCase, get_test_data_page, get_test_page, LoggingFilter
 
 from zim.formats import *

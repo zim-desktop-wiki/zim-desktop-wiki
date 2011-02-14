@@ -121,7 +121,9 @@
 			<menuitem action='attach_file'/>
 			<menuitem action='open_attachments_folder'/>
 			<menuitem action='open_notebook_folder'/>
+<!-- TEMP: hide feature
 			<menuitem action='show_clean_notebook'/>
+-->
 			<separator/>
 			<menuitem action='show_server_gui'/>
 			<menuitem action='open_document_root'/>

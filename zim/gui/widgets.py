@@ -136,7 +136,7 @@ def scrolled_text_view(text=None, monospace=False):
 		textview.modify_font(font)
 	else:
 		textview.set_wrap_mode(gtk.WRAP_WORD)
-	
+
 	if text:
 		textview.get_buffer().set_text(text)
 	window = gtk.ScrolledWindow()
@@ -822,7 +822,14 @@ class InputForm(gtk.Table):
 
 	def focus_next(self):
 		'''Focusses the next input in the form'''
-		widget = self.get_focus_child()
+		if gtk.gtk_version >=  (2, 14, 0):
+			widget = self.get_focus_child()
+		else:
+			for w in self.widgets.values():
+				if w.is_focus:
+					widget = w
+					break
+
 		if widget:
 			return self._focus_next(widget)
 		else:
@@ -1941,7 +1948,7 @@ class ErrorDialog(gtk.MessageDialog):
 		except ImportError:
 			text += 'No bzr version-info found\n'
 
-		
+
 		# FIXME: more info here? Like notebook path, page, environment etc. ?
 
 		text += '\n======= Traceback =======\n'

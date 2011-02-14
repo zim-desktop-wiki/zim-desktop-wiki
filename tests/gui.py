@@ -436,6 +436,8 @@ class TestDialogs(TestCase):
 
 class MockUI(MockObject):
 
+	tmp_dir = create_tmp_dir('gui_MockUI')
+
 	def __init__(self, page=None):
 		MockObject.__init__(self)
 
@@ -446,3 +448,5 @@ class MockUI(MockObject):
 
 		self.mainwindow = None
 		self.notebook = get_test_notebook()
+		self.notebook.get_store(Path(':')).dir = Dir(self.tmp_dir) # fake source dir
+
