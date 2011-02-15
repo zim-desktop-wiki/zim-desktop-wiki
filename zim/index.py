@@ -1124,11 +1124,11 @@ class Index(gobject.GObject):
 		if not parent.isroot: found.insert(0, parent.name)
 		return IndexPath(':'.join(found), indexpath, row)
 
-	def list_tags(self, path, offset=None, limit=20):
+	def list_tags(self, page, offset = None, limit = 20, return_id = False):
 		'''
-		Returns the tags on a given path or all, if the path is None.
+		Returns the tags on a given page or all, if the page is None.
 		'''
-		if path is None:
+		if page is None:
 			cursor = self.db.cursor()
 			if offset is None:
 				cursor.execute('select * from tags order by lower(name)')
@@ -1136,18 +1136,26 @@ class Index(gobject.GObject):
 				cursor.execute('select * from tags order by lower(name) limit ? offset ?', (limit, offset))
 			# FIXME, this lower is not utf8 proof
 			for row in cursor:
-				yield IndexTag(row['name'], row['id'], row)
+				if return_id:
+					yield row['id']
+				else:
+					yield IndexTag(row['name'], row['id'], row)
 		else:
-			path = self.lookup_path(path)
-			if path:
+			if not type(page) == int:
+				page = self.lookup_path(page)
+			if isinstance(page, IndexPath):
+				page = page.id
+			if not page is None:
 				cursor = self.db.cursor()
 				if offset is None:
-					cursor.execute('select * from tagsources where source == ?', (path.id,))
+					cursor.execute('select * from tagsources where source == ?', (page,))
 				else:
-					cursor.execute('select * from tagsources where source == ? order by lower(name) limit ? offset ?', (path.id, limit, offset))
+					cursor.execute('select * from tagsources where source == ? order by lower(name) limit ? offset ?', (page, limit, offset))
 				for row in cursor:
-					assert row['source'] == path.id
-					yield self.lookup_tagid(row['tag'])
+					if return_id:
+						yield row['tag']
+					else:
+						yield self.lookup_tagid(row['tag'])
 
 	def list_pages(self, path):
 		'''Generator yielding IndexPath objects for the sub-pages of
@@ -1234,20 +1242,30 @@ class Index(gobject.GObject):
 				tag = self.lookup_tagid(source['tag'])
 				yield Tagged(path, tag)
 				
-	def list_tagged(self, tag, offset=None, limit=20):
+	def list_tagged(self, tag, offset = None, limit = 20, return_id = False):
 		'''
 		Determine the pages tagged with a given tag.
+		@param tag: A tag ID, IndexTag instance or tag name (string)
+		@param offset: An offset for a segmented query
+		@param limit: An upper limit for the segmented query size
+		@param result_id: Return page IDs instead of IndexPath instances
+		@return: Yields IndexPath instances or IDs 
 		'''
-		tag = self.lookup_tag(tag)
-		if tag:
+		if not type(tag) == int:
+			tag = self.lookup_tag(tag)
+		if isinstance(tag, IndexTag):
+			tag = tag.id
+		if not tag is None:
 			cursor = self.db.cursor()
 			if offset is None:
-				cursor.execute('select * from tagsources where tag == ?', (tag.id,))
+				cursor.execute('select * from tagsources where tag == ?', (tag,))
 			else:
-				cursor.execute('select * from tagsources where tag == ? limit ? offset ?', (tag.id, limit, offset))
+				cursor.execute('select * from tagsources where tag == ? limit ? offset ?', (tag, limit, offset))
 			for row in cursor:
-				assert row['tag'] == tag.id
-				yield self.lookup_id(row['source'])
+				if return_id:
+					yield row['source']
+				else:				
+					yield self.lookup_id(row['source'])
 				
 	def list_untagged(self, offset=None, limit=20):
 		'''
