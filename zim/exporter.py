@@ -9,7 +9,7 @@ import logging
 from zim.fs import *
 from zim.config import data_file
 from zim.formats import get_format, BaseLinker
-from zim.templates import get_template
+from zim.templates import get_template, Template
 from zim.notebook import Path, Page, IndexPage, PageNameError
 from zim.stores import encode_filename
 from zim.parsing import url_encode
@@ -43,7 +43,7 @@ class Exporter(object):
 		else:
 			self.format = format
 
-		if template and isinstance(template, basestring):
+		if template and not isinstance(template, Template):
 			self.template = get_template(format, template)
 		else:
 			self.template = template

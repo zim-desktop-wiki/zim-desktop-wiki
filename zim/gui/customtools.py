@@ -179,7 +179,7 @@ class EditCustomToolDialog(Dialog):
 		})
 
 		self.add_help_text(_('''\
-To following parameters will be substituted
+The following parameters will be substituted
 in the command when it is executed:
 <tt>
 <b>%f</b> the page source as a temporary file

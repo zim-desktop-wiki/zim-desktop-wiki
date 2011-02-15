@@ -704,8 +704,9 @@ class HierarchicDict(object):
 
 	__slots__ = ('dict')
 
-	def __init__(self):
+	def __init__(self, defaults=None):
 		self.dict = {}
+		self.dict['__defaults__'] = defaults or {}
 
 	def __getitem__(self, k):
 		if not isinstance(k, basestring):
@@ -743,7 +744,10 @@ class HierarchicDictFrame(object):
 			if key in self.dict and k in self.dict[key]:
 				return self.dict[key][k]
 		else:
-			raise KeyError
+			if k in self.dict['__defaults__']:
+				return self.dict['__defaults__'][k]
+			else:
+				raise KeyError
 
 	def __setitem__(self, k, v):
 		if not self.key in self.dict:

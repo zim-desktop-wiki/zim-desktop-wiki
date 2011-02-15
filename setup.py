@@ -272,7 +272,7 @@ if py2exe:
 	py2exeoptions = {
 		'windows': [ {
 			"script": "zim.py",
-			"icon_resources": [(1, "data/pixmaps/favicon.ico")]
+			"icon_resources": [(1, "windows/zim.ico")] # Windows 16x16, 32x32, and 48x48 icon based on PNG
 		} ],
 		'zipfile': None,
 		'options': {

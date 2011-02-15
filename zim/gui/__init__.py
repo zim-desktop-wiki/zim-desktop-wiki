@@ -41,6 +41,7 @@ from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord
 from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re
 from zim.history import History, HistoryPath
+from zim.templates import list_templates, get_template
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
@@ -48,7 +49,8 @@ from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
 	Button, MenuButton, \
 	Window, Dialog, \
 	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog, \
-	PromptExistingFileDialog
+	PromptExistingFileDialog, \
+	scrolled_text_view
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import ApplicationManager, CustomToolManager
 
@@ -93,6 +95,7 @@ ui_actions = (
 	('open_document_root', 'gtk-open', _('Open _Document Root'), '', '', True), # T: Menu item
 	('open_document_folder', 'gtk-open', _('Open _Document Folder'), '', '', True), # T: Menu item
 	('attach_file', 'zim-attachment', _('Attach _File'), '', _('Attach external file'), False), # T: Menu item
+	('show_clean_notebook', None, _('_Cleanup Attachments'), '', '', False), # T: Menu item
 	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', '', False), # T: Menu item
 	('show_server_gui', None, _('Start _Web Server'), '', '', True), # T: Menu item
 	('reload_index', None, _('Re-build Index'), '', '', False), # T: Menu item
@@ -732,8 +735,15 @@ class GtkInterface(NotebookInterface):
 			# We are already intialized, so let another process handle it
 			if self.usedaemon:
 				from zim.daemon import DaemonProxy
+				if isinstance(notebook, basestring) \
+				and notebook.startswith('zim+') \
+				and '?' in notebook:
+					# Interwiki link with page name attached
+					notebook, pagename = notebook.split('?', 1)
+				else:
+					pagename = None
 				notebook = DaemonProxy().get_notebook(notebook)
-				notebook.present()
+				notebook.present(page=pagename)
 			else:
 				self.spawn(notebook)
 
@@ -1203,6 +1213,11 @@ class GtkInterface(NotebookInterface):
 
 		file.copyto(dest)
 		return dest
+
+	def show_clean_notebook(self):
+		'''Show the CleanNotebookDialog'''
+		from zim.gui.cleannotebookdialog import CleanNotebookDialog
+		CleanNotebookDialog(self).run()
 
 	def open_file(self, file):
 		'''Open either a File or a Dir in the file browser'''
@@ -2268,28 +2283,41 @@ class NewPageDialog(Dialog):
 			help=':Help:Pages'
 		)
 
+		self.path = path or ui.page
+
+		templates = list_templates('wiki')
 		self.add_form([
 			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
-		] )
+			('template', 'choice', _('Page Template'), templates) # T: Choice label
+		], None, None, False )
+
+		key = self.path or ''
+		default = ui.notebook.namespace_properties[key]['template']
+		self.form['template'] = default
+		self.form.widgets['template'].set_no_show_all(True) # TEMP: hide feature
+		self.form.widgets['template'].set_property('visible', False) # TEMP: hide feature
 
 		if subpage:
 			self.form.widgets['page'].force_child = True
 
+		# TODO: reset default when page input changed
+
 	def do_response_ok(self):
 		path = self.form['page']
-		if path:
-			page = self.ui.notebook.get_page(path)
-			if page.hascontent or page.haschildren:
-				raise Error, _('Page exists')+': %s' % page.name				# T: Error when creating new page
-
-			template = self.ui.notebook.get_template(page)
-			tree = template.process_to_parsetree(self.ui.notebook, page)
-			page.set_parsetree(tree)
-			self.ui.open_page(page)
-			self.ui.save_page() # Save new page directly
-			return True
-		else:
+		if not path:
 			return False
+
+		page = self.ui.notebook.get_page(path)
+		if page.hascontent or page.haschildren:
+			raise Error, _('Page exists')+': %s' % page.name
+				# T: Error when creating new page
+
+		template = get_template('wiki', self.form['template'])
+		tree = template.process_to_parsetree(self.ui.notebook, page)
+		page.set_parsetree(tree)
+		self.ui.open_page(page)
+		self.ui.save_page() # Save new page directly
+		return True
 
 
 class SaveCopyDialog(FileDialog):
@@ -2482,7 +2510,7 @@ class DeletePageDialog(Dialog):
 		hbox.pack_start(img, False)
 
 		vbox = gtk.VBox(spacing=5)
-		hbox.add(vbox)
+		hbox.pack_start(vbox, False)
 
 		label = gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
@@ -2512,6 +2540,24 @@ class DeletePageDialog(Dialog):
 			self.links_checkbox.set_sensitive(False)
 		else:
 			self.links_checkbox.set_active(True)
+
+
+		# TODO use expander here
+		dir = self.ui.notebook.get_attachments_dir(self.path)
+		text = dir.get_file_tree_as_text(raw=True)
+		n = len([l for l in text.splitlines() if not l.endswith('/')])
+
+		string = ngettext('%i file will be deleted', '%i files will be deleted', n) % n
+			# T: label in the DeletePage dialog to warn user of attachments being deleted
+		if n > 0:
+			string = '<b>'+string+'</b>'
+
+		label = gtk.Label()
+		label.set_markup('\n'+string+':')
+		self.vbox.add(label)
+		window, textview = scrolled_text_view(text, monospace=True)
+		window.set_size_request(250, 200)
+		self.vbox.add(window)
 
 	def do_response_ok(self):
 		update_links = self.links_checkbox.get_active()

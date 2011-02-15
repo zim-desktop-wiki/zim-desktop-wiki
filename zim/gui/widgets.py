@@ -123,16 +123,20 @@ def gtk_window_set_default_icon():
 def scrolled_text_view(text=None, monospace=False):
 	'''Initializes a gtk.TextView with sane defaults for displaying a
 	piece of multiline text, wraps it in a scrolled window and returns
-	both the window and the textview.
+	both the window and the textview. When 'monospace' is True the font
+	will be set to Monospaced and line wrapping disabled, use this to
+	display log files etc.
 	'''
 	textview = gtk.TextView(TextBuffer())
 	textview.set_editable(False)
-	textview.set_wrap_mode(gtk.WRAP_WORD)
 	textview.set_left_margin(5)
 	textview.set_right_margin(5)
 	if monospace:
 		font = pango.FontDescription('Monospace')
 		textview.modify_font(font)
+	else:
+		textview.set_wrap_mode(gtk.WRAP_WORD)
+
 	if text:
 		textview.get_buffer().set_text(text)
 	window = gtk.ScrolledWindow()
@@ -818,7 +822,14 @@ class InputForm(gtk.Table):
 
 	def focus_next(self):
 		'''Focusses the next input in the form'''
-		widget = self.get_focus_child()
+		if gtk.gtk_version >=  (2, 14, 0):
+			widget = self.get_focus_child()
+		else:
+			for w in self.widgets.values():
+				if w.is_focus:
+					widget = w
+					break
+
 		if widget:
 			return self._focus_next(widget)
 		else:
@@ -1201,13 +1212,14 @@ class PageEntry(InputEntry):
 		If a context is given this is the reference Path for resolving
 		relative links.
 		'''
-		InputEntry.__init__(self, allow_empty=False)
-		assert path_context is None or isinstance(path_context, Path)
 		self.notebook = notebook
 		self.path_context = path_context
 		self.force_child = False
 		self.force_existing = False
 		self._completing = ''
+
+		InputEntry.__init__(self, allow_empty=False)
+		assert path_context is None or isinstance(path_context, Path)
 
 		completion = gtk.EntryCompletion()
 		completion.set_model(gtk.ListStore(str))
@@ -1258,7 +1270,8 @@ class PageEntry(InputEntry):
 	def do_changed(self):
 		text = self.get_text()
 
-		if not text:
+		# FIXME: why should pageentry always allow empty input ?
+		if not text and not self.force_existing:
 			self.set_input_valid(True)
 			return
 
@@ -1868,6 +1881,7 @@ class ErrorDialog(gtk.MessageDialog):
 		object.
 		'''
 		self.error = error
+		show_trace = False
 		if isinstance(error, zim.errors.Error):
 			msg = error.msg
 			description = error.description
@@ -1878,8 +1892,10 @@ class ErrorDialog(gtk.MessageDialog):
 			description = None
 		elif isinstance(error, Exception):
 			msg = _('Looks like you found a bug') # T: generic error dialog
+			# TODO point to bug tracker
 			description = error.__class__.__name__ + ': ' + unicode(error)
-			# TODO: add widget with stack trace in this case
+			description += '\n\n' + _('When reporting this bug please include\nthe information from the text box below') # T: generic error dialog text
+			show_trace = True
 		elif isinstance(error, tuple):
 			msg, description = error
 		else:
@@ -1894,6 +1910,57 @@ class ErrorDialog(gtk.MessageDialog):
 		)
 		if description:
 			self.format_secondary_text(description)
+
+		# Add widget with debug info
+		if show_trace:
+			text = self.get_debug_text()
+			window, textview = scrolled_text_view(text, monospace=True)
+			window.set_size_request(350, 200)
+			self.vbox.add(window)
+			self.vbox.show_all()
+			# TODO use an expander here ?
+
+
+	def get_debug_text(self):
+		'''Returns text to include in an error dialog to support debugging'''
+		import zim
+		import traceback
+		exc_info = sys.exc_info()
+		if exc_info[2]:
+			tb = exc_info[2]
+		else:
+			tb = sys.last_traceback
+
+		text = 'This is zim %s\n' % zim.__version__ + \
+			'Python version is %s\n' % str(sys.version_info) + \
+			'Gtk version is %s\n' % str(gtk.gtk_version) + \
+			'Pygtk version is %s\n' % str(gtk.pygtk_version) + \
+			'Platform is %s\n' % os.name
+
+		try:
+			from zim._version import version_info
+			text += \
+				'Zim revision is:\n' \
+				'  branch: %(branch_nick)s\n' \
+				'  revision: %(revno)d %(revision_id)s\n' \
+				'  date: %(date)s\n' \
+				% version_info
+		except ImportError:
+			text += 'No bzr version-info found\n'
+
+
+		# FIXME: more info here? Like notebook path, page, environment etc. ?
+
+		text += '\n======= Traceback =======\n'
+		if tb:
+			lines = traceback.format_tb(tb)
+			text += ''.join(lines)
+		else:
+			text += '<Could not extract stack trace>\n'
+
+		text += self.error.__class__.__name__ + ': ' + unicode(self.error)
+
+		return text
 
 	def run(self):
 		'''Runs the dialog and destroys it directly.'''

@@ -116,6 +116,8 @@ def get_template(format, template):
 			file = File(template)
 
 	logger.info('Loading template from: %s', file)
+	if not file.exists():
+		raise AssertionError, 'No such file: %s' % file
 	return Template(file.readlines(), format, name=file.path)
 
 

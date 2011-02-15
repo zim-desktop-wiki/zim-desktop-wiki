@@ -601,11 +601,14 @@ class Dir(Path):
 		'''Returns True if the dir exists and is actually a dir'''
 		return os.path.isdir(self.encodedpath)
 
-	def list(self):
+	def list(self, raw=False):
 		'''Returns a list of names for files and subdirectories.
 		Will not return names that could not be decoded properly and
 		will throw warnings if those are encountered.
 		Hidden files are silently ignored.
+
+		The argument 'raw' doesn't doe anything here. It is there for
+		compatibility with the FilteredDir interface.
 		'''
 		files = []
 		if ENCODING == 'mbcs':
@@ -638,6 +641,32 @@ class Dir(Path):
 			return files
 		else:
 			return []
+
+	def walk(self, raw=True):
+		'''Generator that yields all files and folders below this dir 
+		as objects.
+		'''
+		for name in self.list(raw=raw):
+			path = self.path + os.path.sep + name
+			if os.path.isdir(path):
+				dir = self.subdir(name)
+				yield dir
+				for child in dir.walk(raw=raw):
+					yield child
+			else:
+				yield self.file(name)
+
+	def get_file_tree_as_text(self, raw=True):
+		'''Returns an overview of files and folders below this dir
+		as text.
+		'''
+		text = ''
+		for child in self.walk(raw=raw):
+			path = child.relpath(self)
+			if isinstance(child, Dir):
+				path += '/'
+			text += path + '\n'
+		return text
 
 	def touch(self):
 		'''Create this dir and any parent directories that do not yet exist'''
@@ -757,9 +786,13 @@ class FilteredDir(Dir):
 		else:
 			return True
 
-	def list(self):
+	def list(self, raw=False):
+		'''As Dir.list() but filteres the results with the preset
+		filter. If 'raw' is True filtering is disabled.
+		'''
 		files = Dir.list(self)
-		files = filter(self.filter, files)
+		if not raw:
+			files = filter(self.filter, files)
 		return files
 
 

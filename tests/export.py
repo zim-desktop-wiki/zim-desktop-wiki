@@ -15,6 +15,7 @@ from zim.exporter import Exporter, StaticLinker
 class TestLinker(TestCase):
 
 	def runTest(self):
+		'''Test proper linking of files in export'''
 		notebook = get_test_notebook()
 		notebook.get_store(Path(':')).dir = Dir('/source/dir/') # fake source dir
 
@@ -98,6 +99,7 @@ class TestExportDialog(TestCase):
 	slowTest = True
 
 	def runTest(self):
+		'''Test ExportDialog'''
 		from zim.gui.exportdialog import ExportDialog
 
 		dir = Dir(create_tmp_dir('export_ExportDialog'))
@@ -108,6 +110,7 @@ class TestExportDialog(TestCase):
 
 		ui = MockObject()
 		ui.notebook = notebook
+		ui.page = Path('foo')
 		ui.mainwindow = None
 
 		## Test export all pages

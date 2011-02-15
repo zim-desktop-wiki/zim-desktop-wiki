@@ -106,6 +106,10 @@ ui_actions = (
 	('remove_link', None, _('_Remove Link'), '', '', False), # T: Menu item
 	('insert_date', None, _('_Date and Time...'), '<ctrl>D', '', False), # T: Menu item
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
+	('insert_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item
+	('insert_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
+	('apply_format_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item),
+	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
 	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
 	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', '', False), # T: Menu item
@@ -1331,6 +1335,8 @@ class TextBuffer(gtk.TextBuffer):
 
 		for tag in self.iter_get_zim_tags(iter):
 			if _is_line_based_tag(tag):
+				if tag.zim_tag == 'pre':
+					self.smart_remove_tags(_is_zim_tag, iter, end)
 				self.apply_tag(tag, iter, end)
 
 		self.update_editmode()
@@ -1782,7 +1788,7 @@ class TextBuffer(gtk.TextBuffer):
 			self.create_mark('zim-paste-position', iter, left_gravity=False)
 
 		#~ clipboard.debug_dump_contents()
-		clipboard.request_parsetree(self._paste_clipboard)
+		clipboard.request_parsetree(self._paste_clipboard, self.notebook, self.page)
 
 	def _paste_clipboard(self, parsetree):
 		#~ print '!! PASTE', parsetree.tostring()
@@ -2311,7 +2317,8 @@ class TextView(gtk.TextView):
 			return
 
 		logger.debug('Drag data received of type "%s"', selectiondata.target)
-		tree = parsetree_from_selectiondata(selectiondata)
+		buffer = self.get_buffer()
+		tree = parsetree_from_selectiondata(selectiondata, buffer.notebook, buffer.page)
 		if tree is None:
 			logger.warn('Could not drop data type "%s"', selectiondata.target)
 			dragcontext.finish(False, False, timestamp) # NOK
@@ -2319,7 +2326,7 @@ class TextView(gtk.TextView):
 
 		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
 		iter = self.get_iter_at_location(x, y)
-		self.get_buffer().insert_parsetree(iter, tree)
+		buffer.insert_parsetree(iter, tree)
 		dragcontext.finish(True, False, timestamp) # OK
 
 	def do_motion_notify_event(self, event):
@@ -3869,6 +3876,34 @@ class PageView(gtk.VBox):
 			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
 			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
 			return True
+
+	def insert_bullet_list(self):
+		self._start_bullet(BULLET)
+
+	def insert_checkbox_list(self):
+		self._start_bullet(UNCHECKED_BOX)
+
+	def _start_bullet(self, bullet_type):
+		buffer = self.view.get_buffer()
+		line = buffer.get_insert_iter().get_line()
+
+		with buffer.user_action:
+			iter = buffer.get_iter_at_line(line)
+			buffer.insert(iter, '\n')
+			buffer.set_bullet(line, bullet_type)
+			iter = buffer.get_iter_at_line(line)
+			iter.forward_to_line_end()
+			buffer.place_cursor(iter)
+
+	def apply_format_bullet_list(self):
+		self._apply_bullet(BULLET)
+
+	def apply_format_checkbox_list(self):
+		self._apply_bullet(UNCHECKED_BOX)
+
+	def _apply_bullet(self, bullet_type):
+		buffer = self.view.get_buffer()
+		buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type)
 
 	def insert_text_from_file(self):
 		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()

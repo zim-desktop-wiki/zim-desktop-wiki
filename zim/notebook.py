@@ -387,7 +387,9 @@ class Notebook(gobject.GObject):
 		gobject.GObject.__init__(self)
 		self._namespaces = []	# list used to resolve stores
 		self._stores = {}		# dict mapping namespaces to stores
-		self.namespace_properties = HierarchicDict()
+		self.namespace_properties = HierarchicDict({
+				'template': 'Default'
+			})
 		self._page_cache = weakref.WeakValueDictionary()
 		self.dir = None
 		self.file = None
@@ -1270,7 +1272,7 @@ class Notebook(gobject.GObject):
 		content for a new page.
 		'''
 		from zim.templates import get_template
-		template = self.namespace_properties[path].get('template', '_New')
+		template = self.namespace_properties[path]['template']
 		logger.debug('Found template \'%s\' for %s', template, path)
 		return get_template('wiki', template)
 

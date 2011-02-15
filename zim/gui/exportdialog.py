@@ -115,10 +115,14 @@ class InputPage(AssistantPage):
 			None,
 			('page', 'page', _('Page')), # T: Input field in export dialog
 			#~ ('recursive', 'bool', _('Recursive')),
-		), depends={
+		), {
+			'page': assistant.ui.page,
+		},
+		depends={
 			'page': 'selection:page',
 			#~ 'recursive': 'selection:page',
 		} )
+		self.form.widgets['page'].force_existing = True
 
 	def init_uistate(self):
 		#~ self.uistate.setdefault('selection', 'all', ('all', 'page'))
@@ -200,7 +204,7 @@ class FormatPage(AssistantPage):
 		self.uistate.setdefault('format', 'HTML')
 		self.uistate.setdefault('template', 'Default')
 		self.uistate.setdefault('template_file', '')
-		self.uistate.setdefault('document_root', 'absolute', check=('absolute', 'url'))
+		self.uistate.setdefault('document_root', 'absolute', check=set(('absolute', 'url')))
 		self.uistate.setdefault('document_root_url', '')
 
 		try:
