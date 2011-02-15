@@ -197,7 +197,7 @@ class TagTreeStore(PageTreeStore):
 		child = None
 		childpath = ()
 		treepaths = []
-		all_tags = [t.id for t in self.index.list_tags(None)]
+		all_tags = list(self.index.list_tags(None))
 		
 		for p in paths:
 			if not child is None:
@@ -207,13 +207,13 @@ class TagTreeStore(PageTreeStore):
 			if len(tags) > 0:
 				for t in tags:
 					ttagged = list(self.index.list_tagged(t))
-					treepaths.append((all_tags.index(t.id)+1, ttagged.index(p)) + childpath)
+					treepaths.append((all_tags.index(t)+1, ttagged.index(p)) + childpath)
 			else:
 				untagged = list(self.index.list_untagged())
 				treepaths.append((0, untagged.index(p)) + childpath)
 			child = p 
 			
-		self._reverse_cache.setdefault(p, treepaths)
+		self._reverse_cache.setdefault(path, treepaths)
 
 		#~ print '>>> Return', treepath
 		self._schedule_flush()
@@ -327,7 +327,7 @@ class TagTreePluginWidget(gtk.ScrolledWindow):
 		self.set_shadow_type(gtk.SHADOW_IN)
 		
 		self.treeview = TagTreeView(self.plugin.ui)
-		self.treeview.set_name('zim-tagindex')
+		self.treeview.set_name('zim-tagtree')
 		self.add(self.treeview)
 
 
