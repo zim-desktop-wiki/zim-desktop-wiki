@@ -174,7 +174,7 @@ class IndexPath(Path):
 		yield IndexPath(':', (ROOT_ID,))
 
 
-class IndexTag:
+class IndexTag(object):
 	'''Index representation of a tag'''
 
 	__slots__ = ('name', '_indextag', '_row')
@@ -187,6 +187,13 @@ class IndexTag:
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)
+
+	def __eq__(self, other):
+		'''Tags are equal when their names are the same'''
+		if isinstance(other, IndexTag):
+			return self.name == other.name
+		else:
+			return False
 
 	@property
 	def id(self): return self._indextag
