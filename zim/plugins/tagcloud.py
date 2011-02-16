@@ -342,11 +342,12 @@ class TagCloudWidget(gtk.TextView):
 		@param limit: Limit of the segment size for segmented queries.
 		'''
 		cursor = self.index.db.cursor()
-		
+
+		query = 'select * from pages order by lower(basename)'
 		if offset is None:
-			cursor.execute('select * from pages order by lower(basename)')
+			cursor.execute(query)
 		else:
-			cursor.execute('select * from pages order by lower(basename) limit ? offset ?', (limit, offset + 1))
+			cursor.execute(query + ' limit ? offset ?', (limit, offset + 1))
 			
 		for row in cursor:
 			if not row['basename'] == '':
@@ -360,8 +361,17 @@ class TagCloudWidget(gtk.TextView):
 		'''
 		Defines the order of the displayed tags
 		'''
-		result = list(self.index.list_tags(None, return_id = True))
-		return result
+		cursor = self.index.db.cursor()
+			
+        # Ordererd by name		
+#		cursor.execute('select * from tags order by lower(name)')
+#		for row in cursor:
+#			yield row['id']
+		
+		# Ordererd by occurences
+		cursor.execute('select *, count(tag) as occurances from tagsources group by tag order by occurances desc')
+		for row in cursor:
+			yield row['tag']
 
 
 	def _get_selected_tags(self):
