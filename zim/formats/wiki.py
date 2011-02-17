@@ -48,6 +48,7 @@ parser_re = {
 	'unindented_line': re.compile('^\S', re.M),
 	'indent':     re.compile('^(\t+)'),
 
+    # Tags are identified by a leading @ sign
 	'tag':        Re('(?<!\w)@(?P<name>\w+)'),
 
 	# All the experssions below will match the inner pair of
@@ -69,7 +70,7 @@ dumper_tags = {
 	'mark':     '__',
 	'strike':   '~~',
 	'code':     "''",
-	'tag':      '',
+	'tag':      '', # No additional annotation (apart from the visible @)
 }
 
 
@@ -322,8 +323,11 @@ class Parser(ParserClass):
 			list = parser_re[style].sublist(
 					lambda match: (style, {}, match[1]) , list)
 
-		list = parser_re['tag'].sublist(
-				lambda match: ('tag', {'name': match['name']}, "@%s" % match['name']), list)
+		def parse_tag(re_):
+			groups = re_.m.groupdict()
+			return ('tag', groups, "@{name}".format(**groups))
+		
+		list = parser_re['tag'].sublist(parse_tag, list)
 
 		for item in list:
 			if isinstance(item, tuple):

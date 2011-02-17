@@ -555,6 +555,7 @@ class TestPage(TestPath):
 <zim-tree>
 <link href='foo:bar'>foo:bar</link>
 <link href='bar'>bar</link>
+<tag name='baz'>@baz</tag>
 </zim-tree>
 '''		)
 		page = Page(Path('Foo'))
@@ -566,6 +567,11 @@ class TestPage(TestPath):
 			('page', 'foo:bar', {}),
 			('page', 'bar', {}),
 		] )
+		
+		tags = list(page.get_tags())
+		self.assertEqual(tags, [
+			('@baz', {'name': 'baz'}),
+		])
 
 		self.assertEqual(page.get_parsetree().tostring(), tree.tostring())
 			# ensure we didn't change the tree

@@ -363,7 +363,7 @@ class TagCloudWidget(gtk.TextView):
 		'''
 		cursor = self.index.db.cursor()
 			
-        # Ordererd by name		
+		# Ordererd by name		
 #		cursor.execute('select * from tags order by lower(name)')
 #		for row in cursor:
 #			yield row['id']
