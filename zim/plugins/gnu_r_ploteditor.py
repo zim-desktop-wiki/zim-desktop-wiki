@@ -11,7 +11,7 @@
 #
 # Heavily based on equationeditor.py plugin as of:
 # bzr revno 212, (2010-03-10), marked as
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 #
 
 import gtk

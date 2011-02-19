@@ -20,7 +20,7 @@ Zim can be used to:
 
 ====== COPYRIGHT ======
 
-Copyright 2008, 2009 Jaap Karssenberg <pardus@cpan.org>
+Copyright 2008, 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

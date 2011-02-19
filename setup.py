@@ -34,12 +34,18 @@ except:
 
 
 # Get environment parameter for building for maemo
-# We don't use auto-detection here because we want to be able to 
+# We don't use auto-detection here because we want to be able to
 # cross-compile a maemo package on another platform
 build_target = os.environ.get('ZIM_BUILD_TARGET') or 'default'
 assert build_target in ('default', 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
 if build_target == 'maemo':
 	print 'Building for Maemo...'
+
+
+# Some constants
+
+PO_FOLDER = 'translations'
+LOCALE_FOLDER = 'locale'
 
 
 # Helper routines
@@ -58,7 +64,7 @@ def collect_packages():
 def get_mopath(pofile):
 	# Function to determine right locale path for a .po file
 	lang = os.path.basename(pofile)[:-3] # len('.po') == 3
-	modir = os.path.join('locale', lang, 'LC_MESSAGES')
+	modir = os.path.join(LOCALE_FOLDER, lang, 'LC_MESSAGES')
 	mofile = os.path.join(modir, 'zim.mo')
 	return modir, mofile
 
@@ -110,8 +116,8 @@ def collect_data_files():
 		data_files.append((prefix, files))
 
 	# .po files -> PREFIX/share/locale/..
-	for pofile in [f for f in os.listdir('po') if f.endswith('.po')]:
-		pofile = os.path.join('po', pofile)
+	for pofile in [f for f in os.listdir(PO_FOLDER) if f.endswith('.po')]:
+		pofile = os.path.join(PO_FOLDER, pofile)
 		modir, mofile = get_mopath(pofile)
 		target = os.path.join('share', modir)
 		data_files.append((target, [mofile]))
@@ -192,8 +198,8 @@ class zim_build_trans_class(cmd.Command):
 		pass
 
 	def run(self):
-		for pofile in [f for f in os.listdir('po') if f.endswith('.po')]:
-			pofile = os.path.join('po', pofile)
+		for pofile in [f for f in os.listdir(PO_FOLDER) if f.endswith('.po')]:
+			pofile = os.path.join(PO_FOLDER, pofile)
 			modir, mofile = get_mopath(pofile)
 
 			if not os.path.isdir(modir):
@@ -234,14 +240,14 @@ class zim_install_class(install_class):
 
 	user_options = install_class.user_options + \
 		[('skip-xdg-cmd', None, "don't run XDG update commands (for packaging)")]
-	
+
 	boolean_options = install_class.boolean_options + \
 		['skip-xdg-cmd']
 
 	def initialize_options(self):
 		install_class.initialize_options(self)
 		self.skip_xdg_cmd = 0
-	
+
 	def run(self):
 		install_class.run(self)
 
@@ -305,7 +311,7 @@ setup(
 	version      = __version__,
 	description  = 'Zim desktop wiki',
 	author       = 'Jaap Karssenberg',
-	author_email = 'pardus@cpan.org',
+	author_email = 'jaap.karssenberg@gmail.com',
 	license      = 'GPL',
 	url          = __url__,
 	scripts      = scripts,

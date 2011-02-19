@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright 2010 Thorsten Hackbarth <thorsten.hackbarth@gmx.de>
-#           2011 Jaap Karssenberg <pardus@cpan.org>
+#           2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # License:  same as zim (gpl)
 #
 # ChangeLog
