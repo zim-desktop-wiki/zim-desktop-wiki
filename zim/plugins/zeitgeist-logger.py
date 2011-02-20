@@ -32,22 +32,28 @@ Pushes events to the Zeitgeist daemon.
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
 		self.zeitgeist_client = ZeitgeistClient()
-		self.uistate.setdefault('active', False)
-		if self.ui.ui_type == 'gtk':
-			self.ui.connect_after('close-page', self.do_close_page)
-			self.ui.connect_after('open-page', self.do_open_page)
-			self.ui.notebook.connect_after('delete-page', self.do_delete_page)
-			self.ui.connect_after('new-window', self.do_new_page)
-			self.ui.notebook.connect_after('store-page', self.do_store_page)
+		self.last_page = None
+	
+	def initialize_ui(self, ui):
+		self.zeitgeist_client.register_data_source('application://zim.desktop', _('Zim'), _('A desktop wiki'), [])
+		self.ui.connect_after('open-page', self.do_open_page)
+		self.ui.connect_after('close-page', self.do_close_page)
+
+	def finalize_notebook(self, ui):
+		self.ui.notebook.connect_after('deleted-page', self.do_delete_page)
+		self.ui.notebook.connect_after('stored-page', self.do_store_page)
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('libzeitgeist',not ZeitgeistClient is None)]
+		return [('libzeitgeist', not ZeitgeistClient is None)]
 
-	def create_and_send_event(self, ui, page, event_type):
-		store = ui.notebook.get_store(page.name)
+	def create_and_send_event(self, page, path, event_type):
+		store = self.ui.notebook.get_store(page.name)
 		#FIXME: Assumes file store
-		uri = store._get_file(page).uri
+		if path is not None:
+			uri = store._get_file(path).uri
+		else:
+			uri = store._get_file(page).uri
 		MIME = 'text/x-zim-wiki'
 		subject = Subject()
 		subject.set_mimetype(MIME)
@@ -64,21 +70,17 @@ Pushes events to the Zeitgeist daemon.
 
 	def do_open_page(self, ui, page, path):
 		logger.debug("Opened page: %s", page.name)
-		self.create_and_send_event(ui, page, Interpretation.ACCESS_EVENT)
-		
+		self.create_and_send_event(page, path, Interpretation.ACCESS_EVENT)
+
 	def do_close_page(self, ui, page):
-		logger.debug("Closed page: %s", page.name)
-		self.create_and_send_event(ui, page, Interpretation.LEAVE_EVENT)
+		logger.debug("Left page: %s", page.name)
+		self.create_and_send_event(page, None, Interpretation.LEAVE_EVENT)
 
-	def do_new_page(self, ui, page):
-		logger.debug("New page: %s", page.name)
-		self.create_and_send_event(ui, page, Interpretation.CREATE_EVENT)
-		
-	def do_delete_page(self, ui, page, path):
+	def do_delete_page(self, page, path):
 		logger.debug("Deleted page: %s", page.name)
-		self.create_and_send_event(ui, page, Interpretation.DELETE_EVENT)
+		self.create_and_send_event(page, path, Interpretation.DELETE_EVENT)
 
-	def do_store_page(self, ui, page, path):
+	def do_store_page(self, page, path):
 		logger.debug("Modified page: %s", page.name)
-		self.create_and_send_event(ui, page, Interpretation.MODIFY_EVENT)
+		self.create_and_send_event(page, path, Interpretation.MODIFY_EVENT)
 	
