@@ -99,7 +99,7 @@ class CustomObjectClass(gobject.GObject):
 		'''Returns serialized data of object.'''
 		return self._data
 	
-	def dump(self, format, linker=None):
+	def dump(self, format, dumper, linker=None):
 		'''Dumps current object. Returns None if format is not supported.''' 
 		return None
 	

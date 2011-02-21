@@ -10,7 +10,7 @@ import logging
 from zim.plugins import PluginClass
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.gui.widgets import CustomObjectBin
-
+from zim.formats.html import html_encode
 logger = logging.getLogger(__name__)
 lm = gtksourceview2.LanguageManager()
 lang_ids = lm.get_language_ids()
@@ -106,6 +106,21 @@ class SourceViewObject(CustomObjectClass):
 			bounds = buffer.get_bounds()
 			return buffer.get_text(bounds[0], bounds[1])
 		return self._data
+	
+	def dump(self, format, dumper, linker=None):
+		if format == "html":
+			if 'lang' in self._attrib:
+				# class="brush: language;" works with SyntaxHighlighter 2.0.278
+				# by Alex Gorbatchev <http://alexgorbatchev.com/SyntaxHighlighter/>
+				# TODO: not all GtkSourceView language ids match with SyntaxHighlighter
+				# language ids.
+				output = ['<pre class="brush: %s;">\n' % html_encode(self._attrib['lang'])]
+			else:
+				output = ['<pre>\n']
+			output.append(html_encode(self.get_data()))
+			output.append('</pre>\n')
+			return output
+		return CustomObjectClass.dump(self, format, dumper, linker)
 	
 	def on_lang_changed(self, selector):
 		'''Callback for language selector'''

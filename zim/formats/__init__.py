@@ -59,6 +59,7 @@ from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE
 from zim.config import data_file
+from zim.objectmanager import ObjectManager
 
 
 logger = logging.getLogger('zim.formats')
@@ -562,8 +563,8 @@ class DumperClass(object):
 	
 	def dump_object(self, obj):
 		'''Dumps object using proper ObjectManager. Returns None on failure.'''
-		# TODO dump object
-		return None
+		format = str(self.__class__.__module__).split('.')[-1]
+		return ObjectManager.get_object(obj).dump(format, self, self.linker)
 	
 	def isrtl(self, element):
 		'''Returns True if the parse tree below element starts with

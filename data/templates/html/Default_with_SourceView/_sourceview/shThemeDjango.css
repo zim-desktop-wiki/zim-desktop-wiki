@@ -1,0 +1,184 @@
+/**
+ * SyntaxHighlighter
+ * http://alexgorbatchev.com/
+ *
+ * @version
+ * 2.0.278 (February 03 2009)
+ *
+ * @author
+ * Alex Gorbatchev
+ * 
+ * @copyright
+ * Copyright (C) 2004-2009 Alex Gorbatchev.
+ *
+ * Licensed under a GNU Lesser General Public License.
+ * http://creativecommons.org/licenses/LGPL/2.1/
+ *
+ * SyntaxHighlighter is donationware. You are allowed to download, modify and distribute 
+ * the source code in accordance with LGPL 2.1 license, however if you want to use 
+ * SyntaxHighlighter on your site or include it in your product, you must donate.
+ * http://alexgorbatchev.com/wiki/SyntaxHighlighter:Donate
+ */
+/**
+ * Django SyntaxHighlighter theme
+ */
+
+/************************************
+ * Interface elements.
+ ************************************/
+
+.syntaxhighlighter
+{
+	background-color: #0B2F20;
+}
+
+/* Highlighed line number */
+.syntaxhighlighter .line.highlighted .number
+{
+	background-color: #336442;
+	color: #fff;
+}
+
+/* Highlighed line */
+.syntaxhighlighter .line.highlighted .content
+{
+	background-color: #336442 !important;
+}
+
+/* Gutter line numbers */
+.syntaxhighlighter .line .number
+{
+	color: #497958;
+}
+
+/* Add border to the lines */
+.syntaxhighlighter .line .content
+{
+	border-left: 3px solid #41A83E;
+	color: #B9BDB6;
+}
+
+.syntaxhighlighter.printing .line .content 
+{
+	border: 0;
+}
+
+/* First line */
+.syntaxhighlighter .line.alt1 .content
+{
+}
+
+/* Second line */
+.syntaxhighlighter .line.alt2 .content
+{
+	background-color: #0a2b1d;
+}
+
+.syntaxhighlighter .line .content .block
+{
+	background: url(wrapping.png) 0 1.1em no-repeat;
+}
+
+.syntaxhighlighter .ruler
+{
+	color: #C4B14A;
+	background-color: #245032;
+	border-left: 3px solid #41A83E;
+}
+
+.syntaxhighlighter.nogutter .ruler
+{
+	border: 0;
+}
+
+.syntaxhighlighter .toolbar
+{
+	background-color: #245032;
+	border: #0B2F20 solid 1px;
+}
+
+.syntaxhighlighter .toolbar a
+{
+	color: #C4B14A;
+}
+
+.syntaxhighlighter .toolbar a:hover
+{
+	color: #FFE862;
+}
+
+/************************************
+ * Actual syntax highlighter colors.
+ ************************************/
+.syntaxhighlighter .plain,
+.syntaxhighlighter .plain a
+{
+	color: #F8F8F8;
+}
+
+.syntaxhighlighter .comments,
+.syntaxhighlighter .comments a
+{ 
+	color: #336442;
+	font-style: italic;
+}
+
+.syntaxhighlighter .string,
+.syntaxhighlighter .string a
+{
+	color: #9DF39F; 
+}
+
+.syntaxhighlighter .keyword
+{ 
+	color: #96DD3B; 
+	font-weight: bold !important;
+}
+
+.syntaxhighlighter .preprocessor 
+{ 
+	color: #91BB9E; 
+}
+
+.syntaxhighlighter .variable 
+{ 
+	color: #FFAA3E; 
+}
+
+.syntaxhighlighter .value
+{ 
+	color: #F7E741; 
+}
+
+.syntaxhighlighter .functions
+{ 
+	color: #FFAA3E; 
+}
+
+.syntaxhighlighter .constants
+{ 
+	color: #E0E8FF; 
+}
+
+.syntaxhighlighter .script
+{ 
+	background-color: #497958 !important;
+}
+
+.syntaxhighlighter .color1,
+.syntaxhighlighter .color1 a
+{ 
+	color: #EB939A; 
+}
+
+.syntaxhighlighter .color2,
+.syntaxhighlighter .color2 a
+{ 
+	color: #91BB9E; 
+}
+
+.syntaxhighlighter .color3,
+.syntaxhighlighter .color3 a
+{ 
+	color: #EDEF7D; 
+}
