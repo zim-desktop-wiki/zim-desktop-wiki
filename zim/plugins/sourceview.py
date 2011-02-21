@@ -4,7 +4,10 @@
 
 import gtk
 import pango
-import gtksourceview2
+try:
+	import gtksourceview2
+except:
+	gtksourceview2 = None
 import logging
 
 from zim.plugins import PluginClass
@@ -205,7 +208,9 @@ This plugin embeds textbox with syntax highlighting.
 		pageview = self.ui.mainwindow.pageview
 		pageview.insert_object(pageview.view.get_buffer(), obj)
 		
-	
+	@classmethod
+	def check_dependencies(klass):
+		return [('gtksourceview2',not gtksourceview2 is None)]
 
 
 
