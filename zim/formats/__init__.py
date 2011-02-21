@@ -379,7 +379,7 @@ class ParseTreeBuilder(object):
 			"end tag mismatch (expected %s, got %s)" % (self._last.tag, tag)
 		self._tail = True
 
-		if len(self._stack) > 1 and not (tag == 'img'
+		if len(self._stack) > 1 and not (tag == 'img' or tag == 'object'
 		or (self._last.text and not self._last.text.isspace())
 		or self._last.getchildren() ):
 			# purge empty tags

@@ -140,7 +140,7 @@ class Dumper(DumperClass):
 				else:
 					# Fallback to verbatim paragraph
 					output.append('\n\\begin{lstlisting}\n')
-					output.append(element.text)
+					output.append(element.text or '')
 					output.append('\n\\end{lstlisting}\n')
 				
 			elif element.tag == 'pre':

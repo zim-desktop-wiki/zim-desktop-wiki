@@ -32,7 +32,7 @@ from zim.gui.widgets import ui_environment, \
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
-from zim.objectmanager import ObjectManager
+from zim.objectmanager import ObjectManager, CustomObjectClass
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -1483,15 +1483,17 @@ class TextBuffer(gtk.TextBuffer):
 			elif anchor:
 				set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
 				anchor = iter.get_child_anchor() # iter may have moved
+				
 				if anchor is None:
 					continue
-				manager = anchor.manager
-				logger.debug(manager.get_data())
-				logger.debug(manager.get_attrib())
-				builder.start('object', manager.get_attrib())
-				builder.data(manager.get_data())
-				builder.end('object')
-				manager.set_modified(False)
+				if hasattr(anchor, 'manager'):
+					attrib = anchor.manager.get_attrib()
+					data = anchor.manager.get_data()
+					logger.debug("Anchor with CustomObject: %s", anchor.manager)
+					builder.start('object', attrib)
+					builder.data(data)
+					builder.end('object')
+					anchor.manager.set_modified(False)
 				iter.forward_char()
 			else:
 				# Set tags
@@ -3987,17 +3989,22 @@ class PageView(gtk.VBox):
 	def show_word_count(self):
 		WordCountDialog(self).run()
 	
-	def insert_object(self, buffer, obj):
-		manager = ObjectManager.get_object(obj, self.ui)
-		widget = manager.get_widget()
-		widget._zim_objmanager = manager
+	def insert_object(self, buffer, obj, interactive=False):
+		'''Inserts custom object to TextView & Textbuffer.
+		`obj` can be Element or CustomObjectClass instance.'''
+		logger.debug("Insert object(%s, %s)", buffer, obj)
+		if not isinstance(obj, CustomObjectClass):
+			obj = ObjectManager.get_object(obj, self.ui)
+			
 		def on_modified_changed(obj):
 			if obj.get_modified() and not buffer.get_modified():
 				buffer.set_modified(True)
-		manager.connect('modified-changed', on_modified_changed)
+		obj.connect('modified-changed', on_modified_changed)
 		iter = buffer.get_insert_iter()
-		anchor = ObjectAnchor(manager)
+		
+		anchor = ObjectAnchor(obj)
 		buffer.insert_child_anchor(iter, anchor)
+		widget = obj.get_widget()
 		self.view.add_child_at_anchor(widget, anchor)
 		widget.show_all()
 # Need to register classes defining gobject signals
