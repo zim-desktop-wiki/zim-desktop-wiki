@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Daemon IPC infrastucture parts for the zim GUI.
 

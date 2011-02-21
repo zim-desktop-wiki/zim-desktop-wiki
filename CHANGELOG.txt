@@ -1,12 +1,50 @@
 ===== Changes for zim =====
-Jaap Karssenberg <pardus@cpan.org>
+Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 This branch is the Python rewrite and starts with version 0.42. 
 Earlier version numbers for zim correspond to the Perl branch.
 
 
-=== 0.50 - ... ===
-...
+=== 0.50 - Mon 14 Feb 2011 ===
+Maintenance release with many bug fixes. Biggest change is the refactoring
+of input forms and dialogs, but this is not very visible to the user.
+
+* Added custom tool option to get wiki formatted text
+* Added option to Task List plugin to mix page name elements with tags
+* Added style config for linespacing
+* Cursor is now only set from history when page is accessed through history
+* Updated latex export for verbatim blocks and underline format
+* Added basic framework for plugins to add widgets to the main window
+* Notebook list now shows folder path and icon - Stefan Muthers
+* Folder last inserted image is now remembered - Stefan Muthers
+* Preview is now shown when selecting icons files - Stefan Muthers
+* Image paths are now made relative when pasting image an file - Jiří Janoušek
+* Image data is now accepted on the clipboard directly - Stefan Muthers
+* Added overview of files to be deleted to Delete Page dialog to avoid 
+  acidental deletes
+* Added traceback log to "You found a bug" error dialog
+* Fixed critical bug for windows where zim tries to write log file 
+  to a non-existing folder
+* Fixed critical bug where text below the page title goes missing on rename
+* Fixed behavior when attaching files, will no longer automatically overwrite
+  existing file, prompt user instead - Stefan Muthers
+* Fixed bug when opening notebooks through an inter-wiki link
+* Fixed support for month and year pages in Calendar namespace
+* Fixed support for wiki syntax in Quick Note dialog when inserting in page
+* Fixed bug in Task List plugin where it did not parse checkbox lists with a 
+  label above it as documented in the manual
+* Fixed bug with custom template in export dialog - Jiří Janoušek
+* Fixed bug with style config for tab size
+* Fixed many more smaller bugs
+* Rewrote logic for indented text and bullet lists, fixes remaining
+  glitches in indent rendering and now allow formatting per bullet type
+* Refactored part of the Attachment Browser plugin, no longer depends 
+  on Image Magick for thumbnailing and added action buttons
+* Refactored code for input forms and decoupled from Dialog class
+* Refactore History class to use proper Path objects
+* Added significants amount of test coverage for dialog and other interface
+  elements
+* Package description of zim was rewritten to be more readable
 * Added translation for Danish
 
 

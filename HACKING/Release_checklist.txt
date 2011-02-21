@@ -38,6 +38,10 @@ Build release packages:
 * `make builddeb` + `make clean`
 * ./tools/build_website.sh
 
+Publish to launchpad PPA:
+* debuild -S -kB3223C82
+* dput ppa:jaap.karssenberg/zim zim_XX_sources.changes
+
 Publish the release:
 * Upload website
 * Upload tar.gz and deb packages

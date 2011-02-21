@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.formats module.'''
+
+from __future__ import with_statement
 
 from tests import TestCase, get_test_data_page, get_test_page, LoggingFilter
 

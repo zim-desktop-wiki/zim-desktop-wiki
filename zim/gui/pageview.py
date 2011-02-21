@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the core of the interactive editor. It includes all
 classes needed to display and edit a single page as well as related dialogs

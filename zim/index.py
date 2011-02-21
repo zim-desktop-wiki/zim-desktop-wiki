@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains an class that keeps an index of
 all pages, links and backlinks in a notebook.

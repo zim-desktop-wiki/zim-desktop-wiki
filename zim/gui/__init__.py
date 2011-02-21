@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the Gtk user interface for zim.
 The main widgets and dialogs are seperated out in sub-modules.
@@ -2284,17 +2284,19 @@ class NewPageDialog(Dialog):
 			help=':Help:Pages'
 		)
 
+		self.path = path or ui.page
+
 		templates = list_templates('wiki')
 		self.add_form([
 			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: Choice label
 		], None, None, False )
 
-		if path:
-			default = ui.notebook.namespace_properties[path]['template']
-		else:
-			default = ui.notebook.namespace_properties['']['template'] # root space default
+		key = self.path or ''
+		default = ui.notebook.namespace_properties[key]['template']
 		self.form['template'] = default
+		self.form.widgets['template'].set_no_show_all(True) # TEMP: hide feature
+		self.form.widgets['template'].set_property('visible', False) # TEMP: hide feature
 
 		if subpage:
 			self.form.widgets['page'].force_child = True
@@ -2509,7 +2511,7 @@ class DeletePageDialog(Dialog):
 		hbox.pack_start(img, False)
 
 		vbox = gtk.VBox(spacing=5)
-		hbox.add(vbox)
+		hbox.pack_start(vbox, False)
 
 		label = gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename

@@ -21,7 +21,9 @@ These can be overloaded with the coresponding environment variables.
 
 When zim writes config files it always uses XDG_CONFIG_HOME. Data files are read only and are searched for in XDG_DATA_HOME and XDG_DATA_DIRS. The installation defaults for config files are also installed in XDG_DATA_DIRS, but these are copied on first use to XDG_CONFIG_HOME.
 
-===== Files =====
+===== Global Config Files =====
+
+These config files determine various aspects of how zim behaves. They are global in the sense that they are not specific for one notebook.
 
 ==== Main config file ====
 The default config file is ''XDG_CONFIG_HOME/zim/preferences.conf''.
@@ -110,3 +112,9 @@ You can for example set the font used in the index by adding this to your gtkrc 
 	'''
 
 Check the internet for more examples.
+
+===== Notebook config file =====
+
+There is a notebook specific config files called "''notebook.zim''" which should be in the notebook folder. This file contains a section "''[Notebook]''" which contains the properties that can be set in the [[properties|properties dialog]].
+
+There is one hidden property, called "''end_of_line''" which determines the end-of-line convention for files written by zim within the scope of this notebook. The value can be either "''dos''" or "''unix''". For newly created notebooks this value is set depending on the platform on which zim is running. Main purpose of this property is to ensure that a notebook which is shared between e.g. linux and windows machines does not change the full file on every write. When desired the property can be changed manually, which will affect all pages edited after the change.

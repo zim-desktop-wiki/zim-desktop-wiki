@@ -59,7 +59,10 @@ class TestCoding(TestCase):
 					else:
 						pass
 				elif line.startswith("'''"):
-					in_comment = True
+					if not line.endswith("'''"):
+						in_comment = True
+					else:
+						pass
 				elif line.startswith('with '):
 					self.assertTrue(import_seen, '%s missing with_statement import from __future__ ("with" seen on line %i)' % (file, n))
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2010 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 #
 # Inspired by and partially based on code from clac.py,
 # Copyright 2009 Mark Borgerding and licensed under the GPL version 3

@@ -35,7 +35,7 @@ Bounties are offered for specific outstanding feature requests.
 * These guidelines are subject to change as we see fit.
 
 
-If you want to work on a bounty send an email to pardus@cpan.org so we can discuss the implementation details etc.
+If you want to work on a bounty send an email to jaap.karssenberg@gmail.com so we can discuss the implementation details etc.
 
 
 === Open bounties: ===
@@ -57,7 +57,7 @@ Details: see [[http://zim-wiki.org/wiki/doku.php?id=support_tables|this page]] f
 
 
 ===== Patches =====
-The simple way to create patches is to download the source tar ball for the latest release. After you are done hacking take a diff (use "''diff -rwu''") and mail it to pardus@cpan.org.
+The simple way to create patches is to download the source tar ball for the latest release. After you are done hacking take a diff (use "''diff -rwu''") and mail it to jaap.karssenberg@gmail.com.
 
 If you want the full revision controlled source tree you will need the Bazaar version control system. To check out the current tree from launchpad run:
 
@@ -71,7 +71,7 @@ This will give you a local copy to hack on. When working on a large feature plea
 $ bzr send -o some-description.patch
 '''
 
-and mail the resulting file to pardus@cpan.org. This file contains the whole patch set and can easily be merged in the upstream repository.
+and mail the resulting file to jaap.karssenberg@gmail.com. This file contains the whole patch set and can easily be merged in the upstream repository.
 
 ===== Contact =====
 To join the zim mailing list you need to join the "[[https://launchpad.net/~zim-wiki|zim-wiki]]" team in launchpad. This mailing list is used for synchronizing releases and the occasional brainstorm session. But feel free to mail all your comments, questions and rants to me personally as well.
