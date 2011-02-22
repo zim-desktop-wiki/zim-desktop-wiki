@@ -20,7 +20,7 @@ except:
 class ZeitgeistPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Event logging with Zeitgeist'), # T: plugin name
+		'name': _('Log events with Zeitgeist'), # T: plugin name
 		'description': _('''\
 Pushes events to the Zeitgeist daemon.
 
@@ -31,17 +31,22 @@ Pushes events to the Zeitgeist daemon.
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
-		self.zeitgeist_client = ZeitgeistClient()
-		self.last_page = None
+		try:
+			self.zeitgeist_client = ZeitgeistClient()
+		except RuntimeError, e:
+			logger.exception('Loading the zeitgeist client failed, will not log events')
+			self.zeitgeist_client = None
 	
 	def initialize_ui(self, ui):
-		self.zeitgeist_client.register_data_source('application://zim.desktop', _('Zim'), _('A desktop wiki'), [])
-		self.ui.connect_after('open-page', self.do_open_page)
-		self.ui.connect_after('close-page', self.do_close_page)
+		if self.zeitgeist_client is not None:
+			self.zeitgeist_client.register_data_source('application://zim.desktop', _('Zim'), _('A desktop wiki'), [])
+			self.ui.connect_after('open-page', self.do_open_page)
+			self.ui.connect_after('close-page', self.do_close_page)
 
 	def finalize_notebook(self, ui):
-		self.ui.notebook.connect_after('deleted-page', self.do_delete_page)
-		self.ui.notebook.connect_after('stored-page', self.do_store_page)
+		if self.zeitgeist_client is not None:
+			self.ui.notebook.connect_after('deleted-page', self.do_delete_page)
+			self.ui.notebook.connect_after('stored-page', self.do_store_page)
 
 	@classmethod
 	def check_dependencies(klass):
