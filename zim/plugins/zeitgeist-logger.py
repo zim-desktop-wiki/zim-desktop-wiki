@@ -4,6 +4,7 @@
 
 '''Push events to the Zeitgeist daemon'''
 
+import gio
 import logging
 import sys
 from zim.plugins import PluginClass
@@ -53,24 +54,28 @@ Pushes events to the Zeitgeist daemon.
 		return [('libzeitgeist', not ZeitgeistClient is None)]
 
 	def create_and_send_event(self, page, path, event_type):
-		store = self.ui.notebook.get_store(page.name)
 		#FIXME: Assumes file store
+		store = self.ui.notebook.get_store(page.name)
 		if path is not None:
-			uri = store._get_file(path).uri
+			fileobj  = store._get_file(path)
 		else:
-			uri = store._get_file(page).uri
-		MIME = 'text/x-zim-wiki'
-		subject = Subject()
-		subject.set_mimetype(MIME)
-		subject.set_uri(uri)
-		subject.set_interpretation(Interpretation.PLAIN_TEXT_DOCUMENT)
-		subject.set_manifestation(Manifestation.FILE_DATA_OBJECT)
-		subject.set_text(page.name)
-		event = Event()
-		event.set_actor('application://zim.desktop')
-		event.set_interpretation(event_type)
-		event.set_manifestation(Manifestation.USER_ACTIVITY)
-		event.subjects.append(subject)
+			fileobj = store._get_file(page)
+		
+		uri = fileobj.uri
+		origin = gio.File(uri).get_parent().get_uri()
+		text = _('Wiki page: %s') % page.name
+		
+		subject = Subject.new_for_values(mimetype='text/x-zim-wiki',
+		                                 uri=uri,
+		                                 origin=origin,
+		                                 interpretation=Interpretation.TEXT_DOCUMENT,
+		                                 manifestation=Manifestation.FILE_DATA_OBJECT,
+		                                 text=text)
+		event = Event.new_for_values(actor='application://zim.desktop',
+		                             interpretation=event_type,
+		                             manifestation=Manifestation.USER_ACTIVITY,
+		                             subjects=[subject,])
+		
 		self.zeitgeist_client.insert_event(event)
 
 	def do_open_page(self, ui, page, path):
