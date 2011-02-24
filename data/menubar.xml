@@ -73,6 +73,9 @@
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='reload_page'/>
+			<separator/>
+			<menuitem action='zoom_in'/>
+			<menuitem action='zoom_out'/>
 		</menu>
 		<menu action='insert_menu'>
 			<menuitem action='insert_date'/>

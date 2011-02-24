@@ -118,6 +118,8 @@ ui_actions = (
 	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', '', True), # T: Menu item
 	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', '', False), # T: Menu item
 	('show_word_count', None, _('Word Count...'), '', '', True), # T: Menu item
+	('zoom_out', None, _('Zoom Out'), '<ctrl>minus', '', False), # T: Menu item
+	('zoom_in', None, _('Zoom In'), '<ctrl>plus', '', False), # T: Menu item
 )
 
 ui_format_actions = (
@@ -3940,6 +3942,27 @@ class PageView(gtk.VBox):
 
 	def show_word_count(self):
 		WordCountDialog(self).run()
+
+	def _zoom_increase_decrease_font_size(self,plus_or_minus):
+		style = self.style
+		if not self.style['TextView']['font']:
+			logger.debug( 'Switching to custom font implicitly because of zoom action' )
+			self.style['TextView']['font'] = self.view.style.font_desc.to_string()
+		font = pango.FontDescription(self.style['TextView']['font'])
+		font_size = font.get_size()
+		if font_size <= 1*1024 and plus_or_minus < 0:
+			return
+		else:
+			font_size_new = font_size + plus_or_minus * 1024 
+			font.set_size( font_size_new )  
+		self.style['TextView']['font'] = font.to_string()
+		self.view.modify_font(font)
+
+	def zoom_in(self):
+		self._zoom_increase_decrease_font_size( +1 )
+
+	def zoom_out(self):
+		self._zoom_increase_decrease_font_size( -1 )
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
