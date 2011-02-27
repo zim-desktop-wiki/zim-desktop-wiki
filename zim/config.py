@@ -356,6 +356,10 @@ class ListDict(dict):
 		If 'check' is given and is a set the value will be tested
 		against this set.
 
+		If the default is an integer and 'check' is a tuple of two
+		integers, the check will be that the value is in this range.
+		(For compatibility with InputForm.add_inputs arguments.)
+
 		If 'allow_empty' is True values are also allowed to be empty
 		string or None. This is used for optional parameters in the
 		config. By default 'allow_empty' is False but it is set to
@@ -410,6 +414,22 @@ class ListDict(dict):
 				logger.warn(
 						'Invalid config value for %s: "%s" - should be one of %s',
 						key, self[key], unicode(check))
+				self.__setitem__(key, default)
+			else:
+				pass # value is OK
+		elif isinstance(check, tuple) and isinstance(default, int):
+			assert len(check) == 2 \
+				and isinstance(check[0], int) \
+				and isinstance(check[1], int)
+			if not isinstance(self[key], int):
+				logger.warn(
+					'Invalid config value for %s: "%s" - should be integer',
+					key, self[key])
+				self.__setitem__(key, default)
+			elif not check[0] <= self[key] <= check[1]:
+				logger.warn(
+					'Invalid config value for %s: "%s" - should be between %i and %i',
+					key, self[key], check[0], check[1])
 				self.__setitem__(key, default)
 			else:
 				pass # value is OK

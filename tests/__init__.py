@@ -16,7 +16,7 @@ import xml.etree.cElementTree as etree
 __all__ = [
 	'coding', 'translations',
 	'errors', 'parsing', 'fs', 'config', 'applications', 'async',
-	'formats', 'templates',
+	'formats', 'templates', 'inlineobjects',
 	'stores', 'index', 'notebook',
 	'history', 'plugins',
 	'export', 'www', 'search',

@@ -86,7 +86,7 @@ class PreferencesDialog(Dialog):
 	def _add_font_selection(self, table):
 		# need to hardcode this, can not register it as a preference
 		table.add_inputs( (
-			('use_custom_font', 'bool', _('Use a custom font')), 
+			('use_custom_font', 'bool', _('Use a custom font')),
 			# T: option in preferences dialog
 		) )
 		table.preferences_sections['use_custom_font'] = 'GtkInterface'
@@ -344,7 +344,9 @@ class PluginConfigureDialog(Dialog):
 		i = classes.index(klass)
 		self.plugin = self.ui.plugins[i]
 
-		label = gtk.Label(_('Options for plugin %s') % klass.plugin_info['name'])
+		label = gtk.Label()
+		label.set_markup(
+			'<b>'+_('Options for plugin %s') % klass.plugin_info['name']+'</b>')
 			# T: Heading for 'configure plugin' dialog - %s is the plugin name
 		self.vbox.add(label)
 
@@ -358,7 +360,10 @@ class PluginConfigureDialog(Dialog):
 				key, type, label, default, check = pref
 				self.preferences.setdefault(key, default, check=check) # just to be sure
 
-			fields.append((key, type, label))
+			if type == 'int':
+				fields.append((key, type, label, check))
+			else:
+				fields.append((key, type, label))
 
 		self.add_form(fields, self.preferences)
 

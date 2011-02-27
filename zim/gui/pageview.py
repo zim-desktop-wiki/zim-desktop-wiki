@@ -1211,7 +1211,7 @@ class TextBuffer(gtk.TextBuffer):
 		self.remove_all_tags(start, iter)
 		for tag in self._editmode_tags:
 			self.apply_tag(tag, start, iter)
-	
+
 	def insert_child_anchor(self, iter, anchor):
 		# Make sure we always apply the correct tags when inserting an object
 		if iter.equal(self.get_iter_at_mark(self.get_insert())):
@@ -1219,7 +1219,7 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			with self.tmp_cursor(iter):
 				gtk.TextBuffer.insert_child_anchor(self, iter, anchor)
-				
+
 	def do_insert_child_anchor(self, iter, anchor):
 		# Like do_insert_pixbuf()
 		gtk.TextBuffer.do_insert_child_anchor(self, iter, anchor)
@@ -1229,7 +1229,7 @@ class TextBuffer(gtk.TextBuffer):
 		self.remove_all_tags(start, iter)
 		for tag in filter(_is_indent_tag, self._editmode_tags):
 			self.apply_tag(tag, start, iter)
-			
+
 	def insert_pixbuf(self, iter, pixbuf):
 		# Make sure we always apply the correct tags when inserting a pixbuf
 		if iter.equal(self.get_iter_at_mark(self.get_insert())):
@@ -1478,12 +1478,12 @@ class TextBuffer(gtk.TextBuffer):
 					assert False, 'BUG: unknown pixbuf type'
 
 				iter.forward_char()
-			
+
 			# embedded widget
 			elif anchor:
 				set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
 				anchor = iter.get_child_anchor() # iter may have moved
-				
+
 				if anchor is None:
 					continue
 				if hasattr(anchor, 'manager'):
@@ -3369,12 +3369,12 @@ class PageView(gtk.VBox):
 
 		self._prev_buffer = self.view.get_buffer()
 		finderstate = self._prev_buffer.finder.get_state()
-		
+
 		for child in self.view.get_children():
 			self.view.remove(child)
 			if hasattr(child, "_zim_objmanager"):
 				del child._zim_objmanager
-		
+
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
 		self._buffer_signals = []
@@ -3436,7 +3436,7 @@ class PageView(gtk.VBox):
 			else:
 				self.page.modified = True
 				self.emit('modified-changed')
-				
+
 	def clear(self):
 		# Called e.g. by "discard changes" maybe due to an exception in
 		# buffer.get_parse_tree() - so just drop everything...
@@ -3988,25 +3988,30 @@ class PageView(gtk.VBox):
 
 	def show_word_count(self):
 		WordCountDialog(self).run()
-	
+
 	def insert_object(self, buffer, obj, interactive=False):
 		'''Inserts custom object to TextView & Textbuffer.
 		`obj` can be Element or CustomObjectClass instance.'''
 		logger.debug("Insert object(%s, %s)", buffer, obj)
 		if not isinstance(obj, CustomObjectClass):
-			obj = ObjectManager.get_object(obj, self.ui)
-			
+			# assume obj is a parsetree element
+			element = obj
+			if not 'type' in element.attrib:
+				return None
+			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text, self.ui)
+
 		def on_modified_changed(obj):
 			if obj.get_modified() and not buffer.get_modified():
 				buffer.set_modified(True)
 		obj.connect('modified-changed', on_modified_changed)
 		iter = buffer.get_insert_iter()
-		
+
 		anchor = ObjectAnchor(obj)
 		buffer.insert_child_anchor(iter, anchor)
 		widget = obj.get_widget()
 		self.view.add_child_at_anchor(widget, anchor)
 		widget.show_all()
+
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
 

@@ -560,12 +560,17 @@ class DumperClass(object):
 		lines of text.
 		'''
 		raise NotImplementedError
-	
-	def dump_object(self, obj):
-		'''Dumps object using proper ObjectManager. Returns None on failure.'''
+
+	def dump_object(self, element):
+		'''Dumps object using proper ObjectManager for a object
+		parsetree element. Returns None on failure.
+		'''
 		format = str(self.__class__.__module__).split('.')[-1]
-		return ObjectManager.get_object(obj).dump(format, self, self.linker)
-	
+		if not 'type' in element.attrib:
+			return None
+		obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
+		return obj.dump(format, self, self.linker)
+
 	def isrtl(self, element):
 		'''Returns True if the parse tree below element starts with
 		characters in a RTL script. This is e.g. needed to produce correct

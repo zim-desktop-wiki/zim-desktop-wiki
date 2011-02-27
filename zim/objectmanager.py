@@ -7,68 +7,72 @@ import gobject
 import logging
 logger = logging.getLogger(__name__)
 
-class ObjectManager(object):
+
+class _ObjectManager(object):
 	'''Manages custom objects.'''
-	_objects = {}
-	
-	@classmethod
-	def register_object(cls, type, klass):
+
+	def __init__(self):
+		self.factories = {}
+
+	def register_object(self, type, factory):
 		'''
-		Registers ObjectManagerClass for type of object.
-		Returns previously set ObjectManager or None.
+		Register a factory method or class for a specific object type.
+		A 'factory' can be either an object class or a method, as long
+		as it it callable and returns objects. It will get the to be
+		created object attributes, text and the ui object as arguments.
+		Returns previously set factory for 'type' or None.
 		'''
 		type = type.lower()
-		if type in cls._objects:
-			old = cls._objects[type]
-		else:
-			old = None
-		cls._objects[type] = klass
+		old = self.factories.get(type)
+		self.factories[type] = factory
 		return old
-	
-	@classmethod
-	def unregister_object(cls, type):
+
+	def unregister_object(self, type):
 		'''
 		Unregister ObjectManager for given type of object.
 		Returns True on success, False if given type has not been
 		registered yet.
 		'''
 		type = type.lower()
-		if type in cls._objects:
-			del cls._objects[type]
+		if type in self.factories:
+			del self.factories[type]
 			return True
 		else:
 			return False
-	
-	@classmethod
-	def is_registered(cls, type):
+
+	def is_registered(self, type):
 		'''Returns True if object type has already been registered.'''
-		return type.lower() in cls._objects
-		
-	@classmethod
-	def get_object(cls, obj, ui=None):
+		return type.lower() in self.factories
+
+	def get_object(self, type, attrib, text, ui=None):
 		'''Returns ObjectManager instance for given object.'''
-		klass = FallbackObject
-		if 'type' in obj.attrib:
-			type = obj.attrib['type'].lower()
-			if type in cls._objects:
-				klass = cls._objects[type]
-		
-		return klass(obj.attrib, obj.text, ui)
+		type = type.lower()
+		if type in self.factories:
+			factory = self.factories[type]
+		else:
+			factory = FallbackObject
+
+		return factory(attrib, text, ui)
+
+
+ObjectManager = _ObjectManager() # Singleton object
 
 
 class CustomObjectClass(gobject.GObject):
 	'''
 	Base Class for custom objects.
-	
+
 	Signal:
 	 * 'modified-changed' -- modification state has been changed
-	
+
 	'''
+
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		#'changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
+
 	def __init__(self, attrib, data, ui=None):
 		gobject.GObject.__init__(self)
 		self._attrib = attrib
@@ -76,17 +80,17 @@ class CustomObjectClass(gobject.GObject):
 		self._widget = None
 		self.ui = ui
 		self.modified = False
-	
+
 	def get_modified(self):
 		'''Returns True if object has been modified.'''
 		return self.modified
-	
+
 	def set_modified(self, modified):
 		'''Sets modification state of object and emits signal if needed.'''
 		if self.modified != modified:
 			self.modified = modified
 			self.emit("modified-changed")
-	
+
 	def get_widget(self):
 		'''Returns GTK widget if GUI is detected, None otherwise.'''
 		return self._widget
@@ -98,17 +102,19 @@ class CustomObjectClass(gobject.GObject):
 	def get_data(self):
 		'''Returns serialized data of object.'''
 		return self._data
-	
+
 	def dump(self, format, dumper, linker=None):
-		'''Dumps current object. Returns None if format is not supported.''' 
+		'''Dumps current object. Returns None if format is not supported.'''
 		return None
-	
-gobject.type_register(CustomObjectClass)		
+
+gobject.type_register(CustomObjectClass)
+
 
 class FallbackObject(CustomObjectClass):
 	'''Fallback object displays data as TextView and
-	preserves attributes unmodified.'''
-	
+	preserves attributes unmodified.
+	'''
+
 	def __init__(self, attrib, data, ui=None):
 		CustomObjectClass.__init__(self, attrib, data, ui)
 		if self.ui and self.ui.ui_type == 'gtk':
@@ -130,22 +136,22 @@ class FallbackObject(CustomObjectClass):
 			win.add(self.view)
 			box.pack_start(win)
 			self._widget.add(box)
-				
+
 	def get_data(self):
 		if self._widget:
 			buffer = self.view.get_buffer()
 			bounds = buffer.get_bounds()
 			return buffer.get_text(bounds[0], bounds[1])
 		return self._data
-	
+
 	def on_modified_changed(self, buffer):
 		'''Callback for TextBuffer's modifications.'''
 		if buffer.get_modified():
 			self.set_modified(True)
 			buffer.set_modified(False)
-			
+
 	def set_label(self, label):
 		'''Sets label at the top area of widget.'''
 		self.label.set_text(label)
-	
+
 	# TODO: undo(), redo() stuff
