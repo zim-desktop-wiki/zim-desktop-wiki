@@ -542,9 +542,6 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 
 	def disconnect_embedded_widget(self):
 		if not self.sidepane_widget is None:
-			sidepane = self.ui.mainwindow.sidepane
-			pagenum = sidepane.page_num(self.sidepane_widget)
-			if not pagenum is None: 
-				sidepane.remove_page(pagenum)
+			self.ui.mainwindow.remove(self.sidepane_widget)
 			self.sidepane_widget = None
 

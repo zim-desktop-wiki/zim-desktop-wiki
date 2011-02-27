@@ -362,10 +362,7 @@ This plugin provides a tree-view based on the tags contained on a page.
 
 	def disconnect_embedded_widget(self):
 		if self.sidepane_widget:
-			sidepane = self.ui.mainwindow.sidepane
-			pagenum = sidepane.page_num(self.sidepane_widget)
-			if not pagenum is None: 
-				sidepane.remove_page(pagenum)
+			self.ui.mainwindow.remove(self.sidepane_widget)
 			self.sidepane_widget = None
 
 # vim: autoindent noexpandtab shiftwidth=4 tabstop=4
