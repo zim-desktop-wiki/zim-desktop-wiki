@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2011 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from tests import TestCase, MockObject, get_test_notebook
 

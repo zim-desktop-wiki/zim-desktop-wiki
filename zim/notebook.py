@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
 This package contains the main Notebook class and related classes.

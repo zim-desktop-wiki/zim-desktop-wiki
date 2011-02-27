@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2010 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # Thin wrapper for standard library datetime, provides current timezone info
 # Based on example code from standard library datetime documentation.

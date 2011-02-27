@@ -4,7 +4,7 @@ Creation-Date: Wed, 08 Jul 2009 23:26:20 +0200
 
 ====== FAQ ======
 
-Mail [[pardus@cpan.org|me]] if you have questions that you would like to see answered below.
+Mail [[jaap.karssenberg@gmail.com|me]] if you have questions that you would like to see answered below.
 
 === How do I create a new page? ===
 You can just link non-existing pages. If you follow such a link the page will be created automatically when needed.

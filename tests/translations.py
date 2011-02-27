@@ -8,12 +8,12 @@ class TestTranslations(TestCase):
 
 	def runTest(self, verbose=False):
 		'''Sanity check translation files'''
-		for file in ['zim.pot'] + glob('po/*.po'):
+		for file in ['translations/zim.pot'] + glob('translations/*.po'):
 			if verbose:
 				print 'Checking %s' % file
 			t = TranslationFile(file)
-			if file != 'zim.pot':
-				assert t.nplural > 0, 'Missing number of plurals'
+			if not file.endswith('.pot'):
+				assert t.nplural > 0, 'Missing number of plurals: %s' % file
 			t.assertValid()
 
 
@@ -66,7 +66,7 @@ class TranslationMessage(object):
 		wanted = sorted( self._format_string_re.findall(self.msgid) )
 		if not wanted:
 			return True # no string format used
-	
+
 		for msg in [self.msgid_plural] + self.msgstr:
 			if msg and not msg == '""':
 				got = sorted( self._format_string_re.findall(msg) )
@@ -81,7 +81,7 @@ class TranslationFile(object):
 	def __init__(self, file):
 		self.file = file
 		self.messages = []
-		
+
 		buffer = []
 		lineno = 0
 		msgidlineno = 0

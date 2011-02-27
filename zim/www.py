@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # TODO check client host for security
 # TODO setting for doc_root_url when running in CGI mode

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 

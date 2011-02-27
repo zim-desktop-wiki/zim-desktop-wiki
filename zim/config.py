@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains utilities to work with config files. It also supports looking up
 files according to the Freedesktop.org (XDG) Base Dir specification.

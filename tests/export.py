@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from tests import TestCase, MockObject, create_tmp_dir, get_test_notebook, get_test_data
 

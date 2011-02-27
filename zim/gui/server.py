@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module stands apart from the rest of the gui modules as it is not
 part from the main Gtk interface. It defines a Gtk interface that can be
