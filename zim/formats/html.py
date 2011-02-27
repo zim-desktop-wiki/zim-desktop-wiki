@@ -60,7 +60,7 @@ class Dumper(DumperClass):
 	def _dump_children(self, list, output, istoplevel=False):
 		for element in list.getchildren():
 			text = html_encode(element.text)
-			if not element.tag == 'pre' or not element.tag == 'object':
+			if not element.tag in ('pre', 'object'):
 				# text that goes into the element
 				# always encode excepts for <pre></pre>
 				# or custom objects, because they fallback to <pre>

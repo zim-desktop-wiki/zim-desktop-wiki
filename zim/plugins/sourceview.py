@@ -12,12 +12,9 @@ except:
 
 from zim.plugins import PluginClass
 from zim.objectmanager import ObjectManager, CustomObjectClass
-from zim.gui.widgets import CustomObjectBin
+from zim.gui.widgets import Dialog, CustomObjectBin
 from zim.formats.html import html_encode
 
-import logging
-
-logger = logging.getLogger('zim.plugins.sourceview')
 
 lm = gtksourceview2.LanguageManager()
 lang_ids = lm.get_language_ids()
@@ -73,6 +70,8 @@ class SourceViewObject(CustomObjectClass):
 			win.add(self.view)
 			win.set_border_width(5)
 
+			self._attrib.setdefault('lang', None)
+			self._attrib.setdefault('linenumbers', 'true') # FIXME make boolean
 			self.set_language(self._attrib['lang'], save=False)
 			self.show_line_numbers(self._attrib['linenumbers'], save=False)
 
@@ -153,7 +152,6 @@ class SourceViewObject(CustomObjectClass):
 		lang = selector.get_active()
 		self.set_language(lang_ids[lang-1] if lang>0 else '')
 
-
 	def set_language(self, lang, save=True):
 		'''Set language in SourceView.'''
 		if lang is None:
@@ -191,7 +189,8 @@ class SourceViewObject(CustomObjectClass):
 			+ 2 * self._widget.get_border_width()
 			hmargin =  2 * 20 + 2 * self._widget.get_border_width()
 			width, height = win.get_geometry()[2:4]
-			self._widget.set_size_request(width - vmargin, height - hmargin)
+			#~ self._widget.set_size_request(width - vmargin, height - hmargin)
+			self._widget.set_size_request(width - vmargin, -1)
 
 	def on_populate_popup(self, view, menu):
 		menu.prepend(gtk.SeparatorMenuItem())
@@ -222,6 +221,7 @@ class SourceViewObject(CustomObjectClass):
 
 	# TODO: undo(), redo() stuff
 
+
 class SourceViewPlugin(PluginClass):
 
 	plugin_info = {
@@ -246,19 +246,17 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
-		self._objects = WeakRefSet()
 		ObjectManager.register_object(OBJECT_TYPE, self.create_object)
 
 	def create_object(self, attrib, text, ui=None):
 		'''Factory method for SourceViewObject objects'''
 		obj = SourceViewObject(attrib, text, ui)
 		obj.set_preferences(self.preferences)
-		self._objects.add(obj)
 		return obj
 
 	def do_preferences_changed(self):
 		'''Update preferences on open objects'''
-		for obj in self._objects:
+		for obj in ObjectManager.get_active_objects(OBJECT_TYPE):
 			obj.set_preferences(self.preferences)
 
 	def initialize_ui(self, ui):
@@ -274,35 +272,43 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 		ObjectManager.unregister_object('source')
 		PluginClass.disconnect(self)
 
-
 	def insert_sourceview(self):
 		'''Inserts new SourceView'''
-		obj = SourceViewObject({'type': OBJECT_TYPE}, '', self.ui)
-		pageview = self.ui.mainwindow.pageview
-		pageview.insert_object(pageview.view.get_buffer(), obj)
+		lang = InsertCodeBlockDialog(self.ui).run()
+		if not lang:
+			return # dialog cancelled
+		else:
+			obj = SourceViewObject({'type': OBJECT_TYPE, 'lang': lang}, '', self.ui)
+			pageview = self.ui.mainwindow.pageview
+			pageview.insert_object(pageview.view.get_buffer(), obj)
 
 	@classmethod
 	def check_dependencies(klass):
 		return [('gtksourceview2',not gtksourceview2 is None)]
 
 
-import weakref
+class InsertCodeBlockDialog(Dialog):
 
-class WeakRefSet(object):
-	'''Simpel collection of weak references to objects'''
+	def __init__(self, ui):
+		Dialog.__init__(self, ui, _('Insert Code Block')) # T: dialog title
+		names = sorted(LANGUAGES, key=lambda k: k.lower())
+		self.add_form(
+			(('lang', 'choice', _('Syntax'), names),) # T: input label
+		)
 
-	def __init__(self):
-		self._refs = []
+		# Set previous used language
+		if 'lang' in self.uistate:
+			for name, id in LANGUAGES.items():
+				if self.uistate['lang'] == id:
+					try:
+						self.form['lang'] = name
+					except ValueError:
+						pass
 
-	def add(self, obj):
-		ref = weakref.ref(obj, self._remove)
-		self._refs.append(ref)
+					break
 
-	def _remove(self, ref):
-		self._refs.remove(ref)
-
-	def __iter__(self):
-		for ref in self._refs:
-			obj = ref()
-			if obj:
-				yield obj
+	def do_response_ok(self):
+		name = self.form['lang']
+		self.result = LANGUAGES[name]
+		self.uistate['lang'] = LANGUAGES[name]
+		return True

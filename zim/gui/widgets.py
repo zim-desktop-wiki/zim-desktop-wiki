@@ -794,8 +794,6 @@ class InputForm(gtk.Table):
 			# Connect activate signal
 			if isinstance(widget, gtk.Entry):
 				widget.connect('activate', self.on_activate_widget)
-			elif isinstance(widget, gtk.ComboBox):
-				widget.connect('changed', self.on_activate_widget)
 			else:
 				pass
 
@@ -2753,9 +2751,9 @@ class CustomObjectBin(gtk.EventBox):
 	def __init__(self):
 		gtk.EventBox.__init__(self)
 		self.set_border_width(5)
-	
+
 	def do_realize(self):
 		gtk.EventBox.do_realize(self)
 		self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
-		
+
 gobject.type_register(CustomObjectBin)

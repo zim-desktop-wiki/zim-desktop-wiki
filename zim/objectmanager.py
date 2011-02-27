@@ -4,8 +4,7 @@
 
 
 import gobject
-import logging
-logger = logging.getLogger(__name__)
+import weakref
 
 
 class _ObjectManager(object):
@@ -13,10 +12,10 @@ class _ObjectManager(object):
 
 	def __init__(self):
 		self.factories = {}
+		self.objects = {}
 
 	def register_object(self, type, factory):
-		'''
-		Register a factory method or class for a specific object type.
+		'''Register a factory method or class for a specific object type.
 		A 'factory' can be either an object class or a method, as long
 		as it it callable and returns objects. It will get the to be
 		created object attributes, text and the ui object as arguments.
@@ -25,17 +24,18 @@ class _ObjectManager(object):
 		type = type.lower()
 		old = self.factories.get(type)
 		self.factories[type] = factory
+		self.objects[type] = WeakRefSet()
 		return old
 
 	def unregister_object(self, type):
-		'''
-		Unregister ObjectManager for given type of object.
+		'''Unregister a specific object type.
 		Returns True on success, False if given type has not been
 		registered yet.
 		'''
 		type = type.lower()
 		if type in self.factories:
 			del self.factories[type]
+			del self.objects[type]
 			return True
 		else:
 			return False
@@ -45,17 +45,47 @@ class _ObjectManager(object):
 		return type.lower() in self.factories
 
 	def get_object(self, type, attrib, text, ui=None):
-		'''Returns ObjectManager instance for given object.'''
+		'''Returns a new object for given type with given attributes'''
 		type = type.lower()
 		if type in self.factories:
 			factory = self.factories[type]
 		else:
 			factory = FallbackObject
 
-		return factory(attrib, text, ui)
+		obj = factory(attrib, text, ui)
+		self.objects[type].add(obj)
+		return obj
 
+	def get_active_objects(self, type):
+		'''Returns an iterator for active objects for a specific type.
+		(Objects are 'active' as long as they are not destroyed.)
+		'''
+		return iter(self.objects[type])
 
 ObjectManager = _ObjectManager() # Singleton object
+
+
+class WeakRefSet(object):
+	'''Simpel collection of weak references to objects.
+	Can be iterated over to list objects that are still active.
+	'''
+
+	def __init__(self):
+		self._refs = []
+
+	def add(self, obj):
+		'''Add an object to the collection'''
+		ref = weakref.ref(obj, self._remove)
+		self._refs.append(ref)
+
+	def _remove(self, ref):
+		self._refs.remove(ref)
+
+	def __iter__(self):
+		for ref in self._refs:
+			obj = ref()
+			if obj:
+				yield obj
 
 
 class CustomObjectClass(gobject.GObject):
