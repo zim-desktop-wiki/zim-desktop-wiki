@@ -137,7 +137,7 @@ class PageListStore(PageTreeStore):
 		
 		for p in paths:
 			if not child is None:
-				childpath += (list(self.index.list_pages(p)).index(child),)
+				childpath = (list(self.index.list_pages(p)).index(child),) + childpath
 			treepaths.append((all_pages.index(p),) + childpath)
 			child = p
 			
@@ -412,7 +412,7 @@ class TagCloudWidget(gtk.TextView):
 	def get_filtered_tags(self, filtered_pages = None):
 		if filtered_pages is None:
 			filtered_pages = self.get_filtered_pages()
-		result = self.get_tags_ordered()
+		result = list(self.get_tags_ordered())
 		if len(filtered_pages):
 			sets = [set(self.index.list_tags(page, return_id = True)) for page in filtered_pages]
 			chosen = reduce(lambda a, b: a | b, sets)
@@ -451,7 +451,7 @@ class TagCloudWidget(gtk.TextView):
 			buffer.delete(iter, end)
 		
 		pages = self.get_filtered_pages()
-		tags = self.get_filtered_tags(pages)
+		tags = list(self.get_filtered_tags(pages))
 		
 		for pos, id in enumerate(tags):
 			item = None

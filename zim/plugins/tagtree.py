@@ -201,7 +201,7 @@ class TagTreeStore(PageTreeStore):
 		
 		for p in paths:
 			if not child is None:
-				childpath += (list(self.index.list_pages(p)).index(child),)
+				childpath = (list(self.index.list_pages(p)).index(child),) + childpath
 			# Get tags of this path
 			tags = list(self.index.list_tags(p))
 			if len(tags) > 0:
