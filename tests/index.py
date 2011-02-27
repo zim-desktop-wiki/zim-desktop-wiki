@@ -183,6 +183,13 @@ class TestIndex(tests.TestCase):
 			self.assertTrue(Path(p) in links)
 			path = self.index.lookup_path(Path('foo:bar'))
 			self.assertTrue(path)
+			
+		# Check for tag indexing
+		tags = [tag.name for tag in self.index.list_tags(Path('roundtrip'))]
+		for t in ('foo', 'bar'):
+			self.assertTrue(t in tags)
+			tagged = list(self.index.list_tagged(t))
+			self.assertTrue(Path('roundtrip') in tagged)
 
 		tree = ParseTree().fromstring('<zim-tree><link href=":foo:bar">:foo:bar</link></zim-tree>')
 		page = self.notebook.get_page(Path('roundtrip'))
