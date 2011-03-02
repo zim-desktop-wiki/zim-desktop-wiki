@@ -355,7 +355,7 @@ class IconChooserButton(gtk.Button):
 			image.set_from_stock(stock, gtk.ICON_SIZE_DIALOG)
 
 	def do_clicked(self):
-		dialog = FileDialog(self, _('Select File'), preview=True) # T: dialog title
+		dialog = FileDialog(self, _('Select File')) # T: dialog title
 		dialog.add_filter_images()
 		file = dialog.run()
 		if file:
@@ -2070,15 +2070,17 @@ class MessageDialog(gtk.MessageDialog):
 
 
 class FileDialog(Dialog):
-	'''File chooser dialog, adds a filechooser widget to Dialog.'''
+	'''File chooser dialog, adds a filechooser widget to Dialog.
+	Tries to show preview for image files.
+	'''
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			help_text=None, help=None, multiple=False, preview=False
+			help_text=None, help=None, multiple=False
 		):
 		'''Constructor
 		If 'multiple' is True the dialog will allow selecting multiple
-		files at once. If 'preview' is True image previews are shown.
+		files at once.
 		Other arguments are passed on to Dialog.__init__().
 		'''
 		if button is None:
@@ -2103,12 +2105,9 @@ class FileDialog(Dialog):
 		self.vbox.add(self.filechooser)
 		# FIXME hook to expander to resize window for FILE_CHOOSER_ACTION_SAVE
 
-		if preview:
-			self.preview_widget = gtk.Image()
-			self.filechooser.set_preview_widget(self.preview_widget)
-			self.filechooser.connect('update-preview', self.on_update_preview)
-		else:
-			self.preview_widget = None
+		self.preview_widget = gtk.Image()
+		self.filechooser.set_preview_widget(self.preview_widget)
+		self.filechooser.connect('update-preview', self.on_update_preview)
 
 	def on_update_preview(self, *a):
 		filename = self.filechooser.get_preview_filename()

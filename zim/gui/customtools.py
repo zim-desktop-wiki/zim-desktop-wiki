@@ -10,6 +10,7 @@ import gtk
 
 from zim.gui.applications import CustomToolManager
 from zim.gui.widgets import Dialog, IconButton, IconChooserButton
+from zim.fs import File
 
 
 class CustomToolManagerDialog(Dialog):
@@ -156,11 +157,9 @@ class EditCustomToolDialog(Dialog):
 		}, trigger_response=False)
 
 		# FIXME need ui builder to take care of this as well
-		if tool:
-			iconpixbuf = tool.get_pixbuf(gtk.ICON_SIZE_DIALOG)
-		else:
-			iconpixbuf = None
-		self.iconbutton = IconChooserButton(stock=gtk.STOCK_EXECUTE, pixbuf=iconpixbuf)
+		self.iconbutton = IconChooserButton(stock=gtk.STOCK_EXECUTE)
+		if tool.icon:
+			self.iconbutton.set_file(File(tool.icon))
 		label = gtk.Label(_('Icon')+':') # T: Input in "Edit Custom Tool" dialog
 		label.set_alignment(0.0, 0.5)
 		hbox = gtk.HBox()
