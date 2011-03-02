@@ -42,7 +42,7 @@
 			<menuitem action='edit_object'/>
 			<menuitem action='remove_link'/>
 			<separator/>
-			<placeholder name='edit_page'/>
+			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='copy_location'/>
 			<separator/>
