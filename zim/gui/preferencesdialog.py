@@ -28,6 +28,9 @@ class PreferencesDialog(Dialog):
 		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
+		
+		# saves a list of loaded plugins to be used later
+		self.p_save_loaded = [p.__class__ for p in self.ui.plugins]
 
 		# Dynamic tabs
 		self.forms = {}
@@ -182,7 +185,24 @@ class PreferencesDialog(Dialog):
 		# Save all
 		self.ui.save_preferences()
 		return True
-
+	
+	def do_response_cancel(self):
+		# Obtain an updated list of loaded plugins
+		now_loaded = [p.__class__ for p in self.ui.plugins]
+		
+		# Restore previous situation if the user changed something
+		# in this dialog session
+		for name in zim.plugins.list_plugins():
+			klass = zim.plugins.get_plugin(name)
+			activatable = klass.check_dependencies_ok()
+				
+			if klass in self.p_save_loaded and activatable and klass not in now_loaded:
+				self.ui.load_plugin(klass.plugin_key)
+			elif klass not in self.p_save_loaded and klass in now_loaded:
+				self.ui.unload_plugin(klass.plugin_key)
+		
+		self.ui.save_preferences()
+		return True
 
 class PluginsTab(gtk.HBox):
 

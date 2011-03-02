@@ -1839,6 +1839,13 @@ class Dialog(gtk.Dialog):
 			except Exception, error:
 				ErrorDialog(self.ui, error).run()
 				destroy = False
+		elif id == gtk.RESPONSE_CANCEL:
+			logger.debug('Dialog response CANCEL')
+			try:
+				destroy = self.do_response_cancel()
+			except Exception, error:
+				ErrorDialog(self.ui, error).run()
+				destroy = False
 		else:
 			destroy = True
 
@@ -1859,6 +1866,13 @@ class Dialog(gtk.Dialog):
 		valid, returning False will keep the dialog open.
 		'''
 		raise NotImplementedError
+
+	def do_response_cancel(self):
+		''' Function to be overloaded in child classes when an action different
+		from the default one is needed. Called when the user clicks
+		the 'Cancel' button or an equivalent. Returns True to close the dialog.
+		'''
+		return True
 
 	def save_uistate(self):
 		'''Function to be overloaded in child classes. Called when the
