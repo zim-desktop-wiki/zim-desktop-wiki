@@ -118,6 +118,9 @@ ui_actions = (
 	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', '', True), # T: Menu item
 	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', '', False), # T: Menu item
 	('show_word_count', None, _('Word Count...'), '', '', True), # T: Menu item
+	('zoom_in', 'gtk-zoom-in', _('_Zoom In'), '<ctrl>plus', '', True), # T: Menu item
+	('zoom_out', 'gtk-zoom-out', _('Zoom _Out'), '<ctrl>minus', '', True), # T: Menu item
+	('zoom_reset', 'gtk-zoom-100', _('_Normal Size'), '<ctrl>0', '', True), # T: Menu item to reset zoom
 )
 
 ui_format_actions = (
@@ -3976,6 +3979,51 @@ class PageView(gtk.VBox):
 
 	def show_word_count(self):
 		WordCountDialog(self).run()
+
+	def zoom_in(self):
+		self._zoom_increase_decrease_font_size( +1 )
+
+	def zoom_out(self):
+		self._zoom_increase_decrease_font_size( -1 )
+
+	def _zoom_increase_decrease_font_size(self,plus_or_minus):
+		style = self.style
+		if self.style['TextView']['font']:
+			font = pango.FontDescription(self.style['TextView']['font'])
+		else:
+			logger.debug( 'Switching to custom font implicitly because of zoom action' )
+			font = self.view.style.font_desc
+			self.style['TextView']['font'] = font.to_string()
+
+		font_size = font.get_size()
+		if font_size <= 1*1024 and plus_or_minus < 0:
+			return
+		else:
+			font_size_new = font_size + plus_or_minus * 1024
+			font.set_size( font_size_new )
+		self.style['TextView']['font'] = font.to_string()
+		self.view.modify_font(font)
+
+		self.style.write()
+
+	def zoom_reset(self):
+		if not self.style['TextView']['font']:
+			return
+
+		widget = TextView({}) # Get new widget
+		default_font = widget.style.font_desc
+
+		font = pango.FontDescription(self.style['TextView']['font'])
+		font.set_size( default_font.get_size() )
+
+		if font.to_string() == default_font.to_string():
+			self.style['TextView']['font'] = None
+			self.view.modify_font(None)
+		else:
+			self.style['TextView']['font'] = font.to_string()
+			self.view.modify_font(font)
+
+		self.style.write()
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
