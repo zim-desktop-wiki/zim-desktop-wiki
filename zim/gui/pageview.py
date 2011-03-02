@@ -3143,7 +3143,7 @@ class PageView(gtk.VBox):
 	def __init__(self, ui, secondairy=False):
 		gtk.VBox.__init__(self)
 		self.ui = ui
-		self._buffer_signals = []
+		self._buffer_signals = ()
 		self.page = None
 		self.readonly = True
 		self.readonlyset = False
@@ -3292,15 +3292,9 @@ class PageView(gtk.VBox):
 		# Put it here to ensure mainwindow is initialized.
 		def set_actiongroup_sensitive(window, widget):
 			#~ print '!! FOCUS SET:', widget
-			# Immitate logic in self.set_readonly()
 			sensitive = widget is self.view
-			if sensitive:
-				for action in self.actiongroup.list_actions():
-					action.set_sensitive(
-						action.zim_readonly or not self.readonly)
-			else:
-				for action in self.actiongroup.list_actions():
-						action.set_sensitive(False)
+			self.set_menuitems_sensitive(sensitive)
+
 		window = self.get_toplevel()
 		window.connect('set-focus', set_actiongroup_sensitive)
 
@@ -3330,7 +3324,7 @@ class PageView(gtk.VBox):
 
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
-		self._buffer_signals = []
+		self._buffer_signals = ()
 		self._prev_buffer.clear()
 
 		# now create the new buffer
@@ -3365,16 +3359,16 @@ class PageView(gtk.VBox):
 
 		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
 
-		self._buffer_signals.append(
-			buffer.connect('textstyle-changed', self.do_textstyle_changed) )
-		self._buffer_signals.append(
-			buffer.connect('modified-changed',
-				lambda o: self.on_modified_changed(o)) )
+		self._buffer_signals = (
+			buffer.connect('textstyle-changed', self.do_textstyle_changed),
+			buffer.connect('modified-changed', lambda o: self.on_modified_changed(o) ),
+			buffer.connect_after('mark-set', self.do_mark_set),
+		)
 
 		buffer.finder.set_state(*finderstate) # maintain state
 
 		self.undostack = UndoStackManager(buffer)
-		self.set_readonly()
+		self.set_readonly() # initialize menu state
 
 	def get_page(self): return self.page
 
@@ -3417,6 +3411,7 @@ class PageView(gtk.VBox):
 		self._showing_template = istemplate
 
 	def set_readonly(self, readonly=None):
+		print 'SET READONLY'
 		if not readonly is None:
 			self.readonlyset = readonly
 
@@ -3431,10 +3426,26 @@ class PageView(gtk.VBox):
 		self.view.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
 
-		# partly overrule logic in ui.set_readonly()
-		for action in self.actiongroup.list_actions():
-			if not action.zim_readonly:
-				action.set_sensitive(not self.readonly)
+		self.set_menuitems_sensitive(True)
+
+	def set_menuitems_sensitive(self, sensitive):
+		'''Batch update global menu sensitivity while respecting
+		sensitivities set due to cursor position, readonly state etc.
+		'''
+		if sensitive:
+			# partly overrule logic in ui.set_readonly()
+			for action in self.actiongroup.list_actions():
+				action.set_sensitive(
+					action.zim_readonly or not self.readonly)
+
+			# update state for menu items for checkboxes and links
+			buffer = self.view.get_buffer()
+			iter = buffer.get_insert_iter()
+			mark = buffer.get_insert()
+			self.do_mark_set(buffer, iter, mark)
+		else:
+			for action in self.actiongroup.list_actions():
+				action.set_sensitive(False)
 
 	def set_cursor_pos(self, pos):
 		buffer = self.view.get_buffer()
@@ -3487,6 +3498,31 @@ class PageView(gtk.VBox):
 			if obj == plugin:
 				self.image_generator_plugins.pop(type)
 				logger.debug('Removed plugin %s for image type "%s"', plugin, type)
+
+
+	def do_mark_set(self, buffer, iter, mark):
+		if self.readonly or mark.get_name() != 'insert':
+			return
+
+		# Set sensitivity of various menu options
+		line = iter.get_line()
+		bullet = buffer.get_bullet(line)
+		if bullet and bullet in CHECKBOXES:
+			self.actiongroup.get_action('toggle_checkbox').set_sensitive(True)
+			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(True)
+		else:
+			self.actiongroup.get_action('toggle_checkbox').set_sensitive(False)
+			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(False)
+
+		if buffer.get_link_tag(iter):
+			self.actiongroup.get_action('remove_link').set_sensitive(True)
+			self.actiongroup.get_action('edit_object').set_sensitive(True)
+		elif buffer.get_image_data(iter):
+			self.actiongroup.get_action('remove_link').set_sensitive(False)
+			self.actiongroup.get_action('edit_object').set_sensitive(True)
+		else:
+			self.actiongroup.get_action('edit_object').set_sensitive(False)
+			self.actiongroup.get_action('remove_link').set_sensitive(False)
 
 	def do_textstyle_changed(self, buffer, style):
 		#~ print '>>> SET STYLE', style
