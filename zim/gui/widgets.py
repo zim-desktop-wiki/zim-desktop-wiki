@@ -293,7 +293,10 @@ def input_table_factory(inputs, table=None):
 			_sync_widget_state(input[1], label)
 
 			for j, widget in enumerate(input[1:]):
-				table.attach(widget, j+1,j+2, i,i+1, xoptions=gtk.FILL)
+				if isinstance(widget, gtk.Entry):
+					table.attach(widget, j+1,j+2, i,i+1, xoptions=gtk.FILL|gtk.EXPAND)
+				else:
+					table.attach(widget, j+1,j+2, i,i+1, xoptions=gtk.FILL)
 				if j > 0:
 					_sync_widget_state(input[1], widget)
 		else:
