@@ -19,6 +19,7 @@ from time import strftime
 
 import zim.fs
 from zim.fs import *
+from zim.errors import Error
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
 from zim.config import config_file
@@ -3576,9 +3577,16 @@ class PageView(gtk.VBox):
 
 		try:
 			if type == 'interwiki':
+				oldhref = href
 				href = interwiki_link(href)
-				type = link_type(href)
-				# could be file, url, or notebook
+				if href:
+					# could be file, url, or notebook
+					type = link_type(href)
+				else:
+					if '?' in oldhref:
+						oldhref, p = oldhref.split('?', 1)
+					raise Error(_('No such wiki defined: %s') % oldhref)
+					# T: error when unknown interwiki link is clicked
 
 			if type == 'page':
 				path = self.ui.notebook.resolve_path(href, source=self.page)
@@ -4113,7 +4121,7 @@ class InsertImageDialog(FileDialog):
 
 	def __init__(self, ui, buffer, path, file=None):
 		FileDialog.__init__(
-			self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN, preview=True)
+			self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
 		self.buffer = buffer
 		self.path = path
@@ -4641,6 +4649,10 @@ class WordCountDialog(Dialog):
 			while iter.compare(end) < 0:
 				if iter.forward_word_end():
 					words += 1
+				elif iter.compare(end) == 0:
+					# When end is end of buffer forward_end_word returns False
+					words += 1
+					break
 				else:
 					break
 			return lines, words, chars

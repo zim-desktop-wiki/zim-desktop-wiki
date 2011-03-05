@@ -158,7 +158,7 @@ class EditCustomToolDialog(Dialog):
 
 		# FIXME need ui builder to take care of this as well
 		self.iconbutton = IconChooserButton(stock=gtk.STOCK_EXECUTE)
-		if tool.icon:
+		if tool and tool.icon:
 			self.iconbutton.set_file(File(tool.icon))
 		label = gtk.Label(_('Icon')+':') # T: Input in "Edit Custom Tool" dialog
 		label.set_alignment(0.0, 0.5)

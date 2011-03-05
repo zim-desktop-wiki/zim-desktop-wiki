@@ -290,7 +290,7 @@ class BoundQuickNoteDialog(Dialog):
 			path = self.form['page'].name
 			ui.append_text_to_page(path, '\n----\n'+text)
 			if self.open_page.get_active():
-				ui.present(page) # also works with proxy
+				ui.present(path) # also works with proxy
 
 		return True
 

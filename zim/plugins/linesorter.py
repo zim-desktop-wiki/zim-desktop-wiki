@@ -67,30 +67,38 @@ If the list is already sorted the order will be reversed
 			return
 
 		first_lineno = sel_start.get_line()
-		last_lineno = sel_end.get_line() + 1
+		last_lineno = sel_end.get_line()
 
-		iter_begin_line = buffer.get_iter_at_line(first_lineno)
-		iter_end_line = buffer.get_iter_at_line(last_lineno)
-
-		# 1/ build a list of formatted lines with get_parsetree(iter_begin_line, iter_end_line)
-		# 2/ make a list of tuples, first element of each tuple is text only (white space stripped etc.), second element is parsetree per line from step 1
-		lines = []
-		for line_nr in range(first_lineno, last_lineno):
-			start, end = buffer.get_line_bounds(line_nr)
-			text = buffer.get_text(start, end).lower().strip()
-			tree = buffer.get_parsetree(bounds=(start, end))
-			lines.append((text, tree))
-		#logger.debug("Content of selected lines (text, tree): %s", lines)
-
-		# 3/ sort this list of tuples, sort will look at first element of the tuple
-		sorted_lines = sorted(lines, key=lambda lines: lines[0])
-		# checks whether the list is sorted "a -> z", if so reverses its order
-		if lines == sorted_lines:
-			sorted_lines.reverse()
-		# logger.debug("Sorted lines: %s",  sorted_lines)
-
-		# 4/ for the replacement insert the parsetrees of the lines one by one
 		with buffer.user_action:
+			# Get iters for full selection
+			iter_end_line = buffer.get_iter_at_line(last_lineno)
+			iter_end_line.forward_line() # include \n at end of line
+			if iter_end_line.is_end() and not iter_end_line.starts_line():
+				# no \n at end of buffer, insert it
+				buffer.insert(iter_end_line, '\n')
+				iter_end_line = buffer.get_end_iter()
+			iter_begin_line = buffer.get_iter_at_line(first_lineno)
+
+			# 1/ build a list of formatted lines with get_parsetree()
+			# 2/ make a list of tuples, first element of each tuple is
+			#    text only (white space stripped etc.), second element
+			#    is parsetree per line from step 1
+			lines = []
+			for line_nr in range(first_lineno, last_lineno+1):
+				start, end = buffer.get_line_bounds(line_nr)
+				text = buffer.get_text(start, end).lower().strip()
+				tree = buffer.get_parsetree(bounds=(start, end))
+				lines.append((text, tree))
+			#logger.debug("Content of selected lines (text, tree): %s", lines)
+
+			# 3/ sort this list of tuples, sort will look at first element of the tuple
+			sorted_lines = sorted(lines, key=lambda lines: lines[0])
+			# checks whether the list is sorted "a -> z", if so reverses its order
+			if lines == sorted_lines:
+				sorted_lines.reverse()
+			# logger.debug("Sorted lines: %s",  sorted_lines)
+
+			# 4/ for the replacement insert the parsetrees of the lines one by one
 			buffer.delete(iter_begin_line, iter_end_line)
 			for line in sorted_lines:
 				buffer.insert_parsetree_at_cursor(line[1])
