@@ -12,7 +12,7 @@ class TestDiagramEditor(TestCase):
 	slowTest = True
 
 	@classmethod
-	def skipTest(klass):
+	def skipTestZim(klass):
 		if not InsertDiagramPlugin.check_dependencies_ok():
 			return 'Missing dependencies'
 		else:

@@ -39,14 +39,13 @@ class FastTestLoader(unittest.TestLoader):
 		tests = []
 		for name in dir(module):
 			obj = getattr(module, name)
-			print module, name, obj
 			if (isinstance(obj, (type, types.ClassType)) and
 				issubclass(obj, unittest.TestCase)):
 				if not self.alltests and hasattr(obj, 'slowTest') and obj.slowTest:
 					print 'Ignoring slow test:', obj.__name__
 					self.ignored += 1
-				elif hasattr(obj, 'skipTest') and obj.skipTest():
-					print 'Skipping test:', obj.__name__, '-', obj.skipTest()
+				elif hasattr(obj, 'skipTestZim') and obj.skipTestZim():
+					print 'Skipping test:', obj.__name__, '-', obj.skipTestZim()
 					self.skipped += 1
 				else:
 					tests.append(self.loadTestsFromTestCase(obj))

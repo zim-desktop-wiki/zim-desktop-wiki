@@ -334,7 +334,7 @@ class TestSymlinks(tests.TestCase):
 	slowTest = True
 
 	@staticmethod
-	def skipTest():
+	def skipTestZim():
 		if not hasattr(os, 'symlink'):
 			return 'OS does not supprot symlinks'
 		else:
