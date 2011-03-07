@@ -161,8 +161,8 @@ and
 
 And with a different &#64;encoding
 
-It also tests which weird @s!gns and @num6ers @wit#in tags and
-tries hard to @cr@sh the parser.  
+It also tests which weird @s!gns (sees only "s") and @num6ers @wit#in (aka 
+"wit") tags and tries hard to @cr@sh ("cr") the parser.  
 </page>
 <page name="Test:Foo Bar:Dus Ja Hmm">
 Testing with whitespace in page name

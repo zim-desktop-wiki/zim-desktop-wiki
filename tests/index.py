@@ -97,9 +97,15 @@ class TestIndex(tests.TestCase):
 		self.assertEqual(n, len(backlist))
 		
 		# tags
-		taglist = list(self.index.list_tags(Path('Test:tags')))
-		print taglist
-		self.assertTrue(False)
+		taglist = [t.name for t in self.index.list_tags(Path('Test:tags'))]
+		self.assertTrue(len(taglist) == 11)
+		aretags = ['tags', 'beginning', 'end', 'tabs', 'verbatim', 
+				   'enumerations', 'encoding', 's', 'num6ers', 'wit', 'cr']
+		nottags = ['places', 'links', 'captions', 'Headings', 'word']
+		for t in aretags:
+			self.assertTrue(t in taglist)
+		for t in nottags:
+			self.assertTrue(not t in taglist)		
 
 		# cursor.row_count is not reliable - see docs
 		def count_pages(db):
