@@ -139,6 +139,31 @@ bar baz
 
 •• Search Me ••
 </page>
+<page name="Test:tags">
+= Tags =
+
+This page contains @tags in all kind of@places like the
+@beginning of a line or its @end
+but also after
+
+	@tabs i.e. within @verbatim blocks
+
+within [[@links]] and [[foo:bar Link @captions]] as well as
+* @enumerations
+
+Not to forget within
+
+== @Headings ==
+
+and
+
+=== Their last @word ===
+
+And with a different &#64;encoding
+
+It also tests which weird @s!gns and @num6ers @wit#in tags and
+tries hard to @cr@sh the parser.  
+</page>
 <page name="Test:Foo Bar:Dus Ja Hmm">
 Testing with whitespace in page name
 </page>

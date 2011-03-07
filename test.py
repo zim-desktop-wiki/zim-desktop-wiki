@@ -39,6 +39,7 @@ class FastTestLoader(unittest.TestLoader):
 		tests = []
 		for name in dir(module):
 			obj = getattr(module, name)
+			print module, name, obj
 			if (isinstance(obj, (type, types.ClassType)) and
 				issubclass(obj, unittest.TestCase)):
 				if not self.alltests and hasattr(obj, 'slowTest') and obj.slowTest:

@@ -95,7 +95,11 @@ class TestIndex(tests.TestCase):
 
 		n = self.index.n_list_links(Path('Test:foo:bar'), LINK_DIR_BACKWARD)
 		self.assertEqual(n, len(backlist))
-
+		
+		# tags
+		taglist = list(self.index.list_tags(Path('Test:tags')))
+		print taglist
+		self.assertTrue(False)
 
 		# cursor.row_count is not reliable - see docs
 		def count_pages(db):
