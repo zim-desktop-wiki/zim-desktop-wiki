@@ -95,11 +95,12 @@ class TestIndex(tests.TestCase):
 
 		n = self.index.n_list_links(Path('Test:foo:bar'), LINK_DIR_BACKWARD)
 		self.assertEqual(n, len(backlist))
-		
+
 		# tags
 		taglist = list(self.index.list_tags(Path('Test:tags')))
-		print taglist
-		self.assertTrue(False)
+		self.assertTrue(len(taglist) > 10)
+		for tag in taglist:
+			self.assertTrue(isinstance(tag, IndexTag))
 
 		# cursor.row_count is not reliable - see docs
 		def count_pages(db):
@@ -187,7 +188,7 @@ class TestIndex(tests.TestCase):
 			self.assertTrue(Path(p) in links)
 			path = self.index.lookup_path(Path('foo:bar'))
 			self.assertTrue(path)
-			
+
 		# Check for tag indexing
 		tags = [tag.name for tag in self.index.list_tags(Path('roundtrip'))]
 		for t in ('foo', 'bar'):
@@ -244,7 +245,7 @@ class TestPageTreeStore(tests.TestCase):
 		# Hooking up the treeview as well just to see if we get any errors
 		# From the order the signals are generated.
 
-		ui = StubUI()
+		ui = MockUI()
 		treeview = PageTreeView(ui)
 		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
@@ -290,10 +291,11 @@ class TestPageTreeStore(tests.TestCase):
 
 		# Now walk through the whole notebook testing the API
 		# with nested pages and stuff
-		n = 0
+		npages = 0
 		path = []
 		for page in self.notebook.walk():
-			n += 1
+			#~ print '>>', page
+			npages += 1
 			names = page.name.split(':')
 			if len(names) > len(path):
 				path.append(0) # always increment by one
@@ -351,7 +353,7 @@ class TestPageTreeStore(tests.TestCase):
 				child = treestore.iter_nth_child(iter, 0)
 				self.assertTrue(child is None)
 
-		self.assertTrue(n > 0) # double check sanity of walk() method
+		self.assertTrue(npages > 10) # double check sanity of walk() method
 
 		# Check if all the signals go OK
 		treestore.disconnect()
@@ -359,6 +361,9 @@ class TestPageTreeStore(tests.TestCase):
 		self.index.flush()
 		treestore = PageTreeStore(self.index)
 		self.index.update(callback=process_events)
+		#~ for page in reversed(list(self.notebook.walk())): # delete bottom up
+			#~ self.notebook.delete_page(page)
+			#~ process_events()
 
 
 class TestPageTreeStoreFiles(TestPageTreeStore):
@@ -374,13 +379,7 @@ class TestPageTreeStoreFiles(TestPageTreeStore):
 		TestPageTreeStore.runTest(self)
 
 
-class StubUI(object):
+class MockUI(tests.MockObject):
 
 	page = None
 	notebook = None
-
-	def connect(*a):
-		pass
-
-	def connect_after(*a):
-		pass

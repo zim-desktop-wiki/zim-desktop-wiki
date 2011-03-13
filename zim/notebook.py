@@ -1727,7 +1727,7 @@ class Page(Path):
 				yield type, href, attrib
 
 	def get_tags(self):
-		'''Generator of an unordered list of unique tuples of name and attrib 
+		'''Generator of an unordered list of unique tuples of name and attrib
 		for tags in the parsetree.
 		'''
 		tree = self.get_parsetree()
@@ -1737,7 +1737,7 @@ class Page(Path):
 				tags[tag.text.strip()] = tag.attrib.copy()
 			for tag, attrib in tags.iteritems():
 				yield tag, attrib
-			
+
 
 class IndexPage(Page):
 	'''Page displaying a namespace index'''
@@ -1799,6 +1799,7 @@ class Link(object):
 
 	def __repr__(self):
 		return '<%s: %s to %s (%s)>' % (self.__class__.__name__, self.source, self.href, self.type)
+
 
 class Tagged(object):
 
