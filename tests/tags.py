@@ -145,7 +145,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		treestore.disconnect()
 		del treestore
 		self.index.flush()
-		treestore = self.storeclass(self.index, cloud)
+		treestore = self.storeclass(self.index)
 		self.index.update(callback=process_events)
 		#~ for page in reversed(list(self.notebook.walk())): # delete bottom up
 			#~ self.notebook.delete_page(page)

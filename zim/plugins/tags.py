@@ -20,6 +20,30 @@ from zim.gui.widgets import LEFT_PANE
 logger = logging.getLogger('zim.plugins.tags')
 
 
+# TODO: put this methof in the index ? Maybe we can do without it..
+def index_list_pages(index, offset = None, limit = 20, return_id = False):
+	'''
+	Query the index for a flat page list
+	@param offset: Offset in the list for segmented queries
+	@param limit: Limit of the segment size for segmented queries.
+	'''
+	cursor = index.db.cursor()
+
+	query = 'select * from pages order by lower(basename)'
+	if offset is None:
+		cursor.execute(query)
+	else:
+		cursor.execute(query + ' limit ? offset ?', (limit, offset + 1))
+
+	for row in cursor:
+		if not row['basename'] == '':
+			if return_id:
+				yield row['id']
+			else:
+				yield index.lookup_id(row['id'])
+
+
+
 class PageTreeTagIter(object):
 	'''Simple wrapper for IndexTag objects used as tree iters
 
@@ -44,7 +68,7 @@ class TagsPageTreeStore(PageTreeStore):
 	for sub-sets of the page tree.
 	'''
 
-	def __init__(self, index, cloud):
+	def __init__(self, index):
 		self._reverse_cache = {}
 		self.untagged = IndexTag(_('untagged'), -1)
 			# T: label for untagged pages in side pane
@@ -356,7 +380,7 @@ class TagsPageTreeView(PageTreeView):
 
 	def do_set_notebook(self, ui, notebook):
 		self._cleanup = None # else it might be pointing to old model
-		self.set_model(TagsPageTreeStore(notebook.index, None))
+		self.set_model(TagsPageTreeStore(notebook.index))
 		if not ui.page is None:
 			self.on_open_page(ui.page)
 		self.get_model().connect('row-inserted', self.on_row_inserted)
@@ -409,11 +433,9 @@ class TaggedPageTreeStore(PageTreeStore):
 	Pages with	associated sub-pages still show them as sub-nodes.
 	'''
 
-	def __init__(self, index, cloud):
+	def __init__(self, index):
 		PageTreeStore.__init__(self, index)
 		self._reverse_cache = {}
-		self.cloud = cloud
-
 
 	def _connect(self):
 		def on_page_changed(o, path, signal):
@@ -443,8 +465,7 @@ class TaggedPageTreeStore(PageTreeStore):
 		@param offset: Offset in the list for segmented queries
 		@param limit: Limit of the segment size for segmented queries.
 		'''
-
-		return self.cloud.list_pages(offset = offset, limit = limit)
+		return index_list_pages(self.index, offset = offset, limit = limit)
 
 
 	def n_list_pages(self):
@@ -576,7 +597,7 @@ class TaggedPageTreeView(PageTreeView):
 		self._disonnect_cloud()
 		self._cleanup = None # else it might be pointing to old model
 
-		treemodel = TaggedPageTreeStore(notebook.index, self.cloud)
+		treemodel = TaggedPageTreeStore(notebook.index)
 		treemodelfilter = treemodel.filter_new(root = None)
 		self._filtered_pages = self.cloud.get_filtered_pages()
 		treemodelfilter.set_visible_func(func)
@@ -736,21 +757,7 @@ class TagCloudWidget(gtk.TextView):
 		@param offset: Offset in the list for segmented queries
 		@param limit: Limit of the segment size for segmented queries.
 		'''
-		cursor = self.index.db.cursor()
-
-		query = 'select * from pages order by lower(basename)'
-		if offset is None:
-			cursor.execute(query)
-		else:
-			cursor.execute(query + ' limit ? offset ?', (limit, offset + 1))
-
-		for row in cursor:
-			if not row['basename'] == '':
-				if return_id:
-					yield row['id']
-				else:
-					yield self.index.lookup_id(row['id'])
-
+		return index_list_pages(self.index, offset, limit, return_id)
 
 	def get_tags_ordered(self):
 		'''
@@ -898,11 +905,27 @@ class TagsPluginWidget(gtk.VPaned):
 		self.tagcloud = TagCloudWidget(self.plugin.ui)
 		add_scrolled(self.tagcloud)
 
-		self.pagelistview = TaggedPageTreeView(self.plugin.ui, self.tagcloud)
-		self.treeviewwindow = add_scrolled(self.pagelistview)
+		treeview = TaggedPageTreeView(self.plugin.ui, self.tagcloud)
+		self.treeviewwindow = add_scrolled(treeview)
 			# TODO make initial treeview a uistate
 
+		treeview.connect('populate-popup', self.on_populate_popup)
+
+	def on_populate_popup(self, treeview, menu):
+		# Add a popup menu item to switch the treeview mode
+		menu.prepend(gtk.SeparatorMenuItem())
+
+		current = self.treeviewwindow.get_child()
+
+		item = gtk.CheckMenuItem(_('Sort pages by tags'))
+		item.connect_object('toggled', self.__class__.toggle_treeview, self)
+		item.set_active(isinstance(current, TagsPageTreeView))
+		menu.prepend(item)
+
+		menu.show_all()
+
 	def toggle_treeview(self):
+		'''Toggle the treeview type in the widget'''
 		current = self.treeviewwindow.get_child()
 		self.treeviewwindow.remove(current)
 		# FIXME Need to disconnect ?
@@ -912,6 +935,9 @@ class TagsPluginWidget(gtk.VPaned):
 		else:
 			self.treeviewwindow.add(
 				TaggedPageTreeView(self.plugin.ui, self.tagcloud) )
+
+		self.treeviewwindow.show_all()
+
 
 class TagsPlugin(PluginClass):
 
