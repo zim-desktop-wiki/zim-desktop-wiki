@@ -3415,7 +3415,6 @@ class PageView(gtk.VBox):
 		self._showing_template = istemplate
 
 	def set_readonly(self, readonly=None):
-		print 'SET READONLY'
 		if not readonly is None:
 			self.readonlyset = readonly
 
@@ -3958,6 +3957,13 @@ class PageView(gtk.VBox):
 				return buffer.select_word()
 		else:
 			return False
+
+	def find(self, string, flags=0):
+		'''Find some string in the buffer, scroll there and select it'''
+		self.hide_find() # remove previous highlighting etc.
+		buffer = self.view.get_buffer()
+		buffer.finder.find(string, flags)
+		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
 
 	def show_find(self, string=None, flags=0, highlight=False):
 		self.find_bar.show()

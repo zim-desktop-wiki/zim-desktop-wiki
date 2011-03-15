@@ -791,7 +791,7 @@ class TaskListTreeView(BrowserTreeView):
 		page = Path( model[path][self.PAGE_COL] )
 		task = unicode(model[path][self.TASK_COL])
 		self.ui.open_page(page)
-		self.ui.mainwindow.pageview.view.get_buffer().finder.find(task)
+		self.ui.mainwindow.pageview.find(task)
 
 	def do_button_release_event(self, event):
 		'''Handler for button-release-event, triggers popup menu'''
