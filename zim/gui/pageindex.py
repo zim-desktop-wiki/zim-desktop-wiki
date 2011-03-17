@@ -120,12 +120,12 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			# We do our own memory management, thank you very much
 		self._cache = {}
 		self._flush_scheduled = False
-		
+
 		self._connect()
 
 	def _connect(self):
 		'''May be overridden by descendants (e.g. TagTreeStore).'''
-		
+
 		def on_changed(o, path, signal):
 			#~ print '!!', signal, path
 			self._flush()
@@ -394,6 +394,7 @@ class PageTreeView(BrowserTreeView):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'page-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'populate-popup': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	def __init__(self, ui):
@@ -502,6 +503,7 @@ class PageTreeView(BrowserTreeView):
 
 	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
 		menu = self.ui.uimanager.get_widget('/page_popup')
+		self.emit('populate-popup', menu)
 		menu.popup(None, None, None, 3, 0)
 		return True
 

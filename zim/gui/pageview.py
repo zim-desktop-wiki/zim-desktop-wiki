@@ -372,7 +372,7 @@ class TextBuffer(gtk.TextBuffer):
 		'sub': {'rise': -3500, 'scale':0.7},
 		'sup': {'rise': 7500, 'scale':0.7},
 		'link': {'foreground': 'blue'},
-		'tag': {'foreground': 'blue'},
+		'tag': {'foreground': '#f57900'},
 		'indent': {},
 		'bullet-list': {},
 		'unchecked-checkbox': {},
@@ -1222,7 +1222,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def do_insert_text(self, iter, string, length):
 		'''Signal handler for insert-text signal'''
-		
+
 		def end_or_protect_tags(string, length):
 			tags = filter(_is_tag_tag, self._editmode_tags)
 			if tags:
@@ -1236,7 +1236,7 @@ class TextBuffer(gtk.TextBuffer):
 				# TODO this should go into the TextView, not here
 				# Now it goes OK only because we only check single char inserts, but would break
 				# for multi char inserts from the view - fixing that here breaks insert parsetree
-			return string, length			
+			return string, length
 
 		# Check if we are at a bullet or checkbox line
 		if not self._insert_tree_in_progress and iter.starts_line() \
@@ -1255,9 +1255,9 @@ class TextBuffer(gtk.TextBuffer):
 			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 			self.emit('textstyle-changed', None)
 			# TODO make this more robust for multiline inserts
-			
+
 			string, length = end_or_protect_tags(string, length)
-			
+
 		elif string in CHARS_END_OF_WORD:
 			# Break links if end-of-word char is typed at end of a link
 			# without this you not insert text behind a link e.g. at the end of a line
@@ -1267,7 +1267,7 @@ class TextBuffer(gtk.TextBuffer):
 				# TODO this should go into the TextView, not here
 				# Now it goes OK only because we only check single char inserts, but would break
 				# for multi char inserts from the view - fixing that here breaks insert parsetree
-				
+
 			string, length = end_or_protect_tags(string, length)
 
 

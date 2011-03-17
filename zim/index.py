@@ -112,6 +112,18 @@ class IndexPath(Path):
 
 	__slots__ = ('_indexpath', '_row')
 
+	_attrib = (
+		'basename',
+		'parent',
+		'hascontent',
+		'haschildren',
+		'type',
+		'ctime',
+		'mtime',
+		'contentkey',
+		'childrenkey',
+	)
+
 	def __init__(self, name, indexpath, row=None):
 		'''Constructore, needs at least a full path name and a tuple of index
 		ids pointing to this path in the index. Row is an optional sqlite3.Row
@@ -138,13 +150,12 @@ class IndexPath(Path):
 	def hasdata(self): return not self._row is None
 
 	def __getattr__(self, attr):
-		if self._row is None:
+		if not attr in self._attrib:
+			raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
+		elif self._row is None:
 			raise AttributeError, 'This IndexPath does not contain row data'
 		else:
-			try:
-				return self._row[attr]
-			except IndexError:
-				raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
+			return self._row[attr]
 
 	def exists(self):
 		return self.haschildren or self.hascontent
@@ -179,6 +190,8 @@ class IndexTag(object):
 
 	__slots__ = ('name', '_indextag', '_row')
 
+	_attrib = ('name',)
+
 	def __init__(self, name, indextag, row=None):
 		self.name = name.lstrip('@')
 		self.name = unicode(self.name)
@@ -197,18 +210,17 @@ class IndexTag(object):
 
 	@property
 	def id(self): return self._indextag
-	
+
 	@property
 	def hasdata(self): return not self._row is None
 
 	def __getattr__(self, attr):
-		if self._row is None:
+		if not attr in self._attrib:
+			raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
+		elif self._row is None:
 			raise AttributeError, 'This IndexTag does not contain row data'
 		else:
-			try:
-				return self._row[attr]
-			except IndexError:
-				raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
+			return self._row[attr]
 
 
 class DBCommitContext(object):
@@ -571,19 +583,19 @@ class Index(gobject.GObject):
 		#~ print '!! INDEX PAGE', path, path._indexpath
 		assert isinstance(path, IndexPath) and not path.isroot
 		seen_links = set()
-		
+
 		hadcontent = path.hascontent
-		
+
 		had_tags = set()
 		has_tags = set()
-		
+
 		created_tags = []
-		
+
 		# Initialise seen tags
 		for tag in self.list_tags(path):
 			had_tags.add(tag.id)
-		
-		
+
+
 		with self.db_commit:
 			self.db.execute('delete from links where source==?', (path.id,))
 
@@ -610,7 +622,7 @@ class Index(gobject.GObject):
 						self.db.execute(
 							'insert into links (source, href) values (?, ?)',
 							(path.id, indexpath.id) )
-						
+
 				for _, attrib in page.get_tags():
 					tag = attrib['name'].strip()
 					indextag = self.lookup_tag(tag)
@@ -622,8 +634,8 @@ class Index(gobject.GObject):
 						indextag = IndexTag(tag, cursor.lastrowid)
 						created_tags.append(indextag)
 					has_tags.add(indextag.id)
-							
-							
+
+
 			key = self.notebook.get_page_indexkey(page)
 			self.db.execute(
 				'update pages set hascontent=?, contentkey=? where id==?',
@@ -648,16 +660,16 @@ class Index(gobject.GObject):
 
 
 		path = self.lookup_data(path) # refresh
-		
+
 		if hadcontent != path.hascontent:
 			self.emit('page-updated', path)
 
 		for tag in created_tags:
 			self.emit('tag-created', tag)
-		
+
 		for i, tag in enumerate(has_tags.difference(had_tags)):
 			self.emit('tag-inserted', self.lookup_tagid(tag), path, (len(had_tags) == 0) and (i == 0))
-			
+
 		for i, tag in enumerate(removed_tags):
 			self.emit('tag-removed', tag, path, (len(has_tags) == 0) and (i == len(removed_tags)-1))
 
@@ -665,7 +677,7 @@ class Index(gobject.GObject):
 
 		#~ print '!! PAGE-INDEXED', path
 		self.emit('page-indexed', path, page)
-		
+
 	def _purge_tag_table(self):
 		deleted_tags = []
 		with self.db_commit:
@@ -847,7 +859,7 @@ class Index(gobject.GObject):
 			for path in paths:
 				self.db.execute('delete from links where source=?', (path.id,))
 				self.db.execute('update pages set hascontent=0, contentkey=NULL where id==?', (path.id,))
-				
+
 		# Clean up tags
 		for path in paths:
 			with self.db_commit:
@@ -1043,7 +1055,7 @@ class Index(gobject.GObject):
 			parent = myrow['parent']
 
 		return IndexPath(':'.join(names), indexpath, row)
-	
+
 	def lookup_tag(self, tag):
 		'''Returns an IndexTag for the named tag.'''
 		# Support 'None' as untagged
@@ -1248,7 +1260,7 @@ class Index(gobject.GObject):
 				assert source['source'] == path.id
 				tag = self.lookup_tagid(source['tag'])
 				yield Tagged(path, tag)
-				
+
 	def list_tagged(self, tag, offset = None, limit = 20, return_id = False):
 		'''
 		Determine the pages tagged with a given tag.
@@ -1256,7 +1268,7 @@ class Index(gobject.GObject):
 		@param offset: An offset for a segmented query
 		@param limit: An upper limit for the segmented query size
 		@param result_id: Return page IDs instead of IndexPath instances
-		@return: Yields IndexPath instances or IDs 
+		@return: Yields IndexPath instances or IDs
 		'''
 		if not type(tag) == int:
 			tag = self.lookup_tag(tag)
@@ -1271,12 +1283,12 @@ class Index(gobject.GObject):
 			for row in cursor:
 				if return_id:
 					yield row['source']
-				else:				
+				else:
 					yield self.lookup_id(row['source'])
-				
+
 	def list_untagged(self, offset=None, limit=20):
 		'''
-		Determine the untagged pages. 
+		Determine the untagged pages.
 		'''
 		cursor = self.db.cursor()
 		if offset is None:
@@ -1335,12 +1347,12 @@ class Index(gobject.GObject):
 			if not path:
 				return 0
 			cursor.execute('select count(*) from tagsources where source==?', (path.id,))
-			
+
 		row = cursor.fetchone()
 		return int(row[0])
 
 	def n_list_tagged(self, tag):
-		'''Like list_tagged() but returns only the number of tagged pages 
+		'''Like list_tagged() but returns only the number of tagged pages
 		instead	of the pages themselves.
 		'''
 		tag = self.lookup_tag(tag)
@@ -1353,7 +1365,7 @@ class Index(gobject.GObject):
 			return 0
 
 	def n_list_untagged(self):
-		'''Like list_untagged() but returns only the number of untagged pages 
+		'''Like list_untagged() but returns only the number of untagged pages
 		instead	of the pages themselves.
 		'''
 		cursor = self.db.cursor()
