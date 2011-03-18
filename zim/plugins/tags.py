@@ -771,12 +771,12 @@ class TagCloudWidget(gtk.TextView):
 #			yield row['id']
 
 		# Ordererd by occurences
-		cursor.execute('select *, count(tag) as occurances from tagsources group by tag order by occurances desc')
+		cursor.execute('select *, count(tag) as occurrences from tagsources group by tag order by occurrences desc')
 		for row in cursor:
 			yield row['tag']
 
 
-	def _get_selected_tags(self):
+	def get_selected_tags(self):
 		'''
 		Determines which tags are selected in the cloud
 		'''
@@ -801,7 +801,7 @@ class TagCloudWidget(gtk.TextView):
 		@return A list of page IDs
 		'''
 		if selected_tags is None:
-			selected_tags = self._get_selected_tags()
+			selected_tags = self.get_selected_tags()
 		
 		if len(selected_tags):
 			tagstr = '(' + ','.join([str(t) for t in selected_tags]) + ')'
@@ -822,11 +822,19 @@ class TagCloudWidget(gtk.TextView):
 	def get_filtered_tags(self, filtered_pages = None):
 		if filtered_pages is None:
 			filtered_pages = self.get_filtered_pages()
-		result = list(self.get_tags_ordered())
+			
 		if len(filtered_pages):
-			sets = [set(self.index.list_tags(page, return_id = True)) for page in filtered_pages]
-			chosen = reduce(lambda a, b: a | b, sets)
-			result = filter(lambda i: i in chosen, result)
+			pagestr = '(' + ','.join([str(p) for p in filtered_pages]) + ')'
+			query = 'SELECT tag, COUNT(source) AS occurrences FROM tagsources ' + \
+			        'WHERE source IN ' + pagestr + ' ' + \
+			        'GROUP BY tag ' + \
+			        'ORDER BY occurrences DESC;'
+			cursor = self.index.db.cursor()
+			cursor.execute(query)
+			result = [row['tag'] for row in cursor]
+		else:
+			result = list(self.get_tags_ordered())
+			
 		#logger.debug("Filtered tags: %s" % (str(result),))
 		return result
 
@@ -847,10 +855,11 @@ class TagCloudWidget(gtk.TextView):
 					result = widgets[0]
 			return result
 
-		def insert_item(id, iter):
+		def insert_item(id, iter, toggled):
 			anchor = buffer.create_child_anchor(iter)
 			indextag = self.index.lookup_tagid(id)
 			item = TagCloudItem(indextag)
+			item.set_active(toggled)
 			self.add_child_at_anchor(item, anchor)
 			item.connect("toggled", do_toggle, indextag)
 
@@ -860,7 +869,8 @@ class TagCloudWidget(gtk.TextView):
 			end.forward_char()
 			buffer.delete(iter, end)
 
-		pages = self.get_filtered_pages()
+		selected = self.get_selected_tags()
+		pages = self.get_filtered_pages(selected)
 		tags = list(self.get_filtered_tags(pages))
 
 		for pos, id in enumerate(tags):
@@ -878,7 +888,7 @@ class TagCloudWidget(gtk.TextView):
 
 			# Insert item if not yet there
 			if item is None or item.indextag.id != id:
-				insert_item(id, iter)
+				insert_item(id, iter, id in selected)
 
 		# Remove trailing items
 		iter = buffer.get_iter_at_offset(len(tags))
