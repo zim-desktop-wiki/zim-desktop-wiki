@@ -802,11 +802,19 @@ class TagCloudWidget(gtk.TextView):
 		'''
 		if selected_tags is None:
 			selected_tags = self._get_selected_tags()
-		result = list(self.list_pages(offset, limit, True))
+		
 		if len(selected_tags):
-			sets = [set(self.index.list_tagged(tagid, return_id = True)) for tagid in selected_tags]
-			chosen = reduce(lambda a, b: a & b, sets)
-			result = filter(lambda i: i in chosen, result)
+			tagstr = '(' + ','.join([str(t) for t in selected_tags]) + ')'
+			query = 'SELECT source, COUNT(tag) AS hits FROM tagsources ' + \
+			        'WHERE tag IN ' + tagstr + ' ' + \
+			        'GROUP BY source ' + \
+			        'HAVING hits = ' + str(len(selected_tags)) + ';'
+			cursor = self.index.db.cursor()
+			cursor.execute(query)
+			result = [row['source'] for row in cursor]
+		else:
+			result = list(self.list_pages(offset, limit, True))
+			
 		#logger.debug("Filtered pages: %s" % (str(result),))
 		return result
 
