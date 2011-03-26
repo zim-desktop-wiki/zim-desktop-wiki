@@ -131,11 +131,31 @@ class Store(StoreClass):
 		if not (file.exists() or dir.exists()):
 			return False
 		else:
-			file.cleanup()
 			assert dir.path.startswith(self.dir.path)
+			file.cleanup()
 			dir.remove_children()
 			dir.cleanup()
+			if isinstance(path, Page):
+				path.haschildren = False
+				# hascontent is determined based on file existence
 			return True
+
+	def trash_page(self, path):
+		file = self._get_file(path)
+		dir = self._get_dir(path)
+		re = False
+		if file.exists():
+			if not file.trash():
+				return False
+			re = True
+		
+		if dir.exists():
+			re = dir.trash() or re
+			dir.cleanup()
+			if isinstance(path, Page):
+				path.haschildren = False
+
+		return re
 
 	def page_exists(self, path):
 		return self._get_file(path).exists()

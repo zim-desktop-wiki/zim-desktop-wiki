@@ -246,6 +246,13 @@ class TestNotebook(tests.TestCase):
 			':AnotherNewPage:Foo:bar\n'
 			'**bold** :AnotherNewPage\n' )
 
+
+		# Try trashing
+		try:
+			self.notebook.trash_page(Path('TrashMe'))
+		except TrashNotSupportedError:
+			print 'trashing not supported'
+
 		#~ print '\n==== DB ===='
 		#~ self.notebook.index.ensure_update()
 		#~ cursor = self.notebook.index.db.cursor()

@@ -11,6 +11,7 @@ import tests
 import os
 import time
 
+import zim.fs
 from zim.fs import *
 from zim.fs import Path, FileHandle, FileWriteError, TmpFile, get_tmpdir, normalize_win32_share, PathLookupError, FileNotFoundError, FilteredDir, isabs, joinpath
 from zim.errors import Error
@@ -383,3 +384,35 @@ class TestSymlinks(tests.TestCase):
 		self.assertEqual(dir.list(), [])
 		self.assertTrue(targetdir.exists())
 		self.assertEqual(targetdir.list(), ['foo.txt'])
+
+
+class TestTrash(tests.TestCase):
+
+	slowTest = True
+
+	@staticmethod
+	def skipTest():
+		if not zim.fs.gio:
+			return 'Trashing not supported, \'gio\' is missing'
+		else:
+			return False
+
+	def runTest(self):
+		'''Test trashing files and folders'''
+		root = Dir(tests.create_tmp_dir('fs_TestTrash'))
+		file = root.file('test.txt')
+		file.touch()
+		self.assertTrue(file.exists())
+		self.assertTrue(file.trash())
+		self.assertFalse(file.exists())
+		dir = root.subdir('test')
+		dir.touch()
+		self.assertTrue(dir.exists())
+		self.assertTrue(dir.trash())
+		self.assertFalse(dir.exists())
+
+		# fails silent if file does not exist
+		self.assertFalse(file.trash())
+		self.assertFalse(dir.trash())
+
+		# How can we cause gio to give an error and test that case ??

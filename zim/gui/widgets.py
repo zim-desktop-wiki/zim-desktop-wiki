@@ -2269,7 +2269,14 @@ class ProgressBarDialog(gtk.Dialog):
 		handle all pending Gtk events, so interface keeps responsive during a background
 		job. This method returns True until the 'Cancel' button has been pressed, this
 		boolean could be used to decide if the ackground job should continue or not.
+
+		First call to pulse() will also trigger a show_all() if the
+		dialog is not shown yet. This is done so you don't flash a
+		progress dialog that is never used.
 		'''
+		if not TEST_MODE and not self.get_property('visible'):
+			self.show_all()
+
 		if total and total != self.total:
 			self.set_total(total)
 			self.count = count or 0

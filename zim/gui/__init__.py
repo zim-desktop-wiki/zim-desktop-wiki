@@ -33,7 +33,7 @@ import zim
 from zim import NotebookInterface, NotebookLookupError
 from zim.fs import *
 from zim.fs import normalize_win32_share
-from zim.errors import Error
+from zim.errors import Error, TrashNotSupportedError
 from zim.notebook import Path, Page, PageNameError, \
 	resolve_default_notebook, get_notebook, get_notebook_list
 from zim.stores import encode_filename
@@ -178,6 +178,8 @@ ui_preferences = (
 		# T: Option in the preferences dialog
 		# default value is False because this is mapped to switch between
 		# char sets in certain international key mappings
+	('remove_links_on_delete', 'bool', 'Interface', _('Remove links when deleting pages'), True),
+		# T: Option in the preferences dialog
 )
 
 if ui_environment['platform'] == 'maemo':
@@ -1136,7 +1138,6 @@ class GtkInterface(NotebookInterface):
 
 		dialog = ProgressBarDialog(self, _('Updating Links'))
 			# T: Title of progressbar dialog
-		dialog.show_all()
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 
 		try:
@@ -1150,7 +1151,23 @@ class GtkInterface(NotebookInterface):
 			return True
 
 	def delete_page(self, path=None):
-		DeletePageDialog(self, path).run()
+		'''Trash page or show DeletePageDialog'''
+		if path is None:
+			path = self.get_path_context()
+			if not path: return
+
+		update_links = self.preferences['remove_links_on_delete']
+		dialog = ProgressBarDialog(self, _('Removing Links'))
+			# T: Title of progressbar dialog
+		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
+		try:
+			self.notebook.trash_page(path, update_links, callback)
+		except TrashNotSupportedError, error:
+			dialog.destroy()
+			logger.info('Trash not supported: %s', error.msg)
+			DeletePageDialog(self, path).run()
+		else:
+			dialog.destroy()
 
 	def show_properties(self):
 		from zim.gui.propertiesdialog import PropertiesDialog
@@ -1408,7 +1425,6 @@ class GtkInterface(NotebookInterface):
 
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
-		dialog.show_all()
 		index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
 
@@ -2565,7 +2581,6 @@ class DeletePageDialog(Dialog):
 
 		dialog = ProgressBarDialog(self, _('Removing Links'))
 			# T: Title of progressbar dialog
-		dialog.show_all()
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 
 		try:

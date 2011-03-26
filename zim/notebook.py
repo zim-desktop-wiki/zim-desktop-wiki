@@ -21,7 +21,7 @@ import gobject
 
 import zim.fs
 from zim.fs import *
-from zim.errors import Error
+from zim.errors import Error, TrashNotSupportedError
 from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
 	config_file, data_dir, user_dirs
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type, url_encode
@@ -287,6 +287,7 @@ def interwiki_link(link):
 	else:
 		return None
 
+
 class PageNameError(Error):
 
 	description = _('''\
@@ -307,10 +308,10 @@ This is likely a glitch in the application.
 
 class IndexBusyError(Error):
 
-	description = '''\
+	description = _('''\
 Index is still busy updating while we try to do an
 operation that needs the index.
-'''
+''') # T: error message
 
 
 class PageExistsError(Error):
@@ -340,8 +341,9 @@ class Notebook(gobject.GObject):
 		* stored-page (page) - emitted after storing the page
 		* move-page (oldpath, newpath, update_links)
 		* moved-page (oldpath, newpath, update_links)
-		* delete-page (path)
-		* deleted-page (path)
+		* delete-page (path) - emitted when deleting a page -- listen to
+		"deleted-page" if you need to know the delete was successful
+		* deleted-page (path) - emitted after deleting a page
 		* properties-changed ()
 
 	Signals for store, move and delete are defined double with one
@@ -448,6 +450,7 @@ class Notebook(gobject.GObject):
 		if os.name == 'nt': endofline = 'dos'
 		else: endofline = 'unix'
 		self.config['Notebook'].setdefault('endofline', endofline, check=set(('dos', 'unix')))
+		self.config['Notebook'].setdefault('disable_trash', False)
 
 		self.do_properties_changed()
 
@@ -1103,6 +1106,18 @@ class Notebook(gobject.GObject):
 		'''Delete a page. If 'update_links' is True pages linking to the
 		deleted page will be updated and the link are removed.
 		'''
+		return self._delete_page(path, update_links, callback)
+
+	def trash_page(self, path, update_links=True, callback=None):
+		'''Like delete_page() but will use Trash. Raises TrashNotSupportedError
+		if trashing is not supported by the storage backend or when trashing
+		is explicitly disabled for this notebook.
+		'''
+		if self.config['Notebook']['disable_trash']:
+			raise TrashNotSupportedError, 'disable_trash is set'
+		return self._delete_page(path, update_links, callback, trash=True)
+
+	def _delete_page(self, path, update_links=True, callback=None, trash=False):
 		# Collect backlinks
 		if update_links:
 			from zim.index import LINK_DIR_BACKWARD
@@ -1119,7 +1134,10 @@ class Notebook(gobject.GObject):
 		# actual delete
 		self.emit('delete-page', path)
 		store = self.get_store(path)
-		store.delete_page(path)
+		if trash:
+			store.trash_page(path)
+		else:
+			store.delete_page(path)
 		self.flush_page_cache(path)
 		path = Path(path.name)
 
