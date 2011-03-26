@@ -65,8 +65,6 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	to as "paths". The first is gtk.TreePath and the second is
 	zim.notebook.Path . When a TreePath is intended the argument is called
 	explicitly "treepath", while arguments called "path" refer to a zim Path.
-
-	TODO: see python gtk-2.0 tutorial for remarks about reference leaking !
 	'''
 
 	# We inherit from gtk.TreeDragSource and gtk.TreeDragDest even though
@@ -259,9 +257,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		path does not appear in the index.
 		'''
 		# There is no TreePath class in pygtk, just return tuple of integers
-		# FIXME this method looks quite inefficient, can we optimize it ?
-		# -> see comment in index.py about dealing with "views", that should
-		# take into account optimizing lookups by treepath
+		assert isinstance(path, Path)
 		if path.isroot:
 			raise ValueError
 
@@ -270,38 +266,15 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			if path is None:
 				return None
 
-		# See if it is in cache already
-		reverse_cache = dict([(i.indexpath, k) for k, i in self._cache.items()])
-		if path in reverse_cache:
-			#~ print '>>> Return from cache', reverse_cache[path]
-			return reverse_cache[path]
-
-		# Try getting it while populating cache
 		paths = list(path.parents())
 		paths.pop() # get rid of root namespace as parent
 		paths.reverse()
 		paths.append(path)
 		treepath = ()
-		parent = None
 		for path in paths:
-			if not path in reverse_cache:
-				#~ print '>>> Iterating page list for', parent
-				for i, p in enumerate(self.index.list_pages(parent)):
-					k = treepath + (i,)
-					iter = PageTreeIter(k, p)
-					self._cache.setdefault(k, iter)
-					reverse_cache.setdefault(p, k)
-					if p == path:
-						break # Don't cache more than we need
-				else: # break did not happen
-					assert False, 'BUG: could not find path in pagelist'
-			treepath = reverse_cache[path]
-			parent = path
-			# A KeyError exception here means list_pages is not
-			# consistent with lookup_path
+			n = self.index.get_page_index(path)
+			treepath += (n,)
 
-		#~ print '>>> Return', treepath
-		self._schedule_flush()
 		return treepath
 
 	def get_indexpath(self, treeiter):

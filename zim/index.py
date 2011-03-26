@@ -78,7 +78,8 @@ create table if not exists pagetypes (
 create table if not exists links (
 	source INTEGER,
 	href INTEGER,
-	type INTEGER
+	type INTEGER,
+	CONSTRAINT uc_LinkOnce UNIQUE (source, href, type)
 );
 create table if not exists linktypes (
 	id INTEGER PRIMARY KEY,
@@ -1175,6 +1176,25 @@ class Index(gobject.GObject):
 						yield row['tag']
 					else:
 						yield self.lookup_tagid(row['tag'])
+
+	def get_page_index(self, path):
+		'''Return the index where this path would appear in the result
+		of list_pages(path.parent). Used by the index widget to get
+		TreeViewPath indexes.
+		'''
+		if path.isroot:
+			raise ValueError, 'Root path does not have an index number'
+
+		path = self.lookup_path(path)
+		if not path:
+			raise ValueError, 'Could not find path in index'
+
+		cursor = self.db.cursor()
+		cursor.execute('select count(*) from pages where parent==? and lower(basename) < lower(?)', (path.parent.id, path.basename))
+				# FIXME, this lower is not utf8 proof
+		row = cursor.fetchone()
+		return int(row[0])
+
 
 	def list_pages(self, path):
 		'''Generator yielding IndexPath objects for the sub-pages of
