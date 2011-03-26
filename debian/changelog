@@ -1,3 +1,9 @@
+zim (0.50-SNASPSHOT-r359) maverick; urgency=low
+
+  * Snapshot with bug fixes 
+
+ -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Tue, 08 Mar 2011 20:28:12 +0100
+
 zim (0.50) maverick; urgency=low
 
   * Updated to release 0.50 

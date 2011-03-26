@@ -50,3 +50,17 @@ Publish the release:
 * Announce on launchpad
 * Announce on gnome files 
 * Announce on mailing list
+
+
+**For snapshots**
+* ./setup.py sdist to update build meta data
+* debchange -v 0.50-SNASPSHOT-r359
+* debuild -S -kB3223C82
+* lintian -Ivi ../zim_0.46_i386.changes
+* dput ppa:jaap.karssenberg/zim-snapshots zim_XX_sources.changes
+
+To check version numbering is OK use: 
+
+'''
+dpkg --compare-versions "0.51" gt "0.50-SNAPSHOT-r345" && echo OK
+'''
