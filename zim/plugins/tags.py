@@ -853,6 +853,9 @@ class TagsPluginWidget(gtk.VPaned):
 
 		treeview.connect('populate-popup', self.on_populate_popup)
 
+		plugin.ui.connect('start-index-update', lambda o: self.disconnect_model)
+		plugin.ui.connect('end-index-update', lambda o: self.reload_model)
+
 	def on_populate_popup(self, treeview, menu):
 		# Add a popup menu item to switch the treeview mode
 		menu.prepend(gtk.SeparatorMenuItem())
@@ -879,6 +882,24 @@ class TagsPluginWidget(gtk.VPaned):
 				TaggedPageTreeView(self.plugin.ui, self.tagcloud) )
 
 		self.treeviewwindow.show_all()
+
+	def disconnect_model(self):
+		'''Stop the model from listening to the inxed. Used to
+		unhook the model before reloading the index. Typically
+		should be followed by reload_model().
+		'''
+		treeview = self.treeviewwindow.get_child()
+		treeview.get_model().disconnect()
+		self.tagcloud._disconnect_index()
+
+	def reload_model(self):
+		'''Re-initialize the treeview model. This is called when
+		reloading the index to get rid of out-of-sync model errors
+		without need to close the app first.
+		'''
+		self.tagcloud._connect_index()
+		treeview = self.treeviewwindow.get_child()
+		treeview.do_set_notebook(self.ui, self.ui.notebook)
 
 
 class TagsPlugin(PluginClass):
