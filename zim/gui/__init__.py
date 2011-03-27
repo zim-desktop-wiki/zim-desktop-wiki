@@ -271,6 +271,8 @@ class GtkInterface(NotebookInterface):
 	  Emitted when the ui changed from read-write to read-only or back
 	* quit
 	  Emitted when the application is about to quit
+	* start-index-update
+	* end-index-update
 
 	Also see signals in zim.NotebookInterface
 	'''
@@ -283,6 +285,8 @@ class GtkInterface(NotebookInterface):
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'quit': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'start-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'end-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	ui_type = 'gtk'
@@ -1398,10 +1402,8 @@ class GtkInterface(NotebookInterface):
 		'''Show a progress bar while updating the notebook index.
 		Returns True unless the user cancelled the action.
 		'''
-		# First make the index stop updating
-		self.mainwindow.pageindex.disconnect_model()
+		self.emit('start-index-update')
 
-		# Update the model
 		index = self.notebook.index
 		if flush:
 			index.flush()
@@ -1412,8 +1414,7 @@ class GtkInterface(NotebookInterface):
 		index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
 
-		# And reconnect the model - flushing out any sync error in treemodel
-		self.mainwindow.pageindex.reload_model()
+		self.emit('end-index-update')
 
 		return not dialog.cancelled
 

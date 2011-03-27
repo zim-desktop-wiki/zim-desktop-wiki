@@ -99,10 +99,30 @@ class PageTreeTagIter(object):
 		return '<PageTreeTagIter, %s, %s>' % (self.treepath, self.indextag.name)
 
 
-class TagsPageTreeStore(PageTreeStore):
+class DuplicatePageTreeStore(PageTreeStore):
+	'''Sub-class of PageTreeStore that allows for the same page appearing
+	multiple times in the tree.
+	'''
+
+	def get_treepath(self, path):
+		'''Just returns the first treepath matching notebook path 'path' '''
+		treepaths = self.get_treepaths(path)
+		if treepaths:
+			return treepaths[0]
+		else:
+			return None
+
+	def get_treepaths(self, path):
+		'''Return all treepaths matching notebook path 'path' '''
+		raise NotImplementedError
+
+
+class TagsPageTreeStore(DuplicatePageTreeStore):
 	'''Subclass of the PageTreeStore that shows tags as the top level
 	for sub-sets of the page tree.
 	'''
+
+	filter_depth = 2 # tag filter applies to top two levels
 
 	def __init__(self, index):
 		self._reverse_cache = {}
@@ -281,11 +301,7 @@ class TagsPageTreeStore(PageTreeStore):
 				i = all_tags.index(path)
 				return (i+1,)
 		else:
-			treepaths = self.get_treepaths(path)
-			if treepaths:
-				return treepaths[0]
-			else:
-				return None
+			return DuplicatePageTreeStore.get_treepath(self, path)
 
 	def get_treepaths(self, path):
 		'''Convert a Zim path to tree hierarchy, in general results in multiple
@@ -407,67 +423,13 @@ class TagsPageTreeStore(PageTreeStore):
 			return PageTreeStore.on_get_value(self, iter, column)
 
 
-class TagsPageTreeView(PageTreeView):
-
-	def __init__(self, ui, cloud):
-		PageTreeView.__init__(self, ui)
-		self.set_name('zim-tags-pagelist')
-
-
-	def do_set_notebook(self, ui, notebook):
-		self._cleanup = None # else it might be pointing to old model
-		self.set_model(TagsPageTreeStore(notebook.index))
-		if not ui.page is None:
-			self.on_open_page(ui.page)
-		self.get_model().connect('row-inserted', self.on_row_inserted)
-
-	def on_open_page(self, path):
-		self.get_model()
-
-	def do_row_activated(self, treepath, column):
-		'''Handler for the row-activated signal, emits page-activated if a
-		it is really a page'''
-		model = self.get_model()
-		iter = model.get_iter(treepath)
-		if len(treepath) > 1:
-			# Only pages (no tags) can be activated
-			path = model.get_indexpath(iter)
-			self.emit('page-activated', path)
-
-	def select_page(self, path):
-		'''Select a page in the treeview, returns the treepath or None'''
-		#~ print '!! SELECT', path
-		model, iter = self.get_selection().get_selected()
-		if model is None:
-			return None # index not yet initialized ...
-
-		if iter and model[iter][PATH_COL] == path:
-			return model.get_path(iter) # this page was selected already
-
-		return None # No multiple selection
-
-	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
-		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
-		model, iter = self.get_selection().get_selected()
-		path = model.get_indexpath(iter)
-		if isinstance(path, IndexTag):
-			link = '@' + path.name
-		else:
-			link = path.name
-		logger.debug('Drag data requested, we have internal tag/path "%s"', link)
-		data = pack_urilist((link,))
-		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
-
-
-# Need to register classes defining gobject signals
-gobject.type_register(TagsPageTreeView) #@UndefinedVariable
-
-
-class TaggedPageTreeStore(PageTreeStore):
+class TaggedPageTreeStore(DuplicatePageTreeStore):
 	'''
 	A TreeModel that lists all Zim pages in a flat list filtered by tags.
 	Pages with	associated sub-pages still show them as sub-nodes.
 	'''
+
+	filter_depth = 1 # tag filter only applies to top level
 
 	def __init__(self, index):
 		PageTreeStore.__init__(self, index)
@@ -554,13 +516,6 @@ class TaggedPageTreeStore(PageTreeStore):
 		self._reverse_cache = {}
 		return PageTreeStore._flush(self)
 
-	def get_treepath(self, path):
-		treepaths = self.get_treepaths(path)
-		if treepaths:
-			return treepaths[0]
-		else:
-			return None
-
 	def get_treepaths(self, path):
 		'''
 		Cached conversion of a Zim path to a node in the tree hierarchy, i.e.
@@ -597,7 +552,6 @@ class TaggedPageTreeStore(PageTreeStore):
 		self._schedule_flush()
 		return treepaths
 
-
 	def on_iter_n_children(self, iter):
 		'''Returns the number of children in a namespace. As a special case,
 		when iter is None the number of pages in the root namespace is given.
@@ -608,92 +562,92 @@ class TaggedPageTreeStore(PageTreeStore):
 			return PageTreeStore.on_iter_n_children(self, iter)
 
 
+class TagsPageTreeView(PageTreeView):
 
-class TaggedPageTreeView(PageTreeView):
-	'''
-	A slightly modified version of the purely hierarchical page index using
-	a flat page list for the top level nodes.
-	'''
-
-	def __init__(self, ui, cloud):
-		self.cloud = cloud
-		self._cloud_signals = ()
-		self._tags = frozenset()
+	def __init__(self, ui, model=None):
 		PageTreeView.__init__(self, ui)
 		self.set_name('zim-tags-pagelist')
+		self._tag_filter = None
 
+		if model:
+			self.set_model(model)
 
-	def do_set_notebook(self, ui, notebook):
+	def do_set_notebook(self, *a):
+		# overloaded to disable do_set_notebook() in parent class
+		pass
 
-		def func(model, iter):
-			childiter = model.get_user_data(iter)
-			if len(childiter.treepath) > 1:
-				return True
-			else:
-				tags = frozenset(self.ui.notebook.index.get_tags(childiter.indexpath))
-				return tags >= self._tags
-
-		self._disonnect_cloud()
+	def set_model(self, model):
+		'''Set the model to be used'''
+		# disconnect previous model
 		self._cleanup = None # else it might be pointing to old model
+		oldmodel = self.get_model()
+		if oldmodel:
+			childmodel = oldmodel.get_model()
+			childmodel.disconnect()
 
-		treemodel = TaggedPageTreeStore(notebook.index)
-		treemodelfilter = treemodel.filter_new(root = None)
-		self._tags = frozenset(self.cloud.get_selected_tags())
-		treemodelfilter.set_visible_func(func)
+		# set new model
+		def func(model, iter):
+			if self._tag_filter is None:
+				return True # no filtering
+			else:
+				iter = model.get_user_data(iter)
+				if len(iter.treepath) > model.filter_depth:
+					return True # deeper levels are not filtered at all
+				else:
+					if isinstance(iter, PageTreeTagIter): # -> tag
+						return iter.indextag in self._tag_filter[1] # show filtered tags
+					else: # PageTreeIter -> page
+						tags = frozenset(self.ui.notebook.index.get_tags(iter.indexpath))
+							# FIXME clean up law of D
+						return tags >= self._tag_filter[0] # match all selected tags
 
-		self.set_model(treemodelfilter)
-		if not ui.page is None:
-			self.on_open_page(ui.page)
-		self.get_model().connect('row-inserted', self.on_row_inserted)
-		self._connect_cloud()
+		filtermodel = model.filter_new(root = None)
+		filtermodel.set_visible_func(func)
 
+		PageTreeView.set_model(self, filtermodel)
 
-	def _connect_cloud(self):
+		# FIXME
+		#~ if not ui.page is None:
+			#~ self.on_open_page(ui.page)
+		#~ self.get_model().connect('row-inserted', self.on_row_inserted)
 
-		def on_cloud_updated(cloud):
-			#~ import time
-			#~ t1 = time.time()
-			self._tags = frozenset(cloud.get_selected_tags())
-			self.get_model().refilter()
-			#~ t2 = time.time()
-			#~ print 'REFILTER', t2 - t1
+	def set_tag_filter(self, filter):
+		'''Sets the tags to filter on. The filter should be a tuple of
+		two lists of tags, or None to not do any filtering.
+		'''
+		if not filter:
+			self._tag_filter = None
+		else:
+			self._tag_filter = (frozenset(filter[0]), frozenset(filter[1]))
 
-		self._cloud_signals = (
-			self.cloud.connect('cloud-updated', on_cloud_updated),
-		)
-
-
-	def _disonnect_cloud(self):
-		for id in self._cloud_signals:
-			self.cloud.disconnect(id)
-
+		model = self.get_model()
+		if model:
+			model.refilter()
 
 	def on_row_inserted(self, model, treepath, iter):
 		childmodel = model.get_model()
 		childiter = model.convert_iter_to_child_iter(iter)
 		path = childmodel.get_indexpath(childiter)
-		if path == self.ui.page:
+		if path and path == self.ui.page:
 			self.on_open_page(self.ui.page)
 
-
 	def do_row_activated(self, treepath, column):
-		'''Handler for the row-activated signal, emits page-activated'''
+		'''Handler for the row-activated signal, emits page-activated if
+		it is really a page'''
 		model = self.get_model()
 		iter = model.get_iter(treepath)
 		childmodel = model.get_model()
 		childiter = model.convert_iter_to_child_iter(iter)
 		path = childmodel.get_indexpath(childiter)
-		self.emit('page-activated', path)
-
+		if path:
+			self.emit('page-activated', path)
 
 	def on_open_page(self, path):
 		pass
 
-
 	def select_page(self, path):
-		'''
-		Select a page in the treeview, returns the treepath or None
-		'''
+		'''Select a page in the treeview, returns the treepath or None'''
+		#~ print '!! SELECT', path
 		model, iter = self.get_selection().get_selected()
 		if model is None:
 			return None # index not yet initialized ...
@@ -703,13 +657,24 @@ class TaggedPageTreeView(PageTreeView):
 
 		return None # No multiple selection
 
+	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
+		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		model, iter = self.get_selection().get_selected()
+		path = model.get_indexpath(iter)
+		if isinstance(path, IndexTag):
+			link = '@' + path.name
+		else:
+			link = path.name
+		logger.debug('Drag data requested, we have internal tag/path "%s"', link)
+		data = pack_urilist((link,))
+		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
 
 # Need to register classes defining gobject signals
-gobject.type_register(TaggedPageTreeView) #@UndefinedVariable
-
+gobject.type_register(TagsPageTreeView) #@UndefinedVariable
 
 
 class TagCloudItem(gtk.ToggleButton):
+	'''Button item used on the tag cloud widget'''
 
 	def __init__(self, indextag):
 		gtk.ToggleButton.__init__(self, indextag.name)
@@ -717,6 +682,7 @@ class TagCloudItem(gtk.ToggleButton):
 		self.indextag = indextag
 
 		def update_label(self):
+			# Make button text bold when active
 			label = self.get_child()
 			if self.get_active():
 				label.set_markup('<b>'+label.get_text()+'</b>')
@@ -728,113 +694,105 @@ class TagCloudItem(gtk.ToggleButton):
 
 
 class TagCloudWidget(gtk.TextView):
-	'''
-	Text-view based list of tags, where each tag is represented by a button
-	inserted as a child in the textview.
+	'''Text-view based list of tags, where each tag is represented by a
+	button inserted as a child in the textview.
+
+	Signals:
+	  * selection-changed: emitted when tag selection changes
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'cloud-updated': (gobject.SIGNAL_RUN_LAST, None, ()), #@UndefinedVariable
+		'selection-changed': (gobject.SIGNAL_RUN_LAST, None, ()), #@UndefinedVariable
 	}
 
-
-	def __init__(self, ui):
+	def __init__(self, ui, index=None):
 		gtk.TextView.__init__(self, None) # Create TextBuffer implicitly
 		self.set_name('zim-tags-tagcloud')
+		self.index = None
 		self._signals = ()
 
 		self.set_editable(False)
 		self.set_cursor_visible(False)
 		self.set_wrap_mode(gtk.WRAP_CHAR)
 
-		self.ui = ui
-		self.ui.connect_after('open-notebook', self.do_set_notebook)
-		if not self.ui.notebook is None:
-			self.do_set_notebook(self.ui, self.ui.notebook)
+		if index:
+			self.set_index(index)
 
-
-	def do_set_notebook(self, ui, notebook):
-		'''
-		Initialise view with a new notebook
-		@param ui: Zim GUI
-		@param notebook: The new notebook
-		'''
-		self._disconnect_index()
-		self._clear_all()
-
-		self.index = notebook.index
-		self._connect_index()
-		self.update()
-
-
-	def _connect_index(self):
-		'''
-		Connect to index signals
-		'''
-
-		def on_index_change(o, indextag):
-			self.update()
-
+	def set_index(self, index):
+		'''Connect to an Index object'''
+		self.disconnect_index() # just to be sure
+		self.index = index
 		self._signals = (
-			self.index.connect('tag-created', on_index_change),
-			self.index.connect('tag-deleted', on_index_change),
+			self.index.connect('tag-created', self._update),
+			self.index.connect('tag-deleted', self._update),
 		)
+		self._update()
 
-
-	def _disconnect_index(self):
-		'''
-		Stop the model from listening to the index. Used to unhook the model
-		before reloading the index.
+	def disconnect_index(self):
+		'''Stop the model from listening to the index. Used to unhook
+		the model before reloading the index.
 		'''
 		for id in self._signals:
 			self.index.disconnect(id)
+		self._signals = ()
+		self._clear()
+		self.index = None
 
+	def get_tag_filter(self):
+		'''Returns a tuple with two lists of tags; the first gives all
+		tags that are selected, the second gives all tags shown in the
+		cloud. By definition the first list is a subset of the second.
+		If no tags are selected returns None instead.
+		'''
+		selected = []
+		filtered = []
+		for button in self.get_children():
+			filtered.append(button.indextag)
+			if button.get_active():
+				selected.append(button.indextag)
+		if selected:
+			return (selected, filtered)
+		else:
+			return None
 
-	def _clear_all(self):
-		'''
-		Clears the cloud
-		'''
+	def _clear(self):
+		'''Clears the cloud'''
 		self.foreach(lambda b: self.remove(b))
 		buffer = self.get_buffer()
 		buffer.delete(*buffer.get_bounds())
 
-	def get_selected_tags(self):
-		'''Returns a list of tags currently are selected in the cloud'''
-		return [b.indextag for b in self.get_children() if b.get_active()]
-
-	def get_filtered_tags(self):
-		'''Returns all tags currently shown in the widget'''
-		return [b.indextag for b in self.get_children()]
-
-	def update(self):
-		selected = self.get_selected_tags()
-		tags = [r[0] for r in index_list_tags_ordered(self.index, selected)]
-		self._clear_all()
+	def _update(self, *a):
+		'''Update the cloud to show only tags that share a set of pages
+		with the selected tags.'''
+		selected = [b.indextag for b in self.get_children() if b.get_active()]
+		self._clear()
 
 		buffer = self.get_buffer()
+		tags = [r[0] for r in index_list_tags_ordered(self.index, selected)]
 		for tag in tags:
 			iter = buffer.get_end_iter()
 			anchor = buffer.create_child_anchor(iter)
 			button = TagCloudItem(tag)
 			button.set_active(tag in selected)
-			button.connect("toggled", lambda b: self.update())
+			button.connect("toggled", lambda b: self._update())
 			self.add_child_at_anchor(button, anchor)
 
 		self.show_all()
-		self.emit('cloud-updated')
-
+		self.emit('selection-changed')
 
 # Need to register classes defining gobject signals
 gobject.type_register(TagCloudWidget) #@UndefinedVariable
 
 
-
 class TagsPluginWidget(gtk.VPaned):
+	'''Widget combining a tag cloud and a tag based page treeview'''
 
 	def __init__(self, plugin):
 		gtk.VPaned.__init__(self)
 		self.plugin = plugin
+
+		self.plugin.uistate.setdefault('treeview', 'tagged', set(['tagged', 'tags']))
 
 		def add_scrolled(widget):
 			sw = gtk.ScrolledWindow()
@@ -847,38 +805,67 @@ class TagsPluginWidget(gtk.VPaned):
 		self.tagcloud = TagCloudWidget(self.plugin.ui)
 		add_scrolled(self.tagcloud)
 
-		treeview = TaggedPageTreeView(self.plugin.ui, self.tagcloud)
-		self.treeviewwindow = add_scrolled(treeview)
-			# TODO make initial treeview a uistate
+		self.treeview = TagsPageTreeView(self.plugin.ui)
+		add_scrolled(self.treeview)
 
-		treeview.connect('populate-popup', self.on_populate_popup)
+		self.treeview.connect('populate-popup', self.on_populate_popup)
+		self.tagcloud.connect('selection-changed', self.on_cloud_selection_changed)
+
+		if self.plugin.ui.notebook:
+			self.reload_model()
+		else:
+			self.plugin.ui.connect_after('open-notebook', lambda *a: self.reload_model())
+
+		self.plugin.ui.connect('start-index-update', lambda o: self.disconnect_model)
+		self.plugin.ui.connect('end-index-update', lambda o: self.reload_model)
+
+	def toggle_treeview(self):
+		'''Toggle the treeview type in the widget'''
+		if self.plugin.uistate['treeview'] == 'tagged':
+			self.plugin.uistate['treeview'] = 'tags'
+		else:
+			self.plugin.uistate['treeview'] = 'tagged'
+
+		self.reload_model()
 
 	def on_populate_popup(self, treeview, menu):
 		# Add a popup menu item to switch the treeview mode
 		menu.prepend(gtk.SeparatorMenuItem())
 
-		current = self.treeviewwindow.get_child()
-
 		item = gtk.CheckMenuItem(_('Sort pages by tags'))
+		item.set_active(self.plugin.uistate['treeview'] == 'tags')
 		item.connect_object('toggled', self.__class__.toggle_treeview, self)
-		item.set_active(isinstance(current, TagsPageTreeView))
 		menu.prepend(item)
 
 		menu.show_all()
 
-	def toggle_treeview(self):
-		'''Toggle the treeview type in the widget'''
-		current = self.treeviewwindow.get_child()
-		self.treeviewwindow.remove(current)
-		# FIXME Need to disconnect ?
-		if isinstance(current, TaggedPageTreeView):
-			self.treeviewwindow.add(
-				TagsPageTreeView(self.plugin.ui, self.tagcloud) )
-		else:
-			self.treeviewwindow.add(
-				TaggedPageTreeView(self.plugin.ui, self.tagcloud) )
+	def on_cloud_selection_changed(self, cloud):
+		filter = cloud.get_tag_filter()
+		self.treeview.set_tag_filter(filter)
 
-		self.treeviewwindow.show_all()
+	def disconnect_model(self):
+		'''Stop the model from listening to the inxed. Used to
+		unhook the model before reloading the index. Typically
+		should be followed by reload_model().
+		'''
+		self.treeview.get_model().disconnect()
+		self.tagcloud.disconnect_index()
+
+	def reload_model(self):
+		'''Re-initialize the treeview model. This is called when
+		reloading the index to get rid of out-of-sync model errors
+		without need to close the app first.
+		'''
+		assert self.plugin.uistate['treeview'] in ('tagged', 'tags')
+
+		self.tagcloud.set_index(self.plugin.ui.notebook.index)
+
+		if self.plugin.uistate['treeview'] == 'tagged':
+			model = TaggedPageTreeStore(self.plugin.ui.notebook.index) # FIXME clean up law of D
+		else: # tags
+			model = TagsPageTreeStore(self.plugin.ui.notebook.index) # FIXME clean up law of D
+
+		self.treeview.set_model(model)
 
 
 class TagsPlugin(PluginClass):
@@ -896,16 +883,13 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 		PluginClass.__init__(self, ui)
 		self.sidepane_widget = None
 
-
 	def initialize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
 			self.connect_embedded_widget()
 
-
 	def disconnect(self):
 		self.disconnect_embedded_widget()
 		PluginClass.disconnect(self)
-
 
 	def connect_embedded_widget(self):
 		if self.sidepane_widget is None:
@@ -913,9 +897,7 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 			self.ui.mainwindow.add_tab(_('Tags'), self.sidepane_widget, LEFT_PANE)
 			self.sidepane_widget.show_all()
 
-
 	def disconnect_embedded_widget(self):
 		if not self.sidepane_widget is None:
 			self.ui.mainwindow.remove(self.sidepane_widget)
 			self.sidepane_widget = None
-

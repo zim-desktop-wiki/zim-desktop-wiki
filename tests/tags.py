@@ -25,7 +25,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 	def setUp(self):
 		self.storeclass = TaggedPageTreeStore
-		self.viewclass = TaggedPageTreeView
+		self.viewclass = TagsPageTreeView
 		self.index = Index(dbfile=':memory:')
 		self.notebook = tests.get_test_notebook()
 		self.index.set_notebook(self.notebook)
@@ -41,17 +41,13 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 		ui = MockUI()
 		ui.notebook = self.notebook
-		cloud = TagCloudWidget(ui)
-		treeview = self.viewclass(ui, cloud)
-		#~ treestore = TaggedPageTreeStore(self.index)
-		#~ self.assertEqual(treestore.get_flags(), 0)
-		#~ self.assertEqual(treestore.get_n_columns(), 5)
-		#~ treeview.set_model(treestore)
-		# FIXME prefer commented lines above
-		cloud.do_set_notebook(ui, self.notebook)
-		treeview.do_set_notebook(ui, self.notebook)
+
+		treestore = self.storeclass(self.index)
+		self.assertEqual(treestore.get_flags(), 0)
+		self.assertEqual(treestore.get_n_columns(), 5)
+		treeview = self.viewclass(ui, treestore)
 		treestore = treeview.get_model()
-		if isinstance(treeview, TaggedPageTreeView):
+		if isinstance(treestore, gtk.TreeModelFilter):
 			treestore = treestore.get_model() # look inside filtered model
 		self.assertTrue(isinstance(treestore, self.storeclass))
 
