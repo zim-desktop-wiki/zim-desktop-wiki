@@ -40,6 +40,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		# From the order the signals are generated.
 
 		ui = MockUI()
+		ui.notebook = self.notebook
 		cloud = TagCloudWidget(ui)
 		treeview = self.viewclass(ui, cloud)
 		#~ treestore = TaggedPageTreeStore(self.index)

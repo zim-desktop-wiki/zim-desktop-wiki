@@ -43,6 +43,42 @@ def index_list_pages(index, offset = None, limit = 20, return_id = False):
 				yield index.lookup_id(row['id'])
 
 
+def index_list_tags_ordered(index, tags=None):
+	'''Returns a list of tuples where first item is an IndexTag object
+	and second item is the number of occurences for this tag.
+
+	When a list of tags is given only tags are listed in the result that
+	occur on pages that match the given tag set. This is used to narrow
+	down possible supersets that are not empty.
+	'''
+	cursor = index.db.cursor()
+	if tags:
+		tag_ids = '(' + ','.join(str(t.id) for t in tags) + ')'
+		cursor.execute(
+			# The sub-query filters on pages that match all of the given tags
+			# The main query selects all tags occuring on those pages and sorts
+			# them by number of matching pages
+			'SELECT t.id, t.name, count(*) hits'
+			' FROM tags t INNER JOIN tagsources s ON t.id = s.tag'
+			' WHERE s.source IN ('
+			'   SELECT source FROM tagsources'
+			'   WHERE tag IN %s'
+			'   GROUP BY source'
+			'   HAVING count(tag) = ?'
+			' )'
+			' GROUP BY s.tag'
+			' ORDER BY count(*) DESC' % tag_ids, (len(tags),)
+		)
+	else:
+		cursor.execute(
+			'SELECT t.id, t.name, count(*) hits'
+			' FROM tags t INNER JOIN tagsources s ON t.id = s.tag'
+			' GROUP BY s.tag'
+			' ORDER BY count(*) DESC'
+		)
+	for row in cursor:
+		yield IndexTag(row['name'], row['id'], row), row['hits']
+
 
 class PageTreeTagIter(object):
 	'''Simple wrapper for IndexTag objects used as tree iters
@@ -373,7 +409,7 @@ class TagsPageTreeStore(PageTreeStore):
 
 class TagsPageTreeView(PageTreeView):
 
-	def __init__(self, ui, tagfilter):
+	def __init__(self, ui, cloud):
 		PageTreeView.__init__(self, ui)
 		self.set_name('zim-tags-pagelist')
 
@@ -582,7 +618,7 @@ class TaggedPageTreeView(PageTreeView):
 	def __init__(self, ui, cloud):
 		self.cloud = cloud
 		self._cloud_signals = ()
-		self._filtered_pages = []
+		self._tags = frozenset()
 		PageTreeView.__init__(self, ui)
 		self.set_name('zim-tags-pagelist')
 
@@ -591,15 +627,18 @@ class TaggedPageTreeView(PageTreeView):
 
 		def func(model, iter):
 			childiter = model.get_user_data(iter)
-			result = len(childiter.treepath) > 1 or childiter.indexpath.id in self._filtered_pages
-			return result
+			if len(childiter.treepath) > 1:
+				return True
+			else:
+				tags = frozenset(self.ui.notebook.index.get_tags(childiter.indexpath))
+				return tags >= self._tags
 
 		self._disonnect_cloud()
 		self._cleanup = None # else it might be pointing to old model
 
 		treemodel = TaggedPageTreeStore(notebook.index)
 		treemodelfilter = treemodel.filter_new(root = None)
-		self._filtered_pages = self.cloud.get_filtered_pages()
+		self._tags = frozenset(self.cloud.get_selected_tags())
 		treemodelfilter.set_visible_func(func)
 
 		self.set_model(treemodelfilter)
@@ -611,9 +650,13 @@ class TaggedPageTreeView(PageTreeView):
 
 	def _connect_cloud(self):
 
-		def on_cloud_updated(o, pages):
-			self._filtered_pages = pages
+		def on_cloud_updated(cloud):
+			#~ import time
+			#~ t1 = time.time()
+			self._tags = frozenset(cloud.get_selected_tags())
 			self.get_model().refilter()
+			#~ t2 = time.time()
+			#~ print 'REFILTER', t2 - t1
 
 		self._cloud_signals = (
 			self.cloud.connect('cloud-updated', on_cloud_updated),
@@ -673,6 +716,15 @@ class TagCloudItem(gtk.ToggleButton):
 		self.set_relief(gtk.RELIEF_NONE)
 		self.indextag = indextag
 
+		def update_label(self):
+			label = self.get_child()
+			if self.get_active():
+				label.set_markup('<b>'+label.get_text()+'</b>')
+			else:
+				label.set_text(label.get_text())
+					# get_text() gives string without markup
+
+		self.connect_after('toggled', update_label)
 
 
 class TagCloudWidget(gtk.TextView):
@@ -683,7 +735,7 @@ class TagCloudWidget(gtk.TextView):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'cloud-updated': (gobject.SIGNAL_RUN_LAST, None, (object,)), #@UndefinedVariable
+		'cloud-updated': (gobject.SIGNAL_RUN_LAST, None, ()), #@UndefinedVariable
 	}
 
 
@@ -713,7 +765,7 @@ class TagCloudWidget(gtk.TextView):
 
 		self.index = notebook.index
 		self._connect_index()
-		self.update_cloud()
+		self.update()
 
 
 	def _connect_index(self):
@@ -722,7 +774,7 @@ class TagCloudWidget(gtk.TextView):
 		'''
 
 		def on_index_change(o, indextag):
-			self.update_cloud()
+			self.update()
 
 		self._signals = (
 			self.index.connect('tag-created', on_index_change),
@@ -743,162 +795,34 @@ class TagCloudWidget(gtk.TextView):
 		'''
 		Clears the cloud
 		'''
-		def remove(o, child, data):
-			o.remove(child)
-
-		self.foreach(remove)
+		self.foreach(lambda b: self.remove(b))
 		buffer = self.get_buffer()
-		buffer.delete(buffer.get_start_iter(), buffer.get_end_iter())
-
-
-	def list_pages(self, offset = None, limit = 20, return_id = False):
-		'''
-		Query the index for a flat page list
-		@param offset: Offset in the list for segmented queries
-		@param limit: Limit of the segment size for segmented queries.
-		'''
-		return index_list_pages(self.index, offset, limit, return_id)
-
-	def get_tags_ordered(self):
-		'''
-		Defines the order of the displayed tags
-		'''
-		cursor = self.index.db.cursor()
-
-		# Ordererd by name
-#		cursor.execute('select * from tags order by lower(name)')
-#		for row in cursor:
-#			yield row['id']
-
-		# Ordererd by occurences
-		cursor.execute('select *, count(tag) as occurrences from tagsources group by tag order by occurrences desc')
-		for row in cursor:
-			yield row['tag']
-
+		buffer.delete(*buffer.get_bounds())
 
 	def get_selected_tags(self):
-		'''
-		Determines which tags are selected in the cloud
-		'''
-		result = []
-		buffer = self.get_buffer()
-		iter = buffer.get_start_iter()
-		while not iter.is_end():
-			anchor = iter.get_child_anchor()
-			if not anchor is None:
-				widgets = anchor.get_widgets()
-				if len(widgets) > 0:
-					if widgets[0].get_active():
-						result.append(widgets[0].indextag.id)
-			iter.forward_char()
-		#logger.debug("Selected tags: %s" % (str(result),))
-		return result
+		'''Returns a list of tags currently are selected in the cloud'''
+		return [b.indextag for b in self.get_children() if b.get_active()]
 
+	def get_filtered_tags(self):
+		'''Returns all tags currently shown in the widget'''
+		return [b.indextag for b in self.get_children()]
 
-	def get_filtered_pages(self, selected_tags = None, offset = None, limit = 20):
-		'''
-		Determines which pages are listed according to the selected tags
-		@return A list of page IDs
-		'''
-		if selected_tags is None:
-			selected_tags = self.get_selected_tags()
-		
-		if len(selected_tags):
-			tagstr = '(' + ','.join([str(t) for t in selected_tags]) + ')'
-			query = 'SELECT source, COUNT(tag) AS hits FROM tagsources ' + \
-			        'WHERE tag IN ' + tagstr + ' ' + \
-			        'GROUP BY source ' + \
-			        'HAVING hits = ' + str(len(selected_tags)) + ';'
-			cursor = self.index.db.cursor()
-			cursor.execute(query)
-			result = [row['source'] for row in cursor]
-		else:
-			result = list(self.list_pages(offset, limit, True))
-			
-		#logger.debug("Filtered pages: %s" % (str(result),))
-		return result
-
-
-	def get_filtered_tags(self, filtered_pages = None):
-		if filtered_pages is None:
-			filtered_pages = self.get_filtered_pages()
-			
-		if len(filtered_pages):
-			pagestr = '(' + ','.join([str(p) for p in filtered_pages]) + ')'
-			query = 'SELECT tag, COUNT(source) AS occurrences FROM tagsources ' + \
-			        'WHERE source IN ' + pagestr + ' ' + \
-			        'GROUP BY tag ' + \
-			        'ORDER BY occurrences DESC;'
-			cursor = self.index.db.cursor()
-			cursor.execute(query)
-			result = [row['tag'] for row in cursor]
-		else:
-			result = list(self.get_tags_ordered())
-			
-		#logger.debug("Filtered tags: %s" % (str(result),))
-		return result
-
-
-	def update_cloud(self):
-		buffer = self.get_buffer()
-
-		def do_toggle(o, data = None):
-			#logger.debug("%s was toggled %s" % (data, ("OFF", "ON")[o.get_active()]))
-			self.update_cloud()
-
-		def get_item_at_iter(iter):
-			result = None
-			anchor = iter.get_child_anchor()
-			if not anchor is None:
-				widgets = anchor.get_widgets()
-				if len(widgets) > 0:
-					result = widgets[0]
-			return result
-
-		def insert_item(id, iter, toggled):
-			anchor = buffer.create_child_anchor(iter)
-			indextag = self.index.lookup_tagid(id)
-			item = TagCloudItem(indextag)
-			item.set_active(toggled)
-			self.add_child_at_anchor(item, anchor)
-			item.connect("toggled", do_toggle, indextag)
-
-		def remove_item(item, iter):
-			self.remove(item)
-			end = iter.copy()
-			end.forward_char()
-			buffer.delete(iter, end)
-
+	def update(self):
 		selected = self.get_selected_tags()
-		pages = self.get_filtered_pages(selected)
-		tags = list(self.get_filtered_tags(pages))
+		tags = [r[0] for r in index_list_tags_ordered(self.index, selected)]
+		self._clear_all()
 
-		for pos, id in enumerate(tags):
-			item = None
-			iter = buffer.get_iter_at_offset(pos)
-
-			# Remove items that shouldn't be here
-			while not iter.is_end():
-				item = get_item_at_iter(iter)
-				if not item.indextag.id in tags:
-					remove_item(item, iter)
-				else:
-					break
-				iter = buffer.get_iter_at_offset(pos)
-
-			# Insert item if not yet there
-			if item is None or item.indextag.id != id:
-				insert_item(id, iter, id in selected)
-
-		# Remove trailing items
-		iter = buffer.get_iter_at_offset(len(tags))
-		while not iter.is_end():
-			item = get_item_at_iter(iter)
-			remove_item(item, iter)
-			iter = buffer.get_iter_at_offset(len(tags))
+		buffer = self.get_buffer()
+		for tag in tags:
+			iter = buffer.get_end_iter()
+			anchor = buffer.create_child_anchor(iter)
+			button = TagCloudItem(tag)
+			button.set_active(tag in selected)
+			button.connect("toggled", lambda b: self.update())
+			self.add_child_at_anchor(button, anchor)
 
 		self.show_all()
-		self.emit('cloud-updated', pages)
+		self.emit('cloud-updated')
 
 
 # Need to register classes defining gobject signals

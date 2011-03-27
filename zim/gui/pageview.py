@@ -372,7 +372,7 @@ class TextBuffer(gtk.TextBuffer):
 		'sub': {'rise': -3500, 'scale':0.7},
 		'sup': {'rise': 7500, 'scale':0.7},
 		'link': {'foreground': 'blue'},
-		'tag': {'foreground': '#f57900'},
+		'tag': {'foreground': '#ce5c00'},
 		'indent': {},
 		'bullet-list': {},
 		'unchecked-checkbox': {},

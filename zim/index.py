@@ -44,7 +44,7 @@ import gobject
 import logging
 
 import zim
-from zim.notebook import Path, Link, Tagged, PageNameError
+from zim.notebook import Path, Link, PageNameError
 
 logger = logging.getLogger('zim.index')
 
@@ -202,12 +202,18 @@ class IndexTag(object):
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)
 
+	def __hash__(self):
+		return self.name.__hash__()
+
 	def __eq__(self, other):
 		'''Tags are equal when their names are the same'''
 		if isinstance(other, IndexTag):
 			return self.name == other.name
 		else:
 			return False
+
+	def __ne__(self, other):
+		return not self.__eq__(other)
 
 	@property
 	def id(self): return self._indextag
@@ -866,10 +872,10 @@ class Index(gobject.GObject):
 			with self.db_commit:
 				tags = list(self.get_tags(path))
 				for i, tag in enumerate(tags):
-					self.emit('tag-to-be-removed', tag.tag, tag.source, i == len(tags) - 1)
-					self.db.execute('delete from tagsources where source==? and tag==?', (tag.source.id, tag.tag.id))
+					self.emit('tag-to-be-removed', tag, path, i == len(tags) - 1)
+					self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag.id))
 			for i, tag in enumerate(tags):
-				self.emit('tag-removed', tag.tag, tag.source, i == len(tags) - 1)
+				self.emit('tag-removed', tag, path, i == len(tags) - 1)
 
 		# Clean up any nodes that are not a link
 		paths.reverse() # process children first
@@ -1279,7 +1285,7 @@ class Index(gobject.GObject):
 			for source in cursor:
 				assert source['source'] == path.id
 				tag = self.lookup_tagid(source['tag'])
-				yield Tagged(path, tag)
+				yield tag
 
 	def list_tagged(self, tag, offset = None, limit = 20, return_id = False):
 		'''
