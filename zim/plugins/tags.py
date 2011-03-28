@@ -22,10 +22,15 @@ logger = logging.getLogger('zim.plugins.tags')
 
 # TODO: put this methof in the index ? Maybe we can do without it..
 def index_list_pages(index, offset = None, limit = 20, return_id = False):
-	'''
-	Query the index for a flat page list
-	@param offset: Offset in the list for segmented queries
-	@param limit: Limit of the segment size for segmented queries.
+	'''Query the index for a flat page list
+
+	@param index: L{Index} object
+
+	@keyword offset: Offset in the list for segmented queries
+	@keyword limit: Limit of the segment size for segmented queries.
+	@keyword return_id: return row ids instead of IndexPath objects
+	
+	@return: yields L{IndexPath} objects or row ids
 	'''
 	cursor = index.db.cursor()
 
@@ -44,12 +49,17 @@ def index_list_pages(index, offset = None, limit = 20, return_id = False):
 
 
 def index_list_tags_ordered(index, tags=None):
-	'''Returns a list of tuples where first item is an IndexTag object
-	and second item is the number of occurences for this tag.
+	'''Query the index for a list of all tags, or the subset of tags that
+	can be combined with a given set.
 
 	When a list of tags is given only tags are listed in the result that
 	occur on pages that match the given tag set. This is used to narrow
 	down possible supersets that are not empty.
+
+	@param tags: An iterable of L{IndexTag} objects
+	
+	@return: A list of tuples where first item is an L{IndexTag} object,
+		and the second item is the number of occurences for this tag.
 	'''
 	cursor = index.db.cursor()
 	if tags:
@@ -670,7 +680,7 @@ class TagsPageTreeView(PageTreeView):
 		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
 
 # Need to register classes defining gobject signals
-gobject.type_register(TagsPageTreeView) #@UndefinedVariable
+gobject.type_register(TagsPageTreeView) 
 
 
 class TagCloudItem(gtk.ToggleButton):
@@ -703,7 +713,7 @@ class TagCloudWidget(gtk.TextView):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'selection-changed': (gobject.SIGNAL_RUN_LAST, None, ()), #@UndefinedVariable
+		'selection-changed': (gobject.SIGNAL_RUN_LAST, None, ()), 
 	}
 
 	def __init__(self, ui, index=None):
@@ -782,7 +792,7 @@ class TagCloudWidget(gtk.TextView):
 		self.emit('selection-changed')
 
 # Need to register classes defining gobject signals
-gobject.type_register(TagCloudWidget) #@UndefinedVariable
+gobject.type_register(TagCloudWidget) 
 
 
 class TagsPluginWidget(gtk.VPaned):

@@ -13,6 +13,7 @@ help:
 	@echo "make source - Create source package"
 	@echo "make buildrpm - Generate a rpm package"
 	@echo "make builddeb - Generate a deb package"
+	@echo "make epydoc - Generate API docs using 'epydoc'"
 	@echo "make clean - Get rid of scratch and byte files"
 
 source:
@@ -30,6 +31,11 @@ buildrpm:
 builddeb:
 	dpkg-buildpackage -i -I -rfakeroot
 	$(MAKE) -f $(CURDIR)/debian/rules clean
+
+epydoc:
+	rm -fr ./apidoc
+	epydoc --html zim --graph umlclasstree -o ./apidoc
+	@echo -e '\nAPI docs are available in ./apidoc'
 
 clean:
 	$(PYTHON) setup.py clean
