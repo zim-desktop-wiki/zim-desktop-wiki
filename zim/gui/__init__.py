@@ -1124,7 +1124,7 @@ class GtkInterface(NotebookInterface):
 			# Ask regardless of update_links because it might very
 			# well be that the dialog thinks there are no links
 			# but they are simply not indexed yet
-			cont = QuestionDialog(dialog or self,
+			cont = QuestionDialog(self,
 				_('The index is still busy updating. Until this '
 				  'is finished links can not be updated correctly. '
 				  'Performing this action now could break links, '
