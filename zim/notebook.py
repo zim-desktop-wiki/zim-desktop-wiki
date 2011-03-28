@@ -1247,24 +1247,55 @@ class Notebook(gobject.GObject):
 		function is used to present the user with readable paths or to
 		shorten the paths inserted in the wiki code. It is advised to
 		use file uris for links that can not be made relative.
+
+		Relative file paths are always given with unix path semantics
+		(so "/" even on windows). A leading "/" does not mean the path
+		is absolute, but rather that it is relative to the
+		X{document root}.
+
+		@param file: L{File} object we want to link
+		@keyword path: L{Path} object for the page where we want to link this file
+
+		@return: relative file path or C{None} when no relative path was found
+		@rtype: string or C{None}
 		'''
-		root = self.dir
+		notebook_root = self.dir
+		document_root = self.get_document_root()
+
+		# Look within the notebook
 		if path:
-			dir = self.get_attachments_dir(path)
-			if file.ischild(dir):
-				return './'+file.relpath(dir)
-			elif root and file.ischild(root) and dir.ischild(root):
-				parent = file.commonparent(dir)
-				uppath = dir.relpath(parent)
+			attachments_dir = self.get_attachments_dir(path)
+
+			if file.ischild(attachments_dir):
+				return './'+file.relpath(attachments_dir)
+			elif document_root and notebook_root \
+			and document_root.ischild(notebook_root) \
+			and file.ischild(document_root) \
+			and not attachments_dir.ischild(document_root):
+				# special case when document root is below notebook root
+				# the case where document_root == attachment_folder is
+				# already caught by above if clause
+				return '/'+file.relpath(document_root)
+			elif notebook_root \
+			and file.ischild(notebook_root) \
+			and attachments_dir.ischild(notebook_root):
+				parent = file.commonparent(attachments_dir)
+				uppath = attachments_dir.relpath(parent)
 				downpath = file.relpath(parent)
 				up = 1 + uppath.count('/')
 				return '../'*up + downpath
-		elif root and file.ischild(root):
-				return './'+file.relpath(root)
+		else:
+			if document_root and notebook_root \
+			and document_root.ischild(notebook_root) \
+			and file.ischild(document_root):
+				# special case when document root is below notebook root
+				return '/'+file.relpath(document_root)
+			elif notebook_root and file.ischild(notebook_root):
+				return './'+file.relpath(notebook_root)
 
-		dir = self.get_document_root()
-		if dir and file.ischild(dir):
-			return '/'+file.relpath(dir)
+		# If that fails look for global folders
+		if document_root and file.ischild(document_root):
+			return '/'+file.relpath(document_root)
 
 		dir = Dir('~')
 		if file.ischild(dir):
@@ -1282,8 +1313,14 @@ class Notebook(gobject.GObject):
 	def get_document_root(self):
 		'''Returns the Dir object for the document root or None'''
 		path = self.config['Notebook']['document_root']
-		if path: return Dir(path)
-		else: return None
+		if path:
+			if zim.fs.isabs(path):
+				return Dir(path)
+			else:
+				dir = self.dir or self.file.dir
+				return Dir((dir, path))
+		else:
+			return None
 
 	def get_template(self, path):
 		'''Returns a template object for path. Typically used to set initial
@@ -1414,6 +1451,11 @@ class Path(object):
 	of the page and is used instead of the actual page object by methods
 	that only know the name of the page. Path objects have no internal state
 	and are essentially normalized page names.
+
+	@note: There are several subclasses of this class like
+	L{index.IndexPath}, L{Page}, and L{stores.files.FileStorePage}.
+	In any API call where a path object is needed each of these
+	subclasses can be used instead.
 	'''
 
 	__slots__ = ('name',)

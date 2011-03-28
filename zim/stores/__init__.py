@@ -2,7 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''Base class for store modules.
+'''Base class for storage backends
 
 This module contains a base class for store modules. It implements
 some common methods and provides API documentation for the store

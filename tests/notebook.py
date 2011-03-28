@@ -451,6 +451,7 @@ http://foo.org # urls are untouched
 		self.notebook.get_store(path).dir = dir
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
 		doc_root = self.notebook.get_document_root()
+		self.assertEqual(doc_root, self.notebook.dir.subdir('notebook_document_root'))
 		for link, wanted, cleaned in (
 			('~/test.txt', File('~/test.txt'), '~/test.txt'),
 			(r'~\test.txt', File('~/test.txt'), '~/test.txt'),
@@ -458,6 +459,7 @@ http://foo.org # urls are untouched
 			('file:/test.txt', File('file:///test.txt'), None),
 			('file://localhost/test.txt', File('file:///test.txt'), None),
 			('/test.txt', doc_root.file('test.txt'), '/test.txt'),
+			('../../notebook_document_root/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('./test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
 			(r'.\test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
 			('../test.txt', dir.file('Foo/test.txt'), '../test.txt'),
@@ -475,6 +477,10 @@ http://foo.org # urls are untouched
 		# check relative path without Path
 		self.assertEqual(
 			self.notebook.relative_filepath(doc_root.file('foo.txt')), '/foo.txt')
+		self.assertEqual(
+			self.notebook.relative_filepath(self.notebook.dir.file('foo.txt')), './foo.txt')
+		
+		
 
 #	def testResolveLink(self):
 #		'''Test page.resolve_link()'''
