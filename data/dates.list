@@ -1,9 +1,10 @@
 # List with date-time formats used for the
 # "Insert Date eand Time" dialog.
 # See man strftime a description of the format.
+%x
 %c
 %A %d/%m/%Y
 %A %d/%m/%Y %H:%M
 %A %d %B %Y
-%x
-%F
+[d: %Y-%m-%d]
+%Y-%m-%d

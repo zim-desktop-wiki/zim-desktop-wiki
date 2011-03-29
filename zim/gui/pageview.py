@@ -15,7 +15,7 @@ import gtk
 import pango
 import re
 import string
-from time import strftime
+import datetime
 
 import zim.fs
 from zim.fs import *
@@ -4042,20 +4042,47 @@ class PageView(gtk.VBox):
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
 
+from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
 
 class InsertDateDialog(Dialog):
+
+	FORMAT_COL = 0 # format string
+	DATE_COL = 1 # strfime rendering of the format
 
 	def __init__(self, ui, buffer):
 		Dialog.__init__(self, ui, _('Insert Date and Time'), # T: Dialog title
 			button=(_('_Insert'), 'gtk-ok') )  # T: Button label
 		self.buffer = buffer
+		self.date = datetime.datetime.now()
 
 		self.uistate.setdefault('lastusedformat', '')
 		self.uistate.setdefault('linkdate', False)
+		self.uistate.setdefault('calendar_expanded', False)
 
-		model = gtk.ListStore(str, str) # format, data
+		self.calendar_expander = gtk.expander_new_with_mnemonic('<b>'+_("_Calendar")+'</b>')
+			# T: expander label in "insert date" dialog
+		self.calendar_expander.set_use_markup(True)
+		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
+		self.calendar = Calendar()
+		self.calendar.display_options(
+			gtk.CALENDAR_SHOW_HEADING |
+			gtk.CALENDAR_SHOW_DAY_NAMES |
+			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
+		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
+		self.calendar_expander.add(self.calendar)
+		self.vbox.pack_start(self.calendar_expander, False)
+
+		label = gtk.Label()
+		label.set_markup('<b>'+_("Format")+'</b>') # T: label in "insert date" dialog
+		label.set_alignment(0.0, 0.5)
+		self.vbox.pack_start((label), False)
+
+		model = gtk.ListStore(str, str) # FORMAT_COL, DATE_COL
 		self.view = BrowserTreeView(model)
-		self.vbox.add(self.view)
+		window = gtk.ScrolledWindow()
+		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		window.add(self.view)
+		self.vbox.add(window)
 
 		cell_renderer = gtk.CellRendererText()
 		column = gtk.TreeViewColumn('_date_', cell_renderer, text=1)
@@ -4069,17 +4096,13 @@ class InsertDateDialog(Dialog):
 		self.linkbutton.set_active(self.uistate['linkdate'])
 		self.vbox.pack_start(self.linkbutton, False)
 
-		date = strftime('%Y-%m-%d') # YYYY-MM-DD
-		self.link = self.ui.notebook.suggest_link(self.ui.page, date)
-		if not self.link:
-			self.linkbutton.set_sensitive(False)
-
 		button = gtk.Button(stock=gtk.STOCK_EDIT)
 		button.connect('clicked', self.on_edit)
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 1)
 
 		self.load_file()
+		self.set_date(self.date)
 
 	def load_file(self):
 		lastused = None
@@ -4090,8 +4113,7 @@ class InsertDateDialog(Dialog):
 			if not line or line.startswith('#'): continue
 			try:
 				format = line
-				date = strftime(format)
-				iter = model.append((format, date))
+				iter = model.append((format, format))
 				if format == self.uistate['lastusedformat']:
 					lastused = iter
 			except:
@@ -4101,11 +4123,30 @@ class InsertDateDialog(Dialog):
 			path = model.get_path(lastused)
 			self.view.get_selection().select_path(path)
 
+	def set_date(self, date):
+		self.date = date
+		
+		def update_date(model, path, iter):
+			format = model[iter][self.FORMAT_COL]
+			try:
+				string = date.strftime(format)
+			except ValueError:
+				string = 'INVALID: ' + format
+			model[iter][self.DATE_COL] = string
+
+		model = self.view.get_model()
+		model.foreach(update_date)
+
+		link = date.strftime('%Y-%m-%d') # YYYY-MM-DD
+		self.link = self.ui.notebook.suggest_link(self.ui.page, link)
+		self.linkbutton.set_sensitive(not self.link is None)
+
 	def save_uistate(self):
 		model, iter = self.view.get_selection().get_selected()
-		format = model[iter][0]
+		format = model[iter][self.FORMAT_COL]
 		self.uistate['lastusedformat'] = format
 		self.uistate['linkdate'] = self.linkbutton.get_active()
+		self.uistate['calendar_expanded'] = self.calendar_expander.get_expanded()
 
 	def on_edit(self, button):
 		file = config_file('dates.list')
@@ -4114,7 +4155,7 @@ class InsertDateDialog(Dialog):
 
 	def do_response_ok(self):
 		model, iter = self.view.get_selection().get_selected()
-		text = model[iter][1]
+		text = model[iter][self.DATE_COL]
 		if self.link and self.linkbutton.get_active():
 			self.buffer.insert_link_at_cursor(text, self.link.name)
 		else:
