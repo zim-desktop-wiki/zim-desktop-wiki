@@ -1762,9 +1762,13 @@ class Dialog(gtk.Dialog):
 		'''
 		self.help_page = pagename
 		button = gtk.Button(stock=gtk.STOCK_HELP)
-		button.connect('clicked', lambda o: self.ui.show_help(self.help_page))
+		button.connect_object('clicked', self.__class__.show_help, self)
 		self.action_area.add(button)
 		self.action_area.set_child_secondary(button, True)
+
+	def show_help(self, page=None):
+		self.ui.show_help(page or self.help_page)
+			# recurses until gui.show_help is reached
 
 	def add_help_text(self, text):
 		'''Adds a label with an info icon in front of it. Intended for

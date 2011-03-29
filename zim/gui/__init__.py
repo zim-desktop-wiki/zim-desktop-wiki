@@ -2302,14 +2302,17 @@ class NewPageDialog(Dialog):
 
 		self.path = path or ui.page
 
+		key = self.path or ''
+		default = ui.notebook.namespace_properties[key]['template']
 		templates = list_templates('wiki')
+		if not default in templates:
+			templates.insert(0, default)
+
 		self.add_form([
 			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: Choice label
-		], None, None, False )
+		])
 
-		key = self.path or ''
-		default = ui.notebook.namespace_properties[key]['template']
 		self.form['template'] = default
 		self.form.widgets['template'].set_no_show_all(True) # TEMP: hide feature
 		self.form.widgets['template'].set_property('visible', False) # TEMP: hide feature

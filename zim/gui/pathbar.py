@@ -494,6 +494,8 @@ class NamespacePathBar(PathBar):
 	def get_paths(self):
 		# no need to enforce a max number of paths here
 		current = self.history.get_current()
+		if not current:
+			return []
 		path = self.history.get_grandchild(current) or current
 		paths = list(path.parents())
 		paths.reverse()

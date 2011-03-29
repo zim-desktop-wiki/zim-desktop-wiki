@@ -449,8 +449,7 @@ class SearchSelection(PageSelection):
 	def _namespace_regex(self, string, case=False):
 		# like _name_regex but adds recursive descent below the page
 		namespace = re.escape( string.strip('*:') )
-		regex = r'^(' + namespace + '|' + namespace + ':)$'
-
+		regex = r'^(' + namespace + '$|' + namespace + ':)'
 		if case:
 			return re.compile(regex)
 		else:

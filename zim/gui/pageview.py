@@ -4125,7 +4125,7 @@ class InsertDateDialog(Dialog):
 
 	def set_date(self, date):
 		self.date = date
-		
+
 		def update_date(model, path, iter):
 			format = model[iter][self.FORMAT_COL]
 			try:
@@ -4673,6 +4673,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 		string = self.replace_entry.get_text()
 		buffer = self.textview.get_buffer()
 		buffer.finder.replace(string)
+		buffer.finder.find_next()
 
 	def replace_all(self):
 		string = self.replace_entry.get_text()
