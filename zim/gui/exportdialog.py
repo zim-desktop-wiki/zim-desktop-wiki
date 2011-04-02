@@ -122,7 +122,7 @@ class InputPage(AssistantPage):
 			'page': 'selection:page',
 			#~ 'recursive': 'selection:page',
 		} )
-		self.form.widgets['page'].force_existing = True
+		self.form.widgets['page'].existing_only = True
 
 	def init_uistate(self):
 		#~ self.uistate.setdefault('selection', 'all', ('all', 'page'))

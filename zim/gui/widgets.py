@@ -740,7 +740,7 @@ class InputForm(gtk.Table):
 
 			elif type == 'link':
 				#~ assert self.notebook
-				entry = LinkEntry(self.notebook, path_context=extra)
+				entry = LinkEntry(self.notebook, path=extra)
 				# FIXME use inline icon for newer versions of Gtk
 				button = gtk.Button('_Browse')
 				button.connect_object('clicked', entry.__class__.popup_dialog, entry)
@@ -748,12 +748,12 @@ class InputForm(gtk.Table):
 
 			elif type == 'page':
 				#~ assert self.notebook
-				entry = PageEntry(self.notebook, path_context=extra)
+				entry = PageEntry(self.notebook, path=extra)
 				widgets.append((label, entry))
 
 			elif type == 'namespace':
 				#~ assert self.notebook
-				entry = NamespaceEntry(self.notebook, path_context=extra)
+				entry = NamespaceEntry(self.notebook, path=extra)
 				widgets.append((label, entry))
 
 			elif type in ('dir', 'file', 'image', 'output-file'):
@@ -1108,8 +1108,11 @@ class FSPathEntry(InputEntry):
 		self.file_type_hint = None
 
 	def set_use_relative_paths(self, notebook, path=None):
-		'''Set the notebook and path to be used for relative paths. Set
-		notebook=None to disable relative paths.
+		'''Set the notebook and path to be used for relative paths.
+		Set C{notebook=None} to disable relative paths.
+
+		@param notebook: the L{Notebook} object for resolving paths
+		@keyword path: a L{Path} object used for resolving relative links
 		'''
 		self.notebook = notebook
 		self.notebookpath = path
@@ -1205,24 +1208,39 @@ class FolderEntry(FSPathEntry):
 
 
 class PageEntry(InputEntry):
+	'''Input widget for zim page names
 
-	allow_select_root = False
+	This widget features completion for existing page names and will show when the
+	entered text is not a valid page name.
+	'''
 
-	def __init__(self, notebook, path=None, path_context=None):
-		'''Contructor. Typically needs a Notebook to resolve paths and
-		show completion, but can be used with notebook=None if really
-		needed.
-		If a context is given this is the reference Path for resolving
-		relative links.
+	_allow_select_root = False
+
+	def __init__(self, notebook, path=None, subpaths_only=False, existing_only=False):
+		'''Contructor
+
+		Typically this widget uses a Notebook to resolve paths and show completion,
+		but can be used with notebook=None if really needed. If a path is given as
+		well this is used as the start for resolving relative links.
+
+		@param notebook: the L{Notebook} object for resolving paths and
+		completing existing pages
+		@keyword path: a L{Path} object used for resolving relative links
+		@keyword subpaths_only: if C{True} the input will always be
+		considered a sub path of 'path'
+		@keyword existing_only: if C{True} only allow to select existing pages
+
+		@note: 'subpaths_only' and 'existing_only' can also be set using
+		the like named attributes
 		'''
 		self.notebook = notebook
-		self.path_context = path_context
-		self.force_child = False
-		self.force_existing = False
-		self._completing = ''
+		self.notebookpath = path
+		self.subpaths_only = subpaths_only
+		self.existing_only = existing_only
+		self._current_completion = ()
 
 		InputEntry.__init__(self, allow_empty=False)
-		assert path_context is None or isinstance(path_context, Path)
+		assert path is None or isinstance(path, Path)
 
 		completion = gtk.EntryCompletion()
 		completion.set_model(gtk.ListStore(str))
@@ -1230,81 +1248,102 @@ class PageEntry(InputEntry):
 		completion.set_inline_completion(True)
 		self.set_completion(completion)
 
-		if path:
-			self.set_path(path)
+	def set_use_relative_paths(self, notebook, path=None):
+		'''Set the notebook and path to be used for relative paths.
+		Set C{notebook=None} to disable relative paths.
+
+		@param notebook: the L{Notebook} object for resolving paths and
+		completing existing pages
+		@keyword path: a L{Path} object used for resolving relative links
+		'''
+		self.notebook = notebook
+		self.notebookpath = path
 
 	def set_path(self, path):
+		'''Set the path to be shown in the entry
+
+		@note: If you have the link as a string, use L{set_text()} instead
+
+		@param path: L{Path} object
+		'''
 		self.set_text(':'+path.name)
 
 	def get_path(self):
-		'''Returns a valid Path object or None. If None is returned
-		the widget is flagged as invalid. So e.g. in a dialog you can
-		get a path and refuse to close a dialog if the path is None and
-		the user will automatically be alerted to the missing input.
+		'''Returns the path shown in the widget if it is valid or None.
+
+		If None is returned the widget is flagged as invalid. So e.g. in a
+		dialog you can get a path and refuse to close a dialog if the path
+		is None and the user will automatically be alerted to the missing input.
+
+		@returns: a L{Path} object or C{None} is no valid path was entered
 		'''
 		name = self.get_text().decode('utf-8').strip()
 		if not name:
 			self.set_input_valid(False)
 			return None
-		elif self.allow_select_root and name == ':':
+		elif self._allow_select_root and name == ':':
 			return Path(':')
 		else:
-			if self.force_child and not name.startswith('+'):
+			if self.subpaths_only and not name.startswith('+'):
 				name = '+' + name
 			try:
 				if self.notebook:
-					path = self.notebook.resolve_path(name, source=self.path_context)
+					path = self.notebook.resolve_path(name, source=self.notebookpath)
 				else:
 					path = Path(name)
 			except PageNameError:
 				self.set_input_valid(False)
 				return None
 			else:
-				if self.force_existing:
+				if self.existing_only:
 					page = self.notebook.get_page(path)
 					if not (page and page.exists()):
 						return None
 				return path
 
-	def clear(self):
-		self.set_text('')
-		self.emit('activate')
-
 	def do_changed(self):
 		text = self.get_text()
 
-		# FIXME: why should pageentry always allow empty input ?
-		if not text and not self.force_existing:
-			self.set_input_valid(True)
+		if not text:
+			if self.existing_only:
+				self.set_input_valid(False)
+			else:
+				self.set_input_valid(True)
+				# FIXME: why should pageentry always allow empty input ?
 			return
 
-		try:
-			if text != ':' and text != '+':
-				# Clean up, but keep the end ":" chars
-				orig = text
+		# Check for a valid page name
+		orig = text
+		if text != ':' and text != '+':
+			try:
 				text = Notebook.cleanup_pathname(text.lstrip('+'))
-				if orig[0] == ':' and text[0] != ':':
-					text = ':' + text
-				elif orig[0] == '+':
-					text = '+' + text
-				if orig[-1] == ':' and text[-1] != ':':
-					text = text + ':'
-			else:
-				pass
-		except PageNameError:
-			self.set_input_valid(False)
-			return
+			except PageNameError:
+				self.set_input_valid(False)
+				return
+
+			# restore pre- and postfix
+			if orig[0] == ':' and text[0] != ':':
+				text = ':' + text
+			elif orig[0] == '+' and text[0] != '+':
+				text = '+' + text
+
+			if orig[-1] == ':' and text[-1] != ':':
+				text = text + ':'
+		else:
+			pass
+
+		if self.existing_only:
+			path = self.get_path()
+			self.set_input_valid(not path is None)
 		else:
 			self.set_input_valid(True)
 
-		if self.force_existing:
-			path = self.get_path()
-			self.set_input_valid(not path is None)
-
+		# Start completion
 		if not self.notebook:
 			return # no completion without a notebook
 
-		# Figure out some hint about the namespace
+		# Figure out the namespace to complete
+		#~ print 'COMPLETE page: "%s", raw: "%s", ref: %s' % (text, orig, self.notebookpath)
 		anchored = False
 		if ':' in text:
 			# can still have context and start with '+'
@@ -1312,29 +1351,32 @@ class PageEntry(InputEntry):
 			completing = text[:i+1]
 			prefix = completing
 			anchored = True
-		elif self.path_context:
+		elif self.notebookpath:
 			if text.startswith('+'):
-				completing = ':' + self.path_context.name
+				completing = ':' + self.notebookpath.name
 				prefix = '+'
 				anchored = True
 			else:
-				completing = ':' + self.path_context.namespace
+				completing = ':' + self.notebookpath.namespace
 				prefix = ''
 		else:
 			completing = ':'
 			prefix = ''
 
-		if self.force_child and not completing.startswith('+'):
+		if self.subpaths_only and not completing.startswith('+'):
 			# Needed for new_sub_page - always force child page
 			completing = '+' + completing
 			anchored = True
 
-		# Check if we completed already for this namespace
-		if completing == self._completing:
+		# Check if we completed already for this case
+		if (prefix, completing) == self._current_completion:
+			#~ print '\t NO NEW COMPLETION'
 			return
-		self._completing = completing
 
-		# Else fill model with pages from namespace
+		#~ print '\t COMPLETING "%s", namespace: %s' % (prefix, completing)
+		self._current_completion = (prefix, completing)
+
+		# Resolve path and fill model with pages from namespace
 		completion = self.get_completion()
 		model = completion.get_model()
 		model.clear()
@@ -1343,12 +1385,14 @@ class PageEntry(InputEntry):
 			path = Path(':')
 		else:
 			try:
-				path = self.notebook.resolve_path(completing, source=self.path_context)
+				path = self.notebook.resolve_path(completing, source=self.notebookpath)
 			except PageNameError:
+				#~ print '\t NOT A VALID NAMESPACE'
 				return
+			#~ else:
+				#~ print '\t NAMESPACE', path
 
 		# TODO also add parent namespaces in case text did not contain any ':' (anchored == False)
-		#~ print '!! COMPLETING %s context: %s prefix: %s' % (path, self.path_context, prefix)
 		for p in self.notebook.index.list_pages(path):
 			model.append((prefix+p.basename,))
 
@@ -1356,23 +1400,40 @@ class PageEntry(InputEntry):
 
 
 class NamespaceEntry(PageEntry):
+	'''Input widget for zim page names when used as namespace
 
-	allow_select_root = True
+	Use this instead of PageEntry when you want to allow selecting a namespace.
+	Most notably it will be allowed to select ":" or empty string for the root
+	namespace, this is not allowed in PageEntry.
+	'''
+
+	_allow_select_root = True
 
 
 class LinkEntry(PageEntry, FileEntry):
-	'''Sub-class of PageEntry that also accepts file links and urls'''
+	'''Input widget that accepts zim page names, file links and urls'''
 
 	_class = File
 
-	def __init__(self, notebook, path=None, path_context=None):
-		PageEntry.__init__(self, notebook, path=None, path_context=None)
-		self.notebook = notebook
-		self.notebookpath = path_context
+	def __init__(self, notebook, path=None):
+		PageEntry.__init__(self, notebook, path)
 		self.action = gtk.FILE_CHOOSER_ACTION_OPEN
 		self.file_type_hint = None
 
+	def get_path(self):
+		# Check we actually got a valid path
+		text = self.get_text().decode('utf-8').strip()
+		if text:
+			type = link_type(text)
+			if type == 'page':
+				return PageEntry.get_path(self)
+			else:
+				return None
+		else:
+			return None
+
 	def do_changed(self):
+		# Switch between path completion and file completion
 		text = self.get_text().decode('utf-8').strip()
 		if text:
 			type = link_type(text)

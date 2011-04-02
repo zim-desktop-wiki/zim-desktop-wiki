@@ -2318,7 +2318,7 @@ class NewPageDialog(Dialog):
 		self.form.widgets['template'].set_property('visible', False) # TEMP: hide feature
 
 		if subpage:
-			self.form.widgets['page'].force_child = True
+			self.form.widgets['page'].subpaths_only = True
 
 		# TODO: reset default when page input changed
 
