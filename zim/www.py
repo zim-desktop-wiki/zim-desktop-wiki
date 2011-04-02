@@ -397,7 +397,7 @@ class WWWLinker(BaseLinker):
 	def icon(self, name):
 		return url_encode('/+icons/%s.png' % name)
 
-	def page(self, link):
+	def link_page(self, link):
 		try:
 			page = self.notebook.resolve_path(link, source=self.path)
 		except PageNameError:
@@ -406,7 +406,7 @@ class WWWLinker(BaseLinker):
 			return url_encode('/' + encode_filename(page.name) + '.html')
 			# TODO use script location as root for cgi-bin
 
-	def file(self, link):
+	def link_file(self, link):
 		# cleanup the path
 		isabs = link.startswith('/')
 		isdir = link.endswith('/')

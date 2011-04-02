@@ -199,7 +199,7 @@ class StaticLinker(BaseLinker):
 		else:
 			return BaseLinker.icon(self, name)
 
-	def page(self, link):
+	def link_page(self, link):
 		try:
 			page = self.notebook.resolve_path(link, source=self.path)
 		except PageNameError:
@@ -227,7 +227,7 @@ class StaticLinker(BaseLinker):
 			#~ print '>>>', path
 			return url_encode(path.replace(' ', '_'))
 
-	def file(self, link):
+	def link_file(self, link):
 		if self.document_root_url and link.startswith('/'):
 			return ''.join((self.document_root_url.rstrip('/'), link))
 		else:
@@ -247,3 +247,15 @@ class StaticLinker(BaseLinker):
 			relpath = './' + relpath
 		return url_encode(relpath) or file.uri
 
+	def link_notebook(self, url):
+		if url.startswith('zim+'):
+			url = url[4:]
+
+		if '?' in url:
+			uri, path = url.split('?')
+			# FIXME: code below is not robust because we don't know the
+			# storage mode of linked notebook...
+			path = encode_filename(path).replace(' ', '_')
+			return uri + '/' + url_encode(path) + '.txt'
+		else:
+			return url

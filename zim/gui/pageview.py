@@ -3596,7 +3596,7 @@ class PageView(gtk.VBox):
 			elif type == 'file':
 				path = self.ui.notebook.resolve_file(href, self.page)
 				self.ui.open_file(path)
-			elif type == 'zim-notebook':
+			elif type == 'notebook':
 				self.ui.open_notebook(href)
 			else:
 				self.ui.open_url(href)
@@ -4042,7 +4042,6 @@ class PageView(gtk.VBox):
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
 
-from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
 
 class InsertDateDialog(Dialog):
 
@@ -4058,6 +4057,8 @@ class InsertDateDialog(Dialog):
 		self.uistate.setdefault('lastusedformat', '')
 		self.uistate.setdefault('linkdate', False)
 		self.uistate.setdefault('calendar_expanded', False)
+
+		from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
 
 		self.calendar_expander = gtk.expander_new_with_mnemonic('<b>'+_("_Calendar")+'</b>')
 			# T: expander label in "insert date" dialog

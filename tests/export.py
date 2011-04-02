@@ -24,11 +24,11 @@ class TestLinker(TestCase):
 		linker.set_path(Path('foo:bar')) # normally set by exporter
 		linker.set_base(Dir('/source/dir/foo')) # normally set by exporter
 
-		self.assertEqual(linker.page('+dus'), './bar/dus.html')
-		self.assertEqual(linker.page('dus'), './dus.html')
-		self.assertEqual(linker.file('./dus.pdf'), './bar/dus.pdf')
-		self.assertEqual(linker.file('../dus.pdf'), './dus.pdf')
-		self.assertEqual(linker.file('../../dus.pdf'), '../dus.pdf')
+		self.assertEqual(linker.link_page('+dus'), './bar/dus.html')
+		self.assertEqual(linker.link_page('dus'), './dus.html')
+		self.assertEqual(linker.link_file('./dus.pdf'), './bar/dus.pdf')
+		self.assertEqual(linker.link_file('../dus.pdf'), './dus.pdf')
+		self.assertEqual(linker.link_file('../../dus.pdf'), '../dus.pdf')
 
 
 class TestExport(TestCase):
