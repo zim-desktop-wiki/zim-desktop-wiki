@@ -216,7 +216,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 					parenttreepath = treepath[:i-1]
 					offset = mytreepath[-1]
 					#~ print '>>>> Load pagelist for', parent, 'offset', offset
-					pages = self.index.list_pages_n(parent, offset, limit=20)
+					pages = self.index.list_pages(parent, offset, limit=20)
 					for j, path in enumerate(pages):
 						childtreepath = parenttreepath + (offset + j,)
 						iter = PageTreeIter(childtreepath, path)

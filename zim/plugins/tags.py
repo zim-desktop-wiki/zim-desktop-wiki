@@ -20,76 +20,6 @@ from zim.gui.widgets import LEFT_PANE
 logger = logging.getLogger('zim.plugins.tags')
 
 
-# TODO: put this methof in the index ? Maybe we can do without it..
-def index_list_pages(index, offset = None, limit = 20, return_id = False):
-	'''Query the index for a flat page list
-
-	@param index: L{Index} object
-
-	@keyword offset: Offset in the list for segmented queries
-	@keyword limit: Limit of the segment size for segmented queries.
-	@keyword return_id: return row ids instead of IndexPath objects
-	
-	@return: yields L{IndexPath} objects or row ids
-	'''
-	cursor = index.db.cursor()
-
-	query = 'select * from pages order by lower(basename)'
-	if offset is None:
-		cursor.execute(query)
-	else:
-		cursor.execute(query + ' limit ? offset ?', (limit, offset + 1))
-
-	for row in cursor:
-		if not row['basename'] == '':
-			if return_id:
-				yield row['id']
-			else:
-				yield index.lookup_id(row['id'])
-
-
-def index_list_tags_ordered(index, tags=None):
-	'''Query the index for a list of all tags, or the subset of tags that
-	can be combined with a given set.
-
-	When a list of tags is given only tags are listed in the result that
-	occur on pages that match the given tag set. This is used to narrow
-	down possible supersets that are not empty.
-
-	@param tags: An iterable of L{IndexTag} objects
-	
-	@return: A list of tuples where first item is an L{IndexTag} object,
-		and the second item is the number of occurences for this tag.
-	'''
-	cursor = index.db.cursor()
-	if tags:
-		tag_ids = '(' + ','.join(str(t.id) for t in tags) + ')'
-		cursor.execute(
-			# The sub-query filters on pages that match all of the given tags
-			# The main query selects all tags occuring on those pages and sorts
-			# them by number of matching pages
-			'SELECT t.id, t.name, count(*) hits'
-			' FROM tags t INNER JOIN tagsources s ON t.id = s.tag'
-			' WHERE s.source IN ('
-			'   SELECT source FROM tagsources'
-			'   WHERE tag IN %s'
-			'   GROUP BY source'
-			'   HAVING count(tag) = ?'
-			' )'
-			' GROUP BY s.tag'
-			' ORDER BY count(*) DESC' % tag_ids, (len(tags),)
-		)
-	else:
-		cursor.execute(
-			'SELECT t.id, t.name, count(*) hits'
-			' FROM tags t INNER JOIN tagsources s ON t.id = s.tag'
-			' GROUP BY s.tag'
-			' ORDER BY count(*) DESC'
-		)
-	for row in cursor:
-		yield IndexTag(row['name'], row['id'], row), row['hits']
-
-
 class PageTreeTagIter(object):
 	'''Simple wrapper for IndexTag objects used as tree iters
 
@@ -130,6 +60,9 @@ class DuplicatePageTreeStore(PageTreeStore):
 class TagsPageTreeStore(DuplicatePageTreeStore):
 	'''Subclass of the PageTreeStore that shows tags as the top level
 	for sub-sets of the page tree.
+
+	A special top level item 'untagged' is created with all the
+	untagged (top level) pages.
 	'''
 
 	filter_depth = 2 # tag filter applies to top two levels
@@ -159,33 +92,31 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 
 		def on_tag_created(o, tag):
 			self._flush()
-			all_tags = [t.id for t in self.index.list_tags(None)]
-			treepath = (all_tags.index(tag.id)+1,)
+			treepath = (self.index.get_tag_index(tag) + 1,)
 			treeiter = self.get_iter(treepath)
 			#~ print '!! tag created', tag, treepath
 			self.row_inserted(treepath, treeiter)
 
 		def on_tag_to_be_inserted(o, tag, path, first):
-			if first:
+			if first and not path.namespace:
 				# Remove from untagged branch
-				untagged = [p.id for p in self.index.list_untagged()]
-				treepath = (0, untagged.index(path.id))
+				treepath = (0, self.index.get_untagged_root_page_index(path))
 				#~ print '!! removed from untagged', treepath
 				self.row_deleted(treepath)
 				self._flush()
 
 		def on_tag_inserted(o, tag, path, first):
-			if first:
+			if first and not path.namespace:
 				# Finish update of untagged branch
-				if not self.index.n_list_untagged():
+				if not self.index.n_list_untagged_root_pages():
 					treeiter = self.get_iter((0,))
 					self.row_has_child_toggled((0,), treeiter)
 
 			# Add to tag branch
 			self._flush()
-			all_tags = [t.id for t in self.index.list_tags(None)]
-			all_tagged = [p.id for p in self.index.list_tagged(tag)]
-			treepath = (all_tags.index(tag.id)+1, all_tagged.index(path.id))
+			tagindex = self.index.get_tag_index(tag)
+			pageindex = self.index.get_tagged_page_index(tag, path)
+			treepath = (tagindex + 1, pageindex)
 			treeiter = self.get_iter(treepath)
 			#~ print '!! tag inserted', tag, treepath
 			self.row_inserted(treepath, treeiter)
@@ -196,18 +127,18 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 
 		def on_tag_to_be_removed(o, tag, path, last):
 			# Remove from tag branch
-			all_tags = [t.id for t in self.index.list_tags(None)]
-			all_tagged = [p.id for p in self.index.list_tagged(tag)]
-			treepath = (all_tags.index(tag.id)+1, all_tagged.index(path.id))
+			tagindex = self.index.get_tag_index(tag)
+			pageindex = self.index.get_tagged_page_index(path)
+			treepath = (tagindex + 1, pageindex)
 			#~ print '!! tag removed', tag, treepath
 			self.row_deleted(treepath)
 			self._flush()
 
 		def on_tag_removed(o, tag, path, last):
-			if last:
+			if last and not path.namespace:
 				# Add to untagged
-				untagged = [p.id for p in self.index.list_untagged()]
-				treepath = (0, untagged.index(path.id))
+				pageindex = self.index.get_untagged_root_page_index(path)
+				treepath = (0, pageindex)
 				treeiter = self.get_iter(treepath)
 				#~ print '!! new untagged', treepath
 				if len(untagged) == 1:
@@ -216,8 +147,7 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 				self.row_inserted(treepath, treeiter)
 
 		def on_tag_to_be_deleted(o, tag):
-			all_tags = [t.id for t in self.index.list_tags(None)]
-			treepath = (all_tags.index(tag.id)+1,)
+			treepath = (self.index.get_tag_index(tag) + 1,)
 			#~ print '!! tag deleted', tag, treepath
 			self.row_deleted(treepath)
 			self._flush()
@@ -259,26 +189,26 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 					if parent is None:
 						# The first tree level are tags
 						#~ print '>>>> Load taglist'
-						tags = self.index.list_tags(None, max(0, offset-1), limit=20)
 						if offset == 0:
 							iter = PageTreeTagIter((0,), self.untagged)
 							self._cache.setdefault((0,), iter)
-							offset = 1
+						else:
+							tags = self.index.list_all_tags(offset-1, limit=20)
+								# offset -1 because we use 0 for untagged
 
-						for j, path in enumerate(tags):
-							childtreepath = parenttreepath + (offset + j,)
-							iter = PageTreeTagIter(childtreepath, path)
-							self._cache.setdefault(childtreepath, iter)
-
+							for j, path in enumerate(tags):
+								childtreepath = parenttreepath + (offset + j,)
+								iter = PageTreeTagIter(childtreepath, path)
+								self._cache.setdefault(childtreepath, iter)
 					else:
 						#~ print '>>>> Load pagelist for', parent, 'offset', offset
 						if isinstance(parent, IndexTag):
 							if parent == self.untagged:
-								pages = self.index.list_untagged(offset, limit=20)
+								pages = self.index.list_untagged_root_pages(offset, limit=20)
 							else:
-								pages = self.index.list_tagged(parent, offset, limit=20)
+								pages = self.index.list_tagged_pages(parent, offset, limit=20)
 						else:
-							pages = self.index.list_pages_n(parent, offset, limit=20)
+							pages = self.index.list_pages(parent, offset, limit=20)
 
 						for j, path in enumerate(pages):
 							childtreepath = parenttreepath + (offset + j,)
@@ -307,9 +237,7 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 			if path == self.untagged:
 				return (0,)
 			else:
-				all_tags = list(self.index.list_tags(None))
-				i = all_tags.index(path)
-				return (i+1,)
+				return (self.index.get_tag_index(path) + 1,)
 		else:
 			return DuplicatePageTreeStore.get_treepath(self, path)
 
@@ -343,27 +271,33 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 		paths.insert(0, path)
 
 		child = None
-		childpath = ()
+		childpath = () # partial treepath for child part
 		treepaths = []
-		all_tags = [t.id for t in self.index.list_tags(None)]
 
-		for p in paths:
-			if not child is None:
-				childpath = (list(self.index.list_pages(p)).index(child),) + childpath
+		for p in paths: # iter from child to parents
+			if child:
+				pageindex = self.index.get_page_index(child)
+				childpath = (pageindex,) + childpath
+
 			# Get tags of this path
 			tags = list(self.index.list_tags(p))
-			if len(tags) > 0:
-				for t in tags:
-					ttagged = list(self.index.list_tagged(t))
-					treepaths.append((all_tags.index(t.id)+1, ttagged.index(p)) + childpath)
-			else:
-				untagged = list(self.index.list_untagged())
-				treepaths.append((0, untagged.index(p)) + childpath)
+			for t in tags:
+				tagindex = self.index.get_tag_index(t) + 1 # +1 due to untagged
+				pageindex = self.index.get_tagged_page_index(t, p)
+				treepaths.append((tagindex, pageindex) + childpath)
+
 			child = p
 
-		self._reverse_cache.setdefault(path, treepaths)
+		root_page = paths[-1]
+		try:
+			pageindex = self.index.get_untagged_root_page_index(root_page)
+		except ValueError:
+			pass
+		else:
+			treepaths.append((0, pageindex) + childpath)
 
-		#~ print '>>> Return', treepath
+		treepaths.sort()
+		self._reverse_cache.setdefault(path, treepaths)
 		self._schedule_flush()
 		return treepaths
 
@@ -389,9 +323,9 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 		'''Returns True if the iter has children'''
 		if isinstance(iter, PageTreeTagIter):
 			if iter.indextag == self.untagged:
-				return self.index.n_list_untagged() > 0
+				return self.index.n_list_untagged_root_pages() > 0
 			else:
-				return self.index.n_list_tagged(iter.indextag) > 0
+				return self.index.n_list_tagged_pages(iter.indextag) > 0
 		else:
 			return PageTreeStore.on_iter_has_child(self, iter)
 
@@ -400,12 +334,12 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 		when iter is None the number of tags is given.
 		'''
 		if iter is None:
-			return self.index.n_list_tags(None) + 1 # Include untagged
+			return self.index.n_list_all_tags() + 1 # +1 to include untagged
 		elif isinstance(iter, PageTreeTagIter):
 			if iter.indextag == self.untagged:
-				return self.index.n_list_untagged()
+				return self.index.n_list_untagged_root_pages()
 			else:
-				return self.index.n_list_tagged(iter.indextag)
+				return self.index.n_list_tagged_pages(iter.indextag)
 		else:
 			return PageTreeStore.on_iter_n_children(self, iter)
 
@@ -466,26 +400,6 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 			self.index.connect('page-to-be-deleted', on_page_deleted),
 		)
 
-
-	def list_pages(self, offset = None, limit = 20):
-		'''
-		Query the index for a flat page list
-		@param offset: Offset in the list for segmented queries
-		@param limit: Limit of the segment size for segmented queries.
-		'''
-		return index_list_pages(self.index, offset = offset, limit = limit)
-
-
-	def n_list_pages(self):
-		'''
-		Returns the total number of pages
-		'''
-		cursor = self.index.db.cursor()
-		cursor.execute('select count(*) from pages')
-		row = cursor.fetchone()
-		return int(row[0])-1
-
-
 	def _get_iter(self, treepath):
 		'''
 		Cached conversion of the tree hierarchy to a PageTreeIter.
@@ -504,9 +418,9 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 					offset = leveltreepath[-1]
 
 					if parent is None:
-						pages = self.list_pages(offset, limit = 20)
+						pages = self.index.list_all_pages(offset, limit = 20)
 					else:
-						pages = self.index.list_pages_n(parent, offset, limit=20)
+						pages = self.index.list_pages(parent, offset, limit=20)
 
 					for j, path in enumerate(pages):
 						childtreepath = parenttreepath + (offset + j,)
@@ -520,7 +434,6 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 
 		self._schedule_flush() # Clear the cache when idle
 		return self._cache.get(treepath, None)
-
 
 	def _flush(self):
 		self._reverse_cache = {}
@@ -550,14 +463,16 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 		child = None
 		childpath = ()
 		treepaths = []
-		all_pages = list(self.list_pages())
 
 		for p in paths:
-			if not child is None:
-				childpath = (list(self.index.list_pages(p)).index(child),) + childpath
-			treepaths.append((all_pages.index(p),) + childpath)
+			if child:
+				pageindex = self.index.get_page_index(child)
+				childpath = (pageindex,) + childpath
+			pageindex = self.index.get_all_pages_index(p)
+			treepaths.append((pageindex,) + childpath)
 			child = p
 
+		treepaths.sort()
 		self._reverse_cache.setdefault(path, treepaths)
 		self._schedule_flush()
 		return treepaths
@@ -567,7 +482,7 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 		when iter is None the number of pages in the root namespace is given.
 		'''
 		if iter is None:
-			return self.n_list_pages()
+			return self.index.n_list_all_pages()
 		else:
 			return PageTreeStore.on_iter_n_children(self, iter)
 
@@ -607,7 +522,7 @@ class TagsPageTreeView(PageTreeView):
 					if isinstance(iter, PageTreeTagIter): # -> tag
 						return iter.indextag in self._tag_filter[1] # show filtered tags
 					else: # PageTreeIter -> page
-						tags = frozenset(self.ui.notebook.index.get_tags(iter.indexpath))
+						tags = frozenset(self.ui.notebook.index.list_tags(iter.indexpath))
 							# FIXME clean up law of D
 						return tags >= self._tag_filter[0] # match all selected tags
 
@@ -680,7 +595,7 @@ class TagsPageTreeView(PageTreeView):
 		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
 
 # Need to register classes defining gobject signals
-gobject.type_register(TagsPageTreeView) 
+gobject.type_register(TagsPageTreeView)
 
 
 class TagCloudItem(gtk.ToggleButton):
@@ -713,7 +628,7 @@ class TagCloudWidget(gtk.TextView):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'selection-changed': (gobject.SIGNAL_RUN_LAST, None, ()), 
+		'selection-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	def __init__(self, ui, index=None):
@@ -779,7 +694,11 @@ class TagCloudWidget(gtk.TextView):
 		self._clear()
 
 		buffer = self.get_buffer()
-		tags = [r[0] for r in index_list_tags_ordered(self.index, selected)]
+		if selected:
+			tags = self.index.list_intersecting_tags(selected)
+		else:
+			tags = self.index.list_all_tags_by_score()
+
 		for tag in tags:
 			iter = buffer.get_end_iter()
 			anchor = buffer.create_child_anchor(iter)
@@ -792,7 +711,7 @@ class TagCloudWidget(gtk.TextView):
 		self.emit('selection-changed')
 
 # Need to register classes defining gobject signals
-gobject.type_register(TagCloudWidget) 
+gobject.type_register(TagCloudWidget)
 
 
 class TagsPluginWidget(gtk.VPaned):

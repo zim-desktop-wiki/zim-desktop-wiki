@@ -811,7 +811,7 @@ class GtkInterface(NotebookInterface):
 			# T: Title of progressbar dialog
 		dialog.show_all()
 		self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
-		dialog.set_total(self.notebook.index.n_all_pages())
+		dialog.set_total(self.notebook.index.n_list_all_pages())
 		self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
 

@@ -194,9 +194,9 @@ class TestTaggedPageTreeStore(tests.TestCase):
 				color_to_string( treestore.NORMAL_COLOR) )
 
 		if indextag == treestore.untagged:
-			haschildren = self.index.n_list_untagged() > 0
+			haschildren = self.index.n_list_untagged_root_pages() > 0
 		else:
-			haschildren = self.index.n_list_tagged(indextag) > 0
+			haschildren = self.index.n_list_tagged_pages(indextag) > 0
 		self._check_iter_children(treestore, iter, path, haschildren)
 
 	def _check_iter_children(self, treestore, iter, path, haschildren):

@@ -102,7 +102,7 @@ class TestIndex(tests.TestCase):
 		for tag in taglist:
 			self.assertTrue(isinstance(tag, IndexTag))
 		tagnames = [t.name for t in taglist]
-		aretags = ['tags', 'beginning', 'end', 'tabs', 'verbatim', 
+		aretags = ['tags', 'beginning', 'end', 'tabs', 'verbatim',
 				   'enumerations', 'encoding', 's', 'num6ers', 'wit', 'cr']
 		nottags = ['places', 'links', 'captions', 'Headings', 'word']
 		for t in aretags:
@@ -201,7 +201,7 @@ class TestIndex(tests.TestCase):
 		tags = [tag.name for tag in self.index.list_tags(Path('roundtrip'))]
 		for t in ('foo', 'bar'):
 			self.assertTrue(t in tags)
-			tagged = list(self.index.list_tagged(t))
+			tagged = list(self.index.list_tagged_pages(t))
 			self.assertTrue(Path('roundtrip') in tagged)
 
 		tree = ParseTree().fromstring('<zim-tree><link href=":foo:bar">:foo:bar</link></zim-tree>')
