@@ -136,6 +136,15 @@ class TestSearch(TestCase):
 		self.assertTrue(set(results.scores.keys()) == results)
 		self.assertTrue(all(results.scores.values()))
 
+		query = Query('Tag: tags')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('tag', 'tags')])
+		query = Query('@tags')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('tag', 'tags')])
+		results.search(query)
+		print results
+
 		# TODO test ContentOrName versus Content
 		# TODO test Name and Namespace
 

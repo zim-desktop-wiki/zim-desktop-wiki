@@ -6,6 +6,7 @@ Wiki-Format: zim 0.4
 The following plugins are standard included with zim:
 
 * [[+Calendar|Calendar]]
+* [[+Tags|Tags]]
 * [[+Diagram Editor|Diagram Editor]]
 * [[+Equation Editor|Equation Editor]]
 * [[+GNU R Plot Editor|GNU R Plot Editor]]

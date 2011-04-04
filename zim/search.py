@@ -21,6 +21,7 @@ Supported keywords:
  	LinksFrom:	# forward
  	LinksTo:	# backward
  	ContentOrName: # the default, like Name: *X* or Content: X
+ 	Tag:		# look for a single tag
 
 For the Content field we need to request the actual page contents,
 all other fields we get from the index and are more efficient to
@@ -65,12 +66,12 @@ operators = {
 
 KEYWORDS = (
 	'content', 'name', 'namespace', 'contentorname',
-	'links', 'linksfrom', 'linksto'
+	'links', 'linksfrom', 'linksto', 'tag'
 )
 
 keyword_re = Re('('+'|'.join(KEYWORDS)+'):(.*)', re.I)
 operators_re = Re(r'^(\|\||\&\&|\+|\-)')
-
+tag_re = Re(r'^\@(\w+)$', re.U)
 
 class QueryTerm(object):
 	'''Wrapper for a single term in a query. Consists of a keyword,
@@ -140,6 +141,8 @@ class Query(object):
 				if keyword == 'links':
 					keyword = 'linksfrom'
 				tokens.append(QueryTerm(keyword, string))
+			elif tag_re.match(w):
+				tokens.append(QueryTerm('tag', w[1:]))
 			else:
 				w = unescape_quoted_string(w)
 				tokens.append(QueryTerm('contentorname', w)) # default keyword
@@ -345,6 +348,12 @@ class SearchSelection(PageSelection):
 			else:
 				for link in links:
 					results.add(link.source)
+
+		elif term.keyword == 'tag':
+			tag = index.lookup_tag(term.string)
+			if tag:
+				for path in index.list_tagged_pages(tag):
+					results.add(path)
 
 		else:
 			assert False, 'BUG: unknown keyword: %s' % term.keyword

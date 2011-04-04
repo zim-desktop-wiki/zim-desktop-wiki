@@ -13,6 +13,7 @@ Organization
 * [[+Notebooks|Notebooks]]
 * [[+Pages|Pages]]
 * [[+Links|Links]]
+* [[+Tags|Tags]]
 
 Editing
 * [[+Key Bindings|Key Bindings]]
