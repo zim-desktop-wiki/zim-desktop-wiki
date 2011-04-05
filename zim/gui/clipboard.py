@@ -10,8 +10,6 @@ straight forward API.
 '''
 
 # TODO support converting HTML to parsetree - need html Parser
-# TODO support for pasting image as parsetree - attach + tree ?
-# TODO unit test for copy - paste parsetree & page link
 
 import gtk
 import logging
@@ -45,6 +43,16 @@ IMAGE_TARGETS = tuple(gtk.target_list_add_image_targets(info=IMAGE_TARGET_ID))
 	# According to docs we should provide list as arg to this function,
 	# but seems docs are not correct
 IMAGE_TARGET_NAMES = tuple([target[0] for target in IMAGE_TARGETS])
+
+# Add image format names as well, seen these being used by MS Office
+for format in gtk.gdk.pixbuf_get_formats():
+	if format['mime_types'][0] in IMAGE_TARGET_NAMES:
+		for n in (format['name'], format['name'].upper()):
+			IMAGE_TARGET_NAMES += (n,)
+			IMAGE_TARGETS += ((n, 0, IMAGE_TARGET_ID),)
+
+#~ print IMAGE_TARGETS
+#~ print IMAGE_TARGET_NAMES
 
 URI_TARGET_ID = 7
 URI_TARGETS = tuple(gtk.target_list_add_uri_targets(info=URI_TARGET_ID))
@@ -133,13 +141,13 @@ def _get_image_info(targetname):
 	# in available pixbuf writers for this type and return the
 	# format name and file extension
 	for format in gtk.gdk.pixbuf_get_formats():
-		if not targetname in format['mime_types']:
-			continue
-
-		if format['is_writable']:
-			return format['name'], format['extensions'][0]
-		else:
-			return None, None
+		if targetname == format['name'] \
+		or targetname == format['name'].upper() \
+		or targetname in format['mime_types']:
+			if format['is_writable']:
+				return format['name'], format['extensions'][0]
+			else:
+				return None, None
 	else:
 		return None, None
 
