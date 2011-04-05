@@ -28,7 +28,7 @@ class PreferencesDialog(Dialog):
 		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
-		
+
 		# saves a list of loaded plugins to be used later
 		self.p_save_loaded = [p.__class__ for p in self.ui.plugins]
 
@@ -42,8 +42,13 @@ class PreferencesDialog(Dialog):
 			values = {}
 			sections = {}
 			for p in preferences:
-				section, key, type, label = p
-				fields.append((key, type, label))
+				if len(p) == 4:
+					section, key, type, label = p
+					fields.append((key, type, label))
+				else:
+					section, key, type, label, check = p
+					fields.append((key, type, label, check))
+
 				values[key] = ui.preferences[section][key]
 				sections[key] = section
 
@@ -89,7 +94,7 @@ class PreferencesDialog(Dialog):
 	def _add_font_selection(self, table):
 		# need to hardcode this, can not register it as a preference
 		table.add_inputs( (
-			('use_custom_font', 'bool', _('Use a custom font')), 
+			('use_custom_font', 'bool', _('Use a custom font')),
 			# T: option in preferences dialog
 		) )
 		table.preferences_sections['use_custom_font'] = 'GtkInterface'
@@ -185,22 +190,22 @@ class PreferencesDialog(Dialog):
 		# Save all
 		self.ui.save_preferences()
 		return True
-	
+
 	def do_response_cancel(self):
 		# Obtain an updated list of loaded plugins
 		now_loaded = [p.__class__ for p in self.ui.plugins]
-		
+
 		# Restore previous situation if the user changed something
 		# in this dialog session
 		for name in zim.plugins.list_plugins():
 			klass = zim.plugins.get_plugin(name)
 			activatable = klass.check_dependencies_ok()
-				
+
 			if klass in self.p_save_loaded and activatable and klass not in now_loaded:
 				self.ui.load_plugin(klass.plugin_key)
 			elif klass not in self.p_save_loaded and klass in now_loaded:
 				self.ui.unload_plugin(klass.plugin_key)
-		
+
 		self.ui.save_preferences()
 		return True
 
@@ -364,7 +369,9 @@ class PluginConfigureDialog(Dialog):
 		i = classes.index(klass)
 		self.plugin = self.ui.plugins[i]
 
-		label = gtk.Label(_('Options for plugin %s') % klass.plugin_info['name'])
+		label = gtk.Label()
+		label.set_markup(
+			'<b>'+_('Options for plugin %s') % klass.plugin_info['name']+'</b>')
 			# T: Heading for 'configure plugin' dialog - %s is the plugin name
 		self.vbox.add(label)
 
@@ -378,7 +385,10 @@ class PluginConfigureDialog(Dialog):
 				key, type, label, default, check = pref
 				self.preferences.setdefault(key, default, check=check) # just to be sure
 
-			fields.append((key, type, label))
+			if type in ('int', 'choice'):
+				fields.append((key, type, label, check))
+			else:
+				fields.append((key, type, label))
 
 		self.add_form(fields, self.preferences)
 

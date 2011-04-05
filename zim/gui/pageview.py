@@ -180,6 +180,9 @@ ui_preferences = (
 	('auto_reformat', 'bool', 'Editing',
 		_('Reformat wiki markup on the fly'), False),
 		# T: option in preferences dialog
+	('copy_format', 'choice', 'Editing',
+		_('Default format for copying text to the clipboard'), 'Text', ('Text', 'Wiki')),
+		# T: option in preferences dialog
 )
 
 if ui_environment['platform'] == 'maemo':
@@ -1678,11 +1681,11 @@ class TextBuffer(gtk.TextBuffer):
 		iter = self.get_iter_at_mark(self.get_insert())
 		self.select_range(iter, iter)
 
-	def copy_clipboard(self, clipboard):
+	def copy_clipboard(self, clipboard, format='plain'):
 		bounds = self.get_selection_bounds()
 		if bounds:
 			tree = self.get_parsetree(bounds)
-			Clipboard().set_parsetree(self.notebook, self.page, tree)
+			Clipboard().set_parsetree(self.notebook, self.page, tree, format)
 
 	def cut_clipboard(self, clipboard, default_editable):
 		if self.get_has_selection():
@@ -2215,8 +2218,10 @@ class TextView(gtk.TextView):
 			self.gtkspell = None
 		gtk.TextView.set_buffer(self, buffer)
 
-	def do_copy_clipboard(self):
-		self.get_buffer().copy_clipboard(Clipboard())
+	def do_copy_clipboard(self, format=None):
+		format = format or self.preferences['copy_format'].lower()
+		if format == 'text': format = 'plain'
+		self.get_buffer().copy_clipboard(Clipboard(), format)
 
 	def do_cut_clipboard(self):
 		self.get_buffer().cut_clipboard(Clipboard(), self.get_editable())
@@ -3615,9 +3620,29 @@ class PageView(gtk.VBox):
 			#~ for tool in tools:
 				#~ tool.reparent(menu)
 
-		# Add options for links
-
 		buffer = self.view.get_buffer()
+
+		### Copy As option ###
+		default = self.preferences['copy_format']
+		if default == 'Text':
+			alternative = 'wiki'
+			label = 'Wiki'
+		else:
+			alternative = 'plain'
+			label = 'Text'
+		item = gtk.MenuItem(_('Copy _As "%s"') % label) # T: menu item in preferences menu
+		if buffer.get_has_selection():
+			item.connect('activate',
+				lambda o: self.view.do_copy_clipboard(alternative))
+		else:
+			item.set_sensitive(False)
+		item.show_all()
+		#~ menu.prepend(item)
+		menu.insert(item, 2) # position after Copy in the standard menu - may not be robust...
+
+
+		#### Check for images and links ###
+
 		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
 			# This iter can be either cursor position or pointer
 			# position, depending on how the menu was called

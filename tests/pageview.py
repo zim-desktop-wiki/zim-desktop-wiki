@@ -1270,7 +1270,9 @@ class MockUI(MockObject):
 		self.preferences = ConfigDict()
 
 	def register_preferences(self, section, list):
-		for key, type, category, label, default in list:
+		for p in list:
+			key = p[0]
+			default = p[4]
 			self.preferences[section][key] = default
 
 

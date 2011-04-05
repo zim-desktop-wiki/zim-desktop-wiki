@@ -688,12 +688,19 @@ class GtkInterface(NotebookInterface):
 		'''
 		register = self.preferences_register
 		for p in preferences:
-			key, type, category, label, default = p
-			self.preferences[section].setdefault(key, default)
+			if len(p) == 5:
+				key, type, category, label, default = p
+				self.preferences[section].setdefault(key, default)
+				r = (section, key, type, label)
+			else:
+				key, type, category, label, default, check = p
+				self.preferences[section].setdefault(key, default, check=check)
+				r = (section, key, type, label, check)
+
 			# Preferences with None category won't be shown in the preferences dialog
 			if category:
 				register.setdefault(category, [])
-				register[category].append((section, key, type, label))
+				register[category].append(r)
 
 
 	def register_new_window(self, window):

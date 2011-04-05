@@ -234,10 +234,15 @@ class Clipboard(gtk.Clipboard):
 	zim pageview widget.
 	'''
 
-	def set_parsetree(self, notebook, page, parsetree):
+	def set_parsetree(self, notebook, page, parsetree, format='plain'):
 		'''Copy a parsetree to the clipboard. The parsetree can be pasted by
 		the user either as formatted text within zim or as plain text outside
 		zim. The tree can be the full tree for 'page', but also a selection.
+
+		@param notebook: the L{Notebook} object
+		@param page: the L{Page} object - used to resolve links etc.
+		@param parsetree: the actual L{ParseTree} to be set on the clipboard
+		@keyword format: the format to use for pasting text, 'wiki' or 'plain'
 		'''
 		targets = [PARSETREE_TARGET]
 		targets.extend(HTML_TARGETS)
@@ -245,12 +250,12 @@ class Clipboard(gtk.Clipboard):
 		self.set_with_data(
 			targets,
 			Clipboard._get_parsetree_data, Clipboard._clear_data,
-			(notebook, page, parsetree)
+			(notebook, page, parsetree, format)
 		) or logger.warn('Failed to set data on clipboard')
 
 	def _get_parsetree_data(self, selectiondata, id, data):
 		logger.debug("Cliboard data request of type '%s', we have a parsetree", selectiondata.target)
-		notebook, page, parsetree = data
+		notebook, page, parsetree, format = data
 		if id == PARSETREE_TARGET_ID:
 			xml = parsetree.tostring().encode('utf-8')
 			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
@@ -271,18 +276,9 @@ class Clipboard(gtk.Clipboard):
 			#~ print 'PASTING: >>>%s<<<' % html
 			selectiondata.set(selectiondata.target, 8, html)
 		elif id == TEXT_TARGET_ID:
-			# FIXME no using wiki although plain is preferred
-			# because plain does not yet support lists etc.
-			dumper = get_format('wiki').Dumper()
+			dumper = get_format(format).Dumper()
 			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
 			selectiondata.set_text(text)
-
-			# Pasting as 'plain' text because wiki syntax more often than not looks
-			# strange in external applications. Would need extra menu item to
-			# "copy as wiki text".
-			#dumper = get_format('plain').Dumper()
-			#text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
-			#selectiondata.set_text(text)
 		else:
 			assert False, 'Unknown target id %i' % id
 
