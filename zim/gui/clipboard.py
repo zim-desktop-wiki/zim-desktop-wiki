@@ -125,6 +125,10 @@ def _file_link_tree(links, notebook, page):
 				src = notebook.relative_filepath(file, page) or file.path
 				builder.start('img', {'src': src})
 				builder.end('img')
+			elif links[i].startswith('@'):
+				builder.start('tag', {'name': links[i][1:]})
+				builder.data(links[i])
+				builder.end('tag')
 			else:
 				builder.start('link', {'href': links[i]})
 				builder.data(links[i])

@@ -1786,6 +1786,18 @@ class Page(Path):
 				type = link_type(href)
 				yield type, href, attrib
 
+	def get_tags(self):
+		'''Generator of an unordered list of unique tuples of name and attrib
+		for tags in the parsetree.
+		'''
+		tree = self.get_parsetree()
+		if tree:
+			tags = {}
+			for tag in tree.getiterator('tag'):
+				tags[tag.text.strip()] = tag.attrib.copy()
+			for tag, attrib in tags.iteritems():
+				yield tag, attrib
+
 
 class IndexPage(Page):
 	'''Page displaying a namespace index'''

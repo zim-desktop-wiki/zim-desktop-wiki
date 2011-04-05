@@ -54,6 +54,7 @@ NameSpace:
 Links:
 LinksFrom:
 LinksTo:
+Tag:
 
 
 === Details ===
@@ -125,6 +126,7 @@ So far we just searched for words in the page contents and page names. If you wa
 	**Links:**
 	**LinksFrom:**
 	**LinksTo:**
+	**Tag:**
 
  For example to only search the page names you can use:
 
@@ -160,3 +162,10 @@ A complex example would be to find any pages in the ":Date" namespace that link 
 namespace: Date and linksto: Planning
 '''
 
+The keyword "Tag" can be used to search for specifc tags like:
+'''
+
+Tag: home
+'''
+
+Note that a simple search for a single word like "''@home''" will automatically be converted to "''Tag: home''"

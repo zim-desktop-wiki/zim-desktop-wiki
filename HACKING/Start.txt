@@ -24,6 +24,12 @@ For the moment we try to keep compatibility with Gtk+ version 2.6, this may chan
 
 ===== Classes =====
 
+**NOTE: the overview below is limitted and partially out of date. To generate a full set of API docs install "epydoc" [1] and run "make epydoc" in the zim source dir**
+
+[1] http://epydoc.sourceforge.net/
+
+-----
+
 Each class has inline documentation, use pydoc to view it.
 The tree below is only a summary, run "dev/class_tree.py" to see
 the full tree.

@@ -204,6 +204,9 @@ class Dumper(DumperClass):
 				if not success:
 					assert False, 'Found no suitable delimiter for verbatim text: %s' % element
 					pass
+			elif element.tag == 'tag':
+				# LaTeX doesn't have anything similar to tags afaik
+				output.append(text)
 			else:
 				assert False, 'Unknown node type: %s' % element
 

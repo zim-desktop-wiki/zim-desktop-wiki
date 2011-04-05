@@ -3,7 +3,7 @@
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.50'
+__version__ = '0.50-tags1'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __copyright__ = 'Copyright 2008 - 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>'

@@ -65,8 +65,6 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	to as "paths". The first is gtk.TreePath and the second is
 	zim.notebook.Path . When a TreePath is intended the argument is called
 	explicitly "treepath", while arguments called "path" refer to a zim Path.
-
-	TODO: see python gtk-2.0 tutorial for remarks about reference leaking !
 	'''
 
 	# We inherit from gtk.TreeDragSource and gtk.TreeDragDest even though
@@ -121,6 +119,11 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		self._cache = {}
 		self._flush_scheduled = False
 
+		self._connect()
+
+	def _connect(self):
+		'''May be overridden by descendants (e.g. TagTreeStore).'''
+
 		def on_changed(o, path, signal):
 			#~ print '!!', signal, path
 			self._flush()
@@ -140,10 +143,10 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			self._flush()
 
 		self._signals = (
-			index.connect('page-inserted', on_changed, 'row-inserted'),
-			index.connect('page-updated', on_changed, 'row-changed'),
-			index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled'),
-			index.connect('page-to-be-deleted', on_deleted),
+			self.index.connect('page-inserted', on_changed, 'row-inserted'),
+			self.index.connect('page-updated', on_changed, 'row-changed'),
+			self.index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled'),
+			self.index.connect('page-to-be-deleted', on_deleted),
 		)
 		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
 		# treepath of this indexpath - once we get page-deleted it is to late to get this
@@ -213,7 +216,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 					parenttreepath = treepath[:i-1]
 					offset = mytreepath[-1]
 					#~ print '>>>> Load pagelist for', parent, 'offset', offset
-					pages = self.index.list_pages_n(parent, offset, limit=20)
+					pages = self.index.list_pages(parent, offset, limit=20)
 					for j, path in enumerate(pages):
 						childtreepath = parenttreepath + (offset + j,)
 						iter = PageTreeIter(childtreepath, path)
@@ -254,9 +257,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		path does not appear in the index.
 		'''
 		# There is no TreePath class in pygtk, just return tuple of integers
-		# FIXME this method looks quite inefficient, can we optimize it ?
-		# -> see comment in index.py about dealing with "views", that should
-		# take into account optimizing lookups by treepath
+		assert isinstance(path, Path)
 		if path.isroot:
 			raise ValueError
 
@@ -265,38 +266,15 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			if path is None:
 				return None
 
-		# See if it is in cache already
-		reverse_cache = dict([(i.indexpath, k) for k, i in self._cache.items()])
-		if path in reverse_cache:
-			#~ print '>>> Return from cache', reverse_cache[path]
-			return reverse_cache[path]
-
-		# Try getting it while populating cache
 		paths = list(path.parents())
 		paths.pop() # get rid of root namespace as parent
 		paths.reverse()
 		paths.append(path)
 		treepath = ()
-		parent = None
 		for path in paths:
-			if not path in reverse_cache:
-				#~ print '>>> Iterating page list for', parent
-				for i, p in enumerate(self.index.list_pages(parent)):
-					k = treepath + (i,)
-					iter = PageTreeIter(k, p)
-					self._cache.setdefault(k, iter)
-					reverse_cache.setdefault(p, k)
-					if p == path:
-						break # Don't cache more than we need
-				else: # break did not happen
-					assert False, 'BUG: could not find path in pagelist'
-			treepath = reverse_cache[path]
-			parent = path
-			# A KeyError exception here means list_pages is not
-			# consistent with lookup_path
+			n = self.index.get_page_index(path)
+			treepath += (n,)
 
-		#~ print '>>> Return', treepath
-		self._schedule_flush()
 		return treepath
 
 	def get_indexpath(self, treeiter):
@@ -389,6 +367,7 @@ class PageTreeView(BrowserTreeView):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'page-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'populate-popup': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	def __init__(self, ui):
@@ -402,7 +381,7 @@ class PageTreeView(BrowserTreeView):
 				lambda o, p, r: self.on_open_page(p) )
 			self.ui.connect_after('open-notebook', self.do_set_notebook)
 			if not self.ui.notebook is None:
-				self.do_set_notebook(self.app, self.ui.notebook)
+				self.do_set_notebook(self.ui, self.ui.notebook)
 
 		cell_renderer = gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
@@ -497,6 +476,7 @@ class PageTreeView(BrowserTreeView):
 
 	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
 		menu = self.ui.uimanager.get_widget('/page_popup')
+		self.emit('populate-popup', menu)
 		menu.popup(None, None, None, 3, 0)
 		return True
 
@@ -610,6 +590,8 @@ class PageIndex(gtk.ScrolledWindow):
 		self.add(self.treeview)
 
 		ui.connect('open-notebook', self.on_open_notebook)
+		ui.connect('start-index-update', lambda o: self.disconnect_model)
+		ui.connect('end-index-update', lambda o: self.reload_model)
 
 	def on_open_notebook(self, ui, notebook):
 		index = notebook.index

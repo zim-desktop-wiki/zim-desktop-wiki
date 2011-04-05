@@ -155,10 +155,10 @@ class TestPageEntry(TestCase):
 		self.assertTrue(len(completions) > 5 and ':Test' in completions)
 
 		entry.set_text('T')
-		self.assertEqual(get_completions(entry), ['foo', 'Foo Bar', 'wiki'])
+		self.assertEqual(get_completions(entry), ['foo', 'Foo Bar', 'tags', 'wiki'])
 
 		entry.set_text('Test:')
-		self.assertEqual(get_completions(entry), ['Test:foo', 'Test:Foo Bar', 'Test:wiki'])
+		self.assertEqual(get_completions(entry), ['Test:foo', 'Test:Foo Bar', 'Test:tags', 'Test:wiki'])
 
 
 class TestLinkEntry(TestPageEntry, TestFileEntry):

@@ -175,11 +175,11 @@ class ParseTree(ElementTreeModule.ElementTree):
 		ElementTreeModule.ElementTree.write(self, xml, 'utf-8')
 		return xml.getvalue()
 
-	def write(*a):
+	def write(self, *_):
 		'''Writing to file is not implemented, use tostring() instead'''
 		raise NotImplementedError
 
-	def parse(*a):
+	def parse(self, *_):
 		'''Parsing from file is not implemented, use fromstring() instead'''
 		raise NotImplementedError
 

@@ -36,7 +36,7 @@ class TestBazaar(TestCase):
 	slowTest = True
 
 	@classmethod
-	def skipTest(klass):
+	def skipTestZim(klass):
 		if not BazaarVCS.check_dependencies():
 			return 'Missing dependencies'
 		else:

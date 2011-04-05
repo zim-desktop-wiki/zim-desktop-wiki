@@ -143,6 +143,16 @@ class TestSearch(TestCase):
 		#~ print results
 		self.assertTrue(Path('TODOList:foo') in results)
 
+		query = Query('Tag: tags')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('tag', 'tags')])
+		query = Query('@tags')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('tag', 'tags')])
+		results.search(query)
+		#~ print results
+		self.assertTrue(Path('Test:tags') in results and len(results) == 1)
+
 		# TODO test ContentOrName versus Content
 		# TODO test Name
 
