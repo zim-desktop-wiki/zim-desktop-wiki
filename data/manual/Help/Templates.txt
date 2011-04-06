@@ -55,20 +55,32 @@ Template syntax:
 Available variables:
 
 '''
+zim.version		# version of zim
+
 page.name		# complete page name
 page.namespace		# namespace
-page.title		# last part of the name of the page
-page.heading		# title or first heading in the page
-page.body		# content of the page
-page.links		# list of vars with a .file and a .name subvar
-page.backlinks		# "" idem ""
-page.is_index		# true for the automatic generated index page
-prev.name		# name of previous page
-prev.file		# file name of previous page
-next.name		# name of next page
-next.file		# file name of next page
-notebook.root		# root dir relative to page file
-zim.version		# version of zim
+page.basename		# last part of the page name
+page.title		# 
+'''
+''first heading in the page or the basename''
+''page.heading		# first heading in the page''
+''page.body		# content of the page (without the leading heading)''
+''page.links		# list of page objects for pages linked in this page''
+''page.backlinks		# ''''list of page objects for pages linking to this page''
+''page.properties		# dict with page properties''
+
+''# These special pages have the same properties as the 'page' object''
+''pages.index		# the index page generated when exporting''
+''pages.home		# the home page''
+''pages.next		# the next page in the index (if any)''
+''pages.previous		# the previous page in the index (if any)''
+
+''options			# dict where format specific options can be set''
+
+Functions available:
+
+'''
+url(link)			# turns a zim link into an URL
+strftime(template, date)	# format a date
 '''
 
-The "Title" field contains either the first heading in the page or the page name. If the first header is used, this header is removed from the "Body" field.

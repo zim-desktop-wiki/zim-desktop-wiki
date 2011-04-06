@@ -745,8 +745,8 @@ class TagsPluginWidget(gtk.VPaned):
 		else:
 			self.plugin.ui.connect_after('open-notebook', lambda *a: self.reload_model())
 
-		self.plugin.ui.connect('start-index-update', lambda o: self.disconnect_model)
-		self.plugin.ui.connect('end-index-update', lambda o: self.reload_model)
+		self.plugin.ui.connect('start-index-update', lambda o: self.disconnect_model())
+		self.plugin.ui.connect('end-index-update', lambda o: self.reload_model())
 
 	def toggle_treeview(self):
 		'''Toggle the treeview type in the widget'''

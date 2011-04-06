@@ -590,8 +590,8 @@ class PageIndex(gtk.ScrolledWindow):
 		self.add(self.treeview)
 
 		ui.connect('open-notebook', self.on_open_notebook)
-		ui.connect('start-index-update', lambda o: self.disconnect_model)
-		ui.connect('end-index-update', lambda o: self.reload_model)
+		ui.connect('start-index-update', lambda o: self.disconnect_model())
+		ui.connect('end-index-update', lambda o: self.reload_model())
 
 	def on_open_notebook(self, ui, notebook):
 		index = notebook.index

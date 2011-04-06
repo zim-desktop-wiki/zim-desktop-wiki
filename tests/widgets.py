@@ -66,7 +66,7 @@ class TestFileEntry(TestCase):
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
 			(dir.file('Foo/Bar/test.txt'), './test.txt'),
-			(File('/test.txt'), '/test.txt'),
+			(File('/test.txt'), File('/test.txt').path), # win32 save
 		):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), text)
@@ -79,7 +79,7 @@ class TestFileEntry(TestCase):
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
 			(dir.file('Foo/Bar/test.txt'), './test.txt'),
-			(File('/test.txt'), 'file:///test.txt'),
+			(File('/test.txt'), File('/test.txt').uri), # win32 save
 			(doc_root.file('test.txt'), '/test.txt'),
 		):
 			entry.set_file(file)

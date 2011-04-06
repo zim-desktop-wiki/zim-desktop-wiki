@@ -486,7 +486,10 @@ class GtkInterface(NotebookInterface):
 			return True # keep ticking
 
 		# older gobject version doesn't know about seconds
-		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
+		self.preferences['GtkInterface'].setdefault('autosave_timeout', 10)
+		timeout = self.preferences['GtkInterface']['autosave_timeout'] * 1000 # s -> ms
+		self._autosave_timer = gobject.timeout_add(timeout, schedule_autosave)
+			# FIXME make this more intelligent
 
 		self._finalize_ui = True
 		for plugin in self.plugins:
