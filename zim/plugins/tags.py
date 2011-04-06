@@ -761,7 +761,7 @@ class TagsPluginWidget(gtk.VPaned):
 		# Add a popup menu item to switch the treeview mode
 		menu.prepend(gtk.SeparatorMenuItem())
 
-		item = gtk.CheckMenuItem(_('Sort pages by tags'))
+		item = gtk.CheckMenuItem(_('Sort pages by tags')) # T: menu option
 		item.set_active(self.plugin.uistate['treeview'] == 'tags')
 		item.connect_object('toggled', self.__class__.toggle_treeview, self)
 		menu.prepend(item)
