@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-04-06 22:01+0200\n"
+"POT-Creation-Date: 2011-04-07 22:34+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2242,21 +2242,34 @@ msgid "Some error occured while running \"%s\""
 msgstr ""
 
 #. menu item
-#: zim/plugins/spell.py:35
+#: zim/plugins/spell.py:37
 msgid "Check _spelling"
 msgstr ""
 
 #. plugin name
-#: zim/plugins/spell.py:41
+#: zim/plugins/spell.py:43
 msgid "Spell Checker"
 msgstr ""
 
 #. plugin description
-#: zim/plugins/spell.py:42
+#: zim/plugins/spell.py:44
 msgid ""
 "Adds spell checking support using gtkspell.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
+msgstr ""
+
+#. error message - %s is replace with language codes like "en", "en_US"m or "nl_NL"
+#: zim/plugins/spell.py:92
+#, python-format
+msgid "Could not load spell checking for language: \"%s\""
+msgstr ""
+
+#. error message explanation
+#: zim/plugins/spell.py:94
+msgid ""
+"This could mean you don't have the proper\n"
+"dictionaries installed"
 msgstr ""
 
 #. label for untagged pages in side pane
