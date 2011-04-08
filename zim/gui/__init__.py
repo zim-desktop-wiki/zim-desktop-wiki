@@ -174,7 +174,7 @@ ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
-	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)'), False),
+	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane'), False),
 		# T: Option in the preferences dialog
 		# default value is False because this is mapped to switch between
 		# char sets in certain international key mappings
@@ -1737,10 +1737,18 @@ class MainWindow(Window):
 
 		space = gtk.gdk.unicode_to_keyval(ord(' '))
 		group = gtk.AccelGroup()
-		group.connect_group( # <Alt><Space>
-			space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
-			self.toggle_focus_sidepane)
 
+		self.ui.preferences['GtkInterface'].setdefault('toggle_on_altspace', False)
+		if self.ui.preferences['GtkInterface']['toggle_on_altspace']:
+			# Hidden param, disabled because it causes problems with
+			# several international layouts (space mistaken for alt-space,
+			# see bug lp:620315)
+			group.connect_group( # <Alt><Space>
+				space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
+				self.toggle_focus_sidepane)
+
+		# Toggled by preference menu, also causes issues with international
+		# layouts - esp. when switching input method on Ctrl-Space
 		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Ctrl><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
