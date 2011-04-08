@@ -109,6 +109,23 @@ class TestParseTree(TestCase):
 		text = tree.tostring()
 		self.assertEqualDiff(text, wanted)
 
+
+	def testGetEndsWithNewline(self):
+		for xml, newline in (
+			('<zim-tree partial="True">foo</zim-tree>', False),
+			('<zim-tree partial="True"><strong>foo</strong></zim-tree>', False),
+			('<zim-tree partial="True"><strong>foo</strong>\n</zim-tree>', True),
+			('<zim-tree partial="True"><strong>foo\n</strong></zim-tree>', True),
+			('<zim-tree partial="True"><strong>foo</strong>\n<img src="foo"></img></zim-tree>', False),
+			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0">foo</li></zim-tree>', True),
+			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0"><strong>foo</strong></li></zim-tree>', True),
+			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0"><strong>foo</strong></li></zim-tree>', True),
+		):
+			print 'XML', xml
+			tree = ParseTree().fromstring(xml)
+			self.assertEqual(tree.get_ends_with_newline(), newline)
+
+
 class TestTextFormat(TestCase):
 
 	def setUp(self):

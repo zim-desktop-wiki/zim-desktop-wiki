@@ -285,16 +285,21 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 	def get_ends_with_newline(self):
 		'''Checks whether this tree ends in a newline or not'''
-		newline = False
-		for element in self.getiterator():
-			if element.tail:
-				newline = element.tail.endswith('\n')
-			elif element.tag in ('li', 'h'):
-				newline = True
-			elif element.text:
-				newline = element.text.endswith('\n')
+		return self._get_element_ends_with_newline(self.getroot())
 
-		return newline
+	def _get_element_ends_with_newline(self, element):
+			if element.tail:
+				return element.tail.endswith('\n')
+			elif element.tag in ('li', 'h'):
+				return True # implicit newline
+			else:
+				children = element.getchildren()
+				if children:
+					return self._get_element_ends_with_newline(children[-1]) # recurs
+				elif element.text:
+					return element.text.endswith('\n')
+				else:
+					return False # empty element like image
 
 
 count_eol_re = re.compile(r'\n+\Z')
