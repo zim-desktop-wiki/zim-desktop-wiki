@@ -140,6 +140,7 @@ class Store(StoreClass):
 		if isinstance(path, Page):
 			path.haschildren = False
 			path.set_parsetree(None)
+			path.modified = False
 
 		return True
 

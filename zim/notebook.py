@@ -1119,7 +1119,8 @@ class Notebook(gobject.GObject):
 
 	def _delete_page(self, path, update_links=True, callback=None, trash=False):
 		# Collect backlinks
-		if update_links:
+		indexpath = self.index.lookup_path(path)
+		if update_links and indexpath:
 			from zim.index import LINK_DIR_BACKWARD
 			backlinkpages = set()
 			for l in self.index.list_links(path, LINK_DIR_BACKWARD):
@@ -1130,14 +1131,18 @@ class Notebook(gobject.GObject):
 				for child in self.index.walk(path):
 					for l in self.index.list_links(child, LINK_DIR_BACKWARD):
 						backlinkpages.add(l.source)
+		else:
+			update_links = False
 
 		# actual delete
 		self.emit('delete-page', path)
+
 		store = self.get_store(path)
 		if trash:
 			store.trash_page(path)
 		else:
 			store.delete_page(path)
+
 		self.flush_page_cache(path)
 		path = Path(path.name)
 

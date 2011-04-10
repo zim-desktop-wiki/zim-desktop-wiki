@@ -665,6 +665,72 @@ class GtkInterface(NotebookInterface):
 					self.uimanager.remove_ui(id)
 				handler._ui_merge_ids = None
 
+	def populate_popup(self, name, menu):
+		'''Populate a popup menu from a popup defined in the uimanager
+
+		This effectively duplicated the menu items from a given popup
+		as defined in the uimanager to a given menu. The reason to do
+		this is to include a menu that is extendable for plugins etc.
+		into an existing popup menu. (Note that changes to the menu
+		as returned by uimanager.get_widget() are global.)
+
+		@param name: the uimanager popup name, e.g. "toolbar_popup" or
+		"page_popup"
+		@param menu: a gtk.Menu to be populated with the menu items
+
+		@raises ValueError: when 'name' does not exist
+		'''
+		# ... so we have to do our own XML parsing here :(
+		# but take advantage of nicely formatted line-based output ...
+		xml = self.uimanager.get_ui()
+		xml = [l.strip() for l in xml.splitlines()]
+
+		# Get slice of XML
+		start, end = None, None
+		for i, line in enumerate(xml):
+			if start is None:
+				if line.startswith('<popup name="%s">' % name):
+					start = i
+			else:
+				if line.startswith('</popup>'):
+					end = i
+					break
+
+		if start is None or end is None:
+			raise ValueError, 'No such popup in uimanager: %s' % name
+
+		# Parse items and add to menu
+		seen_item = False # use to track empty parts
+		for line in xml[start+1:end]:
+			if line.startswith('<separator'):
+				if seen_item:
+					item = gtk.SeparatorMenuItem()
+					menu.append(item)
+				seen_item = False
+			elif line.startswith('<menuitem'):
+				pre, post = line.split('action="', 1)
+				actionname, post = post.split('"', 1)
+				for group in self.uimanager.get_action_groups():
+					action = group.get_action(actionname)
+					if action:
+						item = action.create_menu_item()
+
+						# don't show accels in popups (based on gtk/gtkuimanager.c)
+						child = item.get_child()
+						if isinstance(child, gtk.AccelLabel):
+							child.set_property('accel-closure', None)
+
+						break
+				else:
+					raise AssertionError, 'BUG: could not find action for "%s"' % actionname
+				menu.append(item)
+				seen_item = True
+			elif line.startswith('<placeholder') \
+			or line.startswith('</placeholder'):
+				pass
+			else:
+				raise AssertionError, 'BUG: Could not parse: ' + line
+
 	def set_readonly(self, readonly):
 		if not self.readonly:
 			# Save any modification now - will not be allowed after switch

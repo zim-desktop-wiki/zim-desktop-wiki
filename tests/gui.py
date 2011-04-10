@@ -434,6 +434,20 @@ class TestDialogs(TestCase):
 	# Test for ExportDialog can be found in test/export.py
 
 
+class TestGtkInterface(TestCase):
+
+	slowTest = True
+
+	def runTest(self):
+		ui = zim.gui.GtkInterface()
+
+		# test populating menus
+		menu = gtk.Menu()
+		ui.populate_popup('page_popup', menu)
+		items = menu.get_children()
+		self.assertTrue(len(items) > 3)
+
+
 class MockUI(MockObject):
 
 	tmp_dir = create_tmp_dir('gui_MockUI')

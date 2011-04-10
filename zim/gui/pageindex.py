@@ -151,12 +151,13 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
 		# treepath of this indexpath - once we get page-deleted it is to late to get this
 
-	def disconnect(self):
+	def disconnect_index(self):
 		'''Stop the model from listening to the inxed. Used to
 		unhook the model before reloading the index.
 		'''
 		for id in self._signals:
 			self.index.disconnect(id)
+		self._signals = ()
 
 	def on_get_flags(self):
 		return 0 # no flags
@@ -362,26 +363,28 @@ gobject.type_register(PageTreeStore)
 
 
 class PageTreeView(BrowserTreeView):
-	'''Wrapper for a TreeView showing a list of pages.'''
+	'''Wrapper for a TreeView showing a list of pages.
+
+	Signals:
+	  * page-activated (path): emitted when a page is clicked
+	  * populate-popup (menu): hook to populate the context menu
+	  * copy (): copy the current selection to the clipboard
+	  * insert-link (path): called when the user pressed <Ctrl>L on page
+	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'page-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'populate-popup': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'insert-link': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'copy': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	def __init__(self, ui):
+	def __init__(self, ui, model=None):
 		BrowserTreeView.__init__(self)
 		self.set_name('zim-pageindex')
-		self._cleanup = None
-
-		if not ui is None: # is None in test case
-			self.ui = ui
-			self.ui.connect('open-page',
-				lambda o, p, r: self.on_open_page(p) )
-			self.ui.connect_after('open-notebook', self.do_set_notebook)
-			if not self.ui.notebook is None:
-				self.do_set_notebook(self.ui, self.ui.notebook)
+		self.ui = ui
+		self._cleanup = None # temporary created path that needs to be removed later
 
 		cell_renderer = gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
@@ -402,35 +405,44 @@ class PageTreeView(BrowserTreeView):
 			(INTERNAL_PAGELIST_TARGET,),
 			gtk.gdk.ACTION_MOVE )
 
-		if gtk.gtk_version > (2, 10, 0):
-			self.set_enable_tree_lines(True)
-			# TODO: add ui preference for this
-			# need to grey out preference for gtk < 2.10
-			# so need signal after construction preferenes dialog
-
 		if ui_environment['platform'] == 'maemo':
 			# Maemo gtk UI bugfix: expanders are hidden by default
-			self.set_property('level-indentation',0)
-			self.set_property('show-expanders',1)
+			self.set_property('level-indentation', 0)
+			self.set_property('show-expanders', 1)
 
-	def do_set_notebook(self, ui, notebook):
+		if model:
+			self.set_model(model)
+
+	def disconnect_index(self):
+		'''Stop the view & model from listening to the index. Used to
+		unhook the model before reloading the index. Call L{set_model}
+		again to re-connect.
+		'''
+		model = self.get_model()
+		if isinstance(model, gtk.TreeModelFilter):
+			model = model.get_model() # get childmodel
+		model.disconnect_index()
+
+	def set_model(self, model):
 		self._cleanup = None # else it might be pointing to old model
-		self.set_model(PageTreeStore(notebook.index))
-		if not ui.page is None:
-			self.on_open_page(ui.page)
-		self.get_model().connect('row-inserted', self.on_row_inserted)
+		BrowserTreeView.set_model(self, model)
+		if self.ui.page:
+			self.select_page(self.ui.page, vivificate=True)
+
+		model.connect('row-inserted', self.on_row_inserted)
 
 	def on_row_inserted(self, model, treepath, iter):
 		path = model.get_indexpath(iter)
-		if path == self.ui.page:
-			self.on_open_page(self.ui.page)
+		if path and path == self.ui.page:
+			self.select_treepath(treepath)
 
 	def do_row_activated(self, treepath, column):
 		'''Handler for the row-activated signal, emits page-activated'''
 		model = self.get_model()
 		iter = model.get_iter(treepath)
 		path = model.get_indexpath(iter)
-		self.emit('page-activated', path)
+		if path:
+			self.emit('page-activated', path)
 
 	def do_page_activated(self, path):
 		'''Handler for the page-activated signal, calls ui.open_page()'''
@@ -440,31 +452,24 @@ class PageTreeView(BrowserTreeView):
 		# Keybindings for the treeview:
 		#  Ctrl-C copy link to selected page
 		#  Ctrl-L insert link to selected page in pageview
-		#  Esc closes the side pane
 		# Keybindings for collapsing and expanding items are
 		# implemented in the BrowserTreeView parent class
-		handled = True
+		# And MainWindow hooks Esc to close side pane
+		handled = False
 		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
 
 		if event.state & gtk.gdk.CONTROL_MASK:
 			if event.keyval == KEYVAL_C:
-				#~ print '!! copy location'
-				page = self.get_selected_path()
-				if page:
-					Clipboard().set_pagelink(self.ui.notebook, page)
+				self.emit('copy')
+				handled = True
 			elif event.keyval == KEYVAL_L:
-				#~ print '!! insert link'
-				page = self.get_selected_path()
-				self.ui.mainwindow.pageview.insert_links([page])
-			else:
-				handled = False
-		else:
-			handled = False
+				path = self.get_selected_path()
+				#~ print '!! insert-link', path
+				self.emit('insert-link', path)
+				handled = True
 
-		if handled:
-			return True
-		else:
-			return BrowserTreeView.do_key_press_event(self, event)
+		return handled \
+			or BrowserTreeView.do_key_press_event(self, event)
 
 	def do_button_release_event(self, event):
 		'''Handler for button-release-event, triggers popup menu'''
@@ -475,10 +480,19 @@ class PageTreeView(BrowserTreeView):
 			return BrowserTreeView.do_button_release_event(self, event)
 
 	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
-		menu = self.ui.uimanager.get_widget('/page_popup')
+		menu = gtk.Menu()
+		self.ui.populate_popup('page_popup', menu)
 		self.emit('populate-popup', menu)
+		menu.show_all()
 		menu.popup(None, None, None, 3, 0)
 		return True
+
+	def do_copy(self):
+		'''Copy current selection to clipboard'''
+		#~ print '!! copy location'
+		page = self.get_selected_path()
+		if page:
+			Clipboard().set_pagelink(self.ui.notebook, page)
 
 	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
 		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
@@ -525,29 +539,15 @@ class PageTreeView(BrowserTreeView):
 		else:
 			dragcontext.finish(False, False, time) # NOK
 
-	def on_open_page(self, path):
-		index = self.ui.notebook.index
-		model = self.get_model()
+	def select_page(self, path, vivificate=False):
+		'''Select a page in the treeview
 
-		treepath = self.select_page(path)
-		if treepath is None:
-			path = index.touch(path)
-			treepath = self.select_page(path)
-			assert treepath, 'BUG: failed to touch placeholder'
+		@param path: a notebook L{Path} object for the page
+		@keyword vivificate: when C{True} the path is created
+		temporarily when it did not yet exist
 
-		rowreference = gtk.TreeRowReference(model, treepath)
-			# make reference before cleanup - als path may have changed
-
-		if self._cleanup and self._cleanup.valid():
-			mytreepath = self._cleanup.get_path()
-			indexpath = model.get_indexpath( model.get_iter(mytreepath) )
-			#~ print '!! CLEANUP', indexpath
-			index.cleanup(indexpath)
-
-		self._cleanup = rowreference
-
-	def select_page(self, path):
-		'''Select a page in the treeview, returns the treepath or None'''
+		@returns: a treepath tuple or C{None}
+		'''
 		#~ print '!! SELECT', path
 		model, iter = self.get_selection().get_selected()
 		if model is None:
@@ -557,13 +557,37 @@ class PageTreeView(BrowserTreeView):
 			return model.get_path(iter) # this page was selected already
 
 		treepath = model.get_treepath(path)
-		if not treepath is None:
-			self.expand_to_path(treepath)
-			self.get_selection().select_path(treepath)
-			self.set_cursor(treepath)
-			self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
+		if treepath:
+			self.select_treepath(treepath)
+		elif vivificate:
+			path = model.index.touch(path)
+			treepath = self.select_page(path)
+			assert treepath, 'BUG: failed to touch placeholder'
+		else:
+			return None
+
+		rowreference = gtk.TreeRowReference(model, treepath)
+			# make reference before cleanup - path may change
+
+		if self._cleanup and self._cleanup.valid():
+			mytreepath = self._cleanup.get_path()
+			indexpath = model.get_indexpath( model.get_iter(mytreepath) )
+			#~ print '!! CLEANUP', indexpath
+			model.index.cleanup(indexpath)
+
+		self._cleanup = rowreference
 
 		return treepath
+
+	def select_treepath(self, treepath):
+		'''Select a give treepath and scroll it into view
+
+		@param treepath: a treepath tuple
+		'''
+		self.expand_to_path(treepath)
+		self.get_selection().select_path(treepath)
+		self.set_cursor(treepath)
+		self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
 
 	def get_selected_path(self):
 		'''Returns path currently selected or None'''
@@ -589,17 +613,28 @@ class PageIndex(gtk.ScrolledWindow):
 		self.treeview = PageTreeView(ui)
 		self.add(self.treeview)
 
+		self.treeview.connect('insert-link',
+			lambda v, p: self.ui.mainwindow.pageview.insert_links([p]))
+
 		ui.connect('open-notebook', self.on_open_notebook)
+		ui.connect('open-page', self.on_open_page)
 		ui.connect('start-index-update', lambda o: self.disconnect_model())
 		ui.connect('end-index-update', lambda o: self.reload_model())
 
 	def on_open_notebook(self, ui, notebook):
 		index = notebook.index
+
+		model = PageTreeStore(index)
+		self.treeview.set_model(model)
+
 		index.connect('start-update',
 			lambda o: ui.mainwindow.statusbar.push(2, _('Updating index...')) )
 			# T: statusbar message
 		index.connect('end-update',
 			lambda o: ui.mainwindow.statusbar.pop(2) )
+
+	def on_open_page(self, ui, page, path):
+		self.treeview.select_page(path, vivificate=True)
 
 	def is_focus(self):
 		return self.treeview.is_focus()
@@ -616,7 +651,7 @@ class PageIndex(gtk.ScrolledWindow):
 		unhook the model before reloading the index. Typically
 		should be followed by reload_model().
 		'''
-		self.treeview.get_model().disconnect()
+		self.treeview.disconnect_index()
 
 	def reload_model(self):
 		'''Re-initialize the treeview model. This is called when

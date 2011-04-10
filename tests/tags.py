@@ -12,6 +12,7 @@ from zim.notebook import Path
 from zim.gui.pageindex import FGCOLOR_COL, \
 	EMPTY_COL, NAME_COL, PATH_COL, STYLE_COL
 	# Explicitly don't import * from pageindex, make clear what we re-use
+from zim.config import ListDict
 from zim.plugins.tags import *
 
 
@@ -26,10 +27,8 @@ class TestTaggedPageTreeStore(tests.TestCase):
 	def setUp(self):
 		self.storeclass = TaggedPageTreeStore
 		self.viewclass = TagsPageTreeView
-		self.index = Index(dbfile=':memory:')
 		self.notebook = tests.get_test_notebook()
-		self.index.set_notebook(self.notebook)
-		self.notebook.index.update()
+		self.index = self.notebook.index
 
 	def runTest(self):
 		'''Test TaggedPageTreeStore index interface'''
@@ -41,15 +40,17 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 		ui = MockUI()
 		ui.notebook = self.notebook
+		ui.page = Path('Test:foo')
+		self.assertTrue(self.notebook.get_page(ui.page).exists())
 
 		treestore = self.storeclass(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 5)
 		treeview = self.viewclass(ui, treestore)
-		treestore = treeview.get_model()
-		if isinstance(treestore, gtk.TreeModelFilter):
-			treestore = treestore.get_model() # look inside filtered model
-		self.assertTrue(isinstance(treestore, self.storeclass))
+		model = treeview.get_model()
+		if isinstance(model, gtk.TreeModelFilter):
+			model = model.get_model() # look inside filtered model
+		self.assertEqual(model, treestore)
 
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 5)
@@ -139,14 +140,30 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		self.assertTrue(nitems > 10) # double check sanity of loop
 
 		# Check if all the signals go OK
-		treestore.disconnect()
+		treestore.disconnect_index()
 		del treestore
 		self.index.flush()
 		treestore = self.storeclass(self.index)
+		treeview = TagsPageTreeView(ui, treestore)
 		self.index.update(callback=process_events)
-		#~ for page in reversed(list(self.notebook.walk())): # delete bottom up
-			#~ self.notebook.delete_page(page)
-			#~ process_events()
+
+		# Try some TreeView methods
+		path = Path('Test:foo')
+		self.assertTrue(treeview.select_page(path))
+		self.assertEqual(treeview.get_selected_path(), path)
+		treepath = treeview.get_model().get_treepath(path)
+		self.assertTrue(not treepath is None)
+		col = treeview.get_column(0)
+		treeview.row_activated(treepath, col)
+
+		#~ treeview.emit('popup-menu')
+		treeview.emit('insert-link', path)
+		treeview.emit('copy')
+
+		# Check if all the signals go OK in delete
+		for page in reversed(list(self.notebook.walk())): # delete bottom up
+			self.notebook.delete_page(page)
+			process_events()
 
 	def _check_indexpath_iter(self, treestore, iter, path):
 		# checks specific for nodes that map to IndexPath object
@@ -238,6 +255,103 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 	def runTest(self):
 		'''Test TagsPageTreeStore index interface'''
 		TestTaggedPageTreeStore.runTest(self)
+
+
+class TestTagPluginWidget(tests.TestCase):
+
+	def runTest(self):
+		ui = MockUI()
+		ui.notebook = tests.get_test_notebook()
+
+		plugin = tests.MockObject()
+		plugin.ui = ui
+		plugin.uistate = ListDict()
+
+		widget = TagsPluginWidget(plugin)
+
+		# Excersize all model switches and check we still have a sane state
+		widget.toggle_treeview()
+		widget.toggle_treeview()
+
+		path = Path('Test:foo')
+		treepath = widget.treeview.get_model().get_treepath(path)
+		self.assertTrue(not treepath is None)
+
+		widget.disconnect_model()
+		widget.reload_model()
+
+		path = Path('Test:foo')
+		treepath = widget.treeview.get_model().get_treepath(path)
+		self.assertTrue(not treepath is None)
+
+		# Check signals
+		#~ widget.treeview.emit('popup-menu')
+		widget.treeview.emit('insert-link', path)
+
+		# Check tag filtering
+		cloud = widget.tagcloud
+		self.assertEqual(cloud.get_tag_filter(), None)
+		tag = None
+		for button in cloud.get_children():
+			if button.indextag.name == 'tags':
+				tag = button.indextag
+				button.clicked()
+				break
+		else:
+			raise AssertionError, 'No button for @tags ?'
+
+		selected, filtered = cloud.get_tag_filter()
+		self.assertEqual(selected, [tag])
+		self.assertTrue(len(filtered) > 3)
+		self.assertTrue(tag in filtered)
+
+		self.assertTrue(not widget.treeview._tag_filter is None)
+
+		# check filtering in treestore
+		tagfilter = (selected, filtered)
+		filtered = frozenset(filtered)
+
+		def toplevel(model):
+			iter = model.get_iter_first()
+			assert not iter is None
+			while not iter is None:
+				yield iter
+				iter = model.iter_next(iter)
+
+		def childiter(model, iter):
+			iter = model.iter_children(iter)
+			assert not iter is None
+			while not iter is None:
+				yield iter
+				iter = model.iter_next(iter)
+
+		self.assertEqual(plugin.uistate['treeview'], 'tagged')
+		filteredmodel = widget.treeview.get_model()
+		for iter in toplevel(filteredmodel):
+			path = filteredmodel.get_indexpath(iter)
+			self.assertTrue(not path is None)
+			tags = list(ui.notebook.index.list_tags(path))
+			tags = frozenset(tags)
+			self.assertTrue(tags >= filtered)
+			treepaths = filteredmodel.get_treepaths(path)
+			self.assertTrue(filteredmodel.get_path(iter) in treepaths)
+
+		widget.toggle_treeview()
+		self.assertEqual(plugin.uistate['treeview'], 'tags')
+		filteredmodel = widget.treeview.get_model()
+		for iter in toplevel(filteredmodel):
+			self.assertEqual(filteredmodel.get_indexpath(iter), None)
+				# toplevel has tags, not pages
+			tag = filteredmodel[iter][PATH_COL]
+			self.assertTrue(tag in filtered)
+			for iter in childiter(filteredmodel, iter):
+				path = filteredmodel.get_indexpath(iter)
+				self.assertTrue(not path is None)
+				tags = list(ui.notebook.index.list_tags(path))
+				tags = frozenset(tags)
+				self.assertTrue(tags >= filtered)
+				treepaths = filteredmodel.get_treepaths(path)
+				self.assertTrue(filteredmodel.get_path(iter) in treepaths)
 
 
 class MockUI(tests.MockObject):

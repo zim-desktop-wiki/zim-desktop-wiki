@@ -10,9 +10,9 @@ See also [[Menu Items]].
 
 '''
 F9		Toggle index visibility
-alt-space	Toggle focus between index and buffer
+ctrl-space	Toggle focus between index and buffer
     		opens side pane if index is invisible
-ctrl-space	Same as ctrl-space - optional see preferences
+		(optional see preferences)
 ctrl-tab	Focus next inteface element (gtk default)
 '''
 
@@ -66,7 +66,7 @@ shift-^L	Copy a link to the current page to the clipboard
 
 '''
 ^1..^5		Make selected text a heading
-^6		Make selected text normal
+^9		Make selected text normal
 ^B		Make selected text strong
 ^I		Make selected text italic
 ^U		Make selected text underline     (renders highlighted)

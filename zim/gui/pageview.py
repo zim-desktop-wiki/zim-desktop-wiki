@@ -113,7 +113,7 @@ ui_actions = (
 	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
 	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
-	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', '', False), # T: Menu item
+	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>9', '', False), # T: Menu item
 	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', '', True), # T: Menu item
 	('find_next', None, _('Find Ne_xt'), '<ctrl>G', '', True), # T: Menu item
 	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', '', True), # T: Menu item

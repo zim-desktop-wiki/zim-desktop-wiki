@@ -254,6 +254,10 @@ class TestPageTreeStore(tests.TestCase):
 		# From the order the signals are generated.
 
 		ui = MockUI()
+		ui.notebook = self.notebook
+		ui.page = Path('Test:foo')
+		self.assertTrue(self.notebook.get_page(ui.page).exists())
+
 		treeview = PageTreeView(ui)
 		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
@@ -268,7 +272,7 @@ class TestPageTreeStore(tests.TestCase):
 		self.index.update(callback=process_events)
 		process_events()
 
-		treeview = PageTreeView(None) # just run hidden to check errors
+		treeview = PageTreeView(ui) # just run hidden to check errors
 		treeview.set_model(treestore)
 
 		n = treestore.on_iter_n_children(None)
@@ -364,14 +368,30 @@ class TestPageTreeStore(tests.TestCase):
 		self.assertTrue(npages > 10) # double check sanity of walk() method
 
 		# Check if all the signals go OK
-		treestore.disconnect()
+		treestore.disconnect_index()
 		del treestore
 		self.index.flush()
 		treestore = PageTreeStore(self.index)
+		treeview = PageTreeView(ui, treestore)
 		self.index.update(callback=process_events)
-		#~ for page in reversed(list(self.notebook.walk())): # delete bottom up
-			#~ self.notebook.delete_page(page)
-			#~ process_events()
+
+		# Try some TreeView methods
+		path = Path('Test:foo')
+		self.assertTrue(treeview.select_page(path))
+		self.assertEqual(treeview.get_selected_path(), path)
+		treepath = treeview.get_model().get_treepath(path)
+		self.assertTrue(not treepath is None)
+		col = treeview.get_column(0)
+		treeview.row_activated(treepath, col)
+
+		#~ treeview.emit('popup-menu')
+		treeview.emit('insert-link', path)
+		treeview.emit('copy')
+
+		# Check if all the signals go OK in delete
+		for page in reversed(list(self.notebook.walk())): # delete bottom up
+			self.notebook.delete_page(page)
+			process_events()
 
 
 class TestPageTreeStoreFiles(TestPageTreeStore):
