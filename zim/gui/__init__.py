@@ -893,7 +893,7 @@ class GtkInterface(NotebookInterface):
 		dialog.destroy()
 
 	def on_notebook_properties_changed(self, notebook):
-		has_doc_root = not notebook.get_document_root() is None
+		has_doc_root = not notebook.document_root is None
 		for action in ('open_document_root', 'open_document_folder'):
 			action = self.actiongroup.get_action(action)
 			action.set_sensitive(has_doc_root)
@@ -1391,12 +1391,12 @@ class GtkInterface(NotebookInterface):
 			assert False, 'BUG: notebook has neither dir or file'
 
 	def open_document_root(self):
-		dir = self.notebook.get_document_root()
+		dir = self.notebook.document_root
 		if dir and dir.exists():
 			self.open_file(dir)
 
 	def open_document_folder(self):
-		dir = self.notebook.get_document_root()
+		dir = self.notebook.document_root
 		if dir is None:
 			return
 

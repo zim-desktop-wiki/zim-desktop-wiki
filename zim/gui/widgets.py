@@ -1121,7 +1121,7 @@ class FSPathEntry(InputEntry):
 		if self.notebook:
 			text = self.notebook.relative_filepath(path, self.notebookpath)
 			if text is None:
-				if self.notebook.get_document_root():
+				if self.notebook.document_root:
 					text = path.uri
 				else:
 					text = path.path

@@ -380,8 +380,52 @@ class TestDialogs(TestCase):
 	def testPropertiesDialog(self):
 		'''Test PropertiesDialog'''
 		from zim.gui.propertiesdialog import PropertiesDialog
+		self.ui.readonly = True
 		dialog = PropertiesDialog(self.ui)
 		dialog.assert_response_ok()
+
+		from zim.config import ConfigDictFile
+		notebook = self.ui.notebook
+		file = notebook.dir.file('notebook.zim')
+		notebook.config = ConfigDictFile(file)
+		self.ui.readonly = False
+
+		config1 = {
+			'name': 'Notebook Foo',
+			'home': 'Home',
+			'icon': './icon.png',
+			'document_root': '/foo',
+			'shared': False,
+		}
+		config2 = {
+			'name': 'Notebook Bar',
+			'home': 'HomeSweetHome',
+			'icon': './picture.png',
+			'document_root': '/bar',
+			'shared': True,
+		}
+		notebook.save_properties(**config1)
+		self.assertEqual(notebook.config['Notebook'], config1)
+
+		dialog = PropertiesDialog(self.ui)
+		dialog.assert_response_ok()
+
+		self.assertEqual(notebook.config['Notebook'], config1)
+		self.assertEqual(notebook.name, config1['name'])
+		self.assertEqual(notebook.get_home_page(), Path(config1['home']))
+		self.assertEqual(notebook.icon, notebook.dir.file(config1['icon']).path)
+		self.assertEqual(notebook.document_root, Dir(config1['document_root']))
+
+		dialog = PropertiesDialog(self.ui)
+		dialog.form.update(config2)
+		dialog.assert_response_ok()
+
+		self.assertEqual(notebook.config['Notebook'], config2)
+		self.assertEqual(notebook.name, config2['name'])
+		self.assertEqual(notebook.get_home_page(), Path(config2['home']))
+		self.assertEqual(notebook.icon, notebook.dir.file(config2['icon']).path)
+		self.assertEqual(notebook.document_root, Dir(config2['document_root']))
+
 
 	def testPreferencesDialog(self):
 		'''Test PreferencesDialog'''
@@ -462,5 +506,6 @@ class MockUI(MockObject):
 
 		self.mainwindow = None
 		self.notebook = get_test_notebook()
-		self.notebook.get_store(Path(':')).dir = Dir(self.tmp_dir) # fake source dir
+		self.notebook.dir = Dir(self.tmp_dir) # fake source dir
+		self.notebook.get_store(Path(':')).dir = self.notebook.dir
 

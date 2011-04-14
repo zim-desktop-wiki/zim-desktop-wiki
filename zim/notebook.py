@@ -490,6 +490,10 @@ class Notebook(gobject.GObject):
 	be used when doing operations that need a fixed state, e.g.
 	exporting the notebook or when executing version control commands
 	on the storage directory.
+
+	@ivar name: The name of the notebook (string)
+	@ivar icon: The path for the notebook icon (if any) # FIXME should be L{File} object
+	@ivar document_root: The L{Dir} object for the X{document root} (if any)
 	'''
 
 	# TODO add checks for read-only page in much more methods
@@ -529,6 +533,7 @@ class Notebook(gobject.GObject):
 		self.cache_dir = None
 		self.name = None
 		self.icon = None
+		self.document_root = None
 		self.config = config
 		self.lock = AsyncLock()
 			# We don't use FS.get_async_lock() at this level. A store
@@ -609,14 +614,21 @@ class Notebook(gobject.GObject):
 	def save_properties(self, **properties):
 		# Check if icon is relative
 		icon = properties.get('icon')
-		if icon:
-			if isinstance(icon, basestring):
-				icon = File(icon)
-
+		if icon and not isinstance(icon, basestring):
+			assert isinstance(icon, File)
 			if self.dir and icon.ischild(self.dir):
-				properties['icon'] = icon.relpath(self.dir)
+				properties['icon'] = './' + icon.relpath(self.dir)
 			else:
 				properties['icon'] = icon.path
+
+		# Check document root is relative
+		root = properties.get('document_root')
+		if root and not isinstance(root, basestring):
+			assert isinstance(root, Dir)
+			if self.dir and root.ischild(self.dir):
+				properties['document_root'] = './' + root.relpath(self.dir)
+			else:
+				properties['document_root'] = root.path
 
 		# Set home page as string
 		if 'home' in properties and isinstance(properties['home'], Path):
@@ -641,13 +653,23 @@ class Notebook(gobject.GObject):
 		config.setdefault('home', ':Home')
 
 		# Resolve icon, can be relative
-		# TODO proper FS routine to check abs path - also allowed without the "./" - so e.g. icon.png should be resolved as well
-		if self.dir and config['icon'] and config['icon'].startswith('.'):
-			self.icon = self.dir.file(config['icon']).path
-		elif config['icon']:
-			self.icon = File(config['icon']).path
+		if config['icon']:
+			if zim.fs.isabs(config['icon']) or not self.dir:
+				self.icon = File(config['icon']).path
+			else:
+				self.icon = self.dir.file(config['icon']).path
 		else:
 			self.icon = None
+
+		# Resolve document_root, can also be relative
+		if config['document_root']:
+			if zim.fs.isabs(config['document_root']) or not self.dir:
+				self.document_root = Dir(config['document_root'])
+			else:
+				self.document_root = self.dir.subdir(config['document_root'])
+		else:
+			self.document_root = None
+
 
 		# TODO - can we switch cache_dir on run time when 'shared' chagned ?
 
@@ -1357,7 +1379,7 @@ class Notebook(gobject.GObject):
 		if filename.startswith('~') or filename.startswith('file:/'):
 			return File(filename)
 		elif filename.startswith('/'):
-			dir = self.get_document_root() or Dir('/')
+			dir = self.document_root or Dir('/')
 			return dir.file(filename)
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):
@@ -1396,7 +1418,7 @@ class Notebook(gobject.GObject):
 		@rtype: string or C{None}
 		'''
 		notebook_root = self.dir
-		document_root = self.get_document_root()
+		document_root = self.document_root
 
 		# Look within the notebook
 		if path:
@@ -1445,18 +1467,6 @@ class Notebook(gobject.GObject):
 		'''
 		store = self.get_store(path)
 		return store.get_attachments_dir(path)
-
-	def get_document_root(self):
-		'''Returns the Dir object for the document root or None'''
-		path = self.config['Notebook']['document_root']
-		if path:
-			if zim.fs.isabs(path):
-				return Dir(path)
-			else:
-				dir = self.dir or self.file.dir
-				return Dir((dir, path))
-		else:
-			return None
 
 	def get_template(self, path):
 		'''Returns a template object for path. Typically used to set initial

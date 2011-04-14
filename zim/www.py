@@ -164,7 +164,7 @@ class WWWInterface(NotebookInterface):
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
 				content = self.render_index()
 			elif path.startswith('/+docs/'):
-				dir = self.notebook.get_document_root()
+				dir = self.notebook.document_root
 				if not dir:
 					raise PageNotFoundError(path)
 				file = dir.file(path[7:])

@@ -114,7 +114,7 @@ class TestGetNotebook(tests.TestCase):
 			NotebookInfo(Dir(path).uri) for path in
 				('~/Notes', '/home/user/code/zim.debug', '/home/user/Foo Bar')
 		])
-		self.assertEqual(list.default, 
+		self.assertEqual(list.default,
 			NotebookInfo(Dir('/home/user/code/zim.debug').uri) )
 
 
@@ -465,7 +465,8 @@ http://foo.org # urls are untouched
 		self.notebook.dir = dir
 		self.notebook.get_store(path).dir = dir
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		doc_root = self.notebook.get_document_root()
+		self.notebook.do_properties_changed() # parse config
+		doc_root = self.notebook.document_root
 		self.assertEqual(doc_root, self.notebook.dir.subdir('notebook_document_root'))
 		for link, wanted, cleaned in (
 			('~/test.txt', File('~/test.txt'), '~/test.txt'),

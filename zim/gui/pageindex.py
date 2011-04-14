@@ -658,4 +658,5 @@ class PageIndex(gtk.ScrolledWindow):
 		reloading the index to get rid of out-of-sync model errors
 		without need to close the app first.
 		'''
-		self.treeview.do_set_notebook(self.ui, self.ui.notebook)
+		model = PageTreeStore(self.ui.notebook.index)
+		self.treeview.set_model(model)
