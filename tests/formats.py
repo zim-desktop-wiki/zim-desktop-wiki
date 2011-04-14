@@ -121,7 +121,6 @@ class TestParseTree(TestCase):
 			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0"><strong>foo</strong></li></zim-tree>', True),
 			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0"><strong>foo</strong></li></zim-tree>', True),
 		):
-			print 'XML', xml
 			tree = ParseTree().fromstring(xml)
 			self.assertEqual(tree.get_ends_with_newline(), newline)
 

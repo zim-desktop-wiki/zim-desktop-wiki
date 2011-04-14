@@ -152,7 +152,8 @@ class TrayIconBase(object):
 
 	def list_configured_notebooks(self):
 		# returns (name, uri) pairs
-		return get_notebook_list().get_names()
+		list = get_notebook_list()
+		return [(info.name, info.uri) for info in list]
 
 	def list_open_notebooks(self):
 		# should return (name, uri) pairs
@@ -224,9 +225,9 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 			# No open notebooks, open default or prompt full list
 			notebooks = get_notebook_list()
 			if notebooks.default:
-				self.do_activate_notebook(notebooks.default)
+				self.do_activate_notebook(notebooks.uri)
 			else:
-				self.do_popup_menu_notebooks(notebooks)
+				self.do_popup_menu_notebooks([info.uri for info in notebooks])
 		elif len(open_notebooks) == 1:
 			# Only one open notebook - present it
 			self.do_activate_notebook(open_notebooks[0][1])
@@ -302,8 +303,9 @@ class DaemonTrayIconMixin(object):
 
 	def list_open_notebooks(self):
 		list = get_notebook_list()
+		names = dict((info.uri, info.name) for info in list)
 		for uri in self.daemon.list_notebooks():
-			name = list.get_name(uri) or uri
+			name = names[uri] or uri
 			yield name, uri
 
 	def do_activate_notebook(self, uri):

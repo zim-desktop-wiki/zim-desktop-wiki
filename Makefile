@@ -34,7 +34,7 @@ builddeb:
 
 epydoc:
 	rm -fr ./apidoc
-	epydoc --html zim --graph umlclasstree -o ./apidoc
+	epydoc --html zim --graph umlclasstree -o ./apidoc --parse-only --no-private
 	@echo -e '\nAPI docs are available in ./apidoc'
 
 clean:

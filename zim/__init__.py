@@ -130,6 +130,18 @@ class NotebookLookupError(Error):
 		# T: Error verbose description
 
 
+def _get_default_or_only_notebook():
+	# Helper used below to decide a good default to open
+	from zim.notebook import get_notebook_list
+	notebooks = get_notebook_list()
+	if notebooks.default:
+		return notebooks.default.uri
+	elif len(notebooks) == 1:
+		return notebooks[0].uri
+	else:
+		return None
+
+
 def main(argv):
 	'''Run the main program.'''
 	global ZIM_EXECUTABLE
@@ -241,8 +253,7 @@ def main(argv):
 	logger.debug('Running command: %s', cmd)
 	if cmd in ('export', 'index'):
 		if not len(args) >= 1:
-			import zim.notebook
-			default = zim.notebook.get_default_notebook()
+			default = _get_default_or_only_notebook()
 			handler = NotebookInterface(notebook=default)
 		else:
 			handler = NotebookInterface(notebook=args[0])
@@ -271,7 +282,7 @@ def main(argv):
 			del optsdict['list'] # do not use default
 		elif not notebook:
 			import zim.notebook
-			default = zim.notebook.get_default_notebook()
+			default = _get_default_or_only_notebook()
 			if default:
 				notebook = default
 				logger.info('Opening default notebook')
@@ -433,6 +444,9 @@ class NotebookInterface(gobject.GObject):
 				nb, path = notebook, None
 
 			if not nb is None:
+				for plugin in self.plugins:
+					uri = nb.uri
+					plugin.initialize_notebook(uri)
 				nb = get_notebook(nb)
 
 			if nb is None:

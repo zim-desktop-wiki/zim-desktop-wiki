@@ -34,8 +34,7 @@ from zim import NotebookInterface, NotebookLookupError
 from zim.fs import *
 from zim.fs import normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError
-from zim.notebook import Path, Page, PageNameError, \
-	resolve_default_notebook, get_notebook, get_notebook_list
+from zim.notebook import Path, Page
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord

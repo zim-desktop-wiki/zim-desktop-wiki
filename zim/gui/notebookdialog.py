@@ -8,6 +8,8 @@ argument. The dialog directly modifies the notebook list obtained from
 zim.notebook.get_notebook_list(). A special dropdown allows settign the
 special entry for the default notebook which will be openend directly
 the next time zim is started without arguments.
+
+@newfield column: Column, Columns
 '''
 
 import gtk
@@ -15,19 +17,18 @@ import pango
 import logging
 
 from zim.fs import *
-from zim.notebook import get_notebook_list, init_notebook, Notebook
+from zim.notebook import get_notebook_list, init_notebook, NotebookInfo
 from zim.config import data_file
-from zim.gui.widgets import ui_environment, Dialog, IconButton
-
+from zim.gui.widgets import ui_environment, Dialog, IconButton, _encode_xml
 
 logger = logging.getLogger('zim.gui.notebookdialog')
 
 
 OPEN_COL = 0   # column with boolean if notebook is open alreadys
 NAME_COL = 1   # column with notebook name
-PATH_COL = 2   # column with the directory path
-TEXT_COL = 3   # column with a formatted containing name and path
-PIXBUF_COL = 4 # column containing the notebook icon
+TEXT_COL = 2   # column with a formatted containing name and path
+PIXBUF_COL = 3 # column containing the notebook icon
+INFO_COL = 4   # column with the NotebookInfo object
 
 
 def prompt_notebook():
@@ -36,7 +37,7 @@ def prompt_notebook():
 	the notebook location without showing the notebook list.
 	'''
 	list = get_notebook_list()
-	if not list:
+	if len(list) == 0:
 		logger.debug('First time usage - prompt for notebook folder')
 		fields = AddNotebookDialog(ui=None).run()
 		if fields:
@@ -53,25 +54,26 @@ def prompt_notebook():
 
 
 class NotebookTreeModel(gtk.ListStore):
-	'''TreeModel that wraps a notebook list given as a ConfigList.
-	It exposes 5 columns:
+	'''TreeModel that wraps a notebook list
 
-		* bool, True is the notebook is opened already
-		* str, name of the notebook
-		* str, dir path of the notebook
-		* str, formatted string containg the name and path
-		* gtk.gdk.Pixbuf, the icon of the notebook
+	@column OPEN_COL: boolean, True if the notebook is opened already
+	@column NAME_COL: string, name of the notebook
+	@column TEXT_COL: string, formatted string containg the name and path
+	@column PIXBUF_COL: gtk.gdk.Pixbuf, the icon of the notebook (if any)
+	@column INFO_COL: L{NotebookInfo} object
 
-	To get the correct column numbers the constants OPEN_COL, NAME_COL and
-	PATH_COL are avaialble.
+	@note: To refer to the notebook in an unambiguous way, use the uri stored
+	in the L{NotebookInfo} object.
 	'''
 
 	def __init__(self, notebooklist=None):
 		'''Constructor. If "notebooklist" is None, the default list as
 		provided by zim.notebook.get_notebook_list() is used.
+
+		@param notebooklist: a list of L{NotebookInfo} objects
 		'''
-		gtk.ListStore.__init__(self, bool, str, str, str, gtk.gdk.Pixbuf)
-			# OPEN_COL, NAME_COL, PATH_COL TEXT_COL PIXBUF_COL
+		gtk.ListStore.__init__(self, bool, str, str, gtk.gdk.Pixbuf, object)
+						# OPEN_COL, NAME_COL, TEXT_COL PIXBUF_COL INFO_COL
 
 		if notebooklist is None:
 			self.notebooklist = get_notebook_list()
@@ -79,23 +81,15 @@ class NotebookTreeModel(gtk.ListStore):
 			self.notebooklist = notebooklist
 
 		self._loading = True
-		w, h = gtk.icon_size_lookup(gtk.ICON_SIZE_MENU)
-		for name, path in self.notebooklist.get_names():
-			text = self.get_notebook_pango(name, path)
-			notebook = Notebook(dir=Dir(path))
-			if notebook.icon and File(notebook.icon).exists():
-					pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(notebook.icon, w, h)
-			else:
-				# TODO: how to get zims default icon?
-				pixbuf = None
-			self.append((False, name, path, text, pixbuf))
+		for info in self.notebooklist:
+			self._append(info)
 		self._loading = False
 
 	def get_iter_for_notebook(self, uri):
 		'''Returns the TreeIter for a notebook path or None'''
 		assert uri.startswith('file://')
 		for row in self:
-			if row[PATH_COL] == uri:
+			if row[INFO_COL].uri == uri:
 				return row.iter
 		else:
 			return None
@@ -106,19 +100,31 @@ class NotebookTreeModel(gtk.ListStore):
 		Returns an iter for this notebook in the list.
 		'''
 		assert uri.startswith('file://')
-		self.notebooklist.append(uri)
-		if name is None:
-			name = self.notebooklist.get_name(uri)
-		text = self.get_notebook_pango(name, uri)
-		self.append((False, name, uri, text, None))
+		info = NotebookInfo(uri, name=name)
+		info.update()
+		self._append(info)
 		self.write()
 		return len(self) - 1 # iter
 
+	def _append(self, info):
+		path = File(info.uri).path
+		text = '<b>%s</b>\n<span foreground="#5a5a5a" size="small">%s</span>' % \
+				(_encode_xml(info.name), _encode_xml(path))
+				# T: Path label in 'open notebook' dialog
+
+		if info.icon and File(info.icon).exists():
+			w, h = gtk.icon_size_lookup(gtk.ICON_SIZE_BUTTON)
+			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(File(info.icon).path, w, h)
+		else:
+			pixbuf = None
+
+		self.append((False, info.name, text, pixbuf, info))
+				# OPEN_COL NAME_COL TEXT_COL PIXBUF_COL INFO_COL
+
 	def get_iter_for_default(self):
 		'''Returns a TreeIter for the default notebook or None'''
-		default = self.notebooklist.default
-		if default:
-			return self.get_iter_for_notebook(default)
+		if self.notebooklist.default:
+			return self.get_iter_for_notebook(self.notebooklist.default.uri)
 		else:
 			return None
 
@@ -129,7 +135,7 @@ class NotebookTreeModel(gtk.ListStore):
 		if iter is None:
 			self.notebooklist.default = None
 		else:
-			self.notebooklist.default = unicode(self[iter][PATH_COL])
+			self.notebooklist.default = self[iter][INFO_COL]
 		self.write()
 
 	def write(self):
@@ -137,16 +143,9 @@ class NotebookTreeModel(gtk.ListStore):
 		if self._loading:
 			return # ignore signals while first populating the list
 
-		uris = [unicode(row[PATH_COL]) for row in self]
-		self.notebooklist[:] = uris
+		list = [row[INFO_COL] for row in self]
+		self.notebooklist[:] = list
 		self.notebooklist.write()
-
-	def get_notebook_pango(self, name, path):
-		from zim.gui.widgets import _encode_xml
-		text = '<b>%s</b>\n<span foreground="#5a5a5a" size="small">%s</span>' % \
-				(_encode_xml(name), _encode_xml(path.replace('file://', '')))
-				# T: Path label in 'open notebook' dialog
-		return text
 
 
 class NotebookTreeView(gtk.TreeView):
@@ -229,12 +228,13 @@ class NotebookComboBox(gtk.ComboBox):
 			self.set_active_iter(iter)
 
 	def get_notebook(self):
+		'''Returns the uri for the current selected notebook'''
 		iter = self.get_active()
 		if iter == -1:
 			return None
 		else:
 			model = self.get_model()
-			return model[iter][PATH_COL]
+			return model[iter][INFO_COL].uri
 
 
 class DefaultNotebookComboBox(NotebookComboBox):
@@ -336,10 +336,9 @@ class NotebookDialog(Dialog):
 		if iter is None:
 			return False
 		else:
-			path = unicode(model[iter][PATH_COL])
-			self.result = path
+			self.result = model[iter][INFO_COL].uri
 			if self.callback:
-				self.callback(path)
+				self.callback(self.result)
 			return True
 
 	def do_add_notebook(self, *a):

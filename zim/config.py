@@ -477,6 +477,14 @@ class ConfigDict(ListDict):
 	These are represented as INI files where each sub-dict is a section.
 	Sections are auto-vivicated when getting a non-existing key.
 	Each section is in turn a ListDict.
+
+	By default sections will be merged if they have the same name.
+	Values that appear under the same section name later in the file
+	will overwrite values that appeared earlier.
+
+	As a special case we can support sections that repeat under the
+	same section name. To do this assign the section name a list
+	before parsing.
 	'''
 
 	def __getitem__(self, k):
@@ -485,7 +493,9 @@ class ConfigDict(ListDict):
 		return dict.__getitem__(self, k)
 
 	def parse(self, text):
-		'''Parse 'text' and set values based on this input'''
+		'''Parse 'text' and set values based on this input
+		@param text: a string or a list of lines
+		'''
 		# Note that we explicitly do _not_ support comments on the end
 		# of a line. This is because "#" could be a valid character in
 		# a config value.
@@ -499,6 +509,9 @@ class ConfigDict(ListDict):
 			elif line.startswith('[') and line.endswith(']'):
 				name = line[1:-1].strip()
 				section = self[name]
+				if isinstance(section, list):
+					section.append(ListDict())
+					section = section[-1]
 			elif '=' in line:
 				parameter, value = line.split('=', 1)
 				parameter = str(parameter.rstrip()) # no unicode
@@ -537,12 +550,20 @@ class ConfigDict(ListDict):
 		dict. Used to write as a config file.
 		'''
 		lines = []
+		def dump_section(name, parameters):
+			lines.append('[%s]\n' % section)
+			for param, value in parameters.items():
+				lines.append('%s=%s\n' % (param, self._encode_value(value)))
+			lines.append('\n')
+
 		for section, parameters in self.items():
 			if parameters:
-				lines.append('[%s]\n' % section)
-				for param, value in parameters.items():
-					lines.append('%s=%s\n' % (param, self._encode_value(value)))
-				lines.append('\n')
+				if isinstance(parameters, list):
+					for param in parameters:
+						dump_section(section, param)
+				else:
+					dump_section(section, parameters)
+
 		return lines
 
 	def _encode_value(self, value):
