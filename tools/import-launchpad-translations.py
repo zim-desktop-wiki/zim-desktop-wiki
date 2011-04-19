@@ -49,7 +49,7 @@ def import_translations_from(archive):
 		perc = float(n) / total * 100
 		if n >= MIN_TRANLATIONS:
 			status = 'OK'
-			files.append(('po/%s.po' % lang, file))
+			files.append(('translations/%s.po' % lang, file))
 		else:
 			status = ''
 		print '%-6s %i translated (%i%%) %s' % (lang, n, perc, status) 
