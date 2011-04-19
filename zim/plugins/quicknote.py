@@ -279,7 +279,7 @@ class BoundQuickNoteDialog(Dialog):
 			path = self.form['namespace'].name + ':' + self.form['basename']
 			ui.new_page_from_text(text, path)
 			if self.open_page.get_active():
-				ui.present()
+				ui.present(path) # also works with proxy
 		else:
 			if not self.form.widgets['page'].get_input_valid() \
 			or not self.form['page']:

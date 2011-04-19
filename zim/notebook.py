@@ -41,6 +41,9 @@ class NotebookInfo(object):
 	@ivar name: The notebook name (or the basename of the uri)
 	@ivar icon: The file uri for the notebook icon
 	@ivar mtime: The mtime of the config file this info was read from (if any)
+	@ivar active: The attribute is used to signal whether the notebook
+	is already open or not, used in the daemon context, C{None} if this
+	is not used, C{True} or C{False} otherwise
 	'''
 
 	def __init__(self, uri, name=None, icon=None, mtime=None, **a):
@@ -51,6 +54,7 @@ class NotebookInfo(object):
 		self.name = name or f.basename
 		self.icon = icon
 		self.mtime = mtime
+		self.active = None
 
 	def __eq__(self, other):
 		# objects describe the same notebook when the uri is the same
