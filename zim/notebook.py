@@ -434,7 +434,7 @@ def _resolve_relative_config(dir, config):
 		if zim.fs.isabs(icon) or not dir:
 			icon = File(icon)
 		else:
-			icon = dir.file(icon)
+			icon = dir.resolve_file(icon)
 
 	# Resolve document_root, can also be relative
 	document_root = config.get('document_root')
@@ -442,7 +442,7 @@ def _resolve_relative_config(dir, config):
 		if zim.fs.isabs(document_root) or not dir:
 			document_root = Dir(document_root)
 		else:
-			document_root = dir.subdir(document_root)
+			document_root = dir.resolve_dir(document_root)
 
 	return icon, document_root
 

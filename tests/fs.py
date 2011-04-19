@@ -262,11 +262,21 @@ class TestFS(tests.TestCase):
 
 		self.assertEqual(File((dir, 'foo.txt')), dir.file('foo.txt'))
 		self.assertEqual(dir.file(File((dir, 'foo.txt'))), dir.file('foo.txt'))
+		self.assertEqual(dir.file(Path((dir, 'foo.txt'))), dir.file('foo.txt'))
+		self.assertEqual(dir.file(('foo.txt',)), dir.file('foo.txt'))
 		self.assertRaises(PathLookupError, dir.file, File('/foo/bar.txt')) # not below dir
+
+		self.assertEqual(dir.resolve_file('../foo.txt'), dir.dir.file('foo.txt'))
+		self.assertEqual(dir.resolve_file(File('/foo/bar.txt')), File('/foo/bar.txt'))
 
 		self.assertEqual(Dir((dir, 'bar')), dir.subdir('bar'))
 		self.assertEqual(dir.subdir(Dir((dir, 'bar'))), dir.subdir('bar'))
+		self.assertEqual(dir.subdir(Path((dir, 'bar'))), dir.subdir('bar'))
+		self.assertEqual(dir.subdir(('bar',)), dir.subdir('bar'))
 		self.assertRaises(PathLookupError, dir.subdir, Dir('/foo/bar')) # not below dir
+
+		self.assertEqual(dir.resolve_dir('../bar'), dir.dir.subdir('bar'))
+		self.assertEqual(dir.resolve_dir(Dir('/foo/bar')), Dir('/foo/bar'))
 
 		self.assertRaises(OSError, dir.remove) # dir not empty
 		self.assertTrue(dir.exists())

@@ -743,17 +743,34 @@ class Dir(Path):
 				lrmdir(os.path.join(root, name))
 
 	def file(self, path):
-		'''Returns a File object for a path relative to this directory'''
-		assert isinstance(path, (Path, basestring, list, tuple))
-		if isinstance(path, File):
-			file = path
-		elif isinstance(path, basestring):
-			file = File((self.path, path))
-		else:
-			file = File((self.path,) + tuple(path))
+		'''Returns a File object for a path relative to this directory
+
+		When 'path' is in fact a L{File} object already this method
+		still enforces is to be below this directory. So this method can
+		be used as check as well.
+
+		@param path: a (relative) file path as string, tuple or L{Path} object
+
+		@returns: a L{File} object
+
+		@raises PathLookupError: if the file is not below this dir
+		'''
+		file = self.resolve_file(path)
 		if not file.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (file, self)
 		return file
+
+	def resolve_file(self, path):
+		'''Like L{file()} but allows the path to start with "../"'''
+		assert isinstance(path, (Path, basestring, list, tuple))
+		if isinstance(path, basestring):
+			return File((self.path, path))
+		elif isinstance(path, (list, tuple)):
+			return File((self.path,) + tuple(path))
+		elif isinstance(path, File):
+			return path
+		elif isinstance(path, Path):
+			return File(path.path)
 
 	def new_file(self, path):
 		'''Like file() but guarantees the file does not yet exist by adding
@@ -777,17 +794,35 @@ class Dir(Path):
 		return file
 
 	def subdir(self, path):
-		'''Returns a Dir object for a path relative to this directory'''
-		assert isinstance(path, (Path, basestring, list, tuple))
-		if isinstance(path, Dir):
-			dir = path
-		elif isinstance(path, basestring):
-			dir = Dir((self.path, path))
-		else:
-			dir = Dir((self.path,) + tuple(path))
+		'''Returns a Dir object for a path relative to this directory
+
+		When 'path' is in fact a L{Dir} object already this method
+		still enforces is to be below this directory. So this method can
+		be used as check as well.
+
+		@param path: a (relative) file path as string, tuple or L{Path} object
+
+		@returns: a L{Dir} object
+
+		@raises PathLookupError: if the subdir is not below this dir
+		'''
+
+		dir = self.resolve_dir(path)
 		if not dir.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (dir, self)
 		return dir
+
+	def resolve_dir(self, path):
+		'''Like L{subdir()} but allows the path to start with "../"'''
+		assert isinstance(path, (Path, basestring, list, tuple))
+		if isinstance(path, basestring):
+			return Dir((self.path, path))
+		elif isinstance(path, (list, tuple)):
+			return Dir((self.path,) + tuple(path))
+		elif isinstance(path, Dir):
+			return path
+		elif isinstance(path, Path):
+			return Dir(path.path)
 
 
 def _glob_to_regex(glob):
