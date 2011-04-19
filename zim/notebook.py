@@ -76,12 +76,11 @@ class NotebookInfo(object):
 			if 'name' in config['Notebook']:
 				self.name = config['Notebook']['name']
 
-			if 'icon' in config['Notebook']:
-				icon = config['Notebook']['icon']
-				if icon.startswith('.'):
-					self.icon = dir.file(icon).uri
-				else:
-					self.icon = File(icon).uri
+			icon, document_root = _resolve_relative_config(dir, config['Notebook'])
+			if icon:
+				self.icon = icon.uri
+			else:
+				self.icon = None
 
 			self.mtime = file.mtime()
 			return True
@@ -113,7 +112,10 @@ class NotebookInfoList(list):
 		self._defaultfile = default # default config file
 		self.default = None # default notebook
 		self.read()
-		self.update()
+		try:
+			self.update()
+		except:
+			logger.exception('Exception while loading notebook list:')
 
 	def read(self):
 		'''Read the config and cache and populate the list'''
@@ -419,6 +421,28 @@ def interwiki_link(link):
 		return None
 
 
+def _resolve_relative_config(dir, config):
+	# Some code shared between Notebook and NotebookInfo
+
+	# Resolve icon, can be relative
+	icon = config.get('icon')
+	if icon:
+		if zim.fs.isabs(icon) or not dir:
+			icon = File(icon)
+		else:
+			icon = dir.file(icon)
+
+	# Resolve document_root, can also be relative
+	document_root = config.get('document_root')
+	if document_root:
+		if zim.fs.isabs(document_root) or not dir:
+			document_root = Dir(document_root)
+		else:
+			document_root = dir.subdir(document_root)
+
+	return icon, document_root
+
+
 class PageNameError(Error):
 
 	description = _('''\
@@ -652,24 +676,13 @@ class Notebook(gobject.GObject):
 		# We should always have a home
 		config.setdefault('home', ':Home')
 
-		# Resolve icon, can be relative
-		if config['icon']:
-			if zim.fs.isabs(config['icon']) or not self.dir:
-				self.icon = File(config['icon']).path
-			else:
-				self.icon = self.dir.file(config['icon']).path
+		# Resolve icon and document root, can be relative
+		icon, document_root = _resolve_relative_config(self.dir, config)
+		if icon:
+			self.icon = icon.path # FIXME rewrite to use File object
 		else:
 			self.icon = None
-
-		# Resolve document_root, can also be relative
-		if config['document_root']:
-			if zim.fs.isabs(config['document_root']) or not self.dir:
-				self.document_root = Dir(config['document_root'])
-			else:
-				self.document_root = self.dir.subdir(config['document_root'])
-		else:
-			self.document_root = None
-
+		self.document_root = document_root
 
 		# TODO - can we switch cache_dir on run time when 'shared' chagned ?
 
