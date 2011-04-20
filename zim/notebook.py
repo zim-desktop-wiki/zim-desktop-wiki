@@ -372,10 +372,18 @@ def resolve_notebook(string):
 
 def get_notebook(path):
 	'''Convenience method that constructs a notebook from either a
-	File or a Dir object.
+	uri, or a File or a Dir object.
 	'''
 	# TODO this is where the hook goes to automount etc.
-	assert isinstance(path, (File, Dir))
+	if isinstance(path, basestring):
+		file = File(path)
+		if file.exists(): # exists and is a file
+			path = file
+		else:
+			path = Dir(path)
+	else:
+		assert isinstance(path, (File, Dir))
+
 	if path.exists():
 		if isinstance(path, File):
 			return Notebook(file=path)

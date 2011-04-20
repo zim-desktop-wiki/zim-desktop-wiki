@@ -359,7 +359,6 @@ class AppIndicatorTrayIcon(DaemonTrayIconMixin, TrayIconBase):
 		self.appindicator = appindicator.Indicator(
 			'zim-desktop-wiki', 'zim', appindicator.CATEGORY_APPLICATION_STATUS)
 		self.appindicator.set_status(appindicator.STATUS_ACTIVE)
-		# Should we use PASSIVE when no notebook is open ?
 
 		self.on_notebook_list_changed()
 		self.daemon.connect_object('notebook-list-changed', self)
