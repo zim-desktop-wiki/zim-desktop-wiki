@@ -28,7 +28,7 @@ ui_xml = '''
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, read only
-	('insert_seqdiagram', None, _('SeqDia_gram...'), '', _('Insert sequence diagram'), False),
+	('insert_seqdiagram', None, _('Se_quence Diagram...'), '', _('Insert sequence diagram'), False),
 		# T: menu item for insert diagram plugin
 )
 
@@ -42,6 +42,7 @@ This plugin provides a sequence diagram editor for zim based on seqdiag.
 
 This is not a core plugin shipping with zim.
 '''), # T: plugin description
+		'help': ':Plugins:Sequence Diagram Editor',
 		'author': 'Greg Warner',
 	}
 
@@ -79,7 +80,7 @@ class InsertSequenceDiagramDialog(ImageGeneratorDialog):
 	def __init__(self, ui, image=None):
 		generator = SequenceDiagramGenerator()
 		ImageGeneratorDialog.__init__(self, ui, _('Insert Sequence Diagram'), # T: dialog title
-			generator, image )
+			generator, image, help=':Plugins:Sequence Diagram Editor')
 
 
 class SequenceDiagramGenerator(object):
