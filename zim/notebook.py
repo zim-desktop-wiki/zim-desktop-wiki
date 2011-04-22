@@ -78,7 +78,7 @@ class NotebookInfo(object):
 			config = ConfigDictFile(file)
 
 			if 'name' in config['Notebook']:
-				self.name = config['Notebook']['name']
+				self.name = config['Notebook']['name'] or dir.basename
 
 			icon, document_root = _resolve_relative_config(dir, config['Notebook'])
 			if icon:
