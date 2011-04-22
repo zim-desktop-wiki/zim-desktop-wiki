@@ -272,7 +272,9 @@ class NotebookInfoList(list):
 
 	def update(self):
 		'''Update L{NotebookInfo} objects and write cache'''
-		changed = any(info.update() for info in self)
+		changed = False
+		for info in self:
+			changed = info.update() or changed
 		if changed:
 			self.write()
 
