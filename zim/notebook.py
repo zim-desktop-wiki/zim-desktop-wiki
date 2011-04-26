@@ -55,6 +55,7 @@ class NotebookInfo(object):
 		self.icon = icon
 		self.mtime = mtime
 		self.active = None
+		self.interwiki = None
 
 	def __eq__(self, other):
 		# objects describe the same notebook when the uri is the same
@@ -87,6 +88,8 @@ class NotebookInfo(object):
 				self.icon = None
 
 			self.mtime = file.mtime()
+			if 'interwiki' in config['Notebook']:
+				self.interwiki = config['Notebook']['interwiki']
 			return True
 		else:
 			return False
@@ -420,6 +423,13 @@ def interwiki_link(link):
 		info = list.get_by_name(key)
 		if info:
 			url = 'zim+' + info.uri + '?{NAME}'
+		else:
+			for info in list:
+				if info.interwiki == key:
+					url = 'zim+' + info.uri + '?{NAME}'
+					break
+					
+				
 
 	if url and is_url_re.match(url):
 		if not ('{NAME}' in url or '{URL}' in url):
@@ -548,6 +558,7 @@ class Notebook(gobject.GObject):
 	properties = (
 		('name', 'string', _('Name')), # T: label for properties dialog
 		('home', 'page', _('Home Page')), # T: label for properties dialog
+		('interwiki', 'string', _('Interwiki Keyword')), # T: label for properties dialog
 		('icon', 'image', _('Icon')), # T: label for properties dialog
 		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
 		('shared', 'bool', _('Shared Notebook')), # T: label for properties dialog
