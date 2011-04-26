@@ -328,6 +328,7 @@ is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# smb://host/share
 is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
 	# identifyer "?" path
+is_interwiki_keyword_re = re.compile('^\w[\w\+\-\.]+$')
 
 
 _classes = {'c': r'[^\s"<>\']'} # limit the character class a bit

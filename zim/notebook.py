@@ -24,7 +24,8 @@ from zim.fs import *
 from zim.errors import Error, TrashNotSupportedError
 from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
 	config_file, data_dir, user_dirs
-from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type, url_encode
+from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
+	is_interwiki_keyword_re, link_type, url_encode
 from zim.async import AsyncLock
 import zim.stores
 
@@ -558,7 +559,7 @@ class Notebook(gobject.GObject):
 	properties = (
 		('name', 'string', _('Name')), # T: label for properties dialog
 		('home', 'page', _('Home Page')), # T: label for properties dialog
-		('interwiki', 'string', _('Interwiki Keyword')), # T: label for properties dialog
+		('interwiki', 'string', _('Interwiki Keyword'), is_interwiki_keyword_re.search), # T: label for properties dialog
 		('icon', 'image', _('Icon')), # T: label for properties dialog
 		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
 		('shared', 'bool', _('Shared Notebook')), # T: label for properties dialog

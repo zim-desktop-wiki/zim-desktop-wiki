@@ -775,8 +775,10 @@ class InputForm(gtk.Table):
 				entry.zim_type = type
 				if type == 'password':
 					entry.set_visibility(False)
+				if extra:
+					entry.set_check_func(extra)
+					entry.set_input_valid(True)
 				widgets.append((label, entry))
-
 			else:
 				assert False, 'BUG: unknown field type: %s' % type
 
