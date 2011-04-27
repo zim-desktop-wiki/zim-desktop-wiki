@@ -2053,28 +2053,28 @@ msgstr "编辑公式(_E)"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnuplot_ploteditor.py:41
-msgid "GNUPlot..."
-msgstr "GNUPlot绘图工具..."
+msgid "Gnuplot..."
+msgstr "Gnuplot绘图工具..."
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:49
-msgid "Insert GNUPlot"
-msgstr "插入GNUPlot绘图"
+msgid "Insert Gnuplot"
+msgstr "插入Gnuplot绘图"
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:50
-msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
-msgstr "该插件提供一个基于GNUPlot的绘图编辑器\n"
+msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
+msgstr "该插件提供一个基于Gnuplot的绘图编辑器\n"
 
 #. menu item in context menu
 #: zim/plugins/gnuplot_ploteditor.py:79
-msgid "_Edit GNUPlot"
-msgstr "编辑GNUPlot(_E)"
+msgid "_Edit Gnuplot"
+msgstr "编辑Gnuplot(_E)"
 
 #. dialog title
 #: zim/plugins/gnuplot_ploteditor.py:90
-msgid "GNUPlot"
-msgstr "GNUPlot"
+msgid "Gnuplot"
+msgstr "Gnuplot"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnu_r_ploteditor.py:44

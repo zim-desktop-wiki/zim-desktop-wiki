@@ -2091,30 +2091,30 @@ msgstr "Formule Be_werken"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnuplot_ploteditor.py:41
-msgid "GNUPlot..."
-msgstr "GNUPlot..."
+msgid "Gnuplot..."
+msgstr "Gnuplot..."
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:49
-msgid "Insert GNUPlot"
-msgstr "Insert GNUPlot"
+msgid "Insert Gnuplot"
+msgstr "Insert Gnuplot"
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:50
-msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
+msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
 msgstr ""
 "Deze plugin voegt een editor toe om grafieken in te voegen gebaseerd op "
 "GNUplot\n"
 
 #. menu item in context menu
 #: zim/plugins/gnuplot_ploteditor.py:79
-msgid "_Edit GNUPlot"
+msgid "_Edit Gnuplot"
 msgstr "GNUplot Be_werken"
 
 #. dialog title
 #: zim/plugins/gnuplot_ploteditor.py:90
-msgid "GNUPlot"
-msgstr "GNUPlot"
+msgid "Gnuplot"
+msgstr "Gnuplot"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnu_r_ploteditor.py:44

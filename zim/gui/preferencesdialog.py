@@ -15,6 +15,11 @@ from zim.gui.pageview import PageView
 logger = logging.getLogger('zim.gui.preferencesdialog')
 
 
+# define section labels here so xgettext can fing them
+_label = _('Interface') # T: Tab in preferences dialog
+_label = _('Editing') # T: Tab in preferences dialog
+
+
 class PreferencesDialog(Dialog):
 	'''Preferences dialog consisting of tabs with various options and
 	a tab with plugins. Options are not defined here, but need to be
@@ -36,7 +41,7 @@ class PreferencesDialog(Dialog):
 		self.forms = {}
 		for category, preferences in ui.preferences_register.items():
 			vbox = gtk.VBox()
-			gtknotebook.append_page(vbox, gtk.Label(category))
+			gtknotebook.append_page(vbox, gtk.Label(_(category)))
 
 			fields = []
 			values = {}

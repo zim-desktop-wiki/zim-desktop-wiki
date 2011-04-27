@@ -2082,28 +2082,28 @@ msgstr "_Modifier l'équation"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnuplot_ploteditor.py:41
-msgid "GNUPlot..."
-msgstr "GNUPlot..."
+msgid "Gnuplot..."
+msgstr "Gnuplot..."
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:49
-msgid "Insert GNUPlot"
-msgstr "Insérer un graphe GNUPlot"
+msgid "Insert Gnuplot"
+msgstr "Insérer un graphe Gnuplot"
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:50
-msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
-msgstr "Ce greffon fournit un éditeur de graphe pour Zim basé sur GNUPlot.\n"
+msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
+msgstr "Ce greffon fournit un éditeur de graphe pour Zim basé sur Gnuplot.\n"
 
 #. menu item in context menu
 #: zim/plugins/gnuplot_ploteditor.py:79
-msgid "_Edit GNUPlot"
-msgstr "_Editer le graphe GNUPlot"
+msgid "_Edit Gnuplot"
+msgstr "_Editer le graphe Gnuplot"
 
 #. dialog title
 #: zim/plugins/gnuplot_ploteditor.py:90
-msgid "GNUPlot"
-msgstr "GNUPlot"
+msgid "Gnuplot"
+msgstr "Gnuplot"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnu_r_ploteditor.py:44

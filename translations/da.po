@@ -2056,27 +2056,27 @@ msgstr ":_Rediger formel"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnuplot_ploteditor.py:41
-msgid "GNUPlot..."
+msgid "Gnuplot..."
 msgstr ""
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:49
-msgid "Insert GNUPlot"
+msgid "Insert Gnuplot"
 msgstr ""
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:50
-msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
+msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
 msgstr ""
 
 #. menu item in context menu
 #: zim/plugins/gnuplot_ploteditor.py:79
-msgid "_Edit GNUPlot"
+msgid "_Edit Gnuplot"
 msgstr ""
 
 #. dialog title
 #: zim/plugins/gnuplot_ploteditor.py:90
-msgid "GNUPlot"
+msgid "Gnuplot"
 msgstr ""
 
 #. menu item for insert plot plugin
