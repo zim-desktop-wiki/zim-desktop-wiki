@@ -78,7 +78,7 @@ class NotebookInfo(object):
 			config = ConfigDictFile(file)
 
 			if 'name' in config['Notebook']:
-				self.name = config['Notebook']['name']
+				self.name = config['Notebook']['name'] or dir.basename
 
 			icon, document_root = _resolve_relative_config(dir, config['Notebook'])
 			if icon:
@@ -272,7 +272,9 @@ class NotebookInfoList(list):
 
 	def update(self):
 		'''Update L{NotebookInfo} objects and write cache'''
-		changed = any(info.update() for info in self)
+		changed = False
+		for info in self:
+			changed = info.update() or changed
 		if changed:
 			self.write()
 
