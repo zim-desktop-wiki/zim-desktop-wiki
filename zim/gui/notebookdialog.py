@@ -43,9 +43,9 @@ def prompt_notebook():
 		if fields:
 			dir = Dir(fields['folder'])
 			init_notebook(dir, name=fields['name'])
-			list.append(dir.uri)
+			list.append(NotebookInfo(dir.uri, name=fields['name']))
 			list.write()
-			return dir
+			return dir.uri
 		else:
 			return None # User cancelled the dialog ?
 	else:

@@ -28,8 +28,10 @@ logger = logging.getLogger('zim.gui')
 
 if os.environ.get('ZIM_TEST_RUNNING'):
 	TEST_MODE = True
+	TEST_MODE_RUN_CB = None
 else:
 	TEST_MODE = False
+	TEST_MODE_RUN_CB = None
 
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
@@ -1861,8 +1863,12 @@ class Dialog(gtk.Dialog):
 		Returns the 'result' attribute of the dialog if any.
 		'''
 		self.show_all()
-		while not self.destroyed:
-			gtk.Dialog.run(self)
+		if TEST_MODE:
+			assert TEST_MODE_RUN_CB, 'Dialog run without test callback'
+			TEST_MODE_RUN_CB(self)
+		else:
+			while not self.destroyed:
+				gtk.Dialog.run(self)
 		return self.result
 
 	def present(self):
