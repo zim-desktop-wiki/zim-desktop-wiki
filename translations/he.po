@@ -7,16 +7,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2011-04-14 22:30+0200\n"
-"PO-Revision-Date: 2011-02-27 21:49+0000\n"
+"POT-Creation-Date: 2011-04-27 20:53+0200\n"
+"PO-Revision-Date: 2011-04-21 05:50+0000\n"
 "Last-Translator: Yaron <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <he@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2011-04-19 16:24+0000\n"
-"X-Generator: Launchpad (build 12847)\n"
+"X-Launchpad-Export-Date: 2011-04-28 17:52+0000\n"
+"X-Generator: Launchpad (build 12915)\n"
 
 #. label for default webbrowser |
 #. label for default application
@@ -31,7 +31,7 @@ msgid "No such file: %s"
 msgstr "אין קובץ כזה: %s"
 
 #. Error message
-#: zim/fs.py:894
+#: zim/fs.py:929
 msgid "File is not writable"
 msgstr "הקובץ אינו פתוח לכתיבה"
 
@@ -60,7 +60,7 @@ msgstr "פקודה אישית"
 #. label for file name
 #: zim/gui/applications.py:484 zim/gui/customtools.py:150
 #: zim/gui/__init__.py:2566 zim/gui/notebookdialog.py:389
-#: zim/gui/preferencesdialog.py:264 zim/notebook.py:513
+#: zim/gui/preferencesdialog.py:269 zim/notebook.py:551
 #: zim/plugins/attachmentbrowser.py:371
 msgid "Name"
 msgstr "שם"
@@ -74,23 +74,23 @@ msgstr "פקודה"
 #. menu item
 #: zim/gui/cleannotebookdialog.py:26
 msgid "Open File"
-msgstr "פתח קובץ"
+msgstr "פתיחת קובץ"
 
 #. menu item |
 #. menu item to open containing folder of files
 #: zim/gui/cleannotebookdialog.py:27 zim/gui/pageview.py:3816
 msgid "Open Folder"
-msgstr "פתיחת התיקייה"
+msgstr "פתיחת תיקייה"
 
 #. menu item
 #: zim/gui/cleannotebookdialog.py:28
 msgid "Delete File"
-msgstr "מחק קובץ"
+msgstr "מחיקת הקובץ"
 
 #. menu item
 #: zim/gui/cleannotebookdialog.py:28
 msgid "Delete"
-msgstr "מחק"
+msgstr "מחיקה"
 
 #. label in word count dialog
 #: zim/gui/cleannotebookdialog.py:131 zim/gui/pageview.py:4851
@@ -99,7 +99,7 @@ msgstr "בחירה"
 
 #. Column heading in 'Oprhaned Files' dialog |
 #. Input label
-#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:2787
+#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:2793
 msgid "Filename"
 msgstr "שם קובץ"
 
@@ -122,7 +122,7 @@ msgstr "פינוי הקבצים המצורפים"
 #. Button in "Clean Notebook" dialog
 #: zim/gui/cleannotebookdialog.py:177
 msgid "Invert Selection"
-msgstr "הפוך בחירה"
+msgstr "היפוך הבחירה"
 
 #. help text in "Clean Notebook" dialog
 #: zim/gui/cleannotebookdialog.py:184
@@ -160,13 +160,13 @@ msgstr "עריכת הכלים המותאמים"
 
 #. Input in "Edit Custom Tool" dialog |
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/customtools.py:151 zim/gui/preferencesdialog.py:270
+#: zim/gui/customtools.py:151 zim/gui/preferencesdialog.py:275
 msgid "Description"
 msgstr "תיאור"
 
 #. Input in "Edit Custom Tool" dialog |
 #. label for properties dialog
-#: zim/gui/customtools.py:163 zim/notebook.py:515
+#: zim/gui/customtools.py:163 zim/notebook.py:553
 msgid "Icon"
 msgstr "סמל"
 
@@ -739,12 +739,12 @@ msgstr "הוסף רצועות 'זריזות' לתפריטים"
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:176
 msgid "Use <Ctrl><Space> to switch to the side pane"
-msgstr ""
+msgstr "יש להשתמש ב־<Ctrl><רווח> כדי לעבור לחלונית הצד"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:180
 msgid "Remove links when deleting pages"
-msgstr ""
+msgstr "יש להסיר קישורים בעת מחיקת דפים"
 
 #. Error description for "no such file or folder"
 #: zim/gui/__init__.py:228
@@ -851,7 +851,7 @@ msgstr ""
 #: zim/gui/__init__.py:1463
 #, python-format
 msgid "Editing file: %s"
-msgstr "עורך קובץ: %s"
+msgstr "קובץ בעריכה: %s"
 
 #. description for dialog for editing external files
 #: zim/gui/__init__.py:1465
@@ -1174,7 +1174,7 @@ msgstr "ה_סרת קישור"
 #. Menu item
 #: zim/gui/pageview.py:108
 msgid "_Date and Time..."
-msgstr "_תאריך ושעה..."
+msgstr "ת_אריך ושעה..."
 
 #. Menu item
 #: zim/gui/pageview.py:109
@@ -1241,17 +1241,17 @@ msgstr "ספירת מילים..."
 #. Menu item
 #: zim/gui/pageview.py:122
 msgid "_Zoom In"
-msgstr ""
+msgstr "הת_קרבות"
 
 #. Menu item
 #: zim/gui/pageview.py:123
 msgid "Zoom _Out"
-msgstr ""
+msgstr "הת_רחקות"
 
 #. Menu item to reset zoom
 #: zim/gui/pageview.py:124
 msgid "_Normal Size"
-msgstr ""
+msgstr "גודל ר_גיל"
 
 #. Menu item
 #: zim/gui/pageview.py:129
@@ -1404,7 +1404,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview.py:172
 msgid "Repeated clicking a checkbox cyles through the checkbox states"
-msgstr "לחיצה חוזרת על תיבת סימון משנה את מצב התיבה באופן מחזורי."
+msgstr "לחיצה חוזרת על תיבת סימון משנה את מצב התיבה באופן מחזורי"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:175
@@ -1424,19 +1424,19 @@ msgstr "שינוי תחביר הוויקי בעת העבודה"
 #. option in preferences dialog
 #: zim/gui/pageview.py:184
 msgid "Default format for copying text to the clipboard"
-msgstr ""
+msgstr "מבנה בררת המחדל להעתקת טקסט ללוח הגזירים"
 
 #. error when unknown interwiki link is clicked
 #: zim/gui/pageview.py:3690
 #, python-format
 msgid "No such wiki defined: %s"
-msgstr ""
+msgstr "לא מוגדר כזה ויקי: %s"
 
 #. menu item in preferences menu
 #: zim/gui/pageview.py:3731
 #, python-format
 msgid "Copy _As \"%s\""
-msgstr ""
+msgstr "העתקה ב_תור \"%s\""
 
 #. menu item in context menu for image
 #: zim/gui/pageview.py:3788
@@ -1479,7 +1479,7 @@ msgstr "הוספת תאריך ושעה"
 #. expander label in "insert date" dialog
 #: zim/gui/pageview.py:4186
 msgid "_Calendar"
-msgstr ""
+msgstr "לוח _שנה"
 
 #. check box in InsertDate dialog
 #: zim/gui/pageview.py:4218
@@ -1642,104 +1642,114 @@ msgstr "שורות"
 msgid "Characters"
 msgstr "תווים"
 
+#. Tab in preferences dialog
+#: zim/gui/preferencesdialog.py:19
+msgid "Interface"
+msgstr "ממשק"
+
+#. Tab in preferences dialog
+#: zim/gui/preferencesdialog.py:20
+msgid "Editing"
+msgstr "עריכה"
+
 #. label to pop dialog with more applications in 'open with' menu
-#: zim/gui/preferencesdialog.py:24
+#: zim/gui/preferencesdialog.py:29
 msgid "Other Application"
 msgstr "יישום אחר"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:28
+#: zim/gui/preferencesdialog.py:33
 msgid "Preferences"
 msgstr "העדפות"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:71
+#: zim/gui/preferencesdialog.py:76
 msgid "Applications"
 msgstr "יישומים"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:75
+#: zim/gui/preferencesdialog.py:80
 msgid "File browser"
 msgstr "סייר קבצים"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:77
+#: zim/gui/preferencesdialog.py:82
 msgid "Web browser"
 msgstr "דפדפן אינטרנט"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:79
+#: zim/gui/preferencesdialog.py:84
 msgid "Email client"
-msgstr "לקוח דוא\"ל"
+msgstr "לקוח דוא״ל"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:81
+#: zim/gui/preferencesdialog.py:86
 msgid "Text Editor"
 msgstr "עורך טקסט"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:91
+#: zim/gui/preferencesdialog.py:96
 msgid "Plugins"
 msgstr "תוספים"
 
 #. option in preferences dialog
-#: zim/gui/preferencesdialog.py:97
+#: zim/gui/preferencesdialog.py:102
 msgid "Use a custom font"
 msgstr "שימוש בגופן מותאם אישית"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:242
+#: zim/gui/preferencesdialog.py:247
 msgid "_More"
 msgstr "_עוד"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:247
+#: zim/gui/preferencesdialog.py:252
 msgid "C_onfigure"
 msgstr "ה_גדרה"
 
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/preferencesdialog.py:276
+#: zim/gui/preferencesdialog.py:281
 msgid "Dependencies"
 msgstr "תלויות"
 
 #. label in plugin info in preferences dialog
-#: zim/gui/preferencesdialog.py:283
+#: zim/gui/preferencesdialog.py:288
 msgid "No dependencies"
 msgstr "אין תלויות"
 
 #. dependency is OK
-#: zim/gui/preferencesdialog.py:290
+#: zim/gui/preferencesdialog.py:295
 msgid "OK"
 msgstr "אישור"
 
 #. dependency failed
-#: zim/gui/preferencesdialog.py:294
+#: zim/gui/preferencesdialog.py:299
 msgid "Failed"
 msgstr "כשל"
 
 #. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
-#: zim/gui/preferencesdialog.py:298 zim/plugins/versioncontrol/__init__.py:476
+#: zim/gui/preferencesdialog.py:303 zim/plugins/versioncontrol/__init__.py:476
 msgid "Author"
 msgstr "יוצר"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:355
+#: zim/gui/preferencesdialog.py:360
 msgid "Enabled"
 msgstr "פעיל"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:358
+#: zim/gui/preferencesdialog.py:363
 msgid "Plugin"
 msgstr "תוסף"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:365
+#: zim/gui/preferencesdialog.py:370
 msgid "Configure Plugin"
 msgstr "הגדרת תוסף"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
-#: zim/gui/preferencesdialog.py:374
+#: zim/gui/preferencesdialog.py:379
 #, python-format
 msgid "Options for plugin %s"
 msgstr "אפשרויות עבור התוסף %s"
@@ -1800,27 +1810,27 @@ msgid "Server stopped"
 msgstr "השרת נעצר"
 
 #. dialog title
-#: zim/gui/widgets.py:361 zim/gui/widgets.py:1158
+#: zim/gui/widgets.py:363 zim/gui/widgets.py:1160
 msgid "Select File"
 msgstr "בחירת קובץ"
 
 #. dialog title
-#: zim/gui/widgets.py:1154
+#: zim/gui/widgets.py:1156
 msgid "Select Folder"
 msgstr "בחירת תיקייה"
 
 #. dialog title
-#: zim/gui/widgets.py:1156
+#: zim/gui/widgets.py:1158
 msgid "Select Image"
-msgstr "בחר תמונה"
+msgstr "בחירת תמונה"
 
 #. generic error dialog
-#: zim/gui/widgets.py:1976
+#: zim/gui/widgets.py:1982
 msgid "Looks like you found a bug"
-msgstr "כנראה שמצאת שגיאת תוכנה"
+msgstr "כנראה שמצאת שגיאה בתכנית"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:1979
+#: zim/gui/widgets.py:1985
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -1829,22 +1839,22 @@ msgstr ""
 "הפרטים מתיבת הטקסט שלהלן"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:2228
+#: zim/gui/widgets.py:2234
 msgid "All Files"
 msgstr "כל הקבצים"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:2253
+#: zim/gui/widgets.py:2259
 msgid "Images"
 msgstr "תמונות"
 
 #. Dialog title
-#: zim/gui/widgets.py:2777
+#: zim/gui/widgets.py:2783
 msgid "File Exists"
 msgstr "הקובץ קיים"
 
 #. Dialog text in 'new filename' dialog
-#: zim/gui/widgets.py:2778
+#: zim/gui/widgets.py:2784
 #, python-format
 msgid ""
 "A file with the name <b>\"%s\"</b> already exists.\n"
@@ -1853,14 +1863,14 @@ msgstr ""
 "קובץ בשם <b>\"%s\"</b> כבר קיים. ניתן לבחור שם אחר או לשכתב את הקובץ הקיים."
 
 #. Button label
-#: zim/gui/widgets.py:2796
+#: zim/gui/widgets.py:2802
 msgid "_Browse"
-msgstr "עיון"
+msgstr "_עיון"
 
 #. Button label
-#: zim/gui/widgets.py:2801
+#: zim/gui/widgets.py:2807
 msgid "Overwrite"
-msgstr "שכתב"
+msgstr "שכתוב"
 
 #. Error verbose description
 #: zim/__init__.py:129
@@ -1874,43 +1884,45 @@ msgid "Could not find notebook: %s"
 msgstr "לא ניתן למצוא את המחברת: %s"
 
 #. error description
-#: zim/notebook.py:424
+#: zim/notebook.py:462
 msgid "The given page name is not valid.\n"
 msgstr "שם העמוד שהוזן אינו תקני.\n"
 
 #. error message
-#: zim/notebook.py:430
+#: zim/notebook.py:468
 #, python-format
 msgid "Invalid page name \"%s\""
 msgstr "שם העמוד \"%s\" אינו תקני"
 
 #. error message
-#: zim/notebook.py:442
+#: zim/notebook.py:480
 msgid ""
 "Index is still busy updating while we try to do an\n"
 "operation that needs the index.\n"
 msgstr ""
+"המפתח עדיין עסוק בעדכונו בזמן שאנו מנסים\n"
+"לבצע פעולות הדורשות שימוש במפתח.\n"
 
 #. error message for read-only pages
-#: zim/notebook.py:459
+#: zim/notebook.py:497
 #, python-format
 msgid "Can not modify page: %s"
 msgstr "לא ניתן לשנות את העמוד: %s"
 
 #. label for properties dialog
-#: zim/notebook.py:514
+#: zim/notebook.py:552
 msgid "Home Page"
 msgstr "דף הבית"
 
 #. label for properties dialog
-#: zim/notebook.py:516
+#: zim/notebook.py:554
 msgid "Document Root"
 msgstr "שורש המסמכים"
 
 #. label for properties dialog
-#: zim/notebook.py:517
+#: zim/notebook.py:555
 msgid "Shared Notebook"
-msgstr "חוברת משותפת"
+msgstr "קלסר משותף"
 
 #. menu item
 #: zim/plugins/attachmentbrowser.py:85
@@ -1932,12 +1944,12 @@ msgid ""
 msgstr ""
 "תוסף זה מציג את תיקיית המצורפים של הדף הנוכחי בתור תצוגת סמלים בתחתית הדף.\n"
 "\n"
-"תוסף שה עדיין בשלבי פיתוח.\n"
+"תוסף זה עדיין בשלבי פיתוח.\n"
 
 #. input label
 #: zim/plugins/attachmentbrowser.py:158
 msgid "Use ImageMagick for thumbnailing"
-msgstr "להשתמש בתוכנת \"ImageMagick\" ליצור תמונות ממוזרות"
+msgstr "שימוש ב־ImageMagick ליצירת תמונות ממוזערות"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser.py:192
@@ -2119,19 +2131,21 @@ msgstr "שרטוט GNU R"
 #. menu item
 #: zim/plugins/inlinecalculator.py:38
 msgid "Evaluate _Math"
-msgstr "תחשוב חשבון"
+msgstr "ה_ערכת הביטוי המתמטי"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:207
 msgid ""
 "The inline calculator plugin was not able\n"
 "to evaluate the expression at the cursor."
-msgstr "המחשבון המובנה-שורה לא הצליח לתחשב את הביטוי במקום הסמן."
+msgstr ""
+"המחשבון מובנה השורה לא הצליח\n"
+"להעריך את הביטוי במיקום של הסמן."
 
 #. plugin name
 #: zim/plugins/inlinecalculator.py:215
 msgid "Inline Calculator"
-msgstr "מחשבון במקום השורה"
+msgstr "מחשבון בתוך השורה"
 
 #. plugin description
 #: zim/plugins/inlinecalculator.py:216
@@ -2141,13 +2155,14 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"תוסף זה מאפשר תחשוב מהר של ביטויים מתמטיים פשוטים בצים.\n"
-"זה תוסף מובנה לצים.\n"
+"תוסף זה מאפשר הערכה מהירה של ביטויים מתמטיים פשוטים ב־Zim.\n"
+"\n"
+"זהו תוסף מובנה ב־Zim.\n"
 
 #. error message
 #: zim/plugins/inlinecalculator.py:335
 msgid "Could not parse expression"
-msgstr "לא ניתן לתחשב את הביטוי"
+msgstr "לא ניתן להעריך את הביטוי"
 
 #. menu item
 #: zim/plugins/insertsymbol.py:30
@@ -2176,12 +2191,12 @@ msgstr ""
 #. menu item for insert clipboard plugin
 #: zim/plugins/linesorter.py:32
 msgid "_Sort lines"
-msgstr ""
+msgstr "_סידור השורות"
 
 #. plugin name
 #: zim/plugins/linesorter.py:41
 msgid "Line Sorter"
-msgstr ""
+msgstr "מסדר השורות"
 
 #. plugin description
 #: zim/plugins/linesorter.py:42
@@ -2190,11 +2205,14 @@ msgid ""
 "If the list is already sorted the order will be reversed\n"
 "(A-Z to Z-A).\n"
 msgstr ""
+"תוסף זה מסדר את השורות הנבחרות בסדר אלפביתי.\n"
+"אם הרשימה כבר מסודרת אז הסדר יתהפך\n"
+"(מ־א–ת ל־ת–א או מ־A-Z ל־Z-A).\n"
 
 #. Error message in "" dialog, %s will be replaced by application name
 #: zim/plugins/linesorter.py:65
 msgid "Please select more than one line of text, first."
-msgstr ""
+msgstr "נא לבחור יותר משורה אחת של טקסט תחילה."
 
 #. Menu item
 #: zim/plugins/linkmap/gui.py:28
@@ -2288,7 +2306,7 @@ msgstr "כותרת"
 #. Option in quicknote dialog
 #: zim/plugins/quicknote.py:203
 msgid "_Open new page"
-msgstr "פתח דף חדש"
+msgstr "פתיחת _דף חדש"
 
 #. menu item for insert screenshot plugin
 #: zim/plugins/screenshot.py:27
@@ -2309,8 +2327,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"תוסף זה מאפשר תילום מסך מתוך צים, וצירופו ישר לתוך דף צים.\n"
-"זה תוסף מובנה לצים.\n"
+"תוסף זה מאפשר צילום מסך מתוך Zim, וצירופו ישר לתוך דף Zim.\n"
+"\n"
+"זהו תוסף מובנה ל־Zim.\n"
 
 #. option in 'insert screenshot' dialog
 #: zim/plugins/screenshot.py:74
@@ -2363,7 +2382,7 @@ msgstr ""
 #: zim/plugins/spell.py:92
 #, python-format
 msgid "Could not load spell checking for language: \"%s\""
-msgstr ""
+msgstr "לא ניתן לטעון את בדיקת האיות עבור השפה: \"%s\""
 
 #. error message explanation
 #: zim/plugins/spell.py:94
@@ -2371,16 +2390,18 @@ msgid ""
 "This could mean you don't have the proper\n"
 "dictionaries installed"
 msgstr ""
+"יכול להיות שלא מותקנים אצלך המילונים\n"
+"המתאימים"
 
 #. label for untagged pages in side pane
 #: zim/plugins/tags.py:72
 msgid "untagged"
-msgstr ""
+msgstr "ללא תגית"
 
 #. menu option
 #: zim/plugins/tags.py:748
 msgid "Sort pages by tags"
-msgstr ""
+msgstr "סידור דפים לפי תגיות"
 
 #. plugin name |
 #. Column header for tag list in Task List dialog
@@ -2393,7 +2414,7 @@ msgstr "תגיות"
 msgid ""
 "This plugin provides a page index filtered by means of selecting tags in a "
 "cloud.\n"
-msgstr ""
+msgstr "תוסף זה מספק מפתח דפים המסונן באותו האופן בו בוחרים תגיות בענן.\n"
 
 #. menu item |
 #. plugin name |
@@ -2427,7 +2448,7 @@ msgstr "התייחסות אל כל תיבות הסימון כאל משימות"
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist.py:100
 msgid "Turn page name into tags for task items"
-msgstr "להשתמש בשם הדף כתווית לפרטי משימות"
+msgstr "שימוש בשם הדף כתגיות לפרטי משימה"
 
 #. label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 #: zim/plugins/tasklist.py:102
@@ -2538,12 +2559,12 @@ msgid "_Other..."
 msgstr "_אחר..."
 
 #. menu item in tray icon menu
-#: zim/plugins/trayicon.py:179
+#: zim/plugins/trayicon.py:193
 msgid "Notebooks"
 msgstr "מחברות"
 
 #. tooltip for tray icon
-#: zim/plugins/trayicon.py:219
+#: zim/plugins/trayicon.py:245
 msgid "Zim Desktop Wiki"
 msgstr "zim הוויקי השולחני"
 
@@ -2840,3 +2861,18 @@ msgstr "מהדורה"
 #~ "<b>%t</b> טקסט הנבחר או מילה תחת לסמן\n"
 #~ "<b>%T</b> טקסט הנבחר כולל עיצוב\n"
 #~ "</tt>\n"
+
+#~ msgid "GNUPlot..."
+#~ msgstr "GNUPlot..."
+
+#~ msgid "Insert GNUPlot"
+#~ msgstr "הוספת GNUPlot"
+
+#~ msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
+#~ msgstr "תוסף זה מספק עורך תוואי ל־GNUPlot מבוסס Zim.\n"
+
+#~ msgid "_Edit GNUPlot"
+#~ msgstr "_עריכת GNUPlot"
+
+#~ msgid "GNUPlot"
+#~ msgstr "GNUPlot"
