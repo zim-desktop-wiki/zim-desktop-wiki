@@ -8,6 +8,7 @@ Also see the module zim.gui.applications, which contains classes for
 working with applications defined in desktop entry files.
 '''
 
+import sys
 import os
 import logging
 import subprocess
@@ -113,6 +114,9 @@ class Application(object):
 		'''
 		# TODO: can we build this based on os.spawn ? - seems this method fails on win32
 		cwd, argv = self._checkargs(cwd, args)
+		# if it is a python script, insert interpreter as the executable
+		if argv[0].endswith('.py'):
+			argv.insert(0, sys.executable)
 		opts = {}
 
 		flags = gobject.SPAWN_SEARCH_PATH
