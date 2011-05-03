@@ -4376,13 +4376,14 @@ class EditImageDialog(Dialog):
 		if '?' in src:
 			i = src.find('?')
 			src = src[:i]
-
+		href = image_data['href'] if 'href' in image_data else ''
 		self.add_form( [
 			('file', 'image', _('Location')), # T: Input in 'edit image' dialog
+			('href', 'link', _('Link to'), ui.page), # T: Input in 'edit image' dialog
 			('width', 'int', _('Width'), (0, 1)), # T: Input in 'edit image' dialog
 			('height', 'int', _('Height'), (0, 1)) # T: Input in 'edit image' dialog
 		],
-			{'file': src}
+			{'file': src, 'href': href}
 			# range for width and height are set in set_ranges()
 		)
 		self.form.widgets['file'].set_use_relative_paths(ui.notebook, path)
@@ -4457,7 +4458,18 @@ class EditImageDialog(Dialog):
 		file = self.form['file']
 		attrib = self._image_data
 		attrib['src'] = self.ui.notebook.relative_filepath(file, self.path) or file.uri
-
+		
+		href = self.form['href']
+		if href:
+			type = link_type(href)
+			if type == 'file':
+				# Try making the path relative
+				linkfile = self.form.widgets['href'].get_file()
+				page = self.ui.page
+				notebook = self.ui.notebook
+				href = notebook.relative_filepath(linkfile, page) or linkfile.uri
+			attrib['href'] = href
+		
 		iter = self.buffer.get_iter_at_offset(self._iter)
 		bound = iter.copy()
 		bound.forward_char()
