@@ -2689,10 +2689,17 @@ class TextView(gtk.TextView):
 				iter.backward_char()
 				pixbuf = iter.get_pixbuf()
 
-			if pixbuf and pixbuf.zim_type == 'icon' \
-			and pixbuf.zim_attrib['stock'] in (
-				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
-				cursor = CURSOR_WIDGET
+			if pixbuf:
+				if pixbuf.zim_type == 'icon' and pixbuf.zim_attrib['stock'] in (
+					STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
+					cursor = CURSOR_WIDGET
+				# FIXME: Cursor is changed also when hovering over an empty area
+				# next to the pixbuf
+				elif 'href' in pixbuf.zim_attrib:
+					cursor = CURSOR_LINK
+					link = {'href': pixbuf.zim_attrib['href']}
+				else:
+					cursor = CURSOR_TEXT
 			else:
 				cursor = CURSOR_TEXT
 
