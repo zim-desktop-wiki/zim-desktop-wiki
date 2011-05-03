@@ -2247,9 +2247,10 @@ class TextView(gtk.TextView):
 	'''Custom TextView class. Takes care of additional key bindings and on-mouse-over for links.
 
 	Signals:
-		link-clicked (link) - Emitted when the used clicks a link
+		link-clicked (link) - Emitted when the user clicks a link
 		link-enter (link) - Emitted when the mouse pointer enters a link
 		link-leave (link) - Emitted when the mouse pointer leaves a link
+		image-clicked (image) - Emitted when the user clicks an image
 		end-of-word (start, end, word, char) - Emitted when the user typed a character like space that ends a word
 		end-of-line (end) - Emitted when the user typed a newline
 
@@ -2265,6 +2266,7 @@ class TextView(gtk.TextView):
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'image-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'end-of-word': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object)),
 		'end-of-line': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 
@@ -2363,7 +2365,18 @@ class TextView(gtk.TextView):
 		buffer = self.get_buffer()
 
 		if event.type == gtk.gdk.BUTTON_PRESS:
-			if event.button == 2 and not buffer.get_has_selection():
+			if event.button == 1 and not buffer.get_has_selection():
+				iter = self.get_iter_at_pointer()
+				buffer = self.get_buffer()
+				image = buffer.get_image_data(iter)
+				if image is None:
+					# Maybe we clicked right side of an image
+					iter.backward_char()
+					image = buffer.get_image_data(iter)
+				
+				if image: self.emit('image-clicked', image)
+
+			elif event.button == 2 and not buffer.get_has_selection():
 				iter = self.get_iter_at_pointer()
 				clipboard = Clipboard(selection='PRIMARY')
 				buffer.paste_clipboard(clipboard, iter, self.get_editable())
@@ -3277,6 +3290,7 @@ class PageView(gtk.VBox):
 		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
 		self.view.connect_object('link-leave', PageView.do_link_leave, self)
+		self.view.connect_object('image-clicked', PageView.do_image_clicked, self)
 		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
 
 		## Create search box
@@ -3705,6 +3719,14 @@ class PageView(gtk.VBox):
 				self.ui.open_url(href)
 		except Exception, error:
 			ErrorDialog(self.ui, error).run()
+			
+	def do_image_clicked(self, image):
+		'''Handler for the image-clicked signal'''
+		assert isinstance(image, dict)
+		if 'href' in image and len(image['href']):
+			link = {'href': image['href']}
+			#~ self.do_link_clicked(link)
+			self.view.emit('link-clicked', link)
 
 	def do_populate_popup(self, menu):
 		# Add custom tool
