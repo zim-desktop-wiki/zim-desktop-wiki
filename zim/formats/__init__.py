@@ -538,7 +538,7 @@ class ParserClass(object):
 					break
 
 				k, v = option.split('=')
-				if k in ('width', 'height', 'type'):
+				if k in ('width', 'height', 'type', 'href'):
 					if len(v) > 0:
 						attrib[str(k)] = v # str to avoid unicode key
 				else:

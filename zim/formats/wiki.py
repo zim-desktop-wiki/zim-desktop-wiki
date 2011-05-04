@@ -55,7 +55,6 @@ parser_re = {
 	# delimiters if there are more then two characters in a row.
 	'link':     Re('\[\[(?!\[)(.+?)\]\]'),
 	'img':      Re('\{\{(?!\{)(.+?)\}\}'),
-	'imglink':  Re('\[\[(?!\[)(.+?)\|\{\{(?!\{)(.+?)\}\}\]\]'),
 	'emphasis': Re('//(?!/)(.+?)//'),
 	'strong':   Re('\*\*(?!\*)(.+?)\*\*'),
 	'mark':     Re('__(?!_)(.+?)__'),
@@ -73,16 +72,6 @@ dumper_tags = {
 	'code':     "''",
 	'tag':      '', # No additional annotation (apart from the visible @)
 }
-
-
-def contains_links(text):
-	'''Optimisation for page.get_links()'''
-	for line in text:
-		if '[[' in line:
-			return True
-	else:
-		return False
-
 
 class Parser(ParserClass):
 
@@ -287,18 +276,6 @@ class Parser(ParserClass):
 		list = parser_re['code'].sublist(
 				lambda match: ('code', {}, match[1]), list)
 		
-		def parse_image_link(match):
-			parts = match[2].split('|', 2)
-			src = parts[0]
-			href = match[1]
-			if len(parts) > 1: mytext = parts[1]
-			else: mytext = None
-			attrib = self.parse_image_url(src)
-			attrib['href'] = href
-			return ('img', attrib, mytext)
-
-		list = parser_re['imglink'].sublist(parse_image_link, list)
-		
 		def parse_link(match):
 			parts = match[1].split('|', 2)
 			link = parts[0]
@@ -413,24 +390,20 @@ class Dumper(DumperClass):
 				output.extend(myoutput)
 			elif element.tag == 'img':
 				src = element.attrib['src']
-				href = element.attrib['href'] if 'href' in element.attrib else None
 				opts = []
 				for k, v in element.attrib.items():
-					if k in ('src', 'href') or k.startswith('_'):
+					if k == 'src' or k.startswith('_'):
 						continue
 					elif v: # skip None, "" and 0
 						opts.append('%s=%s' % (k, v))
 				if opts:
 					src += '?%s' % '&'.join(opts)
-				if href:
-					output.append('[['+href+'|')
-					
+									
 				if element.text:
 					output.append('{{'+src+'|'+element.text+'}}')
 				else:
 					output.append('{{'+src+'}}')
-				if href:
-					output.append(']]')
+				
 			elif element.tag == 'sub':
 				output.append("_{%s}" % element.text)
 			elif element.tag == 'sup':
