@@ -2347,15 +2347,15 @@ class TextView(gtk.TextView):
 		cont = gtk.TextView.do_motion_notify_event(self, event)
 		x, y = event.get_coords()
 		x, y = int(x), int(y) # avoid some strange DeprecationWarning
-		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
-		self.check_cursor_type(self.get_iter_at_location(x, y))
+		coords = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
+		self.check_cursor_type(coords)
 		return cont # continue emit ?
 
 	def do_visibility_notify_event(self, event):
 		'''Event handler that triggers check_cursor_type()
 		when the window becomes visible
 		'''
-		self.check_cursor_type(self.get_iter_at_pointer())
+		self.check_cursor_type(self.get_pointer_buffer_coords())
 		return False # continue emit
 
 	def do_button_press_event(self, event):
@@ -2367,6 +2367,7 @@ class TextView(gtk.TextView):
 		if event.type == gtk.gdk.BUTTON_PRESS:
 			if event.button == 1 and not buffer.get_has_selection():
 				iter = self.get_iter_at_pointer()
+				coords = self.get_pointer_buffer_coords()
 				buffer = self.get_buffer()
 				image = buffer.get_image_data(iter)
 				if image is None:
@@ -2374,7 +2375,8 @@ class TextView(gtk.TextView):
 					iter.backward_char()
 					image = buffer.get_image_data(iter)
 				
-				if image: self.emit('image-clicked', image)
+				if image and self.in_iter_area(iter, coords):
+					self.emit('image-clicked', image)
 
 			elif event.button == 2 and not buffer.get_has_selection():
 				iter = self.get_iter_at_pointer()
@@ -2666,20 +2668,36 @@ class TextView(gtk.TextView):
 				handled = False
 
 		return handled
-
+	
+	def get_pointer_buffer_coords(self):
+		'''Returns buffer coordinates of mouse pointer'''
+		x, y = self.get_pointer()
+		return self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
+	
 	def get_iter_at_pointer(self):
 		'''Returns the TextIter that is under the mouse'''
-		x, y = self.get_pointer()
-		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
+		x, y = self.get_pointer_buffer_coords()
 		return self.get_iter_at_location(x, y)
-
+	
+	def in_iter_area(self, iter, coords):
+		'''Returns True if specified buffer coordinates are in the area of the iter.'''
+		area = self.get_iter_location(iter)
+		return (coords[0] >= area.x and coords[0] <= area.x + area.width
+					and coords[1] >= area.y and coords[1] <= area.y + area.height)
+	
 	def check_cursor_type(self, iter):
 		'''Set the mouse cursor image according to content at 'iter'.
 		E.g. set a "hand" cursor when hovering over a link. Also emits
 		the link-enter and link-leave signals when apropriate.
+		'iter' can be also specified by (x, y) tuple of buffer coordinates. 
 		'''
+		if not isinstance(iter, gtk.TextIter):
+			coords = iter
+			iter = self.get_iter_at_location(coords[0], coords[1])
+		else:
+			coords = None
+		
 		link = self.get_buffer().get_link_data(iter)
-
 		if link:
 			cursor = CURSOR_LINK
 		else:
@@ -2690,12 +2708,18 @@ class TextView(gtk.TextView):
 				pixbuf = iter.get_pixbuf()
 
 			if pixbuf:
+				if coords:
+					# if we have mouse buffer coordinates we can check
+					# whether the mouse pointer is really located over the pixbuf
+					in_area = self.in_iter_area(iter, coords)
+				else:
+					in_area = True
+				
 				if pixbuf.zim_type == 'icon' and pixbuf.zim_attrib['stock'] in (
 					STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
 					cursor = CURSOR_WIDGET
-				# FIXME: Cursor is changed also when hovering over an empty area
-				# next to the pixbuf
-				elif 'href' in pixbuf.zim_attrib:
+				
+				elif in_area and 'href' in pixbuf.zim_attrib:
 					cursor = CURSOR_LINK
 					link = {'href': pixbuf.zim_attrib['href']}
 				else:
