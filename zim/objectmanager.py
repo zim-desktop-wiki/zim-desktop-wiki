@@ -6,13 +6,35 @@
 import gobject
 import weakref
 
+# WeakRefSet has to be located before ObjectManager singleton instance creation
+class WeakRefSet(object):
+	'''Simpel collection of weak references to objects.
+	Can be iterated over to list objects that are still active.
+	'''
+
+	def __init__(self):
+		self._refs = []
+
+	def add(self, obj):
+		'''Add an object to the collection'''
+		ref = weakref.ref(obj, self._remove)
+		self._refs.append(ref)
+
+	def _remove(self, ref):
+		self._refs.remove(ref)
+
+	def __iter__(self):
+		for ref in self._refs:
+			obj = ref()
+			if obj:
+				yield obj
 
 class _ObjectManager(object):
 	'''Manages custom objects.'''
 
 	def __init__(self):
 		self.factories = {}
-		self.objects = {}
+		self.objects = {'fallback': WeakRefSet()}
 
 	def register_object(self, type, factory):
 		'''Register a factory method or class for a specific object type.
@@ -53,7 +75,10 @@ class _ObjectManager(object):
 			factory = FallbackObject
 
 		obj = factory(attrib, text, ui)
-		self.objects[type].add(obj)
+		try:
+			self.objects[type].add(obj)
+		except KeyError, e:
+			self.objects['fallback'].add(obj)
 		return obj
 
 	def get_active_objects(self, type):
@@ -65,27 +90,7 @@ class _ObjectManager(object):
 ObjectManager = _ObjectManager() # Singleton object
 
 
-class WeakRefSet(object):
-	'''Simpel collection of weak references to objects.
-	Can be iterated over to list objects that are still active.
-	'''
 
-	def __init__(self):
-		self._refs = []
-
-	def add(self, obj):
-		'''Add an object to the collection'''
-		ref = weakref.ref(obj, self._remove)
-		self._refs.append(ref)
-
-	def _remove(self, ref):
-		self._refs.remove(ref)
-
-	def __iter__(self):
-		for ref in self._refs:
-			obj = ref()
-			if obj:
-				yield obj
 
 
 class CustomObjectClass(gobject.GObject):
