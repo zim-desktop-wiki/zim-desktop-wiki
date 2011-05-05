@@ -59,7 +59,8 @@ This plugin provides a plot editor for zim based on GNU R.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('GNU R',Application(gnu_r_cmd).tryexec())]
+		has_gnur = Application(gnu_r_cmd).tryexec()
+		return has_gnur, [('GNU R', has_gnur, True)]
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)

@@ -35,11 +35,15 @@ class testPlugins(TestCase):
 
 			# test dependencies data
 			dep = plugin.check_dependencies()
+			self.assertTrue(isinstance(dep,tuple))
+			check, dep = dep
+			self.assertTrue(isinstance(check,bool))
 			self.assertTrue(isinstance(dep,list))
 			for i in range(len(dep)):
 				self.assertTrue(isinstance(dep[i],tuple))
 				self.assertTrue(isinstance(dep[i][0],str))
 				self.assertTrue(isinstance(dep[i][1],bool))
+				self.assertTrue(isinstance(dep[i][2],bool))
 
 	def testDefaulPlugins(self):
 		'''Test loading default plugins'''

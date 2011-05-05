@@ -56,7 +56,8 @@ This plugin provides a plot editor for zim based on Gnuplot.
 
    @classmethod
    def check_dependencies(klass):
-       return [('Gnuplot', Application(gnuplot_cmd).tryexec())]
+       has_gnuplot = Application(gnuplot_cmd).tryexec()
+       return has_gnuplot, [('Gnuplot', has_gnuplot, True)]
 
    def __init__(self, ui):
        PluginClass.__init__(self, ui)

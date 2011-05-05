@@ -65,7 +65,8 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('GTK >= 2.10',gtk.gtk_version >= (2, 10, 0))]
+		return (gtk.gtk_version >= (2, 10, 0), \
+				[('GTK >= 2.10', gtk.gtk_version >= (2, 10, 0), True)]
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)

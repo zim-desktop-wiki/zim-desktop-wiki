@@ -198,7 +198,8 @@ class PluginClass(gobject.GObject):
 	@classmethod
 	def check_dependencies_ok(klass):
 		'''Like check_dependencies, but just returns boolean'''
-		return all(dep[1] for dep in klass.check_dependencies())
+		check, dependencies = klass.check_dependencies()
+		return check
 
 	@classmethod
 	def check_dependencies(klass):
@@ -207,7 +208,7 @@ class PluginClass(gobject.GObject):
 		indicating if it is fulfilled or not. When a plugin has no dependencies an empty list
 		should be returned (which is done in the base class).
 		'''
-		return []
+		return (True, [])
 
 	def __init__(self, ui):
 		gobject.GObject.__init__(self)
