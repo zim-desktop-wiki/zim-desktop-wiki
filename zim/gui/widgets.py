@@ -2257,8 +2257,8 @@ class FileDialog(Dialog):
 		return filter
 
 	def add_filter_images(self):
-		'''Wrapper for filechooser.add_filter()
-		using gtk.FileFilter.add_pixbuf_formats(). Returns the filter object.
+		'''Wrapper for filechooser.add_filter() to add a filter for images.
+		Returns the filter object.
 		'''
 		if len(self.filechooser.list_filters()) == 0:
 			self._add_filter_all()
@@ -2266,6 +2266,7 @@ class FileDialog(Dialog):
 		filter.set_name(_('Images'))
 			# T: Filter in open file dialog, shows image files only
 		filter.add_pixbuf_formats()
+		filter.add_mime_type('image/*')       # to allow types like .ico
 		self.filechooser.add_filter(filter)
 		self.filechooser.set_filter(filter)
 		return filter
