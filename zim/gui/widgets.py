@@ -1705,6 +1705,8 @@ class Window(gtkwindowclass):
 		gtkwindowclass.show_all(self)
 
 
+dialog_positions = {}
+
 class Dialog(gtk.Dialog):
 	'''Wrapper around gtk.Dialog used for most zim dialogs.
 	It adds a number of convenience routines to build dialogs.
@@ -1791,6 +1793,9 @@ class Dialog(gtk.Dialog):
 		else:
 			self.uistate = zim.config.ListDict()
 
+		global dialog_positions
+		if self.__class__.__name__ in dialog_positions:
+			self.move(*(dialog_positions[self.__class__.__name__]))
 		self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		#~ print '>>', self.uistate
 		w, h = self.uistate['windowsize']
@@ -1924,6 +1929,8 @@ class Dialog(gtk.Dialog):
 			destroy = True
 
 		if ui_environment['platform'] != 'maemo':
+			global dialog_positions
+			dialog_positions[self.__class__.__name__] = self.get_position()
 			w, h = self.get_size()
 			self.uistate['windowsize'] = (w, h)
 			self.save_uistate()
