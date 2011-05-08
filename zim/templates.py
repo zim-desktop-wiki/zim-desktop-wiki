@@ -342,6 +342,7 @@ class Template(GenericTemplate):
 			'pages': pages,
 			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
+			'template': TemplateFunction(self.template_url),
 			'options': options
 		}
 
@@ -378,7 +379,11 @@ class Template(GenericTemplate):
 			return linker.link(link)
 		else:
 			return link
-
+	
+	def template_url(self, dict, path):
+		if self.linker:
+			return self.linker.template(path)
+		return path
 
 class TemplateTokenList(list):
 	'''This class contains a list of TemplateToken objects and strings'''

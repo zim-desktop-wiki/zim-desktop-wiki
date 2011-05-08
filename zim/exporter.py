@@ -209,10 +209,17 @@ class StaticLinker(BaseLinker):
 		self.target_file = None
 		self._extension = '.' + format.info['extension']
 
+	def template(self, path):
+		if self.target_dir and self.target_file:
+			file = self.target_dir.file('_template/'+path)
+			return self._filepath(file, self.target_file.dir)
+		else:
+			return BaseLinker.template(self, path)
+
 	def icon(self, name):
 		if self.target_dir and self.target_file:
 			file = self.target_dir.file('_icons/'+name+'.png')
-			return self._filepath(file, self.target_file)
+			return self._filepath(file, self.target_file.dir)
 		else:
 			return BaseLinker.icon(self, name)
 

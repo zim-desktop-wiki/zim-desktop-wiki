@@ -675,7 +675,11 @@ class BaseLinker(object):
 	def img(self, src):
 		'''Returns an url for image file 'src' '''
 		return self.link_file(src)
-
+	
+	def template(self, path):
+		'''To be overloaded, return an url for template resources'''
+		raise NotImplementedError
+		
 	def icon(self, name):
 		'''Returns an url for an icon'''
 		if not name in self._icons:
