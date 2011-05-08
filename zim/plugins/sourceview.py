@@ -114,6 +114,8 @@ class SourceViewObject(CustomObjectClass):
 			# Resize widget if parent TextView has been resized
 			self.ui.mainwindow.pageview.view.connect_after('size-allocate',
 												self.on_parent_view_resized)
+		else:
+			self.view = None
 
 	def set_preferences(self, preferences):
 		if self.view:
