@@ -13,6 +13,9 @@ from zim.index import *
 import zim.errors
 from zim.formats import ParseTree
 
+from zim import _get_default_or_only_notebook
+	# private, but want to check it anyway
+
 
 class TestGetNotebook(tests.TestCase):
 
@@ -29,12 +32,12 @@ class TestGetNotebook(tests.TestCase):
 
 		# Start empty - see this is no issue
 		list = get_notebook_list()
-		self.assertTrue(isinstance(list, NotebookList))
-		self.assertFalse(list)
+		self.assertTrue(isinstance(list, NotebookInfoList))
+		self.assertTrue(len(list) == 0)
 
 		nb, page = resolve_notebook('foo')
 		self.assertTrue(nb is None)
-		nb = resolve_default_notebook()
+		nb = _get_default_or_only_notebook()
 		self.assertTrue(nb is None)
 
 		# Non-existing dir
@@ -56,36 +59,45 @@ class TestGetNotebook(tests.TestCase):
 		self.assertEqual(page, Path('foo:bar:baz'))
 
 		# And put it in the list and resolve it by name
-		list.append(dir.uri)
-		list.write()
 		list = get_notebook_list()
+		list.append(NotebookInfo(dir.uri, name='foo'))
+		list.write()
 		self.assertTrue(len(list) == 1)
+		self.assertTrue(isinstance(list[0], NotebookInfo))
+
+		info = list.get_by_name('foo')
+		self.assertEqual(info.uri, dir.uri)
+		self.assertEqual(info.name, 'foo')
+
 		nb, page = resolve_notebook('foo')
 		self.assertEqual(nb, dir)
 
 		# Single notebook is automatically the default
-		nb = resolve_default_notebook()
-		self.assertEqual(nb, dir)
+		nb = _get_default_or_only_notebook()
+		self.assertEqual(nb, dir.uri)
 
 		# But not anymore after adding second notebook
-		list.append('file:///foo/bar')
-		list.write()
 		list = get_notebook_list()
+		list.append(NotebookInfo('file:///foo/bar'))
+		list.write()
 		self.assertTrue(len(list) == 2)
-		self.assertEqual(list[:], [dir.uri, 'file:///foo/bar'])
+		self.assertEqual(list[:],
+			[NotebookInfo(dir.uri), NotebookInfo('file:///foo/bar')])
 
 		nb, page = resolve_notebook('foo')
 		self.assertEqual(nb, dir)
 		self.assertTrue(isinstance(get_notebook(nb), Notebook))
 
-		nb = resolve_default_notebook()
+		nb = _get_default_or_only_notebook()
 		self.assertTrue(nb is None)
 
-		list.default = 'file:///default/foo'
-		list.write()
 		list = get_notebook_list()
-		nb = resolve_default_notebook()
-		self.assertEqual(nb, Dir('/default/foo'))
+		list.set_default('file:///foo/bar')
+		list.write()
+		nb = _get_default_or_only_notebook()
+		self.assertEqual(nb, Dir('/foo/bar').uri)
+		nb, p = resolve_notebook(nb)
+		self.assertEqual(nb, Dir('/foo/bar'))
 		self.assertEqual(get_notebook(nb), None)
 
 		# Check interwiki parsing
@@ -97,10 +109,13 @@ class TestGetNotebook(tests.TestCase):
 
 		# Check backward compatibility
 		file = File('tests/data/notebook-list-old-format.list')
-		wanted = [Dir('~/Notes').uri, Dir('/home/user/code/zim.debug').uri, Dir('/home/user/Foo Bar').uri]
-		list = NotebookList(file)
-		self.assertEqual(list[:], wanted)
-		self.assertEqual(list.default, Dir('/home/user/code/zim.debug').uri)
+		list = NotebookInfoList(file)
+		self.assertEqual(list[:], [
+			NotebookInfo(Dir(path).uri) for path in
+				('~/Notes', '/home/user/code/zim.debug', '/home/user/Foo Bar')
+		])
+		self.assertEqual(list.default,
+			NotebookInfo(Dir('/home/user/code/zim.debug').uri) )
 
 
 class TestNotebook(tests.TestCase):
@@ -245,6 +260,13 @@ class TestNotebook(tests.TestCase):
 		self.assertEqual(''.join(content),
 			':AnotherNewPage:Foo:bar\n'
 			'**bold** :AnotherNewPage\n' )
+
+
+		# Try trashing
+		try:
+			self.notebook.trash_page(Path('TrashMe'))
+		except TrashNotSupportedError:
+			print 'trashing not supported'
 
 		#~ print '\n==== DB ===='
 		#~ self.notebook.index.ensure_update()
@@ -443,7 +465,9 @@ http://foo.org # urls are untouched
 		self.notebook.dir = dir
 		self.notebook.get_store(path).dir = dir
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		doc_root = self.notebook.get_document_root()
+		self.notebook.do_properties_changed() # parse config
+		doc_root = self.notebook.document_root
+		self.assertEqual(doc_root, self.notebook.dir.subdir('notebook_document_root'))
 		for link, wanted, cleaned in (
 			('~/test.txt', File('~/test.txt'), '~/test.txt'),
 			(r'~\test.txt', File('~/test.txt'), '~/test.txt'),
@@ -451,6 +475,7 @@ http://foo.org # urls are untouched
 			('file:/test.txt', File('file:///test.txt'), None),
 			('file://localhost/test.txt', File('file:///test.txt'), None),
 			('/test.txt', doc_root.file('test.txt'), '/test.txt'),
+			('../../notebook_document_root/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('./test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
 			(r'.\test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
 			('../test.txt', dir.file('Foo/test.txt'), '../test.txt'),
@@ -468,6 +493,10 @@ http://foo.org # urls are untouched
 		# check relative path without Path
 		self.assertEqual(
 			self.notebook.relative_filepath(doc_root.file('foo.txt')), '/foo.txt')
+		self.assertEqual(
+			self.notebook.relative_filepath(self.notebook.dir.file('foo.txt')), './foo.txt')
+
+
 
 #	def testResolveLink(self):
 #		'''Test page.resolve_link()'''
@@ -555,6 +584,7 @@ class TestPage(TestPath):
 <zim-tree>
 <link href='foo:bar'>foo:bar</link>
 <link href='bar'>bar</link>
+<tag name='baz'>@baz</tag>
 </zim-tree>
 '''		)
 		page = Page(Path('Foo'))
@@ -566,6 +596,11 @@ class TestPage(TestPath):
 			('page', 'foo:bar', {}),
 			('page', 'bar', {}),
 		] )
+
+		tags = list(page.get_tags())
+		self.assertEqual(tags, [
+			('@baz', {'name': 'baz'}),
+		])
 
 		self.assertEqual(page.get_parsetree().tostring(), tree.tostring())
 			# ensure we didn't change the tree

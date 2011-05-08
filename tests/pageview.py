@@ -1204,11 +1204,13 @@ class TestPageviewDialogs(TestCase):
 		self.assertEqual(dialog.form['height'], 24)
 		dialog.assert_response_ok()
 		iter = buffer.get_iter_at_offset(0)
-		self.assertEqual(buffer.get_image_data(iter), {
+		imagedata = buffer.get_image_data(iter)
+		self.assertEqual(imagedata, {
 			'src': './data/zim.png', # preserve relative path
 			'_src_file': file,
 			'height': 24,
 		})
+		self.assertEqual(type(imagedata['height']).__name__, 'int')
 
 		## Insert text from file dialog
 		ui = MockUI()
@@ -1268,7 +1270,9 @@ class MockUI(MockObject):
 		self.preferences = ConfigDict()
 
 	def register_preferences(self, section, list):
-		for key, type, category, label, default in list:
+		for p in list:
+			key = p[0]
+			default = p[4]
 			self.preferences[section][key] = default
 
 

@@ -21,7 +21,7 @@ import gobject
 
 import zim.fs
 from zim.fs import *
-from zim.errors import Error
+from zim.errors import Error, TrashNotSupportedError
 from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
 	config_file, data_dir, user_dirs
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type, url_encode
@@ -34,124 +34,287 @@ logger = logging.getLogger('zim.notebook')
 DATA_FORMAT_VERSION = (0, 4)
 
 
-class NotebookList(TextConfigFile):
-	'''This class keeps a list of paths for notebook locations
-	plus a attribute 'default' for the default notebook.
+class NotebookInfo(object):
+	'''This class keeps the info for a notebook
 
-	All values are assumed to be (file://) urls.
+	@ivar uri: The location of the notebook
+	@ivar name: The notebook name (or the basename of the uri)
+	@ivar icon: The file uri for the notebook icon
+	@ivar mtime: The mtime of the config file this info was read from (if any)
+	@ivar active: The attribute is used to signal whether the notebook
+	is already open or not, used in the daemon context, C{None} if this
+	is not used, C{True} or C{False} otherwise
 	'''
 
-	def read(self):
-		TextConfigFile.read(self)
-		if len(self) > 0:
-			if self[0] == '[NotebookList]\n':
-				self.parse()
+	def __init__(self, uri, name=None, icon=None, mtime=None, **a):
+		'''Constructor'''
+		# **a is added to be future proof of unknown values in the cache
+		f = File(uri)
+		self.uri = f.uri
+		self.name = name or f.basename
+		self.icon = icon
+		self.mtime = mtime
+		self.active = None
+
+	def __eq__(self, other):
+		# objects describe the same notebook when the uri is the same
+		return self.uri == other.uri
+
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self.uri)
+
+	def update(self):
+		'''Check if info is still up to date and update this object
+
+		This method will check the X{notebook.zim} file for notebook
+		folders and read it if it changed.
+
+		@returns: C{True} when data was updated, C{False} otherwise
+		'''
+		# TODO support for paths that turn out to be files
+		dir = Dir(self.uri)
+		file = dir.file('notebook.zim')
+		if file.exists() and file.mtime() != self.mtime:
+			config = ConfigDictFile(file)
+
+			if 'name' in config['Notebook']:
+				self.name = config['Notebook']['name'] or dir.basename
+
+			icon, document_root = _resolve_relative_config(dir, config['Notebook'])
+			if icon:
+				self.icon = icon.uri
 			else:
-				self.parse_old_format()
+				self.icon = None
 
-	@staticmethod
-	def _filter(line):
-		return line and not line.isspace() and not line.startswith('#')
+			self.mtime = file.mtime()
+			return True
+		else:
+			return False
 
-	def parse(self):
-		'''Parses the notebook list format after reading it'''
-		assert self.pop(0) == '[NotebookList]\n'
+
+class NotebookInfoList(list):
+	'''This class keeps a list of L{NotebookInfo} objects
+
+	It maps to a X{notebooks.list} config file that keeps a list of
+	notebook locations and cached attributes from the various
+	X{notebook.zim} config files
+
+	@ivar default: L{NotebookInfo} object for the default
+	'''
+
+	def __init__(self, file, default=None):
+		'''Constructor
+
+		Signature is compatible to use this class with
+		L{zim.config.config_file()}.
+
+		@param file: file object for notebooks.list
+		@param default: file object for the default notebooks.list in
+		case 'file' does not exists
+		'''
+		self._file = file
+		self._defaultfile = default # default config file
+		self.default = None # default notebook
+		self.read()
+		try:
+			self.update()
+		except:
+			logger.exception('Exception while loading notebook list:')
+
+	def read(self):
+		'''Read the config and cache and populate the list'''
+		if self._file.exists():
+			file = self._file
+		elif self._defaultfile:
+			file = self._defaultfile
+		else:
+			return
+
+		lines = file.readlines()
+		if len(lines) > 0:
+			if lines[0].startswith('[NotebookList]'):
+				self.parse(lines)
+			else:
+				self.parse_old_format(lines)
+
+	def parse(self, text):
+		'''Parses the config and cache and populates the list
+
+		Format is::
+
+		  [Notebooklist]
+		  default=uri1
+		  uri1
+		  uri2
+
+		  [Notebook]
+		  name=Foo
+		  uri=uri1
+
+		Then followed by more "[Notebook]" sections that are cache data
+
+		@param text: a string or a list of lines
+		'''
+		if isinstance(text, basestring):
+			text = text.splitlines(True)
+
+		assert text.pop(0).strip() == '[NotebookList]'
 
 		# Parse key for default
-		if self[0].startswith('Default='):
-			k, v = self.pop(0).strip().split('=', 1)
-			self.default = v
+		if text[0].startswith('Default='):
+			k, v = text.pop(0).strip().split('=', 1)
+			default = v
 		else:
-			self.default = None
+			default = None
 
-		# Parse rest of list - assumed to be urls, but we check to be sure
-		def map_to_uri(line):
-			uri = line.strip()
-			if not uri.startswith('file://'):
-				uri = File(uri).uri
-			return uri
+		# Parse rest of list
+		uris = []
+		for i, line in enumerate(text):
+			if not line or line.isspace():
+				break
+			elif line.startswith('#'):
+				continue
 
-		self[:] = map(map_to_uri, filter(self._filter, self))
+			# assumed to be urls, but we check to be sure
+			uri = File(line.strip()).uri
+			uris.append(uri)
 
-	def parse_old_format(self):
-		'''Method for backward compatibility'''
+		# Parse rest of the file with cache
+		cache = {}
+		config = ConfigDict()
+		config['Notebook'] = []
+		config.parse(text[i:])
+		for section in config['Notebook']:
+			uri = section['uri']
+			cache[uri] = dict(section)
+
+		# Populate ourselves
+		for uri in uris:
+			section = cache.get(uri, {'uri': uri})
+			info = NotebookInfo(**section)
+			self.append(info)
+
+		if default:
+			self.set_default(default)
+
+	def parse_old_format(self, text):
+		'''Parses the config and cache and populates the list
+
+		Method for backward compatibility with list format with no
+		seciton headers and a whitespace separator between notebook
+		name and uri.
+
+		@param text: a string or a list of lines
+		'''
 		# Old format is name, value pair, separated by whitespace
 		# with all other whitespace escaped by a \
-		# Default was _default_ which could refer a notebook name..
+		# Default was _default_ which could refer a notebook name.
+		if isinstance(text, basestring):
+			text = text.splitlines(True)
+
 		import re
 		fields_re = re.compile(r'(?:\\.|\S)+') # match escaped char or non-whitespace
 		escaped_re = re.compile(r'\\(.)') # match single escaped char
-		default = None
-		locations = []
 
-		lines = [line.strip() for line in filter(self._filter, self)]
-		for line in lines:
-			cols = fields_re.findall(line)
+		default = None
+		defaulturi = None
+		uris = []
+		for line in text:
+			if not line or line.isspace() or line.startswith('#'):
+				continue
+
+			cols = fields_re.findall(line.strip())
 			if len(cols) == 2:
 				name = escaped_re.sub(r'\1', cols[0])
 				path = escaped_re.sub(r'\1', cols[1])
 				if name == '_default_':
 					default = path
 				else:
-					path = Dir(path).uri
-					locations.append(path)
+					uri = File(path).uri
+					uris.append(uri)
 					if name == default:
-						self.default = path
+						defaulturi = uri
 
-		if not self.default and default:
-			self.default = Dir(default).uri
+		if default and not defaulturi:
+			defaulturi = File(default).uri
 
-		self[:] = locations
+		# Populate ourselves
+		for uri in uris:
+			info = NotebookInfo(uri)
+			self.append(info)
+
+		if defaulturi:
+			self.set_default(defaulturi)
 
 	def write(self):
-		lines = self[:] # copy
-		lines.insert(0, '[NotebookList]')
-		lines.insert(1, 'Default=%s' % (self.default or ''))
-		lines = [line + '\n' for line in lines]
-		self.file.writelines(lines)
-
-	def get_default(self):
-		'''Returns uri for the default notebook'''
+		'''Write the config and cache'''
 		if self.default:
-			return self.default
-		elif len(self) == 1:
-			return self[0]
+			default = self.default.uri
 		else:
-			return None
+			default = None
 
-	def get_names(self):
-		'''Generator function that yield tuples with the notebook
-		name and the notebook path.
-		'''
-		for path in self:
-			name = self.get_name(path)
-			if name:
-				yield (name, path)
+		lines = [
+			'[NotebookList]\n',
+			'Default=%s\n' % (default or '')
+		]
+		lines.extend(info.uri + '\n' for info in self)
 
-	def get_name(self, uri):
-		'''Find the name for the notebook at 'uri' '''
-		# TODO support for paths that turn out to be files
-		file = Dir(uri).file('notebook.zim')
-		if file.exists():
-			config = ConfigDictFile(file)
-			if 'name' in config['Notebook']:
-				return config['Notebook']['name']
-		return None
+		for info in self:
+			lines.extend([
+				'\n',
+				'[Notebook]\n',
+				'uri=%s\n' % info.uri,
+				'name=%s\n' % info.name,
+				'icon=%s\n' % info.icon,
+			])
+
+		self._file.writelines(lines)
+
+	def update(self):
+		'''Update L{NotebookInfo} objects and write cache'''
+		changed = False
+		for info in self:
+			changed = info.update() or changed
+		if changed:
+			self.write()
+
+	def set_default(self, uri):
+		'''Set the default to 'uri' '''
+		for info in self:
+			if info.uri == uri:
+				self.default = info
+				return
+		else:
+			info = NotebookInfo(uri)
+			self.insert(0, info)
+			self.default = info
 
 	def get_by_name(self, name):
-		'''Get the uri for a notebook'''
-		for n, path in self.get_names():
-			if n.lower() == name.lower():
-				return path
-		else:
-			return None
+		'''Get the L{NotebookInfo} object for a notebook by name
 
+		Names are checked case sensitive first, then case-unsensitive
+
+		@param name: notebook name as string
+		@returns: a L{NotebookInfo} object or C{None}
+		'''
+		for info in self:
+			if info.name == name:
+				return info
+
+		for info in self:
+			if info.name.lower() == name.lower():
+				return info
+
+		return None
 
 
 def get_notebook_list():
-	'''Returns a list of known notebooks'''
+	'''Returns a list of known notebooks as a L{NotebookInfoList}
+
+	This will load the list from the default X{notebooks.list} file
+	'''
 	# TODO use weakref here
-	return config_file('notebooks.list', klass=NotebookList)
+	return config_file('notebooks.list', klass=NotebookInfoList)
 
 
 def resolve_notebook(string):
@@ -179,16 +342,18 @@ def resolve_notebook(string):
 		filepath = string
 	else:
 		nblist = get_notebook_list()
-		filepath = nblist.get_by_name(string)
-		if filepath is None:
+		info = nblist.get_by_name(string)
+		if info is None:
 			if os.path.exists(string):
 				filepath = string # fall back to file path
 			else:
 				return None, None # not found
+		else:
+			filepath = info.uri
 
 	file = File(filepath) # Fixme need generic FS Path object here
 	if filepath.endswith('notebook.zim'):
-		return File(filepath).dir, page
+		return file.dir, page
 	elif not page and file.exists(): # file exists and really is a file
 		parents = list(file)
 		parents.reverse()
@@ -207,42 +372,25 @@ def resolve_notebook(string):
 	return notebook, path
 
 
-def resolve_default_notebook():
-	'''Returns a File or Dir object for the default notebook,
-	or for the only notebook if there is only a single notebook
-	in the list.
-	'''
-	default = get_notebook_list().get_default()
-
-	if default:
-		if zim.fs.isfile(default):
-			return File(default)
-		else:
-			return Dir(default)
-	else:
-		return None
-
-
 def get_notebook(path):
 	'''Convenience method that constructs a notebook from either a
-	File or a Dir object.
+	uri, or a File or a Dir object.
 	'''
 	# TODO this is where the hook goes to automount etc.
-	assert isinstance(path, (File, Dir))
+	if isinstance(path, basestring):
+		file = File(path)
+		if file.exists(): # exists and is a file
+			path = file
+		else:
+			path = Dir(path)
+	else:
+		assert isinstance(path, (File, Dir))
+
 	if path.exists():
 		if isinstance(path, File):
 			return Notebook(file=path)
 		else:
 			return Notebook(dir=path)
-	else:
-		return None
-
-
-def get_default_notebook():
-	'''Returns a Notebook object for the default notebook or None'''
-	path = resolve_default_notebook()
-	if path:
-		return get_notebook(path)
 	else:
 		return None
 
@@ -271,10 +419,9 @@ def interwiki_link(link):
 			break
 	else:
 		list = get_notebook_list()
-		for name, uri in list.get_names():
-			if name.lower() == key.lower():
-				url = 'zim+' + uri + '?{NAME}'
-				break
+		info = list.get_by_name(key)
+		if info:
+			url = 'zim+' + info.uri + '?{NAME}'
 
 	if url and is_url_re.match(url):
 		if not ('{NAME}' in url or '{URL}' in url):
@@ -286,6 +433,29 @@ def interwiki_link(link):
 		return url
 	else:
 		return None
+
+
+def _resolve_relative_config(dir, config):
+	# Some code shared between Notebook and NotebookInfo
+
+	# Resolve icon, can be relative
+	icon = config.get('icon')
+	if icon:
+		if zim.fs.isabs(icon) or not dir:
+			icon = File(icon)
+		else:
+			icon = dir.resolve_file(icon)
+
+	# Resolve document_root, can also be relative
+	document_root = config.get('document_root')
+	if document_root:
+		if zim.fs.isabs(document_root) or not dir:
+			document_root = Dir(document_root)
+		else:
+			document_root = dir.resolve_dir(document_root)
+
+	return icon, document_root
+
 
 class PageNameError(Error):
 
@@ -307,10 +477,10 @@ This is likely a glitch in the application.
 
 class IndexBusyError(Error):
 
-	description = '''\
+	description = _('''\
 Index is still busy updating while we try to do an
 operation that needs the index.
-'''
+''') # T: error message
 
 
 class PageExistsError(Error):
@@ -340,8 +510,9 @@ class Notebook(gobject.GObject):
 		* stored-page (page) - emitted after storing the page
 		* move-page (oldpath, newpath, update_links)
 		* moved-page (oldpath, newpath, update_links)
-		* delete-page (path)
-		* deleted-page (path)
+		* delete-page (path) - emitted when deleting a page -- listen to
+		"deleted-page" if you need to know the delete was successful
+		* deleted-page (path) - emitted after deleting a page
 		* properties-changed ()
 
 	Signals for store, move and delete are defined double with one
@@ -357,6 +528,10 @@ class Notebook(gobject.GObject):
 	be used when doing operations that need a fixed state, e.g.
 	exporting the notebook or when executing version control commands
 	on the storage directory.
+
+	@ivar name: The name of the notebook (string)
+	@ivar icon: The path for the notebook icon (if any) # FIXME should be L{File} object
+	@ivar document_root: The L{Dir} object for the X{document root} (if any)
 	'''
 
 	# TODO add checks for read-only page in much more methods
@@ -396,6 +571,7 @@ class Notebook(gobject.GObject):
 		self.cache_dir = None
 		self.name = None
 		self.icon = None
+		self.document_root = None
 		self.config = config
 		self.lock = AsyncLock()
 			# We don't use FS.get_async_lock() at this level. A store
@@ -448,6 +624,7 @@ class Notebook(gobject.GObject):
 		if os.name == 'nt': endofline = 'dos'
 		else: endofline = 'unix'
 		self.config['Notebook'].setdefault('endofline', endofline, check=set(('dos', 'unix')))
+		self.config['Notebook'].setdefault('disable_trash', False)
 
 		self.do_properties_changed()
 
@@ -475,14 +652,21 @@ class Notebook(gobject.GObject):
 	def save_properties(self, **properties):
 		# Check if icon is relative
 		icon = properties.get('icon')
-		if icon:
-			if isinstance(icon, basestring):
-				icon = File(icon)
-
+		if icon and not isinstance(icon, basestring):
+			assert isinstance(icon, File)
 			if self.dir and icon.ischild(self.dir):
-				properties['icon'] = icon.relpath(self.dir)
+				properties['icon'] = './' + icon.relpath(self.dir)
 			else:
 				properties['icon'] = icon.path
+
+		# Check document root is relative
+		root = properties.get('document_root')
+		if root and not isinstance(root, basestring):
+			assert isinstance(root, Dir)
+			if self.dir and root.ischild(self.dir):
+				properties['document_root'] = './' + root.relpath(self.dir)
+			else:
+				properties['document_root'] = root.path
 
 		# Set home page as string
 		if 'home' in properties and isinstance(properties['home'], Path):
@@ -506,14 +690,13 @@ class Notebook(gobject.GObject):
 		# We should always have a home
 		config.setdefault('home', ':Home')
 
-		# Resolve icon, can be relative
-		# TODO proper FS routine to check abs path - also allowed without the "./" - so e.g. icon.png should be resolved as well
-		if self.dir and config['icon'] and config['icon'].startswith('.'):
-			self.icon = self.dir.file(config['icon']).path
-		elif config['icon']:
-			self.icon = File(config['icon']).path
+		# Resolve icon and document root, can be relative
+		icon, document_root = _resolve_relative_config(self.dir, config)
+		if icon:
+			self.icon = icon.path # FIXME rewrite to use File object
 		else:
 			self.icon = None
+		self.document_root = document_root
 
 		# TODO - can we switch cache_dir on run time when 'shared' chagned ?
 
@@ -1103,8 +1286,21 @@ class Notebook(gobject.GObject):
 		'''Delete a page. If 'update_links' is True pages linking to the
 		deleted page will be updated and the link are removed.
 		'''
+		return self._delete_page(path, update_links, callback)
+
+	def trash_page(self, path, update_links=True, callback=None):
+		'''Like delete_page() but will use Trash. Raises TrashNotSupportedError
+		if trashing is not supported by the storage backend or when trashing
+		is explicitly disabled for this notebook.
+		'''
+		if self.config['Notebook']['disable_trash']:
+			raise TrashNotSupportedError, 'disable_trash is set'
+		return self._delete_page(path, update_links, callback, trash=True)
+
+	def _delete_page(self, path, update_links=True, callback=None, trash=False):
 		# Collect backlinks
-		if update_links:
+		indexpath = self.index.lookup_path(path)
+		if update_links and indexpath:
 			from zim.index import LINK_DIR_BACKWARD
 			backlinkpages = set()
 			for l in self.index.list_links(path, LINK_DIR_BACKWARD):
@@ -1115,11 +1311,18 @@ class Notebook(gobject.GObject):
 				for child in self.index.walk(path):
 					for l in self.index.list_links(child, LINK_DIR_BACKWARD):
 						backlinkpages.add(l.source)
+		else:
+			update_links = False
 
 		# actual delete
 		self.emit('delete-page', path)
+
 		store = self.get_store(path)
-		store.delete_page(path)
+		if trash:
+			store.trash_page(path)
+		else:
+			store.delete_page(path)
+
 		self.flush_page_cache(path)
 		path = Path(path.name)
 
@@ -1203,7 +1406,7 @@ class Notebook(gobject.GObject):
 		if filename.startswith('~') or filename.startswith('file:/'):
 			return File(filename)
 		elif filename.startswith('/'):
-			dir = self.get_document_root() or Dir('/')
+			dir = self.document_root or Dir('/')
 			return dir.file(filename)
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):
@@ -1229,24 +1432,55 @@ class Notebook(gobject.GObject):
 		function is used to present the user with readable paths or to
 		shorten the paths inserted in the wiki code. It is advised to
 		use file uris for links that can not be made relative.
+
+		Relative file paths are always given with unix path semantics
+		(so "/" even on windows). A leading "/" does not mean the path
+		is absolute, but rather that it is relative to the
+		X{document root}.
+
+		@param file: L{File} object we want to link
+		@keyword path: L{Path} object for the page where we want to link this file
+
+		@return: relative file path or C{None} when no relative path was found
+		@rtype: string or C{None}
 		'''
-		root = self.dir
+		notebook_root = self.dir
+		document_root = self.document_root
+
+		# Look within the notebook
 		if path:
-			dir = self.get_attachments_dir(path)
-			if file.ischild(dir):
-				return './'+file.relpath(dir)
-			elif root and file.ischild(root) and dir.ischild(root):
-				parent = file.commonparent(dir)
-				uppath = dir.relpath(parent)
+			attachments_dir = self.get_attachments_dir(path)
+
+			if file.ischild(attachments_dir):
+				return './'+file.relpath(attachments_dir)
+			elif document_root and notebook_root \
+			and document_root.ischild(notebook_root) \
+			and file.ischild(document_root) \
+			and not attachments_dir.ischild(document_root):
+				# special case when document root is below notebook root
+				# the case where document_root == attachment_folder is
+				# already caught by above if clause
+				return '/'+file.relpath(document_root)
+			elif notebook_root \
+			and file.ischild(notebook_root) \
+			and attachments_dir.ischild(notebook_root):
+				parent = file.commonparent(attachments_dir)
+				uppath = attachments_dir.relpath(parent)
 				downpath = file.relpath(parent)
 				up = 1 + uppath.count('/')
 				return '../'*up + downpath
-		elif root and file.ischild(root):
-				return './'+file.relpath(root)
+		else:
+			if document_root and notebook_root \
+			and document_root.ischild(notebook_root) \
+			and file.ischild(document_root):
+				# special case when document root is below notebook root
+				return '/'+file.relpath(document_root)
+			elif notebook_root and file.ischild(notebook_root):
+				return './'+file.relpath(notebook_root)
 
-		dir = self.get_document_root()
-		if dir and file.ischild(dir):
-			return '/'+file.relpath(dir)
+		# If that fails look for global folders
+		if document_root and file.ischild(document_root):
+			return '/'+file.relpath(document_root)
 
 		dir = Dir('~')
 		if file.ischild(dir):
@@ -1260,12 +1494,6 @@ class Notebook(gobject.GObject):
 		'''
 		store = self.get_store(path)
 		return store.get_attachments_dir(path)
-
-	def get_document_root(self):
-		'''Returns the Dir object for the document root or None'''
-		path = self.config['Notebook']['document_root']
-		if path: return Dir(path)
-		else: return None
 
 	def get_template(self, path):
 		'''Returns a template object for path. Typically used to set initial
@@ -1396,6 +1624,11 @@ class Path(object):
 	of the page and is used instead of the actual page object by methods
 	that only know the name of the page. Path objects have no internal state
 	and are essentially normalized page names.
+
+	@note: There are several subclasses of this class like
+	L{index.IndexPath}, L{Page}, and L{stores.files.FileStorePage}.
+	In any API call where a path object is needed each of these
+	subclasses can be used instead.
 	'''
 
 	__slots__ = ('name',)
@@ -1725,6 +1958,18 @@ class Page(Path):
 				href = attrib.pop('href')
 				type = link_type(href)
 				yield type, href, attrib
+
+	def get_tags(self):
+		'''Generator of an unordered list of unique tuples of name and attrib
+		for tags in the parsetree.
+		'''
+		tree = self.get_parsetree()
+		if tree:
+			tags = {}
+			for tag in tree.getiterator('tag'):
+				tags[tag.text.strip()] = tag.attrib.copy()
+			for tag, attrib in tags.iteritems():
+				yield tag, attrib
 
 
 class IndexPage(Page):

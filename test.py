@@ -44,8 +44,8 @@ class FastTestLoader(unittest.TestLoader):
 				if not self.alltests and hasattr(obj, 'slowTest') and obj.slowTest:
 					print 'Ignoring slow test:', obj.__name__
 					self.ignored += 1
-				elif hasattr(obj, 'skipTest') and obj.skipTest():
-					print 'Skipping test:', obj.__name__, '-', obj.skipTest()
+				elif hasattr(obj, 'skipTestZim') and obj.skipTestZim():
+					print 'Skipping test:', obj.__name__, '-', obj.skipTestZim()
 					self.skipped += 1
 				else:
 					tests.append(self.loadTestsFromTestCase(obj))

@@ -1,9 +1,13 @@
 
+from __future__ import with_statement
+
 from tests import TestCase, get_test_notebook, create_tmp_dir, MockObject
+from tests.gtk import TestDialogContext
 
 from zim.errors import Error
-from zim.notebook import Path
+from zim.notebook import get_notebook_list, Path, NotebookInfo
 from zim.fs import File, Dir
+from zim.config import config_file
 
 import zim.gui
 
@@ -380,8 +384,52 @@ class TestDialogs(TestCase):
 	def testPropertiesDialog(self):
 		'''Test PropertiesDialog'''
 		from zim.gui.propertiesdialog import PropertiesDialog
+		self.ui.readonly = True
 		dialog = PropertiesDialog(self.ui)
 		dialog.assert_response_ok()
+
+		from zim.config import ConfigDictFile
+		notebook = self.ui.notebook
+		file = notebook.dir.file('notebook.zim')
+		notebook.config = ConfigDictFile(file)
+		self.ui.readonly = False
+
+		config1 = {
+			'name': 'Notebook Foo',
+			'home': 'Home',
+			'icon': './icon.png',
+			'document_root': '/foo',
+			'shared': False,
+		}
+		config2 = {
+			'name': 'Notebook Bar',
+			'home': 'HomeSweetHome',
+			'icon': './picture.png',
+			'document_root': '/bar',
+			'shared': True,
+		}
+		notebook.save_properties(**config1)
+		self.assertEqual(notebook.config['Notebook'], config1)
+
+		dialog = PropertiesDialog(self.ui)
+		dialog.assert_response_ok()
+
+		self.assertEqual(notebook.config['Notebook'], config1)
+		self.assertEqual(notebook.name, config1['name'])
+		self.assertEqual(notebook.get_home_page(), Path(config1['home']))
+		self.assertEqual(notebook.icon, notebook.dir.file(config1['icon']).path)
+		self.assertEqual(notebook.document_root, Dir(config1['document_root']))
+
+		dialog = PropertiesDialog(self.ui)
+		dialog.form.update(config2)
+		dialog.assert_response_ok()
+
+		self.assertEqual(notebook.config['Notebook'], config2)
+		self.assertEqual(notebook.name, config2['name'])
+		self.assertEqual(notebook.get_home_page(), Path(config2['home']))
+		self.assertEqual(notebook.icon, notebook.dir.file(config2['icon']).path)
+		self.assertEqual(notebook.document_root, Dir(config2['document_root']))
+
 
 	def testPreferencesDialog(self):
 		'''Test PreferencesDialog'''
@@ -432,6 +480,106 @@ class TestDialogs(TestCase):
 
 
 	# Test for ExportDialog can be found in test/export.py
+	# Test for NotebookDialog is in separate class below
+
+
+class TestGtkInterface(TestCase):
+
+	slowTest = True
+
+	def runTest(self):
+		ui = zim.gui.GtkInterface()
+
+		# test populating menus
+		menu = gtk.Menu()
+		ui.populate_popup('page_popup', menu)
+		items = menu.get_children()
+		self.assertTrue(len(items) > 3)
+
+
+class TestNotebookDialog(TestCase):
+
+	def setUp(self):
+		list = config_file('notebooks.list')
+		file = list.file
+		if file.exists():
+			file.remove()
+
+	def runTest(self):
+		from zim.gui.notebookdialog import prompt_notebook, \
+			AddNotebookDialog, NotebookDialog
+
+		tmpdir = create_tmp_dir('gui_TestNotebookDialog')
+		dir1 = Dir(tmpdir + '/mynotebook1')
+		dir2 = Dir(tmpdir + '/mynotebook2')
+
+		# First time we get directly the AddNotebookDialog
+		def doAddNotebook(dialog):
+			self.assertTrue(isinstance(dialog, AddNotebookDialog))
+			dialog.form['name'] = 'Foo'
+			dialog.form['folder'] = dir1.path
+			dialog.assert_response_ok()
+
+		with TestDialogContext(doAddNotebook):
+			self.assertEqual(prompt_notebook(), dir1.uri)
+
+		# Second time we get the list
+		def testNotebookDialog(dialog):
+			self.assertTrue(isinstance(dialog, NotebookDialog))
+			selection = dialog.treeview.get_selection()
+			selection.select_path((0,)) # select first and only notebook
+			dialog.assert_response_ok()
+
+		with TestDialogContext(testNotebookDialog):
+			self.assertEqual(prompt_notebook(), dir1.uri)
+
+		# Third time we add a notebook and set the default
+		def doAddNotebook(dialog):
+			self.assertTrue(isinstance(dialog, AddNotebookDialog))
+			dialog.form['name'] = 'Bar'
+			dialog.form['folder'] = dir2.path
+			dialog.assert_response_ok()
+
+		def testAddNotebook(dialog):
+			self.assertTrue(isinstance(dialog, NotebookDialog))
+
+			with TestDialogContext(doAddNotebook):
+				dialog.do_add_notebook()
+
+			dialog.combobox.set_active(0)
+
+			selection = dialog.treeview.get_selection()
+			selection.select_path((1,)) # select newly added notebook
+			dialog.assert_response_ok()
+
+		with TestDialogContext(testAddNotebook):
+			self.assertEqual(prompt_notebook(), dir2.uri)
+
+		# Check the notebook exists and the notebook list looks like it should
+		for dir in (dir1, dir2):
+			self.assertTrue(dir.exists())
+			self.assertTrue(dir.file('notebook.zim').exists())
+
+		list = get_notebook_list()
+		self.assertTrue(len(list) == 2)
+		self.assertEqual(list[0], NotebookInfo(dir1.uri, name='Foo'))
+		self.assertEqual(list[1], NotebookInfo(dir2.uri, name='Bar'))
+		self.assertEqual(list.default, NotebookInfo(dir1.uri, name='Foo'))
+
+		# Now unset the default and again check the notebook list
+		def unsetDefault(dialog):
+			self.assertTrue(isinstance(dialog, NotebookDialog))
+			dialog.combobox.set_active(-1)
+			selection = dialog.treeview.get_selection()
+			selection.select_path((1,)) # select newly added notebook
+			dialog.assert_response_ok()
+
+		with TestDialogContext(unsetDefault):
+			self.assertEqual(prompt_notebook(), dir2.uri)
+
+		list = get_notebook_list()
+		self.assertTrue(len(list) == 2)
+		self.assertTrue(list.default is None)
 
 
 class MockUI(MockObject):
@@ -448,5 +596,6 @@ class MockUI(MockObject):
 
 		self.mainwindow = None
 		self.notebook = get_test_notebook()
-		self.notebook.get_store(Path(':')).dir = Dir(self.tmp_dir) # fake source dir
+		self.notebook.dir = Dir(self.tmp_dir) # fake source dir
+		self.notebook.get_store(Path(':')).dir = self.notebook.dir
 

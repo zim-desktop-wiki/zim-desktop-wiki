@@ -11,6 +11,7 @@ import tests
 import os
 import time
 
+import zim.fs
 from zim.fs import *
 from zim.fs import Path, FileHandle, FileWriteError, TmpFile, get_tmpdir, normalize_win32_share, PathLookupError, FileNotFoundError, FilteredDir, isabs, joinpath
 from zim.errors import Error
@@ -261,11 +262,21 @@ class TestFS(tests.TestCase):
 
 		self.assertEqual(File((dir, 'foo.txt')), dir.file('foo.txt'))
 		self.assertEqual(dir.file(File((dir, 'foo.txt'))), dir.file('foo.txt'))
+		self.assertEqual(dir.file(Path((dir, 'foo.txt'))), dir.file('foo.txt'))
+		self.assertEqual(dir.file(('foo.txt',)), dir.file('foo.txt'))
 		self.assertRaises(PathLookupError, dir.file, File('/foo/bar.txt')) # not below dir
+
+		self.assertEqual(dir.resolve_file('../foo.txt'), dir.dir.file('foo.txt'))
+		self.assertEqual(dir.resolve_file(File('/foo/bar.txt')), File('/foo/bar.txt'))
 
 		self.assertEqual(Dir((dir, 'bar')), dir.subdir('bar'))
 		self.assertEqual(dir.subdir(Dir((dir, 'bar'))), dir.subdir('bar'))
+		self.assertEqual(dir.subdir(Path((dir, 'bar'))), dir.subdir('bar'))
+		self.assertEqual(dir.subdir(('bar',)), dir.subdir('bar'))
 		self.assertRaises(PathLookupError, dir.subdir, Dir('/foo/bar')) # not below dir
+
+		self.assertEqual(dir.resolve_dir('../bar'), dir.dir.subdir('bar'))
+		self.assertEqual(dir.resolve_dir(Dir('/foo/bar')), Dir('/foo/bar'))
 
 		self.assertRaises(OSError, dir.remove) # dir not empty
 		self.assertTrue(dir.exists())
@@ -334,7 +345,7 @@ class TestSymlinks(tests.TestCase):
 	slowTest = True
 
 	@staticmethod
-	def skipTest():
+	def skipTestZim():
 		if not hasattr(os, 'symlink'):
 			return 'OS does not supprot symlinks'
 		else:
@@ -383,3 +394,35 @@ class TestSymlinks(tests.TestCase):
 		self.assertEqual(dir.list(), [])
 		self.assertTrue(targetdir.exists())
 		self.assertEqual(targetdir.list(), ['foo.txt'])
+
+
+class TestTrash(tests.TestCase):
+
+	slowTest = True
+
+	@staticmethod
+	def skipTest():
+		if not zim.fs.gio:
+			return 'Trashing not supported, \'gio\' is missing'
+		else:
+			return False
+
+	def runTest(self):
+		'''Test trashing files and folders'''
+		root = Dir(tests.create_tmp_dir('fs_TestTrash'))
+		file = root.file('test.txt')
+		file.touch()
+		self.assertTrue(file.exists())
+		self.assertTrue(file.trash())
+		self.assertFalse(file.exists())
+		dir = root.subdir('test')
+		dir.touch()
+		self.assertTrue(dir.exists())
+		self.assertTrue(dir.trash())
+		self.assertFalse(dir.exists())
+
+		# fails silent if file does not exist
+		self.assertFalse(file.trash())
+		self.assertFalse(dir.trash())
+
+		# How can we cause gio to give an error and test that case ??

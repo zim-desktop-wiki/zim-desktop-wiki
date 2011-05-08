@@ -47,53 +47,47 @@ class TestInputEntry(TestCase):
 
 class TestFileEntry(TestCase):
 
+	def setUp(self):
+		self.entry = FileEntry()
+		self.notebook = get_test_notebook()
+		self.notebook.index.update()
+
 	def runTest(self):
 		'''Test FileEntry widget'''
-		notebook = get_test_notebook()
-		notebook.index.update()
-
-		dir = Dir(create_tmp_dir('widgets_TestFileEntry'))
-		path = Path('Foo:Bar')
-		notebook.dir = dir
-		notebook.get_store(path).dir = dir
-
+		entry = self.entry
 		home = Dir('~')
 
-		entry = FileEntry()
+		dir = Dir(create_tmp_dir('widgets_' + entry.__class__.__name__))
+		path = Path('Foo:Bar')
+		self.notebook.dir = dir
+		self.notebook.get_store(path).dir = dir
+		entry.set_use_relative_paths(self.notebook, path)
+
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
-			(File('/test.txt'), '/test.txt'),
+			(dir.file('Foo/Bar/test.txt'), './test.txt'),
+			(File('/test.txt'), File('/test.txt').path), # win32 save
 		):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), text)
 			self.assertEqual(entry.get_file(), file)
 
-
-		entry.set_use_relative_paths(notebook, path)
-
-		for file, text in (
-			(home.file('zim-test.txt'), '~/zim-test.txt'),
-			(dir.file('Foo/Bar/test.txt'), './test.txt'),
-			(File('/test.txt'), '/test.txt'),
-		):
-			entry.set_file(file)
-			self.assertEqual(entry.get_text(), text)
-			self.assertEqual(entry.get_file(), file)
-
-		notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		doc_root = notebook.get_document_root()
+		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
+		self.notebook.do_properties_changed() # parse config
+		doc_root = self.notebook.document_root
+		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
 
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
 			(dir.file('Foo/Bar/test.txt'), './test.txt'),
-			(File('/test.txt'), 'file:///test.txt'),
+			(File('/test.txt'), File('/test.txt').uri), # win32 save
 			(doc_root.file('test.txt'), '/test.txt'),
 		):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), text)
 			self.assertEqual(entry.get_file(), file)
 
-		entry.set_use_relative_paths(notebook, None)
+		entry.set_use_relative_paths(self.notebook, None)
 
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
@@ -104,6 +98,78 @@ class TestFileEntry(TestCase):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), text)
 			self.assertEqual(entry.get_file(), file)
+
+		entry.set_use_relative_paths(notebook=None)
+
+		for file, text in (
+			(home.file('zim-test.txt'), '~/zim-test.txt'),
+			#~ (dir.file('Foo/Bar/test.txt'), './test.txt'),
+			(File('/test.txt'), '/test.txt'),
+		):
+			entry.set_file(file)
+			self.assertEqual(entry.get_text(), text)
+			self.assertEqual(entry.get_file(), file)
+
+
+class TestPageEntry(TestCase):
+
+	entryklass = PageEntry
+
+	def setUp(self):
+		self.notebook = get_test_notebook()
+		self.reference = Path('Test:foo')
+		self.entry = self.entryklass(self.notebook, self.reference)
+
+	def runTest(self):
+		'''Test PageEntry widget'''
+		notebook = self.notebook
+		reference = self.reference
+		entry = self.entry
+
+		entry.set_path(Path('Test'))
+		self.assertEqual(entry.get_text(), ':Test')
+		self.assertEqual(entry.get_path(), Path('Test'))
+
+		entry.set_text('bar')
+		self.assertEqual(entry.get_path(), Path('Bar')) # resolved due to placeholder
+
+		entry.set_text('non existing')
+		self.assertEqual(entry.get_path(), Path('Test:non existing'))
+
+		entry.set_text('+bar')
+		self.assertEqual(entry.get_path(), Path('Test:foo:bar'))
+
+		entry.set_text(':bar')
+		self.assertEqual(entry.get_path(), Path('Bar'))
+
+		## Test completion
+		def get_completions(entry):
+			completion = entry.get_completion()
+			model = completion.get_model()
+			return [r[0] for r in model]
+
+		entry.set_text('+T')
+		self.assertEqual(get_completions(entry), ['+bar'])
+
+		entry.set_text(':T')
+		completions = get_completions(entry)
+		self.assertTrue(len(completions) > 5 and ':Test' in completions)
+
+		entry.set_text('T')
+		self.assertEqual(get_completions(entry), ['foo', 'Foo Bar', 'tags', 'wiki'])
+
+		entry.set_text('Test:')
+		self.assertEqual(get_completions(entry), ['Test:foo', 'Test:Foo Bar', 'Test:tags', 'Test:wiki'])
+
+
+class TestLinkEntry(TestPageEntry, TestFileEntry):
+
+	entryklass = LinkEntry
+
+	def runTest(self):
+		'''Test LinkEntry widget'''
+		TestPageEntry.runTest(self)
+		TestFileEntry.runTest(self)
 
 
 class TestInputForm(TestCase):

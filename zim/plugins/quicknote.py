@@ -9,7 +9,7 @@ from datetime import date as dateclass
 
 from zim.plugins import PluginClass
 from zim.config import config_file, data_file
-from zim.notebook import Notebook, PageNameError
+from zim.notebook import get_notebook, Notebook, PageNameError
 from zim.daemon import DaemonProxy
 from zim.gui.widgets import Dialog, scrolled_text_view, IconButton, \
 	InputForm, gtk_window_set_default_icon
@@ -279,7 +279,7 @@ class BoundQuickNoteDialog(Dialog):
 			path = self.form['namespace'].name + ':' + self.form['basename']
 			ui.new_page_from_text(text, path)
 			if self.open_page.get_active():
-				ui.present()
+				ui.present(path) # also works with proxy
 		else:
 			if not self.form.widgets['page'].get_input_valid() \
 			or not self.form['page']:
@@ -290,7 +290,7 @@ class BoundQuickNoteDialog(Dialog):
 			path = self.form['page'].name
 			ui.append_text_to_page(path, '\n----\n'+text)
 			if self.open_page.get_active():
-				ui.present(page) # also works with proxy
+				ui.present(path) # also works with proxy
 
 		return True
 
@@ -326,6 +326,10 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 
 		self._init_inputs(namespace, basename, text, template_options)
 
+		self.notebook = notebook
+		if notebook:
+			self.form.widgets['namespace'].notebook = get_notebook(notebook)
+
 	def save_uistate(self):
 		notebook = self.notebookcombobox.get_notebook()
 		self.uistate['lastnotebook'] = notebook
@@ -339,11 +343,16 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 
 	def on_notebook_changed(self, o):
 		notebook = self.notebookcombobox.get_notebook()
+		if not notebook or notebook == self.notebook:
+			return
+
 		self.uistate['lastnotebook'] = notebook
 		self.config['Namespaces'].setdefault(notebook, None, basestring)
 		namespace = self.config['Namespaces'][notebook]
 		if namespace:
 			self.form['namespace'] = namespace
+
+		self.form.widgets['namespace'].notebook = get_notebook(notebook)
 
 	def do_response_ok(self):
 		def get_ui():

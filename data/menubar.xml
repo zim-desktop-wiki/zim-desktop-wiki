@@ -42,7 +42,7 @@
 			<menuitem action='edit_object'/>
 			<menuitem action='remove_link'/>
 			<separator/>
-			<placeholder name='edit_page'/>
+			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='copy_location'/>
 			<separator/>
@@ -71,6 +71,10 @@
 			<menuitem action='toggle_fullscreen'/>
 			<separator/>
 			<placeholder name='plugin_items'/>
+			<separator/>
+			<menuitem action='zoom_in'/>
+			<menuitem action='zoom_out'/>
+			<menuitem action='zoom_reset'/>
 			<separator/>
 			<menuitem action='reload_page'/>
 		</menu>

@@ -2,7 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''Base class for store modules.
+'''Base class for storage backends
 
 This module contains a base class for store modules. It implements
 some common methods and provides API documentation for the store
@@ -72,6 +72,7 @@ import codecs
 import zim.fs
 from zim.fs import *
 from zim.parsing import is_url_re
+from zim.errors import TrashNotSupportedError
 
 
 def get_store(name):
@@ -188,11 +189,25 @@ class StoreClass():
 		writable.
 
 		Deletes a page. If path is a Page object this should result
-		in 'page.hascontent' being False if succesfull.
+		in 'page.hascontent' and 'page.haschildren' being False if succesfull.
 
 		Returns False if page did not exist in the first place, True otherwise.
 		'''
 		raise NotImplementedError
+
+	def trash_page(self, path):
+		'''ABSTRACT METHOD, optional to be implemented in sub-class
+		if store is writable.
+
+		Deletes a page by moving content to trash. If path is a Page
+		object this should result in 'page.hascontent' and 'page.haschildren'
+		being False if succesfull.
+
+		Returns False if page did not exist in the first place, True otherwise.
+		Raises TrashNotSupportedError when not subclassed or when trash
+		is not available due to some other reason.
+		'''
+		raise TrashNotSupportedError, 'Not implemented'
 
 	def page_exists(self, path):
 		'''ABSTRACT METHOD, must be implemented in sub-class.

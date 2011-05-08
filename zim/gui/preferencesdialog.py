@@ -15,6 +15,11 @@ from zim.gui.pageview import PageView
 logger = logging.getLogger('zim.gui.preferencesdialog')
 
 
+# define section labels here so xgettext can fing them
+_label = _('Interface') # T: Tab in preferences dialog
+_label = _('Editing') # T: Tab in preferences dialog
+
+
 class PreferencesDialog(Dialog):
 	'''Preferences dialog consisting of tabs with various options and
 	a tab with plugins. Options are not defined here, but need to be
@@ -29,18 +34,26 @@ class PreferencesDialog(Dialog):
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
 
+		# saves a list of loaded plugins to be used later
+		self.p_save_loaded = [p.__class__ for p in self.ui.plugins]
+
 		# Dynamic tabs
 		self.forms = {}
 		for category, preferences in ui.preferences_register.items():
 			vbox = gtk.VBox()
-			gtknotebook.append_page(vbox, gtk.Label(category))
+			gtknotebook.append_page(vbox, gtk.Label(_(category)))
 
 			fields = []
 			values = {}
 			sections = {}
 			for p in preferences:
-				section, key, type, label = p
-				fields.append((key, type, label))
+				if len(p) == 4:
+					section, key, type, label = p
+					fields.append((key, type, label))
+				else:
+					section, key, type, label, check = p
+					fields.append((key, type, label, check))
+
 				values[key] = ui.preferences[section][key]
 				sections[key] = section
 
@@ -183,6 +196,23 @@ class PreferencesDialog(Dialog):
 		self.ui.save_preferences()
 		return True
 
+	def do_response_cancel(self):
+		# Obtain an updated list of loaded plugins
+		now_loaded = [p.__class__ for p in self.ui.plugins]
+
+		# Restore previous situation if the user changed something
+		# in this dialog session
+		for name in zim.plugins.list_plugins():
+			klass = zim.plugins.get_plugin(name)
+			activatable = klass.check_dependencies_ok()
+
+			if klass in self.p_save_loaded and activatable and klass not in now_loaded:
+				self.ui.load_plugin(klass.plugin_key)
+			elif klass not in self.p_save_loaded and klass in now_loaded:
+				self.ui.unload_plugin(klass.plugin_key)
+
+		self.ui.save_preferences()
+		return True
 
 class PluginsTab(gtk.HBox):
 
@@ -360,7 +390,7 @@ class PluginConfigureDialog(Dialog):
 				key, type, label, default, check = pref
 				self.preferences.setdefault(key, default, check=check) # just to be sure
 
-			if type == 'int':
+			if type in ('int', 'choice'):
 				fields.append((key, type, label, check))
 			else:
 				fields.append((key, type, label))

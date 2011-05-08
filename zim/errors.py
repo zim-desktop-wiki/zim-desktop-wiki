@@ -41,3 +41,9 @@ class Error(Exception):
 
 	def __repr__(self):
 		return '<%s>' % self.__class__.__name__
+
+
+class TrashNotSupportedError(Error):
+	# Defined here because this is not specific to files, but can occur
+	# in different storage models as well
+	pass

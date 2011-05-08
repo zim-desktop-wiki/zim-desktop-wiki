@@ -33,9 +33,8 @@ import zim
 from zim import NotebookInterface, NotebookLookupError
 from zim.fs import *
 from zim.fs import normalize_win32_share
-from zim.errors import Error
-from zim.notebook import Path, Page, PageNameError, \
-	resolve_default_notebook, get_notebook, get_notebook_list
+from zim.errors import Error, TrashNotSupportedError
+from zim.notebook import Path, Page
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord
@@ -174,10 +173,12 @@ ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
-	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane\n(If disabled you can still use <Alt><Space>)'), False),
+	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane'), False),
 		# T: Option in the preferences dialog
 		# default value is False because this is mapped to switch between
 		# char sets in certain international key mappings
+	('remove_links_on_delete', 'bool', 'Interface', _('Remove links when deleting pages'), True),
+		# T: Option in the preferences dialog
 )
 
 if ui_environment['platform'] == 'maemo':
@@ -271,6 +272,8 @@ class GtkInterface(NotebookInterface):
 	  Emitted when the ui changed from read-write to read-only or back
 	* quit
 	  Emitted when the application is about to quit
+	* start-index-update
+	* end-index-update
 
 	Also see signals in zim.NotebookInterface
 	'''
@@ -283,6 +286,8 @@ class GtkInterface(NotebookInterface):
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'quit': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'start-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'end-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	ui_type = 'gtk'
@@ -480,7 +485,10 @@ class GtkInterface(NotebookInterface):
 			return True # keep ticking
 
 		# older gobject version doesn't know about seconds
-		self._autosave_timer = gobject.timeout_add(5000, schedule_autosave)
+		self.preferences['GtkInterface'].setdefault('autosave_timeout', 10)
+		timeout = self.preferences['GtkInterface']['autosave_timeout'] * 1000 # s -> ms
+		self._autosave_timer = gobject.timeout_add(timeout, schedule_autosave)
+			# FIXME make this more intelligent
 
 		self._finalize_ui = True
 		for plugin in self.plugins:
@@ -656,6 +664,72 @@ class GtkInterface(NotebookInterface):
 					self.uimanager.remove_ui(id)
 				handler._ui_merge_ids = None
 
+	def populate_popup(self, name, menu):
+		'''Populate a popup menu from a popup defined in the uimanager
+
+		This effectively duplicated the menu items from a given popup
+		as defined in the uimanager to a given menu. The reason to do
+		this is to include a menu that is extendable for plugins etc.
+		into an existing popup menu. (Note that changes to the menu
+		as returned by uimanager.get_widget() are global.)
+
+		@param name: the uimanager popup name, e.g. "toolbar_popup" or
+		"page_popup"
+		@param menu: a gtk.Menu to be populated with the menu items
+
+		@raises ValueError: when 'name' does not exist
+		'''
+		# ... so we have to do our own XML parsing here :(
+		# but take advantage of nicely formatted line-based output ...
+		xml = self.uimanager.get_ui()
+		xml = [l.strip() for l in xml.splitlines()]
+
+		# Get slice of XML
+		start, end = None, None
+		for i, line in enumerate(xml):
+			if start is None:
+				if line.startswith('<popup name="%s">' % name):
+					start = i
+			else:
+				if line.startswith('</popup>'):
+					end = i
+					break
+
+		if start is None or end is None:
+			raise ValueError, 'No such popup in uimanager: %s' % name
+
+		# Parse items and add to menu
+		seen_item = False # use to track empty parts
+		for line in xml[start+1:end]:
+			if line.startswith('<separator'):
+				if seen_item:
+					item = gtk.SeparatorMenuItem()
+					menu.append(item)
+				seen_item = False
+			elif line.startswith('<menuitem'):
+				pre, post = line.split('action="', 1)
+				actionname, post = post.split('"', 1)
+				for group in self.uimanager.get_action_groups():
+					action = group.get_action(actionname)
+					if action:
+						item = action.create_menu_item()
+
+						# don't show accels in popups (based on gtk/gtkuimanager.c)
+						child = item.get_child()
+						if isinstance(child, gtk.AccelLabel):
+							child.set_property('accel-closure', None)
+
+						break
+				else:
+					raise AssertionError, 'BUG: could not find action for "%s"' % actionname
+				menu.append(item)
+				seen_item = True
+			elif line.startswith('<placeholder') \
+			or line.startswith('</placeholder'):
+				pass
+			else:
+				raise AssertionError, 'BUG: Could not parse: ' + line
+
 	def set_readonly(self, readonly):
 		if not self.readonly:
 			# Save any modification now - will not be allowed after switch
@@ -686,12 +760,19 @@ class GtkInterface(NotebookInterface):
 		'''
 		register = self.preferences_register
 		for p in preferences:
-			key, type, category, label, default = p
-			self.preferences[section].setdefault(key, default)
+			if len(p) == 5:
+				key, type, category, label, default = p
+				self.preferences[section].setdefault(key, default)
+				r = (section, key, type, label)
+			else:
+				key, type, category, label, default, check = p
+				self.preferences[section].setdefault(key, default, check=check)
+				r = (section, key, type, label, check)
+
 			# Preferences with None category won't be shown in the preferences dialog
 			if category:
 				register.setdefault(category, [])
-				register[category].append((section, key, type, label))
+				register[category].append(r)
 
 
 	def register_new_window(self, window):
@@ -807,12 +888,12 @@ class GtkInterface(NotebookInterface):
 			# T: Title of progressbar dialog
 		dialog.show_all()
 		self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
-		dialog.set_total(self.notebook.index.n_all_pages())
+		dialog.set_total(self.notebook.index.n_list_all_pages())
 		self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
 
 	def on_notebook_properties_changed(self, notebook):
-		has_doc_root = not notebook.get_document_root() is None
+		has_doc_root = not notebook.document_root is None
 		for action in ('open_document_root', 'open_document_folder'):
 			action = self.actiongroup.get_action(action)
 			action.set_sensitive(has_doc_root)
@@ -1122,7 +1203,7 @@ class GtkInterface(NotebookInterface):
 			# Ask regardless of update_links because it might very
 			# well be that the dialog thinks there are no links
 			# but they are simply not indexed yet
-			cont = QuestionDialog(dialog or self,
+			cont = QuestionDialog(self,
 				_('The index is still busy updating. Until this '
 				  'is finished links can not be updated correctly. '
 				  'Performing this action now could break links, '
@@ -1136,7 +1217,6 @@ class GtkInterface(NotebookInterface):
 
 		dialog = ProgressBarDialog(self, _('Updating Links'))
 			# T: Title of progressbar dialog
-		dialog.show_all()
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 
 		try:
@@ -1150,7 +1230,23 @@ class GtkInterface(NotebookInterface):
 			return True
 
 	def delete_page(self, path=None):
-		DeletePageDialog(self, path).run()
+		'''Trash page or show DeletePageDialog'''
+		if path is None:
+			path = self.get_path_context()
+			if not path: return
+
+		update_links = self.preferences['remove_links_on_delete']
+		dialog = ProgressBarDialog(self, _('Removing Links'))
+			# T: Title of progressbar dialog
+		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
+		try:
+			self.notebook.trash_page(path, update_links, callback)
+		except TrashNotSupportedError, error:
+			dialog.destroy()
+			logger.info('Trash not supported: %s', error.msg)
+			DeletePageDialog(self, path).run()
+		else:
+			dialog.destroy()
 
 	def show_properties(self):
 		from zim.gui.propertiesdialog import PropertiesDialog
@@ -1295,12 +1391,12 @@ class GtkInterface(NotebookInterface):
 			assert False, 'BUG: notebook has neither dir or file'
 
 	def open_document_root(self):
-		dir = self.notebook.get_document_root()
+		dir = self.notebook.document_root
 		if dir and dir.exists():
 			self.open_file(dir)
 
 	def open_document_folder(self):
-		dir = self.notebook.get_document_root()
+		dir = self.notebook.document_root
 		if dir is None:
 			return
 
@@ -1398,22 +1494,18 @@ class GtkInterface(NotebookInterface):
 		'''Show a progress bar while updating the notebook index.
 		Returns True unless the user cancelled the action.
 		'''
-		# First make the index stop updating
-		self.mainwindow.pageindex.disconnect_model()
+		self.emit('start-index-update')
 
-		# Update the model
 		index = self.notebook.index
 		if flush:
 			index.flush()
 
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
-		dialog.show_all()
 		index.update(callback=lambda p: dialog.pulse(p.name))
 		dialog.destroy()
 
-		# And reconnect the model - flushing out any sync error in treemodel
-		self.mainwindow.pageindex.reload_model()
+		self.emit('end-index-update')
 
 		return not dialog.cancelled
 
@@ -1601,7 +1693,6 @@ class MainWindow(Window):
 			lambda o, event: event.keyval == KEYVAL_ESC
 				and self.toggle_sidepane())
 
-
 		self.pageindex = PageIndex(ui)
 		self.add_tab(_('Index'), self.pageindex, LEFT_PANE) # T: Label for pageindex tab
 
@@ -1711,10 +1802,18 @@ class MainWindow(Window):
 
 		space = gtk.gdk.unicode_to_keyval(ord(' '))
 		group = gtk.AccelGroup()
-		group.connect_group( # <Alt><Space>
-			space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
-			self.toggle_focus_sidepane)
 
+		self.ui.preferences['GtkInterface'].setdefault('toggle_on_altspace', False)
+		if self.ui.preferences['GtkInterface']['toggle_on_altspace']:
+			# Hidden param, disabled because it causes problems with
+			# several international layouts (space mistaken for alt-space,
+			# see bug lp:620315)
+			group.connect_group( # <Alt><Space>
+				space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
+				self.toggle_focus_sidepane)
+
+		# Toggled by preference menu, also causes issues with international
+		# layouts - esp. when switching input method on Ctrl-Space
 		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Ctrl><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
@@ -2286,20 +2385,23 @@ class NewPageDialog(Dialog):
 
 		self.path = path or ui.page
 
+		key = self.path or ''
+		default = ui.notebook.namespace_properties[key]['template']
 		templates = list_templates('wiki')
+		if not default in templates:
+			templates.insert(0, default)
+
 		self.add_form([
 			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: Choice label
-		], None, None, False )
+		])
 
-		key = self.path or ''
-		default = ui.notebook.namespace_properties[key]['template']
 		self.form['template'] = default
 		self.form.widgets['template'].set_no_show_all(True) # TEMP: hide feature
 		self.form.widgets['template'].set_property('visible', False) # TEMP: hide feature
 
 		if subpage:
-			self.form.widgets['page'].force_child = True
+			self.form.widgets['page'].subpaths_only = True
 
 		# TODO: reset default when page input changed
 
@@ -2565,7 +2667,6 @@ class DeletePageDialog(Dialog):
 
 		dialog = ProgressBarDialog(self, _('Removing Links'))
 			# T: Title of progressbar dialog
-		dialog.show_all()
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 
 		try:

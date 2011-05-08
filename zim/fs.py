@@ -124,14 +124,22 @@ import codecs
 import logging
 from StringIO import StringIO
 
-from zim.errors import Error
+from zim.errors import Error, TrashNotSupportedError
 from zim.parsing import url_encode, url_decode
 from zim.async import AsyncOperation, AsyncLock
 
-
-__all__ = ['Dir', 'File']
-
 logger = logging.getLogger('zim.fs')
+
+gio = None
+try:
+	import gio
+	if not gio.File.trash:
+		gio = None
+except ImportError:
+	pass
+
+if not gio:
+	logger.warn("Trashing of files not supported, could not import 'gio'")
 
 
 xdgmime = None
@@ -144,6 +152,9 @@ except ImportError:
 	else:
 		pass # Ignore this error on Windows; doesn't come with xdg.Mime
 	import mimetypes
+
+
+__all__ = ['Dir', 'File']
 
 
 IMAGE_EXTENSIONS = (
@@ -501,18 +512,6 @@ class UnixPath(object):
 			# different drive ?
 			return None
 
-	def rename(self, newpath):
-		# Using shutil.move instead of os.rename because move can cross
-		# file system boundries, while rename can not
-		logger.info('Rename %s to %s', self, newpath)
-		with FS.get_async_lock(self):
-			# Do we also need a lock for newpath (could be the same as lock for self) ?
-			# TODO: check against newpath existing and being a directory
-			newpath.dir.touch()
-			shutil.move(self.encodedpath, newpath.encodedpath)
-		FS.emit('path-moved', self, newpath)
-		self.dir.cleanup()
-
 	def ischild(self, parent):
 		'''Returns True if this path is a child path of parent'''
 		return self.path.startswith(parent.path + os.path.sep)
@@ -549,6 +548,35 @@ class UnixPath(object):
 			elif encoding == 'bzip': return 'application/x-bzip'
 			elif encoding == 'compress': return 'application/x-compress'
 			else: return mimetype or 'application/octet-stream'
+
+
+	def rename(self, newpath):
+		# Using shutil.move instead of os.rename because move can cross
+		# file system boundries, while rename can not
+		logger.info('Rename %s to %s', self, newpath)
+		with FS.get_async_lock(self):
+			# Do we also need a lock for newpath (could be the same as lock for self) ?
+			# TODO: check against newpath existing and being a directory
+			newpath.dir.touch()
+			shutil.move(self.encodedpath, newpath.encodedpath)
+		FS.emit('path-moved', self, newpath)
+		self.dir.cleanup()
+
+	def trash(self):
+		'''Trash a file or folder, returns boolean for success.
+		Raises a TrashNotSupportedError if trashing is not possible.
+		'''
+		if not gio:
+			raise TrashNotSupportedError, 'gio not imported'
+
+		if self.exists():
+			f = gio.File(uri=self.uri)
+			if not f.trash():
+				# FIXME is this how to catch gio.ERROR_NOT_SUPPORTED ?
+				raise TrashNotSupportedError, 'Trashing failed'
+			return True
+		else:
+			return False
 
 
 class WindowsPath(UnixPath):
@@ -643,7 +671,7 @@ class Dir(Path):
 			return []
 
 	def walk(self, raw=True):
-		'''Generator that yields all files and folders below this dir 
+		'''Generator that yields all files and folders below this dir
 		as objects.
 		'''
 		for name in self.list(raw=raw):
@@ -715,17 +743,34 @@ class Dir(Path):
 				lrmdir(os.path.join(root, name))
 
 	def file(self, path):
-		'''Returns a File object for a path relative to this directory'''
-		assert isinstance(path, (Path, basestring, list, tuple))
-		if isinstance(path, File):
-			file = path
-		elif isinstance(path, basestring):
-			file = File((self.path, path))
-		else:
-			file = File((self.path,) + tuple(path))
+		'''Returns a File object for a path relative to this directory
+
+		When 'path' is in fact a L{File} object already this method
+		still enforces is to be below this directory. So this method can
+		be used as check as well.
+
+		@param path: a (relative) file path as string, tuple or L{Path} object
+
+		@returns: a L{File} object
+
+		@raises PathLookupError: if the file is not below this dir
+		'''
+		file = self.resolve_file(path)
 		if not file.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (file, self)
 		return file
+
+	def resolve_file(self, path):
+		'''Like L{file()} but allows the path to start with "../"'''
+		assert isinstance(path, (Path, basestring, list, tuple))
+		if isinstance(path, basestring):
+			return File((self.path, path))
+		elif isinstance(path, (list, tuple)):
+			return File((self.path,) + tuple(path))
+		elif isinstance(path, File):
+			return path
+		elif isinstance(path, Path):
+			return File(path.path)
 
 	def new_file(self, path):
 		'''Like file() but guarantees the file does not yet exist by adding
@@ -749,17 +794,35 @@ class Dir(Path):
 		return file
 
 	def subdir(self, path):
-		'''Returns a Dir object for a path relative to this directory'''
-		assert isinstance(path, (Path, basestring, list, tuple))
-		if isinstance(path, Dir):
-			dir = path
-		elif isinstance(path, basestring):
-			dir = Dir((self.path, path))
-		else:
-			dir = Dir((self.path,) + tuple(path))
+		'''Returns a Dir object for a path relative to this directory
+
+		When 'path' is in fact a L{Dir} object already this method
+		still enforces is to be below this directory. So this method can
+		be used as check as well.
+
+		@param path: a (relative) file path as string, tuple or L{Path} object
+
+		@returns: a L{Dir} object
+
+		@raises PathLookupError: if the subdir is not below this dir
+		'''
+
+		dir = self.resolve_dir(path)
 		if not dir.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (dir, self)
 		return dir
+
+	def resolve_dir(self, path):
+		'''Like L{subdir()} but allows the path to start with "../"'''
+		assert isinstance(path, (Path, basestring, list, tuple))
+		if isinstance(path, basestring):
+			return Dir((self.path, path))
+		elif isinstance(path, (list, tuple)):
+			return Dir((self.path,) + tuple(path))
+		elif isinstance(path, Dir):
+			return path
+		elif isinstance(path, Path):
+			return Dir(path.path)
 
 
 def _glob_to_regex(glob):

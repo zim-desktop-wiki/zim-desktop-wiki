@@ -5,6 +5,37 @@ This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
 
+=== 0.51 - Thu 28 Apr 2011 ===
+Bug fix release
+* Fixed a critical bug in the "Add Notebook" prompt for the first notebook on
+  a fresh install and two minor bugs with the ntoebook list - Jiří Janoušek
+
+
+=== 0.51 - Tue 19 Apr 2011 ===
+* Fixed critical bug with resizing images - Stefan Muthers
+* Fixed bug preventing resizing of text entries in dialogs
+* Fixed bug disabling auto-completion for page names in dialogs
+* Fix so cancelling the preferences dialog will also reset plugins
+  - Lisa Vitolo
+* Fix to switch sensitivity of items in the Edit menu on cursor position
+  - Konstantin Baierer
+* Fix to handle case where document_root is inside notebook folder
+  - Jiří Janoušek
+* Fixed support for interwiki links in export
+* Fixed "Link Map" plugin to actually support clicking on page names in the map
+* Fixed copy pasting to use plain text by default for external applications
+  added preference to revert to old behavior
+* Disable <Alt><Space> keybinding due to conflicts with internationalization
+  added hidden preference to get it back if desired
+* Added support for organizing pages by tags - Fabian Moser
+* Added feature to zoom font size of the page view on <Ctrl>+ / <Ctrl>-
+  - Konstantin Baierer
+* Added support for system Trash (using gio if available)
+* Added Calendar widget to the "Insert Date" dialog
+* Added plugin to sort selected lines - NorfCran
+* Added plugin for GNUplot plots - Alessandro Magni
+
+
 === 0.50 - Mon 14 Feb 2011 ===
 Maintenance release with many bug fixes. Biggest change is the refactoring
 of input forms and dialogs, but this is not very visible to the user.
@@ -191,9 +222,11 @@ Additional issues addressed in this release:
 * Added a web-based interface to read zim notebooks
 * Task List now supports tags
 * Distinguishing between "move page" and "rename page"
-* Menu actions like "Rename Page (F2)" now follow the focus and work in the side pane as well
+* Menu actions like "Rename Page (F2)" now follow the focus and work in the 
+  side pane as well
 * Page title can be updated automatically when moving a page
-* "Link" action behaves more like inserting an object instead of applying formatting
+* "Link" action behaves more like inserting an object instead of applying 
+  formatting
 * File links are now inserted showing only the basename of the file
 * Dialogs spawned from another dialog will pop over it
 * Dialogs remember their window size

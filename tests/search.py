@@ -136,8 +136,25 @@ class TestSearch(TestCase):
 		self.assertTrue(set(results.scores.keys()) == results)
 		self.assertTrue(all(results.scores.values()))
 
+		query = Query('Namespace: "TODOList" fix')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('namespace', 'TODOList'), QueryTerm('contentorname', 'fix')])
+		results.search(query)
+		#~ print results
+		self.assertTrue(Path('TODOList:foo') in results)
+
+		query = Query('Tag: tags')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('tag', 'tags')])
+		query = Query('@tags')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('tag', 'tags')])
+		results.search(query)
+		#~ print results
+		self.assertTrue(Path('Test:tags') in results and len(results) == 1)
+
 		# TODO test ContentOrName versus Content
-		# TODO test Name and Namespace
+		# TODO test Name
 
 
 def get_files_notebook(name):

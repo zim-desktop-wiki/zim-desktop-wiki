@@ -695,7 +695,7 @@ class CustomToolDict(DesktopEntryDict):
 			cmd[cmd.index('%n')] = File(notebook.uri).path
 
 		if '%D' in cmd:
-			dir = notebook.get_document_root()
+			dir = notebook.document_root
 			if dir:
 				cmd[cmd.index('%D')] = dir.path
 			else:

@@ -109,6 +109,22 @@ class TestParseTree(TestCase):
 		text = tree.tostring()
 		self.assertEqualDiff(text, wanted)
 
+
+	def testGetEndsWithNewline(self):
+		for xml, newline in (
+			('<zim-tree partial="True">foo</zim-tree>', False),
+			('<zim-tree partial="True"><strong>foo</strong></zim-tree>', False),
+			('<zim-tree partial="True"><strong>foo</strong>\n</zim-tree>', True),
+			('<zim-tree partial="True"><strong>foo\n</strong></zim-tree>', True),
+			('<zim-tree partial="True"><strong>foo</strong>\n<img src="foo"></img></zim-tree>', False),
+			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0">foo</li></zim-tree>', True),
+			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0"><strong>foo</strong></li></zim-tree>', True),
+			('<zim-tree partial="True"><li bullet="unchecked-box" indent="0"><strong>foo</strong></li></zim-tree>', True),
+		):
+			tree = ParseTree().fromstring(xml)
+			self.assertEqual(tree.get_ends_with_newline(), newline)
+
+
 class TestTextFormat(TestCase):
 
 	def setUp(self):
@@ -153,6 +169,7 @@ Some Verbatim here
 IMAGE: Foo Bar
 LINKS: :foo:bar ./file.png file:///etc/passwd
 LINKS: FooBar
+TAGS: @foo @bar
 
 	Some indented
 	paragraphs go here ...
@@ -252,6 +269,7 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 <p>IMAGE: <img src="../my-image.png" width="600">Foo Bar</img>
 LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
 LINKS: <link href="Foo">Foo</link><link href="Bar">Bar</link>
+TAGS: <tag name="foo">@foo</tag> <tag name="bar">@bar</tag>
 </p>
 <p><div indent="1">Some indented
 paragraphs go here ...
@@ -399,6 +417,7 @@ Also block-indentation of verbatim is possible.
 IMAGE: <img src="img://../my-image.png" alt="Foo Bar" width="600"><br>
 LINKS: <a href="page://:foo:bar" title=":foo:bar">:foo:bar</a> <a href="file://./file.png" title="./file.png">./file.png</a> <a href="file://file:///etc/passwd" title="file:///etc/passwd">file:///etc/passwd</a><br>
 LINKS: <a href="page://Foo" title="Foo">Foo</a><a href="page://Bar" title="Bar">Bar</a><br>
+TAGS: <span class="zim-tag">@foo</span> <span class="zim-tag">@bar</span><br>
 </p>
 
 <p>

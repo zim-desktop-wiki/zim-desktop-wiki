@@ -122,7 +122,7 @@ class InputPage(AssistantPage):
 			'page': 'selection:page',
 			#~ 'recursive': 'selection:page',
 		} )
-		self.form.widgets['page'].force_existing = True
+		self.form.widgets['page'].existing_only = True
 
 	def init_uistate(self):
 		#~ self.uistate.setdefault('selection', 'all', ('all', 'page'))
@@ -193,7 +193,7 @@ class FormatPage(AssistantPage):
 							o.get_active_text() == self.CHOICE_OTHER) )
 
 		# Check if we have a document root - if not disable all options
-		docroot = assistant.ui.notebook.get_document_root()
+		docroot = assistant.ui.notebook.document_root
 		if not docroot:
 			for widget in self.form.widgets:
 				if widget.startswith('document_root:'):

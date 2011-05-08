@@ -50,6 +50,9 @@ parser_re = {
 	'unindented_line': re.compile('^\S', re.M),
 	'indent':     re.compile('^(\t+)'),
 
+    # Tags are identified by a leading @ sign
+	'tag':        Re(r'(?<!\S)@(?P<name>\w+)\b', re.U),
+
 	# All the experssions below will match the inner pair of
 	# delimiters if there are more then two characters in a row.
 	'link':     Re('\[\[(?!\[)(.+?)\]\]'),
@@ -72,6 +75,7 @@ dumper_tags = {
 	'mark':     '__',
 	'strike':   '~~',
 	'code':     "''",
+	'tag':      '', # No additional annotation (apart from the visible @)
 }
 
 
@@ -351,6 +355,12 @@ class Parser(ParserClass):
 		for style in 'emphasis',:
 			list = parser_re[style].sublist(
 					lambda match: (style, {}, match[1]) , list)
+
+		def parse_tag(re_):
+			groups = re_.m.groupdict()
+			return ('tag', groups, "@{name}".format(**groups))
+
+		list = parser_re['tag'].sublist(parse_tag, list)
 
 		for item in list:
 			if isinstance(item, tuple):

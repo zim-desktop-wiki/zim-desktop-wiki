@@ -13,6 +13,7 @@ import time
 
 from zim.fs import *
 from zim.fs import FileWriteError
+from zim.errors import TrashNotSupportedError
 from zim.notebook import Notebook, Path, LookupError, PageExistsError
 import zim.stores
 from zim.formats import ParseTree
@@ -187,7 +188,10 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 			self.assertFalse(page.hascontent)
 
 			# let's delete the newpath again
-			self.assertTrue(self.store.delete_page(newpath))
+			page = self.store.get_page(newpath)
+			self.assertTrue(self.store.delete_page(page))
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
 			page = self.store.get_page(newpath)
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
@@ -223,9 +227,34 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		page = self.store.get_page(Path('NewPage'))
 		self.assertFalse(page.hascontent)
 
-	# TODO test getting a non-existing page
-	# TODO test if children uses namespace objects
-	# TODO test move, delete, read, write
+		# check trashing
+		trashing = True
+		try:
+			page = self.store.get_page(Path('TrashMe'))
+			self.assertTrue(page.haschildren)
+			self.assertTrue(page.hascontent)
+			self.store.trash_page(page)
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
+			page = self.store.get_page(Path('TrashMe'))
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
+		except TrashNotSupportedError:
+			trashing = False
+			print '(trashing not supported for this store)'
+			self.assertTrue(page.haschildren)
+			self.assertTrue(page.hascontent)
+			page = self.store.get_page(Path('TrashMe'))
+			self.assertTrue(page.haschildren)
+			self.assertTrue(page.hascontent)
+
+		page = self.store.get_page(Path('NonExistingPage'))
+		if trashing:
+			# fail silent for non-exisitng page
+			self.assertFalse(self.store.trash_page(page))
+		else:
+			# check error consistent
+			self.assertRaises(TrashNotSupportedError, self.store.trash_page, page)
 
 
 class TextXMLStore(TestReadOnlyStore, tests.TestCase):

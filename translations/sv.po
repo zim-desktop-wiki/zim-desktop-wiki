@@ -7,16 +7,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2011-02-07 22:51+0100\n"
-"PO-Revision-Date: 2011-02-11 02:59+0000\n"
-"Last-Translator: Mikael Mildén <Unknown>\n"
+"POT-Creation-Date: 2011-04-27 20:53+0200\n"
+"PO-Revision-Date: 2011-04-20 17:19+0000\n"
+"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2011-02-14 18:20+0000\n"
-"X-Generator: Launchpad (build 12372)\n"
+"X-Launchpad-Export-Date: 2011-04-28 17:52+0000\n"
+"X-Generator: Launchpad (build 12915)\n"
 
 #. label for default webbrowser |
 #. label for default application
@@ -25,15 +25,15 @@ msgid "Default"
 msgstr "Standard"
 
 #. message for FileNotFoundError
-#: zim/fs.py:308
+#: zim/fs.py:319
 #, python-format
 msgid "No such file: %s"
 msgstr "Ingen sådan fil: %s"
 
 #. Error message
-#: zim/fs.py:866
+#: zim/fs.py:929
 msgid "File is not writable"
-msgstr "Kan inte skriva till filen"
+msgstr ""
 
 #. label to pop dialog with more applications in 'open with' menu
 #: zim/gui/applications.py:435
@@ -58,16 +58,16 @@ msgstr "Anpassat kommando"
 #. Heading in plugins tab of preferences dialog |
 #. label for properties dialog |
 #. label for file name
-#: zim/gui/applications.py:484 zim/gui/customtools.py:149
-#: zim/gui/__init__.py:2462 zim/gui/notebookdialog.py:390
-#: zim/gui/preferencesdialog.py:239 zim/notebook.py:376
+#: zim/gui/applications.py:484 zim/gui/customtools.py:150
+#: zim/gui/__init__.py:2566 zim/gui/notebookdialog.py:389
+#: zim/gui/preferencesdialog.py:269 zim/notebook.py:551
 #: zim/plugins/attachmentbrowser.py:371
 msgid "Name"
 msgstr "Namn"
 
 #. Field in 'custom command' dialog |
 #. Input in "Edit Custom Tool" dialog
-#: zim/gui/applications.py:485 zim/gui/customtools.py:151
+#: zim/gui/applications.py:485 zim/gui/customtools.py:152
 msgid "Command"
 msgstr "Kommando"
 
@@ -78,7 +78,7 @@ msgstr "Öppna fil"
 
 #. menu item |
 #. menu item to open containing folder of files
-#: zim/gui/cleannotebookdialog.py:27 zim/gui/pageview.py:3646
+#: zim/gui/cleannotebookdialog.py:27 zim/gui/pageview.py:3816
 msgid "Open Folder"
 msgstr "Öppna katalog"
 
@@ -93,13 +93,13 @@ msgid "Delete"
 msgstr "Ta bort"
 
 #. label in word count dialog
-#: zim/gui/cleannotebookdialog.py:131 zim/gui/pageview.py:4582
+#: zim/gui/cleannotebookdialog.py:131 zim/gui/pageview.py:4851
 msgid "Selection"
 msgstr "Markering"
 
 #. Column heading in 'Oprhaned Files' dialog |
 #. Input label
-#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:2692
+#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:2793
 msgid "Filename"
 msgstr "Filnamn"
 
@@ -109,7 +109,7 @@ msgstr "Filnamn"
 #. Column header search dialog |
 #. Column header Task List dialog
 #: zim/gui/cleannotebookdialog.py:148 zim/gui/exportdialog.py:116
-#: zim/gui/pageview.py:4580 zim/gui/searchdialog.py:83
+#: zim/gui/pageview.py:4849 zim/gui/searchdialog.py:83
 #: zim/plugins/quicknote.py:166 zim/plugins/tasklist.py:636
 msgid "Page"
 msgstr "Sida"
@@ -140,12 +140,12 @@ msgid "No orphaned files found."
 msgstr "Inga föräldralösa filer hittades."
 
 #. Dialog title
-#: zim/gui/customtools.py:18
+#: zim/gui/customtools.py:19
 msgid "Custom Tools"
 msgstr "Egna verktyg"
 
 #. help text in "Custom Tools" dialog
-#: zim/gui/customtools.py:23
+#: zim/gui/customtools.py:24
 msgid ""
 "You can configure custom tools that will appear\n"
 "in the tool menu and in the tool bar or context menus."
@@ -154,34 +154,34 @@ msgstr ""
 "i verktygsmenyn eller i snabbmenyer."
 
 #. Dialog title
-#: zim/gui/customtools.py:131
+#: zim/gui/customtools.py:132
 msgid "Edit Custom Tool"
 msgstr "Inställningar för Egna verktyg"
 
 #. Input in "Edit Custom Tool" dialog |
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/customtools.py:150 zim/gui/preferencesdialog.py:245
+#: zim/gui/customtools.py:151 zim/gui/preferencesdialog.py:275
 msgid "Description"
 msgstr "Beskrivning"
 
 #. Input in "Edit Custom Tool" dialog |
 #. label for properties dialog
-#: zim/gui/customtools.py:164 zim/notebook.py:378
+#: zim/gui/customtools.py:163 zim/notebook.py:553
 msgid "Icon"
 msgstr "Ikon"
 
 #. Input in "Edit Custom Tool" dialog
-#: zim/gui/customtools.py:173
+#: zim/gui/customtools.py:172
 msgid "Command does not modify data"
 msgstr "Kommandot ändrar inte data"
 
 #. Input in "Edit Custom Tool" dialog
-#: zim/gui/customtools.py:174
+#: zim/gui/customtools.py:173
 msgid "Show in the toolbar"
 msgstr "Visa i verktygsraden"
 
 #. Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
-#: zim/gui/customtools.py:181
+#: zim/gui/customtools.py:180
 msgid ""
 "The following parameters will be substituted\n"
 "in the command when it is executed:\n"
@@ -272,8 +272,9 @@ msgstr "Välj exportformat"
 msgid "Other..."
 msgstr "Annan..."
 
-#. Input label in the export dialog
-#: zim/gui/exportdialog.py:154
+#. Input label in the export dialog |
+#. label in "insert date" dialog
+#: zim/gui/exportdialog.py:154 zim/gui/pageview.py:4200
 msgid "Format"
 msgstr "Format"
 
@@ -337,416 +338,417 @@ msgid "Log file"
 msgstr "Loggfil"
 
 #. Menu title
-#: zim/gui/__init__.py:60
+#: zim/gui/__init__.py:59
 msgid "_File"
 msgstr "_Arkiv"
 
 #. Menu title
-#: zim/gui/__init__.py:61
+#: zim/gui/__init__.py:60
 msgid "_Edit"
 msgstr "_Redigera"
 
 #. Menu title
-#: zim/gui/__init__.py:62
+#: zim/gui/__init__.py:61
 msgid "_View"
 msgstr "_Visa"
 
 #. Menu title |
 #. Button label
-#: zim/gui/__init__.py:63 zim/gui/pageview.py:3951
+#: zim/gui/__init__.py:62 zim/gui/pageview.py:4176
 #: zim/plugins/insertsymbol.py:121
 msgid "_Insert"
 msgstr "_Infoga"
 
 #. Menu title
-#: zim/gui/__init__.py:64
+#: zim/gui/__init__.py:63
 msgid "_Search"
 msgstr "_Sök"
 
 #. Menu title
-#: zim/gui/__init__.py:65
+#: zim/gui/__init__.py:64
 msgid "For_mat"
 msgstr "_Format"
 
 #. Menu title
-#: zim/gui/__init__.py:66
+#: zim/gui/__init__.py:65
 msgid "_Tools"
 msgstr "Ver_ktyg"
 
 #. Menu title
-#: zim/gui/__init__.py:67
+#: zim/gui/__init__.py:66
 msgid "_Go"
 msgstr "_Gå"
 
 #. Menu title
-#: zim/gui/__init__.py:68
+#: zim/gui/__init__.py:67
 msgid "_Help"
 msgstr "_Hjälp"
 
 #. Menu title
-#: zim/gui/__init__.py:69
+#: zim/gui/__init__.py:68
 msgid "P_athbar"
 msgstr "S_ökvägsfält"
 
 #. Menu title |
 #. Menu item
-#: zim/gui/__init__.py:70 zim/gui/__init__.py:120 zim/gui/__init__.py:130
+#: zim/gui/__init__.py:69 zim/gui/__init__.py:119 zim/gui/__init__.py:129
 msgid "_Toolbar"
 msgstr "_Verktygsrad"
 
 #. Menu item
-#: zim/gui/__init__.py:73
+#: zim/gui/__init__.py:72
 msgid "_New Page..."
 msgstr "_Ny sida"
 
 #. Menu item
-#: zim/gui/__init__.py:74
+#: zim/gui/__init__.py:73
 msgid "New S_ub Page..."
 msgstr "Ny _undersida"
 
 #. Menu item
-#: zim/gui/__init__.py:75
+#: zim/gui/__init__.py:74
 msgid "_Open Another Notebook..."
 msgstr "_Öppna anteckningsbok..."
 
 #. Menu item |
 #. menu item to open a link
-#: zim/gui/__init__.py:76 zim/gui/pageview.py:3674
+#: zim/gui/__init__.py:75 zim/gui/pageview.py:3844
 msgid "Open in New _Window"
 msgstr "Öppna i _nytt fönster"
 
 #. Menu item
-#: zim/gui/__init__.py:77
+#: zim/gui/__init__.py:76
 msgid "_Import Page..."
 msgstr "_Importera sida"
 
 #. Menu item
-#: zim/gui/__init__.py:78
+#: zim/gui/__init__.py:77
 msgid "_Save"
 msgstr "_Spara"
 
 #. Menu item
-#: zim/gui/__init__.py:79
+#: zim/gui/__init__.py:78
 msgid "Save A _Copy..."
 msgstr "Spara so_m..."
 
 #. Menu item
-#: zim/gui/__init__.py:80
+#: zim/gui/__init__.py:79
 msgid "E_xport..."
 msgstr "E_xportera..."
 
 #. Menu item
-#: zim/gui/__init__.py:81
+#: zim/gui/__init__.py:80
 msgid "_Send To..."
 msgstr "_Skicka till..."
 
 #. Menu item
-#: zim/gui/__init__.py:82
+#: zim/gui/__init__.py:81
 msgid "_Move Page..."
 msgstr "_Flytta sida..."
 
 #. Menu item
-#: zim/gui/__init__.py:83
+#: zim/gui/__init__.py:82
 msgid "_Rename Page..."
 msgstr "_Byt namn på sida..."
 
 #. Menu item
-#: zim/gui/__init__.py:84
+#: zim/gui/__init__.py:83
 msgid "_Delete Page"
 msgstr "_Ta bort sida"
 
 #. Menu item
-#: zim/gui/__init__.py:85
+#: zim/gui/__init__.py:84
 msgid "Proper_ties"
 msgstr "_Egenskaper"
 
 #. Menu item
-#: zim/gui/__init__.py:86
+#: zim/gui/__init__.py:85
 msgid "_Close"
 msgstr "St_äng"
 
 #. Menu item |
 #. menu item in tray icon menu
-#: zim/gui/__init__.py:87 zim/plugins/trayicon.py:147
+#: zim/gui/__init__.py:86 zim/plugins/trayicon.py:147
 msgid "_Quit"
 msgstr "_Avsluta"
 
 #. Menu item
-#: zim/gui/__init__.py:88
+#: zim/gui/__init__.py:87
 msgid "_Search..."
 msgstr "_Sök..."
 
 #. Menu item
-#: zim/gui/__init__.py:89
+#: zim/gui/__init__.py:88
 msgid "Search _Backlinks..."
 msgstr "Sök _bakåtlänkar"
 
 #. Menu item
-#: zim/gui/__init__.py:90
+#: zim/gui/__init__.py:89
 msgid "Copy Location"
 msgstr "Kopiera plats"
 
 #. Menu item
-#: zim/gui/__init__.py:91
+#: zim/gui/__init__.py:90
 msgid "Pr_eferences"
 msgstr "_Inställningar"
 
 #. Menu item
-#: zim/gui/__init__.py:92
+#: zim/gui/__init__.py:91
 msgid "_Reload"
 msgstr "_Läs om"
 
 #. Menu item
-#: zim/gui/__init__.py:93
+#: zim/gui/__init__.py:92
 msgid "Open Attachments _Folder"
 msgstr "Öppna katalog för _bifogade filer"
 
 #. Menu item
-#: zim/gui/__init__.py:94
+#: zim/gui/__init__.py:93
 msgid "Open _Notebook Folder"
 msgstr "Öppna _anteckningsbokens katalog"
 
 #. Menu item
-#: zim/gui/__init__.py:95
+#: zim/gui/__init__.py:94
 msgid "Open _Document Root"
 msgstr "Öppna dokument_rot"
 
 #. Menu item
-#: zim/gui/__init__.py:96
+#: zim/gui/__init__.py:95
 msgid "Open _Document Folder"
 msgstr "Öppna dokument_katalog"
 
 #. Menu item
-#: zim/gui/__init__.py:97
+#: zim/gui/__init__.py:96
 msgid "Attach _File"
 msgstr "_Bifoga fil"
 
 #. Menu item
-#: zim/gui/__init__.py:97
+#: zim/gui/__init__.py:96
 msgid "Attach external file"
 msgstr "Bifoga en extern fil"
 
 #. Menu item
-#: zim/gui/__init__.py:98
+#: zim/gui/__init__.py:97
 msgid "_Cleanup Attachments"
-msgstr ""
+msgstr "_Rensa bilagor"
 
 #. Menu item
-#: zim/gui/__init__.py:99
+#: zim/gui/__init__.py:98
 msgid "Edit _Source"
 msgstr "R_edigera källkod"
 
 #. Menu item
-#: zim/gui/__init__.py:100
+#: zim/gui/__init__.py:99
 msgid "Start _Web Server"
-msgstr "Öppna _vävläsare"
+msgstr "Starta_webbserver"
 
 #. Menu item
-#: zim/gui/__init__.py:101
+#: zim/gui/__init__.py:100
 msgid "Re-build Index"
 msgstr "Återskapa _register"
 
 #. Menu item
-#: zim/gui/__init__.py:102
+#: zim/gui/__init__.py:101
 msgid "Custom _Tools"
 msgstr "Egna _verktyg"
 
 #. Menu item
-#: zim/gui/__init__.py:103
+#: zim/gui/__init__.py:102
 msgid "_Back"
 msgstr "_Bakåt"
 
 #. Menu item
-#: zim/gui/__init__.py:103
+#: zim/gui/__init__.py:102
 msgid "Go page back"
 msgstr "Gå en sida bakåt"
 
 #. Menu item
-#: zim/gui/__init__.py:104
+#: zim/gui/__init__.py:103
 msgid "_Forward"
 msgstr "_Framåt"
 
 #. Menu item
-#: zim/gui/__init__.py:104
+#: zim/gui/__init__.py:103
 msgid "Go page forward"
 msgstr "Gå en sida framåt"
 
 #. Menu item
-#: zim/gui/__init__.py:105
+#: zim/gui/__init__.py:104
 msgid "_Parent"
 msgstr "Förälder"
 
 #. Menu item
-#: zim/gui/__init__.py:105
+#: zim/gui/__init__.py:104
 msgid "Go to parent page"
 msgstr "Gå till ovanliggande sida"
 
 #. Menu item
-#: zim/gui/__init__.py:106
+#: zim/gui/__init__.py:105
 msgid "_Child"
 msgstr "Barn"
 
 #. Menu item
-#: zim/gui/__init__.py:106
+#: zim/gui/__init__.py:105
 msgid "Go to child page"
 msgstr "Gå till underliggande sida"
 
 #. Menu item
-#: zim/gui/__init__.py:107
+#: zim/gui/__init__.py:106
 msgid "_Previous in index"
 msgstr "F_öregående i register"
 
 #. Menu item
-#: zim/gui/__init__.py:107
+#: zim/gui/__init__.py:106
 msgid "Go to previous page"
 msgstr "Gå till föregående sida"
 
 #. Menu item
-#: zim/gui/__init__.py:108
+#: zim/gui/__init__.py:107
 msgid "_Next in index"
 msgstr "N_ästa i register"
 
 #. Menu item
-#: zim/gui/__init__.py:108
+#: zim/gui/__init__.py:107
 msgid "Go to next page"
 msgstr "Gå till nästa sida"
 
 #. Menu item
-#: zim/gui/__init__.py:109
+#: zim/gui/__init__.py:108
 msgid "_Home"
 msgstr "_Hem"
 
 #. Menu item
-#: zim/gui/__init__.py:109
+#: zim/gui/__init__.py:108
 msgid "Go home"
 msgstr "Gå hem"
 
 #. Menu item
-#: zim/gui/__init__.py:110
+#: zim/gui/__init__.py:109
 msgid "_Jump To..."
 msgstr "Ho_ppa till"
 
 #. Menu item
-#: zim/gui/__init__.py:111
+#: zim/gui/__init__.py:110
 msgid "_Contents"
 msgstr "_Innehåll"
 
 #. Menu item
-#: zim/gui/__init__.py:112
+#: zim/gui/__init__.py:111
 msgid "_FAQ"
 msgstr "_Frågor och svar"
 
 #. Menu item
-#: zim/gui/__init__.py:113
+#: zim/gui/__init__.py:112
 msgid "_Keybindings"
 msgstr "_Snabbkommandon"
 
 #. Menu item
-#: zim/gui/__init__.py:114
+#: zim/gui/__init__.py:113
 msgid "_Bugs"
 msgstr "Kända _fel"
 
 #. Menu item
-#: zim/gui/__init__.py:115
+#: zim/gui/__init__.py:114
 msgid "_About"
 msgstr "_Om"
 
 #. Menu item
-#: zim/gui/__init__.py:121 zim/gui/__init__.py:131
+#: zim/gui/__init__.py:120 zim/gui/__init__.py:130
 msgid "_Statusbar"
 msgstr "_Statusrad"
 
 #. Menu item
-#: zim/gui/__init__.py:122 zim/gui/__init__.py:132
+#: zim/gui/__init__.py:121 zim/gui/__init__.py:131
 msgid "_Index"
 msgstr "_Register"
 
 #. Menu item
-#: zim/gui/__init__.py:122 zim/gui/__init__.py:132
+#: zim/gui/__init__.py:121 zim/gui/__init__.py:131
 msgid "Show index"
 msgstr "Visa register"
 
 #. Menu item
-#: zim/gui/__init__.py:123 zim/gui/__init__.py:133
+#: zim/gui/__init__.py:122 zim/gui/__init__.py:132
 msgid "_Fullscreen"
 msgstr "_Helskärm"
 
 #. menu item
-#: zim/gui/__init__.py:124 zim/gui/__init__.py:134
+#: zim/gui/__init__.py:123 zim/gui/__init__.py:133
 msgid "Notebook _Editable"
 msgstr "Anteckningsbok _redigerbar"
 
 #. menu item
-#: zim/gui/__init__.py:124 zim/gui/__init__.py:134
+#: zim/gui/__init__.py:123 zim/gui/__init__.py:133
 msgid "Toggle notebook editable"
 msgstr "Växla om anteckningsboken ska vara redigerbar eller inte"
 
 #. Menu item
-#: zim/gui/__init__.py:139
+#: zim/gui/__init__.py:138
 msgid "_None"
 msgstr "_Ingen"
 
 #. Menu item
-#: zim/gui/__init__.py:140
+#: zim/gui/__init__.py:139
 msgid "_Recent pages"
 msgstr "Senaste sidor"
 
 #. Menu item
-#: zim/gui/__init__.py:141
+#: zim/gui/__init__.py:140
 msgid "_History"
 msgstr "_Historik"
 
 #. Menu item
-#: zim/gui/__init__.py:142
+#: zim/gui/__init__.py:141
 msgid "N_amespace"
 msgstr "N_amnrymd"
 
 #. Menu item
-#: zim/gui/__init__.py:152
+#: zim/gui/__init__.py:151
 msgid "Icons _And Text"
 msgstr "Ikoner _och text"
 
 #. Menu item
-#: zim/gui/__init__.py:153
+#: zim/gui/__init__.py:152
 msgid "_Icons Only"
 msgstr "Endast _ikoner"
 
 #. Menu item
-#: zim/gui/__init__.py:154
+#: zim/gui/__init__.py:153
 msgid "_Text Only"
 msgstr "Endast _text"
 
 #. Menu item
-#: zim/gui/__init__.py:159
+#: zim/gui/__init__.py:158
 msgid "_Large Icons"
 msgstr "S_tora ikoner"
 
 #. Menu item
-#: zim/gui/__init__.py:160
+#: zim/gui/__init__.py:159
 msgid "_Small Icons"
 msgstr "S_må ikoner"
 
 #. Menu item
-#: zim/gui/__init__.py:161
+#: zim/gui/__init__.py:160
 msgid "_Tiny Icons"
 msgstr "_Pyttesmå ikoner"
 
 #. Option in the preferences dialog
-#: zim/gui/__init__.py:175
+#: zim/gui/__init__.py:174
 msgid "Add 'tearoff' strips to the menus"
 msgstr "Gör varje meny löstagbar och möjlig att öppna i ett eget fönster"
 
 #. Option in the preferences dialog
-#: zim/gui/__init__.py:177
-msgid ""
-"Use <Ctrl><Space> to switch to the side pane\n"
-"(If disabled you can still use <Alt><Space>)"
+#: zim/gui/__init__.py:176
+msgid "Use <Ctrl><Space> to switch to the side pane"
 msgstr ""
-"Använd <Ctrl><Mellanslag> för att byta till sidopanelen\n"
-"(Du kan också alltid använda <Alt><Mellanslag>)"
+
+#. Option in the preferences dialog
+#: zim/gui/__init__.py:180
+msgid "Remove links when deleting pages"
+msgstr ""
 
 #. Error description for "no such file or folder"
-#: zim/gui/__init__.py:227
+#: zim/gui/__init__.py:228
 msgid ""
 "The file or folder you specified does not exist.\n"
 "Please check if you the path is correct."
@@ -755,18 +757,18 @@ msgstr ""
 "Var vänlig kontrollera att sökvägen är korrekt."
 
 #. Error message, %s will be the file path
-#: zim/gui/__init__.py:231
+#: zim/gui/__init__.py:232
 #, python-format
 msgid "No such file or folder: %s"
 msgstr "Ingen sådan fil eller katalog: %s"
 
 #. Short question for question prompt
-#: zim/gui/__init__.py:793
+#: zim/gui/__init__.py:874
 msgid "Upgrade Notebook?"
 msgstr "Uppgradera anteckningsbok?"
 
 #. Explanation for question to upgrade notebook
-#: zim/gui/__init__.py:794
+#: zim/gui/__init__.py:875
 msgid ""
 "This notebook was created by an older of version of zim.\n"
 "Do you want to upgrade it to the latest version now?\n"
@@ -789,12 +791,12 @@ msgstr ""
 "delvis, sluta fungera."
 
 #. Title of progressbar dialog
-#: zim/gui/__init__.py:806
+#: zim/gui/__init__.py:887
 msgid "Upgrading notebook"
 msgstr "Uppgraderar anteckningsbok"
 
 #. question dialog text
-#: zim/gui/__init__.py:1126
+#: zim/gui/__init__.py:1207
 msgid ""
 "The index is still busy updating. Until this is finished links can not be "
 "updated correctly. Performing this action now could break links, do you want "
@@ -805,28 +807,33 @@ msgstr ""
 "fortsätta?"
 
 #. Title of progressbar dialog
-#: zim/gui/__init__.py:1137
+#: zim/gui/__init__.py:1218
 msgid "Updating Links"
 msgstr "Uppdaterar länkar"
 
+#. Title of progressbar dialog
+#: zim/gui/__init__.py:1239 zim/gui/__init__.py:2668
+msgid "Removing Links"
+msgstr "Tar bort länkar"
+
 #. error when external application fails
-#: zim/gui/__init__.py:1260 zim/gui/__init__.py:1376
+#: zim/gui/__init__.py:1356 zim/gui/__init__.py:1472
 #, python-format
 msgid "Could not open: %s"
 msgstr "Kunde inte öppna: %s"
 
 #. Error message
-#: zim/gui/__init__.py:1273
+#: zim/gui/__init__.py:1369
 msgid "This page does not have an attachments folder"
 msgstr "Den här sidan har ingen katalog för bifogade filer"
 
 #. Heading in a question dialog for creating a folder
-#: zim/gui/__init__.py:1280 zim/gui/__init__.py:1314
+#: zim/gui/__init__.py:1376 zim/gui/__init__.py:1410
 msgid "Create folder?"
 msgstr "Skapa katalog?"
 
 #. Text in a question dialog for creating a folder
-#: zim/gui/__init__.py:1282
+#: zim/gui/__init__.py:1378
 msgid ""
 "The attachments folder for this page does not yet exist.\n"
 "Do you want to create it now?"
@@ -835,7 +842,7 @@ msgstr ""
 "Vill du skapa en nu?"
 
 #. Text in a question dialog for creating a folder
-#: zim/gui/__init__.py:1316
+#: zim/gui/__init__.py:1412
 msgid ""
 "The document folder for this page does not yet exist.\n"
 "Do you want to create it now?"
@@ -844,13 +851,13 @@ msgstr ""
 "Vill du skapa en nu?"
 
 #. main text for dialog for editing external files
-#: zim/gui/__init__.py:1367
+#: zim/gui/__init__.py:1463
 #, python-format
 msgid "Editing file: %s"
 msgstr "Redigerar filen: %s"
 
 #. description for dialog for editing external files
-#: zim/gui/__init__.py:1369
+#: zim/gui/__init__.py:1465
 msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
@@ -859,39 +866,40 @@ msgstr ""
 "när du är klar."
 
 #. Title of progressbar dialog
-#: zim/gui/__init__.py:1409
+#: zim/gui/__init__.py:1503
 msgid "Updating index"
 msgstr "Uppdaterar register"
 
 #. General description of zim itself
-#: zim/gui/__init__.py:1540
+#: zim/gui/__init__.py:1632
 msgid "A desktop wiki"
 msgstr "En skrivbordswiki"
 
 #. This string needs to be translated with names of the translators for this language
-#: zim/gui/__init__.py:1548
+#: zim/gui/__init__.py:1640
 msgid "translator-credits"
 msgstr ""
 "Launchpad Contributions:\n"
-"  Jaap Karssenberg https://launchpad.net/~pardus-cpan\n"
+"  Jaap Karssenberg https://launchpad.net/~jaap.karssenberg\n"
 "  Jesper J https://launchpad.net/~jesperj\n"
 "  Kess Vargavind https://launchpad.net/~kess\n"
 "  Leopold Augustsson https://launchpad.net/~leopold-augustsson\n"
 "  Mikael Mildén https://launchpad.net/~mikael-milden\n"
-"  Rustan Håkansson https://launchpad.net/~rustanhakansson"
+"  Rustan Håkansson https://launchpad.net/~rustanhakansson\n"
+"  rylleman https://launchpad.net/~rylleman"
 
 #. Label for pageindex tab
-#: zim/gui/__init__.py:1606
+#: zim/gui/__init__.py:1697
 msgid "Index"
 msgstr "Index"
 
 #. page status in statusbar
-#: zim/gui/__init__.py:1686
+#: zim/gui/__init__.py:1777
 msgid "readonly"
 msgstr "Ej skrivbar"
 
 #. Label for button with backlinks in statusbar
-#: zim/gui/__init__.py:2067
+#: zim/gui/__init__.py:2166
 #, python-format
 msgid "%i _Backlink..."
 msgid_plural "%i _Backlinks..."
@@ -899,13 +907,13 @@ msgstr[0] "%i _bakåtlänk..."
 msgstr[1] "%i _bakåtlänkar..."
 
 #. Heading of error dialog
-#: zim/gui/__init__.py:2170
+#: zim/gui/__init__.py:2269
 #, python-format
 msgid "Could not save page: %s"
 msgstr "Kunde inte spara sida: %s"
 
 #. text in error dialog when saving page failed
-#: zim/gui/__init__.py:2172
+#: zim/gui/__init__.py:2271
 msgid ""
 "To continue you can save a copy of this page or discard\n"
 "any changes. If you save a copy changes will be also\n"
@@ -916,37 +924,37 @@ msgstr ""
 "att förkastas, men du kan återskapa kopian senare."
 
 #. Button in error dialog
-#: zim/gui/__init__.py:2210
+#: zim/gui/__init__.py:2309
 msgid "_Discard Changes"
 msgstr "_Förkasta ändringar"
 
 #. Button in error dialog
-#: zim/gui/__init__.py:2215
+#: zim/gui/__init__.py:2314
 msgid "_Save Copy"
 msgstr "_Spara"
 
 #. Dialog title
-#: zim/gui/__init__.py:2252
+#: zim/gui/__init__.py:2351
 msgid "Jump to"
 msgstr "Hoppa till"
 
 #. Label for page input
-#: zim/gui/__init__.py:2257
+#: zim/gui/__init__.py:2356
 msgid "Jump to Page"
 msgstr "Hoppa till sida"
 
 #. Dialog title
-#: zim/gui/__init__.py:2276
+#: zim/gui/__init__.py:2375
 msgid "New Sub Page"
 msgstr "Ny undersida"
 
 #. Dialog title
-#: zim/gui/__init__.py:2277
+#: zim/gui/__init__.py:2376
 msgid "New Page"
 msgstr "Ny sida"
 
 #. Dialog text in 'new page' dialog
-#: zim/gui/__init__.py:2281
+#: zim/gui/__init__.py:2380
 msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
@@ -955,48 +963,48 @@ msgstr ""
 "automatiskt skapar en ny sida."
 
 #. Input label
-#: zim/gui/__init__.py:2289
+#: zim/gui/__init__.py:2395
 msgid "Page Name"
 msgstr "Sidnamn"
 
 #. Choice label
-#: zim/gui/__init__.py:2290
+#: zim/gui/__init__.py:2396
 msgid "Page Template"
 msgstr "Sidmall"
 
 #. Error when creating new page
-#: zim/gui/__init__.py:2311
+#: zim/gui/__init__.py:2415
 msgid "Page exists"
 msgstr "Sidan finns redan"
 
 #. Dialog title of file save dialog
-#: zim/gui/__init__.py:2325
+#: zim/gui/__init__.py:2429
 msgid "Save Copy"
 msgstr "Spara som"
 
 #. Dialog title
-#: zim/gui/__init__.py:2349
+#: zim/gui/__init__.py:2453
 msgid "Import Page"
 msgstr "Importera sida"
 
 #. File filter for '*.txt'
-#: zim/gui/__init__.py:2350
+#: zim/gui/__init__.py:2454
 msgid "Text Files"
 msgstr "Textfiler"
 
 #. Dialog title
-#: zim/gui/__init__.py:2377
+#: zim/gui/__init__.py:2481
 msgid "Move Page"
 msgstr "Flytta sida"
 
 #. Heading in 'move page' dialog - %s is the page name
-#: zim/gui/__init__.py:2390
+#: zim/gui/__init__.py:2494
 #, python-format
 msgid "Move page \"%s\""
 msgstr "Flytta sida ”%s”"
 
 #. label in MovePage dialog - %i is number of backlinks
-#: zim/gui/__init__.py:2401 zim/gui/__init__.py:2456
+#: zim/gui/__init__.py:2505 zim/gui/__init__.py:2560
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
@@ -1006,40 +1014,40 @@ msgstr[1] "Uppdatera %i sidor som länkar till den här sidan"
 #. Input label for namespace to move a file to |
 #. input label |
 #. text entry field
-#: zim/gui/__init__.py:2407 zim/plugins/calendar.py:84
+#: zim/gui/__init__.py:2511 zim/plugins/calendar.py:84
 #: zim/plugins/quicknote.py:167
 msgid "Namespace"
 msgstr "Namnrymd"
 
 #. Dialog title
-#: zim/gui/__init__.py:2435
+#: zim/gui/__init__.py:2539
 msgid "Rename Page"
 msgstr "Byt namn på sida"
 
 #. label in 'rename page' dialog - %s is the page name
-#: zim/gui/__init__.py:2445
+#: zim/gui/__init__.py:2549
 #, python-format
 msgid "Rename page \"%s\""
 msgstr "Byt namn på sidan ”%s”"
 
 #. Option in the 'rename page' dialog
-#: zim/gui/__init__.py:2464
+#: zim/gui/__init__.py:2568
 msgid "Update the heading of this page"
 msgstr "Uppdatera rubriken på den här sidan"
 
 #. Dialog title
-#: zim/gui/__init__.py:2498
+#: zim/gui/__init__.py:2602
 msgid "Delete Page"
 msgstr "Ta bort sida"
 
 #. Heading in 'delete page' dialog - %s is the page name
-#: zim/gui/__init__.py:2515
+#: zim/gui/__init__.py:2619
 #, python-format
 msgid "Delete page \"%s\"?"
 msgstr "Ta bort sidan ”%s”"
 
 #. Text in 'delete page' dialog - %s is the page name
-#: zim/gui/__init__.py:2517
+#: zim/gui/__init__.py:2621
 #, python-format
 msgid ""
 "Page \"%s\" and all of it's\n"
@@ -1049,7 +1057,7 @@ msgstr ""
 "undersidor och bifogade filer kommer att raderas."
 
 #. label in DeletePage dialog - %i is number of backlinks
-#: zim/gui/__init__.py:2530
+#: zim/gui/__init__.py:2634
 #, python-format
 msgid "Remove links from %i page linking to this page"
 msgid_plural "Remove links from %i pages linking to this page"
@@ -1057,38 +1065,33 @@ msgstr[0] "Ta bort länkar från %i sida, som länkar till denna sida."
 msgstr[1] "Ta bort länkar från %i sidor, som länkar till denna sida."
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
-#: zim/gui/__init__.py:2549
+#: zim/gui/__init__.py:2653
 #, python-format
 msgid "%i file will be deleted"
 msgid_plural "%i files will be deleted"
 msgstr[0] "%i fil kommer att tas bort"
 msgstr[1] "%i filer kommer att tas bort"
 
-#. Title of progressbar dialog
-#: zim/gui/__init__.py:2564
-msgid "Removing Links"
-msgstr "Tar bort länkar"
-
 #. Dialog title
-#: zim/gui/__init__.py:2582
+#: zim/gui/__init__.py:2685
 msgid "Attach File"
 msgstr "Bifoga fil"
 
 #. Error dialog - %s is the full page name
-#: zim/gui/__init__.py:2593
+#: zim/gui/__init__.py:2696
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
 msgstr "Sidan \"%s\" har ingen mapp för bifogade filer."
 
 #. checkbox in the "Attach File" dialog
-#: zim/gui/__init__.py:2598
+#: zim/gui/__init__.py:2701
 msgid "Insert images as link"
 msgstr "Infoga bilder som länk"
 
 #. Column heading in 'open notebook' dialog |
 #. Field in web server gui |
 #. Field to select Notebook from drop down list
-#: zim/gui/notebookdialog.py:173 zim/gui/server.py:91
+#: zim/gui/notebookdialog.py:172 zim/gui/server.py:91
 #: zim/plugins/quicknote.py:319
 msgid "Notebook"
 msgstr "Anteckningsbok"
@@ -1104,255 +1107,270 @@ msgid "Default notebook"
 msgstr "Standardanteckningsbok"
 
 #. Dialog window title
-#: zim/gui/notebookdialog.py:376
+#: zim/gui/notebookdialog.py:375
 msgid "Add Notebook"
 msgstr "Lägg till anteckningsbok"
 
 #. Label in Add Notebook dialog
-#: zim/gui/notebookdialog.py:378
+#: zim/gui/notebookdialog.py:377
 msgid "Please select a name and a folder for the notebook."
 msgstr "Välj ett namn och en mapp för anteckningsboken"
 
 #. input field in 'Add Notebook' dialog
-#: zim/gui/notebookdialog.py:391
+#: zim/gui/notebookdialog.py:390
 msgid "Folder"
 msgstr "Katalog"
 
 #. statusbar message
-#: zim/gui/pageindex.py:617
+#: zim/gui/pageindex.py:631
 msgid "Updating index..."
 msgstr "Uppdaterar register..."
 
 #. Menu item
-#: zim/gui/pageview.py:97
+#: zim/gui/pageview.py:98
 msgid "_Undo"
 msgstr "_Ångra"
 
 #. Menu item
-#: zim/gui/pageview.py:98
+#: zim/gui/pageview.py:99
 msgid "_Redo"
 msgstr "_Gör om"
 
 #. Menu item
-#: zim/gui/pageview.py:99
+#: zim/gui/pageview.py:100
 msgid "Cu_t"
 msgstr "Klipp _ut"
 
 #. Menu item |
 #. menu item in context menu
-#: zim/gui/pageview.py:100 zim/plugins/tasklist.py:806
+#: zim/gui/pageview.py:101 zim/plugins/tasklist.py:806
 msgid "_Copy"
 msgstr "_Kopiera"
 
 #. Menu item
-#: zim/gui/pageview.py:101
+#: zim/gui/pageview.py:102
 msgid "_Paste"
 msgstr "K_listra in"
 
 #. Menu item
-#: zim/gui/pageview.py:102
+#: zim/gui/pageview.py:103
 msgid "_Delete"
 msgstr "_Ta bort"
 
 #. Menu item
-#: zim/gui/pageview.py:103
+#: zim/gui/pageview.py:104
 msgid "Toggle Checkbox 'V'"
 msgstr "(Av)markera kryssruta - bock"
 
 #. Menu item
-#: zim/gui/pageview.py:104
+#: zim/gui/pageview.py:105
 msgid "Toggle Checkbox 'X'"
 msgstr "(Av)markera kryssruta - kryss"
 
 #. Menu item
-#: zim/gui/pageview.py:105
+#: zim/gui/pageview.py:106
 msgid "_Edit Link or Object..."
-msgstr "_Rediger länk eller objekt..."
+msgstr "_Redigera länk eller objekt..."
 
 #. Menu item
-#: zim/gui/pageview.py:106 zim/gui/pageview.py:3611
+#: zim/gui/pageview.py:107 zim/gui/pageview.py:3781
 msgid "_Remove Link"
 msgstr "_Ta bort länk"
 
 #. Menu item
-#: zim/gui/pageview.py:107
+#: zim/gui/pageview.py:108
 msgid "_Date and Time..."
 msgstr "_Datum och tid..."
 
 #. Menu item
-#: zim/gui/pageview.py:108
+#: zim/gui/pageview.py:109
 msgid "_Image..."
 msgstr "_Bild..."
 
 #. Menu item |
 #. Menu item),
-#: zim/gui/pageview.py:109 zim/gui/pageview.py:111
+#: zim/gui/pageview.py:110 zim/gui/pageview.py:112
 msgid "Bulle_t List"
 msgstr "Punk_tlista"
 
 #. Menu item),
-#: zim/gui/pageview.py:110 zim/gui/pageview.py:112
+#: zim/gui/pageview.py:111 zim/gui/pageview.py:113
 msgid "Checkbo_x List"
-msgstr ""
+msgstr "kryssrutelista"
 
 #. Menu item
-#: zim/gui/pageview.py:113
+#: zim/gui/pageview.py:114
 msgid "Text From _File..."
 msgstr "Text från _fil..."
 
 #. Menu item
-#: zim/gui/pageview.py:114
+#: zim/gui/pageview.py:115
 msgid "_Link..."
 msgstr "_Länk..."
 
 #. Menu item |
 #. Dialog title
-#: zim/gui/pageview.py:114 zim/gui/pageview.py:4208
+#: zim/gui/pageview.py:115 zim/gui/pageview.py:4472
 msgid "Insert Link"
 msgstr "Infoga länk"
 
 #. Menu item
-#: zim/gui/pageview.py:115
+#: zim/gui/pageview.py:116
 msgid "_Clear Formatting"
 msgstr "_Rensa formatering"
 
 #. Menu item
-#: zim/gui/pageview.py:116
+#: zim/gui/pageview.py:117
 msgid "_Find..."
 msgstr "_Sök..."
 
 #. Menu item
-#: zim/gui/pageview.py:117
+#: zim/gui/pageview.py:118
 msgid "Find Ne_xt"
 msgstr "Sök _nästa"
 
 #. Menu item
-#: zim/gui/pageview.py:118
+#: zim/gui/pageview.py:119
 msgid "Find Pre_vious"
 msgstr "Sök _föregående"
 
 #. Menu item
-#: zim/gui/pageview.py:119
+#: zim/gui/pageview.py:120
 msgid "_Replace..."
 msgstr "_Ersätt..."
 
 #. Menu item
-#: zim/gui/pageview.py:120
+#: zim/gui/pageview.py:121
 msgid "Word Count..."
 msgstr "Räkna _ord..."
 
 #. Menu item
-#: zim/gui/pageview.py:125
+#: zim/gui/pageview.py:122
+msgid "_Zoom In"
+msgstr ""
+
+#. Menu item
+#: zim/gui/pageview.py:123
+msgid "Zoom _Out"
+msgstr ""
+
+#. Menu item to reset zoom
+#: zim/gui/pageview.py:124
+msgid "_Normal Size"
+msgstr ""
+
+#. Menu item
+#: zim/gui/pageview.py:129
 msgid "Heading _1"
 msgstr "Rubrik _1"
 
 #. Menu item
-#: zim/gui/pageview.py:125
+#: zim/gui/pageview.py:129
 msgid "Heading 1"
 msgstr "Rubrik 1"
 
 #. Menu item
-#: zim/gui/pageview.py:126
+#: zim/gui/pageview.py:130
 msgid "Heading _2"
 msgstr "Rubrik _2"
 
 #. Menu item
-#: zim/gui/pageview.py:126
+#: zim/gui/pageview.py:130
 msgid "Heading 2"
 msgstr "Rubrik 2"
 
 #. Menu item
-#: zim/gui/pageview.py:127
+#: zim/gui/pageview.py:131
 msgid "Heading _3"
 msgstr "Rubrik _3"
 
 #. Menu item
-#: zim/gui/pageview.py:127
+#: zim/gui/pageview.py:131
 msgid "Heading 3"
 msgstr "Rubrik 3"
 
 #. Menu item
-#: zim/gui/pageview.py:128
+#: zim/gui/pageview.py:132
 msgid "Heading _4"
 msgstr "Rubrik _4"
 
 #. Menu item
-#: zim/gui/pageview.py:128
+#: zim/gui/pageview.py:132
 msgid "Heading 4"
 msgstr "Rubrik 4"
 
 #. Menu item
-#: zim/gui/pageview.py:129
+#: zim/gui/pageview.py:133
 msgid "Heading _5"
 msgstr "Rubrik _5"
 
 #. Menu item
-#: zim/gui/pageview.py:129
+#: zim/gui/pageview.py:133
 msgid "Heading 5"
 msgstr "Rubrik 5"
 
 #. Menu item
-#: zim/gui/pageview.py:130 zim/gui/pageview.py:141
+#: zim/gui/pageview.py:134 zim/gui/pageview.py:145
 msgid "_Strong"
 msgstr "_Fetstil"
 
 #. Menu item
-#: zim/gui/pageview.py:130 zim/gui/pageview.py:141
+#: zim/gui/pageview.py:134 zim/gui/pageview.py:145
 msgid "Strong"
 msgstr "Fetstil"
 
 #. Menu item
-#: zim/gui/pageview.py:131 zim/gui/pageview.py:142
+#: zim/gui/pageview.py:135 zim/gui/pageview.py:146
 msgid "_Emphasis"
 msgstr "_Kursiv"
 
 #. Menu item
-#: zim/gui/pageview.py:131 zim/gui/pageview.py:142
+#: zim/gui/pageview.py:135 zim/gui/pageview.py:146
 msgid "Emphasis"
 msgstr "Kursiv"
 
 #. Menu item
-#: zim/gui/pageview.py:132 zim/gui/pageview.py:143
+#: zim/gui/pageview.py:136 zim/gui/pageview.py:147
 msgid "_Mark"
 msgstr "_Markera"
 
 #. Menu item
-#: zim/gui/pageview.py:132 zim/gui/pageview.py:143
+#: zim/gui/pageview.py:136 zim/gui/pageview.py:147
 msgid "Mark"
 msgstr "Markera"
 
 #. Menu item
-#: zim/gui/pageview.py:133 zim/gui/pageview.py:144
+#: zim/gui/pageview.py:137 zim/gui/pageview.py:148
 msgid "_Strike"
 msgstr "_Genomstrykning"
 
 #. Menu item
-#: zim/gui/pageview.py:133 zim/gui/pageview.py:144
+#: zim/gui/pageview.py:137 zim/gui/pageview.py:148
 msgid "Strike"
 msgstr "Genomstrykning"
 
 #. Menu item
-#: zim/gui/pageview.py:134
+#: zim/gui/pageview.py:138
 msgid "_Subscript"
 msgstr "_Nedsänkt"
 
 #. Menu item
-#: zim/gui/pageview.py:135
+#: zim/gui/pageview.py:139
 msgid "_Superscript"
 msgstr "_Upphöjd"
 
 #. Menu item
-#: zim/gui/pageview.py:136
+#: zim/gui/pageview.py:140
 msgid "_Verbatim"
 msgstr "_Spärrad"
 
 #. Menu item
-#: zim/gui/pageview.py:136
+#: zim/gui/pageview.py:140
 msgid "Verbatim"
 msgstr "Spärrad"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:150
+#: zim/gui/pageview.py:154
 msgid ""
 "Use the <Enter> key to follow links\n"
 "(If disabled you can still use <Alt><Enter>)"
@@ -1361,27 +1379,27 @@ msgstr ""
 "(om avstängd kan du fortfarande använda <Alt><Retur>)"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:153
+#: zim/gui/pageview.py:157
 msgid "Show the cursor also for pages that can not be edited"
 msgstr "Visa pekaren också på sidor som inte kan redigeras"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:156
+#: zim/gui/pageview.py:160
 msgid "Automatically turn \"CamelCase\" words into links"
 msgstr "Gör automatiskt om ord i \"CamelCase\" till länkar"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:159
+#: zim/gui/pageview.py:163
 msgid "Automatically turn file paths into links"
 msgstr "Gör automatiskt om sökvägar till länkar"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:162
+#: zim/gui/pageview.py:166
 msgid "Automatically select the current word when you apply formatting"
 msgstr "Välj det aktuella ordet automatiskt vid formatering"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:165
+#: zim/gui/pageview.py:169
 msgid ""
 "Unindent on <BackSpace>\n"
 "(If disabled you can still use <Shift><Tab>)"
@@ -1390,324 +1408,356 @@ msgstr ""
 "(om du avaktiverar kan <Skift><Tabb> fortfarande användas)"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:168
+#: zim/gui/pageview.py:172
 msgid "Repeated clicking a checkbox cyles through the checkbox states"
 msgstr ""
 "Att upprepande gånger klicka på en kryssruta växlar genom lägena för "
 "kryssrutan"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:171
+#: zim/gui/pageview.py:175
 msgid "(Un-)Indenting a list item also change any sub-items"
 msgstr "(Ta bort) indrag i en lista ändrar också alla underobjekt"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:174
+#: zim/gui/pageview.py:178
 msgid "Checking a checkbox also change any sub-items"
 msgstr "Markera en kryssruta påverkar alla underobjekt"
 
 #. option in preferences dialog
-#: zim/gui/pageview.py:177
+#: zim/gui/pageview.py:181
 msgid "Reformat wiki markup on the fly"
 msgstr "Omformatera wiki markup kontinuerligt"
 
-#. menu item in context menu for image
-#: zim/gui/pageview.py:3618
-msgid "_Edit Properties"
+#. option in preferences dialog
+#: zim/gui/pageview.py:184
+msgid "Default format for copying text to the clipboard"
 msgstr ""
 
+#. error when unknown interwiki link is clicked
+#: zim/gui/pageview.py:3690
+#, python-format
+msgid "No such wiki defined: %s"
+msgstr ""
+
+#. menu item in preferences menu
+#: zim/gui/pageview.py:3731
+#, python-format
+msgid "Copy _As \"%s\""
+msgstr ""
+
+#. menu item in context menu for image
+#: zim/gui/pageview.py:3788
+msgid "_Edit Properties"
+msgstr "_Redigera egenskaper"
+
 #. menu item in context menu
-#: zim/gui/pageview.py:3620
+#: zim/gui/pageview.py:3790
 msgid "_Edit Link"
 msgstr "_Redigera länk"
 
 #. context menu item
-#: zim/gui/pageview.py:3632
+#: zim/gui/pageview.py:3802
 msgid "Copy Email Address"
 msgstr "Kopiera e-postadress"
 
 #. context menu item
-#: zim/gui/pageview.py:3634
+#: zim/gui/pageview.py:3804
 msgid "Copy _Link"
 msgstr "Kopiera _länk"
 
 #. menu item for sub menu with applications |
 #. menu item
-#: zim/gui/pageview.py:3655 zim/gui/pageview.py:3664
+#: zim/gui/pageview.py:3825 zim/gui/pageview.py:3834
 #: zim/plugins/attachmentbrowser.py:345
 msgid "Open With..."
 msgstr "Öppna med..."
 
 #. menu item to open a link or file |
 #. menu item to open file or folder
-#: zim/gui/pageview.py:3684 zim/plugins/attachmentbrowser.py:351
+#: zim/gui/pageview.py:3854 zim/plugins/attachmentbrowser.py:351
 msgid "_Open"
 msgstr "_Öppna"
 
 #. Dialog title
-#: zim/gui/pageview.py:3950
+#: zim/gui/pageview.py:4175
 msgid "Insert Date and Time"
 msgstr "Infoga datum och tid"
 
+#. expander label in "insert date" dialog
+#: zim/gui/pageview.py:4186
+msgid "_Calendar"
+msgstr ""
+
 #. check box in InsertDate dialog
-#: zim/gui/pageview.py:3968
+#: zim/gui/pageview.py:4218
 msgid "_Link to date"
 msgstr "_Länka till datum"
 
 #. Dialog title
-#: zim/gui/pageview.py:4031
+#: zim/gui/pageview.py:4295
 msgid "Insert Image"
 msgstr "Infoga bild"
 
 #. checkbox in the "Insert Image" dialog
-#: zim/gui/pageview.py:4038
+#: zim/gui/pageview.py:4302
 msgid "Attach image first"
 msgstr "Bifoga bild först"
 
 #. Error message when trying to insert a not supported file as image
-#: zim/gui/pageview.py:4053
+#: zim/gui/pageview.py:4317
 #, python-format
 msgid "File type not supported: %s"
 msgstr "Filtypen stöds ej: %s"
 
 #. Dialog title
-#: zim/gui/pageview.py:4076
+#: zim/gui/pageview.py:4340
 msgid "Edit Image"
 msgstr "Redigera bild"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:4095
+#: zim/gui/pageview.py:4359
 msgid "Location"
 msgstr "Plats"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:4096
+#: zim/gui/pageview.py:4360
 msgid "Width"
 msgstr "Bredd"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:4097
+#: zim/gui/pageview.py:4361
 msgid "Height"
 msgstr "Höjd"
 
 #. Button in 'edit image' dialog
-#: zim/gui/pageview.py:4105
+#: zim/gui/pageview.py:4369
 msgid "_Reset Size"
 msgstr "_Återställ storlek"
 
 #. Dialog title
-#: zim/gui/pageview.py:4188
+#: zim/gui/pageview.py:4452
 msgid "Insert Text From File"
 msgstr "Infoga text från fil"
 
 #. Dialog title
-#: zim/gui/pageview.py:4207
+#: zim/gui/pageview.py:4471
 msgid "Edit Link"
 msgstr "Redigera länk"
 
 #. Dialog button
-#: zim/gui/pageview.py:4211
+#: zim/gui/pageview.py:4475
 msgid "_Link"
 msgstr "_Länk"
 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview.py:4214
+#: zim/gui/pageview.py:4478
 msgid "Link to"
 msgstr "Länka till"
 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview.py:4215
+#: zim/gui/pageview.py:4479
 msgid "Text"
 msgstr "Text"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview.py:4308
+#: zim/gui/pageview.py:4572
 msgid "_Next"
 msgstr "_Nästa"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview.py:4314
+#: zim/gui/pageview.py:4578
 msgid "_Previous"
 msgstr "_Föregående"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:4320
+#: zim/gui/pageview.py:4584
 msgid "Match _case"
 msgstr "Matcha _små/stora"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:4325
+#: zim/gui/pageview.py:4589
 msgid "Whole _word"
 msgstr "Sök endast _hela ord"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:4330
+#: zim/gui/pageview.py:4594
 msgid "_Regular expression"
 msgstr "_Reguljärt uttryck"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:4335
+#: zim/gui/pageview.py:4599
 msgid "_Highlight"
 msgstr "_Markera"
 
 #. label for input in find bar on bottom of page
-#: zim/gui/pageview.py:4418
+#: zim/gui/pageview.py:4682
 msgid "Find"
 msgstr "Sök"
 
 #. Options button
-#: zim/gui/pageview.py:4448
+#: zim/gui/pageview.py:4712
 msgid "Options"
 msgstr "Alternativ"
 
 #. Dialog title
-#: zim/gui/pageview.py:4490
+#: zim/gui/pageview.py:4754
 msgid "Find and Replace"
 msgstr "Sök och ersätt"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview.py:4500
+#: zim/gui/pageview.py:4764
 msgid "Find what"
 msgstr "Sök efter"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview.py:4510
+#: zim/gui/pageview.py:4774
 msgid "Replace with"
 msgstr "Ersätt med"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview.py:4522
+#: zim/gui/pageview.py:4786
 msgid "_Replace"
 msgstr "_Ersätt"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview.py:4527
+#: zim/gui/pageview.py:4791
 msgid "Replace _All"
 msgstr "Ersätt _alla"
 
 #. Dialog title
-#: zim/gui/pageview.py:4547
+#: zim/gui/pageview.py:4812
 msgid "Word Count"
 msgstr "Räkna ord"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:4581
+#: zim/gui/pageview.py:4850
 msgid "Paragraph"
 msgstr "Stycke"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:4583
+#: zim/gui/pageview.py:4852
 msgid "Words"
 msgstr "Ord"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:4584
+#: zim/gui/pageview.py:4853
 msgid "Lines"
 msgstr "Rader"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:4585
+#: zim/gui/pageview.py:4854
 msgid "Characters"
 msgstr "Tecken"
 
+#. Tab in preferences dialog
+#: zim/gui/preferencesdialog.py:19
+msgid "Interface"
+msgstr "Gränssnitt"
+
+#. Tab in preferences dialog
+#: zim/gui/preferencesdialog.py:20
+msgid "Editing"
+msgstr "Redigering"
+
 #. label to pop dialog with more applications in 'open with' menu
-#: zim/gui/preferencesdialog.py:24
+#: zim/gui/preferencesdialog.py:29
 msgid "Other Application"
 msgstr "Annat program"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:28
+#: zim/gui/preferencesdialog.py:33
 msgid "Preferences"
 msgstr "Inställningar"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:63
+#: zim/gui/preferencesdialog.py:76
 msgid "Applications"
 msgstr "Program"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:67
+#: zim/gui/preferencesdialog.py:80
 msgid "File browser"
 msgstr "Filbläddrare"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:69
+#: zim/gui/preferencesdialog.py:82
 msgid "Web browser"
 msgstr "Webbläsare"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:71
+#: zim/gui/preferencesdialog.py:84
 msgid "Email client"
 msgstr "E-postprogram"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:73
+#: zim/gui/preferencesdialog.py:86
 msgid "Text Editor"
 msgstr "Textredigerare"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:83
+#: zim/gui/preferencesdialog.py:96
 msgid "Plugins"
 msgstr "Insticksmoduler"
 
 #. option in preferences dialog
-#: zim/gui/preferencesdialog.py:89
+#: zim/gui/preferencesdialog.py:102
 msgid "Use a custom font"
 msgstr "Använd anpassat typsnitt"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:217
+#: zim/gui/preferencesdialog.py:247
 msgid "_More"
 msgstr "_Mer"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:222
+#: zim/gui/preferencesdialog.py:252
 msgid "C_onfigure"
 msgstr "K_onfigurera"
 
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/preferencesdialog.py:251
+#: zim/gui/preferencesdialog.py:281
 msgid "Dependencies"
 msgstr "Beroenden"
 
 #. label in plugin info in preferences dialog
-#: zim/gui/preferencesdialog.py:258
+#: zim/gui/preferencesdialog.py:288
 msgid "No dependencies"
 msgstr "Inga beroenden"
 
 #. dependency is OK
-#: zim/gui/preferencesdialog.py:265
+#: zim/gui/preferencesdialog.py:295
 msgid "OK"
 msgstr "OK"
 
 #. dependency failed
-#: zim/gui/preferencesdialog.py:269
+#: zim/gui/preferencesdialog.py:299
 msgid "Failed"
 msgstr "Misslyckades"
 
 #. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
-#: zim/gui/preferencesdialog.py:273 zim/plugins/versioncontrol/__init__.py:476
+#: zim/gui/preferencesdialog.py:303 zim/plugins/versioncontrol/__init__.py:476
 msgid "Author"
 msgstr "Användarnamn"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:330
+#: zim/gui/preferencesdialog.py:360
 msgid "Enabled"
 msgstr "Aktiverad"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:333
+#: zim/gui/preferencesdialog.py:363
 msgid "Plugin"
 msgstr "Insticksmodul"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:340
+#: zim/gui/preferencesdialog.py:370
 msgid "Configure Plugin"
 msgstr "Konfigurera modul"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
-#: zim/gui/preferencesdialog.py:347
+#: zim/gui/preferencesdialog.py:379
 #, python-format
 msgid "Options for plugin %s"
 msgstr "Alternativ för insticksmodulen %s"
@@ -1768,27 +1818,27 @@ msgid "Server stopped"
 msgstr "Server stoppad"
 
 #. dialog title
-#: zim/gui/widgets.py:358 zim/gui/widgets.py:1145
+#: zim/gui/widgets.py:363 zim/gui/widgets.py:1160
 msgid "Select File"
 msgstr "Välj fil"
 
 #. dialog title
-#: zim/gui/widgets.py:1141
+#: zim/gui/widgets.py:1156
 msgid "Select Folder"
 msgstr "Välj katalog"
 
 #. dialog title
-#: zim/gui/widgets.py:1143
+#: zim/gui/widgets.py:1158
 msgid "Select Image"
 msgstr "Välj bild"
 
 #. generic error dialog
-#: zim/gui/widgets.py:1887
+#: zim/gui/widgets.py:1982
 msgid "Looks like you found a bug"
 msgstr "Det verkar som om du har hittat en bug"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:1890
+#: zim/gui/widgets.py:1985
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -1797,22 +1847,22 @@ msgstr ""
 "rapporterar den här buggen"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:2140
+#: zim/gui/widgets.py:2234
 msgid "All Files"
 msgstr "Alla filer"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:2165
+#: zim/gui/widgets.py:2259
 msgid "Images"
 msgstr "Bilder"
 
 #. Dialog title
-#: zim/gui/widgets.py:2682
+#: zim/gui/widgets.py:2783
 msgid "File Exists"
 msgstr "Filen finns redan"
 
 #. Dialog text in 'new filename' dialog
-#: zim/gui/widgets.py:2683
+#: zim/gui/widgets.py:2784
 #, python-format
 msgid ""
 "A file with the name <b>\"%s\"</b> already exists.\n"
@@ -1822,12 +1872,12 @@ msgstr ""
 "Du kan ange ett annat filnamn eller skriva över den existerande filen."
 
 #. Button label
-#: zim/gui/widgets.py:2701
+#: zim/gui/widgets.py:2802
 msgid "_Browse"
 msgstr "_Bläddra"
 
 #. Button label
-#: zim/gui/widgets.py:2706
+#: zim/gui/widgets.py:2807
 msgid "Overwrite"
 msgstr "Skriv över"
 
@@ -1837,47 +1887,54 @@ msgid "Could not find the file or folder for this notebook"
 msgstr "Kunde inte hitta filen eller platsen för anteckningsboken"
 
 #. Error when looking up a notebook
-#: zim/__init__.py:439
+#: zim/__init__.py:453
 #, python-format
 msgid "Could not find notebook: %s"
 msgstr "Kunde inte hitta anteckningsbok: %s"
 
 #. error description
-#: zim/notebook.py:292
+#: zim/notebook.py:462
 msgid "The given page name is not valid.\n"
 msgstr "Det angivna namnet för sidan är ogiltigt.\n"
 
 #. error message
-#: zim/notebook.py:298
+#: zim/notebook.py:468
 #, python-format
 msgid "Invalid page name \"%s\""
 msgstr "Ogiltigt namn \"%s\" för sidan"
 
+#. error message
+#: zim/notebook.py:480
+msgid ""
+"Index is still busy updating while we try to do an\n"
+"operation that needs the index.\n"
+msgstr ""
+
 #. error message for read-only pages
-#: zim/notebook.py:327
+#: zim/notebook.py:497
 #, python-format
 msgid "Can not modify page: %s"
 msgstr "Kan inte redigera sidan: %s"
 
 #. label for properties dialog
-#: zim/notebook.py:377
+#: zim/notebook.py:552
 msgid "Home Page"
 msgstr "Hemsida"
 
 #. label for properties dialog
-#: zim/notebook.py:379
+#: zim/notebook.py:554
 msgid "Document Root"
 msgstr "Dokumentets root"
 
 #. label for properties dialog
-#: zim/notebook.py:380
+#: zim/notebook.py:555
 msgid "Shared Notebook"
 msgstr "Delad anteckningsbok"
 
 #. menu item
 #: zim/plugins/attachmentbrowser.py:85
 msgid "AttachmentBrowser"
-msgstr ""
+msgstr "Bilage-bläddrare"
 
 #. plugin name
 #: zim/plugins/attachmentbrowser.py:142
@@ -2030,6 +2087,31 @@ msgid "_Edit Equation"
 msgstr "Redigera _formel"
 
 #. menu item for insert plot plugin
+#: zim/plugins/gnuplot_ploteditor.py:41
+msgid "Gnuplot..."
+msgstr ""
+
+#. plugin name
+#: zim/plugins/gnuplot_ploteditor.py:49
+msgid "Insert Gnuplot"
+msgstr ""
+
+#. plugin description
+#: zim/plugins/gnuplot_ploteditor.py:50
+msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
+msgstr ""
+
+#. menu item in context menu
+#: zim/plugins/gnuplot_ploteditor.py:79
+msgid "_Edit Gnuplot"
+msgstr ""
+
+#. dialog title
+#: zim/plugins/gnuplot_ploteditor.py:90
+msgid "Gnuplot"
+msgstr ""
+
+#. menu item for insert plot plugin
 #: zim/plugins/gnu_r_ploteditor.py:44
 msgid "GNU _R Plot..."
 msgstr "GNU _R Plot"
@@ -2059,7 +2141,7 @@ msgstr "GNU R Plot"
 #. menu item
 #: zim/plugins/inlinecalculator.py:38
 msgid "Evaluate _Math"
-msgstr ""
+msgstr "Utvärdera _Matematik"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:207
@@ -2067,11 +2149,13 @@ msgid ""
 "The inline calculator plugin was not able\n"
 "to evaluate the expression at the cursor."
 msgstr ""
+"Kalkylator-tilläggsprogrammet kunde\n"
+"inte utvärdera uttrycket under markören."
 
 #. plugin name
 #: zim/plugins/inlinecalculator.py:215
 msgid "Inline Calculator"
-msgstr ""
+msgstr "Kalkylator"
 
 #. plugin description
 #: zim/plugins/inlinecalculator.py:216
@@ -2116,8 +2200,31 @@ msgstr ""
 "\n"
 "Detta är ett kärnprogram som följer med Zim.\n"
 
+#. menu item for insert clipboard plugin
+#: zim/plugins/linesorter.py:32
+msgid "_Sort lines"
+msgstr ""
+
+#. plugin name
+#: zim/plugins/linesorter.py:41
+msgid "Line Sorter"
+msgstr ""
+
+#. plugin description
+#: zim/plugins/linesorter.py:42
+msgid ""
+"This plugin sorts selected lines in alphabetical order.\n"
+"If the list is already sorted the order will be reversed\n"
+"(A-Z to Z-A).\n"
+msgstr ""
+
+#. Error message in "" dialog, %s will be replaced by application name
+#: zim/plugins/linesorter.py:65
+msgid "Please select more than one line of text, first."
+msgstr ""
+
 #. Menu item
-#: zim/plugins/linkmap/gui.py:26
+#: zim/plugins/linkmap/gui.py:28
 msgid "Show Link Map"
 msgstr "Visa länkkarta"
 
@@ -2262,17 +2369,17 @@ msgid "Some error occured while running \"%s\""
 msgstr "Ett fel inträffade vid körningen av \"%s\""
 
 #. menu item
-#: zim/plugins/spell.py:35
+#: zim/plugins/spell.py:37
 msgid "Check _spelling"
 msgstr "Kontrollera _stavning"
 
 #. plugin name
-#: zim/plugins/spell.py:41
+#: zim/plugins/spell.py:43
 msgid "Spell Checker"
 msgstr "Stavningskontroll"
 
 #. plugin description
-#: zim/plugins/spell.py:42
+#: zim/plugins/spell.py:44
 msgid ""
 "Adds spell checking support using gtkspell.\n"
 "\n"
@@ -2280,6 +2387,42 @@ msgid ""
 msgstr ""
 "Aktiverar stavningskotroll med hjälp av gtkspell.\n"
 "Detta tilläggsprogram medföljer zim.\n"
+
+#. error message - %s is replace with language codes like "en", "en_US"m or "nl_NL"
+#: zim/plugins/spell.py:92
+#, python-format
+msgid "Could not load spell checking for language: \"%s\""
+msgstr ""
+
+#. error message explanation
+#: zim/plugins/spell.py:94
+msgid ""
+"This could mean you don't have the proper\n"
+"dictionaries installed"
+msgstr ""
+
+#. label for untagged pages in side pane
+#: zim/plugins/tags.py:72
+msgid "untagged"
+msgstr ""
+
+#. menu option
+#: zim/plugins/tags.py:748
+msgid "Sort pages by tags"
+msgstr ""
+
+#. plugin name |
+#. Column header for tag list in Task List dialog
+#: zim/plugins/tags.py:788 zim/plugins/tags.py:811 zim/plugins/tasklist.py:487
+msgid "Tags"
+msgstr "Etiketter"
+
+#. plugin description
+#: zim/plugins/tags.py:789
+msgid ""
+"This plugin provides a page index filtered by means of selecting tags in a "
+"cloud.\n"
+msgstr ""
 
 #. menu item |
 #. plugin name |
@@ -2313,7 +2456,7 @@ msgstr "Se alla kryssrutor som aktiviteter"
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist.py:100
 msgid "Turn page name into tags for task items"
-msgstr ""
+msgstr "Omvandla sidnamn till taggar för uppgifter"
 
 #. label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 #: zim/plugins/tasklist.py:102
@@ -2357,11 +2500,6 @@ msgid "%i open item"
 msgid_plural "%i open items"
 msgstr[0] "%i öppet objekt"
 msgstr[1] "%i öppna objekt"
-
-#. Column header for tag list in Task List dialog
-#: zim/plugins/tasklist.py:487
-msgid "Tags"
-msgstr "Etiketter"
 
 #. "tag" for showing all tasks
 #: zim/plugins/tasklist.py:526
@@ -2430,12 +2568,12 @@ msgid "_Other..."
 msgstr "_Annan..."
 
 #. menu item in tray icon menu
-#: zim/plugins/trayicon.py:178
+#: zim/plugins/trayicon.py:193
 msgid "Notebooks"
 msgstr "Anteckningsböcker"
 
 #. tooltip for tray icon
-#: zim/plugins/trayicon.py:218
+#: zim/plugins/trayicon.py:245
 msgid "Zim Desktop Wiki"
 msgstr "Zim Desktop Wiki"
 
@@ -2656,6 +2794,13 @@ msgstr "Ver"
 #~ msgstr ""
 #~ "Sidan \"%s\", alla dess undersidor och alla bifogade filer kommer att tas "
 #~ "bort."
+
+#~ msgid ""
+#~ "Use <Ctrl><Space> to switch to the side pane\n"
+#~ "(If disabled you can still use <Alt><Space>)"
+#~ msgstr ""
+#~ "Använd <Ctrl><Mellanslag> för att byta till sidopanelen\n"
+#~ "(Du kan också alltid använda <Alt><Mellanslag>)"
 
 #~ msgid "This page does not exist, so it can not be deleted"
 #~ msgstr "Denna sida finns inte, därför kan den inte raderas"

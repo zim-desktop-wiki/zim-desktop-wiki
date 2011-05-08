@@ -61,6 +61,8 @@ from zim.parsing import link_type, is_url_re, \
 from zim.config import data_file
 from zim.objectmanager import ObjectManager
 
+import zim.notebook # no 'from' to prevent cyclic import errors
+
 
 logger = logging.getLogger('zim.formats')
 
@@ -174,11 +176,11 @@ class ParseTree(ElementTreeModule.ElementTree):
 		ElementTreeModule.ElementTree.write(self, xml, 'utf-8')
 		return xml.getvalue()
 
-	def write(*a):
+	def write(self, *_):
 		'''Writing to file is not implemented, use tostring() instead'''
 		raise NotImplementedError
 
-	def parse(*a):
+	def parse(self, *_):
 		'''Parsing from file is not implemented, use fromstring() instead'''
 		raise NotImplementedError
 
@@ -284,16 +286,21 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 	def get_ends_with_newline(self):
 		'''Checks whether this tree ends in a newline or not'''
-		newline = False
-		for element in self.getiterator():
-			if element.tail:
-				newline = element.tail.endswith('\n')
-			elif element.tag in ('li', 'h'):
-				newline = True
-			elif element.text:
-				newline = element.text.endswith('\n')
+		return self._get_element_ends_with_newline(self.getroot())
 
-		return newline
+	def _get_element_ends_with_newline(self, element):
+			if element.tail:
+				return element.tail.endswith('\n')
+			elif element.tag in ('li', 'h'):
+				return True # implicit newline
+			else:
+				children = element.getchildren()
+				if children:
+					return self._get_element_ends_with_newline(children[-1]) # recurs
+				elif element.text:
+					return element.text.endswith('\n')
+				else:
+					return False # empty element like image
 
 
 count_eol_re = re.compile(r'\n+\Z')
@@ -604,10 +611,12 @@ class DumperClass(object):
 
 
 class BaseLinker(object):
-	'''Base class for linker objects. Linker object translate links in
-	zim pages to (relative) URLs. Relative URLs start with "./" or "../"
-	and should be interpreted in the same way as in HTML. Both URLs and
-	relative URLs are already URL encoded.
+	'''Base class for linker objects
+	Linker object translate links in zim pages to (relative) URLs.
+	This is used when exporting data to resolve links.
+	Relative URLs start with "./" or "../" and should be interpreted
+	in the same way as in HTML. Both URLs and relative URLs are
+	already URL encoded.
 	'''
 
 	def __init__(self):
@@ -632,38 +641,70 @@ class BaseLinker(object):
 		self.usebase = usebase
 
 	def link(self, link):
-		'''Returns a url for 'link' '''
+		'''Returns an url for a link in a zim page
+		This method is used to translate links of any type. It determined
+		the link type and dispatches to L{link_page()}, L{link_file()},
+		or other C{link_*} methods.
+
+		Results of this method are cached, so only calls dispatch method
+		once for repeated occurences. Setting a new path with L{set_path()}
+		will clear the cache.
+
+		@param link: link to be translated
+		@type link: string
+
+		@returns: url, uri or whatever link notation is relevant in the
+		context of this linker
+		@rtype: string
+		 '''
 		assert not self.path is None
 		if not link in self._links:
 			type = link_type(link)
-			if type == 'page':    href = self.page(link)
-			elif type == 'file':  href = self.file(link)
+			if type == 'page':    href = self.link_page(link)
+			elif type == 'file':  href = self.link_file(link)
 			elif type == 'mailto':
 				if link.startswith('mailto:'):
-					href = link
+					href = self.link_mailto(link)
 				else:
-					href = 'mailto:' + link
-			else:
-				# I dunno, some url ?
-				href = link
+					href = self.link_mailto('mailto:' + link)
+			elif type == 'interwiki':
+				href = zim.notebook.interwiki_link(link)
+				if href and href != link:
+					href = self.link(href) # recurs
+				else:
+					logg.warn('No URL found for interwiki link: %s', href)
+					link = href
+			else: # I dunno, some url ?
+				method = 'link_' + type
+				if hasattr(self, method):
+					href = getattr(self, method)(link)
+				else:
+					href = link
 			self._links[link] = href
 		return self._links[link]
 
 	def img(self, src):
-		'''Returns a url for image file 'src' '''
-		return self.file(src)
+		'''Returns an url for image file 'src' '''
+		return self.link_file(src)
 
 	def icon(self, name):
-		'''Returns a url for an icon'''
+		'''Returns an url for an icon'''
 		if not name in self._icons:
 			self._icons[name] = data_file('pixmaps/%s.png' % name).uri
 		return self._icons[name]
 
-	def page(self, link):
-		'''To be overloaded'''
+	def link_page(self, link):
+		'''To be overloaded, return an url for a page link'''
 		raise NotImplementedError
 
 	def file(self, path):
-		'''To be overloaded'''
+		'''To be overloaded, return an url for a page link'''
 		raise NotImplementedError
 
+	def link_mailto(self, uri):
+		'''Optional method, default just returns uri'''
+		return uri
+
+	def link_notebook(self, url):
+		'''Optional method, default just returns url'''
+		return url

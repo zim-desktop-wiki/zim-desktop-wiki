@@ -4,9 +4,11 @@
 
 '''Spell check plugin based on gtkspell'''
 
+import os
 import gobject
 
 from zim.plugins import PluginClass
+from zim.gui.widgets import ErrorDialog
 
 try:
 	import gtkspell
@@ -82,8 +84,19 @@ This is a core plugin shipping with zim.
 		if enable:
 			if self.spell is None:
 				lang = self.preferences['language'] or None
-				self.spell = gtkspell.Spell(textview, lang)
-				textview.gtkspell = self.spell # HACK used by hardcoded hook in pageview
+				try:
+					self.spell = gtkspell.Spell(textview, lang)
+				except:
+					lang = lang or os.environ.get('LANG') or os.environ.get('LANGUAGE')
+					ErrorDialog(self.ui, (
+						_('Could not load spell checking for language: "%s"') % lang,
+							# T: error message - %s is replace with language codes like "en", "en_US"m or "nl_NL"
+						_('This could mean you don\'t have the proper\ndictionaries installed')
+							# T: error message explanation
+					) ).run()
+					return
+				else:
+					textview.gtkspell = self.spell # HACK used by hardcoded hook in pageview
 			else:
 				pass
 		else:

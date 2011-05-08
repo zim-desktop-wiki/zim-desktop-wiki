@@ -12,7 +12,7 @@ class TestEquationEditor(TestCase):
 	slowTest = True
 
 	@classmethod
-	def skipTest(klass):
+	def skipTestZim(klass):
 		if not InsertEquationPlugin.check_dependencies_ok():
 			return 'Missing dependencies'
 		else:

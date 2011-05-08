@@ -32,7 +32,7 @@ class TestDaemon(TestCase):
 	slowTest = True
 
 	@classmethod
-	def skipTest(klass):
+	def skipTestZim(klass):
 		if os.name == 'nt':
 			return 'Daemon not supported on Windows'
 		else:

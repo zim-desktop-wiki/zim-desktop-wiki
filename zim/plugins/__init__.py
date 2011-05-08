@@ -255,11 +255,12 @@ class PluginClass(gobject.GObject):
 		# FIXME more documentation how / when to use this
 		pass
 
-	def initialize_notebook(self, notebook):
+	def initialize_notebook(self, notebookuri):
 		'''Callback called before contruction of the notebook.
+		Not called when plugin is contructed while notebook already
+		exists.
 		Can be overloaded by subclasses.
 		'''
-		# TODO actually hook up this callback - need it for fuse plugin
 		# FIXME more documentation how / when to use this
 		pass
 

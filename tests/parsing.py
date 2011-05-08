@@ -88,7 +88,7 @@ class TestParsing(TestCase):
 	def testLinkType(self):
 		'''Test link_type()'''
 		for href, type in (
-			('zim+file://foo/bar?dus.txt', 'zim-notebook'),
+			('zim+file://foo/bar?dus.txt', 'notebook'),
 			('file://foo/bar', 'file'),
 			('http://foo/bar', 'http'),
 			('http://192.168.168.100', 'http'),

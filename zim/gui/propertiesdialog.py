@@ -27,6 +27,5 @@ class PropertiesDialog(Dialog):
 	def do_response_ok(self):
 		if not self.ui.readonly:
 			properties = self.form.copy()
-			print properties
 			self.ui.notebook.save_properties(**properties)
 		return True

@@ -15,6 +15,8 @@
 ./debian/pycompat
 ./man
 ./html
+./apidoc
 ./windows/build
 ./windows/version-and-date.nsi
 ./xdg/hicolor
+

@@ -38,6 +38,7 @@ transparent as long as the zim version number is updated.
 
 from __future__ import with_statement
 
+import string
 import sqlite3
 import gobject
 import logging
@@ -77,11 +78,21 @@ create table if not exists pagetypes (
 create table if not exists links (
 	source INTEGER,
 	href INTEGER,
-	type INTEGER
+	type INTEGER,
+	CONSTRAINT uc_LinkOnce UNIQUE (source, href, type)
 );
 create table if not exists linktypes (
 	id INTEGER PRIMARY KEY,
 	label TEXT
+);
+create table if not exists tags (
+	id INTEGER PRIMARY KEY,
+	name TEXT
+);
+create table if not exists tagsources (
+	source INTEGER,
+	tag INTEGER,
+	CONSTRAINT uc_TagOnce UNIQUE (source, tag)
 );
 '''
 
@@ -102,8 +113,20 @@ class IndexPath(Path):
 
 	__slots__ = ('_indexpath', '_row')
 
+	_attrib = (
+		'basename',
+		'parent',
+		'hascontent',
+		'haschildren',
+		'type',
+		'ctime',
+		'mtime',
+		'contentkey',
+		'childrenkey',
+	)
+
 	def __init__(self, name, indexpath, row=None):
-		'''Constructore, needs at least a full path name and a tuple of index
+		'''Constructor, needs at least a full path name and a tuple of index
 		ids pointing to this path in the index. Row is an optional sqlite3.Row
 		object and contains the actual data for this path. If row is given
 		all properties can be queried as attributes of the IndexPath object.
@@ -128,13 +151,12 @@ class IndexPath(Path):
 	def hasdata(self): return not self._row is None
 
 	def __getattr__(self, attr):
-		if self._row is None:
+		if not attr in self._attrib:
+			raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
+		elif self._row is None:
 			raise AttributeError, 'This IndexPath does not contain row data'
 		else:
-			try:
-				return self._row[attr]
-			except IndexError:
-				raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
+			return self._row[attr]
 
 	def exists(self):
 		return self.haschildren or self.hascontent
@@ -162,6 +184,50 @@ class IndexPath(Path):
 				yield IndexPath(namespace, indexpath)
 				path.pop()
 		yield IndexPath(':', (ROOT_ID,))
+
+
+class IndexTag(object):
+	'''Index representation of a tag'''
+
+	__slots__ = ('name', '_indextag', '_row')
+
+	_attrib = ('name',)
+
+	def __init__(self, name, indextag, row=None):
+		self.name = name.lstrip('@')
+		self.name = unicode(self.name)
+		self._indextag = indextag
+		self._row = row
+
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self.name)
+
+	def __hash__(self):
+		return self.name.__hash__()
+
+	def __eq__(self, other):
+		'''Tags are equal when their names are the same'''
+		if isinstance(other, IndexTag):
+			return self.name == other.name
+		else:
+			return False
+
+	def __ne__(self, other):
+		return not self.__eq__(other)
+
+	@property
+	def id(self): return self._indextag
+
+	@property
+	def hasdata(self): return not self._row is None
+
+	def __getattr__(self, attr):
+		if not attr in self._attrib:
+			raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
+		elif self._row is None:
+			raise AttributeError, 'This IndexTag does not contain row data'
+		else:
+			return self._row[attr]
 
 
 class DBCommitContext(object):
@@ -235,6 +301,13 @@ class Index(gobject.GObject):
 		'start-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'end-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'initialize-db': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'tag-created': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'tag-inserted': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)),
+		'tag-to-be-inserted': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)), # HACK
+		'tag-removed': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)),
+		'tag-to-be-removed': (gobject.SIGNAL_RUN_LAST, None, (object, object, object)), # HACK
+		'tag-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'tag-to-be-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)), # HACK
 	}
 
 	def __init__(self, notebook=None, dbfile=None):
@@ -516,8 +589,20 @@ class Index(gobject.GObject):
 
 		#~ print '!! INDEX PAGE', path, path._indexpath
 		assert isinstance(path, IndexPath) and not path.isroot
-		seen = set()
+		seen_links = set()
+
 		hadcontent = path.hascontent
+
+		had_tags = set()
+		has_tags = set()
+
+		created_tags = []
+
+		# Initialise seen tags
+		for tag in self.list_tags(path):
+			had_tags.add(tag.id)
+
+
 		with self.db_commit:
 			self.db.execute('delete from links where source==?', (path.id,))
 
@@ -534,9 +619,9 @@ class Index(gobject.GObject):
 					except PageNameError:
 						continue
 
-					if link != page and not link.name in seen:
+					if link != page and not link.name in seen_links:
 						# Filter out self refering links and remove doubles
-						seen.add(link.name)
+						seen_links.add(link.name)
 						indexpath = self.lookup_path(link)
 						if indexpath is None:
 							indexpath = self.touch(link)
@@ -545,17 +630,73 @@ class Index(gobject.GObject):
 							'insert into links (source, href) values (?, ?)',
 							(path.id, indexpath.id) )
 
+				for _, attrib in page.get_tags():
+					tag = attrib['name'].strip()
+					indextag = self.lookup_tag(tag)
+					if indextag is None:
+						# Create tag
+						cursor = self.db.cursor()
+						cursor.execute(
+							'insert into tags(name) values (?)', (tag,))
+						indextag = IndexTag(tag, cursor.lastrowid)
+						created_tags.append(indextag)
+					has_tags.add(indextag.id)
+
+
 			key = self.notebook.get_page_indexkey(page)
 			self.db.execute(
 				'update pages set hascontent=?, contentkey=? where id==?',
 				(page.hascontent, key, path.id) )
 
+			# Insert tags
+			for i, tag in enumerate(has_tags.difference(had_tags)):
+				self.emit('tag-to-be-inserted', self.lookup_tagid(tag), path, (len(had_tags) == 0) and (i == 0))
+				try:
+					self.db.execute(
+						'insert into tagsources (source, tag) values (?, ?)',
+						(path.id, tag,))
+				except sqlite3.IntegrityError:
+					# Catch already existing entries
+					pass
+
+			# Remove tags
+			removed_tags = had_tags.difference(has_tags)
+			for i, tag in enumerate(removed_tags):
+				self.emit('tag-to-be-removed', self.lookup_tagid(tag), path, (len(has_tags) == 0) and (i == len(removed_tags)-1))
+				self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag))
+
+
 		path = self.lookup_data(path) # refresh
+
 		if hadcontent != path.hascontent:
 			self.emit('page-updated', path)
 
+		for tag in created_tags:
+			self.emit('tag-created', tag)
+
+		for i, tag in enumerate(has_tags.difference(had_tags)):
+			self.emit('tag-inserted', self.lookup_tagid(tag), path, (len(had_tags) == 0) and (i == 0))
+
+		for i, tag in enumerate(removed_tags):
+			self.emit('tag-removed', tag, path, (len(has_tags) == 0) and (i == len(removed_tags)-1))
+
+		self._purge_tag_table()
+
 		#~ print '!! PAGE-INDEXED', path
 		self.emit('page-indexed', path, page)
+
+	def _purge_tag_table(self):
+		deleted_tags = []
+		with self.db_commit:
+			# Purge tag table
+			cursor = self.db.cursor()
+			cursor.execute('select id, name from tags where id not in (select tag from tagsources)')
+			for row in cursor:
+				deleted_tags.append(IndexTag(row['name'], row['id'], row))
+				self.emit('tag-to-be-deleted', deleted_tags[-1])
+			self.db.execute('delete from tags where id not in (select tag from tagsources)')
+		for tag in deleted_tags:
+			self.emit('tag-deleted', tag)
 
 	def _update_pagelist(self, path, checkcontent):
 		'''Checks and updates the pagelist for a path if needed and queues any
@@ -725,6 +866,16 @@ class Index(gobject.GObject):
 			for path in paths:
 				self.db.execute('delete from links where source=?', (path.id,))
 				self.db.execute('update pages set hascontent=0, contentkey=NULL where id==?', (path.id,))
+
+		# Clean up tags
+		for path in paths:
+			with self.db_commit:
+				tags = list(self.list_tags(path))
+				for i, tag in enumerate(tags):
+					self.emit('tag-to-be-removed', tag, path, i == len(tags) - 1)
+					self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag.id))
+			for i, tag in enumerate(tags):
+				self.emit('tag-removed', tag, path, i == len(tags) - 1)
 
 		# Clean up any nodes that are not a link
 		paths.reverse() # process children first
@@ -912,6 +1063,37 @@ class Index(gobject.GObject):
 
 		return IndexPath(':'.join(names), indexpath, row)
 
+	def lookup_tag(self, tag):
+		'''Returns an IndexTag for the named tag.'''
+		# Support 'None' as untagged
+		if tag is None:
+			return None
+		if isinstance(tag, IndexTag):
+			if not tag.hasdata:
+				# lookup tag data
+				cursor = self.db.cursor()
+				cursor.execute('select * from tags where id==?', (tag.id,))
+				tag._row = cursor.fetchone()
+				if tag._row is None:
+					return None # no such id !?
+			return tag
+		else:
+			cursor = self.db.cursor()
+			cursor.execute('select * from tags where name==?', (tag,))
+			row = cursor.fetchone()
+			if row is None:
+				return None # no such name !?
+			return IndexTag(row['name'], row['id'], row)
+
+	def lookup_tagid(self, id):
+		'''Returns an IndexTag for an index id.'''
+		cursor = self.db.cursor()
+		cursor.execute('select * from tags where id==?', (id,))
+		row = cursor.fetchone()
+		if row is None:
+			return None # no such id !?
+		return IndexTag(row['name'], row['id'], row)
+
 	def resolve_case(self, name, namespace=None):
 		'''Construct an IndexPath or Path by doing a case insensitive lookups
 		for pages matching these name. If the full sub-page is found an
@@ -968,9 +1150,42 @@ class Index(gobject.GObject):
 		if not parent.isroot: found.insert(0, parent.name)
 		return IndexPath(':'.join(found), indexpath, row)
 
-	def list_pages(self, path):
-		'''Generator yielding IndexPath objects for the sub-pages of
-		'path', or, if no path is given for the root namespace of the notebook.
+	def get_page_index(self, path):
+		'''Return the index where this path would appear in the result
+		of list_pages(path.parent). Used by the index widget to get
+		TreeViewPath indexes.
+		'''
+		if path.isroot:
+			raise ValueError, 'Root path does not have an index number'
+
+		path = self.lookup_path(path)
+		if not path:
+			raise ValueError, 'Could not find path in index'
+
+		cursor = self.db.cursor()
+		cursor.execute('select count(*) from pages where parent==? and lower(basename) < lower(?)', (path.parent.id, path.basename))
+				# FIXME, this lower is not utf8 proof
+		row = cursor.fetchone()
+		return int(row[0])
+
+	def list_pages(self, path, offset=None, limit=None):
+		'''List pages in a specific namespace
+
+		This is a generator function which will iterate over the list
+		of pages in a specific namespace.
+
+		The optional arguments 'offset' and 'limit' can be used to
+		iterate only a slice of the list. Note that both 'offset' and
+		'limit' must be defined together.
+
+		When 'path' does not exist an empty list is yielded.
+
+		@param path: a L{Path} object giving the namespace or C{None}
+		for the top level pages
+		@keyword offset: offset in list to start, an integer or None
+		@keyword limit: max pages to return, an integer or None
+
+		@returns: yields L{IndexPath} objects
 		'''
 		if path is None or path.isroot:
 			parentid = ROOT_ID
@@ -978,59 +1193,84 @@ class Index(gobject.GObject):
 			indexpath = (ROOT_ID,)
 		else:
 			path = self.lookup_path(path)
-			if not path is None:
+			if path:
 				parentid = path.id
 				name = path.name
 				indexpath = path._indexpath
 			else:
 				parentid = None
 
-		if not parentid is None:
+		if parentid:
 			cursor = self.db.cursor()
-			cursor.execute('select * from pages where parent==? order by lower(basename)', (parentid,))
-				# FIXME, this lower is not utf8 proof
-			for row in cursor:
-				yield IndexPath(
-						name+':'+row['basename'],
-						indexpath+(row['id'],),
-						row)
-
-	def list_pages_n(self, path, offset, limit=20):
-		'''Like list_pages() but returns a limitted slice of the list
-		as a list'''
-		# FIXME clean up redundant code with list_pages()
-		if path is None or path.isroot:
-			parentid = ROOT_ID
-			name = ''
-			indexpath = (ROOT_ID,)
-		else:
-			path = self.lookup_path(path)
-			if not path is None:
-				parentid = path.id
-				name = path.name
-				indexpath = path._indexpath
+			query = 'select * from pages where parent==? order by lower(basename)'
+					# FIXME, this lower is not utf8 proof
+			if offset is None and limit is None:
+				cursor.execute(query, (parentid,))
 			else:
-				parentid = None
+				cursor.execute(query + ' limit ? offset ?', (parentid, limit, offset))
 
-		if not parentid is None:
-			cursor = self.db.cursor()
-			cursor.execute('select * from pages where parent==? order by lower(basename) limit ? offset ?', (parentid, limit, offset))
-				# FIXME, this lower is not utf8 proof
 			for row in cursor:
 				yield IndexPath(
 						name+':'+row['basename'],
 						indexpath+(row['id'],),
 						row)
 
-	def n_all_pages(self):
-		'''Returns number of pages in this notebook'''
+	def get_all_pages_index(self, path):
+		'''Return the index where this path would appear in the result
+		of list_all_pages(). Used by the index widget to get
+		TreeViewPath indexes.
+		'''
+		if path.isroot:
+			raise ValueError, 'Root path does not have an index number'
+
+		path = self.lookup_path(path)
+		if not path:
+			raise ValueError, 'Could not find path in index'
+
+		# Can't use count() here, like in get_page_index(), because
+		# basenames are not unique in this lookup
 		cursor = self.db.cursor()
-		cursor.execute('select count(*) from pages')
-		row = cursor.fetchone()
-		return int(row[0])
+		cursor.execute('select id from pages where id != ? order by lower(basename)', (ROOT_ID,))
+				# FIXME, this lower is not utf8 proof
+		i = 0
+		for row in cursor:
+			if row['id'] == path.id: return i
+			i += 1
+
+		assert False, 'BUG: could not find path in index'
+
+	def list_all_pages(self, offset=None, limit=None):
+		'''List all pages as a flat page list
+
+		This is a generator function which will iterate over the list
+		of pages without respecting the namespace hierarchy.
+
+		The optional arguments 'offset' and 'limit' can be used to
+		iterate only a slice of the list. Note that both 'offset' and
+		'limit' must be defined together.
+
+		@keyword offset: offset in list to start, an integer or None
+		@keyword limit: max pages to return, an integer or None
+
+		@returns: yields L{IndexPath} objects
+		'''
+		cursor = self.db.cursor()
+
+		query = 'select id from pages where id != ? order by lower(basename)'
+			# FIXME, this lower is not utf8 proof
+		if offset is None and limit is None:
+			cursor.execute(query, (ROOT_ID,))
+		else:
+			cursor.execute(query + ' limit ? offset ?', (ROOT_ID, limit, offset))
+
+		for row in cursor:
+			yield self.lookup_id(row['id'])
 
 	def n_list_pages(self, path):
-		'''Returns the number of pages below path'''
+		'''Returns the number of pages below path
+		@param path: a L{Path} object giving the namespace or C{None}
+		for the top level pages
+		'''
 		if path is None or path.isroot:
 			parentid = ROOT_ID
 		else:
@@ -1042,6 +1282,13 @@ class Index(gobject.GObject):
 		cursor.execute('select count(*) from pages where parent==?', (parentid,))
 		row = cursor.fetchone()
 		return int(row[0])
+
+	def n_list_all_pages(self):
+		'''Returns the total number of pages in this notebook'''
+		cursor = self.db.cursor()
+		cursor.execute('select count(*) from pages')
+		row = cursor.fetchone()
+		return int(row[0]) - 1 # subtract 1 for the ROOT_ID row
 
 	def list_links(self, path, direction=LINK_DIR_FORWARD):
 		'''Return Link objects for each link from or to path.
@@ -1107,6 +1354,227 @@ class Index(gobject.GObject):
 		for child in self.walk(path):
 			n += self.n_list_links(child, direction)
 		return n
+
+	def get_tag_index(self, tag):
+		'''Return the index where this tag would appear in the result
+		of list_all_tags(). Used by the index widget to get
+		TreeViewPath indexes.
+		'''
+		tag = self.lookup_tag(tag)
+		if not tag:
+			raise ValueError, 'Could not find tag in index'
+
+		cursor = self.db.cursor()
+		cursor.execute('select count(*) from tags where lower(name) < lower(?)', (tag.name,))
+				# FIXME, this lower is not utf8 proof
+		row = cursor.fetchone()
+		return int(row[0])
+
+	def list_all_tags(self, offset=None, limit=None):
+		'''List all tags that are used in this notebook
+
+		The optional arguments 'offset' and 'limit' can be used to
+		iterate only a slice of the list. Note that both 'offset' and
+		'limit' must be defined together.
+
+		@keyword offset: offset in list to start, an integer or None
+		@keyword limit: max pages to return, an integer or None
+
+		@returns: yields L{IndexTag} objects
+		'''
+		cursor = self.db.cursor()
+		query = 'select * from tags order by lower(name)'
+			# FIXME, this lower is not utf8 proof
+		if offset is None:
+			cursor.execute(query)
+		else:
+			cursor.execute(query + ' limit ? offset ?', (limit, offset))
+		for row in cursor:
+			yield IndexTag(row['name'], row['id'], row)
+
+	def n_list_all_tags(self):
+		'''Returns the total number of tags used in this notebook'''
+		cursor = self.db.cursor()
+		cursor.execute('select count(*) from tags')
+		row = cursor.fetchone()
+		return int(row[0])
+
+	def list_all_tags_by_score(self):
+		'''Like C{list_all_tags()} but sorted by occurence'''
+		cursor = self.db.cursor()
+		cursor.execute(
+			'SELECT t.id, t.name, count(*) hits'
+			' FROM tags t INNER JOIN tagsources s ON t.id = s.tag'
+			' GROUP BY s.tag'
+			' ORDER BY count(*) DESC'
+		)
+		for row in cursor:
+			yield IndexTag(row['name'], row['id'], row)
+
+	def list_intersecting_tags(self, tags):
+		'''List tags that have pages in common with a given set of tags
+
+		Generator function that lists all tags that occur on pages
+		that match the given tag set. This is used to narrow down
+		possible tag sets that are not empty. (This method is used e.g.
+		in the L{zim.plugins.tags.TagCloudWidget} widget to decide which
+		tags to show once some tags are selected.)
+
+		@param tags: an iterable of L{IndexTag} objects
+
+		@return: yields L{IndexTag} objects
+		'''
+		tag_ids = '(' + ','.join(str(t.id) for t in tags) + ')'
+		cursor = self.db.cursor()
+		cursor.execute(
+			# The sub-query filters on pages that match all of the given tags
+			# The main query selects all tags occuring on those pages and sorts
+			# them by number of matching pages
+			'SELECT t.id, t.name, count(*) hits'
+			' FROM tags t INNER JOIN tagsources s ON t.id = s.tag'
+			' WHERE s.source IN ('
+			'   SELECT source FROM tagsources'
+			'   WHERE tag IN %s'
+			'   GROUP BY source'
+			'   HAVING count(tag) = ?'
+			' )'
+			' GROUP BY s.tag'
+			' ORDER BY count(*) DESC' % tag_ids, (len(tags),)
+		)
+		for row in cursor:
+			yield IndexTag(row['name'], row['id'], row)
+
+	def list_tags(self, path):
+		'''Returns all tags for a given page
+
+		@param path: a L{Path} object for the page
+
+		@returns: yields L{IndexTag} objects
+		'''
+		path = self.lookup_path(path)
+		if path:
+			cursor = self.db.cursor()
+			cursor.execute('select * from tagsources where source == ?', (path.id,))
+			for row in cursor:
+				yield self.lookup_tagid(row['tag'])
+
+	def get_tagged_page_index(self, tag, path):
+		'''Return the index where this path would appear in the result
+		of list_tagged_pages(tag). Used by the index widget to get
+		TreeViewPath indexes.
+		'''
+		if path.isroot:
+			raise ValueError, 'Root path does not have an index number'
+
+		path = self.lookup_path(path)
+		if not path:
+			raise ValueError, 'Could not find path in index'
+
+		tag = self.lookup_tag(tag)
+		if not tag:
+			raise ValueError, 'Could not find tag in index'
+
+		# Can't use count() here, like in get_page_index(), because
+		# basenames are not unique in this lookup
+		cursor = self.db.cursor()
+		cursor.execute('select source from tagsources where tag == ?', (tag.id,))
+				# FIXME, this lower is not utf8 proof
+		i = 0
+		for row in cursor:
+			if row['source'] == path.id: return i
+			i += 1
+
+		raise ValueError, 'Path does not have given tag'
+
+	def list_tagged_pages(self, tag, offset=None, limit=None):
+		'''List all pages tagged with a given tag.
+
+		The optional arguments 'offset' and 'limit' can be used to
+		iterate only a slice of the list. Note that both 'offset' and
+		'limit' must be defined together.
+
+		@param tag: an L{IndexTag} object
+		@keyword offset: offset in list to start, an integer or None
+		@keyword limit: max pages to return, an integer or None
+
+		@returns: yields L{IndexPath} objects
+		'''
+		tag = self.lookup_tag(tag)
+		if not tag is None:
+			cursor = self.db.cursor()
+			query = 'select * from tagsources where tag == ?' ### ORDER BY ###
+			if offset is None and limit is None:
+				cursor.execute(query, (tag.id,))
+			else:
+				cursor.execute(query + ' limit ? offset ?', (tag.id, limit, offset))
+			for row in cursor:
+				yield self.lookup_id(row['source'])
+
+	def get_untagged_root_page_index(self, path):
+		'''Return the index where this path would appear in the result
+		of list_untagged_root_pages(). Used by the index widget to get
+		TreeViewPath indexes.
+		'''
+		if path.isroot:
+			raise ValueError, 'Root path does not have an index number'
+
+		path = self.lookup_path(path)
+		if not path:
+			raise ValueError, 'Could not find path in index'
+
+		cursor = self.db.cursor()
+		cursor.execute('select count(*) from tagsources where source = ?', (path.id,))
+		row = cursor.fetchone()
+		if int(row[0]) > 0:
+			raise ValueError, 'Page has tags'
+
+		cursor = self.db.cursor()
+		cursor.execute('select count(*) from pages where parent = ? and id not in (select source from tagsources) and lower(basename) < lower(?)', (ROOT_ID, path.basename))
+				# FIXME, this lower is not utf8 proof
+		row = cursor.fetchone()
+		return int(row[0])
+
+	def list_untagged_root_pages(self, offset=None, limit=None):
+		'''List pages without tags in the top level namespace
+
+		The optional arguments 'offset' and 'limit' can be used to
+		iterate only a slice of the list. Note that both 'offset' and
+		'limit' must be defined together.
+
+		@keyword offset: offset in list to start, an integer or None
+		@keyword limit: max pages to return, an integer or None
+
+		@returns: yields L{IndexPath} objects
+		'''
+		cursor = self.db.cursor()
+		query = 'select * from pages where parent = ? and id not in (select source from tagsources) order by lower(basename)'
+			# FIXME, this lower is not utf8 proof
+		if offset is None and limit is None:
+			cursor.execute(query, (ROOT_ID,))
+		else:
+			cursor.execute(query + ' limit ? offset ?', (ROOT_ID, limit, offset))
+		for row in cursor:
+			yield IndexPath(row['basename'], (ROOT_ID, row['id'],), row)
+
+	def n_list_tagged_pages(self, tag):
+		'''Returns the number of pages tagged with a given tag
+		@param tag: an L{IndexTag} object
+		'''
+		tag = self.lookup_tag(tag)
+		if tag:
+			cursor = self.db.cursor()
+			cursor.execute('select count(*) from tagsources where tag == ?', (tag.id,))
+			row = cursor.fetchone()
+			return int(row[0])
+		else:
+			return 0
+
+	def n_list_untagged_root_pages(self):
+		'''Returns the number of untagged pages in the top level namespace'''
+		cursor = self.db.cursor()
+		cursor.execute('select count(*) from pages where parent = ? and id not in (select source from tagsources)', (ROOT_ID,))
+		row = cursor.fetchone()
+		return int(row[0])
 
 	def get_previous(self, path, recurs=True):
 		'''Returns the previous page in the index. If 'recurs' is False it stays

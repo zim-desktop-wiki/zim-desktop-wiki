@@ -121,7 +121,6 @@ class Store(StoreClass):
 		newnode.text = node.text
 		newnode.children = node.children # children
 
-
 	def delete_page(self, path):
 		# Make sure not to destroy the actual content, we are used by
 		# move_page, which could be keeping a reference to the content
@@ -137,6 +136,11 @@ class Store(StoreClass):
 			pnode.children.remove(node)
 			if not (pnode.text or pnode.children):
 				self.delete_page(parent) # recurs to cleanup empty parent
+
+		if isinstance(path, Page):
+			path.haschildren = False
+			path.set_parsetree(None)
+			path.modified = False
 
 		return True
 

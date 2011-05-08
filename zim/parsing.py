@@ -347,7 +347,7 @@ url_re = Re(r'''(
 def link_type(link):
 	'''Function that retuns a link type for urls and page links'''
 	if is_url_re.match(link):
-		if link.startswith('zim+'): type = 'zim-notebook'
+		if link.startswith('zim+'): type = 'notebook'
 		else: type = is_url_re[1]
 	elif is_email_re.match(link): type = 'mailto'
 	elif '@' in link and (

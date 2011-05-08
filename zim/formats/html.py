@@ -129,6 +129,8 @@ class Dumper(DumperClass):
 				elif element.tag == 'emphasis': tag = 'em'
 				else: tag = element.tag
 				output += ['<', tag, '>', text, '</', tag, '>']
+			elif element.tag == 'tag':
+				output += ['<span class="zim-tag">', text, '</span>']
 			else:
 				assert False, 'Unknown node type: %s' % element
 

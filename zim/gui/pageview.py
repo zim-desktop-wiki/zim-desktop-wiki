@@ -15,10 +15,11 @@ import gtk
 import pango
 import re
 import string
-from time import strftime
+import datetime
 
 import zim.fs
 from zim.fs import *
+from zim.errors import Error
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
 from zim.config import config_file
@@ -113,12 +114,15 @@ ui_actions = (
 	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
 	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
-	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>0', '', False), # T: Menu item
+	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>9', '', False), # T: Menu item
 	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', '', True), # T: Menu item
 	('find_next', None, _('Find Ne_xt'), '<ctrl>G', '', True), # T: Menu item
 	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', '', True), # T: Menu item
 	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', '', False), # T: Menu item
 	('show_word_count', None, _('Word Count...'), '', '', True), # T: Menu item
+	('zoom_in', 'gtk-zoom-in', _('_Zoom In'), '<ctrl>plus', '', True), # T: Menu item
+	('zoom_out', 'gtk-zoom-out', _('Zoom _Out'), '<ctrl>minus', '', True), # T: Menu item
+	('zoom_reset', 'gtk-zoom-100', _('_Normal Size'), '<ctrl>0', '', True), # T: Menu item to reset zoom
 )
 
 ui_format_actions = (
@@ -177,6 +181,9 @@ ui_preferences = (
 	('auto_reformat', 'bool', 'Editing',
 		_('Reformat wiki markup on the fly'), False),
 		# T: option in preferences dialog
+	('copy_format', 'choice', 'Editing',
+		_('Default format for copying text to the clipboard'), 'Text', ('Text', 'Wiki')),
+		# T: option in preferences dialog
 )
 
 if ui_environment['platform'] == 'maemo':
@@ -205,6 +212,8 @@ _is_style_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'style'
 _is_not_style_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'style')
 _is_link_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'link'
 _is_not_link_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'link')
+_is_tag_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'tag'
+_is_not_tag_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'tag')
 
 PIXBUF_CHR = u'\uFFFC'
 
@@ -227,6 +236,8 @@ markup_re = {'style-strong' : Re(r'(\*{2})(.*)\1'),
 	'style-mark' : Re(r'(_{2})(.*)\1'),
 	'style-pre' : Re(r'(\'{2})(.*)\1'),
 	'style-strike' : Re(r'(~{2})(.*)\1')}
+
+tag_re = Re(r'^(@\w+)$')
 
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
@@ -372,6 +383,7 @@ class TextBuffer(gtk.TextBuffer):
 		'sub': {'rise': -3500, 'scale':0.7},
 		'sup': {'rise': 7500, 'scale':0.7},
 		'link': {'foreground': 'blue'},
+		'tag': {'foreground': '#ce5c00'},
 		'indent': {},
 		'bullet-list': {},
 		'unchecked-checkbox': {},
@@ -603,6 +615,9 @@ class TextBuffer(gtk.TextBuffer):
 			elif element.tag == 'link':
 				self.set_textstyle(None) # Needed for interactive insert tree after paste
 				self.insert_link_at_cursor(element.text, **element.attrib)
+			elif element.tag == 'tag':
+				self.set_textstyle(None) # Needed for interactive insert tree after paste
+				self.insert_tag_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
 				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
@@ -694,6 +709,59 @@ class TextBuffer(gtk.TextBuffer):
 					end.forward_to_tag_toggle(tag)
 				link['href'] = start.get_text(end)
 			return link
+		else:
+			return None
+
+	def insert_tag(self, iter, text, **attrib):
+		'''Insert a tag into the buffer at iter'''
+		with self.tmp_cursor(iter):
+			self.insert_tag_at_cursor(text, **attrib)
+
+	def insert_tag_at_cursor(self, text, **attrib):
+		'''Like insert_tag() but inserts at the cursor'''
+		tag = self.create_tag_tag(text, **attrib)
+		self._editmode_tags = \
+			filter(_is_not_tag_tag,
+				filter(_is_not_style_tag, self._editmode_tags) ) + (tag,)
+		self.insert_at_cursor(text)
+		self._editmode_tags = self._editmode_tags[:-1]
+
+	def create_tag_tag(self, text, **attrib):
+		tag = self.create_tag(None, **self.tag_styles['tag'])
+		tag.set_priority(0) # force tags to be below styles
+		tag.zim_type = 'tag'
+		tag.zim_tag = 'tag'
+		tag.zim_attrib = attrib
+		tag.zim_attrib['name'] = None
+		return tag
+
+	def get_tag_tag(self, iter):
+		# Explicitly left gravity, otherwise position behind the tag
+		# would alos be consifered part of the tag. Position before the
+		# tag is included here.
+		for tag in iter.get_tags():
+			if hasattr(tag, 'zim_type') and tag.zim_type == 'tag':
+				return tag
+		else:
+			return None
+
+	def get_tag_data(self, iter):
+		'''Returns the dict with tag properties for a tag at iter.
+		Fails silently and returns None when there is no tag at iter.
+		'''
+		tag = self.get_tag_tag(iter)
+
+		if tag:
+			attrib = tag.zim_attrib.copy()
+			# Copy text content as name
+			start = iter.copy()
+			if not start.begins_tag(tag):
+				start.backward_to_tag_toggle(tag)
+			end = iter.copy()
+			if not end.ends_tag(tag):
+				end.forward_to_tag_toggle(tag)
+			attrib['name'] = start.get_text(end)[1:].strip()
+			return attrib
 		else:
 			return None
 
@@ -1170,6 +1238,21 @@ class TextBuffer(gtk.TextBuffer):
 	def do_insert_text(self, iter, string, length):
 		'''Signal handler for insert-text signal'''
 
+		def end_or_protect_tags(string, length):
+			tags = filter(_is_tag_tag, self._editmode_tags)
+			if tags:
+				if iter.ends_tag(tags[0]):
+					# End tags if end-of-word char is typed at end of a tag
+					# without this you not insert text behind a tag e.g. at the end of a line
+					self._editmode_tags = filter(_is_not_tag_tag, self._editmode_tags)
+				else:
+					# Forbid breaking a tag
+					return '', 0
+				# TODO this should go into the TextView, not here
+				# Now it goes OK only because we only check single char inserts, but would break
+				# for multi char inserts from the view - fixing that here breaks insert parsetree
+			return string, length
+
 		# Check if we are at a bullet or checkbox line
 		if not self._insert_tree_in_progress and iter.starts_line() \
 		and not string.endswith('\n'):
@@ -1187,6 +1270,9 @@ class TextBuffer(gtk.TextBuffer):
 			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
 			self.emit('textstyle-changed', None)
 			# TODO make this more robust for multiline inserts
+
+			string, length = end_or_protect_tags(string, length)
+
 		elif string in CHARS_END_OF_WORD:
 			# Break links if end-of-word char is typed at end of a link
 			# without this you not insert text behind a link e.g. at the end of a line
@@ -1196,6 +1282,9 @@ class TextBuffer(gtk.TextBuffer):
 				# TODO this should go into the TextView, not here
 				# Now it goes OK only because we only check single char inserts, but would break
 				# for multi char inserts from the view - fixing that here breaks insert parsetree
+
+			string, length = end_or_protect_tags(string, length)
+
 
 		# Call parent for the actual insert
 		gtk.TextBuffer.do_insert_text(self, iter, string, length)
@@ -1417,6 +1506,9 @@ class TextBuffer(gtk.TextBuffer):
 					elif t == 'link':
 						attrib = self.get_link_data(iter)
 						assert attrib['href'], 'Links should have a href'
+					elif t == 'tag':
+						attrib = self.get_tag_data(iter)
+						assert attrib['name'], 'Tags should have a name'
 					builder.start(t, attrib)
 					open_tags.append((tag, t))
 					if t == 'li':
@@ -1716,11 +1808,11 @@ class TextBuffer(gtk.TextBuffer):
 		iter = self.get_iter_at_mark(self.get_insert())
 		self.select_range(iter, iter)
 
-	def copy_clipboard(self, clipboard):
+	def copy_clipboard(self, clipboard, format='plain'):
 		bounds = self.get_selection_bounds()
 		if bounds:
 			tree = self.get_parsetree(bounds)
-			Clipboard().set_parsetree(self.notebook, self.page, tree)
+			Clipboard().set_parsetree(self.notebook, self.page, tree, format)
 
 	def cut_clipboard(self, clipboard, default_editable):
 		if self.get_has_selection():
@@ -2253,8 +2345,10 @@ class TextView(gtk.TextView):
 			self.gtkspell = None
 		gtk.TextView.set_buffer(self, buffer)
 
-	def do_copy_clipboard(self):
-		self.get_buffer().copy_clipboard(Clipboard())
+	def do_copy_clipboard(self, format=None):
+		format = format or self.preferences['copy_format'].lower()
+		if format == 'text': format = 'plain'
+		self.get_buffer().copy_clipboard(Clipboard(), format)
 
 	def do_cut_clipboard(self):
 		self.get_buffer().cut_clipboard(Clipboard(), self.get_editable())
@@ -2714,6 +2808,17 @@ class TextView(gtk.TextView):
 			# DO not auto-format if any zim tags are applied except for indent
 			return
 
+		def apply_tag(match):
+			#~ print "TAG >>%s<<" % word
+			start = end.copy()
+			if not start.backward_chars(len(match)):
+				return False
+			if buffer.range_has_tags(_is_not_indent_tag, start, end):
+				return False
+			tag = buffer.create_tag_tag(match)
+			buffer.apply_tag(tag, start, end)
+			return True
+
 		def apply_link(match):
 			#~ print "LINK >>%s<<" % word
 			start = end.copy()
@@ -2732,6 +2837,8 @@ class TextView(gtk.TextView):
 			end.forward_char() # also overwrite the space triggering the action
 			buffer.delete(start, end)
 			buffer.set_bullet(line, autoformat_bullets[word])
+		elif tag_re.match(word):
+			apply_tag(tag_re[0])
 		elif url_re.match(word):
 			apply_link(url_re[0])
 		elif page_re.match(word):
@@ -3185,7 +3292,7 @@ class PageView(gtk.VBox):
 	def __init__(self, ui, secondairy=False):
 		gtk.VBox.__init__(self)
 		self.ui = ui
-		self._buffer_signals = []
+		self._buffer_signals = ()
 		self.page = None
 		self.readonly = True
 		self.readonlyset = False
@@ -3334,15 +3441,9 @@ class PageView(gtk.VBox):
 		# Put it here to ensure mainwindow is initialized.
 		def set_actiongroup_sensitive(window, widget):
 			#~ print '!! FOCUS SET:', widget
-			# Immitate logic in self.set_readonly()
 			sensitive = widget is self.view
-			if sensitive:
-				for action in self.actiongroup.list_actions():
-					action.set_sensitive(
-						action.zim_readonly or not self.readonly)
-			else:
-				for action in self.actiongroup.list_actions():
-						action.set_sensitive(False)
+			self.set_menuitems_sensitive(sensitive)
+
 		window = self.get_toplevel()
 		window.connect('set-focus', set_actiongroup_sensitive)
 
@@ -3377,7 +3478,7 @@ class PageView(gtk.VBox):
 
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
-		self._buffer_signals = []
+		self._buffer_signals = ()
 		self._prev_buffer.clear()
 
 		# now create the new buffer
@@ -3413,16 +3514,16 @@ class PageView(gtk.VBox):
 
 		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
 
-		self._buffer_signals.append(
-			buffer.connect('textstyle-changed', self.do_textstyle_changed) )
-		self._buffer_signals.append(
-			buffer.connect('modified-changed',
-				lambda o: self.on_modified_changed(o)) )
+		self._buffer_signals = (
+			buffer.connect('textstyle-changed', self.do_textstyle_changed),
+			buffer.connect('modified-changed', lambda o: self.on_modified_changed(o) ),
+			buffer.connect_after('mark-set', self.do_mark_set),
+		)
 
 		buffer.finder.set_state(*finderstate) # maintain state
 
 		self.undostack = UndoStackManager(buffer)
-		self.set_readonly()
+		self.set_readonly() # initialize menu state
 
 	def get_page(self): return self.page
 
@@ -3479,10 +3580,26 @@ class PageView(gtk.VBox):
 		self.view.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
 
-		# partly overrule logic in ui.set_readonly()
-		for action in self.actiongroup.list_actions():
-			if not action.zim_readonly:
-				action.set_sensitive(not self.readonly)
+		self.set_menuitems_sensitive(True)
+
+	def set_menuitems_sensitive(self, sensitive):
+		'''Batch update global menu sensitivity while respecting
+		sensitivities set due to cursor position, readonly state etc.
+		'''
+		if sensitive:
+			# partly overrule logic in ui.set_readonly()
+			for action in self.actiongroup.list_actions():
+				action.set_sensitive(
+					action.zim_readonly or not self.readonly)
+
+			# update state for menu items for checkboxes and links
+			buffer = self.view.get_buffer()
+			iter = buffer.get_insert_iter()
+			mark = buffer.get_insert()
+			self.do_mark_set(buffer, iter, mark)
+		else:
+			for action in self.actiongroup.list_actions():
+				action.set_sensitive(False)
 
 	def set_cursor_pos(self, pos):
 		buffer = self.view.get_buffer()
@@ -3536,6 +3653,31 @@ class PageView(gtk.VBox):
 				self.image_generator_plugins.pop(type)
 				logger.debug('Removed plugin %s for image type "%s"', plugin, type)
 
+
+	def do_mark_set(self, buffer, iter, mark):
+		if self.readonly or mark.get_name() != 'insert':
+			return
+
+		# Set sensitivity of various menu options
+		line = iter.get_line()
+		bullet = buffer.get_bullet(line)
+		if bullet and bullet in CHECKBOXES:
+			self.actiongroup.get_action('toggle_checkbox').set_sensitive(True)
+			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(True)
+		else:
+			self.actiongroup.get_action('toggle_checkbox').set_sensitive(False)
+			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(False)
+
+		if buffer.get_link_tag(iter):
+			self.actiongroup.get_action('remove_link').set_sensitive(True)
+			self.actiongroup.get_action('edit_object').set_sensitive(True)
+		elif buffer.get_image_data(iter):
+			self.actiongroup.get_action('remove_link').set_sensitive(False)
+			self.actiongroup.get_action('edit_object').set_sensitive(True)
+		else:
+			self.actiongroup.get_action('edit_object').set_sensitive(False)
+			self.actiongroup.get_action('remove_link').set_sensitive(False)
+
 	def do_textstyle_changed(self, buffer, style):
 		#~ print '>>> SET STYLE', style
 
@@ -3585,9 +3727,16 @@ class PageView(gtk.VBox):
 
 		try:
 			if type == 'interwiki':
+				oldhref = href
 				href = interwiki_link(href)
-				type = link_type(href)
-				# could be file, url, or notebook
+				if href:
+					# could be file, url, or notebook
+					type = link_type(href)
+				else:
+					if '?' in oldhref:
+						oldhref, p = oldhref.split('?', 1)
+					raise Error(_('No such wiki defined: %s') % oldhref)
+					# T: error when unknown interwiki link is clicked
 
 			if type == 'page':
 				path = self.ui.notebook.resolve_path(href, source=self.page)
@@ -3598,7 +3747,7 @@ class PageView(gtk.VBox):
 			elif type == 'file':
 				path = self.ui.notebook.resolve_file(href, self.page)
 				self.ui.open_file(path)
-			elif type == 'zim-notebook':
+			elif type == 'notebook':
 				self.ui.open_notebook(href)
 			else:
 				self.ui.open_url(href)
@@ -3617,9 +3766,29 @@ class PageView(gtk.VBox):
 			#~ for tool in tools:
 				#~ tool.reparent(menu)
 
-		# Add options for links
-
 		buffer = self.view.get_buffer()
+
+		### Copy As option ###
+		default = self.preferences['copy_format']
+		if default == 'Text':
+			alternative = 'wiki'
+			label = 'Wiki'
+		else:
+			alternative = 'plain'
+			label = 'Text'
+		item = gtk.MenuItem(_('Copy _As "%s"') % label) # T: menu item in preferences menu
+		if buffer.get_has_selection():
+			item.connect('activate',
+				lambda o: self.view.do_copy_clipboard(alternative))
+		else:
+			item.set_sensitive(False)
+		item.show_all()
+		#~ menu.prepend(item)
+		menu.insert(item, 2) # position after Copy in the standard menu - may not be robust...
+
+
+		#### Check for images and links ###
+
 		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
 			# This iter can be either cursor position or pointer
 			# position, depending on how the menu was called
@@ -3960,6 +4129,13 @@ class PageView(gtk.VBox):
 		else:
 			return False
 
+	def find(self, string, flags=0):
+		'''Find some string in the buffer, scroll there and select it'''
+		self.hide_find() # remove previous highlighting etc.
+		buffer = self.view.get_buffer()
+		buffer.finder.find(string, flags)
+		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
+
 	def show_find(self, string=None, flags=0, highlight=False):
 		self.find_bar.show()
 		if string:
@@ -4012,6 +4188,52 @@ class PageView(gtk.VBox):
 		self.view.add_child_at_anchor(widget, anchor)
 		widget.show_all()
 
+	def zoom_in(self):
+		self._zoom_increase_decrease_font_size( +1 )
+
+	def zoom_out(self):
+		self._zoom_increase_decrease_font_size( -1 )
+
+	def _zoom_increase_decrease_font_size(self,plus_or_minus):
+		style = self.style
+		if self.style['TextView']['font']:
+			font = pango.FontDescription(self.style['TextView']['font'])
+		else:
+			logger.debug( 'Switching to custom font implicitly because of zoom action' )
+			font = self.view.style.font_desc
+			self.style['TextView']['font'] = font.to_string()
+
+		font_size = font.get_size()
+		if font_size <= 1*1024 and plus_or_minus < 0:
+			return
+		else:
+			font_size_new = font_size + plus_or_minus * 1024
+			font.set_size( font_size_new )
+		self.style['TextView']['font'] = font.to_string()
+		self.view.modify_font(font)
+
+		self.style.write()
+
+	def zoom_reset(self):
+		if not self.style['TextView']['font']:
+			return
+
+		widget = TextView({}) # Get new widget
+		default_font = widget.style.font_desc
+
+		font = pango.FontDescription(self.style['TextView']['font'])
+		font.set_size( default_font.get_size() )
+
+		if font.to_string() == default_font.to_string():
+			self.style['TextView']['font'] = None
+			self.view.modify_font(None)
+		else:
+			self.style['TextView']['font'] = font.to_string()
+			self.view.modify_font(font)
+
+		self.style.write()
+
+
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
 
@@ -4024,17 +4246,45 @@ gobject.type_register(ObjectAnchor)
 
 class InsertDateDialog(Dialog):
 
+	FORMAT_COL = 0 # format string
+	DATE_COL = 1 # strfime rendering of the format
+
 	def __init__(self, ui, buffer):
 		Dialog.__init__(self, ui, _('Insert Date and Time'), # T: Dialog title
 			button=(_('_Insert'), 'gtk-ok') )  # T: Button label
 		self.buffer = buffer
+		self.date = datetime.datetime.now()
 
 		self.uistate.setdefault('lastusedformat', '')
 		self.uistate.setdefault('linkdate', False)
+		self.uistate.setdefault('calendar_expanded', False)
 
-		model = gtk.ListStore(str, str) # format, data
+		from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
+
+		self.calendar_expander = gtk.expander_new_with_mnemonic('<b>'+_("_Calendar")+'</b>')
+			# T: expander label in "insert date" dialog
+		self.calendar_expander.set_use_markup(True)
+		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
+		self.calendar = Calendar()
+		self.calendar.display_options(
+			gtk.CALENDAR_SHOW_HEADING |
+			gtk.CALENDAR_SHOW_DAY_NAMES |
+			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
+		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
+		self.calendar_expander.add(self.calendar)
+		self.vbox.pack_start(self.calendar_expander, False)
+
+		label = gtk.Label()
+		label.set_markup('<b>'+_("Format")+'</b>') # T: label in "insert date" dialog
+		label.set_alignment(0.0, 0.5)
+		self.vbox.pack_start((label), False)
+
+		model = gtk.ListStore(str, str) # FORMAT_COL, DATE_COL
 		self.view = BrowserTreeView(model)
-		self.vbox.add(self.view)
+		window = gtk.ScrolledWindow()
+		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		window.add(self.view)
+		self.vbox.add(window)
 
 		cell_renderer = gtk.CellRendererText()
 		column = gtk.TreeViewColumn('_date_', cell_renderer, text=1)
@@ -4048,17 +4298,13 @@ class InsertDateDialog(Dialog):
 		self.linkbutton.set_active(self.uistate['linkdate'])
 		self.vbox.pack_start(self.linkbutton, False)
 
-		date = strftime('%Y-%m-%d') # YYYY-MM-DD
-		self.link = self.ui.notebook.suggest_link(self.ui.page, date)
-		if not self.link:
-			self.linkbutton.set_sensitive(False)
-
 		button = gtk.Button(stock=gtk.STOCK_EDIT)
 		button.connect('clicked', self.on_edit)
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 1)
 
 		self.load_file()
+		self.set_date(self.date)
 
 	def load_file(self):
 		lastused = None
@@ -4069,8 +4315,7 @@ class InsertDateDialog(Dialog):
 			if not line or line.startswith('#'): continue
 			try:
 				format = line
-				date = strftime(format)
-				iter = model.append((format, date))
+				iter = model.append((format, format))
 				if format == self.uistate['lastusedformat']:
 					lastused = iter
 			except:
@@ -4080,11 +4325,30 @@ class InsertDateDialog(Dialog):
 			path = model.get_path(lastused)
 			self.view.get_selection().select_path(path)
 
+	def set_date(self, date):
+		self.date = date
+
+		def update_date(model, path, iter):
+			format = model[iter][self.FORMAT_COL]
+			try:
+				string = date.strftime(format)
+			except ValueError:
+				string = 'INVALID: ' + format
+			model[iter][self.DATE_COL] = string
+
+		model = self.view.get_model()
+		model.foreach(update_date)
+
+		link = date.strftime('%Y-%m-%d') # YYYY-MM-DD
+		self.link = self.ui.notebook.suggest_link(self.ui.page, link)
+		self.linkbutton.set_sensitive(not self.link is None)
+
 	def save_uistate(self):
 		model, iter = self.view.get_selection().get_selected()
-		format = model[iter][0]
+		format = model[iter][self.FORMAT_COL]
 		self.uistate['lastusedformat'] = format
 		self.uistate['linkdate'] = self.linkbutton.get_active()
+		self.uistate['calendar_expanded'] = self.calendar_expander.get_expanded()
 
 	def on_edit(self, button):
 		file = config_file('dates.list')
@@ -4093,7 +4357,7 @@ class InsertDateDialog(Dialog):
 
 	def do_response_ok(self):
 		model, iter = self.view.get_selection().get_selected()
-		text = model[iter][1]
+		text = model[iter][self.DATE_COL]
 		if self.link and self.linkbutton.get_active():
 			self.buffer.insert_link_at_cursor(text, self.link.name)
 		else:
@@ -4106,7 +4370,7 @@ class InsertImageDialog(FileDialog):
 
 	def __init__(self, ui, buffer, path, file=None):
 		FileDialog.__init__(
-			self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN, preview=True)
+			self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
 		self.buffer = buffer
 		self.path = path
@@ -4230,7 +4494,7 @@ class EditImageDialog(Dialog):
 	def do_width_changed(self):
 		if self._block: return
 		self._image_data.pop('height', None)
-		self._image_data['width'] = float(self.form['width'])
+		self._image_data['width'] = int(self.form['width'])
 		h = int(float(self._image_data['width']) / self._ratio)
 		self._block = True
 		self.form['height'] = h
@@ -4239,7 +4503,7 @@ class EditImageDialog(Dialog):
 	def do_height_changed(self):
 		if self._block: return
 		self._image_data.pop('width', None)
-		self._image_data['height'] = float(self.form['height'])
+		self._image_data['height'] = int(self.form['height'])
 		w = int(self._ratio * float(self._image_data['height']))
 		self._block = True
 		self.form['width'] = w
@@ -4611,6 +4875,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 		string = self.replace_entry.get_text()
 		buffer = self.textview.get_buffer()
 		buffer.finder.replace(string)
+		buffer.finder.find_next()
 
 	def replace_all(self):
 		string = self.replace_entry.get_text()
@@ -4634,6 +4899,10 @@ class WordCountDialog(Dialog):
 			while iter.compare(end) < 0:
 				if iter.forward_word_end():
 					words += 1
+				elif iter.compare(end) == 0:
+					# When end is end of buffer forward_end_word returns False
+					words += 1
+					break
 				else:
 					break
 			return lines, words, chars

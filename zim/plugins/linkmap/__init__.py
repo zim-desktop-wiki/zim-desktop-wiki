@@ -79,15 +79,22 @@ class LinkMap(object):
 			'  size="6,6";',
 			#~ '  node [shape=box, style="rounded,filled", color="#204a87", fillcolor="#729fcf"];',
 			'  node [shape=note, style="filled", color="#204a87", fillcolor="#729fcf"];',
-			'  "%s" [color="#4e9a06", fillcolor="#8ae234"]' % self.path.name, # special node
+			'  "%s" [color="#4e9a06", fillcolor="#8ae234", URL="%s"]' % (self.path.name, self.path.name), # special node
 		]
 
+		seen = set()
+		seen.add(self.path.name)
 		for link in self._links(self.path, self.depth):
+			for name in (link.source.name, link.href.name):
+				if not name in seen:
+					dotcode.append('  "%s" [URL="%s"];' % (name, name))
+					seen.add(name)
 			dotcode.append(
 				'  "%s" -> "%s";'  % (link.source.name, link.href.name))
 
 		dotcode.append('}')
 
+		#~ print '\n'.join(dotcode)+'\n'
 		return '\n'.join(dotcode)+'\n'
 
 
