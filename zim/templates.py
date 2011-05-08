@@ -118,7 +118,11 @@ def get_template(format, template):
 	logger.info('Loading template from: %s', file)
 	if not file.exists():
 		raise AssertionError, 'No such file: %s' % file
-	return Template(file.readlines(), format, name=file.path)
+	resources_dirname = file.basename.rsplit('.', 1)[0]
+	print resources_dirname
+	resources = file.dir.subdir(resources_dirname)
+	print resources
+	return Template(file.readlines(), format, name=file.path, resources=resources)
 
 
 class TemplateError(Error):
@@ -296,11 +300,14 @@ class GenericTemplate(object):
 class Template(GenericTemplate):
 	'''Template class that can process a zim Page object'''
 
-	def __init__(self, input, format, linker=None, name=None):
+	def __init__(self, input, format, linker=None, name=None, resources=None):
 		if isinstance(format, basestring):
 			format = zim.formats.get_format(format)
 		self.format = format
 		self.linker = linker
+		if isinstance(resources, basestring):
+			resources = Dir(resources)
+		self.resources = resources
 		GenericTemplate.__init__(self, input, name)
 
 	def set_linker(self, linker):

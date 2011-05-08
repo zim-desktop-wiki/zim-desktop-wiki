@@ -6,7 +6,7 @@
 
 import logging
 
-from zim.fs import *
+from zim.fs import Path as FsPath, Dir, File
 from zim.config import data_file
 from zim.formats import get_format, BaseLinker
 from zim.templates import get_template, Template
@@ -65,7 +65,24 @@ class Exporter(object):
 			icon = data_file('pixmaps/%s.png' % name)
 			file = dir.file('_icons/'+name+'.png')
 			icon.copyto(file)
-
+		
+		# Copy template resources
+		if self.template and self.template.resources and self.template.resources.exists():
+			#~ print '>>>', self.template.resources, "exists!"
+			def copy_dir(source, target):
+				target.touch()
+				for item in source.list():
+					child = FsPath((source.path, item))
+					if child.isdir():
+						copy_dir(source.subdir(item), target.subdir(item)) # recur
+					else:
+						source.file(item).copyto(target)
+					
+			copy_dir(self.template.resources, dir.subdir('_template'))
+		#~ else:
+			#~ print '>>>', self.template.resources, "doesn't exist!"
+			
+		
 		# Set special pages
 		if self.index_page:
 			indexpage = Page(Path(self.index_page))
