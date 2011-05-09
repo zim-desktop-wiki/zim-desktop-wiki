@@ -188,6 +188,14 @@ class WWWInterface(NotebookInterface):
  					headers['Content-Type'] = 'image/vnd.microsoft.icon'
  				else:
 					raise PathNotValidError()
+ 			elif path.startswith('/+template/'):
+				if self.template and self.template.resources:
+					file = self.template.resources.file(path[11:])
+					content = [file.raw()]
+						# Will raise FileNotFound when file does not exist
+	 				headers['Content-Type'] = file.get_mimetype()
+	 			else:
+					raise PageNotFoundError(path)
 			else:
 				# Must be a page or a namespace (html file or directory path)
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
@@ -396,6 +404,9 @@ class WWWLinker(BaseLinker):
 
 	def icon(self, name):
 		return url_encode('/+icons/%s.png' % name)
+	
+	def template(self, path):
+		return url_encode('/+template/%s' % path)
 
 	def link_page(self, link):
 		try:
