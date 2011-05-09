@@ -57,6 +57,33 @@ class TestExport(TestCase):
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 		self.assertTrue('<h1>Foo</h1>' in text)
 
+class TestExportTemplateResources(TestCase):
+
+	slowTest = True
+	file = File('tests/data/template-resources/Default.html')
+	options = {'format': 'html', 'template': file.path}
+
+	def setUp(self):
+		self.dir = Dir(create_tmp_dir('export_ExportTemplateResources'))
+
+	def export(self):
+		notebook = get_test_notebook()
+		notebook.get_store(Path(':')).dir = Dir('/foo/bar') # fake source dir
+		notebook.index.update()
+		exporter = Exporter(notebook, **self.options)
+		exporter.export_all(self.dir)
+
+	def runTest(self):
+		'''Test export notebook to html with template resources'''
+		self.export()
+
+		file = self.dir.file('Test/foo.html')
+		self.assertTrue(file.exists())
+		text = file.read()
+		self.assertTrue('src="../_template/favicon/zim.png"' in text)
+		for i in ('checked-box.png', 'unchecked-box.png', 'xchecked-box.png', 'favicon/zim.png'):
+			self.assertTrue(self.dir.file('_template/'+i).exists())
+		
 
 class TestExportFullOptions(TestExport):
 

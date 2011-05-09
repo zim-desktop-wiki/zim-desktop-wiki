@@ -119,9 +119,7 @@ def get_template(format, template):
 	if not file.exists():
 		raise AssertionError, 'No such file: %s' % file
 	resources_dirname = file.basename.rsplit('.', 1)[0]
-	print resources_dirname
 	resources = file.dir.subdir(resources_dirname)
-	print resources
 	return Template(file.readlines(), format, name=file.path, resources=resources)
 
 
