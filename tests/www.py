@@ -55,7 +55,7 @@ class TestWWWInterface(TestCase):
 	def setUp(self):
 		self.template = None
 		self.not_found_paths = ['/Test', '/nonexistingpage.html', '/nonexisting/']
-		self.file_paths = ['/favicon.ico', '/+icons/checked-box.png']
+		self.file_paths = ['/favicon.ico', '/+template/checked-box.png']
 
 	def runTest(self):
 		'Test WWW interface'

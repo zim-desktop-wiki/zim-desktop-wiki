@@ -177,6 +177,8 @@ class WWWInterface(NotebookInterface):
 				content = [file.raw()]
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.get_mimetype()
+ 			
+ 			# /+icons/ path is understood due to backward compatibility
  			elif path.startswith('/+icons/'):
  				# TODO check if favicon is overridden or something
  				file = data_file('pixmaps/%s' % path[8:])
@@ -189,11 +191,26 @@ class WWWInterface(NotebookInterface):
  				else:
 					raise PathNotValidError()
  			elif path.startswith('/+template/'):
+				icon = data_file('pixmaps/%s' % path[11:])
 				if self.template and self.template.resources:
 					file = self.template.resources.file(path[11:])
-					content = [file.raw()]
+				else:
+					file = None
+				
+				# icon is checked only if template file does not exist
+				if icon and icon.exists() and (not file or not file.exists()):
+					content = [icon.raw()]
 						# Will raise FileNotFound when file does not exist
-	 				headers['Content-Type'] = file.get_mimetype()
+	 				if path.endswith('.png'):
+	 					headers['Content-Type'] = 'image/png'
+	 				elif path.endswith('.ico'):
+	 					headers['Content-Type'] = 'image/vnd.microsoft.icon'
+	 				else:
+						raise PathNotValidError()
+				
+				elif file:
+					content = [file.raw()]
+					headers['Content-Type'] = file.get_mimetype()
 	 			else:
 					raise PageNotFoundError(path)
 			else:
@@ -403,7 +420,7 @@ class WWWLinker(BaseLinker):
 		self.path = path
 
 	def icon(self, name):
-		return url_encode('/+icons/%s.png' % name)
+		return url_encode('/+template/%s.png' % name)
 	
 	def template(self, path):
 		return url_encode('/+template/%s' % path)

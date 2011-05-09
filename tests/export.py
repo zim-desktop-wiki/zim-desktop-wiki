@@ -7,6 +7,8 @@ from tests import TestCase, MockObject, create_tmp_dir, get_test_notebook, get_t
 from subprocess import check_call
 
 from zim.fs import *
+from zim.fs import _md5
+from zim.config import data_file
 from zim.notebook import Path, Notebook, init_notebook
 from zim.exporter import Exporter, StaticLinker
 
@@ -56,6 +58,11 @@ class TestExport(TestCase):
 		text = file.read()
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 		self.assertTrue('<h1>Foo</h1>' in text)
+		for i in ('checked-box', 'unchecked-box', 'xchecked-box'):
+			self.assertTrue(self.dir.file('_template/%s.png' % i).exists())
+			# Default template doesn't have its own checkboxes
+			self.assertTrue(_md5(self.dir.file('_template/%s.png' % i).raw())
+							 ==  _md5(data_file('pixmaps/%s.png' % i).raw()))
 
 class TestExportTemplateResources(TestCase):
 
@@ -81,8 +88,14 @@ class TestExportTemplateResources(TestCase):
 		self.assertTrue(file.exists())
 		text = file.read()
 		self.assertTrue('src="../_template/favicon/zim.png"' in text)
-		for i in ('checked-box.png', 'unchecked-box.png', 'xchecked-box.png', 'favicon/zim.png'):
-			self.assertTrue(self.dir.file('_template/'+i).exists())
+		
+		self.assertTrue(self.dir.file('_template/favicon/zim.png').exists())
+		for i in ('checked-box', 'unchecked-box', 'xchecked-box'):
+			self.assertTrue(self.dir.file('_template/%s.png' % i).exists())
+			# Template has its own checkboxes
+			self.assertFalse(_md5(self.dir.file('_template/%s.png' % i).raw())
+							 ==  _md5(data_file('pixmaps/%s.png' % i).raw()))
+		
 		
 
 class TestExportFullOptions(TestExport):
