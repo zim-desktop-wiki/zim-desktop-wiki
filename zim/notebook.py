@@ -778,6 +778,7 @@ class Notebook(gobject.GObject):
 		and typically user input should not need to able to address this path.
 		'''
 		assert name, 'BUG: name is empty string'
+
 		startswith = name[0]
 		if startswith == '.':
 			startswith = '+' # backward compat
@@ -821,7 +822,13 @@ class Notebook(gobject.GObject):
 						return candidate
 				else:
 					# name not found, keep case as is
-					return source.parent + name
+					if source.isroot:
+						# special case needed by namespace entry widget
+						# where we use the current namespace as reference
+						# instead of the current page
+						return Path(name)
+					else:
+						return source.parent + name
 
 	def relative_link(self, source, href):
 		'''Returns a link for a path 'href' relative to path 'source'.

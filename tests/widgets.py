@@ -5,6 +5,7 @@ from zim.fs import File, Dir
 from zim.notebook import Path
 from zim.gui.widgets import *
 
+
 class TestInputEntry(TestCase):
 
 	def runTest(self):
@@ -160,6 +161,28 @@ class TestPageEntry(TestCase):
 
 		entry.set_text('Test:')
 		self.assertEqual(get_completions(entry), ['Test:foo', 'Test:Foo Bar', 'Test:tags', 'Test:wiki'])
+
+
+class TestNamespaceEntry(TestPageEntry):
+
+	entryklass = NamespaceEntry
+
+	def runTest(self):
+		'''Test NamespaceEntry widget'''
+		entry = self.entry
+		entry.set_text('')
+
+		entry.do_focus_in_event(gtk.gdk.Event(gtk.gdk.FOCUS_CHANGE))
+		self.assertTrue(entry.get_input_valid())
+		self.assertEqual(entry.get_text(), '') # No '<Top>' or something !
+		self.assertEqual(entry.get_path(), Path(':'))
+
+		entry.do_focus_out_event(gtk.gdk.Event(gtk.gdk.FOCUS_CHANGE))
+		self.assertTrue(entry.get_input_valid())
+		self.assertEqual(entry.get_text(), '') # No '<Top>' or something !
+		self.assertEqual(entry.get_path(), Path(':'))
+
+		TestPageEntry.runTest(self)
 
 
 class TestLinkEntry(TestPageEntry, TestFileEntry):

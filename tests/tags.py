@@ -3,6 +3,7 @@
 # Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
+from tests.gtk_tests import process_events
 
 import gtk
 import pango
@@ -54,11 +55,6 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 5)
-
-		def process_events(*a):
-			while gtk.events_pending():
-				gtk.main_iteration(block=False)
-			return True # continue
 
 		self.index.update(callback=process_events)
 		process_events()
