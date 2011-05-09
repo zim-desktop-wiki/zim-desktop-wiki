@@ -391,7 +391,10 @@ class Dumper(DumperClass):
 			elif element.tag == 'img':
 				src = element.attrib['src']
 				opts = []
-				for k, v in element.attrib.items():
+				items = element.attrib.items()
+				# we sort params only because unit tests don't like random output
+				items.sort()
+				for k, v in items:
 					if k == 'src' or k.startswith('_'):
 						continue
 					elif v: # skip None, "" and 0
