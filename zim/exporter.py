@@ -60,12 +60,6 @@ class Exporter(object):
 		logger.info('Exporting notebook to %s', dir)
 		self.linker.target_dir = dir # Needed to resolve icons
 
-		# Copy icons
-		for name in ('checked-box', 'unchecked-box', 'xchecked-box'):
-			icon = data_file('pixmaps/%s.png' % name)
-			file = dir.file('_icons/'+name+'.png')
-			icon.copyto(file)
-		
 		# Copy template resources
 		if self.template and self.template.resources and self.template.resources.exists():
 			#~ print '>>>', self.template.resources, "exists!"
@@ -81,7 +75,14 @@ class Exporter(object):
 			copy_dir(self.template.resources, dir.subdir('_template'))
 		#~ else:
 			#~ print '>>>', self.template.resources, "doesn't exist!"
-			
+		
+		# Copy icons
+		for name in ('checked-box', 'unchecked-box', 'xchecked-box'):
+			icon = data_file('pixmaps/%s.png' % name)
+			file = dir.file('_template/'+name+'.png')
+			# Do not overwite custom images from template
+			if not file.exists():
+				icon.copyto(file)
 		
 		# Set special pages
 		if self.index_page:
@@ -208,7 +209,7 @@ class StaticLinker(BaseLinker):
 		self.target_dir = None
 		self.target_file = None
 		self._extension = '.' + format.info['extension']
-
+	
 	def template(self, path):
 		if self.target_dir and self.target_file:
 			file = self.target_dir.file('_template/'+path)
@@ -218,7 +219,7 @@ class StaticLinker(BaseLinker):
 
 	def icon(self, name):
 		if self.target_dir and self.target_file:
-			file = self.target_dir.file('_icons/'+name+'.png')
+			file = self.target_dir.file('_template/'+name+'.png')
 			return self._filepath(file, self.target_file.dir)
 		else:
 			return BaseLinker.icon(self, name)
