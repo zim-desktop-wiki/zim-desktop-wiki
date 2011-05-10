@@ -1705,22 +1705,6 @@ class Window(gtkwindowclass):
 		gtkwindowclass.show_all(self)
 
 
-class DialogPositions(zim.config.Singleton):
-	'''Singleton class to remember dialog positions. The positions are stored
-	during one session and reset to wise defaults after a restart of Zim. The
-	one and only instance maps dialog class names to position tuples (x, y).
-	'''
-	_name2pos = {}
-
-	def store(self, name, pos):
-		''' Stores a position under a certain name. '''
-		self._name2pos[name] = pos
-
-	def get(self, name):
-		'''Returns the position for a given name, or None if not stored yet. '''
-		return self._name2pos.get(name)
-
-
 class Dialog(gtk.Dialog):
 	'''Wrapper around gtk.Dialog used for most zim dialogs.
 	It adds a number of convenience routines to build dialogs.
@@ -1807,9 +1791,11 @@ class Dialog(gtk.Dialog):
 		else:
 			self.uistate = zim.config.ListDict()
 
-		pos = DialogPositions().get(self.__class__.__name__)
-		if pos:
-			self.move(*(pos))
+		self.uistate.setdefault('_windowpos', (None, None), check=value_is_coord)
+		x, y = self.uistate['_windowpos']
+		if (x, y) != (None, None):
+			self.move(x, y)
+
 		self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		#~ print '>>', self.uistate
 		w, h = self.uistate['windowsize']
@@ -1943,7 +1929,8 @@ class Dialog(gtk.Dialog):
 			destroy = True
 
 		if ui_environment['platform'] != 'maemo':
-			DialogPositions().store(self.__class__.__name__, self.get_position())
+			x, y = self.get_position()
+			self.uistate['_windowpos'] = (x, y)
 			w, h = self.get_size()
 			self.uistate['windowsize'] = (w, h)
 			self.save_uistate()
