@@ -1308,6 +1308,7 @@ class GtkInterface(NotebookInterface):
 				return None	# dialog was cancelled
 
 		file.copyto(dest)
+		os.utime(str(dest), (-1, file.mtime())) # copy modification date
 		return dest
 
 	def show_clean_notebook(self):
