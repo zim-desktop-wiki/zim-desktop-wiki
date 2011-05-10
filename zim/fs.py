@@ -1196,7 +1196,7 @@ class UnixFile(Path):
 			dest.touch()
 		else:
 			dest.dir.touch()
-		shutil.copy(self.encodedpath, dest.encodedpath)
+		shutil.copy2(self.encodedpath, dest.encodedpath)
 		# TODO - not hooked with FS signals
 
 	def compare(self, other):

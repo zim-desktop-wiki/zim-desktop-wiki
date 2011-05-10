@@ -1890,6 +1890,14 @@ class Dialog(gtk.Dialog):
 		else:
 			self.uistate = zim.config.ListDict()
 
+		# note: _windowpos is defined with a leading "_" so it is not
+		# persistent across instances, this is intentional to avoid
+		# e.g. messy placement for seldom used dialogs
+		self.uistate.setdefault('_windowpos', (None, None), check=value_is_coord)
+		x, y = self.uistate['_windowpos']
+		if (x, y) != (None, None):
+			self.move(x, y)
+
 		self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		#~ print '>>', self.uistate
 		w, h = self.uistate['windowsize']
@@ -2023,6 +2031,8 @@ class Dialog(gtk.Dialog):
 			destroy = True
 
 		if ui_environment['platform'] != 'maemo':
+			x, y = self.get_position()
+			self.uistate['_windowpos'] = (x, y)
 			w, h = self.get_size()
 			self.uistate['windowsize'] = (w, h)
 			self.save_uistate()
@@ -2349,8 +2359,8 @@ class FileDialog(Dialog):
 		return filter
 
 	def add_filter_images(self):
-		'''Wrapper for filechooser.add_filter()
-		using gtk.FileFilter.add_pixbuf_formats(). Returns the filter object.
+		'''Wrapper for filechooser.add_filter() to add a filter for images.
+		Returns the filter object.
 		'''
 		if len(self.filechooser.list_filters()) == 0:
 			self._add_filter_all()
@@ -2358,6 +2368,7 @@ class FileDialog(Dialog):
 		filter.set_name(_('Images'))
 			# T: Filter in open file dialog, shows image files only
 		filter.add_pixbuf_formats()
+		filter.add_mime_type('image/*')       # to allow types like .ico
 		self.filechooser.add_filter(filter)
 		self.filechooser.set_filter(filter)
 		return filter
