@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>[% page.title %]</title>
+		<meta name='Generator' content='Zim [% zim.version %]'>
+		<style type='text/css'>
+			a          { text-decoration: none      }
+			a:hover    { text-decoration: underline }
+			a:active   { text-decoration: underline }
+			strike     { color: grey                }
+			u          { text-decoration: none;
+			             background-color: yellow   }
+			tt         { color: #2e3436;            }
+			pre        { color: #2e3436;
+			             margin-left: 20px          }
+			h1         { text-decoration: underline;
+			             color: #4e9a06             }
+			h2         { color: #4e9a06             }
+			h3         { color: #4e9a06             }
+			h4         { color: #4e9a06             }
+			h5         { color: #4e9a06             }
+			span.insen { color: grey                }
+			.page { max-width: 1000px;}
+			.menu, .notebook {
+				float:left; width: 300px;
+			}
+			.heading, .notebook {
+				position:relative;
+				display: table-cell;
+				vertical-align: middle;
+			}
+			.heading, .content { padding-left: 320px;}
+			.notebook{
+				text-align: center;
+				font-size: 220%;
+				font-weight: bold;
+				font-variant: small-caps;}
+			hr{clear:both;}
+		</style>
+		<!--[if lte IE 7]> 
+		<style type="text/css">
+		div.heading div, div.notebook div {
+			width: 100%;
+			position:absolute;
+			top: 50%;
+			left: 0;
+		}
+		.heading div h1, .notebook div a {
+			position: relative;
+			top: -50%
+		}
+		</style>
+		<![endif]-->
+	</head>
+	<body>
+		<div class="page">
+			<div class="notebook">
+				<a href="[% url(pages.home.name) %]">[% notebook.name %]</a>
+			</div>
+			<div class="heading"><div>
+				<!-- second div for vertical centering for MSIE <= 7 -->
+				[% IF page.properties.type == 'namespace-index' -%]
+					<h1>Document Index</h1>
+				[%- ELSE -%]
+					<h1>[% page.heading %]</h1>
+				[%- END %]
+			</div></div>
+			<hr>
+			<div class="menu">
+				[% page.menu %]
+			</div>
+			<div class="content">
+			<!-- Wiki content -->
+				[% page.body %]
+
+			<!-- End wiki content -->
+			</div>
+			<hr>
+			<!-- Backlinks -->
+			<div class="footer">
+				[% IF page.backlinks -%] Backlinks:
+					[%- FOREACH link = page.backlinks -%]
+						<a href='[% url(link) %]'>[% link.name %]</a></li>
+					[%- END -%]
+				[%- ELSE -%]
+					No backlinks to this page.
+				[%- END %]
+			<!-- End Backlinks -->
+			</div>
+		</div>
+	</body>
+</html>
