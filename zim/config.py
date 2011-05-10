@@ -802,3 +802,15 @@ class HierarchicDictFrame(object):
 			return self.dict[self.key].pop(k)
 		else:
 			raise KeyError
+
+
+class Singleton(object):
+	''' Superclass for Singelton classes.
+	Each call to the constructor will return the same (the first) instance.
+	'''
+
+	def __new__(cls, *a, **k):
+		if not hasattr(cls, '_inst'):
+			cls._inst = super(Singleton, cls).__new__(cls, *a, **k)
+		return cls._inst
+
