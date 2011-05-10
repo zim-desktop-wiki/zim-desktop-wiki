@@ -195,7 +195,7 @@ class StaticLinker(BaseLinker):
 	def icon(self, name):
 		if self.target_dir and self.target_file:
 			file = self.target_dir.file('_icons/'+name+'.png')
-			return self._filepath(file, self.target_file)
+			return self._filepath(file, self.target_file.dir)
 		else:
 			return BaseLinker.icon(self, name)
 
