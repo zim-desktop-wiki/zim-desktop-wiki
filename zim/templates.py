@@ -72,8 +72,9 @@ from zim.errors import Error
 from zim.fs import File
 from zim.config import data_dirs
 from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string, is_path_re
-from zim.formats import ParseTree, Element
+from zim.formats import ParseTree, Element, TreeBuilder
 from zim.index import LINK_DIR_BACKWARD
+from zim.notebook import Path
 
 logger = logging.getLogger('zim.templates')
 
@@ -335,7 +336,8 @@ class Template(GenericTemplate):
 			'pages': pages,
 			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
-			'options': options
+			'options': options,
+			'notebook': {'name' : notebook.name}
 		}
 
 		if self.linker:
@@ -752,7 +754,85 @@ class PageProxy(object):
 		for link in blinks:
 			source = self._notebook.get_page(link.source)
 			yield PageProxy(self._notebook, source, self._format, self._linker, self._options)
+	@property
+	def menu(self):
+		builder = TreeBuilder()
+		level = self._page.name.count(':')
+		home = Path(self._notebook.config['Notebook']['home'])
+		
+		def add_namespace(path):
+			mylevel = path.name.count(':')
+			
+			# Menu doesn't show whole tree, but only pages related to the current page.
+			if mylevel > level:
+				# "path" is more nested then the current page
+				return
+			elif level == mylevel:
+				# "path" has same level as current page
+				if not self._page.name == path.name and path.name:
+					# Show only children of the current page or namespace pages
+					return
+			elif not self._page.name.startswith(path.name):
+				# "path" is less nested, show only children of the ancestors
+				# of the current page
+				return
 
+			pagelist = list(self._notebook.index.list_pages(path))
+			# find home page
+			for page in pagelist:
+				if page.name == home.name:
+					home_page = page
+					break
+			else:
+				# home page not in list
+				home_page = None
+
+			# home page will be first item
+			if not home_page is None:
+				pagelist.remove(home_page)
+				pagelist.insert(0, home_page)
+
+			builder.start('ul')
+			for page in pagelist:
+				if not page.hascontent: continue
+				builder.start('li')
+				text = page.basename
+
+				if self._page.name == page.name:
+					# Current page is marked with the strong style
+					builder.start('strong')
+					builder.data(text)
+					builder.end('strong')
+				else:
+					# links to other pages
+					builder.start('link', {'type': 'page', 'href': page.name})
+					builder.data(text)
+					builder.end('link')
+				builder.end('li')
+				if page.haschildren:
+					add_namespace(page) # recurs
+			builder.end('ul')
+
+		builder.start('page')
+		add_namespace(Path(':'))
+		builder.end('page')
+
+		tree = ParseTree(builder.close())
+		if not tree:
+			return None
+			
+		#~ print "!!!", tree.tostring()
+		
+		format = self._format
+		linker = self._linker
+		if linker:
+			linker.set_path(self._page)
+
+		dumper = format.Dumper(
+			linker=linker,
+			template_options=self._options )
+
+		return ''.join(dumper.dump(tree))
 
 class ParseTreeProxy(object):
 
