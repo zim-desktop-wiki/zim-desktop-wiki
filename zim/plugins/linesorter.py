@@ -5,6 +5,8 @@
 
 import gtk
 
+from __future__ import with_statement
+
 from zim.plugins import PluginClass
 from zim.gui.widgets import ui_environment, MessageDialog
 

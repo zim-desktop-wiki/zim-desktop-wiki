@@ -40,7 +40,7 @@ Build release packages:
 
 Publish to launchpad PPA:
 * ''debuild -S -kB3223C82''
-* ''dput ppa:jaap.karssenberg/zim zim_XX_sources.changes''
+* ''dput ppa:jaap.karssenberg/zim ../zim_XX_sources.changes''
 
 Publish the release:
 * Upload website
@@ -48,7 +48,7 @@ Publish the release:
 * Write release notes
 * Announce on freshmeat
 * Announce on launchpad
-* Announce on gnome files 
+* ~~Announce on gnome files~~
 * Announce on mailing list
 
 
