@@ -3,9 +3,9 @@
 # Copyright 2011 NorfCran <norfcran@gmail.com>
 # License:  same as zim (gpl)
 
-import gtk
-
 from __future__ import with_statement
+
+import gtk
 
 from zim.plugins import PluginClass
 from zim.gui.widgets import ui_environment, MessageDialog

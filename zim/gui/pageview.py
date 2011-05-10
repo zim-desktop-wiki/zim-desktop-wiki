@@ -3290,6 +3290,18 @@ class PageView(gtk.VBox):
 			self.actiongroup = gtk.ActionGroup('SecondairyPageView')
 		self.ui.add_actions(ui_actions, self)
 
+		# Extra keybinding for Find: F3, <Shift>F3 and <Ctrl>F3
+		group = self.ui.uimanager.get_accel_group()
+		group.connect_group(
+				gtk.keysyms.F3, 0, gtk.ACCEL_VISIBLE,
+				lambda *a: self.find_next())
+		group.connect_group(
+				gtk.keysyms.F3, gtk.gdk.SHIFT_MASK, gtk.ACCEL_VISIBLE,
+				lambda *a: self.find_previous())
+		group.connect_group(
+				gtk.keysyms.F3, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
+				lambda *a: self.show_find())
+
 		# format actions need some custom hooks
 		actiongroup = self.actiongroup
 		actiongroup.add_actions(ui_format_actions)
@@ -4664,11 +4676,13 @@ class FindWidget(object):
 		buffer = self.textview.get_buffer()
 		buffer.finder.find_next()
 		self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
+		self.textview.grab_focus()
 
 	def find_previous(self):
 		buffer = self.textview.get_buffer()
 		buffer.finder.find_previous()
 		self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
+		self.textview.grab_focus()
 
 
 class FindBar(FindWidget, gtk.HBox):
