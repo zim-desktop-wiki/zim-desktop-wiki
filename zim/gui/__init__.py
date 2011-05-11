@@ -2084,7 +2084,11 @@ class MainWindow(Window):
 		self.uistate = ui.uistate['MainWindow']
 
 		if not self._geometry_set:
-			# Ignore this is a explicit geometry was specified to the constructor
+			# Ignore this if an explicit geometry was specified to the constructor
+			self.uistate.setdefault('windowpos', (None, None), check=value_is_coord)
+			x, y = self.uistate['windowpos']
+			if (x, y) != (None, None):
+				self.move(x, y)
 			self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
 			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
@@ -2175,9 +2179,9 @@ class MainWindow(Window):
 		#TODO: set toggle_readonly insensitive when page is readonly
 
 	def do_close_page(self, ui, page):
-		w, h = self.get_size()
 		if not self._fullscreen:
-			self.uistate['windowsize'] = (w, h)
+			self.uistate['windowpos'] = self.get_position()
+			self.uistate['windowsize'] = self.get_size()
 		self.uistate['sidepane_pos'] = self._zim_window_left_pane.get_position()
 
 	def do_textview_toggle_overwrite(self, view):

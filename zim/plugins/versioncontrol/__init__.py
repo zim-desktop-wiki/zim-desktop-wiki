@@ -106,7 +106,8 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('bzr',Application(('bzr',)).tryexec())]
+		has_bzr = Application(('bzr',)).tryexec()
+		return has_bzr, [('bzr', has_bzr, True)]
 
 	def detect_vcs(self):
 		dir = self._get_notebook_dir()

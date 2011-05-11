@@ -4,7 +4,16 @@
 
 '''Helper classes and functions for testing Gtk interaction'''
 
+import gtk
+
 import types
+
+
+def process_events(*a):
+	'''Method to simulate a few iterations of the gtk main loop'''
+	while gtk.events_pending():
+		gtk.main_iteration(block=False)
+	return True # continue
 
 
 class TestDialogContext(object):

@@ -47,7 +47,8 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [("GraphViz",Application(dotcmd).tryexec())]
+		has_dotcmd = Application(dotcmd).tryexec()
+		return has_dotcmd, [("GraphViz", has_dotcmd, True)]
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)

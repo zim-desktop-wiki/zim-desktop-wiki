@@ -11,7 +11,7 @@ import zim.formats
 
 class TestTaskList(TestCase):
 
-	def runTest(self):
+	def testIndexing(self):
 		'''Check indexing of tasklist plugin'''
 		klass = zim.plugins.get_plugin('tasklist')
 		ui = MockUI()
@@ -60,6 +60,14 @@ FIXME: dus
 			# extract should not modify the tree
 
 		# TODO: test tags, due dates, tags for whole list, etc.
+
+	def testDialog(self):
+		'''Check tasklist plugin dialog'''
+		klass = zim.plugins.get_plugin('tasklist')
+		ui = MockUI()
+		plugin = klass(ui)
+		ui.notebook.index.flush()
+		ui.notebook.index.update()
 
 
 
