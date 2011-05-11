@@ -13,8 +13,9 @@ import zim
 from zim.templates import *
 from zim.templates import GenericTemplate, \
 	TemplateParam, TemplateDict, TemplateFunction, PageProxy
-from zim.notebook import Notebook
+from zim.notebook import Notebook, Path
 import zim.formats
+from zim.parsing import link_type
 
 class TestTemplateParam(TestCase):
 
@@ -157,14 +158,14 @@ class TestTemplate(TestCase):
 		input = u'''\
 Version [% zim.version %]
 <title>[% page.title %]</title>
-<h1>[% page.name %]</h1>
+<h1>[% notebook.name %]: [% page.name %]</h1>
 <h2>[% page.heading %]</h2>
 [% page.body %]
 '''
 		wantedresult = u'''\
 Version %s
 <title>Page Heading</title>
-<h1>FooBar</h1>
+<h1>Unnamed Notebook: FooBar</h1>
 <h2>Page Heading</h2>
 <p>
 <strong>foo bar !</strong><br>
@@ -185,6 +186,36 @@ Version %s
 		template = notebook.get_template(page)
 		tree = template.process_to_parsetree(notebook, page) # No linker !
 		self.assertEqualDiff(tree.find('/h').text, u'Some New None existing page')
+
+class TestTemplatePageMenu(TestCase):
+
+	def runTest(self):
+		input = u'''\
+<h1>[% page.name %]</h1>
+[% page.menu %]
+'''
+		wantedresult = u'''\
+<h1>Parent:Daughter</h1>
+<ul>
+<li><a href="page://Parent" title="Parent">Parent</a></li>
+<ul>
+<li><strong>Daughter</strong></li>
+<ul>
+<li><a href="page://Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+</ul>
+<li><a href="page://Parent:Son" title="Son">Son</a></li>
+</ul>
+<li><a href="page://roundtrip" title="roundtrip">roundtrip</a></li>
+<li><a href="page://TODOList" title="TODOList">TODOList</a></li>
+<li><a href="page://TrashMe" title="TrashMe">TrashMe</a></li>
+</ul>
+
+'''
+		notebook = tests.get_test_notebook('wiki')
+		page = notebook.get_page(Path(':Parent:Daughter'))
+		result = Template(input, 'html', linker=StubLinker()).process(notebook, page)
+		self.assertEqualDiff(result, wantedresult.splitlines(True))
 
 		
 
