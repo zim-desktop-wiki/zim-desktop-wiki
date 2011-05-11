@@ -56,26 +56,29 @@ Available variables:
 
 '''
 zim.version		# version of zim
+notebook.name		# name of the notebook
 
 page.name		# complete page name
 page.namespace		# namespace
 page.basename		# last part of the page name
-page.title		# 
+page.title		# first heading in the page or the basename
+
+page.heading		# first heading in the page
+page.body		# content of the page (without the leading heading)
+page.menu		# tree-style menu (non-related branches are collapsed)
+page.links		# list of page objects for pages linked in this page
+page.backlinks		# list of page objects for pages linking to this page
+page.properties		# dict with page properties
+
+# These special pages have the same properties as the 'page' object
+pages.index		# the index page generated when exporting
+pages.home		# the home page
+pages.next		# the next page in the index (if any)
+pages.previous		# the previous page in the index (if any)
+
+options			# dict where format specific options can be set
 '''
-''first heading in the page or the basename''
-''page.heading		# first heading in the page''
-''page.body		# content of the page (without the leading heading)''
-''page.links		# list of page objects for pages linked in this page''
-''page.backlinks		# ''''list of page objects for pages linking to this page''
-''page.properties		# dict with page properties''
 
-''# These special pages have the same properties as the 'page' object''
-''pages.index		# the index page generated when exporting''
-''pages.home		# the home page''
-''pages.next		# the next page in the index (if any)''
-''pages.previous		# the previous page in the index (if any)''
-
-''options			# dict where format specific options can be set''
 
 Functions available:
 
