@@ -4193,21 +4193,7 @@ class InsertDateDialog(Dialog):
 		self.uistate.setdefault('linkdate', False)
 		self.uistate.setdefault('calendar_expanded', False)
 
-		from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
-
-		self.calendar_expander = gtk.expander_new_with_mnemonic('<b>'+_("_Calendar")+'</b>')
-			# T: expander label in "insert date" dialog
-		self.calendar_expander.set_use_markup(True)
-		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
-		self.calendar = Calendar()
-		self.calendar.display_options(
-			gtk.CALENDAR_SHOW_HEADING |
-			gtk.CALENDAR_SHOW_DAY_NAMES |
-			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
-		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
-		self.calendar_expander.add(self.calendar)
-		self.vbox.pack_start(self.calendar_expander, False)
-
+		## Add format list box
 		label = gtk.Label()
 		label.set_markup('<b>'+_("Format")+'</b>') # T: label in "insert date" dialog
 		label.set_alignment(0.0, 0.5)
@@ -4227,6 +4213,23 @@ class InsertDateDialog(Dialog):
 		self.view.connect('row-activated',
 			lambda *a: self.response(gtk.RESPONSE_OK) )
 
+		## Add Calendar widget
+		from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
+
+		self.calendar_expander = gtk.expander_new_with_mnemonic('<b>'+_("_Calendar")+'</b>')
+			# T: expander label in "insert date" dialog
+		self.calendar_expander.set_use_markup(True)
+		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
+		self.calendar = Calendar()
+		self.calendar.display_options(
+			gtk.CALENDAR_SHOW_HEADING |
+			gtk.CALENDAR_SHOW_DAY_NAMES |
+			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
+		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
+		self.calendar_expander.add(self.calendar)
+		self.vbox.pack_start(self.calendar_expander, False)
+
+		## Add Link checkbox and Edit button
 		self.linkbutton = gtk.CheckButton(_('_Link to date'))
 			# T: check box in InsertDate dialog
 		self.linkbutton.set_active(self.uistate['linkdate'])
@@ -4237,6 +4240,7 @@ class InsertDateDialog(Dialog):
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 1)
 
+		## Setup data
 		self.load_file()
 		self.set_date(self.date)
 
@@ -4276,6 +4280,10 @@ class InsertDateDialog(Dialog):
 		link = date.strftime('%Y-%m-%d') # YYYY-MM-DD
 		self.link = self.ui.notebook.suggest_link(self.ui.page, link)
 		self.linkbutton.set_sensitive(not self.link is None)
+
+	#def run(self):
+		#self.view.grab_focus()
+		#Dialog.run(self)
 
 	def save_uistate(self):
 		model, iter = self.view.get_selection().get_selected()
