@@ -280,23 +280,28 @@ class PluginsTab(gtk.HBox):
 			self.textbuffer.get_end_iter(),
 			_('Dependencies') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
 
-		#construct dependency list, missing dependencies are marked red
-		dependencies = klass.check_dependencies()
+		# Construct dependency list, missing dependencies are marked red
+		check, dependencies = klass.check_dependencies()
 		if not(dependencies):
 			self.textbuffer.insert(
 				self.textbuffer.get_end_iter(),
 				_('No dependencies') + '\n') # T: label in plugin info in preferences dialog
 		else:
 			for dependency in dependencies:
-				text, ok = dependency
+				text, ok, required = dependency
 				if ok:
 					self.textbuffer.insert(
 						self.textbuffer.get_end_iter(),
 						u'\u2022 ' + text + ' - ' + _('OK') + '\n') # T: dependency is OK
-				else:
+				elif required:
 					self.textbuffer.insert_with_tags_by_name(
 						self.textbuffer.get_end_iter(),
 						u'\u2022 ' + text +' - ' + _('Failed') + '\n', 'red') # T: dependency failed
+				else:
+					self.textbuffer.insert(
+						self.textbuffer.get_end_iter(),
+						u'\u2022 ' + text +' - ' + _('Failed') # T: dependency failed
+							+ ' ' + _('Optional') + '\n') # T: optional dependency
 
 		self.textbuffer.insert_with_tags_by_name(
 			self.textbuffer.get_end_iter(),

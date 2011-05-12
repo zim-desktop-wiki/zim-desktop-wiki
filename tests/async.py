@@ -8,7 +8,9 @@ from __future__ import with_statement
 
 
 import tests
+from tests.gtk_tests import process_events
 
+import time
 
 from zim.async import *
 from zim.fs import File
@@ -45,3 +47,32 @@ class TestAsync(tests.TestCase):
 		op2.wait()
 
 		self.assertEqual(file.read(), 'foo bar 2\n')
+
+
+class Counter(object):
+
+	def __init__(self):
+		self.i = 0
+
+	def count(self):
+		self.i += 1
+
+
+class TestDelayedCallback(tests.TestCase):
+
+	slowTest = True
+
+	def runTest(self):
+		counter = Counter()
+
+		callback = DelayedCallback(500, lambda o: counter.count())
+		for i in range(3):
+			callback('foo')
+
+		for i in range(10):
+			time.sleep(1)
+			process_events()
+			if callback.timer_id is None:
+				break
+
+		self.assertEqual(counter.i, 1)

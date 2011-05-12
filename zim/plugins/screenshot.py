@@ -57,7 +57,8 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [(COMMAND, Application((COMMAND,)).tryexec())]
+		has_tool = Application((COMMAND,)).tryexec()
+		return has_tool, [(COMMAND, has_tool, True)]
 
 	def insert_screenshot(self):
 		dialog = InsertScreenshotDialog.unique(self, self.ui)

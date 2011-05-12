@@ -2,7 +2,7 @@
 from __future__ import with_statement
 
 from tests import TestCase, get_test_notebook, create_tmp_dir, MockObject
-from tests.gtk import TestDialogContext
+from tests.gtk_tests import TestDialogContext
 
 from zim.errors import Error
 from zim.notebook import get_notebook_list, Path, NotebookInfo

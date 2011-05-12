@@ -1023,20 +1023,32 @@ class InputEntry(gtk.Entry):
 	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
 	ERROR_COLOR = gtk.gdk.color_parse('#EF7F7F') # light red (derived from Tango style guide)
 
-	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False):
-		'''Constructor takes a validation function 'check'. This
-		function is called with the current text as argument and
-		should return boolean.
+	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False, empty_text=None):
+		'''Constructor
 
-		As an alternative you can set 'allow_empty' to False to do
-		validation only on the fact if there is content or not.
+		@keyword check_func: a function to check input is valid.
+		This function will be called with the current text as argument
+		and should return True if this text is a valid input. When
+		the input is invalid the background of the widget will become
+		red.
 
-		The 'show_empty_invalid' determines if we also show a red
-		background when the entry is still empty.
+		@keyword allow_empty: if False an empty string is invalid input
+		@keyword show_empty_invalid: if True a red background is also
+		shown when the entry is still empty
+
+		@keyword: empty_text: text to show in the widget when it is
+		empty and does not have focus, text will be shown in a
+		color different from normal text and disappear when the user
+		selects the widget. Used to set hints on the usage of the
+		widget.
+
+		@todo: make color for empty_text actually grey
 		'''
 		gtk.Entry.__init__(self)
 		self.allow_empty = allow_empty
 		self.show_empty_invalid = show_empty_invalid
+		self.empty_text = empty_text
+		self._empty_text_shown = False
 		self.check_func = check_func
 		self._input_valid = False
 		self.do_changed() # Initialize state
@@ -1047,13 +1059,78 @@ class InputEntry(gtk.Entry):
 		self.check_func = check_func
 		self.do_changed()
 
+	def set_icon(self, icon, cb_func, tooltip=None):
+		'''Add an icon in the entry widget
+
+		@param icon: the icon as stock ID
+		@param cb_func: the callback when the icon is clicked; the
+		callback will be called without any arguments
+		@keyword tooltip: tooltip text for the icon
+
+		@returns: boolean for success
+
+		@requires: Gtk >= 2.16
+		@todo: add argument to set tooltip on the icon
+		'''
+		if gtk.gtk_version < (2, 16, 0):
+			return False
+
+		self.set_property('secondary-icon-stock', icon)
+		if tooltip:
+			self.set_property('secondary-icon-tooltip-text', tooltip)
+
+		def on_icon_press(self, icon_pos, event):
+			if icon_pos == gtk.ENTRY_ICON_SECONDARY:
+				cb_func()
+		self.connect('icon-press', on_icon_press)
+
+		return True
+
+	def set_icon_to_clear(self):
+		'''Adds a "clear" icon in the entry widget
+
+		This method calls L{set_icon()} with the right defaults for
+		a stock "Clear" icon. In addition it makes the icon insensitive
+		when there is no text in the entry.
+
+		@returns: boolean for success
+
+		@requires: Gtk >= 2.16
+		'''
+		if gtk.gtk_version < (2, 16, 0):
+			return False
+
+		self.set_icon(gtk.STOCK_CLEAR, self.clear, _('Clear'))
+			# T: tooltip for the inline icon to clear a text entry widget
+
+		def check_icon_sensitive(self):
+			text = self.get_text()
+			self.set_property('secondary-icon-sensitive', bool(text))
+
+		check_icon_sensitive(self)
+		self.connect('changed', check_icon_sensitive)
+
+		return True
+
 	def get_text(self):
 		'''Like gtk.Entry.get_text() but with utf-8 decoding and
 		whitespace stripped.
 		'''
+		if self._empty_text_shown:
+			return ''
 		text = gtk.Entry.get_text(self)
 		if not text: return ''
 		else: return text.decode('utf-8').strip()
+
+	def set_text(self, text):
+		'''Wrapper for gtk.Entry.set_text()'''
+		if not text and self.empty_text \
+		and not self.get_property('has-focus'):
+			self._empty_text_shown = True
+			gtk.Entry.set_text(self, self.empty_text)
+		else:
+			gtk.Entry.set_text(self, text)
+			self._empty_text_shown = False
 
 	def get_input_valid(self):
 		return self._input_valid
@@ -1072,6 +1149,10 @@ class InputEntry(gtk.Entry):
 		self._input_valid = valid
 		self.emit('input-valid-changed')
 
+	def clear(self):
+		'''Clear the text in the entry'''
+		self.set_text('')
+
 	def do_changed(self):
 		'''Check if content is valid'''
 		text = self.get_text() or ''
@@ -1079,6 +1160,18 @@ class InputEntry(gtk.Entry):
 			self.set_input_valid(self.check_func(text))
 		else:
 			self.set_input_valid(bool(text) or self.allow_empty)
+
+	def do_focus_in_event(self, event):
+		if self._empty_text_shown:
+			gtk.Entry.set_text(self, '')
+			self._empty_text_shown = False
+		gtk.Entry.do_focus_in_event(self, event)
+
+	def do_focus_out_event(self, event):
+		gtk.Entry.do_focus_out_event(self, event)
+		if self.empty_text and not self.get_text():
+			self._empty_text_shown = True
+			gtk.Entry.set_text(self, self.empty_text)
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(InputEntry)
@@ -1215,6 +1308,7 @@ class PageEntry(InputEntry):
 	'''
 
 	_allow_select_root = False
+		# This attribute implements logic needed for NamespaceEntry
 
 	def __init__(self, notebook, path=None, subpaths_only=False, existing_only=False):
 		'''Contructor
@@ -1239,7 +1333,12 @@ class PageEntry(InputEntry):
 		self.existing_only = existing_only
 		self._current_completion = ()
 
-		InputEntry.__init__(self, allow_empty=False)
+		if self._allow_select_root:
+			empty_text = _('<Top>')
+			# T: default text for empty namespace selection
+		else:
+			empty_text = None
+		InputEntry.__init__(self, allow_empty=self._allow_select_root, empty_text=empty_text)
 		assert path is None or isinstance(path, Path)
 
 		completion = gtk.EntryCompletion()
@@ -1278,11 +1377,11 @@ class PageEntry(InputEntry):
 		@returns: a L{Path} object or C{None} is no valid path was entered
 		'''
 		name = self.get_text().decode('utf-8').strip()
-		if not name:
+		if self._allow_select_root and (name == ':' or not name):
+			return Path(':')
+		elif not name:
 			self.set_input_valid(False)
 			return None
-		elif self._allow_select_root and name == ':':
-			return Path(':')
 		else:
 			if self.subpaths_only and not name.startswith('+'):
 				name = '+' + name
@@ -1789,6 +1888,14 @@ class Dialog(gtk.Dialog):
 		else:
 			self.uistate = zim.config.ListDict()
 
+		# note: _windowpos is defined with a leading "_" so it is not
+		# persistent across instances, this is intentional to avoid
+		# e.g. messy placement for seldom used dialogs
+		self.uistate.setdefault('_windowpos', (None, None), check=value_is_coord)
+		x, y = self.uistate['_windowpos']
+		if (x, y) != (None, None):
+			self.move(x, y)
+
 		self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		#~ print '>>', self.uistate
 		w, h = self.uistate['windowsize']
@@ -1922,6 +2029,8 @@ class Dialog(gtk.Dialog):
 			destroy = True
 
 		if ui_environment['platform'] != 'maemo':
+			x, y = self.get_position()
+			self.uistate['_windowpos'] = (x, y)
 			w, h = self.get_size()
 			self.uistate['windowsize'] = (w, h)
 			self.save_uistate()
@@ -2248,8 +2357,8 @@ class FileDialog(Dialog):
 		return filter
 
 	def add_filter_images(self):
-		'''Wrapper for filechooser.add_filter()
-		using gtk.FileFilter.add_pixbuf_formats(). Returns the filter object.
+		'''Wrapper for filechooser.add_filter() to add a filter for images.
+		Returns the filter object.
 		'''
 		if len(self.filechooser.list_filters()) == 0:
 			self._add_filter_all()
@@ -2257,6 +2366,7 @@ class FileDialog(Dialog):
 		filter.set_name(_('Images'))
 			# T: Filter in open file dialog, shows image files only
 		filter.add_pixbuf_formats()
+		filter.add_mime_type('image/*')       # to allow types like .ico
 		self.filechooser.add_filter(filter)
 		self.filechooser.set_filter(filter)
 		return filter

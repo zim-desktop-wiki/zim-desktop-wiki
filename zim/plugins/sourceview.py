@@ -286,7 +286,8 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('gtksourceview2',not gtksourceview2 is None)]
+		check = not gtksourceview2 is None
+		return check, [('gtksourceview2', check, True)]
 
 
 class InsertCodeBlockDialog(Dialog):

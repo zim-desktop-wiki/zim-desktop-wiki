@@ -65,7 +65,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('gtkspell',not gtkspell is None)]
+		return (not gtkspell is None), [('gtkspell', not gtkspell is None, True)]
 
 	def toggle_spellcheck(self, enable=None):
 		action = self.actiongroup.get_action('toggle_spellcheck')

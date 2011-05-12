@@ -35,7 +35,7 @@ dd/mm/yyyy	dd-mm-yyyy
 yyyy/mm/dd	yyyy-mm-dd
 '''
 
-So you can use e.g. "[d: 5/1]", "[d: 2010-1-5]" or "[d: 5/1/10]".
+So you can use e.g. "[d: 5/1]", "[d: 2010-1-5]" or "[d: 5/1/10]". (Any other separator character to separate year, month, and day will also work, as long as it is not a number or a letter.)
 
 **Note: **dates are parse in European notation, so "dd/mm", not as "mm/dd" as is customary in the US. Unfortunately there is no way to resolve these unambiguously.
 

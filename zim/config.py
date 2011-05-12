@@ -489,6 +489,9 @@ class ConfigDict(ListDict):
 	As a special case we can support sections that repeat under the
 	same section name. To do this assign the section name a list
 	before parsing.
+
+	Values with keys starting with '_' are considered as non-persistent and are
+	only stored during one session of Zim. They will not appear in the INI file.
 	'''
 
 	def __getitem__(self, k):
@@ -551,13 +554,15 @@ class ConfigDict(ListDict):
 
 	def dump(self):
 		'''Returns a list of lines with text representation of the
-		dict. Used to write as a config file.
+		dict. Used to write as a config file. Values with keys starting with '_'
+		are considered as non-persistent and will be skipped.
 		'''
 		lines = []
 		def dump_section(name, parameters):
 			lines.append('[%s]\n' % section)
 			for param, value in parameters.items():
-				lines.append('%s=%s\n' % (param, self._encode_value(value)))
+				if not param.startswith('_'):
+					lines.append('%s=%s\n' % (param, self._encode_value(value)))
 			lines.append('\n')
 
 		for section, parameters in self.items():
