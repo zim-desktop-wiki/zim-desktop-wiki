@@ -9,7 +9,7 @@ import os
 import tempfile
 
 from zim.fs import *
-from zim.plugins.versioncontrol import VersionControlPlugin
+from zim.plugins.versioncontrol import VersionControlPlugin, NoChangesError
 from zim.plugins.versioncontrol.bzr import BazaarVCS
 
 
@@ -21,7 +21,7 @@ def get_tmp_dir(name):
 	del os.environ['TMP']
 	dir = Dir(tempfile.gettempdir())
 	os.environ['TMP'] = testtmp
-	
+
 	dir = dir.subdir('test_versioncontrol').subdir(name)
 	if dir.exists():
 		dir.remove_children()
@@ -68,6 +68,7 @@ added:
 ''' )
 
 		vcs.commit('test 1')
+		self.assertRaises(NoChangesError, vcs.commit, 'test 1')
 
 		ignorelines = lambda line: not (line.startswith('+++') or line.startswith('---'))
 			# these lines contain time stamps

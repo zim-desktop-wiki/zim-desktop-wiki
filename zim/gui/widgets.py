@@ -2072,10 +2072,37 @@ gobject.type_register(Dialog)
 
 class ErrorDialog(gtk.MessageDialog):
 
-	def __init__(self, ui, error):
-		'''Constructor. 'ui' can either be the main application or some
-		other dialog from which the error originates. 'error' is the error
-		object.
+	def __init__(self, ui, error, exc_info=None):
+		'''Constructor
+
+		@param ui: either be the main application object or some other
+		dialog from which the error originates
+		@param error: the actual error
+
+		If the error is an instance of a subclass of L{zim.errors.Error}
+		or L{EnvironmentError} (e.g. L{OSError} or L{IOError}) a normal
+		error dialog will be shown. This covers errors that can
+		can occur in normal usage. For Environment errors that have
+		a "filename" attribute the filename is added to the error
+		message.
+
+		If the error is another instance of a (sub) class of
+		L{Exception} it is considered a bug and the "Looks like you
+		found a bug" text is shown together with a stack trace.
+
+		This means that you can throw pretty much any error object
+		you get in this constructor and the dialog will be the
+		correct style.
+
+		For convenience the error can also be a simple string or
+		a tuple of two strings. In this case it is considered a normal
+		error. The string just gives the error, the tuple gives the
+		short and long description to show in the dialog.
+
+		@keyword exc_info: this is an optional argument that takes the
+		result of L{sys.exc_info()}. This parameter is not necessary in
+		most cases, but can be useful to get a full stack trace in the
+		dialog for errors from e.g. an async operation.
 		'''
 		self.error = error
 		show_trace = False
@@ -2110,7 +2137,7 @@ class ErrorDialog(gtk.MessageDialog):
 
 		# Add widget with debug info
 		if show_trace:
-			text = self.get_debug_text()
+			text = self.get_debug_text(exc_info)
 			window, textview = scrolled_text_view(text, monospace=True)
 			window.set_size_request(350, 200)
 			self.vbox.add(window)
@@ -2118,15 +2145,18 @@ class ErrorDialog(gtk.MessageDialog):
 			# TODO use an expander here ?
 
 
-	def get_debug_text(self):
+	def get_debug_text(self, exc_info=None):
 		'''Returns text to include in an error dialog to support debugging'''
 		import zim
 		import traceback
-		exc_info = sys.exc_info()
+
+		if not exc_info:
+			exc_info = sys.exc_info()
+
 		if exc_info[2]:
 			tb = exc_info[2]
 		else:
-			tb = sys.last_traceback
+			tb = None
 
 		text = 'This is zim %s\n' % zim.__version__ + \
 			'Python version is %s\n' % str(sys.version_info) + \

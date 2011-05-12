@@ -54,7 +54,7 @@ def async_commit_with_error(ui, vcs, msg, skip_no_changes=False):
 				logger.debug('No autosave version needed - no changes')
 			else:
 				logger.error('Error during async commit', exc_info=exc_info)
-				ErrorDialog(ui, error).run()
+				ErrorDialog(ui, error, exc_info).run()
 	vcs.commit_async(msg, callback=callback)
 
 

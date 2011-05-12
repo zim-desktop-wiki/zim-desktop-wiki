@@ -160,14 +160,12 @@ class BazaarVCS(object):
 		operation.start()
 
 	def _commit(self, msg):
-		_bzr.run(['add'], cwd=self.root)
-		try:
+		stat = ''.join( _bzr.pipe(['st'], cwd=self.root) ).strip()
+		if not stat:
+			raise NoChangesError(self.root)
+		else:
+			_bzr.run(['add'], cwd=self.root)
 			_bzr.run(['commit', '-m', msg], cwd=self.root)
-		except subprocess.CalledProcessError, error:
-			if error.returncode == 3:
-				raise NoChangesError(self.root)
-			else:
-				raise # just re-raise current error
 
 	def revert(self, version=None, file=None):
 		with self.lock:
