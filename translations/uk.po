@@ -211,7 +211,7 @@ msgstr ""
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Тека вже існує і містить файли, експортування до цієї теки може перезаписати "
 "наявні файли. Ви хочете продовжити?"
@@ -317,7 +317,7 @@ msgstr "Переглянути _журнал"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Під час генерування зображення виникла помилка.\n"
@@ -2022,7 +2022,7 @@ msgstr "Вставка діаграми"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2344,7 +2344,7 @@ msgstr "секунд(и)"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "Виникли деякі помилки під час роботи \"%s\""
 
 #. menu item
@@ -2908,7 +2908,7 @@ msgstr "Версія"
 #~ "\n"
 #~ "Це базовий модуль, що поставляється в складі zim.\n"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "Під час виконання \"scrot\" виникла помилка"
 
 #~ msgid "Drop Window"

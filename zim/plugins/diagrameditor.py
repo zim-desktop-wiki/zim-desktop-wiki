@@ -37,7 +37,7 @@ class InsertDiagramPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Insert Diagram'), # T: plugin name
 		'description': _('''\
-This plugin provides an diagram editor for zim based on GraphViz.
+This plugin provides a diagram editor for zim based on GraphViz.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description

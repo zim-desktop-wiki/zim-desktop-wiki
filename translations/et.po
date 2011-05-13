@@ -209,7 +209,7 @@ msgstr ""
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Kataloog on juba olemas ja sisaldab faile. Eksportimine antud kataloogi võib "
 "olemasolevad failid üle kirjutada. Oled kindel, et soovid jätkata?"
@@ -313,10 +313,10 @@ msgstr "Kuva _logi"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
@@ -2017,11 +2017,11 @@ msgstr "Lisa Diagramm"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 
@@ -2338,8 +2338,8 @@ msgstr "sekundid"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
-msgstr "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
+msgstr "Some error occurred while running \"%s\""
 
 #. menu item
 #: zim/plugins/spell.py:37
@@ -2781,7 +2781,7 @@ msgstr "Rev"
 #~ "Vaikimisi ZIMiga kaasas.\n"
 
 #~ msgid ""
-#~ "This plugin provides an diagram editor for zim based on GraphViz.\n"
+#~ "This plugin provides a diagram editor for zim based on GraphViz.\n"
 #~ "\n"
 #~ "Depends on: the GraphViz 'dot' command\n"
 #~ "\n"
@@ -2810,7 +2810,7 @@ msgstr "Rev"
 #~ "\n"
 #~ "Plugin tuleb vaikimisi ZIMiga kaasa.\n"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "Scroti käivitamisel esines vigu"
 
 #~ msgid ""

@@ -207,7 +207,7 @@ msgstr ""
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "フォルダは、既に存在しており空ではありません。このフォルダにエクスポートすると既存のファイルに上書きしてしまう場合があります。　継続しますか？"
 
@@ -308,7 +308,7 @@ msgstr "ログの表示(_L)"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "イメージの生成中にエラーが発生しました。\n"
@@ -1985,7 +1985,7 @@ msgstr "ダイアグラムの挿入"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2269,7 +2269,7 @@ msgstr "秒"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr ""
 
 #. menu item
@@ -2665,5 +2665,5 @@ msgstr ""
 #~ msgid "Page does not exist"
 #~ msgstr "ページが存在しません"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "\"scrot\" の実行時にエラーが発生しました"

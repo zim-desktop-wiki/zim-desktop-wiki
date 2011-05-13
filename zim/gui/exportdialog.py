@@ -51,7 +51,7 @@ class ExportDialog(Assistant):
 					_('Folder exists: %s') % dir.path, # T: message heading
 					_('Folder already exists and has content, '
 					  'exporting to this folder may overwrite '
-					  'exisitng files. '
+					  'existing files. '
 					  'Do you want to continue?' ) # T: detailed message, answers are Yes and No
 				) ).run()
 				if not ok:

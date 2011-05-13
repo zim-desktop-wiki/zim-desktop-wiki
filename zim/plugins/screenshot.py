@@ -116,7 +116,7 @@ class InsertScreenshotDialog(Dialog):
 				self.ui.mainwindow.pageview.insert_image(file, interactive=False)
 			else:
 				ErrorDialog(self.ui,
-					_('Some error occured while running "%s"') % COMMAND).run()
+					_('Some error occurred while running "%s"') % COMMAND).run()
 					# T: Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 
 		tmpfile.dir.touch()

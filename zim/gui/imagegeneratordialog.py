@@ -134,7 +134,7 @@ class ImageGeneratorDialog(Dialog):
 
 		if not (self.imagefile and self.imagefile.exists()):
 			dialog = QuestionDialog(self,
-				_('An error occured while generating the image.\nDo you want to save the source text anyway?'))
+				_('An error occurred while generating the image.\nDo you want to save the source text anyway?'))
 				# T: Question prompt when e.g. equation editor encountered an error genrating the image to insert
 			if not dialog.run():
 				return False
