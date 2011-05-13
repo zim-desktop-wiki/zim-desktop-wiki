@@ -3254,7 +3254,8 @@ class PageView(gtk.VBox):
 		self.page = None
 		self.readonly = True
 		self.readonlyset = False
-		if secondary:
+		self.secondary = secondary
+		if self.secondary:
 			self.readonlyset = True
 		self.undostack = None
 		self.image_generator_plugins = {}
@@ -3262,7 +3263,7 @@ class PageView(gtk.VBox):
 		self._showing_template = False
 
 		self.preferences = self.ui.preferences['PageView']
-		if not secondary:
+		if not self.secondary:
 			# HACK avoid registering a second time
 			self.ui.register_preferences('PageView', ui_preferences)
 
@@ -3284,7 +3285,7 @@ class PageView(gtk.VBox):
 		self.find_bar.hide()
 
 		## setup GUI actions
-		if secondary:
+		if self.secondary:
 			# HACK - divert actions from uimanager
 			self.actiongroup = gtk.ActionGroup('SecondaryPageView')
 		self.ui.add_actions(ui_actions, self)
