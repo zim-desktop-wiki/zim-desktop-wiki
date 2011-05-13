@@ -437,7 +437,7 @@ class SocketDaemonProxy(object):
 		'''Quit the daemon gracefully by calling 'quit()' on all
 		children and waiting for them to exit.
 		'''
-		self._call('quit') == 'Ack'
+		return self._call('quit') == 'Ack'
 
 	def _call(self, func, *args, **kwargs):
 		s = socket.socket(Daemon.socket_family)

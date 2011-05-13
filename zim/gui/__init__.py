@@ -1295,7 +1295,6 @@ class GtkInterface(NotebookInterface):
 		case the new file has the same name as an existing attachment.
 		Returns the (new) filename or None when the action was canceled.
 		'''
-		namechanged = False
 		dir = self.notebook.get_attachments_dir(path)
 		if dir is None:
 			raise Error, '%s does not have an attachments dir' % path
@@ -2221,7 +2220,7 @@ class BackLinksMenuButton(MenuButton):
 
 
 class PageWindow(Window):
-	'''Secondairy window, showing a single page'''
+	'''Secondary window, showing a single page'''
 
 	def __init__(self, ui, page):
 		Window.__init__(self)
@@ -2244,7 +2243,7 @@ class PageWindow(Window):
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 
-		self.pageview = PageView(ui, secondairy=True)
+		self.pageview = PageView(ui, secondary=True)
 		self.pageview.set_page(page)
 		self.add(self.pageview)
 
@@ -2328,12 +2327,12 @@ discarded, but you can restore the copy later.''')
 		return self._done
 
 	def run(self):
-		self.timer = 5
-		self.timer_label.set_text('%i sec.' % self.timer)
+		timeout = 5
+		self.timer_label.set_text('%i sec.' % timeout)
 		def timer(self):
-			self.timer -= 1
-			if self.timer > 0:
-				self.timer_label.set_text('%i sec.' % self.timer)
+			timeout -= 1
+			if timeout > 0:
+				self.timer_label.set_text('%i sec.' % timeout)
 				return True # keep timer going
 			else:
 				for button in self.action_area.get_children():

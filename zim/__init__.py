@@ -480,7 +480,6 @@ class NotebookInterface(gobject.GObject):
 			page = self.notebook.get_page(path)
 
 		if page and output is None:
-			import sys
 			exporter.export_page_to_fh(sys.stdout, page)
 		elif not output:
 			logger.error('Need output directory to export notebook')

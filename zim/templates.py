@@ -61,7 +61,6 @@ arbitrary code from templates.
 
 import re
 import logging
-from copy import deepcopy
 
 import gobject
 

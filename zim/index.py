@@ -38,7 +38,6 @@ transparent as long as the zim version number is updated.
 
 from __future__ import with_statement
 
-import string
 import sqlite3
 import gobject
 import logging
@@ -456,7 +455,7 @@ class Index(gobject.GObject):
 			indexpath = self.touch(path)
 			indexpath._row['haschildren'] = True
 			indexpath._row['childrenkey'] = None
-			checkcontent = True
+			checkcontents = True
 
 		self._flush_queue(path)
 		self._update_pagelist_queue.append(indexpath)
@@ -698,7 +697,7 @@ class Index(gobject.GObject):
 		for tag in deleted_tags:
 			self.emit('tag-deleted', tag)
 
-	def _update_pagelist(self, path, checkcontent):
+	def _update_pagelist(self, path, checkcontents):
 		'''Checks and updates the pagelist for a path if needed and queues any
 		child pages for updating based on "checkcontents" and whether
 		the child has children itself. Called indirectly by update().
@@ -725,7 +724,7 @@ class Index(gobject.GObject):
 			# Helper function to queue individual children
 			if child.haschildren:
 				self._update_pagelist_queue.append(child)
-			elif checkcontent:
+			elif checkcontents:
 				pagekey = self.notebook.get_page_indexkey(rawchild or child)
 				if not (pagekey and child.contentkey == pagekey):
 					self._index_page_queue.append(child)
@@ -881,7 +880,6 @@ class Index(gobject.GObject):
 		paths.reverse() # process children first
 		delete = []
 		keep = []
-		toggled = []
 		for path in paths:
 			hadchildren = path.haschildren
 			haschildren = self.n_list_pages(path) > 0

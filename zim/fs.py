@@ -122,7 +122,6 @@ import shutil
 import errno
 import codecs
 import logging
-from StringIO import StringIO
 
 from zim.errors import Error, TrashNotSupportedError
 from zim.parsing import url_encode, url_decode
@@ -529,7 +528,6 @@ class UnixPath(object):
 
 		# Quick shortcut to be able to load images in the gui even if
 		# we have no proper mimetype support
-		basename = self.basename
 		if '.' in self.basename:
 			_, ext = self.basename.rsplit('.', 1)
 			if ext in IMAGE_EXTENSIONS:

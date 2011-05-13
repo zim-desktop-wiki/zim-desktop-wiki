@@ -3247,15 +3247,15 @@ class PageView(gtk.VBox):
 	}
 
 
-	def __init__(self, ui, secondairy=False):
+	def __init__(self, ui, secondary=False):
 		gtk.VBox.__init__(self)
 		self.ui = ui
 		self._buffer_signals = ()
 		self.page = None
 		self.readonly = True
 		self.readonlyset = False
-		self.secondairy = secondairy
-		if secondairy:
+		self.secondary = secondary
+		if self.secondary:
 			self.readonlyset = True
 		self.undostack = None
 		self.image_generator_plugins = {}
@@ -3263,7 +3263,7 @@ class PageView(gtk.VBox):
 		self._showing_template = False
 
 		self.preferences = self.ui.preferences['PageView']
-		if not self.secondairy:
+		if not self.secondary:
 			# HACK avoid registerign a second time
 			self.ui.register_preferences('PageView', ui_preferences)
 
@@ -3285,9 +3285,9 @@ class PageView(gtk.VBox):
 		self.find_bar.hide()
 
 		## setup GUI actions
-		if self.secondairy:
+		if self.secondary:
 			# HACK - divert actions from uimanager
-			self.actiongroup = gtk.ActionGroup('SecondairyPageView')
+			self.actiongroup = gtk.ActionGroup('SecondaryPageView')
 		self.ui.add_actions(ui_actions, self)
 
 		# Extra keybinding for Find: F3, <Shift>F3 and <Ctrl>F3
@@ -3463,7 +3463,7 @@ class PageView(gtk.VBox):
 
 		try:
 			self.set_parsetree(tree, bool(template))
-			if not self.secondairy:
+			if not self.secondary:
 				page.set_ui_object(self) # only after succesful set tree in buffer
 		except Exception, error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back

@@ -5,7 +5,6 @@
 '''This module contains utilities for parsing strings and text'''
 
 import re
-import string
 
 
 def split_quoted_strings(string, unescape=True):

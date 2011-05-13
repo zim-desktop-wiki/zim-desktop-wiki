@@ -56,7 +56,7 @@ class Store(memory.Store):
 		for line in self.file:
 			if line.rstrip() in ('\\NewEntry', '\\NewFolder', '\\EndFolder'):
 				if buffer:
-					title = Notebook.cleanup_pathname(buffer[0].replace(':', ' '))
+					title = Notebook.cleanup_pathname(buffer[0].replace(':', ' ')) # FIXME: title unused
 					p = Path(':'.join(path))
 							# Any '' at the end of path drops out, this is intended behavior
 					self._set_node(p, ''.join(buffer))

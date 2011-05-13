@@ -212,7 +212,6 @@ class NotebookInfoList(list):
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
 
-		import re
 		fields_re = re.compile(r'(?:\\.|\S)+') # match escaped char or non-whitespace
 		escaped_re = re.compile(r'\\(.)') # match single escaped char
 

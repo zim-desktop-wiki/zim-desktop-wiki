@@ -153,7 +153,7 @@ class Application(object):
 				gobject.spawn_async(argv, flags=flags, **opts)
 		except gobject.GError:
 			logger.exception('Failed running: %s', argv)
-			name = self.name
+			#~ name = self.name
 			#~ ErrorDialog(None, _('Could not run application: %s') % name).run()
 				#~ # T: error when application failed to start
 			return None
