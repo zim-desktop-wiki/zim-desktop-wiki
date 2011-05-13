@@ -19,7 +19,7 @@ an attribute 'name' giving it's basename, so the file can look like this:
 	</section>
 
 We read the whole file to memory, which puts certain limits on
-scalebility.
+scalability.
 '''
 
 # FUTURE: This module does not support attachments in the xml data

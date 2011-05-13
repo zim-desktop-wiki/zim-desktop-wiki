@@ -3,7 +3,7 @@
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the Gtk user interface for zim.
-The main widgets and dialogs are seperated out in sub-modules.
+The main widgets and dialogs are separated out in sub-modules.
 Included here are the main class for the zim GUI, which
 contains most action handlers and the main window class.
 
@@ -14,7 +14,7 @@ the application to define additional actions. See the methods
 add_actions() and add_ui() for wrappers around this functionality.
 A second mechanism is that for simple options other classes can
 register a preference to be shown in the PreferencesDialog. See
-the register_prererences() method. NOTE: the plugin base class
+the register_preferences() method. NOTE: the plugin base class
 has it's own wrappers for these things. Plugin writers should
 look there first.
 
@@ -182,7 +182,7 @@ ui_preferences = (
 )
 
 if ui_environment['platform'] == 'maemo':
-	# Maemo specific settngs
+	# Maemo specific settings
 	ui_preferences = (
 		# key, type, category, label, default
 		('tearoff_menus', 'bool', None, None, False),
@@ -334,7 +334,7 @@ class GtkInterface(NotebookInterface):
 			gtk.rc_parse_string('gtk-error-bell = 0')
 
 		# Set default applications - check if we already have a default
-		# to prevent unnessecary and relatively slow tryexec() checks
+		# to prevent unnecessary and relatively slow tryexec() checks
 		manager = ApplicationManager()
 		for type in (
 			'file_browser',
@@ -456,7 +456,7 @@ class GtkInterface(NotebookInterface):
 			if notebook:
 				self.open_notebook(notebook)
 			else:
-				# User cancelled notebook dialog
+				# User canceled notebook dialog
 				return
 
 		if self.notebook.dir:
@@ -471,7 +471,7 @@ class GtkInterface(NotebookInterface):
 				self.open_page_home()
 
 		# We schedule the autosave on idle to try to make it impact
-		# the performance of the applciation less. Of course using the
+		# the performance of the application less. Of course using the
 		# async interface also helps, but we need to account for cases
 		# where asynchronous actions are not supported.
 
@@ -571,7 +571,7 @@ class GtkInterface(NotebookInterface):
 		in order to keep the state of toolbar and menubar widgets stays in
 		sync with the internal state. Therefore the method of the same name
 		as the action should just call activate() on the action, while the
-		actual logic is implamented in the handler which is prefixed with
+		actual logic is implemented in the handler which is prefixed with
 		"do_".
 		'''
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
@@ -631,7 +631,7 @@ class GtkInterface(NotebookInterface):
 		# come in mutual exclusive groups. Only need to connect to one
 		# action to get signals from whole group. But need to pass on
 		# the name of the active action
-		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
+		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tuples'
 		assert hasattr(handler, methodname), 'No such method %s' % methodname
 		group = self.init_actiongroup(handler)
 		group.add_radio_actions(actions)
@@ -813,7 +813,7 @@ class GtkInterface(NotebookInterface):
 			NotebookDialog.unique(self, self, callback=self.open_notebook).show() # implicit recurs
 		else:
 			# Could be call back from open notebook dialog
-			# We are already intialized, so let another process handle it
+			# We are already initialized, so let another process handle it
 			if self.usedaemon:
 				from zim.daemon import DaemonProxy
 				if isinstance(notebook, basestring) \
@@ -1033,7 +1033,7 @@ class GtkInterface(NotebookInterface):
 
 	def new_page(self):
 		'''opens a dialog like 'open_page()'. Subtle difference is
-		that this page is saved directly, so it is pesistent if the user
+		that this page is saved directly, so it is persistent if the user
 		navigates away without first adding content. Though subtle this
 		is expected behavior for users not yet fully aware of the automatic
 		create/save/delete behavior in zim.
@@ -1072,7 +1072,7 @@ class GtkInterface(NotebookInterface):
 		return page
 
 	def append_text_to_page(self, name, text):
-		'''Append text to an (exising) page'''
+		'''Append text to an (existing) page'''
 		if isinstance(name, Path):
 			name = name.name
 		path = self.notebook.resolve_path(name)
@@ -1417,7 +1417,7 @@ class GtkInterface(NotebookInterface):
 
 	def edit_page_source(self, page=None):
 		'''Edit page source or source of a config file. Will keep
-		application hanging untill done.
+		application hanging until done.
 		'''
 		# This could also be defined as a custom tool, but defined here
 		# because we want to determine the editor dynamically
@@ -1446,7 +1446,7 @@ class GtkInterface(NotebookInterface):
 
 	def edit_file(self, file, istextfile=None):
 		'''Edit a file with and external application and wait. Spawns a dialog to block the zim gui
-		while the axternal application is running. Dialog is closed automatically when the application
+		while the external application is running. Dialog is closed automatically when the application
 		exits after modifying the file. If the file is unmodified the user needs to click the "Done"
 		button in the dialog because we can not know if the application was really done or just forked.
 
@@ -1491,7 +1491,7 @@ class GtkInterface(NotebookInterface):
 
 	def reload_index(self, flush=False):
 		'''Show a progress bar while updating the notebook index.
-		Returns True unless the user cancelled the action.
+		Returns True unless the user canceled the action.
 		'''
 		self.emit('start-index-update')
 
@@ -1648,7 +1648,7 @@ gobject.type_register(GtkInterface)
 
 class MainWindow(Window):
 	'''Main window of the application, showing the page index in the side
-	pane and a pageview with the current page. Alse includes the menubar,
+	pane and a pageview with the current page. Also includes the menubar,
 	toolbar, statusbar etc.
 	'''
 
@@ -1979,7 +1979,7 @@ class MainWindow(Window):
 	def on_sidepane_lost_focus(self):
 		action = self.actiongroup.get_action('toggle_sidepane')
 		if self._sidepane_autoclose and action.get_active():
-			# Sidepane open and should close automatic
+			# Sidepane open and should close automatically
 			self.toggle_sidepane(show=False)
 
 	def set_pathbar(self, style):
@@ -2508,7 +2508,7 @@ class MovePageDialog(Dialog):
 			'Update %i page linking to this page',
 			'Update %i pages linking to this page', i) % i
 			# T: label in MovePage dialog - %i is number of backlinks
-			# TODO update lable to reflect that links can also be to child pages
+			# TODO update label to reflect that links can also be to child pages
 		self.context_page = self.path.parent
 		self.add_form([
 			('parent', 'namespace', _('Namespace'), self.context_page),
@@ -2637,7 +2637,7 @@ class DeletePageDialog(Dialog):
 			'Remove links from %i page linking to this page',
 			'Remove links from %i pages linking to this page', i) % i
 			# T: label in DeletePage dialog - %i is number of backlinks
-			# TODO update lable to reflect that links can also be to child pages
+			# TODO update label to reflect that links can also be to child pages
 		self.links_checkbox = gtk.CheckButton(label=label)
 		vbox.pack_start(self.links_checkbox, False)
 
@@ -2719,7 +2719,7 @@ class AttachFileDialog(FileDialog):
 		for file in files:
 			file = self.ui.do_attach_file(self.path, file)
 			if file is None:
-				return False # Cancelled overwrite dialog
+				return False # overwrite dialog was canceled
 
 			pageview = self.ui.mainwindow.pageview
 			if self.uistate['insert_attached_images'] and file.isimage():

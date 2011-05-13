@@ -297,7 +297,7 @@ def main(argv):
 				import zim.gui.notebookdialog
 				notebook = zim.gui.notebookdialog.prompt_notebook()
 				if not notebook:
-					return # User cancelled notebook dialog
+					return # User canceled notebook dialog
 			handler = zim.gui.GtkInterface(notebook, page, **optsdict)
 			handler.main()
 		else:
@@ -311,7 +311,7 @@ def main(argv):
 				notebook = zim.gui.notebookdialog.prompt_notebook()
 				if not notebook:
 					proxy.quit_if_nochild()
-					return # User cancelled notebook dialog
+					return # User canceled notebook dialog
 			gui = proxy.get_notebook(notebook)
 
 			gui.present(page, **optsdict)

@@ -29,7 +29,7 @@ query.
 
 For link keywords only a '*' at the right side is allowed
 For the name keyword a '*' is allowed on both sides
-For content '*' can occur on both sides, but does not match withspace
+For content '*' can occur on both sides, but does not match whitespace
 '''
 
 # TODO keyword for deadlinks, keyword for pages with no content
@@ -100,7 +100,7 @@ class QueryTerm(object):
 
 class QueryGroup(list):
 	'''Wrapper for a sub group of a query. Just a list of QueryTerms
-	with an asociated operator (either AND or OR).
+	with an associated operator (either AND or OR).
 	'''
 
 	def __init__(self, operator, terms=None):
@@ -183,7 +183,7 @@ class Query(object):
 					root.append(token)
 			else:
 				assert token in (OPERATOR_AND, OPERATOR_OR)
-				pass # AND is the default, OR shoulds not appear here, ignore silently
+				pass # AND is the default, OR should not appear here, ignore silently
 
 		#~ print root
 		return root
@@ -210,7 +210,7 @@ class PageSelection(set):
 
 class SearchSelection(PageSelection):
 	'''This class wraps a set of Page or ResultPath objects which result
-	from processing a search query. The atribute 'scores' gives a dict
+	from processing a search query. The attribute 'scores' gives a dict
 	with an arbitrary integer for each path in this set to rank how well
 	they match the query.
 	'''
@@ -407,7 +407,7 @@ class SearchSelection(PageSelection):
 					and term.name_regex.search(page.name):
 						myscore += 10
 
-					if bool(myscore) != term.inverse: # implicite XOR
+					if bool(myscore) != term.inverse: # implicit XOR
 						score += myscore or 1
 					else:
 						score = 0
@@ -424,7 +424,7 @@ class SearchSelection(PageSelection):
 					and term.name_regex.search(page.name):
 						score += 10
 
-					if bool(score) != term.inverse: # implicite XOR
+					if bool(score) != term.inverse: # implicit XOR
 						results.add(path)
 						self._count_score(path, score or 1)
 

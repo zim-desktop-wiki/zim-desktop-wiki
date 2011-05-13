@@ -11,7 +11,7 @@ class PropertiesDialog(Dialog):
 		Dialog.__init__(self, ui, _('Properties')) # T: Dialog title
 		label = gtk.Label()
 		label.set_markup('<b>'+_('Notebook Properties')+'</b>')
-			# T: Section in notbook dialog
+			# T: Section in notebook dialog
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
 		fields = []

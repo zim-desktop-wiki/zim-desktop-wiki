@@ -150,7 +150,7 @@ def scrolled_text_view(text=None, monospace=False):
 
 def gtk_combobox_set_active_text(combobox, text):
 	'''Like gtk.ComboBox.set_active() but takes a string instead of an
-	index. Will match this string agains the list of options and select
+	index. Will match this string against the list of options and select
 	the correct index. Raises a ValueError when the string is not found
 	in the list. Intended as companion of gtk.ComboBox.get_active_text().
 	'''
@@ -210,7 +210,7 @@ def rotate_pixbuf(pixbuf):
 
 def help_text_factory(text):
 	'''Create a label with an info icon in front of it. Intended for
-	iformational text in dialogs.
+	informational text in dialogs.
 	'''
 	hbox = gtk.HBox(spacing=12)
 
@@ -242,8 +242,8 @@ def _do_sync_widget_state_check_active(widget, *a):
 
 
 def _sync_widget_state(widget, subject, check_active=False):
-	# Hook label or secondairy widget to follow state of e.g. entry widget
-	# check_active is only meaningfull if widget is a togglebutton and
+	# Hook label or secondary widget to follow state of e.g. entry widget
+	# check_active is only meaningful if widget is a togglebutton and
 	# will also add a dependency on the active state of the widget
 	check_active = check_active and hasattr(widget, 'get_active')
 
@@ -393,7 +393,7 @@ class SingleClickTreeView(gtk.TreeView):
 		if event.button == 1 and not event.state & self.mask \
 		and not self.is_rubber_banding_active():
 			x, y = map(int, event.get_coords())
-				# map to int to surpress deprecation warning :S
+				# map to int to suppress deprecation warning :S
 				# note that get_coords() gives back (0, 0) when cursor
 				# is outside the treeview window (e.g. drag & drop that
 				# was started inside the tree - see bug lp:646987)
@@ -539,7 +539,7 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 
 	def popup_menu(self, event=None):
 		'''This method actually pops up the menu.
-		Sub-calsses can overload and wrap it to populate the menu
+		Sub-classes can overload and wrap it to populate the menu
 		dynamically.
 		'''
 		if not self.get_property('sensitive'):
@@ -822,11 +822,11 @@ class InputForm(gtk.Table):
 			self.emit('last-activated')
 
 	def focus_first(self):
-		'''Focusses the first input in the form'''
+		'''Focuses the first input in the form'''
 		return self._focus_next(None)
 
 	def focus_next(self):
-		'''Focusses the next input in the form'''
+		'''Focuses the next input in the form'''
 		if gtk.gtk_version >=  (2, 14, 0):
 			widget = self.get_focus_child()
 		else:
@@ -1192,7 +1192,7 @@ class FSPathEntry(InputEntry):
 	'''
 
 	# TODO file / folder completion in the entry (think about rel paths!)
-	# wire LinkENtry to use this completion
+	# wire LinkEntry to use this completion
 
 	def __init__(self):
 		'''Constructor, notebook and path are used for relative paths'''
@@ -1270,7 +1270,7 @@ class FileEntry(FSPathEntry):
 	_class = File
 
 	def __init__(self, file=None, new=False):
-		'''Construcor. If 'new' is True the intention is a new
+		'''Constructor. If 'new' is True the intention is a new
 		file (e.g. output file), or to overwrite an existing
 		file. If 'new' is False only existing files can be selected.
 		'''
@@ -1313,7 +1313,7 @@ class PageEntry(InputEntry):
 		# This attribute implements logic needed for NamespaceEntry
 
 	def __init__(self, notebook, path=None, subpaths_only=False, existing_only=False):
-		'''Contructor
+		'''Constructor
 
 		Typically this widget uses a Notebook to resolve paths and show completion,
 		but can be used with notebook=None if really needed. If a path is given as
@@ -1591,7 +1591,7 @@ class Window(gtkwindowclass):
 	'''Wrapper for the gtk.Window class that will take care of hooking
 	the window into the application framework and adds entry points
 	so plugins can add side panes etc. It will divide the window
-	horizontally in 3 panes, and the center pane again verticaly in 3.
+	horizontally in 3 panes, and the center pane again vertically in 3.
 	The result is something like this:
 
 		+-----------------------------+
@@ -1854,7 +1854,7 @@ class Dialog(gtk.Dialog):
 			defaultwindowsize=(-1, -1)
 		):
 		'''Constructor. 'ui' can either be the main application or some
-		other dialog from which this dialog is spwaned. 'title' is the dialog
+		other dialog from which this dialog is spawned. 'title' is the dialog
 		title. 'buttons' is a constant controlling what kind of buttons the
 		dialog will have. Currently supported are:
 
@@ -1942,14 +1942,14 @@ class Dialog(gtk.Dialog):
 
 	def add_help_text(self, text):
 		'''Adds a label with an info icon in front of it. Intended for
-		iformational text in dialogs.
+		informational text in dialogs.
 		'''
 		hbox = help_text_factory(text)
 		self.vbox.pack_start(hbox, False)
 
 	def add_form(self, inputs, values=None, depends=None, trigger_response=True):
 		'''Convenience method to construct simple forms. Inputs are
-		speccified with 'inputs', see the InputForm class for details.
+		specified with 'inputs', see the InputForm class for details.
 
 		If 'trigger_response' is True pressing <Enter> in the last Entry
 		widget will call response_ok(). Set to False if more forms
@@ -2218,7 +2218,7 @@ class QuestionDialog(gtk.MessageDialog):
 		'''Constructor. 'ui' can either be the main application or some
 		other dialog. Question is a message that can be answered by
 		'yes' or 'no'. The question can also be a tuple containing a short
-		question and a longer explanation, this is prefered for look&feel.
+		question and a longer explanation, this is preferred for look&feel.
 		'''
 		if isinstance(question, tuple):
 			question, text = question
@@ -2258,7 +2258,7 @@ class MessageDialog(gtk.MessageDialog):
 	def __init__(self, ui, msg):
 		'''Constructor. 'ui' can either be the main application or some
 		other dialog. The message can also be a tuple containing a short
-		question and a longer explanation, this is prefered for look&feel.
+		question and a longer explanation, this is preferred for look&feel.
 		'''
 		if isinstance(msg, tuple):
 			msg, text = msg
@@ -2404,9 +2404,9 @@ class FileDialog(Dialog):
 		return filter
 
 	def do_response_ok(self):
-		'''Default responce handler. Will check filechooser action and
+		'''Default response handler. Will check filechooser action and
 		whether or not we select multiple files or dirs and set result
-		of the dialog accordingly, so the method run() wil return the
+		of the dialog accordingly, so the method run() will return the
 		selected file(s) or folder(s).
 		'''
 		action = self.filechooser.get_action()
@@ -2433,7 +2433,7 @@ class ProgressBarDialog(gtk.Dialog):
 	like a normal Dialog. These dialogs are only supposed to run modal, but are
 	not called with run() as there is typically a background action giving them
 	callbacks. They _always_ should implement a cancel action to break the
-        background process, either be overloadig this class, or by checking the
+	background process, either be overloading this class, or by checking the
 	return value of pulse().
 
 	If you know up front how often pulse() will be called supply this
@@ -2479,7 +2479,7 @@ class ProgressBarDialog(gtk.Dialog):
 		'''Sets an optional message and moves forward the progress bar. Will also
 		handle all pending Gtk events, so interface keeps responsive during a background
 		job. This method returns True until the 'Cancel' button has been pressed, this
-		boolean could be used to decide if the ackground job should continue or not.
+		boolean could be used to decide if the background job should continue or not.
 
 		First call to pulse() will also trigger a show_all() if the
 		dialog is not shown yet. This is done so you don't flash a
@@ -2537,7 +2537,7 @@ class Assistant(Dialog):
 	Each "page" in the assistant is a step in the work flow. Pages
 	should inherit from the AssistantPage class. Pages share the
 	'uistate' dict with assistant object, and can also use this to
-	communicate state to another page. So each step can change it's
+	communicate state to another page. So each step can change its
 	look based on state set in the previous step. (This is sometimes
 	called a "Whiteboard" design pattern: each page can access the
 	same "whiteboard" that is the uistate dict.)
@@ -2728,7 +2728,7 @@ class AssistantPage(gtk.VBox):
 
 	def add_form(self, inputs, values=None, depends=None):
 		'''Convenience method to construct simple forms. Inputs are
-		speccified with 'inputs', see the InputForm class for details.
+		specified with 'inputs', see the InputForm class for details.
 		'''
 		self.form = InputForm(inputs, values, depends, notebook=self.assistant.ui.notebook)
 		self.form.connect('input-valid-changed', lambda o: self.check_input_valid())
@@ -2762,7 +2762,7 @@ gobject.type_register(AssistantPage)
 class ImageView(gtk.Layout):
 
 	SCALE_FIT = 1 # scale image with the window (if it is bigger)
-	SCALE_STATIC = 2 # use scaling factore
+	SCALE_STATIC = 2 # use scaling factor
 
 	__gsignals__ = {
 		'size-allocate': 'override',
@@ -2916,7 +2916,7 @@ class PromptExistingFileDialog(Dialog):
 	the existing one.
 
 	For this dialog 'run()' will return either the original file
-	(for overwrite), a new file, or None when the dialog was cancelled.
+	(for overwrite), a new file, or None when the dialog was canceled.
 	'''
 
 	def __init__(self, ui, file):

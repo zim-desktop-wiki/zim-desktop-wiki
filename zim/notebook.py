@@ -6,7 +6,7 @@
 This package contains the main Notebook class and related classes.
 
 This package defines the public interface towards the
-noetbook.  As a backend it uses one of more packages from
+notebook.  As a backend it uses one of more packages from
 the 'stores' namespace.
 '''
 
@@ -201,7 +201,7 @@ class NotebookInfoList(list):
 		'''Parses the config and cache and populates the list
 
 		Method for backward compatibility with list format with no
-		seciton headers and a whitespace separator between notebook
+		section headers and a whitespace separator between notebook
 		name and uri.
 
 		@param text: a string or a list of lines
@@ -291,7 +291,7 @@ class NotebookInfoList(list):
 	def get_by_name(self, name):
 		'''Get the L{NotebookInfo} object for a notebook by name
 
-		Names are checked case sensitive first, then case-unsensitive
+		Names are checked case sensitive first, then case-insensitive
 
 		@param name: notebook name as string
 		@returns: a L{NotebookInfo} object or C{None}
@@ -350,7 +350,7 @@ def resolve_notebook(string):
 		else:
 			filepath = info.uri
 
-	file = File(filepath) # Fixme need generic FS Path object here
+	file = File(filepath) # FIXME need generic FS Path object here
 	if filepath.endswith('notebook.zim'):
 		return file.dir, page
 	elif not page and file.exists(): # file exists and really is a file
@@ -461,7 +461,7 @@ class PageNameError(Error):
 	description = _('''\
 The given page name is not valid.
 ''') # T: error description
-	# TODO add to explanation what are validcharacters
+	# TODO add to explanation what are valid characters
 
 	def __init__(self, name):
 		self.msg = _('Invalid page name "%s"') % name # T: error message
@@ -516,7 +516,7 @@ class Notebook(gobject.GObject):
 
 	Signals for store, move and delete are defined double with one
 	emitted before the action and the other after the action run
-	succesfully. THis is done this way because exceptions thrown from
+	successfully. This is done this way because exceptions thrown from
 	a signal handler are difficult to handle. For store_async() the
 	'page-stored' signal is emitted after scheduling the store, but
 	potentially before it was really executed.
@@ -697,7 +697,7 @@ class Notebook(gobject.GObject):
 			self.icon = None
 		self.document_root = document_root
 
-		# TODO - can we switch cache_dir on run time when 'shared' chagned ?
+		# TODO - can we switch cache_dir on run time when 'shared' changed ?
 
 	def add_store(self, path, store, **args):
 		'''Add a store to the notebook to handle a specific path and all
@@ -738,7 +738,7 @@ class Notebook(gobject.GObject):
 	def resolve_path(self, name, source=None, index=None):
 		'''Returns a proper path name for page names given in links
 		or from user input. The optional argument 'source' is the
-		path for the refering page, if any, or the path of the "current"
+		path for the referring page, if any, or the path of the "current"
 		page in the user interface.
 
 		The 'index' argument allows specifying an index object, if
@@ -810,7 +810,7 @@ class Notebook(gobject.GObject):
 				path.append( name.lstrip(':') )
 				name = ':'.join(path)
 				return index.resolve_case(name) or Path(name)
-				# FIXME use parentt as argument
+				# FIXME use parent as argument
 				# FIXME use short cut when the result is the parent
 			else:
 				# no luck, do a search through the whole path - including root
@@ -888,14 +888,14 @@ class Notebook(gobject.GObject):
 		otherwise they will result in a PageNameError exception.
 		'''
 		# Reserved characters are:
-		# The ':' is reserrved as seperator
+		# The ':' is reserved as separator
 		# The '?' is reserved to encode url style options
 		# The '#' is reserved as anchor separator
-		# The '/' and '\' are reserved to distinquise file links & urls
+		# The '/' and '\' are reserved to distinguish file links & urls
 		# First character of each part MUST be alphanumeric
 		#		(including utf8 letters / numbers)
 
-		# Zim version < 0.42 restricted all special charachters but
+		# Zim version < 0.42 restricted all special characters but
 		# white listed ".", "-", "_", "(", ")", ":" and "%".
 
 		# For file system we should reserve (win32 & posix)
@@ -1088,7 +1088,7 @@ class Notebook(gobject.GObject):
 	def move_page(self, path, newpath, update_links=True, callback=None):
 		'''Move a page from 'path' to 'newpath'. If 'update_links' is
 		True all links from and to the page will be modified as well.
-		The original page 'path' does not have to exist, this is usefull
+		The original page 'path' does not have to exist, this is useful
 		to update links for a placeholder. If 'newpath' exists a
 		PageExistsError error will be raised.
 		'''
@@ -1357,7 +1357,7 @@ class Notebook(gobject.GObject):
 		def walk_links(parent):
 			# Yields parent element, previous element and link element.
 			# we actually yield links in reverse order, so removal
-			# algorithm works for consequetive links as well.
+			# algorithm works for consecutive links as well.
 			children = parent.getchildren()
 			for i in range(len(children)-1, -1, -1):
 				if children[i].tag == 'link':
@@ -1417,7 +1417,7 @@ class Notebook(gobject.GObject):
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):
 				filename = '/'+filename
-				# make absolute on unix
+				# make absolute on Unix
 			return File(filename)
 		else:
 			if path:
@@ -1439,7 +1439,7 @@ class Notebook(gobject.GObject):
 		shorten the paths inserted in the wiki code. It is advised to
 		use file uris for links that can not be made relative.
 
-		Relative file paths are always given with unix path semantics
+		Relative file paths are always given with Unix path semantics
 		(so "/" even on windows). A leading "/" does not mean the path
 		is absolute, but rather that it is relative to the
 		X{document root}.
@@ -1558,7 +1558,7 @@ class Notebook(gobject.GObject):
 			if callback:
 				cont = callback(page)
 				if not cont:
-					logger.info('Notebook update cancelled')
+					logger.info('Notebook update canceled')
 					return
 
 			try:
@@ -1797,9 +1797,9 @@ class Page(Path):
 	in the notebook. We try to keep Page objects unique
 	by hashing them in notebook.get_page(), Path object on the other hand
 	are cheap and can have multiple instances for the same logical path.
-	We ask for a path object instead of a name in the constructore to
-	encourage the use of Path objects over passsing around page names as
-	string. Also this allows some optimalizations by addind index pointers
+	We ask for a path object instead of a name in the constructor to
+	encourage the use of Path objects over passing around page names as
+	string. Also this allows some optimizations by adding index pointers
 	to the Path instances.
 
 	You can use a Page object instead of a Path anywhere in the APIs where

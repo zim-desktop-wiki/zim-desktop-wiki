@@ -250,7 +250,7 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 
 		page = self.store.get_page(Path('NonExistingPage'))
 		if trashing:
-			# fail silent for non-exisitng page
+			# fail silently for non-existing page
 			self.assertFalse(self.store.trash_page(page))
 		else:
 			# check error consistent

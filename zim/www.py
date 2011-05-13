@@ -53,7 +53,7 @@ class NoConfigError(WWWError):
 
 	description = '''\
 There was no notebook configured for this zim instance.
-This is likely a configuration isue.
+This is likely a configuration issue.
 '''
 
 	def __init__(self):

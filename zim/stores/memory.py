@@ -28,7 +28,7 @@ class Node(object):
 class Store(StoreClass):
 
 	def __init__(self, notebook, path):
-		'''Contruct a memory store.
+		'''Construct a memory store.
 		Pass args needed for StoreClass init.
 		'''
 		StoreClass.__init__(self, notebook, path)
@@ -44,7 +44,7 @@ class Store(StoreClass):
 
 	def get_node(self, path, vivificate=False):
 		'''Returns node for page 'name' or None.
-		If 'vivificate is True nodes are created on the fly.
+		If 'vivificate' is True nodes are created on the fly.
 		'''
 		assert path != self.namespace, 'Can not get node for root namespace'
 		name = path.relname(self.namespace)

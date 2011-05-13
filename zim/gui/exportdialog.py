@@ -274,7 +274,7 @@ class OutputPage(AssistantPage):
 			ext = zim.formats.get_format(self.uistate['format']).info['extension']
 			file = File('~/' + encode_filename(basename  + '.' + ext))
 			self.uistate['output_file'] = file
-			# TODO rememeber last file output folder
+			# TODO remember last file output folder
 
 		self.form['file'] = self.uistate['output_file']
 		self.form['folder'] = self.uistate['output_folder']

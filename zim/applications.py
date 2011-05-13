@@ -145,7 +145,7 @@ class Application(object):
 		flags = gobject.SPAWN_SEARCH_PATH
 		if callback:
 			flags |= gobject.SPAWN_DO_NOT_REAP_CHILD
-			# without this flag child is reaped autmatically -> no zombies
+			# without this flag child is reaped automatically -> no zombies
 
 		logger.info('Spawning: %s (cwd: %s)', argv, cwd)
 		try:
@@ -160,7 +160,7 @@ class Application(object):
 		else:
 			logger.debug('Process started with PID: %i', pid)
 			if callback:
-				# child watch does implicite reaping -> no zombies
+				# child watch does implicit reaping -> no zombies
 				if data is None:
 					gobject.child_watch_add(pid,
 						lambda pid, status: callback(status))
@@ -202,7 +202,7 @@ class WebBrowser(Application):
 
 
 class StartFile(Application):
-	'''Wrapper for os.startfile(). Usefull mainly on windows to open
+	'''Wrapper for os.startfile(). Useful mainly on windows to open
 	files with the default application.
 	'''
 

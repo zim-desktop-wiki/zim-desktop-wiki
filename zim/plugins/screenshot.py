@@ -117,7 +117,7 @@ class InsertScreenshotDialog(Dialog):
 			else:
 				ErrorDialog(self.ui,
 					_('Some error occurred while running "%s"') % COMMAND).run()
-					# T: Error message in "insert screenshot" dialog, %s will be replaced by aplication name
+					# T: Error message in "insert screenshot" dialog, %s will be replaced by application name
 
 		tmpfile.dir.touch()
 		helper.spawn((tmpfile,), callback, tmpfile)

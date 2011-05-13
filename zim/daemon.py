@@ -2,7 +2,7 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''Daemon IPC infrastucture parts for the zim GUI.
+'''Daemon IPC infrastructure parts for the zim GUI.
 
 We rely on a daemon process spawning instances of the zim gui
 and managing those instances. A new process that is stated talks
@@ -29,11 +29,11 @@ DaemonTrayIcon class in the trayicon plugin which shows a single
 tray icon for all open notebooks. A class for running a child process
 should at least implement a "main" and a "quit" method.
 
-Only security measure in this module is that on unix the socket is
+Only security measure in this module is that on Unix the socket is
 located within temp folder which has only access permissions for the
 current user. This should make it impossible for processes running as
 any other user to connect. The windows version just listens to a local
-network address and is compeletely open to localhost. Once someone
+network address and is completely open to localhost. Once someone
 succeeds in connecting to the socket they can call arbitrary methods
 on the interface object or instantiate new processes with arbitrary
 classes.
@@ -54,7 +54,7 @@ import time
 from zim.fs import get_tmpdir, File
 from zim.config import XDG_CACHE_HOME, json
 
-# FUTURE: implement a DBus based subclass for usage on the linux desktop
+# FUTURE: implement a DBus based subclass for usage on the Linux desktop
 
 # TODO split this in a GUI part and a daemon part that is not GUI specific
 
@@ -79,7 +79,7 @@ class DaemonError(Exception):
 
 
 class UnixDaemon(object):
-	'''Class with code to daemonize a process on unix'''
+	'''Class with code to daemonize a process on Unix'''
 
 	pidfile = get_tmpdir().file('daemon.pid').path
 
@@ -87,7 +87,7 @@ class UnixDaemon(object):
 		self.daemonize()
 
 	def daemonize(self):
-		'''Spawn new process that is disasociated from current environment'''
+		'''Spawn new process that is disassociated from current environment'''
 		showoutput = logger.isEnabledFor(logging.INFO)
 
 		# First fork
@@ -322,7 +322,7 @@ class UnixSocketDaemon(UnixDaemon, SocketDaemon):
 
 class WindowsSocketDaemon(WindowsDaemon, SocketDaemon):
 
-	# No named sockets avaialble on windows, need to use a network socket.
+	# No named sockets available on windows, need to use a network socket.
 	# Let's hope nobody is using the same port number
 	# Ow, and let's really hope we are running single user...
 
@@ -551,7 +551,7 @@ class UnixPipeProxy(object):
 	def _main(self):
 		# Main function in the child process:
 		# import class module, instantiate object,
-		# hook it to recieve calls and run main()
+		# hook it to receive calls and run main()
 
 		# __import__ has some quirks, see the reference manual
 		modname, klassname = self.klass.rsplit('.', 1)

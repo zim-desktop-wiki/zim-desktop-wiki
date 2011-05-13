@@ -18,8 +18,8 @@ empty, is used as the page title. Titles do not have to be unique, so
 we add a number for each title to make them unique.
 
 We read the whole file to memory, which puts certain limits on
-scalebility, however the gjots format seems to be mainly used for l
-arge numbers of very short entries, which may take a lot of
+scalability, however the gjots format seems to be mainly used for large
+numbers of very short entries, which may take a lot of
 overhead when saved as individual files.
 '''
 
