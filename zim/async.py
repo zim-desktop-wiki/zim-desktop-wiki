@@ -6,7 +6,7 @@
 
 We define the AsyncOperation class to wrap a function that can be
 executed asynchronous. AsyncOperation wraps the function in a thread
-so it can run in parralel with the main program.
+so it can run in parallel with the main program.
 
 The idea is to only do low level actions in separate threads, e.g.
 blocking I/O. In the main thread we have the gtk or gobject main loop
@@ -17,7 +17,7 @@ can fire in a separate thread. Also the sqlite index is not thread
 save either.
 
 The AsyncLock class can be used for locking a resource. The lock is
-always aquired in the main thread before the async operation starts and
+always acquired in the main thread before the async operation starts and
 is released when the operation finishes. THis way race conditions can
 be avoided in case you queue the same operation several times. Using
 the lock enforces that the async actions are still run in the same
@@ -129,7 +129,7 @@ class AsyncOperation(threading.Thread):
 	def start(self):
 		'''Start the operation
 
-		If a lock is used this will block until the lock is aquired
+		If a lock is used this will block until the lock is acquired
 		and then return one the operation is running
 		'''
 		if self.lock:
@@ -183,7 +183,7 @@ class DelayedCallback(object):
 
 	This class allows you to add a callback to a signal, but only have
 	it called after a certain timeout. If the signal is emitted
-	again during this time the callback will be cancelled and the
+	again during this time the callback will be canceled and the
 	timeout starts again. (So the callback is not called for each repeat
 	of the signal.) This can be used e.g. in case want to update some
 	other widget after the user changes a text entry widget, but this
@@ -194,7 +194,7 @@ class DelayedCallback(object):
 	called as a normal function.
 
 	@todo: add support for async callbacks, in this case block
-	the callback untill the async process is finished
+	the callback until the async process is finished
 	'''
 
 	__slots__ = ('timeout', 'cb_func', 'timer_id')

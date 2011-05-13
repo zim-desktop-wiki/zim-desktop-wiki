@@ -24,7 +24,7 @@ logger = logging.getLogger('zim.history')
 
 
 class HistoryPath(Path):
-	'''Path withsome additional info from the history.
+	'''Path with some additional info from the history.
 
 	Adds attributes 'cursor', 'scroll', 'is_first' and 'is_last'.
 	Both 'cursor' and 'scroll' give a position within the page and

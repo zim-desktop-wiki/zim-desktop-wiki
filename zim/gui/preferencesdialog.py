@@ -97,7 +97,7 @@ class PreferencesDialog(Dialog):
 				# T: Heading in preferences dialog
 
 	def _add_font_selection(self, table):
-		# need to hardcode this, can not register it as a preference
+		# need to hardcode this, cannot register it as a preference
 		table.add_inputs( (
 			('use_custom_font', 'bool', _('Use a custom font')),
 			# T: option in preferences dialog
@@ -167,7 +167,7 @@ class PreferencesDialog(Dialog):
 				combobox.insert_text(len-2, name)
 				combobox.set_active(len-2)
 			else:
-				# dialog was cancelled - set back to current
+				# dialog was canceled - set back to current
 				active = combobox.current_app
 				combobox.set_active(active)
 
@@ -323,7 +323,7 @@ class PluginsTab(gtk.HBox):
 class PluginsTreeModel(gtk.ListStore):
 
 	def __init__(self, ui):
-		#columns are: loaded, activable, name, plugin instance
+		#columns are: loaded, activatable, name, plugin instance
 		gtk.ListStore.__init__(self, bool, bool, str, object)
 		self.ui = ui
 		loaded = [p.__class__ for p in self.ui.plugins]
@@ -403,8 +403,8 @@ class PluginConfigureDialog(Dialog):
 		self.add_form(fields, self.preferences)
 
 	def do_response_ok(self):
-		# First let the plugin recieve the changes, then save them.
-		# The plugin could do som conversion on the fly (e.g. Path to string)
+		# First let the plugin receive the changes, then save them.
+		# The plugin could do some conversion on the fly (e.g. Path to string)
 		self.preferences.update(self.form)
 		self.plugin.emit('preferences-changed')
 		self.ui.save_preferences()

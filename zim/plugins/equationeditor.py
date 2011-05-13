@@ -110,7 +110,7 @@ class EquationGenerator(object):
 		text = ''.join(text)
 		#~ print '>>>%s<<<' % text
 
-		# Write to tmp file usign the template for the header / footer
+		# Write to tmp file using the template for the header / footer
 		texfile = self.texfile
 		texfile.writelines(
 			self.template.process({'equation': text}) )

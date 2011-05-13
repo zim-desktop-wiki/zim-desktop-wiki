@@ -210,7 +210,7 @@ msgstr ""
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Mappen findes allerede og er ikke tom; eksporteres der til denne mappe, kan "
 "det overskrive eksisterende filer. Ønsker du at fortsætte?"
@@ -314,7 +314,7 @@ msgstr "Vis _Log"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Der opstod en fejl under billedgenereringen.\n"
@@ -2019,7 +2019,7 @@ msgstr "Indsæt diagram"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2340,7 +2340,7 @@ msgstr "sekunder"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "Der opstod en fejl under kørsel af \"%s\""
 
 #. menu item
@@ -2782,7 +2782,7 @@ msgstr "Rev"
 #~ msgid "Please specify a URL for the document root"
 #~ msgstr "Please specify a URL for the document root"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "An error occurred while running \"scrot\""
 
 #~ msgid ""

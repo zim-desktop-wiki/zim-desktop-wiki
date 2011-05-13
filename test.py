@@ -53,7 +53,7 @@ class FastTestLoader(unittest.TestLoader):
 
 
 class MyTextTestRunner(unittest.TextTestRunner):
-	'''Extionsion of TextTestRunner to report number of ignored tests in the
+	'''Extension of TextTestRunner to report number of ignored tests in the
 	proper place.
 	'''
 

@@ -210,7 +210,7 @@ msgstr ""
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Katalog już istnieje i nie jest pusty. Eksport do tego katalogu może "
 "nadpisać znajdujące się w nim pliki. Czy na pewno chcesz kontynuować?"
@@ -314,7 +314,7 @@ msgstr "Wyświetl _dziennik zdarzeń"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Podczas generowania pliku graficznego wystąpił błąd. Czy mimo to chcesz "
@@ -2016,7 +2016,7 @@ msgstr "Wstaw diagram"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2306,7 +2306,7 @@ msgstr "sekund"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr ""
 
 #. menu item
@@ -2745,7 +2745,7 @@ msgstr "Rewizja"
 #~ msgstr "Wolny system plików"
 
 #~ msgid ""
-#~ "This plugin provides an diagram editor for zim based on GraphViz.\n"
+#~ "This plugin provides a diagram editor for zim based on GraphViz.\n"
 #~ "\n"
 #~ "Depends on: the GraphViz 'dot' command\n"
 #~ "\n"
@@ -2791,7 +2791,7 @@ msgstr "Rewizja"
 #~ "\n"
 #~ "Jest to domyślna wtyczka dostarczana wraz z programem Zim.\n"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "Wystąpiły błędy przy uruchomieniu programu \"scrot\""
 
 #~ msgid ""

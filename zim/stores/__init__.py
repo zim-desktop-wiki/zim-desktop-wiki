@@ -18,17 +18,17 @@ a NotImplementedError. Overloading other methods is optional.
 Stores handle content in terms of Page objects. How the data that is
 managed by the store is mapped to pages is up to the store implementation.
 For example in the default store each page is mapped to a text file,
-but there can also be store impementations that store many pages in the
+but there can also be store implementations that store many pages in the
 same file, or that use for example a database. The store is however
 expected to be consistent. So when a page is stored under a specific name
 it should also be retrievable under that name.
 
-Pages can be stored in a hierarchic way where each page can have sub-pages.
+Pages can be stored in a hierarchical way where each page can have sub-pages.
 Or, in other terms, each page has a like names namespace that can store
 sub pages. In the default store this structure is mapped to a directory
 structure where for each page there can be a like named directory which
 contains the files used to store sub-pages. The full page name for a page
-consists of the names of all it's parents plus it's own base name seperated
+consists of the names of all it's parents plus it's own base name separated
 with the ':' character. It is advised that each page should have a unique
 name. Symbolic links or aliases for pages should be handled on a different
 level. In the store interface page names are always assumed to be case
@@ -43,15 +43,15 @@ sub-pages, or both. However both attributed can be False for new pages, or
 for pages that have just been deleted.
 
 The index will cache page listings in order to speed up the performance,
-so it should not be necessary to do speed optializations in the store lookups.
-However for eficient caching, store objects should implement the
+so it should not be necessary to do speed optimizations in the store lookups.
+However for efficient caching, store objects should implement the
 'get_pagelist_indexkey()' and 'get_page_indexkey()' methods.
 
 The notebook will use Path objects when requesting a specific page. These
 paths just map to a specific page name but do not contain any information
 about the actual existence of the page etc.
 
-If a non-exising page is requested the store should check if we are allowed
+If a non-existing page is requested the store should check if we are allowed
 to create the page. If so, a new page object should be returned, but actually
 creating the page can be delayed until content is stored in it. Creating
 the page also implicitly creates all of it's parents page, since it should
@@ -178,7 +178,7 @@ class StoreClass():
 
 		Move content from "oldpath" to "newpath". If oldpath is a Page
 		object this should result in 'page.hascontent' being False if
-		succesfull.
+		successful.
 
 		Raises an error if path does not exist, or if newpath already exists.
 		'''
@@ -189,7 +189,7 @@ class StoreClass():
 		writable.
 
 		Deletes a page. If path is a Page object this should result
-		in 'page.hascontent' and 'page.haschildren' being False if succesfull.
+		in 'page.hascontent' and 'page.haschildren' being False if successful.
 
 		Returns False if page did not exist in the first place, True otherwise.
 		'''
@@ -201,7 +201,7 @@ class StoreClass():
 
 		Deletes a page by moving content to trash. If path is a Page
 		object this should result in 'page.hascontent' and 'page.haschildren'
-		being False if succesfull.
+		being False if successful.
 
 		Returns False if page did not exist in the first place, True otherwise.
 		Raises TrashNotSupportedError when not subclassed or when trash
@@ -264,8 +264,8 @@ class StoreClass():
 			return False
 
 	def get_attachments_dir(self, path):
-		'''Returns a Dir object for storing attachements for 'path'.
-		Assumes the store has a directory set already and aplies the
+		'''Returns a Dir object for storing attachments for 'path'.
+		Assumes the store has a directory set already and applies the
 		default heuristic for mapping page names to file names.
 		Sub-classes that do not have a directory or want a different
 		layout need to subclass this method.

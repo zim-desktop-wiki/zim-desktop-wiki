@@ -23,7 +23,7 @@ if os.name == "nt" and sys.argv[0].endswith('.exe'):
 	sys.stdout = err_stream
 	sys.stderr = err_stream
 
-# Preliminary initalization of logging because modules can throw warnings at import
+# Preliminary initialization of logging because modules can throw warnings at import
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
 
 # Try importing our modules

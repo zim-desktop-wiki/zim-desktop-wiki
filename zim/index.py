@@ -16,8 +16,8 @@ is checked. If this method returns None the page and it's children do no
 longer exist.
 
 Note: there are some particular problems with storing hierarchical lists in
-a asociative database. Especially lookups of page names are a bit inefficient,
-as we need to do a seperate lookup for each parent. Open for future improvement.
+a associative database. Especially lookups of page names are a bit inefficient,
+as we need to do a separate lookup for each parent. Open for future improvement.
 
 The database also stores the version number of the zim version that
 created it. After upgrading to a new version the database will
@@ -27,7 +27,7 @@ transparent as long as the zim version number is updated.
 
 # Note that it is important that this module fires signals and list pages
 # in a consistent order, if the order is not consistent or changes without
-# the apropriate signals the pageindex widget will get confused and mess up.
+# the appropriate signals the pageindex widget will get confused and mess up.
 
 # TODO: split off functions to walk the tree into a "index view" object
 # this will allow alternative views, custom sorted, alphabetical, date etc.
@@ -38,7 +38,6 @@ transparent as long as the zim version number is updated.
 
 from __future__ import with_statement
 
-import string
 import sqlite3
 import gobject
 import logging
@@ -272,13 +271,13 @@ class Index(gobject.GObject):
 	# links to non-existing pages can create new page nodes. This has
 	# consequences for updating the database and makes things a bit
 	# more complicated than expected at first sight. Page nodes for
-	# non-exisiting page are refered to as 'placeholders' below.
+	# non-existing page are referred to as 'placeholders' below.
 	#
 	# 1) When updating we first traverse the whole page tree creating
 	#    nodes for all existing pages before indexing contents and links
 	# 2) When we do index the contents we need to go top down through
 	#    the tree, indexing parent nodes before we index children. This is
-	#    because resolving links goes bottom up and may see non-exisitng
+	#    because resolving links goes bottom up and may see non-existing
 	#    pages created based on a link in a parent.
 	# 3) We need to clean up trees of placeholders by checking if they
 	#    have pages linking to them or not. This needs to go bottom up as
@@ -432,7 +431,7 @@ class Index(gobject.GObject):
 		If "checkcontents" is True the indexkey for each page is checked to
 		determine if the contents also need to be indexed. If this option
 		is False only pagelists will be updated. Any new pages that are
-		encoutered are always indexed fully regardless of this option.
+		encountered are always indexed fully regardless of this option.
 
 		A callback method can be supplied that will be called after each
 		updated path. This can be used e.g. to display a progress bar. the
@@ -456,7 +455,7 @@ class Index(gobject.GObject):
 			indexpath = self.touch(path)
 			indexpath._row['haschildren'] = True
 			indexpath._row['childrenkey'] = None
-			checkcontent = True
+			checkcontents = True
 
 		self._flush_queue(path)
 		self._update_pagelist_queue.append(indexpath)
@@ -517,7 +516,7 @@ class Index(gobject.GObject):
 			if not callback is None:
 				cont = callback(path)
 				if not cont is True:
-					logger.info('Index update is cancelled')
+					logger.info('Index update is canceled')
 					self._update_pagelist_queue = [] # flush
 					self._index_page_queue = [] # flush
 					return False
@@ -598,7 +597,7 @@ class Index(gobject.GObject):
 
 		created_tags = []
 
-		# Initialise seen tags
+		# Initialize seen tags
 		for tag in self.list_tags(path):
 			had_tags.add(tag.id)
 
@@ -620,7 +619,7 @@ class Index(gobject.GObject):
 						continue
 
 					if link != page and not link.name in seen_links:
-						# Filter out self refering links and remove doubles
+						# Filter out self referring links and remove doubles
 						seen_links.add(link.name)
 						indexpath = self.lookup_path(link)
 						if indexpath is None:
@@ -698,7 +697,7 @@ class Index(gobject.GObject):
 		for tag in deleted_tags:
 			self.emit('tag-deleted', tag)
 
-	def _update_pagelist(self, path, checkcontent):
+	def _update_pagelist(self, path, checkcontents):
 		'''Checks and updates the pagelist for a path if needed and queues any
 		child pages for updating based on "checkcontents" and whether
 		the child has children itself. Called indirectly by update().
@@ -725,7 +724,7 @@ class Index(gobject.GObject):
 			# Helper function to queue individual children
 			if child.haschildren:
 				self._update_pagelist_queue.append(child)
-			elif checkcontent:
+			elif checkcontents:
 				pagekey = self.notebook.get_page_indexkey(rawchild or child)
 				if not (pagekey and child.contentkey == pagekey):
 					self._index_page_queue.append(child)
@@ -774,7 +773,7 @@ class Index(gobject.GObject):
 							if page.hascontent:
 								self._index_page_queue.append(child)
 					else:
-						# We set haschildren to False until we have actualy seen those
+						# We set haschildren to False until we have actually seen those
 						# children. Failing to do so will cause trouble with the
 						# gtk.TreeModel interface to the database, which can not handle
 						# nodes that say they have children but fail to deliver when
@@ -881,7 +880,6 @@ class Index(gobject.GObject):
 		paths.reverse() # process children first
 		delete = []
 		keep = []
-		toggled = []
 		for path in paths:
 			hadchildren = path.haschildren
 			haschildren = self.n_list_pages(path) > 0
