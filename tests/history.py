@@ -2,18 +2,20 @@
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from tests import TestCase, get_test_notebook
+import tests
+
 
 import zim.history
 from zim.history import History, HistoryPath
 from zim.notebook import Path
 from zim.config import ConfigDict
 
-class TestHistory(TestCase):
+
+class TestHistory(tests.TestCase):
 
 	def setUp(self):
 		zim.history.MAX_HISTORY = 100
-		self.notebook = get_test_notebook()
+		self.notebook = tests.new_notebook()
 		self.pages = [self.notebook.get_page(Path(name))
 			for name in self.notebook.testdata_manifest]
 

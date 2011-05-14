@@ -121,7 +121,7 @@ class TestReadOnlyStore(object):
 		#~ pprint.pprint(self.index)
 		#~ pprint.pprint(names)
 		self.assertTrue(u'utf8:\u03b1\u03b2\u03b3' in names) # Check usage of unicode
-		self.assertEqualDiffData(names, self.index)
+		self.assertEqual(names, self.index)
 
 
 class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
@@ -131,7 +131,7 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		store = zim.stores.get_store('memory')
 		self.store = store.Store(path=Path(':'), notebook=Notebook())
 		self.index = set()
-		for name, text in tests.get_test_data('wiki'):
+		for name, text in tests.WikiTestData:
 			self.store.set_node(Path(name), text)
 			self.index.add(name)
 		self.normalize_index()
@@ -144,14 +144,14 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		self.assertTrue(page.get_parsetree())
 		self.assertTrue('Foo' in ''.join(page.dump('plain')))
 		self.assertFalse(page.modified)
-		wikitext = tests.get_test_data_page('wiki', 'roundtrip')
+		wikitext = tests.WikiTestData.get('roundtrip')
 		page.parse('wiki', wikitext)
 		self.assertTrue(page.modified)
 		self.store.store_page(page)
 		self.assertFalse(page.modified)
-		self.assertEqualDiff(''.join(page.dump('wiki')), wikitext)
+		self.assertEqual(''.join(page.dump('wiki')), wikitext)
 		page = self.store.get_page(Path('Test:foo'))
-		self.assertEqualDiff(''.join(page.dump('wiki')), wikitext)
+		self.assertEqual(''.join(page.dump('wiki')), wikitext)
 
 		# check test setup OK
 		for path in (Path('Test:BAR'), Path('NewPage')):
@@ -294,17 +294,16 @@ Utf8 content here
 		page = self.store.get_page(Path('Foo:Bar'))
 		self.assertEqual(page.dump(format='wiki'), ['Foooo Barrr\n'])
 		ref = self.xml.replace("'", '"')
-		self.assertEqualDiff(''.join(self.store.dump()), ref)
+		self.assertEqual(''.join(self.store.dump()), ref)
 
 
+@tests.slowTest
 class TestFiles(TestStoresMemory):
 	'''Test the store.files module'''
 
-	slowTest = True
-
 	def setUp(self):
 		TestStoresMemory.setUp(self)
-		tmpdir = tests.create_tmp_dir(u'stores_TestFiles_\u0421\u0430\u0439')
+		tmpdir = self.create_tmp_dir(u'_some_utf8_here_\u0421\u0430\u0439')
 		self.dir = Dir([tmpdir, 'store-files'])
 		self.mem = self.store
 		store = zim.stores.get_store('files')
@@ -378,4 +377,3 @@ class StubFile(File):
 
 	def exists(self):
 		return len(self.text) > 0
-

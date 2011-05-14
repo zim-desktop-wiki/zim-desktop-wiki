@@ -1,12 +1,16 @@
+# -*- coding: utf-8 -*-
 
-from tests import TestCase, create_tmp_dir, get_test_notebook
+# Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+import tests
+
 
 from zim.fs import File, Dir
 from zim.notebook import Path
 from zim.gui.widgets import *
 
 
-class TestInputEntry(TestCase):
+class TestInputEntry(tests.TestCase):
 
 	def runTest(self):
 		'''Test InputEntry widget'''
@@ -46,24 +50,22 @@ class TestInputEntry(TestCase):
 		self.assertFalse(entry.get_input_valid())
 
 
-class TestFileEntry(TestCase):
+class TestFileEntry(tests.TestCase):
 
 	def setUp(self):
+		path = self.get_tmp_name()
+		self.notebook = tests.new_notebook(fakedir=path)
+
 		self.entry = FileEntry()
-		self.notebook = get_test_notebook()
-		self.notebook.index.update()
 
 	def runTest(self):
 		'''Test FileEntry widget'''
-		entry = self.entry
-		home = Dir('~')
-
-		dir = Dir(create_tmp_dir('widgets_' + entry.__class__.__name__))
 		path = Path('Foo:Bar')
-		self.notebook.dir = dir
-		self.notebook.get_store(path).dir = dir
+		entry = self.entry
 		entry.set_use_relative_paths(self.notebook, path)
 
+		home = Dir('~')
+		dir = self.notebook.dir
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
 			(dir.file('Foo/Bar/test.txt'), './test.txt'),
@@ -112,20 +114,21 @@ class TestFileEntry(TestCase):
 			self.assertEqual(entry.get_file(), file)
 
 
-class TestPageEntry(TestCase):
+class TestPageEntry(tests.TestCase):
 
 	entryklass = PageEntry
 
 	def setUp(self):
-		self.notebook = get_test_notebook()
+		path = self.get_tmp_name()
+		self.notebook = tests.new_notebook(fakedir=path)
+
 		self.reference = Path('Test:foo')
 		self.entry = self.entryklass(self.notebook, self.reference)
 
 	def runTest(self):
 		'''Test PageEntry widget'''
-		notebook = self.notebook
-		reference = self.reference
 		entry = self.entry
+		reference = self.reference
 
 		entry.set_path(Path('Test'))
 		self.assertEqual(entry.get_text(), ':Test')
@@ -195,7 +198,7 @@ class TestLinkEntry(TestPageEntry, TestFileEntry):
 		TestFileEntry.runTest(self)
 
 
-class TestInputForm(TestCase):
+class TestInputForm(tests.TestCase):
 
 	def runTest(self):
 		'''Test InputForm widget'''
@@ -254,7 +257,7 @@ class TestInputForm(TestCase):
 
 				self.assertEqual(U[k], v)
 
-		notebook = get_test_notebook()
+		notebook = tests.new_notebook()
 		form = InputForm(inputs, values1, notebook=notebook)
 
 		for input in inputs:
@@ -279,12 +282,11 @@ class TestInputForm(TestCase):
 		self.assertEqual(i, 9)
 
 
-class TestFileDialog(TestCase):
-
-	slowTest = True
+@tests.slowTest
+class TestFileDialog(tests.TestCase):
 
 	def runTest(self):
-		tmp_dir = create_tmp_dir('widgets_TestFileDialog')
+		tmp_dir = self.create_tmp_dir()
 
 		file = File((tmp_dir, 'test.txt'))
 		file.write('test 123')
@@ -303,5 +305,3 @@ class TestFileDialog(TestCase):
 		# TODO select folder
 
 		# TODO add filters
-
-

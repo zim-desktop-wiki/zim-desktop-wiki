@@ -2,6 +2,10 @@
 
 # -*- coding: utf-8 -*-
 
+# This is a wrapper script to run tests using the unittest
+# framework. It setups the environment properly and defines some
+# commandline options for running tests.
+#
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import os
@@ -10,92 +14,8 @@ import shutil
 import getopt
 import logging
 
-import unittest
-import time
-import types
-
 import tests
-
-# TODO overload one of the unittest classes to test add file names
-
-pyfiles = []
-for d, dirs, files in os.walk('zim'):
-	pyfiles.extend([d+'/'+f for f in files if f.endswith('.py')])
-pyfiles.sort()
-
-class FastTestLoader(unittest.TestLoader):
-	'''Extension of TestLoader which ignores all classes which have an
-	attribute 'slowTest' set to True.
-	'''
-
-	def __init__(self, alltests=True):
-		unittest.TestLoader.__init__(self)
-		self.ignored = 0
-		self.skipped = 0
-		self.alltests = alltests
-
-	def loadTestsFromModule(self, module):
-		"""Return a suite of all tests cases contained in the given module"""
-		tests = []
-		for name in dir(module):
-			obj = getattr(module, name)
-			if (isinstance(obj, (type, types.ClassType)) and
-				issubclass(obj, unittest.TestCase)):
-				if not self.alltests and hasattr(obj, 'slowTest') and obj.slowTest:
-					print 'Ignoring slow test:', obj.__name__
-					self.ignored += 1
-				elif hasattr(obj, 'skipTestZim') and obj.skipTestZim():
-					print 'Skipping test:', obj.__name__, '-', obj.skipTestZim()
-					self.skipped += 1
-				else:
-					tests.append(self.loadTestsFromTestCase(obj))
-		return self.suiteClass(tests)
-
-
-class MyTextTestRunner(unittest.TextTestRunner):
-	'''Extension of TextTestRunner to report number of ignored tests in the
-	proper place.
-	'''
-
-	def __init__(self, verbosity, ignored, skipped):
-		unittest.TextTestRunner.__init__(self, verbosity=verbosity)
-		self.ignored = ignored
-		self.skipped = skipped
-
-	def run(self, test):
-		"Run the given test case or test suite."
-		result = self._makeResult()
-		startTime = time.time()
-		test(result)
-		stopTime = time.time()
-		timeTaken = stopTime - startTime
-		result.printErrors()
-		self.stream.writeln(result.separator2)
-		run = result.testsRun
-		self.stream.writeln("Ran %d test%s in %.3fs" %
-							(run, run != 1 and "s" or "", timeTaken))
-		ignored = self.ignored
-		if ignored > 0:
-			self.stream.writeln("Ignored %d slow test%s" %
-							(ignored, ignored != 1 and "s" or ""))
-		skipped = self.skipped
-		if skipped > 0:
-			self.stream.writeln("Skipped %d test%s" %
-							(skipped, skipped != 1 and "s" or ""))
-		self.stream.writeln()
-		if not result.wasSuccessful():
-			self.stream.write("FAILED (")
-			failed, errored = map(len, (result.failures, result.errors))
-			if failed:
-				self.stream.write("failures=%d" % failed)
-			if errored:
-				if failed: self.stream.write(", ")
-				self.stream.write("errors=%d" % errored)
-			self.stream.writeln(")")
-		else:
-			self.stream.writeln("OK")
-		return result
-
+from tests import unittest
 
 
 def main(argv=None):
@@ -105,9 +25,10 @@ def main(argv=None):
 
 	# parse options
 	coverage = None
-	alltests = True
+	failfast = False
 	loglevel = logging.WARNING
-	opts, args = getopt.gnu_getopt(argv[1:], 'hVD', ['help', 'coverage', 'fast', 'debug', 'verbose'])
+	opts, args = getopt.gnu_getopt(argv[1:],
+		'hVD', ['help', 'coverage', 'fast', 'failfast', 'debug', 'verbose'])
 	for o, a in opts:
 		if o in ('-h', '--help'):
 			print '''\
@@ -118,7 +39,8 @@ If no module is given the whole test suite is run.
 
 Options:
   -h, --help     print this text
-  --fast         skip a number of slower tests
+  --fast         skip a number of slower tests (assumes --failfast)
+  --failfast     stop after the first test that fails
   --coverage     report test coverage statistics
   -V, --verbose  run with verbose output from logging
   -D, --debug    run with debug output from logging
@@ -129,7 +51,7 @@ Options:
 				import coverage as coverage_module
 			except ImportError:
 				print >>sys.stderr, '''\
-Can not run test coverage without module coverage.
+Can not run test coverage without module 'coverage'.
 On Ubuntu or Debian install package 'python-coverage'.
 '''
 				sys.exit(1)
@@ -139,7 +61,11 @@ On Ubuntu or Debian install package 'python-coverage'.
 			coverage.exclude('raise NotImplementedError')
 			coverage.start()
 		elif o == '--fast':
-			alltests = False
+			failfast = True
+			tests.FAST_TEST = True
+				# set before any test classes are loaded !
+		elif o == '--failfast':
+			failfast = True
 		elif o in ('-V', '--verbose'):
 			loglevel = logging.INFO
 		elif o in ('-D', '--debug'):
@@ -150,28 +76,19 @@ On Ubuntu or Debian install package 'python-coverage'.
 	# Set logging handler
 	logging.basicConfig(level=loglevel, format='%(levelname)s: %(message)s')
 
-	# Set environment - so we can be sure we don't see
-	# any data from a previous installed version
-	tests.set_environ()
-
-	# Collect the test cases
-	suite = unittest.TestSuite()
-	loader = FastTestLoader(alltests=alltests)
-
+	# Build the test suite
+	loader = unittest.TestLoader()
 	if args:
-		modules = [ 'tests.'+name for name in args ]
+		suite = unittest.TestSuite()
+		for module in [ 'tests.'+name for name in args ]:
+			test = loader.loadTestsFromName(module)
+			suite.addTest(test)
 	else:
-		suite.addTest(TestCompileAll())
-		suite.addTest(TestNotebookUpgrade())
-		modules = [ 'tests.'+name for name in tests.__all__ ]
+		suite = tests.load_tests(loader, None, None)
 
-	for name in modules:
-		test = loader.loadTestsFromName(name)
-		suite.addTest(test)
-
-	# And run them
-	MyTextTestRunner(verbosity=3,
-		ignored=loader.ignored, skipped=loader.skipped).run(suite)
+	# And run it
+	unittest.installHandler() # Fancy handling for ^C during test
+	unittest.TextTestRunner(verbosity=2, failfast=failfast).run(suite)
 
 	# Check the modules were loaded from the right location
 	# (so no testing based on modules from a previous installed version...)
@@ -184,6 +101,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 				assert file.startswith(mylib), \
 					'Module %s was loaded from %s' % (module, file)
 
+	# Create coverage output if asked to do so
 	if coverage:
 		coverage.stop()
 		report_coverage(coverage)
@@ -192,6 +110,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 def report_coverage(coverage):
 	print ''
 	print 'Writing detailed coverage reports...'
+	pyfiles = list(tests.zim_pyfiles())
 	coverage.report(pyfiles, show_missing=False)
 
 	# Detailed report in html
@@ -306,25 +225,6 @@ def report_coverage(coverage):
 
 	print '\nDetailed coverage reports can be found in ./coverage/'
 
-
-class TestCompileAll(unittest.TestCase):
-
-	def runTest(self):
-		'''Test if all modules compile'''
-		for file in pyfiles:
-			module = file[:-3].replace('/', '.')
-			assert __import__(module)
-
-
-class TestNotebookUpgrade(unittest.TestCase):
-
-	def runTest(self):
-		'''Test if included notebooks are up to date'''
-		from zim.fs import Dir
-		from zim.notebook import get_notebook
-		for path in ('data/manual', 'HACKING'):
-			notebook = get_notebook(Dir(path))
-			self.assertTrue(not notebook.needs_upgrade)
 
 
 if __name__ == '__main__':

@@ -17,9 +17,8 @@ from zim import _get_default_or_only_notebook
 	# private, but want to check it anyway
 
 
+@tests.slowTest
 class TestGetNotebook(tests.TestCase):
-
-	slowTest = True
 
 	def setUp(self):
 		list = config_file('notebooks.list')
@@ -28,7 +27,7 @@ class TestGetNotebook(tests.TestCase):
 			file.remove()
 
 	def runTest(self):
-		root = Dir(tests.create_tmp_dir(u'notebook_TestGetNotebook_\u0421\u0430\u0439'))
+		root = Dir(self.create_tmp_dir(u'some_utf8_here_\u0421\u0430\u0439'))
 
 		# Start empty - see this is no issue
 		list = get_notebook_list()
@@ -121,13 +120,8 @@ class TestGetNotebook(tests.TestCase):
 class TestNotebook(tests.TestCase):
 
 	def setUp(self):
-		zim.errors.silence_signal_exception_context = True
-		if not hasattr(self, 'notebook'):
-			self.notebook = tests.get_test_notebook()
-			self.notebook.index.update()
-
-	def tearDown(self):
-		zim.errors.silence_signal_exception_context = False
+		path = self.get_tmp_name()
+		self.notebook = tests.new_notebook(fakedir=path)
 
 	def testAPI(self):
 		'''Test various notebook methods'''
@@ -346,15 +340,15 @@ http://foo.org # urls are untouched
 [[Dus:Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
 [[:Foo:Bar:Dus]] # Link that could be made relative, but isn't
 '''
-		notebook, page = tests.get_test_page('Foo:Bar:Baz')
+		page = self.notebook.get_page(Path('Foo:Bar:Baz'))
 		page.parse('wiki', text)
-		notebook._update_links_from(page, Path('Dus:Baz'), page,  Path('Dus:Baz'))
-		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted1)
+		self.notebook._update_links_from(page, Path('Dus:Baz'), page,  Path('Dus:Baz'))
+		self.assertEqual(u''.join(page.dump('wiki')), wanted1)
 
-		notebook, page = tests.get_test_page('Dus:Bar')
+		page = self.notebook.get_page(Path('Dus:Bar'))
 		page.parse('wiki', text)
-		notebook._update_links_from(page, Path('Dus:Baz'), page, Path('Dus:Baz'))
-		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted2)
+		self.notebook._update_links_from(page, Path('Dus:Baz'), page, Path('Dus:Baz'))
+		self.assertEqual(u''.join(page.dump('wiki')), wanted2)
 
 		# updating links to the page that was moved
 		# moving from Dus:Baz to Foo:Bar:Baz or renaming to Dus:Bar - updating links in Dus:Ja
@@ -388,15 +382,15 @@ http://foo.org # urls are untouched
 [[Bar:Hmm]] # absolute link that needs updating
 [[Bar:Hmm:Ja]] # absolute link that needs updating
 '''
-		notebook, page = tests.get_test_page('Dus:Ja')
+		page = self.notebook.get_page(Path('Dus:Ja'))
 		page.parse('wiki', text)
-		notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Foo:Bar:Baz'))
-		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted1)
+		self.notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Foo:Bar:Baz'))
+		self.assertEqual(u''.join(page.dump('wiki')), wanted1)
 
-		notebook, page = tests.get_test_page('Dus:Ja')
+		page = self.notebook.get_page(Path('Dus:Ja'))
 		page.parse('wiki', text)
-		notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Dus:Bar'))
-		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted2)
+		self.notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Dus:Bar'))
+		self.assertEqual(u''.join(page.dump('wiki')), wanted2)
 
 		# now test actual move on full notebook
 		def links(source, href):
@@ -460,14 +454,12 @@ http://foo.org # urls are untouched
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
-		dir = Dir(tests.create_tmp_dir('notebook_testResolveFile'))
 		path = Path('Foo:Bar')
-		self.notebook.dir = dir
-		self.notebook.get_store(path).dir = dir
+		dir = self.notebook.dir
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
 		self.notebook.do_properties_changed() # parse config
 		doc_root = self.notebook.document_root
-		self.assertEqual(doc_root, self.notebook.dir.subdir('notebook_document_root'))
+		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
 		for link, wanted, cleaned in (
 			('~/test.txt', File('~/test.txt'), '~/test.txt'),
 			(r'~\test.txt', File('~/test.txt'), '~/test.txt'),
@@ -494,7 +486,7 @@ http://foo.org # urls are untouched
 		self.assertEqual(
 			self.notebook.relative_filepath(doc_root.file('foo.txt')), '/foo.txt')
 		self.assertEqual(
-			self.notebook.relative_filepath(self.notebook.dir.file('foo.txt')), './foo.txt')
+			self.notebook.relative_filepath(dir.file('foo.txt')), './foo.txt')
 
 
 
@@ -571,7 +563,7 @@ class TestPage(TestPath):
 	'''Test page object'''
 
 	def setUp(self):
-		self.notebook = tests.get_test_notebook()
+		self.notebook = tests.new_notebook()
 
 	def generator(self, name):
 		return self.notebook.get_page(Path(name))
@@ -616,7 +608,7 @@ class TestPage(TestPath):
 class TestIndexPage(tests.TestCase):
 
 	def setUp(self):
-		self.notebook = tests.get_test_notebook()
+		self.notebook = tests.new_notebook()
 		self.notebook.index.update()
 
 	def runTest(self):
