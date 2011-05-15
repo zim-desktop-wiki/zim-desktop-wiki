@@ -411,7 +411,7 @@ class NotebookInterface(gobject.GObject):
 		'''Remove a plugin'''
 		if isinstance(plugin, basestring):
 			name = plugin
-			assert name in map(lambda p: p.plugin_key, self.plugins)
+			assert name in [p.plugin_key for p in self.plugins]
 			plugin = filter(lambda p: p.plugin_key == name, self.plugins)[0]
 		else:
 			assert plugin in self.plugins
@@ -468,7 +468,9 @@ class NotebookInterface(gobject.GObject):
 			from zim.config import ConfigDictFile
 			self.uistate = ConfigDictFile(
 				notebook.cache_dir.file('state.conf') )
-		# TODO read profile preferences file if one is set in the notebook
+		else:
+			from zim.config import ConfigDict
+			self.uistate = ConfigDict()
 
 	def cmd_export(self, format='html', template=None, page=None, output=None, root_url=None, index_page=None):
 		'''Method called when doing a commandline export'''
@@ -506,12 +508,9 @@ class NotebookInterface(gobject.GObject):
 
 	def spawn(self, *args):
 		'''Spawn a new instance of zim'''
-		# TODO: after implementing the daemon, put this in that module
 		from zim.applications import Application
 		zim = Application((ZIM_EXECUTABLE,) + args)
 		zim.spawn()
 
 # Need to register classes defining gobject signals
 gobject.type_register(NotebookInterface)
-
-

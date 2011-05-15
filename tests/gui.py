@@ -483,17 +483,196 @@ class TestDialogs(tests.TestCase):
 	# Test for NotebookDialog is in separate class below
 
 
+
+class FilterNoSuchImageWarning(tests.LoggingFilter):
+
+	logger = 'zim.gui.pageview'
+	message = 'No such image:'
+
+
 @tests.slowTest
 class TestGtkInterface(tests.TestCase):
 
-	def runTest(self):
+	def setUp(self):
+		# start filtering
+		filter = FilterNoSuchImageWarning()
+		filter.wrap_test(self)
+
+		# flush preferences
+		preferences = config_file('preferences.conf')
+		preferences.file.remove()
+
+		# create interface object with new notebook
+		dirpath = self.get_tmp_name()
+		notebook = tests.new_notebook(fakedir=dirpath)
+		path = Path('Test:foo:bar')
+		self.ui = zim.gui.GtkInterface(notebook=notebook, page=path)
+
+		# finalize plugins
+		for plugin in self.ui.plugins:
+			plugin.finalize_ui(self.ui)
+
+	def tearDown(self):
+		self.ui.close()
+
+	def testInitialization(self):
+		'''Test Gtk interface initialization'''
+
+		# start without notebook should not complain
 		ui = zim.gui.GtkInterface()
+
+		# now take ui with notebook
+		ui = self.ui
+
+		# test read only (starts readonly because notebook has no dir or file)
+		self.assertTrue(ui.readonly)
+		ui.set_readonly(False)
+		self.assertFalse(ui.readonly)
+		ui.set_readonly(True)
+		self.assertTrue(ui.readonly)
+
+		# TODO more tests for readonly pages etc.
 
 		# test populating menus
 		menu = gtk.Menu()
 		ui.populate_popup('page_popup', menu)
 		items = menu.get_children()
-		self.assertTrue(len(items) > 3)
+		self.assertGreater(len(items), 3)
+
+		# remove plugins
+		self.assertGreater(len(ui.plugins), 3) # default plugins
+		plugins = [p.plugin_key for p in ui.plugins]
+		for name in plugins:
+			ui.unload_plugin(name)
+		self.assertEqual(len(ui.plugins), 0)
+
+		# and add them again
+		for name in plugins:
+			ui.load_plugin(name)
+		self.assertGreater(len(ui.plugins), 3)
+
+	def testMainWindow(self):
+		'''Test main window'''
+		path = Path('Test:foo:bar')
+		window = self.ui.mainwindow
+		#~ print 'UISTATE INIT:', window.uistate
+
+		self.assertTrue(window.uistate['show_menubar'])
+		window.toggle_menubar()
+		self.assertFalse(window.uistate['show_menubar'])
+		window.toggle_menubar()
+		self.assertTrue(window.uistate['show_menubar'])
+
+		self.assertTrue(window.uistate['show_toolbar'])
+		window.toggle_toolbar()
+		self.assertFalse(window.uistate['show_toolbar'])
+		window.toggle_toolbar()
+		self.assertTrue(window.uistate['show_toolbar'])
+
+		self.assertTrue(window.uistate['show_statusbar'])
+		window.toggle_statusbar()
+		self.assertFalse(window.uistate['show_statusbar'])
+		window.toggle_statusbar()
+		self.assertTrue(window.uistate['show_statusbar'])
+
+		self.assertTrue(window.uistate['show_sidepane'])
+		window.toggle_sidepane()
+		self.assertFalse(window.uistate['show_sidepane'])
+		window.toggle_sidepane()
+		self.assertTrue(window.uistate['show_sidepane'])
+
+		# note: focus starts at sidepane due to toggle_sidepane above
+		self.assertEqual(window.get_focus(), window.pageindex.treeview)
+		self.assertEqual(window.get_selected_path(), path)
+		window.toggle_focus_sidepane()
+		self.assertEqual(window.get_focus(), window.pageview.view)
+		self.assertEqual(window.get_selected_path(), path)
+		window.toggle_focus_sidepane()
+		self.assertEqual(window.get_focus(), window.pageindex.treeview)
+		# TODO also check this with "show_sidepane" off
+
+		self.assertEqual(window.uistate['pathbar_type'], zim.gui.PATHBAR_RECENT)
+		for style in (
+			zim.gui.PATHBAR_NONE,
+			zim.gui.PATHBAR_HISTORY,
+			zim.gui.PATHBAR_PATH,
+			zim.gui.PATHBAR_RECENT,
+		):
+			window.set_pathbar(style)
+			self.assertEqual(window.uistate['pathbar_type'], style)
+			# TODO specific test for pathbar to exercize history, add / move / remove pages etc.
+
+		# note: no default style here - system default unknown
+		for style in (
+			zim.gui.TOOLBAR_ICONS_AND_TEXT,
+			zim.gui.TOOLBAR_ICONS_ONLY,
+			zim.gui.TOOLBAR_TEXT_ONLY,
+		):
+			window.set_toolbar_style(style)
+			self.assertEqual(window.uistate['toolbar_style'], style)
+
+		# note: no default style here - system default unknown
+		for size in (
+			zim.gui.TOOLBAR_ICONS_LARGE,
+			zim.gui.TOOLBAR_ICONS_SMALL,
+			zim.gui.TOOLBAR_ICONS_TINY,
+		):
+			window.set_toolbar_size(size)
+			self.assertEqual(window.uistate['toolbar_size'], size)
+
+		# FIXME: test fails because "readonly" not active because notebook was already readonly, so action never activatable
+		#~ self.assertTrue(ui.readonly)
+		#~ self.assertTrue(window.uistate['readonly'])
+		#~ window.toggle_readonly()
+		#~ self.assertFalse(ui.readonly)
+		#~ self.assertFalse(window.uistate['readonly'])
+		#~ window.toggle_readonly()
+		#~ self.assertTrue(ui.readonly)
+		#~ self.assertTrue(window.uistate['readonly'])
+
+	def testNavigation(self):
+		'''Test navigating the notebook with gtk interface'''
+
+		# build up some history
+		history = (
+			Path('Test:foo:bar'),
+			Path('Test:'),
+			Path('Test:foo:'),
+			Path('Test:foo:bar'),
+		)
+		for path in history:
+			self.ui.open_page(path)
+			self.assertEqual(self.ui.page, path)
+
+		# check forward & backward
+		for path in reversed(history[:-1]):
+			self.assertTrue(self.ui.open_page_back())
+			self.assertEqual(self.ui.page, path)
+		self.assertFalse(self.ui.open_page_back())
+
+		for path in history[1:]:
+			self.assertTrue(self.ui.open_page_forward())
+			self.assertEqual(self.ui.page, path)
+		self.assertFalse(self.ui.open_page_forward())
+
+		# check upward and downward
+		for path in (Path('Test:foo:'), Path('Test:')):
+			self.assertTrue(self.ui.open_page_parent())
+			self.assertEqual(self.ui.page, path)
+		self.assertFalse(self.ui.open_page_parent())
+
+		for path in (Path('Test:foo:'), Path('Test:foo:bar')):
+			self.assertTrue(self.ui.open_page_child())
+			self.assertEqual(self.ui.page, path)
+		self.assertFalse(self.ui.open_page_child())
+
+		# previous and next
+		self.assertTrue(self.ui.open_page_previous())
+		self.assertTrue(self.ui.open_page_next())
+		self.assertEqual(self.ui.page, Path('Test:foo:bar'))
+
+	# TODO notebook manipulation (new (sub)page, move, rename, delete ..)
+	# merge with tests for dialogs (?)
 
 
 @tests.slowTest

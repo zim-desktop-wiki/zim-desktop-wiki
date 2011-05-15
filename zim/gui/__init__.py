@@ -34,6 +34,7 @@ from zim import NotebookInterface, NotebookLookupError
 from zim.fs import *
 from zim.fs import normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError
+from zim.async import DelayedCallback
 from zim.notebook import Path, Page
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
@@ -260,9 +261,13 @@ class GtkInterface(NotebookInterface):
 	Signals:
 	* open-page (page, path)
 	  Called when opening another page, see open_page() for details
-	* close-page (page)
+	* close-page (page, final)
 	  Called when closing a page, typically just before a new page is opened
-	  and before closing the application
+	  and before closing the application. If 'final' is True we expect
+	  this to be the final page closure before quiting the application.
+	  This is used to decide to do some actions async or not. (But
+	  it is only a hint, so do not destroy any ui components when
+	  'final' is set.)
 	* new-window (window)
 	  Called when a new window is created, can be used as a hook by plugins
 	* preferences-changed
@@ -281,7 +286,7 @@ class GtkInterface(NotebookInterface):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object, bool)),
 		'new-window': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
@@ -536,18 +541,17 @@ class GtkInterface(NotebookInterface):
 			self.quit()
 
 	def quit(self):
-		# TODO: logic to hide the window
-		if not self.close_page(self.page):
+		if not self.close_page(self.page, final=True):
 			# Do not quit if page not saved
-			return
+			return False
 
 		self.emit('quit')
-
-		if self.uistate.modified:
-			self.uistate.write()
-
 		self.mainwindow.destroy()
-		gtk.main_quit()
+
+		if gtk.main_level() > 0:
+			gtk.main_quit()
+
+		return True
 
 	def add_actions(self, actions, handler, methodname=None):
 		'''Wrapper for gtk.ActionGroup.add_actions(actions),
@@ -957,14 +961,14 @@ class GtkInterface(NotebookInterface):
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
 
-	def close_page(self, page=None):
+	def close_page(self, page=None, final=False):
 		'''Emits the 'close-page' signal and returns boolean for success'''
 		if page is None:
 			page = self.page
-		self.emit('close-page', page)
+		self.emit('close-page', page, final)
 		return not page.modified
 
-	def do_close_page(self, page):
+	def do_close_page(self, page, final):
 		if page.modified:
 			self.save_page(page) # No async here -- for now
 
@@ -973,8 +977,22 @@ class GtkInterface(NotebookInterface):
 			current.cursor = self.mainwindow.pageview.get_cursor_pos()
 			current.scroll = self.mainwindow.pageview.get_scroll_pos()
 
-		if self.uistate.modified:
-			schedule_on_idle(self.uistate.write_async)
+		def save_uistate_cb():
+			if self.uistate.modified:
+				self.uistate.write_async()
+			# else ignore silently
+
+		if self.uistate.modified and hasattr(self.uistate, 'write'):
+			# during tests we may have a config dict without config file
+			if final:
+				self.uistate.write()
+			else:
+				# Delayed signal avoid queueing many of these in a
+				# short time when going back and forward in the history
+				if not hasattr(self.uistate, '_delayed_async_write'):
+					self.uistate._delayed_async_write = \
+						DelayedCallback(2000, save_uistate_cb) # 2 sec
+				self.uistate._delayed_async_write()
 
 	def open_page_back(self):
 		record = self.history.get_previous()
@@ -1657,9 +1675,9 @@ class MainWindow(Window):
 		self._fullscreen = False
 		self.ui = ui
 
-		ui.connect_after('open-notebook', self.do_open_notebook)
-		ui.connect('open-page', self.do_open_page)
-		ui.connect('close-page', self.do_close_page)
+		ui.connect_after('open-notebook', self.on_open_notebook)
+		ui.connect('open-page', self.on_open_page)
+		ui.connect('close-page', self.on_close_page)
 		ui.connect('preferences-changed', self.do_preferences_changed)
 
 		self._sidepane_autoclose = False
@@ -1842,9 +1860,13 @@ class MainWindow(Window):
 			return None
 
 	def toggle_menubar(self, show=None):
+		# No action for this item, hidden option
 		self.do_toggle_menubar(show=show)
 
 	def do_toggle_menubar(self, show=None):
+		if show is None:
+			show = not self.uistate['show_menubar']
+
 		if show:
 			self.menubar.set_no_show_all(False)
 			self.menubar.show()
@@ -2022,11 +2044,24 @@ class MainWindow(Window):
 		'''Set the toolbar style. Style can be either
 		TOOLBAR_ICONS_AND_TEXT, TOOLBAR_ICONS_ONLY or TOOLBAR_TEXT_ONLY.
 		'''
-		assert style in ('icons_and_text', 'icons_only', 'text_only'), style
-		self.actiongroup.get_action('set_toolbar_'+style).activate()
+		if not style:
+			# ignore, trust system default
+			# TODO: is there some way to reset to system default here ?
+			return
+		else:
+			assert style in ('icons_and_text', 'icons_only', 'text_only'), style
+			if not self.uistate['toolbar_style'] and style == 'icons_and_text':
+				# Exception since this is the default action that is active
+				# when we just follow system default
+				self.do_set_toolbar_style(style)
+			else:
+				self.actiongroup.get_action('set_toolbar_'+style).activate()
 
 	def do_set_toolbar_style(self, name):
-		style = name[12:] # len('set_toolbar_') == 12
+		if name.startswith('set_toolbar_'):
+			style = name[12:] # len('set_toolbar_') == 12
+		else:
+			style = name
 
 		if style == TOOLBAR_ICONS_AND_TEXT:
 			self.toolbar.set_style(gtk.TOOLBAR_BOTH)
@@ -2043,11 +2078,24 @@ class MainWindow(Window):
 		'''Set the toolbar style. Style can be either
 		TOOLBAR_ICONS_LARGE, TOOLBAR_ICONS_SMALL or TOOLBAR_ICONS_TINY.
 		'''
-		assert size in ('large', 'small', 'tiny'), size
-		self.actiongroup.get_action('set_toolbar_icons_'+size).activate()
+		if not size:
+			# ignore, trust system default
+			# TODO: is there some way to reset to system default here ?
+			return
+		else:
+			assert size in ('large', 'small', 'tiny'), size
+			if not self.uistate['toolbar_size'] and size == 'large':
+				# Exception since this is the default action that is active
+				# when we just follow system default
+				self.do_set_toolbar_size(size)
+			else:
+				self.actiongroup.get_action('set_toolbar_icons_'+size).activate()
 
 	def do_set_toolbar_size(self, name):
-		size = name[18:] # len('set_toolbar_icons_') == 18
+		if name.startswith('set_toolbar_icons_'):
+			size = name[18:] # len('set_toolbar_icons_') == 18
+		else:
+			size = name
 
 		if size == TOOLBAR_ICONS_LARGE:
 			self.toolbar.set_icon_size(gtk.ICON_SIZE_LARGE_TOOLBAR)
@@ -2076,7 +2124,7 @@ class MainWindow(Window):
 		self.ui.set_readonly(readonly)
 		self.uistate['readonly'] = readonly
 
-	def do_open_notebook(self, ui, notebook):
+	def on_open_notebook(self, ui, notebook):
 		# Initialize all the uistate parameters
 		# delayed till here because all this needs real uistate to be in place
 		# also pathbar needs history in place
@@ -2106,17 +2154,14 @@ class MainWindow(Window):
 		self.uistate.setdefault('show_statusbar_fullscreen', False)
 		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT)
 		self.uistate.setdefault('pathbar_type_fullscreen', PATHBAR_NONE)
+		self.uistate.setdefault('toolbar_style', None, check=basestring)
+		self.uistate.setdefault('toolbar_size', None, check=basestring)
 
 		self._set_widgets_visable()
 		self.toggle_sidepane(show=self.uistate['show_sidepane'])
 
-		if 'toolbar_style' in self.uistate:
-			self.set_toolbar_style(self.uistate['toolbar_style'])
-		# else trust system default
-
-		if 'toolbar_size' in self.uistate:
-			self.set_toolbar_size(self.uistate['toolbar_size'])
-		# else trust system default
+		self.set_toolbar_style(self.uistate['toolbar_style'])
+		self.set_toolbar_size(self.uistate['toolbar_size'])
 
 		self.toggle_fullscreen(show=self._set_fullscreen)
 
@@ -2159,7 +2204,7 @@ class MainWindow(Window):
 			except gobject.GError:
 				logger.exception('Could not load icon %s', notebook.icon)
 
-	def do_open_page(self, ui, page, record):
+	def on_open_page(self, ui, page, record):
 		'''Signal handler for open-page, updates the pageview'''
 		self.pageview.set_page(page)
 
@@ -2177,7 +2222,7 @@ class MainWindow(Window):
 
 		#TODO: set toggle_readonly insensitive when page is readonly
 
-	def do_close_page(self, ui, page):
+	def on_close_page(self, ui, page, final):
 		if not self._fullscreen:
 			self.uistate['windowpos'] = self.get_position()
 			self.uistate['windowsize'] = self.get_size()

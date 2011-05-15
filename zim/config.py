@@ -366,12 +366,14 @@ class ListDict(dict):
 		config. By default 'allow_empty' is False but it is set to
 		True implicitly when the default value is None or ''.
 		'''
+		assert not (default is None and check is None), \
+			'Bad practice to set default to None without check'
+
 		if not key in self:
 			self.__setitem__(key, default)
 			return self[key]
 
 		if check is None:
-			assert not default is None, 'Bad practice to set default to None without check'
 			klass = default.__class__
 			if issubclass(klass, basestring):
 				klass = basestring

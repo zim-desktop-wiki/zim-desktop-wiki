@@ -6,6 +6,7 @@
 
 import os
 import sys
+import tempfile
 import shutil
 import logging
 import gettext
@@ -56,6 +57,20 @@ for file in glob.glob(os.path.dirname(__file__) + '/*.py'):
 		raise AssertionError, 'Test missing in __all__: %s' % name
 
 
+# get our own tmpdir
+TMPDIR = os.path.abspath('./tests/tmp')
+	# Wanted to use tempfile.get_tempdir here to put everything in
+	# e.g. /tmp/zim but since /tmp is often mounted as special file
+	# system this conflicts with thrash support. For writing in source
+	# dir we have conflict with bazaar controls, this is worked around
+	# by a config mode switch in the bazaar backend of the version
+	# control plugin
+if os.name == 'nt':
+	TMPDIR = unicode(TMPDIR)
+else:
+	TMPDIR = TMPDIR.encode(sys.getfilesystemencoding())
+
+
 def load_tests(loader, tests, pattern):
 	'''Load all test cases and return a unittest.TestSuite object.
 	The parameters 'tests' and 'pattern' are ignored.
@@ -71,23 +86,19 @@ def _setUpEnvironment():
 	'''Method to be run once before test suite starts'''
 	# In fact to be loaded before loading some of the zim modules
 	# like zim.config and any that export constants from it
-	tmpdir = './tests/tmp/'
 	os.environ.update({
 		'ZIM_TEST_RUNNING': 'True',
-		'TMP': tmpdir,
-		'XDG_DATA_HOME': './tests/tmp/data_home',
-		'XDG_DATA_DIRS': './tests/tmp/data_dir',
-		'XDG_CONFIG_HOME': './tests/tmp/config_home',
-		'XDG_CONFIG_DIRS': './tests/tmp/config_dir',
-		'XDG_CACHE_HOME': './tests/tmp/cache_home'
+		'TMP': TMPDIR,
+		'XDG_DATA_HOME': os.path.join(TMPDIR, 'data_home'),
+		'XDG_DATA_DIRS': os.path.join(TMPDIR, 'data_dir'),
+		'XDG_CONFIG_HOME': os.path.join(TMPDIR, 'config_home'),
+		'XDG_CONFIG_DIRS': os.path.join(TMPDIR, 'config_dir'),
+		'XDG_CACHE_HOME': os.path.join(TMPDIR, 'cache_home')
 	})
-	if os.name == 'nt':
-		tmpdir = unicode(tmpdir)
-	else:
-		tmpdir = tmpdir.encode(sys.getfilesystemencoding())
-	if os.path.isdir(tmpdir):
-		shutil.rmtree(tmpdir)
-	os.mkdir(tmpdir)
+
+	if os.path.isdir(TMPDIR):
+		shutil.rmtree(TMPDIR)
+	os.makedirs(TMPDIR)
 
 	hicolor = os.environ['XDG_DATA_DIRS'] + '/icons/hicolor'
 	os.makedirs(hicolor)
@@ -177,20 +188,21 @@ class TestCase(unittest.TestCase):
 		else:
 			name = self.__class__.__name__
 
-		dir = os.path.dirname(__file__)
-		path = os.path.join(dir, 'tmp', name)
 		if os.name == 'nt':
-			path = unicode(path)
+			name = unicode(name)
 		else:
-			path = path.encode(sys.getfilesystemencoding())
+			name = name.encode(sys.getfilesystemencoding())
 
-		return path
+		return os.path.join(TMPDIR, name)
 
 
 class LoggingFilter(object):
 	'''Base class for logging filters that can be used as a context
 	using the "with" keyword. To subclass it you only need to set the
 	logger to be used and (the begin of) the message to filter.
+
+	Alternatively you can call L{wrap_test()} from test C{setUp}.
+	This will start the filter and make sure it is cleanep up again.
 	'''
 
 	logger = None
@@ -210,6 +222,10 @@ class LoggingFilter(object):
 
 	def filter(self, record):
 		return not record.getMessage().startswith(self.message)
+
+	def wrap_test(self, test):
+		self.__enter__()
+		test.addCleanup(self.__exit__)
 
 
 class DialogContext(object):

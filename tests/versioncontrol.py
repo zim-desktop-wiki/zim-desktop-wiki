@@ -11,6 +11,8 @@ from zim.fs import *
 from zim.plugins.versioncontrol import VersionControlPlugin, NoChangesError
 from zim.plugins.versioncontrol.bzr import BazaarVCS
 
+import zim.plugins.versioncontrol.bzr
+
 
 # We define our own tmp dir here instead of using tests.create_tmp_dir
 # because sources are probably under change control already - want to
@@ -33,6 +35,12 @@ def get_tmp_dir(name):
 @tests.slowTest
 @tests.skipUnless(BazaarVCS.check_dependencies(), 'Missing dependencies')
 class TestBazaar(tests.TestCase):
+
+	def setUp(self):
+		zim.plugins.versioncontrol.bzr.TEST_MODE = False
+
+	def tearDown(self):
+		zim.plugins.versioncontrol.bzr.TEST_MODE = True
 
 	def runTest(self):
 		'''Test Bazaar version control'''

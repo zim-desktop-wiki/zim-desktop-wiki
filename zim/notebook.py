@@ -577,6 +577,7 @@ class Notebook(gobject.GObject):
 			# backend will automatically trigger this when it calls any
 			# async file operations. This one is more abstract for the
 			# notebook as a whole, regardless of storage
+		self.readonly = True
 
 		if dir:
 			assert isinstance(dir, Dir)

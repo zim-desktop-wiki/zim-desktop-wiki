@@ -97,7 +97,7 @@ def main(daemonproxy, *args):
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, read only
-	('show_quick_note', 'gtk-new', _('Quick Note...'), '', '', True), # T: menu item
+	('show_quick_note', 'gtk-new', _('Quick Note...'), '', '', False), # T: menu item
 )
 
 ui_xml = '''

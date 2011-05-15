@@ -720,12 +720,13 @@ class Index(gobject.GObject):
 
 		# Check if listing is uptodate
 
-		def check_and_queue(child, rawchild):
+		def check_and_queue(child, page):
 			# Helper function to queue individual children
-			if child.haschildren:
+
+			if (page and page.haschildren) or child.haschildren:
 				self._update_pagelist_queue.append(child)
 			elif checkcontents:
-				pagekey = self.notebook.get_page_indexkey(rawchild or child)
+				pagekey = self.notebook.get_page_indexkey(page or child)
 				if not (pagekey and child.contentkey == pagekey):
 					self._index_page_queue.append(child)
 
@@ -749,6 +750,7 @@ class Index(gobject.GObject):
 			changes = []
 			with self.db_commit:
 				for page in self.notebook.get_pagelist(rawpath):
+					#~ print '!! ... ... page:', page, page.haschildren
 					seen.add(page.basename)
 					if page.basename in children:
 						row = children[page.basename]

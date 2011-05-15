@@ -27,14 +27,14 @@ class TestDirsTestSetup(TestCase):
 	def runTest(self):
 		'''Test config environment setup of test'''
 		for k, v in (
-			('XDG_DATA_HOME', './tests/tmp/data_home'),
-			('XDG_CONFIG_HOME', './tests/tmp/config_home'),
-			('XDG_CACHE_HOME', './tests/tmp/cache_home')
+			('XDG_DATA_HOME', os.path.join(tests.TMPDIR, 'data_home')),
+			('XDG_CONFIG_HOME', os.path.join(tests.TMPDIR, 'config_home')),
+			('XDG_CACHE_HOME', os.path.join(tests.TMPDIR, 'cache_home'))
 		): self.assertEqual(getattr(zim.config, k), Dir(v))
 
 		for k, v in (
-			('XDG_DATA_DIRS', './tests/tmp/data_dir'),
-			('XDG_CONFIG_DIRS', './tests/tmp/config_dir'),
+			('XDG_DATA_DIRS', os.path.join(tests.TMPDIR, 'data_dir')),
+			('XDG_CONFIG_DIRS', os.path.join(tests.TMPDIR, 'config_dir')),
 		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(':')))
 
 

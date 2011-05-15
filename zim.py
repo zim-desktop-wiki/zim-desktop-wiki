@@ -26,6 +26,17 @@ if os.name == "nt" and sys.argv[0].endswith('.exe'):
 # Preliminary initialization of logging because modules can throw warnings at import
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
 
+
+# Coverage support - triggered by the test suite
+#~ if True:
+	#~ print 'Start coverage !'
+	#~ import atexit
+	#~ import coverage
+	#~ cov = coverage.coverage(data_suffix=True, auto_data=True)
+	#~ cov.start()
+	#~ atexit.register(cov.stop)
+
+
 # Try importing our modules
 import zim
 import zim.config

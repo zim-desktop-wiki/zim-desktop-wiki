@@ -55,7 +55,8 @@ Can not run test coverage without module 'coverage'.
 On Ubuntu or Debian install package 'python-coverage'.
 '''
 				sys.exit(1)
-			coverage = coverage_module
+			#~ coverage = coverage_module.coverage(data_suffix=True, auto_data=True)
+			coverage = coverage_module.coverage(data_suffix=True)
 			coverage.erase() # clean up old date set
 			coverage.exclude('assert ')
 			coverage.exclude('raise NotImplementedError')
@@ -104,25 +105,31 @@ On Ubuntu or Debian install package 'python-coverage'.
 	# Create coverage output if asked to do so
 	if coverage:
 		coverage.stop()
-		report_coverage(coverage)
+		#~ coverage.combine()
+
+		print '\nWriting coverage reports...'
+		pyfiles = list(tests.zim_pyfiles())
+		#~ coverage.report(pyfiles, show_missing=False)
+		#~ coverage.html_report(pyfiles, directory='./coverage')
+		html_coverage_report(coverage, pyfiles, './coverage')
+		print 'Done - Coverage reports can be found in ./coverage/'
 
 
-def report_coverage(coverage):
-	print ''
-	print 'Writing detailed coverage reports...'
-	pyfiles = list(tests.zim_pyfiles())
-	coverage.report(pyfiles, show_missing=False)
+def html_coverage_report(coverage, pyfiles, directory):
+	'''Our own wrapper to get coverage data in html - standard wrapper
+	from coverage.html_report fails for our code :(
+	'''
 
 	# Detailed report in html
-	if os.path.exists('coverage/'):
-		shutil.rmtree('coverage/') # cleanup
-	os.mkdir('coverage')
+	if os.path.exists(directory):
+		shutil.rmtree(directory) # cleanup
+	os.mkdir(directory)
 
 	index = []
 	for path in pyfiles:
 		if '_lib' in path or '_version' in path: continue
 		htmlfile = path[:-3].replace('/', '.')+'.html'
-		html = open('coverage/'+htmlfile, 'w')
+		html = open(directory + '/' + htmlfile, 'w')
 		html.write('''\
 <html>
 <head>
@@ -170,7 +177,7 @@ def report_coverage(coverage):
 		html.close()
 
 	# Index for detailed reports
-	html = open('coverage/index.html', 'w')
+	html = open(directory + '/index.html', 'w')
 	html.write('''\
 <html>
 <head>
@@ -223,7 +230,6 @@ def report_coverage(coverage):
 ''')
 	html.close()
 
-	print '\nDetailed coverage reports can be found in ./coverage/'
 
 
 
