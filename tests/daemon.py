@@ -4,7 +4,6 @@
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
-from tests import TestCase
 
 import os
 import time
@@ -27,21 +26,13 @@ def waitfile(file, exists=True):
 	assert file.exists() == exists, 'File did not (dis-)appear'
 
 
-class TestDaemon(TestCase):
-
-	slowTest = True
-
-	@classmethod
-	def skipTestZim(klass):
-		if os.name == 'nt':
-			return 'Daemon not supported on Windows'
-		else:
-			return False
-
+@tests.slowTest
+@tests.skipIf(os.name == 'nt', 'Daemon not supported on Windows')
+class TestDaemon(tests.TestCase):
 
 	def runTest(self):
 		'''Test GUI daemon interaction'''
-		dir = Dir(tests.create_tmp_dir('daemon'))
+		dir = Dir(self.create_tmp_dir())
 		socket = dir.file('test-socket')
 		pidfile = dir.file('daemon.pid')
 

@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
-from tests import TestCase, get_test_notebook, create_tmp_dir, MockObject
-from tests.gtk_tests import TestDialogContext
+import tests
+
 
 from zim.errors import Error
 from zim.notebook import get_notebook_list, Path, NotebookInfo
@@ -14,14 +17,15 @@ import zim.gui
 from zim.gui.clipboard import *
 
 
-class TestClipboard(TestCase):
+@tests.slowTest
+class TestClipboard(tests.TestCase):
 
 	def runTest(self):
 		'''Test clipboard interaction'''
+		path = self.get_tmp_name()
+		notebook = tests.new_notebook(fakedir=path)
+
 		clipboard = Clipboard()
-		notebook = get_test_notebook()
-		tmp_dir = create_tmp_dir('gui_Clipboard')
-		notebook.get_store(Path(':')).dir = Dir(tmp_dir) # fake source dir
 
 		# tree roundtrip
 		for pagename in ('Test:wiki', 'roundtrip'):
@@ -40,7 +44,7 @@ class TestClipboard(TestCase):
 
 		wanted = 'some **bold** text\n'
 		text = clipboard.wait_for_text()
-		self.assertEqualDiff(text, wanted)
+		self.assertEqual(text, wanted)
 
 		wanted = '''\
 <html>
@@ -58,7 +62,7 @@ some <strong>bold</strong> text<br>
 </html>
 '''
 		selection = clipboard.wait_for_contents('text/html')
-		self.assertEqualDiff(selection.data, wanted)
+		self.assertEqual(selection.data, wanted)
 
 		wanted = '''\
 Version:1.0\r
@@ -76,7 +80,7 @@ some <strong>bold</strong> text<br>
 </p>
 <!--EndFragment--></BODY></HTML>'''
 		selection = clipboard.wait_for_contents('HTML Format')
-		self.assertEqualDiff(selection.data, wanted)
+		self.assertEqual(selection.data, wanted)
 
 
 		# pagelink -> ..
@@ -157,12 +161,12 @@ some <strong>bold</strong> text<br>
 		self.assertEqual(notebook.resolve_file(rel_path, page), file_obj)
 
 
-class TestDialogs(TestCase):
-
-	slowTest = True
+@tests.slowTest
+class TestDialogs(tests.TestCase):
 
 	def setUp(self):
-		self.ui = MockUI('Test:foo:bar')
+		path = self.create_tmp_dir()
+		self.ui = MockUI('Test:foo:bar', fakedir=path)
 
 	def testOpenPageDialog(self):
 		'''Test OpenPageDialog dialog (Jump To...)'''
@@ -217,7 +221,7 @@ class TestDialogs(TestCase):
 
 	def testSaveCopyDialog(self):
 		'''Test SaveCopyDialog'''
-		tmp_dir = create_tmp_dir('gui_SaveCopyDialog')
+		tmp_dir = self.create_tmp_dir('testSaveCopyDialog')
 		file = File((tmp_dir, 'save_copy.txt'))
 		self.assertFalse(file.exists())
 		dialog = zim.gui.SaveCopyDialog(self.ui)
@@ -227,11 +231,10 @@ class TestDialogs(TestCase):
 
 	def testImportPageDialog(self):
 		'''Test ImportPageDialog'''
-		tmp_dir = create_tmp_dir('gui_ImportPageDialog')
+		tmp_dir = self.create_tmp_dir('testImportPageDialog')
 		file = File((tmp_dir, 'import_page.txt'))
 		file.write('test 123\n')
 		self.assertTrue(file.exists())
-		self.ui = MockUI()
 		dialog = zim.gui.ImportPageDialog(self.ui)
 		dialog.set_file(file)
 		#~ dialog.assert_response_ok()
@@ -299,15 +302,13 @@ class TestDialogs(TestCase):
 
 	def testAttachFileDialog(self):
 		'''Test AttachFileDialog'''
-		tmp_dir = create_tmp_dir('gui_AttachFileDialog')
+		tmp_dir = self.create_tmp_dir('testAttachFileDialog')
 		file = File((tmp_dir, 'file_to_be_attached'))
 		file.write('Test 1 2 3\n')
 		newfile = File((tmp_dir, 'attachments', 'Test', 'foo', 'file_to_be_attached'))
 		self.assertTrue(file.exists())
 		self.assertFalse(newfile.exists())
 
-		store = self.ui.notebook.get_store(Path(':'))
-		store.dir = Dir((tmp_dir, 'attachments')) # Fake dir based notebook
 		dialog = zim.gui.AttachFileDialog(self.ui, path=Path('Test:foo'))
 		dialog.set_file(file)
 		#~ dialog.assert_response_ok()
@@ -315,20 +316,19 @@ class TestDialogs(TestCase):
 		#~ self.assertTrue(file.exists()) # No move or delete happened
 		#~ self.assertTrue(newfile.exists())
 		#~ self.assertTrue(newfile.compare(file))
-		#~ del store.dir
 
 	def testSearchDialog(self):
 		'''Test SearchDialog'''
 		from zim.gui.searchdialog import SearchDialog
-		self.ui.notebook = get_test_notebook()
+		self.ui.notebook = tests.new_notebook()
 		dialog = SearchDialog(self.ui)
 		dialog.query_entry.set_text('Foo')
 		dialog.query_entry.activate()
 		model = dialog.results_treeview.get_model()
 		self.assertTrue(len(model) > 3)
 
-		self.ui.mainwindow = MockObject()
-		self.ui.mainwindow.pageview = MockObject()
+		self.ui.mainwindow = tests.MockObject()
+		self.ui.mainwindow.pageview = tests.MockObject()
 		col = dialog.results_treeview.get_column(0)
 		dialog.results_treeview.row_activated((0,), col)
 
@@ -483,9 +483,8 @@ class TestDialogs(TestCase):
 	# Test for NotebookDialog is in separate class below
 
 
-class TestGtkInterface(TestCase):
-
-	slowTest = True
+@tests.slowTest
+class TestGtkInterface(tests.TestCase):
 
 	def runTest(self):
 		ui = zim.gui.GtkInterface()
@@ -497,7 +496,8 @@ class TestGtkInterface(TestCase):
 		self.assertTrue(len(items) > 3)
 
 
-class TestNotebookDialog(TestCase):
+@tests.slowTest
+class TestNotebookDialog(tests.TestCase):
 
 	def setUp(self):
 		list = config_file('notebooks.list')
@@ -509,7 +509,7 @@ class TestNotebookDialog(TestCase):
 		from zim.gui.notebookdialog import prompt_notebook, \
 			AddNotebookDialog, NotebookDialog
 
-		tmpdir = create_tmp_dir('gui_TestNotebookDialog')
+		tmpdir = self.create_tmp_dir()
 		dir1 = Dir(tmpdir + '/mynotebook1')
 		dir2 = Dir(tmpdir + '/mynotebook2')
 
@@ -520,7 +520,7 @@ class TestNotebookDialog(TestCase):
 			dialog.form['folder'] = dir1.path
 			dialog.assert_response_ok()
 
-		with TestDialogContext(doAddNotebook):
+		with tests.DialogContext(doAddNotebook):
 			self.assertEqual(prompt_notebook(), dir1.uri)
 
 		# Second time we get the list
@@ -530,7 +530,7 @@ class TestNotebookDialog(TestCase):
 			selection.select_path((0,)) # select first and only notebook
 			dialog.assert_response_ok()
 
-		with TestDialogContext(testNotebookDialog):
+		with tests.DialogContext(testNotebookDialog):
 			self.assertEqual(prompt_notebook(), dir1.uri)
 
 		# Third time we add a notebook and set the default
@@ -543,7 +543,7 @@ class TestNotebookDialog(TestCase):
 		def testAddNotebook(dialog):
 			self.assertTrue(isinstance(dialog, NotebookDialog))
 
-			with TestDialogContext(doAddNotebook):
+			with tests.DialogContext(doAddNotebook):
 				dialog.do_add_notebook()
 
 			dialog.combobox.set_active(0)
@@ -552,7 +552,7 @@ class TestNotebookDialog(TestCase):
 			selection.select_path((1,)) # select newly added notebook
 			dialog.assert_response_ok()
 
-		with TestDialogContext(testAddNotebook):
+		with tests.DialogContext(testAddNotebook):
 			self.assertEqual(prompt_notebook(), dir2.uri)
 
 		# Check the notebook exists and the notebook list looks like it should
@@ -574,7 +574,7 @@ class TestNotebookDialog(TestCase):
 			selection.select_path((1,)) # select newly added notebook
 			dialog.assert_response_ok()
 
-		with TestDialogContext(unsetDefault):
+		with tests.DialogContext(unsetDefault):
 			self.assertEqual(prompt_notebook(), dir2.uri)
 
 		list = get_notebook_list()
@@ -582,12 +582,12 @@ class TestNotebookDialog(TestCase):
 		self.assertTrue(list.default is None)
 
 
-class MockUI(MockObject):
+class MockUI(tests.MockObject):
 
-	tmp_dir = create_tmp_dir('gui_MockUI')
+	def __init__(self, page=None, fakedir=None):
+		tests.MockObject.__init__(self)
 
-	def __init__(self, page=None):
-		MockObject.__init__(self)
+		self.tmp_dir = self.create_tmp_dir()
 
 		if page and not isinstance(page, Path):
 			self.page = Path(page)
@@ -595,7 +595,4 @@ class MockUI(MockObject):
 			self.page = page
 
 		self.mainwindow = None
-		self.notebook = get_test_notebook()
-		self.notebook.dir = Dir(self.tmp_dir) # fake source dir
-		self.notebook.get_store(Path(':')).dir = self.notebook.dir
-
+		self.notebook = tests.new_notebook(fakedir=fakedir)

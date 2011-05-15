@@ -11,7 +11,7 @@
 #		added buttons to side of widget
 # 2011-01-02 Fixed use of uistate and updated for new framework to add to the mainwindow (Jaap)
 # 2010-11-14 Fixed Bug 664551
-# 2010-08-31 freedesktop.org thumnail spec mostly implemented
+# 2010-08-31 freedesktop.org thumbnail spec mostly implemented
 # 2010-06-29 1st working version
 #
 # Bugs:
@@ -42,7 +42,7 @@
 # [ ] evaluate imagemagick python libs
 # [ ] thumbnailers as plugins
 # [ ] libgsf thumbnailer
-# [ ] use thumbnailes/settings from gnome or other DEs
+# [ ] use thumbnailers/settings from gnome or other DEs
 # [ ] make a reference implementation for thumbnail spec
 # [ ] rewrite thumbnail spec
 # http://ubuntuforums.org/showthread.php?t=76566
@@ -407,7 +407,7 @@ class ThumbnailManager():
 
 
 	def get_thumbnailfilename(self,filename,size):
-		'''generates md5 hash and appedns ist to local thums storage '''
+		'''generates md5 hash and appends it to local thumb storage '''
 		file_hash = hashlib.md5('file://'+filename).hexdigest()
 		#  ~/.thumbnails/normal
 		# it is a png file and name is the md5 hash calculated earlier
@@ -586,7 +586,7 @@ class ThumbnailManager():
 
 	def enqueue(self,filenameabs,size,set_pixbuf_callback,callbackparm):
 		#logger.debug ("Thumbnail enqueued:" +filenameabs+","+str(size)+","+str(pixbuf))
-		# start thumb generator in bg, if not allready
+		# start thumb generator in bg, if not already
 
 		# dont enqueue twice
 		found=False
@@ -612,7 +612,7 @@ class ThumbnailManager():
 		''' create a pixbuffer
 			load the thumb if available
 			else load smaller thumbnail
-			  and genertate thumb asyncr'''
+			  and generate thumb asyncr'''
 		filenameabs = file.path
 		#print 'get_thumbnail(' , filenameabs ,size
 
@@ -653,11 +653,11 @@ class ThumbnailManager():
 
 					#else: remove fail-mark
 
-				# enque for background creation
+				# enqueue for background creation
 				self.enqueue(filenameabs,size,set_pixbuf_callback,parm)
 
-				# try to load the other size temporarly
-				logger.debug('  load alternavie size')
+				# try to load the other size temporarily
+				logger.debug('  load alternative size')
 				thumbfile=self.get_thumbnailfilename(filenameabs,size_alt)
 				if (os.path.isfile(thumbfile)) and (os.stat(thumbfile).st_mtime > os.stat(filenameabs).st_mtime):
 						try:
@@ -668,11 +668,11 @@ class ThumbnailManager():
 							logger.debug('  Error loading alt. thumbnail')
 				else:
 					logger.debug('  alt thumbnail not valid')
-				# enque for background creation
+				# enqueue for background creation
 
 
 
-		# race codidion: if the tb generator finisches first
+		# race condition: if the tb generator finishes first
 		# the caller must take care for the icon
 		#logger.debug('  Fallback: stock icon')
 		#widget = gtk.HBox() # Need *some* widget here...

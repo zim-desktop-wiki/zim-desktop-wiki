@@ -223,7 +223,7 @@ msgstr "Verzeichnis existiert: %s"
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Das Verzeichnis existiert bereits und enthält Dateien. Wenn Sie in dieses "
 "Verzeichnis exportieren, überschreiben Sie möglicherweise Inhalte. Wollen "
@@ -328,7 +328,7 @@ msgstr "_Protokoll anzeigen"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Während des Erstellen der Grafik trat ein Fehler auf.\n"
@@ -2051,7 +2051,7 @@ msgstr "Diagramm einfügen"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2378,7 +2378,7 @@ msgstr "Sekunden"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "Ein Fehler trat bei der Bearbeitung von \"%s\" auf."
 
 #. menu item
@@ -2845,11 +2845,11 @@ msgstr "Rev"
 #~ msgid "Please specify a URL for the document root"
 #~ msgstr "Bitte geben Sie eine URL für das Dokumentverzeichnis an"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "Ein Fehler trat auf während \"scrot\" ausgeführt wurde"
 
 #~ msgid ""
-#~ "This plugin provides an diagram editor for zim based on GraphViz.\n"
+#~ "This plugin provides a diagram editor for zim based on GraphViz.\n"
 #~ "\n"
 #~ "Depends on: the GraphViz 'dot' command\n"
 #~ "\n"

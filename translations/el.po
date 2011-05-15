@@ -209,7 +209,7 @@ msgstr ""
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Ο φάκελος υπάρχει ήδη και δεν είναι κενός. Αν κάνετε εξαγωγή σε αυτόν, είναι "
 "πιθανό να επικαλύψετε υπάρχοντα αρχεία. Θέλετε να συνεχίσετε;"
@@ -313,7 +313,7 @@ msgstr "Εμφάνιση _καταγραφής"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Παρουσιάστηκε σφάλμα κατά τη δημιουργία της εικόνας.\n"
@@ -2017,7 +2017,7 @@ msgstr "Εισαγωγή διαγράμματος"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2343,7 +2343,7 @@ msgstr "δευτερόλεπτα"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "Παρουσιάστηκε κάποιο σφάλμα κατά την εκτέλεση του \"%s\""
 
 #. menu item
@@ -2834,5 +2834,5 @@ msgstr "Αναθ"
 #~ "\n"
 #~ "Είναι ένα από τα πρόσθετα του zim και παρέχεται μαζί του.\n"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "Παρουσιάστηκε κάποιο σφάλμα κατά την εκτέλεση του \"scrot\""

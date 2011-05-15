@@ -2,7 +2,7 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-# The Error class needed to be put in a separate file to avoid recusive
+# The Error class needed to be put in a separate file to avoid recursive
 # imports.
 
 class Error(Exception):

@@ -223,7 +223,7 @@ msgstr "Папка существует: %s"
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Папка уже существует и содержит данные. Экспорт в нее может привести к "
 "перезаписи существующих файлов. Продолжить?"
@@ -327,7 +327,7 @@ msgstr "Просмотреть _журнал"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Во время генерации изображения возникла ошибка.\n"
@@ -2056,7 +2056,7 @@ msgstr "Вставка диаграмм"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2381,7 +2381,7 @@ msgstr "сек."
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "При выполнении «%s» возникла ошибка"
 
 #. menu item
@@ -2832,7 +2832,7 @@ msgstr "Ревизия"
 #~ msgstr "Вставка внешней ссылки"
 
 #~ msgid ""
-#~ "This plugin provides an diagram editor for zim based on GraphViz.\n"
+#~ "This plugin provides a diagram editor for zim based on GraphViz.\n"
 #~ "\n"
 #~ "Depends on: the GraphViz 'dot' command\n"
 #~ "\n"
@@ -2857,7 +2857,7 @@ msgstr "Ревизия"
 #~ "\n"
 #~ "Это базовый плагин, поставляемый с Zim\n"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "При выполнении \"scrot\" возникла ошибка"
 
 #~ msgid ""

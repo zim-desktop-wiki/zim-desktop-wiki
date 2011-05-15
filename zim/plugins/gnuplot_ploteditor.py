@@ -121,7 +121,7 @@ class PlotGenerator(object):
            'png_fname':            pngfile,
        }
 
-       # Write to tmp file usign the template for the header / footer
+       # Write to tmp file using the template for the header / footer
        plotscriptfile.writelines(
            self.template.process(template_vars)
        )

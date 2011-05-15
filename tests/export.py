@@ -2,7 +2,8 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from tests import TestCase, MockObject, create_tmp_dir, get_test_notebook, get_test_data
+import tests
+
 
 from subprocess import check_call
 
@@ -12,12 +13,11 @@ from zim.exporter import Exporter, StaticLinker
 
 # TODO add check that attachments are copied correctly
 
-class TestLinker(TestCase):
+class TestLinker(tests.TestCase):
 
 	def runTest(self):
 		'''Test proper linking of files in export'''
-		notebook = get_test_notebook()
-		notebook.get_store(Path(':')).dir = Dir('/source/dir/') # fake source dir
+		notebook = tests.new_notebook(fakedir='/source/dir/')
 
 		linker = StaticLinker('html', notebook)
 		linker.set_usebase(True) # normally set by html format module
@@ -31,19 +31,17 @@ class TestLinker(TestCase):
 		self.assertEqual(linker.link_file('../../dus.pdf'), '../dus.pdf')
 
 
-class TestExport(TestCase):
-
-	slowTest = True
+@tests.slowTest
+class TestExport(tests.TestCase):
 
 	options = {'format': 'html', 'template': 'Default'}
 
 	def setUp(self):
-		self.dir = Dir(create_tmp_dir('export_ExportedFiles'))
+		self.dir = Dir(self.create_tmp_dir('exported_files'))
 
 	def export(self):
-		notebook = get_test_notebook()
-		notebook.get_store(Path(':')).dir = Dir('/foo/bar') # fake source dir
-		notebook.index.update()
+		notebook = tests.new_notebook(fakedir='/foo/bar')
+
 		exporter = Exporter(notebook, **self.options)
 		exporter.export_all(self.dir)
 
@@ -75,10 +73,10 @@ class TestExportFullOptions(TestExport):
 class TestExportCommandLine(TestExportFullOptions):
 
 	def export(self):
-		dir = Dir(create_tmp_dir('export_SourceFiles'))
+		dir = Dir(self.create_tmp_dir('source_files'))
 		init_notebook(dir)
 		notebook = Notebook(dir=dir)
-		for name, text in get_test_data('wiki'):
+		for name, text in tests.WikiTestData:
 			page = notebook.get_page(Path(name))
 			page.parse('wiki', text)
 			notebook.store_page(page)
@@ -94,21 +92,18 @@ class TestExportCommandLine(TestExportFullOptions):
 # TODO test export single page from command line
 
 
-class TestExportDialog(TestCase):
-
-	slowTest = True
+@tests.slowTest
+class TestExportDialog(tests.TestCase):
 
 	def runTest(self):
 		'''Test ExportDialog'''
 		from zim.gui.exportdialog import ExportDialog
 
-		dir = Dir(create_tmp_dir('export_ExportDialog'))
+		dir = Dir(self.create_tmp_dir())
 
-		notebook = get_test_notebook()
-		notebook.get_store(Path(':')).dir = Dir('/foo/bar') # fake source dir
-		notebook.index.update()
+		notebook = tests.new_notebook(fakedir='/foo/bar')
 
-		ui = MockObject()
+		ui = tests.MockObject()
 		ui.notebook = notebook
 		ui.page = Path('foo')
 		ui.mainwindow = None

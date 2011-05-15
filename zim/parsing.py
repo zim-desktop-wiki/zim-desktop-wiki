@@ -5,7 +5,6 @@
 '''This module contains utilities for parsing strings and text'''
 
 import re
-import string
 
 
 def split_quoted_strings(string, unescape=True):
@@ -66,7 +65,7 @@ def unescape_quoted_string(string):
 #	assume it is encoded properly to start with
 #	return unicode
 #
-# space is really just ' ', other whithespace characters like tab or
+# space is really just ' ', other whitespace characters like tab or
 # newline should not appear in the first place - so do not facilitate
 # them.
 #
@@ -150,7 +149,7 @@ def url_decode(url, mode=URL_ENCODE_PATH):
 
 	The mode URL_ENCODE_READABLE will not decode any other characters,
 	so urls decoded with these modes can still contain escape sequences.
-	They are save fo usage within zim, but should be re-encoded with
+	They are safe to use within zim, but should be re-encoded with
 	URL_ENCODE_READABLE before handing them to an external program.
 
 	The result is returned as a unicode string.
@@ -327,7 +326,7 @@ is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# \\host\share
 	# smb://host/share
 is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
-	# identifyer "?" path
+	# identifier "?" path
 
 
 _classes = {'c': r'[^\s"<>\']'} # limit the character class a bit
@@ -345,7 +344,7 @@ url_re = Re(r'''(
 
 
 def link_type(link):
-	'''Function that retuns a link type for urls and page links'''
+	'''Function that returns a link type for urls and page links'''
 	if is_url_re.match(link):
 		if link.startswith('zim+'): type = 'notebook'
 		else: type = is_url_re[1]
@@ -364,7 +363,7 @@ def link_type(link):
 
 
 class TextBuffer(list):
-	'''List of strings. Allows you to append arbitry pieces of text but
+	'''List of strings. Allows you to append arbitrary pieces of text but
 	calling get_lines() will recombine or split text into lines. Used by
 	parsers that need to output lines but handle smaller pieces of text
 	internally.

@@ -42,17 +42,17 @@ Syntax errors in the template will cause an exception when the object
 is constructed. Errors while processing a template only print warnings
 to stderr (e.g. for unknown parameters).
 
-One crucial difference with most template imlpementations is that we do
+One crucial difference with most template implementations is that we do
 not trust our templates - it should be possible for non-programmers
-to download that template for a fancy presentations from the internet
+to download that template for a fancy presentations from the Internet
 without worrying whether it may delete his or her notes.
 Therefore we try to minimize to possibilities to actually execute
 arbitrary code from templates.
 
-* We only allow strings as function arguments from the tempalte,
+* We only allow strings as function arguments from the template,
   no arbitrary expressions
 * Functions that are allowed to be called from the template need to be
-  flagged explicitely by wrapping them in a TemplateFunction object.
+  flagged explicitly by wrapping them in a TemplateFunction object.
 * There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
 
@@ -61,7 +61,6 @@ arbitrary code from templates.
 
 import re
 import logging
-from copy import deepcopy
 
 import gobject
 
@@ -128,7 +127,7 @@ class TemplateError(Error):
 class TemplateSyntaxError(TemplateError):
 
 	description = '''\
-An error occcured while parsing a template.
+An error occurred while parsing a template.
 It seems the template contains some invalid syntax.
 '''
 
@@ -147,9 +146,9 @@ It seems the template contains some invalid syntax.
 class TemplateProcessError(TemplateError):
 
 	description = '''
-A run-time error occured while processing a template.
+A run-time error occurred while processing a template.
 This can be due to the template calling functions that are
-not availabel, or it can be a glitch in the program.
+not available, or it can be a glitch in the program.
 '''
 
 
@@ -184,7 +183,7 @@ class GenericTemplate(object):
 	'''Base template class'''
 
 	def __init__(self, input, name=None):
-		'''Constuctor takes a file path or an opened file handle'''
+		'''Constructor takes a file path or an opened file handle'''
 		if isinstance(input, basestring):
 			input = input.splitlines(True)
 		self.name = name or '<open file>'
@@ -313,7 +312,7 @@ class Template(GenericTemplate):
 		The attribute 'pages' can be used to supply page objects for
 		special pages, like 'next', 'previous', 'index' and 'home'.
 		'''
-		options = {} # this dict is accesible from the template and is
+		options = {} # this dict is accessible from the template and is
 		             # passed on to the format
 
 		if pages:
@@ -735,7 +734,7 @@ class PageProxy(object):
 	def body(self):	return self._treeproxy().body
 
 	@property
-	def parts(self): return None # TODO split in parts and return ParseTreeProxy obejcts
+	def parts(self): return None # TODO split in parts and return ParseTreeProxy objects
 
 	@property
 	def links(self):

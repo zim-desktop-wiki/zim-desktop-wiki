@@ -219,7 +219,7 @@ msgstr "文件夹已经存在: %s"
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr "这是一个已存在的非空文件夹，导入到这个文件夹可能导致已存在的文件被覆盖。继续吗？"
 
 #. Title for progressbar window
@@ -319,7 +319,7 @@ msgstr "查看日志(_L)"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "生成图像失败。\n"
@@ -2018,7 +2018,7 @@ msgstr "插入图形"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2326,7 +2326,7 @@ msgstr "秒"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "运行\"%s\"时发生错误"
 
 #. menu item
@@ -2767,7 +2767,7 @@ msgstr "版本"
 #~ "\n"
 #~ "这是zim附带的基本插件\n"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "运行 \"scrot\" 里发生错误"
 
 #~ msgid ""

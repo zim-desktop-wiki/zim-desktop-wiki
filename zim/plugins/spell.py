@@ -90,7 +90,7 @@ This is a core plugin shipping with zim.
 					lang = lang or os.environ.get('LANG') or os.environ.get('LANGUAGE')
 					ErrorDialog(self.ui, (
 						_('Could not load spell checking for language: "%s"') % lang,
-							# T: error message - %s is replace with language codes like "en", "en_US"m or "nl_NL"
+							# T: error message - %s is replaced with language codes like "en", "en_US"m or "nl_NL"
 						_('This could mean you don\'t have the proper\ndictionaries installed')
 							# T: error message explanation
 					) ).run()

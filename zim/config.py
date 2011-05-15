@@ -164,7 +164,7 @@ def data_file(path):
 
 def config_dirs():
 	'''Generator that first yields the equivalent of ~/.config/zim and
-	/etc/xdg/zim and then continous with the data dirs. Zim is not strictly
+	/etc/xdg/zim and then continuous with the data dirs. Zim is not strictly
 	XDG conformant by installing default config files in /usr/share/zim instead
 	of in /etc/xdg/zim. Therefore this function yields both.
 	'''
@@ -226,7 +226,7 @@ def user_dirs():
 
 def check_class_allow_empty(value, default):
 	'''Check function for setdefault() which ensures the value is of
-	the same class as the default but allows it to be empty. THis is
+	the same class as the default but allows it to be empty. This is
 	the same as the default behavior when "allow_empty" is True.
 
 	Only reason to use this function is for places where setdefault()
@@ -330,7 +330,7 @@ class ListDict(dict):
 		because we assume un-safe user input. If no extra arguments
 		are given it will compare the classes of the set value and the
 		default to ensure we get what we expect. An exception is made
-		when value is None, in that case it is good practise to always
+		when value is None, in that case it is good practice to always
 		specify a class or check function. When the default is a string
 		we check the value to be an instance of basestring (ignoring
 		difference between str and unicode). Another special case is when
@@ -339,7 +339,7 @@ class ListDict(dict):
 
 		If 'check' is given and is a class the existing value will be
 		checked to be of that class and reset to default if it is not.
-		Same spacial case for tuples applies here.
+		Same special case for tuples applies here.
 
 		If 'check' is given and it is a function it will be used to
 		check the value in the dictionary if it exists. The check
@@ -368,14 +368,14 @@ class ListDict(dict):
 		If 'allow_empty' is True values are also allowed to be empty
 		string or None. This is used for optional parameters in the
 		config. By default 'allow_empty' is False but it is set to
-		True implicitely when the default value is None or ''.
+		True implicitly when the default value is None or ''.
 		'''
 		if not key in self:
 			self.__setitem__(key, default)
 			return self[key]
 
 		if check is None:
-			assert not default is None, 'Bad practise to set default to None without check'
+			assert not default is None, 'Bad practice to set default to None without check'
 			klass = default.__class__
 			if issubclass(klass, basestring):
 				klass = basestring
@@ -530,7 +530,7 @@ class ConfigDict(ListDict):
 			else:
 				logger.warn('Could not parse line: %s', line)
 
-	# Seperated out as this will be slightly different for .desktop files
+	# Separated out as this will be slightly different for .desktop files
 	def _decode_value(self, value):
 		if len(value) == 0:
 			return ''

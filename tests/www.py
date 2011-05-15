@@ -4,7 +4,7 @@
 
 from __future__ import with_statement
 
-from tests import TestCase, LoggingFilter, get_test_notebook
+import tests
 
 import sys
 from cStringIO import StringIO
@@ -17,16 +17,14 @@ from zim.www import WWWInterface
 # TODO how to test fetching from a socket while mainloop is running ?
 
 
-class Filter404(LoggingFilter):
+class Filter404(tests.LoggingFilter):
 
 	logger = 'zim.www'
 	message = '404 Not Found'
 
 
-
-class TestWWWInterface(TestCase):
-
-	slowTest = True
+@tests.slowTest
+class TestWWWInterface(tests.TestCase):
 
 	def assertResponseWellFormed(self, response, expectbody=True):
 		body = response.splitlines()
@@ -57,7 +55,7 @@ class TestWWWInterface(TestCase):
 
 	def runTest(self):
 		'Test WWW interface'
-		notebook = get_test_notebook()
+		notebook = tests.new_notebook()
 		notebook.index.update()
 		interface = WWWInterface(notebook, template=self.template)
 		validator = wsgiref.validate.validator(interface)

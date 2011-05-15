@@ -1,17 +1,44 @@
+# -*- coding: utf-8 -*-
 
-from tests import TestCase
+# Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+# This module contains a number of meta test to check coding style
+# and packaging
+
+import tests
 
 import os
 import copy
 import re
 
 
-class TestCoding(TestCase):
+class TestCompileAll(tests.TestCase):
+
+	def runTest(self):
+		'''Test if all modules compile'''
+		for file in tests.zim_pyfiles():
+			module = file[:-3].replace('/', '.')
+			assert __import__(module)
+
+
+@tests.slowTest
+class TestNotebookUpgrade(tests.TestCase):
+
+	def runTest(self):
+		'''Test if included notebooks are up to date'''
+		from zim.fs import Dir
+		from zim.notebook import get_notebook
+		for path in ('data/manual', 'HACKING'):
+			notebook = get_notebook(Dir(path))
+			self.assertTrue(not notebook.needs_upgrade)
+
+
+class TestCoding(tests.TestCase):
 	'''This test case enforces some coding style items'''
 
 	def __init__(self, *a):
 		self._code_files = []
-		TestCase.__init__(self, *a)
+		tests.TestCase.__init__(self, *a)
 
 	def list_code(self):
 		'''Return all python files as text'''
@@ -24,12 +51,12 @@ class TestCoding(TestCase):
 		self._code_files = []
 		for root in ('zim', 'tests'):
 			for dir, dirs, files in os.walk(root):
-				if 'coding.py' in files:
-					files.remove('coding.py') # Skip this file itself
 				for basename in files:
 					if basename.endswith('.py'):
 						file = dir + '/' + basename
-						#print 'READING', file
+						if file == 'tests/package.py': # skip ourselve
+								continue
+						#~ print 'READING', file
 						fh = open(file)
 						self._code_files.append((file, fh.read()))
 						fh.close()
@@ -83,4 +110,3 @@ class TestCoding(TestCase):
 						lineno = token[2][0]
 						line = token[-1]
 						self.assertTrue(import_seen, '%s missing with_statement import from __future__ ("with" seen on line %i):\n%s' % (file, lineno, line))
-
