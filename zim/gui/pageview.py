@@ -4747,6 +4747,7 @@ class FindBar(FindWidget, gtk.HBox):
 		self.find_entry.grab_focus()
 
 	def show(self):
+		self.on_highlight_toggled()
 		self.set_no_show_all(False)
 		self.show_all()
 
