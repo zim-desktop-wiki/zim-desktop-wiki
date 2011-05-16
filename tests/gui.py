@@ -396,6 +396,7 @@ class TestDialogs(TestCase):
 			'icon': './icon.png',
 			'document_root': '/foo',
 			'shared': False,
+			'interwiki': 'mywiki'
 		}
 		config2 = {
 			'name': 'Notebook Bar',
@@ -403,6 +404,7 @@ class TestDialogs(TestCase):
 			'icon': './picture.png',
 			'document_root': '/bar',
 			'shared': True,
+			'interwiki': 'mynotes'
 		}
 		notebook.save_properties(**config1)
 		self.assertEqual(notebook.config['Notebook'], config1)

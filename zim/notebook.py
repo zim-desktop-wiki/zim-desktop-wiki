@@ -421,15 +421,16 @@ def interwiki_link(link):
 			break
 	else:
 		list = get_notebook_list()
-		info = list.get_by_name(key)
-		if info:
-			url = 'zim+' + info.uri + '?{NAME}'
+		# search interwiki property
+		for info in list:
+			if info.interwiki == key:
+				url = 'zim+' + info.uri + '?{NAME}'
+				break
 		else:
-			for info in list:
-				if info.interwiki == key:
-					url = 'zim+' + info.uri + '?{NAME}'
-					break
-					
+			# fallback to previous behavior
+			info = list.get_by_name(key)
+			if info:
+				url = 'zim+' + info.uri + '?{NAME}'
 				
 
 	if url and is_url_re.match(url):
