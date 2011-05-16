@@ -62,10 +62,8 @@ page.name		# complete page name
 page.namespace		# namespace
 page.basename		# last part of the page name
 page.title		# first heading in the page or the basename
-
 page.heading		# first heading in the page
 page.body		# content of the page (without the leading heading)
-page.menu		# tree-style menu (non-related branches are collapsed)
 page.links		# list of page objects for pages linked in this page
 page.backlinks		# list of page objects for pages linking to this page
 page.properties		# dict with page properties
@@ -82,8 +80,7 @@ options			# dict where format specific options can be set
 
 Functions available:
 
-'''
-url(link)			# turns a zim link into an URL
-strftime(template, date)	# format a date
-'''
+* ''url(link)'' - turns a zim link into an URL
+* ''strftime(template, date)'' - format a date
+* ''menu(namespace, collapse, ignore_empty)'' - creates a tree-style menu starting with given namespace (''":"'' by default).  ''collapse'' can be ''TRUE'' (only branches related to the current page are visible, //default value//) or ''FALSE'' (all branches are visible). ''ignore_empty'' can be ''TRUE'' (empty pages are ignored, //default value//) or ''FALSE''. Example: ''menu(page.namespace,  TRUE, FALSE)''
 

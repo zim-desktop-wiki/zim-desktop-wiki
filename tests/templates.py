@@ -188,14 +188,11 @@ Version %s
 		self.assertEqualDiff(tree.find('/h').text, u'Some New None existing page')
 
 class TestTemplatePageMenu(TestCase):
-
 	def runTest(self):
-		input = u'''\
-<h1>[% page.name %]</h1>
-[% page.menu %]
-'''
-		wantedresult = u'''\
-<h1>Parent:Daughter</h1>
+		# menu(root, collapse, ignore_empty)
+		data = (
+# Test default settings
+(u"[% menu() %]", '''\
 <ul>
 <li><a href="page://Parent" title="Parent">Parent</a></li>
 <ul>
@@ -210,12 +207,192 @@ class TestTemplatePageMenu(TestCase):
 <li><a href="page://TODOList" title="TODOList">TODOList</a></li>
 <li><a href="page://TrashMe" title="TrashMe">TrashMe</a></li>
 </ul>
+'''),
+# Collapsing turned off
+(u"[% menu(':', FALSE, TRUE) %]", '''\
+<ul>
+<li><a href="page://Parent" title="Parent">Parent</a></li>
+<ul>
+<li><strong>Daughter</strong></li>
+<ul>
+<li><a href="page://Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+</ul>
+<li><a href="page://Parent:Son" title="Son">Son</a></li>
+<ul>
+<li><a href="page://Parent:Son:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://Parent:Son:Grandson" title="Grandson">Grandson</a></li>
+</ul>
+</ul>
+<li><a href="page://roundtrip" title="roundtrip">roundtrip</a></li>
+<li><a href="page://TODOList" title="TODOList">TODOList</a></li>
+<ul>
+<li><a href="page://TODOList:bar" title="bar">bar</a></li>
+<li><a href="page://TODOList:foo" title="foo">foo</a></li>
+</ul>
+<li><a href="page://TrashMe" title="TrashMe">TrashMe</a></li>
+<ul>
+<li><a href="page://TrashMe:sub page 1" title="sub page 1">sub page 1</a></li>
+<li><a href="page://TrashMe:sub page 2" title="sub page 2">sub page 2</a></li>
+</ul>
+</ul>
+'''),
+# Empty pages are not ignored
+(u"[% menu(':', TRUE, FALSE) %]", '''\
+<ul>
+<li><a href="page://Bar" title="Bar">Bar</a></li>
+<li><a href="page://foo" title="foo">foo</a></li>
+<li><a href="page://Linking" title="Linking">Linking</a></li>
+<li><a href="page://Parent" title="Parent">Parent</a></li>
+<ul>
+<li><a href="page://Parent:Child" title="Child">Child</a></li>
+<li><strong>Daughter</strong></li>
+<ul>
+<li><a href="page://Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+<li><a href="page://Parent:Daughter:SomeOne" title="SomeOne">SomeOne</a></li>
+</ul>
+<li><a href="page://Parent:Son" title="Son">Son</a></li>
+</ul>
+<li><a href="page://roundtrip" title="roundtrip">roundtrip</a></li>
+<li><a href="page://Test" title="Test">Test</a></li>
+<li><a href="page://TODOList" title="TODOList">TODOList</a></li>
+<li><a href="page://TrashMe" title="TrashMe">TrashMe</a></li>
+<li><a href="page://utf8" title="utf8">utf8</a></li>
+</ul>
+'''),
+# Both
+(u"[% menu(':', FALSE, FALSE) %]", '''\
+<ul>
+<li><a href="page://Bar" title="Bar">Bar</a></li>
+<li><a href="page://foo" title="foo">foo</a></li>
+<ul>
+<li><a href="page://foo:bar" title="bar">bar</a></li>
+</ul>
+<li><a href="page://Linking" title="Linking">Linking</a></li>
+<ul>
+<li><a href="page://Linking:Dus" title="Dus">Dus</a></li>
+<ul>
+<li><a href="page://Linking:Dus:Ja" title="Ja">Ja</a></li>
+</ul>
+<li><a href="page://Linking:Foo" title="Foo">Foo</a></li>
+<ul>
+<li><a href="page://Linking:Foo:Bar" title="Bar">Bar</a></li>
+<ul>
+<li><a href="page://Linking:Foo:Bar:Baz" title="Baz">Baz</a></li>
+</ul>
+</ul>
+</ul>
+<li><a href="page://Parent" title="Parent">Parent</a></li>
+<ul>
+<li><a href="page://Parent:Child" title="Child">Child</a></li>
+<ul>
+<li><a href="page://Parent:Child:Grandchild" title="Grandchild">Grandchild</a></li>
+</ul>
+<li><strong>Daughter</strong></li>
+<ul>
+<li><a href="page://Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+<li><a href="page://Parent:Daughter:SomeOne" title="SomeOne">SomeOne</a></li>
+<ul>
+<li><a href="page://Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
+<li><a href="page://Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
+</ul>
+</ul>
+<li><a href="page://Parent:Son" title="Son">Son</a></li>
+<ul>
+<li><a href="page://Parent:Son:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://Parent:Son:Grandson" title="Grandson">Grandson</a></li>
+</ul>
+</ul>
+<li><a href="page://roundtrip" title="roundtrip">roundtrip</a></li>
+<li><a href="page://Test" title="Test">Test</a></li>
+<ul>
+<li><a href="page://Test:foo" title="foo">foo</a></li>
+<ul>
+<li><a href="page://Test:foo:bar" title="bar">bar</a></li>
+</ul>
+<li><a href="page://Test:Foo Bar" title="Foo Bar">Foo Bar</a></li>
+<ul>
+<li><a href="page://Test:Foo Bar:Dus Ja Hmm" title="Dus Ja Hmm">Dus Ja Hmm</a></li>
+</ul>
+<li><a href="page://Test:tags" title="tags">tags</a></li>
+<li><a href="page://Test:wiki" title="wiki">wiki</a></li>
+</ul>
+<li><a href="page://TODOList" title="TODOList">TODOList</a></li>
+<ul>
+<li><a href="page://TODOList:bar" title="bar">bar</a></li>
+<li><a href="page://TODOList:foo" title="foo">foo</a></li>
+</ul>
+<li><a href="page://TrashMe" title="TrashMe">TrashMe</a></li>
+<ul>
+<li><a href="page://TrashMe:sub page 1" title="sub page 1">sub page 1</a></li>
+<li><a href="page://TrashMe:sub page 2" title="sub page 2">sub page 2</a></li>
+</ul>
+<li><a href="page://utf8" title="utf8">utf8</a></li>
+<ul>
+<li><a href="page://utf8:αβγ" title="αβγ">αβγ</a></li>
+<li><a href="page://utf8:בדיקה" title="בדיקה">בדיקה</a></li>
+<ul>
+<li><a href="page://utf8:בדיקה:טכניון" title="טכניון">טכניון</a></li>
+<ul>
+<li><a href="page://utf8:בדיקה:טכניון:הנדסת מכונות" title="הנדסת מכונות">הנדסת מכונות</a></li>
+<li><a href="page://utf8:בדיקה:טכניון:מדעי המחשב" title="מדעי המחשב">מדעי המחשב</a></li>
+</ul>
+</ul>
+<li><a href="page://utf8:中文" title="中文">中文</a></li>
+</ul>
+</ul>
+'''),
+# Let's chenge the root
+(u"[% menu(page, FALSE) %]", '''\
+<ul>
+<li><a href="page://Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+</ul>
+'''),
+(u"[% menu(page.name, FALSE, FALSE) %]", '''\
+<ul>
+<li><a href="page://Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+<li><a href="page://Parent:Daughter:SomeOne" title="SomeOne">SomeOne</a></li>
+<ul>
+<li><a href="page://Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
+<li><a href="page://Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
+</ul>
+</ul>
+'''),
+(u"[% menu(page.namespace, FALSE, FALSE) %]", '''\
+<ul>
+<li><a href="page://Parent:Child" title="Child">Child</a></li>
+<ul>
+<li><a href="page://Parent:Child:Grandchild" title="Grandchild">Grandchild</a></li>
+</ul>
+<li><strong>Daughter</strong></li>
+<ul>
+<li><a href="page://Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+<li><a href="page://Parent:Daughter:SomeOne" title="SomeOne">SomeOne</a></li>
+<ul>
+<li><a href="page://Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
+<li><a href="page://Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
+</ul>
+</ul>
+<li><a href="page://Parent:Son" title="Son">Son</a></li>
+<ul>
+<li><a href="page://Parent:Son:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://Parent:Son:Grandson" title="Grandson">Grandson</a></li>
+</ul>
+</ul>
+'''),
+)
 
-'''
 		notebook = tests.get_test_notebook('wiki')
 		page = notebook.get_page(Path(':Parent:Daughter'))
-		result = Template(input, 'html', linker=StubLinker()).process(notebook, page)
-		self.assertEqualDiff(result, wantedresult.splitlines(True))
+		for input, wantedresult in data:
+			print input
+			result = Template(input, 'html', linker=StubLinker()).process(notebook, page)
+			self.assertEqualDiff(result, wantedresult.splitlines(True))
 
 		
 

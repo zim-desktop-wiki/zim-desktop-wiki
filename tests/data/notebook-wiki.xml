@@ -319,6 +319,8 @@ Duss
 <page name="Parent:Daughter">For page.menu template variable test</page>
 <page name="Parent:Daughter:Grandson">For page.menu template variable test</page>
 <page name="Parent:Daughter:Granddaughter">For page.menu template variable test</page>
+<page name="Parent:Daughter:SomeOne:Foo">For page.menu template variable test</page>
+<page name="Parent:Daughter:SomeOne:Bar">For page.menu template variable test</page>
 <page name="Parent:Child:Grandchild">For page.menu template variable test</page>
 
 </pagelist>

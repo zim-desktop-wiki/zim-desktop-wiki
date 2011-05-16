@@ -200,7 +200,6 @@ class GenericTemplate(object):
 		'''
 		if not isinstance(dict, TemplateDict):
 			dict = TemplateDict(dict)
-
 		output = TextBuffer(self.tokens.process(dict))
 		return output.get_lines()
 
@@ -337,7 +336,10 @@ class Template(GenericTemplate):
 			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
 			'options': options,
-			'notebook': {'name' : notebook.name}
+			'notebook': {'name' : notebook.name},
+			'menu' : MenuFunction(notebook, page, self.format, self.linker, options),
+			# helpers that allow to write TRUE instead of 'TRUE' in template functions
+			'TRUE' : 'True', 'FALSE' : 'False', 
 		}
 
 		if self.linker:
@@ -628,6 +630,109 @@ class StrftimeFunction(TemplateFunction):
 		else:
 			raise AssertionError, 'Not a datetime object: %s', date
 
+class MenuFunction(TemplateFunction):
+	'''Template function wrapper for strftime'''
+
+	def __init__(self, notebook, page, format, linker, options):
+		self._notebook = notebook
+		self._page = page
+		self._format = format
+		self._linker = linker
+		self._options = options
+		
+
+	def __call__(self, dict, root=':', collapse=True, ignore_empty=True):
+		builder = TreeBuilder()
+		level = self._page.name.count(':')
+		home = Path(self._notebook.config['Notebook']['home'])
+		
+		# TODO: Some logic to parse boolean template function params
+		if isinstance(collapse, (TemplateParam, TemplateLiteral, basestring)):
+			collapse = (str(collapse).strip().lower() == 'true')
+		if isinstance(ignore_empty, (TemplateParam, TemplateLiteral, basestring)):
+			ignore_empty = (str(ignore_empty).strip().lower() == 'true')
+		
+		# [% menu(page) %] vs [% menu(page.name) %]
+		if isinstance(root, PageProxy): root = root.name
+		#~ print "!!! ROOT, ", root
+		
+		def add_namespace(path):
+			mylevel = path.name.count(':')
+			
+			if collapse:
+				# Menu doesn't show whole tree, but only pages related to the current page.
+				if mylevel > level:
+					# "path" is more nested then the current page
+					return
+				elif level == mylevel:
+					# "path" has same level as current page
+					if not self._page.name == path.name and path.name:
+						# Show only children of the current page or namespace pages
+						return
+				elif not self._page.name.startswith(path.name):
+					# "path" is less nested, show only children of the ancestors
+					# of the current page
+					return
+			
+			#~ print "!!! path & level", path, mylevel
+			pagelist = list(self._notebook.index.list_pages(path))
+			# find home page
+			for page in pagelist:
+				if page.name == home.name:
+					home_page = page
+					break
+			else:
+				# home page not in list
+				home_page = None
+
+			# home page will be first item
+			if not home_page is None:
+				pagelist.remove(home_page)
+				pagelist.insert(0, home_page)
+
+			builder.start('ul')
+			for page in pagelist:
+				if ignore_empty and not page.hascontent:
+					#~ print "!!! skip page", page
+					continue
+				builder.start('li')
+				text = page.basename
+
+				if self._page.name == page.name:
+					# Current page is marked with the strong style
+					builder.start('strong')
+					builder.data(text)
+					builder.end('strong')
+				else:
+					# links to other pages
+					builder.start('link', {'type': 'page', 'href': page.name})
+					builder.data(text)
+					builder.end('link')
+				builder.end('li')
+				if page.haschildren:
+					add_namespace(page) # recurs
+			builder.end('ul')
+
+		builder.start('page')
+		add_namespace(Path(root))
+		builder.end('page')
+
+		tree = ParseTree(builder.close())
+		if not tree:
+			return None
+			
+		#~ print "!!!", tree.tostring()
+		
+		format = self._format
+		linker = self._linker
+		if linker:
+			linker.set_path(self._page)
+
+		dumper = format.Dumper(
+			linker=linker,
+			template_options=self._options )
+
+		return ''.join(dumper.dump(tree))
 
 class TemplateDict(object):
 	'''Object behaving like a dict for storing values of template parameters.
@@ -754,85 +859,7 @@ class PageProxy(object):
 		for link in blinks:
 			source = self._notebook.get_page(link.source)
 			yield PageProxy(self._notebook, source, self._format, self._linker, self._options)
-	@property
-	def menu(self):
-		builder = TreeBuilder()
-		level = self._page.name.count(':')
-		home = Path(self._notebook.config['Notebook']['home'])
-		
-		def add_namespace(path):
-			mylevel = path.name.count(':')
-			
-			# Menu doesn't show whole tree, but only pages related to the current page.
-			if mylevel > level:
-				# "path" is more nested then the current page
-				return
-			elif level == mylevel:
-				# "path" has same level as current page
-				if not self._page.name == path.name and path.name:
-					# Show only children of the current page or namespace pages
-					return
-			elif not self._page.name.startswith(path.name):
-				# "path" is less nested, show only children of the ancestors
-				# of the current page
-				return
-
-			pagelist = list(self._notebook.index.list_pages(path))
-			# find home page
-			for page in pagelist:
-				if page.name == home.name:
-					home_page = page
-					break
-			else:
-				# home page not in list
-				home_page = None
-
-			# home page will be first item
-			if not home_page is None:
-				pagelist.remove(home_page)
-				pagelist.insert(0, home_page)
-
-			builder.start('ul')
-			for page in pagelist:
-				if not page.hascontent: continue
-				builder.start('li')
-				text = page.basename
-
-				if self._page.name == page.name:
-					# Current page is marked with the strong style
-					builder.start('strong')
-					builder.data(text)
-					builder.end('strong')
-				else:
-					# links to other pages
-					builder.start('link', {'type': 'page', 'href': page.name})
-					builder.data(text)
-					builder.end('link')
-				builder.end('li')
-				if page.haschildren:
-					add_namespace(page) # recurs
-			builder.end('ul')
-
-		builder.start('page')
-		add_namespace(Path(':'))
-		builder.end('page')
-
-		tree = ParseTree(builder.close())
-		if not tree:
-			return None
-			
-		#~ print "!!!", tree.tostring()
-		
-		format = self._format
-		linker = self._linker
-		if linker:
-			linker.set_path(self._page)
-
-		dumper = format.Dumper(
-			linker=linker,
-			template_options=self._options )
-
-		return ''.join(dumper.dump(tree))
+	
 
 class ParseTreeProxy(object):
 
