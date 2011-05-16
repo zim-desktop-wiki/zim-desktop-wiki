@@ -4740,7 +4740,7 @@ class FindBar(FindWidget, gtk.HBox):
 			self.pack_start(self.highlight_checkbox, False)
 
 		close_button = IconButton(gtk.STOCK_CLOSE, relief=False)
-		close_button.connect_object('clicked', self.__class__.hide, self)
+		close_button.connect_object('clicked', self.__class__.do_close_clicked, self)
 		self.pack_end(close_button, False)
 
 	def grab_focus(self):
@@ -4756,6 +4756,10 @@ class FindBar(FindWidget, gtk.HBox):
 		buffer = self.textview.get_buffer()
 		buffer.finder.set_highlight(False)
 
+	def do_close_clicked(self):
+		self.hide()
+		self.textview.grab_focus()
+
 	def on_find_entry_activate(self):
 		self.on_find_entry_changed()
 		self.textview.grab_focus()
@@ -4763,6 +4767,7 @@ class FindBar(FindWidget, gtk.HBox):
 	def do_key_press_event(self, event):
 		if event.keyval == KEYVAL_ESC:
 			self.hide()
+			self.textview.grab_focus()
 			return True
 		else:
 			return gtk.HBox.do_key_press_event(self, event)
