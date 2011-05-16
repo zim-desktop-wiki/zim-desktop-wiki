@@ -757,7 +757,7 @@ class TagsPluginWidget(gtk.VPaned):
 		self.treeview.set_tag_filter(filter)
 
 	def disconnect_model(self):
-		'''Stop the model from listening to the inxed. Used to
+		'''Stop the model from listening to the index. Used to
 		unhook the model before reloading the index. Typically
 		should be followed by reload_model().
 		'''

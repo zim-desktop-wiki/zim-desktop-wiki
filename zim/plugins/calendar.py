@@ -178,7 +178,7 @@ This is a core plugin shipping with zim.
 		return datetime.date(year, month, day)
 
 	def on_process_page_template(self, manager, template, page, dict):
-		'''Callback called when parsing a template, e.g. when exposting a page
+		'''Callback called when parsing a template, e.g. when exposing a page
 		or for the template used to create a new page. Will set parameters in
 		the template dict to be used in the template.
 		'''

@@ -3,20 +3,13 @@
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
-from tests import TestCase
 
 from zim.plugins.equationeditor import *
 
-class TestEquationEditor(TestCase):
 
-	slowTest = True
-
-	@classmethod
-	def skipTestZim(klass):
-		if not InsertEquationPlugin.check_dependencies_ok():
-			return 'Missing dependencies'
-		else:
-			return False
+@tests.slowTest
+@tests.skipUnless(InsertEquationPlugin.check_dependencies_ok(), 'Missing dependencies')
+class TestEquationEditor(tests.TestCase):
 
 	def runTest(self):
 		'Test Equation Editor plugin'

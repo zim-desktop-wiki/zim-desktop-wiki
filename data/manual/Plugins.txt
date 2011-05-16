@@ -10,7 +10,7 @@ The following plugins are standard included with zim:
 * [[+Diagram Editor|Diagram Editor]]
 * [[+Equation Editor|Equation Editor]]
 * [[+GNU R Plot Editor|GNU R Plot Editor]]
-* [[+GNUPlot Editor|GNUPlot Editor]]
+* [[+Gnuplot Editor|Gnuplot Editor]]
 * [[+Insert Screenshot|Insert Screenshot]]
 * [[+Insert Symbol|Insert Symbol]]
 * [[+Inline Calculator|Inline Calculator]]

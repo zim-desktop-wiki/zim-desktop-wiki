@@ -54,7 +54,7 @@ def async_commit_with_error(ui, vcs, msg, skip_no_changes=False):
 				logger.debug('No autosave version needed - no changes')
 			else:
 				logger.error('Error during async commit', exc_info=exc_info)
-				ErrorDialog(ui, error).run()
+				ErrorDialog(ui, error, exc_info).run()
 	vcs.commit_async(msg, callback=callback)
 
 
@@ -106,7 +106,8 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('bzr',Application(('bzr',)).tryexec())]
+		has_bzr = Application(('bzr',)).tryexec()
+		return has_bzr, [('bzr', has_bzr, True)]
 
 	def detect_vcs(self):
 		dir = self._get_notebook_dir()

@@ -37,7 +37,7 @@ class InsertDiagramPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Insert Diagram'), # T: plugin name
 		'description': _('''\
-This plugin provides an diagram editor for zim based on GraphViz.
+This plugin provides a diagram editor for zim based on GraphViz.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
@@ -47,7 +47,8 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [("GraphViz",Application(dotcmd).tryexec())]
+		has_dotcmd = Application(dotcmd).tryexec()
+		return has_dotcmd, [("GraphViz", has_dotcmd, True)]
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)

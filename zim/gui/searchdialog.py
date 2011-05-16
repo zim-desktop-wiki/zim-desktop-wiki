@@ -116,5 +116,5 @@ class SearchResultsTreeView(BrowserTreeView):
 		# Popup find dialog with same query
 		if self.query and self.query.simple_match:
 			string = self.query.simple_match
-			string.strip('*') # support partial matches
+			string = string.strip('*') # support partial matches
 			self.ui.mainwindow.pageview.show_find(string, highlight=True)

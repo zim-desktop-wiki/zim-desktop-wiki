@@ -71,7 +71,6 @@ def generate ():
         offsets.append((len(ids), len(_id), len(strs), len(MESSAGES[_id])))
         ids += _id + '\0'
         strs += MESSAGES[_id] + '\0'
-    output = ''
     # The header is 7 32-bit unsigned integers.  We don't use hash tables, so
     # the keys start right after the index tables.
     # translated string.

@@ -1,10 +1,13 @@
+# -*- coding: utf-8 -*-
 
-from tests import get_test_notebook, TestCase
+# Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+import tests
 
 from zim.search import *
 from zim.notebook import Path
 
-class TestSearchRegex(TestCase):
+class TestSearchRegex(tests.TestCase):
 
 	def runTest(self):
 		'''Test regex compilation for search terms'''
@@ -35,10 +38,10 @@ class TestSearchRegex(TestCase):
 
 
 
-class TestSearch(TestCase):
+class TestSearch(tests.TestCase):
 
 	def setUp(self):
-		self.notebook = get_test_notebook()
+		self.notebook = tests.new_notebook()
 
 	def runTest(self):
 		'''Test search API'''
@@ -157,28 +160,12 @@ class TestSearch(TestCase):
 		# TODO test Name
 
 
-def get_files_notebook(name):
-	from tests import create_tmp_dir, get_test_data
-	from zim.fs import Dir
-	from zim.notebook import init_notebook, Notebook
-
-	dir = Dir(create_tmp_dir(name))
-	init_notebook(dir)
-	notebook = Notebook(dir=dir)
-	for name, text in get_test_data('wiki'):
-		page = notebook.get_page(Path(name))
-		page.parse('wiki', text)
-		notebook.store_page(page)
-
-	return notebook
-
-
+@tests.slowTest
 class TestSearchFiles(TestSearch):
 
-	slowTest = True
-
 	def setUp(self):
-		self.notebook = get_files_notebook('search_TestSearchFiles')
+		path = self.create_tmp_dir()
+		self.notebook = tests.new_files_notebook(path)
 
 	def runTest(self):
 		'''Test search API with file based notebook'''

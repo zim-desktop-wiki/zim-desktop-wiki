@@ -130,7 +130,7 @@ def complexify(x,func ):
     else:
         return func(x)
 
-# overwrite the builtin math functions that don't handle complex
+# overwrite the built-in math functions that don't handle complex
 def round(x):
     'nearest integer'
     if type(x) == complex:

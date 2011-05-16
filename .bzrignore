@@ -7,6 +7,7 @@
 ./zim/_version.py
 ./MANIFEST
 **/.zim
+.coverage*
 ./coverage
 ./tests/tmp
 ./doxygen
@@ -19,4 +20,3 @@
 ./windows/build
 ./windows/version-and-date.nsi
 ./xdg/hicolor
-

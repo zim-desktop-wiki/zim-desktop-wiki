@@ -7,16 +7,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2011-04-14 22:30+0200\n"
-"PO-Revision-Date: 2011-04-09 19:17+0000\n"
+"POT-Creation-Date: 2011-04-27 20:53+0200\n"
+"PO-Revision-Date: 2011-04-28 07:36+0000\n"
 "Last-Translator: Vlastimil Ott <vlastimil@e-ott.info>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Launchpad-Export-Date: 2011-04-19 16:24+0000\n"
-"X-Generator: Launchpad (build 12847)\n"
+"X-Launchpad-Export-Date: 2011-04-28 17:52+0000\n"
+"X-Generator: Launchpad (build 12915)\n"
 
 #. label for default webbrowser |
 #. label for default application
@@ -31,7 +31,7 @@ msgid "No such file: %s"
 msgstr "Soubor %s neexistuje"
 
 #. Error message
-#: zim/fs.py:894
+#: zim/fs.py:929
 msgid "File is not writable"
 msgstr "Do souboru nelze zapisovat"
 
@@ -60,7 +60,7 @@ msgstr "Vlastní příkaz"
 #. label for file name
 #: zim/gui/applications.py:484 zim/gui/customtools.py:150
 #: zim/gui/__init__.py:2566 zim/gui/notebookdialog.py:389
-#: zim/gui/preferencesdialog.py:264 zim/notebook.py:513
+#: zim/gui/preferencesdialog.py:269 zim/notebook.py:551
 #: zim/plugins/attachmentbrowser.py:371
 msgid "Name"
 msgstr "Název"
@@ -99,7 +99,7 @@ msgstr "Výběr"
 
 #. Column heading in 'Oprhaned Files' dialog |
 #. Input label
-#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:2787
+#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:2793
 msgid "Filename"
 msgstr "Jméno souboru"
 
@@ -160,13 +160,13 @@ msgstr "Upravit vlastní nástroj"
 
 #. Input in "Edit Custom Tool" dialog |
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/customtools.py:151 zim/gui/preferencesdialog.py:270
+#: zim/gui/customtools.py:151 zim/gui/preferencesdialog.py:275
 msgid "Description"
 msgstr "Popis"
 
 #. Input in "Edit Custom Tool" dialog |
 #. label for properties dialog
-#: zim/gui/customtools.py:163 zim/notebook.py:515
+#: zim/gui/customtools.py:163 zim/notebook.py:553
 msgid "Icon"
 msgstr "Ikona"
 
@@ -222,7 +222,7 @@ msgstr "Adresář %s existuje"
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Složka již existuje a obsahuje soubory - hrozí, že při exportu budou "
 "přepsány. Chcete pokračovat?"
@@ -326,7 +326,7 @@ msgstr "Zobrazit _záznam"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Při vytváření obrázku došlo k chybě.\n"
@@ -740,7 +740,7 @@ msgstr "Připojit k nabídkám odtrhávací proužky"
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:176
 msgid "Use <Ctrl><Space> to switch to the side pane"
-msgstr ""
+msgstr "Aktivovat boční panel pomocí Ctrl-mezerník"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:180
@@ -1313,22 +1313,22 @@ msgstr "Nadpis 5"
 #. Menu item
 #: zim/gui/pageview.py:134 zim/gui/pageview.py:145
 msgid "_Strong"
-msgstr "_Silné zdůraznění"
+msgstr "_Tučně"
 
 #. Menu item
 #: zim/gui/pageview.py:134 zim/gui/pageview.py:145
 msgid "Strong"
-msgstr "Silné zdůraznění"
+msgstr "Tučně"
 
 #. Menu item
 #: zim/gui/pageview.py:135 zim/gui/pageview.py:146
 msgid "_Emphasis"
-msgstr "Z_důraznění"
+msgstr "_Kurziva"
 
 #. Menu item
 #: zim/gui/pageview.py:135 zim/gui/pageview.py:146
 msgid "Emphasis"
-msgstr "Zdůraznění"
+msgstr "Kurziva"
 
 #. Menu item
 #: zim/gui/pageview.py:136 zim/gui/pageview.py:147
@@ -1338,7 +1338,7 @@ msgstr "O_značit"
 #. Menu item
 #: zim/gui/pageview.py:136 zim/gui/pageview.py:147
 msgid "Mark"
-msgstr "Označit"
+msgstr "Zvýraznit"
 
 #. Menu item
 #: zim/gui/pageview.py:137 zim/gui/pageview.py:148
@@ -1649,104 +1649,114 @@ msgstr "Řádků"
 msgid "Characters"
 msgstr "Znaky"
 
+#. Tab in preferences dialog
+#: zim/gui/preferencesdialog.py:19
+msgid "Interface"
+msgstr "Rozhraní"
+
+#. Tab in preferences dialog
+#: zim/gui/preferencesdialog.py:20
+msgid "Editing"
+msgstr "Úpravy"
+
 #. label to pop dialog with more applications in 'open with' menu
-#: zim/gui/preferencesdialog.py:24
+#: zim/gui/preferencesdialog.py:29
 msgid "Other Application"
 msgstr "Jiná aplikace"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:28
+#: zim/gui/preferencesdialog.py:33
 msgid "Preferences"
 msgstr "Nastavení"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:71
+#: zim/gui/preferencesdialog.py:76
 msgid "Applications"
 msgstr "Aplikace"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:75
+#: zim/gui/preferencesdialog.py:80
 msgid "File browser"
 msgstr "Správce souborů"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:77
+#: zim/gui/preferencesdialog.py:82
 msgid "Web browser"
 msgstr "Webový prohlížeč"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:79
+#: zim/gui/preferencesdialog.py:84
 msgid "Email client"
 msgstr "E-mailový klient"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:81
+#: zim/gui/preferencesdialog.py:86
 msgid "Text Editor"
 msgstr "Textový wiki editor"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:91
+#: zim/gui/preferencesdialog.py:96
 msgid "Plugins"
 msgstr "Moduly"
 
 #. option in preferences dialog
-#: zim/gui/preferencesdialog.py:97
+#: zim/gui/preferencesdialog.py:102
 msgid "Use a custom font"
 msgstr "Použít vlastní písmo"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:242
+#: zim/gui/preferencesdialog.py:247
 msgid "_More"
 msgstr "_Více"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:247
+#: zim/gui/preferencesdialog.py:252
 msgid "C_onfigure"
 msgstr "_Nastavit"
 
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/preferencesdialog.py:276
+#: zim/gui/preferencesdialog.py:281
 msgid "Dependencies"
 msgstr "Závislosti"
 
 #. label in plugin info in preferences dialog
-#: zim/gui/preferencesdialog.py:283
+#: zim/gui/preferencesdialog.py:288
 msgid "No dependencies"
 msgstr "Bez závislostí"
 
 #. dependency is OK
-#: zim/gui/preferencesdialog.py:290
+#: zim/gui/preferencesdialog.py:295
 msgid "OK"
 msgstr "OK"
 
 #. dependency failed
-#: zim/gui/preferencesdialog.py:294
+#: zim/gui/preferencesdialog.py:299
 msgid "Failed"
 msgstr "Nevyřešeny"
 
 #. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
-#: zim/gui/preferencesdialog.py:298 zim/plugins/versioncontrol/__init__.py:476
+#: zim/gui/preferencesdialog.py:303 zim/plugins/versioncontrol/__init__.py:476
 msgid "Author"
 msgstr "Autor"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:355
+#: zim/gui/preferencesdialog.py:360
 msgid "Enabled"
 msgstr "Povoleno"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:358
+#: zim/gui/preferencesdialog.py:363
 msgid "Plugin"
 msgstr "Zásuvný modul"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:365
+#: zim/gui/preferencesdialog.py:370
 msgid "Configure Plugin"
 msgstr "Nastavit zásuvný modul"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
-#: zim/gui/preferencesdialog.py:374
+#: zim/gui/preferencesdialog.py:379
 #, python-format
 msgid "Options for plugin %s"
 msgstr "Možnosti zásuvného modulu %s"
@@ -1807,27 +1817,27 @@ msgid "Server stopped"
 msgstr "Server zastaven"
 
 #. dialog title
-#: zim/gui/widgets.py:361 zim/gui/widgets.py:1158
+#: zim/gui/widgets.py:363 zim/gui/widgets.py:1160
 msgid "Select File"
 msgstr "Vybrat soubor"
 
 #. dialog title
-#: zim/gui/widgets.py:1154
+#: zim/gui/widgets.py:1156
 msgid "Select Folder"
 msgstr "Vybrat složku"
 
 #. dialog title
-#: zim/gui/widgets.py:1156
+#: zim/gui/widgets.py:1158
 msgid "Select Image"
 msgstr "Vyberte obrázek"
 
 #. generic error dialog
-#: zim/gui/widgets.py:1976
+#: zim/gui/widgets.py:1982
 msgid "Looks like you found a bug"
 msgstr "Pravděpodobně jste narazili na chybu"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:1979
+#: zim/gui/widgets.py:1985
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -1836,22 +1846,22 @@ msgstr ""
 "prosím, níže uvedené informace"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:2228
+#: zim/gui/widgets.py:2234
 msgid "All Files"
 msgstr "Všechny soubory"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:2253
+#: zim/gui/widgets.py:2259
 msgid "Images"
 msgstr "Obrázky"
 
 #. Dialog title
-#: zim/gui/widgets.py:2777
+#: zim/gui/widgets.py:2783
 msgid "File Exists"
 msgstr "Soubor existuje"
 
 #. Dialog text in 'new filename' dialog
-#: zim/gui/widgets.py:2778
+#: zim/gui/widgets.py:2784
 #, python-format
 msgid ""
 "A file with the name <b>\"%s\"</b> already exists.\n"
@@ -1861,12 +1871,12 @@ msgstr ""
 "Vyberte jiné jméno, nebo soubor přepište."
 
 #. Button label
-#: zim/gui/widgets.py:2796
+#: zim/gui/widgets.py:2802
 msgid "_Browse"
 msgstr "_Procházet"
 
 #. Button label
-#: zim/gui/widgets.py:2801
+#: zim/gui/widgets.py:2807
 msgid "Overwrite"
 msgstr "Přepsat"
 
@@ -1882,18 +1892,18 @@ msgid "Could not find notebook: %s"
 msgstr "Nelze najít sešit %s"
 
 #. error description
-#: zim/notebook.py:424
+#: zim/notebook.py:462
 msgid "The given page name is not valid.\n"
 msgstr "Zadaný název stránky není platný.\n"
 
 #. error message
-#: zim/notebook.py:430
+#: zim/notebook.py:468
 #, python-format
 msgid "Invalid page name \"%s\""
 msgstr "Neplatný název stránky %s"
 
 #. error message
-#: zim/notebook.py:442
+#: zim/notebook.py:480
 msgid ""
 "Index is still busy updating while we try to do an\n"
 "operation that needs the index.\n"
@@ -1902,23 +1912,23 @@ msgstr ""
 "protože stále probíhá jeho aktualizace.\n"
 
 #. error message for read-only pages
-#: zim/notebook.py:459
+#: zim/notebook.py:497
 #, python-format
 msgid "Can not modify page: %s"
 msgstr "Nelze upravit stránku %s"
 
 #. label for properties dialog
-#: zim/notebook.py:514
+#: zim/notebook.py:552
 msgid "Home Page"
 msgstr "Domovská stránka"
 
 #. label for properties dialog
-#: zim/notebook.py:516
+#: zim/notebook.py:554
 msgid "Document Root"
 msgstr "Kořen dokumentu"
 
 #. label for properties dialog
-#: zim/notebook.py:517
+#: zim/notebook.py:555
 msgid "Shared Notebook"
 msgstr "Sdílený sešit"
 
@@ -2030,7 +2040,7 @@ msgstr "Vložit diagram"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2077,28 +2087,28 @@ msgstr "_Upravit rovnici"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnuplot_ploteditor.py:41
-msgid "GNUPlot..."
-msgstr "GNUPlot..."
+msgid "Gnuplot..."
+msgstr "Gnuplot..."
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:49
-msgid "Insert GNUPlot"
-msgstr "Vložit GNUPlot"
+msgid "Insert Gnuplot"
+msgstr "Vložit Gnuplot"
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:50
-msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
-msgstr "Modul poskytuje editor pro grafy  založené na GNUPlotu.\n"
+msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
+msgstr "Modul poskytuje editor pro grafy  založené na Gnuplotu.\n"
 
 #. menu item in context menu
 #: zim/plugins/gnuplot_ploteditor.py:79
-msgid "_Edit GNUPlot"
-msgstr "_Upravit GNUPlot"
+msgid "_Edit Gnuplot"
+msgstr "_Upravit Gnuplot"
 
 #. dialog title
 #: zim/plugins/gnuplot_ploteditor.py:90
-msgid "GNUPlot"
-msgstr "GNUPlot"
+msgid "Gnuplot"
+msgstr "Gnuplot"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnu_r_ploteditor.py:44
@@ -2350,7 +2360,7 @@ msgstr "sekund"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "Při běhu %s došlo k chybě"
 
 #. menu item
@@ -2556,12 +2566,12 @@ msgid "_Other..."
 msgstr "_Další..."
 
 #. menu item in tray icon menu
-#: zim/plugins/trayicon.py:179
+#: zim/plugins/trayicon.py:193
 msgid "Notebooks"
 msgstr "Sešity"
 
 #. tooltip for tray icon
-#: zim/plugins/trayicon.py:219
+#: zim/plugins/trayicon.py:245
 msgid "Zim Desktop Wiki"
 msgstr "Zim Desktop Wiki"
 
@@ -2873,7 +2883,7 @@ msgstr "Rev"
 #~ "Přesunutí v tomto okamžiku může odkazy poškodit. Chcete pokračovat?"
 
 #~ msgid ""
-#~ "This plugin provides an diagram editor for zim based on GraphViz.\n"
+#~ "This plugin provides a diagram editor for zim based on GraphViz.\n"
 #~ "\n"
 #~ "Depends on: the GraphViz 'dot' command\n"
 #~ "\n"
@@ -2909,7 +2919,7 @@ msgstr "Rev"
 #~ "Závisí na balících LaTeX a dvipng.\n"
 #~ "Základní modul dodávaný se zimem.\n"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "Při spuštění programu scrot došlo k chybě"
 
 #~ msgid ""
@@ -2996,3 +3006,18 @@ msgstr "Rev"
 #~ "<b>%t</b> označený text nebo slovo pod kurzorem \n"
 #~ "<b>%T</b> označený text včetně wiki formátování\n"
 #~ "</tt>\n"
+
+#~ msgid "GNUPlot..."
+#~ msgstr "GNUPlot..."
+
+#~ msgid "Insert GNUPlot"
+#~ msgstr "Vložit GNUPlot"
+
+#~ msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
+#~ msgstr "Modul poskytuje editor pro grafy  založené na GNUPlotu.\n"
+
+#~ msgid "_Edit GNUPlot"
+#~ msgstr "_Upravit GNUPlot"
+
+#~ msgid "GNUPlot"
+#~ msgstr "GNUPlot"

@@ -50,8 +50,10 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('latex',Application(latexcmd).tryexec()), \
-		('dvipng',Application(dvipngcmd).tryexec())]
+		has_latex = Application(latexcmd).tryexec()
+		has_dvipng = Application(dvipngcmd).tryexec()
+		return (has_latex and has_dvipng), \
+				[('latex', has_latex, True), ('dvipng', has_dvipng, True)]
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
@@ -108,7 +110,7 @@ class EquationGenerator(object):
 		text = ''.join(text)
 		#~ print '>>>%s<<<' % text
 
-		# Write to tmp file usign the template for the header / footer
+		# Write to tmp file using the template for the header / footer
 		texfile = self.texfile
 		texfile.writelines(
 			self.template.process({'equation': text}) )

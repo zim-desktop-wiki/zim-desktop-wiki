@@ -21,13 +21,13 @@ def color_to_string(color):
 	return '%i,%i,%i' % (color.red, color.green, color.blue)
 
 
-
+@tests.slowTest
 class TestTaggedPageTreeStore(tests.TestCase):
 
 	def setUp(self):
 		self.storeclass = TaggedPageTreeStore
 		self.viewclass = TagsPageTreeView
-		self.notebook = tests.get_test_notebook()
+		self.notebook = tests.new_notebook()
 		self.index = self.notebook.index
 
 	def runTest(self):
@@ -55,13 +55,8 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 5)
 
-		def process_events(*a):
-			while gtk.events_pending():
-				gtk.main_iteration(block=False)
-			return True # continue
-
-		self.index.update(callback=process_events)
-		process_events()
+		self.index.update(callback=tests.gtk_process_events)
+		tests.gtk_process_events()
 
 		#~ treeview = PageTreeView(None) # just run hidden to check errors
 		#~ treeview.set_model(treestore)
@@ -145,7 +140,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		self.index.flush()
 		treestore = self.storeclass(self.index)
 		treeview = TagsPageTreeView(ui, treestore)
-		self.index.update(callback=process_events)
+		self.index.update(callback=tests.gtk_process_events)
 
 		# Try some TreeView methods
 		path = Path('Test:foo')
@@ -163,7 +158,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		# Check if all the signals go OK in delete
 		for page in reversed(list(self.notebook.walk())): # delete bottom up
 			self.notebook.delete_page(page)
-			process_events()
+			tests.gtk_process_events()
 
 	def _check_indexpath_iter(self, treestore, iter, path):
 		# checks specific for nodes that map to IndexPath object
@@ -245,6 +240,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 			self.assertTrue(child is None)
 
 
+@tests.slowTest
 class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 
 	def setUp(self):
@@ -257,11 +253,12 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 		TestTaggedPageTreeStore.runTest(self)
 
 
+@tests.slowTest
 class TestTagPluginWidget(tests.TestCase):
 
 	def runTest(self):
 		ui = MockUI()
-		ui.notebook = tests.get_test_notebook()
+		ui.notebook = tests.new_notebook()
 
 		plugin = tests.MockObject()
 		plugin.ui = ui

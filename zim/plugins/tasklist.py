@@ -18,6 +18,7 @@ from zim.gui.widgets import ui_environment, gtk_get_style,\
 	Dialog, MessageDialog, \
 	InputEntry, Button, IconButton, MenuButton, \
 	BrowserTreeView, SingleClickTreeView
+from zim.async import DelayedCallback
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 from zim.config import check_class_allow_empty
 
@@ -238,7 +239,7 @@ This is a core plugin shipping with zim.
 						globaltags = []
 						break
 				else:
-					# no break occured - all OK
+					# no break occurred - all OK
 					lines.pop(0)
 					istasklist = True
 
@@ -428,17 +429,11 @@ class TaskListDialog(Dialog):
 		# Filter input
 		hbox.pack_start(gtk.Label(_('Filter')+': '), False) # T: Input label
 		filter_entry = InputEntry()
+		filter_entry.set_icon_to_clear()
 		hbox.pack_start(filter_entry, False)
-		clear_button = IconButton('gtk-clear')
-		hbox.pack_start(clear_button, False)
-		filter_button = Button(_('_Filter'), 'gtk-find') # T: Button
-		hbox.pack_start(filter_button, False)
-		filter_entry.connect('activate',
+		filter_cb = DelayedCallback(500,
 			lambda o: self.task_list.set_filter(filter_entry.get_text()))
-		filter_button.connect('clicked',
-			lambda o: self.task_list.set_filter(filter_entry.get_text()))
-		clear_button.connect('clicked',
-			lambda o: (filter_entry.set_text(''), filter_entry.activate()))
+		filter_entry.connect('changed', filter_cb)
 
 		# Dropdown with options - TODO
 		#~ menu = gtk.Menu()
@@ -600,11 +595,13 @@ class TaskListTreeView(BrowserTreeView):
 		column.set_sort_column_id(self.TASK_COL)
 		column.set_expand(True)
 		if ui_environment['platform'] == 'maemo':
-			column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-			column.set_fixed_width(250)
-			# FIXME probably should also limit the size of this
-			# column on other platforms ...
+			column.set_min_width(250) # don't let this column get too small
+		else:
+			column.set_min_width(300) # don't let this column get too small
 		self.append_column(column)
+
+		if gtk.gtk_version >= (2, 12, 0):
+			self.set_tooltip_column(self.TASK_COL)
 
 		# Rendering of the Date column
 		today    = str( datetime.date.today() )
@@ -635,7 +632,6 @@ class TaskListTreeView(BrowserTreeView):
 		cell_renderer = gtk.CellRendererText()
 		column = gtk.TreeViewColumn(_('Page'), cell_renderer, text=self.PAGE_COL)
 				# T: Column header Task List dialog
-		column.set_resizable(True)
 		column.set_sort_column_id(self.PAGE_COL)
 		self.append_column(column)
 
@@ -831,11 +827,3 @@ class TaskListTreeView(BrowserTreeView):
 
 # Need to register classes defining gobject signals
 gobject.type_register(TaskListTreeView)
-
-
-# TODO this plugin should be ported to using a table in the index database
-# needs to hook database init and page indexing
-# Needs to re-build the database when preferences changed
-# Needs statusbar or similar to notify when indexing still ongoing
-# Separating database class and Treemodel will also allow better separation
-# of data and interface code.

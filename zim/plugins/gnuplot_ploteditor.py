@@ -2,7 +2,7 @@
 #
 # gnuplot_ploteditor.py
 #
-# This is a plugin for Zim, which allows inserting GNUplot scripts to
+# This is a plugin for Zim, which allows inserting Gnuplot scripts to
 # have Zim generate plots from them.
 #
 # Author: Alessandro Magni <magni@inrim.it>
@@ -38,25 +38,26 @@ ui_xml = '''
 
 ui_actions = (
    # name, stock id, label, accelerator, tooltip, read only
-   ('insert_gnuplot', None, _('GNUPlot...'), '', '', False),
+   ('insert_gnuplot', None, _('Gnuplot...'), '', '', False),
        # T: menu item for insert plot plugin
 )
 
 
-class InsertGNUPlotPlugin(PluginClass):
+class InsertGnuplotPlugin(PluginClass):
 
    plugin_info = {
-       'name': _('Insert GNUPlot'), # T: plugin name
+       'name': _('Insert Gnuplot'), # T: plugin name
        'description': _('''\
-This plugin provides a plot editor for zim based on GNUPlot.
+This plugin provides a plot editor for zim based on Gnuplot.
 '''), # T: plugin description
-       'help': ':Plugins:GNUPlot Editor',
+       'help': ':Plugins:Gnuplot Editor',
        'author': 'Alessandro Magni',
    }
 
    @classmethod
    def check_dependencies(klass):
-       return [('GNUPlot',Application(gnuplot_cmd).tryexec())]
+       has_gnuplot = Application(gnuplot_cmd).tryexec()
+       return has_gnuplot, [('Gnuplot', has_gnuplot, True)]
 
    def __init__(self, ui):
        PluginClass.__init__(self, ui)
@@ -76,7 +77,7 @@ This plugin provides a plot editor for zim based on GNUPlot.
    def do_populate_popup(self, menu, buffer, iter, image):
        menu.prepend(gtk.SeparatorMenuItem())
 
-       item = gtk.MenuItem(_('_Edit GNUPlot')) # T: menu item in context menu
+       item = gtk.MenuItem(_('_Edit Gnuplot')) # T: menu item in context menu
        item.connect('activate',
            lambda o: self.edit_object(buffer, iter, image))
        menu.prepend(item)
@@ -87,8 +88,8 @@ class InsertPlotDialog(ImageGeneratorDialog):
 
    def __init__(self, ui, image=None):
        generator = PlotGenerator()
-       ImageGeneratorDialog.__init__(self, ui, _('GNUPlot'), # T: dialog title
-           generator, image, help=':Plugins:GNUPlot Editor' )
+       ImageGeneratorDialog.__init__(self, ui, _('Gnuplot'), # T: dialog title
+           generator, image, help=':Plugins:Gnuplot Editor' )
 
 
 class PlotGenerator(object):
@@ -120,13 +121,13 @@ class PlotGenerator(object):
            'png_fname':            pngfile,
        }
 
-       # Write to tmp file usign the template for the header / footer
+       # Write to tmp file using the template for the header / footer
        plotscriptfile.writelines(
            self.template.process(template_vars)
        )
        #print '>>>%s<<<' % plotscriptfile.read()
 
-       # Call GNUPlot
+       # Call Gnuplot
        try:
            gnu_gp = Application(gnuplot_cmd)
            gnu_gp.run(args=( plotscriptfile.basename, ), cwd=plotscriptfile.dir)

@@ -6,18 +6,20 @@
 
 from __future__ import with_statement
 
-from tests import TestCase, get_test_data_page, get_test_page, LoggingFilter
+
+import tests
 
 from zim.formats import *
-from zim.notebook import Link
+from zim.notebook import Path, Link
 from zim.parsing import link_type
 
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
 
-wikitext = get_test_data_page('wiki', 'roundtrip')
+wikitext = tests.WikiTestData.get('roundtrip')
 
-class TestParseTree(TestCase):
+
+class TestParseTree(tests.TestCase):
 
 	def setUp(self):
 		self.xml = '''\
@@ -41,7 +43,7 @@ class TestParseTree(TestCase):
 		e = tree.getroot()
 		self.assertEqual(e.tag, 'zim-tree') # check content
 		text = tree.tostring()
-		self.assertEqualDiff(text, self.xml)
+		self.assertEqual(text, self.xml)
 
 	def testcleanup_headings(self):
 		'''Test ParseTree.cleanup_headings()'''
@@ -60,7 +62,7 @@ class TestParseTree(TestCase):
 </zim-tree>'''
 		tree.cleanup_headings(offset=1, max=4)
 		text = tree.tostring()
-		self.assertEqualDiff(text, wanted)
+		self.assertEqual(text, wanted)
 
 	def testSetHeading(self):
 		'''Test ParseTree.set_heading()'''
@@ -79,7 +81,7 @@ class TestParseTree(TestCase):
 <h level="6">Head 8</h>
 </zim-tree>'''
 		text = tree.tostring()
-		self.assertEqualDiff(text, wanted)
+		self.assertEqual(text, wanted)
 
 	def testExtend(self):
 		tree1 = ParseTree().fromstring(self.xml)
@@ -107,7 +109,7 @@ class TestParseTree(TestCase):
 <h level="6">Head 8</h>
 </zim-tree>'''
 		text = tree.tostring()
-		self.assertEqualDiff(text, wanted)
+		self.assertEqual(text, wanted)
 
 
 	def testGetEndsWithNewline(self):
@@ -125,11 +127,12 @@ class TestParseTree(TestCase):
 			self.assertEqual(tree.get_ends_with_newline(), newline)
 
 
-class TestTextFormat(TestCase):
+class TestTextFormat(tests.TestCase):
 
 	def setUp(self):
 		self.format = get_format('plain')
-		notebook, self.page = get_test_page()
+		notebook = tests.new_notebook()
+		self.page = notebook.get_page(Path('Foo'))
 
 	def testRoundtrip(self):
 		'''Test roundtrip for plain text'''
@@ -139,8 +142,8 @@ class TestTextFormat(TestCase):
 		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
 		xml = tree.tostring()
 		output = self.format.Dumper().dump(tree)
-		self.assertEqualDiff(tree.tostring(), xml) # check tree not modified
-		self.assertEqualDiff(output, wikitext.splitlines(True))
+		self.assertEqual(tree.tostring(), xml) # check tree not modified
+		self.assertEqual(output, wikitext.splitlines(True))
 
 	def testDumping(self):
 		'''Test dumping page to plain text'''
@@ -210,7 +213,7 @@ This is not a header
 
 That's all ...
 '''
-		self.assertEqualDiff(text, wanted.splitlines(True))
+		self.assertEqual(text, wanted.splitlines(True))
 
 
 class TestWikiFormat(TestTextFormat):
@@ -218,7 +221,9 @@ class TestWikiFormat(TestTextFormat):
 	def setUp(self):
 		#~ TestTextFormat.setUp(self)
 		self.format = get_format('wiki')
-		notebook, self.page = get_test_page()
+		notebook = tests.new_notebook()
+		self.page = notebook.get_page(Path('Foo'))
+
 
 	def testRoundtrip(self):
 		'''Test roundtrip for wiki text'''
@@ -241,7 +246,7 @@ class TestWikiFormat(TestTextFormat):
 		#~ print '>>>\n'+tostring(tree)+'\n<<<\n'
 		#~ self.assertEquals(tree.getroot().attrib['Content-Type'], 'text/x-zim-wiki')
 		#~ output = self.format.Dumper().dump(tree)
-		#~ self.assertEqualDiff(output, text.splitlines(True))
+		#~ self.assertEqual(output, text.splitlines(True))
 
 	def testParsing(self):
 		'''Test wiki parse tree generation.'''
@@ -297,7 +302,7 @@ This is not a header
 <p>That's all ...
 </p></zim-tree>'''
 		t = self.format.Parser().parse(wikitext)
-		self.assertEqualDiff(t.tostring(), tree)
+		self.assertEqual(t.tostring(), tree)
 
 	def testUnicodeBullet(self):
 		'''Test support for unicode bullets in source'''
@@ -315,7 +320,7 @@ A list
 '''
 		tree = self.format.Parser().parse(input)
 		output = self.format.Dumper().dump(tree)
-		self.assertEqualDiff(output, text.splitlines(True))
+		self.assertEqual(output, text.splitlines(True))
 
 	def testLink(self):
 		'''Test iterator function for link'''
@@ -358,16 +363,17 @@ test 4 5 6
 <p>test 4 5 6
 </p></zim-tree>'''
 		t = self.format.Parser(version='Unknown').parse(input)
-		self.assertEqualDiff(t.tostring(), xml)
+		self.assertEqual(t.tostring(), xml)
 		output = self.format.Dumper().dump(t)
-		self.assertEqualDiff(output, wanted.splitlines(True))
+		self.assertEqual(output, wanted.splitlines(True))
 
 
-class TestHtmlFormat(TestCase):
+class TestHtmlFormat(tests.TestCase):
 
 	def setUp(self):
 		self.format = get_format('html')
-		notebook, self.page = get_test_page()
+		notebook = tests.new_notebook()
+		self.page = notebook.get_page(Path('Foo'))
 
 	def testEncoding(self):
 		'''Test HTML encoding'''
@@ -497,16 +503,16 @@ This is not a header<br>
 That's all ...<br>
 </p>
 '''
-		self.assertEqualDiff(output, html.splitlines(True))
+		self.assertEqual(output, html.splitlines(True))
 
 
-class LatexLoggingFilter(LoggingFilter):
+class LatexLoggingFilter(tests.LoggingFilter):
 
 	logger = 'zim.formats.latex'
 	message = 'No document type set in template'
 
 
-class TestLatexFormat(TestCase):
+class TestLatexFormat(tests.TestCase):
 
 	def testEncode(self):
 		'''test the escaping of certain characters'''
@@ -520,7 +526,7 @@ class TestLatexFormat(TestCase):
 		'''test the export of a wiki page to latex'''
 		with LatexLoggingFilter():
 			format = get_format('LaTeX')
-			testpage = get_test_data_page('wiki','Test:wiki')
+			testpage = tests.WikiTestData.get('Test:wiki')
 			tree = get_format('wiki').Parser().parse(testpage)
 			output = format.Dumper(linker=StubLinker()).dump(tree)
 			self.assertTrue('\chapter{Foo Bar}\n' in output)
@@ -539,7 +545,7 @@ class StubLinker(object):
 	def icon(self, name): return 'icon://' + name
 
 
-class TestParseTreeBuilder(TestCase):
+class TestParseTreeBuilder(tests.TestCase):
 
 	def runTest(self):
 		'''Test ParseTreeBuilder class'''
@@ -598,5 +604,4 @@ grrr
 		builder.feed(input)
 		root = builder.close()
 		tree = ParseTree(root)
-		self.assertEqualDiff(tree.tostring(), wanted)
-
+		self.assertEqual(tree.tostring(), wanted)

@@ -24,7 +24,7 @@ logger = logging.getLogger('zim.gui.clipboard')
 
 
 # Targets have format (name, flags, id), flags need be 0 to allow
-# paste to other widgets and to other aplication instances
+# paste to other widgets and to other application instances
 PARSETREE_TARGET_ID = 1
 PARSETREE_TARGET_NAME = 'text/x-zim-parsetree'
 PARSETREE_TARGET = (PARSETREE_TARGET_NAME, 0, PARSETREE_TARGET_ID)
@@ -81,8 +81,8 @@ PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_
 
 
 # Mimetype text/uri-list is used for drag n drop of URLs
-# it is plain text encoded list of urls, seperated by \r\n
-# Since not all apps foolow the standard exactly, do allow for
+# it is plain text encoded list of urls, separated by \r\n
+# Since not all apps follow the standard exactly, do allow for
 # just \n separated lists.
 #
 # Zim page links are also encoded in this format, but no url encoding
@@ -214,7 +214,7 @@ HTML_HEAD = '''\
 '''.strip()
 
 def wrap_html(html, target):
-	'''Fucntion to wrap html with appropriate headers based on target type'''
+	'''Function to wrap html with appropriate headers based on target type'''
 	html = html.encode('utf-8')
 	if target == 'HTML Format':
 		return Win32HtmlFormat.encode(html, head=HTML_HEAD)
@@ -258,7 +258,7 @@ class Clipboard(gtk.Clipboard):
 		) or logger.warn('Failed to set data on clipboard')
 
 	def _get_parsetree_data(self, selectiondata, id, data):
-		logger.debug("Cliboard data request of type '%s', we have a parsetree", selectiondata.target)
+		logger.debug("Clipboard data request of type '%s', we have a parsetree", selectiondata.target)
 		notebook, page, parsetree, format = data
 		if id == PARSETREE_TARGET_ID:
 			xml = parsetree.tostring().encode('utf-8')
@@ -337,7 +337,7 @@ class Clipboard(gtk.Clipboard):
 		) or logger.warn('Failed to set data on clipboard')
 
 	def _get_pagelink_data(self, selectiondata, id, data):
-		logger.debug("Cliboard data request of type '%s', we have pagelink", selectiondata.target)
+		logger.debug("Clipboard data request of type '%s', we have pagelink", selectiondata.target)
 		notebookname, pagename = data
 		if id == INTERNAL_PAGELIST_TARGET_ID:
 			text = pack_urilist((pagename,))
@@ -352,7 +352,7 @@ class Clipboard(gtk.Clipboard):
 			assert False, 'Unknown target id %i' % id
 
 	def _clear_data(self, data):
-		# Callback to clear our cliboard data - pass because we keep no state
+		# Callback to clear our clipboard data - pass because we keep no state
 		pass
 
 
@@ -395,7 +395,7 @@ class Win32HtmlFormat:
 		#~ "EndHTML:(\d+)\s+" \
 		#~ "StartFragment:(\d+)\s+" \
 		#~ "EndFragment:(\d+)\s+" \
-		   #~ "SourceURL:(\S+)"
+		#~ "SourceURL:(\S+)"
 	#~ MARKER_BLOCK_RE = re.compile(MARKER_BLOCK)
 
 	DEFAULT_HTML_BODY = \

@@ -3,14 +3,15 @@
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
-from tests import TestCase
 
 import os
 import tempfile
 
 from zim.fs import *
-from zim.plugins.versioncontrol import VersionControlPlugin
+from zim.plugins.versioncontrol import VersionControlPlugin, NoChangesError
 from zim.plugins.versioncontrol.bzr import BazaarVCS
+
+import zim.plugins.versioncontrol.bzr
 
 
 # We define our own tmp dir here instead of using tests.create_tmp_dir
@@ -21,7 +22,7 @@ def get_tmp_dir(name):
 	del os.environ['TMP']
 	dir = Dir(tempfile.gettempdir())
 	os.environ['TMP'] = testtmp
-	
+
 	dir = dir.subdir('test_versioncontrol').subdir(name)
 	if dir.exists():
 		dir.remove_children()
@@ -31,16 +32,15 @@ def get_tmp_dir(name):
 	return dir
 
 
-class TestBazaar(TestCase):
+@tests.slowTest
+@tests.skipUnless(BazaarVCS.check_dependencies(), 'Missing dependencies')
+class TestBazaar(tests.TestCase):
 
-	slowTest = True
+	def setUp(self):
+		zim.plugins.versioncontrol.bzr.TEST_MODE = False
 
-	@classmethod
-	def skipTestZim(klass):
-		if not BazaarVCS.check_dependencies():
-			return 'Missing dependencies'
-		else:
-			return False
+	def tearDown(self):
+		zim.plugins.versioncontrol.bzr.TEST_MODE = True
 
 	def runTest(self):
 		'''Test Bazaar version control'''
@@ -59,7 +59,7 @@ class TestBazaar(TestCase):
 		file = subdir.file('baz.txt')
 		file.write('foo\nbar\n')
 
-		self.assertEqualDiff(''.join(vcs.get_status()), '''\
+		self.assertEqual(''.join(vcs.get_status()), '''\
 added:
   .bzrignore
   foo/
@@ -68,12 +68,13 @@ added:
 ''' )
 
 		vcs.commit('test 1')
+		self.assertRaises(NoChangesError, vcs.commit, 'test 1')
 
 		ignorelines = lambda line: not (line.startswith('+++') or line.startswith('---'))
 			# these lines contain time stamps
 		diff = vcs.get_diff(versions=(0, 1))
 		diff = ''.join(filter(ignorelines, diff))
-		self.assertEqualDiff(diff, '''\
+		self.assertEqual(diff, '''\
 === added file '.bzrignore'
 @@ -0,0 +1,1 @@
 +**/.zim
@@ -90,7 +91,7 @@ added:
 		file.write('foo\nbaz\n')
 		diff = vcs.get_diff()
 		diff = ''.join(filter(ignorelines, diff))
-		self.assertEqualDiff(diff, '''\
+		self.assertEqual(diff, '''\
 === modified file 'foo/bar/baz.txt'
 @@ -1,2 +1,2 @@
  foo
@@ -106,7 +107,7 @@ added:
 		vcs.commit_async('test 2')
 		diff = vcs.get_diff(versions=(1, 2))
 		diff = ''.join(filter(ignorelines, diff))
-		self.assertEqualDiff(diff, '''\
+		self.assertEqual(diff, '''\
 === modified file 'foo/bar/baz.txt'
 @@ -1,2 +1,2 @@
  foo
@@ -126,7 +127,7 @@ added:
 		self.assertEqual(versions[1][3], u'test 2\n')
 
 		lines = vcs.get_version(file, version=1)
-		self.assertEqualDiff(''.join(lines), '''\
+		self.assertEqual(''.join(lines), '''\
 foo
 bar
 ''' )
@@ -137,7 +138,7 @@ bar
 			# get rid of user name
 			ann, text = line.split('|')
 			lines.append(ann[0]+' |'+text)
-		self.assertEqualDiff(''.join(lines), '''\
+		self.assertEqual(''.join(lines), '''\
 1 | foo
 2 | baz
 ''' )
@@ -146,6 +147,6 @@ bar
 		file.rename(root.file('bar.txt'))
 		diff = vcs.get_diff()
 		diff = ''.join(filter(ignorelines, diff))
-		self.assertEqualDiff(diff, '''\
+		self.assertEqual(diff, '''\
 === renamed file 'foo/bar/baz.txt' => 'bar.txt'
 ''' )

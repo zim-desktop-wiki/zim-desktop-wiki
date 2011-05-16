@@ -4,6 +4,13 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42. 
 Earlier version numbers for zim correspond to the Perl branch.
 
+
+=== 0.51 - Thu 28 Apr 2011 ===
+Bug fix release
+* Fixed a critical bug in the "Add Notebook" prompt for the first notebook on
+  a fresh install and two minor bugs with the ntoebook list - Jiří Janoušek
+
+
 === 0.51 - Tue 19 Apr 2011 ===
 * Fixed critical bug with resizing images - Stefan Muthers
 * Fixed bug preventing resizing of text entries in dialogs

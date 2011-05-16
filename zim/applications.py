@@ -8,6 +8,7 @@ Also see the module zim.gui.applications, which contains classes for
 working with applications defined in desktop entry files.
 '''
 
+import sys
 import os
 import logging
 import subprocess
@@ -15,8 +16,28 @@ import subprocess
 import gobject
 
 import zim.fs
+import zim.errors
 
 logger = logging.getLogger('zim.applications')
+
+
+class ApplicationError(zim.errors.Error):
+	'''Error class for sub process errors'''
+
+	description = None
+
+	def __init__(self, cmd, args, retcode, stderr):
+		'''Constructor
+
+		@param cmd: tuple of application command
+		@param args: tuple of args given to the command
+		@param retcode: the return code of the command (not-zero!)
+		@param stderr: the error output of the command
+		'''
+		self.msg = _('Failed to run application: %s') % cmd
+		self.description = \
+			_('Command %s returned non-zero exit status %i') % (cmd + args, retcode) \
+			+ '\n\n' + stderr
 
 
 class Application(object):
@@ -82,7 +103,11 @@ class Application(object):
 		'''
 		cwd, argv = self._checkargs(cwd, args)
 		logger.info('Running: %s (cwd: %s)', argv, cwd)
-		subprocess.check_call(argv, cwd=cwd, stdout=open(os.devnull, 'w'))
+		p = subprocess.Popen(argv, cwd=cwd, stdout=open(os.devnull, 'w'), stderr=subprocess.PIPE)
+		p.wait()
+		if not p.returncode == 0:
+			args = args or ()
+			raise ApplicationError(tuple(self.cmd), tuple(args), p.returncode, p.stderr.read())
 
 	def pipe(self, args=None, cwd=None, input=None):
 		'''Run application in the foreground and wait for it to return.
@@ -111,14 +136,16 @@ class Application(object):
 		object provides a constant 'STATUS_OK' which can be used to test if
 		the application was successful or not.
 		'''
-		# TODO: can we build this based on os.spawn ? - seems this method fails on win32
 		cwd, argv = self._checkargs(cwd, args)
+		# if it is a python script, insert interpreter as the executable
+		if argv[0].endswith('.py'):
+			argv.insert(0, sys.executable)
 		opts = {}
 
 		flags = gobject.SPAWN_SEARCH_PATH
 		if callback:
 			flags |= gobject.SPAWN_DO_NOT_REAP_CHILD
-			# without this flag child is reaped autmatically -> no zombies
+			# without this flag child is reaped automatically -> no zombies
 
 		logger.info('Spawning: %s (cwd: %s)', argv, cwd)
 		try:
@@ -126,14 +153,14 @@ class Application(object):
 				gobject.spawn_async(argv, flags=flags, **opts)
 		except gobject.GError:
 			logger.exception('Failed running: %s', argv)
-			name = self.name
+			#~ name = self.name
 			#~ ErrorDialog(None, _('Could not run application: %s') % name).run()
 				#~ # T: error when application failed to start
 			return None
 		else:
 			logger.debug('Process started with PID: %i', pid)
 			if callback:
-				# child watch does implicite reaping -> no zombies
+				# child watch does implicit reaping -> no zombies
 				if data is None:
 					gobject.child_watch_add(pid,
 						lambda pid, status: callback(status))
@@ -175,7 +202,7 @@ class WebBrowser(Application):
 
 
 class StartFile(Application):
-	'''Wrapper for os.startfile(). Usefull mainly on windows to open
+	'''Wrapper for os.startfile(). Useful mainly on windows to open
 	files with the default application.
 	'''
 

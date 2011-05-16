@@ -7,16 +7,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2011-04-14 22:30+0200\n"
-"PO-Revision-Date: 2011-04-13 13:37+0000\n"
-"Last-Translator: mrk <m-r-k@gmx.de>\n"
+"POT-Creation-Date: 2011-04-27 20:53+0200\n"
+"PO-Revision-Date: 2011-04-28 07:36+0000\n"
+"Last-Translator: Fabian Moser <Unknown>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2011-04-19 16:24+0000\n"
-"X-Generator: Launchpad (build 12847)\n"
+"X-Launchpad-Export-Date: 2011-04-28 17:52+0000\n"
+"X-Generator: Launchpad (build 12915)\n"
 
 #. label for default webbrowser |
 #. label for default application
@@ -31,7 +31,7 @@ msgid "No such file: %s"
 msgstr "Datei nicht gefunden: %s"
 
 #. Error message
-#: zim/fs.py:894
+#: zim/fs.py:929
 msgid "File is not writable"
 msgstr "Datei kann nicht geschrieben werden"
 
@@ -60,7 +60,7 @@ msgstr "Benutzerdefinierter Befehl"
 #. label for file name
 #: zim/gui/applications.py:484 zim/gui/customtools.py:150
 #: zim/gui/__init__.py:2566 zim/gui/notebookdialog.py:389
-#: zim/gui/preferencesdialog.py:264 zim/notebook.py:513
+#: zim/gui/preferencesdialog.py:269 zim/notebook.py:551
 #: zim/plugins/attachmentbrowser.py:371
 msgid "Name"
 msgstr "Bezeichnung"
@@ -99,7 +99,7 @@ msgstr "Auswahl"
 
 #. Column heading in 'Oprhaned Files' dialog |
 #. Input label
-#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:2787
+#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:2793
 msgid "Filename"
 msgstr "Dateiname"
 
@@ -160,13 +160,13 @@ msgstr "Benutzerdefiniertes Werkzeug bearbeiten"
 
 #. Input in "Edit Custom Tool" dialog |
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/customtools.py:151 zim/gui/preferencesdialog.py:270
+#: zim/gui/customtools.py:151 zim/gui/preferencesdialog.py:275
 msgid "Description"
 msgstr "Beschreibung"
 
 #. Input in "Edit Custom Tool" dialog |
 #. label for properties dialog
-#: zim/gui/customtools.py:163 zim/notebook.py:515
+#: zim/gui/customtools.py:163 zim/notebook.py:553
 msgid "Icon"
 msgstr "Symbol"
 
@@ -223,7 +223,7 @@ msgstr "Verzeichnis existiert: %s"
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Das Verzeichnis existiert bereits und enthält Dateien. Wenn Sie in dieses "
 "Verzeichnis exportieren, überschreiben Sie möglicherweise Inhalte. Wollen "
@@ -328,7 +328,7 @@ msgstr "_Protokoll anzeigen"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Während des Erstellen der Grafik trat ein Fehler auf.\n"
@@ -742,7 +742,7 @@ msgstr "Menüs 'abreißbar' machen"
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:176
 msgid "Use <Ctrl><Space> to switch to the side pane"
-msgstr ""
+msgstr "Mit <Strg><Leertaste> in die Seitenleiste springen"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:180
@@ -1659,104 +1659,114 @@ msgstr "Zeilen"
 msgid "Characters"
 msgstr "Zeichen"
 
+#. Tab in preferences dialog
+#: zim/gui/preferencesdialog.py:19
+msgid "Interface"
+msgstr "Erscheinungsbild"
+
+#. Tab in preferences dialog
+#: zim/gui/preferencesdialog.py:20
+msgid "Editing"
+msgstr "Bearbeiten"
+
 #. label to pop dialog with more applications in 'open with' menu
-#: zim/gui/preferencesdialog.py:24
+#: zim/gui/preferencesdialog.py:29
 msgid "Other Application"
 msgstr "Andere Anwendung"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:28
+#: zim/gui/preferencesdialog.py:33
 msgid "Preferences"
 msgstr "Einstellungen"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:71
+#: zim/gui/preferencesdialog.py:76
 msgid "Applications"
 msgstr "Anwendungen"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:75
+#: zim/gui/preferencesdialog.py:80
 msgid "File browser"
 msgstr "Dateibrowser"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:77
+#: zim/gui/preferencesdialog.py:82
 msgid "Web browser"
 msgstr "Web-Browser"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:79
+#: zim/gui/preferencesdialog.py:84
 msgid "Email client"
 msgstr "E-Mail-Programm"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:81
+#: zim/gui/preferencesdialog.py:86
 msgid "Text Editor"
 msgstr "Texteditor"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:91
+#: zim/gui/preferencesdialog.py:96
 msgid "Plugins"
 msgstr "Plugins"
 
 #. option in preferences dialog
-#: zim/gui/preferencesdialog.py:97
+#: zim/gui/preferencesdialog.py:102
 msgid "Use a custom font"
 msgstr "Eigene Schriftart benutzen"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:242
+#: zim/gui/preferencesdialog.py:247
 msgid "_More"
 msgstr "_Mehr"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:247
+#: zim/gui/preferencesdialog.py:252
 msgid "C_onfigure"
 msgstr "K_onfigurieren"
 
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/preferencesdialog.py:276
+#: zim/gui/preferencesdialog.py:281
 msgid "Dependencies"
 msgstr "Abhängigkeiten"
 
 #. label in plugin info in preferences dialog
-#: zim/gui/preferencesdialog.py:283
+#: zim/gui/preferencesdialog.py:288
 msgid "No dependencies"
 msgstr "Keine Vorraussetzungen"
 
 #. dependency is OK
-#: zim/gui/preferencesdialog.py:290
+#: zim/gui/preferencesdialog.py:295
 msgid "OK"
 msgstr "Ok"
 
 #. dependency failed
-#: zim/gui/preferencesdialog.py:294
+#: zim/gui/preferencesdialog.py:299
 msgid "Failed"
 msgstr "Nicht erfüllt"
 
 #. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
-#: zim/gui/preferencesdialog.py:298 zim/plugins/versioncontrol/__init__.py:476
+#: zim/gui/preferencesdialog.py:303 zim/plugins/versioncontrol/__init__.py:476
 msgid "Author"
 msgstr "Autor"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:355
+#: zim/gui/preferencesdialog.py:360
 msgid "Enabled"
 msgstr "Aktiviert"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:358
+#: zim/gui/preferencesdialog.py:363
 msgid "Plugin"
 msgstr "Plugin"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:365
+#: zim/gui/preferencesdialog.py:370
 msgid "Configure Plugin"
 msgstr "Plugin einrichten"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
-#: zim/gui/preferencesdialog.py:374
+#: zim/gui/preferencesdialog.py:379
 #, python-format
 msgid "Options for plugin %s"
 msgstr "Einstellungen für Plugin %s"
@@ -1818,27 +1828,27 @@ msgid "Server stopped"
 msgstr "Server gestoppt"
 
 #. dialog title
-#: zim/gui/widgets.py:361 zim/gui/widgets.py:1158
+#: zim/gui/widgets.py:363 zim/gui/widgets.py:1160
 msgid "Select File"
 msgstr "Datei auswählen"
 
 #. dialog title
-#: zim/gui/widgets.py:1154
+#: zim/gui/widgets.py:1156
 msgid "Select Folder"
 msgstr "Verzeichnis auswählen"
 
 #. dialog title
-#: zim/gui/widgets.py:1156
+#: zim/gui/widgets.py:1158
 msgid "Select Image"
 msgstr "Bild auswählen"
 
 #. generic error dialog
-#: zim/gui/widgets.py:1976
+#: zim/gui/widgets.py:1982
 msgid "Looks like you found a bug"
 msgstr "Anscheinend haben Sie einen Fehler gefunden"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:1979
+#: zim/gui/widgets.py:1985
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -1847,22 +1857,22 @@ msgstr ""
 "folgenden Textbox mit."
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:2228
+#: zim/gui/widgets.py:2234
 msgid "All Files"
 msgstr "Alle Dateien"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:2253
+#: zim/gui/widgets.py:2259
 msgid "Images"
 msgstr "Bilder"
 
 #. Dialog title
-#: zim/gui/widgets.py:2777
+#: zim/gui/widgets.py:2783
 msgid "File Exists"
 msgstr "Datei exisiert"
 
 #. Dialog text in 'new filename' dialog
-#: zim/gui/widgets.py:2778
+#: zim/gui/widgets.py:2784
 #, python-format
 msgid ""
 "A file with the name <b>\"%s\"</b> already exists.\n"
@@ -1873,12 +1883,12 @@ msgstr ""
 "überschreiben."
 
 #. Button label
-#: zim/gui/widgets.py:2796
+#: zim/gui/widgets.py:2802
 msgid "_Browse"
 msgstr "_Durchsuchen"
 
 #. Button label
-#: zim/gui/widgets.py:2801
+#: zim/gui/widgets.py:2807
 msgid "Overwrite"
 msgstr "Überschreiben"
 
@@ -1894,18 +1904,18 @@ msgid "Could not find notebook: %s"
 msgstr "Konnte Notizbuch %s nicht finden"
 
 #. error description
-#: zim/notebook.py:424
+#: zim/notebook.py:462
 msgid "The given page name is not valid.\n"
 msgstr "Der Seitenname ist ungültig\n"
 
 #. error message
-#: zim/notebook.py:430
+#: zim/notebook.py:468
 #, python-format
 msgid "Invalid page name \"%s\""
 msgstr "Ungültiger Seitenname \"%s\""
 
 #. error message
-#: zim/notebook.py:442
+#: zim/notebook.py:480
 msgid ""
 "Index is still busy updating while we try to do an\n"
 "operation that needs the index.\n"
@@ -1915,23 +1925,23 @@ msgstr ""
 "werden.\n"
 
 #. error message for read-only pages
-#: zim/notebook.py:459
+#: zim/notebook.py:497
 #, python-format
 msgid "Can not modify page: %s"
 msgstr "Seite %s kann nicht geändert werden"
 
 #. label for properties dialog
-#: zim/notebook.py:514
+#: zim/notebook.py:552
 msgid "Home Page"
 msgstr "Startseite"
 
 #. label for properties dialog
-#: zim/notebook.py:516
+#: zim/notebook.py:554
 msgid "Document Root"
 msgstr "Zim-Startverzeichnis"
 
 #. label for properties dialog
-#: zim/notebook.py:517
+#: zim/notebook.py:555
 msgid "Shared Notebook"
 msgstr "Geteiltes Notizbuch"
 
@@ -2041,7 +2051,7 @@ msgstr "Diagramm einfügen"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2089,30 +2099,30 @@ msgstr "Formel b_earbeiten"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnuplot_ploteditor.py:41
-msgid "GNUPlot..."
-msgstr "GNUPlot..."
+msgid "Gnuplot..."
+msgstr "Gnuplot..."
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:49
-msgid "Insert GNUPlot"
-msgstr "Füge GNUPlot ein"
+msgid "Insert Gnuplot"
+msgstr "Füge Gnuplot ein"
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:50
-msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
+msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
 msgstr ""
-"Dieses Plugin liefert einen Ploteditor für ZIM, welcher auf GNUPlot "
+"Dieses Plugin liefert einen Ploteditor für ZIM, welcher auf Gnuplot "
 "basiert.\n"
 
 #. menu item in context menu
 #: zim/plugins/gnuplot_ploteditor.py:79
-msgid "_Edit GNUPlot"
-msgstr "GNUPlot b_earbeiten"
+msgid "_Edit Gnuplot"
+msgstr "Gnuplot b_earbeiten"
 
 #. dialog title
 #: zim/plugins/gnuplot_ploteditor.py:90
-msgid "GNUPlot"
-msgstr "GNUPlot"
+msgid "Gnuplot"
+msgstr "Gnuplot"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnu_r_ploteditor.py:44
@@ -2368,7 +2378,7 @@ msgstr "Sekunden"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "Ein Fehler trat bei der Bearbeitung von \"%s\" auf."
 
 #. menu item
@@ -2573,12 +2583,12 @@ msgid "_Other..."
 msgstr "_Weitere …"
 
 #. menu item in tray icon menu
-#: zim/plugins/trayicon.py:179
+#: zim/plugins/trayicon.py:193
 msgid "Notebooks"
 msgstr "Notizbücher"
 
 #. tooltip for tray icon
-#: zim/plugins/trayicon.py:219
+#: zim/plugins/trayicon.py:245
 msgid "Zim Desktop Wiki"
 msgstr "Zim Desktop-Wiki"
 
@@ -2835,11 +2845,11 @@ msgstr "Rev"
 #~ msgid "Please specify a URL for the document root"
 #~ msgstr "Bitte geben Sie eine URL für das Dokumentverzeichnis an"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "Ein Fehler trat auf während \"scrot\" ausgeführt wurde"
 
 #~ msgid ""
-#~ "This plugin provides an diagram editor for zim based on GraphViz.\n"
+#~ "This plugin provides a diagram editor for zim based on GraphViz.\n"
 #~ "\n"
 #~ "Depends on: the GraphViz 'dot' command\n"
 #~ "\n"
@@ -3019,3 +3029,20 @@ msgstr "Rev"
 #~ "<b>%t</b> markierter Text oder Wort unter dem Cursor\n"
 #~ "<b>%T</b> ausgewählter Text mit Wiki-Formatierung\n"
 #~ "</tt>\n"
+
+#~ msgid "Insert GNUPlot"
+#~ msgstr "Füge GNUPlot ein"
+
+#~ msgid "GNUPlot"
+#~ msgstr "GNUPlot"
+
+#~ msgid "GNUPlot..."
+#~ msgstr "GNUPlot..."
+
+#~ msgid "_Edit GNUPlot"
+#~ msgstr "GNUPlot b_earbeiten"
+
+#~ msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
+#~ msgstr ""
+#~ "Dieses Plugin liefert einen Ploteditor für ZIM, welcher auf GNUPlot "
+#~ "basiert.\n"

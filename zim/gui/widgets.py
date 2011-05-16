@@ -28,8 +28,10 @@ logger = logging.getLogger('zim.gui')
 
 if os.environ.get('ZIM_TEST_RUNNING'):
 	TEST_MODE = True
+	TEST_MODE_RUN_CB = None
 else:
 	TEST_MODE = False
+	TEST_MODE_RUN_CB = None
 
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
@@ -148,7 +150,7 @@ def scrolled_text_view(text=None, monospace=False):
 
 def gtk_combobox_set_active_text(combobox, text):
 	'''Like gtk.ComboBox.set_active() but takes a string instead of an
-	index. Will match this string agains the list of options and select
+	index. Will match this string against the list of options and select
 	the correct index. Raises a ValueError when the string is not found
 	in the list. Intended as companion of gtk.ComboBox.get_active_text().
 	'''
@@ -208,7 +210,7 @@ def rotate_pixbuf(pixbuf):
 
 def help_text_factory(text):
 	'''Create a label with an info icon in front of it. Intended for
-	iformational text in dialogs.
+	informational text in dialogs.
 	'''
 	hbox = gtk.HBox(spacing=12)
 
@@ -240,8 +242,8 @@ def _do_sync_widget_state_check_active(widget, *a):
 
 
 def _sync_widget_state(widget, subject, check_active=False):
-	# Hook label or secondairy widget to follow state of e.g. entry widget
-	# check_active is only meaningfull if widget is a togglebutton and
+	# Hook label or secondary widget to follow state of e.g. entry widget
+	# check_active is only meaningful if widget is a togglebutton and
 	# will also add a dependency on the active state of the widget
 	check_active = check_active and hasattr(widget, 'get_active')
 
@@ -391,7 +393,7 @@ class SingleClickTreeView(gtk.TreeView):
 		if event.button == 1 and not event.state & self.mask \
 		and not self.is_rubber_banding_active():
 			x, y = map(int, event.get_coords())
-				# map to int to surpress deprecation warning :S
+				# map to int to suppress deprecation warning :S
 				# note that get_coords() gives back (0, 0) when cursor
 				# is outside the treeview window (e.g. drag & drop that
 				# was started inside the tree - see bug lp:646987)
@@ -537,7 +539,7 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 
 	def popup_menu(self, event=None):
 		'''This method actually pops up the menu.
-		Sub-calsses can overload and wrap it to populate the menu
+		Sub-classes can overload and wrap it to populate the menu
 		dynamically.
 		'''
 		if not self.get_property('sensitive'):
@@ -822,11 +824,11 @@ class InputForm(gtk.Table):
 			self.emit('last-activated')
 
 	def focus_first(self):
-		'''Focusses the first input in the form'''
+		'''Focuses the first input in the form'''
 		return self._focus_next(None)
 
 	def focus_next(self):
-		'''Focusses the next input in the form'''
+		'''Focuses the next input in the form'''
 		if gtk.gtk_version >=  (2, 14, 0):
 			widget = self.get_focus_child()
 		else:
@@ -1025,20 +1027,32 @@ class InputEntry(gtk.Entry):
 	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
 	ERROR_COLOR = gtk.gdk.color_parse('#EF7F7F') # light red (derived from Tango style guide)
 
-	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False):
-		'''Constructor takes a validation function 'check'. This
-		function is called with the current text as argument and
-		should return boolean.
+	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False, empty_text=None):
+		'''Constructor
 
-		As an alternative you can set 'allow_empty' to False to do
-		validation only on the fact if there is content or not.
+		@keyword check_func: a function to check input is valid.
+		This function will be called with the current text as argument
+		and should return True if this text is a valid input. When
+		the input is invalid the background of the widget will become
+		red.
 
-		The 'show_empty_invalid' determines if we also show a red
-		background when the entry is still empty.
+		@keyword allow_empty: if False an empty string is invalid input
+		@keyword show_empty_invalid: if True a red background is also
+		shown when the entry is still empty
+
+		@keyword: empty_text: text to show in the widget when it is
+		empty and does not have focus, text will be shown in a
+		color different from normal text and disappear when the user
+		selects the widget. Used to set hints on the usage of the
+		widget.
+
+		@todo: make color for empty_text actually grey
 		'''
 		gtk.Entry.__init__(self)
 		self.allow_empty = allow_empty
 		self.show_empty_invalid = show_empty_invalid
+		self.empty_text = empty_text
+		self._empty_text_shown = False
 		self.check_func = check_func
 		self._input_valid = False
 		self.do_changed() # Initialize state
@@ -1049,13 +1063,78 @@ class InputEntry(gtk.Entry):
 		self.check_func = check_func
 		self.do_changed()
 
+	def set_icon(self, icon, cb_func, tooltip=None):
+		'''Add an icon in the entry widget
+
+		@param icon: the icon as stock ID
+		@param cb_func: the callback when the icon is clicked; the
+		callback will be called without any arguments
+		@keyword tooltip: tooltip text for the icon
+
+		@returns: boolean for success
+
+		@requires: Gtk >= 2.16
+		@todo: add argument to set tooltip on the icon
+		'''
+		if gtk.gtk_version < (2, 16, 0):
+			return False
+
+		self.set_property('secondary-icon-stock', icon)
+		if tooltip:
+			self.set_property('secondary-icon-tooltip-text', tooltip)
+
+		def on_icon_press(self, icon_pos, event):
+			if icon_pos == gtk.ENTRY_ICON_SECONDARY:
+				cb_func()
+		self.connect('icon-press', on_icon_press)
+
+		return True
+
+	def set_icon_to_clear(self):
+		'''Adds a "clear" icon in the entry widget
+
+		This method calls L{set_icon()} with the right defaults for
+		a stock "Clear" icon. In addition it makes the icon insensitive
+		when there is no text in the entry.
+
+		@returns: boolean for success
+
+		@requires: Gtk >= 2.16
+		'''
+		if gtk.gtk_version < (2, 16, 0):
+			return False
+
+		self.set_icon(gtk.STOCK_CLEAR, self.clear, _('Clear'))
+			# T: tooltip for the inline icon to clear a text entry widget
+
+		def check_icon_sensitive(self):
+			text = self.get_text()
+			self.set_property('secondary-icon-sensitive', bool(text))
+
+		check_icon_sensitive(self)
+		self.connect('changed', check_icon_sensitive)
+
+		return True
+
 	def get_text(self):
 		'''Like gtk.Entry.get_text() but with utf-8 decoding and
 		whitespace stripped.
 		'''
+		if self._empty_text_shown:
+			return ''
 		text = gtk.Entry.get_text(self)
 		if not text: return ''
 		else: return text.decode('utf-8').strip()
+
+	def set_text(self, text):
+		'''Wrapper for gtk.Entry.set_text()'''
+		if not text and self.empty_text \
+		and not self.get_property('has-focus'):
+			self._empty_text_shown = True
+			gtk.Entry.set_text(self, self.empty_text)
+		else:
+			gtk.Entry.set_text(self, text)
+			self._empty_text_shown = False
 
 	def get_input_valid(self):
 		return self._input_valid
@@ -1074,6 +1153,10 @@ class InputEntry(gtk.Entry):
 		self._input_valid = valid
 		self.emit('input-valid-changed')
 
+	def clear(self):
+		'''Clear the text in the entry'''
+		self.set_text('')
+
 	def do_changed(self):
 		'''Check if content is valid'''
 		text = self.get_text() or ''
@@ -1081,6 +1164,18 @@ class InputEntry(gtk.Entry):
 			self.set_input_valid(self.check_func(text))
 		else:
 			self.set_input_valid(bool(text) or self.allow_empty)
+
+	def do_focus_in_event(self, event):
+		if self._empty_text_shown:
+			gtk.Entry.set_text(self, '')
+			self._empty_text_shown = False
+		gtk.Entry.do_focus_in_event(self, event)
+
+	def do_focus_out_event(self, event):
+		gtk.Entry.do_focus_out_event(self, event)
+		if self.empty_text and not self.get_text():
+			self._empty_text_shown = True
+			gtk.Entry.set_text(self, self.empty_text)
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(InputEntry)
@@ -1099,7 +1194,7 @@ class FSPathEntry(InputEntry):
 	'''
 
 	# TODO file / folder completion in the entry (think about rel paths!)
-	# wire LinkENtry to use this completion
+	# wire LinkEntry to use this completion
 
 	def __init__(self):
 		'''Constructor, notebook and path are used for relative paths'''
@@ -1177,7 +1272,7 @@ class FileEntry(FSPathEntry):
 	_class = File
 
 	def __init__(self, file=None, new=False):
-		'''Construcor. If 'new' is True the intention is a new
+		'''Constructor. If 'new' is True the intention is a new
 		file (e.g. output file), or to overwrite an existing
 		file. If 'new' is False only existing files can be selected.
 		'''
@@ -1217,9 +1312,10 @@ class PageEntry(InputEntry):
 	'''
 
 	_allow_select_root = False
+		# This attribute implements logic needed for NamespaceEntry
 
 	def __init__(self, notebook, path=None, subpaths_only=False, existing_only=False):
-		'''Contructor
+		'''Constructor
 
 		Typically this widget uses a Notebook to resolve paths and show completion,
 		but can be used with notebook=None if really needed. If a path is given as
@@ -1241,7 +1337,12 @@ class PageEntry(InputEntry):
 		self.existing_only = existing_only
 		self._current_completion = ()
 
-		InputEntry.__init__(self, allow_empty=False)
+		if self._allow_select_root:
+			empty_text = _('<Top>')
+			# T: default text for empty namespace selection
+		else:
+			empty_text = None
+		InputEntry.__init__(self, allow_empty=self._allow_select_root, empty_text=empty_text)
 		assert path is None or isinstance(path, Path)
 
 		completion = gtk.EntryCompletion()
@@ -1280,11 +1381,11 @@ class PageEntry(InputEntry):
 		@returns: a L{Path} object or C{None} is no valid path was entered
 		'''
 		name = self.get_text().decode('utf-8').strip()
-		if not name:
+		if self._allow_select_root and (name == ':' or not name):
+			return Path(':')
+		elif not name:
 			self.set_input_valid(False)
 			return None
-		elif self._allow_select_root and name == ':':
-			return Path(':')
 		else:
 			if self.subpaths_only and not name.startswith('+'):
 				name = '+' + name
@@ -1492,7 +1593,7 @@ class Window(gtkwindowclass):
 	'''Wrapper for the gtk.Window class that will take care of hooking
 	the window into the application framework and adds entry points
 	so plugins can add side panes etc. It will divide the window
-	horizontally in 3 panes, and the center pane again verticaly in 3.
+	horizontally in 3 panes, and the center pane again vertically in 3.
 	The result is something like this:
 
 		+-----------------------------+
@@ -1755,7 +1856,7 @@ class Dialog(gtk.Dialog):
 			defaultwindowsize=(-1, -1)
 		):
 		'''Constructor. 'ui' can either be the main application or some
-		other dialog from which this dialog is spwaned. 'title' is the dialog
+		other dialog from which this dialog is spawned. 'title' is the dialog
 		title. 'buttons' is a constant controlling what kind of buttons the
 		dialog will have. Currently supported are:
 
@@ -1790,6 +1891,14 @@ class Dialog(gtk.Dialog):
 			self.uistate = ui.uistate[key]
 		else:
 			self.uistate = zim.config.ListDict()
+
+		# note: _windowpos is defined with a leading "_" so it is not
+		# persistent across instances, this is intentional to avoid
+		# e.g. messy placement for seldom used dialogs
+		self.uistate.setdefault('_windowpos', (None, None), check=value_is_coord)
+		x, y = self.uistate['_windowpos']
+		if (x, y) != (None, None):
+			self.move(x, y)
 
 		self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
 		#~ print '>>', self.uistate
@@ -1835,14 +1944,14 @@ class Dialog(gtk.Dialog):
 
 	def add_help_text(self, text):
 		'''Adds a label with an info icon in front of it. Intended for
-		iformational text in dialogs.
+		informational text in dialogs.
 		'''
 		hbox = help_text_factory(text)
 		self.vbox.pack_start(hbox, False)
 
 	def add_form(self, inputs, values=None, depends=None, trigger_response=True):
 		'''Convenience method to construct simple forms. Inputs are
-		speccified with 'inputs', see the InputForm class for details.
+		specified with 'inputs', see the InputForm class for details.
 
 		If 'trigger_response' is True pressing <Enter> in the last Entry
 		widget will call response_ok(). Set to False if more forms
@@ -1863,8 +1972,12 @@ class Dialog(gtk.Dialog):
 		Returns the 'result' attribute of the dialog if any.
 		'''
 		self.show_all()
-		while not self.destroyed:
-			gtk.Dialog.run(self)
+		if TEST_MODE:
+			assert TEST_MODE_RUN_CB, 'Dialog run without test callback'
+			TEST_MODE_RUN_CB(self)
+		else:
+			while not self.destroyed:
+				gtk.Dialog.run(self)
 		return self.result
 
 	def present(self):
@@ -1920,6 +2033,8 @@ class Dialog(gtk.Dialog):
 			destroy = True
 
 		if ui_environment['platform'] != 'maemo':
+			x, y = self.get_position()
+			self.uistate['_windowpos'] = (x, y)
 			w, h = self.get_size()
 			self.uistate['windowsize'] = (w, h)
 			self.save_uistate()
@@ -1959,10 +2074,37 @@ gobject.type_register(Dialog)
 
 class ErrorDialog(gtk.MessageDialog):
 
-	def __init__(self, ui, error):
-		'''Constructor. 'ui' can either be the main application or some
-		other dialog from which the error originates. 'error' is the error
-		object.
+	def __init__(self, ui, error, exc_info=None):
+		'''Constructor
+
+		@param ui: either be the main application object or some other
+		dialog from which the error originates
+		@param error: the actual error
+
+		If the error is an instance of a subclass of L{zim.errors.Error}
+		or L{EnvironmentError} (e.g. L{OSError} or L{IOError}) a normal
+		error dialog will be shown. This covers errors that can
+		can occur in normal usage. For Environment errors that have
+		a "filename" attribute the filename is added to the error
+		message.
+
+		If the error is another instance of a (sub) class of
+		L{Exception} it is considered a bug and the "Looks like you
+		found a bug" text is shown together with a stack trace.
+
+		This means that you can throw pretty much any error object
+		you get in this constructor and the dialog will be the
+		correct style.
+
+		For convenience the error can also be a simple string or
+		a tuple of two strings. In this case it is considered a normal
+		error. The string just gives the error, the tuple gives the
+		short and long description to show in the dialog.
+
+		@keyword exc_info: this is an optional argument that takes the
+		result of L{sys.exc_info()}. This parameter is not necessary in
+		most cases, but can be useful to get a full stack trace in the
+		dialog for errors from e.g. an async operation.
 		'''
 		self.error = error
 		show_trace = False
@@ -1997,7 +2139,7 @@ class ErrorDialog(gtk.MessageDialog):
 
 		# Add widget with debug info
 		if show_trace:
-			text = self.get_debug_text()
+			text = self.get_debug_text(exc_info)
 			window, textview = scrolled_text_view(text, monospace=True)
 			window.set_size_request(350, 200)
 			self.vbox.add(window)
@@ -2005,15 +2147,18 @@ class ErrorDialog(gtk.MessageDialog):
 			# TODO use an expander here ?
 
 
-	def get_debug_text(self):
+	def get_debug_text(self, exc_info=None):
 		'''Returns text to include in an error dialog to support debugging'''
 		import zim
 		import traceback
-		exc_info = sys.exc_info()
+
+		if not exc_info:
+			exc_info = sys.exc_info()
+
 		if exc_info[2]:
 			tb = exc_info[2]
 		else:
-			tb = sys.last_traceback
+			tb = None
 
 		text = 'This is zim %s\n' % zim.__version__ + \
 			'Python version is %s\n' % str(sys.version_info) + \
@@ -2075,7 +2220,7 @@ class QuestionDialog(gtk.MessageDialog):
 		'''Constructor. 'ui' can either be the main application or some
 		other dialog. Question is a message that can be answered by
 		'yes' or 'no'. The question can also be a tuple containing a short
-		question and a longer explanation, this is prefered for look&feel.
+		question and a longer explanation, this is preferred for look&feel.
 		'''
 		if isinstance(question, tuple):
 			question, text = question
@@ -2115,7 +2260,7 @@ class MessageDialog(gtk.MessageDialog):
 	def __init__(self, ui, msg):
 		'''Constructor. 'ui' can either be the main application or some
 		other dialog. The message can also be a tuple containing a short
-		question and a longer explanation, this is prefered for look&feel.
+		question and a longer explanation, this is preferred for look&feel.
 		'''
 		if isinstance(msg, tuple):
 			msg, text = msg
@@ -2246,8 +2391,8 @@ class FileDialog(Dialog):
 		return filter
 
 	def add_filter_images(self):
-		'''Wrapper for filechooser.add_filter()
-		using gtk.FileFilter.add_pixbuf_formats(). Returns the filter object.
+		'''Wrapper for filechooser.add_filter() to add a filter for images.
+		Returns the filter object.
 		'''
 		if len(self.filechooser.list_filters()) == 0:
 			self._add_filter_all()
@@ -2255,14 +2400,15 @@ class FileDialog(Dialog):
 		filter.set_name(_('Images'))
 			# T: Filter in open file dialog, shows image files only
 		filter.add_pixbuf_formats()
+		filter.add_mime_type('image/*')       # to allow types like .ico
 		self.filechooser.add_filter(filter)
 		self.filechooser.set_filter(filter)
 		return filter
 
 	def do_response_ok(self):
-		'''Default responce handler. Will check filechooser action and
+		'''Default response handler. Will check filechooser action and
 		whether or not we select multiple files or dirs and set result
-		of the dialog accordingly, so the method run() wil return the
+		of the dialog accordingly, so the method run() will return the
 		selected file(s) or folder(s).
 		'''
 		action = self.filechooser.get_action()
@@ -2289,7 +2435,7 @@ class ProgressBarDialog(gtk.Dialog):
 	like a normal Dialog. These dialogs are only supposed to run modal, but are
 	not called with run() as there is typically a background action giving them
 	callbacks. They _always_ should implement a cancel action to break the
-        background process, either be overloadig this class, or by checking the
+	background process, either be overloading this class, or by checking the
 	return value of pulse().
 
 	If you know up front how often pulse() will be called supply this
@@ -2335,7 +2481,7 @@ class ProgressBarDialog(gtk.Dialog):
 		'''Sets an optional message and moves forward the progress bar. Will also
 		handle all pending Gtk events, so interface keeps responsive during a background
 		job. This method returns True until the 'Cancel' button has been pressed, this
-		boolean could be used to decide if the ackground job should continue or not.
+		boolean could be used to decide if the background job should continue or not.
 
 		First call to pulse() will also trigger a show_all() if the
 		dialog is not shown yet. This is done so you don't flash a
@@ -2393,7 +2539,7 @@ class Assistant(Dialog):
 	Each "page" in the assistant is a step in the work flow. Pages
 	should inherit from the AssistantPage class. Pages share the
 	'uistate' dict with assistant object, and can also use this to
-	communicate state to another page. So each step can change it's
+	communicate state to another page. So each step can change its
 	look based on state set in the previous step. (This is sometimes
 	called a "Whiteboard" design pattern: each page can access the
 	same "whiteboard" that is the uistate dict.)
@@ -2584,7 +2730,7 @@ class AssistantPage(gtk.VBox):
 
 	def add_form(self, inputs, values=None, depends=None):
 		'''Convenience method to construct simple forms. Inputs are
-		speccified with 'inputs', see the InputForm class for details.
+		specified with 'inputs', see the InputForm class for details.
 		'''
 		self.form = InputForm(inputs, values, depends, notebook=self.assistant.ui.notebook)
 		self.form.connect('input-valid-changed', lambda o: self.check_input_valid())
@@ -2618,7 +2764,7 @@ gobject.type_register(AssistantPage)
 class ImageView(gtk.Layout):
 
 	SCALE_FIT = 1 # scale image with the window (if it is bigger)
-	SCALE_STATIC = 2 # use scaling factore
+	SCALE_STATIC = 2 # use scaling factor
 
 	__gsignals__ = {
 		'size-allocate': 'override',
@@ -2772,7 +2918,7 @@ class PromptExistingFileDialog(Dialog):
 	the existing one.
 
 	For this dialog 'run()' will return either the original file
-	(for overwrite), a new file, or None when the dialog was cancelled.
+	(for overwrite), a new file, or None when the dialog was canceled.
 	'''
 
 	def __init__(self, ui, file):

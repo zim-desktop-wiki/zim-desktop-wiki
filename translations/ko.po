@@ -137,7 +137,7 @@ msgstr "폴더가 존재함"
 #: zim/gui/exportdialog.py:130
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "폴더가 이미 존재하며 폴더가 비어있지 않습니다. 이 폴더로 내보내면 기존의 파일들이 지워질 수 있습니다. 계속 하시겠습니까?"
 
@@ -257,7 +257,7 @@ msgstr "로그 보기(_L)"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:138
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "이미지 처리 중 오류가 발생했습니다.\n"
@@ -1789,7 +1789,7 @@ msgstr ""
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr "이 플러그인은 GraphViz에 기반한 도표 편집기를 제공합니다.\n"
@@ -2025,7 +2025,7 @@ msgstr ""
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr ""
 
 #. menu item

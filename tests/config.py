@@ -21,35 +21,42 @@ class FilterInvalidConfigWarning(LoggingFilter):
 	message = 'Invalid config value'
 
 
+
 class TestDirsTestSetup(TestCase):
 
 	def runTest(self):
 		'''Test config environment setup of test'''
 		for k, v in (
-			('XDG_DATA_HOME', './tests/tmp/data_home'),
-			('XDG_CONFIG_HOME', './tests/tmp/config_home'),
-			('XDG_CACHE_HOME', './tests/tmp/cache_home')
+			('XDG_DATA_HOME', os.path.join(tests.TMPDIR, 'data_home')),
+			('XDG_CONFIG_HOME', os.path.join(tests.TMPDIR, 'config_home')),
+			('XDG_CACHE_HOME', os.path.join(tests.TMPDIR, 'cache_home'))
 		): self.assertEqual(getattr(zim.config, k), Dir(v))
 
 		for k, v in (
-			('XDG_DATA_DIRS', './tests/tmp/data_dir'),
-			('XDG_CONFIG_DIRS', './tests/tmp/config_dir'),
+			('XDG_DATA_DIRS', os.path.join(tests.TMPDIR, 'data_dir')),
+			('XDG_CONFIG_DIRS', os.path.join(tests.TMPDIR, 'config_dir')),
 		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(':')))
 
 
 class TestDirsDefault(TestCase):
 
 	def setUp(self):
+		old_environ = {}
 		for k in (
 			'XDG_DATA_HOME', 'XDG_DATA_DIRS',
 			'XDG_CONFIG_HOME', 'XDG_CONFIG_DIRS', 'XDG_CACHE_HOME'
 		):
-			if k in os.environ: del os.environ[k]
+			if k in os.environ:
+				old_environ[k] = os.environ[k]
+				del os.environ[k]
 
-		zim.config._set_basedirs() # refresh
+		def restore_environ():
+			for k, v in old_environ.items():
+				os.environ[k] = v
+			zim.config._set_basedirs() # refresh
 
-	def tearDown(self):
-		tests.set_environ() # re-set the environment
+		self.addCleanup(restore_environ)
+
 		zim.config._set_basedirs() # refresh
 
 	def testValid(self):
@@ -91,14 +98,25 @@ class TestDirsDefault(TestCase):
 class TestDirsEnvironment(TestDirsDefault):
 
 	def setUp(self):
-		os.environ.update( (
-			('XDG_DATA_HOME', '/foo/data/home'),
-			('XDG_DATA_DIRS', '/foo/data/dir1:/foo/data/dir2'),
-			('XDG_CONFIG_HOME', '/foo/config/home'),
-			('XDG_CONFIG_DIRS', '/foo/config/dir1:/foo/config/dir2'),
-			('XDG_CACHE_HOME', '/foo/cache')
-		) )
+		my_environ = {
+			'XDG_DATA_HOME': '/foo/data/home',
+			'XDG_DATA_DIRS': '/foo/data/dir1:/foo/data/dir2',
+			'XDG_CONFIG_HOME': '/foo/config/home',
+			'XDG_CONFIG_DIRS': '/foo/config/dir1:/foo/config/dir2',
+			'XDG_CACHE_HOME': '/foo/cache',
+		}
 
+		old_environ = dict((name, os.environ.get(name)) for name in my_environ)
+
+		def restore_environ():
+			for k, v in old_environ.items():
+				if v:
+					os.environ[k] = v
+			zim.config._set_basedirs() # refresh
+
+		self.addCleanup(restore_environ)
+
+		os.environ.update(my_environ)
 		zim.config._set_basedirs() # refresh
 
 	def testCorrect(self):
@@ -147,7 +165,7 @@ empty=
 none=None
 
 '''
-		self.assertEqualDiff(file.read(), text)
+		self.assertEqual(file.read(), text)
 
 		del conf
 		conf = ConfigDictFile(file)
@@ -336,7 +354,7 @@ Aaa: foobar
 		headers = HeadersDict(text)
 		self.assertEqual(headers['Foobar'], '123')
 		self.assertEqual(headers['More-Lines'], 'test\n1234\ntest')
-		self.assertEqualDiff(headers.dump(), text.splitlines(True))
+		self.assertEqual(headers.dump(), text.splitlines(True))
 
 		moretext='''\
 Foobar: 123
@@ -351,8 +369,8 @@ test 456
 		lines = moretext.splitlines(True)
 		headers = HeadersDict()
 		headers.read(lines)
-		self.assertEqualDiff(headers.dump(), text.splitlines(True))
-		self.assertEqualDiff(lines, ['test 123\n', 'test 456\n'])
+		self.assertEqual(headers.dump(), text.splitlines(True))
+		self.assertEqual(lines, ['test 123\n', 'test 456\n'])
 
 		# error tolerance and case insensitivity
 		text = '''\
@@ -420,4 +438,3 @@ class TestHierarchicDict(TestCase):
 		self.assertEqual(dict[Path('foo:bar:baz')]['key1'], 'foo')
 		dict['']['key2'] = 'FOO'
 		self.assertEqual(dict[Path('foo:bar:baz')]['key2'], 'FOO')
-

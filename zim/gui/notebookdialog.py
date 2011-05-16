@@ -24,7 +24,7 @@ from zim.gui.widgets import ui_environment, Dialog, IconButton, _encode_xml
 logger = logging.getLogger('zim.gui.notebookdialog')
 
 
-OPEN_COL = 0   # column with boolean if notebook is open alreadys
+OPEN_COL = 0   # column with boolean if notebook is open already
 NAME_COL = 1   # column with notebook name
 TEXT_COL = 2   # column with a formatted containing name and path
 PIXBUF_COL = 3 # column containing the notebook icon
@@ -33,7 +33,7 @@ INFO_COL = 4   # column with the NotebookInfo object
 
 def prompt_notebook():
 	'''Prompts the NotebookDialog and returns the result or None.
-	As a special case for first time usage it immediatly prompts for
+	As a special case for first time usage it immediately prompts for
 	the notebook location without showing the notebook list.
 	'''
 	list = get_notebook_list()
@@ -43,11 +43,11 @@ def prompt_notebook():
 		if fields:
 			dir = Dir(fields['folder'])
 			init_notebook(dir, name=fields['name'])
-			list.append(dir.uri)
+			list.append(NotebookInfo(dir.uri, name=fields['name']))
 			list.write()
-			return dir
+			return dir.uri
 		else:
-			return None # User cancelled the dialog ?
+			return None # User canceled the dialog ?
 	else:
 		# Multiple notebooks defined and no default
 		return NotebookDialog(ui=None).run()
@@ -182,7 +182,7 @@ class NotebookComboBox(gtk.ComboBox):
 	def __init__(self, model=None, current=None):
 		'''Constructor, "model" should be a NotebookTreeModel or None to
 		use the default list. The notebook 'current' will be shown in the
-		widget - if it is not in the list it wil be added. Otherwise the default
+		widget - if it is not in the list it will be added. Otherwise the default
 		will be shown.
 		'''
 		if model is None:
@@ -259,7 +259,7 @@ class NotebookDialog(Dialog):
 	of defined notebooks.
 
 	Can either be run modal using run(), in which case the selected
-	notebook is returned (or None when the dialog is cancelled).
+	notebook is returned (or None when the dialog is canceled).
 	To run this dialog non-model a callback needs to be specified
 	which will be called with the path for the selected notebook.
 	'''

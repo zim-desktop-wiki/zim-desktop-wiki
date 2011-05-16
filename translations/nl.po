@@ -7,16 +7,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2011-04-14 22:30+0200\n"
-"PO-Revision-Date: 2011-04-19 16:22+0000\n"
+"POT-Creation-Date: 2011-04-27 20:53+0200\n"
+"PO-Revision-Date: 2011-04-28 07:34+0000\n"
 "Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
 "Language-Team: Dutch <nl@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2011-04-19 16:24+0000\n"
-"X-Generator: Launchpad (build 12847)\n"
+"X-Launchpad-Export-Date: 2011-04-28 17:52+0000\n"
+"X-Generator: Launchpad (build 12915)\n"
 
 #. label for default webbrowser |
 #. label for default application
@@ -31,7 +31,7 @@ msgid "No such file: %s"
 msgstr "Bestand niet gevonden: %s"
 
 #. Error message
-#: zim/fs.py:894
+#: zim/fs.py:929
 msgid "File is not writable"
 msgstr "Kan niet schrijven naar bestand"
 
@@ -60,7 +60,7 @@ msgstr "Ander Programma"
 #. label for file name
 #: zim/gui/applications.py:484 zim/gui/customtools.py:150
 #: zim/gui/__init__.py:2566 zim/gui/notebookdialog.py:389
-#: zim/gui/preferencesdialog.py:264 zim/notebook.py:513
+#: zim/gui/preferencesdialog.py:269 zim/notebook.py:551
 #: zim/plugins/attachmentbrowser.py:371
 msgid "Name"
 msgstr "Naam"
@@ -99,7 +99,7 @@ msgstr "Selectie"
 
 #. Column heading in 'Oprhaned Files' dialog |
 #. Input label
-#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:2787
+#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:2793
 msgid "Filename"
 msgstr "Bestandnaam"
 
@@ -161,13 +161,13 @@ msgstr "Extra applicatie wijzigen"
 
 #. Input in "Edit Custom Tool" dialog |
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/customtools.py:151 zim/gui/preferencesdialog.py:270
+#: zim/gui/customtools.py:151 zim/gui/preferencesdialog.py:275
 msgid "Description"
 msgstr "Omschrijving"
 
 #. Input in "Edit Custom Tool" dialog |
 #. label for properties dialog
-#: zim/gui/customtools.py:163 zim/notebook.py:515
+#: zim/gui/customtools.py:163 zim/notebook.py:553
 msgid "Icon"
 msgstr "Pictogram"
 
@@ -224,7 +224,7 @@ msgstr "Bestand bestaat: %s"
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Map bestaat al en bevat bestanden. Exporteren naar deze map kan bestaande "
 "bestanden overschrijven. Wilt u doorgaan?"
@@ -329,7 +329,7 @@ msgstr "Bekijk _Log"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Er is een fout opgetreden bij het genereren van de \n"
@@ -1657,104 +1657,114 @@ msgstr "Regels"
 msgid "Characters"
 msgstr "Tekens"
 
+#. Tab in preferences dialog
+#: zim/gui/preferencesdialog.py:19
+msgid "Interface"
+msgstr "Bediening"
+
+#. Tab in preferences dialog
+#: zim/gui/preferencesdialog.py:20
+msgid "Editing"
+msgstr "Bewerken"
+
 #. label to pop dialog with more applications in 'open with' menu
-#: zim/gui/preferencesdialog.py:24
+#: zim/gui/preferencesdialog.py:29
 msgid "Other Application"
 msgstr "Andere toepassing"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:28
+#: zim/gui/preferencesdialog.py:33
 msgid "Preferences"
 msgstr "Voorkeuren"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:71
+#: zim/gui/preferencesdialog.py:76
 msgid "Applications"
 msgstr "Programmas"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:75
+#: zim/gui/preferencesdialog.py:80
 msgid "File browser"
 msgstr "Bestandsbrowser"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:77
+#: zim/gui/preferencesdialog.py:82
 msgid "Web browser"
 msgstr "Webbrowser"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:79
+#: zim/gui/preferencesdialog.py:84
 msgid "Email client"
 msgstr "Email programma"
 
 #. Input for application type in preferences dialog
-#: zim/gui/preferencesdialog.py:81
+#: zim/gui/preferencesdialog.py:86
 msgid "Text Editor"
 msgstr "Tekst Editor"
 
 #. Heading in preferences dialog
-#: zim/gui/preferencesdialog.py:91
+#: zim/gui/preferencesdialog.py:96
 msgid "Plugins"
 msgstr "Plugins"
 
 #. option in preferences dialog
-#: zim/gui/preferencesdialog.py:97
+#: zim/gui/preferencesdialog.py:102
 msgid "Use a custom font"
 msgstr "Wijzig lettertype"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:242
+#: zim/gui/preferencesdialog.py:247
 msgid "_More"
 msgstr "_Meer"
 
 #. Button in plugin tab
-#: zim/gui/preferencesdialog.py:247
+#: zim/gui/preferencesdialog.py:252
 msgid "C_onfigure"
 msgstr "C_onfigureren"
 
 #. Heading in plugins tab of preferences dialog
-#: zim/gui/preferencesdialog.py:276
+#: zim/gui/preferencesdialog.py:281
 msgid "Dependencies"
 msgstr "Afhankelijkheden"
 
 #. label in plugin info in preferences dialog
-#: zim/gui/preferencesdialog.py:283
+#: zim/gui/preferencesdialog.py:288
 msgid "No dependencies"
 msgstr "Geen afhankelijkheden"
 
 #. dependency is OK
-#: zim/gui/preferencesdialog.py:290
+#: zim/gui/preferencesdialog.py:295
 msgid "OK"
 msgstr "OK"
 
 #. dependency failed
-#: zim/gui/preferencesdialog.py:294
+#: zim/gui/preferencesdialog.py:299
 msgid "Failed"
 msgstr "Niet gevonden"
 
 #. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
-#: zim/gui/preferencesdialog.py:298 zim/plugins/versioncontrol/__init__.py:476
+#: zim/gui/preferencesdialog.py:303 zim/plugins/versioncontrol/__init__.py:476
 msgid "Author"
 msgstr "Auteur"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:355
+#: zim/gui/preferencesdialog.py:360
 msgid "Enabled"
 msgstr "In Gebruik"
 
 #. Column in plugin tab
-#: zim/gui/preferencesdialog.py:358
+#: zim/gui/preferencesdialog.py:363
 msgid "Plugin"
 msgstr "Plugin"
 
 #. Dialog title
-#: zim/gui/preferencesdialog.py:365
+#: zim/gui/preferencesdialog.py:370
 msgid "Configure Plugin"
 msgstr "Plugin Configureren"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
-#: zim/gui/preferencesdialog.py:374
+#: zim/gui/preferencesdialog.py:379
 #, python-format
 msgid "Options for plugin %s"
 msgstr "Opties voor plugin %s"
@@ -1816,27 +1826,27 @@ msgid "Server stopped"
 msgstr "Web server gestopt"
 
 #. dialog title
-#: zim/gui/widgets.py:361 zim/gui/widgets.py:1158
+#: zim/gui/widgets.py:363 zim/gui/widgets.py:1160
 msgid "Select File"
 msgstr "Bestand Selecteren"
 
 #. dialog title
-#: zim/gui/widgets.py:1154
+#: zim/gui/widgets.py:1156
 msgid "Select Folder"
 msgstr "Map Selecteren"
 
 #. dialog title
-#: zim/gui/widgets.py:1156
+#: zim/gui/widgets.py:1158
 msgid "Select Image"
 msgstr "Kies een afbeelding"
 
 #. generic error dialog
-#: zim/gui/widgets.py:1976
+#: zim/gui/widgets.py:1982
 msgid "Looks like you found a bug"
 msgstr "U heeft waarschijnlijk een bug gevonden"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:1979
+#: zim/gui/widgets.py:1985
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -1845,22 +1855,22 @@ msgstr ""
 "dan de ondersteaande informatie toe"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:2228
+#: zim/gui/widgets.py:2234
 msgid "All Files"
 msgstr "Alle bestanden"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:2253
+#: zim/gui/widgets.py:2259
 msgid "Images"
 msgstr "Afbeeldingen"
 
 #. Dialog title
-#: zim/gui/widgets.py:2777
+#: zim/gui/widgets.py:2783
 msgid "File Exists"
 msgstr "Bestand Bestaat Reeds"
 
 #. Dialog text in 'new filename' dialog
-#: zim/gui/widgets.py:2778
+#: zim/gui/widgets.py:2784
 #, python-format
 msgid ""
 "A file with the name <b>\"%s\"</b> already exists.\n"
@@ -1871,12 +1881,12 @@ msgstr ""
 "overschrijven."
 
 #. Button label
-#: zim/gui/widgets.py:2796
+#: zim/gui/widgets.py:2802
 msgid "_Browse"
 msgstr "_Bladeren"
 
 #. Button label
-#: zim/gui/widgets.py:2801
+#: zim/gui/widgets.py:2807
 msgid "Overwrite"
 msgstr "Overschrijf"
 
@@ -1892,18 +1902,18 @@ msgid "Could not find notebook: %s"
 msgstr "Kan notitieboek \"%s\" niet vinden"
 
 #. error description
-#: zim/notebook.py:424
+#: zim/notebook.py:462
 msgid "The given page name is not valid.\n"
 msgstr "Ongeldige pagina naam\n"
 
 #. error message
-#: zim/notebook.py:430
+#: zim/notebook.py:468
 #, python-format
 msgid "Invalid page name \"%s\""
 msgstr "Ongeldige pagina naam \"%s\""
 
 #. error message
-#: zim/notebook.py:442
+#: zim/notebook.py:480
 msgid ""
 "Index is still busy updating while we try to do an\n"
 "operation that needs the index.\n"
@@ -1912,23 +1922,23 @@ msgstr ""
 "bewerking wordt gedaan die de index nodig heeft.\n"
 
 #. error message for read-only pages
-#: zim/notebook.py:459
+#: zim/notebook.py:497
 #, python-format
 msgid "Can not modify page: %s"
 msgstr "Kan pagina \"%s\" niet wijzigen"
 
 #. label for properties dialog
-#: zim/notebook.py:514
+#: zim/notebook.py:552
 msgid "Home Page"
 msgstr "Start Pagina"
 
 #. label for properties dialog
-#: zim/notebook.py:516
+#: zim/notebook.py:554
 msgid "Document Root"
 msgstr "Bestanden map"
 
 #. label for properties dialog
-#: zim/notebook.py:517
+#: zim/notebook.py:555
 msgid "Shared Notebook"
 msgstr "Gedeeld notitieboek"
 
@@ -2041,7 +2051,7 @@ msgstr "Diagram Invoegen"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2091,30 +2101,30 @@ msgstr "Formule Be_werken"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnuplot_ploteditor.py:41
-msgid "GNUPlot..."
-msgstr "GNUPlot..."
+msgid "Gnuplot..."
+msgstr "Gnuplot..."
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:49
-msgid "Insert GNUPlot"
-msgstr "Insert GNUPlot"
+msgid "Insert Gnuplot"
+msgstr "Insert Gnuplot"
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:50
-msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
+msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
 msgstr ""
 "Deze plugin voegt een editor toe om grafieken in te voegen gebaseerd op "
 "GNUplot\n"
 
 #. menu item in context menu
 #: zim/plugins/gnuplot_ploteditor.py:79
-msgid "_Edit GNUPlot"
+msgid "_Edit Gnuplot"
 msgstr "GNUplot Be_werken"
 
 #. dialog title
 #: zim/plugins/gnuplot_ploteditor.py:90
-msgid "GNUPlot"
-msgstr "GNUPlot"
+msgid "Gnuplot"
+msgstr "Gnuplot"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnu_r_ploteditor.py:44
@@ -2372,7 +2382,7 @@ msgstr "seconden"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "Er is een fout opgetreden tijdens \"%s\""
 
 #. menu item
@@ -2581,12 +2591,12 @@ msgid "_Other..."
 msgstr "_Overige..."
 
 #. menu item in tray icon menu
-#: zim/plugins/trayicon.py:179
+#: zim/plugins/trayicon.py:193
 msgid "Notebooks"
 msgstr "Notitieboeken"
 
 #. tooltip for tray icon
-#: zim/plugins/trayicon.py:219
+#: zim/plugins/trayicon.py:245
 msgid "Zim Desktop Wiki"
 msgstr "Zim Desktop Wiki"
 
@@ -2909,7 +2919,7 @@ msgstr "Rev"
 #~ msgstr "Alleen-Lezen aan/uit"
 
 #~ msgid ""
-#~ "This plugin provides an diagram editor for zim based on GraphViz.\n"
+#~ "This plugin provides a diagram editor for zim based on GraphViz.\n"
 #~ "\n"
 #~ "Depends on: the GraphViz 'dot' command\n"
 #~ "\n"
@@ -2922,7 +2932,7 @@ msgstr "Rev"
 #~ "\n"
 #~ "Dit is een standaard plugin voor zim.\n"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "Er is een fout opgetreden bij het aanroepen van \"scrot\""
 
 #~ msgid ""
@@ -3042,3 +3052,20 @@ msgstr "Rev"
 #~ "Gebruik de <Ctrl><Spatie> toetsencombinatie om van focus te wisselen \n"
 #~ "tussen de tekst en het zij-paneel. Als deze optie uitstaat kunt u nog \n"
 #~ "steeds <Alt><Spatie> gebruiken."
+
+#~ msgid "GNUPlot..."
+#~ msgstr "GNUPlot..."
+
+#~ msgid "Insert GNUPlot"
+#~ msgstr "Insert GNUPlot"
+
+#~ msgid "This plugin provides a plot editor for zim based on GNUPlot.\n"
+#~ msgstr ""
+#~ "Deze plugin voegt een editor toe om grafieken in te voegen gebaseerd op "
+#~ "GNUplot\n"
+
+#~ msgid "_Edit GNUPlot"
+#~ msgstr "GNUplot Be_werken"
+
+#~ msgid "GNUPlot"
+#~ msgstr "GNUPlot"

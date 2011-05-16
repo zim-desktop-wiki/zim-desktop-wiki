@@ -6,7 +6,7 @@
 
 We define the AsyncOperation class to wrap a function that can be
 executed asynchronous. AsyncOperation wraps the function in a thread
-so it can run in parralel with the main program.
+so it can run in parallel with the main program.
 
 The idea is to only do low level actions in separate threads, e.g.
 blocking I/O. In the main thread we have the gtk or gobject main loop
@@ -17,11 +17,19 @@ can fire in a separate thread. Also the sqlite index is not thread
 save either.
 
 The AsyncLock class can be used for locking a resource. The lock is
-always aquired in the main thread before the async operation starts and
+always acquired in the main thread before the async operation starts and
 is released when the operation finishes. THis way race conditions can
 be avoided in case you queue the same operation several times. Using
 the lock enforces that the async actions are still run in the same
 order as they are spawned from the main thread.
+
+So typical usage in zim is to spawn worker threads from the main thread
+but only one at a time for a specific resource. E.g. file system
+actions can be done async, but there is a global lock that ensures we
+do only one file system action at a time. This is a simple way of
+dealing with the complexity of dealing with asynchronous operation
+on shared resources. (This example is implemented in L{zim.fs}, see
+the various "async_*" methods.)
 '''
 
 import sys
@@ -40,30 +48,56 @@ except ImportError:
 	import dummy_threading as threading
 
 
-def call_in_main_thread(callback, args=()):
-	gobject.idle_add(callback, *args)
+def call_in_main_thread(cb_func, args=()):
+	'''This function will cause a callback to be called in the main thread
+
+	@param cb_func: the function to call in the main thread
+	@keyword args: optional arguments to pass the function
+	'''
+
+	# Originally I thought this would require a queue that is
+	# filled from the worker queues and emptied from the main loop,
+	# however idle_add() does this for us
+
+	def callback():
+		cb_func(*args)
+		return False # cause the timeout to be destroyed
+
+	gobject.idle_add(callback)
 
 
 class AsyncOperation(threading.Thread):
-	'''Wrapper class for a threading.Thread object.'''
+	'''Wrapper class for a L{threading.Thread} object'''
 
 	def __init__(self, function, args=(), kwargs={}, lock=None, callback=None, data=None):
-		'''Construct a new thread. You can pass it a function to
-		execute and its arguments and keyword arguments.
+		'''Constructor for a new thread
+
+		@param function: the main function for this thread
+		@keyword args: optional arguments for the function
+		@keyword kwargs: optional keyword parameters for the function
+		@keyword lock: an L{AsyncLock}
 
 		If a lock object is provided start() will block until the lock
 		is available and we will release the lock once the operation is
 		done.
 
+		@keyword callback: function to call in the main thread once the
+		main function in this thread is finished
+		@keyword data: optional arguments for the callback function
+
 		If you add a callback function it will be called in the main
-		thread after the function is finished. Callback is called like:
+		thread after the function is finished. This is typically used
+		for error handling, e.g. you want to throw an error dialog from
+		the main thread when the operation failed.
+		The callback is called like::
 
 			callback(value, error, exc_info, data)
 
-			* 'value' is the return value of the function
-			* 'error' is an Exception object or None
-			* 'exc_info' is a 3 tuple of sys.exc_info() or None
-			* 'data' is the data given to the constructor
+		With the arguments:
+		  - C{value}: is the return value of the function
+		  - C{error}: is an Exception object or None
+		  - C{exc_info}: is a 3 tuple of sys.exc_info() or None
+		  - C{data}: is the data given to the constructor
 		'''
 		self.result = None
 
@@ -93,23 +127,28 @@ class AsyncOperation(threading.Thread):
 		self.lock = lock
 
 	def start(self):
-		'''Start the operation'''
+		'''Start the operation
+
+		If a lock is used this will block until the lock is acquired
+		and then return one the operation is running
+		'''
 		if self.lock:
 			self.lock.acquire()
 		threading.Thread.start(self)
 
 	def wait(self):
-		'''Wait for this thread to exit and return the result
-		of the function handled by this thread.
+		'''Wait for this thread to exit
+
+		@returns: the result of the function handled by this thread
 		'''
 		self.join()
 		return self.result
 
 
 class AsyncLock(object):
-	'''This class functions as a threading.Lock object.
+	'''This class wraps a L{threading.Lock} object.
 
-	This class also functions as a context manager, so you can use:
+	This class also functions as a context manager, so you can use::
 
 		lock = AsyncLock()
 
@@ -137,3 +176,55 @@ class AsyncLock(object):
 
 	def release(self):
 		self._lock.release()
+
+
+class DelayedCallback(object):
+	'''Wrapper for callbacks that need to be delayed after a signal
+
+	This class allows you to add a callback to a signal, but only have
+	it called after a certain timeout. If the signal is emitted
+	again during this time the callback will be canceled and the
+	timeout starts again. (So the callback is not called for each repeat
+	of the signal.) This can be used e.g. in case want to update some
+	other widget after the user changes a text entry widget, but this
+	can be done once the user pauses, while calling the callback for
+	every key stroke would make the application non-responsive.
+
+	Objects of this class wrap the actual callback function and can be
+	called as a normal function.
+
+	@todo: add support for async callbacks, in this case block
+	the callback until the async process is finished
+	'''
+
+	__slots__ = ('timeout', 'cb_func', 'timer_id')
+
+	def __init__(self, timeout, cb_func):
+		'''Constructor
+
+		@param timeout: timeout in milliseconds (e.g. 500)
+		@param cb_func: the callback to call
+		'''
+		self.cb_func = cb_func
+		self.timeout = timeout
+		self.timer_id = None
+
+	def __call__(self, *arg, **kwarg):
+		if self.timer_id:
+			gobject.source_remove(self.timer_id)
+			self.timer_id = None
+
+		def callback():
+			self.timer_id = None
+			self.cb_func(*arg, **kwarg)
+			return False # destroy timeout
+
+		self.timer_id = gobject.timeout_add(self.timeout, callback)
+
+	def __del__(self):
+		if self.timer_id:
+			gobject.source_remove(self.timer_id)
+
+	def cancel(self):
+		'''Cancel the scheduled callback'''
+		self.__del__()

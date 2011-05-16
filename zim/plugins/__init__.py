@@ -40,7 +40,7 @@ if sys.version_info[0:2] == (2, 5):
 
 
 def set_plugin_search_path():
-	'''Sets __path__ for the zim.plugins pacakge. This determines what
+	'''Sets __path__ for the zim.plugins package. This determines what
 	directories are searched when importing plugin packages in the
 	zim.plugins namespace. This function looks at sys.path and would
 	need to be run again if sys.path is modified after loading this
@@ -197,17 +197,27 @@ class PluginClass(gobject.GObject):
 
 	@classmethod
 	def check_dependencies_ok(klass):
-		'''Like check_dependencies, but just returns boolean'''
-		return all(dep[1] for dep in klass.check_dependencies())
+		'''Checks minimum dependencies are met
+
+		@returns: True if this plugin can be loaded
+		'''
+		check, dependencies = klass.check_dependencies()
+		return check
 
 	@classmethod
 	def check_dependencies(klass):
-		'''This method checks which dependencies are met. It should return a list of tuples,
-		one for each dependency, with a string giving the name of the dependency and a boolean
-		indicating if it is fulfilled or not. When a plugin has no dependencies an empty list
-		should be returned (which is done in the base class).
+		'''Checks what dependencies are met and gives details
+
+		To be overloaded in sub-classes that have one or more
+		dependencies.
+
+		@returns: a boolean telling overall dependencies are met,
+		followed by a list with details. This list consists of 3-tuples
+		consisting of a (short) description of the dependency, a boolean
+		for dependency being met, and a boolean for this dependency
+		being optional or not.
 		'''
-		return []
+		return (True, [])
 
 	def __init__(self, ui):
 		gobject.GObject.__init__(self)
@@ -216,7 +226,7 @@ class PluginClass(gobject.GObject):
 		assert 'description' in self.plugin_info, 'Plugins should provide a description in the info dict'
 		assert 'author' in self.plugin_info, 'Plugins should provide a author in the info dict'
 		if self.plugin_preferences:
-			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tupels'
+			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tuples'
 		section = self.__class__.__name__
 		self.preferences = self.ui.preferences[section]
 		for pref in self.plugin_preferences:
@@ -238,7 +248,7 @@ class PluginClass(gobject.GObject):
 	def _merge_uistate(self, *a):
 		# As a convenience we provide a uistate dict directly after
 		# initialization of the plugin. However, in reality this
-		# config file is only available after the notebook is openend.
+		# config file is only available after the notebook is opened.
 		# Therefore we need to link the actual file and merge back
 		# any defaults that were set during plugin intialization etc.
 		if self.ui.uistate:
@@ -249,15 +259,15 @@ class PluginClass(gobject.GObject):
 				self.uistate.setdefault(key, value)
 
 	def initialize_ui(self, ui):
-		'''Callback called during contruction of the ui.
+		'''Callback called during construction of the ui.
 		Can be overloaded by subclasses.
 		'''
 		# FIXME more documentation how / when to use this
 		pass
 
 	def initialize_notebook(self, notebookuri):
-		'''Callback called before contruction of the notebook.
-		Not called when plugin is contructed while notebook already
+		'''Callback called before construction of the notebook.
+		Not called when plugin is constructed while notebook already
 		exists.
 		Can be overloaded by subclasses.
 		'''
@@ -298,7 +308,7 @@ class PluginClass(gobject.GObject):
 	def toggle_action(self, action, active=None):
 		'''Trigger a toggle action. If 'active' is None it is toggled, else it
 		is forced to state of 'active'. This method helps to keep the menu item
-		or toolbar item asociated with the action in sync with your internal
+		or toolbar item associated with the action in sync with your internal
 		state. A typical usage to define a handler for a toggle action called
 		'show_foo' would be:
 
