@@ -2643,7 +2643,7 @@ class TextView(gtk.TextView):
 				buffer.foreach_line_in_selection(toggle_bullet)
 			elif event.keyval in KEYVALS_GT:
 				def email_quote(line):
-					iter = buffer.get_iter_at_line()
+					iter = buffer.get_iter_at_line(line)
 					bound = iter.copy()
 					bound.forward_char()
 					if iter.get_text(bound) == '>':
