@@ -1183,6 +1183,9 @@ class TextBuffer(gtk.TextBuffer):
 		bounds = self.get_selection_bounds()
 		if bounds:
 			start, end = bounds
+			end.backward_char() # exclude last line if selection ends_line
+			if not end.ends_line():
+				end.forward_char()
 			self.foreach_line(start.get_line(), end.get_line(), func, *args, **kwarg)
 			return True
 		else:
@@ -2599,7 +2602,6 @@ class TextView(gtk.TextView):
 			else:
 				# For selection decrement - first check if all lines have indent
 				level = []
-				buffer.strip_selection()
 				buffer.foreach_line_in_selection(
 					lambda l: level.append(buffer.get_indent(l)) )
 				if level and min(level) > 0:
