@@ -1,0 +1,19 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2011-05-13T23:18:07+02:00
+
+====== Test Suite ======
+
+Zim comes with a full test suite, it can be executed using the "''test.py''" script. See "''test.py --help''" for it's commandline options.
+
+It is good practice to run the full suite before committing to a development branch and especially before generating a merge request. This should ensures the new patch doesn't break any existing code.
+
+For any but the most trivial fixes test cases should be written to ensure the functionality works as designed and to avoid breaking it again at a later time. You'll surprise how often the same bug comes back after some time if there is now test case is in place to detect it. Some bugs are just waiting to happen again and again.
+
+For writing tests have a look at the existing test code or check the documentation for the "unittest" module in the python library. (For python versions < 2.7 we use the "unittest2" module, which backports some new features for older python versions.)
+
+A most useful tool for developing tests is looking at test **coverage**. When you run "''test.py''" with the "''--coverage''" option the "coverage" module will be loaded and a set of html pages will be generated in "''./coverage''". In these pages you can see line by line what code is called during the test run and what lines of code go untested. It is hard to really get to 100% coverage, but the target should be to get the coverage above at least 80% for each module.
+
+If you added e.g. a new class and wrote a test case for it have a look at the coverage to see what additional tests are needed to cover all code. 
+
+Of course having full coverage is no guarantee we cover all possible inputs, but looking at coverage combined with writing tests for reported bugs makes a strong test suite. Even if the test suite only catches the most simple bugs that users would see when first using the application it is worth the effort.

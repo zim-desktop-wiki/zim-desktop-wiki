@@ -5,7 +5,6 @@
 '''Test cases for the zim.templates module.'''
 
 import tests
-from tests import TestCase
 
 import os
 
@@ -17,7 +16,8 @@ from zim.notebook import Notebook, Path
 import zim.formats
 from zim.parsing import link_type
 
-class TestTemplateParam(TestCase):
+
+class TestTemplateParam(tests.TestCase):
 
 	def runTest(self):
 		param = TemplateParam('xxx.yyy.zzz')
@@ -29,7 +29,7 @@ class TestTemplateParam(TestCase):
 		self.assertRaises(TemplateSyntaxError, TemplateParam, 'xxx.y-y.zzz')
 
 
-class TestTemplateDict(TestCase):
+class TestTemplateDict(tests.TestCase):
 
 	def runTest(self):
 		data = {'foo': {'bar': {'baz': '123'}}, 'xyz':'check'}
@@ -42,7 +42,7 @@ class TestTemplateDict(TestCase):
 		self.assertEquals(data['foo']['bar']['baz'], '123')
 
 
-class TestGenericTemplate(TestCase):
+class TestGenericTemplate(tests.TestCase):
 
 #	def setUp(self):
 #		self.template = ...
@@ -96,7 +96,7 @@ NOK
 		dict = { 'upper': TemplateFunction(lambda d, *a: a[0].upper()) }
 		result = tmpl.process(dict)
 		#~ print test.getvalue()
-		self.assertEqualDiff(result, wantedresult.splitlines(True))
+		self.assertEqual(result, wantedresult.splitlines(True))
 
 	def testRaise(self):
 		'''Test Template invalid syntax raises TemplateError'''
@@ -114,7 +114,7 @@ NOK
 		self.assertRaises(TemplateProcessError, templ.process, {})
 
 
-class TestTemplateSet(TestCase):
+class TestTemplateSet(tests.TestCase):
 
 	def runTest(self):
 		'''Load all shipped templates for syntax check'''
@@ -135,10 +135,12 @@ class TestTemplateSet(TestCase):
 				#      ... run them with raise instead of param = None
 
 
-class TestPageProxy(TestCase):
+class TestPageProxy(tests.TestCase):
 
 	def runTest(self):
-		notebook, page = tests.get_test_page('FooBar')
+		notebook = tests.new_notebook()
+		page = notebook.get_page(Path('FooBar'))
+
 		page.parse('wiki', '''\
 ====== Page Heading ======
 **foo bar !**
@@ -152,7 +154,7 @@ class TestPageProxy(TestCase):
 		self.assertTrue(len(proxy.body) > 0)
 		# TODO add othermethods
 
-class TestTemplate(TestCase):
+class TestTemplate(tests.TestCase):
 
 	def runTest(self):
 		input = u'''\
@@ -172,22 +174,24 @@ Version %s
 </p>
 
 ''' % zim.__version__
-		notebook, page = tests.get_test_page('FooBar')
+		notebook = tests.new_notebook()
+		page = notebook.get_page(Path('FooBar'))
 		page.parse('wiki', '''\
 ====== Page Heading ======
 **foo bar !**
 ''')
 		self.assertTrue(len(page.dump('html', linker=StubLinker())) > 0)
 		result = Template(input, 'html', linker=StubLinker()).process(Notebook(), page)
-		self.assertEqualDiff(result, wantedresult.splitlines(True))
+		self.assertEqual(result, wantedresult.splitlines(True))
 
 		# Check new page template
-		notebook, page = tests.get_test_page('Some New None existing page')
+		notebook = tests.new_notebook()
+		page = notebook.get_page(Path('Some New None existing page'))
 		template = notebook.get_template(page)
 		tree = template.process_to_parsetree(notebook, page) # No linker !
-		self.assertEqualDiff(tree.find('/h').text, u'Some New None existing page')
+		self.assertEqual(tree.find('h').text, u'Some New None existing page')
 
-class TestTemplatePageMenu(TestCase):
+class TestTemplatePageMenu(tests.TestCase):
 	def runTest(self):
 		# menu(root, collapse, ignore_empty)
 		data = (
@@ -387,12 +391,11 @@ class TestTemplatePageMenu(TestCase):
 '''),
 )
 
-		notebook = tests.get_test_notebook('wiki')
+		notebook = notebook = tests.new_notebook()
 		page = notebook.get_page(Path(':Parent:Daughter'))
 		for input, wantedresult in data:
-			print input
 			result = Template(input, 'html', linker=StubLinker()).process(notebook, page)
-			self.assertEqualDiff(result, wantedresult.splitlines(True))
+			self.assertEqual(result, wantedresult.splitlines(True))
 
 		
 

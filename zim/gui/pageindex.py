@@ -57,7 +57,7 @@ class PageTreeIter(object):
 
 class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	'''Custom TreeModel that is integrated closely with the Index object.
-	In fact it is jsut an API layer translating between the gtk.TreeView and
+	In fact it is just an API layer translating between the gtk.TreeView and
 	the zim Index interfaces. It fetches data on the fly when requested and
 	does not keep it's own cache. This allows scaling to very large notebooks.
 
@@ -81,12 +81,12 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	# a result leak a huge number of unused IndexPath objects, consuming
 	# a lot of memory. The downside is that we now need to track the
 	# IndexPath objects ourselves to ensure they are not collected by
-	# the garbage collectore while still being used. And we need to
+	# the garbage collector while still being used. And we need to
 	# flush regularly to prevent collecting a huge number of these objects
 	# again. Ideally we want to flush after every operation using treeiters.
 	# We achieve this by scheduling the flushing on the main loop idle
 	# event. This has the result that iters are valid within the same
-	# operation but can not be caried between events. (Of course you
+	# operation but can not be carried between events. (Of course you
 	# should not do that in the first place and use a TreeRowReference
 	# instead.)
 
@@ -95,7 +95,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	# TreeView frequently calls iter_next when redrawing the widget.
 	# We also use the cache to avoid duplicate lookups of the
 	# same treepath. Caching relies on the assumption that any change
-	# of the index will trigger a flush, invalidating our chached
+	# of the index will trigger a flush, invalidating our cached
 	# iterators. So the cache is always in sync with the index state.
 
 	COLUMN_TYPES = (
@@ -152,7 +152,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		# treepath of this indexpath - once we get page-deleted it is to late to get this
 
 	def disconnect_index(self):
-		'''Stop the model from listening to the inxed. Used to
+		'''Stop the model from listening to the index. Used to
 		unhook the model before reloading the index.
 		'''
 		for id in self._signals:
@@ -647,7 +647,7 @@ class PageIndex(gtk.ScrolledWindow):
 		return self.treeview.get_selected_path()
 
 	def disconnect_model(self):
-		'''Stop the model from listening to the inxed. Used to
+		'''Stop the model from listening to the index. Used to
 		unhook the model before reloading the index. Typically
 		should be followed by reload_model().
 		'''

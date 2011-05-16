@@ -53,7 +53,7 @@ class NoConfigError(WWWError):
 
 	description = '''\
 There was no notebook configured for this zim instance.
-This is likely a configuration isue.
+This is likely a configuration issue.
 '''
 
 	def __init__(self):
@@ -156,7 +156,7 @@ class WWWInterface(NotebookInterface):
 			elif path == '/favicon.ico':
 				path = '/+icons/favicon.ico'
 			else:
-			    path = urllib.unquote(path)
+				path = urllib.unquote(path)
 
 			if self.notebook is None:
 				raise NoConfigError
@@ -171,22 +171,22 @@ class WWWInterface(NotebookInterface):
 				content = [file.raw()]
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.get_mimetype()
- 			elif path.startswith('/+file/'):
+			elif path.startswith('/+file/'):
 				file = self.notebook.dir.file(path[7:])
 					# TODO: need abstraction for getting file from top level dir ?
 				content = [file.raw()]
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.get_mimetype()
- 			elif path.startswith('/+icons/'):
- 				# TODO check if favicon is overridden or something
- 				file = data_file('pixmaps/%s' % path[8:])
+			elif path.startswith('/+icons/'):
+				# TODO check if favicon is overridden or something
+				file = data_file('pixmaps/%s' % path[8:])
 				content = [file.raw()]
 					# Will raise FileNotFound when file does not exist
- 				if path.endswith('.png'):
- 					headers['Content-Type'] = 'image/png'
- 				elif path.endswith('.ico'):
- 					headers['Content-Type'] = 'image/vnd.microsoft.icon'
- 				else:
+				if path.endswith('.png'):
+					headers['Content-Type'] = 'image/png'
+				elif path.endswith('.ico'):
+					headers['Content-Type'] = 'image/vnd.microsoft.icon'
+				else:
 					raise PathNotValidError()
 			else:
 				# Must be a page or a namespace (html file or directory path)

@@ -8,7 +8,6 @@ from __future__ import with_statement
 
 
 import tests
-from tests.gtk_tests import process_events
 
 import time
 
@@ -33,10 +32,11 @@ class TestAsync(tests.TestCase):
 
 			self.assertEqual(value, 'foo bar')
 
+	@tests.slowTest
 	def testFS(self):
 		'''Test async FS operations'''
 
-		self.path = tests.create_tmp_dir('async_testFS')+'/file.txt'
+		self.path = self.create_tmp_dir('testFS')+'/file.txt'
 
 		file = File(self.path)
 
@@ -58,9 +58,8 @@ class Counter(object):
 		self.i += 1
 
 
+@tests.slowTest
 class TestDelayedCallback(tests.TestCase):
-
-	slowTest = True
 
 	def runTest(self):
 		counter = Counter()
@@ -71,7 +70,7 @@ class TestDelayedCallback(tests.TestCase):
 
 		for i in range(10):
 			time.sleep(1)
-			process_events()
+			tests.gtk_process_events()
 			if callback.timer_id is None:
 				break
 

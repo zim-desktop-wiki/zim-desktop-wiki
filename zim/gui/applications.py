@@ -6,7 +6,7 @@
 it is based on the Freedesktop.org (XDG) Desktop Entry specification
 with some additional logic based on status quo on Gnome / XFCE.
 
-The desktop entry class subclasses the Apllication class from zim.applications,
+The desktop entry class subclasses the Application class from zim.applications,
 see there for methods to run or spawn applications.
 '''
 
@@ -586,7 +586,7 @@ class CustomToolManager(object):
 		# Insert before i. If i was before old position indeed before
 		# old item at that position. However if i was after old position
 		# if shifted due to the pop(), now it inserts after the old item.
-		# This is intended behavior to make all moves posible.
+		# This is intended behavior to make all moves possible.
 		self._write_list()
 
 

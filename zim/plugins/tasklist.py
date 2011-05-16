@@ -239,7 +239,7 @@ This is a core plugin shipping with zim.
 						globaltags = []
 						break
 				else:
-					# no break occured - all OK
+					# no break occurred - all OK
 					lines.pop(0)
 					istasklist = True
 

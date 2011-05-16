@@ -3,37 +3,20 @@
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
-from tests.gtk_tests import process_events
 
 import gtk
 import pango
 
+import os
+
 from zim.fs import Dir
-from zim.notebook import Notebook, Path, Link, init_notebook
+from zim.notebook import init_notebook, get_notebook, Notebook, Path, Link
 from zim.index import *
 from zim.gui.pageindex import *
 from zim.formats import ParseTree
 
-# TODO test n_list_* functions
 
-
-def get_files_notebook(key):
-	# We fill the notebook using the store interface, as this test comes before
-	# the notebook test, but after the store test.
-	dir = Dir(tests.create_tmp_dir('index_'+key))
-	init_notebook(dir)
-	notebook = Notebook(dir=dir)
-	store = notebook.get_store(':')
-	manifest = []
-	for name, text in tests.get_test_data('wiki'):
-		manifest.append(name)
-		page = store.get_page(Path(name))
-		page.parse('wiki', text)
-		store.store_page(page)
-	notebook.testdata_manifest = tests.expand_manifest(manifest)
-	return notebook
-
-
+@tests.slowTest
 class TestIndex(tests.TestCase):
 
 	def setUp(self):
@@ -41,7 +24,7 @@ class TestIndex(tests.TestCase):
 		# for the notebook. So any assumption from the notebook about
 		# the index will be wrong.
 		self.index = Index(dbfile=':memory:')
-		self.notebook = tests.get_test_notebook()
+		self.notebook = tests.new_notebook()
 		self.index.set_notebook(self.notebook)
 
 	def runTest(self):
@@ -135,7 +118,7 @@ class TestIndex(tests.TestCase):
 		self.assertTrue(count_pages(self.index.db) >= manifest)
 		origdb = dump_db(self.index.db)
 		self.index.update(checkcontents=False)
-		self.assertEqualDiff(dump_db(self.index.db), origdb)
+		self.assertEqual(dump_db(self.index.db), origdb)
 
 		# indexkey
 		for path in (Path('Test'), Path('Test:foo')):
@@ -168,7 +151,7 @@ class TestIndex(tests.TestCase):
 		self.index.flush()
 		self.assertEqual(count_pages(self.index.db), 1)
 		self.index.update()
-		self.assertEqualDiff(dump_db(self.index.db), origdb)
+		self.assertEqual(dump_db(self.index.db), origdb)
 
 		# now index only part of the tree - and repeat
 		self.index.flush()
@@ -177,7 +160,7 @@ class TestIndex(tests.TestCase):
 		self.assertTrue(count_pages(self.index.db) > 2)
 		partdb = dump_db(self.index.db)
 		self.index.update(Path('Test'))
-		self.assertEqualDiff(dump_db(self.index.db), partdb)
+		self.assertEqual(dump_db(self.index.db), partdb)
 
 		# Index whole tree again
 		self.index.update()
@@ -219,13 +202,13 @@ class TestIndex(tests.TestCase):
 		self.assertTrue(path is None)
 
 
+@tests.slowTest
 class TestIndexFiles(TestIndex):
 	# Like the test above, but now using a files backend
 
-	slowTest = True
-
 	def setUp(self):
-		self.notebook = get_files_notebook('TestIndexFiles')
+		path = self.create_tmp_dir()
+		self.notebook = tests.new_files_notebook(path)
 		self.index = self.notebook.index
 
 	def runTest(self):
@@ -242,7 +225,7 @@ class TestPageTreeStore(tests.TestCase):
 
 	def setUp(self):
 		self.index = Index(dbfile=':memory:')
-		self.notebook = tests.get_test_notebook()
+		self.notebook = tests.new_notebook()
 		self.index.set_notebook(self.notebook)
 		self.notebook.index.update()
 
@@ -265,8 +248,8 @@ class TestPageTreeStore(tests.TestCase):
 		self.assertEqual(treestore.get_n_columns(), 5)
 		treeview.set_model(treestore)
 
-		self.index.update(callback=process_events)
-		process_events()
+		self.index.update(callback=tests.gtk_process_events)
+		tests.gtk_process_events()
 
 		treeview = PageTreeView(ui) # just run hidden to check errors
 		treeview.set_model(treestore)
@@ -369,7 +352,7 @@ class TestPageTreeStore(tests.TestCase):
 		self.index.flush()
 		treestore = PageTreeStore(self.index)
 		treeview = PageTreeView(ui, treestore)
-		self.index.update(callback=process_events)
+		self.index.update(callback=tests.gtk_process_events)
 
 		# Try some TreeView methods
 		path = Path('Test:foo')
@@ -387,20 +370,90 @@ class TestPageTreeStore(tests.TestCase):
 		# Check if all the signals go OK in delete
 		for page in reversed(list(self.notebook.walk())): # delete bottom up
 			self.notebook.delete_page(page)
-			process_events()
+			tests.gtk_process_events()
 
 
+@tests.slowTest
 class TestPageTreeStoreFiles(TestPageTreeStore):
 
-	slowTest = True
-
 	def setUp(self):
-		self.notebook = get_files_notebook('TestPageTreeStoreFiles')
+		path = self.create_tmp_dir()
+		self.notebook = tests.new_files_notebook(path)
 		self.index = self.notebook.index
 
 	def runTest(self):
 		'''Test PageTreeStore index interface with files index'''
 		TestPageTreeStore.runTest(self)
+
+
+@tests.slowTest
+class TestSynchronization(tests.TestCase):
+
+	def runTest(self):
+		'''Test synchronization'''
+		# Test if zim detects pages, that where created with another
+		# zim instance and transfered to this instance with
+		# dropbox or another file synchronization tool.
+		#
+		# The scenario is as follow:
+		# 1) Page.txt is created in this instance
+		# 2) Page/Subpage.txt is created in another instance
+		#    and copied into the notebook by the synchronization tool
+		# 3) Zim runs a standard index update
+		# Outcome should be that Page:Subpage shows up in the index
+
+		# create notebook
+		dir = Dir(self.create_tmp_dir())
+
+		init_notebook(dir, name='foo')
+		notebook = get_notebook(dir)
+		index = notebook.index
+		index.update()
+
+		# add page in this instance
+		path = Path('Page')
+		page =  notebook.get_page(path)
+		page.parse('wiki', 'nothing important')
+		notebook.store_page(page)
+
+		# check file exists
+		self.assertTrue(dir.file('Page.txt').exists())
+
+		# check file is indexed
+		self.assertTrue(page in list(index.list_all_pages()))
+
+		# check attachment dir does not exist
+		subdir = dir.subdir('Page')
+		self.assertEqual(notebook.get_attachments_dir(page), subdir)
+		self.assertFalse(subdir.exists())
+
+		for newfile, newpath in (
+			(subdir.file('NewSubpage.txt').path, Path('Page:NewSubpage')),
+			(dir.file('Newtoplevel.txt').path, Path('Newtoplevel')),
+			(dir.file('SomeDir/Dir/Newpage.txt').path, Path('SomeDir:Dir:Newpage')),
+		):
+			# make sure ctime changed since last index
+			import time
+			time.sleep(2)
+
+			# create new page without using zim classes
+			self.assertFalse(os.path.isfile(newfile))
+
+			mydir = os.path.dirname(newfile)
+			if not os.path.isdir(mydir):
+				os.makedirs(mydir)
+
+			fh = open(newfile, 'w')
+			fh.write('Test 123\n')
+			fh.close()
+
+			self.assertTrue(os.path.isfile(newfile))
+
+			# simple index reload
+			index.update()
+
+			# check if the new page is found in the index
+			self.assertTrue(newpath in list(index.list_all_pages()))
 
 
 class MockUI(tests.MockObject):

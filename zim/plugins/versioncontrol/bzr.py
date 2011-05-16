@@ -14,6 +14,10 @@ from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
 
 
+if os.environ.get('ZIM_TEST_RUNNING'):
+	TEST_MODE = True
+
+
 logger = logging.getLogger('zim.vcs.bzr')
 # TODO check if bzrlib also uses logging for output
 
@@ -75,9 +79,14 @@ class BazaarVCS(object):
 	def __init__(self, dir):
 		self.root = dir
 		self.lock = FS.get_async_lock(self.root)
-		FS.connect('path-created', self.on_path_created)
-		FS.connect('path-moved', self.on_path_moved)
-		FS.connect('path-deleted', self.on_path_deleted)
+		if not TEST_MODE:
+			# Avoid touching the bazaar repository with zim sources
+			# when we write to tests/tmp etc.
+			FS.connect('path-created', self.on_path_created)
+			FS.connect('path-moved', self.on_path_moved)
+			FS.connect('path-deleted', self.on_path_deleted)
+
+	# TODO: disconnect method - callbacks keep object alive even when plugin is disabled !
 
 	@classmethod
 	def check_dependencies(klass):
@@ -160,14 +169,12 @@ class BazaarVCS(object):
 		operation.start()
 
 	def _commit(self, msg):
-		_bzr.run(['add'], cwd=self.root)
-		try:
+		stat = ''.join( _bzr.pipe(['st'], cwd=self.root) ).strip()
+		if not stat:
+			raise NoChangesError(self.root)
+		else:
+			_bzr.run(['add'], cwd=self.root)
 			_bzr.run(['commit', '-m', msg], cwd=self.root)
-		except subprocess.CalledProcessError, error:
-			if error.returncode == 3:
-				raise NoChangesError(self.root)
-			else:
-				raise # just re-raise current error
 
 	def revert(self, version=None, file=None):
 		with self.lock:

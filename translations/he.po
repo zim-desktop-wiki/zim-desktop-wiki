@@ -221,7 +221,7 @@ msgstr "התיקייה קיימת: %s"
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "התיקייה כבר קיימת ויש בה תוכן, ייצוא תיקייה זו עלול לשכתב על קבצים קיימים. "
 "האם ברצונך להמשיך?"
@@ -325,7 +325,7 @@ msgstr "הצ_גת רישום"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "ארעה שגיאה בעת יצירת התמונה.\n"
@@ -2031,7 +2031,7 @@ msgstr "הוספת תרשים"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2354,7 +2354,7 @@ msgstr "שניות"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "התרחשה שגיאה בזמן הרצת \"%s\"‏"
 
 #. menu item
@@ -2829,7 +2829,7 @@ msgstr "מהדורה"
 #~ "\n"
 #~ "זהו תוסף המהווה חלק מהליבה של zim.\n"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "ארעו מספר שגיאות בעת הרצת \"scrot\""
 
 #~ msgid "Please select a file"

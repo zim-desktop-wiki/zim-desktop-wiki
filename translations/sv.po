@@ -222,7 +222,7 @@ msgstr "Mapp existerar: %s"
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "Katalogen finns redan och innehåller filer, att exportera hit kan skriva "
 "över befintliga filer. Vill du fortsätta?"
@@ -326,7 +326,7 @@ msgstr "Visa _logg"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Ett fel uppstod när bilden skapades.\n"
@@ -2039,7 +2039,7 @@ msgstr "Infoga diagram"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2365,7 +2365,7 @@ msgstr "sekunder"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "Ett fel inträffade vid körningen av \"%s\""
 
 #. menu item
@@ -2847,5 +2847,5 @@ msgstr "Ver"
 #~ "\n"
 #~ "Detta är ett kärnprogram som följer med Zim.\n"
 
-#~ msgid "Some error occured while running \"scrot\""
+#~ msgid "Some error occurred while running \"scrot\""
 #~ msgstr "Ett fel inträffade när \"scrot\" kördes"

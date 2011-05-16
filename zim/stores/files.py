@@ -9,7 +9,7 @@ See StoreClass in zim.stores for the API documentation.
 Each page maps to a single text file in a normal directory structure.
 Page names map almost one on one to the relative directory path.
 Sub-namespaces are contained in directories of the same basename as
-the coresponding file name.
+the corresponding file name.
 
 File extensions are determined by the source format used.
 When doing a lookup we try to be case insensitive, but preserve case
@@ -35,7 +35,7 @@ logger = logging.getLogger('zim.stores.files')
 class Store(StoreClass):
 
 	def __init__(self, notebook, path, dir=None):
-		'''Contruct a files store.
+		'''Construct a files store.
 
 		Takes an optional 'dir' attribute.
 		'''
@@ -44,7 +44,7 @@ class Store(StoreClass):
 		if not self.store_has_dir():
 			raise AssertionError, 'File store needs directory'
 			# not using assert here because it could be optimized away
-		self.format = get_format('wiki') # TODO make configable
+		self.format = get_format('wiki') # TODO make configurable
 
 	def _get_file(self, path):
 		'''Returns a File object for a notebook path'''
@@ -186,7 +186,7 @@ class Store(StoreClass):
 		dir = StoreClass.get_attachments_dir(self, path)
 		if not dir is None:
 			dir = FilteredDir(dir)
-			dir.ignore('*.txt') # FIXME hardcoded extendion
+			dir.ignore('*.txt') # FIXME hardcoded extension
 		return dir
 
 

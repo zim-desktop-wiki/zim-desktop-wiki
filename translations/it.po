@@ -221,7 +221,7 @@ msgstr "Cartella già esistente: %s"
 #: zim/gui/exportdialog.py:52
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
-"overwrite exisitng files. Do you want to continue?"
+"overwrite existing files. Do you want to continue?"
 msgstr ""
 "La cartella esiste già e non è vuota; esportando in questa cartella i file "
 "contenuti potrebbero essere sovrascritti. Continuare?"
@@ -327,7 +327,7 @@ msgstr "Mostra _Log"
 #. Question prompt when e.g. equation editor encountered an error genrating the image to insert
 #: zim/gui/imagegeneratordialog.py:137
 msgid ""
-"An error occured while generating the image.\n"
+"An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
 "Si è verificato un errore durante la creazione dell'immagine.\n"
@@ -2052,7 +2052,7 @@ msgstr "Inserisci Diagramma"
 #. plugin description
 #: zim/plugins/diagrameditor.py:39
 msgid ""
-"This plugin provides an diagram editor for zim based on GraphViz.\n"
+"This plugin provides a diagram editor for zim based on GraphViz.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
@@ -2373,7 +2373,7 @@ msgstr "secondi"
 #. Error message in "insert screenshot" dialog, %s will be replaced by aplication name
 #: zim/plugins/screenshot.py:118
 #, python-format
-msgid "Some error occured while running \"%s\""
+msgid "Some error occurred while running \"%s\""
 msgstr "Si è verificato un errore mentre veniva eseguito \"%s\""
 
 #. menu item

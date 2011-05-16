@@ -55,7 +55,7 @@ class Exporter(object):
 		'''Export all pages in the notebook to 'dir'. Attachments are copied
 		along. The function 'callback' will be called after each page with the
 		page object as single argument. If the callback returns False the
-		export will be cancelled.
+		export will be canceled.
 		'''
 		logger.info('Exporting notebook to %s', dir)
 		self.linker.target_dir = dir # Needed to resolve icons
@@ -87,7 +87,7 @@ class Exporter(object):
 					pages['next'] = next
 					self.export_page(dir, current, pages, use_namespace=True)
 					if callback and not callback(current):
-						logger.warn('Export cancelled')
+						logger.warn('Export canceled')
 						return False
 
 		prev, current, next = current, next, None # shift once more
@@ -96,7 +96,7 @@ class Exporter(object):
 			pages['next'] = next
 			self.export_page(dir, current, pages, use_namespace=True)
 			if callback and not callback(current):
-				logger.warn('Export cancelled')
+				logger.warn('Export canceled')
 				return False
 
 		# Generate index page
@@ -123,7 +123,7 @@ class Exporter(object):
 		without extension.
 
 		Alternatively when a filename is given it will be used. If
-		needed the apropriate file extension is added to the name.
+		needed the appropriate file extension is added to the name.
 		Similar the dirname option can be used to specify the directory
 		for attachments, otherwise it is derived from the filename.
 		'''

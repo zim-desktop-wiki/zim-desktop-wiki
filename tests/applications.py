@@ -1,10 +1,8 @@
-
 # -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
-from tests import TestCase, create_tmp_dir
 
 import os
 import gtk
@@ -22,7 +20,7 @@ def replace(l, old, new):
 	return tuple(l)
 
 
-class TestApplications(TestCase):
+class TestApplications(tests.TestCase):
 
 	def testParseExec(self):
 		'''Test parsing of .desktop Exec strings'''
@@ -76,7 +74,8 @@ class TestApplications(TestCase):
 			self.assertEqual(result, wanted)
 
 
-class TestCustomTools(TestCase):
+@tests.slowTest
+class TestCustomTools(tests.TestCase):
 
 	def testManager(self):
 		'''Test CustomToolManager API'''
@@ -166,15 +165,14 @@ class TestCustomTools(TestCase):
 		# %t for selected text or word under cursor
 		# %T for selected text or word under cursor with wiki format
 
-		notebook = tests.get_test_notebook()
+		path = self.get_tmp_name()
+		notebook = tests.new_notebook(fakedir=path)
 		page = notebook.get_page(Path('Test:Foo'))
 		pageview = StubPageView()
 		args = (notebook, page, pageview)
 
 		tmpfile = TmpFile('tmp-page-source.txt').path
-		dir = Dir(tests.create_tmp_dir('applications_TestCustomTools'))
-		notebook.dir = dir # fake file store
-		notebook._stores[''].dir = dir # fake file store
+		dir = notebook.dir
 
 		tool = CustomToolDict()
 		tool.update( {

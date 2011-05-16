@@ -41,7 +41,7 @@ folder is created, moved or deleted.
 # value of os.listdir(u"path") is potentially a mixed list of Unicode
 # and byte strings.
 #
-# os.readlink chokes on Unicode strings that aren't coercable to the
+# os.readlink chokes on Unicode strings that aren't coercible to the
 # default encoding. The argument must therefore be a byte string.
 # (Not applicable to Windows.)
 #
@@ -68,7 +68,7 @@ folder is created, moved or deleted.
 # Also we use this encoding for decoding filesystem paths. However if
 # we get some unexpected encoding from the filesystem we are in serious
 # trouble, as it will be difficult to resolve. So we refuse to handle
-# files with inconsistend encoding.
+# files with inconsistent encoding.
 #
 # Fortunately the only place where we (should) get arbitrary unicode
 # paths are page names, so we should apply url encoding when mapping
@@ -83,7 +83,7 @@ folder is created, moved or deleted.
 #
 # As a special case we map ascii to utf-8 because LANG=C will set encoding
 # to ascii and this is usually not what the user intended. Also utf-8
-# is the most common filesystem encoding on modern perating systems.
+# is the most common filesystem encoding on modern operating systems.
 
 # Note that we do this logic for the filesystem encoding - however the
 # file contents remain utf-8.
@@ -122,7 +122,6 @@ import shutil
 import errno
 import codecs
 import logging
-from StringIO import StringIO
 
 from zim.errors import Error, TrashNotSupportedError
 from zim.parsing import url_encode, url_decode
@@ -340,7 +339,7 @@ class _FS(gobject.GObject):
 		'''Return a lock for async operation for path'''
 		# FUTURE: we may actually use path to allow parallel async
 		# operations for files & folders that do not belong to the
-		# same tree. Problem there is that we do not aquire the lock
+		# same tree. Problem there is that we do not acquire the lock
 		# in this method. So we need a new kind of lock type that can
 		# track dependency on other locks.
 		# Make sure to allow for the fact that other obejcts can keep
@@ -371,7 +370,7 @@ class UnixPath(object):
 					# Flatten objects - strings should be unicode or ascii already
 				path = os.path.sep.join(path)
 					# os.path.join is too intelligent for it's own good
-					# just join with the path seperator..
+					# just join with the path separator.
 			else:
 				path = unicode(path) # make sure we can decode
 		except UnicodeDecodeError:
@@ -400,7 +399,7 @@ class UnixPath(object):
 		return url_decode(uri)
 
 	def _set_path(self, path):
-		# For unix we need to use proper encoding
+		# For Unix we need to use proper encoding
 		self.encodedpath = os.path.abspath(encode(path))
 		self.path = decode(self.encodedpath)
 
@@ -422,7 +421,7 @@ class UnixPath(object):
 		return '<%s: %s>' % (self.__class__.__name__, self.path)
 
 	def __add__(self, other):
-		'''Concatonates paths, only creates objects of the same class. See
+		'''Concatenates paths, only creates objects of the same class. See
 		Dir.file() and Dir.subdir() instead to create other objects.
 		'''
 		return self.__class__((self, other))
@@ -464,7 +463,7 @@ class UnixPath(object):
 		return stat_result.st_mtime
 
 	def split(self):
-		'''Returns the directory parsts of the path as a list.
+		'''Returns the directory parts of the path as a list.
 		If the OS uses the concept of a drive the first part will
 		include the drive. (So using split() to count the number of
 		path elements will not be robust for the path "/".)
@@ -529,7 +528,6 @@ class UnixPath(object):
 
 		# Quick shortcut to be able to load images in the gui even if
 		# we have no proper mimetype support
-		basename = self.basename
 		if '.' in self.basename:
 			_, ext = self.basename.rsplit('.', 1)
 			if ext in IMAGE_EXTENSIONS:
@@ -552,7 +550,7 @@ class UnixPath(object):
 
 	def rename(self, newpath):
 		# Using shutil.move instead of os.rename because move can cross
-		# file system boundries, while rename can not
+		# file system boundaries, while rename can not
 		logger.info('Rename %s to %s', self, newpath)
 		with FS.get_async_lock(self):
 			# Do we also need a lock for newpath (could be the same as lock for self) ?
@@ -774,7 +772,7 @@ class Dir(Path):
 
 	def new_file(self, path):
 		'''Like file() but guarantees the file does not yet exist by adding
-		sequentional numbers if needed.
+		sequential numbers if needed.
 		'''
 		file = self.file(path)
 		basename = file.basename
@@ -850,7 +848,7 @@ class FilteredDir(Dir):
 			return True
 
 	def list(self, raw=False):
-		'''As Dir.list() but filteres the results with the preset
+		'''Like Dir.list() but filters the results with the preset
 		filter. If 'raw' is True filtering is disabled.
 		'''
 		files = Dir.list(self)
@@ -876,12 +874,12 @@ class UnixFile(Path):
 
 	The *_async functions can be used to read or write files in a separate
 	thread. See zim.async for details. An AsyncLock is used to ensure
-	reading and writing is done sequentally between several threads.
+	reading and writing is done sequentially between several threads.
 	However, this does not work when using open() directly.
 	'''
 
 	# For atomic write we first write a tmp file which has the extension
-	# .zim-new~ when is was written succesfully we replace the actual file
+	# .zim-new~ when is was written successfully we replace the actual file
 	# with the tmp file. Because rename is atomic on POSIX platforms and
 	# replaces the existing file this either succeeds or not, it can never
 	# truncate the existing file but fail to write the new file. So if writing
@@ -916,7 +914,7 @@ class UnixFile(Path):
 
 	def open(self, mode='r'):
 		'''Returns an io object for reading or writing.
-		Opening a non-exisiting file for writing will cause the whole path
+		Opening a non-existing file for writing will cause the whole path
 		to this file to be created on the fly.
 		'''
 		# When we open for writing, we actually open the tmp file
@@ -947,7 +945,7 @@ class UnixFile(Path):
 		return srw
 
 	def _on_write(self):
-		# Handler executed after successfull writing the .zim-new~ tmp file
+		# Handler executed after successful writing the .zim-new~ tmp file
 		# to replace the actual file with the tmp file.
 		# Note that flush() and sync() are already done before close()
 		#
@@ -1002,8 +1000,8 @@ class UnixFile(Path):
 			content = file.read()
 			self._checkoverwrite(content)
 			return content.replace('\r', '').replace('\x00', '')
-				# Internally we use unix line ends - so strip out \r
-				# And remove any NULL byte since they skrew up parsing
+				# Internally we use Unix line ends - so strip out \r
+				# And remove any NULL byte since they screw up parsing
 		except IOError:
 			raise FileNotFoundError(self)
 
@@ -1033,8 +1031,8 @@ class UnixFile(Path):
 			lines = file.readlines()
 			self._checkoverwrite(lines)
 			return [line.replace('\r', '').replace('\x00', '') for line in lines]
-				# Internally we use unix line ends - so strip out \r
-				# And remove any NULL byte since they skrew up parsing
+				# Internally we use Unix line ends - so strip out \r
+				# And remove any NULL byte since they screw up parsing
 		except IOError:
 			raise FileNotFoundError(self)
 
@@ -1134,7 +1132,7 @@ class UnixFile(Path):
 		# did not change in between (e.g. by another process, or another async
 		# function of our own process). We use properties of this object instance
 		# We check the timestamp, if that does not match we check md5 to be sure.
-		# (Sometimes e.g. netwerk filesystems do not maintain timestamps as strict
+		# (Sometimes e.g. network filesystems do not maintain timestamps as strict
 		# as we would like.)
 		#
 		# This function should not prohibit writing without reading first.
@@ -1265,7 +1263,7 @@ class WindowsFile(UnixFile):
 		return UnixFile.open(self, mode)
 
 	def _on_write(self):
-		# Handler executed after successfull writing the .zim-new~ tmp file
+		# Handler executed after successful writing the .zim-new~ tmp file
 		# to replace the actual file with the tmp file.
 		# Note that flush() and sync() are already done before close()
 		#
@@ -1344,7 +1342,7 @@ else:
 
 class TmpFile(File):
 	'''Class for temporary files. These are stored in the temp directory and
-	by deafult they are deleted again when the object is destructed.
+	by default they are deleted again when the object is destructed.
 	'''
 
 	def __init__(self, basename, unique=True, persistent=False):

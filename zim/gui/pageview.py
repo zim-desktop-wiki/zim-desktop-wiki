@@ -675,7 +675,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def get_link_tag(self, iter):
 		# Explicitly left gravity, otherwise position behind the link
-		# would alos be consifered part of the link. Position before the
+		# would also be considered part of the link. Position before the
 		# link is included here.
 		for tag in iter.get_tags():
 			if hasattr(tag, 'zim_type') and tag.zim_type == 'link':
@@ -729,7 +729,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def get_tag_tag(self, iter):
 		# Explicitly left gravity, otherwise position behind the tag
-		# would alos be consifered part of the tag. Position before the
+		# would also be considered part of the tag. Position before the
 		# tag is included here.
 		for tag in iter.get_tags():
 			if hasattr(tag, 'zim_type') and tag.zim_type == 'tag':
@@ -832,7 +832,7 @@ class TextBuffer(gtk.TextBuffer):
 
 			if not filter(_is_indent_tag, self._editmode_tags):
 				# Without indent get_parsetree will not recognize
-				# the icon as a bullet item. THis will mess up
+				# the icon as a bullet item. This will mess up
 				# undo stack. If 'raw' we assume indent tag is set
 				# already.
 				tag = self._get_indent_tag(0, bullet)
@@ -920,16 +920,16 @@ class TextBuffer(gtk.TextBuffer):
 		formatting starting to the right of you). For "line based" tags
 		(like 'indent', 'h', 'pre') some additional logic is used to keep them
 		consistent on a line (so at the start of the line, we do copy formatting
-		starting to the left of us for these tags) and not inadvertedly copy
+		starting to the left of us for these tags) and not inadvertently copy
 		formatting from the previous line.
 
-		This method is used to determing which tags should be applied to newly
+		This method is used to determine which tags should be applied to newly
 		inserted text at 'iter'.
 		'''
 		# Current logic works without additional indent set in do_end_of_line due to
 		# the fact that the "\n" also caries formatting. So putting a new \n at the end
 		# of e.g. an indented line will result in two indent formatted \n characters.
-		# The start of the new line is in between and has continious indent formatting.
+		# The start of the new line is in between and has continuous indent formatting.
 		start_tags = filter(_is_zim_tag, iter.get_toggled_tags(True))
 		tags = filter(_is_zim_tag, iter.get_tags())
 		for tag in start_tags:
@@ -1469,7 +1469,7 @@ class TextBuffer(gtk.TextBuffer):
 							t = 'div'
 					elif t == 'pre' and not raw and not iter.starts_line():
 						# Without indenting 'pre' looks the same as 'code'
-						# Prevent turning into a seperate paragraph here
+						# Prevent turning into a separate paragraph here
 						t = 'code'
 					elif t == 'pre':
 						if attrib:
@@ -1573,7 +1573,7 @@ class TextBuffer(gtk.TextBuffer):
 						break
 
 				# But limit slice to first pixbuf
-				# FUTURE: also limit slice to any embeddded widget
+				# FUTURE: also limit slice to any embedded widget
 				text = iter.get_slice(bound)
 				if text.startswith(PIXBUF_CHR):
 					text = text[1:] # special case - we see this char, but get_pixbuf already returned None, so skip it
@@ -1601,7 +1601,7 @@ class TextBuffer(gtk.TextBuffer):
 					break_tags('li')
 					builder.data('\n') # add to tail
 				else:
-					# Else just inser text we got
+					# Else just insert text we got
 					builder.data(text)
 
 				iter = bound
@@ -2055,7 +2055,7 @@ class TextFinder(object):
 			self.set_highlight(highlight)
 
 	def find(self, string, flags=0):
-		'''Select the next occurence of 'string', returns True if
+		'''Select the next occurrence of 'string', returns True if
 		the string was found.
 
 		Flags can be:
@@ -2163,7 +2163,7 @@ class TextFinder(object):
 		# end line numbers and a step size (1 or -1). If the step is
 		# negative results are yielded in reversed order. Yields pair
 		# of TextIter's for begin and end of the match as well as the
-		# match obejct.
+		# match object.
 		assert self.regex
 		for line in range(firstline, lastline+step, step):
 			start = self.buffer.get_iter_at_line(line)
@@ -2297,7 +2297,7 @@ class TextView(gtk.TextView):
 
 	def set_buffer(self, buffer):
 		if not self.gtkspell is None:
-			# Hardcoded hook because usign signals here
+			# Hardcoded hook because using signals here
 			# seems to introduce lag
 			self.gtkspell.detach()
 			self.gtkspell = None
@@ -2414,8 +2414,8 @@ class TextView(gtk.TextView):
 		# Calls in read-only mode or selection mode are dispatched to two
 		# methods below. Returns boolean whether we handled the event, this
 		# determines if the event is finished, or it should continue to be
-		# emited to any other handlers.
-		# Note that on maemo only TAB triggers this method, other keys avod it somehow
+		# emitted to any other handlers.
+		# Note that on maemo only TAB triggers this method, other keys avoid it somehow
 
 		handled = False
 		buffer = self.get_buffer()
@@ -2520,7 +2520,7 @@ class TextView(gtk.TextView):
 			#
 			# We do it this way because in some cases e.g. a space is not
 			# inserted but is used to select an option in an input mode e.g.
-			# to select between various chinese characters. See lp:460438
+			# to select between various Chinese characters. See lp:460438
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			mark = buffer.create_mark(None, insert, left_gravity=False)
 			iter = insert.copy()
@@ -2915,14 +2915,14 @@ class UndoActionGroup(list):
 class UndoStackManager:
 	'''This class implements a manager for the undo stack for our TextBuffer class.
 	It records any changes and allows rolling back actions. Data in this undo stack
-	is only valid as long as the asociated TextBuffer exists.
+	is only valid as long as the associated TextBuffer exists.
 
 	When recording new actions after rolling back a previous action, the remaining
 	stack will be 'folded'. This means that even the 'undo' action can always be
 	undone and no data is discarded.
 
 	We try to group single-character inserts and deletes into words. This makes
-	the stack more compact and makes the undo action more meaningfull.
+	the stack more compact and makes the undo action more meaningful.
 	'''
 
 	MAX_UNDO = 100 # FIXME what is a sensible value here ?
@@ -3247,15 +3247,15 @@ class PageView(gtk.VBox):
 	}
 
 
-	def __init__(self, ui, secondairy=False):
+	def __init__(self, ui, secondary=False):
 		gtk.VBox.__init__(self)
 		self.ui = ui
 		self._buffer_signals = ()
 		self.page = None
 		self.readonly = True
 		self.readonlyset = False
-		self.secondairy = secondairy
-		if secondairy:
+		self.secondary = secondary
+		if self.secondary:
 			self.readonlyset = True
 		self.undostack = None
 		self.image_generator_plugins = {}
@@ -3263,8 +3263,8 @@ class PageView(gtk.VBox):
 		self._showing_template = False
 
 		self.preferences = self.ui.preferences['PageView']
-		if not self.secondairy:
-			# HACK avoid registerign a second time
+		if not self.secondary:
+			# HACK avoid registering a second time
 			self.ui.register_preferences('PageView', ui_preferences)
 
 		self.view = TextView(preferences=self.preferences)
@@ -3285,9 +3285,9 @@ class PageView(gtk.VBox):
 		self.find_bar.hide()
 
 		## setup GUI actions
-		if self.secondairy:
+		if self.secondary:
 			# HACK - divert actions from uimanager
-			self.actiongroup = gtk.ActionGroup('SecondairyPageView')
+			self.actiongroup = gtk.ActionGroup('SecondaryPageView')
 		self.ui.add_actions(ui_actions, self)
 
 		# Extra keybinding for Find: F3, <Shift>F3 and <Ctrl>F3
@@ -3463,8 +3463,8 @@ class PageView(gtk.VBox):
 
 		try:
 			self.set_parsetree(tree, bool(template))
-			if not self.secondairy:
-				page.set_ui_object(self) # only after succesful set tree in buffer
+			if not self.secondary:
+				page.set_ui_object(self) # only after successful set tree in buffer
 		except Exception, error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
 			self.page.readonly = True
@@ -3943,8 +3943,8 @@ class PageView(gtk.VBox):
 	def insert_image(self, file=None, type=None, interactive=True):
 		'''Insert an image in the text buffer at the cursor position.
 		If 'interactive' is True we run the InsertImageDialog, otherwise
-		the image is inserted immediatly. Returns True when image exists,
-		is of a supported file type and insert was succesful, False
+		the image is inserted immediately. Returns True when image exists,
+		is of a supported file type and insert was successful, False
 		otherwise.
 		'''
 		if interactive:
@@ -4193,21 +4193,7 @@ class InsertDateDialog(Dialog):
 		self.uistate.setdefault('linkdate', False)
 		self.uistate.setdefault('calendar_expanded', False)
 
-		from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
-
-		self.calendar_expander = gtk.expander_new_with_mnemonic('<b>'+_("_Calendar")+'</b>')
-			# T: expander label in "insert date" dialog
-		self.calendar_expander.set_use_markup(True)
-		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
-		self.calendar = Calendar()
-		self.calendar.display_options(
-			gtk.CALENDAR_SHOW_HEADING |
-			gtk.CALENDAR_SHOW_DAY_NAMES |
-			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
-		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
-		self.calendar_expander.add(self.calendar)
-		self.vbox.pack_start(self.calendar_expander, False)
-
+		## Add format list box
 		label = gtk.Label()
 		label.set_markup('<b>'+_("Format")+'</b>') # T: label in "insert date" dialog
 		label.set_alignment(0.0, 0.5)
@@ -4227,6 +4213,23 @@ class InsertDateDialog(Dialog):
 		self.view.connect('row-activated',
 			lambda *a: self.response(gtk.RESPONSE_OK) )
 
+		## Add Calendar widget
+		from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
+
+		self.calendar_expander = gtk.expander_new_with_mnemonic('<b>'+_("_Calendar")+'</b>')
+			# T: expander label in "insert date" dialog
+		self.calendar_expander.set_use_markup(True)
+		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
+		self.calendar = Calendar()
+		self.calendar.display_options(
+			gtk.CALENDAR_SHOW_HEADING |
+			gtk.CALENDAR_SHOW_DAY_NAMES |
+			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
+		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
+		self.calendar_expander.add(self.calendar)
+		self.vbox.pack_start(self.calendar_expander, False)
+
+		## Add Link checkbox and Edit button
 		self.linkbutton = gtk.CheckButton(_('_Link to date'))
 			# T: check box in InsertDate dialog
 		self.linkbutton.set_active(self.uistate['linkdate'])
@@ -4237,6 +4240,7 @@ class InsertDateDialog(Dialog):
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 1)
 
+		## Setup data
 		self.load_file()
 		self.set_date(self.date)
 
@@ -4276,6 +4280,10 @@ class InsertDateDialog(Dialog):
 		link = date.strftime('%Y-%m-%d') # YYYY-MM-DD
 		self.link = self.ui.notebook.suggest_link(self.ui.page, link)
 		self.linkbutton.set_sensitive(not self.link is None)
+
+	#def run(self):
+		#self.view.grab_focus()
+		#Dialog.run(self)
 
 	def save_uistate(self):
 		model, iter = self.view.get_selection().get_selected()

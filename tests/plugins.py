@@ -2,7 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from tests import TestCase, get_test_notebook
+import tests
 
 import os
 
@@ -14,7 +14,7 @@ assert len(zim.plugins.__path__) > 1 # test __path__ magic
 zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
 
 
-class testPlugins(TestCase):
+class testPlugins(tests.TestCase):
 	'''FIXME'''
 
 	def testListAll(self):
@@ -50,9 +50,8 @@ class testPlugins(TestCase):
 		# Note that we use parent interface class here, so plugins
 		# will not really attach - just testing loading and prereq
 		# checks are OK.
-		notebook = get_test_notebook()
+		notebook = tests.new_notebook()
 		interface = zim.NotebookInterface(notebook)
 		interface.uistate = zim.config.ConfigDict()
 		interface.load_plugins()
 		self.assertTrue(len(interface.plugins) > 3)
-

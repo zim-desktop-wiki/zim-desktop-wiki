@@ -119,7 +119,7 @@ class TestFS(tests.TestCase):
 	def testFileHandle(self):
 		'''Test FileHandle object'''
 		self.on_close_called = False
-		tmpdir = tests.create_tmp_dir('fs_testFile')
+		tmpdir = self.create_tmp_dir('testFileHandle')
 		fh = FileHandle(
 			tmpdir+'/foo.txt', mode='w', on_close=self.on_close)
 		fh.write('duss')
@@ -131,7 +131,7 @@ class TestFS(tests.TestCase):
 
 	def testFile(self):
 		'''Test File object'''
-		tmpdir = tests.create_tmp_dir('fs_testFile')
+		tmpdir = self.create_tmp_dir('testFile')
 		file = File(tmpdir+'/foo/bar/baz.txt')
 		assert not file.exists()
 		file.touch()
@@ -231,7 +231,7 @@ class TestFS(tests.TestCase):
 
 	def testDir(self):
 		'''Test Dir object'''
-		tmpdir = tests.create_tmp_dir('fs_testDir')
+		tmpdir = self.create_tmp_dir('testDir')
 		dir = Dir(tmpdir+'/foo/bar')
 		assert not dir.exists()
 
@@ -290,12 +290,11 @@ class TestFS(tests.TestCase):
 		self.assertEqual(dir.list(), []) # list non-existing dir
 
 
+@tests.slowTest
 class TestFileOverwrite(tests.TestCase):
 
-	slowTest = True
-
 	def setUp(self):
-		self.path = tests.create_tmp_dir('fs_testOverwrite')+'/file.txt'
+		self.path = self.create_tmp_dir()+'/file.txt'
 
 	def modify(self, func):
 		mtime = os.stat(self.path).st_mtime
@@ -340,22 +339,15 @@ class TestFileOverwrite(tests.TestCase):
 		self.assertEquals(file.read(), 'foo')
 
 
+@tests.slowTest
+@tests.skipUnless(hasattr(os, 'symlink'), 'OS does not supprot symlinks')
 class TestSymlinks(tests.TestCase):
-
-	slowTest = True
-
-	@staticmethod
-	def skipTestZim():
-		if not hasattr(os, 'symlink'):
-			return 'OS does not supprot symlinks'
-		else:
-			return False
 
 	def runTest(self):
 		'''Test file operations are safe for symlinks'''
 
 		# Set up a file structue with a symlink
-		tmpdir = tests.create_tmp_dir('fs_TestSymLinks')
+		tmpdir = self.create_tmp_dir()
 		targetdir = Dir(tmpdir + '/target')
 		targetdir.file('foo.txt').touch()
 		targetfile = File(tmpdir + '/target.txt')
@@ -396,20 +388,13 @@ class TestSymlinks(tests.TestCase):
 		self.assertEqual(targetdir.list(), ['foo.txt'])
 
 
+@tests.slowTest
+@tests.skipUnless(zim.fs.gio, 'Trashing not supported, \'gio\' is missing')
 class TestTrash(tests.TestCase):
-
-	slowTest = True
-
-	@staticmethod
-	def skipTest():
-		if not zim.fs.gio:
-			return 'Trashing not supported, \'gio\' is missing'
-		else:
-			return False
 
 	def runTest(self):
 		'''Test trashing files and folders'''
-		root = Dir(tests.create_tmp_dir('fs_TestTrash'))
+		root = Dir(self.create_tmp_dir())
 		file = root.file('test.txt')
 		file.touch()
 		self.assertTrue(file.exists())
