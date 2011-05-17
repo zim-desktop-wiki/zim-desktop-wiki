@@ -866,7 +866,7 @@ class GtkInterface(NotebookInterface):
 		notebook.connect('moved-page', follow)
 
 		# Start a lightweight background check of the index
-		self.notebook.index.update(background=True, checkcontents=False)
+		self.notebook.index.update_async()
 
 		self.set_readonly(notebook.readonly)
 
@@ -1616,7 +1616,7 @@ class GtkInterface(NotebookInterface):
 			else:
 				tool.run(args)
 				self.reload_page()
-				self.notebook.index.update(background=True)
+				self.notebook.index.update_async()
 				# TODO instead of using run, use spawn and show dialog
 				# with cancel button. Dialog blocks ui.
 		except Exception, error:

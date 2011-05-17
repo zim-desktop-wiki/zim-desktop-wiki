@@ -321,7 +321,6 @@ class Index(gobject.GObject):
 		self.notebook = None
 		self.properties = None
 		self.updating = False
-		self._checkcontents = False
 		self._update_pagelist_queue = []
 		self._index_page_queue = []
 		if self.dbfile:
@@ -348,7 +347,7 @@ class Index(gobject.GObject):
 			# notebook directly.
 			#~ print '!! on_page_moved', oldpath, newpath, update_links
 			self.delete(oldpath)
-			self.update(newpath, background=True)
+			self.update_async(newpath)
 
 		def on_page_updated(o, page):
 			indexpath = self.lookup_path(page)
@@ -417,35 +416,51 @@ class Index(gobject.GObject):
 		self._update_pagelist_queue = filter(keep, self._update_pagelist_queue)
 		self._index_page_queue = filter(keep, self._index_page_queue)
 
-	def update(self, path=None, background=False, checkcontents=True, callback=None):
-		'''This method initiates a database update for a namespace, or,
-		if no path is given for the root namespace of the notebook. For
-		each path the indexkey as provided by the notebook store will be checked
-		to decide if an update is needed. Note that if we have a new index which
-		is still empty, updating will build the contents.
+	def update(self, path=None, callback=None):
+		'''Update the index by scanning the notebook
 
-		If "background" is True the update will be scheduled on idle events
-		in the glib / gtk main loop. Starting a second background job while
-		one is already running just adds the new path in the queue.
+		Typically an (async) update is run at least once after opening
+		a notebook to detect any manual changes etc. to the notebook.
 
-		If "checkcontents" is True the indexkey for each page is checked to
-		determine if the contents also need to be indexed. If this option
-		is False only pagelists will be updated. Any new pages that are
-		encountered are always indexed fully regardless of this option.
+		Indexes are checked width first. This is important to make the
+		visual behavior of treeviews displaying the index look more
+		solid. The update is done by checking the X{indexkey} each path
+		as provided by the notebook store to decide if an update is
+		needed.
 
-		A callback method can be supplied that will be called after each
-		updated path. This can be used e.g. to display a progress bar. the
-		callback gets the path just processed as an argument. If the callback
-		returns False the update will not continue.
+		If you want to ignore the X{indexkey} and just re-index every
+		page you need to call L{flush()} before calling L{update()}.
+		This will have the same result as initialzing a brand new index.
 
-		Indexes are checked width first. This is important to make the visual
-		behavior of treeviews displaying the index look more solid.
+		@keyword path: optional L{Path} to start update for a subtree only
+		@keyword callback: optional callback function to be called for
+		each path that is updated. The callback gets the path just
+		processed as an argument. If the callback returns False the
+		update will not continue. (This allows updating a progress bar
+		and have a way to cancel the update from the dialog.)
 		'''
+		self._update(path, callback, False)
 
+	def update_async(self, path=None, callback=None):
+		'''Like L{update()} but runs asynchronous
+
+		@note: unlike most "C{*_async()}" methods we do not use
+		threading here at the moment, instead the update is done on idle
+		signals from the main loop.
+
+		@keyword path: optional L{Path} to start update for a subtree only
+		@keyword callback: optional callback function to be called for
+		each path that is updated.
+		'''
+		self._update(path, callback, True)
+
+	def _update(self, path, callback, async):
 		# Updating uses two queues, one for indexing the tree structure and a
 		# second for pages where we need to index the content. Reason is that we
 		# first need to have the full tree before we can reliably resolve links
 		# and thus index content.
+
+		# TODO replace queues by invalidating indexkeys in the table
 
 		if path is None:
 			path = Path(':')
@@ -455,53 +470,49 @@ class Index(gobject.GObject):
 			indexpath = self.touch(path)
 			indexpath._row['haschildren'] = True
 			indexpath._row['childrenkey'] = None
-			checkcontents = True
 
 		self._flush_queue(path)
 		self._update_pagelist_queue.append(indexpath)
-		if checkcontents and not indexpath.isroot:
+		if not indexpath.isroot:
 			self._index_page_queue.append(indexpath)
+				# FIXME check indexkey here
 
 		if not self.updating:
 			self.emit('start-update')
 
-		if background:
+		if async:
 			if not self.updating:
 				# Start new queue
-				logger.info('Starting background index update')
+				logger.info('Starting async index update')
 				self.updating = True
-				self._checkcontents = checkcontents
-				gobject.idle_add(self._do_update, (checkcontents, callback))
+				gobject.idle_add(self._do_update, callback)
 			# Else let running queue pick it up
 		else:
 			logger.info('Updating index')
-			if self.updating:
-				checkcontents = checkcontents or self._checkcontents
-			while self._do_update((checkcontents, callback)):
+			while self._do_update(callback):
 				continue
 
 	def ensure_update(self, callback=None):
-		'''Wait till any background update is finished'''
+		'''Wait till any async update is finished'''
 		if self.updating:
 			logger.info('Ensure index updated')
-			while self._do_update((self._checkcontents, callback)):
+			while self._do_update(callback):
 				continue
 		else:
 			return
 
-	def _do_update(self, data):
+	def _do_update(self, callback):
 		# This returns boolean to continue or not because it can be called as an
 		# idle event handler, if a callback is used, the callback should give
 		# this boolean value.
 		# TODO can we add a percentage to the callback ?
 		# set it to None while building page listings, but set
 		# percentage once max of pageindex list is known
-		checkcontents, callback = data
 		if self._update_pagelist_queue or self._index_page_queue:
 			try:
 				if self._update_pagelist_queue:
 					path = self._update_pagelist_queue.pop(0)
-					self._update_pagelist(path, checkcontents)
+					self._update_pagelist(path)
 				elif self._index_page_queue:
 					path = self._index_page_queue.pop(0)
 					page = self.notebook.get_page(path)
@@ -697,10 +708,9 @@ class Index(gobject.GObject):
 		for tag in deleted_tags:
 			self.emit('tag-deleted', tag)
 
-	def _update_pagelist(self, path, checkcontents):
-		'''Checks and updates the pagelist for a path if needed and queues any
-		child pages for updating based on "checkcontents" and whether
-		the child has children itself. Called indirectly by update().
+	def _update_pagelist(self, path):
+		'''Checks and updates the pagelist for a path if needed and
+		queue any child pages for updating.
 		'''
 		#~ print '!! UPDATE LIST', path, path._indexpath
 		assert isinstance(path, IndexPath)
@@ -725,7 +735,7 @@ class Index(gobject.GObject):
 
 			if (page and page.haschildren) or child.haschildren:
 				self._update_pagelist_queue.append(child)
-			elif checkcontents:
+			else:
 				pagekey = self.notebook.get_page_indexkey(page or child)
 				if not (pagekey and child.contentkey == pagekey):
 					self._index_page_queue.append(child)

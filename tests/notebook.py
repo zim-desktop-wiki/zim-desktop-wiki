@@ -171,7 +171,7 @@ class TestNotebook(tests.TestCase):
 		self.assertRaises(PageExistsError,
 			self.notebook.move_page, Path('Test:foo'), Path('TODOList'))
 
-		self.notebook.index.update(background=True)
+		self.notebook.index.update_async()
 		self.assertTrue(self.notebook.index.updating)
 		self.assertRaises(IndexBusyError,
 			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))

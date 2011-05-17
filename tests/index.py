@@ -117,7 +117,7 @@ class TestIndex(tests.TestCase):
 		manifest = len(self.notebook.testdata_manifest)
 		self.assertTrue(count_pages(self.index.db) >= manifest)
 		origdb = dump_db(self.index.db)
-		self.index.update(checkcontents=False)
+		self.index.update()
 		self.assertEqual(dump_db(self.index.db), origdb)
 
 		# indexkey

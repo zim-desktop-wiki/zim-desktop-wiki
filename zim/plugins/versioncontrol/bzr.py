@@ -16,6 +16,8 @@ from zim.plugins.versioncontrol import NoChangesError
 
 if os.environ.get('ZIM_TEST_RUNNING'):
 	TEST_MODE = True
+else:
+	TEST_MODE = False
 
 
 logger = logging.getLogger('zim.vcs.bzr')
