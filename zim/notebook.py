@@ -47,7 +47,7 @@ class NotebookInfo(object):
 	is not used, C{True} or C{False} otherwise
 	'''
 
-	def __init__(self, uri, name=None, icon=None, mtime=None, **a):
+	def __init__(self, uri, name=None, icon=None, mtime=None, interwiki=None, **a):
 		'''Constructor'''
 		# **a is added to be future proof of unknown values in the cache
 		f = File(uri)
@@ -56,7 +56,7 @@ class NotebookInfo(object):
 		self.icon = icon
 		self.mtime = mtime
 		self.active = None
-		self.interwiki = None
+		self.interwiki = interwiki
 
 	def __eq__(self, other):
 		# objects describe the same notebook when the uri is the same
@@ -269,6 +269,7 @@ class NotebookInfoList(list):
 				'uri=%s\n' % info.uri,
 				'name=%s\n' % info.name,
 				'icon=%s\n' % info.icon,
+				'interwiki=%s\n' % info.interwiki,
 			])
 
 		self._file.writelines(lines)

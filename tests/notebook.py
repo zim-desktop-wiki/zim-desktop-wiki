@@ -100,12 +100,20 @@ class TestGetNotebook(tests.TestCase):
 		self.assertEqual(get_notebook(nb), None)
 
 		# Check interwiki parsing
+		# a) url.list
 		self.assertEqual(interwiki_link('wp?Foo'), 'http://en.wikipedia.org/wiki/Foo')
+		# b) notebook name
 		self.assertEqual(interwiki_link('foo?Foo'), 'zim+' + dir.uri + '?Foo')
+		# c) interwiki keyword with precedence over notebook name 
+		list.append(NotebookInfo('file:///foo/wiki', interwiki='foo'))
+		list.write()
+		self.assertEqual(interwiki_link('foo?Foo'), 'zim+file:///foo/wiki?Foo')
+		
+		# Check interwiki page resolving
 		nb, page = resolve_notebook(dir.uri + '?Foo')
 		self.assertEqual(nb, dir)
 		self.assertEqual(page, Path('Foo'))
-
+		
 		# Check backward compatibility
 		file = File('tests/data/notebook-list-old-format.list')
 		list = NotebookInfoList(file)
