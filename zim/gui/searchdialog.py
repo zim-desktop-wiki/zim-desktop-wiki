@@ -68,6 +68,12 @@ class SearchDialog(Dialog):
 		button.connect('clicked', search)
 		self.query_entry.connect('activate', search)
 
+	def set_from_buffer(self):
+		'''Copies selected text of page to query entry, if there is any.'''
+		selection = self.ui.mainwindow.pageview.get_selection()
+		if selection:
+			self.query_entry.set_text(selection)
+
 
 class SearchResultsTreeView(BrowserTreeView):
 
