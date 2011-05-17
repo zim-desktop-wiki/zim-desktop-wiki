@@ -386,6 +386,7 @@ class TextBuffer(gtk.TextBuffer):
 		'checked-checkbox': {},
 		'xchecked-checkbox': {},
 		'find-highlight': {'background': 'orange'},
+		'find-match': {'background': '#ffd78c'}
 	}
 	static_style_tags = (
 		'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -2047,6 +2048,9 @@ class TextFinder(object):
 		self.highlight = False
 		self.highlight_tag = self.buffer.create_tag(
 			None, **self.buffer.tag_styles['find-highlight'] )
+		self.match_tag = self.buffer.create_tag(
+			None, **self.buffer.tag_styles['find-match'] )
+		self.match_bounds = (None, None)
 
 	def get_state(self):
 		'''Returns the current search string, flags and highlight state'''
@@ -2102,8 +2106,8 @@ class TextFinder(object):
 		# Looking for a match starting at iter
 		if self.regex is None:
 			self.buffer.unset_selection()
+			self._apply_match(None, None)
 			return False
-
 
 		line = iter.get_line()
 		lastline = self.buffer.get_end_iter().get_line()
@@ -2112,19 +2116,22 @@ class TextFinder(object):
 				continue
 			else:
 				self.buffer.select_range(start, end)
+				self._apply_match(start, end)
 				return True
 		for start, end, _ in self._check_range(0, line, 1):
 			self.buffer.select_range(start, end)
+			self._apply_match(start, end)
 			return True
 
 		self.buffer.unset_selection()
+		self._apply_match(None, None)
 		return False
-
 
 	def find_previous(self):
 		'''Skip back to the previous match and select it'''
 		if self.regex is None:
 			self.buffer.unset_selection()
+			self._apply_match(None, None)
 			return False
 
 		iter = self.buffer.get_insert_iter()
@@ -2135,17 +2142,39 @@ class TextFinder(object):
 				continue
 			else:
 				self.buffer.select_range(start, end)
+				self._apply_match(start, end)
 				return True
 		for start, end, _ in self._check_range(lastline, line, -1):
 			self.buffer.select_range(start, end)
+			self._apply_match(start, end)
 			return True
 
 		self.buffer.unset_selection()
+		self._apply_match(None, None)
 		return False
 
-	def set_highlight(self, highlight):
+	def select_match(self):
+		# Select last match
+		bounds = self.match_bounds
+		if not None in bounds:
+			self.buffer.select_range(*bounds)
+
+	def _apply_match(self, start, end):
+		# Sets and displays new match bounds. (None, None) means "no match".
+		self.buffer.remove_tag(self.match_tag, *self.buffer.get_bounds())
+
+		self.match_bounds = (start, end)
+		if start and end:
+			self.buffer.apply_tag(self.match_tag, start, end)
+
+	def set_highlight(self, highlight, match = True):
+		# Sets or clears highlight and match tags
 		self.highlight = highlight
 		self._update_highlight()
+		if match:
+			self._apply_match(*self.match_bounds)
+		else:
+			self._apply_match(None, None)
 		# TODO we could connect to buffer signals to update highlighting
 		# when the buffer is modified.
 
@@ -4755,7 +4784,10 @@ class FindBar(FindWidget, gtk.HBox):
 		gtk.HBox.hide(self)
 		self.set_no_show_all(True)
 		buffer = self.textview.get_buffer()
-		buffer.finder.set_highlight(False)
+		if not buffer.get_has_selection():
+			buffer.finder.select_match()
+		buffer.finder.set_highlight(False, False)
+		
 
 	def do_close_clicked(self):
 		self.hide()
@@ -4833,6 +4865,13 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 		string = self.replace_entry.get_text()
 		buffer = self.textview.get_buffer()
 		buffer.finder.replace_all(string)
+
+	def do_response(self, id):
+		Dialog.do_response(self, id)
+		buffer = self.textview.get_buffer()
+		if not buffer.get_has_selection():
+			buffer.finder.select_match()
+		buffer.finder.set_highlight(False, False)
 
 
 class WordCountDialog(Dialog):
