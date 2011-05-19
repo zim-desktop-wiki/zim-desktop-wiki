@@ -216,6 +216,9 @@ _is_not_tag_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'tag')
 
 PIXBUF_CHR = u'\uFFFC'
 
+# Minimal distance from mark to window border after scroll_to_mark()
+SCROLL_TO_MARK_MARGIN = 0.2
+
 # Regexes used for autoformatting
 heading_re = Re(r'^(={2,7})\s*(.*)\s*(\1)?$')
 page_re = Re(r'''(
@@ -386,7 +389,7 @@ class TextBuffer(gtk.TextBuffer):
 		'checked-checkbox': {},
 		'xchecked-checkbox': {},
 		'find-highlight': {'background': 'orange'},
-		'find-match': {'background': '#ffd78c'}
+		'find-match': {'background': '#f0d862'}
 	}
 	static_style_tags = (
 		'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -1024,7 +1027,7 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				return False
 
- 	def range_has_tags(self, func, start, end):
+	def range_has_tags(self, func, start, end):
 		'''Like range_has_tag() but uses a function to check for
 		multiple tags.
 		'''
@@ -3507,7 +3510,7 @@ class PageView(gtk.VBox):
 		if cursorpos != -1:
 			buffer.place_cursor(buffer.get_iter_at_offset(cursorpos))
 
-		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
+		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
 
 		self._buffer_signals = (
 			buffer.connect('textstyle-changed', self.do_textstyle_changed),
@@ -3599,7 +3602,7 @@ class PageView(gtk.VBox):
 	def set_cursor_pos(self, pos):
 		buffer = self.view.get_buffer()
 		buffer.place_cursor(buffer.get_iter_at_offset(pos))
-		self.view.scroll_to_mark(buffer.get_insert(), 0.2)
+		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
 
 	def get_cursor_pos(self):
 		buffer = self.view.get_buffer()
@@ -4129,7 +4132,7 @@ class PageView(gtk.VBox):
 		self.hide_find() # remove previous highlighting etc.
 		buffer = self.view.get_buffer()
 		buffer.finder.find(string, flags)
-		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
+		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
 
 	def show_find(self, string=None, flags=0, highlight=False):
 		self.find_bar.show()
@@ -4689,7 +4692,7 @@ class FindWidget(object):
 			button.set_sensitive(ok)
 
 		if ok:
-			self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
+			self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
 
 	def on_find_entry_activate(self):
 		self.on_find_entry_changed()
@@ -4714,13 +4717,13 @@ class FindWidget(object):
 	def find_next(self):
 		buffer = self.textview.get_buffer()
 		buffer.finder.find_next()
-		self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
+		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
 		self.textview.grab_focus()
 
 	def find_previous(self):
 		buffer = self.textview.get_buffer()
 		buffer.finder.find_previous()
-		self.textview.scroll_to_mark(buffer.get_insert(), 0.3)
+		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
 		self.textview.grab_focus()
 
 
