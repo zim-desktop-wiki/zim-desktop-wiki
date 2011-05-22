@@ -2327,12 +2327,12 @@ discarded, but you can restore the copy later.''')
 		return self._done
 
 	def run(self):
-		timeout = 5
-		self.timer_label.set_text('%i sec.' % timeout)
+		self.timer = 5
+		self.timer_label.set_text('%i sec.' % self.timer)
 		def timer(self):
-			timeout -= 1
-			if timeout > 0:
-				self.timer_label.set_text('%i sec.' % timeout)
+			self.timer -= 1
+			if self.timer > 0:
+				self.timer_label.set_text('%i sec.' % self.timer)
 				return True # keep timer going
 			else:
 				for button in self.action_area.get_children():
