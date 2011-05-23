@@ -1468,7 +1468,7 @@ class GtkInterface(NotebookInterface):
 		def check_close_dialog(status):
 			if status != 0:
 				dialog.destroy()
-				ErrorDialog(self, _('Could not open: %s') % uri).run()
+				ErrorDialog(self, _('Could not open: %s') % file.basename).run()
 					# T: error when external application fails
 			else:
 				newmtime = file.mtime()
