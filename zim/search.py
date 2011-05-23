@@ -402,7 +402,7 @@ class SearchSelection(PageSelection):
 				score = 0
 				for term in terms:
 					#~ print '!! Count AND %s' % term
-					myscore = tree.countre(term.content_regex)
+					myscore = tree.counter(term.content_regex)
 					if term.keyword == 'contentorname' \
 					and term.name_regex.search(page.name):
 						myscore += 10
@@ -419,7 +419,7 @@ class SearchSelection(PageSelection):
 			else: # OPERATOR_OR
 				for term in terms:
 					#~ print '!! Count OR %s' % term
-					score = tree.countre(term.content_regex)
+					score = tree.counter(term.content_regex)
 					if term.keyword == 'contentorname' \
 					and term.name_regex.search(page.name):
 						score += 10

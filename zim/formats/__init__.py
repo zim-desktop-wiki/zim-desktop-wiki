@@ -268,7 +268,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 		return count
 
-	def countre(self, regex):
+	def counter(self, regex):
 		'''Returns the number of matches for a regular expression
 		in this tree.
 		'''
