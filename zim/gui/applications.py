@@ -128,7 +128,7 @@ class ApplicationManager(object):
 
 	@staticmethod
 	def list_applications(mimetype):
-		'''Returns a list of Application objects for mietype'''
+		'''Returns a list of Application objects for mimetype'''
 		seen = set()
 		entries = []
 		key = '%s=' % mimetype
@@ -174,7 +174,7 @@ class ApplicationManager(object):
 
 		helpers = klass.list_helpers(type)
 		keys = [entry.key for entry in helpers]
-		for k in preferred[type]: # prefered keys
+		for k in preferred[type]: # preferred keys
 			if k in keys:
 				return helpers[keys.index(k)]
 

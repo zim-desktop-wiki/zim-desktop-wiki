@@ -6,7 +6,6 @@ from __future__ import with_statement
 
 import os
 import logging
-import subprocess
 
 from zim.fs import FS
 from zim.applications import Application
@@ -63,9 +62,9 @@ class BzrlibApplication(Application):
 
 
 if bzrlib:
-    _bzr = BzrlibApplication()
+	_bzr = BzrlibApplication()
 else:
-    _bzr = Application(('bzr',))
+	_bzr = Application(('bzr',))
 
 
 # TODO document API - use base class

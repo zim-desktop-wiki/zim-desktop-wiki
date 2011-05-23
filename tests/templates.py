@@ -15,6 +15,7 @@ from zim.templates import GenericTemplate, \
 	TemplateParam, TemplateDict, TemplateFunction, PageProxy
 from zim.notebook import Notebook
 import zim.formats
+from zim.parsing import link_type
 
 class TestTemplateParam(TestCase):
 

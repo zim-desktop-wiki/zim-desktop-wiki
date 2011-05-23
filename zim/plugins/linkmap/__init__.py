@@ -7,6 +7,7 @@
 from zim.plugins import PluginClass
 from zim.index import LINK_DIR_BOTH
 from zim.applications import Application
+from zim.fs import Dir
 
 class LinkMapPlugin(PluginClass):
 
