@@ -96,4 +96,4 @@ class StubUI(object):
 
 	def connect(*a): pass
 
-	def connect_after(*a): pas
+	def connect_after(*a): pass

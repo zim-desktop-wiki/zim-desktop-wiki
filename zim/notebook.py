@@ -721,7 +721,7 @@ class Notebook(gobject.GObject):
 
 		return mystore
 
-	def get_store(self, path):
+	def get_store(self, page):
 		'''Returns the store object to handle a page or namespace.'''
 		for namespace in self._namespaces:
 			# longest match first because of reverse sorting
@@ -730,7 +730,7 @@ class Notebook(gobject.GObject):
 			or page.name.startswith(namespace+':'):
 				return self._stores[namespace]
 		else:
-			raise LookupError, 'Could not find store for: %s' % name
+			raise LookupError, 'Could not find store for: %s' % page.name
 
 	def get_stores(self):
 		return self._stores.values()

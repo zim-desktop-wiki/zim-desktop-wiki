@@ -46,7 +46,7 @@ class Store(memory.Store):
 		if self.file.exists():
 			self.parse(self.file.read())
 
-	def store_page(page):
+	def store_page(self, page):
 		memory.Store.store_page(self, page)
 		self.file.writelines(self.dump())
 

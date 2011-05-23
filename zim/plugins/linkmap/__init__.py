@@ -48,7 +48,7 @@ class LinkMap(object):
 		self.path = path
 		self.depth = depth
 
-	def _all_links():
+	def _all_links(self):
 		for page in self.notebook.index.walk():
 			for link in self.notebook.index.list_links(page):
 				yield link
