@@ -506,7 +506,7 @@ class TextBuffer(gtk.TextBuffer):
 			self.update_editmode()
 			startiter = self.get_iter_at_offset(startoffset)
 			enditer = self.get_iter_at_mark(self.get_insert())
-			self.delete(start, end)
+			self.delete(start, end) #FIXME: start, end are undefined here!?
 			self.set_modified(modified)
 			self.emit('end-insert-tree')
 			raise

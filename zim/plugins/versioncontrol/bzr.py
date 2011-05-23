@@ -119,7 +119,7 @@ class BazaarVCS(object):
 
 	def on_path_deleted(self, path):
 		def wrapper():
-			_bzr.run(['rm', oldpath], cwd=self.root)
+			_bzr.run(['rm', oldpath], cwd=self.root) #FIXME: oldpath-->path, isn't it?
 		AsyncOperation(wrapper, lock=self.lock).start()
 
 	@property

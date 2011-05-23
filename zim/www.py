@@ -216,7 +216,7 @@ class WWWInterface(NotebookInterface):
 					error = PageNotFoundError(path)
 					# show url path instead of file path
 				if error.headers:
-					header.extend(error.headers)
+					header.extend(error.headers) #FIXME: header is undefined and headers.extend() does not exist!?
 				start_response(error.status, headerlist)
 				content = unicode(error).splitlines(True)
 			# TODO also handle template errors as special here
