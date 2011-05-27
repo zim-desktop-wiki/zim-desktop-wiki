@@ -4787,10 +4787,7 @@ class FindBar(FindWidget, gtk.HBox):
 		gtk.HBox.hide(self)
 		self.set_no_show_all(True)
 		buffer = self.textview.get_buffer()
-		if not buffer.get_has_selection():
-			buffer.finder.select_match()
 		buffer.finder.set_highlight(False, False)
-		
 
 	def do_close_clicked(self):
 		self.hide()
@@ -4872,8 +4869,6 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 	def do_response(self, id):
 		Dialog.do_response(self, id)
 		buffer = self.textview.get_buffer()
-		if not buffer.get_has_selection():
-			buffer.finder.select_match()
 		buffer.finder.set_highlight(False, False)
 
 
