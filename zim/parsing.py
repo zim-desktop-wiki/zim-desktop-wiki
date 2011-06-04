@@ -311,9 +311,9 @@ class Re(object):
 		return self.m.end(group)
 
 # Some often used regexes
-is_url_re = Re('^(\w[\w\+\-\.]+)://')
+is_url_re = Re('^(\w[\w\+\-\.]*)://')
 	# scheme "://"
-is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+$')
+is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+$', re.U)
 	# "mailto:" address
 	# name "@" host
 	# but exclude other uris like mid: and cid:
@@ -325,8 +325,9 @@ is_win32_path_re = Re(r'^[A-Za-z]:[\\/]')
 is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# \\host\share
 	# smb://host/share
-is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
+is_interwiki_re = Re('^(\w[\w\+\-\.]*)\?(.*)', re.U)
 	# identifier "?" path
+is_interwiki_keyword_re = re.compile('^\w[\w\+\-\.]*$', re.U)
 
 
 _classes = {'c': r'[^\s"<>\']'} # limit the character class a bit
@@ -336,7 +337,7 @@ url_re = Re(r'''(
 	\b mailto: %(c)s+ \@ %(c)s* \[ %(c)s+ \] (?: %(c)s+ [\w/] )? |
 	\b mailto: %(c)s+ \@ %(c)s+ [\w/]                            |
 	\b %(c)s+ \@ %(c)s+ \. \w+ \b
-)''' % _classes, re.X)
+)''' % _classes, re.X | re.U)
 	# Full url regex - much more strict then the is_url_re
 	# The host name in an uri can be "[hex:hex:..]" for ipv6
 	# but we do not want to match "[http://foo.org]"

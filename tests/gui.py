@@ -396,6 +396,7 @@ class TestDialogs(tests.TestCase):
 
 		config1 = {
 			'name': 'Notebook Foo',
+			'interwiki': '',
 			'home': 'Home',
 			'icon': './icon.png',
 			'document_root': '/foo',
@@ -403,6 +404,7 @@ class TestDialogs(tests.TestCase):
 		}
 		config2 = {
 			'name': 'Notebook Bar',
+			'interwiki': 'FooBar',
 			'home': 'HomeSweetHome',
 			'icon': './picture.png',
 			'document_root': '/bar',

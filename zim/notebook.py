@@ -24,7 +24,8 @@ from zim.fs import *
 from zim.errors import Error, TrashNotSupportedError
 from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
 	config_file, data_dir, user_dirs
-from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, link_type, url_encode
+from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
+	is_interwiki_keyword_re, link_type, url_encode
 from zim.async import AsyncLock
 import zim.stores
 
@@ -44,9 +45,10 @@ class NotebookInfo(object):
 	@ivar active: The attribute is used to signal whether the notebook
 	is already open or not, used in the daemon context, C{None} if this
 	is not used, C{True} or C{False} otherwise
+	@ivar interwiki: The interwiki keyword (if any)
 	'''
 
-	def __init__(self, uri, name=None, icon=None, mtime=None, **a):
+	def __init__(self, uri, name=None, icon=None, mtime=None, interwiki=None, **a):
 		'''Constructor'''
 		# **a is added to be future proof of unknown values in the cache
 		f = File(uri)
@@ -54,6 +56,7 @@ class NotebookInfo(object):
 		self.name = name or f.basename
 		self.icon = icon
 		self.mtime = mtime
+		self.interwiki = interwiki
 		self.active = None
 
 	def __eq__(self, other):
@@ -77,8 +80,8 @@ class NotebookInfo(object):
 		if file.exists() and file.mtime() != self.mtime:
 			config = ConfigDictFile(file)
 
-			if 'name' in config['Notebook']:
-				self.name = config['Notebook']['name'] or dir.basename
+			self.name = config['Notebook'].get('name') or dir.basename
+			self.interwiki = config['Notebook'].get('interwiki')
 
 			icon, document_root = _resolve_relative_config(dir, config['Notebook'])
 			if icon:
@@ -264,6 +267,7 @@ class NotebookInfoList(list):
 				'[Notebook]\n',
 				'uri=%s\n' % info.uri,
 				'name=%s\n' % info.name,
+				'interwiki=%s\n' % info.interwiki,
 				'icon=%s\n' % info.icon,
 			])
 
@@ -300,11 +304,28 @@ class NotebookInfoList(list):
 			if info.name == name:
 				return info
 
+		lname = name.lower()
 		for info in self:
-			if info.name.lower() == name.lower():
+			if info.name.lower() == lname:
 				return info
 
 		return None
+
+	def get_interwiki(self, key):
+		'''Get the L{NotebookInfo} object for a notebook by interwiki key
+
+		First checks the interwiki key for all notebooks (case insensitive)
+		than falls back to L{get_by_name()}.
+
+		@param key: notebook name or interwiki key as string
+		@returns: a L{NotebookInfo} object or C{None}
+		'''
+		lkey = key.lower()
+		for info in self:
+			if info.interwiki and info.interwiki.lower() == lkey:
+				return info
+		else:
+			return self.get_by_name(key)
 
 
 def get_notebook_list():
@@ -418,7 +439,7 @@ def interwiki_link(link):
 			break
 	else:
 		list = get_notebook_list()
-		info = list.get_by_name(key)
+		info = list.get_interwiki(key)
 		if info:
 			url = 'zim+' + info.uri + '?{NAME}'
 
@@ -549,6 +570,7 @@ class Notebook(gobject.GObject):
 	properties = (
 		('name', 'string', _('Name')), # T: label for properties dialog
 		('home', 'page', _('Home Page')), # T: label for properties dialog
+		('interwiki', 'string', _('Interwiki Keyword'), lambda v: not v or is_interwiki_keyword_re.search(v)), # T: label for properties dialog
 		('icon', 'image', _('Icon')), # T: label for properties dialog
 		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
 		('shared', 'bool', _('Shared Notebook')), # T: label for properties dialog

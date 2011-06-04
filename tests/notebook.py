@@ -77,7 +77,8 @@ class TestGetNotebook(tests.TestCase):
 
 		# But not anymore after adding second notebook
 		list = get_notebook_list()
-		list.append(NotebookInfo('file:///foo/bar'))
+		list.append(NotebookInfo('file:///foo/bar', interwiki='foobar'))
+			# on purpose do not set name, should default to basename
 		list.write()
 		self.assertTrue(len(list) == 2)
 		self.assertEqual(list[:],
@@ -86,6 +87,14 @@ class TestGetNotebook(tests.TestCase):
 		nb, page = resolve_notebook('foo')
 		self.assertEqual(nb, dir)
 		self.assertTrue(isinstance(get_notebook(nb), Notebook))
+
+		nb, page = resolve_notebook('bar')
+			# Check name defaults to dir basename
+		self.assertEqual(nb, Dir('file:///foo/bar'))
+		self.assertIs(get_notebook(nb), None) # path should not exist
+
+		nb, page = resolve_notebook('Bar')
+		self.assertEqual(nb, Dir('file:///foo/bar'))
 
 		nb = _get_default_or_only_notebook()
 		self.assertTrue(nb is None)
@@ -105,6 +114,11 @@ class TestGetNotebook(tests.TestCase):
 		nb, page = resolve_notebook(dir.uri + '?Foo')
 		self.assertEqual(nb, dir)
 		self.assertEqual(page, Path('Foo'))
+
+		self.assertEqual(interwiki_link('foobar?Foo'), 'zim+file:///foo/bar?Foo') # interwiki key
+		self.assertEqual(interwiki_link('FooBar?Foo'), 'zim+file:///foo/bar?Foo') # interwiki key
+		self.assertEqual(interwiki_link('bar?Foo'), 'zim+file:///foo/bar?Foo') # name
+		self.assertEqual(interwiki_link('Bar?Foo'), 'zim+file:///foo/bar?Foo') # name
 
 		# Check backward compatibility
 		file = File('tests/data/notebook-list-old-format.list')
