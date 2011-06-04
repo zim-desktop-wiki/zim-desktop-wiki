@@ -334,6 +334,7 @@ class Template(GenericTemplate):
 			'pages': pages,
 			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
+			'notebook': {'interwiki': notebook.config['Notebook'].get('interwiki', '')},
 			'options': options
 		}
 
