@@ -234,6 +234,7 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 '''), # T: plugin description
 		'author': 'Jiří Janoušek',
 		'help': 'Plugins:Source View',
+		'object_types': (OBJECT_TYPE, ),
 	}
 
 	plugin_preferences = (

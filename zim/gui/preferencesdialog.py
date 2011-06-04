@@ -29,11 +29,10 @@ class PreferencesDialog(Dialog):
 	OTHER_APP = _('Other Application') + '...'
 		# T: label to pop dialog with more applications in 'open with' menu
 
-	def __init__(self, ui):
+	def __init__(self, ui, default_tab=None, select_plugin=None):
 		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
-
 		# saves a list of loaded plugins to be used later
 		self.p_save_loaded = [p.__class__ for p in self.ui.plugins]
 
@@ -41,7 +40,11 @@ class PreferencesDialog(Dialog):
 		self.forms = {}
 		for category, preferences in ui.preferences_register.items():
 			vbox = gtk.VBox()
-			gtknotebook.append_page(vbox, gtk.Label(_(category)))
+			index = gtknotebook.append_page(vbox, gtk.Label(_(category)))
+			# From GTK Doc: Note that due to historical reasons, GtkNotebook refuses
+			# to switch to a page unless the child widget is visible.
+			vbox.show()
+			if category == default_tab: gtknotebook.set_current_page(index)
 
 			fields = []
 			values = {}
@@ -73,9 +76,12 @@ class PreferencesDialog(Dialog):
 
 		# Applications tab
 		vbox = gtk.VBox()
-		gtknotebook.append_page(vbox, gtk.Label(_('Applications')))
+		index = gtknotebook.append_page(vbox, gtk.Label(_('Applications')))
 				# T: Heading in preferences dialog
-
+		
+		vbox.show() 
+		if default_tab == 'Applications': gtknotebook.set_current_page(index)
+		
 		form = InputForm( (
 			('file_browser', 'choice', _('File browser'), ()),
 				# T: Input for application type in preferences dialog
@@ -93,9 +99,15 @@ class PreferencesDialog(Dialog):
 		self.applicationsform = form
 
 		# Plugins tab
-		gtknotebook.append_page(PluginsTab(self), gtk.Label(_('Plugins')))
+		plugins_tab = PluginsTab(self)
+		index = gtknotebook.append_page(plugins_tab, gtk.Label(_('Plugins')))
 				# T: Heading in preferences dialog
-
+		plugins_tab.show()
+		print default_tab, index
+		if default_tab == "Plugins":
+			gtknotebook.set_current_page(index)
+			if not select_plugin is None: plugins_tab.select_plugin(select_plugin)
+		
 	def _add_font_selection(self, table):
 		# need to hardcode this, cannot register it as a preference
 		table.add_inputs( (
@@ -228,7 +240,8 @@ class PluginsTab(gtk.HBox):
 		swindow.set_shadow_type(gtk.SHADOW_IN)
 		self.pack_start(swindow, False)
 		swindow.add(treeview)
-
+		self.treeview = treeview # for select_plugin() method
+		
 		vbox = gtk.VBox()
 		self.add(vbox)
 
@@ -318,7 +331,17 @@ class PluginsTab(gtk.HBox):
 
 	def on_configure_button_clicked(self, button):
 		PluginConfigureDialog(self.dialog, self._klass).run()
-
+	
+	def select_plugin(self, name):
+		model = self.treeview.get_model()
+		def find(model, path, iter):
+			if model[iter][2] == name:
+				self.treeview.scroll_to_cell(path)
+				self.treeview.set_cursor(path)
+				self.do_row_activated(self.treeview, path, 0)
+				return True;
+			return False # keep the foreach going
+		model.foreach(find)
 
 class PluginsTreeModel(gtk.ListStore):
 

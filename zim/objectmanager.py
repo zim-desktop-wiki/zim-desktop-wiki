@@ -5,7 +5,9 @@
 
 import gobject
 import weakref
-
+import zim.plugins
+import logging
+logger = logging.getLogger("zim.objectmanager")
 # WeakRefSet has to be located before ObjectManager singleton instance creation
 class WeakRefSet(object):
 	'''Simpel collection of weak references to objects.
@@ -86,7 +88,20 @@ class _ObjectManager(object):
 		(Objects are 'active' as long as they are not destroyed.)
 		'''
 		return iter(self.objects[type])
-
+	
+	def find_plugin(self, type):
+		for name in zim.plugins.list_plugins():
+			try:
+				klass = zim.plugins.get_plugin(name)
+				types = klass.plugin_info.get('object_types')
+				if types and type in types:
+					activatable = klass.check_dependencies_ok()
+					return (klass.plugin_info['name'], activatable, klass)
+			except:
+				logger.exception('Could not load plugin %s', name)
+				continue
+		return None
+	
 ObjectManager = _ObjectManager() # Singleton object
 
 
@@ -158,8 +173,36 @@ class FallbackObject(CustomObjectClass):
 			self._widget = CustomObjectBin()
 			box = gtk.VBox()
 			box.set_border_width(5)
-			self.label = gtk.Label(_("Unknown object") + ":")
-			box.pack_start(self.label)
+			type = attrib.get('type')
+			plugin = ObjectManager.find_plugin(type) if type else None
+			if plugin:
+				name, activatable, klass = plugin
+				hbox = gtk.HBox(False, 5)
+				box.pack_start(hbox)
+				label = gtk.Label(_("Plugin %s is required to display this object.") % name)
+				hbox.pack_start(label)
+				if activatable: # and False:
+					# Plugin can be enabled
+					button = gtk.Button(_("Enable plugin"))
+					def load_plugin(button):
+						self.ui.load_plugin(klass.plugin_key)
+						self.ui.preferences.set_modified(True) # Hack!
+						self.ui.save_preferences()
+						self.ui.reload_page()
+					button.connect("clicked", load_plugin)
+				else:
+					# Plugin has some unresolved dependencies
+					def plugin_info(button):
+						from zim.gui.preferencesdialog import PreferencesDialog
+						dialog = PreferencesDialog(self.ui, "Plugins", select_plugin=name)
+						dialog.run()
+						self.ui.reload_page()
+					button = gtk.Button(_("Show plugin details"))
+					button.connect("clicked", plugin_info)
+				hbox.pack_start(button)
+			else:
+				label = gtk.Label(_("No plugin is available to display this object."))
+				box.pack_start(label)
 			self.view = gtk.TextView()
 			self.view.set_size_request(400, 100)
 			buffer = self.view.get_buffer();
