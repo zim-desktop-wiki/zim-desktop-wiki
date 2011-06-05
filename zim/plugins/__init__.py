@@ -74,26 +74,59 @@ def set_plugin_search_path():
 set_plugin_search_path()
 
 
-def get_plugin_module(pluginname):
-	'''Returns the plugin module object for a given name'''
+def get_module(prefix, name):
+	'''Import a module for C{prefix + '.' + name}
+
+	@param prefix: the module path to search (e.g. "zim.plugins")
+	@param name: the module name (e.g. "calendar") - case insensitive
+
+	@returns: module object
+	@raises: ImportError if the given name does not exist
+
+	@note: don't actually use this method to get plugin modules, see
+	L{get_plugin_module()} instead.
+	'''
 	# __import__ has some quirks, see the reference manual
-	pluginname = pluginname.lower()
-	mod = __import__('zim.plugins.'+pluginname)
-	mod = getattr(mod, 'plugins')
-	mod = getattr(mod, pluginname)
+	modname = prefix + '.' + name.lower()
+	mod = __import__(modname)
+	for part in modname.split('.'):
+		mod = getattr(mod, part)
 	return mod
 
 
-def get_plugin(pluginname):
-	'''Returns the plugin class object for a given name'''
-	mod = get_plugin_module(pluginname)
-	for name in dir(mod):
-		obj = getattr(mod, name)
+def lookup_subclass(module, klass):
+	'''Look for a subclass of klass in the module
+
+	This function is used in several places in zim to get extension
+	classes. Typically L{get_module()} is used first to get the module
+	object, then this lookup function is used to locate a class that
+	derives of a base class (e.g. PluginClass).
+
+	@param module: module object
+	@param klass: base class
+
+	@note: don't actually use this method to get plugin classes, see
+	L{get_plugin()} instead.
+	'''
+	for name in dir(module):
+		obj = getattr(module, name)
 		if ( isinstance(obj, (type, types.ClassType)) # is a class
-		and issubclass(obj, PluginClass) # is derived from PluginClass
-		and not obj == PluginClass ): # but is not PluginClass itself
-			obj.plugin_key = pluginname
+		and issubclass(obj, klass) # is derived from e.g. PluginClass
+		and not obj == klass ): # but is not e.g. PluginClass itself (which is imported)
 			return obj
+
+
+def get_plugin_module(name):
+	'''Returns the plugin module object for a given name'''
+	return get_module('zim.plugins', name)
+
+
+def get_plugin(name):
+	'''Returns the plugin class object for a given name'''
+	mod = get_plugin_module(name)
+	obj = lookup_subclass(mod, PluginClass)
+	obj.plugin_key = name
+	return obj
 
 
 def list_plugins():

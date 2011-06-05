@@ -59,6 +59,7 @@ from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE
 from zim.config import data_file
+import zim.plugins
 
 import zim.notebook # no 'from' to prevent cyclic import errors
 
@@ -103,12 +104,46 @@ def list_formats(type):
 
 def get_format(name):
 	'''Returns the module object for a specific format.'''
-	# __import__ has some quirks, see the reference manual
-	name = name.lower()
-	mod = __import__('zim.formats.'+name)
-	mod = getattr(mod, 'formats')
-	mod = getattr(mod, name)
-	return mod
+	# If this method is removes, class names in formats/*.py can be made more explicit
+	#~ print 'DEPRECATED: get_format() is deprecated in favor if get_parser() and get_dumper()'
+	return get_format_module(name)
+
+
+def get_format_module(name):
+	'''Returns the module object for a specific format
+
+	@param name: the format name
+	@returns: a module object
+	'''
+	return zim.plugins.get_module('zim.formats', name)
+
+
+def get_parser(name, *arg, **kwarg):
+	'''Returns a parser object instance for a specific format
+
+	@param name: format name
+
+	All other param are passed on to the object constructor
+
+	@returns: parser object instance (subclass of L{ParserClass})
+	'''
+	module = get_format_module(name)
+	klass = zim.plugins.lookup_subclass(module, ParserClass)
+	return klass(*arg, **kwarg)
+
+
+def get_dumper(name, *arg, **kwarg):
+	'''Returns a dumper object instance for a specific format
+
+	@param name: format name
+
+	All other param are passed on to the object constructor
+
+	@returns: dumper object instance (subclass of L{DumperClass})
+	'''
+	module = get_format_module(name)
+	klass = zim.plugins.lookup_subclass(module, DumperClass)
+	return klass(*arg, **kwarg)
 
 
 class ParseTree(ElementTreeModule.ElementTree):

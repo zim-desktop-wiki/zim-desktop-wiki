@@ -731,8 +731,8 @@ class Notebook(gobject.GObject):
 		'''
 		assert not path.name in self._stores, 'Store for "%s" exists' % path
 		if isinstance(store, basestring):
-			mod = zim.stores.get_store(store)
-			mystore = mod.Store(notebook=self, path=path, **args)
+			klass = zim.stores.get_store(store)
+			mystore = klass(notebook=self, path=path, **args)
 		else:
 			assert not args
 			mystore = store

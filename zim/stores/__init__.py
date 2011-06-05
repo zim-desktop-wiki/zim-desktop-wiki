@@ -70,18 +70,17 @@ import re
 import codecs
 
 import zim.fs
+import zim.plugins
 from zim.fs import *
 from zim.parsing import is_url_re
 from zim.errors import TrashNotSupportedError
 
 
 def get_store(name):
-	'''Returns the module object for a specific store type.'''
-	# __import__ has some quirks, soo the reference manual
-	mod = __import__('zim.stores.'+name)
-	mod = getattr(mod, 'stores')
-	mod = getattr(mod, name)
-	return mod
+	'''Returns the klass object for a specific store type.'''
+	mod = zim.plugins.get_module('zim.stores', name)
+	obj = zim.plugins.lookup_subclass(mod, StoreClass)
+	return obj
 
 
 def _url_encode_on_error(error):

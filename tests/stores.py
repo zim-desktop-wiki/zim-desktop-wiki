@@ -128,8 +128,8 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 	'''Test the store.memory module'''
 
 	def setUp(self):
-		store = zim.stores.get_store('memory')
-		self.store = store.Store(path=Path(':'), notebook=Notebook())
+		klass = zim.stores.get_store('memory')
+		self.store = klass(path=Path(':'), notebook=Notebook())
 		self.index = set()
 		for name, text in tests.WikiTestData:
 			self.store.set_node(Path(name), text)
@@ -281,8 +281,8 @@ Utf8 content here
 
 	def setUp(self):
 		buffer = StubFile(self.xml)
-		store = zim.stores.get_store('xml')
-		self.store = store.Store(path=Path(':'), notebook=Notebook(), file=buffer)
+		klass = zim.stores.get_store('xml')
+		self.store = klass(path=Path(':'), notebook=Notebook(), file=buffer)
 		self.index = set(['Foo', 'Foo:Bar', 'Baz', u'utf8:\u03b1\u03b2\u03b3'])
 		self.normalize_index()
 
@@ -306,9 +306,8 @@ class TestFiles(TestStoresMemory):
 		tmpdir = self.create_tmp_dir(u'_some_utf8_here_\u0421\u0430\u0439')
 		self.dir = Dir([tmpdir, 'store-files'])
 		self.mem = self.store
-		store = zim.stores.get_store('files')
-		self.store = store.Store(
-			path=Path(':'), notebook=Notebook(), dir=self.dir )
+		klass = zim.stores.get_store('files')
+		self.store = klass(path=Path(':'), notebook=Notebook(), dir=self.dir)
 		for parent, page in walk(self.mem):
 			if page.hascontent:
 				mypage = self.store.get_page(page)

@@ -24,20 +24,22 @@ scalability.
 
 # FUTURE: This module does not support attachments in the xml data
 
+import zim.stores.memory
+	# importing class from this module makes get_store() fail
+
 from zim.formats import get_format, ElementTreeModule
-from zim.stores import memory
 from zim.notebook import Path
 from zim.parsing import TextBuffer
 
 
-class Store(memory.Store):
+class XMLStore(zim.stores.memory.MemoryStore):
 
 	properties = {
 		'read-only': True
 	}
 
 	def __init__(self, notebook, path, file=None):
-		memory.Store.__init__(self, notebook, path)
+		zim.stores.memory.MemoryStore.__init__(self, notebook, path)
 		self.file = file
 		if not self.store_has_file():
 			raise AssertionError, 'XMl store needs file'

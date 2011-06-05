@@ -32,7 +32,7 @@ from zim.formats.wiki import WIKI_FORMAT_VERSION # FIXME hard coded preference f
 logger = logging.getLogger('zim.stores.files')
 
 
-class Store(StoreClass):
+class FilesStore(StoreClass):
 
 	def __init__(self, notebook, path, dir=None):
 		'''Construct a files store.
@@ -148,7 +148,7 @@ class Store(StoreClass):
 			if not file.trash():
 				return False
 			re = True
-		
+
 		if dir.exists():
 			re = dir.trash() or re
 			dir.cleanup()

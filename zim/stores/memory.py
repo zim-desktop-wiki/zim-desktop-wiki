@@ -25,7 +25,7 @@ class Node(object):
 		self.children = []
 
 
-class Store(StoreClass):
+class MemoryStore(StoreClass):
 
 	def __init__(self, notebook, path):
 		'''Construct a memory store.

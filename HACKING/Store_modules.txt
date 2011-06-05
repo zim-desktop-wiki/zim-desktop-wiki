@@ -1,0 +1,5 @@
+
+TODO: more info about writing format modules
+
+Each module in zim.stores should contains exactly one subclass of StoreClass. This includes imports, so do not import other classes that derive from this base class directly into the module. When zim loads the store it finds the correct store class by looking at the base class of each class object.
+

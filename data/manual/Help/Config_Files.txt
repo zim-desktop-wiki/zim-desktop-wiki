@@ -19,7 +19,9 @@ XDG_DATA_DIRS   = /usr/local/share/:/usr/share
 
 These can be overloaded with the coresponding environment variables.
 
-When zim writes config files it always uses XDG_CONFIG_HOME. Data files are read only and are searched for in XDG_DATA_HOME and XDG_DATA_DIRS. The installation defaults for config files are also installed in XDG_DATA_DIRS, but these are copied on first use to XDG_CONFIG_HOME.
+When zim writes config files it always uses ''XDG_CONFIG_HOME''. Data files are read only and are searched for in ''XDG_DATA_HOME'' and ''XDG_DATA_DIRS''. The installation defaults for config files are also installed in ''XDG_DATA_DIRS'', but these are copied on first use to ''XDG_CONFIG_HOME''.
+
+**Note:** on Windows when there is no ''HOME'' environment parameter is defined we set it using either the ''USERPROFILE'' parameter or ''HOMEDRIVE'' + ''HOMEPATH'' when those are defined (in that order of checking). Make sure ''HOME'' or ''USERPROFILE'' are defined including a drive letter if they are defined.
 
 ===== Global Config Files =====
 

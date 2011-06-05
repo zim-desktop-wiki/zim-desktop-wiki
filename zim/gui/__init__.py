@@ -98,7 +98,7 @@ ui_actions = (
 	('show_clean_notebook', None, _('_Cleanup Attachments'), '', '', False), # T: Menu item
 	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', '', False), # T: Menu item
 	('show_server_gui', None, _('Start _Web Server'), '', '', True), # T: Menu item
-	('reload_index', None, _('Re-build Index'), '', '', False), # T: Menu item
+	('reload_index', None, _('Update Index'), '', '', False), # T: Menu item
 	('manage_custom_tools', 'gtk-preferences', _('Custom _Tools'), '', '', True), # T: Menu item
 	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back'), True), # T: Menu item
 	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward'), True), # T: Menu item
