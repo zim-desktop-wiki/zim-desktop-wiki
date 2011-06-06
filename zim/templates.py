@@ -71,8 +71,9 @@ from zim.errors import Error
 from zim.fs import File
 from zim.config import data_dirs
 from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string, is_path_re
-from zim.formats import ParseTree, Element
+from zim.formats import ParseTree, Element, TreeBuilder
 from zim.index import LINK_DIR_BACKWARD
+from zim.notebook import Path
 
 logger = logging.getLogger('zim.templates')
 
@@ -198,7 +199,6 @@ class GenericTemplate(object):
 		'''
 		if not isinstance(dict, TemplateDict):
 			dict = TemplateDict(dict)
-
 		output = TextBuffer(self.tokens.process(dict))
 		return output.get_lines()
 
@@ -328,14 +328,20 @@ class Template(GenericTemplate):
 
 		dict = {
 			'zim': { 'version': zim.__version__ },
+			'notebook': {
+				'name' : notebook.name,
+				'interwiki': notebook.info.interwiki,
+			},
 			'page': PageProxy(
 				notebook, page,
 				self.format, self.linker, options),
 			'pages': pages,
 			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
-			'notebook': {'interwiki': notebook.config['Notebook'].get('interwiki', '')},
-			'options': options
+			'pageindex' : PageIndexFunction(notebook, page, self.format, self.linker, options),
+			'options': options,
+			# helpers that allow to write TRUE instead of 'TRUE' in template functions
+			'TRUE' : 'True', 'FALSE' : 'False',
 		}
 
 		if self.linker:
@@ -394,8 +400,9 @@ class TemplateToken(object):
 
 	def parse_expr(self, string):
 		'''This method parses an expression and returns an object of either
-		class TemplateParam, TemplateParamList or TemplateFuntionParam or
-		a simple string. (All these classes have a method "evaluate()" which
+		class TemplateParam, TemplateParamList or TemplateFuntionParam.
+
+		(All these classes have a method "evaluate()" which
 		takes an TemplateDict as argument and returns a value for the result
 		of the expression.)
 		'''
@@ -625,6 +632,79 @@ class StrftimeFunction(TemplateFunction):
 			return date.strftime(format)
 		else:
 			raise AssertionError, 'Not a datetime object: %s', date
+
+
+class PageIndexFunction(TemplateFunction):
+	'''Template function to build a page menu'''
+
+	def __init__(self, notebook, page, format, linker, options):
+		self._notebook = notebook
+		self._page = page
+		self._format = format
+		self._linker = linker
+		self._options = options
+
+	def __call__(self, dict, root=':', collapse=True, ignore_empty=True):
+		builder = TreeBuilder()
+
+		collapse = bool(collapse) and not collapse == 'False'
+		ignore_empty = bool(ignore_empty) and not ignore_empty == 'False'
+
+		if isinstance(root, PageProxy):
+			# allow [% menu(page) %] vs [% menu(page.name) %]
+			root = root.name
+
+		expanded = [self._page] + list(self._page.parents())
+
+		def add_namespace(path):
+			builder.start('ul')
+
+			pagelist = self._notebook.index.list_pages(path)
+			for page in pagelist:
+				if ignore_empty and not page.exists():
+					continue
+				builder.start('li')
+
+				if page == self._page:
+					# Current page is marked with the strong style
+					builder.start('strong')
+					builder.data(page.basename)
+					builder.end('strong')
+				else:
+					# links to other pages
+					builder.start('link', {'type': 'page', 'href': ':'+page.name})
+					builder.data(page.basename)
+					builder.end('link')
+
+				builder.end('li')
+				if page.haschildren:
+					if collapse:
+						# Only recurs into namespaces that are expanded
+						if page in expanded:
+							add_namespace(page) # recurs
+					else:
+						add_namespace(page) # recurs
+
+			builder.end('ul')
+
+		builder.start('page')
+		add_namespace(Path(root))
+		builder.end('page')
+
+		tree = ParseTree(builder.close())
+		if not tree:
+			return None
+
+		#~ print "!!!", tree.tostring()
+
+		format = self._format
+		linker = self._linker
+
+		dumper = format.Dumper(
+			linker=linker,
+			template_options=self._options )
+
+		return ''.join(dumper.dump(tree))
 
 
 class TemplateDict(object):

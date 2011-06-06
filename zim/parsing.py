@@ -12,7 +12,8 @@ def split_quoted_strings(string, unescape=True):
 	word_re = Re(r'''
 		(	'(\\'|[^'])*' |  # single quoted word
 			"(\\"|[^"])*" |  # double quoted word
-			\S+              # word without spaces
+			[^\s,]+       |  # word without spaces and commas
+			,                # comma
 		)''', re.X)
 	string = string.strip()
 	words = []

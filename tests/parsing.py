@@ -17,6 +17,11 @@ class TestParsing(TestCase):
 		list = ['"foo bar"', ',', r'"\"foooo bar\""', 'dusss', 'ja']
 		result = split_quoted_strings(string, unescape=False)
 		self.assertEquals(result, list)
+		
+		string = r'''"foo bar", False, True'''
+		list = ['foo bar', ',', 'False', ',', 'True']
+		result = split_quoted_strings(string)
+		self.assertEquals(result, list)
 
 	def testParseDate(self):
 		'''Test parsing dates'''
