@@ -127,9 +127,9 @@ class ScrolledHBox(gtk.HBox):
 	def scroll_to_child(self, child):
 		i = self.get_children()[2:].index(child)
 		if i < self._first:
-			self.scroll(DIR_BACKWARDS, self._first - i)
+			self.scroll(DIR_BACKWARD, self._first - i)
 		elif i > self._last:
-			self.scroll(DIR_FORWARDS, i - self._last)
+			self.scroll(DIR_FORWARD, i - self._last)
 		else:
 			pass # child was visible already
 

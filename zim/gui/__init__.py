@@ -1486,7 +1486,7 @@ class GtkInterface(NotebookInterface):
 		def check_close_dialog(status):
 			if status != 0:
 				dialog.destroy()
-				ErrorDialog(self, _('Could not open: %s') % uri).run()
+				ErrorDialog(self, _('Could not open: %s') % file.basename).run()
 					# T: error when external application fails
 			else:
 				newmtime = file.mtime()
@@ -2372,12 +2372,12 @@ discarded, but you can restore the copy later.''')
 		return self._done
 
 	def run(self):
-		timeout = 5
-		self.timer_label.set_text('%i sec.' % timeout)
+		self.timer = 5
+		self.timer_label.set_text('%i sec.' % self.timer)
 		def timer(self):
-			timeout -= 1
-			if timeout > 0:
-				self.timer_label.set_text('%i sec.' % timeout)
+			self.timer -= 1
+			if self.timer > 0:
+				self.timer_label.set_text('%i sec.' % self.timer)
 				return True # keep timer going
 			else:
 				for button in self.action_area.get_children():

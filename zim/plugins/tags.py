@@ -15,6 +15,7 @@ from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
 	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL
 from zim.index import IndexPath, IndexTag
 from zim.gui.widgets import LEFT_PANE
+from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
 
 
 logger = logging.getLogger('zim.plugins.tags')

@@ -696,7 +696,7 @@ class BaseLinker(object):
 				if href and href != link:
 					href = self.link(href) # recurs
 				else:
-					logger.warn('No URL found for interwiki link: %s', href)
+					logger.warn('No URL found for interwiki link "%s"', link)
 					link = href
 			else: # I dunno, some url ?
 				method = 'link_' + type

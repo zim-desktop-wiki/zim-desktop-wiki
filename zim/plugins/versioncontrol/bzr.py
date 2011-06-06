@@ -6,7 +6,6 @@ from __future__ import with_statement
 
 import os
 import logging
-import subprocess
 
 from zim.fs import FS
 from zim.applications import Application
@@ -69,9 +68,9 @@ class BzrlibApplication(Application):
 
 
 if bzrlib:
-    _bzr = BzrlibApplication()
+	_bzr = BzrlibApplication()
 else:
-    _bzr = Application(('bzr',))
+	_bzr = Application(('bzr',))
 
 
 # TODO document API - use base class
@@ -130,7 +129,7 @@ class BazaarVCS(object):
 
 	def on_path_deleted(self, path):
 		def wrapper():
-			_bzr.run(['rm', oldpath], cwd=self.root)
+			_bzr.run(['rm', path], cwd=self.root)
 		AsyncOperation(wrapper, lock=self.lock).start()
 
 	@property
