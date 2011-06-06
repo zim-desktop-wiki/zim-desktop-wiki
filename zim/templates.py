@@ -328,17 +328,20 @@ class Template(GenericTemplate):
 
 		dict = {
 			'zim': { 'version': zim.__version__ },
+			'notebook': {
+				'name' : notebook.name,
+				#~ 'interwiki': notebook.info.interwiki,
+			},
 			'page': PageProxy(
 				notebook, page,
 				self.format, self.linker, options),
 			'pages': pages,
 			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
+			'pageindex' : PageIndexFunction(notebook, page, self.format, self.linker, options),
 			'options': options,
-			'notebook': {'name' : notebook.name},
-			'menu' : MenuFunction(notebook, page, self.format, self.linker, options),
 			# helpers that allow to write TRUE instead of 'TRUE' in template functions
-			'TRUE' : 'True', 'FALSE' : 'False', 
+			'TRUE' : 'True', 'FALSE' : 'False',
 		}
 
 		if self.linker:
@@ -397,8 +400,9 @@ class TemplateToken(object):
 
 	def parse_expr(self, string):
 		'''This method parses an expression and returns an object of either
-		class TemplateParam, TemplateParamList or TemplateFuntionParam or
-		a simple string. (All these classes have a method "evaluate()" which
+		class TemplateParam, TemplateParamList or TemplateFuntionParam.
+
+		(All these classes have a method "evaluate()" which
 		takes an TemplateDict as argument and returns a value for the result
 		of the expression.)
 		'''
@@ -629,8 +633,9 @@ class StrftimeFunction(TemplateFunction):
 		else:
 			raise AssertionError, 'Not a datetime object: %s', date
 
-class MenuFunction(TemplateFunction):
-	'''Template function wrapper for strftime'''
+
+class PageIndexFunction(TemplateFunction):
+	'''Template function to build a page menu'''
 
 	def __init__(self, notebook, page, format, linker, options):
 		self._notebook = notebook
@@ -638,78 +643,48 @@ class MenuFunction(TemplateFunction):
 		self._format = format
 		self._linker = linker
 		self._options = options
-		
 
 	def __call__(self, dict, root=':', collapse=True, ignore_empty=True):
 		builder = TreeBuilder()
-		level = self._page.name.count(':')
-		home = Path(self._notebook.config['Notebook']['home'])
-		
-		# TODO: Some logic to parse boolean template function params
-		if isinstance(collapse, (TemplateParam, TemplateLiteral, basestring)):
-			collapse = (str(collapse).strip().lower() == 'true')
-		if isinstance(ignore_empty, (TemplateParam, TemplateLiteral, basestring)):
-			ignore_empty = (str(ignore_empty).strip().lower() == 'true')
-		
-		# [% menu(page) %] vs [% menu(page.name) %]
-		if isinstance(root, PageProxy): root = root.name
-		#~ print "!!! ROOT, ", root
-		
+
+		collapse = bool(collapse) and not collapse == 'False'
+		ignore_empty = bool(ignore_empty) and not ignore_empty == 'False'
+
+		if isinstance(root, PageProxy):
+			# allow [% menu(page) %] vs [% menu(page.name) %]
+			root = root.name
+
+		expanded = [self._page] + list(self._page.parents())
+
 		def add_namespace(path):
-			mylevel = path.name.count(':')
-			
-			if collapse:
-				# Menu doesn't show whole tree, but only pages related to the current page.
-				if mylevel > level:
-					# "path" is more nested then the current page
-					return
-				elif level == mylevel:
-					# "path" has same level as current page
-					if not self._page.name == path.name and path.name:
-						# Show only children of the current page or namespace pages
-						return
-				elif not self._page.name.startswith(path.name):
-					# "path" is less nested, show only children of the ancestors
-					# of the current page
-					return
-			
-			#~ print "!!! path & level", path, mylevel
-			pagelist = list(self._notebook.index.list_pages(path))
-			# find home page
-			for page in pagelist:
-				if page.name == home.name:
-					home_page = page
-					break
-			else:
-				# home page not in list
-				home_page = None
-
-			# home page will be first item
-			if not home_page is None:
-				pagelist.remove(home_page)
-				pagelist.insert(0, home_page)
-
 			builder.start('ul')
+
+			pagelist = self._notebook.index.list_pages(path)
 			for page in pagelist:
-				if ignore_empty and not page.hascontent:
-					#~ print "!!! skip page", page
+				if ignore_empty and not page.exists():
 					continue
 				builder.start('li')
-				text = page.basename
 
-				if self._page.name == page.name:
+				if page == self._page:
 					# Current page is marked with the strong style
 					builder.start('strong')
-					builder.data(text)
+					builder.data(page.basename)
 					builder.end('strong')
 				else:
 					# links to other pages
-					builder.start('link', {'type': 'page', 'href': page.name})
-					builder.data(text)
+					builder.start('link', {'type': 'page', 'href': ':'+page.name})
+					builder.data(page.basename)
 					builder.end('link')
+
 				builder.end('li')
 				if page.haschildren:
-					add_namespace(page) # recurs
+					if collapse:
+						# Only recurs into namespaces that are expanded
+						if page in expanded:
+							add_namespace(page) # recurs
+					else:
+						add_namespace(page) # recurs
+
 			builder.end('ul')
 
 		builder.start('page')
@@ -719,19 +694,18 @@ class MenuFunction(TemplateFunction):
 		tree = ParseTree(builder.close())
 		if not tree:
 			return None
-			
+
 		#~ print "!!!", tree.tostring()
-		
+
 		format = self._format
 		linker = self._linker
-		if linker:
-			linker.set_path(self._page)
 
 		dumper = format.Dumper(
 			linker=linker,
 			template_options=self._options )
 
 		return ''.join(dumper.dump(tree))
+
 
 class TemplateDict(object):
 	'''Object behaving like a dict for storing values of template parameters.
@@ -858,7 +832,7 @@ class PageProxy(object):
 		for link in blinks:
 			source = self._notebook.get_page(link.source)
 			yield PageProxy(self._notebook, source, self._format, self._linker, self._options)
-	
+
 
 class ParseTreeProxy(object):
 

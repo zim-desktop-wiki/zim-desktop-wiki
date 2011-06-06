@@ -57,6 +57,7 @@ Available variables:
 '''
 zim.version		# version of zim
 notebook.name		# name of the notebook
+notebook.interwiki	# interwiki key of the notebook if any
 
 page.name		# complete page name
 page.namespace		# namespace
@@ -80,7 +81,18 @@ options			# dict where format specific options can be set
 
 Functions available:
 
-* ''url(link)'' - turns a zim link into an URL
-* ''strftime(template, date)'' - format a date
-* ''menu(namespace, collapse, ignore_empty)'' - creates a tree-style menu starting with given namespace (''":"'' by default).  ''collapse'' can be ''TRUE'' (only branches related to the current page are visible, //default value//) or ''FALSE'' (all branches are visible). ''ignore_empty'' can be ''TRUE'' (empty pages are ignored, //default value//) or ''FALSE''. Example: ''menu(page.namespace,  TRUE, FALSE)''
+	''url(link)''
+		Turns a zim link into an URL
+	
+	''strftime(template, date)''
+		Format a date
+		
+	pageindex''(namespace, collapse, ignore_empty)''
+		Creates a page index of a given namespace or the whole notebook
+		
+		''namespace'': the starting root - defaults to the top level (":")
+		''collapse:'' if ''TRUE'' only branches related to the current page are visible//, // if ''FALSE'' all branches are visible - defaults to TRUE 
+		''ignore_empty:'' if ''TRUE'' empty pages are ignored — defaults to TRUE. 
+		
+		//Example//:	''menu(page.namespace,  TRUE, FALSE)''
 

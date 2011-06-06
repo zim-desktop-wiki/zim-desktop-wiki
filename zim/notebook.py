@@ -641,6 +641,15 @@ class Notebook(gobject.GObject):
 	def endofline(self):
 		return self.config['Notebook']['endofline']
 
+	@property
+	def info(self):
+		try:
+			uri = self.uri
+		except AssertionError:
+			uri = None
+
+		return NotebookInfo(uri, **self.config['Notebook'])
+
 	def _cache_dir(self, dir):
 		from zim.config import XDG_CACHE_HOME
 		if os.name == 'nt':
@@ -1684,26 +1693,6 @@ class Path(object):
 	def __add__(self, name):
 		'''"path + name" is an alias for path.child(name)'''
 		return self.child(name)
-
-	def __lt__(self, other):
-		'''`self < other` evaluates True when self is a parent of other'''
-		warnings.warn('Usage of Path.__lt__ is deprecated', DeprecationWarning, 2)
-		return self.isroot or other.name.startswith(self.name+':')
-
-	def __le__(self, other):
-		'''`self <= other` is True if `self == other or self < other`'''
-		warnings.warn('Usage of Path.__le__ is deprecated', DeprecationWarning, 2)
-		return self.__eq__(other) or self.__lt__(other)
-
-	def __gt__(self, other):
-		'''`self > other` evaluates True when self is a child of other'''
-		warnings.warn('Usage of Path.__gt__ is deprecated', DeprecationWarning, 2)
-		return other.isroot or self.name.startswith(other.name+':')
-
-	def __ge__(self, other):
-		'''`self >= other` is True if `self == other or self > other`'''
-		warnings.warn('Usage of Path.__ge__ is deprecated', DeprecationWarning, 2)
-		return self.__eq__(other) or self.__gt__(other)
 
 	@property
 	def parts(self):
