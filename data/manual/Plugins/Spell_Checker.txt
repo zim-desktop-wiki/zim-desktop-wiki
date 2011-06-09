@@ -9,3 +9,6 @@ This plugin adds inline spell checking for zim. It has a preference setting to d
 
 * On Ubuntu or Debian systems installing the package "python-gtkspell" (or "python-gnome2-extras" on older releases) will meet these dependencies.
 * On Fedora systems, installing the package "gnome-python2-gtkspell" will meet these dependencies.
+
+===== Dictionaries =====
+The gtkspell library does not always come with all dictionaries installed. If no dictionary is found for your language zim will give an error when loading this plugin. For most Linux flavors the  "aspell" dictionaries are used, so for example to install the English language dictionaries install the "aspell-en" package. If you can not find these packages, please refer to the documentation for your specific Linux flavor.

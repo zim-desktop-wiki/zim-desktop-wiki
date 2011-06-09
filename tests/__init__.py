@@ -17,6 +17,7 @@ import glob
 if sys.version_info < (2, 7, 0):
 	try:
 		import unittest2 as unittest
+		from unittest2 import skip, skipIf, skipUnless
 	except ImportError:
 		print >>sys.stderr, '''\
 For python versions < 2.7 the 'unittest2' module is needed to run
@@ -25,8 +26,7 @@ the test suite. On Ubuntu or Debian install package 'python-unittest2'.
 		sys.exit(1)
 else:
 	import unittest
-
-from unittest import skip, skipIf, skipUnless
+	from unittest import skip, skipIf, skipUnless
 
 __unittest = 1 # needed to get stack trace OK for class TestCase
 

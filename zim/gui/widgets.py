@@ -58,7 +58,7 @@ try:
 	import hildon
 	gtkwindowclass = hildon.Window
 	ui_environment['platform'] = 'maemo'
-	if hasattr(Window,'set_app_menu'):
+	if hasattr(gtkwindowclass,'set_app_menu'):
 		ui_environment['maemo_version'] = 'maemo5'
 	else:
 		ui_environment['maemo_version'] = 'maemo4'
@@ -2003,7 +2003,8 @@ class Dialog(gtk.Dialog):
 		with an error dialog but just let them go through.
 		Intended for use by the test suite.
 		'''
-		assert self.do_response_ok() is True
+		if not self.do_response_ok() is True:
+			raise AssertionError, '%s.do_response_ok() did not return True' % self.__class__.__name__
 		self.save_uistate()
 		self.destroy()
 		return self.result
@@ -2683,7 +2684,8 @@ class Assistant(Dialog):
 
 		self._uistate.update(self.uistate)
 
-		assert self.do_response_ok() is True
+		if not self.do_response_ok() is True:
+			raise AssertionError, '%s.do_response_ok() did not return True' % self.__class__.__name__
 		self.save_uistate()
 		self.destroy()
 		return self.result

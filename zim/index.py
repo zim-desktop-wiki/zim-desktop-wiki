@@ -1413,7 +1413,7 @@ class Index(gobject.GObject):
 		'''Like C{list_all_tags()} but sorted by occurence'''
 		cursor = self.db.cursor()
 		cursor.execute(
-			'SELECT t.id, t.name, count(*) hits'
+			'SELECT id, name, count(*) hits'
 			' FROM tags t INNER JOIN tagsources s ON t.id = s.tag'
 			' GROUP BY s.tag'
 			' ORDER BY count(*) DESC'
@@ -1440,7 +1440,7 @@ class Index(gobject.GObject):
 			# The sub-query filters on pages that match all of the given tags
 			# The main query selects all tags occuring on those pages and sorts
 			# them by number of matching pages
-			'SELECT t.id, t.name, count(*) hits'
+			'SELECT id, name, count(*) hits'
 			' FROM tags t INNER JOIN tagsources s ON t.id = s.tag'
 			' WHERE s.source IN ('
 			'   SELECT source FROM tagsources'

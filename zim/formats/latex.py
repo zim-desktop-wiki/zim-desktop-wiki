@@ -67,8 +67,8 @@ encode_dict = {
 	'%': '\\%',
 	'#': '\\# ',
 	'_': '\\_',
-	'>': '\\textgreater',
-	'<': '\\textless',
+	'>': '\\textgreater{}',
+	'<': '\\textless{}',
 }
 
 

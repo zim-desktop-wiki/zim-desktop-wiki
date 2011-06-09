@@ -519,7 +519,7 @@ class TestLatexFormat(tests.TestCase):
 		format = get_format('latex')
 
 		input = r'\foo $ % ^ \% bar < >'
-		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar \textless \textgreater'
+		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar \textless{} \textgreater{}'
 		self.assertEqual(format.tex_encode(input), wanted)
 
 	def testExport(self):

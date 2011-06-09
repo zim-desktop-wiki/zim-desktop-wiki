@@ -325,7 +325,7 @@ class Parser(ParserClass):
 
 		def parse_tag(re_):
 			groups = re_.m.groupdict()
-			return ('tag', groups, "@{name}".format(**groups))
+			return ('tag', groups, "@%s" % groups["name"])
 
 		list = parser_re['tag'].sublist(parse_tag, list)
 

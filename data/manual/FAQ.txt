@@ -10,7 +10,7 @@ Mail [[jaap.karssenberg@gmail.com|me]] if you have questions that you would like
 You can just link non-existing pages. If you follow such a link the page will be created automatically when needed.
 
 === How do you close these "tabs" ? ===
-Uhm, if you mean the buttons above your page, technically that are not tabs but a path bar keeping track of your history or recent pages. The buttons in this bar map to pages in your browse history, not to open pages or something like that. You can not "close" something that is in your history.
+Uhm, if you mean the buttons above your page, technically that are not tabs but a path bar keeping track of your history or recent pages. The buttons in this bar map to pages in your browse history, not to open pages or something like that. You can not "close" something that is in your history. To change the style of this bar, or hide it completely, go to the "//View"// -> "//Pathbar//" menu item.
 
 === How do I organize my pages in a tree structure? ===
 You can use "namespaces" to organize your pages. A "namespace" is similar to a directory for files, it is a named group of pages. Namespaces are separated by the "'':''" character in the page name. Thus if you link to "''foo:bar''" you will link to the page called "bar" in the namespace "foo". Just link a non-existing page and follow the link to create it. See [[Help:Pages|Pages]] for more information.

@@ -161,7 +161,8 @@ class NotebookInfoList(list):
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
 
-		assert text.pop(0).strip() == '[NotebookList]'
+		assert text[0].strip() == '[NotebookList]'
+		text.pop(0)
 
 		# Parse key for default
 		if text[0].startswith('Default='):

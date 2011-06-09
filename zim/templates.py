@@ -445,7 +445,7 @@ class GETToken(TemplateToken):
 	def process(self, dict):
 		value = self.expr.evaluate(dict)
 		if value:
-			return [unicode(value).encode('utf-8')]
+			return [value]
 		else:
 			return []
 

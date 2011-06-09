@@ -236,7 +236,7 @@ markup_re = {'style-strong' : Re(r'(\*{2})(.*)\1'),
 	'style-pre' : Re(r'(\'{2})(.*)\1'),
 	'style-strike' : Re(r'(~{2})(.*)\1')}
 
-tag_re = Re(r'^(@\w+)$')
+tag_re = Re(r'^(@\w+)$', re.U)
 
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
@@ -2584,11 +2584,10 @@ class TextView(gtk.TextView):
 			if next.forward_char():
 				buffer.delete(iter, next)
 
-		def decrement_indent():
+		def decrement_indent(start, end):
 			# Check if inside verbatim block AND entire selection without tag toggle
-			iter = buffer.get_insert_iter()
-			if filter(_is_pre_tag, iter.get_tags()) \
-			and not find_tag_toggle():
+			if selection_in_pre_block(start, end):
+				# Handle indent in pre differently
 				missing_tabs = []
 				check_tab = lambda l: (buffer.get_iter_at_line(l).get_char() == '\t') or missing_tabs.append(1)
 				buffer.foreach_line_in_selection(check_tab)
@@ -2596,41 +2595,57 @@ class TextView(gtk.TextView):
 					return buffer.foreach_line_in_selection(delete_char)
 				else:
 					return False
-			else:
-				# For selection decrement - first check if all lines have indent
+			elif multi_line_indent(start, end):
 				level = []
 				buffer.strip_selection()
 				buffer.foreach_line_in_selection(
 					lambda l: level.append(buffer.get_indent(l)) )
 				if level and min(level) > 0:
+					# All lines have some indent
 					return buffer.foreach_line_in_selection(buffer.unindent)
 				else:
 					return False
+			else:
+				return False
 
-		def find_tag_toggle():
+		def selection_in_pre_block(start, end):
 			# Checks if there are any tag changes within the selection
-			start, end = buffer.get_selection_bounds()
-			toggle = start.copy()
-			toggle.forward_to_tag_toggle(None)
-			return toggle.compare(end) < 0
+			if filter(_is_pre_tag, start.get_tags()):
+				toggle = start.copy()
+				toggle.forward_to_tag_toggle(None)
+				return toggle.compare(end) < 0
+			else:
+				return False
 
+		def multi_line_indent(start, end):
+			# Check if:
+			# a) one line selected from start till end or
+			# b) multiple lines selected and selection starts at line start
+			home, ourhome = self.get_visual_home_positions(start)
+			if not (home.starts_line() and start.compare(ourhome) < 1):
+				return False
+			else:
+				return end.ends_line() \
+				or end.get_line() > start.get_line()
+
+		start, end = buffer.get_selection_bounds()
 		with buffer.user_action:
 			if event.keyval in KEYVALS_TAB:
-				# Check if inside verbatim block AND entire selection without tag toggle
-				iter = buffer.get_insert_iter()
-				if filter(_is_pre_tag, iter.get_tags()) \
-				and not find_tag_toggle():
+				if selection_in_pre_block(start, end):
+					# Handle indent in pre differently
 					prepend_tab = lambda l: buffer.insert(buffer.get_iter_at_line(l), '\t')
 					buffer.foreach_line_in_selection(prepend_tab)
-				else:
+				elif multi_line_indent(start, end):
 					buffer.foreach_line_in_selection(buffer.indent)
+				else:
+					handled = False
 			elif event.keyval in KEYVALS_LEFT_TAB:
-				decrement_indent()
+				decrement_indent(start, end)
+					# do not set handled = False when decrement failed -
+					# LEFT_TAB should not do anything else
 			elif event.keyval in KEYVALS_BACKSPACE \
 			and self.preferences['unindent_on_backspace']:
-				decremented = decrement_indent()
-				if not decremented:
-					handled = None # nothing happened, normal backspace
+				handled = decrement_indent(start, end)
 			elif event.keyval in KEYVALS_ASTERISK:
 				def toggle_bullet(line):
 					bullet = buffer.get_bullet(line)
@@ -2639,9 +2654,10 @@ class TextView(gtk.TextView):
 					elif bullet == BULLET:
 						buffer.set_bullet(line, None)
 				buffer.foreach_line_in_selection(toggle_bullet)
-			elif event.keyval in KEYVALS_GT:
+			elif event.keyval in KEYVALS_GT \
+			and multi_line_indent(start, end):
 				def email_quote(line):
-					iter = buffer.get_iter_at_line()
+					iter = buffer.get_iter_at_line(line)
 					bound = iter.copy()
 					bound.forward_char()
 					if iter.get_text(bound) == '>':
@@ -4287,8 +4303,9 @@ class InsertDateDialog(Dialog):
 
 	def save_uistate(self):
 		model, iter = self.view.get_selection().get_selected()
-		format = model[iter][self.FORMAT_COL]
-		self.uistate['lastusedformat'] = format
+		if iter:
+			format = model[iter][self.FORMAT_COL]
+			self.uistate['lastusedformat'] = format
 		self.uistate['linkdate'] = self.linkbutton.get_active()
 		self.uistate['calendar_expanded'] = self.calendar_expander.get_expanded()
 
