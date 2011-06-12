@@ -389,7 +389,7 @@ class TextBuffer(gtk.TextBuffer):
 		'checked-checkbox': {},
 		'xchecked-checkbox': {},
 		'find-highlight': {'background': 'orange'},
-		'find-match': {'background': '#f0d862'}
+		'find-match': {'background': '#f2d957'}
 	}
 	static_style_tags = (
 		'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
