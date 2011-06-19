@@ -1255,7 +1255,8 @@ class GtkInterface(NotebookInterface):
 	def show_search(self, query=None):
 		from zim.gui.searchdialog import SearchDialog
 		dialog = SearchDialog(self, query)
-		dialog.set_from_buffer()
+		if query is None:
+			dialog.set_from_buffer()
 		dialog.show_all()
 
 	def show_search_backlinks(self):
