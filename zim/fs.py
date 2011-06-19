@@ -740,6 +740,32 @@ class Dir(Path):
 			for name in dirs:
 				lrmdir(os.path.join(root, name))
 
+	def copyto(self, dest):
+		'''Copy this dir to 'dest'. 'dest must be a dir object as well
+
+		When dir already exists the contents will be merged, so you
+		need to check existence of the target dir yourself if you want
+		a clean new copy.
+		'''
+		# We do not use shutil.copytree() because it requires that
+		# the target dir does not exist
+		assert isinstance(dest, Dir)
+		assert not dest == self, 'BUG: trying to copy a dir to itself'
+		logger.info('Copy dir %s to %s', self, dest)
+
+		def copy_dir(source, target):
+			target.touch()
+			for item in source.list():
+				child = Path((source, item))
+				if child.isdir():
+					copy_dir(Dir(child), target.subdir(item)) # recur
+				else:
+					child = File(child)
+					child.copyto(target)
+
+		copy_dir(self, dest)
+		# TODO - not hooked with FS signals
+
 	def file(self, path):
 		'''Returns a File object for a path relative to this directory
 

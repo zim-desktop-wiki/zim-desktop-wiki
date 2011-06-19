@@ -725,6 +725,10 @@ class BaseLinker(object):
 		'''To be overloaded, return an url for a page link'''
 		raise NotImplementedError
 
+	def resource(self, path):
+		'''To be overloaded, return an url for template resources'''
+		raise NotImplementedError
+
 	def link_mailto(self, uri):
 		'''Optional method, default just returns uri'''
 		return uri

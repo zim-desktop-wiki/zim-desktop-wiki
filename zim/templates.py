@@ -118,7 +118,11 @@ def get_template(format, template):
 	logger.info('Loading template from: %s', file)
 	if not file.exists():
 		raise AssertionError, 'No such file: %s' % file
-	return Template(file.readlines(), format, name=file.path)
+
+	basename, ext = file.basename.rsplit('.', 1)
+	resources = file.dir.subdir(basename)
+
+	return Template(file.readlines(), format, name=file.path, resources_dir=resources)
 
 
 class TemplateError(Error):
@@ -295,11 +299,15 @@ class GenericTemplate(object):
 class Template(GenericTemplate):
 	'''Template class that can process a zim Page object'''
 
-	def __init__(self, input, format, linker=None, name=None):
+	def __init__(self, input, format, linker=None, name=None, resources_dir=None):
 		if isinstance(format, basestring):
 			format = zim.formats.get_format(format)
 		self.format = format
 		self.linker = linker
+		if isinstance(resources_dir, basestring):
+			self.resources_dir = Dir(resources_dir)
+		else:
+			self.resources_dir = resources_dir
 		GenericTemplate.__init__(self, input, name)
 
 	def set_linker(self, linker):
@@ -338,6 +346,7 @@ class Template(GenericTemplate):
 			'pages': pages,
 			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
+			'resource': TemplateFunction(self.resource_url),
 			'pageindex' : PageIndexFunction(notebook, page, self.format, self.linker, options),
 			'options': options,
 			# helpers that allow to write TRUE instead of 'TRUE' in template functions
@@ -377,6 +386,15 @@ class Template(GenericTemplate):
 			return linker.link(link)
 		else:
 			return link
+
+	def resource_url(self, dict, path):
+		# Don't make the mistake to think we should use the
+		# resources_dir here - that dir refers to the source of the
+		# resource files, while here we want an URL for the resource
+		# file *after* export
+		if self.linker:
+			return self.linker.resource(path)
+		return path
 
 
 class TemplateTokenList(list):

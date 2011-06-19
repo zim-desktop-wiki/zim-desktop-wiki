@@ -84,6 +84,9 @@ Functions available:
 	''url(link)''
 		Turns a zim link into an URL
 	
+	''resource(filename)''
+		Returns an URL for a template resource (see below)
+
 	''strftime(template, date)''
 		Format a date
 		
@@ -95,4 +98,12 @@ Functions available:
 		''ignore_empty:'' if ''TRUE'' empty pages are ignored — defaults to TRUE. 
 		
 		//Example//:	''menu(page.namespace,  TRUE, FALSE)''
+
+
+==== Template Resources ====
+To add additional files to the template, create a folder of the same name as the template. Any files in the folder (like style sheets, images, javascript files, etc.) will be copied along when this template is used to export data in zim. There is a function "''resource(filename)''" to refer to these files in the template.
+
+Zim always includes some images when exporting for the checkboxes used in checkbox lists. To customize these there should be template resources named "''checked-box.png''", "''unchecked-box.png''" and "''xchecked-box.png''" in this folder.
+
+For the web interface the resources can also contain a "''favicon.ico''" to serve as the favicon of the website.
 

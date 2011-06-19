@@ -4,14 +4,20 @@
 
 import tests
 
-
 from subprocess import check_call
 
 from zim.fs import *
+from zim.fs import _md5
+from zim.config import data_file
 from zim.notebook import Path, Notebook, init_notebook
 from zim.exporter import Exporter, StaticLinker
 
 # TODO add check that attachments are copied correctly
+
+
+def md5(f):
+	return _md5(f.raw())
+
 
 class TestLinker(tests.TestCase):
 
@@ -54,6 +60,41 @@ class TestExport(tests.TestCase):
 		text = file.read()
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 		self.assertTrue('<h1>Foo</h1>' in text)
+
+		for icon in ('checked-box',): #'unchecked-box', 'xchecked-box'):
+			# Default template doesn't have its own checkboxes
+			self.assertTrue(self.dir.file('_resources/%s.png' % icon).exists())
+			self.assertEqual(
+				md5(self.dir.file('_resources/%s.png' % icon)),
+				md5(data_file('pixmaps/%s.png' % icon))
+			)
+
+
+@tests.slowTest
+class TestExportTemplateResources(TestExport):
+
+	options = {
+		'format': 'html',
+		'template': './tests/data/templates/Default.html'
+	}
+
+	def runTest(self):
+		'''Test export notebook to html with template resources'''
+		self.export()
+
+		file = self.dir.file('Test/foo.html')
+		self.assertTrue(file.exists())
+		text = file.read()
+		self.assertTrue('src="../_resources/foo/bar.png"' in text)
+		self.assertTrue(self.dir.file('_resources/foo/bar.png').exists())
+
+		for icon in ('checked-box',): #'unchecked-box', 'xchecked-box'):
+			# Template has its own checkboxes
+			self.assertTrue(self.dir.file('_resources/%s.png' % icon).exists())
+			self.assertNotEqual(
+				md5(self.dir.file('_resources/%s.png' % icon)),
+				md5(data_file('pixmaps/%s.png' % icon))
+			)
 
 
 class TestExportFullOptions(TestExport):

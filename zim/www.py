@@ -154,7 +154,7 @@ class WWWInterface(NotebookInterface):
 			if not path:
 				path = '/'
 			elif path == '/favicon.ico':
-				path = '/+icons/favicon.ico'
+				path = '/+resources/favicon.ico'
 			else:
 				path = urllib.unquote(path)
 
@@ -177,17 +177,20 @@ class WWWInterface(NotebookInterface):
 				content = [file.raw()]
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.get_mimetype()
-			elif path.startswith('/+icons/'):
-				# TODO check if favicon is overridden or something
-				file = data_file('pixmaps/%s' % path[8:])
-				content = [file.raw()]
-					# Will raise FileNotFound when file does not exist
-				if path.endswith('.png'):
-					headers['Content-Type'] = 'image/png'
-				elif path.endswith('.ico'):
-					headers['Content-Type'] = 'image/vnd.microsoft.icon'
+ 			elif path.startswith('/+resources/'):
+				if self.template and self.template.resources_dir:
+					file = self.template.resources_dir.file(path[12:])
+					if not file.exists():
+						file = data_file('pixmaps/%s' % path[12:])
 				else:
-					raise PathNotValidError()
+					file = data_file('pixmaps/%s' % path[12:])
+
+				if file:
+					content = [file.raw()]
+						# Will raise FileNotFound when file does not exist
+					headers['Content-Type'] = file.get_mimetype()
+	 			else:
+					raise PageNotFoundError(path)
 			else:
 				# Must be a page or a namespace (html file or directory path)
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
@@ -395,8 +398,11 @@ class WWWLinker(BaseLinker):
 		self.notebook = notebook
 		self.path = path
 
+	def resource(self, path):
+		return url_encode('/+resources/%s' % path)
+
 	def icon(self, name):
-		return url_encode('/+icons/%s.png' % name)
+		return url_encode('/+resources/%s.png' % name)
 
 	def link_page(self, link):
 		try:

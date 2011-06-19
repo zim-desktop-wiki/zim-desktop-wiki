@@ -6,7 +6,7 @@
 
 import logging
 
-from zim.fs import *
+from zim.fs import Dir, File
 from zim.config import data_file
 from zim.formats import get_format, BaseLinker
 from zim.templates import get_template, Template
@@ -63,8 +63,14 @@ class Exporter(object):
 		# Copy icons
 		for name in ('checked-box', 'unchecked-box', 'xchecked-box'):
 			icon = data_file('pixmaps/%s.png' % name)
-			file = dir.file('_icons/'+name+'.png')
+			file = dir.file('_resources/' + name + '.png')
 			icon.copyto(file)
+
+		# Copy template resources (can overwrite icons)
+		if self.template and self.template.resources_dir \
+		and self.template.resources_dir.exists():
+			resources = dir.subdir('_resources')
+			self.template.resources_dir.copyto(resources)
 
 		# Set special pages
 		if self.index_page:
@@ -192,9 +198,16 @@ class StaticLinker(BaseLinker):
 		self.target_file = None
 		self._extension = '.' + format.info['extension']
 
+	def resource(self, path):
+		if self.target_dir and self.target_file:
+			file = self.target_dir.file('_resources/'+path)
+			return self._filepath(file, self.target_file.dir)
+		else:
+			path
+
 	def icon(self, name):
 		if self.target_dir and self.target_file:
-			file = self.target_dir.file('_icons/'+name+'.png')
+			file = self.target_dir.file('_resources/'+name+'.png')
 			return self._filepath(file, self.target_file.dir)
 		else:
 			return BaseLinker.icon(self, name)
