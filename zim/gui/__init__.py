@@ -180,6 +180,8 @@ ui_preferences = (
 		# char sets in certain international key mappings
 	('remove_links_on_delete', 'bool', 'Interface', _('Remove links when deleting pages'), True),
 		# T: Option in the preferences dialog
+	('always_use_last_cursor_pos', 'bool', 'Interface', _('Always use last cursor position when opening a page'), True),
+		# T: Option in the preferences dialog
 )
 
 if ui_environment['platform'] == 'maemo':
@@ -954,10 +956,6 @@ class GtkInterface(NotebookInterface):
 			back.set_sensitive(not is_first_page)
 			forward.set_sensitive(False)
 
-		if historyrecord and not historyrecord.cursor == None:
-			self.mainwindow.pageview.set_cursor_pos(historyrecord.cursor)
-			self.mainwindow.pageview.set_scroll_pos(historyrecord.scroll)
-
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
 
@@ -1253,7 +1251,7 @@ class GtkInterface(NotebookInterface):
 			path = self.get_path_context()
 			if not path: return
 
-		update_links = self.preferences['remove_links_on_delete']
+		update_links = self.preferences['GtkInterface']['remove_links_on_delete']
 		dialog = ProgressBarDialog(self, _('Removing Links'))
 			# T: Title of progressbar dialog
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
@@ -2204,9 +2202,21 @@ class MainWindow(Window):
 			except gobject.GError:
 				logger.exception('Could not load icon %s', notebook.icon)
 
-	def on_open_page(self, ui, page, record):
+	def on_open_page(self, ui, page, path):
 		'''Signal handler for open-page, updates the pageview'''
-		self.pageview.set_page(page)
+
+		if path and isinstance(path, HistoryPath) and not path.cursor is None:
+			cursor = path.cursor
+		elif self.ui.preferences['GtkInterface']['always_use_last_cursor_pos']:
+			record = self.ui.history.get_record(page, need_cursor=True)
+			if record:
+				cursor = record.cursor
+			else:
+				cursor = None
+		else:
+			cursor = None
+
+		self.pageview.set_page(page, cursor)
 
 		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
 		label = self.statusbar_backlinks_button.label
@@ -2467,6 +2477,7 @@ class NewPageDialog(Dialog):
 		tree = template.process_to_parsetree(self.ui.notebook, page)
 		page.set_parsetree(tree)
 		self.ui.open_page(page)
+		self.ui.mainwindow.pageview.set_cursor_pos(-1) # HACK set position to end of template
 		self.ui.save_page() # Save new page directly
 		return True
 

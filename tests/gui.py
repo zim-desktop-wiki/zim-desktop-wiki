@@ -183,6 +183,9 @@ class TestDialogs(tests.TestCase):
 
 	def testNewPageDialog(self):
 		'''Test NewPageDialog'''
+		self.ui.mainwindow = tests.MockObject()
+		self.ui.mainwindow.pageview = tests.MockObject()
+
 		for name, path in (
 			(':new', ':new'),
 			('foo:new', ':Test:foo:new'),

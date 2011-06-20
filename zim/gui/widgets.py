@@ -1561,7 +1561,8 @@ def get_window(ui):
 	'''
 	if isinstance(ui, gtk.Window):
 		return ui
-	elif hasattr(ui, 'mainwindow'):
+	elif hasattr(ui, 'mainwindow') \
+	and isinstance(ui.mainwindow, gtk.Window):
 		return ui.mainwindow
 	else:
 		return None

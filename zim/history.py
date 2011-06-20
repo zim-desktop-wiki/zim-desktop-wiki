@@ -245,6 +245,25 @@ class History(gobject.GObject):
 		if child == path: return None
 		else: return child
 
+	def get_record(self, path, need_cursor=False):
+		'''Get a history record for 'path'
+
+		@param path: a L{Path} object
+		@keyword check_cursor: if C{True} only history records are
+		returned that have a value for the cursor that is not C{None}
+
+		@returns: a L{HistoryPath} object or None
+		'''
+		for record in self.get_history():
+			if record == path:
+				if need_cursor:
+					if not record.cursor is None:
+						return record
+					else:
+						continue
+				else:
+					return record
+
 	def get_history(self):
 		'''Generator function that yields history records, latest first'''
 		for i in range(len(self.history)-1, -1, -1):

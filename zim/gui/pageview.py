@@ -3442,7 +3442,22 @@ class PageView(gtk.VBox):
 		for s in ('stored-page', 'deleted-page', 'moved-page'):
 			notebook.connect(s, assert_not_modified)
 
-	def set_page(self, page):
+	def set_page(self, page, cursor=None):
+		'''Set the current page to be displayed in the pageview
+
+		When the page does not yet exist a template is loaded for a
+		new page which is obtained from L{Notebook.get_template()}.
+
+		@param page: a L{Page} object
+		@keyword cursor: optional cursor position (integer)
+
+		When the cursor is set to C{-1} the cursor will be placed at
+		the end of the buffer.
+
+		If cursor is C{None} the cursor is set at the start of the page
+		for existing pages or to the end of the template when the page
+		does not yet exist.
+		'''
 		# unhook from previous page
 		if self.page:
 			self.page.set_ui_object(None)
@@ -3468,14 +3483,16 @@ class PageView(gtk.VBox):
 		self.view.set_buffer(buffer)
 		tree = page.get_parsetree()
 
-		cursorpos = 0
 		if tree is None:
 			# TODO check read-only
 			template = self.ui.notebook.get_template(page)
 			tree = template.process_to_parsetree(self.ui.notebook, page)
-			cursorpos = -1
+			if cursor is None:
+				cursor = -1
 		else:
 			template = None
+			if cursor is None:
+				cursor = 0
 
 		try:
 			self.set_parsetree(tree, bool(template))
@@ -3489,10 +3506,7 @@ class PageView(gtk.VBox):
 			# TODO set error page e.g. zim.notebook.LoadingErrorPage
 			# TODO add test for this catch - how to trigger this for testing ?
 
-		if cursorpos != -1:
-			buffer.place_cursor(buffer.get_iter_at_offset(cursorpos))
-
-		self.view.scroll_to_mark(buffer.get_insert(), 0.3)
+		self.set_cursor_pos(cursor)
 
 		self._buffer_signals = (
 			buffer.connect('textstyle-changed', self.do_textstyle_changed),
@@ -3582,8 +3596,21 @@ class PageView(gtk.VBox):
 				action.set_sensitive(False)
 
 	def set_cursor_pos(self, pos):
+		'''Set the cursor position in the buffer
+
+		@param pos: the cursor position (integer)
+
+		As a special case when the cursor position is C{-1} the cursor
+		is set at the end of the buffer.
+		'''
 		buffer = self.view.get_buffer()
-		buffer.place_cursor(buffer.get_iter_at_offset(pos))
+		if pos < 0:
+			start, end = buffer.get_bounds()
+			iter = end
+		else:
+			iter = buffer.get_iter_at_offset(pos)
+
+		buffer.place_cursor(iter)
 		self.view.scroll_to_mark(buffer.get_insert(), 0.2)
 
 	def get_cursor_pos(self):
