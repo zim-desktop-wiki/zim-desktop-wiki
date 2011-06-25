@@ -29,12 +29,13 @@ transparent as long as the zim version number is updated.
 # in a consistent order, if the order is not consistent or changes without
 # the appropriate signals the pageindex widget will get confused and mess up.
 
-# TODO: split off functions to walk the tree into a "index view" object
-# this will allow alternative views, custom sorted, alphabetical, date etc.
-# Maybe we can include some of the caching function now implemented in
-# the pageindex model to deal with treepaths into such view objects.
-# In the main gui use the same view for the navigation keybindings
-# as is used for the treeview in the main window to keep them in sync.
+# This module has a number of methods that appear as a private version
+# doing all the work and a public one of the same name just wrapping
+# the private one with a db commit. This is done to minimize the number
+# of commits per action. SQLite is optimized for low number of commits
+# and doing many of them will hurt performance, especially on systems
+# with a slow harddisk (e.g. the flash drive in a maemo system).
+
 
 from __future__ import with_statement
 
@@ -351,16 +352,17 @@ class Index(gobject.GObject):
 
 		def on_page_updated(o, page):
 			indexpath = self.lookup_path(page)
-			if not indexpath:
-				indexpath = self.touch(page)
-			links = self._get_placeholders(indexpath, recurs=False)
-			self._index_page(indexpath, page)
-			for link in links:
-				self.cleanup(link)
+			with self.db_commit:
+				if not indexpath:
+					indexpath = self._touch(page)
+				links = self._get_placeholders(indexpath, recurs=False)
+				self._index_page(indexpath, page)
+				for link in links:
+					self._cleanup(link)
 
 		self.notebook.connect('stored-page', on_page_updated)
 		self.notebook.connect('moved-page', on_page_moved)
-		self.notebook.connect('deleted-page', lambda o, p: self.delete(p))
+		self.notebook.connect_object('deleted-page', self.__class__.delete, self)
 
 	def _connect(self):
 		self.db = sqlite3.connect(
@@ -369,10 +371,11 @@ class Index(gobject.GObject):
 		self.db_commit = DBCommitContext(self.db)
 
 		self.properties = PropertiesDict(self.db)
-		if self.properties['zim_version'] != zim.__version__:
-			# flush content and init database layout
-			self.flush()
-			self.properties['zim_version'] = zim.__version__
+		with self.db_commit:
+			if self.properties['zim_version'] != zim.__version__:
+				# flush content and init database layout
+				self._flush()
+				self.properties._set('zim_version', zim.__version__)
 
 	def do_initialize_db(self):
 		with self.db_commit:
@@ -384,6 +387,10 @@ class Index(gobject.GObject):
 		generate signals, so it is not safe to use while a PageTreeStore
 		is connected to the index.
 		'''
+		with self.db_commit:
+			self._flush()
+
+	def _flush(self):
 		logger.info('Flushing index')
 
 		# Drop queues
@@ -391,22 +398,18 @@ class Index(gobject.GObject):
 		self._index_page_queue = []
 
 		# Drop data
-		with self.db_commit:
-			cursor = self.db.cursor()
-			cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-			for table in [row[0] for row in cursor.fetchall()]:
-				cursor.execute('DROP TABLE "%s"' % table)
-
+		cursor = self.db.cursor()
+		cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+		for table in [row[0] for row in cursor.fetchall()]:
+			cursor.execute('DROP TABLE "%s"' % table)
 		self.emit('initialize-db')
 
 		# Create root node
-		with self.db_commit:
-			cursor = self.db.cursor()
-			cursor.execute('insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)', ('', 0, False, False))
-			assert cursor.lastrowid == 1, 'BUG: Primary key should start counting at 1'
+		cursor.execute('insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)', ('', 0, False, False))
+		assert cursor.lastrowid == 1, 'BUG: Primary key should start counting at 1'
 
 		# Set meta properties
-		self.properties['zim_version'] = zim.__version__
+		self.properties._set('zim_version', zim.__version__)
 
 	def _flush_queue(self, path):
 		# Removes any pending updates for path and it's children
@@ -512,11 +515,13 @@ class Index(gobject.GObject):
 			try:
 				if self._update_pagelist_queue:
 					path = self._update_pagelist_queue.pop(0)
-					self._update_pagelist(path)
+					with self.db_commit:
+						self._update_pagelist(path)
 				elif self._index_page_queue:
 					path = self._index_page_queue.pop(0)
 					page = self.notebook.get_page(path)
-					self._index_page(path, page)
+					with self.db_commit:
+						self._index_page(path, page)
 			except KeyboardInterrupt:
 				raise
 			except:
@@ -550,33 +555,36 @@ class Index(gobject.GObject):
 		has neither content or children.
 		'''
 		with self.db_commit:
-			cursor = self.db.cursor()
-			names = path.parts
-			parentid = ROOT_ID
-			indexpath = [ROOT_ID]
-			inserted = [] # newly inserted paths
-			lastparent = None # last parent that already existed
-			for i in range(len(names)):
-				p = self.lookup_path(Path(names[:i+1]))
-				if p is None:
-					haschildren = i < (len(names) - 1)
-					cursor.execute(
-						'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
-						(names[i], parentid, False, haschildren))
-					parentid = cursor.lastrowid
-					indexpath.append(parentid)
-					inserted.append(
-						IndexPath(':'.join(names[:i+1]), indexpath,
-							{'hascontent': False, 'haschildren': haschildren}))
-				else:
-					lastparent = p
-					parentid = p.id
-					indexpath.append(parentid)
+			return self._touch(path)
 
-			if lastparent and not lastparent.haschildren:
-				self.db.execute('update pages set haschildren = ? where id == ?', (True, lastparent.id))
+	def _touch(self, path):
+		cursor = self.db.cursor()
+		names = path.parts
+		parentid = ROOT_ID
+		indexpath = [ROOT_ID]
+		inserted = [] # newly inserted paths
+		lastparent = None # last parent that already existed
+		for i in range(len(names)):
+			p = self.lookup_path(Path(names[:i+1]))
+			if p is None:
+				haschildren = i < (len(names) - 1)
+				cursor.execute(
+					'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
+					(names[i], parentid, False, haschildren))
+				parentid = cursor.lastrowid
+				indexpath.append(parentid)
+				inserted.append(
+					IndexPath(':'.join(names[:i+1]), indexpath,
+						{'hascontent': False, 'haschildren': haschildren}))
 			else:
-				lastparent = None
+				lastparent = p
+				parentid = p.id
+				indexpath.append(parentid)
+
+		if lastparent and not lastparent.haschildren:
+			self.db.execute('update pages set haschildren = ? where id == ?', (True, lastparent.id))
+		else:
+			lastparent = None
 
 		if lastparent:
 			self.emit('page-haschildren-toggled', lastparent)
@@ -612,69 +620,65 @@ class Index(gobject.GObject):
 		for tag in self.list_tags(path):
 			had_tags.add(tag.id)
 
+		self.db.execute('delete from links where source==?', (path.id,))
 
-		with self.db_commit:
-			self.db.execute('delete from links where source==?', (path.id,))
+		if page.hascontent:
+			for type, href, _ in page.get_links():
+				if type != 'page':
+					continue
 
-			if page.hascontent:
-				for type, href, _ in page.get_links():
-					if type != 'page':
-						continue
-
-					try:
-						link = self.notebook.resolve_path(
-							href, source=page, index=self)
-							# need to specify index=self here because we are
-							# not necessary the default index for the notebook
-					except PageNameError:
-						continue
-
-					if link != page and not link.name in seen_links:
-						# Filter out self referring links and remove doubles
-						seen_links.add(link.name)
-						indexpath = self.lookup_path(link)
-						if indexpath is None:
-							indexpath = self.touch(link)
-
-						self.db.execute(
-							'insert into links (source, href) values (?, ?)',
-							(path.id, indexpath.id) )
-
-				for _, attrib in page.get_tags():
-					tag = attrib['name'].strip()
-					indextag = self.lookup_tag(tag)
-					if indextag is None:
-						# Create tag
-						cursor = self.db.cursor()
-						cursor.execute(
-							'insert into tags(name) values (?)', (tag,))
-						indextag = IndexTag(tag, cursor.lastrowid)
-						created_tags.append(indextag)
-					has_tags.add(indextag.id)
-
-
-			key = self.notebook.get_page_indexkey(page)
-			self.db.execute(
-				'update pages set hascontent=?, contentkey=? where id==?',
-				(page.hascontent, key, path.id) )
-
-			# Insert tags
-			for i, tag in enumerate(has_tags.difference(had_tags)):
-				self.emit('tag-to-be-inserted', self.lookup_tagid(tag), path, (len(had_tags) == 0) and (i == 0))
 				try:
+					link = self.notebook.resolve_path(
+						href, source=page, index=self)
+						# need to specify index=self here because we are
+						# not necessary the default index for the notebook
+				except PageNameError:
+					continue
+
+				if link != page and not link.name in seen_links:
+					# Filter out self referring links and remove doubles
+					seen_links.add(link.name)
+					indexpath = self.lookup_path(link)
+					if indexpath is None:
+						indexpath = self._touch(link)
+
 					self.db.execute(
-						'insert into tagsources (source, tag) values (?, ?)',
-						(path.id, tag,))
-				except sqlite3.IntegrityError:
-					# Catch already existing entries
-					pass
+						'insert into links (source, href) values (?, ?)',
+						(path.id, indexpath.id) )
 
-			# Remove tags
-			removed_tags = had_tags.difference(has_tags)
-			for i, tag in enumerate(removed_tags):
-				self.emit('tag-to-be-removed', self.lookup_tagid(tag), path, (len(has_tags) == 0) and (i == len(removed_tags)-1))
-				self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag))
+			for _, attrib in page.get_tags():
+				tag = attrib['name'].strip()
+				indextag = self.lookup_tag(tag)
+				if indextag is None:
+					# Create tag
+					cursor = self.db.cursor()
+					cursor.execute(
+						'insert into tags(name) values (?)', (tag,))
+					indextag = IndexTag(tag, cursor.lastrowid)
+					created_tags.append(indextag)
+				has_tags.add(indextag.id)
 
+		key = self.notebook.get_page_indexkey(page)
+		self.db.execute(
+			'update pages set hascontent=?, contentkey=? where id==?',
+			(page.hascontent, key, path.id) )
+
+		# Insert tags
+		for i, tag in enumerate(has_tags.difference(had_tags)):
+			self.emit('tag-to-be-inserted', self.lookup_tagid(tag), path, (len(had_tags) == 0) and (i == 0))
+			try:
+				self.db.execute(
+					'insert into tagsources (source, tag) values (?, ?)',
+					(path.id, tag,))
+			except sqlite3.IntegrityError:
+				# Catch already existing entries
+				pass
+
+		# Remove tags
+		removed_tags = had_tags.difference(has_tags)
+		for i, tag in enumerate(removed_tags):
+			self.emit('tag-to-be-removed', self.lookup_tagid(tag), path, (len(has_tags) == 0) and (i == len(removed_tags)-1))
+			self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag))
 
 		path = self.lookup_data(path) # refresh
 
@@ -697,14 +701,13 @@ class Index(gobject.GObject):
 
 	def _purge_tag_table(self):
 		deleted_tags = []
-		with self.db_commit:
-			# Purge tag table
-			cursor = self.db.cursor()
-			cursor.execute('select id, name from tags where id not in (select tag from tagsources)')
-			for row in cursor:
-				deleted_tags.append(IndexTag(row['name'], row['id'], row))
-				self.emit('tag-to-be-deleted', deleted_tags[-1])
-			self.db.execute('delete from tags where id not in (select tag from tagsources)')
+		cursor = self.db.cursor()
+		cursor.execute('select id, name from tags where id not in (select tag from tagsources)')
+		for row in cursor:
+			deleted_tags.append(IndexTag(row['name'], row['id'], row))
+			self.emit('tag-to-be-deleted', deleted_tags[-1])
+		self.db.execute('delete from tags where id not in (select tag from tagsources)')
+
 		for tag in deleted_tags:
 			self.emit('tag-deleted', tag)
 
@@ -758,79 +761,77 @@ class Index(gobject.GObject):
 				children[row['basename']] = row
 			seen = set()
 			changes = []
-			with self.db_commit:
-				for page in self.notebook.get_pagelist(rawpath):
-					#~ print '!! ... ... page:', page, page.haschildren
-					seen.add(page.basename)
-					if page.basename in children:
-						row = children[page.basename]
-						if page.hascontent == row['hascontent']:
-							child = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],), row)
-							check_and_queue(child, page)
-						else:
-							# Child aquired content - let's index it
-							cursor = self.db.cursor()
-							cursor.execute(
-								'update pages set hascontent=?, contentkey=NULL where id==?',
-								(page.hascontent, row['id'],) )
-							child = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],),
-								{	'hascontent': page.hascontent,
-									'haschildren': page.haschildren,
-									'childrenkey': row['childrenkey'],
-									'contentkey': None,
-								} )
-							changes.append((child, 2))
-							if page.haschildren:
-								self._update_pagelist_queue.append(child)
-							if page.hascontent:
-								self._index_page_queue.append(child)
+
+			for page in self.notebook.get_pagelist(rawpath):
+				#~ print '!! ... ... page:', page, page.haschildren
+				seen.add(page.basename)
+				if page.basename in children:
+					row = children[page.basename]
+					if page.hascontent == row['hascontent']:
+						child = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],), row)
+						check_and_queue(child, page)
 					else:
-						# We set haschildren to False until we have actually seen those
-						# children. Failing to do so will cause trouble with the
-						# gtk.TreeModel interface to the database, which can not handle
-						# nodes that say they have children but fail to deliver when
-						# asked.
+						# Child aquired content - let's index it
 						cursor = self.db.cursor()
 						cursor.execute(
-							'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
-							(page.basename, path.id, page.hascontent, False))
-						child = IndexPath(page.name, indexpath + (cursor.lastrowid,),
+							'update pages set hascontent=?, contentkey=NULL where id==?',
+							(page.hascontent, row['id'],) )
+						child = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],),
 							{	'hascontent': page.hascontent,
-								'haschildren': False,
-								'childrenkey': None,
+								'haschildren': page.haschildren,
+								'childrenkey': row['childrenkey'],
 								'contentkey': None,
 							} )
-						changes.append((child, 1))
+						changes.append((child, 2))
 						if page.haschildren:
 							self._update_pagelist_queue.append(child)
 						if page.hascontent:
 							self._index_page_queue.append(child)
+				else:
+					# We set haschildren to False until we have actually seen those
+					# children. Failing to do so will cause trouble with the
+					# gtk.TreeModel interface to the database, which can not handle
+					# nodes that say they have children but fail to deliver when
+					# asked.
+					cursor = self.db.cursor()
+					cursor.execute(
+						'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
+						(page.basename, path.id, page.hascontent, False))
+					child = IndexPath(page.name, indexpath + (cursor.lastrowid,),
+						{	'hascontent': page.hascontent,
+							'haschildren': False,
+							'childrenkey': None,
+							'contentkey': None,
+						} )
+					changes.append((child, 1))
+					if page.haschildren:
+						self._update_pagelist_queue.append(child)
+					if page.hascontent:
+						self._index_page_queue.append(child)
 
-				# Figure out which pages to delete - but keep placeholders
-				keep = set()
-				delete = []
-				for basename in set(children.keys()).difference(seen):
-					row = children[basename]
-					child = IndexPath(
-						path.name+':'+basename, indexpath+(row['id'],), row)
-					if child.haschildren or self.n_list_links(child, direction=LINK_DIR_BACKWARD) > 0:
-						keep.add(child)
-						self.db.execute(
-							'update pages set hascontent=0, contentkey=NULL where id==?', (child.id,))
-							# If you're not in the pagelist, you don't have content
-						changes.append((child, 2))
-						if child.haschildren:
-							self._update_pagelist_queue.append(child)
-					else:
-						delete.append(child)
+			# Figure out which pages to delete - but keep placeholders
+			keep = set()
+			delete = []
+			for basename in set(children.keys()).difference(seen):
+				row = children[basename]
+				child = IndexPath(
+					path.name+':'+basename, indexpath+(row['id'],), row)
+				if child.haschildren or self.n_list_links(child, direction=LINK_DIR_BACKWARD) > 0:
+					keep.add(child)
+					self.db.execute(
+						'update pages set hascontent=0, contentkey=NULL where id==?', (child.id,))
+						# If you're not in the pagelist, you don't have content
+					changes.append((child, 2))
+					if child.haschildren:
+						self._update_pagelist_queue.append(child)
+				else:
+					delete.append(child)
 
-				# Update index key to reflect we did our updates
-				haschildren = len(seen) + len(keep) > 0
-				self.db.execute(
-					'update pages set childrenkey=?, haschildren=?, hascontent=? where id==?',
-					(listkey, haschildren, hascontent, path.id) )
-
-				# ... commit
+			# Update index key to reflect we did our updates
+			haschildren = len(seen) + len(keep) > 0
+			self.db.execute(
+				'update pages set childrenkey=?, haschildren=?, hascontent=? where id==?',
+				(listkey, haschildren, hascontent, path.id) )
 
 			path = self.lookup_data(path) # refresh
 			if not path.isroot and (hadchildren != path.haschildren):
@@ -854,14 +855,20 @@ class Index(gobject.GObject):
 			# ... we are followed by an cleanup_all() when indexing is done
 
 	def delete(self, path):
-		'''Delete page plus sub-pages plus forward links from the index'''
+		'''Delete page plus sub-pages plus forward links from the index
+
+		@note: This means C{path} and all it's children will be flagged
+		as having no content. However they may stay appear as a
+		placeholder in the index if they are linked by other pages.
+		'''
 		indexpath = self.lookup_path(path)
 		if indexpath:
 			links = self._get_placeholders(indexpath, recurs=True)
-			self._delete(indexpath)
-			self.cleanup(indexpath.parent)
-			for link in links:
-				self.cleanup(link)
+			with self.db_commit:
+				self._delete(indexpath)
+				self._cleanup(indexpath.parent)
+				for link in links:
+					self._cleanup(link)
 
 	def _delete(self, path):
 		# Tries to delete path and all of it's children, but keeps
@@ -873,18 +880,16 @@ class Index(gobject.GObject):
 		paths.extend(list(self.walk(root)))
 
 		# Clean up links and content
-		with self.db_commit:
-			for path in paths:
-				self.db.execute('delete from links where source=?', (path.id,))
-				self.db.execute('update pages set hascontent=0, contentkey=NULL where id==?', (path.id,))
+		for path in paths:
+			self.db.execute('delete from links where source=?', (path.id,))
+			self.db.execute('update pages set hascontent=0, contentkey=NULL where id==?', (path.id,))
 
 		# Clean up tags
 		for path in paths:
-			with self.db_commit:
-				tags = list(self.list_tags(path))
-				for i, tag in enumerate(tags):
-					self.emit('tag-to-be-removed', tag, path, i == len(tags) - 1)
-					self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag.id))
+			tags = list(self.list_tags(path))
+			for i, tag in enumerate(tags):
+				self.emit('tag-to-be-removed', tag, path, i == len(tags) - 1)
+				self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag.id))
 			for i, tag in enumerate(tags):
 				self.emit('tag-removed', tag, path, i == len(tags) - 1)
 
@@ -896,19 +901,17 @@ class Index(gobject.GObject):
 			hadchildren = path.haschildren
 			haschildren = self.n_list_pages(path) > 0
 			placeholder = haschildren or self.n_list_links(path, direction=LINK_DIR_BACKWARD)
-			if not placeholder:
+			if placeholder:
+				# Keep but check haschildren
+				keep.append(path)
+				self.db.execute(
+					'update pages set haschildren=?, childrenkey=NULL where id==?',
+					(haschildren, path.id) )
+			else:
+				# Delete
 				self.emit('page-to-be-deleted', path) # HACK needed to signal the page index
-			with self.db_commit:
-				if placeholder:
-					# Keep but check haschildren
-					keep.append(path)
-					self.db.execute(
-						'update pages set haschildren=?, childrenkey=NULL where id==?',
-						(haschildren, path.id) )
-				else:
-					# Delete
-					delete.append(path)
-					self.db.execute('delete from pages where id=?', (path.id,))
+				delete.append(path)
+				self.db.execute('delete from pages where id=?', (path.id,))
 
 			self.lookup_data(path) # refresh
 			if placeholder:
@@ -920,17 +923,24 @@ class Index(gobject.GObject):
 
 		parent = root.parent
 		if not parent.isroot and self.n_list_pages(parent) == 0:
-			with self.db_commit:
-				self.db.execute(
-					'update pages set haschildren=0, childrenkey=NULL where id==?',
-					(parent.id,) )
-				parent = self.lookup_data(parent)
+			self.db.execute(
+				'update pages set haschildren=0, childrenkey=NULL where id==?',
+				(parent.id,) )
+			parent = self.lookup_data(parent)
 			self.emit('page-haschildren-toggled', parent)
 
 	def cleanup(self, path):
 		'''Delete path if it has no content, no children and is
 		not linked by any other page.
+
+		@note: this is intended to cleanup (old) placeholders that are
+		no longer linked by anyone. To actually remove a path use
+		L{delete()}.
 		'''
+		with self.db_commit:
+			self._cleanup(path)
+
+	def _cleanup(self, path):
 		if path.isroot:
 			return
 
@@ -942,24 +952,28 @@ class Index(gobject.GObject):
 		else:
 			path = self.lookup_path(path)
 			if not path:
-				self.cleanup(parent) # recurs
+				self._cleanup(parent) # recurs
 				return # path does not exist in table
 
 		if not (path.hascontent or path.haschildren) \
 		and self.n_list_links(path, direction=LINK_DIR_BACKWARD) == 0:
 			self._delete(path)
-			self.cleanup(parent) # recurs
+			self._cleanup(parent) # recurs
 
 	def cleanup_all(self):
 		'''Find and cleanup any pages without content, children and
 		backlinks.
 		'''
+		with self.db_commit:
+			self._cleanup_all
+
+	def _cleanup_all(self):
 		cursor = self.db.cursor()
 		cursor.execute(
 			'select id from pages where hascontent=0 and haschildren=0')
 		for row in cursor:
 			path = self.lookup_id(row['id'])
-			self.cleanup(path)
+			self._cleanup(path)
 
 	def _get_placeholders(self, path, recurs):
 		'''Return candidates for cleanup when path is updated or deleted'''
@@ -1686,12 +1700,15 @@ class PropertiesDict(object):
 
 	def __init__(self, db):
 		self.db = db
+		self.db_commit = DBCommitContext(self.db)
 
 	def __setitem__(self, k, v):
+		with self.db_commit:
+			self._set(k, v)
+
+	def _set(self, k, v):
 		cursor = self.db.cursor()
-		cursor.execute('delete from meta where key=?', (k,))
-		cursor.execute('insert into meta(key, value) values (?, ?)', (k, v))
-		self.db.commit()
+		cursor.execute('update meta set value = ? where key == ?', (v, k))
 
 	def __getitem__(self, k):
 		try:
