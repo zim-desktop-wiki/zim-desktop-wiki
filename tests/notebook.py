@@ -189,22 +189,22 @@ class TestNotebook(tests.TestCase):
 		self.assertTrue(self.notebook.index.updating)
 		self.assertRaises(IndexBusyError,
 			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
+		self.notebook.index.ensure_update()
 
 		# non-existing page - just check no errors here
-		self.notebook.index.ensure_update()
 		self.notebook.move_page(Path('NewPage'), Path('Test:NewPage')),
+		self.notebook.index.ensure_update()
 
 		# Test actual moving
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
 			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
 		):
-			self.notebook.index.ensure_update()
 			page = self.notebook.get_page(oldpath)
 			text = page.dump('wiki')
 			self.assertTrue(page.haschildren)
-
 			self.notebook.move_page(oldpath, newpath)
+			self.notebook.index.ensure_update()
 
 			# newpath should exist and look like the old one
 			page = self.notebook.get_page(newpath)
@@ -216,6 +216,24 @@ class TestNotebook(tests.TestCase):
 			page = self.notebook.get_page(oldpath)
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
+
+		# Test moving a page below it's own namespace
+		oldpath = Path('Test:Bar')
+		newpath = Path('Test:Bar:newsubpage')
+
+		page = self.notebook.get_page(oldpath)
+		page.parse('wiki', 'Test 123')
+		self.notebook.store_page(page)
+
+		self.notebook.move_page(oldpath, newpath)
+		self.notebook.index.ensure_update()
+		page = self.notebook.get_page(newpath)
+		self.assertEqual(page.dump('wiki'), ['Test 123\n'])
+
+		page = self.notebook.get_page(oldpath)
+		self.assertTrue(page.haschildren)
+		self.assertFalse(page.hascontent)
+
 
 		# Check delete and cleanup
 		path = Path('AnotherNewPage:Foo:bar')

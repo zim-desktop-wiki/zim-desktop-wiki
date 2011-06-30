@@ -353,6 +353,14 @@ class TestFiles(TestStoresMemory):
 		firstline = page.source.readlines()[0]
 		self.assertEqual(firstline, 'Content-Type: text/x-zim-wiki\n')
 
+		# test moving page into itself
+		oldpath = Path('Test:New')
+		newpath = Path('Test:New:NewSub')
+
+		self.store.move_page(oldpath, newpath)
+		page = self.store.get_page(newpath)
+		self.assertEqual(page.dump('plain'), ['Foo Bar\n'])
+
 
 class StubFile(File):
 

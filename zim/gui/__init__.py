@@ -33,7 +33,7 @@ import zim
 from zim import NotebookInterface, NotebookLookupError
 from zim.fs import *
 from zim.fs import normalize_win32_share
-from zim.errors import Error, TrashNotSupportedError
+from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.async import DelayedCallback
 from zim.notebook import Path, Page
 from zim.stores import encode_filename
@@ -1261,6 +1261,11 @@ class GtkInterface(NotebookInterface):
 			dialog.destroy()
 			logger.info('Trash not supported: %s', error.msg)
 			DeletePageDialog(self, path).run()
+		except TrashCancelledError, error:
+			dialog.destroy()
+		except Exception, error:
+			dialog.destroy()
+			raise
 		else:
 			dialog.destroy()
 

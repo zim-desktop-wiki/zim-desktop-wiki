@@ -121,7 +121,9 @@ Try 'zim --manual' for more help.
 
 
 class UsageError(Error):
-	pass
+
+	def __init__(self):
+		self.msg = zim.usagehelp.replace('zim', ZIM_EXECUTABLE)
 
 
 class NotebookLookupError(Error):
@@ -254,6 +256,8 @@ def main(argv):
 	if cmd in ('export', 'index'):
 		if not len(args) >= 1:
 			default = _get_default_or_only_notebook()
+			if not default:
+				raise UsageError
 			handler = NotebookInterface(notebook=default)
 		else:
 			handler = NotebookInterface(notebook=args[0])

@@ -73,7 +73,7 @@ import zim.fs
 import zim.plugins
 from zim.fs import *
 from zim.parsing import is_url_re
-from zim.errors import TrashNotSupportedError
+from zim.errors import Error, TrashNotSupportedError
 
 
 def get_store(name):
@@ -191,6 +191,8 @@ class StoreClass():
 		in 'page.hascontent' and 'page.haschildren' being False if successful.
 
 		Returns False if page did not exist in the first place, True otherwise.
+
+		Raises an error when delete failed.
 		'''
 		raise NotImplementedError
 
@@ -205,6 +207,7 @@ class StoreClass():
 		Returns False if page did not exist in the first place, True otherwise.
 		Raises TrashNotSupportedError when not subclassed or when trash
 		is not available due to some other reason.
+		Raises TrashCancelledError when the user cancelled trashing.
 		'''
 		raise TrashNotSupportedError, 'Not implemented'
 

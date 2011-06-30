@@ -43,7 +43,11 @@ class Error(Exception):
 		return '<%s>' % self.__class__.__name__
 
 
+# Defined here because these errors are not specific to files, but can
+# occur in different storage models as well
+
 class TrashNotSupportedError(Error):
-	# Defined here because this is not specific to files, but can occur
-	# in different storage models as well
+	pass
+
+class TrashCancelledError(Error):
 	pass

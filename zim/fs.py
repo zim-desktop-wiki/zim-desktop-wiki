@@ -123,7 +123,7 @@ import errno
 import codecs
 import logging
 
-from zim.errors import Error, TrashNotSupportedError
+from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.parsing import url_encode, url_decode
 from zim.async import AsyncOperation, AsyncLock
 
@@ -462,6 +462,20 @@ class UnixPath(object):
 		stat_result = os.stat(self.encodedpath)
 		return stat_result.st_mtime
 
+	def isequal(self, other):
+		'''Check inode number etc. to be equal
+
+		Intended to detect if two files or dirs are the same on
+		case-insensitive filesystems.
+		'''
+		try:
+			stat_result = os.stat(self.encodedpath)
+			other_stat_result = os.stat(other.encodedpath)
+		except OSError:
+			return false
+		else:
+			return stat_result == other_stat_result
+
 	def split(self):
 		'''Returns the directory parts of the path as a list.
 		If the OS uses the concept of a drive the first part will
@@ -562,16 +576,29 @@ class UnixPath(object):
 
 	def trash(self):
 		'''Trash a file or folder, returns boolean for success.
-		Raises a TrashNotSupportedError if trashing is not possible.
+		Raises a TrashNotSupportedError if trashing us not supported
+		or failed.
+		Raises a TrashCancelledError if trashing was cancelled.
 		'''
 		if not gio:
 			raise TrashNotSupportedError, 'gio not imported'
 
 		if self.exists():
+			logger.info('Move %s to trash' % self)
 			f = gio.File(uri=self.uri)
-			if not f.trash():
-				# FIXME is this how to catch gio.ERROR_NOT_SUPPORTED ?
-				raise TrashNotSupportedError, 'Trashing failed'
+			try:
+				ok = f.trash()
+			except gobject.GError, error:
+				if error.code == gio.ERROR_CANCELLED:
+					logger.info('Trash operation cancelled')
+					raise TrashCancelledError, 'Trashing cancelled'
+				elif error.code == gio.ERROR_NOT_SUPPORTED:
+					raise TrashNotSupportedError, 'Trashing failed'
+				else:
+					raise error
+			else:
+				if not ok:
+					raise TrashNotSupportedError, 'Trashing failed'
 			return True
 		else:
 			return False
@@ -835,6 +862,20 @@ class Dir(Path):
 		if not dir.path.startswith(self.path):
 			raise PathLookupError, '%s is not below %s' % (dir, self)
 		return dir
+
+	def new_subdir(self, path):
+		'''Like subdir() but guarantees the dir does not yet exist by
+		adding sequential numbers if needed.
+		'''
+		subdir = self.subdir(path)
+		basename = subdir.basename
+		i = 0
+		while subdir.exists():
+			logger.debug('Dir exists "%s" trying increment', subdir)
+			i += 1
+			newname = basename + '%03i' % i
+			subdir = self.subdir(newname)
+		return subdir
 
 	def resolve_dir(self, path):
 		'''Like L{subdir()} but allows the path to start with "../"'''
@@ -1224,10 +1265,7 @@ class UnixFile(Path):
 		# TODO - not hooked with FS signals
 
 	def compare(self, other):
-		'''Uses MD5 to tell you if files are the same or not.
-		This can e.g. be used to detect case-insensitive filesystems
-		when renaming files.
-		'''
+		'''Uses MD5 to tell you if files have the same content or not'''
 		return _md5(self.read()) == _md5(other.read())
 
 

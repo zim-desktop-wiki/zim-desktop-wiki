@@ -38,10 +38,9 @@ logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
 
 
 # Try importing our modules
-import zim
-import zim.config
 try:
-	pass
+	import zim
+	import zim.config
 except ImportError:
 	print >>sys.stderr, 'ERROR: Could not find python module files in path:'
 	print >>sys.stderr, ' '.join(map(str, sys.path))
@@ -69,7 +68,7 @@ except zim.GetoptError, err:
 	print >>sys.stderr, sys.argv[0]+':', err
 	sys.exit(1)
 except zim.UsageError, err:
-	print >>sys.stderr, zim.usagehelp.replace('zim', sys.argv[0])
+	print >>sys.stderr, err.msg
 	sys.exit(1)
 except KeyboardInterrupt: # e.g. <Ctrl>C while --server
 	print >>sys.stderr, 'Interrupt'

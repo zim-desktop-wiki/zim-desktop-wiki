@@ -111,18 +111,34 @@ class FilesStore(StoreClass):
 
 		newfile = self._get_file(newpath)
 		newdir = self._get_dir(newpath)
-		if (newfile.exists() or newdir.exists()):
-			if file.path.lower() == newfile.path.lower() \
-			and (not newfile.exists() or file.compare(newfile)):
-					pass # renaming on case-insensitive filesystem
-			else:
+		if file.path.lower() == newfile.path.lower():
+			if (newfile.exists() and newfile.isequal(file)) \
+			or (newdir.exists() and newdir.isequal(dir)):
+				# renaming on case-insensitive filesystem
+				pass
+			elif newfile.exists() or newdir.exists():
 				raise PageExistsError, 'Page already exists: %s' % newpath.name
+		elif newfile.exists() or newdir.exists():
+			raise PageExistsError, 'Page already exists: %s' % newpath.name
 
 		if file.exists():
 			file.rename(newfile)
 
 		if dir.exists():
-			dir.rename(newdir)
+			if newdir.ischild(dir):
+				# special case where we want to move a page down
+				# into it's own namespace
+				parent = dir.dir
+				tmpdir = parent.new_subdir(dir.basename)
+				dir.rename(tmpdir)
+				tmpdir.rename(newdir)
+
+				# check if we also moved the file inadvertently
+				if newfile.ischild(dir):
+					movedfile = newdir.file(newfile.basename)
+					movedfile.rename(newfile)
+			else:
+				dir.rename(newdir)
 
 
 	def delete_page(self, path):
@@ -131,6 +147,7 @@ class FilesStore(StoreClass):
 		if not (file.exists() or dir.exists()):
 			return False
 		else:
+			assert file.path.startswith(self.dir.path)
 			assert dir.path.startswith(self.dir.path)
 			file.cleanup()
 			dir.remove_children()

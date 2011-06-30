@@ -558,12 +558,16 @@ class PageTreeView(BrowserTreeView):
 
 		treepath = model.get_treepath(path)
 		if treepath:
+			# path existed, now select it
 			self.select_treepath(treepath)
 		elif vivificate:
+			# path does not exist, but we can create it
 			path = model.index.touch(path)
-			treepath = self.select_page(path)
+			treepath = model.get_treepath(path)
 			assert treepath, 'BUG: failed to touch placeholder'
+			self.select_treepath(treepath)
 		else:
+			# path does not exist and we are not going to create it
 			return None
 
 		rowreference = gtk.TreeRowReference(model, treepath)
@@ -571,9 +575,10 @@ class PageTreeView(BrowserTreeView):
 
 		if self._cleanup and self._cleanup.valid():
 			mytreepath = self._cleanup.get_path()
-			indexpath = model.get_indexpath( model.get_iter(mytreepath) )
-			#~ print '!! CLEANUP', indexpath
-			model.index.cleanup(indexpath)
+			if mytreepath != treepath:
+				indexpath = model.get_indexpath( model.get_iter(mytreepath) )
+				#~ print '!! CLEANUP', indexpath
+				model.index.cleanup(indexpath)
 
 		self._cleanup = rowreference
 

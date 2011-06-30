@@ -1324,6 +1324,9 @@ class Notebook(gobject.GObject):
 	def delete_page(self, path, update_links=True, callback=None):
 		'''Delete a page. If 'update_links' is True pages linking to the
 		deleted page will be updated and the link are removed.
+
+		Returns True when the page existed, False otherwise.
+		Raises an error when delete failed.
 		'''
 		return self._delete_page(path, update_links, callback)
 
@@ -1358,9 +1361,9 @@ class Notebook(gobject.GObject):
 
 		store = self.get_store(path)
 		if trash:
-			store.trash_page(path)
+			existed = store.trash_page(path)
 		else:
-			store.delete_page(path)
+			existed = store.delete_page(path)
 
 		self.flush_page_cache(path)
 		path = Path(path.name)
@@ -1379,6 +1382,8 @@ class Notebook(gobject.GObject):
 
 		# let everybody know what happened
 		self.emit('deleted-page', path)
+
+		return existed
 
 	def _remove_links_in_page(self, page, path):
 		logger.debug('Removing links in %s to %s', page, path)
