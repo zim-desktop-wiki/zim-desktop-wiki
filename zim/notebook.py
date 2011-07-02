@@ -1982,6 +1982,12 @@ class Page(Path):
 				href = attrib.pop('href')
 				type = link_type(href)
 				yield type, href, attrib
+			for tag in tree.getiterator('img'):
+				if 'href' in tag.attrib:
+					attrib = tag.attrib.copy()
+					href = attrib.pop('href')
+					type = link_type(href)
+					yield type, href, attrib
 
 	def get_tags(self):
 		'''Generator of an unordered list of unique tuples of name and attrib

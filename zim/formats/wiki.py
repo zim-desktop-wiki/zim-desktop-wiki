@@ -73,16 +73,6 @@ dumper_tags = {
 	'tag':      '', # No additional annotation (apart from the visible @)
 }
 
-
-def contains_links(text):
-	'''Optimisation for page.get_links()'''
-	for line in text:
-		if '[[' in line:
-			return True
-	else:
-		return False
-
-
 class Parser(ParserClass):
 
 	def __init__(self, version=WIKI_FORMAT_VERSION):
@@ -285,7 +275,7 @@ class Parser(ParserClass):
 		list = [text]
 		list = parser_re['code'].sublist(
 				lambda match: ('code', {}, match[1]), list)
-
+		
 		def parse_link(match):
 			parts = match[1].split('|', 2)
 			link = parts[0]
@@ -298,7 +288,7 @@ class Parser(ParserClass):
 			return ('link', {'href':link}, mytext)
 
 		list = parser_re['link'].sublist(parse_link, list)
-
+		
 		def parse_image(match):
 			parts = match[1].split('|', 2)
 			src = parts[0]
@@ -401,17 +391,22 @@ class Dumper(DumperClass):
 			elif element.tag == 'img':
 				src = element.attrib['src']
 				opts = []
-				for k, v in element.attrib.items():
+				items = element.attrib.items()
+				# we sort params only because unit tests don't like random output
+				items.sort()
+				for k, v in items:
 					if k == 'src' or k.startswith('_'):
 						continue
 					elif v: # skip None, "" and 0
 						opts.append('%s=%s' % (k, v))
 				if opts:
 					src += '?%s' % '&'.join(opts)
+									
 				if element.text:
 					output.append('{{'+src+'|'+element.text+'}}')
 				else:
 					output.append('{{'+src+'}}')
+				
 			elif element.tag == 'sub':
 				output.append("_{%s}" % element.text)
 			elif element.tag == 'sup':

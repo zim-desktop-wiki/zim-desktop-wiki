@@ -172,6 +172,8 @@ Some Verbatim here
 IMAGE: Foo Bar
 LINKS: :foo:bar ./file.png file:///etc/passwd
 LINKS: FooBar
+IMAGELINK: my-image.png?href=Foo
+IMAGELINK: Foo Bar
 TAGS: @foo @bar
 
 	Some indented
@@ -274,6 +276,8 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.
 <p>IMAGE: <img src="../my-image.png" width="600">Foo Bar</img>
 LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
 LINKS: <link href="Foo">Foo</link><link href="Bar">Bar</link>
+IMAGELINK: <img href="Foo" src="my-image.png" />
+IMAGELINK: <img href=":foo:bar" src="../my-image.png" width="600">Foo Bar</img>
 TAGS: <tag name="foo">@foo</tag> <tag name="bar">@bar</tag>
 </p>
 <p><div indent="1">Some indented
@@ -423,6 +427,8 @@ Also block-indentation of verbatim is possible.
 IMAGE: <img src="img://../my-image.png" alt="Foo Bar" width="600"><br>
 LINKS: <a href="page://:foo:bar" title=":foo:bar">:foo:bar</a> <a href="file://./file.png" title="./file.png">./file.png</a> <a href="file://file:///etc/passwd" title="file:///etc/passwd">file:///etc/passwd</a><br>
 LINKS: <a href="page://Foo" title="Foo">Foo</a><a href="page://Bar" title="Bar">Bar</a><br>
+IMAGELINK: <a href="page://Foo"><img src="img://my-image.png" alt=""></a><br>
+IMAGELINK: <a href="page://:foo:bar"><img src="img://../my-image.png" alt="Foo Bar" width="600"></a><br>
 TAGS: <span class="zim-tag">@foo</span> <span class="zim-tag">@bar</span><br>
 </p>
 

@@ -1268,6 +1268,7 @@ class MockUI(tests.MockObject):
 		self.mainwindow = None
 		self.notebook = tests.MockObject()
 		self.preferences = ConfigDict()
+		self.page = Path(':')
 
 	def register_preferences(self, section, list):
 		for p in list:

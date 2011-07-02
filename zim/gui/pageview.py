@@ -2247,7 +2247,7 @@ class TextView(gtk.TextView):
 	'''Custom TextView class. Takes care of additional key bindings and on-mouse-over for links.
 
 	Signals:
-		link-clicked (link) - Emitted when the used clicks a link
+		link-clicked (link) - Emitted when the user clicks a link
 		link-enter (link) - Emitted when the mouse pointer enters a link
 		link-leave (link) - Emitted when the mouse pointer leaves a link
 		end-of-word (start, end, word, char) - Emitted when the user typed a character like space that ends a word
@@ -2284,8 +2284,8 @@ class TextView(gtk.TextView):
 	def __init__(self, preferences):
 		gtk.TextView.__init__(self, TextBuffer(None, None))
 		self.set_name('zim-pageview')
-		self.cursor = CURSOR_TEXT
-		self.cursor_link = None
+		self._cursor = CURSOR_TEXT
+		self._cursor_link = None
 		self.gtkspell = None
 		self.set_left_margin(10)
 		self.set_right_margin(5)
@@ -2339,55 +2339,56 @@ class TextView(gtk.TextView):
 		dragcontext.finish(True, False, timestamp) # OK
 
 	def do_motion_notify_event(self, event):
-		'''Event handler that triggers check_cursor_type()
+		'''Event handler that triggers update_cursor()
 		when the mouse moves
 		'''
 		cont = gtk.TextView.do_motion_notify_event(self, event)
 		x, y = event.get_coords()
 		x, y = int(x), int(y) # avoid some strange DeprecationWarning
-		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
-		self.check_cursor_type(self.get_iter_at_location(x, y))
+		coords = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
+		self.update_cursor(coords)
 		return cont # continue emit ?
 
 	def do_visibility_notify_event(self, event):
-		'''Event handler that triggers check_cursor_type()
+		'''Event handler that triggers update_cursor()
 		when the window becomes visible
 		'''
-		self.check_cursor_type(self.get_iter_at_pointer())
+		self.update_cursor()
 		return False # continue emit
 
 	def do_button_press_event(self, event):
 		# Need to overload some button handling here because
 		# implementation details of gtktextview.c do not use proper
 		# signals for these handlers.
+		#
+		# Note that clicking links is in button-release to avoid
+		# conflict with making selections
 		buffer = self.get_buffer()
 
 		if event.type == gtk.gdk.BUTTON_PRESS:
+			iter, coords = self._get_pointer_location()
 			if event.button == 2 and not buffer.get_has_selection():
-				iter = self.get_iter_at_pointer()
 				clipboard = Clipboard(selection='PRIMARY')
 				buffer.paste_clipboard(clipboard, iter, self.get_editable())
 				return False
 			elif event.button == 3:
-				iter = self.get_iter_at_pointer()
 				self._set_popup_menu_mark(iter)
 
 		return gtk.TextView.do_button_press_event(self, event)
 
 	def do_button_release_event(self, event):
 		cont = gtk.TextView.do_button_release_event(self, event)
-		buffer = self.get_buffer()
-		if not buffer.get_has_selection():
-			iter = self.get_iter_at_pointer()
+		if not self.get_buffer().get_has_selection():
 			if event.button == 1:
 				if self.preferences['cycle_checkbox_type']:
 					# Cycle through all states - more useful for
 					# single click input devices
-					self.click_link(iter) or self.click_checkbox(iter)
+					self.click_link() or self.click_checkbox()
 				else:
-					self.click_link(iter) or self.click_checkbox(iter, CHECKED_BOX)
+					self.click_link() or self.click_checkbox(CHECKED_BOX)
 			elif event.button == 3:
-				self.click_checkbox(iter, XCHECKED_BOX)
+				self.click_checkbox(XCHECKED_BOX)
+
 		return cont # continue emit ?
 
 	def do_popup_menu(self):
@@ -2503,7 +2504,7 @@ class TextView(gtk.TextView):
 				# this is by design.
 				if (self.preferences['follow_on_enter']
 				or event.state & gtk.gdk.MOD1_MASK): # MOD1 == Alt
-					self.click_link(iter)
+					self.click_link_at_iter(iter)
 				# else do not insert newline, just ignore
 				handled = True
 
@@ -2670,60 +2671,102 @@ class TextView(gtk.TextView):
 
 		return handled
 
-	def get_iter_at_pointer(self):
-		'''Returns the TextIter that is under the mouse'''
+	def _get_pointer_location(self):
+		'''Returns a TextIter and a C{(x, y)} tupple with coordinates
+		for the mouse pointer.
+		'''
 		x, y = self.get_pointer()
 		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
-		return self.get_iter_at_location(x, y)
+		return self.get_iter_at_location(x, y), (x, y)
 
-	def check_cursor_type(self, iter):
-		'''Set the mouse cursor image according to content at 'iter'.
-		E.g. set a "hand" cursor when hovering over a link. Also emits
-		the link-enter and link-leave signals when apropriate.
-		'''
-		link = self.get_buffer().get_link_data(iter)
-
-		if link:
-			cursor = CURSOR_LINK
-		else:
+	def _get_pixbuf_at_pointer(self, iter, coords):
+		'''Returns the pixbuf that is under the mouse or C{None}'''
+		pixbuf = iter.get_pixbuf()
+		if not pixbuf:
+			# right side of pixbuf will map to next iter
+			iter = iter.copy()
+			iter.backward_char()
 			pixbuf = iter.get_pixbuf()
-			if not pixbuf:
-				# right side of pixbuf will map to next iter
-				iter.backward_char()
-				pixbuf = iter.get_pixbuf()
 
-			if pixbuf and pixbuf.zim_type == 'icon' \
-			and pixbuf.zim_attrib['stock'] in (
+		if pixbuf and hasattr(pixbuf, 'zim_type'):
+			# If we have a pixbuf double check the cursor is really
+			# over the image and not actually on the next cursor position
+			area = self.get_iter_location(iter)
+			if (coords[0] >= area.x and coords[0] <= area.x + area.width
+				and coords[1] >= area.y and coords[1] <= area.y + area.height):
+				return pixbuf
+			else:
+				return None
+		else:
+			return None
+
+	def update_cursor(self, coords=None):
+		'''Update the mouse cursor image
+
+		E.g. set a "hand" cursor when hovering over a link.
+
+		Also emits the link-enter and link-leave signals when appropriate.
+
+		@keyword coords: a tuple with (x, y) in buffer coords.
+		Only give this argument id coords are known from an event.
+		If C{None} the current cursor position is taken.
+		'''
+		if coords is None:
+			iter, coords = self._get_pointer_location()
+		else:
+			iter = self.get_iter_at_location(*coords)
+
+		link = None
+		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
+		if pixbuf:
+			if pixbuf.zim_type == 'icon' and pixbuf.zim_attrib['stock'] in (
 				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
 				cursor = CURSOR_WIDGET
+			elif 'href' in pixbuf.zim_attrib:
+				link = {'href': pixbuf.zim_attrib['href']}
+				cursor = CURSOR_LINK
+			else:
+				cursor = CURSOR_TEXT
+		else:
+			link = self.get_buffer().get_link_data(iter)
+			if link:
+				cursor = CURSOR_LINK
 			else:
 				cursor = CURSOR_TEXT
 
-		if cursor != self.cursor:
+		if cursor != self._cursor:
 			window = self.get_window(gtk.TEXT_WINDOW_TEXT)
 			window.set_cursor(cursor)
 
 		# Check if we need to emit any events for hovering
-		if self.cursor == CURSOR_LINK: # was over link before
+		if self._cursor == CURSOR_LINK: # was over link before
 			if cursor == CURSOR_LINK: # still over link
-				if link == self.cursor_link:
-					pass
-				else:
+				if link != self._cursor_link:
 					# but other link
-					self.emit('link-leave', self.cursor_link)
+					self.emit('link-leave', self._cursor_link)
 					self.emit('link-enter', link)
 			else:
-				self.emit('link-leave', self.cursor_link)
+				self.emit('link-leave', self._cursor_link)
 		elif cursor == CURSOR_LINK: # was not over link, but is now
 			self.emit('link-enter', link)
 
-		self.cursor = cursor
-		self.cursor_link = link
+		self._cursor = cursor
+		self._cursor_link = link
 
-	def click_link(self, iter):
-		'''Emits the link-clicked signal if there is a link at iter.
+	def click_link(self):
+		'''Emits the link-clicked signal if there is a link at the mouse pointer.
 		Returns True for success, returns False if no link was found.
 		'''
+		iter, coords = self._get_pointer_location()
+		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
+		if pixbuf and pixbuf.zim_attrib.get('href'):
+			self.emit('link-clicked', {'href': pixbuf.zim_attrib['href']})
+			return True
+		else:
+			return self.click_link_at_iter(iter)
+
+	def click_link_at_iter(self, iter):
+		'''Like L{click_link()} but at a specific iter location'''
 		link = self.get_buffer().get_link_data(iter)
 		if link:
 			self.emit('link-clicked', link)
@@ -2731,11 +2774,11 @@ class TextView(gtk.TextView):
 		else:
 			return False
 
-	def click_checkbox(self, iter, checkbox_type=None):
-		'''If 'iter' or the position left of 'iter' is a checkbox this
-		function will call toggle_checkbox() to effect a click on the
-		checkbox.
+	def click_checkbox(self, checkbox_type=None):
+		'''This function will call toggle_checkbox() if there is a
+		checkbox under the pointer.
 		'''
+		iter, coords = self._get_pointer_location()
 		if iter.get_line_offset() < 2:
 			# Only position 0 or 1 can map to a checkbox
 			buffer = self.get_buffer()
@@ -4418,13 +4461,14 @@ class EditImageDialog(Dialog):
 		if '?' in src:
 			i = src.find('?')
 			src = src[:i]
-
+		href = image_data.get('href', '')
 		self.add_form( [
 			('file', 'image', _('Location')), # T: Input in 'edit image' dialog
+			('href', 'link', _('Link to'), ui.page), # T: Input in 'edit image' dialog
 			('width', 'int', _('Width'), (0, 1)), # T: Input in 'edit image' dialog
 			('height', 'int', _('Height'), (0, 1)) # T: Input in 'edit image' dialog
 		],
-			{'file': src}
+			{'file': src, 'href': href}
 			# range for width and height are set in set_ranges()
 		)
 		self.form.widgets['file'].set_use_relative_paths(ui.notebook, path)
@@ -4499,6 +4543,17 @@ class EditImageDialog(Dialog):
 		file = self.form['file']
 		attrib = self._image_data
 		attrib['src'] = self.ui.notebook.relative_filepath(file, self.path) or file.uri
+
+		href = self.form['href']
+		if href:
+			type = link_type(href)
+			if type == 'file':
+				# Try making the path relative
+				linkfile = self.form.widgets['href'].get_file()
+				page = self.ui.page
+				notebook = self.ui.notebook
+				href = notebook.relative_filepath(linkfile, page) or linkfile.uri
+			attrib['href'] = href
 
 		iter = self.buffer.get_iter_at_offset(self._iter)
 		bound = iter.copy()
