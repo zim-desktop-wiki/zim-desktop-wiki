@@ -103,6 +103,14 @@ class FilesStore(StoreClass):
 	def store_page_async(self, page, lock, callback, data):
 		page._store_async(lock, callback, data)
 
+	def revert_page(self, page):
+		# FIXME assert page is ours and page is FilePage
+		newpage = self.get_page(page)
+		page.source = newpage.source
+		page.set_parsetree(newpage.get_parsetree())
+			# use set_parsetree because it triggers ui_object
+		page.modified = False
+
 	def move_page(self, path, newpath):
 		file = self._get_file(path)
 		dir = self._get_dir(path)
@@ -223,6 +231,11 @@ class FileStorePage(Page):
 	def _fetch_parsetree(self, lines=None):
 		'''Fetch a parsetree from source or returns None'''
 		#~ print '!! fetch tree', self
+		## Enable these lines to test error handling in the UI
+		#~ import random
+		#~ if random.random() > 0.5:
+			#~ raise Exception, 'This is a test error'
+		###
 		try:
 			lines = lines or self.source.readlines()
 			self.properties = HeadersDict()
@@ -261,7 +274,7 @@ class FileStorePage(Page):
 		operation.start()
 
 	def _store_lines(self, lines):
-		# Enable these lines to test error handling in the UI
+		## Enable these lines to test error handling in the UI
 		#~ import random
 		#~ if random.random() > 0.5:
 			#~ raise IOError, 'This is a test error'

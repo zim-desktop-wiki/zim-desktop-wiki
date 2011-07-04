@@ -25,6 +25,8 @@ class Error(Exception):
 	'''
 
 	description = ''
+	msg = '<Unknown Error>'
+		# in case subclass does not define instance attribute
 
 	def __init__(self, msg):
 		self.msg = msg

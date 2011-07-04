@@ -319,6 +319,19 @@ class FileNotFoundError(PathLookupError):
 			# T: message for FileNotFoundError
 
 
+class FileUnicodeError(Error):
+
+	def __init__(self, file, error):
+		self.file = file
+		self.error = error
+		self.msg = _('Could not read: %s') % file.path
+			# T: message for FileUnicodeError (%s is the file name)
+		self.description = _('This usually means the file contains invalid characters')
+			# T: message for FileUnicodeError
+		self.description += '\n\n' + _('Details') + ':\n' + unicode(error)
+			# T: label for detailed error
+
+
 # TODO actually hook the signal for deleting files and folders
 
 class _FS(gobject.GObject):
@@ -1071,6 +1084,8 @@ class UnixFile(Path):
 				# And remove any NULL byte since they screw up parsing
 		except IOError:
 			raise FileNotFoundError(self)
+		except UnicodeDecodeError, error:
+			raise FileUnicodeError(self, error)
 
 	def readlines(self):
 		'''Returns the content as list of lines. Raises a
@@ -1102,6 +1117,8 @@ class UnixFile(Path):
 				# And remove any NULL byte since they screw up parsing
 		except IOError:
 			raise FileNotFoundError(self)
+		except UnicodeDecodeError, error:
+			raise FileUnicodeError(self, error)
 
 	def write(self, text):
 		'''Overwrite file with text'''

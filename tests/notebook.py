@@ -155,6 +155,28 @@ class TestNotebook(tests.TestCase):
 		self.assertTrue(id(page3) != id(page1))
 		self.assertFalse(page1.valid)
 
+		page = self.notebook.get_page(Path('Test:foo'))
+		text = page.dump('plain')
+		newtext = ['Some new content\n']
+		assert newtext != text
+		self.assertEqual(page.dump('plain'), text)
+		page.parse('plain', newtext)
+		self.assertEqual(page.dump('plain'), newtext)
+		self.assertTrue(page.modified)
+		re = self.notebook.revert_page(page)
+		self.assertFalse(re) # no return value
+		self.assertEqual(page.dump('plain'), text) # object reverted
+		self.assertFalse(page.modified)
+		self.notebook.flush_page_cache(page)
+		page = self.notebook.get_page(page) # new object
+		self.assertEqual(page.dump('plain'), text)
+		page.parse('plain', newtext)
+		self.assertEqual(page.dump('plain'), newtext)
+		self.notebook.store_page(page)
+		self.notebook.flush_page_cache(page)
+		page = self.notebook.get_page(page) # new object
+		self.assertEqual(page.dump('plain'), newtext)
+
 		pages = list(self.notebook.get_pagelist(Path(':')))
 		self.assertTrue(len(pages) > 0)
 		for page in pages:

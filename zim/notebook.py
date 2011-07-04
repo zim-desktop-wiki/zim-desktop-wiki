@@ -1114,9 +1114,7 @@ class Notebook(gobject.GObject):
 		# get_page without the cache
 		assert page.valid, 'BUG: page object no longer valid'
 		store = self.get_store(page)
-		storedpage = store.get_page(page)
-		page.set_parsetree(storedpage.get_parsetree())
-		page.modified = False
+		store.revert_page(page)
 
 	def move_page(self, path, newpath, update_links=True, callback=None):
 		'''Move a page from 'path' to 'newpath'. If 'update_links' is
@@ -1927,8 +1925,9 @@ class Page(Path):
 		set_parsetree() method which will be called by the page object.
 		'''
 		if object is None:
-			self._parsetree = self._ui_object.get_parsetree()
-			self._ui_object = None
+			if self._ui_object:
+				self._parsetree = self._ui_object.get_parsetree()
+				self._ui_object = None
 		else:
 			assert self._ui_object is None, 'BUG: page already being edited by another widget'
 			self._parsetree = None

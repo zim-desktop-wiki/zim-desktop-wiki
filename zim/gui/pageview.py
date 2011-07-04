@@ -3521,23 +3521,23 @@ class PageView(gtk.VBox):
 		self._prev_buffer.clear()
 
 		# now create the new buffer
-		self.page = page
-		buffer = TextBuffer(self.ui.notebook, self.page)
-		self.view.set_buffer(buffer)
-		tree = page.get_parsetree()
-
-		if tree is None:
-			# TODO check read-only
-			template = self.ui.notebook.get_template(page)
-			tree = template.process_to_parsetree(self.ui.notebook, page)
-			if cursor is None:
-				cursor = -1
-		else:
-			template = None
-			if cursor is None:
-				cursor = 0
-
 		try:
+			self.page = page
+			buffer = TextBuffer(self.ui.notebook, self.page)
+			self.view.set_buffer(buffer)
+			tree = page.get_parsetree()
+
+			if tree is None:
+				# TODO check read-only
+				template = self.ui.notebook.get_template(page)
+				tree = template.process_to_parsetree(self.ui.notebook, page)
+				if cursor is None:
+					cursor = -1
+			else:
+				template = None
+				if cursor is None:
+					cursor = 0
+
 			self.set_parsetree(tree, bool(template))
 			if not self.secondary:
 				page.set_ui_object(self) # only after successful set tree in buffer
@@ -3545,22 +3545,23 @@ class PageView(gtk.VBox):
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
 			self.page.readonly = True
 			self.set_readonly()
+			self.set_sensitive(False)
 			ErrorDialog(self.ui, error).run()
-			# TODO set error page e.g. zim.notebook.LoadingErrorPage
-			# TODO add test for this catch - how to trigger this for testing ?
+		else:
+			# Finish hooking up the new page
+			self.set_cursor_pos(cursor)
 
-		self.set_cursor_pos(cursor)
+			self._buffer_signals = (
+				buffer.connect('textstyle-changed', self.do_textstyle_changed),
+				buffer.connect('modified-changed', lambda o: self.on_modified_changed(o) ),
+				buffer.connect_after('mark-set', self.do_mark_set),
+			)
 
-		self._buffer_signals = (
-			buffer.connect('textstyle-changed', self.do_textstyle_changed),
-			buffer.connect('modified-changed', lambda o: self.on_modified_changed(o) ),
-			buffer.connect_after('mark-set', self.do_mark_set),
-		)
+			buffer.finder.set_state(*finderstate) # maintain state
 
-		buffer.finder.set_state(*finderstate) # maintain state
-
-		self.undostack = UndoStackManager(buffer)
-		self.set_readonly() # initialize menu state
+			self.undostack = UndoStackManager(buffer)
+			self.set_readonly() # initialize menu state
+			self.set_sensitive(True)
 
 	def get_page(self): return self.page
 

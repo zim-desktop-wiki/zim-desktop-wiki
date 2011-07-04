@@ -13,8 +13,26 @@ import time
 
 import zim.fs
 from zim.fs import *
-from zim.fs import Path, FileHandle, FileWriteError, TmpFile, get_tmpdir, normalize_win32_share, PathLookupError, FileNotFoundError, FilteredDir, isabs, joinpath
+from zim.fs import Path, FileHandle, TmpFile, FilteredDir, \
+	FileWriteError, FileUnicodeError, PathLookupError, FileNotFoundError, \
+	get_tmpdir, normalize_win32_share, isabs, joinpath
 from zim.errors import Error
+
+
+def modify_file_mtime(path, func):
+	'''Helper function to modify a file in such a way that mtime
+	changed.
+	'''
+	mtime = os.stat(path).st_mtime
+	m = mtime
+	i = 0
+	while m == mtime:
+		time.sleep(1)
+		func(path)
+		m = os.stat(path).st_mtime
+		i += 1
+		assert i < 5
+	#~ print '>>>', m, mtime
 
 
 class FilterOverWriteWarning(tests.LoggingFilter):
@@ -196,6 +214,10 @@ class TestFS(tests.TestCase):
 		file = File(tmpdir+'/newlines.txt')
 		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines\n')
 
+		# test encoding error
+		non_utf8_file = File('tests/data/non-utf8.txt')
+		self.assertRaises(FileUnicodeError, non_utf8_file.read)
+
 		# test compare & copyto
 		file1 = File(tmpdir + '/foo.txt')
 		file2 = File(tmpdir + '/bar.txt')
@@ -297,16 +319,7 @@ class TestFileOverwrite(tests.TestCase):
 		self.path = self.create_tmp_dir()+'/file.txt'
 
 	def modify(self, func):
-		mtime = os.stat(self.path).st_mtime
-		m = mtime
-		i = 0
-		while m == mtime:
-			time.sleep(1)
-			func(self.path)
-			m = os.stat(self.path).st_mtime
-			i += 1
-			assert i < 5
-		#~ print '>>>', m, mtime
+		modify_file_mtime(self.path, func)
 
 	def runTest(self):
 		'''Test file overwrite check'''

@@ -153,6 +153,53 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		page = self.store.get_page(Path('Test:foo'))
 		self.assertEqual(''.join(page.dump('wiki')), wikitext)
 
+
+		page = self.store.get_page(Path('Test:foo'))
+		text = page.dump('plain')
+		newtext = ['Some new content\n']
+		assert newtext != text
+		self.assertEqual(page.dump('plain'), text)
+		page.parse('plain', newtext)
+		self.assertEqual(page.dump('plain'), newtext)
+		self.assertTrue(page.modified)
+		re = self.store.revert_page(page)
+		self.assertFalse(re) # no return value
+		self.assertEqual(page.dump('plain'), text) # object reverted
+		self.assertFalse(page.modified) # no longer modified
+		page = self.store.get_page(page) # new object
+		self.assertEqual(page.dump('plain'), text)
+		page.parse('plain', newtext)
+		self.assertEqual(page.dump('plain'), newtext)
+		self.store.store_page(page)
+		page = self.store.get_page(page) # new object
+		self.assertEqual(page.dump('plain'), newtext)
+
+		# check revert page triggers ui object
+		page._ui_object = tests.MockObject()
+		self.store.revert_page(page)
+		self.assertEqual(page._ui_object.mock_calls[-1][0], 'set_parsetree')
+
+		if hasattr(page, 'source') and isinstance(page.source, File):
+			# check revert also works when the actual file changed
+			# (and not trigger mtime check failure)
+			from tests.fs import modify_file_mtime, FilterOverWriteWarning
+			page = self.store.get_page(Path('Test:foo'))
+			text = page.dump('plain')
+			newtext = ['Foo bar baz\n']
+			othertext = ['Dus ja\n']
+			assert newtext != text
+			assert othertext != text
+			page.parse('plain', newtext)
+			modify_file_mtime(page.source.path, lambda p: open(p, 'w').writelines(othertext))
+			with FilterOverWriteWarning():
+				self.assertRaises(FileWriteError, self.store.store_page, page)
+			self.store.revert_page(page)
+			self.assertEqual(page.dump('plain'), othertext)
+			page.parse('plain', newtext)
+			self.store.store_page(page)
+			page = self.store.get_page(page) # new object
+			self.assertEqual(page.dump('plain'), newtext)
+
 		# check test setup OK
 		for path in (Path('Test:BAR'), Path('NewPage')):
 			page = self.store.get_page(path)

@@ -171,6 +171,24 @@ class StoreClass():
 			if callback:
 				callback(True, None, None, data)
 
+	def revert_page(self, page):
+		'''Revert the state of an un-stored page object
+
+		Does not return a page object, changes are in the object
+		supplied. This allows to revert an object that is being
+		edited by the user interface.
+
+		OPTIONAL METHOD, could be implemented by sub-classes. In this
+		base class it defaults to requesting a new copy of the page
+		and copying the parse tree to the old object.
+
+		Needs to be overloaded when the page hs more internal state
+		(e.g. a file object with mtime check).
+		'''
+		newpage = self.get_page(page)
+		page.set_parsetree(newpage.get_parsetree())
+		page.modified = False
+
 	def move_page(self, path, newpath):
 		'''ABSTRACT METHOD, must be implemented in sub-class if store is
 		writable.
