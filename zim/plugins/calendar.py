@@ -205,10 +205,14 @@ This is a core plugin shipping with zim.
 		or for the template used to create a new page. Will set parameters in
 		the template dict to be used in the template.
 		'''
-		year, month, day = 0, 1, 1
+		year, month, week, day = 0, 1, 0, 1
 		if date_path_re.match(page.name):
 			type = 'day'
 			year, month, day = page.name.rsplit(':', 3)[-3:]
+		elif week_path_re.match(page.name):
+			type = 'week'
+			year, week = page.name.rsplit(':', 2)[-2:]
+			week = week[5:]
 		elif month_path_re.match(page.name):
 			type = 'month'
 			year, month = page.name.rsplit(':', 2)[-2:]
@@ -218,10 +222,17 @@ This is a core plugin shipping with zim.
 		else:
 			return # Not a calendar page
 
-		year, month, day = map(int, (year, month, day))
+		year, month, week, day = map(int, (year, month, week, day))
+		date = datetime.date(year, month, day)
+		if week > 0:
+			date = date + datetime.timedelta(week*7 - datetime.date(year, 1, 1).weekday() - 1)
+			end_date = date + datetime.timedelta(6)
+		else:
+			end_date = date + datetime.timedelta(6 - datetime.date(year, 1, 1).weekday() - 1)
 		dict['calendar_plugin'] = {
 			'page_type': type,
-			'date': datetime.date(year, month, day)
+			'date': date,
+			'end_date': end_date
 		}
 
 	def suggest_link(self, source, text):
