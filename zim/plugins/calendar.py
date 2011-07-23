@@ -81,7 +81,9 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
+		('granularity', 'choice', _('Use a page for each'), 'Day', ['Day', 'Week', 'Month', 'Year']), 
 		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
+		#('xpto', 'int', 'Page granularity.', 0), 
 	)
 
 	def __init__(self, ui):
@@ -162,8 +164,15 @@ This is a core plugin shipping with zim.
 
 	def path_from_date(self, date):
 		'''Returns the path for a calendar page for a specific date'''
-		return Path( self.preferences['namespace']
-						+ ':' + date.strftime('%Y:%m:%d') )
+		if self.preferences['granularity'] == 'Day':
+			path = date.strftime('%Y:%m:%d')
+		elif self.preferences['granularity'] == 'Week':
+			path = date.strftime('%Y:Week %U')
+		elif self.preferences['granularity'] == 'Month':
+			path = date.strftime('%Y:%m')
+		elif self.preferences['granularity'] == 'Year':
+			path = date.strftime('%Y')
+		return Path( self.preferences['namespace'] + ':' + path )
 
 	def path_for_month_from_date(self, date):
 		'''Returns the namespace path for a certain month'''
