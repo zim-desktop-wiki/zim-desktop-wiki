@@ -59,6 +59,7 @@ KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'
 KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
 date_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}:\d{2}$')
+week_path_re = re.compile(r'^(.*:)?\d{4}:Week \d{2}$')
 month_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}$')
 year_path_re = re.compile(r'^(.*:)?\d{4}$')
 
@@ -181,10 +182,23 @@ This is a core plugin shipping with zim.
 
 	def date_from_path(self, path):
 		'''Returns a datetime.date object for a calendar page'''
-		assert date_path_re.match(path.name), 'Not an date path: %s' % path.name
-		year, month, day = path.name.rsplit(':', 3)[-3:]
-		year, month, day = map(int, (year, month, day))
-		return datetime.date(year, month, day)
+		year, month, week, day = 0, 1, 0, 1
+		if date_path_re.match(path.name):
+			year, month, day = path.name.rsplit(':', 3)[-3:]
+		elif week_path_re.match(path.name):
+			year, week = path.name.rsplit(':', 2)[-2:]
+			week = week[5:]
+		elif month_path_re.match(path.name):
+			year, month = path.name.rsplit(':', 2)[-2:]
+		elif year_path_re.match(path.name):
+			year = path.name.rsplit(':', 1)[-1]
+		else:
+			assert False, 'Not a date path: %s' % path.name
+		year, month, week, day = map(int, (year, month, week, day))
+		date = datetime.date(year, month, day)
+		if week > 0:
+			date = date + datetime.timedelta(week*7 - datetime.date(year, 1, 1).isoweekday())
+		return date
 
 	def on_process_page_template(self, manager, template, page, dict):
 		'''Callback called when parsing a template, e.g. when exposing a page
