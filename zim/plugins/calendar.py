@@ -116,7 +116,6 @@ This is a core plugin shipping with zim.
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
 		('granularity', 'choice', _('Use a page for each'), 'Day', ['Day', 'Week', 'Month', 'Year']), 
 		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
-		#('xpto', 'int', 'Page granularity.', 0), 
 	)
 
 	def __init__(self, ui):
