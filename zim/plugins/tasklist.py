@@ -101,10 +101,12 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog
 		('tag_by_page', 'bool', _('Turn page name into tags for task items'), False),
 			# T: label for plugin preferences dialog
+		('deadline_by_page', 'bool', _('Implicit deadline for task items in calendar page'), False),
+			# T: label for plugin preferences dialog
 		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', check_class_allow_empty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 	)
-	_rebuild_on_preferences = ['all_checkboxes', 'labels']
+	_rebuild_on_preferences = ['all_checkboxes', 'labels','deadline_by_page']
 		# Rebuild database table if any of these preferences changed.
 		# But leave it alone if others change.
 
@@ -201,7 +203,7 @@ This is a core plugin shipping with zim.
 
 		#~ print '!! Checking for tasks in', path
 		dates = daterange_from_path(path)
-		if dates:
+		if dates and self.preferences['deadline_by_page']:
 			deadline = dates[2]
 		else:
 			deadline = None
@@ -224,7 +226,6 @@ This is a core plugin shipping with zim.
 	def extract_tasks(self, parsetree, deadline):
 		'''Extract all tasks from a parsetree.
 		Returns tuples for each tasks with following properties:
-
 			(open, actionable, prio, due, description)
 		'''
 		tasks = []
