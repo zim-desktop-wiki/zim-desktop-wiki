@@ -22,6 +22,7 @@ from zim.async import DelayedCallback
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 from zim.config import check_class_allow_empty
 
+from zim.plugins.calendar import daterange_from_path
 
 logger = logging.getLogger('zim.plugins.tasklist')
 
@@ -199,7 +200,12 @@ This is a core plugin shipping with zim.
 			parsetree = parser.parse(text)
 
 		#~ print '!! Checking for tasks in', path
-		tasks = self.extract_tasks(parsetree)
+		dates = daterange_from_path(path)
+		if dates:
+			deadline = dates[2]
+		else:
+			deadline = None
+		tasks = self.extract_tasks(parsetree, deadline)
 		if tasks:
 			tasksfound = True
 
@@ -215,9 +221,10 @@ This is a core plugin shipping with zim.
 		if tasksfound:
 			self.emit('tasklist-changed')
 
-	def extract_tasks(self, parsetree):
+	def extract_tasks(self, parsetree, deadline):
 		'''Extract all tasks from a parsetree.
 		Returns tuples for each tasks with following properties:
+
 			(open, actionable, prio, due, description)
 		'''
 		tasks = []
@@ -250,11 +257,11 @@ This is a core plugin shipping with zim.
 					if istasklist or self.preferences['all_checkboxes'] \
 					or (self.task_labels and self.task_label_re.match(item[2])):
 						open = item[0] == UNCHECKED_BOX
-						tasks.append(self._parse_task(item[2], level=item[1], open=open, tags=globaltags))
+						tasks.append(self._parse_task(item[2], level=item[1], open=open, tags=globaltags, deadline=deadline))
 				else:
 					# normal line
 					if self.task_labels and self.task_label_re.match(item):
-						tasks.append(self._parse_task(item, tags=globaltags))
+						tasks.append(self._parse_task(item, tags=globaltags, deadline=deadline))
 
 		return tasks
 
@@ -307,7 +314,7 @@ This is a core plugin shipping with zim.
 			text += child.tail or ''
 		return text
 
-	def _parse_task(self, text, level=0, open=True, tags=None):
+	def _parse_task(self, text, level=0, open=True, tags=None, deadline=None):
 		# TODO - determine if actionable or not
 		prio = text.count('!')
 
@@ -331,6 +338,10 @@ This is a core plugin shipping with zim.
 					text += ' ' + tag
 
 		text = date_re.sub(set_date, text)
+
+		if deadline and date == '9999':
+			date = deadline
+
 		return (open, True, prio, date, text)
 			# (open, actionable, prio, due, description)
 
