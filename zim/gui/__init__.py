@@ -314,6 +314,7 @@ class GtkInterface(NotebookInterface):
 		self.readonly = False
 		self.usedaemon = usedaemon
 		self.hideonclose = False
+		self.windows = set()
 
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
@@ -790,7 +791,8 @@ class GtkInterface(NotebookInterface):
 		self.emit('new-window', window)
 
 	def do_new_window(self, window):
-		pass # TODO: keep register of pageviews
+		self.windows.add(window)
+		window.connect('destroy', lambda w: self.windows.discard(w))
 
 	def get_path_context(self):
 		'''Returns the current 'context' for actions that want a path to start
