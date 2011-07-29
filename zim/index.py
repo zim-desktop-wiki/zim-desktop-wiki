@@ -1708,7 +1708,8 @@ class PropertiesDict(object):
 
 	def _set(self, k, v):
 		cursor = self.db.cursor()
-		cursor.execute('update meta set value = ? where key == ?', (v, k))
+		cursor.execute('delete from meta where key=?', (k,))
+		cursor.execute('insert into meta(key, value) values (?, ?)', (k, v))
 
 	def __getitem__(self, k):
 		try:

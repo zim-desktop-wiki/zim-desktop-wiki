@@ -187,6 +187,22 @@ class PluginClassMeta(gobject.GObjectMeta):
 		klass.__init__ = decoratedinit
 
 
+		origfinalize = klass.finalize_ui
+
+		def decoratedfinalize(self, ui, *arg, **kwarg):
+			origfinalize(self, ui, *arg, **kwarg)
+			if not self.__class__ is klass:
+				return # Avoid wrapping both base class and sub classes
+			#~ print 'FINALIZE UI', self
+			ui.connect_object('new-window', self.__class__.do_decorate_window, self)
+			for window in ui.windows:
+				self.do_decorate_window(window)
+
+		klass.finalize_ui = decoratedfinalize
+
+
+
+
 class PluginClass(gobject.GObject):
 	'''Base class for plugins. Every module containing a plugin should
 	have exactly one class derived from this base class. That class
@@ -319,6 +335,13 @@ class PluginClass(gobject.GObject):
 		Can be overloaded by subclasses.
 		'''
 		# FIXME more documentation how / when to use this
+		pass
+
+	def do_decorate_window(self, window):
+		'''Callback which is called for each window and dialog that
+		opens in zim.
+		May be overloaded by sub classes
+		'''
 		pass
 
 	def do_preferences_changed(self):

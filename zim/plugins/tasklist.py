@@ -69,6 +69,9 @@ tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
 date_re = re.compile(r'\s*\[d:(.+)\]')
 
 
+_NO_DATE = '9999' # Constant for empty due date - value chosen for sorting properties
+
+
 # FUTURE: add an interface for this plugin in the WWW frontend
 
 # TODO allow more complex queries for filter, in particular (NOT tag AND tag)
@@ -312,12 +315,12 @@ This is a core plugin shipping with zim.
 		prio = text.count('!')
 
 		global date # FIXME
-		date = '9999' # For sorting order this is good empty value
+		date = _NO_DATE
 
 		def set_date(match):
 			global date
 			mydate = parse_date(match.group(0))
-			if mydate and date == '9999':
+			if mydate and date == _NO_DATE:
 				date = '%04i-%02i-%02i' % mydate # (y, m, d)
 				#~ return match.group(0) # TEST
 				return ''
@@ -609,7 +612,7 @@ class TaskListTreeView(BrowserTreeView):
 		dayafter = str( datetime.date.today() + datetime.timedelta(days=2))
 		def render_date(col, cell, model, i):
 			date = model.get_value(i, self.DATE_COL)
-			if date == '9999':
+			if date == _NO_DATE:
 				cell.set_property('text', '')
 			else:
 				cell.set_property('text', date)
@@ -807,23 +810,102 @@ class TaskListTreeView(BrowserTreeView):
 		return True
 
 	def copy_to_clipboard(self):
-		'''Exports currently visable elements from the tasks list'''
+		'''Exports currently visible elements from the tasks list'''
 		logger.debug('Exporting to clipboard current view of task list.')
+		text = self.get_visible_data_as_csv()
+		gtk.Clipboard().set_text(text.decode("UTF-8"))
+
+	def get_visible_data_as_csv(self):
+		text = ""
+		for prio, desc, date, page in self.get_visible_data():
+			prio = str(prio)
+			desc = '"' + desc.replace('"', '""') + '"'
+			text += ",".join((prio, desc, date, page)) + "\n"
+		return text
+
+	def get_visible_data_as_html(self):
+		html = '''\
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Task List - Zim</title>
+		<meta name='Generator' content='Zim [% zim.version %]'>
+		<style type='text/css'>
+			table.tasklist {
+				border-width: 1px;
+				border-spacing: 2px;
+				border-style: solid;
+				border-color: gray;
+				border-collapse: collapse;
+			}
+			table.tasklist th {
+				border-width: 1px;
+				padding: 1px;
+				border-style: solid;
+				border-color: gray;
+			}
+			table.tasklist td {
+				border-width: 1px;
+				padding: 1px;
+				border-style: solid;
+				border-color: gray;
+			}
+			.high {background-color: #EF2929}
+			.medium {background-color: #FCAF3E}
+			.alert {background-color: #FCE94F}
+		</style>
+	</head>
+	<body>
+
+<h1>Task List - Zim</h1>
+
+<table class="tasklist">
+<tr><th>Prio</th><th>Task</th><th>Date</th><th>Page</th></tr>
+'''
+
+		today    = str( datetime.date.today() )
+		tomorrow = str( datetime.date.today() + datetime.timedelta(days=1))
+		dayafter = str( datetime.date.today() + datetime.timedelta(days=2))
+		for prio, desc, date, page in self.get_visible_data():
+			if prio >= 3: prio = '<td class="high">%s</td>' % prio
+			elif prio == 2: prio = '<td class="medium">%s</td>' % prio
+			elif prio == 1: prio = '<td class="alert">%s</td>' % prio
+			else: prio = '<td>%s</td>' % prio
+
+			if date and date <= today: date = '<td class="high">%s</td>' % date
+			elif date == tomorrow: date = '<td class="medium">%s</td>' % date
+			elif date == dayafter: date = '<td class="alert">%s</td>' % date
+			else: date = '<td>%s</td>' % date
+
+			desc = '<td>%s</td>' % desc
+			page = '<td>%s</td>' % page
+
+			html += '<tr>' + prio + desc + date + page + '</tr>'
+
+		html += '''\
+</table>
+
+	</body>
+
+</html>
+'''
+		return html
+
+	def get_visible_data(self):
+		rows = []
 		model = self.get_model()
-		tasks = ""
 		for row in model:
-			# only open items
-			if row[self.OPEN_COL]:
-				tags = set()
-				vis, prio, desc, due, path_name, actionable, opn = row
-				if due == "9999": due = "-"
-				for match in tag_re.findall(desc.decode("UTF-8")):
-					tags.add(match)
-					tasks += "Description: %s\nPriority: %s,  Actionable: %s,  Open: %s,  Due: %s\nPath: %s,  Tags: %s\n\n" % (desc, prio, actionable, opn, due, path_name, ", ".join(tags))
-		tasks += "Number of tasks: %s. Exported: %s" \
-				% (len(model), str(datetime.now()))
-		#~ print tasks
-		gtk.Clipboard().set_text(tasks.decode("UTF-8"))
+			prio = row[self.PRIO_COL]
+			desc = row[self.TASK_COL]
+			date = row[self.DATE_COL]
+			page = row[self.PAGE_COL]
+
+			if date == _NO_DATE:
+				date = ''
+
+			rows.append((prio, desc, date, page))
+		return rows
 
 # Need to register classes defining gobject signals
 gobject.type_register(TaskListTreeView)
