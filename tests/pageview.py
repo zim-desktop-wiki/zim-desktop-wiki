@@ -7,7 +7,7 @@ from __future__ import with_statement
 import tests
 
 
-from zim.fs import *
+from zim.fs import File, Dir
 from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
@@ -472,7 +472,7 @@ class TestUndoStackManager(tests.TestCase):
 		iter = buffer.get_iter_at_offset(7)
 		buffer.place_cursor(iter)
 		buffer.select_word()
-		buffer.toggle_textstyle('strong', interactive=True)
+		buffer.toggle_textstyle('strong')
 		self.assertEqual(buffer.get_parsetree().tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo <strong>barr</strong> baz</zim-tree>")
 
@@ -663,8 +663,7 @@ Tja
 		undomanager = UndoStackManager(buffer)
 
 		# check list initializes properly
-		iter = buffer.get_iter_at_line(3) # Bar 1
-		row, list = TextBufferList.new_from_iter(buffer, iter)
+		row, list = TextBufferList.new_from_line(buffer, 3) # Bar 1
 		self.assertEqual(list.firstline, 1)
 		self.assertEqual(list.lastline, 7)
 		self.assertEqual(row, 2)
@@ -679,13 +678,11 @@ Tja
 		] )
 
 		# Exercise indenting
-		iter = buffer.get_iter_at_line(3) # Bar 1
-		row, list = TextBufferList.new_from_iter(buffer, iter)
+		row, list = TextBufferList.new_from_line(buffer, 3) # Bar 1
 		self.assertFalse(list.can_indent(row))
 		self.assertFalse(list.indent(row))
 
-		iter = buffer.get_iter_at_line(2) # Bar
-		row, list = TextBufferList.new_from_iter(buffer, iter)
+		row, list = TextBufferList.new_from_line(buffer, 2) # Bar
 		self.assertTrue(list.can_indent(row))
 		self.assertTrue(list.indent(row))
 		self.assertFalse(list.can_indent(row))
@@ -705,13 +702,11 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-		iter = buffer.get_iter_at_line(7) # Baz
-		row, list = TextBufferList.new_from_iter(buffer, iter)
+		row, list = TextBufferList.new_from_line(buffer, 7) # Baz
 		self.assertFalse(list.can_unindent(row))
 		self.assertFalse(list.unindent(row))
 
-		iter = buffer.get_iter_at_line(3) # Bar 1
-		row, list = TextBufferList.new_from_iter(buffer, iter)
+		row, list = TextBufferList.new_from_line(buffer, 3) # Bar 1
 		self.assertTrue(list.can_unindent(row))
 		self.assertTrue(list.unindent(row))
 
@@ -731,8 +726,7 @@ Tja
 		self.assertEqual(tree.tostring(), wanted)
 
 		for line in (2, 5, 6): # Bar, Bar 2 & Bar 3
-			iter = buffer.get_iter_at_line(line)
-			row, list = TextBufferList.new_from_iter(buffer, iter)
+			row, list = TextBufferList.new_from_line(buffer, line)
 			self.assertTrue(list.can_unindent(row))
 			self.assertTrue(list.unindent(row))
 
@@ -782,8 +776,7 @@ Tja
 		undomanager = UndoStackManager(buffer)
 
 
-		iter = buffer.get_iter_at_line(2) # Bar
-		row, list = TextBufferList.new_from_iter(buffer, iter)
+		row, list = TextBufferList.new_from_line(buffer, 2) # Bar
 		list.set_bullet(row, CHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>

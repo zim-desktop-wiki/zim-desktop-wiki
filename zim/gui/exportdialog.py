@@ -4,10 +4,11 @@
 
 import gtk
 
-from zim.fs import *
-from zim.exporter import Exporter
 import zim.formats
 import zim.templates
+
+from zim.fs import File, Dir
+from zim.exporter import Exporter
 from zim.stores import encode_filename
 from zim.gui.widgets import Assistant, AssistantPage, \
 	ProgressBarDialog, ErrorDialog, QuestionDialog

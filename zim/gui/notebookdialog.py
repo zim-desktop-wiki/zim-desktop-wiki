@@ -16,7 +16,7 @@ import gtk
 import pango
 import logging
 
-from zim.fs import *
+from zim.fs import File, Dir
 from zim.notebook import get_notebook_list, init_notebook, NotebookInfo
 from zim.config import data_file
 from zim.gui.widgets import ui_environment, Dialog, IconButton, _encode_xml
@@ -56,11 +56,11 @@ def prompt_notebook():
 class NotebookTreeModel(gtk.ListStore):
 	'''TreeModel that wraps a notebook list
 
-	@column OPEN_COL: boolean, True if the notebook is opened already
-	@column NAME_COL: string, name of the notebook
-	@column TEXT_COL: string, formatted string containg the name and path
-	@column PIXBUF_COL: gtk.gdk.Pixbuf, the icon of the notebook (if any)
-	@column INFO_COL: L{NotebookInfo} object
+	@column: C{OPEN_COL}: boolean, True if the notebook is opened already
+	@column: C{NAME_COL}: string, name of the notebook
+	@column: C{TEXT_COL}: string, formatted string containg the name and path
+	@column: C{PIXBUF_COL}: gtk.gdk.Pixbuf, the icon of the notebook (if any)
+	@column: C{INFO_COL}: L{NotebookInfo} object
 
 	@note: To refer to the notebook in an unambiguous way, use the uri stored
 	in the L{NotebookInfo} object.

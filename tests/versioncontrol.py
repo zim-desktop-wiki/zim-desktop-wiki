@@ -7,7 +7,7 @@ import tests
 import os
 import tempfile
 
-from zim.fs import *
+from zim.fs import File, Dir
 from zim.plugins.versioncontrol import VersionControlPlugin, NoChangesError
 from zim.plugins.versioncontrol.bzr import BazaarVCS
 

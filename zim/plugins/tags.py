@@ -607,8 +607,7 @@ class TagCloudWidget(gtk.TextView):
 	'''Text-view based list of tags, where each tag is represented by a
 	button inserted as a child in the textview.
 
-	Signals:
-	  * selection-changed: emitted when tag selection changes
+	@signal: C{selection-changed ()}: emitted when tag selection changes
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)

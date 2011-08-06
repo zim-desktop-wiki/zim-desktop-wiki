@@ -8,7 +8,7 @@ from zim.fs import File, TmpFile
 from zim.plugins import PluginClass
 from zim.config import data_file
 from zim.applications import Application
-from zim.gui.imagegeneratordialog import ImageGeneratorDialog
+from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
 
 # TODO put these commands in preferences
 dotcmd = ('dot', '-Tpng', '-o')
@@ -83,9 +83,7 @@ class InsertDiagramDialog(ImageGeneratorDialog):
 			generator, image, help=':Plugins:Diagram Editor' )
 
 
-class DiagramGenerator(object):
-
-	# TODO: generic base class for image generators
+class DiagramGenerator(ImageGeneratorClass):
 
 	type = 'diagram'
 	basename = 'diagram.dot'

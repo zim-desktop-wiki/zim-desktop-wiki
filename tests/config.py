@@ -9,7 +9,7 @@ from tests import TestCase, LoggingFilter
 
 import os
 
-from zim.fs import *
+from zim.fs import File, Dir
 from zim.config import *
 from zim.notebook import Path
 import zim.config

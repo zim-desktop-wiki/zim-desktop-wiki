@@ -10,7 +10,7 @@ to the daemon, which talks to the actual gui instance.
 
 Current implementation the daemon listens to a socket, so any
 process can connect to it, while communication from the daemon to the
-gui instances uses anonymous pipes.
+gui instances uses anonymous pipes::
 
   DaemonProxy --socket--> Daemon
                             |
@@ -39,8 +39,8 @@ on the interface object or instantiate new processes with arbitrary
 classes.
 
 
-Signals supported by the daemon:
-  * notebook-list-changed - emitted when it is likely the notebook list changed
+@signal: C{notebook-list-changed ()}:
+emitted when it is likely the notebook list changed
 '''
 
 import os

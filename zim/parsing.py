@@ -105,9 +105,9 @@ def url_encode(url, mode=URL_ENCODE_PATH):
 	'''Replaces non-standard characters in urls with hex codes.
 
 	Mode can be:
-		URL_ENCODE_DATA - encode all un-safe chars
-		URL_ENCODE_PATH - encode all un-safe chars except '/'
-		URL_ENCODE_READABLE - encode whitespace and all unicode characters
+		- C{URL_ENCODE_DATA}: encode all un-safe chars
+		- C{URL_ENCODE_PATH}: encode all un-safe chars except '/'
+		- C{URL_ENCODE_READABLE}: encode whitespace and all unicode characters
 
 	The mode URL_ENCODE_READABLE can be applied to urls that are already
 	encoded because they do not touch the "%" character. The modes
@@ -144,14 +144,14 @@ def url_decode(url, mode=URL_ENCODE_PATH):
 	'''Replace url-encoding hex sequences with their proper characters.
 
 	Mode can be:
-		URL_ENCODE_DATA - decode all chars
-		URL_ENCODE_PATH - same as URL_ENCODE_DATA
-		URL_ENCODE_READABLE - decode only whitespace and unicode characters
+		- C{URL_ENCODE_DATA}: decode all chars
+		- C{URL_ENCODE_PATH}: same as URL_ENCODE_DATA
+		- C{URL_ENCODE_READABLE}: decode only whitespace and unicode characters
 
-	The mode URL_ENCODE_READABLE will not decode any other characters,
+	The mode C{URL_ENCODE_READABLE} will not decode any other characters,
 	so urls decoded with these modes can still contain escape sequences.
 	They are safe to use within zim, but should be re-encoded with
-	URL_ENCODE_READABLE before handing them to an external program.
+	C{URL_ENCODE_READABLE} before handing them to an external program.
 
 	The result is returned as a unicode string.
 	'''
@@ -176,10 +176,10 @@ def parse_date(string):
 	'''Returns a tuple of (year, month, day) for a date string or None
 	if failed to parse the string. Current supported formats:
 
-		dd?-mm?
-		dd?-mm?-yy
-		dd?-mm?-yyyy
-		yyyy-mm?-dd?
+		- C{dd?-mm?}
+		- C{dd?-mm?-yy}
+		- C{dd?-mm?-yyyy}
+		- C{yyyy-mm?-dd?}
 
 	Where '-' can be replaced by any separator. Any preceding or
 	trailing text will be ignored (so we can parse calendar page names
@@ -218,7 +218,7 @@ class Re(object):
 	last match object and gives list access to it's capturing groups.
 	See module re for regex docs.
 
-	Usage:
+	Usage::
 
 		my_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
 

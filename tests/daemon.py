@@ -10,7 +10,7 @@ import time
 import signal
 import gobject
 
-from zim.fs import *
+from zim.fs import File, Dir
 from zim.daemon import *
 
 

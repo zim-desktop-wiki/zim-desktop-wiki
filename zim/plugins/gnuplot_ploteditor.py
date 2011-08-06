@@ -19,7 +19,7 @@ from zim.plugins import PluginClass
 from zim.config import data_file
 from zim.templates import GenericTemplate
 from zim.applications import Application
-from zim.gui.imagegeneratordialog import ImageGeneratorDialog
+from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
 
 # TODO put these commands in preferences
 gnuplot_cmd = ('gnuplot',)
@@ -92,9 +92,7 @@ class InsertPlotDialog(ImageGeneratorDialog):
            generator, image, help=':Plugins:Gnuplot Editor' )
 
 
-class PlotGenerator(object):
-
-   # TODO: generic base class for image generators
+class PlotGenerator(ImageGeneratorClass):
 
    type = 'gnuplot'
    basename = 'gnuplot.gnu'

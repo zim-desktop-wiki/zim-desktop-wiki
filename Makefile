@@ -33,9 +33,8 @@ builddeb:
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 
 epydoc:
-	rm -fr ./apidoc
-	epydoc --html zim --graph umlclasstree -o ./apidoc --parse-only --no-private
-	@echo -e '\nAPI docs are available in ./apidoc'
+	epydoc --config ./epydoc.conf -v
+	@echo -e '\nAPI docs are available in ./apidocs'
 
 clean:
 	$(PYTHON) setup.py clean

@@ -6,7 +6,7 @@
 
 import tests
 
-from zim.fs import *
+from zim.fs import File, Dir
 from zim.config import config_file
 from zim.notebook import *
 from zim.index import *

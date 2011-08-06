@@ -4,8 +4,17 @@
 
 '''Package with source formats for pages.
 
+Each module in zim.formats should contains exactly one subclass of
+DumperClass and exactly one subclass of ParserClass
+(optional for export formats). These can be loaded by L{get_parser()}
+and L{get_dumper()} respectively. The requirement to have exactly one
+subclass per module means you can not import other classes that derive
+from these base classes directly into the module.
+
 For format modules it is safe to import '*' from this module.
 
+Parse tree structure
+====================
 
 Parse trees are build using the (c)ElementTree module (included in
 python 2.5 as xml.etree.ElementTree). It is basically a xml structure
@@ -13,22 +22,22 @@ supporting a subset of "html like" tags.
 
 Supported tags:
 
-* page root element for grouping paragraphs
-* p for paragraphs
-* h for heading, level attribute can be 1..6
-* pre for verbatim paragraphs (no further parsing in these blocks)
-* em for emphasis, rendered italic by default
-* strong for strong emphasis, rendered bold by default
-* mark for highlighted text, renderd with background color or underlined
-* strike for text that is removed, usually renderd as strike through
-* code for inline verbatim text
-* ul for bullet lists
-* .. for checkbox lists
-* li for list items
-* link for links, attribute href gives the target
-* img for images, attributes src, width, height an optionally href
-	* any text set on these elements should be rendered as alt
-	* type can be used to control plugin functionality, e.g. type=equation
+	- page root element for grouping paragraphs
+	- p for paragraphs
+	- h for heading, level attribute can be 1..6
+	- pre for verbatim paragraphs (no further parsing in these blocks)
+	- em for emphasis, rendered italic by default
+	- strong for strong emphasis, rendered bold by default
+	- mark for highlighted text, renderd with background color or underlined
+	- strike for text that is removed, usually renderd as strike through
+	- code for inline verbatim text
+	- ul for bullet lists
+	- .. for checkbox lists
+	- li for list items
+	- link for links, attribute href gives the target
+	- img for images, attributes src, width, height an optionally href
+		- any text set on these elements should be rendered as alt
+		- type can be used to control plugin functionality, e.g. type=equation
 
 Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
@@ -348,17 +357,17 @@ class ParseTreeBuilder(object):
 	also be used on other "dirty" interfaces.
 
 	This builder takes care of the following issues:
-	* Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines
-	* Tags can not contain only whitespace
-	* Tags can not be empty (with the exception of the 'img' tag)
-	* There should be an empty line before each 'h', 'p' or 'pre'
-	  (with the exception of the first tag in the tree)
-	* The 'p' and 'pre' elements should always end with a newline ('\n')
-	* Each 'p', 'pre' and 'h' should be postfixed with a newline ('\n')
-	  (as a results 'p' and 'pre' are followed by an empty line, the
-	   'h' does not end in a newline itself, so it is different)
-	* Newlines ('\n') after a <li> alement are removed (optional)
-	* The element '_ignore_' is silently ignored
+		- Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines
+		- Tags can not contain only whitespace
+		- Tags can not be empty (with the exception of the 'img' tag)
+		- There should be an empty line before each 'h', 'p' or 'pre'
+		  (with the exception of the first tag in the tree)
+		- The 'p' and 'pre' elements should always end with a newline ('\\n')
+		- Each 'p', 'pre' and 'h' should be postfixed with a newline ('\\n')
+		  (as a results 'p' and 'pre' are followed by an empty line, the
+		  'h' does not end in a newline itself, so it is different)
+		- Newlines ('\\n') after a <li> alement are removed (optional)
+		- The element '_ignore_' is silently ignored
 	'''
 
 	def __init__(self, remove_newlines_after_li=True):
@@ -717,16 +726,16 @@ class BaseLinker(object):
 			self._icons[name] = data_file('pixmaps/%s.png' % name).uri
 		return self._icons[name]
 
+	def resource(self, path):
+		'''To be overloaded, return an url for template resources'''
+		raise NotImplementedError
+
 	def link_page(self, link):
 		'''To be overloaded, return an url for a page link'''
 		raise NotImplementedError
 
-	def file(self, path):
-		'''To be overloaded, return an url for a page link'''
-		raise NotImplementedError
-
-	def resource(self, path):
-		'''To be overloaded, return an url for template resources'''
+	def link_file(self, path):
+		'''To be overloaded, return an url for a file link'''
 		raise NotImplementedError
 
 	def link_mailto(self, uri):

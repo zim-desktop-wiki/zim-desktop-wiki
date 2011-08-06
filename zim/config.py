@@ -2,11 +2,22 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''This module contains utilities to work with config files. It also supports looking up
-files according to the Freedesktop.org (XDG) Base Dir specification.
-'''
+'''This module contains utilities to work with config files.
 
-# TODO: remove all mention of ConfigList if it is not being used anymore
+Main classes for storing config items are L{ConfigDictFile} which maps
+"ini-style" config files, and L{ListDict} which maintains a dict of
+config keys while preserving their order.
+
+The search path for zim config files follows the freedesktop.org (XDG)
+Base Dir specification. The functions L{config_file()} and L{data_file()}
+are used to locate config and data files, while the functions
+L{config_dirs()}, L{data_dir()}, and L{data_dirs()} give access to the
+actual search path.
+
+When this module is loaded it will check the environment parameters in
+C{os.environ} and try to set proper values for C{HOME} and C{USER} if
+they are not set.
+'''
 
 import sys
 import os
@@ -49,12 +60,12 @@ if not 'USER' in os.environ or not os.environ['USER']:
 	logger.info('Environment variable $USER was not set')
 
 
-ZIM_DATA_DIR = None
-XDG_DATA_HOME = None
-XDG_DATA_DIRS = None
-XDG_CONFIG_HOME = None
-XDG_CONFIG_DIRS = None
-XDG_CACHE_HOME = None
+ZIM_DATA_DIR = None #: 'data' dir relative to script file (when running from source), L{Dir} or C{None}
+XDG_DATA_HOME = None #: L{Dir} for XDG data home
+XDG_DATA_DIRS = None #: list of L{Dir} objects for XDG data dirs path
+XDG_CONFIG_HOME = None #: L{Dir} for XDG config home
+XDG_CONFIG_DIRS = None #: list of L{Dir} objects for XDG config dirs path
+XDG_CACHE_HOME = None #: L{Dir} for XDG cache home
 
 def _set_basedirs():
 	'''This method sets the global configuration paths for according to the
@@ -107,7 +118,9 @@ def _set_basedirs():
 _set_basedirs()
 
 def log_basedirs():
-	'''Put the basedirs in use into logging'''
+	'''Write the search paths used to the logger, used to generate
+	debug output
+	'''
 	if ZIM_DATA_DIR:
 		logger.debug('Running from a source dir: %s', ZIM_DATA_DIR.dir)
 	else:
@@ -120,8 +133,12 @@ def log_basedirs():
 
 
 def data_dirs(path=None):
-	'''Generator for paths that contain zim data files. These will be the
-	equivalent of e.g. /usr/share/zim, /usr/local/share/zim etc..
+	'''Generator listing paths that contain zim data files in the order
+	that they should be searched. These will be the equivalent of
+	e.g. "~/.local/share/zim", "/usr/share/zim", etc.
+	@param path: a file path relative to to the data dir, including this
+	will list sub-folders with this relative path.
+	@returns: yields L{Dir} objects for the data dirs
 	'''
 	zimpath = ['zim']
 	if path:
@@ -142,8 +159,12 @@ def data_dirs(path=None):
 		yield dir.subdir(zimpath)
 
 def data_dir(path):
-	'''Takes a path relative to the zim data dir and returns the first subdir
-	found doing a lookup over all data dirs.
+	'''Get an data dir sub-folder.  Will look up C{path} relative
+	to all data dirs and return the first one that exists. Use this
+	function to find any folders from the "data/" folder in the source
+	package.
+	@param path:  a file path relative to to the data dir
+	@returns: a L{Dir} object or C{None}
 	'''
 	for dir in data_dirs(path):
 		if dir.exists():
@@ -152,8 +173,11 @@ def data_dir(path):
 		return None
 
 def data_file(path):
-	'''Takes a path relative to the zim data dir and returns the first file
-	found doing a lookup over all data dirs.
+	'''Get a data file. Will look up C{path} relative to all data dirs
+	and return the first one that exists. Use this function to find
+	any files from the "data/" folder in the source package.
+	@param path:  a file path relative to to the data dir (e.g. "zim.png")
+	@returns: a L{File} object or C{None}
 	'''
 	for dir in data_dirs():
 		file = dir.file(path)
@@ -163,10 +187,14 @@ def data_file(path):
 		return None
 
 def config_dirs():
-	'''Generator that first yields the equivalent of ~/.config/zim and
-	/etc/xdg/zim and then continuous with the data dirs. Zim is not strictly
-	XDG conformant by installing default config files in /usr/share/zim instead
-	of in /etc/xdg/zim. Therefore this function yields both.
+	'''Generator listing paths for zim config files. These will be the
+	equivalent of e.g. "~/.config/zim", "/etc/xdg/zim" etc.
+
+	Zim is not strictly XDG conformant by installing default config
+	files in "/usr/share/zim" instead of in "/etc/xdg/zim". Therefore
+	this function yields both.
+
+	@returns: yields L{Dir} objects for all config and data dirs
 	'''
 	yield XDG_CONFIG_HOME.subdir(('zim'))
 	for dir in XDG_CONFIG_DIRS:
@@ -175,10 +203,22 @@ def config_dirs():
 		yield dir
 
 def config_file(path, klass=None):
-	'''Takes a path relative to the zim config dir and returns a file equivalent
-	to ~/.config/zim/path . Based on the file extension a ConfigDictFile object,
-	a ConfigListFile object or a normal File object is returned. In the case a
-	ConfigDictFile is returned the default is also set when needed.
+	'''Get a zim config file.
+
+	Use this as the main function to find config files.
+
+	@param path: the relative file path of the config file,
+	e.g. "preferences.conf"
+
+	@param klass: a class object to use for the returned config file,
+	defaults to L{ConfigDictFile} for files ending with ".conf", and
+	L{TextConfigFile} for all other files. Constructor of this class
+	should take the same arguments as L{ConfigDictFile}.
+
+	@returns: a config file object of the class specified, even if no
+	config file of this name exists (yet). Typically this object will
+	read values of any installed default, but write new values to the
+	config home.
 	'''
 	if isinstance(path, basestring):
 		path = [path]
@@ -203,7 +243,12 @@ def config_file(path, klass=None):
 		return TextConfigFile(file, default=default)
 
 def user_dirs():
-	'''Returns a dict with directories for the xdg user dirs'''
+	'''Get the XDG user dirs.
+	@returns: a dict with directories for the XDG user dirs. These are
+	typically defined in "~/.config/user-dirs.dirs". Common user dirs
+	are: "XDG_DESKTOP_DIR", "XDG_DOWNLOAD_DIR", etc. If no definition
+	is found an empty dict will be returned.
+	'''
 	dirs = {}
 	file = XDG_CONFIG_HOME.file('user-dirs.dirs')
 	try:
@@ -225,12 +270,22 @@ def user_dirs():
 
 
 def check_class_allow_empty(value, default):
-	'''Check function for setdefault() which ensures the value is of
-	the same class as the default but allows it to be empty. This is
-	the same as the default behavior when "allow_empty" is True.
+	'''Check function for L{ListDict.setdefault()} which ensures the
+	value is of the same class as the default if it is set, but also
+	allows it to be empty (empty string or C{None}). This is
+	the same as the default behavior when "C{allow_empty}" is C{True}.
+	It will convert C{list} type to C{tuple} automatically if the
+	default is a tuple.
 
-	Only reason to use this function is for places where setdefault()
-	is called indirectly, e.g. with arguments from plugin preferences.
+	This function can be used in cases where the check is provided
+	inderictly and C{allow_empty} can not be passed along, e.g.
+	in the definition of plugin preferences.
+
+	@param value: the value in the dict
+	@param default: the default that is set
+	@returns: the new value to set
+	@raises AssertionError: when the value if of the wrong class
+	(which will result in C{setdefault()} setting the default value)
 	'''
 	klass = default.__class__
 	if issubclass(klass, basestring):
@@ -246,8 +301,16 @@ def check_class_allow_empty(value, default):
 
 
 def value_is_coord(value, default):
-	'''Check function for setdefault() which enforces a coordinate
-	(a tuple or list of 2 ints).
+	'''Check function for L{ListDict.setdefault()} which will check
+	whether the value is a coordinate (a tuple of two integers). This
+	is e.g. used to store for window coordinates. If the value is a
+	list of two integers, it will automatically be converted to a tuple.
+
+	@param value: the value in the dict
+	@param default: the default that is set
+	@returns: the new value to set
+	@raises AssertionError: when the value is not a coordinate tuple
+	(which will result in C{setdefault()} setting the default value)
 	'''
 	if isinstance(value, list):
 		value = tuple(value)
@@ -265,8 +328,15 @@ def value_is_coord(value, default):
 
 class ListDict(dict):
 	'''Class that behaves like a dict but keeps items in same order.
-	Used as base class for e.g. for config objects were writing should be
-	in a predictable order.
+	This is the base class for all dicts holding config items in zim.
+	Most importantly it is used for each section in the L{ConfigDict}.
+	Because it remembers the order of the items in the dict, the order
+	in which they will be written to a config file is predictable.
+	Another important function is to check the config values have
+	proper values, this is enforced by L{setdefault()}.
+
+	@ivar modified: C{True} when the values were modified, used to e.g.
+	track when a config needs to be written back to file
 	'''
 
 	def __init__(self):
@@ -274,14 +344,15 @@ class ListDict(dict):
 		self._modified = False
 
 	def copy(self):
-		'''Shallow copy'''
+		'''Shallow copy of the items
+		@returns: a new object of the same class with the same items
+		'''
 		new = self.__class__()
 		new.update(self)
 		return new
 
 	@property
 	def modified(self):
-		'''Recursive property'''
 		if self._modified:
 			return True
 		else:
@@ -289,6 +360,10 @@ class ListDict(dict):
 									if isinstance(v, ListDict))
 
 	def set_modified(self, modified):
+		'''Set the modified state. Used to reset modified to C{False}
+		after the configuration has been saved to file.
+		@param modified: C{True} or C{False}
+		'''
 		if modified:
 			self._modified = True
 		else:
@@ -298,6 +373,7 @@ class ListDict(dict):
 					v.set_modified(False)
 
 	def update(D, E=None, **F):
+		'''Like C{dict.update()}'''
 		if E and hasattr(E, 'keys'):
 			for k in E: D[k] = E[k]
 		elif E:
@@ -318,53 +394,73 @@ class ListDict(dict):
 		return iter(self.order)
 
 	def pop(self, k):
+		'''Like C{dict.pop()}'''
 		v = dict.pop(self, k)
 		self.order.remove(k)
 		return v
 
-	# Would expect that setdefault() triggers __setitem__
-	# but this seems not to be the case in the standard implementation
-	# And we added some extra functionality here
 	def setdefault(self, key, default, check=None, allow_empty=False):
-		'''Like dict.setdefault() but with some extra restriction
-		because we assume un-safe user input. If no extra arguments
-		are given it will compare the classes of the set value and the
-		default to ensure we get what we expect. An exception is made
-		when value is None, in that case it is good practice to always
-		specify a class or check function. When the default is a string
-		we check the value to be an instance of basestring (ignoring
-		difference between str and unicode). Another special case is when
-		the default is a tuple and the value is a list, in this case the
-		value will be cast to a tuple.
+		'''Set the default value for a configuration item.
 
-		If 'check' is given and is a class the existing value will be
-		checked to be of that class and reset to default if it is not.
-		Same special case for tuples applies here.
+		Compatible with C{dict.setdefault()} but extended with
+		functionality to check the value that is in the dict, and use
+		the default if the value is mal-formed. This is used extensively
+		in zim to do a sanity check on values in the configuration
+		files. If you initialize the config items with this method you
+		can assume them to be safe afterward and avoid a lot of checks
+		or bugs later in the code.
 
-		If 'check' is given and it is a function it will be used to
-		check the value in the dictionary if it exists. The check
-		function gets the current value and the default value as
-		arguments. The function should raise an AssertionError when the
-		value is not ok. The return value of the function is used to
-		replace the current value, so the check function can coerce
-		values into the proper form (but don't use this to return a
-		default!).
-		( Note that 'assert' statements in the code can be removed
-		by code optimization, so explicitly call 'raise' to raise the
-		AssertionError. )
+		@param key: the dict key
+		@param default: the default value for this key
 
-		If 'check' is given and is a set the value will be tested
-		against this set. If 'check' is a list or a tuple and the
-		default is not an int it is also considered a set.
+		@param check: the check to do on the values, when the check
+		fails the value is considered mal-formed and the default is
+		used while a warning is logged.
 
-		If the default is an integer and 'check' is a tuple of two
+		If C{check} is C{None} the default behavior will be to compare
+		the classes of the set value and the default and enforce them to
+		be of the same type. Automatic conversion is done for values of
+		type C{list} with defaults of type C{tuple}. And for defaults of
+		type C{str} or C{unicode} the C{basestring} type is used as
+		check. As a special case when the default is C{None} the check
+		is not allowed to be C{None} as well.
+
+		If C{check} is given and it is a class the existing value will be
+		checked to be of that class. Same special case for tuples
+		and strings applies here.
+
+		If C{check} is given and is a C{set}, C{list} or C{tuple} the
+		value will be tested to be in this set or list.
+
+		If the default is an integer and C{check} is a tuple of two
 		integers, the check will be that the value is in this range.
-		(For compatibility with InputForm.add_inputs arguments.)
+		(For compatibility with L{InputForm} extra argument for integer
+		spin boxes.)
 
-		If 'allow_empty' is True values are also allowed to be empty
-		string or None. This is used for optional parameters in the
-		config. By default 'allow_empty' is False but it is set to
-		True implicitly when the default value is None or ''.
+		If C{check} is given and it is a function it will be used to
+		check the value in the dictionary if it exists. The function
+		is called as::
+
+			check(value, default)
+
+		Where C{value} is the current value in the dict and C{default}
+		is the default value that was provided. The function can not
+		only check the value, it can also do on the fly modifications,
+		e.g. to coerce it into a specific type. If the value is OK the
+		function should return the (modified) value, if not it should
+		raise an C{AssertionError}. When this error is raised the
+		default is used and the dict is considered being modified.
+
+		( Note that 'assert' statements in the code can be removed
+		by code optimization, so explicitly call "C{raise AssertionError}". )
+
+		Examples of functions that can be used as a check are:
+		L{check_class_allow_empty} and L{value_is_coord}.
+
+		@param allow_empty: if C{True} the value is allowed to be empty
+		(either empty string or C{None}). In this case the default is
+		not set to overwrite an empty value, but only for a mal-formed
+		value or for a value that doesn't exist yet in the dict.
 		'''
 		assert not (default is None and check is None), \
 			'Bad practice to set default to None without check'
@@ -452,15 +548,19 @@ class ListDict(dict):
 		return self[key]
 
 	def keys(self):
+		'''Like C{dict.keys()}'''
 		return self.order[:]
 
 	def items(self):
+		'''Like C{dict.items()}'''
 		return tuple(map(lambda k: (k, self[k]), self.order))
 
 	def set_order(self, order):
-		'''Change the order in which items are listed by setting a list
-		of keys. Keys not in the list are moved to the end. Keys that are in
-		the list but not in the dict will be ignored.
+		'''Change the order in which items are listed.
+
+		@param order: a list of keys in a specific order. Items in the
+		dict that do not appear in the list will be moved to the end.
+		Items in the list that are not in the dict are ignored.
 		'''
 		order = list(order[:]) # copy and convert
 		oldorder = set(self.order)
@@ -475,21 +575,38 @@ class ListDict(dict):
 
 
 class ConfigDict(ListDict):
-	'''Config object which wraps a dict of dicts.
-	These are represented as INI files where each sub-dict is a section.
-	Sections are auto-vivicated when getting a non-existing key.
-	Each section is in turn a ListDict.
+	'''Dict to represent a configuration file in "ini-style". Since the
+	ini-file is devided in section this is represented as a dict of
+	dicts. This class represents the top-level with a key for each
+	section. The values are in turn L{ListDict}s which contain the
+	key value pairs in that section.
 
-	By default sections will be merged if they have the same name.
-	Values that appear under the same section name later in the file
-	will overwrite values that appeared earlier.
+	A typical file might look like::
 
-	As a special case we can support sections that repeat under the
-	same section name. To do this assign the section name a list
-	before parsing.
+	  [Section1]
+	  param1=foo
+	  param2=bar
 
-	Values with keys starting with '_' are considered as non-persistent and are
-	only stored during one session of Zim. They will not appear in the INI file.
+	  [Section2]
+	  enabled=True
+	  data={'foo': 1, 'bar': 2}
+
+	values can either be simple string, number, or one of "True",
+	"False" and "None", or a complex data structure encoded with the
+	C{json} module.
+
+	Sections are auto-vivicated when a non-existing item is retrieved.
+
+	By default when parsing sections of the same name they will be
+	merged and values that appear under the same section name later in
+	the file will overwrite values that appeared earlier. As a special
+	case we can support sections that repeat under the same section name.
+	To do this assign the section name a list before parsing.
+
+	Sections and parameters whose name start with '_' are considered as
+	private and are not stored when the config is written to file. This
+	can be used for caching values that should not be persistent across
+	instances.
 	'''
 
 	def __getitem__(self, k):
@@ -498,7 +615,9 @@ class ConfigDict(ListDict):
 		return dict.__getitem__(self, k)
 
 	def parse(self, text):
-		'''Parse 'text' and set values based on this input
+		'''Parse an "ini-style" configuration. Fills the dictionary
+		with values from this text, wil merge with existing sections and
+		overwrite existing values.
 		@param text: a string or a list of lines
 		'''
 		# Note that we explicitly do _not_ support comments on the end
@@ -551,9 +670,8 @@ class ConfigDict(ListDict):
 			return json.loads('"%s"' % value.replace('"', '\\"')) # force string
 
 	def dump(self):
-		'''Returns a list of lines with text representation of the
-		dict. Used to write as a config file. Values with keys starting with '_'
-		are considered as non-persistent and will be skipped.
+		'''Serialize the config to a "ini-style" config file.
+		@returns: a list of lines with text in "ini-style" formatting
 		'''
 		lines = []
 		def dump_section(name, parameters):
@@ -564,7 +682,7 @@ class ConfigDict(ListDict):
 			lines.append('\n')
 
 		for section, parameters in self.items():
-			if parameters:
+			if parameters and not section.startswith('_'):
 				if isinstance(parameters, list):
 					for param in parameters:
 						dump_section(section, param)
@@ -587,11 +705,22 @@ class ConfigDict(ListDict):
 
 
 class ConfigFile(ListDict):
-	'''Base class for ConfigDictFile and ConfigListFile, can not be
-	instantiated on its own.
-	'''
+	'''Mixin class for reading and writing config to file'''
 
 	def __init__(self, file, default=None):
+		'''Constructor
+
+		Typically C{file} is the file in the home dir that the user can
+		always write to. While C{default} is the default file in e.g.
+		"/usr/share" which the user can read but not write. When the
+		file in the home folder does not exist, the default is read,
+		but when we write it after modifications we write to the home
+		folder file.
+
+		@param file: a L{File} object for reading and writing the config
+		@param default: optional default L{File} object, only used for
+		reading when C{file} does not exist.
+		'''
 		ListDict.__init__(self)
 		self.file = file
 		self.default = default
@@ -602,6 +731,7 @@ class ConfigFile(ListDict):
 			pass
 
 	def read(self):
+		'''Read data'''
 		# TODO: flush dict first ?
 		try:
 			logger.debug('Loading %s', self.file.path)
@@ -614,10 +744,15 @@ class ConfigFile(ListDict):
 				raise
 
 	def write(self):
+		'''Write data and set C{modified} to C{False}
+		'''
 		self.file.writelines(self.dump())
 		self.set_modified(False)
 
 	def write_async(self):
+		'''Write data asynchronously and set C{modified} to C{False}
+		@returns: an L{AsyncOperation} object
+		'''
 		operation = self.file.writelines_async(self.dump())
 		# TODO do we need async error handling here ?
 		self.set_modified(False)
@@ -629,7 +764,7 @@ class ConfigDictFile(ConfigFile, ConfigDict):
 
 
 class TextConfigFile(list):
-	'''Like ConfigFile, but just represents a list of lines'''
+	'''Like L{ConfigFile}, but just represents a list of lines'''
 
 	# TODO think of a way of uniting this class with ConfigFile
 
@@ -656,6 +791,7 @@ class TextConfigFile(list):
 
 
 class HeaderParsingError(Error):
+	'''Error when parsing a L{HeadersDict}'''
 
 	description = '''\
 Invalid data was found in a block with headers.
@@ -668,6 +804,11 @@ and can not be read correctly.'''
 
 class HeadersDict(ListDict):
 	'''This class maps a set of headers in the rfc822 format.
+	Can e.g. look like::
+
+		Content-Type: text/x-zim-wiki
+		Wiki-Format: zim 0.4
+		Creation-Date: 2010-12-14T14:15:09.134955
 
 	Header names are always kept in "title()" format to ensure
 	case-insensitivity.
@@ -677,6 +818,10 @@ class HeadersDict(ListDict):
 	_is_continue_re = re.compile('^(\s+)(?=\S)')
 
 	def __init__(self, text=None):
+		'''Constructor
+
+		@param text: the header text, passed on to L{parse()}
+		'''
 		ListDict.__init__(self)
 		if not text is None:
 			self.parse(text)
@@ -688,21 +833,25 @@ class HeadersDict(ListDict):
 		return ListDict.__setitem__(self, k.title(), v)
 
 	def read(self, lines):
-		'''Checks for headers at the start of the list of lines and if any
-		reads them into the dict until the first empty line. Will shift any
-		lines belonging to the header block, so after this method returns the
-		input does no longer contain the header block.
+		'''Checks for headers at the start of the list of lines and
+		read them into the dict until the first empty line. Will remove
+		any lines belonging to the header block from the original list,
+		so after this method returns the input does no longer contain
+		the header block.
+		@param lines: a list of lines
 		'''
 		self._parse(lines, fatal=False)
 		if lines and lines[0].isspace():
 			lines.pop(0)
 
 	def parse(self, text):
-		'''Adds headers defined in 'text' to the dict. Text can either be
-		a string or a list of lines.
-
-		Raises a HeaderParsingError when 'text' is not a valid header block.
+		'''Adds headers defined in 'text' to the dict.
 		Trailing whitespace is ignored.
+
+		@param text: a header block, either as string or as a list of lines.
+
+		@raises HeaderParsingError: when C{text} is not a valid header
+		block
 		'''
 		if isinstance(text, basestring):
 			lines = text.rstrip().splitlines(True)
@@ -728,10 +877,12 @@ class HeadersDict(ListDict):
 			lines.pop(0)
 
 	def dump(self, strict=False):
-		'''Returns the dict as a list of lines defining a rfc822 header block.
+		'''Serialize the dict to a header block in rfc822 header format.
 
-		If 'strict' is set to True lines will be properly terminated
-		with '\r\n' instead of '\n'.
+		@param strict: if C{True} lines will be properly terminated
+		with '\\r\\n' instead of '\\n'.
+
+		@returns: the header block as a list of lines
 		'''
 		buffer = []
 		for k, v in self.items():
@@ -746,15 +897,31 @@ class HeadersDict(ListDict):
 
 
 class HierarchicDict(object):
-	'''Dict which considers keys to be hierarchic (separator is ':' for
-	obvious reasons). Each key gives a dict which shows shadows of all
-	parents in the hierarchy. This is specifically used to store
-	namespace properties for zim notebooks.
-	'''
+	'''This class implements a data store that behaves as a hierarchig
+	dict of dicts. Each key in this object is considered a hierarchic
+	path (the path separator is ':' for obvious reasons). The dict for
+	each key will "inherit" all values from parent paths. However
+	setting a new value will set it specifically for that key, without
+	changing the value in the "parents". This is specifically used to store
+	namespace properties for zim notebooks. So each child namespace will
+	inherit the properties of it's parents unless it was explicitly
+	set for that child namespace.
 
-	__slots__ = ('dict')
+	There is a special member dict stored under the key "__defaults__"
+	which has the top-level fallback properties.
+
+	Child dicts are auto-vivicated, so this object only implements
+	C{__getitem__()} but no C{__setitem__()}.
+	'''
+	# Note that all the magic is actually implemented by HierarchicDictFrame
+
+	__slots__ = ('dict',)
 
 	def __init__(self, defaults=None):
+		'''Constructor
+
+		@param defaults: dict with the default properties
+		'''
 		self.dict = {}
 		self.dict['__defaults__'] = defaults or {}
 
@@ -765,10 +932,17 @@ class HierarchicDict(object):
 
 
 class HierarchicDictFrame(object):
+	'''Object acts as a member dict for L{HierarchicDict}'''
 
 	__slots__ = ('dict', 'key')
 
 	def __init__(self, dict, key):
+		'''Constructor
+
+		@param dict: the dict used to store the properties per namespace
+		(internal in HierarchicDict)
+		@param key: the key for this member dict
+		'''
 		self.dict = dict
 		self.key = key
 

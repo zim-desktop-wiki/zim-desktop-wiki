@@ -360,12 +360,12 @@ class Win32HtmlFormat:
 	'''This class adds support for Windows "HTML Format" clipboard content type
 
 	Code is based on example code from
-		http://code.activestate.com/recipes/474121/
+	U{http://code.activestate.com/recipes/474121/}
 
 	written by Phillip Piper (jppx1[at]bigfoot.com)
 
 	Also see specification at:
-		http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/windowsuserinterface/dataexchange/clipboard/htmlclipboardformat.asp
+	U{http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/windowsuserinterface/dataexchange/clipboard/htmlclipboardformat.asp}
 	'''
 
 	MARKER_BLOCK_OUTPUT = \

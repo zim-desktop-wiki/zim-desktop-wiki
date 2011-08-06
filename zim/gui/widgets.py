@@ -5,7 +5,21 @@
 '''This module contains a number of custom gtk widgets
 that are used in the zim gui modules.
 
-TODO document dialog base classes
+These include base clases for windows and dialogs like L{Window},
+L{Dialog}, L{FileDialog}, L{QuestionDialog}, L{ErrorDialog}, and
+L{Assistant}. Especially the Dialog class contains a number of
+convenience methods.
+
+An important class is te L{InputForm} which is used extensively in the
+zim gui to layout forms of input fields etc. And the related specialized
+input widgets like L{InputEntry}, L{FileEntry}, L{FolderEntry},
+L{LinkEntry}, L{PageEntry} and L{NamespaceEntry}. These widgets take
+care of converting specific object types, proper utf-8 encoding etc.
+
+The remaining classes are various widgets used in the gui:
+L{Button}, L{IconButton}, L{IconChooserButton}, L{MenuButton},
+L{ImageView}, L{SingleClickTreeView}, L{BrowserTreeView},
+and L{TextBuffer}
 '''
 
 import gobject
@@ -15,9 +29,10 @@ import logging
 import sys
 import os
 
-from zim.fs import *
 import zim.errors
 import zim.config
+
+from zim.fs import File, Dir
 from zim.config import value_is_coord
 from zim.notebook import Notebook, Path, PageNameError
 from zim.parsing import link_type
@@ -83,6 +98,9 @@ def _encode_xml(text):
 
 
 def gtk_window_set_default_icon():
+	'''Function to set the zim icon as the default window icon for
+	all gtk windows in this process.
+	'''
 	from zim.config import ZIM_DATA_DIR, XDG_DATA_HOME, XDG_DATA_DIRS
 	iconlist = []
 	if ZIM_DATA_DIR:
@@ -123,11 +141,13 @@ def gtk_window_set_default_icon():
 
 
 def scrolled_text_view(text=None, monospace=False):
-	'''Initializes a gtk.TextView with sane defaults for displaying a
-	piece of multiline text, wraps it in a scrolled window and returns
-	both the window and the textview. When 'monospace' is True the font
-	will be set to Monospaced and line wrapping disabled, use this to
-	display log files etc.
+	'''Initializes a C{gtk.TextView} with sane defaults for displaying a
+	piece of multiline text and wraps it in a scrolled window
+
+	@param text: initial text to show in the textview
+	@param monospace: when C{True} the font will be set to monospaced
+	and line wrapping disabled, use this to display log files etc.
+	@returns: a 2-tuple of the scrolled window and the textview
 	'''
 	textview = gtk.TextView(TextBuffer())
 	textview.set_editable(False)
@@ -149,10 +169,10 @@ def scrolled_text_view(text=None, monospace=False):
 
 
 def gtk_combobox_set_active_text(combobox, text):
-	'''Like gtk.ComboBox.set_active() but takes a string instead of an
-	index. Will match this string against the list of options and select
-	the correct index. Raises a ValueError when the string is not found
-	in the list. Intended as companion of gtk.ComboBox.get_active_text().
+	'''Opposite of C{gtk.ComboBox.get_active_text()}. Sets the
+	active item based on a string. Will match this string against the
+	list of options and select the correct index.
+	@raises ValueError: when the string is not found in the list.
 	'''
 	model = combobox.get_model()
 	for i, value in enumerate(model):
@@ -163,9 +183,7 @@ def gtk_combobox_set_active_text(combobox, text):
 
 
 class TextBuffer(gtk.TextBuffer):
-	'''Sub-class of gtk.TextBuffer that does utf-8 decoding on get_text
-	and get_slice.
-	'''
+	'''Sub-class of C{gtk.TextBuffer} that handles utf-8 decoding'''
 
 	def get_text(self, start, end, include_hidden_chars=True):
 		text = gtk.TextBuffer.get_text(self, start, end, include_hidden_chars)
@@ -190,9 +208,10 @@ def gtk_get_style():
 
 
 def rotate_pixbuf(pixbuf):
-	'''If the pixbuf has asociated data for the image rotation
-	(e.g. EXIF for photos) it will rotate the pixbuf to the correct
-	orientation. Returns a new version of the pixbuf or the pixbuf itself.
+	'''Rotate the pixbuf to match orientation from EXIF info.
+	This is intended for e.g. photos that have EXIF information that
+	shows how the camera was held.
+	@return: a new version of the pixbuf or the pixbuf itself.
 	'''
 	# Values for orientation seen in some random snippet in gtkpod
 	o = pixbuf.get_option('orientation')
@@ -209,8 +228,10 @@ def rotate_pixbuf(pixbuf):
 
 
 def help_text_factory(text):
-	'''Create a label with an info icon in front of it. Intended for
+	'''Create a label with an "info" icon in front of it. Intended for
 	informational text in dialogs.
+	@param text: the text to display
+	@returns: a C{gtk.HBox}
 	'''
 	hbox = gtk.HBox(spacing=12)
 
@@ -225,6 +246,7 @@ def help_text_factory(text):
 
 	return hbox
 
+
 def _do_sync_widget_state(widget, a, subject):
 	# Signal handler to update state of subject based on state of widget
 	subject.set_sensitive(widget.get_property('sensitive'))
@@ -233,6 +255,7 @@ def _do_sync_widget_state(widget, a, subject):
 		subject.show()
 	else:
 		subject.hide()
+
 
 def _do_sync_widget_state_check_active(widget, *a):
 	if len(a) == 1: subject = a[0]
@@ -262,15 +285,30 @@ def _sync_widget_state(widget, subject, check_active=False):
 
 
 def input_table_factory(inputs, table=None):
-	'''Takes a list of inputs and returns a table with nice layout
-	for those inputs. Inputs in the list given should be either 'None',
-	a gtk widget, or a tuple of a string and one or more widgets.
-	If a tuple is given and the first item is 'None', the widget
-	will be lined out in the 2nd column. A 'None' value in the input
-	list represents an empty row in the table.
+	'''Function to help with the layout of widgets in tables.
 
 	Only use this function directly if you want a completely custom
-	input form. For standard forms see the InputForm class.
+	input form. For standard forms see the L{InputForm} class.
+
+	@param inputs: a list of inputs. These inputs should be either
+	a tuple of a string and one or more widgets, a single widget, or
+	C{None}.
+
+	For a tuple the lable will be lined out in the first column followed
+	by all the widgets. If a tuple is given and the first item is
+	C{None}, the widget will be lined out in the 2nd column.
+
+	A single widget will be lined out in line with the lables (this is
+	meant for e.g. checkboxes that have the label behind the checkbox
+	as part of the widget).
+
+	A input that has a C{None} value will result in an empty row in the
+	table, separating field above and below.
+
+	@param table: options C{gtk.Table}, if given inputs will be appended
+	to this table
+
+	@returns: a C{gtk.Table}
 	'''
 	if table is None:
 		table = gtk.Table()
@@ -314,13 +352,23 @@ def input_table_factory(inputs, table=None):
 
 
 class Button(gtk.Button):
-	'''This class overloads the constructor of the default gtk.Button
-	class. The purpose is to change the behavior in such a way that stock
-	icon and label can be specified independently. If only stock or only
-	label is given, it falls back to the default behavior of gtk.Button .
+	'''Sub-class of C{gtk.Button} which changes the constructor to
+	allow specifying a stock icon I{and} a label at the same time.
 	'''
 
 	def __init__(self, label=None, stock=None, use_underline=True):
+		'''Constructor
+
+		If both C{label} and C{stock} are given the button will have
+		a stock icon but a custom label (for the default C{gtk.Button}
+		class this is an "either or" choice). If only stock or only
+		label is given, it falls back to the default behavior.
+
+		@param label: text for the button
+		@param stock: constant for a stock item
+		@param use_underline: if C{True} a "_" in the label will
+		underline the next character
+		'''
 		if label is None or stock is None:
 			gtk.Button.__init__(self, label=label, stock=stock)
 		else:
@@ -334,6 +382,12 @@ class IconButton(gtk.Button):
 	'''Button with a stock icon, but no label.'''
 
 	def __init__(self, stock, relief=True):
+		'''Constructor
+
+		@param stock: constant for the stock item
+		@param relief: when C{False} the button has no visible raised
+		edge and will be flat against the background
+		'''
 		gtk.Button.__init__(self)
 		icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
 		self.add(icon)
@@ -343,11 +397,17 @@ class IconButton(gtk.Button):
 
 
 class IconChooserButton(gtk.Button):
-	'''Button with a stock icon, but no label.'''
+	'''Widget to allow the user to choose an icon. Intended e.g. for
+	the dialog to configure a custom tool to set an icon for the
+	tool. Shows a button with an image of the icon which opens up a
+	file dialog when clicked.
+	'''
 
 	def __init__(self, stock=gtk.STOCK_MISSING_IMAGE, pixbuf=None):
-		'''Constructor with initial image. If a pixbuf is given it is
-		used instead of the stock icon.
+		'''Constructor
+
+		@param stock: initial stock icon (until an icon is selected)
+		@param pixbuf: initial image as pixbuf (until an icon is selected)
 		'''
 		gtk.Button.__init__(self)
 		self.file = None
@@ -367,6 +427,9 @@ class IconChooserButton(gtk.Button):
 			self.set_file(file)
 
 	def set_file(self, file):
+		'''Set the file to display in the chooser button
+		@param file: a L{File} object
+		'''
 		image = self.get_child()
 		size = max(image.size_request()) # HACK to get icon size
 		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
@@ -374,6 +437,9 @@ class IconChooserButton(gtk.Button):
 		self.file = file
 
 	def get_file(self):
+		'''Get the selected icon file
+		@returns: a L{File} object
+		'''
 		return self.file
 
 # Need to register classes defining / overriding gobject signals
@@ -381,8 +447,8 @@ gobject.type_register(IconChooserButton)
 
 
 class SingleClickTreeView(gtk.TreeView):
-	'''Treeview subclass for trees that want single-click behavior,
-	but do allow multiple items to be selected.
+	'''Sub-class of C{gtk.TreeView} that implements single-click
+	navigation.
 	'''
 
 	mask = gtk.gdk.SHIFT_MASK | gtk.gdk.CONTROL_MASK
@@ -426,24 +492,24 @@ gobject.type_register(SingleClickTreeView)
 
 
 class BrowserTreeView(SingleClickTreeView):
-	'''TreeView subclass intended for lists that are in "browser" mode.
-	Default behavior will be single click navigation for these lists.
-
-	Extra keybindings that are added here:
-		<Left>   Collapse sub-items
-		<Right>  Expand sub-items
-		\        Collapse whole tree
-		*        Expand whole tree
+	'''Sub-class of C{gtk.TreeView} that is intended for hierarchic
+	lists that can be navigated in "browser mode". It inherits the
+	single-click behavior of L{SingleClickTreeView} and adds the
+	following keybindings:
+		- C{<Left>}: Collapse sub-items
+		- C{<Right>}: Expand sub-items
+		- C{\}: Collapse whole tree
+		- C{*}: Expand whole tree
 	'''
 
 	# TODO some global option to restore to double click navigation ?
 
 	def __init__(self, *arg):
+		'''Constructor, all arguments are passed to C{gtk.TreeView}'''
 		gtk.TreeView.__init__(self, *arg)
 		self.get_selection().set_mode(gtk.SELECTION_BROWSE)
 
 	def do_key_press_event(self, event):
-		'''Handler for key-press-event, adds extra key bindings'''
 		# Keybindings for the treeview:
 		#  * expand all
 		#  / or \ collapse all
@@ -479,13 +545,14 @@ gobject.type_register(BrowserTreeView)
 
 
 class MenuButton(gtk.HBox):
-	'''A button which pops up a menu when clicked. It behaves different from
-	a combobox because it is not a selector and the label on the button is
-	not a selected item from the menu. Main example of this widget type is the
-	button with backlinks in the statusbar of the main window.
+	'''This class implements a button which pops up a menu when clicked.
+	It behaves different from a combobox because it is not a selector
+	and the button does not show the selected item. So it more like
+	a normal menu. Main example where this class is used is the button
+	with backlinks in the statusbar of the main window.
 
-	This module is based loosely on gedit-status-combo-box.c from the gedit
-	sources.
+	This module is based loosely on gedit-status-combo-box.c from the
+	gedit sources.
 	'''
 
 	# Set up a style for the statusbar variant to decrease spacing of the button
@@ -501,6 +568,13 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 ''')
 
 	def __init__(self, label, menu, status_bar_style=False):
+		'''Constructor
+
+		@param label: the label to show on the button (string or C{gtk.Label})
+		@param menu: the menu to show on button click
+		@param status_bar_style: when C{True} all padding and border
+		is removed so the button fits in the status bar
+		'''
 		gtk.HBox.__init__(self)
 		if isinstance(label, basestring):
 			self.label = gtk.Label()
@@ -539,7 +613,9 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 
 	def popup_menu(self, event=None):
 		'''This method actually pops up the menu.
-		Sub-classes can overload and wrap it to populate the menu
+		@param event: the gdk event that triggered this action
+
+		@implementation: can be overloaded, e.g. to populate the menu
 		dynamically.
 		'''
 		if not self.get_property('sensitive'):
@@ -578,21 +654,24 @@ gobject.type_register(MenuButton)
 
 
 class InputForm(gtk.Table):
-	'''Class wrapping a table with input widgets. Takes care of
-	managing the widgets and presenting a nice layout.
+	'''This class implements a table with input widgets. It takes care
+	of constructing the widgets and lay them out as a well formatted
+	input form.
 
-	Instances of this class can accessed as a dict to get and set the
-	values of the various input widgets by name.
+	This class can be accessed as a dict to get and set the values of
+	the various input widgets by name. This makes it more or less
+	transparent when getting and setting values from the form into
+	the config or preferences.
 
-	To access the widgets directly (e.g. to wire more signals) there
-	is an attribute 'widgets' which contains a dict of input widgets
-	by name.
+	@ivar notebook: the L{Notebook} object, used e.g. for completion in
+	L{PageEntry} inputs
+	@ivar widgets: a dict with the input widgets by name. Use this
+	to access the widgets directly (e.g. to wire more signals).
 
-	Signals:
-	  * last-activated: this signal is emitted when the last widget in
-	    the form is activated, can be used to trigger a default response
-	    in a dialog.
-	  * input-valid-changes: valid state the form changed
+	@signal: C{last-activated ()}: this signal is emitted when the last
+	widget in the form is activated, can be used to trigger a default
+	response in a dialog.
+	@signal: C{input-valid-changes ()}: valid state the form changed
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -613,15 +692,16 @@ class InputForm(gtk.Table):
 	# we can't use the keys of the widget mapping one-on-one for
 	# the value mapping. This is why we keep the attribute '_keys'.
 
-	# TODO actually add support for radio check boxes
-	# specify like "name:option"
-
 	def __init__(self, inputs=None, values=None, depends=None, notebook=None):
 		'''Constructor.
-		The 'inputs' are passed to add_inputs() and 'values' are passed
-		to update(). The option 'depends' can be a dict which key values
-		pairs are passed on to depends().
-		You need to set 'notebook' to get completion in page inputs.
+
+		@param inputs: list with input definitions, see L{add_inputs()}
+		for details
+		@param values: initial values for the inputs
+		@param depends: dict with dependencies between widgets, see
+		L{depends()} for details
+		@param notebook: a L{Notebook} object, e.g. for completion in
+		L{PageEntry} inputs
 		'''
 		gtk.Table.__init__(self)
 		self.set_border_width(5)
@@ -644,53 +724,53 @@ class InputForm(gtk.Table):
 		if values:
 			self.update(values)
 
+	#{ Form construction methods
+
 	def add_inputs(self, inputs):
-		'''Turns a list of field descriptions into a list of widgets.
-		This list can be given to layout_table() to turn it into a form.
+		'''Add input widgets to the form.
 
-		The argument 'inputs' should be a list of
-		input definitions; each definition is a tuple of:
+		Inputs are defined by 3-tuples or 4-tuples of:
+			- The input name
+			- The input type
+			- The label to put in front of the input field
+			- optional extra argument
 
-			* The input name
-			* The input type
-			* The label to put in front of the input field
+		The following input types are supported:
+			- "C{bool}" - C{True} or C{False} (checkbox)
+			- "C{int}" - integer (spin button)
+			- "C{string}" - text entry (L{InputEntry})
+			- "C{password}" - text entry with chars hidden (L{InputEntry})
+			- "C{page}" - a page L{Path} (L{PageEntry})
+			- "C{namespace}" - a namespace L{Path} (L{NamespaceEntry})
+			- "C{link}" - a link as string (L{LinkEntry})
+			- "C{dir}" - a L{Dir} object (L{FolderEntry})
+			- "C{file}" - a L{File} object for an existing file (L{FileEntry})
+			- "C{image}" - like 'file' but specific for images
+			- "C{output-file}" - like 'file' but for new or existing file
+			- "C{option}" - single option in a group (radio checkboxes)
+			- "C{choice}" - list with choices (combo box)
 
-		The following field types are supported:
-			* 'bool' - checkbox
-			* 'option' - radiocheckbox
-			* 'int' - integer spin button
-			* 'choice' - a drop downlist for multiple choice
-			* 'string' - text entry
-			* 'password' - text entry with chars hidden
-			* 'page' - PageEntry
-			* 'namespace' - NamespaceEntry
-			* 'link' - LinkEntry
-			* 'dir' - input for existing folder
-			* 'file' - input for existing file
-			* 'image' - like 'file' but specific for images
-			* 'output-file' - input for new or existing file
+		The "C{int}" and "C{choice}" options need an extra argument to specify
+		the allowed inputs. For "C{int}" this should be a 2-tuple with the
+		minimum and maximum values. For 'choice' it should be a tuple
+		or list with the items to choose from.
 
-		The option 'option' can be used to have groups of checkboxes.
+		The input type "C{option}"' can be used to have groups of checkboxes.
 		In this case the name should exist of two parts separated by a
 		':', first part is the group name and the second part the key for
 		this option. This way multiple options of the same group can be
 		specified as separate widgets. Only the group name will show up
-		as a key in the form, the value will be the option name of the
+		as a key in the form, and the value will be the option name of the
 		selected radio button. So you can have names like "select:all"
 		and "select:page" which will result in two radiobuttons. The
 		form will have a key "select" which has either a value "all" or
 		a value "page".
 
-		The 'int' and 'choice' options need an extra argument to specify
-		the allowed inputs. For 'int' this should be a tuple with the
-		minimum and maximum values. For 'choice' it should be a list
-		with the items to choose from.
-
-		The 'page', 'namespace' and 'link' options have an optional
-		extra argument which gives the reference path for resolving
+		The "C{page}", "C{namespace}" and "C{link}" types support an optional
+		extra argument which gives the reference L{Path} for resolving
 		relative paths. This also requires the notebook to be set.
 
-		A None value in the input list will result in additional row
+		A L{None} value in the input list will result in additional row
 		spacing in the form.
 		'''
 
@@ -815,19 +895,64 @@ class InputForm(gtk.Table):
 
 		self._check_input_valid() # update our state
 
-	def on_activate_widget(self, widget):
-		'''Calls focus_next() or emits last-activated when last widget
-		was activated.
+	def depends(self, subject, object):
+		'''Make one of the inputs depend on another widget. This means
+		that e.g. the "subject" widget will become insensitive when the
+		"object" widget is made insensitive. Also hiding the "object"
+		will result in the "subject" being hidden as well.
+
+		If the "object" has an active state (e.g. if it is an checkbox
+		or a radio option) the "subject" will only be sensitive when the
+		"object" is active. This is useful e.g. when you want a
+		text input that is only sensitive when a specific radio box
+		is selected.
+
+		@param subject: the name of the subject widget
+		@param object: the name of the object widget
 		'''
+		subject = self.widgets[subject]
+		object = self.widgets[object]
+		_sync_widget_state(object, subject, check_active=True)
+
+	def get_input_valid(self):
+		'''Get combined state of all sensitive widgets in the form
+		@returns: C{True} if all sensitive widgets have a valid input
+		'''
+		return self._input_valid
+
+	def _check_input_valid(self, *a):
+		# Called by signals when widget state changes
+		#~ print '-'*42
+		valid = []
+		for name in self._widgets:
+			widget = self.widgets[name]
+			if isinstance(widget, InputEntry)  \
+			and widget.get_property('visible') \
+			and widget.get_property('sensitive'):
+				valid.append(self.widgets[name].get_input_valid())
+				#~ print '>', name, valid[-1]
+		#~ print '=', all(valid)
+
+		valid = all(valid)
+		if self._input_valid != valid:
+			self._input_valid = valid
+			self.emit('input-valid-changed')
+
+	def _get_radiogroup(self, name):
+		name += ':'
+		group = [k for k in self._widgets if k.startswith(name)]
+		return [(k, self.widgets[k]) for k in group]
+
+	def on_activate_widget(self, widget):
 		if not self._focus_next(widget, activatable=True):
 			self.emit('last-activated')
 
 	def focus_first(self):
-		'''Focuses the first input in the form'''
+		'''Focus the first widget in the form'''
 		return self._focus_next(None)
 
 	def focus_next(self):
-		'''Focuses the next input in the form'''
+		'''Focus the next input in the form'''
 		if gtk.gtk_version >=  (2, 14, 0):
 			widget = self.get_focus_child()
 		else:
@@ -868,42 +993,9 @@ class InputForm(gtk.Table):
 		else:
 			return False
 
-	def depends(self, subject, object):
-		'''Both argument should be names of widgets in the form. This
-		method makes behavior of 'subject' depend on state of 'object'.
-		E.g. subject will only be sensitive when object is active and
-		subject will be hidden when object is hidden.
-		'''
-		subject = self.widgets[subject]
-		object = self.widgets[object]
-		_sync_widget_state(object, subject, check_active=True)
+	#}
 
-	def get_input_valid(self):
-		'''Returns combined state of all active widgets in the form'''
-		return self._input_valid
-
-	def _check_input_valid(self, *a):
-		# Called by signals when widget state changes
-		#~ print '-'*42
-		valid = []
-		for name in self._widgets:
-			widget = self.widgets[name]
-			if isinstance(widget, InputEntry)  \
-			and widget.get_property('visible') \
-			and widget.get_property('sensitive'):
-				valid.append(self.widgets[name].get_input_valid())
-				#~ print '>', name, valid[-1]
-		#~ print '=', all(valid)
-
-		valid = all(valid)
-		if self._input_valid != valid:
-			self._input_valid = valid
-			self.emit('input-valid-changed')
-
-	def _get_radiogroup(self, name):
-		name += ':'
-		group = [k for k in self._widgets if k.startswith(name)]
-		return [(k, self.widgets[k]) for k in group]
+	#{ Dict access methods
 
 	def __getitem__(self, key):
 		if not key in self._keys:
@@ -982,39 +1074,49 @@ class InputForm(gtk.Table):
 		return [(k, self[k]) for k in self._keys]
 
 	def update(self, map):
-		'''Similar to dict.update(). Updates any values for existing
-		inputs from the mapping while silently ignoring other keys in
-		the map.
+		'''Update the value for any existing widget to the value
+		given in C{map}. Unkown keys in C{map} are ignored and
+		widgets that do not have a value in C{map} keep their
+		original value.
+		@param map: a dict with new values for the widgets
 		'''
 		for key, value in map.items():
 			if key in self._keys:
 				self[key] = value
 
 	def copy(self):
-		'''Returns a normal dict with values for all widgets in the form'''
+		'''Copy the values of all widgets in the form into a normal dict
+		@returns: a dict with widget values
+		'''
 		values = {}
 		for key in self._keys:
 			values[key] = self[key]
 		return values
+
+	#}
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(InputForm)
 
 
 class InputEntry(gtk.Entry):
-	'''Sub-class of gtk.Entry with support for highlighting errors.
-	Use this class as a  generic replacement for gtk.Entry to avoid
-	utf-8 issues.
+	'''Sub-class of C{gtk.Entry} with support for highlighting
+	mal-formatted inputs and handles UTF-8 decoding. This class must be
+	used as a generic replacement for C{gtk.Entry} to avoid UTF-8
+	issues. (This is enforced by the zim test suite which will throw an
+	error for any module using C{gtk.Entry} directly.)
 
-	The constructor takes a function for checking if the content is
-	valid. If not set the state is always set to valid after the user
-	modifies the text. The way this can be used is to set state to
-	invalid e.g. in a dialog response handler. This will show the user
-	what widget to modify. After typing try again. Providing a method
-	to give immediate feedback to the user is of course better.
+	The widget has a "valid" state which determines if the content is
+	well formed or not. When the state is invalid the widget will have
+	a red background color. This is used e.g. in dialog response
+	handlers to show the user what widget to modify.
 
-	Signals:
-	  * input-valid-changes: valid state the form changed
+	The valid state can be either done manually by calling
+	L{set_input_valid()}, or it can be done automatically by providing
+	a function to check what content is valid. Using a function is
+	recommended because it gives more immediate feedback to the user.
+
+	@signal: C{input-valid-changes ()}: valid state of the widget changed
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -1029,17 +1131,20 @@ class InputEntry(gtk.Entry):
 	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False, empty_text=None):
 		'''Constructor
 
-		@keyword check_func: a function to check input is valid.
+		@param check_func: a function to check input is valid.
 		This function will be called with the current text as argument
-		and should return True if this text is a valid input. When
-		the input is invalid the background of the widget will become
-		red.
+		and should return C{True} if this text is a valid input.
 
-		@keyword allow_empty: if False an empty string is invalid input
-		@keyword show_empty_invalid: if True a red background is also
-		shown when the entry is still empty
+		@param allow_empty: if C{False} an empty string is considered
+		invalid input
 
-		@keyword: empty_text: text to show in the widget when it is
+		@param show_empty_invalid: if C{True} a red background is also
+		shown when the entry is still empty, if C{False} the background
+		is kept normal even if the empty input is invalid. Without this
+		option a whole input form would start in red color, which looks
+		bad.
+
+		@param empty_text: text to show in the widget when it is
 		empty and does not have focus, text will be shown in a
 		color different from normal text and disappear when the user
 		selects the widget. Used to set hints on the usage of the
@@ -1058,19 +1163,22 @@ class InputEntry(gtk.Entry):
 		self.connect('changed', self.__class__.do_changed)
 
 	def set_check_func(self, check_func):
-		'''Set a function to check whether input is valid or not'''
+		'''Set a function to check whether input is valid or not
+		@param check_func: the function
+		'''
 		self.check_func = check_func
 		self.do_changed()
 
 	def set_icon(self, icon, cb_func, tooltip=None):
-		'''Add an icon in the entry widget
+		'''Add an icon in the entry widget behind the text
 
 		@param icon: the icon as stock ID
 		@param cb_func: the callback when the icon is clicked; the
 		callback will be called without any arguments
-		@keyword tooltip: tooltip text for the icon
+		@param tooltip: tooltip text for the icon
 
-		@returns: boolean for success
+		@returns: C{True} if succesful, C{False} if not supported
+		by Gtk version
 
 		@requires: Gtk >= 2.16
 		@todo: add argument to set tooltip on the icon
@@ -1094,9 +1202,11 @@ class InputEntry(gtk.Entry):
 
 		This method calls L{set_icon()} with the right defaults for
 		a stock "Clear" icon. In addition it makes the icon insensitive
-		when there is no text in the entry.
+		when there is no text in the entry. Clicking the icon will
+		clear the entry.
 
-		@returns: boolean for success
+		@returns: C{True} if succesful, C{False} if not supported
+		by Gtk version
 
 		@requires: Gtk >= 2.16
 		'''
@@ -1116,8 +1226,9 @@ class InputEntry(gtk.Entry):
 		return True
 
 	def get_text(self):
-		'''Like gtk.Entry.get_text() but with utf-8 decoding and
-		whitespace stripped.
+		'''Get the text from the widget. Like C{gtk.Entry.get_text()}
+		but with UTF-8 decoding and whitespace stripped.
+		@returns: string
 		'''
 		if self._empty_text_shown:
 			return ''
@@ -1126,7 +1237,9 @@ class InputEntry(gtk.Entry):
 		else: return text.decode('utf-8').strip()
 
 	def set_text(self, text):
-		'''Wrapper for gtk.Entry.set_text()'''
+		'''Wrapper for C{gtk.Entry.set_text()}.
+		@param text: string
+		'''
 		if not text and self.empty_text \
 		and not self.get_property('has-focus'):
 			self._empty_text_shown = True
@@ -1136,10 +1249,15 @@ class InputEntry(gtk.Entry):
 			self._empty_text_shown = False
 
 	def get_input_valid(self):
+		'''Get the valid state.
+		@returns: C{True} if the input is valid
+		'''
 		return self._input_valid
 
 	def set_input_valid(self, valid):
-		'''Set input valid or invalid state'''
+		'''Set input valid or invalid state
+		@param valid: C{True} or C{False}
+		'''
 		if valid == self._input_valid:
 			return
 
@@ -1157,7 +1275,6 @@ class InputEntry(gtk.Entry):
 		self.set_text('')
 
 	def do_changed(self):
-		'''Check if content is valid'''
 		text = self.get_text() or ''
 		if self.check_func:
 			self.set_input_valid(self.check_func(text))
@@ -1181,22 +1298,23 @@ gobject.type_register(InputEntry)
 
 
 class FSPathEntry(InputEntry):
-	'''Base class for FileEntry and FolderEntry, should not be
-	used directly.
+	'''Base class for L{FileEntry} and L{FolderEntry}, handles input of
+	file system paths.
 
-	A notebook and page can be specified to make the entry show
-	paths relative to the notebook (based on notebook.resolve_file()
-	and notebook.relative_filepath() ). Otherwise paths will show
-	absolute paths. Since relative paths can start with "/" when a
-	document dir is set, this can result in absolute paths being shown
-	as file uris in the entry.
+	File paths can either be absolute paths or relative to the notebook.
+	When a notebook and optionally a page path are set,
+	L{Notebook.resolve_file()<zim.notebook.Notebook.resolve_file()>} is
+	used to make file paths relative.
+
+	This class should not be instantiated directly, use either
+	L{FileEntry} or L{FolderEntry}.
+
+	@todo: add completion for file paths - make sure both absolute
+	and relative paths are supported + re-use this completion in
+	L{LinkEntry}
 	'''
 
-	# TODO file / folder completion in the entry (think about rel paths!)
-	# wire LinkEntry to use this completion
-
 	def __init__(self):
-		'''Constructor, notebook and path are used for relative paths'''
 		InputEntry.__init__(self, allow_empty=False)
 		self.notebook = None
 		self.notebookpath = None
@@ -1205,15 +1323,19 @@ class FSPathEntry(InputEntry):
 
 	def set_use_relative_paths(self, notebook, path=None):
 		'''Set the notebook and path to be used for relative paths.
-		Set C{notebook=None} to disable relative paths.
 
 		@param notebook: the L{Notebook} object for resolving paths
-		@keyword path: a L{Path} object used for resolving relative links
+		or C{None} to disable relative paths.
+		@param path: a L{Path} object used for resolving relative links
 		'''
 		self.notebook = notebook
 		self.notebookpath = path
 
 	def set_path(self, path):
+		'''Set the file path for this entry
+		@param path: a L{File} or L{Dir} object
+		'''
+		assert isinstance(path, (File, Dir))
 		if self.notebook:
 			text = self.notebook.relative_filepath(path, self.notebookpath)
 			if text is None:
@@ -1230,6 +1352,9 @@ class FSPathEntry(InputEntry):
 				self.set_text(path.path)
 
 	def get_path(self):
+		'''Get the file path for this entry
+		@returns: a L{File} or L{Dir} object (depending on sub-class)
+		'''
 		text = self.get_text()
 		if text:
 			if self.notebook:
@@ -1242,7 +1367,7 @@ class FSPathEntry(InputEntry):
 			return None
 
 	def popup_dialog(self):
-		'''Run a dialog to browser for a file or folder.
+		'''Run a dialog to browse for a file or folder.
 		Used by the 'browse' button in input forms.
 		'''
 		window = self.get_toplevel()
@@ -1267,13 +1392,17 @@ class FSPathEntry(InputEntry):
 
 
 class FileEntry(FSPathEntry):
+	'''Widget to select a file'''
 
 	_class = File
 
 	def __init__(self, file=None, new=False):
-		'''Constructor. If 'new' is True the intention is a new
-		file (e.g. output file), or to overwrite an existing
-		file. If 'new' is False only existing files can be selected.
+		'''Constructor.
+
+		@param file: a L{File} object
+		@param new: if C{True} the intention is a new file
+		(e.g. output file), or to overwrite an existing file.
+		If C{False} only existing files can be selected.
 		'''
 		FSPathEntry.__init__(self)
 		self.file_type_hint = 'file'
@@ -1288,10 +1417,15 @@ class FileEntry(FSPathEntry):
 
 
 class FolderEntry(FSPathEntry):
+	'''Widget to select a folder'''
 
 	_class = Dir
 
 	def __init__(self, folder=None):
+		'''Constructor
+
+		@param folder: a L{Dir} object
+		'''
 		FSPathEntry.__init__(self)
 		self.file_type_hint = 'dir'
 		self.action = gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER
@@ -1304,10 +1438,13 @@ class FolderEntry(FSPathEntry):
 
 
 class PageEntry(InputEntry):
-	'''Input widget for zim page names
+	'''Widget to select a zim page path
 
-	This widget features completion for existing page names and will show when the
-	entered text is not a valid page name.
+	This widget features completion for existing page names and shows
+	whether the entered text is not a valid page name.
+
+	The page paths can be shown eitehr absolute or relative. If a
+	reference path is given paths will be shown relative to this reference.
 	'''
 
 	_allow_select_root = False
@@ -1316,19 +1453,15 @@ class PageEntry(InputEntry):
 	def __init__(self, notebook, path=None, subpaths_only=False, existing_only=False):
 		'''Constructor
 
-		Typically this widget uses a Notebook to resolve paths and show completion,
-		but can be used with notebook=None if really needed. If a path is given as
-		well this is used as the start for resolving relative links.
-
 		@param notebook: the L{Notebook} object for resolving paths and
-		completing existing pages
-		@keyword path: a L{Path} object used for resolving relative links
-		@keyword subpaths_only: if C{True} the input will always be
-		considered a sub path of 'path'
-		@keyword existing_only: if C{True} only allow to select existing pages
+		completing existing pages, but allowed to be C{None} e.g. for testing
+		@param path: a L{Path} object used for resolving relative links
+		@param subpaths_only: if C{True} the input will always be
+		considered a child 'C{path}'
+		@param existing_only: if C{True} only allow to select existing pages
 
-		@note: 'subpaths_only' and 'existing_only' can also be set using
-		the like named attributes
+		@note: 'C{subpaths_only}' and 'C{existing_only}' can also be set
+		using the like named attributes
 		'''
 		self.notebook = notebook
 		self.notebookpath = path
@@ -1352,28 +1485,25 @@ class PageEntry(InputEntry):
 
 	def set_use_relative_paths(self, notebook, path=None):
 		'''Set the notebook and path to be used for relative paths.
-		Set C{notebook=None} to disable relative paths.
 
 		@param notebook: the L{Notebook} object for resolving paths and
-		completing existing pages
-		@keyword path: a L{Path} object used for resolving relative links
+		completing existing pages, or C{None} to disable relative paths.
+		@param path: a L{Path} object used for resolving relative links
 		'''
 		self.notebook = notebook
 		self.notebookpath = path
 
 	def set_path(self, path):
-		'''Set the path to be shown in the entry
-
-		@note: If you have the link as a string, use L{set_text()} instead
+		'''Set the path to be shown in the entry.
+		If you have the link as a string, use L{set_text()} instead
 
 		@param path: L{Path} object
 		'''
 		self.set_text(':'+path.name)
 
 	def get_path(self):
-		'''Returns the path shown in the widget if it is valid or None.
-
-		If None is returned the widget is flagged as invalid. So e.g. in a
+		'''Get the path shown in the widget.
+		If C{None} is returned the widget is flagged as invalid. So e.g. in a
 		dialog you can get a path and refuse to close a dialog if the path
 		is None and the user will automatically be alerted to the missing input.
 
@@ -1502,22 +1632,30 @@ class PageEntry(InputEntry):
 
 
 class NamespaceEntry(PageEntry):
-	'''Input widget for zim page names when used as namespace
+	'''Widget to select a zim page path as a namespace
 
-	Use this instead of PageEntry when you want to allow selecting a namespace.
-	Most notably it will be allowed to select ":" or empty string for the root
-	namespace, this is not allowed in PageEntry.
+	Use this instead of L{PageEntry} when you want to allow selecting a
+	namespace. E.g. this will be allowed to select ":" or empty string
+	for the root namespace, which is not allowed in PageEntry.
 	'''
 
 	_allow_select_root = True
 
 
 class LinkEntry(PageEntry, FileEntry):
-	'''Input widget that accepts zim page names, file links and urls'''
+	'''Widget entering links in zim pages. This widget accepts either
+	zim page paths, file paths and URLs.
+	'''
 
 	_class = File
 
 	def __init__(self, notebook, path=None):
+		'''Constructor
+
+		@param notebook: the L{Notebook} object for resolving paths and
+		completing existing pages, but allowed to be C{None} e.g. for testing
+		@param path: a L{Path} object used for resolving relative links
+		'''
 		PageEntry.__init__(self, notebook, path)
 		self.action = gtk.FILE_CHOOSER_ACTION_OPEN
 		self.file_type_hint = None
@@ -1556,8 +1694,10 @@ def format_title(title):
 
 
 def get_window(ui):
-	'''Returns a gtk.Window object or None. Used to find the parent window
-	for dialogs.
+	'''Returns a C{gtk.Window} object or C{None}.
+	Used to find the parent window for dialogs.
+	@param ui: a parent dialog or window, or GtkInterface object
+	@returns: a C{gtk.Window} object or C{None}
 	'''
 	if isinstance(ui, gtk.Window):
 		return ui
@@ -1572,29 +1712,28 @@ def register_window(window):
 	'''Register this instance with the zim application, if not done
 	so already.
 	'''
-	if ( not hasattr(window, '_zim_window_registered') \
-		or not window._zim_window_registered ) \
-	and hasattr(window, 'ui') \
-	and hasattr(window.ui, 'register_new_window'):
+	if  hasattr(window, 'ui') \
+	and hasattr(window.ui, 'register_new_window') \
+	and not window in window.ui.windows:
 		window.ui.register_new_window(window)
-		window._zim_window_registered = True
 
 
 # Some constants used to position widgets in the window panes
-TOP = 0
-BOTTOM = 1
+TOP = 0 #: Top frame position in window
+BOTTOM = 1 #: Bottom frame position in window
 
-LEFT_PANE = 0
-RIGHT_PANE = 1
-TOP_PANE = 2
-BOTTOM_PANE = 3
+LEFT_PANE = 0 #: Left pane position in window
+RIGHT_PANE = 1 #: Right pane position in window
+TOP_PANE = 2 #: Top pane position in window
+BOTTOM_PANE = 3 #: Bottom pane position in window
+
 
 class Window(gtkwindowclass):
-	'''Wrapper for the gtk.Window class that will take care of hooking
+	'''Sub-class of C{gtk.Window} that will take care of hooking
 	the window into the application framework and adds entry points
 	so plugins can add side panes etc. It will divide the window
 	horizontally in 3 panes, and the center pane again vertically in 3.
-	The result is something like this:
+	The result is something like this::
 
 		+-----------------------------+
 		|menu                         |
@@ -1611,9 +1750,15 @@ class Window(gtkwindowclass):
 		|     |                |      |
 		+----------------------+------+
 
-	Of course any pane that is not used will not been shown. The
-	important thing is to create placeholders where plugins *might*
-	want to add some widget.
+	Any pane that is not used will not been shown. The important thing
+	is to create placeholders where plugins *might* want to add some
+	widget.
+
+	When zim is configured to run on a maemo device this class will
+	inherit from C{hildon.Window} instead of C{gtk.Window} to make
+	sure it plays nicely with the maemo environment.
+
+	All windows in zim must inherit from this class.
 	'''
 
 	# TODO generalized way to set pane position and pane visibility
@@ -1677,13 +1822,16 @@ class Window(gtkwindowclass):
 			nb.set_show_border(False)
 
 	def add(self, widget):
-		'''Add the main widget'''
+		'''Add the main widget.
+		@param widget: gtk widget to add in the window
+		'''
 		self._zim_window_bottom_pane.add1(widget)
 
 	def add_bar(self, widget, position):
 		'''Add a bar to top or bottom of the window. Used e.g. to add
-		menu-, tool- & status-bars. Position can be either 'TOP' or
-		'BOTTOM'.
+		menu-, tool- & status-bars.
+		@param widget: gtk widget for the bar
+		@param position: C{TOP} or C{BOTTOM}
 		'''
 		self._zim_window_main.pack_start(widget, False)
 
@@ -1694,8 +1842,11 @@ class Window(gtkwindowclass):
 			self._zim_window_main.reorder_child(widget, i)
 
 	def add_tab(self, title, widget, pane):
-		'''Add a tab in one of the panes, 'pane' can be one of
-		'LEFT_PANE', 'RIGHT_PANE', 'TOP_PANE' or 'BOTTOM_PANE'.
+		'''Add a tab in one of the panes.
+		@param title: string with title to put in the tab
+		@param widget: the gtk widget to show in the tab
+		@param pane: can be one of: C{LEFT_PANE}, C{RIGHT_PANE},
+		C{TOP_PANE} or C{BOTTOM_PANE}.
 		'''
 		assert pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE)
 
@@ -1716,13 +1867,16 @@ class Window(gtkwindowclass):
 		parent.show()
 
 	def add_widget(self, widget, pane, position):
-		'''Add a widget in one of the panes without using a tab,
-		'pane' can be either 'LEFT_PANE' or 'RIGHT_PANE' (placing
-		widgets in 'TOP_PANE' or 'BOTTOM_PANE' is currently not
-		supported), 'position' can be either 'TOP' or 'BOTTOM'.
+		'''Add a widget in one of the panes outside of the tabs
 
-		Placing a widget in TOP_PANE, TOP, is supported as a special
-		case, but should not be used by plugins.
+		@param widget: the gtk widget to show in the tab
+		@param pane: can be one of: C{LEFT_PANE} or C{RIGHT_PANE}
+		(C{TOP_PANE} and C{BOTTOM_PANE} are not supported)
+		@param position: position within the pane, can be either
+		C{TOP}, or C{BOTTOM}
+
+		@note: Placing a widget in C{TOP_PANE}, C{TOP}, is supported as
+		a special case, but should not be used by plugins.
 		'''
 		assert not isinstance(widget, gtk.Notebook), 'Please don\'t do this'
 		assert pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE)
@@ -1751,7 +1905,9 @@ class Window(gtkwindowclass):
 			raise AssertionError, "Unsupported argument for 'pane'"
 
 	def remove(self, widget):
-		'''Remove widget from any pane'''
+		'''Remove widget from any pane
+		@param widget: the widget to remove
+		'''
 		for box in (
 			self._zim_window_left,
 			self._zim_window_right,
@@ -1807,30 +1963,46 @@ class Window(gtkwindowclass):
 
 
 class Dialog(gtk.Dialog):
-	'''Wrapper around gtk.Dialog used for most zim dialogs.
-	It adds a number of convenience routines to build dialogs.
-	The default behavior is modified in such a way that dialogs are
-	destroyed on response if the response handler returns True.
+	'''Sub-class of C{gtk.Dialog} with a number of convenience methods
+	to create dialogs. Also takes care of registering dialogs with the
+	main interface object, so plugins can hook into them. Intended as
+	base class for all input dialogs in zim. (See L{ErrorDialog},
+	L{QuestionDialog}, L{MessageDialog} and L{FileDialog} for other
+	dialog types).
 
-	For a simple dialog the subclass only needs to call Dialog.__init__()
-	with to define the title and input fields of the dialog, and overload
-	do_response_ok() to handle the result.
+	A minimal sub-class should implement a constructor which calls
+	L{Dialog.__init__()} and L{Dialog.add_form()} to defined the dialog,
+	and implements C{do_response_ok()} to handle the result.
+
+	@ivar ui: parent C{gtk.Window} or C{GtkInterface}
+	@ivar vbox: C{gtk.VBox} for main widgets of the dialog
+	@ivar form: L{InputForm} added by C{add_form()}
+	@ivar uistate: L{ListDict} to store state of the dialog, persistent
+	per notebook. The size and position of the dialog are stored as
+	automatically in this dict already.
+	@ivar result: result to be returned by L{run()}
+	@ivar destroyed: when C{True} the dialog is already destroyed
 	'''
 
 	@classmethod
 	def unique(klass, handler, *args, **opts):
-		'''This method is used to instantiate a dialog of which there should
-		be only one visible at a time. It enforces a singleton pattern by
-		installing a weak reference in the handler object. If there is an
-		dialog active which is not yet destroyed, this dialog is returned,
-		otherwise a new dialog is created using 'args' and 'opts' as the
-		arguments to the constructor.
+		'''Constructor which ensures there is only one instance of this
+		dialog at a time. It implements a singleton pattern by installing
+		a weak reference in the handler object. If there is an dialog
+		active which is not yet destroyed, this dialog is returned,
+		otherwise a new dialog is created.
 
-		For example on "show_dialog" you could do:
+		Typically you can use this as::
 
 			dialog = MyDialog.unique(ui, somearg)
 			dialog.present()
 
+		@param handler: the object constructing the dialog
+		@param args: arguments to pass to the dialog constructor
+		@param opts: arguments to pass to the dialog constructor
+
+		@note: when a dialog already existed the arguments provided to
+		this constructor are not used
 		'''
 		import weakref
 		attr = '_unique_dialog_%s' % klass.__name__
@@ -1846,34 +2018,34 @@ class Dialog(gtk.Dialog):
 		setattr(handler, attr, weakref.ref(dialog))
 		return dialog
 
-	@property
-	def destroyed(self): return not self.has_user_ref_count
-		# Returns True when dialog has been destroyed
-
 	def __init__(self, ui, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			help_text=None, help=None,
 			defaultwindowsize=(-1, -1)
 		):
-		'''Constructor. 'ui' can either be the main application or some
-		other dialog from which this dialog is spawned. 'title' is the dialog
-		title. 'buttons' is a constant controlling what kind of buttons the
-		dialog will have. Currently supported are:
+		'''Constructor.
 
-			* None or gtk.BUTTONS_NONE - for dialog taking care of this themselves
-			* gtk.BUTTONS_OK_CANCEL - Render Ok and Cancel
-			* gtk.BUTTONS_CLOSE - Only set a Close button
-
-		'button' is an optional argument giving a tuple of a label and a stock
-		item to use instead of the default 'Ok' button (either stock or label
+		@param ui: either a parent window or dialog or the main
+		C{GtkInterface} object
+		@param title: the dialog title
+		@param buttons: a constant controlling what kind of buttons the
+		dialog will have. One of:
+			- C{None} or C{gtk.BUTTONS_NONE}: for dialogs taking care
+			  of constructing the buttons themselves
+			- C{gtk.BUTTONS_OK_CANCEL}: Render Ok and Cancel
+			- C{gtk.BUTTONS_CLOSE}: Only set a Close button
+		@param button: a 2-tuple of a label and a stock item to use
+		instead of the default 'Ok' button (either stock or label
 		can be None).
+		@param help_text: set the help text, see L{add_help_text()}
+		@param help: pagename for a manual page, see L{set_help()}
+		@param defaultwindowsize: default window size in pixels
 
-		Options 'help_text' and 'help' will be past on to
-		add_help_text() and set_help() respectively.
+		@note: some sub-classes expect C{self.ui} to always be a
+		L{GtkInterface}
 		'''
 		self.ui = ui
 		self.result = None
-		self.inputs = {}
 		gtk.Dialog.__init__(
 			self, parent=get_window(self.ui),
 			title=format_title(title),
@@ -1928,9 +2100,16 @@ class Dialog(gtk.Dialog):
 		if help_text: self.add_help_text(help_text)
 		if help: self.set_help(help)
 
+	@property
+	def destroyed(self): return not self.has_user_ref_count
+		# Returns True when dialog has been destroyed
+
+	#{ Layout methods
+
 	def set_help(self, pagename):
 		'''Set the name of the manual page with help for this dialog.
 		Setting this will add a "help" button to the dialog.
+		@param pagename: the manual page name
 		'''
 		self.help_page = pagename
 		button = gtk.Button(stock=gtk.STOCK_HELP)
@@ -1939,23 +2118,32 @@ class Dialog(gtk.Dialog):
 		self.action_area.set_child_secondary(button, True)
 
 	def show_help(self, page=None):
+		'''Show a help page
+		@param page: the manual page, if C{None} the page as set with
+		L{set_help()} is used
+		'''
 		self.ui.show_help(page or self.help_page)
 			# recurses until gui.show_help is reached
 
 	def add_help_text(self, text):
 		'''Adds a label with an info icon in front of it. Intended for
 		informational text in dialogs.
+		@param text: help text
 		'''
 		hbox = help_text_factory(text)
 		self.vbox.pack_start(hbox, False)
 
 	def add_form(self, inputs, values=None, depends=None, trigger_response=True):
-		'''Convenience method to construct simple forms. Inputs are
-		specified with 'inputs', see the InputForm class for details.
+		'''Convenience method to construct a form with input widgets and
+		add them to the dialog. See L{InputForm.add_inputs()} for
+		details.
 
-		If 'trigger_response' is True pressing <Enter> in the last Entry
-		widget will call response_ok(). Set to False if more forms
-		will follow in the same dialog.
+		@param inputs: list with input definitions
+		@param values: initial values for the inputs
+		@param depends: dict with dependencies between inputs
+		@param trigger_response: if C{True} pressing C{<Enter>} in the
+		last entry widget will immediatly call L{response_ok()}. Set to
+		C{False} if more forms will follow in the same dialog.
 		'''
 		if hasattr(self.ui, 'notebook'):
 			notebook = self.ui.notebook
@@ -1967,9 +2155,13 @@ class Dialog(gtk.Dialog):
 		self.vbox.pack_start(self.form, False)
 		return self.form
 
+	#}
+
+	#{ Interaction methods
+
 	def run(self):
-		'''Calls show_all() followed by gtk.Dialog.run().
-		Returns the 'result' attribute of the dialog if any.
+		'''Wrapper for C{gtk.Dialog.run()}, also calls C{show_all()}
+		@returns: C{self.result}
 		'''
 		self.show_all()
 		if TEST_MODE:
@@ -1988,21 +2180,22 @@ class Dialog(gtk.Dialog):
 		self.show_all()
 
 	def show_all(self):
-		'''Logs debug info and calls gtk.Dialog.show_all()'''
 		logger.debug('Opening dialog "%s"', self.title)
 		register_window(self)
 		if not TEST_MODE:
 			gtk.Dialog.show_all(self)
 
 	def response_ok(self):
-		'''Trigger the response signal with an 'Ok' response type.'''
+		'''Trigger the response signal with response type 'OK'.'''
 		self.response(gtk.RESPONSE_OK)
 
 	def assert_response_ok(self):
-		'''Like response_ok(), but will force False return value
-		to raise an error. Also it explicitly does not handle errors
-		with an error dialog but just let them go through.
+		'''Like L{response_ok()}, but raise an error when
+		L{do_response_ok} returns C{False}.
+		Also it explicitly does not handle errors in L{do_response_ok}.
 		Intended for use by the test suite.
+		@returns: C{self.result}
+		@raises AssertionError: if L{do_response_ok} returns C{False}
 		'''
 		if not self.do_response_ok() is True:
 			raise AssertionError, '%s.do_response_ok() did not return True' % self.__class__.__name__
@@ -2011,11 +2204,10 @@ class Dialog(gtk.Dialog):
 		return self.result
 
 	def do_response(self, id):
-		'''Handler for the response signal, dispatches to do_response_ok()
-		if response was positive and destroys the dialog if that function
-		returns True. If response was negative just closes the dialog without
-		further action.
-		'''
+		# Handler for the response signal, dispatches to do_response_ok()
+		# if response was positive and destroys the dialog if that function
+		# returns True. If response was negative just closes the dialog without
+		# further action.
 		if id == gtk.RESPONSE_OK and not self._no_ok_action:
 			logger.debug('Dialog response OK')
 			try:
@@ -2045,67 +2237,84 @@ class Dialog(gtk.Dialog):
 			logger.debug('Closed dialog "%s"', self.title[:-6])
 
 	def do_response_ok(self):
-		'''Function to be overloaded in child classes. Called when the
-		user clicks the 'Ok' button or the equivalent of such a button.
+		'''Handler called when the user clicks the "OK" button (or
+		an equivalent button)
 
-		Should return True to allow the dialog to close. If e.g. input is not
-		valid, returning False will keep the dialog open.
+		@returns: C{True} if succesful and the dialog can close. Returns
+		C{False} if e.g. input is not valid, this will keep the dialog open.
+
+		@implementation: must be implemented by sub-classes that have
+		an "OK" button
 		'''
 		raise NotImplementedError
 
 	def do_response_cancel(self):
-		''' Function to be overloaded in child classes when an action different
-		from the default one is needed. Called when the user clicks
-		the 'Cancel' button or an equivalent. Returns True to close the dialog.
+		'''Handler called when the user clicks the "Cancel" button.
+
+		@returns: C{True} if the dialog can be destroyed close. Returning
+		C{False} will keep the dialog open.
+
+		@implementation: can be implemented by sub-classes that have
+		an "Cancel" button
 		'''
 		return True
 
 	def save_uistate(self):
-		'''Function to be overloaded in child classes. Called when the
-		dialog is about to exit or hide and wants the uistate to be
-		saved. Just set whatever values need to be save in
-		'self.uistate'. The window size is saved by default already.
+		'''Method when the dialog is about to exit or hide and wants to
+		save the uistate. Sub-classes implementing this method should
+		use it to set additional state parameter in C{self.uistate}.
+
+		@implementation: can be implemented by sub-classes that have
+		some additional uistate to save
 		'''
 		pass
 
+	#}
 
 # Need to register classes defining gobject signals
 gobject.type_register(Dialog)
 
 
 class ErrorDialog(gtk.MessageDialog):
+	'''The is the main class for error dialogs in zim. It not only
+	presents the error to the user, but also takes care of logging it.
+	So the error dialog can be used as a generic catch all for
+	exceptions in the user interface. The way the error is shown
+	depends on the class of the exception:
+
+	For exceptions that inherit from L{zim.errors.Error} or
+	C{EnvironmentError} (e.g. C{OSError} or C{IOError}) a normal error
+	dialog will be shown. This covers errors that can can occur in
+	normal usage. As a special case the "filename" attribute of
+	Environment errors is used and added to the error message.
+
+	On the other all exceptions that do not inherit from these
+	classes (so all standard in exceptions like C{AssertionError},
+	C{KeyError} etc.) are considered the result of bugs and the dialog
+	will say: "Looks like you found a bug" and show a stack trace.
+
+	@note: in menu action handlers you typically do not need to catch
+	exceptions with an error dialog. The standard menu wrapper takes
+	care of that.
+	'''
 
 	def __init__(self, ui, error, exc_info=None):
 		'''Constructor
 
-		@param ui: either be the main application object or some other
-		dialog from which the error originates
-		@param error: the actual error
+		@param ui: either a parent window or dialog or the main
+		C{GtkInterface} object
 
-		If the error is an instance of a subclass of L{zim.errors.Error}
-		or L{EnvironmentError} (e.g. L{OSError} or L{IOError}) a normal
-		error dialog will be shown. This covers errors that can
-		can occur in normal usage. For Environment errors that have
-		a "filename" attribute the filename is added to the error
-		message.
+		@param error: the actual error, either an C{Exception} object
+		(including instances of L{zim.errors.Error}), a string with the
+		error description, or a 2-tuple of the short message and the
+		longer description as strings. Using a tuple here will give a
+		better looking dialog over using a simple string.
 
-		If the error is another instance of a (sub) class of
-		L{Exception} it is considered a bug and the "Looks like you
-		found a bug" text is shown together with a stack trace.
-
-		This means that you can throw pretty much any error object
-		you get in this constructor and the dialog will be the
-		correct style.
-
-		For convenience the error can also be a simple string or
-		a tuple of two strings. In this case it is considered a normal
-		error. The string just gives the error, the tuple gives the
-		short and long description to show in the dialog.
-
-		@keyword exc_info: this is an optional argument that takes the
-		result of L{sys.exc_info()}. This parameter is not necessary in
-		most cases, but can be useful to get a full stack trace in the
-		dialog for errors from e.g. an async operation.
+		@param exc_info: this is an optional argument that takes the
+		result of C{sys.exc_info()}. This parameter is not necessary in
+		most cases where the dialog is run while the exception is still
+		in scope. One reason to pass it on explicitly is the handling
+		of errors from an async operation in the main tread.
 		'''
 		self.error = error
 		show_trace = False
@@ -2149,7 +2358,13 @@ class ErrorDialog(gtk.MessageDialog):
 
 
 	def get_debug_text(self, exc_info=None):
-		'''Returns text to include in an error dialog to support debugging'''
+		'''Get the text to show in the log of a "You found a bug" dialog.
+		Includes zim version info and traceback info.
+
+		@param exc_info: this is an optional argument that takes the
+		result of C{sys.exc_info()}
+		@returns: debug log as string
+		'''
 		import zim
 		import traceback
 
@@ -2212,16 +2427,30 @@ class ErrorDialog(gtk.MessageDialog):
 		self.destroy()
 
 	def do_response_ok(self):
+		'''Response handler for the 'OK' button
+		@implementation: optional to be implemented by sub-classes that
+		want to run some action after presenting the error.
+		'''
 		return True
 
 
 class QuestionDialog(gtk.MessageDialog):
+	'''Convenience class to prompt the user with Yes/No answer type
+	of questions.
+
+	Note that message dialogs do not have a title.
+	'''
 
 	def __init__(self, ui, question):
-		'''Constructor. 'ui' can either be the main application or some
-		other dialog. Question is a message that can be answered by
-		'yes' or 'no'. The question can also be a tuple containing a short
-		question and a longer explanation, this is preferred for look&feel.
+		'''Constructor.
+
+		@param ui: either a parent window or dialog or the main
+		C{GtkInterface} object
+
+		@param question: a question that can be answered by 'yes' or
+		'no', either as sring or a 2-tuple of the actual question and
+		a longer explanation as srtings. Using a tuple here will give a
+		better looking dialog.
 		'''
 		if isinstance(question, tuple):
 			question, text = question
@@ -2245,7 +2474,7 @@ class QuestionDialog(gtk.MessageDialog):
 
 	def run(self):
 		'''Runs the dialog and destroys it directly.
-		Returns True if the user clicked 'Yes', False otherwise.
+		@returns: C{True} if the user clicked 'Yes', C{False} otherwise.
 		'''
 		logger.debug('Running QuestionDialog')
 		logger.debug('Q: %s', self.question)
@@ -2257,12 +2486,23 @@ class QuestionDialog(gtk.MessageDialog):
 
 
 class MessageDialog(gtk.MessageDialog):
+	'''Convenience wrapper for C{gtk.MessageDialog}, should be used for
+	informational popups without an action.
+
+	Note that message dialogs do not have a title.
+	'''
 
 	def __init__(self, ui, msg):
-		'''Constructor. 'ui' can either be the main application or some
-		other dialog. The message can also be a tuple containing a short
-		question and a longer explanation, this is preferred for look&feel.
+		'''Constructor.
+
+		@param ui: either a parent window or dialog or the main
+		C{GtkInterface} object
+
+		@param msg: the message either as sring or a 2-tuple of the
+		actual question and a longer explanation as strings. Using a
+		tuple here will give a better looking dialog.
 		'''
+
 		if isinstance(msg, tuple):
 			msg, text = msg
 		else:
@@ -2286,18 +2526,40 @@ class MessageDialog(gtk.MessageDialog):
 
 
 class FileDialog(Dialog):
-	'''File chooser dialog, adds a filechooser widget to Dialog.
-	Tries to show preview for image files.
+	'''File Chooser dialog, that allows to browser the file system and
+	select files or folders. Similar to C{gtk.FileChooserDialog} but
+	inherits from L{Dialog} instead.
+
+	This dialog will automatically show previews for image files.
+
+	When using C{dialog.run()} it will return the selected file(s) or
+	dir(s) based on the arguments given during construction.
 	'''
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			help_text=None, help=None, multiple=False
 		):
-		'''Constructor
-		If 'multiple' is True the dialog will allow selecting multiple
-		files at once.
-		Other arguments are passed on to Dialog.__init__().
+		'''Constructor.
+
+		@param ui: either a parent window or dialog or the main
+		C{GtkInterface} object
+
+		@param title: the dialog title
+
+		@param action: the file chooser action, one of::
+			gtk.FILE_CHOOSER_ACTION_OPEN
+			gtk.FILE_CHOOSER_ACTION_SAVE
+			gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER
+			gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER
+
+		@param buttons: see L{Dialog.__init__()}
+		@param button: see L{Dialog.__init__()}
+		@param help_text: see L{Dialog.__init__()}
+		@param help: see L{Dialog.__init__()}
+
+		@param multiple: if C{True} the dialog will allow selecting
+		multiple files at once.
 		'''
 		if button is None:
 			if action == gtk.FILE_CHOOSER_ACTION_OPEN:
@@ -2342,30 +2604,35 @@ class FileDialog(Dialog):
 		return
 
 	def set_file(self, file):
-		'''Wrapper for filechooser.set_filename()'''
+		'''Set the file or dir to pre select in the dialog
+		@param file: a L{File} or L{Dir} object
+		'''
 		ok = self.filechooser.set_filename(file.path)
 		if not ok:
 			raise Exception, 'Could not set filename: %s' % file.path
 
 	def get_file(self):
-		'''Wrapper for filechooser.get_filename().
-		Returns a File object or None.
+		'''Get the current selected file
+		@returns: a L{File} object or C{None}.
 		'''
 		path = self.filechooser.get_filename()
 		if path is None: return None
 		else: return File(path.decode('utf-8'))
 
 	def get_files(self):
-		'''Like get_file() but returns a list of File objects.
-		Useful in combination with the option "multiple".
+		'''Get list of selected file. Assumes the dialog was created
+		with C{multiple=True}.
+		@returns: a list of L{File} objects
 		'''
 		paths = [path.decode('utf-8')
 				for path in self.filechooser.get_filenames()]
 		return [File(path) for path in paths]
 
 	def get_dir(self):
-		'''Wrapper for filechooser.get_filename().
-		Returns a Dir object or None.
+		'''Get the the current selected dir. Assumes the dialog was
+		created with action C{gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER} or
+		C{gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER}.
+		@returns: a L{Dir} object or C{None}
 		'''
 		path = self.filechooser.get_filename().decode('utf-8')
 		if path is None: return None
@@ -2379,8 +2646,10 @@ class FileDialog(Dialog):
 		self.filechooser.add_filter(filter)
 
 	def add_filter(self, name, glob):
-		'''Wrapper for filechooser.add_filter()
-		using gtk.FileFilter.add_pattern(). Returns the filter object.
+		'''Add a filter for files with specific extensions in the dialog
+		@param name: the label to display in the filter selection
+		@param glob: a file pattern (e.g. "*.txt")
+		@returns: the C{gtk.FileFilter} object
 		'''
 		if len(self.filechooser.list_filters()) == 0:
 			self._add_filter_all()
@@ -2392,8 +2661,8 @@ class FileDialog(Dialog):
 		return filter
 
 	def add_filter_images(self):
-		'''Wrapper for filechooser.add_filter() to add a filter for images.
-		Returns the filter object.
+		'''Add a standard file filter for selecting image files.
+		@returns: the C{gtk.FileFilter} object
 		'''
 		if len(self.filechooser.list_filters()) == 0:
 			self._add_filter_all()
@@ -2401,7 +2670,7 @@ class FileDialog(Dialog):
 		filter.set_name(_('Images'))
 			# T: Filter in open file dialog, shows image files only
 		filter.add_pixbuf_formats()
-		filter.add_mime_type('image/*')       # to allow types like .ico
+		filter.add_mime_type('image/*') # to allow types like .ico
 		self.filechooser.add_filter(filter)
 		self.filechooser.set_filter(filter)
 		return filter
@@ -2432,20 +2701,47 @@ class FileDialog(Dialog):
 
 
 class ProgressBarDialog(gtk.Dialog):
-	'''Dialog to display a progress bar. Behaves more like a MessageDialog than
-	like a normal Dialog. These dialogs are only supposed to run modal, but are
-	not called with run() as there is typically a background action giving them
-	callbacks. They _always_ should implement a cancel action to break the
-	background process, either be overloading this class, or by checking the
-	return value of pulse().
+	'''This class implements a dialog with a progress bar.
 
-	If you know up front how often pulse() will be called supply this
-	number to the constructor in order to get the bar to display a percentage.
-	Otherwise the bar will just bounce up and down without indication of remaining
-	time.
+	ProgressBarDialogs supposed to run modal, but are not called with
+	C{run()} as they are typically driven by a callback of a async
+	action. Typical construct would be::
+
+		dialog = ProgressBarDialog(ui, 'My progress bar')
+
+		def cb_func(*arg):
+			cancel = dialog.pulse()
+			return cancel
+
+		self.async_foo(callback=cb_func)
+
+	This example assumes that the method C{async_foo()} will cancel as
+	soon as the callback returns C{False}.
+
+	The usage of a progress bar dialog I{must} implement a cancel action.
+
+	Note that progress bars dialogs do not have a title.
+
+	If you know how often L{pulse()} will be called and give this total
+	number the bar will display a percentage. Otherwise the bar will
+	just bounce up and down without indication of remaining time.
 	'''
 
 	def __init__(self, ui, text, total=None):
+		'''Constructor
+
+		@param ui: either a parent window or dialog or the main
+		C{GtkInterface} object
+
+		@param text: text to show above the progress bar. Typically
+		should be the action being executed, like "Updating Links".
+		This is not a dialog title, so phrasing is slightly different.
+
+		@param total: number of times we expect L{pulse()} to be called,
+		if known. Will result in the bar showing progress by percentage.
+		Can later be modified by supplying a new total number directly
+		to L{pulse()}.
+		'''
 		self.ui = ui
 		self.cancelled = False
 		gtk.Dialog.__init__(
@@ -2475,18 +2771,39 @@ class ProgressBarDialog(gtk.Dialog):
 		self.set_total(total)
 
 	def set_total(self, total):
+		'''Set the number of times we expect L{pulse()} to be called,
+		calling this method also resets the count
+		@param total: number of times we expect L{pulse()} to be called
+		'''
 		self.total = total
 		self.count = 0
 
 	def pulse(self, msg=None, count=None, total=None):
-		'''Sets an optional message and moves forward the progress bar. Will also
-		handle all pending Gtk events, so interface keeps responsive during a background
-		job. This method returns True until the 'Cancel' button has been pressed, this
-		boolean could be used to decide if the background job should continue or not.
+		'''update the dialog and move the progress bar by one step.
 
-		First call to pulse() will also trigger a show_all() if the
-		dialog is not shown yet. This is done so you don't flash a
-		progress dialog that is never used.
+		First call to C{pulse()} will also trigger a C{show_all()} if
+		the dialog is not shown yet. By not showing the dialog before
+		C{pulse()} is called prevents the dialog flashing over the
+		screen when the operation was very quick after all and never
+		needed to call the callback.
+
+		This method also run other pending gtk events. So the interface
+		keeps looking repsonsive is a long operation calls this method
+		often enough.
+
+		@param msg: optional message to show below the progress bar,
+		e.g. the name of the item being processed
+		@param count: count of steps already done, if C{None} the
+		number of steps is equal to number of times C{pulse()} has
+		been called.
+		@param total: total number of steps expected, if C{None} a
+		previous set total is used. If no total is known the bar
+		will just bounce up and down without indication of remaining
+		items.
+
+		@returns: C{True} until the 'Cancel' button has been pressed,
+		this should be used to decide if the background job should
+		continue or not.
 		'''
 		if not TEST_MODE and not self.get_property('visible'):
 			self.show_all()
@@ -2514,13 +2831,11 @@ class ProgressBarDialog(gtk.Dialog):
 		return not self.cancelled
 
 	def show_all(self):
-		'''Logs debug info and calls gtk.Dialog.show_all()'''
 		logger.debug('Opening ProgressBarDialog')
 		if not TEST_MODE:
 			gtk.Dialog.show_all(self)
 
 	def do_response(self, id):
-		'''Handles the response signal and calls the 'cancel' callback.'''
 		logger.debug('ProgressBarDialog get response %s', id)
 		self.cancelled = True
 
@@ -2534,22 +2849,29 @@ gobject.type_register(ProgressBarDialog)
 
 class Assistant(Dialog):
 	'''Dialog with multi-page input, sometimes also revert to as a
-	"wizard". Similar to gtk.Assistent but does not derive from that
-	class for lack of flexibility in setting the dialog layout.
+	"wizard". Similar to C{gtk.Assistent} separate implementation to
+	allow more flexibility in the dialog layout.
 
 	Each "page" in the assistant is a step in the work flow. Pages
-	should inherit from the AssistantPage class. Pages share the
-	'uistate' dict with assistant object, and can also use this to
+	should inherit from L{AssistantPage}. Pages share the 'uistate'
+	dict with assistant object, and can also use this to
 	communicate state to another page. So each step can change its
 	look based on state set in the previous step. (This is sometimes
 	called a "Whiteboard" design pattern: each page can access the
 	same "whiteboard" that is the uistate dict.)
 
-	Sub-classes can freely manipulate the flow of pages e.g. by
-	overloading the previous_page() and next_page() methods.
+	Sub-classes of this dialog can freely manipulate the flow of pages
+	e.g. by overloading the L{previous_page()} and L{next_page()} methods.
 	'''
 
 	def __init__(self, ui, title, **options):
+		'''Constructor
+
+		@param ui: either a parent window or dialog or the main
+		C{GtkInterface} object
+		@param title: dialog title
+		@param options: other dialog options, see L{Dialog.__init__()}
+		'''
 		Dialog.__init__(self, ui, title, **options)
 		self.set_border_width(5)
 		self._pages = []
@@ -2576,7 +2898,9 @@ class Assistant(Dialog):
 		self.action_area.reorder_child(self.ok_button, -1)
 
 	def append_page(self, page):
-		'''Append a page'''
+		'''Append a page
+		@param page: an L{AssistantPage} object
+		'''
 		assert isinstance(page, AssistantPage)
 		page.connect('input-valid-changed', self._update_valid)
 		self._pages.append(page)
@@ -2587,18 +2911,24 @@ class Assistant(Dialog):
 		Dialog.run(self)
 
 	def get_pages(self):
-		'''Returns a list with AssistantPage objects'''
+		'''Get all pages
+		@returns: a list of L{AssistantPage} objects
+		'''
 		return self._pages
 
 	def get_page(self):
-		'''Returns the current page object'''
+		'''Get the current page
+		@returns: a L{AssistantPage} object
+		'''
 		if self._page > -1:
 			return self._pages[self._page]
 		else:
 			return None
 
 	def set_page(self, i):
-		'''Go to page i in the assistant'''
+		'''Set the current page, based on sequence number
+		@param i: the index of the page to be shown
+		'''
 		if i < 0 or i >= len(self._pages):
 			return False
 
@@ -2674,11 +3004,6 @@ class Assistant(Dialog):
 		Dialog.do_response(self, id)
 
 	def assert_response_ok(self):
-		'''Like response_ok(), but will force False return value
-		to raise an error. Also it explicitly does not handle errors
-		with an error dialog but just let them go through.
-		Intended for use by the test suite.
-		'''
 		# Wrap up previous page
 		if self._page > -1:
 			self._pages[self._page].save_uistate()
@@ -2693,14 +3018,22 @@ class Assistant(Dialog):
 
 
 class AssistantPage(gtk.VBox):
-	'''Base class for pages in an Assistant dialog. Should have an
-	attribute 'title'. Also will have an attribute 'uistate' which
-	is set by the constructor to link to the dialog. This uistate is
-	shared between all pages in the same dialog.
+	'''Base class for pages in an L{Assistant} dialog.
 
-	The input needs to be valid before the user is allowed to continue.
-	You can set valid state directly or use the convenience functions
-	to hook widgets that need to be valid.
+	Typically each page will contain a number of input widgets that
+	are logically grouped. After filling them in the user presses
+	"Forward" to go to the next page. In order for the "Forward" button
+	to becomes sensitive all widgets must have valid input.
+
+	@cvar title: title to show above this page
+
+	@ivar uistate: dict shared between all pages in the same dialog,
+	use this to set values giving the interface state.
+	@ivar assistant: the dialog this page belongs to
+	@ivar form: an L{InputForm} when L{add_form()} was used
+
+	@signal: C{input-valid-changed ()}: emitted when the valid state
+	of the page changed
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -2711,6 +3044,9 @@ class AssistantPage(gtk.VBox):
 	title = ''
 
 	def __init__(self, assistant):
+		'''Constructor
+		@param assistant: the L{Assistant} dialog
+		'''
 		gtk.VBox.__init__(self)
 		self.set_border_width(5)
 		self.uistate = assistant.uistate
@@ -2719,20 +3055,33 @@ class AssistantPage(gtk.VBox):
 		self.form = None
 
 	def init_uistate(self):
-		'''Hook called when a new page is shown in the dialog. Should
-		be used to update uistate according to input of other pages.
+		'''This method is called when this page is shown in the dialog.
+		Should be used to update uistate according to input of other
+		pages. Keep in mind that uistate can have changed since the
+		constructor was called - even when this is the first page, the
+		dialog has a "Back" button.
+
+		@implementation: must be implementated by all subclasseses
 		'''
 		pass
 
 	def save_uistate(self):
-		'''Hook called when leaving the current page. Should set uistate
-		to reflect user input. Should not fail on validation.
+		'''This method is called before leaving the page. It should
+		be used to update uitstate based on in put widgets.
+
+		@implementation: must be implementated by all subclasseses that
+		do not update uistate in real time
 		'''
 		pass
 
 	def add_form(self, inputs, values=None, depends=None):
-		'''Convenience method to construct simple forms. Inputs are
-		specified with 'inputs', see the InputForm class for details.
+		'''Convenience method to construct a form with input widgets and
+		add them to the dialog. See L{InputForm.add_inputs()} for
+		details.
+
+		@param inputs: list with input definitions
+		@param values: initial values for the inputs
+		@param depends: dict with dependencies between inputs
 		'''
 		self.form = InputForm(inputs, values, depends, notebook=self.assistant.ui.notebook)
 		self.form.connect('input-valid-changed', lambda o: self.check_input_valid())
@@ -2741,14 +3090,20 @@ class AssistantPage(gtk.VBox):
 		return self.form
 
 	def get_input_valid(self):
-		'''Returns current valid state'''
+		'''Get valid state for the page
+		@returns: C{True} if all input is valid
+		'''
 		return self._input_valid
 
 	def check_input_valid(self):
-		'''Called when valid state of some widget is changed and emits
-		the input-valid-signal when this affects the total valid state.
-		By default only checks state of the main form, if any, but
-		can be overloaded in subclasses.
+		'''Check overall valid stat of the page. Called if the valid
+		state if the form is changed. And should be called for any
+		other custom widgets in the page.
+
+		@implementation: should be implemented by sub-classes that
+		add widgets outside of the form
+
+		@emits: input-valid
 		'''
 		if self.form:
 			valid = self.form.get_input_valid()
@@ -2764,15 +3119,23 @@ gobject.type_register(AssistantPage)
 
 
 class ImageView(gtk.Layout):
+	'''Widget to show an image, scales the image and sets proper
+	background.
+	'''
 
-	SCALE_FIT = 1 # scale image with the window (if it is bigger)
-	SCALE_STATIC = 2 # use scaling factor
+	SCALE_FIT = 1 #: scale image with the window (if the image is bigger)
+	SCALE_STATIC = 2 #: use scaling factor
 
 	__gsignals__ = {
 		'size-allocate': 'override',
 	}
 
-	def __init__(self, bgcolor='#FFF', checkboard=True):
+	def __init__(self, bgcolor='#FFF', checkerboard=True):
+		'''Constructor
+		@param bgcolor: background color as color hex code, (e.g. "#FFF")
+		@param checkerboard: if C{True} a checkerboard is drawn behind
+		transparent images, if C{False} it is just the background color.
+		'''
 		gtk.Layout.__init__(self)
 		self.set_flags(gtk.CAN_FOCUS)
 		self.scaling = self.SCALE_FIT
@@ -2790,24 +3153,30 @@ class ImageView(gtk.Layout):
 
 		if bgcolor:
 			self.set_bgcolor(bgcolor)
-		self.checkboard = checkboard
+		self.checkerboard = checkerboard
 
 	def set_bgcolor(self, bgcolor):
-		'''Set background color, bgcolor must be in hex, e.g. "#FFF"'''
+		'''Set background color
+		@param bgcolor: background color as color hex code, (e.g. "#FFF")
+		'''
 		assert bgcolor.startswith('#'), 'BUG: Should specify colors in hex'
 		color = gtk.gdk.color_parse(bgcolor)
 			# gtk.gdk.Color(spec) only for gtk+ >= 2.14
 		self.modify_bg(gtk.STATE_NORMAL, color)
 
-	def set_checkboard(self, checkboard):
-		'''If checkboard is True we draw a checkboard behind transparent image,
-		if it is False we just show the background color.
+	def set_checkerboard(self, checkerboard):
+		'''Set checkerboard for transparent images
+		@param checkerboard: if C{True} a checkerboard is drawn behind
+		transparent images, if C{False} it is just the background color.
 		'''
-		self.checkboard = checkboard
+		self.checkerboard = checkerboard
 
 	def set_scaling(self, scaling, factor=1):
-		'''Set the scaling to either one of SCALE_FIT or SCALE_STATIC.
-		The factor is only used by SCALE_STATIC as fixed scaling factor.
+		'''Set the scaling
+		@param scaling: C{SCALE_FIT} to make the image scale down
+		to the size of the view, or C{SCALE_STATIC} to set scaling to
+		a fixed factor.
+		@param factor: static scaling factor (in combination with C{SCALE_STATIC})
 		'''
 		assert scaling in (SCALE_FIT, SCALE_STATIC)
 		self.scaling = scaling
@@ -2815,7 +3184,9 @@ class ImageView(gtk.Layout):
 		self._render()
 
 	def set_file(self, file):
-		'''Convenience method to load a pixbuf from file and load it'''
+		'''Set the image to display from a file
+		@param file: a L{File} object
+		'''
 		pixbuf = None
 
 		if file:
@@ -2829,8 +3200,9 @@ class ImageView(gtk.Layout):
 		self.set_pixbuf(pixbuf)
 
 	def set_pixbuf(self, pixbuf):
-		'''Set the image to display. Set image to 'None' to display a broken
-		image icon.
+		'''Set the image to display from a pixbuf
+		@param pixbuf: a C{gtk.gdk.Pixbuf} or C{None} to display a
+		broken image icon.
 		'''
 		if pixbuf is None:
 			pixbuf = self.render_icon(
@@ -2887,14 +3259,14 @@ class ImageView(gtk.Layout):
 		# Scale pixbuf to new size
 		wimg = max(wimg, 1)
 		himg = max(himg, 1)
-		if not self.checkboard or not self._pixbuf.get_has_alpha():
+		if not self.checkerboard or not self._pixbuf.get_has_alpha():
 			if (wimg, himg) == (wsrc, hsrc):
 				pixbuf = self._pixbuf
 			else:
 				pixbuf = self._pixbuf.scale_simple(
 							wimg, himg, gtk.gdk.INTERP_NEAREST)
 		else:
-			# Generate checkboard background while scaling
+			# Generate checkerboard background while scaling
 			pixbuf = self._pixbuf.composite_color_simple(
 				wimg, himg, gtk.gdk.INTERP_NEAREST,
 				255, 16, self._lightgrey.pixel, self._darkgrey.pixel )
@@ -2919,11 +3291,16 @@ class PromptExistingFileDialog(Dialog):
 	directory. This Dialog allows to suggest a new name or overwrite
 	the existing one.
 
-	For this dialog 'run()' will return either the original file
+	For this dialog C{run()} will return either the original file
 	(for overwrite), a new file, or None when the dialog was canceled.
 	'''
 
 	def __init__(self, ui, file):
+		'''Constructor
+		@param ui: either a parent window or dialog or the main
+		C{GtkInterface} object
+		@param file: a L{File} object for an existing file
+		'''
 		Dialog.__init__(self, ui, _('File Exists'), buttons=None) # T: Dialog title
 		self.add_help_text( _('''\
 A file with the name <b>"%s"</b> already exists.

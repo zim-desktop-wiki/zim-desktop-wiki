@@ -144,5 +144,3 @@ class MemoryStore(StoreClass):
 
 		return True
 
-	def page_exists(self, path):
-		return bool(self.get_node(path))

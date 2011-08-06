@@ -9,9 +9,9 @@ programs.
 
 The format is very simple, there are just 3 directives:
 
-	\NewEntry	start a new page
-	\NewFolder	start a new namespace
-	\EndFolder	end of the namespace
+	- C{\NewEntry} start a new page
+	- C{\NewFolder} start a new namespace
+	- C{\EndFolder} end of the namespace
 
 Pages do not have any formatting and the first line, which may be
 empty, is used as the page title. Titles do not have to be unique, so

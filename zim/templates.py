@@ -10,7 +10,8 @@ a PageProxy object, which exposes attributes and functions to be used
 in the template. This module is most efficient when you want to dump
 many pages with one template.
 
-Usage:
+Usage::
+
 	import zim.templates
 	tmpl = zim.templates.get_template('html', 'Default')
 	for page in notebook.get_root():
@@ -20,7 +21,7 @@ Template files are expected to be in a path
 XDG_DATA/zim/templates/FORMAT/
 
 Syntax is loosely based on the syntax of the perl Template Toolkit
-(http://template-toolkit.org). The following syntax is supported:
+(U{http://template-toolkit.org}). The following syntax is supported::
 
 	[% GET page.name %] or just [% page.name %]
 	[% SET foo = 'Foo !' %] or just [ foo = 'Foo !' ]
@@ -49,11 +50,11 @@ without worrying whether it may delete his or her notes.
 Therefore we try to minimize to possibilities to actually execute
 arbitrary code from templates.
 
-* We only allow strings as function arguments from the template,
-  no arbitrary expressions
-* Functions that are allowed to be called from the template need to be
-  flagged explicitly by wrapping them in a TemplateFunction object.
-* There is no directive to evaluate code, like EVAL, PERL or PYTHON
+  - We only allow strings as function arguments from the template,
+    no arbitrary expressions
+  - Functions that are allowed to be called from the template need to be
+    flagged explicitly by wrapping them in a TemplateFunction object.
+  - There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
 
 # TODO add a directive [% INCLUDE template_name %]
@@ -161,11 +162,10 @@ class _TemplateManager(gobject.GObject):
 	'''Singleton object used for hooking signals so plugins can be notified
 	when a template is used.
 
-	Currently only supports one signal:
-	  * process-page (manager, template, page, dict)
-	    Called just before the page is processed. Plugins can extend functionality
-	    available to the template by putting parameters or template functions in
-	    'dict'. Plugins should not modify page!
+	@signal: C{process-page (manager, template, page, dict)}:
+	Called just before the page is processed. Plugins can extend functionality
+	available to the template by putting parameters or template functions in
+	'dict'. Plugins should not modify page!
 	'''
 
 	# In theory it would be better to do this without a singleton, but in that

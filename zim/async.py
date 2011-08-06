@@ -67,7 +67,7 @@ def call_in_main_thread(cb_func, args=()):
 
 
 class AsyncOperation(threading.Thread):
-	'''Wrapper class for a L{threading.Thread} object'''
+	'''Wrapper class for a C{threading.Thread} object'''
 
 	def __init__(self, function, args=(), kwargs={}, lock=None, callback=None, data=None):
 		'''Constructor for a new thread
@@ -146,7 +146,7 @@ class AsyncOperation(threading.Thread):
 
 
 class AsyncLock(object):
-	'''This class wraps a L{threading.Lock} object.
+	'''This class wraps a C{threading.Lock} object.
 
 	This class also functions as a context manager, so you can use::
 

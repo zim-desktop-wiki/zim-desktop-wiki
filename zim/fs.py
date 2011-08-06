@@ -4,14 +4,15 @@
 
 '''Module with basic filesystem objects.
 
-Used as a base library for most other zim modules.
+This module must be used by all other zim modules for filesystem
+interaction. It takes care of proper encoding file paths
+(system dependent) and file contents (UTF-8) and implements a number
+of sanity checks.
 
-FIXME more docs
-
-There is a singleton object to represent the whole filesystem. This
-is stored in 'zim.fs.FS'. This object provides signals when a file or
-folder is created, moved or deleted.
-
+The main classes are L{File} and L{Dir} which implement file and
+folder objects. There is also a singleton object to represent the whole
+filesystem, whichprovides signals when a file or folder is created,
+moved or deleted. This is stored in L{zim.fs.FS}.
 '''
 
 # From the python doc: If you're starting with a Python file object f, first
@@ -129,6 +130,7 @@ from zim.async import AsyncOperation, AsyncLock
 
 logger = logging.getLogger('zim.fs')
 
+#: 'gio' library is imported for optional features, like trash
 gio = None
 try:
 	import gio
@@ -153,9 +155,7 @@ except ImportError:
 	import mimetypes
 
 
-__all__ = ['Dir', 'File']
-
-
+#: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
 	# Gleaned from gtk.gdk.get_formats()
 	'bmp', # image/bmp
@@ -193,7 +193,7 @@ IMAGE_EXTENSIONS = (
 )
 
 
-ENCODING = sys.getfilesystemencoding()
+ENCODING = sys.getfilesystemencoding() #: file system encoding for paths
 if ENCODING.upper() in (
 	'ASCII', 'US-ASCII', 'ANSI_X3.4-1968', 'ISO646-US', # some aliases for ascii
 	'LATIN1', 'ISO-8859-1', 'ISO_8859-1', 'ISO_8859-1:1987', # aliases for latin1
@@ -240,25 +240,44 @@ else:
 
 
 def isabs(path):
+	'''Wrapper for C{os.path.isabs}.
+	@param path: a file system path as string
+	@returns: C{True} when the path is absolute instead of a relative path
+	'''
 	return path.startswith('file:/') or os.path.isabs(path)
 
 
 def isdir(path):
-	'''Unicode safe wrapper for os.path.isdir()'''
+	'''Wrapper for C{os.path.isdir()}, fixes encoding.
+	@param path: a file system path as string
+	@returns: C{True} when the path is an existing dir
+	'''
 	return os.path.isdir(encode(path))
 
 
 def isfile(path):
-	'''Unicode safe wrapper for os.path.isfile()'''
+	'''Wrapper for C{os.path.isfile()}, fixes encoding.
+	@param path: a file system path as string
+	@returns: C{True} when the path is an existing file
+	'''
 	return os.path.isfile(encode(path))
 
 
 def joinpath(*parts):
-	'''Wrapper for os.path.join()'''
+	'''Wrapper for C{os.path.join()}
+	@param parts: path elements
+	@returns: the same paths joined with the proper path separator
+	'''
 	return os.path.join(*parts)
 
 
 def get_tmpdir():
+	'''Get a folder in the system temp dir for usage by zim.
+	This zim specific temp folder has permission set to be readable
+	only by the current users, and is touched if it didn't exist yet.
+	Used as base folder by L{TmpFile}.
+	@returns: a L{Dir} object for the zim specific tmp folder
+	'''
 	import tempfile
 	root = tempfile.gettempdir()
 	dir = Dir((root, 'zim-%s' % os.environ['USER']))
@@ -268,6 +287,14 @@ def get_tmpdir():
 
 
 def normalize_win32_share(path):
+	'''Translates paths for windows shares in the platform specific
+	form. So on windows it translates C{smb://} URLs to C{\\host\share}
+	form, and vice versa on all other platforms.
+	Just returns the original path if it was already in the right form,
+	or when it is not a path for a share drive.
+	@param path: a filesystem path or URL
+	@returns: the platform specific path or the original input path
+	'''
 	if os.name == 'nt':
 		if path.startswith('smb://'):
 			# smb://host/share/.. -> \\host\share\..
@@ -282,7 +309,10 @@ def normalize_win32_share(path):
 
 
 def lrmdir(path):
-	'''Like os.rmdir but handles symlinks gracefully'''
+	'''Wrapper for C{os.rmdir} that also knows how to unlink symlinks.
+	Fails when the folder is not a link and is not empty.
+	@param path: a file system path as string
+	'''
 	try:
 		os.rmdir(path)
 	except OSError:
@@ -304,14 +334,24 @@ def _md5(content):
 
 
 class PathLookupError(Error):
+	'''Error raised when there is an error finding the specified path'''
 	pass # TODO description
 
 
 class FileWriteError(Error):
+	'''Error raised when we can not write a file. Either due to file
+	permissions or e.g. because it is detected the file changed on
+	disk.
+	'''
 	pass # TODO description
 
 
 class FileNotFoundError(PathLookupError):
+	'''Error raised when a file does not exist that is expected to
+	exist.
+
+	@todo: reconcile this class with the NoSuchFileError in zim.gui
+	'''
 
 	def __init__(self, file):
 		self.file = file
@@ -320,6 +360,9 @@ class FileNotFoundError(PathLookupError):
 
 
 class FileUnicodeError(Error):
+	'''Error raised when there is an issue decoding the file contents.
+	Typically due to different encoding where UTF-8 is expected.
+	'''
 
 	def __init__(self, file, error):
 		self.file = file
@@ -334,8 +377,18 @@ class FileUnicodeError(Error):
 
 # TODO actually hook the signal for deleting files and folders
 
-class _FS(gobject.GObject):
-	'''Class used for the singleton 'zim.fs.FS' instance'''
+class FSSingletonClass(gobject.GObject):
+	'''Class used for the singleton 'zim.fs.FS' instance
+
+	@signal: C{path-created (L{FilePath})}: Emitted when a new file or
+	folder has been created
+	@signal: C{path-moved (L{FilePath}, L{FilePath})}: Emitted when
+	a file or folder has been moved
+	@signal: C{path-deleted (L{FilePath})}: Emitted when a file or
+	folder has been deleted
+
+	@todo: fix the FS signals for folders as well
+	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -349,30 +402,47 @@ class _FS(gobject.GObject):
 		self._lock = AsyncLock()
 
 	def get_async_lock(self, path):
-		'''Return a lock for async operation for path'''
+		'''Get an L{AsyncLock} for filesytem operations on a path
+		@param path: a L{FilePath} object
+		@returns: an L{AsyncLock} object
+		'''
 		# FUTURE: we may actually use path to allow parallel async
 		# operations for files & folders that do not belong to the
 		# same tree. Problem there is that we do not acquire the lock
 		# in this method. So we need a new kind of lock type that can
 		# track dependency on other locks.
-		# Make sure to allow for the fact that other obejcts can keep
+		# Make sure to allow for the fact that other objects can keep
 		# the lock that are returned here indefinitely for re-use.
 		# But for now we keep things simple.
-		assert isinstance(path, UnixPath)
+		assert isinstance(path, FilePath)
 		return self._lock
 
 # Need to register classes defining gobject signals
-gobject.type_register(_FS)
+gobject.type_register(FSSingletonClass)
 
 
-FS = _FS()
+#: Singleton object for the system filesystem - see L{FSSingletonClass}
+FS = FSSingletonClass()
 
 
 class UnixPath(object):
-	'''Parent class for Dir and File objects'''
+	'''Base class for Dir and File objects, represents a file path
+
+	@ivar uri: the C{file://} URI for this path
+	@ivar basename: the basename of the path
+	@ivar dirname: the dirname of the path
+	@ivar dir: L{Dir} object for the parent folder
+	'''
 
 	def __init__(self, path):
-		if isinstance(path, Path):
+		'''Constructor
+
+		@param path: an absolute file path, file URL, L{FilePath} object
+		or a list of path elements. When a list is given, the first
+		element is allowed to be an absolute path, URL or L{FilePath}
+		object as well.
+		'''
+		if isinstance(path, FilePath):
 			self.path = path.path
 			self.encodedpath = path.encodedpath
 			return
@@ -397,6 +467,7 @@ class UnixPath(object):
 		self._set_path(path) # overloaded in WindowsPath
 
 	def serialize_zim_config(self):
+		'''Returns the file path as string for serializing the object'''
 		return self.path
 
 	@staticmethod
@@ -435,7 +506,7 @@ class UnixPath(object):
 
 	def __add__(self, other):
 		'''Concatenates paths, only creates objects of the same class. See
-		Dir.file() and Dir.subdir() instead to create other objects.
+		L{Dir.file()} and L{Dir.subdir()} instead to create other objects.
 		'''
 		return self.__class__((self, other))
 
@@ -451,35 +522,54 @@ class UnixPath(object):
 		return os.path.basename(self.path) # encoding safe
 
 	@property
+	def dirname(self):
+		'''Dirname property'''
+		return os.path.dirname(self.path) # encoding safe
+
+	@property
 	def uri(self):
 		'''File uri property'''
 		return 'file://' + url_encode(self.path)
 
 	@property
 	def dir(self):
-		'''Returns a Dir object for the parent dir'''
+		'''Returns a L{Dir} object for the parent dir'''
 		path = os.path.dirname(self.path) # encoding safe
 		return Dir(path)
 
 	def exists(self):
-		'''Abstract method'''
+		'''Check if a file or folder exists.
+		@returns: C{True} if the file or folder exists
+		@implementation: must be implemented by sub classes
+		'''
 		raise NotImplementedError
 
 	def iswritable(self):
+		'''Check if a file or folder is writable. Uses permissions of
+		parent folder if the file or folder does not (yet) exist.
+		@returns: C{True} if the file or folder is writable
+		'''
 		if self.exists():
 			return os.access(self.encodedpath, os.W_OK)
 		else:
 			return self.dir.iswritable() # recurs
 
 	def mtime(self):
+		'''Get the modification time of the file path.
+		@returns: the mtime timestamp
+		'''
 		stat_result = os.stat(self.encodedpath)
 		return stat_result.st_mtime
 
 	def isequal(self, other):
-		'''Check inode number etc. to be equal
-
-		Intended to detect if two files or dirs are the same on
-		case-insensitive filesystems.
+		'''Check file paths are equal based on stat results (inode
+		number etc.). Intended to detect when two files or dirs are the
+		same on case-insensitive filesystems. Does not explicitly check
+		the content is the same.
+		If you just want to know if two files have the same content,
+		see L{File.compare()}
+		@param other: an other L{FilePath} object
+		@returns: C{True} when the two paths are one and the same file
 		'''
 		try:
 			stat_result = os.stat(self.encodedpath)
@@ -490,10 +580,11 @@ class UnixPath(object):
 			return stat_result == other_stat_result
 
 	def split(self):
-		'''Returns the directory parts of the path as a list.
+		'''Split the parts of the path on the path separator.
 		If the OS uses the concept of a drive the first part will
 		include the drive. (So using split() to count the number of
 		path elements will not be robust for the path "/".)
+		@returns: a list of path elements
 		'''
 		drive, path = os.path.splitdrive(self.path)
 		parts = path.replace('\\', '/').strip('/').split('/')
@@ -501,13 +592,16 @@ class UnixPath(object):
 		return parts
 
 	def relpath(self, reference, allowupward=False):
-		'''Returns a relative path with respect to 'reference',
-		which should be a parent directory unless 'allowupward' is True.
-		If 'allowupward' is True the relative path is allowed to start
-		with '../'.
-
-		This method always returns paths using "/" as separator,
-		even on windows.
+		'''Get a relative path for this file path with respect to
+		another path. This method always returns paths using "/" as
+		separator, even on windows.
+		@param reference: a reference L{FilePath}
+		@param allowupward: if C{True} the relative path is allowed to
+		start with 'C{../}', if C{False} the reference should be a
+		parent folder of this path.
+		@returns: a relative file path
+		@raises AssertionError: when C{allowupward} is C{False} and
+		C{reference} is not a parent folder
 		'''
 		sep = os.path.sep # '/' or '\'
 		refdir = reference.path + sep
@@ -521,7 +615,8 @@ class UnixPath(object):
 			reference = parent
 			path = '../' * j
 		else:
-			assert self.path.startswith(refdir)
+			if not self.path.startswith(refdir):
+				raise AssertionError, 'Not a parent folder'
 			path = ''
 
 		i = len(reference.path)
@@ -529,7 +624,11 @@ class UnixPath(object):
 		return path
 
 	def commonparent(self, other):
-		'''Returns a common path between self and other as a Dir object.'''
+		'''Find a comon parent folder between two file paths.
+		@param other: another L{FilePath}
+		@returns: a L{Dir} object for the common parent folder, or
+		C{None} when there is no common parent
+		'''
 		path = os.path.commonprefix((self.path, other.path)) # encoding safe
 		i = path.rfind(os.path.sep) # win32 save...
 		if i >= 0:
@@ -539,59 +638,49 @@ class UnixPath(object):
 			return None
 
 	def ischild(self, parent):
-		'''Returns True if this path is a child path of parent'''
+		'''Check if this path is a child path of a folder
+		@returns: C{True} if this path is a child path of C{parent}
+		'''
 		return self.path.startswith(parent.path + os.path.sep)
 
 	def isdir(self):
-		'''Used to detect if e.g. a File object should have really been
-		a Dir object
+		'''Check if this path is a folder or not. Used to detect if
+		e.g. a L{File} object should have really been a L{Dir} object.
+		@returns: C{True} when this path is a folder
 		'''
 		return os.path.isdir(self.encodedpath)
 
-	def isimage(self):
-		'''Returns True if the file is an image type. But no guarantee
-		this image type is actually supported by gtk.
-		'''
-
-		# Quick shortcut to be able to load images in the gui even if
-		# we have no proper mimetype support
-		if '.' in self.basename:
-			_, ext = self.basename.rsplit('.', 1)
-			if ext in IMAGE_EXTENSIONS:
-				return True
-
-		return self.get_mimetype().startswith('image/')
-
-	def get_mimetype(self):
-		'''Returns the mimetype as a string like e.g. "text/plain"'''
-		if xdgmime:
-			mimetype = xdgmime.get_type(self.path, name_pri=80)
-			return str(mimetype)
-		else:
-			mimetype, encoding = mimetypes.guess_type(self.path, strict=False)
-			if encoding == 'gzip': return 'application/x-gzip'
-			elif encoding == 'bzip': return 'application/x-bzip'
-			elif encoding == 'compress': return 'application/x-compress'
-			else: return mimetype or 'application/octet-stream'
-
-
 	def rename(self, newpath):
+		'''Rename (move) the content this file or folder to another
+		location. This will B{not} change the current file path, so the
+		object keeps pointing to the old location.
+		@param newpath: the destination C{FilePath} which can either be a
+		file or a folder.
+		@emits: path-moved
+		'''
 		# Using shutil.move instead of os.rename because move can cross
 		# file system boundaries, while rename can not
 		logger.info('Rename %s to %s', self, newpath)
 		with FS.get_async_lock(self):
 			# Do we also need a lock for newpath (could be the same as lock for self) ?
-			# TODO: check against newpath existing and being a directory
+			if newpath.isdir():
+				print 'DEPRECATED: moving into an existing folder: %s' % newpath.path
+				# TODO: make this an hard error
+				# Needed because shutil.move() has different behavior
+				# for this case
 			newpath.dir.touch()
 			shutil.move(self.encodedpath, newpath.encodedpath)
 		FS.emit('path-moved', self, newpath)
 		self.dir.cleanup()
 
 	def trash(self):
-		'''Trash a file or folder, returns boolean for success.
-		Raises a TrashNotSupportedError if trashing us not supported
+		'''Trash a file or folder by moving it to the system trashcan
+		if supported. Depends on the C{gio} library.
+		@returns: C{True} when succesful
+		@raises TrashNotSupportedError: if trashing is not supported
 		or failed.
-		Raises a TrashCancelledError if trashing was cancelled.
+		@raises TrashCancelledError: if trashing was cancelled by the
+		user
 		'''
 		if not gio:
 			raise TrashNotSupportedError, 'gio not imported'
@@ -618,6 +707,9 @@ class UnixPath(object):
 
 
 class WindowsPath(UnixPath):
+	'''Base class for Dir and File objects, represents a file path
+	on windows.
+	'''
 
 	def _set_path(self, path):
 		# For windows unicode is supported natively,
@@ -632,30 +724,25 @@ class WindowsPath(UnixPath):
 		'''File uri property with win32 logic'''
 		# win32 paths do not start with '/', so add another one
 		# and avoid url encoding the second ":" in "file:///C:/..."
-		path = self.canonpath # replaces \ with /
+		path = self.path.replace('\\', '/')
 		if re.match('[A-Za-z]:/', path):
 			return 'file:///' + path[:2] + url_encode(path[2:])
 		else:
 			return 'file:///' + url_encode(path)
 
-	@property
-	def canonpath(self):
-		path = self.path.replace('\\', '/')
-		return path
-
 
 # Determine which base class to use for classes below
 if os.name == 'posix':
-	Path = UnixPath
+	FilePath = UnixPath
 elif os.name == 'nt':
-	Path = WindowsPath
+	FilePath = WindowsPath
 else:
 	logger.critical('os name "%s" unknown, falling back to posix', os.name)
-	Path = UnixPath
+	FilePath = UnixPath
 
 
-class Dir(Path):
-	'''OO wrapper for directories'''
+class Dir(FilePath):
+	'''Class representing a single file system folder'''
 
 	def __eq__(self, other):
 		if isinstance(other, Dir):
@@ -664,17 +751,18 @@ class Dir(Path):
 			return False
 
 	def exists(self):
-		'''Returns True if the dir exists and is actually a dir'''
 		return os.path.isdir(self.encodedpath)
 
 	def list(self, raw=False):
-		'''Returns a list of names for files and subdirectories.
+		'''List the file contents
+
+		@param raw: for filtered folders (C{FilteredDir} instances)
+		setting C{raw} to C{True} will disable filtering
+
+		@returns: a sorted list of names for files and subdirectories.
 		Will not return names that could not be decoded properly and
 		will throw warnings if those are encountered.
 		Hidden files are silently ignored.
-
-		The argument 'raw' doesn't doe anything here. It is there for
-		compatibility with the FilteredDir interface.
 		'''
 		files = []
 		if ENCODING == 'mbcs':
@@ -711,6 +799,8 @@ class Dir(Path):
 	def walk(self, raw=True):
 		'''Generator that yields all files and folders below this dir
 		as objects.
+		@param raw: see L{list()}
+		@returns: yields L{File} and L{Dir} objects, depth first
 		'''
 		for name in self.list(raw=raw):
 			path = self.path + os.path.sep + name
@@ -724,7 +814,9 @@ class Dir(Path):
 
 	def get_file_tree_as_text(self, raw=True):
 		'''Returns an overview of files and folders below this dir
-		as text.
+		as text. Used in tests.
+		@param raw: see L{list()}
+		@returns: file listing as string
 		'''
 		text = ''
 		for child in self.walk(raw=raw):
@@ -735,7 +827,7 @@ class Dir(Path):
 		return text
 
 	def touch(self):
-		'''Create this dir and any parent directories that do not yet exist'''
+		'''Create this folder and any parent folders that do not yet exist'''
 		try:
 			os.makedirs(self.encodedpath)
 		except OSError, e:
@@ -743,15 +835,15 @@ class Dir(Path):
 				raise
 
 	def remove(self):
-		'''Remove this dir, fails if dir is non-empty.'''
+		'''Remove this folder, fails if it is not empty.'''
 		logger.info('Remove dir: %s', self)
 		lrmdir(self.encodedpath)
 
 	def cleanup(self):
-		'''Removes this dir and any empty parent dirs.
-
-		Ignores if dir does not exist. Fails silently if dir is not empty.
-		Returns boolean for success (so False means dir still exists).
+		'''Remove this foldder and any empty parent folders. If the
+		folder does not exist, still check for empty parent folders.
+		Fails silently if the folder is not empty.
+		@returns: C{True} when succesful (so C{False} means it still exists).
 		'''
 		if not self.exists():
 			return True
@@ -764,9 +856,10 @@ class Dir(Path):
 			return True
 
 	def remove_children(self):
-		'''Remove everything below this dir.
+		'''Recursively remove everything below this folder .
 
-		WARNING: This is quite powerful and recursive, so make sure to double
+		B{WARNING:} This is quite powerful and can do a lot of damage
+		when executed for the wrong folder, so pleae make sure to double
 		check the dir is actually what you think it is before calling this.
 		'''
 		assert self.path and self.path != '/'
@@ -781,11 +874,11 @@ class Dir(Path):
 				lrmdir(os.path.join(root, name))
 
 	def copyto(self, dest):
-		'''Copy this dir to 'dest'. 'dest must be a dir object as well
-
-		When dir already exists the contents will be merged, so you
-		need to check existence of the target dir yourself if you want
-		a clean new copy.
+		'''Recursively copy the contents of this folder.
+		When the destination folder already exists the contents will be
+		merged, so you need to check existence of the destination first
+		if you want a clean new copy.
+		@param dest: a L{Dir} object
 		'''
 		# We do not use shutil.copytree() because it requires that
 		# the target dir does not exist
@@ -796,7 +889,7 @@ class Dir(Path):
 		def copy_dir(source, target):
 			target.touch()
 			for item in source.list():
-				child = Path((source, item))
+				child = FilePath((source, item))
 				if child.isdir():
 					copy_dir(Dir(child), target.subdir(item)) # recur
 				else:
@@ -807,17 +900,15 @@ class Dir(Path):
 		# TODO - not hooked with FS signals
 
 	def file(self, path):
-		'''Returns a File object for a path relative to this directory
+		'''Get a L{File} object for a path below this folder
 
-		When 'path' is in fact a L{File} object already this method
-		still enforces is to be below this directory. So this method can
-		be used as check as well.
-
-		@param path: a (relative) file path as string, tuple or L{Path} object
+		@param path: a (relative) file path as string, tuple or
+		L{FilePath} object. When C{path} is a L{File} object already
+		this method still enforces it is below this folder.
+		So this method can be used as check as well.
 
 		@returns: a L{File} object
-
-		@raises PathLookupError: if the file is not below this dir
+		@raises PathLookupError: if the path is not below this folder
 		'''
 		file = self.resolve_file(path)
 		if not file.path.startswith(self.path):
@@ -825,20 +916,36 @@ class Dir(Path):
 		return file
 
 	def resolve_file(self, path):
-		'''Like L{file()} but allows the path to start with "../"'''
-		assert isinstance(path, (Path, basestring, list, tuple))
+		'''Get a L{File} object for a path relative to this folder
+
+		Like L{file()} but allows the path to start with "../" as
+		well, so can handle any relative path.
+
+		@param path: a (relative) file path as string, tuple or
+		L{FilePath} object.
+		@returns: a L{File} object
+		'''
+		assert isinstance(path, (FilePath, basestring, list, tuple))
 		if isinstance(path, basestring):
 			return File((self.path, path))
 		elif isinstance(path, (list, tuple)):
 			return File((self.path,) + tuple(path))
 		elif isinstance(path, File):
 			return path
-		elif isinstance(path, Path):
+		elif isinstance(path, FilePath):
 			return File(path.path)
 
 	def new_file(self, path):
-		'''Like file() but guarantees the file does not yet exist by adding
-		sequential numbers if needed.
+		'''Get a L{File} object for a new file below this folder.
+		Like L{file()} but guarantees the file does not yet exist by
+		adding sequential numbers if needed. So the resulting file
+		may have a modified name.
+
+		@param path: a (relative) file path as string, tuple or
+		L{FilePath} object.
+
+		@returns: a L{File} object
+		@raises PathLookupError: if the path is not below this folder
 		'''
 		file = self.file(path)
 		basename = file.basename
@@ -858,17 +965,16 @@ class Dir(Path):
 		return file
 
 	def subdir(self, path):
-		'''Returns a Dir object for a path relative to this directory
+		'''Get a L{Dir} object for a path below this folder
 
-		When 'path' is in fact a L{Dir} object already this method
-		still enforces is to be below this directory. So this method can
-		be used as check as well.
-
-		@param path: a (relative) file path as string, tuple or L{Path} object
+		@param path: a (relative) file path as string, tuple or
+		L{FilePath} object. When C{path} is a L{Dir} object already
+		this method still enforces it is below this folder.
+		So this method can be used as check as well.
 
 		@returns: a L{Dir} object
+		@raises PathLookupError: if the path is not below this folder
 
-		@raises PathLookupError: if the subdir is not below this dir
 		'''
 
 		dir = self.resolve_dir(path)
@@ -876,9 +982,37 @@ class Dir(Path):
 			raise PathLookupError, '%s is not below %s' % (dir, self)
 		return dir
 
+	def resolve_dir(self, path):
+		'''Get a L{Dir} object for a path relative to this folder
+
+		Like L{subdir()} but allows the path to start with "../" as
+		well, so can handle any relative path.
+
+		@param path: a (relative) file path as string, tuple or
+		L{FilePath} object.
+		@returns: a L{Dir} object
+		'''
+		assert isinstance(path, (FilePath, basestring, list, tuple))
+		if isinstance(path, basestring):
+			return Dir((self.path, path))
+		elif isinstance(path, (list, tuple)):
+			return Dir((self.path,) + tuple(path))
+		elif isinstance(path, Dir):
+			return path
+		elif isinstance(path, FilePath):
+			return Dir(path.path)
+
 	def new_subdir(self, path):
-		'''Like subdir() but guarantees the dir does not yet exist by
-		adding sequential numbers if needed.
+		'''Get a L{Dir} object for a new file below this folder.
+		Like L{subdir()} but guarantees the folder does not yet exist by
+		adding sequential numbers if needed. So the resulting folder
+		may have a modified name.
+
+		@param path: a (relative) file path as string, tuple or
+		L{FilePath} object.
+
+		@returns: a L{Dir} object
+		@raises PathLookupError: if the path is not below this folder
 		'''
 		subdir = self.subdir(path)
 		basename = subdir.basename
@@ -890,18 +1024,6 @@ class Dir(Path):
 			subdir = self.subdir(newname)
 		return subdir
 
-	def resolve_dir(self, path):
-		'''Like L{subdir()} but allows the path to start with "../"'''
-		assert isinstance(path, (Path, basestring, list, tuple))
-		if isinstance(path, basestring):
-			return Dir((self.path, path))
-		elif isinstance(path, (list, tuple)):
-			return Dir((self.path,) + tuple(path))
-		elif isinstance(path, Dir):
-			return path
-		elif isinstance(path, Path):
-			return Dir(path.path)
-
 
 def _glob_to_regex(glob):
 	glob = glob.replace('.', '\\.')
@@ -911,12 +1033,26 @@ def _glob_to_regex(glob):
 
 
 class FilteredDir(Dir):
+	'''Class implementing a folder with a filtered listing. Can be
+	used to e.g. filter all objects that are also ignored by version
+	control.
+	'''
 
 	def __init__(self, path):
+		'''Constructor
+
+		@param path: an absolute file path, file URL, L{FilePath} object
+		or a list of path elements. When a list is given, the first
+		element is allowed to be an absolute path, URL or L{FilePath}
+		object as well.
+		'''
 		Dir.__init__(self, path)
 		self._ignore = []
 
 	def ignore(self, glob):
+		'''Add a file pattern to ignore
+		@param glob: a file path pattern (e.g. "*.txt")
+		'''
 		regex = _glob_to_regex(glob)
 		self._ignore.append(regex)
 
@@ -928,34 +1064,35 @@ class FilteredDir(Dir):
 			return True
 
 	def list(self, raw=False):
-		'''Like Dir.list() but filters the results with the preset
-		filter. If 'raw' is True filtering is disabled.
-		'''
 		files = Dir.list(self)
 		if not raw:
 			files = filter(self.filter, files)
 		return files
 
 
-class UnixFile(Path):
-	'''OO wrapper for files. Implements more complex logic than
-	the default python file objects. On writing we first write to a
-	temporary files, then flush and sync and finally replace the file we
-	intended to write with the temporary file. This makes it much more
-	difficult to loose file contents when something goes wrong during
-	the writing.
+class UnixFile(FilePath):
+	'''Class representing a single file.
 
-	When 'checkoverwrite' is True this class checks mtime to prevent
-	overwriting a file that was changed on disk, if mtime fails MD5 sums
-	are used to verify before raising an exception. However this check
-	only works when using read(), readlines(), write() or writelines(),
-	but not when calling open() directly. Unfortunately this logic is
-	not atomic, so your mileage may vary.
+	This class implements much more complex logic than the default
+	python file objects. E.g. on writing we first write to a temporary
+	files, then flush and sync and finally replace the file we intended
+	to write with the temporary file. This makes it much more difficult
+	to loose file contents when something goes wrong during the writing.
 
-	The *_async functions can be used to read or write files in a separate
-	thread. See zim.async for details. An AsyncLock is used to ensure
-	reading and writing is done sequentially between several threads.
-	However, this does not work when using open() directly.
+	Also it implements logic to check the modification time before
+	writing to prevent overwriting a file that was changed on disk in
+	between read and write operations. If this mtime check fails MD5
+	sums are used to verify before raising an exception (because some
+	share drives do not maintain mtime very precisely). However this
+	check only works when using L{read()}, L{readlines()}, L{write()}
+	or L{writelines()}, but not when calling L{open()} directly.
+	Also this logic is not atomic, so your mileage may vary.
+
+	The C{*_async()} functions can be used to read or write files in a
+	separate thread. See L{zim.async} for details. An L{AsyncLock} is
+	used to ensure reading and writing is done sequentially between
+	several threads. However, this does not work when using L{open()}
+	directly.
 	'''
 
 	# For atomic write we first write a tmp file which has the extension
@@ -976,7 +1113,22 @@ class UnixFile(Path):
 	# addressed in this implementation.
 
 	def __init__(self, path, checkoverwrite=False, endofline=None):
-		Path.__init__(self, path)
+		'''Constructor
+
+		@param path: an absolute file path, file URL, L{FilePath} object
+		or a list of path elements. When a list is given, the first
+		element is allowed to be an absolute path, URL or L{FilePath}
+		object as well.
+
+		@param checkoverwrite: when C{True} this object checks the
+		modification time before writing to prevent overwriting a file
+		that was changed on disk in between read and write operations.
+
+		@param endofline: the line end style used when writing, can be
+		one of "unix" ('\\n') or "dos" ('\\r\\n'). Whan C{None} the local
+		default is used.
+		'''
+		FilePath.__init__(self, path)
 		self.checkoverwrite = checkoverwrite
 		self.endofline = endofline
 		self._mtime = None
@@ -989,13 +1141,63 @@ class UnixFile(Path):
 			return False
 
 	def exists(self):
-		'''Returns True if the file exists and is actually a file'''
 		return os.path.isfile(self.encodedpath)
 
+	def isimage(self):
+		'''Check if this is an image file. Convenience method that
+		works even when no real mime-type suport is available.
+		If this method returns C{True} it is no guarantee
+		this image type is actually supported by gtk.
+		@returns: C{True} when this is an image file
+		'''
+
+		# Quick shortcut to be able to load images in the gui even if
+		# we have no proper mimetype support
+		if '.' in self.basename:
+			_, ext = self.basename.rsplit('.', 1)
+			if ext in IMAGE_EXTENSIONS:
+				return True
+
+		return self.get_mimetype().startswith('image/')
+
+	def get_mimetype(self):
+		'''Get the mime-type for this file.
+		Will use the XDG mimetype system if available, otherwise
+		fallsback to the standard library C{mimetypes}.
+		@returns: the mimetype as a string, e.g. "text/plain"
+		'''
+		if xdgmime:
+			mimetype = xdgmime.get_type(self.path, name_pri=80)
+			return str(mimetype)
+		else:
+			mimetype, encoding = mimetypes.guess_type(self.path, strict=False)
+			if encoding == 'gzip': return 'application/x-gzip'
+			elif encoding == 'bzip': return 'application/x-bzip'
+			elif encoding == 'compress': return 'application/x-compress'
+			else: return mimetype or 'application/octet-stream'
+
+	def get_endofline(self):
+		'''Get the end-of-line character(s) used for writing this file.
+		@returns: the end-of-line character(s)
+		'''
+		if self.endofline is None:
+			if isinstance(self, WindowsPath): return '\r\n'
+			else: return '\n'
+		else:
+			assert self.endofline in ('unix', 'dos')
+			if self.endofline == 'dos': return '\r\n'
+			else: return '\n'
+
 	def open(self, mode='r'):
-		'''Returns an io object for reading or writing.
+		'''Open an IO object for reading or writing. The stream will
+		automatically by encoded or decoded for UTF-8.
 		Opening a non-existing file for writing will cause the whole path
 		to this file to be created on the fly.
+
+		@param mode: the open mode, either 'r' or 'w' (other modes
+		are not supported)
+
+		@returns: a file object
 		'''
 		# When we open for writing, we actually open the tmp file
 		# and return a FileHandle object that will call _on_write()
@@ -1040,10 +1242,11 @@ class UnixFile(Path):
 		logger.debug('Wrote %s', self)
 
 	def raw(self):
-		'''Like read() but without encoding and newline logic.
-		Used to read binary data, e.g. when serving files over www.
+		'''Get the raw content without UTF-8 decoding, newline logic,
+		etc. Used to read binary data, e.g. when serving files over www.
 		Note that this function also does not integrates with checking
 		mtime, so intended for read only usage.
+		@returns: file content as string
 		'''
 		with self._lock:
 			try:
@@ -1055,17 +1258,24 @@ class UnixFile(Path):
 				raise FileNotFoundError(self)
 
 	def read(self):
-		'''Returns the content as string. Raises a
-		FileNotFoundError exception when the file does not exist.
+		'''Get the file contents as a string. Takes case of decoding
+		UTF-8 and fixes line endings.
+		@returns: the content as (unicode) string.
+		@raises FileNotFoundError: when the file does not exist.
 		'''
 		with self._lock:
 			text = self._read()
 		return text
 
 	def read_async(self, callback=None, data=None):
-		'''Like read() but as asynchronous operation.
-		Returns a AsyncOperation object, see there for documentation
-		for 'callback'. Try operation.result for content.
+		'''Get the file contents asynchronously
+		Like L{read()} but as asynchronous operation. The result will
+		be stored in the async operation as C{operation.result}.
+
+		@param callback: a callback function for the async operation
+		@param data: data argument for the callback
+
+		@returns: an L{AsyncOperation} object
 		'''
 		if not self.exists():
 			raise FileNotFoundError(self)
@@ -1088,17 +1298,25 @@ class UnixFile(Path):
 			raise FileUnicodeError(self, error)
 
 	def readlines(self):
-		'''Returns the content as list of lines. Raises a
-		FileNotFoundError exception when the file does not exist.
+		'''Get the file contents as a list of lines. Takes case of
+		decoding UTF-8 and fixes line endings.
+
+		@returns: the content as a list of lines.
+		@raises FileNotFoundError: when the file does not exist.
 		'''
 		with self._lock:
 			lines = self._readlines()
 		return lines
 
 	def readlines_async(self, callback=None, data=None):
-		'''Like readlines() but as asynchronous operation.
-		Returns a AsyncOperation object, see there for documentation
-		for 'callback'. Try operation.result for content.
+		'''Get the file contents asynchronously
+		Like L{readlines()} but as asynchronous operation. The result will
+		be stored in the async operation as C{operation.result}.
+
+		@param callback: a callback function for the async operation
+		@param data: data argument for the callback
+
+		@returns: an L{AsyncOperation} object
 		'''
 		if not self.exists():
 			raise FileNotFoundError(self)
@@ -1121,15 +1339,30 @@ class UnixFile(Path):
 			raise FileUnicodeError(self, error)
 
 	def write(self, text):
-		'''Overwrite file with text'''
+		'''Write file contents from string. This overwrites the current
+		content. Will automatically create all parent folders.
+		If writing fails the file will either have the new content or the
+		old content, but it should not be possible to have the content
+		truncated.
+		@param text: new content as (unicode) string
+		@emits: path-created if the file did not yet exist
+		'''
 		with self._lock:
 			self._write(text)
 		self._check_isnew()
 
 	def write_async(self, text, callback=None, data=None):
-		'''Like write() but as asynchronous operation.
-		Returns a AsyncOperation object, see there for documentation
-		for 'callback'.
+		'''Write file content from string asynchronously.
+		Like L{write()} but returns immediately without waiting for the
+		action to be completed.
+
+		@param text: new content as (unicode) string
+		@param callback: a callback function for the async operation
+		@param data: data argument for the callback
+
+		@returns: an L{AsyncOperation} object
+		@emits: path-created if the file did not yet exist, after the
+		action is completed
 		'''
 		#~ print '!! ASYNC WRITE'
 		def mycallback(result, error, *args):
@@ -1140,16 +1373,6 @@ class UnixFile(Path):
 			self._write, (text,), lock=self._lock, callback=mycallback, data=data)
 		operation.start()
 		return operation
-
-	def get_endofline(self):
-		'''Returns the end-of-line character(s) to be used when writing this file'''
-		if self.endofline is None:
-			if isinstance(self, WindowsPath): return '\r\n'
-			else: return '\n'
-		else:
-			assert self.endofline in ('unix', 'dos')
-			if self.endofline == 'dos': return '\r\n'
-			else: return '\n'
 
 	def _write(self, text):
 		self._assertoverwrite()
@@ -1173,15 +1396,27 @@ class UnixFile(Path):
 			FS.emit('path-created', self)
 
 	def writelines(self, lines):
-		'''Overwrite file with a list of lines'''
+		'''Write file contents from a list of lines.
+		Like L{write()} but input is a list instead of a string.
+		@param lines: new content as list of lines
+		@emits: path-created if the file did not yet exist
+		'''
 		with self._lock:
 			self._writelines(lines)
 		self._check_isnew()
 
-	def writelines_async(self, text, callback=None, data=None):
-		'''Like writelines() but as asynchronous operation.
-		Returns a AsyncOperation object, see there for documentation
-		for 'callback'.
+	def writelines_async(self, lines, callback=None, data=None):
+		'''Write file content from a list of lines asynchronously.
+		Like L{writelines()} but returns immediately without waiting for
+		the action to be completed.
+
+		@param lines: new content as list of lines
+		@param callback: a callback function for the async operation
+		@param data: data argument for the callback
+
+		@returns: an L{AsyncOperation} object
+		@emits: path-created if the file did not yet exist, after the
+		action is completed
 		'''
 		#~ print '!! ASYNC WRITE'
 		def mycallback(result, error, *args):
@@ -1189,7 +1424,7 @@ class UnixFile(Path):
 			if callback: callback(result, error, *args)
 
 		operation = AsyncOperation(
-			self._writelines, (text,), lock=self._lock, callback=mycallback, data=data)
+			self._writelines, (lines,), lock=self._lock, callback=mycallback, data=data)
 		operation.start()
 		return operation
 
@@ -1235,10 +1470,13 @@ class UnixFile(Path):
 				logger.warn('mtime check failed for %s, trying md5', self.path)
 				if _md5(self._content) != _md5(self.open('r').read()):
 					raise FileWriteError, 'File changed on disk: %s' % self.path
+					# Why are we using MD5 here ?? could just compare content...
 
 	def touch(self):
-		'''Create this file and any parent directories if it does not yet exist.
-		Only needed for place holders - will happen automatically at first write.
+		'''Create this file and any parent folders if it does not yet
+		exist. (Parent folders are also created when writing to a file,
+		so you only need to call this method in special cases - e.g.
+		when an external program requires the file to exist.)
 		'''
 		if self.exists():
 			return
@@ -1249,8 +1487,9 @@ class UnixFile(Path):
 				io.close()
 
 	def remove(self):
-		'''Remove this file and any related temporary files we made.
-		Ignores if page did not exist in the first place.
+		'''Remove (delete) this file and cleanup any related temporary
+		files we created. This action can not be un-done.
+		Ignores silently if the page did not exist in the first place.
 		'''
 		logger.info('Remove file: %s', self)
 		with self._lock:
@@ -1262,12 +1501,19 @@ class UnixFile(Path):
 				os.remove(tmp)
 
 	def cleanup(self):
-		'''Remove this file and deletes any empty parent directories.'''
+		'''Remove this file and cleanup any empty parent folder.
+		Convenience method calling L{File.remove()} and L{Dir.cleanup()}.
+		'''
 		self.remove()
 		self.dir.cleanup()
 
 	def copyto(self, dest):
-		'''Copy this file to 'dest'. 'dest can be either a file or a dir'''
+		'''Copy this file to another location. Preserves all file
+		attributes (by using C{shutil.copy2()})
+		@param dest: a L{File} or L{Dir} object for the destination. If the
+		destination is a folder, we will copy to a file below that
+		folder of the same name
+		'''
 		assert isinstance(dest, (File, Dir))
 		if isinstance(dest, Dir):
 			assert not dest == self.dir, 'BUG: trying to copy a file to itself'
@@ -1282,11 +1528,20 @@ class UnixFile(Path):
 		# TODO - not hooked with FS signals
 
 	def compare(self, other):
-		'''Uses MD5 to tell you if files have the same content or not'''
+		'''Check if file contents are the same. This differs from
+		L{isequal()} because files can be different physical locations.
+		@param other: another L{File} object
+		@returns: C{True} when the files have the same content
+		'''
+		# TODO: can be more efficient, e.g. by checking stat size first
+		# also wonder if MD5 is needed here ... could just compare text
 		return _md5(self.read()) == _md5(other.read())
 
 
 class WindowsFile(UnixFile):
+	'''Class representing a single file on windows. See L{UnixFile}
+	for API documentation.
+	'''
 
 	# For the "atomic" write on Windows we use .zim-new~ and .zim-orig~.
 	# When writing a new file, the sequence is the same as on Unix: we
@@ -1332,7 +1587,6 @@ class WindowsFile(UnixFile):
 		self._recover() # just to be sure
 
 	def exists(self):
-		'''Returns True if the file exists and is actually a file'''
 		orig = self.encodedpath + '.zim-orig~'
 		new = self.encodedpath + '.zim-new~'
 		return os.path.isfile(self.encodedpath) or \
@@ -1422,15 +1676,18 @@ else:
 
 
 class TmpFile(File):
-	'''Class for temporary files. These are stored in the temp directory and
-	by default they are deleted again when the object is destructed.
+	'''Class for temporary files. These are stored in the temp directory
+	and by default they are deleted again when the object is destructed.
 	'''
 
 	def __init__(self, basename, unique=True, persistent=False):
-		'''Constructor, 'basename' gives the name for this tmp file.
-		If 'unique' is True dir.new_file() is used to make sure we have a new
-		file. If 'persistent' is False the file will be removed when the
-		object is destructed.
+		'''Constructor
+
+		@param basename: gives the name for this tmp file.
+		@param unique: if C{True} the L{Dir.new_file()} method is used
+		to make sure we have a new file.
+		@param persistent: if C{False} the file will be removed when the
+		object is destructed, if C{True} we leave it alone
 		'''
 		dir = get_tmpdir()
 		if unique:
@@ -1448,7 +1705,8 @@ class TmpFile(File):
 
 class FileHandle(file):
 	'''Subclass of builtin file type that uses flush and fsync on close
-	and supports a callback'''
+	and supports a callback. Used by L{File.open()}.
+	'''
 
 	def __init__(self, path, on_close=None, **opts):
 		file.__init__(self, path, **opts)

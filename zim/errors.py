@@ -5,8 +5,16 @@
 # The Error class needed to be put in a separate file to avoid recursive
 # imports.
 
+'''This module contains the base class for all errors in zim'''
+
 class Error(Exception):
 	'''Base class for all errors in zim.
+
+	This class is intended for application and usage errors, these will
+	be caught in the user interface and presented as error dialogs.
+	In contrast and Exception that does I{not} derive from this base
+	class will result in a "You found a bug" dialog. Do not use this
+	class e.g. to catch programming errors.
 
 	Subclasses should define two attributes. The first is 'msg', which is
 	the short description of the error. Typically this gives the specific
@@ -49,7 +57,14 @@ class Error(Exception):
 # occur in different storage models as well
 
 class TrashNotSupportedError(Error):
+	'''Error raised when trashing is not supported and delete should
+	be used instead
+	'''
 	pass
 
 class TrashCancelledError(Error):
+	'''Error raised when a trashign operation is cancelled. (E.g. on
+	windows the system will prompt the user with a confirmation
+	dialog which has a Cancel button.)
+	'''
 	pass

@@ -7,7 +7,7 @@
 For now the only XML tags which are supported are 'section' and 'page'. The
 'section' tag serves as a container for multiple pages. The 'page' tag serves
 as a container for the page content plus any sub-pages. Each page should have
-an attribute 'name' giving it's basename, so the file can look like this:
+an attribute 'name' giving it's basename, so the file can look like this::
 
 	<section>
 	<page name="Foo">

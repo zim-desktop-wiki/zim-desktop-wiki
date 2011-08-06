@@ -6,8 +6,7 @@ import tests
 
 from subprocess import check_call
 
-from zim.fs import *
-from zim.fs import _md5
+from zim.fs import _md5, File, Dir
 from zim.config import data_file
 from zim.notebook import Path, Notebook, init_notebook
 from zim.exporter import Exporter, StaticLinker

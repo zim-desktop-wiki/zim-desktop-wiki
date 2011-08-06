@@ -221,7 +221,7 @@ This is a core plugin shipping with zim.
 	def extract_tasks(self, parsetree):
 		'''Extract all tasks from a parsetree.
 		Returns tuples for each tasks with following properties:
-			(open, actionable, prio, due, description)
+		C{(open, actionable, prio, due, description)}
 		'''
 		tasks = []
 

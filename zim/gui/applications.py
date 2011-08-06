@@ -6,8 +6,17 @@
 it is based on the Freedesktop.org (XDG) Desktop Entry specification
 with some additional logic based on status quo on Gnome / XFCE.
 
-The desktop entry class subclasses the Application class from zim.applications,
-see there for methods to run or spawn applications.
+The main class is the L{DesktopEntryFile} which maps the application
+definition in a specific desktop entry. Typically these are not
+constructed directly, but requested through the L{ApplicationManager}.
+
+Similar there is the L{CustomTool} class, which defines a custom tool
+defined within zim, and the L{CustomToolManager} to manage these
+definitions.
+
+Also there is the L{OpenWithMenu} which is the widget to render a menu
+with available applications for a specific file plus a dialog so the
+user can define a new command on the fly.
 '''
 
 # We don't have direct method to get/set the default application this is
@@ -21,8 +30,7 @@ import gtk
 import gobject
 
 import zim.fs
-from zim.fs import *
-from zim.fs import TmpFile
+from zim.fs import File, Dir, TmpFile
 from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
 	config_file, data_dirs, ConfigDict, ConfigFile, json
 from zim.parsing import split_quoted_strings
@@ -111,11 +119,31 @@ def _create_application(dir, Name, Exec, klass=None, **param):
 
 
 class ApplicationManager(object):
-	'''Manager for dealing with desktop applications.'''
+	'''Manager object for dealing with desktop applications. Uses the
+	freedesktop.org (XDG) system to locate desktop entry files for
+	installed applications.
+
+	In addition is supports custom helper applications for zim.
+	These helpers are special application definitions used by the
+	preferences for "web browser", "file browser" etc.
+	They are stored in a zim specific folder (typically
+	"share/zim/applications"). They have the same keys as a standard
+	desktop entry, but adds the non-standard keys "X-Zim-AppType" and
+	X-Zim-ShowOnlyFor". The first is a list of application types, the
+	second is an optional platform (e.g. "meamo"), together these are
+	used to decide if and where to show this application in the
+	preferences dialog.
+	'''
 
 	@staticmethod
 	def get_application(name):
-		'''Returns an Application object or None'''
+		'''Get an application by name. Will search installed ".desktop"
+		files of the same name
+		@param name: the application name (e.g. "firefox"). As a special
+		case "webbrowser" maps to a L{WebBrowser} application instance
+		and "startfile" to a L{StartFile} application instance
+		@returns: an L{Application} object or C{None}
+		'''
 		file = _application_file(name + '.desktop', _application_dirs())
 		if file:
 			return DesktopEntryFile(File(file))
@@ -128,7 +156,12 @@ class ApplicationManager(object):
 
 	@staticmethod
 	def list_applications(mimetype):
-		'''Returns a list of Application objects for mimetype'''
+		'''Get a list of applications that can handle a specific file
+		type.
+		@param mimetype: the mime-type of the file (e.g. "text/html")
+		@returns: a list of L{Application} objects that are known to
+		be able to handle this file type
+		'''
 		seen = set()
 		entries = []
 		key = '%s=' % mimetype
@@ -155,13 +188,19 @@ class ApplicationManager(object):
 
 	@classmethod
 	def get_default_helper(klass, type):
-		'''Returns a helper application of a certain type or None.
-		See list_helpers() for supported types.
+		'''Get the default helper application on the current platform.
 
-		NOTE: this is not the helper as set in the user preferences.
-		Instead this is the default set if the user has no preference.
-		Use GtkInterface.open_file() and friends to actually use a
-		helper application.
+		@note: This is the default set if the user has no preference,
+		not the current user preference. Use L{GtkInterface.open_file()}
+		and friends to use the preferred application.
+
+		@param type: application type, can be one of:
+		  - C{web_browser}
+		  - C{file_browser}
+		  - C{email_client}
+		  - C{text_editor}
+
+		@returns: an L{Application} object or C{None}
 		'''
 		# Hard coded defaults for various platforms
 		preferred = {
@@ -185,13 +224,15 @@ class ApplicationManager(object):
 
 	@classmethod
 	def list_helpers(klass, type):
-		'''Returns a list of known applications that can be used as a helper
-		of a certain type. Type can be:
+		'''Get a list of helper applications for the current platform.
 
-		  * web_browser
-		  * file_browser
-		  * email_client
-		  * text_editor
+		@param type: application type, can be one of:
+		  - C{web_browser}
+		  - C{file_browser}
+		  - C{email_client}
+		  - C{text_editor}
+
+		@returns: a list of L{Application} objects
 		'''
 		# Be aware that X-Zim-AppType can be a list of types
 		environment = ui_environment['platform']
@@ -238,12 +279,22 @@ class ApplicationManager(object):
 
 	@staticmethod
 	def create(mimetype, Name, Exec, **param):
-		'''Creates a new usercreated desktop entry which defines a
+		'''Create a new usercreated desktop entry which defines a
 		custom command to handle a certain file type.
-		Returns the DesktopEntryFile object with some
+
+		Note that the name under which this definition is stored is not
+		the same as C{Name}. Check the 'C{key}' attribute of the
+		returned object if you want the name to retrieve this
+		application later.
+
+		@param mimetype: the file mime-type to handle with this command
+		@param Name: the name to show in e.g. the "Open With.." menu
+		@param Exec: the command to run as string (will be split on
+		whitespace, so quote arguments that may contain a space).
+		@param param: any additional keys for the desktop entry
+
+		@returns: the L{DesktopEntryFile} object with some
 		sensible defaults for a user created application entry.
-		To get the name to retrieve this application again later,
-		look at the 'key' property of the returned.
 		'''
 		dir = XDG_DATA_HOME.subdir('applications')
 		param['MimeType'] = mimetype
@@ -253,8 +304,17 @@ class ApplicationManager(object):
 
 	@staticmethod
 	def create_helper(type, Name, Exec, **param):
-		'''Like create() but defines a zim specific helper.
-		See list_helpers() for supported types.
+		'''Create a new usercreated desktop entry which defines a
+		helper application of a specific type.
+
+		@param type: the application type (see L{list_helpers()})
+		@param Name: the name to show in e.g. the preferences dialog
+		@param Exec: the command to run as string (will be split on
+		whitespace, so quote arguments that may contain a space).
+		@param param: any additional keys for the desktop entry
+
+		@returns: the L{DesktopEntryFile} object with some
+		sensible defaults for a user created application entry.
 		'''
 		dir = XDG_DATA_HOME.subdir('zim/applications')
 		param['X-Zim-AppType'] = type
@@ -262,9 +322,31 @@ class ApplicationManager(object):
 
 
 class DesktopEntryDict(ConfigDict, Application):
-	'''Base class for DesktopEntryFile. Defines all the logic to work with
-	desktop entry files. A desktop entry files describes all you need to know
-	about an external application.
+	'''Base class for L{DesktopEntryFile}, defines most of the logic.
+
+	The following keys are supported:
+	  - C{%f}: a single file path
+	  - C{%F}: a list of file paths
+	  - C{%u}: a single URL
+	  - C{%U}: a list of URLs
+	  - C{%i}: the icon as defined in the desktop entry, if any,
+	    prefixed with C{--icon}
+	  - C{%c}: the name from the desktop entry
+	  - C{%k}: the file path for the desktop entry file
+
+	See L{parse_exec()} for interpolating these keys. If the command
+	does not contain any keys, the file paths or URLs to open are
+	just appended to the command.
+
+	@ivar key: the name of the ".desktop" file, this is the key needed
+	to lookup the application through the L{ApplicationManager}.
+	@ivar name: the 'Name' field from the desktop entry
+	@ivar comment: the 'Comment' field from the desktop entry
+	@ivar cmd: the command and arguments as a tuple, based on the
+	'Exec' key (still contains the keys for interpolation)
+	@ivar tryexeccmd: the command to check in L{tryexec()}, from the
+	'TryExe' key in the desktop entry, if C{None} fall back to first
+	item of C{cmd}
 	'''
 
 	@property
@@ -272,23 +354,21 @@ class DesktopEntryDict(ConfigDict, Application):
 		return '__anon__' # no mapping to .desktop file
 
 	def isvalid(self):
-		'''Validate all the required fields are set. Assumes we only
-		use desktop files to describe applications. Returns boolean
-		for success.
+		'''Check if all the fields that are required according to the
+		spcification are set. Assumes we only use desktop files to
+		describe applications (and not links or dirs, which are also
+		covered by the spec).
+		@returns: C{True} if all required fields are set
 		'''
 		entry = self['Desktop Entry']
-		try:
-			# TODO re-write without asserts -> can be optimized away
-			assert 'Type' in entry and entry['Type'] == 'Application', '"Type" missing or invalid'
-			assert 'Name' in entry, '"Name" missing'
-			assert 'Exec' in entry, '"Exec" missing'
-			if 'Version' in entry:
-				assert entry['Version'] == 1.0, 'Version invalid'
-		except AssertionError:
-			logger.exception('Invalid desktop entry:')
-			return False
-		else:
+		if entry.get('Type') == 'Application' \
+		and entry.get('Version') == 1.0 \
+		and entry.get('Name') \
+		and entry.get('Exec'):
 			return True
+		else:
+			logger.error('Invalid desktop entry: %s %s', self.key, entry)
+			return False
 
 	@property
 	def name(self):
@@ -309,6 +389,10 @@ class DesktopEntryDict(ConfigDict, Application):
 		return split_quoted_strings(self['Desktop Entry']['Exec'])
 
 	def get_pixbuf(self, size):
+		'''Get the application icon as a C{gtk.gdk.Pixbuf}.
+		@param size: the icon size as gtk constant
+		@returns: a pixbuf object or C{None}
+		'''
 		icon = self['Desktop Entry'].get('Icon', None)
 		if not icon:
 			return None
@@ -333,8 +417,10 @@ class DesktopEntryDict(ConfigDict, Application):
 			return pixbuf
 
 	def parse_exec(self, args=None):
-		'''Returns a list of command and arguments that can be used to
-		open this application. Args can be either File objects or urls.
+		'''Parse the 'Exec' string and interpolate the arguments
+		according to the keys of the desktop spec.
+		@param args: list of either URLs or L{File} objects
+		@returns: the full command to execute as a tuple
 		'''
 		assert args is None or isinstance(args, (list, tuple))
 
@@ -398,6 +484,7 @@ class DesktopEntryDict(ConfigDict, Application):
 	_cmd = parse_exec # To hook into Application.spawn and Application.run
 
 	def update(self, E=None, **F):
+		'''Same as C{dict.update()}'''
 		self['Desktop Entry'].update(E, **F)
 
 	def _decode_value(self, value):
@@ -424,6 +511,9 @@ class DesktopEntryDict(ConfigDict, Application):
 
 
 class DesktopEntryFile(ConfigFile, DesktopEntryDict):
+	'''Class implementing a single desktop entry file with the
+	definition of an external application.
+	'''
 
 	@property
 	def key(self):
@@ -431,11 +521,23 @@ class DesktopEntryFile(ConfigFile, DesktopEntryDict):
 
 
 class OpenWithMenu(gtk.Menu):
+	'''Sub-class of C{gtk.Menu} implementing an "Open With..." menu with
+	applications to open a specific file. Also has an item
+	"Open with Other Application...", which opens a
+	L{NewApplicationDialog} and allows the user to add custom commands.
+	'''
 
 	OTHER_APP = _('Open with Other Application') + '...'
 		# T: label to pop dialog with more applications in 'open with' menu
 
 	def __init__(self, file, mimetype=None):
+		'''Constructor
+
+		@param file: the file to open when a menu item is activated
+		@param mimetype: the mime-type of the application, if already
+		known. Providing this arguments prevents redundant lookups of
+		the type (which is slow).
+		'''
 		gtk.Menu.__init__(self)
 		self. file = file
 		if mimetype is None:
@@ -460,8 +562,15 @@ class OpenWithMenu(gtk.Menu):
 
 
 class DesktopEntryMenuItem(gtk.ImageMenuItem):
+	'''Single menu item for the L{OpenWithMenu}. Displays the application
+	name and the icon.
+	'''
 
 	def __init__(self, entry):
+		'''Constructor
+
+		@param entry: the L{DesktopEntryFile}
+		'''
 		text = _('Open with "%s"') % entry.name
 			# T: menu item to open a file with an application, %s is the app name
 		gtk.ImageMenuItem.__init__(self, text)
@@ -474,8 +583,22 @@ class DesktopEntryMenuItem(gtk.ImageMenuItem):
 
 
 class NewApplicationDialog(Dialog):
+	'''Dialog to prompt the user for a new custom command.
+	Allows to input an application name and a command, and calls
+	either L{ApplicationManager.create()} or
+	L{ApplicationManager.create_helper()} with the correct parameters.
+	'''
 
 	def __init__(self, ui, mimetype=None, type=None):
+		'''Constructor
+
+		You must provide either C{mimetype} or C{type}.
+
+		@param ui: the parent window or C{GtkInterface} object
+		@param mimetype: mime-type for which we want to create a new
+		application
+		@param type: helper type for which we want to create a new command
+		'''
 		assert mimetype or type
 		Dialog.__init__(self, ui, _('Custom Command')) # T: Dialog title
 		self.apptype = type
@@ -504,8 +627,14 @@ class CustomToolManager(object):
 	'''Manager for dealing with the desktop files which are used to
 	store custom tools.
 
+	Custom tools are external commands that are intended to show in the
+	"Tools" menu in zim (and optionally in the tool bar). They are
+	defined as desktop entry files in a special folder (typically
+	"~/.local/share/zim/customtools") and use several non standard keys.
+	See L{CustomTool} for details.
+
 	This object is iterable and maintains a specific order for tools
-	to be shown in in the UI.
+	to be shown in in the user interface.
 	'''
 
 	def __init__(self):
@@ -527,9 +656,16 @@ class CustomToolManager(object):
 		list[:] = [name + '\n' for name in self.names]
 		list.write()
 
+	def __iter__(self):
+		for name in self.names:
+			tool = self.get_tool(name)
+			if tool and tool.isvalid():
+				yield tool
+
 	def get_tool(self, name):
-		'''Returns a CustomTool object for 'name' or None.
-		Caches files ones they are read.
+		'''Get a L{CustomTool} by name.
+		@param name: the tool name
+		@returns: a L{CustomTool} object
 		'''
 		if not name in self.tools:
 			tool = config_file('customtools/%s.desktop' % name, klass=CustomTool)
@@ -537,16 +673,18 @@ class CustomToolManager(object):
 
 		return self.tools[name]
 
-	def __iter__(self):
-		for name in self.names:
-			tool = self.get_tool(name)
-			if tool and tool.isvalid():
-				yield tool
-
 	def create(self, Name, **properties):
-		'''Create a new tool. 'properties' should at least include
-		Name, Comment, Icon, X-Zim-ExecTool, X-Zim-ReadOnly and
-		X-Zim-ShowInToolBar. Returns a new CustomTool object.
+		'''Create a new custom tool
+
+		@param Name: the name to show in the Tools menu
+		@param properties: properties for the custom tool, e.g.:
+		  - Comment
+		  - Icon
+		  - X-Zim-ExecTool
+		  - X-Zim-ReadOnly
+		  - X-Zim-ShowInToolBar
+
+		@returns: a new L{CustomTool} object.
 		'''
 		properties['Type'] = 'X-Zim-CustomTool'
 		dir = XDG_CONFIG_HOME.subdir('zim/customtools')
@@ -558,7 +696,10 @@ class CustomToolManager(object):
 		return tool
 
 	def delete(self, tool):
-		'''Delete a tool from the list and remove the desktop file'''
+		'''Remove a custom tool from the list and delete the definition
+		file.
+		@param tool: a custom tool name or L{CustomTool} object
+		'''
 		if not isinstance(tool, CustomTool):
 			tool = self.get_tool(tool)
 		tool.file.remove()
@@ -567,13 +708,19 @@ class CustomToolManager(object):
 		self._write_list()
 
 	def index(self, tool):
-		'''Returns the index position for a specific tool'''
+		'''Get the position of a specific tool in the list.
+		@param tool: a custom tool name or L{CustomTool} object
+		@returns: an integer for the position
+		'''
 		if isinstance(tool, CustomTool):
 			tool = tool.key
 		return self.names.index(tool)
 
 	def reorder(self, tool, i):
-		'''Move a tool to a specific index position in the list'''
+		'''Change the position of a tool in the list.
+		@param tool: a custom tool name or L{CustomTool} object
+		@param i: the new position as integer
+		'''
 		if not 0 <= i < len(self.names):
 			return
 
@@ -595,46 +742,40 @@ class CustomToolDict(DesktopEntryDict):
 	custom tools for the "Tools" menu in zim. It uses a non-standard
 	Exec spec with zim specific escapes for "X-Zim-ExecTool".
 
-		%f for source file as tmp file current page
-		%d for attachment directory
-		%s for real source file (if any)
-		%n for notebook location (file or directory)
-		%D for document root
-		%t for selected text or word under cursor
-		%T for the selected text including wiki formatting
+	The following fields are expanded:
+		- C{%f} for source file as tmp file current page
+		- C{%d} for attachment directory
+		- C{%s} for real source file (if any)
+		- C{%n} for notebook location (file or directory)
+		- C{%D} for document root
+		- C{%t} for selected text or word under cursor
+		- C{%T} for the selected text including wiki formatting
 
 	Other additional keys are:
-		X-Zim-ReadOnly				boolean
-		X-Zim-ShowInToolBar			boolean
-		X-Zim-ShowInContextMenu		'None', 'Text' or 'Page'
+		- C{X-Zim-ReadOnly} - boolean
+		- C{X-Zim-ShowInToolBar} - boolean
+		- C{X-Zim-ShowInContextMenu} - 'None', 'Text' or 'Page'
 
 	These tools should always be executed with 3 arguments: notebook,
 	page & pageview.
 	'''
 
 	def isvalid(self):
-		'''Validate all the required fields are set. Assumes we only
-		use desktop files to describe applications. Returns boolean
-		for success.
+		'''Check if all required fields are set.
+		@returns: C{True} if all required fields are set
 		'''
 		entry = self['Desktop Entry']
-		#~ import pprint
-		#~ pprint.pprint(entry)
-		try:
-			# TODO re-write without asserts -> can be optimized away
-			assert 'Type' in entry and entry['Type'] == 'X-Zim-CustomTool', '"Type" missing or invalid'
-			assert 'Name' in entry, '"Name" missing'
-			assert 'X-Zim-ExecTool' in entry, '"X-Zim-ExecTool" missing'
-			assert 'X-Zim-ReadOnly' in entry, '"X-Zim-ReadOnly" missing'
-			assert 'X-Zim-ShowInToolBar' in entry, '"X-Zim-ShowInToolBar" missing'
-			assert 'X-Zim-ShowInContextMenu' in entry, '"X-Zim-ShowInContextMenu" missing'
-			if 'Version' in entry:
-				assert entry['Version'] == 1.0, 'Version invalid'
-		except AssertionError:
-			logger.exception('Invalid desktop entry "%s":', self.key)
-			return False
-		else:
+		if entry.get('Type') == 'X-Zim-CustomTool' \
+		and entry.get('Version') == 1.0 \
+		and entry.get('Name') \
+		and entry.get('X-Zim-ExecTool') \
+		and not entry.get('X-Zim-ReadOnly') is None \
+		and not entry.get('X-Zim-ShowInToolBar') is None \
+		and 'X-Zim-ShowInContextMenu' in entry:
 			return True
+		else:
+			logger.error('Invalid custom tool entry: %s %s', self.key, entry)
+			return False
 
 	def get_pixbuf(self, size):
 		pixbuf = DesktopEntryDict.get_pixbuf(self, size)
@@ -664,9 +805,6 @@ class CustomToolDict(DesktopEntryDict):
 		return self['Desktop Entry']['X-Zim-ShowInContextMenu']
 
 	def parse_exec(self, args=None):
-		'''Returns a list of command and arguments that can be used to
-		open this application. Args can be either File objects or urls.
-		'''
 		if not (isinstance(args, tuple) and len(args) == 3):
 			raise AssertionError, 'Custom commands needs 3 arguments'
 			# assert statement could be optimized away
@@ -740,4 +878,7 @@ class CustomToolDict(DesktopEntryDict):
 
 
 class CustomTool(CustomToolDict, DesktopEntryFile):
+	'''Class representing a file defining a custom tool, see
+	L{CustomToolDict} for the API documentation.
+	'''
 	pass

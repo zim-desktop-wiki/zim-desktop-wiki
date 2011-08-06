@@ -2,18 +2,16 @@
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''Basic store module for storing pages as files.
+'''Store module for storing pages as files.
 
-See StoreClass in zim.stores for the API documentation.
+With this store each page maps to a single text file. Sub-pages and
+attachments go into a directory of the same name as the page. So
+page names are mapped almost one on one to filesystem paths::
 
-Each page maps to a single text file in a normal directory structure.
-Page names map almost one on one to the relative directory path.
-Sub-namespaces are contained in directories of the same basename as
-the corresponding file name.
+	page            notebook_folder/page.txt
+	page:subpage    notebook_folder/page/subpage.txt
 
-File extensions are determined by the source format used.
-When doing a lookup we try to be case insensitive, but preserve case
-once we have it resolved.
+(The exact file extension can be determined by the source format used.)
 '''
 
 import sys
@@ -35,9 +33,15 @@ logger = logging.getLogger('zim.stores.files')
 class FilesStore(StoreClass):
 
 	def __init__(self, notebook, path, dir=None):
-		'''Construct a files store.
+		'''Constructor
 
-		Takes an optional 'dir' attribute.
+		@param notebook: a L{Notebook} object
+		@param path: a L{Path} object for the mount point within the notebook
+		@keyword dir: a L{Dir} object
+
+		When no dir is given and the notebook has a dir already
+		the dir is derived based on the path parameter. In the easiest
+		case when path is the root, the notebook dir is copied.
 		'''
 		StoreClass.__init__(self, notebook, path)
 		self.dir = dir
@@ -182,9 +186,6 @@ class FilesStore(StoreClass):
 
 		return re
 
-	def page_exists(self, path):
-		return self._get_file(path).exists()
-
 	# It could be argued that we should use e.g. MD5 checksums to verify
 	# integrity of the page content instead of mtime. It is true the mtime
 	# can be unreliable, for example when files are read from a remote
@@ -216,6 +217,19 @@ class FilesStore(StoreClass):
 
 
 class FileStorePage(Page):
+	'''Implementation of L{Page} that has a file as source
+
+	The source is expected to consist of an header section (which have
+	the same format as email headers) and a body that is some dialect
+	of wiki text.
+
+	Parsing the source file is delayed till the first call to
+	L{get_parsetree()} so creating an object instance does not have
+	the overhead of file system access.
+
+	@ivar source: the L{File} object for this page
+	@ivar format: the L{zim.formats} sub-module used for parsing the file
+	'''
 
 	def __init__(self, path, haschildren=False, source=None, format=None):
 		assert source and format

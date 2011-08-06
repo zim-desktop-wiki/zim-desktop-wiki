@@ -10,7 +10,7 @@ from zim.plugins import PluginClass
 from zim.config import data_file
 from zim.templates import GenericTemplate
 from zim.applications import Application
-from zim.gui.imagegeneratordialog import ImageGeneratorDialog
+from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
 
 # TODO put these commands in preferences
 latexcmd = ('latex', '-no-shell-escape', '-halt-on-error')
@@ -88,9 +88,7 @@ class InsertEquationDialog(ImageGeneratorDialog):
 			generator, image, help=':Plugins:Equation Editor' )
 
 
-class EquationGenerator(object):
-
-	# TODO: generic base class for image generators
+class EquationGenerator(ImageGeneratorClass):
 
 	type = 'equation'
 	basename = 'equation.tex'

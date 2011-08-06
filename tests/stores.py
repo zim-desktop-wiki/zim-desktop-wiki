@@ -11,8 +11,7 @@ import tests
 import os
 import time
 
-from zim.fs import *
-from zim.fs import FileWriteError
+from zim.fs import File, Dir, FileWriteError
 from zim.errors import TrashNotSupportedError
 from zim.notebook import Notebook, Path, LookupError, PageExistsError
 import zim.stores
