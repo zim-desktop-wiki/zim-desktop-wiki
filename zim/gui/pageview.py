@@ -2845,7 +2845,7 @@ class TextView(gtk.TextView):
 	def do_drag_data_received(self, dragcontext, x, y, selectiondata, info, timestamp):
 		# Handle drag and drop compatibility for all copy-past data types
 		if not self.get_editable():
-			dragcontext.finish(False, False, timestamp)
+			dragcontext.finish(False, False, timestamp) # NOK
 			return
 
 		logger.debug('Drag data received of type "%s"', selectiondata.target)

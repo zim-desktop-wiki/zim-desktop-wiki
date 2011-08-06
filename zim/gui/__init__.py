@@ -1384,6 +1384,14 @@ class GtkInterface(NotebookInterface):
 		if page is None:
 			return
 
+		## HACK - otherwise we get a bug when saving a new page immediatly
+		# hasattr assertions used to detect when the hack breaks
+		assert hasattr(page, '_ui_object')
+		if page._ui_object:
+			assert hasattr(page._ui_object, '_showing_template')
+			page._ui_object._showing_template = False
+		##
+
 		logger.debug('Saving page: %s', page)
 		try:
 			self.notebook.store_page(page)
@@ -1433,11 +1441,15 @@ class GtkInterface(NotebookInterface):
 
 	def _save_page_check_page(self, page):
 		# Code shared between save_page() and save_page_async()
+		if page is None:
+			page = self.mainwindow.pageview.get_page()
 		try:
-			assert not self.readonly, 'BUG: can not save page when read-only'
-			if page is None:
-				page = self.mainwindow.pageview.get_page()
-			assert not page.readonly, 'BUG: can not save read-only page'
+			if self.readonly:
+				raise AssertionError, 'BUG: can not save page when read-only'
+			elif not page:
+				raise AssertionError, 'BUG: no page loaded'
+			elif page.readonly:
+				raise AssertionError, 'BUG: can not save read-only page'
 		except Exception, error:
 			SavePageErrorDialog(self, error, page).run()
 			return None

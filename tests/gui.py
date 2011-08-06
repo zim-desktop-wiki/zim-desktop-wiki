@@ -94,8 +94,8 @@ some <strong>bold</strong> text<br>
 		self.assertEqual(selection.data, 'Unnamed Notebook?Test:wiki\r\n')
 
 		wanted = '''\
-<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="Test:wiki">Test:wiki</link></zim-tree>'''
-		newtree = clipboard.request_parsetree(None, notebook, page, block=True)
+<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="+wiki">+wiki</link></zim-tree>'''
+		newtree = clipboard.request_parsetree(None, notebook, Path('Test'), block=True)
 		self.assertEqual(newtree.tostring(), wanted)
 
 		text = clipboard.wait_for_text()
@@ -123,8 +123,8 @@ some <strong>bold</strong> text<br>
 		file = File('/foo/bar/baz.txt')
 		clipboard.set_with_data(targets, my_get_data, my_clear_data, file)
 		tree = clipboard.request_parsetree(None, notebook, page, block=True)
-		img = tree.find('link')
-		rel_path = img.get('href')
+		link = tree.find('link')
+		rel_path = link.get('href')
 		self.assertEqual(notebook.resolve_file(rel_path, page), file)
 
 		file = File('./data/zim.png')
@@ -675,6 +675,16 @@ class TestGtkInterface(tests.TestCase):
 		self.assertTrue(self.ui.open_page_previous())
 		self.assertTrue(self.ui.open_page_next())
 		self.assertEqual(self.ui.page, Path('Test:foo:bar'))
+
+	def testSave(self):
+		'''Test saving a page from the interface'''
+		self.ui.set_readonly(False)
+		self.ui.open_page(Path('Non-exsiting:page'))
+		self.assertFalse(self.ui.page.exists())
+		self.assertTrue(self.ui.page.get_parsetree() is None)
+		self.assertTrue(self.ui.mainwindow.pageview._showing_template) # check HACK
+		self.ui.save_page()
+		self.assertFalse(self.ui.page.get_parsetree() is None)
 
 	# TODO notebook manipulation (new (sub)page, move, rename, delete ..)
 	# merge with tests for dialogs (?)
