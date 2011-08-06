@@ -305,7 +305,7 @@ class GtkInterface(NotebookInterface):
 	main window
 	@ivar readonly: When C{True} the whole interface is read-only
 	@ivar usedaemon: When C{True} we are using the background deamon
-	(see L{zim.daemon})
+	(see L{zim.gui.daemon})
 	@ivar hideonclose: When C{True} the application will hide itself
 	instead of closing when the main window is closed, typically used
 	in combination with the daemon and the
@@ -1031,7 +1031,7 @@ class GtkInterface(NotebookInterface):
 			# Could be call back from open notebook dialog
 			# We are already initialized, so let another process handle it
 			if self.usedaemon:
-				from zim.daemon import DaemonProxy
+				from zim.gui.daemon import DaemonProxy
 				if isinstance(notebook, basestring) \
 				and notebook.startswith('zim+') \
 				and '?' in notebook:

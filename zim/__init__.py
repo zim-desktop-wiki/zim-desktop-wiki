@@ -33,7 +33,7 @@ The graphical user interface is implemented in the L{zim.gui} module
 and it's sub-modules. The webinterface is implemented in L{zim.www}.
 
 The graphical interface uses a background process to coordinate
-between instances, this is implemented in L{zim.daemon}.
+between instances, this is implemented in L{zim.gui.daemon}.
 
 Regardsless of the interface choosen there is a L{Notebook} object
 which implements a generic API for accessing and storing pages and
@@ -397,8 +397,8 @@ def main(argv):
 			handler = zim.gui.GtkInterface(notebook, page, **optsdict)
 			handler.main()
 		else:
-			import zim.daemon
-			proxy = zim.daemon.DaemonProxy()
+			import zim.gui.daemon
+			proxy = zim.gui.daemon.DaemonProxy()
 			if not notebook:
 				# Need to call this after spawning the daemon, else we
 				# have gtk loaded in the daemon process, and that causes
@@ -422,8 +422,8 @@ def main(argv):
 		handler.main()
 	elif cmd == 'daemon':
 		# just start the daemon, nothing else
-		import zim.daemon
-		proxy = zim.daemon.DaemonProxy()
+		import zim.gui.daemon
+		proxy = zim.gui.daemon.DaemonProxy()
 		proxy.ping()
 	elif cmd == 'plugin':
 		import zim.plugins

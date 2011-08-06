@@ -10,7 +10,7 @@ from datetime import date as dateclass
 from zim.plugins import PluginClass
 from zim.config import config_file, data_file
 from zim.notebook import get_notebook, Notebook, PageNameError
-from zim.daemon import DaemonProxy
+from zim.gui.daemon import DaemonProxy
 from zim.gui.widgets import Dialog, scrolled_text_view, IconButton, \
 	InputForm, gtk_window_set_default_icon
 from zim.gui.notebookdialog import NotebookComboBox
