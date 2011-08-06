@@ -129,11 +129,15 @@ ZIM_EXECUTABLE = 'zim'
 
 # All commandline options in various groups
 longopts = ('verbose', 'debug')
-commands = ('help', 'version', 'gui', 'server', 'export', 'index', 'manual', 'plugin', 'daemon')
+commands = (
+	'help', 'version', 'gui', 'server', 'export', 'search',
+	'index', 'manual', 'plugin', 'daemon'
+)
 commandopts = {
 	'gui': ('list', 'geometry=', 'fullscreen', 'no-daemon'),
 	'server': ('port=', 'template=', 'gui', 'no-daemon'),
 	'export': ('format=', 'template=', 'output=', 'root-url=', 'index-page='),
+	'search': (),
 	'index': ('output=',),
 	'plugin': (),
 	'daemon': (),
@@ -145,15 +149,16 @@ shortopts = {
 }
 maxargs = {
 	'gui': 2, 'server': 1, 'manual': 1,
-	'export': 2, 'index': 1
+	'export': 2, 'index': 1, 'search': 2,
 }
 
 # Inline help - do not use __doc__ for this !
 usagehelp = '''\
 usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
-   or: zim --export [OPTIONS] NOTEBOOK [PAGE]
-   or: zim --index  [OPTIONS] NOTEBOOK
    or: zim --server [OPTIONS] [NOTEBOOK]
+   or: zim --export [OPTIONS] NOTEBOOK [PAGE]
+   or: zim --search NOTEBOOK QUERY
+   or: zim --index  [OPTIONS] NOTEBOOK
    or: zim --plugin PLUGIN [ARGUMENTS]
    or: zim --manual [OPTIONS] [PAGE]
    or: zim --help
@@ -193,6 +198,9 @@ Export Options:
   You can use the export option to print a single page to stdout.
   When exporting a whole notebook you need to provide a directory.
 
+Search Options:
+  None
+
 Index Options:
   -o, --output    output file
 
@@ -204,7 +212,7 @@ class UsageError(Error):
 	'''Error when commandline usage is not correct'''
 
 	def __init__(self):
-		self.msg = zim.usagehelp.replace('zim', ZIM_EXECUTABLE)
+		self.msg = usagehelp.replace('zim', ZIM_EXECUTABLE)
 
 
 class NotebookLookupError(Error):
@@ -345,7 +353,7 @@ def main(argv):
 	# Now we determine the class to handle this command
 	# and start the application ...
 	logger.debug('Running command: %s', cmd)
-	if cmd in ('export', 'index'):
+	if cmd in ('export', 'index', 'search'):
 		if not len(args) >= 1:
 			default = _get_default_or_only_notebook()
 			if not default:
@@ -356,7 +364,10 @@ def main(argv):
 
 		handler.load_plugins() # should this go somewhere else ?
 
-		if len(args) == 2:
+		if cmd == 'search':
+			if not len(args) == 2: raise UsageError
+			optsdict['query'] = args[1]
+		elif len(args) == 2:
 			optsdict['page'] = args[1]
 
 		method = getattr(handler, 'cmd_' + cmd)
@@ -666,6 +677,17 @@ class NotebookInterface(gobject.GObject):
 			else:
 				self.notebook.index.update()
 				exporter.export_all(dir)
+
+	def cmd_search(self, query):
+		from zim.search import SearchSelection, Query
+		query = query.strip()
+		if not query: raise AssertionError, 'Empty query'
+		logger.info('Searching for: %s', query)
+		selection = SearchSelection(self.notebook)
+		query = Query(query)
+		selection.search(query)
+		for path in sorted(selection, key=lambda p: p.name):
+			print path.name
 
 	def cmd_index(self, output=None):
 		'''Convenience method for the commandline 'index' command
