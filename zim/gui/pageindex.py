@@ -32,6 +32,7 @@ PATH_COL = 1  #: Column with the zim IndexPath itself
 EMPTY_COL = 2 #: Column to flag if the page is empty or not
 STYLE_COL = 3 #: Column to specify style (based on empty or not)
 FGCOLOR_COL = 4 #: Column to specify color (based on empty or not)
+N_CHILD_COL = 5 #: Column with the number of child pages
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
@@ -126,6 +127,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		bool, # EMPTY_COL
 		pango.Style, # STYLE_COL
 		gtk.gdk.Color, # FGCOLOR_COL
+		gobject.TYPE_STRING, # N_CHILD_COL
 	)
 
 	style = gtk_get_style()
@@ -216,6 +218,11 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 				return self.NORMAL_COLOR
 			else:
 				return self.EMPTY_COLOR
+		elif column == N_CHILD_COL:
+			if path.haschildren:
+				return str(self.index.n_list_pages(path))
+			else:
+				return '' # not "0", want to keep look bit clean
 
 	def on_get_iter(self, treepath):
 		'''Returns a L{PageTreeIter} for a gtk TreePath or None'''
@@ -438,13 +445,21 @@ class PageTreeView(BrowserTreeView):
 		self.ui = ui
 		self._cleanup = None # temporary created path that needs to be removed later
 
-		cell_renderer = gtk.CellRendererText()
-		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
-		column = gtk.TreeViewColumn('_pages_', cell_renderer,
-			text=NAME_COL, style=STYLE_COL, foreground_gdk=FGCOLOR_COL)
+		column = gtk.TreeViewColumn('_pages_')
 		self.append_column(column)
-		#~ column = gtk.TreeViewColumn('_style_', cell_renderer, text=EXISTS_COL)
-		#~ self.append_column(column)
+
+		cr1 = gtk.CellRendererText()
+		cr1.set_property('ellipsize', pango.ELLIPSIZE_END)
+		column.pack_start(cr1, True)
+		column.set_attributes(cr1, text=NAME_COL,
+			style=STYLE_COL, foreground_gdk=FGCOLOR_COL)
+
+		cr2 = gtk.CellRendererText()
+		cr2.set_property('xalign', 1.0)
+		cr2.set_property('scale', 0.75)
+		column.pack_start(cr2, False)
+		column.set_attributes(cr2, text=N_CHILD_COL)
+
 		self.set_headers_visible(False)
 
 		self.set_enable_search(True)

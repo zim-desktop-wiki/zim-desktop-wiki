@@ -12,7 +12,7 @@ import logging
 
 from zim.plugins import PluginClass
 from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
-	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL
+	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, N_CHILD_COL
 from zim.index import IndexPath, IndexTag
 from zim.gui.widgets import LEFT_PANE
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
@@ -364,6 +364,13 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 					return self.EMPTY_COLOR
 				else:
 					return self.NORMAL_COLOR
+			elif column == N_CHILD_COL:
+				return ''
+				## Due to multiple tag filtering this result is no good..
+				#~ if tag == self.untagged:
+					#~ return str(self.index.n_list_untagged_root_pages())
+				#~ else:
+					#~ return str(self.index.n_list_tagged_pages(tag))
 		else:
 			return PageTreeStore.on_get_value(self, iter, column)
 
