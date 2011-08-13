@@ -36,8 +36,8 @@ except:
 # Get environment parameter for building for maemo
 # We don't use auto-detection here because we want to be able to
 # cross-compile a maemo package on another platform
-build_target = os.environ.get('ZIM_BUILD_TARGET') or 'default'
-assert build_target in ('default', 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
+build_target = os.environ.get('ZIM_BUILD_TARGET')
+assert build_target in (None, 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
 if build_target == 'maemo':
 	print 'Building for Maemo...'
 
@@ -228,12 +228,35 @@ class zim_build_scripts_class(build_scripts_class):
 
 class zim_build_class(build_class):
 	# Generate _version.py etc. and call build_trans as a subcommand
+	# Also set PLATFORM in zim/__init__.py
 
 	sub_commands = build_class.sub_commands + [('build_trans', None)]
 
 	def run(self):
 		fix_dist()
 		build_class.run(self)
+
+		file = os.path.join(self.build_lib, 'zim', '__init__.py')
+		print 'Setting PLATFORM in %s' % file
+		assert os.path.isfile(file)
+		fh = open(file)
+		lines = fh.readlines()
+		fh.read()
+
+		for i, line in enumerate(lines):
+			if line.startswith('PLATFORM = '):
+				if build_target is None:
+					lines[i] = 'PLATFORM = None\n'
+				else:
+					lines[i] = 'PLATFORM = "%s"\n' % build_target
+				break
+		else:
+			assert False, 'Missed line for PLATFORM'
+
+		fh = open(file, 'w')
+		fh.writelines(lines)
+		fh.close()
+
 
 
 class zim_install_class(install_class):

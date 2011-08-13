@@ -130,7 +130,7 @@ class ApplicationManager(object):
 	"share/zim/applications"). They have the same keys as a standard
 	desktop entry, but adds the non-standard keys "X-Zim-AppType" and
 	X-Zim-ShowOnlyFor". The first is a list of application types, the
-	second is an optional platform (e.g. "meamo"), together these are
+	second is an optional platform (e.g. "maemo"), together these are
 	used to decide if and where to show this application in the
 	preferences dialog.
 	'''

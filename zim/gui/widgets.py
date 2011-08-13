@@ -29,6 +29,8 @@ import logging
 import sys
 import os
 
+import zim
+
 import zim.errors
 import zim.config
 
@@ -69,7 +71,7 @@ ui_environment = {
 
 
 # Check for Maemo environment
-try:
+if zim.PLATFORM == 'maemo':
 	import hildon
 	gtkwindowclass = hildon.Window
 	ui_environment['platform'] = 'maemo'
@@ -89,7 +91,7 @@ style "toolkit"
 
 class "GtkTreeView" style "toolkit"
 ''' )
-except ImportError:
+else:
 	gtkwindowclass = gtk.Window
 
 

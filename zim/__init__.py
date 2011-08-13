@@ -124,6 +124,11 @@ else:
 
 gettext.install('zim', localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
 
+
+#: This parameter can be set by ./setup.py, can be e.g. "maemo"
+PLATFORM = None
+
+#: Executable for starting new zim instances, set by main()
 ZIM_EXECUTABLE = 'zim'
 
 
