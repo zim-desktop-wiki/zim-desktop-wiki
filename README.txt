@@ -50,6 +50,8 @@ See the translation files for detailed translator credits.
 The following files were included from other sources:
 
 * zim/_lib/xdot.py - Copyright 2008 Jose Fonseca
+* zim/_lib/arithmetic.py - Copyright 2010, 2011 Patricio Paez <pp@pp.com.mx>
+ 
 
 From the default Gnome icon theme:
 * pixmaps/task-list.png (was: stock_todo.png)
