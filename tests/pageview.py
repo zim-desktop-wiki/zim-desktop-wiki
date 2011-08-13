@@ -257,8 +257,8 @@ grrr
 
 List item 0
 
-<div indent="1">List item 1</div>
-</zim-tree>'''
+<div indent="1">List item 1
+</div></zim-tree>'''
 		# Note: we don't insert extra newlines, but <li> assumes them
 		tree = get_tree_from_xml(input)
 		buffer.set_parsetree(tree)
@@ -280,8 +280,8 @@ List item 0
 		bound.forward_chars(2) # Behind bullet
 		buffer.delete(iter, bound)
 
-		#~ print buffer.get_parsetree(raw=True).tostring()
 		#~ print buffer.get_parsetree().tostring()
+		#~ print wanted
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), wanted)
 
@@ -364,6 +364,8 @@ Tja
 		end = buffer.get_iter_at_line(7) # Baz (before checkbox !)
 		buffer.delete(start, end)
 		tree = buffer.get_parsetree(raw=True)
+		#~ print tree.tostring()
+		#~ print wanted
 		self.assertEqual(tree.tostring(), wanted)
 
 		undomanager.undo()

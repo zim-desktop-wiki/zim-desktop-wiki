@@ -226,7 +226,7 @@ This is a core plugin shipping with zim.
 		if tasksfound:
 			self.emit('tasklist-changed')
 
-	def extract_tasks(self, parsetree, deadline):
+	def extract_tasks(self, parsetree, deadline=None):
 		'''Extract all tasks from a parsetree.
 		Returns tuples for each tasks with following properties:
 		C{(open, actionable, prio, due, description)}

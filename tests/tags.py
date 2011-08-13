@@ -45,7 +45,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 		treestore = self.storeclass(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 5)
+		self.assertEqual(treestore.get_n_columns(), 6)
 		treeview = self.viewclass(ui, treestore)
 		model = treeview.get_model()
 		if isinstance(model, gtk.TreeModelFilter):
@@ -53,7 +53,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		self.assertEqual(model, treestore)
 
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 5)
+		self.assertEqual(treestore.get_n_columns(), 6)
 
 		self.index.update(callback=tests.gtk_process_events)
 		tests.gtk_process_events()

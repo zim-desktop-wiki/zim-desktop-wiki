@@ -3,7 +3,7 @@
 #
 # Plugin to use arithmetic in Zim wiki
 
-from zim._lib.arithmetic import ParserGTK
+from zim.inc.arithmetic import ParserGTK
 
 from zim.plugins import PluginClass
 

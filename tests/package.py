@@ -69,7 +69,7 @@ class TestCoding(tests.TestCase):
 				# only match global imports - allow import in limitted scope
 			for file, code in self.list_code():
 				if file.startswith('zim/gui') \
-				or file.startswith('zim/_lib/') \
+				or file.startswith('zim/inc/') \
 				or file.startswith('zim/plugins/') \
 				or file.startswith('tests/'):
 					continue # skip

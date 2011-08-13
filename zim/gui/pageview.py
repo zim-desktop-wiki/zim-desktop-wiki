@@ -1593,7 +1593,13 @@ class TextBuffer(gtk.TextBuffer):
 			self.apply_tag(tag, start, iter)
 
 	def do_delete_range(self, start, end):
-		# Wrap actual delete to hook _do_lines_merged
+		# Wrap actual delete to hook _do_lines_merged and do some logic
+		# when deleting bullets
+
+		bullet = None
+		if start.starts_line():
+			bullet = self._get_bullet_at_iter(start)
+
 		with self.user_action:
 			if start.get_line() != end.get_line():
 				gtk.TextBuffer.do_delete_range(self, start, end)
@@ -1601,10 +1607,8 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				gtk.TextBuffer.do_delete_range(self, start, end)
 
-			# Check if we have deleted some bullet item
-			if start.starts_line() \
-			and self.get_indent(start.get_line()) == 0 \
-			and not self.get_bullet_at_iter(start):
+			if bullet and not self._get_bullet_at_iter(start):
+				# had a bullet, but no longer
 				self.update_indent_tag(start.get_line(), None)
 
 		# Delete formatted word followed by typing should not show format again
