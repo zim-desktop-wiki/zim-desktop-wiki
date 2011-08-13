@@ -59,9 +59,42 @@ KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'
 KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
 date_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}:\d{2}$')
+week_path_re = re.compile(r'^(.*:)?\d{4}:Week \d{2}$')
 month_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}$')
 year_path_re = re.compile(r'^(.*:)?\d{4}$')
 
+def daterange_from_path(path):
+	if date_path_re.match(path.name):
+		type = 'day'
+		year, month, day = map(int, path.name.rsplit(':', 3)[-3:])
+		date = datetime.date(year, month, day)
+		end_date = date
+	elif week_path_re.match(path.name):
+		type = 'week'
+		year, week = path.name.rsplit(':', 2)[-2:]
+		year, week = map(int, (year, week[5:])) # Assumes "Week XX" string
+		date = datetime.date(year, 1, 1)
+		if week > 0:
+			date = date + datetime.timedelta(week*7 - datetime.date(year, 1, 1).weekday() - 1)
+			end_date = date + datetime.timedelta(6)
+		else:
+			end_date = date + datetime.timedelta(6 - datetime.date(year, 1, 1).weekday() - 1)
+	elif month_path_re.match(path.name):
+		type = 'month'
+		year, month = map(int, path.name.rsplit(':', 2)[-2:])
+		date = datetime.date(year, month, 1)
+		if month == 12:
+			end_date = datetime.date(year, 12, 31)
+		else:
+			end_date = datetime.date(year, month+1, 1) + datetime.timedelta(-1)
+	elif year_path_re.match(path.name):
+		type = 'year'
+		year = int(path.name.rsplit(':', 1)[-1])
+		date = datetime.date(year, 1, 1)
+		end_date = datetime.date(year, 12, 31)
+	else:
+		return # Not a calendar path
+	return type, date, end_date
 
 class CalendarPlugin(PluginClass):
 
@@ -81,6 +114,7 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
+		('granularity', 'choice', _('Use a page for each'), 'Day', ['Day', 'Week', 'Month', 'Year']), 
 		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
 	)
 
@@ -162,8 +196,15 @@ This is a core plugin shipping with zim.
 
 	def path_from_date(self, date):
 		'''Returns the path for a calendar page for a specific date'''
-		return Path( self.preferences['namespace']
-						+ ':' + date.strftime('%Y:%m:%d') )
+		if self.preferences['granularity'] == 'Day':
+			path = date.strftime('%Y:%m:%d')
+		elif self.preferences['granularity'] == 'Week':
+			path = date.strftime('%Y:Week %U')
+		elif self.preferences['granularity'] == 'Month':
+			path = date.strftime('%Y:%m')
+		elif self.preferences['granularity'] == 'Year':
+			path = date.strftime('%Y')
+		return Path( self.preferences['namespace'] + ':' + path )
 
 	def path_for_month_from_date(self, date):
 		'''Returns the namespace path for a certain month'''
@@ -172,33 +213,20 @@ This is a core plugin shipping with zim.
 
 	def date_from_path(self, path):
 		'''Returns a datetime.date object for a calendar page'''
-		assert date_path_re.match(path.name), 'Not an date path: %s' % path.name
-		year, month, day = path.name.rsplit(':', 3)[-3:]
-		year, month, day = map(int, (year, month, day))
-		return datetime.date(year, month, day)
+		dates = daterange_from_path(path)
+		assert dates, 'Not a date path: %s' % path.name
+		return dates[1]
 
 	def on_process_page_template(self, manager, template, page, dict):
 		'''Callback called when parsing a template, e.g. when exposing a page
 		or for the template used to create a new page. Will set parameters in
 		the template dict to be used in the template.
 		'''
-		year, month, day = 0, 1, 1
-		if date_path_re.match(page.name):
-			type = 'day'
-			year, month, day = page.name.rsplit(':', 3)[-3:]
-		elif month_path_re.match(page.name):
-			type = 'month'
-			year, month = page.name.rsplit(':', 2)[-2:]
-		elif year_path_re.match(page.name):
-			type = 'year'
-			year = page.name.rsplit(':', 1)[-1]
-		else:
-			return # Not a calendar page
-
-		year, month, day = map(int, (year, month, day))
+		type, date, end_date = daterange_from_path(page)
 		dict['calendar_plugin'] = {
 			'page_type': type,
-			'date': datetime.date(year, month, day)
+			'date': date,
+			'end_date': end_date
 		}
 
 	def suggest_link(self, source, text):

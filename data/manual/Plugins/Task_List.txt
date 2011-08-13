@@ -15,6 +15,10 @@ This plugin has two options that can be configured:
 
 If the option "**Consider all checkboxes as tasks**" is enabled any checkboxes found will appear in the task list. If it is disabled only checkboxes that have a task label (like FIXME or TODO) will appear in the list.
 
+If **Turn page names into tags for task items** is enabled, each task will be tagged with the path components of the page name. E.g. a task defined in the page "''Projects:ProjectA:Phase1''"  will get the tags "''Projects''", "''ProjectA''", and "''Phase''1". This is useful because it allows selecting tasks from a sub-tree of pages at once using the proper tags. Also pages with similar names in diffent parts of the tree can easily be shown in this way.
+
+If **Implicit deadline for task items in calendar pages** is enabled, tasks found in pages that belong to the [[Calendar|Calendar plugin]] will get that calendar date as due date. If the calendar page covers multiple days (e.g. a weekly page) the last day of the period will be taken as the due date.
+
 The option "**Labels marking tasks**" gives a comma separated list of labels that are used to flag tasks. By default these are "TODO" and "FIXME" but this can be customized.
 
 ===== Using Checkboxes =====
