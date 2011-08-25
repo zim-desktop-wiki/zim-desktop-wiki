@@ -115,6 +115,8 @@ This is a core plugin shipping with zim.
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
+		self.task_labels = None
+		self.task_label_re = None
 		self.db_initialized = False
 
 	def initialize_ui(self, ui):
@@ -156,7 +158,7 @@ This is a core plugin shipping with zim.
 			self.task_labels = [s.strip() for s in self.preferences['labels'].split(',')]
 		else:
 			self.task_labels = []
-		regex = '(' + '|'.join(map(re.escape, self.task_labels)) + ')'
+		regex = '^(' + '|'.join(map(re.escape, self.task_labels)) + ')\\b'
 		self.task_label_re = re.compile(regex)
 
 	def _serialize_rebuild_on_preferences(self):
@@ -487,19 +489,31 @@ class TagListTreeView(SingleClickTreeView):
 	only show tasks with that tag.
 	'''
 
+	_type_separator = 0
+	_type_label = 1
+	_type_tag = 2
+
 	def __init__(self, task_list):
-		model = gtk.ListStore(str, bool) # tag name, is seperator bool
+		model = gtk.ListStore(str, int, int) # tag name, number of tasks, type
 		SingleClickTreeView.__init__(self, model)
 		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
 		self.task_list = task_list
 
-		cell_renderer = gtk.CellRendererText()
-		column = gtk.TreeViewColumn(_('Tags'), cell_renderer, text=0)
+		column = gtk.TreeViewColumn(_('Tags'))
 			# T: Column header for tag list in Task List dialog
 		self.append_column(column)
 
-		self.set_row_separator_func(lambda m, i: m[i][1])
-			# just returns the bool in the second column
+		cr1 = gtk.CellRendererText()
+		column.pack_start(cr1, True)
+		column.set_attributes(cr1, text=0) # tag name
+
+		cr2 = gtk.CellRendererText()
+		cr2.set_property('xalign', 1.0)
+		cr2.set_property('scale', 0.8)
+		column.pack_start(cr2, False)
+		column.set_attributes(cr2, text=1) # number of tasks
+
+		self.set_row_separator_func(lambda m, i: m[i][2] == self._type_separator)
 
 		self.get_selection().connect('changed', self.on_selection_changed)
 
@@ -508,18 +522,18 @@ class TagListTreeView(SingleClickTreeView):
 
 	def get_tags(self):
 		'''Returns current selected tags, or None for all tags'''
-		tags = self._get_selected()
-		for label in self.task_list.plugin.task_labels:
-			if label in tags:
-				tags.remove(label)
+		tags = []
+		for row in self._get_selected():
+			if row[2] == self._type_tag:
+				tags.append(row[0])
 		return tags or None
 
 	def get_labels(self):
 		'''Returns current selected labels'''
 		labels = []
-		for tag in self._get_selected():
-			if tag in self.task_list.plugin.task_labels:
-				labels.append(tag)
+		for row in self._get_selected():
+			if row[2] == self._type_label:
+				labels.append(row[0])
 		return labels or None
 
 	def _get_selected(self):
@@ -527,18 +541,26 @@ class TagListTreeView(SingleClickTreeView):
 		if not paths or (0,) in paths:
 			return []
 		else:
-			return [model[path][0] for path in paths]
+			return [model[path] for path in paths]
 
 	def refresh(self, task_list):
 		# FIXME make sure selection is not reset when refreshing
 		model = self.get_model()
 		model.clear()
-		model.append((_('All'), False)) # T: "tag" for showing all tasks
-		for label in task_list.plugin.task_labels:
-			model.append((label, False))
-		model.append(('', True)) # separator
-		for tag in sorted(self.task_list.get_tags()):
-			model.append((tag, False))
+
+		n_all = self.task_list.get_n_tasks()
+		model.append((_('All'), n_all, self._type_label)) # T: "tag" for showing all tasks
+
+		labels = self.task_list.get_labels()
+		for label in self.task_list.plugin.task_labels: # explicitly keep sorting from preferences
+			if label in labels:
+				model.append((label, labels[label], self._type_label))
+
+		model.append(('', 0, self._type_separator)) # separator
+
+		tags = self.task_list.get_tags()
+		for tag in sorted(tags):
+			model.append((tag, tags[tag], self._type_tag))
 
 	def on_selection_changed(self, selection):
 		tags = self.get_tags()
@@ -688,9 +710,36 @@ class TaskListTreeView(BrowserTreeView):
 			self.filter = None
 		self._eval_filter()
 
+	def get_labels(self):
+		'''Get all labels that are in use
+		@returns: a dict with labels as keys and the number of tasks
+		per label as value
+		'''
+		labels = {}
+		def collect(model, path, iter):
+			row = model[iter]
+			if not row[self.OPEN_COL]:
+				return # only count open items
+
+			desc = row[self.TASK_COL].decode('utf-8')
+			match = self.plugin.task_label_re.match(desc)
+			if match:
+				label = match.group(0)
+				if not label in labels:
+					labels[label] = 1
+				else:
+					labels[label] += 1
+
+		self.real_model.foreach(collect)
+
+		return labels
+
 	def get_tags(self):
-		'''Returns list of all tags that are in use for tasks'''
-		tags = set()
+		'''Get all tags that are in use
+		@returns: a dict with tags as keys and the number of tasks
+		per tag as value
+		'''
+		tags = {}
 
 		def collect(model, path, iter):
 			row = model[iter]
@@ -699,16 +748,28 @@ class TaskListTreeView(BrowserTreeView):
 
 			desc = row[self.TASK_COL].decode('utf-8')
 			for match in tag_re.findall(desc):
-				tags.add(match)
+				if not match in tags:
+					tags[match] = 1
+				else:
+					tags[match] += 1
 
 			if self.plugin.preferences['tag_by_page']:
 				name = row[self.PAGE_COL].decode('utf-8')
 				for part in name.split(':'):
-					tags.add(part)
+					if not part in tags:
+						tags[part] = 1
+					else:
+						tags[part] += 1
 
 		self.real_model.foreach(collect)
 
 		return tags
+
+	def get_n_tasks(self):
+		'''Get the number of tasks in the list
+		@returns: total number as a list
+		'''
+		return self.real_model.iter_n_children(None)
 
 	def get_statistics(self):
 		statsbyprio = {}

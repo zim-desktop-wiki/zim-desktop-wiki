@@ -456,7 +456,7 @@ class PageTreeView(BrowserTreeView):
 
 		cr2 = gtk.CellRendererText()
 		cr2.set_property('xalign', 1.0)
-		cr2.set_property('scale', 0.75)
+		cr2.set_property('scale', 0.8)
 		column.pack_start(cr2, False)
 		column.set_attributes(cr2, text=N_CHILD_COL)
 
