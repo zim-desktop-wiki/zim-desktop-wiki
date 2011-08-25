@@ -204,7 +204,12 @@ class FilesStore(StoreClass):
 	def get_page_indexkey(self, path):
 		file = self._get_file(path)
 		if file.exists():
-			return file.mtime()
+			try:
+				return file.mtime()
+			except OSError:
+				# This should never happen - but it did, see lp:809086
+				logger.exception('BUG:')
+				return None
 		else:
 			return None
 

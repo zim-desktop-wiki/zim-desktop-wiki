@@ -208,7 +208,7 @@ class NotebookInfoList(list):
 		Format is::
 
 		  [Notebooklist]
-		  default=uri1
+		  Default=uri1
 		  uri1
 		  uri2
 
@@ -227,7 +227,7 @@ class NotebookInfoList(list):
 		text.pop(0)
 
 		# Parse key for default
-		if text[0].startswith('Default='):
+		if text and text[0].startswith('Default='):
 			k, v = text.pop(0).strip().split('=', 1)
 			default = v
 		else:
@@ -235,6 +235,7 @@ class NotebookInfoList(list):
 
 		# Parse rest of list
 		uris = []
+		i = 0 # (needs to be set in case list is empty)
 		for i, line in enumerate(text):
 			if not line or line.isspace():
 				break
@@ -249,7 +250,7 @@ class NotebookInfoList(list):
 		cache = {}
 		config = ConfigDict()
 		config['Notebook'] = []
-		config.parse(text[i:])
+		config.parse(text[i+1:])
 		for section in config['Notebook']:
 			uri = section['uri']
 			cache[uri] = dict(section)

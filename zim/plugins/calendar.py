@@ -64,6 +64,14 @@ month_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}$')
 year_path_re = re.compile(r'^(.*:)?\d{4}$')
 
 def daterange_from_path(path):
+	'''Determine the calendar dates mapped by a specific page
+	@param path: a L{Path} object
+	@returns: a 3-tuple of:
+	  - the page type (one of "C{day}", "C{week}", "C{month}", or "C{year}")
+	  - a C{datetime.date} object for the start date
+	  - a C{datetime.date} object for the end date
+	or C{None} when the page does not map a date
+	'''
 	if date_path_re.match(path.name):
 		type = 'day'
 		year, month, day = map(int, path.name.rsplit(':', 3)[-3:])
@@ -93,8 +101,9 @@ def daterange_from_path(path):
 		date = datetime.date(year, 1, 1)
 		end_date = datetime.date(year, 12, 31)
 	else:
-		return # Not a calendar path
+		return None# Not a calendar path
 	return type, date, end_date
+
 
 class CalendarPlugin(PluginClass):
 
@@ -114,7 +123,7 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
-		('granularity', 'choice', _('Use a page for each'), 'Day', ['Day', 'Week', 'Month', 'Year']), 
+		('granularity', 'choice', _('Use a page for each'), 'Day', ['Day', 'Week', 'Month', 'Year']),
 		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
 	)
 
@@ -222,12 +231,13 @@ This is a core plugin shipping with zim.
 		or for the template used to create a new page. Will set parameters in
 		the template dict to be used in the template.
 		'''
-		type, date, end_date = daterange_from_path(page)
-		dict['calendar_plugin'] = {
-			'page_type': type,
-			'date': date,
-			'end_date': end_date
-		}
+		daterange = daterange_from_path(page)
+		if daterange:
+			dict['calendar_plugin'] = {
+				'page_type': daterange[0],
+				'date': daterange[1],
+				'end_date': daterange[2],
+			}
 
 	def suggest_link(self, source, text):
 		#~ if date_path_re.match(path.text):

@@ -2193,6 +2193,9 @@ class TextBuffer(gtk.TextBuffer):
 				self.delete(start, end)
 
 			mark = self.get_mark('zim-paste-position')
+			if not mark:
+				return # prevent crash - see lp:807830
+
 			iter = self.get_iter_at_mark(mark)
 			self.delete_mark(mark)
 
