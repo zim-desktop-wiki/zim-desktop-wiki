@@ -11,7 +11,7 @@ import signal
 import gobject
 
 from zim.fs import File, Dir
-from zim.gui.daemon import *
+from zim.daemon import *
 
 
 def waitfile(file, exists=True):

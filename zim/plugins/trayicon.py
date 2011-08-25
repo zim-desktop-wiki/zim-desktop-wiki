@@ -34,7 +34,7 @@ def main(daemonproxy, *args):
 	preferences = config_file('preferences.conf')['TrayIconPlugin']
 	preferences.setdefault('classic', False)
 
-	from zim.gui.daemon import DaemonProxy
+	from zim.daemon import DaemonProxy
 	if appindicator and not preferences['classic']:
 		klass = 'zim.plugins.trayicon.AppIndicatorTrayIcon'
 	else:
@@ -83,7 +83,7 @@ This is a core plugin shipping with zim.
 			klass = self.get_trayicon_class()
 			if issubclass(klass, DaemonTrayIconMixin):
 				string = 'zim.plugins.trayicon.' + klass.__name__
-				from zim.gui.daemon import DaemonProxy
+				from zim.daemon import DaemonProxy
 				self.proxyobject = DaemonProxy().get_object(string, 'TrayIcon')
 					# getting the object implicitly starts it, if it didn't exist yet
 			else:
@@ -319,7 +319,7 @@ class DaemonTrayIconMixin(object):
 	'''
 
 	def __init__(self):
-		from zim.gui.daemon import DaemonProxy
+		from zim.daemon import DaemonProxy
 		self.daemon = DaemonProxy()
 
 	def main(self):
@@ -368,4 +368,3 @@ class AppIndicatorTrayIcon(DaemonTrayIconMixin, TrayIconBase):
 		menu = self.get_trayicon_menu()
 		menu.show_all()
 		self.appindicator.set_menu(menu)
-

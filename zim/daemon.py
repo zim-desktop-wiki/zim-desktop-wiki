@@ -58,7 +58,7 @@ from zim.config import XDG_CACHE_HOME, json
 
 # TODO split this in a GUI part and a daemon part that is not GUI specific
 
-logger = logging.getLogger('zim.gui.daemon')
+logger = logging.getLogger('zim.daemon')
 
 
 def serialize_call(func, *args, **kwargs):
@@ -601,4 +601,3 @@ class UnixPipeProxy(object):
 
 
 ChildProxy = UnixPipeProxy
-
