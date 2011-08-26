@@ -17,7 +17,7 @@ import logging
 from zim.index import IndexPath
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, BrowserTreeView, \
-	ErrorDialog, gtk_get_style
+	ErrorDialog
 from zim.gui.clipboard import \
 	Clipboard, \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
@@ -126,13 +126,13 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		gobject.TYPE_PYOBJECT, # PATH_COL
 		bool, # EMPTY_COL
 		pango.Style, # STYLE_COL
-		gtk.gdk.Color, # FGCOLOR_COL
+		gobject.TYPE_STRING, # FGCOLOR_COL
 		gobject.TYPE_STRING, # N_CHILD_COL
 	)
 
-	style = gtk_get_style()
-	NORMAL_COLOR = style.text[gtk.STATE_NORMAL]
-	EMPTY_COLOR = style.text[gtk.STATE_INSENSITIVE]
+
+	NORMAL_COLOR = None
+	EMPTY_COLOR = 'grey' # FIXME set based on style.text[gtk.STATE_INSENSITIVE]
 
 	def __init__(self, index):
 		'''Constructor
@@ -429,7 +429,6 @@ class PageTreeView(BrowserTreeView):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'page-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'populate-popup': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-link': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'copy': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
@@ -452,11 +451,9 @@ class PageTreeView(BrowserTreeView):
 		cr1.set_property('ellipsize', pango.ELLIPSIZE_END)
 		column.pack_start(cr1, True)
 		column.set_attributes(cr1, text=NAME_COL,
-			style=STYLE_COL, foreground_gdk=FGCOLOR_COL)
+			style=STYLE_COL, foreground=FGCOLOR_COL)
 
-		cr2 = gtk.CellRendererText()
-		cr2.set_property('xalign', 1.0)
-		cr2.set_property('scale', 0.8)
+		cr2 = self.get_cell_renderer_number_of_items()
 		column.pack_start(cr2, False)
 		column.set_attributes(cr2, text=N_CHILD_COL)
 
@@ -542,20 +539,8 @@ class PageTreeView(BrowserTreeView):
 		return handled \
 			or BrowserTreeView.do_key_press_event(self, event)
 
-	def do_button_release_event(self, event):
-		if event.button == 3:
-			self.emit('popup-menu')# FIXME do we need to pass x/y and button ?
-			return True
-		else:
-			return BrowserTreeView.do_button_release_event(self, event)
-
-	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
-		menu = gtk.Menu()
+	def do_initialize_popup(self, menu):
 		self.ui.populate_popup('page_popup', menu)
-		self.emit('populate-popup', menu)
-		menu.show_all()
-		menu.popup(None, None, None, 3, 0)
-		return True
 
 	def do_copy(self):
 		#~ print '!! copy location'

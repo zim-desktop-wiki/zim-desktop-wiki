@@ -200,15 +200,6 @@ class TextBuffer(gtk.TextBuffer):
 		return text
 
 
-def gtk_get_style():
-	'''Returns a gtk.Style object for the current theme style.
-	This function is a bit of a hack, but works.
-	'''
-	w = gtk.Window()
-	w.realize()
-	return w.get_style()
-
-
 def rotate_pixbuf(pixbuf):
 	'''Rotate the pixbuf to match orientation from EXIF info.
 	This is intended for e.g. photos that have EXIF information that
@@ -453,7 +444,20 @@ class SingleClickTreeView(gtk.TreeView):
 	navigation.
 	'''
 
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'populate-popup': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+	}
+
 	mask = gtk.gdk.SHIFT_MASK | gtk.gdk.CONTROL_MASK
+
+	# backwards compatibility
+	if gtk.gtk_version < (2, 12, 0):
+		def set_rubber_banding(self, enable):
+			pass
+
+		def is_rubber_banding_active(self):
+			return False
 
 	def do_button_release_event(self, event):
 		'''Handler for button-release-event, implements single click navigation'''
@@ -478,16 +482,37 @@ class SingleClickTreeView(gtk.TreeView):
 				# expander in front of a path should not select the path.
 				# This logic is based on particulars of the C implementation
 				# and might not be future proof.
+		elif event.button == 3:
+			menu = gtk.Menu()
+			self.do_initialize_popup(menu)
+			self.emit('populate-popup', menu)
+			if len(menu.get_children()) > 0:
+				menu.show_all()
+				menu.popup(None, None, None, 3, 0) # FIXME do we need to pass x/y and button ?
 
 		return gtk.TreeView.do_button_release_event(self, event)
 
-	# backwards compatibility
-	if gtk.gtk_version < (2, 12, 0):
-		def set_rubber_banding(self, enable):
-			pass
+	def do_initialize_popup(self, menu):
+		'''Initialize the context menu.
+		This method is called before the C{populate-popup} signal and
+		can be used to put any standard items in the menu.
+		@param menu: the C{gtk.Menu} object for the popup
+		@implementation: can be implemented by sub-classes, default
+		implementation does nothing
+		'''
+		pass
 
-		def is_rubber_banding_active(self):
-			return False
+	def get_cell_renderer_number_of_items(self):
+		'''Get a C{gtk.CellRendererText} that is set up for rendering
+		the number of items below a tree item.
+		Used to enforce common style between tree views.
+		@returns: a C{gtk.CellRendererText} object
+		'''
+		cr = gtk.CellRendererText()
+		cr.set_property('xalign', 1.0)
+		#~ cr2.set_property('scale', 0.8)
+		cr.set_property('foreground', 'darkgrey')
+		return cr
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(SingleClickTreeView)
@@ -1126,9 +1151,7 @@ class InputEntry(gtk.Entry):
 		'input-valid-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	style = gtk_get_style()
-	NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
-	ERROR_COLOR = gtk.gdk.color_parse('#EF7F7F') # light red (derived from Tango style guide)
+	ERROR_COLOR = '#EF7F7F' # light red (derived from Tango style guide)
 
 	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False, empty_text=None):
 		'''Constructor
@@ -1155,6 +1178,7 @@ class InputEntry(gtk.Entry):
 		@todo: make color for empty_text actually grey
 		'''
 		gtk.Entry.__init__(self)
+		self._normal_color = self.style.base[gtk.STATE_NORMAL]
 		self.allow_empty = allow_empty
 		self.show_empty_invalid = show_empty_invalid
 		self.empty_text = empty_text
@@ -1265,9 +1289,9 @@ class InputEntry(gtk.Entry):
 
 		if valid \
 		or (not self.get_text() and not self.show_empty_invalid):
-			self.modify_base(gtk.STATE_NORMAL, self.NORMAL_COLOR)
+			self.modify_base(gtk.STATE_NORMAL, self._normal_color)
 		else:
-			self.modify_base(gtk.STATE_NORMAL, self.ERROR_COLOR)
+			self.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse(self.ERROR_COLOR))
 
 		self._input_valid = valid
 		self.emit('input-valid-changed')
@@ -2948,9 +2972,8 @@ class Assistant(Dialog):
 
 		# Add page title - use same color as used by gtkassistent.c
 		ebox = gtk.EventBox()
-		style = gtk_get_style()
-		ebox.modify_fg(gtk.STATE_NORMAL, style.fg[gtk.STATE_SELECTED])
-		ebox.modify_bg(gtk.STATE_NORMAL, style.bg[gtk.STATE_SELECTED])
+		ebox.modify_fg(gtk.STATE_NORMAL, self.style.fg[gtk.STATE_SELECTED])
+		ebox.modify_bg(gtk.STATE_NORMAL, self.style.bg[gtk.STATE_SELECTED])
 
 		hbox = gtk.HBox()
 		hbox.set_border_width(5)

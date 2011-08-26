@@ -14,7 +14,7 @@ import zim.datetimetz as datetime
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.notebook import Path
-from zim.gui.widgets import ui_environment, gtk_get_style,\
+from zim.gui.widgets import ui_environment, \
 	Dialog, MessageDialog, \
 	InputEntry, Button, IconButton, MenuButton, \
 	BrowserTreeView, SingleClickTreeView
@@ -345,7 +345,7 @@ This is a core plugin shipping with zim.
 
 		text = date_re.sub(set_date, text)
 
-		if deadline and date == '9999':
+		if deadline and date == _NO_DATE:
 			date = deadline
 
 		return (open, True, prio, date, text)
@@ -468,15 +468,16 @@ class TaskListDialog(Dialog):
 		self.statistics_label = gtk.Label()
 		hbox.pack_end(self.statistics_label, False)
 
-		def set_statistics(task_list):
-			total, stats = task_list.get_statistics()
+		def set_statistics(o):
+			total, stats = self.task_list.get_statistics()
 			text = ngettext('%i open item', '%i open items', total) % total
 				# T: Label for statistics in Task List, %i is the number of tasks
 			text += ' (' + '/'.join(map(str, stats)) + ')'
 			self.statistics_label.set_text(text)
 
 		set_statistics(self.task_list)
-		self.task_list.connect('changed', set_statistics)
+		self.plugin.connect('tasklist-changed', set_statistics)
+			# Make sure this is connected after the task list connected to same signal
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
@@ -494,7 +495,7 @@ class TagListTreeView(SingleClickTreeView):
 	_type_tag = 2
 
 	def __init__(self, task_list):
-		model = gtk.ListStore(str, int, int) # tag name, number of tasks, type
+		model = gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
 		SingleClickTreeView.__init__(self, model)
 		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
 		self.task_list = task_list
@@ -504,12 +505,11 @@ class TagListTreeView(SingleClickTreeView):
 		self.append_column(column)
 
 		cr1 = gtk.CellRendererText()
+		cr1.set_property('ellipsize', pango.ELLIPSIZE_END)
 		column.pack_start(cr1, True)
-		column.set_attributes(cr1, text=0) # tag name
+		column.set_attributes(cr1, text=0, weight=3) # tag name, weight
 
-		cr2 = gtk.CellRendererText()
-		cr2.set_property('xalign', 1.0)
-		cr2.set_property('scale', 0.8)
+		cr2 = self.get_cell_renderer_number_of_items()
 		column.pack_start(cr2, False)
 		column.set_attributes(cr2, text=1) # number of tasks
 
@@ -518,7 +518,8 @@ class TagListTreeView(SingleClickTreeView):
 		self.get_selection().connect('changed', self.on_selection_changed)
 
 		self.refresh(task_list)
-		task_list.connect('changed', self.refresh)
+		task_list.plugin.connect('tasklist-changed', lambda o: self.refresh(task_list))
+			# Make sure this is connected after the task list connected to same signal
 
 	def get_tags(self):
 		'''Returns current selected tags, or None for all tags'''
@@ -549,18 +550,18 @@ class TagListTreeView(SingleClickTreeView):
 		model.clear()
 
 		n_all = self.task_list.get_n_tasks()
-		model.append((_('All'), n_all, self._type_label)) # T: "tag" for showing all tasks
+		model.append((_('All Tasks'), n_all, self._type_label, pango.WEIGHT_BOLD)) # T: "tag" for showing all tasks
 
 		labels = self.task_list.get_labels()
 		for label in self.task_list.plugin.task_labels: # explicitly keep sorting from preferences
 			if label in labels:
-				model.append((label, labels[label], self._type_label))
+				model.append((label, labels[label], self._type_label, pango.WEIGHT_BOLD))
 
-		model.append(('', 0, self._type_separator)) # separator
+		model.append(('', 0, self._type_separator, 0)) # separator
 
 		tags = self.task_list.get_tags()
 		for tag in sorted(tags):
-			model.append((tag, tags[tag], self._type_tag))
+			model.append((tag, tags[tag], self._type_tag, pango.WEIGHT_NORMAL))
 
 	def on_selection_changed(self, selection):
 		tags = self.get_tags()
@@ -569,20 +570,13 @@ class TagListTreeView(SingleClickTreeView):
 		self.task_list.set_label_filter(labels)
 
 
-style = gtk_get_style()
-NORMAL_COLOR = style.base[gtk.STATE_NORMAL]
-HIGH_COLOR = gtk.gdk.color_parse('#EF2929') # red (from Tango style guide)
-MEDIUM_COLOR = gtk.gdk.color_parse('#FCAF3E') # orange ("idem")
-ALERT_COLOR = gtk.gdk.color_parse('#FCE94F') # yellow ("idem")
+HIGH_COLOR = '#EF5151' # red (derived from Tango style guide - #EF2929)
+MEDIUM_COLOR = '#FCB956' # orange ("idem" - #FCAF3E)
+ALERT_COLOR = '#FCEB65' # yellow ("idem" - #FCE94F)
 # FIXME: should these be configurable ?
 
 
 class TaskListTreeView(BrowserTreeView):
-
-	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-	}
 
 	VIS_COL = 0 # visible
 	PRIO_COL = 1
@@ -613,12 +607,13 @@ class TaskListTreeView(BrowserTreeView):
 			if prio >= 3: color = HIGH_COLOR
 			elif prio == 2: color = MEDIUM_COLOR
 			elif prio == 1: color = ALERT_COLOR
-			else: color = NORMAL_COLOR
-			cell.set_property('cell-background-gdk', color)
+			else: color = None
+			cell.set_property('cell-background', color)
 
 		cell_renderer = gtk.CellRendererText()
-		column = gtk.TreeViewColumn(_('Prio'), cell_renderer)
+		#~ column = gtk.TreeViewColumn(_('Prio'), cell_renderer)
 			# T: Column header Task List dialog
+		column = gtk.TreeViewColumn(' ! ', cell_renderer)
 		column.set_cell_data_func(cell_renderer, render_prio)
 		column.set_sort_column_id(self.PRIO_COL)
 		self.append_column(column)
@@ -655,8 +650,8 @@ class TaskListTreeView(BrowserTreeView):
 			if date <= today: color = HIGH_COLOR
 			elif date == tomorrow: color = MEDIUM_COLOR
 			elif date == dayafter: color = ALERT_COLOR
-			else: color = NORMAL_COLOR
-			cell.set_property('cell-background-gdk', color)
+			else: color = None
+			cell.set_property('cell-background', color)
 
 		cell_renderer = gtk.CellRendererText()
 		column = gtk.TreeViewColumn(_('Date'), cell_renderer)
@@ -676,6 +671,9 @@ class TaskListTreeView(BrowserTreeView):
 		self.refresh()
 		self.plugin.connect_object('tasklist-changed', self.__class__.refresh, self)
 
+		# HACK because we can not register ourselves :S
+		self.connect('row_activated', self.__class__.do_row_activated)
+
 	def refresh(self):
 		self.real_model.clear() # flush
 
@@ -694,8 +692,6 @@ class TaskListTreeView(BrowserTreeView):
 						# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL
 			modelrow[0] = self._filter_item(modelrow)
 			self.real_model.append(None, modelrow)
-
-		self.emit('changed')
 
 	def set_filter(self, string):
 		# TODO allow more complex queries here - same parse as for search
@@ -865,22 +861,10 @@ class TaskListTreeView(BrowserTreeView):
 		self.ui.open_page(page)
 		self.ui.mainwindow.pageview.find(task)
 
-	def do_button_release_event(self, event):
-		'''Handler for button-release-event, triggers popup menu'''
-		if event.button == 3:
-			self.emit('popup-menu')# FIXME do we need to pass x/y and button ?
-			return True
-		else:
-			return BrowserTreeView.do_button_release_event(self, event)
-
-	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
-		menu = gtk.Menu()
+	def do_initialize_popup(self, menu):
 		item = gtk.MenuItem(_("_Copy")) # T: menu item in context menu
 		item.connect_object('activate', self.__class__.copy_to_clipboard, self)
 		menu.append(item)
-		menu.show_all()
-		menu.popup(None, None, None, 3, 0)
-		return True
 
 	def copy_to_clipboard(self):
 		'''Exports currently visible elements from the tasks list'''
@@ -903,7 +887,7 @@ class TaskListTreeView(BrowserTreeView):
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<title>Task List - Zim</title>
-		<meta name='Generator' content='Zim [% zim.version %]'>
+		<meta name='Generator' content='Zim [%% zim.version %%]'>
 		<style type='text/css'>
 			table.tasklist {
 				border-width: 1px;
@@ -924,9 +908,9 @@ class TaskListTreeView(BrowserTreeView):
 				border-style: solid;
 				border-color: gray;
 			}
-			.high {background-color: #EF2929}
-			.medium {background-color: #FCAF3E}
-			.alert {background-color: #FCE94F}
+			.high {background-color: %s}
+			.medium {background-color: %s}
+			.alert {background-color: %s}
 		</style>
 	</head>
 	<body>
@@ -935,7 +919,7 @@ class TaskListTreeView(BrowserTreeView):
 
 <table class="tasklist">
 <tr><th>Prio</th><th>Task</th><th>Date</th><th>Page</th></tr>
-'''
+''' % (HIGH_COLOR, MEDIUM_COLOR, ALERT_COLOR)
 
 		today    = str( datetime.date.today() )
 		tomorrow = str( datetime.date.today() + datetime.timedelta(days=1))
@@ -981,4 +965,5 @@ class TaskListTreeView(BrowserTreeView):
 		return rows
 
 # Need to register classes defining gobject signals
-gobject.type_register(TaskListTreeView)
+#~ gobject.type_register(TaskListTreeView)
+# NOTE: enabling this line causes this treeview to have wrong theming under default ubuntu them !???

@@ -16,11 +16,6 @@ from zim.config import ListDict
 from zim.plugins.tags import *
 
 
-def color_to_string(color):
-	# helper method for comparing gtk.gdk.Color objects
-	return '%i,%i,%i' % (color.red, color.green, color.blue)
-
-
 @tests.slowTest
 class TestTaggedPageTreeStore(tests.TestCase):
 
@@ -171,15 +166,11 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		if page.hascontent or page.haschildren:
 			self.assertEqual(treestore.get_value(iter, EMPTY_COL), False)
 			self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_NORMAL)
-			self.assertEqual(
-				color_to_string( treestore.get_value(iter, FGCOLOR_COL) ),
-				color_to_string( treestore.NORMAL_COLOR) )
+			self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
 		else:
 			self.assertEqual(treestore.get_value(iter, EMPTY_COL), True)
 			self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_ITALIC)
-			self.assertEqual(
-				color_to_string( treestore.get_value(iter, FGCOLOR_COL) ),
-				color_to_string( treestore.EMPTY_COLOR) )
+			self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.EMPTY_COLOR)
 
 		self._check_iter_children(treestore, iter, path, indexpath.haschildren)
 
@@ -195,15 +186,11 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		if indextag == treestore.untagged:
 			self.assertEqual(treestore.get_value(iter, EMPTY_COL), True)
 			self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_ITALIC)
-			self.assertEqual(
-				color_to_string( treestore.get_value(iter, FGCOLOR_COL) ),
-				color_to_string( treestore.EMPTY_COLOR) )
+			self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.EMPTY_COLOR)
 		else:
 			self.assertEqual(treestore.get_value(iter, EMPTY_COL), False)
 			self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_NORMAL)
-			self.assertEqual(
-				color_to_string( treestore.get_value(iter, FGCOLOR_COL) ),
-				color_to_string( treestore.NORMAL_COLOR) )
+			self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
 
 		if indextag == treestore.untagged:
 			haschildren = self.index.n_list_untagged_root_pages() > 0

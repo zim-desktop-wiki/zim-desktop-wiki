@@ -43,6 +43,12 @@ classes.
 emitted when it is likely the notebook list changed
 '''
 
+# NOTE: this module can not be moved to zim.gui. The reason is that
+# loading gtk in the daemon process leads to errors when forking the
+# process. When loading a module the parent modules are loaded as well
+# and zim.gui loads gtk.
+
+
 import os
 import sys
 import socket
