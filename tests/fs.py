@@ -63,6 +63,8 @@ class TestFS(tests.TestCase):
 
 		self.assertEqual(joinpath('foo', 'bar'), os.sep.join(('foo', 'bar')))
 
+		self.assertEqual(cleanup_filename('foo&bar:dus\\foo.txt'), 'foo&bardusfoo.txt')
+
 	def testFilePath(self):
 		'''Test Path object'''
 		path = FilePath(['foo', 'bar'])

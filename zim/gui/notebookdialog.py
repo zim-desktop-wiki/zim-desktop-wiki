@@ -12,12 +12,13 @@ the next time zim is started without arguments.
 @newfield column: Column, Columns
 '''
 
+import os
 import gtk
 import pango
 import logging
 
 from zim.fs import File, Dir
-from zim.notebook import get_notebook_list, init_notebook, NotebookInfo
+from zim.notebook import get_notebook_list, get_notebook_info, init_notebook, NotebookInfo
 from zim.config import data_file
 from zim.gui.widgets import ui_environment, Dialog, IconButton, encode_markup_text
 
@@ -378,12 +379,18 @@ class AddNotebookDialog(Dialog):
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
 
-		if name is None and folder is None:
+		self._name_set = not name is None
+		self._folder_set = not folder is None
+
+		if ui_environment['platform'] == 'maemo':
+			nb_folder = '~/MyDocs/Notebooks/' # 'MyDocs' is the "Device" folder on maemo
+		else:
+			nb_folder = '~/Notebooks/'
+
+		if not self._name_set and not self._folder_set:
 			name = 'Notes'
-			if ui_environment['platform'] == 'maemo':
-				folder = '~/MyDocs/Notes' # 'MyDocs' is the "Device" folder on maemo
-			else:
-				folder = '~/Notes'
+			folder = nb_folder + name
+		# else set below by _changed methods
 
 		self.add_form((
 			('name', 'string', _('Name')), # T: input field in 'Add Notebook' dialog
@@ -391,12 +398,58 @@ class AddNotebookDialog(Dialog):
 		), {
 			'name': name,
 			'folder': folder,
-		} )
+		})
 
 		self.add_help_text('''\
 To create a new notebook you need to select an empty folder.
 Of course you can also select an existing zim notebook folder.
 ''') # T: help text in the 'Add Notebook' dialog
+
+		# Hook entries to copy name when appropriate
+		self._block_update = False
+		self.on_name_changed(None, interactive=False)
+		self.on_folder_changed(None, interactive=False)
+		self.form.widgets['name'].connect('changed', self.on_name_changed)
+		self.form.widgets['folder'].connect('changed', self.on_folder_changed)
+
+	def on_name_changed(self, o, interactive=True):
+		# When name is changed, update folder accordingly
+		# unless the folder was set explicitly already
+		if self._block_update: return
+		self._name_set = self._name_set or interactive
+		if self._folder_set: return
+
+		name = self.form.widgets['name'].get_text()
+		folder = self.form.widgets['folder'].get_text()
+		dir = os.path.dirname(folder).strip('/\\')
+
+		self._block_update = True
+		self.form.widgets['folder'].set_text(os.path.join(dir, name))
+		self._block_update = False
+
+	def on_folder_changed(self, o, interactive=True):
+		# When folder is changed, update name accordingly
+		if self._block_update: return
+		self._folder_set = self._folder_set or interactive
+
+		# Check notebook info (even when name was set already)
+		if interactive or not self._name_set:
+			folder = self.form['folder']
+			if folder and folder.exists():
+				info = get_notebook_info(folder)
+				if info: # None when no config found
+					self._block_update = True
+					self.form['name'] = info.name
+					self._block_update = False
+					return
+
+		# Else use basename unless the name was set explicitly already
+		if self._name_set: return
+
+		folder = self.form.widgets['folder'].get_text().strip('/\\')
+		self._block_update = True
+		self.form['name'] = os.path.basename(folder)
+		self._block_update = False
 
 	def do_response_ok(self):
 		name = self.form['name']

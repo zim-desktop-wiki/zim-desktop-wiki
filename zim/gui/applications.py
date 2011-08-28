@@ -30,7 +30,7 @@ import gtk
 import gobject
 
 import zim.fs
-from zim.fs import File, Dir, TmpFile
+from zim.fs import File, Dir, TmpFile, cleanup_filename
 from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
 	config_file, data_dirs, ConfigDict, ConfigFile, json
 from zim.parsing import split_quoted_strings
@@ -71,7 +71,7 @@ def _application_dirs():
 
 
 def _create_application(dir, Name, Exec, klass=None, **param):
-	n = Name.lower() + '-usercreated'
+	n = cleanup_filename(Name.lower()) + '-usercreated'
 	key = n
 	file = dir.file(key + '.desktop')
 	i = 0

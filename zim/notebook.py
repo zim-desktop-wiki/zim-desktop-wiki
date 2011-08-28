@@ -59,7 +59,7 @@ For file system filenames we can not use:
 '\', '/', ':', '*', '?', '"', '<', '>', '|'
 (checked both win32 & posix)
 
-Do not allow '\n' for obvious reasons
+Do not allow '\n' and '\t' for obvious reasons
 
 Allowing '%' will cause problems with sql wildcards sooner
 or later - also for url decoding ambiguity it is better to
@@ -456,11 +456,7 @@ def resolve_notebook(string):
 	return notebook, path
 
 
-def get_notebook(path):
-	'''Convenience method that constructs a notebook from either a
-	uri, or a File or a Dir object.
-	'''
-	# TODO this is where the hook goes to automount etc.
+def _get_path_object(path):
 	if isinstance(path, basestring):
 		file = File(path)
 		if file.exists(): # exists and is a file
@@ -469,6 +465,30 @@ def get_notebook(path):
 			path = Dir(path)
 	else:
 		assert isinstance(path, (File, Dir))
+	return path
+
+def get_notebook_info(path):
+	'''Look up the notebook info for either a uri,
+	or a File or a Dir object.
+	@param path: path as string, L{File} or L{Dir} object
+	@returns: L{NotebookInfo} object, or C{None} if no notebook config
+	was found
+	'''
+	path = _get_path_object(path)
+	info = NotebookInfo(path.uri)
+	if info.update():
+		return info
+	else:
+		return None
+
+def get_notebook(path):
+	'''Convenience method that constructs a notebook from either a
+	uri, or a File or a Dir object.
+	@param path: path as string, L{File} or L{Dir} object
+	@returns: a L{Notebook} object, or C{None} if the path does not
+	exist
+	'''
+	path = _get_path_object(path)
 
 	if path.exists():
 		if isinstance(path, File):
@@ -1074,10 +1094,10 @@ class Notebook(gobject.GObject):
 			# Note that leading "_" is stripped, due to strip() below
 
 		if purge:
-			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\n"):
+			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n"):
 				name = name.replace(char, '')
 		else:
-			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\n"):
+			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n"):
 				if char in name:
 					raise PageNameError, orig
 
