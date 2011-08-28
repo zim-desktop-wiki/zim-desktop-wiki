@@ -9,7 +9,7 @@ from zim.fs import File, TmpFile
 from zim.plugins import PluginClass
 from zim.config import data_file
 from zim.templates import GenericTemplate
-from zim.applications import Application
+from zim.applications import Application, ApplicationError
 from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
 
 # TODO put these commands in preferences
@@ -91,13 +91,14 @@ class InsertEquationDialog(ImageGeneratorDialog):
 class EquationGenerator(ImageGeneratorClass):
 
 	type = 'equation'
-	basename = 'equation.tex'
+	scriptname = 'equation.tex'
+	imagename = 'equation.png'
 
 	def __init__(self):
 		file = data_file('templates/_Equation.tex')
 		assert file, 'BUG: could not find templates/_Equation.tex'
 		self.template = GenericTemplate(file.readlines(), name=file)
-		self.texfile = TmpFile('latex-equation.tex')
+		self.texfile = TmpFile(self.scriptname)
 
 	def generate_image(self, text):
 		if isinstance(text, basestring):
@@ -119,7 +120,7 @@ class EquationGenerator(ImageGeneratorClass):
 		try:
 			latex = Application(latexcmd)
 			latex.run((texfile.basename,), cwd=texfile.dir)
-		except:
+		except ApplicationError:
 			# log should have details of failure
 			return None, logfile
 
@@ -137,5 +138,3 @@ class EquationGenerator(ImageGeneratorClass):
 		path = self.texfile.path
 		for path in glob.glob(path[:-4]+'.*'):
 			File(path).remove()
-
-

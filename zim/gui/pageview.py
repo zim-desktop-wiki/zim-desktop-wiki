@@ -898,7 +898,7 @@ class TextBuffer(gtk.TextBuffer):
 			end = iter.copy()
 			if not end.ends_tag(tag):
 				end.forward_to_tag_toggle(tag)
-			attrib['name'] = start.get_text(end)[1:].strip()
+			attrib['name'] = start.get_text(end).lstrip('@').strip()
 			return attrib
 		else:
 			return None
@@ -1277,6 +1277,7 @@ class TextBuffer(gtk.TextBuffer):
 		# Also remove links until we support links nested in tags
 		self.smart_remove_tags(_is_style_tag, start, end)
 		self.smart_remove_tags(_is_link_tag, start, end)
+		self.smart_remove_tags(_is_tag_tag, start, end)
 		self.update_editmode()
 
 	def smart_remove_tags(self, func, start, end):
@@ -1801,10 +1802,10 @@ class TextBuffer(gtk.TextBuffer):
 						continue_attrib = {}
 					elif t == 'link':
 						attrib = self.get_link_data(iter)
-						assert attrib['href'], 'Links should have a href'
+						assert attrib['href'], 'BUG: Links should have a href'
 					elif t == 'tag':
 						attrib = self.get_tag_data(iter)
-						assert attrib['name'], 'Tags should have a name'
+						assert attrib['name'], 'BUG: Tags should have a name'
 					builder.start(t, attrib)
 					open_tags.append((tag, t))
 					if t == 'li':
@@ -2905,7 +2906,8 @@ class TextView(gtk.TextView):
 	def do_button_release_event(self, event):
 		# Handle clicking a link or checkbox
 		cont = gtk.TextView.do_button_release_event(self, event)
-		if not self.get_buffer().get_has_selection():
+		if self.get_editable() \
+		and not self.get_buffer().get_has_selection():
 			if event.button == 1:
 				if self.preferences['cycle_checkbox_type']:
 					# Cycle through all states - more useful for
@@ -4778,7 +4780,7 @@ class PageView(gtk.VBox):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
 		InsertDateDialog(self.ui, self.view.get_buffer()).run()
 
-	def insert_image(self, file=None, type=None, interactive=True):
+	def insert_image(self, file=None, type=None, interactive=True, force=False):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
 
 		@param file: image file to insert (shown in the dialog when
@@ -4786,6 +4788,8 @@ class PageView(gtk.VBox):
 		@param type: image type, used by image generator plugins
 		@param interactive: when C{True} show the dialog, when C{False}
 		image is inserted directly
+		@param force: when C{True} the image will be inserted
+		even if it doesn't exist (or it isn't an image)
 
 		@returns: C{True} if succesfull
 		'''
@@ -4795,7 +4799,8 @@ class PageView(gtk.VBox):
 			# Check if file is supported, otherwise unsupported file
 			# results in broken image icon
 			assert isinstance(file, File)
-			if not (file.exists() and gtk.gdk.pixbuf_get_file_info(file.path)):
+			if not force \
+			and not (file.exists() and gtk.gdk.pixbuf_get_file_info(file.path)):
 				return False
 
 			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri

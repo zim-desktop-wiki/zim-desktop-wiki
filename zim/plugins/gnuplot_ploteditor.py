@@ -18,7 +18,7 @@ from zim.fs import File, TmpFile
 from zim.plugins import PluginClass
 from zim.config import data_file
 from zim.templates import GenericTemplate
-from zim.applications import Application
+from zim.applications import Application, ApplicationError
 from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
 
 # TODO put these commands in preferences
@@ -67,11 +67,11 @@ This plugin provides a plot editor for zim based on Gnuplot.
            self.register_image_generator_plugin('gnuplot')
 
    def insert_gnuplot(self):
-       dialog = InsertPlotDialog.unique(self, self.ui)
+       dialog = InsertGnuplotDialog.unique(self, self.ui)
        dialog.show_all()
 
    def edit_object(self, buffer, iter, image):
-       dialog = InsertPlotDialog(self.ui, image=image)
+       dialog = InsertGnuplotDialog(self.ui, image=image)
        dialog.show_all()
 
    def do_populate_popup(self, menu, buffer, iter, image):
@@ -84,39 +84,40 @@ This plugin provides a plot editor for zim based on Gnuplot.
 
 
 
-class InsertPlotDialog(ImageGeneratorDialog):
+class InsertGnuplotDialog(ImageGeneratorDialog):
 
    def __init__(self, ui, image=None):
-       generator = PlotGenerator()
+       generator = GnuplotGenerator()
        ImageGeneratorDialog.__init__(self, ui, _('Gnuplot'), # T: dialog title
            generator, image, help=':Plugins:Gnuplot Editor' )
 
 
-class PlotGenerator(ImageGeneratorClass):
+class GnuplotGenerator(ImageGeneratorClass):
+
+   uses_log_file = False
 
    type = 'gnuplot'
-   basename = 'gnuplot.gnu'
+   scriptname = 'gnuplot.gnu'
+   imagename = 'gnuplot.png'
 
    def __init__(self):
        file = data_file('templates/_gnuplot.gnu')
        assert file, 'BUG: could not find templates/_gnuplot.gnu'
        self.template = GenericTemplate(file.readlines(), name=file)
-       self.plotscriptfile = TmpFile('gnuplot.gnu')
+       self.plotscriptfile = TmpFile(self.scriptname)
 
    def generate_image(self, text):
        if isinstance(text, basestring):
            text = text.splitlines(True)
 
        plotscriptfile = self.plotscriptfile
-
        pngfile = File(plotscriptfile.path[:-4] + '.png')
-       logfile = File(plotscriptfile.path[:-4] + '.log') # len('.gnu') == 4
 
        plot_script = "".join(text)
 
-       template_vars = {            # they go in /usr/share/zim/templates/_gnuplot.gnu
-           'gnuplot_script':        plot_script,
-           'png_fname':            pngfile,
+       template_vars = { # they go in /usr/share/zim/templates/_gnuplot.gnu
+           'gnuplot_script': plot_script,
+           'png_fname': pngfile.path,
        }
 
        # Write to tmp file using the template for the header / footer
@@ -131,13 +132,12 @@ class PlotGenerator(ImageGeneratorClass):
            gnu_gp.run(args=( plotscriptfile.basename, ), cwd=plotscriptfile.dir)
                            # you call it as % gnuplot output.plt
 
-       except:
-           # log should have details of failure
-           return None, logfile
-
-       return pngfile, logfile
+       except ApplicationError:
+           return None, None # Sorry - no log
+       else:
+	       return pngfile, None
 
    def cleanup(self):
        path = self.plotscriptfile.path
-       for path in glob.glob(path[:-2]+'.*'):
+       for path in glob.glob(path[:-4]+'.*'):
            File(path).remove()

@@ -19,7 +19,7 @@ import logging
 from zim.fs import File, Dir
 from zim.notebook import get_notebook_list, init_notebook, NotebookInfo
 from zim.config import data_file
-from zim.gui.widgets import ui_environment, Dialog, IconButton, _encode_xml
+from zim.gui.widgets import ui_environment, Dialog, IconButton, encode_markup_text
 
 logger = logging.getLogger('zim.gui.notebookdialog')
 
@@ -109,7 +109,7 @@ class NotebookTreeModel(gtk.ListStore):
 	def _append(self, info):
 		path = File(info.uri).path
 		text = '<b>%s</b>\n<span foreground="#5a5a5a" size="small">%s</span>' % \
-				(_encode_xml(info.name), _encode_xml(path))
+				(encode_markup_text(info.name), encode_markup_text(path))
 				# T: Path label in 'open notebook' dialog
 
 		if info.icon and File(info.icon).exists():

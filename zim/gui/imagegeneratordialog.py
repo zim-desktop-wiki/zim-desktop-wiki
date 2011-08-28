@@ -26,8 +26,11 @@ class ImageGeneratorClass(object):
 	L{ImageGeneratorDialog}
 	'''
 
+	uses_log_file = True #: set to C{False} for subclasses that do not generate a log
+
 	type = None #: generator type, e.g. "equation"
-	basename = None #: basename of the source files, e.g. "equation.tex"
+	scriptname = None #: basename of the source files, e.g. "equation.tex"
+	imagename = None #: basename of the resulting image files, e.g. "equation.png"
 
 	def generate_image(self, text):
 		'''Generate an image for a user input
@@ -95,7 +98,6 @@ class ImageGeneratorDialog(Dialog):
 		self.generator = generator
 		self.imagefile = None
 		self.logfile = None
-		self._existing_file = None
 
 		self.vpane = gtk.VPaned()
 		self.vpane.set_position(150)
@@ -130,15 +132,17 @@ class ImageGeneratorDialog(Dialog):
 		self.logbutton.set_sensitive(False)
 		self.logbutton.connect_object(
 			'clicked', self.__class__.show_log, self)
-		hbox.pack_start(self.logbutton, False)
+		if generator.uses_log_file:
+			hbox.pack_start(self.logbutton, False)
+		# else keep hidden
 
+		self._existing_file = None
 		if image:
 			file = image['_src_file'] # FIXME ?
-			textfile = self._stitch_fileextension(file, self.generator.basename)
-			if file.exists() and textfile.exists():
-				self._existing_file = textfile
-				self.imageview.set_file(file)
-				self.set_text(textfile.read())
+			textfile = self._stitch_fileextension(file, self.generator.scriptname)
+			self._existing_file = textfile
+			self.imageview.set_file(file)
+			self.set_text(textfile.read())
 
 		self.textview.grab_focus()
 
@@ -211,18 +215,21 @@ class ImageGeneratorDialog(Dialog):
 		else:
 			page = self.ui.page
 			dir = self.ui.notebook.get_attachments_dir(page)
-			textfile = dir.new_file(self.generator.basename)
-
-		imgfile = self._stitch_fileextension(textfile, self.imagefile.basename)
+			textfile = dir.new_file(self.generator.scriptname)
 
 		textfile.write( self.get_text() )
-		self.imagefile.rename(imgfile)
+
+		imgfile = self._stitch_fileextension(textfile, self.generator.imagename)
+		if self.imagefile and self.imagefile.exists():
+			self.imagefile.rename(imgfile)
+		elif imgfile.exists():
+			imgfile.remove()
 
 		if self._existing_file:
 			self.ui.reload_page()
 		else:
 			pageview = self.ui.mainwindow.pageview
-			pageview.insert_image(imgfile, type=self.generator.type, interactive=False)
+			pageview.insert_image(imgfile, type=self.generator.type, interactive=False, force=True)
 
 		if self.logfile and self.logfile.exists():
 			self.logfile.remove()

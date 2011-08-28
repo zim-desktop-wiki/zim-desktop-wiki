@@ -244,6 +244,32 @@ class NoSuchFileError(Error):
 			# T: Error message, %s will be the file path
 
 
+class NoSuchApplicationError(Error):
+	'''Exception for when we can not find the helper application to open
+	a certain file.
+	'''
+
+	# FIXME - define these in a global place - at least also duplicated in preferences dialog
+	labels = {
+		'file_browser': _('File browser'), # T: Application type
+		'web_browser': _('Web browser'),
+		'email_client': _('Email client'),
+		'text_editor': _('Text Editor'),
+	}
+
+	description = _('This means that either no application is installed\nfor this type, or the preference is not set.')
+		# T: Error description for "no such application"
+
+	def __init__(self, app_type):
+		'''Constructor
+		@param app_type: the application type
+		@param uri: the URI that we wanted to open
+		'''
+		app_label = self.labels.get(app_type, app_type)
+		self.msg = _('Could not find application: %s') % app_label
+			# T: Error message for missing applicaiton, %s is replaced by the application type (e.g. "Web Browser")
+
+
 class RLock(object):
 	'''Re-entrant lock that keeps a stack count
 
@@ -495,11 +521,10 @@ class GtkInterface(NotebookInterface):
 		# Deal with commandline arguments for notebook and page
 		if notebook:
 			self.open_notebook(notebook)
-			if self.notebook is None:
-				# Exit the program before reaching main()
-				raise Exception, 'Could not open notebook: %s' % notebook
+			# If it fails here an error dialog is shown and main()
+			# will prompt the notebook list
 
-			if page:
+			if self.notebook and page:
 				if isinstance(page, basestring):
 					page = self.notebook.resolve_path(page)
 					if not page is None:
@@ -1718,10 +1743,14 @@ class GtkInterface(NotebookInterface):
 
 		app = self.preferences['GtkInterface'][app_type]
 		entry = ApplicationManager().get_application(app)
-		try:
-			entry.spawn((uri,), callback=check_error)
-		except NotImplementedError:
-			entry.spawn((uri,)) # E.g. webbrowser module
+
+		if entry:
+			try:
+				entry.spawn((uri,), callback=check_error)
+			except NotImplementedError:
+				entry.spawn((uri,)) # E.g. webbrowser module
+		else:
+			raise NoSuchApplicationError(app_type)
 
 	def open_attachments_folder(self):
 		'''Menu action to open the attachment folder for the current page'''
@@ -1862,7 +1891,10 @@ class GtkInterface(NotebookInterface):
 		else:          app = 'file_browser'
 
 		entry = ApplicationManager().get_application(self.preferences['GtkInterface'][app])
-		entry.spawn((file,), callback=check_close_dialog)
+		if entry:
+			entry.spawn((file,), callback=check_close_dialog)
+		else:
+			raise NoSuchApplicationError(app)
 		dialog.run()
 
 	def show_server_gui(self):

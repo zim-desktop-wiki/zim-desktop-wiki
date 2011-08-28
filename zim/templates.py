@@ -886,7 +886,7 @@ class ParseTreeProxy(object):
 	def _split_head(self, tree):
 		if not hasattr(self, '_servered_head'):
 			elements = tree.getroot().getchildren()
-			if elements[0].tag == 'h':
+			if elements and elements[0].tag == 'h':
 				root = Element('zim-tree')
 				for element in elements[1:]:
 					root.append(element)

@@ -95,8 +95,15 @@ else:
 	gtkwindowclass = gtk.Window
 
 
-def _encode_xml(text):
-	return text.replace('>', '&gt;').replace('<', '&lt;')
+def encode_markup_text(text):
+	'''Encode text such that it can be used in a piece of markup text
+	without causing errors. Needed for all places where e.g. a label
+	depends on user input and is formatted with markup to show
+	it as bold text.
+	@para text: label text as string
+	@returns: encoded text
+	'''
+	return text.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;')
 
 
 def gtk_window_set_default_icon():
@@ -2504,7 +2511,11 @@ class QuestionDialog(gtk.MessageDialog):
 		'''
 		logger.debug('Running QuestionDialog')
 		logger.debug('Q: %s', self.question)
-		gtk.MessageDialog.run(self)
+		if TEST_MODE:
+			assert TEST_MODE_RUN_CB, 'Dialog run without test callback'
+			TEST_MODE_RUN_CB(self)
+		else:
+			gtk.MessageDialog.run(self)
 		self.destroy()
 		answer = self.response == gtk.RESPONSE_YES
 		logger.debug('A: %s', answer)
@@ -2782,7 +2793,7 @@ class ProgressBarDialog(gtk.Dialog):
 		self.set_default_size(300, 0)
 
 		label = gtk.Label()
-		label.set_markup('<b>'+_encode_xml(text)+'</b>')
+		label.set_markup('<b>'+encode_markup_text(text)+'</b>')
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
 
@@ -2849,7 +2860,7 @@ class ProgressBarDialog(gtk.Dialog):
 			self.progressbar.pulse()
 
 		if msg:
-			self.msg_label.set_markup('<i>'+_encode_xml(msg)+'</i>')
+			self.msg_label.set_markup('<i>'+encode_markup_text(msg)+'</i>')
 
 		while gtk.events_pending():
 			gtk.main_iteration(block=False)

@@ -1,6 +1,13 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
 
 import gtk
 import gobject
+
+from zim.gui.widgets import encode_markup_text
+
 
 # Constants
 DIR_FORWARD = 1
@@ -418,7 +425,7 @@ class PathBar(ScrolledHBox):
 			button.set_active(active)
 			label = button.get_child()
 			if active:
-				label.set_markup('<b>'+label.get_text()+'</b>')
+				label.set_markup('<b>'+encode_markup_text(label.get_text())+'</b>')
 			else:
 				label.set_text(label.get_text())
 					# get_text() gives string without markup
