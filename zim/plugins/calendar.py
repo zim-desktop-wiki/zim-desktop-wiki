@@ -120,10 +120,16 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Calendar',
 	}
 
+	global DAY, WEEK, MONTH, YEAR # Hack
+	DAY = _('Day') # T: option value
+	WEEK = _('Week') # T: option value
+	MONTH = _('Month') # T: option value
+	YEAR = _('Year') # T: option value
+
 	plugin_preferences = (
 		# key, type, label, default
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
-		('granularity', 'choice', _('Use a page for each'), 'Day', ['Day', 'Week', 'Month', 'Year']),
+		('granularity', 'choice', _('Use a page for each'), DAY, [DAY, WEEK, MONTH, YEAR]), # T: preferences option, values will be "Day", "Month", ...
 		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
 	)
 
@@ -205,13 +211,13 @@ This is a core plugin shipping with zim.
 
 	def path_from_date(self, date):
 		'''Returns the path for a calendar page for a specific date'''
-		if self.preferences['granularity'] == 'Day':
+		if self.preferences['granularity'] == DAY:
 			path = date.strftime('%Y:%m:%d')
-		elif self.preferences['granularity'] == 'Week':
-			path = date.strftime('%Y:Week %U')
-		elif self.preferences['granularity'] == 'Month':
+		elif self.preferences['granularity'] == WEEK:
+			path = date.strftime('%Y:Week %U') # FIXME - should this be translated ??
+		elif self.preferences['granularity'] == MONTH:
 			path = date.strftime('%Y:%m')
-		elif self.preferences['granularity'] == 'Year':
+		elif self.preferences['granularity'] == YEAR:
 			path = date.strftime('%Y')
 		return Path( self.preferences['namespace'] + ':' + path )
 

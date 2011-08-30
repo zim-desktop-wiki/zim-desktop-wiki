@@ -35,9 +35,11 @@ class ApplicationError(zim.errors.Error):
 		@param stderr: the error output of the command
 		'''
 		self.msg = _('Failed to run application: %s') % cmd
+			# T: Error message when external application failed, %s is the command
 		self.description = \
-			_('%s\nreturned non-zero exit status %i') \
-			% (cmd + ' "' + '" "'.join(args) + '"', retcode)
+			_('%(cmd)s\nreturned non-zero exit status %(code)i') \
+			% {'cmd': cmd + ' "' + '" "'.join(args) + '"', 'code': retcode}
+			# T: Error message when external application failed, %(cmd)s is the command, %(code)i the exit code
 
 		if stderr:
 			self.description += '\n\n' + stderr
