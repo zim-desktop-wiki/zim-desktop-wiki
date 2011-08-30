@@ -1626,7 +1626,10 @@ class GtkInterface(NotebookInterface):
 		@param query: the search query to show
 		'''
 		from zim.gui.searchdialog import SearchDialog
-		SearchDialog(self, query).show_all()
+		if query is None:
+			query = self.mainwindow.pageview.get_selection()
+		dialog = SearchDialog(self, query)
+		dialog.show_all()
 
 	def show_search_backlinks(self):
 		'''Menu action to show the L{SearchDialog} with a query for
