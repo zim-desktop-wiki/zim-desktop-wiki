@@ -455,8 +455,8 @@ class TextBuffer(gtk.TextBuffer):
 		'unchecked-checkbox': {},
 		'checked-checkbox': {},
 		'xchecked-checkbox': {},
-		'find-highlight': {'background': 'orange'},
-		'find-match': {'background': '#f2d957'}
+		'find-highlight': {'background': 'magenta', 'foreground': 'white'},
+		'find-match': {'background': '#38d878', 'foreground': 'white'}
 	}
 	#: tags that can be mapped to named TextTags
 	_static_style_tags = (
@@ -1475,10 +1475,10 @@ class TextBuffer(gtk.TextBuffer):
 		bounds = self.get_selection_bounds()
 		if bounds:
 			start, end = bounds
-			# FIXME backward_char can fail !
-			end.backward_char() # exclude last line if selection ends_line
-			if not end.ends_line():
-				end.forward_char()
+			if end.starts_line():
+				# exclude last line if selection ends at newline
+				# because line is not visually part of selection
+				end.backward_char()
 			for line in range(start.get_line(), end.get_line() + 1):
 				func(line, *args, **kwarg)
 			return True
@@ -2517,16 +2517,16 @@ class TextFinder(object):
 		@param textbuffer: a L{TextBuffer} object
 		'''
 		self.buffer = textbuffer
+		self._signals = ()
 		self.regex = None
 		self.string = None
 		self.flags = 0
-
 		self.highlight = False
+
 		self.highlight_tag = self.buffer.create_tag(
 			None, **self.buffer.tag_styles['find-highlight'] )
 		self.match_tag = self.buffer.create_tag(
 			None, **self.buffer.tag_styles['find-match'] )
-		self.match_bounds = (None, None)
 
 	def get_state(self):
 		'''Get the query and any options. Used to copy the current state
@@ -2598,8 +2598,7 @@ class TextFinder(object):
 		# Common functionality between find() and find_next()
 		# Looking for a match starting at iter
 		if self.regex is None:
-			self.buffer.unset_selection()
-			self._apply_match(None, None)
+			self.unset_match()
 			return False
 
 		line = iter.get_line()
@@ -2608,16 +2607,14 @@ class TextFinder(object):
 			if start.compare(iter) == -1:
 				continue
 			else:
-				self.buffer.select_range(start, end)
-				self._apply_match(start, end)
+				self.set_match(start, end)
 				return True
+
 		for start, end, _ in self._check_range(0, line, 1):
-			self.buffer.select_range(start, end)
-			self._apply_match(start, end)
+			self.set_match(start, end)
 			return True
 
-		self.buffer.unset_selection()
-		self._apply_match(None, None)
+		self.unset_match()
 		return False
 
 	def find_previous(self):
@@ -2626,8 +2623,7 @@ class TextFinder(object):
 		@returns: C{True} if a match was found
 		'''
 		if self.regex is None:
-			self.buffer.unset_selection()
-			self._apply_match(None, None)
+			self.unset_match()
 			return False
 
 		iter = self.buffer.get_insert_iter()
@@ -2637,17 +2633,39 @@ class TextFinder(object):
 			if start.compare(iter) != -1:
 				continue
 			else:
-				self.buffer.select_range(start, end)
-				self._apply_match(start, end)
+				self.set_match(start, end)
 				return True
 		for start, end, _ in self._check_range(lastline, line, -1):
-			self.buffer.select_range(start, end)
-			self._apply_match(start, end)
+			self.set_match(start, end)
 			return True
 
-		self.buffer.unset_selection()
-		self._apply_match(None, None)
+		self.unset_match()
 		return False
+
+	def set_match(self, start, end):
+		self._remove_tag()
+
+		self.buffer.apply_tag(self.match_tag, start, end)
+		self.buffer.select_range(start, end)
+
+		self._signals = tuple(
+			self.buffer.connect(s, self._remove_tag)
+				for s in ('mark-set', 'changed') )
+
+	def unset_match(self):
+		self._remove_tag()
+		self.buffer.unset_selection()
+
+	def _remove_tag(self, *a):
+		if len(a) > 2 and isinstance(a[2], gtk.TextMark) \
+		and a[2] is not self.buffer.get_insert():
+			# mark-set signal, but not for cursor
+			return
+
+		for id in self._signals:
+			self.buffer.disconnect(id)
+		self._signals = ()
+		self.buffer.remove_tag(self.match_tag, *self.buffer.get_bounds())
 
 	def select_match(self):
 		# Select last match
@@ -2655,15 +2673,7 @@ class TextFinder(object):
 		if not None in bounds:
 			self.buffer.select_range(*bounds)
 
-	def _apply_match(self, start, end):
-		# Sets and displays new match bounds. (None, None) means "no match".
-		self.buffer.remove_tag(self.match_tag, *self.buffer.get_bounds())
-
-		self.match_bounds = (start, end)
-		if start and end:
-			self.buffer.apply_tag(self.match_tag, start, end)
-
-	def set_highlight(self, highlight, match = True):
+	def set_highlight(self, highlight):
 		'''Toggle highlighting of matches in the L{TextBuffer}
 
 		@param highlight: C{True} to enable highlighting, C{False} to
@@ -2671,10 +2681,6 @@ class TextFinder(object):
 		'''
 		self.highlight = highlight
 		self._update_highlight()
-		if match:
-			self._apply_match(*self.match_bounds)
-		else:
-			self._apply_match(None, None)
 		# TODO we could connect to buffer signals to update highlighting
 		# when the buffer is modified.
 
@@ -4389,7 +4395,7 @@ class PageView(gtk.VBox):
 		else:
 			iter = buffer.get_iter_at_offset(pos)
 
-		buffer.place_cursor(buffer.get_iter_at_offset(pos))
+		buffer.place_cursor(iter)
 		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
 
 	def get_cursor_pos(self):
@@ -5685,7 +5691,7 @@ class FindBar(FindWidget, gtk.HBox):
 			self.pack_start(self.highlight_checkbox, False)
 
 		close_button = IconButton(gtk.STOCK_CLOSE, relief=False)
-		close_button.connect_object('clicked', self.__class__.do_close_clicked, self)
+		close_button.connect_object('clicked', self.__class__.hide, self)
 		self.pack_end(close_button, False)
 
 	def grab_focus(self):
@@ -5700,10 +5706,7 @@ class FindBar(FindWidget, gtk.HBox):
 		gtk.HBox.hide(self)
 		self.set_no_show_all(True)
 		buffer = self.textview.get_buffer()
-		buffer.finder.set_highlight(False, False)
-
-	def do_close_clicked(self):
-		self.hide()
+		buffer.finder.set_highlight(False)
 		self.textview.grab_focus()
 
 	def on_find_entry_activate(self):
@@ -5713,7 +5716,6 @@ class FindBar(FindWidget, gtk.HBox):
 	def do_key_press_event(self, event):
 		if event.keyval == KEYVAL_ESC:
 			self.hide()
-			self.textview.grab_focus()
 			return True
 		else:
 			return gtk.HBox.do_key_press_event(self, event)
@@ -5783,7 +5785,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 	def do_response(self, id):
 		Dialog.do_response(self, id)
 		buffer = self.textview.get_buffer()
-		buffer.finder.set_highlight(False, False)
+		buffer.finder.set_highlight(False)
 
 
 class WordCountDialog(Dialog):
