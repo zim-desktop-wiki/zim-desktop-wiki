@@ -1518,6 +1518,12 @@ class GtkInterface(NotebookInterface):
 		notebook.move_page but wrapping with all the proper exception
 		dialogs. Returns boolean for success.
 		'''
+		if path == self.page and self.page.modified \
+		and not self.save_page(self.page):
+			raise AssertionError, 'Could not save page'
+			# assert statement could be optimized away
+			# FIXME - is this raise needed ?
+
 		return self._wrap_move_page(
 			lambda update_links, callback: self.notebook.move_page(
 				path, newpath, update_links, callback),
@@ -1536,6 +1542,12 @@ class GtkInterface(NotebookInterface):
 		notebook.rename_page but wrapping with all the proper exception
 		dialogs. Returns boolean for success.
 		'''
+		if path == self.page and self.page.modified \
+		and not self.save_page(self.page):
+			raise AssertionError, 'Could not save page'
+			# assert statement could be optimized away
+			# FIXME - is this raise needed ?
+
 		return self._wrap_move_page(
 			lambda update_links, callback: self.notebook.rename_page(
 				path, newbasename, update_heading, update_links, callback),

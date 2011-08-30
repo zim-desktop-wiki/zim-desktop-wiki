@@ -1112,21 +1112,17 @@ class Index(gobject.GObject):
 		if path.isroot:
 			return
 
-		parent = path.parent
-		if not isinstance(path, IndexPath):
-			path = self.lookup_data(path)
-			if not path._row:
-				return # apparently it disappeared already
-		else:
-			path = self.lookup_path(path)
-			if not path:
-				self._cleanup(parent) # recurs
-				return # path does not exist in table
+		origpath = path
+		path = self.lookup_path(path)
+		if not path or not path.hasdata:
+			# path does not exist in table - maybe it disappeared already
+			self._cleanup(origpath.parent) # recurs
+			return
 
 		if not (path.hascontent or path.haschildren) \
 		and self.n_list_links(path, direction=LINK_DIR_BACKWARD) == 0:
 			self._delete(path)
-			self._cleanup(parent) # recurs
+			self._cleanup(path.parent) # recurs
 
 	def cleanup_all(self):
 		'''	Check for any L{Path}s that can be removed from the index,

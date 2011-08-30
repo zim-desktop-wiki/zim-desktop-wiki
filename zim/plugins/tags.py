@@ -13,6 +13,7 @@ import logging
 from zim.plugins import PluginClass
 from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
 	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, N_CHILD_COL
+from zim.notebook import Path
 from zim.index import IndexPath, IndexTag
 from zim.gui.widgets import LEFT_PANE
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
@@ -252,14 +253,15 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 				return (treepath,)
 			else:
 				return ()
+		else:
+			assert isinstance(path, Path)
 
 		if path.isroot:
 			raise ValueError
 
-		if not isinstance(path, IndexPath):
-			path = self.index.lookup_path(path)
-			if path is None:
-				return ()
+		path = self.index.lookup_path(path)
+		if path is None or not path.hasdata:
+			return ()
 
 		# See if it is in cache already
 		if path in self._reverse_cache:
@@ -455,13 +457,13 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 		@param path: Usually an IndexPath instance
 		@return: A list of tuples of ints (one page can be represented many times)
 		'''
+		assert isinstance(path, Path)
 		if path.isroot:
 			raise ValueError # There can be no tree node for the tree root
 
-		if not isinstance(path, IndexPath):
-			path = self.index.lookup_path(path)
-			if path is None:
-				return ()
+		path = self.index.lookup_path(path)
+		if path is None or not path.hasdata:
+			return ()
 
 		# See if it is in cache already
 		if path in self._reverse_cache:
