@@ -556,6 +556,13 @@ class TestGtkInterface(tests.TestCase):
 			ui.load_plugin(name)
 		self.assertGreater(len(ui.plugins), 3)
 
+		# check registering an URL handler
+		func = tests.Counter(True)
+		ui.register_url_handler('foo', func)
+		ui.open_url('foo://bar')
+		self.assertTrue(func.count == 1)
+		ui.unregister_url_handler(func)
+
 	def testMainWindow(self):
 		'''Test main window'''
 		path = Path('Test:foo:bar')

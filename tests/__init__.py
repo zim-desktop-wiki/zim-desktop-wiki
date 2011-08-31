@@ -391,6 +391,22 @@ def new_files_notebook(dir):
 	return notebook
 
 
+class Counter(object):
+	'''Object that is callable as a function and keeps count how often
+	it was called.
+	'''
+
+	def __init__(self, value=None):
+		'''Constructor
+		@param value: the value to return when called as a function
+		'''
+		self.value = value
+		self.count = 0
+
+	def __call__(self, *arg, **kwarg):
+		self.count += 1
+		return self.value
+
 
 class MockObject(object):
 	'''Base class for mock objects. Any attribute is automatically

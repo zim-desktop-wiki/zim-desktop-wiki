@@ -26,7 +26,7 @@ from zim.notebook import Path, Page
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord
-from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re
+from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re, is_url_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
@@ -405,6 +405,7 @@ class GtkInterface(NotebookInterface):
 		self.usedaemon = usedaemon
 		self.hideonclose = False
 		self.windows = set()
+		self.url_handlers = {}
 
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
@@ -1022,6 +1023,29 @@ class GtkInterface(NotebookInterface):
 	def do_new_window(self, window):
 		self.windows.add(window)
 		window.connect('destroy', lambda w: self.windows.discard(w))
+
+	def register_url_handler(self, scheme, function):
+		'''Register a handler for a particular URL scheme
+		Intended for plugins that want to add a handler for a specific
+		URL scheme, or introduce a new URL scheme.
+
+		Typically this should B{not} be used for integrating external
+		applications that could be added as a preference.
+
+		@param scheme: the url scheme as string
+		@param function: a function to call for opening URLs for this
+		scheme. The function should return boolean for succes.
+		'''
+		self.url_handlers[scheme] = function
+
+	def unregister_url_handler(self, function):
+		'''Un-register a handler for a particular URL scheme.
+		@param function: a function registered with
+		L{register_url_handler()}
+		'''
+		keys = [k for k in self.url_handlers if self.url_handlers[k] == function]
+		for k in keys:
+			self.url_handlers.pop(k)
 
 	def get_path_context(self):
 		'''Get the current page path. Used to get the default page to
@@ -1726,6 +1750,14 @@ class GtkInterface(NotebookInterface):
 		settings for 'file_browser', 'email_client' or 'web_browser'.
 		'''
 		assert isinstance(url, basestring)
+
+		# Try custom handlers
+		if is_url_re.match(url) and is_url_re[1] in self.url_handlers:
+			handled = self.url_handlers[is_url_re[1]](url)
+			if handled:
+				return
+
+		# Default handlers
 		if url.startswith('file:/'):
 			self.open_file(File(url))
 		elif url.startswith('mailto:'):

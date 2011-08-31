@@ -1984,7 +1984,7 @@ class TextBuffer(gtk.TextBuffer):
 	def select_link(self):
 		'''Selects the current link, if any
 
-		@returns: C{True} when succcessful
+		@returns: link attributes when succcessful, C{None} otherwise
 		'''
 		insert = self.get_iter_at_mark(self.get_insert())
 		tag = self.get_link_tag(insert)
@@ -4813,8 +4813,9 @@ class PageView(gtk.VBox):
 				buffer.place_cursor(iter)
 			buffer.select_link()
 
-		start, end = buffer.get_selection_bounds()
-		buffer.remove_link(start, end)
+		bounds = buffer.get_selection_bounds()
+		if bounds:
+			buffer.remove_link(*bounds)
 
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
