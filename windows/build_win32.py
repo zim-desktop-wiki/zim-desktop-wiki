@@ -25,16 +25,17 @@ shutil.copytree("data", "windows/build/data")
 # Use function from distutils because shutil.copytree 
 # fails when destination folder exists
 
-# If you installed GTK to a different folder, change these lines:
-distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.22/etc", "windows/build/etc", update=1)
-distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.22/lib", "windows/build/lib", update=1)
-distutils.dir_util.copy_tree("c:/Program Files/Common Files/GTK/2.22/share", "windows/build/share", update=1)
-shutil.rmtree("windows/build/share/doc", True)
-shutil.rmtree("windows/build/share/gtk-doc", True)
-files = glob.iglob(os.path.join("c:/Program Files/Common Files/GTK/2.22/bin", "*.exe"))
-for file in files:
-    if os.path.isfile(file):
-        shutil.copy2(file, "windows/build")
+# The following stuff was commented out when switching from pygtk to pygtk-all-in-one; doesn't seem to be needed...
+	# If you installed GTK to a different folder, change these lines:
+	#distutils.dir_util.copy_tree("c:/Programs/Python27/Lib/site-packages/gtk-2.0/runtime/etc", "windows/build/etc", update=1)
+	#distutils.dir_util.copy_tree("c:/Programs/Python27/Lib/site-packages/gtk-2.0/runtime/lib", "windows/build/lib", update=1)
+	#distutils.dir_util.copy_tree("c:/Programs/Python27/Lib/site-packages/gtk-2.0/runtime/share", "windows/build/share", update=1)
+	#shutil.rmtree("windows/build/share/doc", True)
+	#shutil.rmtree("windows/build/share/gtk-doc", True)
+	#files = glob.iglob(os.path.join("c:/Programs/Python27/Lib/site-packages/gtk-2.0/runtime/bin", "*.exe"))
+	#for file in files:
+	#    if os.path.isfile(file):
+	#        shutil.copy2(file, "windows/build")
 
 # Copy icon files
 distutils.dir_util.copy_tree("icons", "windows/build/icons", update=1)
