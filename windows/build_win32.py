@@ -5,6 +5,7 @@ import glob
 import datetime
 import subprocess
 import distutils.dir_util
+from distutils.sysconfig import get_python_lib
 
 sys.path.append(".")
 from zim import __version__
@@ -36,6 +37,8 @@ shutil.copytree("data", "windows/build/data")
 	#for file in files:
 	#    if os.path.isfile(file):
 	#        shutil.copy2(file, "windows/build")
+
+shutil.copy2(get_python_lib() + "/gtk-2.0/runtime/bin/gspawn-win32-helper.exe", "windows/build")
 
 # Copy icon files
 distutils.dir_util.copy_tree("icons", "windows/build/icons", update=1)
