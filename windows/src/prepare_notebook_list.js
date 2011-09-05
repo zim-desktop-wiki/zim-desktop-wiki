@@ -17,13 +17,6 @@ This script will do the following:
   be listed in notebooks.list as the default notebook; otherwise there
   will be no default.
 
-* Set XDG_CONFIG_HOME environment variable to ./Data/Config .
-
-* Set HOME environment variable to ./Data so Zim can find the default
-  Notebooks folder when creating a notebook.
-
-* Launch ./App/zim.exe .
-
 ------------------------------------------------------------------- */
 
 
@@ -48,17 +41,15 @@ function main() {
 	setupPaths();
 	var cat = getNotebooksCatalog();
 	writeNotebooksList(cat);
-	launchZim();
 }
 
 /** Set global path hashmap and create some paths if they don't exist */
 function setupPaths() {
-	paths.root = fso.Getfile(WScript.ScriptFullName).ParentFolder;
+	paths.root = fso.Getfile(WScript.ScriptFullName).ParentFolder.ParentFolder.ParentFolder;
 	paths.data = fso.BuildPath(paths.root, "Data");
 	paths.notebooks = fso.BuildPath(paths.data, "Notebooks");
 	paths.config = fso.BuildPath(paths.data, "Config");
 	paths.configzim = fso.BuildPath(paths.config, "zim");
-	paths.exe = fso.BuildPath(fso.BuildPath(paths.root, "App"), "zim.exe");
 
 	var list = [
 		paths.data,
@@ -126,18 +117,6 @@ function writeNotebooksList(catalog) {
 		out.WriteLine("");
 	}
 	out.Close();
-}
-
-/** Set XDG_CONFIG_HOME env. variable and launch ./App/zim.exe */
-function launchZim() {
-	var shell = WScript.CreateObject("WScript.Shell");
-	var xdg_config_home = paths.config.replace(/\\/g, "/");
-	var cmd =
-		"cmd /c " + 
-		"set XDG_CONFIG_HOME=" + xdg_config_home + "&& " +
-		"set HOME=" + paths.data + "&& " +
-		"start \"\" \"" + paths.exe + "\" --debug";
-	shell.Run(cmd);
 }
 
 main();

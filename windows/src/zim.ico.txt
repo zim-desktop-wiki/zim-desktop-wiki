@@ -7,4 +7,4 @@ zim48.png to a fresh ICO file.
 2. Using InkScape, convert zim48.svg to a temporary 256x256 PNG file
 and import that into the same ICO file as step 1.
 
-3. Save as ./windows/zim.ico .
+3. Save as ./windows/src/zim.ico .
