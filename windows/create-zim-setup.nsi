@@ -28,10 +28,7 @@ OutFile "..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
 !define MUI_ICON "zim.ico"
 
 !define MUI_DIRECTORYPAGE_TEXT_TOP \
-	"Setup will install ${APPNAME} in the following folder. \
-	$\r$\r \
-	BE SURE TO CHOOSE ANOTHER FOLDER NOW if you want to install Zim \
-	to a portable storage device."
+	"Setup will install ${APPNAME} in the following folder."
 
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
@@ -49,10 +46,9 @@ OutFile "..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
 
-Section "-Main program" SecDesktopFiles
+Section "-Main program" SecProgramFiles
 
-	SectionIn 1
-
+	; Clear installation folder, to be sure to get rid of orphaned files
 	RMDir /r "$INSTDIR"
 
 	; Set Section properties
@@ -65,86 +61,43 @@ Section "-Main program" SecDesktopFiles
 
 SectionEnd
 
-Section "-Portable program" SecPortableFiles
 
-	SectionIn 2
+Section "Start Menu shortcut" SecStartShortcut
 
-	RMDir /r "$INSTDIR\App"
+	CreateDirectory "$SMPROGRAMS\Zim Desktop Wiki"
+	CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\Zim.lnk" "$INSTDIR\zim.exe"
+	CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\Uninstall.lnk" "$INSTDIR\uninstall.exe"
+
+SectionEnd
+
+Section "Desktop shortcut" SecDesktopShortcut
 
 	; Set Section properties
 	SetOverwrite on
 
 	; Set Section Files and Shortcuts
-	SetOutPath "$INSTDIR\App"
-	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "build\*.*"
-	File "zim.ico"
+	CreateShortCut "$DESKTOP\Zim Desktop Wiki.lnk" "$INSTDIR\zim.exe"
+
+SectionEnd
+
+Section ".zim file association" SecAssociate
 	
-	; Launcher
-	SetOutPath "$INSTDIR"
-	File "start_zim_portable.js"
-	File /oname=README.txt "README.portable.txt"
+	${registerExtension} "$INSTDIR\zim.exe" ".zim" "Zim Desktop Wiki" "$INSTDIR\zim.ico"
+	
+SectionEnd
+
+Section "Create Registry Keys and Uninstaller" SecUninstall
+
+	WriteRegStr HKLM "Software\${APPNAME}" "" "$INSTDIR"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "${APPNAME}"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "UninstallString" "$INSTDIR\uninstall.exe"
+	WriteUninstaller "$INSTDIR\uninstall.exe"
 
 SectionEnd
 
 
-SectionGroup "Desktop" GroupDesktop
-
-	Section "Start Menu shortcut" SecStartShortcut
-	
-		SectionIn 1
-	
-		CreateDirectory "$SMPROGRAMS\Zim Desktop Wiki"
-		CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\Zim.lnk" "$INSTDIR\zim.exe"
-		CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\Uninstall.lnk" "$INSTDIR\uninstall.exe"
-	
-	SectionEnd
-	
-	Section "Desktop shortcut" SecDesktopShortcut
-
-		SectionIn 1
-	
-		; Set Section properties
-		SetOverwrite on
-
-		; Set Section Files and Shortcuts
-		CreateShortCut "$DESKTOP\Zim Desktop Wiki.lnk" "$INSTDIR\zim.exe"
-	
-	SectionEnd
-	
-	Section ".zim file association" SecAssociate
-		
-		SectionIn 1
-		${registerExtension} "$INSTDIR\zim.exe" ".zim" "Zim Desktop Wiki" "$INSTDIR\zim.ico"
-		
-	SectionEnd
-	
-	Section "Create Registry Keys and Uninstaller" SecUninstall
-	
-		SectionIn 1
-		WriteRegStr HKLM "Software\${APPNAME}" "" "$INSTDIR"
-		WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "${APPNAME}"
-		WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "UninstallString" "$INSTDIR\uninstall.exe"
-		WriteUninstaller "$INSTDIR\uninstall.exe"
-	
-	SectionEnd
-
-SectionGroupEnd
-
-SectionGroup "Portable" GroupPortable
-
-	Section "Set portable mode" SecPortable
-
-		SectionIn 2
-
-	SectionEnd
-
-SectionGroupEnd
-
-
 ; Modern install component descriptions
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-	!insertmacro MUI_DESCRIPTION_TEXT ${GroupDesktop} \
-	"Install to this computer."
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecStartShortcut} \
 	"Install a shortcut to Zim in your Start Menu."
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecDesktopShortcut} \
@@ -153,10 +106,6 @@ SectionGroupEnd
 	"Associate .zim files with Zim."
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecUninstall} \
 	"Create uninstaller and registry keys necessary for uninstallation."
-	!insertmacro MUI_DESCRIPTION_TEXT ${GroupPortable} \
-	"Install to portable storage device."
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecPortable} \
-	"Set the installed application to portable mode (does not use Registry nor My Documents or Program Files folders)."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;Uninstall section
@@ -188,8 +137,5 @@ Section Uninstall
 	RMDir /r "$SMPROGRAMS\Zim Desktop Wiki"
 
 SectionEnd
-
-InstType "Desktop Install"
-InstType "Portable Install"
 
 ; eof
