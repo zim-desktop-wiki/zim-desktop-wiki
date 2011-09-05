@@ -52,6 +52,8 @@ Section "-Main program" SecMain
 
 	SectionIn 1 2
 
+	RMDir /r "$INSTDIR"
+
 	; Set Section properties
 	SetOverwrite on
 
@@ -80,7 +82,7 @@ SectionGroup "Desktop" GroupDesktop
 	
 		; Set Section properties
 		SetOverwrite on
-	
+
 		; Set Section Files and Shortcuts
 		CreateShortCut "$DESKTOP\Zim Desktop Wiki.lnk" "$INSTDIR\zim.exe"
 	
@@ -141,17 +143,20 @@ Section Uninstall
 	; Delete self
 	Delete "$INSTDIR\uninstall.exe"
 
-	; Delete Shortcuts
-	Delete "$SMPROGRAMS\Zim Desktop Wiki\Zim.lnk"
-	Delete "$SMPROGRAMS\Zim Desktop Wiki\Uninstall.lnk"
-	Delete "$DESKTOP\Zim Desktop Wiki.lnk"
-
 	; Delete configuration
 	RMDir /r "$APPDATA\zim"
 
 	; Remove remaining directories
 	RMDir "$SMPROGRAMS\Zim Desktop Wiki"
 	RMDir /r "$INSTDIR"
+
+	; Detel desktop icon and Start Menu shortcuts
+	SetShellVarContext all
+	Delete "$DESKTOP\Zim Desktop Wiki.lnk"
+	RMDir /r "$SMPROGRAMS\Zim Desktop Wiki"
+	SetShellVarContext current
+	Delete "$DESKTOP\Zim Desktop Wiki.lnk"
+	RMDir /r "$SMPROGRAMS\Zim Desktop Wiki"
 
 SectionEnd
 
