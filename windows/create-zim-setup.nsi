@@ -48,9 +48,10 @@ OutFile "..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
-Section "-Main program" SecMain
 
-	SectionIn 1 2
+Section "-Main program" SecDesktopFiles
+
+	SectionIn 1
 
 	RMDir /r "$INSTDIR"
 
@@ -63,6 +64,28 @@ Section "-Main program" SecMain
 	File "zim.ico"
 
 SectionEnd
+
+Section "-Portable program" SecPortableFiles
+
+	SectionIn 2
+
+	RMDir /r "$INSTDIR\App"
+
+	; Set Section properties
+	SetOverwrite on
+
+	; Set Section Files and Shortcuts
+	SetOutPath "$INSTDIR\App"
+	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "build\*.*"
+	File "zim.ico"
+	
+	; Launcher
+	SetOutPath "$INSTDIR"
+	File "start_zim_portable.js"
+	File /oname=README.txt "README.portable.txt"
+
+SectionEnd
+
 
 SectionGroup "Desktop" GroupDesktop
 
@@ -112,7 +135,6 @@ SectionGroup "Portable" GroupPortable
 	Section "Set portable mode" SecPortable
 
 		SectionIn 2
-		SetOutPath "$INSTDIR\"
 
 	SectionEnd
 
@@ -121,13 +143,20 @@ SectionGroupEnd
 
 ; Modern install component descriptions
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-	!insertmacro MUI_DESCRIPTION_TEXT ${GroupDesktop} "Install to this computer."
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecStartShortcut} "Install a shortcut to Zim in your Start Menu."
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecDesktopShortcut} "Install a shortcut to Zim on your Desktop."
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecAssociate} "Associate .zim files with Zim."
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecUninstall} "Create uninstaller and registry keys necessary for uninstallation."
-	!insertmacro MUI_DESCRIPTION_TEXT ${GroupPortable} "Install to portable storage device. (Work in progress! Uses %USERPROFILE% folder when running.)"
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecPortable} "Set the installed application to portable mode (does not use Registry nor My Documents or Program Files folders)."
+	!insertmacro MUI_DESCRIPTION_TEXT ${GroupDesktop} \
+	"Install to this computer."
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecStartShortcut} \
+	"Install a shortcut to Zim in your Start Menu."
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecDesktopShortcut} \
+	"Install a shortcut to Zim on your Desktop."
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecAssociate} \
+	"Associate .zim files with Zim."
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecUninstall} \
+	"Create uninstaller and registry keys necessary for uninstallation."
+	!insertmacro MUI_DESCRIPTION_TEXT ${GroupPortable} \
+	"Install to portable storage device."
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecPortable} \
+	"Set the installed application to portable mode (does not use Registry nor My Documents or Program Files folders)."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;Uninstall section
