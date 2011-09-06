@@ -244,7 +244,9 @@ def isabs(path):
 	@param path: a file system path as string
 	@returns: C{True} when the path is absolute instead of a relative path
 	'''
-	return path.startswith('file:/') or os.path.isabs(path)
+	return path.startswith('file:/') \
+	or path.startswith('~') \
+	or os.path.isabs(path)
 
 
 def isdir(path):
@@ -443,6 +445,11 @@ FS = FSSingletonClass()
 class UnixPath(object):
 	'''Base class for Dir and File objects, represents a file path
 
+	@ivar path: the absolute file path as string
+	@ivar encodedpath: the absolute file path as string in local
+	file system encoding (should only be used by low-level functions)
+	@ivar user_path: the absolute file path relative to the user's
+	C{HOME} folder or C{None}
 	@ivar uri: the C{file://} URI for this path
 	@ivar basename: the basename of the path
 	@ivar dirname: the dirname of the path
@@ -457,6 +464,8 @@ class UnixPath(object):
 		element is allowed to be an absolute path, URL or L{FilePath}
 		object as well.
 		'''
+		self._serialized = None
+
 		if isinstance(path, FilePath):
 			self.path = path.path
 			self.encodedpath = path.encodedpath
@@ -478,12 +487,16 @@ class UnixPath(object):
 			path = self._parse_uri(path)
 		elif path.startswith('~'):
 			path = decode(os.path.expanduser(encode(path)))
+			if path.startswith('~'):
+				raise AssertionError, 'Could not expand path "%s" this could mean $HOME is not set' % path
 
 		self._set_path(path) # overloaded in WindowsPath
 
 	def serialize_zim_config(self):
 		'''Returns the file path as string for serializing the object'''
-		return self.path
+		if self._serialized is None:
+			self._serialized = self.user_path or self.path
+		return self._serialized
 
 	@staticmethod
 	def _parse_uri(uri):
@@ -540,6 +553,15 @@ class UnixPath(object):
 	def dirname(self):
 		'''Dirname property'''
 		return os.path.dirname(self.path) # encoding safe
+
+	@property
+	def user_path(self):
+		'''User_path property'''
+		dir = Dir('~') # FIXME: Should we cache this folder somewhere ?
+		if self.ischild(dir):
+			return '~/' + self.relpath(dir)
+		else:
+			return None
 
 	@property
 	def uri(self):

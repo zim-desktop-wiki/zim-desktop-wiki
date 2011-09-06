@@ -1378,11 +1378,7 @@ class FSPathEntry(InputEntry):
 					text = path.path
 			self.set_text(text)
 		else:
-			home = Dir('~')
-			if path.ischild(home):
-				self.set_text('~/'+path.relpath(home))
-			else:
-				self.set_text(path.path)
+			self.set_text(path.user_path or path.path)
 
 	def get_path(self):
 		'''Get the file path for this entry

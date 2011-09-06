@@ -101,8 +101,13 @@ class NotebookInfo(object):
 	'''This class keeps the info for a notebook
 
 	@ivar uri: The location of the notebook
+	@ivar user_path: The location of the notebook relative to the
+	home folder (starts with '~/') or C{None}
 	@ivar name: The notebook name (or the basename of the uri)
 	@ivar icon: The file uri for the notebook icon
+	@ivar icon_path: The location of the icon as configured (either
+	relative to the notebook location, relative to home folder or
+	absolute path)
 	@ivar mtime: The mtime of the config file this info was read from (if any)
 	@ivar active: The attribute is used to signal whether the notebook
 	is already open or not, used in the daemon context, C{None} if this
@@ -111,12 +116,27 @@ class NotebookInfo(object):
 	'''
 
 	def __init__(self, uri, name=None, icon=None, mtime=None, interwiki=None, **a):
-		'''Constructor'''
+		'''Constructor
+
+		Known values for C{name}, C{icon} etc. can be specified.
+		Alternatively L{update()} can be called to read there from the
+		notebook configuration (if any). If C{mtime} is given the
+		object acts as a cache and L{update()} will only read the config
+		if it is newer than C{mtime}
+
+		@param uri: location uri or file path for the notebook (esp. C{user_path})
+		@param name: notebook name
+		@param icon: the notebook icon path
+		@param mtime: the mtime when config was last read
+		@param interwiki: the interwiki keyword for this notebook
+		'''
 		# **a is added to be future proof of unknown values in the cache
 		f = File(uri)
 		self.uri = f.uri
+		self.user_path = f.user_path # set to None when uri is not a file uri
 		self.name = name or f.basename
-		self.icon = icon
+		self.icon_path = icon
+		self.icon = File(icon).uri
 		self.mtime = mtime
 		self.interwiki = interwiki
 		self.active = None
@@ -132,7 +152,8 @@ class NotebookInfo(object):
 		'''Check if info is still up to date and update this object
 
 		This method will check the X{notebook.zim} file for notebook
-		folders and read it if it changed.
+		folders and read it if it changed. It uses the C{mtime}
+		attribute to keep track of changes.
 
 		@returns: C{True} when data was updated, C{False} otherwise
 		'''
@@ -145,6 +166,7 @@ class NotebookInfo(object):
 			self.name = config['Notebook'].get('name') or dir.basename
 			self.interwiki = config['Notebook'].get('interwiki')
 
+			self.icon_path = config['Notebook'].get('icon')
 			icon, document_root = _resolve_relative_config(dir, config['Notebook'])
 			if icon:
 				self.icon = icon.uri
@@ -315,7 +337,7 @@ class NotebookInfoList(list):
 	def write(self):
 		'''Write the config and cache'''
 		if self.default:
-			default = self.default.uri
+			default = self.default.user_path or self.default.uri
 		else:
 			default = None
 
@@ -323,16 +345,16 @@ class NotebookInfoList(list):
 			'[NotebookList]\n',
 			'Default=%s\n' % (default or '')
 		]
-		lines.extend(info.uri + '\n' for info in self)
+		lines.extend((info.user_path or info.uri) + '\n' for info in self)
 
 		for info in self:
 			lines.extend([
 				'\n',
 				'[Notebook]\n',
-				'uri=%s\n' % info.uri,
+				'uri=%s\n' % (info.user_path or info.uri),
 				'name=%s\n' % info.name,
 				'interwiki=%s\n' % info.interwiki,
-				'icon=%s\n' % info.icon,
+				'icon=%s\n' % info.icon_path,
 			])
 
 		self._file.writelines(lines)
@@ -811,7 +833,7 @@ class Notebook(gobject.GObject):
 			if self.dir and icon.ischild(self.dir):
 				properties['icon'] = './' + icon.relpath(self.dir)
 			else:
-				properties['icon'] = icon.path
+				properties['icon'] = icon.user_path or icon.path
 
 		# Check document root is relative
 		root = properties.get('document_root')
@@ -820,7 +842,7 @@ class Notebook(gobject.GObject):
 			if self.dir and root.ischild(self.dir):
 				properties['document_root'] = './' + root.relpath(self.dir)
 			else:
-				properties['document_root'] = root.path
+				properties['document_root'] = root.user_path or root.path
 
 		# Set home page as string
 		if 'home' in properties and isinstance(properties['home'], Path):
@@ -1822,11 +1844,8 @@ class Notebook(gobject.GObject):
 		if document_root and file.ischild(document_root):
 			return '/'+file.relpath(document_root)
 
-		dir = Dir('~')
-		if file.ischild(dir):
-			return '~/'+file.relpath(dir)
-
-		return None
+		# Finally check HOME or give up
+		return file.user_path or None
 
 	def get_attachments_dir(self, path):
 		'''Get the X{attachment folder} for a specific page

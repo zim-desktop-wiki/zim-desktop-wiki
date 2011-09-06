@@ -59,6 +59,7 @@ class TestFS(tests.TestCase):
 				self.assertEqual(normalize_win32_share(url), url)
 
 		self.assertTrue(isabs('/foo/bar'))
+		self.assertTrue(isabs('~/foo/bar'))
 		self.assertFalse(isabs('./bar'))
 
 		self.assertEqual(joinpath('foo', 'bar'), os.sep.join(('foo', 'bar')))
@@ -123,6 +124,16 @@ class TestFS(tests.TestCase):
 			self.assertEqual(FilePath(path1).relpath(FilePath(path2), allowupward=True), None)
 
 		self.assertEqual(FilePath('/foo') + 'bar', FilePath('/foo/bar'))
+
+		path = FilePath('~/foo')
+		self.assertNotEqual(path.path, '~/foo')
+		self.assertEqual(path.user_path, '~/foo')
+		self.assertEqual(path.serialize_zim_config(), '~/foo')
+
+		path = FilePath('/foo')
+		self.assertIsNotNone(path.path)
+		self.assertIsNone(path.user_path)
+		self.assertIsNotNone(path.serialize_zim_config())
 
 		# Test unicode compat
 		string = u'\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'
