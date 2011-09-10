@@ -15,7 +15,7 @@ logger = logging.getLogger('zim.gui.searchdialog')
 
 class SearchDialog(Dialog):
 
-	def __init__(self, ui, query=None):
+	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Search'), # T: Dialog title
 			buttons=gtk.BUTTONS_CLOSE, help='Help:Searching')
 
@@ -53,20 +53,28 @@ class SearchDialog(Dialog):
 		self.results_treeview = SearchResultsTreeView(self.ui)
 		scrollwindow.add(self.results_treeview)
 
-		if query:
-			self.query_entry.set_text(query)
-			self.results_treeview.set_query(query)
+		button.connect_object('clicked', self.__class__._search, self)
+		self.query_entry.connect_object('activate', self.__class__._search, self)
 
+	def search(self, query):
+		'''Trigger a search to be performed.
+		Because search can take a long time to execute it is best to
+		call this method after the dialog is shown.
 
-		def search(*a):
-			string = self.query_entry.get_text()
-			if self.namespacecheckbox.get_active():
-				string = 'Namespace: "%s" ' % self.ui.page.name + string
-			#~ print '!! QUERY: ' + string
-			self.results_treeview.set_query( string )
+		@todo: make this thing asynchronous - preferably using a callback
+		method so search can also be cancelled.
 
-		button.connect('clicked', search)
-		self.query_entry.connect('activate', search)
+		@param query: the query as string
+		'''
+		self.query_entry.set_text(query)
+		self._search()
+
+	def _search(self):
+		string = self.query_entry.get_text()
+		if self.namespacecheckbox.get_active():
+			string = 'Namespace: "%s" ' % self.ui.page.name + string
+		#~ print '!! QUERY: ' + string
+		self.results_treeview.set_query( string )
 
 
 class SearchResultsTreeView(BrowserTreeView):

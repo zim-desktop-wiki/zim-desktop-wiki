@@ -32,7 +32,8 @@ PATH_COL = 1  #: Column with the zim IndexPath itself
 EMPTY_COL = 2 #: Column to flag if the page is empty or not
 STYLE_COL = 3 #: Column to specify style (based on empty or not)
 FGCOLOR_COL = 4 #: Column to specify color (based on empty or not)
-N_CHILD_COL = 5 #: Column with the number of child pages
+WEIGHT_COL = 5 #: Column to specify the font weight (open page in bold)
+N_CHILD_COL = 6 #: Column with the number of child pages
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
@@ -127,6 +128,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		bool, # EMPTY_COL
 		pango.Style, # STYLE_COL
 		gobject.TYPE_STRING, # FGCOLOR_COL
+		int, # WEIGHT_COL
 		gobject.TYPE_STRING, # N_CHILD_COL
 	)
 
@@ -141,6 +143,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		'''
 		gtk.GenericTreeModel.__init__(self)
 		self.index = index
+		self.selected_page = None
 
 		self.set_property('leak-references', False)
 			# We do our own memory management, thank you very much
@@ -189,6 +192,20 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			self.index.disconnect(id)
 		self._signals = ()
 
+	def select_page(self, path):
+		'''Set the current open page to highlight it in the index.
+		@param path: the L{Path} that is currently open, or C{None} to unset
+		'''
+		oldpath = self.selected_page
+		self.selected_page = path
+
+		for mypath in (oldpath, path):
+			if mypath:
+				treepath = self.get_treepath(mypath)
+				if treepath:
+					treeiter = self.get_iter(treepath)
+					self.emit('row-changed', treepath, treeiter)
+
 	def on_get_flags(self):
 		return 0 # no flags
 
@@ -218,6 +235,11 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 				return self.NORMAL_COLOR
 			else:
 				return self.EMPTY_COLOR
+		elif column == WEIGHT_COL:
+			if path == self.selected_page:
+				return pango.WEIGHT_BOLD
+			else:
+				return pango.WEIGHT_NORMAL
 		elif column == N_CHILD_COL:
 			if path.haschildren:
 				return str(self.index.n_list_pages(path))
@@ -451,11 +473,11 @@ class PageTreeView(BrowserTreeView):
 		cr1.set_property('ellipsize', pango.ELLIPSIZE_END)
 		column.pack_start(cr1, True)
 		column.set_attributes(cr1, text=NAME_COL,
-			style=STYLE_COL, foreground=FGCOLOR_COL)
+			style=STYLE_COL, foreground=FGCOLOR_COL, weight=WEIGHT_COL)
 
 		cr2 = self.get_cell_renderer_number_of_items()
 		column.pack_start(cr2, False)
-		column.set_attributes(cr2, text=N_CHILD_COL)
+		column.set_attributes(cr2, text=N_CHILD_COL, weight=WEIGHT_COL)
 
 		self.set_headers_visible(False)
 
@@ -603,12 +625,11 @@ class PageTreeView(BrowserTreeView):
 		@returns: a gtk TreePath (tuple of intergers) or C{None}
 		'''
 		#~ print '!! SELECT', path
-		model, iter = self.get_selection().get_selected()
+		model = self.get_model()
 		if model is None:
 			return None # index not yet initialized ...
 
-		if iter and model[iter][PATH_COL] == path:
-			return model.get_path(iter) # this page was selected already
+		model.select_page(path)
 
 		treepath = model.get_treepath(path)
 		if treepath:

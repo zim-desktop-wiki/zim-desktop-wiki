@@ -191,7 +191,8 @@ class Query(object):
 	@property
 	def simple_match(self):
 		'''Used to determine a simple matching string to be used
-		in the find method in the pageview. Used in SearchDialog.
+		in the find method in the pageview. Used by L{SearchDialog}
+		to set the L{PageView} find string to highligh matches in the page.
 		'''
 		# TODO make this return a list with positive terms for content
 		# if find supports an OR operator, highlight them all

@@ -240,7 +240,7 @@ class TestPageTreeStore(tests.TestCase):
 		treeview = PageTreeView(ui)
 		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 6)
+		self.assertEqual(treestore.get_n_columns(), 7)
 		treeview.set_model(treestore)
 
 		self.index.update(callback=tests.gtk_process_events)
