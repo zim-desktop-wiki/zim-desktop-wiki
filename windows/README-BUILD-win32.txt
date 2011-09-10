@@ -28,32 +28,47 @@ Requirements
 
    http://sourceforge.net/projects/py2exe/files/
 
-3. Install PyCairo, PyGObject, and PyGTK from
+3. Download GTK+ Bundle from
 
-   http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/[newest version]/pygtk-all-in-one-VERSION.win32-pyVERSION.msi
+   http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.22/
 
-4. Jpeg for Windows
+   Or a newer version if one exists. Extract this Zip file to a
+   convenient place such as
+
+   C:\Program Files (x86)\Common Files\GTK+ Bundle
+
+4. Install PyCairo, PyGObject, and PyGTK from
+
+   http://ftp.gnome.org/pub/GNOME/binaries/win32/pycairo/[newest version]/pycairo-VERSION.win32-pyVER.msi
+   http://ftp.gnome.org/pub/GNOME/binaries/win32/pygobject/[newest version]/pygobject-VERSION.win32-pyVER.msi
+   http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/[newest version]/pygtk-VERSION.win32-pyVER.msi
+
+   Make sure that the Python version matches the one you're using, and
+   that you don't download a pygtk library with a version newer than
+   the bundle from the previous step.
+
+5. Jpeg for Windows
 
    http://gnuwin32.sourceforge.net/packages/jpeg.htm
 
    Get jpeg62.dll and put it in ./windows .
 
-5. Install Bazaar using the PYTHON-BASED installer from
+6. Install Bazaar using the PYTHON-BASED installer from
 
    http://wiki.bazaar.canonical.com/WindowsDownloads
 
    The build script depends on Python Bazaar.
 
-6. Install NSIS from
+7. Install NSIS from
 
    http://nsis.sourceforge.net/Download
 
-6a. You will also want to download Venis IX if you want to edit the 
+7a. You will also want to download Venis IX if you want to edit the 
     NSIS script in an IDE. (The script is a plain text file, though, 
     if you don't want to use an IDE.) 
     http://nsis.sourceforge.net/Venis_IX
 
-7. For the PortableApps.com build, additionally install these three
+8. For the PortableApps.com build, additionally install these three
    utilities:
 
    http://portableapps.com/apps/development/nsis_portable (Unicode version)
@@ -67,16 +82,14 @@ Requirements
 Building Zim
 ------------
 
-1. Look at "windows\env.cmd" -- make sure that your path to the Python
-   folder is correct. Or if Python is already in your system $PATH,
-   you can skip this step.
+1. Add your Python root folder and your "GTK+ Bundle\bin" folder to
+   your $PATH environment variable.
 
 2. At the command prompt, CD into the Zim project's root folder.
 
-3. Run "windows\env.cmd" in the command prompt to initialize your
-   $PATH environment variable.
-
-4. Run "python.exe windows\build_win32.py" in the command prompt.
+3. Run "python.exe windows\build_win32.py" in the command prompt.
+   NOTE: Sometimes I get "Access denied" errors in this step. Closing
+   all windows except the command prompt usually helps.
 
 4. Make sure it built okay by running
    ".\windows\build\ZimDesktopWikiPortable\App\ZimDesktopWiki\zim.exe"
