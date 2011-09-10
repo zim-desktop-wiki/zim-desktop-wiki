@@ -33,6 +33,7 @@ OutFile "..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
 !insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_LICENSE textfile
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES

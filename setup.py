@@ -306,7 +306,7 @@ if py2exe:
 		'zipfile': None,
 		'options': {
 			"py2exe": {
-				"compressed": 0,
+				"compressed": 1,
 				"optimize": 2,
 				"ascii": 1,
 				"bundle_files": 3,

@@ -1,1 +1,0 @@
-SET PATH=%PATH%;c:\Programs\Python27
