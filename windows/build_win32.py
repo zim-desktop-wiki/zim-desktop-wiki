@@ -114,10 +114,10 @@ distutils.dir_util.copy_tree(r"windows\src\AppInfo", path.join(APP_ROOT, r"App\A
 os.makedirs(path.join(APP_ROOT, r"App\DefaultData\Config\zim"))
 os.makedirs(path.join(APP_ROOT, r"App\DefaultData\Notebooks"))
 distutils.dir_util.copy_tree(r"windows\src\Other", path.join(APP_ROOT, "Other"), update=1)
-shutil.copy(r"windows\src\zim.ico",                  path.join(APP_ROOT, r"App\AppInfo\appicon.ico"))
-shutil.copy(r"icons\zim16.png",                      path.join(APP_ROOT, r"App\AppInfo\appicon_16.png"))
-shutil.copy(r"icons\zim32.png",                      path.join(APP_ROOT, r"App\AppInfo\appicon_32.png"))
-shutil.copy(r"windows\src\help.html",                APP_ROOT)
+shutil.copy(r"windows\src\zim.ico",   path.join(APP_ROOT, r"App\AppInfo\appicon.ico"))
+shutil.copy(r"icons\zim16.png",       path.join(APP_ROOT, r"App\AppInfo\appicon_16.png"))
+shutil.copy(r"icons\zim32.png",       path.join(APP_ROOT, r"App\AppInfo\appicon_32.png"))
+shutil.copy(r"windows\src\help.html", APP_ROOT)
 
 # Add version number to appinfo.ini
 f = open(path.join(APP_ROOT, r"App\AppInfo\appinfo.ini"), "a")
