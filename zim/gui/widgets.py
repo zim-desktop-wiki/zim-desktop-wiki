@@ -1185,7 +1185,7 @@ class InputEntry(gtk.Entry):
 		@todo: make color for empty_text actually grey
 		'''
 		gtk.Entry.__init__(self)
-		self._normal_color = self.style.base[gtk.STATE_NORMAL]
+		self._normal_color = None #self.style.base[gtk.STATE_NORMAL]
 		self.allow_empty = allow_empty
 		self.show_empty_invalid = show_empty_invalid
 		self.empty_text = empty_text
@@ -1194,6 +1194,16 @@ class InputEntry(gtk.Entry):
 		self._input_valid = False
 		self.do_changed() # Initialize state
 		self.connect('changed', self.__class__.do_changed)
+
+		def _init_base_color(*a):
+			# This is handled on expose event, because style does not
+			# yet reflect theming on construction
+			if self._normal_color is None:
+				self._normal_color = self.style.base[gtk.STATE_NORMAL]
+				self._set_base_color(self.get_input_valid())
+
+		self.connect('expose-event', _init_base_color)
+
 
 	def set_check_func(self, check_func):
 		'''Set a function to check whether input is valid or not
@@ -1294,14 +1304,19 @@ class InputEntry(gtk.Entry):
 		if valid == self._input_valid:
 			return
 
+		if self._normal_color:
+			self._set_base_color(valid)
+		# else: not yet initialized
+
+		self._input_valid = valid
+		self.emit('input-valid-changed')
+
+	def _set_base_color(self, valid):
 		if valid \
 		or (not self.get_text() and not self.show_empty_invalid):
 			self.modify_base(gtk.STATE_NORMAL, self._normal_color)
 		else:
 			self.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse(self.ERROR_COLOR))
-
-		self._input_valid = valid
-		self.emit('input-valid-changed')
 
 	def clear(self):
 		'''Clear the text in the entry'''
