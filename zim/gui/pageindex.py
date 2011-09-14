@@ -479,6 +479,9 @@ class PageTreeView(BrowserTreeView):
 		column.pack_start(cr2, False)
 		column.set_attributes(cr2, text=N_CHILD_COL, weight=WEIGHT_COL)
 
+		if gtk.gtk_version >= (2, 12, 0):
+			self.set_tooltip_column(NAME_COL)
+
 		self.set_headers_visible(False)
 
 		self.set_enable_search(True)
