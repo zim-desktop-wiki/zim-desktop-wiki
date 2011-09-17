@@ -63,9 +63,9 @@ Requirements
 
    http://nsis.sourceforge.net/Download
 
-7a. You will also want to download Venis IX if you want to edit the 
-    NSIS script in an IDE. (The script is a plain text file, though, 
-    if you don't want to use an IDE.) 
+7a. You will also want to download Venis IX if you want to edit the
+    NSIS script in an IDE. (The script is a plain text file, though,
+    if you don't want to use an IDE.)
     http://nsis.sourceforge.net/Venis_IX
 
 8. For the PortableApps.com build, additionally install these three
@@ -77,6 +77,21 @@ Requirements
 
    These tools default to installing in ~/Desktop, but I personally
    put them in ~/Apps. Be sure to put them all in the same folder.
+
+
+Building the application icon
+-----------------------------
+
+If the Zim application icon has changed, you must manually rebuild it
+before running the Windows build scripts. Otherwise skip this section.
+
+1. Using IcoFX (free software), import Zim's zim16.png, zim32.png, and
+zim48.png to a fresh ICO file.
+
+2. Using InkScape, convert zim48.svg to a temporary 256x256 PNG file
+and import that into the same ICO file as step 1.
+
+3. Save as ./icons/zim.ico .
 
 
 Building Zim

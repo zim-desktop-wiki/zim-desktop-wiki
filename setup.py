@@ -301,7 +301,8 @@ if py2exe:
 	py2exeoptions = {
 		'windows': [ {
 			"script": "zim.py",
-			"icon_resources": [(1, "windows/src/zim.ico")] # Windows 16x16, 32x32, and 48x48 icon based on PNG
+			"icon_resources": [(1, "icons/zim.ico")]
+				# Windows 16x16, 32x32, and 48x48 icon based on PNG
 		} ],
 		'zipfile': None,
 		'options': {
@@ -310,8 +311,7 @@ if py2exe:
 				"optimize": 2,
 				"ascii": 1,
 				"bundle_files": 3,
-				"packages": ["encodings", "cairo", "atk", "pangocairo", "zim", "bzrlib"],
-				"dist_dir" : "windows/build/ZimDesktopWikiPortable/App/ZimDesktopWiki"
+				"packages": ["encodings", "cairo", "atk", "pangocairo", "zim"],
 			}
 		}
 	}
@@ -344,4 +344,3 @@ setup(
 
 	**py2exeoptions
 )
-

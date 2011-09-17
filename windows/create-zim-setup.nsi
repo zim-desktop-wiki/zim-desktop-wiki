@@ -25,7 +25,7 @@ OutFile "..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
 
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP "src\zim-logo-big.bmp" ; optional
-!define MUI_ICON "src\zim.ico"
+!define MUI_ICON "..\icons\zim.ico"
 
 !define MUI_DIRECTORYPAGE_TEXT_TOP \
 	"Setup will install ${APPNAME} in the following folder."
@@ -58,7 +58,7 @@ Section "-Main program" SecProgramFiles
 	; Set Section Files and Shortcuts
 	SetOutPath "$INSTDIR\"
 	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "build\ZimDesktopWikiPortable\App\ZimDesktopWiki\*.*"
-	File "src\zim.ico"
+	File "..\icons\zim.ico"
 
 SectionEnd
 
@@ -82,9 +82,9 @@ Section "Desktop shortcut" SecDesktopShortcut
 SectionEnd
 
 Section ".zim file association" SecAssociate
-	
+
 	${registerExtension} "$INSTDIR\zim.exe" ".zim" "Zim Desktop Wiki" "$INSTDIR\zim.ico"
-	
+
 SectionEnd
 
 Section "Create Registry Keys and Uninstaller" SecUninstall
