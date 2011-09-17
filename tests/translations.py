@@ -8,12 +8,19 @@ class TestTranslations(TestCase):
 
 	def runTest(self, verbose=False):
 		'''Sanity check translation files'''
+		pot_creation_date = None
 		for file in ['translations/zim.pot'] + glob('translations/*.po'):
 			if verbose:
 				print 'Checking %s' % file
 			t = TranslationFile(file)
-			if not file.endswith('.pot'):
-				assert t.nplural > 0, 'Missing number of plurals: %s' % file
+
+			if file == 'translations/zim.pot':
+				pot_creation_date = t.headers['POT-Creation-Date']
+			else:
+				self.assertEqual(t.headers['POT-Creation-Date'], pot_creation_date,
+					'Translation not based on up to date template: %s' % file)
+				self.assertTrue(t.nplural > 0, 'Missing number of plurals: %s' % file)
+
 			t.assertValid()
 
 
@@ -50,7 +57,8 @@ class TranslationMessage(object):
 		assert self.msgstr, 'No msgstr found'
 
 
-	_format_string_re = re.compile('%.')
+	_format_string_re = re.compile('%(?:\(\w+\))?\w')
+		# match "%s", "%d" etc. but also "%(foo)s" - but not just "%"
 
 	def check_nplural(self, nplural):
 		if self.msgid_plural and self.msgstr[0] != '""':
