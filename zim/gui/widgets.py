@@ -1185,7 +1185,7 @@ class InputEntry(gtk.Entry):
 		@todo: make color for empty_text actually grey
 		'''
 		gtk.Entry.__init__(self)
-		self._normal_color = None #self.style.base[gtk.STATE_NORMAL]
+		self._normal_color = None
 		self.allow_empty = allow_empty
 		self.show_empty_invalid = show_empty_invalid
 		self.empty_text = empty_text
@@ -2994,8 +2994,14 @@ class Assistant(Dialog):
 
 		# Add page title - use same color as used by gtkassistent.c
 		ebox = gtk.EventBox()
-		ebox.modify_fg(gtk.STATE_NORMAL, self.style.fg[gtk.STATE_SELECTED])
-		ebox.modify_bg(gtk.STATE_NORMAL, self.style.bg[gtk.STATE_SELECTED])
+		def _set_heading_color(*a):
+			# This is handled on expose event, because style does not
+			# yet reflect theming on construction
+			ebox.modify_fg(gtk.STATE_NORMAL, self.style.fg[gtk.STATE_SELECTED])
+			ebox.modify_bg(gtk.STATE_NORMAL, self.style.bg[gtk.STATE_SELECTED])
+
+		_set_heading_color()
+		self.connect('expose-event', _set_heading_color)
 
 		hbox = gtk.HBox()
 		hbox.set_border_width(5)

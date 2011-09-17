@@ -347,7 +347,7 @@ def main(argv):
 			logger.debug(
 				'Zim revision is:\n'
 				'\tbranch: %(branch_nick)s\n'
-				'\trevision: %(revno)d %(revision_id)s\n'
+				'\trevision: %(revno)s %(revision_id)s\n'
 				'\tdate: %(date)s\n',
 				version_info )
 		except ImportError:

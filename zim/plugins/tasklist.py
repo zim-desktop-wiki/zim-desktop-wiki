@@ -765,7 +765,13 @@ class TaskListTreeView(BrowserTreeView):
 		'''Get the number of tasks in the list
 		@returns: total number as a list
 		'''
-		return self.real_model.iter_n_children(None)
+		counter = [0]
+		def count(model, path, iter):
+			if model[iter][self.OPEN_COL]:
+				# only count open items
+				counter[0] += 1
+		self.real_model.foreach(count)
+		return counter[0]
 
 	def get_statistics(self):
 		statsbyprio = {}

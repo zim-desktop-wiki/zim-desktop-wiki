@@ -368,7 +368,10 @@ class NotebookInfoList(list):
 			self.write()
 
 	def set_default(self, uri):
-		'''Set the default to 'uri' '''
+		'''Set the default notebook
+		@param uri: the file uri or file path for the default notebook
+		'''
+		uri = File(uri).uri # e.g. "~/foo" to file:// uri
 		for info in self:
 			if info.uri == uri:
 				self.default = info
@@ -1113,7 +1116,6 @@ class Notebook(gobject.GObject):
 		orig = name
 		name = name.replace('_', ' ')
 			# Avoid duplicates with and without '_' (e.g. in index)
-			# Note that leading "_" is stripped, due to strip() below
 
 		if purge:
 			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n"):
@@ -1123,11 +1125,11 @@ class Notebook(gobject.GObject):
 				if char in name:
 					raise PageNameError, orig
 
-		parts = map(unicode.strip, filter(
-			lambda n: len(n)>0, unicode(name).split(':') ) )
+		parts = filter(lambda n: len(n)>0, unicode(name).split(':'))
 
 		for part in parts:
-			if _first_char_re.match(part):
+			if _first_char_re.match(part) \
+			or part.endswith(' '):
 				raise PageNameError, orig
 
 		name = ':'.join(parts)
