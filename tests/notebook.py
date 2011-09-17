@@ -6,6 +6,8 @@
 
 import tests
 
+import os
+
 from zim.fs import File, Dir
 from zim.config import config_file
 from zim.notebook import *
@@ -76,13 +78,18 @@ class TestGetNotebook(tests.TestCase):
 		self.assertEqual(nb, dir.uri)
 
 		# But not anymore after adding second notebook
+		if os.name == 'nt':
+			uri1 = 'file:///C:/foo/bar'
+		else:
+			uri1 = 'file:///foo/bar'
+
 		list = get_notebook_list()
-		list.append(NotebookInfo('file:///foo/bar', interwiki='foobar'))
+		list.append(NotebookInfo(uri1, interwiki='foobar'))
 			# on purpose do not set name, should default to basename
 		list.write()
 		self.assertTrue(len(list) == 2)
 		self.assertEqual(list[:],
-			[NotebookInfo(dir.uri), NotebookInfo('file:///foo/bar')])
+			[NotebookInfo(dir.uri), NotebookInfo(uri1)])
 
 		nb, page = resolve_notebook('foo')
 		self.assertEqual(nb, dir)
@@ -90,22 +97,22 @@ class TestGetNotebook(tests.TestCase):
 
 		nb, page = resolve_notebook('bar')
 			# Check name defaults to dir basename
-		self.assertEqual(nb, Dir('file:///foo/bar'))
+		self.assertEqual(nb, Dir(uri1))
 		self.assertIs(get_notebook(nb), None) # path should not exist
 
 		nb, page = resolve_notebook('Bar')
-		self.assertEqual(nb, Dir('file:///foo/bar'))
+		self.assertEqual(nb, Dir(uri1))
 
 		nb = _get_default_or_only_notebook()
 		self.assertTrue(nb is None)
 
 		list = get_notebook_list()
-		list.set_default('file:///foo/bar')
+		list.set_default(uri1)
 		list.write()
 		nb = _get_default_or_only_notebook()
-		self.assertEqual(nb, Dir('/foo/bar').uri)
+		self.assertEqual(nb, uri1)
 		nb, p = resolve_notebook(nb)
-		self.assertEqual(nb, Dir('/foo/bar'))
+		self.assertEqual(nb, Dir(uri1))
 		self.assertEqual(get_notebook(nb), None)
 
 		# Check interwiki parsing
@@ -115,10 +122,10 @@ class TestGetNotebook(tests.TestCase):
 		self.assertEqual(nb, dir)
 		self.assertEqual(page, Path('Foo'))
 
-		self.assertEqual(interwiki_link('foobar?Foo'), 'zim+file:///foo/bar?Foo') # interwiki key
-		self.assertEqual(interwiki_link('FooBar?Foo'), 'zim+file:///foo/bar?Foo') # interwiki key
-		self.assertEqual(interwiki_link('bar?Foo'), 'zim+file:///foo/bar?Foo') # name
-		self.assertEqual(interwiki_link('Bar?Foo'), 'zim+file:///foo/bar?Foo') # name
+		self.assertEqual(interwiki_link('foobar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
+		self.assertEqual(interwiki_link('FooBar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
+		self.assertEqual(interwiki_link('bar?Foo'), 'zim+' + uri1 + '?Foo') # name
+		self.assertEqual(interwiki_link('Bar?Foo'), 'zim+' + uri1 + '?Foo') # name
 
 		# Check backward compatibility
 		file = File('tests/data/notebook-list-old-format.list')

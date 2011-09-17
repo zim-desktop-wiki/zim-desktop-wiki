@@ -402,7 +402,7 @@ class TestDialogs(tests.TestCase):
 			'interwiki': '',
 			'home': 'Home',
 			'icon': './icon.png',
-			'document_root': '/foo',
+			'document_root': File('/foo').path, # win32 save test
 			'shared': False,
 		}
 		config2 = {
@@ -410,7 +410,7 @@ class TestDialogs(tests.TestCase):
 			'interwiki': 'FooBar',
 			'home': 'HomeSweetHome',
 			'icon': './picture.png',
-			'document_root': '/bar',
+			'document_root': File('/bar').path, # win32 save test
 			'shared': True,
 		}
 		notebook.save_properties(**config1)

@@ -95,7 +95,7 @@ def _set_basedirs():
 		XDG_DATA_HOME = Dir('~/.local/share/')
 
 	if 'XDG_DATA_DIRS' in os.environ:
-		XDG_DATA_DIRS = map(Dir, os.environ['XDG_DATA_DIRS'].split(':'))
+		XDG_DATA_DIRS = map(Dir, os.environ['XDG_DATA_DIRS'].split(os.pathsep))
 	else:
 		XDG_DATA_DIRS = map(Dir, ('/usr/share/', '/usr/local/share/'))
 
@@ -105,7 +105,7 @@ def _set_basedirs():
 		XDG_CONFIG_HOME = Dir('~/.config/')
 
 	if 'XDG_CONFIG_DIRS' in os.environ:
-		XDG_CONFIG_DIRS = map(Dir, os.environ['XDG_CONFIG_DIRS'].split(':'))
+		XDG_CONFIG_DIRS = map(Dir, os.environ['XDG_CONFIG_DIRS'].split(os.pathsep))
 	else:
 		XDG_CONFIG_DIRS = [Dir('/etc/xdg/')]
 

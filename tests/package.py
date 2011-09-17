@@ -18,7 +18,12 @@ class TestCompileAll(tests.TestCase):
 		'''Test if all modules compile'''
 		for file in tests.zim_pyfiles():
 			module = file[:-3].replace('/', '.')
-			assert __import__(module)
+			if os.name == 'nt':
+				module = module.replace('\\', '.')
+			if module.endswith('.__init__'):
+				module = module[:-9]
+			#~ print '>>', module
+			self.assertIsNotNone(__import__(module))
 
 
 @tests.slowTest
@@ -64,17 +69,18 @@ class TestCoding(tests.TestCase):
 	def testWrongDependencies(self):
 		'''Check clean dependencies'''
 		#~ for klass in ('gobject', 'gtk', 'gio'): # TODO get rid of gobject as well
+
+		allow_gtk = ('zim/gui/', 'zim/inc/', 'zim/plugins/', 'tests/')
 		for klass in ('gtk', 'gio'):
 			import_re = re.compile(r'^(import|from)\s+%s' % klass, re.M)
 				# only match global imports - allow import in limitted scope
 			for file, code in self.list_code():
-				if file.startswith('zim/gui') \
-				or file.startswith('zim/inc/') \
-				or file.startswith('zim/plugins/') \
-				or file.startswith('tests/'):
+				if os.name == 'nt':
+					file = file.replace('\\', '/')
+				if any(map(file.startswith, allow_gtk)):
 					continue # skip
 				match = import_re.search(code)
-				if match: print '>>>', match.group(0)
+				#~ if match: print '>>>', match.group(0)
 				self.assertFalse(match, '%s imports %s, this is not allowed' % (file, klass))
 
 	def testWrongMethog(self):

@@ -608,6 +608,8 @@ class UnixPath(object):
 		@param other: an other L{FilePath} object
 		@returns: C{True} when the two paths are one and the same file
 		'''
+		# Do NOT assume paths are the same - could be hard link
+		# or it could be a case-insensitive filesystem
 		try:
 			stat_result = os.stat(self.encodedpath)
 			other_stat_result = os.stat(other.encodedpath)
@@ -698,15 +700,26 @@ class UnixPath(object):
 		# Using shutil.move instead of os.rename because move can cross
 		# file system boundaries, while rename can not
 		logger.info('Rename %s to %s', self, newpath)
+		if self.path == newpath.path:
+			raise AssertionError, 'Renaming %s to itself !?' % self.path
+
 		with FS.get_async_lock(self):
 			# Do we also need a lock for newpath (could be the same as lock for self) ?
 			if newpath.isdir():
-				print 'DEPRECATED: moving into an existing folder: %s' % newpath.path
-				# TODO: make this an hard error
-				# Needed because shutil.move() has different behavior
-				# for this case
-			newpath.dir.touch()
-			shutil.move(self.encodedpath, newpath.encodedpath)
+				if self.isequal(newpath):
+					# We checked name above, so must be case insensitive file system
+					# but we still want to be able to rename to other case, so need to
+					# do some moving around
+					tmpdir = self.dir.new_subdir(self.basename)
+					shutil.move(self.encodedpath, tmpdir.encodedpath)
+					shutil.move(tmpdir.encodedpath, newpath.encodedpath)
+				else:
+					# Needed because shutil.move() has different behavior for this case
+					raise AssertionError, 'Folder already exists: %s' % newpath.path
+			else:
+				# normal case
+				newpath.dir.touch()
+				shutil.move(self.encodedpath, newpath.encodedpath)
 		FS.emit('path-moved', self, newpath)
 		self.dir.cleanup()
 
@@ -1040,7 +1053,7 @@ class Dir(FilePath):
 			return Dir(path.path)
 
 	def new_subdir(self, path):
-		'''Get a L{Dir} object for a new file below this folder.
+		'''Get a L{Dir} object for a new sub-folder below this folder.
 		Like L{subdir()} but guarantees the folder does not yet exist by
 		adding sequential numbers if needed. So the resulting folder
 		may have a modified name.

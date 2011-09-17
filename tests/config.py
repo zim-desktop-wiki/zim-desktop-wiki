@@ -35,7 +35,7 @@ class TestDirsTestSetup(TestCase):
 		for k, v in (
 			('XDG_DATA_DIRS', os.path.join(tests.TMPDIR, 'data_dir')),
 			('XDG_CONFIG_DIRS', os.path.join(tests.TMPDIR, 'config_dir')),
-		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(':')))
+		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(os.pathsep)))
 
 
 class TestDirsDefault(TestCase):
@@ -105,6 +105,9 @@ class TestDirsEnvironment(TestDirsDefault):
 			'XDG_CONFIG_DIRS': '/foo/config/dir1:/foo/config/dir2',
 			'XDG_CACHE_HOME': '/foo/cache',
 		}
+		if os.name == 'nt':
+			my_environ['XDG_DATA_DIRS'] = '/foo/data/dir1;/foo/data/dir2'
+			my_environ['XDG_CONFIG_DIRS'] = '/foo/config/dir1;/foo/config/dir2'
 
 		old_environ = dict((name, os.environ.get(name)) for name in my_environ)
 

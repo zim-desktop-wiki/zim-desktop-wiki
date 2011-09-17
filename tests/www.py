@@ -7,6 +7,7 @@ from __future__ import with_statement
 import tests
 
 import sys
+import os
 from cStringIO import StringIO
 import logging
 import wsgiref.validate
@@ -76,6 +77,15 @@ class TestWWWInterface(tests.TestCase):
 			rfile = StringIO('')
 			wfile = StringIO()
 			handler = wsgiref.handlers.SimpleHandler(rfile, wfile, sys.stderr, environ)
+			if os.name == 'nt':
+				# HACK: on windows we have no file system encoding,
+				# but use unicode instead for os API.
+				# However wsgiref.validate fails on unicode param
+				# in environmnet.
+				for k, v in handler.os_environ.items():
+					if isinstance(v, unicode):
+						handler.os_environ[k] = v.encode('utf-8')
+
 			handler.run(validator)
 			#~ print '>>>>\n', wfile.getvalue(), '<<<<'
 			return wfile.getvalue()
