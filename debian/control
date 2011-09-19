@@ -2,7 +2,7 @@ Source: zim
 Section: utils
 Priority: optional
 Maintainer: Jaap Karssenberg <jaap.karssenberg@gmail.com>
-Standards-Version: 3.9.1
+Standards-Version: 3.9.2
 Build-Depends: debhelper (>= 7.4.12), cdbs, python-support (>= 0.8), xdg-utils, python (>= 2.5), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg, python-simplejson | python (>= 2.6)
 # For testing should also include "python-unittest2 | python (>= 2.7)" 
 # but this prevents building the package for Ubuntu Lucid, due to missing
@@ -19,7 +19,7 @@ Recommends: python-gtkspell
 # scrot required for the screenshot plugin
 # dvipng required for the "equation" plugin
 Suggests: bzr, graphviz, scrot, dvipng
-Description: A Desktop Wiki Editor
+Description: Desktop Wiki Editor
  Zim is a graphical text editor used to maintain a collection of wiki pages.
  Each page can contain links to other pages, simple formatting and images.
  Pages are stored in a folder structure, like in an outliner, and can have

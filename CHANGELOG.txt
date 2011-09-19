@@ -5,6 +5,58 @@ This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
 
+=== 0.53 - Mon 19 Sep 2011 ===
+* Cosmetic updates to entry widgets, the page index, the insert date dialog,
+  and the tasklist dialog
+* Updated the find function to properly switch focus and highlight current 
+  match even when text does not have focus - Oliver Joos
+* Added function to remember the position of the main window across sessions
+  and the position of dialog within a session - Oliver Joos
+* Added "interwiki keyword" to give shorthand for linking notebooks - Jiří
+  Janoušek
+* Added template function to create a page index - Jiří Janoušek
+* Added support to include additional files with a template - Jiří Janoušek
+* Added preference for always setting the cursor position based on history
+  or not
+* Added feature so images now can have a link target as well - Jiří Janoušek
+* Refactored index to do much less database commit actions, resulting in 
+  performance gain on slow storage media
+* Added "print to browser" button in the tasklist dialog
+* Added "--search" commandline option
+* Added feature for calendar plugin to use one page per week, month, or year
+  instead of one page per day - Jose Orlando Pereira
+* Added feature to have implicit deadline for tasks defined on a calendar
+  page - Jose Orlando Pereira
+* Added new plugin for evaluating inline arithmetic expressions - Patricio Paez
+* Added support for plugins to have optional dependencies - John Drinkwater
+* Added hook so plugins can register handlers for specific URL schemes
+* Upgraded test suite to unittest support shipped with python 2.7
+* Increased test coverage for main window, dialogs, and image generator plugins
+* Many small typo fixes and code cleanup - Oliver Joos
+* Extensive updates for the developer API documentation - now using epydoc
+* Made file paths in config file relative to home dir where possible in order
+  to facilitate portable version (e.g. home dir mapped to USB drive)
+* Build code updated to build new windows installer and support for portable
+  install - Brendan Kidwell
+* Fixed build process to hardcode platform on build time (maemo version)
+* Fixed bug in notebook list, causing compiled version to be unable to set
+  a default notebook (windows version)
+* Fixed bug with copy-pasting and drag-n-drop using relative paths
+* Fixed bug allowing to click checkboxes in read-only mode
+* Fixed several possible exceptions when moving pages
+* Fixed execution of python scripts on windows - Chris Liechti
+* Fix to preserve file attributes (like mtime) when copying attachments 
+  - Oliver Joos
+* Fixed path of checkbox images in html export - Jiří Janoušek
+* Fix for indexing error in scenario with external syncing (e.g. dropbox)
+* Fix for latex output to use "\textless{}" and "\textgreater{}"
+* Fixed Maemo window class, and python 2.5 compatibility - Miguel Angel Alvarez
+* Fixed unicode usage in template module - Jiří Janoušek
+* Fixed error handling for errors from bzr in versioncontrol plugin
+* Fixed error handling for errors due to non-utf-8 encoded text in pages 
+
+
+
 === 0.52 - Thu 28 Apr 2011 ===
 Bug fix release
 * Fixed a critical bug in the "Add Notebook" prompt for the first notebook on
