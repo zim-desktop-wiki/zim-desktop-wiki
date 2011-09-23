@@ -46,6 +46,6 @@ The following Linux distributions are known to include zim:
 * Mandriva ([[http://petos.cz/rpms|unofficial repository]])
 
 BSD flavors with a zim port:
-* [[http://www.freshports.org/editors/zim|FreeBSD]] (old perl based version)
+* [[http://www.freshports.org/editors/zim|FreeBSD]]
 * [[http://www.openbsd.org/cgi-bin/cvsweb/ports/productivity/zim/|OpenBSD]]
 
