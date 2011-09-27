@@ -206,6 +206,8 @@ Some Verbatim here
 IMAGE: {{../my-image.png?width=600|Foo Bar}}
 LINKS: [[:foo:bar]] [[./file.png]] file:///etc/passwd
 LINKS: [[Foo]][[Bar]]
+IMAGELINK: {{my-image.png?href=Foo}}
+IMAGELINK: {{../my-image.png?href=:foo:bar&amp;width=600|Foo Bar}}
 TAGS: @foo @bar
 
 	Some indented
@@ -312,4 +314,15 @@ Duss
 [[Linking:Foo:Bar]]
 [[Dus]]
 </page>
+<page name="Parent">For page.menu template variable test</page>
+<page name="Parent:Son">For page.menu template variable test</page>
+<page name="Parent:Son:Grandson">For page.menu template variable test</page>
+<page name="Parent:Son:Granddaughter">For page.menu template variable test</page>
+<page name="Parent:Daughter">For page.menu template variable test</page>
+<page name="Parent:Daughter:Grandson">For page.menu template variable test</page>
+<page name="Parent:Daughter:Granddaughter">For page.menu template variable test</page>
+<page name="Parent:Daughter:SomeOne:Foo">For page.menu template variable test</page>
+<page name="Parent:Daughter:SomeOne:Bar">For page.menu template variable test</page>
+<page name="Parent:Child:Grandchild">For page.menu template variable test</page>
+
 </pagelist>

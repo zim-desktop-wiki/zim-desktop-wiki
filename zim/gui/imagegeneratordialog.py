@@ -2,14 +2,67 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+'''This module contains the base classes used by all plugins that
+create an image from text based input. Like the equation editor, the
+diagram editor etc. There is a class for the edit dialog that is used
+for images that are inserted with an object type, and there is a base
+class for the generators that implement specific translations from
+text to an image.
+'''
+
+
 import gtk
 import logging
 
-from zim.fs import *
+from zim.fs import File, Dir
 from zim.gui.widgets import ui_environment, \
 	Dialog, ImageView, Button, QuestionDialog, scrolled_text_view
 
 logger = logging.getLogger('zim.gui')
+
+
+class ImageGeneratorClass(object):
+	'''Base class for image generators which can be used by the
+	L{ImageGeneratorDialog}
+	'''
+
+	uses_log_file = True #: set to C{False} for subclasses that do not generate a log
+
+	type = None #: generator type, e.g. "equation"
+	scriptname = None #: basename of the source files, e.g. "equation.tex"
+	imagename = None #: basename of the resulting image files, e.g. "equation.png"
+
+	def generate_image(self, text):
+		'''Generate an image for a user input
+
+		This is the method that does the actual work to generate an
+		image out of input text. Typically it will write the text to
+		a temporary file using a template and then call an external
+		program (e.g. latex) to create an image out of that source
+		file. The result should be an image file and optionally a
+		log file.
+
+		When the external program failed preferably this method should
+		still return a log file, so the user can check the details of
+		why the creation failed.
+
+		@param text: the source text as string - raw user input
+		@returns: a 2-tuple of the image file and the log file as
+		L{File} objects. If no image file was created the first
+		element should be C{None}, if no log file is created second
+		element should be C{None}.
+
+		@implementation: must be implemented by subclasses
+		'''
+		raise NotImplemented
+
+	def cleanup(self):
+		'''Cleanup any temporary files that were created by this
+		generator. Including log files and image files.
+
+		@implementation: should be implemented by subclasses
+		'''
+		pass
 
 
 class ImageGeneratorDialog(Dialog):
@@ -22,6 +75,15 @@ class ImageGeneratorDialog(Dialog):
 	# TODO: use uistate to remember pane position
 
 	def __init__(self, ui, title, generator, image=None, **opt):
+		'''Constructor
+
+		@param ui: L{GtkInterface} object or parent window
+		@param title: the dialog title
+		@param generator: an L{ImageGeneratorClass} object
+		@param image: image data for an image in the
+		L{TextBuffer<zim.gui.pageview.TextBuffer>}
+		@param opt: any other arguments to pass to the L{Dialog} constructor
+		'''
 		if ui_environment['platform'] == 'maemo':
 			defaultsize = (450,480)
 			# Use maximum available vertical space because decorations take
@@ -36,13 +98,12 @@ class ImageGeneratorDialog(Dialog):
 		self.generator = generator
 		self.imagefile = None
 		self.logfile = None
-		self._existing_file = None
 
 		self.vpane = gtk.VPaned()
 		self.vpane.set_position(150)
 		self.vbox.add(self.vpane)
 
-		self.imageview = ImageView(bgcolor='#FFF', checkboard=False)
+		self.imageview = ImageView(bgcolor='#FFF', checkerboard=False)
 		self.vpane.add1(self.imageview)
 		# TODO scrolled window and option to zoom in / real size
 
@@ -71,15 +132,17 @@ class ImageGeneratorDialog(Dialog):
 		self.logbutton.set_sensitive(False)
 		self.logbutton.connect_object(
 			'clicked', self.__class__.show_log, self)
-		hbox.pack_start(self.logbutton, False)
+		if generator.uses_log_file:
+			hbox.pack_start(self.logbutton, False)
+		# else keep hidden
 
+		self._existing_file = None
 		if image:
 			file = image['_src_file'] # FIXME ?
-			textfile = self._stitch_fileextension(file, self.generator.basename)
-			if file.exists() and textfile.exists():
-				self._existing_file = textfile
-				self.imageview.set_file(file)
-				self.set_text(textfile.read())
+			textfile = self._stitch_fileextension(file, self.generator.scriptname)
+			self._existing_file = textfile
+			self.imageview.set_file(file)
+			self.set_text(textfile.read())
 
 		self.textview.grab_focus()
 
@@ -92,16 +155,22 @@ class ImageGeneratorDialog(Dialog):
 		return File(file.path[:j] + basename[i:])
 
 	def set_text(self, text):
+		'''Set text in the buffer'''
 		buffer = self.textview.get_buffer()
 		buffer.set_text(text)
 		buffer.set_modified(False)
 
 	def get_text(self):
+		'''Get the text from the buffer
+
+		@returns: text as string
+		'''
 		buffer = self.textview.get_buffer()
 		bounds = buffer.get_bounds()
 		return buffer.get_text(*bounds)
 
 	def generate_image(self):
+		'''Update the image based on the text in the text buffer'''
 		self.imagefile = None
 		self.logfile = None
 
@@ -119,11 +188,13 @@ class ImageGeneratorDialog(Dialog):
 		self.textview.get_buffer().set_modified(False)
 
 	def preview(self):
+		'''Action for the "Preview" button'''
 		self.generate_image()
 		self.imageview.set_file(self.imagefile) # if None sets broken image
 		self.logbutton.set_sensitive(not self.logfile is None)
 
 	def show_log(self):
+		'''Action for the "View Log" button'''
 		assert self.logfile, 'BUG: no logfile set (yet)'
 		LogFileDialog(self, self.logfile).run()
 
@@ -144,18 +215,21 @@ class ImageGeneratorDialog(Dialog):
 		else:
 			page = self.ui.page
 			dir = self.ui.notebook.get_attachments_dir(page)
-			textfile = dir.new_file(self.generator.basename)
-
-		imgfile = self._stitch_fileextension(textfile, self.imagefile.basename)
+			textfile = dir.new_file(self.generator.scriptname)
 
 		textfile.write( self.get_text() )
-		self.imagefile.rename(imgfile)
+
+		imgfile = self._stitch_fileextension(textfile, self.generator.imagename)
+		if self.imagefile and self.imagefile.exists():
+			self.imagefile.rename(imgfile)
+		elif imgfile.exists():
+			imgfile.remove()
 
 		if self._existing_file:
 			self.ui.reload_page()
 		else:
 			pageview = self.ui.mainwindow.pageview
-			pageview.insert_image(imgfile, type=self.generator.type, interactive=False)
+			pageview.insert_image(imgfile, type=self.generator.type, interactive=False, force=True)
 
 		if self.logfile and self.logfile.exists():
 			self.logfile.remove()
@@ -168,6 +242,7 @@ class ImageGeneratorDialog(Dialog):
 
 
 class LogFileDialog(Dialog):
+	'''Simple dialog to show the log file'''
 
 	def __init__(self, ui, file):
 		Dialog.__init__(self, ui, _('Log file'), buttons=gtk.BUTTONS_CLOSE)

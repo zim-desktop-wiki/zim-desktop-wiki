@@ -2,14 +2,22 @@
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+'''This module contains a web interface for zim. This is an alternative
+to the GUI application.
+
+It can be run either as a stand-alone web server or embedded in another
+server as a cgi-bin script or using  one of the python web frameworks
+using the "WSGI" API.
+
+The main classes here are L{WWWInterface} which implements the interface
+(and is callable as a "WSGI" application) and L{Server} which implements
+the standalone server.
+'''
+
 # TODO check client host for security
 # TODO setting for doc_root_url when running in CGI mode
 # TODO support "etg" and "if-none-match' headers at least for icons
 
-'''This module contains a web interface for zim. This is an alternative to
-the GUI application. It can be run either as a stand-alone web server or
-embedded in another server using cgi-bin or one of the python web frameworks.
-'''
 
 import sys
 import socket
@@ -33,7 +41,9 @@ logger = logging.getLogger('zim.www')
 
 
 class WWWError(Error):
+	'''Error with http error code'''
 
+	#: mapping of error number to string - extend when needed
 	statusstring = {
 		'403': 'Forbidden',
 		'404': 'Not Found',
@@ -42,6 +52,15 @@ class WWWError(Error):
 	}
 
 	def __init__(self, msg, status='500', headers=None):
+		'''Constructor
+		@param msg: specific error message - will be appended after
+		the standard error string
+		@param status: error code, e.g. '500' for "Internal Server Error"
+		or '404' for "Not Found" - see http specifications for valid
+		error codes
+		@param headers: additional http headers for the error response,
+		list of 2-tuples with header name and value
+		'''
 		self.status = '%s %s' % (status, self.statusstring[status])
 		self.headers = headers
 		self.msg = self.status
@@ -50,6 +69,9 @@ class WWWError(Error):
 
 
 class NoConfigError(WWWError):
+	'''Error when configuration is missing what notebook to serve.
+	E.g. for cgi-bin script that was copied without modifiction.
+	'''
 
 	description = '''\
 There was no notebook configured for this zim instance.
@@ -57,10 +79,11 @@ This is likely a configuration issue.
 '''
 
 	def __init__(self):
-		WWWError.__init__(self, 'Notebook not found')
+		WWWError.__init__(self, 'Notebook not found', status='500')
 
 
 class PageNotFoundError(WWWError):
+	'''Error whan a page is not found (404)'''
 
 	description = '''\
 You tried to open a page that does not exist.
@@ -73,6 +96,7 @@ You tried to open a page that does not exist.
 
 
 class PathNotValidError(WWWError):
+	'''Error when the url points to an invalid page path'''
 
 	description = '''\
 The requested path is not valid
@@ -87,15 +111,20 @@ class WWWInterface(NotebookInterface):
 
 	Objects of this class are callable, so they can be used as application
 	objects within a WSGI compatible framework. See PEP 333 for details
-	( http://www.python.org/dev/peps/pep-0333/ ).
+	(U{http://www.python.org/dev/peps/pep-0333/}).
 
-	For basic handlers to run this interface see the wsgiref package that comes
-	with python.
+	For basic handlers to run this interface see the "wsgiref" package
+	in the standard library for python.
 	'''
 
 	ui_type = 'html'
 
 	def __init__(self, notebook=None, template='Default', **opts):
+		'''Constructor
+		@param notebook: notebook location
+		@param template: html template for zim pages
+		@param opts: options for L{NotebookInterface.__init__()}
+		'''
 		NotebookInterface.__init__(self, **opts)
 		self.output = None
 		if isinstance(template, basestring):
@@ -115,21 +144,19 @@ class WWWInterface(NotebookInterface):
 			self.template.set_linker(self.linker)
 
 	def __call__(self, environ, start_response):
-		'''Main function for handling a single request. Arguments are the file
-		handle to write the output to and the path to serve. Any exceptions
-		will result in a error response being written.
+		'''Main function for handling a single request. Follows the
+		WSGI API.
 
-		First argument is a dictionary with environment variables and some special
-		variables. See the PEP for expected variables. The second argument is a
-		function that can be called for example like:
+		@param environ: dictionary with environment variables for the
+		request and some special variables. See the PEP for expected
+		variables.
+
+		@param start_response: a function that can be called to set the
+		http response and headers. For example::
 
 			start_response(200, [('Content-Type', 'text/plain')])
 
-		This method is supposed to take care of sending the response line and
-		the headers.
-
-		The return value of this call is a list of lines with the content to
-		be served.
+		@returns: the html page content as a list of lines
 		'''
 		headerlist = []
 		headers = Headers(headerlist)
@@ -154,7 +181,7 @@ class WWWInterface(NotebookInterface):
 			if not path:
 				path = '/'
 			elif path == '/favicon.ico':
-				path = '/+icons/favicon.ico'
+				path = '/+resources/favicon.ico'
 			else:
 				path = urllib.unquote(path)
 
@@ -177,17 +204,20 @@ class WWWInterface(NotebookInterface):
 				content = [file.raw()]
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.get_mimetype()
-			elif path.startswith('/+icons/'):
-				# TODO check if favicon is overridden or something
-				file = data_file('pixmaps/%s' % path[8:])
-				content = [file.raw()]
-					# Will raise FileNotFound when file does not exist
-				if path.endswith('.png'):
-					headers['Content-Type'] = 'image/png'
-				elif path.endswith('.ico'):
-					headers['Content-Type'] = 'image/vnd.microsoft.icon'
+ 			elif path.startswith('/+resources/'):
+				if self.template and self.template.resources_dir:
+					file = self.template.resources_dir.file(path[12:])
+					if not file.exists():
+						file = data_file('pixmaps/%s' % path[12:])
 				else:
-					raise PathNotValidError()
+					file = data_file('pixmaps/%s' % path[12:])
+
+				if file:
+					content = [file.raw()]
+						# Will raise FileNotFound when file does not exist
+					headers['Content-Type'] = file.get_mimetype()
+	 			else:
+					raise PageNotFoundError(path)
 			else:
 				# Must be a page or a namespace (html file or directory path)
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
@@ -216,7 +246,8 @@ class WWWInterface(NotebookInterface):
 					error = PageNotFoundError(path)
 					# show url path instead of file path
 				if error.headers:
-					header.extend(error.headers)
+					for key, value in error.headers:
+						headers.add_header(key, value)
 				start_response(error.status, headerlist)
 				content = unicode(error).splitlines(True)
 			# TODO also handle template errors as special here
@@ -240,12 +271,18 @@ class WWWInterface(NotebookInterface):
 				return content
 
 	def render_index(self, namespace=None):
-		'''Serve an index page'''
+		'''Render an index page
+		@param namespace: the namespace L{Path}
+		@returns: html as a list of lines
+		'''
 		page = IndexPage(self.notebook, namespace)
 		return self.render_page(page)
 
 	def render_page(self, page):
-		'''Serve a single page from the notebook'''
+		'''Render a single page from the notebook
+		@param page: a L{Page} object
+		@returns: html as a list of lines
+		'''
 		if self.template:
 			return self.template.process(self.notebook, page)
 		else:
@@ -253,15 +290,28 @@ class WWWInterface(NotebookInterface):
 
 
 class Server(gobject.GObject):
-	'''Webserver based on glib'''
+	'''Stand-alone webserver based on glib
+
+	@signal: C{started ()}: emitted when the server starts serving
+	@signal: C{stopped ()}: emitted when the server stops serving
+	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'started': (gobject.SIGNAL_RUN_LAST, None, []),
-		'stopped': (gobject.SIGNAL_RUN_LAST, None, [])
+		'started': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'stopped': (gobject.SIGNAL_RUN_LAST, None, ())
 	}
 
 	def __init__(self, notebook=None, port=8080, gui=False, public=True, **opts):
+		'''Constructor
+		@param notebook: the notebook location
+		@param port: the http port to serve on
+		@param gui: whether to show the graphical interface for the
+		server - see L{zim.gui.server}
+		@param public: allow connections to the server from other
+		computers - if C{False} can only connect from localhost
+		@param opts: options for L{WWWInterface.__init__()}
+		'''
 		gobject.GObject.__init__(self)
 		self.socket = None
 		self.running = False
@@ -281,15 +331,24 @@ class Server(gobject.GObject):
 			self.use_gtk = False
 
 	def set_notebook(self, notebook):
+		'''Set the notebook location
+		@param notebook: the notebook location
+		'''
 		self.stop()
 		self.interface = WWWInterface(notebook)
 
 	def set_port(self, port):
+		'''Set the http port
+		@param port: the http port to serve on
+		'''
 		assert not self.running
 		assert isinstance(port, int), port
 		self.port = port
 
 	def main(self):
+		'''Main loop, runs the server and returns only when the server
+		us stopped.
+		'''
 		if self.use_gtk:
 			import gtk
 			self.window.show_all()
@@ -301,9 +360,9 @@ class Server(gobject.GObject):
 		self.stop()
 
 	def start(self):
-		'''Open a socket and start listening. If we are running already, first
-		calls stop() to close the old socket, causing a restart. Emits the
-		'started' signal upon success.
+		'''Open a socket and start listening. If we are running already,
+		first calls stop() to close the old socket, causing a restart.
+		@emits: started
 		'''
 		if self.running:
 			self.stop()
@@ -326,7 +385,9 @@ class Server(gobject.GObject):
 		self.emit('started')
 
 	def stop(self):
-		'''Close the socket and stop listening, emits the 'stopped' signal'''
+		'''Close the socket and stop listening
+		@emits: stopped
+		'''
 		if not self.running:
 			return # ignore silently
 
@@ -388,14 +449,20 @@ gobject.type_register(Server)
 
 
 class WWWLinker(BaseLinker):
+	'''Implements a L{linker<BaseLinker>} that returns the correct
+	links for the way the server handles URLs.
+	'''
 
 	def __init__(self, notebook, path=None):
 		BaseLinker.__init__(self)
 		self.notebook = notebook
 		self.path = path
 
+	def resource(self, path):
+		return url_encode('/+resources/%s' % path)
+
 	def icon(self, name):
-		return url_encode('/+icons/%s.png' % name)
+		return url_encode('/+resources/%s.png' % name)
 
 	def link_page(self, link):
 		try:

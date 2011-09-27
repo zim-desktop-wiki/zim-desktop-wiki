@@ -16,8 +16,8 @@ class PropertiesDialog(Dialog):
 		self.vbox.pack_start(label, False)
 		fields = []
 		config = self.ui.notebook.config['Notebook']
-		for name, type, label in self.ui.notebook.properties:
-			fields.append((name, type, label))
+		for item in self.ui.notebook.properties:
+			fields.append(item)
 		self.add_form(fields, values=config)
 		self.form.widgets['icon'].set_use_relative_paths(self.ui.notebook)
 		if self.ui.readonly:

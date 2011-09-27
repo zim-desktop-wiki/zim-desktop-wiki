@@ -4,24 +4,12 @@
 
 '''This module contains the Gtk user interface for zim.
 The main widgets and dialogs are separated out in sub-modules.
-Included here are the main class for the zim GUI, which
-contains most action handlers and the main window class.
+Included here are the main class for the zim GUI L{GtkInterface}, which
+contains most action handlers and the main window class L{MainWindow},
+as well as a number of dialogs.
 
-The GUI uses a few mechanisms for other classes to dynamically
-add elements. One is the use of the gtk.UIManager class to
-populate the menubar and toolbar. This allows other parts of
-the application to define additional actions. See the methods
-add_actions() and add_ui() for wrappers around this functionality.
-A second mechanism is that for simple options other classes can
-register a preference to be shown in the PreferencesDialog. See
-the register_preferences() method. NOTE: the plugin base class
-has it's own wrappers for these things. Plugin writers should
-look there first.
-
-To define dialogs in the GUI please use one of the Dialog,
-FileDialog, QuestionDialog or ErrorDialog classes as base class.
-Especially the Dialog class contains many convenience methods to
-quickly setup a simple form.
+If you want to extend the user interface, also see L{zim.gui.widgets}
+for common base classes for widgets and dialogs.
 '''
 
 import os
@@ -31,14 +19,14 @@ import gtk
 
 import zim
 from zim import NotebookInterface, NotebookLookupError
-from zim.fs import *
-from zim.fs import normalize_win32_share
-from zim.errors import Error, TrashNotSupportedError
+from zim.fs import File, Dir, normalize_win32_share
+from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
+from zim.async import DelayedCallback
 from zim.notebook import Path, Page
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord
-from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re
+from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re, is_url_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
@@ -55,6 +43,7 @@ from zim.gui.applications import ApplicationManager, CustomToolManager
 
 logger = logging.getLogger('zim.gui')
 
+#: Menu actions
 ui_actions = (
 	('file_menu', None, _('_File')), # T: Menu title
 	('edit_menu', None, _('_Edit')), # T: Menu title
@@ -97,7 +86,7 @@ ui_actions = (
 	('show_clean_notebook', None, _('_Cleanup Attachments'), '', '', False), # T: Menu item
 	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', '', False), # T: Menu item
 	('show_server_gui', None, _('Start _Web Server'), '', '', True), # T: Menu item
-	('reload_index', None, _('Re-build Index'), '', '', False), # T: Menu item
+	('reload_index', None, _('Update Index'), '', '', False), # T: Menu item
 	('manage_custom_tools', 'gtk-preferences', _('Custom _Tools'), '', '', True), # T: Menu item
 	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back'), True), # T: Menu item
 	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward'), True), # T: Menu item
@@ -114,6 +103,7 @@ ui_actions = (
 	('show_about', 'gtk-about', _('_About'), '', '', True), # T: Menu item
 )
 
+#: Menu actions that toggle between two states
 ui_toggle_actions = (
 	# name, stock id, label, accelerator, tooltip, initial state, readonly
 	('toggle_toolbar', None, _('_Toolbar'),  '', '', True, True), # T: Menu item
@@ -133,6 +123,7 @@ if ui_environment['platform'] == 'maemo':
 		('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
 	)
 
+#: Menu items with a radio checkbox
 ui_pathbar_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
 	('set_pathbar_none', None, _('_None'),  None, None, 0), # T: Menu item
@@ -141,11 +132,12 @@ ui_pathbar_radio_actions = (
 	('set_pathbar_path', None, _('N_amespace'), None, None, 3), # T: Menu item
 )
 
-PATHBAR_NONE = 'none'
-PATHBAR_RECENT = 'recent'
-PATHBAR_HISTORY = 'history'
-PATHBAR_PATH = 'path'
+PATHBAR_NONE = 'none' #: Constant for no pathbar
+PATHBAR_RECENT = 'recent' #: Constant for the recent pages pathbar
+PATHBAR_HISTORY = 'history' #: Constant for the history pathbar
+PATHBAR_PATH = 'path' #: Constant for the namespace pathbar
 
+#: Menu items for the context menu of the toolbar
 ui_toolbar_style_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
 	('set_toolbar_icons_and_text', None, _('Icons _And Text'), None, None, 0), # T: Menu item
@@ -153,6 +145,7 @@ ui_toolbar_style_radio_actions = (
 	('set_toolbar_text_only', None, _('_Text Only'), None, None, 2), # T: Menu item
 )
 
+#: Menu items for the context menu of the toolbar
 ui_toolbar_size_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
 	('set_toolbar_icons_large', None, _('_Large Icons'), None, None, 0), # T: Menu item
@@ -168,7 +161,7 @@ TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
-
+#: Preferences for the user interface
 ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
@@ -178,6 +171,8 @@ ui_preferences = (
 		# default value is False because this is mapped to switch between
 		# char sets in certain international key mappings
 	('remove_links_on_delete', 'bool', 'Interface', _('Remove links when deleting pages'), True),
+		# T: Option in the preferences dialog
+	('always_use_last_cursor_pos', 'bool', 'Interface', _('Always use last cursor position when opening a page'), True),
 		# T: Option in the preferences dialog
 )
 
@@ -195,6 +190,11 @@ if ui_environment['platform'] == 'maemo':
 
 # Load custom application icons as stock
 def load_zim_stock_icons():
+	'''Function to load zim custom stock icons for Gtk. Will load all
+	icons found in the "pixmaps" folder with a stock name prefixed
+	with "zim-", so "data/pixmaps/link.png" becomes the "zim-link"
+	stock icon. Called directly when this module is loaded.
+	'''
 	factory = gtk.IconFactory()
 	factory.add_default()
 	for dir in data_dirs(('pixmaps')):
@@ -216,7 +216,12 @@ KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
 def schedule_on_idle(function, args=()):
-	'''Helper function to schedule stuff that can be done later'''
+	'''Helper function to schedule stuff that can be done later, it will
+	be triggered on the gtk "idle" signal.
+
+	@param function: function to call
+	@param args: positional arguments
+	'''
 	def callback():
 		function(*args)
 		return False # delete signal
@@ -224,17 +229,57 @@ def schedule_on_idle(function, args=()):
 
 
 class NoSuchFileError(Error):
+	'''Exception for when a file or folder is not found that should
+	exist.
+	'''
 
 	description = _('The file or folder you specified does not exist.\nPlease check if you the path is correct.')
 		# T: Error description for "no such file or folder"
 
 	def __init__(self, path):
+		'''Constructor
+		@param path: the L{File} or L{Dir} object
+		'''
 		self.msg = _('No such file or folder: %s') % path.path
 			# T: Error message, %s will be the file path
 
 
+class NoSuchApplicationError(Error):
+	'''Exception for when we can not find the helper application to open
+	a certain file.
+	'''
+
+	# FIXME - define these in a global place - at least also duplicated in preferences dialog
+	labels = {
+		'file_browser': _('File browser'), # T: Application type
+		'web_browser': _('Web browser'),
+		'email_client': _('Email client'),
+		'text_editor': _('Text Editor'),
+	}
+
+	description = _('This means that either no application is installed\nfor this type, or the preference is not set.')
+		# T: Error description for "no such application"
+
+	def __init__(self, app_type):
+		'''Constructor
+		@param app_type: the application type
+		@param uri: the URI that we wanted to open
+		'''
+		app_label = self.labels.get(app_type, app_type)
+		self.msg = _('Could not find application: %s') % app_label
+			# T: Error message for missing applicaiton, %s is replaced by the application type (e.g. "Web Browser")
+
+
 class RLock(object):
-	'''Kind of re-entrant lock that keeps a stack count'''
+	'''Re-entrant lock that keeps a stack count
+
+	The lock will increase a counter each time L{increment()} is called
+	and decrease the counter each time L{decrement()} is called. When
+	the counter is non-zero the object will evaluate C{True}. This is
+	used to e.g. handle recursive calls to the same handler while
+	waiting for user input. Because of the counter the lock only is
+	freed when the outer most wrapper calls L{decrement()}.
+	'''
 
 	__slots__ = ('count',)
 
@@ -245,9 +290,11 @@ class RLock(object):
 		return self.count > 0
 
 	def increment(self):
+		'''Increase counter'''
 		self.count += 1
 
 	def decrement(self):
+		'''Decrease counter'''
 		if self.count == 0:
 			raise AssertionError, 'BUG: RLock count can not go below zero'
 		self.count -= 1
@@ -257,31 +304,73 @@ class GtkInterface(NotebookInterface):
 	'''Main class for the zim Gtk interface. This object wraps a single
 	notebook and provides actions to manipulate and access this notebook.
 
-	Signals:
-	* open-page (page, path)
-	  Called when opening another page, see open_page() for details
-	* close-page (page)
-	  Called when closing a page, typically just before a new page is opened
-	  and before closing the application
-	* new-window (window)
-	  Called when a new window is created, can be used as a hook by plugins
-	* preferences-changed
-	  Emitted after the user changed the preferences
-	  (typically triggered by the preferences dialog)
-	* read-only-changed
-	  Emitted when the ui changed from read-write to read-only or back
-	* quit
-	  Emitted when the application is about to quit
-	* start-index-update
-	* end-index-update
+	This class has quite some methods that are described as "menu
+	actions". This means these methods directly implement the action
+	that is triggered by a specific menu action. However they are also
+	available for other classes to call them directly and are part of
+	the public API.
 
-	Also see signals in zim.NotebookInterface
+	The GUI uses a few mechanisms for other classes to dynamically add
+	elements. One is the use of the C{gtk.UIManager} class to populate
+	the menubar and toolbar. This allows other parts of the application
+	to define additional actions. See the methods L{add_actions()} and
+	L{add_ui()} for wrappers around this functionality.
+	A second mechanism is that for simple options other classes can
+	register a preference to be shown in the PreferencesDialog. See
+	the L{register_preferences()} method.
+
+	B{NOTE:} the L{plugin<zim.plugins>} base class has it's own wrappers
+	for these things. Plugin writers should look there first.
+
+	@ivar preferences: L{ConfigDict} for global preferences, maps to
+	the X{preferences.conf} config file.
+	@ivar uistate: L{ConfigDict} for current state of the user interface,
+	maps to the X{state.conf} config file per notebook.
+	@ivar notebook: The L{Notebook} object
+	@ivar page: The L{Page} object for the current page in the
+	main window
+	@ivar readonly: When C{True} the whole interface is read-only
+	@ivar usedaemon: When C{True} we are using the background deamon
+	(see L{zim.daemon})
+	@ivar hideonclose: When C{True} the application will hide itself
+	instead of closing when the main window is closed, typically used
+	in combination with the daemon and the
+	L{tray icon plugin<zim.plugins.trayicon>}
+	@ivar mainwindow: the L{MainWindow} object
+	@ivar history: the L{History} object
+	@ivar uimanager: the C{gtk.UIManager} (see the methods
+	L{add_actions()} and L{add_ui()} for wrappers)
+	@ivar preferences_register: a L{ListDict} with preferences to show
+	in the preferences dialog, see L{register_preferences()} to add
+	to more preferences
+
+	@signal: C{open-page (L{Page}, L{Path})}: Emitted when opening
+	a page, the Path is given as the 2nd argument so the source of the
+	path can be checked - in particular when a path is opened through a
+	history function this will be a L{HistoryPath}
+	@signal: C{close-page (L{Page}, final)}: Emitted before closing a
+	page, typically just before a new page is opened and before closing
+	the application. If 'C{final}' is C{True} we expect this to be the
+	final page closure before quiting the application. This it is only
+	a hint, so do not destroy any ui components when 'C{final}' is set,
+	but it can be used to decide to do some actions async or not.
+	@signal: C{new-window (C{Window})}: Emitted when a new window is
+	created, can be used as a hook by plugins
+	@signal: C{preferences-changed ()}: Emitted after the user changed
+	the preferences (typically triggered by the preferences dialog)
+	@signal: C{read-only-changed ()}: Emitted when the ui changed from
+	read-write to read-only or back
+	@signal: C{quit ()}: Emitted when the application is about to quit
+	@signal: C{start-index-update ()}: Emitted before running a index
+	update
+	@signal: C{end-index-update ()}: Emitted when an index update is
+	finished
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object, bool)),
 		'new-window': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
@@ -290,10 +379,18 @@ class GtkInterface(NotebookInterface):
 		'end-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	ui_type = 'gtk'
+	ui_type = 'gtk' #: UI type - typically checked by plugins instead of class
 
 	def __init__(self, notebook=None, page=None,
 		fullscreen=False, geometry=None, usedaemon=False):
+		'''Constructor
+
+		@param notebook: a L{Notebook} object
+		@param page: a L{Path} object
+		@param fullscreen: if C{True} open fullscreen
+		@param geometry: window geometry as string in format "C{WxH+X+Y}"
+		@param usedaemon: if C{True} we use the background daemon
+		'''
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
 		NotebookInterface.__init__(self)
 		self._finalize_ui = False
@@ -307,6 +404,8 @@ class GtkInterface(NotebookInterface):
 		self.readonly = False
 		self.usedaemon = usedaemon
 		self.hideonclose = False
+		self.windows = set()
+		self.url_handlers = {}
 
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
@@ -423,11 +522,10 @@ class GtkInterface(NotebookInterface):
 		# Deal with commandline arguments for notebook and page
 		if notebook:
 			self.open_notebook(notebook)
-			if self.notebook is None:
-				# Exit the program before reaching main()
-				raise Exception, 'Could not open notebook: %s' % notebook
+			# If it fails here an error dialog is shown and main()
+			# will prompt the notebook list
 
-			if page:
+			if self.notebook and page:
 				if isinstance(page, basestring):
 					page = self.notebook.resolve_path(page)
 					if not page is None:
@@ -449,7 +547,11 @@ class GtkInterface(NotebookInterface):
 		NotebookInterface.spawn(self, *args)
 
 	def main(self):
-		'''Wrapper for gtk.main(); does not return until program has ended.'''
+		'''Wrapper for C{gtk.main()}, runs main loop of the application.
+		Does not return until program has ended. Also takes care of
+		a number of initialization actions, like prompting the
+		L{NotebookDialog} if needed and will show the main window.
+		'''
 		if self.notebook is None:
 			import zim.gui.notebookdialog
 			notebook = zim.gui.notebookdialog.prompt_notebook()
@@ -504,7 +606,16 @@ class GtkInterface(NotebookInterface):
 		gtk.main()
 
 	def present(self, page=None, fullscreen=None, geometry=None):
-		'''Present a specific page the main window and/or set window mode'''
+		'''Present the mainwindow. Typically used to bring back a
+		the application after it was hidden. Also used for remote
+		calls from the daemon.
+
+		@param page: a L{Path} object or page path as string
+		@param fullscreen: if C{True} the window is shown fullscreen,
+		if C{None} the previous state is restored
+		@param geometry: the window geometry as string in format
+		"C{WxH+X+Y}", if C{None} the previous state is restored
+		'''
 		self.mainwindow.present()
 		if page:
 			if isinstance(page, basestring):
@@ -518,7 +629,8 @@ class GtkInterface(NotebookInterface):
 
 	def toggle_present(self):
 		'''Present main window if it is not on top, but hide if it is.
-		Used by the TrayIcon to toggle visibility of the window.
+		Used by the L{trayicon plugin<zim.plugins.trayicon>} to toggle
+		visibility of the window.
 		'''
 		if self.mainwindow.is_active():
 			self.mainwindow.hide()
@@ -526,36 +638,76 @@ class GtkInterface(NotebookInterface):
 			self.mainwindow.present()
 
 	def hide(self):
-		'''Hide the main window (this is not the same as minimize)'''
+		'''Hide the main window. Note that this is not the same as
+		minimize, when minimized there is still an icon in the task
+		bar, if hidden there is no visible trace of the application and
+		it can not be accessed by the user anymore until L{present()}
+		has been called.
+		'''
 		self.mainwindow.hide()
 
 	def close(self):
+		'''Menu action for close. Will hide when L{hideonclose} is set,
+		calls L{quit()} otherwise.
+		'''
 		if self.hideonclose:
 			self.hide()
 		else:
 			self.quit()
 
 	def quit(self):
-		# TODO: logic to hide the window
-		if not self.close_page(self.page):
+		'''Menu action for quit.
+		@emits: quit
+		'''
+		if not self.close_page(self.page, final=True):
 			# Do not quit if page not saved
-			return
+			return False
 
 		self.emit('quit')
-
-		if self.uistate.modified:
-			self.uistate.write()
-
 		self.mainwindow.destroy()
-		gtk.main_quit()
+
+		if gtk.main_level() > 0:
+			gtk.main_quit()
+
+		return True
 
 	def add_actions(self, actions, handler, methodname=None):
-		'''Wrapper for gtk.ActionGroup.add_actions(actions),
-		"handler" is the object that has the methods for these actions.
+		'''Add extra menu actions to the interface which can be used
+		in the menubar and toolbar.
 
-		Each action is mapped to a like named method of the handler
-		object. If the object not yet has an actiongroup this is created first,
-		attached to the uimanager and put in the "actiongroup" attribute.
+		Wrapper for C{gtk.ActionGroup.add_actions()}. Adding actions
+		will not show them in the interface immediately. To achieve
+		that you first need to load some layout definition using
+		L{add_ui()}.
+
+		This method assumes the actions are implemented by a "handler"
+		object. The actions are store in the C{gtk.ActionGroup} in
+		the "actiongroup" attribute of this object. This attribute
+		is created and attached to the uimanager if it does not yet
+		exist.
+
+		@param actions: a list of action definitions. Actions are
+		defined as a 6-tuple of :
+		  - the name of the action
+		  - a gtk stock id for the icon, or C{None}
+		  - the label
+		  - the accelerator key binding
+		  - a tooltip message
+		  - a boolean, if C{True} this action is can be used in a
+		    read-only interface
+
+		Actions that define (sub-)menus are a special case, they are
+		defined as a 3-tuple of the name, stock id and a lable. In this
+		case the name must end with "_menu"
+
+		See C{gtk.ActionGroup} documentation for more details.
+
+		@param handler: object that implements these actions. Each
+		action is mapped to an object method of the same name.
+		@param methodname: name for a method on the handler object which
+		will handle all actions. This overrules the default mapping of
+		actions by action name. Used to implement groups of actions
+		with a single handler method.
 		'''
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		group = self.init_actiongroup(handler)
@@ -563,16 +715,37 @@ class GtkInterface(NotebookInterface):
 		self._connect_actions(actions, group, handler)
 
 	def add_toggle_actions(self, actions, handler):
-		'''Wrapper for gtk.ActionGroup.add_toggle_actions(actions),
-		"handler" is the object that has the methods for these actions.
+		'''Add extra menu actions to the interface which can be used
+		in the menubar and toolbar.
 
-		Differs for add-actions() in that in the mapping from action name
-		to method name is prefixed with "do_". The reason for this is that
-		in order to keep the state of toolbar and menubar widgets stays in
-		sync with the internal state. Therefore the method of the same name
-		as the action should just call activate() on the action, while the
-		actual logic is implemented in the handler which is prefixed with
-		"do_".
+		Wrapper for C{gtk.ActionGroup.add_toggle_actions()}.
+
+		Differs from L{add_actions()} in the way actions are mapped to
+		object methods, the name is prefixed with "do_". The reason for
+		this is that we need some code to keep the state of toolbar
+		and menubar widgets in sync with the internal state, while at
+		the same time we want to be able to call the standard method
+		name from other interface. So e.g. an action "foo" will trigger
+		a method "C{do_foo()}" which should implement the logic. This
+		allows also to have a public method "C{foo()}" which calls
+		"C{action.activate()}" whic in turn triggers "C{do_foo()}"
+		again. See L{zim.plugins.PluginClass.toggle_action()} for a
+		convenience method to help implementing this.
+
+		@param actions: list of action definitions. Actions are defined
+		defined as a 7-tuple of :
+		  - the name of the action
+		  - a gtk stock id for the icon, or C{None}
+		  - the label
+		  - the accelerator key binding
+		  - a tooltip message
+		  - initial state C{True} or C{False}
+		  - a boolean, if C{True} this action is can be used in a
+		    read-only interface
+
+		See C{gtk.ActionGroup} documentation for more details.
+
+		@param handler: object that implements these actions.
 		'''
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		group = self.init_actiongroup(handler)
@@ -580,9 +753,50 @@ class GtkInterface(NotebookInterface):
 			# insert 'None' for callback
 		self._connect_actions(actions, group, handler, is_toggle=True)
 
+	def add_radio_actions(self, actions, handler, methodname):
+		'''Add extra menu actions to the interface which can be used
+		in the menubar and toolbar.
+
+		Wrapper for C{gtk.ActionGroup.add_radio_actions()}, defining
+		a single group of radio actions. Of this group only one item
+		can be active at the time.
+
+		@param actions: a list of action definitions. Actions are
+		defined as a 6-tuple of :
+		  - the name of the action
+		  - a gtk stock id for the icon, or C{None}
+		  - the label
+		  - the accelerator key binding
+		  - a tooltip message
+		  - the value to set on the radio
+
+		See C{gtk.ActionGroup} documentation for more details.
+
+		@param handler: object that implements these actions
+		@param methodname: name for a method on the handler object which
+		will handle all actions, this is mandatory for radio actions,
+		they always have a single handler for the whole group. The
+		handler gets the name of the selected radio as the first
+		argument.
+		'''
+		# A bit different from the other two methods since radioactions
+		# come in mutual exclusive groups. Only need to connect to one
+		# action to get signals from whole group. But need to pass on
+		# the name of the active action
+		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tuples'
+		assert hasattr(handler, methodname), 'No such method %s' % methodname
+		group = self.init_actiongroup(handler)
+		group.add_radio_actions(actions)
+		method = getattr(handler, methodname)
+		action = group.get_action(actions[0][0])
+		action.connect('changed', self._radio_action_handler, method)
+
 	def init_actiongroup(self, handler):
-		'''Initializes the actiongroup for 'handler' if it does not already
-		exist and returns the actiongroup.
+		'''Initializes the actiongroup for a handler object if it does
+		not already exist. The actiongroup is set in the "actiongroup"
+		attribute of the object and inserted in the ui manager.
+		@param handler: the handler object
+		@returns: the actiongroup object
 		'''
 		if not hasattr(handler, 'actiongroup') or handler.actiongroup is None:
 			name = handler.__class__.__name__
@@ -591,7 +805,10 @@ class GtkInterface(NotebookInterface):
 		return handler.actiongroup
 
 	def remove_actiongroup(self, handler):
-		'''Remove the actiongroup for 'handler' and thereby all actions'''
+		'''Remove the actiongroup for a handler object and remove all
+		actions from the ui manager.
+		@param handler: the handler object
+		'''
 		if hasattr(handler, 'actiongroup') and handler.actiongroup:
 			self.uimanager.remove_action_group(handler.actiongroup)
 			handler.actiongroup = None
@@ -620,27 +837,19 @@ class GtkInterface(NotebookInterface):
 			if self.readonly and not action.zim_readonly:
 				action.set_sensitive(False)
 
-	def add_radio_actions(self, actions, handler, methodname):
-		'''Wrapper for gtk.ActionGroup.add_radio_actions(actions),
-		"handler" is the object that these actions belong to and
-		"methodname" gives the callback to be called on changes in this
-		group this method will be called for any change with the name of
-		the active action as only argument.
-		'''
-		# A bit different from the other two methods since radioactions
-		# come in mutual exclusive groups. Only need to connect to one
-		# action to get signals from whole group. But need to pass on
-		# the name of the active action
-		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tuples'
-		assert hasattr(handler, methodname), 'No such method %s' % methodname
-		group = self.init_actiongroup(handler)
-		group.add_radio_actions(actions)
-		method = getattr(handler, methodname)
-		action = group.get_action(actions[0][0])
-		action.connect('changed', self._radio_action_handler, method)
-
 	def add_ui(self, xml, handler):
-		'''Wrapper for gtk.UIManager.add_ui_from_string(xml)'''
+		'''Add a definition of the layout of the menubar and/or toolbar
+		adding new menu items.
+
+		Wrapper for C{gtk.UIManager.add_ui_from_string()}, see
+		documentation there for more details on XML spec.
+
+		@param xml: layout definition as string in XML format
+		@param handler: handler object, this object is used to keep
+		track of ui ID's so L{remove_ui()} can remove all ui elements
+		of this handler at once
+		@returns: the ui ID
+		'''
 		id = self.uimanager.add_ui_from_string(xml)
 		if hasattr(handler, '_ui_merge_ids') and handler._ui_merge_ids:
 			handler._ui_merge_ids += (id,)
@@ -649,9 +858,11 @@ class GtkInterface(NotebookInterface):
 		return id
 
 	def remove_ui(self, handler, id=None):
-		'''Remove the ui definition(s) for a specific handler. If an id is
-		given, only removes that ui part, else removes all ui parts defined
-		for this handler.
+		'''Remove the ui definition(s) for a specific handler.
+
+		@param handler: handler object
+		@param id: if a ui ID is given, only that part is removed, else
+		all ui definitions for this handler object are removed
 		'''
 		if id:
 			self.uimanager.remove_ui(id)
@@ -731,6 +942,10 @@ class GtkInterface(NotebookInterface):
 				raise AssertionError, 'BUG: Could not parse: ' + line
 
 	def set_readonly(self, readonly):
+		'''Set the read-only state of the interface
+
+		@emits: readonly-changed
+		'''
 		if not self.readonly:
 			# Save any modification now - will not be allowed after switch
 			page = self.mainwindow.pageview.get_page()
@@ -747,16 +962,37 @@ class GtkInterface(NotebookInterface):
 		self.emit('readonly-changed')
 
 	def register_preferences(self, section, preferences):
-		'''Registers user preferences. Registering means that a
-		preference will show up in the preferences dialog.
-		The section given is the section to locate these preferences in the
-		config file. Each preference is a tuple consisting of:
+		'''Registers user preferences for the preferences dialog
 
-		* the key in the config file
-		* an option type (see InputForm() for more details)
-		* a category (the tab in which the option will be shown)
-		* a label to show in the dialog
-		* a default value
+		The section together with the name specifies where to find this
+		preference in L{preferences}. E.g. a section "GtkInterface" and
+		a name "foo" will result in a value to be stored in
+		C{ui.preferences['GtkInterface']['foo']}. All preferences are
+		initialized after being registered here, so you do not need
+		to check their existing afterwards.
+
+		@param section: the section of the config file to locate these
+		plugins, e.g. "GtkInterface" (most classes use their class name
+		here)
+
+		@param preferences: a list of preferences definitions. Each
+		preference is defined by a 5-tuple or 6-tuple consisting of:
+		  - the name of the preference
+		  - an option type (e.g. "bool", "int", "string" etc.)
+		  - the tab in the dialog where the option will be shown
+		    (e.g. "Interface", "Editing")
+		  - a label to show in the dialog
+		  - a default value
+		  - optional a check value
+
+		See L{zim.gui.widgets.InputForm.add_inputs()} for valid values of
+		the option type.
+
+ 		See L{zim.config.ListDict.setdefault())} for usage of the
+ 		optional check value.
+
+		@todo: unify the check for setdefault() and the option type to
+		check the value has the proper type
 		'''
 		register = self.preferences_register
 		for p in preferences:
@@ -776,28 +1012,57 @@ class GtkInterface(NotebookInterface):
 
 
 	def register_new_window(self, window):
-		'''Called by windows and dialog to register themselves with
-		the application. Used e.g. by plugins that want to add some
-		widget to specific windows.
+		'''Register a new window for the application.
+		Called by windows and dialogs to register themselves. Used e.g.
+		by plugins that want to add some widget to specific windows.
+		@emits: new-window
 		'''
 		#~ print 'WINDOW:', window
 		self.emit('new-window', window)
 
 	def do_new_window(self, window):
-		pass # TODO: keep register of pageviews
+		self.windows.add(window)
+		window.connect('destroy', lambda w: self.windows.discard(w))
+
+	def register_url_handler(self, scheme, function):
+		'''Register a handler for a particular URL scheme
+		Intended for plugins that want to add a handler for a specific
+		URL scheme, or introduce a new URL scheme.
+
+		Typically this should B{not} be used for integrating external
+		applications that could be added as a preference.
+
+		@param scheme: the url scheme as string
+		@param function: a function to call for opening URLs for this
+		scheme. The function should return boolean for succes.
+		'''
+		self.url_handlers[scheme] = function
+
+	def unregister_url_handler(self, function):
+		'''Un-register a handler for a particular URL scheme.
+		@param function: a function registered with
+		L{register_url_handler()}
+		'''
+		keys = [k for k in self.url_handlers if self.url_handlers[k] == function]
+		for k in keys:
+			self.url_handlers.pop(k)
 
 	def get_path_context(self):
-		'''Returns the current 'context' for actions that want a path to start
-		with. Asks the mainwindow for a selected page, defaults to the
-		current page if any.
+		'''Get the current page path. Used to get the default page to
+		act upon for actions. Either returns the current page or a page
+		selected in the index pane, etc.
+		@returns: a L{Path} object
 		'''
 		return self.mainwindow.get_selected_path() or self.page
 
 	def open_notebook(self, notebook=None):
-		'''Open a new notebook. If this is the first notebook the open-notebook
-		signal is emitted and the notebook is opened in this process. Otherwise
-		we let another instance handle it. If notebook=None the notebookdialog
-		is run to prompt the user.'''
+		'''Open a new notebook. If this is the first notebook the
+		notebook is opened in this application instance. Otherwise we
+		let another instance handle it.
+		@param notebook: notebook location, if C{None} we will prompt
+		the user with the L{NotebookDialog}
+		@emits: open-notebook
+		'''
 		if not self.notebook:
 			assert not notebook is None, 'BUG: first initialize notebook'
 			try:
@@ -829,7 +1094,6 @@ class GtkInterface(NotebookInterface):
 				self.spawn(notebook)
 
 	def do_open_notebook(self, notebook):
-		'''Signal handler for open-notebook.'''
 
 		def move_away(o, path):
 			if path == self.page or self.page.ischild(path):
@@ -862,11 +1126,17 @@ class GtkInterface(NotebookInterface):
 		notebook.connect('moved-page', follow)
 
 		# Start a lightweight background check of the index
-		self.notebook.index.update(background=True, checkcontents=False)
+		self.notebook.index.update_async()
 
 		self.set_readonly(notebook.readonly)
 
 	def check_notebook_needs_upgrade(self):
+		'''Check whether the notebook needs to be upgraded and prompt
+		the user to do so if this is the case.
+
+		Interactive wrapper for
+		L{Notebook.upgrade_notebook()<zim.notebook.Notebook.upgrade_notebook()>}.
+		'''
 		if not self.notebook.needs_upgrade:
 			return
 
@@ -899,12 +1169,15 @@ class GtkInterface(NotebookInterface):
 			action.set_sensitive(has_doc_root)
 
 	def open_page(self, path=None):
-		'''Emit the open-page signal. The argument 'path' can either be a Page
-		or a Path object. If 'page' is None a dialog is shown
-		to specify the page. If 'path' is a HistoryPath we assume that this
-		call is the result of a history action and the page is not added to
-		the history. The original path object is given as the second argument
-		in the signal, so handlers can inspect how this method was called.
+		'''Method to open a page in the mainwindow, and menu action for
+		the "jump to" menu item.
+
+		@param path: a L{path} for the page to open, if C{None} we
+		prompt the user with the L{OpenPageDialog}. If C{path} is a
+		L{HistoryPath} we assume that this call is the result of a
+		history action and the page is not again added to the history.
+
+		@emits: open-page
 		'''
 		assert self.notebook
 		if path is None:
@@ -930,7 +1203,6 @@ class GtkInterface(NotebookInterface):
 		self.emit('open-page', page, path)
 
 	def do_open_page(self, page, path):
-		'''Signal handler for open-page.'''
 		is_first_page = self.page is None
 		self.page = page
 
@@ -950,21 +1222,28 @@ class GtkInterface(NotebookInterface):
 			back.set_sensitive(not is_first_page)
 			forward.set_sensitive(False)
 
-		if historyrecord and not historyrecord.cursor == None:
-			self.mainwindow.pageview.set_cursor_pos(historyrecord.cursor)
-			self.mainwindow.pageview.set_scroll_pos(historyrecord.scroll)
-
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
 
-	def close_page(self, page=None):
-		'''Emits the 'close-page' signal and returns boolean for success'''
+	def close_page(self, page=None, final=False):
+		'''Close the page and try to save any changes in the page.
+
+		@param page: the page to close, defaults to current page in
+		main window
+		@param final: hint if we believe this to be the last page
+		before quitting the page
+
+		@returns: C{True} if succesful, C{False} if page still has
+		un-saved changes.
+
+		@emits: close-page
+		'''
 		if page is None:
 			page = self.page
-		self.emit('close-page', page)
+		self.emit('close-page', page, final)
 		return not page.modified
 
-	def do_close_page(self, page):
+	def do_close_page(self, page, final):
 		if page.modified:
 			self.save_page(page) # No async here -- for now
 
@@ -973,10 +1252,27 @@ class GtkInterface(NotebookInterface):
 			current.cursor = self.mainwindow.pageview.get_cursor_pos()
 			current.scroll = self.mainwindow.pageview.get_scroll_pos()
 
-		if self.uistate.modified:
-			schedule_on_idle(self.uistate.write_async)
+		def save_uistate_cb():
+			if self.uistate.modified:
+				self.uistate.write_async()
+			# else ignore silently
+
+		if self.uistate.modified and hasattr(self.uistate, 'write'):
+			# during tests we may have a config dict without config file
+			if final:
+				self.uistate.write()
+			else:
+				# Delayed signal avoid queueing many of these in a
+				# short time when going back and forward in the history
+				if not hasattr(self.uistate, '_delayed_async_write'):
+					self.uistate._delayed_async_write = \
+						DelayedCallback(2000, save_uistate_cb) # 2 sec
+				self.uistate._delayed_async_write()
 
 	def open_page_back(self):
+		'''Menu action to open the previous page from the history
+		@returns: C{True} if succesful
+		'''
 		record = self.history.get_previous()
 		if not record is None:
 			self.open_page(record)
@@ -985,6 +1281,9 @@ class GtkInterface(NotebookInterface):
 			return False
 
 	def open_page_forward(self):
+		'''Menu action to open the next page from the history
+		@returns: C{True} if succesful
+		'''
 		record = self.history.get_next()
 		if not record is None:
 			self.open_page(record)
@@ -993,6 +1292,9 @@ class GtkInterface(NotebookInterface):
 			return False
 
 	def open_page_parent(self):
+		'''Menu action to open the parent page
+		@returns: C{True} if succesful
+		'''
 		namespace = self.page.namespace
 		if namespace:
 			self.open_page(Path(namespace))
@@ -1001,6 +1303,10 @@ class GtkInterface(NotebookInterface):
 			return False
 
 	def open_page_child(self):
+		'''Menu action to open a child page. Either takes the last child
+		from the history, or the first child.
+		@returns: C{True} if succesful
+		'''
 		if not self.page.haschildren:
 			return False
 
@@ -1013,6 +1319,9 @@ class GtkInterface(NotebookInterface):
 		return True
 
 	def open_page_previous(self):
+		'''Menu action to open the previous page from the index
+		@returns: C{True} if succesful
+		'''
 		path = self.notebook.index.get_previous(self.page)
 		if not path is None:
 			self.open_page(path)
@@ -1021,6 +1330,9 @@ class GtkInterface(NotebookInterface):
 			return False
 
 	def open_page_next(self):
+		'''Menu action to open the next page from the index
+		@returns: C{True} if succesful
+		'''
 		path = self.notebook.index.get_next(self.page)
 		if not path is None:
 			self.open_page(path)
@@ -1029,25 +1341,37 @@ class GtkInterface(NotebookInterface):
 			return False
 
 	def open_page_home(self):
+		'''Menu action to open the home page'''
 		self.open_page(self.notebook.get_home_page())
 
 	def new_page(self):
-		'''opens a dialog like 'open_page()'. Subtle difference is
-		that this page is saved directly, so it is persistent if the user
+		'''Menu action to create a new page, shows the L{NewPageDialog},
+
+		Difference with L{open_page()} is that the page is saved
+		directly, so it exists and is stays visible if the user
 		navigates away without first adding content. Though subtle this
-		is expected behavior for users not yet fully aware of the automatic
-		create/save/delete behavior in zim.
+		is expected behavior for users.
 		'''
 		NewPageDialog(self, path=self.get_path_context()).run()
 
 	def new_sub_page(self):
-		'''Same as new_page() but sets the namespace widget one level deeper'''
+		'''Menu action to create a new page, shows the L{NewPageDialog}.
+		Like L{new_page()} but forces a child page of the current
+		selected page (based on L{get_path_context()})
+		'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
 
 	def new_page_from_text(self, text, name=None, open_page=False):
-		'''Create a new page and set text directly. If no name is given
-		the first line of the text is used as basename. If the page
+		'''Create a new page with content. This method is intended
+		mainly for remote calls from the daemon. It is used for
+		example by the L{quicknote plugin<zim.plugins.quicknote>}.
+
+		@param text: the content of the page (wiki format)
+		@param name: the page name as string, if C{None} the first line
+		of the text is used as the basename. If the page
 		already exists a number is added to force a unique page name.
+		@param open_page: if C{True} navigate to this page directly
+		@returns: the new L{Page} object
 		'''
 		# The 'open_page' argument is a bit of a hack for remote calls
 		# it is needed because the remote function doesn't know the
@@ -1072,7 +1396,13 @@ class GtkInterface(NotebookInterface):
 		return page
 
 	def append_text_to_page(self, name, text):
-		'''Append text to an (existing) page'''
+		'''Append text to an (existing) page. This method is intended
+		mainly for remote calls from the daemon. It is used for
+		example by the L{quicknote plugin<zim.plugins.quicknote>}.
+
+		@param name: the page name
+		@param text: the content of the page (wiki format)
+		'''
 		if isinstance(name, Path):
 			name = name.name
 		path = self.notebook.resolve_path(name)
@@ -1081,18 +1411,35 @@ class GtkInterface(NotebookInterface):
 		self.notebook.store_page(page)
 
 	def open_new_window(self, page=None):
-		'''Open page in a new window'''
+		'''Menu action to open a page in a secondary L{PageWindow}
+		@param page: the page L{Path}, deafults to current selected
+		'''
 		if page is None:
 			page = self.get_path_context()
 		PageWindow(self, page).show_all()
 
 	def save_page(self, page=None):
-		'''Save 'page', or current page when 'page' is None.
-		Returns boolean for success.
+		'''Menu action to save a page.
+
+		Can result in a L{SavePageErrorDialog} when there is an error
+		while saving a page.
+
+		@param page: a L{Page} object, when C{None} the current page is
+		saved
+		@returns: C{True} when successful, C{False} when the page still
+		has unsaved changes
 		'''
 		page = self._save_page_check_page(page)
 		if page is None:
 			return
+
+		## HACK - otherwise we get a bug when saving a new page immediatly
+		# hasattr assertions used to detect when the hack breaks
+		assert hasattr(page, '_ui_object')
+		if page._ui_object:
+			assert hasattr(page._ui_object, '_showing_template')
+			page._ui_object._showing_template = False
+		##
 
 		logger.debug('Saving page: %s', page)
 		try:
@@ -1108,6 +1455,14 @@ class GtkInterface(NotebookInterface):
 		return not page.modified
 
 	def save_page_async(self, page=None):
+		'''Save a page asynchronously
+
+		Like L{save_page()} but asynchronously, used e.g. when auto
+		saving.
+
+		@param page: a L{Page} object, when C{None} the current page is
+		saved
+		'''
 		page = self._save_page_check_page(page)
 		if page is None:
 			return
@@ -1135,11 +1490,15 @@ class GtkInterface(NotebookInterface):
 
 	def _save_page_check_page(self, page):
 		# Code shared between save_page() and save_page_async()
+		if page is None:
+			page = self.mainwindow.pageview.get_page()
 		try:
-			assert not self.readonly, 'BUG: can not save page when read-only'
-			if page is None:
-				page = self.mainwindow.pageview.get_page()
-			assert not page.readonly, 'BUG: can not save read-only page'
+			if self.readonly:
+				raise AssertionError, 'BUG: can not save page when read-only'
+			elif not page:
+				raise AssertionError, 'BUG: no page loaded'
+			elif page.readonly:
+				raise AssertionError, 'BUG: can not save read-only page'
 		except Exception, error:
 			SavePageErrorDialog(self, error, page).run()
 			return None
@@ -1147,16 +1506,19 @@ class GtkInterface(NotebookInterface):
 			return page
 
 	def save_copy(self):
-		'''Offer to save a copy of a page in the source format, so it can be
-		imported again later. Subtly different from export.
-		'''
+		'''Menu action to show a L{SaveCopyDialog}'''
 		SaveCopyDialog(self).run()
 
 	def show_export(self):
+		'''Menu action to show an L{ExportDialog}'''
 		from zim.gui.exportdialog import ExportDialog
 		ExportDialog(self).run()
 
 	def email_page(self):
+		'''Menu action to open an email containing the current page.
+		Encodes the current page as "mailto:" URI and calls L{open_url()}
+		to start the preferred email client.
+		'''
 		text = ''.join(self.page.dump(format='plain'))
 		url = 'mailto:?subject=%s&body=%s' % (
 			url_encode(self.page.name, mode=URL_ENCODE_DATA),
@@ -1165,11 +1527,14 @@ class GtkInterface(NotebookInterface):
 		self.open_url(url)
 
 	def import_page(self):
-		'''Import a file from outside the notebook as a new page.'''
+		'''Menu action to show an L{ImportPageDialog}'''
 		ImportPageDialog(self).run()
 
 	def move_page(self, path=None):
-		'''Prompt dialog for moving a page'''
+		'''Menu action to show the L{MovePageDialog}
+		@param path: a L{Path} object, or C{None} to move to current
+		selected page
+		'''
 		MovePageDialog(self, path=path).run()
 
 	def do_move_page(self, path, newpath, update_links):
@@ -1177,6 +1542,12 @@ class GtkInterface(NotebookInterface):
 		notebook.move_page but wrapping with all the proper exception
 		dialogs. Returns boolean for success.
 		'''
+		if path == self.page and self.page.modified \
+		and not self.save_page(self.page):
+			raise AssertionError, 'Could not save page'
+			# assert statement could be optimized away
+			# FIXME - is this raise needed ?
+
 		return self._wrap_move_page(
 			lambda update_links, callback: self.notebook.move_page(
 				path, newpath, update_links, callback),
@@ -1184,7 +1555,10 @@ class GtkInterface(NotebookInterface):
 		)
 
 	def rename_page(self, path=None):
-		'''Prompt a dialog for renaming a page'''
+		'''Menu action to show the L{RenamePageDialog}
+		@param path: a L{Path} object, or C{None} for the current
+		selected page
+		'''
 		RenamePageDialog(self, path=path).run()
 
 	def do_rename_page(self, path, newbasename, update_heading=True, update_links=True):
@@ -1192,6 +1566,12 @@ class GtkInterface(NotebookInterface):
 		notebook.rename_page but wrapping with all the proper exception
 		dialogs. Returns boolean for success.
 		'''
+		if path == self.page and self.page.modified \
+		and not self.save_page(self.page):
+			raise AssertionError, 'Could not save page'
+			# assert statement could be optimized away
+			# FIXME - is this raise needed ?
+
 		return self._wrap_move_page(
 			lambda update_links, callback: self.notebook.rename_page(
 				path, newbasename, update_heading, update_links, callback),
@@ -1230,12 +1610,19 @@ class GtkInterface(NotebookInterface):
 			return True
 
 	def delete_page(self, path=None):
-		'''Trash page or show DeletePageDialog'''
+		'''Delete a page by either trashing it, or permanent deletion
+		after confirmation of a L{DeletePageDialog}. When trashing the
+		update behavior depends on the "remove_links_on_delete"
+		preference.
+
+		@param path: a L{Path} object, or C{None} for the current
+		selected page
+		'''
 		if path is None:
 			path = self.get_path_context()
 			if not path: return
 
-		update_links = self.preferences['remove_links_on_delete']
+		update_links = self.preferences['GtkInterface']['remove_links_on_delete']
 		dialog = ProgressBarDialog(self, _('Removing Links'))
 			# T: Title of progressbar dialog
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
@@ -1245,30 +1632,53 @@ class GtkInterface(NotebookInterface):
 			dialog.destroy()
 			logger.info('Trash not supported: %s', error.msg)
 			DeletePageDialog(self, path).run()
+		except TrashCancelledError, error:
+			dialog.destroy()
+		except Exception, error:
+			dialog.destroy()
+			raise
 		else:
 			dialog.destroy()
 
 	def show_properties(self):
+		'''Menu action to show the L{PropertiesDialog}'''
 		from zim.gui.propertiesdialog import PropertiesDialog
 		PropertiesDialog(self).run()
 
 	def show_search(self, query=None):
+		'''Menu action to show the L{SearchDialog}
+		@param query: the search query to show
+		'''
 		from zim.gui.searchdialog import SearchDialog
-		SearchDialog(self, query).show_all()
+		if query is None:
+			query = self.mainwindow.pageview.get_selection()
+
+		dialog = SearchDialog(self)
+		dialog.show_all()
+
+		if query is not None:
+			dialog.search(query)
 
 	def show_search_backlinks(self):
+		'''Menu action to show the L{SearchDialog} with a query for
+		backlinks
+		'''
 		query = 'LinksTo: "%s"' % self.page.name
 		self.show_search(query)
 
 	def copy_location(self):
-		'''Puts the name of the current page on the clipboard.'''
+		'''Menu action to copy the current page name to the clipboard'''
 		Clipboard().set_pagelink(self.notebook, self.page)
 
 	def show_preferences(self):
+		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
 		PreferencesDialog(self).run()
 
 	def save_preferences(self):
+		'''Save the prefrences config file if modified
+		@emits: preferences-changed
+		'''
 		if self.preferences.modified:
 			self.preferences.write_async()
 			self.emit('preferences-changed')
@@ -1278,6 +1688,9 @@ class GtkInterface(NotebookInterface):
 			self.preferences['GtkInterface']['tearoff_menus'] )
 
 	def reload_page(self):
+		'''Menu action to reload the current page. Will first try
+		to save any unsaved changes, then reload the page from disk.
+		'''
 		if self.page.modified \
 		and not self.save_page(self.page):
 			raise AssertionError, 'Could not save page'
@@ -1286,7 +1699,10 @@ class GtkInterface(NotebookInterface):
 		self.open_page(self.notebook.get_page(self.page))
 
 	def attach_file(self, path=None):
-		'''Show the AttachFileDialog'''
+		'''Menu action to show the L{AttachFileDialog}
+		@param path: a L{Path} object, or C{None} for the current
+		selected page
+		'''
 		AttachFileDialog(self, path=path).run()
 
 	def do_attach_file(self, path, file, force_overwrite=False):
@@ -1310,12 +1726,16 @@ class GtkInterface(NotebookInterface):
 		return dest
 
 	def show_clean_notebook(self):
-		'''Show the CleanNotebookDialog'''
+		'''Menu action to show the L{CleanNotebookDialog}'''
 		from zim.gui.cleannotebookdialog import CleanNotebookDialog
 		CleanNotebookDialog(self).run()
 
 	def open_file(self, file):
-		'''Open either a File or a Dir in the file browser'''
+		'''Open a L{File} or L{Dir} in the system file browser. The
+		file browser is determined by the 'file_browser' preference.
+		@param file: a L{File} or L{Dir} object
+		@raises NoSuchFileError: if C{file} does not exist
+		'''
 		assert isinstance(file, (File, Dir))
 		if isinstance(file, (File)) and file.isdir():
 			file = Dir(file.path)
@@ -1328,7 +1748,20 @@ class GtkInterface(NotebookInterface):
 			raise NoSuchFileError, file
 
 	def open_url(self, url):
+		'''Open an URL (or URI) in the web browser or other relevant
+		program. The application is determined based on the URL / URI
+		scheme (e.g. "file", "http", "mailto") and the preferences
+		settings for 'file_browser', 'email_client' or 'web_browser'.
+		'''
 		assert isinstance(url, basestring)
+
+		# Try custom handlers
+		if is_url_re.match(url) and is_url_re[1] in self.url_handlers:
+			handled = self.url_handlers[is_url_re[1]](url)
+			if handled:
+				return
+
+		# Default handlers
 		if url.startswith('file:/'):
 			self.open_file(File(url))
 		elif url.startswith('mailto:'):
@@ -1344,11 +1777,15 @@ class GtkInterface(NotebookInterface):
 			self.open_with('web_browser', url)
 
 	def open_with(self, app_type, uri):
-		'''Open an uri or an url with a specific app type. Type can be
-		'file_browser', 'web_browser' or 'email_client'.
+		'''Open an URL or URI with a specific application type.
 
-		NOTE: only use this method when you need to force the app type,
-		otherwise use either open_file() or open_url().
+		@note: only use this method when you really need to force the
+		appliction type, otherwise use either L{open_file()} or
+		L{open_url()}.
+
+		@param app_type: the application type, can be one of
+		'file_browser', 'web_browser', 'email_client', or 'text_editor'.
+		@param uri: the URL or URI to open
 		'''
 		def check_error(status):
 			if status != 0:
@@ -1357,12 +1794,17 @@ class GtkInterface(NotebookInterface):
 
 		app = self.preferences['GtkInterface'][app_type]
 		entry = ApplicationManager().get_application(app)
-		try:
-			entry.spawn((uri,), callback=check_error)
-		except NotImplementedError:
-			entry.spawn((uri,)) # E.g. webbrowser module
+
+		if entry:
+			try:
+				entry.spawn((uri,), callback=check_error)
+			except NotImplementedError:
+				entry.spawn((uri,)) # E.g. webbrowser module
+		else:
+			raise NoSuchApplicationError(app_type)
 
 	def open_attachments_folder(self):
+		'''Menu action to open the attachment folder for the current page'''
 		dir = self.notebook.get_attachments_dir(self.page)
 		if dir is None:
 			error = _('This page does not have an attachments folder')
@@ -1382,6 +1824,7 @@ class GtkInterface(NotebookInterface):
 				self.open_file(dir)
 
 	def open_notebook_folder(self):
+		'''Menu action to open the notebook folder'''
 		if self.notebook.dir:
 			self.open_file(self.notebook.dir)
 		elif self.notebook.file:
@@ -1390,11 +1833,15 @@ class GtkInterface(NotebookInterface):
 			assert False, 'BUG: notebook has neither dir or file'
 
 	def open_document_root(self):
+		'''Menu action to open the document root folder'''
 		dir = self.notebook.document_root
 		if dir and dir.exists():
 			self.open_file(dir)
 
 	def open_document_folder(self):
+		'''Menu action to open a sub-foldel of the document root folder
+		for the current page
+		'''
 		dir = self.notebook.document_root
 		if dir is None:
 			return
@@ -1416,8 +1863,10 @@ class GtkInterface(NotebookInterface):
 				self.open_file(dir)
 
 	def edit_page_source(self, page=None):
-		'''Edit page source or source of a config file. Will keep
-		application hanging until done.
+		'''Menu action to edit the page source in an external editor.
+		See L{edit_file} for details.
+
+		@param page: the L{Page} object, or C{None} for te current page
 		'''
 		# This could also be defined as a custom tool, but defined here
 		# because we want to determine the editor dynamically
@@ -1437,6 +1886,10 @@ class GtkInterface(NotebookInterface):
 			self.reload_page()
 
 	def edit_config_file(self, configfile):
+		'''Edit a config file in an external editor.
+		See L{edit_file} for details.
+		@param configfile: a L{ConfigDictFile} or L{TextConfigFile} object
+		'''
 		if not configfile.file.exists():
 			if configfile.default.exists():
 				configfile.default.copyto(configfile.file)
@@ -1445,13 +1898,20 @@ class GtkInterface(NotebookInterface):
 		self.edit_file(configfile.file, istextfile=True)
 
 	def edit_file(self, file, istextfile=None):
-		'''Edit a file with and external application and wait. Spawns a dialog to block the zim gui
-		while the external application is running. Dialog is closed automatically when the application
-		exits after modifying the file. If the file is unmodified the user needs to click the "Done"
-		button in the dialog because we can not know if the application was really done or just forked.
+		'''Edit a file with and external application.
 
-		If 'istextfile' is True the text editor from the preferences menu is used, if it is False the
-		file browser is used and if it is None we check the mimetype.
+		This method will show a dialog to block the interface while the
+		external application is running. The dialog is closed
+		automatically when the application exits _after_ modifying the
+		file. If the file is unmodified the user needs to click the
+		"Done" button in the dialog because we can not know if the
+		application was really done or just forked to another process.
+
+		@param file: a L{File} object
+		@param istextfile: if C{True} the text editor is used, otherwise
+		we ask the file browser for the correct application. When
+		C{None} we check the mimetype of the file to determine if it
+		is text or not.
 		'''
 		if not file.exists():
 			raise NoSuchFileError, file
@@ -1468,7 +1928,7 @@ class GtkInterface(NotebookInterface):
 		def check_close_dialog(status):
 			if status != 0:
 				dialog.destroy()
-				ErrorDialog(self, _('Could not open: %s') % uri).run()
+				ErrorDialog(self, _('Could not open: %s') % file.basename).run()
 					# T: error when external application fails
 			else:
 				newmtime = file.mtime()
@@ -1482,16 +1942,25 @@ class GtkInterface(NotebookInterface):
 		else:          app = 'file_browser'
 
 		entry = ApplicationManager().get_application(self.preferences['GtkInterface'][app])
-		entry.spawn((file,), callback=check_close_dialog)
+		if entry:
+			entry.spawn((file,), callback=check_close_dialog)
+		else:
+			raise NoSuchApplicationError(app)
 		dialog.run()
 
 	def show_server_gui(self):
+		'''Menu action to show the server interface from
+		L{zim.gui.server}. Spawns a new zim instance for the server.
+		'''
 		# TODO instead of spawn, include in this process
 		self.spawn('--server', '--gui', self.notebook.uri)
 
 	def reload_index(self, flush=False):
-		'''Show a progress bar while updating the notebook index.
-		Returns True unless the user canceled the action.
+		'''Check the notebook for changes and update the index.
+		Shows an progressbar while updateing.
+		@param flush: if C{True} the index is flushed and rebuild from
+		scratch
+		@returns: C{True} unless the user cancelled the update
 		'''
 		self.emit('start-index-update')
 
@@ -1509,11 +1978,15 @@ class GtkInterface(NotebookInterface):
 		return not dialog.cancelled
 
 	def manage_custom_tools(self):
+		'''Menu action to show the L{CustomToolManagerDialog}'''
 		from zim.gui.customtools import CustomToolManagerDialog
 		CustomToolManagerDialog(self).run()
 		self.load_custom_tools()
 
 	def load_custom_tools(self):
+		'''Load the custom tools of the L{CustomToolManager} in the
+		menu bar.
+		'''
 		manager = CustomToolManager()
 
 		# Remove old actions
@@ -1543,7 +2016,7 @@ class GtkInterface(NotebookInterface):
 					logger.exception('Got exception while loading application icons')
 					icon = None
 
-			action = (tool.key, icon, tool.name, '', tool.comment, self.exec_custom_tool)
+			action = (tool.key, icon, tool.name, '', tool.comment, self._exec_custom_tool)
 			actions.append(action)
 
 		self._custom_tool_iconfactory = factory
@@ -1587,7 +2060,7 @@ class GtkInterface(NotebookInterface):
 		self.uimanager.insert_action_group(self._custom_tool_actiongroup, 0)
 		self._custom_tool_ui_id = self.uimanager.add_ui_from_string(ui)
 
-	def exec_custom_tool(self, action):
+	def _exec_custom_tool(self, action):
 		manager = CustomToolManager()
 		tool = manager.get_tool(action.get_name())
 		logger.info('Execute custom tool %s', tool.name)
@@ -1598,28 +2071,36 @@ class GtkInterface(NotebookInterface):
 			else:
 				tool.run(args)
 				self.reload_page()
-				self.notebook.index.update(background=True)
+				self.notebook.index.update_async()
 				# TODO instead of using run, use spawn and show dialog
 				# with cancel button. Dialog blocks ui.
 		except Exception, error:
 			ErrorDialog(self, error).run()
 
 	def show_help(self, page=None):
+		'''Menu action to show the user manual. Will start a new zim
+		instance showing the notebook with the manual.
+		@param page: manual page to show (string)
+		'''
 		if page:
 			self.spawn('--manual', page)
 		else:
 			self.spawn('--manual')
 
 	def show_help_faq(self):
+		'''Menu action to show the 'FAQ' page in the user manual'''
 		self.show_help('FAQ')
 
 	def show_help_keys(self):
+		'''Menu action to show the 'Key Bindings' page in the user manual'''
 		self.show_help('Help:Key Bindings')
 
 	def show_help_bugs(self):
+		'''Menu action to show the 'Bugs' page in the user manual'''
 		self.show_help('Bugs')
 
 	def show_about(self):
+		'''Menu action to show the "about" dialog'''
 		gtk.about_dialog_set_url_hook(lambda d, l: self.open_url(l))
 		gtk.about_dialog_set_email_hook(lambda d, l: self.open_url(l))
 		dialog = gtk.AboutDialog()
@@ -1647,19 +2128,30 @@ gobject.type_register(GtkInterface)
 
 
 class MainWindow(Window):
-	'''Main window of the application, showing the page index in the side
-	pane and a pageview with the current page. Also includes the menubar,
-	toolbar, statusbar etc.
+	'''This class implements the main window of the application. It
+	contains the main L{PageView} and the side pane with a L{PageIndex}.
+	Also includes the menubar, toolbar, L{PathBar}, statusbar etc.
+
+	@ivar pageview: the L{PageView} object
+	@ivar pageindex: the L{PageIndex} object
+	@ivar pathbar: the L{PathBar} object
 	'''
 
 	def __init__(self, ui, fullscreen=False, geometry=None):
+		'''Constructor
+
+		@param fullscreen: if C{True} the window is shown fullscreen,
+		if C{None} the previous state is restored
+		@param geometry: the window geometry as string in format
+		"C{WxH+X+Y}", if C{None} the previous state is restored
+		'''
 		Window.__init__(self)
 		self._fullscreen = False
 		self.ui = ui
 
-		ui.connect_after('open-notebook', self.do_open_notebook)
-		ui.connect('open-page', self.do_open_page)
-		ui.connect('close-page', self.do_close_page)
+		ui.connect_after('open-notebook', self.on_open_notebook)
+		ui.connect('open-page', self.on_open_page)
+		ui.connect('close-page', self.on_close_page)
 		ui.connect('preferences-changed', self.do_preferences_changed)
 
 		self._sidepane_autoclose = False
@@ -1822,8 +2314,12 @@ class MainWindow(Window):
 		self._switch_focus_accelgroup = group
 
 	def get_selected_path(self):
-		'''Returns a selected path either from the side pane or the pathbar
-		if any or None.
+		'''Get the selected page path. Depends on focus in the window:
+		if the focus is on the current page, this path is returned,
+		but if the focus is on the index or the pathbar the selected
+		path of those widgets is returned.
+
+		@returns: a L{Path} object or C{None}
 		'''
 		# FIXME - this method is bound to break again - to unstable
 		widget = self.get_focus()
@@ -1842,9 +2338,16 @@ class MainWindow(Window):
 			return None
 
 	def toggle_menubar(self, show=None):
+		'''Menu action to toggle the visibility of the menu bar
+		@param show: when C{True} or C{False} force the visibility,
+		when C{None} toggle based on current state
+		'''
 		self.do_toggle_menubar(show=show)
 
 	def do_toggle_menubar(self, show=None):
+		if show is None:
+			show = not self.uistate['show_menubar']
+
 		if show:
 			self.menubar.set_no_show_all(False)
 			self.menubar.show()
@@ -1858,6 +2361,10 @@ class MainWindow(Window):
 			self.uistate['show_menubar'] = show
 
 	def toggle_toolbar(self, show=None):
+		'''Menu action to toggle the visibility of the tool bar
+		@param show: when C{True} or C{False} force the visibility,
+		when C{None} toggle based on current state
+		'''
 		action = self.actiongroup.get_action('toggle_toolbar')
 		if show is None or show != action.get_active():
 			action.activate()
@@ -1887,6 +2394,10 @@ class MainWindow(Window):
 		menu.popup(None, None, None, button, 0)
 
 	def toggle_statusbar(self, show=None):
+		'''Menu action to toggle the visibility of the status bar
+		@param show: when C{True} or C{False} force the visibility,
+		when C{None} toggle based on current state
+		'''
 		action = self.actiongroup.get_action('toggle_statusbar')
 		if show is None or show != action.get_active():
 			action.activate()
@@ -1911,6 +2422,10 @@ class MainWindow(Window):
 			self.uistate['show_statusbar'] = show
 
 	def toggle_fullscreen(self, show=None):
+		'''Menu action to toggle the fullscreen state of the window.
+		@param show: when C{True} or C{False} force the state
+		when C{None} toggle based on current state
+		'''
 		action = self.actiongroup.get_action('toggle_fullscreen')
 		if show is None or show != action.get_active():
 			action.activate()
@@ -1928,6 +2443,10 @@ class MainWindow(Window):
 			self.unfullscreen()
 
 	def toggle_sidepane(self, show=None):
+		'''Menu action to toggle the visibility of the side pane
+		@param show: when C{True} or C{False} force the visibility,
+		when C{None} toggle based on current state
+		'''
 		action = self.actiongroup.get_action('toggle_sidepane')
 		if show is None or show != action.get_active():
 			action.activate()
@@ -1957,6 +2476,7 @@ class MainWindow(Window):
 		'''Switch focus between the textview and the sidepane.
 		Automatically opens the sidepane if it is closed
 		(but sets a property to automatically close it again).
+		This method is used for the (optional) <Ctrl><Space> keybinding.
 		'''
 		action = self.actiongroup.get_action('toggle_sidepane')
 		if action.get_active():
@@ -1982,12 +2502,17 @@ class MainWindow(Window):
 			# Sidepane open and should close automatically
 			self.toggle_sidepane(show=False)
 
-	def set_pathbar(self, style):
-		'''Set the pathbar. Style can be either PATHBAR_NONE,
-		PATHBAR_RECENT, PATHBAR_HISTORY or PATHBAR_PATH.
+	def set_pathbar(self, type):
+		'''Set the pathbar type
+
+		@param type: the type of pathbar, one of:
+			- C{PATHBAR_NONE} to hide the pathbar
+			- C{PATHBAR_RECENT} to show recent pages
+			- C{PATHBAR_HISTORY} to show the history
+			- C{PATHBAR_PATH} to show the namespace path
 		'''
-		assert style in ('none', 'recent', 'history', 'path')
-		self.actiongroup.get_action('set_pathbar_'+style).activate()
+		assert type in ('none', 'recent', 'history', 'path')
+		self.actiongroup.get_action('set_pathbar_'+type).activate()
 
 	def do_set_pathbar(self, name):
 		style = name[12:] # len('set_pathbar_') == 12
@@ -2019,14 +2544,30 @@ class MainWindow(Window):
 			self.uistate['pathbar_type'] = style
 
 	def set_toolbar_style(self, style):
-		'''Set the toolbar style. Style can be either
-		TOOLBAR_ICONS_AND_TEXT, TOOLBAR_ICONS_ONLY or TOOLBAR_TEXT_ONLY.
+		'''Set the toolbar style
+		@param style: can be either:
+			- C{TOOLBAR_ICONS_AND_TEXT}
+			- C{TOOLBAR_ICONS_ONLY}
+			- C{TOOLBAR_TEXT_ONLY}
 		'''
-		assert style in ('icons_and_text', 'icons_only', 'text_only'), style
-		self.actiongroup.get_action('set_toolbar_'+style).activate()
+		if not style:
+			# ignore, trust system default
+			# TODO: is there some way to reset to system default here ?
+			return
+		else:
+			assert style in ('icons_and_text', 'icons_only', 'text_only'), style
+			if not self.uistate['toolbar_style'] and style == 'icons_and_text':
+				# Exception since this is the default action that is active
+				# when we just follow system default
+				self.do_set_toolbar_style(style)
+			else:
+				self.actiongroup.get_action('set_toolbar_'+style).activate()
 
 	def do_set_toolbar_style(self, name):
-		style = name[12:] # len('set_toolbar_') == 12
+		if name.startswith('set_toolbar_'):
+			style = name[12:] # len('set_toolbar_') == 12
+		else:
+			style = name
 
 		if style == TOOLBAR_ICONS_AND_TEXT:
 			self.toolbar.set_style(gtk.TOOLBAR_BOTH)
@@ -2040,14 +2581,30 @@ class MainWindow(Window):
 		self.uistate['toolbar_style'] = style
 
 	def set_toolbar_size(self, size):
-		'''Set the toolbar style. Style can be either
-		TOOLBAR_ICONS_LARGE, TOOLBAR_ICONS_SMALL or TOOLBAR_ICONS_TINY.
+		'''Set the toolbar style
+		@param size: can be either:
+			- C{TOOLBAR_ICONS_LARGE}
+			- C{TOOLBAR_ICONS_SMALL}
+			- C{TOOLBAR_ICONS_TINY}
 		'''
-		assert size in ('large', 'small', 'tiny'), size
-		self.actiongroup.get_action('set_toolbar_icons_'+size).activate()
+		if not size:
+			# ignore, trust system default
+			# TODO: is there some way to reset to system default here ?
+			return
+		else:
+			assert size in ('large', 'small', 'tiny'), size
+			if not self.uistate['toolbar_size'] and size == 'large':
+				# Exception since this is the default action that is active
+				# when we just follow system default
+				self.do_set_toolbar_size(size)
+			else:
+				self.actiongroup.get_action('set_toolbar_icons_'+size).activate()
 
 	def do_set_toolbar_size(self, name):
-		size = name[18:] # len('set_toolbar_icons_') == 18
+		if name.startswith('set_toolbar_icons_'):
+			size = name[18:] # len('set_toolbar_icons_') == 18
+		else:
+			size = name
 
 		if size == TOOLBAR_ICONS_LARGE:
 			self.toolbar.set_icon_size(gtk.ICON_SIZE_LARGE_TOOLBAR)
@@ -2061,6 +2618,10 @@ class MainWindow(Window):
 		self.uistate['toolbar_size'] = size
 
 	def toggle_readonly(self, readonly=None):
+		'''Menu action to toggle the read-only state of the application
+		@param readonly: when C{True} or C{False} force the state
+		when C{None} toggle based on current state
+		'''
 		action = self.actiongroup.get_action('toggle_readonly')
 		if readonly is None or readonly == action.get_active():
 			action.activate()
@@ -2076,7 +2637,7 @@ class MainWindow(Window):
 		self.ui.set_readonly(readonly)
 		self.uistate['readonly'] = readonly
 
-	def do_open_notebook(self, ui, notebook):
+	def on_open_notebook(self, ui, notebook):
 		# Initialize all the uistate parameters
 		# delayed till here because all this needs real uistate to be in place
 		# also pathbar needs history in place
@@ -2106,17 +2667,14 @@ class MainWindow(Window):
 		self.uistate.setdefault('show_statusbar_fullscreen', False)
 		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT)
 		self.uistate.setdefault('pathbar_type_fullscreen', PATHBAR_NONE)
+		self.uistate.setdefault('toolbar_style', None, check=basestring)
+		self.uistate.setdefault('toolbar_size', None, check=basestring)
 
 		self._set_widgets_visable()
 		self.toggle_sidepane(show=self.uistate['show_sidepane'])
 
-		if 'toolbar_style' in self.uistate:
-			self.set_toolbar_style(self.uistate['toolbar_style'])
-		# else trust system default
-
-		if 'toolbar_size' in self.uistate:
-			self.set_toolbar_size(self.uistate['toolbar_size'])
-		# else trust system default
+		self.set_toolbar_style(self.uistate['toolbar_style'])
+		self.set_toolbar_size(self.uistate['toolbar_size'])
 
 		self.toggle_fullscreen(show=self._set_fullscreen)
 
@@ -2159,9 +2717,21 @@ class MainWindow(Window):
 			except gobject.GError:
 				logger.exception('Could not load icon %s', notebook.icon)
 
-	def do_open_page(self, ui, page, record):
+	def on_open_page(self, ui, page, path):
 		'''Signal handler for open-page, updates the pageview'''
-		self.pageview.set_page(page)
+
+		if path and isinstance(path, HistoryPath) and not path.cursor is None:
+			cursor = path.cursor
+		elif self.ui.preferences['GtkInterface']['always_use_last_cursor_pos']:
+			record = self.ui.history.get_path(page, need_cursor=True)
+			if record:
+				cursor = record.cursor
+			else:
+				cursor = None
+		else:
+			cursor = None
+
+		self.pageview.set_page(page, cursor)
 
 		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
 		label = self.statusbar_backlinks_button.label
@@ -2177,7 +2747,7 @@ class MainWindow(Window):
 
 		#TODO: set toggle_readonly insensitive when page is readonly
 
-	def do_close_page(self, ui, page):
+	def on_close_page(self, ui, page, final):
 		if not self._fullscreen:
 			self.uistate['windowpos'] = self.get_position()
 			self.uistate['windowsize'] = self.get_size()
@@ -2327,12 +2897,12 @@ discarded, but you can restore the copy later.''')
 		return self._done
 
 	def run(self):
-		timeout = 5
-		self.timer_label.set_text('%i sec.' % timeout)
+		self.timer = 5
+		self.timer_label.set_text('%i sec.' % self.timer)
 		def timer(self):
-			timeout -= 1
-			if timeout > 0:
-				self.timer_label.set_text('%i sec.' % timeout)
+			self.timer -= 1
+			if self.timer > 0:
+				self.timer_label.set_text('%i sec.' % self.timer)
 				return True # keep timer going
 			else:
 				for button in self.action_area.get_children():
@@ -2422,6 +2992,7 @@ class NewPageDialog(Dialog):
 		tree = template.process_to_parsetree(self.ui.notebook, page)
 		page.set_parsetree(tree)
 		self.ui.open_page(page)
+		self.ui.mainwindow.pageview.set_cursor_pos(-1) # HACK set position to end of template
 		self.ui.save_page() # Save new page directly
 		return True
 

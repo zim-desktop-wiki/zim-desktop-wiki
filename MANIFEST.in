@@ -4,6 +4,7 @@ include *.txt
 include *.py
 include *.pot
 include Makefile
+include epydoc.conf
 recursive-include data/ *
 prune data/manual/.zim/
 recursive-include icons/ *

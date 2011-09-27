@@ -7,7 +7,7 @@
 For now the only XML tags which are supported are 'section' and 'page'. The
 'section' tag serves as a container for multiple pages. The 'page' tag serves
 as a container for the page content plus any sub-pages. Each page should have
-an attribute 'name' giving it's basename, so the file can look like this:
+an attribute 'name' giving it's basename, so the file can look like this::
 
 	<section>
 	<page name="Foo">
@@ -24,20 +24,22 @@ scalability.
 
 # FUTURE: This module does not support attachments in the xml data
 
+import zim.stores.memory
+	# importing class from this module makes get_store() fail
+
 from zim.formats import get_format, ElementTreeModule
-from zim.stores import memory
 from zim.notebook import Path
 from zim.parsing import TextBuffer
 
 
-class Store(memory.Store):
+class XMLStore(zim.stores.memory.MemoryStore):
 
 	properties = {
 		'read-only': True
 	}
 
 	def __init__(self, notebook, path, file=None):
-		memory.Store.__init__(self, notebook, path)
+		zim.stores.memory.MemoryStore.__init__(self, notebook, path)
 		self.file = file
 		if not self.store_has_file():
 			raise AssertionError, 'XMl store needs file'
@@ -46,7 +48,7 @@ class Store(memory.Store):
 		if self.file.exists():
 			self.parse(self.file.read())
 
-	def store_page(page):
+	def store_page(self, page):
 		memory.Store.store_page(self, page)
 		self.file.writelines(self.dump())
 

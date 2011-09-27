@@ -13,8 +13,23 @@ import time
 
 import zim.fs
 from zim.fs import *
-from zim.fs import Path, FileHandle, FileWriteError, TmpFile, get_tmpdir, normalize_win32_share, PathLookupError, FileNotFoundError, FilteredDir, isabs, joinpath
 from zim.errors import Error
+
+
+def modify_file_mtime(path, func):
+	'''Helper function to modify a file in such a way that mtime
+	changed.
+	'''
+	mtime = os.stat(path).st_mtime
+	m = mtime
+	i = 0
+	while m == mtime:
+		time.sleep(1)
+		func(path)
+		m = os.stat(path).st_mtime
+		i += 1
+		assert i < 5
+	#~ print '>>>', m, mtime
 
 
 class FilterOverWriteWarning(tests.LoggingFilter):
@@ -44,28 +59,31 @@ class TestFS(tests.TestCase):
 				self.assertEqual(normalize_win32_share(url), url)
 
 		self.assertTrue(isabs('/foo/bar'))
+		self.assertTrue(isabs('~/foo/bar'))
 		self.assertFalse(isabs('./bar'))
 
 		self.assertEqual(joinpath('foo', 'bar'), os.sep.join(('foo', 'bar')))
 
-	def testPath(self):
+		self.assertEqual(cleanup_filename('foo&bar:dus\\foo.txt'), 'foo&bardusfoo.txt')
+
+	def testFilePath(self):
 		'''Test Path object'''
-		path = Path(['foo', 'bar'])
+		path = FilePath(['foo', 'bar'])
 		test = os.path.abspath( os.path.join('foo', 'bar') )
 		self.assertEqual(path.path, test)
 
-		path = Path('/foo/bar')
+		path = FilePath('/foo/bar')
 		uri = 'file:///' + os.path.abspath('/foo/bar').replace('\\', '/').strip('/')
 		self.assertEqual(path.uri, uri)
 
-		self.assertEqual(Path('file:///foo/bar'), Path('/foo/bar'))
-		self.assertEqual(Path('file:/foo/bar'), Path('/foo/bar'))
-		self.assertEqual(Path('file://localhost/foo/bar'), Path('/foo/bar'))
-		self.assertEqual(Path('file:///C:/foo/bar'), Path('/C:/foo/bar'))
+		self.assertEqual(FilePath('file:///foo/bar'), FilePath('/foo/bar'))
+		self.assertEqual(FilePath('file:/foo/bar'), FilePath('/foo/bar'))
+		self.assertEqual(FilePath('file://localhost/foo/bar'), FilePath('/foo/bar'))
+		self.assertEqual(FilePath('file:///C:/foo/bar'), FilePath('/C:/foo/bar'))
 		if os.name == 'nt':
-			self.assertEqual(Path('file:///C:/foo/bar'), Path(r'C:\foo\bar'))
+			self.assertEqual(FilePath('file:///C:/foo/bar'), FilePath(r'C:\foo\bar'))
 
-		path = Path('/foo//bar/baz/')
+		path = FilePath('/foo//bar/baz/')
 		drive, p = os.path.splitdrive(path.path)
 		self.assertEqual(path.split(), [drive + os.sep + 'foo', 'bar', 'baz'])
 		dirs = []
@@ -78,19 +96,19 @@ class TestFS(tests.TestCase):
 			('/foo/bar/baz/', '/foo/dus', '/foo'),
 			('/foo/bar', '/dus/ja', '/'),
 		):
-			self.assertEqual(Path(path1).commonparent(Path(path2)), Dir(common))
+			self.assertEqual(FilePath(path1).commonparent(FilePath(path2)), Dir(common))
 
 		if os.name == 'nt':
 			path1 = 'C:\foo\bar'
 			path2 = 'D:\foo\bar\baz'
-			self.assertEqual(Path(path1).commonparent(Path(path2)), None)
+			self.assertEqual(FilePath(path1).commonparent(FilePath(path2)), None)
 
 		for path1, path2, relpath in (
 			('/foo/bar/baz', '/foo', 'bar/baz'),
 		):
-			self.assertEqual(Path(path1).relpath(Path(path2)), relpath)
+			self.assertEqual(FilePath(path1).relpath(FilePath(path2)), relpath)
 
-		self.assertRaises(AssertionError, Path('/foo/bar').relpath, Path('/dus/ja'))
+		self.assertRaises(AssertionError, FilePath('/foo/bar').relpath, FilePath('/dus/ja'))
 
 		for path1, path2, relpath in (
 			('/foo/bar', '/dus/ja/', '../../foo/bar'),
@@ -98,21 +116,31 @@ class TestFS(tests.TestCase):
 			('/source/dir/foo/dus.pdf', '/source/dir/foo', 'dus.pdf'),
 			('/source/dir/dus.pdf', '/source/dir/foo', '../dus.pdf'),
 		):
-			self.assertEqual(Path(path1).relpath(Path(path2), allowupward=True), relpath)
+			self.assertEqual(FilePath(path1).relpath(FilePath(path2), allowupward=True), relpath)
 
 		if os.name == 'nt':
 			path1 = 'C:\foo\bar'
 			path2 = 'D:\foo\bar\baz'
-			self.assertEqual(Path(path1).relpath(Path(path2), allowupward=True), None)
+			self.assertEqual(FilePath(path1).relpath(FilePath(path2), allowupward=True), None)
 
-		self.assertEqual(Path('/foo') + 'bar', Path('/foo/bar'))
+		self.assertEqual(FilePath('/foo') + 'bar', FilePath('/foo/bar'))
+
+		path = FilePath('~/foo')
+		self.assertNotEqual(path.path, '~/foo')
+		self.assertEqual(path.user_path, '~/foo')
+		self.assertEqual(path.serialize_zim_config(), '~/foo')
+
+		path = FilePath('/foo')
+		self.assertIsNotNone(path.path)
+		self.assertIsNone(path.user_path)
+		self.assertIsNotNone(path.serialize_zim_config())
 
 		# Test unicode compat
 		string = u'\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'
-		path = Path(string)
+		path = FilePath(string)
 		self.assertTrue(path.path.endswith(string))
 		#~ self.assertRaises(Error, Path, string.encode('utf-8'))
-		path = Path((string, 'foo'))
+		path = FilePath((string, 'foo'))
 		self.assertTrue(path.path.endswith(os.sep.join((string, 'foo'))))
 		#~ self.assertRaises(Error, Path, (string.encode('utf-8'), 'foo'))
 
@@ -196,6 +224,10 @@ class TestFS(tests.TestCase):
 		file = File(tmpdir+'/newlines.txt')
 		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines\n')
 
+		# test encoding error
+		non_utf8_file = File('tests/data/non-utf8.txt')
+		self.assertRaises(FileUnicodeError, non_utf8_file.read)
+
 		# test compare & copyto
 		file1 = File(tmpdir + '/foo.txt')
 		file2 = File(tmpdir + '/bar.txt')
@@ -262,7 +294,7 @@ class TestFS(tests.TestCase):
 
 		self.assertEqual(File((dir, 'foo.txt')), dir.file('foo.txt'))
 		self.assertEqual(dir.file(File((dir, 'foo.txt'))), dir.file('foo.txt'))
-		self.assertEqual(dir.file(Path((dir, 'foo.txt'))), dir.file('foo.txt'))
+		self.assertEqual(dir.file(FilePath((dir, 'foo.txt'))), dir.file('foo.txt'))
 		self.assertEqual(dir.file(('foo.txt',)), dir.file('foo.txt'))
 		self.assertRaises(PathLookupError, dir.file, File('/foo/bar.txt')) # not below dir
 
@@ -271,7 +303,7 @@ class TestFS(tests.TestCase):
 
 		self.assertEqual(Dir((dir, 'bar')), dir.subdir('bar'))
 		self.assertEqual(dir.subdir(Dir((dir, 'bar'))), dir.subdir('bar'))
-		self.assertEqual(dir.subdir(Path((dir, 'bar'))), dir.subdir('bar'))
+		self.assertEqual(dir.subdir(FilePath((dir, 'bar'))), dir.subdir('bar'))
 		self.assertEqual(dir.subdir(('bar',)), dir.subdir('bar'))
 		self.assertRaises(PathLookupError, dir.subdir, Dir('/foo/bar')) # not below dir
 
@@ -297,16 +329,7 @@ class TestFileOverwrite(tests.TestCase):
 		self.path = self.create_tmp_dir()+'/file.txt'
 
 	def modify(self, func):
-		mtime = os.stat(self.path).st_mtime
-		m = mtime
-		i = 0
-		while m == mtime:
-			time.sleep(1)
-			func(self.path)
-			m = os.stat(self.path).st_mtime
-			i += 1
-			assert i < 5
-		#~ print '>>>', m, mtime
+		modify_file_mtime(self.path, func)
 
 	def runTest(self):
 		'''Test file overwrite check'''

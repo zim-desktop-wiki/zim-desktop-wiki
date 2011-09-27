@@ -7,8 +7,8 @@ import gtk
 from zim.fs import File, TmpFile
 from zim.plugins import PluginClass
 from zim.config import data_file
-from zim.applications import Application
-from zim.gui.imagegeneratordialog import ImageGeneratorDialog
+from zim.applications import Application, ApplicationError
+from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
 
 # TODO put these commands in preferences
 dotcmd = ('dot', '-Tpng', '-o')
@@ -83,15 +83,16 @@ class InsertDiagramDialog(ImageGeneratorDialog):
 			generator, image, help=':Plugins:Diagram Editor' )
 
 
-class DiagramGenerator(object):
+class DiagramGenerator(ImageGeneratorClass):
 
-	# TODO: generic base class for image generators
+	uses_log_file = False
 
 	type = 'diagram'
-	basename = 'diagram.dot'
+	scriptname = 'diagram.dot'
+	imagename = 'diagram.png'
 
 	def __init__(self):
-		self.dotfile = TmpFile('diagram-editor.dot')
+		self.dotfile = TmpFile(self.scriptname)
 		self.dotfile.touch()
 		self.pngfile = File(self.dotfile.path[:-4] + '.png') # len('.dot') == 4
 
@@ -103,10 +104,13 @@ class DiagramGenerator(object):
 		self.dotfile.writelines(text)
 
 		# Call GraphViz
-		dot = Application(dotcmd)
-		dot.run((self.pngfile, self.dotfile))
-
-		return self.pngfile, None
+		try:
+			dot = Application(dotcmd)
+			dot.run((self.pngfile, self.dotfile))
+		except ApplicationError:
+			return None, None # Sorry, no log
+		else:
+			return self.pngfile, None
 
 	def cleanup(self):
 		self.dotfile.remove()

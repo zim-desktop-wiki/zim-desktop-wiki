@@ -7,11 +7,13 @@ from __future__ import with_statement
 import tests
 
 import sys
+import os
 from cStringIO import StringIO
 import logging
 import wsgiref.validate
 import wsgiref.handlers
 
+from zim.fs import File
 from zim.www import WWWInterface
 
 # TODO how to test fetching from a socket while mainloop is running ?
@@ -52,6 +54,8 @@ class TestWWWInterface(tests.TestCase):
 
 	def setUp(self):
 		self.template = None
+		self.file_not_found_paths = ['/Test', '/nonexistingpage.html', '/nonexisting/']
+		self.file_found_paths = ['/favicon.ico', '/+resources/checked-box.png']
 
 	def runTest(self):
 		'Test WWW interface'
@@ -73,6 +77,15 @@ class TestWWWInterface(tests.TestCase):
 			rfile = StringIO('')
 			wfile = StringIO()
 			handler = wsgiref.handlers.SimpleHandler(rfile, wfile, sys.stderr, environ)
+			if os.name == 'nt':
+				# HACK: on windows we have no file system encoding,
+				# but use unicode instead for os API.
+				# However wsgiref.validate fails on unicode param
+				# in environmnet.
+				for k, v in handler.os_environ.items():
+					if isinstance(v, unicode):
+						handler.os_environ[k] = v.encode('utf-8')
+
 			handler.run(validator)
 			#~ print '>>>>\n', wfile.getvalue(), '<<<<'
 			return wfile.getvalue()
@@ -92,17 +105,17 @@ class TestWWWInterface(tests.TestCase):
 		self.assertTrue('<h1>Foo</h1>' in response)
 
 		# page not found
-
 		with Filter404():
-			for path in ('/Test', '/nonexistingpage.html', '/nonexisting/'):
+			for path in self.file_not_found_paths:
 				response = call('GET', path)
 				header, body = self.assertResponseWellFormed(response)
 				self.assertEqual(header[0], 'HTTP/1.0 404 Not Found')
 
-		# favicon
-		response = call('GET', '/favicon.ico')
-		header, body = self.assertResponseWellFormed(response)
-		self.assertEqual(header[0], 'HTTP/1.0 200 OK')
+		# favicon and other files
+		for path in self.file_found_paths:
+			response = call('GET', path)
+			header, body = self.assertResponseWellFormed(response)
+			self.assertEqual(header[0], 'HTTP/1.0 200 OK')
 
 
 class TestWWWInterfaceTemplate(TestWWWInterface):
@@ -113,8 +126,28 @@ class TestWWWInterfaceTemplate(TestWWWInterface):
 			self.assertTrue('<!-- Wiki content -->' in body, 'Template is used')
 
 	def setUp(self):
+		TestWWWInterface.setUp(self)
 		self.template = 'Default'
+		self.file_not_found_paths.append('/+resources/foo/bar.png')
 
 	def runTest(self):
-		'Test WWW interface with a template'
+		'Test WWW interface with a template.'
+		TestWWWInterface.runTest(self)
+
+
+class TestWWWInterfaceTemplateResources(TestWWWInterface):
+
+	def assertResponseOK(self, response, expectbody=True):
+		header, body = TestWWWInterface.assertResponseOK(self, response, expectbody)
+		if expectbody:
+			self.assertTrue('src="/%2Bresrouces/foo/bar.png"' ''.join(body), 'Template is used')
+
+	def setUp(self):
+		TestWWWInterface.setUp(self)
+		self.file = File('tests/data/templates/Default.html')
+		self.template = self.file.path
+		self.file_found_paths.append('/+resources/foo/bar.png')
+
+	def runTest(self):
+		'Test WWW interface with a template with resources.'
 		TestWWWInterface.runTest(self)

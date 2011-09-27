@@ -6,7 +6,9 @@
 
 import tests
 
-from zim.fs import *
+import os
+
+from zim.fs import File, Dir
 from zim.config import config_file
 from zim.notebook import *
 from zim.index import *
@@ -76,27 +78,41 @@ class TestGetNotebook(tests.TestCase):
 		self.assertEqual(nb, dir.uri)
 
 		# But not anymore after adding second notebook
+		if os.name == 'nt':
+			uri1 = 'file:///C:/foo/bar'
+		else:
+			uri1 = 'file:///foo/bar'
+
 		list = get_notebook_list()
-		list.append(NotebookInfo('file:///foo/bar'))
+		list.append(NotebookInfo(uri1, interwiki='foobar'))
+			# on purpose do not set name, should default to basename
 		list.write()
 		self.assertTrue(len(list) == 2)
 		self.assertEqual(list[:],
-			[NotebookInfo(dir.uri), NotebookInfo('file:///foo/bar')])
+			[NotebookInfo(dir.uri), NotebookInfo(uri1)])
 
 		nb, page = resolve_notebook('foo')
 		self.assertEqual(nb, dir)
 		self.assertTrue(isinstance(get_notebook(nb), Notebook))
 
+		nb, page = resolve_notebook('bar')
+			# Check name defaults to dir basename
+		self.assertEqual(nb, Dir(uri1))
+		self.assertIs(get_notebook(nb), None) # path should not exist
+
+		nb, page = resolve_notebook('Bar')
+		self.assertEqual(nb, Dir(uri1))
+
 		nb = _get_default_or_only_notebook()
 		self.assertTrue(nb is None)
 
 		list = get_notebook_list()
-		list.set_default('file:///foo/bar')
+		list.set_default(uri1)
 		list.write()
 		nb = _get_default_or_only_notebook()
-		self.assertEqual(nb, Dir('/foo/bar').uri)
+		self.assertEqual(nb, uri1)
 		nb, p = resolve_notebook(nb)
-		self.assertEqual(nb, Dir('/foo/bar'))
+		self.assertEqual(nb, Dir(uri1))
 		self.assertEqual(get_notebook(nb), None)
 
 		# Check interwiki parsing
@@ -105,6 +121,11 @@ class TestGetNotebook(tests.TestCase):
 		nb, page = resolve_notebook(dir.uri + '?Foo')
 		self.assertEqual(nb, dir)
 		self.assertEqual(page, Path('Foo'))
+
+		self.assertEqual(interwiki_link('foobar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
+		self.assertEqual(interwiki_link('FooBar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
+		self.assertEqual(interwiki_link('bar?Foo'), 'zim+' + uri1 + '?Foo') # name
+		self.assertEqual(interwiki_link('Bar?Foo'), 'zim+' + uri1 + '?Foo') # name
 
 		# Check backward compatibility
 		file = File('tests/data/notebook-list-old-format.list')
@@ -141,6 +162,28 @@ class TestNotebook(tests.TestCase):
 		self.assertTrue(id(page3) != id(page1))
 		self.assertFalse(page1.valid)
 
+		page = self.notebook.get_page(Path('Test:foo'))
+		text = page.dump('plain')
+		newtext = ['Some new content\n']
+		assert newtext != text
+		self.assertEqual(page.dump('plain'), text)
+		page.parse('plain', newtext)
+		self.assertEqual(page.dump('plain'), newtext)
+		self.assertTrue(page.modified)
+		re = self.notebook.revert_page(page)
+		self.assertFalse(re) # no return value
+		self.assertEqual(page.dump('plain'), text) # object reverted
+		self.assertFalse(page.modified)
+		self.notebook.flush_page_cache(page)
+		page = self.notebook.get_page(page) # new object
+		self.assertEqual(page.dump('plain'), text)
+		page.parse('plain', newtext)
+		self.assertEqual(page.dump('plain'), newtext)
+		self.notebook.store_page(page)
+		self.notebook.flush_page_cache(page)
+		page = self.notebook.get_page(page) # new object
+		self.assertEqual(page.dump('plain'), newtext)
+
 		pages = list(self.notebook.get_pagelist(Path(':')))
 		self.assertTrue(len(pages) > 0)
 		for page in pages:
@@ -171,26 +214,26 @@ class TestNotebook(tests.TestCase):
 		self.assertRaises(PageExistsError,
 			self.notebook.move_page, Path('Test:foo'), Path('TODOList'))
 
-		self.notebook.index.update(background=True)
+		self.notebook.index.update_async()
 		self.assertTrue(self.notebook.index.updating)
 		self.assertRaises(IndexBusyError,
 			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
+		self.notebook.index.ensure_update()
 
 		# non-existing page - just check no errors here
-		self.notebook.index.ensure_update()
 		self.notebook.move_page(Path('NewPage'), Path('Test:NewPage')),
+		self.notebook.index.ensure_update()
 
 		# Test actual moving
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
 			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
 		):
-			self.notebook.index.ensure_update()
 			page = self.notebook.get_page(oldpath)
 			text = page.dump('wiki')
 			self.assertTrue(page.haschildren)
-
 			self.notebook.move_page(oldpath, newpath)
+			self.notebook.index.ensure_update()
 
 			# newpath should exist and look like the old one
 			page = self.notebook.get_page(newpath)
@@ -202,6 +245,24 @@ class TestNotebook(tests.TestCase):
 			page = self.notebook.get_page(oldpath)
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
+
+		# Test moving a page below it's own namespace
+		oldpath = Path('Test:Bar')
+		newpath = Path('Test:Bar:newsubpage')
+
+		page = self.notebook.get_page(oldpath)
+		page.parse('wiki', 'Test 123')
+		self.notebook.store_page(page)
+
+		self.notebook.move_page(oldpath, newpath)
+		self.notebook.index.ensure_update()
+		page = self.notebook.get_page(newpath)
+		self.assertEqual(page.dump('wiki'), ['Test 123\n'])
+
+		page = self.notebook.get_page(oldpath)
+		self.assertTrue(page.haschildren)
+		self.assertFalse(page.hascontent)
+
 
 		# Check delete and cleanup
 		path = Path('AnotherNewPage:Foo:bar')

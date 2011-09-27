@@ -1,0 +1,5 @@
+
+TODO: more info about writing format modules
+
+Each module in zim.formats should contains exactly one subclass of DumperClass and exactly one subclass of ParserClass (optional for export formats). This includes imports, so do not import other classes that derive from these base classes directly into the module. When zim loads the format it finds the correct parser and dumper classes by looking at the base class of each class object.
+

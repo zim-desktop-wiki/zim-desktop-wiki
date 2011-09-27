@@ -67,8 +67,8 @@ encode_dict = {
 	'%': '\\%',
 	'#': '\\# ',
 	'_': '\\_',
-	'>': '\\textgreater',
-	'<': '\\textless',
+	'>': '\\textgreater{}',
+	'<': '\\textless{}',
 }
 
 
@@ -189,7 +189,8 @@ class Dumper(DumperClass):
 					imagepath = File(self.linker.link(element.attrib['src'])).path
 					image = '\\includegraphics[%s]{%s}' % (options, imagepath)
 					if 'href' in element.attrib:
-						output.append('\\href{%s}{%s}' % (element.attrib['href'], image))
+						href = self.linker.link(element.attrib['href'])
+						output.append('\\href{%s}{%s}' % (href, image))
 					else:
 						output.append(image)
 			elif element.tag == 'link':

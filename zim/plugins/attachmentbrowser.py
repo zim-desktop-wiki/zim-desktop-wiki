@@ -71,7 +71,7 @@ from zim.plugins import PluginClass
 from zim.gui.widgets import Button, BOTTOM_PANE, IconButton
 from zim.notebook import Path
 from zim.stores import encode_filename
-from zim.fs import *
+from zim.fs import File, Dir
 from zim.errors import Error
 from zim.applications import Application
 from zim.gui.applications import OpenWithMenu
@@ -610,9 +610,11 @@ class ThumbnailManager():
 
 	def get_thumbnail(self, file, size, set_pixbuf_callback=None, parm=None):
 		''' create a pixbuffer
-			load the thumb if available
-			else load smaller thumbnail
-			  and generate thumb asyncr'''
+
+		load the thumb if available
+		else load smaller thumbnail
+		and generate thumb async
+		'''
 		filenameabs = file.path
 		#print 'get_thumbnail(' , filenameabs ,size
 
@@ -680,5 +682,3 @@ class ThumbnailManager():
 		#pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE,gtk.ICON_SIZE_DIALOG)
 		#return pixbuf
 		return None
-
-

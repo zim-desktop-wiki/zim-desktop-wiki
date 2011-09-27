@@ -10,7 +10,8 @@ a PageProxy object, which exposes attributes and functions to be used
 in the template. This module is most efficient when you want to dump
 many pages with one template.
 
-Usage:
+Usage::
+
 	import zim.templates
 	tmpl = zim.templates.get_template('html', 'Default')
 	for page in notebook.get_root():
@@ -20,7 +21,7 @@ Template files are expected to be in a path
 XDG_DATA/zim/templates/FORMAT/
 
 Syntax is loosely based on the syntax of the perl Template Toolkit
-(http://template-toolkit.org). The following syntax is supported:
+(U{http://template-toolkit.org}). The following syntax is supported::
 
 	[% GET page.name %] or just [% page.name %]
 	[% SET foo = 'Foo !' %] or just [ foo = 'Foo !' ]
@@ -49,11 +50,11 @@ without worrying whether it may delete his or her notes.
 Therefore we try to minimize to possibilities to actually execute
 arbitrary code from templates.
 
-* We only allow strings as function arguments from the template,
-  no arbitrary expressions
-* Functions that are allowed to be called from the template need to be
-  flagged explicitly by wrapping them in a TemplateFunction object.
-* There is no directive to evaluate code, like EVAL, PERL or PYTHON
+  - We only allow strings as function arguments from the template,
+    no arbitrary expressions
+  - Functions that are allowed to be called from the template need to be
+    flagged explicitly by wrapping them in a TemplateFunction object.
+  - There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
 
 # TODO add a directive [% INCLUDE template_name %]
@@ -71,8 +72,9 @@ from zim.errors import Error
 from zim.fs import File
 from zim.config import data_dirs
 from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string, is_path_re
-from zim.formats import ParseTree, Element
+from zim.formats import ParseTree, Element, TreeBuilder
 from zim.index import LINK_DIR_BACKWARD
+from zim.notebook import Path
 
 logger = logging.getLogger('zim.templates')
 
@@ -117,7 +119,11 @@ def get_template(format, template):
 	logger.info('Loading template from: %s', file)
 	if not file.exists():
 		raise AssertionError, 'No such file: %s' % file
-	return Template(file.readlines(), format, name=file.path)
+
+	basename, ext = file.basename.rsplit('.', 1)
+	resources = file.dir.subdir(basename)
+
+	return Template(file.readlines(), format, name=file.path, resources_dir=resources)
 
 
 class TemplateError(Error):
@@ -156,11 +162,10 @@ class _TemplateManager(gobject.GObject):
 	'''Singleton object used for hooking signals so plugins can be notified
 	when a template is used.
 
-	Currently only supports one signal:
-	  * process-page (manager, template, page, dict)
-	    Called just before the page is processed. Plugins can extend functionality
-	    available to the template by putting parameters or template functions in
-	    'dict'. Plugins should not modify page!
+	@signal: C{process-page (manager, template, page, dict)}:
+	Called just before the page is processed. Plugins can extend functionality
+	available to the template by putting parameters or template functions in
+	'dict'. Plugins should not modify page!
 	'''
 
 	# In theory it would be better to do this without a singleton, but in that
@@ -198,7 +203,6 @@ class GenericTemplate(object):
 		'''
 		if not isinstance(dict, TemplateDict):
 			dict = TemplateDict(dict)
-
 		output = TextBuffer(self.tokens.process(dict))
 		return output.get_lines()
 
@@ -295,11 +299,15 @@ class GenericTemplate(object):
 class Template(GenericTemplate):
 	'''Template class that can process a zim Page object'''
 
-	def __init__(self, input, format, linker=None, name=None):
+	def __init__(self, input, format, linker=None, name=None, resources_dir=None):
 		if isinstance(format, basestring):
 			format = zim.formats.get_format(format)
 		self.format = format
 		self.linker = linker
+		if isinstance(resources_dir, basestring):
+			self.resources_dir = Dir(resources_dir)
+		else:
+			self.resources_dir = resources_dir
 		GenericTemplate.__init__(self, input, name)
 
 	def set_linker(self, linker):
@@ -328,13 +336,21 @@ class Template(GenericTemplate):
 
 		dict = {
 			'zim': { 'version': zim.__version__ },
+			'notebook': {
+				'name' : notebook.name,
+				'interwiki': notebook.info.interwiki,
+			},
 			'page': PageProxy(
 				notebook, page,
 				self.format, self.linker, options),
 			'pages': pages,
 			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
-			'options': options
+			'resource': TemplateFunction(self.resource_url),
+			'pageindex' : PageIndexFunction(notebook, page, self.format, self.linker, options),
+			'options': options,
+			# helpers that allow to write TRUE instead of 'TRUE' in template functions
+			'TRUE' : 'True', 'FALSE' : 'False',
 		}
 
 		if self.linker:
@@ -371,6 +387,15 @@ class Template(GenericTemplate):
 		else:
 			return link
 
+	def resource_url(self, dict, path):
+		# Don't make the mistake to think we should use the
+		# resources_dir here - that dir refers to the source of the
+		# resource files, while here we want an URL for the resource
+		# file *after* export
+		if self.linker:
+			return self.linker.resource(path)
+		return path
+
 
 class TemplateTokenList(list):
 	'''This class contains a list of TemplateToken objects and strings'''
@@ -393,8 +418,9 @@ class TemplateToken(object):
 
 	def parse_expr(self, string):
 		'''This method parses an expression and returns an object of either
-		class TemplateParam, TemplateParamList or TemplateFuntionParam or
-		a simple string. (All these classes have a method "evaluate()" which
+		class TemplateParam, TemplateParamList or TemplateFuntionParam.
+
+		(All these classes have a method "evaluate()" which
 		takes an TemplateDict as argument and returns a value for the result
 		of the expression.)
 		'''
@@ -437,7 +463,7 @@ class GETToken(TemplateToken):
 	def process(self, dict):
 		value = self.expr.evaluate(dict)
 		if value:
-			return [unicode(value).encode('utf-8')]
+			return [value]
 		else:
 			return []
 
@@ -626,6 +652,79 @@ class StrftimeFunction(TemplateFunction):
 			raise AssertionError, 'Not a datetime object: %s', date
 
 
+class PageIndexFunction(TemplateFunction):
+	'''Template function to build a page menu'''
+
+	def __init__(self, notebook, page, format, linker, options):
+		self._notebook = notebook
+		self._page = page
+		self._format = format
+		self._linker = linker
+		self._options = options
+
+	def __call__(self, dict, root=':', collapse=True, ignore_empty=True):
+		builder = TreeBuilder()
+
+		collapse = bool(collapse) and not collapse == 'False'
+		ignore_empty = bool(ignore_empty) and not ignore_empty == 'False'
+
+		if isinstance(root, PageProxy):
+			# allow [% menu(page) %] vs [% menu(page.name) %]
+			root = root.name
+
+		expanded = [self._page] + list(self._page.parents())
+
+		def add_namespace(path):
+			builder.start('ul')
+
+			pagelist = self._notebook.index.list_pages(path)
+			for page in pagelist:
+				if ignore_empty and not page.exists():
+					continue
+				builder.start('li')
+
+				if page == self._page:
+					# Current page is marked with the strong style
+					builder.start('strong')
+					builder.data(page.basename)
+					builder.end('strong')
+				else:
+					# links to other pages
+					builder.start('link', {'type': 'page', 'href': ':'+page.name})
+					builder.data(page.basename)
+					builder.end('link')
+
+				builder.end('li')
+				if page.haschildren:
+					if collapse:
+						# Only recurs into namespaces that are expanded
+						if page in expanded:
+							add_namespace(page) # recurs
+					else:
+						add_namespace(page) # recurs
+
+			builder.end('ul')
+
+		builder.start('page')
+		add_namespace(Path(root))
+		builder.end('page')
+
+		tree = ParseTree(builder.close())
+		if not tree:
+			return None
+
+		#~ print "!!!", tree.tostring()
+
+		format = self._format
+		linker = self._linker
+
+		dumper = format.Dumper(
+			linker=linker,
+			template_options=self._options )
+
+		return ''.join(dumper.dump(tree))
+
+
 class TemplateDict(object):
 	'''Object behaving like a dict for storing values of template parameters.
 	It is initialized with a nested structure of dicts and objects which
@@ -787,7 +886,7 @@ class ParseTreeProxy(object):
 	def _split_head(self, tree):
 		if not hasattr(self, '_servered_head'):
 			elements = tree.getroot().getchildren()
-			if elements[0].tag == 'h':
+			if elements and elements[0].tag == 'h':
 				root = Element('zim-tree')
 				for element in elements[1:]:
 					root.append(element)

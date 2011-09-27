@@ -97,7 +97,7 @@ def main(daemonproxy, *args):
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, read only
-	('show_quick_note', 'gtk-new', _('Quick Note...'), '', '', True), # T: menu item
+	('show_quick_note', 'gtk-new', _('Quick Note...'), '', '', False), # T: menu item
 )
 
 ui_xml = '''
@@ -200,7 +200,8 @@ class BoundQuickNoteDialog(Dialog):
 		switch_input()
 		self.form.widgets['new_page'].connect('toggled', switch_input)
 
-		self.open_page = gtk.CheckButton(_('_Open new page')) # T: Option in quicknote dialog
+		self.open_page = gtk.CheckButton(_('Open _Page')) # T: Option in quicknote dialog
+			# Don't use "O" as accelerator here to avoid conflict with "Ok"
 		self.open_page.set_active(self.uistate['open_page'])
 		self.action_area.pack_start(self.open_page, False)
 		self.action_area.set_child_secondary(self.open_page, True)
@@ -366,4 +367,3 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 			return DaemonProxy().get_notebook(notebook)
 
 		return BoundQuickNoteDialog.do_response_ok(self, get_ui)
-

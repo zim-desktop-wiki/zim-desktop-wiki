@@ -6,22 +6,22 @@
 This module contains the logic for searching in a notebook.
 
 Supported operators:
- 	NOT not -
- 	AND and + &&
- 	OR or ||
+ 	- "NOT", "not" and "-"
+ 	- "AND", "and", "+" and "&&"
+ 	- "OR", "or" and "||"
 
 Order of precedence: AND, OR, NOT
 so "foo AND NOT bar OR baz" means AND(foo, OR(NOT(bar), baz))
 
 Supported keywords:
- 	Content:
- 	Name:
-	Namespace:	# alias for Name XXX or Name: XXX:*
-	Links:		# forward - alias for linksfrom
- 	LinksFrom:	# forward
- 	LinksTo:	# backward
- 	ContentOrName: # the default, like Name: *X* or Content: X
- 	Tag:		# look for a single tag
+	- C{Content}
+	- C{Name}
+	- C{Namespace}: alias for Name XXX or Name: XXX:*
+	- C{Links}: forward - alias for linksfrom
+	- C{LinksFrom}: forward
+	- C{LinksTo}: backward
+	- C{ContentOrName}: the default, like Name: *X* or Content: X
+	- C{Tag}: look for a single tag
 
 For the Content field we need to request the actual page contents,
 all other fields we get from the index and are more efficient to
@@ -191,7 +191,8 @@ class Query(object):
 	@property
 	def simple_match(self):
 		'''Used to determine a simple matching string to be used
-		in the find method in the pageview. Used in SearchDialog.
+		in the find method in the pageview. Used by L{SearchDialog}
+		to set the L{PageView} find string to highligh matches in the page.
 		'''
 		# TODO make this return a list with positive terms for content
 		# if find supports an OR operator, highlight them all

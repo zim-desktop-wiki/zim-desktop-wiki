@@ -9,6 +9,8 @@ The notebook **Name** is used in the "[[Notebooks|Open Notebook]]" dialog and e.
 
 The **Home Page** is the first page to open in a notebook if you have no history yet. It can be accessed with the toolbar icon for the home page and the <Alt><Home> key binding. Typically the home page should be an index page linking to other pages.
 
+The notebook **Interwiki keyword** can be used to link to this notebook for other notebooks. See "Interwiki" in [[Links]] for more info.
+
 The notebook **Icon** is an image that is used together with the name to identify the notebook.
 
 The **Document Root** is a special folder which contains documents that can be linked from the notebook. To link files in this folder start the links with a "/" (see [[Links]] for more details). This folder is typically used for notebooks that are published as web page. When [[Export|exporting]] the notebook to html the document root can be mapped to a special URL.

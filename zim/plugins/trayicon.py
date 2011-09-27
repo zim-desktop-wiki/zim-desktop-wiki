@@ -368,4 +368,3 @@ class AppIndicatorTrayIcon(DaemonTrayIconMixin, TrayIconBase):
 		menu = self.get_trayicon_menu()
 		menu.show_all()
 		self.appindicator.set_menu(menu)
-

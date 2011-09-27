@@ -15,7 +15,8 @@ import gtk
 import logging
 
 from zim.fs import File
-from zim.parsing import is_url_re, url_encode, URL_ENCODE_READABLE
+from zim.notebook import Path
+from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, TreeBuilder
 from zim.exporter import StaticLinker
 
@@ -105,39 +106,52 @@ def unpack_urilist(text):
 	return [line.decode('utf-8') for line in lines]
 
 
-def _file_link_tree(links, notebook, page):
-		#~ print 'LINKS: ', links
-		builder = TreeBuilder()
-		builder.start('zim-tree')
-		for i in range(len(links)):
-			if i > 0:
-				builder.data(' ')
+def _link_tree(links, notebook, page):
+	# Convert a list of links (of any type) into a parsetree
+	#~ print 'LINKS: ', links
+	#~ print 'NOTEBOOK and PAGE:', notebook, page
+	builder = TreeBuilder()
+	builder.start('zim-tree')
+	for i in range(len(links)):
+		if i > 0:
+			builder.data(' ')
 
-			isimage = False
-			if links[i].startswith('file:/'):
-				try:
-					isimage = File(links[i]).isimage()
-				except:
-					pass
+		link = links[i]
+		type = link_type(links[i])
+		isimage = False
+		if type == 'file':
+			try:
+				file = File(link)
+				isimage = file.isimage()
+			except:
+				pass
 
-			if isimage:
-				file = File(links[i])
-				src = notebook.relative_filepath(file, page) or file.path
-				builder.start('img', {'src': src})
-				builder.end('img')
-			elif links[i].startswith('@'):
-				builder.start('tag', {'name': links[i][1:]})
-				builder.data(links[i])
-				builder.end('tag')
-			else:
-				builder.start('link', {'href': links[i]})
-				builder.data(links[i])
-				builder.end('link')
-		builder.end('zim-tree')
-		tree = ParseTree(builder.close())
-		tree.resolve_images(notebook, page)
-		tree.decode_urls()
-		return tree
+		if isimage:
+			src = notebook.relative_filepath(file, page) or file.uri
+			builder.start('img', {'src': src})
+			builder.end('img')
+		elif link.startswith('@'):
+			# FIXME - is this ever used ??
+			builder.start('tag', {'name': links[i][1:]})
+			builder.data(links[i])
+			builder.end('tag')
+		else:
+			if type == 'page':
+				href = Path(notebook.cleanup_pathname(link)) # Assume links are always absolute
+				link = notebook.relative_link(page, href) or link
+			elif type == 'file':
+				file = File(link) # Assume links are always URIs
+				link = notebook.relative_filepath(file, page) or file.uri
+
+			builder.start('link', {'href': link})
+			builder.data(link)
+			builder.end('link')
+
+	builder.end('zim-tree')
+	tree = ParseTree(builder.close())
+	tree.resolve_images(notebook, page)
+	tree.decode_urls()
+	return tree
 
 
 def _get_image_info(targetname):
@@ -175,7 +189,7 @@ def parsetree_from_selectiondata(selectiondata, notebook, page=None):
 	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
 	or targetname in URI_TARGET_NAMES:
 		links = unpack_urilist(selectiondata.data)
-		return _file_link_tree(links, notebook, page)
+		return _link_tree(links, notebook, page)
 	elif targetname in TEXT_TARGET_NAMES:
 		# plain text parser should highlight urls etc.
 		# FIXME some apps drop text/uri-list as a text/plain mimetype
@@ -202,7 +216,7 @@ def parsetree_from_selectiondata(selectiondata, notebook, page=None):
 		pixbuf.save(file.path, format)
 
 		links = [file.uri]
-		return _file_link_tree(links, notebook, page)
+		return _link_tree(links, notebook, page)
 	else:
 		return None
 
@@ -360,12 +374,12 @@ class Win32HtmlFormat:
 	'''This class adds support for Windows "HTML Format" clipboard content type
 
 	Code is based on example code from
-		http://code.activestate.com/recipes/474121/
+	U{http://code.activestate.com/recipes/474121/}
 
 	written by Phillip Piper (jppx1[at]bigfoot.com)
 
 	Also see specification at:
-		http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/windowsuserinterface/dataexchange/clipboard/htmlclipboardformat.asp
+	U{http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/windowsuserinterface/dataexchange/clipboard/htmlclipboardformat.asp}
 	'''
 
 	MARKER_BLOCK_OUTPUT = \

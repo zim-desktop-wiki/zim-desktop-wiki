@@ -14,6 +14,7 @@ from zim.templates import GenericTemplate, \
 	TemplateParam, TemplateDict, TemplateFunction, PageProxy
 from zim.notebook import Notebook, Path
 import zim.formats
+from zim.parsing import link_type
 
 
 class TestTemplateParam(tests.TestCase):
@@ -159,14 +160,14 @@ class TestTemplate(tests.TestCase):
 		input = u'''\
 Version [% zim.version %]
 <title>[% page.title %]</title>
-<h1>[% page.name %]</h1>
+<h1>[% notebook.name %]: [% page.name %]</h1>
 <h2>[% page.heading %]</h2>
 [% page.body %]
 '''
 		wantedresult = u'''\
 Version %s
 <title>Page Heading</title>
-<h1>FooBar</h1>
+<h1>Unnamed Notebook: FooBar</h1>
 <h2>Page Heading</h2>
 <p>
 <strong>foo bar !</strong><br>
@@ -190,6 +191,73 @@ Version %s
 		tree = template.process_to_parsetree(notebook, page) # No linker !
 		self.assertEqual(tree.find('h').text, u'Some New None existing page')
 
+class TestTemplatePageIndexFuntion(tests.TestCase):
+
+	def runTest(self):
+		# pageindex(root, collapse, ignore_empty)
+		self.maxDiff = None
+
+		data = (
+('Parent:Daughter', u"[% pageindex('Parent') %]", '''\
+<ul>
+<li><a href="page://:Parent:Child" title="Child">Child</a></li>
+<li><strong>Daughter</strong></li>
+<ul>
+<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne" title="SomeOne">SomeOne</a></li>
+</ul>
+<li><a href="page://:Parent:Son" title="Son">Son</a></li>
+</ul>
+'''),
+
+('Parent:Daughter:SomeOne', u"[% pageindex('Parent') %]", '''\
+<ul>
+<li><a href="page://:Parent:Child" title="Child">Child</a></li>
+<li><a href="page://:Parent:Daughter" title="Daughter">Daughter</a></li>
+<ul>
+<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+<li><strong>SomeOne</strong></li>
+<ul>
+<li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
+</ul>
+</ul>
+<li><a href="page://:Parent:Son" title="Son">Son</a></li>
+</ul>
+'''),
+
+('Parent:Daughter:SomeOne', u"[% pageindex('Parent', FALSE, FALSE) %]", '''\
+<ul>
+<li><a href="page://:Parent:Child" title="Child">Child</a></li>
+<ul>
+<li><a href="page://:Parent:Child:Grandchild" title="Grandchild">Grandchild</a></li>
+</ul>
+<li><a href="page://:Parent:Daughter" title="Daughter">Daughter</a></li>
+<ul>
+<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+<li><strong>SomeOne</strong></li>
+<ul>
+<li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
+</ul>
+</ul>
+<li><a href="page://:Parent:Son" title="Son">Son</a></li>
+<ul>
+<li><a href="page://:Parent:Son:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://:Parent:Son:Grandson" title="Grandson">Grandson</a></li>
+</ul>
+</ul>
+'''),
+		)
+
+		notebook = tests.new_notebook()
+		for path, input, wantedresult in data:
+			page = notebook.get_page(Path(path))
+			result = Template(input, 'html', linker=StubLinker()).process(notebook, page)
+			self.assertEqual(result, wantedresult.splitlines(True))
 
 
 class StubLinker(object):

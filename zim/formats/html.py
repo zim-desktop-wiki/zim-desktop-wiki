@@ -119,7 +119,11 @@ class Dumper(DumperClass):
 				for o in ('width', 'height'):
 					if o in element.attrib and int(float(element.attrib[o])) > 0:
 						opt = ' %s="%s"' % (o, element.attrib[o])
-				output.append('<img src="%s" alt="%s"%s>' % (src, text, opt))
+				if 'href' in element.attrib:
+					href = self.linker.link(element.attrib['href'])
+					output.append('<a href="%s"><img src="%s" alt="%s"%s></a>' % (href, src, text, opt))
+				else:
+					output.append('<img src="%s" alt="%s"%s>' % (src, text, opt))
 			elif element.tag == 'link':
 				href = self.linker.link(element.attrib['href'])
 				title = text.replace('"', '&quot;')
@@ -141,5 +145,3 @@ class Dumper(DumperClass):
 					# for whitespace between headings, paras etc.
 					tail = encode_whitespace(tail)
 				output.append(tail)
-
-

@@ -9,7 +9,7 @@ from tests import TestCase, LoggingFilter
 
 import os
 
-from zim.fs import *
+from zim.fs import File, Dir
 from zim.config import *
 from zim.notebook import Path
 import zim.config
@@ -27,15 +27,15 @@ class TestDirsTestSetup(TestCase):
 	def runTest(self):
 		'''Test config environment setup of test'''
 		for k, v in (
-			('XDG_DATA_HOME', './tests/tmp/data_home'),
-			('XDG_CONFIG_HOME', './tests/tmp/config_home'),
-			('XDG_CACHE_HOME', './tests/tmp/cache_home')
+			('XDG_DATA_HOME', os.path.join(tests.TMPDIR, 'data_home')),
+			('XDG_CONFIG_HOME', os.path.join(tests.TMPDIR, 'config_home')),
+			('XDG_CACHE_HOME', os.path.join(tests.TMPDIR, 'cache_home'))
 		): self.assertEqual(getattr(zim.config, k), Dir(v))
 
 		for k, v in (
-			('XDG_DATA_DIRS', './tests/tmp/data_dir'),
-			('XDG_CONFIG_DIRS', './tests/tmp/config_dir'),
-		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(':')))
+			('XDG_DATA_DIRS', os.path.join(tests.TMPDIR, 'data_dir')),
+			('XDG_CONFIG_DIRS', os.path.join(tests.TMPDIR, 'config_dir')),
+		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(os.pathsep)))
 
 
 class TestDirsDefault(TestCase):
@@ -105,6 +105,9 @@ class TestDirsEnvironment(TestDirsDefault):
 			'XDG_CONFIG_DIRS': '/foo/config/dir1:/foo/config/dir2',
 			'XDG_CACHE_HOME': '/foo/cache',
 		}
+		if os.name == 'nt':
+			my_environ['XDG_DATA_DIRS'] = '/foo/data/dir1;/foo/data/dir2'
+			my_environ['XDG_CONFIG_DIRS'] = '/foo/config/dir1;/foo/config/dir2'
 
 		old_environ = dict((name, os.environ.get(name)) for name in my_environ)
 

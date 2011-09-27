@@ -62,7 +62,7 @@ This is a core plugin shipping with zim.
 			self.load_file()
 
 	def disconnect(self):
-		if self.ui.ui_type == 'gtk':
+		if self.ui.ui_type == 'gtk' and hasattr(self, '_signal_id'):
 			self.pageview.view.disconnect(self._signal_id)
 		PluginClass.disconnect(self)
 
@@ -97,10 +97,10 @@ This is a core plugin shipping with zim.
 
 	def on_end_of_word(self, textview, start, end, word, char):
 		'''Handler for the end-of-word signal from the textview'''
-		# We check for non-space char because e.g. typing "-->" will 
-		# emit end-of-word with "--" as word and ">" as character. 
-		# This should be distinguished from the case when e.g. typing 
-		# "-- " emits end-of-word with "--" as word and " " (space) as 
+		# We check for non-space char because e.g. typing "-->" will
+		# emit end-of-word with "--" as word and ">" as character.
+		# This should be distinguished from the case when e.g. typing
+		# "-- " emits end-of-word with "--" as word and " " (space) as
 		# the char.
 		if not char.isspace():
 			return

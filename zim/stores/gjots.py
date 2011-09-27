@@ -9,9 +9,9 @@ programs.
 
 The format is very simple, there are just 3 directives:
 
-	\NewEntry	start a new page
-	\NewFolder	start a new namespace
-	\EndFolder	end of the namespace
+	- C{\NewEntry} start a new page
+	- C{\NewFolder} start a new namespace
+	- C{\EndFolder} end of the namespace
 
 Pages do not have any formatting and the first line, which may be
 empty, is used as the page title. Titles do not have to be unique, so
@@ -26,22 +26,25 @@ overhead when saved as individual files.
 # FUTURE: This module only read gjots file but does not write them.
 # Creating a read/write version is left as an exercise to the reader.
 
+import zim.stores.memory
+	# importing class from this module makes get_store() fail
+
 from zim.formats import get_format
-from zim.stores import memory
+
 
 # TODO needs parser and dumper routines
 # TODO needs base.has_file()
 # TODO needs test
 # TODO needs way to pass file notebook to main script
 
-class Store(memory.Store):
+class GjotsStore(zim.stores.memory.MemoryStore):
 
 	properties = {
 		'read-only': True
 	}
 
 	def __init__(self, **args):
-		memory.Store.__init__(self,  **args)
+		zim.stores.memory.MemoryStore.__init__(self,  **args)
 		self.format = get_format('plain')
 		if 'file' in args:
 			self.file = file

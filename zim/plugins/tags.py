@@ -12,9 +12,11 @@ import logging
 
 from zim.plugins import PluginClass
 from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
-	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL
+	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL
+from zim.notebook import Path
 from zim.index import IndexPath, IndexTag
 from zim.gui.widgets import LEFT_PANE
+from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
 
 
 logger = logging.getLogger('zim.plugins.tags')
@@ -44,8 +46,18 @@ class DuplicatePageTreeStore(PageTreeStore):
 	multiple times in the tree.
 	'''
 
+	def select_page(self, path):
+		oldpath = self.selected_page
+		self.selected_page = path
+
+		for mypath in (oldpath, path):
+			if mypath:	
+				for treepath in self.get_treepaths(mypath):
+					treeiter = self.get_iter(treepath)
+					self.emit('row-changed', treepath, treeiter)
+
 	def get_treepath(self, path):
-		'''Just returns the first treepath matching notebook path 'path' '''
+		# Just returns the first treepath matching notebook path
 		treepaths = self.get_treepaths(path)
 		if treepaths:
 			return treepaths[0]
@@ -251,14 +263,15 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 				return (treepath,)
 			else:
 				return ()
+		else:
+			assert isinstance(path, Path)
 
 		if path.isroot:
 			raise ValueError
 
-		if not isinstance(path, IndexPath):
-			path = self.index.lookup_path(path)
-			if path is None:
-				return ()
+		path = self.index.lookup_path(path)
+		if path is None or not path.hasdata:
+			return ()
 
 		# See if it is in cache already
 		if path in self._reverse_cache:
@@ -363,6 +376,16 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 					return self.EMPTY_COLOR
 				else:
 					return self.NORMAL_COLOR
+			elif column == WEIGHT_COL:
+				return pango.WEIGHT_NORMAL
+				# TODO: use this property to show tags in current page?
+			elif column == N_CHILD_COL:
+				return ''
+				## Due to multiple tag filtering this result is no good..
+				#~ if tag == self.untagged:
+					#~ return str(self.index.n_list_untagged_root_pages())
+				#~ else:
+					#~ return str(self.index.n_list_tagged_pages(tag))
 		else:
 			return PageTreeStore.on_get_value(self, iter, column)
 
@@ -447,13 +470,13 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 		@param path: Usually an IndexPath instance
 		@return: A list of tuples of ints (one page can be represented many times)
 		'''
+		assert isinstance(path, Path)
 		if path.isroot:
 			raise ValueError # There can be no tree node for the tree root
 
-		if not isinstance(path, IndexPath):
-			path = self.index.lookup_path(path)
-			if path is None:
-				return ()
+		path = self.index.lookup_path(path)
+		if path is None or not path.hasdata:
+			return ()
 
 		# See if it is in cache already
 		if path in self._reverse_cache:
@@ -550,6 +573,7 @@ class TagsPageTreeView(PageTreeView):
 		filtermodel.get_treepath = get_treepath
 		filtermodel.get_treepaths = get_treepaths
 		filtermodel.index = model.index
+		filtermodel.select_page = model.select_page
 
 		PageTreeView.set_model(self, filtermodel)
 
@@ -606,8 +630,7 @@ class TagCloudWidget(gtk.TextView):
 	'''Text-view based list of tags, where each tag is represented by a
 	button inserted as a child in the textview.
 
-	Signals:
-	  * selection-changed: emitted when tag selection changes
+	@signal: C{selection-changed ()}: emitted when tag selection changes
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -729,8 +752,13 @@ class TagsPluginWidget(gtk.VPaned):
 		else:
 			self.plugin.ui.connect_after('open-notebook', lambda *a: self.reload_model())
 
+		self.plugin.ui.connect('open-page', self.on_open_page)
 		self.plugin.ui.connect('start-index-update', lambda o: self.disconnect_model())
 		self.plugin.ui.connect('end-index-update', lambda o: self.reload_model())
+
+
+	def on_open_page(self, ui, page, path):
+		self.treeview.select_page(path)
 
 	def toggle_treeview(self):
 		'''Toggle the treeview type in the widget'''
@@ -780,6 +808,9 @@ class TagsPluginWidget(gtk.VPaned):
 			model = TagsPageTreeStore(self.plugin.ui.notebook.index) # FIXME clean up law of D
 
 		self.treeview.set_model(model)
+
+		if self.plugin.ui.page:
+			model.select_page(self.plugin.ui.page)
 
 
 class TagsPlugin(PluginClass):

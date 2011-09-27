@@ -7,8 +7,10 @@ import tests
 import gtk
 import pango
 
+import os
+
 from zim.fs import Dir
-from zim.notebook import Notebook, Path, Link
+from zim.notebook import init_notebook, get_notebook, Notebook, Path, Link
 from zim.index import *
 from zim.gui.pageindex import *
 from zim.formats import ParseTree
@@ -115,7 +117,7 @@ class TestIndex(tests.TestCase):
 		manifest = len(self.notebook.testdata_manifest)
 		self.assertTrue(count_pages(self.index.db) >= manifest)
 		origdb = dump_db(self.index.db)
-		self.index.update(checkcontents=False)
+		self.index.update()
 		self.assertEqual(dump_db(self.index.db), origdb)
 
 		# indexkey
@@ -214,11 +216,6 @@ class TestIndexFiles(TestIndex):
 		TestIndex.runTest(self)
 
 
-def color_to_string(color):
-	# helper method for comparing gtk.gdk.Color objects
-	return '%i,%i,%i' % (color.red, color.green, color.blue)
-
-
 class TestPageTreeStore(tests.TestCase):
 
 	def setUp(self):
@@ -243,7 +240,7 @@ class TestPageTreeStore(tests.TestCase):
 		treeview = PageTreeView(ui)
 		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 5)
+		self.assertEqual(treestore.get_n_columns(), 7)
 		treeview.set_model(treestore)
 
 		self.index.update(callback=tests.gtk_process_events)
@@ -304,15 +301,11 @@ class TestPageTreeStore(tests.TestCase):
 			if page.hascontent or page.haschildren:
 				self.assertEqual(treestore.get_value(iter, EMPTY_COL), False)
 				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_NORMAL)
-				self.assertEqual(
-					color_to_string( treestore.get_value(iter, FGCOLOR_COL) ),
-					color_to_string( treestore.NORMAL_COLOR) )
+				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
 			else:
 				self.assertEqual(treestore.get_value(iter, EMPTY_COL), True)
 				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_ITALIC)
-				self.assertEqual(
-					color_to_string( treestore.get_value(iter, FGCOLOR_COL) ),
-					color_to_string( treestore.EMPTY_COLOR) )
+				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.EMPTY_COLOR)
 			self.assertEqual(treestore.get_path(iter), tuple(path))
 			if indexpath.haschildren:
 				self.assertTrue(treestore.iter_has_child(iter))
@@ -382,6 +375,76 @@ class TestPageTreeStoreFiles(TestPageTreeStore):
 	def runTest(self):
 		'''Test PageTreeStore index interface with files index'''
 		TestPageTreeStore.runTest(self)
+
+
+@tests.slowTest
+class TestSynchronization(tests.TestCase):
+
+	def runTest(self):
+		'''Test synchronization'''
+		# Test if zim detects pages, that where created with another
+		# zim instance and transfered to this instance with
+		# dropbox or another file synchronization tool.
+		#
+		# The scenario is as follow:
+		# 1) Page.txt is created in this instance
+		# 2) Page/Subpage.txt is created in another instance
+		#    and copied into the notebook by the synchronization tool
+		# 3) Zim runs a standard index update
+		# Outcome should be that Page:Subpage shows up in the index
+
+		# create notebook
+		dir = Dir(self.create_tmp_dir())
+
+		init_notebook(dir, name='foo')
+		notebook = get_notebook(dir)
+		index = notebook.index
+		index.update()
+
+		# add page in this instance
+		path = Path('Page')
+		page =  notebook.get_page(path)
+		page.parse('wiki', 'nothing important')
+		notebook.store_page(page)
+
+		# check file exists
+		self.assertTrue(dir.file('Page.txt').exists())
+
+		# check file is indexed
+		self.assertTrue(page in list(index.list_all_pages()))
+
+		# check attachment dir does not exist
+		subdir = dir.subdir('Page')
+		self.assertEqual(notebook.get_attachments_dir(page), subdir)
+		self.assertFalse(subdir.exists())
+
+		for newfile, newpath in (
+			(subdir.file('NewSubpage.txt').path, Path('Page:NewSubpage')),
+			(dir.file('Newtoplevel.txt').path, Path('Newtoplevel')),
+			(dir.file('SomeDir/Dir/Newpage.txt').path, Path('SomeDir:Dir:Newpage')),
+		):
+			# make sure ctime changed since last index
+			import time
+			time.sleep(2)
+
+			# create new page without using zim classes
+			self.assertFalse(os.path.isfile(newfile))
+
+			mydir = os.path.dirname(newfile)
+			if not os.path.isdir(mydir):
+				os.makedirs(mydir)
+
+			fh = open(newfile, 'w')
+			fh.write('Test 123\n')
+			fh.close()
+
+			self.assertTrue(os.path.isfile(newfile))
+
+			# simple index reload
+			index.update()
+
+			# check if the new page is found in the index
+			self.assertTrue(newpath in list(index.list_all_pages()))
 
 
 class MockUI(tests.MockObject):

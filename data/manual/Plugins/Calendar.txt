@@ -11,5 +11,19 @@ This plugin is intended to help organize notes by date. It can for example be us
 
 **Dependencies:** This plugin has no additional dependencies.
 
-
 **See also:** [[Usage:Daily Journal]]
+
+===== Options =====
+This plugin has the following options:
+
+The option **show calendar in side pane instead of dialog** does just that; if enabled the calendar widget is embedded at the top of the side pane. Otherwise the calendar is shown in a separate dialog when you click the toolbar button.
+
+The option **use a page for each: ...** allows you to set the calendar to either use a separate page for each day, each week, each month or even each year.
+
+THe **Namespace** controls where the calendar pages are stored.
+
+===== Keybindings =====
+* ''<Alt>D''  - navigate to the calendar date for today
+
+===== Tasks per day =====
+The [[Task List|Task List plugin]] has an option to automatically set the due date for tasks that are defined on calendar pages. When this is enabled you can put tasks on the correct calendar page and they will show up in the task list with this implicit due date.

@@ -2,9 +2,11 @@
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''This module contains a class to display an index of pages.
-This widget is used primarily in the side pane of the main window,
-but also e.g. for the page lists in the search dialog.
+'''This module contains the page index widget which is normally shown
+in the side pane of the main window. L{PageIndex} is the main widget
+which contains a L{PageTreeView} which is the actual list view widget.
+The L{PageTreeStore} is our custom data model which connects to the
+L{index<Index>} to get the page list data and maps it to the TreeView API.
 '''
 
 import gobject
@@ -15,7 +17,7 @@ import logging
 from zim.index import IndexPath
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, BrowserTreeView, \
-	ErrorDialog, gtk_get_style
+	ErrorDialog
 from zim.gui.clipboard import \
 	Clipboard, \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
@@ -25,11 +27,13 @@ from zim.gui.clipboard import \
 logger = logging.getLogger('zim.gui.pageindex')
 
 
-NAME_COL = 0  # column with short page name (page.basename)
-PATH_COL = 1  # column with the zim IndexPath itself
-EMPTY_COL = 2 # column to flag if the page is empty or not
-STYLE_COL = 3 # column to specify style (based on empty or not)
-FGCOLOR_COL = 4 # column to specify color (based on empty or not)
+NAME_COL = 0  #: Column with short page name (page.basename)
+PATH_COL = 1  #: Column with the zim IndexPath itself
+EMPTY_COL = 2 #: Column to flag if the page is empty or not
+STYLE_COL = 3 #: Column to specify style (based on empty or not)
+FGCOLOR_COL = 4 #: Column to specify color (based on empty or not)
+WEIGHT_COL = 5 #: Column to specify the font weight (open page in bold)
+N_CHILD_COL = 6 #: Column with the number of child pages
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
@@ -42,29 +46,49 @@ KEYVAL_L = gtk.gdk.unicode_to_keyval(ord('l'))
 
 
 class PageTreeIter(object):
-	'''Simple wrapper for IndexPath objects used as tree iters'''
+	'''Simple wrapper for L{IndexPath} objects used as tree iters
+	in the L{PageTreeStore}
+	'''
 
 	__slots__ = ('indexpath', 'treepath', 'n_children')
 
 	def __init__(self, treepath, indexpath):
-		self.treepath = treepath
-		self.indexpath = indexpath
-		self.n_children = None # None means unknown
+		'''Constructor
+
+		@param treepath: the tree path (a tuple of integers)
+		@param indexpath: the L{IndexPath} object
+		'''
+		self.treepath = treepath #: the tree path
+		self.indexpath = indexpath #: the L{IndexPath}
+		self.n_children = None #: number of children, C{None} means unknown
 
 	def __repr__(self):
 		return '<PageTreeIter, %s, %s>' % (self.treepath, self.indexpath.name)
 
 
 class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
-	'''Custom TreeModel that is integrated closely with the Index object.
-	In fact it is just an API layer translating between the gtk.TreeView and
-	the zim Index interfaces. It fetches data on the fly when requested and
-	does not keep it's own cache. This allows scaling to very large notebooks.
+	'''Custom gtk TreeModel that is integrated closely with the L{Index}
+	object of the notebook. This model is mostly an API layer translating
+	between the C{gtk.TreeView} and the zim L{Index} interfaces. It
+	fetches data on the fly when requested and only keeps a very
+	limited cache in memory. This allows scaling to very large notebooks.
 
-	Note: Be aware that in this interface there are two classes both referred
-	to as "paths". The first is gtk.TreePath and the second is
-	zim.notebook.Path . When a TreePath is intended the argument is called
-	explicitly "treepath", while arguments called "path" refer to a zim Path.
+	This custom model is based on C{gtk.GenericTreeModel} which takes
+	care of the C{C} code wrapper. See the documentation there to
+	get the fine details of the API.
+
+	Be aware that in this interface there are two classes both
+	referred to as "paths". The first is the gtk TreePath (which is in
+	fact just a tuple of integers, without a propr class) and the second
+	is L{zim.notebook.Path} (or it's subclass L{IndexPath}). When a
+	gtk TreePath is intended the argument is explicitly called
+	"treepath", while arguments called "path" refer to a zim Path.
+
+	For all the methods with a name starting with C{on_} the "iter"
+	argument is a L{PageTreeIter}. The GenericTreeModel in turn
+	wraps these in C{gtk.TreeIter} object. So e.g. the implementation
+	of C{get_iter()} calls C{on_get_iter()} and wraps the
+	L{PageTreeIter} into a C{gtk.TreeIter}.
 	'''
 
 	# We inherit from gtk.TreeDragSource and gtk.TreeDragDest even though
@@ -72,7 +96,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	# the TreeView to understand we support drag-and-drop even though
 	# actual work is implemented in the treeview itself.
 
-	# FIXME: Figure out how to bind cellrendere style to the
+	# FIXME: Figure out how to bind cellrenderer style to the
 	# EMPTY_COL so we do not need the separate style and fgcolor cols.
 	# This will also allow making style for empty pages configurable.
 
@@ -103,16 +127,23 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		gobject.TYPE_PYOBJECT, # PATH_COL
 		bool, # EMPTY_COL
 		pango.Style, # STYLE_COL
-		gtk.gdk.Color, # FGCOLOR_COL
+		gobject.TYPE_STRING, # FGCOLOR_COL
+		int, # WEIGHT_COL
+		gobject.TYPE_STRING, # N_CHILD_COL
 	)
 
-	style = gtk_get_style()
-	NORMAL_COLOR = style.text[gtk.STATE_NORMAL]
-	EMPTY_COLOR = style.text[gtk.STATE_INSENSITIVE]
+
+	NORMAL_COLOR = None
+	EMPTY_COLOR = 'grey' # FIXME set based on style.text[gtk.STATE_INSENSITIVE]
 
 	def __init__(self, index):
+		'''Constructor
+
+		@param index: the L{Index} object
+		'''
 		gtk.GenericTreeModel.__init__(self)
 		self.index = index
+		self.selected_page = None
 
 		self.set_property('leak-references', False)
 			# We do our own memory management, thank you very much
@@ -122,7 +153,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		self._connect()
 
 	def _connect(self):
-		'''May be overridden by descendants (e.g. TagTreeStore).'''
+		# May be overridden by descendants (e.g. TagTreeStore)
 
 		def on_changed(o, path, signal):
 			#~ print '!!', signal, path
@@ -152,12 +183,28 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		# treepath of this indexpath - once we get page-deleted it is to late to get this
 
 	def disconnect_index(self):
-		'''Stop the model from listening to the index. Used to
-		unhook the model before reloading the index.
+		'''Stop the model from listening to the index. Used e.g. to
+		unhook the model before reloading the index, thus avoiding
+		many signals to be processed by both the model and the view.
+		After this call the model can not be reconnected.
 		'''
 		for id in self._signals:
 			self.index.disconnect(id)
 		self._signals = ()
+
+	def select_page(self, path):
+		'''Set the current open page to highlight it in the index.
+		@param path: the L{Path} that is currently open, or C{None} to unset
+		'''
+		oldpath = self.selected_page
+		self.selected_page = path
+
+		for mypath in (oldpath, path):
+			if mypath:
+				treepath = self.get_treepath(mypath)
+				if treepath:
+					treeiter = self.get_iter(treepath)
+					self.emit('row-changed', treepath, treeiter)
 
 	def on_get_flags(self):
 		return 0 # no flags
@@ -170,7 +217,6 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		return self.COLUMN_TYPES[i]
 
 	def on_get_value(self, iter, column):
-		'''Returns the data for a specific column'''
 		#~ print '>> on_get_value', iter, column
 		path = iter.indexpath
 		if column == NAME_COL:
@@ -189,25 +235,45 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 				return self.NORMAL_COLOR
 			else:
 				return self.EMPTY_COLOR
+		elif column == WEIGHT_COL:
+			if path == self.selected_page:
+				return pango.WEIGHT_BOLD
+			else:
+				return pango.WEIGHT_NORMAL
+		elif column == N_CHILD_COL:
+			if path.haschildren:
+				return str(self.index.n_list_pages(path))
+			else:
+				return '' # not "0", want to keep look bit clean
 
 	def on_get_iter(self, treepath):
-		'''Returns an IndexPath for a TreePath or None'''
+		'''Returns a L{PageTreeIter} for a gtk TreePath or None'''
 		#~ print '>> on_get_iter', treepath
 		return self._get_iter(treepath)
 
 	def on_get_path(self, iter):
+		'''Returns a gtk TreePath for a L{PageTreeIter}'''
 		#~ print '>> on_get_path', iter
 		return iter.treepath
 
 	def _get_iter(self, treepath):
-		# Take care of caching and make sure we keep ref to paths long
-		# enough while they are used in an iter. Also schedule a flush
-		# to be execute as soon as the loop is idle again.
-		# The cache is a dict which takes treepath tuples as keys and
-		# has pagetreeiter objects as values, it is filled on demand.
-		# No TreePath gtk object, treepaths are just tuples of ints
+		# Lookup and return the PageTreeIter for an gtk treepath
+		#
+		# Takes care of caching and makes sure we keep references to
+		# paths long enough while they are used in an iter.
+		# Also schedule a flush to be execute as soon as the loop is
+		# idle again. The cache is a dict which takes treepath tuples
+		# as keys and has PageTreeIter objects as values, it is filled
+		# on demand.
+		#
+		# There is no TreePath gtk object, treepaths are just tuples
+		# of ints:
 		# Path (0,) is the first item in the root namespace
 		# Path (2, 4) is the 5th child of the 3rd item
+		#
+		# All other API methods that need a PageTreeIter use this method
+		# to do the actual lookup
+
 		#~ print '>>> Lookup path', treepath
 		if not treepath in self._cache:
 			parent = None
@@ -233,7 +299,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 
 	def _schedule_flush(self):
 		# Schedule a flush with some timeout to try to take advantage
-		# of known cache for repeated requests. Cache can grow very big
+		# of known cache for repeated requests. Cache can grow very fast
 		# on scroll, so don't make the time constant to large.
 		if not self._flush_scheduled:
 			def idle_add():
@@ -254,10 +320,12 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		return False # In case we are called from idle signal
 
 	def get_treepath(self, path):
-		'''Returns a TreePath for a given IndexPath or None if the
-		path does not appear in the index.
+		'''Get a gtk TreePath for a given L{IndexPath}
+
+		@param path: a L{Path} or L{IndexPath} object
+		@returns: a gtk TreePath (which is a tuple of integers) or
+		C{None} if the path does not appear in the index
 		'''
-		# There is no TreePath class in pygtk, just return tuple of integers
 		assert isinstance(path, Path)
 		if path.isroot:
 			raise ValueError
@@ -279,7 +347,11 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		return treepath
 
 	def get_indexpath(self, treeiter):
-		'''Returns an IndexPath for a TreeIter'''
+		'''Get an L{IndexPath} for a C{gtk.TreeIter}
+
+		@param treeiter: a C{gtk.TreeIter}
+		@returns: an L{IndexPath} object
+		'''
 		# Note that iter is TreeIter here, not PageTreeIter
 		iter = self.get_user_data(treeiter)
 		return iter.indexpath
@@ -294,8 +366,8 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		return self._get_iter(treepath)
 
 	def on_iter_children(self, iter):
-		'''Returns an indexPath for the first child below path or None.
-		If path is None returns the first top level IndexPath.
+		'''Returns an IndexPath for the first child below path or None.
+		If path is None returns the IndexPath for first top level item.
 		'''
 		#~ print '>> on_iter_children', iter
 		if iter is None:
@@ -305,15 +377,15 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		return self._get_iter(treepath)
 
 	def on_iter_has_child(self, iter):
-		'''Returns True if indexPath path has children'''
+		'''Returns True if IndexPath for iter has children'''
 		path = iter.indexpath
 		if not path.hasdata:
 			path = self.index.lookup_data(path)
 		return bool(path.haschildren)
 
 	def on_iter_n_children(self, iter):
-		'''Returns the number of children in a namespace. As a special case,
-		when iter is None the number of pages in the root namespace is given.
+		'''Returns the number of children in a namespace. When iter
+		is None the number of pages in the root namespace is given.
 		'''
 		#~ print '>> on_iter_n_children', iter
 		if iter is None:
@@ -323,8 +395,8 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		return self.index.n_list_pages(path)
 
 	def on_iter_nth_child(self, iter, n):
-		'''Returns the nth child for a given IndexPath or None.
-		As a special case iter can be None to get pages in the root namespace.
+		'''Returns the nth child for a given PageTreeIter or None. If
+		iter is C{None} the nth item in the root namespace is returned.
 		'''
 		#~ print '>> on_iter_nth_child', iter, n
 		if iter is None:
@@ -334,7 +406,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		return self._get_iter(treepath)
 
 	def on_iter_parent(self, iter):
-		'''Returns a IndexPath for parent node the iter or None'''
+		'''Returns a PageTreeIter for parent node of iter or None'''
 		#~ print '>> on_iter_parent', iter
 		treepath = iter.treepath[:-1]
 		if len(treepath) > 0:
@@ -363,36 +435,53 @@ gobject.type_register(PageTreeStore)
 
 
 class PageTreeView(BrowserTreeView):
-	'''Wrapper for a TreeView showing a list of pages.
+	'''TreeView widget to show a list of pages.
 
-	Signals:
-	  * page-activated (path): emitted when a page is clicked
-	  * populate-popup (menu): hook to populate the context menu
-	  * copy (): copy the current selection to the clipboard
-	  * insert-link (path): called when the user pressed <Ctrl>L on page
+	This view is intended to show a L{PageTreeStore} model, but it
+	can also handle filtered models and subclasses that have the
+	same columns. (The "tags" plugin uses this same view with
+	alternative models.)
+
+	@signal: C{page-activated (path)}: emitted when a page is clicked
+	@signal: C{populate-popup (menu)}: hook to populate the context menu
+	@signal: C{copy ()}: copy the current selection to the clipboard
+	@signal: C{insert-link (path)}: called when the user pressed <Ctrl>L on page
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'page-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'populate-popup': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-link': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'copy': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	def __init__(self, ui, model=None):
+		'''Constructor
+
+		@param ui: the L{GtkInterface} object
+		@param model: a L{PageTreeStore} object
+		'''
 		BrowserTreeView.__init__(self)
 		self.set_name('zim-pageindex')
 		self.ui = ui
 		self._cleanup = None # temporary created path that needs to be removed later
 
-		cell_renderer = gtk.CellRendererText()
-		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
-		column = gtk.TreeViewColumn('_pages_', cell_renderer,
-			text=NAME_COL, style=STYLE_COL, foreground_gdk=FGCOLOR_COL)
+		column = gtk.TreeViewColumn('_pages_')
 		self.append_column(column)
-		#~ column = gtk.TreeViewColumn('_style_', cell_renderer, text=EXISTS_COL)
-		#~ self.append_column(column)
+
+		cr1 = gtk.CellRendererText()
+		cr1.set_property('ellipsize', pango.ELLIPSIZE_END)
+		column.pack_start(cr1, True)
+		column.set_attributes(cr1, text=NAME_COL,
+			style=STYLE_COL, foreground=FGCOLOR_COL, weight=WEIGHT_COL)
+
+		cr2 = self.get_cell_renderer_number_of_items()
+		column.pack_start(cr2, False)
+		column.set_attributes(cr2, text=N_CHILD_COL, weight=WEIGHT_COL)
+
+		if gtk.gtk_version >= (2, 12, 0):
+			self.set_tooltip_column(NAME_COL)
+
 		self.set_headers_visible(False)
 
 		self.set_enable_search(True)
@@ -414,9 +503,11 @@ class PageTreeView(BrowserTreeView):
 			self.set_model(model)
 
 	def disconnect_index(self):
-		'''Stop the view & model from listening to the index. Used to
-		unhook the model before reloading the index. Call L{set_model}
-		again to re-connect.
+		'''Stop the widget from listening to the index. Used e.g. to
+		unhook the model before reloading the index, thus avoiding
+		many signals to be processed by both the model and the view.
+		Doing this requires constructing and setting a new model with
+		L{set_model()} to get the view in sync with the index again.
 		'''
 		model = self.get_model()
 		if isinstance(model, gtk.TreeModelFilter):
@@ -424,6 +515,10 @@ class PageTreeView(BrowserTreeView):
 		model.disconnect_index()
 
 	def set_model(self, model):
+		'''Set a new model for the view.
+
+		@param model: a new TreeModel object
+		'''
 		self._cleanup = None # else it might be pointing to old model
 		BrowserTreeView.set_model(self, model)
 		if self.ui.page:
@@ -437,7 +532,6 @@ class PageTreeView(BrowserTreeView):
 			self.select_treepath(treepath)
 
 	def do_row_activated(self, treepath, column):
-		'''Handler for the row-activated signal, emits page-activated'''
 		model = self.get_model()
 		iter = model.get_iter(treepath)
 		path = model.get_indexpath(iter)
@@ -445,7 +539,6 @@ class PageTreeView(BrowserTreeView):
 			self.emit('page-activated', path)
 
 	def do_page_activated(self, path):
-		'''Handler for the page-activated signal, calls ui.open_page()'''
 		self.ui.open_page(path)
 
 	def do_key_press_event(self, event):
@@ -471,24 +564,10 @@ class PageTreeView(BrowserTreeView):
 		return handled \
 			or BrowserTreeView.do_key_press_event(self, event)
 
-	def do_button_release_event(self, event):
-		'''Handler for button-release-event, triggers popup menu'''
-		if event.button == 3:
-			self.emit('popup-menu')# FIXME do we need to pass x/y and button ?
-			return True
-		else:
-			return BrowserTreeView.do_button_release_event(self, event)
-
-	def do_popup_menu(self): # FIXME do we need to pass x/y and button ?
-		menu = gtk.Menu()
+	def do_initialize_popup(self, menu):
 		self.ui.populate_popup('page_popup', menu)
-		self.emit('populate-popup', menu)
-		menu.show_all()
-		menu.popup(None, None, None, 3, 0)
-		return True
 
 	def do_copy(self):
-		'''Copy current selection to clipboard'''
 		#~ print '!! copy location'
 		page = self.get_selected_path()
 		if page:
@@ -546,24 +625,27 @@ class PageTreeView(BrowserTreeView):
 		@keyword vivificate: when C{True} the path is created
 		temporarily when it did not yet exist
 
-		@returns: a treepath tuple or C{None}
+		@returns: a gtk TreePath (tuple of intergers) or C{None}
 		'''
 		#~ print '!! SELECT', path
-		model, iter = self.get_selection().get_selected()
+		model = self.get_model()
 		if model is None:
 			return None # index not yet initialized ...
 
-		if iter and model[iter][PATH_COL] == path:
-			return model.get_path(iter) # this page was selected already
+		model.select_page(path)
 
 		treepath = model.get_treepath(path)
 		if treepath:
+			# path existed, now select it
 			self.select_treepath(treepath)
 		elif vivificate:
+			# path does not exist, but we can create it
 			path = model.index.touch(path)
-			treepath = self.select_page(path)
+			treepath = model.get_treepath(path)
 			assert treepath, 'BUG: failed to touch placeholder'
+			self.select_treepath(treepath)
 		else:
+			# path does not exist and we are not going to create it
 			return None
 
 		rowreference = gtk.TreeRowReference(model, treepath)
@@ -571,18 +653,19 @@ class PageTreeView(BrowserTreeView):
 
 		if self._cleanup and self._cleanup.valid():
 			mytreepath = self._cleanup.get_path()
-			indexpath = model.get_indexpath( model.get_iter(mytreepath) )
-			#~ print '!! CLEANUP', indexpath
-			model.index.cleanup(indexpath)
+			if mytreepath != treepath:
+				indexpath = model.get_indexpath( model.get_iter(mytreepath) )
+				#~ print '!! CLEANUP', indexpath
+				model.index.cleanup(indexpath)
 
 		self._cleanup = rowreference
 
 		return treepath
 
 	def select_treepath(self, treepath):
-		'''Select a give treepath and scroll it into view
+		'''Select a gtk TreePath in the view
 
-		@param treepath: a treepath tuple
+		@param treepath: a gtk TreePath (tuple of integers)
 		'''
 		self.expand_to_path(treepath)
 		self.get_selection().select_path(treepath)
@@ -590,7 +673,10 @@ class PageTreeView(BrowserTreeView):
 		self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
 
 	def get_selected_path(self):
-		'''Returns path currently selected or None'''
+		'''Get the selected notebook path
+
+		@returns: a L{IndexPath} or C{None} if there was no selection
+		'''
 		model, iter = self.get_selection().get_selected()
 		if model is None or iter is None:
 			return None
@@ -602,8 +688,17 @@ gobject.type_register(PageTreeView)
 
 
 class PageIndex(gtk.ScrolledWindow):
+	'''This is the main widget to display a page index.
+	It contains a L{PageTreeView} within a scrolled window.
+
+	@ivar treeview: the L{PageTreeView}
+	'''
 
 	def __init__(self, ui):
+		'''Constructor
+
+		@param ui: the main L{GtkInterface} object
+		'''
 		gtk.ScrolledWindow.__init__(self)
 		self.ui = ui
 
@@ -643,13 +738,18 @@ class PageIndex(gtk.ScrolledWindow):
 		return self.treeview.grab_focus()
 
 	def get_selected_path(self):
-		'''Returns path currently selected or None'''
+		'''Get the selected notebook path
+
+		@returns: a L{IndexPath} or C{None} if there was no selection
+		'''
 		return self.treeview.get_selected_path()
 
 	def disconnect_model(self):
-		'''Stop the model from listening to the index. Used to
-		unhook the model before reloading the index. Typically
-		should be followed by reload_model().
+		'''Stop the widget from listening to the index. Used e.g. to
+		unhook the model before reloading the index, thus avoiding
+		many signals to be processed by both the model and the view.
+		Typically should be followed by L{reload_model()} to get the
+		view in sync with the index again.
 		'''
 		self.treeview.disconnect_index()
 

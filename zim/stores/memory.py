@@ -25,7 +25,7 @@ class Node(object):
 		self.children = []
 
 
-class Store(StoreClass):
+class MemoryStore(StoreClass):
 
 	def __init__(self, notebook, path):
 		'''Construct a memory store.
@@ -144,5 +144,3 @@ class Store(StoreClass):
 
 		return True
 
-	def page_exists(self, path):
-		return bool(self.get_node(path))

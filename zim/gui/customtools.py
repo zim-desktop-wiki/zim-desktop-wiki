@@ -117,12 +117,12 @@ class CustomToolList(gtk.TreeView):
 		self.get_selection.select_path(path)
 
 	def refresh(self):
-		from zim.gui.widgets import _encode_xml
+		from zim.gui.widgets import encode_markup_text
 		model = self.get_model()
 		model.clear()
 		for tool in self.manager:
 			pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_MENU)
-			text = '<b>%s</b>\n%s' % (_encode_xml(tool.name), _encode_xml(tool.comment))
+			text = '<b>%s</b>\n%s' % (encode_markup_text(tool.name), encode_markup_text(tool.comment))
 			model.append((pixbuf, text, tool.key))
 
 

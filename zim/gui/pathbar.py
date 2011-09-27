@@ -1,6 +1,13 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
 
 import gtk
 import gobject
+
+from zim.gui.widgets import encode_markup_text
+
 
 # Constants
 DIR_FORWARD = 1
@@ -127,9 +134,9 @@ class ScrolledHBox(gtk.HBox):
 	def scroll_to_child(self, child):
 		i = self.get_children()[2:].index(child)
 		if i < self._first:
-			self.scroll(DIR_BACKWARDS, self._first - i)
+			self.scroll(DIR_BACKWARD, self._first - i)
 		elif i > self._last:
-			self.scroll(DIR_FORWARDS, i - self._last)
+			self.scroll(DIR_FORWARD, i - self._last)
 		else:
 			pass # child was visible already
 
@@ -418,7 +425,7 @@ class PathBar(ScrolledHBox):
 			button.set_active(active)
 			label = button.get_child()
 			if active:
-				label.set_markup('<b>'+label.get_text()+'</b>')
+				label.set_markup('<b>'+encode_markup_text(label.get_text())+'</b>')
 			else:
 				label.set_text(label.get_text())
 					# get_text() gives string without markup

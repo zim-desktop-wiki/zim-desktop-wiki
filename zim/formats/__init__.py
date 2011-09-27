@@ -4,8 +4,17 @@
 
 '''Package with source formats for pages.
 
+Each module in zim.formats should contains exactly one subclass of
+DumperClass and exactly one subclass of ParserClass
+(optional for export formats). These can be loaded by L{get_parser()}
+and L{get_dumper()} respectively. The requirement to have exactly one
+subclass per module means you can not import other classes that derive
+from these base classes directly into the module.
+
 For format modules it is safe to import '*' from this module.
 
+Parse tree structure
+====================
 
 Parse trees are build using the (c)ElementTree module (included in
 python 2.5 as xml.etree.ElementTree). It is basically a xml structure
@@ -13,22 +22,22 @@ supporting a subset of "html like" tags.
 
 Supported tags:
 
-* page root element for grouping paragraphs
-* p for paragraphs
-* h for heading, level attribute can be 1..6
-* pre for verbatim paragraphs (no further parsing in these blocks)
-* em for emphasis, rendered italic by default
-* strong for strong emphasis, rendered bold by default
-* mark for highlighted text, renderd with background color or underlined
-* strike for text that is removed, usually renderd as strike through
-* code for inline verbatim text
-* ul for bullet lists
-* .. for checkbox lists
-* li for list items
-* link for links, attribute href gives the target
-* img for images, attributes src, width, height an optionally href
-	* any text set on these elements should be rendered as alt
-	* type can be used to control plugin functionality, e.g. type=equation
+	- page root element for grouping paragraphs
+	- p for paragraphs
+	- h for heading, level attribute can be 1..6
+	- pre for verbatim paragraphs (no further parsing in these blocks)
+	- em for emphasis, rendered italic by default
+	- strong for strong emphasis, rendered bold by default
+	- mark for highlighted text, renderd with background color or underlined
+	- strike for text that is removed, usually renderd as strike through
+	- code for inline verbatim text
+	- ul for bullet lists
+	- .. for checkbox lists
+	- li for list items
+	- link for links, attribute href gives the target
+	- img for images, attributes src, width, height an optionally href
+		- any text set on these elements should be rendered as alt
+		- type can be used to control plugin functionality, e.g. type=equation
 
 Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
@@ -60,6 +69,8 @@ from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE
 from zim.config import data_file
 from zim.objectmanager import ObjectManager
+
+import zim.plugins
 
 import zim.notebook # no 'from' to prevent cyclic import errors
 
@@ -104,12 +115,46 @@ def list_formats(type):
 
 def get_format(name):
 	'''Returns the module object for a specific format.'''
-	# __import__ has some quirks, see the reference manual
-	name = name.lower()
-	mod = __import__('zim.formats.'+name)
-	mod = getattr(mod, 'formats')
-	mod = getattr(mod, name)
-	return mod
+	# If this method is removes, class names in formats/*.py can be made more explicit
+	#~ print 'DEPRECATED: get_format() is deprecated in favor if get_parser() and get_dumper()'
+	return get_format_module(name)
+
+
+def get_format_module(name):
+	'''Returns the module object for a specific format
+
+	@param name: the format name
+	@returns: a module object
+	'''
+	return zim.plugins.get_module('zim.formats', name)
+
+
+def get_parser(name, *arg, **kwarg):
+	'''Returns a parser object instance for a specific format
+
+	@param name: format name
+
+	All other param are passed on to the object constructor
+
+	@returns: parser object instance (subclass of L{ParserClass})
+	'''
+	module = get_format_module(name)
+	klass = zim.plugins.lookup_subclass(module, ParserClass)
+	return klass(*arg, **kwarg)
+
+
+def get_dumper(name, *arg, **kwarg):
+	'''Returns a dumper object instance for a specific format
+
+	@param name: format name
+
+	All other param are passed on to the object constructor
+
+	@returns: dumper object instance (subclass of L{DumperClass})
+	'''
+	module = get_format_module(name)
+	klass = zim.plugins.lookup_subclass(module, DumperClass)
+	return klass(*arg, **kwarg)
 
 
 class ParseTree(ElementTreeModule.ElementTree):
@@ -314,17 +359,17 @@ class ParseTreeBuilder(object):
 	also be used on other "dirty" interfaces.
 
 	This builder takes care of the following issues:
-	* Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines
-	* Tags can not contain only whitespace
-	* Tags can not be empty (with the exception of the 'img' tag)
-	* There should be an empty line before each 'h', 'p' or 'pre'
-	  (with the exception of the first tag in the tree)
-	* The 'p' and 'pre' elements should always end with a newline ('\n')
-	* Each 'p', 'pre' and 'h' should be postfixed with a newline ('\n')
-	  (as a results 'p' and 'pre' are followed by an empty line, the
-	   'h' does not end in a newline itself, so it is different)
-	* Newlines ('\n') after a <li> alement are removed (optional)
-	* The element '_ignore_' is silently ignored
+		- Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines
+		- Tags can not contain only whitespace
+		- Tags can not be empty (with the exception of the 'img' tag)
+		- There should be an empty line before each 'h', 'p' or 'pre'
+		  (with the exception of the first tag in the tree)
+		- The 'p' and 'pre' elements should always end with a newline ('\\n')
+		- Each 'p', 'pre' and 'h' should be postfixed with a newline ('\\n')
+		  (as a results 'p' and 'pre' are followed by an empty line, the
+		  'h' does not end in a newline itself, so it is different)
+		- Newlines ('\\n') after a <li> alement are removed (optional)
+		- The element '_ignore_' is silently ignored
 	'''
 
 	def __init__(self, remove_newlines_after_li=True):
@@ -539,7 +584,7 @@ class ParserClass(object):
 					break
 
 				k, v = option.split('=')
-				if k in ('width', 'height', 'type'):
+				if k in ('width', 'height', 'type', 'href'):
 					if len(v) > 0:
 						attrib[str(k)] = v # str to avoid unicode key
 				else:
@@ -672,7 +717,7 @@ class BaseLinker(object):
 				if href and href != link:
 					href = self.link(href) # recurs
 				else:
-					logg.warn('No URL found for interwiki link: %s', href)
+					logger.warn('No URL found for interwiki link "%s"', link)
 					link = href
 			else: # I dunno, some url ?
 				method = 'link_' + type
@@ -693,12 +738,16 @@ class BaseLinker(object):
 			self._icons[name] = data_file('pixmaps/%s.png' % name).uri
 		return self._icons[name]
 
+	def resource(self, path):
+		'''To be overloaded, return an url for template resources'''
+		raise NotImplementedError
+
 	def link_page(self, link):
 		'''To be overloaded, return an url for a page link'''
 		raise NotImplementedError
 
-	def file(self, path):
-		'''To be overloaded, return an url for a page link'''
+	def link_file(self, path):
+		'''To be overloaded, return an url for a file link'''
 		raise NotImplementedError
 
 	def link_mailto(self, uri):

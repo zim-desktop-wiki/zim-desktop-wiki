@@ -33,13 +33,13 @@ builddeb:
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 
 epydoc:
-	rm -fr ./apidoc
-	epydoc --html zim --graph umlclasstree -o ./apidoc --parse-only --no-private
-	@echo -e '\nAPI docs are available in ./apidoc'
+	epydoc --config ./epydoc.conf -v
+	@echo -e '\nAPI docs are available in ./apidocs'
 
 clean:
 	$(PYTHON) setup.py clean
 	rm -rf build/ MANIFEST tests/tmp/ locale/ man/ xdg/hicolor
 	find . -name '*.pyc' -delete
+	find . -name '*.pyo' -delete
 	find . -name '*~' -delete
 	rm -fr debian/zim* debian/files debian/python-module-stampdir/

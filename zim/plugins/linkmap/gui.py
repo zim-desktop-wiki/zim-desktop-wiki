@@ -4,7 +4,7 @@
 
 import gtk
 
-from zim._lib import xdot
+from zim.inc import xdot
 
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, Dialog, IconButton

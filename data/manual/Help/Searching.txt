@@ -36,6 +36,15 @@ When you open the "//Search//->//Search Back links//..." menu item you get the s
 As an alternative you can click on the "Back links" area in the status bar, this will pop up a menu with all back links to the current page.
 
 
+===== Commandline usage =====
+You can also execute a search using commandline arguments, e.g.:
+
+'''
+zim --search Notes "tag:home and tag:foo"
+'''
+
+which will print a list of all pages that contain both the [[tags]] "''@home''" and "''@foo''"
+
 
 ===== Search Query Syntax =====
 This section describes the query syntax that can be used in the search dialog.

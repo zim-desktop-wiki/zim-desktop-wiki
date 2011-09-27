@@ -1,9 +1,18 @@
 [% IF calendar_plugin.page_type == 'day' -%]
 ======= [% strftime("%A %d %b %Y", calendar_plugin.date) %] =======
+
+[%- ELSIF calendar_plugin.page_type == 'week' -%]
+======= [% strftime("Week %U %Y", calendar_plugin.date) %] =======
+[% strftime("%d %B", calendar_plugin.date) %] to [% strftime("%d %B", calendar_plugin.end_date) %]
+
 [%- ELSIF calendar_plugin.page_type == 'month' -%]
 ======= [% strftime("%B %Y", calendar_plugin.date) %] =======
+
 [%- ELSIF calendar_plugin.page_type == 'year' -%]
 ======= Year [% strftime("%Y", calendar_plugin.date) %] =======
+
 [%- ELSE -%]
-TEMPLATE ERROR - NO DATE
+======= [% page.basename %] =======
+Created [% strftime("%A %d %B %Y") %]
+
 [%- END %]
