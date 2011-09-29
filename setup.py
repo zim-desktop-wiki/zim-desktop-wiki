@@ -94,6 +94,12 @@ def collect_data_files():
 			files = [os.path.join(dir, f) for f in files]
 			data_files.append((target, files))
 
+	# mono icons -> PREFIX/share/icons/ubuntu-mono-light | -dark
+	for theme in ('ubuntu-mono-light', 'ubuntu-mono-dark'):
+		file = os.path.join('icons', theme, 'zim-panel.svg')
+		target = os.path.join('share', 'icons', theme, 'apps', '22')
+		data_files.append((target, [file]))
+
 	# data -> PREFIX/share/zim
 	for dir, dirs, files in os.walk('data'):
 		if '.zim' in dirs:
