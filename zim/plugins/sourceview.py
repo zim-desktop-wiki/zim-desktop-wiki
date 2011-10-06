@@ -12,7 +12,8 @@ except:
 
 from zim.plugins import PluginClass
 from zim.objectmanager import ObjectManager, CustomObjectClass
-from zim.gui.widgets import Dialog, CustomObjectBin
+from zim.gui.widgets import Dialog
+from zim.gui.pageview import CustomObjectBin, POSITION_BEGIN, POSITION_END
 from zim.formats.html import html_encode
 
 
@@ -109,7 +110,34 @@ class SourceViewObject(CustomObjectClass):
 			#~ box.pack_start(bar, False, False)
 			box.pack_start(win)
 			self._widget = CustomObjectBin()
+			self._widget.set_has_cursor(True)
 			self._widget.add(box)
+
+			# Hook up integration with pageview cursor movement
+			def on_grab_cursor(bin, position):
+				begin, end = self.buffer.get_bounds()
+				if position == POSITION_BEGIN:
+					self.buffer.place_cursor(begin)
+				else:
+					self.buffer.place_cursor(end)
+				self.view.grab_focus()
+
+			def on_move_cursor(view, step_size, count, extend_selection):
+				buffer = view.get_buffer()
+				iter = buffer.get_iter_at_mark(buffer.get_insert())
+				if (iter.is_start() or iter.is_end()) \
+				and not extend_selection:
+					if iter.is_start() and count < 0:
+						self._widget.release_cursor(POSITION_BEGIN)
+						return None
+					elif iter.is_end() and count > 0:
+						self._widget.release_cursor(POSITION_END)
+						return None
+
+				return gtksourceview2.View.do_move_cursor(view, step_size, count, extend_selection)
+
+			self._widget.connect('grab-cursor', on_grab_cursor)
+			self.view.connect('move-cursor', on_move_cursor)
 
 			# Resize widget if parent TextView has been resized
 			self.ui.mainwindow.pageview.view.connect_after('size-allocate',

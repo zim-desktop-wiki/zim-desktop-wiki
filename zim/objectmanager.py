@@ -88,7 +88,7 @@ class _ObjectManager(object):
 		(Objects are 'active' as long as they are not destroyed.)
 		'''
 		return iter(self.objects[type])
-	
+
 	def find_plugin(self, type):
 		for name in zim.plugins.list_plugins():
 			try:
@@ -101,7 +101,7 @@ class _ObjectManager(object):
 				logger.exception('Could not load plugin %s', name)
 				continue
 		return None
-	
+
 ObjectManager = _ObjectManager() # Singleton object
 
 
@@ -169,7 +169,7 @@ class FallbackObject(CustomObjectClass):
 		CustomObjectClass.__init__(self, attrib, data, ui)
 		if self.ui and self.ui.ui_type == 'gtk':
 			import gtk
-			from zim.gui.widgets import CustomObjectBin
+			from zim.gui.pageview import CustomObjectBin
 			self._widget = CustomObjectBin()
 			box = gtk.VBox()
 			box.set_border_width(5)

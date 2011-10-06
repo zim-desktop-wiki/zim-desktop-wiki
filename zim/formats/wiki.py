@@ -40,9 +40,9 @@ for bullet in bullets:
 
 parser_re = {
 	'blockstart': re.compile("^(\t*''')\s*?\n", re.M),
-	'objstart': re.compile("(\{\{\{)\s*\w+\s*:.*?\n"),
+	'objstart': re.compile("(\t*\{\{\{)\s*\w+\s*:.*?\n"),
 	'pre':        re.compile("^(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*\n", re.M | re.S),
-	'obj':        re.compile("(?P<escape>\{\{\{)(?P<content>.*?)^(?:\}\}\})", re.M | re.S),
+	'obj':        re.compile("^(\t*\{\{\{.*?^\t*\}\}\})\s*\n", re.M | re.S),
 	'splithead':  re.compile('^(==+[ \t]+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)[ \t]+(.*?)([ \t]+==+)?[ \t]*\n?)\Z"),
 	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % bullet_re, re.M),
@@ -64,7 +64,7 @@ parser_re = {
 	'sup':	    Re('\^\{(?!~)(.+?)\}'),
 	'strike':   Re('~~(?!~)(.+?)~~'),
 	'code':     Re("''(?!')(.+?)''"),
-	
+
 	# double quotes are escaped by duplicating them: foo="bar""baz"""
 	'param':  re.compile('(\w+)\s*\=\s*"((?:[^"]|"{2})*)"'),
 }
@@ -96,7 +96,7 @@ class Parser(ParserClass):
 			# Returns boolean for success
 			if len(paras[-1]) == 0:
 				return False
-							
+
 			blockmatch = parser_re['blockstart'].search(paras[-1])
 			if blockmatch:
 				# Verbatim block detected
@@ -114,7 +114,7 @@ class Parser(ParserClass):
 				if not blockend:
 					# We are in a block that is not closed yet
 					return False
-			
+
 			# Else append empty paragraph to start new para
 			paras.append('')
 			return True
@@ -124,7 +124,7 @@ class Parser(ParserClass):
 			# paragraph.
 			if len(paras[-1]) == 0:
 				return True
-					
+
 			# Eliminate closed verbatim blocks
 			nonblock = parser_re['pre'].split(paras[-1])
 			#  Blocks are closed if none is opened at the end
@@ -165,7 +165,7 @@ class Parser(ParserClass):
 						# Object-blocks and non-verbatim text
 						block_parts2 = parser_re['obj'].split(b)
 						for j, c in enumerate(block_parts2):
-							if j % 3 == 0:
+							if j % 2 == 0:
 								# Text paragraph
 								parts = parser_re['splithead'].split(c)
 								for k, p in enumerate(parts):
@@ -174,7 +174,7 @@ class Parser(ParserClass):
 										self._parse_head(builder, p)
 									elif len(p) > 0:
 										self._parse_para(builder, p)
-							elif j % 3 == 2:
+							else:
 								# Object-blocks
 								logger.debug("block:%s", c)
 								self._parse_object(builder, c)
@@ -360,25 +360,36 @@ class Parser(ParserClass):
 				builder.end(tag)
 			else:
 				builder.data(item)
-				
+
 	def _parse_object(self, builder, obj):
 		'''Parse a object-block'''
+		m = re.match('^(\t*)', obj)
+		indent = m.group(1)
+		obj = obj.lstrip().lstrip('{')
 		obj = obj.splitlines(False)
+		obj.pop() # drop closing '}}}'
+		if indent:
+			i = len(indent)
+			for line in obj:
+				if line.startswith(indent):
+					line = line[i:]
+
 		logger.debug("Custom object: %s", obj)
 		header = obj[0].split(':', 1)
 		type = header[0].strip().lower()
 		attrib = {}
 		iter = parser_re['param'].finditer(header[1])
 		for match in iter:
-			attrib[match.group(1).lower()] = match.group(2).replace('""', '"') 
-					
-		attrib['type'] = type
+			attrib[match.group(1).lower()] = match.group(2).replace('""', '"')
 
-		
+		attrib['type'] = type
+		attrib['indent'] = len(indent)
+
 		builder.start('object', attrib)
 		if len(obj) == 1: builder.data("")
 		else: builder.data("\n".join(obj[1:]))
 		builder.end('object')
+
 
 class Dumper(DumperClass):
 
@@ -442,6 +453,7 @@ class Dumper(DumperClass):
 			elif element.tag == 'object':
 				logger.debug("Exporting object: %s, %s", element.attrib, element.text)
 				assert "type" in element.attrib, "Undefined type of object"
+				del element.attrib['indent']
 				output.append("{{{" + element.attrib["type"] + ":");
 				for key, value in element.attrib.items():
 					if key == 'type' or not len(value): continue
