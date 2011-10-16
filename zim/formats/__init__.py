@@ -103,7 +103,35 @@ NATIVE_FORMAT = 4
 UNCHECKED_BOX = 'unchecked-box'
 CHECKED_BOX = 'checked-box'
 XCHECKED_BOX = 'xchecked-box'
-BULLET = '*'
+BULLET = '*' # FIXME make this 'bullet'
+
+
+HEADING = 'h'
+PARAGRAPH = 'p'
+VERBATIM_BLOCK = 'pre' # should be same as verbatim
+BLOCK = 'div'
+
+IMAGE = 'img'
+OBJECT = 'object'
+
+BULLETLIST = 'ul'
+LISTITEM = 'li'
+
+ITALIC = 'emphasis' # TODO switch to real 'italic' / 'i'
+BOLD = 'strong' # idem to 'b'
+MARK = 'mark'
+VERBATIM = 'code'
+STRIKE = 'strike'
+SUBSCRIPT = 'sub'
+SUPERSCRIPT = 'sup'
+
+LINK = 'link'
+TAG = 'tag'
+ANCHOR = 'anchor'
+
+BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM)
+
+
 
 
 def list_formats(type):
