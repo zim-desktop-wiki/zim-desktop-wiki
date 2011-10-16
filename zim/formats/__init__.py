@@ -570,6 +570,7 @@ class ParserClass(object):
 		'''
 		raise NotImplementedError
 
+	@classmethod
 	def parse_image_url(self, url):
 		'''Parse urls style options for images like "foo.png?width=500" and
 		returns a dict with the options. The base url will be in the dict

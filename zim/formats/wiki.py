@@ -41,8 +41,8 @@ for bullet in bullets:
 parser_re = {
 	'blockstart': re.compile("^(\t*''')\s*?\n", re.M),
 	'objstart': re.compile("(\{\{\{)\s*\w+\s*:.*?\n"),
-	'pre':        re.compile("^(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*\n", re.M | re.S),
-	'obj':        re.compile("(?P<escape>\{\{\{)(?P<content>.*?)^(?:\}\}\})", re.M | re.S),
+	'pre':        re.compile("^(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*?\n", re.M | re.S),
+	'obj':        re.compile("(?P<escape>\{\{\{)(?P<content>.*?)^(?:\}\}\})\s*?\n", re.M | re.S),
 	'splithead':  re.compile('^(==+[ \t]+\S.*?\n)', re.M),
 	'heading':    re.compile("\A((==+)[ \t]+(.*?)([ \t]+==+)?[ \t]*\n?)\Z"),
 	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % bullet_re, re.M),
@@ -64,7 +64,7 @@ parser_re = {
 	'sup':	    Re('\^\{(?!~)(.+?)\}'),
 	'strike':   Re('~~(?!~)(.+?)~~'),
 	'code':     Re("''(?!')(.+?)''"),
-	
+
 	# double quotes are escaped by duplicating them: foo="bar""baz"""
 	'param':  re.compile('(\w+)\s*\=\s*"((?:[^"]|"{2})*)"'),
 }
@@ -96,7 +96,7 @@ class Parser(ParserClass):
 			# Returns boolean for success
 			if len(paras[-1]) == 0:
 				return False
-							
+
 			blockmatch = parser_re['blockstart'].search(paras[-1])
 			if blockmatch:
 				# Verbatim block detected
@@ -114,7 +114,7 @@ class Parser(ParserClass):
 				if not blockend:
 					# We are in a block that is not closed yet
 					return False
-			
+
 			# Else append empty paragraph to start new para
 			paras.append('')
 			return True
@@ -124,7 +124,7 @@ class Parser(ParserClass):
 			# paragraph.
 			if len(paras[-1]) == 0:
 				return True
-					
+
 			# Eliminate closed verbatim blocks
 			nonblock = parser_re['pre'].split(paras[-1])
 			#  Blocks are closed if none is opened at the end
@@ -308,7 +308,7 @@ class Parser(ParserClass):
 		list = [text]
 		list = parser_re['code'].sublist(
 				lambda match: ('code', {}, match[1]), list)
-		
+
 		def parse_link(match):
 			parts = match[1].split('|', 2)
 			link = parts[0]
@@ -321,7 +321,7 @@ class Parser(ParserClass):
 			return ('link', {'href':link}, mytext)
 
 		list = parser_re['link'].sublist(parse_link, list)
-		
+
 		def parse_image(match):
 			parts = match[1].split('|', 2)
 			src = parts[0]
@@ -360,7 +360,7 @@ class Parser(ParserClass):
 				builder.end(tag)
 			else:
 				builder.data(item)
-				
+
 	def _parse_object(self, builder, obj):
 		'''Parse a object-block'''
 		obj = obj.splitlines(False)
@@ -370,14 +370,14 @@ class Parser(ParserClass):
 		attrib = {}
 		iter = parser_re['param'].finditer(header[1])
 		for match in iter:
-			attrib[match.group(1).lower()] = match.group(2).replace('""', '"') 
-					
+			attrib[match.group(1).lower()] = match.group(2).replace('""', '"')
+
 		attrib['type'] = type
 
-		
+
 		builder.start('object', attrib)
 		if len(obj) == 1: builder.data("")
-		else: builder.data("\n".join(obj[1:]))
+		else: builder.data("\n".join(obj[1:]) + '\n')
 		builder.end('object')
 
 class Dumper(DumperClass):
@@ -462,12 +462,12 @@ class Dumper(DumperClass):
 						opts.append('%s=%s' % (k, v))
 				if opts:
 					src += '?%s' % '&'.join(opts)
-									
+
 				if element.text:
 					output.append('{{'+src+'|'+element.text+'}}')
 				else:
 					output.append('{{'+src+'}}')
-				
+
 			elif element.tag == 'sub':
 				output.append("_{%s}" % element.text)
 			elif element.tag == 'sup':

@@ -49,15 +49,21 @@ __all__ = [
 	'daemon' # Note that running this test in another position can skrew up e.g. clipboard test
 ]
 
+
+mydir = os.path.dirname(__file__)
+
+
 # when a test is missing from the list that should be detected
 for file in glob.glob(os.path.dirname(__file__) + '/*.py'):
 	name = os.path.basename(file)[:-3]
 	if name != '__init__' and not name in __all__:
 		raise AssertionError, 'Test missing in __all__: %s' % name
 
+# get our own data dir
+DATADIR = os.path.abspath(os.path.join(mydir, 'data'))
 
 # get our own tmpdir
-TMPDIR = os.path.abspath('./tests/tmp')
+TMPDIR = os.path.abspath(os.path.join(mydir, 'tmp'))
 	# Wanted to use tempfile.get_tempdir here to put everything in
 	# e.g. /tmp/zim but since /tmp is often mounted as special file
 	# system this conflicts with thrash support. For writing in source
@@ -293,7 +299,7 @@ class TestData(object):
 
 	def __init__(self, format):
 		assert format == 'wiki', 'TODO: add other formats'
-		tree = etree.ElementTree(file='tests/data/notebook-wiki.xml')
+		tree = etree.ElementTree(file=os.path.join(DATADIR, 'notebook-wiki.xml'))
 
 		test_data = []
 		for node in tree.getiterator(tag='page'):
