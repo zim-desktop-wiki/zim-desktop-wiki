@@ -733,7 +733,10 @@ class TextBuffer(gtk.TextBuffer):
 				self.set_textstyle(None)
 				set_indent(None)
 			elif element.tag == 'object':
+				if 'indent' in element.attrib:
+					set_indent(int(element.attrib['indent']))
 				self.emit('insert-object', element)
+				set_indent(None)
 			else:
 				# Text styles
 				if element.tag == 'h':
@@ -2967,6 +2970,33 @@ class TextView(gtk.TextView):
 		self.update_cursor()
 		return False # continue emit
 
+	def do_move_cursor(self, step_size, count, extend_selection):
+		# Overloaded signal handler for cursor movements which will
+		# move cursor into any object that accept a cursor focus
+
+		if step_size in (gtk.MOVEMENT_LOGICAL_POSITIONS, gtk.MOVEMENT_VISUAL_POSITIONS) \
+		and count in (1, -1) and not extend_selection:
+			# logic below only supports 1 char forward or 1 char backward movements
+
+			buffer = self.get_buffer()
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			if count == -1:
+				iter.backward_char()
+				position = POSITION_END # enter end of object
+			else:
+				position = POSITION_BEGIN
+
+			anchor = iter.get_child_anchor()
+			if iter.get_child_anchor():
+				widgets = anchor.get_widgets()
+				assert len(widgets) == 1, 'TODO: support multiple views of same buffer'
+				widget = widgets[0]
+				if widget.has_cursor():
+					widget.grab_cursor(position)
+					return None
+
+		return gtk.TextView.do_move_cursor(self, step_size, count, extend_selection)
+
 	def do_button_press_event(self, event):
 		# Handle middle click for pasting and right click for context menu
 		# Needed to override these because implementation details of
@@ -5122,13 +5152,23 @@ class PageView(gtk.VBox):
 		def on_modified_changed(obj):
 			if obj.get_modified() and not buffer.get_modified():
 				buffer.set_modified(True)
+
 		obj.connect('modified-changed', on_modified_changed)
 		iter = buffer.get_insert_iter()
+
+		def on_release_cursor(widget, position, anchor):
+			myiter = buffer.get_iter_at_child_anchor(anchor)
+			if position == POSITION_END:
+				myiter.forward_char()
+			buffer.place_cursor(myiter)
+			self.view.grab_focus()
 
 		anchor = ObjectAnchor(obj)
 		buffer.insert_child_anchor(iter, anchor)
 		widget = obj.get_widget()
+		widget.connect('release-cursor', on_release_cursor, anchor)
 		self.view.add_child_at_anchor(widget, anchor)
+
 		widget.show_all()
 
 	def zoom_in(self):
@@ -5183,12 +5223,68 @@ class PageView(gtk.VBox):
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
 
+
 class ObjectAnchor(gtk.TextChildAnchor):
 	def __init__(self, manager):
 		self.manager = manager
 		gtk.TextChildAnchor.__init__(self)
 
 gobject.type_register(ObjectAnchor)
+
+
+# Constants for grab-focus-cursor and release-focus-cursor
+POSITION_BEGIN = 1
+POSITION_END = 2
+
+class CustomObjectBin(gtk.EventBox):
+	'''CustomObjectBin adds border and set arrow as mouse cursor
+
+	Defines two signals:
+	  * grab-cursor (position): emitted when embedded widget
+	    should grab focus, position can be either POSITION_BEGIN or
+	    POSITION_END
+	  * release-cursor (position): emitted when the embedded
+	    widget wants to give back focus to the embedding TextView
+	'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'grab-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+		'release-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+	}
+
+	def __init__(self):
+		gtk.EventBox.__init__(self)
+		self.set_border_width(5)
+		self._has_cursor = False
+
+	def do_realize(self):
+		gtk.EventBox.do_realize(self)
+		self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
+
+	def	has_cursor(self):
+		'''Returns True if this object has an internal cursor. Will be
+		used by the TextView to determine if the cursor should go
+		"into" the object or just jump from the position before to the
+		position after the object. If True the embedded widget is
+		expected to support grab_cursor() and use release_cursor().
+		'''
+		return self._has_cursor
+
+	def	set_has_cursor(self, has_cursor):
+		'''See has_cursor()'''
+		self._has_cursor = has_cursor
+
+	def grab_cursor(self, position):
+		'''Emits the grab-cursor signal'''
+		self.emit('grab-cursor', position)
+
+	def release_cursor(self, position):
+		'''Emits the release-cursor signal'''
+		self.emit('release-cursor', position)
+
+gobject.type_register(CustomObjectBin)
+
 
 class InsertDateDialog(Dialog):
 	'''Dialog to insert a date-time in the page'''
