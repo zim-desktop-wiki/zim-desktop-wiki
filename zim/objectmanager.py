@@ -7,7 +7,9 @@ import gobject
 import weakref
 import zim.plugins
 import logging
+
 logger = logging.getLogger("zim.objectmanager")
+
 # WeakRefSet has to be located before ObjectManager singleton instance creation
 class WeakRefSet(object):
 	'''Simpel collection of weak references to objects.

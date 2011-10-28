@@ -48,6 +48,10 @@ ui_actions = (
 class SourceViewObject(CustomObjectClass):
 
 	def __init__(self, attrib, data, ui=None):
+		if data.endswith('\n'):
+			data = data[:-1]
+			# If we have trailing \n it looks like an extra empty line
+			# in the buffer, so we default remove one
 		CustomObjectClass.__init__(self, attrib, data, ui)
 		if self.ui and self.ui.ui_type == 'gtk':
 			# SourceView scrolled window
@@ -159,7 +163,9 @@ class SourceViewObject(CustomObjectClass):
 		if self._widget:
 			buffer = self.view.get_buffer()
 			bounds = buffer.get_bounds()
-			return buffer.get_text(bounds[0], bounds[1])
+			text = buffer.get_text(bounds[0], bounds[1])
+			text += '\n' # Make sure we always have a trailing \n
+			return text
 		return self._data
 
 	def dump(self, format, dumper, linker=None):
@@ -172,7 +178,12 @@ class SourceViewObject(CustomObjectClass):
 				output = ['<pre class="brush: %s;">\n' % html_encode(self._attrib['lang'])]
 			else:
 				output = ['<pre>\n']
-			output.append(html_encode(self.get_data()))
+			data = html_encode(self.get_data())
+			if self._attrib['linenumbers'] == 'true':
+				for i, l in enumerate(data.splitlines(1)):
+					output.append('%i ' % (i+1) + l)
+			else:
+				output.append(data)
 			output.append('</pre>\n')
 			return output
 		return CustomObjectClass.dump(self, format, dumper, linker)
@@ -275,6 +286,11 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
 	)
 
+	@classmethod
+	def check_dependencies(klass):
+		check = not gtksourceview2 is None
+		return check, [('gtksourceview2', check, True)]
+
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
 		ObjectManager.register_object(OBJECT_TYPE, self.create_object)
@@ -300,7 +316,7 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 	#		pass
 
 	def disconnect(self):
-		ObjectManager.unregister_object('source')
+		ObjectManager.unregister_object(OBJECT_TYPE)
 		PluginClass.disconnect(self)
 
 	def insert_sourceview(self):
@@ -312,11 +328,6 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 			obj = SourceViewObject({'type': OBJECT_TYPE, 'lang': lang}, '', self.ui)
 			pageview = self.ui.mainwindow.pageview
 			pageview.insert_object(pageview.view.get_buffer(), obj)
-
-	@classmethod
-	def check_dependencies(klass):
-		check = not gtksourceview2 is None
-		return check, [('gtksourceview2', check, True)]
 
 
 class InsertCodeBlockDialog(Dialog):

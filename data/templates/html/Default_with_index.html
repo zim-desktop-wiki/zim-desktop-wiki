@@ -20,26 +20,30 @@
 			h3         { color: #4e9a06             }
 			h4         { color: #4e9a06             }
 			h5         { color: #4e9a06             }
+			div.zim-object {
+				border-style:solid;
+				border-width:1px;
+			}
 			span.insen { color: grey                }
 			.page { max-width: 1000px;}
 			.menu{
 				float:left; width: 300px;
 			}
-			
+
 			.content { padding-left: 320px;}
 			.notebook{font-variant: small-caps;
 					color:#4e9a06;
 					padding: 0px 20px;}
 			hr{clear:both;}
 		</style>
-		
+
 	</head>
 	<body>
 		<div class="page">
 			<div class="heading">
 				<h1><a href="[% url(pages.home.name) %]" class="notebook">[% notebook.name %]:</a>
-			
-				
+
+
 				[% IF page.properties.type == 'namespace-index' -%]
 					Document Index</h1>
 				[%- ELSE -%]

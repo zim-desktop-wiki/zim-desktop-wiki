@@ -84,11 +84,12 @@ class Dumper(DumperClass):
 				output.append('</%s>\n' % element.tag)
 			elif element.tag == 'object':
 				object_output = self.dump_object(element)
-				if object_output:
-					output += object_output
-				else:
+				if object_output is None:
 					# Fallback to verbatim paragraph
-					output += ['<pre>\n', text, '</pre>\n']
+					object_output = ['<pre>\n', text, '</pre>\n']
+					# FIXME for inline objects we can not use block-level html element
+					# so need to switch to <tt> here
+				output += ['<div class="zim-object">\n'] + object_output + ['</div>\n']
 			elif element.tag == 'pre':
 				tag = 'pre'
 				if self.isrtl(element):

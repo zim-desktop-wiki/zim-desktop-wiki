@@ -366,11 +366,11 @@ class Dumper(DumperClass):
 				assert "type" in element.attrib, "Undefined type of object"
 				output.append("{{{" + element.attrib["type"] + ":");
 				for key, value in element.attrib.items():
-					if key in ('type', 'indent') or not len(value):
+					if key in ('type', 'indent') or not value:
 						continue
 					# double quotes are escaped by doubling them
-					output.append(' %s="%s"' % (key, value.replace('"', '""')))
-				output.append("\n" + (element.text or '') + "\n}}}")
+					output.append(' %s="%s"' % (key, str(value).replace('"', '""')))
+				output.append("\n" + (element.text or '') + "}}}\n")
 
 			elif element.tag == 'img':
 				src = element.attrib['src']
