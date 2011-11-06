@@ -357,6 +357,9 @@ class AppIndicatorTrayIcon(DaemonTrayIconMixin, TrayIconBase):
 	def __init__(self):
 		DaemonTrayIconMixin.__init__(self)
 
+		# Note that even though we specify the icon "zim", the
+		# ubuntu appindicator framework will first check for an icon
+		# "zim-panel". This way it finds the mono color icons.
 		self.appindicator = appindicator.Indicator(
 			'zim-desktop-wiki', 'zim', appindicator.CATEGORY_APPLICATION_STATUS)
 		self.appindicator.set_status(appindicator.STATUS_ACTIVE)
