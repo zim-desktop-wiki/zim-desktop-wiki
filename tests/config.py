@@ -15,6 +15,26 @@ from zim.notebook import Path
 import zim.config
 
 
+# Check result of lookup functions does not return files outside of
+# source to be tested -- just being paranoid here...
+# Note that this marshalling remains in place for any subsequent tests
+
+_cwd = Dir('.')
+def marshal_path_lookup(function):
+	def marshalled_path_lookup(*arg, **kwarg):
+		p = function(*arg, **kwarg)
+		if not p is None:
+			assert isinstance(p, (File, Dir)), 'BUG: get %r' % p
+			assert p.ischild(_cwd), "ERROR: \"%s\" not below \"%s\"" % (p, _cwd)
+		return p
+	return marshalled_path_lookup
+
+zim.config.data_file = marshal_path_lookup(zim.config.data_file)
+zim.config.data_dir = marshal_path_lookup(zim.config.data_dir)
+#~ zim.config.config_file = marshal_path_lookup(zim.config.config_file)
+
+
+
 class FilterInvalidConfigWarning(LoggingFilter):
 
 	logger = 'zim.config'
@@ -33,9 +53,14 @@ class TestDirsTestSetup(TestCase):
 		): self.assertEqual(getattr(zim.config, k), Dir(v))
 
 		for k, v in (
-			('XDG_DATA_DIRS', os.path.join(tests.TMPDIR, 'data_dir')),
+			#~ ('XDG_DATA_DIRS', os.path.join(tests.TMPDIR, 'data_dir')),
 			('XDG_CONFIG_DIRS', os.path.join(tests.TMPDIR, 'config_dir')),
 		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(os.pathsep)))
+
+		self.assertEqual(
+			zim.config.XDG_DATA_DIRS[0],
+			Dir(os.path.join(tests.TMPDIR, 'data_dir'))
+		)
 
 
 class TestDirsDefault(TestCase):
