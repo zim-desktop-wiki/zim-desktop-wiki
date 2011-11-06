@@ -370,6 +370,7 @@ class TestNotebook(tests.TestCase):
 			('Foo:Bar', 'Dus:Ja', ':Dus:Ja'),
 			('Foo:Bar', 'Foo:Ja', 'Ja'),
 			('Foo:Bar:Baz', 'Foo:Bar', 'Bar'),
+			('Foo:Bar:Baz', 'Foo', 'Foo'),
 		):
 			#~ print '>', source, href, link
 			self.assertEqual(

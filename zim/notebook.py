@@ -1039,19 +1039,18 @@ class Notebook(gobject.GObject):
 		@returns: a link for href, either relative to 'source' or an
 		absolute link
 		'''
-		if href == source:
+		if href == source: # page linking to itself
 			return href.basename
-		elif href.ischild(source):
+		elif href.ischild(source): # link to a child or grand child
 			return '+' + href.relname(source)
 		else:
 			parent = source.commonparent(href)
-			if parent.isroot:
+			if parent.isroot: # no common parent except for root
 				return ':' + href.name
-			elif parent == source.parent:
-				if parent == href:
-					return href.basename
-				else:
-					return href.relname(parent)
+			elif parent == href: # link to an parent or grand parent
+				return href.basename
+			elif parent == source.parent: # link to sibling of same parent
+				return href.relname(parent)
 			else:
 				return parent.basename + ':' + href.relname(parent)
 

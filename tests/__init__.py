@@ -91,6 +91,7 @@ def _setUpEnvironment():
 	'''Method to be run once before test suite starts'''
 	# In fact to be loaded before loading some of the zim modules
 	# like zim.config and any that export constants from it
+	system_data_dirs = os.environ.get('XDG_DATA_DIRS')
 	os.environ.update({
 		'ZIM_TEST_RUNNING': 'True',
 		'TMP': TMPDIR,
@@ -108,6 +109,11 @@ def _setUpEnvironment():
 	hicolor = os.environ['XDG_DATA_DIRS'] + '/icons/hicolor'
 	os.makedirs(hicolor)
 
+	if system_data_dirs:
+		# Need these since gtk pixbuf loaders are in /usr/share in
+		# some setups, and this parameter is used to find them
+		os.environ['XDG_DATA_DIRS'] = os.pathsep.join(
+			(os.environ['XDG_DATA_DIRS'], system_data_dirs) )
 
 _setUpEnvironment() # just do this whenever we are loaded
 
