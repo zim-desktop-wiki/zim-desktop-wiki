@@ -239,6 +239,22 @@ def _get_default_or_only_notebook():
 		return None
 
 
+def get_zim_revision():
+	'''Returns multiline string with bazaar revision info, if any.
+	Otherwise a string saying no info was found. Intended for debug
+	logging.
+	'''
+	try:
+		from zim._version import version_info
+		return '''\
+Zim revision is:
+  branch: %(branch_nick)s
+  revision: %(revno)s %(revision_id)s
+  date: %(date)s''' % version_info
+	except ImportError:
+		return 'No bzr version-info found'
+
+
 def main(argv):
 	'''Run the main program
 
@@ -342,17 +358,7 @@ def main(argv):
 	if level == logging.DEBUG:
 		logger.debug('Python version is %s', str(sys.version_info))
 		logger.debug('Platform is %s', os.name)
-		try:
-			from zim._version import version_info
-			logger.debug(
-				'Zim revision is:\n'
-				'\tbranch: %(branch_nick)s\n'
-				'\trevision: %(revno)s %(revision_id)s\n'
-				'\tdate: %(date)s\n',
-				version_info )
-		except ImportError:
-			logger.debug('No bzr version-info found')
-
+		logger.debug(get_zim_revision())
 		log_basedirs()
 
 	# Now we determine the class to handle this command

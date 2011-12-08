@@ -26,6 +26,15 @@ class TestCompileAll(tests.TestCase):
 			self.assertIsNotNone(__import__(module))
 
 
+class TestMetaData(tests.TestCase):
+
+	def runTest(self):
+		import zim
+		revision = zim.get_zim_revision()
+			# This call could fail if bazaar revision format changed
+		self.assertTrue(isinstance(revision, basestring))
+
+
 @tests.slowTest
 class TestNotebookUpgrade(tests.TestCase):
 

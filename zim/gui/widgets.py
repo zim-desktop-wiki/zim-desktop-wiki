@@ -2426,17 +2426,7 @@ class ErrorDialog(gtk.MessageDialog):
 			'Pygtk version is %s\n' % str(gtk.pygtk_version) + \
 			'Platform is %s\n' % os.name
 
-		try:
-			from zim._version import version_info
-			text += \
-				'Zim revision is:\n' \
-				'  branch: %(branch_nick)s\n' \
-				'  revision: %(revno)d %(revision_id)s\n' \
-				'  date: %(date)s\n' \
-				% version_info
-		except ImportError:
-			text += 'No bzr version-info found\n'
-
+		text += zim.get_zim_revision() + '\n'
 
 		# FIXME: more info here? Like notebook path, page, environment etc. ?
 
