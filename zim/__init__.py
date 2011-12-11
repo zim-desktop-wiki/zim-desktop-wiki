@@ -631,9 +631,13 @@ class NotebookInterface(gobject.GObject):
 				nb, path = notebook, None
 
 			if not nb is None:
+				uri = nb.uri
 				for plugin in self.plugins:
-					uri = nb.uri
-					plugin.initialize_notebook(uri)
+					try:
+						plugin.initialize_notebook(uri)
+					except Exception, error:
+						from zim.gui.widgets import ErrorDialog # HACK
+						ErrorDialog(None, error).run()
 				nb = get_notebook(nb)
 
 			if nb is None:

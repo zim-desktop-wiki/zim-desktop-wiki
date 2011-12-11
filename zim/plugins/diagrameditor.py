@@ -41,7 +41,7 @@ This plugin provides a diagram editor for zim based on GraphViz.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-		'help': ':Plugins:Diagram Editor',
+		'help': 'Plugins:Diagram Editor',
 		'author': 'Jaap Karssenberg',
 	}
 

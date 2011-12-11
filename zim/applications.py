@@ -18,6 +18,9 @@ import gobject
 import zim.fs
 import zim.errors
 
+from zim.parsing import split_quoted_strings
+
+
 logger = logging.getLogger('zim.applications')
 
 
@@ -50,7 +53,8 @@ class Application(object):
 	command.
 
 	@ivar name: the name of the command (default to first item of C{cmd})
-	@ivar cmd: the command and arguments as a tuple
+	@ivar cmd: the command and arguments as a tuple or a string
+	(when given as a string it will be parsed for quoted arguments)
 	@ivar tryexeccmd: the command to check in L{tryexec()}, if C{None}
 	fall back to first item of C{cmd}
 	'''
@@ -67,7 +71,7 @@ class Application(object):
 		If C{None} will default to C{cmd} or the first item of C{cmd}.
 		'''
 		if isinstance(cmd, basestring):
-			cm = (cmd,)
+			cmd = split_quoted_strings(cmd)
 		else:
 			assert isinstance(cmd, (tuple, list))
 		assert tryexeccmd is None or isinstance(tryexeccmd, basestring)

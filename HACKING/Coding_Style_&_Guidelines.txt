@@ -22,6 +22,14 @@ See the python style guide for best practices. Some items to keep in mind:
 
 **Documentation**
 * Please add at at least docstrings for each public method with a short explanation what the method does. Docstrings should be formatted using the epydoc markup style, see: http://epydoc.sourceforge.net/
+* There are a few custom fields used in the zim documentation:
+
+	'''
+	@signal: signal-name (param1, param2): description
+	@emits: signal
+	@implementation: must implement / optional for sub-classes
+	'''
+
 
 ===== Gtk and GObject usage =====
 

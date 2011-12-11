@@ -53,7 +53,7 @@ class InsertGNURPlotPlugin(PluginClass):
 		'description': _('''\
 This plugin provides a plot editor for zim based on GNU R.
 '''), # T: plugin description
-		'help': ':Plugins:GNU R Plot Editor',
+		'help': 'Plugins:GNU R Plot Editor',
 		'author': 'Lee Braiden',
 	}
 

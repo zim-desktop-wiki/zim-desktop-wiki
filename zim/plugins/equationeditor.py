@@ -44,7 +44,7 @@ This plugin provides an equation editor for zim based on latex.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-		'help': ':Plugins:Equation Editor',
+		'help': 'Plugins:Equation Editor',
 		'author': 'Jaap Karssenberg',
 	}
 

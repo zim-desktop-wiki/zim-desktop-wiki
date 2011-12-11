@@ -50,7 +50,7 @@ class InsertGnuplotPlugin(PluginClass):
        'description': _('''\
 This plugin provides a plot editor for zim based on Gnuplot.
 '''), # T: plugin description
-       'help': ':Plugins:Gnuplot Editor',
+       'help': 'Plugins:Gnuplot Editor',
        'author': 'Alessandro Magni',
    }
 

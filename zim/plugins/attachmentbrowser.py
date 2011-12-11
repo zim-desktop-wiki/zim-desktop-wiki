@@ -147,7 +147,7 @@ icon view at bottom pane.
 This plugin is still under development.
 '''), # T: plugin description
 		'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>',
-		#~ 'help': 'Plugins:AttachmentBrowser',
+		#~ 'help': 'Plugins:Attachment Browser',
 	}
 
 	plugin_preferences = (
