@@ -205,14 +205,14 @@ class TestNotebook(tests.TestCase):
 			self.assertFalse(page.hascontent)
 			self.assertFalse(page.exists())
 
-		for path in (Path('Test:foo'), Path('TODOList')):
+		for path in (Path('Test:foo'), Path('TaskList')):
 			page = self.notebook.get_page(path)
 			self.assertTrue(page.haschildren or page.hascontent)
 			self.assertTrue(page.exists())
 
 		# check errors
 		self.assertRaises(PageExistsError,
-			self.notebook.move_page, Path('Test:foo'), Path('TODOList'))
+			self.notebook.move_page, Path('Test:foo'), Path('TaskList'))
 
 		self.notebook.index.update_async()
 		self.assertTrue(self.notebook.index.updating)
@@ -227,7 +227,7 @@ class TestNotebook(tests.TestCase):
 		# Test actual moving
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
-			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
+			(Path('TaskList'), Path('NewPage:Foo:Bar:Baz')),
 		):
 			page = self.notebook.get_page(oldpath)
 			text = page.dump('wiki')
@@ -505,8 +505,8 @@ http://foo.org # urls are untouched
 			('+test', 'Test:xxx', 'Test:xxx:test'),
 			('foo', 'Test:xxx', 'Test:foo'),
 			('+foo', 'Test:xxx', 'Test:xxx:foo'),
-			('Test', 'TODOList:bar', 'Test'),
-			('test:me', 'TODOList:bar', 'Test:me'),
+			('Test', 'TaskList:bar', 'Test'),
+			('test:me', 'TaskList:bar', 'Test:me'),
 		): self.assertEqual(
 			self.notebook.resolve_path(name, Path(ns)), Path(wanted) )
 

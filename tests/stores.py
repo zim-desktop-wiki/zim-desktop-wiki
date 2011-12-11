@@ -209,11 +209,11 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		self.assertRaises(LookupError,
 			self.store.move_page, Path('NewPage'), Path('Test:BAR'))
 		self.assertRaises(PageExistsError,
-			self.store.move_page, Path('Test:foo'), Path('TODOList'))
+			self.store.move_page, Path('Test:foo'), Path('TaskList'))
 
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
-			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
+			(Path('TaskList'), Path('NewPage:Foo:Bar:Baz')),
 		):
 			page = self.store.get_page(oldpath)
 			text = page.dump('wiki')

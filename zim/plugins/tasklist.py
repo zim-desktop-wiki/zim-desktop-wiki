@@ -49,14 +49,15 @@ ui_xml = '''
 </ui>
 '''
 
-SQL_FORMAT_VERSION = (0, 4)
-SQL_FORMAT_VERSION_STRING = "0.4"
+SQL_FORMAT_VERSION = (0, 5)
+SQL_FORMAT_VERSION_STRING = "0.5"
 
 SQL_CREATE_TABLES = '''
 create table if not exists tasklist (
 	id INTEGER PRIMARY KEY,
 	source INTEGER,
 	parent INTEGER,
+	haschildren BOOLEAN,
 	open BOOLEAN,
 	actionable BOOLEAN,
 	prio INTEGER,
@@ -76,6 +77,11 @@ _NO_DATE = '9999' # Constant for empty due date - value chosen for sorting prope
 # FUTURE: add an interface for this plugin in the WWW frontend
 
 # TODO allow more complex queries for filter, in particular (NOT tag AND tag)
+# TODO: think about what "actionable" means
+#       - no open dependencies
+#       - no defer date in the future
+#       - no child item ?? -- hide in flat list ?
+#       - no @waiting ?? -> use defer date for this use case
 
 
 class TaskListPlugin(PluginClass):
@@ -212,26 +218,33 @@ This is a core plugin shipping with zim.
 			deadline = dates[2]
 		else:
 			deadline = None
-		tasks = self.extract_tasks(parsetree, deadline)
+		tasks = self._extract_tasks(parsetree, deadline)
 		if tasks:
-			tasksfound = True
-
-			# Much more efficient to do insert here at once for all tasks
-			# rather than do it one by one while parsing the page.
+			# Do insert with a single commit
 			with self.index.db_commit:
-				self.index.db.executemany(
-					'insert into tasklist(source, parent, open, actionable, prio, due, description)'
-					'values (%i, 0, ?, ?, ?, ?, ?)' % path.id,
-					tasks
-				)
+				self._insert(path, 0, tasks)
 
-		if tasksfound:
 			self.emit('tasklist-changed')
 
-	def extract_tasks(self, parsetree, deadline=None):
+	def _insert(self, page, parentid, children):
+		# Helper function to insert tasks in table
+		c = self.index.db.cursor()
+		for task, grandchildren in children:
+			c.execute(
+				'insert into tasklist(source, parent, haschildren, open, actionable, prio, due, description)'
+				'values (?, ?, ?, ?, ?, ?, ?, ?)',
+				(page.id, parentid, bool(grandchildren)) + task
+			)
+			if grandchildren:
+				self._insert(page, c.lastrowid, grandchildren) # recurs
+
+	def _extract_tasks(self, parsetree, defaultdate=None):
 		'''Extract all tasks from a parsetree.
-		Returns tuples for each tasks with following properties:
-		C{(open, actionable, prio, due, description)}
+		@param parsetree: a L{zim.formats.ParseTree} object
+		@param defaultdate: default due date for the whole page (e.g. for calendar pages) as string
+		@returns: nested list of tasks, each task is given as a 2-tuple, 1st item is a tuple
+		with following properties: C{(open, actionable, prio, due, description)}, 2nd item
+		is a list of child tasks (if any).
 		'''
 		tasks = []
 
@@ -244,7 +257,7 @@ This is a core plugin shipping with zim.
 			and isinstance(lines[0], basestring) \
 			and isinstance(lines[1], tuple) \
 			and self.task_labels and self.task_label_re.match(lines[0]):
-				for word in lines[0].split()[1:]:
+				for word in lines[0].strip(':').split()[1:]:
 					if word.startswith('@'):
 						globaltags.append(word)
 					else:
@@ -257,17 +270,49 @@ This is a core plugin shipping with zim.
 					istasklist = True
 
 			# Check line by line
+			LEVEL = 0
+			TASK = 1
+			CHILDREN = 2
+
+			stack = [] # stack of 3-tuples, (LEVEL, TASK, CHILDREN)
+
+
+			PRIO = 2
+			DATE = 3
+
 			for item in lines:
 				if isinstance(item, tuple):
 					# checkbox
+					bullet, list_level, text = item
 					if istasklist or self.preferences['all_checkboxes'] \
-					or (self.task_labels and self.task_label_re.match(item[2])):
-						open = item[0] == UNCHECKED_BOX
-						tasks.append(self._parse_task(item[2], level=item[1], open=open, tags=globaltags, deadline=deadline))
+					or (self.task_labels and self.task_label_re.match(text)):
+						while stack and stack[-1][LEVEL] >= list_level:
+							stack.pop()
+
+						if stack: # Inherit date and prio if not set explicitly on children
+							mydefaultdate = stack[-1][TASK][DATE]
+							if mydefaultdate == _NO_DATE:
+								mydefaultdate = defaultdate
+							mydefaultprio = stack[-1][TASK][PRIO]
+						else:
+							mydefaultdate = defaultdate
+							mydefaultprio = None
+
+						open = (bullet == UNCHECKED_BOX)
+						task = self._parse_task(text, open=open, tags=globaltags, defaultdate=mydefaultdate, defaultprio=mydefaultprio)
+						children = []
+						if stack:
+							stack[-1][CHILDREN].append((task, children))
+						else:
+							tasks.append((task, children))
+
+						stack.append((list_level, task, children))
 				else:
 					# normal line
+					stack = [] # TODO this reset also happens for bullets - be more tolerant for bullets on same level
 					if self.task_labels and self.task_label_re.match(item):
-						tasks.append(self._parse_task(item, tags=globaltags, deadline=deadline))
+						task = self._parse_task(item, tags=globaltags, defaultdate=defaultdate)
+						tasks.append((task, []))
 
 		return tasks
 
@@ -320,9 +365,11 @@ This is a core plugin shipping with zim.
 			text += child.tail or ''
 		return text
 
-	def _parse_task(self, text, level=0, open=True, tags=None, deadline=None):
+	def _parse_task(self, text, open=True, tags=None, defaultdate=None, defaultprio=None):
 		# TODO - determine if actionable or not
 		prio = text.count('!')
+		if defaultprio and prio == 0:
+			prio = defaultprio
 
 		global date # FIXME
 		date = _NO_DATE
@@ -345,8 +392,8 @@ This is a core plugin shipping with zim.
 
 		text = date_re.sub(set_date, text)
 
-		if deadline and date == _NO_DATE:
-			date = deadline
+		if defaultdate and date == _NO_DATE:
+			date = defaultdate
 
 		return (open, True, prio, date, text)
 			# (open, actionable, prio, due, description)
@@ -367,14 +414,26 @@ This is a core plugin shipping with zim.
 
 		return tasksfound
 
-	def list_tasks(self):
+	def list_tasks(self, parent=None):
+		'''List tasks
+		@param parent: the parent task (as returned by this method) or C{None} to list
+		all top level tasks
+		@returns: a list of tasks at this level as sqlite Row objects
+		'''
+		if parent: parentid = parent['id']
+		else: parentid = 0
+
 		if self.db_initialized:
 			cursor = self.index.db.cursor()
-			cursor.execute('select * from tasklist')
+			cursor.execute('select * from tasklist where parent=?', (parentid,))
 			for row in cursor:
 				yield row
 
 	def get_path(self, task):
+		'''Get the L{Path} for the source of a task
+		@param task: the task (as returned by L{list_tasks()}
+		@returns: an L{IndexPath} object
+		'''
 		return self.index.lookup_id(task['source'])
 
 	def show_task_list(self):
@@ -547,6 +606,7 @@ class TagListTreeView(SingleClickTreeView):
 	def refresh(self, task_list):
 		# FIXME make sure selection is not reset when refreshing
 		model = self.get_model()
+		if model is None: return
 		model.clear()
 
 		n_all = self.task_list.get_n_tasks()
@@ -631,6 +691,7 @@ class TaskListTreeView(BrowserTreeView):
 		else:
 			column.set_min_width(300) # don't let this column get too small
 		self.append_column(column)
+		self.set_expander_column(column)
 
 		if gtk.gtk_version >= (2, 12, 0):
 			self.set_tooltip_column(self.TASK_COL)
@@ -675,23 +736,31 @@ class TaskListTreeView(BrowserTreeView):
 		self.connect('row_activated', self.__class__.do_row_activated)
 
 	def refresh(self):
+		'''Refresh the model based on index data'''
 		self.real_model.clear() # flush
+		self._append_tasks(None, None, {})
+		self.expand_all()
+
+	def _append_tasks(self, task, iter, path_cache):
+		rows = list(self.plugin.list_tasks(task))
 
 		# First cache + sort tasks to ensure stability of the list
-		rows = list(self.plugin.list_tasks())
-		paths = {}
 		for row in rows:
-			if not row['source'] in paths:
-				paths[row['source']] = self.plugin.get_path(row)
+			if not row['source'] in path_cache:
+				path_cache[row['source']] = self.plugin.get_path(row)
 
-		rows.sort(key=lambda r: paths[r['source']].name)
+		rows.sort(key=lambda r: path_cache[r['source']].name)
 
+		# Then add them to the model
 		for row in rows:
-			path = paths[row['source']]
+			path = path_cache[row['source']]
 			modelrow = [False, row['prio'], row['description'], row['due'], path.name, row['actionable'], row['open']]
 						# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL
 			modelrow[0] = self._filter_item(modelrow)
-			self.real_model.append(None, modelrow)
+			myiter = self.real_model.append(iter, modelrow)
+
+			if row['haschildren']:
+				self._append_tasks(row, myiter, path_cache) # recurs
 
 	def set_filter(self, string):
 		# TODO allow more complex queries here - same parse as for search
@@ -815,8 +884,14 @@ class TaskListTreeView(BrowserTreeView):
 		def filter(model, path, iter):
 			visible = self._filter_item(model[iter])
 			model[iter][self.VIS_COL] = visible
+			if visible:
+				parent = model.iter_parent(iter)
+				while parent:
+					model[parent][self.VIS_COL] = visible
+					parent = model.iter_parent(parent)
 
 		self.real_model.foreach(filter)
+		self.expand_all()
 
 	def _filter_item(self, modelrow):
 		# This method filters case insensitive because both filters and
@@ -872,6 +947,17 @@ class TaskListTreeView(BrowserTreeView):
 		item.connect_object('activate', self.__class__.copy_to_clipboard, self)
 		menu.append(item)
 
+		item = gtk.SeparatorMenuItem()
+		menu.append(item)
+
+		item = gtk.MenuItem(_("Expand _All")) # T: menu item in context menu
+		item.connect_object('activate', self.__class__.expand_all, self)
+		menu.append(item)
+
+		item = gtk.MenuItem(_("_Collapse All")) # T: menu item in context menu
+		item.connect_object('activate', self.__class__.collapse_all, self)
+		menu.append(item)
+
 	def copy_to_clipboard(self):
 		'''Exports currently visible elements from the tasks list'''
 		logger.debug('Exporting to clipboard current view of task list.')
@@ -880,7 +966,7 @@ class TaskListTreeView(BrowserTreeView):
 
 	def get_visible_data_as_csv(self):
 		text = ""
-		for prio, desc, date, page in self.get_visible_data():
+		for indent, prio, desc, date, page in self.get_visible_data():
 			prio = str(prio)
 			desc = '"' + desc.replace('"', '""') + '"'
 			text += ",".join((prio, desc, date, page)) + "\n"
@@ -930,7 +1016,7 @@ class TaskListTreeView(BrowserTreeView):
 		today    = str( datetime.date.today() )
 		tomorrow = str( datetime.date.today() + datetime.timedelta(days=1))
 		dayafter = str( datetime.date.today() + datetime.timedelta(days=2))
-		for prio, desc, date, page in self.get_visible_data():
+		for indent, prio, desc, date, page in self.get_visible_data():
 			if prio >= 3: prio = '<td class="high">%s</td>' % prio
 			elif prio == 2: prio = '<td class="medium">%s</td>' % prio
 			elif prio == 1: prio = '<td class="alert">%s</td>' % prio
@@ -941,10 +1027,10 @@ class TaskListTreeView(BrowserTreeView):
 			elif date == dayafter: date = '<td class="alert">%s</td>' % date
 			else: date = '<td>%s</td>' % date
 
-			desc = '<td>%s</td>' % desc
+			desc = '<td>%s%s</td>' % ('&nbsp;' * (4 * indent), desc)
 			page = '<td>%s</td>' % page
 
-			html += '<tr>' + prio + desc + date + page + '</tr>'
+			html += '<tr>' + prio + desc + date + page + '</tr>\n'
 
 		html += '''\
 </table>
@@ -957,8 +1043,11 @@ class TaskListTreeView(BrowserTreeView):
 
 	def get_visible_data(self):
 		rows = []
-		model = self.get_model()
-		for row in model:
+
+		def collect(model, path, iter):
+			indent = len(path) - 1 # path is tuple with indexes
+
+			row = model[iter]
 			prio = row[self.PRIO_COL]
 			desc = row[self.TASK_COL]
 			date = row[self.DATE_COL]
@@ -967,7 +1056,11 @@ class TaskListTreeView(BrowserTreeView):
 			if date == _NO_DATE:
 				date = ''
 
-			rows.append((prio, desc, date, page))
+			rows.append((indent, prio, desc, date, page))
+
+		model = self.get_model()
+		model.foreach(collect)
+
 		return rows
 
 # Need to register classes defining gobject signals

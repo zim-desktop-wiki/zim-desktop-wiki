@@ -9,6 +9,8 @@ import zim.plugins
 import zim.config
 import zim.formats
 
+from zim.parsing import parse_date
+
 
 class TestTaskList(tests.TestCase):
 
@@ -28,9 +30,30 @@ class TestTaskList(tests.TestCase):
 			path = plugin.get_path(task)
 			self.assertTrue(not path is None)
 
-		# Test specific examples
+		# Test correctnest of parsing
+		NO_DATE = '9999'
+
+		def extract_tasks(text):
+			# Returns a nested list of tuples, where each node is
+			# like "(TASK, [CHILD, ...]) where each task (and child)
+			# is a tuple like (open, actionable, prio, due, description)
+			parser = zim.formats.get_format('wiki').Parser()
+			tree = parser.parse(text)
+			origtree = tree.tostring()
+
+			tasks = plugin._extract_tasks(tree)
+			self.assertEqual(tree.tostring(), origtree)
+				# extract should not modify the tree
+			return tasks
+
+		def t(label, open=True, due=NO_DATE, prio=0):
+			# Generate a task tuple
+			return (open, True, prio, due, label)
+
+		# Note that this same text is in the test notebook
+		# so it gets run through the index as well - keep in sync
 		text = '''\
-Foo Bar
+Try all kind of combos - see if the parser trips
 
 TODO:
 [ ] A
@@ -42,25 +65,91 @@ TODO:
 
 FIXME: dus
 ~~FIXME:~~ foo
-'''
-		parser = zim.formats.get_format('wiki').Parser()
-		tree = parser.parse(text)
-		origtree = tree.tostring()
 
-		tasks = plugin.extract_tasks(tree)
-		labels = [task[-1] for task in tasks]
-		self.assertEqual(labels, ['A', 'B', 'C', 'D', 'E', 'FIXME: dus'])
-		self.assertEqual(tree.tostring(), origtree)
-			# extract should not modify the tree
+[ ] Simple
+[ ] List
+
+[ ] List with
+	[ ] Nested items
+	[*] Some are done
+		[x] Others not
+		[ ] FOOOOO
+[ ] Bar
+
+[ ] And then there are @tags
+[ ] And due dates
+[ ] Date [d: 11/12]
+[ ] Date [d: 11/12/2012]
+	[ ] TODO: BAR !!!
+
+TODO @home:
+[ ] Some more tasks !!!
+	[ ] Foo !
+	[ ] Bar
+
+TODO: dus
+FIXME: jaja - TODO !! @FIXME
+'''
+
+		mydate = '%04i-%02i-%02i' % parse_date('11/12')
+
+		wanted = [
+			(t('A'), []),
+			(t('B'), []),
+			(t('C'), []),
+			(t('D'), []),
+			(t('E'), []),
+			(t('FIXME: dus'), []),
+			(t('Simple'), []),
+			(t('List'), []),
+			(t('List with'), [
+				(t('Nested items'), []),
+				(t('Some are done', open=False), [
+					(t('Others not', open=False), []),
+					(t('FOOOOO'), []),
+				]),
+			]),
+			(t('Bar'), []),
+			(t('And then there are @tags'), []),
+			(t('And due dates'), []),
+			(t('Date', due=mydate), []),
+			(t('Date', due='2012-12-11'), [
+				(t('TODO: BAR !!!', prio=3, due='2012-12-11'), []),
+				# due date is inherited
+			]),
+			# this list inherits the @home tag - and inherits prio
+			(t('Some more tasks !!! @home', prio=3), [
+				(t('Foo ! @home', prio=1), []),
+				(t('Bar @home', prio=3), []),
+			]),
+			(t('TODO: dus'), []),
+			(t('FIXME: jaja - TODO !! @FIXME', prio=2), []),
+		]
+
+		tasks = extract_tasks(text)
+		self.assertEqual(tasks, wanted)
+
 
 		plugin.preferences['all_checkboxes'] = False
-		tasks = plugin.extract_tasks(tree)
-		labels = [task[-1] for task in tasks]
-		self.assertEqual(labels, ['A', 'B', 'C', 'FIXME: dus'])
-		self.assertEqual(tree.tostring(), origtree)
-			# extract should not modify the tree
+		wanted = [
+			(t('A'), []),
+			(t('B'), []),
+			(t('C'), []),
+			(t('FIXME: dus'), []),
+			(t('TODO: BAR !!!', prio=3), []),
+			# this list inherits the @home tag - and inherits prio
+			(t('Some more tasks !!! @home', prio=3), [
+				(t('Foo ! @home', prio=1), []),
+				(t('Bar @home', prio=3), []),
+			]),
+			(t('TODO: dus'), []),
+			(t('FIXME: jaja - TODO !! @FIXME', prio=2), []),
+		]
 
-		# TODO: test tags, due dates, tags for whole list, etc.
+		tasks = extract_tasks(text)
+		self.assertEqual(tasks, wanted)
+
+		# TODO: more tags, due dates, tags for whole list, etc. ?
 
 	def testDialog(self):
 		'''Check tasklist plugin dialog'''

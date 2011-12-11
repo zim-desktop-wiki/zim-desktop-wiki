@@ -57,7 +57,7 @@ class TestSearch(tests.TestCase):
 		results.search(query)
 		#~ print results
 		self.assertTrue(len(results) > 0)
-		self.assertFalse(Path('TODOList:foo') in results)
+		self.assertFalse(Path('TaskList:foo') in results)
 		self.assertTrue(Path('Test:foo') in results)
 		self.assertTrue(Path('Test:foo:bar') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
@@ -72,7 +72,7 @@ class TestSearch(tests.TestCase):
 		results.search(query)
 		#~ print results
 		self.assertTrue(len(results) > 0)
-		self.assertTrue(Path('TODOList:foo') in results)
+		self.assertTrue(Path('TaskList:foo') in results)
 		self.assertFalse(Path('Test:foo') in results)
 		self.assertFalse(Path('Test:foo:bar') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
@@ -87,7 +87,7 @@ class TestSearch(tests.TestCase):
 		results.search(query)
 		#~ print results
 		self.assertTrue(len(results) > 0)
-		self.assertTrue(Path('TODOList:foo') in results)
+		self.assertTrue(Path('TaskList:foo') in results)
 		self.assertFalse(Path('Test:foo') in results)
 		self.assertFalse(Path('Test:foo:bar') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
@@ -103,7 +103,7 @@ class TestSearch(tests.TestCase):
 		results.search(query)
 		#~ print results
 		self.assertTrue(len(results) > 0)
-		self.assertTrue(Path('TODOList:foo') in results)
+		self.assertTrue(Path('TaskList:foo') in results)
 		self.assertTrue(Path('Test:foo') in results)
 		self.assertTrue(Path('Test:foo:bar') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
@@ -139,12 +139,12 @@ class TestSearch(tests.TestCase):
 		self.assertTrue(set(results.scores.keys()) == results)
 		self.assertTrue(all(results.scores.values()))
 
-		query = Query('Namespace: "TODOList" fix')
+		query = Query('Namespace: "TaskList" fix')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
-		self.assertEqual(query.root, [QueryTerm('namespace', 'TODOList'), QueryTerm('contentorname', 'fix')])
+		self.assertEqual(query.root, [QueryTerm('namespace', 'TaskList'), QueryTerm('contentorname', 'fix')])
 		results.search(query)
 		#~ print results
-		self.assertTrue(Path('TODOList:foo') in results)
+		self.assertTrue(Path('TaskList:foo') in results)
 
 		query = Query('Tag: tags')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
@@ -154,7 +154,8 @@ class TestSearch(tests.TestCase):
 		self.assertEqual(query.root, [QueryTerm('tag', 'tags')])
 		results.search(query)
 		#~ print results
-		self.assertTrue(Path('Test:tags') in results and len(results) == 1)
+		self.assertTrue(Path('Test:tags') in results and len(results) == 2)
+			# Tasklist:all is the second match
 
 		# TODO test ContentOrName versus Content
 		# TODO test Name

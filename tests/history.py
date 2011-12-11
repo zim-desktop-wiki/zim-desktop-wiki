@@ -122,7 +122,7 @@ class TestHistory(tests.TestCase):
 	def testChildren(self):
 		'''Test getting namespace from history'''
 		history = History(self.notebook)
-		for name in ('Test:wiki', 'Test:foo:bar', 'Test:foo', 'TODOList:bar'):
+		for name in ('Test:wiki', 'Test:foo:bar', 'Test:foo', 'TaskList:bar'):
 			page = self.notebook.get_page(Path(name))
 			history.append(page)
 
