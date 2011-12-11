@@ -2947,17 +2947,20 @@ class TextView(gtk.TextView):
 	def do_button_release_event(self, event):
 		# Handle clicking a link or checkbox
 		cont = gtk.TextView.do_button_release_event(self, event)
-		if self.get_editable() \
-		and not self.get_buffer().get_has_selection():
-			if event.button == 1:
-				if self.preferences['cycle_checkbox_type']:
-					# Cycle through all states - more useful for
-					# single click input devices
-					self.click_link() or self.click_checkbox()
-				else:
-					self.click_link() or self.click_checkbox(CHECKED_BOX)
-			elif event.button == 3:
-				self.click_checkbox(XCHECKED_BOX)
+		if not self.get_buffer().get_has_selection():
+			if self.get_editable():
+				if event.button == 1:
+					if self.preferences['cycle_checkbox_type']:
+						# Cycle through all states - more useful for
+						# single click input devices
+						self.click_link() or self.click_checkbox()
+					else:
+						self.click_link() or self.click_checkbox(CHECKED_BOX)
+				elif event.button == 3:
+					self.click_checkbox(XCHECKED_BOX)
+			elif event.button == 1:
+				# no changing checkboxes for read-only content
+				self.click_link()
 
 		return cont # continue emit ?
 
