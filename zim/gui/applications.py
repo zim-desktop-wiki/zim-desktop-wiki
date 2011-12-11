@@ -786,7 +786,8 @@ class CustomToolDict(DesktopEntryDict):
 
 	@property
 	def icon(self):
-		return self['Desktop Entry'].get('Icon', gtk.STOCK_EXECUTE)
+		return self['Desktop Entry'].get('Icon') or gtk.STOCK_EXECUTE
+			# get('Icon', gtk.STOCK_EXECUTE) still returns empty string if key exists but no value
 
 	@property
 	def execcmd(self):

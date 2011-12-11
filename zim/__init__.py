@@ -433,6 +433,15 @@ def main(argv):
 			gui = proxy.get_notebook(notebook)
 
 			gui.present(page, **optsdict)
+
+			logger.debug('''
+NOTE FOR BUG REPORTS:
+	At this point zim has send the command to open a notebook to a
+	background process and the current process will no quit.
+	If this is the end of your debug output it is probably not useful
+	for bug reports. Please close all zim windows, quit the
+	zim trayicon (if any), and try again.
+''')
 	elif cmd == 'server':
 		try:
 			del optsdict['no_daemon']

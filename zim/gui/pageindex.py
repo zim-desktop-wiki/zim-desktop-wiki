@@ -670,7 +670,9 @@ class PageTreeView(BrowserTreeView):
 		self.expand_to_path(treepath)
 		self.get_selection().select_path(treepath)
 		self.set_cursor(treepath)
-		self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
+		#~ self.scroll_to_cell(treepath, use_align=True, row_align=0.9)
+		# BUG: align 0.9 doesn't behave as one would expect..
+		self.scroll_to_cell(treepath)
 
 	def get_selected_path(self):
 		'''Get the selected notebook path
