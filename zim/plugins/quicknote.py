@@ -9,7 +9,7 @@ from datetime import date as dateclass
 
 from zim.plugins import PluginClass
 from zim.config import config_file, data_file
-from zim.notebook import get_notebook, Notebook, PageNameError
+from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
 from zim.daemon import DaemonProxy
 from zim.gui.widgets import Dialog, scrolled_text_view, IconButton, \
 	InputForm, gtk_window_set_default_icon
@@ -56,10 +56,14 @@ def main(daemonproxy, *args):
 			dict[arg] = True
 	#~ print 'OPTIONS:', options, template_options
 
-
 	if 'help' in options:
 		print usagehelp
 		return
+
+	if 'notebook' in options:
+		notebook, page = resolve_notebook(options['notebook'])
+	else:
+		notebook = None
 
 	if 'input' in options:
 		if options['input'] == 'stdin':
@@ -89,7 +93,7 @@ def main(daemonproxy, *args):
 	gtk_window_set_default_icon()
 
 	dialog = QuickNoteDialog(None,
-		options.get('notebook'),
+		notebook,
 		options.get('namespace'), options.get('basename'),
 		text, template_options )
 	dialog.run()
@@ -254,7 +258,8 @@ class BoundQuickNoteDialog(Dialog):
 			# Automatically generate a (valid) page name
 			self._updating_title = True
 			bounds = buffer.get_bounds()
-			title = buffer.get_text(*bounds).strip()[:25]
+			title = buffer.get_text(*bounds).strip()[:50]
+				# Cut off at 50 characters to prevent using a whole paragraph
 			title = title.replace(':', '')
 			if '\n' in title:
 				title, _ = title.split('\n', 1)
@@ -307,6 +312,9 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		self._updating_title = False
 		self._title_set_manually = not basename is None
 
+		if not isinstance(notebook, basestring):
+				notebook = notebook.uri
+
 		self.uistate.setdefault('lastnotebook', None, basestring)
 		if self.uistate['lastnotebook']:
 			notebook = notebook or self.uistate['lastnotebook']
@@ -330,6 +338,7 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		self.notebook = notebook
 		if notebook:
 			self.form.widgets['namespace'].notebook = get_notebook(notebook)
+			# Could still be None, e.g. if the notebook folder is not mounted
 
 	def save_uistate(self):
 		notebook = self.notebookcombobox.get_notebook()

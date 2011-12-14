@@ -102,8 +102,11 @@ def pack_urilist(links):
 
 def unpack_urilist(text):
 	# FIXME be tolerant here for file://path/to/file uris here
+	text = text.strip('\x00') # Found trailing NULL character on windows
 	lines = text.splitlines() # takes care of \r\n
-	return [line.decode('utf-8') for line in lines]
+	return [ line.decode('utf-8') 
+		for line in lines if line and not line.isspace() ]
+		# Just to be sure we also skip empty or whitespace lines
 
 
 def _link_tree(links, notebook, page):
@@ -117,7 +120,7 @@ def _link_tree(links, notebook, page):
 			builder.data(' ')
 
 		link = links[i]
-		type = link_type(links[i])
+		type = link_type(link)
 		isimage = False
 		if type == 'file':
 			try:
@@ -125,6 +128,8 @@ def _link_tree(links, notebook, page):
 				isimage = file.isimage()
 			except:
 				pass
+
+		logger.debug('Pasting link: %s (type: %s, isimage: %s)', link, type, isimage)
 
 		if isimage:
 			src = notebook.relative_filepath(file, page) or file.uri

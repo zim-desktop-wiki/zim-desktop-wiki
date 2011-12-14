@@ -85,7 +85,7 @@ import zim.fs
 from zim.fs import File, Dir
 from zim.errors import Error, TrashNotSupportedError
 from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
-	config_file, data_dir, user_dirs
+	config_file, data_dir, user_dirs, data_dirs, config_dirs
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode
 from zim.async import AsyncLock
@@ -542,16 +542,39 @@ def interwiki_link(link):
 	assert isinstance(link, basestring) and '?' in link
 	key, page = link.split('?', 1)
 	url = None
-	for line in config_file('urls.list'):
-		if line.startswith(key+' ') or line.startswith(key+'\t'):
-			url = line[len(key):].strip()
+
+	# Search all "urls.list" in config and data dirs
+	def check_dir(dir):
+		file = dir.file('urls.list')
+		if not file.exists():
+			return None
+
+		for line in file.readlines():
+			if line.startswith(key+' ') or line.startswith(key+'\t'):
+				url = line[len(key):].strip()
+				return url
+		else:
+			return None
+
+	for dir in config_dirs():
+		url = check_dir(dir)
+		if url:
 			break
-	else:
+
+	if not url:
+		for dir in data_dirs():
+			url = check_dir(dir)
+			if url:
+				break
+
+	# If not found check known notebook
+	if not url:
 		list = get_notebook_list()
 		info = list.get_interwiki(key)
 		if info:
 			url = 'zim+' + info.uri + '?{NAME}'
 
+	# Format URL
 	if url and is_url_re.match(url):
 		if not ('{NAME}' in url or '{URL}' in url):
 			url += '{URL}'
