@@ -17,6 +17,11 @@ from zim.gui.notebookdialog import NotebookComboBox
 from zim.templates import GenericTemplate, StrftimeFunction
 
 
+import logging
+
+logger = logging.getLogger('zim.plugins.quicknote')
+
+
 usagehelp = '''\
 usage: zim --plugin quicknote [OPTIONS]
 
@@ -312,8 +317,8 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		self._updating_title = False
 		self._title_set_manually = not basename is None
 
-		if not isinstance(notebook, basestring):
-				notebook = notebook.uri
+		if notebook and not isinstance(notebook, basestring):
+			notebook = notebook.uri
 
 		self.uistate.setdefault('lastnotebook', None, basestring)
 		if self.uistate['lastnotebook']:
@@ -335,10 +340,8 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 
 		self._init_inputs(namespace, basename, text, template_options)
 
-		self.notebook = notebook
-		if notebook:
-			self.form.widgets['namespace'].notebook = get_notebook(notebook)
-			# Could still be None, e.g. if the notebook folder is not mounted
+		self.uistate['lastnotebook'] = notebook
+		self._set_autocomplete(notebook)
 
 	def save_uistate(self):
 		notebook = self.notebookcombobox.get_notebook()
@@ -353,7 +356,7 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 
 	def on_notebook_changed(self, o):
 		notebook = self.notebookcombobox.get_notebook()
-		if not notebook or notebook == self.notebook:
+		if not notebook or notebook == self.uistate['lastnotebook']:
 			return
 
 		self.uistate['lastnotebook'] = notebook
@@ -362,7 +365,19 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		if namespace:
 			self.form['namespace'] = namespace
 
-		self.form.widgets['namespace'].notebook = get_notebook(notebook)
+		self._set_autocomplete(notebook)
+
+	def _set_autocomplete(self, notebook):
+		if notebook:
+			obj = get_notebook(notebook)
+			self.form.widgets['namespace'].notebook = obj
+			self.form.widgets['page'].notebook = obj
+			# Could still be None, e.g. if the notebook folder is not mounted
+			logger.debug('Notebook for autocomplete: %s (%s)', obj, notebook)
+		else:
+			self.form.widgets['namespace'].notebook = None
+			self.form.widgets['page'].notebook = None
+			logger.debug('Notebook for autocomplete unset')
 
 	def do_response_ok(self):
 		def get_ui():
