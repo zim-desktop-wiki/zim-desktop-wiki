@@ -574,6 +574,7 @@ class TagListTreeView(SingleClickTreeView):
 
 		self.set_row_separator_func(lambda m, i: m[i][2] == self._type_separator)
 
+		self._block_selection_change = False
 		self.get_selection().connect('changed', self.on_selection_changed)
 
 		self.refresh(task_list)
@@ -604,7 +605,10 @@ class TagListTreeView(SingleClickTreeView):
 			return [model[path] for path in paths]
 
 	def refresh(self, task_list):
-		# FIXME make sure selection is not reset when refreshing
+		self._block_selection_change = True
+		selected = [(row[0], row[2]) for row in self._get_selected()] # remember name and type
+
+		# Rebuild model
 		model = self.get_model()
 		if model is None: return
 		model.clear()
@@ -623,11 +627,23 @@ class TagListTreeView(SingleClickTreeView):
 		for tag in sorted(tags):
 			model.append((tag, tags[tag], self._type_tag, pango.WEIGHT_NORMAL))
 
+		# Restore selection
+		def reselect(model, path, iter):
+			row = model[path]
+			name_type = (row[0], row[2])
+			if name_type in selected:
+				self.get_selection().select_iter(iter)
+
+		if selected:
+			model.foreach(reselect)
+		self._block_selection_change = False
+
 	def on_selection_changed(self, selection):
-		tags = self.get_tags()
-		labels = self.get_labels()
-		self.task_list.set_tag_filter(tags)
-		self.task_list.set_label_filter(labels)
+		if not self._block_selection_change:
+			tags = self.get_tags()
+			labels = self.get_labels()
+			self.task_list.set_tag_filter(tags)
+			self.task_list.set_label_filter(labels)
 
 
 HIGH_COLOR = '#EF5151' # red (derived from Tango style guide - #EF2929)
@@ -739,6 +755,7 @@ class TaskListTreeView(BrowserTreeView):
 		'''Refresh the model based on index data'''
 		self.real_model.clear() # flush
 		self._append_tasks(None, None, {})
+		self._eval_filter() # keep current selection
 		self.expand_all()
 
 	def _append_tasks(self, task, iter, path_cache):

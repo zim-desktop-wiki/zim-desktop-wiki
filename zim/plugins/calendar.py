@@ -170,6 +170,7 @@ This is a core plugin shipping with zim.
 	def disconnect_embedded_widget(self):
 		if self.sidepane_widget:
 			self.ui.mainwindow.remove(self.sidepane_widget)
+			self.sidepane_widget.destroy()
 			self.sidepane_widget = None
 
 	def do_preferences_changed(self):
@@ -321,10 +322,17 @@ class CalendarPluginWidget(gtk.VBox):
 		gtk.VBox.__init__(self)
 		self.plugin = plugin
 
-		format = _('%A %d %B %Y').replace(' 0', ' ') # T: strftime format for current date label
-		label = gtk.Label(datetime.date.today().strftime(str(format)))
-			# str() needed for python 2.5 compatibility
-		self.pack_start(label, False)
+		self.label = gtk.Label()
+		self.pack_start(self.label, False)
+		self._refresh_label()
+		self._timer_id = \
+			gobject.timeout_add(300000, self._refresh_label)
+			# 5 minute = 300_000 ms
+			# Ideally we only need 1 timer per day at 00:00, but not
+			# callback for that
+		self.connect('destroy',
+			lambda o: gobject.source_remove(o._timer_id) )
+			# Clear reference, else we get a new timer for every dialog
 
 		self.calendar = Calendar()
 		self.calendar.display_options(
@@ -338,6 +346,15 @@ class CalendarPluginWidget(gtk.VBox):
 
 		self.plugin.ui.connect('open-page', self.on_open_page)
 		self._select_date_cb = None
+
+	def _refresh_label(self, *a):
+		#print "UPDATE LABEL %s" % id(self)
+		format = _('%A %d %B %Y').replace(' 0', ' ')
+			# T: strftime format for current date label
+		text = datetime.date.today().strftime(str(format))
+			# str() needed for python 2.5 compatibility strftime
+		self.label.set_text(text)
+		return True # else timer is stopped
 
 	def set_select_date_callback(self, func):
 		self._select_date_cb = func
