@@ -62,6 +62,7 @@ arbitrary code from templates.
 
 import re
 import logging
+import locale
 
 import gobject
 
@@ -644,12 +645,19 @@ class StrftimeFunction(TemplateFunction):
 
 	def __call__(self, dict, format, date=None):
 		format = str(format) # Needed to please datetime.strftime()
-		if date is None:
-			return datetime.now().strftime(format)
-		elif isinstance(date, (datetime.date, datetime.datetime)):
-			return date.strftime(format)
-		else:
-			raise AssertionError, 'Not a datetime object: %s', date
+		try:
+			if date is None:
+				string = datetime.now().strftime(format)
+			elif isinstance(date, (datetime.date, datetime.datetime)):
+				string = date.strftime(format)
+			else:
+				raise AssertionError, 'Not a datetime object: %s', date
+			return string.decode(locale.getpreferredencoding())
+				# strftime returns locale as understood by the C api
+				# unfortunately there is no guarantee we can actually
+				# decode it ...
+		except:
+			logger.exception('Error in strftime "%s"', format)
 
 
 class PageIndexFunction(TemplateFunction):
