@@ -51,7 +51,7 @@ class DuplicatePageTreeStore(PageTreeStore):
 		self.selected_page = path
 
 		for mypath in (oldpath, path):
-			if mypath:	
+			if mypath:
 				for treepath in self.get_treepaths(mypath):
 					treeiter = self.get_iter(treepath)
 					self.emit('row-changed', treepath, treeiter)
@@ -631,14 +631,16 @@ class TagCloudWidget(gtk.TextView):
 	button inserted as a child in the textview.
 
 	@signal: C{selection-changed ()}: emitted when tag selection changes
+	@signal: C{sorting-changed ()}: emitted when tag sorting changes
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'selection-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'sorting-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
-	def __init__(self, index=None):
+	def __init__(self, index=None, sorting='score'):
 		gtk.TextView.__init__(self, None) # Create TextBuffer implicitly
 		self.set_name('zim-tags-tagcloud')
 		self.index = None
@@ -647,6 +649,8 @@ class TagCloudWidget(gtk.TextView):
 		self.set_editable(False)
 		self.set_cursor_visible(False)
 		self.set_wrap_mode(gtk.WRAP_CHAR)
+
+		self.set_sorting(sorting)
 
 		if index:
 			self.set_index(index)
@@ -660,6 +664,9 @@ class TagCloudWidget(gtk.TextView):
 			self.index.connect('tag-deleted', self._update),
 		)
 		self._update()
+
+	def set_sorting(self, sorting):
+		self._alphabetically = (sorting == 'alpha')
 
 	def disconnect_index(self):
 		'''Stop the model from listening to the index. Used to unhook
@@ -704,7 +711,16 @@ class TagCloudWidget(gtk.TextView):
 		if selected:
 			tags = self.index.list_intersecting_tags(selected)
 		else:
+			tags = []
+
+		if not tags:
 			tags = self.index.list_all_tags_by_score()
+			# Can be we have a "selected", but the selected tags have
+			# disappeared and thus list_intersecting returns empty
+
+		if self._alphabetically:
+			tags = sorted(tags, key=lambda t: t.name)
+		# else leave sorted by score
 
 		for tag in tags:
 			iter = buffer.get_end_iter()
@@ -716,6 +732,25 @@ class TagCloudWidget(gtk.TextView):
 
 		self.show_all()
 		self.emit('selection-changed')
+
+	def do_populate_popup(self, menu):
+		item = gtk.SeparatorMenuItem()
+		item.show_all()
+		menu.prepend(item)
+
+		item = gtk.CheckMenuItem(_('Sort alphabetically'))
+		item.set_active(self._alphabetically)
+		item.connect('toggled', self._switch_sorting)
+		item.show_all()
+		menu.prepend(item)
+
+	def _switch_sorting(self, widget, *a):
+		self._alphabetically = widget.get_active()
+		self._update()
+		if self._alphabetically:
+			self.emit('sorting-changed', 'alpha')
+		else:
+			self.emit('sorting-changed', 'score')
 
 # Need to register classes defining gobject signals
 gobject.type_register(TagCloudWidget)
@@ -729,6 +764,7 @@ class TagsPluginWidget(gtk.VPaned):
 		self.plugin = plugin
 
 		self.plugin.uistate.setdefault('treeview', 'tagged', set(['tagged', 'tags']))
+		self.plugin.uistate.setdefault('tagcloud_sorting', 'score', set(['alpha', 'score']))
 
 		def add_scrolled(widget):
 			sw = gtk.ScrolledWindow()
@@ -738,7 +774,7 @@ class TagsPluginWidget(gtk.VPaned):
 			self.add(sw)
 			return sw
 
-		self.tagcloud = TagCloudWidget()
+		self.tagcloud = TagCloudWidget(sorting=self.plugin.uistate['tagcloud_sorting'])
 		add_scrolled(self.tagcloud)
 
 		self.treeview = TagsPageTreeView(self.plugin.ui)
@@ -746,16 +782,15 @@ class TagsPluginWidget(gtk.VPaned):
 
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 		self.tagcloud.connect('selection-changed', self.on_cloud_selection_changed)
-
-		if self.plugin.ui.notebook:
-			self.reload_model()
-		else:
-			self.plugin.ui.connect_after('open-notebook', lambda *a: self.reload_model())
+		self.tagcloud.connect('sorting-changed', self.on_cloud_sortin_changed)
 
 		self.plugin.ui.connect('open-page', self.on_open_page)
 		self.plugin.ui.connect('start-index-update', lambda o: self.disconnect_model())
 		self.plugin.ui.connect('end-index-update', lambda o: self.reload_model())
 
+	def finalize_notebook(self, notebook):
+		self.tagcloud.set_sorting(self.plugin.uistate['tagcloud_sorting'])
+		self.reload_model()
 
 	def on_open_page(self, ui, page, path):
 		self.treeview.select_page(path)
@@ -783,6 +818,9 @@ class TagsPluginWidget(gtk.VPaned):
 	def on_cloud_selection_changed(self, cloud):
 		filter = cloud.get_tag_filter()
 		self.treeview.set_tag_filter(filter)
+
+	def on_cloud_sortin_changed(self, cloud, sorting):
+		self.plugin.uistate['tagcloud_sorting'] = sorting
 
 	def disconnect_model(self):
 		'''Stop the model from listening to the index. Used to
@@ -831,6 +869,10 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 	def initialize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
 			self.connect_embedded_widget()
+
+	def finalize_notebook(self, notebook):
+		if self.ui.ui_type == 'gtk' and self.sidepane_widget:
+			self.sidepane_widget.finalize_notebook(notebook)
 
 	def disconnect(self):
 		self.disconnect_embedded_widget()
