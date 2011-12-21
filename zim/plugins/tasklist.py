@@ -598,11 +598,15 @@ class TagListTreeView(SingleClickTreeView):
 		return labels or None
 
 	def _get_selected(self):
-		model, paths = self.get_selection().get_selected_rows()
-		if not paths or (0,) in paths:
-			return []
+		selection = self.get_selection()
+		if selection:
+			model, paths = selection.get_selected_rows()
+			if not paths or (0,) in paths:
+				return []
+			else:
+				return [model[path] for path in paths]
 		else:
-			return [model[path] for path in paths]
+			return []
 
 	def refresh(self, task_list):
 		self._block_selection_change = True
