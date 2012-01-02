@@ -31,6 +31,14 @@ class SearchDialog(Dialog):
 		hbox.add(self.query_entry)
 		self.search_button = gtk.Button(stock=gtk.STOCK_FIND)
 		hbox.pack_start(self.search_button, False)
+
+		if gtk.gtk_version >= (2, 20) \
+		and gtk.pygtk_version >= (2, 22):
+			self.spinner = gtk.Spinner()
+			hbox.pack_start(self.spinner, False)
+		else:
+			self.spinner = None
+
 		self.cancel_button = gtk.Button(stock=gtk.STOCK_STOP)
 		hbox.pack_start(self.cancel_button, False)
 		self._set_state(self.READY)
@@ -105,10 +113,16 @@ class SearchDialog(Dialog):
 		if state in (self.READY, self.CANCELLED):
 			self.query_entry.set_sensitive(True)
 			hide(self.cancel_button)
+			if self.spinner:
+				self.spinner.stop()
+				hide(self.spinner)
 			show(self.search_button)
 		elif state == self.SEARCHING:
 			self.query_entry.set_sensitive(False)
 			hide(self.search_button)
+			if self.spinner:
+				show(self.spinner)
+				self.spinner.start()
 			show(self.cancel_button)
 		else:
 			assert False, 'BUG: invalid state'
