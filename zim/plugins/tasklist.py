@@ -17,7 +17,8 @@ from zim.notebook import Path
 from zim.gui.widgets import ui_environment, \
 	Dialog, MessageDialog, \
 	InputEntry, Button, IconButton, MenuButton, \
-	BrowserTreeView, SingleClickTreeView
+	BrowserTreeView, SingleClickTreeView, \
+	encode_markup_text
 from zim.async import DelayedCallback
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 from zim.config import check_class_allow_empty
@@ -429,6 +430,11 @@ This is a core plugin shipping with zim.
 			for row in cursor:
 				yield row
 
+	def get_task(self, taskid):
+		cursor = self.index.db.cursor()
+		cursor.execute('select * from tasklist where id=?', (taskid,))
+		return cursor.fetchone()
+
 	def get_path(self, task):
 		'''Get the L{Path} for the source of a task
 		@param task: the task (as returned by L{list_tasks()}
@@ -665,13 +671,14 @@ class TaskListTreeView(BrowserTreeView):
 	PAGE_COL = 4
 	ACT_COL = 5 # actionable - no children
 	OPEN_COL = 6 # item not closed
+	TASKID_COL = 7
 
 	def __init__(self, ui, plugin):
 		self.filter = None
 		self.tag_filter = None
 		self.label_filter = None
-		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool)
-			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL
+		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool, int)
+			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL
 		model = self.real_model.filter_new()
 		model.set_visible_column(self.VIS_COL)
 		model = gtk.TreeModelSort(model)
@@ -701,7 +708,7 @@ class TaskListTreeView(BrowserTreeView):
 		# Rendering for task description column
 		cell_renderer = gtk.CellRendererText()
 		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
-		column = gtk.TreeViewColumn(_('Task'), cell_renderer, text=self.TASK_COL)
+		column = gtk.TreeViewColumn(_('Task'), cell_renderer, markup=self.TASK_COL)
 				# T: Column header Task List dialog
 		column.set_resizable(True)
 		column.set_sort_column_id(self.TASK_COL)
@@ -775,8 +782,11 @@ class TaskListTreeView(BrowserTreeView):
 		# Then add them to the model
 		for row in rows:
 			path = path_cache[row['source']]
-			modelrow = [False, row['prio'], row['description'], row['due'], path.name, row['actionable'], row['open']]
-						# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL
+			task = encode_markup_text(row['description'])
+			task = re.sub('\s*!+\s*', ' ', task) # get rid of exclamation marks
+			task = tag_re.sub(r'<span color="darkgrey">@\1</span>', task) # highlight tags
+			modelrow = [False, row['prio'], task, row['due'], path.name, row['actionable'], row['open'], row['id']]
+						# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL
 			modelrow[0] = self._filter_item(modelrow)
 			myiter = self.real_model.append(iter, modelrow)
 
@@ -922,17 +932,16 @@ class TaskListTreeView(BrowserTreeView):
 		if not (modelrow[self.ACT_COL] and modelrow[self.OPEN_COL]):
 			visible = False
 
+		description = modelrow[self.TASK_COL].decode('utf-8').lower()
+		pagename = modelrow[self.PAGE_COL].decode('utf-8').lower()
+
 		if visible and self.label_filter:
 			# Any labels need to be present
-			description = modelrow[self.TASK_COL]
 			for label in self.label_filter:
 				if label in description:
 					break
 			else:
 				visible = False # no label found
-
-		description = modelrow[self.TASK_COL].lower()
-		pagename = modelrow[self.PAGE_COL].lower()
 
 		if visible and self.tag_filter:
 			# And any tag should match (or pagename if tag_by_page)
@@ -949,6 +958,7 @@ class TaskListTreeView(BrowserTreeView):
 
 		if visible and self.filter:
 			# And finally the filter string should match
+			# FIXME: we are matching against markup text here - may fail for some cases
 			inverse, string = self.filter
 			match = string in description or string in pagename
 			if (not inverse and not match) or (inverse and match):
@@ -959,9 +969,14 @@ class TaskListTreeView(BrowserTreeView):
 	def do_row_activated(self, path, column):
 		model = self.get_model()
 		page = Path( model[path][self.PAGE_COL] )
-		task = unicode(model[path][self.TASK_COL])
+		text = self._get_raw_text(model[path])
 		self.ui.open_page(page)
-		self.ui.mainwindow.pageview.find(task)
+		self.ui.mainwindow.pageview.find(text)
+
+	def _get_raw_text(self, task):
+		id = task[self.TASKID_COL]
+		row = self.plugin.get_task(id)
+		return row['description']
 
 	def do_initialize_popup(self, menu):
 		item = gtk.MenuItem(_("_Copy")) # T: menu item in context menu
@@ -1070,9 +1085,9 @@ class TaskListTreeView(BrowserTreeView):
 
 			row = model[iter]
 			prio = row[self.PRIO_COL]
-			desc = row[self.TASK_COL]
+			desc = row[self.TASK_COL].decode('utf-8')
 			date = row[self.DATE_COL]
-			page = row[self.PAGE_COL]
+			page = row[self.PAGE_COL].decode('utf-8')
 
 			if date == _NO_DATE:
 				date = ''
