@@ -218,50 +218,42 @@ class SearchSelection(PageSelection):
 
 	def __init__(self, notebook):
 		self.notebook = notebook
+		self.cancelled = False
 		self.query = None
 		self.scores = {}
 
-	def search(self, query, selection=None):
+	def search(self, query, selection=None, callback=None):
 		'''Populate this SearchSelection with results for a query.
-		If a selection is given this should be a subset to search
-		within. This method flushes any previous results in this set.
-		'''
-		# TODO support callback
+		This method flushes any previous results in this set.
 
+		@param query: a L{Query} object
+		@param selection: a prior selection to search within, will result in a sub-set
+		@param callback: a function to call in between steps in the search.
+		It is called as::
+
+			callback(selection, path)
+
+		Where:
+		  - C{selection} is a L{SearchSelection} with partial results (if any)
+		  - C{path} is the C{Path} for the last searched path or C{None}
+
+		If the callback returns C{False} the search is cancelled.
+		'''
 		# Clear state
+		self.cancelled = False
 		self.query = query
 		self.clear()
 		self.scores = {}
 
 		# Actual search
-		self.update(self._process_group(query.root, selection))
+		self.update(self._process_group(query.root, selection, callback))
 
 		# Clean up results
 		scored = set(self.scores.keys())
 		for path in scored - self:
 			self.scores.pop(path)
 
-	def _process_group(self, group, scope):
-		# Decide what operator to use
-		if group.operator == OPERATOR_AND:
-			# For AND scope is always latest results
-			def op_func(results, scope, newresults):
-				#~ print '!! AND', results, newresults
-				if results is None:
-					return newresults, newresults
-				else:
-					results &= newresults
-					return results, results
-		else: # OPERATOR_OR
-			# For OR we always keep the original scope
-			def op_func(results, scope, newresults):
-				#~ print '!! OR', results, newresults
-				if results is None:
-					return newresults, scope
-				else:
-					results |= newresults
-					return results, scope
-
+	def _process_group(self, group, scope=None, callback=None):
 		# For optimization we sort the terms in the group based  on how
 		# easy we can get them. Anything that needs content is last.
 		indexterms = []
@@ -277,24 +269,80 @@ class SearchSelection(PageSelection):
 				else:
 					indexterms.append(term)
 
-		# First process index terms
+		# Decide what operator to use
+		if group.operator == OPERATOR_AND:
+			op_func = self._and_operator
+		else:
+			op_func = self._or_operator
+
+		# First process index terms - no callback in between - this is fast
 		results = None
 		for term in indexterms:
 			results, scope = op_func(results, scope,
 				self._process_from_index(term, scope) )
 
+		if callback:
+			if group.operator == OPERATOR_AND:
+				cont = callback(None, None) # do not transmit results yet
+			else:
+				cont = callback(results, None)
+
+			if not cont:
+				self.cancelled = True
+				return results or set()
+
 		# Next we process subgroups - recursing
+		def callbackwrapper(results, path):
+			# Don't update results from subgroup match, but do allow cancel
+			if callback:
+				return callback(None, path)
+			else:
+				return True
+
 		for term in subgroups:
 			results, scope = op_func(results, scope,
-				self._process_group(term, scope) )
+				self._process_group(term, scope, callbackwrapper) )
 
-		# Now do the content terms all at once
+			if callback:
+				if group.operator == OPERATOR_AND:
+					cont = callback(None, None) # do not transmit results yet
+				else:
+					cont = callback(results, None)
+
+				if not cont:
+					self.cancelled = True
+					return results or set()
+
+		# TODO optimization here for contentorname to quickly show name results even in an AND group
+
+		# Now do the content terms all at once (operator implemented inside)
 		if contentterms:
-			results, scope = op_func(results, scope,
-				self._process_content(contentterms, scope, group.operator))
+			results = self._process_content(
+				contentterms, results, scope, group.operator, callback)
 
 		# And return our results as summed by the operator
 		return results or set()
+
+
+	@staticmethod
+	def _and_operator(results, scope, newresults):
+		# Returns new results and new scope
+		# For AND, the scope is always latest results
+		if results is None:
+			results = newresults
+		else:
+			results &= newresults
+		return results, results
+
+	@staticmethod
+	def _or_operator(results, scope, newresults):
+		# Returns new results and new scope
+		# For OR we always keep the original scope
+		if results is None:
+			results = newresults
+		else:
+			results |= newresults
+		return results, scope
 
 	def _count_score(self, path, score):
 		self.scores[path] = self.scores.get(path, 0) + score
@@ -303,7 +351,8 @@ class SearchSelection(PageSelection):
 		# Process keywords we can get from the index, just one term at
 		# a time. Scope is used to limit the search when practical, but
 		# no guarantee for following it.
-		results = set()
+		results = SearchSelection(None)
+		results.scores = self.scores # HACK for searchdialog
 		index = self.notebook.index
 
 		if term.keyword in ('name', 'namespace'):
@@ -372,13 +421,20 @@ class SearchSelection(PageSelection):
 
 		return results
 
-	def _process_content(self, terms, scope, operator):
+	def _process_content(self, terms, results, scope, operator, callback=None):
 		# Process terms for content, process many at once in order to
 		# only open the page once and allow for a linear behavior of the
 		# callback function. (We could also have relied on page objects
 		# caching the parsetree, but then there is no way to support a
 		# useful callback method.)
-		results = set()
+		# Note that this rationale is for flat searches, once sub-groups
+		# are involved things get less optimized.
+		#
+		# For AND both results and scope are the same here, we make a subset
+		# For OR the scope can be larger, results is what was found so far, we extend it
+		if operator == OPERATOR_AND or results is None:
+			results = SearchSelection(None)
+			results.scores = self.scores # HACK for searchdialog
 
 		for term in terms:
 			term.content_regex = self._content_regex(term.string)
@@ -428,6 +484,14 @@ class SearchSelection(PageSelection):
 					if bool(score) != term.inverse: # implicit XOR
 						results.add(path)
 						self._count_score(path, score or 1)
+
+			if callback:
+				# Since we are always last in the processing of the
+				# (top-level) group, we can call the callback with all results
+				cont = callback(results, path)
+				if not cont:
+					self.cancelled = True
+					break
 
 		return results
 
