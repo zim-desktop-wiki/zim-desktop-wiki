@@ -7,7 +7,7 @@ import gobject
 import logging
 
 from zim.notebook import Path
-from zim.gui.widgets import Dialog, BrowserTreeView, InputEntry
+from zim.gui.widgets import Dialog, BrowserTreeView, InputEntry, ErrorDialog
 from zim.search import *
 
 
@@ -90,7 +90,11 @@ class SearchDialog(Dialog):
 		#~ print '!! QUERY: ' + string
 
 		self._set_state(self.SEARCHING)
-		self.results_treeview.search(string)
+		try:
+			self.results_treeview.search(string)
+		except Exception, error:
+			ErrorDialog(self, error).run()
+		
 		if not self.results_treeview.cancelled:
 			self._set_state(self.READY)
 		else:
