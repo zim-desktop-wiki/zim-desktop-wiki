@@ -80,3 +80,5 @@ class testPlugins(tests.TestCase):
 		interface.uistate = zim.config.ConfigDict()
 		interface.load_plugins()
 		self.assertTrue(len(interface.plugins) > 3)
+
+	# TODO: create a full GtkUI object and load & unload each plugin in turn

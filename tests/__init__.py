@@ -45,7 +45,7 @@ __all__ = [
 	'export', 'www', 'search',
 	'widgets', 'gui', 'pageview',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
-	'tasklist', 'tags', 'imagegenerators',
+	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'daemon' # Note that running this test in another position can skrew up e.g. clipboard test
 ]
 
