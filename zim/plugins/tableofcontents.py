@@ -164,7 +164,7 @@ class ToCWidget(gtk.ScrolledWindow):
 		# hack to detect only headers.
 		# heading information is not available in buffer, therefore
 		# search for lines that contain only the header text.
-		text_regex = "^%s$" % text
+		text_regex = "^%s$" % re.escape(text)
 		buffer.finder.find(text_regex, FIND_REGEX)
 		textview.scroll_to_mark(buffer.get_insert(), 0.3)
 
