@@ -26,7 +26,7 @@ contents for the current page.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
-		'help': 'Plugins:TableOfContents',
+		'help': 'Plugins:Table Of Contents',
 	}
 	# TODO add controls for changing levels in ToC
 

@@ -565,6 +565,7 @@ class PageTreeView(BrowserTreeView):
 			or BrowserTreeView.do_key_press_event(self, event)
 
 	def do_initialize_popup(self, menu):
+		# TODO get path first and determine what menu options are valid
 		self.ui.populate_popup('page_popup', menu)
 		self.populate_popup_expand_collapse(menu)
 
