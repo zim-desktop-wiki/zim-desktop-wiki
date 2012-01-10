@@ -23,6 +23,7 @@ from zim.config import data_file
 from zim.templates import GenericTemplate
 from zim.applications import Application
 from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
+from zim.gui.widgets import populate_popup_add_separator
 
 # TODO put these commands in preferences
 gnu_r_cmd = ('R',)
@@ -78,7 +79,7 @@ This plugin provides a plot editor for zim based on GNU R.
 		dialog.show_all()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
-		menu.prepend(gtk.SeparatorMenuItem())
+		populate_popup_add_separator(menu, prepend=True)
 
 		item = gtk.MenuItem(_('_Edit GNU R Plot')) # T: menu item in context menu
 		item.connect('activate',

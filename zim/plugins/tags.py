@@ -15,7 +15,7 @@ from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
 	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL
 from zim.notebook import Path
 from zim.index import IndexPath, IndexTag
-from zim.gui.widgets import LEFT_PANE
+from zim.gui.widgets import LEFT_PANE, populate_popup_add_separator
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
 
 
@@ -734,9 +734,7 @@ class TagCloudWidget(gtk.TextView):
 		self.emit('selection-changed')
 
 	def do_populate_popup(self, menu):
-		item = gtk.SeparatorMenuItem()
-		item.show_all()
-		menu.prepend(item)
+		populate_popup_add_separator(prepend=True)
 
 		item = gtk.CheckMenuItem(_('Sort alphabetically'))
 		item.set_active(self._alphabetically)
@@ -806,7 +804,7 @@ class TagsPluginWidget(gtk.VPaned):
 
 	def on_populate_popup(self, treeview, menu):
 		# Add a popup menu item to switch the treeview mode
-		menu.prepend(gtk.SeparatorMenuItem())
+		populate_popup_add_separator(prepend=True)
 
 		item = gtk.CheckMenuItem(_('Sort pages by tags')) # T: menu option
 		item.set_active(self.plugin.uistate['treeview'] == 'tags')

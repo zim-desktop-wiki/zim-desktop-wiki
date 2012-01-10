@@ -177,6 +177,28 @@ def scrolled_text_view(text=None, monospace=False):
 	return window, textview
 
 
+def populate_popup_add_separator(menu, prepend=True):
+	'''Convenience function that adds a C{gtk.SeparatorMenuItem}
+	to a context menu. Checks if the menu already contains items,
+	if it is empty does nothing. Also if the menu already has a
+	seperator in the required place this function does nothing.
+	This helps with building menus more dynamically.
+	@param menu: the C{gtk.Menu} object for the popup
+	@param prepend: if C{False} append, if C{True} prepend
+	'''
+	items = menu.get_children()
+	if not items:
+		pass # Nothing to do
+	elif prepend:
+		if not isinstance(items[0], gtk.SeparatorMenuItem):
+			sep = gtk.SeparatorMenuItem()
+			menu.prepend(sep)
+	else:
+		if not isinstance(items[-1], gtk.SeparatorMenuItem):
+			sep = gtk.SeparatorMenuItem()
+			menu.append(sep)
+
+
 def gtk_combobox_set_active_text(combobox, text):
 	'''Opposite of C{gtk.ComboBox.get_active_text()}. Sets the
 	active item based on a string. Will match this string against the
@@ -466,10 +488,43 @@ class SingleClickTreeView(gtk.TreeView):
 		def is_rubber_banding_active(self):
 			return False
 
-	def do_button_release_event(self, event):
-		'''Handler for button-release-event, implements single click navigation'''
+	def do_button_press_event(self, event):
+		# Implement hook for context menu
 
-		if event.button == 1 and not event.state & self.mask \
+		if event.type == gtk.gdk.BUTTON_PRESS \
+		and event.button == 3:
+			# Check selection state - item under cursor should be selected
+			# see do_button_release_event for comments
+			x, y = map(int, event.get_coords())
+			info = self.get_path_at_pos(x, y)
+			selection = self.get_selection()
+			if x > 0 and y > 0 and not info is None:
+				path, column, x, y = info
+				if not selection.path_is_selected(path):
+					selection.unselect_all()
+					selection.select_path(path)
+				# else the clcik was on a already selected path
+			else:
+				# click outside area with items ?
+				selection.unselect_all()
+
+			# Pop menu
+			menu = gtk.Menu()
+			self.do_initialize_popup(menu)
+			self.emit('populate-popup', menu)
+			if len(menu.get_children()) > 0:
+				menu.show_all()
+				menu.popup(None, None, None, 3, 0) # FIXME do we need to pass x/y and button ?
+		else:
+			return gtk.TreeView.do_button_press_event(self, event)
+
+	def do_button_release_event(self, event):
+		# Implement single click behavior for activating list items
+		# this needs to be done on button release to avoid conflict with
+		# selections, drag-n-drop, etc.
+
+		if event.type == gtk.gdk.BUTTON_PRESS \
+		and event.button == 1 and not event.state & self.mask \
 		and not self.is_rubber_banding_active():
 			x, y = map(int, event.get_coords())
 				# map to int to suppress deprecation warning :S
@@ -489,13 +544,6 @@ class SingleClickTreeView(gtk.TreeView):
 				# expander in front of a path should not select the path.
 				# This logic is based on particulars of the C implementation
 				# and might not be future proof.
-		elif event.button == 3:
-			menu = gtk.Menu()
-			self.do_initialize_popup(menu)
-			self.emit('populate-popup', menu)
-			if len(menu.get_children()) > 0:
-				menu.show_all()
-				menu.popup(None, None, None, 3, 0) # FIXME do we need to pass x/y and button ?
 
 		return gtk.TreeView.do_button_release_event(self, event)
 
@@ -504,10 +552,33 @@ class SingleClickTreeView(gtk.TreeView):
 		This method is called before the C{populate-popup} signal and
 		can be used to put any standard items in the menu.
 		@param menu: the C{gtk.Menu} object for the popup
-		@implementation: can be implemented by sub-classes, default
-		implementation does nothing
+		@implementation: can be implemented by sub-classes. Default
+		implementation calls L{populate_popup_expand_collapse()}
+		if the model is a C{gtk.TreeStore}. Otherwise it does nothing.
 		'''
-		pass
+		model = self.get_model()
+		if isinstance(model, gtk.TreeStore):
+			self.populate_popup_expand_collapse(menu)
+
+	def populate_popup_expand_collapse(self, menu, prepend=False):
+		'''Adds "Expand _all" and "Co_llapse all" items to a context
+		menu. Called automatically by the default implementation of
+		L{do_initialize_popup()}.
+		@param menu: the C{gtk.Menu} object for the popup
+		@param prepend: if C{False} append, if C{True} prepend
+		'''
+		expand = gtk.MenuItem(_("Expand _All")) # T: menu item in context menu
+		expand.connect_object('activate', self.__class__.expand_all, self)
+		collapse = gtk.MenuItem(_("_Collapse All")) # T: menu item in context menu
+		collapse.connect_object('activate', self.__class__.collapse_all, self)
+
+		populate_popup_add_separator(menu, prepend=prepend)
+		if prepend:
+			menu.prepend(collapse)
+			menu.prepend(expand)
+		else:
+			menu.append(expand)
+			menu.append(collapse)
 
 	def get_cell_renderer_number_of_items(self):
 		'''Get a C{gtk.CellRendererText} that is set up for rendering
@@ -557,15 +628,13 @@ class BrowserTreeView(SingleClickTreeView):
 		elif event.keyval in KEYVALS_SLASH:
 			self.collapse_all()
 		elif event.keyval == KEYVAL_LEFT:
-			model, iter = self.get_selection().get_selected()
-			if not iter is None:
-				path = model.get_path(iter)
-				self.collapse_row(path)
+			model, paths = self.get_selection().get_selected_rows()
+			if len(paths) == 1:
+				self.collapse_row(paths[0])
 		elif event.keyval == KEYVAL_RIGHT:
-			model, iter = self.get_selection().get_selected()
-			if not iter is None:
-				path = model.get_path(iter)
-				self.expand_row(path, 0)
+			model, paths = self.get_selection().get_selected_rows()
+			if len(paths) == 1:
+				self.expand_row(paths[0], 0)
 		else:
 			handled = False
 

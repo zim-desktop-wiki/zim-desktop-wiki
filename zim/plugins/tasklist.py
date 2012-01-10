@@ -983,16 +983,7 @@ class TaskListTreeView(BrowserTreeView):
 		item.connect_object('activate', self.__class__.copy_to_clipboard, self)
 		menu.append(item)
 
-		item = gtk.SeparatorMenuItem()
-		menu.append(item)
-
-		item = gtk.MenuItem(_("Expand _All")) # T: menu item in context menu
-		item.connect_object('activate', self.__class__.expand_all, self)
-		menu.append(item)
-
-		item = gtk.MenuItem(_("_Collapse All")) # T: menu item in context menu
-		item.connect_object('activate', self.__class__.collapse_all, self)
-		menu.append(item)
+		self.populate_popup_expand_collapse(menu)
 
 	def copy_to_clipboard(self):
 		'''Exports currently visible elements from the tasks list'''

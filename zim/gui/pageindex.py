@@ -566,6 +566,7 @@ class PageTreeView(BrowserTreeView):
 
 	def do_initialize_popup(self, menu):
 		self.ui.populate_popup('page_popup', menu)
+		self.populate_popup_expand_collapse(menu)
 
 	def do_copy(self):
 		#~ print '!! copy location'
