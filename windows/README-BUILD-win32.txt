@@ -30,7 +30,7 @@ Requirements
 
 3. Download GTK+ Bundle from
 
-   http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.22/
+   http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/
 
    Or a newer version if one exists. Extract this Zip file to a
    convenient place such as
