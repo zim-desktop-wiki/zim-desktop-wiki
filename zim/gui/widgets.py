@@ -514,7 +514,7 @@ class SingleClickTreeView(gtk.TreeView):
 			self.emit('populate-popup', menu)
 			if len(menu.get_children()) > 0:
 				menu.show_all()
-				menu.popup(None, None, None, 3, 0) # FIXME do we need to pass x/y and button ?
+				menu.popup(None, None, None, 3, event.get_time())
 		else:
 			return gtk.TreeView.do_button_press_event(self, event)
 
@@ -523,7 +523,7 @@ class SingleClickTreeView(gtk.TreeView):
 		# this needs to be done on button release to avoid conflict with
 		# selections, drag-n-drop, etc.
 
-		if event.type == gtk.gdk.BUTTON_PRESS \
+		if event.type == gtk.gdk.BUTTON_RELEASE \
 		and event.button == 1 and not event.state & self.mask \
 		and not self.is_rubber_banding_active():
 			x, y = map(int, event.get_coords())
