@@ -115,8 +115,10 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog
 		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', check_class_allow_empty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
+		('next_label', 'string', _('Label for next task'), 'Next:', check_class_allow_empty),
+			# T: label for plugin preferences dialog - label is by default "Next"
 	)
-	_rebuild_on_preferences = ['all_checkboxes', 'labels','deadline_by_page']
+	_rebuild_on_preferences = ['all_checkboxes', 'labels', 'next_label', 'deadline_by_page']
 		# Rebuild database table if any of these preferences changed.
 		# But leave it alone if others change.
 
@@ -124,6 +126,8 @@ This is a core plugin shipping with zim.
 		PluginClass.__init__(self, ui)
 		self.task_labels = None
 		self.task_label_re = None
+		self.next_label = None
+		self.next_label_re = None
 		self.db_initialized = False
 
 	def initialize_ui(self, ui):
@@ -165,8 +169,19 @@ This is a core plugin shipping with zim.
 			self.task_labels = [s.strip() for s in self.preferences['labels'].split(',')]
 		else:
 			self.task_labels = []
-		regex = '^(' + '|'.join(map(re.escape, self.task_labels)) + ')\\b'
+		
+		if self.preferences['next_label']:
+			self.next_label = self.preferences['next_label']
+				# Adding this avoid the need for things like "TODO: Next: do this next"
+			self.next_label_re = re.compile(r'^' + re.escape(self.next_label) + r'(?!\w)' )
+			self.task_labels.append(self.next_label)
+		else:
+			self.next_label = None
+			self.next_label_re = None
+
+		regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
 		self.task_label_re = re.compile(regex)
+		
 
 	def _serialize_rebuild_on_preferences(self):
 		# string mapping settings that influence building the table
@@ -283,13 +298,18 @@ This is a core plugin shipping with zim.
 
 			for item in lines:
 				if isinstance(item, tuple):
-					# checkbox
+					# checkbox or bullet
 					bullet, list_level, text = item
-					if istasklist or self.preferences['all_checkboxes'] \
-					or (self.task_labels and self.task_label_re.match(text)):
-						while stack and stack[-1][LEVEL] >= list_level:
-							stack.pop()
+					while stack and stack[-1][LEVEL] >= list_level:
+						stack.pop()
 
+					if (
+						bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
+						and (istasklist or self.preferences['all_checkboxes'])
+					) or (
+						self.task_labels and self.task_label_re.match(text)
+					):
+						# task item
 						if stack: # Inherit date and prio if not set explicitly on children
 							mydefaultdate = stack[-1][TASK][DATE]
 							if mydefaultdate == _NO_DATE:
@@ -299,8 +319,12 @@ This is a core plugin shipping with zim.
 							mydefaultdate = defaultdate
 							mydefaultprio = None
 
-						open = (bullet == UNCHECKED_BOX)
-						task = self._parse_task(text, open=open, tags=globaltags, defaultdate=mydefaultdate, defaultprio=mydefaultprio)
+						open = (bullet not in (CHECKED_BOX, XCHECKED_BOX))
+						if stack:
+							mytasks = stack[-1][CHILDREN]
+						else:
+							mytasks = tasks
+						task = self._parse_task(text, open=open, tags=globaltags, defaultdate=mydefaultdate, defaultprio=mydefaultprio, tasks=mytasks)
 						children = []
 						if stack:
 							stack[-1][CHILDREN].append((task, children))
@@ -308,11 +332,14 @@ This is a core plugin shipping with zim.
 							tasks.append((task, children))
 
 						stack.append((list_level, task, children))
+					else:
+						# not a task - we already popped stack, now ignore text
+						pass
 				else:
-					# normal line
-					stack = [] # TODO this reset also happens for bullets - be more tolerant for bullets on same level
+					# normal line, outside list
+					stack = []
 					if self.task_labels and self.task_label_re.match(item):
-						task = self._parse_task(item, tags=globaltags, defaultdate=defaultdate)
+						task = self._parse_task(item, tags=globaltags, defaultdate=defaultdate, tasks=tasks)
 						tasks.append((task, []))
 
 		return tasks
@@ -350,10 +377,7 @@ This is a core plugin shipping with zim.
 			elif node.tag == 'li':
 				bullet = node.get('bullet')
 				text = self._flatten(node)
-				if bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX):
-					items.append((bullet, list_level, text))
-				else:
-					items.append(text)
+				items.append((bullet, list_level, text))
 			else:
 				pass # should not occur - ignore silently
 		return items
@@ -366,8 +390,7 @@ This is a core plugin shipping with zim.
 			text += child.tail or ''
 		return text
 
-	def _parse_task(self, text, open=True, tags=None, defaultdate=None, defaultprio=None):
-		# TODO - determine if actionable or not
+	def _parse_task(self, text, open=True, tags=None, defaultdate=None, defaultprio=None, tasks=None):
 		prio = text.count('!')
 		if defaultprio and prio == 0:
 			prio = defaultprio
@@ -396,7 +419,15 @@ This is a core plugin shipping with zim.
 		if defaultdate and date == _NO_DATE:
 			date = defaultdate
 
-		return (open, True, prio, date, text)
+		if self.next_label_re.match(text):
+			if tasks and tasks[-1][0][0]: # previous task still open
+				actionable = False
+			else:
+				actionable = True
+		else:
+			actionable = True
+
+		return (open, actionable, prio, date, text)
 			# (open, actionable, prio, due, description)
 
 
@@ -492,7 +523,8 @@ class TaskListDialog(Dialog):
 		self.vbox.add(self.hpane)
 
 		# Task list
-		self.task_list = TaskListTreeView(self.ui, plugin)
+		self.uistate.setdefault('only_show_act', False)
+		self.task_list = TaskListTreeView(self.ui, plugin, filter_actionable=self.uistate['only_show_act'])
 		self.task_list.set_headers_visible(True) # Fix for maemo
 		scrollwindow = gtk.ScrolledWindow()
 		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -529,6 +561,11 @@ class TaskListDialog(Dialog):
 		#~ menubutton = MenuButton(_('_Options'), menu) # T: Button label
 		#~ hbox.pack_start(menubutton, False)
 
+		self.act_toggle = gtk.CheckButton(_('Only Show Actionable Tasks'))
+		self.act_toggle.set_active(self.uistate['only_show_act'])
+		self.act_toggle.connect('toggled', lambda o: self.task_list.set_filter_actionable(o.get_active()))
+		hbox.pack_start(self.act_toggle, False)
+
 		# Statistics label
 		self.statistics_label = gtk.Label()
 		hbox.pack_end(self.statistics_label, False)
@@ -546,6 +583,7 @@ class TaskListDialog(Dialog):
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
+		self.uistate['only_show_act'] = self.act_toggle.get_active()
 		Dialog.do_response(self, response)
 
 
@@ -627,14 +665,15 @@ class TagListTreeView(SingleClickTreeView):
 		model.append((_('All Tasks'), n_all, self._type_label, pango.WEIGHT_BOLD)) # T: "tag" for showing all tasks
 
 		labels = self.task_list.get_labels()
-		for label in self.task_list.plugin.task_labels: # explicitly keep sorting from preferences
-			if label in labels:
+		plugin = self.task_list.plugin
+		for label in plugin.task_labels: # explicitly keep sorting from preferences
+			if label in labels and label != plugin.next_label:
 				model.append((label, labels[label], self._type_label, pango.WEIGHT_BOLD))
 
 		model.append(('', 0, self._type_separator, 0)) # separator
 
 		tags = self.task_list.get_tags()
-		for tag in sorted(tags):
+		for tag in sorted(tags, key=lambda t: t.lower()): # sort case insensitive
 			model.append((tag, tags[tag], self._type_tag, pango.WEIGHT_NORMAL))
 
 		# Restore selection
@@ -669,14 +708,11 @@ class TaskListTreeView(BrowserTreeView):
 	TASK_COL = 2
 	DATE_COL = 3
 	PAGE_COL = 4
-	ACT_COL = 5 # actionable - no children
+	ACT_COL = 5 # actionable
 	OPEN_COL = 6 # item not closed
 	TASKID_COL = 7
 
-	def __init__(self, ui, plugin):
-		self.filter = None
-		self.tag_filter = None
-		self.label_filter = None
+	def __init__(self, ui, plugin, filter_actionable):
 		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool, int)
 			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL
 		model = self.real_model.filter_new()
@@ -686,6 +722,12 @@ class TaskListTreeView(BrowserTreeView):
 		BrowserTreeView.__init__(self, model)
 		self.ui = ui
 		self.plugin = plugin
+		self.filter = None
+		self.tag_filter = None
+		self.label_filter = None
+		self.filter_actionable = filter_actionable
+		self._tags = {}
+		self._labels = {}
 
 		# Add some rendering for the Prio column
 		def render_prio(col, cell, model, i):
@@ -764,10 +806,29 @@ class TaskListTreeView(BrowserTreeView):
 
 	def refresh(self):
 		'''Refresh the model based on index data'''
-		self.real_model.clear() # flush
+		# Update data
+		self._clear()
 		self._append_tasks(None, None, {})
+		
+		# Make tags case insensitive
+		tags = sorted((t.lower(), t) for t in self._tags)
+			# tuple sorting will sort ("foo", "Foo") before ("foo", "foo"),
+			# but ("bar", ..) before ("foo", ..)
+		prev = ('', '')
+		for tag in tags:
+			if tag[0] == prev[0]:
+				self._tags[prev[1]] += self._tags[tag[1]]
+				self._tags.pop(tag[1])
+			prev = tag
+
+		# Set view
 		self._eval_filter() # keep current selection
 		self.expand_all()
+
+	def _clear(self):
+		self.real_model.clear() # flush
+		self._tags = {}
+		self._labels = {}
 
 	def _append_tasks(self, task, iter, path_cache):
 		rows = list(self.plugin.list_tasks(task))
@@ -779,19 +840,47 @@ class TaskListTreeView(BrowserTreeView):
 
 		rows.sort(key=lambda r: path_cache[r['source']].name)
 
-		# Then add them to the model
+		# Count them (note: these matches fail after formatting applied)
+		for row in rows:
+			if not row['open']:
+				continue # Only count open items
+
+			for label in self.plugin.task_label_re.findall(row['description']):
+				self._labels[label] = self._labels.get(label, 0) + 1
+
+			for tag in tag_re.findall(row['description']):
+				self._tags[tag] = self._tags.get(tag, 0) + 1
+
+			if self.plugin.preferences['tag_by_page']:
+				path = path_cache[row['source']]
+				for part in path.parts:
+					self._tags[part] = self._tags.get(part, 0) + 1
+
+		# Then format them and add them to the model
 		for row in rows:
 			path = path_cache[row['source']]
 			task = encode_markup_text(row['description'])
 			task = re.sub('\s*!+\s*', ' ', task) # get rid of exclamation marks
-			task = tag_re.sub(r'<span color="darkgrey">@\1</span>', task) # highlight tags
+			task = self.plugin.next_label_re.sub('', task) # get rid of "next" label in description
+			if row['actionable']:
+				task = tag_re.sub(r'<span color="#ce5c00">@\1</span>', task) # highlight tags - same color as used in pageview
+				task = self.plugin.task_label_re.sub(r'<b>\1</b>', task) # highlight labels
+			else:
+				task = r'<span color="darkgrey">%s</span>' % task
 			modelrow = [False, row['prio'], task, row['due'], path.name, row['actionable'], row['open'], row['id']]
-						# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL
+				# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL
 			modelrow[0] = self._filter_item(modelrow)
 			myiter = self.real_model.append(iter, modelrow)
 
 			if row['haschildren']:
 				self._append_tasks(row, myiter, path_cache) # recurs
+
+	def set_filter_actionable(self, filter):
+		'''Set filter state for non-actionable items
+		@param filter: if C{False} all items are shown, if C{True} only actionable items
+		'''
+		self.filter_actionable = filter
+		self._eval_filter()
 
 	def set_filter(self, string):
 		# TODO allow more complex queries here - same parse as for search
@@ -811,59 +900,18 @@ class TaskListTreeView(BrowserTreeView):
 		@returns: a dict with labels as keys and the number of tasks
 		per label as value
 		'''
-		labels = {}
-		def collect(model, path, iter):
-			row = model[iter]
-			if not row[self.OPEN_COL]:
-				return # only count open items
-
-			desc = row[self.TASK_COL].decode('utf-8')
-			match = self.plugin.task_label_re.match(desc)
-			if match:
-				label = match.group(0)
-				if not label in labels:
-					labels[label] = 1
-				else:
-					labels[label] += 1
-
-		self.real_model.foreach(collect)
-
-		return labels
+		return self._labels
 
 	def get_tags(self):
 		'''Get all tags that are in use
 		@returns: a dict with tags as keys and the number of tasks
 		per tag as value
 		'''
-		tags = {}
-
-		def collect(model, path, iter):
-			row = model[iter]
-			if not row[self.OPEN_COL]:
-				return # only count open items
-
-			desc = row[self.TASK_COL].decode('utf-8')
-			for match in tag_re.findall(desc):
-				if not match in tags:
-					tags[match] = 1
-				else:
-					tags[match] += 1
-
-			if self.plugin.preferences['tag_by_page']:
-				name = row[self.PAGE_COL].decode('utf-8')
-				for part in name.split(':'):
-					if not part in tags:
-						tags[part] = 1
-					else:
-						tags[part] += 1
-
-		self.real_model.foreach(collect)
-
-		return tags
+		return self._tags
 
 	def get_n_tasks(self):
 		'''Get the number of tasks in the list
-		@returns: total number as a list
+		@returns: total number
 		'''
 		counter = [0]
 		def count(model, path, iter):
@@ -904,7 +952,7 @@ class TaskListTreeView(BrowserTreeView):
 
 	def set_label_filter(self, labels):
 		if labels:
-			self.label_filter = labels
+			self.label_filter = [label.lower() for label in labels]
 		else:
 			self.label_filter = None
 		self._eval_filter()
@@ -929,7 +977,8 @@ class TaskListTreeView(BrowserTreeView):
 		# text are first converted to lower case text.
 		visible = True
 
-		if not (modelrow[self.ACT_COL] and modelrow[self.OPEN_COL]):
+		if not modelrow[self.OPEN_COL] \
+		or (not modelrow[self.ACT_COL] and self.filter_actionable):
 			visible = False
 
 		description = modelrow[self.TASK_COL].decode('utf-8').lower()
@@ -982,7 +1031,6 @@ class TaskListTreeView(BrowserTreeView):
 		item = gtk.MenuItem(_("_Copy")) # T: menu item in context menu
 		item.connect_object('activate', self.__class__.copy_to_clipboard, self)
 		menu.append(item)
-
 		self.populate_popup_expand_collapse(menu)
 
 	def copy_to_clipboard(self):

@@ -85,6 +85,8 @@ FIXME: dus
 TODO @home:
 [ ] Some more tasks !!!
 	[ ] Foo !
+		* some sub item
+		* some other item
 	[ ] Bar
 
 TODO: dus
