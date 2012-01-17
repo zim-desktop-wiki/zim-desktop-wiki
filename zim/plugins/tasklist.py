@@ -11,6 +11,7 @@ import logging
 import re
 
 import zim.datetimetz as datetime
+from zim.utils import natural_sorted
 from zim.parsing import parse_date
 from zim.plugins import PluginClass
 from zim.notebook import Path
@@ -169,7 +170,7 @@ This is a core plugin shipping with zim.
 			self.task_labels = [s.strip() for s in self.preferences['labels'].split(',')]
 		else:
 			self.task_labels = []
-		
+
 		if self.preferences['next_label']:
 			self.next_label = self.preferences['next_label']
 				# Adding this avoid the need for things like "TODO: Next: do this next"
@@ -181,7 +182,7 @@ This is a core plugin shipping with zim.
 
 		regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
 		self.task_label_re = re.compile(regex)
-		
+
 
 	def _serialize_rebuild_on_preferences(self):
 		# string mapping settings that influence building the table
@@ -673,7 +674,7 @@ class TagListTreeView(SingleClickTreeView):
 		model.append(('', 0, self._type_separator, 0)) # separator
 
 		tags = self.task_list.get_tags()
-		for tag in sorted(tags, key=lambda t: t.lower()): # sort case insensitive
+		for tag in natural_sorted(tags):
 			model.append((tag, tags[tag], self._type_tag, pango.WEIGHT_NORMAL))
 
 		# Restore selection
@@ -809,7 +810,7 @@ class TaskListTreeView(BrowserTreeView):
 		# Update data
 		self._clear()
 		self._append_tasks(None, None, {})
-		
+
 		# Make tags case insensitive
 		tags = sorted((t.lower(), t) for t in self._tags)
 			# tuple sorting will sort ("foo", "Foo") before ("foo", "foo"),

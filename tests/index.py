@@ -16,7 +16,6 @@ from zim.gui.pageindex import *
 from zim.formats import ParseTree
 
 
-@tests.slowTest
 class TestIndex(tests.TestCase):
 
 	def setUp(self):
@@ -174,7 +173,7 @@ class TestIndex(tests.TestCase):
 		parent = self.index.lookup_path(path.parent)
 		self.assertTrue(parent is None)
 
-		#~ # Check cleanup for links
+		# Check cleanup for links
 		links = [link.href for link in self.index.list_links(Path('roundtrip'))]
 		for p in ('foo:bar', 'Bar'):
 			self.assertTrue(Path(p) in links)
@@ -200,6 +199,17 @@ class TestIndex(tests.TestCase):
 		self.notebook.delete_page(Path('roundtrip'))
 		path = self.index.lookup_path(Path('foo:bar'))
 		self.assertTrue(path is None)
+
+		# Check get_page_index() to double check stable sorting
+		def check_index(path):
+			for i, child in enumerate(self.index.list_pages(path)):
+				index = self.index.get_page_index(child)
+				#~ print 'INDEX', i, child, '-->', index
+				self.assertTrue(index == i, 'Index mismatch for %s' % child)
+				if child.haschildren:
+					check_index(child) # recurs
+
+		check_index(Path(':'))
 
 
 @tests.slowTest

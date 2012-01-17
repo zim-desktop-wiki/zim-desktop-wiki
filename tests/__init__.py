@@ -38,7 +38,7 @@ FAST_TEST = False #: determines whether we skip slow tests or not
 # This list also determines the order in which tests will executed
 __all__ = [
 	'package', 'translations',
-	'errors', 'parsing', 'fs', 'config', 'applications', 'async',
+	'utils', 'errors', 'parsing', 'fs', 'config', 'applications', 'async',
 	'formats', 'templates',
 	'stores', 'index', 'notebook',
 	'history', 'plugins',

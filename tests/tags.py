@@ -99,7 +99,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		path = (0,)
 		prevpath = None
 		while path:
-			#~ print '>>', path
+			#~ print 'PATH', path
 			assert path != prevpath, 'Prevent infinite loop'
 			nitems += 1
 			prevpath = path

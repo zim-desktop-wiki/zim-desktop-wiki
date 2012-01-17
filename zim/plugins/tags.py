@@ -259,6 +259,7 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 		'''
 		if isinstance(path, IndexTag):
 			treepath = self.get_treepath(path)
+			#~ print ">>> Found", path, '->', treepath
 			if treepath:
 				return (treepath,)
 			else:
@@ -275,7 +276,7 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 
 		# See if it is in cache already
 		if path in self._reverse_cache:
-			#~ print '>>> Return from cache', reverse_cache[path]
+			#~ print '>>> Return from cache', path, "->", self._reverse_cache[path]
 			return self._reverse_cache[path]
 
 		# Try getting it while populating cache
@@ -310,7 +311,8 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 			treepaths.append((0, pageindex) + childpath)
 
 		treepaths.sort()
-		self._reverse_cache.setdefault(path, treepaths)
+		#~ print ">>> Found", path, "->", treepaths
+		self._reverse_cache[path] = treepaths
 		self._schedule_flush()
 		return treepaths
 
@@ -496,7 +498,7 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 			child = p
 
 		treepaths.sort()
-		self._reverse_cache.setdefault(path, treepaths)
+		self._reverse_cache[path] = treepaths
 		self._schedule_flush()
 		return treepaths
 
@@ -734,7 +736,7 @@ class TagCloudWidget(gtk.TextView):
 		self.emit('selection-changed')
 
 	def do_populate_popup(self, menu):
-		populate_popup_add_separator(prepend=True)
+		populate_popup_add_separator(menu, prepend=True)
 
 		item = gtk.CheckMenuItem(_('Sort alphabetically'))
 		item.set_active(self._alphabetically)
@@ -804,7 +806,7 @@ class TagsPluginWidget(gtk.VPaned):
 
 	def on_populate_popup(self, treeview, menu):
 		# Add a popup menu item to switch the treeview mode
-		populate_popup_add_separator(prepend=True)
+		populate_popup_add_separator(menu, prepend=True)
 
 		item = gtk.CheckMenuItem(_('Sort pages by tags')) # T: menu option
 		item.set_active(self.plugin.uistate['treeview'] == 'tags')

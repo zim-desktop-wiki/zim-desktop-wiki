@@ -84,7 +84,7 @@ For asynchronous actions see L{zim.async}.
 
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.54'
+__version__ = '0.54.1' # Bumped version to allow database rebuild
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __copyright__ = 'Copyright 2008 - 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
