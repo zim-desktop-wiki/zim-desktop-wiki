@@ -9,7 +9,7 @@ When you open a newly created notebook you get an empty page titled "**Home**". 
 
 Now you can use the items in the //Format// menu or their corresponding [[:Help:Key Bindings|keybindings]] to make text **bold** or //italic//. A special format type is "Link" which highlights a word as a hyperlink. Try selecting a word in your text and press ''<ctrl>L'' this will make the word a link. Now when you click on this word (or press ''<Enter>'' while the cursor is on the link) you go to a new page. You will notice that this new page is generated on the fly.
 
-Once you have several pages you can navigate them like you would in a browser. Their are buttons and keybindings for going Back, Forward or Home.
+Once you have several pages you can navigate them like you would in a browser. There are buttons and keybindings for going Back, Forward or Home.
 
 It is also possible to order your pages into namespaces. The namespace separator is the colon ":" character. So when you use this character as part of a page name the name will be split at that point. The tree in the side pane will show a hierarchy of namespaces when you use this.
 

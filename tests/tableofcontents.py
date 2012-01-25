@@ -43,3 +43,6 @@ class TestTableOfContents(tests.TestCase):
 		for page in self.ui.notebook.walk():
 			widget.on_open_page(self.ui, page, page)
 			widget.on_stored_page(self.ui.notebook, page)
+
+# TODO check selecting heading in actual PageView
+# especially test selecting a non-existing item to check we don't get infinite loop

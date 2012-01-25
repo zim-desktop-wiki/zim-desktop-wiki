@@ -2,6 +2,8 @@
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from __future__ import with_statement
+
 import gobject
 import gtk
 import pango
@@ -12,7 +14,47 @@ import datetime
 from zim.plugins import PluginClass
 from zim.notebook import Path
 from zim.gui.widgets import LEFT_PANE, TOP, BrowserTreeView, populate_popup_add_separator
-from zim.gui.pageview import FIND_REGEX
+from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
+
+
+# FIXME, these methods should be supported by pageview - need anchors - now it is a HACK
+_is_heading = lambda iter: bool(filter(_is_heading_tag, iter.get_tags()))
+
+def find_heading(buffer, heading):
+	'''Find a heading
+	@param heading: text of the heading
+	@returns: a C{gtk.TextIter} for the new cursor position or C{None}
+	'''
+	regex = "^%s$" % heading
+	with buffer.tmp_cursor():
+		if buffer.finder.find(regex, FIND_REGEX):
+			iter = buffer.get_insert_iter()
+			start = iter.get_offset()
+		else:
+			return None
+
+		while not _is_heading(iter):
+			if buffer.finder.find_next():
+				iter = buffer.get_insert_iter()
+				if iter.get_offset() == start:
+					return None # break infinite loop
+			else:
+				return None
+
+		if _is_heading(iter):
+			return iter
+		else:
+			return None
+
+
+def select_heading(buffer, heading):
+	iter = find_heading(buffer, heading)
+	if iter:
+		buffer.place_cursor(iter)
+		buffer.select_line()
+		return True
+	else:
+		return False
 
 
 class ToCPlugin(PluginClass):
@@ -157,23 +199,47 @@ class ToCWidget(gtk.ScrolledWindow):
 		self.treeview.expand_all()
 
 	def on_heading_activated(self, treeview, path, column):
-		self._select_heading(path)
+		self.select_heading(path)
 
-	def _select_heading(self, path):
+	def select_heading(self, path):
+		'''Returns a C{gtk.TextIter} for a C{gtk.TreePath} pointing to a heading
+		or C{None}.
+		'''
 		model = self.treeview.get_model()
 		text = model[path][TEXT_COL].decode('utf-8')
+
 		textview = self.ui.mainwindow.pageview.view # FIXME nicer interface for this
 		buffer = textview.get_buffer()
-		iter = buffer.get_insert_iter()
-		# hack to detect only headers.
-		# heading information is not available in buffer, therefore
-		# search for lines that contain only the header text.
-		text_regex = "^%s$" % text
-		ok = buffer.finder.find(text_regex, FIND_REGEX)
-			# TODO: double check it is a heading ?
-			# or wait for anchor code to make this more robust
-		textview.scroll_to_mark(buffer.get_insert(), 0.3)
-		return ok, self.ui.mainwindow.pageview
+		if select_heading(buffer, text):
+			textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
+			return True
+		else:
+			return False
+
+	def select_section(buffer, path):
+		'''Select all text between two headings
+		@param start: starting heading
+		@param end: heading of next section
+		@returns: C{True} if succesfull
+		'''
+		model = self.treeview.get_model()
+		starttext = model[path][TEXT_COL].decode('utf-8')
+
+		nextpath = path[:-1] + (path[-1]+1,)
+		if nextpath in model:
+			endtext = model[nextpath][TEXT_COL].decode('utf-8')
+		else:
+			endtext = None
+
+		textview = self.ui.mainwindow.pageview.view # FIXME nicer interface for this
+		buffer = textview.get_buffer()
+		start = find_heading(buffer, starttext)
+		if endtext:
+			end = find_heading(buffer, endtext)
+		else:
+			end = buffer.get_end_iter()
+		if start and end:
+			buffer.select_range(startiter, enditer)
 
 	def on_populate_popup(self, treeview, menu):
 		model, paths = treeview.get_selection().get_selected_rows()
@@ -272,9 +338,8 @@ class ToCWidget(gtk.ScrolledWindow):
 
 	def _format(self, path, level):
 		assert level > 0 and level < 7
-		ok, pageview = self._select_heading(path)
-		if ok:
-			pageview.toggle_format('h' + str(level))
+		if self.select_heading(path):
+			self.ui.mainwindow.pageview.toggle_format('h' + str(level))
 
 
 class ToCTreeView(BrowserTreeView):
