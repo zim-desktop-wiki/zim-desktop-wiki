@@ -1668,7 +1668,7 @@ class GtkInterface(NotebookInterface):
 
 	def copy_location(self):
 		'''Menu action to copy the current page name to the clipboard'''
-		Clipboard().set_pagelink(self.notebook, self.page)
+		Clipboard.set_pagelink(self.notebook, self.page)
 
 	def show_preferences(self):
 		'''Menu action to show the L{PreferencesDialog}'''

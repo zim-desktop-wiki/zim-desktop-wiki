@@ -43,6 +43,7 @@ Build release packages:
 * ~~dput ppa:jaap.karssenberg/zim ../zim_XX_sources.changes~~
 
 * Update build recipe for PPA with latest tag
+* Request build for PPA with releases
 
 Publish the release:
 * Upload website

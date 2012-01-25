@@ -17,6 +17,7 @@ import logging
 from zim.index import IndexPath
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, BrowserTreeView, \
+	populate_popup_add_separator, \
 	ErrorDialog
 from zim.gui.clipboard import \
 	Clipboard, \
@@ -567,13 +568,20 @@ class PageTreeView(BrowserTreeView):
 	def do_initialize_popup(self, menu):
 		# TODO get path first and determine what menu options are valid
 		self.ui.populate_popup('page_popup', menu)
+
+		populate_popup_add_separator(menu)
+		item = gtk.ImageMenuItem('gtk-copy')
+		item.connect('activate', lambda o: self.do_copy())
+		menu.append(item)
+		menu.show_all()
+
 		self.populate_popup_expand_collapse(menu)
 
 	def do_copy(self):
 		#~ print '!! copy location'
 		page = self.get_selected_path()
 		if page:
-			Clipboard().set_pagelink(self.ui.notebook, page)
+			Clipboard.set_pagelink(self.ui.notebook, page)
 
 	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
 		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME

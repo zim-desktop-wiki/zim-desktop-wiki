@@ -12,8 +12,9 @@ import os
 from zim.fs import Dir
 from zim.notebook import init_notebook, get_notebook, Notebook, Path, Link
 from zim.index import *
-from zim.gui.pageindex import *
 from zim.formats import ParseTree
+from zim.gui.clipboard import Clipboard
+from zim.gui.pageindex import *
 
 
 class TestIndex(tests.TestCase):
@@ -385,6 +386,34 @@ class TestPageTreeStoreFiles(TestPageTreeStore):
 	def runTest(self):
 		'''Test PageTreeStore index interface with files index'''
 		TestPageTreeStore.runTest(self)
+
+
+class TestPageTreeView(tests.TestCase):
+
+	# This class is intended for testing the widget user interaction,
+	# interaction with the store is already tested by having the
+	# view attached in TestPageTreeStore
+
+	def setUp(self):
+		self.ui = tests.MockObject()
+		self.ui.page = Path('Test')
+		self.notebook = tests.new_notebook()
+		self.ui.notebook = self.notebook
+		self.model = PageTreeStore(self.notebook.index)
+		self.treeview = PageTreeView(self.ui, self.model)
+
+	def testContextMenu(self):
+		menu = self.treeview.get_popup()
+
+		# Check these do not cause errors - how to verify state ?
+		tests.gtk_activate_menu_item(menu, _("Expand _All"))
+		tests.gtk_activate_menu_item(menu, _("_Collapse All"))
+
+		# Copy item
+		tests.gtk_activate_menu_item(menu, 'gtk-copy')
+		self.assertEqual(Clipboard.get_text(), 'Test')
+
+	# Single click navigation, ... ?
 
 
 @tests.slowTest

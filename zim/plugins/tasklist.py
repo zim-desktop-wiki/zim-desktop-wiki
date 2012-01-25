@@ -19,7 +19,8 @@ from zim.gui.widgets import ui_environment, \
 	Dialog, MessageDialog, \
 	InputEntry, Button, IconButton, MenuButton, \
 	BrowserTreeView, SingleClickTreeView, \
-	encode_markup_text
+	encode_markup_text, decode_markup_text
+from zim.gui.clipboard import Clipboard
 from zim.async import DelayedCallback
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 from zim.config import check_class_allow_empty
@@ -1029,7 +1030,7 @@ class TaskListTreeView(BrowserTreeView):
 		return row['description']
 
 	def do_initialize_popup(self, menu):
-		item = gtk.MenuItem(_("_Copy")) # T: menu item in context menu
+		item = gtk.ImageMenuItem('gtk-copy')
 		item.connect_object('activate', self.__class__.copy_to_clipboard, self)
 		menu.append(item)
 		self.populate_popup_expand_collapse(menu)
@@ -1038,12 +1039,15 @@ class TaskListTreeView(BrowserTreeView):
 		'''Exports currently visible elements from the tasks list'''
 		logger.debug('Exporting to clipboard current view of task list.')
 		text = self.get_visible_data_as_csv()
-		gtk.Clipboard().set_text(text.decode("UTF-8"))
+		Clipboard.set_text(text)
+			# TODO set as object that knows how to format as text / html / ..
+			# unify with export hooks
 
 	def get_visible_data_as_csv(self):
 		text = ""
 		for indent, prio, desc, date, page in self.get_visible_data():
 			prio = str(prio)
+			desc = decode_markup_text(desc)
 			desc = '"' + desc.replace('"', '""') + '"'
 			text += ",".join((prio, desc, date, page)) + "\n"
 		return text

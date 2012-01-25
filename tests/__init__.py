@@ -43,9 +43,10 @@ __all__ = [
 	'stores', 'index', 'notebook',
 	'history', 'plugins',
 	'export', 'www', 'search',
-	'widgets', 'gui', 'pageview',
+	'widgets', 'gui', 'pageview', 'clipboard',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
+	'quicknote',
 	'daemon' # Note that running this test in another position can skrew up e.g. clipboard test
 ]
 
@@ -122,15 +123,6 @@ def zim_pyfiles():
 		_zim_pyfiles.sort()
 	for file in _zim_pyfiles:
 		yield file # shallow copy
-
-
-
-def gtk_process_events(*a):
-	'''Method to simulate a few iterations of the gtk main loop'''
-	import gtk
-	while gtk.events_pending():
-		gtk.main_iteration(block=False)
-	return True # continue
 
 
 def slowTest(obj):
@@ -339,6 +331,49 @@ def _expand_manifest(names):
 	return manifest
 
 
+def new_parsetree():
+	'''Returns a new ParseTree object for testing
+
+	Uses data from L{WikiTestData}, page C{roundtrip}
+	'''
+	import zim.formats.wiki
+	parser = zim.formats.wiki.Parser()
+	text = WikiTestData.get('roundtrip')
+	tree = parser.parse(text)
+	return tree
+
+def new_parsetree_from_text(text, format='wiki'):
+	import zim.formats
+	parser = zim.formats.get_format(format).Parser()
+	return parser.parse(text)
+
+
+def new_parsetree_from_xml(xml):
+	# For some reason this does not work with cElementTree.XMLBuilder ...
+	from xml.etree.ElementTree import XMLTreeBuilder
+	from zim.formats import ParseTree
+	builder = XMLTreeBuilder()
+	builder.feed(xml)
+	root = builder.close()
+	return ParseTree(root)
+
+
+def new_page():
+	from zim.notebook import Path, Page
+	page = Page(Path('roundtrip'))
+	page.readonly = False
+	page.set_parsetree(new_parsetree())
+	return page
+
+
+def new_page_from_text(text, format='wiki'):
+	from zim.notebook import Path, Page
+	page = Page(Path('Test'))
+	page.readonly = False
+	page.set_parsetree(new_parsetree_from_text(text, format))
+	return page
+
+
 def new_notebook(fakedir=None):
 	'''Returns a new Notebook object with all data in memory
 
@@ -445,3 +480,39 @@ class MockObject(object):
 
 		setattr(self, name, my_mock_method)
 		return my_mock_method
+
+
+def gtk_process_events(*a):
+	'''Method to simulate a few iterations of the gtk main loop'''
+	import gtk
+	while gtk.events_pending():
+		gtk.main_iteration(block=False)
+	return True # continue
+
+
+def gtk_get_menu_item(menu, id):
+	'''Get a menu item from a C{gtk.Menu}
+	@param menu: a C{gtk.Menu}
+	@param id: either the menu item label or the stock id
+	@returns: a C{gtk.MenuItem} or C{None}
+	'''
+	items = menu.get_children()
+	ids = [i.get_property('label') for i in items]
+		# gtk.ImageMenuItems that have a stock id happen to use the
+		# 'label' property to store it...
+
+	assert id in ids, \
+		'Menu item "%s" not found, we got:\n' % id \
+		+ ''.join('- %s \n' % i for i in ids)
+
+	i = ids.index(id)
+	return items[i]
+
+
+def gtk_activate_menu_item(menu, id):
+	'''Trigger the 'click' action an a menu item
+	@param menu: a C{gtk.Menu}
+	@param id: either the menu item label or the stock id
+	'''
+	item = gtk_get_menu_item(menu, id)
+	item.activate()

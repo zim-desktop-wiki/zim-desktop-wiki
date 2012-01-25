@@ -38,7 +38,7 @@ from zim.gui.widgets import ui_environment, \
 	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	rotate_pixbuf
 from zim.gui.applications import OpenWithMenu
-from zim.gui.clipboard import Clipboard, \
+from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -2192,9 +2192,8 @@ class TextBuffer(gtk.TextBuffer):
 			self.create_mark('zim-paste-position', iter, left_gravity=False)
 
 		#~ clipboard.debug_dump_contents()
-		clipboard.request_parsetree(self._paste_clipboard, self.notebook, self.page)
+		parsetree = clipboard.get_parsetree(self.notebook, self.page)
 
-	def _paste_clipboard(self, parsetree):
 		#~ print '!! PASTE', parsetree.tostring()
 		with self.user_action:
 			if self.get_has_selection():
@@ -2209,6 +2208,7 @@ class TextBuffer(gtk.TextBuffer):
 			self.delete_mark(mark)
 
 			self.place_cursor(iter)
+			parsetree.resolve_images(self.notebook, self.page)
 			self.insert_parsetree_at_cursor(parsetree, interactive=True)
 
 # Need to register classes defining gobject signals
@@ -2873,18 +2873,18 @@ class TextView(gtk.TextView):
 		# over gtk.TextBuffer.copy_clipboard
 		format = format or self.preferences['copy_format'].lower()
 		if format == 'text': format = 'plain'
-		self.get_buffer().copy_clipboard(Clipboard(), format)
+		self.get_buffer().copy_clipboard(Clipboard, format)
 
 	def do_cut_clipboard(self):
 		# Overriden to force usage of our Textbuffer.cut_clipboard
 		# over gtk.TextBuffer.cut_clipboard
-		self.get_buffer().cut_clipboard(Clipboard(), self.get_editable())
+		self.get_buffer().cut_clipboard(Clipboard, self.get_editable())
 		self.scroll_mark_onscreen(self.get_buffer().get_insert())
 
 	def do_paste_clipboard(self):
 		# Overriden to force usage of our Textbuffer.paste_clipboard
 		# over gtk.TextBuffer.paste_clipboard
-		self.get_buffer().paste_clipboard(Clipboard(), None, self.get_editable())
+		self.get_buffer().paste_clipboard(Clipboard, None, self.get_editable())
 		self.scroll_mark_onscreen(self.get_buffer().get_insert())
 
 	#~ def do_drag_motion(self, context, *a):
@@ -2965,7 +2965,7 @@ class TextView(gtk.TextView):
 		return cont # continue emit ?
 
 	def do_popup_menu(self):
-		# Handler tht gets called when user activates the popup-menu
+		# Handler that gets called when user activates the popup-menu
 		# by a keybinding (Shift-F10 or "menu" key).
 		# Due to implementation details in gtktextview.c this method is
 		# not called when a popup is triggered by a mouse click.
@@ -2973,6 +2973,15 @@ class TextView(gtk.TextView):
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		self._set_popup_menu_mark(iter)
 		return gtk.TextView.do_popup_menu(self)
+
+	def get_popup(self):
+		'''Get the popup menu - intended for testing'''
+		buffer = self.get_buffer()
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		self._set_popup_menu_mark(iter)
+		menu = gtk.Menu()
+		self.emit('populate-popup', menu)
+		return menu
 
 	def _set_popup_menu_mark(self, iter):
 		buffer = self.get_buffer()
@@ -4663,10 +4672,13 @@ class PageView(gtk.VBox):
 		menu.prepend(item)
 
 		# copy
-		def set_clipboards(o, text):
-			for atom in ('PRIMARY', 'CLIPBOARD'):
-				clipboard = gtk.Clipboard(selection=atom)
-				clipboard.set_text(text)
+		def set_pagelink(o, path):
+			Clipboard.set_pagelink(self.ui.notebook, path)
+			SelectionClipboard.set_pagelink(self.ui.notebook, path)
+
+		def set_uri(o, uri):
+			Clipboard.set_uri(uri)
+			SelectionClipboard.set_uri(uri)
 
 		if type == 'mailto':
 			item = gtk.MenuItem(_('Copy Email Address')) # T: context menu item
@@ -4674,10 +4686,11 @@ class PageView(gtk.VBox):
 			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
 		menu.prepend(item)
 
-		if file:
-			item.connect('activate', set_clipboards, file.path)
-		elif link:
-			item.connect('activate', set_clipboards, link['href'])
+		if type == 'page':
+			path = self.ui.notebook.resolve_path(link['href'], source=self.page)
+			item.connect('activate', set_pagelink, path)
+		else:
+			item.connect('activate', set_uri, file or link['href'])
 
 		menu.prepend(gtk.SeparatorMenuItem())
 

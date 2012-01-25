@@ -100,6 +100,10 @@ class TestCoding(tests.TestCase):
 			self.assertFalse('set_visible(' in code, '%s uses set_visible() - use set_property() instead' % file)
 			self.assertFalse('get_sensitive(' in code, '%s uses get_sensitive() - requires Gtk >= 2.18 - use set_property() instead' % file)
 
+			if not file.endswith('clipboard.py'):
+				self.assertFalse('gtk.Clipboard(' in code, '%s uses gtk.Clipboard - use zim.gui.clipboard.Clipboard instead' % file)
+
+
 	def testImportFuture(self):
 		'''Check python 2.5 compatibility'''
 		for file, code in self.list_code():

@@ -13,6 +13,7 @@ from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
 from zim.daemon import DaemonProxy
 from zim.gui.widgets import Dialog, scrolled_text_view, IconButton, \
 	InputForm, gtk_window_set_default_icon
+from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
 from zim.templates import GenericTemplate, StrftimeFunction
 
@@ -76,8 +77,8 @@ def main(daemonproxy, *args):
 			text = sys.stdin.read()
 		elif options['input'] == 'clipboard':
 			text = \
-				gtk.Clipboard(selection='PRIMARY').wait_for_text() \
-				or gtk.Clipboard(selection='CLIPBOARD').wait_for_text()
+				SelectionClipboard.get_text() \
+				or Clipboard.get_text()
 	else:
 		text = options.get('text')
 

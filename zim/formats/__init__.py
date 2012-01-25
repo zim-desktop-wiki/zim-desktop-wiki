@@ -279,6 +279,14 @@ class ParseTree(ElementTreeModule.ElementTree):
 				filepath = element.attrib['src']
 				element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
 
+	def unresolve_images(self):
+		'''Undo effect of L{resolve_images()}, mainly intended for
+		testing.
+		'''
+		for element in self.getiterator('img'):
+			if '_src_file' in element.attrib:
+				element.attrib.pop('_src_file')
+
 	def encode_urls(self, mode=URL_ENCODE_READABLE):
 		'''Calls encode_url() on all links that contain urls.
 		See zim.parsing for details. Modifies the parse tree.

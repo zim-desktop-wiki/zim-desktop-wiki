@@ -12,6 +12,7 @@ from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
 from zim.config import ConfigDict
+from zim.gui.clipboard import Clipboard
 
 
 class FilterNoSuchImageWarning(tests.LoggingFilter):
@@ -20,21 +21,35 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 	message = 'No such image:'
 
 
-def get_tree(wikitext):
-	tree = wiki.Parser().parse(wikitext)
+def new_parsetree_from_text(text):
+	## FIXME had to wrap my own here becase of stupid
+	## resolve_images - get rid of that
+	tree = tests.new_parsetree_from_text(text)
 	notebook = tests.new_notebook(fakedir='/foo')
 	page = notebook.get_page(Path('Foo'))
 	tree.resolve_images(notebook, page)
 	return tree
 
 
-def get_tree_from_xml(xml):
-	# For some reason this does not work with cElementTree.XMLBuilder ...
-	from xml.etree.ElementTree import XMLTreeBuilder
-	builder = XMLTreeBuilder()
-	builder.feed(xml)
-	root = builder.close()
-	return ParseTree(root)
+def setUpPageView(fakedir=None):
+	'''Some bootstrap code to get an isolated PageView object'''
+	## TODO - should not be needed
+	## we can get rid of this when we refactor the actiongroup stuff
+	## to not register, by be called by the window
+	PageView.actiongroup = tests.MockObject() # use class attribute to fake ui init
+	PageView.actiongroup.mock_method('get_action', tests.MockObject())
+	PageView.actiongroup.mock_method('list_actions', [])
+
+	ui = MockUI()
+	ui.notebook = tests.new_notebook(fakedir)
+	ui.page = None
+	ui.uimanager = tests.MockObject()
+	ui.uimanager.mock_method('get_accel_group', tests.MockObject())
+
+	ui.mainwindow = tests.MockObject()
+	ui.mainwindow.statusbar_style_label = tests.MockObject()
+
+	return PageView(ui)
 
 
 class TestTextBuffer(tests.TestCase):
@@ -42,7 +57,7 @@ class TestTextBuffer(tests.TestCase):
 	def runTest(self):
 		'''Test serialization and interaction of the page view textbuffer'''
 		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = get_tree(wikitext)
+		tree = new_parsetree_from_text(wikitext)
 		buffer = TextBuffer()
 		with FilterNoSuchImageWarning():
 			buffer.set_parsetree(tree)
@@ -95,7 +110,7 @@ dus ja
 <li bullet="*" indent="0"> Foo</li>
 <li bullet="*" indent="0"> Bar</li>
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		self.assertFalse(buffer.get_modified())
 
@@ -149,7 +164,7 @@ dus ja <emphasis>hmm</emphasis>
 grrr
 
 <li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0"><strong>Bold</strong>Bar</li></zim-tree>'''
-		pastetree = get_tree_from_xml(input)
+		pastetree = tests.new_parsetree_from_xml(input)
 		iter = buffer.get_iter_at_line(15)
 		iter.forward_chars(5) # position after "* Foo"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
@@ -186,7 +201,7 @@ dus ja <emphasis>hmm</emphasis>
 grrr
 
 <li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0"><strong>Bold</strong>Bar</li></zim-tree>'''
-		pastetree = get_tree_from_xml(input)
+		pastetree = tests.new_parsetree_from_xml(input)
 		iter = buffer.get_iter_at_line(4)
 		iter.forward_chars(3) # position after "baz"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
@@ -206,7 +221,7 @@ grrr
 <zim-tree>
 <li bullet="unchecked-box" indent="0">Box 1</li><li bullet="unchecked-box" indent="0">foo Box 2</li><li bullet="unchecked-box" indent="0">Box 3</li>
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		iter = buffer.get_iter_at_line(2) # iter *before* checkbox
 		buffer.insert(iter, 'foo ')
@@ -221,7 +236,7 @@ grrr
 <zim-tree>
 <li bullet="*" indent="1">Box 1</li><li bullet="*" indent="1">Box 2</li><li bullet="*" indent="1">Box 3</li>
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		iter = buffer.get_iter_at_line(2) # iter before checkbox
 		bound = iter.copy()
@@ -260,7 +275,7 @@ List item 0
 <div indent="1">List item 1
 </div></zim-tree>'''
 		# Note: we don't insert extra newlines, but <li> assumes them
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), input)
@@ -300,7 +315,7 @@ List item 0
 <li bullet="unchecked-box" indent="0"> Baz</li>
 Tja
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), input) # just a sanity check
@@ -384,7 +399,7 @@ class TestUndoStackManager(tests.TestCase):
 		buffer = TextBuffer()
 		undomanager = UndoStackManager(buffer)
 		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = get_tree(wikitext)
+		tree = new_parsetree_from_text(wikitext)
 
 		with FilterNoSuchImageWarning():
 			buffer._insert_element_children(tree.getroot())
@@ -657,7 +672,7 @@ class TestLists(tests.TestCase):
 <li bullet="*" indent="0"> Baz</li>
 Tja
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), input) # just a sanity check
@@ -770,7 +785,7 @@ Tja
 <li bullet="unchecked-box" indent="0"> Baz</li>
 Tja
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), input) # just a sanity check
@@ -941,9 +956,9 @@ class TestTextView(tests.TestCase):
 		# Initialize default preferences from module
 		self.preferences = {}
 		for pref in ui_preferences:
-			self.preferences[pref[0]] = pref[-1]
+			self.preferences[pref[0]] = pref[4]
 
-	def runTest(self):
+	def testTyping(self):
 		print '\n!! Two GtkWarnings expected here for gdk display !!'
 		view = TextView(self.preferences)
 		buffer = TextBuffer()
@@ -1122,17 +1137,115 @@ foo
 		# TODO enter on link, before link, after link
 
 
+	def testCopyPaste(self):
+		dir = self.get_tmp_name('testCopyPaste')
+		notebook = tests.new_notebook(fakedir=dir)
+		page = notebook.get_page(Path('roundtrip'))
+		parsetree = page.get_parsetree()
+
+		buffer = TextBuffer(notebook, page)
+		textview = TextView(self.preferences)
+		textview.set_buffer(buffer)
+
+		print '** HACK for cleaning up parsetree'
+		def cleanup(parsetree):
+			# FIXME - HACK - dump and parse as wiki first to work
+			# around glitches in pageview parsetree dumper
+			# main visibility when copy pasting bullet lists
+			# Same hack in gui clipboard code
+			from zim.notebook import Path, Page
+			from zim.formats import get_format
+			dumper = get_format('wiki').Dumper()
+			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
+			parser = get_format('wiki').Parser()
+			parsetree = parser.parse(text)
+			return parsetree
+			#--
+
+		# paste
+		Clipboard.set_parsetree(notebook, page, parsetree)
+		with FilterNoSuchImageWarning():
+			textview.emit('paste-clipboard')
+		result = buffer.get_parsetree()
+		result = cleanup(result)
+		self.assertEqual(result.tostring(), parsetree.tostring())
+
+		# paste replacing selection
+		buffer.set_text('foo bar baz')
+		buffer.select_range(*buffer.get_bounds()) # select all
+		with FilterNoSuchImageWarning():
+			textview.emit('paste-clipboard')
+		result = buffer.get_parsetree()
+		result = cleanup(result)
+		self.assertEqual(result.tostring(), parsetree.tostring())
+
+		# copy
+		Clipboard.clear()
+		self.assertIsNone(Clipboard.get_parsetree())
+		buffer.select_range(*buffer.get_bounds()) # select all
+		textview.emit('copy-clipboard')
+		result = Clipboard.get_parsetree(notebook, page)
+		self.assertIsNotNone(result)
+		result = cleanup(result)
+		self.assertEqual(result.tostring(), parsetree.tostring())
+
+		# cut
+		Clipboard.clear()
+		self.assertIsNone(Clipboard.get_parsetree())
+		buffer.select_range(*buffer.get_bounds()) # select all
+		textview.emit('cut-clipboard')
+		result = Clipboard.get_parsetree(notebook, page)
+		self.assertIsNotNone(result)
+		result = cleanup(result)
+		self.assertEqual(result.tostring(), parsetree.tostring())
+		self.assertEqual(buffer.get_text(*buffer.get_bounds()), '')
+
+		# popup menu
+		page = tests.new_page_from_text('Foo **Bar** Baz')
+		dir = self.get_tmp_name('testCopyPaste')
+		pageview = setUpPageView(fakedir=dir)
+		pageview.set_page(page)
+
+		def click(id):
+			buffer = pageview.view.get_buffer()
+			buffer.select_range(*buffer.get_bounds()) # select all
+			menu = pageview.view.get_popup()
+			tests.gtk_activate_menu_item(menu, id)
+
+		#~ tests.gtk_activate_menu_item(menu, 'gtk-copy')
+		#~ self.assertEqual(Clipboard.get_text(), 'Test')
+		#~ ## Looks like this item not initialized yet
+
+		click(_('Copy _As "%s"') % 'Wiki')
+		self.assertEqual(Clipboard.get_text(), 'Foo **Bar** Baz')
+		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree partial="True">Foo <strong>Bar</strong> Baz</zim-tree>')
+
+		page = tests.new_page_from_text('[[bar]]')
+		pageview.set_page(page)
+		click(_('Copy _Link'))
+		self.assertEqual(Clipboard.get_text(), 'Bar')
+		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href=":Bar">:Bar</link></zim-tree>')
+
+		page = tests.new_page_from_text('[[~//bar.txt]]')
+			# Extra '/' is in there to verify path gets parsed as File object
+		pageview.set_page(page)
+		click(_('Copy _Link'))
+		self.assertEqual(Clipboard.get_text(), '~/bar.txt')
+		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="~/bar.txt">~/bar.txt</link></zim-tree>')
+
+
+
+# TODO: More popup stuff
+
+
+
 class TestPageView(tests.TestCase):
 
 	def runTest(self):
-		PageView.actiongroup = tests.MockObject() # use class attribute to fake ui init
-		PageView.actiongroup.mock_method('get_action', tests.MockObject())
-
-		ui = MockUI()
-		ui.uimanager = tests.MockObject()
-		ui.uimanager.mock_method('get_accel_group', tests.MockObject())
-
-		pageview = PageView(ui)
+		pageview = setUpPageView()
 		buffer = pageview.view.get_buffer()
 		buffer.set_text('''\
 Foo bar
@@ -1263,7 +1376,7 @@ class MockUI(tests.MockObject):
 		self.mainwindow = None
 		self.notebook = tests.MockObject()
 		self.preferences = ConfigDict()
-		self.page = Path(':')
+		self.page = Path('Test')
 
 	def register_preferences(self, section, list):
 		for p in list:

@@ -10,6 +10,14 @@ from zim.notebook import Path
 from zim.gui.widgets import *
 
 
+class TestFunctions(tests.TestCase):
+
+	def runTest(self):
+		self.assertEqual(encode_markup_text('<foo> &bar'), '&lt;foo&gt; &amp;bar')
+		self.assertEqual(decode_markup_text('&lt;foo&gt; &amp;bar'), '<foo> &bar')
+		self.assertEqual(decode_markup_text('&lt;foo&gt; <b>&amp;bar</b>'), '<foo> &bar')
+
+
 class TestInputEntry(tests.TestCase):
 
 	def runTest(self):

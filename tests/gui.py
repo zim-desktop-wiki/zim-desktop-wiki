@@ -6,159 +6,15 @@ from __future__ import with_statement
 
 import tests
 
+import gtk
 
 from zim.errors import Error
 from zim.notebook import get_notebook_list, Path, NotebookInfo
 from zim.fs import File, Dir
 from zim.config import config_file
+from zim.gui.clipboard import Clipboard
 
 import zim.gui
-
-from zim.gui.clipboard import *
-
-
-@tests.slowTest
-class TestClipboard(tests.TestCase):
-
-	def runTest(self):
-		'''Test clipboard interaction'''
-		path = self.get_tmp_name()
-		notebook = tests.new_notebook(fakedir=path)
-
-		clipboard = Clipboard()
-
-		# tree roundtrip
-		for pagename in ('Test:wiki', 'roundtrip'):
-			page = notebook.get_page(Path(pagename))
-			parsetree = page.get_parsetree()
-
-			clipboard.set_parsetree(notebook, page, parsetree)
-			newtree = clipboard.request_parsetree(None, notebook, block=True)
-			self.assertEqual(newtree.tostring(), parsetree.tostring())
-
-		# tree -> ...
-		import zim.formats
-		text = 'some **bold** text'
-		parsetree = zim.formats.get_format('plain').Parser().parse(text.decode('utf-8'))
-		clipboard.set_parsetree(notebook, page, parsetree)
-
-		wanted = 'some **bold** text\n'
-		text = clipboard.wait_for_text()
-		self.assertEqual(text, wanted)
-
-		wanted = '''\
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-<meta name="Description" content="Copy-Paste Buffer">
-<meta name="Generator" content="Zim">
-</head>
-<body>
-<p>
-some <strong>bold</strong> text<br>
-</p>
-
-</body>
-</html>
-'''
-		selection = clipboard.wait_for_contents('text/html')
-		self.assertEqual(selection.data, wanted)
-
-		wanted = '''\
-Version:1.0\r
-StartHTML:000000185\r
-EndHTML:000000527\r
-StartFragment:000000450\r
-EndFragment:000000495\r
-StartSelection:000000450\r
-EndSelection:000000495\r
-SourceURL:zim://copy-pase-buffer\r
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"><HTML><HEAD><meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-<meta name="Description" content="Copy-Paste Buffer">
-<meta name="Generator" content="Zim"></HEAD><BODY><!--StartFragment--><p>
-some <strong>bold</strong> text<br>
-</p>
-<!--EndFragment--></BODY></HTML>'''
-		selection = clipboard.wait_for_contents('HTML Format')
-		self.assertEqual(selection.data, wanted)
-
-
-		# pagelink -> ..
-		page = notebook.get_page(Path('Test:wiki'))
-		clipboard.set_pagelink(notebook, page)
-
-		selection = clipboard.wait_for_contents(INTERNAL_PAGELIST_TARGET_NAME)
-		self.assertEqual(selection.data, 'Test:wiki\r\n')
-
-		selection = clipboard.wait_for_contents(PAGELIST_TARGET_NAME)
-		self.assertEqual(selection.data, 'Unnamed Notebook?Test:wiki\r\n')
-
-		wanted = '''\
-<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="+wiki">+wiki</link></zim-tree>'''
-		newtree = clipboard.request_parsetree(None, notebook, Path('Test'), block=True)
-		self.assertEqual(newtree.tostring(), wanted)
-
-		text = clipboard.wait_for_text()
-		self.assertEqual(text, 'Test:wiki')
-
-
-		# text -> tree
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>some string</zim-tree>'''
-		clipboard.set_text('some string')
-		newtree = clipboard.request_parsetree(None, notebook, block=True)
-		self.assertEqual(newtree.tostring(), wanted)
-
-
-		# file -> tree
-		page = notebook.get_page(Path('Test:wiki'))
-		targets = [('text/uri-list', 0, 0)]
-
-		def my_get_data(clipboard, selectiondata, id, file):
-			selectiondata.set_uris([file.uri])
-
-		def my_clear_data(*a):
-			pass
-
-		file = File('/foo/bar/baz.txt')
-		clipboard.set_with_data(targets, my_get_data, my_clear_data, file)
-		tree = clipboard.request_parsetree(None, notebook, page, block=True)
-		link = tree.find('link')
-		rel_path = link.get('href')
-		self.assertEqual(notebook.resolve_file(rel_path, page), file)
-
-		file = File('./data/zim.png')
-		clipboard.set_with_data(targets, my_get_data, my_clear_data, file)
-		tree = clipboard.request_parsetree(None, notebook, page, block=True)
-		img = tree.find('img')
-		file_obj = img.get('_src_file')
-		self.assertEqual(file_obj, file)
-		rel_path = img.get('src')
-		self.assertEqual(notebook.resolve_file(rel_path, page), file)
-
-
-		# image -> tree
-		page = notebook.get_page(Path('Test:wiki'))
-		targets = [('image/png', 0, 0)]
-
-		def my_get_data(clipboard, selectiondata, id, file):
-			pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
-			selectiondata.set_pixbuf(pixbuf)
-
-		def my_clear_data(*a):
-			pass
-
-		file = File('./data/zim.png')
-		clipboard.set_with_data(targets, my_get_data, my_clear_data, file)
-		tree = clipboard.request_parsetree(None, notebook, page, block=True)
-		img = tree.find('img')
-		file_obj = img.get('_src_file')
-		self.assertFalse(file_obj == file)
-		self.assertTrue(file_obj.exists())
-		self.assertTrue(file_obj.isimage())
-		self.assertTrue(file_obj.path.endswith('.png'))
-		rel_path = img.get('src')
-		self.assertEqual(notebook.resolve_file(rel_path, page), file_obj)
 
 
 @tests.slowTest
@@ -695,6 +551,10 @@ class TestGtkInterface(tests.TestCase):
 
 	# TODO notebook manipulation (new (sub)page, move, rename, delete ..)
 	# merge with tests for dialogs (?)
+
+	def testClipboard(self):
+		self.ui.copy_location()
+		self.assertEqual(Clipboard.get_text(), 'Test:foo:bar')
 
 
 @tests.slowTest

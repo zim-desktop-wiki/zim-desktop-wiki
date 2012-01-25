@@ -28,6 +28,7 @@ import pango
 import logging
 import sys
 import os
+import re
 
 import zim
 
@@ -100,10 +101,20 @@ def encode_markup_text(text):
 	without causing errors. Needed for all places where e.g. a label
 	depends on user input and is formatted with markup to show
 	it as bold text.
-	@para text: label text as string
+	@param text: label text as string
 	@returns: encoded text
 	'''
 	return text.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;')
+
+
+def decode_markup_text(text):
+	'''Decode text that was encoded with L{encode_markup_text()}
+	and remove any markup tags.
+	@param text: markup text
+	@returns: normal text
+	'''
+	text = re.sub('<.*?>', '', text)
+	return text.replace('&gt;', '>').replace('&lt;', '<').replace('&amp;', '&')
 
 
 def gtk_window_set_default_icon():
@@ -177,7 +188,7 @@ def scrolled_text_view(text=None, monospace=False):
 	return window, textview
 
 
-def populate_popup_add_separator(menu, prepend=True):
+def populate_popup_add_separator(menu, prepend=False):
 	'''Convenience function that adds a C{gtk.SeparatorMenuItem}
 	to a context menu. Checks if the menu already contains items,
 	if it is empty does nothing. Also if the menu already has a
@@ -509,10 +520,8 @@ class SingleClickTreeView(gtk.TreeView):
 				selection.unselect_all()
 
 			# Pop menu
-			menu = gtk.Menu()
-			self.do_initialize_popup(menu)
-			self.emit('populate-popup', menu)
-			if len(menu.get_children()) > 0:
+			menu = self.get_popup()
+			if menu:
 				menu.show_all()
 				menu.popup(None, None, None, 3, event.get_time())
 		else:
@@ -546,6 +555,21 @@ class SingleClickTreeView(gtk.TreeView):
 				# and might not be future proof.
 
 		return gtk.TreeView.do_button_release_event(self, event)
+
+	def get_popup(self):
+		'''Get a popup menu (the context menu) for this widget
+		@returns: a C{gtk.Menu} or C{None}
+		@emits: populate-popup
+		@implementation: do NOT overload this method, implement
+		L{do_initialize_popup} instead
+		'''
+		menu = gtk.Menu()
+		self.do_initialize_popup(menu)
+		self.emit('populate-popup', menu)
+		if len(menu.get_children()) > 0:
+			return menu
+		else:
+			return None
 
 	def do_initialize_popup(self, menu):
 		'''Initialize the context menu.

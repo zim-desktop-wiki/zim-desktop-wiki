@@ -161,6 +161,30 @@ FIXME: jaja - TODO !! @FIXME
 		ui.notebook.index.flush()
 		ui.notebook.index.update()
 
+	def testTaskListTreeView(self):
+		klass = zim.plugins.get_plugin('tasklist')
+		ui = MockUI()
+		plugin = klass(ui)
+		ui.notebook.index.flush()
+		ui.notebook.index.update()
+
+		from zim.plugins.tasklist import TaskListTreeView
+		treeview = TaskListTreeView(ui, plugin, filter_actionable=False)
+
+		menu = treeview.get_popup()
+
+		# Check these do not cause errors - how to verify state ?
+		tests.gtk_activate_menu_item(menu, _("Expand _All"))
+		tests.gtk_activate_menu_item(menu, _("_Collapse All"))
+
+		# Copy tasklist -> csv
+		from zim.gui.clipboard import Clipboard
+		tests.gtk_activate_menu_item(menu, 'gtk-copy')
+		text = Clipboard.get_text()
+		lines = text.splitlines()
+		self.assertTrue(len(lines) > 10)
+		self.assertTrue(len(lines[0].split(',')) > 3)
+		self.assertFalse(any('<span' in l for l in lines)) # make sure encoding is removed
 
 
 class MockUI(tests.MockObject):
