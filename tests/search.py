@@ -109,6 +109,10 @@ class TestSearch(tests.TestCase):
 		self.assertTrue(set(results.scores.keys()) == results)
 		self.assertTrue(all(results.scores.values()))
 
+		query = Query('ThisWordDoesNotExistingInTheTestNotebook')
+		results.search(query)
+		self.assertFalse(results)
+
 		query = Query('LinksTo: "Linking:Foo:Bar"')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
 		self.assertEqual(query.root, [QueryTerm('linksto', 'Linking:Foo:Bar')])
@@ -127,6 +131,10 @@ class TestSearch(tests.TestCase):
 		self.assertTrue(set(results.scores.keys()) == results)
 		self.assertTrue(all(results.scores.values()))
 
+		query = Query('LinksTo:"NonExistingNamespace:*"')
+		results.search(query)
+		self.assertFalse(results)
+
 		query = Query('LinksFrom: "Linking:Dus:Ja"')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
 		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Linking:Dus:Ja')])
@@ -139,12 +147,21 @@ class TestSearch(tests.TestCase):
 		self.assertTrue(set(results.scores.keys()) == results)
 		self.assertTrue(all(results.scores.values()))
 
+		query = Query('LinksFrom:"NonExistingNamespace:*"')
+		results.search(query)
+		self.assertFalse(results)
+
 		query = Query('Namespace: "TaskList" fix')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
 		self.assertEqual(query.root, [QueryTerm('namespace', 'TaskList'), QueryTerm('contentorname', 'fix')])
 		results.search(query)
 		#~ print results
 		self.assertTrue(Path('TaskList:foo') in results)
+
+		query = Query('Namespace: "NonExistingNamespace"')
+		results.search(query)
+		#~ print results
+		self.assertFalse(results)
 
 		query = Query('Tag: tags')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
@@ -156,6 +173,10 @@ class TestSearch(tests.TestCase):
 		#~ print results
 		self.assertTrue(Path('Test:tags') in results and len(results) == 2)
 			# Tasklist:all is the second match
+
+		query = Query('Tag: NonExistingTag')
+		results.search(query)
+		self.assertFalse(results)
 
 		# TODO test ContentOrName versus Content
 		# TODO test Name
