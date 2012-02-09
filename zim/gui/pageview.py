@@ -30,7 +30,7 @@ from zim.errors import Error
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
 from zim.config import config_file
-from zim.formats import get_format, \
+from zim.formats import get_format, increase_list_iter, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import ui_environment, \
@@ -69,6 +69,8 @@ autoformat_bullets = {
 	'(*)': CHECKED_BOX,
 	'(x)': XCHECKED_BOX,
 }
+
+is_numbered_bullet_re = re.compile('^(\d+|\w)\.$')
 
 BULLETS = (BULLET, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
 CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
@@ -452,6 +454,7 @@ class TextBuffer(gtk.TextBuffer):
 		'tag': {'foreground': '#ce5c00'},
 		'indent': {},
 		'bullet-list': {},
+		'numbered-list': {},
 		'unchecked-checkbox': {},
 		'checked-checkbox': {},
 		'xchecked-checkbox': {},
@@ -629,9 +632,10 @@ class TextBuffer(gtk.TextBuffer):
 		self.emit('textstyle-changed', self.get_textstyle())
 			# emitting textstyle-changed is skipped while loading the tree
 
-	def _insert_element_children(self, node, list_level=-1, raw=False):
+	def _insert_element_children(self, node, list_level=-1, list_type=None, list_start='0', raw=False):
 		# FIXME should load list_level from cursor position
 		#~ list_level = get_indent --- with bullets at indent 0 this is not bullet proof...
+		list_iter = list_start
 
 		def set_indent(level, bullet=None):
 			# Need special set_indent() function here because the normal
@@ -678,23 +682,26 @@ class TextBuffer(gtk.TextBuffer):
 				self._insert_element_children(element, list_level=list_level, raw=raw) # recurs
 
 				set_indent(None)
-			elif element.tag == 'ul':
+			elif element.tag in ('ul', 'ol'):
+				start = element.attrib.get('start')
 				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
-					self._insert_element_children(element, list_level=indent, raw=raw) # recurs
+					level = int(element.attrib['indent'])
 				else:
-					self._insert_element_children(element, list_level=list_level+1, raw=raw) # recurs
-
+					level = list_level + 1
+				self._insert_element_children(element, list_level=level, list_type=element.tag, list_start=start, raw=raw) # recurs
 				set_indent(None)
 			elif element.tag == 'li':
 				force_line_start()
 
-				if list_level < 0:
-					list_level = 0 # We skipped the <ul> - raw tree ?
 				if 'indent' in element.attrib:
 					list_level = int(element.attrib['indent'])
+				elif list_level < 0:
+					list_level = 0 # We skipped the <ul> - raw tree ?
 
-				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
+				if list_type == 'ol':
+					bullet = list_iter + '.'
+					list_iter = increase_list_iter(list_iter)
+				elif 'bullet' in element.attrib and element.attrib['bullet'] != '*':
 					bullet = element.attrib['bullet']
 				else:
 					bullet = BULLET # default to '*'
@@ -1007,7 +1014,7 @@ class TextBuffer(gtk.TextBuffer):
 		External interface should use set_bullet(line, bullet)
 		instead of calling this method directly.
 		'''
-		assert bullet in BULLETS
+		assert bullet in BULLETS or is_numbered_bullet_re.match(bullet), 'Bullet: >>%s<<' % bullet
 		if not raw:
 			insert = self.get_insert_iter()
 			assert insert.starts_line(), 'BUG: bullet not at line start'
@@ -1026,7 +1033,7 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(u'\u2022')
 				else:
 					self.insert_at_cursor(u'\u2022 ')
-			else:
+			elif bullet in bullet_types:
 				# Insert icon
 				stock = bullet_types[bullet]
 				widget = gtk.HBox() # Need *some* widget here...
@@ -1040,6 +1047,12 @@ class TextBuffer(gtk.TextBuffer):
 
 				if not raw:
 					self.insert_at_cursor(' ')
+			else:
+				# Numbered
+				if raw:
+					self.insert_at_cursor(bullet)
+				else:
+					self.insert_at_cursor(bullet + ' ')
 
 	def set_textstyle(self, name):
 		'''Sets the current text format style.
@@ -1342,6 +1355,7 @@ class TextBuffer(gtk.TextBuffer):
 				elif bullet == CHECKED_BOX: stylename = 'checked-checkbox'
 				elif bullet == UNCHECKED_BOX: stylename = 'unchecked-checkbox'
 				elif bullet == XCHECKED_BOX: stylename = 'xchecked-checkbox'
+				elif is_numbered_bullet_re.match(bullet): stylename = 'numbered-list'
 				else: raise AssertionError, 'BUG: Unkown bullet type'
 				margin = 12 + self.pixels_indent * level # offset from left side for all lines
 				indent = -12 # offset for first line (bullet)
@@ -1679,9 +1693,14 @@ class TextBuffer(gtk.TextBuffer):
 				return None
 		else:
 			bound = iter.copy()
-			bound.forward_char()
-			if iter.get_slice(bound) == u'\u2022':
+			if not self.iter_forward_word_end(bound):
+				return None # empty line or whitespace at start of line
+
+			text = iter.get_slice(bound)
+			if text.startswith(u'\u2022'):
 				return BULLET
+			elif is_numbered_bullet_re.match(text):
+				return text
 			else:
 				return None
 
@@ -1703,12 +1722,17 @@ class TextBuffer(gtk.TextBuffer):
 			return False
 
 	def _iter_forward_past_bullet(self, iter, bullet, raw=False):
-		assert bullet in (BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX)
-		# other bullet types might need to skip different number of char etc.
-		iter.forward_char()
-		bound = iter.copy()
-		bound.forward_char()
+		if bullet in (BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX):
+			# Each of these just means one char
+			iter.forward_char()
+		else:
+			assert is_numbered_bullet_re.match(bullet)
+			self.iter_forward_word_end(iter)
+
 		if not raw:
+			# Skip whitespace as well
+			bound = iter.copy()
+			bound.forward_char()
 			while iter.get_text(bound) == ' ':
 				if iter.forward_char():
 					bound.forward_char()
@@ -2068,18 +2092,17 @@ class TextBuffer(gtk.TextBuffer):
 
 	def iter_backward_word_start(self, iter):
 		'''Like C{gtk.TextIter.backward_word_start()} but less intelligent.
-		This method does not take into account the language and just skips
-		to either the last whitespace or the beginning of line.
+		This method does not take into account the language or
+		punctuation and just skips to either the last whitespace or
+		the beginning of line.
 
 		@param iter: a C{gtk.TextIter}, the position of this iter will
 		be modified
-		@returns: C{True} when succussful
+		@returns: C{True} when successful
 		'''
 		if iter.starts_line():
 			return False
 
-		# find start of word - either start of line or whitespace
-		# the backward_word_start() method also stops at punctuation etc.
 		orig = iter.copy()
 		while True:
 			if iter.starts_line():
@@ -2093,7 +2116,35 @@ class TextBuffer(gtk.TextBuffer):
 				else:
 					iter.backward_char()
 
-		return iter.compare(orig)
+		return iter.compare(orig) != 0
+
+	def iter_forward_word_end(self, iter):
+		'''Like C{gtk.TextIter.forward_word_end()} but less intelligent.
+		This method does not take into account the language or
+		punctuation and just skips to either the next whitespace or the
+		end of the line.
+
+		@param iter: a C{gtk.TextIter}, the position of this iter will
+		be modified
+		@returns: C{True} when successful
+		'''
+		if iter.ends_line():
+			return False
+
+		orig = iter.copy()
+		while True:
+			if iter.ends_line():
+				break
+			else:
+				bound = iter.copy()
+				bound.forward_char()
+				char = bound.get_slice(iter)
+				if char == PIXBUF_CHR or char.isspace():
+					break # whitespace or pixbuf after iter
+				else:
+					iter.forward_char()
+
+		return iter.compare(orig) != 0
 
 	def get_line_bounds(self, line):
 		'''Get the TextIters at start and end of line

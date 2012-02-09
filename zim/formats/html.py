@@ -89,8 +89,9 @@ class Dumper(DumperClass):
 					level = int(element.attrib['indent'])
 					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
 				output += ['<', tag, '>\n', text, '</pre>\n']
-			elif element.tag is 'ul':
-				tag = 'ul'
+			elif element.tag in ('ul', 'ol'):
+				# TODO for ol set start and bullet style
+				tag = element.tag
 				if 'indent' in element.attrib:
 					level = int(element.attrib['indent'])
 					tag += ' style=\'padding-left: %ipt\'' % (30 * level)

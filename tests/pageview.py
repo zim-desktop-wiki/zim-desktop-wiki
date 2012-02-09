@@ -67,6 +67,14 @@ class TestTextBuffer(tests.TestCase):
 		#~ print tree.tostring()
 		#~ print result1.tostring()
 		#~ self.assertEqual(result1.tostring(), tree.tostring())
+		## HACK since above check to directly compare trees is broken,
+		## check in round about way that we have numbered list elements
+		for elt in result1.findall('li'):
+			if elt.attrib.get('bullet') == '1.':
+				break
+		else:
+			assert False, 'Missing numbered list element'
+		##
 
 		# Compare cooked tree after dumping back
 		resulttext = u''.join(wiki.Dumper().dump(result1))

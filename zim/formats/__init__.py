@@ -62,6 +62,7 @@ to a title or subtitle in the document.
 '''
 
 import re
+import string
 import logging
 
 from zim.fs import Dir, File
@@ -102,6 +103,29 @@ UNCHECKED_BOX = 'unchecked-box'
 CHECKED_BOX = 'checked-box'
 XCHECKED_BOX = 'xchecked-box'
 BULLET = '*'
+
+
+def increase_list_iter(listiter):
+	'''Get the next item in a list for a numbered list
+	E.g if C{listiter} is C{"1"} this function returns C{"2"}, if it
+	is C{"a"} it returns C{"b"}.
+	@param listiter: the current item, either an integer number or
+	single letter
+	@returns: the next item, or C{None}
+	'''
+	listiter = listiter.rstrip('.')
+	try:
+		i = int(listiter)
+		return str(i + 1)
+	except ValueError:
+		try:
+			i = string.letters.index(listiter)
+			return string.letters[i+1]
+		except ValueError: # listiter is not a letter
+			return None
+		except IndexError: # wrap to start of list
+			return string.letters[0]
+
 
 
 def list_formats(type):

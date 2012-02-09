@@ -156,6 +156,22 @@ def slowTest(obj):
 class TestCase(unittest.TestCase):
 	'''Base class for test cases'''
 
+	maxDiff = None
+
+	def assertEqual(self, first, second, msg=None):
+		## HACK to work around bug in unittest - it does not consider
+		## string and unicode to be of the same type and thus does not
+		## show diffs
+		## TODO file bug report for this
+		if type(first) in (str, unicode) \
+		and type(second) in (str, unicode):
+			self.assertMultiLineEqual(second, first, msg)
+			## HACK switch arguments here, otherwise order of
+			## diff is wrong (assuming first is what we got and second
+			## is the reference)
+		else:
+			unittest.TestCase.assertEqual(self, first, second, msg)
+
 	def create_tmp_dir(self, name=None):
 		'''Returns a path to a tmp dir where tests can write data.
 		The dir is removed and recreated empty every time this function
