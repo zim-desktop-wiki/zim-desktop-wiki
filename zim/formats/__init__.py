@@ -113,7 +113,6 @@ def increase_list_iter(listiter):
 	single letter
 	@returns: the next item, or C{None}
 	'''
-	listiter = listiter.rstrip('.')
 	try:
 		i = int(listiter)
 		return str(i + 1)

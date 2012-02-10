@@ -70,11 +70,12 @@ autoformat_bullets = {
 	'(x)': XCHECKED_BOX,
 }
 
-is_numbered_bullet_re = re.compile('^(\d+|\w)\.$')
-
 BULLETS = (BULLET, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
 CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
 
+NUMBER_BULLET = '#.' # Special case for autonumbering
+is_numbered_bullet_re = re.compile('^(\d+|\w|#)\.$')
+	#: This regular expression is used to test whether a bullet belongs to a numbered list or not
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVALS_HOME = map(gtk.gdk.keyval_from_name, ('Home', 'KP_Home'))
@@ -96,6 +97,7 @@ KEYVALS_GT = (gtk.gdk.unicode_to_keyval(ord('>')),)
 KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
 KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
+KEYVAL_POUND = gtk.gdk.unicode_to_keyval(ord('#'))
 
 # States that influence keybindings - we use this to explicitly
 # exclude other states. E.g. MOD2_MASK seems to be set when either
@@ -117,8 +119,10 @@ ui_actions = (
 	('insert_date', None, _('_Date and Time...'), '<ctrl>D', '', False), # T: Menu item
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
 	('insert_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item
+	('insert_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item
 	('insert_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
 	('apply_format_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item),
+	('apply_format_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item),
 	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
 	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
@@ -260,6 +264,18 @@ _classes = {
 camelcase_re = Re(r'[%(upper)s]+[%(lower)s]+[%(upper)s]+\w*$' % _classes)
 twoletter_re = re.compile(r'[%(letters)s]{2}' % _classes)
 del _classes
+
+
+def increase_list_bullet(bullet):
+	'''Like L{increase_list_iter()}, but handles bullet string directly
+	@param bullet: a numbered list bullet, e.g. C{"1."}
+	@returns: the next bullet, e.g. C{"2."} or C{None}
+	'''
+	next = increase_list_iter(bullet.rstrip('.'))
+	if next:
+		return next + '.'
+	else:
+		return None
 
 
 class UserActionContext(object):
@@ -989,21 +1005,38 @@ class TextBuffer(gtk.TextBuffer):
 			UNCHECKED_BOX
 			CHECKED_BOX
 			XCHECKED_BOX
+			NUMBER_BULLET
 			None
+		or a numbered bullet, like C{"1."}
 		'''
 		iter = self.get_iter_at_line(line)
+		if bullet == NUMBER_BULLET:
+			# special case - check line above, else start new list
+			prev = self.get_bullet(line - 1)
+			if prev and is_numbered_bullet_re.match(prev):
+				bullet = increase_list_bullet(prev)
+			else:
+				bullet = '1.'
+
+		with self.user_action:
+			self._replace_bullet(iter, bullet)
+			if bullet and is_numbered_bullet_re.match(bullet):
+				self._renumber_list(line)
+
+	def _replace_bullet(self, iter, bullet):
+		assert iter.starts_line()
+		line = iter.get_line()
 		with self.tmp_cursor():
-			with self.user_action:
-				bound = iter.copy()
-				self.iter_forward_past_bullet(bound)
-				self.delete(iter, bound)
-				# Will trigger do_delete_range, which will update indent tag
+			bound = iter.copy()
+			self.iter_forward_past_bullet(bound)
+			self.delete(iter, bound)
+			# Will trigger do_delete_range, which will update indent tag
 
-				if not bullet is None:
-					with self.tmp_cursor(iter):
-						self._insert_bullet_at_cursor(bullet)
+			if not bullet is None:
+				self.place_cursor(iter)
+				self._insert_bullet_at_cursor(bullet)
 
-				self.update_indent_tag(line, bullet)
+			self.update_indent_tag(line, bullet)
 
 	def _insert_bullet_at_cursor(self, bullet, raw=False):
 		'''Insert a bullet plus a space at the cursor position.
@@ -1053,6 +1086,28 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(bullet)
 				else:
 					self.insert_at_cursor(bullet + ' ')
+
+	def _renumber_list(self, line):
+		# Renumber list from this line downward - only affects items
+		# at same indenting level
+		print 'RENUMBER'
+		indent = self.get_indent(line)
+		bullet = self.get_bullet(line)
+		if not is_numbered_bullet_re.match(bullet):
+			return
+		next_bullet = increase_list_bullet(bullet)
+		while True:
+			line += 1
+			mybullet = self.get_bullet(line)
+			myindent = self.get_indent(line)
+			if not mybullet or myindent < indent:
+				break
+			elif myindent == indent:
+				iter = self.get_iter_at_line(line)
+				self._replace_bullet(iter, next_bullet)
+				next_bullet = increase_list_bullet(next_bullet)
+			else: # bullet, but myindent > indent
+				continue
 
 	def set_textstyle(self, name):
 		'''Sets the current text format style.
@@ -1640,7 +1695,7 @@ class TextBuffer(gtk.TextBuffer):
 	def _do_lines_merged(self, iter):
 		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
 		if iter.starts_line() or iter.ends_line():
-			return
+			return # TODO Why is this ???
 
 		end = iter.copy()
 		end.forward_to_line_end()
@@ -1665,6 +1720,7 @@ class TextBuffer(gtk.TextBuffer):
 				UNCHECKED_BOX
 				CHECKED_BOX
 				XCHECKED_BOX
+		or a numbered list bullet (test with L{is_numbered_bullet_re})
 		'''
 		iter = self.get_iter_at_line(line)
 		return self._get_bullet_at_iter(iter)
@@ -3280,14 +3336,17 @@ class TextView(gtk.TextView):
 			elif event.keyval in KEYVALS_BACKSPACE \
 			and self.preferences['unindent_on_backspace']:
 				handled = decrement_indent(start, end)
-			elif event.keyval in KEYVALS_ASTERISK:
-				def toggle_bullet(line):
+			elif event.keyval in KEYVALS_ASTERISK + (KEYVAL_POUND,):
+				def toggle_bullet(line, newbullet):
 					bullet = buffer.get_bullet(line)
 					if not bullet and not buffer.get_line_is_empty(line):
-						buffer.set_bullet(line, BULLET)
-					elif bullet == BULLET:
+						buffer.set_bullet(line, newbullet)
+					elif bullet == newbullet: # FIXME broken for numbered list
 						buffer.set_bullet(line, None)
-				buffer.foreach_line_in_selection(toggle_bullet)
+				if event.keyval == KEYVAL_POUND:
+					buffer.foreach_line_in_selection(toggle_bullet, NUMBER_BULLET)
+				else:
+					buffer.foreach_line_in_selection(toggle_bullet, BULLET)
 			elif event.keyval in KEYVALS_GT \
 			and multi_line_indent(start, end):
 				def email_quote(line):
@@ -3507,12 +3566,13 @@ class TextView(gtk.TextView):
 			return True
 
 		if (char == ' ' or char == '\t') and start.starts_line() \
-		and word in autoformat_bullets:
+		and (word in autoformat_bullets or is_numbered_bullet_re.match(word)):
 			# format bullet and checkboxes
 			line = start.get_line()
 			end.forward_char() # also overwrite the space triggering the action
 			buffer.delete(start, end)
-			buffer.set_bullet(line, autoformat_bullets[word])
+			bullet = autoformat_bullets.get(word) or word
+			buffer.set_bullet(line, bullet)
 		elif tag_re.match(word):
 			apply_tag(tag_re[0])
 		elif url_re.match(word):
@@ -3600,6 +3660,8 @@ class TextView(gtk.TextView):
 				bullet = buffer.get_bullet_at_iter(start)
 				if bullet in (CHECKED_BOX, XCHECKED_BOX):
 					bullet = UNCHECKED_BOX
+				elif is_numbered_bullet_re.match(bullet):
+					bullet = increase_list_bullet(bullet)
 				buffer.set_bullet(newline, bullet)
 
 				# apply indent
@@ -4919,6 +4981,10 @@ class PageView(gtk.VBox):
 		'''Menu action insert a bullet item at the cursor'''
 		self._start_bullet(BULLET)
 
+	def insert_numbered_list(self):
+		'''Menu action insert a numbered list item at the cursor'''
+		self._start_bullet(NUMBER_BULLET)
+
 	def insert_checkbox_list(self):
 		'''Menu action insert an open checkbox at the cursor'''
 		self._start_bullet(UNCHECKED_BOX)
@@ -4938,6 +5004,10 @@ class PageView(gtk.VBox):
 	def apply_format_bullet_list(self):
 		'''Menu action to format selection as bullet list'''
 		self._apply_bullet(BULLET)
+
+	def apply_format_numbered_list(self):
+		'''Menu action to format selection as numbered list'''
+		self._apply_bullet(NUMBER_BULLET)
 
 	def apply_format_checkbox_list(self):
 		'''Menu action to format selection as checkbox list'''

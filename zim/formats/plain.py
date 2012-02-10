@@ -105,7 +105,7 @@ class Dumper(DumperClass):
 					list_level = int(element.attrib['indent'])
 				if list_type == 'ol':
 					bullet = str(list_iter) + '.'
-					list_iter = increase_list_iter(list_iter)
+					list_iter = increase_list_iter(list_iter) or '1' # fallback if iter not valid
 				elif 'bullet' in element.attrib: # ul
 					bullet = bullet_types[element.attrib['bullet']]
 				else: # ul
