@@ -1965,6 +1965,7 @@ class GtkInterface(NotebookInterface):
 		self.emit('start-index-update')
 
 		index = self.notebook.index
+		index.stop_updating()
 		if flush:
 			index.flush()
 

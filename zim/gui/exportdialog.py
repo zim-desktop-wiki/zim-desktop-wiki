@@ -45,6 +45,15 @@ class ExportDialog(Assistant):
 			ErrorDialog(self, error).run()
 			return False
 
+		index = self.ui.notebook.index
+		if index.updating:
+			dialog = ProgressBarDialog(self, _('Updating index'))
+			# T: Title of progressbar dialog
+			index.ensure_update(callback=lambda p: dialog.pulse(p.name))
+			dialog.destroy()
+			if dialog.cancelled:
+				return False
+
 		if self.uistate['selection'] == 'all':
 			dir = Dir(self.uistate['output_folder'])
 			if dir.exists() and len(dir.list()) > 0:
