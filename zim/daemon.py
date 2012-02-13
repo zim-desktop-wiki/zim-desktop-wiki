@@ -139,8 +139,8 @@ class WindowsDaemon(object):
 	pidfile = get_tmpdir().file('daemon.pid').path
 
 	def start_daemon(self):
-		from zim import ZIM_EXECUTABLE
-		os.spawn((ZIM_EXECUTABLE, '--daemon'))
+		from zim import ZimCmd
+		ZimCmd().spawn(args=('--daemon',))
 
 	def daemonize(self):
 		'''Daemonize current process, does not return'''

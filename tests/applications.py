@@ -5,6 +5,7 @@
 import tests
 
 import os
+import sys
 import gtk
 
 from zim.gui.applications import *
@@ -72,6 +73,23 @@ class TestApplications(tests.TestCase):
 			entry['Desktop Entry']['Exec'] = app
 			result = entry.parse_exec(args)
 			self.assertEqual(result, wanted)
+
+	def testPythonCmd(self):
+		app = Application('foo.py')
+		cwd, argv = app._checkargs(None, ())
+		exe = argv[0].decode(zim.fs.ENCODING)
+		cmd = argv[1].decode(zim.fs.ENCODING)
+		self.assertEqual(exe, sys.executable)
+		self.assertEqual(cmd, 'foo.py')
+
+		from zim import ZimCmd, ZIM_EXECUTABLE
+		app = ZimCmd()
+		self.assertIsInstance(app, Application)
+		cwd, argv = app._checkargs(None, ())
+		exe = argv[0].decode(zim.fs.ENCODING)
+		cmd = argv[1].decode(zim.fs.ENCODING)
+		self.assertEqual(exe, sys.executable)
+		self.assertEqual(cmd, ZIM_EXECUTABLE)
 
 
 @tests.slowTest
