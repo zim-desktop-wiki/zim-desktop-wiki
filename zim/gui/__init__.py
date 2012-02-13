@@ -1217,7 +1217,7 @@ class GtkInterface(NotebookInterface):
 			back.set_sensitive(not path.is_first)
 			forward.set_sensitive(not path.is_last)
 		else:
-			self.history.append(page)
+			self.history.append(path)
 			historyrecord = self.history.get_current()
 			back.set_sensitive(not is_first_page)
 			forward.set_sensitive(False)
@@ -2724,11 +2724,7 @@ class MainWindow(Window):
 		if path and isinstance(path, HistoryPath) and not path.cursor is None:
 			cursor = path.cursor
 		elif self.ui.preferences['GtkInterface']['always_use_last_cursor_pos']:
-			record = self.ui.history.get_path(page, need_cursor=True)
-			if record:
-				cursor = record.cursor
-			else:
-				cursor = None
+			cursor, _ = self.ui.history.get_state(page)
 		else:
 			cursor = None
 
