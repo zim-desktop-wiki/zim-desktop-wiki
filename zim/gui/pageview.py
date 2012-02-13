@@ -4932,7 +4932,7 @@ class PageView(gtk.VBox):
 		with buffer.user_action:
 			if buffer.get_has_selection():
 				start, end = buffer.get_selection_bounds()
-				self.buffer.delete(start, end)
+				buffer.delete(start, end)
 			for link in links:
 				buffer.insert_link_at_cursor(link, link)
 				buffer.insert_at_cursor(sep)

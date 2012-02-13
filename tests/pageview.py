@@ -1244,7 +1244,7 @@ foo
 
 class TestPageView(tests.TestCase):
 
-	def runTest(self):
+	def testGetSelection(self):
 		pageview = setUpPageView()
 		buffer = pageview.view.get_buffer()
 		buffer.set_text('''\
@@ -1257,7 +1257,23 @@ Baz
 		self.assertEqual(pageview.get_selection(), 'bar')
 		self.assertEqual(pageview.get_selection(format='wiki'), 'bar')
 
-		# TODO much more here
+	def testInsertLinks(self):
+		pageview = setUpPageView()
+		buffer = pageview.view.get_buffer()
+		buffer.set_text('''Test 123\n''')
+
+		buffer.place_cursor(buffer.get_end_iter())
+		pageview.insert_links((Path("foo"), File("/foo.txt"), "~/bar.txt"))
+		wantedtext = 'Test 123\nfoo\n%s\n~/bar.txt\n' % File('/foo.txt').uri
+		text = buffer.get_text(*buffer.get_bounds())
+		self.assertEqual(text, wantedtext)
+
+		buffer.place_cursor(buffer.get_iter_at_line(2))
+		buffer.select_line()
+		pageview.insert_links(('http://cpan.org',))
+		wantedtext = 'Test 123\nfoo\n%s\n~/bar.txt\n' % 'http://cpan.org '
+		text = buffer.get_text(*buffer.get_bounds())
+		self.assertEqual(text, wantedtext)
 
 
 class TestPageviewDialogs(tests.TestCase):
