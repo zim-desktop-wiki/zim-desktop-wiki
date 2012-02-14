@@ -7,7 +7,7 @@ import tests
 import copy
 
 import zim.history
-from zim.history import History, HistoryPath
+from zim.history import History, HistoryPath, RecentPath
 from zim.notebook import Path
 from zim.config import ConfigDict
 
@@ -20,16 +20,29 @@ class TestHistory(tests.TestCase):
 		self.pages = [self.notebook.get_page(Path(name))
 			for name in self.notebook.testdata_manifest]
 
-	def _assertCurrent(self, history, page):
+	def assertCurrentEquals(self, history, path):
 		current = history.get_current()
 		self.assertTrue(isinstance(current, HistoryPath))
-		self.assertEqual(current.name, page.name)
+		self.assertEqual(current.name, path.name)
+
+	def assertHistoryEquals(self, history, pages):
+		self._checkPaths(history.get_history(), pages, HistoryPath)
+
+	def assertRecentEquals(self, history, pages):
+		self._checkPaths(history.get_recent(), pages, RecentPath)
+
+	def _checkPaths(self, paths, wanted, klass):
+		paths = list(paths)
+		paths.reverse()
+
+		self.assertTrue(any(isinstance(p, klass) for p in paths),  'All should have klass: %s' % klass)
+		self.assertEqual([p.name for p in paths], [p.name for p in wanted])
 
 	def testState(self):
 		history = History(self.notebook)
 		for page in self.pages:
 			history.append(page)
-		self.assertEqual(len(history._history), len(self.pages))
+		self.assertHistoryEquals(history, self.pages)
 
 		path = history.get_current()
 		self.assertEqual(history.get_state(path), (None, None))
@@ -42,10 +55,8 @@ class TestHistory(tests.TestCase):
 		self.assertTrue(history.get_current() is None)
 		for page in self.pages:
 			history.append(page)
-		self.assertEqual(len(history._history), len(self.pages))
-		self.assertEqual(history._current, len(self.pages) - 1)
-
-		self._assertCurrent(history, self.pages[-1])
+		self.assertHistoryEquals(history, self.pages)
+		self.assertCurrentEquals(history, self.pages[-1])
 
 		pages = list(history.get_history())
 		self.assertEqual(pages[0], history.get_current())
@@ -65,9 +76,10 @@ class TestHistory(tests.TestCase):
 			self.assertFalse(prev.is_last)
 			history.set_current(prev)
 
-		self._assertCurrent(history, self.pages[0])
+		self.assertCurrentEquals(history, self.pages[0])
 		self.assertTrue(history.get_previous() is None)
 		self.assertTrue(prev.is_first)
+		self.assertHistoryEquals(history, self.pages)
 
 		# walk forward
 		for i in range(1, len(self.pages)):
@@ -77,45 +89,50 @@ class TestHistory(tests.TestCase):
 			self.assertFalse(next.is_first)
 			history.set_current(next)
 
-		self._assertCurrent(history, self.pages[-1])
+		self.assertCurrentEquals(history, self.pages[-1])
 		self.assertTrue(history.get_next() is None)
 		self.assertTrue(history.get_current().is_last)
+		self.assertHistoryEquals(history, self.pages)
 
 		# Add page multiple times
-		i = len(history._history)
-		path = Path(history._history[-1].name)
+		current = history.get_current()
+		path = Path(current.name)
 		for j in range(5):
 			history.append(path)
-		self.assertEqual(len(history._history), i)
-		self.assertEqual(history._current, i - 1)
+		self.assertHistoryEquals(history, self.pages) # history does not store duplicates
+		self.assertEquals(history.get_current(), current)
 
 		# Test dropping forward stack
-		path1 = history._history[10]
-		path2 = history._history[-1]
+		historylist = list(history.get_history())
+		path1 = historylist[10]
+		path2 = historylist[0]
 		history.set_current(path1)
-		self.assertEqual(history._current, 10)
-		self.assertEqual(len(history._history), len(self.pages))
+		self.assertEquals(history.get_current(), path1) # rewind
+		self.assertHistoryEquals(history, self.pages) # no change
 
-		history.append(path2)
-		self.assertEqual(history._current, 11)
-		self.assertEqual(len(history._history), 12)
+		history.append(path2) # new path - drop forward stack
+		i = len(pages) - 10
+		wanted = self.pages[:i] + [path2]
+		self.assertHistoryEquals(history, wanted)
 
 		# Test max entries
-		old = zim.history.MAX_HISTORY
+		default_max_history = zim.history.MAX_HISTORY
 		zim.history.MAX_HISTORY = 3
 		for page in self.pages:
 			history.append(page)
-		zim.history.MAX_HISTORY = old
+		zim.history.MAX_HISTORY = default_max_history
 
-		self.assertEqual(len(history._history), 3)
+		self.assertHistoryEquals(history, self.pages[-3:])
 
 	def testUnique(self):
 		'''Get recent pages from history'''
+		default_max_recent = zim.history.MAX_RECENT
+
 		zim.history.MAX_RECENT = len(self.pages) + 1
 		history = History(self.notebook)
 		for page in self.pages:
 			history.append(page)
-		self.assertEqual(len(history._history), len(self.pages))
+		self.assertHistoryEquals(history, self.pages)
 
 		unique = list(history.get_recent())
 		self.assertEqual(unique[0], history.get_current())
@@ -123,7 +140,7 @@ class TestHistory(tests.TestCase):
 
 		for page in self.pages:
 			history.append(page)
-		self.assertEqual(len(history._history), 2*len(self.pages))
+		self.assertHistoryEquals(history, 2 * self.pages)
 
 		unique = list(history.get_recent())
 		self.assertEqual(unique[0], history.get_current())
@@ -132,16 +149,18 @@ class TestHistory(tests.TestCase):
 		unique = set([page.name for page in unique]) # collapse doubles
 		self.assertEqual(len(unique), len(self.pages))
 
-
 		zim.history.MAX_RECENT = 3
 		history = History(self.notebook)
 		for page in self.pages:
 			history.append(page)
-		self.assertEqual(len(history._history), len(self.pages))
+		zim.history.MAX_RECENT = default_max_recent
+
+		self.assertHistoryEquals(history, self.pages)
 
 		unique = list(history.get_recent())
 		self.assertEqual(unique[0], history.get_current())
 		self.assertEqual(len(unique), 3)
+
 
 	def testChildren(self):
 		'''Test getting namespace from history'''
@@ -171,17 +190,17 @@ class TestHistory(tests.TestCase):
 		for page in self.pages:
 			history.append(page)
 
-		self.assertTrue(Path('Test:wiki') in history._history)
+		self.assertIn(Path('Test:wiki'), list(history.get_history()))
 
 		history._on_page_moved(self.notebook, Path('Test'), Path('New'), False)
-		self.assertFalse(Path('Test:wiki') in history._history)
-		self.assertTrue(Path('New:wiki') in history._history)
+		self.assertNotIn(Path('Test:wiki'), list(history.get_history()))
+		self.assertIn(Path('New:wiki'), list(history.get_history()))
 
 		history._on_page_moved(self.notebook, Path('New'), Path('Test'), False)
-		self.assertFalse(Path('New:wiki') in history._history)
-		self.assertTrue(Path('Test:wiki') in history._history)
+		self.assertNotIn(Path('New:wiki'), list(history.get_history()))
+		self.assertIn(Path('Test:wiki'), list(history.get_history()))
 
-		self.assertEqual(history._history, self.pages)
+		self.assertHistoryEquals(history, self.pages)
 
 	def testDeletedNotInUnique(self):
 		'''Test if deleted pages and their children show up in unique history list'''
@@ -192,7 +211,7 @@ class TestHistory(tests.TestCase):
 		for page in self.pages:
 			history.append(page)
 
-		self.assertEqual(len(history._history), 2 * len(self.pages))
+		self.assertHistoryEquals(history, 2 * self.pages)
 
 		uniques = list(history.get_recent())
 		self.assertEqual(len(uniques), len(self.pages))
@@ -229,10 +248,8 @@ class TestHistory(tests.TestCase):
 
 		for page in self.pages:
 			history.append(page)
-		self.assertEqual(len(history._history), len(self.pages))
-		self._assertCurrent(history, self.pages[-1])
-
-		#~ initial_recent = history._recent.copy() # Need copy from before rewind
+		self.assertHistoryEquals(history, self.pages)
+		self.assertCurrentEquals(history, self.pages[-1])
 
 		# rewind 2
 		for i in range(2):
@@ -242,9 +259,9 @@ class TestHistory(tests.TestCase):
 		# check state
 		#~ import pprint
 		#~ pprint.pprint(uistate)
-		self.assertEqual(len(uistate['History']['list']), len(history._history))
-		self.assertEqual(len(uistate['History']['recent']), len(history._recent))
-		self.assertEqual(uistate['History']['current'], len(history._history)-3)
+		self.assertHistoryEquals(history, uistate['History']['list'])
+		self.assertRecentEquals(history, uistate['History']['recent'])
+		self.assertEqual(uistate['History']['current'], len(self.pages) - 3)
 
 		# clone uistate by text
 		lines = uistate.dump()
@@ -252,24 +269,26 @@ class TestHistory(tests.TestCase):
 		newuistate.parse(lines)
 
 		# check new state
-		self.assertEqual(len(uistate['History']['list']), len(history._history))
-		self.assertEqual(len(uistate['History']['recent']), len(history._recent))
-		self.assertEqual(newuistate['History']['current'], len(history._history)-3)
+		self.assertHistoryEquals(history, [Path(t[0]) for t in newuistate['History']['list']])
+		self.assertRecentEquals(history, [Path(t[0]) for t in newuistate['History']['recent']])
+		self.assertEqual(newuistate['History']['current'], len(self.pages) - 3)
 
 		# and compare resulting history object
 		newhistory = History(self.notebook, newuistate)
-		self.assertEqual(newhistory._history, history._history)
-		self.assertEqual(newhistory._recent, history._recent)
-		self.assertEqual(newhistory._current, history._current)
+		self.assertEqual(list(newhistory.get_history()), list(history.get_history()))
+		self.assertEqual(list(newhistory.get_recent()), list(history.get_recent()))
+		self.assertEqual(newhistory.get_current(), history.get_current())
 
 		# Check recent is initialized if needed
 		newuistate = ConfigDict()
 		newuistate.parse(lines)
 		newuistate['History'].pop('recent')
 		newhistory = History(self.notebook, newuistate)
-		self.assertEqual(newhistory._history, history._history)
-		self.assertEqual(len(newhistory._recent), len(history._recent))
-		self.assertEqual(newhistory._current, history._current)
+
+		self.assertEqual(list(newhistory.get_history()), list(history.get_history()))
+		self.assertEqual(list(newhistory.get_recent()), list(history.get_recent()))
+		self.assertEqual(newhistory.get_current(), history.get_current())
+
 
 	def testRobustness(self):
 		'''Test history can deal with garbage data'''
@@ -278,6 +297,6 @@ class TestHistory(tests.TestCase):
 		uistate['recent'] = [["BARRRR", 0]]
 		uistate['cursor'] = 'Not an integer'
 		history = History(self.notebook, uistate)
-		self.assertEqual(len(history._history), 0)
-		self.assertEqual(len(history._recent), 0)
+		self.assertEqual(list(history.get_history()), [])
+		self.assertEqual(list(history.get_recent()), [])
 		self.assertIsNone(history.get_current())

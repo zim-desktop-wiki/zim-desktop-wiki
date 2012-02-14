@@ -154,12 +154,14 @@ class History(gobject.GObject):
 			self._current = len(self._history)-1
 
 		# Initialize recent if it didn;t exist (was introduced version 0.55)
+		# Add all items, then go back to last position
 		if self._history and not self._recent:
 			for p in self._history:
-				if p in self._recent:
-					self._recent.remove(p)
-				self._recent.append(p)
-			self._update_recent() # check current
+				self._update_recent(p)
+
+			for i in range(len(self._history)-1, self._current-1, -1):
+				p = self._history[i]
+				self._update_recent(p)
 
 		# Connect to notebook
 		self.notebook.connect('moved-page', self._on_page_moved)
@@ -224,18 +226,18 @@ class History(gobject.GObject):
 				self._history.pop(0)
 
 			# append new page
-			self._history.append(HistoryPath(path.name))
+			historypath = HistoryPath(path.name)
+			self._history.append(historypath)
 			self._current = len(self._history) - 1
 			# this assignment always triggers "modified" on the ListDict
 
 			self.emit('changed')
 
 			if not isinstance(path, RecentPath):
-				self._update_recent()
+				self._update_recent(historypath)
 
-	def _update_recent(self):
+	def _update_recent(self, path):
 		# Make sure current page is on top of recent stack
-		path = self._history[self._current]
 		if path in self._recent:
 			self._recent.remove(path)
 
@@ -263,7 +265,7 @@ class History(gobject.GObject):
 		self._current = self._history.index(path)
 			# fails if path not in history
 		if not isinstance(path, RecentPath):
-				self._update_recent()
+				self._update_recent(path)
 
 	def get_previous(self):
 		'''Get the previous path
