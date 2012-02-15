@@ -54,7 +54,14 @@ def setUpPageView(fakedir=None):
 
 class TestTextBuffer(tests.TestCase):
 
-	def runTest(self):
+	def assertBufferEquals(self, buffer, wanted):
+		if not isinstance(wanted, basestring):
+			wanted = tree.tostring()
+		raw = '<zim-tree raw="True">' in wanted
+		tree = buffer.get_parsetree(raw=raw)
+		self.assertEqual(tree.tostring(), wanted)
+
+	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
 		wikitext = tests.WikiTestData.get('roundtrip')
 		tree = new_parsetree_from_text(wikitext)
@@ -392,6 +399,36 @@ Tja
 		self.assertEqual(tree.tostring(), wanted)
 
 
+	def testReplace(self):
+		# Check replacing a formatted word
+		# word is deleted, but formatting should stay
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+aaa <strong>bbb</strong> ccc
+</zim-tree>
+'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+aaa <strong>eee</strong> ccc
+</zim-tree>'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		buffer = TextBuffer()
+		buffer.set_parsetree(tree)
+
+		iter = buffer.get_iter_at_offset(7) # middle of "bbb"
+		buffer.place_cursor(iter)
+		buffer.select_word()
+
+		with buffer.user_action:
+			buffer.delete_selection(True, True)
+			buffer.insert_interactive_at_cursor("eee", True)
+
+		self.assertBufferEquals(buffer, wanted)
+
+
 class TestUndoStackManager(tests.TestCase):
 
 	def runTest(self):
@@ -541,7 +578,28 @@ class TestUndoStackManager(tests.TestCase):
 
 class TestFind(tests.TestCase):
 
-	def runTest(self):
+	def assertBufferEquals(self, buffer, wanted):
+		if not isinstance(wanted, basestring):
+			wanted = tree.tostring()
+		raw = '<zim-tree raw="True">' in wanted
+		tree = buffer.get_parsetree(raw=raw)
+		self.assertEqual(tree.tostring(), wanted)
+
+	def assertSelection(self, buffer, line, offset, string):
+		self.assertCursorPosition(buffer, offset, line)
+		bound = buffer.get_selection_bounds()
+		self.assertTrue(bound)
+		selection = bound[0].get_slice(bound[1])
+		self.assertEqual(selection, string)
+
+	def assertCursorPosition(self, buffer, offset, line):
+		#~ print 'CHECK', line, offset, text
+		cursor = buffer.get_insert_iter()
+		#~ print '  GOT', cursor.get_line(), cursor.get_line_offset()
+		self.assertEqual(cursor.get_line(), line)
+		self.assertEqual(cursor.get_line_offset(), offset)
+
+	def testVarious(self):
 		buffer = TextBuffer()
 		finder = buffer.finder
 		buffer.set_text('''\
@@ -551,29 +609,16 @@ foo Bar Baz Foo
 ''')
 		buffer.place_cursor(buffer.get_start_iter())
 
-		def check(line, offset, string):
-			#~ print 'CHECK', line, offset, text
-			cursor = buffer.get_insert_iter()
-			#~ print '  GOT', cursor.get_line(), cursor.get_line_offset()
-			self.assertEqual(cursor.get_line(), line)
-			self.assertEqual(cursor.get_line_offset(), offset)
-
-			if string:
-				bound = buffer.get_selection_bounds()
-				self.assertTrue(bound)
-				selection = bound[0].get_slice(bound[1])
-				self.assertEqual(selection, string)
-
 		# Check normal usage, case-insensitive
 		for text in ('f', 'fo', 'foo', 'fo', 'f', 'F', 'Fo', 'Foo'):
 			finder.find(text)
-			check(0, 0, text.upper())
+			self.assertSelection(buffer, 0, 0, text.upper())
 
 		finder.find('Grr')
-		check(0, 0, '')
+		self.assertCursorPosition(buffer, 0, 0)
 
 		finder.find('Foob')
-		check(0, 4, 'FooB')
+		self.assertSelection(buffer, 0, 4, 'FooB')
 
 		for line, offset, text in (
 			(0, 11, 'FOOB'),
@@ -581,7 +626,7 @@ foo Bar Baz Foo
 			(0, 4, 'FooB'),
 		):
 			finder.find_next()
-			check(line, offset, text)
+			self.assertSelection(buffer, line, offset, text)
 
 		for line, offset, text in (
 			(1, 0, 'FooB'),
@@ -589,11 +634,11 @@ foo Bar Baz Foo
 			(0, 4, 'FooB'),
 		):
 			finder.find_previous()
-			check(line, offset, text)
+			self.assertSelection(buffer, line, offset, text)
 
 		# Case sensitive
 		finder.find('Foo', FIND_CASE_SENSITIVE)
-		check(0, 4, 'Foo')
+		self.assertSelection(buffer, 0, 4, 'Foo')
 
 		for line, offset, text in (
 			(1, 0, 'Foo'),
@@ -602,11 +647,11 @@ foo Bar Baz Foo
 			(0, 4, 'Foo'),
 		):
 			finder.find_next()
-			check(line, offset, text)
+			self.assertSelection(buffer, line, offset, text)
 
 		# Whole word
 		finder.find('Foo', FIND_WHOLE_WORD)
-		check(1, 7, 'Foo')
+		self.assertSelection(buffer, 1, 7, 'Foo')
 
 		for line, offset, text in (
 			(2, 0, 'foo'),
@@ -615,43 +660,51 @@ foo Bar Baz Foo
 			(1, 7, 'Foo'),
 		):
 			finder.find_next()
-			check(line, offset, text)
+			self.assertSelection(buffer, line, offset, text)
 
 		# Regular expression
 		finder.find(r'Foo\s*Bar', FIND_REGEX | FIND_CASE_SENSITIVE)
-		check(1, 7, 'Foo Bar')
+		self.assertSelection(buffer, 1, 7, 'Foo Bar')
 		finder.find_next()
-		check(0, 4, 'FooBar')
+		self.assertSelection(buffer, 0, 4, 'FooBar')
 
 		# Highlight - just check it doesn't crash
 		finder.set_highlight(True)
 		finder.set_highlight(False)
 
-		# Now check replace
+	def testReplace(self):
+		buffer = TextBuffer()
+		finder = buffer.finder
+		tree = tests.new_parsetree_from_xml('''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">FOO FooBar FOOBAR
+FooBaz Foo Bar
+<strong>foo</strong> Bar Baz Foo
+</zim-tree>''')
+		buffer.set_parsetree(tree)
+
 		finder.find('Foo(\w*)', FIND_REGEX) # not case sensitive!
-		check(0, 4, 'FooBar')
+		finder.find_next()
+		self.assertSelection(buffer, 0, 4, 'FooBar')
 
 		finder.replace('Dus')
-		check(0, 4, 'Dus')
-		bounds = buffer.get_bounds()
-		text = buffer.get_slice(*bounds)
+		self.assertSelection(buffer, 0, 4, 'Dus')
 		wanted = '''\
-FOO Dus FOOBAR
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">FOO Dus FOOBAR
 FooBaz Foo Bar
-foo Bar Baz Foo
-'''
-		self.assertEqual(text, wanted)
+<strong>foo</strong> Bar Baz Foo
+</zim-tree>'''
+		self.assertBufferEquals(buffer, wanted)
 
 		finder.replace_all('dus*\\1*')
-		bounds = buffer.get_bounds()
-		text = buffer.get_slice(*bounds)
 		wanted = '''\
-dus** Dus dus*BAR*
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">dus** Dus dus*BAR*
 dus*Baz* dus** Bar
-dus** Bar Baz dus**
-'''
-		self.assertEqual(text, wanted)
-		self.assertEqual(buffer.get_insert_iter().get_offset(), 6)
+<strong>dus**</strong> Bar Baz dus**
+</zim-tree>'''
+		self.assertBufferEquals(buffer, wanted)
 
 
 class TestLists(tests.TestCase):
@@ -952,6 +1005,13 @@ def press(widget, sequence):
 
 class TestTextView(tests.TestCase):
 
+	def assertBufferEquals(self, view, wanted):
+		if not isinstance(wanted, basestring):
+			wanted = tree.tostring()
+		raw = '<zim-tree raw="True">' in wanted
+		tree = view.get_buffer().get_parsetree(raw=raw)
+		self.assertEqual(tree.tostring(), wanted)
+
 	def setUp(self):
 		# Initialize default preferences from module
 		self.preferences = {}
@@ -1135,7 +1195,6 @@ foo
 		# TODO checkboxes
 		# TODO Auto formatting of various link types
 		# TODO enter on link, before link, after link
-
 
 	def testCopyPaste(self):
 		dir = self.get_tmp_name('testCopyPaste')
@@ -1344,20 +1403,6 @@ class TestPageviewDialogs(tests.TestCase):
 		#~ dialog.assert_response_ok()
 		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_parsetree_at_cursor')
 
-		## Insert Link dialog
-		ui = MockUI()
-		ui.notebook.index = tests.MockObject()
-		ui.notebook.index.mock_method('list_pages', [])
-		pageview = tests.MockObject()
-		pageview.page = Path('Test:foo:bar')
-		textview = TextView({})
-		pageview.view = textview
-		dialog = InsertLinkDialog(ui, pageview)
-		dialog.form.widgets['href'].set_text('Foo')
-		dialog.assert_response_ok()
-		buffer = textview.get_buffer()
-		self.assertEqual(buffer.get_text(*buffer.get_bounds()), 'Foo')
-
 		## Find And Replace dialog
 		ui = MockUI()
 		textview = TextView({})
@@ -1383,6 +1428,22 @@ dus bar bazzz baz
 		pageview.ui = MockUI()
 		dialog = WordCountDialog(pageview)
 		dialog.destroy() # nothing to test really
+
+	def testInsertLinkDialog(self):
+		# Insert Link dialog
+		ui = MockUI()
+		ui.notebook.index = tests.MockObject()
+		ui.notebook.index.mock_method('list_pages', [])
+		pageview = tests.MockObject()
+		pageview.page = Path('Test:foo:bar')
+		textview = TextView({})
+		pageview.view = textview
+		dialog = InsertLinkDialog(ui, pageview)
+		dialog.form.widgets['href'].set_text('Foo')
+		dialog.assert_response_ok()
+		buffer = textview.get_buffer()
+		self.assertEqual(buffer.get_text(*buffer.get_bounds()), 'Foo')
+
 
 
 class MockUI(tests.MockObject):

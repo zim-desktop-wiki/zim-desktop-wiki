@@ -481,6 +481,7 @@ class TextBuffer(gtk.TextBuffer):
 		self.notebook = notebook
 		self.page = page
 		self._insert_tree_in_progress = False
+		self._check_edit_mode = False
 		self.user_action = UserActionContext(self)
 		self.finder = TextFinder(self)
 
@@ -505,6 +506,19 @@ class TextBuffer(gtk.TextBuffer):
 			#~ 'changed', , 'modified-changed',
 		#~ ):
 			#~ self.connect(s, lambda *a: sys.stderr.write('>>> %s\n' % a[-1]), s)
+
+
+	#~ def do_begin_user_action(self):
+		#~ print '>>>> USER ACTION'
+		#~ pass
+
+	def do_end_user_action(self):
+		#~ print '<<<< USER ACTION'
+		if self._check_edit_mode:
+			self.update_editmode()
+			# This flag can e.g. indicate a delete happened in this
+			# user action, but we did not yet update edit mode -
+			# so we do it here so we are all set for the next action
 
 	def clear(self):
 		'''Clear all content from the buffer'''
@@ -1083,15 +1097,15 @@ class TextBuffer(gtk.TextBuffer):
 		but there are some cases where you may need to call it manually
 		to force a consistent state.
 		'''
+		self._check_edit_mode = False
+
 		bounds = self.get_selection_bounds()
 		if bounds:
-			# For selection we set editmode based on the whole range
-			tags = []
-			for tag in filter(_is_zim_tag, bounds[0].get_tags()):
-				if self.whole_range_has_tag(tag, *bounds):
-					tags.append(tag)
+			# For selection we set editmode based on left hand side and looking forward
+			# so counting tags that apply to start of selection
+			tags = filter(_is_zim_tag, bounds[0].get_tags())
 		else:
-			# Otherwise base editmode on cursor position
+			# Otherwise base editmode on cursor position (looking backward)
 			iter = self.get_insert_iter()
 			tags = self.iter_get_zim_tags(iter)
 
@@ -1518,13 +1532,14 @@ class TextBuffer(gtk.TextBuffer):
 
 	def do_insert_text(self, iter, string, length):
 		'''Signal handler for insert-text signal'''
+		#~ print 'INSERT', string
 
 		def end_or_protect_tags(string, length):
 			tags = filter(_is_tag_tag, self._editmode_tags)
 			if tags:
 				if iter.ends_tag(tags[0]):
 					# End tags if end-of-word char is typed at end of a tag
-					# without this you not insert text behind a tag e.g. at the end of a line
+					# without this you can not insert text behind a tag e.g. at the end of a line
 					self._editmode_tags = filter(_is_not_tag_tag, self._editmode_tags)
 				else:
 					# Forbid breaking a tag
@@ -1535,6 +1550,7 @@ class TextBuffer(gtk.TextBuffer):
 			return string, length
 
 		# Check if we are at a bullet or checkbox line
+		# if so insert behind the bullet when you type at start of line
 		if not self._insert_tree_in_progress and iter.starts_line() \
 		and not string.endswith('\n'):
 			bullet = self._get_bullet_at_iter(iter)
@@ -1543,7 +1559,7 @@ class TextBuffer(gtk.TextBuffer):
 				self.place_cursor(iter)
 
 		# Check current formatting
-		if string == '\n':
+		if string == '\n': # CHARS_END_OF_LINE
 			# Break tags that are not allowed to span over multiple lines
 			self._editmode_tags = filter(
 				lambda tag: _is_pre_tag(tag) or _is_not_style_tag(tag),
@@ -1556,7 +1572,7 @@ class TextBuffer(gtk.TextBuffer):
 
 		elif string in CHARS_END_OF_WORD:
 			# Break links if end-of-word char is typed at end of a link
-			# without this you not insert text behind a link e.g. at the end of a line
+			# without this you can not insert text behind a link e.g. at the end of a line
 			links = filter(_is_link_tag, self._editmode_tags)
 			if links and iter.ends_tag(links[0]):
 				self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
@@ -1566,14 +1582,12 @@ class TextBuffer(gtk.TextBuffer):
 
 			string, length = end_or_protect_tags(string, length)
 
-
 		# Call parent for the actual insert
 		gtk.TextBuffer.do_insert_text(self, iter, string, length)
 
-		# Apply current text style
-		# Note: looks like parent call modified the TextIter
-		# since it is still valid and now matched the end of the
-		# inserted string and not the start.
+		# And finally apply current text style
+		# Note: looks like parent call modified the position of the TextIter object
+		# since it is still valid and now matched the end of the inserted string
 		length = len(unicode(string))
 			# default function argument gives byte length :S
 		start = iter.copy()
@@ -1604,12 +1618,22 @@ class TextBuffer(gtk.TextBuffer):
 	def do_delete_range(self, start, end):
 		# Wrap actual delete to hook _do_lines_merged and do some logic
 		# when deleting bullets
+		#
+		# Implementation detail:
+		# (Interactive) deleting a formatted word with <del>, or <backspace>
+		# should drop the formatting, however selecting a formatted word and
+		# than typing to replace it, should keep formatting
+		# Since we don't know at this point what scenario we are part
+		# off, we do NOT touch the editmode. However we do set a flag
+		# that edit mode needs to be checked at the end of the user
+		# action.
 
+		#~ print 'DEL'
 		bullet = None
 		if start.starts_line():
 			bullet = self._get_bullet_at_iter(start)
 
-		with self.user_action:
+		with self.user_action: # FIXME why is this wrapper here !? - undo functions ??
 			if start.get_line() != end.get_line():
 				gtk.TextBuffer.do_delete_range(self, start, end)
 				self._do_lines_merged(start)
@@ -1620,8 +1644,7 @@ class TextBuffer(gtk.TextBuffer):
 				# had a bullet, but no longer
 				self.update_indent_tag(start.get_line(), None)
 
-		# Delete formatted word followed by typing should not show format again
-		self.update_editmode()
+		self._check_edit_mode = True
 
 	def _do_lines_merged(self, iter):
 		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
@@ -2744,6 +2767,7 @@ class TextFinder(object):
 
 				offset = start.get_offset()
 				with self.buffer.user_action:
+					self.buffer.select_range(start, end) # ensure editmode logic is used
 					self.buffer.delete(start, end)
 					self.buffer.insert_at_cursor(string)
 
@@ -2782,6 +2806,7 @@ class TextFinder(object):
 				for start, end, string in matches:
 					start = self.buffer.get_iter_at_offset(start)
 					end = self.buffer.get_iter_at_offset(end)
+					self.buffer.select_range(start, end) # ensure editmode logic is used
 					self.buffer.delete(start, end)
 					self.buffer.insert(start, string)
 
