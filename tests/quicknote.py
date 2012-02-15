@@ -6,10 +6,13 @@ from __future__ import with_statement
 
 import tests
 
+import os
+
 from zim.plugins.quicknote import *
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 
 
+@tests.skipIf(os.name == 'nt', 'QuickNote not supported on Windows')
 class TestQuickNotePlugin(tests.TestCase):
 
 	def testMain(self):
