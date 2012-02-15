@@ -154,6 +154,7 @@ class TestPageProxy(tests.TestCase):
 		self.assertTrue(len(proxy.body) > 0)
 		# TODO add othermethods
 
+
 class TestTemplate(tests.TestCase):
 
 	def runTest(self):
@@ -162,7 +163,9 @@ Version [% zim.version %]
 <title>[% page.title %]</title>
 <h1>[% notebook.name %]: [% page.name %]</h1>
 <h2>[% page.heading %]</h2>
-[% page.body %]
+[% options.foo = "bar" %]
+[%- page.body -%]
+Option: [% options.foo %]
 '''
 		wantedresult = u'''\
 Version %s
@@ -172,7 +175,7 @@ Version %s
 <p>
 <strong>foo bar !</strong><br>
 </p>
-
+Option: bar
 ''' % zim.__version__
 		notebook = tests.new_notebook()
 		page = notebook.get_page(Path('FooBar'))
@@ -181,8 +184,10 @@ Version %s
 **foo bar !**
 ''')
 		self.assertTrue(len(page.dump('html', linker=StubLinker())) > 0)
-		result = Template(input, 'html', linker=StubLinker()).process(Notebook(), page)
-		self.assertEqual(result, wantedresult.splitlines(True))
+		template = Template(input, 'html', linker=StubLinker())
+		result = template.process(notebook, page)
+		self.assertEqual(''.join(result), wantedresult)
+		self.assertEqual(template.template_options['foo'], 'bar')
 
 		# Check new page template
 		notebook = tests.new_notebook()

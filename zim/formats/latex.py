@@ -58,7 +58,7 @@ sectioning = {
 
 
 
-encode_re = re.compile(r'(\&|\$|\^|\%|\#|\_|\\|\<|\>)')
+encode_re = re.compile(r'(\&|\$|\^|\%|\#|\_|\\|\<|\>|\n)')
 encode_dict = {
 	'\\': '$\\backslash$',
 	'&': '\\$',
@@ -69,6 +69,7 @@ encode_dict = {
 	'_': '\\_',
 	'>': '\\textgreater{}',
 	'<': '\\textless{}',
+	'\n': '\n\n',
 }
 
 

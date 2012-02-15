@@ -12,6 +12,8 @@ import tests
 from zim.formats import *
 from zim.notebook import Path, Link
 from zim.parsing import link_type
+from zim.templates import Template
+
 
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
@@ -537,12 +539,60 @@ class TestLatexFormat(tests.TestCase):
 			output = format.Dumper(linker=StubLinker()).dump(tree)
 			self.assertTrue('\chapter{Foo Bar}\n' in output)
 
-		# TODO test template_options.document_type
+		# Test template_options.document_type
+		input = r'''
+[% options.document_type = 'book' -%]
+\title{[% page.basename %]}
+\date{[% strftime("%A %d %B %Y") %]}
+\author{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+[% page.body %]
+\end{document}
+'''
+		wanted = r'''
+\title{FooBar}
+\date{Wednesday 15 February 2012}
+\author{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\textbf{foo bar !}
+
+
+
+\chapter{Heading 2}
+
+duss
+
+
+\end{document}
+'''
+
+		notebook = tests.new_notebook()
+		page = notebook.get_page(Path('FooBar'))
+		page.parse('wiki', '''\
+====== Page Heading ======
+**foo bar !**
+
+===== Heading 2 =====
+duss
+''')
+
+		template = Template(input, 'latex', linker=StubLinker())
+		result = template.process(notebook, page)
+		self.assertEqual(''.join(result), wanted)
+
 
 
 class StubLinker(object):
 
 	def set_usebase(self, usebase): pass
+
+	def set_path(self, path): pass
 
 	def link(self, link): return '%s://%s' % (link_type(link), link)
 
