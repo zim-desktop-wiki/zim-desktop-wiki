@@ -28,6 +28,7 @@ def new_parsetree_from_text(text):
 	notebook = tests.new_notebook(fakedir='/foo')
 	page = notebook.get_page(Path('Foo'))
 	tree.resolve_images(notebook, page)
+
 	return tree
 
 
@@ -52,7 +53,8 @@ def setUpPageView(fakedir=None):
 	return PageView(ui)
 
 
-class TestTextBuffer(tests.TestCase):
+class TestCaseMixin(object):
+	# Mixin class with extra test methods
 
 	def assertBufferEquals(self, buffer, wanted):
 		if not isinstance(wanted, basestring):
@@ -60,6 +62,23 @@ class TestTextBuffer(tests.TestCase):
 		raw = '<zim-tree raw="True">' in wanted
 		tree = buffer.get_parsetree(raw=raw)
 		self.assertEqual(tree.tostring(), wanted)
+
+	def assertSelection(self, buffer, line, offset, string):
+		self.assertCursorPosition(buffer, offset, line)
+		bound = buffer.get_selection_bounds()
+		self.assertTrue(bound)
+		selection = bound[0].get_slice(bound[1])
+		self.assertEqual(selection, string)
+
+	def assertCursorPosition(self, buffer, offset, line):
+		#~ print 'CHECK', line, offset, text
+		cursor = buffer.get_insert_iter()
+		#~ print '  GOT', cursor.get_line(), cursor.get_line_offset()
+		self.assertEqual(cursor.get_line(), line)
+		self.assertEqual(cursor.get_line_offset(), offset)
+
+
+class TestTextBuffer(tests.TestCase, TestCaseMixin):
 
 	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
@@ -398,7 +417,6 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-
 	def testReplace(self):
 		# Check replacing a formatted word
 		# word is deleted, but formatting should stay
@@ -427,6 +445,24 @@ aaa <strong>eee</strong> ccc
 			buffer.insert_interactive_at_cursor("eee", True)
 
 		self.assertBufferEquals(buffer, wanted)
+
+	def testSelectLink(self):
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+aaa <link href="xxx">bbb</link> ccc
+</zim-tree>
+'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		buffer = TextBuffer()
+		buffer.set_parsetree(tree)
+		buffer.place_cursor(buffer.get_iter_at_offset(7)) # middle of link
+
+		self.assertIsNone(buffer.get_has_link_selection())
+		data = buffer.select_link()
+		self.assertEqual(data['href'], 'xxx')
+		self.assertEqual(buffer.get_has_link_selection(), data)
 
 
 class TestUndoStackManager(tests.TestCase):
@@ -576,28 +612,7 @@ class TestUndoStackManager(tests.TestCase):
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo <strong>barr</strong> baz</zim-tree>")
 
 
-class TestFind(tests.TestCase):
-
-	def assertBufferEquals(self, buffer, wanted):
-		if not isinstance(wanted, basestring):
-			wanted = tree.tostring()
-		raw = '<zim-tree raw="True">' in wanted
-		tree = buffer.get_parsetree(raw=raw)
-		self.assertEqual(tree.tostring(), wanted)
-
-	def assertSelection(self, buffer, line, offset, string):
-		self.assertCursorPosition(buffer, offset, line)
-		bound = buffer.get_selection_bounds()
-		self.assertTrue(bound)
-		selection = bound[0].get_slice(bound[1])
-		self.assertEqual(selection, string)
-
-	def assertCursorPosition(self, buffer, offset, line):
-		#~ print 'CHECK', line, offset, text
-		cursor = buffer.get_insert_iter()
-		#~ print '  GOT', cursor.get_line(), cursor.get_line_offset()
-		self.assertEqual(cursor.get_line(), line)
-		self.assertEqual(cursor.get_line_offset(), offset)
+class TestFind(tests.TestCase, TestCaseMixin):
 
 	def testVarious(self):
 		buffer = TextBuffer()
@@ -1003,14 +1018,7 @@ def press(widget, sequence):
 		widget.emit('key-press-event', event)
 
 
-class TestTextView(tests.TestCase):
-
-	def assertBufferEquals(self, view, wanted):
-		if not isinstance(wanted, basestring):
-			wanted = tree.tostring()
-		raw = '<zim-tree raw="True">' in wanted
-		tree = view.get_buffer().get_parsetree(raw=raw)
-		self.assertEqual(tree.tostring(), wanted)
+class TestTextView(tests.TestCase, TestCaseMixin):
 
 	def setUp(self):
 		# Initialize default preferences from module
@@ -1301,7 +1309,7 @@ foo
 
 
 
-class TestPageView(tests.TestCase):
+class TestPageView(tests.TestCase, TestCaseMixin):
 
 	def testGetSelection(self):
 		pageview = setUpPageView()
@@ -1315,6 +1323,55 @@ Baz
 		self.assertEqual(pageview.get_word(), 'bar')
 		self.assertEqual(pageview.get_selection(), 'bar')
 		self.assertEqual(pageview.get_selection(format='wiki'), 'bar')
+
+
+	def testAutoSelect(self):
+		# This test indirectly tests select_word, select_line and strip_selection
+
+		pageview = setUpPageView()
+		buffer = pageview.view.get_buffer()
+		buffer.set_text('''Test 123. foo\nline with spaces    \n\n''')
+
+		# select word (with / without previous selection)
+		buffer.place_cursor(buffer.get_iter_at_offset(6))
+		pageview.autoselect()
+		self.assertSelection(buffer, 0, 5, '123')
+
+		pageview.autoselect()
+		self.assertSelection(buffer, 0, 5, '123') # no change
+
+		buffer.place_cursor(buffer.get_iter_at_offset(33))
+		pageview.autoselect()
+		self.assertFalse(buffer.get_has_selection()) # middle of whitespace
+
+		# select line (with / without previous selection)
+		buffer.place_cursor(buffer.get_iter_at_offset(6))
+		pageview.autoselect()
+		self.assertSelection(buffer, 0, 5, '123')
+		pageview.autoselect(selectline=True)
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo') # extended
+
+		pageview.autoselect(selectline=True)
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo') # no change
+
+		buffer.place_cursor(buffer.get_iter_at_offset(6))
+		self.assertFalse(buffer.get_has_selection())
+		pageview.autoselect(selectline=True)
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo')
+
+		# empty line
+		buffer.place_cursor(buffer.get_iter_at_line(3))
+		self.assertFalse(buffer.get_has_selection())
+		pageview.autoselect(selectline=True)
+		self.assertFalse(buffer.get_has_selection())
+
+		# existing selection needs stripping
+		start = buffer.get_iter_at_offset(4)
+		end = buffer.get_iter_at_offset(10)
+		buffer.select_range(start, end)
+		self.assertSelection(buffer, 0, 4, ' 123. ')
+		pageview.autoselect()
+		self.assertSelection(buffer, 0, 5, '123.')
 
 	def testInsertLinks(self):
 		pageview = setUpPageView()

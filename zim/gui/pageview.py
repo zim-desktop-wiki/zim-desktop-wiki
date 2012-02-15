@@ -833,16 +833,20 @@ class TextBuffer(gtk.TextBuffer):
 			link = tag.zim_attrib.copy()
 			if link['href'] is None:
 				# Copy text content as href
-				start = iter.copy()
-				if not start.begins_tag(tag):
-					start.backward_to_tag_toggle(tag)
-				end = iter.copy()
-				if not end.ends_tag(tag):
-					end.forward_to_tag_toggle(tag)
+				start, end = self.get_tag_bounds(iter, tag)
 				link['href'] = start.get_text(end)
 			return link
 		else:
 			return None
+
+	def get_tag_bounds(self, iter, tag):
+		start = iter.copy()
+		if not start.begins_tag(tag):
+			start.backward_to_tag_toggle(tag)
+		end = iter.copy()
+		if not end.ends_tag(tag):
+			end.forward_to_tag_toggle(tag)
+		return start, end
 
 	def insert_tag(self, iter, text, **attrib):
 		'''Insert a tag into the buffer
@@ -1499,32 +1503,6 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return False
 
-	def strip_selection(self):
-		'''Exclude whitespace for the start and end of the selection.
-
-		@returns: C{False} if there is no selection, or only whitespace
-		was selected (so stripping it would result in no selection),
-		C{True} otherwise.
-		'''
-		bounds = self.get_selection_bounds()
-		if bounds:
-			start, end = bounds
-		else:
-			return False
-
-		selected = start.get_slice(end)
-		if selected.isspace():
-			return False
-
-		left = len(selected) - len(selected.lstrip())
-		right = len(selected) - len(selected.rstrip())
-		if left > 0:
-			start.forward_chars(left)
-		if right > 0:
-			end.backward_chars(right)
-
-		self.select_range(start, end)
-
 	def do_mark_set(self, iter, mark):
 		gtk.TextBuffer.do_mark_set(self, iter, mark)
 		if mark.get_name() in ('insert', 'selection_bound'):
@@ -1972,19 +1950,31 @@ class TextBuffer(gtk.TextBuffer):
 	def select_line(self):
 		'''Selects the current line
 
-		@returns: C{True} when succcessful
+		@returns: C{True} when successful
 		'''
 		# Differs from get_line_bounds because we exclude the trailing
 		# line break while get_line_bounds selects these
 		iter = self.get_iter_at_mark(self.get_insert())
-		iter = self.get_iter_at_line(iter.get_line())
-		if iter.ends_line():
-			return False
+		line = iter.get_line()
+		return self.select_lines(line, line)
+
+	def select_lines(self, first, last):
+		'''Select multiple lines
+		@param first: line number first line
+		@param last: line number last line
+		@returns: C{True} when successful
+		'''
+		start = self.get_iter_at_line(first)
+		end = self.get_iter_at_line(last)
+		if end.ends_line():
+			if end.equal(start):
+				return False
+			else:
+				pass
 		else:
-			end = iter.copy()
 			end.forward_to_line_end()
-			self.select_range(iter, end)
-			return True
+		self.select_range(start, end)
+		return True
 
 	def select_word(self):
 		'''Selects the current word, if any
@@ -1996,36 +1986,79 @@ class TextBuffer(gtk.TextBuffer):
 			return False
 
 		bound = insert.copy()
-		if not insert.ends_word():
-			insert.forward_word_end()
-		if not bound.starts_word():
-			bound.backward_word_start()
+		if not insert.starts_word():
+			insert.backward_word_start()
+		if not bound.ends_word():
+			bound.forward_word_end()
 
 		self.select_range(insert, bound)
 		return True
 
+	def strip_selection(self):
+		'''Shrinks the selection to exclude any whitespace on start and end.
+		If only white space was selected this function will not change the selection.
+		@returns: C{True} when this function changed the selection.
+		'''
+		bounds = self.get_selection_bounds()
+		if not bounds:
+			return False
+
+		text = bounds[0].get_text(bounds[1])
+		if not text or text.isspace():
+			return False
+
+		start, end = bounds[0].copy(), bounds[1].copy()
+		iter = start.copy()
+		iter.forward_char()
+		text = start.get_text(iter)
+		while text and text.isspace():
+			start.forward_char()
+			iter.forward_char()
+			text = start.get_text(iter)
+
+		iter = end.copy()
+		iter.backward_char()
+		text = iter.get_text(end)
+		while text and text.isspace():
+			end.backward_char()
+			iter.backward_char()
+			text = iter.get_text(end)
+
+		if (start.equal(bounds[0]) and end.equal(bounds[1])):
+			return False
+		else:
+			self.select_range(start, end)
+			return True
+
 	def select_link(self):
 		'''Selects the current link, if any
-
 		@returns: link attributes when succcessful, C{None} otherwise
 		'''
 		insert = self.get_iter_at_mark(self.get_insert())
 		tag = self.get_link_tag(insert)
 		if tag is None:
 			return None
-		link = tag.zim_attrib.copy()
+		start, end = self.get_tag_bounds(insert, tag)
+		self.select_range(start, end)
+		return self.get_link_data(start)
 
-		bound = insert.copy()
-		if not insert.ends_tag(tag):
-			insert.forward_to_tag_toggle(tag)
-		if not bound.begins_tag(tag):
-			bound.backward_to_tag_toggle(tag)
+	def get_has_link_selection(self):
+		'''Check whether a link is selected or not
+		@returns: link attributes when succcessful, C{None} otherwise
+		'''
+		bounds = self.get_selection_bounds()
+		if not bounds:
+			return None
 
-		if link['href'] is None:
-			link['href'] = bound.get_text(insert)
-
-		self.select_range(insert, bound)
-		return link
+		insert = self.get_iter_at_mark(self.get_insert())
+		tag = self.get_link_tag(insert)
+		if tag is None:
+			return None
+		start, end = self.get_tag_bounds(insert, tag)
+		if start.equal(bounds[0]) and end.equal(bounds[1]):
+			return self.get_link_data(start)
+		else:
+			return None
 
 	def remove_link(self, start, end):
 		'''Removes any links between in a range
@@ -5038,16 +5071,20 @@ class PageView(gtk.VBox):
 		only auto-select a single word otherwise
 		@returns: C{True} when this function changed the selection.
 		'''
+		if not self.preferences['autoselect']:
+			return False
+
 		buffer = self.view.get_buffer()
 		if buffer.get_has_selection():
-			return False
-		elif self.preferences['autoselect']:
 			if selectline:
-				return buffer.select_line()
+				start, end = buffer.get_selection_bounds()
+				return buffer.select_lines(start.get_line(), end.get_line())
 			else:
-				return buffer.select_word()
+				return buffer.strip_selection()
+		elif selectline:
+			return buffer.select_line()
 		else:
-			return False
+			return buffer.select_word()
 
 	def find(self, string, flags=0):
 		'''Find some string in the text, scroll there and select it
@@ -5499,7 +5536,7 @@ class InsertLinkDialog(Dialog):
 		# Hook text entry to copy text from link when apropriate
 		self.form.widgets['href'].connect('changed', self.on_href_changed)
 		self.form.widgets['text'].connect('changed', self.on_text_changed)
-		if self._selection_bounds or (text and text != href):
+		if self._selected_text or (text and text != href):
 			self._copy_text = False
 		else:
 			self._copy_text = True
@@ -5509,11 +5546,12 @@ class InsertLinkDialog(Dialog):
 		href, text = '', ''
 
 		buffer = self.pageview.view.get_buffer()
-		if not buffer.get_has_selection():
+		if buffer.get_has_selection():
+			buffer.strip_selection()
+			link = buffer.get_has_link_selection()
+		else:
 			link = buffer.select_link()
-			if link:
-				href = link['href']
-			else:
+			if not link:
 				self.pageview.autoselect()
 
 		if buffer.get_has_selection():
@@ -5523,10 +5561,15 @@ class InsertLinkDialog(Dialog):
 				# Interaction in the dialog causes buffer to loose selection
 				# maybe due to clipboard focus !??
 				# Anyway, need to remember bounds ourselves.
-			if not href:
+			if link:
+				href = link['href']
+				self._selected_text = False
+			else:
 				href = text
+				self._selected_text = True
 		else:
 			self._selection_bounds = None
+			self._selected_text = False
 
 		return href, text
 
