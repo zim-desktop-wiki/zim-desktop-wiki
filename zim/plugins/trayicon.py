@@ -241,8 +241,12 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 
 	def __init__(self):
 		gtk.StatusIcon.__init__(self)
-		icon = data_file('zim.png').path
-		self.set_from_file(icon)
+		try:
+		    self.set_from_icon_name('zim-panel')
+		except:
+			icon = data_file('zim.png').path
+			self.set_from_file(icon)
+
 		self.set_tooltip(_('Zim Desktop Wiki')) # T: tooltip for tray icon
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 

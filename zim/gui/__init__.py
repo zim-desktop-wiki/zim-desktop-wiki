@@ -202,10 +202,15 @@ def load_zim_stock_icons():
 			if not file.endswith('.png'):
 				continue # no all installs have svg support..
 			name = 'zim-'+file[:-4] # e.g. checked-box.png -> zim-checked-box
+			icon_theme = gtk.icon_theme_get_default()
 			try:
-				pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
-				set = gtk.IconSet(pixbuf=pixbuf)
-				factory.add(name, set)
+			    pixbuf = icon_theme.load_icon(name, 24, 0)
+			except:
+			    pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
+			
+			try:
+			    set = gtk.IconSet(pixbuf)
+			    factory.add(name, set)
 			except Exception:
 				logger.exception('Got exception while loading application icons')
 
