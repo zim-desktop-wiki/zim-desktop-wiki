@@ -231,13 +231,16 @@ class History(gobject.GObject):
 			self._current = len(self._history) - 1
 			# this assignment always triggers "modified" on the ListDict
 
-			self.emit('changed')
-
 			if not isinstance(path, RecentPath):
 				self._update_recent(historypath)
 
+			self.emit('changed')
+
 	def _update_recent(self, path):
 		# Make sure current page is on top of recent stack
+		if self._recent and path == self._recent[-1]:
+			return False
+
 		if path in self._recent:
 			self._recent.remove(path)
 
@@ -245,6 +248,7 @@ class History(gobject.GObject):
 			self._recent.pop(0)
 
 		self._recent.append(path)
+		return True
 
 	def get_current(self):
 		'''Get current path
@@ -264,8 +268,9 @@ class History(gobject.GObject):
 		assert isinstance(path, HistoryPath)
 		self._current = self._history.index(path)
 			# fails if path not in history
-		if not isinstance(path, RecentPath):
-				self._update_recent(path)
+		if not isinstance(path, RecentPath) \
+		and self._update_recent(path):
+			self.emit('changed')
 
 	def get_previous(self):
 		'''Get the previous path

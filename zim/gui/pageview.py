@@ -2994,8 +2994,7 @@ class TextView(gtk.TextView):
 		if event.type == gtk.gdk.BUTTON_PRESS:
 			iter, coords = self._get_pointer_location()
 			if event.button == 2 and not buffer.get_has_selection():
-				clipboard = Clipboard(selection='PRIMARY')
-				buffer.paste_clipboard(clipboard, iter, self.get_editable())
+				buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
 				return False
 			elif event.button == 3:
 				self._set_popup_menu_mark(iter)
