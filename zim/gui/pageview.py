@@ -1012,7 +1012,11 @@ class TextBuffer(gtk.TextBuffer):
 		iter = self.get_iter_at_line(line)
 		if bullet == NUMBER_BULLET:
 			# special case - check line above, else start new list
-			prev = self.get_bullet(line - 1)
+			if line > 0:
+				prev = self.get_bullet(line - 1)
+			else:
+				prev = None
+
 			if prev and is_numbered_bullet_re.match(prev):
 				bullet = increase_list_bullet(prev)
 			else:
@@ -1090,7 +1094,6 @@ class TextBuffer(gtk.TextBuffer):
 	def _renumber_list(self, line):
 		# Renumber list from this line downward - only affects items
 		# at same indenting level
-		print 'RENUMBER'
 		indent = self.get_indent(line)
 		bullet = self.get_bullet(line)
 		if not is_numbered_bullet_re.match(bullet):
@@ -1098,8 +1101,12 @@ class TextBuffer(gtk.TextBuffer):
 		next_bullet = increase_list_bullet(bullet)
 		while True:
 			line += 1
-			mybullet = self.get_bullet(line)
-			myindent = self.get_indent(line)
+			try:
+				mybullet = self.get_bullet(line)
+				myindent = self.get_indent(line)
+			except ValueError:
+				break
+
 			if not mybullet or myindent < indent:
 				break
 			elif myindent == indent:
@@ -1458,6 +1465,9 @@ class TextBuffer(gtk.TextBuffer):
 
 		bullet = self.get_bullet(line)
 		ok = self._set_indent(line, level, bullet)
+		#~ if is_numbered_bullet_re.match(bullet):
+			#~ # TODO find previous item on new level
+			#~ self._renumber_list(line)
 		if ok: self.set_modified(True)
 		return ok
 
@@ -2201,6 +2211,23 @@ class TextBuffer(gtk.TextBuffer):
 					iter.forward_char()
 
 		return iter.compare(orig) != 0
+
+	def get_iter_at_line(self, line):
+		'''Like C{gtk.TextBuffer.get_iter_at_line()} but with additional
+		safety check
+		@param line: an integer line number counting from 0
+		@returns: a gtk.TextIter
+		@raises ValueError: when line is not within the buffer
+		'''
+		# Gtk TextBuffer returns iter of last line for lines past the
+		# end of the buffer
+		if line < 0:
+			raise ValueError, 'Negative line number: %i' % line
+		else:
+			iter = gtk.TextBuffer.get_iter_at_line(self, line)
+			if iter.get_line() != line:
+				raise ValueError, 'Line number beyond the end of the buffer: %i' % line
+			return iter
 
 	def get_line_bounds(self, line):
 		'''Get the TextIters at start and end of line

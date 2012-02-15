@@ -678,15 +678,15 @@ And a checkbox list<br>
 
 <p>
 A numbered list:<br>
-<ol>
+<ol type="1" start="1">
 <li>foo</li>
 <li>bar</li>
-<ol>
+<ol type="a" start="1">
 <li>sub list</li>
 <li>here</li>
-</ul>
+</ol>
 <li>hmmm</li>
-</ul>
+</ol>
 </p>
 
 <p>
@@ -732,6 +732,7 @@ class TestLatexFormat(tests.TestCase):
 			testpage = tests.WikiTestData.get('Test:wiki')
 			tree = get_format('wiki').Parser().parse(testpage)
 			output = format.Dumper(linker=StubLinker()).dump(tree)
+			#~ print '>>>\n' + ''.join(output) + '<<<'
 			self.assertTrue('\chapter{Foo Bar}\n' in output)
 
 		# TODO test template_options.document_type

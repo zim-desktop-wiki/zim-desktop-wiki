@@ -31,8 +31,8 @@ Supported tags:
 	- mark for highlighted text, renderd with background color or underlined
 	- strike for text that is removed, usually renderd as strike through
 	- code for inline verbatim text
-	- ul for bullet lists
-	- .. for checkbox lists
+	- ul for bullet and checkbox lists
+	- ol for numbered lists
 	- li for list items
 	- link for links, attribute href gives the target
 	- img for images, attributes src, width, height an optionally href
@@ -48,9 +48,7 @@ markup it is not allowed to nest elements in arbitrary ways.
 
 TODO: allow links to be nested in other elements
 TODO: allow strike to have sub elements
-TODO: allow classes to set hints for visual rendering and other interaction
 TODO: add HR element
-TODO: ol for numbered lists
 
 If a page starts with a h1 this heading is considered the page title,
 else we can fall back to the page name as title.
