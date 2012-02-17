@@ -72,7 +72,76 @@ class NoChangesError(Error):
 		self.msg = _('No changes since last version')
 		# T: Short error descriotion
 
+class VCS(object):
+	"""
+    TODO: increase documentation
+	This class is the VCS factory. It allows to build the required VCS according
+	to an existing folder.
+	"""
+	
+	BZR = _('Bazaar') # T: option value
+	HG  = _('Mercurial') # T: option value
+	GIT = _('Git') # T: option value
+	
+	def from_folder_name(cls, folder_name):
+		vcs_dict = {'.bzr': VCS.BZR, '.hg': VCS.HG, '.git': VCS.GIT}
+		if vcs_dict.has_key(folder_name):
+			return vcs_dict[folder_name]
+		else:
+			return None
+		
+	@classmethod
+	def detect_in_folder(cls, dir): #FIXME - Set a default VCS, default=VCS.BZR):
+		"""Detect if a version control system has already been setup in the folder.
+		It also create the instance by calling the VCS.create() method
+		@param dir: a L{FilePath} instance representing the notebook root folder
+		@returns: a C{VersionControlSystemBackend} instance which will manage the versionning
+		"""
+		# split off because it is easier to test this way
+		vcs = None
 
+		for path in reversed(list(dir)):
+			if path.subdir('.bzr').exists():
+				vcs = CVS.create(CVS.BZR, path)
+			if path.subdir('.hg').exists():
+				vcs = CVS.create(CVS.HG, path)
+			if path.subdir('.git').exists():
+				vcs = CVS.create(CVS.GIT, path)
+			#~ elif path.subdir('.svn'):
+			#~ elif path.subdir('CVS'):
+			else:
+				continue
+
+		if vcs:
+			logger.info('VCS detected: %s', vcs)
+		else:
+			logger.info('No VCS detected')
+
+		return vcs
+
+	@classmethod
+	def create(klass, vcs, dir):
+		"""Build the required instance of a Version Control System
+
+		@param vcs: Version Control System to build (choose between VCS.BZR, VCS.HG, VCS.GIT)
+		@param dir: a L{FilePath} instance representing the notebook root folder
+		@returns: a C{VersionControlSystemBackend} instance which will manage the versionning
+		"""
+		new_vcs = None
+		if vcs == VCS.BZR:
+			from zim.plugins.versioncontrol.bzr import BazaarVCS
+			new_vcs = BazaarVCS(dir)
+		elif vcs == VCS.HG:
+			from zim.plugins.versioncontrol.hg import MercurialVCS
+			new_vcs = MercurialVCS(dir)
+		elif vcs == VCS.GIT:
+			from zim.plugins.versioncontrol.git import GitVCS
+			new_vcs = GitVCS(dir)
+		else:
+			assert False, 'Unkown VCS: %s' % vcs
+		return new_vcs
+
+	
 class VersionControlPlugin(PluginClass):
 
 	plugin_info = {
@@ -88,13 +157,9 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Version Control',
 	}
 
-	global BZR, HG
-	BZR = _('Bazaar') # T: option value
-	HG = _('Mercurial') # T: option value
-
 	plugin_preferences = (
 		('autosave', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
-		('vcsbackend', 'choice', _('Default version control backend'), BZR, [BZR, HG]),
+		('vcsbackend', 'choice', _('Default version control backend'), VCS.BZR, [VCS.BZR, VCS.HG, VCS.GIT]),
 	)
 
 	def __init__(self, ui):
@@ -117,12 +182,16 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
+		# TODO - Remove hard-written bin names
 		has_bzr = Application(('bzr',)).tryexec()
-		return has_bzr, [('bzr', has_bzr, True)]
+		has_hg  = Application(('hg',)).tryexec()
+		has_git = Application(('git',)).tryexec()
+
+		return has_bzr|has_hg|has_git, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False)]
 
 	def detect_vcs(self):
 		dir = self._get_notebook_dir()
-		self.vcs = self._detect_vcs(dir)
+		self.vcs = VCS.detect_in_folder(dir)
 		if self.vcs:
 			self.actiongroup.get_action('show_versions').set_sensitive(True)
 			if self.preferences['autosave']:
@@ -136,27 +205,6 @@ This is a core plugin shipping with zim.
 			return notebook.file.dir
 		else:
 			assert 'Notebook is not based on a file or folder'
-
-	@staticmethod
-	def _detect_vcs(dir):
-		# split off because it is easier to test this way
-		vcs = None
-
-		for path in reversed(list(dir)):
-			if path.subdir('.bzr').exists():
-				from zim.plugins.versioncontrol.bzr import BazaarVCS
-				vcs = BazaarVCS(path)
-			#~ elif path.subdir('.svn'):
-			#~ elif path.subdir('CVS'):
-			else:
-				continue
-
-		if vcs:
-			logger.info('VCS detected: %s', vcs)
-		else:
-			logger.info('No VCS detected')
-
-		return vcs
 
 	def autosave(self):
 		assert self.vcs
@@ -179,7 +227,9 @@ This is a core plugin shipping with zim.
 				_("Version control is currently not enabled for this notebook.\n"
 				  "Do you want to enable it?" ) # T: Detailed question
 			) ).run():
-				self.init_vcs('bzr')
+				# Setup the version control system from the default value
+				# TODO : allow to choose between the available ones
+				self.init_vcs(self.preferences['vcsbackend'])
 			else:
 				return
 
@@ -191,11 +241,8 @@ This is a core plugin shipping with zim.
 
 	def init_vcs(self, vcs):
 		dir = self._get_notebook_dir()
-		if vcs == 'bzr':
-			from zim.plugins.versioncontrol.bzr import BazaarVCS
-			self.vcs = BazaarVCS(dir)
-		else:
-			assert False, 'Unkown VCS: %s' % vcs
+		#FIXME print "Choosen VCS", vcs
+		self.vcs = VCS.create(vcs, dir)
 
 		if self.vcs:
 			with self.ui.notebook.lock:
