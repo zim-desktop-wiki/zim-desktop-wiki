@@ -11,13 +11,7 @@ from zim.fs import FS
 from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
-
-
-if os.environ.get('ZIM_TEST_RUNNING'):
-	TEST_MODE = True
-else:
-	TEST_MODE = False
-
+from zim.plugins.versioncontrol.generic import VersionControlSystemBackend
 
 logger = logging.getLogger('zim.vcs.bzr')
 # TODO check if bzrlib also uses logging for output
@@ -74,82 +68,45 @@ else:
 
 
 # TODO document API - use base class
-class BazaarVCS(object):
+class BazaarVCS(VersionControlSystemBackend):
 
 	def __init__(self, dir):
-		"""Initialize the instance in normal or test mode
-		- in case of TEST_MODE off, it checks the file system
-		  for creation, move or delete of files
-		- in case of TEST_MODE on, it does not check anything
-		  in order to avoid to interfer with dev environment
+		super(BazaarVCS, self).__init__(dir)
 
-		@param dir: a L{Dir} object representing the repository working directory path
-		"""
-		self.root = dir
-		self.lock = FS.get_async_lock(self.root)
-		if not TEST_MODE:
-			# Avoid touching the bazaar repository with zim sources
-			# when we write to tests/tmp etc.
-			FS.connect('path-created', self.on_path_created)
-			FS.connect('path-moved', self.on_path_moved)
-			FS.connect('path-deleted', self.on_path_deleted)
-
-	# TODO: disconnect method - callbacks keep object alive even when plugin is disabled !
 
 	@classmethod
-	def check_dependencies(klass):
-		"""Checks if the bzrlib or the bzr binary is available
-		
-		@returns: True in case of success (eg. : the 'bzr' command succeed) or False
-		"""
+	def _vcs_specific_check_dependencies(klass):
+		"""@see VersionControlSystemBackend.check_dependencies"""
 		return _bzr.tryexec()
 
-	def _ignored(self, path):
+	def _vcs_specific_ignored(self, path):
 		"""Return True if we should ignore this path
 		TODO add bzrignore patterns here
-		for now we just hardcode zim specific logic
-		
-		@param path: a L{UnixFile} object representing the file path to check
-		@returns: True if the path should be ignored or False
-		"""
-		return '.zim' in path.split()
 
-	def init(self):
-		"""Initialize a Bazaar repository in the self.root directory.
-		If the directory does not exist, then create it
-		@returns: nothing
+		@see VersionControlSystemBackend._vcs_specific_ignored
+		     and VersionControlSystemBackend._ignored
 		"""
-		if not self.root.exists():
-			self.root.touch()
+		return False
 
-		with self.lock:
-			_bzr.run(['init'], cwd=self.root)
-			_bzr.run(['whoami', 'zim'], cwd=self.root) #FIXME - bzr need a user to be setup
-			_bzr.run(['ignore', '**/.zim/'], cwd=self.root) # ignore cache
-			_bzr.run(['add', '.'], cwd=self.root) # add all existing files
-
-	def on_path_created(self, fs, path):
-		"""Callback to add a new file or folder when added to the wiki
-		Note: the VCS operation is asynchronous
-		
-		@param fs: the L{FSSingletonClass} instance representing the file system
-		@param path: the L{UnixFile} object representing the newly created file or folder
-		@returns: nothing
+	def _vcs_specific_init(self):
+		"""Init a repository, here are operations specific to the VCS
+		@see VersionControlSystemBackend._vcs_specific_init()
 		"""
+		print "agaga", self.root
+		_bzr.run(['init'], cwd=self.root)
+		_bzr.run(['whoami', 'zim'], cwd=self.root) #FIXME - bzr need a user to be setup
+		_bzr.run(['ignore', '**/.zim/'], cwd=self.root) # ignore cache
+		_bzr.run(['add', '.'], cwd=self.root) # add all existing files
+
+	def _vcs_specific_on_path_created(self, fs, path):
+		"""@see VersionControlSystemBackend.on_path_created"""
 		if path.ischild(self.root) and not self._ignored(path):
 				def wrapper():
 					_bzr.run(['add', path], cwd=self.root)
 				AsyncOperation(wrapper, lock=self.lock).start()
 
-	def on_path_moved(self, fs, oldpath, newpath):
-		"""Callback to move the file in Bazaar when moved in the wiki
-		Note: the VCS operation is asynchronous
-		
-		@param fs: the L{FSSingletonClass} instance representing the file system
-		@param oldpath: the L{UnixFile} object representing the old path of the file or folder
-		@param newpath: the L{UnixFile} object representing the new path of the file or folder
-		@returns: nothing
-		"""
+	def _vcs_specific_on_path_moved(self, fs, oldpath, newpath):
+		"""@see VersionControlSystemBackend.on_path_moved"""
 		if newpath.ischild(self.root) and not self._ignored(newpath):
 			def wrapper():
 				if oldpath.ischild(self.root):
@@ -162,55 +119,43 @@ class BazaarVCS(object):
 		elif oldpath.ischild(self.root) and not self._ignored(oldpath):
 			self.on_path_deleted(self, fs, oldpath)
 
-	def on_path_deleted(self, path):
-		"""Callback to remove a file from Bazaar when deleted from the wiki
-		Note: the VCS operation is asynchronous
-		
-		@param path: the L{UnixFile} object representing the path of the file or folder to delete
-		@returns: nothing
-		"""
+	def _vcs_specific_on_path_deleted(self, path):
+		"""@see VersionControlSystemBackend.on_path_deleted"""
 		def wrapper():
 			_bzr.run(['rm', path], cwd=self.root)
 		AsyncOperation(wrapper, lock=self.lock).start()
 
-	@property
-	def modified(self):
-		return ''.join( self.get_status() ).strip() != ''
+	def _vcs_specific_get_status(self):
+		"""Returns last operation status as a list of text lines
+		@see VersionControlSystemBackend._vcs_specific_get_status()
+		     and VersionControlSystemBackend.get_status()
+		"""
+		return _bzr.pipe(['status'], cwd=self.root)
 
-	def get_status(self):
-		with self.lock:
-			status = _bzr.pipe(['status'], cwd=self.root)
-		return status
 
-	def get_diff(self, versions=None, file=None):
-		with self.lock:
-			rev = self._revision_arg(versions)
-			nc = ['=== No Changes\n']
-			if file is None:
-				diff = _bzr.pipe(['diff'] + rev, cwd=self.root) or nc
-			else:
-				diff = _bzr.pipe(['diff', file] + rev, cwd=self.root) or nc
+	def _vcs_specific_get_diff(self, versions=None, file=None):
+		"""FIXME Document this
+		Returns the diff operation result of a repo or file
+		@param versions: couple of version numbers (integer)
+		@param file: L{UnixFile} object of the file to check, or None
+		@returns the diff result
+		"""
+		diff = None
+		rev = self._revision_arg(versions)
+		nc = ['=== No Changes\n']
+		if file is None:
+			diff = _bzr.pipe(['diff'] + rev, cwd=self.root) or nc
+		else:
+			diff = _bzr.pipe(['diff', file] + rev, cwd=self.root) or nc
 		return diff
 
-	def get_annotated(self, file, version=None):
-		with self.lock:
-			rev = self._revision_arg(version)
-			annotated = _bzr.pipe(['annotate', file] + rev, cwd=self.root)
+	def _vcs_specific_get_annotated(self, file, version=None):
+		"""FIXME Document"""
+		rev = self._revision_arg(version)
+		annotated = _bzr.pipe(['annotate', file] + rev, cwd=self.root)
 		return annotated
 
-	def commit(self, msg):
-		with self.lock:
-			self._commit(msg)
-
-	def commit_async(self, msg, callback=None, data=None):
-		# TODO in generic baseclass have this default to using
-		# commit() + the wrapper call the callback
-		#~ print '!! ASYNC COMMIT'
-		operation = AsyncOperation(self._commit, (msg,),
-			lock=self.lock, callback=callback, data=data)
-		operation.start()
-
-	def _commit(self, msg):
+	def _vcs_specific_commit(self, msg):
 		stat = ''.join( _bzr.pipe(['st'], cwd=self.root) ).strip()
 		if not stat:
 			raise NoChangesError(self.root)
@@ -218,56 +163,56 @@ class BazaarVCS(object):
 			_bzr.run(['add'], cwd=self.root)
 			_bzr.run(['commit', '-m', msg], cwd=self.root)
 
-	def revert(self, version=None, file=None):
-		with self.lock:
-			rev = self._revision_arg(version)
-			if file is None:
-				_bzr.run(['revert'] + rev, cwd=self.root)
-			else:
-				_bzr.run(['revert', file] + rev, cwd=self.root)
+	def _vcs_specific_revert(self, version=None, file=None):
+		"""FIXME Document this"""
+		rev = self._revision_arg(version)
+		if file is None:
+			_bzr.run(['revert'] + rev, cwd=self.root)
+		else:
+			_bzr.run(['revert', file] + rev, cwd=self.root)
+	
 
-	def list_versions(self, file=None):
+	def _vcs_specific_list_versions(self, file=None):
+		"""FIXME Document"""
 		# TODO see if we can get this directly from bzrlib as well
-		with self.lock:
-			if file is None:
-				lines = _bzr.pipe(['log', '--forward'], cwd=self.root)
-			else:
-				lines = _bzr.pipe(['log', '--forward', file], cwd=self.root)
+		if file is None:
+			lines = _bzr.pipe(['log', '--forward'], cwd=self.root)
+		else:
+			lines = _bzr.pipe(['log', '--forward', file], cwd=self.root)
 
-			versions = []
-			(rev, date, user, msg) = (None, None, None, None)
-			seenmsg = False
-			for line in lines:
-				if line.startswith('----'):
-					if not rev is None:
-						versions.append((rev, date, user, msg))
-					(rev, date, user, msg) = (None, None, None, None)
-				elif line.startswith('revno: '):
-					value = line[7:].strip()
-					if ' ' in value:
-						# e.g. "revno: 48 [merge]\n"
-						i = value.index(' ')
-						value = value[:i]
-					rev = int(value)
-				elif line.startswith('committer: '):
-					user = line[11:].strip()
-				elif line.startswith('timestamp: '):
-					date = line[11:].strip()
-				elif line.startswith('message:'):
-					seenmsg = True
-					msg = u''
-				elif seenmsg and line.startswith('  '):
-					msg += line[2:]
+		versions = []
+		(rev, date, user, msg) = (None, None, None, None)
+		seenmsg = False
+		for line in lines:
+			if line.startswith('----'):
+				if not rev is None:
+					versions.append((rev, date, user, msg))
+				(rev, date, user, msg) = (None, None, None, None)
+			elif line.startswith('revno: '):
+				value = line[7:].strip()
+				if ' ' in value:
+					# e.g. "revno: 48 [merge]\n"
+					i = value.index(' ')
+					value = value[:i]
+				rev = int(value)
+			elif line.startswith('committer: '):
+				user = line[11:].strip()
+			elif line.startswith('timestamp: '):
+				date = line[11:].strip()
+			elif line.startswith('message:'):
+				seenmsg = True
+				msg = u''
+			elif seenmsg and line.startswith('  '):
+				msg += line[2:]
 
-			if not rev is None:
-				versions.append((rev, date, user, msg))
+		if not rev is None:
+			versions.append((rev, date, user, msg))
 
 		return versions
 
-	def get_version(self, file, version):
-		with self.lock:
-			rev = self._revision_arg(version)
-			version = _bzr.pipe(['cat', file] + rev, cwd=self.root)
+	def _vcs_specifc_get_version(self, file, version):
+		rev = self._revision_arg(version)
+		version = _bzr.pipe(['cat', file] + rev, cwd=self.root)
 		return version
 
 	def _revision_arg(self, versions):
