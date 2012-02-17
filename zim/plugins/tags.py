@@ -738,7 +738,7 @@ class TagCloudWidget(gtk.TextView):
 	def do_populate_popup(self, menu):
 		populate_popup_add_separator(menu, prepend=True)
 
-		item = gtk.CheckMenuItem(_('Sort alphabetically'))
+		item = gtk.CheckMenuItem(_('Sort alphabetically')) # T: Context menu item for tag cloud
 		item.set_active(self._alphabetically)
 		item.connect('toggled', self._switch_sorting)
 		item.show_all()
