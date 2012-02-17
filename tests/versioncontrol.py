@@ -51,7 +51,6 @@ class TestBazaar(tests.TestCase):
 		root = get_tmp_dir('versioncontrol_TestBazaar')
 		vcs = BazaarVCS(root)
 		vcs.init()
-		print "STATUS0", vcs.get_status()
 
 		#~ for notebookdir in (root, root.subdir('foobar')):
 			#~ detected = VersionControlPlugin._detect_vcs(notebookdir)
@@ -62,7 +61,6 @@ class TestBazaar(tests.TestCase):
 		file = subdir.file('baz.txt')
 		file.write('foo\nbar\n')
 
-		print "STATUS", vcs.get_status()
 		self.assertEqual(''.join(vcs.get_status()), '''\
 added:
   .bzrignore
@@ -253,11 +251,7 @@ bar
 		file.rename(root.file('bar.txt'))
 		
 		diff = vcs.get_diff()
-		for line in diff:
-			print "####", line
-			
 		diff = ''.join(filter(ignorelines, diff))
-		print "DIFF", diff
 		self.assertEqual(diff, '''\
 diff --git a/foo/bar/baz.txt b/bar.txt
 rename from foo/bar/baz.txt

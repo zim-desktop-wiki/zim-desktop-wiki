@@ -92,7 +92,6 @@ class BazaarVCS(VersionControlSystemBackend):
 		"""Init a repository, here are operations specific to the VCS
 		@see VersionControlSystemBackend._vcs_specific_init()
 		"""
-		print "agaga", self.root
 		_bzr.run(['init'], cwd=self.root)
 		_bzr.run(['whoami', 'zim'], cwd=self.root) #FIXME - bzr need a user to be setup
 		_bzr.run(['ignore', '**/.zim/'], cwd=self.root) # ignore cache

@@ -241,7 +241,6 @@ This is a core plugin shipping with zim.
 
 	def init_vcs(self, vcs):
 		dir = self._get_notebook_dir()
-		#FIXME print "Choosen VCS", vcs
 		self.vcs = VCS.create(vcs, dir)
 
 		if self.vcs:
