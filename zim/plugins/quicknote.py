@@ -384,9 +384,8 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		def get_ui():
 			# HACK to start daemon from separate process
 			# we are not allowed to fork since we already loaded gtk
-			from subprocess import check_call
-			from zim import ZIM_EXECUTABLE
-			check_call([ZIM_EXECUTABLE, '--daemon'])
+			from zim import ZimCmd
+			ZimCmd().run(args=('--daemon',))
 
 			notebook = self.notebookcombobox.get_notebook()
 			return DaemonProxy().get_notebook(notebook)

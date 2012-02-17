@@ -838,7 +838,14 @@ class TaskListTreeView(BrowserTreeView):
 		# First cache + sort tasks to ensure stability of the list
 		for row in rows:
 			if not row['source'] in path_cache:
-				path_cache[row['source']] = self.plugin.get_path(row)
+				path = self.plugin.get_path(row)
+				if path is None:
+					# Be robust for glitches - filter these out
+					row['source'] = None
+				else:
+					path_cache[row['source']] = path
+
+		rows = [r for r in rows if r['source'] is not None] # filter out missing paths
 
 		rows.sort(key=lambda r: path_cache[r['source']].name)
 

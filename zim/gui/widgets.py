@@ -3076,15 +3076,19 @@ class Assistant(Dialog):
 		page = self._pages[self._page]
 
 		# Add page title - use same color as used by gtkassistent.c
+		# This is handled on expose event, because style does not
+		# yet reflect theming on construction
+		# However also need to disconnect the signal after first use,
+		# because otherwise this keeps firing, which hangs the loop
+		# for handling events in ProgressBarDialog.pulse() - LP #929247
 		ebox = gtk.EventBox()
 		def _set_heading_color(*a):
-			# This is handled on expose event, because style does not
-			# yet reflect theming on construction
 			ebox.modify_fg(gtk.STATE_NORMAL, self.style.fg[gtk.STATE_SELECTED])
 			ebox.modify_bg(gtk.STATE_NORMAL, self.style.bg[gtk.STATE_SELECTED])
+			self.disconnect(self._expose_event_id)
 
-		_set_heading_color()
-		self.connect('expose-event', _set_heading_color)
+		self._expose_event_id = \
+			self.connect('expose-event', _set_heading_color)
 
 		hbox = gtk.HBox()
 		hbox.set_border_width(5)

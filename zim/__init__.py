@@ -466,6 +466,23 @@ NOTE FOR BUG REPORTS:
 		module.main(None, *args)
 
 
+def ZimCmd():
+	'''Constructor to get a L{Application} object for zim itself
+	Use this object to spawn new instances of zim.
+	@returns: a L{Application} object for zim itself
+	'''
+	# Note that Application takes care of using sys.executable when
+	# needed
+	from zim.applications import Application
+	if ZIM_EXECUTABLE.endswith('.exe'):
+		return Application(ZIM_EXECUTABLE)
+	elif sys.executable:
+		# If not an compiled executable, we assume it is python
+		# (Application class does this automatically for python scripts
+		# ending in .py)
+		return Application((sys.executable, ZIM_EXECUTABLE))
+
+
 class NotebookInterface(gobject.GObject):
 	'''Base class for the application object
 
@@ -739,9 +756,8 @@ class NotebookInterface(gobject.GObject):
 
 		@todo: take this method outside this class
 		'''
-		from zim.applications import Application
-		zim = Application((ZIM_EXECUTABLE,) + args)
-		zim.spawn()
+		zim = ZimCmd()
+		zim.spawn(args=args)
 
 # Need to register classes defining gobject signals
 gobject.type_register(NotebookInterface)

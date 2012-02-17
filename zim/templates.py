@@ -310,6 +310,7 @@ class Template(GenericTemplate):
 		else:
 			self.resources_dir = resources_dir
 		GenericTemplate.__init__(self, input, name)
+		self.template_options = None
 
 	def set_linker(self, linker):
 		self.linker = linker
@@ -321,7 +322,7 @@ class Template(GenericTemplate):
 		The attribute 'pages' can be used to supply page objects for
 		special pages, like 'next', 'previous', 'index' and 'home'.
 		'''
-		options = {} # this dict is accessible from the template and is
+		self.template_options = {} # this dict is writable from the template and is
 		             # passed on to the format
 
 		if pages:
@@ -331,7 +332,7 @@ class Template(GenericTemplate):
 				if not mypages[key] is None:
 					pages[key] = PageProxy(
 						notebook, mypages[key],
-						self.format, self.linker, options)
+						self.format, self.linker, self.template_options)
 		else:
 			pages = {}
 
@@ -343,13 +344,13 @@ class Template(GenericTemplate):
 			},
 			'page': PageProxy(
 				notebook, page,
-				self.format, self.linker, options),
+				self.format, self.linker, self.template_options),
 			'pages': pages,
 			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
 			'resource': TemplateFunction(self.resource_url),
-			'pageindex' : PageIndexFunction(notebook, page, self.format, self.linker, options),
-			'options': options,
+			'pageindex' : PageIndexFunction(notebook, page, self.format, self.linker, self.template_options),
+			'options': self.template_options,
 			# helpers that allow to write TRUE instead of 'TRUE' in template functions
 			'TRUE' : 'True', 'FALSE' : 'False',
 		}
@@ -360,6 +361,13 @@ class Template(GenericTemplate):
 			# first part of the template
 
 		TemplateManager.emit('process-page', self, page, dict)
+
+		# Bootstrap options as user modifiable part of dictionary
+		# need to assign in TempalteDict, so it goes in _user
+		dict = TemplateDict(dict)
+		dict[TemplateParam('options')] = self.template_options
+
+		# Finally process the template
 		output = GenericTemplate.process(self, dict)
 
 		# Caching last processed dict because any pages in the dict

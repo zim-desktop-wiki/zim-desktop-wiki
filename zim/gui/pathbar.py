@@ -487,7 +487,7 @@ class RecentPathBar(PathBar):
 
 	def get_paths(self):
 		# TODO enforce max number of paths shown
-		paths = list(self.history.get_unique())
+		paths = list(self.history.get_recent())
 		paths.reverse()
 		return paths
 

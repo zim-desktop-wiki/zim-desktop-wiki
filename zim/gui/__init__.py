@@ -202,10 +202,15 @@ def load_zim_stock_icons():
 			if not file.endswith('.png'):
 				continue # no all installs have svg support..
 			name = 'zim-'+file[:-4] # e.g. checked-box.png -> zim-checked-box
+			icon_theme = gtk.icon_theme_get_default()
 			try:
-				pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
-				set = gtk.IconSet(pixbuf=pixbuf)
-				factory.add(name, set)
+			    pixbuf = icon_theme.load_icon(name, 24, 0)
+			except:
+			    pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
+			
+			try:
+			    set = gtk.IconSet(pixbuf)
+			    factory.add(name, set)
 			except Exception:
 				logger.exception('Got exception while loading application icons')
 
@@ -1217,7 +1222,7 @@ class GtkInterface(NotebookInterface):
 			back.set_sensitive(not path.is_first)
 			forward.set_sensitive(not path.is_last)
 		else:
-			self.history.append(page)
+			self.history.append(path)
 			historyrecord = self.history.get_current()
 			back.set_sensitive(not is_first_page)
 			forward.set_sensitive(False)
@@ -1965,6 +1970,7 @@ class GtkInterface(NotebookInterface):
 		self.emit('start-index-update')
 
 		index = self.notebook.index
+		index.stop_updating()
 		if flush:
 			index.flush()
 
@@ -2723,11 +2729,7 @@ class MainWindow(Window):
 		if path and isinstance(path, HistoryPath) and not path.cursor is None:
 			cursor = path.cursor
 		elif self.ui.preferences['GtkInterface']['always_use_last_cursor_pos']:
-			record = self.ui.history.get_path(page, need_cursor=True)
-			if record:
-				cursor = record.cursor
-			else:
-				cursor = None
+			cursor, _ = self.ui.history.get_state(page)
 		else:
 			cursor = None
 

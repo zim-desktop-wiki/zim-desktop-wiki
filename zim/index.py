@@ -462,6 +462,7 @@ class Index(gobject.GObject):
 		self.notebook = None
 		self.properties = None
 		self.updating = False
+		self._idle_signal_id = None
 		self._update_pagelist_queue = []
 		self._index_page_queue = []
 		if self.dbfile:
@@ -643,10 +644,12 @@ class Index(gobject.GObject):
 				# Start new queue
 				logger.info('Starting async index update')
 				self.updating = True
-				gobject.idle_add(self._do_update, callback)
+				self._idle_signal_id = \
+					gobject.idle_add(self._do_update, callback)
 			# Else let running queue pick it up
 		else:
 			logger.info('Updating index')
+			self._stop_background_signal() # just to be sure
 			while self._do_update(callback):
 				continue
 
@@ -662,10 +665,31 @@ class Index(gobject.GObject):
 		'''
 		if self.updating:
 			logger.info('Ensure index updated')
+			self._stop_background_signal()
 			while self._do_update(callback):
 				continue
 		else:
 			return
+
+	def stop_updating(self):
+		'''Force asynchronous indexing to stop'''
+		if self._update_pagelist_queue or self._index_page_queue:
+			logger.info('Index update is canceled')
+		# else natural end of index update, or just checking
+
+		self._stop_background_signal()
+		self._update_pagelist_queue = [] # flush
+		self._index_page_queue = [] # flush
+
+		if self.updating:
+			self.emit('end-update')
+			self.updating = False
+
+	def _stop_background_signal(self):
+		if self._idle_signal_id:
+			gobject.source_remove(self._idle_signal_id)
+			self._idle_signal_id = None
+
 
 	def _do_update(self, callback):
 		# This returns boolean to continue or not because it can be called as an
@@ -695,9 +719,7 @@ class Index(gobject.GObject):
 			if not callback is None:
 				cont = callback(path)
 				if not cont is True:
-					logger.info('Index update is canceled')
-					self._update_pagelist_queue = [] # flush
-					self._index_page_queue = [] # flush
+					self.stop_updating()
 					return False
 			return True
 		else:
@@ -708,8 +730,7 @@ class Index(gobject.GObject):
 			except:
 				logger.exception('Got an exception while removing placeholders')
 			logger.info('Index update done')
-			self.updating = False
-			self.emit('end-update')
+			self.stop_updating()
 			return False
 
 	def touch(self, path):

@@ -500,6 +500,8 @@ class TextBuffer(gtk.TextBuffer):
 		self.notebook = notebook
 		self.page = page
 		self._insert_tree_in_progress = False
+		self._check_edit_mode = False
+		self._check_renumber = []
 		self.user_action = UserActionContext(self)
 		self.finder = TextFinder(self)
 
@@ -524,6 +526,30 @@ class TextBuffer(gtk.TextBuffer):
 			#~ 'changed', , 'modified-changed',
 		#~ ):
 			#~ self.connect(s, lambda *a: sys.stderr.write('>>> %s\n' % a[-1]), s)
+
+
+	#~ def do_begin_user_action(self):
+		#~ print '>>>> USER ACTION'
+		#~ pass
+
+	def do_end_user_action(self):
+		#~ print '<<<< USER ACTION'
+		if self._check_edit_mode:
+			self.update_editmode()
+			# This flag can e.g. indicate a delete happened in this
+			# user action, but we did not yet update edit mode -
+			# so we do it here so we are all set for the next action
+
+		lines = self._check_renumber
+			# copy to avoid infinite loop when updating bullet triggers new delete
+		self._check_renumber = []
+		for line in lines:
+			self.renumber_list(line)
+			# This flag means we deleted a line, and now we need
+			# to check if the numbering is still valid.
+			# It is delayed till here because this logic only applies
+			# to interactive actions.
+		self._check_renumber = []
 
 	def clear(self):
 		'''Clear all content from the buffer'''
@@ -842,16 +868,20 @@ class TextBuffer(gtk.TextBuffer):
 			link = tag.zim_attrib.copy()
 			if link['href'] is None:
 				# Copy text content as href
-				start = iter.copy()
-				if not start.begins_tag(tag):
-					start.backward_to_tag_toggle(tag)
-				end = iter.copy()
-				if not end.ends_tag(tag):
-					end.forward_to_tag_toggle(tag)
+				start, end = self.get_tag_bounds(iter, tag)
 				link['href'] = start.get_text(end)
 			return link
 		else:
 			return None
+
+	def get_tag_bounds(self, iter, tag):
+		start = iter.copy()
+		if not start.begins_tag(tag):
+			start.backward_to_tag_toggle(tag)
+		end = iter.copy()
+		if not end.ends_tag(tag):
+			end.forward_to_tag_toggle(tag)
+		return start, end
 
 	def insert_tag(self, iter, text, **attrib):
 		'''Insert a tag into the buffer
@@ -1025,7 +1055,7 @@ class TextBuffer(gtk.TextBuffer):
 		with self.user_action:
 			self._replace_bullet(iter, bullet)
 			if bullet and is_numbered_bullet_re.match(bullet):
-				self._renumber_list(line)
+				self.renumber_list(line)
 
 	def _replace_bullet(self, iter, bullet):
 		assert iter.starts_line()
@@ -1091,30 +1121,143 @@ class TextBuffer(gtk.TextBuffer):
 				else:
 					self.insert_at_cursor(bullet + ' ')
 
-	def _renumber_list(self, line):
-		# Renumber list from this line downward - only affects items
-		# at same indenting level
+	def renumber_list(self, line):
+		'''Renumber list from this line downward
+
+		This method is called when the user just typed a new bullet or
+		when we suspect the user deleted some line(s) that are part
+		of a numbered list. Typically there is no need to call this
+		method directly, but it is exposed for testing.
+
+		@param line: line number to start updating
+		'''
+		# The rules implemented here are:
+		#
+		# 1. If this is top of the list, number down
+		# 2. Otherwise look at bullet above and number down from there
+		#    (this means whatever the user typed doesn't really matter)
+		# 3. If above bullet is non-number bullet, replace the numbered
+		#    item with that bullet (for checkboxes always an open
+		#    checkbox is used.)
+		#
+		# Note that the bullet on the line we look also at does not have
+		# to be a numbered bullet. The one above or below may still be
+		# number. And vice versa
+		#
+		# TODO - should this go into code for TextBufferList ??
 		indent = self.get_indent(line)
 		bullet = self.get_bullet(line)
-		if not is_numbered_bullet_re.match(bullet):
+		if bullet is None:
 			return
-		next_bullet = increase_list_bullet(bullet)
+
+		_, prev = self._search_bullet(line, indent, -1)
+		if prev:
+			start = increase_list_bullet(prev) or prev
+		else:
+			start = bullet
+
+		if is_numbered_bullet_re.match(start) \
+		or is_numbered_bullet_re.match(bullet):
+			self._renumber_list(line, indent, start)
+		# else we had a normal bullet, and no numbered bullet above
+
+	def _renumber_list_after_indent(self, line, old_indent):
+		# Like renumber_list(), but more complex rules because indent
+		# change has different heuristics.
+		#
+		# The rules implemented here are:
+		#
+		# 1. If this is now middle of a list (above item is same or
+		#    more indenting) look above and renumber
+		# 2. If this is now top of a sublist (above item is lower
+		#    indent) look _below_ and copy bullet found there then
+		#    number down
+		# 3. If this is the top of a new sublist (no item below)
+		#    switch bullet style (numbers vs letters) and reset count
+		# 4. If this is the top of the list (no bullet above) don't
+		#    need to do anything
+		#
+		# ALSO look at previous level where item went missing,
+		# look at above item at that level and number downward
+
+		indent = self.get_indent(line)
+		bullet = self.get_bullet(line)
+		if bullet is None:
+			return
+
+		_, prev = self._search_bullet(line, indent, -1)
+		if prev:
+			newbullet = increase_list_bullet(prev) or prev
+		else:
+			_, newbullet = self._search_bullet(line, indent, +1)
+			if not newbullet:
+				if not is_numbered_bullet_re.match(bullet):
+					return
+				elif bullet.rstrip('.') in string.letters:
+					newbullet = '1.' # switch e.g. "a." -> "1."
+				else:
+					newbullet = 'a.' # switch "1." -> "a."
+
+		self._renumber_list(line, indent, newbullet)
+
+		# Now find place to update list at old indent level
+		newline, newbullet = self._search_bullet(line, old_indent, -1)
+		if newline is not None:
+			# Was middle of list on old level, just renumber down
+			self._renumber_list(newline, old_indent, newbullet)
+		else:
+			# If no item above on old level, was top on old level,
+			# use old bullet to renumber down from next item
+			newline, newbullet = self._search_bullet(line, old_indent, +1)
+			if newline is not None:
+				self._renumber_list(newline, old_indent, bullet)
+
+	def _search_bullet(self, line, indent, step):
+		# Return bullet for previous/next bullet item at same level
 		while True:
-			line += 1
+			line += step
 			try:
 				mybullet = self.get_bullet(line)
 				myindent = self.get_indent(line)
 			except ValueError:
-				break
+				return None, None
 
 			if not mybullet or myindent < indent:
-				break
+				return None, None
 			elif myindent == indent:
-				iter = self.get_iter_at_line(line)
-				self._replace_bullet(iter, next_bullet)
-				next_bullet = increase_list_bullet(next_bullet)
-			else: # bullet, but myindent > indent
-				continue
+				return line, mybullet
+			# else mybullet and myindent > indent
+
+	def _renumber_list(self, line, indent, newbullet):
+		# Do the actual renumbering
+
+		if not is_numbered_bullet_re.match(newbullet):
+			# Replace numbered bullet with normal bullet
+			iter = self.get_iter_at_line(line)
+			if newbullet == BULLET:
+				self._replace_bullet(iter, BULLET)
+			elif newbullet in CHECKBOXES:
+				self._replace_bullet(iter, UNCHECKED_BOX)
+			else:
+				pass # !?
+		else:
+			# Actually renumber for a given line downward
+			while True:
+				try:
+					mybullet = self.get_bullet(line)
+					myindent = self.get_indent(line)
+				except ValueError:
+					break
+
+				if not mybullet or myindent < indent:
+					break
+				elif myindent == indent:
+					iter = self.get_iter_at_line(line)
+					self._replace_bullet(iter, newbullet)
+					newbullet = increase_list_bullet(newbullet)
+				# else mybullet and myindent > indent
+
+				line += 1
 
 	def set_textstyle(self, name):
 		'''Sets the current text format style.
@@ -1158,15 +1301,15 @@ class TextBuffer(gtk.TextBuffer):
 		but there are some cases where you may need to call it manually
 		to force a consistent state.
 		'''
+		self._check_edit_mode = False
+
 		bounds = self.get_selection_bounds()
 		if bounds:
-			# For selection we set editmode based on the whole range
-			tags = []
-			for tag in filter(_is_zim_tag, bounds[0].get_tags()):
-				if self.whole_range_has_tag(tag, *bounds):
-					tags.append(tag)
+			# For selection we set editmode based on left hand side and looking forward
+			# so counting tags that apply to start of selection
+			tags = filter(_is_zim_tag, bounds[0].get_tags())
 		else:
-			# Otherwise base editmode on cursor position
+			# Otherwise base editmode on cursor position (looking backward)
 			iter = self.get_insert_iter()
 			tags = self.iter_get_zim_tags(iter)
 
@@ -1465,9 +1608,6 @@ class TextBuffer(gtk.TextBuffer):
 
 		bullet = self.get_bullet(line)
 		ok = self._set_indent(line, level, bullet)
-		#~ if is_numbered_bullet_re.match(bullet):
-			#~ # TODO find previous item on new level
-			#~ self._renumber_list(line)
 		if ok: self.set_modified(True)
 		return ok
 
@@ -1521,7 +1661,10 @@ class TextBuffer(gtk.TextBuffer):
 		@returns: C{True} if successful
 		'''
 		level = self.get_indent(line)
-		return self.set_indent(line, level+1, interactive)
+		if self.set_indent(line, level+1, interactive):
+			self._renumber_list_after_indent(line, old_indent=level)
+			return True
+		return False
 
 	def unindent(self, line, interactive=False):
 		'''Decrease the indent level for a given line
@@ -1535,7 +1678,10 @@ class TextBuffer(gtk.TextBuffer):
 		@returns: C{True} if successful
 		'''
 		level = self.get_indent(line)
-		return self.set_indent(line, level-1, interactive)
+		if self.set_indent(line, level-1, interactive):
+			self._renumber_list_after_indent(line, old_indent=level)
+			return True
+		return False
 
 	def foreach_line_in_selection(self, func, *args, **kwarg):
 		'''Convenience function to call a function for each line that
@@ -1564,32 +1710,6 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return False
 
-	def strip_selection(self):
-		'''Exclude whitespace for the start and end of the selection.
-
-		@returns: C{False} if there is no selection, or only whitespace
-		was selected (so stripping it would result in no selection),
-		C{True} otherwise.
-		'''
-		bounds = self.get_selection_bounds()
-		if bounds:
-			start, end = bounds
-		else:
-			return False
-
-		selected = start.get_slice(end)
-		if selected.isspace():
-			return False
-
-		left = len(selected) - len(selected.lstrip())
-		right = len(selected) - len(selected.rstrip())
-		if left > 0:
-			start.forward_chars(left)
-		if right > 0:
-			end.backward_chars(right)
-
-		self.select_range(start, end)
-
 	def do_mark_set(self, iter, mark):
 		gtk.TextBuffer.do_mark_set(self, iter, mark)
 		if mark.get_name() in ('insert', 'selection_bound'):
@@ -1597,13 +1717,14 @@ class TextBuffer(gtk.TextBuffer):
 
 	def do_insert_text(self, iter, string, length):
 		'''Signal handler for insert-text signal'''
+		#~ print 'INSERT', string
 
 		def end_or_protect_tags(string, length):
 			tags = filter(_is_tag_tag, self._editmode_tags)
 			if tags:
 				if iter.ends_tag(tags[0]):
 					# End tags if end-of-word char is typed at end of a tag
-					# without this you not insert text behind a tag e.g. at the end of a line
+					# without this you can not insert text behind a tag e.g. at the end of a line
 					self._editmode_tags = filter(_is_not_tag_tag, self._editmode_tags)
 				else:
 					# Forbid breaking a tag
@@ -1614,6 +1735,7 @@ class TextBuffer(gtk.TextBuffer):
 			return string, length
 
 		# Check if we are at a bullet or checkbox line
+		# if so insert behind the bullet when you type at start of line
 		if not self._insert_tree_in_progress and iter.starts_line() \
 		and not string.endswith('\n'):
 			bullet = self._get_bullet_at_iter(iter)
@@ -1622,7 +1744,7 @@ class TextBuffer(gtk.TextBuffer):
 				self.place_cursor(iter)
 
 		# Check current formatting
-		if string == '\n':
+		if string == '\n': # CHARS_END_OF_LINE
 			# Break tags that are not allowed to span over multiple lines
 			self._editmode_tags = filter(
 				lambda tag: _is_pre_tag(tag) or _is_not_style_tag(tag),
@@ -1635,7 +1757,7 @@ class TextBuffer(gtk.TextBuffer):
 
 		elif string in CHARS_END_OF_WORD:
 			# Break links if end-of-word char is typed at end of a link
-			# without this you not insert text behind a link e.g. at the end of a line
+			# without this you can not insert text behind a link e.g. at the end of a line
 			links = filter(_is_link_tag, self._editmode_tags)
 			if links and iter.ends_tag(links[0]):
 				self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
@@ -1645,14 +1767,12 @@ class TextBuffer(gtk.TextBuffer):
 
 			string, length = end_or_protect_tags(string, length)
 
-
 		# Call parent for the actual insert
 		gtk.TextBuffer.do_insert_text(self, iter, string, length)
 
-		# Apply current text style
-		# Note: looks like parent call modified the TextIter
-		# since it is still valid and now matched the end of the
-		# inserted string and not the start.
+		# And finally apply current text style
+		# Note: looks like parent call modified the position of the TextIter object
+		# since it is still valid and now matched the end of the inserted string
 		length = len(unicode(string))
 			# default function argument gives byte length :S
 		start = iter.copy()
@@ -1683,24 +1803,40 @@ class TextBuffer(gtk.TextBuffer):
 	def do_delete_range(self, start, end):
 		# Wrap actual delete to hook _do_lines_merged and do some logic
 		# when deleting bullets
+		#
+		# Implementation detail:
+		# (Interactive) deleting a formatted word with <del>, or <backspace>
+		# should drop the formatting, however selecting a formatted word and
+		# than typing to replace it, should keep formatting
+		# Since we don't know at this point what scenario we are part
+		# off, we do NOT touch the editmode. However we do set a flag
+		# that edit mode needs to be checked at the end of the user
+		# action.
 
+		#~ print 'DEL'
 		bullet = None
 		if start.starts_line():
 			bullet = self._get_bullet_at_iter(start)
 
-		with self.user_action:
+		with self.user_action: # FIXME why is this wrapper here !? - undo functions ??
 			if start.get_line() != end.get_line():
 				gtk.TextBuffer.do_delete_range(self, start, end)
 				self._do_lines_merged(start)
 			else:
 				gtk.TextBuffer.do_delete_range(self, start, end)
 
-			if bullet and not self._get_bullet_at_iter(start):
-				# had a bullet, but no longer
-				self.update_indent_tag(start.get_line(), None)
+			line = start.get_line()
+			newbullet = self.get_bullet(line)
+			print "TODO better logic here to decide renumber - either start line or del multiple lines"
+			if bullet and not newbullet:
+				# had a bullet, but no longer (implies we are start of line)
+				self.update_indent_tag(line, None)
+			elif newbullet and is_numbered_bullet_re.match(newbullet):
+				# new bullet is number - check renumbering
+				#~ if start.starts_line()
+				self._check_renumber.append(line)
 
-		# Delete formatted word followed by typing should not show format again
-		self.update_editmode()
+		self._check_edit_mode = True
 
 	def _do_lines_merged(self, iter):
 		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
@@ -2039,19 +2175,31 @@ class TextBuffer(gtk.TextBuffer):
 	def select_line(self):
 		'''Selects the current line
 
-		@returns: C{True} when succcessful
+		@returns: C{True} when successful
 		'''
 		# Differs from get_line_bounds because we exclude the trailing
 		# line break while get_line_bounds selects these
 		iter = self.get_iter_at_mark(self.get_insert())
-		iter = self.get_iter_at_line(iter.get_line())
-		if iter.ends_line():
-			return False
+		line = iter.get_line()
+		return self.select_lines(line, line)
+
+	def select_lines(self, first, last):
+		'''Select multiple lines
+		@param first: line number first line
+		@param last: line number last line
+		@returns: C{True} when successful
+		'''
+		start = self.get_iter_at_line(first)
+		end = self.get_iter_at_line(last)
+		if end.ends_line():
+			if end.equal(start):
+				return False
+			else:
+				pass
 		else:
-			end = iter.copy()
 			end.forward_to_line_end()
-			self.select_range(iter, end)
-			return True
+		self.select_range(start, end)
+		return True
 
 	def select_word(self):
 		'''Selects the current word, if any
@@ -2063,36 +2211,79 @@ class TextBuffer(gtk.TextBuffer):
 			return False
 
 		bound = insert.copy()
-		if not insert.ends_word():
-			insert.forward_word_end()
-		if not bound.starts_word():
-			bound.backward_word_start()
+		if not insert.starts_word():
+			insert.backward_word_start()
+		if not bound.ends_word():
+			bound.forward_word_end()
 
 		self.select_range(insert, bound)
 		return True
 
+	def strip_selection(self):
+		'''Shrinks the selection to exclude any whitespace on start and end.
+		If only white space was selected this function will not change the selection.
+		@returns: C{True} when this function changed the selection.
+		'''
+		bounds = self.get_selection_bounds()
+		if not bounds:
+			return False
+
+		text = bounds[0].get_text(bounds[1])
+		if not text or text.isspace():
+			return False
+
+		start, end = bounds[0].copy(), bounds[1].copy()
+		iter = start.copy()
+		iter.forward_char()
+		text = start.get_text(iter)
+		while text and text.isspace():
+			start.forward_char()
+			iter.forward_char()
+			text = start.get_text(iter)
+
+		iter = end.copy()
+		iter.backward_char()
+		text = iter.get_text(end)
+		while text and text.isspace():
+			end.backward_char()
+			iter.backward_char()
+			text = iter.get_text(end)
+
+		if (start.equal(bounds[0]) and end.equal(bounds[1])):
+			return False
+		else:
+			self.select_range(start, end)
+			return True
+
 	def select_link(self):
 		'''Selects the current link, if any
-
 		@returns: link attributes when succcessful, C{None} otherwise
 		'''
 		insert = self.get_iter_at_mark(self.get_insert())
 		tag = self.get_link_tag(insert)
 		if tag is None:
 			return None
-		link = tag.zim_attrib.copy()
+		start, end = self.get_tag_bounds(insert, tag)
+		self.select_range(start, end)
+		return self.get_link_data(start)
 
-		bound = insert.copy()
-		if not insert.ends_tag(tag):
-			insert.forward_to_tag_toggle(tag)
-		if not bound.begins_tag(tag):
-			bound.backward_to_tag_toggle(tag)
+	def get_has_link_selection(self):
+		'''Check whether a link is selected or not
+		@returns: link attributes when succcessful, C{None} otherwise
+		'''
+		bounds = self.get_selection_bounds()
+		if not bounds:
+			return None
 
-		if link['href'] is None:
-			link['href'] = bound.get_text(insert)
-
-		self.select_range(insert, bound)
-		return link
+		insert = self.get_iter_at_mark(self.get_insert())
+		tag = self.get_link_tag(insert)
+		if tag is None:
+			return None
+		start, end = self.get_tag_bounds(insert, tag)
+		if start.equal(bounds[0]) and end.equal(bounds[1]):
+			return self.get_link_data(start)
+		else:
+			return None
 
 	def remove_link(self, start, end):
 		'''Removes any links between in a range
@@ -2878,6 +3069,7 @@ class TextFinder(object):
 
 				offset = start.get_offset()
 				with self.buffer.user_action:
+					self.buffer.select_range(start, end) # ensure editmode logic is used
 					self.buffer.delete(start, end)
 					self.buffer.insert_at_cursor(string)
 
@@ -2916,6 +3108,7 @@ class TextFinder(object):
 				for start, end, string in matches:
 					start = self.buffer.get_iter_at_offset(start)
 					end = self.buffer.get_iter_at_offset(end)
+					self.buffer.select_range(start, end) # ensure editmode logic is used
 					self.buffer.delete(start, end)
 					self.buffer.insert(start, string)
 
@@ -3070,8 +3263,7 @@ class TextView(gtk.TextView):
 		if event.type == gtk.gdk.BUTTON_PRESS:
 			iter, coords = self._get_pointer_location()
 			if event.button == 2 and not buffer.get_has_selection():
-				clipboard = Clipboard(selection='PRIMARY')
-				buffer.paste_clipboard(clipboard, iter, self.get_editable())
+				buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
 				return False
 			elif event.button == 3:
 				self._set_popup_menu_mark(iter)
@@ -3825,6 +4017,12 @@ class UndoStackManager:
 		):
 			self.recording_handlers.append(
 				self.buffer.connect(signal, handler) )
+
+		for signal, handler in (
+			('end-user-action', self.do_end_user_action),
+		):
+			self.recording_handlers.append(
+				self.buffer.connect_after(signal, handler) )
 
 		for signal, action in (
 			('apply-tag', self.ACTION_APPLY_TAG),
@@ -5080,7 +5278,7 @@ class PageView(gtk.VBox):
 		with buffer.user_action:
 			if buffer.get_has_selection():
 				start, end = buffer.get_selection_bounds()
-				self.buffer.delete(start, end)
+				buffer.delete(start, end)
 			for link in links:
 				buffer.insert_link_at_cursor(link, link)
 				buffer.insert_at_cursor(sep)
@@ -5161,16 +5359,20 @@ class PageView(gtk.VBox):
 		only auto-select a single word otherwise
 		@returns: C{True} when this function changed the selection.
 		'''
+		if not self.preferences['autoselect']:
+			return False
+
 		buffer = self.view.get_buffer()
 		if buffer.get_has_selection():
-			return False
-		elif self.preferences['autoselect']:
 			if selectline:
-				return buffer.select_line()
+				start, end = buffer.get_selection_bounds()
+				return buffer.select_lines(start.get_line(), end.get_line())
 			else:
-				return buffer.select_word()
+				return buffer.strip_selection()
+		elif selectline:
+			return buffer.select_line()
 		else:
-			return False
+			return buffer.select_word()
 
 	def find(self, string, flags=0):
 		'''Find some string in the text, scroll there and select it
@@ -5622,7 +5824,7 @@ class InsertLinkDialog(Dialog):
 		# Hook text entry to copy text from link when apropriate
 		self.form.widgets['href'].connect('changed', self.on_href_changed)
 		self.form.widgets['text'].connect('changed', self.on_text_changed)
-		if self._selection_bounds or (text and text != href):
+		if self._selected_text or (text and text != href):
 			self._copy_text = False
 		else:
 			self._copy_text = True
@@ -5632,11 +5834,12 @@ class InsertLinkDialog(Dialog):
 		href, text = '', ''
 
 		buffer = self.pageview.view.get_buffer()
-		if not buffer.get_has_selection():
+		if buffer.get_has_selection():
+			buffer.strip_selection()
+			link = buffer.get_has_link_selection()
+		else:
 			link = buffer.select_link()
-			if link:
-				href = link['href']
-			else:
+			if not link:
 				self.pageview.autoselect()
 
 		if buffer.get_has_selection():
@@ -5646,10 +5849,15 @@ class InsertLinkDialog(Dialog):
 				# Interaction in the dialog causes buffer to loose selection
 				# maybe due to clipboard focus !??
 				# Anyway, need to remember bounds ourselves.
-			if not href:
+			if link:
+				href = link['href']
+				self._selected_text = False
+			else:
 				href = text
+				self._selected_text = True
 		else:
 			self._selection_bounds = None
+			self._selected_text = False
 
 		return href, text
 
