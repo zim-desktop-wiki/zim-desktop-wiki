@@ -25,6 +25,8 @@ import re
 import string
 import datetime
 
+import zim.formats
+
 from zim.fs import File, Dir
 from zim.errors import Error
 from zim.notebook import Path, interwiki_link
@@ -155,6 +157,7 @@ ui_format_toggle_actions = (
 	('toggle_format_strike', 'gtk-strikethrough', _('_Strike'), '', _('Strike')),
 )
 
+COPY_FORMATS = zim.formats.list_formats(zim.formats.TEXT_FORMAT)
 ui_preferences = (
 	# key, type, category, label, default
 	('follow_on_enter', 'bool', 'Interface',
@@ -188,7 +191,7 @@ ui_preferences = (
 		_('Reformat wiki markup on the fly'), False),
 		# T: option in preferences dialog
 	('copy_format', 'choice', 'Editing',
-		_('Default format for copying text to the clipboard'), 'Text', ('Text', 'Wiki')),
+		_('Default format for copying text to the clipboard'), 'Text', COPY_FORMATS),
 		# T: option in preferences dialog
 )
 
@@ -2929,8 +2932,8 @@ class TextView(gtk.TextView):
 	def do_copy_clipboard(self, format=None):
 		# Overriden to force usage of our Textbuffer.copy_clipboard
 		# over gtk.TextBuffer.copy_clipboard
-		format = format or self.preferences['copy_format'].lower()
-		if format == 'text': format = 'plain'
+		format = format or self.preferences['copy_format']
+		format = zim.formats.canonical_name(format)
 		self.get_buffer().copy_clipboard(Clipboard, format)
 
 	def do_cut_clipboard(self):
@@ -4657,23 +4660,26 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 
 		### Copy As option ###
-		default = self.preferences['copy_format']
-		if default == 'Text':
-			alternative = 'wiki'
-			label = 'Wiki'
-		else:
-			alternative = 'plain'
-			label = 'Text'
-		item = gtk.MenuItem(_('Copy _As "%s"') % label) # T: menu item in preferences menu
-		if buffer.get_has_selection():
-			item.connect('activate',
-				lambda o: self.view.do_copy_clipboard(alternative))
-		else:
-			item.set_sensitive(False)
-		item.show_all()
-		#~ menu.prepend(item)
-		menu.insert(item, 2) # position after Copy in the standard menu - may not be robust...
+		default = self.preferences['copy_format'].lower()
+		copy_as_menu = gtk.Menu()
+		for label in COPY_FORMATS:
+			if label.lower() == default:
+				continue # Covered by default Copy action
 
+			format = zim.formats.canonical_name(label)
+			item = gtk.MenuItem(label)
+			if buffer.get_has_selection():
+				item.connect('activate',
+					lambda o, f: self.view.do_copy_clipboard(format=f),
+					format)
+			else:
+				item.set_sensitive(False)
+			copy_as_menu.append(item)
+
+		item = gtk.MenuItem(_('Copy _As...')) # T: menu item for context menu of editor
+		item.set_submenu(copy_as_menu)
+		item.show_all()
+		menu.insert(item, 2) # position after Copy in the standard menu - may not be robust...
 
 		#### Check for images and links ###
 

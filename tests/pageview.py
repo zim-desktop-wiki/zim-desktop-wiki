@@ -1273,17 +1273,23 @@ foo
 		pageview = setUpPageView(fakedir=dir)
 		pageview.set_page(page)
 
-		def click(id):
+		def get_context_menu():
 			buffer = pageview.view.get_buffer()
 			buffer.select_range(*buffer.get_bounds()) # select all
-			menu = pageview.view.get_popup()
+			return pageview.view.get_popup()
+
+		def click(id):
+			menu = get_context_menu()
 			tests.gtk_activate_menu_item(menu, id)
 
 		#~ tests.gtk_activate_menu_item(menu, 'gtk-copy')
 		#~ self.assertEqual(Clipboard.get_text(), 'Test')
 		#~ ## Looks like this item not initialized yet
 
-		click(_('Copy _As "%s"') % 'Wiki')
+		menu = get_context_menu()
+		item = tests.gtk_get_menu_item(menu, _('Copy _As...'))
+		copy_as_menu = item.get_submenu()
+		tests.gtk_activate_menu_item(copy_as_menu, 'Wiki')
 		self.assertEqual(Clipboard.get_text(), 'Foo **Bar** Baz')
 		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
 		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree partial="True">Foo <strong>Bar</strong> Baz</zim-tree>')

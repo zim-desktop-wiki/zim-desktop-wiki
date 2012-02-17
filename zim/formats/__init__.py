@@ -97,6 +97,7 @@ except:  # pragma: no cover
 EXPORT_FORMAT = 1
 IMPORT_FORMAT = 2
 NATIVE_FORMAT = 4
+TEXT_FORMAT = 8 # Used for "Copy As" menu - these all prove "text/plain" mimetype
 
 UNCHECKED_BOX = 'unchecked-box'
 CHECKED_BOX = 'checked-box'
@@ -106,9 +107,22 @@ BULLET = '*'
 
 def list_formats(type):
 	if type == EXPORT_FORMAT:
-		return ['HTML','LaTeX']
+		return ['HTML','LaTeX', 'Markdown (pandoc)']
+	elif type == TEXT_FORMAT:
+		return ['Text', 'Wiki', 'Markdown (pandoc)']
 	else:
 		assert False, 'TODO'
+
+
+def canonical_name(name):
+	# "HTML" -> html
+	# "Markdown (pandoc)" -> "markdown"
+	# "Text" -> "plain"
+	name = name.lower()
+	if ' ' in name:
+		name, _ = name.split(' ', 1)
+	if name == 'text': return 'plain'
+	else: return name
 
 
 def get_format(name):

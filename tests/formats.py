@@ -514,6 +514,94 @@ That's all ...<br>
 		self.assertEqual(output, html.splitlines(True))
 
 
+class TestMarkdownFormat(tests.TestCase):
+
+	def setUp(self):
+		self.format = get_format('markdown')
+		notebook = tests.new_notebook()
+		self.page = notebook.get_page(Path('Foo'))
+
+	def testDumping(self):
+		'''Test dumping page to plain text'''
+		tree = get_format('wiki').Parser().parse(wikitext)
+		text = self.format.Dumper(linker=StubLinker()).dump(tree)
+		wanted = '''\
+Head1
+=====
+
+Head 2
+------
+
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat. Duis aute irure dolor in
+reprehenderit in voluptate velit esse cillum dolore eu fugiat
+nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
+sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+	Some Verbatim here
+\t
+		Indented and all: //foo//
+
+	Also block-indentation of verbatim is possible.
+		Even with additional per-line indentation
+
+IMAGE: ![Foo Bar](img://../my-image.png)
+LINKS: [:foo:bar](page://:foo:bar) [./file.png](file://./file.png) [file:///etc/passwd](file://file:///etc/passwd)
+LINKS: [Foo](page://Foo)[Bar](page://Bar)
+IMAGELINK: ![](img://my-image.png)
+IMAGELINK: ![Foo Bar](img://../my-image.png)
+TAGS: @foo @bar
+
+Some indented
+paragraphs go here ...
+
+
+![](img://./equation003.png)
+
+
+Let's try these **bold**, *italic*, __underline__ and ~~strike~~
+And some ``//verbatim//`` with an indent halfway the paragraph
+And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
+
+A list
+
+* foo
+	* ~~bar~~
+	* baz
+
+And an indented list
+
+* foo
+	* ~~bar~~
+	* baz
+
+
+And a checkbox list
+
+* \u2610 item 1
+	* \u2611 sub item 1
+		* Some normal bullet
+	* \u2612 sub item 2
+	* \u2610 sub item 3
+* \u2610 item 2
+* \u2610 item 3
+	* \u2612 item FOOOOOO !
+
+
+----
+
+Some sub- and superscript like x^2^ and H~2~O
+
+====
+This is not a header
+
+That's all ...
+'''
+		self.assertEqual(''.join(text), wanted)
+
+
 class LatexLoggingFilter(tests.LoggingFilter):
 
 	logger = 'zim.formats.latex'

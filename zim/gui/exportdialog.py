@@ -33,6 +33,9 @@ class ExportDialog(Assistant):
 			if self.uistate[k] and not self.uistate[k].isspace():
 				options[k] = self.uistate[k]
 
+		options['format'] = \
+			zim.formats.canonical_name(options['format'])
+
 		if options['template'] == '__file__':
 			options['template'] = self.uistate['template_file']
 
@@ -175,6 +178,7 @@ class FormatPage(AssistantPage):
 		# Set template list based on selected format
 		def set_templates(self):
 			format = self.form['format']
+			format = zim.formats.canonical_name(format)
 			combobox = self.form.widgets['template']
 			combobox.get_model().clear()
 
