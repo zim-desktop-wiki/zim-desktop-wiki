@@ -250,3 +250,4 @@ class VersionControlSystemBackend(object):
 			version = self._vcs_specifc_get_version(file, version)
 		return version
 
+

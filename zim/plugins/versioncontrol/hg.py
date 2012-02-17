@@ -17,8 +17,9 @@ logger = logging.getLogger('zim.vcs.hg')
 
 # TODO document API - use base class
 class HG(object):
+	#FIXME Bin = 'hg'
 	App = Application(('hg',))
-
+	
 class MercurialVCS(VersionControlSystemBackend):
 	
 	def __init__(self, dir):
@@ -43,7 +44,6 @@ class MercurialVCS(VersionControlSystemBackend):
 		"""Init a repository, here are operations specific to the VCS
 		@see VersionControlSystemBackend._vcs_specific_init()
 		"""
-		print "agaga", self.root
 		HG.App.run(['init'], cwd=self.root)
 		# Mercurial has no option to tell to ignore some files,
 		# so we have to tell it by writting a .hgignore file
@@ -98,7 +98,6 @@ class MercurialVCS(VersionControlSystemBackend):
 		"""
 		diff = None
 		rev = self._revision_arg(versions)
-		print "REVISION STRING", rev
 		nc = ['=== No Changes\n']
 		if file is None:
 			diff = HG.App.pipe(['diff', '--git'] + rev, cwd=self.root) or nc
@@ -216,4 +215,5 @@ class MercurialVCS(VersionControlSystemBackend):
 			return ['-r', '%i' % version]
 		else:
 			return []
-			
+
+
