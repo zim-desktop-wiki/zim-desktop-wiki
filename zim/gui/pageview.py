@@ -1041,12 +1041,8 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		iter = self.get_iter_at_line(line)
 		if bullet == NUMBER_BULLET:
-			# special case - check line above, else start new list
-			if line > 0:
-				prev = self.get_bullet(line - 1)
-			else:
-				prev = None
-
+			indent = self.get_indent(line)
+			_, prev = self._search_bullet(line, indent, -1)
 			if prev and is_numbered_bullet_re.match(prev):
 				bullet = increase_list_bullet(prev)
 			else:
@@ -1060,6 +1056,7 @@ class TextBuffer(gtk.TextBuffer):
 	def _replace_bullet(self, iter, bullet):
 		assert iter.starts_line()
 		line = iter.get_line()
+		indent = self.get_indent(line)
 		with self.tmp_cursor():
 			bound = iter.copy()
 			self.iter_forward_past_bullet(bound)
@@ -1067,10 +1064,11 @@ class TextBuffer(gtk.TextBuffer):
 			# Will trigger do_delete_range, which will update indent tag
 
 			if not bullet is None:
-				self.place_cursor(iter)
+				self.place_cursor(iter) # update editmode
 				self._insert_bullet_at_cursor(bullet)
 
-			self.update_indent_tag(line, bullet)
+			#~ self.update_indent_tag(line, bullet)
+			self._set_indent(line, indent, bullet)
 
 	def _insert_bullet_at_cursor(self, bullet, raw=False):
 		'''Insert a bullet plus a space at the cursor position.
@@ -1152,19 +1150,19 @@ class TextBuffer(gtk.TextBuffer):
 
 		_, prev = self._search_bullet(line, indent, -1)
 		if prev:
-			start = increase_list_bullet(prev) or prev
+			newbullet = increase_list_bullet(prev) or prev
 		else:
-			start = bullet
+			newbullet = bullet
 
-		if is_numbered_bullet_re.match(start) \
+		if is_numbered_bullet_re.match(newbullet) \
 		or is_numbered_bullet_re.match(bullet):
-			self._renumber_list(line, indent, start)
+			self._renumber_list(line, indent, newbullet)
 		# else we had a normal bullet, and no numbered bullet above
 
-	def _renumber_list_after_indent(self, line, old_indent):
-		# Like renumber_list(), but more complex rules because indent
-		# change has different heuristics.
-		#
+	def renumber_list_after_indent(self, line, old_indent):
+		'''Like L{renumber_list()}, but more complex rules because indent
+		change has different heuristics.
+		'''
 		# The rules implemented here are:
 		#
 		# 1. If this is now middle of a list (above item is same or
@@ -1182,6 +1180,7 @@ class TextBuffer(gtk.TextBuffer):
 
 		indent = self.get_indent(line)
 		bullet = self.get_bullet(line)
+		#~ print 'RENUMBER after indent', line, indent, bullet, old_indent
 		if bullet is None:
 			return
 
@@ -1198,7 +1197,10 @@ class TextBuffer(gtk.TextBuffer):
 				else:
 					newbullet = 'a.' # switch "1." -> "a."
 
-		self._renumber_list(line, indent, newbullet)
+		if is_numbered_bullet_re.match(newbullet) \
+		or is_numbered_bullet_re.match(bullet):
+			self._renumber_list(line, indent, newbullet)
+		# else we had a normal bullet, and no numbered bullet above
 
 		# Now find place to update list at old indent level
 		newline, newbullet = self._search_bullet(line, old_indent, -1)
@@ -1580,6 +1582,8 @@ class TextBuffer(gtk.TextBuffer):
 	def set_indent(self, line, level, interactive=False):
 		'''Set the indenting for a specific line.
 
+		May also trigger renumbering for numbered lists.
+
 		@param line: the line number
 		@param level: the indenting level as a number, C{0} for no
 		indenting, C{1} for the equivalent of 1 tab, etc.
@@ -1601,13 +1605,15 @@ class TextBuffer(gtk.TextBuffer):
 			# end-of-line gives content to empty line, but last line
 			# may not have end-of-line.
 			start, end = self.get_line_bounds(line)
-			if start.equal(end) :
+			bufferend = self.get_end_iter()
+			if start.equal(end) or end.equal(bufferend):
 				with self.tmp_cursor():
 					self.insert(end, '\n')
 					start, end = self.get_line_bounds(line)
 
 		bullet = self.get_bullet(line)
 		ok = self._set_indent(line, level, bullet)
+
 		if ok: self.set_modified(True)
 		return ok
 
@@ -1661,10 +1667,7 @@ class TextBuffer(gtk.TextBuffer):
 		@returns: C{True} if successful
 		'''
 		level = self.get_indent(line)
-		if self.set_indent(line, level+1, interactive):
-			self._renumber_list_after_indent(line, old_indent=level)
-			return True
-		return False
+		return self.set_indent(line, level+1, interactive)
 
 	def unindent(self, line, interactive=False):
 		'''Decrease the indent level for a given line
@@ -1678,10 +1681,7 @@ class TextBuffer(gtk.TextBuffer):
 		@returns: C{True} if successful
 		'''
 		level = self.get_indent(line)
-		if self.set_indent(line, level-1, interactive):
-			self._renumber_list_after_indent(line, old_indent=level)
-			return True
-		return False
+		return self.set_indent(line, level-1, interactive)
 
 	def foreach_line_in_selection(self, func, *args, **kwarg):
 		'''Convenience function to call a function for each line that
@@ -1818,23 +1818,28 @@ class TextBuffer(gtk.TextBuffer):
 		if start.starts_line():
 			bullet = self._get_bullet_at_iter(start)
 
+		multiline = start.get_line() != end.get_line()
 		with self.user_action: # FIXME why is this wrapper here !? - undo functions ??
-			if start.get_line() != end.get_line():
+			if multiline:
 				gtk.TextBuffer.do_delete_range(self, start, end)
 				self._do_lines_merged(start)
 			else:
 				gtk.TextBuffer.do_delete_range(self, start, end)
 
-			line = start.get_line()
-			newbullet = self.get_bullet(line)
-			print "TODO better logic here to decide renumber - either start line or del multiple lines"
-			if bullet and not newbullet:
-				# had a bullet, but no longer (implies we are start of line)
-				self.update_indent_tag(line, None)
-			elif newbullet and is_numbered_bullet_re.match(newbullet):
-				# new bullet is number - check renumbering
-				#~ if start.starts_line()
-				self._check_renumber.append(line)
+			if bullet and not self._get_bullet_at_iter(start):
+				# had a bullet, but no longer (implies we are start of
+				# line - case where we are not start of line is
+				# handled by _do_lines_merged by extending the indent tag)
+				self.update_indent_tag(start.get_line(), None)
+			elif start.starts_line() and self._get_bullet_at_iter(start):
+				# did not have a bullet but has one now
+				self._check_renumber.append(start.get_line())
+			elif multiline and self.get_bullet(start.get_line()):
+				# we deleted some lines, and although not at start of
+				# line, this line does have a bullet - so check if
+				# we need to renumber
+				self._check_renumber.append(start.get_line())
+			# else we don't have anything to do with bullet lists
 
 		self._check_edit_mode = True
 
@@ -2710,18 +2715,26 @@ class TextBufferList(list):
 		return True
 
 	def _indent(self, row, step):
-		level = self[row][self.INDENT_COL]
+		line, level, bullet = self[row]
 		self._indent_row(row, step)
+
 		if row == 0:
 			# Indent the whole list
 			for i in range(1, len(self)):
 				self._indent_row(i, step)
 		else:
+			# Indent children
 			for i in range(row+1, len(self)):
 				if self[i][self.INDENT_COL] > level:
 					self._indent_row(i, step)
 				else:
 					break
+
+			# Renumber - *after* children have been updated as well
+			# Do not restrict to number bullets - we might be moving
+			# a normal bullet into a numbered sub list
+			# TODO - pull logic of renumber_list_after_indent here and use just renumber_list
+			self.buffer.renumber_list_after_indent(line, level)
 
 	def _indent_row(self, row, step):
 		line, level, bullet = self[row]
@@ -3853,6 +3866,7 @@ class TextView(gtk.TextView):
 			buffer.delete_mark(mark)
 		elif not buffer.get_bullet_at_iter(start) is None:
 			# we are part of bullet list
+			# FIXME should logic be handled by TextBufferList ?
 			ourhome = start.copy()
 			buffer.iter_forward_past_bullet(ourhome)
 			newlinestart = end.copy()

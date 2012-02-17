@@ -1136,6 +1136,14 @@ Tja
 		# ALSO look at previous level where item went missing,
 		# look at above item at that level and number downward
 
+		def indent(buffer, line):
+			row, list = TextBufferList.new_from_line(buffer, line)
+			list.indent(row)
+
+		def unindent(buffer, line):
+			row, list = TextBufferList.new_from_line(buffer, line)
+			list.unindent(row)
+
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">
@@ -1154,7 +1162,7 @@ Tja
 <li bullet="1." indent="2"> C</li>
 <li bullet="C." indent="1"> D</li>
 </zim-tree>'''
-		buffer.indent(3) # new sub-list -- reset style and numbering
+		indent(buffer, 3) # new sub-list -- reset style and numbering
 		self.assertBufferEquals(buffer, wanted)
 
 		wanted = '''\
@@ -1165,7 +1173,7 @@ Tja
 <li bullet="1." indent="2"> C</li>
 <li bullet="2." indent="2"> D</li>
 </zim-tree>'''
-		buffer.indent(4) # add to existing sub list
+		indent(buffer, 4) # add to existing sub list
 		self.assertBufferEquals(buffer, wanted)
 
 		wanted = '''\
@@ -1173,10 +1181,10 @@ Tja
 <zim-tree raw="True">
 <li bullet="A." indent="1"> A</li>
 <li bullet="1." indent="2"> B</li>
-<li bullet="2." indent="2"> C</li>
-<li bullet="3." indent="2"> D</li>
+<li bullet="1." indent="3"> C</li>
+<li bullet="2." indent="3"> D</li>
 </zim-tree>'''
-		buffer.indent(2) # top of existing sub list
+		indent(buffer, 2) # top of existing sub list
 		self.assertBufferEquals(buffer, wanted)
 
 		prev = wanted
@@ -1185,13 +1193,13 @@ Tja
 <zim-tree raw="True">
 <li bullet="A." indent="1"> A</li>
 <li bullet="1." indent="2"> B</li>
-<li bullet="a." indent="3"> C</li>
-<li bullet="2." indent="2"> D</li>
+<li bullet="1." indent="3"> C</li>
+<li bullet="a." indent="4"> D</li>
 </zim-tree>'''
-		buffer.indent(3) # yet another new sub level
+		indent(buffer, 4) # yet another new sub level
 		self.assertBufferEquals(buffer, wanted)
 
-		buffer.unindent(3)
+		unindent(buffer, 4)
 		self.assertBufferEquals(buffer, prev)
 
 		wanted = '''\
@@ -1202,7 +1210,7 @@ Tja
 <li bullet="1." indent="2"> C</li>
 <li bullet="2." indent="2"> D</li>
 </zim-tree>'''
-		buffer.unindent(2) # renumber both levels
+		unindent(buffer, 2) # renumber both levels
 		self.assertBufferEquals(buffer, wanted)
 
 		wanted = '''\
@@ -1213,7 +1221,30 @@ Tja
 <li bullet="1." indent="2"> C</li>
 <li bullet="C." indent="1"> D</li>
 </zim-tree>'''
-		buffer.unindent(4)
+		unindent(buffer, 4)
+		self.assertBufferEquals(buffer, wanted)
+
+		buffer.set_bullet(4, NUMBER_BULLET)
+		self.assertBufferEquals(buffer, wanted)
+
+
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="1." indent="1"> A</li>
+<li bullet="2." indent="1"> B</li>
+<li bullet="3." indent="1"> C</li>
+</zim-tree>'''
+		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="1." indent="1"> A</li>
+<li bullet="2." indent="1"> B</li>
+<li bullet="a." indent="2"> C</li>
+</zim-tree>'''
+		indent(buffer, 3)
 		self.assertBufferEquals(buffer, wanted)
 
 
@@ -1221,9 +1252,9 @@ Tja
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">
 <li bullet="*" indent="1"> A</li>
-<li bullet="*" indent="1"> B</li>
-<li bullet="1." indent="2"> C</li>
-<li bullet="2." indent="2"> D</li>
+<li bullet="1." indent="2"> B</li>
+<li bullet="2." indent="2"> C</li>
+<li bullet="*" indent="1"> D</li>
 </zim-tree>'''
 		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
 
@@ -1235,7 +1266,7 @@ Tja
 <li bullet="2." indent="2"> C</li>
 <li bullet="3." indent="2"> D</li>
 </zim-tree>'''
-		buffer.indent(2)
+		indent(buffer, 4)
 		self.assertBufferEquals(buffer, wanted)
 
 		wanted = '''\
@@ -1246,7 +1277,7 @@ Tja
 <li bullet="1." indent="2"> C</li>
 <li bullet="2." indent="2"> D</li>
 </zim-tree>'''
-		buffer.unindent(2)
+		unindent(buffer, 2)
 		self.assertBufferEquals(buffer, wanted)
 
 
