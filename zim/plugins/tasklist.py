@@ -356,7 +356,7 @@ This is a core plugin shipping with zim.
 		for child in para.getchildren():
 			if child.tag == 'strike':
 				continue # Ignore strike out text
-			elif child.tag == 'ul':
+			elif child.tag in ('ul', 'ol'):
 				if text:
 					items += text.splitlines()
 				items += self._flatten_list(child)

@@ -83,6 +83,7 @@ Known style tags:
 * **link**: hyperlink text
 * **indent**: indented lines
 * **bullet-list**: lines in a bullet list
+* **numbered-list**: lines in a numbered list
 * **unchecked-checkbox**: lines with an open checkbox
 * **checked-checkbox**: lines with a "v-checked" checkbox
 * **xchecked-checkbox**: lines with a "x-checked" checkbox
