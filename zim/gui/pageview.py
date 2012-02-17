@@ -4975,8 +4975,22 @@ class PageView(gtk.VBox):
 		item.set_submenu(copy_as_menu)
 		item.show_all()
 		menu.insert(item, 2) # position after Copy in the standard menu - may not be robust...
+			# FIXME get code from test to seek stock item
 
-		#### Check for images and links ###
+		### Move text to new page ###
+		item = gtk.MenuItem(_('Move Selected Text...'))
+			# T: Context menu item for pageview to move selected text to new/other page
+		item.show_all() # FIXME should not be needed here
+		menu.insert(item, 7) # position after Copy in the standard menu - may not be robust...
+			# FIXME get code from test to seek stock item
+
+		if buffer.get_has_selection():
+			item.connect('activate',
+				lambda o: MoveTextDialog(self.ui, self).run())
+		else:
+			item.set_sensitive(False)
+
+
 
 		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
 			# This iter can be either cursor position or pointer
@@ -6256,3 +6270,57 @@ class WordCountDialog(Dialog):
 		table.attach(gtk.Label(str(buffercount[2])), 1,2, 3,4)
 		table.attach(gtk.Label(str(paracount[2])), 2,3, 3,4)
 		table.attach(gtk.Label(str(selectioncount[2])), 3,4, 3,4)
+
+
+class MoveTextDialog(Dialog):
+
+	def __init__(self, ui, pageview):
+		Dialog.__init__(self, ui, _('Move Text to Other Page'), # T: Dialog title
+			button=(_('_Move'), 'gtk-ok') )  # T: Button label
+		self.pageview = pageview
+		self.page = self.pageview.page
+		assert self.page, 'No source page !?'
+		buffer = self.pageview.view.get_buffer()
+		assert buffer.get_has_selection(), 'No Selection present'
+		self.text = self.pageview.get_selection(format='wiki')
+		assert self.text # just to be sure
+		start, end = buffer.get_selection_bounds()
+		self.bounds = (start.get_offset(), end.get_offset())
+			# Save selection bounds - can get lost later :S
+
+		self.uistate.setdefault('link', True)
+		self.uistate.setdefault('open_page', False)
+		self.add_form([
+			('page', 'page', _('Move text to'), self.page), # T: Input in 'move text' dialog
+			('link', 'bool', _('Leave link to new page')), # T: Input in 'move text' dialog
+			('open_page', 'bool', _('Open new page')), # T: Input in 'move text' dialog
+
+		], self.uistate )
+
+	def do_response_ok(self):
+		newpage = self.form['page']
+		if not newpage:
+			return False
+		newpage = self.ui.notebook.get_page(newpage)
+
+		# Copy text
+		if newpage.exists():
+			self.ui.append_text_to_page(newpage.name, self.text)
+		else:
+			newpage = self.ui.new_page_from_text(self.text, name=newpage.name)
+
+		# Delete text (after copy was succesfull..)
+		buffer = self.pageview.view.get_buffer()
+		bounds = map(buffer.get_iter_at_offset, self.bounds)
+		buffer.delete(*bounds)
+
+		# Insert Link
+		if self.form['link']:
+			href = self.form.widgets['page'].get_text() # TODO add method to Path "get_link" which gives rel path formatted correctly
+			buffer.insert_link_at_cursor(href, href)
+
+		# Show page
+		if self.form['open_page']:
+			self.ui.open_page(newpage)
+
+		return True
