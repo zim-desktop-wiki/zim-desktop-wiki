@@ -74,10 +74,17 @@ else:
 
 
 # TODO document API - use base class
-
 class BazaarVCS(object):
 
 	def __init__(self, dir):
+		"""Initialize the instance in normal or test mode
+		- in case of TEST_MODE off, it checks the file system
+		  for creation, move or delete of files
+		- in case of TEST_MODE on, it does not check anything
+		  in order to avoid to interfer with dev environment
+
+		@param dir: a L{Dir} object representing the repository working directory path
+		"""
 		self.root = dir
 		self.lock = FS.get_async_lock(self.root)
 		if not TEST_MODE:
@@ -91,30 +98,58 @@ class BazaarVCS(object):
 
 	@classmethod
 	def check_dependencies(klass):
+		"""Checks if the bzrlib or the bzr binary is available
+		
+		@returns: True in case of success (eg. : the 'bzr' command succeed) or False
+		"""
 		return _bzr.tryexec()
 
 	def _ignored(self, path):
-		# Return True if we should ignore this path
-		# TODO add bzrignore patterns here
-		# for now we just hardcode zim specific logic
+		"""Return True if we should ignore this path
+		TODO add bzrignore patterns here
+		for now we just hardcode zim specific logic
+		
+		@param path: a L{UnixFile} object representing the file path to check
+		@returns: True if the path should be ignored or False
+		"""
 		return '.zim' in path.split()
 
 	def init(self):
+		"""Initialize a Bazaar repository in the self.root directory.
+		If the directory does not exist, then create it
+		@returns: nothing
+		"""
 		if not self.root.exists():
 			self.root.touch()
 
 		with self.lock:
 			_bzr.run(['init'], cwd=self.root)
+			_bzr.run(['whoami', 'zim'], cwd=self.root) #FIXME - bzr need a user to be setup
 			_bzr.run(['ignore', '**/.zim/'], cwd=self.root) # ignore cache
 			_bzr.run(['add', '.'], cwd=self.root) # add all existing files
 
 	def on_path_created(self, fs, path):
+		"""Callback to add a new file or folder when added to the wiki
+		Note: the VCS operation is asynchronous
+		
+		@param fs: the L{FSSingletonClass} instance representing the file system
+		@param path: the L{UnixFile} object representing the newly created file or folder
+		@returns: nothing
+		"""
 		if path.ischild(self.root) and not self._ignored(path):
 				def wrapper():
 					_bzr.run(['add', path], cwd=self.root)
 				AsyncOperation(wrapper, lock=self.lock).start()
 
 	def on_path_moved(self, fs, oldpath, newpath):
+		"""Callback to move the file in Bazaar when moved in the wiki
+		Note: the VCS operation is asynchronous
+		
+		@param fs: the L{FSSingletonClass} instance representing the file system
+		@param oldpath: the L{UnixFile} object representing the old path of the file or folder
+		@param newpath: the L{UnixFile} object representing the new path of the file or folder
+		@returns: nothing
+		"""
 		if newpath.ischild(self.root) and not self._ignored(newpath):
 			def wrapper():
 				if oldpath.ischild(self.root):
@@ -128,6 +163,12 @@ class BazaarVCS(object):
 			self.on_path_deleted(self, fs, oldpath)
 
 	def on_path_deleted(self, path):
+		"""Callback to remove a file from Bazaar when deleted from the wiki
+		Note: the VCS operation is asynchronous
+		
+		@param path: the L{UnixFile} object representing the path of the file or folder to delete
+		@returns: nothing
+		"""
 		def wrapper():
 			_bzr.run(['rm', path], cwd=self.root)
 		AsyncOperation(wrapper, lock=self.lock).start()
