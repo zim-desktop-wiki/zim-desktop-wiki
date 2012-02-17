@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 import gtk
 
+import os
 import logging
 
 from zim.fs import File
@@ -21,6 +22,11 @@ from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 # or use their own graphical interfaces, like bzr gdiff
 
 # FUTURE add option to also pull & push versions automatically
+
+if os.environ.get('ZIM_TEST_RUNNING'):
+	TEST_MODE = True
+else:
+	TEST_MODE = False
 
 logger = logging.getLogger('zim.plugins.versioncontrol')
 
@@ -82,8 +88,13 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Version Control',
 	}
 
+	global BZR, HG
+	BZR = _('Bazaar') # T: option value
+	HG = _('Mercurial') # T: option value
+
 	plugin_preferences = (
 		('autosave', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
+		('vcsbackend', 'choice', _('Default version control backend'), BZR, [BZR, HG]),
 	)
 
 	def __init__(self, ui):
