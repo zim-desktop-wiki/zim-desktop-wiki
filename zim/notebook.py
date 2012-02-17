@@ -1423,7 +1423,9 @@ class Notebook(gobject.GObject):
 		assert not page.modified, 'BUG: moving a page with uncomitted changes'
 
 		newpage = self.get_page(newpath)
-		if newpage.exists():
+		if newpage.exists() and not newpage.isequal(page):
+			# Check isequal to allow case sensitive rename on
+			# case insensitive file system
 			raise PageExistsError, 'Page already exists: %s' % newpath.name
 
 		self.emit('move-page', path, newpath, update_links)
@@ -2285,6 +2287,19 @@ class Page(Path):
 	def exists(self):
 		'''C{True} when the page has either content or children'''
 		return self.haschildren or self.hascontent
+
+	def isequal(self, other):
+		'''Check equality of pages
+		This method is intended to deal with case-insensitive storage
+		backends (e.g. case insensitive file system) where the method
+		is supposed to check equality of the resource.
+		Note that this may be the case even when the page objects differ
+		and can have a different name (so L{__cmp__} will not show
+		them to be equal). However default falls back to L{__cmp__}.
+		@returns: C{True} of both page objects point to the same resource
+		@implementation: can be implementated by subclasses
+		'''
+		return self == other
 
 	def get_parsetree(self):
 		'''Returns the contents of the page

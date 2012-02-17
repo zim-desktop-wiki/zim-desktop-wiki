@@ -543,8 +543,6 @@ class TestLatexFormat(tests.TestCase):
 		input = r'''
 [% options.document_type = 'book' -%]
 \title{[% page.basename %]}
-\date{[% strftime("%A %d %B %Y") %]}
-\author{}
 
 \begin{document}
 \maketitle
@@ -554,8 +552,6 @@ class TestLatexFormat(tests.TestCase):
 '''
 		wanted = r'''
 \title{FooBar}
-\date{Wednesday 15 February 2012}
-\author{}
 
 \begin{document}
 \maketitle
