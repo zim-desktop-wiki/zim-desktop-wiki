@@ -28,15 +28,11 @@ class BZR(object):
 	def tryexec(cls):
 		return BZR.App.tryexec()
 	
-	def run(self, params, cwd=None):
-		if not cwd:
-			cwd = self.root
-		return self._app.run(params, cwd)
+	def run(self, params):
+		return self._app.run(params, self.root)
 
-	def pipe(self, params, cwd=None):
-		if not cwd:
-			cwd = self.root
-		return self._app.pipe(params, cwd)
+	def pipe(self, params):
+		return self._app.pipe(params, self.root)
 
 	def build_revision_arguments(self, versions):
 		"""Build a list including required string/int for running an VCS command
@@ -76,13 +72,17 @@ class BZR(object):
 	#
 	# NOW ARE ALL REVISION CONTROL SYSTEM SHORTCUTS
 	
-	def add(self, path, cwd=None):
+	def add(self, path=None):
 		"""
 		Runs: bzr add {{PATH}}
 		"""
-		return self.run(['add', path], cwd=cwd)
+		if path is None:
+			return self.run(['add'])
+		else:
+			return self.run(['add', path])
+		
 
-	def annotate(self, file, version, cwd=None):
+	def annotate(self, file, version):
 		"""FIXME Document
 		return
 		1 | line1
@@ -90,25 +90,28 @@ class BZR(object):
 		...
 		"""
 		revision_args = self.build_revision_arguments(version)
-		return self.pipe(['annotate', file] + revision_args, cwd=cwd)
+		return self.pipe(['annotate', file] + revision_args)
 
-	def cat(self, path, version, cwd=None):
+	def cat(self, path, version):
 		"""
 		Runs: bzr cat {{PATH}} {{REV_ARGS}}
 		"""
 		revision_args = self.build_revision_arguments(version)
-		return self.pipe(['cat', path] + revision_args, cwd)
+		return self.pipe(['cat', path] + revision_args)
 
-	def commit(self, path, msg, cwd=None):
+	def commit(self, path, msg):
 		"""
 		Runs: bzr commit -m {{MSG}} {{PATH}}
 		"""
-		if msg=='':
-			return self.run(['commit', path], cwd=cwd)
-		else:
-			return self.run(['commit', '-m', msg, path], cwd=cwd)
+		params = ['commit']
+		if msg!='' and msg!=None:
+			params.append('-m')
+			params.append(msg)
+		if path!='' and path!=None:
+			params.append(path)
+		return self.run(params)
 			
-	def diff(self, versions, path=None, cwd=None):
+	def diff(self, versions, path=None):
 		"""
 		Runs:
 			bzr diff {{REVISION_ARGS}} 
@@ -117,40 +120,39 @@ class BZR(object):
 		"""
 		revision_args = self.build_revision_arguments(versions)
 		if path==None:
-			return self.pipe(['diff'] + revision_args, cwd=cwd)
+			return self.pipe(['diff'] + revision_args)
 			# Using --git option allow to show the renaming of files
 		else:
-			return self.pipe(['diff', path] + revision_args, cwd)
+			return self.pipe(['diff', path] + revision_args)
 
-	def ignore(self, file_to_ignore_regexp, cwd=None):
+	def ignore(self, file_to_ignore_regexp):
 		"""
 		Build a .bzrignore file including the file_to_ignore_content
 		"""
-		return self.run(['ignore', file_to_ignore_regexp], cwd=cwd)
+		return self.run(['ignore', file_to_ignore_regexp])
 
 
 	def init_repo(self):
-		self.init(self.root)
-		self.whoami('zim') # set a dummy user "zim"
+		self.init()
+		#self.whoami('zim') # set a dummy user "zim"
 		self.ignore('**/.zim/')
 		self.add('.')
 
-	def init(self, cwd=None):
+	def init(self):
 		"""
 		Runs: bzr init
 		"""
-		return self.run(['init'], cwd=cwd)
+		return self.run(['init'])
 
-	def log(self, path=None, cwd=None):
+	def log(self, path=None):
 		"""
 		Runs: bzr log --forward {{PATH}}
-		the "-r :" option allows to reverse order
-		--verbose allows to get the entire commit message
+		the "--forward" option allows to reverse order
 		"""
 		if path:
-			return self.pipe(['log', '--forward', path], cwd=cwd)
+			return self.pipe(['log', '--forward', path])
 		else:
-			return self.pipe(['log', '--forward'], cwd=cwd)
+			return self.pipe(['log', '--forward'])
 
 	def log_to_revision_list(self, log_op_output):
 		versions = []
@@ -196,21 +198,21 @@ class BZR(object):
 		return versions
 
 
-	def move(self, oldpath, newpath, cwd=None):
+	def move(self, oldpath, newpath):
 		"""
 		Runs: bzr mv --after {{OLDPATH}} {{NEWPATH}}
 		"""
-		self.run(['add', '--no-recurse', newpath.dir], cwd=cwd)
+		self.run(['add', '--no-recurse', newpath.dir])
 		return self.run(['mv', oldpath, newpath])
 
 
-	def remove(self, path, cwd=None):
+	def remove(self, path):
 		"""
 		Runs: bzr rm {{PATH}}
 		"""
-		return self.run(['rm', path], cwd=cwd)
+		return self.run(['rm', path])
 
-	def revert(self, path, version, cwd=None):
+	def revert(self, path, version):
 		"""
 		Runs:
 			bzr revert {{PATH}} {{REV_ARGS}}
@@ -219,21 +221,21 @@ class BZR(object):
 		"""
 		revision_params = self.build_revision_arguments(version)
 		if path:
-			return self.run(['revert', path] + revision_params, cwd=cwd)
+			return self.run(['revert', path] + revision_params)
 		else:
-			return self.run(['revert'] + revision_params, cwd=cwd)
+			return self.run(['revert'] + revision_params)
 
-	def status(self, cwd=None):
+	def status(self):
 		"""
 		Runs: bzr status
 		"""
-		return self.pipe(['status'], cwd=cwd)
+		return self.pipe(['status'])
 
-	def whoami(self, cwd=None):
+	def whoami(self, user):
 		"""
 		Runs: bzr whoami zim
 		"""
-		return self.pipe(['whoami', 'zim'], cwd=cwd)
+		return self.pipe(['whoami', user])
 
 
 
