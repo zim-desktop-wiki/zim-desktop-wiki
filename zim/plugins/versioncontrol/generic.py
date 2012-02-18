@@ -18,7 +18,7 @@ class VersionControlSystemBackend(object):
 	"""Parent class for all VCS backend implementations.
 	It implements the required API.
 	"""
-	def __init__(self, dir):
+	def __init__(self, dir, vcs_specific_app):
 		"""Initialize the instance in normal or test mode
 		- in case of TEST_MODE off, it checks the file system
 		  for creation, move or delete of files
@@ -37,12 +37,8 @@ class VersionControlSystemBackend(object):
 		"""
 		self._root = dir
 		self._lock = FS.get_async_lock(self._root)
-		print "LOCK", self._lock, self.lock
-		print "ROOT", self._root, self.root
-		print "TEST MODE ?", TEST_MODE
-		# FIXME - The following test should be executed
-		# if not TEST_MODE:
-		if True: #FIXME 
+		self._app  = vcs_specific_app
+		if not TEST_MODE:
 			# Avoid touching the bazaar repository with zim sources
 			# when we write to tests/tmp etc.
 			FS.connect('path-created', self.on_path_created)
@@ -50,6 +46,10 @@ class VersionControlSystemBackend(object):
 			FS.connect('path-deleted', self.on_path_deleted)
 
 	# TODO: disconnect method - callbacks keep object alive even when plugin is disabled !
+
+	@property
+	def vcs(self):
+		return self._app
 
 	@property
 	def root(self):
@@ -66,10 +66,10 @@ class VersionControlSystemBackend(object):
 		
 		@returns: True in case of success (eg. : in case of Bazaar, the check consists in running the 'bzr' command) or False
 		"""
-		return klass._vcs_specific_check_dependencies()
+		return klass._check_dependencies()
 
 	@classmethod
-	def _vcs_specific_check_dependencies(klass):
+	def _check_dependencies(klass):
 		raise NotImplementedError
 
 	def _ignored(self, path):
@@ -80,15 +80,7 @@ class VersionControlSystemBackend(object):
 		@param path: a L{UnixFile} object representing the file path to check
 		@returns: True if the path should be ignored or False
 		"""
-		return '.zim' in path.split() or self._vcs_specific_ignored(path)
-
-	def _vcs_specific_ignored(self, path):
-		"""similar to _ignored except that this must be implemented in child class
-		
-		If you don't want to ignore specific files,
-		then implement this method always returning False
-		"""
-		raise NotImplementedError
+		return '.zim' in path.split() or self.vcs._ignored(path)
 
 	def init(self):
 		"""Initialize a Bazaar repository in the self.root directory.
@@ -99,16 +91,7 @@ class VersionControlSystemBackend(object):
 			self.root.touch()
 
 		with self.lock:
-			self._vcs_specific_init()
-
-	def _vcs_specific_init(self):
-		"""Implements init operations specific the the concrete VCS.
-		Eg: with bzr, it will run a "bzr init" command, etc
-		
-		Note: this methond is called through a "with self.lock()"
-		"""
-		raise NotImplementedError
-
+			self.vcs.init_repo()
 
 	def on_path_created(self, fs, path):
 		"""Callback to add a new file or folder when added to the wiki
@@ -118,11 +101,10 @@ class VersionControlSystemBackend(object):
 		@param path: the L{UnixFile} object representing the newly created file or folder
 		@returns: nothing
 		"""
-		print "CREATED:", path
-		self._vcs_specific_on_path_created(fs, path)
-
-	def _vcs_specific_on_path_created(self, fs, path):
-		raise NotImplementedError
+		if path.ischild(self.root) and not self._ignored(path):
+			def wrapper():
+				self.vcs.add(path)
+			AsyncOperation(wrapper, lock=self.lock).start()
 
 
 	def on_path_moved(self, fs, oldpath, newpath):
@@ -134,12 +116,17 @@ class VersionControlSystemBackend(object):
 		@param newpath: the L{UnixFile} object representing the new path of the file or folder
 		@returns: nothing
 		"""
-		print "MOVED:", oldpath, newpath
-		self._vcs_specific_on_path_moved(fs, oldpath, newpath)
+		if newpath.ischild(self.root) and not self._ignored(newpath):
+			def wrapper():
+				if oldpath.ischild(self.root):
+					# Parent of newpath needs to be versioned in order to make mv succeed
+					self.vcs.move(oldpath, newpath)
+				else:
+					self.vcs.add(newpath)
+			AsyncOperation(wrapper, lock=self.lock).start()
+		elif oldpath.ischild(self.root) and not self._ignored(oldpath):
+			self.on_path_deleted(self, fs, oldpath)
 		
-	def _vcs_specific_on_path_moved(self, fs, oldpath, newpath):
-		raise NotImplementedError
-
 	def on_path_deleted(self, path):
 		"""Callback to remove a file from Bazaar when deleted from the wiki
 		Note: the VCS operation is asynchronous
@@ -147,10 +134,9 @@ class VersionControlSystemBackend(object):
 		@param path: the L{UnixFile} object representing the path of the file or folder to delete
 		@returns: nothing
 		"""
-		self._vcs_specific_on_path_deleted(path)
-
-	def _vcs_specific_on_path_deleted(self, path):
-		raise NotImplementedError
+		def wrapper():
+			self.vcs.remove(path)
+		AsyncOperation(wrapper, lock=self.lock).start()
 
 
 	@property
@@ -168,11 +154,8 @@ class VersionControlSystemBackend(object):
 		"""
 		status = list()
 		with self.lock:
-			status = self._vcs_specific_get_status()
+			status = self.vcs.status()
 		return status
-		
-	def _vcs_specific_get_status(self):
-		raise NotImplementedError
 		
 	def get_diff(self, versions=None, file=None):
 		"""Returns the diff operation result of a repo or file
@@ -180,10 +163,9 @@ class VersionControlSystemBackend(object):
 		@param file: L{UnixFile} object of the file to check, or None
 		@returns the diff result
 		"""
-		print "VERSIONS", versions, versions.__class__
-		print "FILE", file, file.__class__
 		with self.lock:
-			diff = self._vcs_specific_get_diff(versions, file)
+			nc = ['=== No Changes\n']
+			diff = self.vcs.diff(versions, file) or nc
 		return diff
 
 	def get_annotated(self, file, version=None):
@@ -193,11 +175,8 @@ class VersionControlSystemBackend(object):
 		@returns the annotated version of the file result
 		"""
 		with self.lock:
-			annotated = self._vcs_specific_get_annotated(file, version)
+			annotated = self.vcs.annotate(file, version)
 		return annotated
-
-	def _vcs_specific_get_annotated(self, file, version=None):
-		raise NotImplementedError
 
 	def commit(self, msg):
 		"""Run a commit operation.
@@ -206,27 +185,27 @@ class VersionControlSystemBackend(object):
 		@returns nothing
 		"""
 		with self.lock:
-			self._vcs_specific_commit(msg)
+			self._commit(msg)
+
+	def _commit(self, msg):
+		stat = ''.join(self.vcs.status()).strip()
+		if not stat:
+			raise NoChangesError(self.root)
+		else:
+			self.vcs.add('.')
+			self.vcs.commit('.', msg)
 
 	def commit_async(self, msg, callback=None, data=None):
 		# TODO in generic baseclass have this default to using
 		# commit() + the wrapper call the callback
 		#~ print '!! ASYNC COMMIT'
-		operation = AsyncOperation(self._vcs_specific_commit, (msg,),
+		operation = AsyncOperation(self._commit, (msg,),
 			lock=self._lock, callback=callback, data=data)
 		operation.start()
 
-	def _vcs_specific_commit(self, msg):
-		"""FIXME Document this"""
-		raise NotImplementedError
-
 	def revert(self, version=None, file=None):
 		with self.lock:
-			self._vcs_specific_revert(version, file)
-
-	def _vcs_specific_revert(version=None, file=None):
-		"""FIXME Document this"""
-		raise NotImplementedError
+			self.vcs.revert(file, version)
 
 
 	def list_versions(self, file=None):
@@ -237,17 +216,15 @@ class VersionControlSystemBackend(object):
 		"""
 		# TODO see if we can get this directly from bzrlib as well
 		with self.lock:
-			versions = self._vcs_specific_list_versions(file)
+			lines = self.vcs.log(file)
+			versions = self.vcs.log_to_revision_list(lines)
 		return versions
-	
-	def _vcs_specific_list_versions(self, file=None):
-		"""FIXME Document"""
-		raise NotImplementedError
+
 
 	def get_version(self, file, version):
 		"""FIXME Document"""
 		with self.lock:
-			version = self._vcs_specifc_get_version(file, version)
+			version = self.vcs.cat(file, version)
 		return version
 
 

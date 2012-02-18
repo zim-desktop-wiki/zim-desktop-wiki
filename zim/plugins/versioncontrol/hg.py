@@ -20,130 +20,143 @@ class HG(object):
 	#FIXME Bin = 'hg'
 	App = Application(('hg',))
 	
-class MercurialVCS(VersionControlSystemBackend):
-	
-	def __init__(self, dir):
-		super(MercurialVCS, self).__init__(dir)
-
-
+	def __init__(self, root):
+		self._app = Application(('hg',))
+		self.root = root
+		
 	@classmethod
-	def _vcs_specific_check_dependencies(klass):
-		"""@see VersionControlSystemBackend.check_dependencies"""
+	def tryexec(self):
 		return HG.App.tryexec()
+	
+	def run(self, params, cwd=None):
+		if not cwd:
+			cwd = self.root
+		return self._app.run(params, cwd)
 
-	def _vcs_specific_ignored(self, path):
-		"""Return True if we should ignore this path
-		TODO add bzrignore patterns here
+	def pipe(self, params, cwd=None):
+		if not cwd:
+			cwd = self.root
+		return self._app.pipe(params, cwd)
 
-		@see VersionControlSystemBackend._vcs_specific_ignored
-		     and VersionControlSystemBackend._ignored
+	def build_revision_arguments(self, versions):
+		"""Build a list including required string/int for running an VCS command
+		# Accepts: None, int, string, (int,), (int, int)
+		# Always returns a list
+		# versions content:
+		  - None: return an empty list
+		  - int ou string: return ['-r', int]
+		  - tuple or list: return ['-r', '%i..%i']
+		  
+		It's all based on the fact that defining revision with current VCS is:
+		-r revision
+		-r rev1..rev2
+		"""
+		if isinstance(versions, (tuple, list)):
+			assert 1 <= len(versions) <= 2
+			if len(versions) == 2:
+				versions = map(int, versions)
+				versions.sort()
+				return ['-r', '%i..%i' % tuple(versions)]
+			else:
+				versions = versions[0]
+
+		if not versions is None:
+			version = int(versions)
+			return ['-r', '%i' % version]
+		else:
+			return []
+
+	def _ignored(self, path):
+		"""return True if the path should be ignored by the version control system
 		"""
 		return False
 
-	def _vcs_specific_init(self):
-		"""Init a repository, here are operations specific to the VCS
-		@see VersionControlSystemBackend._vcs_specific_init()
+
+	########
+	#
+	# NOW ARE ALL REVISION CONTROL SYSTEM SHORTCUTS
+	
+	def add(self, path, cwd=None):
 		"""
-		HG.App.run(['init'], cwd=self.root)
-		# Mercurial has no option to tell to ignore some files,
-		# so we have to tell it by writting a .hgignore file
-		# at the repo root
-		hgignore_filepath = os.path.join(self.root.__str__(), '.hgignore')
-		hgignore_fh = open(hgignore_filepath, 'w')
-		hgignore_fh.write('\.zim*$\n')
-		hgignore_fh.close()
-		HG.App.run(['add', '.'], cwd=self.root) # add all existing files
-
-	def _vcs_specific_on_path_created(self, fs, path):
-		"""@see VersionControlSystemBackend.on_path_created"""
-		if path.ischild(self.root) and not self._ignored(path):
-				def wrapper():
-					HG.App.run(['add', path], cwd=self.root)
-				AsyncOperation(wrapper, lock=self.lock).start()
-
-	def _vcs_specific_on_path_moved(self, fs, oldpath, newpath):
-		"""@see VersionControlSystemBackend.on_path_moved"""
-		if newpath.ischild(self.root) and not self._ignored(newpath):
-			def wrapper():
-				if oldpath.ischild(self.root):
-					# Parent of newpath needs to be versioned in order to make mv succeed
-					HG.App.run(['mv', '--after', oldpath, newpath], cwd=self.root) # --after tells that the operation has already been done on the file system
-				else:
-					HG.App.run(['add', newpath], cwd=self.root)
-			AsyncOperation(wrapper, lock=self.lock).start()
-		elif oldpath.ischild(self.root) and not self._ignored(oldpath):
-			self.on_path_deleted(self, fs, oldpath)
-
-
-	def _vcs_specific_on_path_deleted(self, path):
-		"""@see VersionControlSystemBackend.on_path_deleted"""
-		def wrapper():
-			HG.App.run(['rm', path], cwd=self.root)
-		AsyncOperation(wrapper, lock=self.lock).start()
-		
-	def _vcs_specific_get_status(self):
-		"""Returns last operation status as a list of text lines
-		@see VersionControlSystemBackend._vcs_specific_get_status()
-		     and VersionControlSystemBackend.get_status()
+		Runs: hg add {{PATH}}
 		"""
-		return HG.App.pipe(['status'], cwd=self.root)
+		return self.run(['add', path], cwd=cwd)
 
-
-	def _vcs_specific_get_diff(self, versions=None, file=None):
-		"""FIXME Document this
-		Returns the diff operation result of a repo or file
-		@param versions: couple of version numbers (integer)
-		@param file: L{UnixFile} object of the file to check, or None
-		@returns the diff result
-		"""
-		diff = None
-		rev = self._revision_arg(versions)
-		nc = ['=== No Changes\n']
-		if file is None:
-			diff = HG.App.pipe(['diff', '--git'] + rev, cwd=self.root) or nc
-			# Using --git option allow to show the renaming of files
-		else:
-			diff = HG.App.pipe(['diff', '--git', file] + rev, cwd=self.root) or nc
-		return diff
-
-	def _vcs_specific_get_annotated(self, file, version=None):
+	def annotate(self, file, version, cwd=None):
 		"""FIXME Document
 		return
 		0: line1
 		2: line1
 		...
 		"""
-		rev = self._revision_arg(version)
-		annotated = HG.App.pipe(['annotate', file] + rev, cwd=self.root)
-		return annotated
+		revision_args = self.build_revision_arguments(version)
+		return self.pipe(['annotate', file] + revision_args, cwd=cwd)
 
-	def _vcs_specific_commit(self, msg):
-		stat = ''.join( HG.App.pipe(['st'], cwd=self.root) ).strip()
-		if not stat:
-			raise NoChangesError(self.root)
+	def cat(self, path, version, cwd=None):
+		"""
+		Runs: hg cat {{PATH}} {{REV_ARGS}}
+		"""
+		revision_args = self.build_revision_arguments(version)
+		return self.pipe(['cat', path] + revision_args, cwd)
+
+	def commit(self, path, msg, cwd=None):
+		"""
+		Runs: hg commit -m {{MSG}} {{PATH}}
+		"""
+		if msg=='':
+			return self.run(['commit', path], cwd=cwd)
 		else:
-			HG.App.run(['add'], cwd=self.root)
-			HG.App.run(['commit', '-m', msg], cwd=self.root)
-
-	def _vcs_specific_revert(self, version=None, file=None):
-		"""FIXME Document this"""
-		rev = self._revision_arg(version)
-		if file is None:
-			HG.App.run(['revert', '--no-backup', '--all'] + rev, cwd=self.root)
+			return self.run(['commit', '-m', msg, path], cwd=cwd)
+			
+	def diff(self, versions, path=None, cwd=None):
+		"""
+		Runs:
+			hg diff --git {{REVISION_ARGS}} 
+		or
+			hg diff --git {{REVISION_ARGS}} {{PATH}}
+		"""
+		revision_args = self.build_revision_arguments(versions)
+		if path==None:
+			return self.pipe(['diff', '--git'] + revision_args, cwd=cwd)
+			# Using --git option allow to show the renaming of files
 		else:
-			HG.App.run(['revert', '--no-backup', file] + rev, cwd=self.root)
-	
+			return self.pipe(['diff', '--git', path] + revision_args, cwd)
 
-	def _vcs_specific_list_versions(self, file=None):
-		"""FIXME Document"""
-		# TODO see if we can get this directly from bzrlib as well
-		if file is None:
-			lines = HG.App.pipe(['log', '-r', ':', '--verbose'], cwd=self.root)
-			# --verbose show complete commit message
-			# -r : will reverse the history order
+	def ignore(self, file_to_ignore_regexp, cwd=None):
+		"""
+		Build a .hgignore file including the file_to_ignore_content
+		"""
+		root = cwd
+		if root==None:
+			root = self.root.__str__()
+		hgignore_filepath = os.path.join(root, '.hgignore')
+		hgignore_fh = open(hgignore_filepath, 'w')
+		hgignore_fh.write(file_to_ignore_regexp)
+		hgignore_fh.close()
+
+	def init_repo(self):
+		self.init(self.root)
+		self.ignore('\.zim*$\n')
+		self.add('.') # add all existing files
+
+	def init(self, cwd=None):
+		"""
+		Runs: hg init
+		"""
+		return self.run(['init'], cwd=cwd)
+
+	def log(self, path=None, cwd=None):
+		"""
+		Runs: hg log -r : --verbose {{PATH}}
+		the "-r :" option allows to reverse order
+		--verbose allows to get the entire commit message
+		"""
+		if path:
+			return self.pipe(['log', '-r', ':', '--verbose', path], cwd=cwd)
 		else:
-			lines = HG.App.pipe(['log', '-r', ':', '--verbose', file], cwd=self.root)
+			return self.pipe(['log', '-r', ':', '--verbose'], cwd=cwd)
 
+	def log_to_revision_list(self, log_op_output):
 		versions = []
 		(rev, date, user, msg) = (None, None, None, None)
 		seenmsg = False
@@ -159,7 +172,7 @@ class MercurialVCS(VersionControlSystemBackend):
 		#
 		# FIXME: there is a bug which will stop parsing if a blank line is included
 		# in the commit message
-		for line in lines:
+		for line in log_op_output:
 			if len(line.strip())==0:
 				if not rev is None:
 					versions.append((rev, date, user, msg))
@@ -192,28 +205,47 @@ class MercurialVCS(VersionControlSystemBackend):
 
 		return versions
 
-	def _vcs_specifc_get_version(self, file, version):
-		rev = self._revision_arg(version)
-		version = HG.App.pipe(['cat', file] + rev, cwd=self.root)
-		return version
 
-	def _revision_arg(self, versions):
-		# Accepts: None, int, string, (int,), (int, int)
-		# Always returns a list
+	def move(self, oldpath, newpath, cwd=None):
+		"""
+		Runs: hg mv --after {{OLDPATH}} {{NEWPATH}}
+		"""
+		return self.run(['mv', '--after', oldpath, newpath], cwd=cwd)
 
-		if isinstance(versions, (tuple, list)):
-			assert 1 <= len(versions) <= 2
-			if len(versions) == 2:
-				versions = map(int, versions)
-				versions.sort()
-				return ['-r', '%i..%i' % tuple(versions)]
-			else:
-				versions = versions[0]
+	def remove(self, path, cwd=None):
+		"""
+		Runs: hg rm {{PATH}}
+		"""
+		return self.run(['rm', path], cwd=cwd)
 
-		if not versions is None:
-			version = int(versions)
-			return ['-r', '%i' % version]
+	def revert(self, path, version, cwd=None):
+		"""
+		Runs:
+			hg revert --no-backup {{PATH}} {{REV_ARGS}}
+		or
+			hg revert --no-backup --all {{REV_ARGS}}
+		"""
+		revision_params = self.build_revision_arguments(version)
+		if path:
+			return self.run(['revert', '--no-backup', path] + revision_params, cwd=cwd)
 		else:
-			return []
+			return self.run(['revert', '--no-backup', '--all'] + revision_params, cwd=cwd)
 
+	def status(self, cwd=None):
+		"""
+		Runs: hg status
+		"""
+		return self.pipe(['status'], cwd=cwd)
+
+
+class MercurialVCS(VersionControlSystemBackend):
+	
+	def __init__(self, dir):
+		vcs_app = HG(dir)
+		super(MercurialVCS, self).__init__(dir, vcs_app)
+
+	@classmethod
+	def _check_dependencies(klass):
+		"""@see VersionControlSystemBackend.check_dependencies"""
+		return HG.tryexec()
 

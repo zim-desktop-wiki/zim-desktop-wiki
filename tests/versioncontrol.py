@@ -11,6 +11,7 @@ from zim.fs import File, Dir
 from zim.plugins.versioncontrol import VersionControlPlugin, NoChangesError
 from zim.plugins.versioncontrol.bzr import BazaarVCS
 from zim.plugins.versioncontrol.hg import MercurialVCS
+from zim.plugins.versioncontrol.svn import SubversionVCS
 
 import zim.plugins.versioncontrol.bzr
 import zim.plugins.versioncontrol.hg
@@ -257,4 +258,6 @@ diff --git a/foo/bar/baz.txt b/bar.txt
 rename from foo/bar/baz.txt
 rename to bar.txt
 ''' )
-		
+
+
+
