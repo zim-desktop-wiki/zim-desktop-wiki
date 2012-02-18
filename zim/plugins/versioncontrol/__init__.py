@@ -23,11 +23,6 @@ from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 
 # FUTURE add option to also pull & push versions automatically
 
-if os.environ.get('ZIM_TEST_RUNNING'):
-	TEST_MODE = True
-else:
-	TEST_MODE = False
-
 logger = logging.getLogger('zim.plugins.versioncontrol')
 
 

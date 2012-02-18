@@ -10,7 +10,14 @@ import logging
 from zim.fs import FS
 from zim.applications import Application
 from zim.async import AsyncOperation
-from zim.plugins.versioncontrol import NoChangesError, TEST_MODE
+#from zim.plugins.versioncontrol import NoChangesError, TEST_MODE
+from zim.plugins.versioncontrol import NoChangesError
+
+print "TEST?", os.environ.get('ZIM_TEST_RUNNING')
+if os.environ.get('ZIM_TEST_RUNNING'):
+	TEST_MODE = True
+else:
+	TEST_MODE = False
 
 logger = logging.getLogger('zim.vcs.generic')
 
@@ -192,8 +199,8 @@ class VersionControlSystemBackend(object):
 		if not stat:
 			raise NoChangesError(self.root)
 		else:
-			self.vcs.add('.')
-			self.vcs.commit('.', msg)
+			self.vcs.add()
+			self.vcs.commit(None, msg)
 
 	def commit_async(self, msg, callback=None, data=None):
 		# TODO in generic baseclass have this default to using

@@ -9,9 +9,9 @@ import tempfile
 
 from zim.fs import File, Dir
 from zim.plugins.versioncontrol import VersionControlPlugin, NoChangesError
+
 from zim.plugins.versioncontrol.bzr import BazaarVCS
 from zim.plugins.versioncontrol.hg import MercurialVCS
-from zim.plugins.versioncontrol.svn import SubversionVCS
 
 import zim.plugins.versioncontrol.bzr
 import zim.plugins.versioncontrol.hg
@@ -40,10 +40,10 @@ def get_tmp_dir(name):
 class TestBazaar(tests.TestCase):
 
 	def setUp(self):
-		zim.plugins.versioncontrol.TEST_MODE = False
+		zim.plugins.versioncontrol.generic.TEST_MODE = False
 
 	def tearDown(self):
-		zim.plugins.versioncontrol.TEST_MODE = True
+		zim.plugins.versioncontrol.generic.TEST_MODE = True
 
 	def runTest(self):
 		'''Test Bazaar version control'''
@@ -160,10 +160,10 @@ bar
 class TestMercurial(tests.TestCase):
 
 	def setUp(self):
-		zim.plugins.versioncontrol.TEST_MODE = False
+		zim.plugins.versioncontrol.generic.TEST_MODE = False
 
 	def tearDown(self):
-		zim.plugins.versioncontrol.TEST_MODE = True
+		zim.plugins.versioncontrol.generic.TEST_MODE = True
 
 	def runTest(self):
 		'''Test Bazaar version control'''
