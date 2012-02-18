@@ -25,18 +25,14 @@ class HG(object):
 		self.root = root
 		
 	@classmethod
-	def tryexec(self):
+	def tryexec(cls):
 		return HG.App.tryexec()
 	
-	def run(self, params, cwd=None):
-		if not cwd:
-			cwd = self.root
-		return self._app.run(params, cwd)
+	def run(self, params):
+		return self._app.run(params, self.root)
 
-	def pipe(self, params, cwd=None):
-		if not cwd:
-			cwd = self.root
-		return self._app.pipe(params, cwd)
+	def pipe(self, params):
+		return self._app.pipe(params, self.root)
 
 	def build_revision_arguments(self, versions):
 		"""Build a list including required string/int for running an VCS command
@@ -76,13 +72,17 @@ class HG(object):
 	#
 	# NOW ARE ALL REVISION CONTROL SYSTEM SHORTCUTS
 	
-	def add(self, path, cwd=None):
+	def add(self, path=None):
 		"""
 		Runs: hg add {{PATH}}
 		"""
-		return self.run(['add', path], cwd=cwd)
+		if path is None:
+			return self.run(['add'])
+		else:
+			return self.run(['add', path])
+		
 
-	def annotate(self, file, version, cwd=None):
+	def annotate(self, file, version):
 		"""FIXME Document
 		return
 		0: line1
@@ -90,25 +90,28 @@ class HG(object):
 		...
 		"""
 		revision_args = self.build_revision_arguments(version)
-		return self.pipe(['annotate', file] + revision_args, cwd=cwd)
+		return self.pipe(['annotate', file] + revision_args)
 
-	def cat(self, path, version, cwd=None):
+	def cat(self, path, version):
 		"""
 		Runs: hg cat {{PATH}} {{REV_ARGS}}
 		"""
 		revision_args = self.build_revision_arguments(version)
-		return self.pipe(['cat', path] + revision_args, cwd)
+		return self.pipe(['cat', path] + revision_args)
 
-	def commit(self, path, msg, cwd=None):
+	def commit(self, path, msg):
 		"""
 		Runs: hg commit -m {{MSG}} {{PATH}}
 		"""
-		if msg=='':
-			return self.run(['commit', path], cwd=cwd)
-		else:
-			return self.run(['commit', '-m', msg, path], cwd=cwd)
+		params = ['commit']
+		if msg!='' and msg!=None:
+			params.append('-m')
+			params.append(msg)
+		if path!='' and path!=None:
+			params.append(path)
+		return self.run(params)
 			
-	def diff(self, versions, path=None, cwd=None):
+	def diff(self, versions, path=None):
 		"""
 		Runs:
 			hg diff --git {{REVISION_ARGS}} 
@@ -117,44 +120,42 @@ class HG(object):
 		"""
 		revision_args = self.build_revision_arguments(versions)
 		if path==None:
-			return self.pipe(['diff', '--git'] + revision_args, cwd=cwd)
+			return self.pipe(['diff', '--git'] + revision_args)
 			# Using --git option allow to show the renaming of files
 		else:
-			return self.pipe(['diff', '--git', path] + revision_args, cwd)
+			return self.pipe(['diff', '--git', path] + revision_args)
 
-	def ignore(self, file_to_ignore_regexp, cwd=None):
+	def ignore(self, file_to_ignore_regexp):
 		"""
 		Build a .hgignore file including the file_to_ignore_content
 		"""
-		root = cwd
-		if root==None:
-			root = self.root.__str__()
+		root = self.root.__str__()
 		hgignore_filepath = os.path.join(root, '.hgignore')
 		hgignore_fh = open(hgignore_filepath, 'w')
 		hgignore_fh.write(file_to_ignore_regexp)
 		hgignore_fh.close()
 
 	def init_repo(self):
-		self.init(self.root)
+		self.init()
 		self.ignore('\.zim*$\n')
 		self.add('.') # add all existing files
 
-	def init(self, cwd=None):
+	def init(self):
 		"""
 		Runs: hg init
 		"""
-		return self.run(['init'], cwd=cwd)
+		return self.run(['init'])
 
-	def log(self, path=None, cwd=None):
+	def log(self, path=None):
 		"""
 		Runs: hg log -r : --verbose {{PATH}}
 		the "-r :" option allows to reverse order
 		--verbose allows to get the entire commit message
 		"""
 		if path:
-			return self.pipe(['log', '-r', ':', '--verbose', path], cwd=cwd)
+			return self.pipe(['log', '-r', ':', '--verbose', path])
 		else:
-			return self.pipe(['log', '-r', ':', '--verbose'], cwd=cwd)
+			return self.pipe(['log', '-r', ':', '--verbose'])
 
 	def log_to_revision_list(self, log_op_output):
 		versions = []
@@ -206,19 +207,19 @@ class HG(object):
 		return versions
 
 
-	def move(self, oldpath, newpath, cwd=None):
+	def move(self, oldpath, newpath):
 		"""
 		Runs: hg mv --after {{OLDPATH}} {{NEWPATH}}
 		"""
-		return self.run(['mv', '--after', oldpath, newpath], cwd=cwd)
+		return self.run(['mv', '--after', oldpath, newpath])
 
-	def remove(self, path, cwd=None):
+	def remove(self, path):
 		"""
 		Runs: hg rm {{PATH}}
 		"""
-		return self.run(['rm', path], cwd=cwd)
+		return self.run(['rm', path])
 
-	def revert(self, path, version, cwd=None):
+	def revert(self, path, version):
 		"""
 		Runs:
 			hg revert --no-backup {{PATH}} {{REV_ARGS}}
@@ -227,15 +228,15 @@ class HG(object):
 		"""
 		revision_params = self.build_revision_arguments(version)
 		if path:
-			return self.run(['revert', '--no-backup', path] + revision_params, cwd=cwd)
+			return self.run(['revert', '--no-backup', path] + revision_params)
 		else:
-			return self.run(['revert', '--no-backup', '--all'] + revision_params, cwd=cwd)
+			return self.run(['revert', '--no-backup', '--all'] + revision_params)
 
-	def status(self, cwd=None):
+	def status(self):
 		"""
 		Runs: hg status
 		"""
-		return self.pipe(['status'], cwd=cwd)
+		return self.pipe(['status'])
 
 
 class MercurialVCS(VersionControlSystemBackend):
