@@ -17,7 +17,7 @@ logger = logging.getLogger('zim.vcs.hg')
 
 # TODO document API - use base class
 class HG(object):
-	#FIXME Bin = 'hg'
+
 	App = Application(('hg',))
 	
 	def __init__(self, root):
@@ -128,23 +128,49 @@ class HG(object):
 	def ignore(self, file_to_ignore_regexp):
 		"""
 		Build a .hgignore file including the file_to_ignore_content
+		@param file_to_ignore_regexp: str representing the .hgignore file content.
+		       this must be a list of regexp defining the file / path to ignore,
+		       separated by a\n char
+		@returns: nothing
 		"""
-		root = self.root.__str__()
-		hgignore_filepath = os.path.join(root, '.hgignore')
-		hgignore_fh = open(hgignore_filepath, 'w')
-		hgignore_fh.write(file_to_ignore_regexp)
-		hgignore_fh.close()
+		#TODO: append the rule instead of overwrite the full content
+		self.root.file( '.hgignore' ).write( file_to_ignore_regexp )
 
-	def init_repo(self):
-		self.init()
-		self.ignore('\.zim*$\n')
-		self.add('.') # add all existing files
+
+	def init_repo(self, lock_object):
+		"""Initialize a new repo if it does not exist, otherwise do nothing.
+		The init operation consists in:
+		- running the VCS init command
+		- defining files to ignore
+		- adding all other existing files
+		@returns: nothing
+		"""
+		if self.repo_exists()==False:
+			with lock_object:
+				self.init()
+			self.ignore('\.zim*$\n')
+			with lock_object:
+				self.add('.') # add all existing files
+
+	def repo_exists(self):
+		"""Returns True if a repository is already setup, or False
+
+		@returns: a boolean True if a repo is already setup, or False
+		"""
+		return self.root.subdir('.hg').exists()
 
 	def init(self):
 		"""
 		Runs: hg init
 		"""
 		return self.run(['init'])
+
+	def is_modified(self):
+		"""Returns true if the repo is not up-to-date, or False
+		@returns: True if the repo is not up-to-date, or False
+		"""
+		# If status return an empty answer, this means the local repo is up-to-date
+		return ''.join( self.status() ).strip() != ''
 
 	def log(self, path=None):
 		"""
@@ -180,17 +206,15 @@ class HG(object):
 				(rev, date, user, msg) = (None, None, None, None)
 				seenmsg = False
 			elif line.startswith('changeset: '):
-				logger.info("LINE IS #%s#" % line)
 				value = line[13:].strip()
-				logger.info("THE REV. IS #%s#" % value)
 				# In case of mercurial, the revision number line
 				# is something like this:
 				# changeset:   6:1d4a428e22d9
 				#
 				# instead of (for bzr) like that:
 				# e.g. "revno: 48 [merge]\n"
-				value = value.split(":")[0]
-				rev = int(value)
+				rev = value.split(":")[0]
+				
 			elif line.startswith('user: '):
 				user = line[13:].strip()
 			elif line.startswith('date: '):
@@ -232,6 +256,10 @@ class HG(object):
 		else:
 			return self.run(['revert', '--no-backup', '--all'] + revision_params)
 
+	def stage(self):
+		# Generic interface required by Git.
+		pass
+		
 	def status(self):
 		"""
 		Runs: hg status
