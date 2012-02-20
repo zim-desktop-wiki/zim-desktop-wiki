@@ -12,27 +12,21 @@ from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
 from zim.plugins.versioncontrol.generic import VersionControlSystemBackend
+from zim.plugins.versioncontrol.generic import VCSApplication
 
 logger = logging.getLogger('zim.vcs.git')
 
 # TODO document API - use base class
-class GIT(object):
+class GIT(VCSApplication):
 
-	App = Application(('git',))
-	
 	def __init__(self, root):
-		self._app = Application(('git',))
-		self.root = root
+		"""FIXME"""
+		VCSApplication.__init__(self, root)
 		
 	@classmethod
-	def tryexec(cls):
-		return GIT.App.tryexec()
-	
-	def run(self, params):
-		return self._app.run(params, self.root)
-
-	def pipe(self, params):
-		return self._app.pipe(params, self.root)
+	def build_bin_application_instance(cls):
+		"""FIXME"""
+		return Application(('git',))
 
 	def build_revision_arguments(self, versions, is_for_diff=False):
 		"""Build a list including required string/int for running an VCS command

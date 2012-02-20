@@ -12,27 +12,21 @@ from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
 from zim.plugins.versioncontrol.generic import VersionControlSystemBackend
+from zim.plugins.versioncontrol.generic import VCSApplication
 
 logger = logging.getLogger('zim.vcs.bzr')
 
 # TODO document API - use base class
-class BZR(object):
-	#FIXME Bin = 'bzr'
-	App = Application(('bzr',))
-	
+class BZR(VCSApplication):
+
 	def __init__(self, root):
-		self._app = Application(('bzr',))
-		self.root = root
+		"""FIXME"""
+		VCSApplication.__init__(self, root)
 		
 	@classmethod
-	def tryexec(cls):
-		return BZR.App.tryexec()
-	
-	def run(self, params):
-		return self._app.run(params, self.root)
-
-	def pipe(self, params):
-		return self._app.pipe(params, self.root)
+	def build_bin_application_instance(cls):
+		"""FIXME"""
+		return Application(('bzr',))
 
 	def build_revision_arguments(self, versions):
 		"""Build a list including required string/int for running an VCS command

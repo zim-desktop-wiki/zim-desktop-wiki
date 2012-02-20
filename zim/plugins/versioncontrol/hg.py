@@ -12,28 +12,22 @@ from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
 from zim.plugins.versioncontrol.generic import VersionControlSystemBackend
+from zim.plugins.versioncontrol.generic import VCSApplication
 
 logger = logging.getLogger('zim.vcs.hg')
 
 # TODO document API - use base class
-class HG(object):
+class HG(VCSApplication):
 
-	App = Application(('hg',))
-	
 	def __init__(self, root):
-		self._app = Application(('hg',))
-		self.root = root
+		"""FIXME"""
+		VCSApplication.__init__(self, root)
 		
 	@classmethod
-	def tryexec(cls):
-		return HG.App.tryexec()
-	
-	def run(self, params):
-		return self._app.run(params, self.root)
-
-	def pipe(self, params):
-		return self._app.pipe(params, self.root)
-
+	def build_bin_application_instance(cls):
+		"""FIXME"""
+		return Application(('hg',))
+		
 	def build_revision_arguments(self, versions):
 		"""Build a list including required string/int for running an VCS command
 		# Accepts: None, int, string, (int,), (int, int)
@@ -61,12 +55,6 @@ class HG(object):
 			return ['-r', '%i' % version]
 		else:
 			return []
-
-	def _ignored(self, path):
-		"""return True if the path should be ignored by the version control system
-		"""
-		return False
-
 
 	########
 	#
