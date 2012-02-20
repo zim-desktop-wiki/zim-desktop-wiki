@@ -6,7 +6,7 @@ Creation-Date: 2010-02-22T15:44:37.508437
 
 Zim's default installation ships with a Version Control Plugin. To enable it, go to ''Edit -> Preferences -> Plugins'' and check the box next to Version Control.
 
-**Dependencies:** This plugin requires one of the supported version control systems to be installed. Currently only Bazaar is supported, so this application is required. In specific the "bzr" command should be available in the system path.
+**Dependencies:** This plugin requires one of the supported version control systems to be installed. Currently Bazaar, Git and Mercurial are supported, so one of these applications is required. In specific the "bzr", "git" or "hg" command should be available in the system path.
 
 ===== Introduction =====
 If you want to keep track of your changes or if you want to collaborate on a Zim Wiki as a team, Version Control is the best way to go. Zim integrates very well with existing Version Control Software because all relevant data is stored in plain text files.
@@ -20,6 +20,13 @@ TODO here should be documented how to share the newly created repository with yo
 
 ===== Details =====
 Technically speaking a local repository is created when enabling Version Control -- a [[http://bazaar.canonical.com/en/|Bazaar]] repository to be precise. Every time you save a version, another revision is checked in. Zim just uses the Bazaar application, so you can always view and export your history using standard Bazaar tools.
+
+Bazaar is the version control system used by default, but you can also use [[http://git-scm.com/|Git]] and [[http://mercurial.selenic.com/|Mercurial]].
+
+===== Using different Version Control System for different Notepads =====
+The default behavior of the version control plugin is to define a default backend (bazaar, git or mercurial). First time you choose the ''File -> Save Version...''  , zim will ask you if you want to activate the version control system. In this case, it will activate the default system (look at ''Edit -> Preferences -> Plugin -> Version Control ''in order to know which system is setup as default.
+
+In case you want to use different version control systems for different notepads, then you should setup it by hand in the Notepad folder. Then, restarting Zim, the application will detect that a version control system is setup and it will use it.
 
 ===== Manual Version Control =====
 This is for advanced users that have to use another Version Control System or have other reasons not to use the included plugin.
