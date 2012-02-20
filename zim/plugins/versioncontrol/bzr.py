@@ -132,11 +132,17 @@ class BZR(object):
 		return self.run(['ignore', file_to_ignore_regexp])
 
 
-	def init_repo(self):
-		self.init()
-		#self.whoami('zim') # set a dummy user "zim"
-		self.ignore('**/.zim/')
-		self.add('.')
+	def init_repo(self, lock_object):
+		if self.repo_exists()==False:
+			with lock_object:
+				self.init()
+			#self.whoami('zim') # set a dummy user "zim"
+			self.ignore('**/.zim/')
+			with lock_object:
+				self.add('.')
+
+	def repo_exists(self):
+		return self.root.subdir('.bzr').exists()
 
 	def init(self):
 		"""
@@ -225,6 +231,10 @@ class BZR(object):
 		else:
 			return self.run(['revert'] + revision_params)
 
+	def stage(self):
+		# Generic interface required by Git.
+		pass
+		
 	def status(self):
 		"""
 		Runs: bzr status
