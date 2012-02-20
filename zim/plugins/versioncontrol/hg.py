@@ -11,21 +11,19 @@ from zim.fs import FS
 from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
-from zim.plugins.versioncontrol.generic import VersionControlSystemBackend
-from zim.plugins.versioncontrol.generic import VCSApplication
+from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
+from zim.plugins.versioncontrol.generic import VersionControlSystemGenericBackend
 
 logger = logging.getLogger('zim.vcs.hg')
 
 # TODO document API - use base class
-class HG(VCSApplication):
+class HGApplicationBackend(VersionControlSystemGenericBackend):
 
 	def __init__(self, root):
-		"""FIXME"""
-		VCSApplication.__init__(self, root)
+		VersionControlSystemGenericBackend.__init__(self, root)
 		
 	@classmethod
 	def build_bin_application_instance(cls):
-		"""FIXME"""
 		return Application(('hg',))
 		
 	def build_revision_arguments(self, versions):
@@ -253,16 +251,4 @@ class HG(VCSApplication):
 		Runs: hg status
 		"""
 		return self.pipe(['status'])
-
-
-class MercurialVCS(VersionControlSystemBackend):
-	
-	def __init__(self, dir):
-		vcs_app = HG(dir)
-		super(MercurialVCS, self).__init__(dir, vcs_app)
-
-	@classmethod
-	def _check_dependencies(klass):
-		"""@see VersionControlSystemBackend.check_dependencies"""
-		return HG.tryexec()
 

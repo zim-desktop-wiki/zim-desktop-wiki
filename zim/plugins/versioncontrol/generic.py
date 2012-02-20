@@ -20,15 +20,20 @@ else:
 
 logger = logging.getLogger('zim.vcs.generic')
 
-class VCSApplication(object):
-	"""
-		This class will implement the part of the algorithm which is specific
-		to a version control system.
+class VersionControlSystemGenericBackend(object):
+	"""This class will implement the part of the algorithm which is specific
+	to a version control system.
 		
-		This means especially the commands/options to execute, but also the way,
-		for example to initialize a repository.
+	This means especially the commands/options to execute, but also the way,
+	for example to initialize a repository.
 		
-		This class is abstract and should be inherited
+	This class is abstract and must be inherited.
+	
+	Algorithms associated with the version control system backend are to be found
+	in classes inheriting from L{VersionControlSystemGenericBackend}.
+
+	Algorithms associated to zim behavior are to be found in L{VersionControlSystemAlgorithms}
+	which is intended to interact with zim and with a "generic" backend
 	"""
 
 	def __init__(self, root):
@@ -55,7 +60,8 @@ class VCSApplication(object):
 	
 	@classmethod
 	def tryexec(cls):
-		"""FIXME Document"""
+		"""Try to execute the command associated with the backend.
+		@returns: C{True} if the command is successfull"""
 		return cls.build_bin_application_instance().tryexec()
 	
 
@@ -146,8 +152,7 @@ class VCSApplication(object):
 
 	def cat(self, file, version):
 		"""
-		FIXME
-		Runs: hg cat {{PATH}} {{REV_ARGS}}
+		FIXME Document
 		"""
 		raise NotImplementedError
 
@@ -342,7 +347,7 @@ class VCSApplication(object):
 		"""
 		raise NotImplementedError
 
-class VersionControlSystemBackend(object):
+class VersionControlSystemAlgorithms(object):
 	"""Parent class for all VCS backend implementations.
 	It implements the required API.
 	"""
@@ -387,18 +392,6 @@ class VersionControlSystemBackend(object):
 	def lock(self):
 		return self._lock
 
-
-	@classmethod
-	def check_dependencies(klass):
-		"""Checks the VCS dependencies.
-		
-		@returns: True in case of success (eg. : in case of Bazaar, the check consists in running the 'bzr' command) or False
-		"""
-		return klass._check_dependencies()
-
-	@classmethod
-	def _check_dependencies(klass):
-		raise NotImplementedError
 
 	def _ignored(self, path):
 		"""Return True if we should ignore this path

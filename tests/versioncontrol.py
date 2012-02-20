@@ -10,9 +10,7 @@ import tempfile
 from zim.fs import File, Dir
 from zim.plugins.versioncontrol import VersionControlPlugin, NoChangesError
 
-from zim.plugins.versioncontrol.bzr import BazaarVCS
-from zim.plugins.versioncontrol.hg import MercurialVCS
-from zim.plugins.versioncontrol.git import GitVCS
+from zim.plugins.versioncontrol import VCS
 
 import zim.plugins.versioncontrol.bzr
 import zim.plugins.versioncontrol.hg
@@ -43,7 +41,7 @@ def get_tmp_dir(name):
 #
 #####################################################
 @tests.slowTest
-@tests.skipUnless(BazaarVCS.check_dependencies(), 'Missing dependencies')
+@tests.skipUnless(VCS.check_dependencies(VCS.BZR), 'Missing dependencies')
 class TestBazaar(tests.TestCase):
 
 	def setUp(self):
@@ -57,7 +55,7 @@ class TestBazaar(tests.TestCase):
 		print '\n!! Some raw output from Bazaar expected here !!'
 
 		root = get_tmp_dir('versioncontrol_TestBazaar')
-		vcs = BazaarVCS(root)
+		vcs = VCS.create(VCS.BZR, root)
 		vcs.init()
 
 		#~ for notebookdir in (root, root.subdir('foobar')):
@@ -162,14 +160,13 @@ bar
 ''' )
 
 
-
 #####################################################
 #
 # GIT BACKEND TEST
 #
 #####################################################
 @tests.slowTest
-@tests.skipUnless(GitVCS.check_dependencies(), 'Missing dependencies')
+@tests.skipUnless(VCS.check_dependencies(VCS.GIT), 'Missing dependencies')
 class TestGit(tests.TestCase):
 
 	def setUp(self):
@@ -183,7 +180,7 @@ class TestGit(tests.TestCase):
 		print '\n!! Some raw output from Git could appear here !!'
 
 		root = get_tmp_dir('versioncontrol_TestGit')
-		vcs = GitVCS(root)
+		vcs = VCS.create(VCS.GIT, root)
 		vcs.init()
 
 		#~ for notebookdir in (root, root.subdir('foobar')):
@@ -329,8 +326,6 @@ test
 1) second
 2) baz
 ''' )
-		"""FIXME
-		"""
 
 # XXX ignore renames and deletions?
 
@@ -349,13 +344,14 @@ test
 # 1 files changed, 0 insertions(+), 0 deletions(-)
 # rename foo/bar/{bar.txt => boo.txt} (100%)
 
+
 #####################################################
 #
 # MERCURIAL BACKEND TEST
 #
 #####################################################
 @tests.slowTest
-@tests.skipUnless(MercurialVCS.check_dependencies(), 'Missing dependencies')
+@tests.skipUnless(VCS.check_dependencies(VCS.HG), 'Missing dependencies')
 class TestMercurial(tests.TestCase):
 
 	def setUp(self):
@@ -369,7 +365,7 @@ class TestMercurial(tests.TestCase):
 		print '\n!! Some raw output from Mercurial expected here !!'
 
 		root = get_tmp_dir('versioncontrol_TestMercurial')
-		vcs = MercurialVCS(root)
+		vcs = VCS.create(VCS.HG, root)
 		vcs.init()
 
 		#~ for notebookdir in (root, root.subdir('foobar')):

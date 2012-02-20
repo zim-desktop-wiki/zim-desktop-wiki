@@ -71,28 +71,26 @@ class NoChangesError(Error):
 
 class VCS(object):
 	"""
-    TODO: increase documentation
-	This class is the VCS factory. It allows to build the required VCS according
-	to an existing folder.
-	"""
+	This class is the main entry for all Version Control System Stuff.
+	It is a factory, a dependencies checker, the enumeration of supported VCS.
 	
+	@implementation: If you add a VCS backend, then you have to: \
+	- add a file named <your_backend>.py
+	- create there a class inheriting from VersionControlSystemGenericBackend \
+	- add here the stuff to manage it
+	"""
+
+	# Enumeration of all available backends	
 	BZR = _('Bazaar') # T: option value
 	HG  = _('Mercurial') # T: option value
 	GIT = _('Git') # T: option value
 	
-	def from_folder_name(cls, folder_name):
-		vcs_dict = {'.bzr': VCS.BZR, '.hg': VCS.HG, '.git': VCS.GIT}
-		if vcs_dict.has_key(folder_name):
-			return vcs_dict[folder_name]
-		else:
-			return None
-		
 	@classmethod
 	def detect_in_folder(cls, dir): #FIXME - Set a default VCS, default=VCS.BZR):
 		"""Detect if a version control system has already been setup in the folder.
 		It also create the instance by calling the VCS.create() method
-		@param dir: a L{FilePath} instance representing the notebook root folder
-		@returns: a C{VersionControlSystemBackend} instance which will manage the versionning
+		@param dir: a L{File} instance representing the notebook root folder
+		@returns: a L{VersionControlSystemAlgorithms} instance which will manage the versionning
 		"""
 		# split off because it is easier to test this way
 		vcs = None
@@ -117,26 +115,49 @@ class VCS(object):
 		return vcs
 
 	@classmethod
+	def get_backend(klass, vcs):
+		"""Return the class of backend to instantiate according to vcs given as parameter.
+		@param vcs: the wanted vcs backend (VCS.BZR, VCS.GIT, VCS.HG, ...)
+		@returns the related backend class. The returned class is a VersionControlSystemGenericBackend child class
+		"""
+		vcs_klass = None
+		if vcs == VCS.BZR:
+			from zim.plugins.versioncontrol.bzr import BZRApplicationBackend
+			vcs_klass = BZRApplicationBackend
+		elif vcs == VCS.HG:
+			from zim.plugins.versioncontrol.hg import HGApplicationBackend
+			vcs_klass = HGApplicationBackend
+		elif vcs == VCS.GIT:
+			from zim.plugins.versioncontrol.git import GITApplicationBackend
+			vcs_klass = GITApplicationBackend
+		else:
+			assert False, 'Unkown VCS: %s' % vcs
+		
+		return vcs_klass
+	
+	
+	@classmethod
 	def create(klass, vcs, dir):
 		"""Build the required instance of a Version Control System
 
 		@param vcs: Version Control System to build (choose between VCS.BZR, VCS.HG, VCS.GIT)
-		@param dir: a L{FilePath} instance representing the notebook root folder
-		@returns: a C{VersionControlSystemBackend} instance which will manage the versionning
+		@param dir: a L{File} instance representing the notebook root folder
+		@returns: a C{VersionControlSystemAlgorithms} instance setup with the required backend
 		"""
 		new_vcs = None
-		if vcs == VCS.BZR:
-			from zim.plugins.versioncontrol.bzr import BazaarVCS
-			new_vcs = BazaarVCS(dir)
-		elif vcs == VCS.HG:
-			from zim.plugins.versioncontrol.hg import MercurialVCS
-			new_vcs = MercurialVCS(dir)
-		elif vcs == VCS.GIT:
-			from zim.plugins.versioncontrol.git import GitVCS
-			new_vcs = GitVCS(dir)
-		else:
-			assert False, 'Unkown VCS: %s' % vcs
+		vcs_backend_klass = VCS.get_backend(vcs)
+		from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
+		new_vcs = VersionControlSystemAlgorithms(dir, vcs_backend_klass(dir))
+		
 		return new_vcs
+	
+	@classmethod
+	def check_dependencies(klass, vcs):
+		"""Check if the dependencies for the requested vcs are ok
+		@param vcs: the requested vcs: VCS.BZR, VCS.GIT or VCS.HG
+		@returns: C{True} if dependencies are checked ok.
+		"""
+		return VCS.get_backend(vcs).tryexec()
 
 	
 class VersionControlPlugin(PluginClass):
@@ -179,11 +200,10 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		# TODO - Remove hard-written bin names
-		has_bzr = Application(('bzr',)).tryexec()
-		has_hg  = Application(('hg',)).tryexec()
-		has_git = Application(('git',)).tryexec()
-
+		has_bzr = VCS.check_dependencies(VCS.BZR)
+		has_git  = VCS.check_dependencies(VCS.GIT)
+		has_hg  = VCS.check_dependencies(VCS.HG)
+		#TODO parameterize the return, so that a new backend will be automatically available
 		return has_bzr|has_hg|has_git, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False)]
 
 	def detect_vcs(self):

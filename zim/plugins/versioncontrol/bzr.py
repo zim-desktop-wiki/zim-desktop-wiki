@@ -11,21 +11,19 @@ from zim.fs import FS
 from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
-from zim.plugins.versioncontrol.generic import VersionControlSystemBackend
-from zim.plugins.versioncontrol.generic import VCSApplication
+from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
+from zim.plugins.versioncontrol.generic import VersionControlSystemGenericBackend
 
 logger = logging.getLogger('zim.vcs.bzr')
 
 # TODO document API - use base class
-class BZR(VCSApplication):
+class BZRApplicationBackend(VersionControlSystemGenericBackend):
 
 	def __init__(self, root):
-		"""FIXME"""
-		VCSApplication.__init__(self, root)
+		VersionControlSystemGenericBackend.__init__(self, root)
 		
 	@classmethod
 	def build_bin_application_instance(cls):
-		"""FIXME"""
 		return Application(('bzr',))
 
 	def build_revision_arguments(self, versions):
@@ -55,12 +53,6 @@ class BZR(VCSApplication):
 			return ['-r', '%i' % version]
 		else:
 			return []
-
-	def _ignored(self, path):
-		"""return True if the path should be ignored by the version control system
-		"""
-		return False
-
 
 	########
 	#
@@ -243,7 +235,7 @@ class BZR(VCSApplication):
 
 
 
-class BazaarVCS(VersionControlSystemBackend):
+class BazaarVCS(VersionControlSystemAlgorithms):
 	
 	def __init__(self, dir):
 		vcs_app = BZR(dir)
@@ -251,6 +243,6 @@ class BazaarVCS(VersionControlSystemBackend):
 
 	@classmethod
 	def _check_dependencies(klass):
-		"""@see VersionControlSystemBackend.check_dependencies"""
+		"""@see VersionControlSystemAlgorithms.check_dependencies"""
 		return BZR.tryexec()
 

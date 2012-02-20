@@ -11,21 +11,19 @@ from zim.fs import FS
 from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
-from zim.plugins.versioncontrol.generic import VersionControlSystemBackend
-from zim.plugins.versioncontrol.generic import VCSApplication
+from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
+from zim.plugins.versioncontrol.generic import VersionControlSystemGenericBackend
 
 logger = logging.getLogger('zim.vcs.git')
 
 # TODO document API - use base class
-class GIT(VCSApplication):
+class GITApplicationBackend(VersionControlSystemGenericBackend):
 
 	def __init__(self, root):
-		"""FIXME"""
-		VCSApplication.__init__(self, root)
+		VersionControlSystemGenericBackend.__init__(self, root)
 		
 	@classmethod
 	def build_bin_application_instance(cls):
-		"""FIXME"""
 		return Application(('git',))
 
 	def build_revision_arguments(self, versions, is_for_diff=False):
@@ -62,12 +60,6 @@ class GIT(VCSApplication):
 				return [version]
 			else:
 				return []
-
-
-	def _ignored(self, path):
-		"""return True if the path should be ignored by the version control system
-		"""
-		return False
 
 
 	########
@@ -245,17 +237,4 @@ class GIT(VCSApplication):
 		Runs: git status
 		"""
 		return self.pipe(['status'])
-
-
-
-class GitVCS(VersionControlSystemBackend):
-	
-	def __init__(self, dir):
-		vcs_app = GIT(dir)
-		super(GitVCS, self).__init__(dir, vcs_app)
-
-	@classmethod
-	def _check_dependencies(klass):
-		"""@see VersionControlSystemBackend.check_dependencies"""
-		return GIT.tryexec()
 
