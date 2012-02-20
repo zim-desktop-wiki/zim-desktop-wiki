@@ -13,7 +13,6 @@ from zim.async import AsyncOperation
 #from zim.plugins.versioncontrol import NoChangesError, TEST_MODE
 from zim.plugins.versioncontrol import NoChangesError
 
-print "TEST?", os.environ.get('ZIM_TEST_RUNNING')
 if os.environ.get('ZIM_TEST_RUNNING'):
 	TEST_MODE = True
 else:
@@ -97,8 +96,7 @@ class VersionControlSystemBackend(object):
 		if not self.root.exists():
 			self.root.touch()
 
-		with self.lock:
-			self.vcs.init_repo()
+		self.vcs.init_repo(self.lock)
 
 	def on_path_created(self, fs, path):
 		"""Callback to add a new file or folder when added to the wiki
@@ -150,12 +148,11 @@ class VersionControlSystemBackend(object):
 	def modified(self):
 		"""return True if changes are detected, or False"""
 		return ''.join( self.get_status() ).strip() != ''
+		with self.lock:
+			return self.vcs.is_modified()
 
 	def get_status(self):
-		"""Returns last operation status as a list of text lines
-		
-		Note: the status content is really get through the
-		_vcs_specific_get_status() method which is called through a "with self.lock"
+		"""Returns repo status as a list of text lines
 		
 		@returns: list of text lines (like a shell command result)
 		"""
@@ -234,4 +231,7 @@ class VersionControlSystemBackend(object):
 			version = self.vcs.cat(file, version)
 		return version
 
+ 	def update_staging(self):
+		with self.lock:
+			self.vcs.stage()
 
