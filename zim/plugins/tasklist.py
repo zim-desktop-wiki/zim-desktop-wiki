@@ -356,7 +356,7 @@ This is a core plugin shipping with zim.
 		for child in para.getchildren():
 			if child.tag == 'strike':
 				continue # Ignore strike out text
-			elif child.tag == 'ul':
+			elif child.tag in ('ul', 'ol'):
 				if text:
 					items += text.splitlines()
 				items += self._flatten_list(child)
@@ -564,6 +564,7 @@ class TaskListDialog(Dialog):
 		#~ hbox.pack_start(menubutton, False)
 
 		self.act_toggle = gtk.CheckButton(_('Only Show Actionable Tasks'))
+			# T: Checkbox in task list
 		self.act_toggle.set_active(self.uistate['only_show_act'])
 		self.act_toggle.connect('toggled', lambda o: self.task_list.set_filter_actionable(o.get_active()))
 		hbox.pack_start(self.act_toggle, False)

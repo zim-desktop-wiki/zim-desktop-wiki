@@ -78,7 +78,7 @@ class Dumper(DumperClass):
 		self.dump_children(tree.getroot(), output)
 		return output.get_lines(end_with_newline=not tree.ispartial)
 
-	def dump_children(self, list, output, list_level=-1):
+	def dump_children(self, list, output, list_level=-1, list_type=None, list_iter='0'):
 		if list.text:
 			output.append(list.text)
 
@@ -92,21 +92,23 @@ class Dumper(DumperClass):
 				if indent:
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
-			elif element.tag == 'ul':
-				indent = 0
-				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
+			elif element.tag in ('ul', 'ol'):
+				indent = int(element.attrib.get('indent', 0))
+				start = element.attrib.get('start')
 				myoutput = TextBuffer()
-				self.dump_children(element, myoutput, list_level=list_level+1) # recurs
+				self.dump_children(element, myoutput, list_level=list_level+1, list_type=element.tag, list_iter=start) # recurs
 				if indent:
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
 			elif element.tag == 'li':
 				if 'indent' in element.attrib:
 					list_level = int(element.attrib['indent'])
-				if 'bullet' in element.attrib:
+				if list_type == 'ol':
+					bullet = str(list_iter) + '.'
+					list_iter = increase_list_iter(list_iter) or '1' # fallback if iter not valid
+				elif 'bullet' in element.attrib: # ul
 					bullet = bullet_types[element.attrib['bullet']]
-				else:
+				else: # ul
 					bullet = '*'
 				output.append('\t'*list_level+bullet+' ')
 				self.dump_children(element, output, list_level=list_level) # recurs

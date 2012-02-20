@@ -278,6 +278,13 @@ And a checkbox list
 [ ] item 3
 	[x] item FOOOOOO !
 
+A numbered list:
+1. foo
+2. bar
+	a. sub list
+	b. here
+3. hmmm
+
 ----
 
 Some sub- and superscript like x^{2} and H_{2}O

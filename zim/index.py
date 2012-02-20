@@ -1619,12 +1619,15 @@ class Index(gobject.GObject):
 		@returns: yields L{Link} objects or empty list if path does not
 		exist or no links are found
 		'''
-		for link in self.list_links(path, direction):
-			yield link
+		path = self.lookup_path(path)
+		if path:
 
-		for child in self.walk(path):
-			for link in self.list_links(child, direction):
+			for link in self.list_links(path, direction):
 				yield link
+
+			for child in self.walk(path):
+				for link in self.list_links(child, direction):
+					yield link
 
 	def n_list_links(self, path, direction=LINK_DIR_FORWARD):
 		'''Get the number of links to be listed with L{list_links()}

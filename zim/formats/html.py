@@ -8,6 +8,7 @@
 # TODO use global CSS for checkboxes instead of inline style - needs also support from tempalte etc
 
 import re
+import string
 
 from zim.formats import *
 from zim.parsing import TextBuffer, link_type
@@ -89,14 +90,27 @@ class Dumper(DumperClass):
 					level = int(element.attrib['indent'])
 					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
 				output += ['<', tag, '>\n', text, '</pre>\n']
-			elif element.tag is 'ul':
-				tag = 'ul'
+			elif element.tag in ('ul', 'ol'):
+				# TODO for ol set start and bullet style
+				tag = element.tag
+				if tag == 'ol' and 'start' in element.attrib:
+					start = element.attrib.get('start')
+					if start in string.lowercase:
+						type = 'a'
+						start = string.lowercase.index(start) + 1
+					elif start in string.uppercase:
+						type = 'A'
+						start = string.uppercase.index(start) + 1
+					else:
+						type = '1'
+					tag += ' type="%s" start="%s"' % (type, start)
+
 				if 'indent' in element.attrib:
 					level = int(element.attrib['indent'])
 					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
-				output += ['<' + tag + '>\n', text]
+				output += ['<%s>\n' % tag, text]
 				self._dump_children(element, output) # recurs
-				output.append('</ul>\n')
+				output.append('</%s>\n' % element.tag)
 			elif element.tag == 'li':
 				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
 					icon = self.linker.icon(element.attrib['bullet'])

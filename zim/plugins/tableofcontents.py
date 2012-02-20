@@ -75,6 +75,7 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('floating', 'bool', _('Show ToC as floating widget instead of in sidepane'), False),
+			# T: option for plugin preferences
 	)
 
 	def __init__(self, ui):

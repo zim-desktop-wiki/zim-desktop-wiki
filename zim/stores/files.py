@@ -72,8 +72,7 @@ class FilesStore(StoreClass):
 	def get_page(self, path):
 		file = self._get_file(path)
 		dir = self._get_dir(path)
-		return FileStorePage(path,
-				haschildren=dir.exists(), source=file, format=self.format)
+		return FileStorePage(path, source=file, folder=dir, format=self.format)
 
 	def get_pagelist(self, path):
 		dir = self._get_dir(path)
@@ -151,7 +150,6 @@ class FilesStore(StoreClass):
 					movedfile.rename(newfile)
 			else:
 				dir.rename(newdir)
-
 
 	def delete_page(self, path):
 		file = self._get_file(path)
@@ -236,14 +234,47 @@ class FileStorePage(Page):
 	@ivar format: the L{zim.formats} sub-module used for parsing the file
 	'''
 
-	def __init__(self, path, haschildren=False, source=None, format=None):
+	def __init__(self, path, source=None, folder=None, format=None):
 		assert source and format
-		Page.__init__(self, path, haschildren)
+		Page.__init__(self, path, haschildren=folder.exists())
 		self.source = source
+		self.folder = folder
 		self.format = format
 		self.readonly = not self.source.iswritable()
 		self.properties = None
 
+	def isequal(self, other):
+		print "IS EQUAL", self, other
+		if not isinstance(other, FileStorePage):
+			return False
+
+		if self == other: 
+			# If object equal by definition they are the equal
+			return True
+
+		# If we have an existing source check it
+		# If we have an existing folder check it
+		# If either fails we are not equal
+		# If both do not exist we are also not equal
+
+		ok = False
+		if self.source and self.source.exists():
+			ok = (
+				other.source 
+				and self.source.isequal(other.source)
+			)
+			if not ok:
+				return False
+			
+
+		if self.folder and self.folder.exists():
+			ok = (
+				other.folder
+				and self.folder.isequal(other.folder)
+			)
+
+		return ok
+		
 	def _source_hascontent(self):
 		return self.source.exists()
 

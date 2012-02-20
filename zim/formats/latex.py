@@ -5,6 +5,7 @@
 '''This modules handles export of LaTeX Code'''
 
 import re
+import string
 import logging
 
 from zim.fs import File
@@ -115,14 +116,30 @@ class Dumper(DumperClass):
 				if indent:
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
-			elif element.tag == 'ul':
-				output.append('\\begin{itemize}\n')
-				self.dump_children(element,output,list_level=list_level+1)
-				output.append('\\end{itemize}')
 			elif element.tag == 'h':
 				level = int(element.attrib['level'])
 				if level < 1: level = 1
 				elif level > 5: level = 5
+				output.append(sectioning[self.document_type][level]%(text))
+			elif element.tag == 'ul':
+				output.append('\\begin{itemize}\n')
+				self.dump_children(element,output,list_level=list_level+1)
+				output.append('\\end{itemize}')
+			elif element.tag == 'ol':
+				if 'start' in element.attrib:
+					start = element.attrib.get('start')
+					if start in string.lowercase:
+						type = 'a'
+						start = string.lowercase.index(start) + 1
+					elif start in string.uppercase:
+						type = 'A'
+						start = string.uppercase.index(start) + 1
+					else:
+						type = '1'
+				output.append('\\begin{enumerate}[%s]\n' % type)
+				output.append('\setcounter{enumi}{%s}\n' % start)
+				self.dump_children(element,output,list_level=list_level+1)
+				output.append('\\end{enumerate}')
 				output.append(sectioning[self.document_type][level]%(text))
 			elif element.tag == 'li':
 				if 'indent' in element.attrib:

@@ -325,7 +325,21 @@ class ParseTreeItem(ClipboardItem):
 			#~ print 'PASTING: >>>%s<<<' % html
 			selectiondata.set(selectiondata.target, 8, html)
 		elif id == TEXT_TARGET_ID:
-			dumper = get_format(self.format).Dumper()
+			logger.debug("Clipboard requested text, we provide '%s'" % self.format)
+			if self.format in ('wiki', 'plain'):
+				dumper = get_format(self.format).Dumper()
+			else:
+				# FIXME - HACK - dump and parse as wiki first to work
+				# around glitches in pageview parsetree dumper
+				# main visibility when copy pasting bullet lists
+				# Same hack in print to browser plugin
+				dumper = get_format('wiki').Dumper()
+				text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
+				parser = get_format('wiki').Parser()
+				parsetree = parser.parse(text)
+				#--
+				dumper = get_format(self.format).Dumper(
+					linker=StaticLinker(self.format, self.notebook, self.path) )
 			text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
 			selectiondata.set_text(text)
 		else:

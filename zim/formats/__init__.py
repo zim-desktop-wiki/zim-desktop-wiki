@@ -31,8 +31,8 @@ Supported tags:
 	- mark for highlighted text, renderd with background color or underlined
 	- strike for text that is removed, usually renderd as strike through
 	- code for inline verbatim text
-	- ul for bullet lists
-	- .. for checkbox lists
+	- ul for bullet and checkbox lists
+	- ol for numbered lists
 	- li for list items
 	- link for links, attribute href gives the target
 	- img for images, attributes src, width, height an optionally href
@@ -48,9 +48,7 @@ markup it is not allowed to nest elements in arbitrary ways.
 
 TODO: allow links to be nested in other elements
 TODO: allow strike to have sub elements
-TODO: allow classes to set hints for visual rendering and other interaction
 TODO: add HR element
-TODO: ol for numbered lists
 
 If a page starts with a h1 this heading is considered the page title,
 else we can fall back to the page name as title.
@@ -62,6 +60,7 @@ to a title or subtitle in the document.
 '''
 
 import re
+import string
 import logging
 
 from zim.fs import Dir, File
@@ -97,6 +96,7 @@ except:  # pragma: no cover
 EXPORT_FORMAT = 1
 IMPORT_FORMAT = 2
 NATIVE_FORMAT = 4
+TEXT_FORMAT = 8 # Used for "Copy As" menu - these all prove "text/plain" mimetype
 
 UNCHECKED_BOX = 'unchecked-box'
 CHECKED_BOX = 'checked-box'
@@ -104,11 +104,46 @@ XCHECKED_BOX = 'xchecked-box'
 BULLET = '*'
 
 
+def increase_list_iter(listiter):
+	'''Get the next item in a list for a numbered list
+	E.g if C{listiter} is C{"1"} this function returns C{"2"}, if it
+	is C{"a"} it returns C{"b"}.
+	@param listiter: the current item, either an integer number or
+	single letter
+	@returns: the next item, or C{None}
+	'''
+	try:
+		i = int(listiter)
+		return str(i + 1)
+	except ValueError:
+		try:
+			i = string.letters.index(listiter)
+			return string.letters[i+1]
+		except ValueError: # listiter is not a letter
+			return None
+		except IndexError: # wrap to start of list
+			return string.letters[0]
+
+
+
 def list_formats(type):
 	if type == EXPORT_FORMAT:
-		return ['HTML','LaTeX']
+		return ['HTML','LaTeX', 'Markdown (pandoc)']
+	elif type == TEXT_FORMAT:
+		return ['Text', 'Wiki', 'Markdown (pandoc)']
 	else:
 		assert False, 'TODO'
+
+
+def canonical_name(name):
+	# "HTML" -> html
+	# "Markdown (pandoc)" -> "markdown"
+	# "Text" -> "plain"
+	name = name.lower()
+	if ' ' in name:
+		name, _ = name.split(' ', 1)
+	if name == 'text': return 'plain'
+	else: return name
 
 
 def get_format(name):

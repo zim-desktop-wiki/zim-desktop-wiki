@@ -91,6 +91,16 @@ TODO @home:
 
 TODO: dus
 FIXME: jaja - TODO !! @FIXME
+
+* Bullet list
+* With tasks as sub items
+	[ ] Sub item bullets
+* dus
+
+1. Numbered list
+2. With tasks as sub items
+	[ ] Sub item numbered
+3. dus
 '''
 
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
@@ -126,6 +136,8 @@ FIXME: jaja - TODO !! @FIXME
 			]),
 			(t('TODO: dus'), []),
 			(t('FIXME: jaja - TODO !! @FIXME', prio=2), []),
+			(t('Sub item bullets'), []),
+			(t('Sub item numbered'), []),
 		]
 
 		tasks = extract_tasks(text)

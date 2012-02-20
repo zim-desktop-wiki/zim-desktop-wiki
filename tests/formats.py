@@ -208,6 +208,13 @@ And a checkbox list
 [ ] item 3
 	[x] item FOOOOOO !
 
+A numbered list:
+1. foo
+2. bar
+	a. sub list
+	b. here
+3. hmmm
+
 ----
 
 Some sub- and superscript like x2 and H2O
@@ -217,7 +224,7 @@ This is not a header
 
 That's all ...
 '''
-		self.assertEqual(text, wanted.splitlines(True))
+		self.assertEqual(''.join(text), wanted)
 
 
 class TestWikiFormat(TestTextFormat):
@@ -298,6 +305,8 @@ paragraphs go here ...
 <ul indent="1"><li bullet="*">foo</li><ul><li bullet="*"><strike>bar</strike></li><li bullet="*">baz</li></ul></ul></p>
 <p>And a checkbox list
 <ul><li bullet="unchecked-box">item 1</li><ul><li bullet="checked-box">sub item 1</li><ul><li bullet="*">Some normal bullet</li></ul><li bullet="xchecked-box">sub item 2</li><li bullet="unchecked-box">sub item 3</li></ul><li bullet="unchecked-box">item 2</li><li bullet="unchecked-box">item 3</li><ul><li bullet="xchecked-box">item FOOOOOO !</li></ul></ul></p>
+<p>A numbered list:
+<ol start="1"><li>foo</li><li>bar</li><ol start="a"><li>sub list</li><li>here</li></ol><li>hmmm</li></ol></p>
 <p>----
 </p>
 <p>Some sub- and superscript like x<sup>2</sup> and H<sub>2</sub>O
@@ -372,6 +381,181 @@ test 4 5 6
 		self.assertEqual(t.tostring(), xml)
 		output = self.format.Dumper().dump(t)
 		self.assertEqual(output, wanted.splitlines(True))
+
+	def testList(self):
+		def check(text, xml, wanted=None):
+			if wanted is None:
+				wanted = text
+
+			tree = self.format.Parser().parse(text)
+			#~ print '>>>\n' + tree.tostring() + '\n<<<'
+			self.assertEqual(tree.tostring(), xml)
+
+			lines = self.format.Dumper().dump(tree)
+			result = ''.join(lines)
+			#~ print '>>>\n' + result + '<<<'
+			self.assertEqual(result, wanted)
+
+
+		# Bullet list (unordered list)
+		text = '''\
+* foo
+* bar
+	* sub list
+	* here
+* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><ul><li bullet="*">sub list</li><li bullet="*">here</li></ul><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+		check(text, xml)
+
+		# Numbered list (ordered list)
+		text = '''\
+1. foo
+2. bar
+	a. sub list
+	b. here
+3. hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="1"><li>foo</li><li>bar</li><ol start="a"><li>sub list</li><li>here</li></ol><li>hmmm</li></ol></p></zim-tree>'''
+		check(text, xml)
+
+		text = '''\
+A. foo
+B. bar
+C. hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="A"><li>foo</li><li>bar</li><li>hmmm</li></ol></p></zim-tree>'''
+		check(text, xml)
+
+		text = '''\
+10. foo
+11. bar
+12. hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="10"><li>foo</li><li>bar</li><li>hmmm</li></ol></p></zim-tree>'''
+		check(text, xml)
+
+
+		# Inconsistent lists
+		# ( If first item is number, make all items numbered in sequence
+		#   Otherwise numers will be turned into bullets )
+		text = '''\
+1. foo
+4. bar
+* hmmm
+a. dus
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="1"><li>foo</li><li>bar</li><li>hmmm</li><li>dus</li></ol></p></zim-tree>'''
+		wanted = '''\
+1. foo
+2. bar
+3. hmmm
+4. dus
+'''
+		check(text, xml, wanted)
+
+		text = '''\
+* foo
+4. bar
+a. hmmm
+* dus
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><li bullet="*">hmmm</li><li bullet="*">dus</li></ul></p></zim-tree>'''
+		wanted = '''\
+* foo
+* bar
+* hmmm
+* dus
+'''
+		check(text, xml, wanted)
+
+		# Mixed sub-list
+		text = '''\
+* foo
+* bar
+	1. sub list
+	2. here
+* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><ol start="1"><li>sub list</li><li>here</li></ol><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+		check(text, xml)
+
+		# Indented list
+		text = '''\
+	* foo
+	* bar
+		1. sub list
+		2. here
+	* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul indent="1"><li bullet="*">foo</li><li bullet="*">bar</li><ol start="1"><li>sub list</li><li>here</li></ol><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+		check(text, xml)
+
+		# Double indent sub-list ?
+		text = '''\
+* foo
+* bar
+		1. sub list
+		2. here
+* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><ol start="1"><ol start="1"><li>sub list</li><li>here</li></ol></ol><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+		check(text, xml)
+
+		# This is not a list
+		text = '''\
+foo.
+dus ja.
+1.3
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>foo.
+dus ja.
+1.3
+</p></zim-tree>'''
+		check(text, xml)
+
+
+	def testIndent(self):
+		# Test some odditied pageview can give us
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><div indent="0">foo</div>
+<div indent="0">bar</div>
+<div indent="1">sub list</div>
+<div indent="1">here</div>
+<div indent="0">hmmm</div>
+</zim-tree>'''
+		wanted = '''\
+foo
+bar
+	sub list
+	here
+hmmm
+'''
+		tree = ParseTree()
+		tree.fromstring(xml)
+		text = ''.join( self.format.Dumper().dump(tree) )
+		self.assertEqual(text, wanted)
 
 
 class TestHtmlFormat(tests.TestCase):
@@ -495,6 +679,19 @@ And a checkbox list<br>
 </p>
 
 <p>
+A numbered list:<br>
+<ol type="1" start="1">
+<li>foo</li>
+<li>bar</li>
+<ol type="a" start="1">
+<li>sub list</li>
+<li>here</li>
+</ol>
+<li>hmmm</li>
+</ol>
+</p>
+
+<p>
 ----<br>
 </p>
 
@@ -512,6 +709,94 @@ That's all ...<br>
 </p>
 '''
 		self.assertEqual(output, html.splitlines(True))
+
+
+class TestMarkdownFormat(tests.TestCase):
+
+	def setUp(self):
+		self.format = get_format('markdown')
+		notebook = tests.new_notebook()
+		self.page = notebook.get_page(Path('Foo'))
+
+	def testDumping(self):
+		'''Test dumping page to plain text'''
+		tree = get_format('wiki').Parser().parse(wikitext)
+		text = self.format.Dumper(linker=StubLinker()).dump(tree)
+		wanted = '''\
+Head1
+=====
+
+Head 2
+------
+
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat. Duis aute irure dolor in
+reprehenderit in voluptate velit esse cillum dolore eu fugiat
+nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
+sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+	Some Verbatim here
+\t
+		Indented and all: //foo//
+
+	Also block-indentation of verbatim is possible.
+		Even with additional per-line indentation
+
+IMAGE: ![Foo Bar](img://../my-image.png)
+LINKS: [:foo:bar](page://:foo:bar) [./file.png](file://./file.png) [file:///etc/passwd](file://file:///etc/passwd)
+LINKS: [Foo](page://Foo)[Bar](page://Bar)
+IMAGELINK: ![](img://my-image.png)
+IMAGELINK: ![Foo Bar](img://../my-image.png)
+TAGS: @foo @bar
+
+Some indented
+paragraphs go here ...
+
+
+![](img://./equation003.png)
+
+
+Let's try these **bold**, *italic*, __underline__ and ~~strike~~
+And some ``//verbatim//`` with an indent halfway the paragraph
+And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
+
+A list
+
+* foo
+	* ~~bar~~
+	* baz
+
+And an indented list
+
+* foo
+	* ~~bar~~
+	* baz
+
+
+And a checkbox list
+
+* \u2610 item 1
+	* \u2611 sub item 1
+		* Some normal bullet
+	* \u2612 sub item 2
+	* \u2610 sub item 3
+* \u2610 item 2
+* \u2610 item 3
+	* \u2612 item FOOOOOO !
+
+
+----
+
+Some sub- and superscript like x^2^ and H~2~O
+
+====
+This is not a header
+
+That's all ...
+'''
+		self.assertEqual(''.join(text), wanted)
 
 
 class LatexLoggingFilter(tests.LoggingFilter):
@@ -537,14 +822,13 @@ class TestLatexFormat(tests.TestCase):
 			testpage = tests.WikiTestData.get('Test:wiki')
 			tree = get_format('wiki').Parser().parse(testpage)
 			output = format.Dumper(linker=StubLinker()).dump(tree)
+			#~ print '>>>\n' + ''.join(output) + '<<<'
 			self.assertTrue('\chapter{Foo Bar}\n' in output)
 
 		# Test template_options.document_type
 		input = r'''
 [% options.document_type = 'book' -%]
 \title{[% page.basename %]}
-\date{[% strftime("%A %d %B %Y") %]}
-\author{}
 
 \begin{document}
 \maketitle
@@ -554,8 +838,6 @@ class TestLatexFormat(tests.TestCase):
 '''
 		wanted = r'''
 \title{FooBar}
-\date{Wednesday 15 February 2012}
-\author{}
 
 \begin{document}
 \maketitle
