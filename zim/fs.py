@@ -498,6 +498,13 @@ class UnixPath(object):
 			self._serialized = self.user_path or self.path
 		return self._serialized
 
+	@classmethod
+	def new_from_zim_config(klass, string):
+		'''Returns a new object based on the string representation for
+		that path
+		'''
+		return klass(string)
+
 	@staticmethod
 	def _parse_uri(uri):
 		# Spec is file:/// or file://host/

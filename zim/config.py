@@ -492,6 +492,16 @@ class ListDict(dict):
 					modified = self.modified
 					self.__setitem__(key, tuple(self[key]))
 					self.set_modified(modified) # don't change modified state
+				elif hasattr(klass, 'new_from_zim_config'):
+					# Class has special contructor
+					modified = self.modified
+					try:
+						self.__setitem__(key, klass.new_from_zim_config(self[key]))
+					except:
+						logger.exception(
+							'Invalid config value for %s: "%s"',
+							key, self[key])
+					self.set_modified(modified) # don't change modified state
 				else:
 					logger.warn(
 						'Invalid config value for %s: "%s" - should be of type %s',

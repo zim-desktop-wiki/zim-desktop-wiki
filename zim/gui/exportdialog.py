@@ -267,9 +267,9 @@ class OutputPage(AssistantPage):
 		# Switch between folder selection or file selection based
 		# on whether we selected full notebook or single page in the
 		# first page
-		self.uistate.setdefault('output_folder', '')
+		self.uistate.setdefault('output_folder', '', Dir)
 		self.uistate.setdefault('index_page', '')
-		self.uistate.setdefault('output_file', '')
+		self.uistate.setdefault('output_file', '', File)
 
 		show_file = self.uistate.get('selection') == 'page'
 		if show_file:

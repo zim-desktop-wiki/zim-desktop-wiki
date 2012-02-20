@@ -2204,15 +2204,15 @@ class Dialog(gtk.Dialog):
 		# note: _windowpos is defined with a leading "_" so it is not
 		# persistent across instances, this is intentional to avoid
 		# e.g. messy placement for seldom used dialogs
-		self.uistate.setdefault('_windowpos', (None, None), check=value_is_coord)
-		x, y = self.uistate['_windowpos']
-		if (x, y) != (None, None):
+		self.uistate.setdefault('_windowpos', None, check=value_is_coord)
+		if self.uistate['_windowpos'] is not None:
+			x, y = self.uistate['_windowpos']
 			self.move(x, y)
 
 		self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
-		#~ print '>>', self.uistate
-		w, h = self.uistate['windowsize']
-		self.set_default_size(w, h)
+		if self.uistate['windowsize'] is not None:
+			w, h = self.uistate['windowsize']
+			self.set_default_size(w, h)
 
 		self._no_ok_action = False
 		if not button is None:
