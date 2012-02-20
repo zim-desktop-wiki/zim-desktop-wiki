@@ -23,6 +23,8 @@ from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 
 # FUTURE add option to also pull & push versions automatically
 
+# FUTURE add versions... menu item to note right-click
+
 logger = logging.getLogger('zim.plugins.versioncontrol')
 
 
@@ -97,11 +99,11 @@ class VCS(object):
 
 		for path in reversed(list(dir)):
 			if path.subdir('.bzr').exists():
-				vcs = CVS.create(CVS.BZR, path)
+				vcs = VCS.create(VCS.BZR, path)
 			if path.subdir('.hg').exists():
-				vcs = CVS.create(CVS.HG, path)
+				vcs = VCS.create(VCS.HG, path)
 			if path.subdir('.git').exists():
-				vcs = CVS.create(CVS.GIT, path)
+				vcs = VCS.create(VCS.GIT, path)
 			#~ elif path.subdir('.svn'):
 			#~ elif path.subdir('CVS'):
 			else:
@@ -144,11 +146,11 @@ class VersionControlPlugin(PluginClass):
 		'description': _('''\
 This plugin adds version control for notebooks.
 
-This plugin is based on the Bazaar version control system.
+This plugin supports the Bazaar, Git and Mercurial version control systems.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-		'author': 'Jaap Karssenberg',
+		'author': 'Jaap Karssenberg & John Drinkwater & Damien Accorsi',
 		'help': 'Plugins:Version Control',
 	}
 
@@ -188,6 +190,14 @@ This is a core plugin shipping with zim.
 		dir = self._get_notebook_dir()
 		self.vcs = VCS.detect_in_folder(dir)
 		if self.vcs:
+			# git requires changes to be added to staging, bzr does not
+			# so add a hook for when page is written, to update staging.
+			#
+			# For a more generic behavior, the update_staging is implemented
+			# for all version control systems. If not required - eg. bzr, hg,
+			# then nothing is done
+			self.ui.notebook.connect_after('stored-page', lambda o, n: self.vcs.update_staging() )
+
 			self.actiongroup.get_action('show_versions').set_sensitive(True)
 			if self.preferences['autosave']:
 				self.autosave()
@@ -217,6 +227,7 @@ This is a core plugin shipping with zim.
 	def save_version(self):
 		if not self.vcs:
 			# TODO choice from multiple version control systems
+			# TODO possibly move this to the plug-in configure pref?
 			if QuestionDialog(self, (
 				_("Enable Version Control?"), # T: Question dialog
 				_("Version control is currently not enabled for this notebook.\n"
@@ -430,7 +441,18 @@ state. Or select multiple versions to see changes between those versions.
 				diff_button.set_sensitive(True)
 				comp_button.set_sensitive(usepage)
 
+		def on_page_change(o):
+			pagesource = self._get_file()
+			if pagesource:
+				self.versionlist.load_versions(vcs.list_versions(self._get_file()))
+
+		def on_book_change(o):
+			self.versionlist.load_versions(vcs.list_versions())
+
 		self.page_radio.connect('toggled', on_ui_change)
+		self.notebook_radio.connect('toggled', on_book_change)
+		self.page_radio.connect('toggled', on_page_change)
+		self.page_entry.connect('changed', on_page_change)
 		selection = self.versionlist.get_selection()
 		selection.connect('changed', on_ui_change)
 
@@ -488,6 +510,7 @@ state. Or select multiple versions to see changes between those versions.
 		) ).run():
 			self.vcs.revert(file=file, version=version)
 			self.ui.reload_page()
+			# TODO trigger vcs autosave here?
 
 	def show_changes(self):
 		# TODO check for gdiff
@@ -516,7 +539,7 @@ class VersionsTreeView(SingleClickTreeView):
 	# because we utilize multiple selection to select versions for diffs
 
 	def __init__(self):
-		model = gtk.ListStore(int, str, str, str) # rev, date, user, msg
+		model = gtk.ListStore(str, str, str, str) # rev, date, user, msg
 		gtk.TreeView.__init__(self, model)
 
 		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
@@ -533,20 +556,26 @@ class VersionsTreeView(SingleClickTreeView):
 			if i == 0:
 				column.set_expand(True)
 			self.append_column(column)
-
-		model.set_sort_column_id(0, gtk.SORT_DESCENDING)
+		# TODO reconsider this later for other VCS, should be ok for git & bzr
+		model.set_sort_column_id(1, gtk.SORT_DESCENDING)
 			# By default sort by rev
 
 	def load_versions(self, versions):
 		model = self.get_model()
+		model.clear() # Empty for when we update
+		model.set_sort_column_id(1, gtk.SORT_DESCENDING)
+
 		for version in versions:
+			print version
 			model.append(version)
 
 	def get_versions(self):
 		model, rows = self.get_selection().get_selected_rows()
 		if len(rows) == 1:
-			rev = int(model[rows[0]][0])
+			rev = str(model[rows[0]][0])
 			return (rev,)
 		else:
-			rev = map(int, [model[path][0] for path in rows])
-			return (min(rev), max(rev))
+			rev = map(str, [model[path][0] for path in rows])
+			# FIXME this broke non-numerical vcs
+			# return (min(rev), max(rev))
+			return (str(rev[0]), str(rev[-1]))
