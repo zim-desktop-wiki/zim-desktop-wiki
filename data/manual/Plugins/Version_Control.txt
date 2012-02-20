@@ -47,4 +47,7 @@ The files in the .zim folder are caches of the index and some client configurati
 If you want for some reason stop using version control and throw away all history, you can do the following:
 * disable the version control plugin
 * quit zim
-* remove the .bzr folder and .bzrignore file from your notebook
+* remove from your notebook folder:
+	* the .bzr folder and .bzrignore file in case of Bazaar,
+	* the .hg folder and the .hgignore file in case of Mercurial,
+	* the .git folder and the .gitignore file in case of Git.
