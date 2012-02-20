@@ -127,11 +127,8 @@ class GIT(object):
 		or
 			git diff --no-ext-diff {{REVISION_ARGS}} -- {{PATH}}
 		"""
-		print "VERSIONS=", versions
 		revision_args = self.build_revision_arguments(versions)
-		print "REV=", revision_args
 		revision_args = self.build_revision_arguments(revision_args, is_for_diff=True)
-		print "REV2=", revision_args
 		if path==None:
 			return self.pipe(['diff', '--no-ext-diff'] + revision_args)
 		else:
@@ -239,12 +236,10 @@ class GIT(object):
 			is equivalent to
 			git reset --hard HEAD
 		"""
-		print "START REVERT"
 		revision_params = self.build_revision_arguments(version)
 		if path:
 			self.run(['checkout'] + revision_params + ['--', path])
 		else:
-			print "END FULL REVERT"
 			self.run(['reset', '--hard', 'HEAD'])
 
 	def stage(self):
