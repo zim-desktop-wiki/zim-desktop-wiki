@@ -110,6 +110,7 @@ ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
 	('undo', 'gtk-undo', _('_Undo'), '<ctrl>Z', '', False), # T: Menu item
 	('redo', 'gtk-redo', _('_Redo'), '<ctrl><shift>Z', '', False), # T: Menu item
+	('redo_alt1', None, '', '<ctrl>Y', '', False),
 	('cut', 'gtk-cut', _('Cu_t'), '<ctrl>X', '', False), # T: Menu item
 	('copy', 'gtk-copy', _('_Copy'), '<ctrl>C', '', False), # T: Menu item
 	('paste', 'gtk-paste', _('_Paste'), '<ctrl>V', '', False), # T: Menu item
@@ -130,11 +131,15 @@ ui_actions = (
 	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
 	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>9', '', False), # T: Menu item
 	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', '', True), # T: Menu item
+	('show_find_alt1', None, '', '<ctrl>F3', '', True),
 	('find_next', None, _('Find Ne_xt'), '<ctrl>G', '', True), # T: Menu item
+	('find_next_alt1', None, '', 'F3', '', True), # T: Menu item
 	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', '', True), # T: Menu item
+	('find_previous_alt1', None, '', '<shift>F3', '', True),
 	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', '', False), # T: Menu item
 	('show_word_count', None, _('Word Count...'), '', '', True), # T: Menu item
 	('zoom_in', 'gtk-zoom-in', _('_Zoom In'), '<ctrl>plus', '', True), # T: Menu item
+	('zoom_in_alt1', None, '', '<ctrl>equal', '', True),
 	('zoom_out', 'gtk-zoom-out', _('Zoom _Out'), '<ctrl>minus', '', True), # T: Menu item
 	('zoom_reset', 'gtk-zoom-100', _('_Normal Size'), '<ctrl>0', '', True), # T: Menu item to reset zoom
 )
@@ -4403,18 +4408,6 @@ class PageView(gtk.VBox):
 			self.actiongroup = gtk.ActionGroup('SecondaryPageView')
 		self.ui.add_actions(ui_actions, self)
 
-		# Extra keybinding for Find: F3, <Shift>F3 and <Ctrl>F3
-		group = self.ui.uimanager.get_accel_group()
-		group.connect_group(
-				gtk.keysyms.F3, 0, gtk.ACCEL_VISIBLE,
-				lambda *a: self.find_next())
-		group.connect_group(
-				gtk.keysyms.F3, gtk.gdk.SHIFT_MASK, gtk.ACCEL_VISIBLE,
-				lambda *a: self.find_previous())
-		group.connect_group(
-				gtk.keysyms.F3, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
-				lambda *a: self.show_find())
-
 		# format actions need some custom hooks
 		actiongroup = self.actiongroup
 		actiongroup.add_actions(ui_format_actions)
@@ -4431,17 +4424,6 @@ class PageView(gtk.VBox):
 			action.zim_readonly = False
 			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
-
-		# Extra keybinding for undo - default is <Shift><Ctrl>Z (see HIG)
-		def do_undo(*a):
-			if not self.readonly:
-				self.redo()
-
-		y = gtk.gdk.unicode_to_keyval(ord('y'))
-		group = self.ui.uimanager.get_accel_group()
-		group.connect_group( # <Ctrl>Y
-				y, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
-				do_undo)
 
 		if self.style is None:
 			PageView.style = config_file('style.conf')

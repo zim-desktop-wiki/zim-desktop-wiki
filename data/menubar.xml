@@ -230,5 +230,9 @@
 	<popup name='text_popup'>
 		<placeholder name='tools'/>
 	</popup>
+	<accelerator action='zoom_in_alt1'/>
+	<accelerator action='show_find_alt1'/>
+	<accelerator action='find_next_alt1'/>
+	<accelerator action='find_previous_alt1'/>
+	<accelerator action='redo_alt1'/>
 </ui>
-

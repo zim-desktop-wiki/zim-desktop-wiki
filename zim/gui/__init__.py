@@ -13,6 +13,7 @@ for common base classes for widgets and dialogs.
 '''
 
 import os
+import re
 import logging
 import gobject
 import gtk
@@ -835,7 +836,12 @@ class GtkInterface(NotebookInterface):
 		for name, readonly in [(a[0], a[-1]) for a in actions if not a[0].endswith('_menu')]:
 			action = group.get_action(name)
 			action.zim_readonly = readonly
-			if is_toggle: name = 'do_' + name
+			if re.search('_alt\d$', name): # alternative key bindings
+				name, _ = name.rsplit('_', 1)
+
+			if is_toggle:
+				name = 'do_' + name
+
 			assert hasattr(handler, name), 'No method defined for action %s' % name
 			method = getattr(handler, name)
 			action.connect('activate', self._action_handler, method)
