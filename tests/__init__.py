@@ -234,7 +234,11 @@ class LoggingFilter(object):
 		self.loggerobj.removeFilter(self)
 
 	def filter(self, record):
-		return not record.getMessage().startswith(self.message)
+		msg = record.getMessage()
+		if isinstance(self.message, tuple):
+			return not any(msg.startswith(m) for m in self.message)
+		else:
+			return not msg.startswith(self.message)
 
 	def wrap_test(self, test):
 		self.__enter__()

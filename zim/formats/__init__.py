@@ -788,3 +788,22 @@ class BaseLinker(object):
 	def link_notebook(self, url):
 		'''Optional method, default just returns url'''
 		return url
+
+
+class StubLinker(BaseLinker):
+	'''Linker used for testing - just gives back the link as it was
+	parsed. DO NOT USE outside of testing.
+	'''
+
+	def __init__(self):
+		BaseLinker.__init__(self)
+		self.path = 'XXX'
+
+	def resource(self, path):
+		return path
+
+	def link_page(self, link):
+		return link
+
+	def link_file(self, path):
+		return path

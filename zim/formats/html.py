@@ -14,11 +14,11 @@ from zim.formats import *
 from zim.parsing import TextBuffer, link_type
 
 info = {
-	'name':  'Html',
-	'mime':  'text/html',
+	'name': 'html',
+	'desc': 'HTML',
+	'mimetype': 'text/html',
 	'extension': 'html',
-	'read':	  False,
-	'write':  False,
+	'native': False,
 	'import': False,
 	'export': True,
 }

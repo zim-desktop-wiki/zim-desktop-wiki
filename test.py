@@ -127,7 +127,9 @@ def html_coverage_report(coverage, pyfiles, directory):
 
 	index = []
 	for path in pyfiles:
-		if '_lib' in path or '_version' in path: continue
+		if any(n in path for n in ('inc', '_version', '__main__')):
+			continue
+
 		htmlfile = path[:-3].replace('/', '.')+'.html'
 		html = open(directory + '/' + htmlfile, 'w')
 		html.write('''\

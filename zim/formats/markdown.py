@@ -25,12 +25,12 @@ from zim.parsing import Re, TextBuffer, url_re
 
 
 info = {
-	'name':  'Markdown (pandoc)',
-	'mime':  'text/x-markdown',
+	'name': 'markdown',
+	'desc': 'Markdown Text (pandoc)',
+	'mimetype': 'text/x-markdown',
 	'extension': 'markdown',
 		# No official file extension, but this is often used
-	'read':	  False,
-	'write':  False,
+	'native': False,
 	'import': False,
 	'export': True,
 }
@@ -44,9 +44,9 @@ bullet_re = u'[\\*\u2022]|\\[[ \\*x]\\]'
 	# and '[ ]', '[*]' or '[x]' for checkbox items
 
 bullets = {
-	'* \u2610': UNCHECKED_BOX,
-	'* \u2612': XCHECKED_BOX,
-	'* \u2611': CHECKED_BOX,
+	u'* \u2610': UNCHECKED_BOX,
+	u'* \u2612': XCHECKED_BOX,
+	u'* \u2611': CHECKED_BOX,
 	'*': BULLET,
 }
 
@@ -79,7 +79,7 @@ class Dumper(DumperClass):
 		self.dump_children(tree.getroot(), output)
 		return output.get_lines(end_with_newline=not tree.ispartial)
 
-	def dump_children(self, list, output, list_level=-1):
+	def dump_children(self, list, output, list_level=-1, list_type=None, list_iter='0'):
 		if list.text:
 			output.append(list.text)
 
@@ -111,12 +111,11 @@ class Dumper(DumperClass):
 					# atx-style headers for deeper levels
 					tag = '#' * level
 					output.append(tag + ' ' + element.text)
-			elif element.tag == 'ul':
-				indent = 0
-				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
+			elif element.tag in ('ul', 'ol'):
+				indent = int(element.attrib.get('indent', 0))
+				start = element.attrib.get('start')
 				myoutput = TextBuffer()
-				self.dump_children(element, myoutput, list_level=list_level+1) # recurs
+				self.dump_children(element, myoutput, list_level=list_level+1, list_type=element.tag, list_iter=start) # recurs
 				# OPEN ISSUE: no indent for para
 				#if indent:
 				#	myoutput.prefix_lines('\t'*indent)
@@ -129,11 +128,14 @@ class Dumper(DumperClass):
 					output.extend(myoutput)
 			elif element.tag == 'li':
 				if 'indent' in element.attrib:
+					# HACK for raw trees from pageview
 					list_level = int(element.attrib['indent'])
-				if 'bullet' in element.attrib:
-					bullet = bullet_types[element.attrib['bullet']]
+
+				if list_type == 'ol':
+					bullet = str(list_iter) + '.'
+					list_iter = increase_list_iter(list_iter) or '1' # fallback if iter not valid
 				else:
-					bullet = '*'
+					bullet = bullet_types[element.attrib.get('bullet', BULLET)]
 				output.append('\t'*list_level+bullet+' ')
 				self.dump_children(element, output, list_level=list_level) # recurs
 				output.append('\n')
@@ -183,29 +185,3 @@ class Dumper(DumperClass):
 
 			if element.tail:
 				output.append(element.tail)
-
-
-def convert_file(file):
-	from zim.fs import File
-	from zim.formats.wiki import Parser
-	file = File(file)
-	parser = Parser()
-	tree = parser.parse(file.read())
-	dumper = Dumper()
-	text = dumper.dump(tree)
-	return text
-
-
-if __name__ == '__main__':
-	import sys
-	import os
-
-	assert len(sys.argv) == 2, "Usage: markdown.py FILE"
-
-	if os.path.isfile(sys.argv[1]):
-		lines = convert_file(sys.argv[1])
-		print ''.join(lines)
-	else:
-		print 'Not a file:'. sys.argv[1]
-
-	# TODO hook real notebook and exporter with linker

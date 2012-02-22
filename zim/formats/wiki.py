@@ -14,10 +14,11 @@ WIKI_FORMAT_VERSION = 'zim 0.4'
 
 
 info = {
-	'name':  'Wiki text',
-	'mime':  'text/x-zim-wiki',
-	'read':	  True,
-	'write':  True,
+	'name': 'wiki',
+	'desc': 'Zim Wiki Format',
+	'mimetype': 'text/x-zim-wiki',
+	'extension': 'txt',
+	'native': True,
 	'import': True,
 	'export': True,
 }
@@ -398,6 +399,7 @@ class Dumper(DumperClass):
 				output.extend(myoutput)
 			elif element.tag == 'li':
 				if 'indent' in element.attrib:
+					# HACK for raw trees from pageview
 					list_level = int(element.attrib['indent'])
 				if list_type == 'ol':
 					bullet = str(list_iter) + '.'
