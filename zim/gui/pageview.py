@@ -547,6 +547,7 @@ class TextBuffer(gtk.TextBuffer):
 			# copy to avoid infinite loop when updating bullet triggers new delete
 		self._check_renumber = []
 		for line in lines:
+			#~ print 'RENUMBER'
 			self.renumber_list(line)
 			# This flag means we deleted a line, and now we need
 			# to check if the numbering is still valid.
@@ -1235,7 +1236,6 @@ class TextBuffer(gtk.TextBuffer):
 
 	def _renumber_list(self, line, indent, newbullet):
 		# Do the actual renumbering
-
 		if not is_numbered_bullet_re.match(newbullet):
 			# Replace numbered bullet with normal bullet
 			iter = self.get_iter_at_line(line)
@@ -4284,10 +4284,14 @@ class UndoStackManager:
 				self.buffer.place_cursor(iter)
 				self.buffer.insert_parsetree_at_cursor(data)
 			elif action == self.ACTION_DELETE:
-				#~ print 'DELETING'
+				#~ print 'DELETING', data.tostring()
 				self.buffer.place_cursor(iter)
 				tree = self.buffer.get_parsetree((iter, bound), raw=True)
-				self.buffer.delete(iter, bound)
+				#~ print 'REAL', tree.tostring()
+				with self.buffer.user_action:
+					self.buffer.delete(iter, bound)
+					self.buffer._check_renumber = []
+						# Flush renumber check - HACK to avoid messing up the stack
 				if tree.tostring() != data.tostring():
 					logger.warn('Mismatch in undo stack\n%s\n%s\n', tree.tostring(), data.tostring())
 			elif action == self.ACTION_APPLY_TAG:
