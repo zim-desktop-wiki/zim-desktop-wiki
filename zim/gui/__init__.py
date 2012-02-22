@@ -207,7 +207,7 @@ def load_zim_stock_icons():
 			    pixbuf = icon_theme.load_icon(name, 24, 0)
 			except:
 			    pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
-			
+
 			try:
 			    set = gtk.IconSet(pixbuf)
 			    factory.add(name, set)
@@ -1366,7 +1366,7 @@ class GtkInterface(NotebookInterface):
 		'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
 
-	def new_page_from_text(self, text, name=None, open_page=False):
+	def new_page_from_text(self, text, name=None, open_page=False, use_template=False):
 		'''Create a new page with content. This method is intended
 		mainly for remote calls from the daemon. It is used for
 		example by the L{quicknote plugin<zim.plugins.quicknote>}.
@@ -1394,10 +1394,19 @@ class GtkInterface(NotebookInterface):
 
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_new_page(path)
-		page.parse('wiki', text) # FIXME format hard coded
+		if use_template:
+			template = self.notebook.get_template(page)
+			tree = template.process_to_parsetree(self.notebook, page)
+			page.set_parsetree(tree)
+			page.parse('wiki', text, append=True) # FIXME format hard coded
+		else:
+			page.parse('wiki', text) # FIXME format hard coded
+
 		self.notebook.store_page(page)
+
 		if open_page:
 			self.open_page(page)
+
 		return page
 
 	def append_text_to_page(self, name, text):

@@ -6307,7 +6307,7 @@ class MoveTextDialog(Dialog):
 		if newpage.exists():
 			self.ui.append_text_to_page(newpage.name, self.text)
 		else:
-			newpage = self.ui.new_page_from_text(self.text, name=newpage.name)
+			newpage = self.ui.new_page_from_text(self.text, name=newpage.name, use_template=True)
 
 		# Delete text (after copy was succesfull..)
 		buffer = self.pageview.view.get_buffer()
