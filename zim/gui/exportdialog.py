@@ -286,9 +286,14 @@ class OutputPage(AssistantPage):
 		if show_file:
 			basename = self.uistate['selected_page'].basename
 			ext = zim.formats.get_format(self.uistate['format']).info['extension']
-			file = File('~/' + encode_filename(basename  + '.' + ext))
+
+			if self.uistate['output_file'] \
+			and isinstance(self.uistate['output_file'], File):
+				dir = self.uistate['output_file'].dir
+				file = dir.file(encode_filename(basename  + '.' + ext))
+			else:
+				file = File('~/' + encode_filename(basename  + '.' + ext))
 			self.uistate['output_file'] = file
-			# TODO remember last file output folder
 
 		self.form['file'] = self.uistate['output_file']
 		self.form['folder'] = self.uistate['output_folder']
