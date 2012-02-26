@@ -288,7 +288,6 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 
 		self.assertTrue(isinstance(versions,list))
 		#~ print 'VERSIONS>>', versions
-		print "VERSIONS", versions
 		self.assertTrue(len(versions) == 3)
 		self.assertTrue(isinstance(versions[0],tuple))
 		self.assertTrue(len(versions[0]) == 4)
