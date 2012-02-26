@@ -57,7 +57,22 @@ class VersionControlSystemGenericBackend(object):
 		                 - returns "git" for git
 		"""
 		raise NotImplementedError
-	
+
+	def get_mandatory_params(self):
+		"""Return a list of string parameters to be systematically added to
+		the command line
+		@returns: a list of str() which are the parameters to be put on the \
+		          command line every
+		
+		@implementation: this method may be overwritten if the VCS requires \
+		                 this kind of params.
+		                 
+		                 E.g: the use of mercurial requires "--noninteractive" \
+		                 so that commit ops success in any case - if you already
+		                 setup a username or not
+		"""
+		return list()
+
 	@classmethod
 	def tryexec(cls):
 		"""Try to execute the command associated with the backend.
@@ -74,7 +89,12 @@ class VersionControlSystemGenericBackend(object):
 		@returns: nothing
 		@implementation: should not be overriden by child classes
 		"""
-		self._app.run(params, self.root)
+		final_params = self.get_mandatory_params()
+		for param in params:
+			if param not in final_params:
+				final_params.append(param)
+		
+		self._app.run(final_params, self.root)
 
 	def pipe(self, params):
 		"""Execute a command with the associated binary with 'params' parameters
