@@ -283,8 +283,7 @@ def get_tmpdir():
 	import tempfile
 	root = tempfile.gettempdir()
 	dir = Dir((root, 'zim-%s' % os.environ['USER']))
-	dir.touch()
-	os.chmod(dir.path, 0700) # Limit to single user
+	dir.touch(mode=0700) # Limit to single user
 	return dir
 
 
@@ -883,10 +882,16 @@ class Dir(FilePath):
 			text += path + '\n'
 		return text
 
-	def touch(self):
-		'''Create this folder and any parent folders that do not yet exist'''
+	def touch(self, mode=None):
+		'''Create this folder and any parent folders that do not yet
+		exist.
+		@param mode: creation mode (e.g. 0700)
+		'''
 		try:
-			os.makedirs(self.encodedpath)
+			if mode is not None:
+				os.makedirs(self.encodedpath, mode=mode)
+			else:
+				os.makedirs(self.encodedpath)
 		except OSError, e:
 			if e.errno != errno.EEXIST:
 				raise
