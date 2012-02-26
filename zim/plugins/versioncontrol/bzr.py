@@ -9,6 +9,7 @@ import logging
 
 from zim.fs import FS
 from zim.applications import Application
+from zim.applications import ApplicationError
 from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
 from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
@@ -122,7 +123,8 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		if self.repo_exists()==False:
 			with lock_object:
 				self.init()
-			#self.whoami('zim') # set a dummy user "zim"
+			if self.test_whoami()==False:
+				self.whoami('zim') # set a dummy user "zim"
 			self.ignore('**/.zim/')
 			with lock_object:
 				self.add('.')
@@ -233,6 +235,13 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		"""
 		return self.pipe(['whoami', user])
 
+	def test_whoami(self):
+		"""return True if the user is is setup or non-zero
+		"""
+		try:
+			return self.run(['whoami'])
+		except ApplicationError, e:
+			return False
 
 
 class BazaarVCS(VersionControlSystemAlgorithms):
