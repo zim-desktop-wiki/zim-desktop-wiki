@@ -60,7 +60,10 @@ class VersionControlSystemGenericBackend(object):
 
 	def get_mandatory_params(self):
 		"""Return a list of string parameters to be systematically added to
-		the command line
+		the command line.
+		
+		Note: mandatory params will be put as first params before any other.
+		
 		@returns: a list of str() which are the parameters to be put on the \
 		          command line every
 		
