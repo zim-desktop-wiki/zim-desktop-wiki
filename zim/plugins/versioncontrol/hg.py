@@ -111,6 +111,10 @@ class HGApplicationBackend(VersionControlSystemGenericBackend):
 		else:
 			return self.pipe(['diff', '--git', path] + revision_args)
 
+	def get_mandatory_params(self):
+		return ['--noninteractive'] # force hg to run in non-interactive mode
+		                            # which will force user name to be auto-setup
+
 	def ignore(self, file_to_ignore_regexp):
 		"""
 		Build a .hgignore file including the file_to_ignore_content
