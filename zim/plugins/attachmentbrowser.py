@@ -5,6 +5,7 @@
 # License:  same as zim (gpl)
 #
 # ChangeLog
+# 2012-02-27 Complete refactoring of thumbnail manager + test case
 # 2012-02-26 Rewrote direct filessystem calls in order to support non-utf8 file systems (Jaap)
 # 2011-01-25 Refactored widget and plugin code (Jaap)
 #		tested on gtk < 2.12 (tooltip interface)
@@ -68,6 +69,7 @@ import pango
 import zim
 import zim.config # Asserts HOME is defined
 from zim.fs import File, Dir, TmpFile
+from zim.parsing import url_encode, URL_ENCODE_READABLE
 
 from zim.async import AsyncOperation, AsyncLock
 from zim.plugins import PluginClass
@@ -116,18 +118,10 @@ LOCAL_THUMB_STORAGE_FAIL = LOCAL_THUMB_STORAGE.subdir('fail/zim-%s' % zim.__vers
 
 THUMB_SIZE_NORMAL = 128
 THUMB_SIZE_LARGE = 256
-# evil hack: ignore the specs and create larger thumbs
-PREVIEW_SIZE = 396
 
-
-
-
-# TODO: chaneg size
-#pdftopng_cmd = ('convert','-size', '480x480', '-trim','+repage','-resize','480x480>','-quality','50')
-#pdftopng_cmd = ('convert','-trim')
-#txttopng_cmd = ('dvipng', '-q', '-bg', 'Transparent', '-T', 'tight', '-o')
-#txttopng_cmd = ('convert', '-size', '480x480'  'caption:')
-#pdftojpg_cmd = ('convert','-size', '480x480', '-trim','+repage','-resize','480x480>','-quality','50')
+# For plugin -- TODO make configable / zoomable
+ICON_SIZE = 64
+PREVIEW_SIZE = 128
 
 
 class AttachmentBrowserPlugin(PluginClass):
@@ -149,7 +143,7 @@ This plugin is still under development.
 	#	('icon_size', 'int', _('Icon size [px]'), [ICON_SIZE_MIN,128,ICON_SIZE_MAX]), # T: preferences option
 	#	('preview_size', 'int', _('Tooltip preview size [px]'), (THUMB_SIZE_MIN,480,THUMB_SIZE_MAX)), # T: input label
 	#	('thumb_quality', 'int', _('Preview jpeg Quality [0..100]'), (0,50,100)), # T: input label
-		('use_imagemagick', 'bool', _('Use ImageMagick for thumbnailing'), False), # T: input label
+	#~	('use_imagemagick', 'bool', _('Use ImageMagick for thumbnailing'), False), # T: input label
 	)
 
 	#~ @classmethod
@@ -277,7 +271,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 
 	def refresh(self):
 		self.store.clear()
-		self.thumbman.clear()
+		#~ self.thumbman.clear()
 
 		if self.dir is None or not self.dir.exists():
 			self.fileview.set_sensitive(False)
@@ -291,7 +285,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			if file.isdir():
 				continue # Ignore subfolders -- FIXME ?
 
-			pixbuf = self.thumbman.get_thumbnail(file, THUMB_SIZE_NORMAL, self.set_thumb, file)
+			#~ pixbuf = self.thumbman.get_thumbnail_async(file, THUMB_SIZE_NORMAL, self.set_thumb)
+			pixbuf = self.thumbman.get_thumbnail(file, ICON_SIZE)
 			if not pixbuf:
 				# TODO: icon by mime-type
 				pixbuf = self.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_BUTTON)
@@ -380,12 +375,28 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 
 class ThumbnailManager():
 	''' Thumbnail handling following freedesktop.org spec mostly'''
+	# TODO more doc here to explain what the function of the manager is
+
+	# Spec retrieved 2012-02-26 from http://people.freedesktop.org/~vuntz/thumbnail-spec-cache/
+	# Notes on spec:
+	# * storage
+	# 	* ~/.thumbnails/normal <= 128 x 128
+	# 	* ~/.thumbnails/large <= 256 x 256
+	# 	* ~/.thumbnails/fail
+	# * thumbnail file
+	# 	* Name is md5 hex of full uri (where uri must be "file:///" NOT "file://localhost/")
+	# 	* Must have PNG attributes for mtime and uri
+	# 		* If mtime orig can not be determined, do not create a thumbnail
+	# 	* Must write as tmp file in same dir and then rename atomic
+	# 	* Permissions on files must be 0600
+	# * lookup / recreate
+	# 	* Must equal orig mtime vs thumbnail mtime property (not thumbnail file mtime)
+	# 	* Only store failures for permanent failures, to prevent re-doing them
+	# 	* Failure is app specific, so subdir with app name and version
+	# 	* Failure record is just empty png
 
 	def __init__(self, preferences):
 		self.preferences = preferences
-		self.queue=[]
-		self.worker_is_active=False
-		self.lock = AsyncLock()
 
 		for dir in (
 			LOCAL_THUMB_STORAGE_NORMAL,
@@ -397,58 +408,214 @@ class ThumbnailManager():
 			except OSError:
 				pass
 
-
-	def get_thumbnailfile(self, file, size):
-		'''generates md5 hash and appends it to local thumb storage
-		@param file: a L{File} object for the original file
-		@paran size: size in pixels for the requested thumbnail
-		@returns: a L{File} object for the thumbnail (may not yet exist)
+	def get_thumbnail(self, file, size):
+		'''Get a C{Pixbuf} with the thumbnail for a given file
+		@param file: the original file to be thumbnailed
+		@param size: thumbnail size in pixels (C{THUMB_SIZE_NORMAL}, C{THUMB_SIZE_LARGE}, or integer)
+		@returns: a C{gtk.gdk.Pixbuf} object
 		'''
-		assert isinstance(file, File)
-		name = hashlib.md5(file.uri).hexdigest() + '.png'
-		#  ~/.thumbnails/normal
-		# it is a png file and name is the md5 hash calculated earlier
-		if (size<=THUMB_SIZE_NORMAL):
-			return LOCAL_THUMB_STORAGE_NORMAL.file(name)
+		thumbfile = self.get_thumbnail_file(file, size)
+		if thumbfile.exists():
+			# Check the thumbnail is valid
+			pixbuf = self._pixbuf(thumbfile, size)
+			mtime = self._mtime_from_pixbuf(pixbuf)
+			if mtime is not None:
+				# Check mtime from PNG attribute
+				if mtime == int(file.mtime()):
+					return pixbuf
+				else:
+					pass # create new thumbnail
+			else:
+				# Fallback for thumbnails without proper attributes
+				if thumbfile.mtime() > file.mtime():
+					return pixbuf
+				else:
+					pass # create new thumbnail
+
+		# Else create new thumbnail
+		normsize = self._norm_size(size)
+		if self._create_thumbnail(file, thumbfile, normsize):
+			return self._pixbuf(thumbfile, size)
 		else:
-			return LOCAL_THUMB_STORAGE_LARGE.file(name)
+			return None
 
-	def get_tmp_thumbnailfile(self, file, size):
-		name = hashlib.md5(file.uri).hexdigest() + '.png'
-		return TmpFile('thumbnails/%s/%s' % (str(size), name), unique=False, persistent=True)
+	def get_thumbnail_async(self, file, size, callback):
+		'''Get a C{Pixbuf} with the thumbnail for a given file
+		Like L{get_thumbnail()} but if thumbnail needs to be generated first it will be done
+		asynchronously.
+		@param file: the original file to be thumbnailed
+		@param size: thumbnail size in pixels (C{THUMB_SIZE_NORMAL}, C{THUMB_SIZE_LARGE}, or integer)
+		@param callback: function to be called when the thumbnail is ready, the signature is::
 
-	def get_fail_thumbnailfile(self, file):
-		name = hashlib.md5(file.uri).hexdigest() + '.png'
-		return LOCAL_THUMB_STORAGE_FAIL.file(name)
+			callback(file, size, pixbuf)
 
-	def _file_to_image_pixbbuf(self,infile,outfile,w,h,fileinfo=None):
-		#logger.debug('file_to_image('+ filenameabs +','+','+thumbfilenameabs +','+','+ size +')'
-		size=str(w)+'x'+str(h)
+		Where
+		* C{file} is the original file
+		* C{size} is the requested thumbnail size in pixels
+		* C{pixbuf} is the pixbuf for the thumbnail
+		'''
+		pass
+
+	def get_thumbnail_file(self, file, size):
+		'''Get L{File} object for thumbnail
+		Does not gurarntee that the thumbnail actually exists.
+		Do not use this method to lookup the thumbnail, use L{get_thumbnail()}
+		instead.
+		@param file: the original file to be thumbnailed
+		@param size: thumbnail size in pixels (C{THUMB_SIZE_NORMAL}, C{THUMB_SIZE_LARGE}, or integer)
+		@returns: a L{File} object
+		'''
+		basename = hashlib.md5(file.uri).hexdigest() + '.png'
+		size = self._norm_size(size)
+		if (size == THUMB_SIZE_NORMAL):
+			return LOCAL_THUMB_STORAGE_NORMAL.file(basename)
+		else:
+			return LOCAL_THUMB_STORAGE_LARGE.file(basename)
+
+	def remove_thumbnails(self, file):
+		'''Remove thumbnails for at all sizes
+		To be used when thumbnails are outdated, e.g. when the original
+		file is removed or updated.
+		@param file: the original file
+		'''
+		for size in (THUMB_SIZE_NORMAL, THUMB_SIZE_LARGE):
+			thumbfile = self.get_thumbnail_file(file, size)
+			if thumbfile.exists():
+				thumbfile.remove()
+
+	def _norm_size(self, size):
+		# Convert custom size to normalized size for storage
+		if size <= THUMB_SIZE_NORMAL:
+			return THUMB_SIZE_NORMAL
+		else:
+			return THUMB_SIZE_LARGE
+
+	def _pixbuf(self, file, size):
+		# Read file at size and return pixbuf
+		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
+		return pixbuf
+
+	def _mtime_from_pixbuf(self, pixbuf):
+		# Get mtime and return as int, if any
+		mtime = pixbuf.get_option('tEXt::Thumb::MTime')
+		if mtime is not None:
+			return int(mtime)
+		else:
+			return None
+
+	def _create_thumbnail(self, file, thumbfile, normsize):
+		# Create actual thumbnail, returns boolean for success
+		assert file.exists()
+		assert normsize in (THUMB_SIZE_NORMAL, THUMB_SIZE_LARGE)
+		thumbnailer = PixbufThumbnailer()
 		try:
-			logger.debug('Trying PixBuffer')
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(infile.path,w,h)
-			# TODO: set image info
-			#pixbuf_file = gtk.gdk.pixbuf_new_from_file(infile)
-			#pixbuf=pixbuf_file.scale_simple(w, h)
-			# TODO: save to tmp and ten move
-			pixbuf.save(outfile.path,'png')
-			return pixbuf
-		except:
-			logger.debug('  Error converting Image')
-
-	def _file_to_image_magick(self,infile,outfile,w,h,fileinfo=None):
-		''' pdf to thumbnail '''
-		try:
-			logger.debug('  trying Imagemagick')
-			infile_p1=infile.path +'[0]' # !????
-			#print infile_p1
-			size=str(w)+'x'+str(h)
-			cmd = ('convert','-size', size, '-trim','+repage','-resize',size+'>')
-			Application(cmd).run((infile_p1, outfile.path))
+			thumbnailer.create_thumbnail(file, thumbfile, normsize)
+				# TODO enforce tmp file, 0600 permissions, as specced
 			return True
 		except:
-			logger.exception('Error running %s', cmd)
-		return False
+			# TODO Error class, logging, create failure file ?
+			logger.info('Failed to generate thumbnail for: %s', file)
+			return False
+
+
+		#~ if self.preferences['use_imagemagick']:
+			#~ TODO TODO
+
+
+class Thumbnailer(object):
+
+	def create_thumbnail(self, file, thumbfile, size):
+		'''Create a thumbnail
+		@param file: the file to be thumbnailed as L{File} object
+		@param thumfile: to be created thumbnail file as L{File} object
+		@param size: pixel size for thumbnail as integer
+		@implementation: must be implemented in subclasses
+		'''
+		raise NotImplementedError
+
+
+class PixbufThumbnailer(Thumbnailer):
+
+	def create_thumbnail(self, file, thumbfile, size):
+		options = {
+			'tEXt::Thumb::URI': url_encode(file.uri, mode=URL_ENCODE_READABLE), # No UTF-8 here
+			'tEXt::Thumb::MTime': str( int( file.mtime() ) ),
+		}
+		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
+		pixbuf.save(thumbfile.path, 'png', options)
+
+
+class ImageMagickThumbnailer(Thumbnailer):
+
+	def create_thumbnail(self, file, thumbfile, size):
+		pass
+
+		#~ magickextensions=('SVG','PDF','PS','EPS','DVI','DJVU','RAW','DOT','HTML','HTM','TTF','XCF')
+		#~ textextensions=('SH','BAT','TXT','C','C++','CPP','H','H++','HPP','PY','PL') #'AVI','MPG','M2V','M4V','MPEG'
+		#~ # TODO use mimetypes here ?? "image/" and "text/" -- or isimage() and istext()
+
+		#~ tmpfile.touch()
+		#~ pixbuf = None
+		#~ extension=infile.path.split(".")[-1].upper()
+		#~ if extension in magickextensions:
+			#~ fileinfo=self._file_to_image_magick(infile,tmpfile,w,h,None)
+			#~ if (fileinfo):
+				#~ pixbuf = self._file_to_image_pixbbuf(tmpfile,outfile,w,h,fileinfo)
+		#~ elif extension in textextensions:
+			#~ #convert -size 400x  caption:@-  caption_manual.gif
+			#~ fileinfo=self._file_to_image_txt(infile,tmpfile,w,h,None)
+			#~ if (fileinfo):
+				#~ pixbuf=self._file_to_image_pixbbuf(tmpfile,outfile,w,h,fileinfo)
+		#~ else:
+			#~ logger.debug('Can\'t convert: %s', infile)
+
+		#~ try:
+			#~ tmpfile.remove()
+		#~ except OSError:
+			#~ logger.exception('Could not delete tmp file: %s', tmpfile)
+		#~ return pixbuf
+
+
+	#~ def _file_to_image_magick(self,infile,outfile,w,h,fileinfo=None):
+		#~ ''' pdf to thumbnail '''
+		#~ try:
+			#~ logger.debug('  trying Imagemagick')
+			#~ infile_p1=infile.path +'[0]' # !????
+			#~ #print infile_p1
+			#~ size=str(w)+'x'+str(h)
+			#~ cmd = ('convert','-size', size, '-trim','+repage','-resize',size+'>')
+			#~ Application(cmd).run((infile_p1, outfile.path))
+			#~ return True
+		#~ except:
+			#~ logger.exception('Error running %s', cmd)
+		#~ return False
+
+	#~ def _file_to_image_txt(self,infile,outfile,w,h,fileinfo=None):
+		#~ try:
+			#~ textcont='caption:'
+			#~ size=str(h/4*3)+'x'+str(h)
+			#~ linecount=0;
+			#~ # lines: 18 at 128px
+			#~ # linewidth 35 at 128px
+			#~ while linecount<(h/32+10):
+				#~ line = file.readline()
+				#~ if not line:
+					#~ break
+				#~ linecount+=1
+				#~ textcont+=line[0:w/24+12]
+				#~ if (len(line)>(w/24+12) ):
+					#~ textcont+='\n'
+			#~ logger.debug('Trying TXT')
+
+			#~ cmd = ('convert','-font','Courier','-size', size)# '-frame', '1' )
+			#~ Application(cmd).run((textcont,outfile.path))
+			#~ return True
+		#~ except:
+			#~ logger.debug('  Error converting TXT')
+		#~ return False
+
+
+# class GnomeThumbnailer(Thumbnailer):
 
 #	def _file_to_image_gnome(self,infile,outfile,w,h,fileinfo=None):
 #		''' gnome thumbnailer '''
@@ -466,197 +633,3 @@ class ThumbnailManager():
 #			return True
 #		except:
 #			logger.debug('  Error converting PDF')
-
-
-	def _file_to_image_txt(self,infile,outfile,w,h,fileinfo=None):
-		try:
-			textcont='caption:'
-			size=str(h/4*3)+'x'+str(h)
-			linecount=0;
-			# lines: 18 at 128px
-			# linewidth 35 at 128px
-			while linecount<(h/32+10):
-				line = file.readline()
-				if not line:
-					break
-				linecount+=1
-				textcont+=line[0:w/24+12]
-				if (len(line)>(w/24+12) ):
-					textcont+='\n'
-			logger.debug('Trying TXT')
-
-			cmd = ('convert','-font','Courier','-size', size)# '-frame', '1' )
-			Application(cmd).run((textcont,outfile.path))
-			return True
-		except:
-			logger.debug('  Error converting TXT')
-		return False
-
-	def file_to_image(self,infile,outfile,tmpfile,w,h):
-		logger.debug('file_to_image(%s, %s, %s)', infile, outfile, tmpfile)
-		# try build in formats
-		pixbuf=self._file_to_image_pixbbuf(infile,outfile,w,h,None)
-		if pixbuf:
-			return pixbuf
-		elif not self.preferences['use_imagemagick']:
-			return
-
-
-		magickextensions=('SVG','PDF','PS','EPS','DVI','DJVU','RAW','DOT','HTML','HTM','TTF','XCF')
-		textextensions=('SH','BAT','TXT','C','C++','CPP','H','H++','HPP','PY','PL') #'AVI','MPG','M2V','M4V','MPEG'
-		# TODO use mimetypes here ?? "image/" and "text/" -- or isimage() and istext()
-
-		tmpfile.touch()
-		pixbuf = None
-		extension=infile.path.split(".")[-1].upper()
-		if extension in magickextensions:
-			fileinfo=self._file_to_image_magick(infile,tmpfile,w,h,None)
-			if (fileinfo):
-				pixbuf = self._file_to_image_pixbbuf(tmpfile,outfile,w,h,fileinfo)
-		elif extension in textextensions:
-			#convert -size 400x  caption:@-  caption_manual.gif
-			fileinfo=self._file_to_image_txt(infile,tmpfile,w,h,None)
-			if (fileinfo):
-				pixbuf=self._file_to_image_pixbbuf(tmpfile,outfile,w,h,fileinfo)
-		else:
-			logger.debug('Can\'t convert: %s', infile)
-
-		try:
-			tmpfile.remove()
-		except OSError:
-			logger.exception('Could not delete tmp file: %s', tmpfile)
-		return pixbuf
-
-	def queue_worker(self):
-		#~ print 'i am the worker'
-		while (len(self.queue)>0) :
-			item = self.queue.pop() #work on the youngest item first
-			file = item[0]
-			size = item[1]
-			if (size<=THUMB_SIZE_NORMAL):
-				w=THUMB_SIZE_NORMAL
-				h=THUMB_SIZE_NORMAL
-			else:
-				w=PREVIEW_SIZE
-				h=PREVIEW_SIZE
-
-			thumbfile = self.get_thumbnailfile(file, size)
-			tmpfile = self.get_tmp_thumbnailfile(file, size)
-
-			if not (tmpfile.exists() or thumbfile.exists()):
-				pixbuf=self.file_to_image(file, thumbfile, tmpfile, w, h)
-
-			if pixbuf:
-				if (item[2]):
-					#print 'job done try callback'
-					fkt=item[2]
-					parm=item[3]
-					fkt(parm,pixbuf)
-			else:
-				#print 'thumb create failed'
-				self.get_fail_thumbnailfile(file).touch()
-
-			# FIXME FIXME - shouldn't we call the callback here !???
-
-		self.worker_is_active=False
-		#print 'queue worker: job done'
-
-
-	def start_queue_worker(self):
-		#print 'start_queue_worker'
-		#print '  remaining jobs:' + str(len(self.queue))
-		#print '  current job: '+ self.queue[-1][0]
-		if not self.worker_is_active:
-			self.worker_is_active=True
-			try:
-				#print 'worker started'
-				AsyncOperation(self.queue_worker,lock=self.lock).start()
-			except:
-				self.worker_is_active=False
-				#print 'worker died'
-
-
-	def enqueue(self, file, size, set_pixbuf_callback, callbackparm):
-		#logger.debug ("Thumbnail enqueued:" +filenameabs+","+str(size)+","+str(pixbuf))
-		# start thumb generator in bg, if not already
-
-		# dont enqueue twice
-		found=False
-		for e in self.queue:
-			if e[0]==file:
-				logger.debug("Already in the queue: %s", file)
-				break
-		else: # no break
-			self.queue.append((file, size, set_pixbuf_callback, callbackparm))
-			logger.debug ("Thumbnail enqueued: %s @ %s", file, size)
-
-		self.start_queue_worker()
-
-
-	def clear(self):
-		''' clears the queue'''
-		self.queue=[]
-
-
-	def get_thumbnail(self, file, size, set_pixbuf_callback=None, parm=None):
-		''' create a pixbuffer
-
-		load the thumb if available
-		else load smaller thumbnail
-		and generate thumb async
-		'''
-		thumbfile=self.get_thumbnailfile(file, size)
-		#print thumbfile
-
-		if thumbfile.exists():
-			if thumbfile.mtime() < file.mtime():
-				# Existing thumbnail is outdated
-				try:
-					thumbfile.remove()
-				except OSError:
-					logger.debug('Can\'t delete outdated thumbnail: %s', thumbfile)
-					# TODO mark as failed
-					return None
-			else:
-				# Load existing thumbnail
-				logger.debug('Load existing thumbnail: %s', thumbfile)
-				try:
-					pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(thumbfile.path, size, size)
-					return pixbuf
-				except:
-					logger.debug('Error loading thumbnail')
-					# TODO mark as failed
-					return None
-
-		# Enqueue for background creation
-		self.enqueue(file, size, set_pixbuf_callback, parm)
-
-		# try to load the other size temporarily
-		#~ if (size<=THUMB_SIZE_NORMAL):
-			#~ size_alt=THUMB_SIZE_LARGE
-		#~ else:
-			#~ size_alt=THUMB_SIZE_NORMAL
-
-		#~ logger.debug('  load alternative size')
-		#~ thumbfile=self.get_thumbnailfilename(filenameabs,size_alt)
-		#~ if (os.path.isfile(thumbfile)) and (os.stat(thumbfile).st_mtime > os.stat(filenameabs).st_mtime):
-				#~ try:
-					#~ logger.debug('  load alt thumbnail')
-					#~ pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(thumbfile,size,size)
-					#~ return pixbuf
-				#~ except:
-					#~ logger.debug('  Error loading alt. thumbnail')
-		#~ else:
-			#~ logger.debug('  alt thumbnail not valid')
-		# enqueue for background creation
-
-
-
-		# race condition: if the tb generator finishes first
-		# the caller must take care for the icon
-		#logger.debug('  Fallback: stock icon')
-		#widget = gtk.HBox() # Need *some* widget here...
-		# TODO: icon by mime-type
-		#pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE,gtk.ICON_SIZE_DIALOG)
-		#return pixbuf
-		return None
