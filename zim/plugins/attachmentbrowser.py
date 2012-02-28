@@ -71,7 +71,7 @@ import zim.config # Asserts HOME is defined
 from zim.fs import File, Dir, TmpFile
 from zim.parsing import url_encode, URL_ENCODE_READABLE
 
-from zim.async import AsyncOperation, AsyncLock
+from zim.async import AsyncOperation
 from zim.plugins import PluginClass
 from zim.gui.widgets import Button, BOTTOM_PANE, IconButton
 from zim.notebook import Path
@@ -271,7 +271,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 
 	def refresh(self):
 		self.store.clear()
-		#~ self.thumbman.clear()
+		self.thumbman.clear_async_queue()
 
 		if self.dir is None or not self.dir.exists():
 			self.fileview.set_sensitive(False)
@@ -285,22 +285,27 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			if file.isdir():
 				continue # Ignore subfolders -- FIXME ?
 
-			#~ pixbuf = self.thumbman.get_thumbnail_async(file, THUMB_SIZE_NORMAL, self.set_thumb)
-			pixbuf = self.thumbman.get_thumbnail(file, ICON_SIZE)
-			if not pixbuf:
-				# TODO: icon by mime-type
-				pixbuf = self.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_BUTTON)
 
+			#~ pixbuf = self.thumbman.get_thumbnail(file, ICON_SIZE)
+
+			# Set generic icon first
+			# TODO: icon by mime-type
+			pixbuf = self.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_BUTTON)
 			self.store.append((name, pixbuf)) # BASENAME_COL, PIXBUF_COL
 
-	def set_thumb(self, file, pixbuf):
+			# In background request real thumb
+			self.thumbman.get_thumbnail_async(file, ICON_SIZE, self.async_callback)
+
+
+	def async_callback(self, file, size, pixbuf):
 		'''callback to replace the placeholder icon by a background generated thumbnail'''
+		#~ print "GOT THUMB:", file, size, pixbuf
 		if not file.dir == self.dir:
 			return
 
-		name = file.basename
+		basename = file.basename
 		def update(model, path, iter):
-			if model[iter][BASENAME_COL] == name:
+			if model[iter][BASENAME_COL] == basename:
 				model[iter][PIXBUF_COL] = pixbuf
 
 		self.store.foreach(update)
@@ -397,6 +402,7 @@ class ThumbnailManager():
 
 	def __init__(self, preferences):
 		self.preferences = preferences
+		self.async_queue = []
 
 		for dir in (
 			LOCAL_THUMB_STORAGE_NORMAL,
@@ -407,6 +413,9 @@ class ThumbnailManager():
 				dir.touch(mode=0700)
 			except OSError:
 				pass
+
+	def clear_async_queue(self):
+		self.async_queue = []
 
 	def get_thumbnail(self, file, size):
 		'''Get a C{Pixbuf} with the thumbnail for a given file
@@ -454,7 +463,36 @@ class ThumbnailManager():
 		* C{size} is the requested thumbnail size in pixels
 		* C{pixbuf} is the pixbuf for the thumbnail
 		'''
-		pass
+		self.async_queue.append( (file, size, callback) )
+		if len(self.async_queue) == 1: # was empty
+			self._start_async_operation()
+
+		# TODO - allow multiple async threads at once, but have max
+		# use queue to deal with surplus requests ?
+
+	def _start_async_operation(self):
+		file, size, _ = self.async_queue[0]
+		operation = AsyncOperation(
+			self.get_thumbnail, args=(file, size), callback=self._async_callback, data=self.async_queue[0])
+		operation.start()
+
+	def _async_callback(self, pixbuf, error, exc_info, data):
+			# Callback is called from main tread, in idle event
+			# so it is allowed to kick off new async operations
+			if error:
+				logger.error('Error while creating thumbnail', exc_info=exc_info)
+			elif pixbuf is not None:
+				try:
+					file, size, callback = data
+					callback(file, size, pixbuf)
+				except:
+					logger.exception('Exception while returning thumbnail')
+
+			if self.async_queue:
+				self.async_queue.pop(0)
+
+			if self.async_queue:
+				self._start_async_operation()
 
 	def get_thumbnail_file(self, file, size):
 		'''Get L{File} object for thumbnail

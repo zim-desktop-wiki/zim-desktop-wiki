@@ -642,8 +642,6 @@ class PageTreeView(BrowserTreeView):
 		if model is None:
 			return None # index not yet initialized ...
 
-		model.select_page(path)
-
 		treepath = model.get_treepath(path)
 		if treepath:
 			# path existed, now select it
@@ -669,6 +667,8 @@ class PageTreeView(BrowserTreeView):
 				model.index.cleanup(indexpath)
 
 		self._cleanup = rowreference
+
+		model.select_page(path) # highlight in model
 
 		return treepath
 
