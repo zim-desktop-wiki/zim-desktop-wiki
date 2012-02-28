@@ -4,6 +4,20 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42. 
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.55 - Tue 28 Feb 2012 ===
+* Numbered lists are now supported
+* The index now has "natural" sorting, so "9" goes before "10"
+* Added new plugin to show a Table Of Contents per page, and allows modifying the outline
+* Added Markdown (with pandoc extensions) as an export format
+* New context menu item "move text" for refactoring text to a new page
+* Tasklist now supports a "next:" keyword to indicate dependencies, 
+  and it can hide tasks that are not yet actionable
+* Made zim taskbar icons and trayicon overloadable in theme - Andrei
+* Fixed behavior of Recent Pages pathbar in cases where part of the history is dropped
+* Fixed behavior of the Search dialog, it no longer hangs and also allows cancelling the search
+* Fixed bug where replacing a word (e.g spell correction) could drop formatting
+* Fixed behavior of case-sensitive rename on a case-insensitive file system (windows)
+
 === 0.54 - Thu 22 Dec 2011 ===
 Bug fix release with minor feature enhancements
 * Added mono icons for the Ubuntu Unity panel

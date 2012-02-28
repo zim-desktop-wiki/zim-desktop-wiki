@@ -20,7 +20,7 @@ Zim can be used to:
 
 ====== COPYRIGHT ======
 
-Copyright 2008, 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -179,5 +179,3 @@ you should add you new .po file to the po/ directory.
 After adding the .po file(s) you can compile the translation using:
 
 	./setup.py build_trans
-
-
