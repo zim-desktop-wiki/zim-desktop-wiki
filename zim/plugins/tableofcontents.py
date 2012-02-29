@@ -265,12 +265,12 @@ class ToCWidget(gtk.ScrolledWindow):
 			else:
 				item.set_sensitive(False)
 
-	def can_demote(self, paths):
+	def can_promote(self, paths):
 		# All headings have level larger than 1
 		return paths and all(len(p) > 1 for p in paths)
 
-	def on_demote(self, *a):
-		# Demote selected paths and all their children
+	def on_promote(self, *a):
+		# Promote selected paths and all their children
 		model, paths = self.treeview.get_selection().get_selected_rows()
 		if not self.can_demote(paths):
 			return False
@@ -288,7 +288,7 @@ class ToCWidget(gtk.ScrolledWindow):
 		self._load_page(self.page)
 		return True
 
-	def can_promote(self, paths):
+	def can_demote(self, paths):
 		# All headings below max level and all have a potential parent
 		# Potential parents should be on the same level above the selected
 		# path, so as long as the path is not the first on it's level it
@@ -304,9 +304,9 @@ class ToCWidget(gtk.ScrolledWindow):
 		else:
 			return True
 
-	def on_promote(self, *a):
-		# Promote selected paths and all their children
-		# note can not promote over level 6
+	def on_demote(self, *a):
+		# Demote selected paths and all their children
+		# note can not demote below level 6
 		model, paths = self.treeview.get_selection().get_selected_rows()
 		if not self.can_promote(paths):
 			return False
