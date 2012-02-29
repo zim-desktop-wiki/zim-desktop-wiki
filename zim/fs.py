@@ -338,6 +338,31 @@ def cleanup_filename(name):
 	return name
 
 
+def format_file_size(bytes):
+	'''Returns a human readable label  for a file size
+	E.g. C{1230} becomes C{"1.23kb"}, idem for "Mb" and "Gb"
+	@param bytes: file size in bytes as integer
+	@returns: size as string
+	'''
+	for unit, label in (
+		(1000000000, 'Gb'),
+		(1000000, 'Mb'),
+		(1000, 'kb'),
+	):
+		if bytes >= unit:
+			size = float(bytes) / unit
+			if size < 10:
+				return "%.2f%s" % (size, label)
+			elif size < 100:
+				return "%.1f%s" % (size, label)
+			else:
+				return "%.0f%s" % (size, label)
+	else:
+		return str(bytes) + 'b'
+
+
+
+
 def _md5(content):
 	import hashlib
 	m = hashlib.md5()
@@ -597,12 +622,21 @@ class UnixPath(object):
 		else:
 			return self.dir.iswritable() # recurs
 
+	def _stat(self):
+		return os.stat(self.encodedpath)
+
 	def mtime(self):
 		'''Get the modification time of the file path.
 		@returns: the mtime timestamp
 		'''
-		stat_result = os.stat(self.encodedpath)
-		return stat_result.st_mtime
+		return self._stat().st_mtime
+
+	def size(self):
+		'''Get file size in bytes
+		See L{format_file_size()} to get a human readable label
+		@returns: file size in bytes
+		'''
+		return self._stat().st_size
 
 	def isequal(self, other):
 		'''Check file paths are equal based on stat results (inode
