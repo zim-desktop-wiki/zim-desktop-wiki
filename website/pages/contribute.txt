@@ -41,7 +41,7 @@ If you want to work on a bounty send an email to jaap.karssenberg@gmail.com so w
 === Open bounties: ===
 
 **Support for resolving syncing conflicts in pages - **//open//
-Amount: 100 Euro
+Amount: 200 Euro
 Details: see [[http://www.zim-wiki.org/wiki/doku.php?id=resolving_syncing_conflicts|this page]] for details
 
 **Support for embedded tables** - //open// 
