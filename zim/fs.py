@@ -283,8 +283,7 @@ def get_tmpdir():
 	import tempfile
 	root = tempfile.gettempdir()
 	dir = Dir((root, 'zim-%s' % os.environ['USER']))
-	dir.touch()
-	os.chmod(dir.path, 0700) # Limit to single user
+	dir.touch(mode=0700) # Limit to single user
 	return dir
 
 
@@ -337,6 +336,31 @@ def cleanup_filename(name):
 	for char in ("/", "\\", ":", "*", "?", '"', "<", ">", "|", "\t", "\n"):
 		name = name.replace(char, '')
 	return name
+
+
+def format_file_size(bytes):
+	'''Returns a human readable label  for a file size
+	E.g. C{1230} becomes C{"1.23kb"}, idem for "Mb" and "Gb"
+	@param bytes: file size in bytes as integer
+	@returns: size as string
+	'''
+	for unit, label in (
+		(1000000000, 'Gb'),
+		(1000000, 'Mb'),
+		(1000, 'kb'),
+	):
+		if bytes >= unit:
+			size = float(bytes) / unit
+			if size < 10:
+				return "%.2f%s" % (size, label)
+			elif size < 100:
+				return "%.1f%s" % (size, label)
+			else:
+				return "%.0f%s" % (size, label)
+	else:
+		return str(bytes) + 'b'
+
+
 
 
 def _md5(content):
@@ -498,6 +522,13 @@ class UnixPath(object):
 			self._serialized = self.user_path or self.path
 		return self._serialized
 
+	@classmethod
+	def new_from_zim_config(klass, string):
+		'''Returns a new object based on the string representation for
+		that path
+		'''
+		return klass(string)
+
 	@staticmethod
 	def _parse_uri(uri):
 		# Spec is file:/// or file://host/
@@ -591,12 +622,21 @@ class UnixPath(object):
 		else:
 			return self.dir.iswritable() # recurs
 
+	def _stat(self):
+		return os.stat(self.encodedpath)
+
 	def mtime(self):
 		'''Get the modification time of the file path.
 		@returns: the mtime timestamp
 		'''
-		stat_result = os.stat(self.encodedpath)
-		return stat_result.st_mtime
+		return self._stat().st_mtime
+
+	def size(self):
+		'''Get file size in bytes
+		See L{format_file_size()} to get a human readable label
+		@returns: file size in bytes
+		'''
+		return self._stat().st_size
 
 	def isequal(self, other):
 		'''Check file paths are equal based on stat results (inode
@@ -876,10 +916,16 @@ class Dir(FilePath):
 			text += path + '\n'
 		return text
 
-	def touch(self):
-		'''Create this folder and any parent folders that do not yet exist'''
+	def touch(self, mode=None):
+		'''Create this folder and any parent folders that do not yet
+		exist.
+		@param mode: creation mode (e.g. 0700)
+		'''
 		try:
-			os.makedirs(self.encodedpath)
+			if mode is not None:
+				os.makedirs(self.encodedpath, mode=mode)
+			else:
+				os.makedirs(self.encodedpath)
 		except OSError, e:
 			if e.errno != errno.EEXIST:
 				raise

@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- this file is NOT in store.xml format -->
 <pagelist>
-<page name="TODOList">
+<page name="TaskList">
 TEst 123
 </page>
-<page name="TODOList:foo">
+<page name="TaskList:foo">
 TODO: fix 1 !!!
 
 TODO:
 * fix 2 24/3/08 !!
 * fix 3 !
 </page>
-<page name="TODOList:bar">
+<page name="TaskList:bar">
 TODO: test 123 test !!
 
 * foo ! - TODO
@@ -19,6 +19,44 @@ TODO: test 123 test !!
 * baz - TODO
 
 [[Test:Foo:BAR]]
+</page>
+<page name="TaskList:all">
+Try all kind of combos - see if the parser trips
+
+TODO:
+[ ] A
+[ ] B
+[ ] C
+
+[ ] D
+[ ] E
+
+FIXME: dus
+~~FIXME:~~ foo
+
+[ ] Simple
+[ ] List
+
+[ ] List with
+	[ ] Nested items
+	[*] Some are done
+		[x] Others not
+		[ ] FOOOOO
+[ ] Bar
+
+[ ] And then there are @tags
+[ ] And due dates
+[ ] Date [d: 11/12]
+[ ] Date [d: 11/12/2012]
+	[ ] TODO: BAR !!!
+
+TODO @home:
+[ ] Some more tasks !!!
+	[ ] Foo !
+	[ ] Bar
+
+TODO: dus
+FIXME: jaja - TODO !! @FIXME
 </page>
 <page name='TrashMe'>
 Trash me!
@@ -173,8 +211,8 @@ and
 
 And with a different &#64;encoding
 
-It also tests which weird @s!gns (sees only "s") and @num6ers @wit#in (aka 
-"wit") tags and tries hard to @cr@sh ("cr") the parser.  
+It also tests which weird @s!gns (sees only "s") and @num6ers @wit#in (aka
+"wit") tags and tries hard to @cr@sh ("cr") the parser.
 </page>
 <page name="Test:Foo Bar:Dus Ja Hmm">
 Testing with whitespace in page name
@@ -239,6 +277,13 @@ And a checkbox list
 [ ] item 2
 [ ] item 3
 	[x] item FOOOOOO !
+
+A numbered list:
+1. foo
+2. bar
+	a. sub list
+	b. here
+3. hmmm
 
 ----
 

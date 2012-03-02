@@ -9,6 +9,7 @@ from zim.plugins import PluginClass
 from zim.config import data_file
 from zim.applications import Application, ApplicationError
 from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
+from zim.gui.widgets import populate_popup_add_separator
 
 # TODO put these commands in preferences
 dotcmd = ('dot', '-Tpng', '-o')
@@ -41,7 +42,7 @@ This plugin provides a diagram editor for zim based on GraphViz.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-		'help': ':Plugins:Diagram Editor',
+		'help': 'Plugins:Diagram Editor',
 		'author': 'Jaap Karssenberg',
 	}
 
@@ -66,7 +67,7 @@ This is a core plugin shipping with zim.
 		dialog.show_all()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
-		menu.prepend(gtk.SeparatorMenuItem())
+		populate_popup_add_separator(prepend=True)
 
 		item = gtk.MenuItem(_('_Edit Diagram')) # T: menu item in context menu
 		item.connect('activate',

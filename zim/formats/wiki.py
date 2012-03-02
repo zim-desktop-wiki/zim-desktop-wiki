@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008, 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module handles parsing and dumping wiki text'''
 
@@ -15,10 +15,11 @@ WIKI_FORMAT_VERSION = 'zim 0.4'
 
 
 info = {
-	'name':  'Wiki text',
-	'mime':  'text/x-zim-wiki',
-	'read':	  True,
-	'write':  True,
+	'name': 'wiki',
+	'desc': 'Zim Wiki Format',
+	'mimetype': 'text/x-zim-wiki',
+	'extension': 'txt',
+	'native': True,
 	'import': True,
 	'export': True,
 }
@@ -36,16 +37,27 @@ bullet_types = {}
 for bullet in bullets:
 	bullet_types[bullets[bullet]] = bullet
 
-bullet_pattern = u'(?:[\\*\u2022]|\\[[ \\*x]\\])[\\ \\t]+'
+bullet_pattern = u'(?:[\\*\u2022]|\\[[ \\*x]\\]|\\d+\\.|\\w\\.)[\\ \\t]+'
 	# bullets can be '*' or 0x2022 for normal items
 	# and '[ ]', '[*]' or '[x]' for checkbox items
+	# and '1.', '10.', or 'a.' for numbered items (but not 'aa.')
 
-bullet_line_re = re.compile(r'^(\t*)(%s)(.*\n)' % bullet_pattern)
-	# matches list item
+bullet_line_re = re.compile(r'^(\t*)(%s)(.*\n)$' % bullet_pattern)
+	# matches list item: prefix, bullet, text
+
+number_bullet_re = re.compile('^(\d+|\w)\.$')
+def check_number_bullet(bullet):
+	'''If bullet is a numbered bullet this returns the number or letter,
+	C{None} otherwise
+	'''
+	m = number_bullet_re.match(bullet)
+	if m:
+		return m.group(1)
+	else:
+		return None
 
 param_re = re.compile('(\w+)\s*\=\s*"((?:[^"]|"{2})*)"')
 	# matches parameter list for objects
-
 
 empty_lines_re = re.compile(r'((?:^[\ \t]*\n)+)', re.M | re.U)
 	# match multiple empty lines
@@ -203,30 +215,51 @@ class WikiParser(object):
 		else:
 			attrib = None
 
-		builder.start(BULLETLIST, attrib)
+		lines = text.splitlines(True)
+		self.parse_list_lines(builder, lines, 0, attrib)
 
-		level = 0 # relative to indent
-		for line in text.splitlines(True):
+	def parse_list_lines(self, builder, lines, level, attrib=None):
+		listtype = None
+		first = True
+		while lines:
+			line = lines[0]
 			m = bullet_line_re.match(line)
 			assert m, 'Line does not match a list item: >>%s<<' % line
 			prefix, bullet, text = m.groups()
 			bullet = bullet.rstrip()
 
+			if first:
+				number = check_number_bullet(bullet)
+				if number:
+					listtype = NUMBEREDLIST
+					if not attrib:
+						attrib = {}
+					attrib['start'] = number
+				else:
+					listtype = BULLETLIST
+				builder.start(listtype, attrib)
+				first = False
+
 			mylevel = len(prefix)
 			if mylevel > level:
-				for i in range(level, mylevel):
-					builder.start(BULLETLIST)
+				self.parse_list_lines(builder, lines, level+1) # recurs
 			elif mylevel < level:
-				for i in range(mylevel, level):
-					builder.end(BULLETLIST)
-			level = mylevel
+				builder.end(listtype)
+				return
+			else:
+				if listtype == NUMBEREDLIST:
+					attrib = None
+				elif bullet in bullets: # BULLETLIST
+					attrib = {'bullet': bullets[bullet]}
+				else: # BULLETLIST
+					attrib = {'bullet': BULLET}
+				builder.start(LISTITEM, attrib)
+				self.inline_parser(builder, text)
+				builder.end(LISTITEM)
 
-			builder.start(LISTITEM, {'bullet': bullets.get(bullet, BULLET)})
-			self.inline_parser(builder, text)
-			builder.end(LISTITEM)
+				lines.pop(0)
 
-		for i in range(-1, level):
-			builder.end(BULLETLIST)
+		builder.end(listtype)
 
 	def parse_indent(self, builder, text, indent):
 		'''Parse indented blocks and turn them into 'div' elements'''
@@ -313,7 +346,7 @@ class Dumper(DumperClass):
 		self.dump_children(tree.getroot(), output)
 		return output.get_lines(end_with_newline=not tree.ispartial)
 
-	def dump_children(self, list, output, list_level=-1):
+	def dump_children(self, list, output, list_level=-1, list_type=None, list_iter='0'):
 		if list.text:
 			output.append(list.text)
 
@@ -327,27 +360,33 @@ class Dumper(DumperClass):
 				if indent:
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
-			elif element.tag == 'ul':
-				indent = 0
-				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
-				myoutput = TextBuffer()
-				self.dump_children(element, myoutput, list_level=list_level+1) # recurs
-				if indent:
-					myoutput.prefix_lines('\t'*indent)
-				output.extend(myoutput)
 			elif element.tag == 'h':
 				level = int(element.attrib['level'])
 				if level < 1:   level = 1
 				elif level > 5: level = 5
 				tag = '='*(7 - level)
 				output.append(tag+' '+element.text+' '+tag)
+			elif element.tag in ('ul', 'ol'):
+				indent = int(element.attrib.get('indent', 0))
+				start = element.attrib.get('start')
+				myoutput = TextBuffer()
+				self.dump_children(element, myoutput, list_level=list_level+1, list_type=element.tag, list_iter=start) # recurs
+				if indent:
+					myoutput.prefix_lines('\t'*indent)
+				output.extend(myoutput)
 			elif element.tag == 'li':
 				if 'indent' in element.attrib:
+					# HACK for raw trees from pageview
 					list_level = int(element.attrib['indent'])
-				if 'bullet' in element.attrib:
-					bullet = bullet_types[element.attrib['bullet']]
-				else:
+				if list_type == 'ol':
+					bullet = str(list_iter) + '.'
+					list_iter = increase_list_iter(list_iter) or '1' # fallback if iter not valid
+				elif 'bullet' in element.attrib: # ul OR raw tree from pageview...
+					if element.attrib['bullet'] in bullet_types:
+						bullet = bullet_types[element.attrib['bullet']]
+					else:
+						bullet = element.attrib['bullet'] # Assume it is numbered..
+				else: # ul
 					bullet = '*'
 				output.append('\t'*list_level+bullet+' ')
 				self.dump_children(element, output, list_level=list_level) # recurs

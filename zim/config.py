@@ -493,6 +493,16 @@ class ListDict(dict):
 					modified = self.modified
 					self.__setitem__(key, tuple(self[key]))
 					self.set_modified(modified) # don't change modified state
+				elif hasattr(klass, 'new_from_zim_config'):
+					# Class has special contructor
+					modified = self.modified
+					try:
+						self.__setitem__(key, klass.new_from_zim_config(self[key]))
+					except:
+						logger.exception(
+							'Invalid config value for %s: "%s"',
+							key, self[key])
+					self.set_modified(modified) # don't change modified state
 				else:
 					logger.warn(
 						'Invalid config value for %s: "%s" - should be of type %s',
@@ -641,7 +651,7 @@ class ConfigDict(ListDict):
 				parameter, value = line.split('=', 1)
 				parameter = str(parameter.rstrip()) # no unicode
 				try:
-					value = self._decode_value(value.lstrip())
+					value = self._decode_value(parameter, value.lstrip())
 					section[parameter] = value
 				except:
 					logger.warn('Failed to parse value for: %s', parameter)
@@ -649,7 +659,8 @@ class ConfigDict(ListDict):
 				logger.warn('Could not parse line: %s', line)
 
 	# Separated out as this will be slightly different for .desktop files
-	def _decode_value(self, value):
+	# we ignore the key - but DesktopEntryDict uses them
+	def _decode_value(self, key, value):
 		if len(value) == 0:
 			return ''
 		if value == 'True': return True

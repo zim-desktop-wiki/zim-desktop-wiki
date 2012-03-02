@@ -90,14 +90,14 @@ GenericName[sr]=Уређивач текста
 Name[zh_TW]=Zim 桌面維基
 Comment[zh_TW]=以維基樣式編輯文字檔案
 GenericName[zh_TW]=文字編輯器
-X-Ayatana-Desktop-Shortcuts=QuickNote;QuickNoteClipboard;
+X-Ayatana-Desktop-Shortcuts=X-QuickNote;X-QuickNoteClipboard;
 
-[QuickNote Shortcut Group]
+[X-QuickNote Shortcut Group]
 Name=Quick Note
 Exec=zim --plugin quicknote
 TargetEnvironment=Unity
 
-[QuickNoteClipboard Shortcut Group]
+[X-QuickNoteClipboard Shortcut Group]
 Name=Quick Note from Clipboard
 Exec=zim --plugin quicknote input=clipboard
 TargetEnvironment=Unity

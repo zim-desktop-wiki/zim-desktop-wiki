@@ -47,7 +47,7 @@ If the list is already sorted the order will be reversed
 (A-Z to Z-A).
 '''), # T: plugin description
 		'author': 'NorfCran',
-		'help': 'Plugins:Line sorter',
+		#~ 'help': 'Plugins:Line sorter',
 	}
 
 	def __init__(self, ui):

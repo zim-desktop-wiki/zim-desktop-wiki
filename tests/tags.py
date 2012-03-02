@@ -99,7 +99,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		path = (0,)
 		prevpath = None
 		while path:
-			#~ print '>>', path
+			#~ print 'PATH', path
 			assert path != prevpath, 'Prevent infinite loop'
 			nitems += 1
 			prevpath = path
@@ -293,6 +293,7 @@ class TestTagPluginWidget(tests.TestCase):
 
 		# check filtering in treestore
 		tagfilter = (selected, filtered)
+		selected = frozenset(selected)
 		filtered = frozenset(filtered)
 
 		def toplevel(model):
@@ -316,7 +317,8 @@ class TestTagPluginWidget(tests.TestCase):
 			self.assertTrue(not path is None)
 			tags = list(ui.notebook.index.list_tags(path))
 			tags = frozenset(tags)
-			self.assertTrue(tags >= filtered)
+			self.assertTrue(selected.issubset(tags)) # Needs to contains selected tags
+			self.assertTrue(tags.issubset(filtered)) # All other tags should be in the filter selection
 			treepaths = filteredmodel.get_treepaths(path)
 			self.assertTrue(filteredmodel.get_path(iter) in treepaths)
 
@@ -333,7 +335,8 @@ class TestTagPluginWidget(tests.TestCase):
 				self.assertTrue(not path is None)
 				tags = list(ui.notebook.index.list_tags(path))
 				tags = frozenset(tags)
-				self.assertTrue(tags >= filtered)
+				self.assertTrue(selected.issubset(tags)) # Needs to contains selected tags
+				self.assertTrue(tags.issubset(filtered)) # All other tags should be in the filter selection
 				treepaths = filteredmodel.get_treepaths(path)
 				self.assertTrue(filteredmodel.get_path(iter) in treepaths)
 

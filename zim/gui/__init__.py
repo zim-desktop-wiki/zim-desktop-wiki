@@ -13,6 +13,7 @@ for common base classes for widgets and dialogs.
 '''
 
 import os
+import re
 import logging
 import gobject
 import gtk
@@ -202,10 +203,15 @@ def load_zim_stock_icons():
 			if not file.endswith('.png'):
 				continue # no all installs have svg support..
 			name = 'zim-'+file[:-4] # e.g. checked-box.png -> zim-checked-box
+			icon_theme = gtk.icon_theme_get_default()
 			try:
-				pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
-				set = gtk.IconSet(pixbuf=pixbuf)
-				factory.add(name, set)
+			    pixbuf = icon_theme.load_icon(name, 24, 0)
+			except:
+			    pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
+
+			try:
+			    set = gtk.IconSet(pixbuf)
+			    factory.add(name, set)
 			except Exception:
 				logger.exception('Got exception while loading application icons')
 
@@ -830,7 +836,12 @@ class GtkInterface(NotebookInterface):
 		for name, readonly in [(a[0], a[-1]) for a in actions if not a[0].endswith('_menu')]:
 			action = group.get_action(name)
 			action.zim_readonly = readonly
-			if is_toggle: name = 'do_' + name
+			if re.search('_alt\d$', name): # alternative key bindings
+				name, _ = name.rsplit('_', 1)
+
+			if is_toggle:
+				name = 'do_' + name
+
 			assert hasattr(handler, name), 'No method defined for action %s' % name
 			method = getattr(handler, name)
 			action.connect('activate', self._action_handler, method)
@@ -1217,7 +1228,7 @@ class GtkInterface(NotebookInterface):
 			back.set_sensitive(not path.is_first)
 			forward.set_sensitive(not path.is_last)
 		else:
-			self.history.append(page)
+			self.history.append(path)
 			historyrecord = self.history.get_current()
 			back.set_sensitive(not is_first_page)
 			forward.set_sensitive(False)
@@ -1361,7 +1372,7 @@ class GtkInterface(NotebookInterface):
 		'''
 		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
 
-	def new_page_from_text(self, text, name=None, open_page=False):
+	def new_page_from_text(self, text, name=None, open_page=False, use_template=False):
 		'''Create a new page with content. This method is intended
 		mainly for remote calls from the daemon. It is used for
 		example by the L{quicknote plugin<zim.plugins.quicknote>}.
@@ -1389,10 +1400,19 @@ class GtkInterface(NotebookInterface):
 
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_new_page(path)
-		page.parse('wiki', text) # FIXME format hard coded
+		if use_template:
+			template = self.notebook.get_template(page)
+			tree = template.process_to_parsetree(self.notebook, page)
+			page.set_parsetree(tree)
+			page.parse('wiki', text, append=True) # FIXME format hard coded
+		else:
+			page.parse('wiki', text) # FIXME format hard coded
+
 		self.notebook.store_page(page)
+
 		if open_page:
 			self.open_page(page)
+
 		return page
 
 	def append_text_to_page(self, name, text):
@@ -1668,7 +1688,7 @@ class GtkInterface(NotebookInterface):
 
 	def copy_location(self):
 		'''Menu action to copy the current page name to the clipboard'''
-		Clipboard().set_pagelink(self.notebook, self.page)
+		Clipboard.set_pagelink(self.notebook, self.page)
 
 	def show_preferences(self):
 		'''Menu action to show the L{PreferencesDialog}'''
@@ -1965,6 +1985,7 @@ class GtkInterface(NotebookInterface):
 		self.emit('start-index-update')
 
 		index = self.notebook.index
+		index.stop_updating()
 		if flush:
 			index.flush()
 
@@ -2723,11 +2744,7 @@ class MainWindow(Window):
 		if path and isinstance(path, HistoryPath) and not path.cursor is None:
 			cursor = path.cursor
 		elif self.ui.preferences['GtkInterface']['always_use_last_cursor_pos']:
-			record = self.ui.history.get_path(page, need_cursor=True)
-			if record:
-				cursor = record.cursor
-			else:
-				cursor = None
+			cursor, _ = self.ui.history.get_state(page)
 		else:
 			cursor = None
 

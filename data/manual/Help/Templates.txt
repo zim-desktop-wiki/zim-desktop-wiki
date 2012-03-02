@@ -17,8 +17,11 @@ Templates can also set template options that influence the generated output, by 
 
 ===== Special templates =====
 
-**"_New"**
+**wiki/Default.txt**
 This template is used to initialize new pages. The default contains a header with the page name and a the date at which the page was created.
+
+**wiki/Calendar.txt**
+This template is used to initialize new pages in the calendar namespace.
 
 ===== Customizing =====
 
@@ -26,31 +29,37 @@ Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/
 
 Template syntax:
 
-
-
 '''
 [% var %]                   # interpolates a variable
-
-[% IF var %] ... [% END %]  # conditionals
-
-[% IF var %]
-	...
-[% ELSE %]
-	...
-[% END %]
-
-[% FOREACH name = var ]     # loop
-... [% name %] ...
-[% END %]
-
-[% strftime("%c") %]		# current time stamp
-[% strftime("%c", var) %]   # date from variable
+[%- var %] 
 '''
+''                 # + strip line break before the expression''
+''[% var -%] ''''                 # + strip line break after the expression''
+''[%- var -%]''''                 # + strip line breaks on both sides''
+
+''[% IF expr %] ... [% END %]  # conditionals''
+
+''[% IF ''''expr'''' %]''
+''	...''
+''[% ELSIF expr %]''
+''	...''
+''[% ELSE %]''
+''	...''
+''[% END %]''
+
+''[% FOREACH name = var ]     # loop''
+''... [% name %] ...''
+''[% END %]''
+
+''[% strftime("%c") %]        # current time stamp''
+''[% strftime("%c", var) %]   # date from variable''
 
 
 '''
 [% options.option_name = value %] # set the template option option_name to value
 '''
+
+For the ''IF'' and ''ELIF'' statements the expression can be either just a variable, in which case it is evaluated boolean, or an equality expression with "==". For example "''[% IF page.name == 'foo' %]''" is understood. More complex expressions are not supported.
 
 Available variables:
 

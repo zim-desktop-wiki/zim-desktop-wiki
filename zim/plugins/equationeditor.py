@@ -11,6 +11,7 @@ from zim.config import data_file
 from zim.templates import GenericTemplate
 from zim.applications import Application, ApplicationError
 from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
+from zim.gui.widgets import populate_popup_add_separator
 
 # TODO put these commands in preferences
 latexcmd = ('latex', '-no-shell-escape', '-halt-on-error')
@@ -44,7 +45,7 @@ This plugin provides an equation editor for zim based on latex.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-		'help': ':Plugins:Equation Editor',
+		'help': 'Plugins:Equation Editor',
 		'author': 'Jaap Karssenberg',
 	}
 
@@ -71,7 +72,7 @@ This is a core plugin shipping with zim.
 		dialog.show_all()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
-		menu.prepend(gtk.SeparatorMenuItem())
+		populate_popup_add_separator(menu, prepend=True)
 
 		item = gtk.MenuItem(_('_Edit Equation')) # T: menu item in context menu
 		item.connect('activate',

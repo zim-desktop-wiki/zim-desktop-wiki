@@ -33,6 +33,9 @@ class ExportDialog(Assistant):
 			if self.uistate[k] and not self.uistate[k].isspace():
 				options[k] = self.uistate[k]
 
+		options['format'] = \
+			zim.formats.canonical_name(options['format'])
+
 		if options['template'] == '__file__':
 			options['template'] = self.uistate['template_file']
 
@@ -44,6 +47,15 @@ class ExportDialog(Assistant):
 		except Exception, error:
 			ErrorDialog(self, error).run()
 			return False
+
+		index = self.ui.notebook.index
+		if index.updating:
+			dialog = ProgressBarDialog(self, _('Updating index'))
+			# T: Title of progressbar dialog
+			index.ensure_update(callback=lambda p: dialog.pulse(p.name))
+			dialog.destroy()
+			if dialog.cancelled:
+				return False
 
 		if self.uistate['selection'] == 'all':
 			dir = Dir(self.uistate['output_folder'])
@@ -166,6 +178,7 @@ class FormatPage(AssistantPage):
 		# Set template list based on selected format
 		def set_templates(self):
 			format = self.form['format']
+			format = zim.formats.canonical_name(format)
 			combobox = self.form.widgets['template']
 			combobox.get_model().clear()
 
@@ -254,9 +267,9 @@ class OutputPage(AssistantPage):
 		# Switch between folder selection or file selection based
 		# on whether we selected full notebook or single page in the
 		# first page
-		self.uistate.setdefault('output_folder', '')
+		self.uistate.setdefault('output_folder', '', Dir)
 		self.uistate.setdefault('index_page', '')
-		self.uistate.setdefault('output_file', '')
+		self.uistate.setdefault('output_file', '', File)
 
 		show_file = self.uistate.get('selection') == 'page'
 		if show_file:
@@ -273,9 +286,14 @@ class OutputPage(AssistantPage):
 		if show_file:
 			basename = self.uistate['selected_page'].basename
 			ext = zim.formats.get_format(self.uistate['format']).info['extension']
-			file = File('~/' + encode_filename(basename  + '.' + ext))
+
+			if self.uistate['output_file'] \
+			and isinstance(self.uistate['output_file'], File):
+				dir = self.uistate['output_file'].dir
+				file = dir.file(encode_filename(basename  + '.' + ext))
+			else:
+				file = File('~/' + encode_filename(basename  + '.' + ext))
 			self.uistate['output_file'] = file
-			# TODO remember last file output folder
 
 		self.form['file'] = self.uistate['output_file']
 		self.form['folder'] = self.uistate['output_folder']

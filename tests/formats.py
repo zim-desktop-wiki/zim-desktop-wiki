@@ -10,13 +10,86 @@ from __future__ import with_statement
 import tests
 
 from zim.formats import *
+from zim.fs import File
 from zim.notebook import Path, Link
 from zim.parsing import link_type
+from zim.templates import Template
+
 
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
 
 wikitext = tests.WikiTestData.get('roundtrip')
+
+
+
+class TestFormatMixin(object):
+	'''Mixin for testing formats, uses data in C{tests/data/formats/}'''
+
+	reference_xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
+
+	reference_data = {
+		'wiki': 'wiki.txt',
+		'plain': 'plain.txt',
+		'html': 'export.html',
+		'latex': 'export.tex',
+		'markdown': 'export.markdown',
+	}
+
+	def testFormatInfo(self):
+		for key in ('name', 'desc', 'mimetype', 'extension'):
+			self.assertIsInstance(self.format.info[key], basestring,
+				msg='Invalid key "%s" in format info' % key)
+
+		for key in ('native', 'import', 'export'):
+			self.assertIsInstance(self.format.info[key], bool,
+				msg='Invalid key "%s" in format info' % key)
+
+		if self.format.info['native'] or self.format.info['import']:
+			self.assertTrue(hasattr(self.format, 'Parser'))
+
+		if self.format.info['native'] or self.format.info['export']:
+			self.assertTrue(hasattr(self.format, 'Dumper'))
+
+	def testFormat(self):
+		name = self.format.info['name']
+		assert name in self.reference_data, 'No data file for format "%s"' % name
+		path = 'tests/data/formats/' + self.reference_data[name]
+
+		# Dumper
+		wanted = File(path).read()
+		tree = tests.new_parsetree_from_xml(self.reference_xml)
+		dumper = self.format.Dumper(linker=StubLinker())
+		result = ''.join(dumper.dump(tree))
+		#~ print '\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n'
+		self.assertMultiLineEqual(result, wanted)
+
+		# Parser
+		if not hasattr(self.format, 'Parser'):
+			return
+		input = wanted
+		parser = self.format.Parser()
+		result = parser.parse(input)
+		if self.format.info['native']:
+			self.assertMultiLineEqual(result.tostring(), self.reference_xml)
+		else:
+			self.assertTrue(len(result.tostring().splitlines()) > 10)
+				# FIXME better test here to ensure we preserve at least plain text
+
+
+class TestListFormats(tests.TestCase):
+
+	def runTest(self):
+		for desc in list_formats(EXPORT_FORMAT):
+			name = canonical_name(desc)
+			format = get_format(name)
+			self.assertTrue(format.info['export'])
+
+		for desc in list_formats(TEXT_FORMAT):
+			name = canonical_name(desc)
+			format = get_format(name)
+			self.assertTrue(format.info['export'])
+			self.assertTrue(format.info['mimetype'].startswith('text/'))
 
 
 class TestParseTree(tests.TestCase):
@@ -127,186 +200,33 @@ class TestParseTree(tests.TestCase):
 			self.assertEqual(tree.get_ends_with_newline(), newline)
 
 
-class TestTextFormat(tests.TestCase):
+class TestTextFormat(tests.TestCase, TestFormatMixin):
 
 	def setUp(self):
 		self.format = get_format('plain')
-		notebook = tests.new_notebook()
-		self.page = notebook.get_page(Path('Foo'))
-
-	def testRoundtrip(self):
-		'''Test roundtrip for plain text'''
-		tree = self.format.Parser().parse(wikitext)
-		self.assertTrue(isinstance(tree, ParseTree))
-		self.assertTrue(tree.getroot().tag == 'zim-tree')
-		#~ print '>>>\n'+tree.tostring()+'\n<<<\n'
-		xml = tree.tostring()
-		output = self.format.Dumper().dump(tree)
-		self.assertEqual(tree.tostring(), xml) # check tree not modified
-		self.assertEqual(output, wikitext.splitlines(True))
-
-	def testDumping(self):
-		'''Test dumping page to plain text'''
-		tree = get_format('wiki').Parser().parse(wikitext)
-		text = self.format.Dumper().dump(tree)
-		wanted = '''\
-Head1
-
-Head 2
-
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
-eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-aliquip ex ea commodo consequat. Duis aute irure dolor in
-reprehenderit in voluptate velit esse cillum dolore eu fugiat
-nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
-sunt in culpa qui officia deserunt mollit anim id est laborum.
-
-Some Verbatim here
-
-	Indented and all: //foo//
-
-	Also block-indentation of verbatim is possible.
-		Even with additional per-line indentation
-
-IMAGE: Foo Bar
-LINKS: :foo:bar ./file.png file:///etc/passwd
-LINKS: FooBar
-IMAGELINK: my-image.png?href=Foo
-IMAGELINK: Foo Bar
-TAGS: @foo @bar
-
-	Some indented
-	paragraphs go here ...
-
-
-./equation003.png?type=equation
-
-
-Let's try these bold, italic, underline and strike
-	And some //verbatim// with an indent halfway the paragraph
-And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
-
-A list
-* foo
-	* bar
-	* baz
-And an indented list
-	* foo
-		* bar
-		* baz
-
-And a checkbox list
-[ ] item 1
-	[*] sub item 1
-		* Some normal bullet
-	[x] sub item 2
-	[ ] sub item 3
-[ ] item 2
-[ ] item 3
-	[x] item FOOOOOO !
-
-----
-
-Some sub- and superscript like x2 and H2O
-
-====
-This is not a header
-
-That's all ...
-'''
-		self.assertEqual(text, wanted.splitlines(True))
 
 
 class TestWikiFormat(TestTextFormat):
 
 	def setUp(self):
-		#~ TestTextFormat.setUp(self)
 		self.format = get_format('wiki')
 		notebook = tests.new_notebook()
 		self.page = notebook.get_page(Path('Foo'))
 
-
-	def testRoundtrip(self):
-		'''Test roundtrip for wiki text'''
-		TestTextFormat.testRoundtrip(self)
-
-
-	def testDumping(self):
-		pass
-
 	#~ def testHeaders(self):
 		#~ text = '''\
-#~ Content-Type: text/x-zim-wiki
-#~ Wiki-Format: zim 0.26
-#~ Creation-Date: Unkown
-#~ Modification-Date: Wed, 06 Aug 2008 22:17:29 +0200
-#~
-#~ foo bar
-#~ '''
+		#~ Content-Type: text/x-zim-wiki
+		#~ Wiki-Format: zim 0.26
+		#~ Creation-Date: Unkown
+		#~ Modification-Date: Wed, 06 Aug 2008 22:17:29 +0200
+		#~
+		#~ foo bar
+		#~ '''
 		#~ tree = self.format.Parser().parse(text)
 		#~ print '>>>\n'+tostring(tree)+'\n<<<\n'
 		#~ self.assertEquals(tree.getroot().attrib['Content-Type'], 'text/x-zim-wiki')
 		#~ output = self.format.Dumper().dump(tree)
 		#~ self.assertEqual(output, text.splitlines(True))
-
-	def testParsing(self):
-		'''Test wiki parse tree generation.'''
-		tree = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><h level="1">Head1</h>
-
-<h level="2">Head 2</h>
-
-<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
-eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-aliquip ex ea commodo consequat. Duis aute irure dolor in
-reprehenderit in voluptate velit esse cillum dolore eu fugiat
-nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
-sunt in culpa qui officia deserunt mollit anim id est laborum.
-</p>
-<pre>Some Verbatim here
-
-	Indented and all: //foo//
-</pre>
-<pre indent="1">Also block-indentation of verbatim is possible.
-	Even with additional per-line indentation
-</pre>
-<p>IMAGE: <img src="../my-image.png" width="600">Foo Bar</img>
-LINKS: <link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
-LINKS: <link href="Foo">Foo</link><link href="Bar">Bar</link>
-IMAGELINK: <img href="Foo" src="my-image.png" />
-IMAGELINK: <img href=":foo:bar" src="../my-image.png" width="600">Foo Bar</img>
-TAGS: <tag name="foo">@foo</tag> <tag name="bar">@bar</tag>
-</p>
-<p><div indent="1">Some indented
-paragraphs go here ...
-</div></p>
-
-<p><img src="./equation003.png" type="equation" />
-</p>
-
-<p>Let's try these <strong>bold</strong>, <emphasis>italic</emphasis>, <mark>underline</mark> and <strike>strike</strike>
-<div indent="1">And some <code>//verbatim//</code> with an indent halfway the paragraph
-</div>And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_
-</p>
-<p>A list
-<ul><li bullet="*">foo</li><ul><li bullet="*"><strike>bar</strike></li><li bullet="*">baz</li></ul></ul>And an indented list
-<ul indent="1"><li bullet="*">foo</li><ul><li bullet="*"><strike>bar</strike></li><li bullet="*">baz</li></ul></ul></p>
-<p>And a checkbox list
-<ul><li bullet="unchecked-box">item 1</li><ul><li bullet="checked-box">sub item 1</li><ul><li bullet="*">Some normal bullet</li></ul><li bullet="xchecked-box">sub item 2</li><li bullet="unchecked-box">sub item 3</li></ul><li bullet="unchecked-box">item 2</li><li bullet="unchecked-box">item 3</li><ul><li bullet="xchecked-box">item FOOOOOO !</li></ul></ul></p>
-<p>----
-</p>
-<p>Some sub- and superscript like x<sup>2</sup> and H<sub>2</sub>O
-</p>
-<p>====
-This is not a header
-</p>
-<p>That's all ...
-</p></zim-tree>'''
-		t = self.format.Parser().parse(wikitext)
-		self.assertEqual(t.tostring(), tree)
 
 	def testUnicodeBullet(self):
 		'''Test support for unicode bullets in source'''
@@ -371,8 +291,183 @@ test 4 5 6
 		output = self.format.Dumper().dump(t)
 		self.assertEqual(output, wanted.splitlines(True))
 
+	def testList(self):
+		def check(text, xml, wanted=None):
+			if wanted is None:
+				wanted = text
 
-class TestHtmlFormat(tests.TestCase):
+			tree = self.format.Parser().parse(text)
+			#~ print '>>>\n' + tree.tostring() + '\n<<<'
+			self.assertEqual(tree.tostring(), xml)
+
+			lines = self.format.Dumper().dump(tree)
+			result = ''.join(lines)
+			#~ print '>>>\n' + result + '<<<'
+			self.assertEqual(result, wanted)
+
+
+		# Bullet list (unordered list)
+		text = '''\
+* foo
+* bar
+	* sub list
+	* here
+* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><ul><li bullet="*">sub list</li><li bullet="*">here</li></ul><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+		check(text, xml)
+
+		# Numbered list (ordered list)
+		text = '''\
+1. foo
+2. bar
+	a. sub list
+	b. here
+3. hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="1"><li>foo</li><li>bar</li><ol start="a"><li>sub list</li><li>here</li></ol><li>hmmm</li></ol></p></zim-tree>'''
+		check(text, xml)
+
+		text = '''\
+A. foo
+B. bar
+C. hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="A"><li>foo</li><li>bar</li><li>hmmm</li></ol></p></zim-tree>'''
+		check(text, xml)
+
+		text = '''\
+10. foo
+11. bar
+12. hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="10"><li>foo</li><li>bar</li><li>hmmm</li></ol></p></zim-tree>'''
+		check(text, xml)
+
+
+		# Inconsistent lists
+		# ( If first item is number, make all items numbered in sequence
+		#   Otherwise numers will be turned into bullets )
+		text = '''\
+1. foo
+4. bar
+* hmmm
+a. dus
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ol start="1"><li>foo</li><li>bar</li><li>hmmm</li><li>dus</li></ol></p></zim-tree>'''
+		wanted = '''\
+1. foo
+2. bar
+3. hmmm
+4. dus
+'''
+		check(text, xml, wanted)
+
+		text = '''\
+* foo
+4. bar
+a. hmmm
+* dus
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><li bullet="*">hmmm</li><li bullet="*">dus</li></ul></p></zim-tree>'''
+		wanted = '''\
+* foo
+* bar
+* hmmm
+* dus
+'''
+		check(text, xml, wanted)
+
+		# Mixed sub-list
+		text = '''\
+* foo
+* bar
+	1. sub list
+	2. here
+* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><ol start="1"><li>sub list</li><li>here</li></ol><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+		check(text, xml)
+
+		# Indented list
+		text = '''\
+	* foo
+	* bar
+		1. sub list
+		2. here
+	* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul indent="1"><li bullet="*">foo</li><li bullet="*">bar</li><ol start="1"><li>sub list</li><li>here</li></ol><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+		check(text, xml)
+
+		# Double indent sub-list ?
+		text = '''\
+* foo
+* bar
+		1. sub list
+		2. here
+* hmmm
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><ol start="1"><ol start="1"><li>sub list</li><li>here</li></ol></ol><li bullet="*">hmmm</li></ul></p></zim-tree>'''
+		check(text, xml)
+
+		# This is not a list
+		text = '''\
+foo.
+dus ja.
+1.3
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>foo.
+dus ja.
+1.3
+</p></zim-tree>'''
+		check(text, xml)
+
+
+	def testIndent(self):
+		# Test some odditied pageview can give us
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><div indent="0">foo</div>
+<div indent="0">bar</div>
+<div indent="1">sub list</div>
+<div indent="1">here</div>
+<div indent="0">hmmm</div>
+</zim-tree>'''
+		wanted = '''\
+foo
+bar
+	sub list
+	here
+hmmm
+'''
+		tree = ParseTree()
+		tree.fromstring(xml)
+		text = ''.join( self.format.Dumper().dump(tree) )
+		self.assertEqual(text, wanted)
+
+
+class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 
 	def setUp(self):
 		self.format = get_format('html')
@@ -389,136 +484,28 @@ class TestHtmlFormat(tests.TestCase):
 		self.assertEqual(html,
 			['<p>\n', '&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;</p>\n'] )
 
-	def testExport(self):
-		'''Test exporting wiki format to Html'''
+	# TODO add test using http://validator.w3.org
 
-		from zim.config import data_file
-		tree = get_format('wiki').Parser().parse(wikitext)
-		output = self.format.Dumper(linker=StubLinker()).dump(tree)
+class TestMarkdownFormat(tests.TestCase, TestFormatMixin):
 
-		# Note '%' is doubled to '%%' because of format substitution being used
-		html = u'''\
-<h1>Head1</h1>
-
-<h2>Head 2</h2>
-
-<p>
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do<br>
-eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim<br>
-ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut<br>
-aliquip ex ea commodo consequat. Duis aute irure dolor in<br>
-reprehenderit in voluptate velit esse cillum dolore eu fugiat<br>
-nulla pariatur.  Excepteur sint occaecat cupidatat non proident,<br>
-sunt in culpa qui officia deserunt mollit anim id est laborum.<br>
-</p>
-
-<pre>
-Some Verbatim here
-
-	Indented and all: //foo//
-</pre>
-
-<pre style='padding-left: 30pt'>
-Also block-indentation of verbatim is possible.
-	Even with additional per-line indentation
-</pre>
-
-<p>
-IMAGE: <img src="img://../my-image.png" alt="Foo Bar" width="600"><br>
-LINKS: <a href="page://:foo:bar" title=":foo:bar">:foo:bar</a> <a href="file://./file.png" title="./file.png">./file.png</a> <a href="file://file:///etc/passwd" title="file:///etc/passwd">file:///etc/passwd</a><br>
-LINKS: <a href="page://Foo" title="Foo">Foo</a><a href="page://Bar" title="Bar">Bar</a><br>
-IMAGELINK: <a href="page://Foo"><img src="img://my-image.png" alt=""></a><br>
-IMAGELINK: <a href="page://:foo:bar"><img src="img://../my-image.png" alt="Foo Bar" width="600"></a><br>
-TAGS: <span class="zim-tag">@foo</span> <span class="zim-tag">@bar</span><br>
-</p>
-
-<p>
-<div style='padding-left: 30pt'>
-Some indented<br>
-paragraphs go here ...<br>
-</div>
-</p>
-
-
-<p>
-<img src="img://./equation003.png" alt=""><br>
-</p>
-
-
-<p>
-Let's try these <strong>bold</strong>, <em>italic</em>, <u>underline</u> and <strike>strike</strike><br>
-<div style='padding-left: 30pt'>
-And some <code>//verbatim//</code> with an indent halfway the paragraph<br>
-</div>
-And don't forget these: *bold*, /italic/ / * *^%#@#$#!@)_!)_<br>
-</p>
-
-<p>
-A list<br>
-<ul>
-<li>foo</li>
-<ul>
-<li><strike>bar</strike></li>
-<li>baz</li>
-</ul>
-</ul>
-And an indented list<br>
-<ul style='padding-left: 30pt'>
-<li>foo</li>
-<ul>
-<li><strike>bar</strike></li>
-<li>baz</li>
-</ul>
-</ul>
-</p>
-
-<p>
-And a checkbox list<br>
-<ul>
-<li style="list-style-image: url(icon://unchecked-box)">item 1</li>
-<ul>
-<li style="list-style-image: url(icon://checked-box)">sub item 1</li>
-<ul>
-<li>Some normal bullet</li>
-</ul>
-<li style="list-style-image: url(icon://xchecked-box)">sub item 2</li>
-<li style="list-style-image: url(icon://unchecked-box)">sub item 3</li>
-</ul>
-<li style="list-style-image: url(icon://unchecked-box)">item 2</li>
-<li style="list-style-image: url(icon://unchecked-box)">item 3</li>
-<ul>
-<li style="list-style-image: url(icon://xchecked-box)">item FOOOOOO !</li>
-</ul>
-</ul>
-</p>
-
-<p>
-----<br>
-</p>
-
-<p>
-Some sub- and superscript like x<sup>2</sup> and H<sub>2</sub>O<br>
-</p>
-
-<p>
-====<br>
-This is not a header<br>
-</p>
-
-<p>
-That's all ...<br>
-</p>
-'''
-		self.assertEqual(output, html.splitlines(True))
+	def setUp(self):
+		self.format = get_format('markdown')
 
 
 class LatexLoggingFilter(tests.LoggingFilter):
 
 	logger = 'zim.formats.latex'
-	message = 'No document type set in template'
+	message = ('No document type set in template', 'Could not find latex equation')
 
 
-class TestLatexFormat(tests.TestCase):
+class TestLatexFormat(tests.TestCase, TestFormatMixin):
+
+	def setUp(self):
+		self.format = get_format('latex')
+
+	def testFormat(self):
+		with LatexLoggingFilter():
+			TestFormatMixin.testFormat(self)
 
 	def testEncode(self):
 		'''test the escaping of certain characters'''
@@ -535,20 +522,51 @@ class TestLatexFormat(tests.TestCase):
 			testpage = tests.WikiTestData.get('Test:wiki')
 			tree = get_format('wiki').Parser().parse(testpage)
 			output = format.Dumper(linker=StubLinker()).dump(tree)
+			#~ print '>>>\n' + ''.join(output) + '<<<'
 			self.assertTrue('\chapter{Foo Bar}\n' in output)
 
-		# TODO test template_options.document_type
+		# Test template_options.document_type
+		input = r'''
+[% options.document_type = 'book' -%]
+\title{[% page.basename %]}
+
+\begin{document}
+\maketitle
+\tableofcontents
+[% page.body %]
+\end{document}
+'''
+		wanted = r'''
+\title{FooBar}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\textbf{foo bar !}
 
 
-class StubLinker(object):
 
-	def set_usebase(self, usebase): pass
+\chapter{Heading 2}
 
-	def link(self, link): return '%s://%s' % (link_type(link), link)
+duss
 
-	def img(self, src): return 'img://' + src
 
-	def icon(self, name): return 'icon://' + name
+\end{document}
+'''
+
+		notebook = tests.new_notebook()
+		page = notebook.get_page(Path('FooBar'))
+		page.parse('wiki', '''\
+====== Page Heading ======
+**foo bar !**
+
+===== Heading 2 =====
+duss
+''')
+
+		template = Template(input, 'latex', linker=StubLinker())
+		result = template.process(notebook, page)
+		self.assertEqual(''.join(result), wanted)
 
 
 class TestParseTreeBuilder(tests.TestCase):

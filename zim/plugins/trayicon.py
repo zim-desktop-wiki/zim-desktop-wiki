@@ -27,9 +27,8 @@ def main(daemonproxy, *args):
 
 	# HACK to start daemon from separate process
 	# we are not allowed to fork since we already loaded gtk
-	from subprocess import check_call
-	from zim import ZIM_EXECUTABLE
-	check_call([ZIM_EXECUTABLE, '--daemon'])
+	from zim import ZimCmd
+	ZimCmd().run(args=('--daemon',))
 
 	preferences = config_file('preferences.conf')['TrayIconPlugin']
 	preferences.setdefault('classic', False)
@@ -242,7 +241,14 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 
 	def __init__(self):
 		gtk.StatusIcon.__init__(self)
-		self.set_from_icon_name('zim')
+
+		icon_theme = gtk.icon_theme_get_default()
+		if icon_theme.has_icon('zim-panel'):
+		    self.set_from_icon_name('zim-panel')
+		else:
+			icon = data_file('zim.png').path
+			self.set_from_file(icon)
+
 		self.set_tooltip(_('Zim Desktop Wiki')) # T: tooltip for tray icon
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 

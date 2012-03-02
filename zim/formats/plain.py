@@ -10,10 +10,11 @@ from zim.formats import *
 from zim.parsing import TextBuffer, url_re
 
 info = {
-	'name':  'Plain text',
-	'mime':  'text/plain',
-	'read':	  True,
-	'write':  True,
+	'name': 'plain',
+	'desc': 'Plain text',
+	'mimetype': 'text/plain',
+	'extension': 'txt',
+	'native': False,
 	'import': True,
 	'export': True,
 }
@@ -38,6 +39,8 @@ class Parser(ParserClass):
 
 	# TODO also try at least to parse bullet and checkbox lists
 	# common base class with wiki format
+
+	# TODO parse markdown style headers
 
 	def parse(self, input):
 		if isinstance(input, basestring):
@@ -78,7 +81,7 @@ class Dumper(DumperClass):
 		self.dump_children(tree.getroot(), output)
 		return output.get_lines(end_with_newline=not tree.ispartial)
 
-	def dump_children(self, list, output, list_level=-1):
+	def dump_children(self, list, output, list_level=-1, list_type=None, list_iter='0'):
 		if list.text:
 			output.append(list.text)
 
@@ -92,22 +95,42 @@ class Dumper(DumperClass):
 				if indent:
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
-			elif element.tag == 'ul':
-				indent = 0
-				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
+			elif element.tag == 'h':
+				## Copy from Markdown
+				level = int(element.attrib['level'])
+				if level < 1:   level = 1
+				elif level > 5: level = 5
+
+				if level in (1, 2):
+					# setext-style headers for lvl 1 & 2
+					if level == 1: char = '='
+					else: char = '-'
+					heading = element.text
+					line = char * len(heading)
+					output.append(heading + '\n')
+					output.append(line)
+				else:
+					# atx-style headers for deeper levels
+					tag = '#' * level
+					output.append(tag + ' ' + element.text)
+			elif element.tag in ('ul', 'ol'):
+				indent = int(element.attrib.get('indent', 0))
+				start = element.attrib.get('start')
 				myoutput = TextBuffer()
-				self.dump_children(element, myoutput, list_level=list_level+1) # recurs
+				self.dump_children(element, myoutput, list_level=list_level+1, list_type=element.tag, list_iter=start) # recurs
 				if indent:
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
 			elif element.tag == 'li':
 				if 'indent' in element.attrib:
+					# HACK for raw trees from pageview
 					list_level = int(element.attrib['indent'])
-				if 'bullet' in element.attrib:
-					bullet = bullet_types[element.attrib['bullet']]
+
+				if list_type == 'ol':
+					bullet = str(list_iter) + '.'
+					list_iter = increase_list_iter(list_iter) or '1' # fallback if iter not valid
 				else:
-					bullet = '*'
+					bullet = bullet_types[element.attrib.get('bullet', BULLET)]
 				output.append('\t'*list_level+bullet+' ')
 				self.dump_children(element, output, list_level=list_level) # recurs
 				output.append('\n')

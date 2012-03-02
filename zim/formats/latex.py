@@ -5,9 +5,10 @@
 '''This modules handles export of LaTeX Code'''
 
 import re
+import string
 import logging
 
-from zim.fs import File
+from zim.fs import File, FileNotFoundError
 from zim.formats import *
 from zim.parsing import TextBuffer
 
@@ -15,13 +16,13 @@ logger = logging.getLogger('zim.formats.latex')
 
 
 info = {
-	'name':		'LaTeX',
-	'mime': 	'application/x-tex',
+	'name': 'latex',
+	'desc':	'LaTeX',
+	'mimetype': 'application/x-tex',
 	'extension': 'tex',
-	'read':		False,
-	'write':	False,
-	'import':	False,
-	'export':	True,
+	'native': False,
+	'import': False,
+	'export': True,
 }
 
 # reverse dict
@@ -58,7 +59,7 @@ sectioning = {
 
 
 
-encode_re = re.compile(r'(\&|\$|\^|\%|\#|\_|\\|\<|\>)')
+encode_re = re.compile(r'(\&|\$|\^|\%|\#|\_|\\|\<|\>|\n)')
 encode_dict = {
 	'\\': '$\\backslash$',
 	'&': '\\$',
@@ -69,6 +70,7 @@ encode_dict = {
 	'_': '\\_',
 	'>': '\\textgreater{}',
 	'<': '\\textless{}',
+	'\n': '\n\n',
 }
 
 
@@ -114,18 +116,32 @@ class Dumper(DumperClass):
 				if indent:
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
-			elif element.tag == 'ul':
-				output.append('\\begin{itemize}\n')
-				self.dump_children(element,output,list_level=list_level+1)
-				output.append('\\end{itemize}')
 			elif element.tag == 'h':
 				level = int(element.attrib['level'])
 				if level < 1: level = 1
 				elif level > 5: level = 5
 				output.append(sectioning[self.document_type][level]%(text))
+			elif element.tag == 'ul':
+				output.append('\\begin{itemize}\n')
+				self.dump_children(element,output,list_level=list_level+1)
+				output.append('\\end{itemize}')
+			elif element.tag == 'ol':
+				start = element.attrib.get('start', 1)
+				if start in string.lowercase:
+					type = 'a'
+					start = string.lowercase.index(start) + 1
+				elif start in string.uppercase:
+					type = 'A'
+					start = string.uppercase.index(start) + 1
+				else:
+					type = '1'
+					start = int(start)
+				output.append('\\begin{enumerate}[%s]\n' % type)
+				if start > 1:
+					output.append('\setcounter{enumi}{%i}\n' % (start-1))
+				self.dump_children(element,output,list_level=list_level+1)
+				output.append('\\end{enumerate}')
 			elif element.tag == 'li':
-				if 'indent' in element.attrib:
-					list_level = int(element.attrib['indent'])
 				if 'bullet' in element.attrib:
 					bullet = bullet_types[element.attrib['bullet']]
 				else:
@@ -168,12 +184,13 @@ class Dumper(DumperClass):
 						# Try to find the source, otherwise fall back to image
 						equri = self.linker.link(element.attrib['src'])
 						eqfid = File(url_decode(equri[:-4] + '.tex'))
-						output.append('\\begin{math}\n')
-						output.extend(eqfid.read().strip())
-						output.append('\n\\end{math}')
-					except:
-						logger.exception('Could not find latex equation:')
+						equation = eqfid.read().strip()
+					except FileNotFoundError:
+						logger.warn('Could not find latex equation: %s', url_decode(equri[:-4] + '.tex') )
 					else:
+						output.append('\\begin{math}\n')
+						output.extend(equation)
+						output.append('\n\\end{math}')
 						done = True
 
 				if not done:

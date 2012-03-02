@@ -272,7 +272,7 @@ This plugin allows inserting 'Code Blocks' in the page. These will be
 shown as emdedded widgets with syntax highlighting, line numbers etc.
 '''), # T: plugin description
 		'author': 'Jiří Janoušek',
-		'help': 'Plugins:Source View',
+		#~ 'help': 'Plugins:Source View',
 		'object_types': (OBJECT_TYPE, ),
 	}
 

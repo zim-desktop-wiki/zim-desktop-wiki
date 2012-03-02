@@ -85,7 +85,7 @@ import zim.fs
 from zim.fs import File, Dir
 from zim.errors import Error, TrashNotSupportedError
 from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
-	config_file, data_dir, user_dirs
+	config_file, data_dir, user_dirs, data_dirs, config_dirs
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode
 from zim.async import AsyncLock
@@ -542,16 +542,39 @@ def interwiki_link(link):
 	assert isinstance(link, basestring) and '?' in link
 	key, page = link.split('?', 1)
 	url = None
-	for line in config_file('urls.list'):
-		if line.startswith(key+' ') or line.startswith(key+'\t'):
-			url = line[len(key):].strip()
+
+	# Search all "urls.list" in config and data dirs
+	def check_dir(dir):
+		file = dir.file('urls.list')
+		if not file.exists():
+			return None
+
+		for line in file.readlines():
+			if line.startswith(key+' ') or line.startswith(key+'\t'):
+				url = line[len(key):].strip()
+				return url
+		else:
+			return None
+
+	for dir in config_dirs():
+		url = check_dir(dir)
+		if url:
 			break
-	else:
+
+	if not url:
+		for dir in data_dirs():
+			url = check_dir(dir)
+			if url:
+				break
+
+	# If not found check known notebook
+	if not url:
 		list = get_notebook_list()
 		info = list.get_interwiki(key)
 		if info:
 			url = 'zim+' + info.uri + '?{NAME}'
 
+	# Format URL
 	if url and is_url_re.match(url):
 		if not ('{NAME}' in url or '{URL}' in url):
 			url += '{URL}'
@@ -1400,7 +1423,9 @@ class Notebook(gobject.GObject):
 		assert not page.modified, 'BUG: moving a page with uncomitted changes'
 
 		newpage = self.get_page(newpath)
-		if newpage.exists():
+		if newpage.exists() and not newpage.isequal(page):
+			# Check isequal to allow case sensitive rename on
+			# case insensitive file system
 			raise PageExistsError, 'Page already exists: %s' % newpath.name
 
 		self.emit('move-page', path, newpath, update_links)
@@ -2262,6 +2287,19 @@ class Page(Path):
 	def exists(self):
 		'''C{True} when the page has either content or children'''
 		return self.haschildren or self.hascontent
+
+	def isequal(self, other):
+		'''Check equality of pages
+		This method is intended to deal with case-insensitive storage
+		backends (e.g. case insensitive file system) where the method
+		is supposed to check equality of the resource.
+		Note that this may be the case even when the page objects differ
+		and can have a different name (so L{__cmp__} will not show
+		them to be equal). However default falls back to L{__cmp__}.
+		@returns: C{True} of both page objects point to the same resource
+		@implementation: can be implementated by subclasses
+		'''
+		return self == other
 
 	def get_parsetree(self):
 		'''Returns the contents of the page

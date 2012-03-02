@@ -12,6 +12,7 @@ from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
 from zim.config import ConfigDict
+from zim.gui.clipboard import Clipboard
 
 
 class FilterNoSuchImageWarning(tests.LoggingFilter):
@@ -20,29 +21,69 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 	message = 'No such image:'
 
 
-def get_tree(wikitext):
-	tree = wiki.Parser().parse(wikitext)
+def new_parsetree_from_text(text):
+	## FIXME had to wrap my own here becase of stupid
+	## resolve_images - get rid of that
+	tree = tests.new_parsetree_from_text(text)
 	notebook = tests.new_notebook(fakedir='/foo')
 	page = notebook.get_page(Path('Foo'))
 	tree.resolve_images(notebook, page)
+
 	return tree
 
 
-def get_tree_from_xml(xml):
-	# For some reason this does not work with cElementTree.XMLBuilder ...
-	from xml.etree.ElementTree import XMLTreeBuilder
-	builder = XMLTreeBuilder()
-	builder.feed(xml)
-	root = builder.close()
-	return ParseTree(root)
+def setUpPageView(fakedir=None):
+	'''Some bootstrap code to get an isolated PageView object'''
+	## TODO - should not be needed
+	## we can get rid of this when we refactor the actiongroup stuff
+	## to not register, by be called by the window
+	PageView.actiongroup = tests.MockObject() # use class attribute to fake ui init
+	PageView.actiongroup.mock_method('get_action', tests.MockObject())
+	PageView.actiongroup.mock_method('list_actions', [])
+
+	ui = MockUI()
+	ui.notebook = tests.new_notebook(fakedir)
+	ui.page = None
+	ui.uimanager = tests.MockObject()
+	ui.uimanager.mock_method('get_accel_group', tests.MockObject())
+
+	ui.mainwindow = tests.MockObject()
+	ui.mainwindow.statusbar_style_label = tests.MockObject()
+
+	return PageView(ui)
 
 
-class TestTextBuffer(tests.TestCase):
+class TestCaseMixin(object):
+	# Mixin class with extra test methods
 
-	def runTest(self):
+	def assertBufferEquals(self, buffer, wanted):
+		if not isinstance(wanted, basestring):
+			wanted = tree.tostring()
+		raw = '<zim-tree raw="True">' in wanted
+		tree = buffer.get_parsetree(raw=raw)
+		self.assertEqual(tree.tostring(), wanted)
+
+	def assertSelection(self, buffer, line, offset, string):
+		self.assertCursorPosition(buffer, offset, line)
+		bound = buffer.get_selection_bounds()
+		self.assertTrue(bound)
+		selection = bound[0].get_slice(bound[1])
+		self.assertEqual(selection, string)
+
+	def assertCursorPosition(self, buffer, offset, line):
+		#~ print 'CHECK', line, offset, text
+		cursor = buffer.get_insert_iter()
+		#~ print '  GOT', cursor.get_line(), cursor.get_line_offset()
+		self.assertEqual(cursor.get_line(), line)
+		self.assertEqual(cursor.get_line_offset(), offset)
+
+
+class TestTextBuffer(tests.TestCase, TestCaseMixin):
+
+	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
 		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = get_tree(wikitext)
+		tree = new_parsetree_from_text(wikitext)
 		buffer = TextBuffer()
 		with FilterNoSuchImageWarning():
 			buffer.set_parsetree(tree)
@@ -52,6 +93,14 @@ class TestTextBuffer(tests.TestCase):
 		#~ print tree.tostring()
 		#~ print result1.tostring()
 		#~ self.assertEqual(result1.tostring(), tree.tostring())
+		## HACK since above check to directly compare trees is broken,
+		## check in round about way that we have numbered list elements
+		for elt in result1.findall('li'):
+			if elt.attrib.get('bullet') == '1.':
+				break
+		else:
+			assert False, 'Missing numbered list element'
+		##
 
 		# Compare cooked tree after dumping back
 		resulttext = u''.join(wiki.Dumper().dump(result1))
@@ -95,7 +144,7 @@ dus ja
 <li bullet="*" indent="0"> Foo</li>
 <li bullet="*" indent="0"> Bar</li>
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		self.assertFalse(buffer.get_modified())
 
@@ -149,7 +198,7 @@ dus ja <emphasis>hmm</emphasis>
 grrr
 
 <li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0"><strong>Bold</strong>Bar</li></zim-tree>'''
-		pastetree = get_tree_from_xml(input)
+		pastetree = tests.new_parsetree_from_xml(input)
 		iter = buffer.get_iter_at_line(15)
 		iter.forward_chars(5) # position after "* Foo"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
@@ -186,7 +235,7 @@ dus ja <emphasis>hmm</emphasis>
 grrr
 
 <li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0"><strong>Bold</strong>Bar</li></zim-tree>'''
-		pastetree = get_tree_from_xml(input)
+		pastetree = tests.new_parsetree_from_xml(input)
 		iter = buffer.get_iter_at_line(4)
 		iter.forward_chars(3) # position after "baz"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
@@ -206,7 +255,7 @@ grrr
 <zim-tree>
 <li bullet="unchecked-box" indent="0">Box 1</li><li bullet="unchecked-box" indent="0">foo Box 2</li><li bullet="unchecked-box" indent="0">Box 3</li>
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		iter = buffer.get_iter_at_line(2) # iter *before* checkbox
 		buffer.insert(iter, 'foo ')
@@ -221,7 +270,7 @@ grrr
 <zim-tree>
 <li bullet="*" indent="1">Box 1</li><li bullet="*" indent="1">Box 2</li><li bullet="*" indent="1">Box 3</li>
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		iter = buffer.get_iter_at_line(2) # iter before checkbox
 		bound = iter.copy()
@@ -260,7 +309,7 @@ List item 0
 <div indent="1">List item 1
 </div></zim-tree>'''
 		# Note: we don't insert extra newlines, but <li> assumes them
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), input)
@@ -300,7 +349,7 @@ List item 0
 <li bullet="unchecked-box" indent="0"> Baz</li>
 Tja
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), input) # just a sanity check
@@ -376,6 +425,53 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
+	def testReplace(self):
+		# Check replacing a formatted word
+		# word is deleted, but formatting should stay
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+aaa <strong>bbb</strong> ccc
+</zim-tree>
+'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+aaa <strong>eee</strong> ccc
+</zim-tree>'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		buffer = TextBuffer()
+		buffer.set_parsetree(tree)
+
+		iter = buffer.get_iter_at_offset(7) # middle of "bbb"
+		buffer.place_cursor(iter)
+		buffer.select_word()
+
+		with buffer.user_action:
+			buffer.delete_selection(True, True)
+			buffer.insert_interactive_at_cursor("eee", True)
+
+		self.assertBufferEquals(buffer, wanted)
+
+	def testSelectLink(self):
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+aaa <link href="xxx">bbb</link> ccc
+</zim-tree>
+'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		buffer = TextBuffer()
+		buffer.set_parsetree(tree)
+		buffer.place_cursor(buffer.get_iter_at_offset(7)) # middle of link
+
+		self.assertIsNone(buffer.get_has_link_selection())
+		data = buffer.select_link()
+		self.assertEqual(data['href'], 'xxx')
+		self.assertEqual(buffer.get_has_link_selection(), data)
+
 
 class TestUndoStackManager(tests.TestCase):
 
@@ -384,7 +480,7 @@ class TestUndoStackManager(tests.TestCase):
 		buffer = TextBuffer()
 		undomanager = UndoStackManager(buffer)
 		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = get_tree(wikitext)
+		tree = new_parsetree_from_text(wikitext)
 
 		with FilterNoSuchImageWarning():
 			buffer._insert_element_children(tree.getroot())
@@ -524,9 +620,9 @@ class TestUndoStackManager(tests.TestCase):
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo <strong>barr</strong> baz</zim-tree>")
 
 
-class TestFind(tests.TestCase):
+class TestFind(tests.TestCase, TestCaseMixin):
 
-	def runTest(self):
+	def testVarious(self):
 		buffer = TextBuffer()
 		finder = buffer.finder
 		buffer.set_text('''\
@@ -536,29 +632,16 @@ foo Bar Baz Foo
 ''')
 		buffer.place_cursor(buffer.get_start_iter())
 
-		def check(line, offset, string):
-			#~ print 'CHECK', line, offset, text
-			cursor = buffer.get_insert_iter()
-			#~ print '  GOT', cursor.get_line(), cursor.get_line_offset()
-			self.assertEqual(cursor.get_line(), line)
-			self.assertEqual(cursor.get_line_offset(), offset)
-
-			if string:
-				bound = buffer.get_selection_bounds()
-				self.assertTrue(bound)
-				selection = bound[0].get_slice(bound[1])
-				self.assertEqual(selection, string)
-
 		# Check normal usage, case-insensitive
 		for text in ('f', 'fo', 'foo', 'fo', 'f', 'F', 'Fo', 'Foo'):
 			finder.find(text)
-			check(0, 0, text.upper())
+			self.assertSelection(buffer, 0, 0, text.upper())
 
 		finder.find('Grr')
-		check(0, 0, '')
+		self.assertCursorPosition(buffer, 0, 0)
 
 		finder.find('Foob')
-		check(0, 4, 'FooB')
+		self.assertSelection(buffer, 0, 4, 'FooB')
 
 		for line, offset, text in (
 			(0, 11, 'FOOB'),
@@ -566,7 +649,7 @@ foo Bar Baz Foo
 			(0, 4, 'FooB'),
 		):
 			finder.find_next()
-			check(line, offset, text)
+			self.assertSelection(buffer, line, offset, text)
 
 		for line, offset, text in (
 			(1, 0, 'FooB'),
@@ -574,11 +657,11 @@ foo Bar Baz Foo
 			(0, 4, 'FooB'),
 		):
 			finder.find_previous()
-			check(line, offset, text)
+			self.assertSelection(buffer, line, offset, text)
 
 		# Case sensitive
 		finder.find('Foo', FIND_CASE_SENSITIVE)
-		check(0, 4, 'Foo')
+		self.assertSelection(buffer, 0, 4, 'Foo')
 
 		for line, offset, text in (
 			(1, 0, 'Foo'),
@@ -587,11 +670,11 @@ foo Bar Baz Foo
 			(0, 4, 'Foo'),
 		):
 			finder.find_next()
-			check(line, offset, text)
+			self.assertSelection(buffer, line, offset, text)
 
 		# Whole word
 		finder.find('Foo', FIND_WHOLE_WORD)
-		check(1, 7, 'Foo')
+		self.assertSelection(buffer, 1, 7, 'Foo')
 
 		for line, offset, text in (
 			(2, 0, 'foo'),
@@ -600,48 +683,56 @@ foo Bar Baz Foo
 			(1, 7, 'Foo'),
 		):
 			finder.find_next()
-			check(line, offset, text)
+			self.assertSelection(buffer, line, offset, text)
 
 		# Regular expression
 		finder.find(r'Foo\s*Bar', FIND_REGEX | FIND_CASE_SENSITIVE)
-		check(1, 7, 'Foo Bar')
+		self.assertSelection(buffer, 1, 7, 'Foo Bar')
 		finder.find_next()
-		check(0, 4, 'FooBar')
+		self.assertSelection(buffer, 0, 4, 'FooBar')
 
 		# Highlight - just check it doesn't crash
 		finder.set_highlight(True)
 		finder.set_highlight(False)
 
-		# Now check replace
+	def testReplace(self):
+		buffer = TextBuffer()
+		finder = buffer.finder
+		tree = tests.new_parsetree_from_xml('''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">FOO FooBar FOOBAR
+FooBaz Foo Bar
+<strong>foo</strong> Bar Baz Foo
+</zim-tree>''')
+		buffer.set_parsetree(tree)
+
 		finder.find('Foo(\w*)', FIND_REGEX) # not case sensitive!
-		check(0, 4, 'FooBar')
+		finder.find_next()
+		self.assertSelection(buffer, 0, 4, 'FooBar')
 
 		finder.replace('Dus')
-		check(0, 4, 'Dus')
-		bounds = buffer.get_bounds()
-		text = buffer.get_slice(*bounds)
+		self.assertSelection(buffer, 0, 4, 'Dus')
 		wanted = '''\
-FOO Dus FOOBAR
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">FOO Dus FOOBAR
 FooBaz Foo Bar
-foo Bar Baz Foo
-'''
-		self.assertEqual(text, wanted)
+<strong>foo</strong> Bar Baz Foo
+</zim-tree>'''
+		self.assertBufferEquals(buffer, wanted)
 
 		finder.replace_all('dus*\\1*')
-		bounds = buffer.get_bounds()
-		text = buffer.get_slice(*bounds)
 		wanted = '''\
-dus** Dus dus*BAR*
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">dus** Dus dus*BAR*
 dus*Baz* dus** Bar
-dus** Bar Baz dus**
-'''
-		self.assertEqual(text, wanted)
-		self.assertEqual(buffer.get_insert_iter().get_offset(), 6)
+<strong>dus**</strong> Bar Baz dus**
+</zim-tree>'''
+		self.assertBufferEquals(buffer, wanted)
 
 
-class TestLists(tests.TestCase):
+class TestLists(tests.TestCase, TestCaseMixin):
 
-	def runTest(self):
+	def testBulletLists(self):
 		'''Test interaction for lists'''
 
 		buffer = TextBuffer()
@@ -657,7 +748,7 @@ class TestLists(tests.TestCase):
 <li bullet="*" indent="0"> Baz</li>
 Tja
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), input) # just a sanity check
@@ -770,7 +861,7 @@ Tja
 <li bullet="unchecked-box" indent="0"> Baz</li>
 Tja
 </zim-tree>'''
-		tree = get_tree_from_xml(input)
+		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), input) # just a sanity check
@@ -911,6 +1002,284 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wantedpre)
 
+	def testNumberedLists(self):
+		buffer = TextBuffer()
+
+		# The rules for renumbering are:
+		#
+		# 1. If this is top of the list, number down
+		# 2. Otherwise look at bullet above and number down from there
+		#    (this means whatever the user typed doesn't really matter)
+		# 3. If above bullet is non-number bullet, replace the numbered
+		#    item with that bullet (for checkboxes always an open
+		#    checkbox is used.)
+		#
+		# Note that the bullet on the line we look also at does not have
+		# to be a numbered bullet. The one above or below may still be
+		# number. And vice versa
+
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="3." indent="1"> B</li>
+<li bullet="a." indent="2"> C</li>
+<li bullet="b." indent="2"> D</li>
+<li bullet="*" indent="1"> E</li>
+</zim-tree>'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="B." indent="1"> B</li>
+<li bullet="a." indent="2"> C</li>
+<li bullet="b." indent="2"> D</li>
+<li bullet="C." indent="1"> E</li>
+</zim-tree>'''
+		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
+		buffer.renumber_list(1) # top of list: A.
+		self.assertBufferEquals(buffer, wanted)
+
+		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
+		buffer.renumber_list(2) # middle of list: 3.
+		self.assertBufferEquals(buffer, wanted)
+
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="1." indent="1"> A</li>
+<li bullet="2." indent="1"> B</li>
+<li bullet="a." indent="2"> C</li>
+<li bullet="b." indent="2"> D</li>
+<li bullet="*" indent="1"> E</li>
+</zim-tree>'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="1." indent="1"> A</li>
+<li bullet="2." indent="1"> B</li>
+<li bullet="a." indent="2"> C</li>
+<li bullet="b." indent="2"> D</li>
+<li bullet="3." indent="1"> E</li>
+</zim-tree>'''
+
+		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
+		buffer.renumber_list(5) # after sub list: "*"
+		self.assertBufferEquals(buffer, wanted)
+
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="*" indent="1"> B</li>
+<li bullet="C." indent="1"> C</li>
+</zim-tree>'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="B." indent="1"> B</li>
+<li bullet="C." indent="1"> C</li>
+</zim-tree>'''
+		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
+		buffer.renumber_list(2) # middle of list: B.
+		self.assertBufferEquals(buffer, wanted)
+
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="*" indent="1"> A</li>
+<li bullet="B." indent="1"> B</li>
+<li bullet="*" indent="1"> C</li>
+</zim-tree>'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="*" indent="1"> A</li>
+<li bullet="*" indent="1"> B</li>
+<li bullet="*" indent="1"> C</li>
+</zim-tree>'''
+		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
+		buffer.renumber_list(2) # middle of list: B.
+		self.assertBufferEquals(buffer, wanted)
+
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="checked-box" indent="1"> A</li>
+<li bullet="B." indent="1"> B</li>
+<li bullet="*" indent="1"> C</li>
+</zim-tree>'''
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="checked-box" indent="1"> A</li>
+<li bullet="unchecked-box" indent="1"> B</li>
+<li bullet="*" indent="1"> C</li>
+</zim-tree>'''
+		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
+		buffer.renumber_list(2) # middle of list: B.
+		self.assertBufferEquals(buffer, wanted)
+
+		# Renumber behavior after changing indenting:
+		#
+		# 1. If this is now middle of a list (above item is same or
+		#    more indenting) look above and renumber
+		# 2. If this is now top of a sublist (above item is lower
+		#    indent) look _below_ and copy bullet found there then
+		#    number down
+		# 3. If this is the top of a new sublist (no item below)
+		#    switch bullet style (numbers vs letters) and reset count
+		# 4. If this is the top of the list (no bullet above) don't
+		#    need to do anything
+		#
+		# ALSO look at previous level where item went missing,
+		# look at above item at that level and number downward
+
+		def indent(buffer, line):
+			row, list = TextBufferList.new_from_line(buffer, line)
+			list.indent(row)
+
+		def unindent(buffer, line):
+			row, list = TextBufferList.new_from_line(buffer, line)
+			list.unindent(row)
+
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="B." indent="1"> B</li>
+<li bullet="C." indent="1"> C</li>
+<li bullet="D." indent="1"> D</li>
+</zim-tree>'''
+		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="B." indent="1"> B</li>
+<li bullet="1." indent="2"> C</li>
+<li bullet="C." indent="1"> D</li>
+</zim-tree>'''
+		indent(buffer, 3) # new sub-list -- reset style and numbering
+		self.assertBufferEquals(buffer, wanted)
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="B." indent="1"> B</li>
+<li bullet="1." indent="2"> C</li>
+<li bullet="2." indent="2"> D</li>
+</zim-tree>'''
+		indent(buffer, 4) # add to existing sub list
+		self.assertBufferEquals(buffer, wanted)
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="1." indent="2"> B</li>
+<li bullet="1." indent="3"> C</li>
+<li bullet="2." indent="3"> D</li>
+</zim-tree>'''
+		indent(buffer, 2) # top of existing sub list
+		self.assertBufferEquals(buffer, wanted)
+
+		prev = wanted
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="1." indent="2"> B</li>
+<li bullet="1." indent="3"> C</li>
+<li bullet="a." indent="4"> D</li>
+</zim-tree>'''
+		indent(buffer, 4) # yet another new sub level
+		self.assertBufferEquals(buffer, wanted)
+
+		unindent(buffer, 4)
+		self.assertBufferEquals(buffer, prev)
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="B." indent="1"> B</li>
+<li bullet="1." indent="2"> C</li>
+<li bullet="2." indent="2"> D</li>
+</zim-tree>'''
+		unindent(buffer, 2) # renumber both levels
+		self.assertBufferEquals(buffer, wanted)
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="A." indent="1"> A</li>
+<li bullet="B." indent="1"> B</li>
+<li bullet="1." indent="2"> C</li>
+<li bullet="C." indent="1"> D</li>
+</zim-tree>'''
+		unindent(buffer, 4)
+		self.assertBufferEquals(buffer, wanted)
+
+		buffer.set_bullet(4, NUMBER_BULLET)
+		self.assertBufferEquals(buffer, wanted)
+
+
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="1." indent="1"> A</li>
+<li bullet="2." indent="1"> B</li>
+<li bullet="3." indent="1"> C</li>
+</zim-tree>'''
+		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="1." indent="1"> A</li>
+<li bullet="2." indent="1"> B</li>
+<li bullet="a." indent="2"> C</li>
+</zim-tree>'''
+		indent(buffer, 3)
+		self.assertBufferEquals(buffer, wanted)
+
+
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="*" indent="1"> A</li>
+<li bullet="1." indent="2"> B</li>
+<li bullet="2." indent="2"> C</li>
+<li bullet="*" indent="1"> D</li>
+</zim-tree>'''
+		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="*" indent="1"> A</li>
+<li bullet="1." indent="2"> B</li>
+<li bullet="2." indent="2"> C</li>
+<li bullet="3." indent="2"> D</li>
+</zim-tree>'''
+		indent(buffer, 4)
+		self.assertBufferEquals(buffer, wanted)
+
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree raw="True">
+<li bullet="*" indent="1"> A</li>
+<li bullet="*" indent="1"> B</li>
+<li bullet="1." indent="2"> C</li>
+<li bullet="2." indent="2"> D</li>
+</zim-tree>'''
+		unindent(buffer, 2)
+		self.assertBufferEquals(buffer, wanted)
+
 
 def press(widget, sequence):
 	#~ print 'PRESS', sequence
@@ -935,15 +1304,15 @@ def press(widget, sequence):
 		widget.emit('key-press-event', event)
 
 
-class TestTextView(tests.TestCase):
+class TestTextView(tests.TestCase, TestCaseMixin):
 
 	def setUp(self):
 		# Initialize default preferences from module
 		self.preferences = {}
 		for pref in ui_preferences:
-			self.preferences[pref[0]] = pref[-1]
+			self.preferences[pref[0]] = pref[4]
 
-	def runTest(self):
+	def testTyping(self):
 		print '\n!! Two GtkWarnings expected here for gdk display !!'
 		view = TextView(self.preferences)
 		buffer = TextBuffer()
@@ -1121,18 +1490,121 @@ foo
 		# TODO Auto formatting of various link types
 		# TODO enter on link, before link, after link
 
+	def testCopyPaste(self):
+		dir = self.get_tmp_name('testCopyPaste')
+		notebook = tests.new_notebook(fakedir=dir)
+		page = notebook.get_page(Path('roundtrip'))
+		parsetree = page.get_parsetree()
 
-class TestPageView(tests.TestCase):
+		buffer = TextBuffer(notebook, page)
+		textview = TextView(self.preferences)
+		textview.set_buffer(buffer)
 
-	def runTest(self):
-		PageView.actiongroup = tests.MockObject() # use class attribute to fake ui init
-		PageView.actiongroup.mock_method('get_action', tests.MockObject())
+		print '** HACK for cleaning up parsetree'
+		def cleanup(parsetree):
+			# FIXME - HACK - dump and parse as wiki first to work
+			# around glitches in pageview parsetree dumper
+			# main visibility when copy pasting bullet lists
+			# Same hack in gui clipboard code
+			from zim.notebook import Path, Page
+			from zim.formats import get_format
+			dumper = get_format('wiki').Dumper()
+			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
+			parser = get_format('wiki').Parser()
+			parsetree = parser.parse(text)
+			return parsetree
+			#--
 
-		ui = MockUI()
-		ui.uimanager = tests.MockObject()
-		ui.uimanager.mock_method('get_accel_group', tests.MockObject())
+		# paste
+		Clipboard.set_parsetree(notebook, page, parsetree)
+		with FilterNoSuchImageWarning():
+			textview.emit('paste-clipboard')
+		result = buffer.get_parsetree()
+		result = cleanup(result)
+		self.assertEqual(result.tostring(), parsetree.tostring())
 
-		pageview = PageView(ui)
+		# paste replacing selection
+		buffer.set_text('foo bar baz')
+		buffer.select_range(*buffer.get_bounds()) # select all
+		with FilterNoSuchImageWarning():
+			textview.emit('paste-clipboard')
+		result = buffer.get_parsetree()
+		result = cleanup(result)
+		self.assertEqual(result.tostring(), parsetree.tostring())
+
+		# copy
+		Clipboard.clear()
+		self.assertIsNone(Clipboard.get_parsetree())
+		buffer.select_range(*buffer.get_bounds()) # select all
+		textview.emit('copy-clipboard')
+		result = Clipboard.get_parsetree(notebook, page)
+		self.assertIsNotNone(result)
+		result = cleanup(result)
+		self.assertEqual(result.tostring(), parsetree.tostring())
+
+		# cut
+		Clipboard.clear()
+		self.assertIsNone(Clipboard.get_parsetree())
+		buffer.select_range(*buffer.get_bounds()) # select all
+		textview.emit('cut-clipboard')
+		result = Clipboard.get_parsetree(notebook, page)
+		self.assertIsNotNone(result)
+		result = cleanup(result)
+		self.assertEqual(result.tostring(), parsetree.tostring())
+		self.assertEqual(buffer.get_text(*buffer.get_bounds()), '')
+
+		# popup menu
+		page = tests.new_page_from_text('Foo **Bar** Baz\n')
+		dir = self.get_tmp_name('testCopyPaste')
+		pageview = setUpPageView(fakedir=dir)
+		pageview.set_page(page)
+
+		def get_context_menu():
+			buffer = pageview.view.get_buffer()
+			buffer.select_range(*buffer.get_bounds()) # select all
+			return pageview.view.get_popup()
+
+		def click(id):
+			menu = get_context_menu()
+			tests.gtk_activate_menu_item(menu, id)
+
+		#~ tests.gtk_activate_menu_item(menu, 'gtk-copy')
+		#~ self.assertEqual(Clipboard.get_text(), 'Test')
+		#~ ## Looks like this item not initialized yet
+
+		menu = get_context_menu()
+		item = tests.gtk_get_menu_item(menu, _('Copy _As...'))
+		copy_as_menu = item.get_submenu()
+		tests.gtk_activate_menu_item(copy_as_menu, 'Wiki')
+		self.assertEqual(Clipboard.get_text(), 'Foo **Bar** Baz\n')
+		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree partial="True">Foo <strong>Bar</strong> Baz\n</zim-tree>')
+
+		page = tests.new_page_from_text('[[bar]]')
+		pageview.set_page(page)
+		click(_('Copy _Link'))
+		self.assertEqual(Clipboard.get_text(), 'Bar')
+		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href=":Bar">:Bar</link></zim-tree>')
+
+		page = tests.new_page_from_text('[[~//bar.txt]]')
+			# Extra '/' is in there to verify path gets parsed as File object
+		pageview.set_page(page)
+		click(_('Copy _Link'))
+		self.assertEqual(Clipboard.get_text(), '~/bar.txt')
+		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="~/bar.txt">~/bar.txt</link></zim-tree>')
+
+
+
+# TODO: More popup stuff
+
+
+
+class TestPageView(tests.TestCase, TestCaseMixin):
+
+	def testGetSelection(self):
+		pageview = setUpPageView()
 		buffer = pageview.view.get_buffer()
 		buffer.set_text('''\
 Foo bar
@@ -1144,7 +1616,72 @@ Baz
 		self.assertEqual(pageview.get_selection(), 'bar')
 		self.assertEqual(pageview.get_selection(format='wiki'), 'bar')
 
-		# TODO much more here
+
+	def testAutoSelect(self):
+		# This test indirectly tests select_word, select_line and strip_selection
+
+		pageview = setUpPageView()
+		buffer = pageview.view.get_buffer()
+		buffer.set_text('''Test 123. foo\nline with spaces    \n\n''')
+
+		# select word (with / without previous selection)
+		buffer.place_cursor(buffer.get_iter_at_offset(6))
+		pageview.autoselect()
+		self.assertSelection(buffer, 0, 5, '123')
+
+		pageview.autoselect()
+		self.assertSelection(buffer, 0, 5, '123') # no change
+
+		buffer.place_cursor(buffer.get_iter_at_offset(33))
+		pageview.autoselect()
+		self.assertFalse(buffer.get_has_selection()) # middle of whitespace
+
+		# select line (with / without previous selection)
+		buffer.place_cursor(buffer.get_iter_at_offset(6))
+		pageview.autoselect()
+		self.assertSelection(buffer, 0, 5, '123')
+		pageview.autoselect(selectline=True)
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo') # extended
+
+		pageview.autoselect(selectline=True)
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo') # no change
+
+		buffer.place_cursor(buffer.get_iter_at_offset(6))
+		self.assertFalse(buffer.get_has_selection())
+		pageview.autoselect(selectline=True)
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo')
+
+		# empty line
+		buffer.place_cursor(buffer.get_iter_at_line(3))
+		self.assertFalse(buffer.get_has_selection())
+		pageview.autoselect(selectline=True)
+		self.assertFalse(buffer.get_has_selection())
+
+		# existing selection needs stripping
+		start = buffer.get_iter_at_offset(4)
+		end = buffer.get_iter_at_offset(10)
+		buffer.select_range(start, end)
+		self.assertSelection(buffer, 0, 4, ' 123. ')
+		pageview.autoselect()
+		self.assertSelection(buffer, 0, 5, '123.')
+
+	def testInsertLinks(self):
+		pageview = setUpPageView()
+		buffer = pageview.view.get_buffer()
+		buffer.set_text('''Test 123\n''')
+
+		buffer.place_cursor(buffer.get_end_iter())
+		pageview.insert_links((Path("foo"), File("/foo.txt"), "~/bar.txt"))
+		wantedtext = 'Test 123\nfoo\n%s\n~/bar.txt\n' % File('/foo.txt').uri
+		text = buffer.get_text(*buffer.get_bounds())
+		self.assertEqual(text, wantedtext)
+
+		buffer.place_cursor(buffer.get_iter_at_line(2))
+		buffer.select_line()
+		pageview.insert_links(('http://cpan.org',))
+		wantedtext = 'Test 123\nfoo\n%s\n~/bar.txt\n' % 'http://cpan.org '
+		text = buffer.get_text(*buffer.get_bounds())
+		self.assertEqual(text, wantedtext)
 
 
 class TestPageviewDialogs(tests.TestCase):
@@ -1215,20 +1752,6 @@ class TestPageviewDialogs(tests.TestCase):
 		#~ dialog.assert_response_ok()
 		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_parsetree_at_cursor')
 
-		## Insert Link dialog
-		ui = MockUI()
-		ui.notebook.index = tests.MockObject()
-		ui.notebook.index.mock_method('list_pages', [])
-		pageview = tests.MockObject()
-		pageview.page = Path('Test:foo:bar')
-		textview = TextView({})
-		pageview.view = textview
-		dialog = InsertLinkDialog(ui, pageview)
-		dialog.form.widgets['href'].set_text('Foo')
-		dialog.assert_response_ok()
-		buffer = textview.get_buffer()
-		self.assertEqual(buffer.get_text(*buffer.get_bounds()), 'Foo')
-
 		## Find And Replace dialog
 		ui = MockUI()
 		textview = TextView({})
@@ -1255,6 +1778,22 @@ dus bar bazzz baz
 		dialog = WordCountDialog(pageview)
 		dialog.destroy() # nothing to test really
 
+	def testInsertLinkDialog(self):
+		# Insert Link dialog
+		ui = MockUI()
+		ui.notebook.index = tests.MockObject()
+		ui.notebook.index.mock_method('list_pages', [])
+		pageview = tests.MockObject()
+		pageview.page = Path('Test:foo:bar')
+		textview = TextView({})
+		pageview.view = textview
+		dialog = InsertLinkDialog(ui, pageview)
+		dialog.form.widgets['href'].set_text('Foo')
+		dialog.assert_response_ok()
+		buffer = textview.get_buffer()
+		self.assertEqual(buffer.get_text(*buffer.get_bounds()), 'Foo')
+
+
 
 class MockUI(tests.MockObject):
 
@@ -1263,7 +1802,7 @@ class MockUI(tests.MockObject):
 		self.mainwindow = None
 		self.notebook = tests.MockObject()
 		self.preferences = ConfigDict()
-		self.page = Path(':')
+		self.page = Path('Test')
 
 	def register_preferences(self, section, list):
 		for p in list:

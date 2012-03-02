@@ -487,15 +487,43 @@ class DesktopEntryDict(ConfigDict, Application):
 		'''Same as C{dict.update()}'''
 		self['Desktop Entry'].update(E, **F)
 
-	def _decode_value(self, value):
-		if value == 'true': return True
-		elif value == 'false': return False
+	# Data types for all keys are defined in spec - see freedesktop.org
+	_key_types = {
+		'Version': 'numeric',
+		'NoDisplay': 'boolean',
+		'Hidden': 'boolean',
+		'Terminal': 'boolean',
+		'StartupNotify': 'boolean',
+		# All other keys are either string or localestring
+	}
+
+	def _decode_value(self, key, value):
+		type = self._key_types.get(key)
+		if not type and key.startswith('X-'):
+			# Try to guess it
+			if value == 'true': return True
+			elif value == 'false': return False
+			else:
+				try:
+					value = float(value)
+					return value
+				except:
+					return json.loads('"%s"' % value.replace('"', '\\"')) # force string
 		else:
-			try:
-				value = float(value)
-				return value
-			except:
+			# Strict typing
+			if not type or type == 'string':
 				return json.loads('"%s"' % value.replace('"', '\\"')) # force string
+			elif type == 'boolean':
+				if value == 'true': return True
+				else: return False # 'false' or invalid value
+			elif type == 'numeric':
+				try:
+					value = float(value)
+					return value
+				except:
+					return 0 # invalid value
+			else:
+				assert False, 'BUG: unknown key type: %s' % type
 
 	def _encode_value(self, value):
 		if value is None: return ''
@@ -760,6 +788,13 @@ class CustomToolDict(DesktopEntryDict):
 	page & pageview.
 	'''
 
+	_key_types = {
+		'X-Zim-ExecTool': 'string',
+		'X-Zim-ReadOnly': 'boolean',
+		'X-Zim-ShowInToolBar': 'boolean',
+	}
+	_key_types.update(DesktopEntryDict._key_types)
+
 	def isvalid(self):
 		'''Check if all required fields are set.
 		@returns: C{True} if all required fields are set
@@ -786,7 +821,8 @@ class CustomToolDict(DesktopEntryDict):
 
 	@property
 	def icon(self):
-		return self['Desktop Entry'].get('Icon', gtk.STOCK_EXECUTE)
+		return self['Desktop Entry'].get('Icon') or gtk.STOCK_EXECUTE
+			# get('Icon', gtk.STOCK_EXECUTE) still returns empty string if key exists but no value
 
 	@property
 	def execcmd(self):

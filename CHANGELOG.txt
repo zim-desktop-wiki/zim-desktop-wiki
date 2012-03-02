@@ -4,6 +4,36 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42. 
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.55 - Tue 28 Feb 2012 ===
+* Numbered lists are now supported
+* The index now has "natural" sorting, so "9" goes before "10"
+* Added new plugin to show a Table Of Contents per page, and allows modifying the outline
+* Added Markdown (with pandoc extensions) as an export format
+* New context menu item "move text" for refactoring text to a new page
+* Tasklist now supports a "next:" keyword to indicate dependencies, 
+  and it can hide tasks that are not yet actionable
+* Made zim taskbar icons and trayicon overloadable in theme - Andrei
+* Fixed behavior of Recent Pages pathbar in cases where part of the history is dropped
+* Fixed behavior of the Search dialog, it no longer hangs and also allows cancelling the search
+* Fixed bug where replacing a word (e.g spell correction) could drop formatting
+* Fixed behavior of case-sensitive rename on a case-insensitive file system (windows)
+
+=== 0.54 - Thu 22 Dec 2011 ===
+Bug fix release with minor feature enhancements
+* Added mono icons for the Ubuntu Unity panel
+* Tasklist plugin now supports hierarchic nested tasks
+* Added "automount" plugin to automatically mount notebook folders
+* Interwiki lookup now goes over all urls.list files in the path
+* Fixed bug that prevented clicking links in read-only mode
+* Fixed bug for parsing relative paths to parent pages e.g. in drag and drop
+* Fixed bug causing the index to jump with every page selection
+* Fixed bug causing the icon for custom tools to be missing in the toolbar
+* Fixed bug for drag and drop of files on windows
+* Fixed bug causing task list to reset when page is saved
+* Fixed autocomplete for page entry in quicknote
+* Fixed error in "you found a bug" error dialogs :S
+* Fixed issue in test suite for loading pixbufs
+* Added translation for Galician
 
 === 0.53 - Mon 19 Sep 2011 ===
 * Cosmetic updates to entry widgets, the page index, the insert date dialog,

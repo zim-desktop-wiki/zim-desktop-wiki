@@ -12,11 +12,11 @@ import os
 from zim.fs import Dir
 from zim.notebook import init_notebook, get_notebook, Notebook, Path, Link
 from zim.index import *
-from zim.gui.pageindex import *
 from zim.formats import ParseTree
+from zim.gui.clipboard import Clipboard
+from zim.gui.pageindex import *
 
 
-@tests.slowTest
 class TestIndex(tests.TestCase):
 
 	def setUp(self):
@@ -174,7 +174,7 @@ class TestIndex(tests.TestCase):
 		parent = self.index.lookup_path(path.parent)
 		self.assertTrue(parent is None)
 
-		#~ # Check cleanup for links
+		# Check cleanup for links
 		links = [link.href for link in self.index.list_links(Path('roundtrip'))]
 		for p in ('foo:bar', 'Bar'):
 			self.assertTrue(Path(p) in links)
@@ -200,6 +200,17 @@ class TestIndex(tests.TestCase):
 		self.notebook.delete_page(Path('roundtrip'))
 		path = self.index.lookup_path(Path('foo:bar'))
 		self.assertTrue(path is None)
+
+		# Check get_page_index() to double check stable sorting
+		def check_index(path):
+			for i, child in enumerate(self.index.list_pages(path)):
+				index = self.index.get_page_index(child)
+				#~ print 'INDEX', i, child, '-->', index
+				self.assertTrue(index == i, 'Index mismatch for %s' % child)
+				if child.haschildren:
+					check_index(child) # recurs
+
+		check_index(Path(':'))
 
 
 @tests.slowTest
@@ -375,6 +386,34 @@ class TestPageTreeStoreFiles(TestPageTreeStore):
 	def runTest(self):
 		'''Test PageTreeStore index interface with files index'''
 		TestPageTreeStore.runTest(self)
+
+
+class TestPageTreeView(tests.TestCase):
+
+	# This class is intended for testing the widget user interaction,
+	# interaction with the store is already tested by having the
+	# view attached in TestPageTreeStore
+
+	def setUp(self):
+		self.ui = tests.MockObject()
+		self.ui.page = Path('Test')
+		self.notebook = tests.new_notebook()
+		self.ui.notebook = self.notebook
+		self.model = PageTreeStore(self.notebook.index)
+		self.treeview = PageTreeView(self.ui, self.model)
+
+	def testContextMenu(self):
+		menu = self.treeview.get_popup()
+
+		# Check these do not cause errors - how to verify state ?
+		tests.gtk_activate_menu_item(menu, _("Expand _All"))
+		tests.gtk_activate_menu_item(menu, _("_Collapse All"))
+
+		# Copy item
+		tests.gtk_activate_menu_item(menu, 'gtk-copy')
+		self.assertEqual(Clipboard.get_text(), 'Test')
+
+	# Single click navigation, ... ?
 
 
 @tests.slowTest

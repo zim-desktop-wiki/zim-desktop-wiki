@@ -90,6 +90,7 @@ import gobject
 import logging
 
 import zim
+from zim.utils import natural_sort_key, natural_sort
 from zim.notebook import Path, Link, PageNameError
 
 logger = logging.getLogger('zim.index')
@@ -110,6 +111,7 @@ create table if not exists meta (
 create table if not exists pages (
 	id INTEGER PRIMARY KEY,
 	basename TEXT,
+	sortkey TEXT,
 	parent INTEGER DEFAULT '0',
 	hascontent BOOLEAN,
 	haschildren BOOLEAN,
@@ -135,7 +137,8 @@ create table if not exists linktypes (
 );
 create table if not exists tags (
 	id INTEGER PRIMARY KEY,
-	name TEXT
+	name TEXT,
+	sortkey TEXT
 );
 create table if not exists tagsources (
 	source INTEGER,
@@ -152,6 +155,13 @@ create table if not exists tagsources (
 # FIXME, the idea to have some index paths with and some without data
 # was a really bad idea. Need to clean up the code as this is / will be
 # a source of obscure bugs. Remove or replace lookup_data().
+
+# Note on "ORDER BY": we use the sortkey property (which is set using
+# natural_sort_key()), but we also sort on the real name as 2nd column.
+# The reason is that the sort keys produced by natural_sort_key() are
+# not case sensitive, and we want stable behavior if two sort keys
+# are the same, while the actual names are not.
+
 
 class IndexPath(Path):
 	'''Subclass of L{Path} but optimized for index lookups. Objects of
@@ -452,6 +462,7 @@ class Index(gobject.GObject):
 		self.notebook = None
 		self.properties = None
 		self.updating = False
+		self._idle_signal_id = None
 		self._update_pagelist_queue = []
 		self._index_page_queue = []
 		if self.dbfile:
@@ -547,7 +558,7 @@ class Index(gobject.GObject):
 		self.emit('initialize-db')
 
 		# Create root node
-		cursor.execute('insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)', ('', 0, False, False))
+		cursor.execute('insert into pages(basename, sortkey, parent, hascontent, haschildren) values (?, ?, ?, ?, ?)', ('', '', 0, False, False))
 		assert cursor.lastrowid == 1, 'BUG: Primary key should start counting at 1'
 
 		# Set meta properties
@@ -633,10 +644,12 @@ class Index(gobject.GObject):
 				# Start new queue
 				logger.info('Starting async index update')
 				self.updating = True
-				gobject.idle_add(self._do_update, callback)
+				self._idle_signal_id = \
+					gobject.idle_add(self._do_update, callback)
 			# Else let running queue pick it up
 		else:
 			logger.info('Updating index')
+			self._stop_background_signal() # just to be sure
 			while self._do_update(callback):
 				continue
 
@@ -652,10 +665,31 @@ class Index(gobject.GObject):
 		'''
 		if self.updating:
 			logger.info('Ensure index updated')
+			self._stop_background_signal()
 			while self._do_update(callback):
 				continue
 		else:
 			return
+
+	def stop_updating(self):
+		'''Force asynchronous indexing to stop'''
+		if self._update_pagelist_queue or self._index_page_queue:
+			logger.info('Index update is canceled')
+		# else natural end of index update, or just checking
+
+		self._stop_background_signal()
+		self._update_pagelist_queue = [] # flush
+		self._index_page_queue = [] # flush
+
+		if self.updating:
+			self.emit('end-update')
+			self.updating = False
+
+	def _stop_background_signal(self):
+		if self._idle_signal_id:
+			gobject.source_remove(self._idle_signal_id)
+			self._idle_signal_id = None
+
 
 	def _do_update(self, callback):
 		# This returns boolean to continue or not because it can be called as an
@@ -685,9 +719,7 @@ class Index(gobject.GObject):
 			if not callback is None:
 				cont = callback(path)
 				if not cont is True:
-					logger.info('Index update is canceled')
-					self._update_pagelist_queue = [] # flush
-					self._index_page_queue = [] # flush
+					self.stop_updating()
 					return False
 			return True
 		else:
@@ -698,8 +730,7 @@ class Index(gobject.GObject):
 			except:
 				logger.exception('Got an exception while removing placeholders')
 			logger.info('Index update done')
-			self.updating = False
-			self.emit('end-update')
+			self.stop_updating()
 			return False
 
 	def touch(self, path):
@@ -727,8 +758,9 @@ class Index(gobject.GObject):
 			if p is None:
 				haschildren = i < (len(names) - 1)
 				cursor.execute(
-					'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
-					(names[i], parentid, False, haschildren))
+					'insert into pages(basename, sortkey, parent, hascontent, haschildren) values (?, ?, ?, ?, ?)',
+					(names[i], natural_sort_key(names[i]), parentid, False, haschildren))
+
 				parentid = cursor.lastrowid
 				indexpath.append(parentid)
 				inserted.append(
@@ -740,7 +772,7 @@ class Index(gobject.GObject):
 				indexpath.append(parentid)
 
 		if lastparent and not lastparent.haschildren:
-			self.db.execute('update pages set haschildren = ? where id == ?', (True, lastparent.id))
+			self.db.execute('update pages set haschildren = ? where id = ?', (True, lastparent.id))
 		else:
 			lastparent = None
 
@@ -778,7 +810,7 @@ class Index(gobject.GObject):
 		for tag in self.list_tags(path):
 			had_tags.add(tag.id)
 
-		self.db.execute('delete from links where source==?', (path.id,))
+		self.db.execute('delete from links where source = ?', (path.id,))
 
 		if page.hascontent:
 			for type, href, _ in page.get_links():
@@ -811,14 +843,16 @@ class Index(gobject.GObject):
 					# Create tag
 					cursor = self.db.cursor()
 					cursor.execute(
-						'insert into tags(name) values (?)', (tag,))
+						'insert into tags(name, sortkey) values (?, ?)',
+						(tag, natural_sort_key(tag))
+					)
 					indextag = IndexTag(tag, cursor.lastrowid)
 					created_tags.append(indextag)
 				has_tags.add(indextag.id)
 
 		key = self.notebook.get_page_indexkey(page)
 		self.db.execute(
-			'update pages set hascontent=?, contentkey=? where id==?',
+			'update pages set hascontent = ?, contentkey = ? where id = ?',
 			(page.hascontent, key, path.id) )
 
 		# Insert tags
@@ -836,7 +870,7 @@ class Index(gobject.GObject):
 		removed_tags = had_tags.difference(has_tags)
 		for i, tag in enumerate(removed_tags):
 			self.emit('tag-to-be-removed', self.lookup_tagid(tag), path, (len(has_tags) == 0) and (i == len(removed_tags)-1))
-			self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag))
+			self.db.execute('delete from tagsources where source = ? and tag = ?', (path.id, tag))
 
 		path = self.lookup_data(path) # refresh
 
@@ -905,7 +939,7 @@ class Index(gobject.GObject):
 		uptodate = listkey and path.childrenkey == listkey
 
 		cursor = self.db.cursor()
-		cursor.execute('select * from pages where parent==?', (path.id,))
+		cursor.execute('select * from pages where parent = ?', (path.id,))
 
 		if uptodate:
 			#~ print '!! ... is up to date'
@@ -932,7 +966,7 @@ class Index(gobject.GObject):
 						# Child aquired content - let's index it
 						cursor = self.db.cursor()
 						cursor.execute(
-							'update pages set hascontent=?, contentkey=NULL where id==?',
+							'update pages set hascontent = ?, contentkey = NULL where id = ?',
 							(page.hascontent, row['id'],) )
 						child = IndexPath(path.name+':'+row['basename'], indexpath+(row['id'],),
 							{	'hascontent': page.hascontent,
@@ -953,8 +987,8 @@ class Index(gobject.GObject):
 					# asked.
 					cursor = self.db.cursor()
 					cursor.execute(
-						'insert into pages(basename, parent, hascontent, haschildren) values (?, ?, ?, ?)',
-						(page.basename, path.id, page.hascontent, False))
+						'insert into pages(basename, sortkey, parent, hascontent, haschildren) values (?, ?, ?, ?, ?)',
+						(page.basename, natural_sort_key(page.basename), path.id, page.hascontent, False))
 					child = IndexPath(page.name, indexpath + (cursor.lastrowid,),
 						{	'hascontent': page.hascontent,
 							'haschildren': False,
@@ -977,7 +1011,7 @@ class Index(gobject.GObject):
 				if child.haschildren or self.n_list_links(child, direction=LINK_DIR_BACKWARD) > 0:
 					keep.add(child)
 					self.db.execute(
-						'update pages set hascontent=0, contentkey=NULL where id==?', (child.id,))
+						'update pages set hascontent = 0, contentkey = NULL where id = ?', (child.id,))
 						# If you're not in the pagelist, you don't have content
 					changes.append((child, 2))
 					if child.haschildren:
@@ -988,7 +1022,7 @@ class Index(gobject.GObject):
 			# Update index key to reflect we did our updates
 			haschildren = len(seen) + len(keep) > 0
 			self.db.execute(
-				'update pages set childrenkey=?, haschildren=?, hascontent=? where id==?',
+				'update pages set childrenkey = ?, haschildren = ?, hascontent = ? where id = ?',
 				(listkey, haschildren, hascontent, path.id) )
 
 			path = self.lookup_data(path) # refresh
@@ -999,7 +1033,7 @@ class Index(gobject.GObject):
 				self.emit('page-updated', path)
 
 			# All these signals should come in proper order...
-			changes.sort(key=lambda c: c[0].basename.lower())
+			natural_sort(changes, key=lambda c: c[0].basename)
 			for child, action in changes:
 				if action == 1:
 					self.emit('page-inserted', child)
@@ -1047,15 +1081,15 @@ class Index(gobject.GObject):
 
 		# Clean up links and content
 		for path in paths:
-			self.db.execute('delete from links where source=?', (path.id,))
-			self.db.execute('update pages set hascontent=0, contentkey=NULL where id==?', (path.id,))
+			self.db.execute('delete from links where source = ?', (path.id,))
+			self.db.execute('update pages set hascontent = 0, contentkey = NULL where id = ?', (path.id,))
 
 		# Clean up tags
 		for path in paths:
 			tags = list(self.list_tags(path))
 			for i, tag in enumerate(tags):
 				self.emit('tag-to-be-removed', tag, path, i == len(tags) - 1)
-				self.db.execute('delete from tagsources where source==? and tag==?', (path.id, tag.id))
+				self.db.execute('delete from tagsources where source = ? and tag = ?', (path.id, tag.id))
 			for i, tag in enumerate(tags):
 				self.emit('tag-removed', tag, path, i == len(tags) - 1)
 
@@ -1071,7 +1105,7 @@ class Index(gobject.GObject):
 				# Keep but check haschildren
 				keep.append(path)
 				self.db.execute(
-					'update pages set haschildren=?, childrenkey=NULL where id==?',
+					'update pages set haschildren = ?, childrenkey = NULL where id = ?',
 					(haschildren, path.id) )
 			else:
 				# Delete
@@ -1090,7 +1124,7 @@ class Index(gobject.GObject):
 		parent = root.parent
 		if not parent.isroot and self.n_list_pages(parent) == 0:
 			self.db.execute(
-				'update pages set haschildren=0, childrenkey=NULL where id==?',
+				'update pages set haschildren = 0, childrenkey = NULL where id = ?',
 				(parent.id,) )
 			parent = self.lookup_data(parent)
 			self.emit('page-haschildren-toggled', parent)
@@ -1176,8 +1210,7 @@ class Index(gobject.GObject):
 	def _walk(self, path, indexpath):
 		# Here path always is an IndexPath
 		cursor = self.db.cursor()
-		cursor.execute('select * from pages where parent == ? order by lower(basename)', (path.id,))
-			# FIXME, this lower is not utf8 proof
+		cursor.execute('select * from pages where parent = ? order by sortkey, basename', (path.id,))
 		for row in cursor:
 			name = path.name+':'+row['basename']
 			childpath = indexpath+(row['id'],)
@@ -1215,7 +1248,7 @@ class Index(gobject.GObject):
 				return path
 		elif path.isroot:
 			cursor = self.db.cursor()
-			cursor.execute('select * from pages where id==?', (ROOT_ID,))
+			cursor.execute('select * from pages where id = ?', (ROOT_ID,))
 			row = cursor.fetchone()
 			return IndexPath(':', (ROOT_ID,), row)
 
@@ -1228,12 +1261,12 @@ class Index(gobject.GObject):
 
 		cursor = self.db.cursor()
 		if not names: # len(indexpath) was len(names)
-			cursor.execute('select * from pages where id==?', (indexpath[-1],))
+			cursor.execute('select * from pages where id = ?', (indexpath[-1],))
 			row = cursor.fetchone()
 		else:
 			for name in names:
 				cursor.execute(
-					'select * from pages where basename==? and parent==?',
+					'select * from pages where basename = ? and parent = ?',
 					(name, parentid) )
 				row = cursor.fetchone()
 				if row is None:
@@ -1250,7 +1283,7 @@ class Index(gobject.GObject):
 		@todo: get rid of this method
 		'''
 		cursor = self.db.cursor()
-		cursor.execute('select * from pages where id==?', (path.id,))
+		cursor.execute('select * from pages where id = ?', (path.id,))
 		path._row = cursor.fetchone()
 		#~ assert path._row, 'Path does not exist: %s' % path
 		return path
@@ -1266,7 +1299,7 @@ class Index(gobject.GObject):
 		'''
 		# Constructs the indexpath upwards
 		cursor = self.db.cursor()
-		cursor.execute('select * from pages where id==?', (id,))
+		cursor.execute('select * from pages where id = ?', (id,))
 		row = cursor.fetchone()
 		if row is None:
 			return None # no such id !?
@@ -1276,7 +1309,7 @@ class Index(gobject.GObject):
 		parent = row['parent']
 		while parent != 0:
 			indexpath.insert(0, parent)
-			cursor.execute('select basename, parent from pages where id==?', (parent,))
+			cursor.execute('select basename, parent from pages where id = ?', (parent,))
 			myrow = cursor.fetchone()
 			names.insert(0, myrow['basename'])
 			parent = myrow['parent']
@@ -1298,7 +1331,7 @@ class Index(gobject.GObject):
 		else:
 			assert isinstance(tag, basestring)
 			cursor = self.db.cursor()
-			cursor.execute('select * from tags where name==?', (tag,))
+			cursor.execute('select * from tags where name = ?', (tag,))
 			row = cursor.fetchone()
 			if row is None:
 				return None # no such name
@@ -1311,7 +1344,7 @@ class Index(gobject.GObject):
 		@returns: the L{IndexTag} object for this id
 		'''
 		cursor = self.db.cursor()
-		cursor.execute('select * from tags where id==?', (id,))
+		cursor.execute('select * from tags where id = ?', (id,))
 		row = cursor.fetchone()
 		if row is None:
 			return None # no such id !?
@@ -1360,8 +1393,8 @@ class Index(gobject.GObject):
 		cursor = self.db.cursor()
 		for name in names:
 			cursor.execute(
-				'select * from pages where lower(basename)==lower(?) and parent==?',
-				(name, parentid) )
+				'select * from pages where sortkey = ? and parent = ?',
+				(natural_sort_key(name), parentid) )
 			rows = {}
 			for row in cursor.fetchall():
 				rows[row['basename']] = row
@@ -1405,9 +1438,13 @@ class Index(gobject.GObject):
 		if not path:
 			raise ValueError, 'Could not find path in index'
 
+		sortkey = natural_sort_key(path.basename)
 		cursor = self.db.cursor()
-		cursor.execute('select count(*) from pages where parent==? and lower(basename) < lower(?)', (path.parent.id, path.basename))
-				# FIXME, this lower is not utf8 proof
+		cursor.execute(
+			'select count(*) from pages where parent = ? '
+			'and (sortkey < ? or (sortkey = ? and basename < ?))',
+			(path.parent.id, sortkey, sortkey, path.basename)
+		)
 		row = cursor.fetchone()
 		return int(row[0])
 
@@ -1442,8 +1479,7 @@ class Index(gobject.GObject):
 
 		if parentid:
 			cursor = self.db.cursor()
-			query = 'select * from pages where parent==? order by lower(basename)'
-					# FIXME, this lower is not utf8 proof
+			query = 'select * from pages where parent = ? order by sortkey, basename'
 			if offset is None and limit is None:
 				cursor.execute(query, (parentid,))
 			else:
@@ -1472,9 +1508,10 @@ class Index(gobject.GObject):
 
 		# Can't use count() here, like in get_page_index(), because
 		# basenames are not unique in this lookup
+		# FIXME do this anyway - use sorting on id instead
 		cursor = self.db.cursor()
-		cursor.execute('select id from pages where id != ? order by lower(basename)', (ROOT_ID,))
-				# FIXME, this lower is not utf8 proof
+		cursor.execute('select id from pages where id != ? order by sortkey, basename, id', (ROOT_ID,))
+			# Added id to "order by" columns because basenames are not unique
 		i = 0
 		for row in cursor:
 			if row['id'] == path.id: return i
@@ -1497,8 +1534,8 @@ class Index(gobject.GObject):
 		'''
 		cursor = self.db.cursor()
 
-		query = 'select id from pages where id != ? order by lower(basename)'
-			# FIXME, this lower is not utf8 proof
+		query = 'select id from pages where id != ? order by sortkey, basename, id'
+			# Added id to "order by" columns because basenames are not unique
 		if offset is None and limit is None:
 			cursor.execute(query, (ROOT_ID,))
 		else:
@@ -1524,7 +1561,7 @@ class Index(gobject.GObject):
 				return 0
 			parentid = path.id
 		cursor = self.db.cursor()
-		cursor.execute('select count(*) from pages where parent==?', (parentid,))
+		cursor.execute('select count(*) from pages where parent = ?', (parentid,))
 		row = cursor.fetchone()
 		return int(row[0])
 
@@ -1555,11 +1592,11 @@ class Index(gobject.GObject):
 		if path:
 			cursor = self.db.cursor()
 			if direction == LINK_DIR_FORWARD:
-				cursor.execute('select * from links where source == ?', (path.id,))
+				cursor.execute('select * from links where source = ?', (path.id,))
 			elif direction == LINK_DIR_BOTH:
-				cursor.execute('select * from links where source == ? or href == ?', (path.id, path.id))
+				cursor.execute('select * from links where source = ? or href = ?', (path.id, path.id))
 			else:
-				cursor.execute('select * from links where href == ?', (path.id,))
+				cursor.execute('select * from links where href = ?', (path.id,))
 
 			for link in cursor:
 				if link['source'] == path.id:
@@ -1582,12 +1619,15 @@ class Index(gobject.GObject):
 		@returns: yields L{Link} objects or empty list if path does not
 		exist or no links are found
 		'''
-		for link in self.list_links(path, direction):
-			yield link
+		path = self.lookup_path(path)
+		if path:
 
-		for child in self.walk(path):
-			for link in self.list_links(child, direction):
+			for link in self.list_links(path, direction):
 				yield link
+
+			for child in self.walk(path):
+				for link in self.list_links(child, direction):
+					yield link
 
 	def n_list_links(self, path, direction=LINK_DIR_FORWARD):
 		'''Get the number of links to be listed with L{list_links()}
@@ -1602,11 +1642,11 @@ class Index(gobject.GObject):
 
 		cursor = self.db.cursor()
 		if direction == LINK_DIR_FORWARD:
-			cursor.execute('select count(*) from links where source == ?', (path.id,))
+			cursor.execute('select count(*) from links where source = ?', (path.id,))
 		elif direction == LINK_DIR_BOTH:
-			cursor.execute('select count(*) from links where source == ? or href == ?', (path.id, path.id))
+			cursor.execute('select count(*) from links where source = ? or href = ?', (path.id, path.id))
 		else:
-			cursor.execute('select count(*) from links where href == ?', (path.id,))
+			cursor.execute('select count(*) from links where href = ?', (path.id,))
 		row = cursor.fetchone()
 		return int(row[0])
 
@@ -1634,9 +1674,13 @@ class Index(gobject.GObject):
 		if not tag:
 			raise ValueError, 'Could not find tag in index'
 
+		sortkey = natural_sort_key(tag.name)
 		cursor = self.db.cursor()
-		cursor.execute('select count(*) from tags where lower(name) < lower(?)', (tag.name,))
-				# FIXME, this lower is not utf8 proof
+		cursor.execute(
+			'select count(*) from tags where '
+			'(sortkey < ? or (sortkey = ? and name < ?))',
+			(sortkey, sortkey, tag.name)
+		)
 		row = cursor.fetchone()
 		return int(row[0])
 
@@ -1653,8 +1697,7 @@ class Index(gobject.GObject):
 		@returns: yields L{IndexTag} objects
 		'''
 		cursor = self.db.cursor()
-		query = 'select * from tags order by lower(name)'
-			# FIXME, this lower is not utf8 proof
+		query = 'select * from tags order by sortkey, name'
 		if offset is None:
 			cursor.execute(query)
 		else:
@@ -1733,7 +1776,7 @@ class Index(gobject.GObject):
 		path = self.lookup_path(path)
 		if path:
 			cursor = self.db.cursor()
-			cursor.execute('select * from tagsources where source == ?', (path.id,))
+			cursor.execute('select * from tagsources where source = ?', (path.id,))
 			for row in cursor:
 				yield self.lookup_tagid(row['tag'])
 
@@ -1758,9 +1801,16 @@ class Index(gobject.GObject):
 
 		# Can't use count() here, like in get_page_index(), because
 		# basenames are not unique in this lookup
+		# FIXME do this anyway - sort by id
 		cursor = self.db.cursor()
-		cursor.execute('select source from tagsources where tag == ?', (tag.id,))
-				# FIXME, this lower is not utf8 proof
+		cursor.execute(
+			'select tagsources.source '
+			'from tagsources join pages on tagsources.source=pages.id '
+			'where tagsources.tag = ? '
+			'order by pages.sortkey, pages.basename, pages.id',
+			(tag.id,)
+		)
+			# Added id to "order by" columns because basenames are not unique
 		i = 0
 		for row in cursor:
 			if row['source'] == path.id: return i
@@ -1784,7 +1834,11 @@ class Index(gobject.GObject):
 		tag = self.lookup_tag(tag)
 		if not tag is None:
 			cursor = self.db.cursor()
-			query = 'select * from tagsources where tag == ?' ### ORDER BY ###
+			query = 'select tagsources.source ' \
+			'from tagsources join pages on tagsources.source=pages.id ' \
+			'where tagsources.tag = ? ' \
+			'order by pages.sortkey, pages.basename, pages.id'
+			# Added id to "order by" columns because basenames are not unique
 			if offset is None and limit is None:
 				cursor.execute(query, (tag.id,))
 			else:
@@ -1812,9 +1866,14 @@ class Index(gobject.GObject):
 		if int(row[0]) > 0:
 			raise ValueError, 'Page has tags'
 
+		sortkey = natural_sort_key(path.basename)
 		cursor = self.db.cursor()
-		cursor.execute('select count(*) from pages where parent = ? and id not in (select source from tagsources) and lower(basename) < lower(?)', (ROOT_ID, path.basename))
-				# FIXME, this lower is not utf8 proof
+		cursor.execute(
+			'select count(*) from pages where parent = ? '
+			'and id not in (select source from tagsources) '
+			'and (sortkey < ? or (sortkey = ? and basename < ?))',
+			(ROOT_ID, sortkey, sortkey, path.basename)
+		)
 		row = cursor.fetchone()
 		return int(row[0])
 
@@ -1831,8 +1890,7 @@ class Index(gobject.GObject):
 		@returns: yields L{IndexPath} objects
 		'''
 		cursor = self.db.cursor()
-		query = 'select * from pages where parent = ? and id not in (select source from tagsources) order by lower(basename)'
-			# FIXME, this lower is not utf8 proof
+		query = 'select * from pages where parent = ? and id not in (select source from tagsources) order by sortkey, basename'
 		if offset is None and limit is None:
 			cursor.execute(query, (ROOT_ID,))
 		else:
@@ -1847,7 +1905,7 @@ class Index(gobject.GObject):
 		tag = self.lookup_tag(tag)
 		if tag:
 			cursor = self.db.cursor()
-			cursor.execute('select count(*) from tagsources where tag == ?', (tag.id,))
+			cursor.execute('select count(*) from tagsources where tag = ?', (tag.id,))
 			row = cursor.fetchone()
 			return int(row[0])
 		else:
@@ -1961,7 +2019,7 @@ class Index(gobject.GObject):
 			raise LookupError, 'Can not create new top level path'
 		else:
 			cursor = self.db.cursor()
-			cursor.execute('select basename from pages where basename like ? and parent==?',
+			cursor.execute('select basename from pages where basename like ? and parent = ?',
 				(path.basename+'%', path.parentid))
 			taken = cursor.fetchall()
 			i = 1

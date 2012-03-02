@@ -18,6 +18,9 @@ import gobject
 import zim.fs
 import zim.errors
 
+from zim.parsing import split_quoted_strings
+
+
 logger = logging.getLogger('zim.applications')
 
 
@@ -50,7 +53,8 @@ class Application(object):
 	command.
 
 	@ivar name: the name of the command (default to first item of C{cmd})
-	@ivar cmd: the command and arguments as a tuple
+	@ivar cmd: the command and arguments as a tuple or a string
+	(when given as a string it will be parsed for quoted arguments)
 	@ivar tryexeccmd: the command to check in L{tryexec()}, if C{None}
 	fall back to first item of C{cmd}
 	'''
@@ -67,7 +71,7 @@ class Application(object):
 		If C{None} will default to C{cmd} or the first item of C{cmd}.
 		'''
 		if isinstance(cmd, basestring):
-			cm = (cmd,)
+			cmd = split_quoted_strings(cmd)
 		else:
 			assert isinstance(cmd, (tuple, list))
 		assert tryexeccmd is None or isinstance(tryexeccmd, basestring)
@@ -118,7 +122,14 @@ class Application(object):
 
 	def _checkargs(self, cwd, args):
 		assert args is None or isinstance(args, (tuple, list))
-		argv = [a.encode(zim.fs.ENCODING) for a in self._cmd(args)]
+		argv = self._cmd(args)
+
+		# if it is a python script, insert interpreter as the executable
+		if argv[0].endswith('.py') and sys.executable:
+			argv = list(argv)
+			argv.insert(0, sys.executable)
+
+		argv = [a.encode(zim.fs.ENCODING) for a in argv]
 		if cwd:
 			cwd = unicode(cwd).encode(zim.fs.ENCODING)
 		return cwd, argv
@@ -191,9 +202,6 @@ class Application(object):
 		@returns: the PID for the new process
 		'''
 		cwd, argv = self._checkargs(cwd, args)
-		# if it is a python script, insert interpreter as the executable
-		if argv[0].endswith('.py'):
-			argv.insert(0, sys.executable)
 		opts = {}
 
 		flags = gobject.SPAWN_SEARCH_PATH

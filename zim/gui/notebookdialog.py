@@ -181,10 +181,13 @@ class NotebookComboBox(gtk.ComboBox):
 	'''Combobox showing the a list of notebooks'''
 
 	def __init__(self, model=None, current=None):
-		'''Constructor, "model" should be a NotebookTreeModel or None to
-		use the default list. The notebook 'current' will be shown in the
-		widget - if it is not in the list it will be added. Otherwise the default
-		will be shown.
+		'''Constructor,
+
+		@param model: either a L{NotebookTreeModel} or C{None} to use
+		the default list.
+		@param current: uri, C{Dir}, C{NotebookInfo}, or C{Notebook}
+		object for the current notebook. If C{None} the default
+		notebook will be shown (if any).
 		'''
 		if model is None:
 			model = NotebookTreeModel()
@@ -199,8 +202,11 @@ class NotebookComboBox(gtk.ComboBox):
 			self.set_default_active()
 
 	def set_default_active(self):
-		'''Select the default notebook in the combobox'''
-		iter = self.get_model().get_iter_for_default()
+		'''Select the default notebook in the combobox or clear the
+		combobox if no default notebook was defined.
+		'''
+		model = self.get_model()
+		iter = model.get_iter_for_default()
 		if iter is None:
 			self.set_active(-1)
 		else:
@@ -208,8 +214,12 @@ class NotebookComboBox(gtk.ComboBox):
 
 	def set_notebook(self, uri, append=False):
 		'''Select a specific notebook in the combobox.
-		If 'append' is True it will appended if it didn't exist yet
-		in the notebook list.
+
+		@param uri: uri, C{Dir}, C{NotebookInfo}, or C{Notebook}
+		object for a notebook (string or any object with an C{uri}
+		property)
+		@param append: if C{True} the notebook will appended to the list
+		if it was not listed yet.
 		'''
 		if isinstance(uri, basestring):
 			assert uri.startswith('file://')

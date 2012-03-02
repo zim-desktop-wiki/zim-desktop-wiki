@@ -4,12 +4,11 @@
 
 import tests
 
-from subprocess import check_call
-
 from zim.fs import _md5, File, Dir
-from zim.config import data_file
+from zim.config import data_file, ConfigDict
 from zim.notebook import Path, Notebook, init_notebook
 from zim.exporter import Exporter, StaticLinker
+from zim.applications import Application
 
 # TODO add check that attachments are copied correctly
 
@@ -123,7 +122,8 @@ class TestExportCommandLine(TestExportFullOptions):
 		file = dir.file('Test/foo.txt')
 		self.assertTrue(file.exists())
 
-		check_call(['python', './zim.py', '--export', '--template=Default', dir.path, '--output', self.dir.path, '--index-page', 'index'])
+		zim = Application(('./zim.py', '--export', '--template=Default', dir.path, '--output', self.dir.path, '--index-page', 'index'))
+		zim.run()
 
 	def runTest(self):
 		'''Test export notebook to html from commandline'''
@@ -147,6 +147,7 @@ class TestExportDialog(tests.TestCase):
 		ui.notebook = notebook
 		ui.page = Path('foo')
 		ui.mainwindow = None
+		ui.uistate = ConfigDict()
 
 		## Test export all pages
 		dialog = ExportDialog(ui)
@@ -172,6 +173,9 @@ class TestExportDialog(tests.TestCase):
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 		self.assertTrue('<h1>Foo</h1>' in text)
 
+		#~ print dialog.uistate
+		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
+		self.assertIsInstance(dialog.uistate['output_folder'], Dir)
 
 		## Test export single page
 		dialog = ExportDialog(ui)
@@ -196,3 +200,8 @@ class TestExportDialog(tests.TestCase):
 		text = file.read()
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 		self.assertTrue('<h1>Foo</h1>' in text)
+
+		#~ print dialog.uistate
+		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
+		self.assertIsInstance(dialog.uistate['output_file'], File)
+		self.assertIsInstance(dialog.uistate['output_folder'], Dir) # Keep this in state as well

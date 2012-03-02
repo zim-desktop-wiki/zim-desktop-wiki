@@ -28,6 +28,7 @@ import pango
 import logging
 import sys
 import os
+import re
 
 import zim
 
@@ -100,10 +101,20 @@ def encode_markup_text(text):
 	without causing errors. Needed for all places where e.g. a label
 	depends on user input and is formatted with markup to show
 	it as bold text.
-	@para text: label text as string
+	@param text: label text as string
 	@returns: encoded text
 	'''
 	return text.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;')
+
+
+def decode_markup_text(text):
+	'''Decode text that was encoded with L{encode_markup_text()}
+	and remove any markup tags.
+	@param text: markup text
+	@returns: normal text
+	'''
+	text = re.sub('<.*?>', '', text)
+	return text.replace('&gt;', '>').replace('&lt;', '<').replace('&amp;', '&')
 
 
 def gtk_window_set_default_icon():
@@ -175,6 +186,28 @@ def scrolled_text_view(text=None, monospace=False):
 	window.set_shadow_type(gtk.SHADOW_IN)
 	window.add(textview)
 	return window, textview
+
+
+def populate_popup_add_separator(menu, prepend=False):
+	'''Convenience function that adds a C{gtk.SeparatorMenuItem}
+	to a context menu. Checks if the menu already contains items,
+	if it is empty does nothing. Also if the menu already has a
+	seperator in the required place this function does nothing.
+	This helps with building menus more dynamically.
+	@param menu: the C{gtk.Menu} object for the popup
+	@param prepend: if C{False} append, if C{True} prepend
+	'''
+	items = menu.get_children()
+	if not items:
+		pass # Nothing to do
+	elif prepend:
+		if not isinstance(items[0], gtk.SeparatorMenuItem):
+			sep = gtk.SeparatorMenuItem()
+			menu.prepend(sep)
+	else:
+		if not isinstance(items[-1], gtk.SeparatorMenuItem):
+			sep = gtk.SeparatorMenuItem()
+			menu.append(sep)
 
 
 def gtk_combobox_set_active_text(combobox, text):
@@ -466,10 +499,41 @@ class SingleClickTreeView(gtk.TreeView):
 		def is_rubber_banding_active(self):
 			return False
 
-	def do_button_release_event(self, event):
-		'''Handler for button-release-event, implements single click navigation'''
+	def do_button_press_event(self, event):
+		# Implement hook for context menu
 
-		if event.button == 1 and not event.state & self.mask \
+		if event.type == gtk.gdk.BUTTON_PRESS \
+		and event.button == 3:
+			# Check selection state - item under cursor should be selected
+			# see do_button_release_event for comments
+			x, y = map(int, event.get_coords())
+			info = self.get_path_at_pos(x, y)
+			selection = self.get_selection()
+			if x > 0 and y > 0 and not info is None:
+				path, column, x, y = info
+				if not selection.path_is_selected(path):
+					selection.unselect_all()
+					selection.select_path(path)
+				# else the clcik was on a already selected path
+			else:
+				# click outside area with items ?
+				selection.unselect_all()
+
+			# Pop menu
+			menu = self.get_popup()
+			if menu:
+				menu.show_all()
+				menu.popup(None, None, None, 3, event.get_time())
+		else:
+			return gtk.TreeView.do_button_press_event(self, event)
+
+	def do_button_release_event(self, event):
+		# Implement single click behavior for activating list items
+		# this needs to be done on button release to avoid conflict with
+		# selections, drag-n-drop, etc.
+
+		if event.type == gtk.gdk.BUTTON_RELEASE \
+		and event.button == 1 and not event.state & self.mask \
 		and not self.is_rubber_banding_active():
 			x, y = map(int, event.get_coords())
 				# map to int to suppress deprecation warning :S
@@ -489,25 +553,56 @@ class SingleClickTreeView(gtk.TreeView):
 				# expander in front of a path should not select the path.
 				# This logic is based on particulars of the C implementation
 				# and might not be future proof.
-		elif event.button == 3:
-			menu = gtk.Menu()
-			self.do_initialize_popup(menu)
-			self.emit('populate-popup', menu)
-			if len(menu.get_children()) > 0:
-				menu.show_all()
-				menu.popup(None, None, None, 3, 0) # FIXME do we need to pass x/y and button ?
 
 		return gtk.TreeView.do_button_release_event(self, event)
+
+	def get_popup(self):
+		'''Get a popup menu (the context menu) for this widget
+		@returns: a C{gtk.Menu} or C{None}
+		@emits: populate-popup
+		@implementation: do NOT overload this method, implement
+		L{do_initialize_popup} instead
+		'''
+		menu = gtk.Menu()
+		self.do_initialize_popup(menu)
+		self.emit('populate-popup', menu)
+		if len(menu.get_children()) > 0:
+			return menu
+		else:
+			return None
 
 	def do_initialize_popup(self, menu):
 		'''Initialize the context menu.
 		This method is called before the C{populate-popup} signal and
 		can be used to put any standard items in the menu.
 		@param menu: the C{gtk.Menu} object for the popup
-		@implementation: can be implemented by sub-classes, default
-		implementation does nothing
+		@implementation: can be implemented by sub-classes. Default
+		implementation calls L{populate_popup_expand_collapse()}
+		if the model is a C{gtk.TreeStore}. Otherwise it does nothing.
 		'''
-		pass
+		model = self.get_model()
+		if isinstance(model, gtk.TreeStore):
+			self.populate_popup_expand_collapse(menu)
+
+	def populate_popup_expand_collapse(self, menu, prepend=False):
+		'''Adds "Expand _all" and "Co_llapse all" items to a context
+		menu. Called automatically by the default implementation of
+		L{do_initialize_popup()}.
+		@param menu: the C{gtk.Menu} object for the popup
+		@param prepend: if C{False} append, if C{True} prepend
+		'''
+		expand = gtk.MenuItem(_("Expand _All")) # T: menu item in context menu
+		expand.connect_object('activate', self.__class__.expand_all, self)
+		collapse = gtk.MenuItem(_("_Collapse All")) # T: menu item in context menu
+		collapse.connect_object('activate', self.__class__.collapse_all, self)
+
+		populate_popup_add_separator(menu, prepend=prepend)
+		if prepend:
+			menu.prepend(collapse)
+			menu.prepend(expand)
+		else:
+			menu.append(expand)
+			menu.append(collapse)
 
 	def get_cell_renderer_number_of_items(self):
 		'''Get a C{gtk.CellRendererText} that is set up for rendering
@@ -557,15 +652,13 @@ class BrowserTreeView(SingleClickTreeView):
 		elif event.keyval in KEYVALS_SLASH:
 			self.collapse_all()
 		elif event.keyval == KEYVAL_LEFT:
-			model, iter = self.get_selection().get_selected()
-			if not iter is None:
-				path = model.get_path(iter)
-				self.collapse_row(path)
+			model, paths = self.get_selection().get_selected_rows()
+			if len(paths) == 1:
+				self.collapse_row(paths[0])
 		elif event.keyval == KEYVAL_RIGHT:
-			model, iter = self.get_selection().get_selected()
-			if not iter is None:
-				path = model.get_path(iter)
-				self.expand_row(path, 0)
+			model, paths = self.get_selection().get_selected_rows()
+			if len(paths) == 1:
+				self.expand_row(paths[0], 0)
 		else:
 			handled = False
 
@@ -2109,15 +2202,15 @@ class Dialog(gtk.Dialog):
 		# note: _windowpos is defined with a leading "_" so it is not
 		# persistent across instances, this is intentional to avoid
 		# e.g. messy placement for seldom used dialogs
-		self.uistate.setdefault('_windowpos', (None, None), check=value_is_coord)
-		x, y = self.uistate['_windowpos']
-		if (x, y) != (None, None):
+		self.uistate.setdefault('_windowpos', None, check=value_is_coord)
+		if self.uistate['_windowpos'] is not None:
+			x, y = self.uistate['_windowpos']
 			self.move(x, y)
 
 		self.uistate.setdefault('windowsize', defaultwindowsize, check=value_is_coord)
-		#~ print '>>', self.uistate
-		w, h = self.uistate['windowsize']
-		self.set_default_size(w, h)
+		if self.uistate['windowsize'] is not None:
+			w, h = self.uistate['windowsize']
+			self.set_default_size(w, h)
 
 		self._no_ok_action = False
 		if not button is None:
@@ -2424,17 +2517,7 @@ class ErrorDialog(gtk.MessageDialog):
 			'Pygtk version is %s\n' % str(gtk.pygtk_version) + \
 			'Platform is %s\n' % os.name
 
-		try:
-			from zim._version import version_info
-			text += \
-				'Zim revision is:\n' \
-				'  branch: %(branch_nick)s\n' \
-				'  revision: %(revno)d %(revision_id)s\n' \
-				'  date: %(date)s\n' \
-				% version_info
-		except ImportError:
-			text += 'No bzr version-info found\n'
-
+		text += zim.get_zim_revision() + '\n'
 
 		# FIXME: more info here? Like notebook path, page, environment etc. ?
 
@@ -2991,15 +3074,19 @@ class Assistant(Dialog):
 		page = self._pages[self._page]
 
 		# Add page title - use same color as used by gtkassistent.c
+		# This is handled on expose event, because style does not
+		# yet reflect theming on construction
+		# However also need to disconnect the signal after first use,
+		# because otherwise this keeps firing, which hangs the loop
+		# for handling events in ProgressBarDialog.pulse() - LP #929247
 		ebox = gtk.EventBox()
 		def _set_heading_color(*a):
-			# This is handled on expose event, because style does not
-			# yet reflect theming on construction
 			ebox.modify_fg(gtk.STATE_NORMAL, self.style.fg[gtk.STATE_SELECTED])
 			ebox.modify_bg(gtk.STATE_NORMAL, self.style.bg[gtk.STATE_SELECTED])
+			self.disconnect(self._expose_event_id)
 
-		_set_heading_color()
-		self.connect('expose-event', _set_heading_color)
+		self._expose_event_id = \
+			self.connect('expose-event', _set_heading_color)
 
 		hbox = gtk.HBox()
 		hbox.set_border_width(5)

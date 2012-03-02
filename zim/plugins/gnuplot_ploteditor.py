@@ -20,6 +20,7 @@ from zim.config import data_file
 from zim.templates import GenericTemplate
 from zim.applications import Application, ApplicationError
 from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
+from zim.gui.widgets import populate_popup_add_separator
 
 # TODO put these commands in preferences
 gnuplot_cmd = ('gnuplot',)
@@ -50,7 +51,7 @@ class InsertGnuplotPlugin(PluginClass):
        'description': _('''\
 This plugin provides a plot editor for zim based on Gnuplot.
 '''), # T: plugin description
-       'help': ':Plugins:Gnuplot Editor',
+       'help': 'Plugins:Gnuplot Editor',
        'author': 'Alessandro Magni',
    }
 
@@ -75,7 +76,7 @@ This plugin provides a plot editor for zim based on Gnuplot.
        dialog.show_all()
 
    def do_populate_popup(self, menu, buffer, iter, image):
-       menu.prepend(gtk.SeparatorMenuItem())
+       populate_popup_add_separator(prepend=True)
 
        item = gtk.MenuItem(_('_Edit Gnuplot')) # T: menu item in context menu
        item.connect('activate',

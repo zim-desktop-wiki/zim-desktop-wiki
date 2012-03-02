@@ -84,10 +84,10 @@ For asynchronous actions see L{zim.async}.
 
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.53'
+__version__ = '0.55' # Bumped version to allow database rebuild
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
-__copyright__ = 'Copyright 2008 - 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
+__copyright__ = 'Copyright 2008 - 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __license__='''\
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -239,6 +239,22 @@ def _get_default_or_only_notebook():
 		return None
 
 
+def get_zim_revision():
+	'''Returns multiline string with bazaar revision info, if any.
+	Otherwise a string saying no info was found. Intended for debug
+	logging.
+	'''
+	try:
+		from zim._version import version_info
+		return '''\
+Zim revision is:
+  branch: %(branch_nick)s
+  revision: %(revno)s %(revision_id)s
+  date: %(date)s''' % version_info
+	except ImportError:
+		return 'No bzr version-info found'
+
+
 def main(argv):
 	'''Run the main program
 
@@ -342,17 +358,7 @@ def main(argv):
 	if level == logging.DEBUG:
 		logger.debug('Python version is %s', str(sys.version_info))
 		logger.debug('Platform is %s', os.name)
-		try:
-			from zim._version import version_info
-			logger.debug(
-				'Zim revision is:\n'
-				'\tbranch: %(branch_nick)s\n'
-				'\trevision: %(revno)s %(revision_id)s\n'
-				'\tdate: %(date)s\n',
-				version_info )
-		except ImportError:
-			logger.debug('No bzr version-info found')
-
+		logger.debug(get_zim_revision())
 		log_basedirs()
 
 	# Now we determine the class to handle this command
@@ -427,6 +433,15 @@ def main(argv):
 			gui = proxy.get_notebook(notebook)
 
 			gui.present(page, **optsdict)
+
+			logger.debug('''
+NOTE FOR BUG REPORTS:
+	At this point zim has send the command to open a notebook to a
+	background process and the current process will no quit.
+	If this is the end of your debug output it is probably not useful
+	for bug reports. Please close all zim windows, quit the
+	zim trayicon (if any), and try again.
+''')
 	elif cmd == 'server':
 		try:
 			del optsdict['no_daemon']
@@ -449,6 +464,23 @@ def main(argv):
 			raise UsageError
 		module = zim.plugins.get_plugin_module(pluginname)
 		module.main(None, *args)
+
+
+def ZimCmd():
+	'''Constructor to get a L{Application} object for zim itself
+	Use this object to spawn new instances of zim.
+	@returns: a L{Application} object for zim itself
+	'''
+	# Note that Application takes care of using sys.executable when
+	# needed
+	from zim.applications import Application
+	if ZIM_EXECUTABLE.endswith('.exe'):
+		return Application(ZIM_EXECUTABLE)
+	elif sys.executable:
+		# If not an compiled executable, we assume it is python
+		# (Application class does this automatically for python scripts
+		# ending in .py)
+		return Application((sys.executable, ZIM_EXECUTABLE))
 
 
 class NotebookInterface(gobject.GObject):
@@ -625,9 +657,13 @@ class NotebookInterface(gobject.GObject):
 				nb, path = notebook, None
 
 			if not nb is None:
+				uri = nb.uri
 				for plugin in self.plugins:
-					uri = nb.uri
-					plugin.initialize_notebook(uri)
+					try:
+						plugin.initialize_notebook(uri)
+					except Exception, error:
+						from zim.gui.widgets import ErrorDialog # HACK
+						ErrorDialog(None, error).run()
 				nb = get_notebook(nb)
 
 			if nb is None:
@@ -720,9 +756,8 @@ class NotebookInterface(gobject.GObject):
 
 		@todo: take this method outside this class
 		'''
-		from zim.applications import Application
-		zim = Application((ZIM_EXECUTABLE,) + args)
-		zim.spawn()
+		zim = ZimCmd()
+		zim.spawn(args=args)
 
 # Need to register classes defining gobject signals
 gobject.type_register(NotebookInterface)

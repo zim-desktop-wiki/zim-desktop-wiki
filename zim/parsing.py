@@ -380,6 +380,7 @@ class TextBuffer(list):
 
 	def prefix_lines(self, prefix):
 		'''Prefix each line with string 'prefix'.'''
-		lines = self.get_lines()
+		lines = self.get_lines(end_with_newline=False)
+			# allowing end_with_newline here modifies content
 		self[:] = [prefix + line for line in lines]
 
