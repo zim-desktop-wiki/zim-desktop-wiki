@@ -188,7 +188,7 @@ class Exporter(object):
 
 		file = dir.file(filename)
 		attachments = self.notebook.get_attachments_dir(page)
-		self.linker.set_base(attachments.dir)
+		self.linker.set_base(attachments.dir) # parent of attachment dir
 			# FIXME, assuming standard file store layout to get correct relative links
 		self.linker.target_file = file
 
@@ -284,6 +284,15 @@ class StaticLinker(BaseLinker):
 			path = encode_filename(path) + self._extension
 			#~ print '>>>', path
 			return url_encode(path.replace(' ', '_'))
+
+	def resolve_file(self, link):
+		try:
+			file = self.notebook.resolve_file(link, self.path)
+		except:
+			# typical error is a non-local file:// uri
+			return None
+		else:
+			return File
 
 	def link_file(self, link):
 		if self.document_root_url and link.startswith('/'):

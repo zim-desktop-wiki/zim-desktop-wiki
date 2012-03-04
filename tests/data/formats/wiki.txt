@@ -50,7 +50,9 @@ External links like http://nongnu.org and foo@bar.org are also supported
 {{../my-image.png?width=600|Foo Bar}}
 {{my-image.png?href=Foo}}
 {{../my-image.png?href=:foo:bar&width=600|Foo Bar}}
-{{./equation003.png?type=equation}}
+
+{{./equation001.png?type=equation}} This equation has a source .tex file
+{{./equation002.png?type=equation}} for this one it is missing
 
 {./Not/an/image.png}
 

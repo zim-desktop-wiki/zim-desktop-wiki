@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.formats module.'''
 
@@ -51,18 +51,36 @@ class TestFormatMixin(object):
 		if self.format.info['native'] or self.format.info['export']:
 			self.assertTrue(hasattr(self.format, 'Dumper'))
 
-	def testFormat(self):
+	def getReferenceData(self):
+		'''Returns reference data from C{tests/data/formats/} for the
+		format being tested.
+		'''
 		name = self.format.info['name']
-		assert name in self.reference_data, 'No data file for format "%s"' % name
+		assert name in self.reference_data, 'No reference data for format "%s"' % name
 		path = 'tests/data/formats/' + self.reference_data[name]
+		text = File(path).read()
 
+		# No absolute paths ended up in reference
+		pwd = Dir('.')
+		self.assertFalse(pwd.path in text, 'Absolute path ended up in reference')
+		self.assertFalse(pwd.user_path in text, 'Absolute path ended up in reference')
+
+		return text
+
+	def testFormat(self):
+		'''Test if formats supports full syntax
+		Uses data in C{tests/data/formats} as reference data.
+		'''
 		# Dumper
-		wanted = File(path).read()
-		tree = tests.new_parsetree_from_xml(self.reference_xml)
-		dumper = self.format.Dumper(linker=StubLinker())
-		result = ''.join(dumper.dump(tree))
+		wanted = self.getReferenceData()
+		reftree = tests.new_parsetree_from_xml(self.reference_xml)
+		linker = StubLinker()
+		linker.set_base(Dir('tests/data/formats'))
+		dumper = self.format.Dumper(linker=linker)
+		result = ''.join(dumper.dump(reftree))
 		#~ print '\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n'
 		self.assertMultiLineEqual(result, wanted)
+		self.assertNoTextMissing(result, reftree)
 
 		# Parser
 		if not hasattr(self.format, 'Parser'):
@@ -74,7 +92,48 @@ class TestFormatMixin(object):
 			self.assertMultiLineEqual(result.tostring(), self.reference_xml)
 		else:
 			self.assertTrue(len(result.tostring().splitlines()) > 10)
-				# FIXME better test here to ensure we preserve at least plain text
+				# Quick check that we got back *something*
+			string = ''.join(dumper.dump(result))
+				# now we may have loss of formatting, but text should all be there
+				#~ print '\n' + '>'*80 + '\n' + string + '\n' + '<'*80 + '\n'
+			self.assertNoTextMissing(string, reftree)
+
+	_nonalpha_re = re.compile('\W')
+
+	def assertNoTextMissing(self, text, tree):
+		'''Assert that no plain text from C{tree} is missing in C{text}
+		intended to make sure that even for lossy formats all information
+		is preserved.
+		'''
+		# TODO how to handle objects ??
+		assert isinstance(text, basestring)
+		offset = 0
+		for elt in tree.iter():
+			if elt.tag == 'img':
+				elttext = (elt.tail) # img text is optional
+			else:
+				elttext = (elt.text, elt.tail)
+
+			for wanted in elttext:
+				if not wanted:
+					continue
+
+				wanted = self._nonalpha_re.sub(' ', wanted)
+					# Non-alpha chars may be replaced with escapes
+					# so no way to hard test them
+
+				if wanted.isspace():
+					continue
+
+				for piece in wanted.strip().split():
+					#~ print "| >>%s<< @ offset %i" % (piece, offset)
+					try:
+						start = text.index(piece, offset)
+					except ValueError:
+						self.fail('Could not find text piece "%s" in text after offset %i\n>>>%s<<<' % (piece, offset, text[offset:offset+100]))
+					else:
+						offset = start + len(piece)
+
 
 
 class TestListFormats(tests.TestCase):
@@ -506,6 +565,15 @@ class TestLatexFormat(tests.TestCase, TestFormatMixin):
 	def testFormat(self):
 		with LatexLoggingFilter():
 			TestFormatMixin.testFormat(self)
+
+	def testFormatReference(self):
+		# Double check reference did not get broken in updating
+		text = self.getReferenceData()
+
+		# Inlined equation is there
+		self.assertFalse('equation001.png' in text, 'This equation should be inlined')
+		self.assertTrue(r'\begin{math}' in text)
+		self.assertTrue(r'\end{math}' in text)
 
 	def testEncode(self):
 		'''test the escaping of certain characters'''

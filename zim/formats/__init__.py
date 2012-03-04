@@ -758,6 +758,18 @@ class BaseLinker(object):
 		'''Set whether the format supports relative files links or not'''
 		self.usebase = usebase
 
+	def resolve_file(self, link):
+		'''Find the source file for an attachment
+		Used e.g. by the latex format to find files for equations to
+		be inlined. Do not use this method to resolve links, the file
+		given here might be temporary and is not guaranteed to be
+		available after the export. Use L{link()} or C{link_file()}
+		to resolve links to files.
+		@returns: a L{File} object or C{None} if no file was found
+		@implementation: must be implemented by child classes
+		'''
+		raise NotImplementedError
+
 	def link(self, link):
 		'''Returns an url for a link in a zim page
 		This method is used to translate links of any type. It determined
@@ -774,7 +786,7 @@ class BaseLinker(object):
 		@returns: url, uri or whatever link notation is relevant in the
 		context of this linker
 		@rtype: string
-		 '''
+		'''
 		assert not self.path is None
 		if not link in self._links:
 			type = link_type(link)
@@ -816,11 +828,15 @@ class BaseLinker(object):
 		raise NotImplementedError
 
 	def link_page(self, link):
-		'''To be overloaded, return an url for a page link'''
+		'''To be overloaded, return an url for a page link
+		@implementation: must be implemented by child classes
+		'''
 		raise NotImplementedError
 
 	def link_file(self, path):
-		'''To be overloaded, return an url for a file link'''
+		'''To be overloaded, return an url for a file link
+		@implementation: must be implemented by child classes
+		'''
 		raise NotImplementedError
 
 	def link_mailto(self, uri):
@@ -839,7 +855,15 @@ class StubLinker(BaseLinker):
 
 	def __init__(self):
 		BaseLinker.__init__(self)
-		self.path = 'XXX'
+		self.path = '<PATH>'
+		self.base = Dir('<NOBASE>')
+
+	def resolve_file(self, link):
+		return self.base.file(link)
+			# Very simple stub, allows finding files be rel path for testing
+
+	def icon(self, name):
+		return 'icon:' + name
 
 	def resource(self, path):
 		return path
