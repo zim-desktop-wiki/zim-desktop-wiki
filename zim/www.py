@@ -464,6 +464,15 @@ class WWWLinker(BaseLinker):
 	def icon(self, name):
 		return url_encode('/+resources/%s.png' % name)
 
+	def resolve_file(self, link):
+		try:
+			file = self.notebook.resolve_file(link, self.path)
+		except:
+			# typical error is a non-local file:// uri
+			return None
+		else:
+			return File
+
 	def link_page(self, link):
 		try:
 			page = self.notebook.resolve_path(link, source=self.path)

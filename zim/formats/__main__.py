@@ -20,12 +20,13 @@ done here to resolve links. Main purpose is testing.
 import sys
 import logging
 
+from zim.fs import Dir
 from zim.formats import *
 
 
 if __name__ == '__main__':
-	if len(sys.argv) not in (2, 3):
-			print 'Usage: python -m zim.formats format [format]'
+	if len(sys.argv) not in (2, 3, 4):
+			print 'Usage: python -m zim.formats format [format] [basedir]'
 			print '\tWill read from stdin and output to stdout'
 			sys.exit(1)
 
@@ -33,11 +34,15 @@ if __name__ == '__main__':
 	logging.basicConfig()
 
 	inputformat = sys.argv[1]
-	if len(sys.argv) == 3:
+	if len(sys.argv) == 4:
 		outputformat = sys.argv[2]
+		basedir = sys.argv[3]
+	elif len(sys.argv) == 3:
+		outputformat = sys.argv[2]
+		basedir = None
 	else:
 		outputformat = '__XML__'
-
+		basedir = None
 
 	input = sys.stdin.read()
 
@@ -47,6 +52,9 @@ if __name__ == '__main__':
 	if outputformat == '__XML__':
 		sys.stdout.write(tree.tostring())
 	else:
-		dumper = get_dumper(outputformat, linker=StubLinker())
+		linker = StubLinker()
+		if basedir:
+			linker.set_base(Dir(basedir))
+		dumper = get_dumper(outputformat, linker=linker)
 		lines = dumper.dump(tree)
 		sys.stdout.write(''.join(lines).encode('utf-8'))

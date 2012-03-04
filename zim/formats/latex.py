@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2008 Johannes Reinhardt <jreinhardt@ist-dein-freund.de>
+# Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This modules handles export of LaTeX Code'''
 
@@ -172,16 +173,20 @@ class Dumper(DumperClass):
 				if 'type' in element.attrib and element.attrib['type'] == 'equation':
 					try:
 						# Try to find the source, otherwise fall back to image
-						equri = self.linker.link(element.attrib['src'])
-						eqfid = File(url_decode(equri[:-4] + '.tex'))
-						equation = eqfid.read().strip()
+						src = element.attrib['src'][:-4] + '.tex'
+						file = self.linker.resolve_file(src)
+						if file is not None:
+							equation = file.read().strip()
+						else:
+							equation = None
 					except FileNotFoundError:
-						logger.warn('Could not find latex equation: %s', url_decode(equri[:-4] + '.tex') )
+						logger.warn('Could not find latex equation: %s', src)
 					else:
-						output.append('\\begin{math}\n')
-						output.extend(equation)
-						output.append('\n\\end{math}')
-						done = True
+						if equation:
+							output.append('\\begin{math}\n')
+							output.extend(equation)
+							output.append('\n\\end{math}')
+							done = True
 
 				if not done:
 					if 'width' in element.attrib and not 'height' in element.attrib:
@@ -193,7 +198,8 @@ class Dumper(DumperClass):
 					else:
 						options = ''
 
-					imagepath = File(self.linker.link(element.attrib['src'])).path
+					#~ imagepath = File(self.linker.link(element.attrib['src'])).path
+					imagepath = self.linker.link(element.attrib['src'])
 					image = '\\includegraphics[%s]{%s}' % (options, imagepath)
 					if 'href' in element.attrib:
 						href = self.linker.link(element.attrib['href'])
@@ -202,7 +208,7 @@ class Dumper(DumperClass):
 						output.append(image)
 			elif element.tag == 'link':
 				href = self.linker.link(element.attrib['href'])
-				output.append('\\href{%s}{%s}\n' % (href, text))
+				output.append('\\href{%s}{%s}' % (href, text))
 			elif element.tag == 'emphasis':
 				output.append('\\emph{'+text+'}')
 			elif element.tag == 'strong':
