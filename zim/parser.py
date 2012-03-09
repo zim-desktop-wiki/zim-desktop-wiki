@@ -40,8 +40,6 @@ import re
 
 import xml.etree.cElementTree as ElementTree
 
-import zim.formats
-
 
 def prepare_text(text, tabstop=4):
 	'''Ensures text is properly formatted.
@@ -73,63 +71,35 @@ def prepare_text(text, tabstop=4):
 	return text
 
 
-from zim.formats import BLOCK_LEVEL, HEADING, LISTITEM, IMAGE # FIXME remove this import
-
 class Builder(object):
 	'''This class defines a 'builder' interface for parse trees. It is
-	used be the parser to construct the parse tree while keeping the
+	used by the parser to construct the parse tree while keeping the
 	parser objects agnostic of how the resulting parse tree objects
 	look.
 	'''
-
-	ROOT = 'zim-tree'
-
-	def __init__(self):
-		self._b = ElementTree.TreeBuilder()
-		self._b.start(self.ROOT)
-		self.stack = [] #: keeps track of current open elements
-		self._last_char = None
 
 	def start(self, tag, attrib=None):
 		'''Start formatted region
 		@param tag: the tag name
 		@param attrib: optional dict with attributes
+		@implementation: must be implemented by sub-classes
 		'''
-		self._b.start(tag, attrib)
-		self.stack.append(tag)
-		if tag in BLOCK_LEVEL:
-			self._last_char = None
+		raise NotImplemented
 
 	def text(self, text):
 		'''Append text
 		@param text: text to be appended as string
+		@implementation: must be implemented by sub-classes
 		'''
-		self._last_char = text[-1]
-
-		# FIXME hack for backward compat
-		if self.stack and self.stack[-1] in (HEADING, LISTITEM):
-			text = text.strip('\n')
-
-		self._b.data(text)
+		raise NotImplemented
 
 	def end(self, tag):
 		'''End formatted region
 		@param tag: the tag name
 		@raises XXX: when tag does not match current state
+		@implementation: must be implemented by sub-classes
 		'''
-		if tag != self.stack[-1]:
-			raise AssertionError, 'Unmatched tag closed: %s' % tag
-
-		if tag in BLOCK_LEVEL and self._last_char is not None:
-			assert self._last_char == '\n', 'Block level text needs to end with newline'
-			self._last_char = None
-
-		self._b.end(tag)
-		self.stack.pop()
-
-		# FIXME hack for backward compat
-		if tag == HEADING:
-			self._b.data('\n')
+		raise NotImplemented
 
 	def span(self, tag, attrib, text):
 		'''Convenience function to open a tag, append text and close
@@ -138,47 +108,224 @@ class Builder(object):
 		@param tag: the tag name
 		@param attrib: optional dict with attributes
 		@param text: formatted text
+		@implementation: optional for subclasses, default implementation
+		calls L{start()}, L{text()}, and L{end()}
 		'''
-		if tag in BLOCK_LEVEL:
-			assert text.endswith('\n'), 'Block level text needs to end with newline'
-			self._last_char = None
-
-		# FIXME hack for backward compat
-		if tag in (HEADING, LISTITEM):
-			text = text.strip('\n')
-
-		self._b.start(tag, attrib)
-		self._b.data(text)
-		self._b.end(tag)
-
-		# FIXME hack for backward compat
-		if tag == HEADING:
-			self._b.data('\n')
+		self.start(tag, attrib)
+		self.text(text)
+		self.end(tag)
 
 	def object(self, tag, attrib):
 		'''Convenience function to append tags that do not have text
 		content. Typically used e.g. for embedded images.
 		@param tag: the tag name
 		@param attrib: optional dict with attributes
+		@implementation: optional for subclasses, default implementation
+		calls L{start()}, and L{end()}
 		'''
-		# FIXME hack for backward compat
-		if tag == IMAGE and attrib.get('alt'):
-			text = attrib.pop('alt')
-			self._b.start(tag, attrib)
-			self._b.data(text)
-			self._b.end(tag)
+		self.start(tag, attrib)
+		self.end(tag)
+
+
+# TODO both Builder and Visitor can be said to be a "Transform"
+# TODO include root node, implicit root is not smart
+# TODO figure out if we can implement filters as decorators
+# TODO more tests !
+
+class SimpleTreeBuilder(Builder):
+	'''This class will build a tree out of tuple like::
+
+		("tag", {}, [
+				"text",
+				("child", {}, ["text"]),
+				...
+			]
+		)
+
+	So each element is either a 3-tuple of tag name, attrib and children
+	or a string.
+	'''
+
+	def __init__(self, merge_text=True):
+		self.root = []
+		self.stack = [('ROOT', None, self.root)]
+		self.merge_text = merge_text
+
+	def get_root(self):
+		'''Get the elements constructed by the builder
+		@returns a list of top level elements and text
+		'''
+		self._merge_text(self.root)
+		return self.root
+
+	def start(self, tag, attrib):
+		element = (tag, attrib, [])
+		self.stack[-1][-1].append(element)
+		self.stack.append(element)
+
+	def end(self, tag):
+		assert self.stack[-1][0] == tag, 'Mismatch, expected %s got %s' % (self.stack[-1][0], tag)
+		self._merge_text(self.stack[-1][-1])
+		self.stack.pop()
+
+	def text(self, text):
+		self.stack[-1][-1].append(text)
+
+	def _merge_text(self, list):
+		# Merge text items in the child list
+		if not self.merge_text or not list:
 			return
 
-		self._b.start(tag, attrib)
-		self._b.end(tag)
+		children = [list[0]]
+		for piece in list[1:]:
+			if isinstance(piece, basestring) \
+			and isinstance(children[-1], basestring):
+				children[-1] += piece
+			else:
+				children.append(piece)
 
-	def get_parsetree(self):
-		self._b.end(self.ROOT)
-		root = self._b.close()
-		return zim.formats.ParseTree(root)
+		list[:] = children # replace in-line
 
 
-ElementTreeBuilder = Builder # TODO later separate from abstract Builder class
+VISITOR_SKIP_NODE = 1
+
+class Visitor(object):
+	'''Conceptual opposite of a builder, but with same API.
+	Used to walk nodes in a parsetree and call callbacks for each node.
+	See e.g. L{ParseTree.visit()} and L{ParseTree.visitall()}
+	'''
+
+	def start(self, tag, attrib=None):
+		'''Start formatted region
+		@param tag: the tag name
+		@param attrib: optional dict with attributes
+		@returns: if method returns C{IGNORE_NODE} visitor will not
+		decent into this node, also L{end()} will not be called.
+		@implementation: optional for subclasses
+		'''
+		pass
+
+	def text(self, text):
+		'''Append text
+		@param text: text to be appended as string
+		@implementation: optional for subclasses
+		'''
+		pass
+
+	def end(self, tag):
+		'''End formatted region
+		@param tag: the tag name
+		@raises XXX: when tag does not match current state
+		@implementation: optional for subclasses
+		'''
+		pass
+
+	def span(self, tag, attrib, text):
+		'''Convenience function to open a tag, append text and close
+		it immediatly. Only used for formatted text that has no
+		sub-processing done.
+		@param tag: the tag name
+		@param attrib: optional dict with attributes
+		@param text: formatted text
+		@implementation: optional for subclasses, default implementation
+		calls L{start()}, L{text()}, and L{end()}
+		'''
+		if self.start(tag, attrib) != VISITOR_SKIP_NODE:
+			self.text(text)
+			self.end(tag)
+
+	def object(self, tag, attrib):
+		'''Convenience function to append tags that do not have text
+		content. Typically used e.g. for embedded images.
+		@param tag: the tag name
+		@param attrib: optional dict with attributes
+		@implementation: optional for subclasses, default implementation
+		calls L{start()}, and L{end()}
+		'''
+		if self.start(tag, attrib) != VISITOR_SKIP_NODE:
+			self.end(tag)
+
+
+
+class TextCollectorFilter(Visitor):
+	'''Visitor that collectes repeated calls to L{text()} and only
+	calls once for the fill block.
+	'''
+
+	def __init__(self, builder):
+		self.builder = builder
+		self._text = []
+
+	def _flush(self):
+		if self._text:
+			self.builder.text(''.join(self._text))
+			self._text = []
+
+	def start(self, tag, attrib):
+		self._flush()
+		self.builder.start(tag, attrib)
+
+	def end(self, tag):
+		self._flush()
+		self.builder.end(tag)
+
+	def text(self, text):
+		self._text.append(text)
+
+	def span(self, tag, attrib, text):
+		self._flush()
+		self.builder.span(tag, attrib, text)
+
+	def object(self, tag, attrib):
+		self._flush()
+		self.builder.object(tag, attrib)
+
+
+class TreeFilter(Visitor):
+	'''Visitor that filters a tree and calls a new builder for
+	filtered nodes. Sub-nodes are filtered out, so text will be
+	collapsed into the nodes that are passed on (note that this will
+	result in multiple calls to C{text()} for the builder).
+	'''
+
+	def __init__(self, builder, tags, exclude=None):
+		'''Constructor
+		@param builder: a L{Builder} or L{Visitor} object
+		@param tags: list of tags to filter
+		@param exclude: list with tags not to decent in,
+		text from these tags will not be seen
+		(e.g. use C{exclude=['strike']} to ignore strike out text)
+		'''
+		self.builder = builder
+		self.tags = tags
+		self.exclude = exclude or []
+		self._count = 0
+
+	def start(self, tag, attrib):
+		if tag in self.tags:
+			self.builder.start(tag, attrib)
+			self._count += 1
+		elif tag in self.exclude:
+			return VISITOR_SKIP_NODE
+
+	def end(self, tag):
+		if tag in self.tags:
+			self.builder.end(tag)
+			self._count -= 1
+
+	def text(self, text):
+		if self._count > 0:
+			self.builder.text(text)
+
+	def span(self, tag, attrib, text):
+		if tag in self.tags:
+			self.builder.span(tag, attrib, text)
+		elif tag not in self.exclude:
+			self.text(text)
+
+	def object(self, tag, attrib):
+		if tag in self.tags:
+			self.builder.object(tag, attrib)
 
 
 
@@ -397,4 +544,3 @@ if __name__ == '__main__':
 	):
 		line = get_line_count(text, offset)
 		assert line == wanted, 'Got %s, wanted %s' % (line, wanted)
-

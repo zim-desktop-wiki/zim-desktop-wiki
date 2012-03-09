@@ -13,6 +13,7 @@ import re
 import zim.datetimetz as datetime
 from zim.utils import natural_sorted
 from zim.parsing import parse_date
+from zim.parser import Visitor, TreeFilter, TextCollectorFilter
 from zim.plugins import PluginClass
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, \
@@ -22,7 +23,8 @@ from zim.gui.widgets import ui_environment, \
 	encode_markup_text, decode_markup_text
 from zim.gui.clipboard import Clipboard
 from zim.async import DelayedCallback
-from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
+from zim.formats import get_format, \
+	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, BULLET
 from zim.config import check_class_allow_empty
 
 from zim.plugins.calendar import daterange_from_path
@@ -181,9 +183,11 @@ This is a core plugin shipping with zim.
 			self.next_label = None
 			self.next_label_re = None
 
-		regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
-		self.task_label_re = re.compile(regex)
-
+		if self.task_labels:
+			regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
+			self.task_label_re = re.compile(regex)
+		else:
+			self.task_label_re = None
 
 	def _serialize_rebuild_on_preferences(self):
 		# string mapping settings that influence building the table
@@ -264,174 +268,14 @@ This is a core plugin shipping with zim.
 		with following properties: C{(open, actionable, prio, due, description)}, 2nd item
 		is a list of child tasks (if any).
 		'''
-		tasks = []
-
-		for node in parsetree.findall('p'):
-			lines = self._flatten_para(node)
-			# Check first line for task list header
-			istasklist = False
-			globaltags = []
-			if len(lines) >= 2 \
-			and isinstance(lines[0], basestring) \
-			and isinstance(lines[1], tuple) \
-			and self.task_labels and self.task_label_re.match(lines[0]):
-				for word in lines[0].strip(':').split()[1:]:
-					if word.startswith('@'):
-						globaltags.append(word)
-					else:
-						# not a header after all
-						globaltags = []
-						break
-				else:
-					# no break occurred - all OK
-					lines.pop(0)
-					istasklist = True
-
-			# Check line by line
-			LEVEL = 0
-			TASK = 1
-			CHILDREN = 2
-
-			stack = [] # stack of 3-tuples, (LEVEL, TASK, CHILDREN)
-
-
-			PRIO = 2
-			DATE = 3
-
-			for item in lines:
-				if isinstance(item, tuple):
-					# checkbox or bullet
-					bullet, list_level, text = item
-					while stack and stack[-1][LEVEL] >= list_level:
-						stack.pop()
-
-					if (
-						bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
-						and (istasklist or self.preferences['all_checkboxes'])
-					) or (
-						self.task_labels and self.task_label_re.match(text)
-					):
-						# task item
-						if stack: # Inherit date and prio if not set explicitly on children
-							mydefaultdate = stack[-1][TASK][DATE]
-							if mydefaultdate == _NO_DATE:
-								mydefaultdate = defaultdate
-							mydefaultprio = stack[-1][TASK][PRIO]
-						else:
-							mydefaultdate = defaultdate
-							mydefaultprio = None
-
-						open = (bullet not in (CHECKED_BOX, XCHECKED_BOX))
-						if stack:
-							mytasks = stack[-1][CHILDREN]
-						else:
-							mytasks = tasks
-						task = self._parse_task(text, open=open, tags=globaltags, defaultdate=mydefaultdate, defaultprio=mydefaultprio, tasks=mytasks)
-						children = []
-						if stack:
-							stack[-1][CHILDREN].append((task, children))
-						else:
-							tasks.append((task, children))
-
-						stack.append((list_level, task, children))
-					else:
-						# not a task - we already popped stack, now ignore text
-						pass
-				else:
-					# normal line, outside list
-					stack = []
-					if self.task_labels and self.task_label_re.match(item):
-						task = self._parse_task(item, tags=globaltags, defaultdate=defaultdate, tasks=tasks)
-						tasks.append((task, []))
-
-		return tasks
-
-	def _flatten_para(self, para):
-		# Returns a list which is a mix of normal lines of text and
-		# tuples for checkbox items. Checkbox item tuples consist of
-		# the checkbox type, the indenting level and the text.
-		items = []
-
-		text = para.text or ''
-		for child in para.getchildren():
-			if child.tag == 'strike':
-				continue # Ignore strike out text
-			elif child.tag in ('ul', 'ol'):
-				if text:
-					items += text.splitlines()
-				items += self._flatten_list(child)
-				text = child.tail or ''
-			else:
-				text += self._flatten(child)
-				text += child.tail or ''
-
-		if text:
-			items += text.splitlines()
-
-		return items
-
-	def _flatten_list(self, list, list_level=0):
-		# Handle bullet lists
-		items = []
-		for node in list.getchildren():
-			if node.tag == 'ul':
-				items += self._flatten_list(node, list_level+1) # recurs
-			elif node.tag == 'li':
-				bullet = node.get('bullet')
-				text = self._flatten(node)
-				items.append((bullet, list_level, text))
-			else:
-				pass # should not occur - ignore silently
-		return items
-
-	def _flatten(self, node):
-		# Just flatten everything to text
-		text = node.text or ''
-		for child in node.getchildren():
-			text += self._flatten(child) # recurs
-			text += child.tail or ''
-		return text
-
-	def _parse_task(self, text, open=True, tags=None, defaultdate=None, defaultprio=None, tasks=None):
-		prio = text.count('!')
-		if defaultprio and prio == 0:
-			prio = defaultprio
-
-		global date # FIXME
-		date = _NO_DATE
-
-		def set_date(match):
-			global date
-			mydate = parse_date(match.group(0))
-			if mydate and date == _NO_DATE:
-				date = '%04i-%02i-%02i' % mydate # (y, m, d)
-				#~ return match.group(0) # TEST
-				return ''
-			else:
-				# No match or we already had a date
-				return match.group(0)
-
-		if tags:
-			for tag in tags:
-				if not tag in text:
-					text += ' ' + tag
-
-		text = date_re.sub(set_date, text)
-
-		if defaultdate and date == _NO_DATE:
-			date = defaultdate
-
-		if self.next_label_re.match(text):
-			if tasks and tasks[-1][0][0]: # previous task still open
-				actionable = False
-			else:
-				actionable = True
-		else:
-			actionable = True
-
-		return (open, actionable, prio, date, text)
-			# (open, actionable, prio, due, description)
-
+		parser = TasksParser(
+			self.task_label_re,
+			self.next_label_re,
+			self.preferences['all_checkboxes'],
+			defaultdate
+		)
+		parser.parse(parsetree)
+		return parser.get_tasks()
 
 	def remove_page(self, index, path, _emit=True):
 		if not self.db_initialized: return
@@ -499,6 +343,193 @@ This is a core plugin shipping with zim.
 
 # Need to register classes defining gobject signals
 gobject.type_register(TaskListPlugin)
+
+
+class TasksParser(Visitor):
+	'''Parse tasks from a parsetree'''
+
+	# First filter plain text for paragraphs and lists.
+	# Then for each paragraph inspect line items with TODO labels
+	# and check list items
+
+	# TreeFilter --> TextCollector --> TaskBuilder
+
+	# We need to include the list level in the stack because we can
+	# have mixed bullet lists with checkboxes, so task nesting is
+	# not the same as list nesting
+
+	def __init__(self, task_label_re, next_label_re, all_checkboxes, defaultdate):
+		self.tasks = [] # tuples like (task, children)
+		self.task_label_re = task_label_re
+		self.next_label_re = next_label_re
+		self.all_checkboxes = all_checkboxes
+
+		defaults = (True, True, 0, defaultdate or _NO_DATE, None)
+			#(open, actionable, prio, due, description)
+
+		self.state = None # context while parsing
+		self.stack = [(-1, defaults, self.tasks)] # tuples like (level, task, children)
+		self.list_level = 0 # current list level
+		self.bullet = None # current bullet
+		self.istasklist = False
+		self.tasklist_tags = None
+
+	def parse(self, parsetree):
+		filter = TreeFilter(
+			TextCollectorFilter(self),
+			tags=['p', 'ul', 'ol', 'li'],
+			exclude=['strike']
+		)
+		parsetree.visit(filter)
+
+	def get_tasks(self):
+		'''Get the tasks that were collected by visiting the tree
+		@returns: nested list of tasks, each task is given as a 2-tuple,
+		1st item is a tuple with following properties:
+		C{(open, actionable, prio, due, description)},
+		2nd item is a list of child tasks (if any).
+		'''
+		return self.tasks
+
+	def start(self, tag, attrib):
+		# Set context for parsing
+		self.bullet = None # reset
+		if tag == 'p':
+			self.istasklist = False # reset
+			self.state = "start_para"
+		elif tag in ('ol', 'ul'):
+			if self.state == 'list':
+				self.list_level += 1
+				# (first list level is equal to line items in para)
+			self.state = 'list'
+		elif tag == 'li':
+			self.bullet = attrib.get('bullet')
+		else:
+			assert False, 'BUG: got tag: %s' % tag
+
+		#~ print 'START', tag, self.state, self.list_level
+
+	def end(self, tag):
+		self.bullet = None # reset
+		if tag in ('ol', 'ul'):
+			if self.list_level > 0:
+				self.list_level -= 1
+			else:
+				self.state = 'para' # end of list
+
+			while self.stack[-1][0] > self.list_level:
+				self.stack.pop()
+		elif tag == 'p':
+			self.stack = [self.stack[0]] # Reset
+
+		#~ print 'END', tag, self.state, self.list_level
+
+	def text(self, text):
+		# Dispatch depending on state
+		assert self.state in ('start_para', 'list', 'para'), 'BUG: Text outside para !??'
+		if self.state == 'start_para':
+			self._parse_start_para(text)
+		elif self.state == 'para':
+			self._parse_para(text)
+		elif self.state == 'list':
+			self._parse_list_item(text)
+		else:
+			assert False, 'BUG: get state: %s' % self.state
+
+	def _parse_start_para(self, text):
+		# Check first line for task list header
+		#~ print "START PARA >>>", text, "<<<"
+		tags = []
+		lines = text.splitlines()
+		if len(lines) == 1 \
+		and self._matches_label(lines[0]):
+			words = lines[0].strip(':').split()
+			words.pop(0) # label
+			if all(w.startswith('@') for w in words):
+				lines.pop(0)
+				self.istasklist = True
+				self.tasklist_tags = words
+			else:
+				self.istasklist = False
+				self.tasklist_tags = []
+				self._parse_para(text)
+		else:
+			self._parse_para(text)
+
+	def _parse_para(self, text):
+		# Paragraph text to be parsed - just look for lines with label
+		for line in text.splitlines():
+			if self._matches_label(line):
+				self._parse_task(line)
+
+	def _parse_list_item(self, text):
+		#~ print 'LI', text
+		# List item to parse - check bullet, then match label
+		# Because we use TextCollector it is ensured we get
+		# all text for a list item at once
+		if (
+			self.bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
+			and (self.istasklist or self.all_checkboxes)
+		) or self._matches_label(text):
+			open = (self.bullet not in (CHECKED_BOX, XCHECKED_BOX))
+			self._parse_task(text, open=open)
+		# else not a task - skip
+
+	def _matches_label(self, line):
+		return self.task_label_re and self.task_label_re.match(line)
+
+	def _matches_next_label(self, line):
+		return self.next_label_re and self.next_label_re.match(line)
+
+	def _parse_task(self, line, open=True):
+		assert self.list_level >= 0, 'BUG: stack count corrupted'
+		while self.stack[-1][0] >= self.list_level:
+				self.stack.pop()
+
+		parent_level, parent, parent_children = self.stack[-1]
+
+		# Get prio
+		prio = line.count('!')
+		if prio == 0:
+			prio = parent[2] # default to parent prio
+
+		# Get date - and remove from description
+		global __due # FIXME
+		__due = _NO_DATE
+		def set_date(match):
+			global __due
+			mydate = parse_date(match.group(0))
+			if mydate and __due == _NO_DATE:
+				__due = '%04i-%02i-%02i' % mydate # (y, m, d)
+				#~ return match.group(0) # TEST
+				return ''
+			else:
+				# No match or we already had a date
+				return match.group(0)
+
+		description = date_re.sub(set_date, line)
+		due = __due
+
+		if due == _NO_DATE:
+			due = parent[3] # default to parent date (or default for root)
+
+		# Deal with tags global for tasklist
+		if self.istasklist:
+			for tag in self.tasklist_tags:
+				if not tag in description:
+					description += ' ' + tag
+
+		# Check actionable
+		if self._matches_next_label(description):
+			actionable = not parent[0] # previous task not open
+		else:
+			actionable = True
+
+		# And really add to stack
+		task = (open, actionable, prio, due, description)
+		children = []
+		parent_children.append((task, children))
+		self.stack.append((self.list_level, task, children))
 
 
 class TaskListDialog(Dialog):

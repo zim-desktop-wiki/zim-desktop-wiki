@@ -66,6 +66,7 @@ import logging
 from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE
+from zim.parser import Builder, VISITOR_SKIP_NODE
 from zim.config import data_file
 from zim.objectmanager import ObjectManager
 
@@ -118,7 +119,7 @@ BULLETLIST = 'ul'
 NUMBEREDLIST = 'ol'
 LISTITEM = 'li'
 
-ITALIC = 'emphasis' # TODO switch to real 'italic' / 'i'
+ITALIC = 'emphasis' # TODO switch to 'i'
 BOLD = 'strong' # idem to 'b'
 MARK = 'mark'
 VERBATIM = 'code'
@@ -419,12 +420,127 @@ class ParseTree(ElementTreeModule.ElementTree):
 				else:
 					return False # empty element like image
 
+	def visit(self, visitor):
+		'''Visit all nodes of this tree
+		@param visitor: a L{Visitor} or L{Builder} object
+		'''
+		self._visit(visitor, self.getroot())
+
+	def visit_all(self, match, visitor):
+		'''Visit sub-nodes of a tree
+		Only visits nodes that match C{match} and than decents
+		@param match: the match type to visit
+		@param visitor: a L{Visitor} or L{Builder} object
+		'''
+		for node in node.findall(match):
+			self._visit(visitor, node)
+
+	def _visit(self, visitor, node):
+		# Call start(), text(), end() or span() and object() on the
+		# visitor object
+		# If VISITOR_SKIP_NODE is returned, do not continue with this
+		# branch.
+		if len(node): # Has children
+			if visitor.start(node.tag, node.attrib) != VISITOR_SKIP_NODE:
+				if node.text:
+					visitor.text(node.text)
+				for child in node:
+					self._visit(visitor, child) # recurs
+					if child.tail:
+						visitor.text(child.tail)
+				visitor.end(node.tag)
+		elif node.text:
+			visitor.span(node.tag, node.attrib, node.text)
+		else:
+			visitor.object(node.tag, node.attrib)
+
+
+class ParseTreeBuilder(Builder):
+	'''Builder object that builds a L{ParseTree}'''
+
+	ROOT = 'zim-tree'
+
+	def __init__(self):
+		self._b = ElementTreeModule.TreeBuilder()
+		self._b.start(self.ROOT)
+		self.stack = [] #: keeps track of current open elements
+		self._last_char = None
+
+	def get_parsetree(self):
+		'''Returns the constructed L{ParseTree} object.
+		Can only be called once, after calling this method the object
+		can not be re-used.
+		'''
+		self._b.end(self.ROOT)
+		root = self._b.close()
+		return zim.formats.ParseTree(root)
+
+	def start(self, tag, attrib=None):
+		self._b.start(tag, attrib)
+		self.stack.append(tag)
+		if tag in BLOCK_LEVEL:
+			self._last_char = None
+
+	def text(self, text):
+		self._last_char = text[-1]
+
+		# FIXME hack for backward compat
+		if self.stack and self.stack[-1] in (HEADING, LISTITEM):
+			text = text.strip('\n')
+
+		self._b.data(text)
+
+	def end(self, tag):
+		if tag != self.stack[-1]:
+			raise AssertionError, 'Unmatched tag closed: %s' % tag
+
+		if tag in BLOCK_LEVEL and self._last_char is not None:
+			assert self._last_char == '\n', 'Block level text needs to end with newline'
+			self._last_char = None
+
+		self._b.end(tag)
+		self.stack.pop()
+
+		# FIXME hack for backward compat
+		if tag == HEADING:
+			self._b.data('\n')
+
+	def span(self, tag, attrib, text):
+		if tag in BLOCK_LEVEL:
+			assert text.endswith('\n'), 'Block level text needs to end with newline'
+			self._last_char = None
+
+		# FIXME hack for backward compat
+		if tag in (HEADING, LISTITEM):
+			text = text.strip('\n')
+
+		self._b.start(tag, attrib)
+		self._b.data(text)
+		self._b.end(tag)
+
+		# FIXME hack for backward compat
+		if tag == HEADING:
+			self._b.data('\n')
+
+	def object(self, tag, attrib):
+		# FIXME hack for backward compat
+		if tag == IMAGE and attrib.get('alt'):
+			text = attrib.pop('alt')
+			self._b.start(tag, attrib)
+			self._b.data(text)
+			self._b.end(tag)
+			return
+
+		self._b.start(tag, attrib)
+		self._b.end(tag)
+
+
 
 count_eol_re = re.compile(r'\n+\Z')
 split_para_re = re.compile(r'((?:^[ \t]*\n){2,})', re.M)
 
 
-class ParseTreeBuilder(object):
+class OldParseTreeBuilder(object):
 	'''This class supplies an alternative for xml.etree.ElementTree.TreeBuilder
 	which cleans up the tree on the fly while building it. The main use
 	is to normalize the tree that is produced by the editor widget, but it can
@@ -443,6 +559,8 @@ class ParseTreeBuilder(object):
 		- Newlines ('\\n') after a <li> alement are removed (optional)
 		- The element '_ignore_' is silently ignored
 	'''
+
+	## TODO TODO this also needs to be based on Builder ##
 
 	def __init__(self, remove_newlines_after_li=True):
 		assert remove_newlines_after_li, 'TODO'

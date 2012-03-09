@@ -637,10 +637,10 @@ duss
 		self.assertEqual(''.join(result), wanted)
 
 
-class TestParseTreeBuilder(tests.TestCase):
+class TestOldParseTreeBuilder(tests.TestCase):
 
 	def runTest(self):
-		'''Test ParseTreeBuilder class'''
+		'''Test OldParseTreeBuilder class'''
 		# - Test \n before and after h / p / pre
 		# - Test break line into lines
 		input = '''\
@@ -692,7 +692,7 @@ grrr
 
 		# For some reason this does not work with cElementTree.XMLBuilder ...
 		from xml.etree.ElementTree import XMLTreeBuilder
-		builder = XMLTreeBuilder(target=ParseTreeBuilder())
+		builder = XMLTreeBuilder(target=OldParseTreeBuilder())
 		builder.feed(input)
 		root = builder.close()
 		tree = ParseTree(root)

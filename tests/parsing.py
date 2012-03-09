@@ -2,11 +2,12 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from tests import TestCase
+import tests
 
 from zim.parsing import *
+from zim.parser import *
 
-class TestParsing(TestCase):
+class TestParsing(tests.TestCase):
 
 	def testSplitWords(self):
 		'''Test parsing quoted strings'''
@@ -17,7 +18,7 @@ class TestParsing(TestCase):
 		list = ['"foo bar"', ',', r'"\"foooo bar\""', 'dusss', 'ja']
 		result = split_quoted_strings(string, unescape=False)
 		self.assertEquals(result, list)
-		
+
 		string = r'''"foo bar", False, True'''
 		list = ['foo bar', ',', 'False', ',', 'True']
 		result = split_quoted_strings(string)
@@ -116,3 +117,87 @@ class TestParsing(TestCase):
 		):
 			#~ print '>>', href
 			self.assertEqual(link_type(href), type)
+
+
+class TestSimpleTreeBuilder(tests.TestCase):
+
+	def runTest(self):
+		builder = SimpleTreeBuilder(merge_text=False)
+
+		builder.start('root', {})
+		builder.text('foo')
+		builder.text('bar')
+		builder.span('dus', {}, 'ja')
+		builder.text('foo')
+		builder.text('bar')
+		builder.object('br', {})
+		builder.text('foo')
+		builder.text('bar')
+		builder.end('root')
+
+		root = builder.get_root()
+		self.assertEqual(root, [
+			('root', {}, [
+					'foo', 'bar',
+					('dus', {}, ['ja']),
+					'foo', 'bar',
+					('br', {}, []),
+					'foo', 'bar',
+				]
+			)
+		])
+
+
+		builder = SimpleTreeBuilder()
+
+		builder.start('root', {})
+		builder.text('foo')
+		builder.text('bar')
+		builder.span('dus', {}, 'ja')
+		builder.text('foo')
+		builder.text('bar')
+		builder.object('br', {})
+		builder.text('foo')
+		builder.text('bar')
+		builder.end('root')
+
+		root = builder.get_root()
+		self.assertEqual(root, [
+			('root', {}, [
+					'foobar',
+					('dus', {}, ['ja']),
+					'foobar',
+					('br', {}, []),
+					'foobar',
+				]
+			)
+		])
+
+class TestTextCollectorFilter(tests.TestCase):
+
+	def runTest(self):
+		builder = SimpleTreeBuilder(merge_text=False)
+		filter = TextCollectorFilter(builder)
+
+		filter.start('root', {})
+		filter.text('foo')
+		filter.text('bar')
+		filter.span('dus', {}, 'ja')
+		filter.text('foo')
+		filter.text('bar')
+		filter.object('br', {})
+		filter.text('foo')
+		filter.text('bar')
+		filter.end('root')
+
+		root = builder.get_root()
+		self.assertEqual(root, [
+			('root', {}, [
+					'foobar',
+					('dus', {}, ['ja']),
+					'foobar',
+					('br', {}, []),
+					'foobar',
+				]
+			)
+		])

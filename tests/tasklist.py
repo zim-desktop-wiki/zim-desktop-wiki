@@ -30,6 +30,11 @@ class TestTaskList(tests.TestCase):
 			path = plugin.get_path(task)
 			self.assertTrue(not path is None)
 
+	def testParsing(self):
+		klass = zim.plugins.get_plugin('tasklist')
+		ui = MockUI()
+		plugin = klass(ui)
+
 		# Test correctnest of parsing
 		NO_DATE = '9999'
 
@@ -40,6 +45,7 @@ class TestTaskList(tests.TestCase):
 			parser = zim.formats.get_format('wiki').Parser()
 			tree = parser.parse(text)
 			origtree = tree.tostring()
+			#~ print 'TREE', origtree
 
 			tasks = plugin._extract_tasks(tree)
 			self.assertEqual(tree.tostring(), origtree)
@@ -48,7 +54,7 @@ class TestTaskList(tests.TestCase):
 
 		def t(label, open=True, due=NO_DATE, prio=0):
 			# Generate a task tuple
-			return (open, True, prio, due, label)
+			return (open, True, prio, due, unicode(label))
 
 		# Note that this same text is in the test notebook
 		# so it gets run through the index as well - keep in sync

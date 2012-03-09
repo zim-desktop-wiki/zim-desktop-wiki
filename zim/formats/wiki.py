@@ -318,7 +318,7 @@ class Parser(ParserClass):
 
 		input = prepare_text(input)
 
-		builder = ElementTreeBuilder()
+		builder = ParseTreeBuilder()
 		wikiparser.backward = self.backward # HACK
 		wikiparser(builder, input)
 		return builder.get_parsetree()
