@@ -753,7 +753,6 @@ class Notebook(gobject.GObject):
 			# async file operations. This one is more abstract for the
 			# notebook as a whole, regardless of storage
 		self.readonly = True
-		self.lalala = None
 
 		if dir:
 			assert isinstance(dir, Dir)
