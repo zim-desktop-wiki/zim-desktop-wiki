@@ -769,6 +769,12 @@ class ConfigFile(ListDict):
 		self.set_modified(False)
 		return operation
 
+	def change_file(self, file):
+		'''Change the underlaying file used to read/write data
+		'''
+		self.file = file
+		self.set_modified(True)
+
 
 class ConfigDictFile(ConfigFile, ConfigDict):
 	pass

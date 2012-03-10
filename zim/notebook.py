@@ -534,6 +534,7 @@ def init_notebook(path, name=None):
 	if os.name == 'nt': endofline = 'dos'
 	else: endofline = 'unix'
 	config['Notebook']['endofline'] = endofline
+	config['Notebook']['profile'] = None
 	config.write()
 
 
@@ -688,6 +689,8 @@ class Notebook(gobject.GObject):
 	@ivar config: A L{ConfigDict} for the notebook config
 	(the C{X{notebook.zim}} config file in the notebook folder)
 	@ivar lock: An L{AsyncLock} for async notebook operations
+	@ivar profile: The name of the profile used by the notebook (empty means
+	default profile)
 
 	In general this lock is not needed when only reading data from
 	the notebook. However it should be used when doing operations that
@@ -750,6 +753,7 @@ class Notebook(gobject.GObject):
 			# async file operations. This one is more abstract for the
 			# notebook as a whole, regardless of storage
 		self.readonly = True
+		self.lalala = None
 
 		if dir:
 			assert isinstance(dir, Dir)
@@ -797,6 +801,7 @@ class Notebook(gobject.GObject):
 		else: endofline = 'unix'
 		self.config['Notebook'].setdefault('endofline', endofline, check=set(('dos', 'unix')))
 		self.config['Notebook'].setdefault('disable_trash', False)
+		self.config['Notebook'].setdefault('profile', None, check=basestring)
 
 		self.do_properties_changed()
 
@@ -833,6 +838,12 @@ class Notebook(gobject.GObject):
 			uri = None
 
 		return NotebookInfo(uri, **self.config['Notebook'])
+
+	@property
+	def profile(self):
+		'''The 'profile' property for this notebook
+		'''
+		return self.config['Notebook']['profile']
 
 	def _cache_dir(self, dir):
 		from zim.config import XDG_CACHE_HOME

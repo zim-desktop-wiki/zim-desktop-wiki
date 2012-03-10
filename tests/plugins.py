@@ -70,6 +70,9 @@ class testPlugins(tests.TestCase):
 				self.assertTrue(isinstance(dep[i][1],bool))
 				self.assertTrue(isinstance(dep[i][2],bool))
 
+			# test is_profile_independent
+			self.assertTrue(isinstance(plugin.is_profile_independent,bool))
+
 	def testDefaulPlugins(self):
 		'''Test loading default plugins'''
 		# Note that we use parent interface class here, so plugins

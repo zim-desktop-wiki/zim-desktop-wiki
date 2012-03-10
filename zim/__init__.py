@@ -109,7 +109,8 @@ from getopt import gnu_getopt, GetoptError
 
 from zim.fs import File, Dir
 from zim.errors import Error
-from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR
+from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR, \
+					   XDG_CONFIG_HOME, ConfigDictFile
 
 
 logger = logging.getLogger('zim')
@@ -537,26 +538,39 @@ class NotebookInterface(gobject.GObject):
 		if not notebook is None:
 			self.open_notebook(notebook)
 
-	def load_plugins(self):
+	def load_plugins(self, independent_only=False):
 		'''Loads all the plugins defined in the preferences
 
 		Typically called from the constructor of sub-classes.
+
+		@param independent_only: if True, load only the plugins flagged
+		as notebook independent.
+
 		'''
 		default = ['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol']
 		self.preferences['General'].setdefault('plugins', default)
 		plugins = self.preferences['General']['plugins']
 		plugins = set(plugins) # Eliminate doubles
 
+		# Keeṕ a record of the configured plugins. If we are called with
+		# independent_only=True, most probably the Notebook has not been
+		# opened yet, so we don't know if it has its own profile. If it
+		# hasn't, we will have to load later all the ignored plugins
+		if independent_only:
+			self._declared_plugins = sorted(plugins)
+		else:
+			self._declared_plugins = []
+
 		# Plugins should not have dependency on order of being added
 		# but sort them here to make behavior predictable.
 		for name in sorted(plugins):
-			self.load_plugin(name)
+			self.load_plugin(name, independent_only)
 
 		loaded = [p.plugin_key for p in self.plugins]
 		if set(loaded) != plugins:
 			self.preferences['General']['plugins'] = sorted(loaded)
 
-	def load_plugin(self, name):
+	def load_plugin(self, name, independent_only=False):
 		'''Load a single plugin by name
 
 		Load an plugin object and attach it to the current application
@@ -569,7 +583,10 @@ class NotebookInterface(gobject.GObject):
 		@param name: the plugin name as understood by
 		L{zim.plugins.get_plugin()}
 
-		@returns: the plugin object or C{None} when failed
+		@param independent_only: if True, load the plugin only if it is
+		flagged as notebook independent. Otherwise ignore it
+
+		@returns: the plugin object or C{None} when failed or ignored
 
 		@todo: make load_plugin raise exception on failure
 		'''
@@ -582,13 +599,19 @@ class NotebookInterface(gobject.GObject):
 
 		try:
 			klass = zim.plugins.get_plugin(name)
-			if not klass.check_dependencies_ok():
-				raise AssertionError, 'Dependencies failed for plugin %s' % name
-			plugin = klass(self)
+			if independent_only and not klass.is_profile_independent:
+				plugin = None
+				logger.debug('Ignoring plugin %s.', name)
+			else:
+				if not klass.check_dependencies_ok():
+					raise AssertionError, 'Dependencies failed for plugin %s' % name
+				plugin = klass(self)
 		except:
 			logger.exception('Failed to load plugin %s', name)
 			return None
 		else:
+			if not plugin:
+				return None
 			self.plugins.append(plugin)
 			logger.debug('Loaded plugin %s (%s)', name, plugin)
 
@@ -665,6 +688,7 @@ class NotebookInterface(gobject.GObject):
 						from zim.gui.widgets import ErrorDialog # HACK
 						ErrorDialog(None, error).run()
 				nb = get_notebook(nb)
+				self.load_profile(nb)
 
 			if nb is None:
 				raise NotebookLookupError, _('Could not find notebook: %s') % notebook
@@ -674,8 +698,75 @@ class NotebookInterface(gobject.GObject):
 			return path
 		else:
 			assert isinstance(notebook, Notebook)
+			self.load_profile(notebook)
 			self.emit('open-notebook', notebook)
 			return None
+
+	def load_profile(self, notebook):
+		'''Load the specific profile for a Notebook.
+
+		If the notebook defines its own profile, update the preferences
+		with it. Check if there are any plugins to load and initialize them.
+
+		@emits: preferences-changed
+
+		@param notebook: a L{Notebook} object.
+		'''
+		assert not notebook is None, 'BUG: no notebook specified'
+
+		profile = None
+		if notebook.profile:
+			logger.debug('Using profile %s', notebook.profile)
+			file = XDG_CONFIG_HOME.file(('zim','profiles',notebook.profile + '.conf'))
+			if file.exists():
+				profile = ConfigDictFile(file)
+				self._merge_profile_preferences(profile)
+
+		# If there's no profile, we must try to restore the complete
+		# list of plugins orgininally configured (see load_plugins())
+		if not profile and hasattr(self, '_declared_plugins'):
+			self.preferences['General']['plugins'] = self._declared_plugins
+			logger.debug('Using the plugins defined in the default profile')
+
+		# Load the plugins
+		self.load_plugins()
+		
+		if notebook.profile:
+			self.preferences.change_file(file) # use the profile for preferences
+			self.emit('preferences-changed')
+
+
+	def _merge_profile_preferences(self, conf):
+		logger.debug('Merging profile preferences')
+
+		# sections of the preferences that might be overriden
+		# by a notebook profile
+		overridable_sections = ['GtkInterface', 'PageView', 'General',]
+
+		# Override the preferences with the notebook's own profile
+		for section in overridable_sections:
+			if conf.has_key(section):
+				self.preferences[section] = conf[section]
+				logger.debug('Overriding section %s with notebook\'s profile', section)
+
+		if self.preferences['General'].get('plugins', []):
+			# replace the preferences for each plugin with the one defined
+			# in the profile. Ignore the profile independent ones.
+			import zim.plugins
+			for name in self.preferences['General']['plugins']:
+				try:
+					klass = zim.plugins.get_plugin(name)
+				except:
+					logger.exception('Failed to find plugin %s', name)
+					continue
+	
+				if klass.is_profile_independent:
+					continue
+				config_key = klass.__name__
+				if conf.has_key(config_key):
+					self.preferences[config_key] = conf[config_key]
+					logger.debug('Overriding section %s with notebook\'s profile', config_key)
+
 
 	def do_open_notebook(self, notebook):
 		assert self.notebook is None, 'BUG: other notebook opened already'

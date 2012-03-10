@@ -479,7 +479,10 @@ class GtkInterface(NotebookInterface):
 				lambda o, event: event.keyval == gtk.keysyms.F6
 					and self.mainwindow.toggle_fullscreen())
 
-		self.load_plugins()
+		# If opening a notebook, load only the independent plugins at
+		# this stage.
+		independent_only = notebook is not None
+		self.load_plugins(independent_only)
 
 		self._custom_tool_ui_id = None
 		self._custom_tool_actiongroup = None
@@ -542,8 +545,8 @@ class GtkInterface(NotebookInterface):
 		else:
 			pass # Will check default in main()
 
-	def load_plugin(self, name):
-		plugin = NotebookInterface.load_plugin(self, name)
+	def load_plugin(self, name, independent_only=False):
+		plugin = NotebookInterface.load_plugin(self, name, independent_only)
 		if plugin and self._finalize_ui:
 			plugin.finalize_ui(self)
 

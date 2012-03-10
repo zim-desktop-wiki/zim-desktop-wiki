@@ -400,6 +400,11 @@ class TestGtkInterface(tests.TestCase):
 		items = menu.get_children()
 		self.assertGreater(len(items), 3)
 
+		# open notebook (so the default plugins are loaded)
+		nb = ui.notebook
+		ui.notebook = None
+		ui.open_notebook(nb)
+
 		# remove plugins
 		self.assertGreater(len(ui.plugins), 3) # default plugins
 		plugins = [p.plugin_key for p in ui.plugins]
