@@ -755,6 +755,9 @@ class TestProfiles(tests.TestCase):
 
 	def testProfilePreferences(self):
 		'''Test the profile is used and its preferences applied'''
+
+		assert not self.notebook.profile
+
 		# set up a test profile
 		file = XDG_CONFIG_HOME.file('zim/profiles/profile_TestProfile.conf')
 		if file.exists():
@@ -784,4 +787,32 @@ class TestProfiles(tests.TestCase):
 		self.assertEqual(interface.preferences['CalendarPlugin']['namespace'],
 				   'TestProfile')
 
+
+	def testNewProfile(self):
+		'''Test that default/current preferences are used if the profile
+		doesn't exist
+		'''
+		assert not self.notebook.profile
+
+		# base configuration
+		interface = NotebookInterface(self.notebook)
+		interface.preferences.write() # ensure the preferences are saved
+		base = XDG_CONFIG_HOME.file('zim/preferences.conf')
+		assert base.exists()
+
+		# set up a test profile
+		file = XDG_CONFIG_HOME.file('zim/profiles/profile_TestProfile.conf')
+		if file.exists():
+			file.remove()
+		assert not file.exists()
+
+		# change the profile name, and reload the profile
+		# check that the current preferences didn't change
+		self.notebook.config['Notebook']['profile'] = 'profile_TestProfile'
+		self.assertEqual(self.notebook.profile, 'profile_TestProfile')
+		interface.load_profile(self.notebook)
+		self.assertEqual(interface.preferences.file, file)
+		interface.preferences.write() # ensure the preferences are saved
+
+		self.assertEqual(file.read(), base.read())
 
