@@ -810,7 +810,7 @@ class TestProfiles(tests.TestCase):
 		# check that the current preferences didn't change
 		self.notebook.config['Notebook']['profile'] = 'profile_TestProfile'
 		self.assertEqual(self.notebook.profile, 'profile_TestProfile')
-		interface.load_profile(self.notebook)
+		interface.load_profile()
 		self.assertEqual(interface.preferences.file, file)
 		interface.preferences.write() # ensure the preferences are saved
 

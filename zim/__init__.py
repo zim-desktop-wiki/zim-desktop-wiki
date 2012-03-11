@@ -692,7 +692,6 @@ class NotebookInterface(gobject.GObject):
 						from zim.gui.widgets import ErrorDialog # HACK
 						ErrorDialog(None, error).run()
 				nb = get_notebook(nb)
-				self.load_profile(nb)
 
 			if nb is None:
 				raise NotebookLookupError, _('Could not find notebook: %s') % notebook
@@ -702,11 +701,10 @@ class NotebookInterface(gobject.GObject):
 			return path
 		else:
 			assert isinstance(notebook, Notebook)
-			self.load_profile(notebook)
 			self.emit('open-notebook', notebook)
 			return None
 
-	def load_profile(self, notebook):
+	def load_profile(self):
 		'''Load the specific profile for a Notebook.
 
 		If the notebook defines its own profile, update the preferences
@@ -716,12 +714,13 @@ class NotebookInterface(gobject.GObject):
 
 		@param notebook: a L{Notebook} object.
 		'''
-		assert not notebook is None, 'BUG: no notebook specified'
+		assert not self.notebook is None, 'Must open a notebook first!'
+		#assert not notebook is None, 'BUG: no notebook specified'
 
 		profile = None
-		if notebook.profile:
-			logger.debug('Using profile %s', notebook.profile)
-			file = XDG_CONFIG_HOME.file(('zim','profiles',notebook.profile + '.conf'))
+		if self.notebook.profile:
+			logger.debug('Using profile %s', self.notebook.profile)
+			file = XDG_CONFIG_HOME.file(('zim','profiles',self.notebook.profile + '.conf'))
 			if file.exists():
 				profile = ConfigDictFile(file)
 				self._merge_profile_preferences(profile)
@@ -735,7 +734,7 @@ class NotebookInterface(gobject.GObject):
 		# Load the plugins
 		self.load_plugins()
 		
-		if notebook.profile:
+		if self.notebook.profile:
 			self.preferences.change_file(file) # use the profile for preferences
 			self.emit('preferences-changed')
 
@@ -783,6 +782,8 @@ class NotebookInterface(gobject.GObject):
 		else:
 			from zim.config import ConfigDict
 			self.uistate = ConfigDict()
+
+		self.load_profile()
 
 	def cmd_export(self, format='html', template=None, page=None, output=None, root_url=None, index_page=None):
 		'''Convenience method hat wraps L{zim.exporter.Exporter} for
