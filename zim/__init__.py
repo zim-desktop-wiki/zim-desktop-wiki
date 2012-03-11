@@ -711,11 +711,8 @@ class NotebookInterface(gobject.GObject):
 		with it. Check if there are any plugins to load and initialize them.
 
 		@emits: preferences-changed
-
-		@param notebook: a L{Notebook} object.
 		'''
-		assert not self.notebook is None, 'Must open a notebook first!'
-		#assert not notebook is None, 'BUG: no notebook specified'
+		assert not self.notebook is None, 'BUG: Must open a notebook first'
 
 		profile = None
 		if self.notebook.profile:
