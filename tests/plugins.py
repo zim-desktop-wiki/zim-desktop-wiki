@@ -23,6 +23,9 @@ class testPlugins(tests.TestCase):
 		self.assertTrue('spell' in plugins)
 		self.assertTrue('linkmap' in plugins)
 
+		# plugins listed here will be tested for is_profile_independent == True
+		profile_independent = ['automount',]
+
 		seen = {
 			'name': set(),
 			'description': set(),
@@ -72,6 +75,10 @@ class testPlugins(tests.TestCase):
 
 			# test is_profile_independent
 			self.assertTrue(isinstance(plugin.is_profile_independent,bool))
+			if name in profile_independent:
+				self.assertTrue(plugin.is_profile_independent)
+			else:
+				self.assertFalse(plugin.is_profile_independent)
 
 	def testDefaulPlugins(self):
 		'''Test loading default plugins'''
