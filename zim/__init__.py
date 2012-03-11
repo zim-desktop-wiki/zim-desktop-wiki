@@ -721,6 +721,15 @@ class NotebookInterface(gobject.GObject):
 			if file.exists():
 				profile = ConfigDictFile(file)
 				self._merge_profile_preferences(profile)
+				# unload any loaded plugins not present in the merged
+				# preferenfces. This allows changing the profile after
+				# opening the notebook
+				for plugin in [p for p in self.plugins if p.plugin_key not in self.preferences['General']['plugins']]:
+					# we don't use unload_plugin because it would trigger
+					# a preferences.write()
+					plugin.disconnect()
+					self.plugins.remove(plugin)
+					logger.debug('Unloaded plugin %s', plugin.plugin_key)
 
 		# If there's no profile, we must try to restore the complete
 		# list of plugins orgininally configured (see load_plugins())
@@ -749,24 +758,30 @@ class NotebookInterface(gobject.GObject):
 				self.preferences[section] = conf[section]
 				logger.debug('Overriding section %s with notebook\'s profile', section)
 
-		if self.preferences['General'].get('plugins', []):
-			# replace the preferences for each plugin with the one defined
-			# in the profile. Ignore the profile independent ones.
-			import zim.plugins
-			for name in self.preferences['General']['plugins']:
-				try:
-					klass = zim.plugins.get_plugin(name)
-				except:
-					logger.exception('Failed to find plugin %s', name)
-					continue
-	
-				if klass.is_profile_independent:
-					continue
-				config_key = klass.__name__
-				if conf.has_key(config_key):
-					self.preferences[config_key] = conf[config_key]
-					logger.debug('Overriding section %s with notebook\'s profile', config_key)
+		# replace the preferences for each plugin with the one defined
+		# in the profile. Ignore the profile independent ones.
+		import zim.plugins
+		for name in self.preferences['General']['plugins']:
+			try:
+				klass = zim.plugins.get_plugin(name)
+			except:
+				logger.exception('Failed to find plugin %s', name)
+				continue
 
+			if klass.is_profile_independent:
+				continue
+			config_key = klass.__name__
+			if conf.has_key(config_key):
+				self.preferences[config_key] = conf[config_key]
+				logger.debug('Overriding section %s with notebook\'s profile', config_key)
+		# add any independent plugins already loaded to the profile
+		# configuration
+		plugins = self.preferences['General']['plugins']
+		loaded = [p.plugin_key for p in self.plugins \
+				  if p.is_profile_independent and p.plugin_key not in plugins]
+		plugins.extend(loaded)
+		self.preferences['General']['plugins'] = sorted(plugins)
+				
 
 	def do_open_notebook(self, notebook):
 		assert self.notebook is None, 'BUG: other notebook opened already'
