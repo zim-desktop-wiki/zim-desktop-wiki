@@ -501,6 +501,9 @@ class NotebookInterface(gobject.GObject):
 	@signal: C{open-notebook (notebook)}:
 	Emitted to open a notebook in this interface
 
+	@signal: C{preferences-changed ()}:
+	Emitted when preferences have changed
+
 	@cvar ui_type: string to tell plugins what interface is supported
 	by this class. Currently this can be "gtk" or "html". If "ui_type"
 	is None we run without interface (e.g. commandline export).
@@ -517,6 +520,7 @@ class NotebookInterface(gobject.GObject):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-notebook': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	ui_type = None

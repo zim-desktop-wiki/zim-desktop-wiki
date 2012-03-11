@@ -9,13 +9,13 @@ import tests
 import os
 
 from zim.fs import File, Dir
-from zim.config import config_file
+from zim.config import config_file, ConfigDictFile, XDG_CONFIG_HOME
 from zim.notebook import *
 from zim.index import *
 import zim.errors
 from zim.formats import ParseTree
 
-from zim import _get_default_or_only_notebook
+from zim import NotebookInterface, _get_default_or_only_notebook
 	# private, but want to check it anyway
 
 
@@ -745,3 +745,43 @@ class TestNewNotebook(tests.TestCase):
 
 		text = ''.join(notebook.get_page(Path('page3:page1:child')).dump('wiki'))
 		self.assertEqual(text, 'I have backlinks !\n')
+
+
+class TestProfiles(tests.TestCase):
+
+	def setUp(self):
+		path = self.get_tmp_name()
+		self.notebook = tests.new_notebook(fakedir=path)
+
+	def testProfilePreferences(self):
+		'''Test the profile is used and its preferences applied'''
+		# set up a test profile
+		file = XDG_CONFIG_HOME.file('zim/profiles/profile_TestProfile.conf')
+		if file.exists():
+			file.remove()
+		assert not file.exists()
+		profile = ConfigDictFile(file)
+		profile['GtkInterface'] = {}
+		profile['General']['plugins'] = ['calendar',]
+		profile['CalendarPlugin']['embedded'] = True
+		profile['CalendarPlugin']['granularity'] = 'Week'
+		profile['CalendarPlugin']['namespace'] = 'TestProfile'
+		profile.write()
+
+		# se the profile name in the notebook, open it, and
+		# check that the profila was applied
+		self.notebook.config['Notebook']['profile'] = 'profile_TestProfile'
+		self.assertEqual(self.notebook.profile, 'profile_TestProfile')
+		interface = NotebookInterface(self.notebook)
+		self.assertEqual(interface.preferences.file, file)
+		self.assertTrue(len(interface.preferences['GtkInterface'].keys()) == 0)
+		self.assertTrue(len(interface.plugins) == 1)
+		self.assertEqual(interface.preferences['General']['plugins'][0],
+				   'calendar')
+		self.assertTrue(interface.preferences['CalendarPlugin']['embedded'])
+		self.assertEqual(interface.preferences['CalendarPlugin']['granularity'],
+				   'Week')
+		self.assertEqual(interface.preferences['CalendarPlugin']['namespace'],
+				   'TestProfile')
+
+
