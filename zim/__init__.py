@@ -548,7 +548,7 @@ class NotebookInterface(gobject.GObject):
 		Typically called from the constructor of sub-classes.
 
 		@param independent_only: if True, load only the plugins flagged
-		as notebook independent.
+		as profile independent.
 
 		'''
 		default = ['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol']
@@ -556,7 +556,7 @@ class NotebookInterface(gobject.GObject):
 		plugins = self.preferences['General']['plugins']
 		plugins = set(plugins) # Eliminate doubles
 
-		# Keeṕ a record of the configured plugins. If we are called with
+		# Keep a record of the configured plugins. If we are called with
 		# independent_only=True, most probably the Notebook has not been
 		# opened yet, so we don't know if it has its own profile. If it
 		# hasn't, we will have to load later all the ignored plugins
@@ -588,7 +588,7 @@ class NotebookInterface(gobject.GObject):
 		L{zim.plugins.get_plugin()}
 
 		@param independent_only: if True, load the plugin only if it is
-		flagged as notebook independent. Otherwise ignore it
+		flagged as profile independent. Otherwise ignore it
 
 		@returns: the plugin object or C{None} when failed or ignored
 
@@ -732,7 +732,7 @@ class NotebookInterface(gobject.GObject):
 					logger.debug('Unloaded plugin %s', plugin.plugin_key)
 
 		# If there's no profile, we must try to restore the complete
-		# list of plugins orgininally configured (see load_plugins())
+		# list of plugins originally configured (see load_plugins())
 		if not profile and hasattr(self, '_declared_plugins'):
 			self.preferences['General']['plugins'] = self._declared_plugins
 			logger.debug('Using the plugins defined in the default profile')
