@@ -11,7 +11,7 @@ from zim.fs import File, Dir
 from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
-from zim.config import ConfigDict
+from zim.config import ConfigDict, ConfigDictFile, XDG_CONFIG_HOME
 from zim.gui.clipboard import Clipboard
 
 
@@ -1793,6 +1793,37 @@ dus bar bazzz baz
 		buffer = textview.get_buffer()
 		self.assertEqual(buffer.get_text(*buffer.get_bounds()), 'Foo')
 
+	def testProfile(self):
+		'''Test that style for a specific profile is applied.'''
+		# first test without profile
+		pageview = setUpPageView()
+		pageview.ui.notebook.config['Notebook']['profile'] = None
+		pageview.on_preferences_changed(pageview.ui)
+		file = XDG_CONFIG_HOME.file('zim/style.conf')
+		self.assertEqual(pageview.style.file, file)
+
+		# create a new style based on the default one, changing some properties
+		new_style = ConfigDictFile(file)
+		new_style['TextView']['indent'] = 50
+		new_style['TextView']['font'] = 'Sans 8'
+		new_style['TextView']['linespacing'] = 10
+		file = XDG_CONFIG_HOME.file('zim/styles/style_testProfile.conf')
+		if file.exists():
+			file.remove()
+		new_style.change_file(file)
+		new_style.write()
+
+		# test the pageview with the profile
+		pageview.ui.notebook.config['Notebook']['profile'] = 'style_testProfile'
+		pageview.on_preferences_changed(pageview.ui)
+		self.assertEqual(pageview.style.file, file)
+		self.assertEqual(pageview.style['TextView']['indent'], 50)
+		self.assertEqual(pageview.style['TextView']['font'], 'Sans 8')
+		self.assertEqual(pageview.style['TextView']['linespacing'], 10)
+
+		# if we don't have a notebook, we shouldn't fail!
+		pageview.ui.notebook = None
+		pageview.on_preferences_changed(pageview.ui)
 
 
 class MockUI(tests.MockObject):

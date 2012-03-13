@@ -31,7 +31,7 @@ from zim.fs import File, Dir
 from zim.errors import Error
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
-from zim.config import config_file
+from zim.config import config_file, ConfigDictFile, XDG_CONFIG_HOME
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
@@ -4425,6 +4425,7 @@ class PageView(gtk.VBox):
 			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
 
+		self.profile = None # last used profile to avoid reloading the conf
 		if self.style is None:
 			PageView.style = config_file('style.conf')
 		self.on_preferences_changed(self.ui)
@@ -4437,6 +4438,20 @@ class PageView(gtk.VBox):
 		self.view.grab_focus()
 
 	def on_preferences_changed(self, ui):
+		if ui.notebook and ui.notebook.profile and (
+		   not self.profile or self.profile != ui.notebook.profile):
+			# the profile has changed. Keep record of the new one
+			# and if there's a style for the profile, use it
+			self.profile = ui.notebook.profile # update current profile
+			file = XDG_CONFIG_HOME.file(('zim','styles',self.profile + '.conf'))
+			if file.exists():
+				PageView.style.change_file(file)
+				PageView.style.read()
+				logger.debug('Loaded specific style for profile %s',
+								self.profile)
+			else:
+				logger.debug('No specific style found for profile %s',
+								self.profile)
 		self._reload_style()
 		self.view.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
