@@ -72,8 +72,10 @@ import zim.datetimetz as datetime
 from zim.errors import Error
 from zim.fs import File
 from zim.config import data_dirs
-from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string, is_path_re
-from zim.formats import ParseTree, Element, TreeBuilder
+from zim.parsing import Re, TextBuffer, \
+	split_quoted_strings, unescape_quoted_string, is_path_re
+from zim.formats import ParseTree, ParseTreeBuilder, \
+	FORMATTEDTEXT, BULLETLIST, LISTITEM, STRONG, LINK
 from zim.index import LINK_DIR_BACKWARD
 from zim.notebook import Path
 
@@ -679,7 +681,7 @@ class PageIndexFunction(TemplateFunction):
 		self._options = options
 
 	def __call__(self, dict, root=':', collapse=True, ignore_empty=True):
-		builder = TreeBuilder()
+		builder = ParseTreeBuilder()
 
 		collapse = bool(collapse) and not collapse == 'False'
 		ignore_empty = bool(ignore_empty) and not ignore_empty == 'False'
@@ -691,26 +693,24 @@ class PageIndexFunction(TemplateFunction):
 		expanded = [self._page] + list(self._page.parents())
 
 		def add_namespace(path):
-			builder.start('ul')
+			builder.start(BULLETLIST)
 
 			pagelist = self._notebook.index.list_pages(path)
 			for page in pagelist:
 				if ignore_empty and not page.exists():
 					continue
-				builder.start('li')
+				builder.start(LISTITEM)
 
 				if page == self._page:
 					# Current page is marked with the strong style
-					builder.start('strong')
-					builder.data(page.basename)
-					builder.end('strong')
+					builder.span(STRONG, None, page.basename)
 				else:
 					# links to other pages
-					builder.start('link', {'type': 'page', 'href': ':'+page.name})
-					builder.data(page.basename)
-					builder.end('link')
+					builder.span(LINK,
+						{'type': 'page', 'href': ':'+page.name},
+						page.basename)
 
-				builder.end('li')
+				builder.end(LISTITEM)
 				if page.haschildren:
 					if collapse:
 						# Only recurs into namespaces that are expanded
@@ -721,11 +721,11 @@ class PageIndexFunction(TemplateFunction):
 
 			builder.end('ul')
 
-		builder.start('page')
+		builder.start(FORMATTEDTEXT)
 		add_namespace(Path(root))
-		builder.end('page')
+		builder.end(FORMATTEDTEXT)
 
-		tree = ParseTree(builder.close())
+		tree = builder.get_parsetree()
 		if not tree:
 			return None
 
@@ -901,14 +901,9 @@ class ParseTreeProxy(object):
 
 	def _split_head(self, tree):
 		if not hasattr(self, '_servered_head'):
-			elements = tree.getroot().getchildren()
-			if elements and elements[0].tag == 'h':
-				root = Element('zim-tree')
-				for element in elements[1:]:
-					root.append(element)
-				body = ParseTree(root)
-				self._servered_head = (elements[0].text, body)
-			else:
-				self._servered_head = (None, tree)
+			tree = tree.copy()
+			head, level = tree.pop_heading()
+			self._servered_head = (head, tree) # head can be None here
 
 		return self._servered_head
+

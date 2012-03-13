@@ -2493,29 +2493,28 @@ class IndexPage(Page):
 
 	def _generate_parsetree(self):
 		import zim.formats
-		builder = zim.formats.TreeBuilder()
+		builder = zim.formats.ParseTreeBuilder()
 
 		def add_namespace(path):
 			pagelist = self.notebook.index.list_pages(path)
-			builder.start('ul')
+			builder.start(zim.formats.BULLETLIST)
 			for page in pagelist:
-				builder.start('li')
-				builder.start('link', {'type': 'page', 'href': page.name})
-				builder.data(page.basename)
-				builder.end('link')
-				builder.end('li')
+				builder.start(zim.formats.LISTITEM)
+				builder.span(zim.formats.LINK,
+					{'type': 'page', 'href': page.name},
+					page.basename)
+				builder.end(zim.formats.LISTITEM)
 				if page.haschildren and self.index_recurs:
 					add_namespace(page) # recurs
-			builder.end('ul')
+			builder.end(zim.formats.BULLETLIST)
 
-		builder.start('page')
-		builder.start('h', {'level':1})
-		builder.data('Index of %s' % self.name)
-		builder.end('h')
+		builder.start(zim.formats.FORMATTEDTEXT)
+		builder.span(zim.formats.HEADING, {'level':1},
+			'Index of %s\n' % self.name)
 		add_namespace(self)
-		builder.end('page')
+		builder.end(zim.formats.FORMATTEDTEXT)
 
-		tree = zim.formats.ParseTree(builder.close())
+		tree = builder.get_parsetree()
 		#~ print "!!!", tree.tostring()
 		return tree
 

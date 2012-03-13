@@ -187,20 +187,40 @@ class SimpleTreeBuilder(Builder):
 		list[:] = children # replace in-line
 
 
-VISITOR_SKIP_NODE = 1
+
+
+class VisitorStop(Exception):
+	'''Exception to be raised to cancel a visitor action'''
+	pass
+
+
+class VisitorSkip(Exception):
+	'''Exception to be raised when the visitor should skip a leaf node
+	and not decent into it.
+	'''
+	pass
+
 
 class Visitor(object):
 	'''Conceptual opposite of a builder, but with same API.
 	Used to walk nodes in a parsetree and call callbacks for each node.
 	See e.g. L{ParseTree.visit()} and L{ParseTree.visitall()}
+
+	Visitor objects can raise two exceptions to influence the tree
+	traversal:
+
+	  1. L{VisitorStop} will cancel the current parsing, but without
+	     raising an error. So code implementing a visit method should
+	     catch this.
+	  2. L{VisitorSkip} can be raised when the visitor wants to skip
+	     a node, and should prevent the implementation from further
+	     decending into this node
 	'''
 
 	def start(self, tag, attrib=None):
 		'''Start formatted region
 		@param tag: the tag name
 		@param attrib: optional dict with attributes
-		@returns: if method returns C{IGNORE_NODE} visitor will not
-		decent into this node, also L{end()} will not be called.
 		@implementation: optional for subclasses
 		'''
 		pass
@@ -230,9 +250,12 @@ class Visitor(object):
 		@implementation: optional for subclasses, default implementation
 		calls L{start()}, L{text()}, and L{end()}
 		'''
-		if self.start(tag, attrib) != VISITOR_SKIP_NODE:
+		try:
+			self.start(tag, attrib)
 			self.text(text)
 			self.end(tag)
+		except VisitorSkip:
+			pass
 
 	def object(self, tag, attrib):
 		'''Convenience function to append tags that do not have text
@@ -242,9 +265,11 @@ class Visitor(object):
 		@implementation: optional for subclasses, default implementation
 		calls L{start()}, and L{end()}
 		'''
-		if self.start(tag, attrib) != VISITOR_SKIP_NODE:
+		try:
+			self.start(tag, attrib)
 			self.end(tag)
-
+		except VisitorSkip:
+			pass
 
 
 class TextCollectorFilter(Visitor):
@@ -306,7 +331,7 @@ class TreeFilter(Visitor):
 			self.builder.start(tag, attrib)
 			self._count += 1
 		elif tag in self.exclude:
-			return VISITOR_SKIP_NODE
+			raise VisitorSkip, 'Exclude <%s>' % tag
 
 	def end(self, tag):
 		if tag in self.tags:

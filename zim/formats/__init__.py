@@ -66,7 +66,7 @@ import logging
 from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE
-from zim.parser import Builder, VISITOR_SKIP_NODE
+from zim.parser import Builder, VisitorSkip, VisitorStop
 from zim.config import data_file
 from zim.objectmanager import ObjectManager
 
@@ -87,13 +87,9 @@ except:
 
 try:
 	import xml.etree.cElementTree as ElementTreeModule
-	from xml.etree.cElementTree import \
-		Element, SubElement, TreeBuilder
 except:  # pragma: no cover
 	logger.warn('Could not load cElementTree, defaulting to ElementTree')
 	import xml.etree.ElementTree as ElementTreeModule
-	from xml.etree.ElementTree import \
-		Element, SubElement, TreeBuilder
 
 
 EXPORT_FORMAT = 1
@@ -106,6 +102,7 @@ CHECKED_BOX = 'checked-box'
 XCHECKED_BOX = 'xchecked-box'
 BULLET = '*' # FIXME make this 'bullet'
 
+FORMATTEDTEXT = 'zim-tree'
 
 HEADING = 'h'
 PARAGRAPH = 'p'
@@ -119,8 +116,8 @@ BULLETLIST = 'ul'
 NUMBEREDLIST = 'ol'
 LISTITEM = 'li'
 
-ITALIC = 'emphasis' # TODO switch to 'i'
-BOLD = 'strong' # idem to 'b'
+EMPHASIS = 'emphasis' # TODO change to "em" to be in line with html
+STRONG = 'strong'
 MARK = 'mark'
 VERBATIM = 'code'
 STRIKE = 'strike'
@@ -132,8 +129,6 @@ TAG = 'tag'
 ANCHOR = 'anchor'
 
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM)
-
-
 
 
 def increase_list_iter(listiter):
@@ -286,6 +281,11 @@ class ParseTree(ElementTreeModule.ElementTree):
 		ElementTreeModule.ElementTree.write(self, xml, 'utf-8')
 		return xml.getvalue()
 
+	def copy(self):
+		# By using serialization we are absolutely sure all refs are new
+		xml = self.tostring()
+		return ParseTree().fromstring(xml)
+
 	def write(self, *_):
 		'''Writing to file is not implemented, use tostring() instead'''
 		raise NotImplementedError
@@ -294,23 +294,55 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''Parsing from file is not implemented, use fromstring() instead'''
 		raise NotImplementedError
 
+	def get_heading(self):
+		'''Get the heading, if the tree starts with a heading
+		@returns a 2-tuple of text and heading level or C{(None, None)}
+		'''
+		root = self.getroot()
+		children = root.getchildren()
+		if children:
+			first = children[0]
+			if first.tag == 'h':
+				return first.text, int(first.attrib['level'])
+
 	def set_heading(self, text, level=1):
 		'''Set the first heading of the parse tree to 'text'. If the tree
 		already has a heading of the specified level or higher it will be
 		replaced. Otherwise the new heading will be prepended.
 		'''
+		self.pop_heading(level)
+
+		root = self.getroot()
+		heading = ElementTreeModule.Element('h', {'level': level})
+		heading.text = text
+		heading.tail = root.text
+		root.text = None
+		root.insert(0, heading)
+
+	def pop_heading(self, level=-1):
+		'''If the tree starts with a heading, remove it and any trailing
+		whitespace.
+		Will modify the tree.
+		@returns a 2-tuple of text and heading level or C{(None, None)}
+		'''
 		root = self.getroot()
 		children = root.getchildren()
-		tail = "\n"
+		if root.text and not root.text.isspace():
+			return None, None
+
 		if children:
 			first = children[0]
-			if first.tag == 'h' and first.attrib['level'] >= level:
-				tail = first.tail # Keep trailing text
-				root.remove(first)
-		heading = Element('h', {'level': level})
-		heading.text = text
-		heading.tail = tail
-		root.insert(0, heading)
+			if first.tag == 'h':
+				mylevel = int(first.attrib['level'])
+				if level == -1 or mylevel <= level:
+					root.remove(first)
+					if first.tail and not first.tail.isspace():
+						root.text = first.tail # Keep trailing text
+					return first.text, mylevel
+				else:
+					return None, None
+			else:
+				return None, None
 
 	def cleanup_headings(self, offset=0, max=6):
 		'''Change the heading levels throughout the tree. This makes sure that
@@ -424,24 +456,15 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''Visit all nodes of this tree
 		@param visitor: a L{Visitor} or L{Builder} object
 		'''
-		self._visit(visitor, self.getroot())
-
-	def visit_all(self, match, visitor):
-		'''Visit sub-nodes of a tree
-		Only visits nodes that match C{match} and than decents
-		@param match: the match type to visit
-		@param visitor: a L{Visitor} or L{Builder} object
-		'''
-		for node in node.findall(match):
-			self._visit(visitor, node)
+		try:
+			self._visit(visitor, self.getroot())
+		except VisitorStop:
+			pass
 
 	def _visit(self, visitor, node):
-		# Call start(), text(), end() or span() and object() on the
-		# visitor object
-		# If VISITOR_SKIP_NODE is returned, do not continue with this
-		# branch.
-		if len(node): # Has children
-			if visitor.start(node.tag, node.attrib) != VISITOR_SKIP_NODE:
+		try:
+			if len(node): # Has children
+				visitor.start(node.tag, node.attrib)
 				if node.text:
 					visitor.text(node.text)
 				for child in node:
@@ -449,20 +472,19 @@ class ParseTree(ElementTreeModule.ElementTree):
 					if child.tail:
 						visitor.text(child.tail)
 				visitor.end(node.tag)
-		elif node.text:
-			visitor.span(node.tag, node.attrib, node.text)
-		else:
-			visitor.object(node.tag, node.attrib)
-
+			elif node.text:
+				visitor.span(node.tag, node.attrib, node.text)
+			else:
+				visitor.object(node.tag, node.attrib)
+		except VisitorSkip:
+			pass
 
 class ParseTreeBuilder(Builder):
 	'''Builder object that builds a L{ParseTree}'''
 
-	ROOT = 'zim-tree'
-
-	def __init__(self):
+	def __init__(self, partial=False):
+		self.partial = partial
 		self._b = ElementTreeModule.TreeBuilder()
-		self._b.start(self.ROOT)
 		self.stack = [] #: keeps track of current open elements
 		self._last_char = None
 
@@ -471,7 +493,6 @@ class ParseTreeBuilder(Builder):
 		Can only be called once, after calling this method the object
 		can not be re-used.
 		'''
-		self._b.end(self.ROOT)
 		root = self._b.close()
 		return zim.formats.ParseTree(root)
 
@@ -494,9 +515,11 @@ class ParseTreeBuilder(Builder):
 		if tag != self.stack[-1]:
 			raise AssertionError, 'Unmatched tag closed: %s' % tag
 
-		if tag in BLOCK_LEVEL and self._last_char is not None:
+		if tag in BLOCK_LEVEL and self._last_char is not None and not self.partial:
 			assert self._last_char == '\n', 'Block level text needs to end with newline'
 			self._last_char = None
+		# TODO if partial only allow missing \n at end of tree,
+		# delay message and trigger if not followed by get_parsetree ?
 
 		self._b.end(tag)
 		self.stack.pop()
@@ -595,9 +618,9 @@ class OldParseTreeBuilder(object):
 		# TODO check other mandatory properties !
 
 		if attrib:
-			self._last = Element(tag, attrib)
+			self._last = ElementTreeModule.Element(tag, attrib)
 		else:
-			self._last = Element(tag)
+			self._last = ElementTreeModule.Element(tag)
 
 		if self._stack:
 			self._stack[-1].append(self._last)
@@ -703,7 +726,7 @@ class OldParseTreeBuilder(object):
 						self._last.text = line
 						self._last.tail = '\n'
 						attrib = self._last.attrib.copy()
-						self._last = Element(self._last.tag, attrib)
+						self._last = ElementTreeModule.Element(self._last.tag, attrib)
 						self._stack[-2].append(self._last)
 						self._stack[-1] = self._last
 					else:

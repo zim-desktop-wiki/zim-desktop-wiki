@@ -6,6 +6,9 @@
 
 import re
 
+import zim.parser
+from zim.parser import prepare_text, Rule
+
 from zim.formats import *
 from zim.parsing import TextBuffer, url_re
 
@@ -42,28 +45,26 @@ class Parser(ParserClass):
 
 	# TODO parse markdown style headers
 
-	def parse(self, input):
-		if isinstance(input, basestring):
-			input = input.splitlines(True)
+	def parse(self, input, partial=False):
+		if not isinstance(input, basestring):
+			input = ''.join(input)
 
-		input = url_re.sublist(
-			lambda match: ('link', {'href':match[1]}, match[1]) , input)
+		if not partial:
+			input = prepare_text(input)
 
+		parser = zim.parser.Parser(
+			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
+		)
 
-		builder = TreeBuilder()
-		builder.start('zim-tree')
+		builder = ParseTreeBuilder(partial=partial)
+		builder.start(FORMATTEDTEXT)
+		parser(builder, input)
+		builder.end(FORMATTEDTEXT)
+		return builder.get_parsetree()
 
-		for item in input:
-			if isinstance(item, tuple):
-				tag, attrib, text = item
-				builder.start(tag, attrib)
-				builder.data(text)
-				builder.end(tag)
-			else:
-				builder.data(item)
-
-		builder.end('zim-tree')
-		return ParseTree(builder.close())
+	@staticmethod
+	def parse_url(builder, text):
+		builder.span(LINK, {'href': text}, text)
 
 
 class Dumper(DumperClass):

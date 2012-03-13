@@ -33,7 +33,7 @@ from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
 from zim.config import config_file
 from zim.formats import get_format, increase_list_iter, \
-	ParseTree, TreeBuilder, OldParseTreeBuilder, \
+	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, ErrorDialog, \
@@ -2013,7 +2013,7 @@ class TextBuffer(gtk.TextBuffer):
 			attrib = {'partial': True}
 
 		if raw:
-			builder = TreeBuilder()
+			builder = ElementTreeModule.TreeBuilder()
 			attrib['raw'] = True
 			builder.start('zim-tree', attrib)
 		else:

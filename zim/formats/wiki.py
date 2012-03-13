@@ -74,14 +74,24 @@ class WikiParser(object):
 	# text.
 
 	def __init__(self):
+		self.inline_parser = self._init_inline_parse()
+		self.list_and_indent_parser = self._init_intermediate_parser()
+		self.block_parser = self._init_block_parser()
+
+	def __call__(self, builder, text):
+		builder.start(FORMATTEDTEXT)
+		self.block_parser(builder, text)
+		builder.end(FORMATTEDTEXT)
+
+	def _init_inline_parse(self):
 		# Rules for inline formatting, links and tags
-		self.inline_parser = (
+		return (
 			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(LINK, r'\[\[(?!\[)(.*?)\]\]', process=self.parse_link)
 			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
-			| Rule(ITALIC, r'//(?!/)(.*?)//')
-			| Rule(BOLD, r'\*\*(?!\*)(.*?)\*\*')
+			| Rule(EMPHASIS, r'//(?!/)(.*?)//')
+			| Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*')
 			| Rule(MARK, r'__(?!_)(.*?)__')
 			| Rule(SUBSCRIPT, r'_\{(?!~)(.+?)\}')
 			| Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}')
@@ -89,8 +99,11 @@ class WikiParser(object):
 			| Rule(VERBATIM, r"''(?!')(.+?)''")
 		)
 
+	def _init_intermediate_parser(self):
 		# Intermediate level, breaks up lists and indented blocks
-		self.list_and_indent_parser = Parser(
+		# TODO: deprecate this by taking lists out of the para
+		#       and make a new para for each indented block
+		p = Parser(
 			Rule(
 				'X-Bullet-List',
 				r'(^%s.*\n(?:^\t*%s.*\n)*)' % (bullet_pattern, bullet_pattern),
@@ -107,10 +120,12 @@ class WikiParser(object):
 				process=self.parse_indent
 			),
 		)
-		self.list_and_indent_parser.process_unmatched = self.inline_parser
+		p.process_unmatched = self.inline_parser
+		return p
 
+	def _init_block_parser(self):
 		# Top level parser, to break up block level items
-		self.parser = Parser(
+		p = Parser(
 			Rule(VERBATIM_BLOCK, r'''
 				^(?P<pre_indent>\t*) \'\'\' \s*?				# 3 "'"
 				( (?:^.*\n)*? )									# multi-line text
@@ -130,11 +145,8 @@ class WikiParser(object):
 				process=self.parse_heading
 			),
 		)
-		self.parser.process_unmatched = self.parse_para
-
-
-	def __call__(self, builder, text):
-		self.parser(builder, text) # Just proxy
+		p.process_unmatched = self.parse_para
+		return p
 
 	@staticmethod
 	def parse_heading(builder, text):

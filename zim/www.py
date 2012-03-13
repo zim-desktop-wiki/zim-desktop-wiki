@@ -31,7 +31,7 @@ from zim import NotebookInterface
 from zim.errors import Error
 from zim.notebook import Path, Page, IndexPage, PageNameError
 from zim.fs import File, Dir, FileNotFoundError
-from zim.formats import ParseTree, TreeBuilder, BaseLinker
+from zim.formats import BaseLinker
 from zim.config import data_file
 from zim.stores import encode_filename
 from zim.parsing import url_encode
