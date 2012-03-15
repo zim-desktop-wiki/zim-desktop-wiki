@@ -691,6 +691,8 @@ class Notebook(gobject.GObject):
 	@ivar lock: An L{AsyncLock} for async notebook operations
 	@ivar profile: The name of the profile used by the notebook (empty means
 	default profile)
+	@ivar profile_changed: Flag indicating if the profile was changed and the
+	new one has to be loaded
 
 	In general this lock is not needed when only reading data from
 	the notebook. However it should be used when doing operations that

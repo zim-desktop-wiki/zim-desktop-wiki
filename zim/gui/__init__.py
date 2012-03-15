@@ -1180,6 +1180,7 @@ class GtkInterface(NotebookInterface):
 		for action in ('open_document_root', 'open_document_folder'):
 			action = self.actiongroup.get_action(action)
 			action.set_sensitive(has_doc_root)
+			# check if the profile was changed, and load the new one
 			if notebook.profile_changed:
 				logger.debug('Profile changed to "%s"', notebook.profile)
 				notebook.profile_changed = False # clear the flag

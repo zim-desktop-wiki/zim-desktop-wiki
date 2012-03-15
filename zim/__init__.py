@@ -535,7 +535,17 @@ class NotebookInterface(gobject.GObject):
 		gobject.GObject.__init__(self)
 		self.notebook = None
 		self.plugins = []
-		self.base_plugins = None
+
+		# Here we'll keep the list of the base plugins, i.e., those configured
+		# in the general preferences.conf, or the default ones. This is 
+		# needed in two scenarios:
+		#   - When opening a Notebook, firt we'll load only the 'independent'
+		#     plugins, and will keep only those in the preferences. When the
+		#     profile is loaded, we'll need the complete list of plugins that
+		#     we were supposed to load.
+		#   - When changing to a profile that doesn't exist yet, we'll need
+		#     to know which are the base/default ones
+		self._base_plugins = None
 
 		self.preferences = config_file('preferences.conf')
 		self.uistate = None
@@ -557,12 +567,9 @@ class NotebookInterface(gobject.GObject):
 		plugins = self.preferences['General']['plugins']
 		plugins = set(plugins) # Eliminate doubles
 
-		# Keep a record of the configured plugins. If we are called with
-		# independent_only=True, most probably the Notebook has not been
-		# opened yet, so we don't know if it has its own profile. If it
-		# hasn't, we will have to load later all the ignored plugins later on
-		if independent_only or self.base_plugins is None:
-			self.base_plugins = sorted(plugins)
+		# Keep the base/default plugins
+		if independent_only or self._base_plugins is None:
+			self._base_plugins = sorted(plugins)
 
 		# Plugins should not have dependency on order of being added
 		# but sort them here to make behavior predictable.
@@ -717,19 +724,24 @@ class NotebookInterface(gobject.GObject):
 		'''
 		assert not self.notebook is None, 'BUG: Must open a notebook first'
 
-		# if changing the profile, always start from the base plugins
+		# restore the complete list of base/default plugins, if needed
+		# this is important if we are changing the profile (maybe the new one
+		# does not exist yet) or if we don't have a profile (we are either
+		# opening the notebook, or going back to the default profile)
 		if (profile_changed or not self.notebook.profile) and \
-	                               self.base_plugins is not None:
-			self.preferences['General']['plugins'] = self.base_plugins
+	                               self._base_plugins is not None:
+			self.preferences['General']['plugins'] = self._base_plugins
 
 		profile = None
 		if self.notebook.profile:
+			# use a specific profile. If it exists, merge its preferences
 			logger.debug('Using profile %s', self.notebook.profile)
 			file = XDG_CONFIG_HOME.file(('zim','profiles',self.notebook.profile + '.conf'))
 			if file.exists():
 				profile = ConfigDictFile(file)
 				self._merge_profile_preferences(profile)
 		else:
+			# use the general/base profile
 			logger.debug('Using the base profile')
 			base_profile = config_file('preferences.conf')
 			file = base_profile.file
@@ -738,23 +750,27 @@ class NotebookInterface(gobject.GObject):
 
 		if profile_changed or profile:
 			# unload any loaded plugins not present in the merged
-			# preferenfces. This allows changing the profile after
-			# opening the notebook
+			# preferenfces. If we are changing the profile, or have just
+			# loaded a specific one, we might have loaded plugins that don't
+			# belong to this configuration
 			for plugin in [p for p in self.plugins if p.plugin_key not in self.preferences['General']['plugins']]:
 				# we don't use unload_plugin because it would trigger
-				# a preferences.write()
+				# a preferences.write() !!!
 				plugin.disconnect()
 				self.plugins.remove(plugin)
 				logger.debug('Unloaded plugin %s', plugin.plugin_key)
 
-		# Load the plugins
+		# Load the plugins. This will pull the non-independent plugins
+		# when opening a Notebook, or the complete set of plugins configured
+		# for the profile we're just loading
 		self.load_plugins()
 
-		# use the loaded profile to store the preferences
+		# change the file used to store the preferences, if needed
 		if profile_changed or self.notebook.profile:
 			self.preferences.change_file(file)
 			self.emit('preferences-changed')
 			if profile_changed:
+				# refresh the preferences for all the loaded plugins
 				for plugin in self.plugins:
 					plugin.preferences = self.preferences[plugin.__class__.__name__]
 					plugin.emit('preferences-changed')
@@ -773,7 +789,7 @@ class NotebookInterface(gobject.GObject):
 				self.preferences[section] = conf[section]
 				logger.debug('Overriding section %s with with the configured profile', section)
 
-		# replace the preferences for each plugin with the one defined
+		# replace the preferences for each plugin with the ones defined
 		# in the profile. Ignore the profile independent ones.
 		import zim.plugins
 		for name in self.preferences['General']['plugins']:
