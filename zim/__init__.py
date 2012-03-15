@@ -535,6 +535,7 @@ class NotebookInterface(gobject.GObject):
 		gobject.GObject.__init__(self)
 		self.notebook = None
 		self.plugins = []
+		self.base_plugins = None
 
 		self.preferences = config_file('preferences.conf')
 		self.uistate = None
@@ -559,11 +560,9 @@ class NotebookInterface(gobject.GObject):
 		# Keep a record of the configured plugins. If we are called with
 		# independent_only=True, most probably the Notebook has not been
 		# opened yet, so we don't know if it has its own profile. If it
-		# hasn't, we will have to load later all the ignored plugins
-		if independent_only:
-			self._declared_plugins = sorted(plugins)
-		else:
-			self._declared_plugins = []
+		# hasn't, we will have to load later all the ignored plugins later on
+		if independent_only or self.base_plugins is None:
+			self.base_plugins = sorted(plugins)
 
 		# Plugins should not have dependency on order of being added
 		# but sort them here to make behavior predictable.
@@ -704,15 +703,24 @@ class NotebookInterface(gobject.GObject):
 			self.emit('open-notebook', notebook)
 			return None
 
-	def load_profile(self):
+	def load_profile(self, profile_changed=True):
 		'''Load the specific profile for a Notebook.
 
 		If the notebook defines its own profile, update the preferences
 		with it. Check if there are any plugins to load and initialize them.
 
+		@param profile_changed: indicates that the profile is being loaded
+		on top of a previous one. When opening the L{Notebook} it will be
+		False. Any other call should use True
+
 		@emits: preferences-changed
 		'''
 		assert not self.notebook is None, 'BUG: Must open a notebook first'
+
+		# if changing the profile, always start from the base plugins
+		if (profile_changed or not self.notebook.profile) and \
+	                               self.base_plugins is not None:
+			self.preferences['General']['plugins'] = self.base_plugins
 
 		profile = None
 		if self.notebook.profile:
@@ -721,28 +729,35 @@ class NotebookInterface(gobject.GObject):
 			if file.exists():
 				profile = ConfigDictFile(file)
 				self._merge_profile_preferences(profile)
-				# unload any loaded plugins not present in the merged
-				# preferenfces. This allows changing the profile after
-				# opening the notebook
-				for plugin in [p for p in self.plugins if p.plugin_key not in self.preferences['General']['plugins']]:
-					# we don't use unload_plugin because it would trigger
-					# a preferences.write()
-					plugin.disconnect()
-					self.plugins.remove(plugin)
-					logger.debug('Unloaded plugin %s', plugin.plugin_key)
+		else:
+			logger.debug('Using the base profile')
+			base_profile = config_file('preferences.conf')
+			file = base_profile.file
+			if profile_changed:
+				self._merge_profile_preferences(base_profile)
 
-		# If there's no profile, we must try to restore the complete
-		# list of plugins originally configured (see load_plugins())
-		if not profile and hasattr(self, '_declared_plugins'):
-			self.preferences['General']['plugins'] = self._declared_plugins
-			logger.debug('Using the plugins defined in the default profile')
+		if profile_changed or profile:
+			# unload any loaded plugins not present in the merged
+			# preferenfces. This allows changing the profile after
+			# opening the notebook
+			for plugin in [p for p in self.plugins if p.plugin_key not in self.preferences['General']['plugins']]:
+				# we don't use unload_plugin because it would trigger
+				# a preferences.write()
+				plugin.disconnect()
+				self.plugins.remove(plugin)
+				logger.debug('Unloaded plugin %s', plugin.plugin_key)
 
 		# Load the plugins
 		self.load_plugins()
-		
-		if self.notebook.profile:
-			self.preferences.change_file(file) # use the profile for preferences
+
+		# use the loaded profile to store the preferences
+		if profile_changed or self.notebook.profile:
+			self.preferences.change_file(file)
 			self.emit('preferences-changed')
+			if profile_changed:
+				for plugin in self.plugins:
+					plugin.preferences = self.preferences[plugin.__class__.__name__]
+					plugin.emit('preferences-changed')
 
 
 	def _merge_profile_preferences(self, conf):
@@ -756,7 +771,7 @@ class NotebookInterface(gobject.GObject):
 		for section in overridable_sections:
 			if conf.has_key(section):
 				self.preferences[section] = conf[section]
-				logger.debug('Overriding section %s with notebook\'s profile', section)
+				logger.debug('Overriding section %s with with the configured profile', section)
 
 		# replace the preferences for each plugin with the one defined
 		# in the profile. Ignore the profile independent ones.
@@ -773,7 +788,7 @@ class NotebookInterface(gobject.GObject):
 			config_key = klass.__name__
 			if conf.has_key(config_key):
 				self.preferences[config_key] = conf[config_key]
-				logger.debug('Overriding section %s with notebook\'s profile', config_key)
+				logger.debug('Overriding section %s with the configured profile', config_key)
 		# add any independent plugins already loaded to the profile
 		# configuration
 		plugins = self.preferences['General']['plugins']
@@ -795,7 +810,7 @@ class NotebookInterface(gobject.GObject):
 			from zim.config import ConfigDict
 			self.uistate = ConfigDict()
 
-		self.load_profile()
+		self.load_profile(False)
 
 	def cmd_export(self, format='html', template=None, page=None, output=None, root_url=None, index_page=None):
 		'''Convenience method hat wraps L{zim.exporter.Exporter} for

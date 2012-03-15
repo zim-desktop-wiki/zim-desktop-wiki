@@ -726,6 +726,7 @@ class Notebook(gobject.GObject):
 		('interwiki', 'string', _('Interwiki Keyword'), lambda v: not v or is_interwiki_keyword_re.search(v)), # T: label for properties dialog
 		('icon', 'image', _('Icon')), # T: label for properties dialog
 		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
+		('profile', 'string', _('Profile')), # T: label for properties dialog
 		('shared', 'bool', _('Shared Notebook')), # T: label for properties dialog
 		#~ ('autosave', 'bool', _('Auto-version when closing the notebook')),
 			# T: label for properties dialog
@@ -753,6 +754,7 @@ class Notebook(gobject.GObject):
 			# async file operations. This one is more abstract for the
 			# notebook as a whole, regardless of storage
 		self.readonly = True
+		self.profile_changed = False
 
 		if dir:
 			assert isinstance(dir, Dir)
@@ -800,7 +802,7 @@ class Notebook(gobject.GObject):
 		else: endofline = 'unix'
 		self.config['Notebook'].setdefault('endofline', endofline, check=set(('dos', 'unix')))
 		self.config['Notebook'].setdefault('disable_trash', False)
-		self.config['Notebook'].setdefault('profile', None, check=basestring)
+		self.config['Notebook'].setdefault('profile', '', check=basestring)
 
 		self.do_properties_changed()
 
@@ -840,9 +842,8 @@ class Notebook(gobject.GObject):
 
 	@property
 	def profile(self):
-		'''The 'profile' property for this notebook
-		'''
-		return self.config['Notebook']['profile']
+		'''The 'profile' property for this notebook'''
+		return self.config['Notebook'].get('profile', '')
 
 	def _cache_dir(self, dir):
 		from zim.config import XDG_CACHE_HOME
@@ -883,6 +884,11 @@ class Notebook(gobject.GObject):
 		# Set home page as string
 		if 'home' in properties and isinstance(properties['home'], Path):
 			properties['home'] = properties['home'].name
+
+		# When handling properties-changed later, we'll need to know
+		# which is the current profile, to detect if it's changed
+		if 'profile' in properties and properties['profile'] != self.profile:
+			self.profile_changed = True
 
 		self.config['Notebook'].update(properties)
 		self.config.write()

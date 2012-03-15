@@ -260,6 +260,7 @@ class TestDialogs(tests.TestCase):
 			'icon': './icon.png',
 			'document_root': File('/foo').path, # win32 save test
 			'shared': False,
+			'profile': '',
 		}
 		config2 = {
 			'name': 'Notebook Bar',
@@ -268,6 +269,7 @@ class TestDialogs(tests.TestCase):
 			'icon': './picture.png',
 			'document_root': File('/bar').path, # win32 save test
 			'shared': True,
+			'profile': 'foo',
 		}
 		notebook.save_properties(**config1)
 		self.assertEqual(notebook.config['Notebook'], config1)

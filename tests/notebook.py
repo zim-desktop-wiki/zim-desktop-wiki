@@ -852,10 +852,9 @@ class TestProfiles(tests.TestCase):
 		if 'automount' not in interface.preferences['General']['plugins']:
 			interface.preferences['General']['plugins'].append('automount')
 		interface.preferences.write() # ensure the preferences are saved
-		base = XDG_CONFIG_HOME.file('zim/preferences.conf')
-		assert base.exists()
-		pref = ConfigDictFile(base)
-		self.assertTrue('automount' in pref['General']['plugins'])
+		base = config_file('preferences.conf')
+		assert base.file.exists()
+		self.assertTrue('automount' in base['General']['plugins'])
 
 		# recreate the interface ensuring it's loading the automount plugin
 		interface = NotebookInterface(self.notebook)

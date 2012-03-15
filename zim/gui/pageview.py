@@ -4438,20 +4438,20 @@ class PageView(gtk.VBox):
 		self.view.grab_focus()
 
 	def on_preferences_changed(self, ui):
-		if ui.notebook and ui.notebook.profile and (
-		   not self.profile or self.profile != ui.notebook.profile):
+		if ui.notebook and (not self.profile or self.profile != ui.notebook.profile):
 			# the profile has changed. Keep record of the new one
 			# and if there's a style for the profile, use it
 			self.profile = ui.notebook.profile # update current profile
-			file = XDG_CONFIG_HOME.file(('zim','styles',self.profile + '.conf'))
-			if file.exists():
+			if self.profile:
+				file = XDG_CONFIG_HOME.file(('zim','styles',self.profile + '.conf'))
+			if self.profile and file.exists():
 				PageView.style.change_file(file)
 				PageView.style.read()
 				logger.debug('Loaded specific style for profile %s',
 								self.profile)
 			else:
-				logger.debug('No specific style found for profile %s',
-								self.profile)
+				PageView.style = config_file('style.conf')
+				logger.debug('Using the general style')
 		self._reload_style()
 		self.view.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)

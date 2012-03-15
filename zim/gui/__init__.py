@@ -1180,6 +1180,10 @@ class GtkInterface(NotebookInterface):
 		for action in ('open_document_root', 'open_document_folder'):
 			action = self.actiongroup.get_action(action)
 			action.set_sensitive(has_doc_root)
+			if notebook.profile_changed:
+				logger.debug('Profile changed to "%s"', notebook.profile)
+				notebook.profile_changed = False # clear the flag
+				self.load_profile(True) # load the profile
 
 	def open_page(self, path=None):
 		'''Method to open a page in the mainwindow, and menu action for
