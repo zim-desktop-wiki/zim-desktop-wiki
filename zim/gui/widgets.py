@@ -2088,6 +2088,52 @@ class Window(gtkwindowclass):
 		else:
 			raise ValueError, 'Widget not found in this window'
 
+	def get_active_tabs(self):
+		'''Returns a list of titles of the active tabs'''
+		tabs = []
+		widgets = (
+			self._zim_window_left_notebook,
+			self._zim_window_right_notebook,
+			self._zim_window_top_notebook,
+			self._zim_window_bottom_notebook,
+		)
+		for nb in widgets:
+			active = None
+			if nb.get_property('visible'):
+				num = nb.get_current_page()
+				if num >= 0:
+					child = nb.get_nth_page(num)
+					active = nb.get_tab_label_text(child)
+
+			tabs.append(active)
+		return tuple(tabs)
+
+	def set_active_tabs(self, tabs):
+		'''Set active tabs based on a list with titles'''
+		widgets = (
+			self._zim_window_left_notebook,
+			self._zim_window_right_notebook,
+			self._zim_window_top_notebook,
+			self._zim_window_bottom_notebook,
+		)
+		for title, nb in zip(tabs, widgets):
+			if title:
+				for child in nb.get_children():
+					if nb.get_tab_label_text(child) == title:
+						num = nb.page_num(child)
+						nb.set_current_page(num)
+						break
+
+	def get_pane(self, pane):
+		'''Return the C{gtk.VBox} for any of the panes'''
+		panes = {
+			LEFT_PANE: self._zim_window_left,
+			RIGHT_PANE: self._zim_window_right,
+			TOP_PANE: self._zim_window_top,
+			BOTTOM_PANE: self._zim_window_bottom
+		}
+		return panes[pane]
+
 	def pack_start(self, *a):
 		raise NotImplementedError, "Use add() instead"
 

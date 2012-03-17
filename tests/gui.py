@@ -45,6 +45,8 @@ def setupGtkInterface(test, klass=None):
 	for plugin in ui.plugins:
 		plugin.finalize_ui(ui)
 
+	ui.mainwindow.init_uistate()
+
 	return ui
 
 

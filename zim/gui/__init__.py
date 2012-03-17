@@ -2176,7 +2176,6 @@ class MainWindow(Window):
 		self._fullscreen = False
 		self.ui = ui
 
-		ui.connect_after('open-notebook', self.on_open_notebook)
 		ui.connect('open-page', self.on_open_page)
 		ui.connect('close-page', self.on_close_page)
 		ui.connect('preferences-changed', self.do_preferences_changed)
@@ -2481,6 +2480,8 @@ class MainWindow(Window):
 			self.do_toggle_sidepane(show=show)
 
 	def do_toggle_sidepane(self, show=None):
+		from zim.gui.widgets import LEFT_PANE
+
 		if show is None:
 			action = self.actiongroup.get_action('toggle_sidepane')
 			show = action.get_active()
@@ -2489,9 +2490,16 @@ class MainWindow(Window):
 			self.sidepane.set_no_show_all(False)
 			self.sidepane.show_all()
 			self._zim_window_left_pane.set_position(self.uistate['sidepane_pos'])
-			self.pageindex.grab_focus()
+			if self.uistate['active_tabs']:
+				self.set_active_tabs(self.uistate['active_tabs'][:1])
+					# only set first one - which is LEFT_TAB
+				#~ self.get_pane(LEFT_PANE).grab_focus()
+				## FIXME how to force focus on correct child widget ?
+				self.pageindex.grab_focus()
+			else:
+				self.pageindex.grab_focus()
 		else:
-			self.uistate['sidepane_pos'] = self._zim_window_left_pane.get_position()
+			self.save_uistate()
 			self.sidepane.hide_all()
 			self.sidepane.set_no_show_all(True)
 			self.pageview.grab_focus()
@@ -2664,11 +2672,20 @@ class MainWindow(Window):
 		self.ui.set_readonly(readonly)
 		self.uistate['readonly'] = readonly
 
-	def on_open_notebook(self, ui, notebook):
+	def show(self):
+		self.init_uistate()
+		Window.show(self)
+
+	def show_all(self):
+		self.init_uistate()
+		Window.show_all(self)
+
+	def init_uistate(self):
 		# Initialize all the uistate parameters
-		# delayed till here because all this needs real uistate to be in place
+		# delayed till show or show_all because all this needs real
+		# uistate to be in place and plugins to be loaded
 		# also pathbar needs history in place
-		self.uistate = ui.uistate['MainWindow']
+		self.uistate = self.ui.uistate['MainWindow']
 
 		if not self._geometry_set:
 			# Ignore this if an explicit geometry was specified to the constructor
@@ -2682,6 +2699,7 @@ class MainWindow(Window):
 
 		self.uistate.setdefault('show_sidepane', True)
 		self.uistate.setdefault('sidepane_pos', 200)
+		self.uistate.setdefault('active_tabs', None, tuple)
 		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_menubar_fullscreen', True)
 		self.uistate.setdefault('show_toolbar', True)
@@ -2700,13 +2718,16 @@ class MainWindow(Window):
 		self._set_widgets_visable()
 		self.toggle_sidepane(show=self.uistate['show_sidepane'])
 
+		if self.uistate['active_tabs']:
+			self.set_active_tabs(self.uistate['active_tabs'])
+
 		self.set_toolbar_style(self.uistate['toolbar_style'])
 		self.set_toolbar_size(self.uistate['toolbar_size'])
 
 		self.toggle_fullscreen(show=self._set_fullscreen)
 
 		self.uistate.setdefault('readonly', False)
-		if notebook.readonly:
+		if self.ui.notebook.readonly:
 			self.toggle_readonly(readonly=True)
 			action = self.actiongroup.get_action('toggle_readonly')
 			action.set_sensitive(False)
@@ -2714,14 +2735,14 @@ class MainWindow(Window):
 			self.toggle_readonly(readonly=self.uistate['readonly'])
 
 		# And hook to notebook properties
-		self.on_notebook_properties_changed(notebook)
-		notebook.connect('properties-changed', self.on_notebook_properties_changed)
+		self.on_notebook_properties_changed(self.ui.notebook)
+		self.ui.notebook.connect('properties-changed', self.on_notebook_properties_changed)
 
 		# Hook up the statusbar
 		self.ui.connect_after('open-page', self.do_update_statusbar)
 		self.ui.connect_after('readonly-changed', self.do_update_statusbar)
 		self.pageview.connect('modified-changed', self.do_update_statusbar)
-		notebook.connect_after('stored-page', self.do_update_statusbar)
+		self.ui.notebook.connect_after('stored-page', self.do_update_statusbar)
 
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets
@@ -2735,6 +2756,26 @@ class MainWindow(Window):
 			self.toggle_toolbar(show=self.uistate['show_toolbar'])
 			self.toggle_statusbar(show=self.uistate['show_statusbar'])
 			self.set_pathbar(self.uistate['pathbar_type'])
+
+	def save_uistate(self):
+		if not self._fullscreen:
+			self.uistate['windowpos'] = self.get_position()
+			self.uistate['windowsize'] = self.get_size()
+
+		self.uistate['sidepane_pos'] = self._zim_window_left_pane.get_position()
+
+		if self.uistate['active_tabs'] \
+		and len(self.uistate['active_tabs']) == 4:
+			# Merge with last seen tab (hidden sidepane has no active tab)
+			tabs = []
+			for current, last in zip(
+				self.get_active_tabs(),
+				self.uistate['active_tabs'],
+			):
+				tabs.append(current or last)
+			self.uistate['active_tabs'] = tabs
+		else:
+			self.uistate['active_tabs'] = self.get_active_tabs()
 
 	def on_notebook_properties_changed(self, notebook):
 		self.set_title(notebook.name + ' - Zim')
@@ -2771,10 +2812,7 @@ class MainWindow(Window):
 		#TODO: set toggle_readonly insensitive when page is readonly
 
 	def on_close_page(self, ui, page, final):
-		if not self._fullscreen:
-			self.uistate['windowpos'] = self.get_position()
-			self.uistate['windowsize'] = self.get_size()
-		self.uistate['sidepane_pos'] = self._zim_window_left_pane.get_position()
+		self.save_uistate()
 
 	def do_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()

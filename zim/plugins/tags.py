@@ -763,6 +763,7 @@ class TagsPluginWidget(gtk.VPaned):
 		gtk.VPaned.__init__(self)
 		self.plugin = plugin
 
+		self.plugin.uistate.setdefault('vpane_pos', 150)
 		self.plugin.uistate.setdefault('treeview', 'tagged', set(['tagged', 'tags']))
 		self.plugin.uistate.setdefault('tagcloud_sorting', 'score', set(['alpha', 'score']))
 
@@ -790,6 +791,12 @@ class TagsPluginWidget(gtk.VPaned):
 
 	def finalize_notebook(self, notebook):
 		self.tagcloud.set_sorting(self.plugin.uistate['tagcloud_sorting'])
+
+		self.set_position(self.plugin.uistate['vpane_pos'])
+		def update_uistate(*a):
+			self.plugin.uistate['vpane_pos'] = self.get_position()
+		self.connect('notify::position', update_uistate)
+
 		self.reload_model()
 
 	def on_open_page(self, ui, page, path):
