@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 import gtk
 
+import os
 import logging
 
 from zim.fs import File
@@ -21,6 +22,8 @@ from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 # or use their own graphical interfaces, like bzr gdiff
 
 # FUTURE add option to also pull & push versions automatically
+
+# FUTURE add versions... menu item to note right-click
 
 logger = logging.getLogger('zim.plugins.versioncontrol')
 
@@ -66,7 +69,97 @@ class NoChangesError(Error):
 		self.msg = _('No changes since last version')
 		# T: Short error descriotion
 
+class VCS(object):
+	"""
+	This class is the main entry for all Version Control System Stuff.
+	It is a factory, a dependencies checker, the enumeration of supported VCS.
+	
+	@implementation: If you add a VCS backend, then you have to: \
+	- add a file named <your_backend>.py
+	- create there a class inheriting from VersionControlSystemGenericBackend \
+	- add here the stuff to manage it
+	"""
 
+	# Enumeration of all available backends	
+	BZR = _('Bazaar') # T: option value
+	HG  = _('Mercurial') # T: option value
+	GIT = _('Git') # T: option value
+	
+	@classmethod
+	def detect_in_folder(cls, dir): #FIXME - Set a default VCS, default=VCS.BZR):
+		"""Detect if a version control system has already been setup in the folder.
+		It also create the instance by calling the VCS.create() method
+		@param dir: a L{File} instance representing the notebook root folder
+		@returns: a L{VersionControlSystemAlgorithms} instance which will manage the versionning
+		"""
+		# split off because it is easier to test this way
+		vcs = None
+
+		for path in reversed(list(dir)):
+			if path.subdir('.bzr').exists():
+				vcs = VCS.create(VCS.BZR, path)
+			if path.subdir('.hg').exists():
+				vcs = VCS.create(VCS.HG, path)
+			if path.subdir('.git').exists():
+				vcs = VCS.create(VCS.GIT, path)
+			#~ elif path.subdir('.svn'):
+			#~ elif path.subdir('CVS'):
+			else:
+				continue
+
+		if vcs:
+			logger.info('VCS detected: %s', vcs)
+		else:
+			logger.info('No VCS detected')
+
+		return vcs
+
+	@classmethod
+	def get_backend(klass, vcs):
+		"""Return the class of backend to instantiate according to vcs given as parameter.
+		@param vcs: the wanted vcs backend (VCS.BZR, VCS.GIT, VCS.HG, ...)
+		@returns the related backend class. The returned class is a VersionControlSystemGenericBackend child class
+		"""
+		vcs_klass = None
+		if vcs == VCS.BZR:
+			from zim.plugins.versioncontrol.bzr import BZRApplicationBackend
+			vcs_klass = BZRApplicationBackend
+		elif vcs == VCS.HG:
+			from zim.plugins.versioncontrol.hg import HGApplicationBackend
+			vcs_klass = HGApplicationBackend
+		elif vcs == VCS.GIT:
+			from zim.plugins.versioncontrol.git import GITApplicationBackend
+			vcs_klass = GITApplicationBackend
+		else:
+			assert False, 'Unkown VCS: %s' % vcs
+		
+		return vcs_klass
+	
+	
+	@classmethod
+	def create(klass, vcs, dir):
+		"""Build the required instance of a Version Control System
+
+		@param vcs: Version Control System to build (choose between VCS.BZR, VCS.HG, VCS.GIT)
+		@param dir: a L{File} instance representing the notebook root folder
+		@returns: a C{VersionControlSystemAlgorithms} instance setup with the required backend
+		"""
+		new_vcs = None
+		vcs_backend_klass = VCS.get_backend(vcs)
+		from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
+		new_vcs = VersionControlSystemAlgorithms(dir, vcs_backend_klass(dir))
+		
+		return new_vcs
+	
+	@classmethod
+	def check_dependencies(klass, vcs):
+		"""Check if the dependencies for the requested vcs are ok
+		@param vcs: the requested vcs: VCS.BZR, VCS.GIT or VCS.HG
+		@returns: C{True} if dependencies are checked ok.
+		"""
+		return VCS.get_backend(vcs).tryexec()
+
+	
 class VersionControlPlugin(PluginClass):
 
 	plugin_info = {
@@ -74,16 +167,17 @@ class VersionControlPlugin(PluginClass):
 		'description': _('''\
 This plugin adds version control for notebooks.
 
-This plugin is based on the Bazaar version control system.
+This plugin supports the Bazaar, Git and Mercurial version control systems.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-		'author': 'Jaap Karssenberg',
+		'author': 'Jaap Karssenberg & John Drinkwater & Damien Accorsi',
 		'help': 'Plugins:Version Control',
 	}
 
 	plugin_preferences = (
 		('autosave', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
+		('vcsbackend', 'choice', _('Default version control backend'), VCS.BZR, [VCS.BZR, VCS.HG, VCS.GIT]),
 	)
 
 	def __init__(self, ui):
@@ -106,13 +200,24 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		has_bzr = Application(('bzr',)).tryexec()
-		return has_bzr, [('bzr', has_bzr, True)]
+		has_bzr = VCS.check_dependencies(VCS.BZR)
+		has_git  = VCS.check_dependencies(VCS.GIT)
+		has_hg  = VCS.check_dependencies(VCS.HG)
+		#TODO parameterize the return, so that a new backend will be automatically available
+		return has_bzr|has_hg|has_git, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False)]
 
 	def detect_vcs(self):
 		dir = self._get_notebook_dir()
-		self.vcs = self._detect_vcs(dir)
+		self.vcs = VCS.detect_in_folder(dir)
 		if self.vcs:
+			# git requires changes to be added to staging, bzr does not
+			# so add a hook for when page is written, to update staging.
+			#
+			# For a more generic behavior, the update_staging is implemented
+			# for all version control systems. If not required - eg. bzr, hg,
+			# then nothing is done
+			self.ui.notebook.connect_after('stored-page', lambda o, n: self.vcs.update_staging() )
+
 			self.actiongroup.get_action('show_versions').set_sensitive(True)
 			if self.preferences['autosave']:
 				self.autosave()
@@ -125,27 +230,6 @@ This is a core plugin shipping with zim.
 			return notebook.file.dir
 		else:
 			assert 'Notebook is not based on a file or folder'
-
-	@staticmethod
-	def _detect_vcs(dir):
-		# split off because it is easier to test this way
-		vcs = None
-
-		for path in reversed(list(dir)):
-			if path.subdir('.bzr').exists():
-				from zim.plugins.versioncontrol.bzr import BazaarVCS
-				vcs = BazaarVCS(path)
-			#~ elif path.subdir('.svn'):
-			#~ elif path.subdir('CVS'):
-			else:
-				continue
-
-		if vcs:
-			logger.info('VCS detected: %s', vcs)
-		else:
-			logger.info('No VCS detected')
-
-		return vcs
 
 	def autosave(self):
 		assert self.vcs
@@ -163,12 +247,15 @@ This is a core plugin shipping with zim.
 	def save_version(self):
 		if not self.vcs:
 			# TODO choice from multiple version control systems
+			# TODO possibly move this to the plug-in configure pref?
 			if QuestionDialog(self, (
 				_("Enable Version Control?"), # T: Question dialog
 				_("Version control is currently not enabled for this notebook.\n"
 				  "Do you want to enable it?" ) # T: Detailed question
 			) ).run():
-				self.init_vcs('bzr')
+				# Setup the version control system from the default value
+				# TODO : allow to choose between the available ones
+				self.init_vcs(self.preferences['vcsbackend'])
 			else:
 				return
 
@@ -180,11 +267,7 @@ This is a core plugin shipping with zim.
 
 	def init_vcs(self, vcs):
 		dir = self._get_notebook_dir()
-		if vcs == 'bzr':
-			from zim.plugins.versioncontrol.bzr import BazaarVCS
-			self.vcs = BazaarVCS(dir)
-		else:
-			assert False, 'Unkown VCS: %s' % vcs
+		self.vcs = VCS.create(vcs, dir)
 
 		if self.vcs:
 			with self.ui.notebook.lock:
@@ -378,7 +461,18 @@ state. Or select multiple versions to see changes between those versions.
 				diff_button.set_sensitive(True)
 				comp_button.set_sensitive(usepage)
 
+		def on_page_change(o):
+			pagesource = self._get_file()
+			if pagesource:
+				self.versionlist.load_versions(vcs.list_versions(self._get_file()))
+
+		def on_book_change(o):
+			self.versionlist.load_versions(vcs.list_versions())
+
 		self.page_radio.connect('toggled', on_ui_change)
+		self.notebook_radio.connect('toggled', on_book_change)
+		self.page_radio.connect('toggled', on_page_change)
+		self.page_entry.connect('changed', on_page_change)
 		selection = self.versionlist.get_selection()
 		selection.connect('changed', on_ui_change)
 
@@ -436,6 +530,7 @@ state. Or select multiple versions to see changes between those versions.
 		) ).run():
 			self.vcs.revert(file=file, version=version)
 			self.ui.reload_page()
+			# TODO trigger vcs autosave here?
 
 	def show_changes(self):
 		# TODO check for gdiff
@@ -464,7 +559,7 @@ class VersionsTreeView(SingleClickTreeView):
 	# because we utilize multiple selection to select versions for diffs
 
 	def __init__(self):
-		model = gtk.ListStore(int, str, str, str) # rev, date, user, msg
+		model = gtk.ListStore(str, str, str, str) # rev, date, user, msg
 		gtk.TreeView.__init__(self, model)
 
 		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
@@ -481,20 +576,26 @@ class VersionsTreeView(SingleClickTreeView):
 			if i == 0:
 				column.set_expand(True)
 			self.append_column(column)
-
-		model.set_sort_column_id(0, gtk.SORT_DESCENDING)
+		# TODO reconsider this later for other VCS, should be ok for git & bzr
+		model.set_sort_column_id(1, gtk.SORT_DESCENDING)
 			# By default sort by rev
 
 	def load_versions(self, versions):
 		model = self.get_model()
+		model.clear() # Empty for when we update
+		model.set_sort_column_id(1, gtk.SORT_DESCENDING)
+
 		for version in versions:
+			print version
 			model.append(version)
 
 	def get_versions(self):
 		model, rows = self.get_selection().get_selected_rows()
 		if len(rows) == 1:
-			rev = int(model[rows[0]][0])
+			rev = str(model[rows[0]][0])
 			return (rev,)
 		else:
-			rev = map(int, [model[path][0] for path in rows])
-			return (min(rev), max(rev))
+			rev = map(str, [model[path][0] for path in rows])
+			# FIXME this broke non-numerical vcs
+			# return (min(rev), max(rev))
+			return (str(rev[0]), str(rev[-1]))

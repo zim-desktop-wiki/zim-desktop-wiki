@@ -9,25 +9,24 @@ import logging
 
 from zim.fs import FS
 from zim.applications import Application
-from zim.applications import ApplicationError
 from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
 from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
 from zim.plugins.versioncontrol.generic import VersionControlSystemGenericBackend
 
-logger = logging.getLogger('zim.vcs.bzr')
+logger = logging.getLogger('zim.vcs.git')
 
 # TODO document API - use base class
-class BZRApplicationBackend(VersionControlSystemGenericBackend):
+class GITApplicationBackend(VersionControlSystemGenericBackend):
 
 	def __init__(self, root):
 		VersionControlSystemGenericBackend.__init__(self, root)
 		
 	@classmethod
 	def build_bin_application_instance(cls):
-		return Application(('bzr',))
+		return Application(('git',))
 
-	def build_revision_arguments(self, versions):
+	def build_revision_arguments(self, versions, is_for_diff=False):
 		"""Build a list including required string/int for running an VCS command
 		# Accepts: None, int, string, (int,), (int, int)
 		# Always returns a list
@@ -40,20 +39,28 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		-r revision
 		-r rev1..rev2
 		"""
-		if isinstance(versions, (tuple, list)):
-			assert 1 <= len(versions) <= 2
+		if is_for_diff==True:
 			if len(versions) == 2:
-				versions = map(int, versions)
-				versions.sort()
-				return ['-r', '%i..%i' % tuple(versions)]
+				versions.reverse()
+				return ['..'.join(versions)]
+			elif len(versions) == 1:
+				return [versions[0] + '^']
 			else:
-				versions = versions[0]
-
-		if not versions is None:
-			version = int(versions)
-			return ['-r', '%i' % version]
+				return []
 		else:
-			return []
+			if isinstance(versions, (tuple, list)):
+				assert 1 <= len(versions) <= 2
+				if len(versions) == 2:
+					return map(str, versions)
+				else:
+					versions = versions[0]
+
+			if not versions is None:
+				version = str(versions)
+				return [version]
+			else:
+				return []
+
 
 	########
 	#
@@ -61,10 +68,10 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 	
 	def add(self, path=None):
 		"""
-		Runs: bzr add {{PATH}}
+		Runs: git add {{PATH}}
 		"""
 		if path is None:
-			return self.run(['add'])
+			return self.run(['add', '.'])
 		else:
 			return self.run(['add', path])
 		
@@ -72,81 +79,85 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 	def annotate(self, file, version):
 		"""FIXME Document
 		return
-		1 | line1
-		2 | line2
+		0: line1
+		2: line1
 		...
 		"""
 		revision_args = self.build_revision_arguments(version)
-		return self.pipe(['annotate', file] + revision_args)
+		return self.pipe(['blame', '-s', file] + revision_args)
 
 	def cat(self, path, version):
 		"""
-		Runs: bzr cat {{PATH}} {{REV_ARGS}}
+		Runs: git cat {{PATH}} {{REV_ARGS}}
 		"""
 		revision_args = self.build_revision_arguments(version)
-		return self.pipe(['cat', path] + revision_args)
+		return self.pipe(['show', ''.join( [ ''.join(revision_args), ':', path.relpath(self.root) ] )])
 
 	def commit(self, path, msg):
 		"""
-		Runs: bzr commit -m {{MSG}} {{PATH}}
+		Runs: git commit -a -m {{MSG}} {{PATH}}
 		"""
-		params = ['commit']
+		params = ['commit', '-a']
 		if msg!='' and msg!=None:
 			params.append('-m')
 			params.append(msg)
 		if path!='' and path!=None:
+			params.append('--')
 			params.append(path)
 		return self.run(params)
 			
 	def diff(self, versions, path=None):
 		"""
 		Runs:
-			bzr diff {{REVISION_ARGS}} 
+			git diff --no-ext-diff {{REVISION_ARGS}} 
 		or
-			bzr diff {{REVISION_ARGS}} {{PATH}}
+			git diff --no-ext-diff {{REVISION_ARGS}} -- {{PATH}}
 		"""
 		revision_args = self.build_revision_arguments(versions)
+		revision_args = self.build_revision_arguments(revision_args, is_for_diff=True)
 		if path==None:
-			return self.pipe(['diff'] + revision_args)
-			# Using --git option allow to show the renaming of files
+			return self.pipe(['diff', '--no-ext-diff'] + revision_args)
 		else:
-			return self.pipe(['diff', path] + revision_args)
+			return self.pipe(['diff', '--no-ext-diff'] + revision_args + ['--', path])
 
 	def ignore(self, file_to_ignore_regexp):
 		"""
-		Build a .bzrignore file including the file_to_ignore_content
+		Build a .gitignore file including the file_to_ignore_content
 		"""
-		return self.run(['ignore', file_to_ignore_regexp])
-
+		#TODO: append the rule instead of overwrite the full content
+		self.root.file( '.gitignore' ).write( file_to_ignore_regexp )
 
 	def init_repo(self, lock_object):
-		if self.repo_exists()==False:
-			with lock_object:
-				self.init()
-			if self.test_whoami()==False:
-				self.whoami('zim') # set a dummy user "zim"
-			self.ignore('**/.zim/')
-			with lock_object:
-				self.add('.')
-
-	def repo_exists(self):
-		return self.root.subdir('.bzr').exists()
+		with lock_object:
+			self.init()
+		self.ignore(".zim/\n")
+		with lock_object:
+			self.add('.') # add all existing files
 
 	def init(self):
 		"""
-		Runs: bzr init
+		Runs: git init
 		"""
 		return self.run(['init'])
 
+	def is_modified(self):
+		"""Returns true if the repo is not up-to-date, or False
+		@returns: True if the repo is not up-to-date, or False
+		"""
+		# If status return an empty answer, this means the local repo is up-to-date
+		return not (''.join( self.status() ).find( 'nothing to commit' ) > -1) 
+
 	def log(self, path=None):
 		"""
-		Runs: bzr log --forward {{PATH}}
-		the "--forward" option allows to reverse order
+		Runs:
+			git log --date=iso --follow {{PATH}}
+		or
+			git log --date=iso
 		"""
 		if path:
-			return self.pipe(['log', '--forward', path])
+			return self.pipe(['log', '--date=iso', '--follow', path])
 		else:
-			return self.pipe(['log', '--forward'])
+			return self.pipe(['log', '--date=iso'])
 
 	def log_to_revision_list(self, log_op_output):
 		versions = []
@@ -165,93 +176,65 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		# FIXME: there is a bug which will stop parsing if a blank line is included
 		# in the commit message
 		for line in log_op_output:
-			if line.startswith('----'):
+			if line.startswith('commit '):
 				if not rev is None:
 					versions.append((rev, date, user, msg))
 				(rev, date, user, msg) = (None, None, None, None)
-			elif line.startswith('revno: '):
-				value = line[7:].strip()
-				if ' ' in value:
-					# e.g. "revno: 48 [merge]\n"
-					i = value.index(' ')
-					value = value[:i]
-				rev = int(value)
-			elif line.startswith('committer: '):
-				user = line[11:].strip()
-			elif line.startswith('timestamp: '):
-				date = line[11:].strip()
-			elif line.startswith('message:'):
+				seenmsg = False
+				rev = line[7:].strip()
+			elif line.startswith('Author: '):
+				user = line[7:].strip()
+			elif line.startswith('Date: '):
+				date = line[7:].strip()
 				seenmsg = True
 				msg = u''
-			elif seenmsg and line.startswith('  '):
-				msg += line[2:]
+			elif seenmsg and line.startswith(' '):
+				msg += line[4:]
 
 		if not rev is None:
 			versions.append((rev, date, user, msg))
 
+		versions.reverse()
 		return versions
 
 
 	def move(self, oldpath, newpath):
 		"""
-		Runs: bzr mv --after {{OLDPATH}} {{NEWPATH}}
+		Runs: git mv --after {{OLDPATH}} {{NEWPATH}}
 		"""
-		self.run(['add', '--no-recurse', newpath.dir])
-		return self.run(['mv', oldpath, newpath])
-
+		return self.run(['mv', '--after', oldpath, newpath])
 
 	def remove(self, path):
 		"""
-		Runs: bzr rm {{PATH}}
+		Runs: git rm {{PATH}}
 		"""
 		return self.run(['rm', path])
 
 	def revert(self, path, version):
 		"""
 		Runs:
-			bzr revert {{PATH}} {{REV_ARGS}}
+			hg revert {{PATH}} {{REV_ARGS}}
+			is equivalent to
+			git checkout {{REV_ARGS}} -- {{PATH}}
+			
 		or
-			bzr revert {{REV_ARGS}}
+			hg revert --no-backup --all {{REV_ARGS}}
+			is equivalent to
+			git reset --hard HEAD
 		"""
 		revision_params = self.build_revision_arguments(version)
 		if path:
-			return self.run(['revert', path] + revision_params)
+			self.run(['checkout'] + revision_params + ['--', path])
 		else:
-			return self.run(['revert'] + revision_params)
+			self.run(['reset', '--hard', 'HEAD'])
 
 	def stage(self):
-		# Generic interface required by Git.
-		pass
-		
+		self.run(['add', '-u'])
+		self.run(['add', '-A'])
+
 	def status(self):
 		"""
-		Runs: bzr status
+		Runs: git status
 		"""
 		return self.pipe(['status'])
-
-	def whoami(self, user):
-		"""
-		Runs: bzr whoami zim
-		"""
-		return self.pipe(['whoami', user])
-
-	def test_whoami(self):
-		"""return True if the user is is setup or non-zero
-		"""
-		try:
-			return self.run(['whoami'])
-		except ApplicationError, e:
-			return False
-
-
-class BazaarVCS(VersionControlSystemAlgorithms):
-	
-	def __init__(self, dir):
-		vcs_app = BZR(dir)
-		super(BazaarVCS, self).__init__(dir, vcs_app)
-
-	@classmethod
-	def _check_dependencies(klass):
-		"""@see VersionControlSystemAlgorithms.check_dependencies"""
-		return BZR.tryexec()
 

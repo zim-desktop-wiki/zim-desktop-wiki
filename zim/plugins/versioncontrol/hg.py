@@ -9,24 +9,23 @@ import logging
 
 from zim.fs import FS
 from zim.applications import Application
-from zim.applications import ApplicationError
 from zim.async import AsyncOperation
 from zim.plugins.versioncontrol import NoChangesError
 from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
 from zim.plugins.versioncontrol.generic import VersionControlSystemGenericBackend
 
-logger = logging.getLogger('zim.vcs.bzr')
+logger = logging.getLogger('zim.vcs.hg')
 
 # TODO document API - use base class
-class BZRApplicationBackend(VersionControlSystemGenericBackend):
+class HGApplicationBackend(VersionControlSystemGenericBackend):
 
 	def __init__(self, root):
 		VersionControlSystemGenericBackend.__init__(self, root)
 		
 	@classmethod
 	def build_bin_application_instance(cls):
-		return Application(('bzr',))
-
+		return Application(('hg',))
+		
 	def build_revision_arguments(self, versions):
 		"""Build a list including required string/int for running an VCS command
 		# Accepts: None, int, string, (int,), (int, int)
@@ -61,7 +60,7 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 	
 	def add(self, path=None):
 		"""
-		Runs: bzr add {{PATH}}
+		Runs: hg add {{PATH}}
 		"""
 		if path is None:
 			return self.run(['add'])
@@ -72,8 +71,8 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 	def annotate(self, file, version):
 		"""FIXME Document
 		return
-		1 | line1
-		2 | line2
+		0: line1
+		2: line1
 		...
 		"""
 		revision_args = self.build_revision_arguments(version)
@@ -81,14 +80,14 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 
 	def cat(self, path, version):
 		"""
-		Runs: bzr cat {{PATH}} {{REV_ARGS}}
+		Runs: hg cat {{PATH}} {{REV_ARGS}}
 		"""
 		revision_args = self.build_revision_arguments(version)
 		return self.pipe(['cat', path] + revision_args)
 
 	def commit(self, path, msg):
 		"""
-		Runs: bzr commit -m {{MSG}} {{PATH}}
+		Runs: hg commit -m {{MSG}} {{PATH}}
 		"""
 		params = ['commit']
 		if msg!='' and msg!=None:
@@ -101,52 +100,78 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 	def diff(self, versions, path=None):
 		"""
 		Runs:
-			bzr diff {{REVISION_ARGS}} 
+			hg diff --git {{REVISION_ARGS}} 
 		or
-			bzr diff {{REVISION_ARGS}} {{PATH}}
+			hg diff --git {{REVISION_ARGS}} {{PATH}}
 		"""
 		revision_args = self.build_revision_arguments(versions)
 		if path==None:
-			return self.pipe(['diff'] + revision_args)
+			return self.pipe(['diff', '--git'] + revision_args)
 			# Using --git option allow to show the renaming of files
 		else:
-			return self.pipe(['diff', path] + revision_args)
+			return self.pipe(['diff', '--git', path] + revision_args)
+
+	def get_mandatory_params(self):
+		return ['--noninteractive'] # force hg to run in non-interactive mode
+		                            # which will force user name to be auto-setup
 
 	def ignore(self, file_to_ignore_regexp):
 		"""
-		Build a .bzrignore file including the file_to_ignore_content
+		Build a .hgignore file including the file_to_ignore_content
+		@param file_to_ignore_regexp: str representing the .hgignore file content.
+		       this must be a list of regexp defining the file / path to ignore,
+		       separated by a\n char
+		@returns: nothing
 		"""
-		return self.run(['ignore', file_to_ignore_regexp])
+		#TODO: append the rule instead of overwrite the full content
+		self.root.file( '.hgignore' ).write( file_to_ignore_regexp )
 
 
 	def init_repo(self, lock_object):
+		"""Initialize a new repo if it does not exist, otherwise do nothing.
+		The init operation consists in:
+		- running the VCS init command
+		- defining files to ignore
+		- adding all other existing files
+		@returns: nothing
+		"""
 		if self.repo_exists()==False:
 			with lock_object:
 				self.init()
-			if self.test_whoami()==False:
-				self.whoami('zim') # set a dummy user "zim"
-			self.ignore('**/.zim/')
+			self.ignore('\.zim*$\n')
 			with lock_object:
-				self.add('.')
+				self.add('.') # add all existing files
 
 	def repo_exists(self):
-		return self.root.subdir('.bzr').exists()
+		"""Returns True if a repository is already setup, or False
+
+		@returns: a boolean True if a repo is already setup, or False
+		"""
+		return self.root.subdir('.hg').exists()
 
 	def init(self):
 		"""
-		Runs: bzr init
+		Runs: hg init
 		"""
 		return self.run(['init'])
 
+	def is_modified(self):
+		"""Returns true if the repo is not up-to-date, or False
+		@returns: True if the repo is not up-to-date, or False
+		"""
+		# If status return an empty answer, this means the local repo is up-to-date
+		return ''.join( self.status() ).strip() != ''
+
 	def log(self, path=None):
 		"""
-		Runs: bzr log --forward {{PATH}}
-		the "--forward" option allows to reverse order
+		Runs: hg log -r : --verbose {{PATH}}
+		the "-r :" option allows to reverse order
+		--verbose allows to get the entire commit message
 		"""
 		if path:
-			return self.pipe(['log', '--forward', path])
+			return self.pipe(['log', '-r', ':', '--verbose', path])
 		else:
-			return self.pipe(['log', '--forward'])
+			return self.pipe(['log', '-r', ':', '--verbose'])
 
 	def log_to_revision_list(self, log_op_output):
 		versions = []
@@ -165,26 +190,30 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		# FIXME: there is a bug which will stop parsing if a blank line is included
 		# in the commit message
 		for line in log_op_output:
-			if line.startswith('----'):
+			if len(line.strip())==0:
 				if not rev is None:
 					versions.append((rev, date, user, msg))
 				(rev, date, user, msg) = (None, None, None, None)
-			elif line.startswith('revno: '):
-				value = line[7:].strip()
-				if ' ' in value:
-					# e.g. "revno: 48 [merge]\n"
-					i = value.index(' ')
-					value = value[:i]
-				rev = int(value)
-			elif line.startswith('committer: '):
-				user = line[11:].strip()
-			elif line.startswith('timestamp: '):
-				date = line[11:].strip()
-			elif line.startswith('message:'):
+				seenmsg = False
+			elif line.startswith('changeset: '):
+				value = line[13:].strip()
+				# In case of mercurial, the revision number line
+				# is something like this:
+				# changeset:   6:1d4a428e22d9
+				#
+				# instead of (for bzr) like that:
+				# e.g. "revno: 48 [merge]\n"
+				rev = value.split(":")[0]
+				
+			elif line.startswith('user: '):
+				user = line[13:].strip()
+			elif line.startswith('date: '):
+				date = line[13:].strip()
+			elif line.startswith('description:'):
 				seenmsg = True
 				msg = u''
-			elif seenmsg and line.startswith('  '):
-				msg += line[2:]
+			elif seenmsg:
+				msg += line
 
 		if not rev is None:
 			versions.append((rev, date, user, msg))
@@ -194,30 +223,28 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 
 	def move(self, oldpath, newpath):
 		"""
-		Runs: bzr mv --after {{OLDPATH}} {{NEWPATH}}
+		Runs: hg mv --after {{OLDPATH}} {{NEWPATH}}
 		"""
-		self.run(['add', '--no-recurse', newpath.dir])
-		return self.run(['mv', oldpath, newpath])
-
+		return self.run(['mv', '--after', oldpath, newpath])
 
 	def remove(self, path):
 		"""
-		Runs: bzr rm {{PATH}}
+		Runs: hg rm {{PATH}}
 		"""
 		return self.run(['rm', path])
 
 	def revert(self, path, version):
 		"""
 		Runs:
-			bzr revert {{PATH}} {{REV_ARGS}}
+			hg revert --no-backup {{PATH}} {{REV_ARGS}}
 		or
-			bzr revert {{REV_ARGS}}
+			hg revert --no-backup --all {{REV_ARGS}}
 		"""
 		revision_params = self.build_revision_arguments(version)
 		if path:
-			return self.run(['revert', path] + revision_params)
+			return self.run(['revert', '--no-backup', path] + revision_params)
 		else:
-			return self.run(['revert'] + revision_params)
+			return self.run(['revert', '--no-backup', '--all'] + revision_params)
 
 	def stage(self):
 		# Generic interface required by Git.
@@ -225,33 +252,7 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		
 	def status(self):
 		"""
-		Runs: bzr status
+		Runs: hg status
 		"""
 		return self.pipe(['status'])
-
-	def whoami(self, user):
-		"""
-		Runs: bzr whoami zim
-		"""
-		return self.pipe(['whoami', user])
-
-	def test_whoami(self):
-		"""return True if the user is is setup or non-zero
-		"""
-		try:
-			return self.run(['whoami'])
-		except ApplicationError, e:
-			return False
-
-
-class BazaarVCS(VersionControlSystemAlgorithms):
-	
-	def __init__(self, dir):
-		vcs_app = BZR(dir)
-		super(BazaarVCS, self).__init__(dir, vcs_app)
-
-	@classmethod
-	def _check_dependencies(klass):
-		"""@see VersionControlSystemAlgorithms.check_dependencies"""
-		return BZR.tryexec()
 
