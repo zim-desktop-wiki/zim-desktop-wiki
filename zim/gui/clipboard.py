@@ -326,9 +326,7 @@ class ParseTreeItem(ClipboardItem):
 			selectiondata.set(selectiondata.target, 8, html)
 		elif id == TEXT_TARGET_ID:
 			logger.debug("Clipboard requested text, we provide '%s'" % self.format)
-			if self.format in ('wiki', 'plain'):
-				dumper = get_format(self.format).Dumper()
-			else:
+			if self.format != 'wiki':
 				# FIXME - HACK - dump and parse as wiki first to work
 				# around glitches in pageview parsetree dumper
 				# main visibility when copy pasting bullet lists
@@ -338,9 +336,17 @@ class ParseTreeItem(ClipboardItem):
 				parser = get_format('wiki').Parser()
 				parsetree = parser.parse(text)
 				#--
+			else:
+				parsetree = self.parsetree
+			#~ print ">>>>", self.format, parsetree.tostring()
+
+			if self.format in ('wiki', 'plain'):
+				dumper = get_format(self.format).Dumper()
+			else:
 				dumper = get_format(self.format).Dumper(
 					linker=StaticLinker(self.format, self.notebook, self.path) )
-			text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
+
+			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
 			selectiondata.set_text(text)
 		else:
 			assert False, 'Unknown target id %i' % id
