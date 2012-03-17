@@ -17,6 +17,37 @@ from zim.gui.clipboard import Clipboard
 import zim.gui
 
 
+def setupGtkInterface(test, klass=None):
+	'''Setup a new GtkInterface object for testing.
+	Will have test notebook, and default preferences.
+	@param test: the test that wants to use this ui object
+	@param klass: the klass to use, defaults to L{GtkInterface}, but
+	could be partially mocked subclass
+	'''
+	if klass is None:
+		klass = zim.gui.GtkInterface
+
+	# start filtering
+	filter = FilterNoSuchImageWarning()
+	filter.wrap_test(test)
+
+	# flush preferences
+	preferences = config_file('preferences.conf')
+	preferences.file.remove()
+
+	# create interface object with new notebook
+	dirpath = test.get_tmp_name()
+	notebook = tests.new_notebook(fakedir=dirpath)
+	path = Path('Test:foo:bar')
+	ui = klass(notebook=notebook, page=path)
+
+	# finalize plugins
+	for plugin in ui.plugins:
+		plugin.finalize_ui(ui)
+
+	return ui
+
+
 @tests.slowTest
 class TestDialogs(tests.TestCase):
 
@@ -355,23 +386,7 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 class TestGtkInterface(tests.TestCase):
 
 	def setUp(self):
-		# start filtering
-		filter = FilterNoSuchImageWarning()
-		filter.wrap_test(self)
-
-		# flush preferences
-		preferences = config_file('preferences.conf')
-		preferences.file.remove()
-
-		# create interface object with new notebook
-		dirpath = self.get_tmp_name()
-		notebook = tests.new_notebook(fakedir=dirpath)
-		path = Path('Test:foo:bar')
-		self.ui = zim.gui.GtkInterface(notebook=notebook, page=path)
-
-		# finalize plugins
-		for plugin in self.ui.plugins:
-			plugin.finalize_ui(self.ui)
+		self.ui = setupGtkInterface(self)
 
 	def tearDown(self):
 		self.ui.close()
@@ -555,6 +570,56 @@ class TestGtkInterface(tests.TestCase):
 	def testClipboard(self):
 		self.ui.copy_location()
 		self.assertEqual(Clipboard.get_text(), 'Test:foo:bar')
+
+
+#~ @tests.slowTest
+#~ class TestGtkInterfaceOpenURL(tests.TestCase):
+#~
+	#~ def setUp(self):
+		#~ class MyMock(zim.gui.GtkInterface, tests.MockObject):
+#~
+			#~ def __init__(self, *arg, **kwarg):
+				#~ zim.gui.GtkInterface.__init__(self, *arg, **kwarg)
+				#~ tests.MockObject.__init__(self)
+				#~ for method in (
+					#~ 'open_file',
+					#~ 'open_with',
+					#~ 'open_notebook',
+				#~ ):
+					#~ self.mock_method(method, None)
+#~
+		#~ self.ui = setupGtkInterface(self, klass=MyMock)
+#~
+	#~ def tearDown(self):
+		#~ self.ui.close()
+#~
+	#~ def runTest(self):
+		#~ for href, type in (
+			#~ ('zim+file://foo/bar?dus.txt', 'notebook'),
+			#~ ('file://foo/bar', 'file'),
+			#~ ('http://foo/bar', 'http'),
+			#~ ('http://192.168.168.100', 'http'),
+			#~ ('file+ssh://foo/bar', 'file+ssh'),
+			#~ ('mailto:foo@bar.com', 'mailto'),
+			#~ ('mailto:foo.com', 'page'),
+			#~ ('foo@bar.com', 'mailto'),
+			#~ ('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
+			#~ ('mid:foo@bar.org', 'mid'),
+			#~ ('cid:foo@bar.org', 'cid'),
+			#~ ('./foo/bar', 'file'),
+			#~ ('/foo/bar', 'file'),
+			#~ ('~/foo', 'file'),
+			#~ ('C:\\foo', 'file'),
+			#~ ('wp?foo', 'interwiki'),
+			#~ ('http://foo?bar', 'http'),
+			#~ ('\\\\host\\foo\\bar', 'smb'),
+			#~ ('foo', 'page'),
+			#~ ('foo:bar', 'page'),
+		#~ ):
+			#~ self.ui.open_url(href)
+#~
+		#~ print self.ui.mock_calls
+
 
 
 @tests.slowTest

@@ -653,7 +653,7 @@ class ConfigDict(ListDict):
 					value = self._decode_value(parameter, value.lstrip())
 					section[parameter] = value
 				except:
-					logger.warn('Failed to parse value for: %s', parameter)
+					logger.exception('Failed to parse value for: %s', parameter)
 			else:
 				logger.warn('Could not parse line: %s', line)
 
@@ -678,7 +678,7 @@ class ConfigDict(ListDict):
 				return value
 			except: pass
 
-			return json.loads('"%s"' % value.replace('"', '\\"')) # force string
+			return json.loads('"%s"' % value.replace('"', '\"')) # force string
 
 	def dump(self):
 		'''Serialize the config to a "ini-style" config file.

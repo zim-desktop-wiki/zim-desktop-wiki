@@ -91,6 +91,10 @@ class TestApplications(tests.TestCase):
 		self.assertEqual(exe, sys.executable)
 		self.assertEqual(cmd, ZIM_EXECUTABLE)
 
+	# TODO fully test _decode_value
+	# test e.g. values with '"' or '\t' in a string
+	# see that json.loads does what it is supposed to do
+
 
 @tests.slowTest
 class TestCustomTools(tests.TestCase):

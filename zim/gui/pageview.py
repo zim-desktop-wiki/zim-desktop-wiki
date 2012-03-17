@@ -4922,6 +4922,9 @@ class PageView(gtk.VBox):
 			elif type == 'notebook':
 				self.ui.open_notebook(href)
 			else:
+				if type == 'mailto' \
+				and not href.startswith('mailto:'):
+					href = 'mailto:' + href
 				self.ui.open_url(href)
 		except Exception, error:
 			ErrorDialog(self.ui, error).run()
