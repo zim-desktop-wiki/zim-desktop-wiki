@@ -305,7 +305,10 @@ class SocketDaemon(object):
 			gobject.MainLoop().quit()
 			# HACK just calling MainLoop.quit()should be enough..
 			self.stop()
-			os.unlink(self.pidfile)
+			try:
+				os.unlink(self.pidfile)
+			except:
+				logger.exception("Could not clean up pid file")
 			os._exit(0)
 		return False # in case we are called from event
 
