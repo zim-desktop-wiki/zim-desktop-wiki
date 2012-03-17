@@ -572,54 +572,90 @@ class TestGtkInterface(tests.TestCase):
 		self.assertEqual(Clipboard.get_text(), 'Test:foo:bar')
 
 
-#~ @tests.slowTest
-#~ class TestGtkInterfaceOpenURL(tests.TestCase):
-#~
-	#~ def setUp(self):
-		#~ class MyMock(zim.gui.GtkInterface, tests.MockObject):
-#~
-			#~ def __init__(self, *arg, **kwarg):
-				#~ zim.gui.GtkInterface.__init__(self, *arg, **kwarg)
-				#~ tests.MockObject.__init__(self)
-				#~ for method in (
-					#~ 'open_file',
-					#~ 'open_with',
-					#~ 'open_notebook',
-				#~ ):
-					#~ self.mock_method(method, None)
-#~
-		#~ self.ui = setupGtkInterface(self, klass=MyMock)
-#~
-	#~ def tearDown(self):
-		#~ self.ui.close()
-#~
-	#~ def runTest(self):
-		#~ for href, type in (
-			#~ ('zim+file://foo/bar?dus.txt', 'notebook'),
-			#~ ('file://foo/bar', 'file'),
-			#~ ('http://foo/bar', 'http'),
-			#~ ('http://192.168.168.100', 'http'),
-			#~ ('file+ssh://foo/bar', 'file+ssh'),
-			#~ ('mailto:foo@bar.com', 'mailto'),
-			#~ ('mailto:foo.com', 'page'),
-			#~ ('foo@bar.com', 'mailto'),
-			#~ ('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
-			#~ ('mid:foo@bar.org', 'mid'),
-			#~ ('cid:foo@bar.org', 'cid'),
-			#~ ('./foo/bar', 'file'),
-			#~ ('/foo/bar', 'file'),
-			#~ ('~/foo', 'file'),
-			#~ ('C:\\foo', 'file'),
-			#~ ('wp?foo', 'interwiki'),
-			#~ ('http://foo?bar', 'http'),
-			#~ ('\\\\host\\foo\\bar', 'smb'),
-			#~ ('foo', 'page'),
-			#~ ('foo:bar', 'page'),
-		#~ ):
-			#~ self.ui.open_url(href)
-#~
-		#~ print self.ui.mock_calls
+@tests.slowTest
+class TestClickLink(tests.TestCase):
+	'''Test to check pageview and GtkInterface play together nicely when
+	a link is clicked
+	'''
 
+	def setUp(self):
+		class MyMock(zim.gui.GtkInterface, tests.MockObjectBase):
+
+			def __init__(self, *arg, **kwarg):
+				zim.gui.GtkInterface.__init__(self, *arg, **kwarg)
+				tests.MockObjectBase.__init__(self)
+				for method in (
+					'open_file',
+					'open_with',
+					'open_notebook',
+					'open_page',
+				):
+					self.mock_method(method, None)
+
+		self.ui = setupGtkInterface(self, klass=MyMock)
+
+	def tearDown(self):
+		self.ui.close()
+
+	def runTest(self):
+		self.assertRaises(AssertionError, self.ui.open_url, 'foo@bar.com')
+			# this is not a URI, "mailto:foo@bar.com" is
+
+		# Note: same list of test uris is testing in tests.parsing as well
+		for href, type in (
+			('zim+file://foo/bar?dus.txt', 'notebook'),
+			('file:///foo/bar', 'file'),
+			('http://foo/bar', 'http'),
+			('http://192.168.168.100', 'http'),
+			('file+ssh://foo/bar', 'file+ssh'),
+			('mailto:foo@bar.com', 'mailto'),
+			('mailto:foo.com', 'page'),
+			('foo@bar.com', 'mailto'),
+			('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('mid:foo@bar.org', 'mid'),
+			('cid:foo@bar.org', 'cid'),
+			('./foo/bar', 'file'),
+			('/foo/bar', 'file'),
+			('~/foo', 'file'),
+			('C:\\foo', 'file'),
+			('wp?foo', 'interwiki'),
+			('http://foo?bar', 'http'),
+			('\\\\host\\foo\\bar', 'smb'),
+			('foo', 'page'),
+			('foo:bar', 'page'),
+		):
+			#~ self.ui.open_url(href)
+			self.ui.mainwindow.pageview.do_link_clicked({'href': href})
+			msg = "Clicked: %s\nResulted in: %s" % (href, self.ui.mock_calls[-1])
+			if type == 'notebook':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_notebook', msg=msg)
+			elif type == 'page':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_page', msg=msg)
+			elif type == 'file':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_file', msg=msg)
+			elif type == 'mailto':
+				self.assertTrue(self.ui.mock_calls[-1][0:2] == ('open_with', 'email_client'), msg=msg)
+			else:
+				self.assertTrue(self.ui.mock_calls[-1][0:2] == ('open_with', 'web_browser'), msg=msg)
+			self.ui.mock_calls = [] # reset
+
+		# Some more tests that may not be covered above
+		for href, type in (
+			('zim+file://foo/bar?dus.txt', 'notebook'),
+			('file:///foo/bar', 'file'),
+			('mailto:foo@bar.com', 'mailto'),
+		):
+			self.ui.open_url(href)
+			msg = "open_url('%s')\nResulted in: %s" % (href, self.ui.mock_calls[-1])
+			if type == 'notebook':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_notebook', msg=msg)
+			elif type == 'file':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_file', msg=msg)
+			elif type == 'mailto':
+				self.assertTrue(self.ui.mock_calls[-1][0:2] == ('open_with', 'email_client'), msg=msg)
+			self.ui.mock_calls = [] # reset
+
+		# TODO test plugin with custom handler
 
 
 @tests.slowTest

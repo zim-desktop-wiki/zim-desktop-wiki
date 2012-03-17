@@ -27,7 +27,7 @@ from zim.notebook import Path, Page
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord
-from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re, is_url_re
+from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
@@ -670,7 +670,8 @@ class GtkInterface(NotebookInterface):
 			return False
 
 		self.emit('quit')
-		self.mainwindow.destroy()
+		if self.mainwindow.get_property('visible'):
+			self.mainwindow.destroy()
 
 		if gtk.main_level() > 0:
 			gtk.main_quit()
@@ -1775,11 +1776,18 @@ class GtkInterface(NotebookInterface):
 		'''
 		assert isinstance(url, basestring)
 
-		# Try custom handlers
-		if is_url_re.match(url) and is_url_re[1] in self.url_handlers:
-			handled = self.url_handlers[is_url_re[1]](url)
-			if handled:
-				return
+		if is_url_re.match(url):
+			# Try custom handlers
+			if is_url_re[1] in self.url_handlers:
+				handled = self.url_handlers[is_url_re[1]](url)
+				if handled:
+					return
+			else:
+				pass # handled below
+		elif is_win32_share_re.match(url):
+			url = normalize_win32_share(url)
+		elif not is_uri_re.match(url):
+			raise AssertionError, 'Not an URL: %s' % url
 
 		# Default handlers
 		if url.startswith('file:/'):
@@ -1792,8 +1800,6 @@ class GtkInterface(NotebookInterface):
 			# Special case for outlook folder paths on windows
 			os.startfile(url)
 		else:
-			if is_win32_share_re.match(url):
-				url = normalize_win32_share(url)
 			self.open_with('web_browser', url)
 
 	def open_with(self, app_type, uri):

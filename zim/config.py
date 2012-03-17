@@ -647,13 +647,14 @@ class ConfigDict(ListDict):
 					section.append(ListDict())
 					section = section[-1]
 			elif '=' in line:
-				parameter, value = line.split('=', 1)
+				parameter, rawvalue = line.split('=', 1)
 				parameter = str(parameter.rstrip()) # no unicode
+				rawvalue = rawvalue.lstrip()
 				try:
-					value = self._decode_value(parameter, value.lstrip())
+					value = self._decode_value(parameter, rawvalue)
 					section[parameter] = value
 				except:
-					logger.exception('Failed to parse value for: %s', parameter)
+					logger.warn('Failed to parse value for key "%s": %s', parameter, rawvalue)
 			else:
 				logger.warn('Could not parse line: %s', line)
 
@@ -678,7 +679,7 @@ class ConfigDict(ListDict):
 				return value
 			except: pass
 
-			return json.loads('"%s"' % value.replace('"', '\"')) # force string
+			return json.loads('"%s"' % value.replace('"', r'\"')) # force string
 
 	def dump(self):
 		'''Serialize the config to a "ini-style" config file.

@@ -17,7 +17,7 @@ class TestParsing(TestCase):
 		list = ['"foo bar"', ',', r'"\"foooo bar\""', 'dusss', 'ja']
 		result = split_quoted_strings(string, unescape=False)
 		self.assertEquals(result, list)
-		
+
 		string = r'''"foo bar", False, True'''
 		list = ['foo bar', ',', 'False', ',', 'True']
 		result = split_quoted_strings(string)
@@ -94,7 +94,7 @@ class TestParsing(TestCase):
 		'''Test link_type()'''
 		for href, type in (
 			('zim+file://foo/bar?dus.txt', 'notebook'),
-			('file://foo/bar', 'file'),
+			('file:///foo/bar', 'file'),
 			('http://foo/bar', 'http'),
 			('http://192.168.168.100', 'http'),
 			('file+ssh://foo/bar', 'file+ssh'),

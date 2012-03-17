@@ -508,11 +508,11 @@ class DesktopEntryDict(ConfigDict, Application):
 					value = float(value)
 					return value
 				except:
-					return json.loads('"%s"' % value.replace('"', '\"')) # force string
+					return json.loads('"%s"' % value.replace('"', r'\"')) # force string
 		else:
 			# Strict typing
 			if not type or type == 'string':
-				return json.loads('"%s"' % value.replace('"', '\"')) # force string
+				return json.loads('"%s"' % value.replace('"', r'\"')) # force string
 			elif type == 'boolean':
 				if value == 'true': return True
 				else: return False # 'false' or invalid value

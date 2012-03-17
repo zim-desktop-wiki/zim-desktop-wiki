@@ -312,8 +312,10 @@ class Re(object):
 		return self.m.end(group)
 
 # Some often used regexes
+is_uri_re = Re('^(\w[\w\+\-\.]*):')
+	# "scheme:"
 is_url_re = Re('^(\w[\w\+\-\.]*)://')
-	# scheme "://"
+	# "scheme://"
 is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+$', re.U)
 	# "mailto:" address
 	# name "@" host
@@ -383,4 +385,3 @@ class TextBuffer(list):
 		lines = self.get_lines(end_with_newline=False)
 			# allowing end_with_newline here modifies content
 		self[:] = [prefix + line for line in lines]
-

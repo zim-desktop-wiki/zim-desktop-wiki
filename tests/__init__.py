@@ -468,24 +468,17 @@ class Counter(object):
 		self.count += 1
 		return self.value
 
+class MockObjectBase(object):
+	'''Base class for mock objects.
 
-class MockObject(object):
-	'''Base class for mock objects. Any attribute is automatically
-	vivicated as a method which results None. Alternatively mock
-	methods can be installed with mock_method(). Attributes that are
-	not methods need to be initialized explicitly.
-
-	All method call are logged, so they can be inspected. The attribute
-	'mock_calls' has a list of tuples with mock methods and arguments in
-	order they have been called.
+	Mock methods can be installed with L{mock_method()}. All method
+	calls to mock methods are logged, so they can be inspected.
+	The attribute C{mock_calls} has a list of tuples with mock methods
+	and arguments in order they have been called.
 	'''
 
 	def __init__(self):
 		self.mock_calls = []
-
-	def __getattr__(self, name):
-		'''Automatically mock methods'''
-		return self.mock_method(name, None)
 
 	def mock_method(self, name, return_value):
 		'''Installs a mock method with a given name that returns
@@ -500,6 +493,17 @@ class MockObject(object):
 
 		setattr(self, name, my_mock_method)
 		return my_mock_method
+
+
+class MockObject(MockObjectBase):
+	'''Simple subclass of L{MockObjectBase} that automatically mocks a
+	method which returns C{None} for any non-existing attribute.
+	Attributes that are not methods need to be initialized explicitly.
+	'''
+
+	def __getattr__(self, name):
+		'''Automatically mock methods'''
+		return self.mock_method(name, None)
 
 
 def gtk_process_events(*a):
