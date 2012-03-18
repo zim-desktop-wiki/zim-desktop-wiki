@@ -45,10 +45,10 @@ def get_tmp_dir(name):
 class TestBazaar(tests.TestCase):
 
 	def setUp(self):
-		zim.plugins.versioncontrol.generic.TEST_MODE = False
+		zim.plugins.versioncontrol.TEST_MODE = False
 
 	def tearDown(self):
-		zim.plugins.versioncontrol.generic.TEST_MODE = True
+		zim.plugins.versioncontrol.TEST_MODE = True
 
 	def runTest(self):
 		'''Test Bazaar version control'''
@@ -128,10 +128,10 @@ added:
 		#~ print 'VERSIONS>>', versions
 		self.assertTrue(len(versions) == 2)
 		self.assertTrue(len(versions[0]) == 4)
-		self.assertEqual(versions[0][0], 1)
+		self.assertEqual(versions[0][0], '1')
 		self.assertEqual(versions[0][3], u'test 1\n')
 		self.assertTrue(len(versions[1]) == 4)
-		self.assertEqual(versions[1][0], 2)
+		self.assertEqual(versions[1][0], '2')
 		self.assertEqual(versions[1][3], u'test 2\n')
 
 		lines = vcs.get_version(file, version=1)
@@ -170,10 +170,10 @@ bar
 class TestGit(tests.TestCase):
 
 	def setUp(self):
-		zim.plugins.versioncontrol.generic.TEST_MODE = False
+		zim.plugins.versioncontrol.TEST_MODE = False
 
 	def tearDown(self):
-		zim.plugins.versioncontrol.generic.TEST_MODE = True
+		zim.plugins.versioncontrol.TEST_MODE = True
 
 	def runTest(self):
 		'''Test Git version control'''
@@ -354,10 +354,10 @@ test
 class TestMercurial(tests.TestCase):
 
 	def setUp(self):
-		zim.plugins.versioncontrol.generic.TEST_MODE = False
+		zim.plugins.versioncontrol.TEST_MODE = False
 
 	def tearDown(self):
-		zim.plugins.versioncontrol.generic.TEST_MODE = True
+		zim.plugins.versioncontrol.TEST_MODE = True
 
 	def runTest(self):
 		'''Test Mercurial version control'''
@@ -401,7 +401,7 @@ diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
 		vcs.revert()
 		self.assertEqual(vcs.get_diff(), ['=== No Changes\n'])
 
-		
+
 		file.write('foo\nbaz\n')
 		vcs.commit_async('test 2')
 		diff = vcs.get_diff(versions=(0, 1))
@@ -424,7 +424,7 @@ diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
 		self.assertEqual(versions[1][0], str(1))
 		self.assertEqual(versions[1][3], u'test 2\n')
 
-		
+
 		lines = vcs.get_version(file, version=0)
 		self.assertEqual(''.join(lines), '''\
 foo
@@ -444,7 +444,7 @@ bar
 
 		#~ print 'TODO - test moving a file'
 		file.rename(root.file('bar.txt'))
-		
+
 		diff = vcs.get_diff()
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
@@ -452,4 +452,3 @@ diff --git a/foo/bar/baz.txt b/bar.txt
 rename from foo/bar/baz.txt
 rename to bar.txt
 ''' )
-

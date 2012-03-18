@@ -1,28 +1,25 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
 from __future__ import with_statement
 
 import os
 import logging
 
-from zim.fs import FS
-from zim.applications import Application
-from zim.applications import ApplicationError
-from zim.async import AsyncOperation
-from zim.plugins.versioncontrol import NoChangesError
-from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
-from zim.plugins.versioncontrol.generic import VersionControlSystemGenericBackend
+from zim.plugins.versioncontrol import VCSApplicationBase
+from zim.applications import Application, ApplicationError
+
 
 logger = logging.getLogger('zim.vcs.bzr')
 
-# TODO document API - use base class
-class BZRApplicationBackend(VersionControlSystemGenericBackend):
+
+class BZRApplicationBackend(VCSApplicationBase):
 
 	def __init__(self, root):
-		VersionControlSystemGenericBackend.__init__(self, root)
-		
+		VCSApplicationBase.__init__(self, root)
+
 	@classmethod
 	def build_bin_application_instance(cls):
 		return Application(('bzr',))
@@ -35,7 +32,7 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		  - None: return an empty list
 		  - int ou string: return ['-r', int]
 		  - tuple or list: return ['-r', '%i..%i']
-		  
+
 		It's all based on the fact that defining revision with current VCS is:
 		-r revision
 		-r rev1..rev2
@@ -58,7 +55,7 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 	########
 	#
 	# NOW ARE ALL REVISION CONTROL SYSTEM SHORTCUTS
-	
+
 	def add(self, path=None):
 		"""
 		Runs: bzr add {{PATH}}
@@ -67,7 +64,7 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 			return self.run(['add'])
 		else:
 			return self.run(['add', path])
-		
+
 
 	def annotate(self, file, version):
 		"""FIXME Document
@@ -97,11 +94,11 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		if path!='' and path!=None:
 			params.append(path)
 		return self.run(params)
-			
+
 	def diff(self, versions, path=None):
 		"""
 		Runs:
-			bzr diff {{REVISION_ARGS}} 
+			bzr diff {{REVISION_ARGS}}
 		or
 			bzr diff {{REVISION_ARGS}} {{PATH}}
 		"""
@@ -119,15 +116,12 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		return self.run(['ignore', file_to_ignore_regexp])
 
 
-	def init_repo(self, lock_object):
-		if self.repo_exists()==False:
-			with lock_object:
-				self.init()
-			if self.test_whoami()==False:
-				self.whoami('zim') # set a dummy user "zim"
-			self.ignore('**/.zim/')
-			with lock_object:
-				self.add('.')
+	def init_repo(self):
+		self.init()
+		if not self.test_whoami():
+			self.whoami('zim') # set a dummy user "zim"
+		self.ignore('**/.zim/')
+		self.add('.')
 
 	def repo_exists(self):
 		return self.root.subdir('.bzr').exists()
@@ -175,7 +169,7 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 					# e.g. "revno: 48 [merge]\n"
 					i = value.index(' ')
 					value = value[:i]
-				rev = int(value)
+				rev = value
 			elif line.startswith('committer: '):
 				user = line[11:].strip()
 			elif line.startswith('timestamp: '):
@@ -219,10 +213,6 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		else:
 			return self.run(['revert'] + revision_params)
 
-	def stage(self):
-		# Generic interface required by Git.
-		pass
-		
 	def status(self):
 		"""
 		Runs: bzr status
@@ -239,19 +229,8 @@ class BZRApplicationBackend(VersionControlSystemGenericBackend):
 		"""return True if the user is is setup or non-zero
 		"""
 		try:
-			return self.run(['whoami'])
+			self.run(['whoami'])
 		except ApplicationError, e:
 			return False
-
-
-class BazaarVCS(VersionControlSystemAlgorithms):
-	
-	def __init__(self, dir):
-		vcs_app = BZR(dir)
-		super(BazaarVCS, self).__init__(dir, vcs_app)
-
-	@classmethod
-	def _check_dependencies(klass):
-		"""@see VersionControlSystemAlgorithms.check_dependencies"""
-		return BZR.tryexec()
-
+		else:
+			return True

@@ -1,27 +1,26 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2010,2011 John Drinkwater <john@nextraweb.com>
+# Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
 from __future__ import with_statement
 
 import os
 import logging
 
-from zim.fs import FS
+from zim.plugins.versioncontrol import VCSApplicationBase
 from zim.applications import Application
-from zim.async import AsyncOperation
-from zim.plugins.versioncontrol import NoChangesError
-from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
-from zim.plugins.versioncontrol.generic import VersionControlSystemGenericBackend
+
 
 logger = logging.getLogger('zim.vcs.git')
 
-# TODO document API - use base class
-class GITApplicationBackend(VersionControlSystemGenericBackend):
+
+class GITApplicationBackend(VCSApplicationBase):
 
 	def __init__(self, root):
-		VersionControlSystemGenericBackend.__init__(self, root)
-		
+		VCSApplicationBase.__init__(self, root)
+
 	@classmethod
 	def build_bin_application_instance(cls):
 		return Application(('git',))
@@ -34,7 +33,7 @@ class GITApplicationBackend(VersionControlSystemGenericBackend):
 		  - None: return an empty list
 		  - int ou string: return ['-r', int]
 		  - tuple or list: return ['-r', '%i..%i']
-		  
+
 		It's all based on the fact that defining revision with current VCS is:
 		-r revision
 		-r rev1..rev2
@@ -65,7 +64,7 @@ class GITApplicationBackend(VersionControlSystemGenericBackend):
 	########
 	#
 	# NOW ARE ALL REVISION CONTROL SYSTEM SHORTCUTS
-	
+
 	def add(self, path=None):
 		"""
 		Runs: git add {{PATH}}
@@ -74,7 +73,7 @@ class GITApplicationBackend(VersionControlSystemGenericBackend):
 			return self.run(['add', '.'])
 		else:
 			return self.run(['add', path])
-		
+
 
 	def annotate(self, file, version):
 		"""FIXME Document
@@ -105,11 +104,11 @@ class GITApplicationBackend(VersionControlSystemGenericBackend):
 			params.append('--')
 			params.append(path)
 		return self.run(params)
-			
+
 	def diff(self, versions, path=None):
 		"""
 		Runs:
-			git diff --no-ext-diff {{REVISION_ARGS}} 
+			git diff --no-ext-diff {{REVISION_ARGS}}
 		or
 			git diff --no-ext-diff {{REVISION_ARGS}} -- {{PATH}}
 		"""
@@ -127,12 +126,13 @@ class GITApplicationBackend(VersionControlSystemGenericBackend):
 		#TODO: append the rule instead of overwrite the full content
 		self.root.file( '.gitignore' ).write( file_to_ignore_regexp )
 
-	def init_repo(self, lock_object):
-		with lock_object:
-			self.init()
+	def init_repo(self):
+		self.init()
 		self.ignore(".zim/\n")
-		with lock_object:
-			self.add('.') # add all existing files
+		self.add('.') # add all existing files
+
+	def repo_exists(self):
+		return self.root.subdir('.git').exists()
 
 	def init(self):
 		"""
@@ -145,7 +145,7 @@ class GITApplicationBackend(VersionControlSystemGenericBackend):
 		@returns: True if the repo is not up-to-date, or False
 		"""
 		# If status return an empty answer, this means the local repo is up-to-date
-		return not (''.join( self.status() ).find( 'nothing to commit' ) > -1) 
+		return not (''.join( self.status() ).find( 'nothing to commit' ) > -1)
 
 	def log(self, path=None):
 		"""
@@ -216,7 +216,7 @@ class GITApplicationBackend(VersionControlSystemGenericBackend):
 			hg revert {{PATH}} {{REV_ARGS}}
 			is equivalent to
 			git checkout {{REV_ARGS}} -- {{PATH}}
-			
+
 		or
 			hg revert --no-backup --all {{REV_ARGS}}
 			is equivalent to
@@ -237,4 +237,3 @@ class GITApplicationBackend(VersionControlSystemGenericBackend):
 		Runs: git status
 		"""
 		return self.pipe(['status'])
-

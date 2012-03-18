@@ -1,31 +1,42 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
 from __future__ import with_statement
 
 import os
 import logging
 
-from zim.fs import FS
+from zim.plugins.versioncontrol import VCSApplicationBase
 from zim.applications import Application
-from zim.async import AsyncOperation
-from zim.plugins.versioncontrol import NoChangesError
-from zim.plugins.versioncontrol.generic import VersionControlSystemAlgorithms
-from zim.plugins.versioncontrol.generic import VersionControlSystemGenericBackend
+
 
 logger = logging.getLogger('zim.vcs.hg')
 
-# TODO document API - use base class
-class HGApplicationBackend(VersionControlSystemGenericBackend):
+
+class HgApplication(Application):
+
+	def run(self, args, pwd):
+		args = ('--noninteractive',) + tuple(args)
+			# force hg to run in non-interactive mode
+			# which will force user name to be auto-setup
+		Application.run(self, args, pwd)
+
+
+class HGApplicationBackend(VCSApplicationBase):
 
 	def __init__(self, root):
-		VersionControlSystemGenericBackend.__init__(self, root)
-		
+		VCSApplicationBase.__init__(self, root)
+
 	@classmethod
 	def build_bin_application_instance(cls):
-		return Application(('hg',))
-		
+		return HgApplication(('hg',))
+
+	def get_mandatory_params(self):
+		return ['--noninteractive'] # force hg to run in non-interactive mode
+		                            # which will force user name to be auto-setup
+
 	def build_revision_arguments(self, versions):
 		"""Build a list including required string/int for running an VCS command
 		# Accepts: None, int, string, (int,), (int, int)
@@ -34,7 +45,7 @@ class HGApplicationBackend(VersionControlSystemGenericBackend):
 		  - None: return an empty list
 		  - int ou string: return ['-r', int]
 		  - tuple or list: return ['-r', '%i..%i']
-		  
+
 		It's all based on the fact that defining revision with current VCS is:
 		-r revision
 		-r rev1..rev2
@@ -57,7 +68,7 @@ class HGApplicationBackend(VersionControlSystemGenericBackend):
 	########
 	#
 	# NOW ARE ALL REVISION CONTROL SYSTEM SHORTCUTS
-	
+
 	def add(self, path=None):
 		"""
 		Runs: hg add {{PATH}}
@@ -66,7 +77,7 @@ class HGApplicationBackend(VersionControlSystemGenericBackend):
 			return self.run(['add'])
 		else:
 			return self.run(['add', path])
-		
+
 
 	def annotate(self, file, version):
 		"""FIXME Document
@@ -96,11 +107,11 @@ class HGApplicationBackend(VersionControlSystemGenericBackend):
 		if path!='' and path!=None:
 			params.append(path)
 		return self.run(params)
-			
+
 	def diff(self, versions, path=None):
 		"""
 		Runs:
-			hg diff --git {{REVISION_ARGS}} 
+			hg diff --git {{REVISION_ARGS}}
 		or
 			hg diff --git {{REVISION_ARGS}} {{PATH}}
 		"""
@@ -110,10 +121,6 @@ class HGApplicationBackend(VersionControlSystemGenericBackend):
 			# Using --git option allow to show the renaming of files
 		else:
 			return self.pipe(['diff', '--git', path] + revision_args)
-
-	def get_mandatory_params(self):
-		return ['--noninteractive'] # force hg to run in non-interactive mode
-		                            # which will force user name to be auto-setup
 
 	def ignore(self, file_to_ignore_regexp):
 		"""
@@ -127,20 +134,17 @@ class HGApplicationBackend(VersionControlSystemGenericBackend):
 		self.root.file( '.hgignore' ).write( file_to_ignore_regexp )
 
 
-	def init_repo(self, lock_object):
-		"""Initialize a new repo if it does not exist, otherwise do nothing.
+	def init_repo(self):
+		"""Initialize a new repo
 		The init operation consists in:
 		- running the VCS init command
 		- defining files to ignore
 		- adding all other existing files
 		@returns: nothing
 		"""
-		if self.repo_exists()==False:
-			with lock_object:
-				self.init()
-			self.ignore('\.zim*$\n')
-			with lock_object:
-				self.add('.') # add all existing files
+		self.init()
+		self.ignore('\.zim*$\n')
+		self.add('.') # add all existing files
 
 	def repo_exists(self):
 		"""Returns True if a repository is already setup, or False
@@ -204,7 +208,7 @@ class HGApplicationBackend(VersionControlSystemGenericBackend):
 				# instead of (for bzr) like that:
 				# e.g. "revno: 48 [merge]\n"
 				rev = value.split(":")[0]
-				
+
 			elif line.startswith('user: '):
 				user = line[13:].strip()
 			elif line.startswith('date: '):
@@ -246,13 +250,8 @@ class HGApplicationBackend(VersionControlSystemGenericBackend):
 		else:
 			return self.run(['revert', '--no-backup', '--all'] + revision_params)
 
-	def stage(self):
-		# Generic interface required by Git.
-		pass
-		
 	def status(self):
 		"""
 		Runs: hg status
 		"""
 		return self.pipe(['status'])
-

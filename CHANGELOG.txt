@@ -4,6 +4,11 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42. 
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.56 - ... ===
+...
+* Merged support for Git and Mercurial version control backends -
+  Damien Accorsi & John Drinkwater
+
 === 0.55 - Tue 28 Feb 2012 ===
 * Numbered lists are now supported
 * The index now has "natural" sorting, so "9" goes before "10"
