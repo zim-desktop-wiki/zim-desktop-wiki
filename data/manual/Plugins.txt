@@ -9,6 +9,7 @@ The following plugins are standard included with zim:
 * [[+Automount|Automount]]
 * [[+Calendar|Calendar]]
 * [[+Diagram Editor|Diagram Editor]]
+* [[+Ditaa Editor|Ditaa Editor]]
 * [[+Equation Editor|Equation Editor]]
 * [[+GNU R Plot Editor|GNU R Plot Editor]]
 * [[+Gnuplot Editor|Gnuplot Editor]]
