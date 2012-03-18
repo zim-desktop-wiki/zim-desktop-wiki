@@ -666,7 +666,6 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = (
 		('autosave', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
-		('vcsbackend', 'choice', _('Default version control backend'), VCS.BZR, [VCS.BZR, VCS.HG, VCS.GIT]),
 	)
 
 	def __init__(self, ui):
@@ -736,18 +735,10 @@ This is a core plugin shipping with zim.
 
 	def save_version(self):
 		if not self.vcs:
-			# TODO choice from multiple version control systems
-			# TODO possibly move this to the plug-in configure pref?
-			if QuestionDialog(self, (
-				_("Enable Version Control?"), # T: Question dialog
-				_("Version control is currently not enabled for this notebook.\n"
-				  "Do you want to enable it?" ) # T: Detailed question
-			) ).run():
-				# Setup the version control system from the default value
-				# TODO : allow to choose between the available ones
-				self.init_vcs(self.preferences['vcsbackend'])
-			else:
-				return
+			vcs = VersionControlInitDialog().run()
+			if vcs is None:
+				return # Cancelled
+			self.init_vcs(vcs)
 
 		if self.ui.page.modified:
 			self.ui.save_page()
@@ -769,8 +760,33 @@ This is a core plugin shipping with zim.
 		dialog.present()
 
 
-#~ class VersionControlInitDialog(Dialog):
-	#~ pass
+class VersionControlInitDialog(QuestionDialog):
+
+	def __init__(self):
+		QuestionDialog.__init__(self,
+			_("Enable Version Control?"), # T: Question dialog
+			_("Version control is currently not enabled for this notebook.\n"
+			  "Do you want to enable it?" ) # T: Detailed question
+		)
+
+		self.combobox = gtk.combo_box_new_text()
+		for option in (VCS.BZR, VCS.GIT, VCS.HG):
+			if VCS.check_dependencies(option):
+				self.combobox.append_text(option)
+		self.combobox.set_active(0)
+
+		hbox = gtk.HBox(spacing=5)
+		hbox.pack_end(self.combobox, False)
+		hbox.pack_end(gtk.Label(_('Backend') + ':'), False)
+			# T: option to chose versioncontrol backend
+		self.vbox.pack_start(hbox, False)
+		hbox.show_all()
+
+	def run(self):
+		if QuestionDialog.run(self):
+			return self.combobox.get_active_text()
+		else:
+			return None
 
 
 class SaveVersionDialog(Dialog):

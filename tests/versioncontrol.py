@@ -35,6 +35,10 @@ def get_tmp_dir(name):
 	return dir
 
 
+WIKITEXT = File('tests/data/formats/wiki.txt').read() # Contains some unicode
+UTF8_COMMENT = u'Commit \u03b1\u03b2\u03b3'
+
+
 #####################################################
 #
 # BAZAAR BACKEND TEST
@@ -158,6 +162,16 @@ bar
 		self.assertEqual(diff, '''\
 === renamed file 'foo/bar/baz.txt' => 'bar.txt'
 ''' )
+
+		# Test unicode support
+		file.write(WIKITEXT)
+		diff = vcs.get_diff()
+		diff = ''.join(diff)
+		self.assertIsInstance(diff, unicode)
+		vcs.commit(UTF8_COMMENT)
+		versions = vcs.list_versions()
+		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
+		self.assertIsInstance(versions[-1][-1], unicode)
 
 
 #####################################################
@@ -291,10 +305,10 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 		self.assertTrue(len(versions) == 3)
 		self.assertTrue(isinstance(versions[0],tuple))
 		self.assertTrue(len(versions[0]) == 4)
-		self.assertTrue(isinstance(versions[0][0],str))
-		self.assertTrue(isinstance(versions[0][1],str))
-		self.assertTrue(isinstance(versions[0][2],str))
-		self.assertTrue(isinstance(versions[0][3],unicode))
+		self.assertTrue(isinstance(versions[0][0],basestring))
+		self.assertTrue(isinstance(versions[0][1],basestring))
+		self.assertTrue(isinstance(versions[0][2],basestring))
+		self.assertTrue(isinstance(versions[0][3],basestring))
 		self.assertEqual(versions[0][3], u'test 1\n')
 		self.assertTrue(len(versions[1]) == 4)
 		self.assertEqual(versions[1][3], u'test 2\n')
@@ -325,6 +339,18 @@ test
 1) second
 2) baz
 ''' )
+
+
+		# Test unicode support
+		file.write(WIKITEXT)
+		diff = vcs.get_diff()
+		diff = ''.join(diff)
+		self.assertIsInstance(diff, unicode)
+		vcs.commit(UTF8_COMMENT)
+		versions = vcs.list_versions()
+		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
+		self.assertIsInstance(versions[-1][-1], unicode)
+
 
 # XXX ignore renames and deletions?
 
@@ -452,3 +478,15 @@ diff --git a/foo/bar/baz.txt b/bar.txt
 rename from foo/bar/baz.txt
 rename to bar.txt
 ''' )
+
+
+
+		# Test unicode support
+		file.write(WIKITEXT)
+		diff = vcs.get_diff()
+		diff = ''.join(diff)
+		self.assertIsInstance(diff, unicode)
+		vcs.commit(UTF8_COMMENT)
+		versions = vcs.list_versions()
+		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
+		self.assertIsInstance(versions[-1][-1], unicode)

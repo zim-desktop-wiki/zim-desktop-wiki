@@ -179,8 +179,9 @@ class Application(object):
 		if stderr:
 			logger.warn(stderr)
 
-		return [line + '\n' for line in stdout.splitlines()]
+		return map(unicode, [line + '\n' for line in stdout.splitlines()])
 			# Explicit newline conversion, e.g. on windows \r\n -> \n
+			# FIXME Assume local encoding is respected (!?)
 
 	def spawn(self, args=None, callback=None, data=None, cwd=None):
 		'''Start the application in the background and return immediately.
