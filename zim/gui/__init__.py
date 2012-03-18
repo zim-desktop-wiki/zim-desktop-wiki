@@ -378,7 +378,6 @@ class GtkInterface(NotebookInterface):
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object, bool)),
 		'new-window': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'quit': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'start-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
@@ -479,7 +478,10 @@ class GtkInterface(NotebookInterface):
 				lambda o, event: event.keyval == gtk.keysyms.F6
 					and self.mainwindow.toggle_fullscreen())
 
-		self.load_plugins()
+		# If opening a notebook, load only the independent plugins at
+		# this stage.
+		independent_only = notebook is not None
+		self.load_plugins(independent_only)
 
 		self._custom_tool_ui_id = None
 		self._custom_tool_actiongroup = None
@@ -542,8 +544,8 @@ class GtkInterface(NotebookInterface):
 		else:
 			pass # Will check default in main()
 
-	def load_plugin(self, name):
-		plugin = NotebookInterface.load_plugin(self, name)
+	def load_plugin(self, name, independent_only=False):
+		plugin = NotebookInterface.load_plugin(self, name, independent_only)
 		if plugin and self._finalize_ui:
 			plugin.finalize_ui(self)
 
@@ -1179,6 +1181,11 @@ class GtkInterface(NotebookInterface):
 		for action in ('open_document_root', 'open_document_folder'):
 			action = self.actiongroup.get_action(action)
 			action.set_sensitive(has_doc_root)
+			# check if the profile was changed, and load the new one
+			if notebook.profile_changed:
+				logger.debug('Profile changed to "%s"', notebook.profile)
+				notebook.profile_changed = False # clear the flag
+				self.load_profile(True) # load the profile
 
 	def open_page(self, path=None):
 		'''Method to open a page in the mainwindow, and menu action for

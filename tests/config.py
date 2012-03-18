@@ -366,6 +366,37 @@ none=None
 		))
 		self.assertTrue(isinstance(mydict.order, list))
 
+	def testChangeFile(self):
+		'''Test changing the file used as datastore'''
+		file = XDG_CONFIG_HOME.file('zim/config_TestConfigFile.conf')
+		if file.exists():
+			file.remove()
+		assert not file.exists()
+		conf = ConfigDictFile(file)
+		conf['Foo']['xyz'] = 'foooooo'
+		conf['Bar']['empty'] = ''
+		conf.write()
+		text = u'''\
+[Foo]
+xyz=foooooo
+
+[Bar]
+empty=
+
+'''
+		self.assertEqual(file.read(), text)
+		file_new = XDG_CONFIG_HOME.file('zim/config_TestConfigFile2.conf')
+		if file_new.exists():
+			file_new.remove()
+		assert not file_new.exists()
+		conf.change_file(file_new)
+		file.remove()
+		conf.write()
+		assert not file.exists()
+		self.assertEqual(file_new.read(), text)
+
+		del conf
+		file_new.remove()
 
 class TestHeaders(TestCase):
 

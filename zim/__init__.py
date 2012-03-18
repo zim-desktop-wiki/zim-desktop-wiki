@@ -109,7 +109,8 @@ from getopt import gnu_getopt, GetoptError
 
 from zim.fs import File, Dir
 from zim.errors import Error
-from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR
+from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR, \
+					   XDG_CONFIG_HOME, ConfigDictFile
 
 
 logger = logging.getLogger('zim')
@@ -500,6 +501,9 @@ class NotebookInterface(gobject.GObject):
 	@signal: C{open-notebook (notebook)}:
 	Emitted to open a notebook in this interface
 
+	@signal: C{preferences-changed ()}:
+	Emitted when preferences have changed
+
 	@cvar ui_type: string to tell plugins what interface is supported
 	by this class. Currently this can be "gtk" or "html". If "ui_type"
 	is None we run without interface (e.g. commandline export).
@@ -516,6 +520,7 @@ class NotebookInterface(gobject.GObject):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-notebook': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	ui_type = None
@@ -531,32 +536,51 @@ class NotebookInterface(gobject.GObject):
 		self.notebook = None
 		self.plugins = []
 
+		# Here we'll keep the list of the base plugins, i.e., those configured
+		# in the general preferences.conf, or the default ones. This is 
+		# needed in two scenarios:
+		#   - When opening a Notebook, firt we'll load only the 'independent'
+		#     plugins, and will keep only those in the preferences. When the
+		#     profile is loaded, we'll need the complete list of plugins that
+		#     we were supposed to load.
+		#   - When changing to a profile that doesn't exist yet, we'll need
+		#     to know which are the base/default ones
+		self._base_plugins = None
+
 		self.preferences = config_file('preferences.conf')
 		self.uistate = None
 
 		if not notebook is None:
 			self.open_notebook(notebook)
 
-	def load_plugins(self):
+	def load_plugins(self, independent_only=False):
 		'''Loads all the plugins defined in the preferences
 
 		Typically called from the constructor of sub-classes.
+
+		@param independent_only: if True, load only the plugins flagged
+		as profile independent.
+
 		'''
 		default = ['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol']
 		self.preferences['General'].setdefault('plugins', default)
 		plugins = self.preferences['General']['plugins']
 		plugins = set(plugins) # Eliminate doubles
 
+		# Keep the base/default plugins
+		if independent_only or self._base_plugins is None:
+			self._base_plugins = sorted(plugins)
+
 		# Plugins should not have dependency on order of being added
 		# but sort them here to make behavior predictable.
 		for name in sorted(plugins):
-			self.load_plugin(name)
+			self.load_plugin(name, independent_only)
 
 		loaded = [p.plugin_key for p in self.plugins]
 		if set(loaded) != plugins:
 			self.preferences['General']['plugins'] = sorted(loaded)
 
-	def load_plugin(self, name):
+	def load_plugin(self, name, independent_only=False):
 		'''Load a single plugin by name
 
 		Load an plugin object and attach it to the current application
@@ -569,7 +593,10 @@ class NotebookInterface(gobject.GObject):
 		@param name: the plugin name as understood by
 		L{zim.plugins.get_plugin()}
 
-		@returns: the plugin object or C{None} when failed
+		@param independent_only: if True, load the plugin only if it is
+		flagged as profile independent. Otherwise ignore it
+
+		@returns: the plugin object or C{None} when failed or ignored
 
 		@todo: make load_plugin raise exception on failure
 		'''
@@ -582,13 +609,19 @@ class NotebookInterface(gobject.GObject):
 
 		try:
 			klass = zim.plugins.get_plugin(name)
-			if not klass.check_dependencies_ok():
-				raise AssertionError, 'Dependencies failed for plugin %s' % name
-			plugin = klass(self)
+			if independent_only and not klass.is_profile_independent:
+				plugin = None
+				logger.debug('Ignoring plugin %s.', name)
+			else:
+				if not klass.check_dependencies_ok():
+					raise AssertionError, 'Dependencies failed for plugin %s' % name
+				plugin = klass(self)
 		except:
 			logger.exception('Failed to load plugin %s', name)
 			return None
 		else:
+			if not plugin:
+				return None
 			self.plugins.append(plugin)
 			logger.debug('Loaded plugin %s (%s)', name, plugin)
 
@@ -677,6 +710,110 @@ class NotebookInterface(gobject.GObject):
 			self.emit('open-notebook', notebook)
 			return None
 
+	def load_profile(self, profile_changed=True):
+		'''Load the specific profile for a Notebook.
+
+		If the notebook defines its own profile, update the preferences
+		with it. Check if there are any plugins to load and initialize them.
+
+		@param profile_changed: indicates that the profile is being loaded
+		on top of a previous one. When opening the L{Notebook} it will be
+		False. Any other call should use True
+
+		@emits: preferences-changed
+		'''
+		assert not self.notebook is None, 'BUG: Must open a notebook first'
+
+		# restore the complete list of base/default plugins, if needed
+		# this is important if we are changing the profile (maybe the new one
+		# does not exist yet) or if we don't have a profile (we are either
+		# opening the notebook, or going back to the default profile)
+		if (profile_changed or not self.notebook.profile) and \
+	                               self._base_plugins is not None:
+			self.preferences['General']['plugins'] = self._base_plugins
+
+		profile = None
+		if self.notebook.profile:
+			# use a specific profile. If it exists, merge its preferences
+			logger.debug('Using profile %s', self.notebook.profile)
+			file = XDG_CONFIG_HOME.file(('zim','profiles',self.notebook.profile + '.conf'))
+			if file.exists():
+				profile = ConfigDictFile(file)
+				self._merge_profile_preferences(profile)
+		else:
+			# use the general/base profile
+			logger.debug('Using the base profile')
+			base_profile = config_file('preferences.conf')
+			file = base_profile.file
+			if profile_changed:
+				self._merge_profile_preferences(base_profile)
+
+		if profile_changed or profile:
+			# unload any loaded plugins not present in the merged
+			# preferenfces. If we are changing the profile, or have just
+			# loaded a specific one, we might have loaded plugins that don't
+			# belong to this configuration
+			for plugin in [p for p in self.plugins if p.plugin_key not in self.preferences['General']['plugins']]:
+				# we don't use unload_plugin because it would trigger
+				# a preferences.write() !!!
+				plugin.disconnect()
+				self.plugins.remove(plugin)
+				logger.debug('Unloaded plugin %s', plugin.plugin_key)
+
+		# Load the plugins. This will pull the non-independent plugins
+		# when opening a Notebook, or the complete set of plugins configured
+		# for the profile we're just loading
+		self.load_plugins()
+
+		# change the file used to store the preferences, if needed
+		if profile_changed or self.notebook.profile:
+			self.preferences.change_file(file)
+			self.emit('preferences-changed')
+			if profile_changed:
+				# refresh the preferences for all the loaded plugins
+				for plugin in self.plugins:
+					plugin.preferences = self.preferences[plugin.__class__.__name__]
+					plugin.emit('preferences-changed')
+
+
+	def _merge_profile_preferences(self, conf):
+		logger.debug('Merging profile preferences')
+
+		# sections of the preferences that might be overriden
+		# by a notebook profile
+		overridable_sections = ['GtkInterface', 'PageView', 'General',]
+
+		# Override the preferences with the notebook's own profile
+		for section in overridable_sections:
+			if conf.has_key(section):
+				self.preferences[section] = conf[section]
+				logger.debug('Overriding section %s with with the configured profile', section)
+
+		# replace the preferences for each plugin with the ones defined
+		# in the profile. Ignore the profile independent ones.
+		import zim.plugins
+		for name in self.preferences['General']['plugins']:
+			try:
+				klass = zim.plugins.get_plugin(name)
+			except:
+				logger.exception('Failed to find plugin %s', name)
+				continue
+
+			if klass.is_profile_independent:
+				continue
+			config_key = klass.__name__
+			if conf.has_key(config_key):
+				self.preferences[config_key] = conf[config_key]
+				logger.debug('Overriding section %s with the configured profile', config_key)
+		# add any independent plugins already loaded to the profile
+		# configuration
+		plugins = self.preferences['General']['plugins']
+		loaded = [p.plugin_key for p in self.plugins \
+				  if p.is_profile_independent and p.plugin_key not in plugins]
+		plugins.extend(loaded)
+		self.preferences['General']['plugins'] = sorted(plugins)
+				
+
 	def do_open_notebook(self, notebook):
 		assert self.notebook is None, 'BUG: other notebook opened already'
 		self.notebook = notebook
@@ -688,6 +825,8 @@ class NotebookInterface(gobject.GObject):
 		else:
 			from zim.config import ConfigDict
 			self.uistate = ConfigDict()
+
+		self.load_profile(False)
 
 	def cmd_export(self, format='html', template=None, page=None, output=None, root_url=None, index_page=None):
 		'''Convenience method hat wraps L{zim.exporter.Exporter} for

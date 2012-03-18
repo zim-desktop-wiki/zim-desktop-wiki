@@ -246,7 +246,8 @@ class PluginClass(gobject.GObject):
 	will be initialized when the plugin is loaded.
 
 	Plugin classes should define two class attributes: L{plugin_info} and
-	L{plugin_preferences}.
+	L{plugin_preferences}. Optionally, they can also define the class
+	attribute L{is_profile_independent}.
 
 	@cvar plugin_info: A dict with basic information about the plugin,
 	it should contain at least the following keys:
@@ -274,6 +275,12 @@ class PluginClass(gobject.GObject):
 	default configure dialog when triggered from the preferences dialog.
 	Changes to these preferences will be stored in a config file so
 	they are persistent.
+
+	@cvar is_profile_independent: A boolean indicating that the plugin
+	configuration is global and not meant to change between notebooks.
+	The default value (if undefined) is False. Plugins that set
+	L{is_profile_independent} to True will be initialized before
+	opening the notebook.
 
 	@ivar ui: the main application object, e.g. an instance of
 	L{zim.gui.GtkInterface} or L{zim.www.WWWInterface}
@@ -303,6 +310,8 @@ class PluginClass(gobject.GObject):
 	plugin_info = {}
 
 	plugin_preferences = ()
+
+	is_profile_independent = False
 
 	@classmethod
 	def check_dependencies_ok(klass):

@@ -26,6 +26,9 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Automount',
 	}
 
+	# this plugin is profile independent
+	is_profile_independent = True
+
 	def get_config(self, uri):
 		'''Return the automount config for a specific notebook uri or C{None}
 		@param uri: a notebook uri
