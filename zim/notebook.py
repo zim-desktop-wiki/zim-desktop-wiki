@@ -672,7 +672,9 @@ class Notebook(gobject.GObject):
 	@signal: C{moved-page (oldpath, newpath, update_links)}
 	@signal: C{delete-page (path)}: emitted before deleting a page
 	@signal: C{deleted-page (path)}: emitted after deleting a page
-	@signal: C{properties-changed ()}
+	@signal: C{profile-changed ()}: emitted when the profile is changed,
+	means that the preferences need to be loaded again as well
+	@signal: C{properties-changed ()}: emitted when properties changed
 
 	@note: For store_async() the 'page-stored' signal is emitted
 	after scheduling the store, but potentially before it was really
@@ -689,10 +691,7 @@ class Notebook(gobject.GObject):
 	@ivar config: A L{ConfigDict} for the notebook config
 	(the C{X{notebook.zim}} config file in the notebook folder)
 	@ivar lock: An L{AsyncLock} for async notebook operations
-	@ivar profile: The name of the profile used by the notebook (empty means
-	default profile)
-	@ivar profile_changed: Flag indicating if the profile was changed and the
-	new one has to be loaded
+	@ivar profile: The name of the profile used by the notebook or C{None}
 
 	In general this lock is not needed when only reading data from
 	the notebook. However it should be used when doing operations that
@@ -719,19 +718,18 @@ class Notebook(gobject.GObject):
 		'moved-page': (gobject.SIGNAL_RUN_LAST, None, (object, object, bool)),
 		'delete-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'deleted-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'profile-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 		'properties-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 	}
 
 	properties = (
 		('name', 'string', _('Name')), # T: label for properties dialog
-		('home', 'page', _('Home Page')), # T: label for properties dialog
 		('interwiki', 'string', _('Interwiki Keyword'), lambda v: not v or is_interwiki_keyword_re.search(v)), # T: label for properties dialog
+		('home', 'page', _('Home Page')), # T: label for properties dialog
 		('icon', 'image', _('Icon')), # T: label for properties dialog
 		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
 		('profile', 'string', _('Profile')), # T: label for properties dialog
 		('shared', 'bool', _('Shared Notebook')), # T: label for properties dialog
-		#~ ('autosave', 'bool', _('Auto-version when closing the notebook')),
-			# T: label for properties dialog
 	)
 
 	def __init__(self, dir=None, file=None, config=None, index=None):
@@ -756,7 +754,6 @@ class Notebook(gobject.GObject):
 			# async file operations. This one is more abstract for the
 			# notebook as a whole, regardless of storage
 		self.readonly = True
-		self.profile_changed = False
 
 		if dir:
 			assert isinstance(dir, Dir)
@@ -845,7 +842,7 @@ class Notebook(gobject.GObject):
 	@property
 	def profile(self):
 		'''The 'profile' property for this notebook'''
-		return self.config['Notebook'].get('profile', '')
+		return self.config['Notebook'].get('profile') or None # avoid returning ''
 
 	def _cache_dir(self, dir):
 		from zim.config import XDG_CACHE_HOME
@@ -887,14 +884,19 @@ class Notebook(gobject.GObject):
 		if 'home' in properties and isinstance(properties['home'], Path):
 			properties['home'] = properties['home'].name
 
-		# When handling properties-changed later, we'll need to know
-		# which is the current profile, to detect if it's changed
-		if 'profile' in properties and properties['profile'] != self.profile:
-			self.profile_changed = True
+		# Check for a new profile
+		profile_changed = properties.get('profile') != self.profile
 
+		# Actual update and signals
+		# ( write is the last action - in case update triggers a crash
+		#   we don't want to get stuck with a bad config )
 		self.config['Notebook'].update(properties)
-		self.config.write()
 		self.emit('properties-changed')
+		if profile_changed:
+			self.emit('profile-changed')
+
+		if hasattr(self.config, 'write'): # Check needed for tests
+			self.config.write()
 
 	def do_properties_changed(self):
 		#~ import pprint

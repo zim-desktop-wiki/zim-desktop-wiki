@@ -52,7 +52,7 @@ This plugin provides a diagram editor for zim based on Ditaa.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-        'help': ':Plugins:Ditaa Editor',
+        'help': 'Plugins:Ditaa Editor',
 		'author': 'Yao-Po Wang',
 	}
 

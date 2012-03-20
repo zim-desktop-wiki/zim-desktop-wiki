@@ -280,7 +280,8 @@ class PluginClass(gobject.GObject):
 	configuration is global and not meant to change between notebooks.
 	The default value (if undefined) is False. Plugins that set
 	L{is_profile_independent} to True will be initialized before
-	opening the notebook.
+	opening the notebook. All other plugins will only be loaded after
+	the notebook is initialized.
 
 	@ivar ui: the main application object, e.g. an instance of
 	L{zim.gui.GtkInterface} or L{zim.www.WWWInterface}
@@ -348,6 +349,7 @@ class PluginClass(gobject.GObject):
 		plugin in the methods L{initialize_ui()}, L{initialize_notebook()},
 		L{finalize_ui()} and L{finalize_notebook()} where apropriate.
 		'''
+		# NOTE: this method is decorated by the meta class
 		gobject.GObject.__init__(self)
 		self.ui = ui
 		assert 'name' in self.plugin_info, 'Plugins should provide a name in the info dict'
@@ -435,6 +437,7 @@ class PluginClass(gobject.GObject):
 
 		@implementation: optional, may be implemented by subclasses.
 		'''
+		# NOTE: this method is decorated by the meta class
 		pass
 
 	def finalize_ui(self, ui):

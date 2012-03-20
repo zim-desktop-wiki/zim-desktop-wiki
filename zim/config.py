@@ -744,7 +744,8 @@ class ConfigFile(ListDict):
 
 	def read(self):
 		'''Read data'''
-		# TODO: flush dict first ?
+		# No flush here - this is used by change_file()
+		# but may change in the future - so do not depend on it
 		try:
 			logger.debug('Loading %s', self.file.path)
 			self.parse(self.file.readlines())
@@ -770,10 +771,17 @@ class ConfigFile(ListDict):
 		self.set_modified(False)
 		return operation
 
-	def change_file(self, file):
+	def change_file(self, file, merge=True):
 		'''Change the underlaying file used to read/write data
+		Used to switch to a new config file without breaking existing
+		references to config sections.
+		@param file: a L{File} object for the new config
+		@param merge: if C{True} the new file will be read (if it exists)
+		and values in this dict will be updated.
 		'''
 		self.file = file
+		if file.exists():
+			self.read()
 		self.set_modified(True)
 
 

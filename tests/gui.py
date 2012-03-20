@@ -335,6 +335,7 @@ class TestDialogs(tests.TestCase):
 		gui = zim.gui.GtkInterface()
 		gui.register_preferences('GtkInterface', zim.gui.ui_preferences)
 		gui.register_preferences('PageView', zim.gui.pageview.ui_preferences)
+		gui.load_plugins()
 		self.ui.preferences_register = gui.preferences_register
 		self.ui.preferences = gui.preferences
 		self.ui.plugins = gui.plugins

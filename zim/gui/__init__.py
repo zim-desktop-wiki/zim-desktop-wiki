@@ -362,8 +362,6 @@ class GtkInterface(NotebookInterface):
 	but it can be used to decide to do some actions async or not.
 	@signal: C{new-window (C{Window})}: Emitted when a new window is
 	created, can be used as a hook by plugins
-	@signal: C{preferences-changed ()}: Emitted after the user changed
-	the preferences (typically triggered by the preferences dialog)
 	@signal: C{read-only-changed ()}: Emitted when the ui changed from
 	read-write to read-only or back
 	@signal: C{quit ()}: Emitted when the application is about to quit
@@ -478,11 +476,6 @@ class GtkInterface(NotebookInterface):
 				lambda o, event: event.keyval == gtk.keysyms.F6
 					and self.mainwindow.toggle_fullscreen())
 
-		# If opening a notebook, load only the independent plugins at
-		# this stage.
-		independent_only = notebook is not None
-		self.load_plugins(independent_only)
-
 		self._custom_tool_ui_id = None
 		self._custom_tool_actiongroup = None
 		self._custom_tool_iconfactory = None
@@ -544,8 +537,8 @@ class GtkInterface(NotebookInterface):
 		else:
 			pass # Will check default in main()
 
-	def load_plugin(self, name, independent_only=False):
-		plugin = NotebookInterface.load_plugin(self, name, independent_only)
+	def load_plugin(self, name):
+		plugin = NotebookInterface.load_plugin(self, name)
 		if plugin and self._finalize_ui:
 			plugin.finalize_ui(self)
 
@@ -606,7 +599,8 @@ class GtkInterface(NotebookInterface):
 
 		self.check_notebook_needs_upgrade()
 
-		self.save_preferences()
+		if self.preferences.modified:
+			self.save_preferences()
 			# if prefs are modified during init we should save them
 
 		self.mainwindow.show_all()
@@ -1181,11 +1175,6 @@ class GtkInterface(NotebookInterface):
 		for action in ('open_document_root', 'open_document_folder'):
 			action = self.actiongroup.get_action(action)
 			action.set_sensitive(has_doc_root)
-			# check if the profile was changed, and load the new one
-			if notebook.profile_changed:
-				logger.debug('Profile changed to "%s"', notebook.profile)
-				notebook.profile_changed = False # clear the flag
-				self.load_profile(True) # load the profile
 
 	def open_page(self, path=None):
 		'''Method to open a page in the mainwindow, and menu action for
@@ -1702,14 +1691,6 @@ class GtkInterface(NotebookInterface):
 		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
 		PreferencesDialog(self).run()
-
-	def save_preferences(self):
-		'''Save the prefrences config file if modified
-		@emits: preferences-changed
-		'''
-		if self.preferences.modified:
-			self.preferences.write_async()
-			self.emit('preferences-changed')
 
 	def do_preferences_changed(self):
 		self.uimanager.set_add_tearoffs(

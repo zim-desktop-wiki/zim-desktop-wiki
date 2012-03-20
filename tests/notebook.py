@@ -9,13 +9,13 @@ import tests
 import os
 
 from zim.fs import File, Dir
-from zim.config import config_file, ConfigDictFile, XDG_CONFIG_HOME
+from zim.config import config_file
 from zim.notebook import *
 from zim.index import *
 import zim.errors
 from zim.formats import ParseTree
 
-from zim import NotebookInterface, _get_default_or_only_notebook
+from zim import _get_default_or_only_notebook
 	# private, but want to check it anyway
 
 
@@ -745,133 +745,3 @@ class TestNewNotebook(tests.TestCase):
 
 		text = ''.join(notebook.get_page(Path('page3:page1:child')).dump('wiki'))
 		self.assertEqual(text, 'I have backlinks !\n')
-
-
-class TestProfiles(tests.TestCase):
-
-	def setUp(self):
-		path = self.get_tmp_name()
-		self.notebook = tests.new_notebook(fakedir=path)
-
-	def testProfilePreferences(self):
-		'''Test the profile is used and its preferences applied'''
-
-		assert not self.notebook.profile
-
-		# set up a test profile
-		file = XDG_CONFIG_HOME.file('zim/profiles/profile_TestProfile.conf')
-		if file.exists():
-			file.remove()
-		assert not file.exists()
-		profile = ConfigDictFile(file)
-		profile['GtkInterface'] = {}
-		profile['General']['plugins'] = ['calendar',]
-		profile['CalendarPlugin']['embedded'] = True
-		profile['CalendarPlugin']['granularity'] = 'Week'
-		profile['CalendarPlugin']['namespace'] = 'TestProfile'
-		profile.write()
-
-		# se the profile name in the notebook, open it, and
-		# check that the profila was applied
-		self.notebook.config['Notebook']['profile'] = 'profile_TestProfile'
-		self.assertEqual(self.notebook.profile, 'profile_TestProfile')
-		interface = NotebookInterface(self.notebook)
-		self.assertEqual(interface.preferences.file, file)
-		self.assertTrue(len(interface.preferences['GtkInterface'].keys()) == 0)
-		self.assertTrue(len(interface.plugins) == 1)
-		self.assertEqual(interface.preferences['General']['plugins'][0],
-				   'calendar')
-		self.assertTrue(interface.preferences['CalendarPlugin']['embedded'])
-		self.assertEqual(interface.preferences['CalendarPlugin']['granularity'],
-				   'Week')
-		self.assertEqual(interface.preferences['CalendarPlugin']['namespace'],
-				   'TestProfile')
-
-
-	def testNewProfile(self):
-		'''Test that current preferences are used if the profile doesn't exist '''
-		assert not self.notebook.profile
-
-		# create a completely default base configuration
-		base = XDG_CONFIG_HOME.file('zim/preferences.conf')
-		if base.exists():
-			base.remove()
-		assert not base.exists()
-		interface = NotebookInterface(self.notebook)
-		interface.preferences.write() # ensure the preferences are saved
-		assert base.exists()
-
-		# set up a test profile
-		file = XDG_CONFIG_HOME.file('zim/profiles/profile_TestProfile.conf')
-		if file.exists():
-			file.remove()
-		assert not file.exists()
-
-		# change the profile name, and reload the profile
-		# check that the current preferences didn't change
-		self.notebook.config['Notebook']['profile'] = 'profile_TestProfile'
-		self.assertEqual(self.notebook.profile, 'profile_TestProfile')
-		interface.load_profile()
-		self.assertEqual(interface.preferences.file, file)
-		interface.preferences.write() # ensure the preferences are saved
-
-		self.assertEqual(file.read(), base.read())
-
-	def testPluginUnload(self):
-		'''Test unloading plugins not present in the profile configuration'''
-		assert not self.notebook.profile
-
-		# open notebook with the default profile
-		interface = NotebookInterface(self.notebook)
-		# we need more than one plugin loaded for this test
-		assert len(interface.plugins) > 1
-
-		# create a profile just with the 1st loaded plugin
-		plugin_to_keep = interface.plugins[0].plugin_key
-		interface.preferences['General']['plugins'] = [plugin_to_keep,]
-		file = XDG_CONFIG_HOME.file('zim/profiles/profile_TestProfile.conf')
-		if file.exists():
-			file.remove()
-		assert not file.exists()
-		interface.preferences.change_file(file)
-		interface.preferences.write()
-
-		# load the new profile and check that all plugins but the one
-		# we kept were unloaded
-		self.notebook.config['Notebook']['profile'] = 'profile_TestProfile'
-		interface.load_profile()
-		self.assertEqual(len(interface.plugins), 1)
-		self.assertEqual(interface.plugins[0].plugin_key, plugin_to_keep)
-
-	def testIndependentPluginsAreKept(self):
-		'''Test that independent plugins already loaded are added to the profile if not present'''
-		assert not self.notebook.profile
-
-        # ensure that the base configuration declares an independent plugin
-		interface = NotebookInterface(self.notebook)
-		if 'automount' not in interface.preferences['General']['plugins']:
-			interface.preferences['General']['plugins'].append('automount')
-		interface.preferences.write() # ensure the preferences are saved
-		base = config_file('preferences.conf')
-		assert base.file.exists()
-		self.assertTrue('automount' in base['General']['plugins'])
-
-		# recreate the interface ensuring it's loading the automount plugin
-		interface = NotebookInterface(self.notebook)
-		self.assertTrue('automount' in [p.plugin_key for p in interface.plugins])
-
-		# create a profile without the automount plugin
-		file = XDG_CONFIG_HOME.file('zim/profiles/profile_TestProfile.conf')
-		if file.exists():
-			file.remove()
-		assert not file.exists()
-		profile = ConfigDictFile(file)
-		profile['General']['plugins'] = []
-		profile.write()
-
-		# load the new profile and check that the automount plugin was kept
-		self.notebook.config['Notebook']['profile'] = 'profile_TestProfile'
-		interface.load_profile()
-		self.assertTrue('automount' in interface.preferences['General']['plugins'])
-		self.assertTrue('automount' in [p.plugin_key for p in interface.plugins])
-

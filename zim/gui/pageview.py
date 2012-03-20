@@ -4425,9 +4425,10 @@ class PageView(gtk.VBox):
 			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
 
-		self._profile = None # last used profile to avoid reloading the conf
 		if self.style is None:
 			PageView.style = config_file('style.conf')
+			PageView.style.profile = None
+			# this can be reset later when the profile changes
 		self.on_preferences_changed(self.ui)
 		self.ui.connect('preferences-changed', self.on_preferences_changed)
 
@@ -4438,23 +4439,7 @@ class PageView(gtk.VBox):
 		self.view.grab_focus()
 
 	def on_preferences_changed(self, ui):
-		if ui.notebook and (not self._profile or self._profile != ui.notebook.profile):
-			# the profile has changed. Keep record of the new one
-			# and if there's a style for the profile, use it
-			self._profile = ui.notebook.profile # update current profile
-			if self._profile:
-				file = XDG_CONFIG_HOME.file(('zim','styles',self._profile + '.conf'))
-			if self._profile and file.exists():
-                # use the specific style
-				PageView.style.change_file(file)
-				PageView.style.read()
-				logger.debug('Loaded specific style for profile %s',
-								self._profile)
-			else:
-                # use the general style
-				PageView.style = config_file('style.conf')
-				logger.debug('Using the general style')
-		self._reload_style()
+		self._reload_style() # Needed because font is taken from preferences
 		self.view.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
 
@@ -4544,6 +4529,23 @@ class PageView(gtk.VBox):
 
 		for s in ('stored-page', 'deleted-page', 'moved-page'):
 			notebook.connect(s, assert_not_modified)
+
+		notebook.connect('profile-changed', self.on_profile_changed)
+
+	def on_profile_changed(self, notebook):
+		# Keep in mind that style is a class attribute - maybe multiple
+		# pageview objects in existence when this signal fires
+		if self.style.profile != notebook.profile:
+			if notebook.profile is None:
+				PageView.style = config_file('style.conf')
+				PageView.style.profile = None
+			else:
+				# FIXME should we also check default file here ?
+				file = XDG_CONFIG_HOME.file(('zim', 'styles', notebook.profile + '.conf'))
+				PageView.style.change_file(file)
+				PageView.style.profile = notebook.profile
+
+		self._reload_style()
 
 	def set_page(self, page, cursor=None):
 		'''Set the current page to be displayed in the pageview
