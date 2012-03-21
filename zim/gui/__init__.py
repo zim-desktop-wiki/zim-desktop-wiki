@@ -395,8 +395,10 @@ class GtkInterface(NotebookInterface):
 		@param usedaemon: if C{True} we use the background daemon
 		'''
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
-		NotebookInterface.__init__(self)
 		self._finalize_ui = False
+			# initalize this one early, before any call to load_plugin can happen
+
+		NotebookInterface.__init__(self)
 		self.preferences_register = ListDict()
 		self.page = None
 		self.history = None

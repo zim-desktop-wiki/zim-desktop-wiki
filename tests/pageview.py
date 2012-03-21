@@ -32,7 +32,7 @@ def new_parsetree_from_text(text):
 	return tree
 
 
-def setUpPageView(fakedir=None):
+def setUpPageView(fakedir=None, notebook=None):
 	'''Some bootstrap code to get an isolated PageView object'''
 	## TODO - should not be needed
 	## we can get rid of this when we refactor the actiongroup stuff
@@ -41,8 +41,11 @@ def setUpPageView(fakedir=None):
 	PageView.actiongroup.mock_method('get_action', tests.MockObject())
 	PageView.actiongroup.mock_method('list_actions', [])
 
+	if notebook is None:
+		notebook = tests.new_notebook(fakedir)
+
 	ui = MockUI()
-	ui.notebook = tests.new_notebook(fakedir)
+	ui.notebook = notebook
 	ui.page = None
 	ui.uimanager = tests.MockObject()
 	ui.uimanager.mock_method('get_accel_group', tests.MockObject())
@@ -1685,28 +1688,29 @@ Baz
 
 	def testProfile(self):
 		'''Test that style for a specific profile is applied.'''
+		default_file = XDG_CONFIG_HOME.file('zim/style.conf')
+		profile_file = XDG_CONFIG_HOME.file('zim/styles/testProfile.conf')
+
 		# first test without profile
 		pageview = setUpPageView()
-		pageview.ui.notebook.config['Notebook']['profile'] = None
-		pageview.on_preferences_changed(pageview.ui)
-		file = XDG_CONFIG_HOME.file('zim/style.conf')
-		self.assertEqual(pageview.style.file, file)
+		notebook = pageview.ui.notebook
+		self.assertIsNone(notebook.profile)
+		self.assertIsNone(pageview.style.profile)
+		self.assertEqual(pageview.style.file, default_file)
 
 		# create a new style based on the default one, changing some properties
-		new_style = ConfigDictFile(file)
+		profile_file.remove()
+		new_style = ConfigDictFile(profile_file)
 		new_style['TextView']['indent'] = 50
 		new_style['TextView']['font'] = 'Sans 8'
 		new_style['TextView']['linespacing'] = 10
-		file = XDG_CONFIG_HOME.file('zim/styles/style_testProfile.conf')
-		if file.exists():
-			file.remove()
-		new_style.change_file(file)
 		new_style.write()
 
 		# test the pageview with the profile
-		pageview.ui.notebook.config['Notebook']['profile'] = 'style_testProfile'
-		pageview.on_profile_changed(pageview.ui.notebook)
-		self.assertEqual(pageview.style.file, file)
+		notebook.save_properties(profile='testProfile')
+		self.assertEqual(notebook.profile, 'testProfile')
+		self.assertEqual(pageview.style.profile, 'testProfile')
+		self.assertEqual(pageview.style.file, profile_file)
 		self.assertEqual(pageview.style['TextView']['indent'], 50)
 		self.assertEqual(pageview.style['TextView']['font'], 'Sans 8')
 		self.assertEqual(pageview.style['TextView']['linespacing'], 10)
@@ -1714,6 +1718,18 @@ Baz
 		# if we don't have a notebook, we shouldn't fail!
 		pageview.ui.notebook = None
 		pageview.on_preferences_changed(pageview.ui)
+
+		# Now init a notebook with a profile from the start
+		PageView.style = None # reset class attribute
+
+		notebook = tests.new_notebook()
+		self.assertIsNone(notebook.profile)
+		notebook.save_properties(profile='testProfile')
+		self.assertEqual(notebook.profile, 'testProfile')
+
+		pageview = setUpPageView(notebook=notebook)
+		self.assertEqual(pageview.style.profile, 'testProfile')
+		self.assertEqual(pageview.style.file, profile_file)
 
 
 class TestPageviewDialogs(tests.TestCase):

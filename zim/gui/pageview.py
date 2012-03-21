@@ -4426,14 +4426,18 @@ class PageView(gtk.VBox):
 			action.connect('activate', self.do_toggle_format_action)
 
 		if self.style is None:
+			# Initialize class attribute - first object instance only
 			PageView.style = config_file('style.conf')
 			PageView.style.profile = None
 			# this can be reset later when the profile changes
-		self.on_preferences_changed(self.ui)
+		self.on_preferences_changed(self.ui) # also initializes the style
 		self.ui.connect('preferences-changed', self.on_preferences_changed)
-
-		self.ui.connect('open-notebook', self.on_open_notebook)
 		self.ui.connect_object('readonly-changed', PageView.set_readonly, self)
+
+		if self.ui.notebook:
+			self.on_open_notebook(self.ui, self.ui.notebook)
+		else:
+			self.ui.connect('open-notebook', self.on_open_notebook)
 
 	def grab_focus(self):
 		self.view.grab_focus()
@@ -4519,7 +4523,8 @@ class PageView(gtk.VBox):
 			self._set_menuitems_sensitive(sensitive)
 
 		window = self.get_toplevel()
-		window.connect('set-focus', set_actiongroup_sensitive)
+		if window and window != self:
+			window.connect('set-focus', set_actiongroup_sensitive)
 
 		def assert_not_modified(page, *a):
 			if page == self.page \
@@ -4530,6 +4535,7 @@ class PageView(gtk.VBox):
 		for s in ('stored-page', 'deleted-page', 'moved-page'):
 			notebook.connect(s, assert_not_modified)
 
+		self.on_profile_changed(notebook)
 		notebook.connect('profile-changed', self.on_profile_changed)
 
 	def on_profile_changed(self, notebook):
@@ -4545,7 +4551,7 @@ class PageView(gtk.VBox):
 				PageView.style.change_file(file)
 				PageView.style.profile = notebook.profile
 
-		self._reload_style()
+			self._reload_style()
 
 	def set_page(self, page, cursor=None):
 		'''Set the current page to be displayed in the pageview
