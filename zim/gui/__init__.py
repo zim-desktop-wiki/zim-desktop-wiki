@@ -401,6 +401,7 @@ class GtkInterface(NotebookInterface):
 		NotebookInterface.__init__(self)
 		self.preferences_register = ListDict()
 		self.page = None
+		self._path_context = None
 		self.history = None
 		self._autosave_lock = RLock()
 			# used to prevent autosave triggering while we are
@@ -885,7 +886,7 @@ class GtkInterface(NotebookInterface):
 					self.uimanager.remove_ui(id)
 				handler._ui_merge_ids = None
 
-	def populate_popup(self, name, menu):
+	def populate_popup(self, name, menu, path_context=None):
 		'''Populate a popup menu from a popup defined in the uimanager
 
 		This effectively duplicated the menu items from a given popup
@@ -897,6 +898,8 @@ class GtkInterface(NotebookInterface):
 		@param name: the uimanager popup name, e.g. "toolbar_popup" or
 		"page_popup"
 		@param menu: a gtk.Menu to be populated with the menu items
+		@param path_context: a L{Path} object in case this menu is about a page,
+		will be used as the context for the various actions
 
 		@raises ValueError: when 'name' does not exist
 		'''
@@ -919,6 +922,17 @@ class GtkInterface(NotebookInterface):
 		if start is None or end is None:
 			raise ValueError, 'No such popup in uimanager: %s' % name
 
+		# Wrapper to set path context
+		def wrapper(menuitem, action):
+			self._path_context = path_context
+			try:
+				action.activate()
+			except:
+				self._path_context = None
+				raise
+			else:
+				self._path_context = None
+
 		# Parse items and add to menu
 		seen_item = False # use to track empty parts
 		for line in xml[start+1:end]:
@@ -935,6 +949,12 @@ class GtkInterface(NotebookInterface):
 					if action:
 						item = action.create_menu_item()
 
+						# Insert our wrapper to set context path in
+						# between the menu item and the action
+						# bit of a hack...
+						action.disconnect_proxy(item)
+						item.connect('activate', wrapper, action)
+
 						# don't show accels in popups (based on gtk/gtkuimanager.c)
 						child = item.get_child()
 						if isinstance(child, gtk.AccelLabel):
@@ -943,6 +963,7 @@ class GtkInterface(NotebookInterface):
 						break
 				else:
 					raise AssertionError, 'BUG: could not find action for "%s"' % actionname
+
 				menu.append(item)
 				seen_item = True
 			elif line.startswith('<placeholder') \
@@ -1057,13 +1078,13 @@ class GtkInterface(NotebookInterface):
 		for k in keys:
 			self.url_handlers.pop(k)
 
-	def get_path_context(self):
+	def _get_path_context(self):
 		'''Get the current page path. Used to get the default page to
 		act upon for actions. Either returns the current page or a page
 		selected in the index pane, etc.
 		@returns: a L{Path} object
 		'''
-		return self.mainwindow.get_selected_path() or self.page
+		return self._path_context or self.page
 
 	def open_notebook(self, notebook=None):
 		'''Open a new notebook. If this is the first notebook the
@@ -1362,14 +1383,14 @@ class GtkInterface(NotebookInterface):
 		navigates away without first adding content. Though subtle this
 		is expected behavior for users.
 		'''
-		NewPageDialog(self, path=self.get_path_context()).run()
+		NewPageDialog(self, path=self._get_path_context()).run()
 
 	def new_sub_page(self):
 		'''Menu action to create a new page, shows the L{NewPageDialog}.
 		Like L{new_page()} but forces a child page of the current
-		selected page (based on L{get_path_context()})
+		page.
 		'''
-		NewPageDialog(self, path=self.get_path_context(), subpage=True).run()
+		NewPageDialog(self, path=self._get_path_context(), subpage=True).run()
 
 	def new_page_from_text(self, text, name=None, open_page=False, use_template=False):
 		'''Create a new page with content. This method is intended
@@ -1434,7 +1455,7 @@ class GtkInterface(NotebookInterface):
 		@param page: the page L{Path}, deafults to current selected
 		'''
 		if page is None:
-			page = self.get_path_context()
+			page = self._get_path_context()
 		PageWindow(self, page).show_all()
 
 	def save_page(self, page=None):
@@ -1554,7 +1575,9 @@ class GtkInterface(NotebookInterface):
 		@param path: a L{Path} object, or C{None} to move to current
 		selected page
 		'''
-		MovePageDialog(self, path=path).run()
+		if path is None:
+			path = self._get_path_context()
+		MovePageDialog(self, path).run()
 
 	def do_move_page(self, path, newpath, update_links):
 		'''Callback for MovePageDialog and PageIndex for executing
@@ -1578,7 +1601,9 @@ class GtkInterface(NotebookInterface):
 		@param path: a L{Path} object, or C{None} for the current
 		selected page
 		'''
-		RenamePageDialog(self, path=path).run()
+		if path is None:
+			path = self._get_path_context()
+		RenamePageDialog(self, path).run()
 
 	def do_rename_page(self, path, newbasename, update_heading=True, update_links=True):
 		'''Callback for RenamePageDialog for executing
@@ -1638,7 +1663,7 @@ class GtkInterface(NotebookInterface):
 		selected page
 		'''
 		if path is None:
-			path = self.get_path_context()
+			path = self._get_path_context()
 			if not path: return
 
 		update_links = self.preferences['GtkInterface']['remove_links_on_delete']
@@ -1714,7 +1739,9 @@ class GtkInterface(NotebookInterface):
 		@param path: a L{Path} object, or C{None} for the current
 		selected page
 		'''
-		AttachFileDialog(self, path=path).run()
+		if path is None:
+			path = self._get_path_context()
+		AttachFileDialog(self, path).run()
 
 	def do_attach_file(self, path, file, force_overwrite=False):
 		'''Callback for AttachFileDialog and InsertImageDialog
@@ -3102,13 +3129,10 @@ class ImportPageDialog(FileDialog):
 
 class MovePageDialog(Dialog):
 
-	def __init__(self, ui, path=None):
+	def __init__(self, ui, path):
+		assert path, 'Need a page here'
 		Dialog.__init__(self, ui, _('Move Page')) # T: Dialog title
-		if path is None:
-			self.path = self.ui.get_path_context()
-		else:
-			self.path = path
-		assert self.path, 'Need a page here'
+		self.path = path
 
 		if isinstance(self.path, Page) \
 		and self.path.modified \
@@ -3131,9 +3155,8 @@ class MovePageDialog(Dialog):
 			'Update %i pages linking to this page', i) % i
 			# T: label in MovePage dialog - %i is number of backlinks
 			# TODO update label to reflect that links can also be to child pages
-		self.context_page = self.path.parent
 		self.add_form([
-			('parent', 'namespace', _('Namespace'), self.context_page),
+			('parent', 'namespace', _('Namespace'), self.path.parent),
 				# T: Input label for namespace to move a file to
 			('update', 'bool', label),
 				# T: option in 'move page' dialog
@@ -3160,13 +3183,10 @@ class MovePageDialog(Dialog):
 
 class RenamePageDialog(Dialog):
 
-	def __init__(self, ui, path=None):
+	def __init__(self, ui, path):
+		assert path, 'Need a page here'
 		Dialog.__init__(self, ui, _('Rename Page')) # T: Dialog title
-		if path is None:
-			self.path = self.ui.get_path_context()
-		else:
-			self.path = path
-		assert self.path, 'Need a page here'
+		self.path = path
 
 		page = self.ui.notebook.get_page(self.path)
 		existing = (page.hascontent or page.haschildren)
@@ -3223,13 +3243,10 @@ class RenamePageDialog(Dialog):
 
 class DeletePageDialog(Dialog):
 
-	def __init__(self, ui, path=None):
+	def __init__(self, ui, path):
+		assert path, 'Need a page here'
 		Dialog.__init__(self, ui, _('Delete Page')) # T: Dialog title
-		if path is None:
-			self.path = self.ui.get_path_context()
-		else:
-			self.path = path
-		assert self.path, 'Need a page here'
+		self.path = path
 
 		hbox = gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
@@ -3306,15 +3323,12 @@ class DeletePageDialog(Dialog):
 
 class AttachFileDialog(FileDialog):
 
-	def __init__(self, ui, path=None):
+	def __init__(self, ui, path):
+		assert path, 'Need a page here'
 		FileDialog.__init__(self, ui, _('Attach File'), multiple=True) # T: Dialog title
 		self.uistate.setdefault('last_attachment_folder','~')
 		self.filechooser.set_current_folder(self.uistate['last_attachment_folder'])
-		if path is None:
-			self.path = self.ui.get_path_context()
-		else:
-			self.path = path
-		assert self.path, 'Need a page here'
+		self.path = path
 
 		dir = self.ui.notebook.get_attachments_dir(self.path)
 		if dir is None:

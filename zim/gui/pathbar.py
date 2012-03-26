@@ -454,7 +454,8 @@ class PathBar(ScrolledHBox):
 			return True
 
 	def on_button_popup_menu(self, button):
-		menu = self.ui.uimanager.get_widget('/page_popup')
+		menu = gtk.Menu()
+		self.ui.populate_popup('page_popup', menu, button.zim_path)
 		menu.popup(None, None, None, 3, 0)
 		return True
 

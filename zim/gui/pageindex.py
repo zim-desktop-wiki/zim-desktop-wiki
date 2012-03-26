@@ -567,7 +567,8 @@ class PageTreeView(BrowserTreeView):
 
 	def do_initialize_popup(self, menu):
 		# TODO get path first and determine what menu options are valid
-		self.ui.populate_popup('page_popup', menu)
+		path = self.get_selected_path() or Path(':')
+		self.ui.populate_popup('page_popup', menu, path)
 
 		populate_popup_add_separator(menu)
 		item = gtk.ImageMenuItem('gtk-copy')
