@@ -96,14 +96,15 @@ class GITApplicationBackend(VCSApplicationBase):
 		"""
 		Runs: git commit -a -m {{MSG}} {{PATH}}
 		"""
-		params = ['commit', '-a']
-		if msg!='' and msg!=None:
-			params.append('-m')
-			params.append(msg)
-		if path!='' and path!=None:
-			params.append('--')
-			params.append(path)
-		return self.run(params)
+		if self.is_modified():
+			params = ['commit', '-a']
+			if msg!='' and msg!=None:
+				params.append('-m')
+				params.append(msg)
+			if path!='' and path!=None:
+				params.append('--')
+				params.append(path)
+			return self.run(params)
 
 	def diff(self, versions, path=None):
 		"""
