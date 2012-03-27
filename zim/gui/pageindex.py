@@ -724,7 +724,10 @@ class PageIndex(gtk.ScrolledWindow):
 		self.treeview.connect('insert-link',
 			lambda v, p: self.ui.mainwindow.pageview.insert_links([p]))
 
-		ui.connect('open-notebook', self.on_open_notebook)
+		if self.ui.notebook:
+			self.on_open_notebook(self.ui, self.ui.notebook)
+		else:
+			ui.connect('open-notebook', self.on_open_notebook)
 		ui.connect('open-page', self.on_open_page)
 		ui.connect('start-index-update', lambda o: self.disconnect_model())
 		ui.connect('end-index-update', lambda o: self.reload_model())

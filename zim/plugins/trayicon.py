@@ -292,7 +292,10 @@ class StandAloneTrayIcon(StatusIconTrayIcon):
 	def __init__(self, ui):
 		StatusIconTrayIcon.__init__(self)
 		self.ui = ui
-		self.ui.connect('open-notebook', self.on_open_notebook)
+		if self.ui.notebook:
+			self.on_open_notebook(self.ui, self.ui.notebook)
+		else:
+			self.ui.connect('open-notebook', self.on_open_notebook)
 
 	def on_open_notebook(self, ui, notebook):
 		# TODO hook this to finalize_notebook in the plugin
