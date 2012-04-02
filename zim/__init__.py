@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
 This module contains the base class for the zim application and the main
@@ -84,7 +84,7 @@ For asynchronous actions see L{zim.async}.
 
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.55' # Bumped version to allow database rebuild
+__version__ = '0.56'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __copyright__ = 'Copyright 2008 - 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
