@@ -921,6 +921,11 @@ class Dir(FilePath):
 		exist.
 		@param mode: creation mode (e.g. 0700)
 		'''
+		if self.exists():
+			# Additional check needed because makedirs can not handle
+			# a path like "E:\" on windows (while "E:\foo" works fine)
+			return
+
 		try:
 			if mode is not None:
 				os.makedirs(self.encodedpath, mode=mode)
