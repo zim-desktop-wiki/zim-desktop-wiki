@@ -16,7 +16,7 @@ import logging
 
 from zim.fs import File, Dir
 from zim.gui.widgets import ui_environment, \
-	Dialog, ImageView, Button, QuestionDialog, scrolled_text_view
+	Dialog, ImageView, Button, QuestionDialog, scrolled_text_view, sourceview
 
 logger = logging.getLogger('zim.gui')
 
@@ -74,7 +74,7 @@ class ImageGeneratorDialog(Dialog):
 
 	# TODO: use uistate to remember pane position
 
-	def __init__(self, ui, title, generator, image=None, **opt):
+	def __init__(self, ui, title, generator, image=None, syntax=None, **opt):
 		'''Constructor
 
 		@param ui: L{GtkInterface} object or parent window
@@ -107,7 +107,7 @@ class ImageGeneratorDialog(Dialog):
 		self.vpane.add1(self.imageview)
 		# TODO scrolled window and option to zoom in / real size
 
-		window, textview = scrolled_text_view(monospace=True)
+		window, textview = sourceview(syntax=syntax)
 		self.textview = textview
 		self.textview.set_editable(True)
 		self.vpane.add2(window)

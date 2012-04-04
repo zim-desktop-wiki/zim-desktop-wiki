@@ -86,7 +86,7 @@ class InsertEquationDialog(ImageGeneratorDialog):
 	def __init__(self, ui, image=None):
 		generator = EquationGenerator()
 		ImageGeneratorDialog.__init__(self, ui, _('Insert Equation'), # T: dialog title
-			generator, image, help=':Plugins:Equation Editor' )
+			generator, image, help=':Plugins:Equation Editor', syntax="latex" )
 
 
 class EquationGenerator(ImageGeneratorClass):
