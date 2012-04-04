@@ -88,6 +88,9 @@ shutil.copy(
 # Copy jpeg62.dll
 shutil.copy(r"windows\jpeg62.dll", EXE_ROOT)
 
+# Copy msvcr90.dll
+distutils.dir_util.copy_tree(r"windows\src\Microsoft.VC90.CRT", path.join(EXE_ROOT, "Microsoft.VC90.CRT"), update=1)
+
 # Set theme to MS-Windows
 f = open(os.path.join(EXE_ROOT, r"etc\gtk-2.0\gtkrc"), "w")
 print >>f, 'gtk-theme-name = "MS-Windows"'

@@ -78,6 +78,18 @@ Requirements
    These tools default to installing in ~/Desktop, but I personally
    put them in ~/Apps. Be sure to put them all in the same folder.
 
+9. See http://www.py2exe.org/index.cgi/Tutorial#Step5 . You need to
+   create the following files under ./windows/src/ :
+     Microsoft.VC90.CRT/
+     +-- Microsoft.VC90.CRT.manifest
+     +-- msvcm90.dll
+     +-- msvcp90.dll
+     +-- msvcr90.dll -- must be exactly version 9.0.21022.8 for Python 2.7
+   You can get these files here:
+   http://www.glump.net/content/zim/Microsoft.VC90.CRT.zip
+   (Not included in Zim source because the license for redistribution is
+   confusing.)
+
 
 Building the application icon
 -----------------------------
