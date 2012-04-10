@@ -60,42 +60,29 @@ And some empty space here:
 
 \subsection{head 3}
 
-\href{foo}{foo}
-  links to page in the current namespace or parents
+\href{foo}{foo}  links to page in the current namespace or parents
 
-\href{:foo}{:foo}
- links to page in the root namespace
+\href{:foo}{:foo} links to page in the root namespace
 
-\href{+foo}{+foo}
- links to page in a subnamespace
+\href{+foo}{+foo} links to page in a subnamespace
 
-\href{foo}{bar}
- links to "foo" but display "bar"
+\href{foo}{bar} links to "foo" but display "bar"
 
 
 
-\href{:foo:bar}{:foo:bar}
- \href{./file.png}{./file.png}
- \href{file:///etc/passwd}{file:///etc/passwd}
+\href{:foo:bar}{:foo:bar} \href{./file.png}{./file.png} \href{file:///etc/passwd}{file:///etc/passwd}
 
-
-\href{Foo}{Foo}
-\href{Bar}{Bar}
-
+\href{Foo}{Foo}\href{Bar}{Bar}
 
 
 
 \href{mailto:foo@bar.org}{mailto:foo@bar.org}
 
-
 \href{http://en.wikipedia.org/wiki/Test}{wp?Test}
 
 
 
-
-External links like \href{http://nongnu.org}{http://nongnu.org}
- and \href{mailto:foo@bar.org}{foo@bar.org}
- are also supported
+External links like \href{http://nongnu.org}{http://nongnu.org} and \href{mailto:foo@bar.org}{foo@bar.org} are also supported
 
 
 
@@ -105,17 +92,23 @@ External links like \href{http://nongnu.org}{http://nongnu.org}
 
 
 
-\includegraphics[]{/home/jaap/code/pyzim-trunk/foobar.png}
+\includegraphics[]{./foobar.png}
 
-\includegraphics[height=0.520833in, keepaspectratio=true]{/home/jaap/code/pyzim-trunk/foobar.png}
+\includegraphics[height=0.520833in, keepaspectratio=true]{./foobar.png}
 
-\includegraphics[width=6.250000in, keepaspectratio=true]{/home/jaap/code/my-image.png}
+\includegraphics[width=6.250000in, keepaspectratio=true]{../my-image.png}
 
-\href{Foo}{\includegraphics[]{/home/jaap/code/pyzim-trunk/my-image.png}}
+\href{Foo}{\includegraphics[]{my-image.png}}
 
-\href{:foo:bar}{\includegraphics[width=6.250000in, keepaspectratio=true]{/home/jaap/code/my-image.png}}
+\href{:foo:bar}{\includegraphics[width=6.250000in, keepaspectratio=true]{../my-image.png}}
 
-\includegraphics[]{/home/jaap/code/pyzim-trunk/equation003.png}
+
+
+\begin{math}
+\int \frac{1}{x} \, d x
+\end{math} This equation has a source .tex file
+
+\includegraphics[]{./equation002.png} for this one it is missing
 
 
 

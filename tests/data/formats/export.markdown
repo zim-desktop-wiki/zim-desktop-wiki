@@ -52,7 +52,9 @@ External links like <http://nongnu.org> and [foo@bar.org](mailto:foo@bar.org) ar
 ![Foo Bar](../my-image.png)
 ![](my-image.png)
 ![Foo Bar](../my-image.png)
-![](./equation003.png)
+
+![](./equation001.png) This equation has a source .tex file
+![](./equation002.png) for this one it is missing
 
 {./Not/an/image.png}
 

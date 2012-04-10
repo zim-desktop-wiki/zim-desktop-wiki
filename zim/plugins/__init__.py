@@ -297,7 +297,7 @@ class PluginClass(gobject.GObject):
 	size of a dialog after resizing. It is stored in the X{state.conf}
 	file in the notebook cache folder.
 
-	@signal: preferences-changed (): emitted after the preferences
+	@signal: C{preferences-changed ()}: emitted after the preferences
 	were changed, triggers the L{do_preferences_changed} handler
 	'''
 

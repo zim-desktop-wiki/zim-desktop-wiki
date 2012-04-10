@@ -269,7 +269,6 @@ class NoSuchApplicationError(Error):
 	def __init__(self, app_type):
 		'''Constructor
 		@param app_type: the application type
-		@param uri: the URI that we wanted to open
 		'''
 		app_label = self.labels.get(app_type, app_type)
 		self.msg = _('Could not find application: %s') % app_label
@@ -1402,6 +1401,7 @@ class GtkInterface(NotebookInterface):
 		of the text is used as the basename. If the page
 		already exists a number is added to force a unique page name.
 		@param open_page: if C{True} navigate to this page directly
+		@param use_template: if C{True} the "new page" template is used
 		@returns: the new L{Page} object
 		'''
 		# The 'open_page' argument is a bit of a hack for remote calls
@@ -2183,7 +2183,7 @@ class MainWindow(Window):
 
 	def __init__(self, ui, fullscreen=False, geometry=None):
 		'''Constructor
-
+		@param ui: the L{GtkInterFace}
 		@param fullscreen: if C{True} the window is shown fullscreen,
 		if C{None} the previous state is restored
 		@param geometry: the window geometry as string in format

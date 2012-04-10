@@ -430,7 +430,7 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 		Cached conversion of the tree hierarchy to a PageTreeIter.
 
 		@param treepath: A tuple of int e.g. (0,) is the first item in the root namespace.
-		@return: A PageTreeIter instance corresponding to the given path
+		@returns: A PageTreeIter instance corresponding to the given path
 		'''
 		if not treepath in self._cache:
 			parent = None
@@ -470,7 +470,7 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 		the inverse operation of _get_iter.
 
 		@param path: Usually an IndexPath instance
-		@return: A list of tuples of ints (one page can be represented many times)
+		@returns: A list of tuples of ints (one page can be represented many times)
 		'''
 		assert isinstance(path, Path)
 		if path.isroot:

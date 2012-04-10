@@ -96,7 +96,7 @@ class VCS(object):
 	GIT = _('Git') # T: option value
 
 	@classmethod
-	def detect_in_folder(cls, dir): #FIXME - Set a default VCS, default=VCS.BZR):
+	def detect_in_folder(klass, dir): #FIXME - Set a default VCS, default=VCS.BZR):
 		"""Detect if a version control system has already been setup in the folder.
 		It also create the instance by calling the VCS.create() method
 		@param dir: a L{File} instance representing the notebook root folder
@@ -128,7 +128,7 @@ class VCS(object):
 	def get_backend(klass, vcs):
 		"""Return the class of backend to instantiate according to vcs given as parameter.
 		@param vcs: the wanted vcs backend (VCS.BZR, VCS.GIT, VCS.HG, ...)
-		@returns the related backend class. The returned class is a VCSApplicationBase child class
+		@returns: the related backend class. The returned class is a VCSApplicationBase child class
 		"""
 		vcs_klass = None
 		if vcs == VCS.BZR:
@@ -184,6 +184,7 @@ class VCSBackend(object):
 		  in order to avoid to interfer with dev environment
 
 		@param dir: a L{Dir} object representing the repository working directory path
+		@param vcs_specific_app: a backend object
 		"""
 		self._root = dir
 		self._lock = FS.get_async_lock(self._root)
@@ -301,7 +302,7 @@ class VCSBackend(object):
 		"""Returns the diff operation result of a repo or file
 		@param versions: couple of version numbers (integer)
 		@param file: L{UnixFile} object of the file to check, or None
-		@returns the diff result
+		@returns: the diff result
 		"""
 		with self.lock:
 			nc = ['=== No Changes\n']
@@ -312,7 +313,7 @@ class VCSBackend(object):
 		"""Returns the annotated version of a file
 		@param file: L{UnixFile} object of the file to check, or None
 		@param version: required version number (integer) or None
-		@returns the annotated version of the file result
+		@returns: the annotated version of the file result
 		"""
 		with self.lock:
 			annotated = self.vcs.annotate(file, version)
@@ -322,7 +323,7 @@ class VCSBackend(object):
 		"""Run a commit operation.
 
 		@param msg: commit message (str)
-		@returns nothing
+		@returns: nothing
 		"""
 		with self.lock:
 			self._commit(msg)
@@ -352,7 +353,7 @@ class VCSBackend(object):
 		"""Returns a list of all versions, for a file or for the entire repo
 
 		@param file: a L{UnixFile} object representing the path to the file, or None
-		@returns a list of tuples (revision (int), date, user (str), msg (str))
+		@returns: a list of tuples (revision (int), date, user (str), msg (str))
 		"""
 		# TODO see if we can get this directly from bzrlib as well
 		with self.lock:
@@ -424,7 +425,7 @@ class VCSApplicationBase(object):
 
 	def _ignored(self, file):
 		"""return True if the file should be ignored by the version control system
-		@param: a L{File} representing the file that we want to know if it should be ignored
+		@param file: a L{File} representing the file that we want to know if it should be ignored
 		@returns: C{True} if the file should be ignored by the VCS.
 		@implementation: may be overridden if some files are to be ignored \
 		                 specifically for the backend
@@ -453,7 +454,7 @@ class VCSApplicationBase(object):
 		to the VCS command annotate
 
 		@param file: a L{File} instance representing the file
-		@version: a  None/int/str representing the revision of the file
+		@param version: a  None/int/str representing the revision of the file
 		@returns: a list of lines representing the command result output
 
 		Eg. for mercurial, it will return something like:
