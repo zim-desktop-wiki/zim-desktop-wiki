@@ -357,44 +357,44 @@ class Index(gobject.GObject):
 	@ivar updating: C{True} when an update of the index is in
 	progress
 
-	@signal: start-update (): emitted when an index update starts
-	@signal: end-update (): emitted when an index update ends
-	@signal: initialize-db (): emitted when we (re-)initialize the
+	@signal: C{start-update ()}: emitted when an index update starts
+	@signal: C{end-update ()}: emitted when an index update ends
+	@signal: C{initialize-db ()}: emitted when we (re-)initialize the
 	database tables. When this signal is emitted either the database is
 	new or all tables have been dropped. E.g. a plugin could add a
 	handler to create it's custom tables on this signal.
 
-	@signal: page-inserted (indexpath): emitted when a page is newly
+	@signal: C{page-inserted (indexpath)}: emitted when a page is newly
 	added to the index (so a new row is inserted in the pages table)
-	@signal: page-updated (L{IndexPath}): page content has changed
-	@signal: page-indexed (L{IndexPath}, L{Page}): emitted after a
+	@signal: C{page-updated (L{IndexPath})}: page content has changed
+	@signal: C{page-indexed (L{IndexPath}, L{Page})}: emitted after a
 	page has been indexed by the index. This signal is intended for
 	example for plugins that want to do some additional indexing.
-	@signal: page-haschildren-toggled (L{IndexPath}): the value of the
+	@signal: C{page-haschildren-toggled (L{IndexPath})}: the value of the
 	C{haschildren} attribute changed for this page
-	@signal: page-deleted (L{IndexPath}: emitted after a page has been
+	@signal: C{page-deleted (L{IndexPath})}: emitted after a page has been
 	droppen from the index (note that it does no longer exist, so any
 	lookups will fail -- use page-to-be-deleted) when you want to get
 	a signal before the row is actually dropped
-	@signal: page-to-be-deleted (L{IndexPath}): like page-deleted but
+	@signal: C{page-to-be-deleted (L{IndexPath})}: like page-deleted but
 	emitted before the data is actually dropped
 
-	@signal: tag-created (L{IndexTag}): emitted when a new tag has been
+	@signal: C{tag-created (L{IndexTag})}: emitted when a new tag has been
 	created (so first time a cerain tag is encountered in the notebook)
-	@signal: tag-inserted (L{IndexTag}, L{IndexPath}, firsttag):
+	@signal: C{tag-inserted (L{IndexTag}, L{IndexPath}, firsttag)}:
 	emitted when a reference between a tag and a page is inserted in the
 	index. The 3rd argument is C{True} when this is the first tag
 	for this page.
-	@signal: tag-to-be-inserted(L{IndexTag}, L{IndexPath}, firsttag):
+	@signal: C{tag-to-be-inserted (L{IndexTag}, L{IndexPath}, firsttag)}:
 	like tag-inserted but emitted before adding the data in the database
-	@signal: tag-removed (L{IndexTag}, L{IndexPath}, lasttag):
+	@signal: C{tag-removed (L{IndexTag}, L{IndexPath}, lasttag)}:
 	emitted when a reference between a page and a tag is removed. The
 	3rd argument is C{True} when this was the last tag for this page
-	@signal: tag-to-be-removed (L{IndexTag}, L{IndexPath}, lasttag):
+	@signal: C{tag-to-be-removed (L{IndexTag}, L{IndexPath}, lasttag)}:
 	like tag-removed but emitted before dropping the data
-	@signal: tag-deleted (L{IndexTag}): emitted when a tag is no longer
+	@signal: C{tag-deleted (L{IndexTag})}: emitted when a tag is no longer
 	used in a notebook
-	@signal: tag-to-be-deleted (L{IndexTag}): like tag-deleted, but
+	@signal: C{tag-to-be-deleted (L{IndexTag})}: like tag-deleted, but
 	emitted before the data is dropped from the table
 
 	@todo: rename page-deleted to page-dropped to have more consistent
@@ -1745,7 +1745,7 @@ class Index(gobject.GObject):
 
 		@param tags: an iterable of L{IndexTag} objects
 
-		@return: yields L{IndexTag} objects
+		@returns: yields L{IndexTag} objects
 		'''
 		tag_ids = '(' + ','.join(str(t.id) for t in tags) + ')'
 		cursor = self.db.cursor()

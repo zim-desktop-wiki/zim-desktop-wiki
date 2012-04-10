@@ -129,6 +129,7 @@ class NotebookInfo(object):
 		@param icon: the notebook icon path
 		@param mtime: the mtime when config was last read
 		@param interwiki: the interwiki keyword for this notebook
+		@param a: any additional arguments will be discarded
 		'''
 		# **a is added to be future proof of unknown values in the cache
 		f = File(uri)
@@ -667,11 +668,13 @@ class Notebook(gobject.GObject):
 
 	@signal: C{store-page (page)}: emitted before actually storing the page
 	@signal: C{stored-page (page)}: emitted after storing the page
-	@signal: C{move-page (oldpath, newpath, update_links)}
-	@signal: C{moved-page (oldpath, newpath, update_links)}
+	@signal: C{move-page (oldpath, newpath, update_links)}: emitted before
+	actually moving a page
+	@signal: C{moved-page (oldpath, newpath, update_links)}: emitted after
+	moving the page
 	@signal: C{delete-page (path)}: emitted before deleting a page
 	@signal: C{deleted-page (path)}: emitted after deleting a page
-	@signal: C{properties-changed ()}
+	@signal: C{properties-changed ()}: notify change of notebook properties
 
 	@note: For store_async() the 'page-stored' signal is emitted
 	after scheduling the store, but potentially before it was really
@@ -1123,6 +1126,8 @@ class Notebook(gobject.GObject):
 		@note: the returned page name is B{not} a L{Path} object and can
 		not be used in places where the API asks for a path. See
 		L{resolve_path()} instead.
+
+		@param name: the name to be cleaned up
 
 		@keyword purge: if C{True} any invalid characters will be
 		removed, otherwise these will result in a L{PageNameError}
@@ -1829,7 +1834,7 @@ class Notebook(gobject.GObject):
 		@keyword path: L{Path} object for the page where we want to
 		link this file
 
-		@return: relative file path as string, or C{None} when no
+		@returns: relative file path as string, or C{None} when no
 		relative path was found
 		'''
 		notebook_root = self.dir
@@ -2392,6 +2397,8 @@ class Page(Path):
 
 		@param format: either a format module or a string
 		that is understood by L{zim.formats.get_format()}.
+
+		@param linker: a linker object (see e.g. L{BaseLinker})
 
 		@returns: text as a list of lines or an empty list
 		'''

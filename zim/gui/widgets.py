@@ -20,6 +20,8 @@ The remaining classes are various widgets used in the gui:
 L{Button}, L{IconButton}, L{IconChooserButton}, L{MenuButton},
 L{ImageView}, L{SingleClickTreeView}, L{BrowserTreeView},
 and L{TextBuffer}
+
+@newfield requires: Requires
 '''
 
 import gobject
@@ -244,7 +246,7 @@ def rotate_pixbuf(pixbuf):
 	'''Rotate the pixbuf to match orientation from EXIF info.
 	This is intended for e.g. photos that have EXIF information that
 	shows how the camera was held.
-	@return: a new version of the pixbuf or the pixbuf itself.
+	@returns: a new version of the pixbuf or the pixbuf itself.
 	'''
 	# Values for orientation seen in some random snippet in gtkpod
 	o = pixbuf.get_option('orientation')

@@ -28,6 +28,7 @@ def natural_sorted(iter, key=None):
 	'''Natural sort a list.
 	See L{natural_sort_key} for details.
 	@param iter: list or iterable of strings to be sorted
+	@param key: function producing strings for list items
 	@returns: sorted copy of the list
 	'''
 	l = list(iter) # cast to list and implicit copy

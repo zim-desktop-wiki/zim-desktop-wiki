@@ -4342,7 +4342,7 @@ class PageView(gtk.VBox):
 	@ivar find_bar: the L{FindBar} child widget
 	@ivar preferences: a L{ListDict} with preferences
 
-	@signal: modified-changed (): emitted when the page is edited
+	@signal: C{modified-changed ()}: emitted when the page is edited
 
 	@todo: document preferences supported by PageView
 	@todo: document extra keybindings implemented in this widget

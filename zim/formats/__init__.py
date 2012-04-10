@@ -166,8 +166,8 @@ def get_parser(name, *arg, **kwarg):
 	'''Returns a parser object instance for a specific format
 
 	@param name: format name
-
-	All other param are passed on to the object constructor
+	@param arg: arguments to pass to the parser object
+	@param kwarg: keyword arguments to pass to the parser object
 
 	@returns: parser object instance (subclass of L{ParserClass})
 	'''
@@ -180,8 +180,8 @@ def get_dumper(name, *arg, **kwarg):
 	'''Returns a dumper object instance for a specific format
 
 	@param name: format name
-
-	All other param are passed on to the object constructor
+	@param arg: arguments to pass to the dumper object
+	@param kwarg: keyword arguments to pass to the dumper object
 
 	@returns: dumper object instance (subclass of L{DumperClass})
 	'''

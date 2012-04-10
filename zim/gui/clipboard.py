@@ -302,6 +302,7 @@ class ParseTreeItem(ClipboardItem):
 		@param clipboard: a C{gtk.Clipboard} objet
 		@param selectiondata: a C{gtk.SelectionData} object to set the data on
 		@param id: target id for the requested data format
+		@param a: any additional arguments are discarded
 		'''
 		logger.debug("Clipboard requests data as '%s', we have a parsetree", selectiondata.target)
 		if id == PARSETREE_TARGET_ID:
@@ -364,6 +365,7 @@ class PageLinkItem(ClipboardItem):
 		@param clipboard: a C{gtk.Clipboard} objet
 		@param selectiondata: a C{gtk.SelectionData} object to set the data on
 		@param id: target id for the requested data format
+		@param a: any additional arguments are discarded
 		'''
 		logger.debug("Clipboard requests data as '%s', we have a pagelink", selectiondata.target)
 		if id == INTERNAL_PAGELIST_TARGET_ID:

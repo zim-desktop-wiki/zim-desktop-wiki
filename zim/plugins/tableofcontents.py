@@ -22,6 +22,7 @@ _is_heading = lambda iter: bool(filter(_is_heading_tag, iter.get_tags()))
 
 def find_heading(buffer, heading):
 	'''Find a heading
+	@param buffer: the C{gtk.TextBuffer}
 	@param heading: text of the heading
 	@returns: a C{gtk.TextIter} for the new cursor position or C{None}
 	'''
@@ -217,11 +218,10 @@ class ToCWidget(gtk.ScrolledWindow):
 		else:
 			return False
 
-	def select_section(buffer, path):
+	def select_section(self, buffer, path):
 		'''Select all text between two headings
-		@param start: starting heading
-		@param end: heading of next section
-		@returns: C{True} if succesfull
+		@param buffer: the C{gtk.TextBuffer} to select in
+		@param path: the C{gtk.TreePath} for the heading of the section
 		'''
 		model = self.treeview.get_model()
 		starttext = model[path][TEXT_COL].decode('utf-8')

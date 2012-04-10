@@ -458,7 +458,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 class ThumbnailManager(gobject.GObject):
 	''' Thumbnail handling following freedesktop.org spec mostly
 
-	@signal: thumbnail-ready(file, size, pixbuf)
+	@signal: C{thumbnail-ready (file, size, pixbuf)}: thumbnail ready
 	'''
 	# TODO more doc here to explain what the function of the manager is
 
@@ -651,7 +651,7 @@ class Thumbnailer(object):
 	def create_thumbnail(self, file, thumbfile, size):
 		'''Create a thumbnail
 		@param file: the file to be thumbnailed as L{File} object
-		@param thumfile: to be created thumbnail file as L{File} object
+		@param thumbfile: to be created thumbnail file as L{File} object
 		@param size: pixel size for thumbnail as integer
 		@implementation: must be implemented in subclasses
 		'''
