@@ -131,14 +131,16 @@ class Dumper(DumperClass):
 			elif element.tag == 'img':
 				src = self.linker.img(element.attrib['src'])
 				opt = ''
+				if 'alt' in element.attrib:
+					opt += ' alt="%s"' % html_encode(element.attrib['alt'])
 				for o in ('width', 'height'):
 					if o in element.attrib and int(float(element.attrib[o])) > 0:
-						opt = ' %s="%s"' % (o, element.attrib[o])
+						opt += ' %s="%s"' % (o, element.attrib[o])
 				if 'href' in element.attrib:
 					href = self.linker.link(element.attrib['href'])
-					output.append('<a href="%s"><img src="%s" alt="%s"%s></a>' % (href, src, text, opt))
+					output.append('<a href="%s"><img src="%s"%s></a>' % (href, src, opt))
 				else:
-					output.append('<img src="%s" alt="%s"%s>' % (src, text, opt))
+					output.append('<img src="%s"%s>' % (src, opt))
 			elif element.tag == 'link':
 				href = self.linker.link(element.attrib['href'])
 				title = text.replace('"', '&quot;')

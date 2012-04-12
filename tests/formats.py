@@ -301,8 +301,9 @@ A list
 	* baz
 '''
 		tree = self.format.Parser().parse(input)
+		#~ print tree.tostring()
 		output = self.format.Dumper().dump(tree)
-		self.assertEqual(output, text.splitlines(True))
+		self.assertEqual(''.join(output), text)
 
 	def testLink(self):
 		'''Test iterator function for link'''
@@ -536,7 +537,7 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 		'''Test HTML encoding'''
 		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
-		builder.span(PARAGRAPH, None, '<foo>"foo" & "bar"</foo>\n')
+		builder.append(PARAGRAPH, None, '<foo>"foo" & "bar"</foo>\n')
 		tree = builder.get_parsetree()
 		html = self.format.Dumper(linker=StubLinker()).dump(tree)
 		self.assertEqual(''.join(html),

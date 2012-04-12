@@ -191,10 +191,10 @@ def _link_tree(links, notebook, path):
 
 		if isimage:
 			src = notebook.relative_filepath(file, path) or file.uri
-			builder.object(IMAGE, {'src': src})
+			builder.append(IMAGE, {'src': src})
 		elif link.startswith('@'):
 			# FIXME - is this ever used ??
-			builder.span(TAG, {'name': links[i][1:]}, links[i])
+			builder.append(TAG, {'name': links[i][1:]}, links[i])
 		else:
 			if type == 'page':
 				href = Path(notebook.cleanup_pathname(link)) # Assume links are always absolute
@@ -203,7 +203,7 @@ def _link_tree(links, notebook, path):
 				file = File(link) # Assume links are always URIs
 				link = notebook.relative_filepath(file, path) or file.uri
 
-			builder.span(LINK, {'href': link}, link)
+			builder.append(LINK, {'href': link}, link)
 
 	builder.end(FORMATTEDTEXT)
 	tree = builder.get_parsetree()

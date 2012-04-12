@@ -64,7 +64,7 @@ class Parser(ParserClass):
 
 	@staticmethod
 	def parse_url(builder, text):
-		builder.span(LINK, {'href': text}, text)
+		builder.append(LINK, {'href': text}, text)
 
 
 class Dumper(DumperClass):
@@ -137,16 +137,16 @@ class Dumper(DumperClass):
 				output.append('\n')
 			elif element.tag == 'img':
 				src = element.attrib['src']
-				opts = []
-				for k, v in element.attrib.items():
-					if k == 'src' or k.startswith('_'):
-						continue
-					else:
-						opts.append('%s=%s' % (k, v))
-				if opts:
-					src += '?%s' % '&'.join(opts)
-				if element.text:
-					output.append(element.text)
+				#~ opts = []
+				#~ for k, v in element.attrib.items():
+					#~ if k == 'src' or k.startswith('_'):
+						#~ continue
+					#~ else:
+						#~ opts.append('%s=%s' % (k, v))
+				#~ if opts:
+					#~ src += '?%s' % '&'.join(opts)
+				if 'alt' in element.attrib:
+					output.append(element.attrib['alt'])
 				else:
 					output.append(src)
 			elif element.tag == 'link':

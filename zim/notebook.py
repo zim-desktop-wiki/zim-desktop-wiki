@@ -2500,7 +2500,7 @@ class IndexPage(Page):
 			builder.start(zim.formats.BULLETLIST)
 			for page in pagelist:
 				builder.start(zim.formats.LISTITEM)
-				builder.span(zim.formats.LINK,
+				builder.append(zim.formats.LINK,
 					{'type': 'page', 'href': page.name},
 					page.basename)
 				builder.end(zim.formats.LISTITEM)
@@ -2509,7 +2509,7 @@ class IndexPage(Page):
 			builder.end(zim.formats.BULLETLIST)
 
 		builder.start(zim.formats.FORMATTEDTEXT)
-		builder.span(zim.formats.HEADING, {'level':1},
+		builder.append(zim.formats.HEADING, {'level':1},
 			'Index of %s\n' % self.name)
 		add_namespace(self)
 		builder.end(zim.formats.FORMATTEDTEXT)

@@ -174,7 +174,7 @@ class Dumper(DumperClass):
 				#if opts:
 				#	src += '?%s' % '&'.join(opts)
 
-				text = element.text or ''
+				text = element.attrib.get('alt', '')
 				output.append('![%s](%s)' % (text, src))
 			elif element.tag in dumper_tags:
 				if element.text:

@@ -48,9 +48,9 @@ and also <strike>strike through</strike>
 
 <p><img src="./foobar.png" />
 <img height="50" src="./foobar.png" />
-<img src="../my-image.png" width="600">Foo Bar</img>
+<img alt="Foo Bar" src="../my-image.png" width="600" />
 <img href="Foo" src="my-image.png" />
-<img href=":foo:bar" src="../my-image.png" width="600">Foo Bar</img>
+<img alt="Foo Bar" href=":foo:bar" src="../my-image.png" width="600" />
 </p>
 <p><img src="./equation001.png" type="equation" /> This equation has a source .tex file
 <img src="./equation002.png" type="equation" /> for this one it is missing

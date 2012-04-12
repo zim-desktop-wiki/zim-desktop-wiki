@@ -781,7 +781,7 @@ class TextBuffer(gtk.TextBuffer):
 				self.insert_tag_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
-				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
+				self.insert_image_at_cursor(file, **element.attrib)
 			elif element.tag == 'pre':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
@@ -2131,14 +2131,8 @@ class TextBuffer(gtk.TextBuffer):
 					logger.warn('BUG: Checkbox outside of indent ?')
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
-					if 'alt' in attrib:
-						text = attrib.pop('alt') or ''
-						builder.start('img', attrib)
-						builder.data(text)
-						builder.end('img')
-					else:
-						builder.start('img', attrib)
-						builder.end('img')
+					builder.start('img', attrib)
+					builder.end('img')
 				else:
 					assert False, 'BUG: unknown pixbuf type'
 

@@ -703,10 +703,10 @@ class PageIndexFunction(TemplateFunction):
 
 				if page == self._page:
 					# Current page is marked with the strong style
-					builder.span(STRONG, None, page.basename)
+					builder.append(STRONG, text=page.basename)
 				else:
 					# links to other pages
-					builder.span(LINK,
+					builder.append(LINK,
 						{'type': 'page', 'href': ':'+page.name},
 						page.basename)
 

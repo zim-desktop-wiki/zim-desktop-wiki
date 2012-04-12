@@ -35,8 +35,7 @@ Supported tags:
 	- ol for numbered lists
 	- li for list items
 	- link for links, attribute href gives the target
-	- img for images, attributes src, width, height an optionally href
-		- any text set on these elements should be rendered as alt
+	- img for images, attributes src, width, height an optionally href and alt
 		- type can be used to control plugin functionality, e.g. type=equation
 
 Unlike html we respect line breaks and other whitespace as is.
@@ -63,10 +62,12 @@ import re
 import string
 import logging
 
+import types
+
 from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE
-from zim.parser import Builder, VisitorSkip, VisitorStop
+from zim.parser import Builder, VisitorSkip, VisitorStop, Visitor
 from zim.config import data_file
 from zim.objectmanager import ObjectManager
 
@@ -464,18 +465,15 @@ class ParseTree(ElementTreeModule.ElementTree):
 	def _visit(self, visitor, node):
 		try:
 			if len(node): # Has children
-				visitor.start(node.tag, node.attrib)
-				if node.text:
-					visitor.text(node.text)
-				for child in node:
-					self._visit(visitor, child) # recurs
-					if child.tail:
-						visitor.text(child.tail)
-				visitor.end(node.tag)
-			elif node.text:
-				visitor.span(node.tag, node.attrib, node.text)
+				for myvisitor in visitor.accept(node.tag, node.attrib):
+					if node.text:
+						myvisitor.text(node.text)
+					for child in node:
+						self._visit(myvisitor, child) # recurs
+						if child.tail:
+							myvisitor.text(child.tail)
 			else:
-				visitor.object(node.tag, node.attrib)
+				visitor.append(node.tag, node.attrib, node.text)
 		except VisitorSkip:
 			pass
 
@@ -515,11 +513,15 @@ class ParseTreeBuilder(Builder):
 		if tag != self.stack[-1]:
 			raise AssertionError, 'Unmatched tag closed: %s' % tag
 
-		if tag in BLOCK_LEVEL and self._last_char is not None and not self.partial:
-			assert self._last_char == '\n', 'Block level text needs to end with newline'
-			self._last_char = None
-		# TODO if partial only allow missing \n at end of tree,
-		# delay message and trigger if not followed by get_parsetree ?
+		if tag in BLOCK_LEVEL:
+			if self._last_char is not None and not self.partial:
+				#~ assert self._last_char == '\n', 'Block level text needs to end with newline'
+				if self._last_char != '\n' and tag not in (HEADING, LISTITEM):
+					self._b.data('\n')
+					# FIXME check for HEADING LISTITME for backward compat
+
+			# TODO if partial only allow missing \n at end of tree,
+			# delay message and trigger if not followed by get_parsetree ?
 
 		self._b.end(tag)
 		self.stack.pop()
@@ -528,35 +530,27 @@ class ParseTreeBuilder(Builder):
 		if tag == HEADING:
 			self._b.data('\n')
 
-	def span(self, tag, attrib, text):
+		self._last_char = None
+
+	def append(self, tag, attrib=None, text=None):
 		if tag in BLOCK_LEVEL:
-			assert text.endswith('\n'), 'Block level text needs to end with newline'
-			self._last_char = None
+			if text and not text.endswith('\n'):
+				text += '\n'
 
 		# FIXME hack for backward compat
-		if tag in (HEADING, LISTITEM):
+		if text and tag in (HEADING, LISTITEM):
 			text = text.strip('\n')
 
 		self._b.start(tag, attrib)
-		self._b.data(text)
+		if text:
+			self._b.data(text)
 		self._b.end(tag)
 
 		# FIXME hack for backward compat
 		if tag == HEADING:
 			self._b.data('\n')
 
-	def object(self, tag, attrib):
-		# FIXME hack for backward compat
-		if tag == IMAGE and attrib.get('alt'):
-			text = attrib.pop('alt')
-			self._b.start(tag, attrib)
-			self._b.data(text)
-			self._b.end(tag)
-			return
-
-		self._b.start(tag, attrib)
-		self._b.end(tag)
-
+		self._last_char = None
 
 
 count_eol_re = re.compile(r'\n+\Z')
@@ -808,16 +802,20 @@ class ParserClass(object):
 			return {'src': url}
 
 
-class DumperClass(object):
+class DumperClass(Visitor):
 	'''Base class for dumper classes.
 
 	Each format that can be used natively should define a class
 	'Dumper' which inherits from this base class.
 	'''
 
+	TAGS = {} #: dict with formatting tags start and end sequence
+
 	def __init__(self, linker=None, template_options=None):
 		self.linker = linker
 		self.template_options = template_options or {}
+		self._text = []
+		self._stack = []
 
 	def dump(self, tree):
 		'''ABSTRACT METHOD needs to be overloaded by sub-classes.
@@ -825,7 +823,47 @@ class DumperClass(object):
 		This method takes a ParseTree object and returns a list of
 		lines of text.
 		'''
-		raise NotImplementedError
+		# FIXME - issue here is that we need to reset state - should be in __init__
+		self._text = []
+		self._stack = []
+		tree.visit(self)
+		return self.get_lines() # FIXME - maybe just return text ?
+
+	def get_lines(self):
+		return u''.join(self._text).splitlines(1)
+
+	def accept(self, tag, attrib):
+		#~ print "ACCEPT", tag, attrib
+		if tag == FORMATTEDTEXT:
+			yield self
+		else:
+			if tag in self.TAGS:
+				start, end = self.TAGS
+				self._text.append(start)
+				yield self
+				self._text.append(end)
+			else:
+				try:
+					method = getattr(self, 'accept_' + tag)
+				except AttributeError:
+					raise AssertionError, 'BUG: Unknown tag: %s' % tag
+				else:
+					for visitor in method(tag, attrib):
+						yield visitor
+		#~ print 'CLOSE', tag
+		#~ print self._text
+
+	def text(self, text):
+		self._text.append(text)
+
+	def append(self, tag, attrib, text):
+		#~ print 'APPEND', tag, attrib, text
+		if tag in self.TAGS:
+			start, end = self.TAGS[tag]
+			self._text += [start, text ,end]
+		else:
+			Visitor.append(self, tag, attrib, text)
+		#~ print self._text
 
 	def dump_object(self, element):
 		'''Dumps object using proper ObjectManager for a object

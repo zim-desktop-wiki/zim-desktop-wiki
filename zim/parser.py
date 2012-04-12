@@ -101,7 +101,7 @@ class Builder(object):
 		'''
 		raise NotImplemented
 
-	def span(self, tag, attrib, text):
+	def append(self, tag, attrib=None, text=None):
 		'''Convenience function to open a tag, append text and close
 		it immediatly. Only used for formatted text that has no
 		sub-processing done.
@@ -112,18 +112,8 @@ class Builder(object):
 		calls L{start()}, L{text()}, and L{end()}
 		'''
 		self.start(tag, attrib)
-		self.text(text)
-		self.end(tag)
-
-	def object(self, tag, attrib):
-		'''Convenience function to append tags that do not have text
-		content. Typically used e.g. for embedded images.
-		@param tag: the tag name
-		@param attrib: optional dict with attributes
-		@implementation: optional for subclasses, default implementation
-		calls L{start()}, and L{end()}
-		'''
-		self.start(tag, attrib)
+		if not text is None:
+			self.text(text)
 		self.end(tag)
 
 
@@ -205,20 +195,44 @@ class Visitor(object):
 	'''Conceptual opposite of a builder, but with same API.
 	Used to walk nodes in a parsetree and call callbacks for each node.
 	See e.g. L{ParseTree.visit()} and L{ParseTree.visitall()}
-
-	Visitor objects can raise two exceptions to influence the tree
-	traversal:
-
-	  1. L{VisitorStop} will cancel the current parsing, but without
-	     raising an error. So code implementing a visit method should
-	     catch this.
-	  2. L{VisitorSkip} can be raised when the visitor wants to skip
-	     a node, and should prevent the implementation from further
-	     decending into this node
 	'''
+
+	def accept(self, tag, attrib=None):
+		'''Generator that calls both L{start()} and L{end()}.
+		Will yield a single object, which is the builder to be used
+		for text and sub tags. This method is to be used for implementing
+		the visitor pattern like this::
+
+			for myvisitor in self.accept(tag, attrib):
+					...
+
+		See L{start()} for the exceptions that may be raised in this
+		method.
+
+		@implementation: can be overloaded by sub-classes. Default
+		implementation calls L{start()} and L{end()} and yields itself.
+		'''
+		try:
+			self.start(tag, attrib)
+		except VisitorSkip:
+			pass
+		else:
+			yield self
+			self.end(tag)
 
 	def start(self, tag, attrib=None):
 		'''Start formatted region
+
+		Visitor objects can raise two exceptions in this method
+		to influence the tree traversal:
+
+		  1. L{VisitorStop} will cancel the current parsing, but without
+			 raising an error. So code implementing a visit method should
+			 catch this.
+		  2. L{VisitorSkip} can be raised when the visitor wants to skip
+			 a node, and should prevent the implementation from further
+			 decending into this node
+
 		@param tag: the tag name
 		@param attrib: optional dict with attributes
 		@implementation: optional for subclasses
@@ -240,7 +254,7 @@ class Visitor(object):
 		'''
 		pass
 
-	def span(self, tag, attrib, text):
+	def append(self, tag, attrib=None, text=None):
 		'''Convenience function to open a tag, append text and close
 		it immediatly. Only used for formatted text that has no
 		sub-processing done.
@@ -251,26 +265,11 @@ class Visitor(object):
 		calls L{start()}, L{text()}, and L{end()}
 		'''
 		try:
-			self.start(tag, attrib)
-			self.text(text)
-			self.end(tag)
+			for visitor in self.accept(tag, attrib):
+				if not text is None:
+					visitor.text(text)
 		except VisitorSkip:
 			pass
-
-	def object(self, tag, attrib):
-		'''Convenience function to append tags that do not have text
-		content. Typically used e.g. for embedded images.
-		@param tag: the tag name
-		@param attrib: optional dict with attributes
-		@implementation: optional for subclasses, default implementation
-		calls L{start()}, and L{end()}
-		'''
-		try:
-			self.start(tag, attrib)
-			self.end(tag)
-		except VisitorSkip:
-			pass
-
 
 class TextCollectorFilter(Visitor):
 	'''Visitor that collectes repeated calls to L{text()} and only
@@ -286,7 +285,7 @@ class TextCollectorFilter(Visitor):
 			self.builder.text(''.join(self._text))
 			self._text = []
 
-	def start(self, tag, attrib):
+	def start(self, tag, attrib=None):
 		self._flush()
 		self.builder.start(tag, attrib)
 
@@ -295,15 +294,12 @@ class TextCollectorFilter(Visitor):
 		self.builder.end(tag)
 
 	def text(self, text):
-		self._text.append(text)
+		if text:
+			self._text.append(text)
 
-	def span(self, tag, attrib, text):
+	def append(self, tag, attrib=None, text=None):
 		self._flush()
-		self.builder.span(tag, attrib, text)
-
-	def object(self, tag, attrib):
-		self._flush()
-		self.builder.object(tag, attrib)
+		self.builder.append(tag, attrib, text)
 
 
 class TreeFilter(Visitor):
@@ -342,15 +338,11 @@ class TreeFilter(Visitor):
 		if self._count > 0:
 			self.builder.text(text)
 
-	def span(self, tag, attrib, text):
+	def append(self, tag, attrib=None, text=None):
 		if tag in self.tags:
-			self.builder.span(tag, attrib, text)
+			self.builder.append(tag, attrib, text)
 		elif tag not in self.exclude:
 			self.text(text)
-
-	def object(self, tag, attrib):
-		if tag in self.tags:
-			self.builder.object(tag, attrib)
 
 
 
@@ -405,7 +397,7 @@ class Rule(object):
 			self.descent(builder, *text)
 			builder.end(self.tag)
 		else:
-			builder.span(self.tag, None, text)
+			builder.append(self.tag, None, text)
 
 
 class Parser(object):
