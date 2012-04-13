@@ -200,8 +200,7 @@ def sourceview(text=None, syntax=None):
 	@param text: initial text to show in the view
 	@param syntax: this will try to enable syntax highlighting for the given
 	language. If None, no syntax highlighting will be enabled.
-	@returns: a 2-tuple of a window and a view (if GTKSourceView was loaded,
-	both is the sourceview object, since it can be used for both cases)
+	@returns: a 2-tuple of a window and a view.
 	'''
 	if GTKSOURCEVIEW_LOADED:
 		gsvbuf = gtksourceview2.Buffer()
@@ -217,7 +216,11 @@ def sourceview(text=None, syntax=None):
 		font = pango.FontDescription('Monospace')
 		textview.modify_font(font)
 		textview.set_property("smart-home-end", True)
-		return (textview, textview)
+		window = gtk.ScrolledWindow()
+		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		window.set_shadow_type(gtk.SHADOW_IN)
+		window.add(textview)
+		return (window, textview)
 	else:
 		return scrolled_text_view(text=text, monospace=True)
 
