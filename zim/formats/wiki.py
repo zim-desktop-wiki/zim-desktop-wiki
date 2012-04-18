@@ -351,137 +351,133 @@ class Dumper(DumperClass):
 
 	# TODO check commonality with dumper in plain.py
 
-	def __init__(self, *arg, **kwarg):
-		self._list_level = -1
-		self._list_type = None
-		self._list_iter = None
-		DumperClass.__init__(self, *arg, **kwarg)
-
-	def dump(self, tree):
-		# FIXME reset here
-		self._list_level = -1
-		self._list_type = None
-		self._list_iter = None
-		return DumperClass.dump(self, tree)
-
-	def accept_indent(self, tag, attrib=None):
+	def dump_indent(self, tag, attrib, text):
+		# Prefix lines with one or more tabs
 		if attrib and 'indent' in attrib:
 			prefix = '\t' * int(attrib['indent'])
-			block = self.__class__(self.linker, self.template_options)
-			yield block
-			self._text += [prefix + l for l in block.get_lines()]
-			# TODO enforces we always and such a block with \n unless partial
+			return self.prefix_lines(prefix, text)
+			# TODO enforces we always end such a block with \n unless partial
 		else:
-			yield self
+			return text
 
-	accept_p = accept_indent
-	accept_div = accept_indent
+	dump_p = dump_indent
+	dump_div = dump_indent
 
-	def accept_pre(self, tag, attrib):
-		for block in self.accept_indent(tag, attrib):
-			block.text("'''\n")
-			yield block
-			block.text("'''\n")
+	def dump_pre(self, tag, attrib, text):
+		# Indent and wrap with "'''" lines
+		text.insert(0, "'''\n")
+		text.append("'''\n")
+		text = self.dump_indent(tag, attrib, text)
+		return text
 
-	def accept_h(self, tag, attrib):
+	def dump_h(self, tag, attrib, text):
+		# Wrap line with number of "=="
 		level = int(attrib['level'])
 		if level < 1:   level = 1
 		elif level > 5: level = 5
 		tag = '='*(7 - level)
-		self._text.append(tag + ' ')
-		yield self
-		self._text.append(' ' + tag)
+		text.insert(0, tag + ' ')
+		text.append(' ' + tag)
+		return text
 
-	def accept_list(self, tag, attrib):
-		parent = (self._list_level, self._list_type, self._list_iter)
+	def dump_list(self, tag, attrib, text):
 		if 'indent' in attrib:
-			self._list_level = int(attrib['indent'])
+			# top level list with specified indent
+			prefix = '\t' * int(attrib['indent'])
+			return self.prefix_lines('\t', text)
+		elif self._stack[-1][0] in (BULLETLIST, NUMBEREDLIST):
+			# indent sub list
+			prefix = '\t'
+			return self.prefix_lines('\t', text)
 		else:
-			self._list_level += 1
-		self._list_type = tag
-		self._list_iter = attrib.get('start')
+			# top level list, no indent
+			return text
 
-		yield self
+	dump_ul = dump_list
+	dump_ol = dump_list
 
-		self._list_level = parent[0]
-		self._list_type = parent[1]
-		self._list_iter = parent[2]
+	def dump_li(self, tag, attrib, text):
+		# Here is some logic to figure out the correct bullet character
+		# depends on parent list element
 
-	accept_ul = accept_list
-	accept_ol = accept_list
+		# TODO accept multi-line content here - e.g. nested paras
 
-	def accept_li(self, tag, attrib):
-		if 'indent' in attrib:
-			# HACK for raw trees from pageview
-			self._list_level = int(attrib['indent'])
-
-		if 'bullet' in attrib: # ul OR raw tree from pageview...
-			if attrib['bullet'] in bullet_types:
+		if self._stack[-1][0] == BULLETLIST:
+			if 'bullet' in attrib \
+			and attrib['bullet'] in bullet_types:
 				bullet = bullet_types[attrib['bullet']]
 			else:
-				bullet = attrib['bullet'] # Assume it is numbered..
-		elif self._list_type == NUMBEREDLIST:
-			bullet = str(self._list_iter) + '.'
-			self._list_iter = increase_list_iter(self._list_iter) or '1' # fallback if iter not valid
-		else: # BULLETLIST
-			bullet = '*'
-
-		self._text.append('\t'*self._list_level+bullet+' ')
-		yield self
-		self._text.append('\n')
-
-		# TODO will also need to use accept_indent here when we allow
-		# para in list items
-
-	def append(self, tag, attrib, text):
-		if tag == LINK:
-			assert 'href' in attrib, \
-				'BUG: link misses href: %s "%s"' % (attrib, text)
-			href = attrib['href']
-			if href == text:
-				if url_re.match(href):
-					self._text.append(href)
-				else:
-					self._text.append('[['+href+']]')
-			else:
-				if text:
-					self._text.append('[['+href+'|'+text+']]')
-				else:
-					self._text.append('[['+href+']]')
-		elif tag == IMAGE:
-			src = attrib['src']
-			alt = attrib.get('alt')
-			opts = []
-			items = attrib.items()
-			# we sort params only because unit tests don't like random output
-			items.sort()
-			for k, v in items:
-				if k in ('src', 'alt') or k.startswith('_'):
-					continue
-				elif v: # skip None, "" and 0
-					opts.append('%s=%s' % (k, v))
-			if opts:
-				src += '?%s' % '&'.join(opts)
-
-			if alt:
-				self._text.append('{{'+src+'|'+alt+'}}')
-			else:
-				self._text.append('{{'+src+'}}')
-
-			# TODO use text for caption (with full recursion)
-			# means moving to an accept_img method
-		elif tag == OBJECT:
-			logger.debug("Exporting object: %s, %s", attrib, text)
-			assert "type" in attrib, "Undefined type of object"
-			self._text.append("{{{" + attrib["type"] + ":")
-			for key, value in attrib.items():
-				if key in ('type', 'indent') or not value:
-					continue
-				# double quotes are escaped by doubling them
-				self._text.append(' %s="%s"' % (key, str(value).replace('"', '""')))
-			self._text.append("\n" + (text or '') + "}}}\n")
-
-			# TODO put content in attrib, use text for caption (with full recursion)
-			# See img
+				bullet = '*'
+		elif self._stack[-1][0] == NUMBEREDLIST:
+			iter = self._stack[-1][1].get('_iter')
+			if not iter:
+				# First item on this level
+				iter = self._stack[-1][1].get('start', 1)
+			bullet = iter + '.'
+			self._stack[-1][1]['_iter'] = increase_list_iter(iter) or '1'
 		else:
-			DumperClass.append(self, tag, attrib, text)
+			# HACK for raw tree from pageview
+			# support indenting
+			# support any bullet type (inc numbered)
+
+			bullet = attrib.get('bullet', BULLET)
+			if bullet in bullet_types:
+				bullet = bullet_types[attrib['bullet']]
+			# else assume it is numbered..
+
+			if 'indent' in attrib:
+				prefix = int(attrib['indent']) * '\t'
+				bullet = prefix + bullet
+
+		return (bullet, ' ') + tuple(text) + ('\n',)
+
+	def dump_link(self, tag, attrib, text=None):
+		assert 'href' in attrib, \
+			'BUG: link misses href: %s "%s"' % (attrib, text)
+		href = attrib['href']
+
+		if not text or href == u''.join(text):
+			if url_re.match(href):
+				return (href,) # no markup needed
+			else:
+				return ('[[', href, ']]')
+		else:
+			return ('[[', href, '|') + tuple(text) + (']]',)
+
+	def dump_img(self, tag, attrib, text=None):
+		src = attrib['src']
+		alt = attrib.get('alt')
+		opts = []
+		items = attrib.items()
+		items.sort() # unit tests don't like random output
+		for k, v in items:
+			if k in ('src', 'alt') or k.startswith('_'):
+				continue
+			elif v: # skip None, "" and 0
+				opts.append('%s=%s' % (k, v))
+		if opts:
+			src += '?%s' % '&'.join(opts)
+
+		if alt:
+			return ('{{', src, '|', alt, '}}')
+		else:
+			return('{{', src, '}}')
+
+		# TODO use text for caption (with full recursion)
+
+	def dump_obj(self, tag, attrib, text=None):
+		logger.debug("Dumping object: %s, %s", attrib, text)
+		assert "type" in attrib, "Undefined type of object"
+
+		opts = []
+		for key, value in attrib.items():
+			if key in ('type', 'indent') or not value:
+				continue
+			# double quotes are escaped by doubling them
+			opts.append(' %s="%s"' % (key, str(value).replace('"', '""')))
+
+		text = text or ''
+		return ('{{{', attrib['type'], ':', opts, '\n', text, '}}}\n')
+
+		# TODO put content in attrib, use text for caption (with full recursion)
+		# See img

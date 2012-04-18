@@ -145,6 +145,7 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		self.assertFalse(page.modified)
 		wikitext = tests.WikiTestData.get('roundtrip')
 		page.parse('wiki', wikitext)
+		self.assertEqual(''.join(page.dump('wiki')), wikitext)
 		self.assertTrue(page.modified)
 		self.store.store_page(page)
 		self.assertFalse(page.modified)

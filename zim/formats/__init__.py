@@ -465,13 +465,14 @@ class ParseTree(ElementTreeModule.ElementTree):
 	def _visit(self, visitor, node):
 		try:
 			if len(node): # Has children
-				for myvisitor in visitor.accept(node.tag, node.attrib):
-					if node.text:
-						myvisitor.text(node.text)
-					for child in node:
-						self._visit(myvisitor, child) # recurs
-						if child.tail:
-							myvisitor.text(child.tail)
+				visitor.start(node.tag, node.attrib)
+				if node.text:
+					visitor.text(node.text)
+				for child in node:
+					self._visit(visitor, child) # recurs
+					if child.tail:
+						visitor.text(child.tail)
+				visitor.end(node.tag)
 			else:
 				visitor.append(node.tag, node.attrib, node.text)
 		except VisitorSkip:
@@ -825,45 +826,79 @@ class DumperClass(Visitor):
 		'''
 		# FIXME - issue here is that we need to reset state - should be in __init__
 		self._text = []
-		self._stack = []
+		self._stack = [(None, None, self._text)]
 		tree.visit(self)
+		assert len(self._stack) == 1, 'Unclosed tags on tree'
+		#~ import pprint; pprint.pprint(self._text)
 		return self.get_lines() # FIXME - maybe just return text ?
 
 	def get_lines(self):
 		return u''.join(self._text).splitlines(1)
 
-	def accept(self, tag, attrib):
-		#~ print "ACCEPT", tag, attrib
-		if tag == FORMATTEDTEXT:
-			yield self
-		else:
-			if tag in self.TAGS:
-				start, end = self.TAGS
-				self._text.append(start)
-				yield self
-				self._text.append(end)
-			else:
-				try:
-					method = getattr(self, 'accept_' + tag)
-				except AttributeError:
-					raise AssertionError, 'BUG: Unknown tag: %s' % tag
-				else:
-					for visitor in method(tag, attrib):
-						yield visitor
-		#~ print 'CLOSE', tag
-		#~ print self._text
+	def start(self, tag, attrib=None):
+		if attrib:
+			attrib = attrib.copy() # Ensure dumping does not change tree
+		self._stack.append((tag, attrib, []))
 
 	def text(self, text):
-		self._text.append(text)
+		assert not text is None
+		self._stack[-1][-1].append(text)
 
-	def append(self, tag, attrib, text):
-		#~ print 'APPEND', tag, attrib, text
+	def end(self, tag):
+		assert tag and self._stack[-1][0] == tag, 'Unmatched tag: %s' % tag
+		_, attrib, text = self._stack.pop()
 		if tag in self.TAGS:
 			start, end = self.TAGS[tag]
-			self._text += [start, text ,end]
+			text.insert(0, start)
+			text.append(end)
+		elif tag == FORMATTEDTEXT:
+			pass
 		else:
-			Visitor.append(self, tag, attrib, text)
-		#~ print self._text
+			try:
+				method = getattr(self, 'dump_'+tag)
+			except AttributeError:
+				raise AssertionError, 'BUG: Unknown tag: %s' % tag
+
+			text = method(tag, attrib, text)
+			#~ try:
+				#~ u''.join(text)
+			#~ except:
+				#~ print "BUG: %s returned %s" % ('dump_'+tag, text)
+
+		if text is not None:
+			self._stack[-1][-1].extend(text)
+
+	def append(self, tag, attrib=None, text=None):
+		if tag in self.TAGS:
+			start, end = self.TAGS[tag]
+			text = [start, text ,end]
+		elif tag == FORMATTEDTEXT:
+			pass
+		else:
+			if attrib:
+				attrib = attrib.copy() # Ensure dumping does not change tree
+
+			try:
+				method = getattr(self, 'dump_'+tag)
+			except AttributeError:
+				raise AssertionError, 'BUG: Unknown tag: %s' % tag
+
+			if text is None:
+				text = method(tag, attrib, None)
+			else:
+				text = method(tag, attrib, [text,])
+
+		if text is not None:
+			self._stack[-1][-1].extend(text)
+
+	def prefix_lines(self, prefix, text):
+		'''Convenience method to wrap a number of lines with e.g. an
+		indenting sequence.
+		@param prefix: a string to prefix each line
+		@param text: a list of pieces of text
+		'''
+		lines = u''.join(text).splitlines(1)
+		return [prefix + l for l in lines]
 
 	def dump_object(self, element):
 		'''Dumps object using proper ObjectManager for a object

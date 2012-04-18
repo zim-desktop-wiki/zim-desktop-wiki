@@ -13,7 +13,7 @@ import re
 import zim.datetimetz as datetime
 from zim.utils import natural_sorted
 from zim.parsing import parse_date
-from zim.parser import Visitor, TreeFilter, TextCollectorFilter
+from zim.parser import Visitor, VisitorSkip, TreeFilter, TextCollectorFilter
 from zim.plugins import PluginClass
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, \
@@ -347,16 +347,6 @@ gobject.type_register(TaskListPlugin)
 
 class TasksParser(Visitor):
 	'''Parse tasks from a parsetree'''
-
-	# First filter plain text for paragraphs and lists.
-	# Then for each paragraph inspect line items with TODO labels
-	# and check list items
-
-	# TreeFilter --> TextCollector --> TaskBuilder
-
-	# We need to include the list level in the stack because we can
-	# have mixed bullet lists with checkboxes, so task nesting is
-	# not the same as list nesting
 
 	def __init__(self, task_label_re, next_label_re, all_checkboxes, defaultdate):
 		self.tasks = [] # tuples like (task, children)

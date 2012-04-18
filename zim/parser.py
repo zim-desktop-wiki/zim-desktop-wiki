@@ -138,7 +138,7 @@ class SimpleTreeBuilder(Builder):
 
 	def __init__(self, merge_text=True):
 		self.root = []
-		self.stack = [('ROOT', None, self.root)]
+		self.stack = [(None, None, self.root)]
 		self.merge_text = merge_text
 
 	def get_root(self):
@@ -194,31 +194,8 @@ class VisitorSkip(Exception):
 class Visitor(object):
 	'''Conceptual opposite of a builder, but with same API.
 	Used to walk nodes in a parsetree and call callbacks for each node.
-	See e.g. L{ParseTree.visit()} and L{ParseTree.visitall()}
+	See e.g. L{ParseTree.visit()}.
 	'''
-
-	def accept(self, tag, attrib=None):
-		'''Generator that calls both L{start()} and L{end()}.
-		Will yield a single object, which is the builder to be used
-		for text and sub tags. This method is to be used for implementing
-		the visitor pattern like this::
-
-			for myvisitor in self.accept(tag, attrib):
-					...
-
-		See L{start()} for the exceptions that may be raised in this
-		method.
-
-		@implementation: can be overloaded by sub-classes. Default
-		implementation calls L{start()} and L{end()} and yields itself.
-		'''
-		try:
-			self.start(tag, attrib)
-		except VisitorSkip:
-			pass
-		else:
-			yield self
-			self.end(tag)
 
 	def start(self, tag, attrib=None):
 		'''Start formatted region
@@ -256,20 +233,21 @@ class Visitor(object):
 
 	def append(self, tag, attrib=None, text=None):
 		'''Convenience function to open a tag, append text and close
-		it immediatly. Only used for formatted text that has no
-		sub-processing done.
+		it immediatly.
+
+		Can raise L{VisitorStop} or L{VisitorSkip}, see C{start()}
+		for the conditions.
+
 		@param tag: the tag name
 		@param attrib: optional dict with attributes
 		@param text: formatted text
 		@implementation: optional for subclasses, default implementation
 		calls L{start()}, L{text()}, and L{end()}
 		'''
-		try:
-			for visitor in self.accept(tag, attrib):
-				if not text is None:
-					visitor.text(text)
-		except VisitorSkip:
-			pass
+		self.start(tag, attrib)
+		if text is not None:
+			self.text(text)
+		self.end(tag)
 
 class TextCollectorFilter(Visitor):
 	'''Visitor that collectes repeated calls to L{text()} and only
@@ -535,29 +513,3 @@ def get_line_count(text, offset):
 		return len(lines) + 1, 0
 	else:
 		return len(lines), len(lines[-1])
-
-
-
-
-
-
-# TODO move to test suite
-if __name__ == '__main__':
-	for input, wanted in (
-		('foo', 'foo\n'),
-		('foo\nbar', 'foo\nbar\n'),
-		('    foo\n\t     bar', '\tfoo\n\t\t bar\n'),
-	):
-		output = prepare_text(input)
-		assert output == wanted, 'Got >>%r<< wanted >>%r<<' % (output, wanted)
-
-	text = 'foo\nbar\nbaz\n'
-	for offset, wanted in (
-		(0, (1, 0)),
-		(3, (1, 3)),
-		(4, (2, 0)),
-		(8, (3, 0)),
-		(9, (3, 1)),
-	):
-		line = get_line_count(text, offset)
-		assert line == wanted, 'Got %s, wanted %s' % (line, wanted)

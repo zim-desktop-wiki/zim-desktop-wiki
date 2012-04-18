@@ -173,31 +173,28 @@ class TestSimpleTreeBuilder(tests.TestCase):
 			)
 		])
 
-class TestTextCollectorFilter(tests.TestCase):
 
-	def runTest(self):
-		builder = SimpleTreeBuilder(merge_text=False)
-		filter = TextCollectorFilter(builder)
+class TestParser(tests.TestCase):
 
-		filter.start('root', {})
-		filter.text('foo')
-		filter.text('bar')
-		filter.append('dus', {}, 'ja')
-		filter.text('foo')
-		filter.text('bar')
-		filter.append('br', {})
-		filter.text('foo')
-		filter.text('bar')
-		filter.end('root')
+	def testFunctions(self):
+		# Helper functions
+		for input, wanted in (
+			('foo', 'foo\n'),
+			('foo\nbar', 'foo\nbar\n'),
+			('    foo\n\t     bar', '\tfoo\n\t\t bar\n'),
+		):
+			output = prepare_text(input)
+			self.assertEqual(output, wanted)
 
-		root = builder.get_root()
-		self.assertEqual(root, [
-			('root', {}, [
-					'foobar',
-					('dus', {}, ['ja']),
-					'foobar',
-					('br', {}, []),
-					'foobar',
-				]
-			)
-		])
+		text = 'foo\nbar\nbaz\n'
+		for offset, wanted in (
+			(0, (1, 0)),
+			(3, (1, 3)),
+			(4, (2, 0)),
+			(8, (3, 0)),
+			(9, (3, 1)),
+		):
+			line = get_line_count(text, offset)
+			self.assertEqual(line, wanted)
+
+	## TODO -- Parser test cases ##

@@ -19,9 +19,6 @@ from zim.templates import Template
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
 
-wikitext = tests.WikiTestData.get('roundtrip')
-
-
 
 class TestFormatMixin(object):
 	'''Mixin for testing formats, uses data in C{tests/data/formats/}'''
@@ -81,6 +78,9 @@ class TestFormatMixin(object):
 		#~ print '\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n'
 		self.assertMultiLineEqual(result, wanted)
 		self.assertNoTextMissing(result, reftree)
+
+		# Check that dumper did not modify the tree
+		self.assertMultiLineEqual(reftree.tostring(), self.reference_xml)
 
 		# Parser
 		if not hasattr(self.format, 'Parser'):
