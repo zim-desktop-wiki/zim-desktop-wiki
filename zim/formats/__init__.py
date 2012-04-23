@@ -67,7 +67,7 @@ import types
 from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE
-from zim.parser import Builder, VisitorSkip, VisitorStop, Visitor
+from zim.parser import Builder
 from zim.config import data_file
 from zim.objectmanager import ObjectManager
 
@@ -455,6 +455,10 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 	def visit(self, visitor):
 		'''Visit all nodes of this tree
+
+		@note: If the visitor modifies the attrib dict on nodes, this
+		will modify the tree.
+
 		@param visitor: a L{Visitor} or L{Builder} object
 		'''
 		try:
@@ -477,6 +481,82 @@ class ParseTree(ElementTreeModule.ElementTree):
 				visitor.append(node.tag, node.attrib, node.text)
 		except VisitorSkip:
 			pass
+
+
+class VisitorStop(Exception):
+	'''Exception to be raised to cancel a visitor action'''
+	pass
+
+
+class VisitorSkip(Exception):
+	'''Exception to be raised when the visitor should skip a leaf node
+	and not decent into it.
+	'''
+	pass
+
+
+class Visitor(object):
+	'''Conceptual opposite of a builder, but with same API.
+	Used to walk nodes in a parsetree and call callbacks for each node.
+	See e.g. L{ParseTree.visit()}.
+	'''
+
+	def start(self, tag, attrib=None):
+		'''Start formatted region
+
+		Visitor objects can raise two exceptions in this method
+		to influence the tree traversal:
+
+		  1. L{VisitorStop} will cancel the current parsing, but without
+			 raising an error. So code implementing a visit method should
+			 catch this.
+		  2. L{VisitorSkip} can be raised when the visitor wants to skip
+			 a node, and should prevent the implementation from further
+			 decending into this node
+
+		@note: If the visitor modifies the attrib dict on nodes, this
+		will modify the tree. If this is not intended, the implementation
+		needs to take care to copy the attrib to break the reference.
+
+		@param tag: the tag name
+		@param attrib: optional dict with attributes
+		@implementation: optional for subclasses
+		'''
+		pass
+
+	def text(self, text):
+		'''Append text
+		@param text: text to be appended as string
+		@implementation: optional for subclasses
+		'''
+		pass
+
+	def end(self, tag):
+		'''End formatted region
+		@param tag: the tag name
+		@raises XXX: when tag does not match current state
+		@implementation: optional for subclasses
+		'''
+		pass
+
+	def append(self, tag, attrib=None, text=None):
+		'''Convenience function to open a tag, append text and close
+		it immediatly.
+
+		Can raise L{VisitorStop} or L{VisitorSkip}, see C{start()}
+		for the conditions.
+
+		@param tag: the tag name
+		@param attrib: optional dict with attributes
+		@param text: formatted text
+		@implementation: optional for subclasses, default implementation
+		calls L{start()}, L{text()}, and L{end()}
+		'''
+		self.start(tag, attrib)
+		if text is not None:
+			self.text(text)
+		self.end(tag)
+
 
 class ParseTreeBuilder(Builder):
 	'''Builder object that builds a L{ParseTree}'''
@@ -846,11 +926,11 @@ class DumperClass(Visitor):
 
 	def end(self, tag):
 		assert tag and self._stack[-1][0] == tag, 'Unmatched tag: %s' % tag
-		_, attrib, text = self._stack.pop()
+		_, attrib, strings = self._stack.pop()
 		if tag in self.TAGS:
 			start, end = self.TAGS[tag]
-			text.insert(0, start)
-			text.append(end)
+			strings.insert(0, start)
+			strings.append(end)
 		elif tag == FORMATTEDTEXT:
 			pass
 		else:
@@ -859,21 +939,24 @@ class DumperClass(Visitor):
 			except AttributeError:
 				raise AssertionError, 'BUG: Unknown tag: %s' % tag
 
-			text = method(tag, attrib, text)
+			strings = method(tag, attrib, strings)
 			#~ try:
-				#~ u''.join(text)
+				#~ u''.join(strings)
 			#~ except:
-				#~ print "BUG: %s returned %s" % ('dump_'+tag, text)
+				#~ print "BUG: %s returned %s" % ('dump_'+tag, strings)
 
-		if text is not None:
-			self._stack[-1][-1].extend(text)
+		if strings is not None:
+			self._stack[-1][-1].extend(strings)
 
 	def append(self, tag, attrib=None, text=None):
+		strings = None
 		if tag in self.TAGS:
-			start, end = self.TAGS[tag]
-			text = [start, text ,end]
+			if text is not None:
+				start, end = self.TAGS[tag]
+				strings = [start, text ,end]
 		elif tag == FORMATTEDTEXT:
-			pass
+			if text is not None:
+				strings = [text]
 		else:
 			if attrib:
 				attrib = attrib.copy() # Ensure dumping does not change tree
@@ -884,20 +967,21 @@ class DumperClass(Visitor):
 				raise AssertionError, 'BUG: Unknown tag: %s' % tag
 
 			if text is None:
-				text = method(tag, attrib, None)
+				strings = method(tag, attrib, None)
 			else:
-				text = method(tag, attrib, [text,])
+				strings = method(tag, attrib, [text,])
 
-		if text is not None:
-			self._stack[-1][-1].extend(text)
+		if strings is not None:
+			self._stack[-1][-1].extend(strings)
 
-	def prefix_lines(self, prefix, text):
+	def prefix_lines(self, prefix, strings):
 		'''Convenience method to wrap a number of lines with e.g. an
 		indenting sequence.
 		@param prefix: a string to prefix each line
-		@param text: a list of pieces of text
+		@param strings: a list of pieces of text
+		@returns: a new list of lines, each starting with prefix
 		'''
-		lines = u''.join(text).splitlines(1)
+		lines = u''.join(strings).splitlines(1)
 		return [prefix + l for l in lines]
 
 	def dump_object(self, element):

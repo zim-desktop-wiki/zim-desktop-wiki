@@ -13,7 +13,6 @@ import re
 import zim.datetimetz as datetime
 from zim.utils import natural_sorted
 from zim.parsing import parse_date
-from zim.parser import Visitor, VisitorSkip, TreeFilter, TextCollectorFilter
 from zim.plugins import PluginClass
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, \
@@ -24,7 +23,9 @@ from zim.gui.widgets import ui_environment, \
 from zim.gui.clipboard import Clipboard
 from zim.async import DelayedCallback
 from zim.formats import get_format, \
-	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, BULLET
+	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, BULLET, \
+	PARAGRAPH, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
+	Visitor, VisitorSkip
 from zim.config import check_class_allow_empty
 
 from zim.plugins.calendar import daterange_from_path
@@ -349,28 +350,33 @@ class TasksParser(Visitor):
 	'''Parse tasks from a parsetree'''
 
 	def __init__(self, task_label_re, next_label_re, all_checkboxes, defaultdate):
-		self.tasks = [] # tuples like (task, children)
 		self.task_label_re = task_label_re
 		self.next_label_re = next_label_re
 		self.all_checkboxes = all_checkboxes
 
 		defaults = (True, True, 0, defaultdate or _NO_DATE, None)
-			#(open, actionable, prio, due, description)
+			# (open, actionable, prio, due, description)
+		self._tasks = []
+		self._stack = [(-1, defaults, self._tasks)]
+			# Stack for parsed tasks with tuples like (level, task, children)
+			# We need to include the list level in the stack because we can
+			# have mixed bullet lists with checkboxes, so task nesting is
+			# not the same as list nesting
 
-		self.state = None # context while parsing
-		self.stack = [(-1, defaults, self.tasks)] # tuples like (level, task, children)
-		self.list_level = 0 # current list level
-		self.bullet = None # current bullet
-		self.istasklist = False
-		self.tasklist_tags = None
+		# Parsing state
+		self._text = [] # buffer with pieces of text
+		self._depth = 0 # nesting depth for list items
+		self._last_node = (None, None) # (tag, attrib) of last item seen by start()
+		self._intasklist = False # True if we are in a tasklist with a header
+		self._tasklist_tags = None # global tags from the tasklist header
 
 	def parse(self, parsetree):
-		filter = TreeFilter(
-			TextCollectorFilter(self),
-			tags=['p', 'ul', 'ol', 'li'],
-			exclude=['strike']
-		)
-		parsetree.visit(filter)
+		#~ filter = TreeFilter(
+			#~ TextCollectorFilter(self),
+			#~ tags=['p', 'ul', 'ol', 'li'],
+			#~ exclude=['strike']
+		#~ )
+		parsetree.visit(self)
 
 	def get_tasks(self):
 		'''Get the tasks that were collected by visiting the tree
@@ -379,91 +385,105 @@ class TasksParser(Visitor):
 		C{(open, actionable, prio, due, description)},
 		2nd item is a list of child tasks (if any).
 		'''
-		return self.tasks
+		return self._tasks
 
 	def start(self, tag, attrib):
-		# Set context for parsing
-		self.bullet = None # reset
-		if tag == 'p':
-			self.istasklist = False # reset
-			self.state = "start_para"
-		elif tag in ('ol', 'ul'):
-			if self.state == 'list':
-				self.list_level += 1
-				# (first list level is equal to line items in para)
-			self.state = 'list'
-		elif tag == 'li':
-			self.bullet = attrib.get('bullet')
+		if tag == STRIKE:
+			raise VisitorSkip # skip this node
+		elif tag in (PARAGRAPH, NUMBEREDLIST, BULLETLIST, LISTITEM):
+			if tag == PARAGRAPH:
+				self._intasklist = False
+
+			# Parse previous chuck of text (para level text)
+			if self._text:
+				if tag in (NUMBEREDLIST, BULLETLIST) \
+				and self._last_node[0] == PARAGRAPH \
+				and self._check_para_start(self._text):
+					pass
+				else:
+					self._parse_para_text(self._text)
+
+				self._text = [] # flush
+
+			# Update parser state
+			if tag in (NUMBEREDLIST, BULLETLIST):
+				self._depth += 1
+			elif tag == LISTITEM:
+				self._pop_stack() # see comment in end()
+			self._last_node = (tag, attrib)
 		else:
-			assert False, 'BUG: got tag: %s' % tag
-
-		#~ print 'START', tag, self.state, self.list_level
-
-	def end(self, tag):
-		self.bullet = None # reset
-		if tag in ('ol', 'ul'):
-			if self.list_level > 0:
-				self.list_level -= 1
-			else:
-				self.state = 'para' # end of list
-
-			while self.stack[-1][0] > self.list_level:
-				self.stack.pop()
-		elif tag == 'p':
-			self.stack = [self.stack[0]] # Reset
-
-		#~ print 'END', tag, self.state, self.list_level
+			pass # do nothing for other tags (we still get the text)
 
 	def text(self, text):
-		# Dispatch depending on state
-		assert self.state in ('start_para', 'list', 'para'), 'BUG: Text outside para !??'
-		if self.state == 'start_para':
-			self._parse_start_para(text)
-		elif self.state == 'para':
-			self._parse_para(text)
-		elif self.state == 'list':
-			self._parse_list_item(text)
-		else:
-			assert False, 'BUG: get state: %s' % self.state
+		self._text.append(text)
 
-	def _parse_start_para(self, text):
+	def end(self, tag):
+		if tag == PARAGRAPH:
+			if self._text:
+				self._parse_para_text(self._text)
+				self._text = [] # flush
+			self._depth = 0
+			self._pop_stack()
+		elif tag in (NUMBEREDLIST, BULLETLIST):
+			self._depth -= 1
+			self._pop_stack()
+		elif tag == LISTITEM:
+			if self._text:
+				attrib = self._last_node[1]
+				self._parse_list_item(attrib, self._text)
+				self._text = [] # flush
+			# Don't pop here, next item may be child
+			# Instead pop when next item opens
+		else:
+			pass # do nothing for other tags
+
+	def _pop_stack(self):
+		# Drop stack to current level
+		assert self._depth >= 0, 'BUG: stack count corrupted'
+		level = self._depth
+		if level > 0:
+			level -= 1 # first list level should be same as level of line items in para
+		while self._stack[-1][0] >= level:
+			self._stack.pop()
+
+	def _check_para_start(self, strings):
 		# Check first line for task list header
-		#~ print "START PARA >>>", text, "<<<"
-		tags = []
-		lines = text.splitlines()
-		if len(lines) == 1 \
-		and self._matches_label(lines[0]):
-			words = lines[0].strip(':').split()
+		# SHould look like "TODO @foo @bar:"
+		# FIXME shouldn't we depend on tag elements in the tree ??
+		line = u''.join(strings).strip()
+
+		if not '\n' in line \
+		and self._matches_label(line):
+			words = line.strip(':').split()
 			words.pop(0) # label
 			if all(w.startswith('@') for w in words):
-				lines.pop(0)
-				self.istasklist = True
-				self.tasklist_tags = words
+				self._intasklist = True
+				self._tasklist_tags = words
 			else:
-				self.istasklist = False
-				self.tasklist_tags = []
-				self._parse_para(text)
+				self._intasklist = False
 		else:
-			self._parse_para(text)
+			self._intasklist = False
 
-	def _parse_para(self, text):
+		return self._intasklist
+
+	def _parse_para_text(self, strings):
 		# Paragraph text to be parsed - just look for lines with label
-		for line in text.splitlines():
+		for line in u''.join(strings).splitlines():
 			if self._matches_label(line):
 				self._parse_task(line)
 
-	def _parse_list_item(self, text):
-		#~ print 'LI', text
+	def _parse_list_item(self, attrib, text):
 		# List item to parse - check bullet, then match label
-		# Because we use TextCollector it is ensured we get
-		# all text for a list item at once
+		bullet = attrib.get('bullet')
+		line = u''.join(text)
 		if (
-			self.bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
-			and (self.istasklist or self.all_checkboxes)
-		) or self._matches_label(text):
-			open = (self.bullet not in (CHECKED_BOX, XCHECKED_BOX))
-			self._parse_task(text, open=open)
-		# else not a task - skip
+			bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
+			and (self._intasklist or self.all_checkboxes)
+		):
+			open = (bullet == UNCHECKED_BOX)
+			self._parse_task(line, open=open)
+		elif self._matches_label(line):
+			self._parse_task(line)
 
 	def _matches_label(self, line):
 		return self.task_label_re and self.task_label_re.match(line)
@@ -472,11 +492,11 @@ class TasksParser(Visitor):
 		return self.next_label_re and self.next_label_re.match(line)
 
 	def _parse_task(self, line, open=True):
-		assert self.list_level >= 0, 'BUG: stack count corrupted'
-		while self.stack[-1][0] >= self.list_level:
-				self.stack.pop()
+		level = self._depth
+		if level > 0:
+			level -= 1 # first list level should be same as level of line items in para
 
-		parent_level, parent, parent_children = self.stack[-1]
+		parent_level, parent, parent_children = self._stack[-1]
 
 		# Get prio
 		prio = line.count('!')
@@ -504,8 +524,8 @@ class TasksParser(Visitor):
 			due = parent[3] # default to parent date (or default for root)
 
 		# Deal with tags global for tasklist
-		if self.istasklist:
-			for tag in self.tasklist_tags:
+		if self._intasklist:
+			for tag in self._tasklist_tags:
 				if not tag in description:
 					description += ' ' + tag
 
@@ -515,11 +535,12 @@ class TasksParser(Visitor):
 		else:
 			actionable = True
 
-		# And really add to stack
+		# And finally add to stack
 		task = (open, actionable, prio, due, description)
 		children = []
 		parent_children.append((task, children))
-		self.stack.append((self.list_level, task, children))
+		if self._depth > 0: # (don't add paragraph level items to the stack)
+			self._stack.append((level, task, children))
 
 
 class TaskListDialog(Dialog):

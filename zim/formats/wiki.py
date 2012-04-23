@@ -351,52 +351,52 @@ class Dumper(DumperClass):
 
 	# TODO check commonality with dumper in plain.py
 
-	def dump_indent(self, tag, attrib, text):
+	def dump_indent(self, tag, attrib, strings):
 		# Prefix lines with one or more tabs
 		if attrib and 'indent' in attrib:
 			prefix = '\t' * int(attrib['indent'])
-			return self.prefix_lines(prefix, text)
+			return self.prefix_lines(prefix, strings)
 			# TODO enforces we always end such a block with \n unless partial
 		else:
-			return text
+			return strings
 
 	dump_p = dump_indent
 	dump_div = dump_indent
 
-	def dump_pre(self, tag, attrib, text):
+	def dump_pre(self, tag, attrib, strings):
 		# Indent and wrap with "'''" lines
-		text.insert(0, "'''\n")
-		text.append("'''\n")
-		text = self.dump_indent(tag, attrib, text)
-		return text
+		strings.insert(0, "'''\n")
+		strings.append("'''\n")
+		strings = self.dump_indent(tag, attrib, strings)
+		return strings
 
-	def dump_h(self, tag, attrib, text):
+	def dump_h(self, tag, attrib, strings):
 		# Wrap line with number of "=="
 		level = int(attrib['level'])
 		if level < 1:   level = 1
 		elif level > 5: level = 5
 		tag = '='*(7 - level)
-		text.insert(0, tag + ' ')
-		text.append(' ' + tag)
-		return text
+		strings.insert(0, tag + ' ')
+		strings.append(' ' + tag)
+		return strings
 
-	def dump_list(self, tag, attrib, text):
+	def dump_list(self, tag, attrib, strings):
 		if 'indent' in attrib:
 			# top level list with specified indent
 			prefix = '\t' * int(attrib['indent'])
-			return self.prefix_lines('\t', text)
+			return self.prefix_lines('\t', strings)
 		elif self._stack[-1][0] in (BULLETLIST, NUMBEREDLIST):
 			# indent sub list
 			prefix = '\t'
-			return self.prefix_lines('\t', text)
+			return self.prefix_lines('\t', strings)
 		else:
 			# top level list, no indent
-			return text
+			return strings
 
 	dump_ul = dump_list
 	dump_ol = dump_list
 
-	def dump_li(self, tag, attrib, text):
+	def dump_li(self, tag, attrib, strings):
 		# Here is some logic to figure out the correct bullet character
 		# depends on parent list element
 
@@ -429,22 +429,22 @@ class Dumper(DumperClass):
 				prefix = int(attrib['indent']) * '\t'
 				bullet = prefix + bullet
 
-		return (bullet, ' ') + tuple(text) + ('\n',)
+		return (bullet, ' ') + tuple(strings) + ('\n',)
 
-	def dump_link(self, tag, attrib, text=None):
+	def dump_link(self, tag, attrib, strings=None):
 		assert 'href' in attrib, \
-			'BUG: link misses href: %s "%s"' % (attrib, text)
+			'BUG: link misses href: %s "%s"' % (attrib, strings)
 		href = attrib['href']
 
-		if not text or href == u''.join(text):
+		if not strings or href == u''.join(strings):
 			if url_re.match(href):
 				return (href,) # no markup needed
 			else:
 				return ('[[', href, ']]')
 		else:
-			return ('[[', href, '|') + tuple(text) + (']]',)
+			return ('[[', href, '|') + tuple(strings) + (']]',)
 
-	def dump_img(self, tag, attrib, text=None):
+	def dump_img(self, tag, attrib, strings=None):
 		src = attrib['src']
 		alt = attrib.get('alt')
 		opts = []
