@@ -5,6 +5,12 @@
 ======= [% strftime("Week %U %Y", calendar_plugin.date) %] =======
 [% strftime("%d %B", calendar_plugin.date) %] to [% strftime("%d %B", calendar_plugin.end_date) %]
 
+[% FOREACH day IN calendar_plugin.days() %]
+=== [% strftime("%A %d %B", day) %] ===
+
+[% END %] 
+
+
 [%- ELSIF calendar_plugin.page_type == 'month' -%]
 ======= [% strftime("%B %Y", calendar_plugin.date) %] =======
 

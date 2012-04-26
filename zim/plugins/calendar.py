@@ -11,13 +11,10 @@ import datetime
 from zim.plugins import PluginClass
 from zim.gui.widgets import ui_environment, Dialog, Button
 from zim.notebook import Path
-from zim.templates import TemplateManager
+from zim.templates import TemplateManager, TemplateFunction
 
 
 # FUTURE: Use calendar.HTMLCalendar from core libs to render this plugin in www
-
-# TODO implement template for calendar pages
-#  - take into account month and year nodes as well
 
 
 ui_xml = '''
@@ -240,10 +237,13 @@ This is a core plugin shipping with zim.
 		'''
 		daterange = daterange_from_path(page)
 		if daterange:
+			type, start, end = daterange
 			dict['calendar_plugin'] = {
-				'page_type': daterange[0],
-				'date': daterange[1],
-				'end_date': daterange[2],
+				'page_type': type,
+				'date': start,
+				'start_date': start,
+				'end_date': end,
+				'days': DateRangeTemplateFunction(start, end),
 			}
 
 	def suggest_link(self, source, text):
@@ -270,6 +270,22 @@ This is a core plugin shipping with zim.
 	# TODO: hook to the pageview end-of-word signal and link dates
 	#       add a preference for this
 	# TODO: Overload the "Insert date" dialog by adding a 'link' option
+
+
+class DateRangeTemplateFunction(TemplateFunction):
+	'''Function to be used in templates to iterate a range of dates'''
+
+	def __init__(self, start, end):
+		self.start = start
+		self.end = end
+
+	def __call__(self, dict):
+		oneday = datetime.timedelta(days=1)
+		yield self.start
+		next = self.start + oneday
+		while next < self.end:
+			yield next
+			next += oneday
 
 
 class Calendar(gtk.Calendar):

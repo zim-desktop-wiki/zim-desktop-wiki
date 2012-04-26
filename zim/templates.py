@@ -147,7 +147,7 @@ It seems the template contains some invalid syntax.
 	@property
 	def msg(self):
 		return 'Syntax error at "%s" line %i: %s' % \
-						(self.file, self.line, self.msg)
+						(self.file, self.line, self._msg)
 
 
 class TemplateProcessError(TemplateError):
@@ -639,10 +639,17 @@ class TemplateFunction(object):
 	'''
 
 	def __init__(self, function):
+		'''Constructor. Base class takes a regular function as argument
+		and wraps it to beccome a template functions.
+		'''
 		self.function = function
 
-	def __call__(self, *args):
-		return self.function(*args)
+	def __call__(self, dict, *args):
+		'''Execute the function
+		@param dict: the L{TemplateDict} for the page being processed
+		@param args: the arguments supplied in the template
+		'''
+		return self.function(dict, *args)
 
 
 class StrftimeFunction(TemplateFunction):
