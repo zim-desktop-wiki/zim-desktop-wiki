@@ -87,7 +87,7 @@ from zim.errors import Error, TrashNotSupportedError
 from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
 	config_file, data_dir, user_dirs, data_dirs, config_dirs
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
-	is_interwiki_keyword_re, link_type, url_encode
+	is_interwiki_keyword_re, link_type, url_encode, url_decode
 from zim.async import AsyncLock
 import zim.stores
 
@@ -445,6 +445,7 @@ def resolve_notebook(string):
 		assert string.startswith('file://')
 		if '?' in string:
 			filepath, page = string.split('?', 1)
+			page = url_decode(page)
 			page = Path(page)
 		else:
 			filepath = string
@@ -574,7 +575,7 @@ def interwiki_link(link):
 		list = get_notebook_list()
 		info = list.get_interwiki(key)
 		if info:
-			url = 'zim+' + info.uri + '?{NAME}'
+			url = 'zim+' + info.uri + '?{URL}' # url encode page name!
 
 	# Format URL
 	if url and is_url_re.match(url):
