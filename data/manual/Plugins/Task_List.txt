@@ -19,7 +19,11 @@ If **Turn page names into tags for task items** is enabled, each task will be ta
 
 If **Implicit deadline for task items in calendar pages** is enabled, tasks found in pages that belong to the [[Calendar|Calendar plugin]] will get that calendar date as due date. If the calendar page covers multiple days (e.g. a weekly page) the last day of the period will be taken as the due date.
 
-The option "**Labels marking tasks**" gives a comma separated list of labels that are used to flag tasks. By default these are "TODO" and "FIXME" but this can be customized.
+If **Flag tasks due on Monday or Tuesday before the weekend** is enabled the highlighting of due dates assumes a Monday to Friday work week. This means that tasks due on Monday will already be highlighted on Thursday and Friday.
+
+The option **Labels marking tasks** gives a comma separated list of labels that are used to flag tasks. By default these are "TODO" and "FIXME" but this can be customized.
+
+The option **Label for next task** sets a label to start tags that depend on the previous task. The default is "Next:", but you can also customize it. If a tasks depends on the previous task it will not be "**actionable**" until the previous task is marked as done. This is particularly useful if you want to breakdown a task in serial steps, but not put all steps in the task list at once. Tasks that are not yet actionable are grayed out in the list.
 
 ===== Using Checkboxes =====
 The first way to use the task list is to define open items by checkboxes. A list like this will be interpreted as a task list and each individual line will appear in the task list dialog.

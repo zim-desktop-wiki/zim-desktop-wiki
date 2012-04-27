@@ -113,7 +113,9 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog
 		('tag_by_page', 'bool', _('Turn page name into tags for task items'), False),
 			# T: label for plugin preferences dialog
-		('deadline_by_page', 'bool', _('Implicit deadline for task items in calendar pages'), False),
+		('deadline_by_page', 'bool', _('Implicit due date for task items in calendar pages'), False),
+			# T: label for plugin preferences dialog
+		('use_workweek', 'bool', _('Flag tasks due on Monday or Tuesday before the weekend'), True),
 			# T: label for plugin preferences dialog
 		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', check_class_allow_empty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
@@ -175,7 +177,7 @@ This is a core plugin shipping with zim.
 		if self.preferences['next_label']:
 			self.next_label = self.preferences['next_label']
 				# Adding this avoid the need for things like "TODO: Next: do this next"
-			self.next_label_re = re.compile(r'^' + re.escape(self.next_label) + r'(?!\w)' )
+			self.next_label_re = re.compile(r'^' + re.escape(self.next_label) + r':?\s+' )
 			self.task_labels.append(self.next_label)
 		else:
 			self.next_label = None
@@ -769,9 +771,20 @@ class TaskListTreeView(BrowserTreeView):
 			self.set_tooltip_column(self.TASK_COL)
 
 		# Rendering of the Date column
+		use_workweek = plugin.preferences['use_workweek']
+		day_of_week = datetime.date.today().isoweekday()
+		if use_workweek and day_of_week == 4:
+			# Today is Thursday - 2nd day ahead is after the weekend
+			delta1, delta2 = 1, 3
+		elif use_workweek and day_of_week == 5:
+			# Today is Friday - next day ahead is after the weekend
+			delta1, delta2 = 3, 4
+		else:
+			delta1, delta2 = 1, 2
+
 		today    = str( datetime.date.today() )
-		tomorrow = str( datetime.date.today() + datetime.timedelta(days=1))
-		dayafter = str( datetime.date.today() + datetime.timedelta(days=2))
+		tomorrow = str( datetime.date.today() + datetime.timedelta(days=delta1))
+		dayafter = str( datetime.date.today() + datetime.timedelta(days=delta2))
 		def render_date(col, cell, model, i):
 			date = model.get_value(i, self.DATE_COL)
 			if date == _NO_DATE:
@@ -781,8 +794,9 @@ class TaskListTreeView(BrowserTreeView):
 				# TODO allow strftime here
 
 			if date <= today: color = HIGH_COLOR
-			elif date == tomorrow: color = MEDIUM_COLOR
-			elif date == dayafter: color = ALERT_COLOR
+			elif date <= tomorrow: color = MEDIUM_COLOR
+			elif date <= dayafter: color = ALERT_COLOR
+				# "<=" because tomorrow and/or dayafter can be after the weekend
 			else: color = None
 			cell.set_property('cell-background', color)
 
