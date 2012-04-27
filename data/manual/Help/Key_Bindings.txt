@@ -26,7 +26,7 @@ F9		Toggle index visibility
 		(The actual page is choosen by the history)
 <Alt><PgUp>	Go to the previous page in the index
 <Alt><PgDown>	Go to the next page in the index
-<Alt>D		Go to todays page
+<Alt>D		Go to today's page
 '''
 
 
@@ -141,4 +141,4 @@ Zim does not support an emacs mode specifically, however Gtk+ does. When you set
 gtk-key-theme-name = "Emacs"
 '''
 
-to ''~/.gtkrc-2.0'' . Of course of you use this you will need to customize a number of accelerators as well which conflict with the emacs keybindings. See the secttion above.
+to ''~/.gtkrc-2.0'' . Of course if you use this you will need to customize a number of accelerators as well which conflict with the emacs keybindings. See the section above.
