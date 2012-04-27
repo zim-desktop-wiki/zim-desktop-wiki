@@ -30,34 +30,32 @@ Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/
 Template syntax:
 
 '''
-[% var %]                   # interpolates a variable
-[%- var %] 
-'''
-''                 # + strip line break before the expression''
-''[% var -%] ''''                 # + strip line break after the expression''
-''[%- var -%]''''                 # + strip line breaks on both sides''
+[% var %]	# interpolates a variable
+[%- var %]	# + strip line break before the expression
+[% var -%]	# + strip line break after the expression
+[%- var -%]	# + strip line breaks on both sides
 
-''[% IF expr %] ... [% END %]  # conditionals''
+[% IF expr %] ... [% END %]	# conditionals
 
-''[% IF ''''expr'''' %]''
-''	...''
-''[% ELSIF expr %]''
-''	...''
-''[% ELSE %]''
-''	...''
-''[% END %]''
+[% IF expr %]
+	...
+[% ELSIF expr %]
+	...
+[% ELSE %]
+	...
+[% END %]
 
-''[% FOREACH name = var ]     # loop''
-''... [% name %] ...''
-''[% END %]''
+[% FOREACH name = var ]		# loop
+... [% name %] ...
+[% END %]
 
-''[% strftime("%c") %]        # current time stamp''
-''[% strftime("%c", var) %]   # date from variable''
+[% strftime("%c") %]		# current time stamp
+[% strftime("%c", var) %]	# date from variable
 
 
-'''
 [% options.option_name = value %] # set the template option option_name to value
 '''
+
 
 For the ''IF'' and ''ELIF'' statements the expression can be either just a variable, in which case it is evaluated boolean, or an equality expression with "==". For example "''[% IF page.name == 'foo' %]''" is understood. More complex expressions are not supported.
 
@@ -108,6 +106,8 @@ Functions available:
 		
 		//Example//:	''menu(page.namespace,  TRUE, FALSE)''
 
+
+See also the [[Plugins:Calendar|Calendar Plugin]] for some properties available for calendar pages
 
 ==== Template Resources ====
 To add additional files to the template, create a folder of the same name as the template. Any files in the folder (like style sheets, images, javascript files, etc.) will be copied along when this template is used to export data in zim. There is a function "''resource(filename)''" to refer to these files in the template.
