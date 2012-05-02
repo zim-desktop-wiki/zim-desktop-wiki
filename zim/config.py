@@ -30,7 +30,7 @@ if sys.version_info >= (2, 6):
 else:
 	import simplejson as json # extra dependency
 
-from zim.fs import isfile, isdir, File, Dir, FileNotFoundError
+from zim.fs import isfile, isdir, File, Dir, FileNotFoundError, ENCODING
 from zim.errors import Error
 from zim.parsing import TextBuffer, split_quoted_strings
 
@@ -38,11 +38,58 @@ from zim.parsing import TextBuffer, split_quoted_strings
 logger = logging.getLogger('zim.config')
 
 
+def get_environ(param, default=None):
+	'''Get a parameter from the environment. Like C{os.environ.get()}
+	but does decoding for non-ascii characters.
+	@param param: the parameter to get
+	@param default: the default if C{param} does not exist
+	@returns: a unicode string or C{default}
+	'''
+	# Do NOT use zim.fs.decode here, we want real decoding on windows,
+	# not just convert to unicode
+	value = os.environ.get(param, default)
+	if isinstance(value, str):
+		return value.decode(ENCODING)
+	else:
+		return value
+
+
+def get_environ_list(param, default=None, sep=None):
+	'''Get a parameter from the environment and convert to a list.
+	@param param: the parameter to get
+	@param default: the default if C{param} does not exist
+	@param sep: optional seperator, defaults to C{os.pathsep} if not given
+	@returns: a list or the default
+	'''
+	value = get_environ(param, default)
+	if isinstance(value, basestring) and value and not value.isspace():
+		if sep is None:
+			sep = os.pathsep
+		return value.split(sep)
+	elif isinstance(value, (list, tuple)):
+		return value
+	else:
+		return []
+
+
+def set_environ(param, value):
+	'''Set a parameter in the environment. Like assigning in
+	C{os.environ}, but with proper encoding.
+	@param param: the parameter to set
+	@param value: the value, should be a string
+	'''
+	if isinstance(value, unicode):
+		value = value.encode(ENCODING)
+	os.environ[param] = value
+
+
+### Inialize environment - just to be sure
+
 if os.name == 'nt':
 	# Windows specific environment variables
 	# os.environ does not support setdefault() ...
 	if not 'USER' in os.environ or not os.environ['USER']:
-		os.environ['USER'] =  os.environ['USERNAME']
+		os.environ['USER'] = os.environ['USERNAME']
 
 	if not 'HOME' in os.environ or not os.environ['HOME']:
 		if 'USERPROFILE' in os.environ:
@@ -50,15 +97,17 @@ if os.name == 'nt':
 		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
 			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
 			os.environ['HOME'] = home
-
-assert isdir(os.environ['HOME']), \
-	'ERROR: environment variable $HOME not set correctly'
-
-if not 'USER' in os.environ or not os.environ['USER']:
+elif not 'USER' in os.environ or not os.environ['USER']:
 	# E.g. Maemo doesn't define $USER
 	os.environ['USER'] = os.path.basename(os.environ['HOME'])
 	logger.info('Environment variable $USER was not set')
 
+
+assert isdir(get_environ('HOME')), \
+	'ERROR: environment variable $HOME not set correctly'
+
+
+## Initialize config paths
 
 ZIM_DATA_DIR = None #: 'data' dir relative to script file (when running from source), L{Dir} or C{None}
 XDG_DATA_HOME = None #: L{Dir} for XDG data home
@@ -89,33 +138,24 @@ def _set_basedirs():
 	else:
 		ZIM_DATA_DIR = None
 
-	if 'XDG_DATA_HOME' in os.environ:
-		XDG_DATA_HOME = Dir(os.environ['XDG_DATA_HOME'])
-	else:
-		XDG_DATA_HOME = Dir('~/.local/share/')
+	XDG_DATA_HOME = Dir(
+		get_environ('XDG_DATA_HOME', '~/.local/share/'))
 
-	if 'XDG_DATA_DIRS' in os.environ:
-		XDG_DATA_DIRS = map(Dir, os.environ['XDG_DATA_DIRS'].split(os.pathsep))
-	else:
-		XDG_DATA_DIRS = map(Dir, ('/usr/share/', '/usr/local/share/'))
+	XDG_DATA_DIRS = map(Dir,
+		get_environ_list('XDG_DATA_DIRS', ('/usr/share/', '/usr/local/share/')))
 
-	if 'XDG_CONFIG_HOME' in os.environ:
-		XDG_CONFIG_HOME = Dir(os.environ['XDG_CONFIG_HOME'])
-	else:
-		XDG_CONFIG_HOME = Dir('~/.config/')
+	XDG_CONFIG_HOME = Dir(
+		get_environ('XDG_CONFIG_HOME', '~/.config/'))
 
-	if 'XDG_CONFIG_DIRS' in os.environ:
-		XDG_CONFIG_DIRS = map(Dir, os.environ['XDG_CONFIG_DIRS'].split(os.pathsep))
-	else:
-		XDG_CONFIG_DIRS = [Dir('/etc/xdg/')]
+	XDG_CONFIG_DIRS = map(Dir,
+		get_environ_list('XDG_CONFIG_DIRS', ('/etc/xdg/',)))
 
-	if 'XDG_CACHE_HOME' in os.environ:
-		XDG_CACHE_HOME = Dir(os.environ['XDG_CACHE_HOME'])
-	else:
-		XDG_CACHE_HOME = Dir('~/.cache')
+	XDG_CACHE_HOME = Dir(
+		get_environ('XDG_CACHE_HOME', '~/.cache'))
 
 # Call on module initialization to set defaults
 _set_basedirs()
+
 
 def log_basedirs():
 	'''Write the search paths used to the logger, used to generate

@@ -19,6 +19,7 @@ import zim.fs
 import zim.errors
 
 from zim.parsing import split_quoted_strings
+from zim.config import get_environ_list
 
 
 logger = logging.getLogger('zim.applications')
@@ -96,7 +97,7 @@ class Application(object):
 				return None
 		else:
 			# lookup in PATH
-			for dir in os.environ['PATH'].split(os.pathsep):
+			for dir in get_environ_list('PATH'):
 				file = os.sep.join((dir, cmd))
 				if zim.fs.isfile(file):
 					return file

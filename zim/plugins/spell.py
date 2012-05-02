@@ -7,6 +7,7 @@
 import os
 import gobject
 
+from zim.config import get_environ
 from zim.plugins import PluginClass
 from zim.gui.widgets import ErrorDialog
 
@@ -87,7 +88,7 @@ This is a core plugin shipping with zim.
 				try:
 					self.spell = gtkspell.Spell(textview, lang)
 				except:
-					lang = lang or os.environ.get('LANG') or os.environ.get('LANGUAGE')
+					lang = lang or get_environ('LANG') or get_environ('LANGUAGE')
 					ErrorDialog(self.ui, (
 						_('Could not load spell checking for language: "%s"') % lang,
 							# T: error message - %s is replaced with language codes like "en", "en_US"m or "nl_NL"

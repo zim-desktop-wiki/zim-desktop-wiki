@@ -216,7 +216,6 @@ if ENCODING == 'mbcs':
 			return path
 		else:
 			return unicode(path)
-
 else:
 	# Here we encode files to filesystem encoding. Fails if encoding is not possible.
 	def encode(path):
@@ -272,6 +271,21 @@ def joinpath(*parts):
 	'''
 	return os.path.join(*parts)
 
+def expanduser(path):
+	'''Wrapper for C{os.path.expanduser()} to get encoding right'''
+	if ENCODING == 'mbcs':
+		# This method is an exception in that it does not handle unicode
+		# directly. This will cause and error when user name contains
+		# non-ascii characters. See bug report lp:988041.
+		if isinstance(path, unicode):
+			path = path.encode('mbcs')
+		# else assume it is compatible
+
+		path = os.path.expanduser(path)
+		return path.decode('mbcs')
+	else:
+		# Let encode() handle the unicode encoding
+		return decode(os.path.expanduser(encode(path)))
 
 def get_tmpdir():
 	'''Get a folder in the system temp dir for usage by zim.
@@ -281,8 +295,9 @@ def get_tmpdir():
 	@returns: a L{Dir} object for the zim specific tmp folder
 	'''
 	import tempfile
+	from zim.config import get_environ
 	root = tempfile.gettempdir()
-	dir = Dir((root, 'zim-%s' % os.environ['USER']))
+	dir = Dir((root, 'zim-%s' % get_environ('USER')))
 	dir.touch(mode=0700) # Limit to single user
 	return dir
 
@@ -510,7 +525,7 @@ class UnixPath(object):
 		if path.startswith('file:/'):
 			path = self._parse_uri(path)
 		elif path.startswith('~'):
-			path = decode(os.path.expanduser(encode(path)))
+			path = expanduser(path)
 			if path.startswith('~'):
 				raise AssertionError, 'Could not expand path "%s" this could mean $HOME is not set' % path
 

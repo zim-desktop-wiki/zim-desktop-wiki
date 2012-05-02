@@ -28,7 +28,7 @@ import logging
 
 import zim.fs
 from zim.fs import Dir
-from zim.config import ListDict
+from zim.config import ListDict, get_environ
 
 
 logger = logging.getLogger('zim.plugins')
@@ -47,9 +47,9 @@ def user_site_packages_directory():
 	can install plugins in locally.
 	'''
 	if os.name == 'nt':
-		if 'APPDATA' in os.environ:
-			dir = Dir([os.environ['APPDATA'],
-						'Python/Python25/site-packages'])
+		appdata = get_environ('APPDATA')
+		if appdata:
+			dir = Dir((appdata, 'Python/Python25/site-packages'))
 			return dir.path
 		else:
 			return None

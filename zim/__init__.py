@@ -476,7 +476,7 @@ def ZimCmd():
 	# needed
 	from zim.applications import Application
 	if ZIM_EXECUTABLE.endswith('.exe'):
-		return Application(ZIM_EXECUTABLE)
+		return Application((ZIM_EXECUTABLE,))
 	elif sys.executable:
 		# If not an compiled executable, we assume it is python
 		# (Application class does this automatically for python scripts

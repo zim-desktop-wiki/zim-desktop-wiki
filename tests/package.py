@@ -107,7 +107,7 @@ class TestCoding(tests.TestCase):
 				#~ if match: print '>>>', match.group(0)
 				self.assertFalse(match, '%s imports %s, this is not allowed' % (file, klass))
 
-	def testWrongMethog(self):
+	def testWrongMethod(self):
 		'''Check for a couple of constructs to be avoided'''
 		for file, code in self.list_code():
 			self.assertFalse('gtk.Entry(' in code, '%s uses gtk.Entry - use zim.gui.widgets.InputEntry instead' % file)
@@ -117,6 +117,9 @@ class TestCoding(tests.TestCase):
 
 			if not file.endswith('clipboard.py'):
 				self.assertFalse('gtk.Clipboard(' in code, '%s uses gtk.Clipboard - use zim.gui.clipboard.Clipboard instead' % file)
+
+			if not file.endswith('config.py'):
+				self.assertFalse('os.environ\[' in code, '%s uses os.environ - use zim.config.get_environ() instead' % file)
 
 
 	def testImportFuture(self):
