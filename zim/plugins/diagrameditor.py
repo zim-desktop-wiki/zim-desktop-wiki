@@ -67,7 +67,7 @@ This is a core plugin shipping with zim.
 		dialog.show_all()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
-		populate_popup_add_separator(prepend=True)
+		populate_popup_add_separator(menu, prepend=True)
 
 		item = gtk.MenuItem(_('_Edit Diagram')) # T: menu item in context menu
 		item.connect('activate',
