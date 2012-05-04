@@ -2531,6 +2531,8 @@ class TextBuffer(gtk.TextBuffer):
 
 		#~ clipboard.debug_dump_contents()
 		parsetree = clipboard.get_parsetree(self.notebook, self.page)
+		if not parsetree:
+			return
 
 		#~ print '!! PASTE', parsetree.tostring()
 		with self.user_action:

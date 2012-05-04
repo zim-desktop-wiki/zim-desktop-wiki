@@ -5,6 +5,7 @@
 # License:  same as zim (gpl)
 #
 # ChangeLog
+# 2012-04-17 Allow drag&drop when folder does not exist yet + fix drag&drop on windows (Jaap)
 # 2012-02-29 Further work on making iconview look nice and support drag&drop (Jaap)
 # 2012-02-27 Complete refactoring of thumbnail manager + test case (Jaap)
 # 2012-02-26 Rewrote direct filessystem calls in order to support non-utf8 file systems (Jaap)
@@ -17,44 +18,18 @@
 # 2010-08-31 freedesktop.org thumbnail spec mostly implemented
 # 2010-06-29 1st working version
 #
-# Bugs:
-# textrendering is slow
-# problems with Umlaut in filenames
 # TODO:
-# * integer plugin_preferences do not to work as expected (zim bug?)
-# [ ] draw frames around thumbnails (in the view)
-# [*] where to store thumbnails?
-#   freedesktop.org: ~/.thumbnails/  (gnome/nautilus)
-#   http://jens.triq.net/thumbnail-spec/thumbsave.html
-#    [*] store fileinfo in thumbnails
-#    [ ] dont thumb small images
-#    [ ] thmubs for other formats: word,openoffice,...
-#    [ ] textrendering: syntax-hl
-# [ ] preview in textarea (see emacs+speedbar)
-# [*] dont start all thumbnailing processes at a time, and make them nice 10
-# [*] small and lager thumbs
-# [ ] use mimetype and extension
-# [*] rethumb broken (e.g. shutdown while thumbnailing)
-# [ ] code cleanup
-#    [*] clean up plugin class and widget
-#    [*] refactor thumbnailer
-# [*] new gui concept for zim : sidepane r/l,bottom- and top pane both with tabs (see gedit)
-# [*] show file infos in tooltip (size, camera,... what else?)
-# [*] update icon when thumbnail is ready
-# [ ] mimetype specific icons
-# [ ] evaluate imagemagick python libs
-# [ ] thumbnailers as plugins
-# [ ] libgsf thumbnailer
-# [ ] use thumbnailers/settings from gnome or other DEs
-# [ ] make a reference implementation for thumbnail spec
-# [ ] rewrite thumbnail spec
-# http://ubuntuforums.org/showthread.php?t=76566
-#
-# tooltip example
-#  http://nullege.com/codes/show/src@pygtk-2.14.1@examples@pygtk-demo@demos@tooltip.py/160/gtk.gdk.Color
-# file info example
-#  http://ubuntuforums.org/showthread.php?t=880967
-#
+# [ ] GIO watcher to detect folder update - add API to zim.fs for watcher ?
+# [ ] Allow more than 1 thread for thumbnailing
+# [ ] Can we cache image to thumb mapping (or image MD5) to spead up ?
+# [ ] Dont thumb small images
+# [ ] Mimetype specific icons
+# [ ] Restore ImageMagick thumbnailer
+# [ ] Use thumbnailers/settings from gnome or other DEs ?
+# [ ] Action for deleting files in context menu
+# [ ] Copy / cut files in context menu
+# [ ] Button to clean up the folder - only show when the folder is empty
+
 
 '''Zim plugin to display files in attachments folder.'''
 
@@ -258,7 +233,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		self.pack_end(self.buttonbox, False)
 
 		open_folder_button = IconButton(gtk.STOCK_OPEN, relief=False)
-		open_folder_button.connect('clicked', lambda o: self.ui.open_attachments_folder())
+		open_folder_button.connect('clicked', self.on_open_folder)
 		self.buttonbox.pack_start(open_folder_button, False)
 
 		refresh_button = IconButton(gtk.STOCK_REFRESH, relief=False)
@@ -275,6 +250,11 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			self.fileview.props.has_tooltip = True
 			self.fileview.connect("query-tooltip", self.query_tooltip_icon_view_cb)
 
+		# Store colors
+		self.fileview.ensure_style()
+		self._senstive_color = self.fileview.style.base[gtk.STATE_NORMAL]
+		self._insenstive_color = self.fileview.style.base[gtk.STATE_INSENSITIVE]
+
 	def on_open_page(self, ui, page, path):
 		self.set_folder(ui.notebook.get_attachments_dir(page))
 
@@ -285,15 +265,17 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			if self.get_property('visible'):
 				self.refresh()
 
+	def on_open_folder(self, o):
+		# Callback for the "open folder" button
+		self.ui.open_attachments_folder()
+		self._update_state()
+
 	def refresh(self):
+		# Callback for "refresh" button but also called when new folder
+		# is opened
 		self.store.clear()
 		self.thumbman.clear_async_queue()
-
-		if self.dir is None or not self.dir.exists():
-			self.fileview.set_sensitive(False)
-			return # Show empty view
-		else:
-			self.fileview.set_sensitive(True)
+		self._update_state()
 
 		for name in self.dir.list():
 			# If dir is an attachment folder, sub-pages maybe filtered out already
@@ -303,14 +285,27 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			else:
 				self._add_file(file)
 
-	def _add_file(self, file):
-			pixbuf = self.thumbman.get_thumbnail_async(file, ICON_SIZE)
-			if pixbuf is None:
-				# Set generic icon first - maybe thumbnail follows later, maybe not
-				# TODO: icon by mime-type
-				pixbuf = self.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_BUTTON)
+	def _update_state(self):
+		# Here we set color like senstive or insensitive widget without
+		# really making the widget insensitive - reason is to allow
+		# drag & drop for a non-existing folder; making the widget
+		# insensitive also blocks drag & drop.
+		if self.dir is None or not self.dir.exists():
+			self.fileview.modify_base(
+				gtk.STATE_NORMAL, self._insenstive_color)
+			return # Show empty view
+		else:
+			self.fileview.modify_base(
+				gtk.STATE_NORMAL, self._senstive_color)
 
-			self.store.append((file.basename, pixbuf)) # BASENAME_COL, PIXBUF_COL
+	def _add_file(self, file):
+		pixbuf = self.thumbman.get_thumbnail_async(file, ICON_SIZE)
+		if pixbuf is None:
+			# Set generic icon first - maybe thumbnail follows later, maybe not
+			# TODO: icon by mime-type
+			pixbuf = self.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_BUTTON)
+
+		self.store.append((file.basename, pixbuf)) # BASENAME_COL, PIXBUF_COL
 
 	def on_thumbnail_ready(self, o, file, size, pixbuf):
 		#~ print "GOT THUMB:", file, size, pixbuf
@@ -413,11 +408,9 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		names = unpack_urilist(selectiondata.data)
 		files = [File(uri) for uri in names if uri.startswith('file://')]
 		action = dragcontext.action
-		print "DRAG RECEIVED", action, files
+		logger.debug('Drag received %s, %s', action, files)
 
-		if action == gtk.gdk.ACTION_COPY:
-			self._copy_files(files)
-		elif action == gtk.gdk.ACTION_MOVE:
+		if action == gtk.gdk.ACTION_MOVE:
 			self._move_files(files)
 		elif action == gtk.gdk.ACTION_ASK:
 			menu = gtk.Menu()
@@ -438,7 +431,9 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			menu.show_all()
 			menu.popup(None, None, None, 1, time)
 		else:
-			pass
+			# Assume gtk.gdk.ACTION_COPY or gtk.gdk.ACTION_DEFAULT
+			# on windows we get "0" which is not mapped to any action
+			self._copy_files(files)
 
 	def _move_files(self, files):
 		for file in files:
@@ -446,6 +441,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			file.rename(newfile)
 			self._add_file(newfile)
 			# TODO sort
+
+		self._update_state()
 
 	def _copy_files(self, files):
 		for file in files:
