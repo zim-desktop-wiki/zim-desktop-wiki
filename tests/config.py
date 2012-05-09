@@ -22,17 +22,22 @@ import zim.config
 _cwd = Dir('.')
 def marshal_path_lookup(function):
 	def marshalled_path_lookup(*arg, **kwarg):
-		p = function(*arg, **kwarg)
+		value = function(*arg, **kwarg)
+		if isinstance(value, ConfigFile):
+			p = value.file
+		else:
+			p = value
 		if not p is None:
 			assert isinstance(p, (File, Dir)), 'BUG: get %r' % p
 			assert p.ischild(_cwd), "ERROR: \"%s\" not below \"%s\"" % (p, _cwd)
-		return p
+		return value
 	return marshalled_path_lookup
 
 zim.config.data_file = marshal_path_lookup(zim.config.data_file)
 zim.config.data_dir = marshal_path_lookup(zim.config.data_dir)
-#~ zim.config.config_file = marshal_path_lookup(zim.config.config_file)
+zim.config.config_file = marshal_path_lookup(zim.config.config_file)
 
+##
 
 
 class FilterInvalidConfigWarning(LoggingFilter):
@@ -41,11 +46,12 @@ class FilterInvalidConfigWarning(LoggingFilter):
 	message = 'Invalid config value'
 
 
-
 class TestDirsTestSetup(TestCase):
 
 	def runTest(self):
 		'''Test config environment setup of test'''
+		zim.config.log_basedirs()
+
 		for k, v in (
 			('XDG_DATA_HOME', os.path.join(tests.TMPDIR, 'data_home')),
 			('XDG_CONFIG_HOME', os.path.join(tests.TMPDIR, 'config_home')),
@@ -278,22 +284,30 @@ none=None
 		self.assertFalse(default.exists())
 
 		default.write('[TestData]\nfile=default\n')
+		self.assertTrue(default.exists())
+
 		file = config_file('preferences.conf')
-		self.assertTrue(isinstance(file, ConfigDictFile))
+		defaults = list(file.default_files())
+		self.assertTrue(isinstance(file, ConfigFile))
 		self.assertEqual(file.file, home)
-		self.assertEqual(file.default, default)
-		self.assertEqual(file['TestData']['file'], 'default')
+		self.assertEqual(defaults[0], default)
+
+		dict = get_config('preferences.conf')
+		self.assertTrue(isinstance(dict, ConfigDictFile))
+		self.assertEqual(dict.file, file)
+		self.assertEqual(dict['TestData']['file'], 'default')
 
 		home.write('[TestData]\nfile=home\n')
-		file = config_file('preferences.conf')
-		self.assertTrue(isinstance(file, ConfigDictFile))
-		self.assertEqual(file['TestData']['file'], 'home')
+		self.assertTrue(home.exists())
+
+		dict = get_config('preferences.conf')
+		self.assertTrue(isinstance(dict, ConfigDictFile))
+		self.assertEqual(dict['TestData']['file'], 'home')
 
 		file = config_file('notebooks.list')
-		#~ self.assertTrue(isinstance(file, ConfigListFile))
-		self.assertTrue(isinstance(file, TextConfigFile))
-		#~ file = config_file('accelarators')
-		#~ self.assertTrue(isinstance(file, File))
+		self.assertTrue(isinstance(file, ConfigFile))
+		file = config_file('accelarators')
+		self.assertTrue(isinstance(file, ConfigFile))
 
 	def testListDict(self):
 		'''Test ListDict class'''

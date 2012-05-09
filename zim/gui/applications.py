@@ -32,7 +32,7 @@ import gobject
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
 from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
-	config_file, data_dirs, ConfigDict, ConfigFile, json
+	config_file, data_dirs, ConfigDict, ConfigFileMixin, json
 from zim.parsing import split_quoted_strings
 from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
@@ -538,7 +538,7 @@ class DesktopEntryDict(ConfigDict, Application):
 			return json.dumps(value)[1:-1].replace('\\"', '"') # get rid of quotes
 
 
-class DesktopEntryFile(ConfigFile, DesktopEntryDict):
+class DesktopEntryFile(ConfigFileMixin, DesktopEntryDict):
 	'''Class implementing a single desktop entry file with the
 	definition of an external application.
 	'''
@@ -671,18 +671,17 @@ class CustomToolManager(object):
 		self._read_list()
 
 	def _read_list(self):
-		list = config_file('customtools/customtools.list')
+		file = config_file('customtools/customtools.list')
 		seen = set()
-		for line in list:
+		for line in file.readlines():
 			name = line.strip()
 			if not name in seen:
 				seen.add(name)
 				self.names.append(name)
 
 	def _write_list(self):
-		list = config_file('customtools/customtools.list')
-		list[:] = [name + '\n' for name in self.names]
-		list.write()
+		file = config_file('customtools/customtools.list')
+		file.writelines([name + '\n' for name in self.names])
 
 	def __iter__(self):
 		for name in self.names:
@@ -696,7 +695,8 @@ class CustomToolManager(object):
 		@returns: a L{CustomTool} object
 		'''
 		if not name in self.tools:
-			tool = config_file('customtools/%s.desktop' % name, klass=CustomTool)
+			file = config_file('customtools/%s.desktop' % name)
+			tool = CustomTool(file)
 			self.tools[name] = tool
 
 		return self.tools[name]

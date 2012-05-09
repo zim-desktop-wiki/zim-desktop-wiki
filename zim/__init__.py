@@ -109,11 +109,12 @@ from getopt import gnu_getopt, GetoptError
 
 from zim.fs import File, Dir
 from zim.errors import Error
-from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR, \
-					   XDG_CONFIG_HOME, ConfigDictFile
+from zim.config import data_dir, config_file, get_config, log_basedirs, \
+	ZIM_DATA_DIR, ConfigDictFile
 
 
 logger = logging.getLogger('zim')
+
 
 if ZIM_DATA_DIR:
 	# We are running from a source dir - use the locale data included there
@@ -536,7 +537,7 @@ class NotebookInterface(gobject.GObject):
 		self.notebook = None
 		self.plugins = []
 
-		self.preferences = config_file('preferences.conf')
+		self.preferences = get_config('preferences.conf')
 		self.preferences['General'].setdefault('plugins',
 			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
 
@@ -666,7 +667,7 @@ class NotebookInterface(gobject.GObject):
 					independent.append(plugin.plugin_key)
 
 			if independent:
-				default = config_file('preferences.conf')
+				default = get_config('preferences.conf')
 				for name in independent:
 					if name not in default['General']['plugins']:
 						default['General']['plugins'].append(name)
@@ -778,14 +779,14 @@ class NotebookInterface(gobject.GObject):
 			# we cary over any settings from the current one
 			logger.debug('Profile changed to: %s', notebook.profile)
 			basename = self.notebook.profile.lower() + '.conf'
-			file = XDG_CONFIG_HOME.file(('zim', 'profiles', basename))
+			file = config_file(('profiles', basename))
 			self.preferences.change_file(file)
 			self.preferences.write()
 		else:
 			# Load default preferences
 			# We do a full flush to reset to default
 			logger.debug('Profile reset to default')
-			preferences = config_file('preferences.conf')
+			preferences = get_config('preferences.conf')
 			file = preferences.file
 			self.preferences.change_file(file)
 			for section in self.preferences.values():

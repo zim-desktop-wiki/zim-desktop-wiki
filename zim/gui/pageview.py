@@ -31,7 +31,7 @@ from zim.fs import File, Dir
 from zim.errors import Error
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
-from zim.config import config_file, ConfigDictFile, XDG_CONFIG_HOME
+from zim.config import config_file, get_config
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
@@ -4429,7 +4429,7 @@ class PageView(gtk.VBox):
 
 		if self.style is None:
 			# Initialize class attribute - first object instance only
-			PageView.style = config_file('style.conf')
+			PageView.style = get_config('style.conf')
 			PageView.style.profile = None
 			# this can be reset later when the profile changes
 		self.on_preferences_changed(self.ui) # also initializes the style
@@ -4545,11 +4545,11 @@ class PageView(gtk.VBox):
 		# pageview objects in existence when this signal fires
 		if self.style.profile != notebook.profile:
 			if notebook.profile is None:
-				PageView.style = config_file('style.conf')
+				PageView.style = get_config('style.conf')
 				PageView.style.profile = None
 			else:
 				# FIXME should we also check default file here ?
-				file = XDG_CONFIG_HOME.file(('zim', 'styles', notebook.profile + '.conf'))
+				file = config_file(('styles', notebook.profile + '.conf'))
 				PageView.style.change_file(file)
 				PageView.style.profile = notebook.profile
 
@@ -5598,9 +5598,11 @@ class InsertDateDialog(Dialog):
 		lastused = None
 		model = self.view.get_model()
 		model.clear()
-		for line in config_file('dates.list'):
+		file = config_file('dates.list')
+		for line in file.readlines():
 			line = line.strip()
-			if not line or line.startswith('#'): continue
+			if not line or line.startswith('#'):
+				continue
 			try:
 				format = line
 				iter = model.append((format, format))

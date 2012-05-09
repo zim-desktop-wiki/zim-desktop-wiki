@@ -1930,14 +1930,10 @@ class GtkInterface(NotebookInterface):
 
 	def edit_config_file(self, configfile):
 		'''Edit a config file in an external editor.
-		See L{edit_file} for details.
-		@param configfile: a L{ConfigDictFile} or L{TextConfigFile} object
+		See L{edit_file()} for details.
+		@param configfile: a L{ConfigFile} object
 		'''
-		if not configfile.file.exists():
-			if configfile.default.exists():
-				configfile.default.copyto(configfile.file)
-			else:
-				configfile.file.touch()
+		configfile.touch()
 		self.edit_file(configfile.file, istextfile=True)
 
 	def edit_file(self, file, istextfile=None):

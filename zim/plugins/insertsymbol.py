@@ -69,7 +69,8 @@ This is a core plugin shipping with zim.
 	def load_file(self):
 		self.symbols = {}
 		self.symbol_order = []
-		for line in config_file('symbols.list'):
+		file = config_file('symbols.list')
+		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'): continue
 			try:

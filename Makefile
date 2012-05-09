@@ -38,7 +38,7 @@ epydoc:
 
 clean:
 	$(PYTHON) setup.py clean
-	rm -rf build/ MANIFEST tests/tmp/ locale/ man/ xdg/hicolor
+	rm -rf build/ MANIFEST tests/tmp/ locale/ man/ xdg/hicolor test_report.html
 	find . -name '*.pyc' -delete
 	find . -name '*.pyo' -delete
 	find . -name '*~' -delete

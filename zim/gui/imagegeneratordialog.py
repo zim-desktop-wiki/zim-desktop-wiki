@@ -82,6 +82,7 @@ class ImageGeneratorDialog(Dialog):
 		@param generator: an L{ImageGeneratorClass} object
 		@param image: image data for an image in the
 		L{TextBuffer<zim.gui.pageview.TextBuffer>}
+		@param syntax: optional syntax name (as understood by gtksourceview)
 		@param opt: any other arguments to pass to the L{Dialog} constructor
 		'''
 		if ui_environment['platform'] == 'maemo':

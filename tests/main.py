@@ -11,7 +11,7 @@ import tests
 
 
 from zim import NotebookInterface
-from zim.config import XDG_CONFIG_HOME, ConfigDictFile, config_file
+from zim.config import XDG_CONFIG_HOME, ConfigFile, ConfigDictFile, config_file, get_config
 
 
 class TestProfiles(tests.TestCase):
@@ -22,10 +22,13 @@ class TestProfiles(tests.TestCase):
 		self.assertIsNone(self.nb.profile)
 
 		self.ui = NotebookInterface(self.nb)
-		self.ui.preferences.file.remove() # just in case
+
+		configfile = self.ui.preferences.file
+		configfile.file.remove() # just in case
 
 	def tearDown(self):
-		self.ui.preferences.file.remove()
+		configfile = self.ui.preferences.file
+		configfile.file.remove()
 
 	def profile_file(self, name):
 		return XDG_CONFIG_HOME.file('zim/profiles/%s.conf' % name.lower())
@@ -81,14 +84,15 @@ class TestProfiles(tests.TestCase):
 		# Save default
 		self.ui.preferences.write()
 		default = self.ui.preferences.file
-		self.assertTrue(default.exists())
+		self.assertTrue(default.file.exists())
 
 		# change the profile name, and reload the profile
 		# check that default got copied to new profile
 		self.nb.save_properties(profile='NewProfile')
 		self.assertEqual(self.nb.profile, 'NewProfile')
-		self.assertEqual(self.ui.preferences.file, file)
-		self.assertNotEqual(self.ui.preferences.file, default)
+		self.assertIsInstance(self.ui.preferences.file, ConfigFile)
+		self.assertEqual(self.ui.preferences.file.file, file)
+		self.assertNotEqual(self.ui.preferences.file.file, default)
 		self.ui.preferences.write() # ensure the preferences are saved
 
 		self.assertEqual(file.read(), default.read())
@@ -161,7 +165,7 @@ class TestProfiles(tests.TestCase):
 		calendar = self.ui.get_plugin('calendar')
 		calendar.preferences['test'] = 'old'
 		self.ui.preferences.write()
-		self.assertTrue(self.ui.preferences.file.exists())
+		self.assertTrue(self.ui.preferences.file.file.exists())
 
 		# Switch profile
 		self.nb.save_properties(profile='TestSyncing')
@@ -176,7 +180,7 @@ class TestProfiles(tests.TestCase):
 
 		# Ensure default config also has new config - but not all
 		# is overwritten
-		default = config_file('preferences.conf')
+		default = get_config('preferences.conf')
 		self.assertIn('automount', default['General']['plugins'])
 		self.assertEqual(default['AutomountPlugin']['test'], 'new')
 		self.assertEqual(default['CalendarPlugin']['test'], 'old')
@@ -197,7 +201,8 @@ class TestLoadingPlugins(tests.TestCase):
 		self.plugin_conf = self.ui.preferences['General']['plugins']
 
 	def tearDown(self):
-		self.ui.preferences.file.remove()
+		configfile = self.ui.preferences.file
+		configfile.file.remove()
 
 	def testLoadPlugin(self):
 		self.assertNotIn('automount', self.plugin_conf)

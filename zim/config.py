@@ -242,45 +242,35 @@ def config_dirs():
 	for dir in data_dirs():
 		yield dir
 
-def config_file(path, klass=None):
-	'''Get a zim config file.
 
-	Use this as the main function to find config files.
-
-	@param path: the relative file path of the config file,
-	e.g. "preferences.conf"
-
-	@param klass: a class object to use for the returned config file,
-	defaults to L{ConfigDictFile} for files ending with ".conf", and
-	L{TextConfigFile} for all other files. Constructor of this class
-	should take the same arguments as L{ConfigDictFile}.
-
-	@returns: a config file object of the class specified, even if no
-	config file of this name exists (yet). Typically this object will
-	read values of any installed default, but write new values to the
-	config home.
+def config_file(path):
+	'''Alias for constructing a L{ConfigFile} object
+	@param path: either basename as string or tuple with relative path
+	@returns: a L{ConfigFile}
 	'''
-	if isinstance(path, basestring):
-		path = [path]
-	zimpath = ['zim'] + list(path)
-	file = XDG_CONFIG_HOME.file(zimpath)
+	return ConfigFile(path)
 
-	if not file.exists():
-		for dir in config_dirs():
-			default = dir.file(path)
-			if default.exists():
-				break
-		else:
-			default = None
-	else:
-		default = None
 
-	if klass:
-		return klass(file, default=default)
-	elif path[-1].endswith('.conf'):
-		return ConfigDictFile(file, default=default)
-	else:
-		return TextConfigFile(file, default=default)
+def get_config(path):
+	'''Convenience method to construct a L{ConfigDictFile} based on a
+	C{ConfigFile}.
+	@param path: either basename as string or tuple with relative path
+	@returns: a L{ConfigDictFile}
+	'''
+	file = ConfigFile(path)
+	return ConfigDictFile(file)
+
+
+def list_profiles():
+	'''Returns a list known preferences profiles.'''
+	profiles = []
+	for dir in config_dirs():
+		for f in dir.subdir('profiles').list():
+			if f.endswith('.conf'):
+				profiles.append(f[:-5])
+	profiles.sort()
+	return profiles
+
 
 def user_dirs():
 	'''Get the XDG user dirs.
@@ -307,6 +297,120 @@ def user_dirs():
 	except FileNotFoundError:
 		pass
 	return dirs
+
+
+class ConfigFile(object):
+	'''Container object for a config file
+
+	Maps to a "base" file in the home folder, used to write new values,
+	and one or more default files, e.g. in C{/usr/share/zim}, which
+	are the fallback to get default values
+
+	@ivar file: the underlying file object for the base config file
+	in the home folder
+
+	@note: this class implement similar API to the L{File} class but
+	is explicitly not a sub-class of L{File} because config files should
+	typically not be moved, renamed, etc. It just implements the reading
+	and writing methods.
+	'''
+
+	def __init__(self, path):
+		'''Constructor
+		@param path: either basename as string or tuple with relative path,
+		is resolved relative to the default config dir for zim.
+		'''
+		if isinstance(path, basestring):
+			path = (path,)
+		self._path = tuple(path)
+		self.file = File((XDG_CONFIG_HOME, 'zim') + self._path)
+
+	def __eq__(self, other):
+		return isinstance(other, ConfigFile) \
+		and other._path == self._path \
+		and other.file == self.file
+
+	@property
+	def basename(self):
+		return self.file.basename
+
+	def default_files(self):
+		'''Generator that yields default config files (read-only) to
+		use instead of the standard file when it is still empty.
+		Typically only the first one is used.
+		'''
+		for dir in config_dirs():
+			default = dir.file(self._path)
+			if default.exists():
+				yield default
+
+	def touch(self):
+		'''Ensure the custom file in the home folder exists. Either by
+		copying a default config file, or touching an empty file.
+		Intended to be called before trying to edit the file with an
+		external editor.
+		'''
+		if not self.file.exists():
+			for file in self.default_files():
+				file.copyto(self.file)
+				break
+			else:
+				self.file.touch() # create empty file
+
+	def read(self, fail=False):
+		'''Read the base file or first default file
+		@param fail: if C{True} a L{FileNotFoundError} error is raised
+		when neither the base file or a default file are found. If
+		C{False} it will return C{''} for a non-existing file.
+		@returns: file content as a string
+		'''
+		try:
+			return self.file.read()
+		except FileNotFoundError:
+			for file in self.default_files():
+				return file.read()
+			else:
+				if fail:
+					raise
+				else:
+					return ''
+
+	def readlines(self, fail=False):
+		'''Read the base file or first default file
+		@param fail: if C{True} a L{FileNotFoundError} error is raised
+		when neither the base file or a default file are found. If
+		C{False} it will return C{[]} for a non-existing file.
+		@returns: file content as a list of lines
+		'''
+		try:
+			return self.file.readlines()
+		except FileNotFoundError:
+			for file in self.default_files():
+				return file.readlines()
+			else:
+				if fail:
+					raise
+				else:
+					return []
+
+	# Not implemented: read_async and readlines_async
+
+	def write(self, text):
+		'''Write base file, see L{File.write()}'''
+		self.file.write(text)
+
+	def writelines(self, lines):
+		'''Write base file, see L{File.writelines()}'''
+		self.file.writelines(lines)
+
+	def write_async(self, text, callback=None, data=None):
+		'''Write base file async, see L{File.write_async()}'''
+		return self.file.write_async(text, callback=callback, data=data)
+
+	def writelines_async(self, lines, callback=None, data=None):
+		'''Write base file async, see L{File.writelines_async()}'''
+		return self.file.writelines_async(lines, callback=callback, data=data)
+
 
 
 def check_class_allow_empty(value, default):
@@ -756,26 +860,20 @@ class ConfigDict(ListDict):
 				# specify separators for compact encoding
 
 
-class ConfigFile(ListDict):
-	'''Mixin class for reading and writing config to file'''
+class ConfigFileMixin(ListDict):
+	'''Mixin class for reading and writing config to file, can be used
+	with any parent class that has a C{parse()}, a C{dump()}, and a
+	C{set_modified()} method. See L{ConfigDict} for the documentation
+	of these methods.
+	'''
 
-	def __init__(self, file, default=None):
+	def __init__(self, file):
 		'''Constructor
-
-		Typically C{file} is the file in the home dir that the user can
-		always write to. While C{default} is the default file in e.g.
-		"/usr/share" which the user can read but not write. When the
-		file in the home folder does not exist, the default is read,
-		but when we write it after modifications we write to the home
-		folder file.
-
-		@param file: a L{File} object for reading and writing the config
-		@param default: optional default L{File} object, only used for
-		reading when C{file} does not exist.
+		@param file: a L{File} or L{ConfigFile} object for reading and
+		writing the config.
 		'''
 		ListDict.__init__(self)
 		self.file = file
-		self.default = default
 		try:
 			self.read()
 			self.set_modified(False)
@@ -783,22 +881,15 @@ class ConfigFile(ListDict):
 			pass
 
 	def read(self):
-		'''Read data'''
+		'''Read data from file'''
 		# No flush here - this is used by change_file()
 		# but may change in the future - so do not depend on it
-		try:
-			logger.debug('Loading %s', self.file.path)
-			self.parse(self.file.readlines())
-		except FileNotFoundError:
-			if self.default:
-				logger.debug('File not found, loading %s', self.default.path)
-				self.parse(self.default.readlines())
-			else:
-				raise
+		logger.debug('Loading config from: %s', self.file)
+		self.parse(self.file.readlines())
+		# Will fail with FileNotFoundError if file does not exist
 
 	def write(self):
-		'''Write data and set C{modified} to C{False}
-		'''
+		'''Write data and set C{modified} to C{False}'''
 		self.file.writelines(self.dump())
 		self.set_modified(False)
 
@@ -815,45 +906,22 @@ class ConfigFile(ListDict):
 		'''Change the underlaying file used to read/write data
 		Used to switch to a new config file without breaking existing
 		references to config sections.
-		@param file: a L{File} object for the new config
+		@param file: a L{File} or L{ConfigFile} object for the new config
 		@param merge: if C{True} the new file will be read (if it exists)
 		and values in this dict will be updated.
 		'''
 		self.file = file
-		if file.exists():
-			self.read()
-		self.set_modified(True)
-
-
-class ConfigDictFile(ConfigFile, ConfigDict):
-	pass
-
-
-class TextConfigFile(list):
-	'''Like L{ConfigFile}, but just represents a list of lines'''
-
-	# TODO think of a way of uniting this class with ConfigFile
-
-	def __init__(self, file, default=None):
-		self.file = file
-		self.default = default
 		try:
 			self.read()
+			self.set_modified(True)
+				# This is the correct state because after reading we are
+				# merged state, so does not matching file content
 		except FileNotFoundError:
 			pass
 
-	def read(self):
-		# TODO: flush list first ?
-		try:
-			self[:] = self.file.readlines()
-		except FileNotFoundError:
-			if self.default:
-				self[:] = self.default.readlines()
-			else:
-				raise
 
-	def write(self):
-		self.file.writelines(self)
+class ConfigDictFile(ConfigFileMixin, ConfigDict):
+	pass
 
 
 class HeaderParsingError(Error):
