@@ -26,7 +26,7 @@ def find_heading(buffer, heading):
 	@param heading: text of the heading
 	@returns: a C{gtk.TextIter} for the new cursor position or C{None}
 	'''
-	regex = "^%s$" % heading
+	regex = "^%s$" % re.escape(heading)
 	with buffer.tmp_cursor():
 		if buffer.finder.find(regex, FIND_REGEX):
 			iter = buffer.get_insert_iter()
