@@ -85,34 +85,54 @@ __all__ = [
 ]
 
 
-def list_templates(format):
-	'''Returns a dict mapping template names to file paths.'''
-	format = format.lower()
-	templates = {}
-	path = list(data_dirs(('templates', format)))
+def list_template_categories():
+	'''Returns a list of categories (sub folders)'''
+	dirs = data_dirs('templates')
+	categories = set()
+	for dir in dirs:
+		for name in dir.list():
+			## TODO list_objects would help here + a filter like type=Dir
+			if dir.subdir(name).isdir():
+				categories.add(name)
+
+	return sorted(categories)
+
+
+def list_templates(category):
+	'''Returns a list of template names
+	@param category: a category (sub folder) with tempaltes, e.g. "html"
+	@returns: a list of 2-tuples of the template names and the file
+	basename for the template file
+	'''
+	category = category.lower()
+	templates = set()
+	path = list(data_dirs(('templates', category)))
 	path.reverse()
 	for dir in path:
-		for file in dir.list():
-			i = file.rfind('.') # match begin of file extension
-			if i >= 0:
-				if '~' in file[i:]:
-					continue # Ignore tmp files etc.
-				#~ templates[file[0:i]] = dir.file(file) FIXME
-				import os
-				templates[file[0:i]] = os.path.join(dir.path, file)
-	return templates
+		for basename in dir.list():
+			name = basename.rsplit('.', 1)[0] # robust if no '.' in basename
+			templates.add((name, basename))
+	return sorted(templates)
 
 
 def get_template(format, template):
 	'''Returns a Template object for a template name, file path, or File object'''
+	# NOTE: here the "category" needs to be a format at the same time !
 	if isinstance(template, File):
 		file = template
 	else:
 		if not is_path_re.match(template):
-			try:
-				templates = list_templates(format)
-				file = File(templates[template])
-			except KeyError:
+			file = None
+			path = list(data_dirs(('templates', format)))
+			path.reverse()
+			for dir in path:
+				for basename in dir.list():
+					name = basename.rsplit('.')[0] # robust if no '.' in basename
+					if name == template:
+						file = dir.file(basename)
+						break
+
+			if not file:
 				file = File(template)
 		else:
 			file = File(template)

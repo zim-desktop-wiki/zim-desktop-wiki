@@ -858,9 +858,14 @@ class Dir(FilePath):
 	def exists(self):
 		return os.path.isdir(self.encodedpath)
 
-	def list(self, raw=False):
+	def list(self, glob=None, includehidden=False, includetmp=False, raw=False):
 		'''List the file contents
 
+		@param glob: a file name glob to filter the listed files, e.g C{"*.png"}
+		@param includehidden: if C{True} include hidden files
+		(e.g. names starting with "."), ignore otherwise
+		@param includetmp: if C{True} include temporary files
+		(e.g. names ending in "~"), ignore otherwise
 		@param raw: for filtered folders (C{FilteredDir} instances)
 		setting C{raw} to C{True} will disable filtering
 
@@ -873,7 +878,7 @@ class Dir(FilePath):
 		if ENCODING == 'mbcs':
 			# We are running on windows and os.listdir will handle unicode natively
 			assert isinstance(self.encodedpath, unicode)
-			for file in self._list():
+			for file in self._list(includehidden, includetmp):
 				if isinstance(file, unicode):
 					files.append(file)
 				else:
@@ -883,19 +888,28 @@ class Dir(FilePath):
 			# os.listdir(path) is _not_ a unicode object, the result will
 			# be a list of byte strings. We can decode them ourselves.
 			assert not isinstance(self.encodedpath, unicode)
-			for file in self._list():
+			for file in self._list(includehidden, includetmp):
 				try:
 					files.append(file.decode(ENCODING))
 				except UnicodeDecodeError:
 					logger.warn('Ignoring file: "%s" invalid file name', file)
+
+		if glob:
+			expr = _glob_to_regex(glob)
+			files = filter(expr.match, files)
+
 		files.sort()
 		return files
 
-	def _list(self):
+	def _list(self, includehidden, includetmp):
 		if self.exists():
 			files = []
 			for file in os.listdir(self.encodedpath):
-				if not file.startswith('.'): # skip hidden files
+				if file.startswith('.') and not includehidden:
+					continue # skip hidden files
+				elif file.endswith('~') and not includetmp:
+					continue # skip temporary files
+				else:
 					files.append(file)
 			return files
 		else:
@@ -1179,8 +1193,8 @@ class FilteredDir(Dir):
 		else:
 			return True
 
-	def list(self, raw=False):
-		files = Dir.list(self)
+	def list(self, includehidden=False, includetmp=False, raw=False):
+		files = Dir.list(self, includehidden, includetmp)
 		if not raw:
 			files = filter(self.filter, files)
 		return files

@@ -105,8 +105,8 @@ class GNURPlotGenerator(ImageGeneratorClass):
 	imagename = 'gnu_r_plot.png'
 
 	def __init__(self):
-		file = data_file('templates/_GNU_R_Plot.r')
-		assert file, 'BUG: could not find templates/_GNU_R_Plot.r'
+		file = data_file('templates/plugins/gnu_r_editor.r')
+		assert file, 'BUG: could not find templates/plugins/gnu_r_editor.r'
 		self.template = GenericTemplate(file.readlines(), name=file)
 		self.plotscriptfile = TmpFile(self.scriptname)
 

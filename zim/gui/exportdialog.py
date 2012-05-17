@@ -182,8 +182,7 @@ class FormatPage(AssistantPage):
 			combobox = self.form.widgets['template']
 			combobox.get_model().clear()
 
-			templates = zim.templates.list_templates(format)
-			for name in sorted(templates):
+			for name, _ in zim.templates.list_templates(format):
 				combobox.append_text(name)
 			combobox.append_text(self.CHOICE_OTHER)
 			combobox.set_sensitive(True)

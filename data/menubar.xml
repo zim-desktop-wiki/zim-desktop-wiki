@@ -46,6 +46,7 @@
 			<separator/>
 			<menuitem action='copy_location'/>
 			<separator/>
+			<menuitem action='show_templateeditor'/>
 			<menuitem action='show_preferences'/>
 		</menu>
 		<menu action='view_menu'>

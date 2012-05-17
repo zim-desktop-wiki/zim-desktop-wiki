@@ -85,7 +85,7 @@ import zim.fs
 from zim.fs import File, Dir
 from zim.errors import Error, TrashNotSupportedError
 from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
-	config_file, data_dir, user_dirs, data_dirs, config_dirs, list_profiles
+	config_file, data_dir, user_dirs, config_dirs, list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode, url_decode
 from zim.async import AsyncLock
@@ -546,16 +546,10 @@ def interwiki_link(link):
 		else:
 			return None
 
-	for dir in config_dirs():
+	for dir in config_dirs(): # also implies data_dirs()
 		url = check_dir(dir)
 		if url:
 			break
-
-	if not url:
-		for dir in data_dirs():
-			url = check_dir(dir)
-			if url:
-				break
 
 	# If not found check known notebook
 	if not url:

@@ -315,15 +315,20 @@ class ConfigFile(object):
 	and writing methods.
 	'''
 
-	def __init__(self, path):
+	def __init__(self, path, file=None):
 		'''Constructor
 		@param path: either basename as string or tuple with relative path,
 		is resolved relative to the default config dir for zim.
+		@param file: optional argument for some special case to
+		override the base file in the home folder.
 		'''
 		if isinstance(path, basestring):
 			path = (path,)
 		self._path = tuple(path)
-		self.file = File((XDG_CONFIG_HOME, 'zim') + self._path)
+		if file:
+			self.file = file
+		else:
+			self.file = File((XDG_CONFIG_HOME, 'zim') + self._path)
 
 	def __eq__(self, other):
 		return isinstance(other, ConfigFile) \

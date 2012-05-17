@@ -96,8 +96,8 @@ class EquationGenerator(ImageGeneratorClass):
 	imagename = 'equation.png'
 
 	def __init__(self):
-		file = data_file('templates/_Equation.tex')
-		assert file, 'BUG: could not find templates/_Equation.tex'
+		file = data_file('templates/plugins/equationeditor.tex')
+		assert file, 'BUG: could not find templates/plugins/equationeditor.tex'
 		self.template = GenericTemplate(file.readlines(), name=file)
 		self.texfile = TmpFile(self.scriptname)
 

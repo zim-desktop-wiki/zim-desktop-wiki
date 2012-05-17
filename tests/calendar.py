@@ -10,6 +10,7 @@ from datetime import date as dateclass
 import zim.plugins
 from zim.notebook import Path
 from zim.config import ConfigDict
+from zim.templates import get_template
 
 
 class TestCalendarFunctions(tests.TestCase):
@@ -64,8 +65,7 @@ class TestCalendarFunctions(tests.TestCase):
 @tests.slowTest
 class TestCalendarPlugin(tests.TestCase):
 
-	def runTest(self):
-		'Test Calendar plugin'
+	def testNamespace(self):
 		ui = StubUI()
 		pluginklass = zim.plugins.get_plugin('calendar')
 		plugin = pluginklass(ui)
@@ -98,19 +98,41 @@ class TestCalendarPlugin(tests.TestCase):
 		path = plugin.path_for_month_from_date(date)
 		self.assertEqual(path.name, 'Calendar:2012:04')
 
-# TODO test template function
+	def testTemplate(self):
+		ui = StubUI()
+		pluginklass = zim.plugins.get_plugin('calendar')
+		plugin = pluginklass(ui)
+		plugin.initialize_ui(ui)
+		# plugin should register with TemplateManager
+
+		template = get_template('wiki', 'Calendar')
+		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
+			zim.plugins.calendar.MONDAY
+		plugin.preferences['namespace'] = 'Calendar'
+
+		for path in (
+			'Calendar:2012',
+			'Calendar:2012:04:27',
+			'Calendar:2012:Week 17',
+			'Calendar:2012:04',
+		):
+			page = ui.notebook.get_page(Path(path))
+			lines = template.process(ui.notebook, page)
+			text = ''.join(lines)
+			#~ print text
+			self.assertTrue(not 'Created' in text) # No fall back
+			if 'Week' in path:
+				days = [l for l in lines if l.startswith('=== ')]
+				self.assertEqual(len(days), 7)
 
 
-class StubUI(object):
+class StubUI(tests.MockObject):
 
-	ui_type = 'stub'
+	ui_type = 'gtk'
 
 	def __init__(self):
+		tests.MockObject.__init__(self)
 		self.notebook = tests.new_notebook()
 		self.page = self.notebook.get_page(Path('Test:foo'))
 		self.preferences = ConfigDict()
 		self.uistate = ConfigDict()
-
-	def connect(*a): pass
-
-	def connect_after(*a): pass

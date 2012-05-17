@@ -7,6 +7,14 @@ Zim uses templates when exporting pages. This way you can for example write your
 
 Templates are also used to initalize new pages.
 
+===== Template Editor Dialog =====
+
+The Template Editor Dialog can be accessed with the menu item "//Edit//" -> "//Templates//". It will show a list of templates that are available, and allows you to view and edit them.
+
+Templates can either be system defaults, or custom templates in your home folder. When you edit them, a copy is made of the default to your home folder, and this copy is than edited. The remove function again deletes this custom version, but does not touch the default template.
+
+**Note:** if you try to edit for example a HTML template, and it opens in the web browser instead of in your default text editor, the cause is most likely that you did not explicitly configure a text editor in the preferences. Go to the [[Preferences|Preferences Dialog]] and specify your text editor.
+
 ===== Templates for export =====
 
 For a list of templates for exporting see [[Help:Export]] and subpages. 

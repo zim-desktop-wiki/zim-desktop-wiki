@@ -76,7 +76,8 @@ ui_actions = (
 	('quit',  'gtk-quit', _('_Quit'), '<ctrl>Q', '', True), # T: Menu item
 	('show_search',  'gtk-find', _('_Search...'), '<shift><ctrl>F', '', True), # T: Menu item
 	('show_search_backlinks', None, _('Search _Backlinks...'), '', '', True), # T: Menu item
-	('copy_location', None, _('Copy Location'), '<shift><ctrl>L', '', True), # T: Menu item
+	('copy_location', None, _('Copy _Location'), '<shift><ctrl>L', '', True), # T: Menu item
+	('show_templateeditor',  None, _('_Templates'), '', '', True), # T: Menu item
 	('show_preferences',  'gtk-preferences', _('Pr_eferences'), '', '', True), # T: Menu item
 	('reload_page',  'gtk-refresh', _('_Reload'), '<ctrl>R', '', True), # T: Menu item
 	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', '', True), # T: Menu item
@@ -199,9 +200,8 @@ def load_zim_stock_icons():
 	factory = gtk.IconFactory()
 	factory.add_default()
 	for dir in data_dirs(('pixmaps')):
-		for file in dir.list():
-			if not file.endswith('.png'):
-				continue # no all installs have svg support..
+		for file in dir.list('*.png'):
+			# not all installs have svg support, so only check png for now..
 			name = 'zim-'+file[:-4] # e.g. checked-box.png -> zim-checked-box
 			icon_theme = gtk.icon_theme_get_default()
 			try:
@@ -1714,6 +1714,11 @@ class GtkInterface(NotebookInterface):
 		'''Menu action to copy the current page name to the clipboard'''
 		Clipboard.set_pagelink(self.notebook, self.page)
 
+	def show_templateeditor(self):
+		'''Menu action to show the L{TemplateEditorDialog}'''
+		from zim.gui.templateeditordialog import TemplateEditorDialog
+		TemplateEditorDialog(self).run()
+
 	def show_preferences(self):
 		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
@@ -1936,7 +1941,7 @@ class GtkInterface(NotebookInterface):
 		configfile.touch()
 		self.edit_file(configfile.file, istextfile=True)
 
-	def edit_file(self, file, istextfile=None):
+	def edit_file(self, file, istextfile=None, dialog=None):
 		'''Edit a file with and external application.
 
 		This method will show a dialog to block the interface while the
@@ -1951,13 +1956,20 @@ class GtkInterface(NotebookInterface):
 		we ask the file browser for the correct application. When
 		C{None} we check the mimetype of the file to determine if it
 		is text or not.
+		@param dialog: the dialog that is spawning this action
 		'''
+		## FIXME force using real text editor, even when file has not
+		## text mimetype. This now goes wrong when editing e.g. a html
+		## template when the editor is "xdg-open" on linux or default
+		## os.startfile() on windows...
+
 		if not file.exists():
 			raise NoSuchFileError, file
 
 		oldmtime = file.mtime()
 
-		dialog = MessageDialog(self, (
+		window = dialog or self
+		dialog = MessageDialog(window, (
 			_('Editing file: %s') % file.basename,
 				# T: main text for dialog for editing external files
 			_('You are editing a file in an external application. You can close this dialog when you are done')
@@ -1967,7 +1979,7 @@ class GtkInterface(NotebookInterface):
 		def check_close_dialog(status):
 			if status != 0:
 				dialog.destroy()
-				ErrorDialog(self, _('Could not open: %s') % file.basename).run()
+				ErrorDialog(window, _('Could not open: %s') % file.basename).run()
 					# T: error when external application fails
 			else:
 				newmtime = file.mtime()
@@ -3034,7 +3046,7 @@ class NewPageDialog(Dialog):
 
 		key = self.path or ''
 		default = ui.notebook.namespace_properties[key]['template']
-		templates = list_templates('wiki')
+		templates = [t[0] for t in list_templates('wiki')]
 		if not default in templates:
 			templates.insert(0, default)
 

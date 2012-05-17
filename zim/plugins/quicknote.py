@@ -227,7 +227,7 @@ class BoundQuickNoteDialog(Dialog):
 		self.textview.get_buffer().connect('changed', self.on_text_changed)
 
 		# Initialize text from template
-		file = data_file('templates/_quicknote.txt')
+		file = data_file('templates/plugins/quicknote.txt')
 		template = GenericTemplate(file.readlines(), name=file)
 		template_options.update({
 			'text': text or '',
