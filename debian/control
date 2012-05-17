@@ -1,9 +1,12 @@
 Source: zim
 Section: utils
 Priority: optional
-Maintainer: Jaap Karssenberg <pardus@cpan.org>
-Standards-Version: 3.8.4
+Maintainer: Jaap Karssenberg <jaap.karssenberg@gmail.com>
+Standards-Version: 3.9.2
 Build-Depends: debhelper (>= 7.4.12), cdbs, python-support (>= 0.8), xdg-utils, python (>= 2.5), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg, python-simplejson | python (>= 2.6)
+# For testing should also include "python-unittest2 | python (>= 2.7)" 
+# but this prevents building the package for Ubuntu Lucid, due to missing
+# unittest2 - but zim runs just find on Lucid
 
 Package: zim
 Architecture: all
@@ -16,13 +19,18 @@ Recommends: python-gtkspell
 # scrot required for the screenshot plugin
 # dvipng required for the "equation" plugin
 Suggests: bzr, graphviz, scrot, dvipng
-Description: A Desktop Wiki Editor
- Zim brings the concept of a wiki to your desktop. Store
- information, link pages and edit with WYSISYG markup.
- Creating a new page is as easy as linking to a non-existing
- page. Pages are stored in a folder structure, like in an
- outliner, and can have attachments.
+Description: Desktop Wiki Editor
+ Zim is a graphical text editor used to maintain a collection of wiki pages.
+ Each page can contain links to other pages, simple formatting and images.
+ Pages are stored in a folder structure, like in an outliner, and can have
+ attachments. Creating a new page is as easy as linking to a nonexistent page.
+ All data is stored in plain text files with wiki formatting. Various plugins
+ provide additional functionality, like a task list manager, an equation editor,
+ a tray icon, and support for version control.
  .
- This tool can be used to keep track of TODO lists or ideas,
- to take notes during a meeting or to draft any other kind of
- text (blog entries, important mails, etc.).
+ Zim can be used to:
+  * Keep an archive of notes
+  * Take notes during meetings or lectures
+  * Organize task lists
+  * Draft blog entries and emails
+  * Do brainstorming

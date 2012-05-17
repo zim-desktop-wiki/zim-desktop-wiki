@@ -1,6 +1,13 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
 
 import gtk
 import gobject
+
+from zim.gui.widgets import encode_markup_text
+
 
 # Constants
 DIR_FORWARD = 1
@@ -9,18 +16,18 @@ DIR_BACKWARD = -1
 
 class ScrolledHBox(gtk.HBox):
 	'''This class provides a widget that behaves like a HBox when there is
-	enough space to render all child widgets. When space is limitted it
+	enough space to render all child widgets. When space is limited it
 	shows arrow buttons on the left and on the right to allow scrolling
 	through the widgets.
 
 	Note that this class does not (yet?) support packing options like
 	'expand', 'fill' etc. All child widgets can just be added with 'add()'.
 
-	TODO this class does not yet support homogenous spacing
+	TODO this class does not yet support homogeneous spacing
 	'''
 
 	# In order to display as many items as possible we use the following
-	# scrolling algorith:
+	# scrolling algorithm:
 	#
 	# There is an attribute "anchor" which is a tuple of a direction and the index
 	# of a child item. This anchor represents the last scrolling action.
@@ -127,9 +134,9 @@ class ScrolledHBox(gtk.HBox):
 	def scroll_to_child(self, child):
 		i = self.get_children()[2:].index(child)
 		if i < self._first:
-			self.scroll(DIR_BACKWARDS, self._first - i)
+			self.scroll(DIR_BACKWARD, self._first - i)
 		elif i > self._last:
-			self.scroll(DIR_FORWARDS, i - self._last)
+			self.scroll(DIR_FORWARD, i - self._last)
 		else:
 			pass # child was visible already
 
@@ -418,7 +425,7 @@ class PathBar(ScrolledHBox):
 			button.set_active(active)
 			label = button.get_child()
 			if active:
-				label.set_markup('<b>'+label.get_text()+'</b>')
+				label.set_markup('<b>'+encode_markup_text(label.get_text())+'</b>')
 			else:
 				label.set_text(label.get_text())
 					# get_text() gives string without markup
@@ -447,7 +454,8 @@ class PathBar(ScrolledHBox):
 			return True
 
 	def on_button_popup_menu(self, button):
-		menu = self.ui.uimanager.get_widget('/page_popup')
+		menu = gtk.Menu()
+		self.ui.populate_popup('page_popup', menu, button.zim_path)
 		menu.popup(None, None, None, 3, 0)
 		return True
 
@@ -476,11 +484,11 @@ class RecentPathBar(PathBar):
 	# Get last X unique paths from history, add buttons
 	# When a button is clicked we do not want to change the view
 	# So on open page we need to check if the page was in the list
-	# allready or not
+	# already or not
 
 	def get_paths(self):
 		# TODO enforce max number of paths shown
-		paths = list(self.history.get_unique())
+		paths = list(self.history.get_recent())
 		paths.reverse()
 		return paths
 
@@ -494,6 +502,8 @@ class NamespacePathBar(PathBar):
 	def get_paths(self):
 		# no need to enforce a max number of paths here
 		current = self.history.get_current()
+		if not current:
+			return []
 		path = self.history.get_grandchild(current) or current
 		paths = list(path.parents())
 		paths.reverse()

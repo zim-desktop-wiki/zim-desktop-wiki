@@ -1,11 +1,20 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Package with source formats for pages.
 
+Each module in zim.formats should contains exactly one subclass of
+DumperClass and exactly one subclass of ParserClass
+(optional for export formats). These can be loaded by L{get_parser()}
+and L{get_dumper()} respectively. The requirement to have exactly one
+subclass per module means you can not import other classes that derive
+from these base classes directly into the module.
+
 For format modules it is safe to import '*' from this module.
 
+Parse tree structure
+====================
 
 Parse trees are build using the (c)ElementTree module (included in
 python 2.5 as xml.etree.ElementTree). It is basically a xml structure
@@ -13,22 +22,22 @@ supporting a subset of "html like" tags.
 
 Supported tags:
 
-* page root element for grouping paragraphs
-* p for paragraphs
-* h for heading, level attribute can be 1..6
-* pre for verbatim paragraphs (no further parsing in these blocks)
-* em for emphasis, rendered italic by default
-* strong for strong emphasis, rendered bold by default
-* mark for highlighted text, renderd with background color or underlined
-* strike for text that is removed, usually renderd as strike through
-* code for inline verbatim text
-* ul for bullet lists
-* .. for checkbox lists
-* li for list items
-* link for links, attribute href gives the target
-* img for images, attributes src, width, height an optionally href
-	* any text set on these elements should be rendered as alt
-	* type can be used to control plugin functionality, e.g. type=equation
+	- page root element for grouping paragraphs
+	- p for paragraphs
+	- h for heading, level attribute can be 1..6
+	- pre for verbatim paragraphs (no further parsing in these blocks)
+	- em for emphasis, rendered italic by default
+	- strong for strong emphasis, rendered bold by default
+	- mark for highlighted text, renderd with background color or underlined
+	- strike for text that is removed, usually renderd as strike through
+	- code for inline verbatim text
+	- ul for bullet and checkbox lists
+	- ol for numbered lists
+	- li for list items
+	- link for links, attribute href gives the target
+	- img for images, attributes src, width, height an optionally href
+		- any text set on these elements should be rendered as alt
+		- type can be used to control plugin functionality, e.g. type=equation
 
 Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
@@ -39,9 +48,7 @@ markup it is not allowed to nest elements in arbitrary ways.
 
 TODO: allow links to be nested in other elements
 TODO: allow strike to have sub elements
-TODO: allow classes to set hints for visual rendering and other interaction
 TODO: add HR element
-TODO: ol for numbered lists
 
 If a page starts with a h1 this heading is considered the page title,
 else we can fall back to the page name as title.
@@ -53,12 +60,16 @@ to a title or subtitle in the document.
 '''
 
 import re
+import string
 import logging
 
 from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE
 from zim.config import data_file
+import zim.plugins
+
+import zim.notebook # no 'from' to prevent cyclic import errors
 
 
 logger = logging.getLogger('zim.formats')
@@ -85,6 +96,7 @@ except:  # pragma: no cover
 EXPORT_FORMAT = 1
 IMPORT_FORMAT = 2
 NATIVE_FORMAT = 4
+TEXT_FORMAT = 8 # Used for "Copy As" menu - these all prove "text/plain" mimetype
 
 UNCHECKED_BOX = 'unchecked-box'
 CHECKED_BOX = 'checked-box'
@@ -92,21 +104,90 @@ XCHECKED_BOX = 'xchecked-box'
 BULLET = '*'
 
 
+def increase_list_iter(listiter):
+	'''Get the next item in a list for a numbered list
+	E.g if C{listiter} is C{"1"} this function returns C{"2"}, if it
+	is C{"a"} it returns C{"b"}.
+	@param listiter: the current item, either an integer number or
+	single letter
+	@returns: the next item, or C{None}
+	'''
+	try:
+		i = int(listiter)
+		return str(i + 1)
+	except ValueError:
+		try:
+			i = string.letters.index(listiter)
+			return string.letters[i+1]
+		except ValueError: # listiter is not a letter
+			return None
+		except IndexError: # wrap to start of list
+			return string.letters[0]
+
+
+
 def list_formats(type):
 	if type == EXPORT_FORMAT:
-		return ['HTML','LaTeX']
+		return ['HTML','LaTeX', 'Markdown (pandoc)']
+	elif type == TEXT_FORMAT:
+		return ['Text', 'Wiki', 'Markdown (pandoc)']
 	else:
 		assert False, 'TODO'
 
 
+def canonical_name(name):
+	# "HTML" -> html
+	# "Markdown (pandoc)" -> "markdown"
+	# "Text" -> "plain"
+	name = name.lower()
+	if ' ' in name:
+		name, _ = name.split(' ', 1)
+	if name == 'text': return 'plain'
+	else: return name
+
+
 def get_format(name):
 	'''Returns the module object for a specific format.'''
-	# __import__ has some quirks, see the reference manual
-	name = name.lower()
-	mod = __import__('zim.formats.'+name)
-	mod = getattr(mod, 'formats')
-	mod = getattr(mod, name)
-	return mod
+	# If this method is removes, class names in formats/*.py can be made more explicit
+	#~ print 'DEPRECATED: get_format() is deprecated in favor if get_parser() and get_dumper()'
+	return get_format_module(name)
+
+
+def get_format_module(name):
+	'''Returns the module object for a specific format
+
+	@param name: the format name
+	@returns: a module object
+	'''
+	return zim.plugins.get_module('zim.formats', name)
+
+
+def get_parser(name, *arg, **kwarg):
+	'''Returns a parser object instance for a specific format
+
+	@param name: format name
+	@param arg: arguments to pass to the parser object
+	@param kwarg: keyword arguments to pass to the parser object
+
+	@returns: parser object instance (subclass of L{ParserClass})
+	'''
+	module = get_format_module(name)
+	klass = zim.plugins.lookup_subclass(module, ParserClass)
+	return klass(*arg, **kwarg)
+
+
+def get_dumper(name, *arg, **kwarg):
+	'''Returns a dumper object instance for a specific format
+
+	@param name: format name
+	@param arg: arguments to pass to the dumper object
+	@param kwarg: keyword arguments to pass to the dumper object
+
+	@returns: dumper object instance (subclass of L{DumperClass})
+	'''
+	module = get_format_module(name)
+	klass = zim.plugins.lookup_subclass(module, DumperClass)
+	return klass(*arg, **kwarg)
 
 
 class ParseTree(ElementTreeModule.ElementTree):
@@ -173,11 +254,11 @@ class ParseTree(ElementTreeModule.ElementTree):
 		ElementTreeModule.ElementTree.write(self, xml, 'utf-8')
 		return xml.getvalue()
 
-	def write(*a):
+	def write(self, *_):
 		'''Writing to file is not implemented, use tostring() instead'''
 		raise NotImplementedError
 
-	def parse(*a):
+	def parse(self, *_):
 		'''Parsing from file is not implemented, use fromstring() instead'''
 		raise NotImplementedError
 
@@ -188,13 +269,15 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''
 		root = self.getroot()
 		children = root.getchildren()
+		tail = "\n"
 		if children:
 			first = children[0]
 			if first.tag == 'h' and first.attrib['level'] >= level:
+				tail = first.tail # Keep trailing text
 				root.remove(first)
 		heading = Element('h', {'level': level})
 		heading.text = text
-		heading.tail = "\n"
+		heading.tail = tail
 		root.insert(0, heading)
 
 	def cleanup_headings(self, offset=0, max=6):
@@ -230,6 +313,14 @@ class ParseTree(ElementTreeModule.ElementTree):
 			for element in self.getiterator('img'):
 				filepath = element.attrib['src']
 				element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
+
+	def unresolve_images(self):
+		'''Undo effect of L{resolve_images()}, mainly intended for
+		testing.
+		'''
+		for element in self.getiterator('img'):
+			if '_src_file' in element.attrib:
+				element.attrib.pop('_src_file')
 
 	def encode_urls(self, mode=URL_ENCODE_READABLE):
 		'''Calls encode_url() on all links that contain urls.
@@ -279,6 +370,24 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 		return count
 
+	def get_ends_with_newline(self):
+		'''Checks whether this tree ends in a newline or not'''
+		return self._get_element_ends_with_newline(self.getroot())
+
+	def _get_element_ends_with_newline(self, element):
+			if element.tail:
+				return element.tail.endswith('\n')
+			elif element.tag in ('li', 'h'):
+				return True # implicit newline
+			else:
+				children = element.getchildren()
+				if children:
+					return self._get_element_ends_with_newline(children[-1]) # recurs
+				elif element.text:
+					return element.text.endswith('\n')
+				else:
+					return False # empty element like image
+
 
 count_eol_re = re.compile(r'\n+\Z')
 split_para_re = re.compile(r'((?:^[ \t]*\n){2,})', re.M)
@@ -291,17 +400,17 @@ class ParseTreeBuilder(object):
 	also be used on other "dirty" interfaces.
 
 	This builder takes care of the following issues:
-	* Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines
-	* Tags can not contain only whitespace
-	* Tags can not be empty (with the exception of the 'img' tag)
-	* There should be an empty line before each 'h', 'p' or 'pre'
-	  (with the exception of the first tag in the tree)
-	* The 'p' and 'pre' elements should always end with a newline ('\n')
-	* Each 'p', 'pre' and 'h' should be postfixed with a newline ('\n')
-	  (as a results 'p' and 'pre' are followed by an empty line, the
-	   'h' does not end in a newline itself, so it is different)
-	* Newlines ('\n') after a <li> alement are removed (optional)
-	* The element '_ignore_' is silently ignored
+		- Inline tags ('emphasis', 'strong', 'h', etc.) can not span multiple lines
+		- Tags can not contain only whitespace
+		- Tags can not be empty (with the exception of the 'img' tag)
+		- There should be an empty line before each 'h', 'p' or 'pre'
+		  (with the exception of the first tag in the tree)
+		- The 'p' and 'pre' elements should always end with a newline ('\\n')
+		- Each 'p', 'pre' and 'h' should be postfixed with a newline ('\\n')
+		  (as a results 'p' and 'pre' are followed by an empty line, the
+		  'h' does not end in a newline itself, so it is different)
+		- Newlines ('\\n') after a <li> alement are removed (optional)
+		- The element '_ignore_' is silently ignored
 	'''
 
 	def __init__(self, remove_newlines_after_li=True):
@@ -516,7 +625,7 @@ class ParserClass(object):
 					break
 
 				k, v = option.split('=')
-				if k in ('width', 'height', 'type'):
+				if k in ('width', 'height', 'type', 'href'):
 					if len(v) > 0:
 						attrib[str(k)] = v # str to avoid unicode key
 				else:
@@ -578,10 +687,12 @@ class DumperClass(object):
 
 
 class BaseLinker(object):
-	'''Base class for linker objects. Linker object translate links in
-	zim pages to (relative) URLs. Relative URLs start with "./" or "../"
-	and should be interpreted in the same way as in HTML. Both URLs and
-	relative URLs are already URL encoded.
+	'''Base class for linker objects
+	Linker object translate links in zim pages to (relative) URLs.
+	This is used when exporting data to resolve links.
+	Relative URLs start with "./" or "../" and should be interpreted
+	in the same way as in HTML. Both URLs and relative URLs are
+	already URL encoded.
 	'''
 
 	def __init__(self):
@@ -605,39 +716,118 @@ class BaseLinker(object):
 		'''Set whether the format supports relative files links or not'''
 		self.usebase = usebase
 
+	def resolve_file(self, link):
+		'''Find the source file for an attachment
+		Used e.g. by the latex format to find files for equations to
+		be inlined. Do not use this method to resolve links, the file
+		given here might be temporary and is not guaranteed to be
+		available after the export. Use L{link()} or C{link_file()}
+		to resolve links to files.
+		@returns: a L{File} object or C{None} if no file was found
+		@implementation: must be implemented by child classes
+		'''
+		raise NotImplementedError
+
 	def link(self, link):
-		'''Returns a url for 'link' '''
+		'''Returns an url for a link in a zim page
+		This method is used to translate links of any type. It determined
+		the link type and dispatches to L{link_page()}, L{link_file()},
+		or other C{link_*} methods.
+
+		Results of this method are cached, so only calls dispatch method
+		once for repeated occurences. Setting a new path with L{set_path()}
+		will clear the cache.
+
+		@param link: link to be translated
+		@type link: string
+
+		@returns: url, uri or whatever link notation is relevant in the
+		context of this linker
+		@rtype: string
+		'''
 		assert not self.path is None
 		if not link in self._links:
 			type = link_type(link)
-			if type == 'page':    href = self.page(link)
-			elif type == 'file':  href = self.file(link)
+			if type == 'page':    href = self.link_page(link)
+			elif type == 'file':  href = self.link_file(link)
 			elif type == 'mailto':
 				if link.startswith('mailto:'):
-					href = link
+					href = self.link_mailto(link)
 				else:
-					href = 'mailto:' + link
-			else:
-				# I dunno, some url ?
-				href = link
+					href = self.link_mailto('mailto:' + link)
+			elif type == 'interwiki':
+				href = zim.notebook.interwiki_link(link)
+				if href and href != link:
+					href = self.link(href) # recurs
+				else:
+					logger.warn('No URL found for interwiki link "%s"', link)
+					link = href
+			else: # I dunno, some url ?
+				method = 'link_' + type
+				if hasattr(self, method):
+					href = getattr(self, method)(link)
+				else:
+					href = link
 			self._links[link] = href
 		return self._links[link]
 
 	def img(self, src):
-		'''Returns a url for image file 'src' '''
-		return self.file(src)
+		'''Returns an url for image file 'src' '''
+		return self.link_file(src)
 
 	def icon(self, name):
-		'''Returns a url for an icon'''
+		'''Returns an url for an icon'''
 		if not name in self._icons:
 			self._icons[name] = data_file('pixmaps/%s.png' % name).uri
 		return self._icons[name]
 
-	def page(self, link):
-		'''To be overloaded'''
+	def resource(self, path):
+		'''To be overloaded, return an url for template resources'''
 		raise NotImplementedError
 
-	def file(self, path):
-		'''To be overloaded'''
+	def link_page(self, link):
+		'''To be overloaded, return an url for a page link
+		@implementation: must be implemented by child classes
+		'''
 		raise NotImplementedError
 
+	def link_file(self, path):
+		'''To be overloaded, return an url for a file link
+		@implementation: must be implemented by child classes
+		'''
+		raise NotImplementedError
+
+	def link_mailto(self, uri):
+		'''Optional method, default just returns uri'''
+		return uri
+
+	def link_notebook(self, url):
+		'''Optional method, default just returns url'''
+		return url
+
+
+class StubLinker(BaseLinker):
+	'''Linker used for testing - just gives back the link as it was
+	parsed. DO NOT USE outside of testing.
+	'''
+
+	def __init__(self):
+		BaseLinker.__init__(self)
+		self.path = '<PATH>'
+		self.base = Dir('<NOBASE>')
+
+	def resolve_file(self, link):
+		return self.base.file(link)
+			# Very simple stub, allows finding files be rel path for testing
+
+	def icon(self, name):
+		return 'icon:' + name
+
+	def resource(self, path):
+		return path
+
+	def link_page(self, link):
+		return link
+
+	def link_file(self, path):
+		return path

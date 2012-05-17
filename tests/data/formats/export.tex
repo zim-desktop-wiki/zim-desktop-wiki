@@ -1,0 +1,273 @@
+\chapter{Head 1}
+
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+
+eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+
+aliquip ex ea commodo consequat. Duis aute irure dolor in
+
+reprehenderit in voluptate velit esse cillum dolore eu fugiat
+
+nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
+
+sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+
+
+	Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+	
+	eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+	
+	ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+	
+	aliquip ex ea commodo consequat. Duis aute irure dolor in
+	
+	reprehenderit in voluptate velit esse cillum dolore eu fugiat
+	
+	nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
+	
+	sunt in culpa qui officia deserunt mollit anim id est laborum.
+	
+
+
+\section{head 2}
+
+
+
+\textbf{bold}, \emph{italic} and \uline{underline} and \lstinline+verbatim+
+
+and also \sout{strike through}
+
+
+
+This is not formatted: *bold*, /italic/ / * *\^{}\%\# @\# \$ \# !@)\_!)\_ \$ \textless{}\textgreater{} ""
+
+
+
+Some sub- and superscript like x$^{2}$ and H$_{2}$O
+
+
+
+And some empty space here:
+
+
+
+
+
+
+
+\subsection{head 3}
+
+\href{foo}{foo}  links to page in the current namespace or parents
+
+\href{:foo}{:foo} links to page in the root namespace
+
+\href{+foo}{+foo} links to page in a subnamespace
+
+\href{foo}{bar} links to "foo" but display "bar"
+
+
+
+\href{:foo:bar}{:foo:bar} \href{./file.png}{./file.png} \href{file:///etc/passwd}{file:///etc/passwd}
+
+\href{Foo}{Foo}\href{Bar}{Bar}
+
+
+
+\href{mailto:foo@bar.org}{mailto:foo@bar.org}
+
+\href{http://en.wikipedia.org/wiki/Test}{wp?Test}
+
+
+
+External links like \href{http://nongnu.org}{http://nongnu.org} and \href{mailto:foo@bar.org}{foo@bar.org} are also supported
+
+
+
+[not:a:link]
+
+
+
+
+
+\includegraphics[]{./foobar.png}
+
+\includegraphics[height=0.520833in, keepaspectratio=true]{./foobar.png}
+
+\includegraphics[width=6.250000in, keepaspectratio=true]{../my-image.png}
+
+\href{Foo}{\includegraphics[]{my-image.png}}
+
+\href{:foo:bar}{\includegraphics[width=6.250000in, keepaspectratio=true]{../my-image.png}}
+
+
+
+\begin{math}
+\int \frac{1}{x} \, d x
+\end{math} This equation has a source .tex file
+
+\includegraphics[]{./equation002.png} for this one it is missing
+
+
+
+{./Not/an/image.png}
+
+
+
+Tags: @foo @bar
+
+
+
+
+
+\subsubsection{head 4}
+
+
+
+\begin{itemize}
+\item item 1
+\item item 2
+\item item 3
+\begin{itemize}
+	\item item a
+	\item item b
+\end{itemize}\item item 4
+\end{itemize}
+
+
+
+Indented list:
+
+\begin{itemize}
+\item item 1
+\item item 2
+\item item 3
+\begin{itemize}
+	\item item a
+	\item item b
+\end{itemize}\item item 4
+\end{itemize}
+
+
+
+TODO list:
+
+\begin{itemize}
+\item[\Square] foo
+\item[\CheckedBox] bar
+\begin{itemize}
+	\item[\CheckedBox] sub item 1
+\begin{itemize}
+		\item Some normal bullet
+\end{itemize}	\item[\CheckedBox] sub item 2
+\end{itemize}\item[\XBox] baz
+\end{itemize}
+
+
+
+A numbered list:
+
+\begin{enumerate}[1]
+\item foo
+\item bar
+\begin{enumerate}[a]
+	\item sub list
+	\item here
+\end{enumerate}\item hmmm
+\end{enumerate}
+
+
+
+Start with number other that 1/a/A
+
+
+
+\begin{enumerate}[A]
+\setcounter{enumi}{2}
+\item foo
+\item bar
+\begin{enumerate}[1]
+\setcounter{enumi}{2}
+	\item sub item start with 3
+\end{enumerate}\item baz
+\end{enumerate}
+
+\paragraph{head 5}
+
+\emph{some verbatim blocks}:
+
+
+
+
+\begin{lstlisting}
+Sing, O goddess, the rage of
+Achilles son of Peleus, that
+brought countless ills upon
+the Achaeans.
+
+\end{lstlisting}
+
+
+
+\begin{lstlisting}
+    Sing, O goddess, the rage of
+    Achilles son of Peleus, that
+    brought countless ills upon
+    the Achaeans.
+
+\end{lstlisting}
+
+
+
+\begin{lstlisting}
+    def foo(self, bar, baz):
+    	'''Some doc string here
+    	@param bar: value for bar
+    	@param baz: value for baz
+    	@returns: foo
+    	'''
+    	returen "foo" + bar % baz
+
+\end{lstlisting}
+
+
+\section{Internationalization}
+
+
+
+\subsection{中文}
+
+This section has a chinese heading
+
+
+
+Lines below are in right to left script:
+
+
+
+חדו"א
+
+מד"ר
+
+מכניקת מוצקים 2
+
+A line in English, should be left aligned.
+
+דינמיקה
+
+
+
+aaa
+
+
+
+====
+
+This is not a header
+
+
+
+That's all ...
+

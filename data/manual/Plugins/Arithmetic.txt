@@ -1,0 +1,57 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2011-08-13T13:44:14+02:00
+
+====== Arithmetic ======
+
+This plugin allows you to evaluate arithmetic expressions in a zim page.
+
+**Dependencies:** This plugin has no additional dependencies.
+
+**See also:** the [[Inline Calculator|Inline Calculator plugin]] which does something similar
+
+===== Tutorial =====
+You may do standard arithmetic operations in a document,
+ending the operation with an equals sign, for example:
+
+     5 x 3 + 1 =
+
+Single spaces may be used between the quantities and the
+operators for clarity.  Two or more spaces, or a colon
+delimit an operation, like here: 100 + 1 =
+
+You may use 'x' as the multiplication symbol in most
+cases, or '*' if you want.
+
+Operations can be...   (2+7)x5 =   anywhere!
+
+Press <F5> now to obtain the results of all calculations
+in the document.  If you go up and modify some number,
+press <F5> to recalculate.
+
+You may do standard arithmetic operations in a document,
+for example, assign values to two variables:
+
+     height = 20       width = 30
+
+And define a formula:   area = height x width
+
+To obtain the result of the formula, press <F5>:
+
+     area = 
+
+<F5> also updates the result of area below,
+after one of the values is modified: height = 25
+
+     area = 
+
+Other examples of formulas, try modifying the values of f
+and c will change after updating with <F5>:
+
+c = (f - 32) x 5 / 9
+
+f = 212     c =
+f = 100     c =
+f = 70      c =
+f = 32      c =
+f = -40     c =

@@ -1,26 +1,27 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
 This module contains the logic for searching in a notebook.
 
 Supported operators:
- 	NOT not -
- 	AND and + &&
- 	OR or ||
+ 	- "NOT", "not" and "-"
+ 	- "AND", "and", "+" and "&&"
+ 	- "OR", "or" and "||"
 
 Order of precedence: AND, OR, NOT
 so "foo AND NOT bar OR baz" means AND(foo, OR(NOT(bar), baz))
 
 Supported keywords:
- 	Content:
- 	Name:
-	Namespace:	# alias for Name XXX or Name: XXX:*
-	Links:		# forward - alias for linksfrom
- 	LinksFrom:	# forward
- 	LinksTo:	# backward
- 	ContentOrName: # the default, like Name: *X* or Content: X
+	- C{Content}
+	- C{Name}
+	- C{Namespace}: alias for Name XXX or Name: XXX:*
+	- C{Links}: forward - alias for linksfrom
+	- C{LinksFrom}: forward
+	- C{LinksTo}: backward
+	- C{ContentOrName}: the default, like Name: *X* or Content: X
+	- C{Tag}: look for a single tag
 
 For the Content field we need to request the actual page contents,
 all other fields we get from the index and are more efficient to
@@ -28,7 +29,7 @@ query.
 
 For link keywords only a '*' at the right side is allowed
 For the name keyword a '*' is allowed on both sides
-For content '*' can occur on both sides, but does not match withspace
+For content '*' can occur on both sides, but does not match whitespace
 '''
 
 # TODO keyword for deadlinks, keyword for pages with no content
@@ -65,12 +66,12 @@ operators = {
 
 KEYWORDS = (
 	'content', 'name', 'namespace', 'contentorname',
-	'links', 'linksfrom', 'linksto'
+	'links', 'linksfrom', 'linksto', 'tag'
 )
 
 keyword_re = Re('('+'|'.join(KEYWORDS)+'):(.*)', re.I)
 operators_re = Re(r'^(\|\||\&\&|\+|\-)')
-
+tag_re = Re(r'^\@(\w+)$', re.U)
 
 class QueryTerm(object):
 	'''Wrapper for a single term in a query. Consists of a keyword,
@@ -99,7 +100,7 @@ class QueryTerm(object):
 
 class QueryGroup(list):
 	'''Wrapper for a sub group of a query. Just a list of QueryTerms
-	with an asociated operator (either AND or OR).
+	with an associated operator (either AND or OR).
 	'''
 
 	def __init__(self, operator, terms=None):
@@ -140,6 +141,8 @@ class Query(object):
 				if keyword == 'links':
 					keyword = 'linksfrom'
 				tokens.append(QueryTerm(keyword, string))
+			elif tag_re.match(w):
+				tokens.append(QueryTerm('tag', w[1:]))
 			else:
 				w = unescape_quoted_string(w)
 				tokens.append(QueryTerm('contentorname', w)) # default keyword
@@ -180,7 +183,7 @@ class Query(object):
 					root.append(token)
 			else:
 				assert token in (OPERATOR_AND, OPERATOR_OR)
-				pass # AND is the default, OR shoulds not appear here, ignore silently
+				pass # AND is the default, OR should not appear here, ignore silently
 
 		#~ print root
 		return root
@@ -188,7 +191,8 @@ class Query(object):
 	@property
 	def simple_match(self):
 		'''Used to determine a simple matching string to be used
-		in the find method in the pageview. Used in SearchDialog.
+		in the find method in the pageview. Used by L{SearchDialog}
+		to set the L{PageView} find string to highligh matches in the page.
 		'''
 		# TODO make this return a list with positive terms for content
 		# if find supports an OR operator, highlight them all
@@ -207,56 +211,59 @@ class PageSelection(set):
 
 class SearchSelection(PageSelection):
 	'''This class wraps a set of Page or ResultPath objects which result
-	from processing a search query. The atribute 'scores' gives a dict
+	from processing a search query. The attribute 'scores' gives a dict
 	with an arbitrary integer for each path in this set to rank how well
 	they match the query.
 	'''
 
 	def __init__(self, notebook):
 		self.notebook = notebook
+		self.cancelled = False
 		self.query = None
 		self.scores = {}
 
-	def search(self, query, selection=None):
+	def search(self, query, selection=None, callback=None):
 		'''Populate this SearchSelection with results for a query.
-		If a selection is given this should be a subset to search
-		within. This method flushes any previous results in this set.
-		'''
-		# TODO support callback
+		This method flushes any previous results in this set.
 
+		@param query: a L{Query} object
+		@param selection: a prior selection to search within, will result in a sub-set
+		@param callback: a function to call in between steps in the search.
+		It is called as::
+
+			callback(selection, path)
+
+		Where:
+		  - C{selection} is a L{SearchSelection} with partial results (if any)
+		  - C{path} is the C{Path} for the last searched path or C{None}
+
+		If the callback returns C{False} the search is cancelled.
+		'''
 		# Clear state
+		self.cancelled = False
 		self.query = query
 		self.clear()
 		self.scores = {}
 
 		# Actual search
-		self.update(self._process_group(query.root, selection))
+		self.update(self._process_group(query.root, selection, callback))
 
 		# Clean up results
 		scored = set(self.scores.keys())
 		for path in scored - self:
 			self.scores.pop(path)
 
-	def _process_group(self, group, scope):
-		# Decide what operator to use
-		if group.operator == OPERATOR_AND:
-			# For AND scope is always latest results
-			def op_func(results, scope, newresults):
-				#~ print '!! AND', results, newresults
-				if results is None:
-					return newresults, newresults
-				else:
-					results &= newresults
-					return results, results
-		else: # OPERATOR_OR
-			# For OR we always keep the original scope
-			def op_func(results, scope, newresults):
-				#~ print '!! OR', results, newresults
-				if results is None:
-					return newresults, scope
-				else:
-					results |= newresults
-					return results, scope
+	def _process_group(self, group, scope=None, callback=None):
+		# This method processes all search terms in a QueryGroup
+		# it is recursive for nested QueryGroup objects and calls
+		# _process_from_index and _process_content to handle
+		# QueryTerms in the group. It takes care of combining the
+		# results from various terms and calling the callback 
+		# function when possible
+
+		# Special case to optimize for simple OR query to give callback results
+		if len(group) == 1 and isinstance(group[0], QueryGroup):
+			group = group[0] 
 
 		# For optimization we sort the terms in the group based  on how
 		# easy we can get them. Anything that needs content is last.
@@ -273,36 +280,110 @@ class SearchSelection(PageSelection):
 				else:
 					indexterms.append(term)
 
-		# First process index terms
+		# Decide what operator to use
+		if group.operator == OPERATOR_AND:
+			op_func = self._and_operator
+		else:
+			op_func = self._or_operator
+
+		# First process index terms - no callback in between - this is fast
 		results = None
 		for term in indexterms:
 			results, scope = op_func(results, scope,
 				self._process_from_index(term, scope) )
 
-		# Next we process subgroups - recursing
+		if callback:
+			if group.operator == OPERATOR_AND:
+				cont = callback(None, None) # do not transmit results yet
+			else:
+				cont = callback(results, None)
+
+			if not cont:
+				self.cancelled = True
+				return results or set()
+
+		# Next we process subgroups - recursing - callback after each group
+		def callbackwrapper(results, path):
+			# Don't update results from subgroup match, but do allow cancel
+			if callback:
+				return callback(None, path)
+			else:
+				return True
+
 		for term in subgroups:
 			results, scope = op_func(results, scope,
-				self._process_group(term, scope) )
+				self._process_group(term, scope, callbackwrapper) )
 
-		# Now do the content terms all at once
+			if callback:
+				if group.operator == OPERATOR_AND:
+					cont = callback(None, None) # do not transmit results yet
+				else:
+					cont = callback(results, None)
+
+				if not cont:
+					self.cancelled = True
+					return results or set()
+
+		# Optimization of the contentorname items to quickly show results for name
+		for term in contentterms:
+			if scope and id(scope) == id(results):
+				scope = scope.copy()
+			myscope = scope # local copy here, need to pass full scope to _process_content
+			if term.keyword == 'contentorname':
+				results, myscope = op_func(results, myscope,
+					self._process_from_index(term, myscope, scoring=10) )
+
+		if callback and (
+			group.operator == OPERATOR_OR or
+			all(term.keyword == 'contentorname' for term in contentterms)
+		):
+			cont = callback(results, None)
+			if not cont:
+				self.cancelled = True
+				return results or set()
+
+		# Now do the content terms all at once per page - slow or very slow
 		if contentterms:
-			results, scope = op_func(results, scope,
-				self._process_content(contentterms, scope, group.operator))
+			results = self._process_content(
+				contentterms, results, scope, group.operator, callback)
 
 		# And return our results as summed by the operator
 		return results or set()
 
+
+	@staticmethod
+	def _and_operator(results, scope, newresults):
+		# Returns new results and new scope
+		# For AND, the scope is always latest results
+		if results is None:
+			results = newresults
+		else:
+			results &= newresults
+		return results, results
+
+	@staticmethod
+	def _or_operator(results, scope, newresults):
+		# Returns new results and new scope
+		# For OR we always keep the original scope
+		if results is None:
+			results = newresults
+		else:
+			results |= newresults
+		return results, scope
+
 	def _count_score(self, path, score):
 		self.scores[path] = self.scores.get(path, 0) + score
 
-	def _process_from_index(self, term, scope):
+	def _process_from_index(self, term, scope, scoring=1):
 		# Process keywords we can get from the index, just one term at
-		# a time. Scope is used to limit the search when practical, but
-		# no guarantee for following it.
-		results = set()
+		# a time - leave it up to _process_group to combine them
+		myresults = SearchSelection(None)
+		myresults.scores = self.scores # HACK for callback function
 		index = self.notebook.index
+		scoped = False
 
-		if term.keyword in ('name', 'namespace'):
+		if term.keyword in ('name', 'namespace', 'contentorname'):
+			scoped = True # for these keywords we use scope immediatly
 			if scope:
 				generator = iter(scope)
 			else:
@@ -310,13 +391,17 @@ class SearchSelection(PageSelection):
 
 			if term.keyword == 'namespace':
 				regex = self._namespace_regex(term.string)
+			elif term.keyword == 'contentorname':
+				# More lax matching for default case
+				regex = self._name_regex('*'+term.string.strip('*')+'*')
+				term.name_regex = regex # needed in _process_content
 			else:
 				regex = self._name_regex(term.string)
 
 			#~ print '!! REGEX: ' + regex.pattern
 			for path in generator:
 				if regex.match(path.name):
-					results.add(path)
+					myresults.add(path)
 
 		elif term.keyword in ('linksfrom', 'linksto'):
 			if term.keyword == 'linksfrom': dir = LINK_DIR_FORWARD
@@ -332,7 +417,7 @@ class SearchSelection(PageSelection):
 			try:
 				path = self.notebook.resolve_path(string)
 			except PageNameError:
-				return results
+				return myresults
 
 			if recurs:
 				links = index.list_links_to_tree(path, dir)
@@ -341,38 +426,55 @@ class SearchSelection(PageSelection):
 
 			if dir == LINK_DIR_FORWARD:
 				for link in links:
-					results.add(link.href)
+					myresults.add(link.href)
 			else:
 				for link in links:
-					results.add(link.source)
+					myresults.add(link.source)
+
+		elif term.keyword == 'tag':
+			tag = index.lookup_tag(term.string)
+			if tag:
+				for path in index.list_tagged_pages(tag):
+					myresults.add(path)
 
 		else:
 			assert False, 'BUG: unknown keyword: %s' % term.keyword
 
+		# apply scope:
+		if scope and not scoped:
+			myresults &= scope # only keep results that in scope
+
 		# Inverse selection
 		if term.inverse:
 			if not scope:
+				# initialize scope with whole notebook :S
 				scope = set()
 				for p in index.walk():
 					scope.add(p)
-			results = scope - results
+			myresults = scope - myresults
 
-		for path in results:
-			self._count_score(path, 1)
+		for path in myresults:
+			self._count_score(path, scoring)
 
-		return results
+		return myresults
 
-	def _process_content(self, terms, scope, operator):
+	def _process_content(self, terms, results, scope, operator, callback=None):
 		# Process terms for content, process many at once in order to
 		# only open the page once and allow for a linear behavior of the
 		# callback function. (We could also have relied on page objects
 		# caching the parsetree, but then there is no way to support a
 		# useful callback method.)
-		results = set()
-
+		# Note that this rationale is for flat searches, once sub-groups
+		# are involved things get less optimized.
+		#
+		# For AND 'scope' will be the results of previous steps, we make a subset 
+		# of this. In 'results' will only be any final results already obtained from 
+		# contentorname optimization
+		# For OR 'results' is whatever was found so far while 'scope' can be larger
+		# we extend the results with any matches from scope
 		for term in terms:
 			term.content_regex = self._content_regex(term.string)
-			term.name_regex = self._name_regex('*'+term.string.strip('*')+'*')
+			# term.name_regex already defined in _process_from_index
 
 		if scope:
 			def page_generator():
@@ -395,10 +497,10 @@ class SearchSelection(PageSelection):
 					#~ print '!! Count AND %s' % term
 					myscore = tree.countre(term.content_regex)
 					if term.keyword == 'contentorname' \
-					and term.name_regex.search(page.name):
-						myscore += 10
+					and term.name_regex.match(path.name):
+						myscore += 1 # effective score going to 11
 
-					if bool(myscore) != term.inverse: # implicite XOR
+					if bool(myscore) != term.inverse: # implicit XOR
 						score += myscore or 1
 					else:
 						score = 0
@@ -412,12 +514,20 @@ class SearchSelection(PageSelection):
 					#~ print '!! Count OR %s' % term
 					score = tree.countre(term.content_regex)
 					if term.keyword == 'contentorname' \
-					and term.name_regex.search(page.name):
-						score += 10
+					and term.name_regex.match(path.name):
+						score += 1 # effective score going to 11
 
-					if bool(score) != term.inverse: # implicite XOR
+					if bool(score) != term.inverse: # implicit XOR
 						results.add(path)
 						self._count_score(path, score or 1)
+
+			if callback:
+				# Since we are always last in the processing of the
+				# (top-level) group, we can call the callback with all results
+				cont = callback(results, path)
+				if not cont:
+					self.cancelled = True
+					break
 
 		return results
 
@@ -449,8 +559,7 @@ class SearchSelection(PageSelection):
 	def _namespace_regex(self, string, case=False):
 		# like _name_regex but adds recursive descent below the page
 		namespace = re.escape( string.strip('*:') )
-		regex = r'^(' + namespace + '|' + namespace + ':)$'
-
+		regex = r'^(' + namespace + '$|' + namespace + ':)'
 		if case:
 			return re.compile(regex)
 		else:

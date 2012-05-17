@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Spell check plugin based on gtkspell'''
 
+import os
 import gobject
 
+from zim.config import get_environ
 from zim.plugins import PluginClass
+from zim.gui.widgets import ErrorDialog
 
 try:
 	import gtkspell
@@ -63,7 +66,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('gtkspell',not gtkspell is None)]
+		return (not gtkspell is None), [('gtkspell', not gtkspell is None, True)]
 
 	def toggle_spellcheck(self, enable=None):
 		action = self.actiongroup.get_action('toggle_spellcheck')
@@ -82,8 +85,19 @@ This is a core plugin shipping with zim.
 		if enable:
 			if self.spell is None:
 				lang = self.preferences['language'] or None
-				self.spell = gtkspell.Spell(textview, lang)
-				textview.gtkspell = self.spell # HACK used by hardcoded hook in pageview
+				try:
+					self.spell = gtkspell.Spell(textview, lang)
+				except:
+					lang = lang or get_environ('LANG') or get_environ('LANGUAGE')
+					ErrorDialog(self.ui, (
+						_('Could not load spell checking for language: "%s"') % lang,
+							# T: error message - %s is replaced with language codes like "en", "en_US"m or "nl_NL"
+						_('This could mean you don\'t have the proper\ndictionaries installed')
+							# T: error message explanation
+					) ).run()
+					return
+				else:
+					textview.gtkspell = self.spell # HACK used by hardcoded hook in pageview
 			else:
 				pass
 		else:

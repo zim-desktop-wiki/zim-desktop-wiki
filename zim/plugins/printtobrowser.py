@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Plugin to serve as work-around for the lack of printing support'''
 
-import webbrowser
+import gtk
 
 from zim.fs import TmpFile
 from zim.plugins import PluginClass
 import zim.templates
 from zim.exporter import StaticLinker
+
 
 ui_xml = '''
 <ui>
@@ -51,12 +52,15 @@ This is a core plugin shipping with zim.
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
 
-	def print_to_browser(self):
-		file = self.print_to_file()
-		webbrowser.open('file://%s' % file)
+	def print_to_browser(self, page=None):
+		file = self.print_to_file(page)
+		self.ui.open_with('web_browser', 'file://%s' % file)
+			# Force web browser here - otherwise it goes to the file
+			# browser which can have unexpected results
 
-	def print_to_file(self):
-		page = self.ui.page
+	def print_to_file(self, page=None):
+		if not page:
+			page = self.ui.page
 
 		# FIXME - HACK - dump and parse as wiki first to work
 		# around glitches in pageview parsetree dumper
@@ -78,3 +82,27 @@ This is a core plugin shipping with zim.
 		html = template.process(self.ui.notebook, page)
 		file.writelines(html)
 		return file
+
+	def do_decorate_window(self, window):
+		# Add a print button to the tasklist dialog
+		if not window.__class__.__name__ == 'TaskListDialog':
+			return
+
+		buttons = [b for b in window.action_area.get_children()
+			if not window.action_area.child_get_property(b, 'secondary')]
+		close_button = buttons[0] # HACK: not sure this order fixed
+
+		button = gtk.Button(stock='gtk-print')
+		window.action_area.pack_end(button, False)
+		button.connect('clicked', self.on_print_tasklist, window.task_list)
+
+		window.action_area.reorder_child(close_button, -1)
+
+	def on_print_tasklist(self, o, task_list):
+		html = task_list.get_visible_data_as_html()
+
+		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
+		file.write(html)
+		self.ui.open_with('web_browser', 'file://%s' % file)
+			# Force web browser here - otherwise it goes to the file
+			# browser which can have unexpected results

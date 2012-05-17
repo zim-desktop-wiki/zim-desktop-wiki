@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.fs module.'''
 
@@ -10,25 +10,38 @@ import tests
 
 import os
 import time
-import logging
 
+import zim.fs
 from zim.fs import *
-from zim.fs import Path, FileHandle, OverWriteError, TmpFile, get_tmpdir, normalize_win32_share, PathLookupError, FilteredDir, isabs, joinpath
+from zim.errors import Error
 
 
-logger = logging.getLogger('zim.fs')
+def modify_file_mtime(path, func):
+	'''Helper function to modify a file in such a way that mtime
+	changed.
+	'''
+	mtime = os.stat(path).st_mtime
+	m = mtime
+	i = 0
+	while m == mtime:
+		time.sleep(1)
+		func(path)
+		m = os.stat(path).st_mtime
+		i += 1
+		assert i < 5
+	#~ print '>>>', m, mtime
 
 
-class FilterOverWriteWarning(object):
+class FilterOverWriteWarning(tests.LoggingFilter):
 
-	def __enter__(self):
-		logger.addFilter(self)
+	logger = 'zim.fs'
+	message = 'mtime check failed'
 
-	def __exit__(self, *a):
-		logger.removeFilter(self)
 
-	def filter(self, record):
-		return not record.getMessage().startswith('mtime check failed')
+class FilterFileMissingWarning(tests.LoggingFilter):
+
+	logger = 'zim.fs'
+	message = 'File missing:'
 
 
 class TestFS(tests.TestCase):
@@ -46,28 +59,31 @@ class TestFS(tests.TestCase):
 				self.assertEqual(normalize_win32_share(url), url)
 
 		self.assertTrue(isabs('/foo/bar'))
+		self.assertTrue(isabs('~/foo/bar'))
 		self.assertFalse(isabs('./bar'))
 
 		self.assertEqual(joinpath('foo', 'bar'), os.sep.join(('foo', 'bar')))
 
-	def testPath(self):
+		self.assertEqual(cleanup_filename('foo&bar:dus\\foo.txt'), 'foo&bardusfoo.txt')
+
+	def testFilePath(self):
 		'''Test Path object'''
-		path = Path(['foo', 'bar'])
+		path = FilePath(['foo', 'bar'])
 		test = os.path.abspath( os.path.join('foo', 'bar') )
 		self.assertEqual(path.path, test)
 
-		path = Path('/foo/bar')
+		path = FilePath('/foo/bar')
 		uri = 'file:///' + os.path.abspath('/foo/bar').replace('\\', '/').strip('/')
 		self.assertEqual(path.uri, uri)
 
-		self.assertEqual(Path('file:///foo/bar'), Path('/foo/bar'))
-		self.assertEqual(Path('file:/foo/bar'), Path('/foo/bar'))
-		self.assertEqual(Path('file://localhost/foo/bar'), Path('/foo/bar'))
-		self.assertEqual(Path('file:///C:/foo/bar'), Path('/C:/foo/bar'))
+		self.assertEqual(FilePath('file:///foo/bar'), FilePath('/foo/bar'))
+		self.assertEqual(FilePath('file:/foo/bar'), FilePath('/foo/bar'))
+		self.assertEqual(FilePath('file://localhost/foo/bar'), FilePath('/foo/bar'))
+		self.assertEqual(FilePath('file:///C:/foo/bar'), FilePath('/C:/foo/bar'))
 		if os.name == 'nt':
-			self.assertEqual(Path('file:///C:/foo/bar'), Path(r'C:\foo\bar'))
+			self.assertEqual(FilePath('file:///C:/foo/bar'), FilePath(r'C:\foo\bar'))
 
-		path = Path('/foo//bar/baz/')
+		path = FilePath('/foo//bar/baz/')
 		drive, p = os.path.splitdrive(path.path)
 		self.assertEqual(path.split(), [drive + os.sep + 'foo', 'bar', 'baz'])
 		dirs = []
@@ -80,19 +96,19 @@ class TestFS(tests.TestCase):
 			('/foo/bar/baz/', '/foo/dus', '/foo'),
 			('/foo/bar', '/dus/ja', '/'),
 		):
-			self.assertEqual(Path(path1).commonparent(Path(path2)), Dir(common))
+			self.assertEqual(FilePath(path1).commonparent(FilePath(path2)), Dir(common))
 
 		if os.name == 'nt':
 			path1 = 'C:\foo\bar'
 			path2 = 'D:\foo\bar\baz'
-			self.assertEqual(Path(path1).commonparent(Path(path2)), None)
+			self.assertEqual(FilePath(path1).commonparent(FilePath(path2)), None)
 
 		for path1, path2, relpath in (
 			('/foo/bar/baz', '/foo', 'bar/baz'),
 		):
-			self.assertEqual(Path(path1).relpath(Path(path2)), relpath)
+			self.assertEqual(FilePath(path1).relpath(FilePath(path2)), relpath)
 
-		self.assertRaises(AssertionError, Path('/foo/bar').relpath, Path('/dus/ja'))
+		self.assertRaises(AssertionError, FilePath('/foo/bar').relpath, FilePath('/dus/ja'))
 
 		for path1, path2, relpath in (
 			('/foo/bar', '/dus/ja/', '../../foo/bar'),
@@ -100,20 +116,38 @@ class TestFS(tests.TestCase):
 			('/source/dir/foo/dus.pdf', '/source/dir/foo', 'dus.pdf'),
 			('/source/dir/dus.pdf', '/source/dir/foo', '../dus.pdf'),
 		):
-			self.assertEqual(Path(path1).relpath(Path(path2), allowupward=True), relpath)
+			self.assertEqual(FilePath(path1).relpath(FilePath(path2), allowupward=True), relpath)
 
 		if os.name == 'nt':
 			path1 = 'C:\foo\bar'
 			path2 = 'D:\foo\bar\baz'
-			self.assertEqual(Path(path1).relpath(Path(path2), allowupward=True), None)
+			self.assertEqual(FilePath(path1).relpath(FilePath(path2), allowupward=True), None)
 
-		self.assertEqual(Path('/foo') + 'bar', Path('/foo/bar'))
+		self.assertEqual(FilePath('/foo') + 'bar', FilePath('/foo/bar'))
 
+		path = FilePath('~/foo')
+		self.assertNotEqual(path.path, '~/foo')
+		self.assertEqual(path.user_path, '~/foo')
+		self.assertEqual(path.serialize_zim_config(), '~/foo')
+
+		path = FilePath('/foo')
+		self.assertIsNotNone(path.path)
+		self.assertIsNone(path.user_path)
+		self.assertIsNotNone(path.serialize_zim_config())
+
+		# Test unicode compat
+		string = u'\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'
+		path = FilePath(string)
+		self.assertTrue(path.path.endswith(string))
+		#~ self.assertRaises(Error, Path, string.encode('utf-8'))
+		path = FilePath((string, 'foo'))
+		self.assertTrue(path.path.endswith(os.sep.join((string, 'foo'))))
+		#~ self.assertRaises(Error, Path, (string.encode('utf-8'), 'foo'))
 
 	def testFileHandle(self):
 		'''Test FileHandle object'''
 		self.on_close_called = False
-		tmpdir = tests.create_tmp_dir('fs_testFile')
+		tmpdir = self.create_tmp_dir('testFileHandle')
 		fh = FileHandle(
 			tmpdir+'/foo.txt', mode='w', on_close=self.on_close)
 		fh.write('duss')
@@ -125,7 +159,7 @@ class TestFS(tests.TestCase):
 
 	def testFile(self):
 		'''Test File object'''
-		tmpdir = tests.create_tmp_dir('fs_testFile')
+		tmpdir = self.create_tmp_dir('testFile')
 		file = File(tmpdir+'/foo/bar/baz.txt')
 		assert not file.exists()
 		file.touch()
@@ -149,14 +183,38 @@ class TestFS(tests.TestCase):
 		except IOError:
 			del fh
 		self.assertEqual(file.readlines(), ['c\n', 'd\n'])
-		self.assertTrue(os.path.isfile(file.path+'.zim-new~'))
+		self.assertTrue(os.path.isfile(file.encodedpath+'.zim-new~'))
+
+		# test recovery on windows
+		if os.name == 'nt':
+			new = file.encodedpath+'.zim-new~'
+			orig = file.encodedpath+'.zim-orig~'
+			bak = file.encodedpath+'.bak~'
+			os.remove(file.encodedpath) # don't clean up folder
+			open(new, 'w').write('NEW\n')
+			open(orig, 'w').write('ORIG\n')
+			self.assertTrue(file.exists())
+			self.assertEqual(file.read(), 'NEW\n')
+			self.assertFalse(os.path.isfile(new))
+			self.assertFalse(os.path.isfile(orig))
+			self.assertTrue(os.path.isfile(file.encodedpath))
+			self.assertTrue(os.path.isfile(bak))
+
+			bak1 = file.encodedpath+'.bak1~'
+			os.remove(file.encodedpath) # don't clean up folder
+			open(orig, 'w').write('ORIG 1\n')
+			self.assertFalse(file.exists())
+			self.assertRaises(FileNotFoundError, file.read)
+			self.assertFalse(os.path.isfile(orig))
+			self.assertTrue(os.path.isfile(bak))
+			self.assertTrue(os.path.isfile(bak1))
 
 		# test read-only
 		path = tmpdir+'/read-only-file.txt'
 		open(path, 'w').write('test 123')
 		os.chmod(path, 0444)
 		file = File(path)
-		self.assertRaises(OverWriteError, file.write, 'Overwritten!')
+		self.assertRaises(FileWriteError, file.write, 'Overwritten!')
 		os.chmod(path, 0644) # make it removable again
 
 		# with windows line-ends
@@ -165,6 +223,10 @@ class TestFS(tests.TestCase):
 		file.write('Some lines\r\nWith win32 newlines\r\n')
 		file = File(tmpdir+'/newlines.txt')
 		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines\n')
+
+		# test encoding error
+		non_utf8_file = File('tests/data/non-utf8.txt')
+		self.assertRaises(FileUnicodeError, non_utf8_file.read)
 
 		# test compare & copyto
 		file1 = File(tmpdir + '/foo.txt')
@@ -201,7 +263,7 @@ class TestFS(tests.TestCase):
 
 	def testDir(self):
 		'''Test Dir object'''
-		tmpdir = tests.create_tmp_dir('fs_testDir')
+		tmpdir = self.create_tmp_dir('testDir')
 		dir = Dir(tmpdir+'/foo/bar')
 		assert not dir.exists()
 
@@ -232,11 +294,21 @@ class TestFS(tests.TestCase):
 
 		self.assertEqual(File((dir, 'foo.txt')), dir.file('foo.txt'))
 		self.assertEqual(dir.file(File((dir, 'foo.txt'))), dir.file('foo.txt'))
+		self.assertEqual(dir.file(FilePath((dir, 'foo.txt'))), dir.file('foo.txt'))
+		self.assertEqual(dir.file(('foo.txt',)), dir.file('foo.txt'))
 		self.assertRaises(PathLookupError, dir.file, File('/foo/bar.txt')) # not below dir
+
+		self.assertEqual(dir.resolve_file('../foo.txt'), dir.dir.file('foo.txt'))
+		self.assertEqual(dir.resolve_file(File('/foo/bar.txt')), File('/foo/bar.txt'))
 
 		self.assertEqual(Dir((dir, 'bar')), dir.subdir('bar'))
 		self.assertEqual(dir.subdir(Dir((dir, 'bar'))), dir.subdir('bar'))
+		self.assertEqual(dir.subdir(FilePath((dir, 'bar'))), dir.subdir('bar'))
+		self.assertEqual(dir.subdir(('bar',)), dir.subdir('bar'))
 		self.assertRaises(PathLookupError, dir.subdir, Dir('/foo/bar')) # not below dir
+
+		self.assertEqual(dir.resolve_dir('../bar'), dir.dir.subdir('bar'))
+		self.assertEqual(dir.resolve_dir(Dir('/foo/bar')), Dir('/foo/bar'))
 
 		self.assertRaises(OSError, dir.remove) # dir not empty
 		self.assertTrue(dir.exists())
@@ -250,36 +322,37 @@ class TestFS(tests.TestCase):
 		self.assertEqual(dir.list(), []) # list non-existing dir
 
 
+@tests.slowTest
 class TestFileOverwrite(tests.TestCase):
 
-	slowTest = True
-
 	def setUp(self):
-		self.path = tests.create_tmp_dir('fs_testOverwrite')+'/file.txt'
+		self.path = self.create_tmp_dir()+'/file.txt'
 
 	def modify(self, func):
-		mtime = os.stat(self.path).st_mtime
-		m = mtime
-		i = 0
-		while m == mtime:
-			time.sleep(1)
-			func(self.path)
-			m = os.stat(self.path).st_mtime
-			i += 1
-			assert i < 5
-		#~ print '>>>', m, mtime
+		modify_file_mtime(self.path, func)
 
 	def runTest(self):
 		'''Test file overwrite check'''
+		# Check we can write without reading
 		file = File(self.path, checkoverwrite=True)
 		file.write('bar')
 		self.assertEquals(file.read(), 'bar')
+
+		# Check edge case where file goes missing after read or write
+		os.remove(file.encodedpath)
+		self.assertFalse(file.exists())
+		with FilterFileMissingWarning():
+			file.write('bar')
+		self.assertEquals(file.read(), 'bar')
+
+		# Check overwrite error when content changed
 		self.modify(lambda p: open(p, 'w').write('XXX'))
 			# modify mtime and content
 		with FilterOverWriteWarning():
-			self.assertRaises(OverWriteError, file.write, 'foo')
+			self.assertRaises(FileWriteError, file.write, 'foo')
 		self.assertEquals(file.read(), 'XXX')
 
+		# Check md5 check passes
 		file = File(self.path, checkoverwrite=True)
 		file.write('bar')
 		self.modify(lambda p: open(p, 'w').write('bar'))
@@ -289,22 +362,15 @@ class TestFileOverwrite(tests.TestCase):
 		self.assertEquals(file.read(), 'foo')
 
 
+@tests.slowTest
+@tests.skipUnless(hasattr(os, 'symlink'), 'OS does not supprot symlinks')
 class TestSymlinks(tests.TestCase):
-
-	slowTest = True
-
-	@staticmethod
-	def skipTest():
-		if not hasattr(os, 'symlink'):
-			return 'OS does not supprot symlinks'
-		else:
-			return False
 
 	def runTest(self):
 		'''Test file operations are safe for symlinks'''
 
 		# Set up a file structue with a symlink
-		tmpdir = tests.create_tmp_dir('fs_TestSymLinks')
+		tmpdir = self.create_tmp_dir()
 		targetdir = Dir(tmpdir + '/target')
 		targetdir.file('foo.txt').touch()
 		targetfile = File(tmpdir + '/target.txt')
@@ -313,8 +379,8 @@ class TestSymlinks(tests.TestCase):
 		dir = Dir(tmpdir + '/data')
 		file = dir.file('bar.txt')
 		file.touch()
-		os.symlink(targetdir.path, dir.path + '/link')
-		os.symlink(targetfile.path, dir.path + '/link.txt')
+		os.symlink(targetdir.encodedpath, dir.encodedpath + '/link')
+		os.symlink(targetfile.encodedpath, dir.encodedpath + '/link.txt')
 
 		# Test transparent access to the linked data
 		linkedfile = dir.file('link.txt')
@@ -343,3 +409,28 @@ class TestSymlinks(tests.TestCase):
 		self.assertEqual(dir.list(), [])
 		self.assertTrue(targetdir.exists())
 		self.assertEqual(targetdir.list(), ['foo.txt'])
+
+
+@tests.slowTest
+@tests.skipUnless(zim.fs.gio, 'Trashing not supported, \'gio\' is missing')
+class TestTrash(tests.TestCase):
+
+	def runTest(self):
+		'''Test trashing files and folders'''
+		root = Dir(self.create_tmp_dir())
+		file = root.file('test.txt')
+		file.touch()
+		self.assertTrue(file.exists())
+		self.assertTrue(file.trash())
+		self.assertFalse(file.exists())
+		dir = root.subdir('test')
+		dir.touch()
+		self.assertTrue(dir.exists())
+		self.assertTrue(dir.trash())
+		self.assertFalse(dir.exists())
+
+		# fails silent if file does not exist
+		self.assertFalse(file.trash())
+		self.assertFalse(dir.trash())
+
+		# How can we cause gio to give an error and test that case ??

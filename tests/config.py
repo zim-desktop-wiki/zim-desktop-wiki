@@ -1,16 +1,45 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+from __future__ import with_statement
 
 import tests
-from tests import TestCase
+from tests import TestCase, LoggingFilter
 
 import os
 
-from zim.fs import *
+from zim.fs import File, Dir
 from zim.config import *
 from zim.notebook import Path
 import zim.config
+
+
+# Check result of lookup functions does not return files outside of
+# source to be tested -- just being paranoid here...
+# Note that this marshalling remains in place for any subsequent tests
+
+_cwd = Dir('.')
+def marshal_path_lookup(function):
+	def marshalled_path_lookup(*arg, **kwarg):
+		p = function(*arg, **kwarg)
+		if not p is None:
+			assert isinstance(p, (File, Dir)), 'BUG: get %r' % p
+			assert p.ischild(_cwd), "ERROR: \"%s\" not below \"%s\"" % (p, _cwd)
+		return p
+	return marshalled_path_lookup
+
+zim.config.data_file = marshal_path_lookup(zim.config.data_file)
+zim.config.data_dir = marshal_path_lookup(zim.config.data_dir)
+#~ zim.config.config_file = marshal_path_lookup(zim.config.config_file)
+
+
+
+class FilterInvalidConfigWarning(LoggingFilter):
+
+	logger = 'zim.config'
+	message = 'Invalid config value'
+
 
 
 class TestDirsTestSetup(TestCase):
@@ -18,30 +47,41 @@ class TestDirsTestSetup(TestCase):
 	def runTest(self):
 		'''Test config environment setup of test'''
 		for k, v in (
-			('XDG_DATA_HOME', './tests/tmp/data_home'),
-			('XDG_CONFIG_HOME', './tests/tmp/config_home'),
-			('XDG_CACHE_HOME', './tests/tmp/cache_home')
+			('XDG_DATA_HOME', os.path.join(tests.TMPDIR, 'data_home')),
+			('XDG_CONFIG_HOME', os.path.join(tests.TMPDIR, 'config_home')),
+			('XDG_CACHE_HOME', os.path.join(tests.TMPDIR, 'cache_home'))
 		): self.assertEqual(getattr(zim.config, k), Dir(v))
 
 		for k, v in (
-			('XDG_DATA_DIRS', './tests/tmp/data_dir'),
-			('XDG_CONFIG_DIRS', './tests/tmp/config_dir'),
-		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(':')))
+			#~ ('XDG_DATA_DIRS', os.path.join(tests.TMPDIR, 'data_dir')),
+			('XDG_CONFIG_DIRS', os.path.join(tests.TMPDIR, 'config_dir')),
+		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(os.pathsep)))
+
+		self.assertEqual(
+			zim.config.XDG_DATA_DIRS[0],
+			Dir(os.path.join(tests.TMPDIR, 'data_dir'))
+		)
 
 
 class TestDirsDefault(TestCase):
 
 	def setUp(self):
+		old_environ = {}
 		for k in (
 			'XDG_DATA_HOME', 'XDG_DATA_DIRS',
 			'XDG_CONFIG_HOME', 'XDG_CONFIG_DIRS', 'XDG_CACHE_HOME'
 		):
-			if k in os.environ: del os.environ[k]
+			if k in os.environ:
+				old_environ[k] = os.environ[k]
+				del os.environ[k]
 
-		zim.config._set_basedirs() # refresh
+		def restore_environ():
+			for k, v in old_environ.items():
+				os.environ[k] = v
+			zim.config._set_basedirs() # refresh
 
-	def tearDown(self):
-		tests.set_environ() # re-set the environment
+		self.addCleanup(restore_environ)
+
 		zim.config._set_basedirs() # refresh
 
 	def testValid(self):
@@ -83,14 +123,28 @@ class TestDirsDefault(TestCase):
 class TestDirsEnvironment(TestDirsDefault):
 
 	def setUp(self):
-		os.environ.update( (
-			('XDG_DATA_HOME', '/foo/data/home'),
-			('XDG_DATA_DIRS', '/foo/data/dir1:/foo/data/dir2'),
-			('XDG_CONFIG_HOME', '/foo/config/home'),
-			('XDG_CONFIG_DIRS', '/foo/config/dir1:/foo/config/dir2'),
-			('XDG_CACHE_HOME', '/foo/cache')
-		) )
+		my_environ = {
+			'XDG_DATA_HOME': '/foo/data/home',
+			'XDG_DATA_DIRS': '/foo/data/dir1:/foo/data/dir2',
+			'XDG_CONFIG_HOME': '/foo/config/home',
+			'XDG_CONFIG_DIRS': '/foo/config/dir1:/foo/config/dir2',
+			'XDG_CACHE_HOME': '/foo/cache',
+		}
+		if os.name == 'nt':
+			my_environ['XDG_DATA_DIRS'] = '/foo/data/dir1;/foo/data/dir2'
+			my_environ['XDG_CONFIG_DIRS'] = '/foo/config/dir1;/foo/config/dir2'
 
+		old_environ = dict((name, os.environ.get(name)) for name in my_environ)
+
+		def restore_environ():
+			for k, v in old_environ.items():
+				if v:
+					os.environ[k] = v
+			zim.config._set_basedirs() # refresh
+
+		self.addCleanup(restore_environ)
+
+		os.environ.update(my_environ)
 		zim.config._set_basedirs() # refresh
 
 	def testCorrect(self):
@@ -139,7 +193,7 @@ empty=
 none=None
 
 '''
-		self.assertEqualDiff(file.read(), text)
+		self.assertEqual(file.read(), text)
 
 		del conf
 		conf = ConfigDictFile(file)
@@ -165,10 +219,56 @@ none=None
 		conf.set_modified(False)
 		self.assertEqual(conf['Foo'].setdefault('foobar', 5), 0)
 		self.assertEqual(conf['Bar'].setdefault('check', 3.14), 1.333)
-		self.assertEqual(conf['Bar'].setdefault('check', None), 1.333)
-		self.assertEqual(conf['Bar'].setdefault('check', 'foo', klass=float), 1.333)
-		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), check=conf.is_coord), (33,44))
+		self.assertEqual(conf['Bar'].setdefault('check', None, float), 1.333)
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), value_is_coord), (33,44))
+		self.assertEqual(conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'tja'))), 'tja')
 		self.assertFalse(conf.modified)
+
+		conf['Foo']['tja'] = [33, 44]
+		conf.set_modified(False)
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4)), (33,44))
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), tuple), (33,44))
+		self.assertFalse(conf.modified)
+
+		conf['Foo']['tja'] = [33, 44]
+		conf.set_modified(False)
+		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), allow_empty=True), (33,44))
+		self.assertFalse(conf.modified)
+
+		conf.set_modified(False)
+		with FilterInvalidConfigWarning():
+			self.assertEqual(
+			conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'bar'))),
+			'foo')
+		self.assertTrue(conf.modified)
+
+		conf.set_modified(False)
+		with FilterInvalidConfigWarning():
+			self.assertEqual(conf['Bar'].setdefault('check', 10, int), 10)
+		self.assertTrue(conf.modified)
+
+		conf['Bar']['string'] = ''
+		conf.set_modified(False)
+		with FilterInvalidConfigWarning():
+			self.assertEqual(conf['Bar'].setdefault('string', 'foo'), 'foo')
+		self.assertTrue(conf.modified)
+
+		conf['Bar']['string'] = ''
+		conf.set_modified(False)
+		self.assertEqual(conf['Bar'].setdefault('string', 'foo', allow_empty=True), '')
+		self.assertFalse(conf.modified)
+
+		conf['Bar']['string'] = ''
+		conf.set_modified(False)
+		self.assertEqual(conf['Bar'].setdefault('string', 'foo', check_class_allow_empty), '')
+		self.assertFalse(conf.modified)
+
+		conf['Bar']['string'] = 3
+		conf.set_modified(False)
+		with FilterInvalidConfigWarning():
+			self.assertEqual(conf['Bar'].setdefault('string', 'foo', check_class_allow_empty), 'foo')
+		self.assertTrue(conf.modified)
+
 
 	def testLookup(self):
 		'''Test lookup of config files'''
@@ -183,7 +283,7 @@ none=None
 		self.assertEqual(file.file, home)
 		self.assertEqual(file.default, default)
 		self.assertEqual(file['TestData']['file'], 'default')
-		
+
 		home.write('[TestData]\nfile=home\n')
 		file = config_file('preferences.conf')
 		self.assertTrue(isinstance(file, ConfigDictFile))
@@ -214,32 +314,89 @@ none=None
 		self.assertEqual(val, 'ja')
 		keys.append('dus')
 
+		self.assertEquals(mydict.keys(), keys)
+		self.assertEquals([k for k in mydict], keys)
+
 		mykeys = [k for k, v in mydict.items()]
 		self.assertEquals(mykeys, keys)
+		myval = [v for k, v in mydict.items()]
+		self.assertEquals(myval, ['dusss', 'dusss', 'dusss', 'ja'])
 
-	#~ def testConfigList(self):
-		#~ '''Test ConfigList class'''
-		#~ input = u'''\
-#~ foo	bar
-	#~ dusss ja
-#~ # comments get taken out
-#~ some\ space he\ re # even here
-#~ empty
-#~ '''
-		#~ output = u'''\
-#~ foo\tbar
-#~ dusss\tja
-#~ some\\ space\the\\ re
-#~ empty\t
-#~ '''
-		#~ keys = ['foo', 'dusss', 'some space', 'empty']
-		#~ mydict = ConfigList()
-		#~ mydict.parse(input)
-		#~ mykeys = [k for k, v in mydict.items()]
-		#~ self.assertEquals(mykeys, keys)
-		#~ result = mydict.dump()
-		#~ self.assertEqualDiff(result, output.splitlines(True))
+		val = mydict.pop('bar')
+		self.assertEqual(val, 'dusss')
+		self.assertEqual(mydict.keys(), ['foo', 'baz', 'dus'])
 
+		mydict.update({'bar': 'barrr'}, tja='ja ja')
+		self.assertEquals(mydict.items(), (
+			('foo', 'dusss'),
+			('baz', 'dusss'),
+			('dus', 'ja'),
+			('bar', 'barrr'),
+			('tja', 'ja ja'),
+		))
+
+		del mydict['tja']
+		self.assertEquals(mydict.items(), (
+			('foo', 'dusss'),
+			('baz', 'dusss'),
+			('dus', 'ja'),
+			('bar', 'barrr'),
+		))
+
+		mydict.update((('tja', 'ja ja'), ('baz', 'bazzz')))
+		self.assertEquals(mydict.items(), (
+			('foo', 'dusss'),
+			('baz', 'bazzz'),
+			('dus', 'ja'),
+			('bar', 'barrr'),
+			('tja', 'ja ja'),
+		))
+
+		newdict = mydict.copy()
+		self.assertTrue(isinstance(newdict, ListDict))
+		self.assertEquals(newdict.items(), mydict.items())
+
+		mydict.set_order(('baz', 'bar', 'foo', 'boooo', 'dus'))
+		self.assertEquals(mydict.items(), (
+			('baz', 'bazzz'),
+			('bar', 'barrr'),
+			('foo', 'dusss'),
+			('dus', 'ja'),
+			('tja', 'ja ja'),
+		))
+		self.assertTrue(isinstance(mydict.order, list))
+
+	def testChangeFile(self):
+		'''Test changing the file used as datastore'''
+		file = XDG_CONFIG_HOME.file('zim/config_TestConfigFile.conf')
+		if file.exists():
+			file.remove()
+		assert not file.exists()
+		conf = ConfigDictFile(file)
+		conf['Foo']['xyz'] = 'foooooo'
+		conf['Bar']['empty'] = ''
+		conf.write()
+		text = u'''\
+[Foo]
+xyz=foooooo
+
+[Bar]
+empty=
+
+'''
+		self.assertEqual(file.read(), text)
+		file_new = XDG_CONFIG_HOME.file('zim/config_TestConfigFile2.conf')
+		if file_new.exists():
+			file_new.remove()
+		assert not file_new.exists()
+		conf.change_file(file_new)
+		file.remove()
+		conf.write()
+		assert not file.exists()
+		self.assertEqual(file_new.read(), text)
+
+		del conf
+		file_new.remove()
 
 class TestHeaders(TestCase):
 
@@ -256,7 +413,7 @@ Aaa: foobar
 		headers = HeadersDict(text)
 		self.assertEqual(headers['Foobar'], '123')
 		self.assertEqual(headers['More-Lines'], 'test\n1234\ntest')
-		self.assertEqualDiff(headers.dump(), text.splitlines(True))
+		self.assertEqual(headers.dump(), text.splitlines(True))
 
 		moretext='''\
 Foobar: 123
@@ -271,8 +428,8 @@ test 456
 		lines = moretext.splitlines(True)
 		headers = HeadersDict()
 		headers.read(lines)
-		self.assertEqualDiff(headers.dump(), text.splitlines(True))
-		self.assertEqualDiff(lines, ['test 123\n', 'test 456\n'])
+		self.assertEqual(headers.dump(), text.splitlines(True))
+		self.assertEqual(lines, ['test 123\n', 'test 456\n'])
 
 		# error tolerance and case insensitivity
 		text = '''\
@@ -330,6 +487,8 @@ class TestHierarchicDict(TestCase):
 		dict = HierarchicDict()
 		dict['foo']['key1'] = 'foo'
 		self.assertEqual(dict['foo:bar:baz']['key1'], 'foo')
+		self.assertEqual(dict['foo:bar:baz'].get('key1'), 'foo')
+		self.assertEqual(dict['foo:bar:baz'].get('key7'), None)
 		dict['foo:bar']['key1'] = 'bar'
 		self.assertEqual(dict['foo:bar:baz']['key1'], 'bar')
 		self.assertEqual(dict['foo']['key1'], 'foo')

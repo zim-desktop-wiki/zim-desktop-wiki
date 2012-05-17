@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import pango
 import gtk
@@ -8,11 +8,16 @@ import logging
 
 import zim.plugins
 from zim.gui.applications import ApplicationManager, NewApplicationDialog
-from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view
+from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view, InputForm, input_table_factory
 from zim.gui.pageview import PageView
 
 
 logger = logging.getLogger('zim.gui.preferencesdialog')
+
+
+# define section labels here so xgettext can fing them
+_label = _('Interface') # T: Tab in preferences dialog
+_label = _('Editing') # T: Tab in preferences dialog
 
 
 class PreferencesDialog(Dialog):
@@ -29,24 +34,36 @@ class PreferencesDialog(Dialog):
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
 
+		# saves a list of loaded plugins to be used later
+		self.p_save_loaded = [p.__class__ for p in self.ui.plugins]
+
 		# Dynamic tabs
+		self.forms = {}
 		for category, preferences in ui.preferences_register.items():
-			table = gtk.Table()
-			table.set_border_width(5)
-			table.set_row_spacings(12)
-			table.set_col_spacings(12)
 			vbox = gtk.VBox()
-			vbox.pack_start(table, False)
-			gtknotebook.append_page(vbox, gtk.Label(category))
+			gtknotebook.append_page(vbox, gtk.Label(_(category)))
+
 			fields = []
+			values = {}
+			sections = {}
 			for p in preferences:
-				section, key, type, label = p
-				value = ui.preferences[section][key]
-				fields.append(((section, key), type, label, value))
-				# a tuple is hashable and can be used as field name...
-			self.add_fields(fields, table=table, trigger_response=False)
+				if len(p) == 4:
+					section, key, type, label = p
+					fields.append((key, type, label))
+				else:
+					section, key, type, label, check = p
+					fields.append((key, type, label, check))
+
+				values[key] = ui.preferences[section][key]
+				sections[key] = section
+
+			form = InputForm(fields, values)
+			form.preferences_sections = sections
+			vbox.pack_start(form, False)
+			self.forms[category] = form
+
 			if category == 'Interface':
-				self._add_font_selection(table, vbox)
+				self._add_font_selection(form)
 
 		# Styles tab
 		#~ gtknotebook.append_page(StylesTab(self), gtk.Label('Styles'))
@@ -55,70 +72,63 @@ class PreferencesDialog(Dialog):
 		#~ gtknotebook.append_page(KeyBindingsTab(self), gtk.Label('Key bindings'))
 
 		# Applications tab
-		table = gtk.Table()
-		table.set_border_width(5)
-		table.set_row_spacings(12)
-		table.set_col_spacings(12)
-		self.add_fields( (
-			('file_browser', 'list', _('File browser'), (None, ())),
-				# T: Input for application type in preferences dialog
-			('web_browser', 'list', _('Web browser'), (None, ())),
-				# T: Input for application type in preferences dialog
-			('email_client', 'list', _('Email client'), (None, ())),
-				# T: Input for application type in preferences dialog
-			('text_editor', 'list', _('Text Editor'), (None, ())),
-				# T: Input for application type in preferences dialog
-		), table=table, trigger_response=False)
-		for type in (
-			'file_browser',
-			'web_browser',
-			'email_client',
-			'text_editor'
-		):
-			self._append_applications(type)
 		vbox = gtk.VBox()
-		vbox.pack_start(table, False)
 		gtknotebook.append_page(vbox, gtk.Label(_('Applications')))
 				# T: Heading in preferences dialog
+
+		form = InputForm( (
+			('file_browser', 'choice', _('File browser'), ()),
+				# T: Input for application type in preferences dialog
+			('web_browser', 'choice', _('Web browser'), ()),
+				# T: Input for application type in preferences dialog
+			('email_client', 'choice', _('Email client'), ()),
+				# T: Input for application type in preferences dialog
+			('text_editor', 'choice', _('Text Editor'), ()),
+				# T: Input for application type in preferences dialog
+		) )
+		for type, widget in form.widgets.items():
+			self._append_applications(type, widget)
+
+		vbox.pack_start(form, False)
+		self.applicationsform = form
 
 		# Plugins tab
 		gtknotebook.append_page(PluginsTab(self), gtk.Label(_('Plugins')))
 				# T: Heading in preferences dialog
 
-	def _add_font_selection(self, table, vbox):
-		# need to hardcode this, can not register it as a preference
-		self.add_fields((
-			('use_custom_font', 'bool', _('Use a custom font'), False),),
-				# T: Option in preferences dialog
-			table=table, trigger_response=False)
-		self.use_custom_font = self.inputs.pop('use_custom_font')
+	def _add_font_selection(self, table):
+		# need to hardcode this, cannot register it as a preference
+		table.add_inputs( (
+			('use_custom_font', 'bool', _('Use a custom font')),
+			# T: option in preferences dialog
+		) )
+		table.preferences_sections['use_custom_font'] = 'GtkInterface'
 
 		self.fontbutton = gtk.FontButton()
+		self.fontbutton.set_use_font(True) # preview in button
 		self.fontbutton.set_sensitive(False)
 		try:
 			font = PageView.style['TextView']['font']
 			if font:
 				self.fontbutton.set_font_name(font)
 				self.fontbutton.set_sensitive(True)
-				self.use_custom_font.set_active(True)
+				table['use_custom_font'] = True
 		except KeyError:
 			pass
-		self.use_custom_font.connect('toggled',
-			lambda o: self.fontbutton.set_sensitive(self.use_custom_font.get_active()))
 
-		# HACK - how to do proper layout fontbutton ?
-		self.fontbutton.set_size_request(200, -1)
-		hbox = gtk.HBox()
-		vbox.pack_start(hbox, False)
-		hbox.pack_start(gtk.Label('\t\t'), False)
-		hbox.pack_start(self.fontbutton, False)
+		table.widgets['use_custom_font'].connect('toggled',
+			lambda o: self.fontbutton.set_sensitive(o.get_active()) )
 
-	def _append_applications(self, type):
+		self.fontbutton.set_size_request(100, -1)
+		input_table_factory(((None, self.fontbutton),), table)
+
+	def _append_applications(self, type, widget):
 		manager = ApplicationManager()
 
 		current = self.ui.preferences['GtkInterface'][type]
 		apps = manager.list_helpers(type)
-		if not current in [app.key for app in apps]:
+		if not current is None \
+		and not current in [app.key for app in apps]:
 			app = manager.get_application(current)
 			if app:
 				apps.insert(0, app)
@@ -128,20 +138,19 @@ class PreferencesDialog(Dialog):
 		name_map = {}
 		setattr(self, '%s_map' % type, name_map)
 
-		combobox = self.inputs[type]
 		for app in apps:
 			name = app.name
 			name_map[name] = app.key
-			combobox.append_text(name)
+			widget.append_text(name)
 
-		combobox.append_text(self.OTHER_APP)
-		combobox.connect('changed', self._on_combo_changed, type)
+		widget.append_text(self.OTHER_APP)
+		widget.connect('changed', self._on_combo_changed, type)
 
-		combobox.current_app = 0
+		widget.current_app = 0
 		try:
 			active = [app.key for app in apps].index(current)
-			combobox.current_app = active
-			combobox.set_active(active)
+			widget.current_app = active
+			widget.set_active(active)
 		except ValueError:
 			pass
 
@@ -158,37 +167,52 @@ class PreferencesDialog(Dialog):
 				combobox.insert_text(len-2, name)
 				combobox.set_active(len-2)
 			else:
-				# dialog was cancelled - set back to current
+				# dialog was canceled - set back to current
 				active = combobox.current_app
 				combobox.set_active(active)
 
 	def do_response_ok(self):
-		if self.use_custom_font.get_active():
+		# Get applications
+		for type, name in self.applicationsform.items():
+			name_map = getattr(self, '%s_map' % type)
+			self.ui.preferences['GtkInterface'][type] = name_map.get(name)
+
+		# Get dynamic tabs
+		for form in self.forms.values():
+			for key, value in form.items():
+				section = form.preferences_sections[key]
+				self.ui.preferences[section][key] = value
+
+		# Set font - special case, consider it a HACK
+		custom = self.ui.preferences['GtkInterface'].pop('use_custom_font')
+		if custom:
 			font = self.fontbutton.get_font_name()
 		else:
 			font = None
 		PageView.style['TextView']['font'] = font
 		PageView.style.write()
 
-		for type in (
-			'file_browser',
-			'web_browser',
-			'email_client',
-			'text_editor',
-		):
-			combobox = self.inputs.pop(type)
-			name = combobox.get_active_text()
-			name_map = getattr(self, '%s_map' % type)
-			self.ui.preferences['GtkInterface'][type] = name_map.get(name)
-
-		fields = self.get_fields()
-		#~ print fields
-		for key, value in fields.items():
-			section, key = key
-			self.ui.preferences[section][key] = value
+		# Save all
 		self.ui.save_preferences()
 		return True
 
+	def do_response_cancel(self):
+		# Obtain an updated list of loaded plugins
+		now_loaded = [p.__class__ for p in self.ui.plugins]
+
+		# Restore previous situation if the user changed something
+		# in this dialog session
+		for name in zim.plugins.list_plugins():
+			klass = zim.plugins.get_plugin(name)
+			activatable = klass.check_dependencies_ok()
+
+			if klass in self.p_save_loaded and activatable and klass not in now_loaded:
+				self.ui.load_plugin(klass.plugin_key)
+			elif klass not in self.p_save_loaded and klass in now_loaded:
+				self.ui.unload_plugin(klass.plugin_key)
+
+		self.ui.save_preferences()
+		return True
 
 class PluginsTab(gtk.HBox):
 
@@ -256,23 +280,28 @@ class PluginsTab(gtk.HBox):
 			self.textbuffer.get_end_iter(),
 			_('Dependencies') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
 
-		#construct dependency list, missing dependencies are marked red
-		dependencies = klass.check_dependencies()
+		# Construct dependency list, missing dependencies are marked red
+		check, dependencies = klass.check_dependencies()
 		if not(dependencies):
 			self.textbuffer.insert(
 				self.textbuffer.get_end_iter(),
 				_('No dependencies') + '\n') # T: label in plugin info in preferences dialog
 		else:
 			for dependency in dependencies:
-				text, ok = dependency
+				text, ok, required = dependency
 				if ok:
 					self.textbuffer.insert(
 						self.textbuffer.get_end_iter(),
 						u'\u2022 ' + text + ' - ' + _('OK') + '\n') # T: dependency is OK
-				else:
+				elif required:
 					self.textbuffer.insert_with_tags_by_name(
 						self.textbuffer.get_end_iter(),
 						u'\u2022 ' + text +' - ' + _('Failed') + '\n', 'red') # T: dependency failed
+				else:
+					self.textbuffer.insert(
+						self.textbuffer.get_end_iter(),
+						u'\u2022 ' + text +' - ' + _('Failed') # T: dependency failed
+							+ ' ' + _('Optional') + '\n') # T: optional dependency
 
 		self.textbuffer.insert_with_tags_by_name(
 			self.textbuffer.get_end_iter(),
@@ -294,20 +323,31 @@ class PluginsTab(gtk.HBox):
 class PluginsTreeModel(gtk.ListStore):
 
 	def __init__(self, ui):
-		#columns are: loaded, activable, name, plugin instance
+		#columns are: loaded, activatable, name, plugin instance
 		gtk.ListStore.__init__(self, bool, bool, str, object)
 		self.ui = ui
 		loaded = [p.__class__ for p in self.ui.plugins]
+		klasses = []
 		for name in zim.plugins.list_plugins():
 			try:
 				klass = zim.plugins.get_plugin(name)
-				isloaded = klass in loaded
+				klasses.append(klass)
+			except:
+				logger.exception('Could not load plugin %s', name)
+				continue
+
+		klasses.sort(key=lambda k: k.plugin_info['name'])
+
+		for klass in klasses:
+			isloaded = klass in loaded
+			try:
 				activatable = klass.check_dependencies_ok()
 			except:
 				logger.exception('Could not load plugin %s', name)
 				continue
 			else:
 				self.append((isloaded, activatable, klass.plugin_info['name'], klass))
+
 
 	def do_toggle_path(self, path):
 		loaded, activatable, name, klass = self[path]
@@ -350,21 +390,33 @@ class PluginConfigureDialog(Dialog):
 		i = classes.index(klass)
 		self.plugin = self.ui.plugins[i]
 
-		label = gtk.Label(_('Options for plugin %s') % klass.plugin_info['name'])
+		label = gtk.Label()
+		label.set_markup(
+			'<b>'+_('Options for plugin %s') % klass.plugin_info['name']+'</b>')
 			# T: Heading for 'configure plugin' dialog - %s is the plugin name
 		self.vbox.add(label)
 
 		fields = []
 		self.preferences = dialog.ui.preferences[klass.__name__]
-		for key, type, label, default in klass.plugin_preferences:
-			self.preferences.setdefault(key, default) # just to be sure
-			fields.append((key, type, label, self.preferences[key]))
-		self.add_fields(fields)
+		for pref in klass.plugin_preferences:
+			if len(pref) == 4:
+				key, type, label, default = pref
+				self.preferences.setdefault(key, default) # just to be sure
+			else:
+				key, type, label, default, check = pref
+				self.preferences.setdefault(key, default, check=check) # just to be sure
+
+			if type in ('int', 'choice'):
+				fields.append((key, type, label, check))
+			else:
+				fields.append((key, type, label))
+
+		self.add_form(fields, self.preferences)
 
 	def do_response_ok(self):
-		# First let the plugin recieve the changes, then save them.
-		# The plugin could do som conversion on the fly (e.g. Path to string)
-		self.preferences.update(self.get_fields())
+		# First let the plugin receive the changes, then save them.
+		# The plugin could do some conversion on the fly (e.g. Path to string)
+		self.preferences.update(self.form)
 		self.plugin.emit('preferences-changed')
 		self.ui.save_preferences()
 		return True

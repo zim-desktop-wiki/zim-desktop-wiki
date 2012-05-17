@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gtk
 
-from zim._lib import xdot
+from zim.inc import xdot
+
+from zim.notebook import Path
 from zim.gui.widgets import ui_environment, Dialog, IconButton
 
 from zim.plugins.linkmap import LinkMap
@@ -75,5 +77,5 @@ class LinkMapDialog(Dialog):
 			button.connect('clicked', method)
 			vbox.pack_start(button, False)
 
-	def on_node_clicked(self, *a):
-		print a
+	def on_node_clicked(self, widget, name, event):
+		self.ui.open_page(Path(name))

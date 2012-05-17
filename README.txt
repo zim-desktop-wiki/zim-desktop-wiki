@@ -2,19 +2,25 @@
 
 Zim - A Desktop Wiki Editor
 
-Zim brings the concept of a wiki to your desktop. Store information,
-link pages and edit with WYSISYG markup. Creating a new page is as easy
-as linking to a non-existing page. Pages are stored in a folder structure,
-like in an outliner, and can have attachments.
+Zim is a graphical text editor used to maintain a collection of wiki pages.
+Each page can contain links to other pages, simple formatting and images.
+Pages are stored in a folder structure, like in an outliner, and can have
+attachments. Creating a new page is as easy as linking to a nonexistent page.
+All data is stored in plain text files with wiki formatting. Various plugins
+provide additional functionality, like a task list manager, an equation
+editor, a tray icon, and support for version control.
 
-This tool can be used to keep track of TODO lists or ideas, to take notes
-during a meeting or to draft any other kind of text (blog entries,
-important mails, etc.).
+Zim can be used to:
+* Keep an archive of notes
+* Take notes during meetings or lectures
+* Organize task lists
+* Draft blog entries and emails
+* Do brainstorming
 
 
 ====== COPYRIGHT ======
 
-Copyright 2008, 2009 Jaap Karssenberg <pardus@cpan.org>
+Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -43,7 +49,9 @@ See the translation files for detailed translator credits.
 
 The following files were included from other sources:
 
-* zim/_lib/xdot.py - Copyright 2008 Jose Fonseca
+* zim/inc/xdot.py - Copyright 2008 Jose Fonseca
+* zim/inc/arithmetic.py - Copyright 2010, 2011 Patricio Paez <pp@pp.com.mx>
+
 
 From the default Gnome icon theme:
 * pixmaps/task-list.png (was: stock_todo.png)
@@ -92,7 +100,7 @@ descriptions.
 
 ===== Ubuntu =====
 
-On Ubuntu or other debian derived systems, the following packages should be 
+On Ubuntu or other debian derived systems, the following packages should be
 installed:
 
 	* python
@@ -171,5 +179,3 @@ you should add you new .po file to the po/ directory.
 After adding the .po file(s) you can compile the translation using:
 
 	./setup.py build_trans
-
-

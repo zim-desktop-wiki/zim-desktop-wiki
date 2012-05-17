@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Plugin showing a map of links between pages based on GraphViz'''
 
 from zim.plugins import PluginClass
 from zim.index import LINK_DIR_BOTH
 from zim.applications import Application
+from zim.fs import Dir
 
 class LinkMapPlugin(PluginClass):
 
@@ -34,7 +35,8 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('GraphViz',Application(('fdp',)).tryexec())]
+		has_graphviz = Application(('fdp',)).tryexec()
+		return has_graphviz, [('GraphViz', has_graphviz, True)]
 
 	def disconnect(self):
 		pass
@@ -47,7 +49,7 @@ class LinkMap(object):
 		self.path = path
 		self.depth = depth
 
-	def _all_links():
+	def _all_links(self):
 		for page in self.notebook.index.walk():
 			for link in self.notebook.index.list_links(page):
 				yield link
@@ -79,15 +81,22 @@ class LinkMap(object):
 			'  size="6,6";',
 			#~ '  node [shape=box, style="rounded,filled", color="#204a87", fillcolor="#729fcf"];',
 			'  node [shape=note, style="filled", color="#204a87", fillcolor="#729fcf"];',
-			'  "%s" [color="#4e9a06", fillcolor="#8ae234"]' % self.path.name, # special node
+			'  "%s" [color="#4e9a06", fillcolor="#8ae234", URL="%s"]' % (self.path.name, self.path.name), # special node
 		]
 
+		seen = set()
+		seen.add(self.path.name)
 		for link in self._links(self.path, self.depth):
+			for name in (link.source.name, link.href.name):
+				if not name in seen:
+					dotcode.append('  "%s" [URL="%s"];' % (name, name))
+					seen.add(name)
 			dotcode.append(
 				'  "%s" -> "%s";'  % (link.source.name, link.href.name))
 
 		dotcode.append('}')
 
+		#~ print '\n'.join(dotcode)+'\n'
 		return '\n'.join(dotcode)+'\n'
 
 

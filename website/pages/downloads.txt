@@ -4,7 +4,7 @@ Creation-Date: Unknown
 
 ====== Downloads ======
 
-===== Latest release: 0.48 =====
+===== Latest release: 0.56 =====
 
 **This program depends on a number of modules including the python, gtk and the python-gtk bindings.** Most linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier then compiling them manually .
 
@@ -24,23 +24,28 @@ More detailed instructions to build from source can be found [[install|here]].
 
 === Packages ===
 
-**Ubuntu**
+{{/images/os-ubuntu.png?width=24}}  **Ubuntu**
 
 Unofficial ubuntu package (.deb) can be found [[/downloads/|here]]
 
-**Windows**
+There is also a PPA with updates for zim [[https://launchpad.net/~jaap.karssenberg/+archive/zim|here]]
+
+{{/images/os-windows.gif?width=24}}  **Windows**
 
 A windows installer can be found [[http://www.glump.net/software/zim|here]].
 
-**Other Distributions**
+{{/images/package-x-generic.png?width=24}}  **Other Distributions**
 
-The following distrobutions are known to include zim:
+The following Linux distributions are known to include zim:
 * Archlinux (extra/zim)
 * [[http://packages.debian.org/unstable/x11/zim|Debian]] (x11/zim)
 * Gentoo (x11-misc/zim)
 * Sourcemage (zim)
 * Fedora Extras
 * Ubuntu (universe)
-* [[http://www.freshports.org/editors/zim|FreeBSD]]
 * Mandriva ([[http://petos.cz/rpms|unofficial repository]])
-* openSUSE ([[http://software.opensuse.org/search?baseproject=ALL&p=1&q=zim|unofficial packages]])
+
+BSD flavors with a zim port:
+* [[http://www.freshports.org/editors/zim|FreeBSD]]
+* [[http://www.openbsd.org/cgi-bin/cvsweb/ports/productivity/zim/|OpenBSD]]
+

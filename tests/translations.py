@@ -8,12 +8,19 @@ class TestTranslations(TestCase):
 
 	def runTest(self, verbose=False):
 		'''Sanity check translation files'''
-		for file in ['zim.pot'] + glob('po/*.po'):
+		pot_creation_date = None
+		for file in ['translations/zim.pot'] + glob('translations/*.po'):
 			if verbose:
 				print 'Checking %s' % file
 			t = TranslationFile(file)
-			if file != 'zim.pot':
-				assert t.nplural > 0, 'Missing number of plurals'
+
+			if file == 'translations/zim.pot':
+				pot_creation_date = t.headers['POT-Creation-Date']
+			else:
+				if not t.headers['POT-Creation-Date'] == pot_creation_date:
+					print 'WARNING: Translation not based on up to date template: %s' % file
+				self.assertTrue(t.nplural > 0, 'Missing number of plurals: %s' % file)
+
 			t.assertValid()
 
 
@@ -50,7 +57,8 @@ class TranslationMessage(object):
 		assert self.msgstr, 'No msgstr found'
 
 
-	_format_string_re = re.compile('%.')
+	_format_string_re = re.compile('%(?:\(\w+\))?\w')
+		# match "%s", "%d" etc. but also "%(foo)s" - but not just "%"
 
 	def check_nplural(self, nplural):
 		if self.msgid_plural and self.msgstr[0] != '""':
@@ -66,7 +74,7 @@ class TranslationMessage(object):
 		wanted = sorted( self._format_string_re.findall(self.msgid) )
 		if not wanted:
 			return True # no string format used
-	
+
 		for msg in [self.msgid_plural] + self.msgstr:
 			if msg and not msg == '""':
 				got = sorted( self._format_string_re.findall(msg) )
@@ -81,7 +89,7 @@ class TranslationFile(object):
 	def __init__(self, file):
 		self.file = file
 		self.messages = []
-		
+
 		buffer = []
 		lineno = 0
 		msgidlineno = 0

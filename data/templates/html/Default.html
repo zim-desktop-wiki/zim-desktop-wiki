@@ -72,7 +72,7 @@
 [% IF page.backlinks -%]
 	Backlinks:
 	[%- FOREACH link = page.backlinks -%]
-		<a href='[% url(link) %]'>[% link.name %]</a></li>
+		<a href='[% url(link) %]'>[% link.name %]</a>
 	[%- END -%]
 [%- ELSE -%]
 	No backlinks to this page.

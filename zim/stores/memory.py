@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Store module that keeps a tree of pages in memory.
 
@@ -25,10 +25,10 @@ class Node(object):
 		self.children = []
 
 
-class Store(StoreClass):
+class MemoryStore(StoreClass):
 
 	def __init__(self, notebook, path):
-		'''Contruct a memory store.
+		'''Construct a memory store.
 		Pass args needed for StoreClass init.
 		'''
 		StoreClass.__init__(self, notebook, path)
@@ -44,7 +44,7 @@ class Store(StoreClass):
 
 	def get_node(self, path, vivificate=False):
 		'''Returns node for page 'name' or None.
-		If 'vivificate is True nodes are created on the fly.
+		If 'vivificate' is True nodes are created on the fly.
 		'''
 		assert path != self.namespace, 'Can not get node for root namespace'
 		name = path.relname(self.namespace)
@@ -121,7 +121,6 @@ class Store(StoreClass):
 		newnode.text = node.text
 		newnode.children = node.children # children
 
-
 	def delete_page(self, path):
 		# Make sure not to destroy the actual content, we are used by
 		# move_page, which could be keeping a reference to the content
@@ -138,7 +137,10 @@ class Store(StoreClass):
 			if not (pnode.text or pnode.children):
 				self.delete_page(parent) # recurs to cleanup empty parent
 
+		if isinstance(path, Page):
+			path.haschildren = False
+			path.set_parsetree(None)
+			path.modified = False
+
 		return True
 
-	def page_exists(self, path):
-		return bool(self.get_node(path))

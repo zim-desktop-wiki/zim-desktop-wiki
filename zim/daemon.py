@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''Daemon IPC infrastucture parts for the zim GUI.
+'''Daemon IPC infrastructure parts for the zim GUI.
 
 We rely on a daemon process spawning instances of the zim gui
 and managing those instances. A new process that is stated talks
@@ -10,7 +10,7 @@ to the daemon, which talks to the actual gui instance.
 
 Current implementation the daemon listens to a socket, so any
 process can connect to it, while communication from the daemon to the
-gui instances uses anonymous pipes.
+gui instances uses anonymous pipes::
 
   DaemonProxy --socket--> Daemon
                             |
@@ -29,19 +29,25 @@ DaemonTrayIcon class in the trayicon plugin which shows a single
 tray icon for all open notebooks. A class for running a child process
 should at least implement a "main" and a "quit" method.
 
-Only security measure in this module is that on unix the socket is
+Only security measure in this module is that on Unix the socket is
 located within temp folder which has only access permissions for the
 current user. This should make it impossible for processes running as
 any other user to connect. The windows version just listens to a local
-network address and is compeletely open to localhost. Once someone
+network address and is completely open to localhost. Once someone
 succeeds in connecting to the socket they can call arbitrary methods
 on the interface object or instantiate new processes with arbitrary
 classes.
 
 
-Signals supported by the daemon:
-  * notebook-list-changed - emitted when it is likely the notebook list changed
+@signal: C{notebook-list-changed ()}:
+emitted when it is likely the notebook list changed
 '''
+
+# NOTE: this module can not be moved to zim.gui. The reason is that
+# loading gtk in the daemon process leads to errors when forking the
+# process. When loading a module the parent modules are loaded as well
+# and zim.gui loads gtk.
+
 
 import os
 import sys
@@ -54,7 +60,7 @@ import time
 from zim.fs import get_tmpdir, File
 from zim.config import XDG_CACHE_HOME, json
 
-# FUTURE: implement a DBus based subclass for usage on the linux desktop
+# FUTURE: implement a DBus based subclass for usage on the Linux desktop
 
 # TODO split this in a GUI part and a daemon part that is not GUI specific
 
@@ -79,7 +85,7 @@ class DaemonError(Exception):
 
 
 class UnixDaemon(object):
-	'''Class with code to daemonize a process on unix'''
+	'''Class with code to daemonize a process on Unix'''
 
 	pidfile = get_tmpdir().file('daemon.pid').path
 
@@ -87,7 +93,7 @@ class UnixDaemon(object):
 		self.daemonize()
 
 	def daemonize(self):
-		'''Spawn new process that is disasociated from current environment'''
+		'''Spawn new process that is disassociated from current environment'''
 		showoutput = logger.isEnabledFor(logging.INFO)
 
 		# First fork
@@ -133,8 +139,8 @@ class WindowsDaemon(object):
 	pidfile = get_tmpdir().file('daemon.pid').path
 
 	def start_daemon(self):
-		from zim import ZIM_EXECUTABLE
-		os.spawn((ZIM_EXECUTABLE, '--daemon'))
+		from zim import ZimCmd
+		ZimCmd().spawn(args=('--daemon',))
 
 	def daemonize(self):
 		'''Daemonize current process, does not return'''
@@ -299,7 +305,10 @@ class SocketDaemon(object):
 			gobject.MainLoop().quit()
 			# HACK just calling MainLoop.quit()should be enough..
 			self.stop()
-			os.unlink(self.pidfile)
+			try:
+				os.unlink(self.pidfile)
+			except:
+				logger.exception("Could not clean up pid file")
 			os._exit(0)
 		return False # in case we are called from event
 
@@ -322,7 +331,7 @@ class UnixSocketDaemon(UnixDaemon, SocketDaemon):
 
 class WindowsSocketDaemon(WindowsDaemon, SocketDaemon):
 
-	# No named sockets avaialble on windows, need to use a network socket.
+	# No named sockets available on windows, need to use a network socket.
 	# Let's hope nobody is using the same port number
 	# Ow, and let's really hope we are running single user...
 
@@ -393,6 +402,9 @@ class SocketDaemonProxy(object):
 		if isinstance(notebook, basestring):
 			if notebook.startswith('zim+'): notebook = notebook[4:]
 			assert notebook.startswith('file://')
+			if '?' in notebook:
+				logger.warn('BUG: get_notebook() called with interwiki link')
+				notebook, pagename = notebook.split('?', 1)
 		else:
 			assert hasattr(notebook, 'uri')
 			notebook = notebook.uri
@@ -434,7 +446,7 @@ class SocketDaemonProxy(object):
 		'''Quit the daemon gracefully by calling 'quit()' on all
 		children and waiting for them to exit.
 		'''
-		self._call('quit') == 'Ack'
+		return self._call('quit') == 'Ack'
 
 	def _call(self, func, *args, **kwargs):
 		s = socket.socket(Daemon.socket_family)
@@ -548,7 +560,7 @@ class UnixPipeProxy(object):
 	def _main(self):
 		# Main function in the child process:
 		# import class module, instantiate object,
-		# hook it to recieve calls and run main()
+		# hook it to receive calls and run main()
 
 		# __import__ has some quirks, see the reference manual
 		modname, klassname = self.klass.rsplit('.', 1)
@@ -598,4 +610,3 @@ class UnixPipeProxy(object):
 
 
 ChildProxy = UnixPipeProxy
-

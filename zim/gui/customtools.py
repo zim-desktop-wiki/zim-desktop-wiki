@@ -1,15 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2010 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains code for defining and managing custom
 commands.
 '''
 
 import gtk
+import logging
+
 
 from zim.gui.applications import CustomToolManager
 from zim.gui.widgets import Dialog, IconButton, IconChooserButton
+from zim.fs import File
+
+
+logger = logging.getLogger('zim.gui')
 
 
 class CustomToolManagerDialog(Dialog):
@@ -116,12 +122,12 @@ class CustomToolList(gtk.TreeView):
 		self.get_selection.select_path(path)
 
 	def refresh(self):
-		from zim.gui.widgets import _encode_xml
+		from zim.gui.widgets import encode_markup_text
 		model = self.get_model()
 		model.clear()
 		for tool in self.manager:
 			pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_MENU)
-			text = '<b>%s</b>\n%s' % (_encode_xml(tool.name), _encode_xml(tool.comment))
+			text = '<b>%s</b>\n%s' % (encode_markup_text(tool.name), encode_markup_text(tool.comment))
 			model.append((pixbuf, text, tool.key))
 
 
@@ -145,34 +151,42 @@ class EditCustomToolDialog(Dialog):
 			readonly = False
 			toolbar = False
 
-
-		table = self.add_fields((
-			('Name', 'string', _('Name'), name), # T: Input in "Edit Custom Tool" dialog
-			('Comment', 'string', _('Description'), comment), # T: Input in "Edit Custom Tool" dialog
-			('X-Zim-ExecTool', 'string', _('Command'), execcmd), # T: Input in "Edit Custom Tool" dialog
-		), trigger_response=False)
+		self.add_form((
+			('Name', 'string', _('Name')), # T: Input in "Edit Custom Tool" dialog
+			('Comment', 'string', _('Description')), # T: Input in "Edit Custom Tool" dialog
+			('X-Zim-ExecTool', 'string', _('Command')), # T: Input in "Edit Custom Tool" dialog
+		), {
+			'Name': name,
+			'Comment': comment,
+			'X-Zim-ExecTool': execcmd,
+		}, trigger_response=False)
 
 		# FIXME need ui builder to take care of this as well
-		if tool:
-			iconpixbuf = tool.get_pixbuf(gtk.ICON_SIZE_DIALOG)
-		else:
-			iconpixbuf = None
-		self.iconbutton = IconChooserButton(stock=gtk.STOCK_EXECUTE, pixbuf=iconpixbuf)
+		self.iconbutton = IconChooserButton(stock=gtk.STOCK_EXECUTE)
+		if tool and tool.icon and tool.icon != gtk.STOCK_EXECUTE:
+			try:
+				self.iconbutton.set_file(File(tool.icon))
+			except Exception, error:
+				logger.exception('Could not load: %s', tool.icon)
 		label = gtk.Label(_('Icon')+':') # T: Input in "Edit Custom Tool" dialog
 		label.set_alignment(0.0, 0.5)
 		hbox = gtk.HBox()
-		i = table.get_property('n-rows')
-		table.attach(label, 0,1, i,i+1, xoptions=0)
-		table.attach(hbox, 1,2, i,i+1)
+		i = self.form.get_property('n-rows')
+		self.form.attach(label, 0,1, i,i+1, xoptions=0)
+		self.form.attach(hbox, 1,2, i,i+1)
 		hbox.pack_start(self.iconbutton, False)
 
-		self.add_fields((
-			('X-Zim-ReadOnly', 'bool', _('Command does not modify data'), readonly), # T: Input in "Edit Custom Tool" dialog
-			('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar'), toolbar), # T: Input in "Edit Custom Tool" dialog
-		), table=table, trigger_response=False)
+		self.form.add_inputs((
+			('X-Zim-ReadOnly', 'bool', _('Command does not modify data')), # T: Input in "Edit Custom Tool" dialog
+			('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar')), # T: Input in "Edit Custom Tool" dialog
+		))
+		self.form.update({
+			'X-Zim-ReadOnly': readonly,
+			'X-Zim-ShowInToolBar': toolbar,
+		})
 
 		self.add_help_text(_('''\
-To following parameters will be substituted
+The following parameters will be substituted
 in the command when it is executed:
 <tt>
 <b>%f</b> the page source as a temporary file
@@ -181,13 +195,12 @@ in the command when it is executed:
 <b>%n</b> the notebook location (file or folder)
 <b>%D</b> the document root (if any)
 <b>%t</b> the selected text or word under cursor
+<b>%T</b> the selected text including wiki formatting
 </tt>
 ''') ) # T: Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
 
 	def do_response_ok(self):
-		fields = self.get_fields()
-		iconfile = self.iconbutton.get_file()
-		if iconfile:
-			fields['Icon'] = iconfile.path
+		fields = self.form.copy()
+		fields['Icon'] = self.iconbutton.get_file() or None
 		self.result = fields
 		return True

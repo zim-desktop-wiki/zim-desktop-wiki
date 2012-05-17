@@ -28,10 +28,3 @@ If this file does not exist a default will be looked for first in the XDG_CONFIG
 Specifies the look of the various text styles in the GUI.
 
 If this file does not exist a default will be looked for first in the XDG_CONFIG_DIRS and then in the XDG_DATA_DIRS.
-
-
-===== Profiles =====
-
-Zim has support for different "profiles" to be able to have different sets of configuration. The profile can be specified on the commandline or can be set in the notebook configuration. A profile can have it's own version of preferences.conf, which will be called preferences-profile_name.conf.
-
-The main purpose of this feature is to allow configuring a different set of plugins for different types of notebooks. Additionally a profile can switch the GUI to read-only state by default, hiding all controls that need write permission.

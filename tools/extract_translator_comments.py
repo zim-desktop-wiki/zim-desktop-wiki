@@ -69,4 +69,4 @@ def add_comments(file):
 			fh.write(line)
 
 if __name__ == '__main__':
-	add_comments('zim.pot')
+	add_comments('translations/zim.pot')

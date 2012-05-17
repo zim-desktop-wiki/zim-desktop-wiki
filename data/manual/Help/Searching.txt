@@ -36,6 +36,15 @@ When you open the "//Search//->//Search Back links//..." menu item you get the s
 As an alternative you can click on the "Back links" area in the status bar, this will pop up a menu with all back links to the current page.
 
 
+===== Commandline usage =====
+You can also execute a search using commandline arguments, e.g.:
+
+'''
+zim --search Notes "tag:home and tag:foo"
+'''
+
+which will print a list of all pages that contain both the [[tags]] "''@home''" and "''@foo''"
+
 
 ===== Search Query Syntax =====
 This section describes the query syntax that can be used in the search dialog.
@@ -54,6 +63,7 @@ NameSpace:
 Links:
 LinksFrom:
 LinksTo:
+Tag:
 
 
 === Details ===
@@ -125,6 +135,7 @@ So far we just searched for words in the page contents and page names. If you wa
 	**Links:**
 	**LinksFrom:**
 	**LinksTo:**
+	**Tag:**
 
  For example to only search the page names you can use:
 
@@ -160,3 +171,10 @@ A complex example would be to find any pages in the ":Date" namespace that link 
 namespace: Date and linksto: Planning
 '''
 
+The keyword "Tag" can be used to search for specifc tags like:
+'''
+
+Tag: home
+'''
+
+Note that a simple search for a single word like "''@home''" will automatically be converted to "''Tag: home''"

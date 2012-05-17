@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module supports dumping to HTML'''
 
@@ -8,16 +8,17 @@
 # TODO use global CSS for checkboxes instead of inline style - needs also support from tempalte etc
 
 import re
+import string
 
 from zim.formats import *
 from zim.parsing import TextBuffer, link_type
 
 info = {
-	'name':  'Html',
-	'mime':  'text/html',
+	'name': 'html',
+	'desc': 'HTML',
+	'mimetype': 'text/html',
 	'extension': 'html',
-	'read':	  False,
-	'write':  False,
+	'native': False,
 	'import': False,
 	'export': True,
 }
@@ -71,8 +72,8 @@ class Dumper(DumperClass):
 					output += ['<', tag, ' dir=\'rtl\'>', text, '</', tag, '>']
 				else:
 					output += ['<', tag, '>', text, '</', tag, '>']
-			elif element.tag == 'p':
-				tag = 'p'
+			elif element.tag in ('p', 'div'):
+				tag = element.tag
 				if self.isrtl(element):
 					tag += ' dir=\'rtl\''
 				if 'indent' in element.attrib:
@@ -80,7 +81,7 @@ class Dumper(DumperClass):
 					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
 				output += ['<', tag, '>\n', text]
 				self._dump_children(element, output) # recurs
-				output.append('</p>\n')
+				output.append('</%s>\n' % element.tag)
 			elif element.tag == 'pre':
 				tag = 'pre'
 				if self.isrtl(element):
@@ -89,10 +90,27 @@ class Dumper(DumperClass):
 					level = int(element.attrib['indent'])
 					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
 				output += ['<', tag, '>\n', text, '</pre>\n']
-			elif element.tag is 'ul':
-				output += ['<ul>\n', text]
+			elif element.tag in ('ul', 'ol'):
+				# TODO for ol set start and bullet style
+				tag = element.tag
+				if tag == 'ol' and 'start' in element.attrib:
+					start = element.attrib.get('start')
+					if start in string.lowercase:
+						type = 'a'
+						start = string.lowercase.index(start) + 1
+					elif start in string.uppercase:
+						type = 'A'
+						start = string.uppercase.index(start) + 1
+					else:
+						type = '1'
+					tag += ' type="%s" start="%s"' % (type, start)
+
+				if 'indent' in element.attrib:
+					level = int(element.attrib['indent'])
+					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
+				output += ['<%s>\n' % tag, text]
 				self._dump_children(element, output) # recurs
-				output.append('</ul>\n')
+				output.append('</%s>\n' % element.tag)
 			elif element.tag == 'li':
 				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
 					icon = self.linker.icon(element.attrib['bullet'])
@@ -105,9 +123,13 @@ class Dumper(DumperClass):
 				src = self.linker.img(element.attrib['src'])
 				opt = ''
 				for o in ('width', 'height'):
-					if o in element.attrib and int(element.attrib[o]) > 0:
+					if o in element.attrib and int(float(element.attrib[o])) > 0:
 						opt = ' %s="%s"' % (o, element.attrib[o])
-				output.append('<img src="%s" alt="%s"%s>' % (src, text, opt))
+				if 'href' in element.attrib:
+					href = self.linker.link(element.attrib['href'])
+					output.append('<a href="%s"><img src="%s" alt="%s"%s></a>' % (href, src, text, opt))
+				else:
+					output.append('<img src="%s" alt="%s"%s>' % (src, text, opt))
 			elif element.tag == 'link':
 				href = self.linker.link(element.attrib['href'])
 				title = text.replace('"', '&quot;')
@@ -117,6 +139,8 @@ class Dumper(DumperClass):
 				elif element.tag == 'emphasis': tag = 'em'
 				else: tag = element.tag
 				output += ['<', tag, '>', text, '</', tag, '>']
+			elif element.tag == 'tag':
+				output += ['<span class="zim-tag">', text, '</span>']
 			else:
 				assert False, 'Unknown node type: %s' % element
 
@@ -127,5 +151,3 @@ class Dumper(DumperClass):
 					# for whitespace between headings, paras etc.
 					tail = encode_whitespace(tail)
 				output.append(tail)
-
-

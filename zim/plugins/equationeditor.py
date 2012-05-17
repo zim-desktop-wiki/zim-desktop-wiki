@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gtk
 import glob
@@ -9,8 +9,9 @@ from zim.fs import File, TmpFile
 from zim.plugins import PluginClass
 from zim.config import data_file
 from zim.templates import GenericTemplate
-from zim.applications import Application
-from zim.gui.imagegeneratordialog import ImageGeneratorDialog
+from zim.applications import Application, ApplicationError
+from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
+from zim.gui.widgets import populate_popup_add_separator
 
 # TODO put these commands in preferences
 latexcmd = ('latex', '-no-shell-escape', '-halt-on-error')
@@ -44,14 +45,16 @@ This plugin provides an equation editor for zim based on latex.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-		'help': ':Plugins:Equation Editor',
+		'help': 'Plugins:Equation Editor',
 		'author': 'Jaap Karssenberg',
 	}
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('latex',Application(latexcmd).tryexec()), \
-		('dvipng',Application(dvipngcmd).tryexec())]
+		has_latex = Application(latexcmd).tryexec()
+		has_dvipng = Application(dvipngcmd).tryexec()
+		return (has_latex and has_dvipng), \
+				[('latex', has_latex, True), ('dvipng', has_dvipng, True)]
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
@@ -69,7 +72,7 @@ This is a core plugin shipping with zim.
 		dialog.show_all()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
-		menu.prepend(gtk.SeparatorMenuItem())
+		populate_popup_add_separator(menu, prepend=True)
 
 		item = gtk.MenuItem(_('_Edit Equation')) # T: menu item in context menu
 		item.connect('activate',
@@ -86,18 +89,17 @@ class InsertEquationDialog(ImageGeneratorDialog):
 			generator, image, help=':Plugins:Equation Editor' )
 
 
-class EquationGenerator(object):
-
-	# TODO: generic base class for image generators
+class EquationGenerator(ImageGeneratorClass):
 
 	type = 'equation'
-	basename = 'equation.tex'
+	scriptname = 'equation.tex'
+	imagename = 'equation.png'
 
 	def __init__(self):
 		file = data_file('templates/_Equation.tex')
 		assert file, 'BUG: could not find templates/_Equation.tex'
 		self.template = GenericTemplate(file.readlines(), name=file)
-		self.texfile = TmpFile('latex-equation.tex')
+		self.texfile = TmpFile(self.scriptname)
 
 	def generate_image(self, text):
 		if isinstance(text, basestring):
@@ -108,7 +110,7 @@ class EquationGenerator(object):
 		text = ''.join(text)
 		#~ print '>>>%s<<<' % text
 
-		# Write to tmp file usign the template for the header / footer
+		# Write to tmp file using the template for the header / footer
 		texfile = self.texfile
 		texfile.writelines(
 			self.template.process({'equation': text}) )
@@ -119,7 +121,7 @@ class EquationGenerator(object):
 		try:
 			latex = Application(latexcmd)
 			latex.run((texfile.basename,), cwd=texfile.dir)
-		except:
+		except ApplicationError:
 			# log should have details of failure
 			return None, logfile
 
@@ -137,5 +139,3 @@ class EquationGenerator(object):
 		path = self.texfile.path
 		for path in glob.glob(path[:-4]+'.*'):
 			File(path).remove()
-
-

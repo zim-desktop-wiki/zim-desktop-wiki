@@ -34,12 +34,18 @@ except:
 
 
 # Get environment parameter for building for maemo
-# We don't use auto-detection here because we want to be able to 
+# We don't use auto-detection here because we want to be able to
 # cross-compile a maemo package on another platform
-build_target = os.environ.get('ZIM_BUILD_TARGET') or 'default'
-assert build_target in ('default', 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
+build_target = os.environ.get('ZIM_BUILD_TARGET')
+assert build_target in (None, 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
 if build_target == 'maemo':
 	print 'Building for Maemo...'
+
+
+# Some constants
+
+PO_FOLDER = 'translations'
+LOCALE_FOLDER = 'locale'
 
 
 # Helper routines
@@ -58,7 +64,7 @@ def collect_packages():
 def get_mopath(pofile):
 	# Function to determine right locale path for a .po file
 	lang = os.path.basename(pofile)[:-3] # len('.po') == 3
-	modir = os.path.join('locale', lang, 'LC_MESSAGES')
+	modir = os.path.join(LOCALE_FOLDER, lang, 'LC_MESSAGES')
 	mofile = os.path.join(modir, 'zim.mo')
 	return modir, mofile
 
@@ -88,6 +94,12 @@ def collect_data_files():
 			files = [os.path.join(dir, f) for f in files]
 			data_files.append((target, files))
 
+	# mono icons -> PREFIX/share/icons/ubuntu-mono-light | -dark
+	for theme in ('ubuntu-mono-light', 'ubuntu-mono-dark'):
+		file = os.path.join('icons', theme, 'zim-panel.svg')
+		target = os.path.join('share', 'icons', theme, 'apps', '22')
+		data_files.append((target, [file]))
+
 	# data -> PREFIX/share/zim
 	for dir, dirs, files in os.walk('data'):
 		if '.zim' in dirs:
@@ -110,8 +122,8 @@ def collect_data_files():
 		data_files.append((prefix, files))
 
 	# .po files -> PREFIX/share/locale/..
-	for pofile in [f for f in os.listdir('po') if f.endswith('.po')]:
-		pofile = os.path.join('po', pofile)
+	for pofile in [f for f in os.listdir(PO_FOLDER) if f.endswith('.po')]:
+		pofile = os.path.join(PO_FOLDER, pofile)
 		modir, mofile = get_mopath(pofile)
 		target = os.path.join('share', modir)
 		data_files.append((target, [mofile]))
@@ -192,8 +204,8 @@ class zim_build_trans_class(cmd.Command):
 		pass
 
 	def run(self):
-		for pofile in [f for f in os.listdir('po') if f.endswith('.po')]:
-			pofile = os.path.join('po', pofile)
+		for pofile in [f for f in os.listdir(PO_FOLDER) if f.endswith('.po')]:
+			pofile = os.path.join(PO_FOLDER, pofile)
 			modir, mofile = get_mopath(pofile)
 
 			if not os.path.isdir(modir):
@@ -222,6 +234,7 @@ class zim_build_scripts_class(build_scripts_class):
 
 class zim_build_class(build_class):
 	# Generate _version.py etc. and call build_trans as a subcommand
+	# Also set PLATFORM in zim/__init__.py
 
 	sub_commands = build_class.sub_commands + [('build_trans', None)]
 
@@ -229,19 +242,41 @@ class zim_build_class(build_class):
 		fix_dist()
 		build_class.run(self)
 
+		file = os.path.join(self.build_lib, 'zim', '__init__.py')
+		print 'Setting PLATFORM in %s' % file
+		assert os.path.isfile(file)
+		fh = open(file)
+		lines = fh.readlines()
+		fh.read()
+
+		for i, line in enumerate(lines):
+			if line.startswith('PLATFORM = '):
+				if build_target is None:
+					lines[i] = 'PLATFORM = None\n'
+				else:
+					lines[i] = 'PLATFORM = "%s"\n' % build_target
+				break
+		else:
+			assert False, 'Missed line for PLATFORM'
+
+		fh = open(file, 'w')
+		fh.writelines(lines)
+		fh.close()
+
+
 
 class zim_install_class(install_class):
 
 	user_options = install_class.user_options + \
 		[('skip-xdg-cmd', None, "don't run XDG update commands (for packaging)")]
-	
+
 	boolean_options = install_class.boolean_options + \
 		['skip-xdg-cmd']
 
 	def initialize_options(self):
 		install_class.initialize_options(self)
 		self.skip_xdg_cmd = 0
-	
+
 	def run(self):
 		install_class.run(self)
 
@@ -272,17 +307,17 @@ if py2exe:
 	py2exeoptions = {
 		'windows': [ {
 			"script": "zim.py",
-			"icon_resources": [(1, "data/pixmaps/favicon.ico")]
+			"icon_resources": [(1, "icons/zim.ico")]
+				# Windows 16x16, 32x32, and 48x48 icon based on PNG
 		} ],
 		'zipfile': None,
 		'options': {
 			"py2exe": {
-				"compressed": 0,
+				"compressed": 1,
 				"optimize": 2,
 				"ascii": 1,
 				"bundle_files": 3,
-				"packages": ["encodings", "cairo", "atk", "pangocairo", "zim", "bzrlib"],
-				"dist_dir" : "windows/build"
+				"packages": ["encodings", "cairo", "atk", "pangocairo", "zim"],
 			}
 		}
 	}
@@ -305,7 +340,7 @@ setup(
 	version      = __version__,
 	description  = 'Zim desktop wiki',
 	author       = 'Jaap Karssenberg',
-	author_email = 'pardus@cpan.org',
+	author_email = 'jaap.karssenberg@gmail.com',
 	license      = 'GPL',
 	url          = __url__,
 	scripts      = scripts,
@@ -315,4 +350,3 @@ setup(
 
 	**py2exeoptions
 )
-

@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gobject
 import gtk
 
 from zim.plugins import PluginClass
 from zim.config import data_file, config_file
-from zim.notebook import get_notebook_list
+from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 from zim.gui.widgets import gtk_window_set_default_icon
 
 
@@ -27,9 +27,8 @@ def main(daemonproxy, *args):
 
 	# HACK to start daemon from separate process
 	# we are not allowed to fork since we already loaded gtk
-	from subprocess import check_call
-	from zim import ZIM_EXECUTABLE
-	check_call([ZIM_EXECUTABLE, '--daemon'])
+	from zim import ZimCmd
+	ZimCmd().run(args=('--daemon',))
 
 	preferences = config_file('preferences.conf')['TrayIconPlugin']
 	preferences.setdefault('classic', False)
@@ -65,7 +64,8 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('GTK >= 2.10',gtk.gtk_version >= (2, 10, 0))]
+		version_ok = (gtk.gtk_version >= (2, 10, 0))
+		return (version_ok, [('GTK >= 2.10', version_ok, True)])
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
@@ -150,26 +150,41 @@ class TrayIconBase(object):
 
 		return menu
 
-	def list_configured_notebooks(self):
-		# returns (name, uri) pairs
-		return get_notebook_list().get_names()
-
 	def list_open_notebooks(self):
+		'''Returns a list of open notebook.
+
+		This method is to be implemented in child classes.
+
+		@returns: a list of L{NotebookInfo} objects
+		'''
 		# should return (name, uri) pairs
 		raise NotImplementedError
 
 	def list_all_notebooks(self):
+		'''Returns a list of all notebooks known in the current context
+
+		This method mixes notebooks from L{list_open_notebooks()} with
+		input from L{get_notebook_list()}. Open notebooks will have
+		the C{active} attribute set.
+
+		@returns: a list of L{NotebookInfo} objects
+		'''
 		uris = set()
-		notebooks = []
-		for nlist in (
-			self.list_configured_notebooks(),
-			self.list_open_notebooks()
-		):
-			for name, uri in nlist:
-				if not uri in uris:
-					uris.add(uri)
-					notebooks.append((name, uri))
-		notebooks.sort()
+		notebooks = [info for info in get_notebook_list()]
+		for info in self.list_open_notebooks():
+			if info in notebooks:
+				# info from notebook list is updated already
+				i = notebooks.index(info)
+				notebooks[i].active = True
+			else:
+				info.update()
+				info.active = True
+				notebooks.append(info)
+
+		for info in notebooks:
+			if not info.active:
+				info.active = False # None -> False
+
 		return notebooks
 
 	def populate_menu_with_notebooks(self, menu, notebooks):
@@ -179,10 +194,22 @@ class TrayIconBase(object):
 		item.set_sensitive(False)
 		menu.append(item)
 
-		for name, uri in notebooks:
-			#~ print '>>>', name, uri
-			item = gtk.MenuItem('  ' + name) # Hack - using '  ' to indent visually
-			item.connect('activate', lambda o, u: self.do_activate_notebook(u), uri)
+		if isinstance(notebooks, NotebookInfoList):
+			notebooks = [info for info in notebooks] # copy
+
+		notebooks.sort(key=lambda info: info.name)
+
+		for info in notebooks:
+			#~ print '>>>', info
+			item = gtk.MenuItem('  ' + info.name)
+				# Hack - using '  ' to indent visually
+			if info.active:
+				child = item.get_child()
+				if isinstance(child, gtk.Label):
+					# FIXME this doesn't seem to work in Ubuntu menu :(
+					child.set_markup('  <b>' + info.name + '</b>')
+						# Hack - using '  ' to indent visually
+			item.connect('activate', lambda o, u: self.do_activate_notebook(u), info.uri)
 			menu.append(item)
 
 	def do_activate_notebook(self, uri):
@@ -214,7 +241,14 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 
 	def __init__(self):
 		gtk.StatusIcon.__init__(self)
-		self.set_from_icon_name('zim')
+
+		icon_theme = gtk.icon_theme_get_default()
+		if icon_theme.has_icon('zim-panel'):
+		    self.set_from_icon_name('zim-panel')
+		else:
+			icon = data_file('zim.png').path
+			self.set_from_file(icon)
+
 		self.set_tooltip(_('Zim Desktop Wiki')) # T: tooltip for tray icon
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 
@@ -229,7 +263,7 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 				self.do_popup_menu_notebooks(notebooks)
 		elif len(open_notebooks) == 1:
 			# Only one open notebook - present it
-			self.do_activate_notebook(open_notebooks[0][1])
+			self.do_activate_notebook(open_notebooks[0].uri)
 		else:
 			# Let the user choose from the open notebooks
 			self.do_popup_menu_notebooks(open_notebooks)
@@ -258,7 +292,10 @@ class StandAloneTrayIcon(StatusIconTrayIcon):
 	def __init__(self, ui):
 		StatusIconTrayIcon.__init__(self)
 		self.ui = ui
-		self.ui.connect('open-notebook', self.on_open_notebook)
+		if self.ui.notebook:
+			self.on_open_notebook(self.ui, self.ui.notebook)
+		else:
+			self.ui.connect('open-notebook', self.on_open_notebook)
 
 	def on_open_notebook(self, ui, notebook):
 		# TODO hook this to finalize_notebook in the plugin
@@ -269,7 +306,9 @@ class StandAloneTrayIcon(StatusIconTrayIcon):
 	def list_open_notebooks(self):
 		# No daemon, so we only know one open notebook
 		notebook = self.ui.notebook
-		return [(notebook.name, notebook.uri)]
+		info = NotebookInfo(notebook.uri, name=notebook.name)
+		info.active = True
+		return [ info ]
 
 	def do_activate_notebook(self, uri):
 		# Open a notebook using the ui object
@@ -301,10 +340,10 @@ class DaemonTrayIconMixin(object):
 		gtk.main_quit()
 
 	def list_open_notebooks(self):
-		list = get_notebook_list()
 		for uri in self.daemon.list_notebooks():
-			name = list.get_name(uri) or uri
-			yield name, uri
+			info = NotebookInfo(uri)
+			info.active = True
+			yield info
 
 	def do_activate_notebook(self, uri):
 		self.daemon.get_notebook(uri).toggle_present()
@@ -327,10 +366,12 @@ class AppIndicatorTrayIcon(DaemonTrayIconMixin, TrayIconBase):
 	def __init__(self):
 		DaemonTrayIconMixin.__init__(self)
 
+		# Note that even though we specify the icon "zim", the
+		# ubuntu appindicator framework will first check for an icon
+		# "zim-panel". This way it finds the mono color icons.
 		self.appindicator = appindicator.Indicator(
 			'zim-desktop-wiki', 'zim', appindicator.CATEGORY_APPLICATION_STATUS)
 		self.appindicator.set_status(appindicator.STATUS_ACTIVE)
-		# Should we use PASSIVE when no notebook is open ?
 
 		self.on_notebook_list_changed()
 		self.daemon.connect_object('notebook-list-changed', self)
@@ -339,4 +380,3 @@ class AppIndicatorTrayIcon(DaemonTrayIconMixin, TrayIconBase):
 		menu = self.get_trayicon_menu()
 		menu.show_all()
 		self.appindicator.set_menu(menu)
-

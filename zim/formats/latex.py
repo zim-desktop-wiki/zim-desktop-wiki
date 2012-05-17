@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2008 Johannes Reinhardt <jreinhardt@ist-dein-freund.de>
+# Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This modules handles export of LaTeX Code'''
 
 import re
+import string
 import logging
 
-from zim.fs import File
+from zim.fs import File, FileNotFoundError
 from zim.formats import *
 from zim.parsing import TextBuffer
 
@@ -15,13 +17,13 @@ logger = logging.getLogger('zim.formats.latex')
 
 
 info = {
-	'name':		'LaTeX',
-	'mime': 	'application/x-tex',
+	'name': 'latex',
+	'desc':	'LaTeX',
+	'mimetype': 'application/x-tex',
 	'extension': 'tex',
-	'read':		False,
-	'write':	False,
-	'import':	False,
-	'export':	True,
+	'native': False,
+	'import': False,
+	'export': True,
 }
 
 # reverse dict
@@ -58,7 +60,7 @@ sectioning = {
 
 
 
-encode_re = re.compile(r'(\&|\$|\^|\%|\#|\_|\\)')
+encode_re = re.compile(r'(\&|\$|\^|\%|\#|\_|\\|\<|\>|\n)')
 encode_dict = {
 	'\\': '$\\backslash$',
 	'&': '\\$',
@@ -67,6 +69,9 @@ encode_dict = {
 	'%': '\\%',
 	'#': '\\# ',
 	'_': '\\_',
+	'>': '\\textgreater{}',
+	'<': '\\textless{}',
+	'\n': '\n\n',
 }
 
 
@@ -102,7 +107,7 @@ class Dumper(DumperClass):
 
 		for element in list.getchildren():
 			text = tex_encode(element.text)
-			if element.tag == 'p':
+			if element.tag in ('p', 'div'):
 				if 'indent' in element.attrib:
 					indent = int(element.attrib['indent'])
 				else:
@@ -112,18 +117,32 @@ class Dumper(DumperClass):
 				if indent:
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
-			elif element.tag == 'ul':
-				output.append('\\begin{itemize}\n')
-				self.dump_children(element,output,list_level=list_level+1)
-				output.append('\\end{itemize}')
 			elif element.tag == 'h':
 				level = int(element.attrib['level'])
 				if level < 1: level = 1
 				elif level > 5: level = 5
 				output.append(sectioning[self.document_type][level]%(text))
+			elif element.tag == 'ul':
+				output.append('\\begin{itemize}\n')
+				self.dump_children(element,output,list_level=list_level+1)
+				output.append('\\end{itemize}')
+			elif element.tag == 'ol':
+				start = element.attrib.get('start', 1)
+				if start in string.lowercase:
+					type = 'a'
+					start = string.lowercase.index(start) + 1
+				elif start in string.uppercase:
+					type = 'A'
+					start = string.uppercase.index(start) + 1
+				else:
+					type = '1'
+					start = int(start)
+				output.append('\\begin{enumerate}[%s]\n' % type)
+				if start > 1:
+					output.append('\setcounter{enumi}{%i}\n' % (start-1))
+				self.dump_children(element,output,list_level=list_level+1)
+				output.append('\\end{enumerate}')
 			elif element.tag == 'li':
-				if 'indent' in element.attrib:
-					list_level = int(element.attrib['indent'])
 				if 'bullet' in element.attrib:
 					bullet = bullet_types[element.attrib['bullet']]
 				else:
@@ -139,9 +158,9 @@ class Dumper(DumperClass):
 				myoutput.append(element.text)
 				if indent:
 					myoutput.prefix_lines('    ' * indent)
-				output.append('\n\\begin{verbatim}\n')
+				output.append('\n\\begin{lstlisting}\n')
 				output.extend(myoutput)
-				output.append('\n\\end{verbatim}\n')
+				output.append('\n\\end{lstlisting}\n')
 			elif element.tag == 'sub':
 				output.append('$_{%s}$' % element.text)
 			elif element.tag == 'sup':
@@ -154,15 +173,20 @@ class Dumper(DumperClass):
 				if 'type' in element.attrib and element.attrib['type'] == 'equation':
 					try:
 						# Try to find the source, otherwise fall back to image
-						equri = self.linker.link(element.attrib['src'])
-						eqfid = File(url_decode(equri[:-4] + '.tex'))
-						output.append('\\begin{math}\n')
-						output.extend(eqfid.read().strip())
-						output.append('\n\\end{math}')
-					except:
-						logger.exception('Could not find latex equation:')
+						src = element.attrib['src'][:-4] + '.tex'
+						file = self.linker.resolve_file(src)
+						if file is not None:
+							equation = file.read().strip()
+						else:
+							equation = None
+					except FileNotFoundError:
+						logger.warn('Could not find latex equation: %s', src)
 					else:
-						done = True
+						if equation:
+							output.append('\\begin{math}\n')
+							output.extend(equation)
+							output.append('\n\\end{math}')
+							done = True
 
 				if not done:
 					if 'width' in element.attrib and not 'height' in element.attrib:
@@ -174,21 +198,23 @@ class Dumper(DumperClass):
 					else:
 						options = ''
 
-					imagepath = File(self.linker.link(element.attrib['src'])).path
+					#~ imagepath = File(self.linker.link(element.attrib['src'])).path
+					imagepath = self.linker.link(element.attrib['src'])
 					image = '\\includegraphics[%s]{%s}' % (options, imagepath)
 					if 'href' in element.attrib:
-						output.append('\\href{%s}{%s}' % (element.attrib['href'], image))
+						href = self.linker.link(element.attrib['href'])
+						output.append('\\href{%s}{%s}' % (href, image))
 					else:
 						output.append(image)
 			elif element.tag == 'link':
 				href = self.linker.link(element.attrib['href'])
-				output.append('\\href{%s}{%s}\n' % (href, text))
+				output.append('\\href{%s}{%s}' % (href, text))
 			elif element.tag == 'emphasis':
 				output.append('\\emph{'+text+'}')
 			elif element.tag == 'strong':
 				output.append('\\textbf{'+text+'}')
 			elif element.tag == 'mark':
-				output.append('\\underline{'+text+'}')
+				output.append('\\uline{'+text+'}')
 			elif element.tag == 'strike':
 				output.append('\\sout{'+text+'}')
 			elif element.tag == 'code':
@@ -197,11 +223,14 @@ class Dumper(DumperClass):
 				for delim in '+*|$&%!-_':
 					if not delim in text:
 						success = True
-						output.append('\\verb'+delim+text+delim)
+						output.append('\\lstinline'+delim+text+delim)
 						break
 				if not success:
 					assert False, 'Found no suitable delimiter for verbatim text: %s' % element
 					pass
+			elif element.tag == 'tag':
+				# LaTeX doesn't have anything similar to tags afaik
+				output.append(text)
 			else:
 				assert False, 'Unknown node type: %s' % element
 

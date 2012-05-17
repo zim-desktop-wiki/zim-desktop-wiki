@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from tests import TestCase
 
@@ -16,6 +16,11 @@ class TestParsing(TestCase):
 		self.assertEquals(result, list)
 		list = ['"foo bar"', ',', r'"\"foooo bar\""', 'dusss', 'ja']
 		result = split_quoted_strings(string, unescape=False)
+		self.assertEquals(result, list)
+
+		string = r'''"foo bar", False, True'''
+		list = ['foo bar', ',', 'False', ',', 'True']
+		result = split_quoted_strings(string)
 		self.assertEquals(result, list)
 
 	def testParseDate(self):
@@ -34,14 +39,6 @@ class TestParsing(TestCase):
 		self.assertEqual(parse_date('1-11-2001'), (2001, 11, 1))
 		self.assertEqual(parse_date('1:11:2001'), (2001, 11, 1))
 		self.assertEqual(parse_date('2001/11/1'), (2001, 11, 1))
-
-	def testTitle(self):
-		for string, wanted in (
-			('foo bar', 'Foo Bar'),
-			('FooBar baz', 'FooBar Baz'),
-			('dusJa check123', 'dusJa Check123'),
-		):
-			self.assertEqual(title(string), wanted)
 
 	def testRe(self):
 		'''Test parsing Re class'''
@@ -96,8 +93,8 @@ class TestParsing(TestCase):
 	def testLinkType(self):
 		'''Test link_type()'''
 		for href, type in (
-			('zim+file://foo/bar?dus.txt', 'zim-notebook'),
-			('file://foo/bar', 'file'),
+			('zim+file://foo/bar?dus.txt', 'notebook'),
+			('file:///foo/bar', 'file'),
 			('http://foo/bar', 'http'),
 			('http://192.168.168.100', 'http'),
 			('file+ssh://foo/bar', 'file+ssh'),
@@ -105,7 +102,8 @@ class TestParsing(TestCase):
 			('mailto:foo.com', 'page'),
 			('foo@bar.com', 'mailto'),
 			('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
-			('http:foo@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('mid:foo@bar.org', 'mid'),
+			('cid:foo@bar.org', 'cid'),
 			('./foo/bar', 'file'),
 			('/foo/bar', 'file'),
 			('~/foo', 'file'),

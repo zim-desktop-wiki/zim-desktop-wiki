@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains utilities for parsing strings and text'''
 
 import re
-import string
 
 
 def split_quoted_strings(string, unescape=True):
@@ -13,7 +12,8 @@ def split_quoted_strings(string, unescape=True):
 	word_re = Re(r'''
 		(	'(\\'|[^'])*' |  # single quoted word
 			"(\\"|[^"])*" |  # double quoted word
-			\S+              # word without spaces
+			[^\s,]+       |  # word without spaces and commas
+			,                # comma
 		)''', re.X)
 	string = string.strip()
 	words = []
@@ -66,7 +66,7 @@ def unescape_quoted_string(string):
 #	assume it is encoded properly to start with
 #	return unicode
 #
-# space is really just ' ', other whithespace characters like tab or
+# space is really just ' ', other whitespace characters like tab or
 # newline should not appear in the first place - so do not facilitate
 # them.
 #
@@ -105,9 +105,9 @@ def url_encode(url, mode=URL_ENCODE_PATH):
 	'''Replaces non-standard characters in urls with hex codes.
 
 	Mode can be:
-		URL_ENCODE_DATA - encode all un-safe chars
-		URL_ENCODE_PATH - encode all un-safe chars except '/'
-		URL_ENCODE_READABLE - encode whitespace and all unicode characters
+		- C{URL_ENCODE_DATA}: encode all un-safe chars
+		- C{URL_ENCODE_PATH}: encode all un-safe chars except '/'
+		- C{URL_ENCODE_READABLE}: encode whitespace and all unicode characters
 
 	The mode URL_ENCODE_READABLE can be applied to urls that are already
 	encoded because they do not touch the "%" character. The modes
@@ -144,14 +144,14 @@ def url_decode(url, mode=URL_ENCODE_PATH):
 	'''Replace url-encoding hex sequences with their proper characters.
 
 	Mode can be:
-		URL_ENCODE_DATA - decode all chars
-		URL_ENCODE_PATH - same as URL_ENCODE_DATA
-		URL_ENCODE_READABLE - decode only whitespace and unicode characters
+		- C{URL_ENCODE_DATA}: decode all chars
+		- C{URL_ENCODE_PATH}: same as URL_ENCODE_DATA
+		- C{URL_ENCODE_READABLE}: decode only whitespace and unicode characters
 
-	The mode URL_ENCODE_READABLE will not decode any other characters,
+	The mode C{URL_ENCODE_READABLE} will not decode any other characters,
 	so urls decoded with these modes can still contain escape sequences.
-	They are save fo usage within zim, but should be re-encoded with
-	URL_ENCODE_READABLE before handing them to an external program.
+	They are safe to use within zim, but should be re-encoded with
+	C{URL_ENCODE_READABLE} before handing them to an external program.
 
 	The result is returned as a unicode string.
 	'''
@@ -176,10 +176,10 @@ def parse_date(string):
 	'''Returns a tuple of (year, month, day) for a date string or None
 	if failed to parse the string. Current supported formats:
 
-		dd?-mm?
-		dd?-mm?-yy
-		dd?-mm?-yyyy
-		yyyy-mm?-dd?
+		- C{dd?-mm?}
+		- C{dd?-mm?-yy}
+		- C{dd?-mm?-yyyy}
+		- C{yyyy-mm?-dd?}
 
 	Where '-' can be replaced by any separator. Any preceding or
 	trailing text will be ignored (so we can parse calendar page names
@@ -213,30 +213,12 @@ def parse_date(string):
 		return None
 
 
-# These sets adjust to the current locale - so not same as "[a-z]" ..
-# Must be kidding - no classes for this in the regex engine !?
-_classes = {'upper': string.uppercase}
-upper_re = re.compile(r'[%(upper)s]' % _classes)
-del _classes
-
-def title(string):
-	'''Slightly smarter version of str.title(). Does not "downgrade"
-	words that already have upper case in it.
-	'''
-	def titleword(match):
-		word = match.group(0)
-		if upper_re.search(word): return word
-		else: return word.title()
-
-	return re.sub(r'\w+', titleword, string, re.U)
-
-
 class Re(object):
 	'''Wrapper around regex pattern objects which memorizes the
 	last match object and gives list access to it's capturing groups.
 	See module re for regex docs.
 
-	Usage:
+	Usage::
 
 		my_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
 
@@ -330,11 +312,14 @@ class Re(object):
 		return self.m.end(group)
 
 # Some often used regexes
-is_url_re = Re('^(\w[\w\+\-\.]+)://')
-	# scheme "://"
-is_email_re = Re('^(mailto:)?\S+\@\S+\.\w+$')
+is_uri_re = Re('^(\w[\w\+\-\.]*):')
+	# "scheme:"
+is_url_re = Re('^(\w[\w\+\-\.]*)://')
+	# "scheme://"
+is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+$', re.U)
 	# "mailto:" address
 	# name "@" host
+	# but exclude other uris like mid: and cid:
 is_path_re = Re(r'^(/|\.\.?[/\\]|~.*[/\\]|[A-Za-z]:\\)')
 	# / ~/ ./ ../ ~user/  .\ ..\ ~\ ~user\
 	# X:\
@@ -343,8 +328,9 @@ is_win32_path_re = Re(r'^[A-Za-z]:[\\/]')
 is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# \\host\share
 	# smb://host/share
-is_interwiki_re = Re('^(\w[\w\+\-\.]+)\?(.*)')
-	# identifyer "?" path
+is_interwiki_re = Re('^(\w[\w\+\-\.]*)\?(.*)', re.U)
+	# identifier "?" path
+is_interwiki_keyword_re = re.compile('^\w[\w\+\-\.]*$', re.U)
 
 
 _classes = {'c': r'[^\s"<>\']'} # limit the character class a bit
@@ -354,7 +340,7 @@ url_re = Re(r'''(
 	\b mailto: %(c)s+ \@ %(c)s* \[ %(c)s+ \] (?: %(c)s+ [\w/] )? |
 	\b mailto: %(c)s+ \@ %(c)s+ [\w/]                            |
 	\b %(c)s+ \@ %(c)s+ \. \w+ \b
-)''' % _classes, re.X)
+)''' % _classes, re.X | re.U)
 	# Full url regex - much more strict then the is_url_re
 	# The host name in an uri can be "[hex:hex:..]" for ipv6
 	# but we do not want to match "[http://foo.org]"
@@ -362,11 +348,17 @@ url_re = Re(r'''(
 
 
 def link_type(link):
-	'''Function that retuns a link type for urls and page links'''
+	'''Function that returns a link type for urls and page links'''
 	if is_url_re.match(link):
-		if link.startswith('zim+'): type = 'zim-notebook'
+		if link.startswith('zim+'): type = 'notebook'
 		else: type = is_url_re[1]
 	elif is_email_re.match(link): type = 'mailto'
+	elif '@' in link and (
+		link.startswith('mid:') or
+		link.startswith('cid:')
+	):
+		return link[:3]
+		# email message uris, see RFC 2392
 	elif is_win32_share_re.match(link): type = 'smb'
 	elif is_path_re.match(link): type = 'file'
 	elif is_interwiki_re.match(link): type = 'interwiki'
@@ -375,7 +367,7 @@ def link_type(link):
 
 
 class TextBuffer(list):
-	'''List of strings. Allows you to append arbitry pieces of text but
+	'''List of strings. Allows you to append arbitrary pieces of text but
 	calling get_lines() will recombine or split text into lines. Used by
 	parsers that need to output lines but handle smaller pieces of text
 	internally.
@@ -390,6 +382,6 @@ class TextBuffer(list):
 
 	def prefix_lines(self, prefix):
 		'''Prefix each line with string 'prefix'.'''
-		lines = self.get_lines()
+		lines = self.get_lines(end_with_newline=False)
+			# allowing end_with_newline here modifies content
 		self[:] = [prefix + line for line in lines]
-

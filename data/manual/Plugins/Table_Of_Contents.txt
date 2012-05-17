@@ -1,0 +1,9 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2012-01-10T19:24:49+01:00
+
+====== Table Of Contents ======
+
+This plugin adds a widget with a Table Of Contents for the current page. It can be either in the side pane or "floating" on top of the page. The Table Of Contents gives an outline of all headings in the page, and allows modifying this outline (try the context menu).
+
+**Dependencies:** This plugin has no additional dependencies.

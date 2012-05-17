@@ -228,14 +228,17 @@ Open the folder with attachments for the current page in a file browser. Typical
 **Open Notebook Folder**
 Open the folder for the current notebook in a file browser.
 
+**Cleanup Attachments**
+Starts a dialog to search for orphaned files.  When an attachment link is removed, the file still exists in the attachment directory. From time to time it may be useful do find and delete this "orphaned" files.
+
 **Start Web Server**
 Start a stand-alone web server to make the current notebook available as a web page. Can be used to check the html formatting live, or to quickly share the current notebook with others on the same network.
 
 **Open Document Root**
 Open the document root folder in a file browser.
 
-**Re-build Index**
-Clear the cache and re-index the notebook. This can be used when the index is by accident out of sync with the notebook contents.
+**Update Index**
+Double check the page index against the folder contents of the notebook. This can be used when the index is by accident out of sync with the notebook contents.
 
 
 ===== Go =====

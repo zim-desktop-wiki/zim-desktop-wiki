@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>[% title %]</title>
+		<meta name='Generator' content='Zim [% zim.version %]'>
+		<style type='text/css'>
+			a          { text-decoration: none      }
+			a:hover    { text-decoration: underline }
+			a:active   { text-decoration: underline }
+			strike     { color: grey                }
+			u          { text-decoration: none;
+			             background-color: yellow   }
+			tt         { color: #2e3436;            }
+			pre        { color: #2e3436;
+			             margin-left: 20px          }
+			h1         { text-decoration: underline;
+			             color: #4e9a06             }
+			h2         { color: #4e9a06             }
+			h3         { color: #4e9a06             }
+			h4         { color: #4e9a06             }
+			h5         { color: #4e9a06             }
+			span.insen { color: grey                }
+		</style>
+	</head>
+	<body>
+
+<!-- Header -->
+
+[% IF pages.previous -%]
+	[ <a href='[% url(pages.previous) %]'>Prev</a> ]
+[%- ELSE -%]
+	[ <span class='insen'>Prev</span> ]
+[%- END %]
+
+[% IF page.properties.type == 'namespace-index' -%]
+	[ <span class='insen'>Index</span> ]
+[%- ELSE -%]
+	[% IF pages.index -%]
+		[ <a href='[% url(pages.index) %]'>Index</a> ]
+	[%- ELSE -%]
+		[ <a href='/'>Index</a> ]
+	[%- END %]
+[%- END %]
+
+[% IF pages.next -%]
+	[ <a href='[% url(pages.next) %]'>Next</a> ]
+[%- ELSE -%]
+	[ <span class='insen'>Next</span> ]
+[%- END %]
+
+<!-- End Header -->
+
+<hr />
+
+<!-- Wiki content -->
+
+[% IF page.properties.type == 'namespace-index' -%]
+<h1>Document Index</h1>
+[%- ELSE -%]
+<h1>[% page.heading %]</h1>
+[%- END %]
+
+[% page.body %]
+
+<!-- End wiki content -->
+
+<hr />
+<a href="http:/www.zim-wiki.org" style="float:right;">Powered by Zim [% zim.version %]<img src="[% resource('foo/bar.png') %]" alt=" "></a>
+<!-- Backlinks -->
+
+[% IF page.backlinks -%]
+	Backlinks:
+	[%- FOREACH link = page.backlinks -%]
+		<a href='[% url(link) %]'>[% link.name %]</a></li>
+	[%- END -%]
+[%- ELSE -%]
+	No backlinks to this page.
+[%- END %]
+
+<!-- End Backlinks -->
+
+	</body>
+
+</html>

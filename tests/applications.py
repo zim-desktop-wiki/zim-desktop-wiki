@@ -1,12 +1,11 @@
-
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
-from tests import TestCase, create_tmp_dir
 
 import os
+import sys
 import gtk
 
 from zim.gui.applications import *
@@ -22,7 +21,7 @@ def replace(l, old, new):
 	return tuple(l)
 
 
-class TestApplications(TestCase):
+class TestApplications(tests.TestCase):
 
 	def testParseExec(self):
 		'''Test parsing of .desktop Exec strings'''
@@ -75,8 +74,30 @@ class TestApplications(TestCase):
 			result = entry.parse_exec(args)
 			self.assertEqual(result, wanted)
 
+	def testPythonCmd(self):
+		app = Application('foo.py')
+		cwd, argv = app._checkargs(None, ())
+		exe = argv[0].decode(zim.fs.ENCODING)
+		cmd = argv[1].decode(zim.fs.ENCODING)
+		self.assertEqual(exe, sys.executable)
+		self.assertEqual(cmd, 'foo.py')
 
-class TestCustomTools(TestCase):
+		from zim import ZimCmd, ZIM_EXECUTABLE
+		app = ZimCmd()
+		self.assertIsInstance(app, Application)
+		cwd, argv = app._checkargs(None, ())
+		exe = argv[0].decode(zim.fs.ENCODING)
+		cmd = argv[1].decode(zim.fs.ENCODING)
+		self.assertEqual(exe, sys.executable)
+		self.assertEqual(cmd, ZIM_EXECUTABLE)
+
+	# TODO fully test _decode_value
+	# test e.g. values with '"' or '\t' in a string
+	# see that json.loads does what it is supposed to do
+
+
+@tests.slowTest
+class TestCustomTools(tests.TestCase):
 
 	def testManager(self):
 		'''Test CustomToolManager API'''
@@ -164,16 +185,16 @@ class TestCustomTools(TestCase):
 		# %n for notebook location (file or directory)
 		# %D for document root
 		# %t for selected text or word under cursor
+		# %T for selected text or word under cursor with wiki format
 
-		notebook = tests.get_test_notebook()
+		path = self.get_tmp_name()
+		notebook = tests.new_notebook(fakedir=path)
 		page = notebook.get_page(Path('Test:Foo'))
 		pageview = StubPageView()
 		args = (notebook, page, pageview)
 
 		tmpfile = TmpFile('tmp-page-source.txt').path
-		dir = Dir(tests.create_tmp_dir('applications_TestCustomTools'))
-		notebook.dir = dir # fake file store
-		notebook._stores[''].dir = dir # fake file store
+		dir = notebook.dir
 
 		tool = CustomToolDict()
 		tool.update( {
@@ -183,11 +204,12 @@ class TestCustomTools(TestCase):
 		} )
 		for cmd, wanted in (
 			('foo %f', ('foo', tmpfile)),
-			('foo %d', ('foo', dir.subdir('Test/Foo'))),
+			('foo %d', ('foo', dir.subdir('Test/Foo').path)),
 			('foo %s', ('foo', '')), # no file source
 			('foo %n', ('foo', dir.path)),
 			('foo %D', ('foo', '')), # no document root
 			('foo %t', ('foo', 'FooBar')),
+			('foo %T', ('foo', '**FooBar**')),
 		):
 			#~ print '>>>', cmd
 			tool['Desktop Entry']['X-Zim-ExecTool'] = cmd
@@ -196,8 +218,11 @@ class TestCustomTools(TestCase):
 
 class StubPageView(object):
 
-	def get_selection(self):
+	def get_selection(self, format=None):
 		return None
 
-	def get_word(self):
-		return 'FooBar'
+	def get_word(self, format=None):
+		if format:
+			return '**FooBar**'
+		else:
+			return 'FooBar'

@@ -13,6 +13,7 @@ help:
 	@echo "make source - Create source package"
 	@echo "make buildrpm - Generate a rpm package"
 	@echo "make builddeb - Generate a deb package"
+	@echo "make epydoc - Generate API docs using 'epydoc'"
 	@echo "make clean - Get rid of scratch and byte files"
 
 source:
@@ -31,9 +32,14 @@ builddeb:
 	dpkg-buildpackage -i -I -rfakeroot
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 
+epydoc:
+	epydoc --config ./epydoc.conf -v
+	@echo -e '\nAPI docs are available in ./apidocs'
+
 clean:
 	$(PYTHON) setup.py clean
 	rm -rf build/ MANIFEST tests/tmp/ locale/ man/ xdg/hicolor
 	find . -name '*.pyc' -delete
+	find . -name '*.pyo' -delete
 	find . -name '*~' -delete
 	rm -fr debian/zim* debian/files debian/python-module-stampdir/

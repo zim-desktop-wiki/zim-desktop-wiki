@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gtk
 import time
@@ -57,7 +57,8 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [(COMMAND, Application((COMMAND,)).tryexec())]
+		has_tool = Application((COMMAND,)).tryexec()
+		return has_tool, [(COMMAND, has_tool, True)]
 
 	def insert_screenshot(self):
 		dialog = InsertScreenshotDialog.unique(self, self.ui)
@@ -115,8 +116,8 @@ class InsertScreenshotDialog(Dialog):
 				self.ui.mainwindow.pageview.insert_image(file, interactive=False)
 			else:
 				ErrorDialog(self.ui,
-					_('Some error occured while running "%s"') % COMMAND).run()
-					# T: Error message in "insert screenshot" dialog, %s will be replaced by aplication name
+					_('Some error occurred while running "%s"') % COMMAND).run()
+					# T: Error message in "insert screenshot" dialog, %s will be replaced by application name
 
 		tmpfile.dir.touch()
 		helper.spawn((tmpfile,), callback, tmpfile)
