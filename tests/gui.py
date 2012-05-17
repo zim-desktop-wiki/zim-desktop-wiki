@@ -375,6 +375,11 @@ class TestDialogs(tests.TestCase):
 		dialog = PluginConfigureDialog(pref_dialog, klass)
 		dialog.assert_response_ok()
 
+	def testTemplateEditorDialog(self):
+		from zim.gui.templateeditordialog import TemplateEditorDialog
+		dialog = TemplateEditorDialog(self.ui)
+		# TODO what to test here ??
+		dialog.assert_response_ok()
 
 	# Test for ExportDialog can be found in test/export.py
 	# Test for NotebookDialog is in separate class below

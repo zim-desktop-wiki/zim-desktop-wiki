@@ -102,8 +102,8 @@ class GnuplotGenerator(ImageGeneratorClass):
    imagename = 'gnuplot.png'
 
    def __init__(self):
-       file = data_file('templates/_gnuplot.gnu')
-       assert file, 'BUG: could not find templates/_gnuplot.gnu'
+       file = data_file('templates/plugins/gnuploteditor.gnu')
+       assert file, 'BUG: could not find templates/plugins/gnuploteditor.gnu'
        self.template = GenericTemplate(file.readlines(), name=file)
        self.plotscriptfile = TmpFile(self.scriptname)
 
@@ -116,7 +116,7 @@ class GnuplotGenerator(ImageGeneratorClass):
 
        plot_script = "".join(text)
 
-       template_vars = { # they go in /usr/share/zim/templates/_gnuplot.gnu
+       template_vars = { # they go in the template
            'gnuplot_script': plot_script,
            'png_fname': pngfile.path,
        }

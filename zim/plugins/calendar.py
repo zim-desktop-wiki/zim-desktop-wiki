@@ -193,6 +193,7 @@ This is a core plugin shipping with zim.
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
 			TemplateManager.connect('process-page', self.on_process_page_template)
+			## FIXME - no real disconnect for this connect ...
 
 	def finalize_notebook(self, notebook):
 		self.do_preferences_changed()
@@ -340,7 +341,7 @@ class DateRangeTemplateFunction(TemplateFunction):
 		oneday = datetime.timedelta(days=1)
 		yield self.start
 		next = self.start + oneday
-		while next < self.end:
+		while next <= self.end:
 			yield next
 			next += oneday
 

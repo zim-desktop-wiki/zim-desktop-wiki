@@ -84,8 +84,8 @@ import gobject
 import zim.fs
 from zim.fs import File, Dir
 from zim.errors import Error, TrashNotSupportedError
-from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
-	config_file, data_dir, user_dirs, data_dirs, config_dirs
+from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
+	config_file, data_dir, user_dirs, config_dirs, list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode, url_decode
 from zim.async import AsyncLock
@@ -190,18 +190,11 @@ class NotebookInfoList(list):
 	@ivar default: L{NotebookInfo} object for the default
 	'''
 
-	def __init__(self, file, default=None):
+	def __init__(self, file):
 		'''Constructor
-
-		Signature is compatible to use this class with
-		L{zim.config.config_file()}.
-
-		@param file: file object for notebooks.list
-		@param default: file object for the default notebooks.list in
-		case 'file' does not exists
+		@param file: a L{File} or L{ConfigFile} object for X{notebooks.list}
 		'''
-		self._file = file
-		self._defaultfile = default # default config file
+		self.file = file
 		self.default = None # default notebook
 		self.read()
 		try:
@@ -211,14 +204,7 @@ class NotebookInfoList(list):
 
 	def read(self):
 		'''Read the config and cache and populate the list'''
-		if self._file.exists():
-			file = self._file
-		elif self._defaultfile:
-			file = self._defaultfile
-		else:
-			return
-
-		lines = file.readlines()
+		lines = self.file.readlines()
 		if len(lines) > 0:
 			if lines[0].startswith('[NotebookList]'):
 				self.parse(lines)
@@ -358,7 +344,7 @@ class NotebookInfoList(list):
 				'icon=%s\n' % info.icon_path,
 			])
 
-		self._file.writelines(lines)
+		self.file.writelines(lines)
 
 	def update(self):
 		'''Update L{NotebookInfo} objects and write cache'''
@@ -424,7 +410,8 @@ def get_notebook_list():
 	This will load the list from the default X{notebooks.list} file
 	'''
 	# TODO use weakref here
-	return config_file('notebooks.list', klass=NotebookInfoList)
+	file = config_file('notebooks.list')
+	return NotebookInfoList(file)
 
 
 def resolve_notebook(string):
@@ -559,16 +546,10 @@ def interwiki_link(link):
 		else:
 			return None
 
-	for dir in config_dirs():
+	for dir in config_dirs(): # also implies data_dirs()
 		url = check_dir(dir)
 		if url:
 			break
-
-	if not url:
-		for dir in data_dirs():
-			url = check_dir(dir)
-			if url:
-				break
 
 	# If not found check known notebook
 	if not url:
@@ -732,6 +713,7 @@ class Notebook(gobject.GObject):
 		('home', 'page', _('Home Page')), # T: label for properties dialog
 		('icon', 'image', _('Icon')), # T: label for properties dialog
 		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
+		#~ ('profile', 'string', _('Profile'), list_profiles), # T: label for properties dialog
 		('profile', 'string', _('Profile')), # T: label for properties dialog
 		('shared', 'bool', _('Shared Notebook')), # T: label for properties dialog
 	)

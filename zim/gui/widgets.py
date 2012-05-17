@@ -32,6 +32,12 @@ import sys
 import os
 import re
 
+try:
+	import gtksourceview2
+	GTKSOURCEVIEW_LOADED = True
+except ImportError:
+	GTKSOURCEVIEW_LOADED = False
+
 import zim
 
 import zim.errors
@@ -162,6 +168,19 @@ def gtk_window_set_default_icon():
 	gtk.window_set_default_icon_list(*iconlist)
 
 
+def ScrolledWindow(widget):
+	'''Wrap C{widget} in a C{gtk.ScrolledWindow} and return the resulting
+	widget
+	@param widget: any Gtk widget
+	@returns: a C{gtk.ScrolledWindow}
+	'''
+	window = gtk.ScrolledWindow()
+	window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+	window.set_shadow_type(gtk.SHADOW_IN)
+	window.add(widget)
+	return window
+
+
 def scrolled_text_view(text=None, monospace=False):
 	'''Initializes a C{gtk.TextView} with sane defaults for displaying a
 	piece of multiline text and wraps it in a scrolled window
@@ -189,6 +208,36 @@ def scrolled_text_view(text=None, monospace=False):
 	window.add(textview)
 	return window, textview
 
+def sourceview(text=None, syntax=None):
+	'''If GTKSourceView was succesfully loaded, this generates a SourceView and
+	initializes it. Otherwise scrolled_text_view will be used as a fallback.
+
+	@param text: initial text to show in the view
+	@param syntax: this will try to enable syntax highlighting for the given
+	language. If None, no syntax highlighting will be enabled.
+	@returns: a 2-tuple of a window and a view.
+	'''
+	if GTKSOURCEVIEW_LOADED:
+		gsvbuf = gtksourceview2.Buffer()
+		if syntax:
+			gsvbuf.set_highlight_syntax(True)
+			language_manager = gtksourceview2.LanguageManager()
+			gsvbuf.set_language(language_manager.get_language(syntax))
+		if text:
+			gsvbuf.set_text(text)
+		textview = gtksourceview2.View(gsvbuf)
+		textview.set_property("show-line-numbers", True)
+		textview.set_property("auto-indent", True)
+		font = pango.FontDescription('Monospace')
+		textview.modify_font(font)
+		textview.set_property("smart-home-end", True)
+		window = gtk.ScrolledWindow()
+		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		window.set_shadow_type(gtk.SHADOW_IN)
+		window.add(textview)
+		return (window, textview)
+	else:
+		return scrolled_text_view(text=text, monospace=True)
 
 def populate_popup_add_separator(menu, prepend=False):
 	'''Convenience function that adds a C{gtk.SeparatorMenuItem}
@@ -2382,7 +2431,7 @@ class Dialog(gtk.Dialog):
 		@returns: C{self.result}
 		@raises AssertionError: if L{do_response_ok} returns C{False}
 		'''
-		if not self.do_response_ok() is True:
+		if not (self._no_ok_action or self.do_response_ok() is True):
 			raise AssertionError, '%s.do_response_ok() did not return True' % self.__class__.__name__
 		self.save_uistate()
 		self.destroy()

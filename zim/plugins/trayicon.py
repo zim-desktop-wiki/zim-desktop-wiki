@@ -6,7 +6,7 @@ import gobject
 import gtk
 
 from zim.plugins import PluginClass
-from zim.config import data_file, config_file
+from zim.config import data_file, get_config
 from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 from zim.gui.widgets import gtk_window_set_default_icon
 
@@ -30,7 +30,7 @@ def main(daemonproxy, *args):
 	from zim import ZimCmd
 	ZimCmd().run(args=('--daemon',))
 
-	preferences = config_file('preferences.conf')['TrayIconPlugin']
+	preferences = get_config('preferences.conf')['TrayIconPlugin']
 	preferences.setdefault('classic', False)
 
 	from zim.daemon import DaemonProxy

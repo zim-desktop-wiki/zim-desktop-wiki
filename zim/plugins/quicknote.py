@@ -8,7 +8,7 @@ import re
 from datetime import date as dateclass
 
 from zim.plugins import PluginClass
-from zim.config import config_file, data_file
+from zim.config import get_config, data_file
 from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
 from zim.daemon import DaemonProxy
 from zim.gui.widgets import Dialog, scrolled_text_view, IconButton, \
@@ -227,7 +227,7 @@ class BoundQuickNoteDialog(Dialog):
 		self.textview.get_buffer().connect('changed', self.on_text_changed)
 
 		# Initialize text from template
-		file = data_file('templates/_quicknote.txt')
+		file = data_file('templates/plugins/quicknote.txt')
 		template = GenericTemplate(file.readlines(), name=file)
 		template_options.update({
 			'text': text or '',
@@ -311,7 +311,7 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 	'''Dialog which includes a notebook chooser'''
 
 	def __init__(self, ui, notebook=None, namespace=None, basename=None, text=None, template_options=None):
-		self.config = config_file('quicknote.conf')
+		self.config = get_config('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
 		Dialog.__init__(self, ui, _('Quick Note'))

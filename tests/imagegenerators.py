@@ -64,6 +64,11 @@ class TestGenerator(tests.TestCase):
 			dialog.set_text(self.invalidinput)
 			dialog.assert_response_ok()
 
+		# Check menu
+		#~ plugin = self.pluginklass(MockUI())
+		#~ menu = gtk.Menu()
+		#~ plugin.do_populate_popup(menu, buffer, iter, image)
+
 
 @tests.skipUnless(InsertEquationPlugin.check_dependencies_ok(), 'Missing dependencies')
 class TestEquationEditor(TestGenerator):

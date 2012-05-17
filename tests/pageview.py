@@ -1696,7 +1696,7 @@ Baz
 		notebook = pageview.ui.notebook
 		self.assertIsNone(notebook.profile)
 		self.assertIsNone(pageview.style.profile)
-		self.assertEqual(pageview.style.file, default_file)
+		self.assertEqual(pageview.style.file.file, default_file)
 
 		# create a new style based on the default one, changing some properties
 		profile_file.remove()
@@ -1710,7 +1710,7 @@ Baz
 		notebook.save_properties(profile='testProfile')
 		self.assertEqual(notebook.profile, 'testProfile')
 		self.assertEqual(pageview.style.profile, 'testProfile')
-		self.assertEqual(pageview.style.file, profile_file)
+		self.assertEqual(pageview.style.file.file, profile_file)
 		self.assertEqual(pageview.style['TextView']['indent'], 50)
 		self.assertEqual(pageview.style['TextView']['font'], 'Sans 8')
 		self.assertEqual(pageview.style['TextView']['linespacing'], 10)
@@ -1729,7 +1729,7 @@ Baz
 
 		pageview = setUpPageView(notebook=notebook)
 		self.assertEqual(pageview.style.profile, 'testProfile')
-		self.assertEqual(pageview.style.file, profile_file)
+		self.assertEqual(pageview.style.file.file, profile_file)
 
 
 class TestPageviewDialogs(tests.TestCase):
