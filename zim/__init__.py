@@ -557,9 +557,13 @@ class NotebookInterface(gobject.GObject):
 		# but sort them here to make behavior predictable.
 		plugins = self.preferences['General']['plugins']
 		for name in sorted(plugins):
-			klass = zim.plugins.get_plugin(name)
-			if klass.is_profile_independent:
-				self.load_plugin(name)
+			try:
+				klass = zim.plugins.get_plugin(name)
+			except:
+				logger.exception('Failed to load plugin klass for plugin "%s"', name)
+			else:
+				if klass.is_profile_independent:
+					self.load_plugin(name)
 
 	def load_plugins(self, independent_only=False):
 		'''Loads all the plugins defined in the preferences that are
@@ -601,7 +605,7 @@ class NotebookInterface(gobject.GObject):
 				raise AssertionError, 'Dependencies failed for plugin %s' % name
 			plugin = klass(self)
 		except:
-			logger.exception('Failed to load plugin %s', name)
+			logger.exception('Failed to load plugin "%s"', name)
 			try:
 				self.preferences['General']['plugins'].remove(name)
 				self.preferences.set_modified(True)
@@ -610,7 +614,7 @@ class NotebookInterface(gobject.GObject):
 			return None
 		else:
 			self.plugins.append(plugin)
-			logger.debug('Loaded plugin %s (%s)', name, plugin)
+			logger.debug('Loaded plugin "%s" (%s)', name, plugin)
 
 		plugin.plugin_key = name
 		if not name in self.preferences['General']['plugins']:
