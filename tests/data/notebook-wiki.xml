@@ -370,4 +370,8 @@ Duss
 <page name="Parent:Daughter:SomeOne:Bar">For page.menu template variable test</page>
 <page name="Parent:Child:Grandchild">For page.menu template variable test</page>
 
+<page name="Movers">Subpages will be moved</page>
+<page name="Movers:Stator">Non-mover</page>
+<page name="Movers:Stator:Mover">Move me</page>
+
 </pagelist>

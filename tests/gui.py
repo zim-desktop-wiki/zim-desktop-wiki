@@ -575,8 +575,15 @@ class TestGtkInterface(tests.TestCase):
 		self.assertFalse(self.ui.page.get_parsetree() is None)
 
 	def testPageMove(self):
+		oldpath, newpath = Path('Movers:Stator:Mover'), Path('Movers:Mover')
+
+		# Open page and process message queue to sync tree view
+		indexpath = self.ui.notebook.index.lookup_path(oldpath)
+		self.ui.open_page(indexpath)
+		while gtk.events_pending():
+			gtk.main_iteration(False)
+
 		# Test actual moving
-		oldpath, newpath = Path('Test:foo:bar'), Path('Test:bar')
 		page = self.ui.notebook.get_page(oldpath)
 		text = page.dump('wiki')
 		self.ui.notebook.index.ensure_update()
