@@ -579,7 +579,32 @@ class TestGtkInterface(tests.TestCase):
 		self.ui.save_page()
 		self.assertFalse(self.ui.page.get_parsetree() is None)
 
-	# TODO notebook manipulation (new (sub)page, move, rename, delete ..)
+	def testPageMove(self):
+		oldpath, newpath = Path('Movers:Stator:Mover'), Path('Movers:Mover')
+
+		# Open page and process message queue to sync tree view
+		indexpath = self.ui.notebook.index.lookup_path(oldpath)
+		self.ui.open_page(indexpath)
+		while gtk.events_pending():
+			gtk.main_iteration(False)
+
+		# Test actual moving
+		page = self.ui.notebook.get_page(oldpath)
+		text = page.dump('wiki')
+		self.ui.notebook.index.ensure_update()
+		self.ui.notebook.move_page(oldpath, newpath)
+		self.ui.notebook.index.ensure_update()
+
+		# newpath should exist and look like the old one
+		page = self.ui.notebook.get_page(newpath)
+		self.assertEqual(page.dump('wiki'), text)
+
+		# oldpath should be deleted
+		page = self.ui.notebook.get_page(oldpath)
+		self.assertFalse(page.haschildren)
+		self.assertFalse(page.hascontent)
+
+	# TODO notebook manipulation (new (sub)page, rename, delete ..)
 	# merge with tests for dialogs (?)
 
 	def testClipboard(self):
