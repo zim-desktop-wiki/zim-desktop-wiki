@@ -364,7 +364,7 @@ class Index(gobject.GObject):
 	new or all tables have been dropped. E.g. a plugin could add a
 	handler to create it's custom tables on this signal.
 
-	@signal: C{page-inserted (indexpath)}: emitted when a page is newly
+	@signal: C{page-inserted (L{IndexPath})}: emitted when a page is newly
 	added to the index (so a new row is inserted in the pages table)
 	@signal: C{page-updated (L{IndexPath})}: page content has changed
 	@signal: C{page-indexed (L{IndexPath}, L{Page})}: emitted after a

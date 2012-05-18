@@ -2308,6 +2308,10 @@ class MainWindow(Window):
 		elif fullscreen:
 			self._set_fullscreen = True
 
+		# Init mouse settings
+		self.ui.preferences['GtkInterface'].setdefault('mouse_nav_button_back', 8)
+		self.ui.preferences['GtkInterface'].setdefault('mouse_nav_button_forw', 9)
+
 	def do_update_statusbar(self, *a):
 		page = self.pageview.get_page()
 		if not page:
@@ -2844,6 +2848,17 @@ class MainWindow(Window):
 		if state: text = 'OVR'
 		else: text = 'INS'
 		self.statusbar_insert_label.set_text(text)
+
+	def do_button_press_event(self, event):
+		## Try to capture buttons for navigation
+		if event.button > 3:
+			if event.button == self.ui.preferences['GtkInterface']['mouse_nav_button_back']:
+				self.ui.open_page_back()
+			elif event.button == self.ui.preferences['GtkInterface']['mouse_nav_button_forw']:
+				self.ui.open_page_forward()
+			else:
+				logger.debug("Unused mouse button %i", event.button)
+		#~ return Window.do_button_press_event(self, event)
 
 # Need to register classes defining gobject signals or overloading methods
 gobject.type_register(MainWindow)

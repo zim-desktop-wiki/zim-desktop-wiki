@@ -771,6 +771,17 @@ class Notebook(gobject.GObject):
 			self.index = index
 			self.index.set_notebook(self)
 
+		def on_page_updated(index, indexpath):
+			## FIXME still not called for parent pages -- need refactor
+			## of index to deal with this properly I'm afraid...
+			#~ print "UPDATED", indexpath
+			if indexpath.name in self._page_cache:
+				#~ print "  --> IN CAHCE"
+				self._page_cache[indexpath.name].haschildren = indexpath.haschildren
+
+		self.index.connect('page-inserted', on_page_updated)
+		self.index.connect('page-updated', on_page_updated)
+
 		if self.config is None:
 			self.config = ConfigDict()
 			self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
@@ -2188,7 +2199,6 @@ class Path(object):
 				path.pop()
 		yield Path(':')
 
-
 	def child(self, name):
 		'''Get a child Path
 
@@ -2266,6 +2276,8 @@ class Page(Path):
 		assert isinstance(path, Path)
 		self.name = path.name
 		self.haschildren = haschildren
+			# Note: this attribute is updated by the owning notebook
+			# when a child page is stored
 		self.valid = True
 		self.modified = False
 		self._parsetree = parsetree

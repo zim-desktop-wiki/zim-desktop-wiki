@@ -208,7 +208,8 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 						treeiter = self.get_iter(treepath)
 					except ValueError:
 						continue
-					self.emit('row-changed', treepath, treeiter)
+					else:
+						self.emit('row-changed', treepath, treeiter)
 
 	def on_get_flags(self):
 		return 0 # no flags
