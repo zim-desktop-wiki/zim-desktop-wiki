@@ -762,6 +762,8 @@ class BaseLinker(object):
 				else:
 					logger.warn('No URL found for interwiki link "%s"', link)
 					link = href
+			elif type == 'notebook':
+				href = self.link_notebook(link)
 			else: # I dunno, some url ?
 				method = 'link_' + type
 				if hasattr(self, method):

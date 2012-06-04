@@ -4,9 +4,12 @@
 
 import tests
 
+import os
+
 from zim.fs import _md5, File, Dir
 from zim.config import data_file, ConfigDict
-from zim.notebook import Path, Notebook, init_notebook
+from zim.notebook import Path, Notebook, init_notebook, \
+	interwiki_link, get_notebook_list, NotebookInfo
 from zim.exporter import Exporter, StaticLinker
 from zim.applications import Application
 
@@ -33,6 +36,21 @@ class TestLinker(tests.TestCase):
 		self.assertEqual(linker.link_file('./dus.pdf'), './bar/dus.pdf')
 		self.assertEqual(linker.link_file('../dus.pdf'), './dus.pdf')
 		self.assertEqual(linker.link_file('../../dus.pdf'), '../dus.pdf')
+
+		## setup environment for interwiki link
+		if os.name == 'nt':
+			uri = 'file:///C:/foo'
+		else:
+			uri = 'file:///foo'
+
+		list = get_notebook_list()
+		list.append(NotebookInfo(uri, interwiki='foo'))
+		list.write()
+		##
+
+		href = interwiki_link('foo?Ideas:Task List')
+		self.assertIsNotNone(href)
+		self.assertEqual(linker.link('foo?Ideas:Task List'), uri + '/Ideas/Task_List.txt')
 
 
 @tests.slowTest
