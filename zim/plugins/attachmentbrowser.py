@@ -251,9 +251,19 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			self.fileview.connect("query-tooltip", self.query_tooltip_icon_view_cb)
 
 		# Store colors
-		self.fileview.ensure_style()
-		self._senstive_color = self.fileview.style.base[gtk.STATE_NORMAL]
-		self._insenstive_color = self.fileview.style.base[gtk.STATE_INSENSITIVE]
+		self._senstive_color = None
+		self._insenstive_color = None
+
+		def _init_base_color(*a):
+			# This is handled on expose event, because style does not
+			# yet reflect theming on construction
+			if self._senstive_color is None:
+				self._senstive_color = self.fileview.style.base[gtk.STATE_NORMAL]
+				self._insenstive_color = self.fileview.style.base[gtk.STATE_INSENSITIVE]
+
+			self._update_state()
+
+		self.connect('expose-event', _init_base_color)
 
 	def on_open_page(self, ui, page, path):
 		self.set_folder(ui.notebook.get_attachments_dir(page))
