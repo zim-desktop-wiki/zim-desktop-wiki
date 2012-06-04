@@ -31,12 +31,12 @@ On Ubuntu or other debian derived systems, the following packages should be inst
 * python-gtk2
 * python-xdg
 
-**Note:** see [[downloads]] for a per-packaged Ubuntu package
+**Note:** see [[downloads]] for a pre-packaged Ubuntu package
 
 === Windows ===
 To install gtk, python and python-gtk on Windows see the instructions at http://www.pygtk.org . If you use python 2.5 you will also need to install the python simplejson module. This can be obtained from http://pypi.python.org. The python-xdg module is not usefull on Windows, so you can skip it.
 
-**Note:** see [[downloads]] for a per-packaged Windows installer
+**Note:** see [[downloads]] for a pre-packaged Windows installer
 
 === Mac OS X ===
 You can run zim on mac if you have the proper dependencies installed.

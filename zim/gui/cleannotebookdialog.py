@@ -129,7 +129,7 @@ class OrphanedFilesTreeView(gtk.TreeView):
 		cell_renderer.set_property('activatable', True)
 		cell_renderer.connect( 'toggled', self.toggled_selection)
 		column = gtk.TreeViewColumn(_("Selection"), cell_renderer)
-			## T: Column heading in 'Oprhaned Files' dialog
+			## T: Column heading in 'Orphaned Files' dialog
 		column.add_attribute( cell_renderer, "active", SEL_COL)
 		self.append_column(column)
 
@@ -175,7 +175,7 @@ class CleanNotebookDialog(Dialog):
 		self._no_ok_action = False
 
 		button = gtk.Button(_('Invert Selection'))
-    		# T: Button in "Clean Notebook" dialog
+			# T: Button in "Clean Notebook" dialog
 		button.connect('clicked', self.do_response_toggle)
 		self.action_area.add(button)
 		self.action_area.set_child_secondary(button, True)

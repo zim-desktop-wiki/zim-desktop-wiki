@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gtk
 
-from zim.fs import *
-from zim.exporter import Exporter
 import zim.formats
 import zim.templates
+
+from zim.fs import File, Dir
+from zim.exporter import Exporter
 from zim.stores import encode_filename
 from zim.gui.widgets import Assistant, AssistantPage, \
 	ProgressBarDialog, ErrorDialog, QuestionDialog
@@ -32,6 +33,9 @@ class ExportDialog(Assistant):
 			if self.uistate[k] and not self.uistate[k].isspace():
 				options[k] = self.uistate[k]
 
+		options['format'] = \
+			zim.formats.canonical_name(options['format'])
+
 		if options['template'] == '__file__':
 			options['template'] = self.uistate['template_file']
 
@@ -44,6 +48,15 @@ class ExportDialog(Assistant):
 			ErrorDialog(self, error).run()
 			return False
 
+		index = self.ui.notebook.index
+		if index.updating:
+			dialog = ProgressBarDialog(self, _('Updating index'))
+			# T: Title of progressbar dialog
+			index.ensure_update(callback=lambda p: dialog.pulse(p.name))
+			dialog.destroy()
+			if dialog.cancelled:
+				return False
+
 		if self.uistate['selection'] == 'all':
 			dir = Dir(self.uistate['output_folder'])
 			if dir.exists() and len(dir.list()) > 0:
@@ -51,7 +64,7 @@ class ExportDialog(Assistant):
 					_('Folder exists: %s') % dir.path, # T: message heading
 					_('Folder already exists and has content, '
 					  'exporting to this folder may overwrite '
-					  'exisitng files. '
+					  'existing files. '
 					  'Do you want to continue?' ) # T: detailed message, answers are Yes and No
 				) ).run()
 				if not ok:
@@ -122,7 +135,7 @@ class InputPage(AssistantPage):
 			'page': 'selection:page',
 			#~ 'recursive': 'selection:page',
 		} )
-		self.form.widgets['page'].force_existing = True
+		self.form.widgets['page'].existing_only = True
 
 	def init_uistate(self):
 		#~ self.uistate.setdefault('selection', 'all', ('all', 'page'))
@@ -165,11 +178,11 @@ class FormatPage(AssistantPage):
 		# Set template list based on selected format
 		def set_templates(self):
 			format = self.form['format']
+			format = zim.formats.canonical_name(format)
 			combobox = self.form.widgets['template']
 			combobox.get_model().clear()
 
-			templates = zim.templates.list_templates(format)
-			for name in sorted(templates):
+			for name, _ in zim.templates.list_templates(format):
 				combobox.append_text(name)
 			combobox.append_text(self.CHOICE_OTHER)
 			combobox.set_sensitive(True)
@@ -193,7 +206,7 @@ class FormatPage(AssistantPage):
 							o.get_active_text() == self.CHOICE_OTHER) )
 
 		# Check if we have a document root - if not disable all options
-		docroot = assistant.ui.notebook.get_document_root()
+		docroot = assistant.ui.notebook.document_root
 		if not docroot:
 			for widget in self.form.widgets:
 				if widget.startswith('document_root:'):
@@ -253,9 +266,9 @@ class OutputPage(AssistantPage):
 		# Switch between folder selection or file selection based
 		# on whether we selected full notebook or single page in the
 		# first page
-		self.uistate.setdefault('output_folder', '')
+		self.uistate.setdefault('output_folder', '', Dir)
 		self.uistate.setdefault('index_page', '')
-		self.uistate.setdefault('output_file', '')
+		self.uistate.setdefault('output_file', '', File)
 
 		show_file = self.uistate.get('selection') == 'page'
 		if show_file:
@@ -272,9 +285,14 @@ class OutputPage(AssistantPage):
 		if show_file:
 			basename = self.uistate['selected_page'].basename
 			ext = zim.formats.get_format(self.uistate['format']).info['extension']
-			file = File('~/' + encode_filename(basename  + '.' + ext))
+
+			if self.uistate['output_file'] \
+			and isinstance(self.uistate['output_file'], File):
+				dir = self.uistate['output_file'].dir
+				file = dir.file(encode_filename(basename  + '.' + ext))
+			else:
+				file = File('~/' + encode_filename(basename  + '.' + ext))
 			self.uistate['output_file'] = file
-			# TODO rememeber last file output folder
 
 		self.form['file'] = self.uistate['output_file']
 		self.form['folder'] = self.uistate['output_folder']

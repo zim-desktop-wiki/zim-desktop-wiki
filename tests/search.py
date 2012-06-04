@@ -1,10 +1,13 @@
+# -*- coding: utf-8 -*-
 
-from tests import get_test_notebook, TestCase
+# Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+import tests
 
 from zim.search import *
 from zim.notebook import Path
 
-class TestSearchRegex(TestCase):
+class TestSearchRegex(tests.TestCase):
 
 	def runTest(self):
 		'''Test regex compilation for search terms'''
@@ -35,10 +38,15 @@ class TestSearchRegex(TestCase):
 
 
 
-class TestSearch(TestCase):
+class TestSearch(tests.TestCase):
 
 	def setUp(self):
-		self.notebook = get_test_notebook()
+		self.notebook = tests.new_notebook()
+
+	def callback_check(self, selection, path):
+		self.assertIsInstance(selection, (SearchSelection, type(None)))
+		self.assertIsInstance(path, (Path, type(None)))
+		return True
 
 	def runTest(self):
 		'''Test search API'''
@@ -51,10 +59,10 @@ class TestSearch(TestCase):
 				QueryTerm('contentorname', 'foo'),
 				QueryTerm('contentorname', 'bar')
 			] )
-		results.search(query)
+		results.search(query, callback=self.callback_check)
 		#~ print results
 		self.assertTrue(len(results) > 0)
-		self.assertFalse(Path('TODOList:foo') in results)
+		self.assertFalse(Path('TaskList:foo') in results)
 		self.assertTrue(Path('Test:foo') in results)
 		self.assertTrue(Path('Test:foo:bar') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
@@ -66,10 +74,10 @@ class TestSearch(TestCase):
 				QueryTerm('contentorname', 'TODO'),
 				QueryTerm('contentorname', 'bar', inverse=True)
 			] )
-		results.search(query)
+		results.search(query, callback=self.callback_check)
 		#~ print results
 		self.assertTrue(len(results) > 0)
-		self.assertTrue(Path('TODOList:foo') in results)
+		self.assertTrue(Path('TaskList:foo') in results)
 		self.assertFalse(Path('Test:foo') in results)
 		self.assertFalse(Path('Test:foo:bar') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
@@ -81,10 +89,10 @@ class TestSearch(TestCase):
 				QueryTerm('contentorname', 'TODO'),
 				QueryTerm('contentorname', 'bar', inverse=True)
 			] )
-		results.search(query)
+		results.search(query, callback=self.callback_check)
 		#~ print results
 		self.assertTrue(len(results) > 0)
-		self.assertTrue(Path('TODOList:foo') in results)
+		self.assertTrue(Path('TaskList:foo') in results)
 		self.assertFalse(Path('Test:foo') in results)
 		self.assertFalse(Path('Test:foo:bar') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
@@ -97,19 +105,23 @@ class TestSearch(TestCase):
 				QueryTerm('contentorname', 'TODO'),
 				QueryTerm('contentorname', 'bar')
 			] ] )
-		results.search(query)
+		results.search(query, callback=self.callback_check)
 		#~ print results
 		self.assertTrue(len(results) > 0)
-		self.assertTrue(Path('TODOList:foo') in results)
+		self.assertTrue(Path('TaskList:foo') in results)
 		self.assertTrue(Path('Test:foo') in results)
 		self.assertTrue(Path('Test:foo:bar') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
 		self.assertTrue(all(results.scores.values()))
 
+		query = Query('ThisWordDoesNotExistingInTheTestNotebook')
+		results.search(query, callback=self.callback_check)
+		self.assertFalse(results)
+
 		query = Query('LinksTo: "Linking:Foo:Bar"')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
 		self.assertEqual(query.root, [QueryTerm('linksto', 'Linking:Foo:Bar')])
-		results.search(query)
+		results.search(query, callback=self.callback_check)
 		#~ print results
 		self.assertTrue(Path('Linking:Dus:Ja') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
@@ -118,11 +130,15 @@ class TestSearch(TestCase):
 		query = Query('NOT LinksTo:"Linking:Foo:Bar"')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
 		self.assertEqual(query.root, [QueryTerm('linksto', 'Linking:Foo:Bar', True)])
-		results.search(query)
+		results.search(query, callback=self.callback_check)
 		#~ print results
 		self.assertFalse(Path('Linking:Dus:Ja') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
 		self.assertTrue(all(results.scores.values()))
+
+		query = Query('LinksTo:"NonExistingNamespace:*"')
+		results.search(query, callback=self.callback_check)
+		self.assertFalse(results)
 
 		query = Query('LinksFrom: "Linking:Dus:Ja"')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
@@ -130,38 +146,53 @@ class TestSearch(TestCase):
 		query = Query('Links: "Linking:Dus:Ja"') # alias for LinksFrom
 		self.assertTrue(query.root.operator == OPERATOR_AND)
 		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Linking:Dus:Ja')])
-		results.search(query)
+		results.search(query, callback=self.callback_check)
 		#~ print results
 		self.assertTrue(Path('Linking:Foo:Bar') in results)
 		self.assertTrue(set(results.scores.keys()) == results)
 		self.assertTrue(all(results.scores.values()))
 
+		query = Query('LinksFrom:"NonExistingNamespace:*"')
+		results.search(query, callback=self.callback_check)
+		self.assertFalse(results)
+
+		query = Query('Namespace: "TaskList" fix')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('namespace', 'TaskList'), QueryTerm('contentorname', 'fix')])
+		results.search(query, callback=self.callback_check)
+		#~ print results
+		self.assertTrue(Path('TaskList:foo') in results)
+
+		query = Query('Namespace: "NonExistingNamespace"')
+		results.search(query, callback=self.callback_check)
+		#~ print results
+		self.assertFalse(results)
+
+		query = Query('Tag: tags')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('tag', 'tags')])
+		query = Query('@tags')
+		self.assertTrue(query.root.operator == OPERATOR_AND)
+		self.assertEqual(query.root, [QueryTerm('tag', 'tags')])
+		results.search(query, callback=self.callback_check)
+		#~ print results
+		self.assertTrue(Path('Test:tags') in results and len(results) == 2)
+			# Tasklist:all is the second match
+
+		query = Query('Tag: NonExistingTag')
+		results.search(query, callback=self.callback_check)
+		self.assertFalse(results)
+
 		# TODO test ContentOrName versus Content
-		# TODO test Name and Namespace
+		# TODO test Name
 
 
-def get_files_notebook(name):
-	from tests import create_tmp_dir, get_test_data
-	from zim.fs import Dir
-	from zim.notebook import init_notebook, Notebook
-
-	dir = Dir(create_tmp_dir(name))
-	init_notebook(dir)
-	notebook = Notebook(dir=dir)
-	for name, text in get_test_data('wiki'):
-		page = notebook.get_page(Path(name))
-		page.parse('wiki', text)
-		notebook.store_page(page)
-
-	return notebook
-
-
+@tests.slowTest
 class TestSearchFiles(TestSearch):
 
-	slowTest = True
-
 	def setUp(self):
-		self.notebook = get_files_notebook('search_TestSearchFiles')
+		path = self.create_tmp_dir()
+		self.notebook = tests.new_files_notebook(path)
 
 	def runTest(self):
 		'''Test search API with file based notebook'''

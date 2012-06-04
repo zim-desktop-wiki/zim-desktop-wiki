@@ -1,8 +1,134 @@
 ===== Changes for zim =====
-Jaap Karssenberg <pardus@cpan.org>
+Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-This branch is the Python rewrite and starts with version 0.42. 
+This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
+
+=== 0.56 - Mon  2 Apr 2012 ===
+* Merged support for Git and Mercurial version control backends -
+  Damien Accorsi & John Drinkwater
+* Merged plugin for "ditaa" diagrams - YPWang
+* Merged patch for different configuration profiles, allowing per
+  notebook configuration of plugins, font etc. - Mariano Draghi
+* Added drag & drop support for the Attachment Browser plugin
+* Made sidepane and tagcloud remember state
+* Fixed critical bug for opening email adresses without "mailto:" prefix
+* Fixed bug where context menu for page index applied to the current page
+  instead of the selected page
+* Added a Serbian translation
+
+=== 0.55 - Tue 28 Feb 2012 ===
+* Numbered lists are now supported
+* The index now has "natural" sorting, so "9" goes before "10"
+* Added new plugin to show a Table Of Contents per page, and allows modifying the outline
+* Added Markdown (with pandoc extensions) as an export format
+* New context menu item "move text" for refactoring text to a new page
+* Tasklist now supports a "next:" keyword to indicate dependencies,
+  and it can hide tasks that are not yet actionable
+* Made zim taskbar icons and trayicon overloadable in theme - Andrei
+* Fixed behavior of Recent Pages pathbar in cases where part of the history is dropped
+* Fixed behavior of the Search dialog, it no longer hangs and also allows cancelling the search
+* Fixed bug where replacing a word (e.g spell correction) could drop formatting
+* Fixed behavior of case-sensitive rename on a case-insensitive file system (windows)
+
+=== 0.54 - Thu 22 Dec 2011 ===
+Bug fix release with minor feature enhancements
+* Added mono icons for the Ubuntu Unity panel
+* Tasklist plugin now supports hierarchic nested tasks
+* Added "automount" plugin to automatically mount notebook folders
+* Interwiki lookup now goes over all urls.list files in the path
+* Fixed bug that prevented clicking links in read-only mode
+* Fixed bug for parsing relative paths to parent pages e.g. in drag and drop
+* Fixed bug causing the index to jump with every page selection
+* Fixed bug causing the icon for custom tools to be missing in the toolbar
+* Fixed bug for drag and drop of files on windows
+* Fixed bug causing task list to reset when page is saved
+* Fixed autocomplete for page entry in quicknote
+* Fixed error in "you found a bug" error dialogs :S
+* Fixed issue in test suite for loading pixbufs
+* Added translation for Galician
+
+=== 0.53 - Mon 19 Sep 2011 ===
+* Cosmetic updates to entry widgets, the page index, the insert date dialog,
+  and the tasklist dialog
+* Updated the find function to properly switch focus and highlight current
+  match even when text does not have focus - Oliver Joos
+* Added function to remember the position of the main window across sessions
+  and the position of dialog within a session - Oliver Joos
+* Added "interwiki keyword" to give shorthand for linking notebooks - Jiří
+  Janoušek
+* Added template function to create a page index - Jiří Janoušek
+* Added support to include additional files with a template - Jiří Janoušek
+* Added preference for always setting the cursor position based on history
+  or not
+* Added feature so images now can have a link target as well - Jiří Janoušek
+* Refactored index to do much less database commit actions, resulting in
+  performance gain on slow storage media
+* Added "print to browser" button in the tasklist dialog
+* Added "--search" commandline option
+* Added feature for calendar plugin to use one page per week, month, or year
+  instead of one page per day - Jose Orlando Pereira
+* Added feature to have implicit deadline for tasks defined on a calendar
+  page - Jose Orlando Pereira
+* Added new plugin for evaluating inline arithmetic expressions - Patricio Paez
+* Added support for plugins to have optional dependencies - John Drinkwater
+* Added hook so plugins can register handlers for specific URL schemes
+* Upgraded test suite to unittest support shipped with python 2.7
+* Increased test coverage for main window, dialogs, and image generator plugins
+* Many small typo fixes and code cleanup - Oliver Joos
+* Extensive updates for the developer API documentation - now using epydoc
+* Made file paths in config file relative to home dir where possible in order
+  to facilitate portable version (e.g. home dir mapped to USB drive)
+* Build code updated to build new windows installer and support for portable
+  install - Brendan Kidwell
+* Fixed build process to hardcode platform on build time (maemo version)
+* Fixed bug in notebook list, causing compiled version to be unable to set
+  a default notebook (windows version)
+* Fixed bug with copy-pasting and drag-n-drop using relative paths
+* Fixed bug allowing to click checkboxes in read-only mode
+* Fixed several possible exceptions when moving pages
+* Fixed execution of python scripts on windows - Chris Liechti
+* Fix to preserve file attributes (like mtime) when copying attachments
+  - Oliver Joos
+* Fixed path of checkbox images in html export - Jiří Janoušek
+* Fix for indexing error in scenario with external syncing (e.g. dropbox)
+* Fix for latex output to use "\textless{}" and "\textgreater{}"
+* Fixed Maemo window class, and python 2.5 compatibility - Miguel Angel Alvarez
+* Fixed unicode usage in template module - Jiří Janoušek
+* Fixed error handling for errors from bzr in versioncontrol plugin
+* Fixed error handling for errors due to non-utf-8 encoded text in pages
+
+
+
+=== 0.52 - Thu 28 Apr 2011 ===
+Bug fix release
+* Fixed a critical bug in the "Add Notebook" prompt for the first notebook on
+  a fresh install and two minor bugs with the ntoebook list - Jiří Janoušek
+
+
+=== 0.51 - Tue 19 Apr 2011 ===
+* Fixed critical bug with resizing images - Stefan Muthers
+* Fixed bug preventing resizing of text entries in dialogs
+* Fixed bug disabling auto-completion for page names in dialogs
+* Fix so cancelling the preferences dialog will also reset plugins
+  - Lisa Vitolo
+* Fix to switch sensitivity of items in the Edit menu on cursor position
+  - Konstantin Baierer
+* Fix to handle case where document_root is inside notebook folder
+  - Jiří Janoušek
+* Fixed support for interwiki links in export
+* Fixed "Link Map" plugin to actually support clicking on page names in the map
+* Fixed copy pasting to use plain text by default for external applications
+  added preference to revert to old behavior
+* Disable <Alt><Space> keybinding due to conflicts with internationalization
+  added hidden preference to get it back if desired
+* Added support for organizing pages by tags - Fabian Moser
+* Added feature to zoom font size of the page view on <Ctrl>+ / <Ctrl>-
+  - Konstantin Baierer
+* Added support for system Trash (using gio if available)
+* Added Calendar widget to the "Insert Date" dialog
+* Added plugin to sort selected lines - NorfCran
+* Added plugin for GNUplot plots - Alessandro Magni
 
 
 === 0.50 - Mon 14 Feb 2011 ===
@@ -20,10 +146,10 @@ of input forms and dialogs, but this is not very visible to the user.
 * Preview is now shown when selecting icons files - Stefan Muthers
 * Image paths are now made relative when pasting image an file - Jiří Janoušek
 * Image data is now accepted on the clipboard directly - Stefan Muthers
-* Added overview of files to be deleted to Delete Page dialog to avoid 
+* Added overview of files to be deleted to Delete Page dialog to avoid
   acidental deletes
 * Added traceback log to "You found a bug" error dialog
-* Fixed critical bug for windows where zim tries to write log file 
+* Fixed critical bug for windows where zim tries to write log file
   to a non-existing folder
 * Fixed critical bug where text below the page title goes missing on rename
 * Fixed behavior when attaching files, will no longer automatically overwrite
@@ -31,14 +157,14 @@ of input forms and dialogs, but this is not very visible to the user.
 * Fixed bug when opening notebooks through an inter-wiki link
 * Fixed support for month and year pages in Calendar namespace
 * Fixed support for wiki syntax in Quick Note dialog when inserting in page
-* Fixed bug in Task List plugin where it did not parse checkbox lists with a 
+* Fixed bug in Task List plugin where it did not parse checkbox lists with a
   label above it as documented in the manual
 * Fixed bug with custom template in export dialog - Jiří Janoušek
 * Fixed bug with style config for tab size
 * Fixed many more smaller bugs
 * Rewrote logic for indented text and bullet lists, fixes remaining
   glitches in indent rendering and now allow formatting per bullet type
-* Refactored part of the Attachment Browser plugin, no longer depends 
+* Refactored part of the Attachment Browser plugin, no longer depends
   on Image Magick for thumbnailing and added action buttons
 * Refactored code for input forms and decoupled from Dialog class
 * Refactore History class to use proper Path objects
@@ -75,7 +201,7 @@ of input forms and dialogs, but this is not very visible to the user.
 * Added support for sub- and superscript format - by Michael Mulqueen
 * Updated the export dialog to an Assistant interface
 * Renamed "Create Note" plugin to "Quick Note"
-* Improved the "Quick Note" plugin to support appending to pages and 
+* Improved the "Quick Note" plugin to support appending to pages and
   support templates
 * Fixed webserver to be available from remote hosts and to support files
   and attachments
@@ -107,12 +233,12 @@ Big release with lots of new functionality but also many bug fixes
 * Layout for linkmap improved by switching to the 'fdp' renderer
 * Added new plugin "Insert Symbols" for inserting e.g. unicode characters
 * Added new plugin to insert and edit plots using GNU R (Lee Braiden)
-* Added scripts needed to build a windows installer and fixed various issues 
+* Added scripts needed to build a windows installer and fixed various issues
   relating to proper operation of zim when compiled as windows executable
 * Added option to delete links when deleting a page or placeholder
 * Added option to "move" placeholder by updating links
 * Fixed bug with interwiki links to other notebooks
-* Fixed various bugs due to unicode file names on windows and non-utf8 
+* Fixed various bugs due to unicode file names on windows and non-utf8
   filesystems on other platforms
 * Fixed bug with non-utf8 unicode in urls
 * Fixed bugs with calendar plugin when embedded in side pane
@@ -145,12 +271,12 @@ This release adds improved query syntax for search and several bug fixes
 * Implemented more advanced search syntax - see manual for details
 * Implemented recursive checkbox usage and recursive indenting bullet lists
 * Merged "Insert Link" and "Insert External Link" dialogs
-* Added options to insert attached images and attach inserted images 
+* Added options to insert attached images and attach inserted images
 * Support for recognizing image attachment on windows
 * Fixed bug for lower case drive letters in windows paths
 * Fixed bug with non-date links in the calendar namespace
-* Fixed bug with invalid page names during move page 
-* Fixed bugs with unicode in search, find, task list tags, auto-linking pages 
+* Fixed bug with invalid page names during move page
+* Fixed bugs with unicode in search, find, task list tags, auto-linking pages
   and in url encoding
 * Several fixes in behavior of the page index widget
 * Added translations for Russian and Swedish
@@ -168,7 +294,7 @@ This is a bug fix release with fixes for most important issues found in 0.42
 * Fixed bug with updating links to children of moved pages
 * Added strict check for illegal characters in page names
 * Improved PageEntry to highlight illegal page names
-* Improved user interaction for Edit Link and Insert Link dialogs 
+* Improved user interaction for Edit Link and Insert Link dialogs
 * Trigger Find when a page is opened from the Search dialog
 * Allow selecting multiple tags in Task List plugin
 * Allow negative queries in Task List, like "not @waiting"
@@ -177,7 +303,7 @@ This is a bug fix release with fixes for most important issues found in 0.42
 * Translations added for: English (United Kingdom), Greek and Polish
 
 === 0.42 - Sun 10 Jan 2010 ===
-This is the first release after a complete re-write of zim in python. 
+This is the first release after a complete re-write of zim in python.
 Functionality should be more or less similar to Perl branch version 0.28,
 but details may vary.
 
@@ -191,13 +317,15 @@ Additional issues addressed in this release:
 * Added a web-based interface to read zim notebooks
 * Task List now supports tags
 * Distinguishing between "move page" and "rename page"
-* Menu actions like "Rename Page (F2)" now follow the focus and work in the side pane as well
+* Menu actions like "Rename Page (F2)" now follow the focus and work in the
+  side pane as well
 * Page title can be updated automatically when moving a page
-* "Link" action behaves more like inserting an object instead of applying formatting
+* "Link" action behaves more like inserting an object instead of applying
+  formatting
 * File links are now inserted showing only the basename of the file
 * Dialogs spawned from another dialog will pop over it
 * Dialogs remember their window size
-* Allow user to quit individual notebooks even when the tray icon is in effect 
+* Allow user to quit individual notebooks even when the tray icon is in effect
 * Check for pages that are changed offline now employs MD5 sum to be more robust
 
 Translations available for: Dutch, Estonian, Czech, French, German, Korean,

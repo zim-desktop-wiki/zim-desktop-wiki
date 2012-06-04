@@ -11,7 +11,7 @@
 #
 # Heavily based on equationeditor.py plugin as of:
 # bzr revno 212, (2010-03-10), marked as
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 #
 
 import gtk
@@ -22,7 +22,8 @@ from zim.plugins import PluginClass
 from zim.config import data_file
 from zim.templates import GenericTemplate
 from zim.applications import Application
-from zim.gui.imagegeneratordialog import ImageGeneratorDialog
+from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
+from zim.gui.widgets import populate_popup_add_separator
 
 # TODO put these commands in preferences
 gnu_r_cmd = ('R',)
@@ -53,13 +54,14 @@ class InsertGNURPlotPlugin(PluginClass):
 		'description': _('''\
 This plugin provides a plot editor for zim based on GNU R.
 '''), # T: plugin description
-		'help': ':Plugins:GNU R Plot Editor',
+		'help': 'Plugins:GNU R Plot Editor',
 		'author': 'Lee Braiden',
 	}
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('GNU R',Application(gnu_r_cmd).tryexec())]
+		has_gnur = Application(gnu_r_cmd).tryexec()
+		return has_gnur, [('GNU R', has_gnur, True)]
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
@@ -69,15 +71,15 @@ This plugin provides a plot editor for zim based on GNU R.
 			self.register_image_generator_plugin('gnu_r_plot')
 
 	def insert_gnu_r_plot(self):
-		dialog = InsertPlotDialog.unique(self, self.ui)
+		dialog = InsertGNURPlotDialog.unique(self, self.ui)
 		dialog.show_all()
 
 	def edit_object(self, buffer, iter, image):
-		dialog = InsertPlotDialog(self.ui, image=image)
+		dialog = InsertGNURPlotDialog(self.ui, image=image)
 		dialog.show_all()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
-		menu.prepend(gtk.SeparatorMenuItem())
+		populate_popup_add_separator(menu, prepend=True)
 
 		item = gtk.MenuItem(_('_Edit GNU R Plot')) # T: menu item in context menu
 		item.connect('activate',
@@ -86,41 +88,40 @@ This plugin provides a plot editor for zim based on GNU R.
 
 
 
-class InsertPlotDialog(ImageGeneratorDialog):
+class InsertGNURPlotDialog(ImageGeneratorDialog):
 
 	def __init__(self, ui, image=None):
-		generator = PlotGenerator()
+		generator = GNURPlotGenerator()
 		ImageGeneratorDialog.__init__(self, ui, _('GNU R Plot'), # T: dialog title
 			generator, image, help=':Plugins:GNU R Plot Editor' )
 
 
-class PlotGenerator(object):
+class GNURPlotGenerator(ImageGeneratorClass):
 
-	# TODO: generic base class for image generators
+	uses_log_file = False
 
 	type = 'gnu_r_plot'
-	basename = 'gnu_r_plot.r'
+	scriptname = 'gnu_r_plot.r'
+	imagename = 'gnu_r_plot.png'
 
 	def __init__(self):
-		file = data_file('templates/_GNU_R_Plot.r')
-		assert file, 'BUG: could not find templates/_GNU_R_Plot.r'
+		file = data_file('templates/plugins/gnu_r_editor.r')
+		assert file, 'BUG: could not find templates/plugins/gnu_r_editor.r'
 		self.template = GenericTemplate(file.readlines(), name=file)
-		self.plotscriptfile = TmpFile('gnu_r_plot.r')
+		self.plotscriptfile = TmpFile(self.scriptname)
 
 	def generate_image(self, text):
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
 
 		plotscriptfile = self.plotscriptfile
-
 		pngfile = File(plotscriptfile.path[:-2] + '.png')
-		logfile = File(plotscriptfile.path[:-2] + '.log') # len('.r') == 2
 
 		plot_script = "".join(text)
 
 		template_vars = {
-			'gnu_r_plot_script':		plot_script,
-			'png_fname':			pngfile,
+			'gnu_r_plot_script': plot_script,
+			'png_fname': pngfile.path,
 		}
 
 		# Write to tmp file usign the template for the header / footer
@@ -132,12 +133,12 @@ class PlotGenerator(object):
 		# Call GNU R
 		try:
 			gnu_r = Application(gnu_r_cmd)
-			gnu_r.run(args=('-f', plotscriptfile.basename, ), cwd=plotscriptfile.dir)
+			#~ gnu_r.run(args=('-f', plotscriptfile.basename, ), cwd=plotscriptfile.dir)
+			gnu_r.run(args=('-f', plotscriptfile.basename, '--vanilla'), cwd=plotscriptfile.dir)
 		except:
-			# log should have details of failure
-			return None, logfile
-
-		return pngfile, logfile
+			return None, None # Sorry, no log
+		else:
+			return pngfile, None
 
 	def cleanup(self):
 		path = self.plotscriptfile.path

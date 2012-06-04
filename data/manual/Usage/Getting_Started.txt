@@ -3,21 +3,21 @@ Wiki-Format: zim 0.4
 
 ====== Getting started ======
 
-When you run zim for the first time, the first thing you need to do is to add a [[:Help:notebooks|notebook]]. This means that you need to tell zim in which directory you want to store your pages.
+When you run Zim for the first time, the first thing you need to do is to add a [[:Help:notebooks|notebook]]. This means that you need to tell Zim in which directory you want to store your pages.
 
 When you open a newly created notebook you get an empty page titled "**Home**". You can just start typing on this page. Do not worry about saving, this is done automatically.
 
 Now you can use the items in the //Format// menu or their corresponding [[:Help:Key Bindings|keybindings]] to make text **bold** or //italic//. A special format type is "Link" which highlights a word as a hyperlink. Try selecting a word in your text and press ''<ctrl>L'' this will make the word a link. Now when you click on this word (or press ''<Enter>'' while the cursor is on the link) you go to a new page. You will notice that this new page is generated on the fly.
 
-Once you have several pages you can navigate them like you would in a browser. Their are buttons and keybindings for going Back, Forward or Home.
+Once you have several pages you can navigate them like you would in a browser. There are buttons and keybindings for going Back, Forward or Home.
 
 It is also possible to order your pages into namespaces. The namespace separator is the colon ":" character. So when you use this character as part of a page name the name will be split at that point. The tree in the side pane will show a hierarchy of namespaces when you use this.
 
-After you have edited some pages you might want to have a look at how they are saved. Use your file browser to open the notebook directory. As you will see there is a simple text file corresponding to each page. These text files are formatted with [[:Help:Wiki Syntax|wiki format]] to preserve markup. This "raw" markup can also be used in zim, try entering some raw syntax in your page and press ''<ctrl>R'' to reload the page; your formatting codes are now parsed into markup. Apart from the raw wiki syntax there are also a number of formats that are parsed as you type them, this is called [[Help:Auto Formatting|autoformatting]] and can be very useful to speed up your typing.
+After you have edited some pages you might want to have a look at how they are saved. Use your file browser to open the notebook directory. As you will see there is a simple text file corresponding to each page. These text files are formatted with [[:Help:Wiki Syntax|wiki format]] to preserve markup. This "raw" markup can also be used in Zim, try entering some raw syntax in your page and press ''<ctrl>R'' to reload the page; your formatting codes are now parsed into markup. Apart from the raw wiki syntax there are also a number of formats that are parsed as you type them, this is called [[Help:Auto Formatting|autoformatting]] and can be very useful to speed up your typing.
 
 ===== Some tips =====
 
-Zim has a lot of little features to make often performed routines quicker. Some of these are highlighted below. Just try out some ways to work with zim and see what suits you.
+Zim has a lot of little features to make often performed routines quicker. Some of these are highlighted below. Just try out some ways to work with Zim and see what suits you.
 
 === Use the "Jump to.." dialog ===
 If you want to start a new page without linking to it you can popup the //Jump to..// dialog using "''<Ctrl>J''" and type the name of the page you want. The page you jump to does not have to exist, if it doesn't it will be created on the fly when you start editing. This routine can be used to make notes of thought unrelated to what you are working on when they popup in your mind. You can use "''<Alt>Left''" or the "Back" button to return to what you were doing.

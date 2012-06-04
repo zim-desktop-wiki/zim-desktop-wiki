@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module handles parsing and dumping wiki text'''
 
@@ -14,18 +14,20 @@ WIKI_FORMAT_VERSION = 'zim 0.4'
 
 
 info = {
-	'name':  'Wiki text',
-	'mime':  'text/x-zim-wiki',
-	'read':	  True,
-	'write':  True,
+	'name': 'wiki',
+	'desc': 'Zim Wiki Format',
+	'mimetype': 'text/x-zim-wiki',
+	'extension': 'txt',
+	'native': True,
 	'import': True,
 	'export': True,
 }
 
 TABSTOP = 4
-bullet_re = u'[\\*\u2022]|\\[[ \\*x]\\]'
+bullet_re = u'[\\*\u2022]|\\[[ \\*x]\\]|\d+\.|\w\.'
 	# bullets can be '*' or 0x2022 for normal items
 	# and '[ ]', '[*]' or '[x]' for checkbox items
+	# and '1.', '10.', or 'a.' for numbered items (but not 'aa.')
 
 bullets = {
 	'[ ]': UNCHECKED_BOX,
@@ -38,6 +40,17 @@ bullet_types = {}
 for bullet in bullets:
 	bullet_types[bullets[bullet]] = bullet
 
+_number_bullet_re = re.compile('^(\d+|\w)\.$')
+def _check_number_bullet(bullet):
+	# if bullet is a numbered bullet this returns the number or letter,
+	# None otherwise
+	m = _number_bullet_re.match(bullet)
+	if m:
+		return m.group(1)
+	else:
+		return None
+
+
 parser_re = {
 	'blockstart': re.compile("^(\t*''')\s*?\n", re.M),
 	'pre':        re.compile("^(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*\n", re.M | re.S),
@@ -47,6 +60,9 @@ parser_re = {
 	'listitem':   re.compile("^([ \t]*)(%s)[ \t]+(.*\n?)" % bullet_re),
 	'unindented_line': re.compile('^\S', re.M),
 	'indent':     re.compile('^(\t+)'),
+
+    # Tags are identified by a leading @ sign
+	'tag':        Re(r'(?<!\S)@(?P<name>\w+)\b', re.U),
 
 	# All the experssions below will match the inner pair of
 	# delimiters if there are more then two characters in a row.
@@ -67,17 +83,8 @@ dumper_tags = {
 	'mark':     '__',
 	'strike':   '~~',
 	'code':     "''",
+	'tag':      '', # No additional annotation (apart from the visible @)
 }
-
-
-def contains_links(text):
-	'''Optimisation for page.get_links()'''
-	for line in text:
-		if '[[' in line:
-			return True
-	else:
-		return False
-
 
 class Parser(ParserClass):
 
@@ -246,35 +253,51 @@ class Parser(ParserClass):
 		lines = list.splitlines()
 		if indent > 0:
 			lines = [line[indent:] for line in lines]
-			builder.start('ul', {'indent': indent})
+			self._parse_sublist(builder, lines, 0, attrib={'indent': indent})
 		else:
-			builder.start('ul')
+			self._parse_sublist(builder, lines, 0)
 
-		level = 0 # relative to indent
-		for line in lines:
+	def _parse_sublist(self, builder, lines, level, attrib=None):
+		listtype = None
+		first = True
+		while lines:
+			line = lines[0]
 			m = parser_re['listitem'].match(line)
 			assert m, 'Line does not match a list item: >>%s<<' % line
 			prefix, bullet, text = m.groups()
 
+			if first:
+				number = _check_number_bullet(bullet)
+				if number:
+					listtype = 'ol'
+					if not attrib:
+						attrib = {}
+					attrib['start'] = number
+				else:
+					listtype = 'ul'
+				builder.start(listtype, attrib)
+				first = False
+
 			mylevel = prefix.replace(' '*TABSTOP, '\t').count('\t')
 			if mylevel > level:
-				for i in range(level, mylevel):
-					builder.start('ul')
+				self._parse_sublist(builder, lines, level+1) # recurs
 			elif mylevel < level:
-				for i in range(mylevel, level):
-					builder.end('ul')
-			level = mylevel
-
-			if bullet in bullets:
-				attrib = {'bullet': bullets[bullet]}
+				builder.end(listtype)
+				return
 			else:
-				attrib = {'bullet': '*'}
-			builder.start('li', attrib)
-			self._parse_text(builder, text)
-			builder.end('li')
+				if listtype == 'ol':
+					attrib = None
+				elif bullet in bullets: # ul
+					attrib = {'bullet': bullets[bullet]}
+				else: # ul
+					attrib = {'bullet': '*'}
+				builder.start('li', attrib)
+				self._parse_text(builder, text)
+				builder.end('li')
 
-		for i in range(-1, level):
-			builder.end('ul')
+				lines.pop(0)
+
+		builder.end(listtype)
 
 	def _parse_text(self, builder, text):
 		'''Parse a piece of rich text, handles all inline formatting'''
@@ -319,6 +342,12 @@ class Parser(ParserClass):
 			list = parser_re[style].sublist(
 					lambda match: (style, {}, match[1]) , list)
 
+		def parse_tag(re_):
+			groups = re_.m.groupdict()
+			return ('tag', groups, "@%s" % groups["name"])
+
+		list = parser_re['tag'].sublist(parse_tag, list)
+
 		for item in list:
 			if isinstance(item, tuple):
 				tag, attrib, text = item
@@ -340,7 +369,7 @@ class Dumper(DumperClass):
 		self.dump_children(tree.getroot(), output)
 		return output.get_lines(end_with_newline=not tree.ispartial)
 
-	def dump_children(self, list, output, list_level=-1):
+	def dump_children(self, list, output, list_level=-1, list_type=None, list_iter='0'):
 		if list.text:
 			output.append(list.text)
 
@@ -354,27 +383,33 @@ class Dumper(DumperClass):
 				if indent:
 					myoutput.prefix_lines('\t'*indent)
 				output.extend(myoutput)
-			elif element.tag == 'ul':
-				indent = 0
-				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
-				myoutput = TextBuffer()
-				self.dump_children(element, myoutput, list_level=list_level+1) # recurs
-				if indent:
-					myoutput.prefix_lines('\t'*indent)
-				output.extend(myoutput)
 			elif element.tag == 'h':
 				level = int(element.attrib['level'])
 				if level < 1:   level = 1
 				elif level > 5: level = 5
 				tag = '='*(7 - level)
 				output.append(tag+' '+element.text+' '+tag)
+			elif element.tag in ('ul', 'ol'):
+				indent = int(element.attrib.get('indent', 0))
+				start = element.attrib.get('start')
+				myoutput = TextBuffer()
+				self.dump_children(element, myoutput, list_level=list_level+1, list_type=element.tag, list_iter=start) # recurs
+				if indent:
+					myoutput.prefix_lines('\t'*indent)
+				output.extend(myoutput)
 			elif element.tag == 'li':
 				if 'indent' in element.attrib:
+					# HACK for raw trees from pageview
 					list_level = int(element.attrib['indent'])
-				if 'bullet' in element.attrib:
-					bullet = bullet_types[element.attrib['bullet']]
-				else:
+				if list_type == 'ol':
+					bullet = str(list_iter) + '.'
+					list_iter = increase_list_iter(list_iter) or '1' # fallback if iter not valid
+				elif 'bullet' in element.attrib: # ul OR raw tree from pageview...
+					if element.attrib['bullet'] in bullet_types:
+						bullet = bullet_types[element.attrib['bullet']]
+					else:
+						bullet = element.attrib['bullet'] # Assume it is numbered..
+				else: # ul
 					bullet = '*'
 				output.append('\t'*list_level+bullet+' ')
 				self.dump_children(element, output, list_level=list_level) # recurs
@@ -391,17 +426,22 @@ class Dumper(DumperClass):
 			elif element.tag == 'img':
 				src = element.attrib['src']
 				opts = []
-				for k, v in element.attrib.items():
+				items = element.attrib.items()
+				# we sort params only because unit tests don't like random output
+				items.sort()
+				for k, v in items:
 					if k == 'src' or k.startswith('_'):
 						continue
 					elif v: # skip None, "" and 0
 						opts.append('%s=%s' % (k, v))
 				if opts:
 					src += '?%s' % '&'.join(opts)
+
 				if element.text:
 					output.append('{{'+src+'|'+element.text+'}}')
 				else:
 					output.append('{{'+src+'}}')
+
 			elif element.tag == 'sub':
 				output.append("_{%s}" % element.text)
 			elif element.tag == 'sup':

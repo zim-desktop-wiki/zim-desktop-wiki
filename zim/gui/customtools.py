@@ -1,15 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2010 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains code for defining and managing custom
 commands.
 '''
 
 import gtk
+import logging
+
 
 from zim.gui.applications import CustomToolManager
 from zim.gui.widgets import Dialog, IconButton, IconChooserButton
+from zim.fs import File
+
+
+logger = logging.getLogger('zim.gui')
 
 
 class CustomToolManagerDialog(Dialog):
@@ -116,12 +122,12 @@ class CustomToolList(gtk.TreeView):
 		self.get_selection.select_path(path)
 
 	def refresh(self):
-		from zim.gui.widgets import _encode_xml
+		from zim.gui.widgets import encode_markup_text
 		model = self.get_model()
 		model.clear()
 		for tool in self.manager:
 			pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_MENU)
-			text = '<b>%s</b>\n%s' % (_encode_xml(tool.name), _encode_xml(tool.comment))
+			text = '<b>%s</b>\n%s' % (encode_markup_text(tool.name), encode_markup_text(tool.comment))
 			model.append((pixbuf, text, tool.key))
 
 
@@ -156,11 +162,12 @@ class EditCustomToolDialog(Dialog):
 		}, trigger_response=False)
 
 		# FIXME need ui builder to take care of this as well
-		if tool:
-			iconpixbuf = tool.get_pixbuf(gtk.ICON_SIZE_DIALOG)
-		else:
-			iconpixbuf = None
-		self.iconbutton = IconChooserButton(stock=gtk.STOCK_EXECUTE, pixbuf=iconpixbuf)
+		self.iconbutton = IconChooserButton(stock=gtk.STOCK_EXECUTE)
+		if tool and tool.icon and tool.icon != gtk.STOCK_EXECUTE:
+			try:
+				self.iconbutton.set_file(File(tool.icon))
+			except Exception, error:
+				logger.exception('Could not load: %s', tool.icon)
 		label = gtk.Label(_('Icon')+':') # T: Input in "Edit Custom Tool" dialog
 		label.set_alignment(0.0, 0.5)
 		hbox = gtk.HBox()

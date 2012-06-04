@@ -4,13 +4,14 @@ include *.txt
 include *.py
 include *.pot
 include Makefile
+include epydoc.conf
 recursive-include data/ *
 prune data/manual/.zim/
 recursive-include icons/ *
 recursive-include tools/ *
 recursive-include xdg/ *
 prune xdg/hicolor/
-recursive-include po/ *
+recursive-include translations/ *
 recursive-include cgi-bin/ *
 recursive-include contrib/ *
 recursive-include HACKING/ *

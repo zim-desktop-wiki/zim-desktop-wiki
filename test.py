@@ -2,7 +2,11 @@
 
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# This is a wrapper script to run tests using the unittest
+# framework. It setups the environment properly and defines some
+# commandline options for running tests.
+#
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import os
 import sys
@@ -10,92 +14,8 @@ import shutil
 import getopt
 import logging
 
-import unittest
-import time
-import types
-
 import tests
-
-# TODO overload one of the unittest classes to test add file names
-
-pyfiles = []
-for d, dirs, files in os.walk('zim'):
-	pyfiles.extend([d+'/'+f for f in files if f.endswith('.py')])
-pyfiles.sort()
-
-class FastTestLoader(unittest.TestLoader):
-	'''Extension of TestLoader which ignores all classes which have an
-	attribute 'slowTest' set to True.
-	'''
-
-	def __init__(self, alltests=True):
-		unittest.TestLoader.__init__(self)
-		self.ignored = 0
-		self.skipped = 0
-		self.alltests = alltests
-
-	def loadTestsFromModule(self, module):
-		"""Return a suite of all tests cases contained in the given module"""
-		tests = []
-		for name in dir(module):
-			obj = getattr(module, name)
-			if (isinstance(obj, (type, types.ClassType)) and
-				issubclass(obj, unittest.TestCase)):
-				if not self.alltests and hasattr(obj, 'slowTest') and obj.slowTest:
-					print 'Ignoring slow test:', obj.__name__
-					self.ignored += 1
-				elif hasattr(obj, 'skipTest') and obj.skipTest():
-					print 'Skipping test:', obj.__name__, '-', obj.skipTest()
-					self.skipped += 1
-				else:
-					tests.append(self.loadTestsFromTestCase(obj))
-		return self.suiteClass(tests)
-
-
-class MyTextTestRunner(unittest.TextTestRunner):
-	'''Extionsion of TextTestRunner to report number of ignored tests in the
-	proper place.
-	'''
-
-	def __init__(self, verbosity, ignored, skipped):
-		unittest.TextTestRunner.__init__(self, verbosity=verbosity)
-		self.ignored = ignored
-		self.skipped = skipped
-
-	def run(self, test):
-		"Run the given test case or test suite."
-		result = self._makeResult()
-		startTime = time.time()
-		test(result)
-		stopTime = time.time()
-		timeTaken = stopTime - startTime
-		result.printErrors()
-		self.stream.writeln(result.separator2)
-		run = result.testsRun
-		self.stream.writeln("Ran %d test%s in %.3fs" %
-							(run, run != 1 and "s" or "", timeTaken))
-		ignored = self.ignored
-		if ignored > 0:
-			self.stream.writeln("Ignored %d slow test%s" %
-							(ignored, ignored != 1 and "s" or ""))
-		skipped = self.skipped
-		if skipped > 0:
-			self.stream.writeln("Skipped %d test%s" %
-							(skipped, skipped != 1 and "s" or ""))
-		self.stream.writeln()
-		if not result.wasSuccessful():
-			self.stream.write("FAILED (")
-			failed, errored = map(len, (result.failures, result.errors))
-			if failed:
-				self.stream.write("failures=%d" % failed)
-			if errored:
-				if failed: self.stream.write(", ")
-				self.stream.write("errors=%d" % errored)
-			self.stream.writeln(")")
-		else:
-			self.stream.writeln("OK")
-		return result
-
+from tests import unittest
 
 
 def main(argv=None):
@@ -105,9 +25,10 @@ def main(argv=None):
 
 	# parse options
 	coverage = None
-	alltests = True
+	failfast = False
 	loglevel = logging.WARNING
-	opts, args = getopt.gnu_getopt(argv[1:], 'hVD', ['help', 'coverage', 'fast', 'debug', 'verbose'])
+	opts, args = getopt.gnu_getopt(argv[1:],
+		'hVD', ['help', 'coverage', 'fast', 'failfast', 'debug', 'verbose'])
 	for o, a in opts:
 		if o in ('-h', '--help'):
 			print '''\
@@ -118,7 +39,8 @@ If no module is given the whole test suite is run.
 
 Options:
   -h, --help     print this text
-  --fast         skip a number of slower tests
+  --fast         skip a number of slower tests (assumes --failfast)
+  --failfast     stop after the first test that fails
   --coverage     report test coverage statistics
   -V, --verbose  run with verbose output from logging
   -D, --debug    run with debug output from logging
@@ -129,17 +51,22 @@ Options:
 				import coverage as coverage_module
 			except ImportError:
 				print >>sys.stderr, '''\
-Can not run test coverage without module coverage.
+Can not run test coverage without module 'coverage'.
 On Ubuntu or Debian install package 'python-coverage'.
 '''
 				sys.exit(1)
-			coverage = coverage_module
+			#~ coverage = coverage_module.coverage(data_suffix=True, auto_data=True)
+			coverage = coverage_module.coverage(data_suffix=True)
 			coverage.erase() # clean up old date set
 			coverage.exclude('assert ')
 			coverage.exclude('raise NotImplementedError')
 			coverage.start()
 		elif o == '--fast':
-			alltests = False
+			failfast = True
+			tests.FAST_TEST = True
+				# set before any test classes are loaded !
+		elif o == '--failfast':
+			failfast = True
 		elif o in ('-V', '--verbose'):
 			loglevel = logging.INFO
 		elif o in ('-D', '--debug'):
@@ -150,28 +77,20 @@ On Ubuntu or Debian install package 'python-coverage'.
 	# Set logging handler
 	logging.basicConfig(level=loglevel, format='%(levelname)s: %(message)s')
 
-	# Set environment - so we can be sure we don't see
-	# any data from a previous installed version
-	tests.set_environ()
-
-	# Collect the test cases
-	suite = unittest.TestSuite()
-	loader = FastTestLoader(alltests=alltests)
-
+	# Build the test suite
+	loader = unittest.TestLoader()
 	if args:
-		modules = [ 'tests.'+name for name in args ]
+		suite = unittest.TestSuite()
+		for module in [ 'tests.'+name for name in args ]:
+			test = loader.loadTestsFromName(module)
+			suite.addTest(test)
 	else:
-		suite.addTest(TestCompileAll())
-		suite.addTest(TestNotebookUpgrade())
-		modules = [ 'tests.'+name for name in tests.__all__ ]
+		suite = tests.load_tests(loader, None, None)
 
-	for name in modules:
-		test = loader.loadTestsFromName(name)
-		suite.addTest(test)
-
-	# And run them
-	MyTextTestRunner(verbosity=3,
-		ignored=loader.ignored, skipped=loader.skipped).run(suite)
+	# And run it
+	unittest.installHandler() # Fancy handling for ^C during test
+	result = \
+		unittest.TextTestRunner(verbosity=2, failfast=failfast, descriptions=False).run(suite)
 
 	# Check the modules were loaded from the right location
 	# (so no testing based on modules from a previous installed version...)
@@ -184,74 +103,95 @@ On Ubuntu or Debian install package 'python-coverage'.
 				assert file.startswith(mylib), \
 					'Module %s was loaded from %s' % (module, file)
 
+	test_report(result, 'test_report.html')
+	print '\nWrote test report to test_report.html\n'
+
+	# Create coverage output if asked to do so
 	if coverage:
 		coverage.stop()
-		report_coverage(coverage)
+		#~ coverage.combine()
+
+		print 'Writing coverage reports...'
+
+		pyfiles = list(tests.zim_pyfiles())
+		#~ coverage.report(pyfiles, show_missing=False)
+		#~ coverage.html_report(pyfiles, directory='./coverage', omit=['zim/inc/*'])
+		coverage_report(coverage, pyfiles, './coverage')
+		print 'Done - Coverage reports can be found in ./coverage/'
 
 
-def report_coverage(coverage):
-	print ''
-	print 'Writing detailed coverage reports...'
-	coverage.report(pyfiles, show_missing=False)
 
-	# Detailed report in html
-	if os.path.exists('coverage/'):
-		shutil.rmtree('coverage/') # cleanup
-	os.mkdir('coverage')
 
-	index = []
-	for path in pyfiles:
-		if '_lib' in path or '_version' in path: continue
-		htmlfile = path[:-3].replace('/', '.')+'.html'
-		html = open('coverage/'+htmlfile, 'w')
-		html.write('''\
+## #################################### ##
+## Functions to produce various reports ##
+## #################################### ##
+
+def test_report(result, file):
+	'''Produce html report of test failures'''
+	output = open(file, 'w')
+	output.write('''\
 <html>
 <head>
-<title>Coverage report for %s</title>
-<style>
-	.code { white-space: pre; font-family: monospace }
-	.executed { background-color: #9f9 }
-	.excluded { background-color: #ccc }
-	.missing  { background-color: #f99 }
-	.comment  { }
-</style>
+<title>Zim unitest Test Report</title>
 </head>
 <body>
-<h1>Coverage report for %s</h1>
-<table width="100%%">
-<tr><td class="executed">&nbsp;</td><td>Executed statement</td></tr>
-<tr><td class="missing">&nbsp;</td><td>Untested statement</td></tr>
-<tr><td class="excluded">&nbsp;</td><td>Ignored statement</td></tr>
-<tr><td>&nbsp</td><td>&nbsp</td></tr>
-''' % (path, path))
+<h1>Zim unitest Test Report</h1>
+<p>
+%i tests run<br/>
+%i skipped<br/>
+%i errors<br/>
+%i failures<br/>
+</p>
+<hr/>
+''' % (
+	result.testsRun,
+	len(result.skipped),
+	len(result.errors),
+	len(result.failures),
+))
 
+	def escape_html(text):
+		return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+	def add_errors(flavour, errors):
+		for test, err in errors:
+			output.write("<h2>%s: %s</h2>\n" % (flavour, escape_html(result.getDescription(test))))
+			output.write("<pre>%s\n</pre>\n" % escape_html(err))
+			output.write("<hr/>\n")
+
+	add_errors('ERROR', result.errors)
+	add_errors('FAIL', result.failures)
+
+	output.close()
+
+
+def coverage_report(coverage, pyfiles, directory):
+	'''Produce annotated text and html reports.
+	Alternative for coverage.html_report().
+	'''
+	if os.path.exists(directory):
+		shutil.rmtree(directory) # cleanup
+	os.mkdir(directory)
+
+	# reports per source file
+	index = []
+	for path in pyfiles:
+		if any(n in path for n in ('inc', '_version', '__main__')):
+			continue
+
+		txtfile = path[:-3].replace('/', '.') + '.txt'
+		htmlfile = path[:-3].replace('/', '.') + '.html'
 
 		p, statements, excluded, missing, l = coverage.analysis2(path)
 		nstat = len(statements)
 		nexec = nstat - len(missing)
 		index.append((path, htmlfile, nstat, nexec))
-		file = open(path)
-		i = 0
-		for line in file:
-			i += 1
-			line = line.replace('<', '&lt;')
-			line = line.replace('>', '&gt;')
-			if   i in missing: type = 'missing'
-			elif i in excluded: type = 'excluded'
-			elif i in statements: type = 'executed'
-			else: type = 'comment'
 
-			html.write('<tr><td class="%s">%i</td><td class="code">%s</td></tr>\n'
-							% (type, i, line.rstrip()) )
-		html.write('''\
-</table>
-</body>
-</html>
-''')
-		html.close()
+		write_coverage_txt(path, directory+'/'+txtfile, missing, excluded, statements)
+		write_coverage_html(path, directory+'/'+htmlfile, missing, excluded, statements)
 
 	# Index for detailed reports
-	html = open('coverage/index.html', 'w')
+	html = open(directory + '/index.html', 'w')
 	html.write('''\
 <html>
 <head>
@@ -304,27 +244,65 @@ def report_coverage(coverage):
 ''')
 	html.close()
 
-	print '\nDetailed coverage reports can be found in ./coverage/'
+
+def write_coverage_txt(sourcefile, txtfile, missing, excluded, statements):
+	txt = open(txtfile, 'w')
+	file = open(sourcefile)
+	i = 0
+	for line in file:
+		i += 1
+		if   i in missing: prefix = '!'
+		elif i in excluded: prefix = '.'
+		elif i in statements: prefix = ' '
+		else: prefix = ' '
+		txt.write(prefix + line)
+	txt.close()
 
 
-class TestCompileAll(unittest.TestCase):
+def write_coverage_html(sourcefile, htmlfile, missing, excluded, statements):
+	html = open(htmlfile, 'w')
+	html.write('''\
+<html>
+<head>
+<title>Coverage report for %s</title>
+<style>
+	.code { white-space: pre; font-family: monospace }
+	.executed { background-color: #9f9 }
+	.excluded { background-color: #ccc }
+	.missing  { background-color: #f99 }
+	.comment  { }
+</style>
+</head>
+<body>
+<h1>Coverage report for %s</h1>
+<table width="100%%">
+<tr><td class="executed">&nbsp;</td><td>Executed statement</td></tr>
+<tr><td class="missing">&nbsp;</td><td>Untested statement</td></tr>
+<tr><td class="excluded">&nbsp;</td><td>Ignored statement</td></tr>
+<tr><td>&nbsp</td><td>&nbsp</td></tr>
+''' % (sourcefile, sourcefile))
 
-	def runTest(self):
-		'''Test if all modules compile'''
-		for file in pyfiles:
-			module = file[:-3].replace('/', '.')
-			assert __import__(module)
+	file = open(sourcefile)
+	i = 0
+	for line in file:
+		i += 1
+		if   i in missing: type = 'missing'
+		elif i in excluded: type = 'excluded'
+		elif i in statements: type = 'executed'
+		else: type = 'comment'
+
+		line = line.rstrip().replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+		html.write('<tr><td class="%s">%i</td><td class="code">%s</td></tr>\n'
+						% (type, i, line) )
+	html.write('''\
+</table>
+</body>
+</html>
+''')
+	html.close()
 
 
-class TestNotebookUpgrade(unittest.TestCase):
 
-	def runTest(self):
-		'''Test if included notebooks are up to date'''
-		from zim.fs import Dir
-		from zim.notebook import get_notebook
-		for path in ('data/manual', 'HACKING'):
-			notebook = get_notebook(Dir(path))
-			self.assertTrue(not notebook.needs_upgrade)
 
 
 if __name__ == '__main__':

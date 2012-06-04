@@ -1,164 +1,61 @@
+# -*- coding: utf-8 -*-
 
-from tests import TestCase, get_test_notebook, create_tmp_dir, MockObject
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+from __future__ import with_statement
+
+import tests
+
+import gtk
 
 from zim.errors import Error
-from zim.notebook import Path
+from zim.notebook import get_notebook_list, Path, NotebookInfo
 from zim.fs import File, Dir
+from zim.config import config_file
+from zim.gui.clipboard import Clipboard
 
 import zim.gui
 
-from zim.gui.clipboard import *
+
+def setupGtkInterface(test, klass=None):
+	'''Setup a new GtkInterface object for testing.
+	Will have test notebook, and default preferences.
+	@param test: the test that wants to use this ui object
+	@param klass: the klass to use, defaults to L{GtkInterface}, but
+	could be partially mocked subclass
+	'''
+	if klass is None:
+		klass = zim.gui.GtkInterface
+
+	# start filtering
+	filter = FilterNoSuchImageWarning()
+	filter.wrap_test(test)
+
+	# flush preferences
+	preferences = config_file('preferences.conf')
+	preferences.file.remove()
+
+	# create interface object with new notebook
+	dirpath = test.get_tmp_name()
+	notebook = tests.new_notebook(fakedir=dirpath)
+	path = Path('Test:foo:bar')
+	ui = klass(notebook=notebook, page=path)
+
+	# finalize plugins
+	for plugin in ui.plugins:
+		plugin.finalize_ui(ui)
+
+	ui.mainwindow.init_uistate()
+
+	return ui
 
 
-class TestClipboard(TestCase):
-
-	def runTest(self):
-		'''Test clipboard interaction'''
-		clipboard = Clipboard()
-		notebook = get_test_notebook()
-		tmp_dir = create_tmp_dir('gui_Clipboard')
-		notebook.get_store(Path(':')).dir = Dir(tmp_dir) # fake source dir
-
-		# tree roundtrip
-		for pagename in ('Test:wiki', 'roundtrip'):
-			page = notebook.get_page(Path(pagename))
-			parsetree = page.get_parsetree()
-
-			clipboard.set_parsetree(notebook, page, parsetree)
-			newtree = clipboard.request_parsetree(None, notebook, block=True)
-			self.assertEqual(newtree.tostring(), parsetree.tostring())
-
-		# tree -> ...
-		import zim.formats
-		text = 'some **bold** text'
-		parsetree = zim.formats.get_format('plain').Parser().parse(text.decode('utf-8'))
-		clipboard.set_parsetree(notebook, page, parsetree)
-
-		wanted = 'some **bold** text\n'
-		text = clipboard.wait_for_text()
-		self.assertEqualDiff(text, wanted)
-
-		wanted = '''\
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-<meta name="Description" content="Copy-Paste Buffer">
-<meta name="Generator" content="Zim">
-</head>
-<body>
-<p>
-some <strong>bold</strong> text<br>
-</p>
-
-</body>
-</html>
-'''
-		selection = clipboard.wait_for_contents('text/html')
-		self.assertEqualDiff(selection.data, wanted)
-
-		wanted = '''\
-Version:1.0\r
-StartHTML:000000185\r
-EndHTML:000000527\r
-StartFragment:000000450\r
-EndFragment:000000495\r
-StartSelection:000000450\r
-EndSelection:000000495\r
-SourceURL:zim://copy-pase-buffer\r
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"><HTML><HEAD><meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-<meta name="Description" content="Copy-Paste Buffer">
-<meta name="Generator" content="Zim"></HEAD><BODY><!--StartFragment--><p>
-some <strong>bold</strong> text<br>
-</p>
-<!--EndFragment--></BODY></HTML>'''
-		selection = clipboard.wait_for_contents('HTML Format')
-		self.assertEqualDiff(selection.data, wanted)
-
-
-		# pagelink -> ..
-		page = notebook.get_page(Path('Test:wiki'))
-		clipboard.set_pagelink(notebook, page)
-
-		selection = clipboard.wait_for_contents(INTERNAL_PAGELIST_TARGET_NAME)
-		self.assertEqual(selection.data, 'Test:wiki\r\n')
-
-		selection = clipboard.wait_for_contents(PAGELIST_TARGET_NAME)
-		self.assertEqual(selection.data, 'Unnamed Notebook?Test:wiki\r\n')
-
-		wanted = '''\
-<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="Test:wiki">Test:wiki</link></zim-tree>'''
-		newtree = clipboard.request_parsetree(None, notebook, page, block=True)
-		self.assertEqual(newtree.tostring(), wanted)
-
-		text = clipboard.wait_for_text()
-		self.assertEqual(text, 'Test:wiki')
-
-
-		# text -> tree
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>some string</zim-tree>'''
-		clipboard.set_text('some string')
-		newtree = clipboard.request_parsetree(None, notebook, block=True)
-		self.assertEqual(newtree.tostring(), wanted)
-
-
-		# file -> tree
-		page = notebook.get_page(Path('Test:wiki'))
-		targets = [('text/uri-list', 0, 0)]
-
-		def my_get_data(clipboard, selectiondata, id, file):
-			selectiondata.set_uris([file.uri])
-
-		def my_clear_data(*a):
-			pass
-
-		file = File('/foo/bar/baz.txt')
-		clipboard.set_with_data(targets, my_get_data, my_clear_data, file)
-		tree = clipboard.request_parsetree(None, notebook, page, block=True)
-		img = tree.find('link')
-		rel_path = img.get('href')
-		self.assertEqual(notebook.resolve_file(rel_path, page), file)
-
-		file = File('./data/zim.png')
-		clipboard.set_with_data(targets, my_get_data, my_clear_data, file)
-		tree = clipboard.request_parsetree(None, notebook, page, block=True)
-		img = tree.find('img')
-		file_obj = img.get('_src_file')
-		self.assertEqual(file_obj, file)
-		rel_path = img.get('src')
-		self.assertEqual(notebook.resolve_file(rel_path, page), file)
-
-
-		# image -> tree
-		page = notebook.get_page(Path('Test:wiki'))
-		targets = [('image/png', 0, 0)]
-
-		def my_get_data(clipboard, selectiondata, id, file):
-			pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
-			selectiondata.set_pixbuf(pixbuf)
-
-		def my_clear_data(*a):
-			pass
-
-		file = File('./data/zim.png')
-		clipboard.set_with_data(targets, my_get_data, my_clear_data, file)
-		tree = clipboard.request_parsetree(None, notebook, page, block=True)
-		img = tree.find('img')
-		file_obj = img.get('_src_file')
-		self.assertFalse(file_obj == file)
-		self.assertTrue(file_obj.exists())
-		self.assertTrue(file_obj.isimage())
-		self.assertTrue(file_obj.path.endswith('.png'))
-		rel_path = img.get('src')
-		self.assertEqual(notebook.resolve_file(rel_path, page), file_obj)
-
-
-class TestDialogs(TestCase):
-
-	slowTest = True
+@tests.slowTest
+class TestDialogs(tests.TestCase):
 
 	def setUp(self):
-		self.ui = MockUI('Test:foo:bar')
+		path = self.create_tmp_dir()
+		self.ui = MockUI('Test:foo:bar', fakedir=path)
 
 	def testOpenPageDialog(self):
 		'''Test OpenPageDialog dialog (Jump To...)'''
@@ -175,6 +72,9 @@ class TestDialogs(TestCase):
 
 	def testNewPageDialog(self):
 		'''Test NewPageDialog'''
+		self.ui.mainwindow = tests.MockObject()
+		self.ui.mainwindow.pageview = tests.MockObject()
+
 		for name, path in (
 			(':new', ':new'),
 			('foo:new', ':Test:foo:new'),
@@ -213,7 +113,7 @@ class TestDialogs(TestCase):
 
 	def testSaveCopyDialog(self):
 		'''Test SaveCopyDialog'''
-		tmp_dir = create_tmp_dir('gui_SaveCopyDialog')
+		tmp_dir = self.create_tmp_dir('testSaveCopyDialog')
 		file = File((tmp_dir, 'save_copy.txt'))
 		self.assertFalse(file.exists())
 		dialog = zim.gui.SaveCopyDialog(self.ui)
@@ -223,11 +123,10 @@ class TestDialogs(TestCase):
 
 	def testImportPageDialog(self):
 		'''Test ImportPageDialog'''
-		tmp_dir = create_tmp_dir('gui_ImportPageDialog')
+		tmp_dir = self.create_tmp_dir('testImportPageDialog')
 		file = File((tmp_dir, 'import_page.txt'))
 		file.write('test 123\n')
 		self.assertTrue(file.exists())
-		self.ui = MockUI()
 		dialog = zim.gui.ImportPageDialog(self.ui)
 		dialog.set_file(file)
 		#~ dialog.assert_response_ok()
@@ -295,15 +194,13 @@ class TestDialogs(TestCase):
 
 	def testAttachFileDialog(self):
 		'''Test AttachFileDialog'''
-		tmp_dir = create_tmp_dir('gui_AttachFileDialog')
+		tmp_dir = self.create_tmp_dir('testAttachFileDialog')
 		file = File((tmp_dir, 'file_to_be_attached'))
 		file.write('Test 1 2 3\n')
 		newfile = File((tmp_dir, 'attachments', 'Test', 'foo', 'file_to_be_attached'))
 		self.assertTrue(file.exists())
 		self.assertFalse(newfile.exists())
 
-		store = self.ui.notebook.get_store(Path(':'))
-		store.dir = Dir((tmp_dir, 'attachments')) # Fake dir based notebook
 		dialog = zim.gui.AttachFileDialog(self.ui, path=Path('Test:foo'))
 		dialog.set_file(file)
 		#~ dialog.assert_response_ok()
@@ -311,20 +208,19 @@ class TestDialogs(TestCase):
 		#~ self.assertTrue(file.exists()) # No move or delete happened
 		#~ self.assertTrue(newfile.exists())
 		#~ self.assertTrue(newfile.compare(file))
-		#~ del store.dir
 
 	def testSearchDialog(self):
 		'''Test SearchDialog'''
 		from zim.gui.searchdialog import SearchDialog
-		self.ui.notebook = get_test_notebook()
+		self.ui.notebook = tests.new_notebook()
 		dialog = SearchDialog(self.ui)
 		dialog.query_entry.set_text('Foo')
 		dialog.query_entry.activate()
 		model = dialog.results_treeview.get_model()
 		self.assertTrue(len(model) > 3)
 
-		self.ui.mainwindow = MockObject()
-		self.ui.mainwindow.pageview = MockObject()
+		self.ui.mainwindow = tests.MockObject()
+		self.ui.mainwindow.pageview = tests.MockObject()
 		col = dialog.results_treeview.get_column(0)
 		dialog.results_treeview.row_activated((0,), col)
 
@@ -380,8 +276,56 @@ class TestDialogs(TestCase):
 	def testPropertiesDialog(self):
 		'''Test PropertiesDialog'''
 		from zim.gui.propertiesdialog import PropertiesDialog
+		self.ui.readonly = True
 		dialog = PropertiesDialog(self.ui)
 		dialog.assert_response_ok()
+
+		from zim.config import ConfigDictFile
+		notebook = self.ui.notebook
+		file = notebook.dir.file('notebook.zim')
+		notebook.config = ConfigDictFile(file)
+		self.ui.readonly = False
+
+		config1 = {
+			'name': 'Notebook Foo',
+			'interwiki': '',
+			'home': 'Home',
+			'icon': './icon.png',
+			'document_root': File('/foo').path, # win32 save test
+			'shared': False,
+			'profile': '',
+		}
+		config2 = {
+			'name': 'Notebook Bar',
+			'interwiki': 'FooBar',
+			'home': 'HomeSweetHome',
+			'icon': './picture.png',
+			'document_root': File('/bar').path, # win32 save test
+			'shared': True,
+			'profile': 'foo',
+		}
+		notebook.save_properties(**config1)
+		self.assertEqual(notebook.config['Notebook'], config1)
+
+		dialog = PropertiesDialog(self.ui)
+		dialog.assert_response_ok()
+
+		self.assertEqual(notebook.config['Notebook'], config1)
+		self.assertEqual(notebook.name, config1['name'])
+		self.assertEqual(notebook.get_home_page(), Path(config1['home']))
+		self.assertEqual(notebook.icon, notebook.dir.file(config1['icon']).path)
+		self.assertEqual(notebook.document_root, Dir(config1['document_root']))
+
+		dialog = PropertiesDialog(self.ui)
+		dialog.form.update(config2)
+		dialog.assert_response_ok()
+
+		self.assertEqual(notebook.config['Notebook'], config2)
+		self.assertEqual(notebook.name, config2['name'])
+		self.assertEqual(notebook.get_home_page(), Path(config2['home']))
+		self.assertEqual(notebook.icon, notebook.dir.file(config2['icon']).path)
+		self.assertEqual(notebook.document_root, Dir(config2['document_root']))
+
 
 	def testPreferencesDialog(self):
 		'''Test PreferencesDialog'''
@@ -391,6 +335,7 @@ class TestDialogs(TestCase):
 		gui = zim.gui.GtkInterface()
 		gui.register_preferences('GtkInterface', zim.gui.ui_preferences)
 		gui.register_preferences('PageView', zim.gui.pageview.ui_preferences)
+		gui.load_plugins()
 		self.ui.preferences_register = gui.preferences_register
 		self.ui.preferences = gui.preferences
 		self.ui.plugins = gui.plugins
@@ -430,16 +375,421 @@ class TestDialogs(TestCase):
 		dialog = PluginConfigureDialog(pref_dialog, klass)
 		dialog.assert_response_ok()
 
+	def testTemplateEditorDialog(self):
+		from zim.gui.templateeditordialog import TemplateEditorDialog
+		dialog = TemplateEditorDialog(self.ui)
+		# TODO what to test here ??
+		dialog.assert_response_ok()
 
 	# Test for ExportDialog can be found in test/export.py
+	# Test for NotebookDialog is in separate class below
 
 
-class MockUI(MockObject):
 
-	tmp_dir = create_tmp_dir('gui_MockUI')
+class FilterNoSuchImageWarning(tests.LoggingFilter):
 
-	def __init__(self, page=None):
-		MockObject.__init__(self)
+	logger = 'zim.gui.pageview'
+	message = 'No such image:'
+
+
+@tests.slowTest
+class TestGtkInterface(tests.TestCase):
+
+	def setUp(self):
+		self.ui = setupGtkInterface(self)
+
+	def tearDown(self):
+		self.ui.close()
+
+	def testInitialization(self):
+		'''Test Gtk interface initialization'''
+
+		# start without notebook should not complain
+		ui = zim.gui.GtkInterface()
+
+		# now take ui with notebook
+		ui = self.ui
+
+		# test read only (starts readonly because notebook has no dir or file)
+		self.assertTrue(ui.readonly)
+		ui.set_readonly(False)
+		self.assertFalse(ui.readonly)
+		ui.set_readonly(True)
+		self.assertTrue(ui.readonly)
+
+		# TODO more tests for readonly pages etc.
+
+		# test populating menus
+		menu = gtk.Menu()
+		ui.populate_popup('page_popup', menu)
+		items = menu.get_children()
+		self.assertGreater(len(items), 3)
+
+		# open notebook (so the default plugins are loaded)
+		nb = ui.notebook
+		ui.notebook = None
+		ui.open_notebook(nb)
+
+		# remove plugins
+		self.assertGreater(len(ui.plugins), 3) # default plugins
+		plugins = [p.plugin_key for p in ui.plugins]
+		for name in plugins:
+			ui.unload_plugin(name)
+		self.assertEqual(len(ui.plugins), 0)
+
+		# and add them again
+		for name in plugins:
+			ui.load_plugin(name)
+		self.assertGreater(len(ui.plugins), 3)
+
+		# check registering an URL handler
+		func = tests.Counter(True)
+		ui.register_url_handler('foo', func)
+		ui.open_url('foo://bar')
+		self.assertTrue(func.count == 1)
+		ui.unregister_url_handler(func)
+
+	def testMainWindow(self):
+		'''Test main window'''
+		path = Path('Test:foo:bar')
+		window = self.ui.mainwindow
+		#~ print 'UISTATE INIT:', window.uistate
+
+		self.assertTrue(window.uistate['show_menubar'])
+		window.toggle_menubar()
+		self.assertFalse(window.uistate['show_menubar'])
+		window.toggle_menubar()
+		self.assertTrue(window.uistate['show_menubar'])
+
+		self.assertTrue(window.uistate['show_toolbar'])
+		window.toggle_toolbar()
+		self.assertFalse(window.uistate['show_toolbar'])
+		window.toggle_toolbar()
+		self.assertTrue(window.uistate['show_toolbar'])
+
+		self.assertTrue(window.uistate['show_statusbar'])
+		window.toggle_statusbar()
+		self.assertFalse(window.uistate['show_statusbar'])
+		window.toggle_statusbar()
+		self.assertTrue(window.uistate['show_statusbar'])
+
+		self.assertTrue(window.uistate['show_sidepane'])
+		window.toggle_sidepane()
+		self.assertFalse(window.uistate['show_sidepane'])
+		window.toggle_sidepane()
+		self.assertTrue(window.uistate['show_sidepane'])
+
+		# note: focus starts at sidepane due to toggle_sidepane above
+		self.assertEqual(window.get_focus(), window.pageindex.treeview)
+		self.assertEqual(window.get_selected_path(), path)
+		window.toggle_focus_sidepane()
+		self.assertEqual(window.get_focus(), window.pageview.view)
+		self.assertEqual(window.get_selected_path(), path)
+		window.toggle_focus_sidepane()
+		self.assertEqual(window.get_focus(), window.pageindex.treeview)
+		# TODO also check this with "show_sidepane" off
+
+		self.assertEqual(window.uistate['pathbar_type'], zim.gui.PATHBAR_RECENT)
+		for style in (
+			zim.gui.PATHBAR_NONE,
+			zim.gui.PATHBAR_HISTORY,
+			zim.gui.PATHBAR_PATH,
+			zim.gui.PATHBAR_RECENT,
+		):
+			window.set_pathbar(style)
+			self.assertEqual(window.uistate['pathbar_type'], style)
+			# TODO specific test for pathbar to exercize history, add / move / remove pages etc.
+
+		# note: no default style here - system default unknown
+		for style in (
+			zim.gui.TOOLBAR_ICONS_AND_TEXT,
+			zim.gui.TOOLBAR_ICONS_ONLY,
+			zim.gui.TOOLBAR_TEXT_ONLY,
+		):
+			window.set_toolbar_style(style)
+			self.assertEqual(window.uistate['toolbar_style'], style)
+
+		# note: no default style here - system default unknown
+		for size in (
+			zim.gui.TOOLBAR_ICONS_LARGE,
+			zim.gui.TOOLBAR_ICONS_SMALL,
+			zim.gui.TOOLBAR_ICONS_TINY,
+		):
+			window.set_toolbar_size(size)
+			self.assertEqual(window.uistate['toolbar_size'], size)
+
+		# FIXME: test fails because "readonly" not active because notebook was already readonly, so action never activatable
+		#~ self.assertTrue(ui.readonly)
+		#~ self.assertTrue(window.uistate['readonly'])
+		#~ window.toggle_readonly()
+		#~ self.assertFalse(ui.readonly)
+		#~ self.assertFalse(window.uistate['readonly'])
+		#~ window.toggle_readonly()
+		#~ self.assertTrue(ui.readonly)
+		#~ self.assertTrue(window.uistate['readonly'])
+
+	def testNavigation(self):
+		'''Test navigating the notebook with gtk interface'''
+
+		# build up some history
+		history = (
+			Path('Test:foo:bar'),
+			Path('Test:'),
+			Path('Test:foo:'),
+			Path('Test:foo:bar'),
+		)
+		for path in history:
+			self.ui.open_page(path)
+			self.assertEqual(self.ui.page, path)
+
+		# check forward & backward
+		for path in reversed(history[:-1]):
+			self.assertTrue(self.ui.open_page_back())
+			self.assertEqual(self.ui.page, path)
+		self.assertFalse(self.ui.open_page_back())
+
+		for path in history[1:]:
+			self.assertTrue(self.ui.open_page_forward())
+			self.assertEqual(self.ui.page, path)
+		self.assertFalse(self.ui.open_page_forward())
+
+		# check upward and downward
+		for path in (Path('Test:foo:'), Path('Test:')):
+			self.assertTrue(self.ui.open_page_parent())
+			self.assertEqual(self.ui.page, path)
+		self.assertFalse(self.ui.open_page_parent())
+
+		for path in (Path('Test:foo:'), Path('Test:foo:bar')):
+			self.assertTrue(self.ui.open_page_child())
+			self.assertEqual(self.ui.page, path)
+		self.assertFalse(self.ui.open_page_child())
+
+		# previous and next
+		self.assertTrue(self.ui.open_page_previous())
+		self.assertTrue(self.ui.open_page_next())
+		self.assertEqual(self.ui.page, Path('Test:foo:bar'))
+
+	def testSave(self):
+		'''Test saving a page from the interface'''
+		self.ui.set_readonly(False)
+		self.ui.open_page(Path('Non-exsiting:page'))
+		self.assertFalse(self.ui.page.exists())
+		self.assertTrue(self.ui.page.get_parsetree() is None)
+		self.assertTrue(self.ui.mainwindow.pageview._showing_template) # check HACK
+		self.ui.save_page()
+		self.assertFalse(self.ui.page.get_parsetree() is None)
+
+	def testPageMove(self):
+		oldpath, newpath = Path('Movers:Stator:Mover'), Path('Movers:Mover')
+
+		# Open page and process message queue to sync tree view
+		indexpath = self.ui.notebook.index.lookup_path(oldpath)
+		self.ui.open_page(indexpath)
+		while gtk.events_pending():
+			gtk.main_iteration(False)
+
+		# Test actual moving
+		page = self.ui.notebook.get_page(oldpath)
+		text = page.dump('wiki')
+		self.ui.notebook.index.ensure_update()
+		self.ui.notebook.move_page(oldpath, newpath)
+		self.ui.notebook.index.ensure_update()
+
+		# newpath should exist and look like the old one
+		page = self.ui.notebook.get_page(newpath)
+		self.assertEqual(page.dump('wiki'), text)
+
+		# oldpath should be deleted
+		page = self.ui.notebook.get_page(oldpath)
+		self.assertFalse(page.haschildren)
+		self.assertFalse(page.hascontent)
+
+	# TODO notebook manipulation (new (sub)page, rename, delete ..)
+	# merge with tests for dialogs (?)
+
+	def testClipboard(self):
+		self.ui.copy_location()
+		self.assertEqual(Clipboard.get_text(), 'Test:foo:bar')
+
+
+@tests.slowTest
+class TestClickLink(tests.TestCase):
+	'''Test to check pageview and GtkInterface play together nicely when
+	a link is clicked
+	'''
+
+	def setUp(self):
+		class MyMock(zim.gui.GtkInterface, tests.MockObjectBase):
+
+			def __init__(self, *arg, **kwarg):
+				zim.gui.GtkInterface.__init__(self, *arg, **kwarg)
+				tests.MockObjectBase.__init__(self)
+				for method in (
+					'open_file',
+					'open_with',
+					'open_notebook',
+					'open_page',
+				):
+					self.mock_method(method, None)
+
+		self.ui = setupGtkInterface(self, klass=MyMock)
+
+	def tearDown(self):
+		self.ui.close()
+
+	def runTest(self):
+		self.assertRaises(AssertionError, self.ui.open_url, 'foo@bar.com')
+			# this is not a URI, "mailto:foo@bar.com" is
+
+		# Note: same list of test uris is testing in tests.parsing as well
+		for href, type in (
+			('zim+file://foo/bar?dus.txt', 'notebook'),
+			('file:///foo/bar', 'file'),
+			('http://foo/bar', 'http'),
+			('http://192.168.168.100', 'http'),
+			('file+ssh://foo/bar', 'file+ssh'),
+			('mailto:foo@bar.com', 'mailto'),
+			('mailto:foo.com', 'page'),
+			('foo@bar.com', 'mailto'),
+			('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('mid:foo@bar.org', 'mid'),
+			('cid:foo@bar.org', 'cid'),
+			('./foo/bar', 'file'),
+			('/foo/bar', 'file'),
+			('~/foo', 'file'),
+			('C:\\foo', 'file'),
+			('wp?foo', 'interwiki'),
+			('http://foo?bar', 'http'),
+			('\\\\host\\foo\\bar', 'smb'),
+			('foo', 'page'),
+			('foo:bar', 'page'),
+		):
+			#~ self.ui.open_url(href)
+			self.ui.mainwindow.pageview.do_link_clicked({'href': href})
+			msg = "Clicked: %s\nResulted in: %s" % (href, self.ui.mock_calls[-1])
+			if type == 'notebook':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_notebook', msg=msg)
+			elif type == 'page':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_page', msg=msg)
+			elif type == 'file':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_file', msg=msg)
+			elif type == 'mailto':
+				self.assertTrue(self.ui.mock_calls[-1][0:2] == ('open_with', 'email_client'), msg=msg)
+			else:
+				self.assertTrue(self.ui.mock_calls[-1][0:2] == ('open_with', 'web_browser'), msg=msg)
+			self.ui.mock_calls = [] # reset
+
+		# Some more tests that may not be covered above
+		for href, type in (
+			('zim+file://foo/bar?dus.txt', 'notebook'),
+			('file:///foo/bar', 'file'),
+			('mailto:foo@bar.com', 'mailto'),
+		):
+			self.ui.open_url(href)
+			msg = "open_url('%s')\nResulted in: %s" % (href, self.ui.mock_calls[-1])
+			if type == 'notebook':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_notebook', msg=msg)
+			elif type == 'file':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_file', msg=msg)
+			elif type == 'mailto':
+				self.assertTrue(self.ui.mock_calls[-1][0:2] == ('open_with', 'email_client'), msg=msg)
+			self.ui.mock_calls = [] # reset
+
+		# TODO test plugin with custom handler
+
+
+@tests.slowTest
+class TestNotebookDialog(tests.TestCase):
+
+	def setUp(self):
+		list = config_file('notebooks.list')
+		file = list.file
+		if file.exists():
+			file.remove()
+
+	def runTest(self):
+		from zim.gui.notebookdialog import prompt_notebook, \
+			AddNotebookDialog, NotebookDialog
+
+		tmpdir = self.create_tmp_dir()
+		dir1 = Dir(tmpdir + '/mynotebook1')
+		dir2 = Dir(tmpdir + '/mynotebook2')
+
+		# First time we get directly the AddNotebookDialog
+		def doAddNotebook(dialog):
+			self.assertTrue(isinstance(dialog, AddNotebookDialog))
+			dialog.form['name'] = 'Foo'
+			dialog.form['folder'] = dir1.path
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(doAddNotebook):
+			self.assertEqual(prompt_notebook(), dir1.uri)
+
+		# Second time we get the list
+		def testNotebookDialog(dialog):
+			self.assertTrue(isinstance(dialog, NotebookDialog))
+			selection = dialog.treeview.get_selection()
+			selection.select_path((0,)) # select first and only notebook
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(testNotebookDialog):
+			self.assertEqual(prompt_notebook(), dir1.uri)
+
+		# Third time we add a notebook and set the default
+		def doAddNotebook(dialog):
+			self.assertTrue(isinstance(dialog, AddNotebookDialog))
+			dialog.form['name'] = 'Bar'
+			dialog.form['folder'] = dir2.path
+			dialog.assert_response_ok()
+
+		def testAddNotebook(dialog):
+			self.assertTrue(isinstance(dialog, NotebookDialog))
+
+			with tests.DialogContext(doAddNotebook):
+				dialog.do_add_notebook()
+
+			dialog.combobox.set_active(0)
+
+			selection = dialog.treeview.get_selection()
+			selection.select_path((1,)) # select newly added notebook
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(testAddNotebook):
+			self.assertEqual(prompt_notebook(), dir2.uri)
+
+		# Check the notebook exists and the notebook list looks like it should
+		for dir in (dir1, dir2):
+			self.assertTrue(dir.exists())
+			self.assertTrue(dir.file('notebook.zim').exists())
+
+		list = get_notebook_list()
+		self.assertTrue(len(list) == 2)
+		self.assertEqual(list[0], NotebookInfo(dir1.uri, name='Foo'))
+		self.assertEqual(list[1], NotebookInfo(dir2.uri, name='Bar'))
+		self.assertEqual(list.default, NotebookInfo(dir1.uri, name='Foo'))
+
+		# Now unset the default and again check the notebook list
+		def unsetDefault(dialog):
+			self.assertTrue(isinstance(dialog, NotebookDialog))
+			dialog.combobox.set_active(-1)
+			selection = dialog.treeview.get_selection()
+			selection.select_path((1,)) # select newly added notebook
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(unsetDefault):
+			self.assertEqual(prompt_notebook(), dir2.uri)
+
+		list = get_notebook_list()
+		self.assertTrue(len(list) == 2)
+		self.assertTrue(list.default is None)
+
+
+class MockUI(tests.MockObject):
+
+	def __init__(self, page=None, fakedir=None):
+		tests.MockObject.__init__(self)
+
+		self.tmp_dir = self.create_tmp_dir()
 
 		if page and not isinstance(page, Path):
 			self.page = Path(page)
@@ -447,6 +797,4 @@ class MockUI(MockObject):
 			self.page = page
 
 		self.mainwindow = None
-		self.notebook = get_test_notebook()
-		self.notebook.get_store(Path(':')).dir = Dir(self.tmp_dir) # fake source dir
-
+		self.notebook = tests.new_notebook(fakedir=fakedir)

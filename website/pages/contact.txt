@@ -1,0 +1,11 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2012-02-20T22:13:04+01:00
+
+====== Contact ======
+
+**For user questions and development discussion**, please join the mailing list. To join the zim mailing list you need to join the "[[https://launchpad.net/~zim-wiki|zim-wiki]]" team in launchpad. 
+
+**To view bugs or report an issue** please go the the [[https://bugs.launchpad.net/zim|bug tracker on launchpad]]
+
+**For feature requests** please file a bug report as well. If you want some feedback on an idea before requesting it please use the mailing list.

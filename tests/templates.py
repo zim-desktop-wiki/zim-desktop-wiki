@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.templates module.'''
 
 import tests
-from tests import TestCase
 
 import os
 
@@ -13,10 +12,12 @@ import zim
 from zim.templates import *
 from zim.templates import GenericTemplate, \
 	TemplateParam, TemplateDict, TemplateFunction, PageProxy
-from zim.notebook import Notebook
+from zim.notebook import Notebook, Path
 import zim.formats
+from zim.parsing import link_type
 
-class TestTemplateParam(TestCase):
+
+class TestTemplateParam(tests.TestCase):
 
 	def runTest(self):
 		param = TemplateParam('xxx.yyy.zzz')
@@ -28,7 +29,7 @@ class TestTemplateParam(TestCase):
 		self.assertRaises(TemplateSyntaxError, TemplateParam, 'xxx.y-y.zzz')
 
 
-class TestTemplateDict(TestCase):
+class TestTemplateDict(tests.TestCase):
 
 	def runTest(self):
 		data = {'foo': {'bar': {'baz': '123'}}, 'xyz':'check'}
@@ -41,7 +42,7 @@ class TestTemplateDict(TestCase):
 		self.assertEquals(data['foo']['bar']['baz'], '123')
 
 
-class TestGenericTemplate(TestCase):
+class TestGenericTemplate(tests.TestCase):
 
 #	def setUp(self):
 #		self.template = ...
@@ -95,7 +96,7 @@ NOK
 		dict = { 'upper': TemplateFunction(lambda d, *a: a[0].upper()) }
 		result = tmpl.process(dict)
 		#~ print test.getvalue()
-		self.assertEqualDiff(result, wantedresult.splitlines(True))
+		self.assertEqual(result, wantedresult.splitlines(True))
 
 	def testRaise(self):
 		'''Test Template invalid syntax raises TemplateError'''
@@ -113,7 +114,7 @@ NOK
 		self.assertRaises(TemplateProcessError, templ.process, {})
 
 
-class TestTemplateSet(TestCase):
+class TestTemplateSet(tests.TestCase):
 
 	def runTest(self):
 		'''Load all shipped templates for syntax check'''
@@ -122,22 +123,28 @@ class TestTemplateSet(TestCase):
 			if format == 'templates':
 				continue # skip top level dir
 			files = [f for f in files if not f.startswith('.') and not '~' in f]
-			templates = list_templates(format)
+			files.sort()
 			self.assertTrue(len(files) > 0)
-			self.assertEqual(len(templates), len(files))
-			for file in templates.values():
-				#~ print files
+			templates = list_templates(format)
+			self.assertEqual([t[1] for t in templates], files)
+			for file in files:
 				file = os.path.join(dir, file)
-				tmpl = Template(file, format)
-				# Syntax errors will be raised during init
-				# TODO parameter check for these templates
-				#      ... run them with raise instead of param = None
+				input = open(file).readlines()
+				if format == 'plugins':
+					tmpl = GenericTemplate(input)
+				else:
+					tmpl = Template(input, format)
+					# Syntax errors will be raised during init
+					# TODO parameter check for these templates
+					#      ... run them with raise instead of param = None
 
 
-class TestPageProxy(TestCase):
+class TestPageProxy(tests.TestCase):
 
 	def runTest(self):
-		notebook, page = tests.get_test_page('FooBar')
+		notebook = tests.new_notebook()
+		page = notebook.get_page(Path('FooBar'))
+
 		page.parse('wiki', '''\
 ====== Page Heading ======
 **foo bar !**
@@ -151,42 +158,116 @@ class TestPageProxy(TestCase):
 		self.assertTrue(len(proxy.body) > 0)
 		# TODO add othermethods
 
-class TestTemplate(TestCase):
+
+class TestTemplate(tests.TestCase):
 
 	def runTest(self):
 		input = u'''\
 Version [% zim.version %]
 <title>[% page.title %]</title>
-<h1>[% page.name %]</h1>
+<h1>[% notebook.name %]: [% page.name %]</h1>
 <h2>[% page.heading %]</h2>
-[% page.body %]
+[% options.foo = "bar" %]
+[%- page.body -%]
+Option: [% options.foo %]
 '''
 		wantedresult = u'''\
 Version %s
 <title>Page Heading</title>
-<h1>FooBar</h1>
+<h1>Unnamed Notebook: FooBar</h1>
 <h2>Page Heading</h2>
 <p>
 <strong>foo bar !</strong><br>
 </p>
-
+Option: bar
 ''' % zim.__version__
-		notebook, page = tests.get_test_page('FooBar')
+		notebook = tests.new_notebook()
+		page = notebook.get_page(Path('FooBar'))
 		page.parse('wiki', '''\
 ====== Page Heading ======
 **foo bar !**
 ''')
 		self.assertTrue(len(page.dump('html', linker=StubLinker())) > 0)
-		result = Template(input, 'html', linker=StubLinker()).process(Notebook(), page)
-		self.assertEqualDiff(result, wantedresult.splitlines(True))
+		template = Template(input, 'html', linker=StubLinker())
+		result = template.process(notebook, page)
+		self.assertEqual(''.join(result), wantedresult)
+		self.assertEqual(template.template_options['foo'], 'bar')
 
 		# Check new page template
-		notebook, page = tests.get_test_page('Some New None existing page')
+		notebook = tests.new_notebook()
+		page = notebook.get_page(Path('Some New None existing page'))
 		template = notebook.get_template(page)
 		tree = template.process_to_parsetree(notebook, page) # No linker !
-		self.assertEqualDiff(tree.find('/h').text, u'Some New None existing page')
+		self.assertEqual(tree.find('h').text, u'Some New None existing page')
 
-		
+class TestTemplatePageIndexFuntion(tests.TestCase):
+
+	def runTest(self):
+		# pageindex(root, collapse, ignore_empty)
+		self.maxDiff = None
+
+		data = (
+('Parent:Daughter', u"[% pageindex('Parent') %]", '''\
+<ul>
+<li><a href="page://:Parent:Child" title="Child">Child</a></li>
+<li><strong>Daughter</strong></li>
+<ul>
+<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne" title="SomeOne">SomeOne</a></li>
+</ul>
+<li><a href="page://:Parent:Son" title="Son">Son</a></li>
+</ul>
+'''),
+
+('Parent:Daughter:SomeOne', u"[% pageindex('Parent') %]", '''\
+<ul>
+<li><a href="page://:Parent:Child" title="Child">Child</a></li>
+<li><a href="page://:Parent:Daughter" title="Daughter">Daughter</a></li>
+<ul>
+<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+<li><strong>SomeOne</strong></li>
+<ul>
+<li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
+</ul>
+</ul>
+<li><a href="page://:Parent:Son" title="Son">Son</a></li>
+</ul>
+'''),
+
+('Parent:Daughter:SomeOne', u"[% pageindex('Parent', FALSE, FALSE) %]", '''\
+<ul>
+<li><a href="page://:Parent:Child" title="Child">Child</a></li>
+<ul>
+<li><a href="page://:Parent:Child:Grandchild" title="Grandchild">Grandchild</a></li>
+</ul>
+<li><a href="page://:Parent:Daughter" title="Daughter">Daughter</a></li>
+<ul>
+<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
+<li><strong>SomeOne</strong></li>
+<ul>
+<li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
+</ul>
+</ul>
+<li><a href="page://:Parent:Son" title="Son">Son</a></li>
+<ul>
+<li><a href="page://:Parent:Son:Granddaughter" title="Granddaughter">Granddaughter</a></li>
+<li><a href="page://:Parent:Son:Grandson" title="Grandson">Grandson</a></li>
+</ul>
+</ul>
+'''),
+		)
+
+		notebook = tests.new_notebook()
+		for path, input, wantedresult in data:
+			page = notebook.get_page(Path(path))
+			result = Template(input, 'html', linker=StubLinker()).process(notebook, page)
+			self.assertEqual(result, wantedresult.splitlines(True))
+
 
 class StubLinker(object):
 

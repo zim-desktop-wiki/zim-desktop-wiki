@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains classes for template processing.
 
@@ -10,7 +10,8 @@ a PageProxy object, which exposes attributes and functions to be used
 in the template. This module is most efficient when you want to dump
 many pages with one template.
 
-Usage:
+Usage::
+
 	import zim.templates
 	tmpl = zim.templates.get_template('html', 'Default')
 	for page in notebook.get_root():
@@ -20,7 +21,7 @@ Template files are expected to be in a path
 XDG_DATA/zim/templates/FORMAT/
 
 Syntax is loosely based on the syntax of the perl Template Toolkit
-(http://template-toolkit.org). The following syntax is supported:
+(U{http://template-toolkit.org}). The following syntax is supported::
 
 	[% GET page.name %] or just [% page.name %]
 	[% SET foo = 'Foo !' %] or just [ foo = 'Foo !' ]
@@ -42,18 +43,18 @@ Syntax errors in the template will cause an exception when the object
 is constructed. Errors while processing a template only print warnings
 to stderr (e.g. for unknown parameters).
 
-One crucial difference with most template imlpementations is that we do
+One crucial difference with most template implementations is that we do
 not trust our templates - it should be possible for non-programmers
-to download that template for a fancy presentations from the internet
+to download that template for a fancy presentations from the Internet
 without worrying whether it may delete his or her notes.
 Therefore we try to minimize to possibilities to actually execute
 arbitrary code from templates.
 
-* We only allow strings as function arguments from the tempalte,
-  no arbitrary expressions
-* Functions that are allowed to be called from the template need to be
-  flagged explicitely by wrapping them in a TemplateFunction object.
-* There is no directive to evaluate code, like EVAL, PERL or PYTHON
+  - We only allow strings as function arguments from the template,
+    no arbitrary expressions
+  - Functions that are allowed to be called from the template need to be
+    flagged explicitly by wrapping them in a TemplateFunction object.
+  - There is no directive to evaluate code, like EVAL, PERL or PYTHON
 '''
 
 # TODO add a directive [% INCLUDE template_name %]
@@ -61,7 +62,7 @@ arbitrary code from templates.
 
 import re
 import logging
-from copy import deepcopy
+import locale
 
 import gobject
 
@@ -72,8 +73,9 @@ from zim.errors import Error
 from zim.fs import File
 from zim.config import data_dirs
 from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string, is_path_re
-from zim.formats import ParseTree, Element
+from zim.formats import ParseTree, Element, TreeBuilder
 from zim.index import LINK_DIR_BACKWARD
+from zim.notebook import Path
 
 logger = logging.getLogger('zim.templates')
 
@@ -83,34 +85,54 @@ __all__ = [
 ]
 
 
-def list_templates(format):
-	'''Returns a dict mapping template names to file paths.'''
-	format = format.lower()
-	templates = {}
-	path = list(data_dirs(('templates', format)))
+def list_template_categories():
+	'''Returns a list of categories (sub folders)'''
+	dirs = data_dirs('templates')
+	categories = set()
+	for dir in dirs:
+		for name in dir.list():
+			## TODO list_objects would help here + a filter like type=Dir
+			if dir.subdir(name).isdir():
+				categories.add(name)
+
+	return sorted(categories)
+
+
+def list_templates(category):
+	'''Returns a list of template names
+	@param category: a category (sub folder) with tempaltes, e.g. "html"
+	@returns: a list of 2-tuples of the template names and the file
+	basename for the template file
+	'''
+	category = category.lower()
+	templates = set()
+	path = list(data_dirs(('templates', category)))
 	path.reverse()
 	for dir in path:
-		for file in dir.list():
-			i = file.rfind('.') # match begin of file extension
-			if i >= 0:
-				if '~' in file[i:]:
-					continue # Ignore tmp files etc.
-				#~ templates[file[0:i]] = dir.file(file) FIXME
-				import os
-				templates[file[0:i]] = os.path.join(dir.path, file)
-	return templates
+		for basename in dir.list():
+			name = basename.rsplit('.', 1)[0] # robust if no '.' in basename
+			templates.add((name, basename))
+	return sorted(templates)
 
 
 def get_template(format, template):
 	'''Returns a Template object for a template name, file path, or File object'''
+	# NOTE: here the "category" needs to be a format at the same time !
 	if isinstance(template, File):
 		file = template
 	else:
 		if not is_path_re.match(template):
-			try:
-				templates = list_templates(format)
-				file = File(templates[template])
-			except KeyError:
+			file = None
+			path = list(data_dirs(('templates', format)))
+			path.reverse()
+			for dir in path:
+				for basename in dir.list():
+					name = basename.rsplit('.')[0] # robust if no '.' in basename
+					if name == template:
+						file = dir.file(basename)
+						break
+
+			if not file:
 				file = File(template)
 		else:
 			file = File(template)
@@ -118,7 +140,11 @@ def get_template(format, template):
 	logger.info('Loading template from: %s', file)
 	if not file.exists():
 		raise AssertionError, 'No such file: %s' % file
-	return Template(file.readlines(), format, name=file.path)
+
+	basename, ext = file.basename.rsplit('.', 1)
+	resources = file.dir.subdir(basename)
+
+	return Template(file.readlines(), format, name=file.path, resources_dir=resources)
 
 
 class TemplateError(Error):
@@ -128,7 +154,7 @@ class TemplateError(Error):
 class TemplateSyntaxError(TemplateError):
 
 	description = '''\
-An error occcured while parsing a template.
+An error occurred while parsing a template.
 It seems the template contains some invalid syntax.
 '''
 
@@ -141,15 +167,15 @@ It seems the template contains some invalid syntax.
 	@property
 	def msg(self):
 		return 'Syntax error at "%s" line %i: %s' % \
-						(self.file, self.line, self.msg)
+						(self.file, self.line, self._msg)
 
 
 class TemplateProcessError(TemplateError):
 
 	description = '''
-A run-time error occured while processing a template.
+A run-time error occurred while processing a template.
 This can be due to the template calling functions that are
-not availabel, or it can be a glitch in the program.
+not available, or it can be a glitch in the program.
 '''
 
 
@@ -157,11 +183,10 @@ class _TemplateManager(gobject.GObject):
 	'''Singleton object used for hooking signals so plugins can be notified
 	when a template is used.
 
-	Currently only supports one signal:
-	  * process-page (manager, template, page, dict)
-	    Called just before the page is processed. Plugins can extend functionality
-	    available to the template by putting parameters or template functions in
-	    'dict'. Plugins should not modify page!
+	@signal: C{process-page (manager, template, page, dict)}:
+	Called just before the page is processed. Plugins can extend functionality
+	available to the template by putting parameters or template functions in
+	'dict'. Plugins should not modify page!
 	'''
 
 	# In theory it would be better to do this without a singleton, but in that
@@ -184,7 +209,7 @@ class GenericTemplate(object):
 	'''Base template class'''
 
 	def __init__(self, input, name=None):
-		'''Constuctor takes a file path or an opened file handle'''
+		'''Constructor takes a file path or an opened file handle'''
 		if isinstance(input, basestring):
 			input = input.splitlines(True)
 		self.name = name or '<open file>'
@@ -199,7 +224,6 @@ class GenericTemplate(object):
 		'''
 		if not isinstance(dict, TemplateDict):
 			dict = TemplateDict(dict)
-
 		output = TextBuffer(self.tokens.process(dict))
 		return output.get_lines()
 
@@ -296,12 +320,17 @@ class GenericTemplate(object):
 class Template(GenericTemplate):
 	'''Template class that can process a zim Page object'''
 
-	def __init__(self, input, format, linker=None, name=None):
+	def __init__(self, input, format, linker=None, name=None, resources_dir=None):
 		if isinstance(format, basestring):
 			format = zim.formats.get_format(format)
 		self.format = format
 		self.linker = linker
+		if isinstance(resources_dir, basestring):
+			self.resources_dir = Dir(resources_dir)
+		else:
+			self.resources_dir = resources_dir
 		GenericTemplate.__init__(self, input, name)
+		self.template_options = None
 
 	def set_linker(self, linker):
 		self.linker = linker
@@ -313,7 +342,7 @@ class Template(GenericTemplate):
 		The attribute 'pages' can be used to supply page objects for
 		special pages, like 'next', 'previous', 'index' and 'home'.
 		'''
-		options = {} # this dict is accesible from the template and is
+		self.template_options = {} # this dict is writable from the template and is
 		             # passed on to the format
 
 		if pages:
@@ -323,19 +352,27 @@ class Template(GenericTemplate):
 				if not mypages[key] is None:
 					pages[key] = PageProxy(
 						notebook, mypages[key],
-						self.format, self.linker, options)
+						self.format, self.linker, self.template_options)
 		else:
 			pages = {}
 
 		dict = {
 			'zim': { 'version': zim.__version__ },
+			'notebook': {
+				'name' : notebook.name,
+				'interwiki': notebook.info.interwiki,
+			},
 			'page': PageProxy(
 				notebook, page,
-				self.format, self.linker, options),
+				self.format, self.linker, self.template_options),
 			'pages': pages,
 			'strftime': StrftimeFunction(),
 			'url': TemplateFunction(self.url),
-			'options': options
+			'resource': TemplateFunction(self.resource_url),
+			'pageindex' : PageIndexFunction(notebook, page, self.format, self.linker, self.template_options),
+			'options': self.template_options,
+			# helpers that allow to write TRUE instead of 'TRUE' in template functions
+			'TRUE' : 'True', 'FALSE' : 'False',
 		}
 
 		if self.linker:
@@ -344,6 +381,13 @@ class Template(GenericTemplate):
 			# first part of the template
 
 		TemplateManager.emit('process-page', self, page, dict)
+
+		# Bootstrap options as user modifiable part of dictionary
+		# need to assign in TempalteDict, so it goes in _user
+		dict = TemplateDict(dict)
+		dict[TemplateParam('options')] = self.template_options
+
+		# Finally process the template
 		output = GenericTemplate.process(self, dict)
 
 		# Caching last processed dict because any pages in the dict
@@ -372,6 +416,15 @@ class Template(GenericTemplate):
 		else:
 			return link
 
+	def resource_url(self, dict, path):
+		# Don't make the mistake to think we should use the
+		# resources_dir here - that dir refers to the source of the
+		# resource files, while here we want an URL for the resource
+		# file *after* export
+		if self.linker:
+			return self.linker.resource(path)
+		return path
+
 
 class TemplateTokenList(list):
 	'''This class contains a list of TemplateToken objects and strings'''
@@ -394,8 +447,9 @@ class TemplateToken(object):
 
 	def parse_expr(self, string):
 		'''This method parses an expression and returns an object of either
-		class TemplateParam, TemplateParamList or TemplateFuntionParam or
-		a simple string. (All these classes have a method "evaluate()" which
+		class TemplateParam, TemplateParamList or TemplateFuntionParam.
+
+		(All these classes have a method "evaluate()" which
 		takes an TemplateDict as argument and returns a value for the result
 		of the expression.)
 		'''
@@ -438,7 +492,7 @@ class GETToken(TemplateToken):
 	def process(self, dict):
 		value = self.expr.evaluate(dict)
 		if value:
-			return [unicode(value).encode('utf-8')]
+			return [value]
 		else:
 			return []
 
@@ -605,10 +659,17 @@ class TemplateFunction(object):
 	'''
 
 	def __init__(self, function):
+		'''Constructor. Base class takes a regular function as argument
+		and wraps it to beccome a template functions.
+		'''
 		self.function = function
 
-	def __call__(self, *args):
-		return self.function(*args)
+	def __call__(self, dict, *args):
+		'''Execute the function
+		@param dict: the L{TemplateDict} for the page being processed
+		@param args: the arguments supplied in the template
+		'''
+		return self.function(dict, *args)
 
 
 class StrftimeFunction(TemplateFunction):
@@ -619,12 +680,92 @@ class StrftimeFunction(TemplateFunction):
 
 	def __call__(self, dict, format, date=None):
 		format = str(format) # Needed to please datetime.strftime()
-		if date is None:
-			return datetime.now().strftime(format)
-		elif isinstance(date, (datetime.date, datetime.datetime)):
-			return date.strftime(format)
-		else:
-			raise AssertionError, 'Not a datetime object: %s', date
+		try:
+			if date is None:
+				string = datetime.now().strftime(format)
+			elif isinstance(date, (datetime.date, datetime.datetime)):
+				string = date.strftime(format)
+			else:
+				raise AssertionError, 'Not a datetime object: %s', date
+			return string.decode(locale.getpreferredencoding())
+				# strftime returns locale as understood by the C api
+				# unfortunately there is no guarantee we can actually
+				# decode it ...
+		except:
+			logger.exception('Error in strftime "%s"', format)
+
+
+class PageIndexFunction(TemplateFunction):
+	'''Template function to build a page menu'''
+
+	def __init__(self, notebook, page, format, linker, options):
+		self._notebook = notebook
+		self._page = page
+		self._format = format
+		self._linker = linker
+		self._options = options
+
+	def __call__(self, dict, root=':', collapse=True, ignore_empty=True):
+		builder = TreeBuilder()
+
+		collapse = bool(collapse) and not collapse == 'False'
+		ignore_empty = bool(ignore_empty) and not ignore_empty == 'False'
+
+		if isinstance(root, PageProxy):
+			# allow [% menu(page) %] vs [% menu(page.name) %]
+			root = root.name
+
+		expanded = [self._page] + list(self._page.parents())
+
+		def add_namespace(path):
+			builder.start('ul')
+
+			pagelist = self._notebook.index.list_pages(path)
+			for page in pagelist:
+				if ignore_empty and not page.exists():
+					continue
+				builder.start('li')
+
+				if page == self._page:
+					# Current page is marked with the strong style
+					builder.start('strong')
+					builder.data(page.basename)
+					builder.end('strong')
+				else:
+					# links to other pages
+					builder.start('link', {'type': 'page', 'href': ':'+page.name})
+					builder.data(page.basename)
+					builder.end('link')
+
+				builder.end('li')
+				if page.haschildren:
+					if collapse:
+						# Only recurs into namespaces that are expanded
+						if page in expanded:
+							add_namespace(page) # recurs
+					else:
+						add_namespace(page) # recurs
+
+			builder.end('ul')
+
+		builder.start('page')
+		add_namespace(Path(root))
+		builder.end('page')
+
+		tree = ParseTree(builder.close())
+		if not tree:
+			return None
+
+		#~ print "!!!", tree.tostring()
+
+		format = self._format
+		linker = self._linker
+
+		dumper = format.Dumper(
+			linker=linker,
+			template_options=self._options )
+
+		return ''.join(dumper.dump(tree))
 
 
 class TemplateDict(object):
@@ -735,7 +876,7 @@ class PageProxy(object):
 	def body(self):	return self._treeproxy().body
 
 	@property
-	def parts(self): return None # TODO split in parts and return ParseTreeProxy obejcts
+	def parts(self): return None # TODO split in parts and return ParseTreeProxy objects
 
 	@property
 	def links(self):
@@ -788,7 +929,7 @@ class ParseTreeProxy(object):
 	def _split_head(self, tree):
 		if not hasattr(self, '_servered_head'):
 			elements = tree.getroot().getchildren()
-			if elements[0].tag == 'h':
+			if elements and elements[0].tag == 'h':
 				root = Element('zim-tree')
 				for element in elements[1:]:
 					root.append(element)

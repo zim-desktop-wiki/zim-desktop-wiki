@@ -5,15 +5,22 @@ Wiki-Format: zim 0.4
 
 The following plugins are standard included with zim:
 
+* [[+Arithmetic|Arithmetic]]
+* [[+Automount|Automount]]
 * [[+Calendar|Calendar]]
 * [[+Diagram Editor|Diagram Editor]]
+* [[+Ditaa Editor|Ditaa Editor]]
 * [[+Equation Editor|Equation Editor]]
 * [[+GNU R Plot Editor|GNU R Plot Editor]]
+* [[+Gnuplot Editor|Gnuplot Editor]]
 * [[+Insert Screenshot|Insert Screenshot]]
 * [[+Insert Symbol|Insert Symbol]]
+* [[+Inline Calculator|Inline Calculator]]
 * [[+Link Map|Link Map]]
 * [[+Quick Note|Quick Note]]
 * [[+Spell Checker|Spell Checker]]
+* [[+Table Of Contents|Table Of Contents]]
+* [[+Tags|Tags]]
 * [[+Task List|Task List]]
 * [[+Tray Icon|Tray Icon]]
 * [[+Version Control|Version Control]]

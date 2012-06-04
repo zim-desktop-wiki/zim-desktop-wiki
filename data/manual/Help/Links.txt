@@ -31,7 +31,7 @@ This link for example goes to wikipedia.org: [[wp?wiki]]
 
 To add your own urls use "''~/.local/share/zim/urls.list''". All types of urls which are supported by zim can be added. Consider adding "''file://''" urls for directories you refer often from zim. See [[Config Files]] for more details.
 
-The zim notebooks you added in the "Open notebook" dialog are automatically recognized as interwiki names.
+The zim notebooks you added in the "Open notebook" dialog are automatically recognized as interwiki names. So you can link to notebooks using either their name or their interwiki keyword (both case insensitive). The interwiki keyword is for a specific notebook can be set in the [[Properties]] dialog.
 
 ===== Back links =====
 "Back links" are the reverse of normal links. For example when page //A// links to page //B// then page //B// will have "back link" to page //A//. The list with back links is the answer the the question "What links here".

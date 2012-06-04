@@ -1,22 +1,26 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.notebook module.'''
 
 import tests
 
-from zim.fs import *
+import os
+
+from zim.fs import File, Dir
 from zim.config import config_file
 from zim.notebook import *
 from zim.index import *
 import zim.errors
 from zim.formats import ParseTree
 
+from zim import _get_default_or_only_notebook
+	# private, but want to check it anyway
 
+
+@tests.slowTest
 class TestGetNotebook(tests.TestCase):
-
-	slowTest = True
 
 	def setUp(self):
 		list = config_file('notebooks.list')
@@ -25,16 +29,16 @@ class TestGetNotebook(tests.TestCase):
 			file.remove()
 
 	def runTest(self):
-		root = Dir(tests.create_tmp_dir(u'notebook_TestGetNotebook_\u0421\u0430\u0439'))
+		root = Dir(self.create_tmp_dir(u'some_utf8_here_\u0421\u0430\u0439'))
 
 		# Start empty - see this is no issue
 		list = get_notebook_list()
-		self.assertTrue(isinstance(list, NotebookList))
-		self.assertFalse(list)
+		self.assertTrue(isinstance(list, NotebookInfoList))
+		self.assertTrue(len(list) == 0)
 
 		nb, page = resolve_notebook('foo')
 		self.assertTrue(nb is None)
-		nb = resolve_default_notebook()
+		nb = _get_default_or_only_notebook()
 		self.assertTrue(nb is None)
 
 		# Non-existing dir
@@ -56,36 +60,59 @@ class TestGetNotebook(tests.TestCase):
 		self.assertEqual(page, Path('foo:bar:baz'))
 
 		# And put it in the list and resolve it by name
-		list.append(dir.uri)
-		list.write()
 		list = get_notebook_list()
+		list.append(NotebookInfo(dir.uri, name='foo'))
+		list.write()
 		self.assertTrue(len(list) == 1)
+		self.assertTrue(isinstance(list[0], NotebookInfo))
+
+		info = list.get_by_name('foo')
+		self.assertEqual(info.uri, dir.uri)
+		self.assertEqual(info.name, 'foo')
+
 		nb, page = resolve_notebook('foo')
 		self.assertEqual(nb, dir)
 
 		# Single notebook is automatically the default
-		nb = resolve_default_notebook()
-		self.assertEqual(nb, dir)
+		nb = _get_default_or_only_notebook()
+		self.assertEqual(nb, dir.uri)
 
 		# But not anymore after adding second notebook
-		list.append('file:///foo/bar')
-		list.write()
+		if os.name == 'nt':
+			uri1 = 'file:///C:/foo/bar'
+		else:
+			uri1 = 'file:///foo/bar'
+
 		list = get_notebook_list()
+		list.append(NotebookInfo(uri1, interwiki='foobar'))
+			# on purpose do not set name, should default to basename
+		list.write()
 		self.assertTrue(len(list) == 2)
-		self.assertEqual(list[:], [dir.uri, 'file:///foo/bar'])
+		self.assertEqual(list[:],
+			[NotebookInfo(dir.uri), NotebookInfo(uri1)])
 
 		nb, page = resolve_notebook('foo')
 		self.assertEqual(nb, dir)
 		self.assertTrue(isinstance(get_notebook(nb), Notebook))
 
-		nb = resolve_default_notebook()
+		nb, page = resolve_notebook('bar')
+			# Check name defaults to dir basename
+		self.assertEqual(nb, Dir(uri1))
+		self.assertIs(get_notebook(nb), None) # path should not exist
+
+		nb, page = resolve_notebook('Bar')
+		self.assertEqual(nb, Dir(uri1))
+
+		nb = _get_default_or_only_notebook()
 		self.assertTrue(nb is None)
 
-		list.default = 'file:///default/foo'
-		list.write()
 		list = get_notebook_list()
-		nb = resolve_default_notebook()
-		self.assertEqual(nb, Dir('/default/foo'))
+		list.set_default(uri1)
+		list.write()
+		nb = _get_default_or_only_notebook()
+		self.assertEqual(nb, uri1)
+		nb, p = resolve_notebook(nb)
+		self.assertEqual(nb, Dir(uri1))
 		self.assertEqual(get_notebook(nb), None)
 
 		# Check interwiki parsing
@@ -95,24 +122,27 @@ class TestGetNotebook(tests.TestCase):
 		self.assertEqual(nb, dir)
 		self.assertEqual(page, Path('Foo'))
 
+		self.assertEqual(interwiki_link('foobar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
+		self.assertEqual(interwiki_link('FooBar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
+		self.assertEqual(interwiki_link('bar?Foo'), 'zim+' + uri1 + '?Foo') # name
+		self.assertEqual(interwiki_link('Bar?Foo'), 'zim+' + uri1 + '?Foo') # name
+
 		# Check backward compatibility
 		file = File('tests/data/notebook-list-old-format.list')
-		wanted = [Dir('~/Notes').uri, Dir('/home/user/code/zim.debug').uri, Dir('/home/user/Foo Bar').uri]
-		list = NotebookList(file)
-		self.assertEqual(list[:], wanted)
-		self.assertEqual(list.default, Dir('/home/user/code/zim.debug').uri)
+		list = NotebookInfoList(file)
+		self.assertEqual(list[:], [
+			NotebookInfo(Dir(path).uri) for path in
+				('~/Notes', '/home/user/code/zim.debug', '/home/user/Foo Bar')
+		])
+		self.assertEqual(list.default,
+			NotebookInfo(Dir('/home/user/code/zim.debug').uri) )
 
 
 class TestNotebook(tests.TestCase):
 
 	def setUp(self):
-		zim.errors.silence_signal_exception_context = True
-		if not hasattr(self, 'notebook'):
-			self.notebook = tests.get_test_notebook()
-			self.notebook.index.update()
-
-	def tearDown(self):
-		zim.errors.silence_signal_exception_context = False
+		path = self.get_tmp_name()
+		self.notebook = tests.new_notebook(fakedir=path)
 
 	def testAPI(self):
 		'''Test various notebook methods'''
@@ -131,6 +161,28 @@ class TestNotebook(tests.TestCase):
 		page3 = self.notebook.get_page(Path('Tree:foo'))
 		self.assertTrue(id(page3) != id(page1))
 		self.assertFalse(page1.valid)
+
+		page = self.notebook.get_page(Path('Test:foo'))
+		text = page.dump('plain')
+		newtext = ['Some new content\n']
+		assert newtext != text
+		self.assertEqual(page.dump('plain'), text)
+		page.parse('plain', newtext)
+		self.assertEqual(page.dump('plain'), newtext)
+		self.assertTrue(page.modified)
+		re = self.notebook.revert_page(page)
+		self.assertFalse(re) # no return value
+		self.assertEqual(page.dump('plain'), text) # object reverted
+		self.assertFalse(page.modified)
+		self.notebook.flush_page_cache(page)
+		page = self.notebook.get_page(page) # new object
+		self.assertEqual(page.dump('plain'), text)
+		page.parse('plain', newtext)
+		self.assertEqual(page.dump('plain'), newtext)
+		self.notebook.store_page(page)
+		self.notebook.flush_page_cache(page)
+		page = self.notebook.get_page(page) # new object
+		self.assertEqual(page.dump('plain'), newtext)
 
 		pages = list(self.notebook.get_pagelist(Path(':')))
 		self.assertTrue(len(pages) > 0)
@@ -153,35 +205,35 @@ class TestNotebook(tests.TestCase):
 			self.assertFalse(page.hascontent)
 			self.assertFalse(page.exists())
 
-		for path in (Path('Test:foo'), Path('TODOList')):
+		for path in (Path('Test:foo'), Path('TaskList')):
 			page = self.notebook.get_page(path)
 			self.assertTrue(page.haschildren or page.hascontent)
 			self.assertTrue(page.exists())
 
 		# check errors
 		self.assertRaises(PageExistsError,
-			self.notebook.move_page, Path('Test:foo'), Path('TODOList'))
+			self.notebook.move_page, Path('Test:foo'), Path('TaskList'))
 
-		self.notebook.index.update(background=True)
+		self.notebook.index.update_async()
 		self.assertTrue(self.notebook.index.updating)
 		self.assertRaises(IndexBusyError,
 			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
+		self.notebook.index.ensure_update()
 
 		# non-existing page - just check no errors here
-		self.notebook.index.ensure_update()
 		self.notebook.move_page(Path('NewPage'), Path('Test:NewPage')),
+		self.notebook.index.ensure_update()
 
 		# Test actual moving
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
-			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
+			(Path('TaskList'), Path('NewPage:Foo:Bar:Baz')),
 		):
-			self.notebook.index.ensure_update()
 			page = self.notebook.get_page(oldpath)
 			text = page.dump('wiki')
 			self.assertTrue(page.haschildren)
-
 			self.notebook.move_page(oldpath, newpath)
+			self.notebook.index.ensure_update()
 
 			# newpath should exist and look like the old one
 			page = self.notebook.get_page(newpath)
@@ -193,6 +245,24 @@ class TestNotebook(tests.TestCase):
 			page = self.notebook.get_page(oldpath)
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
+
+		# Test moving a page below it's own namespace
+		oldpath = Path('Test:Bar')
+		newpath = Path('Test:Bar:newsubpage')
+
+		page = self.notebook.get_page(oldpath)
+		page.parse('wiki', 'Test 123')
+		self.notebook.store_page(page)
+
+		self.notebook.move_page(oldpath, newpath)
+		self.notebook.index.ensure_update()
+		page = self.notebook.get_page(newpath)
+		self.assertEqual(page.dump('wiki'), ['Test 123\n'])
+
+		page = self.notebook.get_page(oldpath)
+		self.assertTrue(page.haschildren)
+		self.assertFalse(page.hascontent)
+
 
 		# Check delete and cleanup
 		path = Path('AnotherNewPage:Foo:bar')
@@ -246,6 +316,13 @@ class TestNotebook(tests.TestCase):
 			':AnotherNewPage:Foo:bar\n'
 			'**bold** :AnotherNewPage\n' )
 
+
+		# Try trashing
+		try:
+			self.notebook.trash_page(Path('TrashMe'))
+		except TrashNotSupportedError:
+			print 'trashing not supported'
+
 		#~ print '\n==== DB ===='
 		#~ self.notebook.index.ensure_update()
 		#~ cursor = self.notebook.index.db.cursor()
@@ -293,6 +370,7 @@ class TestNotebook(tests.TestCase):
 			('Foo:Bar', 'Dus:Ja', ':Dus:Ja'),
 			('Foo:Bar', 'Foo:Ja', 'Ja'),
 			('Foo:Bar:Baz', 'Foo:Bar', 'Bar'),
+			('Foo:Bar:Baz', 'Foo', 'Foo'),
 		):
 			#~ print '>', source, href, link
 			self.assertEqual(
@@ -324,15 +402,15 @@ http://foo.org # urls are untouched
 [[Dus:Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
 [[:Foo:Bar:Dus]] # Link that could be made relative, but isn't
 '''
-		notebook, page = tests.get_test_page('Foo:Bar:Baz')
+		page = self.notebook.get_page(Path('Foo:Bar:Baz'))
 		page.parse('wiki', text)
-		notebook._update_links_from(page, Path('Dus:Baz'), page,  Path('Dus:Baz'))
-		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted1)
+		self.notebook._update_links_from(page, Path('Dus:Baz'), page,  Path('Dus:Baz'))
+		self.assertEqual(u''.join(page.dump('wiki')), wanted1)
 
-		notebook, page = tests.get_test_page('Dus:Bar')
+		page = self.notebook.get_page(Path('Dus:Bar'))
 		page.parse('wiki', text)
-		notebook._update_links_from(page, Path('Dus:Baz'), page, Path('Dus:Baz'))
-		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted2)
+		self.notebook._update_links_from(page, Path('Dus:Baz'), page, Path('Dus:Baz'))
+		self.assertEqual(u''.join(page.dump('wiki')), wanted2)
 
 		# updating links to the page that was moved
 		# moving from Dus:Baz to Foo:Bar:Baz or renaming to Dus:Bar - updating links in Dus:Ja
@@ -366,15 +444,15 @@ http://foo.org # urls are untouched
 [[Bar:Hmm]] # absolute link that needs updating
 [[Bar:Hmm:Ja]] # absolute link that needs updating
 '''
-		notebook, page = tests.get_test_page('Dus:Ja')
+		page = self.notebook.get_page(Path('Dus:Ja'))
 		page.parse('wiki', text)
-		notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Foo:Bar:Baz'))
-		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted1)
+		self.notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Foo:Bar:Baz'))
+		self.assertEqual(u''.join(page.dump('wiki')), wanted1)
 
-		notebook, page = tests.get_test_page('Dus:Ja')
+		page = self.notebook.get_page(Path('Dus:Ja'))
 		page.parse('wiki', text)
-		notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Dus:Bar'))
-		self.assertEqualDiff(u''.join(page.dump('wiki')), wanted2)
+		self.notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Dus:Bar'))
+		self.assertEqual(u''.join(page.dump('wiki')), wanted2)
 
 		# now test actual move on full notebook
 		def links(source, href):
@@ -427,8 +505,8 @@ http://foo.org # urls are untouched
 			('+test', 'Test:xxx', 'Test:xxx:test'),
 			('foo', 'Test:xxx', 'Test:foo'),
 			('+foo', 'Test:xxx', 'Test:xxx:foo'),
-			('Test', 'TODOList:bar', 'Test'),
-			('test:me', 'TODOList:bar', 'Test:me'),
+			('Test', 'TaskList:bar', 'Test'),
+			('test:me', 'TaskList:bar', 'Test:me'),
 		): self.assertEqual(
 			self.notebook.resolve_path(name, Path(ns)), Path(wanted) )
 
@@ -438,12 +516,12 @@ http://foo.org # urls are untouched
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
-		dir = Dir(tests.create_tmp_dir('notebook_testResolveFile'))
 		path = Path('Foo:Bar')
-		self.notebook.dir = dir
-		self.notebook.get_store(path).dir = dir
+		dir = self.notebook.dir
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		doc_root = self.notebook.get_document_root()
+		self.notebook.do_properties_changed() # parse config
+		doc_root = self.notebook.document_root
+		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
 		for link, wanted, cleaned in (
 			('~/test.txt', File('~/test.txt'), '~/test.txt'),
 			(r'~\test.txt', File('~/test.txt'), '~/test.txt'),
@@ -451,6 +529,7 @@ http://foo.org # urls are untouched
 			('file:/test.txt', File('file:///test.txt'), None),
 			('file://localhost/test.txt', File('file:///test.txt'), None),
 			('/test.txt', doc_root.file('test.txt'), '/test.txt'),
+			('../../notebook_document_root/test.txt', doc_root.file('test.txt'), '/test.txt'),
 			('./test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
 			(r'.\test.txt', dir.file('Foo/Bar/test.txt'), './test.txt'),
 			('../test.txt', dir.file('Foo/test.txt'), '../test.txt'),
@@ -468,6 +547,10 @@ http://foo.org # urls are untouched
 		# check relative path without Path
 		self.assertEqual(
 			self.notebook.relative_filepath(doc_root.file('foo.txt')), '/foo.txt')
+		self.assertEqual(
+			self.notebook.relative_filepath(dir.file('foo.txt')), './foo.txt')
+
+
 
 #	def testResolveLink(self):
 #		'''Test page.resolve_link()'''
@@ -542,7 +625,7 @@ class TestPage(TestPath):
 	'''Test page object'''
 
 	def setUp(self):
-		self.notebook = tests.get_test_notebook()
+		self.notebook = tests.new_notebook()
 
 	def generator(self, name):
 		return self.notebook.get_page(Path(name))
@@ -555,6 +638,7 @@ class TestPage(TestPath):
 <zim-tree>
 <link href='foo:bar'>foo:bar</link>
 <link href='bar'>bar</link>
+<tag name='baz'>@baz</tag>
 </zim-tree>
 '''		)
 		page = Page(Path('Foo'))
@@ -566,6 +650,11 @@ class TestPage(TestPath):
 			('page', 'foo:bar', {}),
 			('page', 'bar', {}),
 		] )
+
+		tags = list(page.get_tags())
+		self.assertEqual(tags, [
+			('@baz', {'name': 'baz'}),
+		])
 
 		self.assertEqual(page.get_parsetree().tostring(), tree.tostring())
 			# ensure we didn't change the tree
@@ -581,7 +670,7 @@ class TestPage(TestPath):
 class TestIndexPage(tests.TestCase):
 
 	def setUp(self):
-		self.notebook = tests.get_test_notebook()
+		self.notebook = tests.new_notebook()
 		self.notebook.index.update()
 
 	def runTest(self):

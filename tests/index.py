@@ -1,36 +1,20 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
 import gtk
 import pango
 
+import os
+
 from zim.fs import Dir
-from zim.notebook import Notebook, Path, Link, init_notebook
+from zim.notebook import init_notebook, get_notebook, Notebook, Path, Link
 from zim.index import *
-from zim.gui.pageindex import *
 from zim.formats import ParseTree
-
-# TODO test n_list_* functions
-
-
-def get_files_notebook(key):
-	# We fill the notebook using the store interface, as this test comes before
-	# the notebook test, but after the store test.
-	dir = Dir(tests.create_tmp_dir('index_'+key))
-	init_notebook(dir)
-	notebook = Notebook(dir=dir)
-	store = notebook.get_store(':')
-	manifest = []
-	for name, text in tests.get_test_data('wiki'):
-		manifest.append(name)
-		page = store.get_page(Path(name))
-		page.parse('wiki', text)
-		store.store_page(page)
-	notebook.testdata_manifest = tests.expand_manifest(manifest)
-	return notebook
+from zim.gui.clipboard import Clipboard
+from zim.gui.pageindex import *
 
 
 class TestIndex(tests.TestCase):
@@ -40,7 +24,7 @@ class TestIndex(tests.TestCase):
 		# for the notebook. So any assumption from the notebook about
 		# the index will be wrong.
 		self.index = Index(dbfile=':memory:')
-		self.notebook = tests.get_test_notebook()
+		self.notebook = tests.new_notebook()
 		self.index.set_notebook(self.notebook)
 
 	def runTest(self):
@@ -96,6 +80,19 @@ class TestIndex(tests.TestCase):
 		n = self.index.n_list_links(Path('Test:foo:bar'), LINK_DIR_BACKWARD)
 		self.assertEqual(n, len(backlist))
 
+		# tags
+		taglist = list(self.index.list_tags(Path('Test:tags')))
+		self.assertTrue(len(taglist) == 11)
+		for tag in taglist:
+			self.assertTrue(isinstance(tag, IndexTag))
+		tagnames = [t.name for t in taglist]
+		aretags = ['tags', 'beginning', 'end', 'tabs', 'verbatim',
+				   'enumerations', 'encoding', 's', 'num6ers', 'wit', 'cr']
+		nottags = ['places', 'links', 'captions', 'Headings', 'word']
+		for t in aretags:
+			self.assertTrue(t in tagnames)
+		for t in nottags:
+			self.assertTrue(not t in tagnames)
 
 		# cursor.row_count is not reliable - see docs
 		def count_pages(db):
@@ -120,8 +117,8 @@ class TestIndex(tests.TestCase):
 		manifest = len(self.notebook.testdata_manifest)
 		self.assertTrue(count_pages(self.index.db) >= manifest)
 		origdb = dump_db(self.index.db)
-		self.index.update(checkcontents=False)
-		self.assertEqualDiff(dump_db(self.index.db), origdb)
+		self.index.update()
+		self.assertEqual(dump_db(self.index.db), origdb)
 
 		# indexkey
 		for path in (Path('Test'), Path('Test:foo')):
@@ -154,7 +151,7 @@ class TestIndex(tests.TestCase):
 		self.index.flush()
 		self.assertEqual(count_pages(self.index.db), 1)
 		self.index.update()
-		self.assertEqualDiff(dump_db(self.index.db), origdb)
+		self.assertEqual(dump_db(self.index.db), origdb)
 
 		# now index only part of the tree - and repeat
 		self.index.flush()
@@ -163,7 +160,7 @@ class TestIndex(tests.TestCase):
 		self.assertTrue(count_pages(self.index.db) > 2)
 		partdb = dump_db(self.index.db)
 		self.index.update(Path('Test'))
-		self.assertEqualDiff(dump_db(self.index.db), partdb)
+		self.assertEqual(dump_db(self.index.db), partdb)
 
 		# Index whole tree again
 		self.index.update()
@@ -177,12 +174,19 @@ class TestIndex(tests.TestCase):
 		parent = self.index.lookup_path(path.parent)
 		self.assertTrue(parent is None)
 
-		#~ # Check cleanup for links
+		# Check cleanup for links
 		links = [link.href for link in self.index.list_links(Path('roundtrip'))]
 		for p in ('foo:bar', 'Bar'):
 			self.assertTrue(Path(p) in links)
 			path = self.index.lookup_path(Path('foo:bar'))
 			self.assertTrue(path)
+
+		# Check for tag indexing
+		tags = [tag.name for tag in self.index.list_tags(Path('roundtrip'))]
+		for t in ('foo', 'bar'):
+			self.assertTrue(t in tags)
+			tagged = list(self.index.list_tagged_pages(t))
+			self.assertTrue(Path('roundtrip') in tagged)
 
 		tree = ParseTree().fromstring('<zim-tree><link href=":foo:bar">:foo:bar</link></zim-tree>')
 		page = self.notebook.get_page(Path('roundtrip'))
@@ -197,14 +201,25 @@ class TestIndex(tests.TestCase):
 		path = self.index.lookup_path(Path('foo:bar'))
 		self.assertTrue(path is None)
 
+		# Check get_page_index() to double check stable sorting
+		def check_index(path):
+			for i, child in enumerate(self.index.list_pages(path)):
+				index = self.index.get_page_index(child)
+				#~ print 'INDEX', i, child, '-->', index
+				self.assertTrue(index == i, 'Index mismatch for %s' % child)
+				if child.haschildren:
+					check_index(child) # recurs
 
+		check_index(Path(':'))
+
+
+@tests.slowTest
 class TestIndexFiles(TestIndex):
 	# Like the test above, but now using a files backend
 
-	slowTest = True
-
 	def setUp(self):
-		self.notebook = get_files_notebook('TestIndexFiles')
+		path = self.create_tmp_dir()
+		self.notebook = tests.new_files_notebook(path)
 		self.index = self.notebook.index
 
 	def runTest(self):
@@ -212,16 +227,11 @@ class TestIndexFiles(TestIndex):
 		TestIndex.runTest(self)
 
 
-def color_to_string(color):
-	# helper method for comparing gtk.gdk.Color objects
-	return '%i,%i,%i' % (color.red, color.green, color.blue)
-
-
 class TestPageTreeStore(tests.TestCase):
 
 	def setUp(self):
 		self.index = Index(dbfile=':memory:')
-		self.notebook = tests.get_test_notebook()
+		self.notebook = tests.new_notebook()
 		self.index.set_notebook(self.notebook)
 		self.notebook.index.update()
 
@@ -233,22 +243,21 @@ class TestPageTreeStore(tests.TestCase):
 		# Hooking up the treeview as well just to see if we get any errors
 		# From the order the signals are generated.
 
-		ui = StubUI()
+		ui = MockUI()
+		ui.notebook = self.notebook
+		ui.page = Path('Test:foo')
+		self.assertTrue(self.notebook.get_page(ui.page).exists())
+
 		treeview = PageTreeView(ui)
 		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 5)
+		self.assertEqual(treestore.get_n_columns(), 7)
 		treeview.set_model(treestore)
 
-		def process_events(*a):
-			while gtk.events_pending():
-				gtk.main_iteration(block=False)
-			return True # continue
+		self.index.update(callback=tests.gtk_process_events)
+		tests.gtk_process_events()
 
-		self.index.update(callback=process_events)
-		process_events()
-
-		treeview = PageTreeView(None) # just run hidden to check errors
+		treeview = PageTreeView(ui) # just run hidden to check errors
 		treeview.set_model(treestore)
 
 		n = treestore.on_iter_n_children(None)
@@ -279,10 +288,11 @@ class TestPageTreeStore(tests.TestCase):
 
 		# Now walk through the whole notebook testing the API
 		# with nested pages and stuff
-		n = 0
+		npages = 0
 		path = []
 		for page in self.notebook.walk():
-			n += 1
+			#~ print '>>', page
+			npages += 1
 			names = page.name.split(':')
 			if len(names) > len(path):
 				path.append(0) # always increment by one
@@ -302,15 +312,11 @@ class TestPageTreeStore(tests.TestCase):
 			if page.hascontent or page.haschildren:
 				self.assertEqual(treestore.get_value(iter, EMPTY_COL), False)
 				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_NORMAL)
-				self.assertEqual(
-					color_to_string( treestore.get_value(iter, FGCOLOR_COL) ),
-					color_to_string( treestore.NORMAL_COLOR) )
+				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
 			else:
 				self.assertEqual(treestore.get_value(iter, EMPTY_COL), True)
 				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_ITALIC)
-				self.assertEqual(
-					color_to_string( treestore.get_value(iter, FGCOLOR_COL) ),
-					color_to_string( treestore.EMPTY_COLOR) )
+				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.EMPTY_COLOR)
 			self.assertEqual(treestore.get_path(iter), tuple(path))
 			if indexpath.haschildren:
 				self.assertTrue(treestore.iter_has_child(iter))
@@ -340,22 +346,41 @@ class TestPageTreeStore(tests.TestCase):
 				child = treestore.iter_nth_child(iter, 0)
 				self.assertTrue(child is None)
 
-		self.assertTrue(n > 0) # double check sanity of walk() method
+		self.assertTrue(npages > 10) # double check sanity of walk() method
 
 		# Check if all the signals go OK
-		treestore.disconnect()
+		treestore.disconnect_index()
 		del treestore
 		self.index.flush()
 		treestore = PageTreeStore(self.index)
-		self.index.update(callback=process_events)
+		treeview = PageTreeView(ui, treestore)
+		self.index.update(callback=tests.gtk_process_events)
+
+		# Try some TreeView methods
+		path = Path('Test:foo')
+		self.assertTrue(treeview.select_page(path))
+		self.assertEqual(treeview.get_selected_path(), path)
+		treepath = treeview.get_model().get_treepath(path)
+		self.assertTrue(not treepath is None)
+		col = treeview.get_column(0)
+		treeview.row_activated(treepath, col)
+
+		#~ treeview.emit('popup-menu')
+		treeview.emit('insert-link', path)
+		treeview.emit('copy')
+
+		# Check if all the signals go OK in delete
+		for page in reversed(list(self.notebook.walk())): # delete bottom up
+			self.notebook.delete_page(page)
+			tests.gtk_process_events()
 
 
+@tests.slowTest
 class TestPageTreeStoreFiles(TestPageTreeStore):
 
-	slowTest = True
-
 	def setUp(self):
-		self.notebook = get_files_notebook('TestPageTreeStoreFiles')
+		path = self.create_tmp_dir()
+		self.notebook = tests.new_files_notebook(path)
 		self.index = self.notebook.index
 
 	def runTest(self):
@@ -363,13 +388,105 @@ class TestPageTreeStoreFiles(TestPageTreeStore):
 		TestPageTreeStore.runTest(self)
 
 
-class StubUI(object):
+class TestPageTreeView(tests.TestCase):
+
+	# This class is intended for testing the widget user interaction,
+	# interaction with the store is already tested by having the
+	# view attached in TestPageTreeStore
+
+	def setUp(self):
+		self.ui = tests.MockObject()
+		self.ui.page = Path('Test')
+		self.notebook = tests.new_notebook()
+		self.ui.notebook = self.notebook
+		self.model = PageTreeStore(self.notebook.index)
+		self.treeview = PageTreeView(self.ui, self.model)
+
+	def testContextMenu(self):
+		menu = self.treeview.get_popup()
+
+		# Check these do not cause errors - how to verify state ?
+		tests.gtk_activate_menu_item(menu, _("Expand _All"))
+		tests.gtk_activate_menu_item(menu, _("_Collapse All"))
+
+		# Copy item
+		tests.gtk_activate_menu_item(menu, 'gtk-copy')
+		self.assertEqual(Clipboard.get_text(), 'Test')
+
+	# Single click navigation, ... ?
+
+
+@tests.slowTest
+class TestSynchronization(tests.TestCase):
+
+	def runTest(self):
+		'''Test synchronization'''
+		# Test if zim detects pages, that where created with another
+		# zim instance and transfered to this instance with
+		# dropbox or another file synchronization tool.
+		#
+		# The scenario is as follow:
+		# 1) Page.txt is created in this instance
+		# 2) Page/Subpage.txt is created in another instance
+		#    and copied into the notebook by the synchronization tool
+		# 3) Zim runs a standard index update
+		# Outcome should be that Page:Subpage shows up in the index
+
+		# create notebook
+		dir = Dir(self.create_tmp_dir())
+
+		init_notebook(dir, name='foo')
+		notebook = get_notebook(dir)
+		index = notebook.index
+		index.update()
+
+		# add page in this instance
+		path = Path('Page')
+		page =  notebook.get_page(path)
+		page.parse('wiki', 'nothing important')
+		notebook.store_page(page)
+
+		# check file exists
+		self.assertTrue(dir.file('Page.txt').exists())
+
+		# check file is indexed
+		self.assertTrue(page in list(index.list_all_pages()))
+
+		# check attachment dir does not exist
+		subdir = dir.subdir('Page')
+		self.assertEqual(notebook.get_attachments_dir(page), subdir)
+		self.assertFalse(subdir.exists())
+
+		for newfile, newpath in (
+			(subdir.file('NewSubpage.txt').path, Path('Page:NewSubpage')),
+			(dir.file('Newtoplevel.txt').path, Path('Newtoplevel')),
+			(dir.file('SomeDir/Dir/Newpage.txt').path, Path('SomeDir:Dir:Newpage')),
+		):
+			# make sure ctime changed since last index
+			import time
+			time.sleep(2)
+
+			# create new page without using zim classes
+			self.assertFalse(os.path.isfile(newfile))
+
+			mydir = os.path.dirname(newfile)
+			if not os.path.isdir(mydir):
+				os.makedirs(mydir)
+
+			fh = open(newfile, 'w')
+			fh.write('Test 123\n')
+			fh.close()
+
+			self.assertTrue(os.path.isfile(newfile))
+
+			# simple index reload
+			index.update()
+
+			# check if the new page is found in the index
+			self.assertTrue(newpath in list(index.list_all_pages()))
+
+
+class MockUI(tests.MockObject):
 
 	page = None
 	notebook = None
-
-	def connect(*a):
-		pass
-
-	def connect_after(*a):
-		pass

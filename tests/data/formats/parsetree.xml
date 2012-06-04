@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><h level="1">Head 1</h>
+<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat. Duis aute irure dolor in
+reprehenderit in voluptate velit esse cillum dolore eu fugiat
+nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
+sunt in culpa qui officia deserunt mollit anim id est laborum.
+</p>
+<p><div indent="1">Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat. Duis aute irure dolor in
+reprehenderit in voluptate velit esse cillum dolore eu fugiat
+nulla pariatur.  Excepteur sint occaecat cupidatat non proident,
+sunt in culpa qui officia deserunt mollit anim id est laborum.
+</div></p>
+<h level="2">head 2</h>
+
+<p><strong>bold</strong>, <emphasis>italic</emphasis> and <mark>underline</mark> and <code>verbatim</code>
+and also <strike>strike through</strike>
+</p>
+<p>This is not formatted: *bold*, /italic/ / * *^%#@#$#!@)_!)_ &amp; &lt;&gt; ""
+</p>
+<p>Some sub- and superscript like x<sup>2</sup> and H<sub>2</sub>O
+</p>
+<p>And some empty space here:
+</p>
+
+
+<h level="3">head 3</h>
+<p><link href="foo">foo</link>  links to page in the current namespace or parents
+<link href=":foo">:foo</link> links to page in the root namespace
+<link href="+foo">+foo</link> links to page in a subnamespace
+<link href="foo">bar</link> links to "foo" but display "bar"
+</p>
+<p><link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
+<link href="Foo">Foo</link><link href="Bar">Bar</link>
+</p>
+<p><link href="mailto:foo@bar.org">mailto:foo@bar.org</link>
+<link href="wp?Test">wp?Test</link>
+</p>
+<p>External links like <link href="http://nongnu.org">http://nongnu.org</link> and <link href="foo@bar.org">foo@bar.org</link> are also supported
+</p>
+<p>[not:a:link]
+</p>
+
+<p><img src="./foobar.png" />
+<img height="50" src="./foobar.png" />
+<img src="../my-image.png" width="600">Foo Bar</img>
+<img href="Foo" src="my-image.png" />
+<img href=":foo:bar" src="../my-image.png" width="600">Foo Bar</img>
+</p>
+<p><img src="./equation001.png" type="equation" /> This equation has a source .tex file
+<img src="./equation002.png" type="equation" /> for this one it is missing
+</p>
+<p>{./Not/an/image.png}
+</p>
+<p>Tags: <tag name="foo">@foo</tag> <tag name="bar">@bar</tag>
+</p>
+
+<h level="4">head 4</h>
+
+<p><ul><li bullet="*">item 1</li><li bullet="*">item 2</li><li bullet="*">item 3</li><ul><li bullet="*">item a</li><li bullet="*">item b</li></ul><li bullet="*">item 4</li></ul></p>
+
+<p>Indented list:
+<ul indent="1"><li bullet="*">item 1</li><li bullet="*">item 2</li><li bullet="*">item 3</li><ul><li bullet="*">item a</li><li bullet="*">item b</li></ul><li bullet="*">item 4</li></ul></p>
+
+<p>TODO list:
+<ul><li bullet="unchecked-box">foo</li><li bullet="checked-box">bar</li><ul><li bullet="checked-box">sub item 1</li><ul><li bullet="*">Some normal bullet</li></ul><li bullet="checked-box">sub item 2</li></ul><li bullet="xchecked-box">baz</li></ul></p>
+
+<p>A numbered list:
+<ol start="1"><li>foo</li><li>bar</li><ol start="a"><li>sub list</li><li>here</li></ol><li>hmmm</li></ol></p>
+
+<p>Start with number other that 1/a/A
+</p>
+<p><ol start="C"><li>foo</li><li>bar</li><ol start="3"><li>sub item start with 3</li></ol><li>baz</li></ol></p>
+<h level="5">head 5</h>
+<p><emphasis>some verbatim blocks</emphasis>:
+</p>
+<pre>Sing, O goddess, the rage of
+Achilles son of Peleus, that
+brought countless ills upon
+the Achaeans.
+</pre>
+<pre indent="1">Sing, O goddess, the rage of
+Achilles son of Peleus, that
+brought countless ills upon
+the Achaeans.
+</pre>
+<pre indent="1">def foo(self, bar, baz):
+	'''Some doc string here
+	@param bar: value for bar
+	@param baz: value for baz
+	@returns: foo
+	'''
+	returen "foo" + bar % baz
+</pre>
+<h level="2">Internationalization</h>
+
+<h level="3">中文</h>
+<p>This section has a chinese heading
+</p>
+<p>Lines below are in right to left script:
+</p>
+<p>חדו"א
+מד"ר
+מכניקת מוצקים 2
+A line in English, should be left aligned.
+דינמיקה
+</p>
+<p>aaa
+</p>
+<p>====
+This is not a header
+</p>
+<p>That's all ...
+</p></zim-tree>

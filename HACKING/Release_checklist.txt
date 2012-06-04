@@ -13,30 +13,37 @@ Preliminary:
 
 Merge translations:
 * Request download from launchpad
-* Merge it with tools/import-launchpad-translations.py
+* Merge it with ''tools/import-launchpad-translations.py''
 
 Prepare the package:
 * Set version in ''zim/__init__.py''
-* Update CHANGELOG.txt -- see `bzr visualize` for changes
-* Update debian changes -- run e.g. `debchange -v 0.46`
+* Update CHANGELOG.txt -- see `''bzr visualize''` for changes
+* Update debian changes -- run e.g. `''debchange -v 0.46''`
 * Optionally merge branch with website updates since previous release
 * Update version number in website downloads page
 
 Check the package:
-* `./setup.py sdist` (updates meta data etc.)
-* `make builddeb` and check `lintian -Ivi ../zim_0.46_i386.changes`
+* `''./setup.py sdist''` (updates meta data etc.)
+* `make builddeb` and check `''lintian -Ivi ../zim_0.46_i386.changes''`
 * Test website with ./tools/test_website.py
-* Run `make clean` and check `bzr st` for any remaining build files
+* Run `''make clean''` and check `''bzr st''` for any remaining build files
 
 Finalize the revision:
-* run ./test.py for the last time
+* run ''./test.py'' for the last time
 
 * commit + tag + push
 
 Build release packages:
-* `./setup.py sdist` (updates meta data etc.)
-* `make builddeb` + `make clean`
-* ./tools/build_website.sh
+* `''./setup.py sdist''` (updates meta data etc.)
+* `''make builddeb''` + `''make clean''`
+* ''./tools/build_website.sh''
+
+~~Publish to launchpad PPA:~~
+* ~~debuild -S -kB3223C82~~
+* ~~dput ppa:jaap.karssenberg/zim ../zim_XX_sources.changes~~
+
+* Update build recipe for PPA with latest tag
+* Request build for PPA with releases
 
 Publish the release:
 * Upload website
@@ -44,5 +51,18 @@ Publish the release:
 * Write release notes
 * Announce on freshmeat
 * Announce on launchpad
-* Announce on gnome files 
+* ~~Announce on gnome files~~
 * Announce on mailing list
+
+
+~~For snapshots~~
+* ~~`./setup.py sdist` to update build meta data~~
+* ~~debchange -v 0.50-SNASPSHOT-r359~~
+* ~~debuild -S -kB3223C82~~
+* ~~lintian -Ivi ../zim_0.46_i386.changes~~
+* ~~dput ppa:jaap.karssenberg/zim-snapshots ../zim_XX_sources.changes~~
+
+
+~~To check version numbering is OK use: ~~
+
+~~dpkg --compare-versions "0.51" gt "0.50-SNAPSHOT-r345" && echo OK~~

@@ -42,10 +42,11 @@
 			<menuitem action='edit_object'/>
 			<menuitem action='remove_link'/>
 			<separator/>
-			<placeholder name='edit_page'/>
+			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='copy_location'/>
 			<separator/>
+			<menuitem action='show_templateeditor'/>
 			<menuitem action='show_preferences'/>
 		</menu>
 		<menu action='view_menu'>
@@ -72,6 +73,10 @@
 			<separator/>
 			<placeholder name='plugin_items'/>
 			<separator/>
+			<menuitem action='zoom_in'/>
+			<menuitem action='zoom_out'/>
+			<menuitem action='zoom_reset'/>
+			<separator/>
 			<menuitem action='reload_page'/>
 		</menu>
 		<menu action='insert_menu'>
@@ -79,6 +84,7 @@
 			<separator/>
 			<menuitem action='insert_image'/>
 			<menuitem action='insert_bullet_list'/>
+			<menuitem action='insert_numbered_list'/>
 			<menuitem action='insert_checkbox_list'/>
 			<placeholder name='plugin_items'/>
 			<separator/>
@@ -93,6 +99,7 @@
 			<menuitem action='apply_format_h5'/>
 			<separator/>
 			<menuitem action='apply_format_bullet_list'/>
+			<menuitem action='apply_format_numbered_list'/>
 			<menuitem action='apply_format_checkbox_list'/>
 			<separator/>
 			<menuitem action='apply_format_strong'/>
@@ -224,5 +231,9 @@
 	<popup name='text_popup'>
 		<placeholder name='tools'/>
 	</popup>
+	<accelerator action='zoom_in_alt1'/>
+	<accelerator action='show_find_alt1'/>
+	<accelerator action='find_next_alt1'/>
+	<accelerator action='find_previous_alt1'/>
+	<accelerator action='redo_alt1'/>
 </ui>
-

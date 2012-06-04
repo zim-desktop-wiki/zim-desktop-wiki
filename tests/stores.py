@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for basic stores modules.'''
 
@@ -11,8 +11,8 @@ import tests
 import os
 import time
 
-from zim.fs import *
-from zim.fs import FileWriteError
+from zim.fs import File, Dir, FileWriteError
+from zim.errors import TrashNotSupportedError
 from zim.notebook import Notebook, Path, LookupError, PageExistsError
 import zim.stores
 from zim.formats import ParseTree
@@ -120,17 +120,17 @@ class TestReadOnlyStore(object):
 		#~ pprint.pprint(self.index)
 		#~ pprint.pprint(names)
 		self.assertTrue(u'utf8:\u03b1\u03b2\u03b3' in names) # Check usage of unicode
-		self.assertEqualDiffData(names, self.index)
+		self.assertEqual(names, self.index)
 
 
 class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 	'''Test the store.memory module'''
 
 	def setUp(self):
-		store = zim.stores.get_store('memory')
-		self.store = store.Store(path=Path(':'), notebook=Notebook())
+		klass = zim.stores.get_store('memory')
+		self.store = klass(path=Path(':'), notebook=Notebook())
 		self.index = set()
-		for name, text in tests.get_test_data('wiki'):
+		for name, text in tests.WikiTestData:
 			self.store.set_node(Path(name), text)
 			self.index.add(name)
 		self.normalize_index()
@@ -143,14 +143,61 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		self.assertTrue(page.get_parsetree())
 		self.assertTrue('Foo' in ''.join(page.dump('plain')))
 		self.assertFalse(page.modified)
-		wikitext = tests.get_test_data_page('wiki', 'roundtrip')
+		wikitext = tests.WikiTestData.get('roundtrip')
 		page.parse('wiki', wikitext)
 		self.assertTrue(page.modified)
 		self.store.store_page(page)
 		self.assertFalse(page.modified)
-		self.assertEqualDiff(''.join(page.dump('wiki')), wikitext)
+		self.assertEqual(''.join(page.dump('wiki')), wikitext)
 		page = self.store.get_page(Path('Test:foo'))
-		self.assertEqualDiff(''.join(page.dump('wiki')), wikitext)
+		self.assertEqual(''.join(page.dump('wiki')), wikitext)
+
+
+		page = self.store.get_page(Path('Test:foo'))
+		text = page.dump('plain')
+		newtext = ['Some new content\n']
+		assert newtext != text
+		self.assertEqual(page.dump('plain'), text)
+		page.parse('plain', newtext)
+		self.assertEqual(page.dump('plain'), newtext)
+		self.assertTrue(page.modified)
+		re = self.store.revert_page(page)
+		self.assertFalse(re) # no return value
+		self.assertEqual(page.dump('plain'), text) # object reverted
+		self.assertFalse(page.modified) # no longer modified
+		page = self.store.get_page(page) # new object
+		self.assertEqual(page.dump('plain'), text)
+		page.parse('plain', newtext)
+		self.assertEqual(page.dump('plain'), newtext)
+		self.store.store_page(page)
+		page = self.store.get_page(page) # new object
+		self.assertEqual(page.dump('plain'), newtext)
+
+		# check revert page triggers ui object
+		page._ui_object = tests.MockObject()
+		self.store.revert_page(page)
+		self.assertEqual(page._ui_object.mock_calls[-1][0], 'set_parsetree')
+
+		if hasattr(page, 'source') and isinstance(page.source, File):
+			# check revert also works when the actual file changed
+			# (and not trigger mtime check failure)
+			from tests.fs import modify_file_mtime, FilterOverWriteWarning
+			page = self.store.get_page(Path('Test:foo'))
+			text = page.dump('plain')
+			newtext = ['Foo bar baz\n']
+			othertext = ['Dus ja\n']
+			assert newtext != text
+			assert othertext != text
+			page.parse('plain', newtext)
+			modify_file_mtime(page.source.path, lambda p: open(p, 'w').writelines(othertext))
+			with FilterOverWriteWarning():
+				self.assertRaises(FileWriteError, self.store.store_page, page)
+			self.store.revert_page(page)
+			self.assertEqual(page.dump('plain'), othertext)
+			page.parse('plain', newtext)
+			self.store.store_page(page)
+			page = self.store.get_page(page) # new object
+			self.assertEqual(page.dump('plain'), newtext)
 
 		# check test setup OK
 		for path in (Path('Test:BAR'), Path('NewPage')):
@@ -162,11 +209,11 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		self.assertRaises(LookupError,
 			self.store.move_page, Path('NewPage'), Path('Test:BAR'))
 		self.assertRaises(PageExistsError,
-			self.store.move_page, Path('Test:foo'), Path('TODOList'))
+			self.store.move_page, Path('Test:foo'), Path('TaskList'))
 
 		for oldpath, newpath in (
 			(Path('Test:foo'), Path('Test:BAR')),
-			(Path('TODOList'), Path('NewPage:Foo:Bar:Baz')),
+			(Path('TaskList'), Path('NewPage:Foo:Bar:Baz')),
 		):
 			page = self.store.get_page(oldpath)
 			text = page.dump('wiki')
@@ -187,7 +234,10 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 			self.assertFalse(page.hascontent)
 
 			# let's delete the newpath again
-			self.assertTrue(self.store.delete_page(newpath))
+			page = self.store.get_page(newpath)
+			self.assertTrue(self.store.delete_page(page))
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
 			page = self.store.get_page(newpath)
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
@@ -223,9 +273,34 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		page = self.store.get_page(Path('NewPage'))
 		self.assertFalse(page.hascontent)
 
-	# TODO test getting a non-existing page
-	# TODO test if children uses namespace objects
-	# TODO test move, delete, read, write
+		# check trashing
+		trashing = True
+		try:
+			page = self.store.get_page(Path('TrashMe'))
+			self.assertTrue(page.haschildren)
+			self.assertTrue(page.hascontent)
+			self.store.trash_page(page)
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
+			page = self.store.get_page(Path('TrashMe'))
+			self.assertFalse(page.haschildren)
+			self.assertFalse(page.hascontent)
+		except TrashNotSupportedError:
+			trashing = False
+			print '(trashing not supported for this store)'
+			self.assertTrue(page.haschildren)
+			self.assertTrue(page.hascontent)
+			page = self.store.get_page(Path('TrashMe'))
+			self.assertTrue(page.haschildren)
+			self.assertTrue(page.hascontent)
+
+		page = self.store.get_page(Path('NonExistingPage'))
+		if trashing:
+			# fail silently for non-existing page
+			self.assertFalse(self.store.trash_page(page))
+		else:
+			# check error consistent
+			self.assertRaises(TrashNotSupportedError, self.store.trash_page, page)
 
 
 class TextXMLStore(TestReadOnlyStore, tests.TestCase):
@@ -252,8 +327,8 @@ Utf8 content here
 
 	def setUp(self):
 		buffer = StubFile(self.xml)
-		store = zim.stores.get_store('xml')
-		self.store = store.Store(path=Path(':'), notebook=Notebook(), file=buffer)
+		klass = zim.stores.get_store('xml')
+		self.store = klass(path=Path(':'), notebook=Notebook(), file=buffer)
 		self.index = set(['Foo', 'Foo:Bar', 'Baz', u'utf8:\u03b1\u03b2\u03b3'])
 		self.normalize_index()
 
@@ -265,22 +340,20 @@ Utf8 content here
 		page = self.store.get_page(Path('Foo:Bar'))
 		self.assertEqual(page.dump(format='wiki'), ['Foooo Barrr\n'])
 		ref = self.xml.replace("'", '"')
-		self.assertEqualDiff(''.join(self.store.dump()), ref)
+		self.assertEqual(''.join(self.store.dump()), ref)
 
 
+@tests.slowTest
 class TestFiles(TestStoresMemory):
 	'''Test the store.files module'''
 
-	slowTest = True
-
 	def setUp(self):
 		TestStoresMemory.setUp(self)
-		tmpdir = tests.create_tmp_dir(u'stores_TestFiles_\u0421\u0430\u0439')
+		tmpdir = self.create_tmp_dir(u'_some_utf8_here_\u0421\u0430\u0439')
 		self.dir = Dir([tmpdir, 'store-files'])
 		self.mem = self.store
-		store = zim.stores.get_store('files')
-		self.store = store.Store(
-			path=Path(':'), notebook=Notebook(), dir=self.dir )
+		klass = zim.stores.get_store('files')
+		self.store = klass(path=Path(':'), notebook=Notebook(), dir=self.dir)
 		for parent, page in walk(self.mem):
 			if page.hascontent:
 				mypage = self.store.get_page(page)
@@ -326,6 +399,14 @@ class TestFiles(TestStoresMemory):
 		firstline = page.source.readlines()[0]
 		self.assertEqual(firstline, 'Content-Type: text/x-zim-wiki\n')
 
+		# test moving page into itself
+		oldpath = Path('Test:New')
+		newpath = Path('Test:New:NewSub')
+
+		self.store.move_page(oldpath, newpath)
+		page = self.store.get_page(newpath)
+		self.assertEqual(page.dump('plain'), ['Foo Bar\n'])
+
 
 class StubFile(File):
 
@@ -349,4 +430,3 @@ class StubFile(File):
 
 	def exists(self):
 		return len(self.text) > 0
-

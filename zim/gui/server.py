@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module stands apart from the rest of the gui modules as it is not
 part from the main Gtk interface. It defines a Gtk interface that can be
@@ -99,7 +99,7 @@ class ServerWindow(gtk.Window):
 		table.attach(open_button, 2,3, 0,1)
 
 		table.attach(gtk.Label(_('Port')+': '), 0,1, 1,2)
-			# T: Field in web server gui for HTTLP port (e.g. port 80)
+			# T: Field in web server gui for HTTP port (e.g. port 80)
 		self.portentry = gtk.SpinButton()
 		self.portentry.set_numeric(True)
 		self.portentry.set_range(80, 10000)

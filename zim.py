@@ -23,14 +23,24 @@ if os.name == "nt" and sys.argv[0].endswith('.exe'):
 	sys.stdout = err_stream
 	sys.stderr = err_stream
 
-# Preliminary initalization of logging because modules can throw warnings at import
+# Preliminary initialization of logging because modules can throw warnings at import
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
 
+
+# Coverage support - triggered by the test suite
+#~ if True:
+	#~ print 'Start coverage !'
+	#~ import atexit
+	#~ import coverage
+	#~ cov = coverage.coverage(data_suffix=True, auto_data=True)
+	#~ cov.start()
+	#~ atexit.register(cov.stop)
+
+
 # Try importing our modules
-import zim
-import zim.config
 try:
-	pass
+	import zim
+	import zim.config
 except ImportError:
 	print >>sys.stderr, 'ERROR: Could not find python module files in path:'
 	print >>sys.stderr, ' '.join(map(str, sys.path))
@@ -58,7 +68,7 @@ except zim.GetoptError, err:
 	print >>sys.stderr, sys.argv[0]+':', err
 	sys.exit(1)
 except zim.UsageError, err:
-	print >>sys.stderr, zim.usagehelp.replace('zim', sys.argv[0])
+	print >>sys.stderr, err.msg
 	sys.exit(1)
 except KeyboardInterrupt: # e.g. <Ctrl>C while --server
 	print >>sys.stderr, 'Interrupt'

@@ -21,7 +21,7 @@ amazon.uk http://www.amazon.co.uk/exec/obidos/ASIN/
 google    http://www.google.com/search?q=
 google.de http://www.google.de/search?q=
 phpfn     http://www.php.net/{NAME}
-go        http://www.google.com/search?q={URL}&amp;btnI=lucky
+go        http://www.google.com/search?q={URL}&btnI=lucky
 cpan      http://search.cpan.org/search?query={URL}&mode=all
 perldoc   http://perldoc.perl.org/search.html?q=
 

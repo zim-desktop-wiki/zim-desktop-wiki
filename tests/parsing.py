@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from tests import TestCase
 
@@ -16,6 +16,11 @@ class TestParsing(TestCase):
 		self.assertEquals(result, list)
 		list = ['"foo bar"', ',', r'"\"foooo bar\""', 'dusss', 'ja']
 		result = split_quoted_strings(string, unescape=False)
+		self.assertEquals(result, list)
+
+		string = r'''"foo bar", False, True'''
+		list = ['foo bar', ',', 'False', ',', 'True']
+		result = split_quoted_strings(string)
 		self.assertEquals(result, list)
 
 	def testParseDate(self):
@@ -88,8 +93,8 @@ class TestParsing(TestCase):
 	def testLinkType(self):
 		'''Test link_type()'''
 		for href, type in (
-			('zim+file://foo/bar?dus.txt', 'zim-notebook'),
-			('file://foo/bar', 'file'),
+			('zim+file://foo/bar?dus.txt', 'notebook'),
+			('file:///foo/bar', 'file'),
 			('http://foo/bar', 'http'),
 			('http://192.168.168.100', 'http'),
 			('file+ssh://foo/bar', 'file+ssh'),

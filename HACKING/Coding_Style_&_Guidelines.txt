@@ -1,0 +1,38 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2011-07-04T13:58:33+02:00
+
+====== Coding Style & Guidelines ======
+
+See the python style guide for best practices. Some items to keep in mind:
+
+* GUI classes are only allowed to construct widgets and wire signals.  Any actual manipulation of pages, notebooks etc. should go elsewhere.
+* Signal handlers have a method name starting with "do_"
+* Only use "assert" for checks that could be removed when code is stable, these statements could be optimized away
+* Do not rely on ''__doc__'' on run time, this data could be optimized away
+* Have a look e.g. at zim.parsing and zim.gui.widgets for common code snippets
+
+**Other general guidelines**
+* Writing test cases is good, full test coverage is better. Run "./test.py --cover" to get a coverage report.
+* Wait with loading modules and constructing widgets untill they are  really needed, this should keep startup speed reasonable
+* Try to do slow operations that could be done asynchronous using the idle event, e.g loading the side pane index, or a list with search results, or even running an external command to check in a new version of a file.
+
+**Source code formatting**
+* I use TABs (not spaces) with a tabstop set to the equivalent of 4 spaces, (most) lines should fit within 80 character with this setting.
+
+**Documentation**
+* Please add at at least docstrings for each public method with a short explanation what the method does. Docstrings should be formatted using the epydoc markup style, see: http://epydoc.sourceforge.net/
+* There are a few custom fields used in the zim documentation:
+
+	'''
+	@signal: signal-name (param1, param2): description
+	@emits: signal
+	@implementation: must implement / optional for sub-classes
+	'''
+
+
+===== Gtk and GObject usage =====
+
+Zim is build on top of pygtk and pygobject. However, the classes outside the 'gui' namespace are not allowed to use the gtk libraries, and should work when only gobject is available. This potentially allows zim to run without a graphical interface, also it gives a strict boundry between UI and data layers in the class hierarchy. The exception are modules in the 'plugin' namespace, which can of course package their own UI components. However, these should check on initialization if we are running in graphical mode or not.
+
+Zim should be able to run at systems with at least Gtk+ version 2.6, however up to date systems can be  expected to have at least Gtk+ version 2.20 or newer. Therefore Gtk+ 2.20 is required to use all functionality. This means that you can use features not available for Gtk < 2.20 but you should wrap them in a block that checks the Gtk version first. Critical functions that can not be disabled should not rely on Gtk > 2.6. Note that the Gtk API documentation specifies what version a function was introduced (if not specified it can be assumed to be present in all 2.x versions).

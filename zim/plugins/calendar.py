@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gobject
 import gtk
 
 import re
 import datetime
+import locale
 
 from zim.plugins import PluginClass
 from zim.gui.widgets import ui_environment, Dialog, Button
 from zim.notebook import Path
-from zim.templates import TemplateManager
+from zim.templates import TemplateManager, TemplateFunction
 
 
 # FUTURE: Use calendar.HTMLCalendar from core libs to render this plugin in www
-
-# TODO implement template for calendar pages
-#  - take into account month and year nodes as well
 
 
 ui_xml = '''
@@ -58,9 +56,101 @@ ui_actions = (
 KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))
 KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
-date_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}:\d{2}$')
-month_path_re = re.compile(r'^(.*:)?\d{4}:\d{2}$')
+date_path_re = re.compile(r'^(.*:)?\d{4}:\d{1,2}:\d{2}$')
+week_path_re = re.compile(r'^(.*:)?\d{4}:Week \d{2}$')
+month_path_re = re.compile(r'^(.*:)?\d{4}:\d{1,2}$')
 year_path_re = re.compile(r'^(.*:)?\d{4}$')
+
+
+# Initialize setting for first day of the week. This is locale
+# dependent, and the gtk widget already has good code to find it out.
+# TODO we might also add this as a user preference
+SUNDAY = locale.nl_langinfo(locale.DAY_1)
+MONDAY = locale.nl_langinfo(locale.DAY_2)
+if gtk.Calendar().get_display_options() \
+ & gtk.CALENDAR_WEEK_START_MONDAY:
+	FIRST_DAY_OF_WEEK = MONDAY
+else:
+	FIRST_DAY_OF_WEEK = SUNDAY
+
+
+def dates_for_week(year, week):
+	'''Returns the first and last day of the week for a given
+	week number of a given year.
+	@param year: year as int (e.g. 2012)
+	@param week: week number as int (0 .. 53)
+	@returns: a 2-tuple of:
+	  - a C{datetime.date} object for the start date of the week
+	  - a C{datetime.date} object for the end dateof the week
+
+	@note: first day of the week can be either C{MONDAY} or C{SUNDAY},
+	this is configured in C{FIRST_DAY_OF_WEEK} based on the locale.
+	'''
+	# Note that the weeknumber in the isocalendar does NOT depend on the
+	# first day being Sunday or Monday, but on the first Thursday in the
+	# new year. See datetime.isocalendar() for details.
+	# If the year starts with e.g. a Friday, January 1st still belongs
+	# to week 53 of the previous year.
+	# Day of week in isocalendar starts with 1 for Mon and is 7 for Sun,
+	# and week starts on Monday.
+
+	jan1 = datetime.date(year, 1, 1)
+	_, jan1_week, jan1_weekday = jan1.isocalendar()
+
+	if FIRST_DAY_OF_WEEK == MONDAY:
+		days = jan1_weekday - 1
+		# if Jan 1 is a Monday, days is 0
+	else:
+		days = jan1_weekday
+		# if Jan 1 is a Monday, days is 1
+		# for Sunday it becomes 7 (or -1 week)
+
+	if jan1_week == 1:
+		weeks = week - 1
+	else:
+		# Jan 1st is still wk53 of the previous year
+		weeks = week
+
+	start = jan1 + datetime.timedelta(days=-days, weeks=weeks)
+	end = start + datetime.timedelta(days=6)
+	return start, end
+
+
+def daterange_from_path(path):
+	'''Determine the calendar dates mapped by a specific page
+	@param path: a L{Path} object
+	@returns: a 3-tuple of:
+	  - the page type (one of "C{day}", "C{week}", "C{month}", or "C{year}")
+	  - a C{datetime.date} object for the start date
+	  - a C{datetime.date} object for the end date
+	or C{None} when the page does not map a date
+	'''
+	if date_path_re.match(path.name):
+		type = 'day'
+		year, month, day = map(int, path.name.rsplit(':', 3)[-3:])
+		date = datetime.date(year, month, day)
+		end_date = date
+	elif week_path_re.match(path.name):
+		type = 'week'
+		year, week = path.name.rsplit(':', 2)[-2:]
+		year, week = map(int, (year, week[5:])) # Assumes "Week XX" string
+		date, end_date = dates_for_week(year, week)
+	elif month_path_re.match(path.name):
+		type = 'month'
+		year, month = map(int, path.name.rsplit(':', 2)[-2:])
+		date = datetime.date(year, month, 1)
+		if month == 12:
+			end_date = datetime.date(year, 12, 31)
+		else:
+			end_date = datetime.date(year, month+1, 1) + datetime.timedelta(-1)
+	elif year_path_re.match(path.name):
+		type = 'year'
+		year = int(path.name.rsplit(':', 1)[-1])
+		date = datetime.date(year, 1, 1)
+		end_date = datetime.date(year, 12, 31)
+	else:
+		return None # Not a calendar path
+	return type, date, end_date
 
 
 class CalendarPlugin(PluginClass):
@@ -78,9 +168,17 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Calendar',
 	}
 
+	global DAY, WEEK, MONTH, YEAR # Hack
+	DAY = _('Day') # T: option value
+	WEEK = _('Week') # T: option value
+	MONTH = _('Month') # T: option value
+	YEAR = _('Year') # T: option value
+
 	plugin_preferences = (
 		# key, type, label, default
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
+		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
+		#~ ('week_start', 'choice', _('Week starts on'), FIRST_DAY_OF_WEEK, (MONDAY, SUNDAY)), # T: preferences option for first day of the week, options are Monday or Sunday
 		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
 	)
 
@@ -95,6 +193,7 @@ This is a core plugin shipping with zim.
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
 			TemplateManager.connect('process-page', self.on_process_page_template)
+			## FIXME - no real disconnect for this connect ...
 
 	def finalize_notebook(self, notebook):
 		self.do_preferences_changed()
@@ -121,6 +220,7 @@ This is a core plugin shipping with zim.
 	def disconnect_embedded_widget(self):
 		if self.sidepane_widget:
 			self.ui.mainwindow.remove(self.sidepane_widget)
+			self.sidepane_widget.destroy()
 			self.sidepane_widget = None
 
 	def do_preferences_changed(self):
@@ -162,8 +262,20 @@ This is a core plugin shipping with zim.
 
 	def path_from_date(self, date):
 		'''Returns the path for a calendar page for a specific date'''
-		return Path( self.preferences['namespace']
-						+ ':' + date.strftime('%Y:%m:%d') )
+		if self.preferences['granularity'] == DAY:
+			path = date.strftime('%Y:%m:%d')
+		elif self.preferences['granularity'] == WEEK:
+			# Both strftime %W and %U are not correct, they use differnt
+			# week number count than the isocalendar. See datetime
+			# module for details.
+			# In short Jan 1st can still be week 53 of the previous year
+			year, week, weekday = date.isocalendar()
+			path = '%i:Week %02i' % (year, week)
+		elif self.preferences['granularity'] == MONTH:
+			path = date.strftime('%Y:%m')
+		elif self.preferences['granularity'] == YEAR:
+			path = date.strftime('%Y')
+		return Path( self.preferences['namespace'] + ':' + path )
 
 	def path_for_month_from_date(self, date):
 		'''Returns the namespace path for a certain month'''
@@ -172,34 +284,25 @@ This is a core plugin shipping with zim.
 
 	def date_from_path(self, path):
 		'''Returns a datetime.date object for a calendar page'''
-		assert date_path_re.match(path.name), 'Not an date path: %s' % path.name
-		year, month, day = path.name.rsplit(':', 3)[-3:]
-		year, month, day = map(int, (year, month, day))
-		return datetime.date(year, month, day)
+		dates = daterange_from_path(path)
+		assert dates, 'Not a date path: %s' % path.name
+		return dates[1]
 
 	def on_process_page_template(self, manager, template, page, dict):
-		'''Callback called when parsing a template, e.g. when exposting a page
+		'''Callback called when parsing a template, e.g. when exposing a page
 		or for the template used to create a new page. Will set parameters in
 		the template dict to be used in the template.
 		'''
-		year, month, day = 0, 1, 1
-		if date_path_re.match(page.name):
-			type = 'day'
-			year, month, day = page.name.rsplit(':', 3)[-3:]
-		elif month_path_re.match(page.name):
-			type = 'month'
-			year, month = page.name.rsplit(':', 2)[-2:]
-		elif year_path_re.match(page.name):
-			type = 'year'
-			year = page.name.rsplit(':', 1)[-1]
-		else:
-			return # Not a calendar page
-
-		year, month, day = map(int, (year, month, day))
-		dict['calendar_plugin'] = {
-			'page_type': type,
-			'date': datetime.date(year, month, day)
-		}
+		daterange = daterange_from_path(page)
+		if daterange:
+			type, start, end = daterange
+			dict['calendar_plugin'] = {
+				'page_type': type,
+				'date': start,
+				'start_date': start,
+				'end_date': end,
+				'days': DateRangeTemplateFunction(start, end),
+			}
 
 	def suggest_link(self, source, text):
 		#~ if date_path_re.match(path.text):
@@ -225,6 +328,22 @@ This is a core plugin shipping with zim.
 	# TODO: hook to the pageview end-of-word signal and link dates
 	#       add a preference for this
 	# TODO: Overload the "Insert date" dialog by adding a 'link' option
+
+
+class DateRangeTemplateFunction(TemplateFunction):
+	'''Function to be used in templates to iterate a range of dates'''
+
+	def __init__(self, start, end):
+		self.start = start
+		self.end = end
+
+	def __call__(self, dict):
+		oneday = datetime.timedelta(days=1)
+		yield self.start
+		next = self.start + oneday
+		while next <= self.end:
+			yield next
+			next += oneday
 
 
 class Calendar(gtk.Calendar):
@@ -277,10 +396,17 @@ class CalendarPluginWidget(gtk.VBox):
 		gtk.VBox.__init__(self)
 		self.plugin = plugin
 
-		format = _('%A %d %B %Y').replace(' 0', ' ') # T: strftime format for current date label
-		label = gtk.Label(datetime.date.today().strftime(str(format)))
-			# str() needed for python 2.5 compatibility
-		self.pack_start(label, False)
+		self.label = gtk.Label()
+		self.pack_start(self.label, False)
+		self._refresh_label()
+		self._timer_id = \
+			gobject.timeout_add(300000, self._refresh_label)
+			# 5 minute = 300_000 ms
+			# Ideally we only need 1 timer per day at 00:00, but not
+			# callback for that
+		self.connect('destroy',
+			lambda o: gobject.source_remove(o._timer_id) )
+			# Clear reference, else we get a new timer for every dialog
 
 		self.calendar = Calendar()
 		self.calendar.display_options(
@@ -294,6 +420,15 @@ class CalendarPluginWidget(gtk.VBox):
 
 		self.plugin.ui.connect('open-page', self.on_open_page)
 		self._select_date_cb = None
+
+	def _refresh_label(self, *a):
+		#print "UPDATE LABEL %s" % id(self)
+		format = _('%A %d %B %Y').replace(' 0', ' ')
+			# T: strftime format for current date label
+		text = datetime.date.today().strftime(str(format))
+			# str() needed for python 2.5 compatibility strftime
+		self.label.set_text(text)
+		return True # else timer is stopped
 
 	def set_select_date_callback(self, func):
 		self._select_date_cb = func

@@ -20,7 +20,7 @@ Zim can be used to:
 
 ====== COPYRIGHT ======
 
-Copyright 2008, 2009 Jaap Karssenberg <pardus@cpan.org>
+Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,7 +49,9 @@ See the translation files for detailed translator credits.
 
 The following files were included from other sources:
 
-* zim/_lib/xdot.py - Copyright 2008 Jose Fonseca
+* zim/inc/xdot.py - Copyright 2008 Jose Fonseca
+* zim/inc/arithmetic.py - Copyright 2010, 2011 Patricio Paez <pp@pp.com.mx>
+
 
 From the default Gnome icon theme:
 * pixmaps/task-list.png (was: stock_todo.png)
@@ -98,7 +100,7 @@ descriptions.
 
 ===== Ubuntu =====
 
-On Ubuntu or other debian derived systems, the following packages should be 
+On Ubuntu or other debian derived systems, the following packages should be
 installed:
 
 	* python
@@ -177,5 +179,3 @@ you should add you new .po file to the po/ directory.
 After adding the .po file(s) you can compile the translation using:
 
 	./setup.py build_trans
-
-

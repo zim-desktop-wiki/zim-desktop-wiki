@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2010 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gtk
 
@@ -8,13 +8,19 @@ import re
 from datetime import date as dateclass
 
 from zim.plugins import PluginClass
-from zim.config import config_file, data_file
-from zim.notebook import Notebook, PageNameError
+from zim.config import get_config, data_file
+from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
 from zim.daemon import DaemonProxy
 from zim.gui.widgets import Dialog, scrolled_text_view, IconButton, \
 	InputForm, gtk_window_set_default_icon
+from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
 from zim.templates import GenericTemplate, StrftimeFunction
+
+
+import logging
+
+logger = logging.getLogger('zim.plugins.quicknote')
 
 
 usagehelp = '''\
@@ -56,10 +62,14 @@ def main(daemonproxy, *args):
 			dict[arg] = True
 	#~ print 'OPTIONS:', options, template_options
 
-
 	if 'help' in options:
 		print usagehelp
 		return
+
+	if 'notebook' in options:
+		notebook, page = resolve_notebook(options['notebook'])
+	else:
+		notebook = None
 
 	if 'input' in options:
 		if options['input'] == 'stdin':
@@ -67,8 +77,8 @@ def main(daemonproxy, *args):
 			text = sys.stdin.read()
 		elif options['input'] == 'clipboard':
 			text = \
-				gtk.Clipboard(selection='PRIMARY').wait_for_text() \
-				or gtk.Clipboard(selection='CLIPBOARD').wait_for_text()
+				SelectionClipboard.get_text() \
+				or Clipboard.get_text()
 	else:
 		text = options.get('text')
 
@@ -89,7 +99,7 @@ def main(daemonproxy, *args):
 	gtk_window_set_default_icon()
 
 	dialog = QuickNoteDialog(None,
-		options.get('notebook'),
+		notebook,
 		options.get('namespace'), options.get('basename'),
 		text, template_options )
 	dialog.run()
@@ -97,7 +107,7 @@ def main(daemonproxy, *args):
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, read only
-	('show_quick_note', 'gtk-new', _('Quick Note...'), '', '', True), # T: menu item
+	('show_quick_note', 'gtk-new', _('Quick Note...'), '', '', False), # T: menu item
 )
 
 ui_xml = '''
@@ -200,7 +210,8 @@ class BoundQuickNoteDialog(Dialog):
 		switch_input()
 		self.form.widgets['new_page'].connect('toggled', switch_input)
 
-		self.open_page = gtk.CheckButton(_('_Open new page')) # T: Option in quicknote dialog
+		self.open_page = gtk.CheckButton(_('Open _Page')) # T: Option in quicknote dialog
+			# Don't use "O" as accelerator here to avoid conflict with "Ok"
 		self.open_page.set_active(self.uistate['open_page'])
 		self.action_area.pack_start(self.open_page, False)
 		self.action_area.set_child_secondary(self.open_page, True)
@@ -216,7 +227,7 @@ class BoundQuickNoteDialog(Dialog):
 		self.textview.get_buffer().connect('changed', self.on_text_changed)
 
 		# Initialize text from template
-		file = data_file('templates/_quicknote.txt')
+		file = data_file('templates/plugins/quicknote.txt')
 		template = GenericTemplate(file.readlines(), name=file)
 		template_options.update({
 			'text': text or '',
@@ -253,7 +264,8 @@ class BoundQuickNoteDialog(Dialog):
 			# Automatically generate a (valid) page name
 			self._updating_title = True
 			bounds = buffer.get_bounds()
-			title = buffer.get_text(*bounds).strip()[:25]
+			title = buffer.get_text(*bounds).strip()[:50]
+				# Cut off at 50 characters to prevent using a whole paragraph
 			title = title.replace(':', '')
 			if '\n' in title:
 				title, _ = title.split('\n', 1)
@@ -279,7 +291,7 @@ class BoundQuickNoteDialog(Dialog):
 			path = self.form['namespace'].name + ':' + self.form['basename']
 			ui.new_page_from_text(text, path)
 			if self.open_page.get_active():
-				ui.present()
+				ui.present(path) # also works with proxy
 		else:
 			if not self.form.widgets['page'].get_input_valid() \
 			or not self.form['page']:
@@ -290,7 +302,7 @@ class BoundQuickNoteDialog(Dialog):
 			path = self.form['page'].name
 			ui.append_text_to_page(path, '\n----\n'+text)
 			if self.open_page.get_active():
-				ui.present(page) # also works with proxy
+				ui.present(path) # also works with proxy
 
 		return True
 
@@ -299,12 +311,15 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 	'''Dialog which includes a notebook chooser'''
 
 	def __init__(self, ui, notebook=None, namespace=None, basename=None, text=None, template_options=None):
-		self.config = config_file('quicknote.conf')
+		self.config = get_config('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
 		Dialog.__init__(self, ui, _('Quick Note'))
 		self._updating_title = False
 		self._title_set_manually = not basename is None
+
+		if notebook and not isinstance(notebook, basestring):
+			notebook = notebook.uri
 
 		self.uistate.setdefault('lastnotebook', None, basestring)
 		if self.uistate['lastnotebook']:
@@ -326,6 +341,9 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 
 		self._init_inputs(namespace, basename, text, template_options)
 
+		self.uistate['lastnotebook'] = notebook
+		self._set_autocomplete(notebook)
+
 	def save_uistate(self):
 		notebook = self.notebookcombobox.get_notebook()
 		self.uistate['lastnotebook'] = notebook
@@ -339,22 +357,37 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 
 	def on_notebook_changed(self, o):
 		notebook = self.notebookcombobox.get_notebook()
+		if not notebook or notebook == self.uistate['lastnotebook']:
+			return
+
 		self.uistate['lastnotebook'] = notebook
 		self.config['Namespaces'].setdefault(notebook, None, basestring)
 		namespace = self.config['Namespaces'][notebook]
 		if namespace:
 			self.form['namespace'] = namespace
 
+		self._set_autocomplete(notebook)
+
+	def _set_autocomplete(self, notebook):
+		if notebook:
+			obj = get_notebook(notebook)
+			self.form.widgets['namespace'].notebook = obj
+			self.form.widgets['page'].notebook = obj
+			# Could still be None, e.g. if the notebook folder is not mounted
+			logger.debug('Notebook for autocomplete: %s (%s)', obj, notebook)
+		else:
+			self.form.widgets['namespace'].notebook = None
+			self.form.widgets['page'].notebook = None
+			logger.debug('Notebook for autocomplete unset')
+
 	def do_response_ok(self):
 		def get_ui():
 			# HACK to start daemon from separate process
 			# we are not allowed to fork since we already loaded gtk
-			from subprocess import check_call
-			from zim import ZIM_EXECUTABLE
-			check_call([ZIM_EXECUTABLE, '--daemon'])
+			from zim import ZimCmd
+			ZimCmd().run(args=('--daemon',))
 
 			notebook = self.notebookcombobox.get_notebook()
 			return DaemonProxy().get_notebook(notebook)
 
 		return BoundQuickNoteDialog.do_response_ok(self, get_ui)
-

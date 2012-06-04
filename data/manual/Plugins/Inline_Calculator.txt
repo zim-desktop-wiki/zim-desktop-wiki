@@ -8,6 +8,8 @@ This plugin allows you to evaluate simple mathematical expressions in zim.
 
 **Dependencies:** This plugin has no additional dependencies.
 
+**See also:** the [[Arithmetic|Arithmetic plugin]] which does something similar
+
 ===== Examples =====
 Simple expressions can be evaluated on a single line:
 

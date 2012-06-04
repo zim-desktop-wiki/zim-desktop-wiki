@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gtk
 
 from zim.fs import File, TmpFile
 from zim.plugins import PluginClass
 from zim.config import data_file
-from zim.applications import Application
-from zim.gui.imagegeneratordialog import ImageGeneratorDialog
+from zim.applications import Application, ApplicationError
+from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
+from zim.gui.widgets import populate_popup_add_separator
 
 # TODO put these commands in preferences
 dotcmd = ('dot', '-Tpng', '-o')
@@ -37,17 +38,18 @@ class InsertDiagramPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Insert Diagram'), # T: plugin name
 		'description': _('''\
-This plugin provides an diagram editor for zim based on GraphViz.
+This plugin provides a diagram editor for zim based on GraphViz.
 
 This is a core plugin shipping with zim.
 '''), # T: plugin description
-		'help': ':Plugins:Diagram Editor',
+		'help': 'Plugins:Diagram Editor',
 		'author': 'Jaap Karssenberg',
 	}
 
 	@classmethod
 	def check_dependencies(klass):
-		return [("GraphViz",Application(dotcmd).tryexec())]
+		has_dotcmd = Application(dotcmd).tryexec()
+		return has_dotcmd, [("GraphViz", has_dotcmd, True)]
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
@@ -65,7 +67,7 @@ This is a core plugin shipping with zim.
 		dialog.show_all()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
-		menu.prepend(gtk.SeparatorMenuItem())
+		populate_popup_add_separator(menu, prepend=True)
 
 		item = gtk.MenuItem(_('_Edit Diagram')) # T: menu item in context menu
 		item.connect('activate',
@@ -82,15 +84,16 @@ class InsertDiagramDialog(ImageGeneratorDialog):
 			generator, image, help=':Plugins:Diagram Editor' )
 
 
-class DiagramGenerator(object):
+class DiagramGenerator(ImageGeneratorClass):
 
-	# TODO: generic base class for image generators
+	uses_log_file = False
 
 	type = 'diagram'
-	basename = 'diagram.dot'
+	scriptname = 'diagram.dot'
+	imagename = 'diagram.png'
 
 	def __init__(self):
-		self.dotfile = TmpFile('diagram-editor.dot')
+		self.dotfile = TmpFile(self.scriptname)
 		self.dotfile.touch()
 		self.pngfile = File(self.dotfile.path[:-4] + '.png') # len('.dot') == 4
 
@@ -102,10 +105,13 @@ class DiagramGenerator(object):
 		self.dotfile.writelines(text)
 
 		# Call GraphViz
-		dot = Application(dotcmd)
-		dot.run((self.pngfile, self.dotfile))
-
-		return self.pngfile, None
+		try:
+			dot = Application(dotcmd)
+			dot.run((self.pngfile, self.dotfile))
+		except ApplicationError:
+			return None, None # Sorry, no log
+		else:
+			return self.pngfile, None
 
 	def cleanup(self):
 		self.dotfile.remove()

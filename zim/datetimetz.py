@@ -1,14 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2010 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-# Thin wrapper for standard library datetime, provides current timezone info
-# Based on example code from standard library datetime documentation.
+'''Thin wrapper for 'datetime' module from the standard library.
+Provides timezone info for the local time. Based on example code
+from standard library datetime documentation.
+
+Main usage of this module is the function L{now()}. It imports all
+from the standard datetime, so it can be used as a transparant
+replacement.
+'''
+
 
 from datetime import *
 
+
 def now():
-	'''Like standard datetime.now() but with local timezone info'''
+	'''Like C{datetime.now()} but with local timezone info'''
 	# Also setting microsecond to zero, to give isoformat() a nicer look
 	return datetime.now(LocalTimezone()).replace(microsecond=0)
 
@@ -27,6 +35,9 @@ else:
 DSTDIFF = DSTOFFSET - STDOFFSET
 
 class LocalTimezone(tzinfo):
+	'''Implementation of tzinfo with the current time zone, based on
+	the platform's idea of local time
+	'''
 
 	def utcoffset(self, dt):
 		if self._isdst(dt):

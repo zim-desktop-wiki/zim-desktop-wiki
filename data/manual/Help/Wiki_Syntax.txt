@@ -56,8 +56,15 @@ Will be rendered as:
 * item 2
 * item 3
 	* item 3a
+	
+Numbered lists use a "1.", "a.", or "A." as bullets:
 
-Numbered lists are not (yet) supported.
+1. item 1
+2. item 2
+3. item 3
+	a. item 3a
+
+Numbered lists can start with an arbitrary number. However internal inconsistencies will be fixed by renumbering automatically. Off course you can mix numbered lists with bullet sub-lists and vice versa.
 
 Checkbox lists look like this:
 
@@ -95,12 +102,10 @@ and also ~~strike through~~
 Using verbatim also prevents any further parsing of the content. To render a whole block as verbatim the first and last line of the block should contain 3 quotes and no other characters:
 
 '''
-'''
 Sing, O goddess, the rage of
 Achilles son of Peleus, that
 brought countless ills upon
 the Achaeans.
-'''
 '''
 
 This can be used for code examples etc.

@@ -1,49 +1,51 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <pardus@cpan.org>
+# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from tests import TestCase, MockObject, create_tmp_dir, get_test_notebook, get_test_data
+import tests
 
-from subprocess import check_call
-
-from zim.fs import *
+from zim.fs import _md5, File, Dir
+from zim.config import data_file, ConfigDict
 from zim.notebook import Path, Notebook, init_notebook
 from zim.exporter import Exporter, StaticLinker
+from zim.applications import Application
 
 # TODO add check that attachments are copied correctly
 
-class TestLinker(TestCase):
+
+def md5(f):
+	return _md5(f.raw())
+
+
+class TestLinker(tests.TestCase):
 
 	def runTest(self):
 		'''Test proper linking of files in export'''
-		notebook = get_test_notebook()
-		notebook.get_store(Path(':')).dir = Dir('/source/dir/') # fake source dir
+		notebook = tests.new_notebook(fakedir='/source/dir/')
 
 		linker = StaticLinker('html', notebook)
 		linker.set_usebase(True) # normally set by html format module
 		linker.set_path(Path('foo:bar')) # normally set by exporter
 		linker.set_base(Dir('/source/dir/foo')) # normally set by exporter
 
-		self.assertEqual(linker.page('+dus'), './bar/dus.html')
-		self.assertEqual(linker.page('dus'), './dus.html')
-		self.assertEqual(linker.file('./dus.pdf'), './bar/dus.pdf')
-		self.assertEqual(linker.file('../dus.pdf'), './dus.pdf')
-		self.assertEqual(linker.file('../../dus.pdf'), '../dus.pdf')
+		self.assertEqual(linker.link_page('+dus'), './bar/dus.html')
+		self.assertEqual(linker.link_page('dus'), './dus.html')
+		self.assertEqual(linker.link_file('./dus.pdf'), './bar/dus.pdf')
+		self.assertEqual(linker.link_file('../dus.pdf'), './dus.pdf')
+		self.assertEqual(linker.link_file('../../dus.pdf'), '../dus.pdf')
 
 
-class TestExport(TestCase):
-
-	slowTest = True
+@tests.slowTest
+class TestExport(tests.TestCase):
 
 	options = {'format': 'html', 'template': 'Default'}
 
 	def setUp(self):
-		self.dir = Dir(create_tmp_dir('export_ExportedFiles'))
+		self.dir = Dir(self.create_tmp_dir('exported_files'))
 
 	def export(self):
-		notebook = get_test_notebook()
-		notebook.get_store(Path(':')).dir = Dir('/foo/bar') # fake source dir
-		notebook.index.update()
+		notebook = tests.new_notebook(fakedir='/foo/bar')
+
 		exporter = Exporter(notebook, **self.options)
 		exporter.export_all(self.dir)
 
@@ -56,6 +58,41 @@ class TestExport(TestCase):
 		text = file.read()
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 		self.assertTrue('<h1>Foo</h1>' in text)
+
+		for icon in ('checked-box',): #'unchecked-box', 'xchecked-box'):
+			# Default template doesn't have its own checkboxes
+			self.assertTrue(self.dir.file('_resources/%s.png' % icon).exists())
+			self.assertEqual(
+				md5(self.dir.file('_resources/%s.png' % icon)),
+				md5(data_file('pixmaps/%s.png' % icon))
+			)
+
+
+@tests.slowTest
+class TestExportTemplateResources(TestExport):
+
+	options = {
+		'format': 'html',
+		'template': './tests/data/templates/Default.html'
+	}
+
+	def runTest(self):
+		'''Test export notebook to html with template resources'''
+		self.export()
+
+		file = self.dir.file('Test/foo.html')
+		self.assertTrue(file.exists())
+		text = file.read()
+		self.assertTrue('src="../_resources/foo/bar.png"' in text)
+		self.assertTrue(self.dir.file('_resources/foo/bar.png').exists())
+
+		for icon in ('checked-box',): #'unchecked-box', 'xchecked-box'):
+			# Template has its own checkboxes
+			self.assertTrue(self.dir.file('_resources/%s.png' % icon).exists())
+			self.assertNotEqual(
+				md5(self.dir.file('_resources/%s.png' % icon)),
+				md5(data_file('pixmaps/%s.png' % icon))
+			)
 
 
 class TestExportFullOptions(TestExport):
@@ -75,17 +112,18 @@ class TestExportFullOptions(TestExport):
 class TestExportCommandLine(TestExportFullOptions):
 
 	def export(self):
-		dir = Dir(create_tmp_dir('export_SourceFiles'))
+		dir = Dir(self.create_tmp_dir('source_files'))
 		init_notebook(dir)
 		notebook = Notebook(dir=dir)
-		for name, text in get_test_data('wiki'):
+		for name, text in tests.WikiTestData:
 			page = notebook.get_page(Path(name))
 			page.parse('wiki', text)
 			notebook.store_page(page)
 		file = dir.file('Test/foo.txt')
 		self.assertTrue(file.exists())
 
-		check_call(['python', './zim.py', '--export', '--template=Default', dir.path, '--output', self.dir.path, '--index-page', 'index'])
+		zim = Application(('./zim.py', '--export', '--template=Default', dir.path, '--output', self.dir.path, '--index-page', 'index'))
+		zim.run()
 
 	def runTest(self):
 		'''Test export notebook to html from commandline'''
@@ -94,24 +132,22 @@ class TestExportCommandLine(TestExportFullOptions):
 # TODO test export single page from command line
 
 
-class TestExportDialog(TestCase):
-
-	slowTest = True
+@tests.slowTest
+class TestExportDialog(tests.TestCase):
 
 	def runTest(self):
 		'''Test ExportDialog'''
 		from zim.gui.exportdialog import ExportDialog
 
-		dir = Dir(create_tmp_dir('export_ExportDialog'))
+		dir = Dir(self.create_tmp_dir())
 
-		notebook = get_test_notebook()
-		notebook.get_store(Path(':')).dir = Dir('/foo/bar') # fake source dir
-		notebook.index.update()
+		notebook = tests.new_notebook(fakedir='/foo/bar')
 
-		ui = MockObject()
+		ui = tests.MockObject()
 		ui.notebook = notebook
 		ui.page = Path('foo')
 		ui.mainwindow = None
+		ui.uistate = ConfigDict()
 
 		## Test export all pages
 		dialog = ExportDialog(ui)
@@ -137,6 +173,9 @@ class TestExportDialog(TestCase):
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 		self.assertTrue('<h1>Foo</h1>' in text)
 
+		#~ print dialog.uistate
+		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
+		self.assertIsInstance(dialog.uistate['output_folder'], Dir)
 
 		## Test export single page
 		dialog = ExportDialog(ui)
@@ -161,3 +200,8 @@ class TestExportDialog(TestCase):
 		text = file.read()
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 		self.assertTrue('<h1>Foo</h1>' in text)
+
+		#~ print dialog.uistate
+		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
+		self.assertIsInstance(dialog.uistate['output_file'], File)
+		self.assertIsInstance(dialog.uistate['output_folder'], Dir) # Keep this in state as well
