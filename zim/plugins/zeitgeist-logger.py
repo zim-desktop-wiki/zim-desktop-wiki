@@ -21,11 +21,8 @@ except:
 class ZeitgeistPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Log events with Zeitgeist'), # T: plugin name
-		'description': _('''\
-Pushes events to the Zeitgeist daemon.
-
-'''), # T: plugin description
+		'name': _('Log events with Zeitgeist'),
+		'description': _('Pushes events to the Zeitgeist daemon.'), 
 		'author': 'Marcel Stimberg',
 		'help': '',
 	}
@@ -35,12 +32,13 @@ Pushes events to the Zeitgeist daemon.
 		try:
 			self.zeitgeist_client = ZeitgeistClient()
 		except RuntimeError, e:
-			logger.exception('Loading the zeitgeist client failed, will not log events')
+			logger.exception('Loading zeitgeist client failed, will not log events')
 			self.zeitgeist_client = None
 	
 	def initialize_ui(self, ui):
 		if self.zeitgeist_client is not None:
-			self.zeitgeist_client.register_data_source('application://zim.desktop', _('Zim'), _('A desktop wiki'), [])
+			self.zeitgeist_client.register_data_source('application://zim.desktop',
+			                                           _('Zim'), _('A desktop wiki'), [])
 			self.ui.connect_after('open-page', self.do_open_page)
 			self.ui.connect_after('close-page', self.do_close_page)
 
@@ -51,7 +49,8 @@ Pushes events to the Zeitgeist daemon.
 
 	@classmethod
 	def check_dependencies(klass):
-		return [('libzeitgeist', not ZeitgeistClient is None)]
+		has_zeitgeist = not ZeitgeistClient is None
+		return has_zeitgeist, [('libzeitgeist', has_zeitgeist, False)]
 
 	def create_and_send_event(self, page, path, event_type):
 		#FIXME: Assumes file store
