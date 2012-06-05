@@ -17,6 +17,7 @@ The following plugins are standard included with zim:
 * [[+Insert Symbol|Insert Symbol]]
 * [[+Inline Calculator|Inline Calculator]]
 * [[+Link Map|Link Map]]
+* [[+Log events with Zeitgeist|Log events with Zeitgeist]]
 * [[+Quick Note|Quick Note]]
 * [[+Spell Checker|Spell Checker]]
 * [[+Table Of Contents|Table Of Contents]]

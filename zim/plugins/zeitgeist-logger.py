@@ -24,7 +24,7 @@ class ZeitgeistPlugin(PluginClass):
 		'name': _('Log events with Zeitgeist'),
 		'description': _('Pushes events to the Zeitgeist daemon.'), 
 		'author': 'Marcel Stimberg',
-		'help': '',
+		'help': 'Plugins:Log events with Zeitgeist',
 	}
 
 	def __init__(self, ui):
