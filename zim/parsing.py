@@ -110,7 +110,7 @@ def url_encode(url, mode=URL_ENCODE_PATH):
 		- C{URL_ENCODE_READABLE}: encode whitespace and all unicode characters
 
 	The mode URL_ENCODE_READABLE can be applied to urls that are already
-	encoded because they do not touch the "%" character. The modes
+	encoded because it does not touch the "%" character. The modes
 	URL_ENCODE_DATA and URL_ENCODE_PATH can only be applied to strings
 	that are known not to be encoded.
 

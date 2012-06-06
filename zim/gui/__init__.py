@@ -27,7 +27,7 @@ from zim.notebook import Path, Page
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
 from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord, set_environ
-from zim.parsing import url_encode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
+from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
@@ -1116,6 +1116,7 @@ class GtkInterface(NotebookInterface):
 				and '?' in notebook:
 					# Interwiki link with page name attached
 					notebook, pagename = notebook.split('?', 1)
+					pagename = url_decode(pagename) # usually encoded
 				else:
 					pagename = None
 				notebook = DaemonProxy().get_notebook(notebook)

@@ -341,10 +341,10 @@ def lrmdir(path):
 def cleanup_filename(name):
 	'''Removes all characters in 'name' that are not allowed as part
 	of a file name. This function is intended for e.g. config files etc.
+	B{not} for page files in a store.
 	For file system filenames we can not use:
 	'\\', '/', ':', '*', '?', '"', '<', '>', '|'
 	And we also exclude "\\t" and "\\n".
-	B{not} for page files in a store.
 	@param name: the filename as string
 	@returns: the name with invalid characters removed
 	'''
