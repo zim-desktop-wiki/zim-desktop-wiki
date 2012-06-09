@@ -10,6 +10,7 @@ import logging
 
 logger = logging.getLogger("zim.objectmanager")
 
+
 # WeakRefSet has to be located before ObjectManager singleton instance creation
 class WeakRefSet(object):
 	'''Simpel collection of weak references to objects.
@@ -33,6 +34,7 @@ class WeakRefSet(object):
 			if obj:
 				yield obj
 
+
 class _ObjectManager(object):
 	'''Manages custom objects.'''
 
@@ -42,10 +44,19 @@ class _ObjectManager(object):
 
 	def register_object(self, type, factory):
 		'''Register a factory method or class for a specific object type.
-		A 'factory' can be either an object class or a method, as long
-		as it it callable and returns objects. It will get the to be
-		created object attributes, text and the ui object as arguments.
-		Returns previously set factory for 'type' or None.
+		@param type: the object type as string (unique name)
+		@param factory: can be either an object class or a method,
+		should callable and return objects. When constructing objects
+		this factory will be called as::
+
+			factory(attrib, text, ui)
+
+		Where:
+		  - C{attrib} is a dict with attributes
+		  - C{text} is the main text source of the object
+		  - C{ui} is the main ui object
+
+		@returns: a previously set factory for C{type} or C{None}
 		'''
 		type = type.lower()
 		old = self.factories.get(type)
@@ -55,8 +66,8 @@ class _ObjectManager(object):
 
 	def unregister_object(self, type):
 		'''Unregister a specific object type.
-		Returns True on success, False if given type has not been
-		registered yet.
+		@returns: C{True} on success, C{False} if given type has not
+		been registered.
 		'''
 		type = type.lower()
 		if type in self.factories:
@@ -67,22 +78,29 @@ class _ObjectManager(object):
 			return False
 
 	def is_registered(self, type):
-		'''Returns True if object type has already been registered.'''
+		'''Returns C{True} if object type has already been registered.'''
 		return type.lower() in self.factories
 
 	def get_object(self, type, attrib, text, ui=None):
-		'''Returns a new object for given type with given attributes'''
+		'''Returns a new object for given type with given attributes
+		@param type: the object type as string
+		@param attrib: dict with attributes
+		@param text: main source of the object
+		@param ui: the ui object
+		@returns: a new object instance, either created by the factory
+		method for C{type}, or an instance of L{FallbackObject}
+		'''
 		type = type.lower()
+
 		if type in self.factories:
 			factory = self.factories[type]
+			obj = factory(attrib, text, ui)
+			self.objects[type].add(obj)
 		else:
 			factory = FallbackObject
-
-		obj = factory(attrib, text, ui)
-		try:
-			self.objects[type].add(obj)
-		except KeyError, e:
+			obj = factory(attrib, text, ui)
 			self.objects['fallback'].add(obj)
+
 		return obj
 
 	def get_active_objects(self, type):
@@ -92,6 +110,12 @@ class _ObjectManager(object):
 		return iter(self.objects[type])
 
 	def find_plugin(self, type):
+		'''Find a plugin to handle a specific object type. Intended to
+		suggest plugins to the user that can be loaded.
+		@param type: object type as string
+		@returns: a 3-tuple of the plugin name, a boolean for the
+		dependency check, and the plugin class, or C{None}.
+		'''
 		for name in zim.plugins.list_plugins():
 			try:
 				klass = zim.plugins.get_plugin(name)
@@ -105,9 +129,6 @@ class _ObjectManager(object):
 		return None
 
 ObjectManager = _ObjectManager() # Singleton object
-
-
-
 
 
 class CustomObjectClass(gobject.GObject):

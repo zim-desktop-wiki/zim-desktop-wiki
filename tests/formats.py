@@ -257,6 +257,12 @@ class TestParseTree(tests.TestCase):
 			tree = ParseTree().fromstring(xml)
 			self.assertEqual(tree.get_ends_with_newline(), newline)
 
+	def testGetObjects(self):
+		xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
+		tree = tests.new_parsetree_from_xml(xml)
+		objects = list(tree.get_objects())
+		self.assertTrue(len(objects) >= 2)
+
 
 class TestTextFormat(tests.TestCase, TestFormatMixin):
 

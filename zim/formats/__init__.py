@@ -221,6 +221,10 @@ def get_dumper(name, *arg, **kwarg):
 class ParseTree(ElementTreeModule.ElementTree):
 	'''Wrapper for zim parse trees, derives from ElementTree.'''
 
+	def __init__(self, *arg, **kwarg):
+		ElementTreeModule.ElementTree.__init__(self, *arg, **kwarg)
+		self._object_cache = {}
+
 	@property
 	def hascontent(self):
 		'''Returns True if the tree contains any content at all.'''
@@ -481,6 +485,29 @@ class ParseTree(ElementTreeModule.ElementTree):
 				visitor.append(node.tag, node.attrib, node.text)
 		except VisitorSkip:
 			pass
+
+	def get_objects(self, type=None):
+		'''Generator that yields all custom objects in the tree,
+		or all objects of a certain type.
+		@param type: object type to return or C{None} to get all
+		@returns: yields objects (as provided by L{ObjectManager})
+		'''
+		for elt in self.getiterator(OBJECT):
+			if type and elt.attrib.get('type') != type:
+				pass
+			else:
+				obj = self._get_object(elt)
+				if obj is not None:
+					yield obj
+
+	def _get_object(self, elt):
+		## TODO optimize using self._object_cache or new API for
+		## passing on objects in the tree
+		type = elt.attrib.get('type')
+		if elt.tag == OBJECT and type:
+			return ObjectManager.get_object(type, elt.attrib, elt.text)
+		else:
+			return None
 
 
 class VisitorStop(Exception):

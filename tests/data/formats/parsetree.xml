@@ -112,6 +112,20 @@ A line in English, should be left aligned.
 </p>
 <p>aaa
 </p>
+
+<h level="2">Some Objects</h>
+
+<object lang="python" linenumbers="true" type="code">def dump():
+	for i in range(1, 5):
+		print i
+</object>
+
+<object foo="bar" type="nonexistingobjecttype">Sing, O goddess, the rage of
+Achilles son of Peleus, that
+brought countless ills upon
+the Achaeans.
+</object>
+
 <p>====
 This is not a header
 </p>

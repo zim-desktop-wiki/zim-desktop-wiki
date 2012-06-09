@@ -176,6 +176,13 @@ class Dumper(DumperClass):
 
 				text = element.attrib.get('alt', '')
 				output.append('![%s](%s)' % (text, src))
+			elif element.tag == 'object':
+				object_output = self.dump_object(element)
+				if object_output:
+					output += object_output
+				else:
+					# Fallback to verbatim paragraph
+					output.append(element.text)
 			elif element.tag in dumper_tags:
 				if element.text:
 					tag = dumper_tags[element.tag]

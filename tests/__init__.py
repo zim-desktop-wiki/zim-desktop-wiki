@@ -39,7 +39,7 @@ FAST_TEST = False #: determines whether we skip slow tests or not
 __all__ = [
 	'package', 'translations',
 	'utils', 'errors', 'parsing', 'fs', 'config', 'applications', 'async',
-	'formats', 'templates', 'inlineobjects',
+	'formats', 'templates', 'objectmanager',
 	'stores', 'index', 'notebook',
 	'history', 'plugins',
 	'export', 'www', 'search',

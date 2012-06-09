@@ -465,8 +465,8 @@ class Dumper(DumperClass):
 
 		# TODO use text for caption (with full recursion)
 
-	def dump_obj(self, tag, attrib, text=None):
-		logger.debug("Dumping object: %s, %s", attrib, text)
+	def dump_object(self, tag, attrib, strings=None):
+		logger.debug("Dumping object: %s, %s", attrib, strings)
 		assert "type" in attrib, "Undefined type of object"
 
 		opts = []
@@ -476,8 +476,9 @@ class Dumper(DumperClass):
 			# double quotes are escaped by doubling them
 			opts.append(' %s="%s"' % (key, str(value).replace('"', '""')))
 
-		text = text or ''
-		return ('{{{', attrib['type'], ':', opts, '\n', text, '}}}\n')
+		if not strings:
+			strings = []
+		return ['{{{', attrib['type'], ':'] + opts + ['\n'] + strings + ['}}}\n']
 
 		# TODO put content in attrib, use text for caption (with full recursion)
 		# See img

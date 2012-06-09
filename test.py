@@ -135,6 +135,7 @@ def html_coverage_report(coverage, pyfiles, directory):
 		html.write('''\
 <html>
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Coverage report for %s</title>
 <style>
 	.code { white-space: pre; font-family: monospace }
@@ -183,6 +184,7 @@ def html_coverage_report(coverage, pyfiles, directory):
 	html.write('''\
 <html>
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Test Coverage Index</title>
 <style>
 	.good    { background-color: #9f9; text-align: right }
