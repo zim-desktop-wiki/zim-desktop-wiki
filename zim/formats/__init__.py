@@ -128,9 +128,9 @@ def increase_list_iter(listiter):
 
 def list_formats(type):
 	if type == EXPORT_FORMAT:
-		return ['HTML','LaTeX', 'Markdown (pandoc)']
+		return ['HTML','LaTeX', 'Markdown (pandoc)', 'RST (sphinx)']
 	elif type == TEXT_FORMAT:
-		return ['Text', 'Wiki', 'Markdown (pandoc)']
+		return ['Text', 'Wiki', 'Markdown (pandoc)', 'RST (sphinx)']
 	else:
 		assert False, 'TODO'
 
