@@ -46,7 +46,7 @@ __all__ = [
 	'widgets', 'gui', 'pageview', 'clipboard',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
-	'quicknote', 'attachmentbrowser',
+	'quicknote', 'attachmentbrowser', 'cardsplugin',
 	'daemon' # Note that running this test in another position can skrew up e.g. clipboard test
 ]
 

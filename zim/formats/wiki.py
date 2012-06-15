@@ -56,8 +56,9 @@ def check_number_bullet(bullet):
 	else:
 		return None
 
-param_re = re.compile('(\w+)\s*\=\s*"((?:[^"]|"{2})*)"')
+param_re = re.compile('([\w-]+)=("(?:[^"]|"{2})*"|\S*)')
 	# matches parameter list for objects
+	# allow name="foo bar" and name=Foo
 
 empty_lines_re = re.compile(r'((?:^[\ \t]*\n)+)', re.M | re.U)
 	# match multiple empty lines
@@ -185,11 +186,14 @@ class WikiParser(object):
 		attrib = {}
 		for match in param_re.finditer(param):
 			key = match.group(1).lower()
-			value = match.group(2).replace('""', '"')
+			value = match.group(2)
+			if value.startswith('"') and len(value) > 1: # Quoted string
+				value = value[1:-1].replace('""', '"')
 			attrib[key] = value
 
 		# Defined after parsing head, so these attrib can not be overruled
 		# accidentally
+		### FIXME FIXME FIXME - need to separate two types of attrib ###
 		attrib['type'] = type
 		if indent:
 			body = re.sub('^'+indent, '', body, flags=re.M) # remove indent

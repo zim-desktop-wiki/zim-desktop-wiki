@@ -324,8 +324,8 @@ def input_table_factory(inputs, table=None):
 	input form. For standard forms see the L{InputForm} class.
 
 	@param inputs: a list of inputs. These inputs should be either
-	a tuple of a string and one or more widgets, a single widget, or
-	C{None}.
+	a tuple of a string and one or more widgets, a single widget, a
+	string, or C{None}.
 
 	For a tuple the lable will be lined out in the first column followed
 	by all the widgets. If a tuple is given and the first item is
@@ -335,7 +335,10 @@ def input_table_factory(inputs, table=None):
 	meant for e.g. checkboxes that have the label behind the checkbox
 	as part of the widget).
 
-	A input that has a C{None} value will result in an empty row in the
+	A string will be put as a label on it's own row. Use of markup is
+	assumed.
+
+	An input that has a C{None} value will result in an empty row in the
 	table, separating field above and below.
 
 	@param table: options C{gtk.Table}, if given inputs will be appended
@@ -354,6 +357,11 @@ def input_table_factory(inputs, table=None):
 		if input is None:
 			table.attach(gtk.Label(' '), 0,1, i,i+1, xoptions=gtk.FILL)
 			# HACK: force empty row to have height of label
+		elif isinstance(input, basestring):
+			label = gtk.Label()
+			label.set_markup(input)
+			table.attach(label, 0,4, i,i+1)
+				# see column below about col span for single widget case
 		elif isinstance(input, tuple):
 			text = input[0]
 			if text:
@@ -897,8 +905,11 @@ class InputForm(gtk.Table):
 		extra argument which gives the reference L{Path} for resolving
 		relative paths. This also requires the notebook to be set.
 
-		A L{None} value in the input list will result in additional row
-		spacing in the form.
+		A string in the input list will result in a label in the form,
+		using markup.
+
+		A C{None} or C{''} value in the input list will result in
+		additional row spacing in the form.
 		'''
 
 		# For options we use rsplit to split group and option name.
@@ -910,8 +921,11 @@ class InputForm(gtk.Table):
 		widgets = []
 
 		for input in inputs:
-			if input is None:
+			if not input:
 				widgets.append(None)
+				continue
+			elif isinstance(input, basestring):
+				widgets.append(input)
 				continue
 
 			if len(input) == 4:

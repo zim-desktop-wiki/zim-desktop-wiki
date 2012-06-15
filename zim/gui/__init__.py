@@ -2985,15 +2985,12 @@ class NewPageDialog(Dialog):
 			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: Choice label
 		])
-
 		self.form['template'] = default
-		self.form.widgets['template'].set_no_show_all(True) # TEMP: hide feature
-		self.form.widgets['template'].set_property('visible', False) # TEMP: hide feature
+		# TODO: reset default when page input changed -
+		# especially if namespace has other template
 
 		if subpage:
 			self.form.widgets['page'].subpaths_only = True
-
-		# TODO: reset default when page input changed
 
 	def do_response_ok(self):
 		path = self.form['page']

@@ -145,6 +145,17 @@ create table if not exists tagsources (
 	tag INTEGER,
 	CONSTRAINT uc_TagOnce UNIQUE (source, tag)
 );
+create table if not exists propertynames (
+	id INTEGER PRIMARY KEY,
+	name TEXT,
+	CONSTRAINT uc_PropertyNameOnce UNIQUE (name)
+);
+create table if not exists properties (
+	page INTEGER,
+	property INTEGER,
+	value TEXT,
+	CONSTRAINT uc_PropertyOnce UNIQUE (page, property, value)
+);
 '''
 
 # TODO need a verify_path that works like lookup_path but adds checks when path
@@ -1129,12 +1140,61 @@ class Index(gobject.GObject):
 			parent = self.lookup_data(parent)
 			self.emit('page-haschildren-toggled', parent)
 
+	def add_link(self, source, href, type=None):
+		'''Add a link to the index. Intended to be used by plugins that
+		can e.g. extract links from custom objects. Keep in mind that
+		all links will be flushed the next time when the C{source} page
+		is indexed.
+		@param source: source L{Path}
+		@param href: target L{Path}
+		@param type: optional link type as string
+		'''
+		source = self.lookup_path(source)
+		href = self.lookup_path(href) # TODO or placeholder !!
+		if not (source and href):
+			raise ValueError, 'No such path' # FIXME
+
+		if type:
+			typeid = self.lookup_linktype_id(type, create=True)
+			self.db.execute(
+				'insert into links (source, href, type) values (?, ?, ?)',
+				(source.id, href.id, typeid) )
+		else:
+			self.db.execute(
+				'insert into links (source, href) values (?, ?)',
+				(source.id, href.id) )
+
+	def add_property(self, page, property, value):
+		'''Add a page property to the index. Intended to be used by
+		plugins that can e.g. extract properties from custom objects.
+		Keep in mind that all properties will be flushed the next time
+		when the page is indexed.
+		@param page: page L{Path}
+		@param property: property name as string
+		@param value: the property value
+		'''
+		path = self.lookup_path(page)
+		if not path:
+			raise ValueError, 'No such path: %s' % page
+
+		propid = self.lookup_property_id(property, create=True)
+		self.db.execute(
+			'insert into properties (page, property, value) values (?, ?, ?)',
+			(page.id, propid, value) )
+
+		## TODO delete these again !
+
+	def lookup_property_id(self, property, create=False):
+		cursor = self.db.cursor()
+		cursor.execute('select * from property where name = ?', (property.lower(),))
+		row = cursor.fetchone()
+
 	def cleanup(self, path):
 		'''Check if a L{Path} can be removed from the index, and
 		clean it up if so
 
 		This method cleans up pages that have no content, no longer
-		have any children and are no longer linked by other pages.
+		cruhave any children and are no longer linked by other pages.
 		This is intended to cleanup (old) placeholders.
 
 		@param path: a L{Path} object

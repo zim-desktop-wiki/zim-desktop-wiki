@@ -542,7 +542,7 @@ class NotebookInterface(gobject.GObject):
 
 		Typically called from the constructor of sub-classes.
 		'''
-		default = ['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol']
+		default = ['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol', 'cards']
 		self.preferences['General'].setdefault('plugins', default)
 		plugins = self.preferences['General']['plugins']
 		plugins = set(plugins) # Eliminate doubles
