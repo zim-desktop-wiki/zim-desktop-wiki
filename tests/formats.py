@@ -34,6 +34,7 @@ class TestFormatMixin(object):
 		'html': 'export.html',
 		'latex': 'export.tex',
 		'markdown': 'export.markdown',
+		'reST': 'export.rst',
 	}
 
 	def testFormatInfo(self):
@@ -549,6 +550,12 @@ class TestMarkdownFormat(tests.TestCase, TestFormatMixin):
 
 	def setUp(self):
 		self.format = get_format('markdown')
+
+
+class TestRstFormat(tests.TestCase, TestFormatMixin):
+
+	def setUp(self):
+		self.format = get_format('rst')
 
 
 class LatexLoggingFilter(tests.LoggingFilter):
