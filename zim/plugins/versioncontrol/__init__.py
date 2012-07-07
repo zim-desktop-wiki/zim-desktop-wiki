@@ -96,33 +96,52 @@ class VCS(object):
 	GIT = _('Git') # T: option value
 
 	@classmethod
-	def detect_in_folder(klass, dir): #FIXME - Set a default VCS, default=VCS.BZR):
+	def detect_in_folder(klass, dir):
 		"""Detect if a version control system has already been setup in the folder.
 		It also create the instance by calling the VCS.create() method
 		@param dir: a L{File} instance representing the notebook root folder
-		@returns: a L{VCSBackend} instance which will manage the versionning
+		@returns: a L{VCSBackend} instance which will manage the versioning or C{None}
 		"""
-		# split off because it is easier to test this way
-		vcs = None
+		root, name = klass._detect_in_folder(dir)
 
-		for path in reversed(list(dir)):
-			if path.subdir('.bzr').exists():
-				vcs = VCS.create(VCS.BZR, path)
-			if path.subdir('.hg').exists():
-				vcs = VCS.create(VCS.HG, path)
-			if path.subdir('.git').exists():
-				vcs = VCS.create(VCS.GIT, path)
-			#~ elif path.subdir('.svn'):
-			#~ elif path.subdir('CVS'):
-			else:
-				continue
+		if name == 'bzr':
+			vcs = VCS.create(VCS.BZR, root)
+		elif name == 'hg':
+			vcs = VCS.create(VCS.HG, root)
+		elif name == 'git':
+			vcs = VCS.create(VCS.GIT, root)
+		# else maybe detected something, but no backend available
 
 		if vcs:
-			logger.info('VCS detected: %s', vcs)
+			logger.info('VCS detected: %s - %s', name, root)
 		else:
 			logger.info('No VCS detected')
+			return None
 
-		return vcs
+	@classmethod
+	def _detect_in_folder(klass, dir):
+		# split off because it is easier to test this way
+		#
+		# Included unsupported systems as well, to make sure we stop
+		# looking for parents if these are detected.
+		for path in reversed(list(dir)):
+			if path.subdir('.bzr').exists():
+				return 'bzr', path
+			elif path.subdir('.hg').exists():
+				return 'hg', path
+			elif path.subdir('.git').exists():
+				return 'git', path
+			elif path.subdir('.svn').exists():
+				return 'svn', path
+			## Commented CVS out since it potentially
+			## conflicts with like-named pages
+			# elif path.subdir('CVS').exists():
+				# return 'cvs', path
+			##
+			else:
+				continue
+		else:
+			return None, None
 
 	@classmethod
 	def get_backend(klass, vcs):

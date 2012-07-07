@@ -70,9 +70,9 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = [
 		# key, type, label, default
-		('lilypond_version', 'string', _('GNU Lilypond version'), _get_lilypond_version()),
+		('lilypond_version', 'string', _('GNU Lilypond version'), ''),
 		('include_header', 'string', _('Common include header'), _('\include "predefined-guitar-fretboards.ly"')),
-		('include_footer', 'string', _('Common include footer'), _('')),
+		('include_footer', 'string', _('Common include footer'), ''),
 	]
 
 	@classmethod
@@ -82,6 +82,9 @@ This is a core plugin shipping with zim.
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
+		if not self.preferences['lilypond_version']:
+			self.preferences['lilypond_version'] = _get_lilypond_version()
+
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
@@ -118,9 +121,9 @@ class ScoreGenerator(ImageGeneratorClass):
 	type = 'score'
 	scriptname = 'score.ly'
 	imagename = 'score.png'
-	lilypond_version = _get_lilypond_version()
-	include_header = _('')
-	include_footer = _('')
+	lilypond_version = None
+	include_header = ''
+	include_footer = ''
 
 	def __init__(self, preferences={}):
 		file = data_file('templates/plugins/scoreeditor.ly')
@@ -129,6 +132,8 @@ class ScoreGenerator(ImageGeneratorClass):
 		self.scorefile = TmpFile(self.scriptname)
 		if preferences.has_key('lilypond_version'):
 			self.lilypond_version = preferences['lilypond_version']
+		else:
+			self.lilypond_version = _get_lilypond_version()
 		if preferences.has_key('include_header'):
 			self.include_header = preferences['include_header']
 		if preferences.has_key('include_footer'):

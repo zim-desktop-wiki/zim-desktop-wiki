@@ -39,6 +39,27 @@ WIKITEXT = File('tests/data/formats/wiki.txt').read() # Contains some unicode
 UTF8_COMMENT = u'Commit \u03b1\u03b2\u03b3'
 
 
+@tests.slowTest
+class TestVCS(tests.TestCase):
+
+	def testDetectVCS(self):
+		root = Dir(self.create_tmp_dir())
+		root.subdir('.bzr').touch()
+		self.assertEqual(VCS._detect_in_folder(root), ('bzr', root))
+
+		subdir = root.subdir('Foo/Bar')
+		subdir.touch()
+		self.assertEqual(VCS._detect_in_folder(subdir), ('bzr', root))
+
+		subroot = root.subdir('subroot')
+		subroot.subdir('.git').touch()
+		self.assertEqual(VCS._detect_in_folder(subroot), ('git', subroot))
+
+		subdir = subroot.subdir('Foo/Bar')
+		subdir.touch()
+		self.assertEqual(VCS._detect_in_folder(subdir), ('git', subroot))
+
+
 #####################################################
 #
 # BAZAAR BACKEND TEST
