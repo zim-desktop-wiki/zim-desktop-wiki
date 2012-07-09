@@ -65,8 +65,13 @@ class DuplicatePageTreeStore(PageTreeStore):
 			return None
 
 	def get_treepaths(self, path):
-		'''Return all treepaths matching notebook path 'path' '''
-		raise NotImplementedError
+		'''Return all treepaths matching notebook path 'path' 
+		Default implementation assumes we are a non-duplicate treeview
+		after all and uses L{PageTreeStore.get_treepath()}.
+		@implementation: must be overloaded by subclasses that are real
+		duplicate stores
+		'''
+		return [PageTreeStore.get_treepath(self, path)]
 
 
 class TagsPageTreeStore(DuplicatePageTreeStore):
@@ -522,13 +527,17 @@ class TagsPageTreeView(PageTreeView):
 		if model:
 			self.set_model(model)
 
-	def set_model(self, model):
+	def set_model(self, model, filter=None):
 		'''Set the model to be used'''
 		# disconnect previous model
 		oldmodel = self.get_model()
 		if oldmodel:
 			childmodel = oldmodel.get_model()
 			childmodel.disconnect_index()
+
+		# Filter is also provided here, just to make it more efficient to 
+		# set model and filter in one go without need for refilter
+		self._set_tag_filter(filter)
 
 		# set new model
 		def func(model, iter):
@@ -582,15 +591,23 @@ class TagsPageTreeView(PageTreeView):
 	def set_tag_filter(self, filter):
 		'''Sets the tags to filter on. The filter should be a tuple of
 		two lists of tags, or None to not do any filtering.
+		First list of tags are the tags that we filter on, so only pages
+		matching all these tags should be selected.
+		Second set is a superset of the first set and includes all tags
+		that appear in one of the selected pages. So selecting one of these
+		tags on top of the current selection should result in a subset
+		of the current page selection.
 		'''
+		self._set_tag_filter(filter)
+		model = self.get_model()
+		if model:
+			model.refilter()
+	
+	def _set_tag_filter(self, filter):
 		if not filter:
 			self._tag_filter = None
 		else:
 			self._tag_filter = (frozenset(filter[0]), frozenset(filter[1]))
-
-		model = self.get_model()
-		if model:
-			model.refilter()
 
 	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
 		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
@@ -779,6 +796,7 @@ class TagsPluginWidget(gtk.VPaned):
 		add_scrolled(self.tagcloud)
 
 		self.treeview = TagsPageTreeView(self.plugin.ui)
+		self._treeview_mode = (None, None)
 		add_scrolled(self.treeview)
 
 		self.treeview.connect('populate-popup', self.on_populate_popup)
@@ -824,7 +842,13 @@ class TagsPluginWidget(gtk.VPaned):
 
 	def on_cloud_selection_changed(self, cloud):
 		filter = cloud.get_tag_filter()
-		self.treeview.set_tag_filter(filter)
+		type, was_filtered = self._treeview_mode
+		is_filtered = (filter is not None)
+		if type == 'tagged' and was_filtered != is_filtered:
+			# Switch between tag view and normal index or vice versa
+			self._reload_model(type, filter)
+		else:
+			self.treeview.set_tag_filter(filter)
 
 	def on_cloud_sortin_changed(self, cloud, sorting):
 		self.plugin.uistate['tagcloud_sorting'] = sorting
@@ -846,13 +870,28 @@ class TagsPluginWidget(gtk.VPaned):
 
 		if self.tagcloud.index is None:
 			self.tagcloud.set_index(self.plugin.ui.notebook.index)
+	
+		type = self.plugin.uistate['treeview']
+		filter = self.tagcloud.get_tag_filter()
+		self._reload_model(type, filter)
 
-		if self.plugin.uistate['treeview'] == 'tagged':
-			model = TaggedPageTreeStore(self.plugin.ui.notebook.index) # FIXME clean up law of D
-		else: # tags
-			model = TagsPageTreeStore(self.plugin.ui.notebook.index) # FIXME clean up law of D
 
-		self.treeview.set_model(model)
+	def _reload_model(self, type, filter):
+		index = self.plugin.ui.notebook.index # FIXME clean up law of D
+		if type == 'tagged':
+			if filter is None:
+				model = DuplicatePageTreeStore(index)
+					# show the normal index in this case
+			else:
+				model = TaggedPageTreeStore(index)
+		elif type == 'tags':
+			model = TagsPageTreeStore(index)
+		else:
+			assert False
+		
+		is_filtered = (filter is not None)
+		self._treeview_mode = (type, is_filtered)
+		self.treeview.set_model(model, filter)
 
 		if self.plugin.ui.page:
 			model.select_page(self.plugin.ui.page)
