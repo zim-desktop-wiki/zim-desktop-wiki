@@ -272,7 +272,7 @@ class ToCWidget(gtk.ScrolledWindow):
 	def on_promote(self, *a):
 		# Promote selected paths and all their children
 		model, paths = self.treeview.get_selection().get_selected_rows()
-		if not self.can_demote(paths):
+		if not self.can_promote(paths):
 			return False
 
 		seen = set()
@@ -308,7 +308,7 @@ class ToCWidget(gtk.ScrolledWindow):
 		# Demote selected paths and all their children
 		# note can not demote below level 6
 		model, paths = self.treeview.get_selection().get_selected_rows()
-		if not self.can_promote(paths):
+		if not self.can_demote(paths):
 			return False
 
 		seen = set()

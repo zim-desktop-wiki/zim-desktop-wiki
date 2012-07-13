@@ -495,7 +495,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	tag_attributes = set( (
 		'weight', 'scale', 'style', 'background', 'foreground', 'strikethrough',
-		'family', 'wrap-mode', 'indent', 'underline'
+		'family', 'wrap-mode', 'indent', 'underline', 'linespacing',
 	) ) #: Valid properties for a style in tag_styles
 
 	def __init__(self, notebook=None, page=None):
@@ -4505,6 +4505,9 @@ class PageView(gtk.VBox):
 							attrib[a] = getattr(pango, const)
 						else:
 							attrib[a] = str(attrib[a]) # pango doesn't like unicode attributes
+				if 'linespacing' in attrib:
+					attrib['pixels-below-lines'] = attrib['linespacing']
+					del attrib['linespacing']
 				#~ print 'TAG', tag, attrib
 				assert testbuffer.create_tag('style-'+tag, **attrib)
 			except:

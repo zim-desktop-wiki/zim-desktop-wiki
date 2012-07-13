@@ -99,6 +99,7 @@ Known properties for Tags:
 * **striketrough**: ''true'', ''false''
 * **wrap**_**mode**: "''none"'', ...
 * **indent**: //integer//
+* **linespacing**: //integer//
 
 ==== GtkRC file ====
 Gtk+ has it's own config file that allows you to customize how things look. This is the gtkrc file and it is typically saved as ''~/.gtkrc-2.0'' in the home directory. Some widgets have a name so you can set specific options for those widgets. Widgets that have a name in zim are:

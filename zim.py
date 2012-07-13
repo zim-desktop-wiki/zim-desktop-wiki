@@ -42,6 +42,7 @@ try:
 	import zim
 	import zim.config
 except ImportError:
+	sys.excepthook(*sys.exc_info())
 	print >>sys.stderr, 'ERROR: Could not find python module files in path:'
 	print >>sys.stderr, ' '.join(map(str, sys.path))
 	print >>sys.stderr, '\nTry setting PYTHONPATH'

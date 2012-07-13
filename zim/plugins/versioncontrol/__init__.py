@@ -110,7 +110,9 @@ class VCS(object):
 			vcs = VCS.create(VCS.HG, root)
 		elif name == 'git':
 			vcs = VCS.create(VCS.GIT, root)
-		# else maybe detected something, but no backend available
+		else:
+			# else maybe detected something, but no backend available
+			vcs = None
 
 		if vcs:
 			logger.info('VCS detected: %s - %s', name, root)

@@ -18,7 +18,7 @@ import gobject
 import zim.fs
 import zim.errors
 
-from zim.parsing import split_quoted_strings
+from zim.parsing import split_quoted_strings, is_uri_re, is_win32_path_re
 from zim.config import get_environ_list
 
 
@@ -270,7 +270,7 @@ class WebBrowser(Application):
 
 class StartFile(Application):
 	'''Application wrapper for C{os.startfile()}. Can be used on
-	windows to open files with the default application.
+	windows to open files and URLs with the default application.
 	'''
 
 	name = _('Default') + ' (os)' # T: label for default application
@@ -292,7 +292,15 @@ class StartFile(Application):
 		if callback:
 			logger.warn('os.startfile does not support a callback')
 
-		for file in args:
-			path = os.path.normpath(unicode(file))
+		for arg in args:
+			if isinstance(arg, (zim.fs.File, zim.fs.Dir)):
+				path = os.path.normpath(arg.path)
+			elif is_uri_re.match(arg) and not is_win32_path_re.match(arg):
+				# URL or e.g. mailto: or outlook: URI
+				path = unicode(arg)
+			else:
+				# must be file
+				path = os.path.normpath(unicode(arg))
+
 			logger.info('Opening with os.startfile: %s', path)
 			os.startfile(path)
