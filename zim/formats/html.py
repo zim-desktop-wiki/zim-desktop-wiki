@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module supports dumping to HTML'''
 
@@ -50,115 +50,147 @@ def encode_whitespace(text):
 
 class Dumper(DumperClass):
 
+	TAGS = {
+		EMPHASIS:		('<i>', '</i>'),
+		STRONG: 		('<b>', '</b>'),
+		MARK:			('<u>', '</u>'),
+		STRIKE: 		('<s>', '</s>'),
+		VERBATIM:		('<tt>', '</tt>'),
+		TAG:			('<span class="zim-tag">', '</span>'),
+		SUBSCRIPT:		('<sub>', '</sub>'),
+		SUPERSCRIPT:	('<sup>', '</sup>'),
+
+	}
+
 	def dump(self, tree):
-		assert isinstance(tree, ParseTree)
-		assert self.linker, 'HTML dumper needs a linker object'
-		self.linker.set_usebase(True)
-		output = TextBuffer()
-		self._dump_children(tree.getroot(), output, istoplevel=True)
-		return output.get_lines(end_with_newline=not tree.ispartial)
+		# FIXME should be an init function for this
+		self._isrtl = None
+		return DumperClass.dump(self, tree)
 
-	def _dump_children(self, list, output, istoplevel=False):
-		for element in list.getchildren():
-			text = html_encode(element.text)
-			if not element.tag in ('pre', 'object'):
-				# text that goes into the element
-				# always encode excepts for <pre></pre>
-				# or custom objects, because they fallback to <pre>
-				text = encode_whitespace(text)
+	def encode_text(self, text):
+		# if _isrtl is already set the direction was already
+		# determined for this section
+		if self._isrtl is None and not text.isspace():
+			self._isrtl = self.isrtl(text)
 
-			if element.tag == 'h':
-				tag = 'h' + str(element.attrib['level'])
-				if self.isrtl(element):
-					output += ['<', tag, ' dir=\'rtl\'>', text, '</', tag, '>']
-				else:
-					output += ['<', tag, '>', text, '</', tag, '>']
-			elif element.tag in ('p', 'div'):
-				tag = element.tag
-				if self.isrtl(element):
-					tag += ' dir=\'rtl\''
-				if 'indent' in element.attrib:
-					level = int(element.attrib['indent'])
-					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
-				output += ['<', tag, '>\n', text]
-				self._dump_children(element, output) # recurs
-				output.append('</%s>\n' % element.tag)
-			elif element.tag == 'object':
-				object_output = self.dump_object(element)
-				if object_output is None:
-					# Fallback to verbatim paragraph
-					object_output = ['<pre>\n', text, '</pre>\n']
-					# FIXME for inline objects we can not use block-level html element
-					# so need to switch to <tt> here
-				output += ['<div class="zim-object">\n'] + object_output + ['</div>\n']
-			elif element.tag == 'pre':
-				tag = 'pre'
-				if self.isrtl(element):
-					tag += ' dir=\'rtl\''
-				if 'indent' in element.attrib:
-					level = int(element.attrib['indent'])
-					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
-				output += ['<', tag, '>\n', text, '</pre>\n']
-			elif element.tag in ('ul', 'ol'):
-				# TODO for ol set start and bullet style
-				tag = element.tag
-				if tag == 'ol' and 'start' in element.attrib:
-					start = element.attrib.get('start')
-					if start in string.lowercase:
-						type = 'a'
-						start = string.lowercase.index(start) + 1
-					elif start in string.uppercase:
-						type = 'A'
-						start = string.uppercase.index(start) + 1
-					else:
-						type = '1'
-					tag += ' type="%s" start="%s"' % (type, start)
+		text = html_encode(text)
+		text = encode_whitespace(text)
+		return text
 
-				if 'indent' in element.attrib:
-					level = int(element.attrib['indent'])
-					tag += ' style=\'padding-left: %ipt\'' % (30 * level)
-				output += ['<%s>\n' % tag, text]
-				self._dump_children(element, output) # recurs
-				output.append('</%s>\n' % element.tag)
-			elif element.tag == 'li':
-				if 'bullet' in element.attrib and element.attrib['bullet'] != '*':
-					icon = self.linker.icon(element.attrib['bullet'])
-					output += ['<li style="list-style-image: url(%s)">' % icon, text]
-				else:
-					output += ['<li>', text]
-				self._dump_children(element, output) # recurs
-				output.append('</li>\n')
-			elif element.tag == 'img':
-				src = self.linker.img(element.attrib['src'])
-				opt = ''
-				if 'alt' in element.attrib:
-					opt += ' alt="%s"' % html_encode(element.attrib['alt'])
-				for o in ('width', 'height'):
-					if o in element.attrib and int(float(element.attrib[o])) > 0:
-						opt += ' %s="%s"' % (o, element.attrib[o])
-				if 'href' in element.attrib:
-					href = self.linker.link(element.attrib['href'])
-					output.append('<a href="%s"><img src="%s"%s></a>' % (href, src, opt))
-				else:
-					output.append('<img src="%s"%s>' % (src, opt))
-			elif element.tag == 'link':
-				href = self.linker.link(element.attrib['href'])
-				title = text.replace('"', '&quot;')
-				output.append('<a href="%s" title="%s">%s</a>' % (href, title, text))
-			elif element.tag in ['emphasis', 'strong', 'mark', 'strike', 'code','sub','sup']:
-				if element.tag == 'mark': tag = 'u'
-				elif element.tag == 'emphasis': tag = 'em'
-				else: tag = element.tag
-				output += ['<', tag, '>', text, '</', tag, '>']
-			elif element.tag == 'tag':
-				output += ['<span class="zim-tag">', text, '</span>']
+	def text(self, text):
+		if self._context[-1][0] == FORMATTEDTEXT \
+		and	text.isspace():
+			# Reduce top level empty lines
+			l = text.count('\n') - 1
+			if l > 0:
+				self._context[-1][-1].append('\n' + ('<br>\n' * l) + '\n')
+			elif l == 0:
+				self._context[-1][-1].append('\n')
+		else:
+			DumperClass.text(self, text)
+
+	def dump_h(self, tag, attrib, strings):
+		h = 'h' + str(attrib['level'])
+		if self._isrtl:
+			start = '<' + h + ' dir=\'rtl\'>'
+		else:
+			start = '<' + h + '>'
+		self._isrtl = None # reset
+		end = '</' + h + '>\n'
+		strings.insert(0, start)
+		strings.append(end)
+		return strings
+
+	def dump_block(self, tag, attrib, strings, _extra=None):
+		if strings and strings[-1].endswith('<br>\n'):
+			strings[-1] = strings[-1][:-5]
+
+		start = '<' + tag
+		if self._isrtl:
+			start += ' dir=\'rtl\''
+		self._isrtl = None # reset
+
+		if 'indent' in attrib:
+			level = int(attrib['indent'])
+			start += ' style=\'padding-left: %ipt\'' % (30 * level)
+
+		if _extra:
+			start += ' ' + _extra
+		start += '>\n'
+
+		end = '\n</' + tag + '>\n'
+		strings.insert(0, start)
+		strings.append(end)
+		return strings
+
+	dump_p = dump_block
+	dump_div = dump_block
+	dump_pre = dump_block
+	dump_ul = dump_block
+
+	def dump_ol(self, tag, attrib, strings):
+		myattrib = ''
+		if 'start' in attrib:
+			start = attrib['start']
+			if start in string.lowercase:
+				type = 'a'
+				start = string.lowercase.index(start) + 1
+			elif start in string.uppercase:
+				type = 'A'
+				start = string.uppercase.index(start) + 1
 			else:
-				assert False, 'Unknown node type: %s' % element
+				type = '1'
+			return self.dump_block(tag, attrib, strings,
+				_extra='type="%s" start="%s"' % (type, start) )
+		else:
+			return self.dump_block(tag, attrib, strings)
 
-			if not element.tail is None:
-				tail = html_encode(element.tail)
-				if not (istoplevel and tail.isspace()):
-					# text in between elements, skip encoding
-					# for whitespace between headings, paras etc.
-					tail = encode_whitespace(tail)
-				output.append(tail)
+	def dump_li(self, tag, attrib, strings):
+		bullet = attrib.get('bullet', BULLET)
+		if self._context[-1][0] == BULLETLIST and bullet != BULLET:
+			icon = self.linker.icon(bullet)
+			start = '<li style="list-style-image: url(%s)">' % icon
+		else:
+			start = '<li>'
+		end = '</li>\n'
+		strings.insert(0, start)
+		strings.append(end)
+		return strings
+
+	def dump_link(self, tag, attrib, strings=None):
+		href = self.linker.link(attrib['href'])
+		if strings:
+			text = u''.join(strings)
+		else:
+			text = attrib['href']
+		title = text.replace('"', '&quot;')
+		return ['<a href="%s" title="%s">%s</a>' % (href, title, text)]
+
+	def dump_img(self, tag, attrib, strings=None):
+		src = self.linker.img(attrib['src'])
+		opt = ''
+		if 'alt' in attrib:
+			opt += ' alt="%s"' % html_encode(attrib['alt']).replace('"', '&quot;')
+		for o in ('width', 'height'):
+			if o in attrib and int(float(attrib[o])) > 0:
+				opt += ' %s="%s"' % (o, attrib[o])
+		if 'href' in attrib:
+			href = self.linker.link(attrib['href'])
+			return ['<a href="%s"><img src="%s"%s></a>' % (href, src, opt)]
+		else:
+			return ['<img src="%s"%s>' % (src, opt)]
+
+	def dump_object(self, *arg, **kwarg):
+		strings = DumperClass.dump_object(self, *arg, **kwarg)
+		strings.insert(0, '<div class="zim-object">\n')
+		strings.append('</div>\n')
+		return strings
+
+	def dump_object_fallback(self, tag, attrib, strings=None):
+		# Fallback to verbatim paragraph
+		strings.insert(0, '<pre>\n')
+		strings.append('</pre>\n')
+		return strings
+
+		# TODO put content in attrib, use text for caption (with full recursion)
+		# See img

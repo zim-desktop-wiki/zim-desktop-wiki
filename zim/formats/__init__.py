@@ -915,6 +915,9 @@ class DumperClass(Visitor):
 
 	Each format that can be used natively should define a class
 	'Dumper' which inherits from this base class.
+
+	FIXME FIXME - update docs on how to write a new style dumper using the
+	visitor structure - FIXME FIXME
 	'''
 
 	TAGS = {} #: dict with formatting tags start and end sequence
@@ -923,7 +926,7 @@ class DumperClass(Visitor):
 		self.linker = linker
 		self.template_options = template_options or {}
 		self._text = []
-		self._stack = []
+		self._context = []
 
 	def dump(self, tree):
 		'''ABSTRACT METHOD needs to be overloaded by sub-classes.
@@ -933,9 +936,9 @@ class DumperClass(Visitor):
 		'''
 		# FIXME - issue here is that we need to reset state - should be in __init__
 		self._text = []
-		self._stack = [(None, None, self._text)]
+		self._context = [(None, None, self._text)]
 		tree.visit(self)
-		assert len(self._stack) == 1, 'Unclosed tags on tree'
+		assert len(self._context) == 1, 'Unclosed tags on tree'
 		#~ import pprint; pprint.pprint(self._text)
 		return self.get_lines() # FIXME - maybe just return text ?
 
@@ -945,16 +948,18 @@ class DumperClass(Visitor):
 	def start(self, tag, attrib=None):
 		if attrib:
 			attrib = attrib.copy() # Ensure dumping does not change tree
-		self._stack.append((tag, attrib, []))
+		self._context.append((tag, attrib, []))
 
 	def text(self, text):
 		assert not text is None
-		self._stack[-1][-1].append(text)
+		text = self.encode_text(text)
+		self._context[-1][-1].append(text)
 
 	def end(self, tag):
-		assert tag and self._stack[-1][0] == tag, 'Unmatched tag: %s' % tag
-		_, attrib, strings = self._stack.pop()
+		assert tag and self._context[-1][0] == tag, 'Unmatched tag: %s' % tag
+		_, attrib, strings = self._context.pop()
 		if tag in self.TAGS:
+			assert strings, 'Can not append empty %s element' % tag
 			start, end = self.TAGS[tag]
 			strings.insert(0, start)
 			strings.append(end)
@@ -973,17 +978,18 @@ class DumperClass(Visitor):
 				#~ print "BUG: %s returned %s" % ('dump_'+tag, strings)
 
 		if strings is not None:
-			self._stack[-1][-1].extend(strings)
+			self._context[-1][-1].extend(strings)
 
 	def append(self, tag, attrib=None, text=None):
 		strings = None
 		if tag in self.TAGS:
-			if text is not None:
-				start, end = self.TAGS[tag]
-				strings = [start, text ,end]
+			assert text is not None, 'Can not append empty %s element' % tag
+			start, end = self.TAGS[tag]
+			text = self.encode_text(text)
+			strings = [start, text, end]
 		elif tag == FORMATTEDTEXT:
 			if text is not None:
-				strings = [text]
+				strings = [self.encode_text(text)]
 		else:
 			if attrib:
 				attrib = attrib.copy() # Ensure dumping does not change tree
@@ -996,10 +1002,18 @@ class DumperClass(Visitor):
 			if text is None:
 				strings = method(tag, attrib, None)
 			else:
-				strings = method(tag, attrib, [text,])
+				strings = method(tag, attrib, [self.encode_text(text)])
 
 		if strings is not None:
-			self._stack[-1][-1].extend(strings)
+			self._context[-1][-1].extend(strings)
+
+	def encode_text(self, text):
+		'''Optional method to encode text elements in the output
+		@param strings: text to be encoded
+		@returns: encoded text
+		@implementation: optional, default just returns unmodified input
+		'''
+		return text
 
 	def prefix_lines(self, prefix, strings):
 		'''Convenience method to wrap a number of lines with e.g. an
@@ -1011,20 +1025,28 @@ class DumperClass(Visitor):
 		lines = u''.join(strings).splitlines(1)
 		return [prefix + l for l in lines]
 
-	def dump_object(self, element):
-		'''Dumps object using proper ObjectManager for a object
-		parsetree element. Returns None on failure.
-		'''
+	def dump_object(self, tag, attrib, strings=None):
+		'''Dumps object using proper ObjectManager'''
 		format = str(self.__class__.__module__).split('.')[-1]
-		if not 'type' in element.attrib:
-			return None
-		obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
-		return obj.dump(format, self, self.linker)
+		if 'type' in attrib:
+			obj = ObjectManager.get_object(attrib['type'], attrib, u''.join(strings))
+			output = obj.dump(format, self, self.linker)
+			if output is not None:
+				return [output]
 
-	def isrtl(self, element):
-		'''Returns True if the parse tree below element starts with
-		characters in a RTL script. This is e.g. needed to produce correct
-		HTML output. Returns None if direction is not determined.
+		return self.dump_object_fallback(tag, attrib, strings)
+
+		# TODO put content in attrib, use text for caption (with full recursion)
+		# See img
+
+	def dump_object_fallback(self, tag, attrib, strings=None):
+		raise NotImplementedError
+
+	def isrtl(self, text):
+		'''Check for Right To Left script
+		@param text: the text to check
+		@returns: C{True} if C{text} starts with characters in a
+		RTL script, or C{None} if direction is not determined.
 		'''
 		if pango is None:
 			return None
@@ -1037,20 +1059,11 @@ class DumperClass(Visitor):
 		# It either returns a direction, or NEUTRAL if e.g. text only
 		# contains punctuation but no real characters.
 
-		if element.text:
-			dir = pango.find_base_dir(element.text, len(element.text))
-			if not dir == pango.DIRECTION_NEUTRAL:
-				return dir == pango.DIRECTION_RTL
-		for child in element.getchildren():
-			rtl = self.isrtl(child)
-			if not rtl is None:
-				return rtl
-		if element.tail:
-			dir = pango.find_base_dir(element.tail, len(element.tail))
-			if not dir == pango.DIRECTION_NEUTRAL:
-				return dir == pango.DIRECTION_RTL
-
-		return None
+		dir = pango.find_base_dir(text, len(text))
+		if dir == pango.DIRECTION_NEUTRAL:
+			return None
+		else:
+			return dir == pango.DIRECTION_RTL
 
 
 class BaseLinker(object):

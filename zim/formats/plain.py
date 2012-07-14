@@ -158,12 +158,8 @@ class Dumper(DumperClass):
 				else:
 					output.append(href)
 			elif element.tag == 'object':
-				object_output = self.dump_object(element)
-				if object_output:
-					output += object_output
-				else:
-					# Fallback to verbatim paragraph
-					output.append(element.text)
+				object_output = self.dump_object(element.tag, element.attrib, [element.text])
+				output += object_output
 			elif element.tag == 'pre':
 				indent = 0
 				if 'indent' in element.attrib:
@@ -180,3 +176,6 @@ class Dumper(DumperClass):
 
 			if element.tail:
 				output.append(element.tail)
+
+	def dump_object_fallback(self, tag, attrib, strings):
+		return strings

@@ -547,8 +547,7 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 		tree = builder.get_parsetree()
 		html = self.format.Dumper(linker=StubLinker()).dump(tree)
 		self.assertEqual(''.join(html),
-			'<p>\n&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;<br>\n</p>\n')
-		print "\n\nTODO: get rid of trailing <br> in PARA\n"
+			'<p>\n&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;\n</p>\n')
 
 	# TODO add test using http://validator.w3.org
 

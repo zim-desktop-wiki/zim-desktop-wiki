@@ -389,7 +389,7 @@ class Dumper(DumperClass):
 			# top level list with specified indent
 			prefix = '\t' * int(attrib['indent'])
 			return self.prefix_lines('\t', strings)
-		elif self._stack[-1][0] in (BULLETLIST, NUMBEREDLIST):
+		elif self._context[-1][0] in (BULLETLIST, NUMBEREDLIST):
 			# indent sub list
 			prefix = '\t'
 			return self.prefix_lines('\t', strings)
@@ -406,19 +406,19 @@ class Dumper(DumperClass):
 
 		# TODO accept multi-line content here - e.g. nested paras
 
-		if self._stack[-1][0] == BULLETLIST:
+		if self._context[-1][0] == BULLETLIST:
 			if 'bullet' in attrib \
 			and attrib['bullet'] in bullet_types:
 				bullet = bullet_types[attrib['bullet']]
 			else:
 				bullet = '*'
-		elif self._stack[-1][0] == NUMBEREDLIST:
-			iter = self._stack[-1][1].get('_iter')
+		elif self._context[-1][0] == NUMBEREDLIST:
+			iter = self._context[-1][1].get('_iter')
 			if not iter:
 				# First item on this level
-				iter = self._stack[-1][1].get('start', 1)
+				iter = self._context[-1][1].get('start', 1)
 			bullet = iter + '.'
-			self._stack[-1][1]['_iter'] = increase_list_iter(iter) or '1'
+			self._context[-1][1]['_iter'] = increase_list_iter(iter) or '1'
 		else:
 			# HACK for raw tree from pageview
 			# support indenting
