@@ -118,7 +118,11 @@ class Dumper(DumperClass):
 			start += ' ' + _extra
 		start += '>\n'
 
-		end = '\n</' + tag + '>\n'
+		if tag in ('ul', 'ol'):
+			end = '</' + tag + '>\n'
+		else:
+			end = '\n</' + tag + '>\n'
+
 		strings.insert(0, start)
 		strings.append(end)
 		return strings

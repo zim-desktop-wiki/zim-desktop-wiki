@@ -173,7 +173,7 @@ Version %s
 <h1>Unnamed Notebook: FooBar</h1>
 <h2>Page Heading</h2>
 <p>
-<strong>foo bar !</strong><br>
+<b>foo bar !</b>
 </p>
 Option: bar
 ''' % zim.__version__
@@ -206,7 +206,7 @@ class TestTemplatePageIndexFuntion(tests.TestCase):
 ('Parent:Daughter', u"[% pageindex('Parent') %]", '''\
 <ul>
 <li><a href="page://:Parent:Child" title="Child">Child</a></li>
-<li><strong>Daughter</strong></li>
+<li><b>Daughter</b></li>
 <ul>
 <li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
 <li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
@@ -223,7 +223,7 @@ class TestTemplatePageIndexFuntion(tests.TestCase):
 <ul>
 <li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
 <li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
-<li><strong>SomeOne</strong></li>
+<li><b>SomeOne</b></li>
 <ul>
 <li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
 <li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
@@ -243,7 +243,7 @@ class TestTemplatePageIndexFuntion(tests.TestCase):
 <ul>
 <li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
 <li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
-<li><strong>SomeOne</strong></li>
+<li><b>SomeOne</b></li>
 <ul>
 <li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
 <li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
@@ -262,7 +262,7 @@ class TestTemplatePageIndexFuntion(tests.TestCase):
 		for path, input, wantedresult in data:
 			page = notebook.get_page(Path(path))
 			result = Template(input, 'html', linker=StubLinker()).process(notebook, page)
-			self.assertEqual(result, wantedresult.splitlines(True))
+			self.assertEqual(''.join(result), wantedresult)
 
 
 class StubLinker(object):
