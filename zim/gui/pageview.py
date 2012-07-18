@@ -36,9 +36,9 @@ from zim.formats import get_format, increase_list_iter, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import ui_environment, \
-	Dialog, FileDialog, ErrorDialog, \
+	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
-	rotate_pixbuf
+	rotate_pixbuf, populate_popup_add_separator
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
@@ -123,10 +123,10 @@ ui_actions = (
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
 	('insert_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item
 	('insert_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item
-	('insert_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
-	('apply_format_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item),
-	('apply_format_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item),
-	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
+	('insert_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item,
+	('apply_format_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item,
+	('apply_format_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item,
+	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item,
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
 	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
 	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>9', '', False), # T: Menu item
@@ -142,6 +142,12 @@ ui_actions = (
 	('zoom_in_alt1', None, '', '<ctrl>equal', '', True),
 	('zoom_out', 'gtk-zoom-out', _('Zoom _Out'), '<ctrl>minus', '', True), # T: Menu item
 	('zoom_reset', 'gtk-zoom-100', _('_Normal Size'), '<ctrl>0', '', True), # T: Menu item to reset zoom
+
+	# name, stock id, label
+	('insert_new_file_menu', None, _('New _Attachment')), # T: Menu title
+
+	# name, stock id, label, accelerator, tooltip, readonly
+	('open_file_templates_folder', 'gtk-directory', _('File _Templates...'), '', '', False), # T: Menu item in "Insert > New File Attachment" submenu
 )
 
 ui_format_actions = (
@@ -203,6 +209,9 @@ ui_preferences = (
 		# T: option in preferences dialog
 	('copy_format', 'choice', 'Editing',
 		_('Default format for copying text to the clipboard'), 'Text', COPY_FORMATS),
+		# T: option in preferences dialog
+	('file_templates_folder', 'dir', 'Editing',
+		_('Folder with templates for attachment files'), '~/Templates'),
 		# T: option in preferences dialog
 )
 
@@ -4410,6 +4419,11 @@ class PageView(gtk.VBox):
 			self.actiongroup = gtk.ActionGroup('SecondaryPageView')
 		self.ui.add_actions(ui_actions, self)
 
+		# setup hooks for new file submenu
+		action = self.actiongroup.get_action('insert_new_file_menu')
+		action.zim_readonly = False
+		action.connect('activate', self._update_new_file_submenu)
+
 		# format actions need some custom hooks
 		actiongroup = self.actiongroup
 		actiongroup.add_actions(ui_format_actions)
@@ -5339,6 +5353,96 @@ class PageView(gtk.VBox):
 	def insert_link(self):
 		'''Menu item to show the L{InsertLinkDialog}'''
 		InsertLinkDialog(self.ui, self).run()
+
+	def _update_new_file_submenu(self, action):
+		dir = self.preferences['file_templates_folder']
+		if isinstance(dir, basestring):
+			dir = Dir(dir)
+
+		items = []
+		if dir.exists():
+			def handler(menuitem, file):
+				self.insert_new_file(file)
+
+			for name in dir.list(): # FIXME could use list objects here
+				file = dir.file(name)
+				if file.exists(): # it is a file
+					name = file.basename
+					if '.' in name:
+						name, x = name.rsplit('.', 1)
+					name = name.replace('_', ' ')
+					item = gtk.MenuItem(name)
+						# TODO mimetype icon would be nice to have
+					item.connect('activate', handler, file)
+					item.zim_new_file_action = True
+					items.append(item)
+
+		if not items:
+			item = gtk.MenuItem(_('No templates installed'))
+				# T: message when no file templates are found in ~/Templates
+			item.set_sensitive(False)
+			item.zim_new_file_action = True
+			items.append(item)
+
+
+		for widget in action.get_proxies():
+			if hasattr(widget, 'get_submenu'):
+				menu = widget.get_submenu()
+				if not menu:
+					continue
+
+				# clear old items
+				for item in menu.get_children():
+					if hasattr(item, 'zim_new_file_action'):
+						menu.remove(item)
+
+				# add new ones
+				populate_popup_add_separator(menu, prepend=True)
+				for item in reversed(items):
+					menu.prepend(item)
+
+				# and finish up
+				menu.show_all()
+
+	def insert_new_file(self, template):
+		dir = self.ui.notebook.get_attachments_dir(self.page)
+		file = dir.new_file(template.basename)
+		template.copyto(file)
+
+		# Same logic as in zim.gui.AttachFileDialog
+		# TODO - incorporate in the insert_links function ?
+		if file.isimage():
+			ok = self.insert_image(file, interactive=False)
+			if not ok: # image type not supported?
+				logger.info('Could not insert image: %s', file)
+				self.insert_links([file])
+		else:
+			self.insert_links([file])
+
+		#~ self.ui.open_file(file) # FIXME should this be optional ?
+
+
+	def open_file_templates_folder(self):
+		'''Menu action to open the templates folder'''
+		dir = self.preferences['file_templates_folder']
+		if isinstance(dir, basestring):
+			dir = Dir(dir)
+
+		if dir.exists():
+			self.ui.open_file(dir)
+		else:
+			path = dir.user_path or dir.path
+			question = (
+				_('Create folder?'),
+					# T: Heading in a question dialog for creating a folder
+				_('The folder\n%s\ndoes not yet exist.\nDo you want to create it now?')
+					% path
+			)
+					# T: Text in a question dialog for creating a folder, %s is the folder path
+			create = QuestionDialog(self, question).run()
+			if create:
+				dir.touch()
+				self.ui.open_file(dir)
 
 	def clear_formatting(self):
 		'''Menu item to remove formatting from current (auto-)selection'''

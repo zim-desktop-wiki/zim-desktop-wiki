@@ -21,7 +21,7 @@ TODO mention camelcase and autolinking for page names
 
 TODO mention linking of child pages with +
 
-TODO mention attachments
+TODO mention [[Help:Attachments|attachments]]
 
 ===== New Page Dialog =====
 The New Page dialog prompts for a page name and then creates a new page with the specified name. To create a page that is nested in the hierarchy, specify it with a ":" in between the parts of the hierarchy.

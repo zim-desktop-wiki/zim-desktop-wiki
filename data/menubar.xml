@@ -89,6 +89,10 @@
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='insert_text_from_file'/>
+			<menu action='insert_new_file_menu'>
+				<separator/>
+				<menuitem action='open_file_templates_folder'/>
+			</menu>
 			<menuitem action='insert_link'/>
 		</menu>
 		<menu action='format_menu'>

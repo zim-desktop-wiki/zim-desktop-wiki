@@ -1,0 +1,9 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2012-07-18T23:31:03+02:00
+
+====== Attachment Browser ======
+
+This plugin adds an folder view at the bottom of the main window that shows the files attached to the current page. It allows for basic operations, like dragging a file from the folder view to the page to create a link to a specific attachment.
+
+**Dependencies:** This plugin has no additional dependencies.

@@ -46,7 +46,7 @@ Yes it does. See the download page on the website for more notes on installing o
 Yes it does. You can install the dependencies using [[http://www.macports.org/|Mac Ports]].
 
 === I want to move/backup/syncronize a zim notebook. Which files do I need to take care of? ===
-The visible files in the notebook folder contain all data of notes and attachments.
+The visible files in the notebook folder contain all data of notes and [[Help:Attachments|attachments]].
 
 === What is the hidden .zim folder in my notebook folder? ===
 The hidden .zim folder contains only caches and GUI state. It doesn't contain any information that can not be recreated on the fly.
