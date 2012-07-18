@@ -23,8 +23,8 @@ except:
 class ZeitgeistPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Log events with Zeitgeist'),
-		'description': _('Pushes events to the Zeitgeist daemon.'),
+		'name': _('Log events with Zeitgeist'), # T: plugin name
+		'description': _('Pushes events to the Zeitgeist daemon.'), # T: plugin description
 		'author': 'Marcel Stimberg',
 		'help': 'Plugins:Log events with Zeitgeist',
 	}
@@ -45,7 +45,8 @@ class ZeitgeistPlugin(PluginClass):
 	def initialize_ui(self, ui):
 		if self.zeitgeist_client is not None:
 			self.zeitgeist_client.register_data_source('application://zim.desktop',
-			                                           _('Zim'), _('A desktop wiki'), [])
+			    'Zim', _('Zim Desktop Wiki'), []) # T: short description of zim
+
 			self.connectto_all(self.ui,
 				('open-page', 'close-page'), order=SIGNAL_AFTER)
 
@@ -65,6 +66,7 @@ class ZeitgeistPlugin(PluginClass):
 		uri = fileobj.uri
 		origin = gio.File(uri).get_parent().get_uri()
 		text = _('Wiki page: %s') % page.name
+			# T: label for how zim pages show up in the recent files menu, %s is the page name
 
 		subject = Subject.new_for_values(mimetype='text/x-zim-wiki',
 		                                 uri=uri,
