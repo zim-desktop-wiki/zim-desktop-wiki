@@ -12,6 +12,7 @@ import tests
 import time
 
 from zim.async import *
+from zim.signals import DelayedCallback
 from zim.fs import File
 
 

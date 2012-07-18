@@ -57,14 +57,8 @@ This is a core plugin shipping with zim.
 	def finalize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
 			self.pageview = self.ui.mainwindow.pageview
-			self._signal_id = \
-				self.pageview.view.connect('end-of-word', self.on_end_of_word)
+			self.connectto(self.pageview.view, 'end-of-word')
 			self.load_file()
-
-	def disconnect(self):
-		if self.ui.ui_type == 'gtk' and hasattr(self, '_signal_id'):
-			self.pageview.view.disconnect(self._signal_id)
-		PluginClass.disconnect(self)
 
 	def load_file(self):
 		self.symbols = {}

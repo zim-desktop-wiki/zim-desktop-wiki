@@ -192,8 +192,8 @@ This is a core plugin shipping with zim.
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
-			TemplateManager.connect('process-page', self.on_process_page_template)
-			## FIXME - no real disconnect for this connect ...
+			self.connectto(TemplateManager, 'process-page', self.on_process_page_template)
+			self.connectto(self.ui, 'open-page')
 
 	def finalize_notebook(self, notebook):
 		self.do_preferences_changed()
@@ -209,6 +209,11 @@ This is a core plugin shipping with zim.
 				pass
 		self.disconnect_embedded_widget()
 		PluginClass.disconnect(self)
+
+	def on_open_page(self, ui, page, path):
+		if self.sidepane_widget:
+			self.sidepane_widget.set_page(path)
+		# else dialog takes care of itself
 
 	def connect_embedded_widget(self):
 		from zim.gui.widgets import LEFT_PANE, TOP
@@ -418,7 +423,6 @@ class CalendarPluginWidget(gtk.VBox):
 		self.on_month_changed(self.calendar)
 		self.pack_start(self.calendar, False)
 
-		self.plugin.ui.connect('open-page', self.on_open_page)
 		self._select_date_cb = None
 
 	def _refresh_label(self, *a):
@@ -448,9 +452,9 @@ class CalendarPluginWidget(gtk.VBox):
 				date = self.plugin.date_from_path(path)
 				calendar.mark_day(date.day)
 
-	def on_open_page(self, ui, page, path):
+	def set_page(self, page):
 		try:
-			date = self.plugin.date_from_path(path)
+			date = self.plugin.date_from_path(page)
 			self.calendar.select_month(date.month-1, date.year)
 		except AssertionError:
 			pass
@@ -476,6 +480,11 @@ class CalendarDialog(Dialog):
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 0)
 		self.dateshown = datetime.date.today()
+
+		self.connectto(self.plugin.ui, 'open-page')
+
+	def on_open_page(self, ui, page, path):
+		self.calendar_widget.set_page(page)
 
 	def on_select_date(self, date):
 		if ui_environment['platform'] == 'maemo':

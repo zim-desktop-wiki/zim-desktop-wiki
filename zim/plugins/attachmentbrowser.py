@@ -138,10 +138,13 @@ This plugin is still under development.
 	def finalize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
 			self.widget = AttachmentBrowserPluginWidget(self.ui, self.preferences)
-			self.widget.on_open_page(self.ui, self.ui.page, self.ui.page)
+			self.widget.set_page(self.ui.page)
+			self.connectto(self.ui, 'open-page')
+
 			self.uistate.setdefault('active', True)
 			self.toggle_fileview(enable=self.uistate['active'])
-			self.ui.connect('close-page', self.on_close_page)
+			self.connectto(self.ui, 'close-page')
+
 
 	def toggle_fileview(self, enable=None):
 		self.toggle_action('toggle_fileview', active=enable)
@@ -173,6 +176,9 @@ This plugin is still under development.
 				self.ui.mainwindow.remove(self.widget)
 			self.uistate['active'] = False
 
+	def on_open_page(self, ui, page, path):
+		self.widget.set_page(page)
+
 	def on_close_page(self, *a):
 		if self.widget.get_property('visible'):
 			self.uistate['bottompane_pos'] = \
@@ -181,7 +187,6 @@ This plugin is still under development.
 
 	def disconnect(self):
 		self.do_toggle_fileview(enable=False)
-
 		PluginClass.disconnect(self)
 
 	def do_preferences_changed(self):
@@ -240,8 +245,6 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		refresh_button.connect('clicked', lambda o: self.refresh())
 		self.buttonbox.pack_start(refresh_button, False)
 
-		self.ui.connect('open-page', self.on_open_page)
-
 		self.fileview.connect('button-press-event', self.on_button_press_event)
 		self.fileview.connect('item-activated', self.on_item_activated)
 
@@ -265,8 +268,9 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 
 		self.connect('expose-event', _init_base_color)
 
-	def on_open_page(self, ui, page, path):
-		self.set_folder(ui.notebook.get_attachments_dir(page))
+	def set_page(self, page):
+		dir = self.ui.notebook.get_attachments_dir(page)
+		self.set_folder(dir)
 
 	def set_folder(self, dir):
 		#~ print "set_folder", dir

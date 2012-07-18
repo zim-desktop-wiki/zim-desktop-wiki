@@ -15,6 +15,7 @@ from zim.plugins import PluginClass
 from zim.notebook import Path
 from zim.gui.widgets import LEFT_PANE, TOP, BrowserTreeView, populate_popup_add_separator
 from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
+from zim.signals import ConnectorMixin
 
 
 # FIXME, these methods should be supported by pageview - need anchors - now it is a HACK
@@ -114,6 +115,7 @@ This is a core plugin shipping with zim.
 	def disconnect_sidepane(self):
 		if self.sidepane_widget:
 			self.ui.mainwindow.remove(self.sidepane_widget)
+			self.sidepane_widget.disconnect_all()
 			self.sidepane_widget.destroy()
 			self.sidepane_widget = None
 
@@ -125,6 +127,7 @@ This is a core plugin shipping with zim.
 
 	def disconnect_floating(self):
 		if self.floating_widget:
+			self.floating_widget.widget.disconnect_all()
 			self.floating_widget.destroy()
 			self.floating_widget = None
 
@@ -140,10 +143,12 @@ class FloatingToC(gtk.Frame):
 		self.set_shadow_type(gtk.SHADOW_OUT)
 		self.set_size_request(250, -1) # Fixed width
 
+		self.widget = ToCWidget(ui)
+
 		exp = gtk.Expander(_('ToC'))
 		# TODO add mnemonic
 		self.add(exp)
-		exp.add(ToCWidget(ui))
+		exp.add(self.widget)
 
 	def attach(self, textview):
 		# Need to wrap in event box to make widget visible - not sure why
@@ -161,7 +166,7 @@ class FloatingToC(gtk.Frame):
 		textview.add_child_in_window(event_box, gtk.TEXT_WINDOW_WIDGET, 300, 10)
 
 
-class ToCWidget(gtk.ScrolledWindow):
+class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 
 	def __init__(self, ui):
 		gtk.ScrolledWindow.__init__(self)
@@ -178,8 +183,8 @@ class ToCWidget(gtk.ScrolledWindow):
 		self.treeview.connect('row-activated', self.on_heading_activated)
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 
-		ui.connect('open-page', self.on_open_page)
-		ui.notebook.connect('stored-page', self.on_stored_page)
+		self.connectto(ui, 'open-page')
+		self.connectto(ui.notebook, 'stored-page')
 		if ui.page:
 			self.on_open_page(ui, ui.page, Path(ui.page.name))
 

@@ -23,6 +23,7 @@ from zim.gui.clipboard import \
 	Clipboard, \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist, unpack_urilist
+from zim.signals import ConnectorMixin
 
 
 logger = logging.getLogger('zim.gui.pageindex')
@@ -67,7 +68,7 @@ class PageTreeIter(object):
 		return '<PageTreeIter, %s, %s>' % (self.treepath, self.indexpath.name)
 
 
-class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
+class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	'''Custom gtk TreeModel that is integrated closely with the L{Index}
 	object of the notebook. This model is mostly an API layer translating
 	between the C{gtk.TreeView} and the zim L{Index} interfaces. It
@@ -174,12 +175,12 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 			# If treepath is None the row does not exist anymore
 			self._flush()
 
-		self._signals = (
-			self.index.connect('page-inserted', on_changed, 'row-inserted'),
-			self.index.connect('page-updated', on_changed, 'row-changed'),
-			self.index.connect('page-haschildren-toggled', on_changed, 'row-has-child-toggled'),
-			self.index.connect('page-to-be-deleted', on_deleted),
-		)
+		self.connectto_all(self.index, (
+			('page-inserted', on_changed, 'row-inserted'),
+			('page-updated', on_changed, 'row-changed'),
+			('page-haschildren-toggled', on_changed, 'row-has-child-toggled'),
+			('page-to-be-deleted', on_deleted),
+		))
 		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
 		# treepath of this indexpath - once we get page-deleted it is to late to get this
 
@@ -189,9 +190,7 @@ class PageTreeStore(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 		many signals to be processed by both the model and the view.
 		After this call the model can not be reconnected.
 		'''
-		for id in self._signals:
-			self.index.disconnect(id)
-		self._signals = ()
+		self.disconnect_from(self.index)
 
 	def select_page(self, path):
 		'''Set the current open page to highlight it in the index.

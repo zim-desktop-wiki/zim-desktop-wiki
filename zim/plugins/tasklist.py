@@ -21,7 +21,7 @@ from zim.gui.widgets import ui_environment, \
 	BrowserTreeView, SingleClickTreeView, \
 	encode_markup_text, decode_markup_text
 from zim.gui.clipboard import Clipboard
-from zim.async import DelayedCallback
+from zim.signals import DelayedCallback, SIGNAL_AFTER
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 from zim.config import check_class_allow_empty
 
@@ -142,9 +142,11 @@ This is a core plugin shipping with zim.
 	def finalize_notebook(self, notebook):
 		# This is done regardsless of the ui type of the application
 		self.index = notebook.index
-		self.index.connect_after('initialize-db', self.initialize_db)
-		self.index.connect('page-indexed', self.index_page)
-		self.index.connect('page-deleted', self.remove_page)
+		self.connectto_all(self.index, (
+			('initialize-db', self.initialize_db, None, SIGNAL_AFTER),
+			('page-indexed', self.index_page),
+			('page-deleted', self.remove_page),
+		))
 		# We don't care about pages that are moved
 
 		db_version = self.index.properties['plugin_tasklist_format']
@@ -575,16 +577,35 @@ class TaskListDialog(Dialog):
 		self.statistics_label = gtk.Label()
 		hbox.pack_end(self.statistics_label, False)
 
-		def set_statistics(o):
+
+		def set_statistics():
 			total, stats = self.task_list.get_statistics()
 			text = ngettext('%i open item', '%i open items', total) % total
 				# T: Label for statistics in Task List, %i is the number of tasks
 			text += ' (' + '/'.join(map(str, stats)) + ')'
 			self.statistics_label.set_text(text)
 
-		set_statistics(self.task_list)
-		self.plugin.connect('tasklist-changed', set_statistics)
-			# Make sure this is connected after the task list connected to same signal
+		set_statistics()
+
+		def on_tasklist_changed(o):
+			self.task_list.refresh()
+			self.tag_list.refresh(self.task_list)
+			set_statistics()
+
+		callback = DelayedCallback(10, on_tasklist_changed)
+			# Don't really care about the delay, but want to
+			# make it less blocking - should be async preferably
+			# now it is at least on idle
+		self.connectto(plugin, 'tasklist-changed', callback)
+
+		# Async solution fall because sqlite not multi-threading
+		# (see also todo item for async in DelayedSignal class)
+
+		#~ def async_call(o):
+			#~ from zim.async import AsyncOperation
+			#~ op = AsyncOperation(on_tasklist_changed, args=(o,))
+			#~ op.start()
+		#~ self.connectto(plugin, 'tasklist-changed', async_call)
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
@@ -627,8 +648,6 @@ class TagListTreeView(SingleClickTreeView):
 		self.get_selection().connect('changed', self.on_selection_changed)
 
 		self.refresh(task_list)
-		task_list.plugin.connect('tasklist-changed', lambda o: self.refresh(task_list))
-			# Make sure this is connected after the task list connected to same signal
 
 	def get_tags(self):
 		'''Returns current selected tags, or None for all tags'''
@@ -816,7 +835,6 @@ class TaskListTreeView(BrowserTreeView):
 
 		# Finalize
 		self.refresh()
-		self.plugin.connect_object('tasklist-changed', self.__class__.refresh, self)
 
 		# HACK because we can not register ourselves :S
 		self.connect('row_activated', self.__class__.do_row_activated)
@@ -851,16 +869,16 @@ class TaskListTreeView(BrowserTreeView):
 		rows = list(self.plugin.list_tasks(task))
 
 		# First cache + sort tasks to ensure stability of the list
-		for row in rows:
+		for i, row in enumerate(rows):
 			if not row['source'] in path_cache:
 				path = self.plugin.get_path(row)
 				if path is None:
 					# Be robust for glitches - filter these out
-					row['source'] = None
+					rows[i] = None
 				else:
 					path_cache[row['source']] = path
 
-		rows = [r for r in rows if r['source'] is not None] # filter out missing paths
+		rows = [r for r in rows if r is not None] # filter out missing paths
 
 		rows.sort(key=lambda r: path_cache[r['source']].name)
 
@@ -1053,11 +1071,11 @@ class TaskListTreeView(BrowserTreeView):
 
 	def do_initialize_popup(self, menu):
 		item = gtk.ImageMenuItem('gtk-copy')
-		item.connect_object('activate', self.__class__.copy_to_clipboard, self)
+		item.connect('activate', self.copy_to_clipboard)
 		menu.append(item)
 		self.populate_popup_expand_collapse(menu)
 
-	def copy_to_clipboard(self):
+	def copy_to_clipboard(self, *a):
 		'''Exports currently visible elements from the tasks list'''
 		logger.debug('Exporting to clipboard current view of task list.')
 		text = self.get_visible_data_as_csv()

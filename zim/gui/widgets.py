@@ -31,12 +31,12 @@ import logging
 import sys
 import os
 import re
+import weakref
 
 try:
 	import gtksourceview2
-	GTKSOURCEVIEW_LOADED = True
 except ImportError:
-	GTKSOURCEVIEW_LOADED = False
+	gtksourceview2 = None
 
 import zim
 
@@ -47,7 +47,7 @@ from zim.fs import File, Dir
 from zim.config import value_is_coord
 from zim.notebook import Notebook, Path, PageNameError
 from zim.parsing import link_type
-
+from zim.signals import ConnectorMixin
 
 logger = logging.getLogger('zim.gui')
 
@@ -168,6 +168,7 @@ def gtk_window_set_default_icon():
 	gtk.window_set_default_icon_list(*iconlist)
 
 
+
 def ScrolledWindow(widget):
 	'''Wrap C{widget} in a C{gtk.ScrolledWindow} and return the resulting
 	widget
@@ -217,7 +218,7 @@ def sourceview(text=None, syntax=None):
 	language. If None, no syntax highlighting will be enabled.
 	@returns: a 2-tuple of a window and a view.
 	'''
-	if GTKSOURCEVIEW_LOADED:
+	if gtksourceview2:
 		gsvbuf = gtksourceview2.Buffer()
 		if syntax:
 			gsvbuf.set_highlight_syntax(True)
@@ -2196,7 +2197,7 @@ class Window(gtkwindowclass):
 		gtkwindowclass.show_all(self)
 
 
-class Dialog(gtk.Dialog):
+class Dialog(gtk.Dialog, ConnectorMixin):
 	'''Sub-class of C{gtk.Dialog} with a number of convenience methods
 	to create dialogs. Also takes care of registering dialogs with the
 	main interface object, so plugins can hook into them. Intended as
@@ -2207,6 +2208,11 @@ class Dialog(gtk.Dialog):
 	A minimal sub-class should implement a constructor which calls
 	L{Dialog.__init__()} and L{Dialog.add_form()} to defined the dialog,
 	and implements C{do_response_ok()} to handle the result.
+
+	The C{Dialog} class takes care of calling
+	L{ConnecterMixin.disconnect_all()} when it is destroyed. So
+	sub-classes can use the L{ConnectorMixin} methods and all callbacks
+	will be cleaned up after the dialog.
 
 	@ivar ui: parent C{gtk.Window} or C{GtkInterface}
 	@ivar vbox: C{gtk.VBox} for main widgets of the dialog
@@ -2238,7 +2244,6 @@ class Dialog(gtk.Dialog):
 		@note: when a dialog already existed the arguments provided to
 		this constructor are not used
 		'''
-		import weakref
 		attr = '_unique_dialog_%s' % klass.__name__
 		dialog = None
 
@@ -2247,6 +2252,8 @@ class Dialog(gtk.Dialog):
 			dialog = ref()
 
 		if dialog is None or dialog.destroyed:
+			if dialog:
+				dialog.destroy() # just to be sure - can be called several times without problem
 			dialog = klass(*args, **opts)
 
 		setattr(handler, attr, weakref.ref(dialog))
@@ -2333,6 +2340,10 @@ class Dialog(gtk.Dialog):
 
 		if help_text: self.add_help_text(help_text)
 		if help: self.set_help(help)
+
+	def destroy(self):
+		self.disconnect_all()
+		gtk.Dialog.destroy(self)
 
 	@property
 	def destroyed(self): return not self.has_user_ref_count
@@ -2439,9 +2450,10 @@ class Dialog(gtk.Dialog):
 
 	def do_response(self, id):
 		# Handler for the response signal, dispatches to do_response_ok()
-		# if response was positive and destroys the dialog if that function
-		# returns True. If response was negative just closes the dialog without
-		# further action.
+		# or do_response_cancel() and destroys the dialog if that function
+		# returns True.
+		# Ensure the dialog always closes on delete event, regardless
+		# of any errors or bugs that may occur.
 		if id == gtk.RESPONSE_OK and not self._no_ok_action:
 			logger.debug('Dialog response OK')
 			try:
@@ -2459,12 +2471,15 @@ class Dialog(gtk.Dialog):
 		else:
 			destroy = True
 
-		if ui_environment['platform'] != 'maemo':
-			x, y = self.get_position()
-			self.uistate['_windowpos'] = (x, y)
-			w, h = self.get_size()
-			self.uistate['windowsize'] = (w, h)
-			self.save_uistate()
+		try:
+			if ui_environment['platform'] != 'maemo':
+				x, y = self.get_position()
+				self.uistate['_windowpos'] = (x, y)
+				w, h = self.get_size()
+				self.uistate['windowsize'] = (w, h)
+				self.save_uistate()
+		except:
+			logger.exception('Exception in do_response()')
 
 		if destroy:
 			self.destroy()
@@ -2484,6 +2499,10 @@ class Dialog(gtk.Dialog):
 
 	def do_response_cancel(self):
 		'''Handler called when the user clicks the "Cancel" button.
+
+		@note: this method is B{not} called when the dialog is closed
+		using e.g. the "[x]" button in the window decoration. It is only
+		used when the user explicitly clicks "Cancel".
 
 		@returns: C{True} if the dialog can be destroyed close. Returning
 		C{False} will keep the dialog open.

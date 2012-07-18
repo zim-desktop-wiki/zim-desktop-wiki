@@ -17,6 +17,7 @@ from zim.notebook import Path
 from zim.index import IndexPath, IndexTag
 from zim.gui.widgets import LEFT_PANE, populate_popup_add_separator
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
+from zim.signals import ConnectorMixin
 
 
 logger = logging.getLogger('zim.plugins.tags')
@@ -65,7 +66,7 @@ class DuplicatePageTreeStore(PageTreeStore):
 			return None
 
 	def get_treepaths(self, path):
-		'''Return all treepaths matching notebook path 'path' 
+		'''Return all treepaths matching notebook path 'path'
 		Default implementation assumes we are a non-duplicate treeview
 		after all and uses L{PageTreeStore.get_treepath()}.
 		@implementation: must be overloaded by subclasses that are real
@@ -169,19 +170,19 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 			self.row_deleted(treepath)
 			self._flush()
 
-		self._signals = (
-			self.index.connect('page-inserted', on_page_changed, 'row-inserted'),
-			self.index.connect('page-updated', on_page_changed, 'row-changed'),
-			self.index.connect('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
-			self.index.connect('page-to-be-deleted', on_page_deleted),
+		self.connectto_all(self.index, (
+			('page-inserted', on_page_changed, 'row-inserted'),
+			('page-updated', on_page_changed, 'row-changed'),
+			('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
+			('page-to-be-deleted', on_page_deleted),
 			# TODO: Treat tag-inserted and new tag differently
-			self.index.connect('tag-created', on_tag_created),
-			self.index.connect('tag-to-be-inserted', on_tag_to_be_inserted),
-			self.index.connect('tag-inserted', on_tag_inserted),
-			self.index.connect('tag-to-be-removed', on_tag_to_be_removed),
-			self.index.connect('tag-removed', on_tag_removed),
-			self.index.connect('tag-to-be-deleted', on_tag_to_be_deleted),
-		)
+			('tag-created', on_tag_created),
+			('tag-to-be-inserted', on_tag_to_be_inserted),
+			('tag-inserted', on_tag_inserted),
+			('tag-to-be-removed', on_tag_to_be_removed),
+			('tag-removed', on_tag_removed),
+			('tag-to-be-deleted', on_tag_to_be_deleted),
+		))
 		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
 		# treepath of this indexpath - once we get page-deleted it is to late to get this
 
@@ -423,12 +424,12 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 				self.emit('row-deleted', treepath)
 			self._flush()
 
-		self._signals = (
-			self.index.connect('page-inserted', on_page_changed, 'row-inserted'),
-			self.index.connect('page-updated', on_page_changed, 'row-changed'),
-			self.index.connect('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
-			self.index.connect('page-to-be-deleted', on_page_deleted),
-		)
+		self.connectto_all(self.index, (
+			('page-inserted', on_page_changed, 'row-inserted'),
+			('page-updated', on_page_changed, 'row-changed'),
+			('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
+			('page-to-be-deleted', on_page_deleted),
+		))
 
 	def _get_iter(self, treepath):
 		'''
@@ -535,7 +536,7 @@ class TagsPageTreeView(PageTreeView):
 			childmodel = oldmodel.get_model()
 			childmodel.disconnect_index()
 
-		# Filter is also provided here, just to make it more efficient to 
+		# Filter is also provided here, just to make it more efficient to
 		# set model and filter in one go without need for refilter
 		self._set_tag_filter(filter)
 
@@ -602,7 +603,7 @@ class TagsPageTreeView(PageTreeView):
 		model = self.get_model()
 		if model:
 			model.refilter()
-	
+
 	def _set_tag_filter(self, filter):
 		if not filter:
 			self._tag_filter = None
@@ -645,7 +646,7 @@ class TagCloudItem(gtk.ToggleButton):
 		self.connect_after('toggled', update_label)
 
 
-class TagCloudWidget(gtk.TextView):
+class TagCloudWidget(ConnectorMixin, gtk.TextView):
 	'''Text-view based list of tags, where each tag is represented by a
 	button inserted as a child in the textview.
 
@@ -663,7 +664,6 @@ class TagCloudWidget(gtk.TextView):
 		gtk.TextView.__init__(self, None) # Create TextBuffer implicitly
 		self.set_name('zim-tags-tagcloud')
 		self.index = None
-		self._signals = ()
 
 		self.set_editable(False)
 		self.set_cursor_visible(False)
@@ -678,10 +678,10 @@ class TagCloudWidget(gtk.TextView):
 		'''Connect to an Index object'''
 		self.disconnect_index() # just to be sure
 		self.index = index
-		self._signals = (
-			self.index.connect('tag-created', self._update),
-			self.index.connect('tag-deleted', self._update),
-		)
+		self.connectto_all(self.index, (
+			('tag-created', self._update),
+			('tag-deleted', self._update),
+		))
 		self._update()
 
 	def set_sorting(self, sorting):
@@ -691,9 +691,7 @@ class TagCloudWidget(gtk.TextView):
 		'''Stop the model from listening to the index. Used to unhook
 		the model before reloading the index.
 		'''
-		for id in self._signals:
-			self.index.disconnect(id)
-		self._signals = ()
+		self.disconnect_from(self.index)
 		self._clear()
 		self.index = None
 
@@ -773,7 +771,7 @@ class TagCloudWidget(gtk.TextView):
 gobject.type_register(TagCloudWidget)
 
 
-class TagsPluginWidget(gtk.VPaned):
+class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 	'''Widget combining a tag cloud and a tag based page treeview'''
 
 	def __init__(self, plugin):
@@ -803,9 +801,11 @@ class TagsPluginWidget(gtk.VPaned):
 		self.tagcloud.connect('selection-changed', self.on_cloud_selection_changed)
 		self.tagcloud.connect('sorting-changed', self.on_cloud_sortin_changed)
 
-		self.plugin.ui.connect('open-page', self.on_open_page)
-		self.plugin.ui.connect('start-index-update', lambda o: self.disconnect_model())
-		self.plugin.ui.connect('end-index-update', lambda o: self.reload_model())
+		self.connectto_all(self.plugin.ui, (
+			'open-page',
+			('start-index-update', lambda o: self.disconnect_model()),
+			('end-index-update', lambda o: self.reload_model()),
+		))
 
 	def finalize_notebook(self, notebook):
 		self.tagcloud.set_sorting(self.plugin.uistate['tagcloud_sorting'])
@@ -870,7 +870,7 @@ class TagsPluginWidget(gtk.VPaned):
 
 		if self.tagcloud.index is None:
 			self.tagcloud.set_index(self.plugin.ui.notebook.index)
-	
+
 		type = self.plugin.uistate['treeview']
 		filter = self.tagcloud.get_tag_filter()
 		self._reload_model(type, filter)
@@ -888,7 +888,7 @@ class TagsPluginWidget(gtk.VPaned):
 			model = TagsPageTreeStore(index)
 		else:
 			assert False
-		
+
 		is_filtered = (filter is not None)
 		self._treeview_mode = (type, is_filtered)
 		self.treeview.set_model(model, filter)
@@ -933,4 +933,5 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 	def disconnect_embedded_widget(self):
 		if not self.sidepane_widget is None:
 			self.ui.mainwindow.remove(self.sidepane_widget)
+			self.sidepane_widget.disconnect_all()
 			self.sidepane_widget = None

@@ -77,7 +77,7 @@ class AsyncOperation(threading.Thread):
 		@keyword kwargs: optional keyword parameters for the function
 		@keyword lock: an L{AsyncLock}
 
-		If a lock object is provided start() will block until the lock
+		If a lock object is provided L{start()} will block until the lock
 		is available and we will release the lock once the operation is
 		done.
 
@@ -178,53 +178,3 @@ class AsyncLock(object):
 		self._lock.release()
 
 
-class DelayedCallback(object):
-	'''Wrapper for callbacks that need to be delayed after a signal
-
-	This class allows you to add a callback to a signal, but only have
-	it called after a certain timeout. If the signal is emitted
-	again during this time the callback will be canceled and the
-	timeout starts again. (So the callback is not called for each repeat
-	of the signal.) This can be used e.g. in case want to update some
-	other widget after the user changes a text entry widget, but this
-	can be done once the user pauses, while calling the callback for
-	every key stroke would make the application non-responsive.
-
-	Objects of this class wrap the actual callback function and can be
-	called as a normal function.
-
-	@todo: add support for async callbacks, in this case block
-	the callback until the async process is finished
-	'''
-
-	__slots__ = ('timeout', 'cb_func', 'timer_id')
-
-	def __init__(self, timeout, cb_func):
-		'''Constructor
-
-		@param timeout: timeout in milliseconds (e.g. 500)
-		@param cb_func: the callback to call
-		'''
-		self.cb_func = cb_func
-		self.timeout = timeout
-		self.timer_id = None
-
-	def __call__(self, *arg, **kwarg):
-		if self.timer_id:
-			gobject.source_remove(self.timer_id)
-			self.timer_id = None
-
-		def callback():
-			self.timer_id = None
-			self.cb_func(*arg, **kwarg)
-			return False # destroy timeout
-
-		self.timer_id = gobject.timeout_add(self.timeout, callback)
-
-	def __del__(self):
-		if self.timer_id:
-			gobject.source_remove(self.timer_id)
-
-	def cancel(self):
-		'''Cancel the scheduled callback'''
-		self.__del__()

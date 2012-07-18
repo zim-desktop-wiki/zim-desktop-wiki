@@ -22,7 +22,7 @@ import zim
 from zim import NotebookInterface, NotebookLookupError
 from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
-from zim.async import DelayedCallback
+from zim.signals import DelayedCallback
 from zim.notebook import Path, Page
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
