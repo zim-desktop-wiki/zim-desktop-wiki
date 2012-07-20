@@ -6,7 +6,7 @@ import gtk
 import logging
 
 from zim.plugins import PluginClass
-from zim.gui.widgets import Dialog, Button, InputEntry
+from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow
 from zim.config import config_file
 
 
@@ -131,11 +131,7 @@ class InsertSymbolDialog(Dialog):
 			self.iconview.connect('query-tooltip', self.on_query_tooltip)
 		self.iconview.connect('item-activated', self.on_activated)
 
-		window = gtk.ScrolledWindow()
-		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		window.set_shadow_type(gtk.SHADOW_IN)
-		window.add(self.iconview)
-		self.vbox.add(window)
+		self.vbox.add(ScrolledWindow(self.fileview))
 
 		button = gtk.Button(stock=gtk.STOCK_EDIT)
 		button.connect('clicked', self.on_edit)

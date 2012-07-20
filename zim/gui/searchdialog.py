@@ -7,7 +7,7 @@ import gobject
 import logging
 
 from zim.notebook import Path
-from zim.gui.widgets import Dialog, BrowserTreeView, InputEntry, ErrorDialog
+from zim.gui.widgets import Dialog, BrowserTreeView, InputEntry, ErrorDialog, ScrolledWindow
 from zim.search import *
 
 
@@ -61,13 +61,8 @@ class SearchDialog(Dialog):
 		# TODO checkbox _('Match c_ase')
 		# TODO checkbox _('Whole _word')
 
-		scrollwindow = gtk.ScrolledWindow()
-		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
-		self.vbox.add(scrollwindow)
-
 		self.results_treeview = SearchResultsTreeView(self.ui)
-		scrollwindow.add(self.results_treeview)
+		self.vbox.add(ScrolledWindow(self.results_treeview))
 
 		self.search_button.connect_object('clicked', self.__class__._search, self)
 		self.cancel_button.connect_object('clicked', self.__class__._cancel, self)
@@ -94,7 +89,7 @@ class SearchDialog(Dialog):
 			self.results_treeview.search(string)
 		except Exception, error:
 			ErrorDialog(self, error).run()
-		
+
 		if not self.results_treeview.cancelled:
 			self._set_state(self.READY)
 		else:

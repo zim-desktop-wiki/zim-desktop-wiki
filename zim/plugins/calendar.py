@@ -10,7 +10,7 @@ import datetime
 import locale
 
 from zim.plugins import PluginClass
-from zim.gui.widgets import ui_environment, Dialog, Button
+from zim.gui.widgets import ui_environment, Dialog, Button, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.templates import TemplateManager, TemplateFunction
 
@@ -202,10 +202,12 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
+		('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS), # T: preferences option
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
 		#~ ('week_start', 'choice', _('Week starts on'), FIRST_DAY_OF_WEEK, (MONDAY, SUNDAY)), # T: preferences option for first day of the week, options are Monday or Sunday
 		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
 	)
+	# TODO disable pane setting if not embedded
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
@@ -241,11 +243,13 @@ This is a core plugin shipping with zim.
 		# else dialog takes care of itself
 
 	def connect_embedded_widget(self):
-		from zim.gui.widgets import LEFT_PANE, TOP
 		if not self.sidepane_widget:
 			self.sidepane_widget = CalendarPluginWidget(self)
-			self.sidepane_widget.show_all()
-			self.ui.mainwindow.add_widget(self.sidepane_widget, LEFT_PANE, TOP)
+		else:
+			self.ui.mainwindow.remove(self.sidepane_widget)
+
+		self.ui.mainwindow.add_widget(self.sidepane_widget, self.preferences['pane'])
+		self.sidepane_widget.show_all()
 
 	def disconnect_embedded_widget(self):
 		if self.sidepane_widget:

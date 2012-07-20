@@ -18,7 +18,7 @@ from zim.notebook import Path
 from zim.gui.widgets import ui_environment, \
 	Dialog, MessageDialog, \
 	InputEntry, Button, IconButton, MenuButton, \
-	BrowserTreeView, SingleClickTreeView, \
+	BrowserTreeView, SingleClickTreeView, ScrolledWindow, HPaned, \
 	encode_markup_text, decode_markup_text
 from zim.gui.clipboard import Clipboard
 from zim.signals import DelayedCallback, SIGNAL_AFTER
@@ -523,7 +523,7 @@ class TaskListDialog(Dialog):
 			# we'll end with a too small dialog and no way to resize it
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
-		self.hpane = gtk.HPaned()
+		self.hpane = HPaned()
 		self.uistate.setdefault('hpane_pos', 75)
 		self.hpane.set_position(self.uistate['hpane_pos'])
 		self.vbox.add(self.hpane)
@@ -532,19 +532,11 @@ class TaskListDialog(Dialog):
 		self.uistate.setdefault('only_show_act', False)
 		self.task_list = TaskListTreeView(self.ui, plugin, filter_actionable=self.uistate['only_show_act'])
 		self.task_list.set_headers_visible(True) # Fix for maemo
-		scrollwindow = gtk.ScrolledWindow()
-		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
-		scrollwindow.add(self.task_list)
-		self.hpane.add2(scrollwindow)
+		self.hpane.add2(ScrolledWindow(self.task_list))
 
 		# Tag list
 		self.tag_list = TagListTreeView(self.task_list)
-		scrollwindow = gtk.ScrolledWindow()
-		scrollwindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
-		scrollwindow.add(self.tag_list)
-		self.hpane.add1(scrollwindow)
+		self.hpane.add1(ScrolledWindow(self.tag_list))
 
 		# Filter input
 		hbox.pack_start(gtk.Label(_('Filter')+': '), False) # T: Input label

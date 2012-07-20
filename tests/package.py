@@ -115,6 +115,11 @@ class TestCoding(tests.TestCase):
 			self.assertFalse('set_visible(' in code, '%s uses set_visible() - use set_property() instead' % file)
 			self.assertFalse('get_sensitive(' in code, '%s uses get_sensitive() - requires Gtk >= 2.18 - use set_property() instead' % file)
 			#~ self.assertFalse('connect_object(' in code, '%s uses connect_object() - use connect() instead to prevent reference leaking' % file)
+			self.assertFalse('gtk.HPaned(' in code, '%s uses gtk.HPaned - use zim.gui.widgets.HPaned instead' % file)
+			self.assertFalse('gtk.VPaned(' in code, '%s uses gtk.VPaned - use zim.gui.widgets.VPaned instead' % file)
+
+			if not file.endswith('widgets.py'):
+				self.assertFalse('gtk.ScrolledWindow(' in code, '%s uses gtk.ScrolledWindow - use zim.gui.widgets.ScrolledWindow instead' % file)
 
 			if not file.endswith('clipboard.py'):
 				self.assertFalse('gtk.Clipboard(' in code, '%s uses gtk.Clipboard - use zim.gui.clipboard.Clipboard instead' % file)

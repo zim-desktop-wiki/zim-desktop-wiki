@@ -8,7 +8,8 @@ import logging
 
 import zim.plugins
 from zim.gui.applications import ApplicationManager, NewApplicationDialog
-from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view, InputForm, input_table_factory
+from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
+	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
 from zim.gui.pageview import PageView
 
 
@@ -203,7 +204,11 @@ class PreferencesDialog(Dialog):
 		# Restore previous situation if the user changed something
 		# in this dialog session
 		for name in zim.plugins.list_plugins():
-			klass = zim.plugins.get_plugin(name)
+			try:
+				klass = zim.plugins.get_plugin(name)
+			except:
+				continue
+
 			activatable = klass.check_dependencies_ok()
 
 			if klass in self.p_save_loaded and activatable and klass not in now_loaded:
@@ -223,17 +228,14 @@ class PluginsTab(gtk.HBox):
 
 		treeview = PluginsTreeView(self.dialog.ui)
 		treeview.connect('row-activated', self.do_row_activated)
-		swindow = gtk.ScrolledWindow()
-		swindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-		swindow.set_shadow_type(gtk.SHADOW_IN)
+		swindow = ScrolledWindow(treeview, hpolicy=gtk.POLICY_NEVER)
 		self.pack_start(swindow, False)
-		swindow.add(treeview)
 
 		vbox = gtk.VBox()
 		self.add(vbox)
 
 		# Textview with scrollbars to show plugins info. Required by small screen devices
-		swindow, textview = scrolled_text_view()
+		swindow, textview = ScrolledTextView()
 		textview.set_cursor_visible(False)
 		self.textbuffer = textview.get_buffer()
 		self.textbuffer.create_tag('bold', weight=pango.WEIGHT_BOLD)
@@ -358,8 +360,10 @@ class PluginsTreeModel(gtk.ListStore):
 			self.ui.unload_plugin(klass.plugin_key)
 			self[path][0] = False
 		else:
-			self.ui.load_plugin(klass.plugin_key)
-			self[path][0] = True
+			plugin = self.ui.load_plugin(klass.plugin_key)
+			print "GOT", plugin
+			self[path][0] = (plugin is not None)
+				# TODO pop error dialog if failed to load
 
 
 class PluginsTreeView(BrowserTreeView):

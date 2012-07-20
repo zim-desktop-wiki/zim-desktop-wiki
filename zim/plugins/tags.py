@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2010 Fabian Moser
-# Copyright 2011 Jaap Karssenberg
+# Copyright 2011, 2012 Jaap Karssenberg
 
 
 import gobject
@@ -15,7 +15,7 @@ from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
 	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL
 from zim.notebook import Path
 from zim.index import IndexPath, IndexTag
-from zim.gui.widgets import LEFT_PANE, populate_popup_add_separator
+from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
 from zim.signals import ConnectorMixin
 
@@ -782,20 +782,12 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 		self.plugin.uistate.setdefault('treeview', 'tagged', set(['tagged', 'tags']))
 		self.plugin.uistate.setdefault('tagcloud_sorting', 'score', set(['alpha', 'score']))
 
-		def add_scrolled(widget):
-			sw = gtk.ScrolledWindow()
-			sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-			sw.set_shadow_type(gtk.SHADOW_IN)
-			sw.add(widget)
-			self.add(sw)
-			return sw
-
 		self.tagcloud = TagCloudWidget(sorting=self.plugin.uistate['tagcloud_sorting'])
-		add_scrolled(self.tagcloud)
+		self.pack1(ScrolledWindow(self.tagcloud), shrink=False)
 
 		self.treeview = TagsPageTreeView(self.plugin.ui)
 		self._treeview_mode = (None, None)
-		add_scrolled(self.treeview)
+		self.pack2(ScrolledWindow(self.treeview), shrink=False)
 
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 		self.tagcloud.connect('selection-changed', self.on_cloud_selection_changed)
@@ -908,6 +900,12 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 		'help': 'Plugins:Tags',
 	}
 
+	plugin_preferences = (
+		# key, type, label, default
+		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
+			# T: option for plugin preferences
+	)
+
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
 		self.sidepane_widget = None
@@ -924,11 +922,18 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 		self.disconnect_embedded_widget()
 		PluginClass.disconnect(self)
 
+	def do_preferences_changed(self):
+		if self.ui.ui_type == 'gtk':
+			self.connect_embedded_widget() # refresh pane position
+
 	def connect_embedded_widget(self):
 		if self.sidepane_widget is None:
 			self.sidepane_widget = TagsPluginWidget(self)
-			self.ui.mainwindow.add_tab(_('Tags'), self.sidepane_widget, LEFT_PANE)
-			self.sidepane_widget.show_all()
+		else:
+			self.ui.mainwindow.remove(self.sidepane_widget)
+
+		self.ui.mainwindow.add_tab(_('Tags'), self.sidepane_widget, self.preferences['pane'])
+		self.sidepane_widget.show_all()
 
 	def disconnect_embedded_widget(self):
 		if not self.sidepane_widget is None:

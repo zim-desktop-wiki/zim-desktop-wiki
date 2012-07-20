@@ -11,7 +11,7 @@ from zim.plugins import PluginClass
 from zim.config import get_config, data_file
 from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
 from zim.daemon import DaemonProxy
-from zim.gui.widgets import Dialog, scrolled_text_view, IconButton, \
+from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
 	InputForm, gtk_window_set_default_icon
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
@@ -218,7 +218,7 @@ class BoundQuickNoteDialog(Dialog):
 
 		# Add the main textview and hook up the basename field to
 		# sync with first line of the textview
-		window, textview = scrolled_text_view()
+		window, textview = ScrolledTextView()
 		self.textview = textview
 		self.textview.set_editable(True)
 		self.vbox.add(window)

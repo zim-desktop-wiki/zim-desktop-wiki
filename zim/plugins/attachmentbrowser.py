@@ -5,6 +5,7 @@
 # License:  same as zim (gpl)
 #
 # ChangeLog
+# 2012-07-20 Updated code for pane uistate (Jaap)
 # 2012-04-17 Allow drag&drop when folder does not exist yet + fix drag&drop on windows (Jaap)
 # 2012-02-29 Further work on making iconview look nice and support drag&drop (Jaap)
 # 2012-02-27 Complete refactoring of thumbnail manager + test case (Jaap)
@@ -54,7 +55,7 @@ from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.parsing import url_encode, URL_ENCODE_READABLE
 
-from zim.gui.widgets import Button, BOTTOM_PANE, IconButton
+from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, IconButton, ScrolledWindow
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import \
 	URI_TARGETS, URI_TARGET_NAMES, \
@@ -118,7 +119,10 @@ This plugin is still under development.
 	}
 
 	plugin_preferences = (
-	#	# key, type, label, default
+		# key, type, label, default
+		('pane', 'choice', _('Position in the window'), BOTTOM_PANE, PANE_POSITIONS),
+			# T: option for plugin preferences
+
 	#	('icon_size', 'int', _('Icon size [px]'), [ICON_SIZE_MIN,128,ICON_SIZE_MAX]), # T: preferences option
 	#	('preview_size', 'int', _('Tooltip preview size [px]'), (THUMB_SIZE_MIN,480,THUMB_SIZE_MAX)), # T: input label
 	#	('thumb_quality', 'int', _('Preview jpeg Quality [0..100]'), (0,50,100)), # T: input label
@@ -143,8 +147,6 @@ This plugin is still under development.
 
 			self.uistate.setdefault('active', True)
 			self.toggle_fileview(enable=self.uistate['active'])
-			self.connectto(self.ui, 'close-page')
-
 
 	def toggle_fileview(self, enable=None):
 		self.toggle_action('toggle_fileview', active=enable)
@@ -156,34 +158,20 @@ This plugin is still under development.
 			enable = action.get_active()
 
 		if enable:
-			self.uistate.setdefault('bottompane_pos', int(450 - 1.5*THUMB_SIZE_NORMAL))
-				# HACK, using default window size here
 			if not self.widget.get_property('visible'):
-				self.ui.mainwindow.add_tab(_('Attachments'), self.widget, BOTTOM_PANE)
+				self.ui.mainwindow.add_tab(_('Attachments'), self.widget, self.preferences['pane'])
 					# T: label for attachment browser pane
 				self.widget.show_all()
 				self.widget.refresh()
-				self.ui.mainwindow._zim_window_bottom_pane.set_position(
-					self.uistate['bottompane_pos'])
-					# FIXME - method for this in Window class
 			self.uistate['active'] = True
 		else:
 			if self.widget.get_property('visible'):
-				self.uistate['bottompane_pos'] = \
-					self.ui.mainwindow._zim_window_bottom_pane.get_position()
-					# FIXME - method for this in Window class
-				self.widget.hide_all()
+				self.widget.hide()
 				self.ui.mainwindow.remove(self.widget)
 			self.uistate['active'] = False
 
 	def on_open_page(self, ui, page, path):
 		self.widget.set_page(page)
-
-	def on_close_page(self, *a):
-		if self.widget.get_property('visible'):
-			self.uistate['bottompane_pos'] = \
-				self.ui.mainwindow._zim_window_bottom_pane.get_position()
-				# FIXME - method for this in Window class
 
 	def disconnect(self):
 		self.do_toggle_fileview(enable=False)
@@ -228,11 +216,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		self.fileview.connect('drag-data-get', self.on_drag_data_get)
 		self.fileview.connect('drag-data-received', self.on_drag_data_received)
 
-		window = gtk.ScrolledWindow()
-		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		window.set_shadow_type(gtk.SHADOW_IN)
-		window.add(self.fileview)
-		self.add(window)
+		self.add(ScrolledWindow(self.fileview))
 
 		self.buttonbox = gtk.VBox()
 		self.pack_end(self.buttonbox, False)

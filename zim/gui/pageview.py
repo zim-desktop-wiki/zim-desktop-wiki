@@ -38,6 +38,7 @@ from zim.formats import get_format, increase_list_iter, \
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
+	ScrolledWindow, \
 	rotate_pixbuf, populate_popup_add_separator
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
@@ -4397,11 +4398,7 @@ class PageView(gtk.VBox):
 			self.ui.register_preferences('PageView', ui_preferences)
 
 		self.view = TextView(preferences=self.preferences)
-		swindow = gtk.ScrolledWindow()
-		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		swindow.set_shadow_type(gtk.SHADOW_IN)
-		swindow.add(self.view)
-		self.add(swindow)
+		self.add(ScrolledWindow(self.view))
 
 		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
@@ -5658,10 +5655,7 @@ class InsertDateDialog(Dialog):
 
 		model = gtk.ListStore(str, str) # FORMAT_COL, DATE_COL
 		self.view = BrowserTreeView(model)
-		window = gtk.ScrolledWindow()
-		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		window.add(self.view)
-		self.vbox.add(window)
+		self.vbox.add(ScrolledWindow(self.view))
 
 		cell_renderer = gtk.CellRendererText()
 		column = gtk.TreeViewColumn('_date_', cell_renderer, text=1)

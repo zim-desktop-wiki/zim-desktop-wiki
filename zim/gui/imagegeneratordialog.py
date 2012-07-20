@@ -16,7 +16,8 @@ import logging
 
 from zim.fs import File, Dir
 from zim.gui.widgets import ui_environment, \
-	Dialog, ImageView, Button, QuestionDialog, scrolled_text_view, sourceview
+	Dialog, ImageView, Button, QuestionDialog, \
+	ScrolledTextView, ScrolledSourceView, VPaned
 
 logger = logging.getLogger('zim.gui')
 
@@ -100,20 +101,18 @@ class ImageGeneratorDialog(Dialog):
 		self.imagefile = None
 		self.logfile = None
 
-		self.vpane = gtk.VPaned()
+		self.vpane = VPaned()
 		self.vpane.set_position(150)
 		self.vbox.add(self.vpane)
 
 		self.imageview = ImageView(bgcolor='#FFF', checkerboard=False)
-		self.vpane.add1(self.imageview)
+		self.vpane.pack1(self.imageview, resize=True)
 		# TODO scrolled window and option to zoom in / real size
 
-		window, textview = sourceview(syntax=syntax)
+		window, textview = ScrolledSourceView(syntax=syntax)
 		self.textview = textview
 		self.textview.set_editable(True)
-		self.vpane.add2(window)
-		# TODO supply at least an Undo stack for this textview
-		# or optionally subclass from gtksourceview
+		self.vpane.pack2(window, resize=False)
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
@@ -249,5 +248,5 @@ class LogFileDialog(Dialog):
 		Dialog.__init__(self, ui, _('Log file'), buttons=gtk.BUTTONS_CLOSE)
 			# T: dialog title for log view dialog - e.g. for Equation Editor
 		self.set_default_size(600, 300)
-		window, textview = scrolled_text_view(file.read(), monospace=True)
+		window, textview = ScrolledTextView(file.read(), monospace=True)
 		self.vbox.add(window)

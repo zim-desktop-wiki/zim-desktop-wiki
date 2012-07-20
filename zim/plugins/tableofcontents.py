@@ -13,7 +13,7 @@ import datetime
 
 from zim.plugins import PluginClass
 from zim.notebook import Path
-from zim.gui.widgets import LEFT_PANE, TOP, BrowserTreeView, populate_popup_add_separator
+from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
 from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
 from zim.signals import ConnectorMixin
 
@@ -76,9 +76,12 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = (
 		# key, type, label, default
+		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
+			# T: option for plugin preferences
 		('floating', 'bool', _('Show ToC as floating widget instead of in sidepane'), False),
 			# T: option for plugin preferences
 	)
+	# TODO disable pane setting if not embedded
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
@@ -107,10 +110,13 @@ This is a core plugin shipping with zim.
 	def connect_sidepane(self):
 		if not self.sidepane_widget:
 			self.sidepane_widget = ToCWidget(self.ui)
-			self.ui.mainwindow.add_tab(
-				_('ToC'), self.sidepane_widget, LEFT_PANE)
-				# T: widget label
-			self.sidepane_widget.show_all() # FIXME - should not be needed
+		else:
+			self.ui.mainwindow.remove(self.sidepane_widget)
+
+		self.ui.mainwindow.add_tab(
+			_('ToC'), self.sidepane_widget, self.preferences['pane'])
+			# T: widget label
+		self.sidepane_widget.show_all()
 
 	def disconnect_sidepane(self):
 		if self.sidepane_widget:

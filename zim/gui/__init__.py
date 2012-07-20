@@ -38,7 +38,7 @@ from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
 	Window, Dialog, \
 	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog, \
 	PromptExistingFileDialog, \
-	scrolled_text_view
+	ScrolledTextView
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import ApplicationManager, CustomToolManager
 
@@ -543,6 +543,7 @@ class GtkInterface(NotebookInterface):
 		plugin = NotebookInterface.load_plugin(self, name)
 		if plugin and self._finalize_ui:
 			plugin.finalize_ui(self)
+		return plugin
 
 	def spawn(self, *args):
 		if not self.usedaemon:
@@ -2230,27 +2231,28 @@ class MainWindow(Window):
 		self.add_bar(self.menubar, TOP)
 		self.add_bar(self.toolbar, TOP)
 
-		self.sidepane = self._zim_window_left # FIXME - get rid of sidepane attribute
-
-		self.sidepane.connect('key-press-event',
-			lambda o, event: event.keyval == KEYVAL_ESC
-				and self.toggle_sidepane())
+		#~ self.sidepane = self._zim_window_left # FIXME - get rid of sidepane attribute
+		#~
+		#~ self.sidepane.connect('key-press-event',
+			#~ lambda o, event: event.keyval == KEYVAL_ESC
+				#~ and self.toggle_sidepane())
 
 		self.pageindex = PageIndex(ui)
 		self.add_tab(_('Index'), self.pageindex, LEFT_PANE) # T: Label for pageindex tab
 
-		def check_focus_sidepane(window, widget):
+		def check_focus_index(window, widget):
 			focus = widget == self.pageindex
-				# FIXME - what if we have more widgets in side pane ?
+				# FIXME may conflict with toggling to other widgets
+				# by key binding - how to check focus within sidepane ?
 			if not focus:
 				self.on_sidepane_lost_focus()
 
-		self.connect('set-focus', check_focus_sidepane)
+		self.connect('set-focus', check_focus_index)
 
 		self.pathbar = None
-		self.pathbar_box = gtk.HBox() # FIXME other class for this ?
+		self.pathbar_box = gtk.HBox()
 		self.pathbar_box.set_border_width(3)
-		self.add_widget(self.pathbar_box, TOP_PANE, TOP)
+		self.add_widget(self.pathbar_box, (TOP_PANE, TOP))
 
 		self.pageview = PageView(ui)
 		self.pageview.view.connect_after(
@@ -2357,14 +2359,14 @@ class MainWindow(Window):
 			# see bug lp:620315)
 			group.connect_group( # <Alt><Space>
 				space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
-				self.toggle_focus_sidepane)
+				self.toggle_focus_index)
 
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Ctrl-Space
 		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Ctrl><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
-				self.toggle_focus_sidepane)
+				self.toggle_focus_index)
 
 		self.add_accel_group(group)
 		self._switch_focus_accelgroup = group
@@ -2517,28 +2519,16 @@ class MainWindow(Window):
 			show = action.get_active()
 
 		if show:
-			self.sidepane.set_no_show_all(False)
-			self.sidepane.show_all()
-			self._zim_window_left_pane.set_position(self.uistate['sidepane_pos'])
-			if self.uistate['active_tabs']:
-				self.set_active_tabs(self.uistate['active_tabs'][:1])
-					# only set first one - which is LEFT_TAB
-				#~ self.get_pane(LEFT_PANE).grab_focus()
-				## FIXME how to force focus on correct child widget ?
-				self.pageindex.grab_focus()
-			else:
-				self.pageindex.grab_focus()
+			self.set_pane_state(LEFT_PANE, True, grab_focus=True)
 		else:
-			self.save_uistate()
-			self.sidepane.hide_all()
-			self.sidepane.set_no_show_all(True)
+			self.set_pane_state(LEFT_PANE, False)
 			self.pageview.grab_focus()
 
 		self._sidepane_autoclose = False
-		self.uistate['show_sidepane'] = show
+		self.uistate[LEFT_PANE] = self.get_pane_state(LEFT_PANE)
 
-	def toggle_focus_sidepane(self, *a):
-		'''Switch focus between the textview and the sidepane.
+	def toggle_focus_index(self, *a):
+		'''Switch focus between the textview and the page index.
 		Automatically opens the sidepane if it is closed
 		(but sets a property to automatically close it again).
 		This method is used for the (optional) <Ctrl><Space> keybinding.
@@ -2547,17 +2537,19 @@ class MainWindow(Window):
 		if action.get_active():
 			# side pane open
 			if self.pageindex.is_focus():
-				# and has focus
+				# and index has focus
 				self.pageview.grab_focus()
 				if self._sidepane_autoclose:
 					self.toggle_sidepane(show=False)
 			else:
 				# but no focus
 				self.pageindex.grab_focus()
+					# FIXME, does notebook switch tabs for this ?
 		else:
 			self.toggle_sidepane(show=True)
 			self._sidepane_autoclose = True
 			self.pageindex.grab_focus()
+					# FIXME, does notebook switch tabs for this ?
 
 		return True # we are called from an event handler
 
@@ -2727,8 +2719,6 @@ class MainWindow(Window):
 			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
 
-		self.uistate.setdefault('show_sidepane', True)
-		self.uistate.setdefault('sidepane_pos', 200)
 		self.uistate.setdefault('active_tabs', None, tuple)
 		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_menubar_fullscreen', True)
@@ -2746,10 +2736,11 @@ class MainWindow(Window):
 		self.uistate.setdefault('toolbar_size', None, check=basestring)
 
 		self._set_widgets_visable()
-		self.toggle_sidepane(show=self.uistate['show_sidepane'])
 
-		if self.uistate['active_tabs']:
-			self.set_active_tabs(self.uistate['active_tabs'])
+		Window.init_uistate(self) # takes care of sidepane positions etc
+		from zim.gui.widgets import LEFT_PANE
+		visible = self.get_pane_state(LEFT_PANE)[0]
+		self.toggle_sidepane(show=visible)
 
 		self.set_toolbar_style(self.uistate['toolbar_style'])
 		self.set_toolbar_size(self.uistate['toolbar_size'])
@@ -2792,20 +2783,7 @@ class MainWindow(Window):
 			self.uistate['windowpos'] = self.get_position()
 			self.uistate['windowsize'] = self.get_size()
 
-		self.uistate['sidepane_pos'] = self._zim_window_left_pane.get_position()
-
-		if self.uistate['active_tabs'] \
-		and len(self.uistate['active_tabs']) == 4:
-			# Merge with last seen tab (hidden sidepane has no active tab)
-			tabs = []
-			for current, last in zip(
-				self.get_active_tabs(),
-				self.uistate['active_tabs'],
-			):
-				tabs.append(current or last)
-			self.uistate['active_tabs'] = tabs
-		else:
-			self.uistate['active_tabs'] = self.get_active_tabs()
+		Window.save_uistate(self) # takes care of sidepane positions etc.
 
 	def on_notebook_properties_changed(self, notebook):
 		self.set_title(notebook.name + ' - Zim')
@@ -3324,7 +3302,7 @@ class DeletePageDialog(Dialog):
 		label = gtk.Label()
 		label.set_markup('\n'+string+':')
 		self.vbox.add(label)
-		window, textview = scrolled_text_view(text, monospace=True)
+		window, textview = ScrolledTextView(text, monospace=True)
 		window.set_size_request(250, 200)
 		self.vbox.add(window)
 
