@@ -56,6 +56,8 @@ This is a core plugin shipping with zim.
 
 		if not self.sidepane_widget:
 			self.sidepane_widget = BackLinksWidget(self.ui)
+			self.connectto(self.ui, 'open-page')
+
 		else:
 			self.ui.mainwindow.remove(self.sidepane_widget)
 
@@ -63,6 +65,9 @@ This is a core plugin shipping with zim.
 			_('BackLinks'), self.sidepane_widget, self.preferences['pane'])
 			# T: widget label
 		self.sidepane_widget.show_all()
+
+	def on_open_page(self, ui, page, path):
+		self.sidepane_widget.set_page(page)
 
 
 PAGE_COL = 0
@@ -80,19 +85,22 @@ class BackLinksWidget(gtk.ScrolledWindow):
 		self.treeview = LinksTreeView()
 		self.add(self.treeview)
 		self.treeview.connect('row-activated', self.on_link_activated)
-		ui.connect('open-page', self.on_open_page)
-		if ui.page:
-			self.on_open_page(ui, ui.page, Path(ui.page.name))
+		self.treeview.connect('populate-popup', self.on_populate_popup)
 
-	def on_open_page(self, ui, page, path):
+		if self.ui.page:
+			self.set_page(self.ui.page)
+
+	def set_page(self, page):
 		model = self.treeview.get_model()
 		model.clear()
 
-		backlinks = ui.notebook.index.list_links(path, LINK_DIR_BACKWARD)
+		backlinks = self.ui.notebook.index.list_links(page, LINK_DIR_BACKWARD)
 		for link in backlinks:
-			source = link.source
-			model.append(None, (source, source.name))
-			## TODO make names relative
+			href = self.ui.notebook.relative_link(link.href, link.source)
+				# relative link from href *back* to source
+			href = href.lstrip(':')
+			#~ model.append(None, (link.source, href))
+			model.append((link.source, href))
 
 		## TODO make hierarchy by link type ?
 		## use link.type attribute
@@ -100,12 +108,29 @@ class BackLinksWidget(gtk.ScrolledWindow):
 
 	def on_link_activated(self, treeview, path, column):
 		model = treeview.get_model()
-		page = model[path][PAGE_COL]
-		self.ui.open_page(page)
+		path = model[path][PAGE_COL]
+		self.ui.open_page(path)
+
+	def on_populate_popup(self, treeview, menu):
+		populate_popup_add_separator(menu)
+
+		if gtk.gtk_version >= (2, 16, 0):
+			action = self.ui.actiongroup.get_action('open_new_window')
+			label = action.get_label()
+			item = gtk.MenuItem(label)
+			item.connect('activate', self.on_open_new_window, treeview)
+			menu.append(item)
+
+		# Other per page menu items do not really apply here...
+
+	def on_open_new_window(self, o, treeview):
+		model, iter = treeview.get_selection().get_selected()
+		if model and iter:
+			path = model[iter][PAGE_COL]
+			self.ui.open_new_window(path)
 
 
 class LinksTreeView(BrowserTreeView):
-	## TODO common base class with page index for popup menus etc. ?
 
 	def __init__(self):
 		BrowserTreeView.__init__(self, LinksTreeModel())
@@ -116,10 +141,14 @@ class LinksTreeView(BrowserTreeView):
 		column = gtk.TreeViewColumn('_page_', cell_renderer, text=TEXT_COL)
 		self.append_column(column)
 
+		if gtk.gtk_version >= (2, 12, 0):
+			self.set_tooltip_column(TEXT_COL)
 
 
-class LinksTreeModel(gtk.TreeStore):
+#~ class LinksTreeModel(gtk.TreeStore):
+class LinksTreeModel(gtk.ListStore):
 
 	def __init__(self):
-		gtk.TreeStore.__init__(self, object, str) # PAGE_COL, TEXT_COL
+		#~ gtk.TreeStore.__init__(self, object, str) # PAGE_COL, TEXT_COL
+		gtk.ListStore.__init__(self, object, str) # PAGE_COL, TEXT_COL
 
