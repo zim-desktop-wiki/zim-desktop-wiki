@@ -65,8 +65,8 @@ year_path_re = re.compile(r'^(.*:)?\d{4}$')
 # Initialize setting for first day of the week. This is locale
 # dependent, and the gtk widget already has good code to find it out.
 # TODO we might also add this as a user preference
-SUNDAY = locale.nl_langinfo(locale.DAY_1)
-MONDAY = locale.nl_langinfo(locale.DAY_2)
+SUNDAY = 'Sunday'
+MONDAY = 'Monday'
 if gtk.Calendar().get_display_options() \
  & gtk.CALENDAR_WEEK_START_MONDAY:
 	FIRST_DAY_OF_WEEK = MONDAY
@@ -114,6 +114,28 @@ def dates_for_week(year, week):
 	start = jan1 + datetime.timedelta(days=-days, weeks=weeks)
 	end = start + datetime.timedelta(days=6)
 	return start, end
+
+
+def week_calendar(date):
+	'''Get the year, week number and week day for a specific date.
+	Like C{datetime.date.isocalendar()} but takes into account
+	C{FIRST_DAY_OF_WEEK} correctly.
+	@param date: a C{datetime.date} or C{datetime.datetime} object
+	@returns: a year and a week number as integer
+	'''
+	# Both strftime %W and %U are not correct, they use differnt
+	# week number count than the isocalendar. See datetime
+	# module for details.
+	# In short Jan 1st can still be week 53 of the previous year
+	# So we can use isocalendar(), however this does not take
+	# into accout FIRST_DAY_OF_WEEK, see comment in dates_for_week()
+	year, week, weekday = date.isocalendar()
+	if FIRST_DAY_OF_WEEK == SUNDAY and weekday == 7:
+		# iso calendar gives us the week ending this sunday,
+		# we want the next week
+		monday = date + datetime.timedelta(days=1)
+		year, week, weekday = monday.isocalendar()
+	return year, week
 
 
 def daterange_from_path(path):
@@ -168,11 +190,14 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Calendar',
 	}
 
-	global DAY, WEEK, MONTH, YEAR # Hack
+	global DAY, WEEK, MONTH, YEAR, SUNDAY, MONDAY # Hack - to make sure translation is loaded
 	DAY = _('Day') # T: option value
 	WEEK = _('Week') # T: option value
 	MONTH = _('Month') # T: option value
 	YEAR = _('Year') # T: option value
+
+	SUNDAY = _('Sunday') # T: calendar day
+	MONDAY = _('Monday') # T: calendar day
 
 	plugin_preferences = (
 		# key, type, label, default
@@ -270,11 +295,7 @@ This is a core plugin shipping with zim.
 		if self.preferences['granularity'] == DAY:
 			path = date.strftime('%Y:%m:%d')
 		elif self.preferences['granularity'] == WEEK:
-			# Both strftime %W and %U are not correct, they use differnt
-			# week number count than the isocalendar. See datetime
-			# module for details.
-			# In short Jan 1st can still be week 53 of the previous year
-			year, week, weekday = date.isocalendar()
+			year, week = week_calendar(date)
 			path = '%i:Week %02i' % (year, week)
 		elif self.preferences['granularity'] == MONTH:
 			path = date.strftime('%Y:%m')

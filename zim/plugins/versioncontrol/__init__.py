@@ -102,7 +102,7 @@ class VCS(object):
 		@param dir: a L{File} instance representing the notebook root folder
 		@returns: a L{VCSBackend} instance which will manage the versioning or C{None}
 		"""
-		root, name = klass._detect_in_folder(dir)
+		name, root = klass._detect_in_folder(dir)
 
 		if name == 'bzr':
 			vcs = VCS.create(VCS.BZR, root)
@@ -116,6 +116,7 @@ class VCS(object):
 
 		if vcs:
 			logger.info('VCS detected: %s - %s', name, root)
+			return vcs
 		else:
 			logger.info('No VCS detected')
 			return None
