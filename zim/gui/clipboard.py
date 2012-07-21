@@ -336,6 +336,8 @@ class ParseTreeItem(ClipboardItem):
 				text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
 				parser = get_format('wiki').Parser()
 				parsetree = parser.parse(text)
+				if self.parsetree.ispartial:
+					parsetree.getroot().attrib['partial'] = True
 				#--
 			else:
 				parsetree = self.parsetree
