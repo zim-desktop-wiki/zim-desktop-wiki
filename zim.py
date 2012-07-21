@@ -27,8 +27,16 @@ if os.name == "nt" and sys.argv[0].endswith('.exe'):
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
 
 
+# Init locale for windows (before loading gettext library)
+if os.name == "nt" and not os.environ['LANG']:
+	import locale
+	locale.setlocale(locale.LC_ALL, '')
+	lang, enc = locale.getlocale()
+	os.environ['LANG'] = lang + '.' + enc
+	#~ print 'Locale set to: %s' % os.environ['LANG']
+
 # Coverage support - triggered by the test suite
-#~ if True:
+#~ if True:z
 	#~ print 'Start coverage !'
 	#~ import atexit
 	#~ import coverage
