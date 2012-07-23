@@ -88,7 +88,7 @@ KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
 KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 
 #~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
-CHARS_END_OF_WORD = ('\t', ' ', ')', '>')
+CHARS_END_OF_WORD = ('\t', ' ', ')', '>', ';')
 KEYVALS_END_OF_WORD = map(
 	gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD)) + KEYVALS_TAB
 
@@ -575,7 +575,7 @@ class TextBuffer(gtk.TextBuffer):
 		self.emit('clear')
 
 	def do_clear(self):
-		self._editmode_tags = []
+		self._editmode_tags = ()
 		self.delete(*self.get_bounds())
 
 	def get_insert_iter(self):
@@ -3162,8 +3162,15 @@ class TextView(gtk.TextView):
 	@signal: C{link-clicked (link)}: Emitted when the user clicks a link
 	@signal: C{link-enter (link)}: Emitted when the mouse pointer enters a link
 	@signal: C{link-leave (link)}: Emitted when the mouse pointer leaves a link
-	@signal: C{end-of-word (start, end, word, char)}:
+	@signal: C{end-of-word (start, end, word, char, editmode)}:
 	Emitted when the user typed a character like space that ends a word
+
+	  - C{start}: a C{gtk.TextIter} for the start of the word
+	  - C{end}: a C{gtk.TextIter} for the end of the word
+	  - C{word}: the word as string
+	  - C{char}: the character that caused the signal (a space, tab, etc.)
+	  - C{editmode}: a list of constants for the formatting being in effect,
+	    e.g. C{VERBATIM}
 
 	Plugins that want to add auto-formatting logic can connect to this
 	signal. If the handler matches the word it should stop the signal
@@ -3179,7 +3186,7 @@ class TextView(gtk.TextView):
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'end-of-word': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object)),
+		'end-of-word': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object, object)),
 		'end-of-line': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 
 		# Override clipboard interaction
@@ -3484,7 +3491,11 @@ class TextView(gtk.TextView):
 				start = iter.copy()
 				if buffer.iter_backward_word_start(start):
 					word = start.get_text(iter)
-					self.emit('end-of-word', start, iter, word, char)
+					editmode = [t.zim_tag
+						for t in buffer._editmode_tags
+						if hasattr(t, 'zim_tag')
+					]
+					self.emit('end-of-word', start, iter, word, char, editmode)
 
 				if event.keyval in KEYVALS_ENTER:
 					# iter may be invalid by now because of end-of-word
@@ -3784,7 +3795,7 @@ class TextView(gtk.TextView):
 			# only start visual line, not start of real line
 			return home, home.copy()
 
-	def do_end_of_word(self, start, end, word, char):
+	def do_end_of_word(self, start, end, word, char, editmode):
 		# Default handler with built-in auto-formatting options
 		buffer = self.get_buffer()
 		handled = True
