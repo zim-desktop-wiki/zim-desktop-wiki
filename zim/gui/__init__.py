@@ -40,7 +40,7 @@ from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
 	PromptExistingFileDialog, \
 	ScrolledTextView
 from zim.gui.clipboard import Clipboard
-from zim.gui.applications import ApplicationManager, CustomToolManager
+from zim.gui.applications import ApplicationManager, CustomToolManager, AddApplicationDialog
 
 logger = logging.getLogger('zim.gui')
 
@@ -250,29 +250,9 @@ class NoSuchFileError(Error):
 			# T: Error message, %s will be the file path
 
 
-class NoSuchApplicationError(Error):
-	'''Exception for when we can not find the helper application to open
-	a certain file.
-	'''
-
-	# FIXME - define these in a global place - at least also duplicated in preferences dialog
-	labels = {
-		'file_browser': _('File browser'), # T: Application type
-		'web_browser': _('Web browser'),
-		'email_client': _('Email client'),
-		'text_editor': _('Text Editor'),
-	}
-
-	description = _('This means that either no application is installed\nfor this type, or the preference is not set.')
-		# T: Error description for "no such application"
-
-	def __init__(self, app_type):
-		'''Constructor
-		@param app_type: the application type
-		'''
-		app_label = self.labels.get(app_type, app_type)
-		self.msg = _('Could not find application: %s') % app_label
-			# T: Error message for missing applicaiton, %s is replaced by the application type (e.g. "Web Browser")
+class ApplicationLookupError(Error):
+	'''Exception raised when an application was not found'''
+	pass
 
 
 class RLock(object):
@@ -437,23 +417,7 @@ class GtkInterface(NotebookInterface):
 		if not self.preferences['GtkInterface']['gtk_bell']:
 			gtk.rc_parse_string('gtk-error-bell = 0')
 
-		# Set default applications - check if we already have a default
-		# to prevent unnecessary and relatively slow tryexec() checks
-		manager = ApplicationManager()
-		for type in (
-			'file_browser',
-			'web_browser',
-			'email_client',
-			'text_editor'
-		):
-			if not self.preferences['GtkInterface'].get(type):
-				default = manager.get_default_helper(type)
-				if default:
-					self.preferences['GtkInterface'][type] = default.key
-				else:
-					self.preferences['GtkInterface'][type] = None
-					logger.warn('No helper application defined for %s', type)
-
+		# Init UI
 		self.mainwindow = MainWindow(self, fullscreen, geometry)
 
 		self.add_actions(ui_actions, self)
@@ -1775,29 +1739,58 @@ class GtkInterface(NotebookInterface):
 		from zim.gui.cleannotebookdialog import CleanNotebookDialog
 		CleanNotebookDialog(self).run()
 
-	def open_file(self, file):
-		'''Open a L{File} or L{Dir} in the system file browser. The
-		file browser is determined by the 'file_browser' preference.
+	def open_file(self, file, mimetype=None, callback=None):
+		'''Open a L{File} or L{Dir} in the system file browser.
+
 		@param file: a L{File} or L{Dir} object
+		@param mimetype: optionally specify the mimetype to force a
+		specific application to open this file
+		@param callback: callback function to be passed on to
+		L{Application.spawn()} (if the application supports a
+		callback, otherwise it is ignored silently)
+
 		@raises NoSuchFileError: if C{file} does not exist
+		@raises ApplicationLookupError: if a specific mimetype was
+		given, but no default application is known for this mimetype
+		(will not use fallback in this case - fallback would
+		ignore the specified mimetype)
 		'''
+		logger.debug('open_file(%s, %s)', file, mimetype)
 		assert isinstance(file, (File, Dir))
 		if isinstance(file, (File)) and file.isdir():
 			file = Dir(file.path)
 
-		if file.exists():
-			# TODO if isinstance(File) check default application for mime type
-			# this is needed once we can set default app from "open with.." menu
-			self.open_with('file_browser', file)
-		else:
+		if not file.exists():
 			raise NoSuchFileError, file
+
+		if isinstance(file, File): # File
+			manager = ApplicationManager()
+			if mimetype is None:
+				entry = manager.get_default_application(file.get_mimetype())
+			else:
+				entry = manager.get_default_application(mimetype)
+				if entry is None:
+					raise ApplicationLookupError, 'No Application found for: %s' % mimetype
+					# Do not go to fallback, we can not force
+					# mimetype for fallback
+
+			if entry:
+				self._open_with(entry, file, callback)
+			else:
+				self._open_with_filebrowser(file, callback)
+		else: # Dir
+			self._open_with_filebrowser(file, callback)
 
 	def open_url(self, url):
 		'''Open an URL (or URI) in the web browser or other relevant
 		program. The application is determined based on the URL / URI
-		scheme (e.g. "file", "http", "mailto") and the preferences
-		settings for 'file_browser', 'email_client' or 'web_browser'.
+		scheme. Unkown schemes and "file://" URIs are opened with the
+		webbrowser.
+
+		@param url: the URL to open, e.g. "http://zim-wiki.org" or
+		"mailto:someone@somewhere.org"
 		'''
+		logger.debug('open_url(%s)', url)
 		assert isinstance(url, basestring)
 
 		if is_url_re.match(url):
@@ -1810,48 +1803,63 @@ class GtkInterface(NotebookInterface):
 				pass # handled below
 		elif is_win32_share_re.match(url):
 			url = normalize_win32_share(url)
+			if os.name == 'nt':
+				return self.open_file(url)
+			# else consider as a x-scheme-handler/smb type URI
 		elif not is_uri_re.match(url):
 			raise AssertionError, 'Not an URL: %s' % url
 
 		# Default handlers
-		if url.startswith('file:/'):
-			self.open_file(File(url))
-		elif url.startswith('mailto:'):
-			self.open_with('email_client', url)
-		elif url.startswith('zim+'):
+		if url.startswith('zim+'):
+			# Notebook URL, these we handle ourselves
 			self.open_notebook(url)
+		elif url.startswith('file:/'):
+			# Special case, force to browser (and not to open_file ...
+			# even though the result may be the same if the browser is
+			# dispatched through xdg-open, gnome-open, ...)
+			self._open_with_webbrowser(url)
 		elif url.startswith('outlook:') and hasattr(os, 'startfile'):
 			# Special case for outlook folder paths on windows
 			os.startfile(url)
 		else:
-			self.open_with('web_browser', url)
+			manager = ApplicationManager()
+			type = zim.gui.applications.get_mimetype(url)
+			entry = manager.get_default_application(type)
+			if entry:
+				self._open_with(entry, url)
+			elif url.startswith('mailto:'):
+				self._open_with_emailclient(url)
+			else:
+				self._open_with_webbrowser(url)
 
-	def open_with(self, app_type, uri):
-		'''Open an URL or URI with a specific application type.
+	def _open_with_filebrowser(self, file, callback=None):
+		# Fallback for files and folders, used by open_file()
+		entry = ApplicationManager.get_fallback_filebrowser()
+		self._open_with(entry, file, callback)
 
-		@note: only use this method when you really need to force the
-		appliction type, otherwise use either L{open_file()} or
-		L{open_url()}.
+	def _open_with_emailclient(self, uri):
+		# Fallback for "mailto:" URIs, used by open_url()
+		entry = ApplicationManager.get_fallback_emailclient()
+		self._open_with(entry, uri)
 
-		@param app_type: the application type, can be one of
-		'file_browser', 'web_browser', 'email_client', or 'text_editor'.
-		@param uri: the URL or URI to open
-		'''
+	def _open_with_webbrowser(self, url):
+		# Fallback for other URLs and URIs, used by open_url()
+		entry = ApplicationManager.get_fallback_webbrowser()
+		self._open_with(entry, url)
+
+	def _open_with(self, entry, uri, callback=None):
 		def check_error(status):
 			if status != 0:
 					ErrorDialog(self, _('Could not open: %s') % uri).run()
 					# T: error when external application fails
 
-		app = self.preferences['GtkInterface'][app_type]
-		entry = ApplicationManager().get_application(app)
+		if callback is None:
+			callback = check_error
 
-		if entry:
-			try:
-				entry.spawn((uri,), callback=check_error)
-			except NotImplementedError:
-				entry.spawn((uri,)) # E.g. webbrowser module
-		else:
-			raise NoSuchApplicationError(app_type)
+		try:
+			entry.spawn((uri,), callback=callback)
+		except NotImplementedError:
+			entry.spawn((uri,)) # E.g. webbrowser module
 
 	def open_attachments_folder(self):
 		'''Menu action to open the attachment folder for the current page'''
@@ -1988,17 +1996,19 @@ class GtkInterface(NotebookInterface):
 				if newmtime != oldmtime:
 					dialog.destroy()
 
-		if istextfile is None:
-			istextfile = file.get_mimetype().startswith('text/')
-
-		if istextfile: app = 'text_editor'
-		else:          app = 'file_browser'
-
-		entry = ApplicationManager().get_application(self.preferences['GtkInterface'][app])
-		if entry:
-			entry.spawn((file,), callback=check_close_dialog)
+		if istextfile:
+			try:
+				self.open_file(file, mimetype='text/plain', callback=check_close_dialog)
+			except ApplicationLookupError:
+				app = AddApplicationDialog(window, 'text/plain').run()
+				if app:
+					# Try again
+					self.open_file(file, mimetype='text/plain', callback=check_close_dialog)
+				else:
+					return # Dialog was cancelled, no default set, ...
 		else:
-			raise NoSuchApplicationError(app)
+			self.open_file(file, callback=check_close_dialog)
+
 		dialog.run()
 
 	def show_server_gui(self):

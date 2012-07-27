@@ -5030,7 +5030,7 @@ class PageView(gtk.VBox):
 				lambda o: MoveTextDialog(self.ui, self).run())
 		else:
 			item.set_sensitive(False)
-
+		###
 
 
 		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
@@ -5093,17 +5093,17 @@ class PageView(gtk.VBox):
 			Clipboard.set_uri(uri)
 			SelectionClipboard.set_uri(uri)
 
-		if type == 'mailto':
-			item = gtk.MenuItem(_('Copy Email Address')) # T: context menu item
-		else:
-			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
-		menu.prepend(item)
-
 		if type == 'page':
+			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
 			path = self.ui.notebook.resolve_path(link['href'], source=self.page)
 			item.connect('activate', set_pagelink, path)
-		else:
+		elif type == 'mailto':
+			item = gtk.MenuItem(_('Copy Email Address')) # T: context menu item
 			item.connect('activate', set_uri, file or link['href'])
+		else:
+			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
+			item.connect('activate', set_uri, file or link['href'])
+		menu.prepend(item)
 
 		menu.prepend(gtk.SeparatorMenuItem())
 
@@ -5122,14 +5122,16 @@ class PageView(gtk.VBox):
 				# T: menu item for sub menu with applications
 			menu.prepend(item)
 			if file.exists():
-				submenu = OpenWithMenu(file)
+				submenu = OpenWithMenu(self.ui, file)
 				item.set_submenu(submenu)
 			else:
 				item.set_sensitive(False)
-		elif type != 'page': # urls etc.
+		elif type not in ('page', 'notebook', 'interwiki', 'file', 'image'): # urls etc.
+			# FIXME: for interwiki inspect final link and base
+			# open with menu beased on that url type
 			item = gtk.MenuItem(_('Open With...'))
 			menu.prepend(item)
-			submenu = OpenWithMenu(link['href'], mimetype='text/html')
+			submenu = OpenWithMenu(self.ui, link['href'])
 			if submenu.get_children():
 				item.set_submenu(submenu)
 			else:

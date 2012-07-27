@@ -303,6 +303,11 @@ class DialogContext(object):
 		import zim.gui.widgets
 		zim.gui.widgets.TEST_MODE = self.old_test_mode
 		zim.gui.widgets.TEST_MODE_RUN_CB = self.old_callback
+
+		has_error = bool([e for e in error if e is not None])
+		if self.stack and not has_error:
+			raise AssertionError, '%i expected dialog(s) not run' % len(self.stack)
+
 		return False # Raise any errors again outside context
 
 

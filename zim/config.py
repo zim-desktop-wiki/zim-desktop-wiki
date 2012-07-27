@@ -492,6 +492,9 @@ class ListDict(dict):
 		self.order = []
 		self._modified = False
 
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, dict.__repr__(self))
+
 	def copy(self):
 		'''Shallow copy of the items
 		@returns: a new object of the same class with the same items

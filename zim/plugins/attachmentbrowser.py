@@ -346,7 +346,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		item = gtk.MenuItem(_('Open With...')) # T: menu item
 		menu.prepend(item)
 
-		submenu = OpenWithMenu(file)
+		submenu = OpenWithMenu(self.ui, file)
 		item.set_submenu(submenu)
 
 		item = gtk.MenuItem(_('_Open')) # T: menu item to open file or folder

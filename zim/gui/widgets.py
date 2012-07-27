@@ -2506,11 +2506,24 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 
 	#{ Layout methods
 
+	def add_extra_button(self, button, pack_start=True):
+		'''Add a button to the action area at the bottom of the dialog.
+		Packs the button in the list of primary buttons (by default
+		these are in the lower right of the dialog)
+		@param button: the C{gtk.Button} (or other widget)
+		@param pack_start: if C{True} pack to the left (towards the
+		middle of the dialog), if C{False} pack to the right.
+		'''
+		self.action_area.pack_start(button, False)
+		if pack_start:
+			self.action_area.reorder_child(button, 0)
+
 	def set_help(self, pagename):
 		'''Set the name of the manual page with help for this dialog.
 		Setting this will add a "help" button to the dialog.
 		@param pagename: the manual page name
 		'''
+		#~ assert hasattr(self.ui, 'show_help'), 'Need ui object to open help'
 		self.help_page = pagename
 		button = gtk.Button(stock=gtk.STOCK_HELP)
 		button.connect_object('clicked', self.__class__.show_help, self)
@@ -2532,6 +2545,16 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		'''
 		hbox = help_text_factory(text)
 		self.vbox.pack_start(hbox, False)
+
+	def add_text(self, text):
+		'''Adds a label to the dialog
+		Also see L{add_help_text()} for another style option.
+		@param text: dialog text
+		'''
+		label = gtk.Label(text)
+		label.set_use_markup(True)
+		label.set_alignment(0.0, 0.0)
+		self.vbox.pack_start(label, False)
 
 	def add_form(self, inputs, values=None, depends=None, trigger_response=True):
 		'''Convenience method to construct a form with input widgets and

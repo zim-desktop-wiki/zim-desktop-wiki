@@ -224,21 +224,6 @@ class TestDialogs(tests.TestCase):
 		col = dialog.results_treeview.get_column(0)
 		dialog.results_treeview.row_activated((0,), col)
 
-	def testNewApplicationDialog(self):
-		'''Test NewApplicationDialog'''
-		from zim.gui.applications import NewApplicationDialog
-		dialog = NewApplicationDialog(self.ui, mimetype='text/plain')
-		dialog.form['name'] = 'Foo'
-		dialog.form['exec'] = 'foo %f'
-		app = dialog.assert_response_ok()
-		self.assertEqual(app.name, 'Foo')
-
-		dialog = NewApplicationDialog(self.ui, type='web_browser')
-		dialog.form['name'] = 'Foo'
-		dialog.form['exec'] = 'foo %f'
-		app = dialog.assert_response_ok()
-		self.assertEqual(app.name, 'Foo')
-
 	def testCustomToolDialog(self):
 		'''Test CustomTool dialogs'''
 		from zim.gui.customtools import CustomToolManagerDialog
@@ -624,10 +609,12 @@ class TestClickLink(tests.TestCase):
 				zim.gui.GtkInterface.__init__(self, *arg, **kwarg)
 				tests.MockObjectBase.__init__(self)
 				for method in (
-					'open_file',
-					'open_with',
 					'open_notebook',
 					'open_page',
+					'open_file',
+					'_open_with_emailclient',
+					'_open_with_webbrowser',
+					'_open_with',
 				):
 					self.mock_method(method, None)
 
@@ -663,6 +650,7 @@ class TestClickLink(tests.TestCase):
 			('foo', 'page'),
 			('foo:bar', 'page'),
 		):
+			#~ print ">> LINK %s (%s)" % (href, type)
 			#~ self.ui.open_url(href)
 			self.ui.mainwindow.pageview.do_link_clicked({'href': href})
 			msg = "Clicked: %s\nResulted in: %s" % (href, self.ui.mock_calls[-1])
@@ -673,9 +661,9 @@ class TestClickLink(tests.TestCase):
 			elif type == 'file':
 				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_file', msg=msg)
 			elif type == 'mailto':
-				self.assertTrue(self.ui.mock_calls[-1][0:2] == ('open_with', 'email_client'), msg=msg)
+				self.assertTrue(self.ui.mock_calls[-1][0] in ('_open_with_emailclient', '_open_with'), msg=msg)
 			else:
-				self.assertTrue(self.ui.mock_calls[-1][0:2] == ('open_with', 'web_browser'), msg=msg)
+				self.assertTrue(self.ui.mock_calls[-1][0] in ('_open_with_webbrowser', '_open_with'), msg=msg)
 			self.ui.mock_calls = [] # reset
 
 		# Some more tests that may not be covered above
@@ -684,14 +672,15 @@ class TestClickLink(tests.TestCase):
 			('file:///foo/bar', 'file'),
 			('mailto:foo@bar.com', 'mailto'),
 		):
+			#~ print ">> OPEN_URL %s (%s)" % (href, type)
 			self.ui.open_url(href)
 			msg = "open_url('%s')\nResulted in: %s" % (href, self.ui.mock_calls[-1])
 			if type == 'notebook':
 				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_notebook', msg=msg)
 			elif type == 'file':
-				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_file', msg=msg)
+				self.assertTrue(self.ui.mock_calls[-1][0] == '_open_with_webbrowser', msg=msg)
 			elif type == 'mailto':
-				self.assertTrue(self.ui.mock_calls[-1][0:2] == ('open_with', 'email_client'), msg=msg)
+				self.assertTrue(self.ui.mock_calls[-1][0] in ('_open_with_emailclient', '_open_with'), msg=msg)
 			self.ui.mock_calls = [] # reset
 
 		# TODO test plugin with custom handler

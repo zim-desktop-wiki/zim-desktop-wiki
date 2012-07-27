@@ -79,6 +79,14 @@ class Application(object):
 		self.cmd = tuple(cmd)
 		self.tryexeccmd = tryexeccmd
 
+	def __repr__(self):
+		if hasattr(self, 'key'):
+			return '<%s: %s>' % (self.__class__.__name__, self.key)
+		elif hasattr(self, 'cmd'):
+			return '<%s: %s>' % (self.__class__.__name__, self.cmd)
+		else:
+			return '<%s: %s>' % (self.__class__.__name__, self.name)
+
 	@property
 	def name(self):
 		return self.cmd[0]
@@ -216,9 +224,8 @@ class Application(object):
 			pid, stdin, stdout, stderr = \
 				gobject.spawn_async(argv, flags=flags, **opts)
 		except gobject.GError:
-			logger.exception('Failed running: %s', argv)
-			#~ name = self.name
-			#~ ErrorDialog(None, _('Could not run application: %s') % name).run()
+			from zim.gui.widgets import ErrorDialog
+			ErrorDialog(None, _('Failed running: %s') % argv[0]).run()
 				#~ # T: error when application failed to start
 			return None
 		else:

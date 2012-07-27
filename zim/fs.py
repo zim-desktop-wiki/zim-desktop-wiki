@@ -1336,7 +1336,7 @@ class UnixFile(FilePath):
 		assert mode in ('r', 'w')
 		if mode == 'w':
 			if not self.iswritable():
-				raise FileWriteError, _('File is not writable') # T: Error message
+				raise FileWriteError, _('File is not writable: %s') % self.path # T: Error message
 			elif not self.exists():
 				self.dir.touch()
 			else:
@@ -1599,7 +1599,8 @@ class UnixFile(FilePath):
 			if not self._mtime == mtime:
 				logger.warn('mtime check failed for %s, trying md5', self.path)
 				if _md5(self._content) != _md5(self.open('r').read()):
-					raise FileWriteError, 'File changed on disk: %s' % self.path
+					raise FileWriteError, _('File changed on disk: %s') % self.path
+						# T: error message
 					# Why are we using MD5 here ?? could just compare content...
 
 	def touch(self):
