@@ -75,7 +75,7 @@ date_re = re.compile(r'\s*\[d:(.+)\]')
 
 
 _NO_DATE = '9999' # Constant for empty due date - value chosen for sorting properties
-
+_NO_TAGS = '__no_tags__' # Constant that serves as the "no tags" tag - _must_ be lower case
 
 # FUTURE: add an interface for this plugin in the WWW frontend
 
@@ -614,6 +614,7 @@ class TagListTreeView(SingleClickTreeView):
 	_type_separator = 0
 	_type_label = 1
 	_type_tag = 2
+	_type_untagged = 3
 
 	def __init__(self, task_list):
 		model = gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
@@ -647,6 +648,8 @@ class TagListTreeView(SingleClickTreeView):
 		for row in self._get_selected():
 			if row[2] == self._type_tag:
 				tags.append(row[0])
+			elif row[2] == self._type_untagged:
+				tags.append(_NO_TAGS)
 		return tags or None
 
 	def get_labels(self):
@@ -686,9 +689,13 @@ class TagListTreeView(SingleClickTreeView):
 			if label in labels and label != plugin.next_label:
 				model.append((label, labels[label], self._type_label, pango.WEIGHT_BOLD))
 
+		tags = self.task_list.get_tags()
+		if _NO_TAGS in tags:
+			n_untagged = tags.pop(_NO_TAGS)
+			model.append((_('Untagged'), n_untagged, self._type_untagged, pango.WEIGHT_NORMAL))
+
 		model.append(('', 0, self._type_separator, 0)) # separator
 
-		tags = self.task_list.get_tags()
 		for tag in natural_sorted(tags):
 			model.append((tag, tags[tag], self._type_tag, pango.WEIGHT_NORMAL))
 
@@ -707,8 +714,7 @@ class TagListTreeView(SingleClickTreeView):
 		if not self._block_selection_change:
 			tags = self.get_tags()
 			labels = self.get_labels()
-			self.task_list.set_tag_filter(tags)
-			self.task_list.set_label_filter(labels)
+			self.task_list.set_filter(tags, labels)
 
 
 HIGH_COLOR = '#EF5151' # red (derived from Tango style guide - #EF2929)
@@ -727,10 +733,11 @@ class TaskListTreeView(BrowserTreeView):
 	ACT_COL = 5 # actionable
 	OPEN_COL = 6 # item not closed
 	TASKID_COL = 7
+	TAGS_COL = 8
 
 	def __init__(self, ui, plugin, filter_actionable):
-		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool, int)
-			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL
+		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool, int, object)
+			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL, TAGS_COL
 		model = self.real_model.filter_new()
 		model.set_visible_column(self.VIS_COL)
 		model = gtk.TreeModelSort(model)
@@ -874,24 +881,27 @@ class TaskListTreeView(BrowserTreeView):
 
 		rows.sort(key=lambda r: path_cache[r['source']].name)
 
-		# Count them (note: these matches fail after formatting applied)
+		# Then format them and add them to the model
 		for row in rows:
 			if not row['open']:
-				continue # Only count open items
+				continue # Only include open items for now
 
 			for label in self.plugin.task_label_re.findall(row['description']):
 				self._labels[label] = self._labels.get(label, 0) + 1
 
-			for tag in tag_re.findall(row['description']):
-				self._tags[tag] = self._tags.get(tag, 0) + 1
-
+			tags = tuple(tag_re.findall(row['description']))
 			if self.plugin.preferences['tag_by_page']:
 				path = path_cache[row['source']]
-				for part in path.parts:
-					self._tags[part] = self._tags.get(part, 0) + 1
+				tags = tags + tuple(path.parts)
 
-		# Then format them and add them to the model
-		for row in rows:
+			# Update tag count
+			if tags:
+				for tag in tags:
+					self._tags[tag] = self._tags.get(tag, 0) + 1
+			else:
+				self._tags[_NO_TAGS] = self._tags.get(_NO_TAGS, 0) + 1
+
+
 			path = path_cache[row['source']]
 			task = encode_markup_text(row['description'])
 			task = re.sub('\s*!+\s*', ' ', task) # get rid of exclamation marks
@@ -901,8 +911,8 @@ class TaskListTreeView(BrowserTreeView):
 				task = self.plugin.task_label_re.sub(r'<b>\1</b>', task) # highlight labels
 			else:
 				task = r'<span color="darkgrey">%s</span>' % task
-			modelrow = [False, row['prio'], task, row['due'], path.name, row['actionable'], row['open'], row['id']]
-				# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL
+			modelrow = [False, row['prio'], task, row['due'], path.name, row['actionable'], row['open'], row['id'], tags]
+				# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL, TAGS_COL
 			modelrow[0] = self._filter_item(modelrow)
 			myiter = self.real_model.append(iter, modelrow)
 
@@ -977,18 +987,17 @@ class TaskListTreeView(BrowserTreeView):
 		else:
 			return 0, []
 
-	def set_tag_filter(self, tags):
+	def set_filter(self, tags, labels):
 		if tags:
 			self.tag_filter = [tag.lower() for tag in tags]
 		else:
 			self.tag_filter = None
-		self._eval_filter()
 
-	def set_label_filter(self, labels):
 		if labels:
 			self.label_filter = [label.lower() for label in labels]
 		else:
 			self.label_filter = None
+
 		self._eval_filter()
 
 	def _eval_filter(self):
@@ -1017,6 +1026,7 @@ class TaskListTreeView(BrowserTreeView):
 
 		description = modelrow[self.TASK_COL].decode('utf-8').lower()
 		pagename = modelrow[self.PAGE_COL].decode('utf-8').lower()
+		tags = modelrow[self.TAGS_COL]
 
 		if visible and self.label_filter:
 			# Any labels need to be present
@@ -1027,17 +1037,12 @@ class TaskListTreeView(BrowserTreeView):
 				visible = False # no label found
 
 		if visible and self.tag_filter:
-			# And any tag should match (or pagename if tag_by_page)
-			for tag in self.tag_filter:
-				if self.plugin.preferences['tag_by_page']:
-					if '@'+tag in description \
-					or tag in pagename.split(':'):
-						break # keep visible True
-				else:
-					if '@'+tag in description:
-						break # keep visible True
+			# Any tag should match
+			if (_NO_TAGS in self.tag_filter and not tags) \
+			or any(tag in tags for tag in self.tag_filter):
+				visible = True
 			else:
-				visible = False # no tag found
+				visible = False
 
 		if visible and self.filter:
 			# And finally the filter string should match

@@ -669,7 +669,7 @@ class UnixPath(object):
 			stat_result = os.stat(self.encodedpath)
 			other_stat_result = os.stat(other.encodedpath)
 		except OSError:
-			return false
+			return False
 		else:
 			return stat_result == other_stat_result
 

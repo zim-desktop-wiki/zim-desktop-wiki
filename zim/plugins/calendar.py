@@ -313,10 +313,12 @@ This is a core plugin shipping with zim.
 						+ ':' + date.strftime('%Y:%m') )
 
 	def date_from_path(self, path):
-		'''Returns a datetime.date object for a calendar page'''
+		'''Returns the date for a specific path or C{None}'''
 		dates = daterange_from_path(path)
-		assert dates, 'Not a date path: %s' % path.name
-		return dates[1]
+		if dates:
+			return dates[1]
+		else:
+			return None
 
 	def on_process_page_template(self, manager, template, page, dict):
 		'''Callback called when parsing a template, e.g. when exposing a page
@@ -474,15 +476,15 @@ class CalendarPluginWidget(gtk.VBox):
 		namespace = self.plugin.path_for_month_from_date( calendar.get_date() )
 		for path in self.plugin.ui.notebook.index.list_pages(namespace):
 			if date_path_re.match(path.name):
-				date = self.plugin.date_from_path(path)
-				calendar.mark_day(date.day)
+				dates = daterange_from_path(path)
+				if dates and dates[0] == 'day':
+					calendar.mark_day(date[1].day)
 
 	def set_page(self, page):
-		try:
-			date = self.plugin.date_from_path(page)
-			self.calendar.select_month(date.month-1, date.year)
-		except AssertionError:
-			pass
+		dates = daterange_from_path(page)
+		if dates and dates[0] != 'year':
+			# Calendar is per month, so do not switch view for year page
+			self.calendar.select_month(dates[1].month-1, dates[1].year)
 
 	def select_date(self, date):
 		self.calendar.select_date(date)
