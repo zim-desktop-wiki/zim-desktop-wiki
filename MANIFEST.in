@@ -1,21 +1,20 @@
 # Script and module files are included automatically
 # need to specify additional ditribution files here
-include *.txt
 include *.py
-include *.pot
+include *.txt
+include *.conf
 include Makefile
-include epydoc.conf
-recursive-include data/ *
-prune data/manual/.zim/
-recursive-include icons/ *
-recursive-include tools/ *
-recursive-include xdg/ *
-prune xdg/hicolor/
-recursive-include translations/ *
-recursive-include cgi-bin/ *
-recursive-include contrib/ *
-recursive-include HACKING/ *
-prune HACKING/.zim/
-recursive-include tests/ *
-prune tests/tmp/
+graft translations
+graft data
+prune data/manual/.zim
+graft icons
+graft xdg
+prune xdg/hicolor
+graft cgi-bin
+graft contrib
+graft tests
+prune tests/tmp
+graft tools
+graft HACKING
+graft HACKING/.zim
 global-exclude *~ *.bak *.swp *.pyc
