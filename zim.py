@@ -24,19 +24,17 @@ if os.name == "nt" and sys.argv[0].endswith('.exe'):
 	sys.stderr = err_stream
 
 # Preliminary initialization of logging because modules can throw warnings at import
-logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
-
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 # Init locale for windows (before loading gettext library)
-if os.name == "nt" and not os.environ['LANG']:
-	import locale
-	locale.setlocale(locale.LC_ALL, '')
-	lang, enc = locale.getlocale()
-	os.environ['LANG'] = lang + '.' + enc
-	#~ print 'Locale set to: %s' % os.environ['LANG']
+if os.name == "nt" and not os.environ.get('LANG'):
+        import locale
+        lang, enc = locale.getdefaultlocale()
+        os.environ['LANG'] = lang + '.' + enc
+        logging.info('Locale set to: %s', os.environ['LANG'])
 
 # Coverage support - triggered by the test suite
-#~ if True:z
+#~ if True:
 	#~ print 'Start coverage !'
 	#~ import atexit
 	#~ import coverage
