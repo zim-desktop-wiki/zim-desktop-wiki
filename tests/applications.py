@@ -157,18 +157,18 @@ class TestApplicationManager(tests.TestCase):
 		## Test listing
 		#~ print manager.list_applications('text/plain')
 		applications = manager.list_applications('text/plain')
-		self.assertGreater(len(applications), 0)
+		self.assertGreaterEqual(len(applications), 1)
 		self.assertIn(entry_text, applications)
 
 		#~ print manager.list_applications('text/html')
 		for mimetype in ('text/html', 'x-scheme-handler/http'):
-			applications = manager.list_applications('text/html')
-			self.assertGreater(len(applications), 2)
+			applications = manager.list_applications(mimetype)
+			self.assertGreaterEqual(len(applications), 1)
 			self.assertIn(entry_html, applications)
 
 		#~ print manager.list_applications('text/plain')
 		applications = manager.list_applications('x-scheme-handler/ssh')
-		self.assertGreater(len(applications), 0)
+		self.assertGreaterEqual(len(applications), 1)
 		self.assertIn(entry_url, applications)
 
 		## Increase coverage
@@ -367,7 +367,7 @@ class TestOpenWithMenu(tests.TestCase):
 				)
 
 			def test_new_app_dialog(dialog):
-				self.assertIsInstance(dialog, NewApplicationDialog)
+				self.assertIsInstance(dialog, AddApplicationDialog)
 				dialog.form['name'] = 'Test New App Dialog'
 				dialog.form['exec'] = 'Test 123'
 				dialog.form['default'] = True

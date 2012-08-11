@@ -1804,7 +1804,7 @@ class GtkInterface(NotebookInterface):
 		elif is_win32_share_re.match(url):
 			url = normalize_win32_share(url)
 			if os.name == 'nt':
-				return self.open_file(url)
+				return self._open_with_filebrowser(url)
 			# else consider as a x-scheme-handler/smb type URI
 		elif not is_uri_re.match(url):
 			raise AssertionError, 'Not an URL: %s' % url

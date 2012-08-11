@@ -714,7 +714,7 @@ class TagListTreeView(SingleClickTreeView):
 		if not self._block_selection_change:
 			tags = self.get_tags()
 			labels = self.get_labels()
-			self.task_list.set_filter(tags, labels)
+			self.task_list.set_tag_filter(tags, labels)
 
 
 HIGH_COLOR = '#EF5151' # red (derived from Tango style guide - #EF2929)
@@ -987,7 +987,7 @@ class TaskListTreeView(BrowserTreeView):
 		else:
 			return 0, []
 
-	def set_filter(self, tags, labels):
+	def set_tag_filter(self, tags=None, labels=None):
 		if tags:
 			self.tag_filter = [tag.lower() for tag in tags]
 		else:

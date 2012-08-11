@@ -89,6 +89,14 @@ class TestParsing(TestCase):
 		# from bug report lp:545712
 		self.assertEqual(url_decode('%B4%FA%B8%D5%B0%CF', mode=URL_ENCODE_DATA), '\xb4\xfa\xb8\xd5\xb0\xcf')
 
+		## test round trip for utf-8
+		data = u'\u0421\u0430\u0439'
+		encoded = url_encode(data)
+		decoded = url_decode(data)
+		#~ print "DATA, ENCODED, DECODED:", (data, encoded, decoded)
+		self.assertEqual(decoded, data)
+		self.assertEqual(url_decode(encoded), data)
+		self.assertEqual(url_encode(decoded), encoded)
 
 	def testLinkType(self):
 		'''Test link_type()'''
