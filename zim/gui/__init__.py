@@ -1357,7 +1357,7 @@ class GtkInterface(NotebookInterface):
 		'''
 		NewPageDialog(self, path=self._get_path_context(), subpage=True).run()
 
-	def new_page_from_text(self, text, name=None, open_page=False, use_template=False):
+	def new_page_from_text(self, text, name=None, use_template=False, attachments=None, open_page=False):
 		'''Create a new page with content. This method is intended
 		mainly for remote calls from the daemon. It is used for
 		example by the L{quicknote plugin<zim.plugins.quicknote>}.
@@ -1368,11 +1368,15 @@ class GtkInterface(NotebookInterface):
 		already exists a number is added to force a unique page name.
 		@param open_page: if C{True} navigate to this page directly
 		@param use_template: if C{True} the "new page" template is used
+		@param attachments: a folder as C{Dir} object or C{string}
+		(for remote calls). All files in this folder are imported as
+		attachments for the new page. In the text these can be referred
+		relatively.
 		@returns: the new L{Page} object
 		'''
-		# The 'open_page' argument is a bit of a hack for remote calls
-		# it is needed because the remote function doesn't know the
-		# exact page name we creates...
+		# The 'open_page' and 'attachments' arguments are a bit of a
+		# hack for remote calls. They are needed because the remote
+		# function doesn't know the exact page name we creates...
 		if not name:
 			name = text.strip()[:30]
 			if '\n' in name:
@@ -1396,10 +1400,35 @@ class GtkInterface(NotebookInterface):
 
 		self.notebook.store_page(page)
 
+		if attachments:
+			if isinstance(attachments, basestring):
+				attachments = Dir(attachments)
+			self.import_attachments(page, attachments)
+
 		if open_page:
-			self.open_page(page)
+			self.present(page)
 
 		return page
+
+	def import_attachments(self, path, dir):
+		'''Import a set of files as attachments.
+		All files in C{folder} will be imported in the attachment dir.
+		Any existing files will be overwritten.
+		@param path: a L{Path} object (or C{string} for remote call)
+		@param dir: a L{Dir} object (or C{string} for remote call)
+		'''
+		if isinstance(path, basestring):
+			path = Path(path)
+
+		if isinstance(dir, basestring):
+			dir = Dir(dir)
+
+		attachments = self.notebook.get_attachments_dir(path)
+		for name in dir.list():
+			# FIXME could use list objects, or list_files()
+			file = dir.file(name)
+			if not file.isdir():
+				file.copyto(attachments)
 
 	def append_text_to_page(self, name, text):
 		'''Append text to an (existing) page. This method is intended

@@ -27,16 +27,18 @@ usagehelp = '''\
 usage: zim --plugin quicknote [OPTIONS]
 
 Options:
-  notebook=URI       Select the notebook in the dialog
-  namespace=STRING   Fill in the namespace in the dialog
-  basename=STRING    Fill in the page name in the dialog
-  text=TEXT          Provide the text directly
-  input=stdin        Provide the text on stdin
-  input=clipboard    Take the text from the clipboard
-  encoding=base64    Text is encoded in base64
-  encoding=url       Text is url encoded
-                     (In both cases expects utf-8 after decoding)
-  option:url=STRING  Set template parameter
+  notebook=URI        Select the notebook in the dialog
+  namespace=STRING    Fill in the namespace in the dialog
+  basename=STRING     Fill in the page name in the dialog
+  text=TEXT           Provide the text directly
+  input=stdin         Provide the text on stdin
+  input=clipboard     Take the text from the clipboard
+  encoding=base64     Text is encoded in base64
+  encoding=url        Text is url encoded
+                      (In both cases expects UTF-8 after decoding)
+  attachments=FOLDER  Import all files in FOLDER as attachments,
+                      wiki input can refer these files relatively
+  option:url=STRING   Set template parameter
 '''
 
 
@@ -101,7 +103,7 @@ def main(daemonproxy, *args):
 	dialog = QuickNoteDialog(None,
 		notebook,
 		options.get('namespace'), options.get('basename'),
-		text, template_options )
+		text, template_options, options.get('attachments') )
 	dialog.run()
 
 
@@ -154,10 +156,11 @@ This is a core plugin shipping with zim.
 class BoundQuickNoteDialog(Dialog):
 	'''Dialog bound to a specific notebook'''
 
-	def __init__(self, ui, namespace=None, basename=None, text=None, template_options=None):
+	def __init__(self, ui, namespace=None, basename=None, text=None, template_options=None, attachments=None):
 		Dialog.__init__(self, ui, _('Quick Note'))
 		self._updating_title = False
 		self._title_set_manually = not basename is None
+		self.attachments = attachments
 
 		self.uistate.setdefault('namespace', None, basestring)
 		namespace = namespace or self.uistate['namespace']
@@ -256,6 +259,7 @@ class BoundQuickNoteDialog(Dialog):
 			self.uistate['namespace'] = self.form['page']
 
 	def on_title_changed(self, o):
+		o.set_input_valid(True)
 		if not self._updating_title:
 			self._title_set_manually = True
 
@@ -277,6 +281,10 @@ class BoundQuickNoteDialog(Dialog):
 			self._updating_title = False
 
 	def do_response_ok(self, get_ui=None):
+		# NOTE: Keep in mind that this method should also work using
+		# a proxy object for the ui. This is why we have the get_ui()
+		# argument to construct a proxy.
+
 		buffer = self.textview.get_buffer()
 		bounds = buffer.get_bounds()
 		text = buffer.get_text(*bounds)
@@ -284,14 +292,18 @@ class BoundQuickNoteDialog(Dialog):
 		if self.form['new_page']:
 			if not self.form.widgets['namespace'].get_input_valid() \
 			or not self.form['basename']:
+				if not self.form['basename']:
+					entry = self.form.widgets['basename']
+					entry.set_input_valid(False, show_empty_invalid=True)
 				return False
 
 			if get_ui: ui = get_ui()
 			else: ui = self.ui
 			path = self.form['namespace'].name + ':' + self.form['basename']
-			ui.new_page_from_text(text, path)
-			if self.open_page.get_active():
-				ui.present(path) # also works with proxy
+			ui.new_page_from_text(text, path,
+				attachments=self.attachments,
+				open_page=self.open_page.get_active()
+			)
 		else:
 			if not self.form.widgets['page'].get_input_valid() \
 			or not self.form['page']:
@@ -300,6 +312,8 @@ class BoundQuickNoteDialog(Dialog):
 			if get_ui: ui = get_ui()
 			else: ui = self.ui
 			path = self.form['page'].name
+			if self.attachments:
+				ui.import_attachments(path, self.attachments)
 			ui.append_text_to_page(path, '\n----\n'+text)
 			if self.open_page.get_active():
 				ui.present(path) # also works with proxy
@@ -310,13 +324,14 @@ class BoundQuickNoteDialog(Dialog):
 class QuickNoteDialog(BoundQuickNoteDialog):
 	'''Dialog which includes a notebook chooser'''
 
-	def __init__(self, ui, notebook=None, namespace=None, basename=None, text=None, template_options=None):
+	def __init__(self, ui, notebook=None, namespace=None, basename=None, text=None, template_options=None, attachments=None):
 		self.config = get_config('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
 		Dialog.__init__(self, ui, _('Quick Note'))
 		self._updating_title = False
 		self._title_set_manually = not basename is None
+		self.attachments = attachments
 
 		if notebook and not isinstance(notebook, basestring):
 			notebook = notebook.uri

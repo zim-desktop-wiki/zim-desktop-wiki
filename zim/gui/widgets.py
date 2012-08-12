@@ -1527,10 +1527,15 @@ class InputEntry(gtk.Entry):
 		'''
 		return self._input_valid
 
-	def set_input_valid(self, valid):
+	def set_input_valid(self, valid, show_empty_invalid=None):
 		'''Set input valid or invalid state
 		@param valid: C{True} or C{False}
+		@param show_empty_invalid: if not C{None} change the
+		C{show_empty_invalid} attribute
 		'''
+		if show_empty_invalid is not None:
+			self.show_empty_invalid = show_empty_invalid
+
 		if valid == self._input_valid:
 			return
 
@@ -2639,6 +2644,9 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			except Exception, error:
 				ErrorDialog(self.ui, error).run()
 				destroy = False
+			else:
+				if not destroy:
+					logger.warning('Dialog input not valid')
 		elif id == gtk.RESPONSE_CANCEL:
 			logger.debug('Dialog response CANCEL')
 			try:
@@ -2646,6 +2654,9 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			except Exception, error:
 				ErrorDialog(self.ui, error).run()
 				destroy = False
+			else:
+				if not destroy:
+					logger.warning('Could not cancel dialog')
 		else:
 			destroy = True
 
