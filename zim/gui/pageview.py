@@ -2128,7 +2128,7 @@ class TextBuffer(gtk.TextBuffer):
 				# Set tags
 				copy = iter.copy()
 
-				bullet = self._get_bullet_at_iter(iter)
+				bullet = self.get_bullet_at_iter(iter) # implies check for start of line
 				if bullet:
 					break_tags('indent')
 					# This is part of the HACK for bullets in
@@ -2624,7 +2624,8 @@ class TextBufferList(list):
 
 		list = TextBufferList(textbuffer, start, end)
 		row = list.get_row_at_line(line)
-		#~ print '!! LIST %i..%i ROW %i' % (start, end, row)
+		#print '!! LIST %i..%i ROW %i' % (start, end, row)
+		#print '>>', list
 		return row, list
 
 	def __init__(self, textbuffer, firstline, lastline):
@@ -2741,7 +2742,11 @@ class TextBufferList(list):
 		if row == 0:
 			# Indent the whole list
 			for i in range(1, len(self)):
-				self._indent_row(i, step)
+				if self[i][self.INDENT_COL] >= level:
+					# double check implicit assumtion that first item is at lowest level
+					self._indent_row(i, step)
+				else:
+					break
 		else:
 			# Indent children
 			for i in range(row+1, len(self)):
