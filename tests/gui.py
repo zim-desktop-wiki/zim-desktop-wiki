@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 import tests
 
+import os
 import gtk
 
 from zim.errors import Error
@@ -320,7 +321,9 @@ class TestDialogs(tests.TestCase):
 		gui = zim.gui.GtkInterface()
 		gui.register_preferences('GtkInterface', zim.gui.ui_preferences)
 		gui.register_preferences('PageView', zim.gui.pageview.ui_preferences)
-		gui.load_plugins()
+		with FilterFailedToLoadPlugin():
+			# may miss dependencies for e.g. versioncontrol
+			gui.load_plugins()
 		self.ui.preferences_register = gui.preferences_register
 		self.ui.preferences = gui.preferences
 		self.ui.plugins = gui.plugins
@@ -377,11 +380,19 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 	message = 'No such image:'
 
 
+class FilterFailedToLoadPlugin(tests.LoggingFilter):
+
+	logger = 'zim'
+	message = 'Failed to load plugin'
+
+
 @tests.slowTest
 class TestGtkInterface(tests.TestCase):
 
 	def setUp(self):
-		self.ui = setupGtkInterface(self)
+		with FilterFailedToLoadPlugin():
+			# may miss dependencies for e.g. versioncontrol
+			self.ui = setupGtkInterface(self)
 
 	def tearDown(self):
 		self.ui.close()
@@ -416,7 +427,7 @@ class TestGtkInterface(tests.TestCase):
 		ui.open_notebook(nb)
 
 		# remove plugins
-		self.assertGreater(len(ui.plugins), 3) # default plugins
+		self.assertGreaterEqual(len(ui.plugins), 3) # default plugins without dependencies
 		plugins = [p.plugin_key for p in ui.plugins]
 		for name in plugins:
 			ui.unload_plugin(name)
@@ -425,7 +436,7 @@ class TestGtkInterface(tests.TestCase):
 		# and add them again
 		for name in plugins:
 			ui.load_plugin(name)
-		self.assertGreater(len(ui.plugins), 3)
+		self.assertGreaterEqual(len(ui.plugins), 3) # default plugins without dependencies
 
 		# check registering an URL handler
 		func = tests.Counter(True)
@@ -614,11 +625,14 @@ class TestClickLink(tests.TestCase):
 					'open_file',
 					'_open_with_emailclient',
 					'_open_with_webbrowser',
+					'_open_with_filebrowser',
 					'_open_with',
 				):
 					self.mock_method(method, None)
 
-		self.ui = setupGtkInterface(self, klass=MyMock)
+		with FilterFailedToLoadPlugin():
+			# may miss dependencies for e.g. versioncontrol
+			self.ui = setupGtkInterface(self, klass=MyMock)
 
 	def tearDown(self):
 		self.ui.close()
@@ -653,7 +667,7 @@ class TestClickLink(tests.TestCase):
 			#~ print ">> LINK %s (%s)" % (href, type)
 			#~ self.ui.open_url(href)
 			self.ui.mainwindow.pageview.do_link_clicked({'href': href})
-			msg = "Clicked: %s\nResulted in: %s" % (href, self.ui.mock_calls[-1])
+			msg = "Clicked: \"%s\" resulted in: \"%s\"" % (href, self.ui.mock_calls[-1])
 			if type == 'notebook':
 				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_notebook', msg=msg)
 			elif type == 'page':
@@ -662,6 +676,8 @@ class TestClickLink(tests.TestCase):
 				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_file', msg=msg)
 			elif type == 'mailto':
 				self.assertTrue(self.ui.mock_calls[-1][0] in ('_open_with_emailclient', '_open_with'), msg=msg)
+			elif type == 'smb' and os.name == 'nt':
+				self.assertTrue(self.ui.mock_calls[-1][0] == '_open_with_filebrowser', msg=msg)
 			else:
 				self.assertTrue(self.ui.mock_calls[-1][0] in ('_open_with_webbrowser', '_open_with'), msg=msg)
 			self.ui.mock_calls = [] # reset

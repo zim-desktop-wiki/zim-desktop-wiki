@@ -277,12 +277,20 @@ def expanduser(path):
 		# This method is an exception in that it does not handle unicode
 		# directly. This will cause and error when user name contains
 		# non-ascii characters. See bug report lp:988041.
-		if isinstance(path, unicode):
-			path = path.encode('mbcs')
-		# else assume it is compatible
+		# But also mbcs encoding does not handle all characters,
+		# so only encode home part
+		parts = path.replace('\\', '/').strip('/').split('/')
+			# parts[0] now is "~" or "~user"
 
-		path = os.path.expanduser(path)
-		return path.decode('mbcs')
+		if isinstance(path, unicode):
+			part = parts[0].encode('mbcs')
+			part = os.path.expanduser(part)
+			parts[0] = part.decode('mbcs')			
+		else:
+			# assume it is compatible
+			parts[0] = os.path.expanduser(parts[0])
+
+		return '/'.join(parts)
 	else:
 		# Let encode() handle the unicode encoding
 		return decode(os.path.expanduser(encode(path)))
