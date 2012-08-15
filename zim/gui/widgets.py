@@ -481,7 +481,19 @@ class Button(gtk.Button):
 	allow specifying a stock icon I{and} a label at the same time.
 	'''
 
-	def __init__(self, label=None, stock=None, use_underline=True):
+	# Set up a style for the statusbar variant to decrease spacing of the button
+	gtk.rc_parse_string('''\
+style "zim-statusbar-button-style"
+{
+	GtkWidget::focus-padding = 0
+	GtkWidget::focus-line-width = 0
+	xthickness = 0
+	ythickness = 0
+}
+widget "*.zim-statusbar-button" style "zim-statusbar-button-style"
+''')
+
+	def __init__(self, label=None, stock=None, use_underline=True, status_bar_style=False):
 		'''Constructor
 
 		If both C{label} and C{stock} are given the button will have
@@ -492,6 +504,7 @@ class Button(gtk.Button):
 		@param label: text for the button
 		@param stock: constant for a stock item
 		@param use_underline: if C{True} a "_" in the label will
+		@param status_bar_style: when C{True} all padding and border
 		underline the next character
 		'''
 		if label is None or stock is None:
@@ -500,7 +513,12 @@ class Button(gtk.Button):
 			gtk.Button.__init__(self, label=label)
 			icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
 			self.set_image(icon)
+
 		self.set_use_underline(use_underline)
+
+		if status_bar_style:
+			self.set_name('zim-statusbar-button')
+			self.set_relief(gtk.RELIEF_NONE)
 
 
 class IconButton(gtk.Button):

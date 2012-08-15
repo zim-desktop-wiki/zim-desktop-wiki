@@ -43,6 +43,11 @@ import logging
 import gobject
 import gtk
 import pango
+try:
+	import gio
+except ImportError:
+	gio = None
+
 
 import zim
 import zim.config # Asserts HOME is defined
@@ -104,6 +109,32 @@ ICON_SIZE = 64
 PREVIEW_SIZE = 128
 
 
+def get_mime_icon(file, size):
+	# FIXME put this in some library ?
+	if not gio:
+		return None
+
+	f = gio.File(uri=file.uri)
+	info = f.query_info('standard::*')
+	icon = info.get_icon()
+
+	if isinstance(icon, gio.ThemedIcon):
+		names = icon.get_names()
+		icon_theme = gtk.icon_theme_get_default()
+		try:
+			icon_info = icon_theme.choose_icon(names, size, 0)
+			if icon_info:
+				return icon_info.load_icon()
+			else:
+				logger.debug('Missing icons in icon theme: %s', names)
+				return None
+		except gobject.GError:
+			logger.exception('Could not load icon for file: %s', file)
+			return None
+	else:
+		return None
+
+
 class AttachmentBrowserPlugin(PluginClass):
 
 	plugin_info = {
@@ -141,12 +172,25 @@ This plugin is still under development.
 
 	def finalize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
-			self.widget = AttachmentBrowserPluginWidget(self.ui, self.preferences)
-			self.widget.set_page(self.ui.page)
-			self.connectto(self.ui, 'open-page')
-
 			self.uistate.setdefault('active', True)
-			self.toggle_fileview(enable=self.uistate['active'])
+
+			self.widget = AttachmentBrowserPluginWidget(self.ui, self.preferences)
+
+			self.statusbar_frame = gtk.Frame()
+			self.statusbar_frame.set_shadow_type(gtk.SHADOW_IN)
+			self.ui.mainwindow.statusbar.pack_end(self.statusbar_frame, False)
+
+			self.statusbar_button = Button('_Attachments', status_bar_style=True)
+				# translated below
+			self.statusbar_button.set_use_underline(True)
+			self.statusbar_button.connect('clicked', lambda o: self.toggle_fileview(enable=True))
+			self.statusbar_frame.add(self.statusbar_button)
+			self.statusbar_frame.show_all()
+
+			if self.ui.page:
+				self.on_open_page(self.ui, self.ui.page, self.ui.page)
+				self.toggle_fileview(enable=self.uistate['active'])
+			self.connectto(self.ui, 'open-page')
 
 	def toggle_fileview(self, enable=None):
 		self.toggle_action('toggle_fileview', active=enable)
@@ -173,8 +217,30 @@ This plugin is still under development.
 	def on_open_page(self, ui, page, path):
 		self.widget.set_page(page)
 
+		n = self.get_n_attachments(page)
+		self.statusbar_button.set_label(
+			ngettext('%i _Attachment', '%i _Attachments', n) % n)
+			# T: Label for the statusbar, %i is the number of attachments for the current page
+
+	def get_n_attachments(self, page):
+		# Calculate independent from the widget
+		# (e.g. widget is not refreshed when hidden)
+		n = 0
+		dir = self.ui.notebook.get_attachments_dir(page)
+		from zim.fs import isdir
+		for name in dir.list():
+			# If dir is an attachment folder, sub-pages maybe filtered out already
+			# TODO need method in zim.fs to do this count efficiently
+			if not isdir(dir.path + '/' + name):
+				# Ignore subfolders -- FIXME ?
+				n += 1
+		return n
+
 	def disconnect(self):
-		self.do_toggle_fileview(enable=False)
+		if self.ui.ui_type == 'gtk':
+			self.do_toggle_fileview(enable=False)
+			if self.statusbar_frame:
+				self.ui.mainwindow.statusbar.remove(self.statusbar_frame)
 		PluginClass.disconnect(self)
 
 	def do_preferences_changed(self):
@@ -300,8 +366,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		pixbuf = self.thumbman.get_thumbnail_async(file, ICON_SIZE)
 		if pixbuf is None:
 			# Set generic icon first - maybe thumbnail follows later, maybe not
-			# TODO: icon by mime-type
-			pixbuf = self.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_BUTTON)
+			pixbuf = get_mime_icon(file, ICON_SIZE) \
+				or self.render_icon(gtk.STOCK_FILE, ICON_SIZE)
 
 		self.store.append((file.basename, pixbuf)) # BASENAME_COL, PIXBUF_COL
 
@@ -556,7 +622,7 @@ class ThumbnailManager(gobject.GObject):
 			return pixbuf
 		except:
 			# TODO Error class, logging, create failure file ?
-			logger.info('Failed to generate thumbnail for: %s', file)
+			#~ logger.info('Failed to generate thumbnail for: %s', file)
 			return None
 
 		#~ if self.preferences['use_imagemagick']:
