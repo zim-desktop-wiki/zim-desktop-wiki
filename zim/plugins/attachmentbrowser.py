@@ -24,7 +24,7 @@
 # [ ] Allow more than 1 thread for thumbnailing
 # [ ] Can we cache image to thumb mapping (or image MD5) to spead up ?
 # [ ] Dont thumb small images
-# [ ] Mimetype specific icons
+# [x] Mimetype specific icons
 # [ ] Restore ImageMagick thumbnailer
 # [ ] Use thumbnailers/settings from gnome or other DEs ?
 # [ ] Action for deleting files in context menu
@@ -60,7 +60,8 @@ from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.parsing import url_encode, URL_ENCODE_READABLE
 
-from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, IconButton, ScrolledWindow
+from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
+	IconButton, ScrolledWindow, button_set_statusbar_style
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import \
 	URI_TARGETS, URI_TARGET_NAMES, \
@@ -180,10 +181,12 @@ This plugin is still under development.
 			self.statusbar_frame.set_shadow_type(gtk.SHADOW_IN)
 			self.ui.mainwindow.statusbar.pack_end(self.statusbar_frame, False)
 
-			self.statusbar_button = Button('_Attachments', status_bar_style=True)
-				# translated below
+			self.statusbar_button = gtk.ToggleButton('<attachments>') # translated below
+			button_set_statusbar_style(self.statusbar_button)
+
 			self.statusbar_button.set_use_underline(True)
-			self.statusbar_button.connect('clicked', lambda o: self.toggle_fileview(enable=True))
+			self.statusbar_button.connect_after('toggled',
+				lambda o: self.toggle_fileview(enable=o.get_active()) )
 			self.statusbar_frame.add(self.statusbar_button)
 			self.statusbar_frame.show_all()
 
@@ -213,6 +216,8 @@ This plugin is still under development.
 				self.widget.hide()
 				self.ui.mainwindow.remove(self.widget)
 			self.uistate['active'] = False
+
+		self.statusbar_button.set_active(enable) # sync statusbar button
 
 	def on_open_page(self, ui, page, path):
 		self.widget.set_page(page)

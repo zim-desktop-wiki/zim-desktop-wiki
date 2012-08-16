@@ -481,18 +481,6 @@ class Button(gtk.Button):
 	allow specifying a stock icon I{and} a label at the same time.
 	'''
 
-	# Set up a style for the statusbar variant to decrease spacing of the button
-	gtk.rc_parse_string('''\
-style "zim-statusbar-button-style"
-{
-	GtkWidget::focus-padding = 0
-	GtkWidget::focus-line-width = 0
-	xthickness = 0
-	ythickness = 0
-}
-widget "*.zim-statusbar-button" style "zim-statusbar-button-style"
-''')
-
 	def __init__(self, label=None, stock=None, use_underline=True, status_bar_style=False):
 		'''Constructor
 
@@ -517,8 +505,7 @@ widget "*.zim-statusbar-button" style "zim-statusbar-button-style"
 		self.set_use_underline(use_underline)
 
 		if status_bar_style:
-			self.set_name('zim-statusbar-button')
-			self.set_relief(gtk.RELIEF_NONE)
+			button_set_statusbar_style(self)
 
 
 class IconButton(gtk.Button):
@@ -781,6 +768,22 @@ class BrowserTreeView(SingleClickTreeView):
 gobject.type_register(BrowserTreeView)
 
 
+def button_set_statusbar_style(button):
+	# Set up a style for the statusbar variant to decrease spacing of the button
+	gtk.rc_parse_string('''\
+style "zim-statusbar-button-style"
+{
+	GtkWidget::focus-padding = 0
+	GtkWidget::focus-line-width = 0
+	xthickness = 0
+	ythickness = 0
+}
+widget "*.zim-statusbar-button" style "zim-statusbar-button-style"
+''')
+	button.set_name('zim-statusbar-button')
+	button.set_relief(gtk.RELIEF_NONE)
+
+
 class MenuButton(gtk.HBox):
 	'''This class implements a button which pops up a menu when clicked.
 	It behaves different from a combobox because it is not a selector
@@ -791,18 +794,6 @@ class MenuButton(gtk.HBox):
 	This module is based loosely on gedit-status-combo-box.c from the
 	gedit sources.
 	'''
-
-	# Set up a style for the statusbar variant to decrease spacing of the button
-	gtk.rc_parse_string('''\
-style "zim-statusbar-menubutton-style"
-{
-	GtkWidget::focus-padding = 0
-	GtkWidget::focus-line-width = 0
-	xthickness = 0
-	ythickness = 0
-}
-widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
-''')
 
 	def __init__(self, label, menu, status_bar_style=False):
 		'''Constructor
@@ -823,8 +814,7 @@ widget "*.zim-statusbar-menubutton" style "zim-statusbar-menubutton-style"
 		self.menu = menu
 		self.button = gtk.ToggleButton()
 		if status_bar_style:
-			self.button.set_name('zim-statusbar-menubutton')
-			self.button.set_relief(gtk.RELIEF_NONE)
+			button_set_statusbar_style(self.button)
 			widget = self.label
 		else:
 			arrow = gtk.Arrow(gtk.ARROW_UP, gtk.SHADOW_NONE)
