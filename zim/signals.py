@@ -132,6 +132,101 @@ class ConnectorMixin(object):
 		del self._connected_signals[key]
 
 
+class SignalEmitter(object):
+	'''Replacement for C{GObject} to make objects emit signals.
+	API should be backward compatible with API offered by GObject.
+	'''
+
+	__signals__ = {} #: signals supported by this class
+
+	# define signals we want to use - (closure type, return type and arg types)
+	# E.g. {signal: (gobject.SIGNAL_RUN_LAST, None, (object, object))}
+
+
+	def connect(self, signal, callback, userdata=None):
+		'''Register a handler for a specific object.
+
+		Note that connecting makes a hard reference to the connected
+		object. So connecting an bound method will prevent the
+		object the method belongs to to be destroyed untill the
+		signal is disconnected.
+
+		@param signal: the signal name
+		@param callback: callback to be called upon the signal,
+		first object to the callback will be the emitting object,
+		other params are signal specific.
+		@param userdata: optional data to provide to the callback
+		@returns: an id for the registered handler
+		'''
+		# TODO check signal in __signals__ + search parent classes
+		# if in parent, call the connect method of that class
+		if not hasattr(self, '_signal_handlers'):
+			self._signal_handlers = {}
+
+		if not signal in self._signal_handlers:
+			self._setup_signal(signal)
+			self._signal_handlers[signal] = []
+
+		handler = (callback, userdata)
+		self._signal_handlers[signal].append(handler)
+		handlerid = id(handler) # unique object id since we construct the tuple
+		return handlerid
+
+
+	# TODO connect_after()
+
+	def disconnect(self, handlerid):
+		if not hasattr(self, '_signal_handlers'):
+			return
+
+		for signal, handlers in self._signal_handlers.items():
+			# unique id, so when we find it, stop searching
+			ids = map(id, handlers)
+			try:
+				i = ids.index(handlerid)
+			except ValueError:
+				continue
+			else:
+				handlers.pop(i)
+				if not handlers:
+					self._signal_handlers.pop(signal)
+					self._teardown_signal(signal)
+				break
+
+	def _setup_signal(self, signal):
+		# Called first time a signal is registered - for subclasses
+		pass
+
+	def _teardown_signal(self, signal):
+		# Called after last handler is disconnected - for subclasses
+		pass
+
+	def emit(self, signal, *args):
+		# TODO check signal in __signals__ + search parent classes
+		# if in parent - call the emit mehtod of that class
+		# if our own signal check args match spec
+		if not hasattr(self, '_signal_handlers') \
+		or not signal in self._signal_handlers:
+			return
+
+		for handler in self._signal_handlers[signal]:
+			callback, userdata = handler
+			if userdata is None:
+				myargs = args
+			else:
+				myargs = args + (userdata,)
+
+			try:
+				callback(self, *myargs)
+			except:
+				# TODO in case of test mode, re-raise the error
+				logger.excetion('Exception in signal handler for %s on %s', signal, self)
+
+
+		# TODO call do_signal_name (replace - with _)
+		# either before or after signals RUN_LAST vs RUN_FIRST
+
+
 class DelayedCallback(object):
 	'''Wrapper for callbacks that need to be delayed after a signal
 

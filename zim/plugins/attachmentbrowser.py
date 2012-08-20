@@ -5,6 +5,7 @@
 # License:  same as zim (gpl)
 #
 # ChangeLog
+# 2012-08-17 Added mimetype icons, statusbar toggle button, and gio monitor support
 # 2012-07-20 Updated code for pane uistate (Jaap)
 # 2012-04-17 Allow drag&drop when folder does not exist yet + fix drag&drop on windows (Jaap)
 # 2012-02-29 Further work on making iconview look nice and support drag&drop (Jaap)
@@ -20,11 +21,11 @@
 # 2010-06-29 1st working version
 #
 # TODO:
-# [ ] GIO watcher to detect folder update - add API to zim.fs for watcher ?
+# [x] GIO watcher to detect folder update - add API to zim.fs for watcher ?
 # [ ] Allow more than 1 thread for thumbnailing
 # [ ] Can we cache image to thumb mapping (or image MD5) to spead up ?
 # [ ] Dont thumb small images
-# [ ] Mimetype specific icons
+# [x] Mimetype specific icons
 # [ ] Restore ImageMagick thumbnailer
 # [ ] Use thumbnailers/settings from gnome or other DEs ?
 # [ ] Action for deleting files in context menu
@@ -35,6 +36,7 @@
 '''Zim plugin to display files in attachments folder.'''
 
 
+import os
 import re
 import hashlib # for thumbfilenames
 import datetime
@@ -135,6 +137,27 @@ def get_mime_icon(file, size):
 		return None
 
 
+def is_hidden_file(file):
+	# FIXME put this in zim.fs
+	if not os.name == 'nt':
+		return False
+
+	import ctypes
+	INVALID_FILE_ATTRIBUTES = -1
+	FILE_ATTRIBUTE_HIDDEN = 2
+
+	try:
+		attrs = ctypes.windll.kernel32.GetFileAttributesW(file.path)
+			# note: GetFileAttributesW is unicode version of GetFileAttributes
+	except AttributeError:
+		return False
+	else:
+		if attrs == INVALID_FILE_ATTRIBUTES:
+			return False
+		else:
+			return bool(attrs & FILE_ATTRIBUTE_HIDDEN)
+
+
 class AttachmentBrowserPlugin(PluginClass):
 
 	plugin_info = {
@@ -145,7 +168,7 @@ icon view at bottom pane.
 
 This plugin is still under development.
 '''), # T: plugin description
-		'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>',
+		'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>\nJaap Karssenberg <jaap.karssenberg@gmail.com>',
 		'help': 'Plugins:Attachment Browser',
 	}
 
@@ -165,6 +188,7 @@ This plugin is still under development.
 		#~ return [("ImageMagick",Application(('convert',None)).tryexec())]
 
 	def initialize_ui(self, ui):
+		self._monitor = None
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			#self.ui.add_actions(ui_actions, self)
@@ -174,16 +198,19 @@ This plugin is still under development.
 		if self.ui.ui_type == 'gtk':
 			self.uistate.setdefault('active', True)
 
-			self.widget = AttachmentBrowserPluginWidget(self.ui, self.preferences)
+			self.widget = AttachmentBrowserPluginWidget(self, self.preferences)
 
 			self.statusbar_frame = gtk.Frame()
 			self.statusbar_frame.set_shadow_type(gtk.SHADOW_IN)
 			self.ui.mainwindow.statusbar.pack_end(self.statusbar_frame, False)
 
-			self.statusbar_button = Button('_Attachments', status_bar_style=True)
-				# translated below
+			self.statusbar_button = gtk.ToggleButton('<attachments>') # translated below
+			self.statusbar_button.set_relief(gtk.RELIEF_NONE)
+				# TODO set statusbar style instead
+
 			self.statusbar_button.set_use_underline(True)
-			self.statusbar_button.connect('clicked', lambda o: self.toggle_fileview(enable=True))
+			self.statusbar_button.connect_after('toggled',
+				lambda o: self.toggle_fileview(enable=o.get_active()) )
 			self.statusbar_frame.add(self.statusbar_button)
 			self.statusbar_frame.show_all()
 
@@ -214,13 +241,29 @@ This plugin is still under development.
 				self.ui.mainwindow.remove(self.widget)
 			self.uistate['active'] = False
 
-	def on_open_page(self, ui, page, path):
-		self.widget.set_page(page)
+		self.statusbar_button.set_active(enable) # sync statusbar button
 
+	def on_open_page(self, ui, page, path):
+		self._disconnect_monitor()
+
+		self.widget.set_page(page)
+		self._refresh_button(page)
+
+		dir = self.ui.notebook.get_attachments_dir(page)
+		id = dir.connect('changed', self.on_dir_changed)
+		self._monitor = (dir, id)
+
+	def on_dir_changed(self, *a):
+		logger.debug('Dir change detected: %s', a)
+		self._refresh_button(self.ui.page)
+		self.widget.refresh_if_visible()
+
+	def _refresh_button(self, page):
 		n = self.get_n_attachments(page)
 		self.statusbar_button.set_label(
 			ngettext('%i _Attachment', '%i _Attachments', n) % n)
 			# T: Label for the statusbar, %i is the number of attachments for the current page
+		self.widget.refresh_if_visible()
 
 	def get_n_attachments(self, page):
 		# Calculate independent from the widget
@@ -231,17 +274,25 @@ This plugin is still under development.
 		for name in dir.list():
 			# If dir is an attachment folder, sub-pages maybe filtered out already
 			# TODO need method in zim.fs to do this count efficiently
+			# TODO ignore hidden files here as well
 			if not isdir(dir.path + '/' + name):
 				# Ignore subfolders -- FIXME ?
 				n += 1
 		return n
 
 	def disconnect(self):
+		self._disconnect_monitor()
 		if self.ui.ui_type == 'gtk':
 			self.do_toggle_fileview(enable=False)
 			if self.statusbar_frame:
 				self.ui.mainwindow.statusbar.remove(self.statusbar_frame)
 		PluginClass.disconnect(self)
+
+	def _disconnect_monitor(self):
+		if self._monitor:
+			dir, id = self._monitor
+			dir.disconnect(id)
+			self._monitor = None
 
 	def do_preferences_changed(self):
 		if self.widget.get_property('visible'):
@@ -254,9 +305,10 @@ PIXBUF_COL = 1
 
 class AttachmentBrowserPluginWidget(gtk.HBox):
 
-	def __init__(self, ui, preferences):
+	def __init__(self, plugin, preferences):
 		gtk.HBox.__init__(self)
-		self.ui = ui
+		self.plugin = plugin
+		self.ui = plugin.ui
 		self.preferences = preferences
 		self.dir = None
 
@@ -292,7 +344,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		self.buttonbox.pack_start(open_folder_button, False)
 
 		refresh_button = IconButton(gtk.STOCK_REFRESH, relief=False)
-		refresh_button.connect('clicked', lambda o: self.refresh())
+		refresh_button.connect('clicked', lambda o: self.on_refresh_button())
 		self.buttonbox.pack_start(refresh_button, False)
 
 		self.fileview.connect('button-press-event', self.on_button_press_event)
@@ -326,13 +378,20 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		#~ print "set_folder", dir
 		if dir != self.dir:
 			self.dir = dir
-			if self.get_property('visible'):
-				self.refresh()
+			self.refresh_if_visible()
 
 	def on_open_folder(self, o):
 		# Callback for the "open folder" button
 		self.ui.open_attachments_folder()
 		self._update_state()
+
+	def on_refresh_button(self):
+		self.refresh()
+		self.plugin._refresh_button(self.ui.page) # bit of a HACK to get the page here
+
+	def refresh_if_visible(self):
+		if self.get_property('visible'):
+			self.refresh()
 
 	def refresh(self):
 		# Callback for "refresh" button but also called when new folder
@@ -344,7 +403,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		for name in self.dir.list():
 			# If dir is an attachment folder, sub-pages maybe filtered out already
 			file = self.dir.file(name)
-			if file.isdir():
+			if file.isdir() or is_hidden_file(file):
 				continue # Ignore subfolders -- FIXME ?
 			else:
 				self._add_file(file)

@@ -321,6 +321,29 @@ class TestFS(tests.TestCase):
 		self.assertFalse(dir.exists())
 		self.assertEqual(dir.list(), []) # list non-existing dir
 
+	# TODO skip if no gio available
+	# TODO slow test
+	#~ def testMonitor(self):
+		#~ tmpdir = Dir(self.create_tmp_dir('testMonitor'))
+
+		#~ # Monitor file
+		#~ events = []
+		#~ def monitor(*args):
+			#~ events.append(args)
+
+		#~ file = tmpdir.file('foo')
+		#~ file.connect('changed', monitor)
+		#~ file.touch()
+		#~ file.write('Foo')
+		#~ # timeout ?
+		#~ print '>>', events
+
+		#~ # Monitor dir
+		#~ tmpdir.connect('changed', monitor)
+		#~ tmpdir.file('bar').touch()
+		#~ # timeout ?
+		#~ print '>>', events
+
 
 @tests.slowTest
 class TestFileOverwrite(tests.TestCase):

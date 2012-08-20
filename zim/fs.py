@@ -127,6 +127,8 @@ import logging
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.parsing import url_encode, url_decode
 from zim.async import AsyncOperation, AsyncLock
+from zim.signals import SignalEmitter
+
 
 logger = logging.getLogger('zim.fs')
 
@@ -140,7 +142,8 @@ except ImportError:
 	pass
 
 if not gio:
-	logger.warn("Trashing of files not supported, could not import 'gio'")
+	logger.info("Trashing of files not supported, could not import 'gio'")
+	logger.info('No file monitor support - changes will go undetected')
 
 
 xdgmime = None
@@ -285,7 +288,7 @@ def expanduser(path):
 		if isinstance(path, unicode):
 			part = parts[0].encode('mbcs')
 			part = os.path.expanduser(part)
-			parts[0] = part.decode('mbcs')			
+			parts[0] = part.decode('mbcs')
 		else:
 			# assume it is compatible
 			parts[0] = os.path.expanduser(parts[0])
@@ -489,7 +492,7 @@ gobject.type_register(FSSingletonClass)
 FS = FSSingletonClass()
 
 
-class UnixPath(object):
+class UnixPath(SignalEmitter):
 	'''Base class for Dir and File objects, represents a file path
 
 	@ivar path: the absolute file path as string
@@ -501,7 +504,13 @@ class UnixPath(object):
 	@ivar basename: the basename of the path
 	@ivar dirname: the dirname of the path
 	@ivar dir: L{Dir} object for the parent folder
+
+	@signal: C{changed (file, other_file, event_type)}: emitted when file
+	changed - availability based on C{gio} support for file monitors on
+	this platform
 	'''
+
+	# TODO __signals__
 
 	def __init__(self, path):
 		'''Constructor
@@ -627,6 +636,34 @@ class UnixPath(object):
 		'''Returns a L{Dir} object for the parent dir'''
 		path = os.path.dirname(self.path) # encoding safe
 		return Dir(path)
+
+	def _setup_signal(self, signal):
+		if signal != 'changed' \
+		or not gio:
+			return
+
+		try:
+			self._teardown_signal(signal) # just to be sure
+			file = gio.File(uri=self.uri)
+			self._gio_file_monitor = file.monitor()
+			self._gio_file_monitor.connect('changed', self._do_changed)
+		except:
+			logger.exception('Error while setting up file monitor')
+
+	def _teardown_signal(self, signal):
+		if signal != 'changed' \
+		or not hasattr(self, '_gio_file_monitor') \
+		or not self._gio_file_monitor:
+			return
+
+		try:
+			self._gio_file_monitor.cancel()
+			self._gio_file_monitor = None
+		except:
+			logger.exception('Error while tearing down file monitor')
+
+	def _do_changed(self, filemonitor, file, other_file, event_type):
+		self.emit('changed', None, None) # TODO translate otherfile and eventtype
 
 	def exists(self):
 		'''Check if a file or folder exists.
