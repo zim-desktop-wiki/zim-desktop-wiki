@@ -277,12 +277,20 @@ def expanduser(path):
 		# This method is an exception in that it does not handle unicode
 		# directly. This will cause and error when user name contains
 		# non-ascii characters. See bug report lp:988041.
-		if isinstance(path, unicode):
-			path = path.encode('mbcs')
-		# else assume it is compatible
+		# But also mbcs encoding does not handle all characters,
+		# so only encode home part
+		parts = path.replace('\\', '/').strip('/').split('/')
+			# parts[0] now is "~" or "~user"
 
-		path = os.path.expanduser(path)
-		return path.decode('mbcs')
+		if isinstance(path, unicode):
+			part = parts[0].encode('mbcs')
+			part = os.path.expanduser(part)
+			parts[0] = part.decode('mbcs')			
+		else:
+			# assume it is compatible
+			parts[0] = os.path.expanduser(parts[0])
+
+		return '/'.join(parts)
 	else:
 		# Let encode() handle the unicode encoding
 		return decode(os.path.expanduser(encode(path)))
@@ -669,7 +677,7 @@ class UnixPath(object):
 			stat_result = os.stat(self.encodedpath)
 			other_stat_result = os.stat(other.encodedpath)
 		except OSError:
-			return false
+			return False
 		else:
 			return stat_result == other_stat_result
 
@@ -1336,7 +1344,7 @@ class UnixFile(FilePath):
 		assert mode in ('r', 'w')
 		if mode == 'w':
 			if not self.iswritable():
-				raise FileWriteError, _('File is not writable') # T: Error message
+				raise FileWriteError, _('File is not writable: %s') % self.path # T: Error message
 			elif not self.exists():
 				self.dir.touch()
 			else:
@@ -1599,7 +1607,8 @@ class UnixFile(FilePath):
 			if not self._mtime == mtime:
 				logger.warn('mtime check failed for %s, trying md5', self.path)
 				if _md5(self._content) != _md5(self.open('r').read()):
-					raise FileWriteError, 'File changed on disk: %s' % self.path
+					raise FileWriteError, _('File changed on disk: %s') % self.path
+						# T: error message
 					# Why are we using MD5 here ?? could just compare content...
 
 	def touch(self):

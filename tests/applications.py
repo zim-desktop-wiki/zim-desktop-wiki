@@ -2,6 +2,9 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from __future__ import with_statement
+
+
 import tests
 
 import os
@@ -94,6 +97,85 @@ class TestApplications(tests.TestCase):
 	# TODO fully test _decode_value
 	# test e.g. values with '"' or '\t' in a string
 	# see that json.loads does what it is supposed to do
+
+
+@tests.slowTest
+class TestApplicationManager(tests.TestCase):
+
+	def testGetMimeType(self):
+		for obj, mimetype in (
+			(File('README.txt'), 'text/plain'),
+			('README.txt', 'text/plain'),
+			('ssh://host', 'x-scheme-handler/ssh'),
+			('http://host', 'x-scheme-handler/http'),
+			('README.html', 'text/html'),
+			('mailto:foo@bar.org', 'x-scheme-handler/mailto'),
+		):
+			self.assertEqual(get_mimetype(obj), mimetype)
+
+	def testGetSetApplications(self):
+		# Typically a system will have multiple programs installed for
+		# text/plain and text/html, but do not rely on them for
+		# testing, so create our own first to test.
+
+		#~ print XDG_DATA_HOME, XDG_DATA_DIRS
+		manager = ApplicationManager()
+
+		## Test Create & Get
+		entry_text = manager.create('text/plain', 'Test_Entry_Text', 'test_text 123', NoDisplay=False)
+		entry_html = manager.create('text/html', 'Test_Entry_HTML', 'test_html %u', NoDisplay=False)
+		entry_url = manager.create('x-scheme-handler/ssh', 'Test_Entry_SSH', 'test_ssh %u', NoDisplay=False)
+		for entry in (entry_text, entry_html, entry_url):
+			self.assertTrue(entry.file.exists())
+			self.assertEqual(manager.get_application(entry.key), entry)
+			self.assertFalse(entry['Desktop Entry']['NoDisplay'])
+
+		## Test Set & Get Default
+		defaults = XDG_DATA_HOME.file('applications/defaults.list')
+		self.assertFalse(defaults.exists())
+
+		default = manager.get_default_application('text/plain')
+		self.assertIsInstance(default, (None.__class__, DesktopEntryFile))
+			# system default or None
+
+		manager.set_default_application('text/plain', entry_html) # create
+		manager.set_default_application('text/plain', entry_text) # update
+
+		self.assertTrue(defaults.exists())
+		self.assertEqual(defaults.read(),
+			'[Default Applications]\n'
+			'text/plain=test_entry_text-usercreated.desktop\n'
+		)
+		self.assertEqual(manager.get_default_application('text/plain'), entry_text)
+
+		manager.set_default_application('text/plain', None)
+		self.assertEqual(defaults.read(),
+			'[Default Applications]\n'
+		)
+		self.assertNotEqual(manager.get_default_application('text/plain'), entry_text)
+
+		## Test listing
+		#~ print manager.list_applications('text/plain')
+		applications = manager.list_applications('text/plain')
+		self.assertGreaterEqual(len(applications), 1)
+		self.assertIn(entry_text, applications)
+
+		#~ print manager.list_applications('text/html')
+		for mimetype in ('text/html', 'x-scheme-handler/http'):
+			applications = manager.list_applications(mimetype)
+			self.assertGreaterEqual(len(applications), 1)
+			self.assertIn(entry_html, applications)
+
+		#~ print manager.list_applications('text/plain')
+		applications = manager.list_applications('x-scheme-handler/ssh')
+		self.assertGreaterEqual(len(applications), 1)
+		self.assertIn(entry_url, applications)
+
+		## Increase coverage
+		self.assertIsInstance(manager.get_application('webbrowser'), WebBrowser)
+		self.assertIsInstance(manager.get_application('startfile'), StartFile)
+		self.assertIsNone(manager.get_application('non_existing_application'))
+
 
 
 @tests.slowTest
@@ -214,6 +296,93 @@ class TestCustomTools(tests.TestCase):
 			#~ print '>>>', cmd
 			tool['Desktop Entry']['X-Zim-ExecTool'] = cmd
 			self.assertEqual(tool.parse_exec(args), wanted)
+
+
+class TestOpenWithMenu(tests.TestCase):
+
+	def runTest(self):
+		# Create some custom entries - should NOT appear in menu
+		manager = ApplicationManager()
+		entry_text = manager.create('text/plain', 'Test_Entry_Text', 'test_text 123')
+		entry_url = manager.create('x-scheme-handler/ssh', 'Test_Entry_SSH', 'test_ssh %u')
+		for entry in (entry_text, entry_url):
+			self.assertTrue(entry.file.exists())
+			self.assertEqual(manager.get_application(entry.key), entry)
+			self.assertTrue(entry['Desktop Entry']['NoDisplay'])
+				# do not show custom items in menus
+
+		# Mock main ui object
+		ui = tests.MockObject()
+		ui.windows = []
+
+		# Check menu
+		for obj, mimetype, test_entry in (
+			(File('README.txt'), 'text/plain', entry_text),
+			('ssh://host', 'x-scheme-handler/ssh', entry_url),
+		):
+			manager.set_default_application(mimetype, test_entry)
+
+			menu = OpenWithMenu(ui, obj)
+			self.assertEqual(menu.mimetype, mimetype)
+			for item in menu.get_children():
+				if hasattr(item, 'entry'):
+					self.assertFalse(item.entry['Desktop Entry'].get('NoDisplay', False),
+						msg='Entry %s should not be in menu' % item.entry)
+
+			def test_configure_applications_dialog(dialog):
+				self.assertIsInstance(dialog, CustomizeOpenWithDialog)
+
+				# test default displays as set above
+				active = dialog.default_combo.get_active()
+				self.assertEqual(active, test_entry)
+				self.assertEqual(
+					manager.get_default_application(mimetype).key,
+					test_entry.key
+				)
+
+				# test changing to system default and back
+				last = len(dialog.default_combo.get_model()) - 1
+				dialog.default_combo.set_active(last)
+				active = dialog.default_combo.get_active()
+				self.assertIsInstance(active, SystemDefault)
+				default = manager.get_default_application(mimetype)
+				self.assertTrue(default is None or default.key != test_entry.key)
+
+				dialog.default_combo.set_active(0)
+				active = dialog.default_combo.get_active()
+				self.assertEqual(active, test_entry)
+				self.assertEqual(
+					manager.get_default_application(mimetype).key,
+					test_entry.key
+				)
+
+				# trigger new app dialog and check new default set
+				dialog.on_add_application(None)
+
+				active = dialog.default_combo.get_active()
+				self.assertEqual(active.name, 'Test New App Dialog')
+				self.assertEqual(
+					manager.get_default_application(mimetype).key,
+					active.key
+				)
+
+			def test_new_app_dialog(dialog):
+				self.assertIsInstance(dialog, AddApplicationDialog)
+				dialog.form['name'] = 'Test New App Dialog'
+				dialog.form['exec'] = 'Test 123'
+				dialog.form['default'] = True
+				entry = dialog.assert_response_ok()
+				self.assertTrue(entry.file.exists())
+				self.assertTrue(entry.nodisplay) # implied by default = True
+
+				manager = ApplicationManager()
+				self.assertEqual(manager.get_default_application(mimetype), entry)
+
+			with tests.DialogContext(
+				test_configure_applications_dialog,
+				test_new_app_dialog
+			):
+				tests.gtk_activate_menu_item(menu, menu.CUSTOMIZE)
 
 
 class StubPageView(object):

@@ -531,32 +531,39 @@ def interwiki_link(link):
 	'''Convert an interwiki link into an url'''
 	assert isinstance(link, basestring) and '?' in link
 	key, page = link.split('?', 1)
-	url = None
+	lkey = key.lower()
+ 	url = None
 
-	# Search all "urls.list" in config and data dirs
-	def check_dir(dir):
-		file = dir.file('urls.list')
-		if not file.exists():
-			return None
+	# First check known notebooks
+	list = get_notebook_list()
+	info = list.get_interwiki(key)
+	if info:
+		url = 'zim+' + info.uri + '?{NAME}'
 
-		for line in file.readlines():
-			if line.startswith(key+' ') or line.startswith(key+'\t'):
-				url = line[len(key):].strip()
-				return url
-		else:
-			return None
 
-	for dir in config_dirs(): # also implies data_dirs()
-		url = check_dir(dir)
-		if url:
-			break
+	# Then search all "urls.list" in config and data dirs
+ 	def check_dir(dir):
+ 		file = dir.file('urls.list')
+ 		if not file.exists():
+ 			return None
 
-	# If not found check known notebook
-	if not url:
-		list = get_notebook_list()
-		info = list.get_interwiki(key)
-		if info:
-			url = 'zim+' + info.uri + '?{URL}' # url encode page name!
+ 		for line in file.readlines():
+			if line.startswith('#') or line.isspace():
+				continue
+			try:
+				mykey, myurl = line.split(None, 1)
+			except ValueError:
+				continue
+			if mykey.lower() == lkey:
+				return myurl.strip()
+ 		else:
+ 			return None
+
+ 	if not url:
+		for dir in config_dirs():
+ 			url = check_dir(dir)
+ 			if url:
+ 				break
 
 	# Format URL
 	if url and is_url_re.match(url):

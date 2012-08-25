@@ -30,6 +30,43 @@ class TestCalendarFunctions(tests.TestCase):
 		self.assertEqual(start, dateclass(2012, 4 ,22)) # a sunday
 		self.assertEqual(end, dateclass(2012, 4, 28)) # a saturday
 
+		start, end = dates_for_week(2013, 1)
+		self.assertEqual(start, dateclass(2012, 12 ,30)) # a sunday
+		self.assertEqual(end, dateclass(2013, 1, 5)) # a saturday
+
+		start, end = dates_for_week(2009, 53)
+		self.assertEqual(start, dateclass(2009, 12 ,27)) # a sunday
+		self.assertEqual(end, dateclass(2010, 1, 2)) # a saturday
+
+	def testWeekCalendar(self):
+		from zim.plugins.calendar import week_calendar
+		sunday = dateclass(2012, 4 ,22)
+		monday = dateclass(2012, 4, 23)
+		nextsunday = dateclass(2012, 4, 29)
+
+		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
+			zim.plugins.calendar.MONDAY
+		self.assertEqual(week_calendar(sunday), (2012, 16))
+		self.assertEqual(week_calendar(monday), (2012, 17))
+		self.assertEqual(week_calendar(nextsunday), (2012, 17))
+
+		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
+			zim.plugins.calendar.SUNDAY
+		self.assertEqual(week_calendar(sunday), (2012, 17))
+		self.assertEqual(week_calendar(monday), (2012, 17))
+		self.assertEqual(week_calendar(nextsunday), (2012, 18))
+
+		dec31 = dateclass(2012, 12, 31)
+		jan1 = dateclass(2013, 1, 1)
+		self.assertEqual(week_calendar(dec31), (2013, 1))
+		self.assertEqual(week_calendar(jan1), (2013, 1))
+
+		dec31 = dateclass(2009, 12, 31)
+		jan1 = dateclass(2010, 1, 1)
+		self.assertEqual(week_calendar(dec31), (2009, 53))
+		self.assertEqual(week_calendar(jan1), (2009, 53))
+
+
 	def testDateRangeFromPath(self):
 		from zim.plugins.calendar import daterange_from_path
 

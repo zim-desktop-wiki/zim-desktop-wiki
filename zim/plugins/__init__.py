@@ -30,6 +30,8 @@ import zim.fs
 from zim.fs import Dir
 from zim.config import ListDict, get_environ
 
+from zim.signals import ConnectorMixin, SIGNAL_AFTER
+
 
 logger = logging.getLogger('zim.plugins')
 
@@ -216,10 +218,14 @@ class PluginClassMeta(gobject.GObjectMeta):
 				self.finalize_notebook(self.ui.notebook)
 			else:
 				self.initialize_ui(ui)
-				self.ui.connect_after('open-notebook', self._merge_uistate)
+
+				def after_open_notebook(*a):
+					self._merge_uistate()
+					self.finalize_notebook(self.ui.notebook)
+
+				self.connectto(self.ui, 'open-notebook',
+					after_open_notebook, order=SIGNAL_AFTER)
 					# FIXME with new plugin API should not need this merging
-				self.ui.connect_object_after('open-notebook',
-					self.__class__.finalize_notebook, self)
 
 		klass.__init__ = decoratedinit
 
@@ -231,16 +237,14 @@ class PluginClassMeta(gobject.GObjectMeta):
 			if not self.__class__ is klass:
 				return # Avoid wrapping both base class and sub classes
 			#~ print 'FINALIZE UI', self
-			ui.connect_object('new-window', self.__class__.do_decorate_window, self)
 			for window in ui.windows:
 				self.do_decorate_window(window)
+			self.connectto(ui, 'new-window', lambda u,w: self.do_decorate_window(w))
 
 		klass.finalize_ui = decoratedfinalize
 
 
-
-
-class PluginClass(gobject.GObject):
+class PluginClass(ConnectorMixin, gobject.GObject):
 	'''Base class for plugins. Every module containing a plugin should
 	have exactly one class derived from this base class. That class
 	will be initialized when the plugin is loaded.
@@ -248,6 +252,11 @@ class PluginClass(gobject.GObject):
 	Plugin classes should define two class attributes: L{plugin_info} and
 	L{plugin_preferences}. Optionally, they can also define the class
 	attribute L{is_profile_independent}.
+
+	This class inherits from L{ConnectorMixin} and calls
+	L{ConnectorMixin.disconnect_all()} when the plugin is disconnected.
+	Therefore it is highly recommended to use the L{ConnectorMixin}
+	methods in sub-classes.
 
 	@cvar plugin_info: A dict with basic information about the plugin,
 	it should contain at least the following keys:
@@ -375,7 +384,7 @@ class PluginClass(gobject.GObject):
 		else:
 			self.uistate = ListDict()
 
-	def _merge_uistate(self, *a):
+	def _merge_uistate(self):
 		# As a convenience we provide a uistate dict directly after
 		# initialization of the plugin. However, in reality this
 		# config file is only available after the notebook is opened.
@@ -487,10 +496,22 @@ class PluginClass(gobject.GObject):
 		just removes any menu items that were defined by this plugin.
 		'''
 		if self.ui.ui_type == 'gtk':
-			self.ui.remove_ui(self)
-			self.ui.remove_actiongroup(self)
+			try:
+				self.ui.remove_ui(self)
+				self.ui.remove_actiongroup(self)
+			except:
+				logger.exception('Exception while disconnecting %s', self)
+
 			if self._is_image_generator_plugin:
-				self.ui.mainpage.pageview.unregister_image_generator_plugin(self)
+				try:
+					self.ui.mainpage.pageview.unregister_image_generator_plugin(self)
+				except:
+					logger.exception('Exception while disconnecting %s', self)
+
+		try:
+			self.disconnect_all()
+		except:
+			logger.exception('Exception while disconnecting %s', self)
 
 	def toggle_action(self, action, active=None):
 		'''Trigger a toggle action.

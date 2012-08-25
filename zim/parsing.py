@@ -347,8 +347,21 @@ url_re = Re(r'''(
 	# See rfc/3986 for the official -but unpractical- regex
 
 
+def uri_scheme(link):
+	'''Function that returns a scheme for URIs, URLs and email addresses'''
+	if is_email_re.match(link):
+		return 'mailto'
+	elif is_uri_re.match(link):
+		# Includes URLs, but also URIs like "mid:", "cid:"
+		return is_uri_re[1]
+	else:
+		return None
+
+
 def link_type(link):
 	'''Function that returns a link type for urls and page links'''
+	# More strict than uri_scheme() because page links conflict with
+	# URIs without "//" or without "@"
 	if is_url_re.match(link):
 		if link.startswith('zim+'): type = 'notebook'
 		else: type = is_url_re[1]

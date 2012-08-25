@@ -17,7 +17,8 @@ from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.config import value_is_coord
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
-	PageEntry, IconButton, SingleClickTreeView, scrolled_text_view
+	PageEntry, IconButton, SingleClickTreeView, \
+	ScrolledWindow, ScrolledTextView, VPaned
 from zim.utils import natural_sort_key
 
 
@@ -102,7 +103,7 @@ class VCS(object):
 		@param dir: a L{File} instance representing the notebook root folder
 		@returns: a L{VCSBackend} instance which will manage the versioning or C{None}
 		"""
-		root, name = klass._detect_in_folder(dir)
+		name, root = klass._detect_in_folder(dir)
 
 		if name == 'bzr':
 			vcs = VCS.create(VCS.BZR, root)
@@ -110,10 +111,13 @@ class VCS(object):
 			vcs = VCS.create(VCS.HG, root)
 		elif name == 'git':
 			vcs = VCS.create(VCS.GIT, root)
-		# else maybe detected something, but no backend available
+		else:
+			# else maybe detected something, but no backend available
+			vcs = None
 
 		if vcs:
 			logger.info('VCS detected: %s - %s', name, root)
+			return vcs
 		else:
 			logger.info('No VCS detected')
 			return None
@@ -819,10 +823,10 @@ class SaveVersionDialog(Dialog):
 		self.vbox.pack_start(
 			gtk.Label(_("Please enter a comment for this version")), False)  # T: Dialog text
 
-		vpaned = gtk.VPaned()
+		vpaned = VPaned()
 		self.vbox.add(vpaned)
 
-		window, self.textview = scrolled_text_view(_('Saved version from zim'))
+		window, self.textview = ScrolledTextView(_('Saved version from zim'))
 			# T: default version comment in the "save version" dialog
 		self.textview.set_editable(True)
 		vpaned.add1(window)
@@ -837,7 +841,7 @@ class SaveVersionDialog(Dialog):
 		vbox.pack_start(label, False)
 
 		status = self.vcs.get_status()
-		window, textview = scrolled_text_view(text=''.join(status), monospace=True)
+		window, textview = ScrolledTextView(text=''.join(status), monospace=True)
 		vbox.add(window)
 
 
@@ -865,7 +869,7 @@ class VersionsDialog(Dialog):
 		self.uistate.setdefault('windowsize', (600, 500), check=value_is_coord)
 		self.uistate.setdefault('vpanepos', 300)
 
-		self.vpaned = gtk.VPaned()
+		self.vpaned = VPaned()
 		self.vpaned.set_position(self.uistate['vpanepos'])
 		self.vbox.add(self.vpaned)
 
@@ -910,27 +914,22 @@ state. Or select multiple versions to see changes between those versions.
 		# Version list
 		self.versionlist = VersionsTreeView()
 		self.versionlist.load_versions(vcs.list_versions())
-		scrolled = gtk.ScrolledWindow()
-		scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		scrolled.set_shadow_type(gtk.SHADOW_IN)
-		scrolled.add(self.versionlist)
+		scrolled = ScrolledWindow(self.versionlist)
 		vbox.add(scrolled)
 
 		# -----
 		vbox = gtk.VBox(spacing=5)
 		self.vpaned.pack2(vbox, resize=False)
 
-		frame = gtk.Frame()
 		label = gtk.Label('<b>'+_('Comment')+'</b>') # T: version details
 		label.set_use_markup(True)
-		frame.set_label_widget(label)
-		vbox.add(frame)
+		label.set_alignment(0.0, 0.5)
+		vbox.pack_start(label, False)
 
 		# Comment text
-		window, textview = scrolled_text_view()
+		window, textview = ScrolledTextView()
 		self.comment_textview = textview
-		window.set_border_width(10)
-		frame.add(window)
+		vbox.add(window)
 
 		buttonbox = gtk.HButtonBox()
 		buttonbox.set_layout(gtk.BUTTONBOX_END)
@@ -1075,7 +1074,7 @@ class TextDialog(Dialog):
 	def __init__(self, ui, title, lines):
 		Dialog.__init__(self, ui, title, buttons=gtk.BUTTONS_CLOSE)
 		self.set_default_size(600, 300)
-		window, textview = scrolled_text_view(''.join(lines), monospace=True)
+		window, textview = ScrolledTextView(''.join(lines), monospace=True)
 		self.vbox.add(window)
 
 

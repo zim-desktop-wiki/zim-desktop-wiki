@@ -5,7 +5,9 @@ Wiki-Format: zim 0.4
 
 Zim uses templates when exporting pages. This way you can for example write your website in zim and export it to HTML using the layout and style definition of you choice.
 
-Templates are also used to initalize new pages.
+Templates are also used to initialize new pages.
+
+If you are looking for information for file templates for attachments, see [[Attachments]]
 
 ===== Template Editor Dialog =====
 
@@ -17,11 +19,11 @@ Templates can either be system defaults, or custom templates in your home folder
 
 ===== Templates for export =====
 
-For a list of templates for exporting see [[Help:Export]] and subpages. 
+For a list of templates for exporting see [[Export]] and subpages. 
 
 ===== Template options =====
 
-Templates can also set template options that influence the generated output, by setting key-value pairs like in the example below. A list of available template options for a output format can be found at [[Help:Export]] and subpages.
+Templates can also set template options that influence the generated output, by setting key-value pairs like in the example below. A list of available template options for a output format can be found at [[Export]] and subpages.
 
 ===== Special templates =====
 

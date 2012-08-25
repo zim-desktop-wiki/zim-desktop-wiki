@@ -1545,6 +1545,21 @@ foo
 		result = cleanup(result)
 		self.assertEqual(result.tostring(), parsetree.tostring())
 
+		# copy partial
+		# line 33, offset 6 to 28 "try these **bold**, //italic//" in roundtrip page
+		wanted_tree = "<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>"
+		wanted_text = "try these bold, italic" # no newline !
+		Clipboard.clear()
+		self.assertIsNone(Clipboard.get_parsetree())
+		start = buffer.get_iter_at_line_offset(33, 6)
+		end = buffer.get_iter_at_line_offset(33, 28)
+		buffer.select_range(start, end)
+		textview.emit('copy-clipboard')
+		result = Clipboard.get_parsetree(notebook, page)
+		self.assertIsNotNone(result)
+		self.assertEqual(result.tostring(), wanted_tree)
+		self.assertEqual(Clipboard.get_text(), wanted_text)
+
 		# cut
 		Clipboard.clear()
 		self.assertIsNone(Clipboard.get_parsetree())

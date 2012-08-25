@@ -10,7 +10,7 @@ import datetime
 import locale
 
 from zim.plugins import PluginClass
-from zim.gui.widgets import ui_environment, Dialog, Button
+from zim.gui.widgets import ui_environment, Dialog, Button, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.templates import TemplateManager, TemplateFunction
 
@@ -65,8 +65,8 @@ year_path_re = re.compile(r'^(.*:)?\d{4}$')
 # Initialize setting for first day of the week. This is locale
 # dependent, and the gtk widget already has good code to find it out.
 # TODO we might also add this as a user preference
-SUNDAY = locale.nl_langinfo(locale.DAY_1)
-MONDAY = locale.nl_langinfo(locale.DAY_2)
+SUNDAY = 'Sunday'
+MONDAY = 'Monday'
 if gtk.Calendar().get_display_options() \
  & gtk.CALENDAR_WEEK_START_MONDAY:
 	FIRST_DAY_OF_WEEK = MONDAY
@@ -114,6 +114,28 @@ def dates_for_week(year, week):
 	start = jan1 + datetime.timedelta(days=-days, weeks=weeks)
 	end = start + datetime.timedelta(days=6)
 	return start, end
+
+
+def week_calendar(date):
+	'''Get the year, week number and week day for a specific date.
+	Like C{datetime.date.isocalendar()} but takes into account
+	C{FIRST_DAY_OF_WEEK} correctly.
+	@param date: a C{datetime.date} or C{datetime.datetime} object
+	@returns: a year and a week number as integer
+	'''
+	# Both strftime %W and %U are not correct, they use differnt
+	# week number count than the isocalendar. See datetime
+	# module for details.
+	# In short Jan 1st can still be week 53 of the previous year
+	# So we can use isocalendar(), however this does not take
+	# into accout FIRST_DAY_OF_WEEK, see comment in dates_for_week()
+	year, week, weekday = date.isocalendar()
+	if FIRST_DAY_OF_WEEK == SUNDAY and weekday == 7:
+		# iso calendar gives us the week ending this sunday,
+		# we want the next week
+		monday = date + datetime.timedelta(days=1)
+		year, week, weekday = monday.isocalendar()
+	return year, week
 
 
 def daterange_from_path(path):
@@ -168,19 +190,24 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Calendar',
 	}
 
-	global DAY, WEEK, MONTH, YEAR # Hack
+	global DAY, WEEK, MONTH, YEAR, SUNDAY, MONDAY # Hack - to make sure translation is loaded
 	DAY = _('Day') # T: option value
 	WEEK = _('Week') # T: option value
 	MONTH = _('Month') # T: option value
 	YEAR = _('Year') # T: option value
 
+	SUNDAY = _('Sunday') # T: calendar day
+	MONDAY = _('Monday') # T: calendar day
+
 	plugin_preferences = (
 		# key, type, label, default
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
+		('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS), # T: preferences option
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
 		#~ ('week_start', 'choice', _('Week starts on'), FIRST_DAY_OF_WEEK, (MONDAY, SUNDAY)), # T: preferences option for first day of the week, options are Monday or Sunday
 		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
 	)
+	# TODO disable pane setting if not embedded
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
@@ -192,8 +219,8 @@ This is a core plugin shipping with zim.
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
-			TemplateManager.connect('process-page', self.on_process_page_template)
-			## FIXME - no real disconnect for this connect ...
+			self.connectto(TemplateManager, 'process-page', self.on_process_page_template)
+			self.connectto(self.ui, 'open-page')
 
 	def finalize_notebook(self, notebook):
 		self.do_preferences_changed()
@@ -210,12 +237,19 @@ This is a core plugin shipping with zim.
 		self.disconnect_embedded_widget()
 		PluginClass.disconnect(self)
 
+	def on_open_page(self, ui, page, path):
+		if self.sidepane_widget:
+			self.sidepane_widget.set_page(path)
+		# else dialog takes care of itself
+
 	def connect_embedded_widget(self):
-		from zim.gui.widgets import LEFT_PANE, TOP
 		if not self.sidepane_widget:
 			self.sidepane_widget = CalendarPluginWidget(self)
-			self.sidepane_widget.show_all()
-			self.ui.mainwindow.add_widget(self.sidepane_widget, LEFT_PANE, TOP)
+		else:
+			self.ui.mainwindow.remove(self.sidepane_widget)
+
+		self.ui.mainwindow.add_widget(self.sidepane_widget, self.preferences['pane'])
+		self.sidepane_widget.show_all()
 
 	def disconnect_embedded_widget(self):
 		if self.sidepane_widget:
@@ -265,11 +299,7 @@ This is a core plugin shipping with zim.
 		if self.preferences['granularity'] == DAY:
 			path = date.strftime('%Y:%m:%d')
 		elif self.preferences['granularity'] == WEEK:
-			# Both strftime %W and %U are not correct, they use differnt
-			# week number count than the isocalendar. See datetime
-			# module for details.
-			# In short Jan 1st can still be week 53 of the previous year
-			year, week, weekday = date.isocalendar()
+			year, week = week_calendar(date)
 			path = '%i:Week %02i' % (year, week)
 		elif self.preferences['granularity'] == MONTH:
 			path = date.strftime('%Y:%m')
@@ -283,10 +313,12 @@ This is a core plugin shipping with zim.
 						+ ':' + date.strftime('%Y:%m') )
 
 	def date_from_path(self, path):
-		'''Returns a datetime.date object for a calendar page'''
+		'''Returns the date for a specific path or C{None}'''
 		dates = daterange_from_path(path)
-		assert dates, 'Not a date path: %s' % path.name
-		return dates[1]
+		if dates:
+			return dates[1]
+		else:
+			return None
 
 	def on_process_page_template(self, manager, template, page, dict):
 		'''Callback called when parsing a template, e.g. when exposing a page
@@ -418,7 +450,6 @@ class CalendarPluginWidget(gtk.VBox):
 		self.on_month_changed(self.calendar)
 		self.pack_start(self.calendar, False)
 
-		self.plugin.ui.connect('open-page', self.on_open_page)
 		self._select_date_cb = None
 
 	def _refresh_label(self, *a):
@@ -445,15 +476,15 @@ class CalendarPluginWidget(gtk.VBox):
 		namespace = self.plugin.path_for_month_from_date( calendar.get_date() )
 		for path in self.plugin.ui.notebook.index.list_pages(namespace):
 			if date_path_re.match(path.name):
-				date = self.plugin.date_from_path(path)
-				calendar.mark_day(date.day)
+				dates = daterange_from_path(path)
+				if dates and dates[0] == 'day':
+					calendar.mark_day(date[1].day)
 
-	def on_open_page(self, ui, page, path):
-		try:
-			date = self.plugin.date_from_path(path)
-			self.calendar.select_month(date.month-1, date.year)
-		except AssertionError:
-			pass
+	def set_page(self, page):
+		dates = daterange_from_path(page)
+		if dates and dates[0] != 'year':
+			# Calendar is per month, so do not switch view for year page
+			self.calendar.select_month(dates[1].month-1, dates[1].year)
 
 	def select_date(self, date):
 		self.calendar.select_date(date)
@@ -476,6 +507,11 @@ class CalendarDialog(Dialog):
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 0)
 		self.dateshown = datetime.date.today()
+
+		self.connectto(self.plugin.ui, 'open-page')
+
+	def on_open_page(self, ui, page, path):
+		self.calendar_widget.set_page(page)
 
 	def on_select_date(self, date):
 		if ui_environment['platform'] == 'maemo':

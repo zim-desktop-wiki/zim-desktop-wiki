@@ -8,6 +8,7 @@ These notes contains general development documentation on zim.
 ===== Contents =====
 * [[Development tools]]
 * [[Coding Style & Guidelines]]
+	* [[Signals]]
 * [[Writing plugins]]
 * [[Test Suite]]
 

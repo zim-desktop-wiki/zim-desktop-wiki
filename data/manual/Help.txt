@@ -29,6 +29,7 @@ Configuration
 * [[+Properties|Properties]]
 * [[+Templates|Templates]]
 * [[+Config Files|Config Files]]
+* [[+Default Applications|Default Applications]]
 
 Other topics
 * [[+Wiki Syntax|Wiki Syntax]]

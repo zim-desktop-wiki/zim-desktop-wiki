@@ -492,6 +492,9 @@ class ListDict(dict):
 		self.order = []
 		self._modified = False
 
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, dict.__repr__(self))
+
 	def copy(self):
 		'''Shallow copy of the items
 		@returns: a new object of the same class with the same items
@@ -667,7 +670,19 @@ class ListDict(dict):
 		elif isinstance(check, (set, list)) \
 		or (isinstance(check, tuple) and not isinstance(default, int)):
 			if not (allow_empty and default in ('', None)):
-				assert default in check, 'Default is not within allows set'
+				# HACK to allow for preferences with "choice" item that has
+				# a list of tuples as argumnet
+				if all(isinstance(t, tuple) for t in check):
+					check = list(check) # copy
+					check += [t[0] for t in check]
+				assert default in check, 'Default is not within allowed set'
+
+			# HACK to allow the value to be a tuple...
+			if all(isinstance(t, tuple) for t in check) \
+			and isinstance(self[key], list):
+				modified = self.modified
+				self.__setitem__(key, tuple(self[key]))
+				self.set_modified(modified)
 
 			if not self[key] in check:
 				logger.warn(

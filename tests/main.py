@@ -14,6 +14,12 @@ from zim import NotebookInterface
 from zim.config import XDG_CONFIG_HOME, ConfigFile, ConfigDictFile, config_file, get_config
 
 
+class FilterFailedToLoadPlugin(tests.LoggingFilter):
+
+	logger = 'zim'
+	message = 'Failed to load plugin'
+
+
 class TestProfiles(tests.TestCase):
 
 	def setUp(self):
@@ -21,7 +27,8 @@ class TestProfiles(tests.TestCase):
 		self.nb = tests.new_notebook(fakedir=path)
 		self.assertIsNone(self.nb.profile)
 
-		self.ui = NotebookInterface(self.nb)
+		with FilterFailedToLoadPlugin():
+			self.ui = NotebookInterface(self.nb)
 
 		configfile = self.ui.preferences.file
 		configfile.file.remove() # just in case
@@ -37,7 +44,8 @@ class TestProfiles(tests.TestCase):
 		file = self.profile_file(name)
 		file.remove()
 		self.assertFalse(file.exists())
-		ui = NotebookInterface() # use defaults set in this object
+		with FilterFailedToLoadPlugin():
+			ui = NotebookInterface() # use defaults set in this object
 		ui.preferences.change_file(file)
 		for section in preferences:
 			ui.preferences[section].update(preferences[section])
@@ -63,7 +71,8 @@ class TestProfiles(tests.TestCase):
 		self.nb.config['Notebook']['profile'] = 'TestProfile' # include some caps
 		self.assertEqual(self.nb.profile, 'TestProfile')
 
-		ui = NotebookInterface(self.nb)
+		with FilterFailedToLoadPlugin():
+			ui = NotebookInterface(self.nb)
 		self.assertEqual(ui.preferences.file.basename, 'testprofile.conf')
 		self.assertEqual(len(ui.plugins), 1)
 		self.assertEqual(
@@ -100,13 +109,14 @@ class TestProfiles(tests.TestCase):
 	def testReloadingPlugins(self):
 		'''Test correct plugins are kept when changing profile'''
 		# Ensure some plugins are loaded, including a independent one
+		n_default_plugins = len(self.ui.plugins)
 		self.ui.load_plugin('automount')
 		self.ui.preferences.write()
 
 		# create a profile just with some of the same plugins, but also
 		# a new one -- so we can test merging
 		names = self.ui.preferences['General']['plugins']
-		self.assertTrue(len(names) > 4)
+		self.assertEqual(len(names), n_default_plugins + 1)
 		self.assertNotIn('tableofcontents', names)
 		profile_plugins = [names[0], names[2], 'tableofcontents']
 		self.assertNotIn('automount', profile_plugins)
@@ -197,7 +207,8 @@ class TestLoadingPlugins(tests.TestCase):
 	def setUp(self):
 		path = self.get_tmp_name()
 		self.nb = tests.new_notebook(fakedir=path)
-		self.ui = NotebookInterface(self.nb)
+		with FilterFailedToLoadPlugin():
+			self.ui = NotebookInterface(self.nb)
 		self.plugin_conf = self.ui.preferences['General']['plugins']
 
 	def tearDown(self):
@@ -229,9 +240,10 @@ class TestLoadingPlugins(tests.TestCase):
 		names = self.plugin_conf[:]
 
 		self.ui.preferences.write()
-
-		myui = NotebookInterface()
-		# no notebook yet - only independent plugins are loaded
+		
+		with FilterFailedToLoadPlugin():
+			myui = NotebookInterface()
+			# no notebook yet - only independent plugins are loaded
 		self.assertEqual(len(myui.plugins), 1)
 		self.assertEqual(myui.plugins[0].plugin_key, 'automount')
 

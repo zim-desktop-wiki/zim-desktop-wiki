@@ -20,7 +20,7 @@ import logging
 from zim.fs import File, Dir
 from zim.notebook import get_notebook_list, get_notebook_info, init_notebook, NotebookInfo
 from zim.config import data_file
-from zim.gui.widgets import ui_environment, Dialog, IconButton, encode_markup_text
+from zim.gui.widgets import ui_environment, Dialog, IconButton, encode_markup_text, ScrolledWindow
 
 logger = logging.getLogger('zim.gui.notebookdialog')
 
@@ -299,11 +299,7 @@ class NotebookDialog(Dialog):
 		self.treeview.connect(
 			'row-activated', lambda *a: self.response(gtk.RESPONSE_OK))
 
-		swindow = gtk.ScrolledWindow()
-		swindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-		swindow.set_shadow_type(gtk.SHADOW_IN)
-		swindow.add(self.treeview)
-		hbox.add(swindow)
+		hbox.add(ScrolledWindow(self.treeview))
 
 		# add buttons for modifying the treeview
 		vbbox = gtk.VButtonBox()

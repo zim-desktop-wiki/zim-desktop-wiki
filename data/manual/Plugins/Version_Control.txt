@@ -32,7 +32,7 @@ This is for advanced users that have to use another Version Control System or ha
 To manually manage revisions of your notebook, the following files should be added to your repository:
 * The "''notebook.zim''" file in the notebook folder
 * All your pages (*.txt files in the notebook folder and subfolders)
-* All files linked/embedded from/into your pages (attachments etc.)
+* All files linked/embedded from/into your pages ([[Help:Attachments|attachments]] etc.)
 
 All files created by Zim are in plain text format and only change when you explicitly change them so you should get readable, reasonable diffs and merges in case of conflicts.
 

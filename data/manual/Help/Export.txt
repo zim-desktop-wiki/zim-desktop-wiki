@@ -18,7 +18,7 @@ Finally an **Output folder** is required, this is the directory name where you w
 
 If you specify an **Index page** a page will be generated that contains a list with links to all pages that were exported. This can e.g. be used as a site map.
 
-The **Documents** section allows you to choose what you want to do with linked files and images. Files and images that live inside the notebook directory (attachments, equations etc.) will always be copied to the new directory, but the behavior for files and images under the document root can be changed.
+The **Documents** section allows you to choose what you want to do with linked files and images. Files and images that live inside the notebook directory ([[Help:Attachments|attachments]], equations etc.) will always be copied to the new directory, but the behavior for files and images under the document root can be changed.
 
 TODO explain document root somewhere
 

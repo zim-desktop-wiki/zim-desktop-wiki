@@ -36,9 +36,10 @@ from zim.formats import get_format, increase_list_iter, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import ui_environment, \
-	Dialog, FileDialog, ErrorDialog, \
+	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
-	rotate_pixbuf
+	ScrolledWindow, \
+	rotate_pixbuf, populate_popup_add_separator
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
@@ -87,7 +88,7 @@ KEYVALS_TAB = map(gtk.gdk.keyval_from_name, ('Tab', 'KP_Tab'))
 KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 
 #~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
-CHARS_END_OF_WORD = ('\t', ' ', ')', '>')
+CHARS_END_OF_WORD = ('\t', ' ', ')', '>', ';')
 KEYVALS_END_OF_WORD = map(
 	gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD)) + KEYVALS_TAB
 
@@ -123,10 +124,10 @@ ui_actions = (
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
 	('insert_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item
 	('insert_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item
-	('insert_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
-	('apply_format_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item),
-	('apply_format_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item),
-	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item),
+	('insert_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item,
+	('apply_format_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item,
+	('apply_format_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item,
+	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item,
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
 	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
 	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>9', '', False), # T: Menu item
@@ -142,6 +143,12 @@ ui_actions = (
 	('zoom_in_alt1', None, '', '<ctrl>equal', '', True),
 	('zoom_out', 'gtk-zoom-out', _('Zoom _Out'), '<ctrl>minus', '', True), # T: Menu item
 	('zoom_reset', 'gtk-zoom-100', _('_Normal Size'), '<ctrl>0', '', True), # T: Menu item to reset zoom
+
+	# name, stock id, label
+	('insert_new_file_menu', None, _('New _Attachment')), # T: Menu title
+
+	# name, stock id, label, accelerator, tooltip, readonly
+	('open_file_templates_folder', 'gtk-directory', _('File _Templates...'), '', '', False), # T: Menu item in "Insert > New File Attachment" submenu
 )
 
 ui_format_actions = (
@@ -203,6 +210,9 @@ ui_preferences = (
 		# T: option in preferences dialog
 	('copy_format', 'choice', 'Editing',
 		_('Default format for copying text to the clipboard'), 'Text', COPY_FORMATS),
+		# T: option in preferences dialog
+	('file_templates_folder', 'dir', 'Editing',
+		_('Folder with templates for attachment files'), '~/Templates'),
 		# T: option in preferences dialog
 )
 
@@ -495,7 +505,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	tag_attributes = set( (
 		'weight', 'scale', 'style', 'background', 'foreground', 'strikethrough',
-		'family', 'wrap-mode', 'indent', 'underline'
+		'family', 'wrap-mode', 'indent', 'underline', 'linespacing',
 	) ) #: Valid properties for a style in tag_styles
 
 	def __init__(self, notebook=None, page=None):
@@ -565,7 +575,7 @@ class TextBuffer(gtk.TextBuffer):
 		self.emit('clear')
 
 	def do_clear(self):
-		self._editmode_tags = []
+		self._editmode_tags = ()
 		self.delete(*self.get_bounds())
 
 	def get_insert_iter(self):
@@ -2118,7 +2128,7 @@ class TextBuffer(gtk.TextBuffer):
 				# Set tags
 				copy = iter.copy()
 
-				bullet = self._get_bullet_at_iter(iter)
+				bullet = self.get_bullet_at_iter(iter) # implies check for start of line
 				if bullet:
 					break_tags('indent')
 					# This is part of the HACK for bullets in
@@ -2614,7 +2624,8 @@ class TextBufferList(list):
 
 		list = TextBufferList(textbuffer, start, end)
 		row = list.get_row_at_line(line)
-		#~ print '!! LIST %i..%i ROW %i' % (start, end, row)
+		#print '!! LIST %i..%i ROW %i' % (start, end, row)
+		#print '>>', list
 		return row, list
 
 	def __init__(self, textbuffer, firstline, lastline):
@@ -2731,7 +2742,11 @@ class TextBufferList(list):
 		if row == 0:
 			# Indent the whole list
 			for i in range(1, len(self)):
-				self._indent_row(i, step)
+				if self[i][self.INDENT_COL] >= level:
+					# double check implicit assumtion that first item is at lowest level
+					self._indent_row(i, step)
+				else:
+					break
 		else:
 			# Indent children
 			for i in range(row+1, len(self)):
@@ -3152,8 +3167,15 @@ class TextView(gtk.TextView):
 	@signal: C{link-clicked (link)}: Emitted when the user clicks a link
 	@signal: C{link-enter (link)}: Emitted when the mouse pointer enters a link
 	@signal: C{link-leave (link)}: Emitted when the mouse pointer leaves a link
-	@signal: C{end-of-word (start, end, word, char)}:
+	@signal: C{end-of-word (start, end, word, char, editmode)}:
 	Emitted when the user typed a character like space that ends a word
+
+	  - C{start}: a C{gtk.TextIter} for the start of the word
+	  - C{end}: a C{gtk.TextIter} for the end of the word
+	  - C{word}: the word as string
+	  - C{char}: the character that caused the signal (a space, tab, etc.)
+	  - C{editmode}: a list of constants for the formatting being in effect,
+	    e.g. C{VERBATIM}
 
 	Plugins that want to add auto-formatting logic can connect to this
 	signal. If the handler matches the word it should stop the signal
@@ -3169,7 +3191,7 @@ class TextView(gtk.TextView):
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'end-of-word': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object)),
+		'end-of-word': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object, object)),
 		'end-of-line': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 
 		# Override clipboard interaction
@@ -3474,7 +3496,11 @@ class TextView(gtk.TextView):
 				start = iter.copy()
 				if buffer.iter_backward_word_start(start):
 					word = start.get_text(iter)
-					self.emit('end-of-word', start, iter, word, char)
+					editmode = [t.zim_tag
+						for t in buffer._editmode_tags
+						if hasattr(t, 'zim_tag')
+					]
+					self.emit('end-of-word', start, iter, word, char, editmode)
 
 				if event.keyval in KEYVALS_ENTER:
 					# iter may be invalid by now because of end-of-word
@@ -3774,7 +3800,7 @@ class TextView(gtk.TextView):
 			# only start visual line, not start of real line
 			return home, home.copy()
 
-	def do_end_of_word(self, start, end, word, char):
+	def do_end_of_word(self, start, end, word, char, editmode):
 		# Default handler with built-in auto-formatting options
 		buffer = self.get_buffer()
 		handled = True
@@ -4388,11 +4414,7 @@ class PageView(gtk.VBox):
 			self.ui.register_preferences('PageView', ui_preferences)
 
 		self.view = TextView(preferences=self.preferences)
-		swindow = gtk.ScrolledWindow()
-		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		swindow.set_shadow_type(gtk.SHADOW_IN)
-		swindow.add(self.view)
-		self.add(swindow)
+		self.add(ScrolledWindow(self.view))
 
 		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
@@ -4409,6 +4431,11 @@ class PageView(gtk.VBox):
 			# HACK - divert actions from uimanager
 			self.actiongroup = gtk.ActionGroup('SecondaryPageView')
 		self.ui.add_actions(ui_actions, self)
+
+		# setup hooks for new file submenu
+		action = self.actiongroup.get_action('insert_new_file_menu')
+		action.zim_readonly = False
+		action.connect('activate', self._update_new_file_submenu)
 
 		# format actions need some custom hooks
 		actiongroup = self.actiongroup
@@ -4505,6 +4532,9 @@ class PageView(gtk.VBox):
 							attrib[a] = getattr(pango, const)
 						else:
 							attrib[a] = str(attrib[a]) # pango doesn't like unicode attributes
+				if 'linespacing' in attrib:
+					attrib['pixels-below-lines'] = attrib['linespacing']
+					del attrib['linespacing']
 				#~ print 'TAG', tag, attrib
 				assert testbuffer.create_tag('style-'+tag, **attrib)
 			except:
@@ -5005,7 +5035,7 @@ class PageView(gtk.VBox):
 				lambda o: MoveTextDialog(self.ui, self).run())
 		else:
 			item.set_sensitive(False)
-
+		###
 
 
 		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
@@ -5068,17 +5098,17 @@ class PageView(gtk.VBox):
 			Clipboard.set_uri(uri)
 			SelectionClipboard.set_uri(uri)
 
-		if type == 'mailto':
-			item = gtk.MenuItem(_('Copy Email Address')) # T: context menu item
-		else:
-			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
-		menu.prepend(item)
-
 		if type == 'page':
+			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
 			path = self.ui.notebook.resolve_path(link['href'], source=self.page)
 			item.connect('activate', set_pagelink, path)
-		else:
+		elif type == 'mailto':
+			item = gtk.MenuItem(_('Copy Email Address')) # T: context menu item
 			item.connect('activate', set_uri, file or link['href'])
+		else:
+			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
+			item.connect('activate', set_uri, file or link['href'])
+		menu.prepend(item)
 
 		menu.prepend(gtk.SeparatorMenuItem())
 
@@ -5097,14 +5127,16 @@ class PageView(gtk.VBox):
 				# T: menu item for sub menu with applications
 			menu.prepend(item)
 			if file.exists():
-				submenu = OpenWithMenu(file)
+				submenu = OpenWithMenu(self.ui, file)
 				item.set_submenu(submenu)
 			else:
 				item.set_sensitive(False)
-		elif type != 'page': # urls etc.
+		elif type not in ('page', 'notebook', 'interwiki', 'file', 'image'): # urls etc.
+			# FIXME: for interwiki inspect final link and base
+			# open with menu beased on that url type
 			item = gtk.MenuItem(_('Open With...'))
 			menu.prepend(item)
-			submenu = OpenWithMenu(link['href'], mimetype='text/html')
+			submenu = OpenWithMenu(self.ui, link['href'])
 			if submenu.get_children():
 				item.set_submenu(submenu)
 			else:
@@ -5337,6 +5369,96 @@ class PageView(gtk.VBox):
 		'''Menu item to show the L{InsertLinkDialog}'''
 		InsertLinkDialog(self.ui, self).run()
 
+	def _update_new_file_submenu(self, action):
+		dir = self.preferences['file_templates_folder']
+		if isinstance(dir, basestring):
+			dir = Dir(dir)
+
+		items = []
+		if dir.exists():
+			def handler(menuitem, file):
+				self.insert_new_file(file)
+
+			for name in dir.list(): # FIXME could use list objects here
+				file = dir.file(name)
+				if file.exists(): # it is a file
+					name = file.basename
+					if '.' in name:
+						name, x = name.rsplit('.', 1)
+					name = name.replace('_', ' ')
+					item = gtk.MenuItem(name)
+						# TODO mimetype icon would be nice to have
+					item.connect('activate', handler, file)
+					item.zim_new_file_action = True
+					items.append(item)
+
+		if not items:
+			item = gtk.MenuItem(_('No templates installed'))
+				# T: message when no file templates are found in ~/Templates
+			item.set_sensitive(False)
+			item.zim_new_file_action = True
+			items.append(item)
+
+
+		for widget in action.get_proxies():
+			if hasattr(widget, 'get_submenu'):
+				menu = widget.get_submenu()
+				if not menu:
+					continue
+
+				# clear old items
+				for item in menu.get_children():
+					if hasattr(item, 'zim_new_file_action'):
+						menu.remove(item)
+
+				# add new ones
+				populate_popup_add_separator(menu, prepend=True)
+				for item in reversed(items):
+					menu.prepend(item)
+
+				# and finish up
+				menu.show_all()
+
+	def insert_new_file(self, template):
+		dir = self.ui.notebook.get_attachments_dir(self.page)
+		file = dir.new_file(template.basename)
+		template.copyto(file)
+
+		# Same logic as in zim.gui.AttachFileDialog
+		# TODO - incorporate in the insert_links function ?
+		if file.isimage():
+			ok = self.insert_image(file, interactive=False)
+			if not ok: # image type not supported?
+				logger.info('Could not insert image: %s', file)
+				self.insert_links([file])
+		else:
+			self.insert_links([file])
+
+		#~ self.ui.open_file(file) # FIXME should this be optional ?
+
+
+	def open_file_templates_folder(self):
+		'''Menu action to open the templates folder'''
+		dir = self.preferences['file_templates_folder']
+		if isinstance(dir, basestring):
+			dir = Dir(dir)
+
+		if dir.exists():
+			self.ui.open_file(dir)
+		else:
+			path = dir.user_path or dir.path
+			question = (
+				_('Create folder?'),
+					# T: Heading in a question dialog for creating a folder
+				_('The folder\n%s\ndoes not yet exist.\nDo you want to create it now?')
+					% path
+			)
+					# T: Text in a question dialog for creating a folder, %s is the folder path
+			create = QuestionDialog(self, question).run()
+			if create:
+				dir.touch()
+				self.ui.open_file(dir)
+
 	def clear_formatting(self):
 		'''Menu item to remove formatting from current (auto-)selection'''
 		buffer = self.view.get_buffer()
@@ -5551,10 +5673,7 @@ class InsertDateDialog(Dialog):
 
 		model = gtk.ListStore(str, str) # FORMAT_COL, DATE_COL
 		self.view = BrowserTreeView(model)
-		window = gtk.ScrolledWindow()
-		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		window.add(self.view)
-		self.vbox.add(window)
+		self.vbox.add(ScrolledWindow(self.view))
 
 		cell_renderer = gtk.CellRendererText()
 		column = gtk.TreeViewColumn('_date_', cell_renderer, text=1)

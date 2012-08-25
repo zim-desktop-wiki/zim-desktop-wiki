@@ -6,7 +6,7 @@ import gtk
 import logging
 
 from zim.plugins import PluginClass
-from zim.gui.widgets import Dialog, Button, InputEntry
+from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow
 from zim.config import config_file
 
 
@@ -29,6 +29,10 @@ ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
 	('insert_symbol', None, _('Sy_mbol...'), None, '', False), # T: menu item
 )
+
+
+VERBATIM = 'code'
+VERBATIM_BLOCK = 'pre'
 
 
 class InsertSymbolPlugin(PluginClass):
@@ -57,14 +61,8 @@ This is a core plugin shipping with zim.
 	def finalize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
 			self.pageview = self.ui.mainwindow.pageview
-			self._signal_id = \
-				self.pageview.view.connect('end-of-word', self.on_end_of_word)
+			self.connectto(self.pageview.view, 'end-of-word')
 			self.load_file()
-
-	def disconnect(self):
-		if self.ui.ui_type == 'gtk' and hasattr(self, '_signal_id'):
-			self.pageview.view.disconnect(self._signal_id)
-		PluginClass.disconnect(self)
 
 	def load_file(self):
 		self.symbols = {}
@@ -96,24 +94,38 @@ This is a core plugin shipping with zim.
 		'''Run the InsertSymbolDialog'''
 		InsertSymbolDialog(self.ui, self).run()
 
-	def on_end_of_word(self, textview, start, end, word, char):
+	def on_end_of_word(self, textview, start, end, word, char, editmode):
 		'''Handler for the end-of-word signal from the textview'''
 		# We check for non-space char because e.g. typing "-->" will
 		# emit end-of-word with "--" as word and ">" as character.
 		# This should be distinguished from the case when e.g. typing
 		# "-- " emits end-of-word with "--" as word and " " (space) as
 		# the char.
-		if not char.isspace():
+		if VERBATIM in editmode \
+		or VERBATIM_BLOCK in editmode \
+		or not (char.isspace() or char == ';'):
 			return
 
 		symbol = self.symbols.get(word)
-		if symbol:
-			pos = start.get_offset()
-			buffer = textview.get_buffer()
+		if not symbol:
+			return
+
+		# replace word with symbol
+		buffer = textview.get_buffer()
+		mark = buffer.create_mark(None, end, left_gravity=False)
+		if char == ';':
+			end = end.copy()
+			end.forward_char() # include the ';' in the delete
 			buffer.delete(start, end)
-			iter = buffer.get_iter_at_offset(pos)
-			buffer.insert(iter, symbol)
-			textview.stop_emission('end-of-word')
+		else:
+			buffer.delete(start, end)
+		iter = buffer.get_iter_at_mark(mark)
+		buffer.insert(iter, symbol)
+		buffer.delete_mark(mark)
+
+		# block other handlers
+		textview.stop_emission('end-of-word')
+
 
 class InsertSymbolDialog(Dialog):
 
@@ -137,11 +149,7 @@ class InsertSymbolDialog(Dialog):
 			self.iconview.connect('query-tooltip', self.on_query_tooltip)
 		self.iconview.connect('item-activated', self.on_activated)
 
-		window = gtk.ScrolledWindow()
-		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		window.set_shadow_type(gtk.SHADOW_IN)
-		window.add(self.iconview)
-		self.vbox.add(window)
+		self.vbox.add(ScrolledWindow(self.iconview))
 
 		button = gtk.Button(stock=gtk.STOCK_EDIT)
 		button.connect('clicked', self.on_edit)

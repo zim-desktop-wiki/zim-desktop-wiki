@@ -83,6 +83,12 @@ class TestFormatMixin(object):
 		self.assertMultiLineEqual(result, wanted)
 		self.assertNoTextMissing(result, reftree)
 
+		# partial dumper
+		parttree = tests.new_parsetree_from_xml("<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>")
+		result = ''.join(dumper.dump(parttree))
+		#~ print ">>>%s<<<" % result
+		self.assertFalse(result.endswith('\n')) # partial should not end with "\n"
+
 		# Parser
 		if not hasattr(self.format, 'Parser'):
 			return

@@ -10,7 +10,7 @@ import logging
 
 from zim.parsing import link_type
 from zim.fs import File
-from zim.gui.widgets import Dialog, MessageDialog
+from zim.gui.widgets import Dialog, MessageDialog, ScrolledWindow
 
 
 logger = logging.getLogger('zim.gui')
@@ -192,10 +192,7 @@ class CleanNotebookDialog(Dialog):
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.add(hbox)
 
-		swindow = gtk.ScrolledWindow()
-		swindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		swindow.set_shadow_type(gtk.SHADOW_IN)
-		swindow.add(self.treeview)
+		swindow = ScrolledWindow(self.treeview)
 		hbox.add(swindow)
 
 	def run(self):

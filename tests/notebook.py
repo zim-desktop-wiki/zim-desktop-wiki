@@ -63,10 +63,16 @@ class TestGetNotebook(tests.TestCase):
 		list = get_notebook_list()
 		list.append(NotebookInfo(dir.uri, name='foo'))
 		list.write()
+
 		self.assertTrue(len(list) == 1)
 		self.assertTrue(isinstance(list[0], NotebookInfo))
 
 		info = list.get_by_name('foo')
+		self.assertEqual(info.uri, dir.uri)
+		self.assertEqual(info.name, 'foo')
+
+		newlist = get_notebook_list() # just to be sure re-laoding works..
+		info = newlist.get_by_name('foo')
 		self.assertEqual(info.uri, dir.uri)
 		self.assertEqual(info.name, 'foo')
 

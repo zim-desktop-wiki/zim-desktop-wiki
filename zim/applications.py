@@ -18,7 +18,7 @@ import gobject
 import zim.fs
 import zim.errors
 
-from zim.parsing import split_quoted_strings
+from zim.parsing import split_quoted_strings, is_uri_re, is_win32_path_re
 from zim.config import get_environ_list
 
 
@@ -78,6 +78,14 @@ class Application(object):
 		assert tryexeccmd is None or isinstance(tryexeccmd, basestring)
 		self.cmd = tuple(cmd)
 		self.tryexeccmd = tryexeccmd
+
+	def __repr__(self):
+		if hasattr(self, 'key'):
+			return '<%s: %s>' % (self.__class__.__name__, self.key)
+		elif hasattr(self, 'cmd'):
+			return '<%s: %s>' % (self.__class__.__name__, self.cmd)
+		else:
+			return '<%s: %s>' % (self.__class__.__name__, self.name)
 
 	@property
 	def name(self):
@@ -216,9 +224,8 @@ class Application(object):
 			pid, stdin, stdout, stderr = \
 				gobject.spawn_async(argv, flags=flags, **opts)
 		except gobject.GError:
-			logger.exception('Failed running: %s', argv)
-			#~ name = self.name
-			#~ ErrorDialog(None, _('Could not run application: %s') % name).run()
+			from zim.gui.widgets import ErrorDialog
+			ErrorDialog(None, _('Failed running: %s') % argv[0]).run()
 				#~ # T: error when application failed to start
 			return None
 		else:
@@ -270,7 +277,7 @@ class WebBrowser(Application):
 
 class StartFile(Application):
 	'''Application wrapper for C{os.startfile()}. Can be used on
-	windows to open files with the default application.
+	windows to open files and URLs with the default application.
 	'''
 
 	name = _('Default') + ' (os)' # T: label for default application
@@ -292,7 +299,15 @@ class StartFile(Application):
 		if callback:
 			logger.warn('os.startfile does not support a callback')
 
-		for file in args:
-			path = os.path.normpath(unicode(file))
+		for arg in args:
+			if isinstance(arg, (zim.fs.File, zim.fs.Dir)):
+				path = os.path.normpath(arg.path)
+			elif is_uri_re.match(arg) and not is_win32_path_re.match(arg):
+				# URL or e.g. mailto: or outlook: URI
+				path = unicode(arg)
+			else:
+				# must be file
+				path = os.path.normpath(unicode(arg))
+
 			logger.info('Opening with os.startfile: %s', path)
 			os.startfile(path)

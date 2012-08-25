@@ -19,11 +19,6 @@ with available applications for a specific file plus a dialog so the
 user can define a new command on the fly.
 '''
 
-# We don't have direct method to get/set the default application this is
-# on purpose since there is no Freedesktop.org spec for this and no
-# platform independent way to do this. So we can get/set our own helpers
-# etc. but for platform default use xdg-open / os.startfile / ...
-
 import os
 import logging
 import gtk
@@ -33,7 +28,7 @@ import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
 from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
 	config_file, data_dirs, ConfigDict, ConfigFileMixin, json
-from zim.parsing import split_quoted_strings
+from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
 
@@ -70,7 +65,7 @@ def _application_dirs():
 		yield dir.subdir('applications')
 
 
-def _create_application(dir, Name, Exec, klass=None, **param):
+def _create_application(dir, Name, Exec, klass=None, NoDisplay=True, **param):
 	n = cleanup_filename(Name.lower()) + '-usercreated'
 	key = n
 	file = dir.file(key + '.desktop')
@@ -88,7 +83,7 @@ def _create_application(dir, Name, Exec, klass=None, **param):
 	entry.update(
 		Type=type,
 		Version=1.0,
-		NoDisplay=True,
+		NoDisplay=NoDisplay,
 		Name=Name,
 		Exec=Exec,
 		**param
@@ -118,21 +113,29 @@ def _create_application(dir, Name, Exec, klass=None, **param):
 	return entry
 
 
+def get_mimetype(obj):
+	'''Convenience method to get the mimetype for a file or url.
+	For URLs this method results in "x-scheme-handler" mimetypes.
+	@param obj: a L{File} object, or an URL
+	@returns: mimetype or C{None}
+	'''
+	if isinstance(obj, File):
+		return obj.get_mimetype()
+	else:
+		scheme = uri_scheme(obj)
+		if scheme in (None, 'file', 'smb'):
+			try:
+				return File(obj).get_mimetype()
+			except:
+				return None
+		else:
+			return "x-scheme-handler/%s" % scheme
+
+
 class ApplicationManager(object):
 	'''Manager object for dealing with desktop applications. Uses the
 	freedesktop.org (XDG) system to locate desktop entry files for
 	installed applications.
-
-	In addition is supports custom helper applications for zim.
-	These helpers are special application definitions used by the
-	preferences for "web browser", "file browser" etc.
-	They are stored in a zim specific folder (typically
-	"share/zim/applications"). They have the same keys as a standard
-	desktop entry, but adds the non-standard keys "X-Zim-AppType" and
-	X-Zim-ShowOnlyFor". The first is a list of application types, the
-	second is an optional platform (e.g. "maemo"), together these are
-	used to decide if and where to show this application in the
-	preferences dialog.
 	'''
 
 	@staticmethod
@@ -144,7 +147,12 @@ class ApplicationManager(object):
 		and "startfile" to a L{StartFile} application instance
 		@returns: an L{Application} object or C{None}
 		'''
-		file = _application_file(name + '.desktop', _application_dirs())
+		if name.endswith('.desktop'):
+			key = name
+		else:
+			key = name + '.desktop'
+
+		file = _application_file(key, _application_dirs())
 		if file:
 			return DesktopEntryFile(File(file))
 		elif name == 'webbrowser':
@@ -154,128 +162,78 @@ class ApplicationManager(object):
 		else:
 			return None
 
-	@staticmethod
-	def list_applications(mimetype):
-		'''Get a list of applications that can handle a specific file
-		type.
-		@param mimetype: the mime-type of the file (e.g. "text/html")
-		@returns: a list of L{Application} objects that are known to
-		be able to handle this file type
-		'''
-		seen = set()
-		entries = []
-		key = '%s=' % mimetype
-		for dir in _application_dirs():
-			cache = dir.file('mimeinfo.cache')
-			if not cache.exists():
-				continue
-			for line in cache.readlines():
-				if line.startswith(key):
-					for basename in line[len(key):].strip().split(';'):
-						if basename in seen:
-							continue
-						else:
-							file = _application_file(basename, (dir,))
-							if file:
-								entries.append(DesktopEntryFile(File(file)))
-								seen.add(basename)
-
-		if mimetype == 'text/html':
-			entries.append(WebBrowser())
-			entries.append(StartFile())
-
-		return entries
-
 	@classmethod
-	def get_default_helper(klass, type):
-		'''Get the default helper application on the current platform.
-
-		@note: This is the default set if the user has no preference,
-		not the current user preference. Use L{GtkInterface.open_file()}
-		and friends to use the preferred application.
-
-		@param type: application type, can be one of:
-		  - C{web_browser}
-		  - C{file_browser}
-		  - C{email_client}
-		  - C{text_editor}
-
+	def get_default_application(klass, mimetype):
+		'''Get the default application to open a file with a specific mimetype.
+		It searches C{applications/defaults.list} files to lookup the application.
+		@param mimetype: the mime-type of the file (e.g. "text/html")
 		@returns: an L{Application} object or C{None}
 		'''
-		# Hard coded defaults for various platforms
-		preferred = {
-			#                linux        windows      mac      maemo
-			'email_client': ['xdg-email', 'startfile', 'open', 'modest'],
-			'file_browser': ['xdg-open', 'startfile', 'open', 'hildon-mime-summon'],
-			'web_browser': ['xdg-open', 'startfile', 'open', 'webbrowser'],
-			'text_editor': ['xdg-open', 'startfile', 'open'],
-		}
+		## Based on logic from xdg-mime defapp_generic()
+		## Obtained from http://portland.freedesktop.org/wiki/ (2012-05-31)
+		##
+		## Considered calling xdg-mime directly with code below as fallback.
+		## But xdg-mime has only a special case for KDE, all others are generic.
+		## Our purpose is to be able to set defaults ourselves and read them back.
+		## If we fail we fallback to opening files with the file browser which
+		## defaults to xdg-open. So even if the system does not support the
+		## generic implementation, it will behave sanely and fall back to system
+		## defaults.
 
-		helpers = klass.list_helpers(type)
-		keys = [entry.key for entry in helpers]
-		for k in preferred[type]: # preferred keys
-			if k in keys:
-				return helpers[keys.index(k)]
+		## TODO: optimize for being called very often ?
 
-		if helpers:
-			return helpers[0]
+		for dir in _application_dirs():
+			default_file = dir.file('defaults.list')
+			if not default_file.exists():
+				continue
+
+			for line in default_file.readlines():
+				if line.startswith(mimetype + '='):
+					_, key = line.strip().split('=', 1)
+					if ';' in key:
+						key, _ = line.split(';')
+						# Not sure why this is needed, but copied
+						# logic from xdg-mime, apparently entries
+						# can be ";" seperated lists
+					application = klass.get_application(key)
+					if application is not None:
+						return application
+					# else continue searching
 		else:
 			return None
 
-	@classmethod
-	def list_helpers(klass, type):
-		'''Get a list of helper applications for the current platform.
-
-		@param type: application type, can be one of:
-		  - C{web_browser}
-		  - C{file_browser}
-		  - C{email_client}
-		  - C{text_editor}
-
-		@returns: a list of L{Application} objects
+	@staticmethod
+	def set_default_application(mimetype, application):
+		'''Set the default application to open a file with a specific
+		mimetype. Updates the C{applications/defaults.list} file.
+		As a special case when you set the default to C{None} it will
+		remove the entry from C{defauts.list} allowing system defaults
+		to be used again.
+		@param mimetype: the mime-type of the file (e.g. "text/html")
+		@param application: an L{Application} object or C{None}
 		'''
-		# Be aware that X-Zim-AppType can be a list of types
-		environment = ui_environment['platform']
-		if not environment:
-			import platform
-			environment = platform.system()
+		## Based on logic from xdg-mime make_default_generic()
+		## Obtained from http://portland.freedesktop.org/wiki/ (2012-05-31)
+		##
+		## See comment in get_default_application()
 
-		seen = set()
-		helpers = []
-		for dir in data_dirs('applications'):
-			for basename in [n for n in dir.list() if n.endswith('.desktop')]:
-				key = basename[:-8] # len('.desktop') == 8
-				if key in seen:
-					continue
-				seen.add(key)
-				entry = DesktopEntryFile(dir.file(basename))
-				if entry.isvalid():
-					entry_types = entry['Desktop Entry'].get('X-Zim-AppType')
-					entry_platform = entry['Desktop Entry'].get('X-Zim-ShowOnlyFor')
-					if type in entry_types:
-						if environment and entry_platform \
-						and environment != entry_platform:
-							continue # skip
-						else:
-							helpers.append(entry)
+		if application is not None:
+			if not isinstance(application, basestring):
+				application = application.key
 
-		if type == 'web_browser':
-			for entry in klass.list_applications('text/html'):
-				if not entry.key in seen:
-					helpers.append(entry)
-					seen.add(entry.key)
-				# list_applications will include the fallback
-				# based on the webbrowser module
-		elif type == 'text_editor':
-			for entry in klass.list_applications('text/plain'):
-				if not entry.key in seen:
-					helpers.append(entry)
-					seen.add(entry.key)
+			if not application.endswith('.desktop'):
+				application += '.desktop'
 
-		if os.name == 'nt' and not 'startfile' in seen:
-			helpers.append( klass.get_application('startfile') )
+		default_file = XDG_DATA_HOME.file('applications/defaults.list')
+		if default_file.exists():
+			lines = default_file.readlines()
+			lines = [l for l in lines if not l.startswith(mimetype + '=')]
+		else:
+			lines = ['[Default Applications]\n']
 
-		return [helper for helper in helpers if helper.tryexec()]
+		if application:
+			lines.append('%s=%s\n' % (mimetype, application))
+		default_file.writelines(lines)
 
 	@staticmethod
 	def create(mimetype, Name, Exec, **param):
@@ -299,26 +257,96 @@ class ApplicationManager(object):
 		dir = XDG_DATA_HOME.subdir('applications')
 		param['MimeType'] = mimetype
 		file = _create_application(dir, Name, Exec, **param)
-		# TODO register mimetype in cache
 		return file
 
-	@staticmethod
-	def create_helper(type, Name, Exec, **param):
-		'''Create a new usercreated desktop entry which defines a
-		helper application of a specific type.
+	@classmethod
+	def get_fallback_filebrowser(klass):
+		# Don't use mimetype lookup here, this is a fallback
+		# should handle all file types
+		if os.name == 'nt':
+			return StartFile()
+		elif os.name == 'darwin':
+			app = Application('open')
+		else: # linux and friends
+			app = Application('xdg-open')
 
-		@param type: the application type (see L{list_helpers()})
-		@param Name: the name to show in e.g. the preferences dialog
-		@param Exec: the command to run as string (will be split on
-		whitespace, so quote arguments that may contain a space).
-		@param param: any additional keys for the desktop entry
+		if app.tryexec():
+			return app
+		else:
+			return WebBrowser()
+			# the webbrowser module uses many fallbacks that know
+			# how to handle arbitrary files as well as URLs
+			# We don't use it by default in all cases, because it
+			# could be configured to an application that doesn't
 
-		@returns: the L{DesktopEntryFile} object with some
-		sensible defaults for a user created application entry.
+	@classmethod
+	def get_fallback_emailclient(klass):
+		# Don't use mimetype lookup here, this is a fallback
+		if os.name == 'nt':
+			return StartFile()
+		elif os.name == 'darwin':
+			app = Application('open')
+		else: # linux and friends
+			app = Application('xdg-email')
+
+		if app.tryexec():
+			return app
+		else:
+			return WebBrowser()
+			# the webbrowser module uses many fallbacks that know
+			# how to handle "mailto:" URLs
+			# We don't use it by default in all cases, because it
+			# could be configured to an application that doesn't
+
+	@classmethod
+	def get_fallback_webbrowser(klass):
+		# Don't use mimetype lookup here, this is a fallback
+		# should handle all URL types
+		# The webbrowser module knows about utils like xdg-open
+		# so will find the right thing to do one way or the other
+		return WebBrowser()
+
+	@classmethod
+	def list_applications(klass, mimetype, nodisplay=False):
+		'''Get a list of applications that can handle a specific file
+		type.
+		@param mimetype: the mime-type of the file (e.g. "text/html")
+		@param nodisplay: if C{True} also entries that have the
+		C{NoDisplay} flag are included
+		@returns: a list of L{Application} objects that are known to
+		be able to handle this file type
 		'''
-		dir = XDG_DATA_HOME.subdir('zim/applications')
-		param['X-Zim-AppType'] = type
-		return _create_application(dir, Name, Exec, **param)
+		seen = set()
+		entries = []
+		key = '%s=' % mimetype
+		for dir in _application_dirs():
+			cache = dir.file('mimeinfo.cache')
+			if not cache.exists():
+				continue
+			for line in cache.readlines():
+				if line.startswith(key):
+					for basename in line[len(key):].strip().split(';'):
+						if basename in seen:
+							continue
+						else:
+							file = _application_file(basename, (dir,))
+							if file:
+								entries.append(DesktopEntryFile(File(file)))
+								seen.add(basename)
+
+		if mimetype in ('x-scheme-handler/http', 'x-scheme-handler/https'):
+			# Since "x-scheme-handler" is not in the standard, some browsers
+			# only identify themselves with "text/html".
+			for entry in klass.list_applications('text/html', nodisplay): # recurs
+				basename = entry.key + '.desktop'
+				if not basename in seen:
+					entries.append(entry)
+					seen.add(basename)
+
+		if not nodisplay:
+			entries = [e for e in entries if not e.nodisplay]
+
+		return entries
 
 
 class DesktopEntryDict(ConfigDict, Application):
@@ -348,6 +376,8 @@ class DesktopEntryDict(ConfigDict, Application):
 	'TryExe' key in the desktop entry, if C{None} fall back to first
 	item of C{cmd}
 	'''
+
+	__repr__ = Application.__repr__
 
 	@property
 	def key(self):
@@ -379,6 +409,10 @@ class DesktopEntryDict(ConfigDict, Application):
 	def comment(self):
 		# TODO: localisation of application name
 		return self['Desktop Entry']['Comment']
+
+	@property
+	def nodisplay(self):
+		return self['Desktop Entry'].get('NoDisplay', False)
 
 	@property
 	def tryexeccmd(self):
@@ -551,25 +585,28 @@ class DesktopEntryFile(ConfigFileMixin, DesktopEntryDict):
 class OpenWithMenu(gtk.Menu):
 	'''Sub-class of C{gtk.Menu} implementing an "Open With..." menu with
 	applications to open a specific file. Also has an item
-	"Open with Other Application...", which opens a
-	L{NewApplicationDialog} and allows the user to add custom commands.
+	"Customize...", which opens a L{CustomizeOpenWithDialog}
+	and allows the user to add custom commands.
 	'''
 
-	OTHER_APP = _('Open with Other Application') + '...'
-		# T: label to pop dialog with more applications in 'open with' menu
+	CUSTOMIZE = _('Customize...')
+		# T: label to customize 'open with' menu
 
-	def __init__(self, file, mimetype=None):
+	def __init__(self, ui, file, mimetype=None):
 		'''Constructor
 
-		@param file: the file to open when a menu item is activated
+		@param ui: main ui object, needed to pop dialogs correctly
+		@param file: a L{File} object or URL
 		@param mimetype: the mime-type of the application, if already
 		known. Providing this arguments prevents redundant lookups of
 		the type (which is slow).
 		'''
 		gtk.Menu.__init__(self)
-		self. file = file
+		self.ui = ui
+		self.file = file
 		if mimetype is None:
-			mimetype = file.get_mimetype()
+			mimetype = get_mimetype(file)
+		self.mimetype = mimetype
 
 		manager = ApplicationManager()
 		for entry in manager.list_applications(mimetype):
@@ -577,16 +614,24 @@ class OpenWithMenu(gtk.Menu):
 			self.append(item)
 			item.connect('activate', self.on_activate)
 
-		item = gtk.MenuItem(self.OTHER_APP)
-		item.connect('activate', self.on_activate_other_app, mimetype)
+		if not self.get_children():
+			item = gtk.MenuItem(_('No Applications Found'))
+				# T: message when no applications in "Open With" menu
+			item.set_sensitive(False)
+			self.append(item)
+
+		self.append(gtk.SeparatorMenuItem())
+
+		item = gtk.MenuItem(self.CUSTOMIZE)
+		item.connect('activate', self.on_activate_customize, mimetype)
 		self.append(item)
 
 	def on_activate(self, menuitem):
 		entry = menuitem.entry
 		entry.spawn((self.file,))
 
-	def on_activate_other_app(self, menuitem, mimetype):
-		NewApplicationDialog(None, mimetype=mimetype).run()
+	def on_activate_customize(self, o, mimetype):
+		CustomizeOpenWithDialog(self.ui, mimetype=mimetype).run()
 
 
 class DesktopEntryMenuItem(gtk.ImageMenuItem):
@@ -610,43 +655,170 @@ class DesktopEntryMenuItem(gtk.ImageMenuItem):
 				self.set_image(gtk.image_new_from_pixbuf(pixbuf))
 
 
-class NewApplicationDialog(Dialog):
-	'''Dialog to prompt the user for a new custom command.
-	Allows to input an application name and a command, and calls
-	either L{ApplicationManager.create()} or
-	L{ApplicationManager.create_helper()} with the correct parameters.
-	'''
+def _mimetype_dialog_text(mimetype):
+		if mimetype.startswith('x-scheme-handler/'):
+			x, scheme = mimetype.split('/', 1)
+			scheme += '://'
+			return '<b>' + _('Configure an application to open "%s" links') % scheme + '</b>'
+			# T: Text in the 'custom command' dialog, "%s" will be URL scheme like "http://" or "ssh://"
+		else:
+			return '<b>' + _('Configure an application to open files\nof type "%s"') % mimetype + '</b>'
+			# T: Text in the 'custom command' dialog, "%s" will be mimetype like "text/plain"
 
-	def __init__(self, ui, mimetype=None, type=None):
+
+class CustomizeOpenWithDialog(Dialog):
+
+	def __init__(self, ui, mimetype):
 		'''Constructor
-
-		You must provide either C{mimetype} or C{type}.
-
 		@param ui: the parent window or C{GtkInterface} object
 		@param mimetype: mime-type for which we want to create a new
 		application
-		@param type: helper type for which we want to create a new command
 		'''
-		assert mimetype or type
-		Dialog.__init__(self, ui, _('Custom Command')) # T: Dialog title
-		self.apptype = type
+		Dialog.__init__(self, ui, _('Configure Applications'),  # T: Dialog title
+			buttons=gtk.BUTTONS_CLOSE, help='Help:Default Applications')
 		self.mimetype = mimetype
+		self.add_text(_mimetype_dialog_text(mimetype))
+
+		# Combo to set default
+		self.default_combo = ApplicationComboBox()
+		self.default_combo.connect('changed', self.on_default_changed)
+		hbox = gtk.HBox(spacing=12)
+		self.vbox.add(hbox)
+		hbox.pack_start(gtk.Label(_('Default')+':'), False) # T: label for default application
+		hbox.pack_start(self.default_combo)
+
+		# Button to add new
+		button = gtk.Button(_('Add Application'))
+			# T: Button for adding a new application to the 'open with' menu
+		button.connect('clicked', self.on_add_application)
+		self.add_extra_button(button)
+
+		self.reload()
+
+	def reload(self):
+		combo = self.default_combo
+		combo.handler_block_by_func(self.on_default_changed)
+		combo.clear()
+
+		default = ApplicationManager.get_default_application(self.mimetype)
+		sysdefault = SystemDefault()
+		if default:
+			combo.append(default)
+		else:
+			combo.append(sysdefault)
+
+		for app in ApplicationManager.list_applications(self.mimetype, nodisplay=True):
+			# list all custom commands, including those that have NoDisplay set
+			if default and app.key == default.key:
+				continue
+			else:
+				combo.append(app)
+
+		if default:
+			combo.append(sysdefault) # append to end
+
+		combo.set_active(0)
+		combo.handler_unblock_by_func(self.on_default_changed)
+
+	def on_default_changed(self, combo):
+		app = combo.get_active()
+		logger.info('Default application for type "%s" changed to: %s', self.mimetype, app.name)
+		if isinstance(app, SystemDefault):
+			ApplicationManager.set_default_application(self.mimetype, None)
+		else:
+			ApplicationManager.set_default_application(self.mimetype, app)
+
+	def on_add_application(self, button):
+		AddApplicationDialog(self, self.mimetype).run()
+		self.reload()
+
+
+class SystemDefault(object):
+	'''Stub object that can be used in L{ApplicationComboBox}'''
+
+	name = _('System Default') # T: Label for default application handler
+
+
+
+class ApplicationComboBox(gtk.ComboBox):
+
+	NAME_COL = 0
+	APP_COL = 1
+	ICON_COL = 2
+
+	def __init__(self):
+		model = gtk.ListStore(str, object, gtk.gdk.Pixbuf) # NAME_COL, APP_COL, ICON_COL
+		gtk.ComboBox.__init__(self, model)
+
+		cell = gtk.CellRendererPixbuf()
+		self.pack_start(cell, False)
+		cell.set_property('xpad', 5)
+		self.add_attribute(cell, 'pixbuf', self.ICON_COL)
+
+		cell = gtk.CellRendererText()
+		self.pack_start(cell, True)
+		cell.set_property('xalign', 0.0)
+		cell.set_property('xpad', 5)
+		self.add_attribute(cell, 'text', self.NAME_COL)
+
+	def clear(self):
+		self.get_model().clear()
+
+	def append(self, application):
+		model = self.get_model()
+		if hasattr(application, 'get_pixbuf'):
+			pixbuf = application.get_pixbuf(gtk.ICON_SIZE_MENU)
+		else:
+			pixbuf = self.render_icon(gtk.STOCK_EXECUTE, gtk.ICON_SIZE_MENU)
+
+		model.append((application.name, application, pixbuf)) # NAME_COL, APP_COL, ICON_COL
+
+	def get_active(self):
+		model = self.get_model()
+		iter = self.get_active_iter()
+		if iter:
+			return model[iter][self.APP_COL]
+		else:
+			return None
+
+
+class AddApplicationDialog(Dialog):
+	'''Dialog to prompt the user for a new custom command.
+	Allows to input an application name and a command, and calls
+	L{ApplicationManager.create()}.
+	'''
+
+	def __init__(self, ui, mimetype):
+		'''Constructor
+		@param ui: the parent window or C{GtkInterface} object
+		@param mimetype: mime-type for which we want to create a new
+		application
+		'''
+		Dialog.__init__(self, ui, _('Add Application')) # T: Dialog title
+		self.mimetype = mimetype
+		self.add_text(_mimetype_dialog_text(mimetype))
 		self.add_form( (
 			('name', 'string', _('Name')), # T: Field in 'custom command' dialog
 			('exec', 'string', _('Command')), # T: Field in 'custom command' dialog
+			('default', 'bool', _('Make default application')), # T: Field in 'custom command' dialog
 		) )
+		self.form['default'] = True
 
 	def do_response_ok(self):
 		name = self.form['name']
 		cmd = self.form['exec']
+		default = self.form['default']
 		if not (name and cmd):
 			return False
 
 		manager = ApplicationManager()
-		if self.mimetype:
-			application = manager.create(self.mimetype, name, cmd)
-		else:
-			application = manager.create_helper(self.apptype, name, cmd)
+		application = manager.create(self.mimetype, name, cmd, NoDisplay=default)
+			# Default implies NoDisplay, this to keep the list
+			# more or less clean.
+
+		if default:
+			manager.set_default_application(self.mimetype, application)
+
 		self.result = application
 		return True
 
@@ -716,7 +888,7 @@ class CustomToolManager(object):
 		'''
 		properties['Type'] = 'X-Zim-CustomTool'
 		dir = XDG_CONFIG_HOME.subdir('zim/customtools')
-		tool = _create_application(dir, Name, '', klass=CustomTool, **properties)
+		tool = _create_application(dir, Name, '', klass=CustomTool, NoDisplay=False, **properties)
 		self.tools[tool.key] = tool
 		self.names.append(tool.key)
 		self._write_list()

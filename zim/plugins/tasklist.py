@@ -18,10 +18,10 @@ from zim.notebook import Path
 from zim.gui.widgets import ui_environment, \
 	Dialog, MessageDialog, \
 	InputEntry, Button, IconButton, MenuButton, \
-	BrowserTreeView, SingleClickTreeView, \
+	BrowserTreeView, SingleClickTreeView, ScrolledWindow, HPaned, \
 	encode_markup_text, decode_markup_text
 from zim.gui.clipboard import Clipboard
-from zim.async import DelayedCallback
+from zim.signals import DelayedCallback, SIGNAL_AFTER
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
 from zim.config import check_class_allow_empty
 
@@ -75,7 +75,7 @@ date_re = re.compile(r'\s*\[d:(.+)\]')
 
 
 _NO_DATE = '9999' # Constant for empty due date - value chosen for sorting properties
-
+_NO_TAGS = '__no_tags__' # Constant that serves as the "no tags" tag - _must_ be lower case
 
 # FUTURE: add an interface for this plugin in the WWW frontend
 
@@ -142,9 +142,11 @@ This is a core plugin shipping with zim.
 	def finalize_notebook(self, notebook):
 		# This is done regardsless of the ui type of the application
 		self.index = notebook.index
-		self.index.connect_after('initialize-db', self.initialize_db)
-		self.index.connect('page-indexed', self.index_page)
-		self.index.connect('page-deleted', self.remove_page)
+		self.connectto_all(self.index, (
+			('initialize-db', self.initialize_db, None, SIGNAL_AFTER),
+			('page-indexed', self.index_page),
+			('page-deleted', self.remove_page),
+		))
 		# We don't care about pages that are moved
 
 		db_version = self.index.properties['plugin_tasklist_format']
@@ -521,7 +523,7 @@ class TaskListDialog(Dialog):
 			# we'll end with a too small dialog and no way to resize it
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
-		self.hpane = gtk.HPaned()
+		self.hpane = HPaned()
 		self.uistate.setdefault('hpane_pos', 75)
 		self.hpane.set_position(self.uistate['hpane_pos'])
 		self.vbox.add(self.hpane)
@@ -530,19 +532,11 @@ class TaskListDialog(Dialog):
 		self.uistate.setdefault('only_show_act', False)
 		self.task_list = TaskListTreeView(self.ui, plugin, filter_actionable=self.uistate['only_show_act'])
 		self.task_list.set_headers_visible(True) # Fix for maemo
-		scrollwindow = gtk.ScrolledWindow()
-		scrollwindow.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
-		scrollwindow.add(self.task_list)
-		self.hpane.add2(scrollwindow)
+		self.hpane.add2(ScrolledWindow(self.task_list))
 
 		# Tag list
 		self.tag_list = TagListTreeView(self.task_list)
-		scrollwindow = gtk.ScrolledWindow()
-		scrollwindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-		scrollwindow.set_shadow_type(gtk.SHADOW_IN)
-		scrollwindow.add(self.tag_list)
-		self.hpane.add1(scrollwindow)
+		self.hpane.add1(ScrolledWindow(self.tag_list))
 
 		# Filter input
 		hbox.pack_start(gtk.Label(_('Filter')+': '), False) # T: Input label
@@ -575,16 +569,35 @@ class TaskListDialog(Dialog):
 		self.statistics_label = gtk.Label()
 		hbox.pack_end(self.statistics_label, False)
 
-		def set_statistics(o):
+
+		def set_statistics():
 			total, stats = self.task_list.get_statistics()
 			text = ngettext('%i open item', '%i open items', total) % total
 				# T: Label for statistics in Task List, %i is the number of tasks
 			text += ' (' + '/'.join(map(str, stats)) + ')'
 			self.statistics_label.set_text(text)
 
-		set_statistics(self.task_list)
-		self.plugin.connect('tasklist-changed', set_statistics)
-			# Make sure this is connected after the task list connected to same signal
+		set_statistics()
+
+		def on_tasklist_changed(o):
+			self.task_list.refresh()
+			self.tag_list.refresh(self.task_list)
+			set_statistics()
+
+		callback = DelayedCallback(10, on_tasklist_changed)
+			# Don't really care about the delay, but want to
+			# make it less blocking - should be async preferably
+			# now it is at least on idle
+		self.connectto(plugin, 'tasklist-changed', callback)
+
+		# Async solution fall because sqlite not multi-threading
+		# (see also todo item for async in DelayedSignal class)
+
+		#~ def async_call(o):
+			#~ from zim.async import AsyncOperation
+			#~ op = AsyncOperation(on_tasklist_changed, args=(o,))
+			#~ op.start()
+		#~ self.connectto(plugin, 'tasklist-changed', async_call)
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
@@ -601,6 +614,7 @@ class TagListTreeView(SingleClickTreeView):
 	_type_separator = 0
 	_type_label = 1
 	_type_tag = 2
+	_type_untagged = 3
 
 	def __init__(self, task_list):
 		model = gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
@@ -627,8 +641,6 @@ class TagListTreeView(SingleClickTreeView):
 		self.get_selection().connect('changed', self.on_selection_changed)
 
 		self.refresh(task_list)
-		task_list.plugin.connect('tasklist-changed', lambda o: self.refresh(task_list))
-			# Make sure this is connected after the task list connected to same signal
 
 	def get_tags(self):
 		'''Returns current selected tags, or None for all tags'''
@@ -636,6 +648,8 @@ class TagListTreeView(SingleClickTreeView):
 		for row in self._get_selected():
 			if row[2] == self._type_tag:
 				tags.append(row[0])
+			elif row[2] == self._type_untagged:
+				tags.append(_NO_TAGS)
 		return tags or None
 
 	def get_labels(self):
@@ -675,9 +689,13 @@ class TagListTreeView(SingleClickTreeView):
 			if label in labels and label != plugin.next_label:
 				model.append((label, labels[label], self._type_label, pango.WEIGHT_BOLD))
 
+		tags = self.task_list.get_tags()
+		if _NO_TAGS in tags:
+			n_untagged = tags.pop(_NO_TAGS)
+			model.append((_('Untagged'), n_untagged, self._type_untagged, pango.WEIGHT_NORMAL))
+
 		model.append(('', 0, self._type_separator, 0)) # separator
 
-		tags = self.task_list.get_tags()
 		for tag in natural_sorted(tags):
 			model.append((tag, tags[tag], self._type_tag, pango.WEIGHT_NORMAL))
 
@@ -696,8 +714,7 @@ class TagListTreeView(SingleClickTreeView):
 		if not self._block_selection_change:
 			tags = self.get_tags()
 			labels = self.get_labels()
-			self.task_list.set_tag_filter(tags)
-			self.task_list.set_label_filter(labels)
+			self.task_list.set_tag_filter(tags, labels)
 
 
 HIGH_COLOR = '#EF5151' # red (derived from Tango style guide - #EF2929)
@@ -716,10 +733,11 @@ class TaskListTreeView(BrowserTreeView):
 	ACT_COL = 5 # actionable
 	OPEN_COL = 6 # item not closed
 	TASKID_COL = 7
+	TAGS_COL = 8
 
 	def __init__(self, ui, plugin, filter_actionable):
-		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool, int)
-			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL
+		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool, int, object)
+			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL, TAGS_COL
 		model = self.real_model.filter_new()
 		model.set_visible_column(self.VIS_COL)
 		model = gtk.TreeModelSort(model)
@@ -816,7 +834,6 @@ class TaskListTreeView(BrowserTreeView):
 
 		# Finalize
 		self.refresh()
-		self.plugin.connect_object('tasklist-changed', self.__class__.refresh, self)
 
 		# HACK because we can not register ourselves :S
 		self.connect('row_activated', self.__class__.do_row_activated)
@@ -851,37 +868,40 @@ class TaskListTreeView(BrowserTreeView):
 		rows = list(self.plugin.list_tasks(task))
 
 		# First cache + sort tasks to ensure stability of the list
-		for row in rows:
+		for i, row in enumerate(rows):
 			if not row['source'] in path_cache:
 				path = self.plugin.get_path(row)
 				if path is None:
 					# Be robust for glitches - filter these out
-					row['source'] = None
+					rows[i] = None
 				else:
 					path_cache[row['source']] = path
 
-		rows = [r for r in rows if r['source'] is not None] # filter out missing paths
+		rows = [r for r in rows if r is not None] # filter out missing paths
 
 		rows.sort(key=lambda r: path_cache[r['source']].name)
 
-		# Count them (note: these matches fail after formatting applied)
+		# Then format them and add them to the model
 		for row in rows:
 			if not row['open']:
-				continue # Only count open items
+				continue # Only include open items for now
 
 			for label in self.plugin.task_label_re.findall(row['description']):
 				self._labels[label] = self._labels.get(label, 0) + 1
 
-			for tag in tag_re.findall(row['description']):
-				self._tags[tag] = self._tags.get(tag, 0) + 1
-
+			tags = tuple(tag_re.findall(row['description']))
 			if self.plugin.preferences['tag_by_page']:
 				path = path_cache[row['source']]
-				for part in path.parts:
-					self._tags[part] = self._tags.get(part, 0) + 1
+				tags = tags + tuple(path.parts)
 
-		# Then format them and add them to the model
-		for row in rows:
+			# Update tag count
+			if tags:
+				for tag in tags:
+					self._tags[tag] = self._tags.get(tag, 0) + 1
+			else:
+				self._tags[_NO_TAGS] = self._tags.get(_NO_TAGS, 0) + 1
+
+
 			path = path_cache[row['source']]
 			task = encode_markup_text(row['description'])
 			task = re.sub('\s*!+\s*', ' ', task) # get rid of exclamation marks
@@ -891,8 +911,8 @@ class TaskListTreeView(BrowserTreeView):
 				task = self.plugin.task_label_re.sub(r'<b>\1</b>', task) # highlight labels
 			else:
 				task = r'<span color="darkgrey">%s</span>' % task
-			modelrow = [False, row['prio'], task, row['due'], path.name, row['actionable'], row['open'], row['id']]
-				# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL
+			modelrow = [False, row['prio'], task, row['due'], path.name, row['actionable'], row['open'], row['id'], tags]
+				# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL, TAGS_COL
 			modelrow[0] = self._filter_item(modelrow)
 			myiter = self.real_model.append(iter, modelrow)
 
@@ -967,18 +987,17 @@ class TaskListTreeView(BrowserTreeView):
 		else:
 			return 0, []
 
-	def set_tag_filter(self, tags):
+	def set_tag_filter(self, tags=None, labels=None):
 		if tags:
 			self.tag_filter = [tag.lower() for tag in tags]
 		else:
 			self.tag_filter = None
-		self._eval_filter()
 
-	def set_label_filter(self, labels):
 		if labels:
 			self.label_filter = [label.lower() for label in labels]
 		else:
 			self.label_filter = None
+
 		self._eval_filter()
 
 	def _eval_filter(self):
@@ -1007,6 +1026,7 @@ class TaskListTreeView(BrowserTreeView):
 
 		description = modelrow[self.TASK_COL].decode('utf-8').lower()
 		pagename = modelrow[self.PAGE_COL].decode('utf-8').lower()
+		tags = modelrow[self.TAGS_COL]
 
 		if visible and self.label_filter:
 			# Any labels need to be present
@@ -1017,17 +1037,12 @@ class TaskListTreeView(BrowserTreeView):
 				visible = False # no label found
 
 		if visible and self.tag_filter:
-			# And any tag should match (or pagename if tag_by_page)
-			for tag in self.tag_filter:
-				if self.plugin.preferences['tag_by_page']:
-					if '@'+tag in description \
-					or tag in pagename.split(':'):
-						break # keep visible True
-				else:
-					if '@'+tag in description:
-						break # keep visible True
+			# Any tag should match
+			if (_NO_TAGS in self.tag_filter and not tags) \
+			or any(tag in tags for tag in self.tag_filter):
+				visible = True
 			else:
-				visible = False # no tag found
+				visible = False
 
 		if visible and self.filter:
 			# And finally the filter string should match
@@ -1053,11 +1068,11 @@ class TaskListTreeView(BrowserTreeView):
 
 	def do_initialize_popup(self, menu):
 		item = gtk.ImageMenuItem('gtk-copy')
-		item.connect_object('activate', self.__class__.copy_to_clipboard, self)
+		item.connect('activate', self.copy_to_clipboard)
 		menu.append(item)
 		self.populate_popup_expand_collapse(menu)
 
-	def copy_to_clipboard(self):
+	def copy_to_clipboard(self, *a):
 		'''Exports currently visible elements from the tasks list'''
 		logger.debug('Exporting to clipboard current view of task list.')
 		text = self.get_visible_data_as_csv()

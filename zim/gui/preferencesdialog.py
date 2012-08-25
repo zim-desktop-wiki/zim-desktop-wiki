@@ -7,8 +7,8 @@ import gtk
 import logging
 
 import zim.plugins
-from zim.gui.applications import ApplicationManager, NewApplicationDialog
-from zim.gui.widgets import Dialog, Button, BrowserTreeView, scrolled_text_view, InputForm, input_table_factory
+from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
+	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
 from zim.gui.pageview import PageView
 
 
@@ -25,9 +25,6 @@ class PreferencesDialog(Dialog):
 	a tab with plugins. Options are not defined here, but need to be
 	registered using GtkInterface.register_preferences().
 	'''
-
-	OTHER_APP = _('Other Application') + '...'
-		# T: label to pop dialog with more applications in 'open with' menu
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
@@ -71,27 +68,6 @@ class PreferencesDialog(Dialog):
 		# Keybindings tab
 		#~ gtknotebook.append_page(KeyBindingsTab(self), gtk.Label('Key bindings'))
 
-		# Applications tab
-		vbox = gtk.VBox()
-		gtknotebook.append_page(vbox, gtk.Label(_('Applications')))
-				# T: Heading in preferences dialog
-
-		form = InputForm( (
-			('file_browser', 'choice', _('File browser'), ()),
-				# T: Input for application type in preferences dialog
-			('web_browser', 'choice', _('Web browser'), ()),
-				# T: Input for application type in preferences dialog
-			('email_client', 'choice', _('Email client'), ()),
-				# T: Input for application type in preferences dialog
-			('text_editor', 'choice', _('Text Editor'), ()),
-				# T: Input for application type in preferences dialog
-		) )
-		for type, widget in form.widgets.items():
-			self._append_applications(type, widget)
-
-		vbox.pack_start(form, False)
-		self.applicationsform = form
-
 		# Plugins tab
 		gtknotebook.append_page(PluginsTab(self), gtk.Label(_('Plugins')))
 				# T: Heading in preferences dialog
@@ -122,61 +98,7 @@ class PreferencesDialog(Dialog):
 		self.fontbutton.set_size_request(100, -1)
 		input_table_factory(((None, self.fontbutton),), table)
 
-	def _append_applications(self, type, widget):
-		manager = ApplicationManager()
-
-		current = self.ui.preferences['GtkInterface'][type]
-		apps = manager.list_helpers(type)
-		if not current is None \
-		and not current in [app.key for app in apps]:
-			app = manager.get_application(current)
-			if app:
-				apps.insert(0, app)
-			else:
-				logger.warn('Could not find application: %s', current)
-
-		name_map = {}
-		setattr(self, '%s_map' % type, name_map)
-
-		for app in apps:
-			name = app.name
-			name_map[name] = app.key
-			widget.append_text(name)
-
-		widget.append_text(self.OTHER_APP)
-		widget.connect('changed', self._on_combo_changed, type)
-
-		widget.current_app = 0
-		try:
-			active = [app.key for app in apps].index(current)
-			widget.current_app = active
-			widget.set_active(active)
-		except ValueError:
-			pass
-
-	def _on_combo_changed(self, combobox, type):
-		name = combobox.get_active_text()
-		if name == self.OTHER_APP:
-			app = NewApplicationDialog(self, type=type).run()
-			if app:
-				# add new application and select it
-				len = combobox.get_model().iter_n_children(None)
-				name = app.name
-				name_map = getattr(self, '%s_map' % type)
-				name_map[name] = app.key
-				combobox.insert_text(len-2, name)
-				combobox.set_active(len-2)
-			else:
-				# dialog was canceled - set back to current
-				active = combobox.current_app
-				combobox.set_active(active)
-
 	def do_response_ok(self):
-		# Get applications
-		for type, name in self.applicationsform.items():
-			name_map = getattr(self, '%s_map' % type)
-			self.ui.preferences['GtkInterface'][type] = name_map.get(name)
-
 		# Get dynamic tabs
 		for form in self.forms.values():
 			for key, value in form.items():
@@ -203,7 +125,11 @@ class PreferencesDialog(Dialog):
 		# Restore previous situation if the user changed something
 		# in this dialog session
 		for name in zim.plugins.list_plugins():
-			klass = zim.plugins.get_plugin(name)
+			try:
+				klass = zim.plugins.get_plugin(name)
+			except:
+				continue
+
 			activatable = klass.check_dependencies_ok()
 
 			if klass in self.p_save_loaded and activatable and klass not in now_loaded:
@@ -223,17 +149,14 @@ class PluginsTab(gtk.HBox):
 
 		treeview = PluginsTreeView(self.dialog.ui)
 		treeview.connect('row-activated', self.do_row_activated)
-		swindow = gtk.ScrolledWindow()
-		swindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-		swindow.set_shadow_type(gtk.SHADOW_IN)
+		swindow = ScrolledWindow(treeview, hpolicy=gtk.POLICY_NEVER)
 		self.pack_start(swindow, False)
-		swindow.add(treeview)
 
 		vbox = gtk.VBox()
 		self.add(vbox)
 
 		# Textview with scrollbars to show plugins info. Required by small screen devices
-		swindow, textview = scrolled_text_view()
+		swindow, textview = ScrolledTextView()
 		textview.set_cursor_visible(False)
 		self.textbuffer = textview.get_buffer()
 		self.textbuffer.create_tag('bold', weight=pango.WEIGHT_BOLD)
@@ -358,8 +281,10 @@ class PluginsTreeModel(gtk.ListStore):
 			self.ui.unload_plugin(klass.plugin_key)
 			self[path][0] = False
 		else:
-			self.ui.load_plugin(klass.plugin_key)
-			self[path][0] = True
+			plugin = self.ui.load_plugin(klass.plugin_key)
+			print "GOT", plugin
+			self[path][0] = (plugin is not None)
+				# TODO pop error dialog if failed to load
 
 
 class PluginsTreeView(BrowserTreeView):
