@@ -27,6 +27,7 @@ from zim.gui.widgets import populate_popup_add_separator
 lilypond_cmd = ('lilypond', '-ddelete-intermediate-files',
 		# '-dsafe', # Can't include files in safe mode
 		'-dbackend=eps', '--png', '--header=texidoc')
+convertly_cmd = ('convert-ly', '--current-version', '--edit')
 lilypondver_cmd = ('lilypond', '--version')
 
 ui_xml = '''
@@ -70,7 +71,6 @@ This is a core plugin shipping with zim.
 
 	plugin_preferences = [
 		# key, type, label, default
-		('lilypond_version', 'string', _('GNU Lilypond version'), ''),
 		('include_header', 'string', _('Common include header'), _('\include "predefined-guitar-fretboards.ly"')),
 		('include_footer', 'string', _('Common include footer'), ''),
 	]
@@ -82,9 +82,6 @@ This is a core plugin shipping with zim.
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
-		if not self.preferences['lilypond_version']:
-			self.preferences['lilypond_version'] = _get_lilypond_version()
-
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_actions(ui_actions, self)
 			self.ui.add_ui(ui_xml, self)
@@ -121,7 +118,7 @@ class ScoreGenerator(ImageGeneratorClass):
 	type = 'score'
 	scriptname = 'score.ly'
 	imagename = 'score.png'
-	lilypond_version = None
+	cur_lilypond_version = None
 	include_header = ''
 	include_footer = ''
 
@@ -130,21 +127,39 @@ class ScoreGenerator(ImageGeneratorClass):
 		assert file, 'BUG: could not find templates/plugins/scoreeditor.ly'
 		self.template = GenericTemplate(file.readlines(), name=file)
 		self.scorefile = TmpFile(self.scriptname)
-		if preferences.has_key('lilypond_version'):
-			self.lilypond_version = preferences['lilypond_version']
-		else:
-			self.lilypond_version = _get_lilypond_version()
+		self.cur_lilypond_version = _get_lilypond_version()
 		if preferences.has_key('include_header'):
 			self.include_header = preferences['include_header']
 		if preferences.has_key('include_footer'):
 			self.include_footer = preferences['include_footer']
 
+	def process_input(self, text):
+		'''Prepend version string to user input. It is also stored in
+		the script file.
+		'''
+		version_present = False
+		for l in text.splitlines(True):
+			if l.strip().startswith('\\version'):
+				version_present = True
+		if not version_present:
+			text = '\\version "{0}"\n\n'.format(self.cur_lilypond_version) + text
+		return text
+	
+	def extract_version(self, text):
+		outtext = []
+		version = None
+		for l in text:
+			if l.strip().startswith('\\version'):
+				version = l.strip()
+			else:
+				outtext.append(l)
+		return (version, outtext)
+
 	def generate_image(self, text):
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
 
-		# Filter out empty lines, not allowed in latex equation blocks
-		text = (line for line in text if line and not line.isspace())
+		(version, text) = self.extract_version(text)
 		text = ''.join(text)
 		#~ print '>>>%s<<<' % text
 
@@ -152,12 +167,23 @@ class ScoreGenerator(ImageGeneratorClass):
 		scorefile = self.scorefile
 		scorefile.writelines(
 			self.template.process({'score': text,
-				'version': self.lilypond_version,
+				'version': version,
 				'include_header': self.include_header,
 				'include_footer': self.include_footer}) )
 		#~ print '>>>%s<<<' % scorefile.read()
 
-		# Call lilypond
+		# Call convert-ly to convert document of current version of
+		# Lilypond.
+		clogfile = File(scorefile.path[:-3] + '-convertly.log') # len('.ly) == 3
+		try:
+			convertly = Application(convertly_cmd)
+			convertly.run((scorefile.basename,), cwd=scorefile.dir)
+		except ApplicationError:
+			clogfile.write('convert-ly failed.\n')
+			return None, clogfile
+
+
+		# Call lilypond to generate image.
 		logfile = File(scorefile.path[:-3] + '.log') # len('.ly') == 3
 		try:
 			lilypond = Application(lilypond_cmd)

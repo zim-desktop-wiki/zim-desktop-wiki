@@ -1,7 +1,7 @@
 \header {
         tagline = ##f
 }
-\version "[% version %]"
+[% version %]
 \paper {
         raggedright = ##t
         raggedbottom = ##t

@@ -56,6 +56,36 @@ class ImageGeneratorClass(object):
 		'''
 		raise NotImplemented
 
+	def process_input(self, text):
+		'''Process user input before generating image
+
+		This method is used to post-process user input before
+		generating image and writing the user input into the script
+		file.
+
+		@param text: the source text as string - raw user input
+		@returns: string used for generate_image, also the string
+		written to script file.
+
+		@implementation: Not mandatory to be implemented by subclass.
+		It defaults to user input.
+		'''
+		return text
+
+	def filter_input(self, text):
+		'''Filter contents of script file before displaying in textarea
+
+		This method is used to pre-process contents of script file
+		before displaying in textarea.
+
+		@param text: the contents of script file
+		@returns: string used to display for user input.
+
+		@implementation: Not mandatory to be implemented by subclass.
+		It defaults to script file contents.
+		'''
+		return text
+
 	def cleanup(self):
 		'''Cleanup any temporary files that were created by this
 		generator. Including log files and image files.
@@ -143,7 +173,7 @@ class ImageGeneratorDialog(Dialog):
 			textfile = self._stitch_fileextension(file, self.generator.scriptname)
 			self._existing_file = textfile
 			self.imageview.set_file(file)
-			self.set_text(textfile.read())
+			self.set_text(self.generator.filter_input(textfile.read()))
 
 		self.textview.grab_focus()
 
@@ -176,6 +206,7 @@ class ImageGeneratorDialog(Dialog):
 		self.logfile = None
 
 		text = self.get_text()
+		text = self.generator.process_input(text)
 		try:
 			imagefile, logfile = self.generator.generate_image(text)
 		except:
@@ -218,7 +249,7 @@ class ImageGeneratorDialog(Dialog):
 			dir = self.ui.notebook.get_attachments_dir(page)
 			textfile = dir.new_file(self.generator.scriptname)
 
-		textfile.write( self.get_text() )
+		textfile.write( self.generator.process_input(self.get_text()) )
 
 		imgfile = self._stitch_fileextension(textfile, self.generator.imagename)
 		if self.imagefile and self.imagefile.exists():
