@@ -62,7 +62,8 @@ from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.parsing import url_encode, URL_ENCODE_READABLE
 
-from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, IconButton, ScrolledWindow
+from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
+	IconButton, ScrolledWindow, button_set_statusbar_style
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import \
 	URI_TARGETS, URI_TARGET_NAMES, \
@@ -205,8 +206,7 @@ This plugin is still under development.
 			self.ui.mainwindow.statusbar.pack_end(self.statusbar_frame, False)
 
 			self.statusbar_button = gtk.ToggleButton('<attachments>') # translated below
-			self.statusbar_button.set_relief(gtk.RELIEF_NONE)
-				# TODO set statusbar style instead
+			button_set_statusbar_style(self.statusbar_button)
 
 			self.statusbar_button.set_use_underline(True)
 			self.statusbar_button.connect_after('toggled',
