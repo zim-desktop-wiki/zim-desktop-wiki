@@ -1734,6 +1734,34 @@ class FolderEntry(FSPathEntry):
 	get_folder = FSPathEntry.get_path
 
 
+def gtk_entry_completion_match_func(completion, key, iter, column):
+	if key is None:
+		return False
+
+	model = completion.get_model()
+	text  = model.get_value(iter, column)
+	if text is not None:
+		text_str = text.lower()
+		key_str  = key.lower()
+		if text_str.startswith(key_str):
+			return True
+	return False
+
+
+def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
+	if key is None:
+		return False
+
+	model = completion.get_model()
+	text  = model.get_value(iter, column)
+	if text is not None:
+		text_str = text.lower()
+		key_str  = key.lower()
+		if text_str.find(key_str) >=0 :
+			return True
+	return False
+
+
 class PageEntry(InputEntry):
 	'''Widget to select a zim page path
 
@@ -1775,7 +1803,7 @@ class PageEntry(InputEntry):
 		assert path is None or isinstance(path, Path)
 
 		completion = gtk.EntryCompletion()
-		completion.set_model(gtk.ListStore(str))
+		completion.set_model(gtk.ListStore(str, str)) # visible name, match name
 		completion.set_text_column(0)
 		completion.set_inline_completion(True)
 		self.set_completion(completion)
@@ -1921,9 +1949,16 @@ class PageEntry(InputEntry):
 			#~ else:
 				#~ print '\t NAMESPACE', path
 
-		# TODO also add parent namespaces in case text did not contain any ':' (anchored == False)
-		for p in self.notebook.index.list_pages(path):
-			model.append((prefix+p.basename,))
+		if not prefix: # not starting with ":" or "+"
+			completion.set_match_func(gtk_entry_completion_match_func, 1)
+			for p in self.notebook.index.walk():
+				model.append((":"+p.name, p.basename))
+		else:
+			# TODO include matches against parents (anchored relative link)
+			#      if not subpaths is True
+			completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
+			for p in self.notebook.index.list_pages(path):
+				model.append((prefix+p.basename, prefix+p.basename))
 
 		completion.complete()
 
