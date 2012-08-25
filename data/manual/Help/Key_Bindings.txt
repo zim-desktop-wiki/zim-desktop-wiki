@@ -9,11 +9,14 @@ See also [[Menu Items]].
 ==== General ====
 
 '''
-F9		Toggle index visibility
+F9		Toggle visibility of sidepane(s)
+<Ctrl>F9	Show all sidepanes
 <Ctrl><Space>	Toggle focus between index and buffer
     		opens side pane if index is invisible
 		(optional see preferences)
 <Ctrl><Tab>	Focus next inteface element (gtk default)
+<Ctrl><Shift><Tab> Focus previous inteface element (gtk default)
+Esc		Close sidepane (when focus is on a side pane)
 '''
 
 
@@ -65,7 +68,7 @@ F9		Toggle index visibility
 
 
 '''
-<Ctrl>1..<Ctrl>5		Make selected text a heading
+<Ctrl>1..<Ctrl>5 Make selected text a heading
 <Ctrl>9		Make selected text normal
 <Ctrl>B		Make selected text strong
 <Ctrl>I		Make selected text italic

@@ -469,18 +469,18 @@ class TestGtkInterface(tests.TestCase):
 		self.assertTrue(window.uistate['show_statusbar'])
 
 		self.assertTrue(window.uistate['left_pane'][0])
-		window.toggle_sidepane()
+		window.toggle_panes()
 		self.assertFalse(window.uistate['left_pane'][0])
-		window.toggle_sidepane()
+		window.toggle_panes()
 		self.assertTrue(window.uistate['left_pane'][0])
 
-		# note: focus starts at sidepane due to toggle_sidepane above
+		# note: focus starts at sidepane due to toggle_panes above
 		self.assertEqual(window.get_focus(), window.pageindex.treeview)
 		self.assertEqual(window.get_selected_path(), path)
-		window.toggle_focus_index()
+		window.toggle_sidepane_focus()
 		self.assertEqual(window.get_focus(), window.pageview.view)
 		self.assertEqual(window.get_selected_path(), path)
-		window.toggle_focus_index()
+		window.toggle_sidepane_focus()
 		self.assertEqual(window.get_focus(), window.pageindex.treeview)
 		# TODO also check this with "show_sidepane" off
 

@@ -68,6 +68,7 @@ KEYVALS_ASTERISK = (
 KEYVALS_SLASH = (
 	gtk.gdk.unicode_to_keyval(ord('\\')),
 	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
+KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
 # UI Environment config. Would properly belong in zim.gui.__init__
@@ -511,19 +512,25 @@ class Button(gtk.Button):
 class IconButton(gtk.Button):
 	'''Button with a stock icon, but no label.'''
 
-	def __init__(self, stock, relief=True):
+	def __init__(self, stock, relief=True, size=gtk.ICON_SIZE_BUTTON):
 		'''Constructor
 
 		@param stock: constant for the stock item
 		@param relief: when C{False} the button has no visible raised
 		edge and will be flat against the background
+		@param size: the icon size
 		'''
 		gtk.Button.__init__(self)
-		icon = gtk.image_new_from_stock(stock, gtk.ICON_SIZE_BUTTON)
+		icon = gtk.image_new_from_stock(stock, size)
 		self.add(icon)
 		self.set_alignment(0.5, 0.5)
 		if not relief:
 			self.set_relief(gtk.RELIEF_NONE)
+
+
+def CloseButton():
+	'''Constructs a close button for panes and bars'''
+	return IconButton(gtk.STOCK_CLOSE, relief=False, size=gtk.ICON_SIZE_MENU)
 
 
 class IconChooserButton(gtk.Button):
@@ -2067,6 +2074,144 @@ WIDGET_POSITIONS = (
 )
 
 
+class WindowSidePane(gtk.VBox):
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'close': (gobject.SIGNAL_RUN_LAST, None, ()),
+	}
+
+	def __init__(self):
+		gtk.VBox.__init__(self)
+
+		def close_button():
+			button = CloseButton()
+			button.connect('clicked', lambda o: self.emit('close'))
+			return button
+
+		# Add bar with label and close button
+		self.topbar = gtk.HBox()
+		self.topbar.label = gtk.Label()
+		self.topbar.label.set_alignment(0.0, 0.5)
+		self.topbar.pack_start(self.topbar.label)
+		self.topbar.pack_end(close_button(), False)
+		self.pack_start(self.topbar, False)
+
+		# Add notebook
+		self.notebook = gtk.Notebook()
+		self.notebook.set_show_border(False)
+		if gtk.gtk_version >= (2, 22, 0):
+			button = close_button()
+			self.notebook.set_action_widget(button, gtk.PACK_END)
+
+		self.add(self.notebook)
+
+		self._update_topbar()
+
+	def _update_topbar(self):
+		children = self.get_children()
+		assert children[0] == self.topbar
+		n_pages = self.notebook.get_n_pages()
+
+		# Option 1: widget above notebook or no tabs in notebook
+		# Show topbar without title, show tabs in notebbok
+		if children[1] != self.notebook or n_pages == 0:
+			self.notebook.set_show_tabs(True)
+			self.topbar.label.set_text('') # no title
+			if gtk.gtk_version >= (2, 22, 0):
+				button = self.notebook.get_action_widget(gtk.PACK_END)
+				button.set_no_show_all(True)
+				button.hide()
+				self.topbar.set_no_show_all(False)
+				self.topbar.show_all()
+
+			# TODO: for widget + single tab case add another title bar ?
+		# Option 2: notebook with single tab
+		# hide tabs, use topbar to show tab label
+		elif n_pages == 1:
+			self.notebook.set_show_tabs(False)
+			child = self.notebook.get_nth_page(0)
+			title = self.notebook.get_tab_label_text(child)
+			self.topbar.label.set_text(title)
+			if gtk.gtk_version >= (2, 22, 0):
+				button = self.notebook.get_action_widget(gtk.PACK_END)
+				button.set_no_show_all(True)
+				button.hide()
+				self.topbar.set_no_show_all(False)
+				self.topbar.show_all()
+		# Option 3: notebook with multiple tabs
+		# show tabs, no text in topbar
+		else:
+			self.notebook.set_show_tabs(True)
+			self.topbar.label.set_text('') # no title
+			if gtk.gtk_version >= (2, 22, 0):
+				button = self.notebook.get_action_widget(gtk.PACK_END)
+				button.set_no_show_all(False)
+				button.show_all()
+				self.topbar.set_no_show_all(True)
+				self.topbar.hide()
+
+	def add_widget(self, widget, position):
+		self.pack_start(widget, False)
+		if position == TOP:
+			# shuffle above notebook, below close bar
+			self.reorder_child(widget, 1)
+		self._update_topbar()
+
+	def add_tab(self, title, widget):
+		self.notebook.append_page(widget, tab_label=gtk.Label(title))
+		self._update_topbar()
+
+	def remove(self, widget):
+		# Note: try box.remove() except .. causes GErrors here :(
+		if widget in self.get_children():
+			gtk.Box.remove(self, widget)
+			self._update_topbar()
+			return True
+		elif widget in self.notebook.get_children():
+			self.notebook.remove(widget)
+			self._update_topbar()
+			return True
+		else:
+			return False
+
+	def is_empty(self):
+		children = self.get_children()
+		if len(children) == 2:
+			assert children[0] == self.topbar
+			assert children[1] == self.notebook
+			return children[1].get_n_pages() == 0 # check for tabs
+		else:
+			return False # some widget in the pane
+
+	def grab_focus(self):
+		if self.is_empty():
+			return
+
+		widget = gtk_notebook_get_active_page(self.notebook)
+		if widget:
+			widget.grab_focus()
+		elif self.notebook.get_n_pages() > 0:
+			self.notebook.set_current_page(0)
+			widget = self.notebook.get_nth_page(0)
+			widget.grab_focus()
+		else:
+			for widget in self.get_children():
+				if widget != self.topbar and widget != self.notebook:
+					widget.grab_focus()
+					break
+
+	def do_key_press_event(self, event):
+		if event.keyval == KEYVAL_ESC:
+			self.emit('close')
+			return True
+		else:
+			return gtk.VBox.do_key_press_event(self, event)
+
+# Need to register classes defining gobject signals
+gobject.type_register(WindowSidePane)
+
+
 class Window(gtkwindowclass):
 	'''Sub-class of C{gtk.Window} that will take care of hooking
 	the window into the application framework and adds entry points
@@ -2098,99 +2243,75 @@ class Window(gtkwindowclass):
 	sure it plays nicely with the maemo environment.
 
 	All windows in zim must inherit from this class.
+
+	@signal: C{pane-state-changed (pane, visible, active)}: emitted when
+	visibility or active tab changed for a specific pane
 	'''
 
-	# TODO generalized way to set pane position and pane visibility
-	#      in the uistate and load again
-	# TODO generalized way to have a "show pane" button in the toolbar
-	#      - general button when multiple tabs, other name of one tab in button ???
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'pane-state-changed': (gobject.SIGNAL_RUN_LAST, None, (object, bool, object)),
+	}
 
 	def __init__(self):
 		gtkwindowclass.__init__(self)
+		self._last_sidepane_focus = None
 
 		self._zim_window_main = gtk.VBox()
-		self._zim_window_left_pane = HPaned()
-		self._zim_window_right_pane = HPaned()
-		self._zim_window_top_pane = VPaned()
-		self._zim_window_bottom_pane = VPaned()
+		self._zim_window_left_paned = HPaned()
+		self._zim_window_right_paned = HPaned()
+		self._zim_window_top_paned = VPaned()
+		self._zim_window_bottom_paned = VPaned()
 
-		for pane in (
-			self._zim_window_left_pane,
-			self._zim_window_right_pane,
-			self._zim_window_top_pane,
-			self._zim_window_bottom_pane,
-		):
-			pane.zim_pane_state = (False, 200, None)
-
-		self._zim_window_left = gtk.VBox()
-		self._zim_window_right = gtk.VBox()
-		self._zim_window_top = gtk.VBox()
-		self._zim_window_bottom = gtk.VBox()
-
-		self._zim_window_left_notebook = gtk.Notebook()
-		self._zim_window_right_notebook = gtk.Notebook()
-		self._zim_window_top_notebook = gtk.Notebook()
-		self._zim_window_bottom_notebook = gtk.Notebook()
-
-		self._zim_window_left.add(self._zim_window_left_notebook)
-		self._zim_window_right.add(self._zim_window_right_notebook)
-		self._zim_window_top.add(self._zim_window_top_notebook)
-		self._zim_window_bottom.add(self._zim_window_bottom_notebook)
+		self._zim_window_left_pane = WindowSidePane()
+		self._zim_window_right_pane = WindowSidePane()
+		self._zim_window_top_pane = WindowSidePane()
+		self._zim_window_bottom_pane = WindowSidePane()
 
 		self._zim_window_top_special = gtk.VBox()
 
 		gtkwindowclass.add(self, self._zim_window_main)
-		self._zim_window_main.add(self._zim_window_left_pane)
-		self._zim_window_left_pane.pack1(self._zim_window_left, resize=False)
-		self._zim_window_left_pane.pack2(self._zim_window_right_pane, resize=True)
-		self._zim_window_right_pane.pack1(self._zim_window_top_special, resize=True)
-		self._zim_window_right_pane.pack2(self._zim_window_right, resize=False)
-		self._zim_window_top_special.add(self._zim_window_top_pane)
-		self._zim_window_top_pane.pack1(self._zim_window_top, resize=False)
-		self._zim_window_top_pane.pack2(self._zim_window_bottom_pane, resize=True)
-		self._zim_window_bottom_pane.pack2(self._zim_window_bottom, resize=True)
-
-		for box in (
-			self._zim_window_left,
-			self._zim_window_right,
-			self._zim_window_top,
-			self._zim_window_bottom,
-		):
-			box.set_no_show_all(True)
-
-		for nb in (
-			self._zim_window_left_notebook,
-			self._zim_window_right_notebook,
-			self._zim_window_top_notebook,
-			self._zim_window_bottom_notebook,
-		):
-			nb.set_show_tabs(False)
-			nb.set_show_border(False)
+		self._zim_window_main.add(self._zim_window_left_paned)
+		self._zim_window_left_paned.pack1(self._zim_window_left_pane, resize=False)
+		self._zim_window_left_paned.pack2(self._zim_window_right_paned, resize=True)
+		self._zim_window_right_paned.pack1(self._zim_window_top_special, resize=True)
+		self._zim_window_right_paned.pack2(self._zim_window_right_pane, resize=False)
+		self._zim_window_top_special.add(self._zim_window_top_paned)
+		self._zim_window_top_paned.pack1(self._zim_window_top_pane, resize=False)
+		self._zim_window_top_paned.pack2(self._zim_window_bottom_paned, resize=True)
+		self._zim_window_bottom_paned.pack2(self._zim_window_bottom_pane, resize=True)
 
 		self._zim_window_sidepanes = {
 			LEFT_PANE: (
-				self._zim_window_left_pane,
-				self._zim_window_left,
-				self._zim_window_left_notebook),
+				self._zim_window_left_paned,
+				self._zim_window_left_pane),
 			RIGHT_PANE: (
-				self._zim_window_right_pane,
-				self._zim_window_right,
-				self._zim_window_right_notebook),
+				self._zim_window_right_paned,
+				self._zim_window_right_pane),
 			TOP_PANE: (
-				self._zim_window_top_pane,
-				self._zim_window_top,
-				self._zim_window_top_notebook),
+				self._zim_window_top_paned,
+				self._zim_window_top_pane),
 			BOTTOM_PANE: (
-				self._zim_window_bottom_pane,
-				self._zim_window_bottom,
-				self._zim_window_bottom_notebook),
+				self._zim_window_bottom_paned,
+				self._zim_window_bottom_pane),
 		}
+
+		def _on_switch_page(notebook, page, pagenum, key):
+			visible, size, active = self.get_pane_state(key)
+			self.emit('pane-state-changed', key, visible, active)
+
+		for key, value in self._zim_window_sidepanes.items():
+			paned, pane = value
+			pane.set_no_show_all(True)
+			pane.zim_pane_state = (False, 200, None)
+			pane.connect('close', lambda o, k: self.set_pane_state(k, False), key)
+			pane.notebook.connect_after('switch-page', _on_switch_page, key)
 
 	def add(self, widget):
 		'''Add the main widget.
 		@param widget: gtk widget to add in the window
 		'''
-		self._zim_window_bottom_pane.pack1(widget, resize=True)
+		self._zim_window_bottom_paned.pack1(widget, resize=True)
 
 	def add_bar(self, widget, position):
 		'''Add a bar to top or bottom of the window. Used e.g. to add
@@ -2201,10 +2322,15 @@ class Window(gtkwindowclass):
 		self._zim_window_main.pack_start(widget, False)
 
 		if position == TOP:
-			# reshuffle widget to go above main widgets
+			# reshuffle widget to go above main widgets but
+			# below earlier added bars
 			i = self._zim_window_main.child_get_property(
-					self._zim_window_left_pane, 'position')
+					self._zim_window_left_paned, 'position')
 			self._zim_window_main.reorder_child(widget, i)
+
+		self._zim_window_main.set_focus_chain([self._zim_window_left_paned])
+			# Force to ignore the bars in keyboard navigation
+			# items in the bars are all accesible by accelerators
 
 	def add_tab(self, title, widget, pane):
 		'''Add a tab in one of the panes.
@@ -2213,12 +2339,10 @@ class Window(gtkwindowclass):
 		@param pane: can be one of: C{LEFT_PANE}, C{RIGHT_PANE},
 		C{TOP_PANE} or C{BOTTOM_PANE}.
 		'''
-		p, box, nb = self._zim_window_sidepanes[pane]
-		nb.append_page(widget, tab_label=gtk.Label(title))
-		if nb.get_n_pages() > 1:
-			nb.set_show_tabs(True)
-
-		self.set_pane_state(pane, True)
+		key = pane
+		paned, pane = self._zim_window_sidepanes[key]
+		pane.add_tab(title, widget)
+		self.set_pane_state(key, True)
 
 	def add_widget(self, widget, position):
 		'''Add a widget in one of the panes outside of the tabs
@@ -2232,22 +2356,19 @@ class Window(gtkwindowclass):
 		@note: Placing a widget in C{TOP_PANE}, C{TOP}, is supported as
 		a special case, but should not be used by plugins.
 		'''
-		assert not isinstance(widget, gtk.Notebook), 'Please don\'t do this'
-		pane, pos = position
-		if pane in (TOP_PANE, BOTTOM_PANE):
-			if pane == TOP_PANE and pos == TOP:
+		key, pos = position
+		if key in (TOP_PANE, BOTTOM_PANE):
+			if key == TOP_PANE and pos == TOP:
 				# Special case for top widget outside of pane
 				# used especially for PathBar
 				self._zim_window_top_special.pack_start(widget, False)
 				self._zim_window_top_special.reorder_child(widget, 0)
 			else:
 				raise NotImplementedError
-		elif pane in (LEFT_PANE, RIGHT_PANE):
-			p, box, nb = self._zim_window_sidepanes[pane]
-			box.pack_start(widget, False)
-			if pos == TOP:
-				box.reorder_child(widget, 0) # TODO shuffle above notebook
-			self.set_pane_state(pane, True)
+		elif key in (LEFT_PANE, RIGHT_PANE):
+			paned, pane = self._zim_window_sidepanes[key]
+			pane.add_widget(widget, pos)
+			self.set_pane_state(key, True)
 		else:
 			raise KeyError
 
@@ -2255,42 +2376,36 @@ class Window(gtkwindowclass):
 		'''Remove widget from any pane
 		@param widget: the widget to remove
 		'''
+		if self._last_sidepane_focus == widget:
+			self._last_sidepane_focus = None
+
 		box = self._zim_window_top_special
 		if widget in box.get_children():
 			box.remove(widget)
 			return
 
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			pane, box, nb = self._zim_window_sidepanes[key]
-			# Note: try box.remove() except .. causes GErrors here :(
-			if widget in box.get_children():
-				box.remove(widget)
-			elif widget in nb.get_children():
-				nb.remove(widget)
-				i = nb.get_n_pages()
-				if i <= 1:
-					nb.set_show_tabs(False)
-			else:
-				continue # not found
-
-			# found
-			if self._pane_is_empty(key):
-				self.set_pane_state(key, False)
-			break
+			paned, pane = self._zim_window_sidepanes[key]
+			if pane.remove(widget):
+				if pane.is_empty():
+					self.set_pane_state(key, False)
+				break
 		else:
 			raise ValueError, 'Widget not found in this window'
 
-	def _pane_is_empty(self, key):
-		p, box, nb = self._zim_window_sidepanes[key]
-		children = box.get_children()
-		if len(children) == 1:
-			assert isinstance(children[0], gtk.Notebook)
-			return children[0].get_n_pages() == 0 # check for tabs
-		else:
-			return False # some widget in the pane
-
 	def init_uistate(self):
 		assert self.uistate
+
+		def check_toggle(value, default):
+			# Must be list of valid pane names
+			if isinstance(default, (tuple, list)) \
+			and all(e in self._zim_window_sidepanes for e in value):
+				return value
+			else:
+				raise AssertionError
+
+		self.uistate.setdefault('toggle_panes', [], check_toggle)
+
 
 		def check(value, default):
 			# Check value is state as used by set_pane_state() and
@@ -2322,13 +2437,13 @@ class Window(gtkwindowclass):
 		@returns: a 3-tuple of visibility (boolean),
 		pane size (integer), and active tab (label).
 		'''
-		# TODO revert calculate size instead of position for left
+		# FIXME revert calculate size instead of position for left
 		# and bottom widget
 		key = pane
-		pane, box, nb = self._zim_window_sidepanes[key]
-		if box.get_property('visible'):
-			position = pane.get_position()
-			active = gtk_notebook_get_active_tab(nb)
+		paned, pane = self._zim_window_sidepanes[key]
+		if pane.get_property('visible'):
+			position = paned.get_position()
+			active = gtk_notebook_get_active_tab(pane.notebook)
 			return (True, position, active)
 		else:
 			return pane.zim_pane_state
@@ -2345,14 +2460,16 @@ class Window(gtkwindowclass):
 		(fails silently if tab is not found)
 		@param grab_focus: if C{True} active tab will grab focus
 		'''
-		# TODO get parent widget size and subtract to get position
+		# FIXME get parent widget size and subtract to get position
 		# for left and botton notebook
-		# TODO enforce size <  parent widget and > 0
+		# FIXME enforce size <  parent widget and > 0
 		key = pane
-		pane, box, nb = self._zim_window_sidepanes[key]
-		if box.get_property('visible') == visible \
+		paned, pane = self._zim_window_sidepanes[key]
+		if pane.get_property('visible') == visible \
 		and size is None and activetab is None:
-			return # nothing to do
+			if grab_focus:
+				pane.grab_focus()
+			return # nothing else to do
 
 		oldstate = self.get_pane_state(key)
 		if size is None:
@@ -2362,32 +2479,96 @@ class Window(gtkwindowclass):
 		position = size
 
 		if visible:
-			if not self._pane_is_empty(key):
-				box.set_no_show_all(False)
-				box.show_all()
-				pane.set_position(position)
+			if not pane.is_empty():
+				pane.set_no_show_all(False)
+				pane.show_all()
+				paned.set_position(position)
 				if activetab is not None:
 					try:
-						gtk_notebook_set_active_tab(nb, activetab)
+						gtk_notebook_set_active_tab(pane.notebook, activetab)
 					except ValueError:
 						pass
 
 				if grab_focus:
-					widget = gtk_notebook_get_active_page(nb)
-					if widget:
-						widget.grab_focus()
-					elif nb.get_n_pages() > 0:
-						widget = nb.get_nth_page(0)
-						widget.grab_focus()
-					else:
-						box.get_children[0].grab_focus()
-			else:
-				logger.debug('Trying to show an empty pane...')
+					pane.grab_focus()
+			#else:
+			#	logger.debug('Trying to show an empty pane...')
 		else:
-			box.hide()
-			box.set_no_show_all(True)
+			pane.hide()
+			pane.set_no_show_all(True)
 
 		pane.zim_pane_state = (visible, size, activetab)
+		self.emit('pane-state-changed', key, visible, activetab)
+
+	def toggle_panes(self, show=None):
+		'''Toggle between showing and not showing panes.
+		Will remember the panes that were shown last time
+		this method was called but defaults to showing
+		all panes.
+		@param show: if C{True} show panes, if C{False}
+		hide them, if C{None} toggle current state
+		'''
+		# Note that our uistate['toggle_panes'] does not
+		# reflect what panes are visible when e.g. restarting zim
+		# - this is saved in the pane state uistate - instead it
+		# remembers what panes could be shown when toggling.
+		visible = bool(self.get_visible_panes())
+		if show is None:
+			show = not visible
+		elif show == visible:
+			return # nothing to do
+
+		if show:
+			panes = self.uistate['toggle_panes'] \
+				or (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE)
+			for pane in panes:
+				self.set_pane_state(pane, True)
+		else:
+			self.uistate['toggle_panes'] = self.get_visible_panes()
+			for pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
+				self.set_pane_state(pane, False)
+
+	def show_all_panes(self):
+		for pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
+			self.set_pane_state(pane, True)
+
+	def get_visible_panes(self):
+		'''Returns a list of panes that are visible'''
+		panes = []
+		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
+			paned, pane = self._zim_window_sidepanes[key]
+			if not pane.is_empty() and pane.get_property('visible'):
+				panes.append(key)
+		return panes
+
+	def get_used_panes(self):
+		'''Returns a list of panes that are in use (i.e. not empty)'''
+		panes = []
+		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
+			paned, pane = self._zim_window_sidepanes[key]
+			if not pane.is_empty():
+				panes.append(key)
+		return panes
+
+	def do_set_focus(self, widget):
+		# keep track of last sidepane widget that had focus..
+		if widget:
+			parent = widget.get_parent()
+			while parent:
+				if isinstance(parent, WindowSidePane):
+					self._last_sidepane_focus = widget
+					break
+				parent = parent.get_parent()
+
+		return gtkwindowclass.do_set_focus(self, widget)
+
+	def focus_last_sidepane(self):
+		if self._last_sidepane_focus \
+		and self._last_sidepane_focus.get_property('visible'):
+			self._last_sidepane_focus.grab_focus()
+			return True
+		else:
+			return False
 
 	def pack_start(self, *a):
 		raise NotImplementedError, "Use add() instead"
@@ -2398,6 +2579,9 @@ class Window(gtkwindowclass):
 	def show_all(self):
 		register_window(self)
 		gtkwindowclass.show_all(self)
+
+# Need to register classes defining gobject signals
+gobject.type_register(Window)
 
 
 class Dialog(gtk.Dialog, ConnectorMixin):

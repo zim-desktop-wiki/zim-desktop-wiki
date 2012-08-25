@@ -105,22 +105,28 @@ ui_actions = (
 	('show_about', 'gtk-about', _('_About'), '', '', True), # T: Menu item
 )
 
+#: More menu actions
+ui_actions_window = (
+	# name, stock id, label, accelerator, tooltip, readonly
+	('show_all_panes', None, _('_All Panes'), '<ctrl>F9', _('Show All Panes'), True), # T: Menu item
+)
+
 #: Menu actions that toggle between two states
-ui_toggle_actions = (
+ui_toggle_actions_window = (
 	# name, stock id, label, accelerator, tooltip, initial state, readonly
 	('toggle_toolbar', None, _('_Toolbar'),  '', '', True, True), # T: Menu item
 	('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
-	('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
+	('toggle_panes',  'gtk-index', _('_Side Panes'), 'F9', _('Show Side Panes'), True, True), # T: Menu item # FIXME review text
 	('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
 	('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
 )
 
 if ui_environment['platform'] == 'maemo':
-	ui_toggle_actions = (
+	ui_toggle_actions_window = (
 		# name, stock id, label, accelerator, tooltip, initial state, readonly
 		('toggle_toolbar', None, _('_Toolbar'),  '<ctrl>M', '', True, True), # T: Menu item
 		('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
-		('toggle_sidepane',  'gtk-index', _('_Index'), 'F9', _('Show index'), True, True), # T: Menu item
+		('toggle_panes',  'gtk-index', _('_Side Panes'), 'F9', _('Show Side Panes'), True, True), # T: Menu item # FIXME review text
 		('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
 		('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
 	)
@@ -216,9 +222,6 @@ def load_zim_stock_icons():
 				logger.exception('Got exception while loading application icons')
 
 load_zim_stock_icons()
-
-
-KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
 def schedule_on_idle(function, args=()):
@@ -421,7 +424,8 @@ class GtkInterface(NotebookInterface):
 		self.mainwindow = MainWindow(self, fullscreen, geometry)
 
 		self.add_actions(ui_actions, self)
-		self.add_toggle_actions(ui_toggle_actions, self.mainwindow)
+		self.add_actions(ui_actions_window, self.mainwindow)
+		self.add_toggle_actions(ui_toggle_actions_window, self.mainwindow)
 		self.add_radio_actions(ui_pathbar_radio_actions,
 								self.mainwindow, 'do_set_pathbar')
 		self.add_radio_actions(ui_toolbar_style_radio_actions,
@@ -563,6 +567,8 @@ class GtkInterface(NotebookInterface):
 		self._finalize_ui = True
 		for plugin in self.plugins:
 			plugin.finalize_ui(self)
+			# Must happens before window.show_all()
+			# so side panes are initialized when we set uistate
 
 		self.check_notebook_needs_upgrade()
 
@@ -2246,6 +2252,7 @@ class MainWindow(Window):
 		ui.connect('close-page', self.on_close_page)
 		ui.connect('preferences-changed', self.do_preferences_changed)
 
+		self._block_toggle_panes = False
 		self._sidepane_autoclose = False
 		self._switch_focus_accelgroup = None
 
@@ -2270,23 +2277,8 @@ class MainWindow(Window):
 		self.add_bar(self.menubar, TOP)
 		self.add_bar(self.toolbar, TOP)
 
-		#~ self.sidepane = self._zim_window_left # FIXME - get rid of sidepane attribute
-		#~
-		#~ self.sidepane.connect('key-press-event',
-			#~ lambda o, event: event.keyval == KEYVAL_ESC
-				#~ and self.toggle_sidepane())
-
 		self.pageindex = PageIndex(ui)
 		self.add_tab(_('Index'), self.pageindex, LEFT_PANE) # T: Label for pageindex tab
-
-		def check_focus_index(window, widget):
-			focus = widget == self.pageindex
-				# FIXME may conflict with toggling to other widgets
-				# by key binding - how to check focus within sidepane ?
-			if not focus:
-				self.on_sidepane_lost_focus()
-
-		self.connect('set-focus', check_focus_index)
 
 		self.pathbar = None
 		self.pathbar_box = gtk.HBox()
@@ -2398,14 +2390,14 @@ class MainWindow(Window):
 			# see bug lp:620315)
 			group.connect_group( # <Alt><Space>
 				space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
-				self.toggle_focus_index)
+				self.toggle_sidepane_focus)
 
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Ctrl-Space
 		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Ctrl><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
-				self.toggle_focus_index)
+				self.toggle_sidepane_focus)
 
 		self.add_accel_group(group)
 		self._switch_focus_accelgroup = group
@@ -2539,64 +2531,70 @@ class MainWindow(Window):
 		else:
 			self.unfullscreen()
 
-	def toggle_sidepane(self, show=None):
-		'''Menu action to toggle the visibility of the side pane
+	def do_pane_state_changed(self, pane, *a):
+		if not hasattr(self, 'actiongroup') \
+		or self._block_toggle_panes:
+			return
+
+		action = self.actiongroup.get_action('toggle_panes')
+		visible = bool(self.get_visible_panes())
+		if visible != action.get_active():
+			action.set_active(visible)
+
+	def toggle_panes(self, show=None):
+		'''Menu action to toggle the visibility of the all panes
 		@param show: when C{True} or C{False} force the visibility,
 		when C{None} toggle based on current state
 		'''
-		action = self.actiongroup.get_action('toggle_sidepane')
+		action = self.actiongroup.get_action('toggle_panes')
 		if show is None or show != action.get_active():
 			action.activate()
 		else:
-			self.do_toggle_sidepane(show=show)
+			self.do_toggle_panes(show=show)
+		Window.save_uistate(self)
 
-	def do_toggle_sidepane(self, show=None):
-		from zim.gui.widgets import LEFT_PANE
-
+	def do_toggle_panes(self, show=None):
 		if show is None:
-			action = self.actiongroup.get_action('toggle_sidepane')
+			action = self.actiongroup.get_action('toggle_panes')
 			show = action.get_active()
 
+		self._block_toggle_panes = True
+		Window.toggle_panes(self, show)
+		self._block_toggle_panes = False
+
 		if show:
-			self.set_pane_state(LEFT_PANE, True, grab_focus=True)
+			self.focus_last_sidepane() or self.pageindex.grab_focus()
 		else:
-			self.set_pane_state(LEFT_PANE, False)
 			self.pageview.grab_focus()
 
 		self._sidepane_autoclose = False
-		self.uistate[LEFT_PANE] = self.get_pane_state(LEFT_PANE)
 
-	def toggle_focus_index(self, *a):
+	#~ def do_set_focus(self, widget):
+		#~ if widget == self.pageview.view \
+		#~ and self._sidepane_autoclose:
+			#~ # Sidepane open and should close automatically
+			#~ self.toggle_panes(show=False)
+		#~ return Window.do_set_focus(self, widget)
+
+	def toggle_sidepane_focus(self, *a):
 		'''Switch focus between the textview and the page index.
 		Automatically opens the sidepane if it is closed
 		(but sets a property to automatically close it again).
 		This method is used for the (optional) <Ctrl><Space> keybinding.
 		'''
-		action = self.actiongroup.get_action('toggle_sidepane')
+		action = self.actiongroup.get_action('toggle_panes')
 		if action.get_active():
 			# side pane open
-			if self.pageindex.is_focus():
-				# and index has focus
+			if self.pageview.view.is_focus():
+				self.focus_last_sidepane() or self.pageindex.grab_focus()
+			else:
 				self.pageview.grab_focus()
 				if self._sidepane_autoclose:
-					self.toggle_sidepane(show=False)
-			else:
-				# but no focus
-				self.pageindex.grab_focus()
-					# FIXME, does notebook switch tabs for this ?
+					self.toggle_panes(show=False)
 		else:
-			self.toggle_sidepane(show=True)
+			# open the pane
+			self.toggle_panes(show=True)
 			self._sidepane_autoclose = True
-			self.pageindex.grab_focus()
-					# FIXME, does notebook switch tabs for this ?
-
-		return True # we are called from an event handler
-
-	def on_sidepane_lost_focus(self):
-		action = self.actiongroup.get_action('toggle_sidepane')
-		if self._sidepane_autoclose and action.get_active():
-			# Sidepane open and should close automatically
-			self.toggle_sidepane(show=False)
 
 	def set_pathbar(self, type):
 		'''Set the pathbar type
@@ -2777,9 +2775,6 @@ class MainWindow(Window):
 		self._set_widgets_visable()
 
 		Window.init_uistate(self) # takes care of sidepane positions etc
-		from zim.gui.widgets import LEFT_PANE
-		visible = self.get_pane_state(LEFT_PANE)[0]
-		self.toggle_sidepane(show=visible)
 
 		self.set_toolbar_style(self.uistate['toolbar_style'])
 		self.set_toolbar_size(self.uistate['toolbar_size'])

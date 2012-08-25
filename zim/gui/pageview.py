@@ -37,7 +37,7 @@ from zim.formats import get_format, increase_list_iter, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
-	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
+	Button, CloseButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
 	rotate_pixbuf, populate_popup_add_separator
 from zim.gui.applications import OpenWithMenu
@@ -105,7 +105,7 @@ KEYVAL_POUND = gtk.gdk.unicode_to_keyval(ord('#'))
 # States that influence keybindings - we use this to explicitly
 # exclude other states. E.g. MOD2_MASK seems to be set when either
 # numlock or fn keys are active, resulting in keybindings failing
-KEYSTATES = (gtk.gdk.CONTROL_MASK, gtk.gdk.SHIFT_MASK, gtk.gdk.MOD1_MASK)
+KEYSTATES = gtk.gdk.CONTROL_MASK | gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
@@ -3402,7 +3402,7 @@ class TextView(gtk.TextView):
 			else:
 				buffer.place_cursor(iter)
 			handled = True
-		elif event.keyval in KEYVALS_TAB and not event.state in KEYSTATES:
+		elif event.keyval in KEYVALS_TAB and not (event.state & KEYSTATES):
 			# Tab at start of line indents
 			iter = buffer.get_insert_iter()
 			home, ourhome = self.get_visual_home_positions(iter)
@@ -3414,11 +3414,14 @@ class TextView(gtk.TextView):
 				else:
 					buffer.indent(iter.get_line(), interactive=True)
 				handled = True
-		elif event.keyval in KEYVALS_LEFT_TAB \
-		or (event.keyval in KEYVALS_BACKSPACE
-			and self.preferences['unindent_on_backspace']) \
-		and not event.state in KEYSTATES:
+		elif (event.keyval in KEYVALS_LEFT_TAB
+			and not (event.state & KEYSTATES & ~gtk.gdk.SHIFT_MASK)
+		) or (event.keyval in KEYVALS_BACKSPACE
+			and self.preferences['unindent_on_backspace']
+			and not (event.state & KEYSTATES)
+		):
 			# Backspace or Ctrl-Tab unindents line
+			# note that Shift-Tab give Left_Tab + Shift mask, so allow shift
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(iter)
 			if home.starts_line() and iter.compare(ourhome) < 1 \
@@ -6237,7 +6240,7 @@ class FindBar(FindWidget, gtk.HBox):
 			self.pack_start(self.case_option_checkbox, False)
 			self.pack_start(self.highlight_checkbox, False)
 
-		close_button = IconButton(gtk.STOCK_CLOSE, relief=False)
+		close_button = CloseButton()
 		close_button.connect_object('clicked', self.__class__.hide, self)
 		self.pack_end(close_button, False)
 

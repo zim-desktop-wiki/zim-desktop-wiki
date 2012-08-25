@@ -693,6 +693,7 @@ class TagListTreeView(SingleClickTreeView):
 		if _NO_TAGS in tags:
 			n_untagged = tags.pop(_NO_TAGS)
 			model.append((_('Untagged'), n_untagged, self._type_untagged, pango.WEIGHT_NORMAL))
+			# T: label in tasklist plugins for tasks without a tag
 
 		model.append(('', 0, self._type_separator, 0)) # separator
 

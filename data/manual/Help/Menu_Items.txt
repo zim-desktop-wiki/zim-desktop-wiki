@@ -115,8 +115,13 @@ Toggle the visibility of the toolbar.
 **Statusbar**
 Toggle the visibility of the statusbar.
 
-**Index <F9>**
-Toggle the visibility of the side pane. You can also use the <Alt><Space> (or <Ctrl><Space>) [[Key Bindings|keybinding]] to switch focus between the editor and the side pane. Even if the side pane is hidden, this key binding will show it temporarily.
+**Side Panes <F9>**
+Toggle the visibility of the side pane(s).
+
+You can also use the <Alt><Space> (or <Ctrl><Space>) [[Key Bindings|keybinding]] to switch focus between the editor and the side pane. Even if the side pane is hidden, this key binding will show it temporarily.
+
+**All Side Panes <Ctrl><F9>**
+This action will show all side panes that are being used.
 
 **Pathbar**
 Toggle the pathbar visibility and style. Options are **None**, **Recent** **Pages**, **History** and **Namespace**. Obviously "None" will hide the pathbar. "Recent Pages" shows a summary of the history. This summary only shows unique pages and tries to not re-order them too often. Setting "History" shows the full history list. "Namespace" will show the page path to the current page, showing all it's parents.

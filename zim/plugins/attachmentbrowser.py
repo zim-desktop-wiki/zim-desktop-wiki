@@ -161,6 +161,8 @@ def is_hidden_file(file):
 
 class AttachmentBrowserPlugin(PluginClass):
 
+	TAB_NAME = _('Attachments') # T: label for attachment browser pane
+
 	plugin_info = {
 		'name': _('Attachment Browser'), # T: plugin name
 		'description': _('''\
@@ -190,6 +192,7 @@ This plugin is still under development.
 
 	def initialize_ui(self, ui):
 		self._monitor = None
+		self._block_toggle = False
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			#self.ui.add_actions(ui_actions, self)
@@ -197,8 +200,6 @@ This plugin is still under development.
 
 	def finalize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
-			self.uistate.setdefault('active', True)
-
 			self.widget = AttachmentBrowserPluginWidget(self, self.preferences)
 
 			self.statusbar_frame = gtk.Frame()
@@ -214,40 +215,59 @@ This plugin is still under development.
 			self.statusbar_frame.add(self.statusbar_button)
 			self.statusbar_frame.show_all()
 
+			self.do_preferences_changed()
+
 			if self.ui.page:
 				self.on_open_page(self.ui, self.ui.page, self.ui.page)
-				self.toggle_fileview(enable=self.uistate['active'])
 			self.connectto(self.ui, 'open-page')
+
+			self.connectto(self.ui.mainwindow, 'pane-state-changed')
+
 
 	def toggle_fileview(self, enable=None):
 		self.toggle_action('toggle_fileview', active=enable)
 
 	def do_toggle_fileview(self, enable=None):
+		# TODO make this a generic "do_toggle_widget" ?
 		#~ print 'do_toggle_fileview', enable
 		if enable is None:
 			action = self.actiongroup.get_action('toggle_fileview')
 			enable = action.get_active()
 
+		if self._block_toggle:
+			self.statusbar_button.set_active(enable) # sync statusbar button
+			return
+
 		if enable:
-			if not self.widget.get_property('visible'):
-				self.ui.mainwindow.add_tab(_('Attachments'), self.widget, self.preferences['pane'])
-					# T: label for attachment browser pane
-				self.widget.show_all()
-				self.widget.refresh()
-			self.uistate['active'] = True
+			self.ui.mainwindow.set_pane_state(
+				self.preferences['pane'], True, 
+				activetab=self.TAB_NAME, 
+				grab_focus=True)
 		else:
-			if self.widget.get_property('visible'):
-				self.widget.hide()
-				self.ui.mainwindow.remove(self.widget)
-			self.uistate['active'] = False
+			self.ui.mainwindow.set_pane_state(
+				self.preferences['pane'], False)
 
 		self.statusbar_button.set_active(enable) # sync statusbar button
+
+	def on_pane_state_changed(self, window, pane, visible, active):
+		if pane != self.preferences['pane']:
+			return
+
+		self._block_toggle = True
+		if visible and active == self.TAB_NAME:
+			self.toggle_fileview(True)
+			if not self.widget.get_active():
+				self.widget.set_active(True) # implies refresh
+		else:
+			self.toggle_fileview(False)
+			self.widget.set_active(False)
+		self._block_toggle = False
 
 	def on_open_page(self, ui, page, path):
 		self._disconnect_monitor()
 
 		self.widget.set_page(page)
-		self._refresh_button(page)
+		self._refresh_statusbar(page)
 
 		dir = self.ui.notebook.get_attachments_dir(page)
 		id = dir.connect('changed', self.on_dir_changed)
@@ -255,15 +275,14 @@ This plugin is still under development.
 
 	def on_dir_changed(self, *a):
 		logger.debug('Dir change detected: %s', a)
-		self._refresh_button(self.ui.page)
-		self.widget.refresh_if_visible()
+		self._refresh_statusbar(self.ui.page)
+		self.widget.refresh()
 
-	def _refresh_button(self, page):
+	def _refresh_statusbar(self, page):
 		n = self.get_n_attachments(page)
 		self.statusbar_button.set_label(
 			ngettext('%i _Attachment', '%i _Attachments', n) % n)
 			# T: Label for the statusbar, %i is the number of attachments for the current page
-		self.widget.refresh_if_visible()
 
 	def get_n_attachments(self, page):
 		# Calculate independent from the widget
@@ -295,8 +314,13 @@ This plugin is still under development.
 			self._monitor = None
 
 	def do_preferences_changed(self):
-		if self.widget.get_property('visible'):
-			self.widget.refresh() # re-start thumbnailing with other settings
+		try:
+			self.ui.mainwindow.remove(self.widget)
+		except ValueError:
+			pass
+		self.ui.mainwindow.add_tab(self.TAB_NAME, self.widget, self.preferences['pane'])
+		self.widget.show_all()
+
 
 
 BASENAME_COL = 0
@@ -311,6 +335,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		self.ui = plugin.ui
 		self.preferences = preferences
 		self.dir = None
+		self._active = True
 
 		self.thumbman = ThumbnailManager(preferences)
 		self.thumbman.connect('thumbnail-ready', self.on_thumbnail_ready)
@@ -378,7 +403,14 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		#~ print "set_folder", dir
 		if dir != self.dir:
 			self.dir = dir
-			self.refresh_if_visible()
+			self.refresh()
+
+	def get_active(self):
+		return self._active
+
+	def set_active(self, active):
+		self._active = active
+		self.refresh()
 
 	def on_open_folder(self, o):
 		# Callback for the "open folder" button
@@ -387,15 +419,12 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 
 	def on_refresh_button(self):
 		self.refresh()
-		self.plugin._refresh_button(self.ui.page) # bit of a HACK to get the page here
-
-	def refresh_if_visible(self):
-		if self.get_property('visible'):
-			self.refresh()
+		self.plugin._refresh_statusbar(self.ui.page) # bit of a HACK to get the page here
 
 	def refresh(self):
-		# Callback for "refresh" button but also called when new folder
-		# is opened
+		if not self._active:
+			return # avoid unnecessary work
+
 		self.store.clear()
 		self.thumbman.clear_async_queue()
 		self._update_state()
