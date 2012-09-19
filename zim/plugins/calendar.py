@@ -478,7 +478,7 @@ class CalendarPluginWidget(gtk.VBox):
 			if date_path_re.match(path.name):
 				dates = daterange_from_path(path)
 				if dates and dates[0] == 'day':
-					calendar.mark_day(date[1].day)
+					calendar.mark_day(dates[1].day)
 
 	def set_page(self, page):
 		dates = daterange_from_path(page)
