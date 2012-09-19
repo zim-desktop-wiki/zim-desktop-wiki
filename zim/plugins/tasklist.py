@@ -198,14 +198,14 @@ This is a core plugin shipping with zim.
                 if self.preferences['included_subtrees']:
                         included = [i.strip() for i in self.preferences['included_subtrees'].split(',')]
                         included_re = '|'.join(map(re.escape, included))
-                        print '>>>>>', "included_re", repr(included_re)
+                        #~ print '>>>>>', "included_re", repr(included_re)
                         self.included_re = re.compile(included_re)
                 else:
                         self.included_re = None
                 if self.preferences['excluded_subtrees']:
                         excluded = [i.strip() for i in self.preferences['excluded_subtrees'].split(',')]
                         excluded_re = '|'.join(map(re.escape, excluded))
-                        print '>>>>>', "excluded_re", repr(excluded_re)
+                        #~ print '>>>>>', "excluded_re", repr(excluded_re)
                         self.excluded_re = re.compile(excluded_re)
                 else:
                         self.excluded_re = None
