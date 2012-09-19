@@ -121,8 +121,13 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 		('next_label', 'string', _('Label for next task'), 'Next:', check_class_allow_empty),
 			# T: label for plugin preferences dialog - label is by default "Next"
+		('included_subtrees', 'string', _('Subtree(s) to index'), '', check_class_allow_empty),
+			# T: subtree to search for tasks - default is the whole tree (empty string means everything)
+		('excluded_subtrees', 'string', _('Subtree(s) to ignore'), '', check_class_allow_empty),
+			# T: subtrees of the included subtrees to *not* search for tasks - default is none
 	)
-	_rebuild_on_preferences = ['all_checkboxes', 'labels', 'next_label', 'deadline_by_page']
+	_rebuild_on_preferences = ['all_checkboxes', 'labels', 'next_label', 'deadline_by_page',
+                                   'included_subtrees', 'excluded_subtrees' ]
 		# Rebuild database table if any of these preferences changed.
 		# But leave it alone if others change.
 
@@ -132,6 +137,8 @@ This is a core plugin shipping with zim.
 		self.task_label_re = None
 		self.next_label = None
 		self.next_label_re = None
+                self.included_re = None
+                self.excluded_re = None
 		self.db_initialized = False
 
 	def initialize_ui(self, ui):
@@ -188,6 +195,21 @@ This is a core plugin shipping with zim.
 		regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
 		self.task_label_re = re.compile(regex)
 
+                if self.preferences['included_subtrees']:
+                        included = [i.strip() for i in self.preferences['included_subtrees'].split(',')]
+                        included_re = '|'.join(map(re.escape, included))
+                        print '>>>>>', "included_re", repr(included_re)
+                        self.included_re = re.compile(included_re)
+                else:
+                        self.included_re = None
+                if self.preferences['excluded_subtrees']:
+                        excluded = [i.strip() for i in self.preferences['excluded_subtrees'].split(',')]
+                        excluded_re = '|'.join(map(re.escape, excluded))
+                        print '>>>>>', "excluded_re", repr(excluded_re)
+                        self.excluded_re = re.compile(excluded_re)
+                else:
+                        self.excluded_re = None
+
 
 	def _serialize_rebuild_on_preferences(self):
 		# string mapping settings that influence building the table
@@ -220,6 +242,13 @@ This is a core plugin shipping with zim.
 		#~ print '>>>>>', path, page, page.hascontent
 		tasksfound = self.remove_page(index, path, _emit=False)
 
+                if self.included_re:
+                        if not self.included_re.match(path.name):
+                                #~ print '>>>>>', 'not included', path.name
+                                return 
+                        elif self.excluded_re and self.excluded_re.match(path.name):
+                                #~ print '>>>>>', 'excluded', path.name
+                                return
 		parsetree = page.get_parsetree()
 		if not parsetree:
 			return
