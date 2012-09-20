@@ -1,4 +1,23 @@
-_default_	debug
-Notes	~/Notes
-debug	/home/user/code/zim.debug
-Foo\ Bar /home/user/Foo\ Bar
+[NotebookList]
+Default=file:///home/user/code/zim.debug
+~/Notes
+file:///home/user/code/zim.debug
+file:///home/user/Foo%20Bar
+
+[Notebook]
+uri=~/Notes
+name=Notes
+interwiki=None
+icon=
+
+[Notebook]
+uri=file:///home/user/code/zim.debug
+name=zim.debug
+interwiki=None
+icon=None
+
+[Notebook]
+uri=file:///home/user/Foo%20Bar
+name=Foo Bar
+interwiki=None
+icon=None
