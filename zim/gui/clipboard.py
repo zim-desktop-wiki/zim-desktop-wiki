@@ -153,8 +153,11 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 			dir.touch()
 
 		format, extension = _get_image_info(targetname)
-		if format is None:
-			format, extension = 'png', 'png' # default to png format
+		if format is None or format == 'bmp':
+			# default to png format
+			# special casing bmp since many window apps use it internally
+			# but is quite large to store, so compress by using png
+			format, extension = 'png', 'png'
 
 		file = dir.new_file('pasted_image.%s' % extension)
 		logger.debug("Saving image from clipboard to %s", file)
