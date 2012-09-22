@@ -121,7 +121,8 @@ class GNURPlotGenerator(ImageGeneratorClass):
 
 		template_vars = {
 			'gnu_r_plot_script': plot_script,
-			'png_fname': pngfile.path,
+			'png_fname': pngfile.path.replace('\\', '/'),
+				# Even on windows, GNU R expects unix path seperator
 		}
 
 		# Write to tmp file usign the template for the header / footer
