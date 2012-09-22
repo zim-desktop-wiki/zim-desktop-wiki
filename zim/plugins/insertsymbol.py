@@ -107,6 +107,15 @@ This is a core plugin shipping with zim.
 			return
 
 		symbol = self.symbols.get(word)
+		if not symbol and word.count('\\') == 1:
+			# do this after testing the whole word, we have e.g. "=\="
+			# also avoid replacing end of e.g. "C:\foo\bar\left",
+			# so match exactly one "\"
+			prefix, key = word.split('\\', 1)
+			symbol = self.symbols.get('\\' + key)
+			if symbol:
+				start.forward_chars(len(prefix))
+
 		if not symbol:
 			return
 

@@ -266,11 +266,26 @@
 \pm	177   # +- sign
 \neq	8800  # not equal to sign (may also use =/= )
 
+## Some arrows ##
+\left	8592
+\up	8593
+\right	8594
+\down	8595
+
+## units ##
+\ohm	937	 # same as \omega
+
 ## Additional typography ##
 # See http://en.wikipedia.org/wiki/Arrow_%28symbol%29 for more codes
 # convert hex -> decimal before using here
--->	8594
+-->	8594  # same as \right
+<-- 8592  # same as \left
+<-> 8596
+<--> 8596
 ==>	8658
+<=> 8660
+<==> 8660
+<== 8656
 --	8212  # em dash aka &mdash; in HTML
 =/=	8800  # not equal to sign (may also use \neq)
 +-	177   # +- sign
