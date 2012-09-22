@@ -389,9 +389,11 @@ This is a core plugin shipping with zim.
 		return items
 
 	def _flatten(self, node):
-		# Just flatten everything to text
+		# Just flatten everything to text - but ignore strike out
 		text = node.text or ''
 		for child in node.getchildren():
+			if child.tag == 'strike':
+				continue # skip
 			text += self._flatten(child) # recurs
 			text += child.tail or ''
 		return text
