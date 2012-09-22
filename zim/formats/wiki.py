@@ -352,7 +352,8 @@ class Parser(ParserClass):
 			if isinstance(item, tuple):
 				tag, attrib, text = item
 				builder.start(tag, attrib)
-				builder.data(text)
+				if text:
+					builder.data(text)
 				builder.end(tag)
 			else:
 				builder.data(item)

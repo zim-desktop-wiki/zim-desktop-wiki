@@ -84,13 +84,11 @@ except:
 
 try:
 	import xml.etree.cElementTree as ElementTreeModule
-	from xml.etree.cElementTree import \
-		Element, SubElement, TreeBuilder
+	from xml.etree.cElementTree import Element, SubElement
 except:  # pragma: no cover
 	logger.warn('Could not load cElementTree, defaulting to ElementTree')
 	import xml.etree.ElementTree as ElementTreeModule
-	from xml.etree.ElementTree import \
-		Element, SubElement, TreeBuilder
+	from xml.etree.ElementTree import Element, SubElement
 
 
 EXPORT_FORMAT = 1
@@ -188,6 +186,27 @@ def get_dumper(name, *arg, **kwarg):
 	module = get_format_module(name)
 	klass = zim.plugins.lookup_subclass(module, DumperClass)
 	return klass(*arg, **kwarg)
+
+
+from xml.etree.ElementTree import TreeBuilder as _TreeBuilder
+
+class TreeBuilder(_TreeBuilder):
+	# Hack to deal with API incompatibility between versions of etree
+	# Note that cElementTree.TreeBuilder is a function, so we can not
+	# subclass it :(  therefore using the python version with the
+	# current element class as factory (which might be the c variant)
+
+	def __init__(self):
+		_TreeBuilder.__init__(self, Element)
+
+	def start(self, tag, attrs=None):
+		if attrs is None:
+			attrs = {}
+		_TreeBuilder.start(self, tag, attrs)
+
+	def data(self, data):
+		assert isinstance(data, basestring), 'Got: %s' % data
+		_TreeBuilder.data(self, data)
 
 
 class ParseTree(ElementTreeModule.ElementTree):
