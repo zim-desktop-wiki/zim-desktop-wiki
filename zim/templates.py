@@ -606,11 +606,28 @@ class TemplateParam(object):
 	def __init__(self, name):
 		self.name = name
 		parts = name.split('.')
+		key = parts.pop()
+		if '[' in key:
+			i = key.index('[')
+			parts.append(key[:i])
+			key = key[i:]
+
 		for n in parts:
 			if not self._param_re.match(n):
 				raise TemplateSyntaxError, 'invalid parameter: %s' % name
-		self.path = parts[:-1]
-		self.key = parts[-1]
+
+		# support param["foo"] syntax for dicts
+		if parts and key.startswith('[') and key.endswith(']'):
+			key = unescape_quoted_string(key[1:-1])
+			if key.startswith('_'):
+				raise TemplateSyntaxError, 'invalid dictionary key in: %s' % name
+		elif not self._param_re.match(key):
+			raise TemplateSyntaxError, 'invalid parameter: %s' % name
+		else:
+			pass
+
+		self.path = parts
+		self.key = key
 
 	def __str__(self):
 		return self.name

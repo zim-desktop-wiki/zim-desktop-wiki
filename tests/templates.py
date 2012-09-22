@@ -165,6 +165,7 @@ class TestTemplate(tests.TestCase):
 		input = u'''\
 Version [% zim.version %]
 <title>[% page.title %]</title>
+Created [% page.properties['Creation-Date'] %]
 <h1>[% notebook.name %]: [% page.name %]</h1>
 <h2>[% page.heading %]</h2>
 [% options.foo = "bar" %]
@@ -174,6 +175,7 @@ Option: [% options.foo %]
 		wantedresult = u'''\
 Version %s
 <title>Page Heading</title>
+Created TODAY
 <h1>Unnamed Notebook: FooBar</h1>
 <h2>Page Heading</h2>
 <p>
@@ -187,6 +189,7 @@ Option: bar
 ====== Page Heading ======
 **foo bar !**
 ''')
+		page.properties['Creation-Date'] = 'TODAY'
 		self.assertTrue(len(page.dump('html', linker=StubLinker())) > 0)
 		template = Template(input, 'html', linker=StubLinker())
 		result = template.process(notebook, page)

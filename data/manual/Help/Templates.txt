@@ -64,6 +64,8 @@ Template syntax:
 
 
 [% options.option_name = value %] # set the template option option_name to value
+
+[% page.properties["Creation-Date"] %] # access dict
 '''
 
 
