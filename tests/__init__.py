@@ -47,7 +47,7 @@ __all__ = [
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
-	'daemon' # Note that running this test in another position can skrew up e.g. clipboard test
+	'ipc'
 ]
 
 # when a test is missing from the list that should be detected
@@ -89,6 +89,7 @@ def _setUpEnvironment():
 	system_data_dirs = os.environ.get('XDG_DATA_DIRS')
 	os.environ.update({
 		'ZIM_TEST_RUNNING': 'True',
+		'ZIM_TEST_ROOT': os.getcwd(),
 		'TMP': TMPDIR,
 		'XDG_DATA_HOME': os.path.join(TMPDIR, 'data_home'),
 		'XDG_DATA_DIRS': os.path.join(TMPDIR, 'data_dir'),
@@ -110,7 +111,10 @@ def _setUpEnvironment():
 		os.environ['XDG_DATA_DIRS'] = os.pathsep.join(
 			(os.environ['XDG_DATA_DIRS'], system_data_dirs) )
 
-_setUpEnvironment() # just do this whenever we are loaded
+if os.environ.get('ZIM_TEST_RUNNING') != 'True':
+	# Do this when loaded, but not re-do in sub processes
+	# (doing so will kill e.g. the ipc test...)
+	_setUpEnvironment()
 
 
 _zim_pyfiles = []
@@ -316,7 +320,8 @@ class TestData(object):
 
 	def __init__(self, format):
 		assert format == 'wiki', 'TODO: add other formats'
-		tree = etree.ElementTree(file='tests/data/notebook-wiki.xml')
+		root = os.environ['ZIM_TEST_ROOT']
+		tree = etree.ElementTree(file=root+'/tests/data/notebook-wiki.xml')
 
 		test_data = []
 		for node in tree.getiterator(tag='page'):

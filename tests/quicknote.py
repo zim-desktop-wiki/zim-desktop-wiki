@@ -33,19 +33,19 @@ class TestQuickNotePlugin(tests.TestCase):
 		# Text on commandline
 		text = 'foo bar baz\ndus 123'
 		with tests.DialogContext(has_text(text)):
-			main(None, 'text=' + text)
+			main('text=' + text)
 
 		# Clipboard input
 		text = 'foo bar baz\ndus 123'
 		SelectionClipboard.clipboard.clear() # just to be sure
 		Clipboard.set_text(text)
 		with tests.DialogContext(has_text(text)):
-			main(None, 'input=clipboard')
+			main('input=clipboard')
 
 		text = 'foo bar baz\ndus 456'
 		SelectionClipboard.set_text(text)
 		with tests.DialogContext(has_text(text)):
-			main(None, 'input=clipboard')
+			main('input=clipboard')
 
 
 	# TODO: other commandline args

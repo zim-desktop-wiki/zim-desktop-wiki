@@ -330,6 +330,9 @@ class ConfigFile(object):
 		else:
 			self.file = File((XDG_CONFIG_HOME, 'zim') + self._path)
 
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self.file.path)
+
 	def __eq__(self, other):
 		return isinstance(other, ConfigFile) \
 		and other._path == self._path \

@@ -10,7 +10,7 @@ from datetime import date as dateclass
 from zim.plugins import PluginClass
 from zim.config import get_config, data_file
 from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
-from zim.daemon import DaemonProxy
+from zim.ipc import start_server_if_not_running, ServerProxy
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
 	InputForm, gtk_window_set_default_icon
 from zim.gui.clipboard import Clipboard, SelectionClipboard
@@ -42,12 +42,7 @@ Options:
 '''
 
 
-def main(daemonproxy, *args):
-	assert daemonproxy is None, 'Not intended as daemon child'
-
-	import os
-	assert not os.name == 'nt', 'RPC not supported on windows'
-
+def main(*args):
 	options = {}
 	template_options = {}
 	for arg in args:
@@ -397,12 +392,8 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 
 	def do_response_ok(self):
 		def get_ui():
-			# HACK to start daemon from separate process
-			# we are not allowed to fork since we already loaded gtk
-			from zim import ZimCmd
-			ZimCmd().run(args=('--daemon',))
-
+			start_server_if_not_running()
 			notebook = self.notebookcombobox.get_notebook()
-			return DaemonProxy().get_notebook(notebook)
+			return ServerProxy().get_notebook(notebook)
 
 		return BoundQuickNoteDialog.do_response_ok(self, get_ui)

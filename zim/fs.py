@@ -310,6 +310,7 @@ def get_tmpdir():
 	root = tempfile.gettempdir()
 	dir = Dir((root, 'zim-%s' % get_environ('USER')))
 	dir.touch(mode=0700) # Limit to single user
+	os.chmod(dir.path, 0700) # Limit to single user when dir already existed
 	return dir
 
 
@@ -1307,6 +1308,18 @@ class UnixFile(FilePath):
 		self.checkoverwrite = checkoverwrite
 		self.endofline = endofline
 		self._mtime = None
+		self._lock = FS.get_async_lock(self)
+
+	def __getstate__(self):
+		# Copy the object's state from self.__dict__
+		# But remove the unpicklable entries.
+		state = self.__dict__.copy()
+		del state['_lock']
+		return state
+
+	def __setstate__(self, state):
+		# Restore instance attributes
+		self.__dict__.update(state)
 		self._lock = FS.get_async_lock(self)
 
 	def __eq__(self, other):

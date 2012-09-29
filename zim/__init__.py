@@ -21,7 +21,7 @@ Overview
 
 The script C{zim.py} is a thin wrapper around the L{main()} function
 defined here. THe main function validates commandline options and if
-all is well it either calls the background daemon to connect to some
+all is well it either calls the background process to connect to some
 running instance of zim, or it instantiates a L{NotebookInterface}
 object, or an object of a subclass like L{GtkInterface} (for the
 graphic user interface) or L{WWWInterface} (for the webinterface).
@@ -33,7 +33,7 @@ The graphical user interface is implemented in the L{zim.gui} module
 and it's sub-modules. The webinterface is implemented in L{zim.www}.
 
 The graphical interface uses a background process to coordinate
-between instances, this is implemented in L{zim.daemon}.
+between instances, this is implemented in L{zim.ipc}.
 
 Regardsless of the interface choosen there is a L{Notebook} object
 which implements a generic API for accessing and storing pages and
@@ -138,16 +138,15 @@ ZIM_EXECUTABLE = 'zim'
 longopts = ('verbose', 'debug')
 commands = (
 	'help', 'version', 'gui', 'server', 'export', 'search',
-	'index', 'manual', 'plugin', 'daemon'
+	'index', 'manual', 'plugin', 'ipc-server',
 )
 commandopts = {
-	'gui': ('list', 'geometry=', 'fullscreen', 'no-daemon'),
-	'server': ('port=', 'template=', 'gui', 'no-daemon'),
+	'gui': ('list', 'geometry=', 'fullscreen', 'standalone'),
+	'server': ('port=', 'template=', 'gui', 'standalone'),
 	'export': ('format=', 'template=', 'output=', 'root-url=', 'index-page='),
 	'search': (),
 	'index': ('output=',),
 	'plugin': (),
-	'daemon': (),
 }
 shortopts = {
 	'v': 'version', 'h': 'help',
@@ -175,6 +174,7 @@ General Options:
   --gui           run the editor (this is the default)
   --server        run the web server
   --export        export to a different format
+  --search        run a search query on a notebook
   --index         build an index for a notebook
   --plugin        call a specific plugin function
   --manual        open the user manual
@@ -188,7 +188,7 @@ GUI Options:
                   opening the default notebook
   --geometry      window size and position as WxH+X+Y
   --fullscreen    start in fullscreen mode
-  --no-daemon     start a single instance, no daemon
+  --standalone     start a single instance, no background process
 
 Server Options:
   --port          port to use (defaults to 8080)
@@ -277,6 +277,11 @@ def main(argv):
 	if zim_exec_file.exists():
 		# We were given an absolute path, e.g. "python ./zim.py"
 		ZIM_EXECUTABLE = zim_exec_file.path
+
+	# Check for special commandline args for ipc, does not return
+	# if handled
+	import zim.ipc
+	zim.ipc.handle_argv()
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
@@ -407,12 +412,9 @@ def main(argv):
 				notebook = default
 				logger.info('Opening default notebook')
 
-		if 'no_daemon' in optsdict or os.name == 'nt':
+		if 'standalone' in optsdict:
 			import zim.gui
-			try:
-				del optsdict['no_daemon']
-			except KeyError:
-				pass
+			del optsdict['standalone']
 			if not notebook:
 				import zim.gui.notebookdialog
 				notebook = zim.gui.notebookdialog.prompt_notebook()
@@ -421,43 +423,35 @@ def main(argv):
 			handler = zim.gui.GtkInterface(notebook, page, **optsdict)
 			handler.main()
 		else:
-			import zim.daemon
-			proxy = zim.daemon.DaemonProxy()
+			from zim.ipc import start_server_if_not_running, ServerProxy
 			if not notebook:
-				# Need to call this after spawning the daemon, else we
-				# have gtk loaded in the daemon process, and that causes
-				# problems with using gtk in child processes.
 				import zim.gui.notebookdialog
 				notebook = zim.gui.notebookdialog.prompt_notebook()
 				if not notebook:
-					proxy.quit_if_nochild()
 					return # User canceled notebook dialog
-			gui = proxy.get_notebook(notebook)
 
+			start_server_if_not_running()
+			server = ServerProxy()
+			gui = server.get_notebook(notebook)
 			gui.present(page, **optsdict)
 
 			logger.debug('''
 NOTE FOR BUG REPORTS:
 	At this point zim has send the command to open a notebook to a
-	background process and the current process will no quit.
+	background process and the current process will now quit.
 	If this is the end of your debug output it is probably not useful
 	for bug reports. Please close all zim windows, quit the
 	zim trayicon (if any), and try again.
 ''')
 	elif cmd == 'server':
-		try:
-			del optsdict['no_daemon']
-		except KeyError:
-			pass
+		if 'standalone' in optsdict:
+			del optsdict['standalone']
+			# No daemon support for server, so no option doesn;t
+			# do anything for now
 
 		import zim.www
 		handler = zim.www.Server(*args, **optsdict)
 		handler.main()
-	elif cmd == 'daemon':
-		# just start the daemon, nothing else
-		import zim.daemon
-		proxy = zim.daemon.DaemonProxy()
-		proxy.ping()
 	elif cmd == 'plugin':
 		import zim.plugins
 		try:
@@ -465,7 +459,7 @@ NOTE FOR BUG REPORTS:
 		except IndexError:
 			raise UsageError
 		module = zim.plugins.get_plugin_module(pluginname)
-		module.main(None, *args)
+		module.main(*args)
 
 
 def ZimCmd():

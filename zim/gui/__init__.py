@@ -318,11 +318,9 @@ class GtkInterface(NotebookInterface):
 	@ivar page: The L{Page} object for the current page in the
 	main window
 	@ivar readonly: When C{True} the whole interface is read-only
-	@ivar usedaemon: When C{True} we are using the background deamon
-	(see L{zim.daemon})
 	@ivar hideonclose: When C{True} the application will hide itself
 	instead of closing when the main window is closed, typically used
-	in combination with the daemon and the
+	in combination with the background server process and the
 	L{tray icon plugin<zim.plugins.trayicon>}
 	@ivar mainwindow: the L{MainWindow} object
 	@ivar history: the L{History} object
@@ -367,14 +365,13 @@ class GtkInterface(NotebookInterface):
 	ui_type = 'gtk' #: UI type - typically checked by plugins instead of class
 
 	def __init__(self, notebook=None, page=None,
-		fullscreen=False, geometry=None, usedaemon=False):
+		fullscreen=False, geometry=None):
 		'''Constructor
 
 		@param notebook: a L{Notebook} object
 		@param page: a L{Path} object
 		@param fullscreen: if C{True} open fullscreen
 		@param geometry: window geometry as string in format "C{WxH+X+Y}"
-		@param usedaemon: if C{True} we use the background daemon
 		'''
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
 		self._finalize_ui = False
@@ -390,7 +387,6 @@ class GtkInterface(NotebookInterface):
 			# doing a (async) save, or when we have an error during
 			# saving.
 		self.readonly = False
-		self.usedaemon = usedaemon
 		self.hideonclose = False
 		self.windows = set()
 		self.url_handlers = {}
@@ -451,43 +447,6 @@ class GtkInterface(NotebookInterface):
 		self._custom_tool_iconfactory = None
 		self.load_custom_tools()
 
-		self.uimanager.ensure_update()
-			# Prevent flashing when the toolbar is after showing the window
-			# and do this before connecting signal below for accelmap.
-			# For maemo ensure all items are initialized before moving
-			# them to the hildon menu
-
-		if ui_environment['platform'] == 'maemo':
-			# Move the menu to the hildon menu
-			# This is save for later updates of the menus (e.g. by plugins)
-			# as long as the toplevel menus are not changed
-			menu = gtk.Menu()
-			for child in self.mainwindow.menubar.get_children():
-				child.reparent(menu)
-			self.mainwindow.set_menu(menu)
-			self.mainwindow.menubar.hide()
-
-			# Localize the fullscreen button in the toolbar
-			for i in range(self.mainwindow.toolbar.get_n_items()):
-				self.fsbutton = None
-				toolitem = self.mainwindow.toolbar.get_nth_item(i)
-				if isinstance(toolitem, gtk.ToolButton):
-					if toolitem.get_stock_id() == 'gtk-fullscreen':
-						self.fsbutton = toolitem
-						self.fsbutton.tap_and_hold_setup(menu) # attach app menu to fullscreen button for N900
-						break
-
-		accelmap = config_file('accelmap').file
-		logger.debug('Accelmap: %s', accelmap.path)
-		if accelmap.exists():
-			gtk.accel_map_load(accelmap.path)
-
-		def on_accel_map_changed(o, path, key, mod):
-			logger.info('Accelerator changed for %s', path)
-			gtk.accel_map_save(accelmap.path)
-
-		gtk.accel_map_get().connect('changed', on_accel_map_changed)
-
 		self.do_preferences_changed()
 
 		# Deal with commandline arguments for notebook and page
@@ -514,8 +473,9 @@ class GtkInterface(NotebookInterface):
 		return plugin
 
 	def spawn(self, *args):
-		if not self.usedaemon:
-			args = args + ('--no-daemon',)
+		import zim.ipc
+		if not zim.ipc.in_child_process():
+			args = args + ('--standalone',)
 		NotebookInterface.spawn(self, *args)
 
 	def main(self):
@@ -564,18 +524,59 @@ class GtkInterface(NotebookInterface):
 		self._autosave_timer = gobject.timeout_add(timeout, schedule_autosave)
 			# FIXME make this more intelligent
 
+		# Finalize plugin ui
 		self._finalize_ui = True
 		for plugin in self.plugins:
 			plugin.finalize_ui(self)
 			# Must happens before window.show_all()
 			# so side panes are initialized when we set uistate
 
+		# Check notebook (after loading plugins)
 		self.check_notebook_needs_upgrade()
 
+		# Update menus etc.
+		self.uimanager.ensure_update()
+			# Prevent flashing when the toolbar is after showing the window
+			# and do this before connecting signal below for accelmap.
+			# For maemo ensure all items are initialized before moving
+			# them to the hildon menu
+
+		if ui_environment['platform'] == 'maemo':
+			# Move the menu to the hildon menu
+			# This is save for later updates of the menus (e.g. by plugins)
+			# as long as the toplevel menus are not changed
+			menu = gtk.Menu()
+			for child in self.mainwindow.menubar.get_children():
+				child.reparent(menu)
+			self.mainwindow.set_menu(menu)
+			self.mainwindow.menubar.hide()
+
+			# Localize the fullscreen button in the toolbar
+			for i in range(self.mainwindow.toolbar.get_n_items()):
+				self.fsbutton = None
+				toolitem = self.mainwindow.toolbar.get_nth_item(i)
+				if isinstance(toolitem, gtk.ToolButton):
+					if toolitem.get_stock_id() == 'gtk-fullscreen':
+						self.fsbutton = toolitem
+						self.fsbutton.tap_and_hold_setup(menu) # attach app menu to fullscreen button for N900
+						break
+
+		accelmap = config_file('accelmap').file
+		logger.debug('Accelmap: %s', accelmap.path)
+		if accelmap.exists():
+			gtk.accel_map_load(accelmap.path)
+
+		def on_accel_map_changed(o, path, key, mod):
+			logger.info('Accelerator changed for %s', path)
+			gtk.accel_map_save(accelmap.path)
+
+		gtk.accel_map_get().connect('changed', on_accel_map_changed)
+
+		# if prefs are modified during init we should save them
 		if self.preferences.modified:
 			self.save_preferences()
-			# if prefs are modified during init we should save them
 
+		# And here we go!
 		self.mainwindow.show_all()
 		self.mainwindow.pageview.grab_focus()
 		gtk.main()
@@ -583,7 +584,7 @@ class GtkInterface(NotebookInterface):
 	def present(self, page=None, fullscreen=None, geometry=None):
 		'''Present the mainwindow. Typically used to bring back a
 		the application after it was hidden. Also used for remote
-		calls from the daemon.
+		calls.
 
 		@param page: a L{Path} object or page path as string
 		@param fullscreen: if C{True} the window is shown fullscreen,
@@ -1080,8 +1081,8 @@ class GtkInterface(NotebookInterface):
 		else:
 			# Could be call back from open notebook dialog
 			# We are already initialized, so let another process handle it
-			if self.usedaemon:
-				from zim.daemon import DaemonProxy
+			import zim.ipc
+			if zim.ipc.in_child_process():
 				if isinstance(notebook, basestring) \
 				and notebook.startswith('zim+') \
 				and '?' in notebook:
@@ -1090,7 +1091,7 @@ class GtkInterface(NotebookInterface):
 					pagename = url_decode(pagename) # usually encoded
 				else:
 					pagename = None
-				notebook = DaemonProxy().get_notebook(notebook)
+				notebook = zim.ipc.ServerProxy().get_notebook(notebook)
 				notebook.present(page=pagename)
 			else:
 				self.spawn(notebook)
@@ -1365,7 +1366,7 @@ class GtkInterface(NotebookInterface):
 
 	def new_page_from_text(self, text, name=None, use_template=False, attachments=None, open_page=False):
 		'''Create a new page with content. This method is intended
-		mainly for remote calls from the daemon. It is used for
+		mainly for remote calls. It is used for
 		example by the L{quicknote plugin<zim.plugins.quicknote>}.
 
 		@param text: the content of the page (wiki format)
@@ -1378,11 +1379,13 @@ class GtkInterface(NotebookInterface):
 		(for remote calls). All files in this folder are imported as
 		attachments for the new page. In the text these can be referred
 		relatively.
-		@returns: the new L{Page} object
+		@returns: a L{Path} object for the new page
 		'''
 		# The 'open_page' and 'attachments' arguments are a bit of a
 		# hack for remote calls. They are needed because the remote
 		# function doesn't know the exact page name we creates...
+		# TODO: with new zim.ipc we can now return the page name and
+		# get rid of this hack
 		if not name:
 			name = text.strip()[:30]
 			if '\n' in name:
@@ -1414,7 +1417,7 @@ class GtkInterface(NotebookInterface):
 		if open_page:
 			self.present(page)
 
-		return page
+		return Path(page.name)
 
 	def import_attachments(self, path, dir):
 		'''Import a set of files as attachments.
@@ -1438,7 +1441,7 @@ class GtkInterface(NotebookInterface):
 
 	def append_text_to_page(self, name, text):
 		'''Append text to an (existing) page. This method is intended
-		mainly for remote calls from the daemon. It is used for
+		mainly for remote calls. It is used for
 		example by the L{quicknote plugin<zim.plugins.quicknote>}.
 
 		@param name: the page name
