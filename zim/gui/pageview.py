@@ -3279,7 +3279,7 @@ class TextView(gtk.TextView):
 
 		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
 		iter = self.get_iter_at_location(x, y)
-		buffer.insert_parsetree(iter, tree)
+		buffer.insert_parsetree(iter, tree, interactive=True)
 		dragcontext.finish(True, False, timestamp) # OK
 
 	def do_motion_notify_event(self, event):
