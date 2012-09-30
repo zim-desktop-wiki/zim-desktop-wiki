@@ -119,12 +119,17 @@ bassoonNotes =
 ===== Template =====
 
 The Score plugin's template has following three variables to customize your GNU Lilypond document, used for generating the score images:
-* **version:** Syntax of GNU Lilypond vary a bit with version. This defaults to the current version of GNU Lilypond installed.
 * **include_header:** Common include header section to include GNU Lilypond predefined files or add common definitions.
 * **include_footer:** Common include footer section to define standard footer section to be included in the GNU Lilypond document.
 * **score:** The actual user input in Insert/Edit dialog box in used.
 
 Feel free to tailor the template file for your needs.
+
+===== GNU Lilypond Version =====
+
+Syntax of GNU Lilypond could change with new releases, and these changes need not be backward compatible. For this reason, the version of GNU Lilypond when the score was created is inserted into the score text by the plugin.
+
+When a different version of GNU Lilypond is installed, the plugin would use ''convert-ly'' (packaged with GNU Lilypond) to convert the score file to be compatible with installed version before rendering the score.
 
 ===== References =====
 
