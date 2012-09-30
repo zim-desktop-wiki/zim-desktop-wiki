@@ -6,54 +6,57 @@ Creation-Date: Wed, 08 Jul 2009 23:26:20 +0200
 
 Mail [[jaap.karssenberg@gmail.com|me]] if you have questions that you would like to see answered below.
 
-=== How do I create a new page? ===
+===== How do I create a new page? =====
 You can just link non-existing pages. If you follow such a link the page will be created automatically when needed.
 
-=== How do you close these "tabs" ? ===
+===== How do you close these "tabs" ? =====
 Uhm, if you mean the buttons above your page, technically that are not tabs but a path bar keeping track of your history or recent pages. The buttons in this bar map to pages in your browse history, not to open pages or something like that. You can not "close" something that is in your history. To change the style of this bar, or hide it completely, go to the "//View"// -> "//Pathbar//" menu item.
 
-=== How do I organize my pages in a tree structure? ===
+===== How do I organize my pages in a tree structure? =====
 You can use "namespaces" to organize your pages. A "namespace" is similar to a directory for files, it is a named group of pages. Namespaces are separated by the "'':''" character in the page name. Thus if you link to "''foo:bar''" you will link to the page called "bar" in the namespace "foo". Just link a non-existing page and follow the link to create it. See [[Help:Pages|Pages]] for more information.
 
-=== Why are some pages in the index grayed out? ===
+===== Why are some pages in the index grayed out? =====
 These are pages that are linked by other pages but do not (yet) contain text. You can edit them to make them regular pages or check the pages linking them.
 
-=== Why do some pages not disappear from the index after deleting them? ===
+===== Why do some pages not disappear from the index after deleting them? =====
 The index keeps pages that are linked by other pages even if you delete them. To completely remove them you also need change any page linking them.
 
-=== I would like zim to hide in the system tray. ===
+===== I would like zim to hide in the system tray. =====
 There is a [[Plugins:Tray Icon|Tray Icon plugin]] which can be enabled from the Preferences dialog.
 
-=== I would like to start zim hidden in the system tray. ===
+===== I would like to start zim hidden in the system tray. =====
 You can call the [[Plugins:Tray Icon|Tray Icon plugin]] with the command "''zim --plugin trayicon''"
 
-=== Can I make zim appear with a global keybinding? ===
+===== Can I make zim appear with a global keybinding? =====
 By default zim will  only run a single instance of each notebook. Trying to open the same notebook again will just pop the corresponding window to the foreground. So you can set a default notebook (see [[Help:Notebooks|Notebooks]]) and just make a global key binding run the command "''zim''". 
 
-=== Can I change the colors used for links, underline etc. ? ===
+===== How do I publish content from zim to my webpage? =====
+See [[Usage:Publishing]] for some tips
+
+===== Can I change the colors used for links, underline etc. ? =====
 Yes. Copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit as you see fit. See the [[Help:Config Files|Config Files]] page for the syntax of this file.
 
-=== Can I have encrypted notebooks? ===
+===== Can I have encrypted notebooks? =====
 Zim notebooks do not support encryption or password protection natively. However you can use for example [[http://www.arg0.net/encfs|encfs]] to encrypt your notebooks.
 
-=== Can I have full calendaring in zim? ===
+===== Can I have full calendaring in zim? =====
 Well, if you really want to, you can use zim as your agenda. However, the Calendar feature is more intended to keep various kinds of journals or logbooks. I'm very hesitant to add calendaring features because these are usually tied to email applications. I admit that it would be really cool to link notes, emails and appointments, but I have no plans to extend zim to become an email reader.
 
-=== Does it run on Windows? ===
+===== Does it run on Windows? =====
 Yes it does. See the download page on the website for more notes on installing on the win32 platform.
 
-=== Does it run on OS X? ===
+===== Does it run on OS X? =====
 Yes it does. You can install the dependencies using [[http://www.macports.org/|Mac Ports]].
 
-=== I want to move/backup/syncronize a zim notebook. Which files do I need to take care of? ===
+===== I want to move/backup/syncronize a zim notebook. Which files do I need to take care of? =====
 The visible files in the notebook folder contain all data of notes and [[Help:Attachments|attachments]].
 
-=== What is the hidden .zim folder in my notebook folder? ===
+===== What is the hidden .zim folder in my notebook folder? =====
 The hidden .zim folder contains only caches and GUI state. It doesn't contain any information that can not be recreated on the fly.
 
-=== I switched from the perl version to the python version and miss my favorite feature. ===
+===== I switched from the perl version to the python version and miss my favorite feature. =====
 Some features of the perl version of zim are not yet implemented in the python version.
 
-=== I have a useful trick or tip. How can I share it with other users? ===
+===== I have a useful trick or tip. How can I share it with other users? =====
 You can have a look at the [[http://www.zim-wiki.org/wiki/doku.php|zim documentation wiki]]. It has a section dedicated to [[http://www.zim-wiki.org/wiki/doku.php?id=tips_and_tricks|tricks and tips]]. Or write a mail to the mailing list, see the [[https://launchpad.net/~zim-wiki|team page]] on launchpad
 

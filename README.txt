@@ -20,6 +20,10 @@ Zim can be used to:
 
 ====== COPYRIGHT ======
 
+All files in this package, with the exception of those mentioned below
+are copyrighted and licensed as follows:
+
+
 Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 This program is free software; you can redistribute it and/or modify
@@ -37,6 +41,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 MA 02110-1301, USA.
 
+
 == Translations ==
 
 Translations are copyrighted by their respective translators.
@@ -44,6 +49,7 @@ All translations that are entered through the launchpad website
 are distributed under the BSD license.
 
 See the translation files for detailed translator credits.
+
 
 == Included Files ==
 

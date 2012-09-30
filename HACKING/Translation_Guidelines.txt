@@ -1,0 +1,16 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2012-09-30T13:08:38+02:00
+
+====== Translation Guidelines ======
+
+
+===== Italian =====
+A few remarks for Italian contributors. Please notice that these choices were made earlier and we should respect them in order to assure consistency. It doesn't mean that they're better than others. It's a just matter of stop discussing and choosing one option instead of another. :)
+
+plugin = estensione
+Please... = si elimina sempre
+pane = pannello (non riquadro)
+zim = lo mettiamo sempre in maiuscolo, Zim
+
+//Mailing list post by  Marco Cevoli, Aug 29, 2012//

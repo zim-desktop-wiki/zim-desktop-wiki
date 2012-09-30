@@ -48,7 +48,7 @@ A few other things I would like to mention:
 See [[:Usage:Getting Started|Getting Started]] for some practical tips on using zim.
 
 ===== Copyright =====
-Zim is Copyrighted © 2009 by Jaap G Karssenberg. All rights reserved. This program is free software; you can redistribute it and/or modify it under the terms of the [[http://www.gnu.org/licenses/gpl.html|GNU General Public License (GPL)]].
+Zim is Copyrighted © 2008-2012 by Jaap G Karssenberg. All rights reserved. This program is free software; you can redistribute it and/or modify it under the terms of the [[http://www.gnu.org/licenses/gpl.html|GNU General Public License (GPL) version 2 or higher]].
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 

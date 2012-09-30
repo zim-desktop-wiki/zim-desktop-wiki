@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2012-09-30T15:25:13+02:00
+
+====== Collaboration ======
+
+Note that zim by design is a single user program. So even though you could put a notebook on a share drive and edit it with multiple people, this will not work very robust (e.g. two people can not edit the same page at the same time).
+
+Therefore the best way to collaborate on a notebook is to put it under version control.
+
+See [[http://doc.bazaar.canonical.com/bzr.dev/en/user-guide/index.html|the Bazaar user manual]] for some ways to use bazaar with different types of collaboration. Similar ways of working can be achieved with Git or Mercurial as well.
+
+See the [[Plugins:Version Control|Version Control plugin]] for support in zim to commit revisions to a version control system. 

@@ -3,7 +3,7 @@
 # Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 #
 # Inspired by and partially based on code from clac.py,
-# Copyright 2009 Mark Borgerding and licensed under the GPL version 3
+# Which is copyright 2009 Mark Borgerding and licensed under the GPL version 3
 
 from __future__ import with_statement
 from __future__ import division # We are doing math in this module ...

@@ -6,6 +6,8 @@ Creation-Date: Wed, 08 Jul 2009 20:28:15 +0200
 
 Pages in this section contain help on using specific parts of the applications.
 
+**Contents:**
+
 Function by Menu Item
 * [[+Menu Items|Menu Items]]
 

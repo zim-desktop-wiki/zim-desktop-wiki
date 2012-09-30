@@ -1,0 +1,37 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2012-09-30T13:22:41+02:00
+
+====== Publishing ======
+
+
+===== Publish to a web page =====
+There are various cases where you would want to publish content from zim to the web. Typically you edit you content in zim, and than convert it to HTML to publish it when you feel you are done. But you can also run the embedded webserver to show "live" content.
+
+	**Note:** If you want to have the public edit your wiki, zim may not be the right tool, since it does not allows to edit a WWW version. There are scenarios for cooperation on a zim wiki (see [[Collaboration]]), but in general those will work best for small teams, not for public internet access. This section is about how to publish a static copy of the content.
+
+Basically the way you publish from zim is just using export to HTML from zim and upload the result to your server. The server only needs to serve static HTML, so there are no further requirements on the server and you can use any hosting you have available. See [[Help:Export]] for all export options.
+
+If you publish often, you probably want to write a small script that calls zim to perform the export with the right template and uploads the output to the server in one go. Once you have that script, you can add it to the zim toolbar as a [[Help:Custom Tools|Custom Tool]]. This way you can create a "one button" publish option to suit your way of working.
+
+Zim also includes a embedded webserver. To use it see the "''Tools''" menu or try "''./zim.py --server -V''". This embedded webserver converts zim pages to HTML on the fly, and will show changes as soon as you make them. It is mainly intended for those cases where you want to show someone quickly what you have without going through a whole webserver setup. It is not intended to run as a permanent server and is probably not as robust as a real webserver.
+
+==== Website design ====
+The look of the HTML output can be modified using a CSS stylesheet and the layout can be changed in the HTML template. See [[Help:Templates]] for the template syntax and check the templates installed by zim by default for some examples.
+
+==== Link to other files on the webserver ====
+You may want to link to files that live elsewhere on your server. Either HTML pages that were created with different software, or to resources like images, that are uploaded to a separate folder on the server. Here the problem is that you need a way to translate local file paths into paths that are relative to the server root folder.
+
+To achieve this, you can configure a **Document Root** for a notebook. You can set a document root folder in the [[Help:Properties|Properties Dialog]]. Once set you can link to files below that root directly by starting the link path with "/" (see [[Help:Links]]) and zim will resolve them to the document root folder. When exporting you can specify how to map this folder to a URL that is valid on the server. This way you have links working both locally and on the server.
+
+==== Scaling images ====
+If you use large images in your notebook, you may want to scale them down before publishing them. At this moment zim does not do that for you, but a quick internet search will result in multiple tools that can help. Run such a tool on the folder with exported HTML. As long as the file names for the image remain the same, all links will remain working.
+
+
+===== Other formats =====
+Zim supports other output formats than just HTML, but most of them require further processing to turn them into documents that can be published right away.
+
+E.g. to get a PDF document, you can either export as Latex and then compile a pdf out of that, or you can use the markdown or RST toolkits. 
+
+If you have a script to compile output into the desired format, you could configure a [[Help:Custom Tools|Custom Tool]] to add a button in the zim toolbar to run that script.
+

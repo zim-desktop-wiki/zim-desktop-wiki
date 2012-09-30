@@ -341,7 +341,7 @@ setup(
 	description  = 'Zim desktop wiki',
 	author       = 'Jaap Karssenberg',
 	author_email = 'jaap.karssenberg@gmail.com',
-	license      = 'GPL',
+	license      = 'GPL v2+',
 	url          = __url__,
 	scripts      = scripts,
 	packages     = collect_packages(),

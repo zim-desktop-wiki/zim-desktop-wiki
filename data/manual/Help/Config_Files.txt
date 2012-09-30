@@ -39,6 +39,8 @@ The file ''XDG_DATA/zim/urls.list'' gives a list of urls which are used for the 
 
 The format consist of one url per line, each line giving the key (which is the interwiki name), followed by whitespace, followed by the actual url. The url can conatin place holders "''{NAME}''" or "{URL}", the first will be replaced by the name of the interwiki page, the second by this name in url encoding. If no placeholder is found in the url the url encoded name is appended to the url.
 
+Note that if you want interwiki page to include url syntax like a "#" to link to anchors in the target page, you should write your URLs with "''{NAME}''".
+
 ==== Date format list ====
 The file ''XDG_DATA/zim/dates.list'' gives a list of strftime formats, one on each line, to be used to populate the "Insert Date and Time" dialog. The first instance of this file that is found in the XDG_DATA path is used. 
 
