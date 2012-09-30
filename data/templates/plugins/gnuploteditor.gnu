@@ -1,5 +1,8 @@
 set term png
 set output '[% png_fname %]'
 
-[% gnuplot_script %]
+[% IF attachment_folder %]
+cd '[% attachment_folder %]'
+[% END %]
 
+[% gnuplot_script %]

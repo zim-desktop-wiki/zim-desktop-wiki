@@ -88,9 +88,10 @@ This plugin provides a plot editor for zim based on Gnuplot.
 class InsertGnuplotDialog(ImageGeneratorDialog):
 
    def __init__(self, ui, image=None):
-       generator = GnuplotGenerator()
-       ImageGeneratorDialog.__init__(self, ui, _('Gnuplot'), # T: dialog title
-           generator, image, help=':Plugins:Gnuplot Editor' )
+		attachment_folder = ui.notebook.get_attachments_dir(ui.page)
+		generator = GnuplotGenerator(attachment_folder=attachment_folder)
+		ImageGeneratorDialog.__init__(self, ui, _('Gnuplot'), # T: dialog title
+			generator, image, help=':Plugins:Gnuplot Editor' )
 
 
 class GnuplotGenerator(ImageGeneratorClass):
@@ -101,10 +102,11 @@ class GnuplotGenerator(ImageGeneratorClass):
    scriptname = 'gnuplot.gnu'
    imagename = 'gnuplot.png'
 
-   def __init__(self):
+   def __init__(self, attachment_folder=None):
        file = data_file('templates/plugins/gnuploteditor.gnu')
        assert file, 'BUG: could not find templates/plugins/gnuploteditor.gnu'
        self.template = GenericTemplate(file.readlines(), name=file)
+       self.attachment_folder = attachment_folder
        self.plotscriptfile = TmpFile(self.scriptname)
 
    def generate_image(self, text):
@@ -120,6 +122,8 @@ class GnuplotGenerator(ImageGeneratorClass):
            'gnuplot_script': plot_script,
            'png_fname': pngfile.path,
        }
+       if self.attachment_folder and self.attachment_folder.exists():
+		   template_vars['attachment_folder'] = self.attachment_folder.path
 
        # Write to tmp file using the template for the header / footer
        plotscriptfile.writelines(
