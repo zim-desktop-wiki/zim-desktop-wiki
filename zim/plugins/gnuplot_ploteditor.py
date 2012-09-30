@@ -38,56 +38,55 @@ ui_xml = '''
 '''
 
 ui_actions = (
-   # name, stock id, label, accelerator, tooltip, read only
-   ('insert_gnuplot', None, _('Gnuplot...'), '', '', False),
-       # T: menu item for insert plot plugin
+	# name, stock id, label, accelerator, tooltip, read only
+	('insert_gnuplot', None, _('Gnuplot...'), '', '', False),
+		# T: menu item for insert plot plugin
 )
 
 
 class InsertGnuplotPlugin(PluginClass):
 
-   plugin_info = {
-       'name': _('Insert Gnuplot'), # T: plugin name
-       'description': _('''\
+	plugin_info = {
+		'name': _('Insert Gnuplot'), # T: plugin name
+		'description': _('''\
 This plugin provides a plot editor for zim based on Gnuplot.
 '''), # T: plugin description
-       'help': 'Plugins:Gnuplot Editor',
-       'author': 'Alessandro Magni',
-   }
+		'help': 'Plugins:Gnuplot Editor',
+		'author': 'Alessandro Magni',
+	}
 
-   @classmethod
-   def check_dependencies(klass):
-       has_gnuplot = Application(gnuplot_cmd).tryexec()
-       return has_gnuplot, [('Gnuplot', has_gnuplot, True)]
+	@classmethod
+	def check_dependencies(klass):
+		has_gnuplot = Application(gnuplot_cmd).tryexec()
+		return has_gnuplot, [('Gnuplot', has_gnuplot, True)]
 
-   def __init__(self, ui):
-       PluginClass.__init__(self, ui)
-       if self.ui.ui_type == 'gtk':
-           self.ui.add_actions(ui_actions, self)
-           self.ui.add_ui(ui_xml, self)
-           self.register_image_generator_plugin('gnuplot')
+	def __init__(self, ui):
+		PluginClass.__init__(self, ui)
+		if self.ui.ui_type == 'gtk':
+			self.ui.add_actions(ui_actions, self)
+			self.ui.add_ui(ui_xml, self)
+			self.register_image_generator_plugin('gnuplot')
 
-   def insert_gnuplot(self):
-       dialog = InsertGnuplotDialog.unique(self, self.ui)
-       dialog.show_all()
+	def insert_gnuplot(self):
+		dialog = InsertGnuplotDialog.unique(self, self.ui)
+		dialog.show_all()
 
-   def edit_object(self, buffer, iter, image):
-       dialog = InsertGnuplotDialog(self.ui, image=image)
-       dialog.show_all()
+	def edit_object(self, buffer, iter, image):
+		dialog = InsertGnuplotDialog(self.ui, image=image)
+		dialog.show_all()
 
-   def do_populate_popup(self, menu, buffer, iter, image):
-       populate_popup_add_separator(prepend=True)
+	def do_populate_popup(self, menu, buffer, iter, image):
+		populate_popup_add_separator(prepend=True)
 
-       item = gtk.MenuItem(_('_Edit Gnuplot')) # T: menu item in context menu
-       item.connect('activate',
-           lambda o: self.edit_object(buffer, iter, image))
-       menu.prepend(item)
-
+		item = gtk.MenuItem(_('_Edit Gnuplot')) # T: menu item in context menu
+		item.connect('activate',
+			lambda o: self.edit_object(buffer, iter, image))
+		menu.prepend(item)
 
 
 class InsertGnuplotDialog(ImageGeneratorDialog):
 
-   def __init__(self, ui, image=None):
+	def __init__(self, ui, image=None):
 		attachment_folder = ui.notebook.get_attachments_dir(ui.page)
 		generator = GnuplotGenerator(attachment_folder=attachment_folder)
 		ImageGeneratorDialog.__init__(self, ui, _('Gnuplot'), # T: dialog title
@@ -96,53 +95,53 @@ class InsertGnuplotDialog(ImageGeneratorDialog):
 
 class GnuplotGenerator(ImageGeneratorClass):
 
-   uses_log_file = False
+	uses_log_file = False
 
-   type = 'gnuplot'
-   scriptname = 'gnuplot.gnu'
-   imagename = 'gnuplot.png'
+	type = 'gnuplot'
+	scriptname = 'gnuplot.gnu'
+	imagename = 'gnuplot.png'
 
-   def __init__(self, attachment_folder=None):
-       file = data_file('templates/plugins/gnuploteditor.gnu')
-       assert file, 'BUG: could not find templates/plugins/gnuploteditor.gnu'
-       self.template = GenericTemplate(file.readlines(), name=file)
-       self.attachment_folder = attachment_folder
-       self.plotscriptfile = TmpFile(self.scriptname)
+	def __init__(self, attachment_folder=None):
+		file = data_file('templates/plugins/gnuploteditor.gnu')
+		assert file, 'BUG: could not find templates/plugins/gnuploteditor.gnu'
+		self.template = GenericTemplate(file.readlines(), name=file)
+		self.attachment_folder = attachment_folder
+		self.plotscriptfile = TmpFile(self.scriptname)
 
-   def generate_image(self, text):
-       if isinstance(text, basestring):
-           text = text.splitlines(True)
+	def generate_image(self, text):
+		if isinstance(text, basestring):
+			text = text.splitlines(True)
 
-       plotscriptfile = self.plotscriptfile
-       pngfile = File(plotscriptfile.path[:-4] + '.png')
+		plotscriptfile = self.plotscriptfile
+		pngfile = File(plotscriptfile.path[:-4] + '.png')
 
-       plot_script = "".join(text)
+		plot_script = "".join(text)
 
-       template_vars = { # they go in the template
-           'gnuplot_script': plot_script,
-           'png_fname': pngfile.path,
-       }
-       if self.attachment_folder and self.attachment_folder.exists():
-		   template_vars['attachment_folder'] = self.attachment_folder.path
+		template_vars = { # they go in the template
+			'gnuplot_script': plot_script,
+			'png_fname': pngfile.path,
+		}
+		if self.attachment_folder and self.attachment_folder.exists():
+			template_vars['attachment_folder'] = self.attachment_folder.path
 
-       # Write to tmp file using the template for the header / footer
-       plotscriptfile.writelines(
-           self.template.process(template_vars)
-       )
-       #print '>>>%s<<<' % plotscriptfile.read()
+		# Write to tmp file using the template for the header / footer
+		plotscriptfile.writelines(
+			self.template.process(template_vars)
+		)
+		#print '>>>%s<<<' % plotscriptfile.read()
 
-       # Call Gnuplot
-       try:
-           gnu_gp = Application(gnuplot_cmd)
-           gnu_gp.run(args=( plotscriptfile.basename, ), cwd=plotscriptfile.dir)
-                           # you call it as % gnuplot output.plt
+		# Call Gnuplot
+		try:
+			gnu_gp = Application(gnuplot_cmd)
+			gnu_gp.run(args=( plotscriptfile.basename, ), cwd=plotscriptfile.dir)
+							# you call it as % gnuplot output.plt
 
-       except ApplicationError:
-           return None, None # Sorry - no log
-       else:
-	       return pngfile, None
+		except ApplicationError:
+			return None, None # Sorry - no log
+		else:
+			return pngfile, None
 
-   def cleanup(self):
-       path = self.plotscriptfile.path
-       for path in glob.glob(path[:-4]+'.*'):
-           File(path).remove()
+	def cleanup(self):
+		path = self.plotscriptfile.path
+		for path in glob.glob(path[:-4]+'.*'):
+			File(path).remove()

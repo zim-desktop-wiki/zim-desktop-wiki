@@ -542,12 +542,12 @@ def interwiki_link(link):
 
 
 	# Then search all "urls.list" in config and data dirs
- 	def check_dir(dir):
- 		file = dir.file('urls.list')
- 		if not file.exists():
- 			return None
+	def check_dir(dir):
+		file = dir.file('urls.list')
+		if not file.exists():
+			return None
 
- 		for line in file.readlines():
+		for line in file.readlines():
 			if line.startswith('#') or line.isspace():
 				continue
 			try:
@@ -556,14 +556,14 @@ def interwiki_link(link):
 				continue
 			if mykey.lower() == lkey:
 				return myurl.strip()
- 		else:
- 			return None
+		else:
+			return None
 
  	if not url:
 		for dir in config_dirs():
- 			url = check_dir(dir)
- 			if url:
- 				break
+			url = check_dir(dir)
+			if url:
+				break
 
 	# Format URL
 	if url and is_url_re.match(url):

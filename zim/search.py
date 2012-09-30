@@ -6,9 +6,9 @@
 This module contains the logic for searching in a notebook.
 
 Supported operators:
- 	- "NOT", "not" and "-"
- 	- "AND", "and", "+" and "&&"
- 	- "OR", "or" and "||"
+	- "NOT", "not" and "-"
+	- "AND", "and", "+" and "&&"
+	- "OR", "or" and "||"
 
 Order of precedence: AND, OR, NOT
 so "foo AND NOT bar OR baz" means AND(foo, OR(NOT(bar), baz))

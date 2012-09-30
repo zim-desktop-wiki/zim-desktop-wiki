@@ -391,7 +391,7 @@ class VCSBackend(object):
 			version = self.vcs.cat(file, version)
 		return version
 
- 	def update_staging(self):
+	def update_staging(self):
 		with self.lock:
 			self.vcs.stage()
 

@@ -154,6 +154,25 @@ class TestCoding(tests.TestCase):
 						line = token[-1]
 						self.assertTrue(import_seen, '%s missing with_statement import from __future__ ("with" seen on line %i):\n%s' % (file, lineno, line))
 
+	def testIndenting(self):
+		# FIXME need real parser to be more robust for comments, multi-line strings etc.
+		# for now we just check lines after a line ending with ":"
+		# assume python itself warns us for changes in the middle of a block
+		white = re.compile(r'^(\s*)')
+		for file, code in self.list_code():
+			if file.startswith('zim/inc/'):
+				continue
+			lineno = 0
+			start_block = False
+			for line in code.splitlines():
+				lineno += 1
+				text = line.strip()
+				def_line = text.startswith('def ') or text.startswith('class ')
+				if start_block or def_line:
+					m = white.match(line)
+					indent = str(m.groups(1))
+					self.assertFalse(' ' in indent, 'Indenting should use tabs - file: %s line %s' % (file, lineno))
+				start_block = def_line and line.rstrip().endswith(':')
 
 class TestDocumentation(tests.TestCase):
 

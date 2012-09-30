@@ -1482,7 +1482,7 @@ class TextBuffer(gtk.TextBuffer):
 			else:
 				return False
 
- 	def range_has_tags(self, func, start, end):
+	def range_has_tags(self, func, start, end):
 		'''Like L{range_has_tag()} but uses a function to check for
 		multiple tags. The function gets called for each TextTag in the
 		range and the method returns as soon as the function returns
