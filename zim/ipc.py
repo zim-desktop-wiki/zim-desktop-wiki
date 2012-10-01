@@ -102,7 +102,7 @@ def handle_argv():
 	bootstrap of subprocesses.
 	'''
 	multiprocessing.freeze_support()
-	if sys.argv[1] == '--ipc-server-main':
+	if len(sys.argv) > 1 and sys.argv[1] == '--ipc-server-main':
 		global SERVER_ADDRESS
 		SERVER_ADDRESS = sys.argv[2] # for testing
 		loglevel = sys.argv[3]
