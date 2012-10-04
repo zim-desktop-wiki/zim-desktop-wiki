@@ -72,7 +72,7 @@ import os
 import logging
 
 import multiprocessing
-from multiprocessing import Process, Pipe, Lock
+from multiprocessing import Process, Pipe
 from multiprocessing.connection import Listener, Client
 
 import threading
@@ -260,7 +260,12 @@ def start_server_if_not_running():
 		try:
 			s.ping()
 		except:
-			time.sleep(0.5)
+			if i == 9: # last
+				import traceback
+				trace = traceback.format_exc()
+				logger.debug('Cannot connect to server %i:\n%s', os.getpid(), trace)
+			else:
+				time.sleep(0.5)
 		else:
 			break
 	else:
@@ -309,10 +314,13 @@ if sys.platform == 'win32':
 	# Windows named pipe
 	from zim.config import get_environ
 	SERVER_ADDRESS = '\\\\.\\pipe\\zimServer-%s' % get_environ('USER')
+	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
 else:
 	# Unix domain socket
 	SERVER_ADDRESS = str(get_tmpdir().file('zim-server-socket').path)
 		# BUG in multiprocess, name must be str instead of basestring
+	SERVER_ADDRESS_FAMILY = 'AF_UNIX'
+
 
 AUTHKEY_FILE = get_tmpdir().file('zim-server-authkey')
 	# Zim always initializes the tmpdir with mode 700, so should be private
@@ -681,7 +689,7 @@ class RemoteObjectProxy(object):
 			logger.debug('Remote call from %i: %s', os.getpid(), msg)
 			#~ print "CLIENT >>%s<<" % self._client_proxy_authkey
 			#~ conn = Client(SERVER_ADDRESS, authkey=self._client_proxy_authkey)
-			conn = Client(SERVER_ADDRESS)
+			conn = Client(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
 			conn.send(msg)
 			if not msg.async:
 				re = conn.recv()

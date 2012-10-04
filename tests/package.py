@@ -82,7 +82,7 @@ class TestCoding(tests.TestCase):
 			for dir, dirs, files in os.walk(root):
 				for basename in files:
 					if basename.endswith('.py'):
-						file = dir + '/' + basename
+						file = dir.replace('\\', '/') + '/' + basename
 						if file == 'tests/package.py': # skip ourselve
 								continue
 						#~ print 'READING', file
