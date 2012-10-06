@@ -43,6 +43,9 @@ class ZeitgeistPlugin(PluginClass):
 			self.zeitgeist_client = None
 
 	def initialize_ui(self, ui):
+		if ui.ui_type != 'gtk':
+			return
+
 		if self.zeitgeist_client is not None:
 			self.zeitgeist_client.register_data_source('application://zim.desktop',
 			    'Zim', _('Zim Desktop Wiki'), []) # T: short description of zim
@@ -50,9 +53,9 @@ class ZeitgeistPlugin(PluginClass):
 			self.connectto_all(self.ui,
 				('open-page', 'close-page'), order=SIGNAL_AFTER)
 
-	def finalize_notebook(self, ui):
+	def finalize_notebook(self, notebook):
 		if self.zeitgeist_client is not None:
-			self.connectto_all(self.ui.notebook,
+			self.connectto_all(notebook,
 				('deleted-page', 'stored-page'), order=SIGNAL_AFTER)
 
 	def create_and_send_event(self, page, path, event_type):

@@ -240,8 +240,8 @@ This plugin is still under development.
 
 		if enable:
 			self.ui.mainwindow.set_pane_state(
-				self.preferences['pane'], True, 
-				activetab=self.TAB_NAME, 
+				self.preferences['pane'], True,
+				activetab=self.TAB_NAME,
 				grab_focus=True)
 		else:
 			self.ui.mainwindow.set_pane_state(
@@ -314,12 +314,13 @@ This plugin is still under development.
 			self._monitor = None
 
 	def do_preferences_changed(self):
-		try:
-			self.ui.mainwindow.remove(self.widget)
-		except ValueError:
-			pass
-		self.ui.mainwindow.add_tab(self.TAB_NAME, self.widget, self.preferences['pane'])
-		self.widget.show_all()
+		if self.ui.ui_type == 'gtk':
+			try:
+				self.ui.mainwindow.remove(self.widget)
+			except ValueError:
+				pass
+			self.ui.mainwindow.add_tab(self.TAB_NAME, self.widget, self.preferences['pane'])
+			self.widget.show_all()
 
 
 

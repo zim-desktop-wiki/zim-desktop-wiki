@@ -133,6 +133,7 @@ This is a core plugin shipping with zim.
 		self.next_label = None
 		self.next_label_re = None
 		self.db_initialized = False
+		self._current_preferences = None
 
 	def initialize_ui(self, ui):
 		if ui.ui_type == 'gtk':
@@ -162,6 +163,10 @@ This is a core plugin shipping with zim.
 		self.db_initialized = True
 
 	def do_preferences_changed(self):
+		if self._current_preferences is None \
+		or not self.db_initialized:
+			return
+
 		new_preferences = self._serialize_rebuild_on_preferences()
 		if new_preferences != self._current_preferences:
 			self._drop_table()

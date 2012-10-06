@@ -373,53 +373,56 @@ class TestNotebook(tests.TestCase):
 			('Foo:Bar', 'Foo:Bar:Baz', '+Baz'),
 			('Foo:Bar:Baz', 'Foo:Dus', 'Foo:Dus'),
 			('Foo:Bar:Baz', 'Foo:Bar:Dus', 'Dus'),
-			('Foo:Bar', 'Dus:Ja', ':Dus:Ja'),
+			('Foo:Bar', 'Dus:Ja', 'Dus:Ja'),
 			('Foo:Bar', 'Foo:Ja', 'Ja'),
 			('Foo:Bar:Baz', 'Foo:Bar', 'Bar'),
 			('Foo:Bar:Baz', 'Foo', 'Foo'),
+			('Foo:Bar:Baz', 'Bar', ':Bar'), # conflict with anchor
 		):
 			#~ print '>', source, href, link
 			self.assertEqual(
 				self.notebook.relative_link(Path(source), Path(href)), link)
 
 		# update the page that was moved itself
-		# moving from Dus:Baz to Foo:Bar:Baz or renaming to Dus:Bar
+		# moving from Dus:Baz to foo:bar:Baz or renaming to Dus:Bar
 		text = u'''\
 http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
 [[Baz:Ja]] # relative link that does not need change on move, but does on rename
-[[Dus:Ja]] # relative link that needs updating on move, but not on rename
-[[Dus:Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
-[[:Foo:Bar:Dus]] # Link that could be made relative, but isn't
+[[Ja]] # relative link that needs updating on move, but not on rename
+[[Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
+[[:foo:bar:Dus]] # Link that could be made relative, but isn't
 '''
 		wanted1 = u'''\
 http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
 [[Baz:Ja]] # relative link that does not need change on move, but does on rename
-[[:Dus:Ja]] # relative link that needs updating on move, but not on rename
-[[:Dus:Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
-[[:Foo:Bar:Dus]] # Link that could be made relative, but isn't
+[[Dus:Ja]] # relative link that needs updating on move, but not on rename
+[[Dus:Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
+[[:foo:bar:Dus]] # Link that could be made relative, but isn't
 '''
 		wanted2 = u'''\
 http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
 [[+Ja]] # relative link that does not need change on move, but does on rename
-[[Dus:Ja]] # relative link that needs updating on move, but not on rename
-[[Dus:Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
-[[:Foo:Bar:Dus]] # Link that could be made relative, but isn't
+[[Ja]] # relative link that needs updating on move, but not on rename
+[[Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
+[[:foo:bar:Dus]] # Link that could be made relative, but isn't
 '''
-		page = self.notebook.get_page(Path('Foo:Bar:Baz'))
+		# "move" Dus:Baz -> foo:bar:Baz
+		page = self.notebook.get_page(Path('foo:bar:Baz'))
 		page.parse('wiki', text)
 		self.notebook._update_links_from(page, Path('Dus:Baz'), page,  Path('Dus:Baz'))
 		self.assertEqual(u''.join(page.dump('wiki')), wanted1)
-
+		print '--'
+		# "rename" Dus:Baz -> Dus:Bar
 		page = self.notebook.get_page(Path('Dus:Bar'))
 		page.parse('wiki', text)
 		self.notebook._update_links_from(page, Path('Dus:Baz'), page, Path('Dus:Baz'))
 		self.assertEqual(u''.join(page.dump('wiki')), wanted2)
 
 		# updating links to the page that was moved
-		# moving from Dus:Baz to Foo:Bar:Baz or renaming to Dus:Bar - updating links in Dus:Ja
+		# moving from Dus:Baz to foo:bar:Baz or renaming to Dus:Bar - updating links in Dus:Ja
 		text = u'''\
 http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
@@ -433,12 +436,12 @@ http://foo.org # urls are untouched
 		wanted1 = u'''\
 http://foo.org # urls are untouched
 [[:Hmmm:OK]] # link way outside move
-[[:Foo:Bar:Baz:Ja]] # relative link that needs updating
-[[:Foo:Bar:Baz:Ja|Grr]] # relative link that needs updating - with name
+[[foo:bar:Baz:Ja]] # relative link that needs updating
+[[foo:bar:Baz:Ja|Grr]] # relative link that needs updating - with name
 [[Dus:Foo]] # relative link that does not need updating
-[[:Foo:Bar:Baz]] # absolute link that needs updating
-[[:Foo:Bar:Baz:Hmm]] # absolute link that needs updating
-[[:Foo:Bar:Baz:Hmm:Ja]] # absolute link that needs updating
+[[foo:bar:Baz]] # absolute link that needs updating
+[[foo:bar:Baz:Hmm]] # absolute link that needs updating
+[[foo:bar:Baz:Hmm:Ja]] # absolute link that needs updating
 '''
 		wanted2 = u'''\
 http://foo.org # urls are untouched
@@ -452,7 +455,7 @@ http://foo.org # urls are untouched
 '''
 		page = self.notebook.get_page(Path('Dus:Ja'))
 		page.parse('wiki', text)
-		self.notebook._update_links_in_page(page, Path('Dus:Baz'), Path('Foo:Bar:Baz'))
+		self.notebook._update_links_in_page(page, Path('Dus:Baz'), Path('foo:bar:Baz'))
 		self.assertEqual(u''.join(page.dump('wiki')), wanted1)
 
 		page = self.notebook.get_page(Path('Dus:Ja'))

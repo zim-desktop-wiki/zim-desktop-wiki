@@ -1603,7 +1603,7 @@ foo
 		click(_('Copy _Link'))
 		self.assertEqual(Clipboard.get_text(), 'Bar')
 		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
-		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href=":Bar">:Bar</link></zim-tree>')
+		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="Bar">Bar</link></zim-tree>')
 
 		page = tests.new_page_from_text('[[~//bar.txt]]')
 			# Extra '/' is in there to verify path gets parsed as File object
@@ -1846,6 +1846,7 @@ dus bar bazzz baz
 		ui = MockUI()
 		ui.notebook.index = tests.MockObject()
 		ui.notebook.index.mock_method('list_pages', [])
+		ui.notebook.index.mock_method('walk', [])
 		pageview = tests.MockObject()
 		pageview.page = Path('Test:foo:bar')
 		textview = TextView({})

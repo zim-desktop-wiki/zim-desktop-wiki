@@ -1047,11 +1047,13 @@ class Notebook(gobject.GObject):
 			# first check if we see an explicit match in the path
 			assert isinstance(source, Path)
 			anchor = name.split(':')[0].lower()
-			path = source.namespace.lower().split(':')
-			if anchor in path:
+			lowerpath = [p.lower() for p in source.parts]
+			if anchor in lowerpath:
 				# ok, so we can shortcut to an absolute path
-				path.reverse() # why is there no rindex or rfind ?
-				i = path.index(anchor) + 1
+				lowerpath.reverse() # why is there no rindex or rfind ?
+				i = lowerpath.index(anchor) + 1
+				path = source.parts # reset case
+				path.reverse()
 				path = path[i:]
 				path.reverse()
 				path.append( name.lstrip(':') )
@@ -1093,7 +1095,11 @@ class Notebook(gobject.GObject):
 		else:
 			parent = source.commonparent(href)
 			if parent.isroot: # no common parent except for root
-				return ':' + href.name
+				if href.parts[0].lower() in [p.lower() for p in source.parts]:
+					# there is a conflicting anchor name in path
+					return ':' + href.name
+				else:
+					return href.name
 			elif parent == href: # link to an parent or grand parent
 				return href.basename
 			elif parent == source.parent: # link to sibling of same parent

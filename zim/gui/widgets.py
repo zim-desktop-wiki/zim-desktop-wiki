@@ -1738,11 +1738,9 @@ def gtk_entry_completion_match_func(completion, key, iter, column):
 	model = completion.get_model()
 	text  = model.get_value(iter, column)
 	if text is not None:
-		text_str = text.lower()
-		key_str  = key.lower()
-		if text_str.startswith(key_str):
-			return True
-	return False
+		return key.lower() in text.lower()
+	else:
+		return False
 
 
 def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
@@ -1752,11 +1750,9 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 	model = completion.get_model()
 	text  = model.get_value(iter, column)
 	if text is not None:
-		text_str = text.lower()
-		key_str  = key.lower()
-		if text_str.find(key_str) >=0 :
-			return True
-	return False
+		return text.lower().startswith(key.lower())
+	else:
+		return False
 
 
 class PageEntry(InputEntry):
@@ -1855,6 +1851,39 @@ class PageEntry(InputEntry):
 						return None
 				return path
 
+	@staticmethod
+	def _walk_relative(notebook, path):
+		# sort nearest neighbor first using relative paths
+
+		## TODO can be more efficient with a visitor pattern
+		## that can stop recursion of some branches or force order
+
+		# first yield children
+		index = notebook.index
+		for p in index.walk(path):
+			yield notebook.relative_link(path, p), p.basename
+
+		# than peers and parents, sort by distance
+		if path.namespace:
+			parent = Path(path.parts[0])
+			peers = []
+			for p in index.walk(parent):
+				if not p.ischild(path):
+					relname = notebook.relative_link(path, p)
+					basename = p.basename
+					distance = relname.count(':')
+					peers.append((distance, relname, basename))
+			peers.sort()
+			for distance, relname, basename in peers:
+				yield relname, basename
+		else:
+			parent = path
+
+		# than the rest of the tree, excluding direct parent
+		for p in index.walk():
+			if not p.ischild(parent):
+				yield notebook.relative_link(path, p), p.basename
+
 	def do_changed(self):
 		text = self.get_text()
 
@@ -1866,16 +1895,24 @@ class PageEntry(InputEntry):
 				# FIXME: why should pageentry always allow empty input ?
 			return
 
-		# Check for a valid page name
+		# Check for a valid page name and clean up the text for completion
 		orig = text
-		if text != ':' and text != '+':
+		if text in (':', '+'):
+			pass
+		else:
 			try:
 				text = Notebook.cleanup_pathname(text.lstrip('+'))
 			except PageNameError:
 				self.set_input_valid(False)
 				return
+			else:
+				if self.existing_only:
+					path = self.get_path() # get_path() checks existence
+					self.set_input_valid(not path is None)
+				else:
+					self.set_input_valid(True)
 
-			# restore pre- and postfix
+			# restore pre- and postfix to cleaned up text
 			if orig[0] == ':' and text[0] != ':':
 				text = ':' + text
 			elif orig[0] == '+' and text[0] != '+':
@@ -1883,79 +1920,65 @@ class PageEntry(InputEntry):
 
 			if orig[-1] == ':' and text[-1] != ':':
 				text = text + ':'
-		else:
-			pass
-
-		if self.existing_only:
-			path = self.get_path()
-			self.set_input_valid(not path is None)
-		else:
-			self.set_input_valid(True)
 
 		# Start completion
+		#~ print 'COMPLETE page: "%s", raw: "%s", ref: %s' % (text, orig, self.notebookpath)
 		if not self.notebook:
 			return # no completion without a notebook
 
-		# Figure out the namespace to complete
-		#~ print 'COMPLETE page: "%s", raw: "%s", ref: %s' % (text, orig, self.notebookpath)
-		anchored = False
 		if ':' in text:
-			# can still have context and start with '+'
 			i = text.rfind(':')
-			completing = text[:i+1]
-			prefix = completing
-			anchored = True
-		elif self.notebookpath:
-			if text.startswith('+'):
-				completing = ':' + self.notebookpath.name
-				prefix = '+'
-				anchored = True
-			else:
-				completing = ':' + self.notebookpath.namespace
-				prefix = ''
+			prefix = text[:i+1] # can still start with "+"
+		elif text.startswith('+'):
+			prefix = '+'
 		else:
-			completing = ':'
 			prefix = ''
 
-		if self.subpaths_only and not completing.startswith('+'):
-			# Needed for new_sub_page - always force child page
-			completing = '+' + completing
-			anchored = True
-
 		# Check if we completed already for this case
-		if (prefix, completing) == self._current_completion:
-			#~ print '\t NO NEW COMPLETION'
+		if prefix == self._current_completion:
 			return
+		else:
+			self._current_completion = prefix
 
-		#~ print '\t COMPLETING "%s", namespace: %s' % (prefix, completing)
-		self._current_completion = (prefix, completing)
+		# Resolve path
+		if prefix == ':':
+			path = Path(':')
+		elif prefix == '':
+			if self.notebookpath:
+				path = Path(self.notebookpath.namespace)
+			else:
+				path = Path(':')
+		elif prefix == '+':
+			path = self.notebookpath or Path(':')
+		else:
+			link = prefix
+			reference = self.notebookpath or Path(':')
+			if self.subpaths_only and not link.startswith('+'):
+				link = '+' + link.lstrip(':')
 
-		# Resolve path and fill model with pages from namespace
+			try:
+				path = self.notebook.resolve_path(link, source=reference)
+			except PageNameError:
+				return
+
+		# Fill model with pages from pathname
 		completion = self.get_completion()
 		model = completion.get_model()
 		model.clear()
-
-		if completing == ':':
-			path = Path(':')
-		else:
-			try:
-				path = self.notebook.resolve_path(completing, source=self.notebookpath)
-			except PageNameError:
-				#~ print '\t NOT A VALID NAMESPACE'
-				return
-			#~ else:
-				#~ print '\t NAMESPACE', path
-
-		if not prefix: # not starting with ":" or "+"
-			completion.set_match_func(gtk_entry_completion_match_func, 1)
-			for p in self.notebook.index.walk():
-				model.append((":"+p.name, p.basename))
-		else:
-			# TODO include matches against parents (anchored relative link)
-			#      if not subpaths is True
+		if prefix:
+			# Complete a single namespace based on the prefix
 			completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
 			for p in self.notebook.index.list_pages(path):
 				model.append((prefix+p.basename, prefix+p.basename))
+		else:
+			# Find any pages that match the text
+			completion.set_match_func(gtk_entry_completion_match_func, 1)
+			if self.notebookpath:
+				for relname, basename in self._walk_relative(self.notebook, self.notebookpath):
+					model.append((relname, basename))
+			else:
+				for p in self.notebook.index.walk():
+					model.append((":"+p.name, p.basename))
 
 		completion.complete()
 
