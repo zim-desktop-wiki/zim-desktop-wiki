@@ -1,22 +1,20 @@
-# Ukrainian translation for zim
+# Brazilian Portuguese translation for zim
 # Copyright (c) 2009 Rosetta Contributors and Canonical Ltd 2009
 # This file is distributed under the same license as the zim package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2009.
-# Sergiy Gavrylov <sergiovana@bigmir.net>, 2010.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2012-08-25 17:54+0200\n"
-"PO-Revision-Date: 2011-05-15 05:02+0000\n"
-"Last-Translator: Sergiy Gavrylov <sergiovana@bigmir.net>\n"
-"Language-Team: Ukrainian <uk@li.org>\n"
+"PO-Revision-Date: 2012-09-29 14:28+0000\n"
+"Last-Translator: Frederico Lopes <Unknown>\n"
+"Language-Team: Brazilian Portuguese <pt_BR@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
 "X-Launchpad-Export-Date: 2012-10-06 12:28+0000\n"
 "X-Generator: Launchpad (build 16061)\n"
 
@@ -24,7 +22,7 @@ msgstr ""
 #: zim/applications.py:41
 #, python-format
 msgid "Failed to run application: %s"
-msgstr ""
+msgstr "Falhou ao executar o programa: %s"
 
 #. Error message when external application failed, %(cmd)s is the command, %(code)i the exit code
 #: zim/applications.py:44
@@ -33,75 +31,77 @@ msgid ""
 "%(cmd)s\n"
 "returned non-zero exit status %(code)i"
 msgstr ""
+"%(cmd)s\n"
+"retornou status de saída não-zero %(code)i"
 
 #. error when application failed to start
 #: zim/applications.py:228
 #, python-format
 msgid "Failed running: %s"
-msgstr ""
+msgstr "Falha ao executar: %s"
 
 #. label for default webbrowser |
 #. label for default application
 #: zim/applications.py:249 zim/applications.py:283 zim/gui/applications.py:687
 msgid "Default"
-msgstr "Типовий"
+msgstr "Padrão"
 
 #. message for FileNotFoundError
 #: zim/fs.py:425
 #, python-format
 msgid "No such file: %s"
-msgstr "Немає такого файла: %s"
+msgstr "Arquivo não existe: %s"
 
 #. message for FileUnicodeError (%s is the file name)
 #: zim/fs.py:437
 #, python-format
 msgid "Could not read: %s"
-msgstr ""
+msgstr "Não foi possível ler: %s"
 
 #. message for FileUnicodeError
 #: zim/fs.py:439
 msgid "This usually means the file contains invalid characters"
-msgstr ""
+msgstr "Isso normalmente significa que o arquivo contém caracteres inválidos"
 
 #. label for detailed error |
 #. section for version details in "save version" dialog
 #: zim/fs.py:441 zim/plugins/versioncontrol/__init__.py:837
 msgid "Details"
-msgstr "Деталі"
+msgstr "Detalhes"
 
 #. Error message
 #: zim/fs.py:1384
 #, python-format
 msgid "File is not writable: %s"
-msgstr ""
+msgstr "Arquivo não é gravável: %s"
 
 #. error message
 #: zim/fs.py:1647
 #, python-format
 msgid "File changed on disk: %s"
-msgstr ""
+msgstr "Arquivo mudou: %s"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:592
 msgid "Customize..."
-msgstr ""
+msgstr "Personalizar..."
 
 #. message when no applications in "Open With" menu
 #: zim/gui/applications.py:618
 msgid "No Applications Found"
-msgstr ""
+msgstr "Nenhum Aplicativo Encontrado"
 
 #. menu item to open a file with an application, %s is the app name
 #: zim/gui/applications.py:647
 #, python-format
 msgid "Open with \"%s\""
-msgstr "Відкрити за допомогою \"%s\""
+msgstr "Abrir com \"%s\""
 
 #. Text in the 'custom command' dialog, "%s" will be URL scheme like "http://" or "ssh://"
 #: zim/gui/applications.py:662
 #, python-format
 msgid "Configure an application to open \"%s\" links"
-msgstr ""
+msgstr "Configure um aplicativo para abrir links \"%s\""
 
 #. Text in the 'custom command' dialog, "%s" will be mimetype like "text/plain"
 #: zim/gui/applications.py:665
@@ -110,22 +110,24 @@ msgid ""
 "Configure an application to open files\n"
 "of type \"%s\""
 msgstr ""
+"Configure um aplicativo para abrir arquivos\n"
+"do tipo \"%s\""
 
 #. Dialog title
 #: zim/gui/applications.py:677
 msgid "Configure Applications"
-msgstr ""
+msgstr "Configurar Aplicativos"
 
 #. Button for adding a new application to the 'open with' menu |
 #. Dialog title
 #: zim/gui/applications.py:691 zim/gui/applications.py:797
 msgid "Add Application"
-msgstr ""
+msgstr "Adicionar Aplicativo"
 
 #. Label for default application handler
 #: zim/gui/applications.py:739
 msgid "System Default"
-msgstr ""
+msgstr "Padrão do Sistema"
 
 #. Field in 'custom command' dialog |
 #. Input in "Edit Custom Tool" dialog |
@@ -140,50 +142,50 @@ msgstr ""
 #: zim/gui/preferencesdialog.py:192 zim/gui/templateeditordialog.py:141
 #: zim/notebook.py:718 zim/plugins/attachmentbrowser.py:534
 msgid "Name"
-msgstr "Назва"
+msgstr "Nome"
 
 #. Field in 'custom command' dialog |
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/applications.py:802 zim/gui/customtools.py:157
 msgid "Command"
-msgstr "Команда"
+msgstr "Comando"
 
 #. Field in 'custom command' dialog
 #: zim/gui/applications.py:803
 msgid "Make default application"
-msgstr ""
+msgstr "Tornar aplicativo padrão"
 
 #. menu item
 #: zim/gui/cleannotebookdialog.py:26
 msgid "Open File"
-msgstr ""
+msgstr "Abrir Arquivo"
 
 #. menu item |
 #. menu item to open containing folder of files
 #: zim/gui/cleannotebookdialog.py:27 zim/gui/pageview.py:5120
 msgid "Open Folder"
-msgstr "Відкрити теку"
+msgstr "Abrir pasta"
 
 #. menu item
 #: zim/gui/cleannotebookdialog.py:28
 msgid "Delete File"
-msgstr ""
+msgstr "Apagar arquivo"
 
 #. menu item
 #: zim/gui/cleannotebookdialog.py:28
 msgid "Delete"
-msgstr ""
+msgstr "Excluir"
 
 #. label in word count dialog
 #: zim/gui/cleannotebookdialog.py:131 zim/gui/pageview.py:6385
 msgid "Selection"
-msgstr "Виділення"
+msgstr "Seleção"
 
 #. Column heading in 'Oprhaned Files' dialog |
 #. Input label
 #: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:3986
 msgid "Filename"
-msgstr ""
+msgstr "Nome do arquivo"
 
 #. Column heading in 'Oprhaned Files' dialog |
 #. Input field in export dialog |
@@ -194,17 +196,17 @@ msgstr ""
 #: zim/gui/pageview.py:6383 zim/gui/searchdialog.py:148
 #: zim/plugins/quicknote.py:179 zim/plugins/tasklist.py:831
 msgid "Page"
-msgstr "Сторінка"
+msgstr "Página"
 
 #. dialog title
 #: zim/gui/cleannotebookdialog.py:163
 msgid "Cleanup Attachments"
-msgstr ""
+msgstr "Limpar Anexos"
 
 #. Button in "Clean Notebook" dialog
 #: zim/gui/cleannotebookdialog.py:177
 msgid "Invert Selection"
-msgstr ""
+msgstr "Inverter seleção"
 
 #. help text in "Clean Notebook" dialog
 #: zim/gui/cleannotebookdialog.py:184
@@ -213,16 +215,18 @@ msgid ""
 "longer \n"
 "linked in the notebook. "
 msgstr ""
+"Os Arquivos abaixo foram encontrados no diretório de anexos do zim\n"
+"mas não estão mais vinculados ao caderno de anotações "
 
 #. Message dialog in "Clean Attachments"
 #: zim/gui/cleannotebookdialog.py:201
 msgid "No orphaned files found."
-msgstr ""
+msgstr "Nenhum arquivo orfão encontrado."
 
 #. Dialog title
 #: zim/gui/customtools.py:24
 msgid "Custom Tools"
-msgstr "Зовнішні інструменти"
+msgstr "Ferramentas Personalizadas"
 
 #. help text in "Custom Tools" dialog
 #: zim/gui/customtools.py:29
@@ -230,35 +234,35 @@ msgid ""
 "You can configure custom tools that will appear\n"
 "in the tool menu and in the tool bar or context menus."
 msgstr ""
-"Ви можете налаштувати зовнішні інструменти показані\n"
-"в меню та на панелі інструментів або в контекстних меню."
+"Você pode configurar ferramentas personalizadas que irão aparecer\n"
+"no menu de ferramentas e na barra de ferramentas ou nos menus de contexto."
 
 #. Dialog title
 #: zim/gui/customtools.py:137
 msgid "Edit Custom Tool"
-msgstr "Зміна зовнішнього інструмента"
+msgstr "Editar Ferramenta Personalizada"
 
 #. Input in "Edit Custom Tool" dialog |
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/customtools.py:156 zim/gui/preferencesdialog.py:198
 msgid "Description"
-msgstr "Опис"
+msgstr "Descrição"
 
 #. Input in "Edit Custom Tool" dialog |
 #. label for properties dialog
 #: zim/gui/customtools.py:171 zim/notebook.py:721
 msgid "Icon"
-msgstr "Піктограма"
+msgstr "Ícone"
 
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/customtools.py:180
 msgid "Command does not modify data"
-msgstr "Команда не змінює дані"
+msgstr "Comando não modifica dados"
 
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/customtools.py:181
 msgid "Show in the toolbar"
-msgstr "Показувати на панелі інструментів"
+msgstr "Mostrar na barra de ferramentas"
 
 #. Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
 #: zim/gui/customtools.py:188
@@ -275,22 +279,33 @@ msgid ""
 "<b>%T</b> the selected text including wiki formatting\n"
 "</tt>\n"
 msgstr ""
+"Os parametros seguintes serão substituídos no comando quando for executado: "
+"\n"
+"<tt>\n"
+"<b>%f</b> a página de origem como arquivo temporário \n"
+"<b>%d</b> o diretório de anexos da página atual\n"
+"<b>%s</b> o arquivo real da fonte da página (se houver)\n"
+"<b>%n</b>  o local do caderno de anotações (arquivo ou pasta)\n"
+"<b>%D</b> o documento raiz (se houver)\n"
+"<b>%t</b> o texto ou palavra selecionada com o cursor\n"
+"<b>%T</b> o texto selecionado incluindo o formato wiki\n"
+"</tt>\n"
 
 #. dialog title
 #: zim/gui/exportdialog.py:20
 msgid "Export"
-msgstr "Експортувати"
+msgstr "Exportar"
 
 #. Title of progressbar dialog
 #: zim/gui/exportdialog.py:53 zim/gui/__init__.py:2070
 msgid "Updating index"
-msgstr "Оновлення індексу"
+msgstr "Atualizando índice"
 
 #. message heading
 #: zim/gui/exportdialog.py:64
 #, python-format
 msgid "Folder exists: %s"
-msgstr ""
+msgstr "Diretório existe: %s"
 
 #. detailed message, answers are Yes and No
 #: zim/gui/exportdialog.py:65
@@ -298,18 +313,18 @@ msgid ""
 "Folder already exists and has content, exporting to this folder may "
 "overwrite existing files. Do you want to continue?"
 msgstr ""
-"Тека вже існує і містить файли, експортування до цієї теки може перезаписати "
-"наявні файли. Ви хочете продовжити?"
+"Pasta já existe e possue conteúdo, exportar para esta pasta pode sobescrever "
+"arquivos existentes. você deseja continuar?"
 
 #. Title for progressbar window
 #: zim/gui/exportdialog.py:73
 msgid "Exporting notebook"
-msgstr "Експорт зошита"
+msgstr "Exportando caderno"
 
 #. message heading
 #: zim/gui/exportdialog.py:85
 msgid "File exists"
-msgstr "Файл існує"
+msgstr "O arquivo existe"
 
 #. detailed message, answers are Yes and No
 #: zim/gui/exportdialog.py:86
@@ -317,87 +332,85 @@ msgid ""
 "This file already exists.\n"
 "Do you want to overwrite it?"
 msgstr ""
-"Цей файл вже існує.\n"
-"Хочете перезаписати його?"
+"Este arquivo já existe.\n"
+"Deseja sobrescrevê-lo?"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:115
 msgid "Select the pages to export"
-msgstr "Вибрати сторінки для експорту"
+msgstr "Selecione as páginas para exportar"
 
 #. Option in export dialog to export complete notebook |
 #. Option in versions dialog to show version for complete notebook
 #: zim/gui/exportdialog.py:121 zim/plugins/versioncontrol/__init__.py:885
 msgid "Complete _notebook"
-msgstr "_Увесь зошит"
+msgstr "Todo o _Caderno"
 
 #. Option in export dialog to export selection
 #: zim/gui/exportdialog.py:126
 msgid "Single _page"
-msgstr "Одна _сторінка"
+msgstr "Página única"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:154
 msgid "Select the export format"
-msgstr "Вибрати формат експорту"
+msgstr "Selecione o formato de exportação"
 
 #. Option in drop down menu to specify another file
 #: zim/gui/exportdialog.py:156
 msgid "Other..."
-msgstr "Інше…"
+msgstr "Outro..."
 
 #. Input label in the export dialog |
 #. label in "insert date" dialog
 #: zim/gui/exportdialog.py:167 zim/gui/pageview.py:5673
 msgid "Format"
-msgstr "Формат"
+msgstr "Formato"
 
 #. Input label in the export dialog
 #: zim/gui/exportdialog.py:168
 msgid "Template"
-msgstr "Шаблон"
+msgstr "Modelo"
 
 #. radio option in export dialog
 #: zim/gui/exportdialog.py:171
 msgid "Link files under document root with full file path"
-msgstr ""
-"Створювати посилання на файли в кореневому документі використовуючи повний "
-"шлях"
+msgstr "Linke arquivos para o documento raiz com o caminho completo"
 
 #. radio option in export dialog
 #: zim/gui/exportdialog.py:172
 msgid "Map document root to URL"
-msgstr "Перетворити шлях до кореневого документа в URL"
+msgstr "Mapei o documento raiz para o URL"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:245
 msgid "Select the output file or folder"
-msgstr "Вибрати вихідний файл або теку"
+msgstr "Selecione o arquivo ou pasta de saída"
 
 #. Label for folder selection in export dialog
 #: zim/gui/exportdialog.py:251
 msgid "Output folder"
-msgstr "Вихідна тека"
+msgstr "Diretório de destino"
 
 #. Label for setting a name for the index of exported pages
 #: zim/gui/exportdialog.py:253
 msgid "Index page"
-msgstr "Початкова сторінка"
+msgstr "Página do índice"
 
 #. Label for file selection in export dialog
 #: zim/gui/exportdialog.py:256
 msgid "Output file"
-msgstr "Вихідний файл"
+msgstr "Arquivo de saída"
 
 #. button in e.g. equation editor dialog
 #: zim/gui/imagegeneratordialog.py:120
 msgid "_Preview"
-msgstr "_Попередній перегляд"
+msgstr "_Visualização"
 
 #. button in e.g. equation editor dialog
 #: zim/gui/imagegeneratordialog.py:130
 msgid "View _Log"
-msgstr "Переглянути _журнал"
+msgstr "Visualizar _Registro"
 
 #. Question prompt when e.g. equation editor encountered an error generating the image to insert
 #: zim/gui/imagegeneratordialog.py:208
@@ -405,444 +418,444 @@ msgid ""
 "An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
 msgstr ""
-"Під час генерування зображення виникла помилка.\n"
-"Зберегти джерельний текст незважаючи на помилку?"
+"Um erro ocorreu durante o geração da image. \n"
+"Você deseja salvar a fonte do texto mesmo assim?"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/imagegeneratordialog.py:248
 msgid "Log file"
-msgstr "Журнал"
+msgstr "Arquivo de log"
 
 #. Menu title
 #: zim/gui/__init__.py:49
 msgid "_File"
-msgstr "_Файл"
+msgstr "_Arquivo"
 
 #. Menu title
 #: zim/gui/__init__.py:50
 msgid "_Edit"
-msgstr "_Правка"
+msgstr "_Editar"
 
 #. Menu title |
 #. button label
 #: zim/gui/__init__.py:51 zim/gui/templateeditordialog.py:42
 msgid "_View"
-msgstr "_Вигляд"
+msgstr "_Visualizar"
 
 #. Menu title |
 #. Button label
 #: zim/gui/__init__.py:52 zim/gui/pageview.py:5663
 #: zim/plugins/insertsymbol.py:134
 msgid "_Insert"
-msgstr "Вст_авити"
+msgstr "_Inserir"
 
 #. Menu title
 #: zim/gui/__init__.py:53
 msgid "_Search"
-msgstr "З_найти"
+msgstr "_Pesquisar"
 
 #. Menu title
 #: zim/gui/__init__.py:54
 msgid "For_mat"
-msgstr "Фор_мат"
+msgstr "For_matar"
 
 #. Menu title
 #: zim/gui/__init__.py:55
 msgid "_Tools"
-msgstr "С_ервіс"
+msgstr "_Ferramentas"
 
 #. Menu title
 #: zim/gui/__init__.py:56
 msgid "_Go"
-msgstr "Пере_йти"
+msgstr "_Ir"
 
 #. Menu title
 #: zim/gui/__init__.py:57
 msgid "_Help"
-msgstr "_Довідка"
+msgstr "_Ajuda"
 
 #. Menu title
 #: zim/gui/__init__.py:58
 msgid "P_athbar"
-msgstr "Р_ядок адреси"
+msgstr "B_arra de Caminhos"
 
 #. Menu title |
 #. Menu item
 #: zim/gui/__init__.py:59 zim/gui/__init__.py:117 zim/gui/__init__.py:127
 msgid "_Toolbar"
-msgstr "П_анель інструментів"
+msgstr "_Barra de ferramentas"
 
 #. Menu item
 #: zim/gui/__init__.py:62
 msgid "_New Page..."
-msgstr "_Створити сторінку..."
+msgstr "_Nova Página"
 
 #. Menu item
 #: zim/gui/__init__.py:63
 msgid "New S_ub Page..."
-msgstr "Створити _під-сторінку..."
+msgstr "Nova S_ubpágina"
 
 #. Menu item
 #: zim/gui/__init__.py:64
 msgid "_Open Another Notebook..."
-msgstr "_Відкрити інший зошит..."
+msgstr "_Abrir Novo Caderno..."
 
 #. Menu item |
 #. menu item to open a link
 #: zim/gui/__init__.py:65 zim/gui/pageview.py:5150
 msgid "Open in New _Window"
-msgstr "В_ідкрити в новому вікні"
+msgstr "Abrir em uma Nova _Janela"
 
 #. Menu item
 #: zim/gui/__init__.py:66
 msgid "_Import Page..."
-msgstr "_Імпортувати сторінку..."
+msgstr "_Importar página..."
 
 #. Menu item
 #: zim/gui/__init__.py:67
 msgid "_Save"
-msgstr "З_берегти"
+msgstr "Salvar"
 
 #. Menu item
 #: zim/gui/__init__.py:68
 msgid "Save A _Copy..."
-msgstr "Зберегти _копію..."
+msgstr "Gravar uma _Cópia"
 
 #. Menu item
 #: zim/gui/__init__.py:69
 msgid "E_xport..."
-msgstr "_Експортувати..."
+msgstr "E_xportar..."
 
 #. Menu item
 #: zim/gui/__init__.py:70
 msgid "_Send To..."
-msgstr "Надіслати _до..."
+msgstr "_Enviar para..."
 
 #. Menu item
 #: zim/gui/__init__.py:71
 msgid "_Move Page..."
-msgstr "Перемістити сторінк_у..."
+msgstr "_Mover Página..."
 
 #. Menu item
 #: zim/gui/__init__.py:72
 msgid "_Rename Page..."
-msgstr "Пере_йменувати сторінку..."
+msgstr "_Renomear Página..."
 
 #. Menu item
 #: zim/gui/__init__.py:73
 msgid "_Delete Page"
-msgstr "В_илучити сторінку"
+msgstr "_Excluir Página"
 
 #. Menu item
 #: zim/gui/__init__.py:74
 msgid "Proper_ties"
-msgstr "В_ластивості"
+msgstr "_Propriedades"
 
 #. Menu item
 #: zim/gui/__init__.py:75
 msgid "_Close"
-msgstr "_Закрити"
+msgstr "_Fechar"
 
 #. Menu item |
 #. menu item in tray icon menu
 #: zim/gui/__init__.py:76 zim/plugins/trayicon.py:147
 msgid "_Quit"
-msgstr "Ви_йти"
+msgstr "_Sair"
 
 #. Menu item
 #: zim/gui/__init__.py:77
 msgid "_Search..."
-msgstr "З_найти..."
+msgstr "Pe_squisar..."
 
 #. Menu item
 #: zim/gui/__init__.py:78
 msgid "Search _Backlinks..."
-msgstr "Знайти з_воротні посилання..."
+msgstr "Buscar _Ligações de Retorno..."
 
 #. Menu item
 #: zim/gui/__init__.py:79
 msgid "Copy _Location"
-msgstr ""
+msgstr "Copiar _Localização"
 
 #. Menu item
 #: zim/gui/__init__.py:80
 msgid "_Templates"
-msgstr ""
+msgstr "_Modelos"
 
 #. Menu item
 #: zim/gui/__init__.py:81
 msgid "Pr_eferences"
-msgstr "_Параметри"
+msgstr "_Preferências"
 
 #. Menu item
 #: zim/gui/__init__.py:82
 msgid "_Reload"
-msgstr "_Перезавантажити"
+msgstr "_Recarregar"
 
 #. Menu item
 #: zim/gui/__init__.py:83
 msgid "Open Attachments _Folder"
-msgstr "Відкрити теку п_рикріплень"
+msgstr "Abrir a Pasta de _Anexos"
 
 #. Menu item
 #: zim/gui/__init__.py:84
 msgid "Open _Notebook Folder"
-msgstr "Відкрити теку _зошита"
+msgstr "Abrir Pasta do _Caderno"
 
 #. Menu item
 #: zim/gui/__init__.py:85
 msgid "Open _Document Root"
-msgstr "Відкрити кореневий _документ"
+msgstr "Abrir a Raiz do _Documento"
 
 #. Menu item
 #: zim/gui/__init__.py:86
 msgid "Open _Document Folder"
-msgstr "Відкрити теку _документів"
+msgstr "Abrir a Pasta do _Documento"
 
 #. Menu item
 #: zim/gui/__init__.py:87
 msgid "Attach _File"
-msgstr "Прикріпити _файл"
+msgstr "Anexar _Arquivo"
 
 #. Menu item
 #: zim/gui/__init__.py:87
 msgid "Attach external file"
-msgstr "Прикріпити зовнішній файл"
+msgstr "Anexar arquivo externo"
 
 #. Menu item
 #: zim/gui/__init__.py:88
 msgid "_Cleanup Attachments"
-msgstr ""
+msgstr "_Limpar Anexos"
 
 #. Menu item
 #: zim/gui/__init__.py:89
 msgid "Edit _Source"
-msgstr "Редагувати д_жерело"
+msgstr "Editar _Fonte"
 
 #. Menu item
 #: zim/gui/__init__.py:90
 msgid "Start _Web Server"
-msgstr "Запустити _веб сервер"
+msgstr "Iniciar _Servidor Web"
 
 #. Menu item
 #: zim/gui/__init__.py:91
 msgid "Update Index"
-msgstr ""
+msgstr "Atualizar Índice"
 
 #. Menu item
 #: zim/gui/__init__.py:92
 msgid "Custom _Tools"
-msgstr "Зовнішні інс_трументи"
+msgstr "Ferramentas _Customizadas"
 
 #. Menu item
 #: zim/gui/__init__.py:93
 msgid "_Back"
-msgstr "На_зад"
+msgstr "_Voltar"
 
 #. Menu item
 #: zim/gui/__init__.py:93
 msgid "Go page back"
-msgstr "На сторінку назад"
+msgstr "Voltar uma página"
 
 #. Menu item
 #: zim/gui/__init__.py:94
 msgid "_Forward"
-msgstr "В_перед"
+msgstr "_Avançar"
 
 #. Menu item
 #: zim/gui/__init__.py:94
 msgid "Go page forward"
-msgstr "На сторінку вперед"
+msgstr "Avançar uma página"
 
 #. Menu item
 #: zim/gui/__init__.py:95
 msgid "_Parent"
-msgstr "_Вгору"
+msgstr "_Pai"
 
 #. Menu item
 #: zim/gui/__init__.py:95
 msgid "Go to parent page"
-msgstr "На сторінку вгору"
+msgstr "Ir para a página superior"
 
 #. Menu item
 #: zim/gui/__init__.py:96
 msgid "_Child"
-msgstr "В_низ"
+msgstr "_Filho"
 
 #. Menu item
 #: zim/gui/__init__.py:96
 msgid "Go to child page"
-msgstr "На сторінку вниз"
+msgstr "Ir para página filha"
 
 #. Menu item
 #: zim/gui/__init__.py:97
 msgid "_Previous in index"
-msgstr "П_опередня в індексі"
+msgstr "_Anterior no índice"
 
 #. Menu item
 #: zim/gui/__init__.py:97
 msgid "Go to previous page"
-msgstr "На попередню сторінку"
+msgstr "Ir para a página anterior"
 
 #. Menu item
 #: zim/gui/__init__.py:98
 msgid "_Next in index"
-msgstr "Нас_тупна в індексі"
+msgstr "_Próximo no índice"
 
 #. Menu item
 #: zim/gui/__init__.py:98
 msgid "Go to next page"
-msgstr "На наступну сторінку"
+msgstr "Ir para a próxima página"
 
 #. Menu item
 #: zim/gui/__init__.py:99
 msgid "_Home"
-msgstr "_Головна"
+msgstr "_Início"
 
 #. Menu item
 #: zim/gui/__init__.py:99
 msgid "Go home"
-msgstr "На головну"
+msgstr "Ir para o início"
 
 #. Menu item
 #: zim/gui/__init__.py:100
 msgid "_Jump To..."
-msgstr "Перейти _до..."
+msgstr "Ir para..."
 
 #. Menu item
 #: zim/gui/__init__.py:101
 msgid "_Contents"
-msgstr "_Зміст"
+msgstr "_Conteúdo"
 
 #. Menu item
 #: zim/gui/__init__.py:102
 msgid "_FAQ"
-msgstr "_Часті питання"
+msgstr "_FAQ"
 
 #. Menu item
 #: zim/gui/__init__.py:103
 msgid "_Keybindings"
-msgstr "_Комбінації клавіш"
+msgstr "_Atalhos do teclado"
 
 #. Menu item
 #: zim/gui/__init__.py:104
 msgid "_Bugs"
-msgstr "П_омилки"
+msgstr "_Bugs"
 
 #. Menu item
 #: zim/gui/__init__.py:105
 msgid "_About"
-msgstr "_Про програму"
+msgstr "_Sobre"
 
 #. Menu item
 #: zim/gui/__init__.py:111
 msgid "_All Panes"
-msgstr ""
+msgstr "_Todos os Painéis"
 
 #. Menu item
 #: zim/gui/__init__.py:111
 msgid "Show All Panes"
-msgstr ""
+msgstr "Mostrar Todos os Painéis"
 
 #. Menu item
 #: zim/gui/__init__.py:118 zim/gui/__init__.py:128
 msgid "_Statusbar"
-msgstr "_Рядок стану"
+msgstr "_Barra de status"
 
 #. Menu item # FIXME review text
 #: zim/gui/__init__.py:119 zim/gui/__init__.py:129
 msgid "_Side Panes"
-msgstr ""
+msgstr "Painéis _Laterais"
 
 #. Menu item # FIXME review text
 #: zim/gui/__init__.py:119 zim/gui/__init__.py:129
 msgid "Show Side Panes"
-msgstr ""
+msgstr "Mostrar Painéis Laterais"
 
 #. Menu item
 #: zim/gui/__init__.py:120 zim/gui/__init__.py:130
 msgid "_Fullscreen"
-msgstr "На _весь екран"
+msgstr "_Tela Cheia"
 
 #. menu item
 #: zim/gui/__init__.py:121 zim/gui/__init__.py:131
 msgid "Notebook _Editable"
-msgstr "_Лише читання"
+msgstr "Caderno _Editável"
 
 #. menu item
 #: zim/gui/__init__.py:121 zim/gui/__init__.py:131
 msgid "Toggle notebook editable"
-msgstr "Увімкнути захист від редагування"
+msgstr "Tornar o caderno editável"
 
 #. Menu item
 #: zim/gui/__init__.py:137
 msgid "_None"
-msgstr "_Сховати"
+msgstr "_Nenhum"
 
 #. Menu item
 #: zim/gui/__init__.py:138
 msgid "_Recent pages"
-msgstr "_Недавні сторінки"
+msgstr "Páginas _recentes"
 
 #. Menu item
 #: zim/gui/__init__.py:139
 msgid "_History"
-msgstr "_Історія"
+msgstr "_Histórico"
 
 #. Menu item
 #: zim/gui/__init__.py:140
 msgid "N_amespace"
-msgstr "Пр_остір імен"
+msgstr "N_ome(s)"
 
 #. Menu item
 #: zim/gui/__init__.py:151
 msgid "Icons _And Text"
-msgstr "Значки т_а текст"
+msgstr "Ícones e Texto"
 
 #. Menu item
 #: zim/gui/__init__.py:152
 msgid "_Icons Only"
-msgstr "Лише _значки"
+msgstr "Somente _Ícones"
 
 #. Menu item
 #: zim/gui/__init__.py:153
 msgid "_Text Only"
-msgstr "Лише _текст"
+msgstr "Somente _Texto"
 
 #. Menu item
 #: zim/gui/__init__.py:159
 msgid "_Large Icons"
-msgstr "_Великі значки"
+msgstr "Ícones _Grandes"
 
 #. Menu item
 #: zim/gui/__init__.py:160
 msgid "_Small Icons"
-msgstr "_Маленькі значки"
+msgstr "Ícones _Pequenos"
 
 #. Menu item
 #: zim/gui/__init__.py:161
 msgid "_Tiny Icons"
-msgstr "_Дрібні значки"
+msgstr "_Ícones Minúsculos"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:175
 msgid "Add 'tearoff' strips to the menus"
-msgstr "Додати смужки „відриву“ до меню"
+msgstr "Adicionar tiras 'tearoff' para os menus"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:177
 msgid "Use <Ctrl><Space> to switch to the side pane"
-msgstr ""
+msgstr "Use <Ctrl><Espaço> para mudar para o painel lateral"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:181
 msgid "Remove links when deleting pages"
-msgstr ""
+msgstr "Remover links ao excluir páginas"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:183
 msgid "Always use last cursor position when opening a page"
-msgstr ""
+msgstr "Sempre use a última posição do cursor ao abrir uma página"
 
 #. Error description for "no such file or folder"
 #: zim/gui/__init__.py:245
@@ -850,19 +863,19 @@ msgid ""
 "The file or folder you specified does not exist.\n"
 "Please check if you the path is correct."
 msgstr ""
-"Зазначений вами файл або тека не існують.\n"
-"Будь ласка, перевірте коректність шляху."
+"O arquivo ou pasta que você especificou não existe.\n"
+"Por favor, verifique se o caminho está correto."
 
 #. Error message, %s will be the file path
 #: zim/gui/__init__.py:252
 #, python-format
 msgid "No such file or folder: %s"
-msgstr "Немає такого файла або теки: %s"
+msgstr "A pasta %s não existe"
 
 #. Short question for question prompt
 #: zim/gui/__init__.py:1146
 msgid "Upgrade Notebook?"
-msgstr "Оновити зошит?"
+msgstr "Atualizar Caderno?"
 
 #. Explanation for question to upgrade notebook
 #: zim/gui/__init__.py:1147
@@ -877,20 +890,20 @@ msgid ""
 "If you choose not to upgrade now, some features\n"
 "may not work as expected"
 msgstr ""
-"Цей зошит створений старішою версією Zim.\n"
-"Хочете оновити його до останньої версії?\n"
+"Esse caderno de anotações foi criado numa versão mais antiga do zim.\n"
+"Você gostaria de atualizá-lo à última versão agora?\n"
 "\n"
-"Оновлення займе деякий час і може внести деякі зміни\n"
-"до записника. Рекомендуємо зробити резервну копію\n"
-"перед оновленням.\n"
+"A atualização tomará um tempo e poderá efetuar diversas mudanças\n"
+"ao caderno. É recomendado fazer uma cópia de segurança\n"
+"antes de atualizar.\n"
 "\n"
-"Якщо ви зараз відмовитесь від оновлення, деякі нові\n"
-"функції можуть працювати не коректно."
+"Se você escolher não atualizar agora, algumas partes\n"
+"do programa podem não funcionar como esperado."
 
 #. Title of progressbar dialog
 #: zim/gui/__init__.py:1159
 msgid "Upgrading notebook"
-msgstr "Оновлення зошита"
+msgstr "Atualizando o caderno de anotações"
 
 #. question dialog text
 #: zim/gui/__init__.py:1632
@@ -899,35 +912,35 @@ msgid ""
 "updated correctly. Performing this action now could break links, do you want "
 "to continue anyway?"
 msgstr ""
-"Індекс все ще відновлюється. До його завершення, посилання можуть оновитись "
-"неправильно. Виконання цієї дії зараз, може пошкодити посилання. Хочете "
-"продовжити у будь-якому випадку?"
+"O índice ainda está ocupado com a atualização. Enquanto ela não for "
+"concluída, links podem não ser atualizados corretamente. Continuar pode "
+"desvincular links, deseja continuar mesmo assim?"
 
 #. Title of progressbar dialog
 #: zim/gui/__init__.py:1643
 msgid "Updating Links"
-msgstr "Оновлення посилань"
+msgstr "Atualizando links"
 
 #. Title of progressbar dialog
 #: zim/gui/__init__.py:1671 zim/gui/__init__.py:3345
 msgid "Removing Links"
-msgstr "Вилучення посилань"
+msgstr "Removendo links"
 
 #. error when external application fails
 #: zim/gui/__init__.py:1888 zim/gui/__init__.py:2027
 #, python-format
 msgid "Could not open: %s"
-msgstr "Не вдалось відкрити: %s"
+msgstr "Não foi possível abrir %s"
 
 #. Error message
 #: zim/gui/__init__.py:1903
 msgid "This page does not have an attachments folder"
-msgstr "Ця сторінка не має теки для прикріплень"
+msgstr "Esta página não possui uma pasta de anexos."
 
 #. Heading in a question dialog for creating a folder
 #: zim/gui/__init__.py:1910 zim/gui/__init__.py:1949 zim/gui/pageview.py:5454
 msgid "Create folder?"
-msgstr "Створити теку?"
+msgstr "Criar pasta?"
 
 #. Text in a question dialog for creating a folder
 #: zim/gui/__init__.py:1912
@@ -935,8 +948,8 @@ msgid ""
 "The attachments folder for this page does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
-"Тека прикріплень для цієї сторінки ще не існує.\n"
-"Створити її зараз?"
+"A pasta de anexos para esta página ainda não existe.\n"
+"Deseja criá-la agora?"
 
 #. Text in a question dialog for creating a folder
 #: zim/gui/__init__.py:1951
@@ -944,14 +957,14 @@ msgid ""
 "The document folder for this page does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
-"Теки документа для цієї сторінки ще не існує.\n"
-"Створити її зараз?"
+"A pasta de documentos para esta página ainda não existe.\n"
+"Deseja criá-la agora?"
 
 #. main text for dialog for editing external files
 #: zim/gui/__init__.py:2018
 #, python-format
 msgid "Editing file: %s"
-msgstr "Редагувальний файл: %s"
+msgstr "Editando arquivo: %s"
 
 #. description for dialog for editing external files
 #: zim/gui/__init__.py:2020
@@ -959,46 +972,55 @@ msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
 msgstr ""
-"Ви редагуєте файл в зовнішній програмі. Коли зробите, можете закрити цей "
-"діалог"
+"Você está editando um arquivo em um aplicativo externo. Você não pode fechar "
+"esta mensagem até que isto seja concluído."
 
 #. General description of zim itself
 #: zim/gui/__init__.py:2211
 msgid "A desktop wiki"
-msgstr "Вікі для робочого стола"
+msgstr "Uma wiki para o desktop"
 
 #. This string needs to be translated with names of the translators for this language
 #: zim/gui/__init__.py:2219
 msgid "translator-credits"
 msgstr ""
 "Launchpad Contributions:\n"
-"  Sergiy Gavrylov https://launchpad.net/~gavro\n"
-"  atany https://launchpad.net/~ye-gorshkov"
+"  André Gondim https://launchpad.net/~andregondim\n"
+"  Clodoaldo https://launchpad.net/~clodoaldo-carv\n"
+"  Frederico Gonçalves Guimarães https://launchpad.net/~fgguimaraes\n"
+"  Frederico Lopes https://launchpad.net/~frelopes\n"
+"  Lewis https://launchpad.net/~akai-hen\n"
+"  Matheus https://launchpad.net/~matheus-rwahl\n"
+"  NeLaS https://launchpad.net/~organelas\n"
+"  Otto Robba https://launchpad.net/~otto-ottorobba\n"
+"  Paulo J. S. Silva https://launchpad.net/~pjssilva\n"
+"  Thaynã Moretti https://launchpad.net/~izn\n"
+"  ThiagoSerra https://launchpad.net/~thiagoserra\n"
+"  Wanderson Santiago dos Reis https://launchpad.net/~wasare"
 
 #. Label for pageindex tab
 #: zim/gui/__init__.py:2281
 msgid "Index"
-msgstr ""
+msgstr "Índice"
 
 #. page status in statusbar
 #: zim/gui/__init__.py:2357
 msgid "readonly"
-msgstr "тільки для читання"
+msgstr "somente leitura"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/__init__.py:2844
 #, python-format
 msgid "%i _Backlink..."
 msgid_plural "%i _Backlinks..."
-msgstr[0] "%i _Зворотнє посилання..."
-msgstr[1] "%i _Зворотні посилання..."
-msgstr[2] "%i _Зворотніх посилань..."
+msgstr[0] "%i  _Ligação de Retorno..."
+msgstr[1] "%i  _Ligações de Retorno..."
 
 #. Heading of error dialog
 #: zim/gui/__init__.py:2955
 #, python-format
 msgid "Could not save page: %s"
-msgstr "Неможливо зберегти сторінку: %s"
+msgstr "Não foi possível salvar a página %s"
 
 #. text in error dialog when saving page failed
 #: zim/gui/__init__.py:2957
@@ -1007,39 +1029,39 @@ msgid ""
 "any changes. If you save a copy changes will be also\n"
 "discarded, but you can restore the copy later."
 msgstr ""
-"Щоб продовжити, ви можете зберегти копію цієї сторінки\n"
-"або відкинути зміни. Якщо ви збережете копію, зміни також\n"
-"не будуть внесені, але ви зможете відновити їх пізніше."
+"Para continuar você pode salvar uma cópia desta página\n"
+"ou discartar as mudanças realizadas. Se você salvar uma cópia\n"
+"as mudanças serão perdidas mas será possível restaurá-la depois."
 
 #. Button in error dialog
 #: zim/gui/__init__.py:2995
 msgid "_Discard Changes"
-msgstr "_Відкинути зміни"
+msgstr "_Descartar alterações"
 
 #. Button in error dialog
 #: zim/gui/__init__.py:3000
 msgid "_Save Copy"
-msgstr "Зберегти _копію"
+msgstr "S_alvar Cópia"
 
 #. Dialog title
 #: zim/gui/__init__.py:3037
 msgid "Jump to"
-msgstr "Перейти до"
+msgstr "Pular para"
 
 #. Label for page input
 #: zim/gui/__init__.py:3042
 msgid "Jump to Page"
-msgstr "Перейти до сторінки"
+msgstr "Pular para Página"
 
 #. Dialog title
 #: zim/gui/__init__.py:3061
 msgid "New Sub Page"
-msgstr "Створити під-сторінку"
+msgstr "Nova sub-página"
 
 #. Dialog title
 #: zim/gui/__init__.py:3062
 msgid "New Page"
-msgstr "Створити сторінку"
+msgstr "Nova página"
 
 #. Dialog text in 'new page' dialog
 #: zim/gui/__init__.py:3066
@@ -1047,58 +1069,57 @@ msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
 msgstr ""
-"Зауважте, що посилання на неіснуючу сторінку\n"
-"також автоматично створює нову сторінку."
+"Lembre se que criar um link para uma página não existente\n"
+"também cria essa página automaticamente."
 
 #. Input label
 #: zim/gui/__init__.py:3081
 msgid "Page Name"
-msgstr "Назва сторінки"
+msgstr "Nome da página"
 
 #. Choice label
 #: zim/gui/__init__.py:3082
 msgid "Page Template"
-msgstr ""
+msgstr "Modelo de Página"
 
 #. Error when creating new page
 #: zim/gui/__init__.py:3101
 msgid "Page exists"
-msgstr "Сторінка вже існує"
+msgstr "A página já existe"
 
 #. Dialog title of file save dialog
 #: zim/gui/__init__.py:3116
 msgid "Save Copy"
-msgstr "Зберегти копію"
+msgstr "Salvar Cópia"
 
 #. Dialog title
 #: zim/gui/__init__.py:3140
 msgid "Import Page"
-msgstr "Імпортувати сторінку"
+msgstr "Importar Página"
 
 #. File filter for '*.txt'
 #: zim/gui/__init__.py:3141
 msgid "Text Files"
-msgstr "Текстові файли"
+msgstr "Arquivos de texto"
 
 #. Dialog title
 #: zim/gui/__init__.py:3169
 msgid "Move Page"
-msgstr "Перемістити сторінку"
+msgstr "Mover página"
 
 #. Heading in 'move page' dialog - %s is the page name
 #: zim/gui/__init__.py:3178
 #, python-format
 msgid "Move page \"%s\""
-msgstr "Перемістити сторінку \"%s\""
+msgstr "Mover página \"%s\""
 
 #. label in MovePage dialog - %i is number of backlinks
 #: zim/gui/__init__.py:3189 zim/gui/__init__.py:3240
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
-msgstr[0] "Оновити %i сторінку, що посилається на цю сторінку"
-msgstr[1] "Оновити %i сторінки, що посилаються на цю сторінку"
-msgstr[2] "Оновити %i сторінок, що посилаються на цю сторінку"
+msgstr[0] "Atualizar %i página vinculada à esta página"
+msgstr[1] "Atualizar %i páginas vinculadas à esta página"
 
 #. Input label for namespace to move a file to |
 #. input label |
@@ -1106,34 +1127,34 @@ msgstr[2] "Оновити %i сторінок, що посилаються на 
 #: zim/gui/__init__.py:3194 zim/plugins/calendar.py:208
 #: zim/plugins/quicknote.py:180
 msgid "Namespace"
-msgstr "Простір імен"
+msgstr "Espaço de nomes"
 
 #. Dialog title
 #: zim/gui/__init__.py:3223
 msgid "Rename Page"
-msgstr "Перейменувати сторінку"
+msgstr "Renomear página"
 
 #. label in 'rename page' dialog - %s is the page name
 #: zim/gui/__init__.py:3229
 #, python-format
 msgid "Rename page \"%s\""
-msgstr "Перейменувати сторінку \"%s\""
+msgstr "Renomear página \"%s\""
 
 #. Option in the 'rename page' dialog
 #: zim/gui/__init__.py:3248
 msgid "Update the heading of this page"
-msgstr "Оновити заголовок цієї сторінки"
+msgstr "Atualizar o cabeçalho desta página"
 
 #. Dialog title
 #: zim/gui/__init__.py:3283
 msgid "Delete Page"
-msgstr "Вилучити сторінку"
+msgstr "Excluir Página"
 
 #. Heading in 'delete page' dialog - %s is the page name
 #: zim/gui/__init__.py:3296
 #, python-format
 msgid "Delete page \"%s\"?"
-msgstr "Вилучити сторінку \"%s\"?"
+msgstr "Excluir página \"%s\"?"
 
 #. Text in 'delete page' dialog - %s is the page name
 #: zim/gui/__init__.py:3298
@@ -1142,41 +1163,40 @@ msgid ""
 "Page \"%s\" and all of it's\n"
 "sub-pages and attachments will be deleted"
 msgstr ""
-"Сторінка \"%s\" та всі її\n"
-"під-сторінки та долучення будуть вилучені"
+"Página \"%s\" e todas as suas\n"
+"sub-páginas e anexos serão deletados"
 
 #. label in DeletePage dialog - %i is number of backlinks
 #: zim/gui/__init__.py:3311
 #, python-format
 msgid "Remove links from %i page linking to this page"
 msgid_plural "Remove links from %i pages linking to this page"
-msgstr[0] "Вилучити посилання, яке вказує на цю сторінку з %i сторінки"
-msgstr[1] "Вилучити посилання, яке вказує на цю сторінку з %i сторінок"
-msgstr[2] "Вилучити посилання, яке вказує на цю сторінку з %i сторінок"
+msgstr[0] "Remover ligações de %i página vinculada à esta página"
+msgstr[1] "Remover ligações de %i páginas vinculadas à esta página"
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
 #: zim/gui/__init__.py:3330
 #, python-format
 msgid "%i file will be deleted"
 msgid_plural "%i files will be deleted"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%i arquivo será deletado"
+msgstr[1] "%i arquivos serão deletados"
 
 #. Dialog title
 #: zim/gui/__init__.py:3363
 msgid "Attach File"
-msgstr "Прикріпити файл"
+msgstr "Anexar Arquivo"
 
 #. Error dialog - %s is the full page name
 #: zim/gui/__init__.py:3370
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
-msgstr "Сторінка \"%s\" не має теки для прикріплень"
+msgstr "Página \"%s\" não tem uma pasta para anexos"
 
 #. checkbox in the "Attach File" dialog
 #: zim/gui/__init__.py:3375
 msgid "Insert images as link"
-msgstr "Вставити зображення як посилання"
+msgstr "Inserir imagem como link"
 
 #. Column heading in 'open notebook' dialog |
 #. Field in web server gui |
@@ -1184,295 +1204,295 @@ msgstr "Вставити зображення як посилання"
 #: zim/gui/notebookdialog.py:173 zim/gui/server.py:91
 #: zim/plugins/quicknote.py:349
 msgid "Notebook"
-msgstr "Зошит"
+msgstr "Caderno"
 
 #. dialog title
 #: zim/gui/notebookdialog.py:279
 msgid "Open Notebook"
-msgstr "Відкрити зошит"
+msgstr "Abrir Caderno"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:328
 msgid "Default notebook"
-msgstr "Типовий зошит"
+msgstr "Caderno padrão"
 
 #. Dialog window title
 #: zim/gui/notebookdialog.py:382
 msgid "Add Notebook"
-msgstr "Додати зошит"
+msgstr "Adicionar Caderno"
 
 #. Label in Add Notebook dialog
 #: zim/gui/notebookdialog.py:384
 msgid "Please select a name and a folder for the notebook."
-msgstr "Вкажіть назву і теку для цього зошита."
+msgstr "Seleciona um nome e uma pasta para o caderno de anotações."
 
 #. input field in 'Add Notebook' dialog
 #: zim/gui/notebookdialog.py:403
 msgid "Folder"
-msgstr "Тека"
+msgstr "Pasta"
 
 #. statusbar message
 #: zim/gui/pageindex.py:745
 msgid "Updating index..."
-msgstr "Оновлення індексу..."
+msgstr "Atualizando índice..."
 
 #. Menu item
 #: zim/gui/pageview.py:112
 msgid "_Undo"
-msgstr "Пов_ернути"
+msgstr "_Desfazer"
 
 #. Menu item
 #: zim/gui/pageview.py:113
 msgid "_Redo"
-msgstr "Пов_торити"
+msgstr "_Refazer"
 
 #. Menu item
 #: zim/gui/pageview.py:115
 msgid "Cu_t"
-msgstr "_Вирізати"
+msgstr "_Recortar"
 
 #. Menu item
 #: zim/gui/pageview.py:116
 msgid "_Copy"
-msgstr "_Копіювати"
+msgstr "_Copiar"
 
 #. Menu item
 #: zim/gui/pageview.py:117
 msgid "_Paste"
-msgstr "Вст_авити"
+msgstr "_Colar"
 
 #. Menu item
 #: zim/gui/pageview.py:118
 msgid "_Delete"
-msgstr "В_илучити"
+msgstr "_Remover"
 
 #. Menu item
 #: zim/gui/pageview.py:119
 msgid "Toggle Checkbox 'V'"
-msgstr "Встановити прапорець"
+msgstr "Alternar Caixa de Seleção 'V'"
 
 #. Menu item
 #: zim/gui/pageview.py:120
 msgid "Toggle Checkbox 'X'"
-msgstr "Зняти прапорець"
+msgstr "Alternar Caixa de Seleção 'X'"
 
 #. Menu item
 #: zim/gui/pageview.py:121
 msgid "_Edit Link or Object..."
-msgstr "Редагувати посилання або _об’єкт..."
+msgstr "_Editar Ligação ou Objeto"
 
 #. Menu item
 #: zim/gui/pageview.py:122 zim/gui/pageview.py:5081
 msgid "_Remove Link"
-msgstr "В_илучити посилання"
+msgstr "_Remover link"
 
 #. Menu item
 #: zim/gui/pageview.py:123
 msgid "_Date and Time..."
-msgstr "_Дату й час..."
+msgstr "_Data e Hora"
 
 #. Menu item
 #: zim/gui/pageview.py:124
 msgid "_Image..."
-msgstr "_Зображення..."
+msgstr "_Imagem..."
 
 #. Menu item |
 #. Menu item,
 #: zim/gui/pageview.py:125 zim/gui/pageview.py:128
 msgid "Bulle_t List"
-msgstr ""
+msgstr "Lista de pon_to de bala"
 
 #. Menu item |
 #. Menu item,
 #: zim/gui/pageview.py:126 zim/gui/pageview.py:129
 msgid "_Numbered List"
-msgstr ""
+msgstr "_Lista Numerada"
 
 #. Menu item,
 #: zim/gui/pageview.py:127 zim/gui/pageview.py:130
 msgid "Checkbo_x List"
-msgstr ""
+msgstr "Lista de Cai_xa de Seleção"
 
 #. Menu item
 #: zim/gui/pageview.py:131
 msgid "Text From _File..."
-msgstr "Текст із _файла..."
+msgstr "Texto de _Arquivo..."
 
 #. Menu item
 #: zim/gui/pageview.py:132
 msgid "_Link..."
-msgstr "_Посилання..."
+msgstr "_Link..."
 
 #. Menu item |
 #. Dialog title
 #: zim/gui/pageview.py:132 zim/gui/pageview.py:5988
 msgid "Insert Link"
-msgstr "Вставити посилання"
+msgstr "Inserir Link"
 
 #. Menu item
 #: zim/gui/pageview.py:133
 msgid "_Clear Formatting"
-msgstr "Скинути _форматування"
+msgstr "_Limpar Formatação"
 
 #. Menu item
 #: zim/gui/pageview.py:134
 msgid "_Find..."
-msgstr "З_найти..."
+msgstr "_Procurar..."
 
 #. Menu item
 #: zim/gui/pageview.py:136
 msgid "Find Ne_xt"
-msgstr "Зна_йти далі"
+msgstr "Procurar Pró_ximo"
 
 #. Menu item
 #: zim/gui/pageview.py:138
 msgid "Find Pre_vious"
-msgstr "Знайти _попередній"
+msgstr "Procurar An_terior"
 
 #. Menu item
 #: zim/gui/pageview.py:140
 msgid "_Replace..."
-msgstr "_Замінити..."
+msgstr "_Substituir..."
 
 #. Menu item
 #: zim/gui/pageview.py:141
 msgid "Word Count..."
-msgstr "Кількість слів..."
+msgstr "Contagem de Palavras..."
 
 #. Menu item
 #: zim/gui/pageview.py:142
 msgid "_Zoom In"
-msgstr ""
+msgstr "_Ampliar"
 
 #. Menu item
 #: zim/gui/pageview.py:144
 msgid "Zoom _Out"
-msgstr ""
+msgstr "_Diminuir"
 
 #. Menu item to reset zoom
 #: zim/gui/pageview.py:145
 msgid "_Normal Size"
-msgstr ""
+msgstr "Tamanho _Normal"
 
 #. Menu title
 #: zim/gui/pageview.py:148
 msgid "New _Attachment"
-msgstr ""
+msgstr "Novo _Anexo"
 
 #. Menu item in "Insert > New File Attachment" submenu
 #: zim/gui/pageview.py:151
 msgid "File _Templates..."
-msgstr ""
+msgstr "Modelos de _Arquivo"
 
 #. Menu item
 #: zim/gui/pageview.py:156
 msgid "Heading _1"
-msgstr "Заголовок _1"
+msgstr "Cabeçalho _1"
 
 #. Menu item
 #: zim/gui/pageview.py:156
 msgid "Heading 1"
-msgstr "Заголовок 1"
+msgstr "Cabeçalho 1"
 
 #. Menu item
 #: zim/gui/pageview.py:157
 msgid "Heading _2"
-msgstr "Заголовок _2"
+msgstr "Cabeçalho _2"
 
 #. Menu item
 #: zim/gui/pageview.py:157
 msgid "Heading 2"
-msgstr "Заголовок 2"
+msgstr "Cabeçalho 2"
 
 #. Menu item
 #: zim/gui/pageview.py:158
 msgid "Heading _3"
-msgstr "Заголовок _3"
+msgstr "Cabeçalho _3"
 
 #. Menu item
 #: zim/gui/pageview.py:158
 msgid "Heading 3"
-msgstr "Заголовок 3"
+msgstr "Cabeçalho 3"
 
 #. Menu item
 #: zim/gui/pageview.py:159
 msgid "Heading _4"
-msgstr "Заголовок _4"
+msgstr "Cabeçalho _4"
 
 #. Menu item
 #: zim/gui/pageview.py:159
 msgid "Heading 4"
-msgstr "Заголовок 4"
+msgstr "Cabeçalho 4"
 
 #. Menu item
 #: zim/gui/pageview.py:160
 msgid "Heading _5"
-msgstr "Заголовок _5"
+msgstr "Cabeçalho _5"
 
 #. Menu item
 #: zim/gui/pageview.py:160
 msgid "Heading 5"
-msgstr "Заголовок 5"
+msgstr "Cabeçalho 5"
 
 #. Menu item
 #: zim/gui/pageview.py:161 zim/gui/pageview.py:172
 msgid "_Strong"
-msgstr "_Жирний"
+msgstr "_Negrito"
 
 #. Menu item
 #: zim/gui/pageview.py:161 zim/gui/pageview.py:172
 msgid "Strong"
-msgstr "Жирний"
+msgstr "Negrito"
 
 #. Menu item
 #: zim/gui/pageview.py:162 zim/gui/pageview.py:173
 msgid "_Emphasis"
-msgstr "_Курсив"
+msgstr "_Ênfase"
 
 #. Menu item
 #: zim/gui/pageview.py:162 zim/gui/pageview.py:173
 msgid "Emphasis"
-msgstr "Курсив"
+msgstr "Ênfase"
 
 #. Menu item
 #: zim/gui/pageview.py:163 zim/gui/pageview.py:174
 msgid "_Mark"
-msgstr "_Підкреслений"
+msgstr "_Marcar"
 
 #. Menu item
 #: zim/gui/pageview.py:163 zim/gui/pageview.py:174
 msgid "Mark"
-msgstr "Підкреслений"
+msgstr "Marcar"
 
 #. Menu item
 #: zim/gui/pageview.py:164 zim/gui/pageview.py:175
 msgid "_Strike"
-msgstr "_Викреслений"
+msgstr "_Riscar"
 
 #. Menu item
 #: zim/gui/pageview.py:164 zim/gui/pageview.py:175
 msgid "Strike"
-msgstr "Викреслений"
+msgstr "Sobrescrito"
 
 #. Menu item
 #: zim/gui/pageview.py:165
 msgid "_Subscript"
-msgstr "_Нижній індекс"
+msgstr "_Subescrito"
 
 #. Menu item
 #: zim/gui/pageview.py:166
 msgid "_Superscript"
-msgstr "_Верхній індекс"
+msgstr "_Sobrescrito"
 
 #. Menu item
 #: zim/gui/pageview.py:167
 msgid "_Verbatim"
-msgstr "_Стенографічний"
+msgstr "_Verbatim"
 
 #. Menu item
 #: zim/gui/pageview.py:167
 msgid "Verbatim"
-msgstr "Дослівний режим"
+msgstr "Sem formatação"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:182
@@ -1480,28 +1500,28 @@ msgid ""
 "Use the <Enter> key to follow links\n"
 "(If disabled you can still use <Alt><Enter>)"
 msgstr ""
-"Натискайте <Enter> для переходу за посиланнями\n"
-"(якщо зайнято, використовуйте <Alt><Enter>)"
+"Usar a tecla <Enter> para seguir ligações\n"
+"(Se desativado você pode usar <Alt><Enter>)"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:185
 msgid "Show the cursor also for pages that can not be edited"
-msgstr "Показувати курсор на сторінках тільки для читання"
+msgstr "Mostrar o cursor também em páginas que não podem ser editadas"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:188
 msgid "Automatically turn \"CamelCase\" words into links"
-msgstr "Автоматично перетворювати „CamelCase“ слова в посилання"
+msgstr "Automaticamente tornar palavras \"CamelCase\" em ligações"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:191
 msgid "Automatically turn file paths into links"
-msgstr "Автоматично перетворювати адреси файлів в посилання"
+msgstr "Automaticamente tornar caminhos de arquivo em ligações"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:194
 msgid "Automatically select the current word when you apply formatting"
-msgstr "Автоматично виділяти поточне слово при застосуванні форматування"
+msgstr "Automaticamente selecionar a palavra atual quando aplicar formatação"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:197
@@ -1509,92 +1529,95 @@ msgid ""
 "Unindent on <BackSpace>\n"
 "(If disabled you can still use <Shift><Tab>)"
 msgstr ""
-"Клавіша <BackSpace> зменшує відступи за табуляцією\n"
-"(якщо вимкнено, використовуйте <Shift><Tab>)"
+"Remover recuo ao usar a tecla <BackSpace>\n"
+"(Se desativado você pode usar <Shift><Tab>)"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:200
 msgid "Repeated clicking a checkbox cyles through the checkbox states"
 msgstr ""
+"Clicar repetidamente numa caixa de seleção rotaciona entre os possíveis "
+"estados de seleção"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:203
 msgid "(Un-)Indenting a list item also change any sub-items"
-msgstr "Зміна відступу елемента списку змінює відступи піделементів"
+msgstr ""
+"Remover o recuo de um item em lista também altera todo e qualquer sub-item"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:206
 msgid "Checking a checkbox also change any sub-items"
-msgstr "Встановлення прапорця змінює стан прапорців для всіх нащадків"
+msgstr "Marcar uma caixa de seleção altera todos seus sub-items"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:209
 msgid "Reformat wiki markup on the fly"
-msgstr "Форматування вікі-розмітки «на льоту»"
+msgstr "Reformatar a marcação wiki em tempo real"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:212
 msgid "Default format for copying text to the clipboard"
-msgstr ""
+msgstr "Formate padrão para cópia de texto da área de transferência"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:215
 msgid "Folder with templates for attachment files"
-msgstr ""
+msgstr "Pasta com modelos para anexos"
 
 #. error when unknown interwiki link is clicked
 #: zim/gui/pageview.py:4970
 #, python-format
 msgid "No such wiki defined: %s"
-msgstr ""
+msgstr "Nenhuma wiki desse tipo definida: %s"
 
 #. menu item for context menu of editor
 #: zim/gui/pageview.py:5023
 msgid "Copy _As..."
-msgstr ""
+msgstr "Copiar _Como..."
 
 #. Context menu item for pageview to move selected text to new/other page
 #: zim/gui/pageview.py:5030
 msgid "Move Selected Text..."
-msgstr ""
+msgstr "Mover Texto Selecionado..."
 
 #. menu item in context menu for image
 #: zim/gui/pageview.py:5088
 msgid "_Edit Properties"
-msgstr ""
+msgstr "_Editar Propriedades"
 
 #. menu item in context menu
 #: zim/gui/pageview.py:5090
 msgid "_Edit Link"
-msgstr "_Редагувати посилання"
+msgstr "_Editar Link"
 
 #. context menu item
 #: zim/gui/pageview.py:5105 zim/gui/pageview.py:5112
 msgid "Copy _Link"
-msgstr "_Копіювати посилання"
+msgstr "Copiar _Link"
 
 #. context menu item
 #: zim/gui/pageview.py:5109
 msgid "Copy Email Address"
-msgstr "Копіювати адресу електронної пошти"
+msgstr "Copiar endereço de Email"
 
 #. menu item for sub menu with applications |
 #. menu item
 #: zim/gui/pageview.py:5129 zim/gui/pageview.py:5140
 #: zim/plugins/attachmentbrowser.py:500
 msgid "Open With..."
-msgstr "Відкрити у програмі..."
+msgstr "Abrir Com..."
 
 #. menu item to open a link or file |
 #. menu item to open file or folder
 #: zim/gui/pageview.py:5160 zim/plugins/attachmentbrowser.py:506
 msgid "_Open"
-msgstr "_Відкрити"
+msgstr "_Abrir"
 
 #. message when no file templates are found in ~/Templates
 #: zim/gui/pageview.py:5399
 msgid "No templates installed"
-msgstr ""
+msgstr "Nenhum modelo instalado"
 
 #. Text in a question dialog for creating a folder, %s is the folder path
 #: zim/gui/pageview.py:5456
@@ -1605,307 +1628,311 @@ msgid ""
 "does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
+"A pasta\n"
+"%s\n"
+"não existe.\n"
+"Deseja criá-la agora?"
 
 #. Dialog title
 #: zim/gui/pageview.py:5662
 msgid "Insert Date and Time"
-msgstr "Вставити дату й час"
+msgstr "Inserir Data e Hora"
 
 #. expander label in "insert date" dialog
 #: zim/gui/pageview.py:5691
 msgid "_Calendar"
-msgstr ""
+msgstr "_Calendário"
 
 #. check box in InsertDate dialog
 #: zim/gui/pageview.py:5705
 msgid "_Link to date"
-msgstr "Посилання _на дату"
+msgstr "_Link para data"
 
 #. Dialog title
 #: zim/gui/pageview.py:5794
 msgid "Insert Image"
-msgstr "Вставити зображення"
+msgstr "Inserir Imagem"
 
 #. checkbox in the "Insert Image" dialog
 #: zim/gui/pageview.py:5801
 msgid "Attach image first"
-msgstr "Спочатку прикріпити зображення"
+msgstr "Anexar imagem primeiro"
 
 #. Error message when trying to insert a not supported file as image
 #: zim/gui/pageview.py:5816
 #, python-format
 msgid "File type not supported: %s"
-msgstr ""
+msgstr "Tipo de arquivo não suportado: %s"
 
 #. Dialog title
 #: zim/gui/pageview.py:5840
 msgid "Edit Image"
-msgstr "Редагувати зображення"
+msgstr "Editar Imagem"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview.py:5859
 msgid "Location"
-msgstr "Адреса"
+msgstr "Localização"
 
 #. Input in 'edit image' dialog |
 #. Input in 'insert link' dialog
 #: zim/gui/pageview.py:5860 zim/gui/pageview.py:5994
 msgid "Link to"
-msgstr "Посилання на"
+msgstr "Ligar à"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview.py:5861
 msgid "Width"
-msgstr "Ширина"
+msgstr "Largura"
 
 #. Input in 'edit image' dialog
 #: zim/gui/pageview.py:5862
 msgid "Height"
-msgstr "Висота"
+msgstr "Alturar"
 
 #. Button in 'edit image' dialog
 #: zim/gui/pageview.py:5870
 msgid "_Reset Size"
-msgstr "С_кинути розмір"
+msgstr "_Restaurar Tamanho"
 
 #. Dialog title
 #: zim/gui/pageview.py:5965
 msgid "Insert Text From File"
-msgstr "Вставити текст із файлу"
+msgstr "Inserir Texto à Partir de um Arquivo"
 
 #. Dialog title
 #: zim/gui/pageview.py:5987
 msgid "Edit Link"
-msgstr "Редагувати посилання"
+msgstr "Editar Link"
 
 #. Dialog button
 #: zim/gui/pageview.py:5991
 msgid "_Link"
-msgstr "_Посилання"
+msgstr "_Link"
 
 #. Input in 'insert link' dialog
 #: zim/gui/pageview.py:5995
 msgid "Text"
-msgstr "Текст"
+msgstr "Texto"
 
 #. button in find bar and find & replace dialog
 #: zim/gui/pageview.py:6094
 msgid "_Next"
-msgstr "Нас_тупний"
+msgstr "_Próximo"
 
 #. button in find bar and find & replace dialog
 #: zim/gui/pageview.py:6100
 msgid "_Previous"
-msgstr "П_опередій"
+msgstr "_Anterior"
 
 #. checkbox option in find bar and find & replace dialog
 #: zim/gui/pageview.py:6106
 msgid "Match _case"
-msgstr "В_раховувати регістр"
+msgstr "Diferenciar maiúsculas e _minúsculas"
 
 #. checkbox option in find bar and find & replace dialog
 #: zim/gui/pageview.py:6111
 msgid "Whole _word"
-msgstr "Збігається _ціле слово"
+msgstr "Toda a _palavra"
 
 #. checkbox option in find bar and find & replace dialog
 #: zim/gui/pageview.py:6116
 msgid "_Regular expression"
-msgstr "_Регулярний вираз"
+msgstr "Expressão _regular"
 
 #. checkbox option in find bar and find & replace dialog
 #: zim/gui/pageview.py:6121
 msgid "_Highlight"
-msgstr "_Виділення"
+msgstr "_Destacar"
 
 #. label for input in find bar on bottom of page
 #: zim/gui/pageview.py:6207
 msgid "Find"
-msgstr "Знайти"
+msgstr "Procurar"
 
 #. Options button
 #: zim/gui/pageview.py:6237
 msgid "Options"
-msgstr "Параметри"
+msgstr "Opções"
 
 #. Dialog title
 #: zim/gui/pageview.py:6282
 msgid "Find and Replace"
-msgstr "Знайти та замінити"
+msgstr "Encontrar e Substituir"
 
 #. input label in find & replace dialog
 #: zim/gui/pageview.py:6292
 msgid "Find what"
-msgstr "Знайти що"
+msgstr "Localizar"
 
 #. input label in find & replace dialog
 #: zim/gui/pageview.py:6302
 msgid "Replace with"
-msgstr "Замінити на"
+msgstr "Substituir por"
 
 #. Button in search & replace dialog
 #: zim/gui/pageview.py:6314
 msgid "_Replace"
-msgstr "За_мінити"
+msgstr "_Substituir"
 
 #. Button in search & replace dialog
 #: zim/gui/pageview.py:6319
 msgid "Replace _All"
-msgstr "Замінити _все"
+msgstr "Substituir _Tudo"
 
 #. Dialog title
 #: zim/gui/pageview.py:6346
 msgid "Word Count"
-msgstr "Статистика"
+msgstr "Contar Palavras"
 
 #. label in word count dialog
 #: zim/gui/pageview.py:6384
 msgid "Paragraph"
-msgstr "Абзац"
+msgstr "Parágrafo"
 
 #. label in word count dialog
 #: zim/gui/pageview.py:6386
 msgid "Words"
-msgstr "Слів"
+msgstr "Palavras"
 
 #. label in word count dialog
 #: zim/gui/pageview.py:6387
 msgid "Lines"
-msgstr "Рядків"
+msgstr "Linhas"
 
 #. label in word count dialog
 #: zim/gui/pageview.py:6388
 msgid "Characters"
-msgstr "Символи"
+msgstr "Caractéres"
 
 #. Dialog title
 #: zim/gui/pageview.py:6421
 msgid "Move Text to Other Page"
-msgstr ""
+msgstr "Mover Texto à Outra Página"
 
 #. Button label
 #: zim/gui/pageview.py:6422
 msgid "_Move"
-msgstr ""
+msgstr "_Mover"
 
 #. Input in 'move text' dialog
 #: zim/gui/pageview.py:6437
 msgid "Move text to"
-msgstr ""
+msgstr "Mover texto para"
 
 #. Input in 'move text' dialog
 #: zim/gui/pageview.py:6438
 msgid "Leave link to new page"
-msgstr ""
+msgstr "Deixar ligação para nova página"
 
 #. Input in 'move text' dialog
 #: zim/gui/pageview.py:6439
 msgid "Open new page"
-msgstr ""
+msgstr "Abrir nova página"
 
 #. Tab in preferences dialog
 #: zim/gui/preferencesdialog.py:19
 msgid "Interface"
-msgstr "Інтерфейс"
+msgstr "Interface"
 
 #. Tab in preferences dialog
 #: zim/gui/preferencesdialog.py:20
 msgid "Editing"
-msgstr "Редагування"
+msgstr "Editando"
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:30
 msgid "Preferences"
-msgstr "Параметри"
+msgstr "Preferências"
 
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:72
 msgid "Plugins"
-msgstr "Модулі"
+msgstr "Plugins"
 
 #. option in preferences dialog
 #: zim/gui/preferencesdialog.py:78
 msgid "Use a custom font"
-msgstr "Використовувати власний шрифт"
+msgstr "Usar fonte personalizada"
 
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:170
 msgid "_More"
-msgstr "_Більше"
+msgstr "_Mais"
 
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:175
 msgid "C_onfigure"
-msgstr "_Налаштувати"
+msgstr "C_onfigurar"
 
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/preferencesdialog.py:204
 msgid "Dependencies"
-msgstr "Залежності"
+msgstr "Dependências"
 
 #. label in plugin info in preferences dialog
 #: zim/gui/preferencesdialog.py:211
 msgid "No dependencies"
-msgstr "Немає залежностей"
+msgstr "Sem dependências"
 
 #. dependency is OK
 #: zim/gui/preferencesdialog.py:218
 msgid "OK"
-msgstr "Гаразд"
+msgstr "OK"
 
 #. dependency failed
 #: zim/gui/preferencesdialog.py:222 zim/gui/preferencesdialog.py:226
 msgid "Failed"
-msgstr "Збій"
+msgstr "Falhou"
 
 #. optional dependency
 #: zim/gui/preferencesdialog.py:227
 msgid "Optional"
-msgstr ""
+msgstr "Opcional"
 
 #. Heading in plugins tab of preferences dialog |
 #. Column header versions dialog
 #: zim/gui/preferencesdialog.py:231
 #: zim/plugins/versioncontrol/__init__.py:1104
 msgid "Author"
-msgstr "Автор"
+msgstr "Autor(a)"
 
 #. Column in plugin tab
 #: zim/gui/preferencesdialog.py:301
 msgid "Enabled"
-msgstr "Увімкнено"
+msgstr "Habilitar"
 
 #. Column in plugin tab
 #: zim/gui/preferencesdialog.py:304
 msgid "Plugin"
-msgstr "Модуль"
+msgstr "Plugin"
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:311
 msgid "Configure Plugin"
-msgstr "Налаштувати модуль"
+msgstr "Configurar Plugin"
 
 #. Heading for 'configure plugin' dialog - %s is the plugin name
 #: zim/gui/preferencesdialog.py:320
 #, python-format
 msgid "Options for plugin %s"
-msgstr "Параметри модуля %s"
+msgstr "Opções para o plug-in %s"
 
 #. Dialog title
 #: zim/gui/propertiesdialog.py:11
 msgid "Properties"
-msgstr "Властивості"
+msgstr "Propriedades"
 
 #. Section in notebook dialog
 #: zim/gui/propertiesdialog.py:13
 msgid "Notebook Properties"
-msgstr "Властивості зошита"
+msgstr "Propriedades do caderno"
 
 #. Dialog title |
 #. input label
 #: zim/gui/searchdialog.py:24 zim/gui/searchdialog.py:29
 msgid "Search"
-msgstr "Знайти"
+msgstr "Procurar"
 
 #. help text for the search dialog
 #: zim/gui/searchdialog.py:47
@@ -1913,129 +1940,129 @@ msgid ""
 "For advanced search you can use operators like\n"
 "AND, OR and NOT. See the help page for more details."
 msgstr ""
-"Для розширеного пошуку використовуйте знаки операції\n"
-"AND, OR або NOT. Детальніше на довідковій сторінці."
+"Para buscas avançadas você pode usar operadores como\n"
+"AND, OR e NOT. Veja a página de ajuda para mais detalhes."
 
 #. checkbox option in search dialog
 #: zim/gui/searchdialog.py:56
 msgid "Limit search to current namespace"
-msgstr "Обмежити пошук чинним простором назв"
+msgstr "Limitar a busca ao espaço de nomes atual"
 
 #. Column header search dialog
 #: zim/gui/searchdialog.py:149
 msgid "Score"
-msgstr "Кількість"
+msgstr "Ocorrência(s)"
 
 #. Status in web server gui
 #: zim/gui/server.py:70
 msgid "Server not started"
-msgstr "Сервер не запущено"
+msgstr "Servidor não iniciado"
 
 #. Field in web server gui for HTTP port (e.g. port 80)
 #: zim/gui/server.py:101
 msgid "Port"
-msgstr "Порт"
+msgstr "Porta"
 
 #. Status in web server gui
 #: zim/gui/server.py:124
 msgid "Server started"
-msgstr "Сервер запущено"
+msgstr "Servidor iniciado"
 
 #. Status in web server gui
 #: zim/gui/server.py:133
 msgid "Server stopped"
-msgstr "Сервер зупинено"
+msgstr "Servidor parou"
 
 #. Dialog title |
 #. Section in dialog
 #: zim/gui/templateeditordialog.py:21 zim/gui/templateeditordialog.py:26
 msgid "Templates"
-msgstr ""
+msgstr "Modelos"
 
 #. Dialog title
 #: zim/gui/templateeditordialog.py:139
 msgid "Copy Template"
-msgstr ""
+msgstr "Copiar Modelo"
 
 #. dialog title
 #: zim/gui/widgets.py:560 zim/gui/widgets.py:1673
 msgid "Select File"
-msgstr "Вибрати файл"
+msgstr "Selecione o Arquivo"
 
 #. menu item in context menu
 #: zim/gui/widgets.py:698
 msgid "Expand _All"
-msgstr ""
+msgstr "Expandir _Tudo"
 
 #. menu item in context menu
 #: zim/gui/widgets.py:700
 msgid "_Collapse All"
-msgstr ""
+msgstr "_Contrair Tudo"
 
 #. tooltip for the inline icon to clear a text entry widget
 #: zim/gui/widgets.py:1504
 msgid "Clear"
-msgstr ""
+msgstr "Limpar"
 
 #. dialog title
 #: zim/gui/widgets.py:1669
 msgid "Select Folder"
-msgstr "Вибрати теку"
+msgstr "Selecione a Pasta"
 
 #. dialog title
 #: zim/gui/widgets.py:1671
 msgid "Select Image"
-msgstr ""
+msgstr "Selecionar Imagem"
 
 #. default text for empty namespace selection
 #: zim/gui/widgets.py:1795
 msgid "<Top>"
-msgstr ""
+msgstr "<Top>"
 
 #. Option for placement of plugin widgets
 #: zim/gui/widgets.py:2063
 msgid "Left Side Pane"
-msgstr ""
+msgstr "Painel Lateral Esquerdo"
 
 #. Option for placement of plugin widgets
 #: zim/gui/widgets.py:2064
 msgid "Right Side Pane"
-msgstr ""
+msgstr "Painel Lateral Direito"
 
 #. Option for placement of plugin widgets
 #: zim/gui/widgets.py:2065
 msgid "Bottom Pane"
-msgstr ""
+msgstr "Painel Inferior"
 
 #. Option for placement of plugin widgets
 #: zim/gui/widgets.py:2066
 msgid "Top Pane"
-msgstr ""
+msgstr "Painel Superior"
 
 #. Option for placement of plugin widgets
 #: zim/gui/widgets.py:2070
 msgid "Top Left"
-msgstr ""
+msgstr "Superior Esquerdo"
 
 #. Option for placement of plugin widgets
 #: zim/gui/widgets.py:2071
 msgid "Bottom Left"
-msgstr ""
+msgstr "Inferior Esquerdo"
 
 #. Option for placement of plugin widgets
 #: zim/gui/widgets.py:2072
 msgid "Top Right"
-msgstr ""
+msgstr "Superior Direito"
 
 #. Option for placement of plugin widgets
 #: zim/gui/widgets.py:2073
 msgid "Bottom Right"
-msgstr ""
+msgstr "Inferior Direito"
 
 #. generic error dialog
 #: zim/gui/widgets.py:2999
 msgid "Looks like you found a bug"
-msgstr "Схоже, ви знайшли помилку"
+msgstr "Parece que você encontrou um erro"
 
 #. generic error dialog text
 #: zim/gui/widgets.py:3002
@@ -2043,21 +2070,23 @@ msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
 msgstr ""
+"Ao reportar um erro, por favor,\n"
+"inclua a informação na caixa de texto abaixo."
 
 #. Filter in open file dialog, shows all files (*)
 #: zim/gui/widgets.py:3306
 msgid "All Files"
-msgstr "Всі файли"
+msgstr "Todos os Arquivos"
 
 #. Filter in open file dialog, shows image files only
 #: zim/gui/widgets.py:3333
 msgid "Images"
-msgstr "Зображення"
+msgstr "Imagens"
 
 #. Dialog title
 #: zim/gui/widgets.py:3976
 msgid "File Exists"
-msgstr ""
+msgstr "Arquivo Já Existe"
 
 #. Dialog text in 'new filename' dialog
 #: zim/gui/widgets.py:3977
@@ -2066,38 +2095,40 @@ msgid ""
 "A file with the name <b>\"%s\"</b> already exists.\n"
 "You can use another name or overwrite the existing file."
 msgstr ""
+"O arquivo com o nome <b>\"%s\"</b> já existe.\n"
+"Você pode usar outro nome ou sobrescrever o arquivo existente."
 
 #. Button label
 #: zim/gui/widgets.py:3995
 msgid "_Browse"
-msgstr ""
+msgstr "_Navegar"
 
 #. Button label
 #: zim/gui/widgets.py:4000
 msgid "Overwrite"
-msgstr ""
+msgstr "Sobrescrever"
 
 #. Error verbose description
 #: zim/__init__.py:228
 msgid "Could not find the file or folder for this notebook"
-msgstr "Не можу знайти файл або теку для цього зошита"
+msgstr "Não foi possível encontrar o arquivo ou pasta para este caderno"
 
 #. Error when looking up a notebook
 #: zim/__init__.py:740
 #, python-format
 msgid "Could not find notebook: %s"
-msgstr "Не можу знайти зошит: %s"
+msgstr "Não foi possível encontrar o caderno: %s"
 
 #. error description
 #: zim/notebook.py:606
 msgid "The given page name is not valid.\n"
-msgstr "Задана назва сторінки неправильна.\n"
+msgstr "O nome dado à página não é válido.\n"
 
 #. error message
 #: zim/notebook.py:612
 #, python-format
 msgid "Invalid page name \"%s\""
-msgstr "Неправильна назва сторінки „%s“"
+msgstr "Nome de página \"%s\" inválido"
 
 #. error message
 #: zim/notebook.py:627
@@ -2105,47 +2136,49 @@ msgid ""
 "Index is still busy updating while we try to do an\n"
 "operation that needs the index.\n"
 msgstr ""
+"Índice encontra-se ocupado atualizando enquanto\n"
+"foi realizada uma operação que o necessita.\n"
 
 #. error message for read-only pages
 #: zim/notebook.py:645
 #, python-format
 msgid "Can not modify page: %s"
-msgstr "Неможливо змінити сторінку: %s"
+msgstr "Não foi possível modificar a página: %s"
 
 #. label for properties dialog
 #: zim/notebook.py:719
 msgid "Interwiki Keyword"
-msgstr ""
+msgstr "Palavra Chave Interwiki"
 
 #. label for properties dialog
 #: zim/notebook.py:720
 msgid "Home Page"
-msgstr "Головна сторінка"
+msgstr "Página Inicial"
 
 #. label for properties dialog
 #: zim/notebook.py:722
 msgid "Document Root"
-msgstr "Коренева тека документа"
+msgstr "Documento Raiz"
 
 #. label for properties dialog
 #: zim/notebook.py:724
 msgid "Profile"
-msgstr ""
+msgstr "Perfil"
 
 #. label for properties dialog
 #: zim/notebook.py:725
 msgid "Shared Notebook"
-msgstr "Спільний зошит"
+msgstr "Caderno Compartilhado"
 
 #. menu item
 #: zim/plugins/arithmetic.py:24
 msgid "_Arithmetic"
-msgstr ""
+msgstr "_Aritmética"
 
 #. plugin name
 #: zim/plugins/arithmetic.py:31
 msgid "Arithmetic"
-msgstr ""
+msgstr "Aritmética"
 
 #. plugin description
 #: zim/plugins/arithmetic.py:32
@@ -2156,21 +2189,26 @@ msgid ""
 "This plugin is based on the arithmetic module from "
 "http://pp.com.mx/python/arithmetic.\n"
 msgstr ""
+"Esse plugin permite embutir cálculos aritméticos no zim. Você pode usar "
+"variáveis, %, x ou * para multiplicação.\n"
+"\n"
+"Esse plugin é baseado no módulo de aritmética de "
+"http://pp.com.mx/python/arithmetic.\n"
 
 #. menu item
 #: zim/plugins/attachmentbrowser.py:78
 msgid "AttachmentBrowser"
-msgstr "AttachmentBrowser"
+msgstr "NavegadorDeAnexos"
 
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser.py:164
 msgid "Attachments"
-msgstr ""
+msgstr "Anexos"
 
 #. plugin name
 #: zim/plugins/attachmentbrowser.py:167
 msgid "Attachment Browser"
-msgstr "Attachment Browser"
+msgstr "Navegador de Anexos"
 
 #. plugin description
 #: zim/plugins/attachmentbrowser.py:168
@@ -2180,10 +2218,10 @@ msgid ""
 "\n"
 "This plugin is still under development.\n"
 msgstr ""
-"Цей модуль показує приєднану теку поточної сторінки\n"
-"як значок внизу панелі.\n"
+"Esse plugin mostra a pasta de anexos da página atual\n"
+"em ícones no painel inferior.\n"
 "\n"
-"Цей модуль досі в розробці.\n"
+"Esse plugin ainda está sob desenvolvimento.\n"
 
 #. option for plugin preferences |
 #. preferences option
@@ -2191,50 +2229,50 @@ msgstr ""
 #: zim/plugins/calendar.py:205 zim/plugins/tableofcontents.py:79
 #: zim/plugins/tags.py:905
 msgid "Position in the window"
-msgstr ""
+msgstr "Posição na janela"
 
 #. Label for the statusbar, %i is the number of attachments for the current page
 #: zim/plugins/attachmentbrowser.py:284
 #, python-format
 msgid "%i _Attachment"
 msgid_plural "%i _Attachments"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%i _Anexo"
+msgstr[1] "%i _Anexos"
 
 #. unspecified value for file modification time
 #: zim/plugins/attachmentbrowser.py:525
 msgid "Unknown"
-msgstr ""
+msgstr "Desconhecido(a)"
 
 #. label for file size
 #: zim/plugins/attachmentbrowser.py:535
 msgid "Size"
-msgstr ""
+msgstr "Tamanho"
 
 #. label for file modification date
 #: zim/plugins/attachmentbrowser.py:536
 msgid "Modified"
-msgstr ""
+msgstr "Modificado Em"
 
 #. popup menu action on drag-drop of a file
 #: zim/plugins/attachmentbrowser.py:570
 msgid "_Move Here"
-msgstr ""
+msgstr "_Mover Aqui"
 
 #. popup menu action on drag-drop of a file
 #: zim/plugins/attachmentbrowser.py:574
 msgid "_Copy Here"
-msgstr ""
+msgstr "_Copiar Aqui"
 
 #. popup menu action on drag-drop of a file
 #: zim/plugins/attachmentbrowser.py:579
 msgid "Cancel"
-msgstr ""
+msgstr "Cancelar"
 
 #. plugin name
 #: zim/plugins/automount.py:17
 msgid "Automount"
-msgstr ""
+msgstr "Automontar"
 
 #. plugin description
 #: zim/plugins/automount.py:18
@@ -2245,11 +2283,18 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Esse plugin permite \"montar\" automaticamente cadernos conforme for "
+"necessário.\n"
+"Pode ser usado, por exemplo, para conectar-se com unidades remotas ou para\n"
+"destravar unidades criptografadas quando zim tentar abrir um caderno "
+"específico.\n"
+"\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:20
 msgid "BackLinks Pane"
-msgstr ""
+msgstr "Painel do BackLinks"
 
 #. plugin description
 #: zim/plugins/backlinkpane.py:21
@@ -2259,27 +2304,31 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Este plugin adiciona um widget extra mostrando uma lista de páginas\n"
+"vinculadas à página atual.\n"
+"\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:65
 msgid "BackLinks"
-msgstr ""
+msgstr "Backlinks"
 
 #. menu item
 #: zim/plugins/calendar.py:52
 msgid "To_day"
-msgstr "С_ьогодні"
+msgstr "Ho_je"
 
 #. menu item
 #: zim/plugins/calendar.py:53
 msgid "Calen_dar"
-msgstr "_Календар"
+msgstr "Calen_dário"
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/calendar.py:181 zim/plugins/calendar.py:497
 msgid "Calendar"
-msgstr "Календар"
+msgstr "Calendário"
 
 #. plugin description
 #: zim/plugins/calendar.py:182
@@ -2290,77 +2339,77 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Цей модуль перетворює один простір імен до календаря,\n"
-"що містить по одній сторінці на кожен день. Додається діалог\n"
-"з оглядом цього спеціального простору імен за місяць.\n"
+"Esse plugin torna um espaço de nomes em um calendário,\n"
+"mantendo uma página por dia. Um diálogo é adicionado com\n"
+"uma visualização por mês para esse espaço de nome específico.\n"
 "\n"
-"Це базовий модуль, що поставляється в складі zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. option value
 #: zim/plugins/calendar.py:194
 msgid "Day"
-msgstr ""
+msgstr "Dia"
 
 #. option value
 #: zim/plugins/calendar.py:195
 msgid "Week"
-msgstr ""
+msgstr "Semana"
 
 #. option value
 #: zim/plugins/calendar.py:196
 msgid "Month"
-msgstr ""
+msgstr "Mês"
 
 #. option value
 #: zim/plugins/calendar.py:197
 msgid "Year"
-msgstr ""
+msgstr "Ano"
 
 #. calendar day
 #: zim/plugins/calendar.py:199
 msgid "Sunday"
-msgstr ""
+msgstr "Domingo"
 
 #. calendar day
 #: zim/plugins/calendar.py:200
 msgid "Monday"
-msgstr ""
+msgstr "Segunda-feira"
 
 #. preferences option
 #: zim/plugins/calendar.py:204
 msgid "Show calendar in sidepane instead of as dialog"
-msgstr "Показати календар в бічній панелі замість діалогу"
+msgstr "Mostrar calendário no painel lateral e não como uma caixa diálogo"
 
 #. preferences option, values will be "Day", "Month", ...
 #: zim/plugins/calendar.py:206
 msgid "Use a page for each"
-msgstr ""
+msgstr "Use uma página para cada"
 
 #. strftime format for current date label
 #: zim/plugins/calendar.py:457
 msgid "%A %d %B %Y"
-msgstr "%A %d %B %Y"
+msgstr "%A, %d de %B de %Y"
 
 #. button label
 #: zim/plugins/calendar.py:505
 msgid "_Today"
-msgstr "_Сьогодні"
+msgstr "_Hoje"
 
 #. menu item for insert diagram plugin
 #: zim/plugins/diagrameditor.py:31
 msgid "Dia_gram..."
-msgstr "Діа_граму..."
+msgstr "Dia_grama"
 
 #. menu item for insert diagram plugin
 #: zim/plugins/diagrameditor.py:31
 msgid "Insert diagram"
-msgstr "Вставити діаграму"
+msgstr "Inserir diagrama"
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/diagrameditor.py:39 zim/plugins/diagrameditor.py:83
 msgid "Insert Diagram"
-msgstr "Вставка діаграми"
+msgstr "Inserir Diagrama"
 
 #. plugin description
 #: zim/plugins/diagrameditor.py:40
@@ -2369,30 +2418,30 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Цей модуль надає редактор діаграм для zim базований на GraphViz.\n"
+"Esse plugin fornece um editor de diagramas para o zim baseado no GraphViz.\n"
 "\n"
-"Це базовий модуль, що поставляється в складі zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. menu item in context menu
 #: zim/plugins/diagrameditor.py:72
 msgid "_Edit Diagram"
-msgstr "_Редагувати діаграму"
+msgstr "_Editar Diagrama"
 
 #. menu item for insert diagram plugin
 #: zim/plugins/ditaaeditor.py:41
 msgid "Ditaa..."
-msgstr ""
+msgstr "Ditaa..."
 
 #. menu item for insert diagram plugin
 #: zim/plugins/ditaaeditor.py:41
 msgid "Insert ditaa"
-msgstr ""
+msgstr "Inserir ditaa"
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/ditaaeditor.py:49 zim/plugins/ditaaeditor.py:93
 msgid "Insert Ditaa"
-msgstr ""
+msgstr "Inserir Ditaa"
 
 #. plugin description
 #: zim/plugins/ditaaeditor.py:50
@@ -2401,27 +2450,30 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Esse plugin fornece um editor de diagramas para o zim baseado no Ditaa.\n"
+"\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. menu item in context menu
 #: zim/plugins/ditaaeditor.py:82
 msgid "_Edit Ditaa"
-msgstr ""
+msgstr "_Editar Ditaa"
 
 #. menu item for insert equation plugin
 #: zim/plugins/equationeditor.py:34
 msgid "E_quation..."
-msgstr "Ф_ормулу..."
+msgstr "E_quação"
 
 #. menu item for insert equation plugin
 #: zim/plugins/equationeditor.py:34
 msgid "Insert equation"
-msgstr "Вставити формулу"
+msgstr "Inserir equação"
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/equationeditor.py:42 zim/plugins/equationeditor.py:88
 msgid "Insert Equation"
-msgstr "Вставка формул"
+msgstr "Inserir Equação"
 
 #. plugin description
 #: zim/plugins/equationeditor.py:43
@@ -2430,39 +2482,40 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Цей модуль надає редактор рівнянь для zim базований на latex.\n"
+"Esse plugin fornece um editor de equações para o zim baseado no latex.\n"
 "\n"
-"Це базовий модуль, що поставляється в складі zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. menu item in context menu
 #: zim/plugins/equationeditor.py:77
 msgid "_Edit Equation"
-msgstr "Редагувати _формулу"
+msgstr "Edit_ar Equação"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnuplot_ploteditor.py:42
 msgid "Gnuplot..."
-msgstr ""
+msgstr "Gnuplot..."
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:50
 msgid "Insert Gnuplot"
-msgstr ""
+msgstr "Inserir Gnuplot"
 
 #. plugin description
 #: zim/plugins/gnuplot_ploteditor.py:51
 msgid "This plugin provides a plot editor for zim based on Gnuplot.\n"
 msgstr ""
+"Esse plugin fornece um editor de plotagem para o zim baseado no Gnuplot.\n"
 
 #. menu item in context menu
 #: zim/plugins/gnuplot_ploteditor.py:81
 msgid "_Edit Gnuplot"
-msgstr ""
+msgstr "_Editar Gnuplot"
 
 #. dialog title
 #: zim/plugins/gnuplot_ploteditor.py:92
 msgid "Gnuplot"
-msgstr ""
+msgstr "Gnuplot"
 
 #. menu item for insert plot plugin
 #: zim/plugins/gnu_r_ploteditor.py:45
@@ -2472,27 +2525,28 @@ msgstr "GNU _R Plot..."
 #. plugin name
 #: zim/plugins/gnu_r_ploteditor.py:53
 msgid "Insert GNU R Plot"
-msgstr "Insert GNU R Plot"
+msgstr "Inserir Plot do GNU R"
 
 #. plugin description
 #: zim/plugins/gnu_r_ploteditor.py:54
 msgid "This plugin provides a plot editor for zim based on GNU R.\n"
-msgstr "Цей модуль надає графічний редактор для ZIM, базований на GNU R.\n"
+msgstr ""
+"Esse plugin fornece um editor de plotagem para o zim baseado no GNU R.\n"
 
 #. menu item in context menu
 #: zim/plugins/gnu_r_ploteditor.py:84
 msgid "_Edit GNU R Plot"
-msgstr "_Редагувати GNU R Plot"
+msgstr "_Editar Plot do GNU R"
 
 #. dialog title
 #: zim/plugins/gnu_r_ploteditor.py:95
 msgid "GNU R Plot"
-msgstr "GNU R Plot"
+msgstr "Plot do GNU R"
 
 #. menu item
 #: zim/plugins/inlinecalculator.py:38
 msgid "Evaluate _Math"
-msgstr "Обчислення _мат. виразів"
+msgstr "Avaliar _Matemática"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:207
@@ -2500,13 +2554,13 @@ msgid ""
 "The inline calculator plugin was not able\n"
 "to evaluate the expression at the cursor."
 msgstr ""
-"Модуль вбудованого калькулятора не\n"
-"в змозі обчислити вираз під курсором."
+"O plugin de calculadora integrada não conseguiu\n"
+"avaliar a expressão no cursor."
 
 #. plugin name
 #: zim/plugins/inlinecalculator.py:215
 msgid "Inline Calculator"
-msgstr "Вбудований калькулятор"
+msgstr "Calculadora Integrada"
 
 #. plugin description
 #: zim/plugins/inlinecalculator.py:216
@@ -2516,26 +2570,26 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Цей модуль дає змогу швидко обчислити прості\n"
-"математичні вирази в zim.\n"
+"Esse plugin permite avaliar rapidamente simples\n"
+"equações matemáticas no zim.\n"
 "\n"
-"Цей модуль є базовим і поставляється із zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. error message
 #: zim/plugins/inlinecalculator.py:335
 msgid "Could not parse expression"
-msgstr "Не вдалось проаналізувати вираз"
+msgstr "Não foi possível analisar a expressão"
 
 #. menu item
 #: zim/plugins/insertsymbol.py:30
 msgid "Sy_mbol..."
-msgstr "Си_мвол..."
+msgstr "Sí_mbolo"
 
 #. plugin name |
 #. Dialog title
 #: zim/plugins/insertsymbol.py:41 zim/plugins/insertsymbol.py:133
 msgid "Insert Symbol"
-msgstr "Вставка символу"
+msgstr "Inserir Símbolo"
 
 #. plugin description
 #: zim/plugins/insertsymbol.py:42
@@ -2545,20 +2599,20 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Цей модуль додає діалог «Вставка символу» і дає змогу\n"
-"авто-форматувати типографські символи.\n"
+"Esse plugin adiciona o diálogo \"Inserir Símbolo\" e permite\n"
+"a auto-formatação de caractéres tipográficos.\n"
 "\n"
-"Це базовий модуль, що поставляється в складі zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. menu item for insert clipboard plugin
 #: zim/plugins/linesorter.py:34
 msgid "_Sort lines"
-msgstr ""
+msgstr "_Ordenar linhas"
 
 #. plugin name
 #: zim/plugins/linesorter.py:43
 msgid "Line Sorter"
-msgstr ""
+msgstr "Ordenador de Linhas"
 
 #. plugin description
 #: zim/plugins/linesorter.py:44
@@ -2567,21 +2621,23 @@ msgid ""
 "If the list is already sorted the order will be reversed\n"
 "(A-Z to Z-A).\n"
 msgstr ""
+"Esse plugin ordena as linhas selecionadas de maneira alfabética.\n"
+"Se a lista já está ordenada, a ordem será invertida (de A-Z para Z-A).\n"
 
 #. Error message in "" dialog, %s will be replaced by application name
 #: zim/plugins/linesorter.py:67
 msgid "Please select more than one line of text, first."
-msgstr ""
+msgstr "Por favor, primeiramente, selecione mais the uma linha de texto."
 
 #. Menu item
 #: zim/plugins/linkmap/gui.py:28
 msgid "Show Link Map"
-msgstr "Показувати схему посилань"
+msgstr "Mostrar Mapa de Ligações"
 
 #. plugin name
 #: zim/plugins/linkmap/__init__.py:15
 msgid "Link Map"
-msgstr "Схема посилань"
+msgstr "Mapa de Ligações"
 
 #. plugin description
 #: zim/plugins/linkmap/__init__.py:16
@@ -2593,22 +2649,22 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Цей модуль показує діалог з графічним\n"
-"поданням структури посилань зошита.\n"
-"Його можна використовувати як «розумну»\n"
-"схему, яка показує зв’язок посилань.\n"
+"Esse plugin apresenta um diálogo gráfico\n"
+"da estrutura dos vínculos do caderno.\n"
+"Pode ser usado como um \"mind map\"\n"
+"do relacionamento das páginas.\n"
 "\n"
-"Це базовий модуль, що поставляється в складі zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:29
 msgid "_Print to Browser"
-msgstr "_Друкувати до веб-переглядача"
+msgstr "_Imprimir ao Navegador"
 
 #. plugin name
 #: zim/plugins/printtobrowser.py:36
 msgid "Print to Browser"
-msgstr "Друкувати до веб-переглядача"
+msgstr "Imprimir ao Navegador"
 
 #. plugin description
 #: zim/plugins/printtobrowser.py:37
@@ -2621,25 +2677,25 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Цей модуль реалізує обхідний спосіб друку, зважаючи\n"
-"на відсутність підтримки друку в zim, шляхом експорту\n"
-"поточної сторінки до HTML файлу і відкриває його у\n"
-"веб-переглядачі. Припускаючи, що в веб-переглядачі\n"
-"реалізована функція друку, ви подаєте ваші данні\n"
-"до принтера в два кроки.\n"
+"Esse plugin fornece um método para lidar com a falta\n"
+"de suporte de impressão no zim. Ele exporte a página atual\n"
+"em html e abre-a no navegador. Assumindo um navegador\n"
+"com suporte à impressão isso fará sua informação\n"
+"ser impressa em dois passos.\n"
 "\n"
-"Це базовий модуль, що поставляється в складі zim.\n"
+"\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. menu item
 #: zim/plugins/quicknote.py:112
 msgid "Quick Note..."
-msgstr "Швидка нотатка..."
+msgstr "Anotação Rápida..."
 
 #. plugin name
 #: zim/plugins/quicknote.py:131 zim/plugins/quicknote.py:160
 #: zim/plugins/quicknote.py:331
 msgid "Quick Note"
-msgstr "Швидка нотатка"
+msgstr "Anotação Rápida"
 
 #. plugin description
 #: zim/plugins/quicknote.py:132
@@ -2649,41 +2705,41 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Модуль додає діалог для вставки тексту або вмісту буферу \n"
-"обміну на сторінку zim.\n"
+"Esse plugin adiciona uma caixa de diálogo para colocar rapidamente\n"
+"texto ou conteúdo da área de transferência numa página do zim.\n"
 "\n"
-"Цей модуль основний, і поставляється разом з zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. checkbox in Quick Note dialog
 #: zim/plugins/quicknote.py:181
 msgid "Create a new page for each note"
-msgstr "Створювати нову сторінку для кожної нотатки"
+msgstr "Cirar uma página nova para cada anotação"
 
 #. text entry field
 #: zim/plugins/quicknote.py:182
 msgid "Title"
-msgstr "Назва"
+msgstr "Título"
 
 #. Option in quicknote dialog
 #: zim/plugins/quicknote.py:216
 msgid "Open _Page"
-msgstr ""
+msgstr "Abrir _Página"
 
 #. menu item for insert score plugin
 #: zim/plugins/scoreeditor.py:46
 msgid "S_core..."
-msgstr ""
+msgstr "P_ontuação"
 
 #. menu item for insert score plugin
 #: zim/plugins/scoreeditor.py:46
 msgid "Insert score"
-msgstr ""
+msgstr "Inserir pontuação"
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/scoreeditor.py:61 zim/plugins/scoreeditor.py:115
 msgid "Insert Score"
-msgstr ""
+msgstr "Inserir Pontuação"
 
 #. plugin description
 #: zim/plugins/scoreeditor.py:62
@@ -2692,37 +2748,41 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Esse plugin proporciona um editor de pontuação para o zim baseado no GNU "
+"Lilypond.\n"
+"\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:73
 msgid "GNU Lilypond version"
-msgstr ""
+msgstr "Versão do GNU Lilypond"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:74
 msgid "Common include header"
-msgstr ""
+msgstr "Inclusão de cabeçalho partilhável"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:75
 msgid "Common include footer"
-msgstr ""
+msgstr "Inclusão de rodapé partilhável"
 
 #. menu item in context menu
 #: zim/plugins/scoreeditor.py:104
 msgid "_Edit Score"
-msgstr ""
+msgstr "_Editar Pontuação"
 
 #. menu item for insert screenshot plugin
 #: zim/plugins/screenshot.py:27
 msgid "_Screenshot..."
-msgstr "_Знімок екрана..."
+msgstr "_Captura de Tela..."
 
 #. plugin name |
 #. dialog title
 #: zim/plugins/screenshot.py:41 zim/plugins/screenshot.py:73
 msgid "Insert Screenshot"
-msgstr "Вставка знімків екрана"
+msgstr "Inserir Captura de Tela"
 
 #. plugin description
 #: zim/plugins/screenshot.py:42
@@ -2732,46 +2792,46 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Цей модуль дає змогу робити знімок екрана і вставляти\n"
-"його прямо на сторінку zim.\n"
+"Este plugin permite fazer uma captura da tela e\n"
+"inseri-lá diretamente numa página do zim.\n"
 "\n"
-"Цей модуль є базовим і поставляється із zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. option in 'insert screenshot' dialog
 #: zim/plugins/screenshot.py:75
 msgid "Capture whole screen"
-msgstr "Зробити знімок всього екрана"
+msgstr "Capturar toda a tela"
 
 #. option in 'insert screenshot' dialog
 #: zim/plugins/screenshot.py:76
 msgid "Select window or region"
-msgstr "Вибрати вікно або область екрана"
+msgstr "Selecionar janela ou área"
 
 #. input in 'insert screenshot' dialog
 #: zim/plugins/screenshot.py:82
 msgid "Delay"
-msgstr "Затримка"
+msgstr "Atraso"
 
 #. label behind timer
 #: zim/plugins/screenshot.py:87
 msgid "seconds"
-msgstr "секунд(и)"
+msgstr "segundos"
 
 #. Error message in "insert screenshot" dialog, %s will be replaced by application name
 #: zim/plugins/screenshot.py:119
 #, python-format
 msgid "Some error occurred while running \"%s\""
-msgstr "Виникли деякі помилки під час роботи \"%s\""
+msgstr "Algum error occoreu ao rodar \"%s\""
 
 #. menu item
 #: zim/plugins/spell.py:39
 msgid "Check _spelling"
-msgstr "Перевірка _орфографії"
+msgstr "Verficar _ortografia"
 
 #. plugin name
 #: zim/plugins/spell.py:45
 msgid "Spell Checker"
-msgstr "Перевірка орфографії"
+msgstr "Verificador Ortográfico"
 
 #. plugin description
 #: zim/plugins/spell.py:46
@@ -2780,15 +2840,16 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Додає перевірку орфографії через gtkspell.\n"
+"Este plugin adiciona verificação ortográfica através do gtkspell.\n"
 "\n"
-"Це базовий модуль, що поставляється в складі zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. error message - %s is replaced with language codes like "en", "en_US"m or "nl_NL"
 #: zim/plugins/spell.py:94
 #, python-format
 msgid "Could not load spell checking for language: \"%s\""
 msgstr ""
+"Não foi possível carregar o verificador ortográfico para a língua: \"%s\""
 
 #. error message explanation
 #: zim/plugins/spell.py:96
@@ -2796,11 +2857,13 @@ msgid ""
 "This could mean you don't have the proper\n"
 "dictionaries installed"
 msgstr ""
+"Isso pode significar que você não tem\n"
+"os dicionários corretos instalados."
 
 #. plugin name
 #: zim/plugins/tableofcontents.py:65
 msgid "Table of Contents"
-msgstr ""
+msgstr "Tabela de Conteúdos"
 
 #. plugin description
 #: zim/plugins/tableofcontents.py:66
@@ -2810,47 +2873,51 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Este plugin adiciona uma aba extra mostrando uma\n"
+"tabela dos conteúdos da página atual.\n"
+"\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:81
 msgid "Show ToC as floating widget instead of in sidepane"
-msgstr ""
+msgstr "Mostrar TdC como um widget flutuante e não no painel lateral"
 
 #. widget label
 #: zim/plugins/tableofcontents.py:117 zim/plugins/tableofcontents.py:154
 msgid "ToC"
-msgstr ""
+msgstr "TdC"
 
 #. action to lower level of heading in the text
 #: zim/plugins/tableofcontents.py:267
 msgid "Demote"
-msgstr ""
+msgstr "Rebaixar"
 
 #. action to raise level of heading in the text
 #: zim/plugins/tableofcontents.py:269
 msgid "Promote"
-msgstr ""
+msgstr "Promover"
 
 #. label for untagged pages in side pane
 #: zim/plugins/tags.py:90
 msgid "untagged"
-msgstr ""
+msgstr "não etiquetado"
 
 #. Context menu item for tag cloud
 #: zim/plugins/tags.py:756
 msgid "Sort alphabetically"
-msgstr ""
+msgstr "Organizar alfabeticamente"
 
 #. menu option
 #: zim/plugins/tags.py:828
 msgid "Sort pages by tags"
-msgstr ""
+msgstr "Organizar páginas por etiquetas"
 
 #. plugin name |
 #. Column header for tag list in Task List dialog
 #: zim/plugins/tags.py:895 zim/plugins/tags.py:935 zim/plugins/tasklist.py:625
 msgid "Tags"
-msgstr "Позначки"
+msgstr "Etiquetas"
 
 #. plugin description
 #: zim/plugins/tags.py:896
@@ -2858,6 +2925,8 @@ msgid ""
 "This plugin provides a page index filtered by means of selecting tags in a "
 "cloud.\n"
 msgstr ""
+"Esse plugin fornece um índice de páginas filtrado através da seleção de "
+"etiquetas em uma nuvem.\n"
 
 #. menu item |
 #. plugin name |
@@ -2865,7 +2934,7 @@ msgstr ""
 #: zim/plugins/tasklist.py:35 zim/plugins/tasklist.py:98
 #: zim/plugins/tasklist.py:516
 msgid "Task List"
-msgstr "Список завдань"
+msgstr "Lista de Tarefas"
 
 #. plugin description
 #: zim/plugins/tasklist.py:99
@@ -2876,46 +2945,48 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Цей модуль додає діалог зі списком всіх відкритих\n"
-"завдань в окремому зошиті. Відкриті завдання позначені\n"
-"або галками або позначками «TODO» чи «FIXME».\n"
+"Esse plugin apresenta um diálogo mostrando todas as tarefas\n"
+"em aberto no caderno. Tarefas em aberto podem ser caixas\n"
+"abertas ou items com etiquetas como \"TODO\" ou \"FIXME\".\n"
 "\n"
-"Це базовий модуль, що поставляється в складі zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist.py:112
 msgid "Consider all checkboxes as tasks"
-msgstr "Вважати всі поля з відміткою завданнями"
+msgstr "Considerar todas as caixas de seleção como tarefas"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist.py:114
 msgid "Turn page name into tags for task items"
-msgstr ""
+msgstr "Transformar o nome de páginas em etiquetas para tarefas"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist.py:116
 msgid "Implicit due date for task items in calendar pages"
-msgstr ""
+msgstr "Data final implícita para as tarefas nas páginas do calendário"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist.py:118
 msgid "Flag tasks due on Monday or Tuesday before the weekend"
 msgstr ""
+"Sinalizar antes do final de semana as tarefas com prazo final na segunda-"
+"feira ou terça-feira"
 
 #. label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 #: zim/plugins/tasklist.py:120
 msgid "Labels marking tasks"
-msgstr "Ярлики маркування завдань"
+msgstr "Rótulos marcando tarefas"
 
 #. label for plugin preferences dialog - label is by default "Next"
 #: zim/plugins/tasklist.py:122
 msgid "Label for next task"
-msgstr ""
+msgstr "Rótulo para a próxima tarefa"
 
 #. Short message text on first time use of task list plugin
 #: zim/plugins/tasklist.py:485
 msgid "Need to index the notebook"
-msgstr "Потрібно індексувати зошит"
+msgstr "É preciso indexar o caderno"
 
 #. Long message text on first time use of task list plugin
 #: zim/plugins/tasklist.py:487
@@ -2926,56 +2997,55 @@ msgid ""
 "take up to several minutes. Next time you use the\n"
 "task list this will not be needed again."
 msgstr ""
-"Список завдань відкритий вперше.\n"
-"А отже індекс необхідно перебудувати.\n"
-"Залежно від розміру зошита це може\n"
-"тривати кілька хвилин. Під час наступного\n"
-"відкривання це вже не знадобиться."
+"Esta é a primeira vez que a lista de tarefas é aberta.\n"
+"O indíce precisa ser reconstruído.\n"
+"Dependendo do tamanho do caderno isso pode\n"
+"demorar vários minutos. No próximo uso da lista\n"
+"de tarefas, isso não será necessário."
 
 #. Input label
 #: zim/plugins/tasklist.py:542
 msgid "Filter"
-msgstr "Фільтр"
+msgstr "Filtrar"
 
 #. Checkbox in task list
 #: zim/plugins/tasklist.py:562
 msgid "Only Show Actionable Tasks"
-msgstr ""
+msgstr "Mostrar Apenas Tarefas Acionáveis"
 
 #. Label for statistics in Task List, %i is the number of tasks
 #: zim/plugins/tasklist.py:575
 #, python-format
 msgid "%i open item"
 msgid_plural "%i open items"
-msgstr[0] "%i відкрите завдання"
-msgstr[1] "%i відкритих завдання"
-msgstr[2] "%i відкритих завдань"
+msgstr[0] "%i item aberto"
+msgstr[1] "%i itens abertos"
 
 #. "tag" for showing all tasks
 #: zim/plugins/tasklist.py:684
 msgid "All Tasks"
-msgstr ""
+msgstr "Todas as Tarefas"
 
 #. label in tasklist plugins for tasks without a tag
 #: zim/plugins/tasklist.py:695
 msgid "Untagged"
-msgstr ""
+msgstr "Sem marcadores"
 
 #. Column header Task List dialog
 #: zim/plugins/tasklist.py:777
 msgid "Task"
-msgstr "Завдання"
+msgstr "Tarefa"
 
 #. Column header Task List dialog |
 #. Column header versions dialog
 #: zim/plugins/tasklist.py:823 zim/plugins/versioncontrol/__init__.py:1103
 msgid "Date"
-msgstr "Дата"
+msgstr "Data"
 
 #. plugin name
 #: zim/plugins/trayicon.py:47
 msgid "Tray Icon"
-msgstr "Значок в лотку"
+msgstr "Ícone na Área de Notificação"
 
 #. plugin description
 #: zim/plugins/trayicon.py:48
@@ -2986,11 +3056,11 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Цей модуль додає значок в системний лоток.\n"
+"Esse plugin adiciona um ícone na área de notificação para acesso rápido.\n"
 "\n"
-"Залежить від Gtk+ версії 2.10 або новішої.\n"
+"Esse plugin depende do Gtk+, versão 2.10 ou superior.\n"
 "\n"
-"Це базовий модуль, що поставляється в складі zim.\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. preferences option
 #: zim/plugins/trayicon.py:61
@@ -2998,28 +3068,28 @@ msgid ""
 "Classic trayicon,\n"
 "do not use new style status icon on Ubuntu"
 msgstr ""
-"Класичний значок в лотку,\n"
-"не використовувати новий значок стану в Ubuntu"
+"Ícone na área de notificação clássico,\n"
+"não usar o novo estilo de ícone de status do Ubuntu"
 
 #. preferences option
 #: zim/plugins/trayicon.py:62
 msgid "Show a separate icon for each notebook"
-msgstr "Показувати окремий значок для кожного зошита"
+msgstr "Mostrar um ícone separado para cada caderno"
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:131
 msgid "_Quick Note..."
-msgstr "_Швидка нотатка..."
+msgstr "_Anotação Rápida..."
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:140
 msgid "_Other..."
-msgstr "_Інше..."
+msgstr "_Outro(s)..."
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:193
 msgid "Notebooks"
-msgstr "Зошити"
+msgstr "Cadernos"
 
 #. tooltip for tray icon |
 #. short description of zim
@@ -3030,43 +3100,44 @@ msgstr "Zim Desktop Wiki"
 #. menu item
 #: zim/plugins/versioncontrol/__init__.py:57
 msgid "S_ave Version..."
-msgstr "Зберегти вер_сію..."
+msgstr "Gr_avar Versão..."
 
 #. menu item
 #: zim/plugins/versioncontrol/__init__.py:58
 msgid "_Versions..."
-msgstr "_Версії..."
+msgstr "_Versões"
 
 #. verbose error description
 #: zim/plugins/versioncontrol/__init__.py:76
 msgid ""
 "There are no changes in this notebook since the last version that was saved"
-msgstr "Від часу збереження останньої версії зошита змін не було."
+msgstr ""
+"Não há mudanças neste caderno de anotações desde a última versão salva"
 
 #. Short error descriotion
 #: zim/plugins/versioncontrol/__init__.py:79
 msgid "No changes since last version"
-msgstr "Немає змін з останньої версії"
+msgstr "Nenhuma mudança desde a última versão"
 
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:95
 msgid "Bazaar"
-msgstr ""
+msgstr "Bazaar"
 
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:96
 msgid "Mercurial"
-msgstr ""
+msgstr "Mercurial"
 
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:97
 msgid "Git"
-msgstr ""
+msgstr "Git"
 
 #. plugin name
 #: zim/plugins/versioncontrol/__init__.py:679
 msgid "Version Control"
-msgstr "Контроль версій"
+msgstr "Controle de Versão"
 
 #. plugin description
 #: zim/plugins/versioncontrol/__init__.py:680
@@ -3077,21 +3148,27 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Esse plugin adiciona controle de versão aos cadernos.\n"
+"\n"
+"Esse plugin suporta os sistemas de controle de versão: Bazaar, Git e "
+"Mercurial.\n"
+"\n"
+"Este é um plugin interno que acompanha o zim.\n"
 
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:692
 msgid "Autosave version on regular intervals"
-msgstr "Регулярне автозбереження версій"
+msgstr "Salvar automaticar em intervalos regulares"
 
 #. default version comment for auto-saved versions
 #: zim/plugins/versioncontrol/__init__.py:756
 msgid "Automatically saved version from zim"
-msgstr "Автоматично збережена в zim версія"
+msgstr "Versão automaticamente salva do zim"
 
 #. Question dialog
 #: zim/plugins/versioncontrol/__init__.py:791
 msgid "Enable Version Control?"
-msgstr "Увімкнути контроль версій?"
+msgstr "Ativar Controle de Versão?"
 
 #. Detailed question
 #: zim/plugins/versioncontrol/__init__.py:792
@@ -3099,44 +3176,44 @@ msgid ""
 "Version control is currently not enabled for this notebook.\n"
 "Do you want to enable it?"
 msgstr ""
-"Контроль версій для цього зошита вимкнений.\n"
-"Хочете його увімкнути?"
+"Controle de versão encontra-se desativado para este caderno.\n"
+"Deseja ativá-lo?"
 
 #. option to chose versioncontrol backend
 #: zim/plugins/versioncontrol/__init__.py:804
 msgid "Backend"
-msgstr ""
+msgstr "Backend"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:819
 msgid "Save Version"
-msgstr "Зберегти версію"
+msgstr "Salvar Versão"
 
 #. Dialog text
 #: zim/plugins/versioncontrol/__init__.py:824
 msgid "Please enter a comment for this version"
-msgstr "Додайте коментар для цієї версії"
+msgstr "Por favor digite um comentário para esta versão"
 
 #. default version comment in the "save version" dialog
 #: zim/plugins/versioncontrol/__init__.py:829
 msgid "Saved version from zim"
-msgstr "Збережена в Zim версія"
+msgstr "Versão salva do zim"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:865
 #: zim/plugins/versioncontrol/__init__.py:880
 msgid "Versions"
-msgstr "Версії"
+msgstr "Versões"
 
 #. Option in versions dialog to show version for single page
 #: zim/plugins/versioncontrol/__init__.py:887
 msgid "_Page"
-msgstr "_Сторінка"
+msgstr "_Páginas"
 
 #. Button label
 #: zim/plugins/versioncontrol/__init__.py:901
 msgid "View _Annotated"
-msgstr "Переглянути _зауваження"
+msgstr "Ver _Anotação"
 
 #. Help text in versions dialog
 #: zim/plugins/versioncontrol/__init__.py:906
@@ -3144,38 +3221,38 @@ msgid ""
 "Select a version to see changes between that version and the current\n"
 "state. Or select multiple versions to see changes between those versions.\n"
 msgstr ""
-"Виберіть версію, щоб побачити зміни між цією версією та чинним\n"
-"станом, або виберіть кілька версій, щоб побачити зміни між ними.\n"
+"Seleciona uma versão para ver as diferenças entre aquela versão e a atual.\n"
+"Ou selecione múltiplas versão para ver as mudanças entre elas.\n"
 
 #. version details
 #: zim/plugins/versioncontrol/__init__.py:924
 msgid "Comment"
-msgstr "Коментар"
+msgstr "Comentário"
 
 #. Button label
 #: zim/plugins/versioncontrol/__init__.py:939
 msgid "_Restore Version"
-msgstr "_Відновити версію"
+msgstr "_Restaurar Versão"
 
 #. button in versions dialog for diff
 #: zim/plugins/versioncontrol/__init__.py:944
 msgid "Show _Changes"
-msgstr "Показати_зміни"
+msgstr "Mostrar _Modificações"
 
 #. button in versions dialog for side by side comparison
 #: zim/plugins/versioncontrol/__init__.py:950
 msgid "_Side by Side"
-msgstr "_Поруч"
+msgstr "_Lado à Lado"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:1040
 msgid "Annotated Page Source"
-msgstr "Прокоментоване джерело сторінки"
+msgstr "Fonte Anotada da Página"
 
 #. Confirmation question
 #: zim/plugins/versioncontrol/__init__.py:1049
 msgid "Restore page to saved version?"
-msgstr "Відновити сторінку в збережену версію?"
+msgstr "Restaurar página à última versão salva?"
 
 #. Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
 #: zim/plugins/versioncontrol/__init__.py:1050
@@ -3186,63 +3263,63 @@ msgid ""
 "\n"
 "All changes since the last saved version will be lost !"
 msgstr ""
-"Хочете відновити сторінку: %(page)s\n"
-"в збережену версію: %(version)s ?\n"
+"Você quer restaurar a página: %(page)s\n"
+"à versão salva: %(version)s?\n"
 "\n"
-"Всі зміни в останній збереженій версії будуть втрачені!"
+"Todas as modificações desde a última versão salva serão perdidas!"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:1065
 msgid "Changes"
-msgstr "Зміни"
+msgstr "Modificações"
 
 #. Column header versions dialog
 #: zim/plugins/versioncontrol/__init__.py:1102
 msgid "Rev"
-msgstr "Версія"
+msgstr "Rev"
 
 #. plugin name
 #: zim/plugins/zeitgeist-logger.py:26
 msgid "Log events with Zeitgeist"
-msgstr ""
+msgstr "Recordar eventos com o Zeitgeist"
 
 #. plugin description
 #: zim/plugins/zeitgeist-logger.py:27
 msgid "Pushes events to the Zeitgeist daemon."
-msgstr ""
+msgstr "Passa os eventos ao serviço Zeitgeist"
 
 #. label for how zim pages show up in the recent files menu, %s is the page name
 #: zim/plugins/zeitgeist-logger.py:68
 #, python-format
 msgid "Wiki page: %s"
-msgstr ""
-
-#~ msgid "Pages"
-#~ msgstr "Сторінки"
-
-#~ msgid "Match c_ase"
-#~ msgstr "Збігається _регістр"
-
-#~ msgid "File browser"
-#~ msgstr "Переглядач файлів"
-
-#~ msgid "Web browser"
-#~ msgstr "Веб-переглядач"
-
-#~ msgid "Slow file system"
-#~ msgstr "Повільна файлова система"
+msgstr "Página Wiki: %s"
 
 #~ msgid "Text Editor"
-#~ msgstr "Текстовий редактор"
+#~ msgstr "Editor de texto"
 
-#~ msgid "Prio"
-#~ msgstr "Пріоритет"
+#~ msgid "File browser"
+#~ msgstr "Navegador de Arquivos"
 
 #~ msgid "Email client"
-#~ msgstr "Клієнт електронної пошти"
+#~ msgstr "Cliente de Email"
+
+#~ msgid "Web browser"
+#~ msgstr "Navegador Web"
+
+#~ msgid "Pages"
+#~ msgstr "Páginas"
 
 #~ msgid "Output"
-#~ msgstr "Вихідний файл"
+#~ msgstr "Saída"
+
+#~ msgid "Match c_ase"
+#~ msgstr "_Coincidir maiúsculas e minúsculas"
+
+#~ msgid "Slow file system"
+#~ msgstr "Sistema de arquivo lento"
+
+#~ msgid "Prio"
+#~ msgstr "Prio"
 
 #~ msgid "_Filter"
-#~ msgstr "_Фільтр"
+#~ msgstr "_Filtrar"

@@ -4,6 +4,47 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.57 - ... ===
+* Ported zim background process to use the multiprocessing module
+  - this fixes app-indicator issues under Ubuntu Unity
+  - adds support for quicknote and other plugins on Windows
+* Reworked application framework and "open with" dialog, now also
+  allows to set applications per URL scheme
+* New plugin for using GNU Lilypond to render music scores - Shoban Preeth
+* New Zeitgeist plugin - Marcel Stimberg
+* Added template method to iterate days of the week for a calendar page
+* Added pythonic syntax to access dicts to template modules
+* Added tasklist option to take into account a Mon-Fri work week
+* Fixed start of week and week number first week of the year for calendar plugin
+* Added "untagged" category to task list
+* Fixed strike out TODO label showing up in task list
+* Added template editor dialog
+* Added support for "forward" and "back" mouse buttons
+* Added support for exporting to ReST - Yao-Po Wang
+* Added new option to create and insert new attachments based on file template
+* Added an argument to the quicknote plugin to import attachments
+* Added icons per mimetype to the attachmentbrowser
+* Added statusbar button for attachment browser
+* Added monitors to watch attachment folder for updates
+* Fix drag&drop on non-existing folder in attachment browser
+* Fix drag&drop for attachment folder on windows
+* Made location of plugin widgets in side panes configurable
+  and reworked key bindings for accessing side panes and toggling them
+* Made tags plugin to revert to standard index if no tag is selected
+* Page completion now matches anywhere in the basename -- patch by Mat
+* Patch to use sourceview in imagegenerator dialog - Kevin Chabowski
+* Fix for insert symbol dialog to insert without typing a space
+* Made image data pasted as bmp convert to png to make it more compact
+* Critical bug fix for version control plugin
+* Critical bug fix for xml.etree.TreeBuilder API for python 2.7.3
+* Bug fix for exceptions in index - Fabian Moser
+* Bug fix for interwiki links
+* On windows fix for bug when home folder or user name contain non-ascii characters
+* Fixed help manual opens in compiled windows version
+* Fixed locale support on windows
+* Added translations for Brazilian Portuguese and Romanian
+
+
 === 0.56 - Mon  2 Apr 2012 ===
 * Merged support for Git and Mercurial version control backends -
   Damien Accorsi & John Drinkwater
