@@ -9,6 +9,8 @@ import re
 import datetime
 import locale
 
+import babel
+
 from zim.plugins import PluginClass
 from zim.gui.widgets import ui_environment, Dialog, Button, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
@@ -65,10 +67,11 @@ year_path_re = re.compile(r'^(.*:)?\d{4}$')
 # Initialize setting for first day of the week. This is locale
 # dependent, and the gtk widget already has good code to find it out.
 # TODO we might also add this as a user preference
-SUNDAY = 'Sunday'
-MONDAY = 'Monday'
-if gtk.Calendar().get_display_options() \
- & gtk.CALENDAR_WEEK_START_MONDAY:
+
+SUNDAY = _('Sunday')
+MONDAY = _('Monday')
+
+if babel.Locale(locale.getdefaultlocale()[0]).first_week_day == 0:
 	FIRST_DAY_OF_WEEK = MONDAY
 else:
 	FIRST_DAY_OF_WEEK = SUNDAY
