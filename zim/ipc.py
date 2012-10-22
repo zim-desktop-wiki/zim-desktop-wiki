@@ -68,6 +68,7 @@ emitted when it is likely the notebook list changed
 import sys
 import gobject
 import os
+import re
 
 import logging
 
@@ -87,6 +88,8 @@ logger = logging.getLogger('zim.ipc')
 # globals
 SERVER_CONTEXT = None #: used to in child process know about server
 _recursive_conn_lock = False
+
+VALID_NOTEBOOK_URI = re.compile(r"(\w+\+)?file://")
 
 
 def in_child_process():
@@ -742,7 +745,8 @@ class ServerProxyClass(RemoteObjectProxy):
 		'''
 		if hasattr(uri, 'uri'):
 			uri = uri.uri # convert Dir objects
-		assert uri.startswith('file:/'), 'Must be real URI'
+
+		assert VALID_NOTEBOOK_URI.match(uri), 'Must be real URI'
 		return self.get_proxy(RemoteObject(self._notebookklass, uri), open)
 
 	def list_notebooks(self):
