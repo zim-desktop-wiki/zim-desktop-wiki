@@ -54,8 +54,9 @@ class DuplicatePageTreeStore(PageTreeStore):
 		for mypath in (oldpath, path):
 			if mypath:
 				for treepath in self.get_treepaths(mypath):
-					treeiter = self.get_iter(treepath)
-					self.emit('row-changed', treepath, treeiter)
+					if treepath:
+						treeiter = self.get_iter(treepath)
+						self.emit('row-changed', treepath, treeiter)
 
 	def get_treepath(self, path):
 		# Just returns the first treepath matching notebook path
