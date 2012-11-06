@@ -174,13 +174,15 @@ FIXME: jaja - TODO !! @FIXME
 
 		# TODO: more tags, due dates, tags for whole list, etc. ?
 
-	def testDialog(self):
-		'''Check tasklist plugin dialog'''
-		klass = zim.plugins.get_plugin('tasklist')
-		ui = MockUI()
-		plugin = klass(ui)
-		ui.notebook.index.flush()
-		ui.notebook.index.update()
+	#~ def testDialog(self):
+		#~ '''Check tasklist plugin dialog'''
+		#~ klass = zim.plugins.get_plugin('tasklist')
+		#~ ui = MockUI()
+		#~ plugin = klass(ui)
+		#~ ui.notebook.index.flush()
+		#~ ui.notebook.index.update()
+		#
+		# TODO
 
 	def testTaskListTreeView(self):
 		klass = zim.plugins.get_plugin('tasklist')

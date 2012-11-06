@@ -220,7 +220,7 @@ class SignalEmitter(object):
 				callback(self, *myargs)
 			except:
 				# TODO in case of test mode, re-raise the error
-				logger.excetion('Exception in signal handler for %s on %s', signal, self)
+				logger.exception('Exception in signal handler for %s on %s', signal, self)
 
 
 		# TODO call do_signal_name (replace - with _)

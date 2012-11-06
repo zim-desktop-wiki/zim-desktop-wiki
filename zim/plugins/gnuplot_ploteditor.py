@@ -76,7 +76,7 @@ This plugin provides a plot editor for zim based on Gnuplot.
 		dialog.show_all()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
-		populate_popup_add_separator(prepend=True)
+		populate_popup_add_separator(menu, prepend=True)
 
 		item = gtk.MenuItem(_('_Edit Gnuplot')) # T: menu item in context menu
 		item.connect('activate',

@@ -563,8 +563,11 @@ class TagsPageTreeView(PageTreeView):
 		# HACK add some methods and attributes
 		# (can not subclass gtk.TreeModelFilter because it lacks a constructor)
 		def get_indexpath(treeiter):
-			return model.get_indexpath(
-				filtermodel.convert_iter_to_child_iter(treeiter) )
+			childiter = filtermodel.convert_iter_to_child_iter(treeiter)
+			if childiter:
+				return model.get_indexpath(childiter)
+			else:
+				return None
 
 		def get_treepath(path):
 			for treepath in model.get_treepaths(path):

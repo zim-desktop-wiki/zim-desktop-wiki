@@ -190,15 +190,14 @@ class ApplicationManager(object):
 			for line in default_file.readlines():
 				if line.startswith(mimetype + '='):
 					_, key = line.strip().split('=', 1)
-					if ';' in key:
-						key, _ = line.split(';')
-						# Not sure why this is needed, but copied
-						# logic from xdg-mime, apparently entries
+					for k in key.split(';'):
+						# Copied logic from xdg-mime, apparently entries
 						# can be ";" seperated lists
-					application = klass.get_application(key)
-					if application is not None:
-						return application
-					# else continue searching
+						k = k.strip()
+						application = klass.get_application(k)
+						if application is not None:
+							return application
+						# else continue searching
 		else:
 			return None
 
