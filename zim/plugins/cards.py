@@ -9,7 +9,7 @@ import re
 from zim.plugins import PluginClass
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.gui.pageview import CustomObjectBin, POSITION_BEGIN, POSITION_END
-from zim.gui.widgets import InputForm, encode_markup_text
+from zim.gui.widgets import InputForm, encode_markup_text, ScrolledWindow
 
 OBJECT_TYPE = 'card'
 
@@ -95,16 +95,10 @@ class CardWidget(CustomObjectBin):
 	def __init__(self, object):
 		CustomObjectBin.__init__(self)
 
-		border = gtk.ScrolledWindow()
-		border.set_shadow_type(gtk.SHADOW_OUT)
-		border.set_policy(gtk.POLICY_NEVER, gtk.POLICY_NEVER)
-			# We just want the shadow, not the scroll bars ...
-
-		self.add(border)
-
 		vbox = gtk.VBox()
 		vbox.set_border_width(5)
-		border.add(vbox)
+		self.add(ScrolledWindow(vbox, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_OUT))
+			# We just want the shadow, not the scroll bars ...
 
 		label = gtk.Label()
 		type = object.attrib.get('type', _('Card'))

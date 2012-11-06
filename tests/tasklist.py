@@ -97,6 +97,11 @@ TODO @home:
 
 TODO: dus
 FIXME: jaja - TODO !! @FIXME
+~~TODO~~: Ignore this one - it is strike out
+
+* TODO: dus - list item
+* FIXME: jaja - TODO !! @FIXME - list item
+* ~~TODO~~: Ignore this one - it is strike out - list item
 
 * Bullet list
 * With tasks as sub items
@@ -142,6 +147,8 @@ FIXME: jaja - TODO !! @FIXME
 			]),
 			(t('TODO: dus'), []),
 			(t('FIXME: jaja - TODO !! @FIXME', prio=2), []),
+			(t('TODO: dus - list item'), []),
+			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2), []),
 			(t('Sub item bullets'), []),
 			(t('Sub item numbered'), []),
 		]
@@ -164,6 +171,8 @@ FIXME: jaja - TODO !! @FIXME
 			]),
 			(t('TODO: dus'), []),
 			(t('FIXME: jaja - TODO !! @FIXME', prio=2), []),
+			(t('TODO: dus - list item'), []),
+			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2), []),
 		]
 
 		tasks = extract_tasks(text)

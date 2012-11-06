@@ -69,10 +69,9 @@ class SourceViewObject(CustomObjectClass):
 			self.view.set_right_margin_position(80)
 			self.view.set_show_right_margin(True)
 			self.view.set_tab_width(4)
-			win = gtk.ScrolledWindow()
-			win.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER) # only H scroll
-			win.set_shadow_type(gtk.SHADOW_ETCHED_IN)
-			win.add(self.view)
+
+			win = ScrolledWindow(self.view, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
+				# only horizontal scroll
 			win.set_border_width(5)
 
 			self._attrib.setdefault('lang', None)

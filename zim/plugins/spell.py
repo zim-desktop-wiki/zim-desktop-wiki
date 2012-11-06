@@ -7,8 +7,10 @@
 import os
 import gobject
 
+from zim.config import get_environ
 from zim.plugins import PluginClass
 from zim.gui.widgets import ErrorDialog
+from zim.signals import SIGNAL_AFTER
 
 try:
 	import gtkspell
@@ -61,7 +63,7 @@ This is a core plugin shipping with zim.
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			self.ui.add_ui(ui_xml, self)
-			self.ui.connect_after('open-page', self.do_open_page)
+			self.connectto(self.ui, 'open-page', order=SIGNAL_AFTER)
 
 	@classmethod
 	def check_dependencies(klass):
@@ -87,7 +89,7 @@ This is a core plugin shipping with zim.
 				try:
 					self.spell = gtkspell.Spell(textview, lang)
 				except:
-					lang = lang or os.environ.get('LANG') or os.environ.get('LANGUAGE')
+					lang = lang or get_environ('LANG') or get_environ('LANGUAGE')
 					ErrorDialog(self.ui, (
 						_('Could not load spell checking for language: "%s"') % lang,
 							# T: error message - %s is replaced with language codes like "en", "en_US"m or "nl_NL"
@@ -112,7 +114,7 @@ This is a core plugin shipping with zim.
 		self.uistate['active'] = enable
 		return False # we can be called from idle event
 
-	def do_open_page(self, ui, page, record):
+	def on_open_page(self, ui, page, record):
 		# Assume the old object is detached by hard coded
 		# hook in TextView, just attach a new one.
 		# Use idle timer to avoid lag in page loading.

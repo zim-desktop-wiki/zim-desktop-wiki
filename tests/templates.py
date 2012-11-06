@@ -123,16 +123,20 @@ class TestTemplateSet(tests.TestCase):
 			if format == 'templates':
 				continue # skip top level dir
 			files = [f for f in files if not f.startswith('.') and not '~' in f]
-			templates = list_templates(format)
+			files.sort()
 			self.assertTrue(len(files) > 0)
-			self.assertEqual(len(templates), len(files))
-			for file in templates.values():
-				#~ print files
+			templates = list_templates(format)
+			self.assertEqual([t[1] for t in templates], files)
+			for file in files:
 				file = os.path.join(dir, file)
-				tmpl = Template(file, format)
-				# Syntax errors will be raised during init
-				# TODO parameter check for these templates
-				#      ... run them with raise instead of param = None
+				input = open(file).readlines()
+				if format == 'plugins':
+					tmpl = GenericTemplate(input)
+				else:
+					tmpl = Template(input, format)
+					# Syntax errors will be raised during init
+					# TODO parameter check for these templates
+					#      ... run them with raise instead of param = None
 
 
 class TestPageProxy(tests.TestCase):
@@ -161,6 +165,7 @@ class TestTemplate(tests.TestCase):
 		input = u'''\
 Version [% zim.version %]
 <title>[% page.title %]</title>
+Created [% page.properties['Creation-Date'] %]
 <h1>[% notebook.name %]: [% page.name %]</h1>
 <h2>[% page.heading %]</h2>
 [% options.foo = "bar" %]
@@ -170,6 +175,7 @@ Option: [% options.foo %]
 		wantedresult = u'''\
 Version %s
 <title>Page Heading</title>
+Created TODAY
 <h1>Unnamed Notebook: FooBar</h1>
 <h2>Page Heading</h2>
 <p>
@@ -183,6 +189,7 @@ Option: bar
 ====== Page Heading ======
 **foo bar !**
 ''')
+		page.properties['Creation-Date'] = 'TODAY'
 		self.assertTrue(len(page.dump('html', linker=StubLinker())) > 0)
 		template = Template(input, 'html', linker=StubLinker())
 		result = template.process(notebook, page)

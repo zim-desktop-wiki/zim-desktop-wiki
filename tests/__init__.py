@@ -40,14 +40,14 @@ __all__ = [
 	'package', 'translations',
 	'utils', 'errors', 'parsing', 'fs', 'config', 'applications', 'async',
 	'formats', 'templates', 'objectmanager',
-	'stores', 'index', 'notebook',
-	'history', 'plugins',
+	'stores', 'index', 'notebook', 'history',
+	'main', 'plugins',
 	'export', 'www', 'search',
 	'widgets', 'gui', 'pageview', 'clipboard',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
-	'quicknote', 'attachmentbrowser', 'cardsplugin',
-	'daemon' # Note that running this test in another position can skrew up e.g. clipboard test
+	'quicknote', 'attachmentbrowser', 'insertsymbol', 'cardsplugin',
+	'ipc'
 ]
 
 
@@ -95,6 +95,7 @@ def _setUpEnvironment():
 	system_data_dirs = os.environ.get('XDG_DATA_DIRS')
 	os.environ.update({
 		'ZIM_TEST_RUNNING': 'True',
+		'ZIM_TEST_ROOT': os.getcwd(),
 		'TMP': TMPDIR,
 		'XDG_DATA_HOME': os.path.join(TMPDIR, 'data_home'),
 		'XDG_DATA_DIRS': os.path.join(TMPDIR, 'data_dir'),
@@ -116,7 +117,10 @@ def _setUpEnvironment():
 		os.environ['XDG_DATA_DIRS'] = os.pathsep.join(
 			(os.environ['XDG_DATA_DIRS'], system_data_dirs) )
 
-_setUpEnvironment() # just do this whenever we are loaded
+if os.environ.get('ZIM_TEST_RUNNING') != 'True':
+	# Do this when loaded, but not re-do in sub processes
+	# (doing so will kill e.g. the ipc test...)
+	_setUpEnvironment()
 
 
 _zim_pyfiles = []
@@ -165,16 +169,12 @@ class TestCase(unittest.TestCase):
 	maxDiff = None
 
 	def assertEqual(self, first, second, msg=None):
-		## HACK to work around bug in unittest - it does not consider
+		## HACK to work around "feature" in unittest - it does not consider
 		## string and unicode to be of the same type and thus does not
-		## show diffs
-		## TODO file bug report for this
+		## show diffs if the textual content differs
 		if type(first) in (str, unicode) \
 		and type(second) in (str, unicode):
-			self.assertMultiLineEqual(second, first, msg)
-			## HACK switch arguments here, otherwise order of
-			## diff is wrong (assuming first is what we got and second
-			## is the reference)
+			self.assertMultiLineEqual(first, second, msg)
 		else:
 			unittest.TestCase.assertEqual(self, first, second, msg)
 
@@ -309,6 +309,11 @@ class DialogContext(object):
 		import zim.gui.widgets
 		zim.gui.widgets.TEST_MODE = self.old_test_mode
 		zim.gui.widgets.TEST_MODE_RUN_CB = self.old_callback
+
+		has_error = bool([e for e in error if e is not None])
+		if self.stack and not has_error:
+			raise AssertionError, '%i expected dialog(s) not run' % len(self.stack)
+
 		return False # Raise any errors again outside context
 
 
@@ -317,7 +322,8 @@ class TestData(object):
 
 	def __init__(self, format):
 		assert format == 'wiki', 'TODO: add other formats'
-		tree = etree.ElementTree(file=os.path.join(DATADIR, 'notebook-wiki.xml'))
+		root = os.environ['ZIM_TEST_ROOT']
+		tree = etree.ElementTree(file=root+'/tests/data/notebook-wiki.xml')
 
 		test_data = []
 		for node in tree.getiterator(tag='page'):
@@ -474,24 +480,17 @@ class Counter(object):
 		self.count += 1
 		return self.value
 
+class MockObjectBase(object):
+	'''Base class for mock objects.
 
-class MockObject(object):
-	'''Base class for mock objects. Any attribute is automatically
-	vivicated as a method which results None. Alternatively mock
-	methods can be installed with mock_method(). Attributes that are
-	not methods need to be initialized explicitly.
-
-	All method call are logged, so they can be inspected. The attribute
-	'mock_calls' has a list of tuples with mock methods and arguments in
-	order they have been called.
+	Mock methods can be installed with L{mock_method()}. All method
+	calls to mock methods are logged, so they can be inspected.
+	The attribute C{mock_calls} has a list of tuples with mock methods
+	and arguments in order they have been called.
 	'''
 
 	def __init__(self):
 		self.mock_calls = []
-
-	def __getattr__(self, name):
-		'''Automatically mock methods'''
-		return self.mock_method(name, None)
 
 	def mock_method(self, name, return_value):
 		'''Installs a mock method with a given name that returns
@@ -506,6 +505,17 @@ class MockObject(object):
 
 		setattr(self, name, my_mock_method)
 		return my_mock_method
+
+
+class MockObject(MockObjectBase):
+	'''Simple subclass of L{MockObjectBase} that automatically mocks a
+	method which returns C{None} for any non-existing attribute.
+	Attributes that are not methods need to be initialized explicitly.
+	'''
+
+	def __getattr__(self, name):
+		'''Automatically mock methods'''
+		return self.mock_method(name, None)
 
 
 def gtk_process_events(*a):

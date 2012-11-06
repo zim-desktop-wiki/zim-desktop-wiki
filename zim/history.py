@@ -211,7 +211,7 @@ class History(gobject.GObject):
 	def append(self, path):
 		'''Append a new page to the history. Will drop the forward
 		stack and make this page the latest page.
-		@param page: L{Path} for the current page
+		@param path: L{Path} for the current page
 		@emits: changed
 		'''
 		if self._history and self._history[self._current] == path:

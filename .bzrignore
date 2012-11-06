@@ -20,4 +20,5 @@
 ./windows/build
 ./windows/version-and-date.nsi
 ./xdg/hicolor
-NOTES
+test_report.html
+./NOTES.txt

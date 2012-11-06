@@ -11,7 +11,7 @@ from zim.fs import File, Dir
 from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
-from zim.config import ConfigDict
+from zim.config import ConfigDict, ConfigDictFile, XDG_CONFIG_HOME
 from zim.gui.clipboard import Clipboard
 
 
@@ -32,7 +32,7 @@ def new_parsetree_from_text(text):
 	return tree
 
 
-def setUpPageView(fakedir=None):
+def setUpPageView(fakedir=None, notebook=None):
 	'''Some bootstrap code to get an isolated PageView object'''
 	## TODO - should not be needed
 	## we can get rid of this when we refactor the actiongroup stuff
@@ -41,8 +41,11 @@ def setUpPageView(fakedir=None):
 	PageView.actiongroup.mock_method('get_action', tests.MockObject())
 	PageView.actiongroup.mock_method('list_actions', [])
 
+	if notebook is None:
+		notebook = tests.new_notebook(fakedir)
+
 	ui = MockUI()
-	ui.notebook = tests.new_notebook(fakedir)
+	ui.notebook = notebook
 	ui.page = None
 	ui.uimanager = tests.MockObject()
 	ui.uimanager.mock_method('get_accel_group', tests.MockObject())
@@ -1542,6 +1545,21 @@ foo
 		result = cleanup(result)
 		self.assertEqual(result.tostring(), parsetree.tostring())
 
+		# copy partial
+		# line 33, offset 6 to 28 "try these **bold**, //italic//" in roundtrip page
+		wanted_tree = "<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>"
+		wanted_text = "try these bold, italic" # no newline !
+		Clipboard.clear()
+		self.assertIsNone(Clipboard.get_parsetree())
+		start = buffer.get_iter_at_line_offset(33, 6)
+		end = buffer.get_iter_at_line_offset(33, 28)
+		buffer.select_range(start, end)
+		textview.emit('copy-clipboard')
+		result = Clipboard.get_parsetree(notebook, page)
+		self.assertIsNotNone(result)
+		self.assertEqual(result.tostring(), wanted_tree)
+		self.assertEqual(Clipboard.get_text(), wanted_text)
+
 		# cut
 		Clipboard.clear()
 		self.assertIsNone(Clipboard.get_parsetree())
@@ -1585,7 +1603,7 @@ foo
 		click(_('Copy _Link'))
 		self.assertEqual(Clipboard.get_text(), 'Bar')
 		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
-		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href=":Bar">:Bar</link></zim-tree>')
+		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="Bar">Bar</link></zim-tree>')
 
 		page = tests.new_page_from_text('[[~//bar.txt]]')
 			# Extra '/' is in there to verify path gets parsed as File object
@@ -1683,10 +1701,55 @@ Baz
 		text = buffer.get_text(*buffer.get_bounds())
 		self.assertEqual(text, wantedtext)
 
+	def testProfile(self):
+		'''Test that style for a specific profile is applied.'''
+		default_file = XDG_CONFIG_HOME.file('zim/style.conf')
+		profile_file = XDG_CONFIG_HOME.file('zim/styles/testProfile.conf')
+
+		# first test without profile
+		pageview = setUpPageView()
+		notebook = pageview.ui.notebook
+		self.assertIsNone(notebook.profile)
+		self.assertIsNone(pageview.style.profile)
+		self.assertEqual(pageview.style.file.file, default_file)
+
+		# create a new style based on the default one, changing some properties
+		profile_file.remove()
+		new_style = ConfigDictFile(profile_file)
+		new_style['TextView']['indent'] = 50
+		new_style['TextView']['font'] = 'Sans 8'
+		new_style['TextView']['linespacing'] = 10
+		new_style.write()
+
+		# test the pageview with the profile
+		notebook.save_properties(profile='testProfile')
+		self.assertEqual(notebook.profile, 'testProfile')
+		self.assertEqual(pageview.style.profile, 'testProfile')
+		self.assertEqual(pageview.style.file.file, profile_file)
+		self.assertEqual(pageview.style['TextView']['indent'], 50)
+		self.assertEqual(pageview.style['TextView']['font'], 'Sans 8')
+		self.assertEqual(pageview.style['TextView']['linespacing'], 10)
+
+		# if we don't have a notebook, we shouldn't fail!
+		pageview.ui.notebook = None
+		pageview.on_preferences_changed(pageview.ui)
+
+		# Now init a notebook with a profile from the start
+		PageView.style = None # reset class attribute
+
+		notebook = tests.new_notebook()
+		self.assertIsNone(notebook.profile)
+		notebook.save_properties(profile='testProfile')
+		self.assertEqual(notebook.profile, 'testProfile')
+
+		pageview = setUpPageView(notebook=notebook)
+		self.assertEqual(pageview.style.profile, 'testProfile')
+		self.assertEqual(pageview.style.file.file, profile_file)
+
 
 class TestPageviewDialogs(tests.TestCase):
 
-	def runTest(self):
+	def testVarious(self):
 		'''Test input/output of various pageview dialogs'''
 		## Insert Date dialog
 		ui = MockUI()
@@ -1783,6 +1846,7 @@ dus bar bazzz baz
 		ui = MockUI()
 		ui.notebook.index = tests.MockObject()
 		ui.notebook.index.mock_method('list_pages', [])
+		ui.notebook.index.mock_method('walk', [])
 		pageview = tests.MockObject()
 		pageview.page = Path('Test:foo:bar')
 		textview = TextView({})

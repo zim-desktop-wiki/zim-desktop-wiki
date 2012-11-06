@@ -5,15 +5,25 @@ Wiki-Format: zim 0.4
 
 Zim uses templates when exporting pages. This way you can for example write your website in zim and export it to HTML using the layout and style definition of you choice.
 
-Templates are also used to initalize new pages.
+Templates are also used to initialize new pages.
+
+If you are looking for information for file templates for attachments, see [[Attachments]]
+
+===== Template Editor Dialog =====
+
+The Template Editor Dialog can be accessed with the menu item "//Edit//" -> "//Templates//". It will show a list of templates that are available, and allows you to view and edit them.
+
+Templates can either be system defaults, or custom templates in your home folder. When you edit them, a copy is made of the default to your home folder, and this copy is than edited. The remove function again deletes this custom version, but does not touch the default template.
+
+**Note:** if you try to edit for example a HTML template, and it opens in the web browser instead of in your default text editor, the cause is most likely that you did not explicitly configure a text editor in the preferences. Go to the [[Preferences|Preferences Dialog]] and specify your text editor.
 
 ===== Templates for export =====
 
-For a list of templates for exporting see [[Help:Export]] and subpages. 
+For a list of templates for exporting see [[Export]] and subpages. 
 
 ===== Template options =====
 
-Templates can also set template options that influence the generated output, by setting key-value pairs like in the example below. A list of available template options for a output format can be found at [[Help:Export]] and subpages.
+Templates can also set template options that influence the generated output, by setting key-value pairs like in the example below. A list of available template options for a output format can be found at [[Export]] and subpages.
 
 ===== Special templates =====
 
@@ -30,34 +40,34 @@ Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/
 Template syntax:
 
 '''
-[% var %]                   # interpolates a variable
-[%- var %] 
-'''
-''                 # + strip line break before the expression''
-''[% var -%] ''''                 # + strip line break after the expression''
-''[%- var -%]''''                 # + strip line breaks on both sides''
+[% var %]	# interpolates a variable
+[%- var %]	# + strip line break before the expression
+[% var -%]	# + strip line break after the expression
+[%- var -%]	# + strip line breaks on both sides
 
-''[% IF expr %] ... [% END %]  # conditionals''
+[% IF expr %] ... [% END %]	# conditionals
 
-''[% IF ''''expr'''' %]''
-''	...''
-''[% ELSIF expr %]''
-''	...''
-''[% ELSE %]''
-''	...''
-''[% END %]''
+[% IF expr %]
+	...
+[% ELSIF expr %]
+	...
+[% ELSE %]
+	...
+[% END %]
 
-''[% FOREACH name = var ]     # loop''
-''... [% name %] ...''
-''[% END %]''
+[% FOREACH name = var ]		# loop
+... [% name %] ...
+[% END %]
 
-''[% strftime("%c") %]        # current time stamp''
-''[% strftime("%c", var) %]   # date from variable''
+[% strftime("%c") %]		# current time stamp
+[% strftime("%c", var) %]	# date from variable
 
 
-'''
 [% options.option_name = value %] # set the template option option_name to value
+
+[% page.properties["Creation-Date"] %] # access dict
 '''
+
 
 For the ''IF'' and ''ELIF'' statements the expression can be either just a variable, in which case it is evaluated boolean, or an equality expression with "==". For example "''[% IF page.name == 'foo' %]''" is understood. More complex expressions are not supported.
 
@@ -108,6 +118,8 @@ Functions available:
 		
 		//Example//:	''menu(page.namespace,  TRUE, FALSE)''
 
+
+See also the [[Plugins:Calendar|Calendar Plugin]] for some properties available for calendar pages
 
 ==== Template Resources ====
 To add additional files to the template, create a folder of the same name as the template. Any files in the folder (like style sheets, images, javascript files, etc.) will be copied along when this template is used to export data in zim. There is a function "''resource(filename)''" to refer to these files in the template.

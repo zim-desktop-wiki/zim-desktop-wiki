@@ -5,6 +5,9 @@
 # License:  same as zim (gpl)
 #
 # ChangeLog
+# 2012-08-17 Added mimetype icons, statusbar toggle button, and gio monitor support
+# 2012-07-20 Updated code for pane uistate (Jaap)
+# 2012-04-17 Allow drag&drop when folder does not exist yet + fix drag&drop on windows (Jaap)
 # 2012-02-29 Further work on making iconview look nice and support drag&drop (Jaap)
 # 2012-02-27 Complete refactoring of thumbnail manager + test case (Jaap)
 # 2012-02-26 Rewrote direct filessystem calls in order to support non-utf8 file systems (Jaap)
@@ -17,48 +20,23 @@
 # 2010-08-31 freedesktop.org thumbnail spec mostly implemented
 # 2010-06-29 1st working version
 #
-# Bugs:
-# textrendering is slow
-# problems with Umlaut in filenames
 # TODO:
-# * integer plugin_preferences do not to work as expected (zim bug?)
-# [ ] draw frames around thumbnails (in the view)
-# [*] where to store thumbnails?
-#   freedesktop.org: ~/.thumbnails/  (gnome/nautilus)
-#   http://jens.triq.net/thumbnail-spec/thumbsave.html
-#    [*] store fileinfo in thumbnails
-#    [ ] dont thumb small images
-#    [ ] thmubs for other formats: word,openoffice,...
-#    [ ] textrendering: syntax-hl
-# [ ] preview in textarea (see emacs+speedbar)
-# [*] dont start all thumbnailing processes at a time, and make them nice 10
-# [*] small and lager thumbs
-# [ ] use mimetype and extension
-# [*] rethumb broken (e.g. shutdown while thumbnailing)
-# [ ] code cleanup
-#    [*] clean up plugin class and widget
-#    [*] refactor thumbnailer
-# [*] new gui concept for zim : sidepane r/l,bottom- and top pane both with tabs (see gedit)
-# [*] show file infos in tooltip (size, camera,... what else?)
-# [*] update icon when thumbnail is ready
-# [ ] mimetype specific icons
-# [ ] evaluate imagemagick python libs
-# [ ] thumbnailers as plugins
-# [ ] libgsf thumbnailer
-# [ ] use thumbnailers/settings from gnome or other DEs
-# [ ] make a reference implementation for thumbnail spec
-# [ ] rewrite thumbnail spec
-# http://ubuntuforums.org/showthread.php?t=76566
-#
-# tooltip example
-#  http://nullege.com/codes/show/src@pygtk-2.14.1@examples@pygtk-demo@demos@tooltip.py/160/gtk.gdk.Color
-# file info example
-#  http://ubuntuforums.org/showthread.php?t=880967
-#
+# [x] GIO watcher to detect folder update - add API to zim.fs for watcher ?
+# [ ] Allow more than 1 thread for thumbnailing
+# [ ] Can we cache image to thumb mapping (or image MD5) to spead up ?
+# [ ] Dont thumb small images
+# [x] Mimetype specific icons
+# [ ] Restore ImageMagick thumbnailer
+# [ ] Use thumbnailers/settings from gnome or other DEs ?
+# [ ] Action for deleting files in context menu
+# [ ] Copy / cut files in context menu
+# [ ] Button to clean up the folder - only show when the folder is empty
+
 
 '''Zim plugin to display files in attachments folder.'''
 
 
+import os
 import re
 import hashlib # for thumbfilenames
 import datetime
@@ -67,6 +45,11 @@ import logging
 import gobject
 import gtk
 import pango
+try:
+	import gio
+except ImportError:
+	gio = None
+
 
 import zim
 import zim.config # Asserts HOME is defined
@@ -79,7 +62,8 @@ from zim.applications import Application
 from zim.async import AsyncOperation
 from zim.parsing import url_encode, URL_ENCODE_READABLE
 
-from zim.gui.widgets import Button, BOTTOM_PANE, IconButton
+from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
+	IconButton, ScrolledWindow, button_set_statusbar_style
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import \
 	URI_TARGETS, URI_TARGET_NAMES, \
@@ -128,7 +112,56 @@ ICON_SIZE = 64
 PREVIEW_SIZE = 128
 
 
+def get_mime_icon(file, size):
+	# FIXME put this in some library ?
+	if not gio:
+		return None
+
+	f = gio.File(uri=file.uri)
+	info = f.query_info('standard::*')
+	icon = info.get_icon()
+
+	if isinstance(icon, gio.ThemedIcon):
+		names = icon.get_names()
+		icon_theme = gtk.icon_theme_get_default()
+		try:
+			icon_info = icon_theme.choose_icon(names, size, 0)
+			if icon_info:
+				return icon_info.load_icon()
+			else:
+				logger.debug('Missing icons in icon theme: %s', names)
+				return None
+		except gobject.GError:
+			logger.exception('Could not load icon for file: %s', file)
+			return None
+	else:
+		return None
+
+
+def is_hidden_file(file):
+	# FIXME put this in zim.fs
+	if not os.name == 'nt':
+		return False
+
+	import ctypes
+	INVALID_FILE_ATTRIBUTES = -1
+	FILE_ATTRIBUTE_HIDDEN = 2
+
+	try:
+		attrs = ctypes.windll.kernel32.GetFileAttributesW(file.path)
+			# note: GetFileAttributesW is unicode version of GetFileAttributes
+	except AttributeError:
+		return False
+	else:
+		if attrs == INVALID_FILE_ATTRIBUTES:
+			return False
+		else:
+			return bool(attrs & FILE_ATTRIBUTE_HIDDEN)
+
+
 class AttachmentBrowserPlugin(PluginClass):
+
+	TAB_NAME = _('Attachments') # T: label for attachment browser pane
 
 	plugin_info = {
 		'name': _('Attachment Browser'), # T: plugin name
@@ -138,12 +171,15 @@ icon view at bottom pane.
 
 This plugin is still under development.
 '''), # T: plugin description
-		'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>',
-		#~ 'help': 'Plugins:Attachment Browser',
+		'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>\nJaap Karssenberg <jaap.karssenberg@gmail.com>',
+		'help': 'Plugins:Attachment Browser',
 	}
 
 	plugin_preferences = (
-	#	# key, type, label, default
+		# key, type, label, default
+		('pane', 'choice', _('Position in the window'), BOTTOM_PANE, PANE_POSITIONS),
+			# T: option for plugin preferences
+
 	#	('icon_size', 'int', _('Icon size [px]'), [ICON_SIZE_MIN,128,ICON_SIZE_MAX]), # T: preferences option
 	#	('preview_size', 'int', _('Tooltip preview size [px]'), (THUMB_SIZE_MIN,480,THUMB_SIZE_MAX)), # T: input label
 	#	('thumb_quality', 'int', _('Preview jpeg Quality [0..100]'), (0,50,100)), # T: input label
@@ -155,6 +191,8 @@ This plugin is still under development.
 		#~ return [("ImageMagick",Application(('convert',None)).tryexec())]
 
 	def initialize_ui(self, ui):
+		self._monitor = None
+		self._block_toggle = False
 		if self.ui.ui_type == 'gtk':
 			self.ui.add_toggle_actions(ui_toggle_actions, self)
 			#self.ui.add_actions(ui_actions, self)
@@ -162,56 +200,128 @@ This plugin is still under development.
 
 	def finalize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
-			self.widget = AttachmentBrowserPluginWidget(self.ui, self.preferences)
-			self.widget.on_open_page(self.ui, self.ui.page, self.ui.page)
-			self.uistate.setdefault('active', True)
-			self.toggle_fileview(enable=self.uistate['active'])
-			self.ui.connect('close-page', self.on_close_page)
+			self.widget = AttachmentBrowserPluginWidget(self, self.preferences)
+
+			self.statusbar_frame = gtk.Frame()
+			self.statusbar_frame.set_shadow_type(gtk.SHADOW_IN)
+			self.ui.mainwindow.statusbar.pack_end(self.statusbar_frame, False)
+
+			self.statusbar_button = gtk.ToggleButton('<attachments>') # translated below
+			button_set_statusbar_style(self.statusbar_button)
+
+			self.statusbar_button.set_use_underline(True)
+			self.statusbar_button.connect_after('toggled',
+				lambda o: self.toggle_fileview(enable=o.get_active()) )
+			self.statusbar_frame.add(self.statusbar_button)
+			self.statusbar_frame.show_all()
+
+			self.do_preferences_changed()
+
+			if self.ui.page:
+				self.on_open_page(self.ui, self.ui.page, self.ui.page)
+			self.connectto(self.ui, 'open-page')
+
+			self.connectto(self.ui.mainwindow, 'pane-state-changed')
+
 
 	def toggle_fileview(self, enable=None):
 		self.toggle_action('toggle_fileview', active=enable)
 
 	def do_toggle_fileview(self, enable=None):
+		# TODO make this a generic "do_toggle_widget" ?
 		#~ print 'do_toggle_fileview', enable
 		if enable is None:
 			action = self.actiongroup.get_action('toggle_fileview')
 			enable = action.get_active()
 
-		if enable:
-			self.uistate.setdefault('bottompane_pos', int(450 - 1.5*THUMB_SIZE_NORMAL))
-				# HACK, using default window size here
-			if not self.widget.get_property('visible'):
-				self.ui.mainwindow.add_tab(_('Attachments'), self.widget, BOTTOM_PANE)
-					# T: label for attachment browser pane
-				self.widget.show_all()
-				self.widget.refresh()
-				self.ui.mainwindow._zim_window_bottom_pane.set_position(
-					self.uistate['bottompane_pos'])
-					# FIXME - method for this in Window class
-			self.uistate['active'] = True
-		else:
-			if self.widget.get_property('visible'):
-				self.uistate['bottompane_pos'] = \
-					self.ui.mainwindow._zim_window_bottom_pane.get_position()
-					# FIXME - method for this in Window class
-				self.widget.hide_all()
-				self.ui.mainwindow.remove(self.widget)
-			self.uistate['active'] = False
+		if self._block_toggle:
+			self.statusbar_button.set_active(enable) # sync statusbar button
+			return
 
-	def on_close_page(self, *a):
-		if self.widget.get_property('visible'):
-			self.uistate['bottompane_pos'] = \
-				self.ui.mainwindow._zim_window_bottom_pane.get_position()
-				# FIXME - method for this in Window class
+		if enable:
+			self.ui.mainwindow.set_pane_state(
+				self.preferences['pane'], True,
+				activetab=self.TAB_NAME,
+				grab_focus=True)
+		else:
+			self.ui.mainwindow.set_pane_state(
+				self.preferences['pane'], False)
+
+		self.statusbar_button.set_active(enable) # sync statusbar button
+
+	def on_pane_state_changed(self, window, pane, visible, active):
+		if pane != self.preferences['pane']:
+			return
+
+		self._block_toggle = True
+		if visible and active == self.TAB_NAME:
+			self.toggle_fileview(True)
+			if not self.widget.get_active():
+				self.widget.set_active(True) # implies refresh
+		else:
+			self.toggle_fileview(False)
+			self.widget.set_active(False)
+		self._block_toggle = False
+
+	def on_open_page(self, ui, page, path):
+		self._disconnect_monitor()
+
+		self.widget.set_page(page)
+		self._refresh_statusbar(page)
+
+		dir = self.ui.notebook.get_attachments_dir(page)
+		id = dir.connect('changed', self.on_dir_changed)
+		self._monitor = (dir, id)
+
+	def on_dir_changed(self, *a):
+		logger.debug('Dir change detected: %s', a)
+		self._refresh_statusbar(self.ui.page)
+		self.widget.refresh()
+
+	def _refresh_statusbar(self, page):
+		n = self.get_n_attachments(page)
+		self.statusbar_button.set_label(
+			ngettext('%i _Attachment', '%i _Attachments', n) % n)
+			# T: Label for the statusbar, %i is the number of attachments for the current page
+
+	def get_n_attachments(self, page):
+		# Calculate independent from the widget
+		# (e.g. widget is not refreshed when hidden)
+		n = 0
+		dir = self.ui.notebook.get_attachments_dir(page)
+		from zim.fs import isdir
+		for name in dir.list():
+			# If dir is an attachment folder, sub-pages maybe filtered out already
+			# TODO need method in zim.fs to do this count efficiently
+			# TODO ignore hidden files here as well
+			if not isdir(dir.path + '/' + name):
+				# Ignore subfolders -- FIXME ?
+				n += 1
+		return n
 
 	def disconnect(self):
-		self.do_toggle_fileview(enable=False)
-
+		self._disconnect_monitor()
+		if self.ui.ui_type == 'gtk':
+			self.do_toggle_fileview(enable=False)
+			if self.statusbar_frame:
+				self.ui.mainwindow.statusbar.remove(self.statusbar_frame)
 		PluginClass.disconnect(self)
 
+	def _disconnect_monitor(self):
+		if self._monitor:
+			dir, id = self._monitor
+			dir.disconnect(id)
+			self._monitor = None
+
 	def do_preferences_changed(self):
-		if self.widget.get_property('visible'):
-			self.widget.refresh() # re-start thumbnailing with other settings
+		if self.ui.ui_type == 'gtk':
+			try:
+				self.ui.mainwindow.remove(self.widget)
+			except ValueError:
+				pass
+			self.ui.mainwindow.add_tab(self.TAB_NAME, self.widget, self.preferences['pane'])
+			self.widget.show_all()
+
 
 
 BASENAME_COL = 0
@@ -220,11 +330,13 @@ PIXBUF_COL = 1
 
 class AttachmentBrowserPluginWidget(gtk.HBox):
 
-	def __init__(self, ui, preferences):
+	def __init__(self, plugin, preferences):
 		gtk.HBox.__init__(self)
-		self.ui = ui
+		self.plugin = plugin
+		self.ui = plugin.ui
 		self.preferences = preferences
 		self.dir = None
+		self._active = True
 
 		self.thumbman = ThumbnailManager(preferences)
 		self.thumbman.connect('thumbnail-ready', self.on_thumbnail_ready)
@@ -248,24 +360,18 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		self.fileview.connect('drag-data-get', self.on_drag_data_get)
 		self.fileview.connect('drag-data-received', self.on_drag_data_received)
 
-		window = gtk.ScrolledWindow()
-		window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		window.set_shadow_type(gtk.SHADOW_IN)
-		window.add(self.fileview)
-		self.add(window)
+		self.add(ScrolledWindow(self.fileview))
 
 		self.buttonbox = gtk.VBox()
 		self.pack_end(self.buttonbox, False)
 
 		open_folder_button = IconButton(gtk.STOCK_OPEN, relief=False)
-		open_folder_button.connect('clicked', lambda o: self.ui.open_attachments_folder())
+		open_folder_button.connect('clicked', self.on_open_folder)
 		self.buttonbox.pack_start(open_folder_button, False)
 
 		refresh_button = IconButton(gtk.STOCK_REFRESH, relief=False)
-		refresh_button.connect('clicked', lambda o: self.refresh())
+		refresh_button.connect('clicked', lambda o: self.on_refresh_button())
 		self.buttonbox.pack_start(refresh_button, False)
-
-		self.ui.connect('open-page', self.on_open_page)
 
 		self.fileview.connect('button-press-event', self.on_button_press_event)
 		self.fileview.connect('item-activated', self.on_item_activated)
@@ -275,42 +381,84 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			self.fileview.props.has_tooltip = True
 			self.fileview.connect("query-tooltip", self.query_tooltip_icon_view_cb)
 
-	def on_open_page(self, ui, page, path):
-		self.set_folder(ui.notebook.get_attachments_dir(page))
+		# Store colors
+		self._senstive_color = None
+		self._insenstive_color = None
+
+		def _init_base_color(*a):
+			# This is handled on expose event, because style does not
+			# yet reflect theming on construction
+			if self._senstive_color is None:
+				self._senstive_color = self.fileview.style.base[gtk.STATE_NORMAL]
+				self._insenstive_color = self.fileview.style.base[gtk.STATE_INSENSITIVE]
+
+			self._update_state()
+
+		self.connect('expose-event', _init_base_color)
+
+	def set_page(self, page):
+		dir = self.ui.notebook.get_attachments_dir(page)
+		self.set_folder(dir)
 
 	def set_folder(self, dir):
 		#~ print "set_folder", dir
 		if dir != self.dir:
 			self.dir = dir
-			if self.get_property('visible'):
-				self.refresh()
+			self.refresh()
+
+	def get_active(self):
+		return self._active
+
+	def set_active(self, active):
+		self._active = active
+		self.refresh()
+
+	def on_open_folder(self, o):
+		# Callback for the "open folder" button
+		self.ui.open_attachments_folder()
+		self._update_state()
+
+	def on_refresh_button(self):
+		self.refresh()
+		self.plugin._refresh_statusbar(self.ui.page) # bit of a HACK to get the page here
 
 	def refresh(self):
+		if not self._active:
+			return # avoid unnecessary work
+
 		self.store.clear()
 		self.thumbman.clear_async_queue()
-
-		if self.dir is None or not self.dir.exists():
-			self.fileview.set_sensitive(False)
-			return # Show empty view
-		else:
-			self.fileview.set_sensitive(True)
+		self._update_state()
 
 		for name in self.dir.list():
 			# If dir is an attachment folder, sub-pages maybe filtered out already
 			file = self.dir.file(name)
-			if file.isdir():
+			if file.isdir() or is_hidden_file(file):
 				continue # Ignore subfolders -- FIXME ?
 			else:
 				self._add_file(file)
 
-	def _add_file(self, file):
-			pixbuf = self.thumbman.get_thumbnail_async(file, ICON_SIZE)
-			if pixbuf is None:
-				# Set generic icon first - maybe thumbnail follows later, maybe not
-				# TODO: icon by mime-type
-				pixbuf = self.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_BUTTON)
+	def _update_state(self):
+		# Here we set color like senstive or insensitive widget without
+		# really making the widget insensitive - reason is to allow
+		# drag & drop for a non-existing folder; making the widget
+		# insensitive also blocks drag & drop.
+		if self.dir is None or not self.dir.exists():
+			self.fileview.modify_base(
+				gtk.STATE_NORMAL, self._insenstive_color)
+			return # Show empty view
+		else:
+			self.fileview.modify_base(
+				gtk.STATE_NORMAL, self._senstive_color)
 
-			self.store.append((file.basename, pixbuf)) # BASENAME_COL, PIXBUF_COL
+	def _add_file(self, file):
+		pixbuf = self.thumbman.get_thumbnail_async(file, ICON_SIZE)
+		if pixbuf is None:
+			# Set generic icon first - maybe thumbnail follows later, maybe not
+			pixbuf = get_mime_icon(file, ICON_SIZE) \
+				or self.render_icon(gtk.STOCK_FILE, ICON_SIZE)
+
+		self.store.append((file.basename, pixbuf)) # BASENAME_COL, PIXBUF_COL
 
 	def on_thumbnail_ready(self, o, file, size, pixbuf):
 		#~ print "GOT THUMB:", file, size, pixbuf
@@ -353,7 +501,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		item = gtk.MenuItem(_('Open With...')) # T: menu item
 		menu.prepend(item)
 
-		submenu = OpenWithMenu(file)
+		submenu = OpenWithMenu(self.ui, file)
 		item.set_submenu(submenu)
 
 		item = gtk.MenuItem(_('_Open')) # T: menu item to open file or folder
@@ -413,11 +561,9 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 		names = unpack_urilist(selectiondata.data)
 		files = [File(uri) for uri in names if uri.startswith('file://')]
 		action = dragcontext.action
-		print "DRAG RECEIVED", action, files
+		logger.debug('Drag received %s, %s', action, files)
 
-		if action == gtk.gdk.ACTION_COPY:
-			self._copy_files(files)
-		elif action == gtk.gdk.ACTION_MOVE:
+		if action == gtk.gdk.ACTION_MOVE:
 			self._move_files(files)
 		elif action == gtk.gdk.ACTION_ASK:
 			menu = gtk.Menu()
@@ -438,7 +584,9 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			menu.show_all()
 			menu.popup(None, None, None, 1, time)
 		else:
-			pass
+			# Assume gtk.gdk.ACTION_COPY or gtk.gdk.ACTION_DEFAULT
+			# on windows we get "0" which is not mapped to any action
+			self._copy_files(files)
 
 	def _move_files(self, files):
 		for file in files:
@@ -446,6 +594,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			file.rename(newfile)
 			self._add_file(newfile)
 			# TODO sort
+
+		self._update_state()
 
 	def _copy_files(self, files):
 		for file in files:
@@ -458,7 +608,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 class ThumbnailManager(gobject.GObject):
 	''' Thumbnail handling following freedesktop.org spec mostly
 
-	@signal: thumbnail-ready(file, size, pixbuf)
+	@signal: C{thumbnail-ready (file, size, pixbuf)}: thumbnail ready
 	'''
 	# TODO more doc here to explain what the function of the manager is
 
@@ -561,7 +711,7 @@ class ThumbnailManager(gobject.GObject):
 			return pixbuf
 		except:
 			# TODO Error class, logging, create failure file ?
-			logger.info('Failed to generate thumbnail for: %s', file)
+			#~ logger.info('Failed to generate thumbnail for: %s', file)
 			return None
 
 		#~ if self.preferences['use_imagemagick']:
@@ -651,7 +801,7 @@ class Thumbnailer(object):
 	def create_thumbnail(self, file, thumbfile, size):
 		'''Create a thumbnail
 		@param file: the file to be thumbnailed as L{File} object
-		@param thumfile: to be created thumbnail file as L{File} object
+		@param thumbfile: to be created thumbnail file as L{File} object
 		@param size: pixel size for thumbnail as integer
 		@implementation: must be implemented in subclasses
 		'''

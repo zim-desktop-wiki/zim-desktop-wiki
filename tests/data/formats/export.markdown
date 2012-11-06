@@ -155,15 +155,15 @@ aaa
 Some Objects
 ------------
 
-def dump():
-	for i in range(1, 5):
-		print i
+	def dump():
+		for i in range(1, 5):
+			print i
 
 
-Sing, O goddess, the rage of
-Achilles son of Peleus, that
-brought countless ills upon
-the Achaeans.
+	Sing, O goddess, the rage of
+	Achilles son of Peleus, that
+	brought countless ills upon
+	the Achaeans.
 
 
 ====

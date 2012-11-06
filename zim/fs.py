@@ -127,6 +127,8 @@ import logging
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.parsing import url_encode, url_decode
 from zim.async import AsyncOperation, AsyncLock
+from zim.signals import SignalEmitter
+
 
 logger = logging.getLogger('zim.fs')
 
@@ -140,7 +142,8 @@ except ImportError:
 	pass
 
 if not gio:
-	logger.warn("Trashing of files not supported, could not import 'gio'")
+	logger.info("Trashing of files not supported, could not import 'gio'")
+	logger.info('No file monitor support - changes will go undetected')
 
 
 xdgmime = None
@@ -216,7 +219,6 @@ if ENCODING == 'mbcs':
 			return path
 		else:
 			return unicode(path)
-
 else:
 	# Here we encode files to filesystem encoding. Fails if encoding is not possible.
 	def encode(path):
@@ -272,6 +274,29 @@ def joinpath(*parts):
 	'''
 	return os.path.join(*parts)
 
+def expanduser(path):
+	'''Wrapper for C{os.path.expanduser()} to get encoding right'''
+	if ENCODING == 'mbcs':
+		# This method is an exception in that it does not handle unicode
+		# directly. This will cause and error when user name contains
+		# non-ascii characters. See bug report lp:988041.
+		# But also mbcs encoding does not handle all characters,
+		# so only encode home part
+		parts = path.replace('\\', '/').strip('/').split('/')
+			# parts[0] now is "~" or "~user"
+
+		if isinstance(path, unicode):
+			part = parts[0].encode('mbcs')
+			part = os.path.expanduser(part)
+			parts[0] = part.decode('mbcs')
+		else:
+			# assume it is compatible
+			parts[0] = os.path.expanduser(parts[0])
+
+		return '/'.join(parts)
+	else:
+		# Let encode() handle the unicode encoding
+		return decode(os.path.expanduser(encode(path)))
 
 def get_tmpdir():
 	'''Get a folder in the system temp dir for usage by zim.
@@ -281,9 +306,11 @@ def get_tmpdir():
 	@returns: a L{Dir} object for the zim specific tmp folder
 	'''
 	import tempfile
+	from zim.config import get_environ
 	root = tempfile.gettempdir()
-	dir = Dir((root, 'zim-%s' % os.environ['USER']))
+	dir = Dir((root, 'zim-%s' % get_environ('USER')))
 	dir.touch(mode=0700) # Limit to single user
+	os.chmod(dir.path, 0700) # Limit to single user when dir already existed
 	return dir
 
 
@@ -326,10 +353,10 @@ def lrmdir(path):
 def cleanup_filename(name):
 	'''Removes all characters in 'name' that are not allowed as part
 	of a file name. This function is intended for e.g. config files etc.
+	B{not} for page files in a store.
 	For file system filenames we can not use:
 	'\\', '/', ':', '*', '?', '"', '<', '>', '|'
 	And we also exclude "\\t" and "\\n".
-	B{not} for page files in a store.
 	@param name: the filename as string
 	@returns: the name with invalid characters removed
 	'''
@@ -466,7 +493,7 @@ gobject.type_register(FSSingletonClass)
 FS = FSSingletonClass()
 
 
-class UnixPath(object):
+class UnixPath(SignalEmitter):
 	'''Base class for Dir and File objects, represents a file path
 
 	@ivar path: the absolute file path as string
@@ -478,7 +505,13 @@ class UnixPath(object):
 	@ivar basename: the basename of the path
 	@ivar dirname: the dirname of the path
 	@ivar dir: L{Dir} object for the parent folder
+
+	@signal: C{changed (file, other_file, event_type)}: emitted when file
+	changed - availability based on C{gio} support for file monitors on
+	this platform
 	'''
+
+	# TODO __signals__
 
 	def __init__(self, path):
 		'''Constructor
@@ -510,7 +543,7 @@ class UnixPath(object):
 		if path.startswith('file:/'):
 			path = self._parse_uri(path)
 		elif path.startswith('~'):
-			path = decode(os.path.expanduser(encode(path)))
+			path = expanduser(path)
 			if path.startswith('~'):
 				raise AssertionError, 'Could not expand path "%s" this could mean $HOME is not set' % path
 
@@ -605,6 +638,34 @@ class UnixPath(object):
 		path = os.path.dirname(self.path) # encoding safe
 		return Dir(path)
 
+	def _setup_signal(self, signal):
+		if signal != 'changed' \
+		or not gio:
+			return
+
+		try:
+			self._teardown_signal(signal) # just to be sure
+			file = gio.File(uri=self.uri)
+			self._gio_file_monitor = file.monitor()
+			self._gio_file_monitor.connect('changed', self._do_changed)
+		except:
+			logger.exception('Error while setting up file monitor')
+
+	def _teardown_signal(self, signal):
+		if signal != 'changed' \
+		or not hasattr(self, '_gio_file_monitor') \
+		or not self._gio_file_monitor:
+			return
+
+		try:
+			self._gio_file_monitor.cancel()
+			self._gio_file_monitor = None
+		except:
+			logger.exception('Error while tearing down file monitor')
+
+	def _do_changed(self, filemonitor, file, other_file, event_type):
+		self.emit('changed', None, None) # TODO translate otherfile and eventtype
+
 	def exists(self):
 		'''Check if a file or folder exists.
 		@returns: C{True} if the file or folder exists
@@ -654,7 +715,7 @@ class UnixPath(object):
 			stat_result = os.stat(self.encodedpath)
 			other_stat_result = os.stat(other.encodedpath)
 		except OSError:
-			return false
+			return False
 		else:
 			return stat_result == other_stat_result
 
@@ -843,9 +904,14 @@ class Dir(FilePath):
 	def exists(self):
 		return os.path.isdir(self.encodedpath)
 
-	def list(self, raw=False):
+	def list(self, glob=None, includehidden=False, includetmp=False, raw=False):
 		'''List the file contents
 
+		@param glob: a file name glob to filter the listed files, e.g C{"*.png"}
+		@param includehidden: if C{True} include hidden files
+		(e.g. names starting with "."), ignore otherwise
+		@param includetmp: if C{True} include temporary files
+		(e.g. names ending in "~"), ignore otherwise
 		@param raw: for filtered folders (C{FilteredDir} instances)
 		setting C{raw} to C{True} will disable filtering
 
@@ -858,7 +924,7 @@ class Dir(FilePath):
 		if ENCODING == 'mbcs':
 			# We are running on windows and os.listdir will handle unicode natively
 			assert isinstance(self.encodedpath, unicode)
-			for file in self._list():
+			for file in self._list(includehidden, includetmp):
 				if isinstance(file, unicode):
 					files.append(file)
 				else:
@@ -868,19 +934,28 @@ class Dir(FilePath):
 			# os.listdir(path) is _not_ a unicode object, the result will
 			# be a list of byte strings. We can decode them ourselves.
 			assert not isinstance(self.encodedpath, unicode)
-			for file in self._list():
+			for file in self._list(includehidden, includetmp):
 				try:
 					files.append(file.decode(ENCODING))
 				except UnicodeDecodeError:
 					logger.warn('Ignoring file: "%s" invalid file name', file)
+
+		if glob:
+			expr = _glob_to_regex(glob)
+			files = filter(expr.match, files)
+
 		files.sort()
 		return files
 
-	def _list(self):
+	def _list(self, includehidden, includetmp):
 		if self.exists():
 			files = []
 			for file in os.listdir(self.encodedpath):
-				if not file.startswith('.'): # skip hidden files
+				if file.startswith('.') and not includehidden:
+					continue # skip hidden files
+				elif file.endswith('~') and not includetmp:
+					continue # skip temporary files
+				else:
 					files.append(file)
 			return files
 		else:
@@ -921,6 +996,11 @@ class Dir(FilePath):
 		exist.
 		@param mode: creation mode (e.g. 0700)
 		'''
+		if self.exists():
+			# Additional check needed because makedirs can not handle
+			# a path like "E:\" on windows (while "E:\foo" works fine)
+			return
+
 		try:
 			if mode is not None:
 				os.makedirs(self.encodedpath, mode=mode)
@@ -1159,8 +1239,8 @@ class FilteredDir(Dir):
 		else:
 			return True
 
-	def list(self, raw=False):
-		files = Dir.list(self)
+	def list(self, includehidden=False, includetmp=False, raw=False):
+		files = Dir.list(self, includehidden, includetmp)
 		if not raw:
 			files = filter(self.filter, files)
 		return files
@@ -1228,6 +1308,18 @@ class UnixFile(FilePath):
 		self.checkoverwrite = checkoverwrite
 		self.endofline = endofline
 		self._mtime = None
+		self._lock = FS.get_async_lock(self)
+
+	def __getstate__(self):
+		# Copy the object's state from self.__dict__
+		# But remove the unpicklable entries.
+		state = self.__dict__.copy()
+		del state['_lock']
+		return state
+
+	def __setstate__(self, state):
+		# Restore instance attributes
+		self.__dict__.update(state)
 		self._lock = FS.get_async_lock(self)
 
 	def __eq__(self, other):
@@ -1302,7 +1394,7 @@ class UnixFile(FilePath):
 		assert mode in ('r', 'w')
 		if mode == 'w':
 			if not self.iswritable():
-				raise FileWriteError, _('File is not writable') # T: Error message
+				raise FileWriteError, _('File is not writable: %s') % self.path # T: Error message
 			elif not self.exists():
 				self.dir.touch()
 			else:
@@ -1565,7 +1657,8 @@ class UnixFile(FilePath):
 			if not self._mtime == mtime:
 				logger.warn('mtime check failed for %s, trying md5', self.path)
 				if _md5(self._content) != _md5(self.open('r').read()):
-					raise FileWriteError, 'File changed on disk: %s' % self.path
+					raise FileWriteError, _('File changed on disk: %s') % self.path
+						# T: error message
 					# Why are we using MD5 here ?? could just compare content...
 
 	def touch(self):

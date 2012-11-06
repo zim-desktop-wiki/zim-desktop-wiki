@@ -17,7 +17,7 @@ The **Command** ...
 When defining a command, you can use the following parameters to supply the external program with some context information from within zim:
 
 **%f**	for page source as a temporary file
-**%d**	for the attachment directory of the current page
+**%d**	for the [[Help:Attachments|attachment]] directory of the current page
 **%s**	for the real page source file (if any)
 **%n**	for the notebook location (file or folder)
 **%D**	for the document root (if any)

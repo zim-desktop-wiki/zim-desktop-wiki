@@ -52,10 +52,9 @@ Details: see [[http://zim-wiki.org/wiki/doku.php?id=support_tables|this page]] f
 Amount: 100 Euro
 Details: see [[http://www.zim-wiki.org/wiki/doku.php?id=creating_an_android_application|this page]] for details
 
-**Support for Git version control** - //in progress//
-Amount: 100 Euro 
+~~Support for Git version control~~ - **done**
 
-~~Support for sorting pages by tags~~** - done**
+~~Support for sorting pages by tags~~ - **done**
 
 //More bounties will be set as more donations come in. Subscribe to the mailing list to get notifications of updates.//
 

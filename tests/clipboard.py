@@ -72,12 +72,14 @@ class TestClipboard(tests.TestCase):
 			self.assertEqual(newtree.tostring(), parsetree.tostring())
 
 		# setup parsetree
-		input = 'some **bold** text'
+		input = 'some **bold** text\n'
 		parser = zim.formats.get_format('wiki').Parser()
 		parsetree = parser.parse(input)
 		Clipboard.set_parsetree(self.notebook, page, parsetree)
 
 		# parsetree -> text (plain & wiki preference)
+		# Note that pasting partial text (without newline) is tested
+		# in the pageview test.
 		wanted = 'some bold text\n'
 		text = Clipboard.get_text()
 		self.assertEqual(text, wanted)

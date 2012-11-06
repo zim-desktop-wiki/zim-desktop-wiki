@@ -110,7 +110,7 @@ def url_encode(url, mode=URL_ENCODE_PATH):
 		- C{URL_ENCODE_READABLE}: encode whitespace and all unicode characters
 
 	The mode URL_ENCODE_READABLE can be applied to urls that are already
-	encoded because they do not touch the "%" character. The modes
+	encoded because it does not touch the "%" character. The modes
 	URL_ENCODE_DATA and URL_ENCODE_PATH can only be applied to strings
 	that are known not to be encoded.
 
@@ -312,8 +312,10 @@ class Re(object):
 		return self.m.end(group)
 
 # Some often used regexes
+is_uri_re = Re('^(\w[\w\+\-\.]*):')
+	# "scheme:"
 is_url_re = Re('^(\w[\w\+\-\.]*)://')
-	# scheme "://"
+	# "scheme://"
 is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+$', re.U)
 	# "mailto:" address
 	# name "@" host
@@ -345,8 +347,21 @@ url_re = Re(r'''(
 	# See rfc/3986 for the official -but unpractical- regex
 
 
+def uri_scheme(link):
+	'''Function that returns a scheme for URIs, URLs and email addresses'''
+	if is_email_re.match(link):
+		return 'mailto'
+	elif is_uri_re.match(link):
+		# Includes URLs, but also URIs like "mid:", "cid:"
+		return is_uri_re[1]
+	else:
+		return None
+
+
 def link_type(link):
 	'''Function that returns a link type for urls and page links'''
+	# More strict than uri_scheme() because page links conflict with
+	# URIs without "//" or without "@"
 	if is_url_re.match(link):
 		if link.startswith('zim+'): type = 'notebook'
 		else: type = is_url_re[1]
@@ -383,4 +398,3 @@ class TextBuffer(list):
 		lines = self.get_lines(end_with_newline=False)
 			# allowing end_with_newline here modifies content
 		self[:] = [prefix + line for line in lines]
-

@@ -15,7 +15,7 @@ from zim.formats import get_format, BaseLinker
 from zim.templates import get_template, Template
 from zim.notebook import Path, Page, IndexPage, PageNameError
 from zim.stores import encode_filename
-from zim.parsing import url_encode
+from zim.parsing import url_encode, url_decode
 
 logger = logging.getLogger('zim.exporter')
 
@@ -322,6 +322,7 @@ class StaticLinker(BaseLinker):
 			uri, path = url.split('?')
 			# FIXME: code below is not robust because we don't know the
 			# storage mode of linked notebook...
+			path = url_decode(path) # was already encoded by interwiki_link()
 			path = encode_filename(path).replace(' ', '_')
 			return uri + '/' + url_encode(path) + '.txt'
 		else:

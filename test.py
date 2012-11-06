@@ -89,7 +89,8 @@ On Ubuntu or Debian install package 'python-coverage'.
 
 	# And run it
 	unittest.installHandler() # Fancy handling for ^C during test
-	unittest.TextTestRunner(verbosity=2, failfast=failfast).run(suite)
+	result = \
+		unittest.TextTestRunner(verbosity=2, failfast=failfast, descriptions=False).run(suite)
 
 	# Check the modules were loaded from the right location
 	# (so no testing based on modules from a previous installed version...)
@@ -102,82 +103,92 @@ On Ubuntu or Debian install package 'python-coverage'.
 				assert file.startswith(mylib), \
 					'Module %s was loaded from %s' % (module, file)
 
+	test_report(result, 'test_report.html')
+	print '\nWrote test report to test_report.html\n'
+
 	# Create coverage output if asked to do so
 	if coverage:
 		coverage.stop()
 		#~ coverage.combine()
 
-		print '\nWriting coverage reports...'
+		print 'Writing coverage reports...'
+
 		pyfiles = list(tests.zim_pyfiles())
 		#~ coverage.report(pyfiles, show_missing=False)
-		#~ coverage.html_report(pyfiles, directory='./coverage')
-		html_coverage_report(coverage, pyfiles, './coverage')
+		#~ coverage.html_report(pyfiles, directory='./coverage', omit=['zim/inc/*'])
+		coverage_report(coverage, pyfiles, './coverage')
 		print 'Done - Coverage reports can be found in ./coverage/'
 
 
-def html_coverage_report(coverage, pyfiles, directory):
-	'''Our own wrapper to get coverage data in html - standard wrapper
-	from coverage.html_report fails for our code :(
-	'''
 
-	# Detailed report in html
+
+## #################################### ##
+## Functions to produce various reports ##
+## #################################### ##
+
+def test_report(result, file):
+	'''Produce html report of test failures'''
+	output = open(file, 'w')
+	output.write('''\
+<html>
+<head>
+<title>Zim unitest Test Report</title>
+</head>
+<body>
+<h1>Zim unitest Test Report</h1>
+<p>
+%i tests run<br/>
+%i skipped<br/>
+%i errors<br/>
+%i failures<br/>
+</p>
+<hr/>
+''' % (
+	result.testsRun,
+	len(result.skipped),
+	len(result.errors),
+	len(result.failures),
+))
+
+	def escape_html(text):
+		return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+	def add_errors(flavour, errors):
+		for test, err in errors:
+			output.write("<h2>%s: %s</h2>\n" % (flavour, escape_html(result.getDescription(test))))
+			output.write("<pre>%s\n</pre>\n" % escape_html(err))
+			output.write("<hr/>\n")
+
+	add_errors('ERROR', result.errors)
+	add_errors('FAIL', result.failures)
+
+	output.close()
+
+
+def coverage_report(coverage, pyfiles, directory):
+	'''Produce annotated text and html reports.
+	Alternative for coverage.html_report().
+	'''
 	if os.path.exists(directory):
 		shutil.rmtree(directory) # cleanup
 	os.mkdir(directory)
 
+	# reports per source file
 	index = []
 	for path in pyfiles:
 		if any(n in path for n in ('inc', '_version', '__main__')):
 			continue
 
-		htmlfile = path[:-3].replace('/', '.')+'.html'
-		html = open(directory + '/' + htmlfile, 'w')
-		html.write('''\
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Coverage report for %s</title>
-<style>
-	.code { white-space: pre; font-family: monospace }
-	.executed { background-color: #9f9 }
-	.excluded { background-color: #ccc }
-	.missing  { background-color: #f99 }
-	.comment  { }
-</style>
-</head>
-<body>
-<h1>Coverage report for %s</h1>
-<table width="100%%">
-<tr><td class="executed">&nbsp;</td><td>Executed statement</td></tr>
-<tr><td class="missing">&nbsp;</td><td>Untested statement</td></tr>
-<tr><td class="excluded">&nbsp;</td><td>Ignored statement</td></tr>
-<tr><td>&nbsp</td><td>&nbsp</td></tr>
-''' % (path, path))
-
+		txtfile = path[:-3].replace('/', '.') + '.txt'
+		htmlfile = path[:-3].replace('/', '.') + '.html'
 
 		p, statements, excluded, missing, l = coverage.analysis2(path)
 		nstat = len(statements)
 		nexec = nstat - len(missing)
 		index.append((path, htmlfile, nstat, nexec))
-		file = open(path)
-		i = 0
-		for line in file:
-			i += 1
-			line = line.replace('<', '&lt;')
-			line = line.replace('>', '&gt;')
-			if   i in missing: type = 'missing'
-			elif i in excluded: type = 'excluded'
-			elif i in statements: type = 'executed'
-			else: type = 'comment'
 
-			html.write('<tr><td class="%s">%i</td><td class="code">%s</td></tr>\n'
-							% (type, i, line.rstrip()) )
-		html.write('''\
-</table>
-</body>
-</html>
-''')
-		html.close()
+		write_coverage_txt(path, directory+'/'+txtfile, missing, excluded, statements)
+		write_coverage_html(path, directory+'/'+htmlfile, missing, excluded, statements)
 
 	# Index for detailed reports
 	html = open(directory + '/index.html', 'w')
@@ -233,6 +244,65 @@ def html_coverage_report(coverage, pyfiles, directory):
 </html>
 ''')
 	html.close()
+
+
+def write_coverage_txt(sourcefile, txtfile, missing, excluded, statements):
+	txt = open(txtfile, 'w')
+	file = open(sourcefile)
+	i = 0
+	for line in file:
+		i += 1
+		if   i in missing: prefix = '!'
+		elif i in excluded: prefix = '.'
+		elif i in statements: prefix = ' '
+		else: prefix = ' '
+		txt.write(prefix + line)
+	txt.close()
+
+
+def write_coverage_html(sourcefile, htmlfile, missing, excluded, statements):
+	html = open(htmlfile, 'w')
+	html.write('''\
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Coverage report for %s</title>
+<style>
+	.code { white-space: pre; font-family: monospace }
+	.executed { background-color: #9f9 }
+	.excluded { background-color: #ccc }
+	.missing  { background-color: #f99 }
+	.comment  { }
+</style>
+</head>
+<body>
+<h1>Coverage report for %s</h1>
+<table width="100%%">
+<tr><td class="executed">&nbsp;</td><td>Executed statement</td></tr>
+<tr><td class="missing">&nbsp;</td><td>Untested statement</td></tr>
+<tr><td class="excluded">&nbsp;</td><td>Ignored statement</td></tr>
+<tr><td>&nbsp</td><td>&nbsp</td></tr>
+''' % (sourcefile, sourcefile))
+
+	file = open(sourcefile)
+	i = 0
+	for line in file:
+		i += 1
+		if   i in missing: type = 'missing'
+		elif i in excluded: type = 'excluded'
+		elif i in statements: type = 'executed'
+		else: type = 'comment'
+
+		line = line.rstrip().replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+		html.write('<tr><td class="%s">%i</td><td class="code">%s</td></tr>\n'
+						% (type, i, line) )
+	html.write('''\
+</table>
+</body>
+</html>
+''')
+	html.close()
+
 
 
 

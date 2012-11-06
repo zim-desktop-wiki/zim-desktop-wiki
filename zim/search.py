@@ -6,9 +6,9 @@
 This module contains the logic for searching in a notebook.
 
 Supported operators:
- 	- "NOT", "not" and "-"
- 	- "AND", "and", "+" and "&&"
- 	- "OR", "or" and "||"
+	- "NOT", "not" and "-"
+	- "AND", "and", "+" and "&&"
+	- "OR", "or" and "||"
 
 Order of precedence: AND, OR, NOT
 so "foo AND NOT bar OR baz" means AND(foo, OR(NOT(bar), baz))
@@ -258,12 +258,12 @@ class SearchSelection(PageSelection):
 		# it is recursive for nested QueryGroup objects and calls
 		# _process_from_index and _process_content to handle
 		# QueryTerms in the group. It takes care of combining the
-		# results from various terms and calling the callback 
+		# results from various terms and calling the callback
 		# function when possible
 
 		# Special case to optimize for simple OR query to give callback results
 		if len(group) == 1 and isinstance(group[0], QueryGroup):
-			group = group[0] 
+			group = group[0]
 
 		# For optimization we sort the terms in the group based  on how
 		# easy we can get them. Anything that needs content is last.
@@ -451,7 +451,9 @@ class SearchSelection(PageSelection):
 				scope = set()
 				for p in index.walk():
 					scope.add(p)
-			myresults = scope - myresults
+			inverse = scope - myresults
+			myresults.clear()
+			myresults.update(inverse)
 
 		for path in myresults:
 			self._count_score(path, scoring)
@@ -467,8 +469,8 @@ class SearchSelection(PageSelection):
 		# Note that this rationale is for flat searches, once sub-groups
 		# are involved things get less optimized.
 		#
-		# For AND 'scope' will be the results of previous steps, we make a subset 
-		# of this. In 'results' will only be any final results already obtained from 
+		# For AND 'scope' will be the results of previous steps, we make a subset
+		# of this. In 'results' will only be any final results already obtained from
 		# contentorname optimization
 		# For OR 'results' is whatever was found so far while 'scope' can be larger
 		# we extend the results with any matches from scope

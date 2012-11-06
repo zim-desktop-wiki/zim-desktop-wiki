@@ -30,7 +30,7 @@ if sys.version_info >= (2, 6):
 else:
 	import simplejson as json # extra dependency
 
-from zim.fs import isfile, isdir, File, Dir, FileNotFoundError
+from zim.fs import isfile, isdir, File, Dir, FileNotFoundError, ENCODING
 from zim.errors import Error
 from zim.parsing import TextBuffer, split_quoted_strings
 
@@ -38,11 +38,58 @@ from zim.parsing import TextBuffer, split_quoted_strings
 logger = logging.getLogger('zim.config')
 
 
+def get_environ(param, default=None):
+	'''Get a parameter from the environment. Like C{os.environ.get()}
+	but does decoding for non-ascii characters.
+	@param param: the parameter to get
+	@param default: the default if C{param} does not exist
+	@returns: a unicode string or C{default}
+	'''
+	# Do NOT use zim.fs.decode here, we want real decoding on windows,
+	# not just convert to unicode
+	value = os.environ.get(param, default)
+	if isinstance(value, str):
+		return value.decode(ENCODING)
+	else:
+		return value
+
+
+def get_environ_list(param, default=None, sep=None):
+	'''Get a parameter from the environment and convert to a list.
+	@param param: the parameter to get
+	@param default: the default if C{param} does not exist
+	@param sep: optional seperator, defaults to C{os.pathsep} if not given
+	@returns: a list or the default
+	'''
+	value = get_environ(param, default)
+	if isinstance(value, basestring) and value and not value.isspace():
+		if sep is None:
+			sep = os.pathsep
+		return value.split(sep)
+	elif isinstance(value, (list, tuple)):
+		return value
+	else:
+		return []
+
+
+def set_environ(param, value):
+	'''Set a parameter in the environment. Like assigning in
+	C{os.environ}, but with proper encoding.
+	@param param: the parameter to set
+	@param value: the value, should be a string
+	'''
+	if isinstance(value, unicode):
+		value = value.encode(ENCODING)
+	os.environ[param] = value
+
+
+### Inialize environment - just to be sure
+
 if os.name == 'nt':
 	# Windows specific environment variables
 	# os.environ does not support setdefault() ...
 	if not 'USER' in os.environ or not os.environ['USER']:
-		os.environ['USER'] =  os.environ['USERNAME']
+		os.environ['USER'] = os.environ['USERNAME']
 
 	if not 'HOME' in os.environ or not os.environ['HOME']:
 		if 'USERPROFILE' in os.environ:
@@ -50,15 +97,17 @@ if os.name == 'nt':
 		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
 			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
 			os.environ['HOME'] = home
-
-assert isdir(os.environ['HOME']), \
-	'ERROR: environment variable $HOME not set correctly'
-
-if not 'USER' in os.environ or not os.environ['USER']:
+elif not 'USER' in os.environ or not os.environ['USER']:
 	# E.g. Maemo doesn't define $USER
 	os.environ['USER'] = os.path.basename(os.environ['HOME'])
 	logger.info('Environment variable $USER was not set')
 
+
+assert isdir(get_environ('HOME')), \
+	'ERROR: environment variable $HOME not set correctly'
+
+
+## Initialize config paths
 
 ZIM_DATA_DIR = None #: 'data' dir relative to script file (when running from source), L{Dir} or C{None}
 XDG_DATA_HOME = None #: L{Dir} for XDG data home
@@ -89,33 +138,24 @@ def _set_basedirs():
 	else:
 		ZIM_DATA_DIR = None
 
-	if 'XDG_DATA_HOME' in os.environ:
-		XDG_DATA_HOME = Dir(os.environ['XDG_DATA_HOME'])
-	else:
-		XDG_DATA_HOME = Dir('~/.local/share/')
+	XDG_DATA_HOME = Dir(
+		get_environ('XDG_DATA_HOME', '~/.local/share/'))
 
-	if 'XDG_DATA_DIRS' in os.environ:
-		XDG_DATA_DIRS = map(Dir, os.environ['XDG_DATA_DIRS'].split(os.pathsep))
-	else:
-		XDG_DATA_DIRS = map(Dir, ('/usr/share/', '/usr/local/share/'))
+	XDG_DATA_DIRS = map(Dir,
+		get_environ_list('XDG_DATA_DIRS', ('/usr/share/', '/usr/local/share/')))
 
-	if 'XDG_CONFIG_HOME' in os.environ:
-		XDG_CONFIG_HOME = Dir(os.environ['XDG_CONFIG_HOME'])
-	else:
-		XDG_CONFIG_HOME = Dir('~/.config/')
+	XDG_CONFIG_HOME = Dir(
+		get_environ('XDG_CONFIG_HOME', '~/.config/'))
 
-	if 'XDG_CONFIG_DIRS' in os.environ:
-		XDG_CONFIG_DIRS = map(Dir, os.environ['XDG_CONFIG_DIRS'].split(os.pathsep))
-	else:
-		XDG_CONFIG_DIRS = [Dir('/etc/xdg/')]
+	XDG_CONFIG_DIRS = map(Dir,
+		get_environ_list('XDG_CONFIG_DIRS', ('/etc/xdg/',)))
 
-	if 'XDG_CACHE_HOME' in os.environ:
-		XDG_CACHE_HOME = Dir(os.environ['XDG_CACHE_HOME'])
-	else:
-		XDG_CACHE_HOME = Dir('~/.cache')
+	XDG_CACHE_HOME = Dir(
+		get_environ('XDG_CACHE_HOME', '~/.cache'))
 
 # Call on module initialization to set defaults
 _set_basedirs()
+
 
 def log_basedirs():
 	'''Write the search paths used to the logger, used to generate
@@ -202,45 +242,35 @@ def config_dirs():
 	for dir in data_dirs():
 		yield dir
 
-def config_file(path, klass=None):
-	'''Get a zim config file.
 
-	Use this as the main function to find config files.
-
-	@param path: the relative file path of the config file,
-	e.g. "preferences.conf"
-
-	@param klass: a class object to use for the returned config file,
-	defaults to L{ConfigDictFile} for files ending with ".conf", and
-	L{TextConfigFile} for all other files. Constructor of this class
-	should take the same arguments as L{ConfigDictFile}.
-
-	@returns: a config file object of the class specified, even if no
-	config file of this name exists (yet). Typically this object will
-	read values of any installed default, but write new values to the
-	config home.
+def config_file(path):
+	'''Alias for constructing a L{ConfigFile} object
+	@param path: either basename as string or tuple with relative path
+	@returns: a L{ConfigFile}
 	'''
-	if isinstance(path, basestring):
-		path = [path]
-	zimpath = ['zim'] + list(path)
-	file = XDG_CONFIG_HOME.file(zimpath)
+	return ConfigFile(path)
 
-	if not file.exists():
-		for dir in config_dirs():
-			default = dir.file(path)
-			if default.exists():
-				break
-		else:
-			default = None
-	else:
-		default = None
 
-	if klass:
-		return klass(file, default=default)
-	elif path[-1].endswith('.conf'):
-		return ConfigDictFile(file, default=default)
-	else:
-		return TextConfigFile(file, default=default)
+def get_config(path):
+	'''Convenience method to construct a L{ConfigDictFile} based on a
+	C{ConfigFile}.
+	@param path: either basename as string or tuple with relative path
+	@returns: a L{ConfigDictFile}
+	'''
+	file = ConfigFile(path)
+	return ConfigDictFile(file)
+
+
+def list_profiles():
+	'''Returns a list known preferences profiles.'''
+	profiles = []
+	for dir in config_dirs():
+		for f in dir.subdir('profiles').list():
+			if f.endswith('.conf'):
+				profiles.append(f[:-5])
+	profiles.sort()
+	return profiles
+
 
 def user_dirs():
 	'''Get the XDG user dirs.
@@ -267,6 +297,128 @@ def user_dirs():
 	except FileNotFoundError:
 		pass
 	return dirs
+
+
+class ConfigFile(object):
+	'''Container object for a config file
+
+	Maps to a "base" file in the home folder, used to write new values,
+	and one or more default files, e.g. in C{/usr/share/zim}, which
+	are the fallback to get default values
+
+	@ivar file: the underlying file object for the base config file
+	in the home folder
+
+	@note: this class implement similar API to the L{File} class but
+	is explicitly not a sub-class of L{File} because config files should
+	typically not be moved, renamed, etc. It just implements the reading
+	and writing methods.
+	'''
+
+	def __init__(self, path, file=None):
+		'''Constructor
+		@param path: either basename as string or tuple with relative path,
+		is resolved relative to the default config dir for zim.
+		@param file: optional argument for some special case to
+		override the base file in the home folder.
+		'''
+		if isinstance(path, basestring):
+			path = (path,)
+		self._path = tuple(path)
+		if file:
+			self.file = file
+		else:
+			self.file = File((XDG_CONFIG_HOME, 'zim') + self._path)
+
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self.file.path)
+
+	def __eq__(self, other):
+		return isinstance(other, ConfigFile) \
+		and other._path == self._path \
+		and other.file == self.file
+
+	@property
+	def basename(self):
+		return self.file.basename
+
+	def default_files(self):
+		'''Generator that yields default config files (read-only) to
+		use instead of the standard file when it is still empty.
+		Typically only the first one is used.
+		'''
+		for dir in config_dirs():
+			default = dir.file(self._path)
+			if default.exists():
+				yield default
+
+	def touch(self):
+		'''Ensure the custom file in the home folder exists. Either by
+		copying a default config file, or touching an empty file.
+		Intended to be called before trying to edit the file with an
+		external editor.
+		'''
+		if not self.file.exists():
+			for file in self.default_files():
+				file.copyto(self.file)
+				break
+			else:
+				self.file.touch() # create empty file
+
+	def read(self, fail=False):
+		'''Read the base file or first default file
+		@param fail: if C{True} a L{FileNotFoundError} error is raised
+		when neither the base file or a default file are found. If
+		C{False} it will return C{''} for a non-existing file.
+		@returns: file content as a string
+		'''
+		try:
+			return self.file.read()
+		except FileNotFoundError:
+			for file in self.default_files():
+				return file.read()
+			else:
+				if fail:
+					raise
+				else:
+					return ''
+
+	def readlines(self, fail=False):
+		'''Read the base file or first default file
+		@param fail: if C{True} a L{FileNotFoundError} error is raised
+		when neither the base file or a default file are found. If
+		C{False} it will return C{[]} for a non-existing file.
+		@returns: file content as a list of lines
+		'''
+		try:
+			return self.file.readlines()
+		except FileNotFoundError:
+			for file in self.default_files():
+				return file.readlines()
+			else:
+				if fail:
+					raise
+				else:
+					return []
+
+	# Not implemented: read_async and readlines_async
+
+	def write(self, text):
+		'''Write base file, see L{File.write()}'''
+		self.file.write(text)
+
+	def writelines(self, lines):
+		'''Write base file, see L{File.writelines()}'''
+		self.file.writelines(lines)
+
+	def write_async(self, text, callback=None, data=None):
+		'''Write base file async, see L{File.write_async()}'''
+		return self.file.write_async(text, callback=callback, data=data)
+
+	def writelines_async(self, lines, callback=None, data=None):
+		'''Write base file async, see L{File.writelines_async()}'''
+		return self.file.writelines_async(lines, callback=callback, data=data)
+
 
 
 def check_class_allow_empty(value, default):
@@ -342,6 +494,9 @@ class ListDict(dict):
 	def __init__(self):
 		self.order = []
 		self._modified = False
+
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, dict.__repr__(self))
 
 	def copy(self):
 		'''Shallow copy of the items
@@ -519,7 +674,19 @@ class ListDict(dict):
 		elif isinstance(check, (set, list)) \
 		or (isinstance(check, tuple) and not isinstance(default, int)):
 			if not (allow_empty and default in ('', None)):
-				assert default in check, 'Default is not within allows set'
+				# HACK to allow for preferences with "choice" item that has
+				# a list of tuples as argumnet
+				if all(isinstance(t, tuple) for t in check):
+					check = list(check) # copy
+					check += [t[0] for t in check]
+				assert default in check, 'Default is not within allowed set'
+
+			# HACK to allow the value to be a tuple...
+			if all(isinstance(t, tuple) for t in check) \
+			and isinstance(self[key], list):
+				modified = self.modified
+				self.__setitem__(key, tuple(self[key]))
+				self.set_modified(modified)
 
 			if not self[key] in check:
 				logger.warn(
@@ -648,13 +815,14 @@ class ConfigDict(ListDict):
 					section.append(ListDict())
 					section = section[-1]
 			elif '=' in line:
-				parameter, value = line.split('=', 1)
+				parameter, rawvalue = line.split('=', 1)
 				parameter = str(parameter.rstrip()) # no unicode
+				rawvalue = rawvalue.lstrip()
 				try:
-					value = self._decode_value(parameter, value.lstrip())
+					value = self._decode_value(parameter, rawvalue)
 					section[parameter] = value
 				except:
-					logger.warn('Failed to parse value for: %s', parameter)
+					logger.warn('Failed to parse value for key "%s": %s', parameter, rawvalue)
 			else:
 				logger.warn('Could not parse line: %s', line)
 
@@ -679,7 +847,7 @@ class ConfigDict(ListDict):
 				return value
 			except: pass
 
-			return json.loads('"%s"' % value.replace('"', '\\"')) # force string
+			return json.loads('"%s"' % value.replace('"', r'\"')) # force string
 
 	def dump(self):
 		'''Serialize the config to a "ini-style" config file.
@@ -716,26 +884,20 @@ class ConfigDict(ListDict):
 				# specify separators for compact encoding
 
 
-class ConfigFile(ListDict):
-	'''Mixin class for reading and writing config to file'''
+class ConfigFileMixin(ListDict):
+	'''Mixin class for reading and writing config to file, can be used
+	with any parent class that has a C{parse()}, a C{dump()}, and a
+	C{set_modified()} method. See L{ConfigDict} for the documentation
+	of these methods.
+	'''
 
-	def __init__(self, file, default=None):
+	def __init__(self, file):
 		'''Constructor
-
-		Typically C{file} is the file in the home dir that the user can
-		always write to. While C{default} is the default file in e.g.
-		"/usr/share" which the user can read but not write. When the
-		file in the home folder does not exist, the default is read,
-		but when we write it after modifications we write to the home
-		folder file.
-
-		@param file: a L{File} object for reading and writing the config
-		@param default: optional default L{File} object, only used for
-		reading when C{file} does not exist.
+		@param file: a L{File} or L{ConfigFile} object for reading and
+		writing the config.
 		'''
 		ListDict.__init__(self)
 		self.file = file
-		self.default = default
 		try:
 			self.read()
 			self.set_modified(False)
@@ -743,21 +905,15 @@ class ConfigFile(ListDict):
 			pass
 
 	def read(self):
-		'''Read data'''
-		# TODO: flush dict first ?
-		try:
-			logger.debug('Loading %s', self.file.path)
-			self.parse(self.file.readlines())
-		except FileNotFoundError:
-			if self.default:
-				logger.debug('File not found, loading %s', self.default.path)
-				self.parse(self.default.readlines())
-			else:
-				raise
+		'''Read data from file'''
+		# No flush here - this is used by change_file()
+		# but may change in the future - so do not depend on it
+		logger.debug('Loading config from: %s', self.file)
+		self.parse(self.file.readlines())
+		# Will fail with FileNotFoundError if file does not exist
 
 	def write(self):
-		'''Write data and set C{modified} to C{False}
-		'''
+		'''Write data and set C{modified} to C{False}'''
 		self.file.writelines(self.dump())
 		self.set_modified(False)
 
@@ -770,36 +926,26 @@ class ConfigFile(ListDict):
 		self.set_modified(False)
 		return operation
 
-
-class ConfigDictFile(ConfigFile, ConfigDict):
-	pass
-
-
-class TextConfigFile(list):
-	'''Like L{ConfigFile}, but just represents a list of lines'''
-
-	# TODO think of a way of uniting this class with ConfigFile
-
-	def __init__(self, file, default=None):
+	def change_file(self, file, merge=True):
+		'''Change the underlaying file used to read/write data
+		Used to switch to a new config file without breaking existing
+		references to config sections.
+		@param file: a L{File} or L{ConfigFile} object for the new config
+		@param merge: if C{True} the new file will be read (if it exists)
+		and values in this dict will be updated.
+		'''
 		self.file = file
-		self.default = default
 		try:
 			self.read()
+			self.set_modified(True)
+				# This is the correct state because after reading we are
+				# merged state, so does not matching file content
 		except FileNotFoundError:
 			pass
 
-	def read(self):
-		# TODO: flush list first ?
-		try:
-			self[:] = self.file.readlines()
-		except FileNotFoundError:
-			if self.default:
-				self[:] = self.default.readlines()
-			else:
-				raise
 
-	def write(self):
-		self.file.writelines(self)
+class ConfigDictFile(ConfigFileMixin, ConfigDict):
+	pass
 
 
 class HeaderParsingError(Error):

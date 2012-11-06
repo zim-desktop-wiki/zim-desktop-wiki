@@ -105,8 +105,8 @@ class GNURPlotGenerator(ImageGeneratorClass):
 	imagename = 'gnu_r_plot.png'
 
 	def __init__(self):
-		file = data_file('templates/_GNU_R_Plot.r')
-		assert file, 'BUG: could not find templates/_GNU_R_Plot.r'
+		file = data_file('templates/plugins/gnu_r_editor.r')
+		assert file, 'BUG: could not find templates/plugins/gnu_r_editor.r'
 		self.template = GenericTemplate(file.readlines(), name=file)
 		self.plotscriptfile = TmpFile(self.scriptname)
 
@@ -121,7 +121,8 @@ class GNURPlotGenerator(ImageGeneratorClass):
 
 		template_vars = {
 			'gnu_r_plot_script': plot_script,
-			'png_fname': pngfile.path,
+			'png_fname': pngfile.path.replace('\\', '/'),
+				# Even on windows, GNU R expects unix path seperator
 		}
 
 		# Write to tmp file usign the template for the header / footer
@@ -133,7 +134,8 @@ class GNURPlotGenerator(ImageGeneratorClass):
 		# Call GNU R
 		try:
 			gnu_r = Application(gnu_r_cmd)
-			gnu_r.run(args=('-f', plotscriptfile.basename, ), cwd=plotscriptfile.dir)
+			#~ gnu_r.run(args=('-f', plotscriptfile.basename, ), cwd=plotscriptfile.dir)
+			gnu_r.run(args=('-f', plotscriptfile.basename, '--vanilla'), cwd=plotscriptfile.dir)
 		except:
 			return None, None # Sorry, no log
 		else:

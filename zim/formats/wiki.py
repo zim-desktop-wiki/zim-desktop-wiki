@@ -328,11 +328,15 @@ class Parser(ParserClass):
 	def __init__(self, version=WIKI_FORMAT_VERSION):
 		self.backward = version not in ('zim 0.26', WIKI_FORMAT_VERSION)
 
-	def parse(self, input):
+	def parse(self, input, partial=False):
 		if not isinstance(input, basestring):
 			input = ''.join(input)
 
+		end = input[-1]
 		input = prepare_text(input)
+		if partial and input.endswith('\n') and end != '\n':
+			# reverse extension done by prepare_text()
+			input = input[:-1]
 
 		builder = ParseTreeBuilder()
 		wikiparser.backward = self.backward # HACK

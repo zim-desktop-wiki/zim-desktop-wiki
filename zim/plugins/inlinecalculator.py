@@ -3,7 +3,7 @@
 # Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 #
 # Inspired by and partially based on code from clac.py,
-# Copyright 2009 Mark Borgerding and licensed under the GPL version 3
+# Which is copyright 2009 Mark Borgerding and licensed under the GPL version 3
 
 from __future__ import with_statement
 from __future__ import division # We are doing math in this module ...
@@ -41,110 +41,110 @@ ui_actions = (
 
 # helper functions
 def dip(x):
-    'demote, if possible, a complex to scalar'
-    if type(x) == complex and x.imag == 0:
-        return x.real
-    else:
-        return x
+	'demote, if possible, a complex to scalar'
+	if type(x) == complex and x.imag == 0:
+		return x.real
+	else:
+		return x
 
 def which_call(x, mathfunc, cmathfunc, allowNegative=True):
-    x=dip(x)
-    if type(x) == complex or (allowNegative == False and x<0):
-        return cmathfunc(x)
-    else:
-        return mathfunc(x)
+	x=dip(x)
+	if type(x) == complex or (allowNegative == False and x<0):
+		return cmathfunc(x)
+	else:
+		return mathfunc(x)
 
 # math functions defined here
 
 def degrees(x):
-    return x*180/math.pi
+	return x*180/math.pi
 
 def radians(x):
-    return x*math.pi/180
+	return x*math.pi/180
 
 def log(x,b=math.e):
-    'log(x[, base]) -> the logarithm of x to the given base.\nIf the base not specified, returns the natural logarithm (base e) of x.'
-    if type(x) == complex or x<0:
-        return dip( cmath.log(x) / cmath.log(b) )
-    else:
-        return math.log(x)/math.log(b)
+	'log(x[, base]) -> the logarithm of x to the given base.\nIf the base not specified, returns the natural logarithm (base e) of x.'
+	if type(x) == complex or x<0:
+		return dip( cmath.log(x) / cmath.log(b) )
+	else:
+		return math.log(x)/math.log(b)
 
 def real(x):
-    'return just the real portion'
-    if type(x) == complex:
-        return x.real
-    else:
-        return x
+	'return just the real portion'
+	if type(x) == complex:
+		return x.real
+	else:
+		return x
 
 def imag(x):
-    'return just the imaginary portion'
-    if type(x) == complex:
-        return x.imag
-    else:
-        return 0
+	'return just the imaginary portion'
+	if type(x) == complex:
+		return x.imag
+	else:
+		return 0
 
 def sign(x):
-    'returns -1,0,1 for negative,zero,positive numbers'
-    if x == 0:
-        return 0
-    elif x > 0:
-        return 1
-    else:
-        return -1
+	'returns -1,0,1 for negative,zero,positive numbers'
+	if x == 0:
+		return 0
+	elif x > 0:
+		return 1
+	else:
+		return -1
 
 def log2(x):
-    'logarithm base 2'
-    return log(x,2)
+	'logarithm base 2'
+	return log(x,2)
 
 def gcd(x,y):
-    'greatest common denominator'
-    while x>0:
-        (x,y) = (y%x,x) # Guido showed me this one on the geek cruise
-    return y
+	'greatest common denominator'
+	while x>0:
+		(x,y) = (y%x,x) # Guido showed me this one on the geek cruise
+	return y
 
 def lcm(x,y):
-    'least common multiple'
-    return x*y/gcd(x,y)
+	'least common multiple'
+	return x*y/gcd(x,y)
 
 def phase(z):
-    'phase of a complex in radians'
-    z=cpx(z)
-    return math.atan2( z.imag , z.real )
+	'phase of a complex in radians'
+	z=cpx(z)
+	return math.atan2( z.imag , z.real )
 
 def cpx(x):
-    'convert a number or tuple to a complex'
-    if type(x) == tuple:
-        return complex( x[0] , x[1] )
-    else:
-        return complex(x)
+	'convert a number or tuple to a complex'
+	if type(x) == tuple:
+		return complex( x[0] , x[1] )
+	else:
+		return complex(x)
 
 def conj( x ):
-    'complex conjugate'
-    x = cpx( x )
-    return complex( x.real , -x.imag )
+	'complex conjugate'
+	x = cpx( x )
+	return complex( x.real , -x.imag )
 
 def complexify(x,func ):
-    'call func on the real and imaginary portions, creating a complex from the respective results'
-    if type(x) == complex and x.imag != 0:
-        return dip( complex( func(x.real) , func(x.imag) ) )
-    else:
-        return func(x)
+	'call func on the real and imaginary portions, creating a complex from the respective results'
+	if type(x) == complex and x.imag != 0:
+		return dip( complex( func(x.real) , func(x.imag) ) )
+	else:
+		return func(x)
 
 # overwrite the built-in math functions that don't handle complex
 def round(x):
-    'nearest integer'
-    if type(x) == complex:
-        return complexify( x , round )
-    else:
-        return math.floor(x+.5)
+	'nearest integer'
+	if type(x) == complex:
+		return complexify( x , round )
+	else:
+		return math.floor(x+.5)
 
 def floor(x):
-    'round towards negative infinity'
-    return complexify( x , math.floor )
+	'round towards negative infinity'
+	return complexify( x , math.floor )
 
 def ceil(x):
-    'round towards positive infinity'
-    return complexify( x , math.ceil )
+	'round towards positive infinity'
+	return complexify( x , math.ceil )
 
 
 # functions and constants available  within the safe eval construct

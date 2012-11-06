@@ -24,8 +24,14 @@ if os.name == "nt" and sys.argv[0].endswith('.exe'):
 	sys.stderr = err_stream
 
 # Preliminary initialization of logging because modules can throw warnings at import
-logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
+# Init locale for windows (before loading gettext library)
+if os.name == "nt" and not os.environ.get('LANG'):
+        import locale
+        lang, enc = locale.getdefaultlocale()
+        os.environ['LANG'] = lang + '.' + enc
+        logging.info('Locale set to: %s', os.environ['LANG'])
 
 # Coverage support - triggered by the test suite
 #~ if True:
@@ -42,6 +48,7 @@ try:
 	import zim
 	import zim.config
 except ImportError:
+	sys.excepthook(*sys.exc_info())
 	print >>sys.stderr, 'ERROR: Could not find python module files in path:'
 	print >>sys.stderr, ' '.join(map(str, sys.path))
 	print >>sys.stderr, '\nTry setting PYTHONPATH'

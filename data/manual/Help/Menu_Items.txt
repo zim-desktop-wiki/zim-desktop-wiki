@@ -50,10 +50,10 @@ Open a new email with the current page as the email text using your email applic
 Prompt for a new name for the current page. Optionally the page heading is also changed on the fly. Links to this page can be updated automatically.
 
 **Move Page**
-Prompt for a new namespace for the current page. Alternatively you can move pages by drag and drop in the side pane. Moving a page also moves all of it's child pages as well as any attachments. Links to this page can be updated automatically.
+Prompt for a new namespace for the current page. Alternatively you can move pages by drag and drop in the side pane. Moving a page also moves all of it's child pages as well as any [[Help:Attachments|attachments]]. Links to this page can be updated automatically.
 
 **Delete Page**
-Delete the current page and all of it's child pages and attachments. Unless the current page has been stored in a saved version this can not be undone.
+Delete the current page and all of it's child pages and [[Help:Attachments|attachments]]. Unless the current page has been stored in a saved version this can not be undone.
 
 **Properties**
 Show the [[Properties|properties dialog]].
@@ -115,8 +115,13 @@ Toggle the visibility of the toolbar.
 **Statusbar**
 Toggle the visibility of the statusbar.
 
-**Index <F9>**
-Toggle the visibility of the side pane. You can also use the <Alt><Space> (or <Ctrl><Space>) [[Key Bindings|keybinding]] to switch focus between the editor and the side pane. Even if the side pane is hidden, this key binding will show it temporarily.
+**Side Panes <F9>**
+Toggle the visibility of the side pane(s).
+
+You can also use the <Alt><Space> (or <Ctrl><Space>) [[Key Bindings|keybinding]] to switch focus between the editor and the side pane. Even if the side pane is hidden, this key binding will show it temporarily.
+
+**All Side Panes <Ctrl><F9>**
+This action will show all side panes that are being used.
 
 **Pathbar**
 Toggle the pathbar visibility and style. Options are **None**, **Recent** **Pages**, **History** and **Namespace**. Obviously "None" will hide the pathbar. "Recent Pages" shows a summary of the history. This summary only shows unique pages and tries to not re-order them too often. Setting "History" shows the full history list. "Namespace" will show the page path to the current page, showing all it's parents.
@@ -174,11 +179,11 @@ Only available if the [[Plugins:Diagram Editor|Diagram Editor plugin]] is enable
 **Text From File**
 Prompt for a text file and insert the text from that file into the current page.
 
-**External Link**
-Prompt for a file or url and insert a link in the current page.
+**New Attachment (submenu)**
+This submenu shows a number of file templates for new attachments, see [[Attachments]] for details.
 
 **Link <Ctrl><L>**
-Prompt for a page link and insert it in the current page. Selected text will be used as default value.
+Prompt for a link and insert it in the current page. Selected text will be used as default value.
 
 
 ===== Format =====
@@ -223,13 +228,13 @@ Only available if the [[Plugins:Spell Checker|Spell Checker plugin]] is enabled.
 Attach a file to the current page. Will prompt for a file, the file will then be copied to the notebook folder and a link inserted in the current page.
 
 **Open Attachments Folder**
-Open the folder with attachments for the current page in a file browser. Typically this will be a folder below the notebook folder.
+Open the folder with [[Help:Attachments|attachments]] for the current page in a file browser. Typically this will be a folder below the notebook folder.
 
 **Open Notebook Folder**
 Open the folder for the current notebook in a file browser.
 
 **Cleanup Attachments**
-Starts a dialog to search for orphaned files.  When an attachment link is removed, the file still exists in the attachment directory. From time to time it may be useful do find and delete this "orphaned" files.
+Starts a dialog to search for orphaned files.  When an [[Help:Attachments|attachment]] link is removed, the file still exists in the attachment directory. From time to time it may be useful do find and delete this "orphaned" files.
 
 **Start Web Server**
 Start a stand-alone web server to make the current notebook available as a web page. Can be used to check the html formatting live, or to quickly share the current notebook with others on the same network.

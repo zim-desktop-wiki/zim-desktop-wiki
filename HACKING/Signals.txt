@@ -1,0 +1,17 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2012-07-14T11:54:59+02:00
+
+====== Signals ======
+
+Keep in mind that with each "connect" an object reference is created. The reference is kept by the object that is being connected to and is only broken when that object is being destroyed. So if you do
+
+	''object_A.connect('some-signal', object_B.some_method)''
+
+then object_B will not be destroyed as long as object_A is alive. On the other hand, if object_A is destroyed, object_B simply doesn't get any signals anymore.
+
+This seems not to be a problem when you e.g. connect a button signal within a dialog object. Reason is probably that the circular reference is broken when the dialog is destroyed. 
+
+But it is a problem when e.g. a dialog connects to an external object, or a plugin connect to the main interface objects. In those cases signals need to be explicitly disconnected when you close the dialog or remove the plugin. See the ''ConnectorMixin'' class in ''zim.signals''.
+
+A special not about **connect_object**. In the Python API it looks like this method is only intended to swap the object argument when calling the callback, however in the C API it is mentioned that this method also results in an additional object reference and it has a bug in current versions with cleaning up those references. So it is better avoided.

@@ -138,7 +138,7 @@ class SimpleTreeBuilder(Builder):
 
 	def get_root(self):
 		'''Get the elements constructed by the builder
-		@returns a list of top level elements and text
+		@returns: a list of top level elements and text
 		'''
 		self._merge_text(self.root)
 		return self.root

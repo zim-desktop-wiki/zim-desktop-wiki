@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 import tests
 
+import os
 import gtk
 
 from zim.errors import Error
@@ -15,6 +16,39 @@ from zim.config import config_file
 from zim.gui.clipboard import Clipboard
 
 import zim.gui
+
+
+def setupGtkInterface(test, klass=None):
+	'''Setup a new GtkInterface object for testing.
+	Will have test notebook, and default preferences.
+	@param test: the test that wants to use this ui object
+	@param klass: the klass to use, defaults to L{GtkInterface}, but
+	could be partially mocked subclass
+	'''
+	if klass is None:
+		klass = zim.gui.GtkInterface
+
+	# start filtering
+	filter = FilterNoSuchImageWarning()
+	filter.wrap_test(test)
+
+	# flush preferences
+	preferences = config_file('preferences.conf')
+	preferences.file.remove()
+
+	# create interface object with new notebook
+	dirpath = test.get_tmp_name()
+	notebook = tests.new_notebook(fakedir=dirpath)
+	path = Path('Test:foo:bar')
+	ui = klass(notebook=notebook, page=path)
+
+	# finalize plugins
+	for plugin in ui.plugins:
+		plugin.finalize_ui(ui)
+
+	ui.mainwindow.init_uistate()
+
+	return ui
 
 
 @tests.slowTest
@@ -191,21 +225,6 @@ class TestDialogs(tests.TestCase):
 		col = dialog.results_treeview.get_column(0)
 		dialog.results_treeview.row_activated((0,), col)
 
-	def testNewApplicationDialog(self):
-		'''Test NewApplicationDialog'''
-		from zim.gui.applications import NewApplicationDialog
-		dialog = NewApplicationDialog(self.ui, mimetype='text/plain')
-		dialog.form['name'] = 'Foo'
-		dialog.form['exec'] = 'foo %f'
-		app = dialog.assert_response_ok()
-		self.assertEqual(app.name, 'Foo')
-
-		dialog = NewApplicationDialog(self.ui, type='web_browser')
-		dialog.form['name'] = 'Foo'
-		dialog.form['exec'] = 'foo %f'
-		app = dialog.assert_response_ok()
-		self.assertEqual(app.name, 'Foo')
-
 	def testCustomToolDialog(self):
 		'''Test CustomTool dialogs'''
 		from zim.gui.customtools import CustomToolManagerDialog
@@ -260,6 +279,7 @@ class TestDialogs(tests.TestCase):
 			'icon': './icon.png',
 			'document_root': File('/foo').path, # win32 save test
 			'shared': False,
+			'profile': '',
 		}
 		config2 = {
 			'name': 'Notebook Bar',
@@ -268,6 +288,7 @@ class TestDialogs(tests.TestCase):
 			'icon': './picture.png',
 			'document_root': File('/bar').path, # win32 save test
 			'shared': True,
+			'profile': 'foo',
 		}
 		notebook.save_properties(**config1)
 		self.assertEqual(notebook.config['Notebook'], config1)
@@ -300,6 +321,9 @@ class TestDialogs(tests.TestCase):
 		gui = zim.gui.GtkInterface()
 		gui.register_preferences('GtkInterface', zim.gui.ui_preferences)
 		gui.register_preferences('PageView', zim.gui.pageview.ui_preferences)
+		with FilterFailedToLoadPlugin():
+			# may miss dependencies for e.g. versioncontrol
+			gui.load_plugins()
 		self.ui.preferences_register = gui.preferences_register
 		self.ui.preferences = gui.preferences
 		self.ui.plugins = gui.plugins
@@ -339,6 +363,11 @@ class TestDialogs(tests.TestCase):
 		dialog = PluginConfigureDialog(pref_dialog, klass)
 		dialog.assert_response_ok()
 
+	def testTemplateEditorDialog(self):
+		from zim.gui.templateeditordialog import TemplateEditorDialog
+		dialog = TemplateEditorDialog(self.ui)
+		# TODO what to test here ??
+		dialog.assert_response_ok()
 
 	# Test for ExportDialog can be found in test/export.py
 	# Test for NotebookDialog is in separate class below
@@ -351,27 +380,19 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 	message = 'No such image:'
 
 
+class FilterFailedToLoadPlugin(tests.LoggingFilter):
+
+	logger = 'zim'
+	message = 'Failed to load plugin'
+
+
 @tests.slowTest
 class TestGtkInterface(tests.TestCase):
 
 	def setUp(self):
-		# start filtering
-		filter = FilterNoSuchImageWarning()
-		filter.wrap_test(self)
-
-		# flush preferences
-		preferences = config_file('preferences.conf')
-		preferences.file.remove()
-
-		# create interface object with new notebook
-		dirpath = self.get_tmp_name()
-		notebook = tests.new_notebook(fakedir=dirpath)
-		path = Path('Test:foo:bar')
-		self.ui = zim.gui.GtkInterface(notebook=notebook, page=path)
-
-		# finalize plugins
-		for plugin in self.ui.plugins:
-			plugin.finalize_ui(self.ui)
+		with FilterFailedToLoadPlugin():
+			# may miss dependencies for e.g. versioncontrol
+			self.ui = setupGtkInterface(self)
 
 	def tearDown(self):
 		self.ui.close()
@@ -400,8 +421,13 @@ class TestGtkInterface(tests.TestCase):
 		items = menu.get_children()
 		self.assertGreater(len(items), 3)
 
+		# open notebook (so the default plugins are loaded)
+		nb = ui.notebook
+		ui.notebook = None
+		ui.open_notebook(nb)
+
 		# remove plugins
-		self.assertGreater(len(ui.plugins), 3) # default plugins
+		self.assertGreaterEqual(len(ui.plugins), 3) # default plugins without dependencies
 		plugins = [p.plugin_key for p in ui.plugins]
 		for name in plugins:
 			ui.unload_plugin(name)
@@ -410,7 +436,7 @@ class TestGtkInterface(tests.TestCase):
 		# and add them again
 		for name in plugins:
 			ui.load_plugin(name)
-		self.assertGreater(len(ui.plugins), 3)
+		self.assertGreaterEqual(len(ui.plugins), 3) # default plugins without dependencies
 
 		# check registering an URL handler
 		func = tests.Counter(True)
@@ -423,7 +449,6 @@ class TestGtkInterface(tests.TestCase):
 		'''Test main window'''
 		path = Path('Test:foo:bar')
 		window = self.ui.mainwindow
-		#~ print 'UISTATE INIT:', window.uistate
 
 		self.assertTrue(window.uistate['show_menubar'])
 		window.toggle_menubar()
@@ -443,19 +468,19 @@ class TestGtkInterface(tests.TestCase):
 		window.toggle_statusbar()
 		self.assertTrue(window.uistate['show_statusbar'])
 
-		self.assertTrue(window.uistate['show_sidepane'])
-		window.toggle_sidepane()
-		self.assertFalse(window.uistate['show_sidepane'])
-		window.toggle_sidepane()
-		self.assertTrue(window.uistate['show_sidepane'])
+		self.assertTrue(window.uistate['left_pane'][0])
+		window.toggle_panes()
+		self.assertFalse(window.uistate['left_pane'][0])
+		window.toggle_panes()
+		self.assertTrue(window.uistate['left_pane'][0])
 
-		# note: focus starts at sidepane due to toggle_sidepane above
+		# note: focus starts at sidepane due to toggle_panes above
 		self.assertEqual(window.get_focus(), window.pageindex.treeview)
 		self.assertEqual(window.get_selected_path(), path)
-		window.toggle_focus_sidepane()
+		window.toggle_sidepane_focus()
 		self.assertEqual(window.get_focus(), window.pageview.view)
 		self.assertEqual(window.get_selected_path(), path)
-		window.toggle_focus_sidepane()
+		window.toggle_sidepane_focus()
 		self.assertEqual(window.get_focus(), window.pageindex.treeview)
 		# TODO also check this with "show_sidepane" off
 
@@ -549,12 +574,132 @@ class TestGtkInterface(tests.TestCase):
 		self.ui.save_page()
 		self.assertFalse(self.ui.page.get_parsetree() is None)
 
-	# TODO notebook manipulation (new (sub)page, move, rename, delete ..)
+	def testPageMove(self):
+		oldpath, newpath = Path('Movers:Stator:Mover'), Path('Movers:Mover')
+
+		# Open page and process message queue to sync tree view
+		indexpath = self.ui.notebook.index.lookup_path(oldpath)
+		self.ui.open_page(indexpath)
+		while gtk.events_pending():
+			gtk.main_iteration(False)
+
+		# Test actual moving
+		page = self.ui.notebook.get_page(oldpath)
+		text = page.dump('wiki')
+		self.ui.notebook.index.ensure_update()
+		self.ui.notebook.move_page(oldpath, newpath)
+		self.ui.notebook.index.ensure_update()
+
+		# newpath should exist and look like the old one
+		page = self.ui.notebook.get_page(newpath)
+		self.assertEqual(page.dump('wiki'), text)
+
+		# oldpath should be deleted
+		page = self.ui.notebook.get_page(oldpath)
+		self.assertFalse(page.haschildren)
+		self.assertFalse(page.hascontent)
+
+	# TODO notebook manipulation (new (sub)page, rename, delete ..)
 	# merge with tests for dialogs (?)
 
 	def testClipboard(self):
 		self.ui.copy_location()
 		self.assertEqual(Clipboard.get_text(), 'Test:foo:bar')
+
+
+@tests.slowTest
+class TestClickLink(tests.TestCase):
+	'''Test to check pageview and GtkInterface play together nicely when
+	a link is clicked
+	'''
+
+	def setUp(self):
+		class MyMock(zim.gui.GtkInterface, tests.MockObjectBase):
+
+			def __init__(self, *arg, **kwarg):
+				zim.gui.GtkInterface.__init__(self, *arg, **kwarg)
+				tests.MockObjectBase.__init__(self)
+				for method in (
+					'open_notebook',
+					'open_page',
+					'open_file',
+					'_open_with_emailclient',
+					'_open_with_webbrowser',
+					'_open_with_filebrowser',
+					'_open_with',
+				):
+					self.mock_method(method, None)
+
+		with FilterFailedToLoadPlugin():
+			# may miss dependencies for e.g. versioncontrol
+			self.ui = setupGtkInterface(self, klass=MyMock)
+
+	def tearDown(self):
+		self.ui.close()
+
+	def runTest(self):
+		self.assertRaises(AssertionError, self.ui.open_url, 'foo@bar.com')
+			# this is not a URI, "mailto:foo@bar.com" is
+
+		# Note: same list of test uris is testing in tests.parsing as well
+		for href, type in (
+			('zim+file://foo/bar?dus.txt', 'notebook'),
+			('file:///foo/bar', 'file'),
+			('http://foo/bar', 'http'),
+			('http://192.168.168.100', 'http'),
+			('file+ssh://foo/bar', 'file+ssh'),
+			('mailto:foo@bar.com', 'mailto'),
+			('mailto:foo.com', 'page'),
+			('foo@bar.com', 'mailto'),
+			('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('mid:foo@bar.org', 'mid'),
+			('cid:foo@bar.org', 'cid'),
+			('./foo/bar', 'file'),
+			('/foo/bar', 'file'),
+			('~/foo', 'file'),
+			('C:\\foo', 'file'),
+			('wp?foo', 'interwiki'),
+			('http://foo?bar', 'http'),
+			('\\\\host\\foo\\bar', 'smb'),
+			('foo', 'page'),
+			('foo:bar', 'page'),
+		):
+			#~ print ">> LINK %s (%s)" % (href, type)
+			#~ self.ui.open_url(href)
+			self.ui.mainwindow.pageview.do_link_clicked({'href': href})
+			msg = "Clicked: \"%s\" resulted in: \"%s\"" % (href, self.ui.mock_calls[-1])
+			if type == 'notebook':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_notebook', msg=msg)
+			elif type == 'page':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_page', msg=msg)
+			elif type == 'file':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_file', msg=msg)
+			elif type == 'mailto':
+				self.assertTrue(self.ui.mock_calls[-1][0] in ('_open_with_emailclient', '_open_with'), msg=msg)
+			elif type == 'smb' and os.name == 'nt':
+				self.assertTrue(self.ui.mock_calls[-1][0] == '_open_with_filebrowser', msg=msg)
+			else:
+				self.assertTrue(self.ui.mock_calls[-1][0] in ('_open_with_webbrowser', '_open_with'), msg=msg)
+			self.ui.mock_calls = [] # reset
+
+		# Some more tests that may not be covered above
+		for href, type in (
+			('zim+file://foo/bar?dus.txt', 'notebook'),
+			('file:///foo/bar', 'file'),
+			('mailto:foo@bar.com', 'mailto'),
+		):
+			#~ print ">> OPEN_URL %s (%s)" % (href, type)
+			self.ui.open_url(href)
+			msg = "open_url('%s')\nResulted in: %s" % (href, self.ui.mock_calls[-1])
+			if type == 'notebook':
+				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_notebook', msg=msg)
+			elif type == 'file':
+				self.assertTrue(self.ui.mock_calls[-1][0] == '_open_with_webbrowser', msg=msg)
+			elif type == 'mailto':
+				self.assertTrue(self.ui.mock_calls[-1][0] in ('_open_with_emailclient', '_open_with'), msg=msg)
+			self.ui.mock_calls = [] # reset
+
+		# TODO test plugin with custom handler
 
 
 @tests.slowTest

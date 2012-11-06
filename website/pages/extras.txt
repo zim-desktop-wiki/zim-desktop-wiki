@@ -11,6 +11,7 @@ This page contains scripts from third party contributors. They are not maintaine
 
 Firefox plugin that allows selections of webpages to be dumped using the "Quick Note" zim plugin. Nice way to collect snippets with source URLs in a zim notebook.
 
+* Launchpad project page: https://launchpad.net/zimcapture
 * Website: [[http://michael.mulqueen.me.uk/projects/zimcapture/|michael.mulqueen.me.uk]]
 * The plugin: [[/downloads/contrib/zimcapture.xpi|zimcapture.xpi]]
 

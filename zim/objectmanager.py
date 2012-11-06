@@ -192,6 +192,7 @@ class FallbackObject(CustomObjectClass):
 		CustomObjectClass.__init__(self, attrib, data, ui)
 		if self.ui and self.ui.ui_type == 'gtk':
 			import gtk
+			from zim.gui.widgets import ScrolledWindow
 			from zim.gui.pageview import CustomObjectBin
 			self._widget = CustomObjectBin()
 			box = gtk.VBox()
@@ -233,9 +234,7 @@ class FallbackObject(CustomObjectClass):
 			buffer.connect('modified-changed', self.on_modified_changed)
 			buffer.set_modified(False)
 			self._data = None
-			win = gtk.ScrolledWindow()
-			win.add(self.view)
-			box.pack_start(win)
+			box.pack_start(ScrolledWindow(self.view))
 			self._widget.add(box)
 
 	def get_data(self):

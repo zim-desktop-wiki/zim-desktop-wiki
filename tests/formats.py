@@ -31,6 +31,7 @@ class TestFormatMixin(object):
 		'html': 'export.html',
 		'latex': 'export.tex',
 		'markdown': 'export.markdown',
+		'reST': 'export.rst',
 	}
 
 	def testFormatInfo(self):
@@ -81,6 +82,12 @@ class TestFormatMixin(object):
 
 		# Check that dumper did not modify the tree
 		self.assertMultiLineEqual(reftree.tostring(), self.reference_xml)
+
+		# partial dumper
+		parttree = tests.new_parsetree_from_xml("<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>")
+		result = ''.join(dumper.dump(parttree))
+		#~ print ">>>%s<<<" % result
+		self.assertFalse(result.endswith('\n')) # partial should not end with "\n"
 
 		# Parser
 		if not hasattr(self.format, 'Parser'):
@@ -555,6 +562,12 @@ class TestMarkdownFormat(tests.TestCase, TestFormatMixin):
 
 	def setUp(self):
 		self.format = get_format('markdown')
+
+
+class TestRstFormat(tests.TestCase, TestFormatMixin):
+
+	def setUp(self):
+		self.format = get_format('rst')
 
 
 class LatexLoggingFilter(tests.LoggingFilter):

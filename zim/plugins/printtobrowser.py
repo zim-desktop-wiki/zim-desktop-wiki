@@ -54,9 +54,9 @@ This is a core plugin shipping with zim.
 
 	def print_to_browser(self, page=None):
 		file = self.print_to_file(page)
-		self.ui.open_with('web_browser', 'file://%s' % file)
-			# Force web browser here - otherwise it goes to the file
-			# browser which can have unexpected results
+		self.ui.open_url('file://%s' % file)
+			# Try to force web browser here - otherwise it goes to the
+			# file browser which can have unexpected results
 
 	def print_to_file(self, page=None):
 		if not page:
@@ -103,6 +103,6 @@ This is a core plugin shipping with zim.
 
 		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
 		file.write(html)
-		self.ui.open_with('web_browser', 'file://%s' % file)
-			# Force web browser here - otherwise it goes to the file
-			# browser which can have unexpected results
+		self.ui.open_url('file://%s' % file)
+			# Try to force web browser here - otherwise it goes to the
+			# file browser which can have unexpected results

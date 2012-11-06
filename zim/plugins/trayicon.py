@@ -5,8 +5,11 @@
 import gobject
 import gtk
 
+import logging
+
 from zim.plugins import PluginClass
-from zim.config import data_file, config_file
+from zim.config import data_file, get_config
+from zim.ipc import start_server_if_not_running, ServerProxy, RemoteObject
 from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 from zim.gui.widgets import gtk_window_set_default_icon
 
@@ -18,27 +21,20 @@ except ImportError:
 	appindicator = None
 
 
+def main(*args):
+	start_server_if_not_running()
 
-def main(daemonproxy, *args):
-	assert daemonproxy is None, 'Not (yet) intended as daemon child'
-
-	import os
-	assert not os.name == 'nt', 'RPC not supported on windows'
-
-	# HACK to start daemon from separate process
-	# we are not allowed to fork since we already loaded gtk
-	from zim import ZimCmd
-	ZimCmd().run(args=('--daemon',))
-
-	preferences = config_file('preferences.conf')['TrayIconPlugin']
+	preferences = get_config('preferences.conf')['TrayIconPlugin']
 	preferences.setdefault('classic', False)
 
-	from zim.daemon import DaemonProxy
 	if appindicator and not preferences['classic']:
-		klass = 'zim.plugins.trayicon.AppIndicatorTrayIcon'
+		obj = RemoteObject('zim.plugins.trayicon.AppIndicatorTrayIcon')
 	else:
-		klass = 'zim.plugins.trayicon.DaemonTrayIcon'
-	DaemonProxy().run(klass, 'TrayIcon')
+		obj = RemoteObject('zim.plugins.trayicon.DaemonTrayIcon')
+
+	server = ServerProxy()
+	if not server.has_object(obj):
+		server.init_object(obj)
 
 
 class TrayIconPlugin(PluginClass):
@@ -73,7 +69,7 @@ This is a core plugin shipping with zim.
 		self.icon = None
 		self.proxyobject = None
 
-	def initialize_ui(self, ui):
+	def finalize_ui(self, ui):
 		if self.ui.ui_type == 'gtk':
 			self.connect_trayicon()
 			self.ui.hideonclose = True
@@ -81,9 +77,9 @@ This is a core plugin shipping with zim.
 	def connect_trayicon(self):
 			klass = self.get_trayicon_class()
 			if issubclass(klass, DaemonTrayIconMixin):
-				string = 'zim.plugins.trayicon.' + klass.__name__
-				from zim.daemon import DaemonProxy
-				self.proxyobject = DaemonProxy().get_object(string, 'TrayIcon')
+				obj = RemoteObject('zim.plugins.trayicon.' + klass.__name__)
+				server = ServerProxy()
+				self.proxyobject = server.get_proxy(obj)
 					# getting the object implicitly starts it, if it didn't exist yet
 			else:
 				self.icon = klass(self.ui)
@@ -91,13 +87,15 @@ This is a core plugin shipping with zim.
 			self._trayicon_class = klass
 
 	def get_trayicon_class(self):
-			if self.ui.usedaemon and not self.preferences['standalone']:
-				if appindicator and not self.preferences['classic']:
-					return AppIndicatorTrayIcon
-				else:
-					return DaemonTrayIcon
+		import zim.ipc
+		if zim.ipc.in_child_process() \
+		and not self.preferences['standalone']:
+			if appindicator and not self.preferences['classic']:
+				return AppIndicatorTrayIcon
 			else:
-				return StandAloneTrayIcon
+				return DaemonTrayIcon
+		else:
+			return StandAloneTrayIcon
 
 	def disconnect(self):
 		self.disconnect_trayicon()
@@ -292,7 +290,10 @@ class StandAloneTrayIcon(StatusIconTrayIcon):
 	def __init__(self, ui):
 		StatusIconTrayIcon.__init__(self)
 		self.ui = ui
-		self.ui.connect('open-notebook', self.on_open_notebook)
+		if self.ui.notebook:
+			self.on_open_notebook(self.ui, self.ui.notebook)
+		else:
+			self.ui.connect('open-notebook', self.on_open_notebook)
 
 	def on_open_notebook(self, ui, notebook):
 		# TODO hook this to finalize_notebook in the plugin
@@ -321,12 +322,11 @@ class StandAloneTrayIcon(StatusIconTrayIcon):
 
 class DaemonTrayIconMixin(object):
 	'''Mixin class for using the tray icon in combination with the
-	daemon process. Sub classes should run as a separate child process.
+	background process. Sub classes should run as a separate child process.
 	'''
 
 	def __init__(self):
-		from zim.daemon import DaemonProxy
-		self.daemon = DaemonProxy()
+		self.server = ServerProxy()
 
 	def main(self):
 		# Set window icon in case we open the notebook dialog
@@ -337,16 +337,16 @@ class DaemonTrayIconMixin(object):
 		gtk.main_quit()
 
 	def list_open_notebooks(self):
-		for uri in self.daemon.list_notebooks():
+		for uri in self.server.list_notebooks():
 			info = NotebookInfo(uri)
 			info.active = True
 			yield info
 
 	def do_activate_notebook(self, uri):
-		self.daemon.get_notebook(uri).toggle_present()
+		self.server.get_notebook(uri).toggle_present()
 
 	def do_quit(self):
-		self.daemon.quit()
+		self.server.quit()
 
 
 class DaemonTrayIcon(DaemonTrayIconMixin, StatusIconTrayIcon):
@@ -370,8 +370,10 @@ class AppIndicatorTrayIcon(DaemonTrayIconMixin, TrayIconBase):
 			'zim-desktop-wiki', 'zim', appindicator.CATEGORY_APPLICATION_STATUS)
 		self.appindicator.set_status(appindicator.STATUS_ACTIVE)
 
+	def main(self):
+		ServerProxy().connect('notebook-list-changed', self)
 		self.on_notebook_list_changed()
-		self.daemon.connect_object('notebook-list-changed', self)
+		DaemonTrayIconMixin.main(self)
 
 	def on_notebook_list_changed(self):
 		menu = self.get_trayicon_menu()

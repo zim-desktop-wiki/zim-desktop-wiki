@@ -84,10 +84,10 @@ import gobject
 import zim.fs
 from zim.fs import File, Dir
 from zim.errors import Error, TrashNotSupportedError
-from zim.config import ConfigDict, ConfigDictFile, TextConfigFile, HierarchicDict, \
-	config_file, data_dir, user_dirs, data_dirs, config_dirs
+from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
+	config_file, data_dir, user_dirs, config_dirs, list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
-	is_interwiki_keyword_re, link_type, url_encode
+	is_interwiki_keyword_re, link_type, url_encode, url_decode
 from zim.async import AsyncLock
 import zim.stores
 
@@ -129,6 +129,7 @@ class NotebookInfo(object):
 		@param icon: the notebook icon path
 		@param mtime: the mtime when config was last read
 		@param interwiki: the interwiki keyword for this notebook
+		@param a: any additional arguments will be discarded
 		'''
 		# **a is added to be future proof of unknown values in the cache
 		f = File(uri)
@@ -189,18 +190,11 @@ class NotebookInfoList(list):
 	@ivar default: L{NotebookInfo} object for the default
 	'''
 
-	def __init__(self, file, default=None):
+	def __init__(self, file):
 		'''Constructor
-
-		Signature is compatible to use this class with
-		L{zim.config.config_file()}.
-
-		@param file: file object for notebooks.list
-		@param default: file object for the default notebooks.list in
-		case 'file' does not exists
+		@param file: a L{File} or L{ConfigFile} object for X{notebooks.list}
 		'''
-		self._file = file
-		self._defaultfile = default # default config file
+		self.file = file
 		self.default = None # default notebook
 		self.read()
 		try:
@@ -210,14 +204,7 @@ class NotebookInfoList(list):
 
 	def read(self):
 		'''Read the config and cache and populate the list'''
-		if self._file.exists():
-			file = self._file
-		elif self._defaultfile:
-			file = self._defaultfile
-		else:
-			return
-
-		lines = file.readlines()
+		lines = self.file.readlines()
 		if len(lines) > 0:
 			if lines[0].startswith('[NotebookList]'):
 				self.parse(lines)
@@ -357,7 +344,7 @@ class NotebookInfoList(list):
 				'icon=%s\n' % info.icon_path,
 			])
 
-		self._file.writelines(lines)
+		self.file.writelines(lines)
 
 	def update(self):
 		'''Update L{NotebookInfo} objects and write cache'''
@@ -423,7 +410,8 @@ def get_notebook_list():
 	This will load the list from the default X{notebooks.list} file
 	'''
 	# TODO use weakref here
-	return config_file('notebooks.list', klass=NotebookInfoList)
+	file = config_file('notebooks.list')
+	return NotebookInfoList(file)
 
 
 def resolve_notebook(string):
@@ -444,6 +432,7 @@ def resolve_notebook(string):
 		assert string.startswith('file://')
 		if '?' in string:
 			filepath, page = string.split('?', 1)
+			page = url_decode(page)
 			page = Path(page)
 		else:
 			filepath = string
@@ -534,6 +523,7 @@ def init_notebook(path, name=None):
 	if os.name == 'nt': endofline = 'dos'
 	else: endofline = 'unix'
 	config['Notebook']['endofline'] = endofline
+	config['Notebook']['profile'] = None
 	config.write()
 
 
@@ -541,38 +531,39 @@ def interwiki_link(link):
 	'''Convert an interwiki link into an url'''
 	assert isinstance(link, basestring) and '?' in link
 	key, page = link.split('?', 1)
-	url = None
+	lkey = key.lower()
+ 	url = None
 
-	# Search all "urls.list" in config and data dirs
+	# First check known notebooks
+	list = get_notebook_list()
+	info = list.get_interwiki(key)
+	if info:
+		url = 'zim+' + info.uri + '?{NAME}'
+
+
+	# Then search all "urls.list" in config and data dirs
 	def check_dir(dir):
 		file = dir.file('urls.list')
 		if not file.exists():
 			return None
 
 		for line in file.readlines():
-			if line.startswith(key+' ') or line.startswith(key+'\t'):
-				url = line[len(key):].strip()
-				return url
+			if line.startswith('#') or line.isspace():
+				continue
+			try:
+				mykey, myurl = line.split(None, 1)
+			except ValueError:
+				continue
+			if mykey.lower() == lkey:
+				return myurl.strip()
 		else:
 			return None
 
-	for dir in config_dirs():
-		url = check_dir(dir)
-		if url:
-			break
-
-	if not url:
-		for dir in data_dirs():
+ 	if not url:
+		for dir in config_dirs():
 			url = check_dir(dir)
 			if url:
 				break
-
-	# If not found check known notebook
-	if not url:
-		list = get_notebook_list()
-		info = list.get_interwiki(key)
-		if info:
-			url = 'zim+' + info.uri + '?{NAME}'
 
 	# Format URL
 	if url and is_url_re.match(url):
@@ -667,11 +658,15 @@ class Notebook(gobject.GObject):
 
 	@signal: C{store-page (page)}: emitted before actually storing the page
 	@signal: C{stored-page (page)}: emitted after storing the page
-	@signal: C{move-page (oldpath, newpath, update_links)}
-	@signal: C{moved-page (oldpath, newpath, update_links)}
+	@signal: C{move-page (oldpath, newpath, update_links)}: emitted before
+	actually moving a page
+	@signal: C{moved-page (oldpath, newpath, update_links)}: emitted after
+	moving the page
 	@signal: C{delete-page (path)}: emitted before deleting a page
 	@signal: C{deleted-page (path)}: emitted after deleting a page
-	@signal: C{properties-changed ()}
+	@signal: C{profile-changed ()}: emitted when the profile is changed,
+	means that the preferences need to be loaded again as well
+	@signal: C{properties-changed ()}: emitted when properties changed
 
 	@note: For store_async() the 'page-stored' signal is emitted
 	after scheduling the store, but potentially before it was really
@@ -688,6 +683,7 @@ class Notebook(gobject.GObject):
 	@ivar config: A L{ConfigDict} for the notebook config
 	(the C{X{notebook.zim}} config file in the notebook folder)
 	@ivar lock: An L{AsyncLock} for async notebook operations
+	@ivar profile: The name of the profile used by the notebook or C{None}
 
 	In general this lock is not needed when only reading data from
 	the notebook. However it should be used when doing operations that
@@ -714,18 +710,19 @@ class Notebook(gobject.GObject):
 		'moved-page': (gobject.SIGNAL_RUN_LAST, None, (object, object, bool)),
 		'delete-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'deleted-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'profile-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 		'properties-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 	}
 
 	properties = (
 		('name', 'string', _('Name')), # T: label for properties dialog
-		('home', 'page', _('Home Page')), # T: label for properties dialog
 		('interwiki', 'string', _('Interwiki Keyword'), lambda v: not v or is_interwiki_keyword_re.search(v)), # T: label for properties dialog
+		('home', 'page', _('Home Page')), # T: label for properties dialog
 		('icon', 'image', _('Icon')), # T: label for properties dialog
 		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
+		#~ ('profile', 'string', _('Profile'), list_profiles), # T: label for properties dialog
+		('profile', 'string', _('Profile')), # T: label for properties dialog
 		('shared', 'bool', _('Shared Notebook')), # T: label for properties dialog
-		#~ ('autosave', 'bool', _('Auto-version when closing the notebook')),
-			# T: label for properties dialog
 	)
 
 	def __init__(self, dir=None, file=None, config=None, index=None):
@@ -781,6 +778,17 @@ class Notebook(gobject.GObject):
 			self.index = index
 			self.index.set_notebook(self)
 
+		def on_page_updated(index, indexpath):
+			## FIXME still not called for parent pages -- need refactor
+			## of index to deal with this properly I'm afraid...
+			#~ print "UPDATED", indexpath
+			if indexpath.name in self._page_cache:
+				#~ print "  --> IN CAHCE"
+				self._page_cache[indexpath.name].haschildren = indexpath.haschildren
+
+		self.index.connect('page-inserted', on_page_updated)
+		self.index.connect('page-updated', on_page_updated)
+
 		if self.config is None:
 			self.config = ConfigDict()
 			self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
@@ -797,6 +805,7 @@ class Notebook(gobject.GObject):
 		else: endofline = 'unix'
 		self.config['Notebook'].setdefault('endofline', endofline, check=set(('dos', 'unix')))
 		self.config['Notebook'].setdefault('disable_trash', False)
+		self.config['Notebook'].setdefault('profile', '', check=basestring)
 
 		self.do_properties_changed()
 
@@ -833,6 +842,11 @@ class Notebook(gobject.GObject):
 			uri = None
 
 		return NotebookInfo(uri, **self.config['Notebook'])
+
+	@property
+	def profile(self):
+		'''The 'profile' property for this notebook'''
+		return self.config['Notebook'].get('profile') or None # avoid returning ''
 
 	def _cache_dir(self, dir):
 		from zim.config import XDG_CACHE_HOME
@@ -874,9 +888,19 @@ class Notebook(gobject.GObject):
 		if 'home' in properties and isinstance(properties['home'], Path):
 			properties['home'] = properties['home'].name
 
+		# Check for a new profile
+		profile_changed = properties.get('profile') != self.profile
+
+		# Actual update and signals
+		# ( write is the last action - in case update triggers a crash
+		#   we don't want to get stuck with a bad config )
 		self.config['Notebook'].update(properties)
-		self.config.write()
 		self.emit('properties-changed')
+		if profile_changed:
+			self.emit('profile-changed')
+
+		if hasattr(self.config, 'write'): # Check needed for tests
+			self.config.write()
 
 	def do_properties_changed(self):
 		#~ import pprint
@@ -1023,11 +1047,13 @@ class Notebook(gobject.GObject):
 			# first check if we see an explicit match in the path
 			assert isinstance(source, Path)
 			anchor = name.split(':')[0].lower()
-			path = source.namespace.lower().split(':')
-			if anchor in path:
+			lowerpath = [p.lower() for p in source.parts]
+			if anchor in lowerpath:
 				# ok, so we can shortcut to an absolute path
-				path.reverse() # why is there no rindex or rfind ?
-				i = path.index(anchor) + 1
+				lowerpath.reverse() # why is there no rindex or rfind ?
+				i = lowerpath.index(anchor) + 1
+				path = source.parts # reset case
+				path.reverse()
 				path = path[i:]
 				path.reverse()
 				path.append( name.lstrip(':') )
@@ -1069,7 +1095,11 @@ class Notebook(gobject.GObject):
 		else:
 			parent = source.commonparent(href)
 			if parent.isroot: # no common parent except for root
-				return ':' + href.name
+				if href.parts[0].lower() in [p.lower() for p in source.parts]:
+					# there is a conflicting anchor name in path
+					return ':' + href.name
+				else:
+					return href.name
 			elif parent == href: # link to an parent or grand parent
 				return href.basename
 			elif parent == source.parent: # link to sibling of same parent
@@ -1123,6 +1153,8 @@ class Notebook(gobject.GObject):
 		@note: the returned page name is B{not} a L{Path} object and can
 		not be used in places where the API asks for a path. See
 		L{resolve_path()} instead.
+
+		@param name: the name to be cleaned up
 
 		@keyword purge: if C{True} any invalid characters will be
 		removed, otherwise these will result in a L{PageNameError}
@@ -1829,7 +1861,7 @@ class Notebook(gobject.GObject):
 		@keyword path: L{Path} object for the page where we want to
 		link this file
 
-		@return: relative file path as string, or C{None} when no
+		@returns: relative file path as string, or C{None} when no
 		relative path was found
 		'''
 		notebook_root = self.dir
@@ -2180,7 +2212,6 @@ class Path(object):
 				path.pop()
 		yield Path(':')
 
-
 	def child(self, name):
 		'''Get a child Path
 
@@ -2258,6 +2289,8 @@ class Page(Path):
 		assert isinstance(path, Path)
 		self.name = path.name
 		self.haschildren = haschildren
+			# Note: this attribute is updated by the owning notebook
+			# when a child page is stored
 		self.valid = True
 		self.modified = False
 		self._parsetree = parsetree
@@ -2392,6 +2425,8 @@ class Page(Path):
 
 		@param format: either a format module or a string
 		that is understood by L{zim.formats.get_format()}.
+
+		@param linker: a linker object (see e.g. L{BaseLinker})
 
 		@returns: text as a list of lines or an empty list
 		'''

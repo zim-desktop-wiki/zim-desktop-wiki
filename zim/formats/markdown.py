@@ -189,6 +189,9 @@ class Dumper(DumperClass):
 			if element.tail:
 				output.append(element.tail)
 
-
 	def dump_object_fallback(self, tag, attrib, strings):
-		return strings
+		# fallback to verbatim - TODO make this generic default
+		myoutput = TextBuffer()
+		myoutput.extend(strings)
+		myoutput.prefix_lines('\t') # verbatim is always indented
+		return myoutput

@@ -154,8 +154,11 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 			dir.touch()
 
 		format, extension = _get_image_info(targetname)
-		if format is None:
-			format, extension = 'png', 'png' # default to png format
+		if format is None or format == 'bmp':
+			# default to png format
+			# special casing bmp since many window apps use it internally
+			# but is quite large to store, so compress by using png
+			format, extension = 'png', 'png'
 
 		file = dir.new_file('pasted_image.%s' % extension)
 		logger.debug("Saving image from clipboard to %s", file)
@@ -298,6 +301,7 @@ class ParseTreeItem(ClipboardItem):
 		@param clipboard: a C{gtk.Clipboard} objet
 		@param selectiondata: a C{gtk.SelectionData} object to set the data on
 		@param id: target id for the requested data format
+		@param a: any additional arguments are discarded
 		'''
 		logger.debug("Clipboard requests data as '%s', we have a parsetree", selectiondata.target)
 		if id == PARSETREE_TARGET_ID:
@@ -322,9 +326,7 @@ class ParseTreeItem(ClipboardItem):
 			selectiondata.set(selectiondata.target, 8, html)
 		elif id == TEXT_TARGET_ID:
 			logger.debug("Clipboard requested text, we provide '%s'" % self.format)
-			if self.format in ('wiki', 'plain'):
-				dumper = get_format(self.format).Dumper()
-			else:
+			if self.format != 'wiki':
 				# FIXME - HACK - dump and parse as wiki first to work
 				# around glitches in pageview parsetree dumper
 				# main visibility when copy pasting bullet lists
@@ -332,11 +334,21 @@ class ParseTreeItem(ClipboardItem):
 				dumper = get_format('wiki').Dumper()
 				text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
 				parser = get_format('wiki').Parser()
-				parsetree = parser.parse(text)
+				parsetree = parser.parse(text, partial=True)
+				if self.parsetree.ispartial:
+					parsetree.getroot().attrib['partial'] = True
 				#--
+			else:
+				parsetree = self.parsetree
+			#~ print ">>>>", self.format, parsetree.tostring()
+
+			if self.format in ('wiki', 'plain'):
+				dumper = get_format(self.format).Dumper()
+			else:
 				dumper = get_format(self.format).Dumper(
 					linker=StaticLinker(self.format, self.notebook, self.path) )
-			text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
+
+			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
 			selectiondata.set_text(text)
 		else:
 			assert False, 'Unknown target id %i' % id
@@ -360,6 +372,7 @@ class PageLinkItem(ClipboardItem):
 		@param clipboard: a C{gtk.Clipboard} objet
 		@param selectiondata: a C{gtk.SelectionData} object to set the data on
 		@param id: target id for the requested data format
+		@param a: any additional arguments are discarded
 		'''
 		logger.debug("Clipboard requests data as '%s', we have a pagelink", selectiondata.target)
 		if id == INTERNAL_PAGELIST_TARGET_ID:

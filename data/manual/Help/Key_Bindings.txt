@@ -9,11 +9,14 @@ See also [[Menu Items]].
 ==== General ====
 
 '''
-F9		Toggle index visibility
+F9		Toggle visibility of sidepane(s)
+<Ctrl>F9	Show all sidepanes
 <Ctrl><Space>	Toggle focus between index and buffer
     		opens side pane if index is invisible
 		(optional see preferences)
 <Ctrl><Tab>	Focus next inteface element (gtk default)
+<Ctrl><Shift><Tab> Focus previous inteface element (gtk default)
+Esc		Close sidepane (when focus is on a side pane)
 '''
 
 
@@ -26,7 +29,7 @@ F9		Toggle index visibility
 		(The actual page is choosen by the history)
 <Alt><PgUp>	Go to the previous page in the index
 <Alt><PgDown>	Go to the next page in the index
-<Alt>D		Go to todays page
+<Alt>D		Go to today's page
 '''
 
 
@@ -65,7 +68,7 @@ F9		Toggle index visibility
 
 
 '''
-<Ctrl>1..<Ctrl>5		Make selected text a heading
+<Ctrl>1..<Ctrl>5 Make selected text a heading
 <Ctrl>9		Make selected text normal
 <Ctrl>B		Make selected text strong
 <Ctrl>I		Make selected text italic
@@ -141,4 +144,4 @@ Zim does not support an emacs mode specifically, however Gtk+ does. When you set
 gtk-key-theme-name = "Emacs"
 '''
 
-to ''~/.gtkrc-2.0'' . Of course of you use this you will need to customize a number of accelerators as well which conflict with the emacs keybindings. See the secttion above.
+to ''~/.gtkrc-2.0'' . Of course if you use this you will need to customize a number of accelerators as well which conflict with the emacs keybindings. See the section above.

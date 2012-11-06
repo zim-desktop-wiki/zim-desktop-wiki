@@ -168,7 +168,8 @@ class TestPageEntry(tests.TestCase):
 		self.assertTrue(len(completions) > 5 and ':Test' in completions)
 
 		entry.set_text('T')
-		self.assertEqual(get_completions(entry), ['foo', 'Foo Bar', 'tags', 'wiki'])
+		self.assertTrue(len(completions) > 5 and ':Test' in completions)
+		# completion now has full notebook
 
 		entry.set_text('Test:')
 		self.assertEqual(get_completions(entry), ['Test:foo', 'Test:Foo Bar', 'Test:tags', 'Test:wiki'])

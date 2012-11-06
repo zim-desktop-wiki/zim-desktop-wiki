@@ -156,9 +156,9 @@ def increase_list_iter(listiter):
 
 def list_formats(type):
 	if type == EXPORT_FORMAT:
-		return ['HTML','LaTeX', 'Markdown (pandoc)']
+		return ['HTML','LaTeX', 'Markdown (pandoc)', 'RST (sphinx)']
 	elif type == TEXT_FORMAT:
-		return ['Text', 'Wiki', 'Markdown (pandoc)']
+		return ['Text', 'Wiki', 'Markdown (pandoc)', 'RST (sphinx)']
 	else:
 		assert False, 'TODO'
 
@@ -187,15 +187,15 @@ def get_format_module(name):
 	@param name: the format name
 	@returns: a module object
 	'''
-	return zim.plugins.get_module('zim.formats', name)
+	return zim.plugins.get_module('zim.formats', canonical_name(name))
 
 
 def get_parser(name, *arg, **kwarg):
 	'''Returns a parser object instance for a specific format
 
 	@param name: format name
-
-	All other param are passed on to the object constructor
+	@param arg: arguments to pass to the parser object
+	@param kwarg: keyword arguments to pass to the parser object
 
 	@returns: parser object instance (subclass of L{ParserClass})
 	'''
@@ -208,14 +208,35 @@ def get_dumper(name, *arg, **kwarg):
 	'''Returns a dumper object instance for a specific format
 
 	@param name: format name
-
-	All other param are passed on to the object constructor
+	@param arg: arguments to pass to the dumper object
+	@param kwarg: keyword arguments to pass to the dumper object
 
 	@returns: dumper object instance (subclass of L{DumperClass})
 	'''
 	module = get_format_module(name)
 	klass = zim.plugins.lookup_subclass(module, DumperClass)
 	return klass(*arg, **kwarg)
+
+
+from xml.etree.ElementTree import TreeBuilder as _TreeBuilder
+
+class TreeBuilder(_TreeBuilder):
+	# Hack to deal with API incompatibility between versions of etree
+	# Note that cElementTree.TreeBuilder is a function, so we can not
+	# subclass it :(  therefore using the python version with the
+	# current element class as factory (which might be the c variant)
+
+	def __init__(self):
+		_TreeBuilder.__init__(self, Element)
+
+	def start(self, tag, attrs=None):
+		if attrs is None:
+			attrs = {}
+		_TreeBuilder.start(self, tag, attrs)
+
+	def data(self, data):
+		assert isinstance(data, basestring), 'Got: %s' % data
+		_TreeBuilder.data(self, data)
 
 
 class ParseTree(ElementTreeModule.ElementTree):
@@ -301,7 +322,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 	def get_heading(self):
 		'''Get the heading, if the tree starts with a heading
-		@returns a 2-tuple of text and heading level or C{(None, None)}
+		@returns: a 2-tuple of text and heading level or C{(None, None)}
 		'''
 		root = self.getroot()
 		children = root.getchildren()
@@ -328,7 +349,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''If the tree starts with a heading, remove it and any trailing
 		whitespace.
 		Will modify the tree.
-		@returns a 2-tuple of text and heading level or C{(None, None)}
+		@returns: a 2-tuple of text and heading level or C{(None, None)}
 		'''
 		root = self.getroot()
 		children = root.getchildren()
@@ -1009,7 +1030,7 @@ class DumperClass(Visitor):
 
 	def encode_text(self, text):
 		'''Optional method to encode text elements in the output
-		@param strings: text to be encoded
+		@param text: text to be encoded
 		@returns: encoded text
 		@implementation: optional, default just returns unmodified input
 		'''
@@ -1142,6 +1163,8 @@ class BaseLinker(object):
 				else:
 					logger.warn('No URL found for interwiki link "%s"', link)
 					link = href
+			elif type == 'notebook':
+				href = self.link_notebook(link)
 			else: # I dunno, some url ?
 				method = 'link_' + type
 				if hasattr(self, method):

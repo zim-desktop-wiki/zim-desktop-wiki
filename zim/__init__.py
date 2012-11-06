@@ -1,6 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
 '''
 This module contains the base class for the zim application and the main
@@ -21,7 +31,7 @@ Overview
 
 The script C{zim.py} is a thin wrapper around the L{main()} function
 defined here. THe main function validates commandline options and if
-all is well it either calls the background daemon to connect to some
+all is well it either calls the background process to connect to some
 running instance of zim, or it instantiates a L{NotebookInterface}
 object, or an object of a subclass like L{GtkInterface} (for the
 graphic user interface) or L{WWWInterface} (for the webinterface).
@@ -33,7 +43,7 @@ The graphical user interface is implemented in the L{zim.gui} module
 and it's sub-modules. The webinterface is implemented in L{zim.www}.
 
 The graphical interface uses a background process to coordinate
-between instances, this is implemented in L{zim.daemon}.
+between instances, this is implemented in L{zim.ipc}.
 
 Regardsless of the interface choosen there is a L{Notebook} object
 which implements a generic API for accessing and storing pages and
@@ -84,7 +94,7 @@ For asynchronous actions see L{zim.async}.
 
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.55' # Bumped version to allow database rebuild
+__version__ = '0.57'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __copyright__ = 'Copyright 2008 - 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
@@ -109,10 +119,12 @@ from getopt import gnu_getopt, GetoptError
 
 from zim.fs import File, Dir
 from zim.errors import Error
-from zim.config import data_dir, config_file, log_basedirs, ZIM_DATA_DIR
+from zim.config import data_dir, config_file, get_config, log_basedirs, \
+	ZIM_DATA_DIR, ConfigDictFile
 
 
 logger = logging.getLogger('zim')
+
 
 if ZIM_DATA_DIR:
 	# We are running from a source dir - use the locale data included there
@@ -136,16 +148,15 @@ ZIM_EXECUTABLE = 'zim'
 longopts = ('verbose', 'debug')
 commands = (
 	'help', 'version', 'gui', 'server', 'export', 'search',
-	'index', 'manual', 'plugin', 'daemon'
+	'index', 'manual', 'plugin', 'ipc-server',
 )
 commandopts = {
-	'gui': ('list', 'geometry=', 'fullscreen', 'no-daemon'),
-	'server': ('port=', 'template=', 'gui', 'no-daemon'),
+	'gui': ('list', 'geometry=', 'fullscreen', 'standalone'),
+	'server': ('port=', 'template=', 'gui', 'standalone'),
 	'export': ('format=', 'template=', 'output=', 'root-url=', 'index-page='),
 	'search': (),
 	'index': ('output=',),
 	'plugin': (),
-	'daemon': (),
 }
 shortopts = {
 	'v': 'version', 'h': 'help',
@@ -173,6 +184,7 @@ General Options:
   --gui           run the editor (this is the default)
   --server        run the web server
   --export        export to a different format
+  --search        run a search query on a notebook
   --index         build an index for a notebook
   --plugin        call a specific plugin function
   --manual        open the user manual
@@ -186,7 +198,7 @@ GUI Options:
                   opening the default notebook
   --geometry      window size and position as WxH+X+Y
   --fullscreen    start in fullscreen mode
-  --no-daemon     start a single instance, no daemon
+  --standalone     start a single instance, no background process
 
 Server Options:
   --port          port to use (defaults to 8080)
@@ -275,6 +287,11 @@ def main(argv):
 	if zim_exec_file.exists():
 		# We were given an absolute path, e.g. "python ./zim.py"
 		ZIM_EXECUTABLE = zim_exec_file.path
+
+	# Check for special commandline args for ipc, does not return
+	# if handled
+	import zim.ipc
+	zim.ipc.handle_argv()
 
 	# Let getopt parse the option list
 	short = ''.join(shortopts.keys())
@@ -405,12 +422,9 @@ def main(argv):
 				notebook = default
 				logger.info('Opening default notebook')
 
-		if 'no_daemon' in optsdict or os.name == 'nt':
+		if 'standalone' in optsdict:
 			import zim.gui
-			try:
-				del optsdict['no_daemon']
-			except KeyError:
-				pass
+			del optsdict['standalone']
 			if not notebook:
 				import zim.gui.notebookdialog
 				notebook = zim.gui.notebookdialog.prompt_notebook()
@@ -419,43 +433,35 @@ def main(argv):
 			handler = zim.gui.GtkInterface(notebook, page, **optsdict)
 			handler.main()
 		else:
-			import zim.daemon
-			proxy = zim.daemon.DaemonProxy()
+			from zim.ipc import start_server_if_not_running, ServerProxy
 			if not notebook:
-				# Need to call this after spawning the daemon, else we
-				# have gtk loaded in the daemon process, and that causes
-				# problems with using gtk in child processes.
 				import zim.gui.notebookdialog
 				notebook = zim.gui.notebookdialog.prompt_notebook()
 				if not notebook:
-					proxy.quit_if_nochild()
 					return # User canceled notebook dialog
-			gui = proxy.get_notebook(notebook)
 
+			start_server_if_not_running()
+			server = ServerProxy()
+			gui = server.get_notebook(notebook)
 			gui.present(page, **optsdict)
 
 			logger.debug('''
 NOTE FOR BUG REPORTS:
 	At this point zim has send the command to open a notebook to a
-	background process and the current process will no quit.
+	background process and the current process will now quit.
 	If this is the end of your debug output it is probably not useful
 	for bug reports. Please close all zim windows, quit the
 	zim trayicon (if any), and try again.
 ''')
 	elif cmd == 'server':
-		try:
-			del optsdict['no_daemon']
-		except KeyError:
-			pass
+		if 'standalone' in optsdict:
+			del optsdict['standalone']
+			# No daemon support for server, so no option doesn;t
+			# do anything for now
 
 		import zim.www
 		handler = zim.www.Server(*args, **optsdict)
 		handler.main()
-	elif cmd == 'daemon':
-		# just start the daemon, nothing else
-		import zim.daemon
-		proxy = zim.daemon.DaemonProxy()
-		proxy.ping()
 	elif cmd == 'plugin':
 		import zim.plugins
 		try:
@@ -463,7 +469,7 @@ NOTE FOR BUG REPORTS:
 		except IndexError:
 			raise UsageError
 		module = zim.plugins.get_plugin_module(pluginname)
-		module.main(None, *args)
+		module.main(*args)
 
 
 def ZimCmd():
@@ -475,7 +481,7 @@ def ZimCmd():
 	# needed
 	from zim.applications import Application
 	if ZIM_EXECUTABLE.endswith('.exe'):
-		return Application(ZIM_EXECUTABLE)
+		return Application((ZIM_EXECUTABLE,))
 	elif sys.executable:
 		# If not an compiled executable, we assume it is python
 		# (Application class does this automatically for python scripts
@@ -500,6 +506,9 @@ class NotebookInterface(gobject.GObject):
 	@signal: C{open-notebook (notebook)}:
 	Emitted to open a notebook in this interface
 
+	@signal: C{preferences-changed ()}:
+	Emitted when preferences have changed
+
 	@cvar ui_type: string to tell plugins what interface is supported
 	by this class. Currently this can be "gtk" or "html". If "ui_type"
 	is None we run without interface (e.g. commandline export).
@@ -516,6 +525,7 @@ class NotebookInterface(gobject.GObject):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-notebook': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	ui_type = None
@@ -531,30 +541,43 @@ class NotebookInterface(gobject.GObject):
 		self.notebook = None
 		self.plugins = []
 
-		self.preferences = config_file('preferences.conf')
+		self.preferences = get_config('preferences.conf')
+		self.preferences['General'].setdefault('plugins',
+			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol', 'cards'])
+
 		self.uistate = None
+
+		self.load_early_plugins()
 
 		if not notebook is None:
 			self.open_notebook(notebook)
 
-	def load_plugins(self):
-		'''Loads all the plugins defined in the preferences
-
-		Typically called from the constructor of sub-classes.
+	def load_early_plugins(self):
+		'''Load all plugins that need to be loaded early
+		(For now these are notebook independent plugins only)
 		'''
-		default = ['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol', 'cards']
-		self.preferences['General'].setdefault('plugins', default)
-		plugins = self.preferences['General']['plugins']
-		plugins = set(plugins) # Eliminate doubles
-
+		import zim.plugins
 		# Plugins should not have dependency on order of being added
 		# but sort them here to make behavior predictable.
+		plugins = self.preferences['General']['plugins']
+		for name in sorted(plugins):
+			try:
+				klass = zim.plugins.get_plugin(name)
+			except:
+				logger.exception('Failed to load plugin klass for plugin "%s"', name)
+			else:
+				if klass.is_profile_independent:
+					self.load_plugin(name)
+
+	def load_plugins(self, independent_only=False):
+		'''Loads all the plugins defined in the preferences that are
+		not yet loaded.
+		'''
+		# Plugins should not have dependency on order of being added
+		# but sort them here to make behavior predictable.
+		plugins = self.preferences['General']['plugins']
 		for name in sorted(plugins):
 			self.load_plugin(name)
-
-		loaded = [p.plugin_key for p in self.plugins]
-		if set(loaded) != plugins:
-			self.preferences['General']['plugins'] = sorted(loaded)
 
 	def load_plugin(self, name):
 		'''Load a single plugin by name
@@ -586,15 +609,21 @@ class NotebookInterface(gobject.GObject):
 				raise AssertionError, 'Dependencies failed for plugin %s' % name
 			plugin = klass(self)
 		except:
-			logger.exception('Failed to load plugin %s', name)
+			logger.exception('Failed to load plugin "%s"', name)
+			try:
+				self.preferences['General']['plugins'].remove(name)
+				self.preferences.set_modified(True)
+			except ValueError:
+				pass
 			return None
 		else:
 			self.plugins.append(plugin)
-			logger.debug('Loaded plugin %s (%s)', name, plugin)
+			logger.debug('Loaded plugin "%s" (%s)', name, plugin)
 
 		plugin.plugin_key = name
 		if not name in self.preferences['General']['plugins']:
 			self.preferences['General']['plugins'].append(name)
+			self.preferences.set_modified(True)
 
 		return plugin
 
@@ -608,8 +637,8 @@ class NotebookInterface(gobject.GObject):
 		'''
 		if isinstance(plugin, basestring):
 			name = plugin
-			assert name in [p.plugin_key for p in self.plugins]
-			plugin = filter(lambda p: p.plugin_key == name, self.plugins)[0]
+			plugin = self.get_plugin(name)
+			assert plugin is not None
 		else:
 			assert plugin in self.plugins
 			name = plugin.plugin_key
@@ -618,7 +647,52 @@ class NotebookInterface(gobject.GObject):
 		self.plugins.remove(plugin)
 		logger.debug('Unloaded plugin %s', name)
 
-		self.preferences['General']['plugins'].remove(name)
+		try:
+			self.preferences['General']['plugins'].remove(name)
+			self.preferences.set_modified(True)
+		except ValueError:
+			pass
+
+	def get_plugin(self, name):
+		'''Returns plugin object if this plugin is loaded, C{None}
+		otherwise.
+		'''
+		try:
+			return filter(lambda p: p.plugin_key == name, self.plugins)[0]
+		except IndexError:
+			return None
+
+	def save_preferences(self):
+		'''Save the preferences config file if modified
+		@emits: preferences-changed
+		'''
+		# For profile independent plugins, sync back to default
+		# preferences
+		if self.notebook and self.notebook.profile:
+			independent = []
+			for plugin in self.plugins:
+				if plugin.is_profile_independent:
+					independent.append(plugin.plugin_key)
+
+			if independent:
+				default = get_config('preferences.conf')
+				for name in independent:
+					if name not in default['General']['plugins']:
+						default['General']['plugins'].append(name)
+						default.set_modified(True)
+
+					section = plugin.__class__.__name__
+					if default[section] != plugin.preferences:
+						default[section].update(plugin.preferences)
+
+				if default.modified:
+					default.write()
+
+		# First emit, than write - avoid getting stuck with a set
+		# that crashes the application
+		if self.preferences.modified:
+			self.emit('preferences-changed')
+
 		self.preferences.write()
 
 	def open_notebook(self, notebook):
@@ -688,6 +762,61 @@ class NotebookInterface(gobject.GObject):
 		else:
 			from zim.config import ConfigDict
 			self.uistate = ConfigDict()
+
+		if notebook.profile:
+			# the profile will determine what plugins to load
+			self.on_profile_changed(notebook)
+		else:
+			# load the rest of the plugins for the default prefences
+			self.load_plugins()
+
+		notebook.connect('profile-changed', self.on_profile_changed)
+
+	def on_profile_changed(self, notebook):
+		# Copy config for independent plugins
+		independent_preferences = {}
+		for plugin in self.plugins[:]:
+			if plugin.is_profile_independent:
+				independent_preferences[plugin.plugin_key] = \
+					plugin.preferences.copy()
+
+		# Switch config
+		if self.notebook.profile:
+			# Load the preferences for the profile
+			# In case new profile does not exist or is incomplete
+			# we cary over any settings from the current one
+			logger.debug('Profile changed to: %s', notebook.profile)
+			basename = self.notebook.profile.lower() + '.conf'
+			file = config_file(('profiles', basename))
+			self.preferences.change_file(file)
+			self.preferences.write()
+		else:
+			# Load default preferences
+			# We do a full flush to reset to default
+			logger.debug('Profile reset to default')
+			preferences = get_config('preferences.conf')
+			file = preferences.file
+			self.preferences.change_file(file)
+			for section in self.preferences.values():
+				section.clear()
+			self.preferences.read() # HACK Forces reading default as well
+
+		# Notify ui objects
+		self.emit('preferences-changed')
+
+		# notify plugins of possible new preferences
+		# and remove old plugins
+		for plugin in self.plugins[:]:
+			if plugin.plugin_key in self.preferences['General']['plugins']:
+				plugin.emit('preferences-changed')
+			elif plugin.is_profile_independent:
+				self.preferences['General']['plugins'].append(plugin.plugin_key)
+				plugin.preferences.update(independent_preferences[plugin.plugin_key])
+			else:
+				self.unload_plugin(plugin)
+
+		# load new plugins
+		self.load_plugins()
 
 	def cmd_export(self, format='html', template=None, page=None, output=None, root_url=None, index_page=None):
 		'''Convenience method hat wraps L{zim.exporter.Exporter} for

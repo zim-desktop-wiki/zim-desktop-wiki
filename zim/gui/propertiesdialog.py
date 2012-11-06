@@ -8,7 +8,7 @@ from zim.gui.widgets import Dialog
 class PropertiesDialog(Dialog):
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Properties')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Properties'), help='Help:Properties') # T: Dialog title
 		label = gtk.Label()
 		label.set_markup('<b>'+_('Notebook Properties')+'</b>')
 			# T: Section in notebook dialog
@@ -29,3 +29,5 @@ class PropertiesDialog(Dialog):
 			properties = self.form.copy()
 			self.ui.notebook.save_properties(**properties)
 		return True
+
+## TODO: put a number of properties in an expander with a lable "Advanced"

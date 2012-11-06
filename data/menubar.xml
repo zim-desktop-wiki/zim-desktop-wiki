@@ -46,13 +46,15 @@
 			<separator/>
 			<menuitem action='copy_location'/>
 			<separator/>
+			<menuitem action='show_templateeditor'/>
 			<menuitem action='show_preferences'/>
 		</menu>
 		<menu action='view_menu'>
 			<menuitem action='toggle_readonly'/>
 			<menuitem action='toggle_toolbar'/>
 			<menuitem action='toggle_statusbar'/>
-			<menuitem action='toggle_sidepane'/>
+			<menuitem action='toggle_panes'/>
+			<menuitem action='show_all_panes'/>
 			<menu action='pathbar_menu'>
 				<menuitem action='set_pathbar_none'/>
 				<menuitem action='set_pathbar_recent'/>
@@ -88,6 +90,10 @@
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='insert_text_from_file'/>
+			<menu action='insert_new_file_menu'>
+				<separator/>
+				<menuitem action='open_file_templates_folder'/>
+			</menu>
 			<menuitem action='insert_link'/>
 		</menu>
 		<menu action='format_menu'>
@@ -175,7 +181,7 @@
 		<placeholder name='edit'/>
 		<separator/>
 		<placeholder name='view'>
-			<toolitem action='toggle_sidepane'/>
+			<toolitem action='toggle_panes'/>
 		</placeholder>
 		<separator/>
 		<placeholder name='go'>

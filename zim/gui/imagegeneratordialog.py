@@ -16,7 +16,8 @@ import logging
 
 from zim.fs import File, Dir
 from zim.gui.widgets import ui_environment, \
-	Dialog, ImageView, Button, QuestionDialog, scrolled_text_view
+	Dialog, ImageView, Button, QuestionDialog, \
+	ScrolledTextView, ScrolledSourceView, VPaned
 
 logger = logging.getLogger('zim.gui')
 
@@ -56,6 +57,36 @@ class ImageGeneratorClass(object):
 		'''
 		raise NotImplemented
 
+	def process_input(self, text):
+		'''Process user input before generating image
+
+		This method is used to post-process user input before
+		generating image and writing the user input into the script
+		file.
+
+		@param text: the source text as string - raw user input
+		@returns: string used for generate_image, also the string
+		written to script file.
+
+		@implementation: Not mandatory to be implemented by subclass.
+		It defaults to user input.
+		'''
+		return text
+
+	def filter_input(self, text):
+		'''Filter contents of script file before displaying in textarea
+
+		This method is used to pre-process contents of script file
+		before displaying in textarea.
+
+		@param text: the contents of script file
+		@returns: string used to display for user input.
+
+		@implementation: Not mandatory to be implemented by subclass.
+		It defaults to script file contents.
+		'''
+		return text
+
 	def cleanup(self):
 		'''Cleanup any temporary files that were created by this
 		generator. Including log files and image files.
@@ -74,7 +105,7 @@ class ImageGeneratorDialog(Dialog):
 
 	# TODO: use uistate to remember pane position
 
-	def __init__(self, ui, title, generator, image=None, **opt):
+	def __init__(self, ui, title, generator, image=None, syntax=None, **opt):
 		'''Constructor
 
 		@param ui: L{GtkInterface} object or parent window
@@ -82,6 +113,7 @@ class ImageGeneratorDialog(Dialog):
 		@param generator: an L{ImageGeneratorClass} object
 		@param image: image data for an image in the
 		L{TextBuffer<zim.gui.pageview.TextBuffer>}
+		@param syntax: optional syntax name (as understood by gtksourceview)
 		@param opt: any other arguments to pass to the L{Dialog} constructor
 		'''
 		if ui_environment['platform'] == 'maemo':
@@ -99,20 +131,18 @@ class ImageGeneratorDialog(Dialog):
 		self.imagefile = None
 		self.logfile = None
 
-		self.vpane = gtk.VPaned()
+		self.vpane = VPaned()
 		self.vpane.set_position(150)
 		self.vbox.add(self.vpane)
 
 		self.imageview = ImageView(bgcolor='#FFF', checkerboard=False)
-		self.vpane.add1(self.imageview)
+		self.vpane.pack1(self.imageview, resize=True)
 		# TODO scrolled window and option to zoom in / real size
 
-		window, textview = scrolled_text_view(monospace=True)
+		window, textview = ScrolledSourceView(syntax=syntax)
 		self.textview = textview
 		self.textview.set_editable(True)
-		self.vpane.add2(window)
-		# TODO supply at least an Undo stack for this textview
-		# or optionally subclass from gtksourceview
+		self.vpane.pack2(window, resize=False)
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
@@ -142,7 +172,7 @@ class ImageGeneratorDialog(Dialog):
 			textfile = self._stitch_fileextension(file, self.generator.scriptname)
 			self._existing_file = textfile
 			self.imageview.set_file(file)
-			self.set_text(textfile.read())
+			self.set_text(self.generator.filter_input(textfile.read()))
 
 		self.textview.grab_focus()
 
@@ -175,6 +205,7 @@ class ImageGeneratorDialog(Dialog):
 		self.logfile = None
 
 		text = self.get_text()
+		text = self.generator.process_input(text)
 		try:
 			imagefile, logfile = self.generator.generate_image(text)
 		except:
@@ -217,7 +248,7 @@ class ImageGeneratorDialog(Dialog):
 			dir = self.ui.notebook.get_attachments_dir(page)
 			textfile = dir.new_file(self.generator.scriptname)
 
-		textfile.write( self.get_text() )
+		textfile.write( self.generator.process_input(self.get_text()) )
 
 		imgfile = self._stitch_fileextension(textfile, self.generator.imagename)
 		if self.imagefile and self.imagefile.exists():
@@ -248,5 +279,5 @@ class LogFileDialog(Dialog):
 		Dialog.__init__(self, ui, _('Log file'), buttons=gtk.BUTTONS_CLOSE)
 			# T: dialog title for log view dialog - e.g. for Equation Editor
 		self.set_default_size(600, 300)
-		window, textview = scrolled_text_view(file.read(), monospace=True)
+		window, textview = ScrolledTextView(file.read(), monospace=True)
 		self.vbox.add(window)
