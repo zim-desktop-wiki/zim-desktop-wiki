@@ -3229,6 +3229,7 @@ class RenamePageDialog(Dialog):
 
 		page = self.ui.notebook.get_page(self.path)
 		existing = (page.hascontent or page.haschildren)
+		should_autochange_heading = page.should_autochange_heading()
 
 		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
 			# T: label in 'rename page' dialog - %s is the page name
@@ -3255,7 +3256,7 @@ class RenamePageDialog(Dialog):
 				# T: Option in the 'rename page' dialog
 		], {
 			'name': self.path.basename,
-			'head': existing,
+			'head': should_autochange_heading,
 			'update': True,
 		})
 

@@ -639,7 +639,7 @@ class TestPage(TestPath):
 	def generator(self, name):
 		return self.notebook.get_page(Path(name))
 
-	def runTest(self):
+	def testMain(self):
 		'''Test Page object'''
 		TestPath.runTest(self)
 
@@ -674,6 +674,17 @@ class TestPage(TestPath):
 		self.assertFalse(tree.hascontent)
 		page.set_parsetree(tree)
 		self.assertFalse(page.hascontent)
+	
+	def testShouldAutochangeHeading(self):
+		page = Page(Path("Foo"))
+		page.readonly = False
+		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
+		tree.set_heading("Foo")
+		page.set_parsetree(tree)
+		self.assertTrue(page.should_autochange_heading())
+		tree.set_heading("Bar")
+		page.set_parsetree(tree)
+		self.assertFalse(page.should_autochange_heading())
 
 
 class TestIndexPage(tests.TestCase):
