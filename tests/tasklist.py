@@ -209,6 +209,8 @@ FIXME: jaja - TODO !! @FIXME
 		self.assertTrue(len(lines[0].split(',')) > 3)
 		self.assertFalse(any('<span' in l for l in lines)) # make sure encoding is removed
 
+		# TODO test filtering for tags, labels, string - all case insensitive
+
 
 class MockUI(tests.MockObject):
 
