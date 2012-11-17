@@ -47,8 +47,10 @@ def get_environ(param, default=None):
 	'''
 	# Do NOT use zim.fs.decode here, we want real decoding on windows,
 	# not just convert to unicode
-	value = os.environ.get(param, default)
-	if isinstance(value, str):
+	value = os.environ.get(param)
+	if value is None:
+		return default
+	elif isinstance(value, str):
 		return value.decode(ENCODING)
 	else:
 		return value
@@ -97,14 +99,18 @@ if os.name == 'nt':
 		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
 			home = os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
 			os.environ['HOME'] = home
-elif not 'USER' in os.environ or not os.environ['USER']:
+
+	if not 'APPDATA' in os.environ or not os.environ['APPDATA']:
+		os.environ['APPDATA'] = os.environ['HOME'] + '\\Application Data'
+
+assert isdir(get_environ('HOME')), \
+	'ERROR: environment variable $HOME not set correctly'
+
+if not 'USER' in os.environ or not os.environ['USER']:
 	# E.g. Maemo doesn't define $USER
 	os.environ['USER'] = os.path.basename(os.environ['HOME'])
 	logger.info('Environment variable $USER was not set')
 
-
-assert isdir(get_environ('HOME')), \
-	'ERROR: environment variable $HOME not set correctly'
 
 
 ## Initialize config paths
@@ -138,20 +144,49 @@ def _set_basedirs():
 	else:
 		ZIM_DATA_DIR = None
 
-	XDG_DATA_HOME = Dir(
-		get_environ('XDG_DATA_HOME', '~/.local/share/'))
+	if os.name == 'nt':
+		APPDATA = get_environ('APPDATA')
 
-	XDG_DATA_DIRS = map(Dir,
-		get_environ_list('XDG_DATA_DIRS', ('/usr/share/', '/usr/local/share/')))
+		XDG_DATA_HOME = Dir(
+			get_environ('XDG_DATA_HOME', APPDATA + r'\zim\data'))
 
-	XDG_CONFIG_HOME = Dir(
-		get_environ('XDG_CONFIG_HOME', '~/.config/'))
+		XDG_DATA_DIRS = Dir(
+			get_environ_list('XDG_DATA_DIRS', '~/.local/share/')) # Backwards compatibility
 
-	XDG_CONFIG_DIRS = map(Dir,
-		get_environ_list('XDG_CONFIG_DIRS', ('/etc/xdg/',)))
+		XDG_CONFIG_HOME = Dir(
+			get_environ('XDG_CONFIG_HOME', APPDATA + r'\zim\config'))
 
-	XDG_CACHE_HOME = Dir(
-		get_environ('XDG_CACHE_HOME', '~/.cache'))
+		XDG_CONFIG_DIRS = Dir(
+			get_environ_list('XDG_CONFIG_DIRS', '~/.config/')) # Backwards compatibility
+
+		try:
+			import _winreg as wreg
+			wreg_key = wreg.OpenKey(
+				wreg.HKEY_CURRENT_USER,
+				r'Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders')
+			cache_dir = str(wreg.QueryValueEx(wreg_key, "Cache")[0].replace(u'%USERPROFILE%', get_environ['USERPROFILE']))
+			wreg.CloseKey(wreg_key)
+		except:
+			cache_dir = os.environ['TEMP']
+
+		XDG_CACHE_HOME = Dir(
+			get_environ('XDG_CACHE_HOME', cache_dir + r'\zim'))
+	else:
+		XDG_DATA_HOME = Dir(
+			get_environ('XDG_DATA_HOME', '~/.local/share/'))
+
+		XDG_DATA_DIRS = map(Dir,
+			get_environ_list('XDG_DATA_DIRS', ('/usr/share/', '/usr/local/share/')))
+
+		XDG_CONFIG_HOME = Dir(
+			get_environ('XDG_CONFIG_HOME', '~/.config/'))
+
+		XDG_CONFIG_DIRS = map(Dir,
+			get_environ_list('XDG_CONFIG_DIRS', ('/etc/xdg/',)))
+
+		XDG_CACHE_HOME = Dir(
+			get_environ('XDG_CACHE_HOME', '~/.cache'))
+
 
 # Call on module initialization to set defaults
 _set_basedirs()

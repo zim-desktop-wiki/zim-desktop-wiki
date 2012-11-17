@@ -314,14 +314,16 @@ A list
 
 	def testLink(self):
 		'''Test iterator function for link'''
-		text = '[[FooBar]]' # FIXME add link type
+		# + check for bugs in link encoding
+		text = '[[FooBar]] [[Foo|]] [[|Foo]]'
 		tree = self.format.Parser().parse(text)
-		done = False
-		for tag in tree.getiterator('link'):
+		for i, tag in enumerate(tree.getiterator('link')):
+			self.assertTrue(tag.text)
+			self.assertTrue(tag.attrib.get('href'))
 			link = Link(self.page, **tag.attrib)
 			self.assertEqual(tag.attrib['href'], link.href)
 			done = True
-		self.assertTrue(done)
+		self.assertEqual(i, 2)
 
 	def testBackward(self):
 		'''Test backward compatibility for wiki format'''

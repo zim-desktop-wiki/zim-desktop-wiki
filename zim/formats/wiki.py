@@ -306,14 +306,13 @@ class Parser(ParserClass):
 				lambda match: ('code', {}, match[1]), list)
 
 		def parse_link(match):
-			parts = match[1].split('|', 2)
+			parts = match[1].strip('|').split('|', 2)
+				# strip "|" to check against bugs like [[|foo]] and [[foo|]]
 			link = parts[0]
 			if len(parts) > 1:
 				mytext = parts[1]
 			else:
 				mytext = link
-			if len(link) == 0: # [[|link]] bug
-					link = mytext
 			return ('link', {'href':link}, mytext)
 
 		list = parser_re['link'].sublist(parse_link, list)
