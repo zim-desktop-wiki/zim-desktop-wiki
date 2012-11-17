@@ -63,7 +63,8 @@ from zim.async import AsyncOperation
 from zim.parsing import url_encode, URL_ENCODE_READABLE
 
 from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
-	IconButton, ScrolledWindow, button_set_statusbar_style
+	IconButton, ScrolledWindow, button_set_statusbar_style, \
+	WindowSidePaneWidget
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import \
 	URI_TARGETS, URI_TARGET_NAMES, \
@@ -328,7 +329,7 @@ BASENAME_COL = 0
 PIXBUF_COL = 1
 
 
-class AttachmentBrowserPluginWidget(gtk.HBox):
+class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def __init__(self, plugin, preferences):
 		gtk.HBox.__init__(self)
@@ -395,6 +396,16 @@ class AttachmentBrowserPluginWidget(gtk.HBox):
 			self._update_state()
 
 		self.connect('expose-event', _init_base_color)
+
+	def embed_closebutton(self, button):
+		if button:
+			self.buttonbox.pack_start(button, False)
+			self.buttonbox.reorder_child(button, 0)
+		else:
+			for widget in self.buttonbox.get_children():
+				if hasattr(widget, 'window_close_button'):
+					self.buttonbox.remove(widget)
+		return True
 
 	def set_page(self, page):
 		dir = self.ui.notebook.get_attachments_dir(page)

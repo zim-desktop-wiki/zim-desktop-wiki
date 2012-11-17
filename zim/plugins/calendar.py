@@ -10,7 +10,8 @@ import datetime
 import locale
 
 from zim.plugins import PluginClass
-from zim.gui.widgets import ui_environment, Dialog, Button, LEFT_PANE, TOP, WIDGET_POSITIONS
+from zim.gui.widgets import ui_environment, Dialog, Button, \
+	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.templates import TemplateManager, TemplateFunction
 
@@ -422,14 +423,17 @@ class Calendar(gtk.Calendar):
 gobject.type_register(Calendar)
 
 
-class CalendarPluginWidget(gtk.VBox):
+class CalendarPluginWidget(gtk.VBox, WindowSidePaneWidget):
 
 	def __init__(self, plugin):
 		gtk.VBox.__init__(self)
 		self.plugin = plugin
 
+		self.label_box = gtk.HBox()
+		self.pack_start(self.label_box, False)
+
 		self.label = gtk.Label()
-		self.pack_start(self.label, False)
+		self.label_box.add(self.label)
 		self._refresh_label()
 		self._timer_id = \
 			gobject.timeout_add(300000, self._refresh_label)
@@ -451,6 +455,15 @@ class CalendarPluginWidget(gtk.VBox):
 		self.pack_start(self.calendar, False)
 
 		self._select_date_cb = None
+
+	def embed_closebutton(self, button):
+		if button:
+			self.label_box.pack_end(button, False)
+		else:
+			for widget in self.label_box.get_children():
+				if not widget == self.label:
+					self.label_box.remove(widget)
+		return True
 
 	def _refresh_label(self, *a):
 		#print "UPDATE LABEL %s" % id(self)
