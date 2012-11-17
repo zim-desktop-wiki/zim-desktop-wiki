@@ -347,6 +347,13 @@ class Server(object):
 		#~ fh.write(authkey)
 		#~ fh.close()
 		#~ print "SERVER >>%s<<" % authkey
+
+		if SERVER_ADDRESS_FAMILY == 'AF_UNIX' \
+		and os.path.exists(SERVER_ADDRESS):
+			# Clean up old socket (someone should already have checked
+			# before whether or not it is functional)
+			os.unlink(SERVER_ADDRESS)
+
 		#~ self.listener = Listener(SERVER_ADDRESS, authkey=authkey)
 		self.listener = Listener(SERVER_ADDRESS)
 
