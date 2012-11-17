@@ -46,9 +46,10 @@ class TestTaskList(tests.TestCase):
 				# extract should not modify the tree
 			return tasks
 
-		def t(label, open=True, due=NO_DATE, prio=0):
+		def t(label, open=True, due=NO_DATE, prio=0, tags=''):
 			# Generate a task tuple
-			return (open, True, prio, due, label)
+			# (open, actionable, prio, due, tags, description)
+			return (open, True, prio, due, tags, label)
 
 		# Note that this same text is in the test notebook
 		# so it gets run through the index as well - keep in sync
@@ -127,22 +128,22 @@ FIXME: jaja - TODO !! @FIXME
 				]),
 			]),
 			(t('Bar'), []),
-			(t('And then there are @tags'), []),
+			(t('And then there are @tags', tags='tags'), []),
 			(t('And due dates'), []),
-			(t('Date', due=mydate), []),
-			(t('Date', due='2012-12-11'), [
+			(t('Date [d: 11/12]', due=mydate), []),
+			(t('Date [d: 11/12/2012]', due='2012-12-11'), [
 				(t('TODO: BAR !!!', prio=3, due='2012-12-11'), []),
 				# due date is inherited
 			]),
 			# this list inherits the @home tag - and inherits prio
-			(t('Some more tasks !!! @home', prio=3), [
-				(t('Foo ! @home', prio=1), []),
-				(t('Bar @home', prio=3), []),
+			(t('Some more tasks !!!', prio=3, tags='home'), [
+				(t('Foo !', prio=1, tags='home'), []),
+				(t('Bar', prio=3, tags='home'), []),
 			]),
 			(t('TODO: dus'), []),
-			(t('FIXME: jaja - TODO !! @FIXME', prio=2), []),
+			(t('FIXME: jaja - TODO !! @FIXME', prio=2, tags='FIXME'), []),
 			(t('TODO: dus - list item'), []),
-			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2), []),
+			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2, tags='FIXME'), []),
 			(t('Sub item bullets'), []),
 			(t('Sub item numbered'), []),
 		]
@@ -159,14 +160,14 @@ FIXME: jaja - TODO !! @FIXME
 			(t('FIXME: dus'), []),
 			(t('TODO: BAR !!!', prio=3), []),
 			# this list inherits the @home tag - and inherits prio
-			(t('Some more tasks !!! @home', prio=3), [
-				(t('Foo ! @home', prio=1), []),
-				(t('Bar @home', prio=3), []),
+			(t('Some more tasks !!!', prio=3, tags='home'), [
+				(t('Foo !', prio=1, tags='home'), []),
+				(t('Bar', prio=3, tags='home'), []),
 			]),
 			(t('TODO: dus'), []),
-			(t('FIXME: jaja - TODO !! @FIXME', prio=2), []),
+			(t('FIXME: jaja - TODO !! @FIXME', prio=2, tags='FIXME'), []),
 			(t('TODO: dus - list item'), []),
-			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2), []),
+			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2, tags='FIXME'), []),
 		]
 
 		tasks = extract_tasks(text)

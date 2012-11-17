@@ -52,8 +52,8 @@ ui_xml = '''
 </ui>
 '''
 
-SQL_FORMAT_VERSION = (0, 5)
-SQL_FORMAT_VERSION_STRING = "0.5"
+SQL_FORMAT_VERSION = (0, 6)
+
 
 SQL_CREATE_TABLES = '''
 create table if not exists tasklist (
@@ -65,13 +65,14 @@ create table if not exists tasklist (
 	actionable BOOLEAN,
 	prio INTEGER,
 	due TEXT,
+	tags TEXT,
 	description TEXT
 );
 '''
 
 
-tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
-date_re = re.compile(r'\s*\[d:(.+)\]')
+_tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
+_date_re = re.compile(r'\s*\[d:(.+)\]')
 
 
 _NO_DATE = '9999' # Constant for empty due date - value chosen for sorting properties
@@ -121,12 +122,14 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 		('next_label', 'string', _('Label for next task'), 'Next:', check_class_allow_empty),
 			# T: label for plugin preferences dialog - label is by default "Next"
+		('nonactionable_tags', 'string', _('Tags for non-actionable tasks'), '', check_class_allow_empty),
+			# T: label for plugin preferences dialog
 		('included_subtrees', 'string', _('Subtree(s) to index'), '', check_class_allow_empty),
 			# T: subtree to search for tasks - default is the whole tree (empty string means everything)
 		('excluded_subtrees', 'string', _('Subtree(s) to ignore'), '', check_class_allow_empty),
 			# T: subtrees of the included subtrees to *not* search for tasks - default is none
 	)
-	_rebuild_on_preferences = ['all_checkboxes', 'labels', 'next_label', 'deadline_by_page',
+	_rebuild_on_preferences = ['all_checkboxes', 'labels', 'next_label', 'deadline_by_page', 'nonactionable_tags',
 				   'included_subtrees', 'excluded_subtrees' ]
 		# Rebuild database table if any of these preferences changed.
 		# But leave it alone if others change.
@@ -137,6 +140,7 @@ This is a core plugin shipping with zim.
 		self.task_label_re = None
 		self.next_label = None
 		self.next_label_re = None
+		self.nonactionable_tags = []
 		self.included_re = None
 		self.excluded_re = None
 		self.db_initialized = False
@@ -158,7 +162,7 @@ This is a core plugin shipping with zim.
 		# We don't care about pages that are moved
 
 		db_version = self.index.properties['plugin_tasklist_format']
-		if db_version == SQL_FORMAT_VERSION_STRING:
+		if db_version == '%i.%i' % SQL_FORMAT_VERSION:
 			self.db_initialized = True
 
 		self._set_preferences()
@@ -166,7 +170,7 @@ This is a core plugin shipping with zim.
 	def initialize_db(self, index):
 		with index.db_commit:
 			index.db.executescript(SQL_CREATE_TABLES)
-		self.index.properties['plugin_tasklist_format'] = SQL_FORMAT_VERSION_STRING
+		self.index.properties['plugin_tasklist_format'] = '%i.%i' % SQL_FORMAT_VERSION
 		self.db_initialized = True
 
 	def do_preferences_changed(self):
@@ -196,6 +200,13 @@ This is a core plugin shipping with zim.
 		else:
 			self.next_label = None
 			self.next_label_re = None
+
+		if self.preferences['nonactionable_tags']:
+			self.nonactionble_tags = [
+				t.strip().strip('@').lower()
+					for t in self.preferences['nonactionable_tags'].split(',')]
+		else:
+			self.nonactionble_tags = []
 
 		regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
 		self.task_label_re = re.compile(regex)
@@ -311,8 +322,8 @@ This is a core plugin shipping with zim.
 		c = self.index.db.cursor()
 		for task, grandchildren in children:
 			c.execute(
-				'insert into tasklist(source, parent, haschildren, open, actionable, prio, due, description)'
-				'values (?, ?, ?, ?, ?, ?, ?, ?)',
+				'insert into tasklist(source, parent, haschildren, open, actionable, prio, due, tags, description)'
+				'values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
 				(page.id, parentid, bool(grandchildren)) + task
 			)
 			if grandchildren:
@@ -357,6 +368,7 @@ This is a core plugin shipping with zim.
 			stack = [] # stack of 3-tuples, (LEVEL, TASK, CHILDREN)
 
 
+			ACT = 1
 			PRIO = 2
 			DATE = 3
 
@@ -379,16 +391,23 @@ This is a core plugin shipping with zim.
 							if mydefaultdate == _NO_DATE:
 								mydefaultdate = defaultdate
 							mydefaultprio = stack[-1][TASK][PRIO]
+							mydefaultactionable = stack[-1][TASK][ACT]
 						else:
 							mydefaultdate = defaultdate
 							mydefaultprio = None
+							mydefaultactionable = True
 
 						open = (bullet not in (CHECKED_BOX, XCHECKED_BOX))
 						if stack:
 							mytasks = stack[-1][CHILDREN]
 						else:
 							mytasks = tasks
-						task = self._parse_task(text, open=open, tags=globaltags, defaultdate=mydefaultdate, defaultprio=mydefaultprio, tasks=mytasks)
+						task = self._parse_task(text, open=open,
+								tags=globaltags,
+								actionable=mydefaultactionable,
+								defaultdate=mydefaultdate,
+								defaultprio=mydefaultprio,
+								tasks=mytasks)
 						children = []
 						if stack:
 							stack[-1][CHILDREN].append((task, children))
@@ -456,45 +475,41 @@ This is a core plugin shipping with zim.
 			text += child.tail or ''
 		return text
 
-	def _parse_task(self, text, open=True, tags=None, defaultdate=None, defaultprio=None, tasks=None):
+	def _parse_task(self, text, open=True, tags=None, actionable=True, defaultdate=None, defaultprio=None, tasks=None):
+		## Note: do not modify text here, keep it as is, any cleanup is done by the widget
+
 		prio = text.count('!')
 		if defaultprio and prio == 0:
 			prio = defaultprio
 
-		global date # FIXME
-		date = _NO_DATE
+		if not tags:
+			tags = []
+		tags += _tag_re.findall(text)
 
-		def set_date(match):
-			global date
-			mydate = parse_date(match.group(0))
-			if mydate and date == _NO_DATE:
+		datematch = _date_re.search(text) # first match
+		if datematch:
+			mydate = parse_date(datematch.group(0))
+			if mydate:
 				date = '%04i-%02i-%02i' % mydate # (y, m, d)
-				#~ return match.group(0) # TEST
-				return ''
 			else:
-				# No match or we already had a date
-				return match.group(0)
-
-		if tags:
-			for tag in tags:
-				if not tag in text:
-					text += ' ' + tag
-
-		text = date_re.sub(set_date, text)
+				date = _NO_DATE
+		else:
+			date = _NO_DATE
 
 		if defaultdate and date == _NO_DATE:
 			date = defaultdate
 
-		if self.next_label_re.match(text):
-			if tasks and tasks[-1][0][0]: # previous task still open
+		if actionable:
+			if any(t.lower() in self.nonactionble_tags for t in tags):
 				actionable = False
-			else:
-				actionable = True
-		else:
-			actionable = True
+			elif self.next_label_re.match(text):
+				if tasks and tasks[-1][0][0]: # previous task still open
+					actionable = False
+		# else parent was non-actionable already, so stay non-actionable
 
-		return (open, actionable, prio, date, text)
-			# (open, actionable, prio, due, description)
+		tags = ','.join(t.strip('@') for t in tags)
+		return (open, actionable, prio, date, tags, text)
+			# (open, actionable, prio, due, tags, description)
 
 
 	def remove_page(self, index, path, _emit=True):
@@ -946,16 +961,17 @@ class TaskListTreeView(BrowserTreeView):
 		for row in rows:
 			if not row['open']:
 				continue # Only include open items for now
+			path = path_cache[row['source']]
 
+			# Update labels
 			for label in self.plugin.task_label_re.findall(row['description']):
 				self._labels[label] = self._labels.get(label, 0) + 1
 
-			tags = tuple(tag_re.findall(row['description']))
-			if self.plugin.preferences['tag_by_page']:
-				path = path_cache[row['source']]
-				tags = tags + tuple(path.parts)
-
 			# Update tag count
+			tags = row['tags'].split(',')
+			if self.plugin.preferences['tag_by_page']:
+				tags = tags + path.parts
+
 			if tags:
 				for tag in tags:
 					self._tags[tag] = self._tags.get(tag, 0) + 1
@@ -963,15 +979,18 @@ class TaskListTreeView(BrowserTreeView):
 				self._tags[_NO_TAGS] = self._tags.get(_NO_TAGS, 0) + 1
 
 
-			path = path_cache[row['source']]
-			task = encode_markup_text(row['description'])
+			# Format description
+			task = _date_re.sub('', row['description'], count=1)
+			task = encode_markup_text(task)
 			task = re.sub('\s*!+\s*', ' ', task) # get rid of exclamation marks
 			task = self.plugin.next_label_re.sub('', task) # get rid of "next" label in description
 			if row['actionable']:
-				task = tag_re.sub(r'<span color="#ce5c00">@\1</span>', task) # highlight tags - same color as used in pageview
+				task = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', task) # highlight tags - same color as used in pageview
 				task = self.plugin.task_label_re.sub(r'<b>\1</b>', task) # highlight labels
 			else:
 				task = r'<span color="darkgrey">%s</span>' % task
+
+			# Insert all columns
 			modelrow = [False, row['prio'], task, row['due'], path.name, row['actionable'], row['open'], row['id'], tags]
 				# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL, TAGS_COL
 			modelrow[0] = self._filter_item(modelrow)
