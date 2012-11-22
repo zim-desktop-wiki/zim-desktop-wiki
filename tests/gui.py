@@ -10,7 +10,8 @@ import os
 import gtk
 
 from zim.errors import Error
-from zim.notebook import get_notebook_list, Path, NotebookInfo
+from zim.notebook import get_notebook_list, Path, Page, NotebookInfo
+from zim.formats import ParseTree
 from zim.fs import File, Dir
 from zim.config import config_file
 from zim.gui.clipboard import Clipboard
@@ -163,12 +164,12 @@ class TestDialogs(tests.TestCase):
 		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('Test:foo:bar'))
 		self.assertTrue(dialog.form['update'])
 		self.assertTrue(dialog.form.widgets['update'].get_property('sensitive'))
-		self.assertTrue(dialog.form['head'])
+		self.assertFalse(dialog.form['head']) # There is no heading
 		self.assertTrue(dialog.form.widgets['head'].get_property('sensitive'))
 		dialog.form['name'] = 'New'
 		dialog.assert_response_ok()
 		self.assertEqual(self.ui.mock_calls[-1],
-			('do_rename_page', Path('Test:foo:bar'), 'New', True, True))
+			('do_rename_page', Path('Test:foo:bar'), 'New', False, True))
 
 		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('New:bar'))
 		self.assertFalse(dialog.form['update'])
@@ -180,6 +181,20 @@ class TestDialogs(tests.TestCase):
 		self.assertEqual(self.ui.mock_calls[-1],
 			('do_rename_page', Path('New:bar'), 'New', False, False))
 
+	def testRenamePageDialogWithHeadingChanges(self):
+		'''Test RenamePageDialog's heading auto-change option depending on
+		whether we have a changed heading or not.
+		'''
+		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
+		tree.set_heading("bar")
+		self.ui.page = Page(Path("Test:foo:bar"), parsetree=tree)
+		self.ui.notebook.get_page = lambda path: self.ui.page
+		dialog = zim.gui.RenamePageDialog(self.ui, path=Path("Test:foo:bar"))
+		self.assertTrue(dialog.form['head'])
+		tree.set_heading("different")
+		dialog = zim.gui.RenamePageDialog(self.ui, path=Path("Test:foo:bar"))
+		self.assertFalse(dialog.form['head'])
+	
 	def testDeletePageDialog(self):
 		'''Test DeletePageDialog'''
 		# just check inputs are OK - skip output

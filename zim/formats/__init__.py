@@ -281,19 +281,32 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''Parsing from file is not implemented, use fromstring() instead'''
 		raise NotImplementedError
 
+	def _get_heading_element(self, level=1):
+		children = self.getroot().getchildren()
+		if children:
+			first = children[0]
+			if first.tag == 'h' and first.attrib['level'] >= level:
+				return first
+		return None
+	
+	def get_heading(self, level=1):
+		heading_elem = self._get_heading_element(level)
+		if heading_elem is not None:
+			return heading_elem.text
+		else:
+			return ""
+	
 	def set_heading(self, text, level=1):
 		'''Set the first heading of the parse tree to 'text'. If the tree
 		already has a heading of the specified level or higher it will be
 		replaced. Otherwise the new heading will be prepended.
 		'''
 		root = self.getroot()
-		children = root.getchildren()
 		tail = "\n"
-		if children:
-			first = children[0]
-			if first.tag == 'h' and first.attrib['level'] >= level:
-				tail = first.tail # Keep trailing text
-				root.remove(first)
+		heading_elem = self._get_heading_element(level)
+		if heading_elem is not None:
+			tail = heading_elem.tail
+			root.remove(heading_elem)
 		heading = Element('h', {'level': level})
 		heading.text = text
 		heading.tail = tail

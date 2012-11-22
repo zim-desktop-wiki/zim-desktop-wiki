@@ -203,6 +203,12 @@ class TestParseTree(tests.TestCase):
 		text = tree.tostring()
 		self.assertEqual(text, wanted)
 
+	def testGetHeading(self):
+		'''Test that ParseTree.get_heading() returns the first header's text.
+		'''
+		tree = ParseTree().fromstring(self.xml)
+		self.assertEqual(tree.get_heading(), "Head 1")
+
 	def testSetHeading(self):
 		'''Test ParseTree.set_heading()'''
 		tree = ParseTree().fromstring(self.xml)

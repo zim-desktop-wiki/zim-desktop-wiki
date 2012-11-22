@@ -2505,6 +2505,18 @@ class Page(Path):
 			for tag, attrib in tags.iteritems():
 				yield tag, attrib
 
+	def heading_matches_pagename(self):
+		'''Returns whether the heading matches the page name.
+		Used to determine whether the page should have its heading
+		auto-changed on rename/move.
+		@returns: C{True} when the heading can be auto-changed.
+		'''
+		tree = self.get_parsetree()
+		if tree:
+			return tree.get_heading() == self.basename
+		else:
+			return False
+
 
 class IndexPage(Page):
 	'''Class implementing a special page for displaying a namespace index'''

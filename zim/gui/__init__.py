@@ -3227,9 +3227,7 @@ class RenamePageDialog(Dialog):
 		assert path, 'Need a page here'
 		Dialog.__init__(self, ui, _('Rename Page')) # T: Dialog title
 		self.path = path
-
 		page = self.ui.notebook.get_page(self.path)
-		existing = (page.hascontent or page.haschildren)
 
 		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
 			# T: label in 'rename page' dialog - %s is the page name
@@ -3256,11 +3254,11 @@ class RenamePageDialog(Dialog):
 				# T: Option in the 'rename page' dialog
 		], {
 			'name': self.path.basename,
-			'head': existing,
+			'head': page.heading_matches_pagename(),
 			'update': True,
 		})
 
-		if not existing:
+		if not page.exists():
 			self.form['head'] = False
 			self.form.widgets['head'].set_sensitive(False)
 
