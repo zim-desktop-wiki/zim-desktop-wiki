@@ -314,6 +314,24 @@ def get_tmpdir():
 	return dir
 
 
+def normalize_file_uris(path):
+	'''Function to deal with invalid or non-local file URIs.
+	Translates C{file:/} to the proper C{file:///} form and replaces
+	URIs of the form C{file://host/share} to C{smb://host/share}.
+	@param path: a filesystem path or URL
+	@returns: the proper URI or the original input path
+	'''
+	if path.startswith('file:///') \
+	or path.startswith('file://localhost/'):
+		return path
+	elif path.startswith('file://'):
+		return 'smb://' + path[7:]
+	elif path.startswith('file:/'):
+		return 'file:///' + path[6:]
+	else:
+		return path
+
+
 def normalize_win32_share(path):
 	'''Translates paths for windows shares in the platform specific
 	form. So on windows it translates C{smb://} URLs to C{\\host\share}

@@ -27,7 +27,7 @@ import datetime
 
 import zim.formats
 
-from zim.fs import File, Dir
+from zim.fs import File, Dir, normalize_file_uris
 from zim.errors import Error
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
@@ -4954,6 +4954,10 @@ class PageView(gtk.VBox):
 	def do_link_clicked(self, link, new_window=False):
 		assert isinstance(link, dict)
 		href = link['href']
+		href = normalize_file_uris(href)
+			# can translate file:// -> smb:// so do before link_type()
+			# FIXME implement function in notebook to resolve any link
+			#       type and take care of this stuff ?
 		type = link_type(href)
 		logger.debug('Link clicked: %s: %s' % (type, link['href']))
 

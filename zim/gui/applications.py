@@ -123,7 +123,7 @@ def get_mimetype(obj):
 		return obj.get_mimetype()
 	else:
 		scheme = uri_scheme(obj)
-		if scheme in (None, 'file', 'smb'):
+		if scheme in (None, 'file'):
 			try:
 				return File(obj).get_mimetype()
 			except:

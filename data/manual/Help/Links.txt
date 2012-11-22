@@ -25,6 +25,20 @@ You can link to files from zim. File names always need to contain a "''/''" char
 
 File links starting with "''/''", like "''/foo''" will be relative to the filesystem root, or to the Document Root, if you have one set in the [[Properties.]] If a Document Root is set, the only way to link to files outside this root is to use "''file:///''" URIs.
 
+Proper file URIs for files on the local filesystem should always start with either "''file:///''" or "''file://localhost/''".  URIs starting with "''file:/''" are technically invalid but will be interpreted as a local file. URIs starting with "''file://''" suggest a remote file following the "''file://host/share/''" syntax, these will be interpreted as a link to a "windows" share drive.
+
+==== Links to share drives ====
+"Windows" share drives or samba shares under linux can be linked in different ways:
+
+'''
+smb://host/share/path
+file://host/share/path
+\\host\share\path
+'''
+
+
+The first form, using "''smb://''" is recommended because it is most explicit, while the third form will be most recognizable for windows users.
+
 ===== Interwiki =====
 There is a list of pre-defined urls in "''share/zim/urls.list''" which lists most commonly used online wikis. These urls can be refered to by a keyword so you don't have to type the full url every time; also you can update all links to a certain wiki by changing the url in the file. Have a look at the list to get an idea of how to use this.
 

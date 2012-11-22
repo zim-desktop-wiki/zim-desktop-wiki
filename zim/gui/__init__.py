@@ -1862,6 +1862,7 @@ class GtkInterface(NotebookInterface):
 		else:
 			manager = ApplicationManager()
 			type = zim.gui.applications.get_mimetype(url)
+			logger.debug('Got type "%s" for "%s"', type, url)
 			entry = manager.get_default_application(type)
 			if entry:
 				self._open_with(entry, url)
