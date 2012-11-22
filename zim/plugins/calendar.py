@@ -7,13 +7,17 @@ import gtk
 
 import re
 import datetime
-import locale
+
+import logging
 
 from zim.plugins import PluginClass
 from zim.gui.widgets import ui_environment, Dialog, Button, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.templates import TemplateManager, TemplateFunction
+
+
+logger = logging.getLogger('zim.plugins.calendar')
 
 
 # FUTURE: Use calendar.HTMLCalendar from core libs to render this plugin in www
@@ -65,14 +69,33 @@ year_path_re = re.compile(r'^(.*:)?\d{4}$')
 
 # Initialize setting for first day of the week. This is locale
 # dependent, and the gtk widget already has good code to find it out.
-# TODO we might also add this as a user preference
-SUNDAY = 'Sunday'
-MONDAY = 'Monday'
-if gtk.Calendar().get_display_options() \
- & gtk.CALENDAR_WEEK_START_MONDAY:
-	FIRST_DAY_OF_WEEK = MONDAY
-else:
-	FIRST_DAY_OF_WEEK = SUNDAY
+# Unfortunately, the widget keeps that data private *%#*$()()*) !
+MONDAY = 0 # iso calendar starts week at Monday
+SUNDAY = 6
+FIRST_DAY_OF_WEEK = None
+def _init_first_day_of_week():
+	global FIRST_DAY_OF_WEEK
+	try:
+		import babel
+		import locale
+		mylocale = babel.Locale(locale.getdefaultlocale()[0])
+		if mylocale.first_week_day == 0:
+			FIRST_DAY_OF_WEEK = MONDAY
+		else:
+			FIRST_DAY_OF_WEEK = SUNDAY
+		logger.debug('According to babel first day of week is %i', FIRST_DAY_OF_WEEK)
+	except ImportError:
+		# Fallback gleaned from gtkcalendar.c - hence the inconsistency
+		# with weekday numbers in iso calendar...
+		t = _("calendar:week_start:0")
+		#: Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
+		if t[-1] == '0':
+			FIRST_DAY_OF_WEEK = SUNDAY
+		elif t[-1] == '1':
+			FIRST_DAY_OF_WEEK = MONDAY
+		else:
+			logger.warn("Whoever translated 'calendar:week_start:0' did so wrongly.")
+			FIRST_DAY_OF_WEEK = SUNDAY
 
 
 def dates_for_week(year, week):
@@ -94,6 +117,8 @@ def dates_for_week(year, week):
 	# to week 53 of the previous year.
 	# Day of week in isocalendar starts with 1 for Mon and is 7 for Sun,
 	# and week starts on Monday.
+	if FIRST_DAY_OF_WEEK is None:
+		_init_first_day_of_week()
 
 	jan1 = datetime.date(year, 1, 1)
 	_, jan1_week, jan1_weekday = jan1.isocalendar()
@@ -130,7 +155,11 @@ def week_calendar(date):
 	# In short Jan 1st can still be week 53 of the previous year
 	# So we can use isocalendar(), however this does not take
 	# into accout FIRST_DAY_OF_WEEK, see comment in dates_for_week()
+	if FIRST_DAY_OF_WEEK is None:
+		_init_first_day_of_week()
+
 	year, week, weekday = date.isocalendar()
+
 	if FIRST_DAY_OF_WEEK == SUNDAY and weekday == 7:
 		# iso calendar gives us the week ending this sunday,
 		# we want the next week
@@ -191,21 +220,17 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Calendar',
 	}
 
-	global DAY, WEEK, MONTH, YEAR, SUNDAY, MONDAY # Hack - to make sure translation is loaded
+	global DAY, WEEK, MONTH, YEAR # Hack - to make sure translation is loaded
 	DAY = _('Day') # T: option value
 	WEEK = _('Week') # T: option value
 	MONTH = _('Month') # T: option value
 	YEAR = _('Year') # T: option value
-
-	SUNDAY = _('Sunday') # T: calendar day
-	MONDAY = _('Monday') # T: calendar day
 
 	plugin_preferences = (
 		# key, type, label, default
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
 		('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS), # T: preferences option
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
-		#~ ('week_start', 'choice', _('Week starts on'), FIRST_DAY_OF_WEEK, (MONDAY, SUNDAY)), # T: preferences option for first day of the week, options are Monday or Sunday
 		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
 	)
 	# TODO disable pane setting if not embedded

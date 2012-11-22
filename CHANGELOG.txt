@@ -4,6 +4,10 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.58 - ... ===
+* Fix for windows config folders now using %APPDATA% - klo uo
+* Fix for windows execute applications without console window - klo uo
+
 === 0.57 - Mon  8 Oct 2012 ===
 * Ported zim background process to use the multiprocessing module
   - this fixes app-indicator issues under Ubuntu Unity
