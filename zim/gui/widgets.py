@@ -3451,14 +3451,19 @@ class ProgressBarDialog(gtk.Dialog):
 			cancel = dialog.pulse()
 			return cancel
 
-		self.async_foo(callback=cb_func)
+		with dialog:
+			self.async_foo(callback=cb_func)
 
 	This example assumes that the method C{async_foo()} will cancel as
 	soon as the callback returns C{False}.
 
+	The dialog is used as context manager, so the dialog is properly
+	destroyed in case of an error.
+
 	The usage of a progress bar dialog I{must} implement a cancel action.
 
-	Note that progress bars dialogs do not have a title.
+	Note that progress bars dialogs do not have a title. But the given
+	title will be shown as a label in the dialog itself.
 
 	If you know how often L{pulse()} will be called and give this total
 	number the bar will display a percentage. Otherwise the bar will
@@ -3507,6 +3512,13 @@ class ProgressBarDialog(gtk.Dialog):
 		self.vbox.pack_start(self.msg_label, False)
 
 		self.set_total(total)
+
+	def __enter__(self):
+		return self
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.destroy()
+		return False # re-raises error
 
 	def set_total(self, total):
 		'''Set the number of times we expect L{pulse()} to be called,

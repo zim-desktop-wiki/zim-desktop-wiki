@@ -9,6 +9,7 @@ import tests
 import os
 
 import zim
+from zim.errors import Error
 from zim.templates import *
 from zim.templates import GenericTemplate, \
 	TemplateParam, TemplateDict, TemplateFunction, PageProxy
@@ -24,9 +25,9 @@ class TestTemplateParam(tests.TestCase):
 		self.assertEquals(param.path, ['xxx', 'yyy'])
 		self.assertEquals(param.key, 'zzz')
 
-		self.assertRaises(TemplateSyntaxError, TemplateParam, '_settings.foo')
-		self.assertRaises(TemplateSyntaxError, TemplateParam, 'xxx._yyy.zzz')
-		self.assertRaises(TemplateSyntaxError, TemplateParam, 'xxx.y-y.zzz')
+		self.assertRaises(Error, TemplateParam, '_settings.foo')
+		self.assertRaises(Error, TemplateParam, 'xxx._yyy.zzz')
+		self.assertRaises(Error, TemplateParam, 'xxx.y-y.zzz')
 
 
 class TestTemplateDict(tests.TestCase):

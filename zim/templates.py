@@ -148,34 +148,36 @@ def get_template(format, template):
 
 
 class TemplateError(Error):
-	pass
+
+	msg = 'Template Error'
+
+	def __init__(self, token, error):
+		self.description = self._description.strip() + '\n\n'
+		if token.text:
+			self.description += "Error in \"%s\" line \"%i\" at \"%s\":" % (token.file, token.lineno, token.text)
+		else:
+			self.description += "Error in \"%s\" line \"%i\":" % (token.file, token.lineno)
+		self.description += '\n\n' + error.strip()
 
 
 class TemplateSyntaxError(TemplateError):
 
-	description = '''\
+	msg = 'Template Syntax Error'
+
+	_description = '''\
 An error occurred while parsing a template.
 It seems the template contains some invalid syntax.
 '''
 
 
-	def __init__(self, msg):
-		self._msg = msg
-		self.file = '<unknown file>'
-		self.line = 0
-
-	@property
-	def msg(self):
-		return 'Syntax error at "%s" line %i: %s' % \
-						(self.file, self.line, self._msg)
-
-
 class TemplateProcessError(TemplateError):
 
-	description = '''
+	msg = 'Template Processing Error'
+
+	_description = '''\
 A run-time error occurred while processing a template.
-This can be due to the template calling functions that are
-not available, or it can be a glitch in the program.
+This can be e.g. due to the template calling functions that
+are not available, or it can be a glitch in the program.
 '''
 
 
@@ -212,8 +214,9 @@ class GenericTemplate(object):
 		'''Constructor takes a file path or an opened file handle'''
 		if isinstance(input, basestring):
 			input = input.splitlines(True)
-		self.name = name or '<open file>'
+		self.file = name or '<open file>'
 		self.lineno = 0
+		self.text = None # needs to be set to None for use with TemplateError()
 		self.tokens = TemplateTokenList()
 		self.stack = [ self.tokens ]
 		self._parse(input)
@@ -246,7 +249,7 @@ class GenericTemplate(object):
 			#~ print "TOKEN >>>%s<<<" % string
 
 			if string.startswith('IF'):
-				token = IFToken(string[2:])
+				token = IFToken(self.file, self.lineno, string[2:])
 				self.stack[-1].append(token)
 				self.stack.append(token.blocks[0])
 			elif string.startswith('ELSIF'):
@@ -255,7 +258,7 @@ class GenericTemplate(object):
 					iftoken = self.stack[-1][-1]
 					assert isinstance(iftoken, IFToken)
 				except:
-					raise TemplateSyntaxError, 'ELSIF outside IF block'
+					raise TemplateSyntaxError(self, 'ELSIF outside IF block')
 				block = iftoken.add_block(string[5:])
 				self.stack.append(block)
 			elif string.startswith('ELSE'):
@@ -264,57 +267,52 @@ class GenericTemplate(object):
 					iftoken = self.stack[-1][-1]
 					assert isinstance(iftoken, IFToken)
 				except:
-					raise TemplateSyntaxError, 'ELSE outside IF block'
+					raise TemplateSyntaxError(self, 'ELSE outside IF block')
 				block = iftoken.add_block()
 				self.stack.append(block)
 			elif string.startswith('FOREACH'):
-				token = FOREACHToken(string[7:])
+				token = FOREACHToken(self.file, self.lineno, string[7:])
 				self.stack[-1].append(token)
 				self.stack.append(token.foreach_block)
 			elif string.startswith('END'):
 				if not len(self.stack) > 1:
-					raise TemplateSyntaxError, 'END outside block'
+					raise TemplateSyntaxError(self, 'END outside block')
 				self.stack.pop()
 			else:
 				if string.startswith('SET'):
-					token = SETToken(string[3:])
+					token = SETToken(self.file, self.lineno, string[3:])
 				elif string.startswith('GET'):
-					token = GETToken(string[3:])
+					token = GETToken(self.file, self.lineno, string[3:])
 				elif self._token_re.match(string):
-					raise TemplateSyntaxError, 'Unknown directive: %s' % self._token_re[1]
+					raise TemplateSyntaxError(self, 'Unknown directive: %s' % self._token_re[1])
 				elif string.find('=') >= 0:	# implicit SET
-					token = SETToken(string)
+					token = SETToken(self.file, self.lineno, string)
 				else:  # implicit GET
-					token = GETToken(string)
+					token = GETToken(self.file, self.lineno, string)
 				self.stack[-1].append(token)
 
-		try:
-			for line in input:
-				self.lineno += 1
+		for line in input:
+			self.lineno += 1
 
-				while line.find('[%') >= 0:
-					(pre, sep, line) = line.partition('[%')
-					(cmd, sep, line) = line.partition('%]')
-					if not sep:
-						raise TemplateSyntaxError, "unmatched '[%'"
-					append_text(pre)
-					if cmd.startswith('-'): # '[%-'
-						try:
-							if isinstance(self.stack[-1][-1], basestring):
-								self.stack[-1][-1] = self.stack[-1][-1].rstrip()
-						except IndexError:
-							pass
-					if cmd.endswith('-'): # '-%]'
-						line = line.lstrip()
-					cmd = cmd.strip('-')
-					append_token(cmd)
-				append_text(line)
-			if len(self.stack) > 1:
-				raise TemplateSyntaxError, 'open block at end of input - forgot END ?'
-		except TemplateSyntaxError, error:
-			error.file = self.name
-			error.line = self.lineno
-			raise error
+			while line.find('[%') >= 0:
+				(pre, sep, line) = line.partition('[%')
+				(cmd, sep, line) = line.partition('%]')
+				if not sep:
+					raise TemplateSyntaxError(self, "unmatched '[%'")
+				append_text(pre)
+				if cmd.startswith('-'): # '[%-'
+					try:
+						if isinstance(self.stack[-1][-1], basestring):
+							self.stack[-1][-1] = self.stack[-1][-1].rstrip()
+					except IndexError:
+						pass
+				if cmd.endswith('-'): # '-%]'
+					line = line.lstrip()
+				cmd = cmd.strip('-')
+				append_token(cmd)
+			append_text(line)
+		if len(self.stack) > 1:
+			raise TemplateSyntaxError(self, 'open block at end of input - forgot END ?')
 
 
 class Template(GenericTemplate):
@@ -445,6 +443,21 @@ class TemplateTokenList(list):
 
 class TemplateToken(object):
 
+	def __init__(self, file, line, text=None):
+		self.file = file
+		self.lineno = line
+		if text is not None:
+			self.text = text.strip()
+			try:
+				self.parse_string(self.text)
+			except Error, error:
+				raise TemplateSyntaxError(self, error.msg)
+		else:
+			self.text = None
+
+	def parse_string(self, string):
+		raise NotImplemented, 'Class %s does not take string' % self.__class__.__name__
+
 	def parse_expr(self, string):
 		'''This method parses an expression and returns an object of either
 		class TemplateParam, TemplateParamList or TemplateFuntionParam.
@@ -461,7 +474,7 @@ class TemplateToken(object):
 				split_quoted_strings(string, unescape=False) ):
 				if i % 2:
 					if w != ',':
-						raise TemplateSyntaxError, string
+						raise TemplateSyntaxError(self, string)
 				elif w.startswith('"') or w.startswith("'"):
 					list.append(TemplateLiteral(unescape_quoted_string(w)))
 				else:
@@ -483,13 +496,29 @@ class TemplateToken(object):
 		else:
 			return TemplateParam(string)
 
+	def process(self, dict):
+		try:
+			re = self.do_process(dict)
+		except TemplateError:
+			raise
+		except Error, error:
+			raise TemplateProcessError(self, error.msg)
+		except Exception:
+			import traceback
+			trace = traceback.format_exc()
+			raise TemplateProcessError(self, trace)
+		return re
+
+	def do_process(self, dict):
+		raise NotImplemented
+
 
 class GETToken(TemplateToken):
 
-	def __init__(self, string):
+	def parse_string(self, string):
 		self.expr = self.parse_expr(string)
 
-	def process(self, dict):
+	def do_process(self, dict):
 		value = self.expr.evaluate(dict)
 		if value:
 			return [value]
@@ -499,21 +528,21 @@ class GETToken(TemplateToken):
 
 class SETToken(TemplateToken):
 
-	def __init__(self, string):
+	def parse_string(self, string):
 		(var, sep, val) = string.partition('=')
 		if not sep:
-			raise TemplateSyntaxError, string
+			raise TemplateSyntaxError(self, string)
 		self.param = TemplateParam(var.strip())
 		self.expr = self.parse_expr(val)
 
-	def process(self, dict):
+	def do_process(self, dict):
 		dict[self.param] = self.expr.evaluate(dict)
 		return []
 
 
 class IFToken(TemplateToken):
 
-	def __init__(self, string):
+	def parse_string(self, string):
 		self.blocks = []
 		self.add_block(string)
 
@@ -535,7 +564,7 @@ class IFToken(TemplateToken):
 
 		return self.blocks[-1]
 
-	def process(self, dict):
+	def do_process(self, dict):
 		for block in self.blocks:
 			if block.if_statement is None:
 				# ELSE block
@@ -561,17 +590,17 @@ class IFToken(TemplateToken):
 
 class FOREACHToken(TemplateToken):
 
-	def __init__(self, string):
+	def parse_string(self, string):
 		(var, sep, val) = string.partition('=')
 		if not sep:
 			(var, sep, val) = string.partition('IN')
 		if not sep:
-			raise TemplateSyntaxError, string
+			raise TemplateSyntaxError(self, string)
 		self.param = TemplateParam(var.strip())
 		self.expr = self.parse_expr(val)
 		self.foreach_block = TemplateTokenList()
 
-	def process(self, dict):
+	def do_process(self, dict):
 		values = self.expr.evaluate(dict)
 		# FIXME how to check if values is iterable ?
 		output = []
@@ -614,15 +643,15 @@ class TemplateParam(object):
 
 		for n in parts:
 			if not self._param_re.match(n):
-				raise TemplateSyntaxError, 'invalid parameter: %s' % name
+				raise Error, 'invalid parameter: %s' % name
 
 		# support param["foo"] syntax for dicts
 		if parts and key.startswith('[') and key.endswith(']'):
 			key = unescape_quoted_string(key[1:-1])
 			if key.startswith('_'):
-				raise TemplateSyntaxError, 'invalid dictionary key in: %s' % name
+				raise TemplateSyntaxError(self, 'invalid dictionary key in: %s' % name)
 		elif not self._param_re.match(key):
-			raise TemplateSyntaxError, 'invalid parameter: %s' % name
+			raise Error, 'invalid parameter: %s' % name
 		else:
 			pass
 
@@ -650,7 +679,7 @@ class TemplateFunctionParam(TemplateParam):
 		func = dict[self]
 		args = self.args.evaluate(dict)
 		if not isinstance(func, TemplateFunction):
-			raise TemplateProcessError, 'No such function: %s' % self.name
+			raise Error, 'No such function: %s' % self.name
 		return func(dict, *args)
 
 
@@ -703,7 +732,7 @@ class StrftimeFunction(TemplateFunction):
 			elif isinstance(date, (datetime.date, datetime.datetime)):
 				string = date.strftime(format)
 			else:
-				raise AssertionError, 'Not a datetime object: %s', date
+				raise Error, 'Not a datetime object: %s', date
 			return string.decode(locale.getpreferredencoding())
 				# strftime returns locale as understood by the C api
 				# unfortunately there is no guarantee we can actually
@@ -899,10 +928,15 @@ class PageProxy(object):
 	def links(self):
 		for type, name, _ in self._page.get_links():
 			if type == 'page':
-				page = self._notebook.get_page(name)
-				yield PageProxy(
-					self._notebook, page,
-					self._format, self._linker, self._options)
+				try:
+					path = self._notebook.resolve_path(name, self._page)
+					if path:
+						page = self._notebook.get_page(path)
+						yield PageProxy(
+							self._notebook, page,
+							self._format, self._linker, self._options)
+				except:
+					logger.exception('Error while exporting')
 
 	@property
 	def backlinks(self):

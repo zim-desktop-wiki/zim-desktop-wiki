@@ -12,6 +12,8 @@ If you want to extend the user interface, also see L{zim.gui.widgets}
 for common base classes for widgets and dialogs.
 '''
 
+from __future__ import with_statement
+
 import os
 import re
 import logging
@@ -1157,13 +1159,10 @@ class GtkInterface(NotebookInterface):
 		if not ok:
 			return
 
-		dialog = ProgressBarDialog(self, _('Upgrading notebook'))
-			# T: Title of progressbar dialog
-		dialog.show_all()
-		self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
-		dialog.set_total(self.notebook.index.n_list_all_pages())
-		self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
-		dialog.destroy()
+		with ProgressBarDialog(self, _('Upgrading notebook')) as dialog: # T: Title of progressbar dialog
+			self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
+			dialog.set_total(self.notebook.index.n_list_all_pages())
+			self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
 
 	def on_notebook_properties_changed(self, notebook):
 		has_doc_root = not notebook.document_root is None
@@ -1648,13 +1647,12 @@ class GtkInterface(NotebookInterface):
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 
 		try:
-			func(update_links, callback)
+			with dialog:
+				func(update_links, callback)
 		except Exception, error:
 			ErrorDialog(self, error).run()
-			dialog.destroy()
 			return False
 		else:
-			dialog.destroy()
 			return True
 
 	def delete_page(self, path=None):
@@ -1675,18 +1673,13 @@ class GtkInterface(NotebookInterface):
 			# T: Title of progressbar dialog
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 		try:
-			self.notebook.trash_page(path, update_links, callback)
+			with dialog:
+				self.notebook.trash_page(path, update_links, callback)
 		except TrashNotSupportedError, error:
-			dialog.destroy()
 			logger.info('Trash not supported: %s', error.msg)
 			DeletePageDialog(self, path).run()
 		except TrashCancelledError, error:
-			dialog.destroy()
-		except Exception, error:
-			dialog.destroy()
-			raise
-		else:
-			dialog.destroy()
+			pass
 
 	def show_properties(self):
 		'''Menu action to show the L{PropertiesDialog}'''
@@ -2073,11 +2066,10 @@ class GtkInterface(NotebookInterface):
 
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
-		index.update(callback=lambda p: dialog.pulse(p.name))
-		dialog.destroy()
+		with dialog:
+			index.update(callback=lambda p: dialog.pulse(p.name))
 
 		self.emit('end-index-update')
-
 		return not dialog.cancelled
 
 	def manage_custom_tools(self):
@@ -3349,14 +3341,10 @@ class DeletePageDialog(Dialog):
 			# T: Title of progressbar dialog
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 
-		try:
+		with dialog:
 			self.ui.notebook.delete_page(self.path, update_links, callback)
-		except Exception, error:
-			dialog.destroy()
-			raise
-		else:
-			dialog.destroy()
-			return True
+
+		return True
 
 
 class AttachFileDialog(FileDialog):
