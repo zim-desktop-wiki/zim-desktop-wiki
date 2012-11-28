@@ -308,6 +308,7 @@ This is a core plugin shipping with zim.
 			deadline = None
 
 		tasks = self._extract_tasks(parsetree, deadline)
+		#~ print 'TASKS', tasks
 
 		if tasks:
 			# Do insert with a single commit
@@ -324,7 +325,7 @@ This is a core plugin shipping with zim.
 			c.execute(
 				'insert into tasklist(source, parent, haschildren, open, actionable, prio, due, tags, description)'
 				'values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-				(page.id, parentid, bool(grandchildren)) + task
+				(page.id, parentid, bool(grandchildren)) + tuple(task)
 			)
 			if grandchildren:
 				self._insert(page, c.lastrowid, grandchildren) # recurs
@@ -367,7 +368,7 @@ This is a core plugin shipping with zim.
 
 			stack = [] # stack of 3-tuples, (LEVEL, TASK, CHILDREN)
 
-
+			OPEN = 0
 			ACT = 1
 			PRIO = 2
 			DATE = 3
@@ -411,10 +412,14 @@ This is a core plugin shipping with zim.
 						children = []
 						if stack:
 							stack[-1][CHILDREN].append((task, children))
+							if task[OPEN]:
+								for parent in stack:
+									# child is open, so parent should be as well
+									parent[TASK][OPEN] = True
 						else:
 							tasks.append((task, children))
 
-						stack.append((list_level, task, children))
+						stack.append([list_level, task, children])
 					else:
 						# not a task - we already popped stack, now ignore text
 						pass
@@ -508,7 +513,7 @@ This is a core plugin shipping with zim.
 		# else parent was non-actionable already, so stay non-actionable
 
 		tags = ','.join(t.strip('@') for t in tags)
-		return (open, actionable, prio, date, tags, text)
+		return [open, actionable, prio, date, tags, text]
 			# (open, actionable, prio, due, tags, description)
 
 

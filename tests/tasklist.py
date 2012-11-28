@@ -49,7 +49,7 @@ class TestTaskList(tests.TestCase):
 		def t(label, open=True, due=NO_DATE, prio=0, tags=''):
 			# Generate a task tuple
 			# (open, actionable, prio, due, tags, description)
-			return (open, True, prio, due, tags, label)
+			return [open, True, prio, due, tags, label]
 
 		# Note that this same text is in the test notebook
 		# so it gets run through the index as well - keep in sync
@@ -73,6 +73,7 @@ FIXME: dus
 [ ] List with
 	[ ] Nested items
 	[*] Some are done
+	[*] Done but with open child
 		[x] Others not
 		[ ] FOOOOO
 [ ] Bar
@@ -122,7 +123,8 @@ FIXME: jaja - TODO !! @FIXME
 			(t('List'), []),
 			(t('List with'), [
 				(t('Nested items'), []),
-				(t('Some are done', open=False), [
+				(t('Some are done', open=False), []),
+				(t('Done but with open child', open=True), [
 					(t('Others not', open=False), []),
 					(t('FOOOOO'), []),
 				]),
