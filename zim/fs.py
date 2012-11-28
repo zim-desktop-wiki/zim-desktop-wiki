@@ -971,7 +971,7 @@ class Dir(FilePath):
 			for file in os.listdir(self.encodedpath):
 				if file.startswith('.') and not includehidden:
 					continue # skip hidden files
-				elif file.endswith('~') and not includetmp:
+				elif (file.endswith('~') or file.startswith('~')) and not includetmp:
 					continue # skip temporary files
 				else:
 					files.append(file)

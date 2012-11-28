@@ -118,9 +118,13 @@ def get_mime_icon(file, size):
 	if not gio:
 		return None
 
-	f = gio.File(uri=file.uri)
-	info = f.query_info('standard::*')
-	icon = info.get_icon()
+	try:
+		f = gio.File(uri=file.uri)
+		info = f.query_info('standard::*')
+		icon = info.get_icon()
+	except:
+		logger.exception('Failed to query info for file: %s', file)
+		return None
 
 	if isinstance(icon, gio.ThemedIcon):
 		names = icon.get_names()
