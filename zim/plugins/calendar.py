@@ -88,7 +88,7 @@ def _init_first_day_of_week():
 		# Fallback gleaned from gtkcalendar.c - hence the inconsistency
 		# with weekday numbers in iso calendar...
 		t = _("calendar:week_start:0")
-		#: Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
+		# T: Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
 		if t[-1] == '0':
 			FIRST_DAY_OF_WEEK = SUNDAY
 		elif t[-1] == '1':
@@ -208,16 +208,15 @@ def daterange_from_path(path):
 class CalendarPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Calendar'), # T: plugin name
+		'name': _('Journal'), # T: plugin name
 		'description': _('''\
-This plugin turns one namespace into a calendar
-keeping one page per day. A dialog is added with a
-month view of this special namespace.
-
-This is a core plugin shipping with zim.
-'''), # T: plugin description
+This plugin turns one namespace into a journal
+with a page per day, week or month.
+Also adds a calendar widget to access these pages.
+'''),
+		# T: plugin description
 		'author': 'Jaap Karssenberg',
-		'help': 'Plugins:Calendar',
+		'help': 'Plugins:Journal',
 	}
 
 	global DAY, WEEK, MONTH, YEAR # Hack - to make sure translation is loaded
@@ -231,7 +230,7 @@ This is a core plugin shipping with zim.
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
 		('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS), # T: preferences option
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
-		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
+		('namespace', 'namespace', _('Namespace'), ':Journal'), # T: input label
 	)
 	# TODO disable pane setting if not embedded
 
