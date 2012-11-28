@@ -5426,9 +5426,15 @@ class PageView(gtk.VBox):
 				# and finish up
 				menu.show_all()
 
-	def insert_new_file(self, template):
+	def insert_new_file(self, template, basename=None):
 		dir = self.ui.notebook.get_attachments_dir(self.page)
-		file = dir.new_file(template.basename)
+
+		if not basename:
+			basename = NewFileDialog(self.ui, template.basename).run()
+			if basename is None:
+				return # cancelled
+
+		file = dir.new_file(basename)
 		template.copyto(file)
 
 		# Same logic as in zim.gui.AttachFileDialog
@@ -6470,4 +6476,29 @@ class MoveTextDialog(Dialog):
 		if self.form['open_page']:
 			self.ui.open_page(newpage)
 
+		return True
+
+
+class NewFileDialog(Dialog):
+
+	def __init__(self, ui, basename):
+		Dialog.__init__(self, ui, _('New File')) # T: Dialog title
+		self.add_form((
+			('basename', 'string', _('Name')), # T: input for new file name
+		), {
+			'basename': basename
+		})
+
+	def show_all(self):
+		Dialog.show_all(self)
+
+		# Select only first part of name
+		# TODO - make this a widget type in widgets.py
+		text = self.form.widgets['basename'].get_text()
+		if '.' in text:
+			name, ext = text.split('.', 1)
+			self.form.widgets['basename'].select_region(0, len(name))
+
+	def do_response_ok(self):
+		self.result = self.form['basename']
 		return True
