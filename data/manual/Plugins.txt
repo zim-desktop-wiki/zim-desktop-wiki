@@ -6,8 +6,9 @@ Wiki-Format: zim 0.4
 The following plugins are standard included with zim:
 
 * [[+Arithmetic|Arithmetic]]
+* [[+Attachment Browser|Attachment Browser]]
 * [[+Automount|Automount]]
-* [[+Calendar|Calendar]]
+* [[+Journal|Journal]]
 * [[+Diagram Editor|Diagram Editor]]
 * [[+Ditaa Editor|Ditaa Editor]]
 * [[+Equation Editor|Equation Editor]]
@@ -29,4 +30,15 @@ The following plugins are standard included with zim:
 
 Plugins can be enabled and configured in the [[Help:Preferences|preferences dialog]]. A number of plugins have additional dependencies, like specific external programs, that are not required for the core functionality of zim. If one or more dependencies of a plugin are not fulfilled, these are marked red.
 
+===== Installing Plugins =====
+If a plugin is distributed as a separate python module, it should be installed such that zim can find it. For use specific plugins you can install them Python's "per user site-package directory".
+
+For example for python 2.6 this folder is:
+Unix (including Mac OS X): ''~/.local/lib/python2.6/site-packages''
+Windows: ''%APPDATA%/Python/Python26/site-packages''
+
+See http://www.python.org/dev/peps/pep-0370/ for details.
+
+===== Writing Plugins =====
 If you are looking for information on **writing plugins** please download the source package and have a look at the notes included in the "HACKING" folder.
+

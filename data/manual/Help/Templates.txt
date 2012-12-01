@@ -30,8 +30,8 @@ Templates can also set template options that influence the generated output, by 
 **wiki/Default.txt**
 This template is used to initialize new pages. The default contains a header with the page name and a the date at which the page was created.
 
-**wiki/Calendar.txt**
-This template is used to initialize new pages in the calendar namespace.
+**wiki/Journal.txt**
+This template is used to initialize new pages in the Journal namespace.
 
 ===== Customizing =====
 
@@ -119,7 +119,7 @@ Functions available:
 		//Example//:	''menu(page.namespace,  TRUE, FALSE)''
 
 
-See also the [[Plugins:Calendar|Calendar Plugin]] for some properties available for calendar pages
+See also the [[Plugins:Journal|Journal Plugin]] for some properties available for journal pages
 
 ==== Template Resources ====
 To add additional files to the template, create a folder of the same name as the template. Any files in the folder (like style sheets, images, javascript files, etc.) will be copied along when this template is used to export data in zim. There is a function "''resource(filename)''" to refer to these files in the template.

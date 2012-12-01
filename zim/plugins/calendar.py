@@ -296,13 +296,13 @@ Also adds a calendar widget to access these pages.
 				ns = self.preferences['namespace'].name
 				self.preferences['namespace'] = ns
 			else:
-				self.preferences.setdefault('namespace', ':Calendar')
+				self.preferences.setdefault('namespace', ':Journal')
 				ns = self.preferences['namespace']
 				ns = self.ui.notebook.resolve_path(ns)
 				ns = ns.name
 				self.preferences['namespace'] = ns
 
-			self.ui.notebook.namespace_properties[ns]['template'] = 'Calendar'
+			self.ui.notebook.namespace_properties[ns]['template'] = 'Journal'
 			self._set_template = ns
 
 		if self.ui.ui_type == 'gtk':

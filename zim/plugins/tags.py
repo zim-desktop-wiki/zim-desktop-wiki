@@ -99,8 +99,12 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 			treepaths = self.get_treepaths(path)
 			for treepath in treepaths:
 				#~ print '!!', signal, path, treepath
-				treeiter = self.get_iter(treepath)
-				self.emit(signal, treepath, treeiter)
+				try:
+					treeiter = self.get_iter(treepath)
+				except:
+					logger.exception('BUG: Invalid treepath: %s %s %s', signal, path, treepath)
+				else:
+					self.emit(signal, treepath, treeiter)
 
 		def on_page_deleted(o, path):
 			#~ print '!! page delete', path

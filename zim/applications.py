@@ -156,7 +156,11 @@ class Application(object):
 		if os.name == 'nt':
 			# http://code.activestate.com/recipes/409002/
 			info = subprocess.STARTUPINFO()
-			info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+			try:
+				info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+			except AttributeError:
+				info.dwFlags |= 1 # STARTF_USESHOWWINDOW = 0x01
+
 			p = subprocess.Popen(argv,
 				cwd=cwd,
 				stdout=open(os.devnull, 'w'),

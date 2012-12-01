@@ -63,7 +63,7 @@ Of course you are perfectly free to move projects back from the "Trash" namespac
 The main point in separating active projects in the "Projects" namespace from non-active projects in the other two namespaces is that at any time you know exactly what are the things you are working on by looking at the "Projects" folder. This also helps with the regular reviews recommended in GTD.
 
 === Extensions ===
-As an extension I also use the [[Plugins:Calendar|Calendar plugin]] to have a journal page for each day with notes from meetings etc. Action items from meetings may live there, but this usage is a bit at odds with the use of the INBOX page. At least I can reference discussion notes of a certain date from a project page etc.
+As an extension I also use the [[Plugins:Journal|Journal plugin]] to have a journal page for each day with notes from meetings etc. Action items from meetings may live there, but this usage is a bit at odds with the use of the INBOX page. At least I can reference discussion notes of a certain date from a project page etc.
 
 === Summary ===
 * Each action belongs to an open project - "Chores" is the collection bucket for small tasks

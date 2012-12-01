@@ -13,7 +13,7 @@ Page names use a ":" as a path separator for pages that are nested in the hierar
 `--- Bar
 '''
 
-The parent page is sometimes also referred to as the "namespace" of the page. So in this case the page "Bar" is said to belong to the namespace "Foo". Namespaces can be used to organize notebooks in sections of pages. Also sometimes namespaces are used for special purposes, for example the [[Plugins:Calendar|Calendar plugin]] uses a namespace "Calendar" to contain all calendar pages.
+The parent page is sometimes also referred to as the "namespace" of the page. So in this case the page "Bar" is said to belong to the namespace "Foo". Namespaces can be used to organize notebooks in sections of pages. Also sometimes namespaces are used for special purposes, for example the [[Plugins:Journal|Journal plugin]] uses a namespace like ":Journal:" to contain all journal pages.
 
 TODO document valid page names
 
