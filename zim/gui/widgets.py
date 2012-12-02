@@ -1405,7 +1405,7 @@ class InputEntry(gtk.Entry):
 
 	ERROR_COLOR = '#EF7F7F' # light red (derived from Tango style guide)
 
-	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False, empty_text=None):
+	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False, empty_text=None, allow_whitespace=False):
 		'''Constructor
 
 		@param check_func: a function to check input is valid.
@@ -1433,6 +1433,7 @@ class InputEntry(gtk.Entry):
 		self._normal_color = None
 		self.allow_empty = allow_empty
 		self.show_empty_invalid = show_empty_invalid
+		self.allow_whitespace = allow_whitespace
 		self.empty_text = empty_text
 		self._empty_text_shown = False
 		self.check_func = check_func
@@ -1521,8 +1522,12 @@ class InputEntry(gtk.Entry):
 		if self._empty_text_shown:
 			return ''
 		text = gtk.Entry.get_text(self)
-		if not text: return ''
-		else: return text.decode('utf-8').strip()
+		if not text:
+			return ''
+		elif self.allow_whitespace:
+			return text.decode('utf-8')
+		else:
+			return text.decode('utf-8').strip()
 
 	def set_text(self, text):
 		'''Wrapper for C{gtk.Entry.set_text()}.

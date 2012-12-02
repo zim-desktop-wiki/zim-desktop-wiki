@@ -6095,7 +6095,7 @@ class FindWidget(object):
 	def __init__(self, textview):
 		self.textview = textview
 
-		self.find_entry = InputEntry()
+		self.find_entry = InputEntry(allow_whitespace=True)
 		self.find_entry.connect_object(
 			'changed', self.__class__.on_find_entry_changed, self)
 		self.find_entry.connect_object(
@@ -6313,7 +6313,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 			# T: input label in find & replace dialog
 		label.set_alignment(0.0, 0.5)
 		vbox.add(label)
-		self.replace_entry = InputEntry()
+		self.replace_entry = InputEntry(allow_whitespace=True)
 		vbox.add(self.replace_entry)
 
 		self.bbox = gtk.VButtonBox()
