@@ -1008,6 +1008,7 @@ class InputForm(gtk.Table):
 			- "C{output-file}" - like 'file' but for new or existing file
 			- "C{option}" - single option in a group (radio checkboxes)
 			- "C{choice}" - list with choices (combo box)
+			- "C{color}" - color string
 
 		The "C{int}" and "C{choice}" options need an extra argument to specify
 		the allowed inputs. For "C{int}" this should be a 2-tuple with the
@@ -1127,6 +1128,11 @@ class InputForm(gtk.Table):
 				if extra:
 					entry.set_check_func(extra)
 				widgets.append((label, entry))
+
+			elif type == 'color':
+				button = gtk.ColorButton()
+				widgets.append((label, button))
+
 			else:
 				assert False, 'BUG: unknown field type: %s' % type
 
@@ -1287,6 +1293,12 @@ class InputForm(gtk.Table):
 					return widget.get_active_text()
 			elif isinstance(widget, gtk.SpinButton):
 				return int(widget.get_value())
+			elif isinstance(widget, gtk.ColorButton):
+				if gtk.gtk_version > (2, 14, 0):
+					# This version supposedly gives compacter values
+					return str(widget.get_color())
+				else:
+					return widget.get_color().to_string()
 			else:
 				raise TypeError, widget.__class__.name
 		else:
@@ -1333,6 +1345,9 @@ class InputForm(gtk.Table):
 					gtk_combobox_set_active_text(widget, value)
 			elif isinstance(widget, gtk.SpinButton):
 				widget.set_value(value)
+			elif isinstance(widget, gtk.ColorButton):
+				color = gtk.gdk.color_parse(value)
+				widget.set_color(color)
 			else:
 				raise TypeError, widget.__class__.name
 		else:

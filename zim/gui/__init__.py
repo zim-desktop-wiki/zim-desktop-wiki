@@ -2230,7 +2230,14 @@ class MainWindow(Window):
 	@ivar pageview: the L{PageView} object
 	@ivar pageindex: the L{PageIndex} object
 	@ivar pathbar: the L{PathBar} object
+
+	@signal: C{fullscreen-changed ()}: emitted when switching to or from fullscreen state
 	'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'fullscreen-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+	}
 
 	def __init__(self, ui, fullscreen=False, geometry=None):
 		'''Constructor
@@ -2241,7 +2248,7 @@ class MainWindow(Window):
 		"C{WxH+X+Y}", if C{None} the previous state is restored
 		'''
 		Window.__init__(self)
-		self._fullscreen = False
+		self.isfullscreen = False
 		self.ui = ui
 
 		ui.connect('open-page', self.on_open_page)
@@ -2360,17 +2367,33 @@ class MainWindow(Window):
 		isfullscreen = gtk.gdk.WINDOW_STATE_FULLSCREEN
 		if bool(event.changed_mask & isfullscreen):
 			# Did not find property for this - so tracking state ourself
-			self._fullscreen = bool(event.new_window_state & isfullscreen)
-			logger.debug('Fullscreen changed: %s', self._fullscreen)
+			wasfullscreen = self.isfullscreen
+			self.isfullscreen = bool(event.new_window_state & isfullscreen)
+			logger.debug('Fullscreen changed: %s', self.isfullscreen)
 			self._set_widgets_visable()
 			if self.actiongroup:
 				# only do this after we initalize
-				self.toggle_fullscreen(show=self._fullscreen)
+				self.toggle_fullscreen(show=self.isfullscreen)
 
-		if ui_environment['platform'] == 'maemo':
-			# Maemo UI bugfix: If ancestor method is not called the window
-			# will have borders when fullscreen
+			if wasfullscreen:
+				# restore uistate
+				if self.uistate['windowsize']:
+					w, h = self.uistate['windowsize']
+					self.resize(w, h)
+				if self.uistate['windowpos']:
+					x, y = self.uistate['windowpos'] # Should we use _windowpos?
+					self.move(x, y)
+			
+			if wasfullscreen != self.isfullscreen:
+				self.emit('fullscreen-changed')
+
+		# Maemo UI bugfix: If ancestor method is not called the window
+		# will have borders when fullscreen
+		# But is virtual method on other platforms
+		try:
 			Window.do_window_state_event(self, event)
+		except NotImplementedError:
+			pass
 
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:
@@ -2440,7 +2463,7 @@ class MainWindow(Window):
 			self.menubar.hide()
 			self.menubar.set_no_show_all(True)
 
-		if self._fullscreen:
+		if self.isfullscreen:
 			self.uistate['show_menubar_fullscreen'] = show
 		else:
 			self.uistate['show_menubar'] = show
@@ -2468,7 +2491,7 @@ class MainWindow(Window):
 			self.toolbar.hide()
 			self.toolbar.set_no_show_all(True)
 
-		if self._fullscreen:
+		if self.isfullscreen:
 			self.uistate['show_toolbar_fullscreen'] = show
 		else:
 			self.uistate['show_toolbar'] = show
@@ -2501,7 +2524,7 @@ class MainWindow(Window):
 			self.statusbar.hide()
 			self.statusbar.set_no_show_all(True)
 
-		if self._fullscreen:
+		if self.isfullscreen:
 			self.uistate['show_statusbar_fullscreen'] = show
 		else:
 			self.uistate['show_statusbar'] = show
@@ -2523,9 +2546,11 @@ class MainWindow(Window):
 			show = action.get_active()
 
 		if show:
+			self.save_uistate()
 			self.fullscreen()
 		else:
 			self.unfullscreen()
+			# uistate is restored in do_window_state_event()
 
 	def do_pane_state_changed(self, pane, *a):
 		if not hasattr(self, 'actiongroup') \
@@ -2628,7 +2653,7 @@ class MainWindow(Window):
 				self.pathbar_box.add(self.pathbar)
 			self.pathbar_box.show_all()
 
-		if self._fullscreen:
+		if self.isfullscreen:
 			self.uistate['pathbar_type_fullscreen'] = style
 		else:
 			self.uistate['pathbar_type'] = style
@@ -2797,7 +2822,7 @@ class MainWindow(Window):
 
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets
-		if self._fullscreen:
+		if self.isfullscreen:
 			self.toggle_menubar(show=self.uistate['show_menubar_fullscreen'])
 			self.toggle_toolbar(show=self.uistate['show_toolbar_fullscreen'])
 			self.toggle_statusbar(show=self.uistate['show_statusbar_fullscreen'])
@@ -2809,7 +2834,7 @@ class MainWindow(Window):
 			self.set_pathbar(self.uistate['pathbar_type'])
 
 	def save_uistate(self):
-		if not self._fullscreen:
+		if not self.isfullscreen:
 			self.uistate['windowpos'] = self.get_position()
 			self.uistate['windowsize'] = self.get_size()
 
