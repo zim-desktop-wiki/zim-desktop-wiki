@@ -520,6 +520,7 @@ class TextBuffer(gtk.TextBuffer):
 		self._insert_tree_in_progress = False
 		self._check_edit_mode = False
 		self._check_renumber = []
+		self._renumbering = False
 		self.user_action = UserActionContext(self)
 		self.finder = TextFinder(self)
 
@@ -558,17 +559,18 @@ class TextBuffer(gtk.TextBuffer):
 			# user action, but we did not yet update edit mode -
 			# so we do it here so we are all set for the next action
 
-		lines = self._check_renumber
-			# copy to avoid infinite loop when updating bullet triggers new delete
-		self._check_renumber = []
-		for line in lines:
-			#~ print 'RENUMBER'
-			self.renumber_list(line)
-			# This flag means we deleted a line, and now we need
-			# to check if the numbering is still valid.
-			# It is delayed till here because this logic only applies
-			# to interactive actions.
-		self._check_renumber = []
+		if True: # not self._renumbering:
+			lines = list(self._check_renumber)
+				# copy to avoid infinite loop when updating bullet triggers new delete
+			self._renumbering = True
+			for line in lines:
+				self.renumber_list(line)
+				# This flag means we deleted a line, and now we need
+				# to check if the numbering is still valid.
+				# It is delayed till here because this logic only applies
+				# to interactive actions.
+			self._renumbering = False
+			self._check_renumber = []
 
 	def clear(self):
 		'''Clear all content from the buffer'''
@@ -1058,7 +1060,6 @@ class TextBuffer(gtk.TextBuffer):
 			None
 		or a numbered bullet, like C{"1."}
 		'''
-		iter = self.get_iter_at_line(line)
 		if bullet == NUMBER_BULLET:
 			indent = self.get_indent(line)
 			_, prev = self._search_bullet(line, indent, -1)
@@ -1068,21 +1069,21 @@ class TextBuffer(gtk.TextBuffer):
 				bullet = '1.'
 
 		with self.user_action:
-			self._replace_bullet(iter, bullet)
+			self._replace_bullet(line, bullet)
 			if bullet and is_numbered_bullet_re.match(bullet):
 				self.renumber_list(line)
 
-	def _replace_bullet(self, iter, bullet):
-		assert iter.starts_line()
-		line = iter.get_line()
+	def _replace_bullet(self, line, bullet):
 		indent = self.get_indent(line)
 		with self.tmp_cursor():
+			iter = self.get_iter_at_line(line)
 			bound = iter.copy()
 			self.iter_forward_past_bullet(bound)
 			self.delete(iter, bound)
 			# Will trigger do_delete_range, which will update indent tag
 
 			if not bullet is None:
+				iter = self.get_iter_at_line(line)
 				self.place_cursor(iter) # update editmode
 				self._insert_bullet_at_cursor(bullet)
 
@@ -1157,7 +1158,7 @@ class TextBuffer(gtk.TextBuffer):
 		#    item with that bullet (for checkboxes always an open
 		#    checkbox is used.)
 		#
-		# Note that the bullet on the line we look also at does not have
+		# Note that the bullet on the line we look at does not have
 		# to be a numbered bullet. The one above or below may still be
 		# number. And vice versa
 		#
@@ -1225,13 +1226,15 @@ class TextBuffer(gtk.TextBuffer):
 		newline, newbullet = self._search_bullet(line, old_indent, -1)
 		if newline is not None:
 			# Was middle of list on old level, just renumber down
-			self._renumber_list(newline, old_indent, newbullet)
+			if is_numbered_bullet_re.match(newbullet):
+				self._renumber_list(newline, old_indent, newbullet)
 		else:
 			# If no item above on old level, was top on old level,
 			# use old bullet to renumber down from next item
 			newline, newbullet = self._search_bullet(line, old_indent, +1)
 			if newline is not None:
-				self._renumber_list(newline, old_indent, bullet)
+				if is_numbered_bullet_re.match(newbullet):
+					self._renumber_list(newline, old_indent, bullet)
 
 	def _search_bullet(self, line, indent, step):
 		# Return bullet for previous/next bullet item at same level
@@ -1253,11 +1256,10 @@ class TextBuffer(gtk.TextBuffer):
 		# Do the actual renumbering
 		if not is_numbered_bullet_re.match(newbullet):
 			# Replace numbered bullet with normal bullet
-			iter = self.get_iter_at_line(line)
 			if newbullet == BULLET:
-				self._replace_bullet(iter, BULLET)
+				self._replace_bullet(line, BULLET)
 			elif newbullet in CHECKBOXES:
-				self._replace_bullet(iter, UNCHECKED_BOX)
+				self._replace_bullet(line, UNCHECKED_BOX)
 			else:
 				pass # !?
 		else:
@@ -1272,8 +1274,8 @@ class TextBuffer(gtk.TextBuffer):
 				if not mybullet or myindent < indent:
 					break
 				elif myindent == indent:
-					iter = self.get_iter_at_line(line)
-					self._replace_bullet(iter, newbullet)
+					if mybullet != newbullet:
+						self._replace_bullet(line, newbullet)
 					newbullet = increase_list_bullet(newbullet)
 				# else mybullet and myindent > indent
 
@@ -1754,6 +1756,7 @@ class TextBuffer(gtk.TextBuffer):
 
 		# Check if we are at a bullet or checkbox line
 		# if so insert behind the bullet when you type at start of line
+		# FIXME FIXME FIXME - break undo - instead disallow this home position ?
 		if not self._insert_tree_in_progress and iter.starts_line() \
 		and not string.endswith('\n'):
 			bullet = self._get_bullet_at_iter(iter)
@@ -1831,10 +1834,11 @@ class TextBuffer(gtk.TextBuffer):
 		# that edit mode needs to be checked at the end of the user
 		# action.
 
-		#~ print 'DEL'
-		bullet = None
+		line = start.get_line()
 		if start.starts_line():
 			bullet = self._get_bullet_at_iter(start)
+		else:
+			bullet = None
 
 		multiline = start.get_line() != end.get_line()
 		with self.user_action: # FIXME why is this wrapper here !? - undo functions ??
@@ -2624,8 +2628,8 @@ class TextBufferList(list):
 
 		list = TextBufferList(textbuffer, start, end)
 		row = list.get_row_at_line(line)
-		#print '!! LIST %i..%i ROW %i' % (start, end, row)
-		#print '>>', list
+		#~ print '!! LIST %i..%i ROW %i' % (start, end, row)
+		#~ print '>>', list
 		return row, list
 
 	def __init__(self, textbuffer, firstline, lastline):
@@ -2762,6 +2766,7 @@ class TextBufferList(list):
 			self.buffer.renumber_list_after_indent(line, level)
 
 	def _indent_row(self, row, step):
+		#~ print "(UN)INDENT", row, step
 		line, level, bullet = self[row]
 		newlevel = level + step
 		if self.buffer.set_indent(line, newlevel):
