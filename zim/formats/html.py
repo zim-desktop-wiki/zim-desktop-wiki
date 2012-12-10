@@ -133,12 +133,16 @@ class Dumper(DumperClass):
 			elif element.tag == 'link':
 				href = self.linker.link(element.attrib['href'])
 				title = text.replace('"', '&quot;')
-				output.append('<a href="%s" title="%s">%s</a>' % (href, title, text))
+				hrefClass = link_type(element.attrib['href'])
+				output.append('<a href="%s" title="%s" class="%s">%s</a>' % (href, title, hrefClass, text))
 			elif element.tag in ['emphasis', 'strong', 'mark', 'strike', 'code','sub','sup']:
 				if element.tag == 'mark': tag = 'u'
 				elif element.tag == 'emphasis': tag = 'em'
 				else: tag = element.tag
-				output += ['<', tag, '>', text, '</', tag, '>']
+				if "_class" in element.attrib: # HACK
+					output += ['<', tag, ' class="%s">' % element.attrib['_class'], text, '</', tag, '>']
+				else:
+					output += ['<', tag, '>', text, '</', tag, '>']
 			elif element.tag == 'tag':
 				output += ['<span class="zim-tag">', text, '</span>']
 			else:

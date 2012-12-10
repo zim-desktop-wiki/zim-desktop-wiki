@@ -737,7 +737,7 @@ class StrftimeFunction(TemplateFunction):
 			elif isinstance(date, (datetime.date, datetime.datetime)):
 				string = date.strftime(format)
 			else:
-				raise Error, 'Not a datetime object: %s', date
+				raise Error, 'Not a datetime object: %s' % date
 			return string.decode(locale.getpreferredencoding())
 				# strftime returns locale as understood by the C api
 				# unfortunately there is no guarantee we can actually
@@ -779,7 +779,7 @@ class PageIndexFunction(TemplateFunction):
 
 				if page == self._page:
 					# Current page is marked with the strong style
-					builder.start('strong')
+					builder.start('strong', {'_class': 'activepage'}) # HACK - used by Html output
 					builder.data(page.basename)
 					builder.end('strong')
 				else:
@@ -1059,7 +1059,7 @@ class FilePathProxy(object):
 
 	@property
 	def mtime(self):
-		return self._href.mtime()
+		return datetime.datetime.fromtimestamp(float(self._href.mtime()))
 
 	@property
 	def size(self):
