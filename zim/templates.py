@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains classes for template processing.
 
@@ -70,7 +70,7 @@ import zim
 import zim.formats
 import zim.datetimetz as datetime
 from zim.errors import Error
-from zim.fs import File
+from zim.fs import File, Dir, format_file_size
 from zim.config import data_dirs
 from zim.parsing import Re, TextBuffer, split_quoted_strings, unescape_quoted_string, is_path_re
 from zim.formats import ParseTree, Element, TreeBuilder
@@ -405,8 +405,13 @@ class Template(GenericTemplate):
 		'''Static method callable from the template, returns a string'''
 		if link is None:
 			return ''
-		elif not isinstance(link, basestring):
-			link = ':' + link.name # special page link index ?
+		elif isinstance(link, FilePathProxy):
+			link = link.path
+		elif isinstance(link, (File, Dir)):
+			link = link.uri
+		elif not isinstance(link, basestring): # Path, PageProxy
+			link = ':' + link.name
+		# else basestring
 
 		linker = dict[TemplateParam('page')]._linker # bit of a hack
 		if linker:
@@ -922,7 +927,14 @@ class PageProxy(object):
 	def body(self):	return self._treeproxy().body
 
 	@property
+	def content(self): return self._treeproxy().content
+
+	@property
 	def parts(self): return None # TODO split in parts and return ParseTreeProxy objects
+
+	@property
+	def has_links(self):
+		return len(list(self._page.get_links())) > 0
 
 	@property
 	def links(self):
@@ -939,11 +951,25 @@ class PageProxy(object):
 					logger.exception('Error while exporting')
 
 	@property
+	def has_backlinks(self):
+		return len(list(self._notebook.index.list_links(self._page, LINK_DIR_BACKWARD))) > 0
+
+	@property
 	def backlinks(self):
 		blinks = self._notebook.index.list_links(self._page, LINK_DIR_BACKWARD)
 		for link in blinks:
 			source = self._notebook.get_page(link.source)
 			yield PageProxy(self._notebook, source, self._format, self._linker, self._options)
+
+	@property
+	def has_attachments(self):
+		return len(list(self._notebook.get_attachments_dir(self._page).list())) > 0
+
+	@property
+	def attachments(self):
+		dir = self._notebook.get_attachments_dir(self._page)
+		for basename in dir.list():
+			yield FilePathProxy(dir.file(basename), "./"+basename)
 
 
 class ParseTreeProxy(object):
@@ -977,6 +1003,13 @@ class ParseTreeProxy(object):
 
 			return ''.join(dumper.dump(body))
 
+	@property
+	def content(self):
+		if not self._tree:
+			return None
+		else:
+			return self._dump(self._tree)
+
 	def _split_head(self, tree):
 		if not hasattr(self, '_servered_head'):
 			elements = tree.getroot().getchildren()
@@ -990,3 +1023,44 @@ class ParseTreeProxy(object):
 				self._servered_head = (None, tree)
 
 		return self._servered_head
+
+	def _dump(self, tree):
+		format = self._pageproxy._format
+		linker = self._pageproxy._linker
+		if linker:
+			linker.set_path(self._pageproxy._page)
+
+		dumper = format.Dumper(
+			linker=linker,
+			template_options=self._pageproxy._options )
+
+		return ''.join(dumper.dump(tree))
+
+
+class FilePathProxy(object):
+	'''Proxy for L{File} and L{Dir} objects'''
+
+	# Keep in mind that "path" can refer to attachment in
+	# actual notebook, but after export we should refer to
+	# new copy of that item.
+	# So do not allow "file.uri", but use "url(file)" instead
+
+	def __init__(self, path, href=None):
+		self._path = path
+		self._href = href
+
+	@property
+	def path(self):
+		return self._href or self._path.user_path()
+
+	@property
+	def basename(self):
+		return self._path.basename
+
+	@property
+	def mtime(self):
+		return self._href.mtime()
+
+	@property
+	def size(self):
+		return format_file_size(self._path.size())

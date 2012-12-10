@@ -19,7 +19,7 @@ Templates can either be system defaults, or custom templates in your home folder
 
 ===== Templates for export =====
 
-For a list of templates for exporting see [[Export]] and subpages. 
+For a list of templates for exporting see [[Export]] and subpages.
 
 ===== Template options =====
 
@@ -81,12 +81,17 @@ notebook.interwiki	# interwiki key of the notebook if any
 page.name		# complete page name
 page.namespace		# namespace
 page.basename		# last part of the page name
+page.properties		# dict with page properties
 page.title		# first heading in the page or the basename
 page.heading		# first heading in the page
-page.body		# content of the page (without the leading heading)
+page.body		# content of the page without the leading heading
+page.content	# content of the page including the leading heading
+page.has_links	# True if the page has links to other pages
 page.links		# list of page objects for pages linked in this page
+page.has_backlinks	# True if the page is linked by other pages
 page.backlinks		# list of page objects for pages linking to this page
-page.properties		# dict with page properties
+page.has_attachments	# True if the page has attachments
+page.attachments	# list of file objects for attachments
 
 # These special pages have the same properties as the 'page' object
 pages.index		# the index page generated when exporting
@@ -98,24 +103,34 @@ options			# dict where format specific options can be set
 '''
 
 
+File objects returned by page.attachments have the following attributes:
+
+'''
+file.path		# (relative) path as a string
+file.basename	# file basename
+file.mtime		# file mtime, to be used with strftime()
+file.size		# file size as human readable string
+'''
+
+
 Functions available:
 
 	''url(link)''
-		Turns a zim link into an URL
-	
+		Turns a zim link or file object into an URL
+
 	''resource(filename)''
 		Returns an URL for a template resource (see below)
 
 	''strftime(template, date)''
 		Format a date
-		
+
 	pageindex''(namespace, collapse, ignore_empty)''
 		Creates a page index of a given namespace or the whole notebook
-		
+
 		''namespace'': the starting root - defaults to the top level (":")
-		''collapse:'' if ''TRUE'' only branches related to the current page are visible//, // if ''FALSE'' all branches are visible - defaults to TRUE 
-		''ignore_empty:'' if ''TRUE'' empty pages are ignored — defaults to TRUE. 
-		
+		''collapse:'' if ''TRUE'' only branches related to the current page are visible//, // if ''FALSE'' all branches are visible - defaults to TRUE
+		''ignore_empty:'' if ''TRUE'' empty pages are ignored — defaults to TRUE.
+
 		//Example//:	''menu(page.namespace,  TRUE, FALSE)''
 
 

@@ -25,21 +25,21 @@
 			.menu{
 				float:left; width: 300px;
 			}
-			
+
 			.content { padding-left: 320px;}
 			.notebook{font-variant: small-caps;
 					color:#4e9a06;
 					padding: 0px 20px;}
 			hr{clear:both;}
 		</style>
-		
+
 	</head>
 	<body>
 		<div class="page">
 			<div class="heading">
 				<h1><a href="[% url(pages.home.name) %]" class="notebook">[% notebook.name %]:</a>
-			
-				
+
+
 				[% IF page.properties.type == 'namespace-index' -%]
 					Document Index</h1>
 				[%- ELSE -%]
@@ -59,12 +59,23 @@
 			<hr>
 			<!-- Backlinks -->
 			<div class="footer">
-				[% IF page.backlinks -%] Backlinks:
+				[% IF page.backlinks -%]
+					<b>Backlinks:</b>
 					[%- FOREACH link = page.backlinks -%]
 						<a href='[% url(link) %]'>[% link.name %]</a></li>
 					[%- END -%]
 				[%- ELSE -%]
-					No backlinks to this page.
+					<i>No backlinks to this page.</i>
+				[%- END %]
+				<br><br>
+
+				[% IF page.attachments -%]
+					<b>Attachments:</b>
+					<table>
+					[%- FOREACH file = page.attachments -%]
+						<tr><td><a href='[% url(file) %]'>[% file.basename %]</a></td><td>&nbsp;</td><td>[% file.size %]</td></tr>
+					[%- END -%]
+					</table>
 				[%- END %]
 			<!-- End Backlinks -->
 			</div>
