@@ -142,7 +142,7 @@ class TestCalendarPlugin(tests.TestCase):
 		plugin.initialize_ui(ui)
 		# plugin should register with TemplateManager
 
-		template = get_template('wiki', 'Calendar')
+		template = get_template('wiki', 'Journal')
 		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
 			zim.plugins.calendar.MONDAY
 		plugin.preferences['namespace'] = 'Calendar'

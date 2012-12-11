@@ -97,7 +97,7 @@ class TestWWWInterface(tests.TestCase):
 			response = call('GET', path)
 			#~ print '>'*80, '\n', response, '<'*80
 			self.assertResponseOK(response)
-			self.assertTrue('<li><a href="/Test/foo.html" title="foo">foo</a></li>' in response)
+			self.assertTrue('<li><a href="/Test/foo.html" title="foo" class="page">foo</a></li>' in response)
 
 		# page
 		response = call('GET', '/Test/foo.html')

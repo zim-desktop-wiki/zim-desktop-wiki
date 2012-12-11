@@ -213,54 +213,54 @@ class TestTemplatePageIndexFuntion(tests.TestCase):
 		data = (
 ('Parent:Daughter', u"[% pageindex('Parent') %]", '''\
 <ul>
-<li><a href="page://:Parent:Child" title="Child">Child</a></li>
-<li><strong>Daughter</strong></li>
+<li><a href="page://:Parent:Child" title="Child" class="page">Child</a></li>
+<li><strong class="activepage">Daughter</strong></li>
 <ul>
-<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
-<li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
-<li><a href="page://:Parent:Daughter:SomeOne" title="SomeOne">SomeOne</a></li>
+<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter" class="page">Granddaughter</a></li>
+<li><a href="page://:Parent:Daughter:Grandson" title="Grandson" class="page">Grandson</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne" title="SomeOne" class="page">SomeOne</a></li>
 </ul>
-<li><a href="page://:Parent:Son" title="Son">Son</a></li>
+<li><a href="page://:Parent:Son" title="Son" class="page">Son</a></li>
 </ul>
 '''),
 
 ('Parent:Daughter:SomeOne', u"[% pageindex('Parent') %]", '''\
 <ul>
-<li><a href="page://:Parent:Child" title="Child">Child</a></li>
-<li><a href="page://:Parent:Daughter" title="Daughter">Daughter</a></li>
+<li><a href="page://:Parent:Child" title="Child" class="page">Child</a></li>
+<li><a href="page://:Parent:Daughter" title="Daughter" class="page">Daughter</a></li>
 <ul>
-<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
-<li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
-<li><strong>SomeOne</strong></li>
+<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter" class="page">Granddaughter</a></li>
+<li><a href="page://:Parent:Daughter:Grandson" title="Grandson" class="page">Grandson</a></li>
+<li><strong class="activepage">SomeOne</strong></li>
 <ul>
-<li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
-<li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar" class="page">Bar</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo" class="page">Foo</a></li>
 </ul>
 </ul>
-<li><a href="page://:Parent:Son" title="Son">Son</a></li>
+<li><a href="page://:Parent:Son" title="Son" class="page">Son</a></li>
 </ul>
 '''),
 
 ('Parent:Daughter:SomeOne', u"[% pageindex('Parent', FALSE, FALSE) %]", '''\
 <ul>
-<li><a href="page://:Parent:Child" title="Child">Child</a></li>
+<li><a href="page://:Parent:Child" title="Child" class="page">Child</a></li>
 <ul>
-<li><a href="page://:Parent:Child:Grandchild" title="Grandchild">Grandchild</a></li>
+<li><a href="page://:Parent:Child:Grandchild" title="Grandchild" class="page">Grandchild</a></li>
 </ul>
-<li><a href="page://:Parent:Daughter" title="Daughter">Daughter</a></li>
+<li><a href="page://:Parent:Daughter" title="Daughter" class="page">Daughter</a></li>
 <ul>
-<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter">Granddaughter</a></li>
-<li><a href="page://:Parent:Daughter:Grandson" title="Grandson">Grandson</a></li>
-<li><strong>SomeOne</strong></li>
+<li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter" class="page">Granddaughter</a></li>
+<li><a href="page://:Parent:Daughter:Grandson" title="Grandson" class="page">Grandson</a></li>
+<li><strong class="activepage">SomeOne</strong></li>
 <ul>
-<li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar">Bar</a></li>
-<li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo">Foo</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar" class="page">Bar</a></li>
+<li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo" class="page">Foo</a></li>
 </ul>
 </ul>
-<li><a href="page://:Parent:Son" title="Son">Son</a></li>
+<li><a href="page://:Parent:Son" title="Son" class="page">Son</a></li>
 <ul>
-<li><a href="page://:Parent:Son:Granddaughter" title="Granddaughter">Granddaughter</a></li>
-<li><a href="page://:Parent:Son:Grandson" title="Grandson">Grandson</a></li>
+<li><a href="page://:Parent:Son:Granddaughter" title="Granddaughter" class="page">Granddaughter</a></li>
+<li><a href="page://:Parent:Son:Grandson" title="Grandson" class="page">Grandson</a></li>
 </ul>
 </ul>
 '''),
