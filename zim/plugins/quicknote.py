@@ -27,18 +27,20 @@ usagehelp = '''\
 usage: zim --plugin quicknote [OPTIONS]
 
 Options:
-  notebook=URI        Select the notebook in the dialog
-  namespace=STRING    Fill in the namespace in the dialog
-  basename=STRING     Fill in the page name in the dialog
-  text=TEXT           Provide the text directly
-  input=stdin         Provide the text on stdin
-  input=clipboard     Take the text from the clipboard
-  encoding=base64     Text is encoded in base64
-  encoding=url        Text is url encoded
-                      (In both cases expects UTF-8 after decoding)
-  attachments=FOLDER  Import all files in FOLDER as attachments,
-                      wiki input can refer these files relatively
-  option:url=STRING   Set template parameter
+  notebook=URI         Select the notebook in the dialog
+  page=STRING          Fill in full page name
+  namespace=STRING     Fill in the namespace in the dialog
+  basename=STRING      Fill in the page name in the dialog
+  append=[true|false]  Set whether to append or create new page
+  text=TEXT            Provide the text directly
+  input=stdin          Provide the text on stdin
+  input=clipboard      Take the text from the clipboard
+  encoding=base64      Text is encoded in base64
+  encoding=url         Text is url encoded
+                       (In both cases expects UTF-8 after decoding)
+  attachments=FOLDER   Import all files in FOLDER as attachments,
+                       wiki input can refer these files relatively
+  option:url=STRING    Set template parameter
 '''
 
 
@@ -67,6 +69,12 @@ def main(*args):
 		notebook, page = resolve_notebook(options['notebook'])
 	else:
 		notebook = None
+
+	if 'append' in options:
+		if options['append'].lower() == 'true':
+			options['append'] = True
+		else:
+			options['append'] = False
 
 	if 'input' in options:
 		if options['input'] == 'stdin':
@@ -98,7 +106,11 @@ def main(*args):
 	dialog = QuickNoteDialog(None,
 		notebook,
 		options.get('namespace'), options.get('basename'),
-		text, template_options, options.get('attachments') )
+		options.get('append'),
+		text, 
+		template_options, 
+		options.get('attachments')
+	)
 	dialog.run()
 
 
@@ -151,7 +163,7 @@ This is a core plugin shipping with zim.
 class BoundQuickNoteDialog(Dialog):
 	'''Dialog bound to a specific notebook'''
 
-	def __init__(self, ui, namespace=None, basename=None, text=None, template_options=None, attachments=None):
+	def __init__(self, ui, page=None, namespace=None, basename=None, append=None, text=None, template_options=None, attachments=None):
 		Dialog.__init__(self, ui, _('Quick Note'))
 		self._updating_title = False
 		self._title_set_manually = not basename is None
@@ -162,14 +174,19 @@ class BoundQuickNoteDialog(Dialog):
 
 		self.form = InputForm(notebook=self.ui.notebook)
 		self.vbox.pack_start(self.form, False)
-		self._init_inputs(namespace, basename, text, template_options)
+		self._init_inputs(namespace, basename, append, text, template_options)
 
-	def _init_inputs(self, namespace, basename, text, template_options, custom=None):
+	def _init_inputs(self, namespace, basename, append, text, template_options, custom=None):
 		if template_options is None:
 			template_options = {}
 		else:
 			template_options = template_options.copy()
 
+		if namespace is not None and basename is not None:
+			page = namespace + ':' + basename
+		else:
+			page = namespace or basename
+	
 		self.form.add_inputs( (
 				('page', 'page', _('Page')),
 				('namespace', 'namespace', _('Namespace')), # T: text entry field
@@ -177,9 +194,9 @@ class BoundQuickNoteDialog(Dialog):
 				('basename', 'string', _('Title')) # T: text entry field
 			) )
 		self.form.update({
-				'page': namespace,
+				'page': page,
 				'namespace': namespace,
-				'new_page': False,
+				'new_page': True,
 				'basename': basename,
 			} )
 
@@ -193,7 +210,10 @@ class BoundQuickNoteDialog(Dialog):
 		# toggling the checkbox
 		self.form.widgets['page'].set_no_show_all(True)
 		self.form.widgets['namespace'].set_no_show_all(True)
-		self.form['new_page'] = bool(self.uistate['new_page'])
+		if append is None:
+			self.form['new_page'] = bool(self.uistate['new_page'])
+		else:
+			self.form['new_page'] = not append
 
 		def switch_input(*a):
 			if self.form['new_page']:
@@ -319,7 +339,7 @@ class BoundQuickNoteDialog(Dialog):
 class QuickNoteDialog(BoundQuickNoteDialog):
 	'''Dialog which includes a notebook chooser'''
 
-	def __init__(self, ui, notebook=None, namespace=None, basename=None, text=None, template_options=None, attachments=None):
+	def __init__(self, ui, notebook=None, namespace=None, basename=None, append=None, text=None, template_options=None, attachments=None):
 		self.config = get_config('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
@@ -349,7 +369,7 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		self.notebookcombobox.connect('changed', self.on_notebook_changed)
 		self.form.attach(self.notebookcombobox, 1,2, 0,1)
 
-		self._init_inputs(namespace, basename, text, template_options)
+		self._init_inputs(namespace, basename, append, text, template_options)
 
 		self.uistate['lastnotebook'] = notebook
 		self._set_autocomplete(notebook)
