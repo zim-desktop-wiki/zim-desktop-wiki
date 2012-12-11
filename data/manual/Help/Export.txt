@@ -14,8 +14,6 @@ The option **Complete Notebook** will export all pages in the current notebook.
 
 The option **Single page** allows to select you a single page to export.
 
-TODO: options to export a subset of pages
-
 ==== Step 2: Select the export format ====
 The **Format** allows the choice of the output format.
 

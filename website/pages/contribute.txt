@@ -60,7 +60,7 @@ Details: see [[http://www.zim-wiki.org/wiki/doku.php?id=creating_an_android_appl
 
 
 ===== Patches =====
-The simple way to create patches is to download the source tar ball for the latest release. After you are done hacking take a diff (use "''diff -rwu''") and mail it to jaap.karssenberg@gmail.com.
+The simple way to create patches is to download the source tar ball for the latest release. After you are done hacking take a diff (use "''diff -rwu''") and mail it to [[jaap.karssenberg@gmail.com|me]].
 
 If you want the full revision controlled source tree you will need the Bazaar version control system. To check out the current tree from launchpad run:
 
@@ -68,13 +68,17 @@ If you want the full revision controlled source tree you will need the Bazaar ve
 $ bzr branch lp:zim
 '''
 
-This will give you a local copy to hack on. When working on a large feature please commit changes to your local branch regularly so we have a detailed log of what changed later on. When you are done just run:
+This will give you a local copy to hack on. When working on a large feature please commit changes to your local branch regularly so we have a detailed log of what changed later on. When you are done there are two ways to get the changes merged with the main code:
+
+First option is to upload your branch as a new branch to launchpad and file a merge request. This way everybody can see your work, improve upon it and the merge request will trigger us to look into it.
+
+For small patches the quicker alternative is to run:
 
 '''
 $ bzr send -o some-description.patch
 '''
 
-and mail the resulting file to jaap.karssenberg@gmail.com. This file contains the whole patch set and can easily be merged in the upstream repository.
+and mail the resulting file to [[jaap.karssenberg@gmail.com|me]].
 
 ===== Contact =====
 To join the zim mailing list you need to join the "[[https://launchpad.net/~zim-wiki|zim-wiki]]" team in launchpad. This mailing list is used for synchronizing releases and the occasional brainstorm session. But feel free to mail all your comments, questions and rants to me personally as well.

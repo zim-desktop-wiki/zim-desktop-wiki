@@ -12,7 +12,7 @@ Important: The content of the text file must be UTF-8 or ASCII encoded.  If you 
 
 Some word processors allow checking the encoding, e.g. with the small editor Mousepad load the file, then click Save as, then the button on the bottom right just above the save button should show UTF-8. If not and if you cannot save with this configuration Zim will not work. You can also use the Geany editor for the same purposes.
 
-The filename should be encoded in the proper encoding for your file system. You can easily check this by making sure your operating system default file browser shows the file names correctly. There are a number of characters that are forbidden in page names, these are: "?", "#", "/", "\\", "*", '"', "<", ">", "|" and "%". These are forbidden because they have a special meanign in the zim wiki syntax or because they can not be encoded on common file systems.
+The filename should be encoded in the proper encoding for your file system. You can easily check this by making sure your operating system default file browser shows the file names correctly. There are a number of characters that are forbidden in page names, these are: "?", "#", "/", "\\", "*", '"', "<", ">", "|" and "%". These are forbidden because they have a special meaning in the zim wiki syntax or because they can not be encoded on common file systems.
 
 **Moving pages into an existing notebook: **
 If you have just a few pages then use the import function, see the menu item //Files// -> //Import page...// .

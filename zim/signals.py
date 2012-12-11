@@ -29,7 +29,7 @@ class ConnectorMixin(object):
 		'''Connect to signals of another object
 		E.g.::
 
-			self.connectto(button, clicked=self.on_button_clicked)
+			self.connectto(button, 'clicked', self.on_button_clicked)
 
 		@param obj: the object to connect to
 		@param signal: the signal name
@@ -79,7 +79,7 @@ class ConnectorMixin(object):
 		names or tuples where the sub-elements are the parameters
 		for L{connectto()}. For example::
 
-			self.connect_group(self.ui (
+			self.connectto_all(self.ui (
 				'open-page' # defaults to on_open_page
 				('open-notebook', on_open_notebook, None, SIGNAL_AFTER),
 			))

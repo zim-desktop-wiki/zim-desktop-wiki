@@ -1442,6 +1442,10 @@ class InputEntry(gtk.Entry):
 		selects the widget. Used to set hints on the usage of the
 		widget.
 
+		@param allow_whitespace: if C{True} allow trailing whitespace
+		or even string containing only whitespace. If C{False} all
+		whitespace is stripped.
+
 		@todo: make color for empty_text actually grey
 		'''
 		gtk.Entry.__init__(self)

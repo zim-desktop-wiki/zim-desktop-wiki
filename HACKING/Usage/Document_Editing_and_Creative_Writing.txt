@@ -1,0 +1,15 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2012-12-11T19:21:55+01:00
+
+====== Document Editing and Creative Writing ======
+Created Tuesday 11 December 2012
+
+Manual snippet (Usage)
+
+	If the same notebook contains both notes on the document and the polished text it is useful to be able to only export the polished text without the notes. In order to this one can either separate notes and final text in different namespaces or one can create an "index" page listing links to all the pages that are part of the final document. That way one can make the selection in the export dialog to only export the relevant sections.
+
+
+MISSING: export many pages to single document -- needed for latex export document
+MISSING: selection in export dialog based on index page as describe above -- needed for latex export document
+MISSING: custom ordering in a namespace -- MUST have

@@ -26,7 +26,7 @@ class DistractionFreePlugin(PluginClass):
 			'as a distraction free editor.\n'
 		), # T: plugin description
 		'author': 'Jaap Karssenberg',
-		'help': 'Plugins:Distraction_Free_Editing',
+		'help': 'Plugins:Distraction Free Editing',
 	}
 
 	plugin_preferences = (
@@ -98,8 +98,13 @@ class DistractionFreePlugin(PluginClass):
 		else:
 			pass
 
+	# NOTE: would be nice to change color of _all_ widgets when switching
+	#       to fullscreen, but this is practically not possible because
+	#       we can not set just the few colors in RcStyle, would need to
+	#       switch the whole theme
+
 	def _save_colors(self):
-		style = gtk.Entry().rc_get_style()
+		style = self.ui.mainwindow.pageview.view.rc_get_style()
 		self._normal_colors = []
 		for state in (
 			gtk.STATE_NORMAL,

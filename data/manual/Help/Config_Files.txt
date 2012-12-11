@@ -127,9 +127,6 @@ You can for example set the font used in the index by adding this to your gtkrc 
 
 '''
 style "zim-pageindex-style"
-'''
-
-'''
 {
 	font_name = "Sans 8"
 }
@@ -139,7 +136,8 @@ widget "*.zim-pageindex" style "zim-pageindex-style"
 or this example to make the treeview a bit more compact:
 
 '''
-style "gtkcompact" {
+style "gtkcompact" 
+{
 	GtkTreeView::vertical-separator=0
 	GtkTreeView::horizontal-separator=0
 	GtkTreeView::expander-size=6
@@ -147,6 +145,17 @@ style "gtkcompact" {
 	GtkWidget::focus_padding=0
 }
 class "GtkWidget" style "gtkcompact"
+'''
+
+To change the base colors of the pageview widget use something like:
+
+'''
+style "mycolors" 
+{
+	base: "#ccc"
+	text: "#fff"
+}
+widget "*.zim-pageview" style "mycolors"
 '''
 
 
