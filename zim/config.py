@@ -150,13 +150,13 @@ def _set_basedirs():
 		XDG_DATA_HOME = Dir(
 			get_environ('XDG_DATA_HOME', APPDATA + r'\zim\data'))
 
-		XDG_DATA_DIRS = Dir(
+		XDG_DATA_DIRS = map(Dir,
 			get_environ_list('XDG_DATA_DIRS', '~/.local/share/')) # Backwards compatibility
 
 		XDG_CONFIG_HOME = Dir(
 			get_environ('XDG_CONFIG_HOME', APPDATA + r'\zim\config'))
 
-		XDG_CONFIG_DIRS = Dir(
+		XDG_CONFIG_DIRS = map(Dir,
 			get_environ_list('XDG_CONFIG_DIRS', '~/.config/')) # Backwards compatibility
 
 		try:

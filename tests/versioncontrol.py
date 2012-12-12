@@ -300,10 +300,16 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 ''' )
 
 		vcs.revert()
-		self.assertEqual(vcs.get_status(), [
+		self.assertIn(vcs.get_status(), (
+[
 '# On branch master\n',
 'nothing to commit (working directory clean)\n'
-] )
+],
+[
+'# On branch master\n',
+'nothing to commit, working directory clean\n'
+],
+) )
 
 		file.write('second\nbaz\n')
 		vcs.commit_async('test 3')
@@ -369,7 +375,7 @@ test
 		self.assertIsInstance(diff, unicode)
 		vcs.commit(UTF8_COMMENT)
 		versions = vcs.list_versions()
-		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
+		self.assertIn(UTF8_COMMENT, versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], unicode)
 
 
