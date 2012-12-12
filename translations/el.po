@@ -7,16 +7,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2012-08-25 17:54+0200\n"
-"PO-Revision-Date: 2012-07-25 13:05+0000\n"
+"POT-Creation-Date: 2012-12-03 20:12+0100\n"
+"PO-Revision-Date: 2012-10-06 21:09+0000\n"
 "Last-Translator: tzem <athmakrigiannis@gmail.com>\n"
 "Language-Team: Greek <el@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2012-10-06 12:28+0000\n"
-"X-Generator: Launchpad (build 16061)\n"
+"X-Launchpad-Export-Date: 2012-12-12 20:32+0000\n"
+"X-Generator: Launchpad (build 16361)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:41
@@ -35,77 +35,77 @@ msgstr ""
 "Επεστράφει μη μηδενική κατάσταση εξόδου %(code)i"
 
 #. error when application failed to start
-#: zim/applications.py:228
+#: zim/applications.py:245
 #, python-format
 msgid "Failed running: %s"
 msgstr ""
 
 #. label for default webbrowser |
 #. label for default application
-#: zim/applications.py:249 zim/applications.py:283 zim/gui/applications.py:687
+#: zim/applications.py:266 zim/applications.py:300 zim/gui/applications.py:686
 msgid "Default"
 msgstr "Προεπιλογή"
 
 #. message for FileNotFoundError
-#: zim/fs.py:425
+#: zim/fs.py:444
 #, python-format
 msgid "No such file: %s"
 msgstr "Ανύπαρκτο αρχείο: %s"
 
 #. message for FileUnicodeError (%s is the file name)
-#: zim/fs.py:437
+#: zim/fs.py:456
 #, python-format
 msgid "Could not read: %s"
 msgstr "Ανέφικτη ανάγνωση: %s"
 
 #. message for FileUnicodeError
-#: zim/fs.py:439
+#: zim/fs.py:458
 msgid "This usually means the file contains invalid characters"
 msgstr ""
 "Συνήθως πρόκειται για ένδειξη ότι το αρχείο περιέχει μη αποδεκτούς χαρακτήρες"
 
 #. label for detailed error |
 #. section for version details in "save version" dialog
-#: zim/fs.py:441 zim/plugins/versioncontrol/__init__.py:837
+#: zim/fs.py:460 zim/plugins/versioncontrol/__init__.py:837
 msgid "Details"
 msgstr "Λεπτομέρειες"
 
 #. Error message
-#: zim/fs.py:1384
+#: zim/fs.py:1415
 #, python-format
 msgid "File is not writable: %s"
 msgstr ""
 
 #. error message
-#: zim/fs.py:1647
+#: zim/fs.py:1678
 #, python-format
 msgid "File changed on disk: %s"
 msgstr ""
 
 #. label to customize 'open with' menu
-#: zim/gui/applications.py:592
+#: zim/gui/applications.py:591
 msgid "Customize..."
 msgstr ""
 
 #. message when no applications in "Open With" menu
-#: zim/gui/applications.py:618
+#: zim/gui/applications.py:617
 msgid "No Applications Found"
 msgstr ""
 
 #. menu item to open a file with an application, %s is the app name
-#: zim/gui/applications.py:647
+#: zim/gui/applications.py:646
 #, python-format
 msgid "Open with \"%s\""
 msgstr "Άνοιγμα με \"%s\""
 
 #. Text in the 'custom command' dialog, "%s" will be URL scheme like "http://" or "ssh://"
-#: zim/gui/applications.py:662
+#: zim/gui/applications.py:661
 #, python-format
 msgid "Configure an application to open \"%s\" links"
 msgstr ""
 
 #. Text in the 'custom command' dialog, "%s" will be mimetype like "text/plain"
-#: zim/gui/applications.py:665
+#: zim/gui/applications.py:664
 #, python-format
 msgid ""
 "Configure an application to open files\n"
@@ -113,18 +113,18 @@ msgid ""
 msgstr ""
 
 #. Dialog title
-#: zim/gui/applications.py:677
+#: zim/gui/applications.py:676
 msgid "Configure Applications"
 msgstr ""
 
 #. Button for adding a new application to the 'open with' menu |
 #. Dialog title
-#: zim/gui/applications.py:691 zim/gui/applications.py:797
+#: zim/gui/applications.py:690 zim/gui/applications.py:796
 msgid "Add Application"
 msgstr ""
 
 #. Label for default application handler
-#: zim/gui/applications.py:739
+#: zim/gui/applications.py:738
 msgid "System Default"
 msgstr ""
 
@@ -132,25 +132,27 @@ msgstr ""
 #. Input in "Edit Custom Tool" dialog |
 #. Input label in the 'rename page' dialog for the new name |
 #. input field in 'Add Notebook' dialog |
+#. input for new file name |
 #. Heading in plugins tab of preferences dialog |
 #. Input label for the new name when copying a template |
 #. label for properties dialog |
 #. label for file name
-#: zim/gui/applications.py:801 zim/gui/customtools.py:155
-#: zim/gui/__init__.py:3246 zim/gui/notebookdialog.py:402
-#: zim/gui/preferencesdialog.py:192 zim/gui/templateeditordialog.py:141
-#: zim/notebook.py:718 zim/plugins/attachmentbrowser.py:534
+#: zim/gui/applications.py:800 zim/gui/customtools.py:155
+#: zim/gui/__init__.py:3266 zim/gui/notebookdialog.py:402
+#: zim/gui/pageview.py:6487 zim/gui/preferencesdialog.py:192
+#: zim/gui/templateeditordialog.py:141 zim/notebook.py:718
+#: zim/plugins/attachmentbrowser.py:550
 msgid "Name"
 msgstr "Όνομα"
 
 #. Field in 'custom command' dialog |
 #. Input in "Edit Custom Tool" dialog
-#: zim/gui/applications.py:802 zim/gui/customtools.py:157
+#: zim/gui/applications.py:801 zim/gui/customtools.py:157
 msgid "Command"
 msgstr "Εντολή"
 
 #. Field in 'custom command' dialog
-#: zim/gui/applications.py:803
+#: zim/gui/applications.py:802
 msgid "Make default application"
 msgstr ""
 
@@ -161,7 +163,7 @@ msgstr "Άνοιγμα αρχείου"
 
 #. menu item |
 #. menu item to open containing folder of files
-#: zim/gui/cleannotebookdialog.py:27 zim/gui/pageview.py:5120
+#: zim/gui/cleannotebookdialog.py:27 zim/gui/pageview.py:5124
 msgid "Open Folder"
 msgstr "Άνοιγμα φακέλου"
 
@@ -176,13 +178,13 @@ msgid "Delete"
 msgstr "Διαγραφή"
 
 #. label in word count dialog
-#: zim/gui/cleannotebookdialog.py:131 zim/gui/pageview.py:6385
+#: zim/gui/cleannotebookdialog.py:131 zim/gui/pageview.py:6395
 msgid "Selection"
 msgstr "Επιλογή"
 
 #. Column heading in 'Oprhaned Files' dialog |
 #. Input label
-#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:3986
+#: zim/gui/cleannotebookdialog.py:139 zim/gui/widgets.py:4093
 msgid "Filename"
 msgstr "Όνομα αρχείου"
 
@@ -191,9 +193,9 @@ msgstr "Όνομα αρχείου"
 #. label in word count dialog |
 #. Column header search dialog |
 #. Column header Task List dialog
-#: zim/gui/cleannotebookdialog.py:148 zim/gui/exportdialog.py:129
-#: zim/gui/pageview.py:6383 zim/gui/searchdialog.py:148
-#: zim/plugins/quicknote.py:179 zim/plugins/tasklist.py:831
+#: zim/gui/cleannotebookdialog.py:148 zim/gui/exportdialog.py:124
+#: zim/gui/pageview.py:6393 zim/gui/searchdialog.py:148
+#: zim/plugins/quicknote.py:174 zim/plugins/tasklist.py:911
 msgid "Page"
 msgstr "Σελίδα"
 
@@ -296,18 +298,18 @@ msgid "Export"
 msgstr "Εξαγωγή"
 
 #. Title of progressbar dialog
-#: zim/gui/exportdialog.py:53 zim/gui/__init__.py:2070
+#: zim/gui/exportdialog.py:53 zim/gui/__init__.py:2067
 msgid "Updating index"
 msgstr "Ενημέρωση ευρετηρίου"
 
 #. message heading
-#: zim/gui/exportdialog.py:64
+#: zim/gui/exportdialog.py:62
 #, python-format
 msgid "Folder exists: %s"
 msgstr "Υφιστάμενος φάκελος: %s"
 
 #. detailed message, answers are Yes and No
-#: zim/gui/exportdialog.py:65
+#: zim/gui/exportdialog.py:63
 msgid ""
 "Folder already exists and has content, exporting to this folder may "
 "overwrite existing files. Do you want to continue?"
@@ -316,17 +318,17 @@ msgstr ""
 "πιθανό να επικαλύψετε υπάρχοντα αρχεία. Θέλετε να συνεχίσετε;"
 
 #. Title for progressbar window
-#: zim/gui/exportdialog.py:73
+#: zim/gui/exportdialog.py:71
 msgid "Exporting notebook"
 msgstr "Εξαγωγή σημειωματάριου"
 
 #. message heading
-#: zim/gui/exportdialog.py:85
+#: zim/gui/exportdialog.py:80
 msgid "File exists"
 msgstr "Το αρχείο υπάρχει ήδη"
 
 #. detailed message, answers are Yes and No
-#: zim/gui/exportdialog.py:86
+#: zim/gui/exportdialog.py:81
 msgid ""
 "This file already exists.\n"
 "Do you want to overwrite it?"
@@ -335,84 +337,84 @@ msgstr ""
 "Θέλετε να το αντικαταστήσετε;"
 
 #. title of step in export dialog
-#: zim/gui/exportdialog.py:115
+#: zim/gui/exportdialog.py:110
 msgid "Select the pages to export"
 msgstr "Επιλογή σελίδων για εξαγωγή"
 
 #. Option in export dialog to export complete notebook |
 #. Option in versions dialog to show version for complete notebook
-#: zim/gui/exportdialog.py:121 zim/plugins/versioncontrol/__init__.py:885
+#: zim/gui/exportdialog.py:116 zim/plugins/versioncontrol/__init__.py:885
 msgid "Complete _notebook"
 msgstr "Ο_λόκληρο το σημειωματάριο"
 
 #. Option in export dialog to export selection
-#: zim/gui/exportdialog.py:126
+#: zim/gui/exportdialog.py:121
 msgid "Single _page"
 msgstr "Μία _σελίδα"
 
 #. title of step in export dialog
-#: zim/gui/exportdialog.py:154
+#: zim/gui/exportdialog.py:149
 msgid "Select the export format"
 msgstr "Επιλογή της μορφής εξόδου"
 
 #. Option in drop down menu to specify another file
-#: zim/gui/exportdialog.py:156
+#: zim/gui/exportdialog.py:151
 msgid "Other..."
 msgstr "Άλλο..."
 
 #. Input label in the export dialog |
 #. label in "insert date" dialog
-#: zim/gui/exportdialog.py:167 zim/gui/pageview.py:5673
+#: zim/gui/exportdialog.py:162 zim/gui/pageview.py:5683
 msgid "Format"
 msgstr "Μορφή"
 
 #. Input label in the export dialog
-#: zim/gui/exportdialog.py:168
+#: zim/gui/exportdialog.py:163
 msgid "Template"
 msgstr "Πρότυπο"
 
 #. radio option in export dialog
-#: zim/gui/exportdialog.py:171
+#: zim/gui/exportdialog.py:166
 msgid "Link files under document root with full file path"
 msgstr "Χρήση πλήρους διαδρομής σε δεσμούς για τοπικά αρχεία"
 
 #. radio option in export dialog
-#: zim/gui/exportdialog.py:172
+#: zim/gui/exportdialog.py:167
 msgid "Map document root to URL"
 msgstr "Αντιστοίχηση του ριζικού καταλόγου του εγγράφου σε URL"
 
 #. title of step in export dialog
-#: zim/gui/exportdialog.py:245
+#: zim/gui/exportdialog.py:240
 msgid "Select the output file or folder"
 msgstr "Επιλογή του αρχείου ή φακέλου εξόδου"
 
 #. Label for folder selection in export dialog
-#: zim/gui/exportdialog.py:251
+#: zim/gui/exportdialog.py:246
 msgid "Output folder"
 msgstr "Φάκελος εξόδου"
 
 #. Label for setting a name for the index of exported pages
-#: zim/gui/exportdialog.py:253
+#: zim/gui/exportdialog.py:248
 msgid "Index page"
 msgstr "Σελίδα ευρετηρίου"
 
 #. Label for file selection in export dialog
-#: zim/gui/exportdialog.py:256
+#: zim/gui/exportdialog.py:251
 msgid "Output file"
 msgstr "Αρχείο εξόδου"
 
 #. button in e.g. equation editor dialog
-#: zim/gui/imagegeneratordialog.py:120
+#: zim/gui/imagegeneratordialog.py:150
 msgid "_Preview"
 msgstr "_Προεπισκόπηση"
 
 #. button in e.g. equation editor dialog
-#: zim/gui/imagegeneratordialog.py:130
+#: zim/gui/imagegeneratordialog.py:160
 msgid "View _Log"
 msgstr "Εμφάνιση _καταγραφής"
 
 #. Question prompt when e.g. equation editor encountered an error generating the image to insert
-#: zim/gui/imagegeneratordialog.py:208
+#: zim/gui/imagegeneratordialog.py:239
 msgid ""
 "An error occurred while generating the image.\n"
 "Do you want to save the source text anyway?"
@@ -421,444 +423,444 @@ msgstr ""
 "Θέλετε παρόλα αυτά να αποθηκεύσετε το πηγαίο αρχείο;"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
-#: zim/gui/imagegeneratordialog.py:248
+#: zim/gui/imagegeneratordialog.py:279
 msgid "Log file"
 msgstr "Αρχείο καταγραφής"
 
 #. Menu title
-#: zim/gui/__init__.py:49
+#: zim/gui/__init__.py:51
 msgid "_File"
 msgstr "_Αρχείο"
 
 #. Menu title
-#: zim/gui/__init__.py:50
+#: zim/gui/__init__.py:52
 msgid "_Edit"
 msgstr "_Επεξεργασία"
 
 #. Menu title |
 #. button label
-#: zim/gui/__init__.py:51 zim/gui/templateeditordialog.py:42
+#: zim/gui/__init__.py:53 zim/gui/templateeditordialog.py:42
 msgid "_View"
 msgstr "_Προβολή"
 
 #. Menu title |
 #. Button label
-#: zim/gui/__init__.py:52 zim/gui/pageview.py:5663
-#: zim/plugins/insertsymbol.py:134
+#: zim/gui/__init__.py:54 zim/gui/pageview.py:5673
+#: zim/plugins/insertsymbol.py:143
 msgid "_Insert"
 msgstr "Ε_ισαγωγή"
 
 #. Menu title
-#: zim/gui/__init__.py:53
+#: zim/gui/__init__.py:55
 msgid "_Search"
 msgstr "Ανα_ζήτηση"
 
 #. Menu title
-#: zim/gui/__init__.py:54
+#: zim/gui/__init__.py:56
 msgid "For_mat"
 msgstr "Μορ_φοποίηση"
 
 #. Menu title
-#: zim/gui/__init__.py:55
+#: zim/gui/__init__.py:57
 msgid "_Tools"
 msgstr "Ερ_γαλεία"
 
 #. Menu title
-#: zim/gui/__init__.py:56
+#: zim/gui/__init__.py:58
 msgid "_Go"
 msgstr "_Μετάβαση"
 
 #. Menu title
-#: zim/gui/__init__.py:57
+#: zim/gui/__init__.py:59
 msgid "_Help"
 msgstr "_Βοήθεια"
 
 #. Menu title
-#: zim/gui/__init__.py:58
+#: zim/gui/__init__.py:60
 msgid "P_athbar"
 msgstr "Γρ_αμμή διαδρομής"
 
 #. Menu title |
 #. Menu item
-#: zim/gui/__init__.py:59 zim/gui/__init__.py:117 zim/gui/__init__.py:127
+#: zim/gui/__init__.py:61 zim/gui/__init__.py:119 zim/gui/__init__.py:129
 msgid "_Toolbar"
 msgstr "Εργαλειο_θήκη"
 
 #. Menu item
-#: zim/gui/__init__.py:62
+#: zim/gui/__init__.py:64
 msgid "_New Page..."
 msgstr "_Νέα σελίδα..."
 
 #. Menu item
-#: zim/gui/__init__.py:63
+#: zim/gui/__init__.py:65
 msgid "New S_ub Page..."
 msgstr "Νέα _υποσελίδα..."
 
 #. Menu item
-#: zim/gui/__init__.py:64
+#: zim/gui/__init__.py:66
 msgid "_Open Another Notebook..."
 msgstr "Άν_οιγμα νέου σημειωματάριου..."
 
 #. Menu item |
 #. menu item to open a link
-#: zim/gui/__init__.py:65 zim/gui/pageview.py:5150
+#: zim/gui/__init__.py:67 zim/gui/pageview.py:5154
 msgid "Open in New _Window"
 msgstr "Άνοιγμα σε νέο παρά_θυρο"
 
 #. Menu item
-#: zim/gui/__init__.py:66
+#: zim/gui/__init__.py:68
 msgid "_Import Page..."
 msgstr "Ε_ισαγωγή σελίδας..."
 
 #. Menu item
-#: zim/gui/__init__.py:67
+#: zim/gui/__init__.py:69
 msgid "_Save"
 msgstr "_Αποθήκευση"
 
 #. Menu item
-#: zim/gui/__init__.py:68
+#: zim/gui/__init__.py:70
 msgid "Save A _Copy..."
 msgstr "Αποθήκευση ενός αν_τιγράφου..."
 
 #. Menu item
-#: zim/gui/__init__.py:69
+#: zim/gui/__init__.py:71
 msgid "E_xport..."
 msgstr "Εξαγ_ωγή..."
 
 #. Menu item
-#: zim/gui/__init__.py:70
+#: zim/gui/__init__.py:72
 msgid "_Send To..."
 msgstr "Αποστολή π_ρος..."
 
 #. Menu item
-#: zim/gui/__init__.py:71
+#: zim/gui/__init__.py:73
 msgid "_Move Page..."
 msgstr "_Μετακίνηση σελίδας..."
 
 #. Menu item
-#: zim/gui/__init__.py:72
+#: zim/gui/__init__.py:74
 msgid "_Rename Page..."
 msgstr "Μετονομασία _σελίδας..."
 
 #. Menu item
-#: zim/gui/__init__.py:73
+#: zim/gui/__init__.py:75
 msgid "_Delete Page"
 msgstr "_Διαγραφή σελίδας"
 
 #. Menu item
-#: zim/gui/__init__.py:74
+#: zim/gui/__init__.py:76
 msgid "Proper_ties"
 msgstr "Ιδιότ_ητες"
 
 #. Menu item
-#: zim/gui/__init__.py:75
+#: zim/gui/__init__.py:77
 msgid "_Close"
 msgstr "_Κλείσιμο"
 
 #. Menu item |
 #. menu item in tray icon menu
-#: zim/gui/__init__.py:76 zim/plugins/trayicon.py:147
+#: zim/gui/__init__.py:78 zim/plugins/trayicon.py:145
 msgid "_Quit"
 msgstr "'Ε_ξοδος"
 
 #. Menu item
-#: zim/gui/__init__.py:77
+#: zim/gui/__init__.py:79
 msgid "_Search..."
 msgstr "Ανα_ζήτηση..."
 
 #. Menu item
-#: zim/gui/__init__.py:78
+#: zim/gui/__init__.py:80
 msgid "Search _Backlinks..."
 msgstr "Αναζήτηση για _Backlinks..."
 
 #. Menu item
-#: zim/gui/__init__.py:79
+#: zim/gui/__init__.py:81
 msgid "Copy _Location"
 msgstr ""
 
 #. Menu item
-#: zim/gui/__init__.py:80
+#: zim/gui/__init__.py:82
 msgid "_Templates"
 msgstr ""
 
 #. Menu item
-#: zim/gui/__init__.py:81
+#: zim/gui/__init__.py:83
 msgid "Pr_eferences"
 msgstr "Π_ροτιμήσεις"
 
 #. Menu item
-#: zim/gui/__init__.py:82
+#: zim/gui/__init__.py:84
 msgid "_Reload"
 msgstr "_Επαναφόρτωση"
 
 #. Menu item
-#: zim/gui/__init__.py:83
+#: zim/gui/__init__.py:85
 msgid "Open Attachments _Folder"
 msgstr "Άνοιγμα _φακέλου επισυνάψεων"
 
 #. Menu item
-#: zim/gui/__init__.py:84
+#: zim/gui/__init__.py:86
 msgid "Open _Notebook Folder"
 msgstr "Ά_νοιγμα φακέλου σημειωματάριων"
 
 #. Menu item
-#: zim/gui/__init__.py:85
+#: zim/gui/__init__.py:87
 msgid "Open _Document Root"
 msgstr "Άνοιγμα αρχι_κού καταλόγου εγγράφου"
 
 #. Menu item
-#: zim/gui/__init__.py:86
+#: zim/gui/__init__.py:88
 msgid "Open _Document Folder"
 msgstr "Άνοιγμα φακέλου του ε_γγράφου"
 
 #. Menu item
-#: zim/gui/__init__.py:87
+#: zim/gui/__init__.py:89
 msgid "Attach _File"
 msgstr "Επισύνα_ψη αρχείου"
 
 #. Menu item
-#: zim/gui/__init__.py:87
+#: zim/gui/__init__.py:89
 msgid "Attach external file"
 msgstr "Επισύναψη εξωτερικού αρχείου"
 
 #. Menu item
-#: zim/gui/__init__.py:88
+#: zim/gui/__init__.py:90
 msgid "_Cleanup Attachments"
 msgstr "Ε_κκαθάριση Επισυνάψεων"
 
 #. Menu item
-#: zim/gui/__init__.py:89
+#: zim/gui/__init__.py:91
 msgid "Edit _Source"
 msgstr "Επεξεργασία _κώδικα"
 
 #. Menu item
-#: zim/gui/__init__.py:90
+#: zim/gui/__init__.py:92
 msgid "Start _Web Server"
 msgstr "Εκκίνηση εξυπηρετητή _Ιστού"
 
 #. Menu item
-#: zim/gui/__init__.py:91
+#: zim/gui/__init__.py:93
 msgid "Update Index"
 msgstr "Ενημέρωση Ευρετηρίου"
 
 #. Menu item
-#: zim/gui/__init__.py:92
+#: zim/gui/__init__.py:94
 msgid "Custom _Tools"
 msgstr "Προσαρμοσμένα _εργαλεία"
 
 #. Menu item
-#: zim/gui/__init__.py:93
+#: zim/gui/__init__.py:95
 msgid "_Back"
 msgstr "_Πίσω"
 
 #. Menu item
-#: zim/gui/__init__.py:93
+#: zim/gui/__init__.py:95
 msgid "Go page back"
 msgstr "Μετάβαση στην προηγούμενη σελίδα"
 
 #. Menu item
-#: zim/gui/__init__.py:94
+#: zim/gui/__init__.py:96
 msgid "_Forward"
 msgstr "_Μπροστά"
 
 #. Menu item
-#: zim/gui/__init__.py:94
+#: zim/gui/__init__.py:96
 msgid "Go page forward"
 msgstr "Μετάβαση στην επόμενη σελίδα"
 
 #. Menu item
-#: zim/gui/__init__.py:95
+#: zim/gui/__init__.py:97
 msgid "_Parent"
 msgstr "Πάν_ω"
 
 #. Menu item
-#: zim/gui/__init__.py:95
+#: zim/gui/__init__.py:97
 msgid "Go to parent page"
 msgstr "Μετάβαση στη μητρική σελίδα"
 
 #. Menu item
-#: zim/gui/__init__.py:96
+#: zim/gui/__init__.py:98
 msgid "_Child"
 msgstr "_Κάτω"
 
 #. Menu item
-#: zim/gui/__init__.py:96
+#: zim/gui/__init__.py:98
 msgid "Go to child page"
 msgstr "Μετάβαση στη θυγατρική σελίδα"
 
 #. Menu item
-#: zim/gui/__init__.py:97
+#: zim/gui/__init__.py:99
 msgid "_Previous in index"
 msgstr "Προη_γούμενη στο ευρετήριο"
 
 #. Menu item
-#: zim/gui/__init__.py:97
+#: zim/gui/__init__.py:99
 msgid "Go to previous page"
 msgstr "Μετάβαση στην προηγούμενη σελίδα"
 
 #. Menu item
-#: zim/gui/__init__.py:98
+#: zim/gui/__init__.py:100
 msgid "_Next in index"
 msgstr "Επόμε_νη στο ευρετήριο"
 
 #. Menu item
-#: zim/gui/__init__.py:98
+#: zim/gui/__init__.py:100
 msgid "Go to next page"
 msgstr "Μετάβαση στην επόμενη σελίδα"
 
 #. Menu item
-#: zim/gui/__init__.py:99
+#: zim/gui/__init__.py:101
 msgid "_Home"
 msgstr "_Αρχική"
 
 #. Menu item
-#: zim/gui/__init__.py:99
+#: zim/gui/__init__.py:101
 msgid "Go home"
 msgstr "Μετάβαση στην αρχική σελίδα"
 
 #. Menu item
-#: zim/gui/__init__.py:100
+#: zim/gui/__init__.py:102
 msgid "_Jump To..."
 msgstr "Μετάβαση σε..."
 
 #. Menu item
-#: zim/gui/__init__.py:101
+#: zim/gui/__init__.py:103
 msgid "_Contents"
 msgstr "Περιε_χόμενα"
 
 #. Menu item
-#: zim/gui/__init__.py:102
+#: zim/gui/__init__.py:104
 msgid "_FAQ"
 msgstr "_Συχνές ερωτήσεις"
 
 #. Menu item
-#: zim/gui/__init__.py:103
+#: zim/gui/__init__.py:105
 msgid "_Keybindings"
 msgstr "Συντομεύσεις πλη_κτρολογίου"
 
 #. Menu item
-#: zim/gui/__init__.py:104
+#: zim/gui/__init__.py:106
 msgid "_Bugs"
 msgstr "Σ_φάλματα"
 
 #. Menu item
-#: zim/gui/__init__.py:105
+#: zim/gui/__init__.py:107
 msgid "_About"
 msgstr "_Περί"
 
 #. Menu item
-#: zim/gui/__init__.py:111
+#: zim/gui/__init__.py:113
 msgid "_All Panes"
 msgstr ""
 
 #. Menu item
-#: zim/gui/__init__.py:111
+#: zim/gui/__init__.py:113
 msgid "Show All Panes"
 msgstr ""
 
 #. Menu item
-#: zim/gui/__init__.py:118 zim/gui/__init__.py:128
+#: zim/gui/__init__.py:120 zim/gui/__init__.py:130
 msgid "_Statusbar"
 msgstr "Γ_ραμμή κατάστασης"
 
 #. Menu item # FIXME review text
-#: zim/gui/__init__.py:119 zim/gui/__init__.py:129
+#: zim/gui/__init__.py:121 zim/gui/__init__.py:131
 msgid "_Side Panes"
 msgstr ""
 
 #. Menu item # FIXME review text
-#: zim/gui/__init__.py:119 zim/gui/__init__.py:129
+#: zim/gui/__init__.py:121 zim/gui/__init__.py:131
 msgid "Show Side Panes"
 msgstr ""
 
 #. Menu item
-#: zim/gui/__init__.py:120 zim/gui/__init__.py:130
+#: zim/gui/__init__.py:122 zim/gui/__init__.py:132
 msgid "_Fullscreen"
 msgstr "_Πλήρης οθόνη"
 
 #. menu item
-#: zim/gui/__init__.py:121 zim/gui/__init__.py:131
+#: zim/gui/__init__.py:123 zim/gui/__init__.py:133
 msgid "Notebook _Editable"
 msgstr "Ε_πεξεργάσιμο σημειωματάριο"
 
 #. menu item
-#: zim/gui/__init__.py:121 zim/gui/__init__.py:131
+#: zim/gui/__init__.py:123 zim/gui/__init__.py:133
 msgid "Toggle notebook editable"
 msgstr "Εναλλαγή δυνατότητας επεξεργασίας σημειωματάριου"
 
 #. Menu item
-#: zim/gui/__init__.py:137
+#: zim/gui/__init__.py:139
 msgid "_None"
 msgstr "_Τίποτα"
 
 #. Menu item
-#: zim/gui/__init__.py:138
+#: zim/gui/__init__.py:140
 msgid "_Recent pages"
 msgstr "Π_ρόσφατες σελίδες"
 
 #. Menu item
-#: zim/gui/__init__.py:139
+#: zim/gui/__init__.py:141
 msgid "_History"
 msgstr "_Ιστορικό"
 
 #. Menu item
-#: zim/gui/__init__.py:140
+#: zim/gui/__init__.py:142
 msgid "N_amespace"
 msgstr "_Χώρος ονομάτων"
 
 #. Menu item
-#: zim/gui/__init__.py:151
+#: zim/gui/__init__.py:153
 msgid "Icons _And Text"
 msgstr "Εικονίδι_α και κείμενο"
 
 #. Menu item
-#: zim/gui/__init__.py:152
+#: zim/gui/__init__.py:154
 msgid "_Icons Only"
 msgstr "Ε_ικονίδια μόνο"
 
 #. Menu item
-#: zim/gui/__init__.py:153
+#: zim/gui/__init__.py:155
 msgid "_Text Only"
 msgstr "_Κείμενο μόνο"
 
 #. Menu item
-#: zim/gui/__init__.py:159
+#: zim/gui/__init__.py:161
 msgid "_Large Icons"
 msgstr "Μεγά_λα εικονίδια"
 
 #. Menu item
-#: zim/gui/__init__.py:160
+#: zim/gui/__init__.py:162
 msgid "_Small Icons"
 msgstr "_Μικρά εικονίδια"
 
 #. Menu item
-#: zim/gui/__init__.py:161
+#: zim/gui/__init__.py:163
 msgid "_Tiny Icons"
 msgstr "Πολύ μικρά _εικονίδια"
 
 #. Option in the preferences dialog
-#: zim/gui/__init__.py:175
+#: zim/gui/__init__.py:177
 msgid "Add 'tearoff' strips to the menus"
 msgstr "Χρήση αποσπώμενων μενού"
 
 #. Option in the preferences dialog
-#: zim/gui/__init__.py:177
+#: zim/gui/__init__.py:179
 msgid "Use <Ctrl><Space> to switch to the side pane"
 msgstr "Χρησιμοποίησε <Ctrl><Space> για μετάβαση στην πλαϊνή περιοχή"
 
 #. Option in the preferences dialog
-#: zim/gui/__init__.py:181
+#: zim/gui/__init__.py:183
 msgid "Remove links when deleting pages"
 msgstr "Αφαίρεση των συνδέσμων όταν διαγράφονται σελίδες"
 
 #. Option in the preferences dialog
-#: zim/gui/__init__.py:183
+#: zim/gui/__init__.py:185
 msgid "Always use last cursor position when opening a page"
 msgstr ""
 "Να χρησιμοποιείται πάντα η τελευταία θέση του κέρσορα όταν ανοίγει μια σελίδα"
 
 #. Error description for "no such file or folder"
-#: zim/gui/__init__.py:245
+#: zim/gui/__init__.py:247
 msgid ""
 "The file or folder you specified does not exist.\n"
 "Please check if you the path is correct."
@@ -867,18 +869,18 @@ msgstr ""
 "Παρακαλώ σιγουρευτείτε ότι η διαδρομή είναι σωστή."
 
 #. Error message, %s will be the file path
-#: zim/gui/__init__.py:252
+#: zim/gui/__init__.py:254
 #, python-format
 msgid "No such file or folder: %s"
 msgstr "Δεν υπάρχει τέτοιο αρχείο ή κατάλογος: %s"
 
 #. Short question for question prompt
-#: zim/gui/__init__.py:1146
+#: zim/gui/__init__.py:1149
 msgid "Upgrade Notebook?"
 msgstr "Να γίνει αναβάθμιση του σημειωματάριου;"
 
 #. Explanation for question to upgrade notebook
-#: zim/gui/__init__.py:1147
+#: zim/gui/__init__.py:1150
 msgid ""
 "This notebook was created by an older of version of zim.\n"
 "Do you want to upgrade it to the latest version now?\n"
@@ -901,12 +903,12 @@ msgstr ""
 "μπορεί να μην δουλεύουν όπως θα έπρεπε."
 
 #. Title of progressbar dialog
-#: zim/gui/__init__.py:1159
+#: zim/gui/__init__.py:1162
 msgid "Upgrading notebook"
 msgstr "Γίνεται αναβάθμιση του σημειωματάριου"
 
 #. question dialog text
-#: zim/gui/__init__.py:1632
+#: zim/gui/__init__.py:1634
 msgid ""
 "The index is still busy updating. Until this is finished links can not be "
 "updated correctly. Performing this action now could break links, do you want "
@@ -917,33 +919,33 @@ msgstr ""
 "να καταλήξετε με 'σπασμένους' δεσμούς. Θέλετε να συνεχίσετε;"
 
 #. Title of progressbar dialog
-#: zim/gui/__init__.py:1643
+#: zim/gui/__init__.py:1645
 msgid "Updating Links"
 msgstr "Γίνεται ενημέρωση δεσμών"
 
 #. Title of progressbar dialog
-#: zim/gui/__init__.py:1671 zim/gui/__init__.py:3345
+#: zim/gui/__init__.py:1672 zim/gui/__init__.py:3365
 msgid "Removing Links"
 msgstr "Γίνεται αφαίρεση δεσμών"
 
 #. error when external application fails
-#: zim/gui/__init__.py:1888 zim/gui/__init__.py:2027
+#: zim/gui/__init__.py:1885 zim/gui/__init__.py:2024
 #, python-format
 msgid "Could not open: %s"
 msgstr "Αδύνατο ανοίγματος: %s"
 
 #. Error message
-#: zim/gui/__init__.py:1903
+#: zim/gui/__init__.py:1900
 msgid "This page does not have an attachments folder"
 msgstr "Αυτή η σελίδα δεν έχει φάκελο επισυνάψεων"
 
 #. Heading in a question dialog for creating a folder
-#: zim/gui/__init__.py:1910 zim/gui/__init__.py:1949 zim/gui/pageview.py:5454
+#: zim/gui/__init__.py:1907 zim/gui/__init__.py:1946 zim/gui/pageview.py:5464
 msgid "Create folder?"
 msgstr "Δημιουργία φακέλου;"
 
 #. Text in a question dialog for creating a folder
-#: zim/gui/__init__.py:1912
+#: zim/gui/__init__.py:1909
 msgid ""
 "The attachments folder for this page does not yet exist.\n"
 "Do you want to create it now?"
@@ -952,7 +954,7 @@ msgstr ""
 "Θέλετε να δημιουργηθεί τώρα;"
 
 #. Text in a question dialog for creating a folder
-#: zim/gui/__init__.py:1951
+#: zim/gui/__init__.py:1948
 msgid ""
 "The document folder for this page does not yet exist.\n"
 "Do you want to create it now?"
@@ -961,13 +963,13 @@ msgstr ""
 "Θέλετε να δημιουργηθεί τώρα;"
 
 #. main text for dialog for editing external files
-#: zim/gui/__init__.py:2018
+#: zim/gui/__init__.py:2015
 #, python-format
 msgid "Editing file: %s"
 msgstr "Επεξεργασία αρχείου: %s"
 
 #. description for dialog for editing external files
-#: zim/gui/__init__.py:2020
+#: zim/gui/__init__.py:2017
 msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
@@ -976,12 +978,12 @@ msgstr ""
 "το παράθυρο όταν τελειώσετε"
 
 #. General description of zim itself
-#: zim/gui/__init__.py:2211
+#: zim/gui/__init__.py:2207
 msgid "A desktop wiki"
 msgstr "Ένα Wiki για την Επιφάνεια Εργασίας"
 
 #. This string needs to be translated with names of the translators for this language
-#: zim/gui/__init__.py:2219
+#: zim/gui/__init__.py:2215
 msgid "translator-credits"
 msgstr ""
 "Launchpad Contributions:\n"
@@ -993,17 +995,17 @@ msgstr ""
 "  tzem https://launchpad.net/~athmakrigiannis"
 
 #. Label for pageindex tab
-#: zim/gui/__init__.py:2281
+#: zim/gui/__init__.py:2284
 msgid "Index"
 msgstr "Ευρετήριο"
 
 #. page status in statusbar
-#: zim/gui/__init__.py:2357
+#: zim/gui/__init__.py:2360
 msgid "readonly"
 msgstr "Μόνο για ανάγνωση"
 
 #. Label for button with backlinks in statusbar
-#: zim/gui/__init__.py:2844
+#: zim/gui/__init__.py:2866
 #, python-format
 msgid "%i _Backlink..."
 msgid_plural "%i _Backlinks..."
@@ -1011,13 +1013,13 @@ msgstr[0] "%i _Backlink..."
 msgstr[1] "%i _Backlinks..."
 
 #. Heading of error dialog
-#: zim/gui/__init__.py:2955
+#: zim/gui/__init__.py:2977
 #, python-format
 msgid "Could not save page: %s"
 msgstr "Αδύνατη η αποθήκευση της σελίδας: %s"
 
 #. text in error dialog when saving page failed
-#: zim/gui/__init__.py:2957
+#: zim/gui/__init__.py:2979
 msgid ""
 "To continue you can save a copy of this page or discard\n"
 "any changes. If you save a copy changes will be also\n"
@@ -1030,37 +1032,37 @@ msgstr ""
 "θα μπορείτε να τις επαναφέρετε αργότερα από το αντίγραφο."
 
 #. Button in error dialog
-#: zim/gui/__init__.py:2995
+#: zim/gui/__init__.py:3017
 msgid "_Discard Changes"
 msgstr "Από_ρριψη αλλαγών"
 
 #. Button in error dialog
-#: zim/gui/__init__.py:3000
+#: zim/gui/__init__.py:3022
 msgid "_Save Copy"
 msgstr "Αποθήκευ_ση αντιγράφου"
 
 #. Dialog title
-#: zim/gui/__init__.py:3037
+#: zim/gui/__init__.py:3059
 msgid "Jump to"
 msgstr "Μετάβαση σε"
 
 #. Label for page input
-#: zim/gui/__init__.py:3042
+#: zim/gui/__init__.py:3064
 msgid "Jump to Page"
 msgstr "Μετάβαση στη σελίδα"
 
 #. Dialog title
-#: zim/gui/__init__.py:3061
+#: zim/gui/__init__.py:3083
 msgid "New Sub Page"
 msgstr "Νέα υποσελίδα"
 
 #. Dialog title
-#: zim/gui/__init__.py:3062
+#: zim/gui/__init__.py:3084
 msgid "New Page"
 msgstr "Νέα σελίδα"
 
 #. Dialog text in 'new page' dialog
-#: zim/gui/__init__.py:3066
+#: zim/gui/__init__.py:3088
 msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
@@ -1069,48 +1071,48 @@ msgstr ""
 "μη υπάρχουσα σελίδα, αυτή δημιουργείται αυτόματα."
 
 #. Input label
-#: zim/gui/__init__.py:3081
+#: zim/gui/__init__.py:3103
 msgid "Page Name"
 msgstr "Όνομα σελίδας"
 
 #. Choice label
-#: zim/gui/__init__.py:3082
+#: zim/gui/__init__.py:3104
 msgid "Page Template"
 msgstr "Πρότυπο Σελίδας"
 
 #. Error when creating new page
-#: zim/gui/__init__.py:3101
+#: zim/gui/__init__.py:3123
 msgid "Page exists"
 msgstr "Η σελίδα υπάρχει"
 
 #. Dialog title of file save dialog
-#: zim/gui/__init__.py:3116
+#: zim/gui/__init__.py:3138
 msgid "Save Copy"
 msgstr "Αποθήκευση αντιγράφου"
 
 #. Dialog title
-#: zim/gui/__init__.py:3140
+#: zim/gui/__init__.py:3162
 msgid "Import Page"
 msgstr "Εισαγωγή σελίδας"
 
 #. File filter for '*.txt'
-#: zim/gui/__init__.py:3141
+#: zim/gui/__init__.py:3163
 msgid "Text Files"
 msgstr "Αρχεία κειμένου"
 
 #. Dialog title
-#: zim/gui/__init__.py:3169
+#: zim/gui/__init__.py:3191
 msgid "Move Page"
 msgstr "Μετακίνηση σελίδας"
 
 #. Heading in 'move page' dialog - %s is the page name
-#: zim/gui/__init__.py:3178
+#: zim/gui/__init__.py:3200
 #, python-format
 msgid "Move page \"%s\""
 msgstr "Μετακίνηση της σελίδας \"%s\""
 
 #. label in MovePage dialog - %i is number of backlinks
-#: zim/gui/__init__.py:3189 zim/gui/__init__.py:3240
+#: zim/gui/__init__.py:3211 zim/gui/__init__.py:3260
 #, python-format
 msgid "Update %i page linking to this page"
 msgid_plural "Update %i pages linking to this page"
@@ -1120,40 +1122,40 @@ msgstr[1] "Ενημέρωση %i σελίδων που έχουν δεσμούς
 #. Input label for namespace to move a file to |
 #. input label |
 #. text entry field
-#: zim/gui/__init__.py:3194 zim/plugins/calendar.py:208
-#: zim/plugins/quicknote.py:180
+#: zim/gui/__init__.py:3216 zim/plugins/calendar.py:233
+#: zim/plugins/quicknote.py:175
 msgid "Namespace"
 msgstr "Χώρος ονομάτων"
 
 #. Dialog title
-#: zim/gui/__init__.py:3223
+#: zim/gui/__init__.py:3245
 msgid "Rename Page"
 msgstr "Μετονομασία σελίδας"
 
 #. label in 'rename page' dialog - %s is the page name
-#: zim/gui/__init__.py:3229
+#: zim/gui/__init__.py:3249
 #, python-format
 msgid "Rename page \"%s\""
 msgstr "Μετονομασία της σελίδας \"%s\""
 
 #. Option in the 'rename page' dialog
-#: zim/gui/__init__.py:3248
+#: zim/gui/__init__.py:3268
 msgid "Update the heading of this page"
 msgstr "Ενημέρωση της κεφαλίδας αυτής της σελίδας"
 
 #. Dialog title
-#: zim/gui/__init__.py:3283
+#: zim/gui/__init__.py:3303
 msgid "Delete Page"
 msgstr "Διαγραφή σελίδας"
 
 #. Heading in 'delete page' dialog - %s is the page name
-#: zim/gui/__init__.py:3296
+#: zim/gui/__init__.py:3316
 #, python-format
 msgid "Delete page \"%s\"?"
 msgstr "Να διαγραφεί η σελίδα \"%s\";"
 
 #. Text in 'delete page' dialog - %s is the page name
-#: zim/gui/__init__.py:3298
+#: zim/gui/__init__.py:3318
 #, python-format
 msgid ""
 "Page \"%s\" and all of it's\n"
@@ -1163,7 +1165,7 @@ msgstr ""
 "και επισυνάψεις της θα διαγραφούν"
 
 #. label in DeletePage dialog - %i is number of backlinks
-#: zim/gui/__init__.py:3311
+#: zim/gui/__init__.py:3331
 #, python-format
 msgid "Remove links from %i page linking to this page"
 msgid_plural "Remove links from %i pages linking to this page"
@@ -1171,7 +1173,7 @@ msgstr[0] "Αφαίρεση δεσμών από %i σελίδα που αναφ�
 msgstr[1] "Αφαίρεση δεσμών από %i σελίδες που αναφέρονται σε αυτή τη σελίδα"
 
 #. label in the DeletePage dialog to warn user of attachments being deleted
-#: zim/gui/__init__.py:3330
+#: zim/gui/__init__.py:3350
 #, python-format
 msgid "%i file will be deleted"
 msgid_plural "%i files will be deleted"
@@ -1179,18 +1181,18 @@ msgstr[0] "%i αρχείο θα διαγραφεί"
 msgstr[1] "%i αρχεία θα διαγραφούν"
 
 #. Dialog title
-#: zim/gui/__init__.py:3363
+#: zim/gui/__init__.py:3379
 msgid "Attach File"
 msgstr "Επισύναψη αρχείου"
 
 #. Error dialog - %s is the full page name
-#: zim/gui/__init__.py:3370
+#: zim/gui/__init__.py:3386
 #, python-format
 msgid "Page \"%s\" does not have a folder for attachments"
 msgstr "Η σελίδα \"%s\" δεν έχει φάκελο επισυνάψεων"
 
 #. checkbox in the "Attach File" dialog
-#: zim/gui/__init__.py:3375
+#: zim/gui/__init__.py:3391
 msgid "Insert images as link"
 msgstr "Εισαγωγή εικόνων ως δεσμοί"
 
@@ -1198,7 +1200,7 @@ msgstr "Εισαγωγή εικόνων ως δεσμοί"
 #. Field in web server gui |
 #. Field to select Notebook from drop down list
 #: zim/gui/notebookdialog.py:173 zim/gui/server.py:91
-#: zim/plugins/quicknote.py:349
+#: zim/plugins/quicknote.py:344
 msgid "Notebook"
 msgstr "Σημειωματάριο"
 
@@ -1228,7 +1230,7 @@ msgid "Folder"
 msgstr "Φάκελος"
 
 #. statusbar message
-#: zim/gui/pageindex.py:745
+#: zim/gui/pageindex.py:749
 msgid "Updating index..."
 msgstr "Ενημέρωση σημειωματάριου..."
 
@@ -1278,7 +1280,7 @@ msgid "_Edit Link or Object..."
 msgstr "_Επεξεργασία δεσμού ή αντικειμένου..."
 
 #. Menu item
-#: zim/gui/pageview.py:122 zim/gui/pageview.py:5081
+#: zim/gui/pageview.py:122 zim/gui/pageview.py:5085
 msgid "_Remove Link"
 msgstr "Α_φαίρεση δεσμού"
 
@@ -1321,7 +1323,7 @@ msgstr "_Δεσμός..."
 
 #. Menu item |
 #. Dialog title
-#: zim/gui/pageview.py:132 zim/gui/pageview.py:5988
+#: zim/gui/pageview.py:132 zim/gui/pageview.py:5998
 msgid "Insert Link"
 msgstr "Εισαγωγή δεσμού"
 
@@ -1565,61 +1567,61 @@ msgid "Folder with templates for attachment files"
 msgstr ""
 
 #. error when unknown interwiki link is clicked
-#: zim/gui/pageview.py:4970
+#: zim/gui/pageview.py:4974
 #, python-format
 msgid "No such wiki defined: %s"
 msgstr "Δεν έχει οριστεί τέτοι wiki: %s"
 
 #. menu item for context menu of editor
-#: zim/gui/pageview.py:5023
+#: zim/gui/pageview.py:5027
 msgid "Copy _As..."
 msgstr "_Αντιγραφή Ως..."
 
 #. Context menu item for pageview to move selected text to new/other page
-#: zim/gui/pageview.py:5030
+#: zim/gui/pageview.py:5034
 msgid "Move Selected Text..."
 msgstr "Μετακίνηση Επιλογής..."
 
 #. menu item in context menu for image
-#: zim/gui/pageview.py:5088
+#: zim/gui/pageview.py:5092
 msgid "_Edit Properties"
 msgstr "_Επεξεργασία Ιδιοτήτων"
 
 #. menu item in context menu
-#: zim/gui/pageview.py:5090
+#: zim/gui/pageview.py:5094
 msgid "_Edit Link"
 msgstr "Ε_πεξεργασία δεμού"
 
 #. context menu item
-#: zim/gui/pageview.py:5105 zim/gui/pageview.py:5112
+#: zim/gui/pageview.py:5109 zim/gui/pageview.py:5116
 msgid "Copy _Link"
 msgstr "Αντιγραφή _δεσμού"
 
 #. context menu item
-#: zim/gui/pageview.py:5109
+#: zim/gui/pageview.py:5113
 msgid "Copy Email Address"
 msgstr "Αντιγραφή διεύθυνσης email"
 
 #. menu item for sub menu with applications |
 #. menu item
-#: zim/gui/pageview.py:5129 zim/gui/pageview.py:5140
-#: zim/plugins/attachmentbrowser.py:500
+#: zim/gui/pageview.py:5133 zim/gui/pageview.py:5144
+#: zim/plugins/attachmentbrowser.py:516
 msgid "Open With..."
 msgstr "Άνοιγμα με..."
 
 #. menu item to open a link or file |
 #. menu item to open file or folder
-#: zim/gui/pageview.py:5160 zim/plugins/attachmentbrowser.py:506
+#: zim/gui/pageview.py:5164 zim/plugins/attachmentbrowser.py:522
 msgid "_Open"
 msgstr "Άν_οιγμα"
 
 #. message when no file templates are found in ~/Templates
-#: zim/gui/pageview.py:5399
+#: zim/gui/pageview.py:5403
 msgid "No templates installed"
 msgstr ""
 
 #. Text in a question dialog for creating a folder, %s is the folder path
-#: zim/gui/pageview.py:5456
+#: zim/gui/pageview.py:5466
 #, python-format
 msgid ""
 "The folder\n"
@@ -1629,201 +1631,206 @@ msgid ""
 msgstr ""
 
 #. Dialog title
-#: zim/gui/pageview.py:5662
+#: zim/gui/pageview.py:5672
 msgid "Insert Date and Time"
 msgstr "Εισαγωγή ημερομηνίας και ώρας"
 
 #. expander label in "insert date" dialog
-#: zim/gui/pageview.py:5691
+#: zim/gui/pageview.py:5701
 msgid "_Calendar"
 msgstr "Ημερολό_γιο"
 
 #. check box in InsertDate dialog
-#: zim/gui/pageview.py:5705
+#: zim/gui/pageview.py:5715
 msgid "_Link to date"
 msgstr "_Δεσμός στην ημερομηνία"
 
 #. Dialog title
-#: zim/gui/pageview.py:5794
+#: zim/gui/pageview.py:5804
 msgid "Insert Image"
 msgstr "Εισαγωγή εικόνας"
 
 #. checkbox in the "Insert Image" dialog
-#: zim/gui/pageview.py:5801
+#: zim/gui/pageview.py:5811
 msgid "Attach image first"
 msgstr "Επισύναψη εικόνων πρώτα"
 
 #. Error message when trying to insert a not supported file as image
-#: zim/gui/pageview.py:5816
+#: zim/gui/pageview.py:5826
 #, python-format
 msgid "File type not supported: %s"
 msgstr "Μη υποστηριζόμενος τύπος αρχείου: %s"
 
 #. Dialog title
-#: zim/gui/pageview.py:5840
+#: zim/gui/pageview.py:5850
 msgid "Edit Image"
 msgstr "Επεξεργασία εικόνας"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:5859
+#: zim/gui/pageview.py:5869
 msgid "Location"
 msgstr "Τοποθεσία"
 
 #. Input in 'edit image' dialog |
 #. Input in 'insert link' dialog
-#: zim/gui/pageview.py:5860 zim/gui/pageview.py:5994
+#: zim/gui/pageview.py:5870 zim/gui/pageview.py:6004
 msgid "Link to"
 msgstr "Σύνδεση με"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:5861
+#: zim/gui/pageview.py:5871
 msgid "Width"
 msgstr "Πλάτος"
 
 #. Input in 'edit image' dialog
-#: zim/gui/pageview.py:5862
+#: zim/gui/pageview.py:5872
 msgid "Height"
 msgstr "Ύψος"
 
 #. Button in 'edit image' dialog
-#: zim/gui/pageview.py:5870
+#: zim/gui/pageview.py:5880
 msgid "_Reset Size"
 msgstr "Επαναφο_ρά μεγέθους"
 
 #. Dialog title
-#: zim/gui/pageview.py:5965
+#: zim/gui/pageview.py:5975
 msgid "Insert Text From File"
 msgstr "Εισαγωγή κειμένου από αρχείο"
 
 #. Dialog title
-#: zim/gui/pageview.py:5987
+#: zim/gui/pageview.py:5997
 msgid "Edit Link"
 msgstr "Επεξεργασία δεσμού"
 
 #. Dialog button
-#: zim/gui/pageview.py:5991
+#: zim/gui/pageview.py:6001
 msgid "_Link"
 msgstr "_Δεσμός"
 
 #. Input in 'insert link' dialog
-#: zim/gui/pageview.py:5995
+#: zim/gui/pageview.py:6005
 msgid "Text"
 msgstr "Κείμενο"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview.py:6094
+#: zim/gui/pageview.py:6104
 msgid "_Next"
 msgstr "_Επόμενο"
 
 #. button in find bar and find & replace dialog
-#: zim/gui/pageview.py:6100
+#: zim/gui/pageview.py:6110
 msgid "_Previous"
 msgstr "_Προηγούμενο"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:6106
+#: zim/gui/pageview.py:6116
 msgid "Match _case"
 msgstr "Ταίριασμα πεζών/_κεφαλαίων"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:6111
+#: zim/gui/pageview.py:6121
 msgid "Whole _word"
 msgstr "Πλήρης _λέξη"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:6116
+#: zim/gui/pageview.py:6126
 msgid "_Regular expression"
 msgstr "_Κανονική έκφραση"
 
 #. checkbox option in find bar and find & replace dialog
-#: zim/gui/pageview.py:6121
+#: zim/gui/pageview.py:6131
 msgid "_Highlight"
 msgstr "Επι_σήμανση"
 
 #. label for input in find bar on bottom of page
-#: zim/gui/pageview.py:6207
+#: zim/gui/pageview.py:6217
 msgid "Find"
 msgstr "Αναζήτηση"
 
 #. Options button
-#: zim/gui/pageview.py:6237
+#: zim/gui/pageview.py:6247
 msgid "Options"
 msgstr "Επιλογές"
 
 #. Dialog title
-#: zim/gui/pageview.py:6282
+#: zim/gui/pageview.py:6292
 msgid "Find and Replace"
 msgstr "Εύρεση και Αντικατάσταση"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview.py:6292
+#: zim/gui/pageview.py:6302
 msgid "Find what"
 msgstr "Αναζήτηση του"
 
 #. input label in find & replace dialog
-#: zim/gui/pageview.py:6302
+#: zim/gui/pageview.py:6312
 msgid "Replace with"
 msgstr "Αντικατάσταση με"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview.py:6314
+#: zim/gui/pageview.py:6324
 msgid "_Replace"
 msgstr "_Αντικατάσταση"
 
 #. Button in search & replace dialog
-#: zim/gui/pageview.py:6319
+#: zim/gui/pageview.py:6329
 msgid "Replace _All"
 msgstr "Αντικατάσταση ό_λων"
 
 #. Dialog title
-#: zim/gui/pageview.py:6346
+#: zim/gui/pageview.py:6356
 msgid "Word Count"
 msgstr "Μέτρηση λέξεων"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:6384
+#: zim/gui/pageview.py:6394
 msgid "Paragraph"
 msgstr "Παράγραφοι"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:6386
+#: zim/gui/pageview.py:6396
 msgid "Words"
 msgstr "Λέξεις"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:6387
+#: zim/gui/pageview.py:6397
 msgid "Lines"
 msgstr "Γραμμές"
 
 #. label in word count dialog
-#: zim/gui/pageview.py:6388
+#: zim/gui/pageview.py:6398
 msgid "Characters"
 msgstr "Χαρακτήρες"
 
 #. Dialog title
-#: zim/gui/pageview.py:6421
+#: zim/gui/pageview.py:6431
 msgid "Move Text to Other Page"
 msgstr "Μετακίνηση Κειμένου σε Άλλη Σελίδα"
 
 #. Button label
-#: zim/gui/pageview.py:6422
+#: zim/gui/pageview.py:6432
 msgid "_Move"
 msgstr "_Μετακίνηση"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview.py:6437
+#: zim/gui/pageview.py:6447
 msgid "Move text to"
 msgstr "Μετακίνηση κειμένου σε"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview.py:6438
+#: zim/gui/pageview.py:6448
 msgid "Leave link to new page"
 msgstr "Παραμονή συνδέσμου προς τη νέα σελίδα"
 
 #. Input in 'move text' dialog
-#: zim/gui/pageview.py:6439
+#: zim/gui/pageview.py:6449
 msgid "Open new page"
 msgstr "Άνοιγμα νέας σελίδας"
+
+#. Dialog title
+#: zim/gui/pageview.py:6485
+msgid "New File"
+msgstr ""
 
 #. Tab in preferences dialog
 #: zim/gui/preferencesdialog.py:19
@@ -1981,7 +1988,7 @@ msgid "Copy Template"
 msgstr ""
 
 #. dialog title
-#: zim/gui/widgets.py:560 zim/gui/widgets.py:1673
+#: zim/gui/widgets.py:560 zim/gui/widgets.py:1693
 msgid "Select File"
 msgstr "Επιλογή αρχείου"
 
@@ -1996,72 +2003,72 @@ msgid "_Collapse All"
 msgstr "_Σύμπτυξη όλων"
 
 #. tooltip for the inline icon to clear a text entry widget
-#: zim/gui/widgets.py:1504
+#: zim/gui/widgets.py:1520
 msgid "Clear"
 msgstr "Εκκαθάριση"
 
 #. dialog title
-#: zim/gui/widgets.py:1669
+#: zim/gui/widgets.py:1689
 msgid "Select Folder"
 msgstr "Επιλογή φακέλου"
 
 #. dialog title
-#: zim/gui/widgets.py:1671
+#: zim/gui/widgets.py:1691
 msgid "Select Image"
 msgstr "Επιλογή Εικόνας"
 
 #. default text for empty namespace selection
-#: zim/gui/widgets.py:1795
+#: zim/gui/widgets.py:1811
 msgid "<Top>"
 msgstr "<Κορυφή>"
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2063
+#: zim/gui/widgets.py:2106
 msgid "Left Side Pane"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2064
+#: zim/gui/widgets.py:2107
 msgid "Right Side Pane"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2065
+#: zim/gui/widgets.py:2108
 msgid "Bottom Pane"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2066
+#: zim/gui/widgets.py:2109
 msgid "Top Pane"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2070
+#: zim/gui/widgets.py:2113
 msgid "Top Left"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2071
+#: zim/gui/widgets.py:2114
 msgid "Bottom Left"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2072
+#: zim/gui/widgets.py:2115
 msgid "Top Right"
 msgstr ""
 
 #. Option for placement of plugin widgets
-#: zim/gui/widgets.py:2073
+#: zim/gui/widgets.py:2116
 msgid "Bottom Right"
 msgstr ""
 
 #. generic error dialog
-#: zim/gui/widgets.py:2999
+#: zim/gui/widgets.py:3094
 msgid "Looks like you found a bug"
 msgstr "Απ' ότι φαίνεται μόλις βρήκατε ένα σφάλμα προγραμματισμού"
 
 #. generic error dialog text
-#: zim/gui/widgets.py:3002
+#: zim/gui/widgets.py:3097
 msgid ""
 "When reporting this bug please include\n"
 "the information from the text box below"
@@ -2070,22 +2077,22 @@ msgstr ""
 "την πληροφορία από το κουτί κειμένου που ακολουθεί"
 
 #. Filter in open file dialog, shows all files (*)
-#: zim/gui/widgets.py:3306
+#: zim/gui/widgets.py:3401
 msgid "All Files"
 msgstr "Όλα τα αρχεία"
 
 #. Filter in open file dialog, shows image files only
-#: zim/gui/widgets.py:3333
+#: zim/gui/widgets.py:3428
 msgid "Images"
 msgstr "Εικόνες"
 
 #. Dialog title
-#: zim/gui/widgets.py:3976
+#: zim/gui/widgets.py:4083
 msgid "File Exists"
 msgstr "Υφιστάμενο αρχείο"
 
 #. Dialog text in 'new filename' dialog
-#: zim/gui/widgets.py:3977
+#: zim/gui/widgets.py:4084
 #, python-format
 msgid ""
 "A file with the name <b>\"%s\"</b> already exists.\n"
@@ -2095,22 +2102,22 @@ msgstr ""
 "Μπορείτε να δώσετε άλλο όνομα ή να αντικαταστήσετε το υφιστάμενο αρχείο."
 
 #. Button label
-#: zim/gui/widgets.py:3995
+#: zim/gui/widgets.py:4102
 msgid "_Browse"
 msgstr "Περιήγηση"
 
 #. Button label
-#: zim/gui/widgets.py:4000
+#: zim/gui/widgets.py:4107
 msgid "Overwrite"
 msgstr "Αντικατάσταση"
 
 #. Error verbose description
-#: zim/__init__.py:228
+#: zim/__init__.py:238
 msgid "Could not find the file or folder for this notebook"
 msgstr "Αδύνατη η εύρεση του αρχείου ή φακέλου αυτού του σημειωματάριου"
 
 #. Error when looking up a notebook
-#: zim/__init__.py:740
+#: zim/__init__.py:744
 #, python-format
 msgid "Could not find notebook: %s"
 msgstr "Αδύνατη η εύρεση του σημειωματάριου: %s"
@@ -2193,22 +2200,22 @@ msgstr ""
 "http://pp.com.mx/python/arithmetic.\n"
 
 #. menu item
-#: zim/plugins/attachmentbrowser.py:78
+#: zim/plugins/attachmentbrowser.py:79
 msgid "AttachmentBrowser"
 msgstr "Περιηγητής επισυνάψεων"
 
 #. label for attachment browser pane
-#: zim/plugins/attachmentbrowser.py:164
+#: zim/plugins/attachmentbrowser.py:169
 msgid "Attachments"
 msgstr "Συνημμένα"
 
 #. plugin name
-#: zim/plugins/attachmentbrowser.py:167
+#: zim/plugins/attachmentbrowser.py:172
 msgid "Attachment Browser"
 msgstr "Περιηγητής επισυνάψεων"
 
 #. plugin description
-#: zim/plugins/attachmentbrowser.py:168
+#: zim/plugins/attachmentbrowser.py:173
 msgid ""
 "This plugin shows the attachments folder of the current page as an\n"
 "icon view at bottom pane.\n"
@@ -2222,14 +2229,14 @@ msgstr ""
 
 #. option for plugin preferences |
 #. preferences option
-#: zim/plugins/attachmentbrowser.py:180 zim/plugins/backlinkpane.py:33
-#: zim/plugins/calendar.py:205 zim/plugins/tableofcontents.py:79
-#: zim/plugins/tags.py:905
+#: zim/plugins/attachmentbrowser.py:185 zim/plugins/backlinkpane.py:33
+#: zim/plugins/calendar.py:231 zim/plugins/tableofcontents.py:79
+#: zim/plugins/tags.py:913
 msgid "Position in the window"
 msgstr ""
 
 #. Label for the statusbar, %i is the number of attachments for the current page
-#: zim/plugins/attachmentbrowser.py:284
+#: zim/plugins/attachmentbrowser.py:289
 #, python-format
 msgid "%i _Attachment"
 msgid_plural "%i _Attachments"
@@ -2237,32 +2244,32 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. unspecified value for file modification time
-#: zim/plugins/attachmentbrowser.py:525
+#: zim/plugins/attachmentbrowser.py:541
 msgid "Unknown"
 msgstr "Άγνωστη"
 
 #. label for file size
-#: zim/plugins/attachmentbrowser.py:535
+#: zim/plugins/attachmentbrowser.py:551
 msgid "Size"
 msgstr "Μέγεθος"
 
 #. label for file modification date
-#: zim/plugins/attachmentbrowser.py:536
+#: zim/plugins/attachmentbrowser.py:552
 msgid "Modified"
 msgstr "Τροποποίηση"
 
 #. popup menu action on drag-drop of a file
-#: zim/plugins/attachmentbrowser.py:570
+#: zim/plugins/attachmentbrowser.py:586
 msgid "_Move Here"
 msgstr "_Μετακίνηση Εδώ"
 
 #. popup menu action on drag-drop of a file
-#: zim/plugins/attachmentbrowser.py:574
+#: zim/plugins/attachmentbrowser.py:590
 msgid "_Copy Here"
 msgstr "Αντι_γραφή Εδώ"
 
 #. popup menu action on drag-drop of a file
-#: zim/plugins/attachmentbrowser.py:579
+#: zim/plugins/attachmentbrowser.py:595
 msgid "Cancel"
 msgstr "Ακύρωση"
 
@@ -2306,83 +2313,75 @@ msgid "BackLinks"
 msgstr ""
 
 #. menu item
-#: zim/plugins/calendar.py:52
+#: zim/plugins/calendar.py:57
 msgid "To_day"
 msgstr "Σήμε_ρα"
 
 #. menu item
-#: zim/plugins/calendar.py:53
+#: zim/plugins/calendar.py:58
 msgid "Calen_dar"
 msgstr "Ημερολό_γιο"
 
-#. plugin name |
-#. dialog title
-#: zim/plugins/calendar.py:181 zim/plugins/calendar.py:497
-msgid "Calendar"
-msgstr "Ημερολόγιο"
+#. Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
+#: zim/plugins/calendar.py:90
+msgid "calendar:week_start:0"
+msgstr ""
+
+#. plugin name
+#: zim/plugins/calendar.py:211
+msgid "Journal"
+msgstr ""
 
 #. plugin description
-#: zim/plugins/calendar.py:182
+#: zim/plugins/calendar.py:212
 msgid ""
-"This plugin turns one namespace into a calendar\n"
-"keeping one page per day. A dialog is added with a\n"
-"month view of this special namespace.\n"
-"\n"
-"This is a core plugin shipping with zim.\n"
+"This plugin turns one namespace into a journal\n"
+"with a page per day, week or month.\n"
+"Also adds a calendar widget to access these pages.\n"
 msgstr ""
-"Αυτό το ένθετο μεττατρέπει ένα χώρο ονομάτων σε\n"
-"ένα ημερολόγιο, με μία σελίδα για κάθε μέρα. Ένας\n"
-"διάλογος προστίθεται με μια μηνιαία απεικόνιση για\n"
-"αυτόν τον ειδικό χώρο ονομάτων.\n"
-"Είναι ένα κεντρικό ένθετο που διανείμεται με το zim.\n"
 
 #. option value
-#: zim/plugins/calendar.py:194
+#: zim/plugins/calendar.py:223
 msgid "Day"
 msgstr "Ημέρα"
 
 #. option value
-#: zim/plugins/calendar.py:195
+#: zim/plugins/calendar.py:224
 msgid "Week"
 msgstr "Εβδομάδα"
 
 #. option value
-#: zim/plugins/calendar.py:196
+#: zim/plugins/calendar.py:225
 msgid "Month"
 msgstr "Μήνας"
 
 #. option value
-#: zim/plugins/calendar.py:197
+#: zim/plugins/calendar.py:226
 msgid "Year"
 msgstr "Έτος"
 
-#. calendar day
-#: zim/plugins/calendar.py:199
-msgid "Sunday"
-msgstr ""
-
-#. calendar day
-#: zim/plugins/calendar.py:200
-msgid "Monday"
-msgstr ""
-
 #. preferences option
-#: zim/plugins/calendar.py:204
+#: zim/plugins/calendar.py:230
 msgid "Show calendar in sidepane instead of as dialog"
 msgstr "Εμφάνιση του ημερολογίου στην πλευρική μπάρα αντί διαλόγου"
 
 #. preferences option, values will be "Day", "Month", ...
-#: zim/plugins/calendar.py:206
+#: zim/plugins/calendar.py:232
 msgid "Use a page for each"
 msgstr "Χρήση μίας σελίδα για κάθε"
 
 #. strftime format for current date label
-#: zim/plugins/calendar.py:457
+#: zim/plugins/calendar.py:494
 msgid "%A %d %B %Y"
 msgstr "%A, %d %B %Y"
 
+#. dialog title
+#: zim/plugins/calendar.py:534
+msgid "Calendar"
+msgstr "Ημερολόγιο"
+
 #. button label
-#: zim/plugins/calendar.py:505
+#: zim/plugins/calendar.py:542
 msgid "_Today"
 msgstr "_Σήμερα"
 
@@ -2418,6 +2417,63 @@ msgstr ""
 #: zim/plugins/diagrameditor.py:72
 msgid "_Edit Diagram"
 msgstr "Ε_πεξεργασία διαγράμματος"
+
+#. plugin name
+#: zim/plugins/distractionfree.py:23
+msgid "Distraction Free Editing"
+msgstr ""
+
+#. plugin description
+#: zim/plugins/distractionfree.py:25
+msgid ""
+"This plugin adds settings that help using zim\n"
+"as a distraction free editor.\n"
+msgstr ""
+
+#. plugin preference
+#: zim/plugins/distractionfree.py:34
+msgid "Hide menubar in fullscreen mode"
+msgstr ""
+
+#. plugin preference
+#: zim/plugins/distractionfree.py:35
+msgid "Hide toolbar in fullscreen mode"
+msgstr ""
+
+#. plugin preference
+#: zim/plugins/distractionfree.py:36
+msgid "Hide pathbar in fullscreen mode"
+msgstr ""
+
+#. plugin preference
+#: zim/plugins/distractionfree.py:37
+msgid "Hide statusbar in fullscreen mode"
+msgstr ""
+
+#. plugin preference
+#: zim/plugins/distractionfree.py:38
+msgid "Maximum page width"
+msgstr ""
+
+#. plugin preference
+#: zim/plugins/distractionfree.py:39
+msgid "Vertical margin"
+msgstr ""
+
+#. plugin preference
+#: zim/plugins/distractionfree.py:40
+msgid "Text background color"
+msgstr ""
+
+#. plugin preference
+#: zim/plugins/distractionfree.py:41
+msgid "Text foreground color"
+msgstr ""
+
+#. plugin preference
+#: zim/plugins/distractionfree.py:42
+msgid "Screen background color"
+msgstr ""
 
 #. menu item for insert diagram plugin
 #: zim/plugins/ditaaeditor.py:41
@@ -2583,7 +2639,7 @@ msgstr "Σύ_μβολο..."
 
 #. plugin name |
 #. Dialog title
-#: zim/plugins/insertsymbol.py:41 zim/plugins/insertsymbol.py:133
+#: zim/plugins/insertsymbol.py:41 zim/plugins/insertsymbol.py:142
 msgid "Insert Symbol"
 msgstr "Εισαγωγή συμβόλου"
 
@@ -2683,18 +2739,18 @@ msgstr ""
 "Είναι ένα από τα πρόσθετα του zim και παρέχεται μαζί του.\n"
 
 #. menu item
-#: zim/plugins/quicknote.py:112
+#: zim/plugins/quicknote.py:107
 msgid "Quick Note..."
 msgstr "Γρήγορη σημείωση..."
 
 #. plugin name
-#: zim/plugins/quicknote.py:131 zim/plugins/quicknote.py:160
-#: zim/plugins/quicknote.py:331
+#: zim/plugins/quicknote.py:126 zim/plugins/quicknote.py:155
+#: zim/plugins/quicknote.py:326
 msgid "Quick Note"
 msgstr "Γρήγορη σημείωση"
 
 #. plugin description
-#: zim/plugins/quicknote.py:132
+#: zim/plugins/quicknote.py:127
 msgid ""
 "This plugin adds a dialog to quickly drop some text or clipboard\n"
 "content into a zim page.\n"
@@ -2708,47 +2764,42 @@ msgstr ""
 "Είναι ένα από τα πρόσθετα του zim και παρέχεται μαζί του.\n"
 
 #. checkbox in Quick Note dialog
-#: zim/plugins/quicknote.py:181
+#: zim/plugins/quicknote.py:176
 msgid "Create a new page for each note"
 msgstr "Δημιουργία νέας σελίδας για κάθε σημείωση"
 
 #. text entry field
-#: zim/plugins/quicknote.py:182
+#: zim/plugins/quicknote.py:177
 msgid "Title"
 msgstr "Τίτλος"
 
 #. Option in quicknote dialog
-#: zim/plugins/quicknote.py:216
+#: zim/plugins/quicknote.py:211
 msgid "Open _Page"
 msgstr "Άνοιγμα Σελίδας"
 
 #. menu item for insert score plugin
-#: zim/plugins/scoreeditor.py:46
+#: zim/plugins/scoreeditor.py:47
 msgid "S_core..."
 msgstr ""
 
 #. menu item for insert score plugin
-#: zim/plugins/scoreeditor.py:46
+#: zim/plugins/scoreeditor.py:47
 msgid "Insert score"
 msgstr ""
 
 #. plugin name |
 #. dialog title
-#: zim/plugins/scoreeditor.py:61 zim/plugins/scoreeditor.py:115
+#: zim/plugins/scoreeditor.py:62 zim/plugins/scoreeditor.py:112
 msgid "Insert Score"
 msgstr ""
 
 #. plugin description
-#: zim/plugins/scoreeditor.py:62
+#: zim/plugins/scoreeditor.py:63
 msgid ""
 "This plugin provides an score editor for zim based on GNU Lilypond.\n"
 "\n"
 "This is a core plugin shipping with zim.\n"
-msgstr ""
-
-#. plugin preference
-#: zim/plugins/scoreeditor.py:73
-msgid "GNU Lilypond version"
 msgstr ""
 
 #. plugin preference
@@ -2762,7 +2813,7 @@ msgid "Common include footer"
 msgstr ""
 
 #. menu item in context menu
-#: zim/plugins/scoreeditor.py:104
+#: zim/plugins/scoreeditor.py:101
 msgid "_Edit Score"
 msgstr ""
 
@@ -2892,28 +2943,28 @@ msgid "Promote"
 msgstr "Προώθηση"
 
 #. label for untagged pages in side pane
-#: zim/plugins/tags.py:90
+#: zim/plugins/tags.py:91
 msgid "untagged"
 msgstr "κενό"
 
 #. Context menu item for tag cloud
-#: zim/plugins/tags.py:756
+#: zim/plugins/tags.py:764
 msgid "Sort alphabetically"
 msgstr "Αλφαβητική ταξινόμηση"
 
 #. menu option
-#: zim/plugins/tags.py:828
+#: zim/plugins/tags.py:836
 msgid "Sort pages by tags"
 msgstr "Ταξινόμηση σελίδων ανά ετικέτα"
 
 #. plugin name |
 #. Column header for tag list in Task List dialog
-#: zim/plugins/tags.py:895 zim/plugins/tags.py:935 zim/plugins/tasklist.py:625
+#: zim/plugins/tags.py:903 zim/plugins/tags.py:943 zim/plugins/tasklist.py:705
 msgid "Tags"
 msgstr "Ετικέτες"
 
 #. plugin description
-#: zim/plugins/tags.py:896
+#: zim/plugins/tags.py:904
 msgid ""
 "This plugin provides a page index filtered by means of selecting tags in a "
 "cloud.\n"
@@ -2924,13 +2975,13 @@ msgstr ""
 #. menu item |
 #. plugin name |
 #. dialog title
-#: zim/plugins/tasklist.py:35 zim/plugins/tasklist.py:98
-#: zim/plugins/tasklist.py:516
+#: zim/plugins/tasklist.py:35 zim/plugins/tasklist.py:99
+#: zim/plugins/tasklist.py:596
 msgid "Task List"
 msgstr "Λίστα εργασιών"
 
 #. plugin description
-#: zim/plugins/tasklist.py:99
+#: zim/plugins/tasklist.py:100
 msgid ""
 "This plugin adds a dialog showing all open tasks in\n"
 "this notebook. Open tasks can be either open checkboxes\n"
@@ -2945,42 +2996,57 @@ msgstr ""
 "Είναι ένα κεντρικό ένθετο που παρέχεται με τη διανομή του zim.\n"
 
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist.py:112
+#: zim/plugins/tasklist.py:113
 msgid "Consider all checkboxes as tasks"
 msgstr "Θεώρησε όλα τα κουτάκια ως εργασίες"
 
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist.py:114
+#: zim/plugins/tasklist.py:115
 msgid "Turn page name into tags for task items"
 msgstr "Μετατροπή ονομάτων σελίδων σε ετικέτες για τις ενέργειες"
 
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist.py:116
+#: zim/plugins/tasklist.py:117
 msgid "Implicit due date for task items in calendar pages"
 msgstr ""
 
 #. label for plugin preferences dialog
-#: zim/plugins/tasklist.py:118
+#: zim/plugins/tasklist.py:119
 msgid "Flag tasks due on Monday or Tuesday before the weekend"
 msgstr ""
 
 #. label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
-#: zim/plugins/tasklist.py:120
+#: zim/plugins/tasklist.py:121
 msgid "Labels marking tasks"
 msgstr "Ετικέτες που καταδεικνύουν εργασίες:"
 
 #. label for plugin preferences dialog - label is by default "Next"
-#: zim/plugins/tasklist.py:122
+#: zim/plugins/tasklist.py:123
 msgid "Label for next task"
 msgstr "Ετικέττα για επόμενη ενέργεια"
 
+#. label for plugin preferences dialog
+#: zim/plugins/tasklist.py:125
+msgid "Tags for non-actionable tasks"
+msgstr ""
+
+#. subtree to search for tasks - default is the whole tree (empty string means everything)
+#: zim/plugins/tasklist.py:127
+msgid "Subtree(s) to index"
+msgstr ""
+
+#. subtrees of the included subtrees to *not* search for tasks - default is none
+#: zim/plugins/tasklist.py:129
+msgid "Subtree(s) to ignore"
+msgstr ""
+
 #. Short message text on first time use of task list plugin
-#: zim/plugins/tasklist.py:485
+#: zim/plugins/tasklist.py:565
 msgid "Need to index the notebook"
 msgstr "Είναι απαραίτητη η επαναδημιουργία του ετυρετηρίου"
 
 #. Long message text on first time use of task list plugin
-#: zim/plugins/tasklist.py:487
+#: zim/plugins/tasklist.py:567
 msgid ""
 "This is the first time the task list is opened.\n"
 "Therefore the index needs to be rebuild.\n"
@@ -2995,17 +3061,17 @@ msgstr ""
 "ξανα-απαιτείται για το επόμενο άνοιγμα της λίστας."
 
 #. Input label
-#: zim/plugins/tasklist.py:542
+#: zim/plugins/tasklist.py:622
 msgid "Filter"
 msgstr "Φίλτρο"
 
 #. Checkbox in task list
-#: zim/plugins/tasklist.py:562
+#: zim/plugins/tasklist.py:642
 msgid "Only Show Actionable Tasks"
 msgstr "Εμφάνιση Μόνο Εκτελέσιμων Ενεργειών"
 
 #. Label for statistics in Task List, %i is the number of tasks
-#: zim/plugins/tasklist.py:575
+#: zim/plugins/tasklist.py:655
 #, python-format
 msgid "%i open item"
 msgid_plural "%i open items"
@@ -3013,33 +3079,33 @@ msgstr[0] "%i ανοικτό αντικείμενο"
 msgstr[1] "%i ανοικτά αντικείμενα"
 
 #. "tag" for showing all tasks
-#: zim/plugins/tasklist.py:684
+#: zim/plugins/tasklist.py:764
 msgid "All Tasks"
 msgstr "Όλες οι εργασίες"
 
 #. label in tasklist plugins for tasks without a tag
-#: zim/plugins/tasklist.py:695
+#: zim/plugins/tasklist.py:775
 msgid "Untagged"
 msgstr ""
 
 #. Column header Task List dialog
-#: zim/plugins/tasklist.py:777
+#: zim/plugins/tasklist.py:857
 msgid "Task"
 msgstr "Εργασία"
 
 #. Column header Task List dialog |
 #. Column header versions dialog
-#: zim/plugins/tasklist.py:823 zim/plugins/versioncontrol/__init__.py:1103
+#: zim/plugins/tasklist.py:903 zim/plugins/versioncontrol/__init__.py:1103
 msgid "Date"
 msgstr "Ημερομηνία"
 
 #. plugin name
-#: zim/plugins/trayicon.py:47
+#: zim/plugins/trayicon.py:43
 msgid "Tray Icon"
 msgstr "Εικονίδιο πλαισίου συστήματος"
 
 #. plugin description
-#: zim/plugins/trayicon.py:48
+#: zim/plugins/trayicon.py:44
 msgid ""
 "This plugin adds a tray icon for quick access.\n"
 "\n"
@@ -3055,7 +3121,7 @@ msgstr ""
 "Είναι ένα από τα πρόσθετα του zim και παρέχεται μαζί του.\n"
 
 #. preferences option
-#: zim/plugins/trayicon.py:61
+#: zim/plugins/trayicon.py:57
 msgid ""
 "Classic trayicon,\n"
 "do not use new style status icon on Ubuntu"
@@ -3064,28 +3130,28 @@ msgstr ""
 "Να μη χρησιμοποιηθεί το νέου στυλ εικονίδιο κατάστασης στο Ubuntu"
 
 #. preferences option
-#: zim/plugins/trayicon.py:62
+#: zim/plugins/trayicon.py:58
 msgid "Show a separate icon for each notebook"
 msgstr "Εμφάνιση ξεχωριστού εικονιδίου για κάθε σημειωματάριο"
 
 #. menu item in tray icon menu
-#: zim/plugins/trayicon.py:131
+#: zim/plugins/trayicon.py:129
 msgid "_Quick Note..."
 msgstr "_Γρήγορη σημείωση..."
 
 #. menu item in tray icon menu
-#: zim/plugins/trayicon.py:140
+#: zim/plugins/trayicon.py:138
 msgid "_Other..."
 msgstr "Ά_λλα..."
 
 #. menu item in tray icon menu
-#: zim/plugins/trayicon.py:193
+#: zim/plugins/trayicon.py:191
 msgid "Notebooks"
 msgstr "Σημειωματάρια"
 
 #. tooltip for tray icon |
 #. short description of zim
-#: zim/plugins/trayicon.py:252 zim/plugins/zeitgeist-logger.py:48
+#: zim/plugins/trayicon.py:250 zim/plugins/zeitgeist-logger.py:51
 msgid "Zim Desktop Wiki"
 msgstr "Zim Wiki Επιφάνειας Εργασίας"
 
@@ -3283,7 +3349,7 @@ msgid "Pushes events to the Zeitgeist daemon."
 msgstr ""
 
 #. label for how zim pages show up in the recent files menu, %s is the page name
-#: zim/plugins/zeitgeist-logger.py:68
+#: zim/plugins/zeitgeist-logger.py:71
 #, python-format
 msgid "Wiki page: %s"
 msgstr ""
