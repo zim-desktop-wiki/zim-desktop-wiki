@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2012-12-03 20:12+0100\n"
-"PO-Revision-Date: 2012-10-06 21:09+0000\n"
-"Last-Translator: DukeDog <windows_ero@yahoo.co.jp>\n"
+"PO-Revision-Date: 2012-12-15 01:34+0000\n"
+"Last-Translator: Yajima Hiroshi <yajima@nagano.email.ne.jp>\n"
 "Language-Team: Japanese <ja@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Launchpad-Export-Date: 2012-12-12 20:32+0000\n"
-"X-Generator: Launchpad (build 16361)\n"
+"X-Launchpad-Export-Date: 2012-12-15 16:56+0000\n"
+"X-Generator: Launchpad (build 16372)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:41
@@ -73,23 +73,23 @@ msgstr "詳細情報"
 #: zim/fs.py:1415
 #, python-format
 msgid "File is not writable: %s"
-msgstr ""
+msgstr "ファイルは書き込み不可: %s"
 
 #. error message
 #: zim/fs.py:1678
 #, python-format
 msgid "File changed on disk: %s"
-msgstr ""
+msgstr "ディスク上でファイルが変更されています: %s"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:591
 msgid "Customize..."
-msgstr ""
+msgstr "カスタマイズ..."
 
 #. message when no applications in "Open With" menu
 #: zim/gui/applications.py:617
 msgid "No Applications Found"
-msgstr ""
+msgstr "アプリケーションが見つかりません"
 
 #. menu item to open a file with an application, %s is the app name
 #: zim/gui/applications.py:646
@@ -101,7 +101,7 @@ msgstr "\"%s\" で開く"
 #: zim/gui/applications.py:661
 #, python-format
 msgid "Configure an application to open \"%s\" links"
-msgstr ""
+msgstr "\"%s\"のリンクを開くアプリケーションを設定する"
 
 #. Text in the 'custom command' dialog, "%s" will be mimetype like "text/plain"
 #: zim/gui/applications.py:664
@@ -109,23 +109,23 @@ msgstr ""
 msgid ""
 "Configure an application to open files\n"
 "of type \"%s\""
-msgstr ""
+msgstr "タイプが\"%s\"のファイルを開くアプリケーションを設定する"
 
 #. Dialog title
 #: zim/gui/applications.py:676
 msgid "Configure Applications"
-msgstr ""
+msgstr "アプリケーションを設定する"
 
 #. Button for adding a new application to the 'open with' menu |
 #. Dialog title
 #: zim/gui/applications.py:690 zim/gui/applications.py:796
 msgid "Add Application"
-msgstr ""
+msgstr "アプリケーションを追加"
 
 #. Label for default application handler
 #: zim/gui/applications.py:738
 msgid "System Default"
-msgstr ""
+msgstr "システムのデフォルト"
 
 #. Field in 'custom command' dialog |
 #. Input in "Edit Custom Tool" dialog |
@@ -989,6 +989,7 @@ msgstr ""
 "  Katz Kawai https://launchpad.net/~katzkawai\n"
 "  OKANO Takayoshi https://launchpad.net/~kano\n"
 "  Tetsuya https://launchpad.net/~dr.hornet\n"
+"  Yajima Hiroshi https://launchpad.net/~yajima\n"
 "  mobilememo@gmail.com https://launchpad.net/~mobilememo\n"
 "  orz.inc https://launchpad.net/~orz-inc"
 

@@ -4,9 +4,33 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
-=== 0.58 - ... ===
-* Fix for windows config folders now using %APPDATA% - klo uo
-* Fix for windows execute applications without console window - klo uo
+=== 0.58 - Sat 15 Dec 2012 ===
+* Added new plugin for distraction free fullscreen mode
+* Added options to limit tasklist plugin to certain namespaces -
+Pierre-Antoine Champin
+* Added option to tasklist plugin to flag non-actionable tasks by a special tag
+* Added prompt for filename for Insert New File action
+* Added template option to list attachments in export
+* Added class attributes to links in HTML output
+* Added two more commandline options to quicknote plugin
+* Made sidepanes more compact by embedding close buttons in widgets
+* Critical fix for restarting zim after a crash (cleaning up socket)
+* Bug fix for search queries with quoted arguments
+* Bug fix for use of tags in the tasklist plugin
+* Bug fix for wiki format to be more robust for bad links
+* Bug fix for latex format to not use file URIs in \includegraphics{}
+* Bug fix for including latex equations in latex export
+* Bug fix list behavior checkboxes and numbered lists
+* Fix first day of week locale for calendar plugin - based on patch by
+Leopold Schabel
+* Fix for handling "file:/" and "file://" URIs in links - see manual for details
+* Fix for windows to not open consoles for each external application - klo uo
+* Fix for windows to put config files under %APPDATA% - klo uo
+* Fix to have "update heading" toggle in rename dialog more
+intelligent - Virgil Dupras
+* Fix to make template errors report relevant error dialogs
+* Fix for search and replace whitespace in pageview
+* Various small fixes
 
 === 0.57 - Mon  8 Oct 2012 ===
 * Ported zim background process to use the multiprocessing module

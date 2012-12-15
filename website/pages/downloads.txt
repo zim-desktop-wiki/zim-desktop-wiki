@@ -4,7 +4,7 @@ Creation-Date: Unknown
 
 ====== Downloads ======
 
-===== Latest release: 0.57 =====
+===== Latest release: 0.58 =====
 
 **This program depends on a number of modules including the python, gtk and the python-gtk bindings.** Most linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier then compiling them manually .
 
@@ -19,8 +19,7 @@ More detailed instructions to build from source can be found [[install|here]].
 
 === Source ===
 
-* [[/downloads/|Download]]
-* [[Extras]]
+[[/downloads/|Download here]]
 
 === Packages ===
 
@@ -43,7 +42,6 @@ The following Linux distributions are known to include zim:
 * Sourcemage (zim)
 * Fedora Extras
 * Ubuntu (universe)
-* Mandriva ([[http://petos.cz/rpms|unofficial repository]])
 
 BSD flavors with a zim port:
 * [[http://www.freshports.org/editors/zim|FreeBSD]]
