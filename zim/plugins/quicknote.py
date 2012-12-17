@@ -107,8 +107,8 @@ def main(*args):
 		notebook,
 		options.get('namespace'), options.get('basename'),
 		options.get('append'),
-		text, 
-		template_options, 
+		text,
+		template_options,
 		options.get('attachments')
 	)
 	dialog.run()
@@ -186,7 +186,7 @@ class BoundQuickNoteDialog(Dialog):
 			page = namespace + ':' + basename
 		else:
 			page = namespace or basename
-	
+
 		self.form.add_inputs( (
 				('page', 'page', _('Page')),
 				('namespace', 'namespace', _('Namespace')), # T: text entry field
@@ -379,10 +379,11 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		self.uistate['lastnotebook'] = notebook
 		self.uistate['new_page'] = self.form['new_page']
 		self.uistate['open_page'] = self.open_page.get_active()
-		if self.uistate['new_page']:
-			self.config['Namespaces'][notebook] = self.form['namespace']
-		else:
-			self.config['Namespaces'][notebook] = self.form['page']
+		if notebook is not None:
+			if self.uistate['new_page']:
+				self.config['Namespaces'][notebook] = self.form['namespace']
+			else:
+				self.config['Namespaces'][notebook] = self.form['page']
 		self.config.write()
 
 	def on_notebook_changed(self, o):

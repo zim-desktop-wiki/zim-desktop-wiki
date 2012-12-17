@@ -1075,7 +1075,7 @@ class Index(gobject.GObject):
 		# pages that are placeholders and their parents
 		self._flush_queue(path)
 
-		root = path
+		root = self.lookup_path(path)
 		paths = [root]
 		paths.extend(list(self.walk(root)))
 
@@ -1098,6 +1098,8 @@ class Index(gobject.GObject):
 		delete = []
 		keep = []
 		for path in paths:
+			if path.isroot or not path.hasdata:
+				continue
 			hadchildren = path.haschildren
 			haschildren = self.n_list_pages(path) > 0
 			placeholder = haschildren or self.n_list_links(path, direction=LINK_DIR_BACKWARD)

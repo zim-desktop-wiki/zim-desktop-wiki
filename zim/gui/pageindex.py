@@ -605,7 +605,12 @@ class PageTreeView(BrowserTreeView):
 		assert len(names) == 1
 		source = Path(names[0])
 
-		treepath, position = self.get_dest_row_at_pos(x, y)
+		dest_row = self.get_dest_row_at_pos(x, y)
+		if dest_row:
+			treepath, position = dest_row
+		else:
+			dragcontext.finish(False, False, time) # NOK
+			return
 		model = self.get_model()
 		iter = model.get_iter(treepath)
 		path = model.get_indexpath(iter)

@@ -806,6 +806,9 @@ class TextBuffer(gtk.TextBuffer):
 					self.set_textstyle(tag)
 				elif element.tag in self._static_style_tags:
 					self.set_textstyle(element.tag)
+				elif element.tag == '_ignore_':
+					# raw tree from undo can contain these
+					self._insert_element_children(element, list_level=list_level, raw=raw) # recurs
 				else:
 					assert False, 'Unknown tag: %s' % element.tag
 
@@ -2063,10 +2066,12 @@ class TextBuffer(gtk.TextBuffer):
 						continue_attrib = {}
 					elif t == 'link':
 						attrib = self.get_link_data(iter)
-						assert attrib['href'], 'BUG: Links should have a href'
+						if not attrib['href']:
+							t = '_ignore_'
 					elif t == 'tag':
 						attrib = self.get_tag_data(iter)
-						assert attrib['name'], 'BUG: Tags should have a name'
+						if not attrib['name']:
+							t = '_ignore_'
 					builder.start(t, attrib)
 					open_tags.append((tag, t))
 					if t == 'li':
