@@ -203,13 +203,20 @@ class TestParseTree(tests.TestCase):
 		text = tree.tostring()
 		self.assertEqual(text, wanted)
 
+	def testGetHeading(self):
+		'''Test that ParseTree.get_heading() returns the first header's text.
+		'''
+		tree = ParseTree().fromstring(self.xml)
+		self.assertEqual(tree.get_heading(), "Head 1")
+
 	def testSetHeading(self):
 		'''Test ParseTree.set_heading()'''
 		tree = ParseTree().fromstring(self.xml)
 		tree.set_heading('Foo')
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><h level="1">Foo</h>
+<zim-tree>
+<h level="1">Foo</h>
 <h level="2">Head 2</h>
 <h level="3">Head 3</h>
 <h level="2">Head 4</h>
@@ -320,14 +327,16 @@ A list
 
 	def testLink(self):
 		'''Test iterator function for link'''
-		text = '[[FooBar]]' # FIXME add link type
+		# + check for bugs in link encoding
+		text = '[[FooBar]] [[Foo|]] [[|Foo]]'
 		tree = self.format.Parser().parse(text)
-		done = False
-		for tag in tree.getiterator('link'):
+		for i, tag in enumerate(tree.getiterator('link')):
+			self.assertTrue(tag.text)
+			self.assertTrue(tag.attrib.get('href'))
 			link = Link(self.page, **tag.attrib)
 			self.assertEqual(tag.attrib['href'], link.href)
 			done = True
-		self.assertTrue(done)
+		self.assertEqual(i, 2)
 
 	def testBackward(self):
 		'''Test backward compatibility for wiki format'''

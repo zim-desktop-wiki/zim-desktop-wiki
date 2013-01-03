@@ -163,6 +163,16 @@ class TestSearch(tests.TestCase):
 		#~ print results
 		self.assertTrue(Path('TaskList:foo') in results)
 
+		for text in (
+			'Namespace: "Test:Foo Bar"',
+			'Namespace:"Test:Foo Bar"'
+		):
+			# check if space in page name works - found bug for 2nd form
+			query = Query(text)
+			results.search(query, callback=self.callback_check)
+			#~ print text, '>>' , results
+			self.assertTrue(Path('Test:Foo Bar:Dus Ja Hmm') in results)
+
 		query = Query('Namespace: "NonExistingNamespace"')
 		results.search(query, callback=self.callback_check)
 		#~ print results

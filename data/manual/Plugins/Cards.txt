@@ -1,0 +1,10 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2012-12-21T15:17:13+01:00
+
+====== Cards ======
+
+This plugin allows inserting forms with structured (meta-)data. Effectivly turning a wiki page into a card with structured data.
+
+**Dependencies:** This plugin has no additional dependencies.
+

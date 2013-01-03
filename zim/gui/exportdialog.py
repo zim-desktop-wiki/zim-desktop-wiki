@@ -50,12 +50,10 @@ class ExportDialog(Assistant):
 
 		index = self.ui.notebook.index
 		if index.updating:
-			dialog = ProgressBarDialog(self, _('Updating index'))
-			# T: Title of progressbar dialog
-			index.ensure_update(callback=lambda p: dialog.pulse(p.name))
-			dialog.destroy()
-			if dialog.cancelled:
-				return False
+			with ProgressBarDialog(self, _('Updating index')) as dialog: # T: Title of progressbar dialog
+				index.ensure_update(callback=lambda p: dialog.pulse(p.name))
+				if dialog.cancelled:
+					return False
 
 		if self.uistate['selection'] == 'all':
 			dir = Dir(self.uistate['output_folder'])
@@ -70,12 +68,9 @@ class ExportDialog(Assistant):
 				if not ok:
 					return False
 
-			dialog = ProgressBarDialog(self, _('Exporting notebook'))
-				# T: Title for progressbar window
-				# TODO make progressbar a context manager - now it stays alive in case of an error during the export
-			dialog.show_all()
-			exporter.export_all(dir, callback=lambda p: dialog.pulse(p.name))
-			dialog.destroy()
+			with ProgressBarDialog(self, _('Exporting notebook')) as dialog: # T: Title for progressbar window
+				exporter.export_all(dir, callback=lambda p: dialog.pulse(p.name))
+
 		elif self.uistate['selection'] == 'selection':
 			pass # TODO
 		elif self.uistate['selection'] == 'page':

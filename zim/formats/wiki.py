@@ -286,12 +286,11 @@ class WikiParser(object):
 
 	@staticmethod
 	def parse_link(builder, text):
+		text = text.strip('|') # old bug producing "[[|link]]", or [[link|]]
 		if '|' in text:
 			href, text = text.split('|', 1)
-			if not href: # old bug producing "[[|link]]"
-				href = text
 		else:
-			href, text = text, text
+			href = text
 
 		builder.append(LINK, {'href': href}, text)
 
@@ -332,9 +331,9 @@ class Parser(ParserClass):
 		if not isinstance(input, basestring):
 			input = ''.join(input)
 
-		end = input[-1]
+		lineend = input and input[-1] == '\n'
 		input = prepare_text(input)
-		if partial and input.endswith('\n') and end != '\n':
+		if partial and input.endswith('\n') and not lineend:
 			# reverse extension done by prepare_text()
 			input = input[:-1]
 

@@ -54,8 +54,9 @@ class DuplicatePageTreeStore(PageTreeStore):
 		for mypath in (oldpath, path):
 			if mypath:
 				for treepath in self.get_treepaths(mypath):
-					treeiter = self.get_iter(treepath)
-					self.emit('row-changed', treepath, treeiter)
+					if treepath:
+						treeiter = self.get_iter(treepath)
+						self.emit('row-changed', treepath, treeiter)
 
 	def get_treepath(self, path):
 		# Just returns the first treepath matching notebook path
@@ -98,8 +99,12 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 			treepaths = self.get_treepaths(path)
 			for treepath in treepaths:
 				#~ print '!!', signal, path, treepath
-				treeiter = self.get_iter(treepath)
-				self.emit(signal, treepath, treeiter)
+				try:
+					treeiter = self.get_iter(treepath)
+				except:
+					logger.exception('BUG: Invalid treepath: %s %s %s', signal, path, treepath)
+				else:
+					self.emit(signal, treepath, treeiter)
 
 		def on_page_deleted(o, path):
 			#~ print '!! page delete', path
@@ -562,8 +567,11 @@ class TagsPageTreeView(PageTreeView):
 		# HACK add some methods and attributes
 		# (can not subclass gtk.TreeModelFilter because it lacks a constructor)
 		def get_indexpath(treeiter):
-			return model.get_indexpath(
-				filtermodel.convert_iter_to_child_iter(treeiter) )
+			childiter = filtermodel.convert_iter_to_child_iter(treeiter)
+			if childiter:
+				return model.get_indexpath(childiter)
+			else:
+				return None
 
 		def get_treepath(path):
 			for treepath in model.get_treepaths(path):

@@ -25,7 +25,7 @@ linking to the current page.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
-		#~ 'help': 'Plugins:BackLinks Pane',
+		'help': 'Plugins:BackLinks Pane',
 	}
 
 	plugin_preferences = (

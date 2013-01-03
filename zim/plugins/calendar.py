@@ -7,12 +7,17 @@ import gtk
 
 import re
 import datetime
-import locale
+
+import logging
 
 from zim.plugins import PluginClass
-from zim.gui.widgets import ui_environment, Dialog, Button, LEFT_PANE, TOP, WIDGET_POSITIONS
+from zim.gui.widgets import ui_environment, Dialog, Button, \
+	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.templates import TemplateManager, TemplateFunction
+
+
+logger = logging.getLogger('zim.plugins.calendar')
 
 
 # FUTURE: Use calendar.HTMLCalendar from core libs to render this plugin in www
@@ -64,14 +69,33 @@ year_path_re = re.compile(r'^(.*:)?\d{4}$')
 
 # Initialize setting for first day of the week. This is locale
 # dependent, and the gtk widget already has good code to find it out.
-# TODO we might also add this as a user preference
-SUNDAY = 'Sunday'
-MONDAY = 'Monday'
-if gtk.Calendar().get_display_options() \
- & gtk.CALENDAR_WEEK_START_MONDAY:
-	FIRST_DAY_OF_WEEK = MONDAY
-else:
-	FIRST_DAY_OF_WEEK = SUNDAY
+# Unfortunately, the widget keeps that data private *%#*$()()*) !
+MONDAY = 0 # iso calendar starts week at Monday
+SUNDAY = 6
+FIRST_DAY_OF_WEEK = None
+def _init_first_day_of_week():
+	global FIRST_DAY_OF_WEEK
+	try:
+		import babel
+		import locale
+		mylocale = babel.Locale(locale.getdefaultlocale()[0])
+		if mylocale.first_week_day == 0:
+			FIRST_DAY_OF_WEEK = MONDAY
+		else:
+			FIRST_DAY_OF_WEEK = SUNDAY
+		logger.debug('According to babel first day of week is %i', FIRST_DAY_OF_WEEK)
+	except ImportError:
+		# Fallback gleaned from gtkcalendar.c - hence the inconsistency
+		# with weekday numbers in iso calendar...
+		t = _("calendar:week_start:0")
+		# T: Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
+		if t[-1] == '0':
+			FIRST_DAY_OF_WEEK = SUNDAY
+		elif t[-1] == '1':
+			FIRST_DAY_OF_WEEK = MONDAY
+		else:
+			logger.warn("Whoever translated 'calendar:week_start:0' did so wrongly.")
+			FIRST_DAY_OF_WEEK = SUNDAY
 
 
 def dates_for_week(year, week):
@@ -93,6 +117,8 @@ def dates_for_week(year, week):
 	# to week 53 of the previous year.
 	# Day of week in isocalendar starts with 1 for Mon and is 7 for Sun,
 	# and week starts on Monday.
+	if FIRST_DAY_OF_WEEK is None:
+		_init_first_day_of_week()
 
 	jan1 = datetime.date(year, 1, 1)
 	_, jan1_week, jan1_weekday = jan1.isocalendar()
@@ -129,7 +155,11 @@ def week_calendar(date):
 	# In short Jan 1st can still be week 53 of the previous year
 	# So we can use isocalendar(), however this does not take
 	# into accout FIRST_DAY_OF_WEEK, see comment in dates_for_week()
+	if FIRST_DAY_OF_WEEK is None:
+		_init_first_day_of_week()
+
 	year, week, weekday = date.isocalendar()
+
 	if FIRST_DAY_OF_WEEK == SUNDAY and weekday == 7:
 		# iso calendar gives us the week ending this sunday,
 		# we want the next week
@@ -178,34 +208,29 @@ def daterange_from_path(path):
 class CalendarPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Calendar'), # T: plugin name
+		'name': _('Journal'), # T: plugin name
 		'description': _('''\
-This plugin turns one namespace into a calendar
-keeping one page per day. A dialog is added with a
-month view of this special namespace.
-
-This is a core plugin shipping with zim.
-'''), # T: plugin description
+This plugin turns one namespace into a journal
+with a page per day, week or month.
+Also adds a calendar widget to access these pages.
+'''),
+		# T: plugin description
 		'author': 'Jaap Karssenberg',
-		'help': 'Plugins:Calendar',
+		'help': 'Plugins:Journal',
 	}
 
-	global DAY, WEEK, MONTH, YEAR, SUNDAY, MONDAY # Hack - to make sure translation is loaded
+	global DAY, WEEK, MONTH, YEAR # Hack - to make sure translation is loaded
 	DAY = _('Day') # T: option value
 	WEEK = _('Week') # T: option value
 	MONTH = _('Month') # T: option value
 	YEAR = _('Year') # T: option value
-
-	SUNDAY = _('Sunday') # T: calendar day
-	MONDAY = _('Monday') # T: calendar day
 
 	plugin_preferences = (
 		# key, type, label, default
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
 		('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS), # T: preferences option
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
-		#~ ('week_start', 'choice', _('Week starts on'), FIRST_DAY_OF_WEEK, (MONDAY, SUNDAY)), # T: preferences option for first day of the week, options are Monday or Sunday
-		('namespace', 'namespace', _('Namespace'), ':Calendar'), # T: input label
+		('namespace', 'namespace', _('Namespace'), ':Journal'), # T: input label
 	)
 	# TODO disable pane setting if not embedded
 
@@ -271,13 +296,13 @@ This is a core plugin shipping with zim.
 				ns = self.preferences['namespace'].name
 				self.preferences['namespace'] = ns
 			else:
-				self.preferences.setdefault('namespace', ':Calendar')
+				self.preferences.setdefault('namespace', ':Journal')
 				ns = self.preferences['namespace']
 				ns = self.ui.notebook.resolve_path(ns)
 				ns = ns.name
 				self.preferences['namespace'] = ns
 
-			self.ui.notebook.namespace_properties[ns]['template'] = 'Calendar'
+			self.ui.notebook.namespace_properties[ns]['template'] = 'Journal'
 			self._set_template = ns
 
 		if self.ui.ui_type == 'gtk':
@@ -422,14 +447,17 @@ class Calendar(gtk.Calendar):
 gobject.type_register(Calendar)
 
 
-class CalendarPluginWidget(gtk.VBox):
+class CalendarPluginWidget(gtk.VBox, WindowSidePaneWidget):
 
 	def __init__(self, plugin):
 		gtk.VBox.__init__(self)
 		self.plugin = plugin
 
+		self.label_box = gtk.HBox()
+		self.pack_start(self.label_box, False)
+
 		self.label = gtk.Label()
-		self.pack_start(self.label, False)
+		self.label_box.add(self.label)
 		self._refresh_label()
 		self._timer_id = \
 			gobject.timeout_add(300000, self._refresh_label)
@@ -451,6 +479,15 @@ class CalendarPluginWidget(gtk.VBox):
 		self.pack_start(self.calendar, False)
 
 		self._select_date_cb = None
+
+	def embed_closebutton(self, button):
+		if button:
+			self.label_box.pack_end(button, False)
+		else:
+			for widget in self.label_box.get_children():
+				if not widget == self.label:
+					self.label_box.remove(widget)
+		return True
 
 	def _refresh_label(self, *a):
 		#print "UPDATE LABEL %s" % id(self)

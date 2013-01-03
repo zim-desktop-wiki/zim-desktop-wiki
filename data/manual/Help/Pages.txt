@@ -13,15 +13,13 @@ Page names use a ":" as a path separator for pages that are nested in the hierar
 `--- Bar
 '''
 
-The parent page is sometimes also referred to as the "namespace" of the page. So in this case the page "Bar" is said to belong to the namespace "Foo". Namespaces can be used to organize notebooks in sections of pages. Also sometimes namespaces are used for special purposes, for example the [[Plugins:Calendar|Calendar plugin]] uses a namespace "Calendar" to contain all calendar pages.
+The parent page is sometimes also referred to as the "namespace" of the page. So in this case the page "Bar" is said to belong to the namespace "Foo". Namespaces can be used to organize notebooks in sections of pages. Also sometimes namespaces are used for special purposes, for example the [[Plugins:Journal|Journal plugin]] uses a namespace like ":Journal:" to contain all journal pages.
 
-TODO document valid page names
+There are various ways to refer to other pages, either by absolute or relevant links. E.g. the page "''Foo:Bar''" can be linked from "''Foo''" as "'':Foo:Bar''" but also as "''+Bar''". For more details see [[Links]]. The editor tries to automatically turn page names into links, as a special case you can use "CamelCase" to make page names more recognizable and make the auto-formatting easier. See [[Auto Formatting]] and [[Preferences]].
 
-TODO mention camelcase and autolinking for page names
+There are a number of characters that are forbidden in page names, these are: "?", "#", "/", "\\", "*", '"', "<", ">", "|" and "%". These are forbidden because they have a special meaning in the zim wiki syntax or because they can not be encoded on common file systems.
 
-TODO mention linking of child pages with +
-
-TODO mention [[Help:Attachments|attachments]]
+Pages can have attachments, for example images, data files, related documents etc. See [[Attachments]] for more details.
 
 ===== New Page Dialog =====
 The New Page dialog prompts for a page name and then creates a new page with the specified name. To create a page that is nested in the hierarchy, specify it with a ":" in between the parts of the hierarchy.

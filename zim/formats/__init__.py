@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Package with source formats for pages.
 
@@ -320,30 +320,41 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''Parsing from file is not implemented, use fromstring() instead'''
 		raise NotImplementedError
 
-	def get_heading(self):
-		'''Get the heading, if the tree starts with a heading
-		@returns: a 2-tuple of text and heading level or C{(None, None)}
-		'''
+	def _get_heading_element(self, level=1):
 		root = self.getroot()
+		if root.text and not root.text.isspace():
+			return None
+
 		children = root.getchildren()
-		if children:
-			first = children[0]
-			if first.tag == 'h':
-				return first.text, int(first.attrib['level'])
+		if children \
+		and children[0].tag == 'h' \
+		and children[0].attrib['level'] >= level:
+				return children[0]
+		else:
+			return None
+
+	def get_heading(self, level=1):
+		heading_elem = self._get_heading_element(level)
+		if heading_elem is not None:
+			return heading_elem.text
+		else:
+			return ""
 
 	def set_heading(self, text, level=1):
 		'''Set the first heading of the parse tree to 'text'. If the tree
 		already has a heading of the specified level or higher it will be
 		replaced. Otherwise the new heading will be prepended.
 		'''
-		self.pop_heading(level)
-
-		root = self.getroot()
-		heading = ElementTreeModule.Element('h', {'level': level})
-		heading.text = text
-		heading.tail = root.text
-		root.text = None
-		root.insert(0, heading)
+		heading = self._get_heading_element(level)
+		if heading is not None:
+			heading.text = text
+		else:
+			root = self.getroot()
+			heading = ElementTreeModule.Element('h', {'level': level})
+			heading.text = text
+			heading.tail = root.text
+			root.text = None
+			root.insert(0, heading)
 
 	def pop_heading(self, level=-1):
 		'''If the tree starts with a heading, remove it and any trailing

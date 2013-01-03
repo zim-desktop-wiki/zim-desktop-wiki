@@ -41,13 +41,10 @@
 	<body>
 		<div class="page">
 			<div class="heading">
-				<h1><a href="[% url(pages.home.name) %]" class="notebook">[% notebook.name %]:</a>
-
-
 				[% IF page.properties.type == 'namespace-index' -%]
-					Document Index</h1>
+					<h1>Document Index</h1>
 				[%- ELSE -%]
-					[% page.heading %]</h1>
+					<h1>[% page.heading %]</h1>
 				[%- END %]
 			</div>
 			<hr>
@@ -63,12 +60,23 @@
 			<hr>
 			<!-- Backlinks -->
 			<div class="footer">
-				[% IF page.backlinks -%] Backlinks:
+				[% IF page.has_backlinks -%]
+					<b>Backlinks:</b>
 					[%- FOREACH link = page.backlinks -%]
 						<a href='[% url(link) %]'>[% link.name %]</a></li>
 					[%- END -%]
 				[%- ELSE -%]
-					No backlinks to this page.
+					<i>No backlinks to this page.</i>
+				[%- END %]
+				<br><br>
+
+				[% IF page.has_attachments -%]
+					<b>Attachments:</b>
+					<table>
+					[%- FOREACH file = page.attachments -%]
+						<tr><td><a href='[% url(file) %]'>[% file.basename %]</a></td><td>&nbsp;</td><td>[% file.size %]</td></tr>
+					[%- END -%]
+					</table>
 				[%- END %]
 			<!-- End Backlinks -->
 			</div>

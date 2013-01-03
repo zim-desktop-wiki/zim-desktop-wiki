@@ -11,3 +11,6 @@ The tag cloud allows toggling the selection of tags that is shown in the page in
 **Dependencies:** This plugin has no additional dependencies.
 
 **See also: **[[Help:Tags]]
+
+===== Options =====
+Rhe option **Position in the window** determines in which side pane the tag list is shown.

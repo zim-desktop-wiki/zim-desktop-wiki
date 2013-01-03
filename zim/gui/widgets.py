@@ -1017,6 +1017,7 @@ class InputForm(gtk.Table):
 			- "C{output-file}" - like 'file' but for new or existing file
 			- "C{option}" - single option in a group (radio checkboxes)
 			- "C{choice}" - list with choices (combo box)
+			- "C{color}" - color string
 
 		The "C{int}" and "C{choice}" options need an extra argument to specify
 		the allowed inputs. For "C{int}" this should be a 2-tuple with the
@@ -1093,9 +1094,9 @@ class InputForm(gtk.Table):
 				combobox = gtk.combo_box_new_text()
 				if all(isinstance(t, tuple) for t in extra):
 					mapping = {}
-					for key, label in extra:
-						combobox.append_text(label)
-						mapping[label] = key
+					for key, value in extra:
+						combobox.append_text(value)
+						mapping[value] = key
 					combobox.zim_key_mapping = mapping
 				else:
 					for option in extra:
@@ -1142,6 +1143,11 @@ class InputForm(gtk.Table):
 				if extra:
 					entry.set_check_func(extra)
 				widgets.append((label, entry))
+
+			elif type == 'color':
+				button = gtk.ColorButton()
+				widgets.append((label, button))
+
 			else:
 				assert False, 'BUG: unknown field type: %s' % type
 
@@ -1300,6 +1306,12 @@ class InputForm(gtk.Table):
 					return widget.get_active_text()
 			elif isinstance(widget, gtk.SpinButton):
 				return int(widget.get_value())
+			elif isinstance(widget, gtk.ColorButton):
+				if gtk.gtk_version > (2, 14, 0):
+					# This version supposedly gives compacter values
+					return str(widget.get_color())
+				else:
+					return widget.get_color().to_string()
 			else:
 				raise TypeError, widget.__class__.name
 		else:
@@ -1346,6 +1358,9 @@ class InputForm(gtk.Table):
 					gtk_combobox_set_active_text(widget, value)
 			elif isinstance(widget, gtk.SpinButton):
 				widget.set_value(value)
+			elif isinstance(widget, gtk.ColorButton):
+				color = gtk.gdk.color_parse(value)
+				widget.set_color(color)
 			else:
 				raise TypeError, widget.__class__.name
 		else:
@@ -1418,7 +1433,7 @@ class InputEntry(gtk.Entry):
 
 	ERROR_COLOR = '#EF7F7F' # light red (derived from Tango style guide)
 
-	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False, empty_text=None):
+	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False, empty_text=None, allow_whitespace=False):
 		'''Constructor
 
 		@param check_func: a function to check input is valid.
@@ -1440,12 +1455,17 @@ class InputEntry(gtk.Entry):
 		selects the widget. Used to set hints on the usage of the
 		widget.
 
+		@param allow_whitespace: if C{True} allow trailing whitespace
+		or even string containing only whitespace. If C{False} all
+		whitespace is stripped.
+
 		@todo: make color for empty_text actually grey
 		'''
 		gtk.Entry.__init__(self)
 		self._normal_color = None
 		self.allow_empty = allow_empty
 		self.show_empty_invalid = show_empty_invalid
+		self.allow_whitespace = allow_whitespace
 		self.empty_text = empty_text
 		self._empty_text_shown = False
 		self.check_func = check_func
@@ -1534,8 +1554,12 @@ class InputEntry(gtk.Entry):
 		if self._empty_text_shown:
 			return ''
 		text = gtk.Entry.get_text(self)
-		if not text: return ''
-		else: return text.decode('utf-8').strip()
+		if not text:
+			return ''
+		elif self.allow_whitespace:
+			return text.decode('utf-8')
+		else:
+			return text.decode('utf-8').strip()
 
 	def set_text(self, text):
 		'''Wrapper for C{gtk.Entry.set_text()}.
@@ -2120,50 +2144,73 @@ class WindowSidePane(gtk.VBox):
 	def __init__(self):
 		gtk.VBox.__init__(self)
 
-		def close_button():
-			button = CloseButton()
-			button.connect('clicked', lambda o: self.emit('close'))
-			return button
-
 		# Add bar with label and close button
 		self.topbar = gtk.HBox()
 		self.topbar.label = gtk.Label()
 		self.topbar.label.set_alignment(0.0, 0.5)
 		self.topbar.pack_start(self.topbar.label)
-		self.topbar.pack_end(close_button(), False)
+		self.topbar.pack_end(self._close_button(), False)
 		self.pack_start(self.topbar, False)
 
 		# Add notebook
 		self.notebook = gtk.Notebook()
 		self.notebook.set_show_border(False)
 		if gtk.gtk_version >= (2, 22, 0):
-			button = close_button()
+			button = self._close_button()
 			self.notebook.set_action_widget(button, gtk.PACK_END)
 
 		self.add(self.notebook)
 
 		self._update_topbar()
 
+	def _close_button(self):
+		button = CloseButton()
+		button.connect('clicked', lambda o: self.emit('close'))
+		return button
+
 	def _update_topbar(self):
 		children = self.get_children()
 		assert children[0] == self.topbar
 		n_pages = self.notebook.get_n_pages()
 
+		# remove close button if any
+		for widget in children:
+			if isinstance(widget, WindowSidePaneWidget):
+				widget.embed_closebutton(None)
+		for widget in self.notebook.get_children():
+			if isinstance(widget, WindowSidePaneWidget):
+				widget.embed_closebutton(None)
+
 		# Option 1: widget above notebook or no tabs in notebook
-		# Show topbar without title, show tabs in notebbok
+		# Show topbar without title, show tabs in notebook
+		# (or embed close button in widget)
 		if children[1] != self.notebook or n_pages == 0:
+			embedded = False
+			if children[1] != self.notebook \
+			and isinstance(children[1], WindowSidePaneWidget):
+				# see if we can embed the close button in the widget
+				button = self._close_button()
+				embedded = children[1].embed_closebutton(button)
+
+			if not embedded:
+				self.topbar.label.set_text('') # no title
+				self.topbar.set_no_show_all(False)
+				self.topbar.show_all()
+			else:
+				self.topbar.set_no_show_all(True)
+				self.topbar.hide()
+
 			self.notebook.set_show_tabs(True)
-			self.topbar.label.set_text('') # no title
 			if gtk.gtk_version >= (2, 22, 0):
 				button = self.notebook.get_action_widget(gtk.PACK_END)
 				button.set_no_show_all(True)
 				button.hide()
-				self.topbar.set_no_show_all(False)
-				self.topbar.show_all()
 
 			# TODO: for widget + single tab case add another title bar ?
+
 		# Option 2: notebook with single tab
 		# hide tabs, use topbar to show tab label
+		# (or embed close button in notebook tab)
 		elif n_pages == 1:
 			self.notebook.set_show_tabs(False)
 			child = self.notebook.get_nth_page(0)
@@ -2173,10 +2220,23 @@ class WindowSidePane(gtk.VBox):
 				button = self.notebook.get_action_widget(gtk.PACK_END)
 				button.set_no_show_all(True)
 				button.hide()
+
+			embedded = False
+			if isinstance(child, WindowSidePaneWidget):
+				# see if we can embed the close button in the widget
+				button = self._close_button()
+				embedded = child.embed_closebutton(button)
+
+			if not embedded:
 				self.topbar.set_no_show_all(False)
 				self.topbar.show_all()
+			else:
+				self.topbar.set_no_show_all(True)
+				self.topbar.hide()
+
 		# Option 3: notebook with multiple tabs
 		# show tabs, no text in topbar
+		# If possible put close button next to tabs
 		else:
 			self.notebook.set_show_tabs(True)
 			self.topbar.label.set_text('') # no title
@@ -2186,6 +2246,9 @@ class WindowSidePane(gtk.VBox):
 				button.show_all()
 				self.topbar.set_no_show_all(True)
 				self.topbar.hide()
+			else:
+				self.topbar.set_no_show_all(False)
+				self.topbar.show_all()
 
 	def add_widget(self, widget, position):
 		self.pack_start(widget, False)
@@ -2246,6 +2309,19 @@ class WindowSidePane(gtk.VBox):
 
 # Need to register classes defining gobject signals
 gobject.type_register(WindowSidePane)
+
+
+class WindowSidePaneWidget(object):
+	'''Base class for widgets that want to integrate nicely in the
+	L{WindowSidePane}
+	'''
+
+	def embed_closebutton(self, button):
+		'''Embed a button in the widget to close the side pane
+		@param button: an L{IconButton} or C{None} to un-set
+		@returns: C{True} if supported and succesful
+		'''
+		return False
 
 
 class Window(gtkwindowclass):
@@ -3412,14 +3488,19 @@ class ProgressBarDialog(gtk.Dialog):
 			cancel = dialog.pulse()
 			return cancel
 
-		self.async_foo(callback=cb_func)
+		with dialog:
+			self.async_foo(callback=cb_func)
 
 	This example assumes that the method C{async_foo()} will cancel as
 	soon as the callback returns C{False}.
 
+	The dialog is used as context manager, so the dialog is properly
+	destroyed in case of an error.
+
 	The usage of a progress bar dialog I{must} implement a cancel action.
 
-	Note that progress bars dialogs do not have a title.
+	Note that progress bars dialogs do not have a title. But the given
+	title will be shown as a label in the dialog itself.
 
 	If you know how often L{pulse()} will be called and give this total
 	number the bar will display a percentage. Otherwise the bar will
@@ -3468,6 +3549,13 @@ class ProgressBarDialog(gtk.Dialog):
 		self.vbox.pack_start(self.msg_label, False)
 
 		self.set_total(total)
+
+	def __enter__(self):
+		return self
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.destroy()
+		return False # re-raises error
 
 	def set_total(self, total):
 		'''Set the number of times we expect L{pulse()} to be called,

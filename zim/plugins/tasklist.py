@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -55,8 +55,8 @@ ui_xml = '''
 </ui>
 '''
 
-SQL_FORMAT_VERSION = (0, 5)
-SQL_FORMAT_VERSION_STRING = "0.5"
+SQL_FORMAT_VERSION = (0, 6)
+SQL_FORMAT_VERSION_STRING = "0.6"
 
 SQL_CREATE_TABLES = '''
 create table if not exists tasklist (
@@ -68,13 +68,14 @@ create table if not exists tasklist (
 	actionable BOOLEAN,
 	prio INTEGER,
 	due TEXT,
+	tags TEXT,
 	description TEXT
 );
 '''
 
 
-tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
-date_re = re.compile(r'\s*\[d:(.+)\]')
+_tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
+_date_re = re.compile(r'\s*\[d:(.+)\]')
 
 
 _NO_DATE = '9999' # Constant for empty due date - value chosen for sorting properties
@@ -124,8 +125,15 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 		('next_label', 'string', _('Label for next task'), 'Next:', check_class_allow_empty),
 			# T: label for plugin preferences dialog - label is by default "Next"
+		('nonactionable_tags', 'string', _('Tags for non-actionable tasks'), '', check_class_allow_empty),
+			# T: label for plugin preferences dialog
+		('included_subtrees', 'string', _('Subtree(s) to index'), '', check_class_allow_empty),
+			# T: subtree to search for tasks - default is the whole tree (empty string means everything)
+		('excluded_subtrees', 'string', _('Subtree(s) to ignore'), '', check_class_allow_empty),
+			# T: subtrees of the included subtrees to *not* search for tasks - default is none
 	)
-	_rebuild_on_preferences = ['all_checkboxes', 'labels', 'next_label', 'deadline_by_page']
+	_rebuild_on_preferences = ['all_checkboxes', 'labels', 'next_label', 'deadline_by_page', 'nonactionable_tags',
+				   'included_subtrees', 'excluded_subtrees' ]
 		# Rebuild database table if any of these preferences changed.
 		# But leave it alone if others change.
 
@@ -135,6 +143,9 @@ This is a core plugin shipping with zim.
 		self.task_label_re = None
 		self.next_label = None
 		self.next_label_re = None
+		self.nonactionable_tags = []
+		self.included_re = None
+		self.excluded_re = None
 		self.db_initialized = False
 		self._current_preferences = None
 
@@ -154,7 +165,7 @@ This is a core plugin shipping with zim.
 		# We don't care about pages that are moved
 
 		db_version = self.index.properties['plugin_tasklist_format']
-		if db_version == SQL_FORMAT_VERSION_STRING:
+		if db_version == '%i.%i' % SQL_FORMAT_VERSION:
 			self.db_initialized = True
 
 		self._set_preferences()
@@ -162,7 +173,7 @@ This is a core plugin shipping with zim.
 	def initialize_db(self, index):
 		with index.db_commit:
 			index.db.executescript(SQL_CREATE_TABLES)
-		self.index.properties['plugin_tasklist_format'] = SQL_FORMAT_VERSION_STRING
+		self.index.properties['plugin_tasklist_format'] = '%i.%i' % SQL_FORMAT_VERSION
 		self.db_initialized = True
 
 	def do_preferences_changed(self):
@@ -193,11 +204,36 @@ This is a core plugin shipping with zim.
 			self.next_label = None
 			self.next_label_re = None
 
+		if self.preferences['nonactionable_tags']:
+			self.nonactionable_tags = [
+				t.strip('@').lower()
+					for t in self.preferences['nonactionable_tags'].replace(',', ' ').strip().split()]
+		else:
+			self.nonactionable_tags = []
+
 		if self.task_labels:
 			regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
 			self.task_label_re = re.compile(regex)
 		else:
 			self.task_label_re = None
+
+		if self.preferences['included_subtrees']:
+			included = [i.strip().strip(':') for i in self.preferences['included_subtrees'].split(',')]
+			included.sort(key=lambda s: len(s), reverse=True) # longest first
+			included_re = '^(' + '|'.join(map(re.escape, included)) + ')(:.+)?$'
+			#~ print '>>>>>', "included_re", repr(included_re)
+			self.included_re = re.compile(included_re)
+		else:
+			self.included_re = None
+
+		if self.preferences['excluded_subtrees']:
+			excluded = [i.strip().strip(':') for i in self.preferences['excluded_subtrees'].split(',')]
+			excluded.sort(key=lambda s: len(s), reverse=True) # longest first
+			excluded_re = '^(' + '|'.join(map(re.escape, excluded)) + ')(:.+)?$'
+			#~ print '>>>>>', "excluded_re", repr(excluded_re)
+			self.excluded_re = re.compile(excluded_re)
+		else:
+			self.excluded_re = None
 
 	def _serialize_rebuild_on_preferences(self):
 		# string mapping settings that influence building the table
@@ -225,10 +261,35 @@ This is a core plugin shipping with zim.
 			except:
 				pass
 
+	def _excluded(self, path):
+		if self.included_re and self.excluded_re:
+			# judge which match is more specific
+			# this allows including subnamespace of excluded namespace
+			# and vice versa
+			inc_match = self.included_re.match(path.name)
+			exc_match = self.excluded_re.match(path.name)
+			if not exc_match:
+				return not bool(inc_match)
+			elif not inc_match:
+				return bool(exc_match)
+			else:
+				return len(inc_match.group(1)) < len(exc_match.group(1))
+		elif self.included_re:
+			return not bool(self.included_re.match(path.name))
+		elif self.excluded_re:
+			return bool(self.excluded_re.match(path.name))
+		else:
+			return False
+
 	def index_page(self, index, path, page):
 		if not self.db_initialized: return
 		#~ print '>>>>>', path, page, page.hascontent
+
 		tasksfound = self.remove_page(index, path, _emit=False)
+		if self._excluded(path):
+			if tasksfound:
+				self.emit('tasklist-changed')
+			return
 
 		parsetree = page.get_parsetree()
 		if not parsetree:
@@ -251,11 +312,13 @@ This is a core plugin shipping with zim.
 		else:
 			deadline = None
 		tasks = self._extract_tasks(parsetree, deadline)
+
 		if tasks:
 			# Do insert with a single commit
 			with self.index.db_commit:
 				self._insert(path, 0, tasks)
 
+		if tasks or tasksfound:
 			self.emit('tasklist-changed')
 
 	def _insert(self, page, parentid, children):
@@ -263,9 +326,9 @@ This is a core plugin shipping with zim.
 		c = self.index.db.cursor()
 		for task, grandchildren in children:
 			c.execute(
-				'insert into tasklist(source, parent, haschildren, open, actionable, prio, due, description)'
-				'values (?, ?, ?, ?, ?, ?, ?, ?)',
-				(page.id, parentid, bool(grandchildren)) + task
+				'insert into tasklist(source, parent, haschildren, open, actionable, prio, due, tags, description)'
+				'values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+				(page.id, parentid, bool(grandchildren)) + tuple(task)
 			)
 			if grandchildren:
 				self._insert(page, c.lastrowid, grandchildren) # recurs
@@ -281,6 +344,7 @@ This is a core plugin shipping with zim.
 		parser = TasksParser(
 			self.task_label_re,
 			self.next_label_re,
+			self.nonactionable_tags,
 			self.preferences['all_checkboxes'],
 			defaultdate
 		)
@@ -358,9 +422,10 @@ gobject.type_register(TaskListPlugin)
 class TasksParser(Visitor):
 	'''Parse tasks from a parsetree'''
 
-	def __init__(self, task_label_re, next_label_re, all_checkboxes, defaultdate):
+	def __init__(self, task_label_re, next_label_re, nonactionable_tags, all_checkboxes, defaultdate):
 		self.task_label_re = task_label_re
 		self.next_label_re = next_label_re
+		self.nonactionable_tags = nonactionable_tags
 		self.all_checkboxes = all_checkboxes
 
 		defaults = (True, True, 0, defaultdate or _NO_DATE, None)
@@ -500,7 +565,7 @@ class TasksParser(Visitor):
 	def _matches_next_label(self, line):
 		return self.next_label_re and self.next_label_re.match(line)
 
-	def _parse_task(self, line, open=True):
+	def _parse_task(self, text, open=True):
 		level = self._depth
 		if level > 0:
 			level -= 1 # first list level should be same as level of line items in para
@@ -508,44 +573,46 @@ class TasksParser(Visitor):
 		parent_level, parent, parent_children = self._stack[-1]
 
 		# Get prio
-		prio = line.count('!')
+		prio = text.count('!')
 		if prio == 0:
 			prio = parent[2] # default to parent prio
 
-		# Get date - and remove from description
-		global __due # FIXME
-		__due = _NO_DATE
-		def set_date(match):
-			global __due
-			mydate = parse_date(match.group(0))
-			if mydate and __due == _NO_DATE:
-				__due = '%04i-%02i-%02i' % mydate # (y, m, d)
-				#~ return match.group(0) # TEST
-				return ''
-			else:
-				# No match or we already had a date
-				return match.group(0)
-
-		description = date_re.sub(set_date, line)
-		due = __due
+		# Get due date
+		due = _NO_DATE
+		datematch = _date_re.search(text) # first match
+		if datematch:
+			date = parse_date(datematch.group(0))
+			if date:
+ 				due = '%04i-%02i-%02i' % date # (y, m, d)
 
 		if due == _NO_DATE:
 			due = parent[3] # default to parent date (or default for root)
 
-		# Deal with tags global for tasklist
-		if self._intasklist:
-			for tag in self._tasklist_tags:
-				if not tag in description:
-					description += ' ' + tag
+		# Find tags
+		tags = []
+		tags += _tag_re.findall(text)
+		if self._intasklist and self._tasklist_tags:
+			tags += self._tasklist_tags
 
 		# Check actionable
-		if self._matches_next_label(description):
-			actionable = not parent[0] # previous task not open
+		if not parent[1]: # default parent not actionable
+			actionable = False
+		elif any(t.lower() in self.nonactionable_tags for t in tags):
+			actionable = False
+		elif self._matches_next_label(text) and parent_children:
+			previous = parent_children[-1]
+			actionable = not previous[0] # previous task not open
 		else:
 			actionable = True
 
+		# Parents are not closed if it has open child items
+		if self._depth > 0 and open:
+			for l, t, c in self._stack[1:]:
+				t[0] = True
+
 		# And finally add to stack
-		task = (open, actionable, prio, due, description)
+		tags = ','.join(t.strip('@') for t in tags)
+		task = [open, actionable, prio, due, tags, text]
 		children = []
 		parent_children.append((task, children))
 		if self._depth > 0: # (don't add paragraph level items to the stack)
@@ -694,7 +761,7 @@ class TagListTreeView(SingleClickTreeView):
 		tags = []
 		for row in self._get_selected():
 			if row[2] == self._type_tag:
-				tags.append(row[0])
+				tags.append(row[0].decode('utf-8'))
 			elif row[2] == self._type_untagged:
 				tags.append(_NO_TAGS)
 		return tags or None
@@ -704,7 +771,7 @@ class TagListTreeView(SingleClickTreeView):
 		labels = []
 		for row in self._get_selected():
 			if row[2] == self._type_label:
-				labels.append(row[0])
+				labels.append(row[0].decode('utf-8'))
 		return labels or None
 
 	def _get_selected(self):
@@ -933,16 +1000,17 @@ class TaskListTreeView(BrowserTreeView):
 		for row in rows:
 			if not row['open']:
 				continue # Only include open items for now
+			path = path_cache[row['source']]
 
+			# Update labels
 			for label in self.plugin.task_label_re.findall(row['description']):
 				self._labels[label] = self._labels.get(label, 0) + 1
 
-			tags = tuple(tag_re.findall(row['description']))
-			if self.plugin.preferences['tag_by_page']:
-				path = path_cache[row['source']]
-				tags = tags + tuple(path.parts)
-
 			# Update tag count
+			tags = row['tags'].split(',')
+			if self.plugin.preferences['tag_by_page']:
+				tags = tags + path.parts
+
 			if tags:
 				for tag in tags:
 					self._tags[tag] = self._tags.get(tag, 0) + 1
@@ -950,15 +1018,18 @@ class TaskListTreeView(BrowserTreeView):
 				self._tags[_NO_TAGS] = self._tags.get(_NO_TAGS, 0) + 1
 
 
-			path = path_cache[row['source']]
-			task = encode_markup_text(row['description'])
+			# Format description
+			task = _date_re.sub('', row['description'], count=1)
 			task = re.sub('\s*!+\s*', ' ', task) # get rid of exclamation marks
 			task = self.plugin.next_label_re.sub('', task) # get rid of "next" label in description
+			task = encode_markup_text(task)
 			if row['actionable']:
-				task = tag_re.sub(r'<span color="#ce5c00">@\1</span>', task) # highlight tags - same color as used in pageview
+				task = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', task) # highlight tags - same color as used in pageview
 				task = self.plugin.task_label_re.sub(r'<b>\1</b>', task) # highlight labels
 			else:
 				task = r'<span color="darkgrey">%s</span>' % task
+
+			# Insert all columns
 			modelrow = [False, row['prio'], task, row['due'], path.name, row['actionable'], row['open'], row['id'], tags]
 				# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL, TAGS_COL
 			modelrow[0] = self._filter_item(modelrow)
@@ -1074,7 +1145,7 @@ class TaskListTreeView(BrowserTreeView):
 
 		description = modelrow[self.TASK_COL].decode('utf-8').lower()
 		pagename = modelrow[self.PAGE_COL].decode('utf-8').lower()
-		tags = modelrow[self.TAGS_COL]
+		tags = [t.lower() for t in modelrow[self.TAGS_COL]]
 
 		if visible and self.label_filter:
 			# Any labels need to be present

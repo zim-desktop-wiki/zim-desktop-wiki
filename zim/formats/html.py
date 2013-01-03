@@ -163,12 +163,15 @@ class Dumper(DumperClass):
 
 	def dump_link(self, tag, attrib, strings=None):
 		href = self.linker.link(attrib['href'])
+		type = link_type(attrib['href'])
 		if strings:
 			text = u''.join(strings)
 		else:
 			text = attrib['href']
 		title = text.replace('"', '&quot;')
-		return ['<a href="%s" title="%s">%s</a>' % (href, title, text)]
+		return [
+			'<a href="%s" title="%s" class="%s">%s</a>'
+				% (href, title, type, text) ]
 
 	def dump_img(self, tag, attrib, strings=None):
 		src = self.linker.img(attrib['src'])

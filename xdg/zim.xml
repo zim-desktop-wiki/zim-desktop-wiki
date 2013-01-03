@@ -6,10 +6,18 @@
 		<comment>Zim notebook</comment>
 	</mime-type>
 	<mime-type type="text/x-zim-wiki">
+		<!-- Support two specs version:
+		* current (>= 0.16) says we need to specify *.txt to make sure our magic gets checked for .txt files
+		* older (< 0.15) says we need to specify priority 80 to have magic check before glob check
+		-->
 		<sub-class-of type="text/plain"/>
-    		<magic priority="80">
+		<magic priority="80">
 			<match value='Content-Type: text/x-zim-wiki' type="string" offset="0"/>
 		</magic>
+		<!-- <glob pattern="*.txt"/>
+		Hide this glob because it confuses older implementations
+		to think all text files are zim...
+		-->
 		<comment>Zim wiki page</comment>
 	</mime-type>
 	<mime-type type="application/x-gjots">

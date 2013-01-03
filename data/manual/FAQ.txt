@@ -42,6 +42,9 @@ Zim notebooks do not support encryption or password protection natively. However
 ===== Can I have full calendaring in zim? =====
 Well, if you really want to, you can use zim as your agenda. However, the Calendar feature is more intended to keep various kinds of journals or logbooks. I'm very hesitant to add calendaring features because these are usually tied to email applications. I admit that it would be really cool to link notes, emails and appointments, but I have no plans to extend zim to become an email reader.
 
+===== How do I change the font size of the side pane =====
+You can change this by modifying the ''gtkrc'' file, see [[Help:Config Files|Config Files]] for details.
+
 ===== Does it run on Windows? =====
 Yes it does. See the download page on the website for more notes on installing on the win32 platform.
 
@@ -53,9 +56,6 @@ The visible files in the notebook folder contain all data of notes and [[Help:At
 
 ===== What is the hidden .zim folder in my notebook folder? =====
 The hidden .zim folder contains only caches and GUI state. It doesn't contain any information that can not be recreated on the fly.
-
-===== I switched from the perl version to the python version and miss my favorite feature. =====
-Some features of the perl version of zim are not yet implemented in the python version.
 
 ===== I have a useful trick or tip. How can I share it with other users? =====
 You can have a look at the [[http://www.zim-wiki.org/wiki/doku.php|zim documentation wiki]]. It has a section dedicated to [[http://www.zim-wiki.org/wiki/doku.php?id=tips_and_tricks|tricks and tips]]. Or write a mail to the mailing list, see the [[https://launchpad.net/~zim-wiki|team page]] on launchpad

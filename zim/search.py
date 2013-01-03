@@ -141,11 +141,12 @@ class Query(object):
 				if keyword == 'links':
 					keyword = 'linksfrom'
 				tokens.append(QueryTerm(keyword, string))
-			elif tag_re.match(w):
-				tokens.append(QueryTerm('tag', w[1:]))
 			else:
 				w = unescape_quoted_string(w)
-				tokens.append(QueryTerm('contentorname', w)) # default keyword
+				if tag_re.match(w):
+					tokens.append(QueryTerm('tag', w[1:]))
+				else:
+					tokens.append(QueryTerm('contentorname', w)) # default keyword
 		#~ print tokens
 
 		# Then parse NOT operator out

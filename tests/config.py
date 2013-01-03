@@ -111,7 +111,8 @@ class TestDirsDefault(TestCase):
 		self.assertEqual(
 				list(data_dirs(('foo', 'bar'))),
 				[d.subdir(['foo', 'bar']) for d in data_dirs()])
-
+	
+	@tests.skipIf(os.name == 'nt', 'No standard defaults for windows')
 	def testCorrect(self):
 		'''Test default basedir paths'''
 		for k, v in (

@@ -163,8 +163,12 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 			treepath = self.get_treepath(path)
 			if treepath:
 				#~ print '!!', signal, path, treepath
-				treeiter = self.get_iter(treepath)
-				self.emit(signal, treepath, treeiter)
+				try:
+					treeiter = self.get_iter(treepath)
+				except:
+					logger.exception('BUG: Invalid treepath: %s %s %s', signal, path, treepath)
+				else:
+					self.emit(signal, treepath, treeiter)
 			# If treepath is None the row does not exist anymore
 
 		def on_deleted(o, path):

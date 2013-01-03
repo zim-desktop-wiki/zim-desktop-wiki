@@ -153,7 +153,7 @@ This plugin allows inserting forms with structured (meta-)data.
 Effectivly turning a wiki page into a card with structured data.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
-		#~ 'help': 'Plugins:Cards',
+		'help': 'Plugins:Cards',
 		'object_types': (OBJECT_TYPE, ),
 	}
 

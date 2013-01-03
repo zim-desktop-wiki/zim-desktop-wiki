@@ -50,24 +50,24 @@ And some empty space here:
 <h3>head 3</h3>
 
 <p>
-<a href="foo" title="foo">foo</a>  links to page in the current namespace or parents<br>
-<a href=":foo" title=":foo">:foo</a> links to page in the root namespace<br>
-<a href="+foo" title="+foo">+foo</a> links to page in a subnamespace<br>
-<a href="foo" title="bar">bar</a> links to "foo" but display "bar"
+<a href="foo" title="foo" class="page">foo</a>  links to page in the current namespace or parents<br>
+<a href=":foo" title=":foo" class="page">:foo</a> links to page in the root namespace<br>
+<a href="+foo" title="+foo" class="page">+foo</a> links to page in a subnamespace<br>
+<a href="foo" title="bar" class="page">bar</a> links to "foo" but display "bar"
 </p>
 
 <p>
-<a href=":foo:bar" title=":foo:bar">:foo:bar</a> <a href="./file.png" title="./file.png">./file.png</a> <a href="file:///etc/passwd" title="file:///etc/passwd">file:///etc/passwd</a><br>
-<a href="Foo" title="Foo">Foo</a><a href="Bar" title="Bar">Bar</a>
+<a href=":foo:bar" title=":foo:bar" class="page">:foo:bar</a> <a href="./file.png" title="./file.png" class="file">./file.png</a> <a href="file:///etc/passwd" title="file:///etc/passwd" class="file">file:///etc/passwd</a><br>
+<a href="Foo" title="Foo" class="page">Foo</a><a href="Bar" title="Bar" class="page">Bar</a>
 </p>
 
 <p>
-<a href="mailto:foo@bar.org" title="mailto:foo@bar.org">mailto:foo@bar.org</a><br>
-<a href="http://en.wikipedia.org/wiki/Test" title="wp?Test">wp?Test</a>
+<a href="mailto:foo@bar.org" title="mailto:foo@bar.org" class="mailto">mailto:foo@bar.org</a><br>
+<a href="http://en.wikipedia.org/wiki/Test" title="wp?Test" class="interwiki">wp?Test</a>
 </p>
 
 <p>
-External links like <a href="http://nongnu.org" title="http://nongnu.org">http://nongnu.org</a> and <a href="mailto:foo@bar.org" title="foo@bar.org">foo@bar.org</a> are also supported
+External links like <a href="http://nongnu.org" title="http://nongnu.org" class="http">http://nongnu.org</a> and <a href="mailto:foo@bar.org" title="foo@bar.org" class="mailto">foo@bar.org</a> are also supported
 </p>
 
 <p>

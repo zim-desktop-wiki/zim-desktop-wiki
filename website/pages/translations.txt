@@ -5,7 +5,7 @@ Wiki-Format: zim 0.4
 
 The easiest way to contribute translations is to go to the [[https://translations.launchpad.net/zim|launchpage website]]. Here you can colaborate with others to translate zim into your native language.
 
-If you rather use offline tools like [[http://www.poedit.net/|poedit]] you can either download the latest translation template or partial translation from launchpad or checkout the source repository for zim (see [[Contribute]]).
+If you rather use offline tools like [[http://www.poedit.net/|poedit]] you can either download the latest translation template or partial translation from launchpad or checkout the source repository for zim (see [[Contribute]]). To submit your updates upload the resulting ''.po'' file to the launchpad website again.
 
 ===== Testing translations =====
 Zim using the [[http://www.gnu.org/software/gettext/|GNU gettext]] tool chain for translations. The source package contains a "''zim.pot''" file which is the template. The directory "''po/''" contains translations, which are named "''po/language.po''" or "''po/language_COUNTRY.po''" where "''language''" and "''COUNTRY''" are the respective language and country codes for the locale.

@@ -153,7 +153,24 @@ class Application(object):
 		'''
 		cwd, argv = self._checkargs(cwd, args)
 		logger.info('Running: %s (cwd: %s)', argv, cwd)
-		p = subprocess.Popen(argv, cwd=cwd, stdout=open(os.devnull, 'w'), stderr=subprocess.PIPE)
+		if os.name == 'nt':
+			# http://code.activestate.com/recipes/409002/
+			info = subprocess.STARTUPINFO()
+			try:
+				info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+			except AttributeError:
+				info.dwFlags |= 1 # STARTF_USESHOWWINDOW = 0x01
+
+			p = subprocess.Popen(argv,
+				cwd=cwd,
+				stdout=open(os.devnull, 'w'),
+				stderr=subprocess.PIPE,
+				startupinfo=info)
+		else:
+			p = subprocess.Popen(argv,
+				cwd=cwd,
+				stdout=open(os.devnull, 'w'),
+				stderr=subprocess.PIPE)
 		p.wait()
 		stderr = p.stderr.read()
 

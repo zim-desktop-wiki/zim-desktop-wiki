@@ -10,6 +10,8 @@ import zim.plugins
 import zim
 import zim.config
 
+from zim.fs import File
+
 assert len(zim.plugins.__path__) > 1 # test __path__ magic
 zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
 
@@ -25,6 +27,8 @@ class testPlugins(tests.TestCase):
 
 		# plugins listed here will be tested for is_profile_independent == True
 		profile_independent = ['automount',]
+
+		pluginindex = File('data/manual/Plugins.txt').read()
 
 		seen = {
 			'name': set(),
@@ -43,23 +47,31 @@ class testPlugins(tests.TestCase):
 				)
 
 			for key in ('name', 'description', 'help'):
-					if not key in plugin.plugin_info:
-						print 'NOTE: plugin %s has no help page' % name
-						continue
+				self.assertIn(key, plugin.plugin_info, 'Plugin %s missing "%s"' % (name, key))
+				value = plugin.plugin_info[key]
+				self.assertFalse(
+					value in seen[key],
+					'Value for \'%s\' in %s seen before - copy-paste error ?' % (key, name)
+				)
+				seen[key].add(value)
 
-					value = plugin.plugin_info[key]
-					self.assertFalse(
-						value in seen[key],
-						'Value for \'%s\' in %s seen before - copy-paste error ?' % (key, name)
-					)
-					seen[key].add(value)
+			# test manual page present and at least documents preferences
+			page = plugin.plugin_info['help']
+			self.assertTrue(page.startswith('Plugins:'), 'Help page for %s not valid' % name)
 
-			# test manual page present
-			if 'help' in plugin.plugin_info:
-				page = plugin.plugin_info['help']
-				self.assertTrue(page.startswith('Plugins:'), 'Help page for %s not valid' % name)
-				file = 'data/manual/' + page.replace(':', '/').replace(' ', '_') + '.txt'
-				self.assertTrue(os.path.isfile(file), 'Missing file: %s' % file)
+			rellink = "+%s" % page[8:]
+			self.assertIn(rellink, pluginindex, 'Missing links "%s" in manual/Plugins.txt' % rellink)
+
+			file = File('data/manual/' + page.replace(':', '/').replace(' ', '_') + '.txt')
+			self.assertTrue(file.exists(), 'Missing file: %s' % file)
+
+			manual = file.read()
+			for pref in plugin.plugin_preferences:
+				label = pref[2]
+				if '\n' in label:
+					label, x = label.split('\n', 1)
+					label = label.rstrip(',')
+				self.assertIn(label, manual, 'Preference "%s" for %s plugin not documented in manual page' % (label, name))
 
 			# test dependencies data
 			dep = plugin.check_dependencies()

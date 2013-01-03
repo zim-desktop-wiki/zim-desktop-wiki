@@ -292,7 +292,7 @@ class StaticLinker(BaseLinker):
 			# typical error is a non-local file:// uri
 			return None
 		else:
-			return File
+			return file
 
 	def link_file(self, link):
 		if self.document_root_url and link.startswith('/'):

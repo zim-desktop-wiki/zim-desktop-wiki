@@ -147,7 +147,7 @@ Only available if the [[Plugins:Link Map|Link Map plugin]] is enabled.
 **Calendar**
 Show the calendar dialog.
 
-Only available if the [[Plugins:Calendar|Calendar plugin]] is enabled.
+Only available if the [[Plugins:Journal|Journal plugin]] is enabled.
 
 **Reload <Ctrl><R>**
 Reload the current page. This means the page is saved and then reloaded from source. Any wiki formatting in the page that is not yet rendered will be rendered after reloading.
@@ -156,7 +156,7 @@ Reload the current page. This means the page is saved and then reloaded from sou
 ===== Insert =====
 
 **Date and Time <Ctrl><D>**
-Insert a date or a date and timestamp. If the [[Plugins:Calendar|Calendar plugin]] is enabled the date can be linked automatically to the calendar page. 
+Insert a date or a date and timestamp. If the [[Plugins:Journal|Journal plugin]] is enabled the date can be linked automatically to the journal page. 
 
 **Image**
 Insert an image.
@@ -267,8 +267,8 @@ Go to the next page in the index. This traverses all children of pages recursive
 Go to the next page in the index. This traverses all children of pages recursively and only goes to the next page on the same level after the last child.
 
 **Today <Alt><D>**
-Go to the Calendar page for today.
-Only available if the [[Plugins:Calendar|Calendar Plugin]] is enabled.
+Go to the Journal page for today.
+Only available if the [[Plugins:Journal|Journal Plugin]] is enabled.
 
 **Home <Alt><Home>**
 Go to the home page of this notebook. You can change the home page in the [[Properties|properties dialog]].

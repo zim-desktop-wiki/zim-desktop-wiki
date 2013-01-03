@@ -8,10 +8,12 @@ Zim's default installation ships with a Version Control Plugin. To enable it, go
 
 **Dependencies:** This plugin requires one of the supported version control systems to be installed. Currently Bazaar, Git and Mercurial are supported, so one of these applications is required. In specific the "''bzr''", "''git''" or "''hg''" command should be available in the system path.
 
-===== Introduction =====
-If you want to keep track of your changes or if you want to collaborate on a Zim notebook as a team, version control is the best way to go. Zim integrates very well with existing version control software because all relevant data is stored in plain text files.
+===== Options =====
+If the option **Autosave version on regular intervals** is enabled zim will save (or "commit") a new version every time you close zim or when opening zim if new changes are detected.
 
 ===== Usage =====
+If you want to keep track of your changes or if you want to collaborate on a Zim notebook as a team, version control is the best way to go. Zim integrates very well with existing version control software because all relevant data is stored in plain text files.
+
 To save the current state of the Notebook, choose ''File -> Save Version...'' from the Main Menu and confirm that you want to enable Version Control. In the next window add a comment describing the changes (probably something like "yeah, first version" at this point) and confirm by clicking Save.
 
 You can browse the complete history of saved versions by selecting ''File -> Versions...'' from the Main Menu. You can view and restore previous versions of your Notebook and view all your changes between two versions in the window that open.
@@ -21,7 +23,7 @@ TODO here should be documented how to share the newly created repository with yo
 
 See the [[http://bazaar.canonical.com/|Bazaar]] user manual for various scenarios of collaboration (follow the "documentation" link on their website).
 
-===== Details =====
+===== Technical Details =====
 Technically speaking a local repository is created when enabling Version Control, depending on the backend you choose, this repository is managed by  [[http://bazaar.canonical.com/|Bazaar]],  [[http://git-scm.com/|Git]], or [[http://mercurial.selenic.com/|Mercurial]]. Every time you save a version, another revision is checked in. Zim just uses standard version control systems as backend, so you can always view and export your history using standard tools.
 
 On startup zim tries to detect the version control system used for a specific notebook, and use it if supported. So you can manually initialize repository (e.g. by branching) and then open them with zim. No need to tell Zim that the notebook is managed explicitly.

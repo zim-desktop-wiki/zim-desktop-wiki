@@ -44,6 +44,7 @@ data to the printer in two steps.
 This is a core plugin shipping with zim.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
+		'help': 'Plugins:Print to Browser'
 	}
 
 	def __init__(self, ui):

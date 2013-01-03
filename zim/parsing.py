@@ -8,27 +8,46 @@ import re
 
 
 def split_quoted_strings(string, unescape=True):
-	'''Split a word list respecting quotes.'''
+	'''Split a word list respecting quotes
+
+	This function always expect full words to be quoted, even if quotes
+	appear in the middle of a word, they are considered word
+	boundries.
+
+	( XDG Desktop Entry spec says full words must be quoted and
+	quotes in a word escaped, but doesn't specifify what to do with
+	loose quotes in a string. )
+
+	Also a comma "," is handled specially and is always considered a
+	word on it's own.
+
+	@param string: string to split in words
+	@param unescape: if C{True} quotes are removed, else they are
+	left in place
+	@returns: list of strings
+	'''
 	word_re = Re(r'''
 		(	'(\\'|[^'])*' |  # single quoted word
 			"(\\"|[^"])*" |  # double quoted word
-			[^\s,]+       |  # word without spaces and commas
-			,                # comma
+			[^\s,'"]+     |  # word without spaces and commas
+			,                # comma - (allow "words,word"<<)
 		)''', re.X)
 	string = string.strip()
 	words = []
 	while word_re.match(string):
-		words.append(word_re[1])
+		words.append(word_re[0])
 		i = word_re.m.end()
 		string = string[i:].lstrip()
 	assert not string
 	if unescape:
-		words = map(unescape_quoted_string, words)
+		words = [unescape_quoted_string(w) for w in words]
 	return words
 
 
 def unescape_quoted_string(string):
-	'''Removes quotes from a string and unescapes embedded quotes.'''
+	'''Removes quotes from a string and unescapes embedded quotes
+	@returns: string
+	'''
 	escape_re = re.compile(r'(\\(\\)|\\([\'\"]))')
 	def replace(m):
 		return m.group(2) or m.group(3)

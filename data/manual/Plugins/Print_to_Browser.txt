@@ -1,0 +1,14 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2012-12-11T19:34:32+01:00
+
+====== Print to Browser ======
+
+This plugin provides a workaround for the lack of printing support in zim. It exports the current page
+to html and opens a browser. Assuming the browser does have printing support this will get your data to the printer in two steps.
+
+**Dependencies:** This plugin has no additional dependencies.
+
+
+===== Template =====
+The html template used is the template "Print.html". You can edit it if you want to change how a page is rendered by this plugin. To edit the template go to the "//Edit//" → "//Templates//" menu item. See [[Help:Templates]] for more info on templates.

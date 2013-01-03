@@ -12,6 +12,8 @@ If you want to extend the user interface, also see L{zim.gui.widgets}
 for common base classes for widgets and dialogs.
 '''
 
+from __future__ import with_statement
+
 import os
 import re
 import logging
@@ -1157,13 +1159,10 @@ class GtkInterface(NotebookInterface):
 		if not ok:
 			return
 
-		dialog = ProgressBarDialog(self, _('Upgrading notebook'))
-			# T: Title of progressbar dialog
-		dialog.show_all()
-		self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
-		dialog.set_total(self.notebook.index.n_list_all_pages())
-		self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
-		dialog.destroy()
+		with ProgressBarDialog(self, _('Upgrading notebook')) as dialog: # T: Title of progressbar dialog
+			self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
+			dialog.set_total(self.notebook.index.n_list_all_pages())
+			self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
 
 	def on_notebook_properties_changed(self, notebook):
 		has_doc_root = not notebook.document_root is None
@@ -1648,13 +1647,12 @@ class GtkInterface(NotebookInterface):
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 
 		try:
-			func(update_links, callback)
+			with dialog:
+				func(update_links, callback)
 		except Exception, error:
 			ErrorDialog(self, error).run()
-			dialog.destroy()
 			return False
 		else:
-			dialog.destroy()
 			return True
 
 	def delete_page(self, path=None):
@@ -1675,18 +1673,13 @@ class GtkInterface(NotebookInterface):
 			# T: Title of progressbar dialog
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 		try:
-			self.notebook.trash_page(path, update_links, callback)
+			with dialog:
+				self.notebook.trash_page(path, update_links, callback)
 		except TrashNotSupportedError, error:
-			dialog.destroy()
 			logger.info('Trash not supported: %s', error.msg)
 			DeletePageDialog(self, path).run()
 		except TrashCancelledError, error:
-			dialog.destroy()
-		except Exception, error:
-			dialog.destroy()
-			raise
-		else:
-			dialog.destroy()
+			pass
 
 	def show_properties(self):
 		'''Menu action to show the L{PropertiesDialog}'''
@@ -1862,6 +1855,7 @@ class GtkInterface(NotebookInterface):
 		else:
 			manager = ApplicationManager()
 			type = zim.gui.applications.get_mimetype(url)
+			logger.debug('Got type "%s" for "%s"', type, url)
 			entry = manager.get_default_application(type)
 			if entry:
 				self._open_with(entry, url)
@@ -2072,11 +2066,10 @@ class GtkInterface(NotebookInterface):
 
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
-		index.update(callback=lambda p: dialog.pulse(p.name))
-		dialog.destroy()
+		with dialog:
+			index.update(callback=lambda p: dialog.pulse(p.name))
 
 		self.emit('end-index-update')
-
 		return not dialog.cancelled
 
 	def manage_custom_tools(self):
@@ -2237,7 +2230,14 @@ class MainWindow(Window):
 	@ivar pageview: the L{PageView} object
 	@ivar pageindex: the L{PageIndex} object
 	@ivar pathbar: the L{PathBar} object
+
+	@signal: C{fullscreen-changed ()}: emitted when switching to or from fullscreen state
 	'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'fullscreen-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+	}
 
 	def __init__(self, ui, fullscreen=False, geometry=None):
 		'''Constructor
@@ -2248,7 +2248,7 @@ class MainWindow(Window):
 		"C{WxH+X+Y}", if C{None} the previous state is restored
 		'''
 		Window.__init__(self)
-		self._fullscreen = False
+		self.isfullscreen = False
 		self.ui = ui
 
 		ui.connect('open-page', self.on_open_page)
@@ -2367,17 +2367,33 @@ class MainWindow(Window):
 		isfullscreen = gtk.gdk.WINDOW_STATE_FULLSCREEN
 		if bool(event.changed_mask & isfullscreen):
 			# Did not find property for this - so tracking state ourself
-			self._fullscreen = bool(event.new_window_state & isfullscreen)
-			logger.debug('Fullscreen changed: %s', self._fullscreen)
+			wasfullscreen = self.isfullscreen
+			self.isfullscreen = bool(event.new_window_state & isfullscreen)
+			logger.debug('Fullscreen changed: %s', self.isfullscreen)
 			self._set_widgets_visable()
 			if self.actiongroup:
 				# only do this after we initalize
-				self.toggle_fullscreen(show=self._fullscreen)
+				self.toggle_fullscreen(show=self.isfullscreen)
 
-		if ui_environment['platform'] == 'maemo':
-			# Maemo UI bugfix: If ancestor method is not called the window
-			# will have borders when fullscreen
+			if wasfullscreen:
+				# restore uistate
+				if self.uistate['windowsize']:
+					w, h = self.uistate['windowsize']
+					self.resize(w, h)
+				if self.uistate['windowpos']:
+					x, y = self.uistate['windowpos'] # Should we use _windowpos?
+					self.move(x, y)
+			
+			if wasfullscreen != self.isfullscreen:
+				self.emit('fullscreen-changed')
+
+		# Maemo UI bugfix: If ancestor method is not called the window
+		# will have borders when fullscreen
+		# But is virtual method on other platforms
+		try:
 			Window.do_window_state_event(self, event)
+		except NotImplementedError:
+			pass
 
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:
@@ -2447,7 +2463,7 @@ class MainWindow(Window):
 			self.menubar.hide()
 			self.menubar.set_no_show_all(True)
 
-		if self._fullscreen:
+		if self.isfullscreen:
 			self.uistate['show_menubar_fullscreen'] = show
 		else:
 			self.uistate['show_menubar'] = show
@@ -2475,7 +2491,7 @@ class MainWindow(Window):
 			self.toolbar.hide()
 			self.toolbar.set_no_show_all(True)
 
-		if self._fullscreen:
+		if self.isfullscreen:
 			self.uistate['show_toolbar_fullscreen'] = show
 		else:
 			self.uistate['show_toolbar'] = show
@@ -2508,7 +2524,7 @@ class MainWindow(Window):
 			self.statusbar.hide()
 			self.statusbar.set_no_show_all(True)
 
-		if self._fullscreen:
+		if self.isfullscreen:
 			self.uistate['show_statusbar_fullscreen'] = show
 		else:
 			self.uistate['show_statusbar'] = show
@@ -2530,9 +2546,11 @@ class MainWindow(Window):
 			show = action.get_active()
 
 		if show:
+			self.save_uistate()
 			self.fullscreen()
 		else:
 			self.unfullscreen()
+			# uistate is restored in do_window_state_event()
 
 	def do_pane_state_changed(self, pane, *a):
 		if not hasattr(self, 'actiongroup') \
@@ -2635,7 +2653,7 @@ class MainWindow(Window):
 				self.pathbar_box.add(self.pathbar)
 			self.pathbar_box.show_all()
 
-		if self._fullscreen:
+		if self.isfullscreen:
 			self.uistate['pathbar_type_fullscreen'] = style
 		else:
 			self.uistate['pathbar_type'] = style
@@ -2804,7 +2822,7 @@ class MainWindow(Window):
 
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets
-		if self._fullscreen:
+		if self.isfullscreen:
 			self.toggle_menubar(show=self.uistate['show_menubar_fullscreen'])
 			self.toggle_toolbar(show=self.uistate['show_toolbar_fullscreen'])
 			self.toggle_statusbar(show=self.uistate['show_statusbar_fullscreen'])
@@ -2816,7 +2834,7 @@ class MainWindow(Window):
 			self.set_pathbar(self.uistate['pathbar_type'])
 
 	def save_uistate(self):
-		if not self._fullscreen:
+		if not self.isfullscreen:
 			self.uistate['windowpos'] = self.get_position()
 			self.uistate['windowsize'] = self.get_size()
 
@@ -3223,9 +3241,7 @@ class RenamePageDialog(Dialog):
 		assert path, 'Need a page here'
 		Dialog.__init__(self, ui, _('Rename Page')) # T: Dialog title
 		self.path = path
-
 		page = self.ui.notebook.get_page(self.path)
-		existing = (page.hascontent or page.haschildren)
 
 		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
 			# T: label in 'rename page' dialog - %s is the page name
@@ -3252,11 +3268,11 @@ class RenamePageDialog(Dialog):
 				# T: Option in the 'rename page' dialog
 		], {
 			'name': self.path.basename,
-			'head': existing,
+			'head': page.heading_matches_pagename(),
 			'update': True,
 		})
 
-		if not existing:
+		if not page.exists():
 			self.form['head'] = False
 			self.form.widgets['head'].set_sensitive(False)
 
@@ -3347,14 +3363,10 @@ class DeletePageDialog(Dialog):
 			# T: Title of progressbar dialog
 		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 
-		try:
+		with dialog:
 			self.ui.notebook.delete_page(self.path, update_links, callback)
-		except Exception, error:
-			dialog.destroy()
-			raise
-		else:
-			dialog.destroy()
-			return True
+
+		return True
 
 
 class AttachFileDialog(FileDialog):

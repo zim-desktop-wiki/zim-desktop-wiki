@@ -203,6 +203,8 @@ class Dumper(DumperClass):
 
 					#~ imagepath = File(self.linker.link(element.attrib['src'])).path
 					imagepath = self.linker.link(element.attrib['src'])
+					if imagepath.startswith('file://'):
+						imagepath = File(imagepath).path # avoid URIs here
 					image = '\\includegraphics[%s]{%s}' % (options, imagepath)
 					if 'href' in element.attrib:
 						href = self.linker.link(element.attrib['href'])

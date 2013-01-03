@@ -11,8 +11,6 @@ In order to be able to use this plugin you must have latex installed and the fol
 
 ===== Syntax =====
 
-//TODO: This section needs to be improved - suggestions welcome.//
-
 Some quick examples of the latex math syntax. For a complete reference see the links below:
 
 {{./equation_01.png}}

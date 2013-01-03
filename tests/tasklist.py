@@ -52,9 +52,10 @@ class TestTaskList(tests.TestCase):
 				# extract should not modify the tree
 			return tasks
 
-		def t(label, open=True, due=NO_DATE, prio=0):
+		def t(label, open=True, due=NO_DATE, prio=0, tags=''):
 			# Generate a task tuple
-			return (open, True, prio, due, unicode(label))
+			# (open, actionable, prio, due, tags, description)
+			return [open, True, prio, due, tags, unicode(label)]
 
 		# Note that this same text is in the test notebook
 		# so it gets run through the index as well - keep in sync
@@ -78,6 +79,7 @@ FIXME: dus
 [ ] List with
 	[ ] Nested items
 	[*] Some are done
+	[*] Done but with open child
 		[x] Others not
 		[ ] FOOOOO
 [ ] Bar
@@ -127,28 +129,29 @@ FIXME: jaja - TODO !! @FIXME
 			(t('List'), []),
 			(t('List with'), [
 				(t('Nested items'), []),
-				(t('Some are done', open=False), [
+				(t('Some are done', open=False), []),
+				(t('Done but with open child', open=True), [
 					(t('Others not', open=False), []),
 					(t('FOOOOO'), []),
 				]),
 			]),
 			(t('Bar'), []),
-			(t('And then there are @tags'), []),
+			(t('And then there are @tags', tags='tags'), []),
 			(t('And due dates'), []),
-			(t('Date', due=mydate), []),
-			(t('Date', due='2012-12-11'), [
+			(t('Date [d: 11/12]', due=mydate), []),
+			(t('Date [d: 11/12/2012]', due='2012-12-11'), [
 				(t('TODO: BAR !!!', prio=3, due='2012-12-11'), []),
 				# due date is inherited
 			]),
 			# this list inherits the @home tag - and inherits prio
-			(t('Some more tasks !!! @home', prio=3), [
-				(t('Foo ! @home', prio=1), []),
-				(t('Bar @home', prio=3), []),
+			(t('Some more tasks !!!', prio=3, tags='home'), [
+				(t('Foo !', prio=1, tags='home'), []),
+				(t('Bar', prio=3, tags='home'), []),
 			]),
 			(t('TODO: dus'), []),
-			(t('FIXME: jaja - TODO !! @FIXME', prio=2), []),
+			(t('FIXME: jaja - TODO !! @FIXME', prio=2, tags='FIXME'), []),
 			(t('TODO: dus - list item'), []),
-			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2), []),
+			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2, tags='FIXME'), []),
 			(t('Sub item bullets'), []),
 			(t('Sub item numbered'), []),
 		]
@@ -165,14 +168,14 @@ FIXME: jaja - TODO !! @FIXME
 			(t('FIXME: dus'), []),
 			(t('TODO: BAR !!!', prio=3), []),
 			# this list inherits the @home tag - and inherits prio
-			(t('Some more tasks !!! @home', prio=3), [
-				(t('Foo ! @home', prio=1), []),
-				(t('Bar @home', prio=3), []),
+			(t('Some more tasks !!!', prio=3, tags='home'), [
+				(t('Foo !', prio=1, tags='home'), []),
+				(t('Bar', prio=3, tags='home'), []),
 			]),
 			(t('TODO: dus'), []),
-			(t('FIXME: jaja - TODO !! @FIXME', prio=2), []),
+			(t('FIXME: jaja - TODO !! @FIXME', prio=2, tags='FIXME'), []),
 			(t('TODO: dus - list item'), []),
-			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2), []),
+			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2, tags='FIXME'), []),
 		]
 
 		tasks = extract_tasks(text)
@@ -180,13 +183,15 @@ FIXME: jaja - TODO !! @FIXME
 
 		# TODO: more tags, due dates, tags for whole list, etc. ?
 
-	def testDialog(self):
-		'''Check tasklist plugin dialog'''
-		klass = zim.plugins.get_plugin('tasklist')
-		ui = MockUI()
-		plugin = klass(ui)
-		ui.notebook.index.flush()
-		ui.notebook.index.update()
+	#~ def testDialog(self):
+		#~ '''Check tasklist plugin dialog'''
+		#~ klass = zim.plugins.get_plugin('tasklist')
+		#~ ui = MockUI()
+		#~ plugin = klass(ui)
+		#~ ui.notebook.index.flush()
+		#~ ui.notebook.index.update()
+		#
+		# TODO
 
 	def testTaskListTreeView(self):
 		klass = zim.plugins.get_plugin('tasklist')
@@ -212,6 +217,8 @@ FIXME: jaja - TODO !! @FIXME
 		self.assertTrue(len(lines) > 10)
 		self.assertTrue(len(lines[0].split(',')) > 3)
 		self.assertFalse(any('<span' in l for l in lines)) # make sure encoding is removed
+
+		# TODO test filtering for tags, labels, string - all case insensitive
 
 
 class MockUI(tests.MockObject):
