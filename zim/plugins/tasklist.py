@@ -338,6 +338,18 @@ This is a core plugin shipping with zim.
 		with following properties: C{(open, actionable, prio, due, tags, description)}, 2nd item
 		is a list of child tasks (if any).
 		'''
+		# Stack tuple indexes
+		LEVEL = 0
+		TASK = 1
+		CHILDREN = 2
+
+		# Task tuple indexes
+		OPEN = 0
+		ACT = 1
+		PRIO = 2
+		DATE = 3
+		TAGS = 4
+
 		tasks = []
 
 		for node in parsetree.findall('p'):
@@ -346,37 +358,26 @@ This is a core plugin shipping with zim.
 			istasklist = False
 			globaltags = []
 			globalactionable = True
+			globalprio = None
+			globaldate = defaultdate
 			if len(lines) >= 2 \
 			and isinstance(lines[0], basestring) \
 			and isinstance(lines[1], tuple) \
 			and self.task_labels and self.task_label_re.match(lines[0]):
-				for word in lines[0].strip(':').split()[1:]:
-					if word.startswith('@'):
-						globaltags.append(word)
-					else:
-						# not a header after all
-						globaltags = []
-						break
-				else:
-					# no break occurred - all OK
-					lines.pop(0)
-					istasklist = True
-			if any(t.lower().strip('@') in self.nonactionble_tags for t in globaltags):
-				globalactionable = False
-
-			# Check line by line
-			LEVEL = 0
-			TASK = 1
-			CHILDREN = 2
+				# Parse the task list header as if it was a task and use it's
+				# attributes as defaults for the rest of the tasks in this block.
+				defaults = self._parse_task(lines[0])
+				defaults[TAGS] = defaults[TAGS].split(',')
+				globalactionable = defaults[ACT]
+				globalprio = defaults[PRIO]
+				globaltags.extend(defaults[TAGS])
+				globaldate = defaults[DATE]
+				lines.pop(0)
+				istasklist = True
 
 			stack = [] # stack of 3-tuples, (LEVEL, TASK, CHILDREN)
 
-			OPEN = 0
-			ACT = 1
-			PRIO = 2
-			DATE = 3
-			TAGS = 4
-
+			# Check line by line
 			for item in lines:
 				if isinstance(item, tuple):
 					# checkbox or bullet
@@ -399,8 +400,8 @@ This is a core plugin shipping with zim.
 							mydefaultactionable = stack[-1][TASK][ACT]
 							inherited_tags = stack[-1][TASK][TAGS].split(',')
 						else:
-							mydefaultdate = defaultdate
-							mydefaultprio = None
+							mydefaultdate = globaldate
+							mydefaultprio = globalprio
 							mydefaultactionable = globalactionable
 							inherited_tags = globaltags
 
