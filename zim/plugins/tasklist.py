@@ -345,6 +345,7 @@ This is a core plugin shipping with zim.
 			# Check first line for task list header
 			istasklist = False
 			globaltags = []
+			globalactionable = True
 			if len(lines) >= 2 \
 			and isinstance(lines[0], basestring) \
 			and isinstance(lines[1], tuple) \
@@ -360,6 +361,8 @@ This is a core plugin shipping with zim.
 					# no break occurred - all OK
 					lines.pop(0)
 					istasklist = True
+			if any(t.lower().strip('@') in self.nonactionble_tags for t in globaltags):
+				globalactionable = False
 
 			# Check line by line
 			LEVEL = 0
@@ -398,7 +401,7 @@ This is a core plugin shipping with zim.
 						else:
 							mydefaultdate = defaultdate
 							mydefaultprio = None
-							mydefaultactionable = True
+							mydefaultactionable = globalactionable
 							inherited_tags = globaltags
 
 						open = (bullet not in (CHECKED_BOX, XCHECKED_BOX))
@@ -511,7 +514,7 @@ This is a core plugin shipping with zim.
 			date = defaultdate
 
 		if actionable:
-			if any(t.lower() in self.nonactionble_tags for t in tags):
+			if any(t.lower().strip('@') in self.nonactionble_tags for t in tags):
 				actionable = False
 			elif self.next_label_re.match(text):
 				if tasks and tasks[-1][0][0]: # previous task still open

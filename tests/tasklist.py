@@ -46,10 +46,10 @@ class TestTaskList(tests.TestCase):
 				# extract should not modify the tree
 			return tasks
 
-		def t(label, open=True, due=NO_DATE, prio=0, tags=''):
+		def t(label, open=True, due=NO_DATE, prio=0, tags='', actionable=True):
 			# Generate a task tuple
 			# (open, actionable, prio, due, tags, description)
-			return [open, True, prio, due, tags, label]
+			return [open, actionable, prio, due, tags, label]
 
 		# Note that this same text is in the test notebook
 		# so it gets run through the index as well - keep in sync
@@ -118,6 +118,12 @@ Test task inheritance:
 		[*] Sub2-2 @tag4
 		[ ] Sub2-3
 	[ ] Sub3
+
+TODO: @someday
+[ ] A
+[ ] B
+	[ ] B-1
+[ ] C
 '''
 
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
@@ -167,8 +173,15 @@ Test task inheritance:
 				]),
 				(t('Sub3', prio=1, tags='tag1,tag2'), []),
 			]),
+			(t('A', tags='someday', actionable=False), []),
+			(t('B', tags='someday', actionable=False), [
+				(t('B-1', tags='someday', actionable=False), []),
+			]),
+			(t('C', tags='someday', actionable=False), []),
 		]
 
+		plugin.preferences['nonactionable_tags'] = '@someday, @maybe'
+		plugin.do_preferences_changed()
 		tasks = extract_tasks(text)
 		self.assertEqual(tasks, wanted)
 
@@ -189,6 +202,11 @@ Test task inheritance:
 			(t('FIXME: jaja - TODO !! @FIXME', prio=2, tags='FIXME'), []),
 			(t('TODO: dus - list item'), []),
 			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2, tags='FIXME'), []),
+			(t('A', tags='someday', actionable=False), []),
+			(t('B', tags='someday', actionable=False), [
+				(t('B-1', tags='someday', actionable=False), []),
+			]),
+			(t('C', tags='someday', actionable=False), []),
 		]
 
 		tasks = extract_tasks(text)
