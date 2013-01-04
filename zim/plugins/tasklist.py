@@ -335,7 +335,7 @@ This is a core plugin shipping with zim.
 		@param parsetree: a L{zim.formats.ParseTree} object
 		@param defaultdate: default due date for the whole page (e.g. for calendar pages) as string
 		@returns: nested list of tasks, each task is given as a 2-tuple, 1st item is a tuple
-		with following properties: C{(open, actionable, prio, due, description)}, 2nd item
+		with following properties: C{(open, actionable, prio, due, tags, description)}, 2nd item
 		is a list of child tasks (if any).
 		'''
 		tasks = []
@@ -372,6 +372,7 @@ This is a core plugin shipping with zim.
 			ACT = 1
 			PRIO = 2
 			DATE = 3
+			TAGS = 4
 
 			for item in lines:
 				if isinstance(item, tuple):
@@ -393,10 +394,12 @@ This is a core plugin shipping with zim.
 								mydefaultdate = defaultdate
 							mydefaultprio = stack[-1][TASK][PRIO]
 							mydefaultactionable = stack[-1][TASK][ACT]
+							inherited_tags = stack[-1][TASK][TAGS].split(',')
 						else:
 							mydefaultdate = defaultdate
 							mydefaultprio = None
 							mydefaultactionable = True
+							inherited_tags = globaltags
 
 						open = (bullet not in (CHECKED_BOX, XCHECKED_BOX))
 						if stack:
@@ -404,7 +407,7 @@ This is a core plugin shipping with zim.
 						else:
 							mytasks = tasks
 						task = self._parse_task(text, open=open,
-								tags=globaltags,
+								tags=inherited_tags,
 								actionable=mydefaultactionable,
 								defaultdate=mydefaultdate,
 								defaultprio=mydefaultprio,
@@ -489,6 +492,9 @@ This is a core plugin shipping with zim.
 
 		if not tags:
 			tags = []
+		else:
+			# ensure we don't mutate the parent's tags list
+			tags = list(tags)
 		tags += _tag_re.findall(text)
 
 		datematch = _date_re.search(text) # first match

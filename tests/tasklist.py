@@ -108,6 +108,16 @@ FIXME: jaja - TODO !! @FIXME
 2. With tasks as sub items
 	[ ] Sub item numbered
 3. dus
+
+Test task inheritance:
+
+[ ] Main @tag1 @tag2 !
+	[*] Sub1
+	[ ] Sub2 @tag3 !!!!
+		[*] Sub2-1
+		[*] Sub2-2 @tag4
+		[ ] Sub2-3
+	[ ] Sub3
 '''
 
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
@@ -148,6 +158,15 @@ FIXME: jaja - TODO !! @FIXME
 			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2, tags='FIXME'), []),
 			(t('Sub item bullets'), []),
 			(t('Sub item numbered'), []),
+			(t('Main @tag1 @tag2 !', prio=1, tags='tag1,tag2'), [
+				(t('Sub1', prio=1, open=False, tags='tag1,tag2'), []),
+				(t('Sub2 @tag3 !!!!', prio=4, tags='tag1,tag2,tag3'), [
+					(t('Sub2-1', prio=4, open=False, tags='tag1,tag2,tag3'), []),
+					(t('Sub2-2 @tag4', prio=4, open=False, tags='tag1,tag2,tag3,tag4'), []),
+					(t('Sub2-3', prio=4, tags='tag1,tag2,tag3'), []),
+				]),
+				(t('Sub3', prio=1, tags='tag1,tag2'), []),
+			]),
 		]
 
 		tasks = extract_tasks(text)
