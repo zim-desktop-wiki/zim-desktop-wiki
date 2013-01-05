@@ -130,25 +130,29 @@ Tags: @foo @bar
 \item item 1
 \item item 2
 \item item 3
-\begin{itemize}
+	\begin{itemize}
 	\item item a
 	\item item b
-\end{itemize}\item item 4
+	\end{itemize}
+\item item 4
 \end{itemize}
+
 
 
 
 Indented list:
 
-\begin{itemize}
-\item item 1
-\item item 2
-\item item 3
-\begin{itemize}
-	\item item a
-	\item item b
-\end{itemize}\item item 4
-\end{itemize}
+	\begin{itemize}
+	\item item 1
+	\item item 2
+	\item item 3
+		\begin{itemize}
+		\item item a
+		\item item b
+		\end{itemize}
+	\item item 4
+	\end{itemize}
+
 
 
 
@@ -157,13 +161,16 @@ TODO list:
 \begin{itemize}
 \item[\Square] foo
 \item[\CheckedBox] bar
-\begin{itemize}
+	\begin{itemize}
 	\item[\CheckedBox] sub item 1
-\begin{itemize}
+		\begin{itemize}
 		\item Some normal bullet
-\end{itemize}	\item[\CheckedBox] sub item 2
-\end{itemize}\item[\XBox] baz
+		\end{itemize}
+	\item[\CheckedBox] sub item 2
+	\end{itemize}
+\item[\XBox] baz
 \end{itemize}
+
 
 
 
@@ -172,11 +179,13 @@ A numbered list:
 \begin{enumerate}[1]
 \item foo
 \item bar
-\begin{enumerate}[a]
+	\begin{enumerate}[a]
 	\item sub list
 	\item here
-\end{enumerate}\item hmmm
+	\end{enumerate}
+\item hmmm
 \end{enumerate}
+
 
 
 
@@ -188,11 +197,13 @@ Start with number other that 1/a/A
 \setcounter{enumi}{2}
 \item foo
 \item bar
-\begin{enumerate}[1]
-\setcounter{enumi}{2}
+	\begin{enumerate}[1]
+	\setcounter{enumi}{2}
 	\item sub item start with 3
-\end{enumerate}\item baz
+	\end{enumerate}
+\item baz
 \end{enumerate}
+
 
 \paragraph{head 5}
 
@@ -228,7 +239,7 @@ the Achaeans.
     	@param baz: value for baz
     	@returns: foo
     	'''
-    	returen "foo" + bar % baz
+    	returen "foo" + bar \% baz
 
 \end{lstlisting}
 

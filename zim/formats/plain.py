@@ -10,7 +10,8 @@ import zim.parser
 from zim.parser import prepare_text, Rule
 
 from zim.formats import *
-from zim.parsing import TextBuffer, url_re
+from zim.parsing import url_re
+
 
 info = {
 	'name': 'plain',
@@ -21,18 +22,6 @@ info = {
 	'import': True,
 	'export': True,
 }
-
-
-bullets = {
-	'[ ]': UNCHECKED_BOX,
-	'[x]': XCHECKED_BOX,
-	'[*]': CHECKED_BOX,
-	'*': BULLET,
-}
-# reverse dict
-bullet_types = {}
-for bullet in bullets:
-	bullet_types[bullets[bullet]] = bullet
 
 
 class Parser(ParserClass):
@@ -73,109 +62,128 @@ class Dumper(DumperClass):
 	# is to ensure dumping a page to plain text will still be
 	# readable.
 
-	# TODO check commonality with dumper in wiki.py
+	BULLETS = {
+		UNCHECKED_BOX:	u'[ ]',
+		XCHECKED_BOX:	u'[x]',
+		CHECKED_BOX:	u'[*]',
+		BULLET:			u'*',
+	}
 
-	def dump(self, tree):
-		#~ print 'DUMP PLAIN', tree.tostring()
-		assert isinstance(tree, ParseTree)
-		output = TextBuffer()
-		self.dump_children(tree.getroot(), output)
-		return output.get_lines(end_with_newline=not tree.ispartial)
+	# No additional formatting for these tags, otherwise copy-pasting
+	# as plain text is no longer plain text
+	TAGS = {
+		EMPHASIS:		('', ''),
+		STRONG:			('', ''),
+		MARK:			('', ''),
+		STRIKE:			('', ''),
+		VERBATIM:		('', ''),
+		TAG:			('', ''),
+		SUBSCRIPT:		('', ''),
+		SUPERSCRIPT:	('', ''),
+	}
 
-	def dump_children(self, list, output, list_level=-1, list_type=None, list_iter='0'):
-		if list.text:
-			output.append(list.text)
+	def dump_indent(self, tag, attrib, strings):
+		# Prefix lines with one or more tabs
+		if attrib and 'indent' in attrib:
+			prefix = '\t' * int(attrib['indent'])
+			return self.prefix_lines(prefix, strings)
+			# TODO enforces we always end such a block with \n unless partial
+		else:
+			return strings
 
-		for element in list.getchildren():
-			if element.tag in ('p', 'div'):
-				indent = 0
-				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
-				myoutput = TextBuffer()
-				self.dump_children(element, myoutput) # recurs
-				if indent:
-					myoutput.prefix_lines('\t'*indent)
-				output.extend(myoutput)
-			elif element.tag == 'h':
-				## Copy from Markdown
-				level = int(element.attrib['level'])
-				if level < 1:   level = 1
-				elif level > 5: level = 5
+	dump_p = dump_indent
+	dump_div = dump_indent
+	dump_pre = dump_indent
 
-				if level in (1, 2):
-					# setext-style headers for lvl 1 & 2
-					if level == 1: char = '='
-					else: char = '-'
-					heading = element.text
-					line = char * len(heading)
-					output.append(heading + '\n')
-					output.append(line)
-				else:
-					# atx-style headers for deeper levels
-					tag = '#' * level
-					output.append(tag + ' ' + element.text)
-			elif element.tag in ('ul', 'ol'):
-				indent = int(element.attrib.get('indent', 0))
-				start = element.attrib.get('start')
-				myoutput = TextBuffer()
-				self.dump_children(element, myoutput, list_level=list_level+1, list_type=element.tag, list_iter=start) # recurs
-				if indent:
-					myoutput.prefix_lines('\t'*indent)
-				output.extend(myoutput)
-			elif element.tag == 'li':
-				if 'indent' in element.attrib:
-					# HACK for raw trees from pageview
-					list_level = int(element.attrib['indent'])
+	def dump_h(self, tag, attrib, strings):
+		# Markdown style headers
+		level = int(attrib['level'])
+		if level < 1:   level = 1
+		elif level > 5: level = 5
 
-				if list_type == 'ol':
-					bullet = str(list_iter) + '.'
-					list_iter = increase_list_iter(list_iter) or '1' # fallback if iter not valid
-				else:
-					bullet = bullet_types[element.attrib.get('bullet', BULLET)]
-				output.append('\t'*list_level+bullet+' ')
-				self.dump_children(element, output, list_level=list_level) # recurs
-				output.append('\n')
-			elif element.tag == 'img':
-				src = element.attrib['src']
-				#~ opts = []
-				#~ for k, v in element.attrib.items():
-					#~ if k == 'src' or k.startswith('_'):
-						#~ continue
-					#~ else:
-						#~ opts.append('%s=%s' % (k, v))
-				#~ if opts:
-					#~ src += '?%s' % '&'.join(opts)
-				if 'alt' in element.attrib:
-					output.append(element.attrib['alt'])
-				else:
-					output.append(src)
-			elif element.tag == 'link':
-				assert 'href' in element.attrib, \
-					'BUG: link %s "%s"' % (element.attrib, element.text)
-				href = element.attrib['href']
-				if element.text:
-					output.append(element.text)
-				else:
-					output.append(href)
-			elif element.tag == 'object':
-				object_output = self.dump_object(element.tag, element.attrib, [element.text])
-				output += object_output
-			elif element.tag == 'pre':
-				indent = 0
-				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
-				myoutput = TextBuffer()
-				myoutput.append(element.text)
-				if indent:
-					myoutput.prefix_lines('\t'*indent)
-				output.extend(myoutput)
-			elif element.text:
-				output.append(element.text)
+		if level in (1, 2):
+			# setext-style headers for lvl 1 & 2
+			if level == 1: char = '='
+			else: char = '-'
+			heading = u''.join(strings)
+			underline = char * len(heading)
+			return [heading + '\n', underline]
+		else:
+			# atx-style headers for deeper levels
+			tag = '#' * level
+			strings.insert(0, tag + ' ')
+			return strings
+
+	def dump_list(self, tag, attrib, strings):
+		if 'indent' in attrib:
+			# top level list with specified indent
+			prefix = '\t' * int(attrib['indent'])
+			return self.prefix_lines('\t', strings)
+		elif self._context[-1][0] in (BULLETLIST, NUMBEREDLIST):
+			# indent sub list
+			prefix = '\t'
+			return self.prefix_lines('\t', strings)
+		else:
+			# top level list, no indent
+			return strings
+
+	dump_ul = dump_list
+	dump_ol = dump_list
+
+	def dump_li(self, tag, attrib, strings):
+		# Here is some logic to figure out the correct bullet character
+		# depends on parent list element
+
+		# TODO accept multi-line content here - e.g. nested paras
+
+		if self._context[-1][0] == BULLETLIST:
+			if 'bullet' in attrib \
+			and attrib['bullet'] in self.BULLETS:
+				bullet = self.BULLETS[attrib['bullet']]
 			else:
-				pass
+				bullet = self.BULLETS[BULLET]
+		elif self._context[-1][0] == NUMBEREDLIST:
+			iter = self._context[-1][1].get('_iter')
+			if not iter:
+				# First item on this level
+				iter = self._context[-1][1].get('start', 1)
+			bullet = iter + '.'
+			self._context[-1][1]['_iter'] = increase_list_iter(iter) or '1'
+		else:
+			# HACK for raw tree from pageview
+			# support indenting
+			# support any bullet type (inc numbered)
 
-			if element.tail:
-				output.append(element.tail)
+			bullet = attrib.get('bullet', BULLET)
+			if bullet in self.BULLETS:
+				bullet = self.BULLETS[attrib['bullet']]
+			# else assume it is numbered..
+
+			if 'indent' in attrib:
+				prefix = int(attrib['indent']) * '\t'
+				bullet = prefix + bullet
+
+		return (bullet, ' ') + tuple(strings) + ('\n',)
+
+	def dump_link(self, tag, attrib, strings=None):
+		# Just plain text, either text of link, or link href
+		assert 'href' in attrib, \
+			'BUG: link misses href: %s "%s"' % (attrib, strings)
+		href = attrib['href']
+
+		if strings:
+			return strings
+		else:
+			return href
+
+	def dump_img(self, tag, attrib, strings=None):
+		# Just plain text, either alt text or src
+		src = attrib['src']
+		alt = attrib.get('alt')
+		if alt:
+			return alt
+		else:
+			return src
 
 	def dump_object_fallback(self, tag, attrib, strings):
 		return strings

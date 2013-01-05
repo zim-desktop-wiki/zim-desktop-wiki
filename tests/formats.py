@@ -609,7 +609,7 @@ class TestLatexFormat(tests.TestCase, TestFormatMixin):
 
 		input = r'\foo $ % ^ \% bar < >'
 		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar \textless{} \textgreater{}'
-		self.assertEqual(format.tex_encode(input), wanted)
+		self.assertEqual(format.Dumper.encode_text(input), wanted)
 
 	def testExport(self):
 		'''test the export of a wiki page to latex'''

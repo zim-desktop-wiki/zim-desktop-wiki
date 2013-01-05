@@ -7,8 +7,9 @@
 import re
 
 from zim.parser import *
+from zim.parsing import url_re
 from zim.formats import *
-from zim.parsing import Re, TextBuffer, url_re
+from zim.formats.plain import Dumper as TextDumper
 
 
 WIKI_FORMAT_VERSION = 'zim 0.4'
@@ -24,18 +25,6 @@ info = {
 	'export': True,
 }
 
-
-bullets = {
-	'[ ]': UNCHECKED_BOX,
-	'[x]': XCHECKED_BOX,
-	'[*]': CHECKED_BOX,
-	'*': BULLET,
-}
-
-# reverse dict
-bullet_types = {}
-for bullet in bullets:
-	bullet_types[bullets[bullet]] = bullet
 
 bullet_pattern = u'(?:[\\*\u2022]|\\[[ \\*x]\\]|\\d+\\.|\\w\\.)[\\ \\t]+'
 	# bullets can be '*' or 0x2022 for normal items
@@ -73,6 +62,13 @@ class WikiParser(object):
 	# The second level further splits paragraphs in lists and indented
 	# blocks. The third level does the inline formatting for all
 	# text.
+
+	BULLETS = {
+		'[ ]': UNCHECKED_BOX,
+		'[x]': XCHECKED_BOX,
+		'[*]': CHECKED_BOX,
+		'*': BULLET,
+	}
 
 	def __init__(self):
 		self.inline_parser = self._init_inline_parse()
@@ -265,8 +261,8 @@ class WikiParser(object):
 			else:
 				if listtype == NUMBEREDLIST:
 					attrib = None
-				elif bullet in bullets: # BULLETLIST
-					attrib = {'bullet': bullets[bullet]}
+				elif bullet in self.BULLETS: # BULLETLIST
+					attrib = {'bullet': self.BULLETS[bullet]}
 				else: # BULLETLIST
 					attrib = {'bullet': BULLET}
 				builder.start(LISTITEM, attrib)
@@ -343,7 +339,14 @@ class Parser(ParserClass):
 		return builder.get_parsetree()
 
 
-class Dumper(DumperClass):
+class Dumper(TextDumper):
+
+	BULLETS = {
+		UNCHECKED_BOX:	u'[ ]',
+		XCHECKED_BOX:	u'[x]',
+		CHECKED_BOX:	u'[*]',
+		BULLET:			u'*',
+	}
 
 	TAGS = {
 		EMPHASIS:		('//', '//'),
@@ -355,20 +358,6 @@ class Dumper(DumperClass):
 		SUBSCRIPT:		('_{', '}'),
 		SUPERSCRIPT:	('^{', '}'),
 	}
-
-	# TODO check commonality with dumper in plain.py
-
-	def dump_indent(self, tag, attrib, strings):
-		# Prefix lines with one or more tabs
-		if attrib and 'indent' in attrib:
-			prefix = '\t' * int(attrib['indent'])
-			return self.prefix_lines(prefix, strings)
-			# TODO enforces we always end such a block with \n unless partial
-		else:
-			return strings
-
-	dump_p = dump_indent
-	dump_div = dump_indent
 
 	def dump_pre(self, tag, attrib, strings):
 		# Indent and wrap with "'''" lines
@@ -386,57 +375,6 @@ class Dumper(DumperClass):
 		strings.insert(0, tag + ' ')
 		strings.append(' ' + tag)
 		return strings
-
-	def dump_list(self, tag, attrib, strings):
-		if 'indent' in attrib:
-			# top level list with specified indent
-			prefix = '\t' * int(attrib['indent'])
-			return self.prefix_lines('\t', strings)
-		elif self._context[-1][0] in (BULLETLIST, NUMBEREDLIST):
-			# indent sub list
-			prefix = '\t'
-			return self.prefix_lines('\t', strings)
-		else:
-			# top level list, no indent
-			return strings
-
-	dump_ul = dump_list
-	dump_ol = dump_list
-
-	def dump_li(self, tag, attrib, strings):
-		# Here is some logic to figure out the correct bullet character
-		# depends on parent list element
-
-		# TODO accept multi-line content here - e.g. nested paras
-
-		if self._context[-1][0] == BULLETLIST:
-			if 'bullet' in attrib \
-			and attrib['bullet'] in bullet_types:
-				bullet = bullet_types[attrib['bullet']]
-			else:
-				bullet = '*'
-		elif self._context[-1][0] == NUMBEREDLIST:
-			iter = self._context[-1][1].get('_iter')
-			if not iter:
-				# First item on this level
-				iter = self._context[-1][1].get('start', 1)
-			bullet = iter + '.'
-			self._context[-1][1]['_iter'] = increase_list_iter(iter) or '1'
-		else:
-			# HACK for raw tree from pageview
-			# support indenting
-			# support any bullet type (inc numbered)
-
-			bullet = attrib.get('bullet', BULLET)
-			if bullet in bullet_types:
-				bullet = bullet_types[attrib['bullet']]
-			# else assume it is numbered..
-
-			if 'indent' in attrib:
-				prefix = int(attrib['indent']) * '\t'
-				bullet = prefix + bullet
-
-		return (bullet, ' ') + tuple(strings) + ('\n',)
 
 	def dump_link(self, tag, attrib, strings=None):
 		assert 'href' in attrib, \
