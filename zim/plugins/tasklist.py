@@ -295,16 +295,6 @@ This is a core plugin shipping with zim.
 		if not parsetree:
 			return
 
-		if page._ui_object:
-			# FIXME - HACK - dump and parse as wiki first to work
-			# around glitches in pageview parsetree dumper
-			# make sure we get paragraphs and bullets are nested properly
-			# Same hack in gui clipboard code
-			dumper = get_format('wiki').Dumper()
-			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
-			parser = get_format('wiki').Parser()
-			parsetree = parser.parse(text)
-
 		#~ print '!! Checking for tasks in', path
 		dates = daterange_from_path(path)
 		if dates and self.preferences['deadline_by_page']:

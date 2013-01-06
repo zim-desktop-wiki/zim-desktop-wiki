@@ -131,7 +131,7 @@ some <b>bold</b> text
 
 	def testCopyPasteToParseTree(self):
 		# text -> tree
-		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>some string</zim-tree>'''
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True">some string</zim-tree>'''
 		Clipboard.set_text('some string')
 		newtree = Clipboard.get_parsetree(self.notebook)
 		self.assertEqual(newtree.tostring(), wanted)

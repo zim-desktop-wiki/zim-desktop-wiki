@@ -95,19 +95,9 @@ class TestTextBuffer(tests.TestCase, TestCaseMixin):
 		result1 = buffer.get_parsetree()
 		#~ print tree.tostring()
 		#~ print result1.tostring()
-		#~ self.assertEqual(result1.tostring(), tree.tostring())
-		## HACK since above check to directly compare trees is broken,
-		## check in round about way that we have numbered list elements
-		for elt in result1.findall('li'):
-			if elt.attrib.get('bullet') == '1.':
-				break
-		else:
-			assert False, 'Missing numbered list element'
-		##
-
-		# Compare cooked tree after dumping back
-		resulttext = u''.join(wiki.Dumper().dump(result1))
-		self.assertEqual(resulttext, wikitext)
+		reftree = tree.copy()
+		reftree.unresolve_images() # needed to make compare succeed
+		self.assertEqual(result1.tostring(), reftree.tostring())
 
 		# Compare we are stable when loading raw tree again
 		raw = raw1.tostring()
@@ -120,13 +110,13 @@ class TestTextBuffer(tests.TestCase, TestCaseMixin):
 			# Actual cooked roundtrip test
 
 		# Compare we are stable when loading cooked tree again
-		cooked = result1.tostring()
-		with FilterNoSuchImageWarning():
-			buffer.set_parsetree(result1)
-		self.assertEqual(result1.tostring(), cooked)
-			# If this fails, set_parsetree is modifying the tree
-		result2 = buffer.get_parsetree()
-		self.assertEqual(result2.tostring(), cooked)
+		#~ cooked = result1.tostring()
+		#~ with FilterNoSuchImageWarning():
+			#~ buffer.set_parsetree(result1)
+		#~ self.assertEqual(result1.tostring(), cooked)
+			#~ # If this fails, set_parsetree is modifying the tree
+		#~ result2 = buffer.get_parsetree()
+		#~ self.assertEqual(result2.tostring(), cooked)
 			# Actual cooked roundtrip test
 
 		# Test 'raw' really preserves "errors"
@@ -159,21 +149,21 @@ dus ja
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-foo
-
+<p>foo
+</p>
 <h level="1">bar</h>
-baz
-
-dus <code>ja</code> hmm
-
+<p>baz
+</p>
+<p>dus <code>ja</code> hmm
+</p>
 <h level="2">foo</h>
-bar
-
-dus ja <emphasis>hmm</emphasis>
+<p>bar
+</p>
+<p>dus ja <emphasis>hmm</emphasis>
 <emphasis>dus ja</emphasis>
 grrr
-
-<li bullet="*" indent="0">Foo</li><li bullet="*" indent="0">Bar</li></zim-tree>'''
+</p>
+<p><ul><li bullet="*">Foo</li><li bullet="*">Bar</li></ul></p></zim-tree>'''
 		tree = buffer.get_parsetree()
 		self.assertFalse(buffer.get_modified())
 		self.assertEqual(tree.tostring(), wanted)
@@ -186,21 +176,21 @@ grrr
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-foo
-
+<p>foo
+</p>
 <h level="1">bar</h>
-baz
-
-dus <code>ja</code> hmm
-
+<p>baz
+</p>
+<p>dus <code>ja</code> hmm
+</p>
 <h level="2">foo</h>
-bar
-
-dus ja <emphasis>hmm</emphasis>
+<p>bar
+</p>
+<p>dus ja <emphasis>hmm</emphasis>
 <emphasis>dus ja</emphasis>
 grrr
-
-<li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0"><strong>Bold</strong>Bar</li></zim-tree>'''
+</p>
+<p><ul><li bullet="*">Foo<strong>Bold</strong></li><li bullet="*"><strong>Bold</strong>Bar</li></ul></p></zim-tree>'''
 		pastetree = tests.new_parsetree_from_xml(input)
 		iter = buffer.get_iter_at_line(15)
 		iter.forward_chars(5) # position after "* Foo"
@@ -221,23 +211,23 @@ grrr
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-foo
-
+<p>foo
+</p>
 <h level="1">bar</h>
-baz
-<li bullet="*" indent="0">Foo</li><li bullet="*" indent="0">Bar</li>
+<p>baz
+<ul><li bullet="*">Foo</li><li bullet="*">Bar</li></ul></p>
 
 
-dus <code>ja</code> hmm
-
+<p>dus <code>ja</code> hmm
+</p>
 <h level="2">foo</h>
-bar
-
-dus ja <emphasis>hmm</emphasis>
+<p>bar
+</p>
+<p>dus ja <emphasis>hmm</emphasis>
 <emphasis>dus ja</emphasis>
 grrr
-
-<li bullet="*" indent="0">Foo<strong>Bold</strong></li><li bullet="*" indent="0"><strong>Bold</strong>Bar</li></zim-tree>'''
+</p>
+<p><ul><li bullet="*">Foo<strong>Bold</strong></li><li bullet="*"><strong>Bold</strong>Bar</li></ul></p></zim-tree>'''
 		pastetree = tests.new_parsetree_from_xml(input)
 		iter = buffer.get_iter_at_line(4)
 		iter.forward_chars(3) # position after "baz"
@@ -256,7 +246,7 @@ grrr
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<li bullet="unchecked-box" indent="0">Box 1</li><li bullet="unchecked-box" indent="0">foo Box 2</li><li bullet="unchecked-box" indent="0">Box 3</li>
+<p><ul><li bullet="unchecked-box">Box 1</li><li bullet="unchecked-box">foo Box 2</li><li bullet="unchecked-box">Box 3</li></ul></p>
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
@@ -271,7 +261,7 @@ grrr
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-<li bullet="*" indent="1">Box 1</li><li bullet="*" indent="1">Box 2</li><li bullet="*" indent="1">Box 3</li>
+<p><ul indent="1"><li bullet="*">Box 1</li><li bullet="*">Box 2</li><li bullet="*">Box 3</li></ul></p>
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
@@ -290,7 +280,8 @@ grrr
 		buffer.insert_at_cursor(u'foo \uFFFC bar')
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree>foo  bar</zim-tree>'''
+<zim-tree><p>foo  bar
+</p></zim-tree>'''
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), wanted)
 
@@ -301,16 +292,16 @@ grrr
 
 <h level="2">Bar</h>
 
-<li bullet="*" indent="0">List item 0</li>
-<li bullet="*" indent="1">List item 1</li></zim-tree>'''
+<p><ul><li bullet="*">List item 0</li></ul></p>
+<p><ul indent="1"><li bullet="*">List item 1</li></ul></p></zim-tree>'''
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree><h level="1">FooBar</h>
 
-List item 0
-
-<div indent="1">List item 1
-</div></zim-tree>'''
+<p>List item 0
+</p>
+<p><div indent="1">List item 1
+</div></p></zim-tree>'''
 		# Note: we don't insert extra newlines, but <li> assumes them
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
@@ -434,14 +425,14 @@ Tja
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-aaa <strong>bbb</strong> ccc
-</zim-tree>
+<p>aaa <strong>bbb</strong> ccc
+</p></zim-tree>
 '''
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
-aaa <strong>eee</strong> ccc
-</zim-tree>'''
+<p>aaa <strong>eee</strong> ccc
+</p></zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 
 		buffer = TextBuffer()
@@ -551,53 +542,53 @@ class TestUndoStackManager(tests.TestCase):
 		self.assertTrue(len(undomanager.stack) == 5) # 3 words, 2 spaces
 		for group in undomanager.stack:
 			self.assertTrue(len(group) == 1) # merge was sucessfull
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo barr baz</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr baz</zim-tree>")
 
 		for wanted in (
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo barr </zim-tree>",
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo barr</zim-tree>",
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo </zim-tree>",
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo</zim-tree>",
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree />"
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr </zim-tree>",
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr</zim-tree>",
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo </zim-tree>",
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo</zim-tree>",
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\" />"
 		):
 			undomanager.undo()
-			self.assertEqual(buffer.get_parsetree().tostring(), wanted)
+			self.assertEqual(buffer.get_parsetree(raw=True).tostring(), wanted)
 
 		while undomanager.redo():
 			continue
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo barr baz</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr baz</zim-tree>")
 
 		# test other actions
 		iter = buffer.get_iter_at_offset(7)
 		buffer.place_cursor(iter)
 		buffer.select_word()
 		buffer.toggle_textstyle('strong')
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo <strong>barr</strong> baz</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
 
 		undomanager.undo()
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo barr baz</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr baz</zim-tree>")
 
 		undomanager.redo()
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo <strong>barr</strong> baz</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
 
 		start, end = map(buffer.get_iter_at_offset, (5, 10))
 		with buffer.user_action:
 			buffer.delete(start, end)
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo baz</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo baz</zim-tree>")
 
 		undomanager.undo()
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo <strong>barr</strong> baz</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
 
 		undomanager.redo()
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo baz</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo baz</zim-tree>")
 
 		# test folding
 		undomanager.undo()
@@ -605,22 +596,22 @@ class TestUndoStackManager(tests.TestCase):
 		undomanager.undo()
 		undomanager.undo()
 
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo barr</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr</zim-tree>")
 
 		with buffer.user_action:
 			buffer.insert_at_cursor(' ')
 
 		undomanager.undo()
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo barr</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr</zim-tree>")
 
 		undomanager.undo() # here we undo fold of 4 undos above
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo baz</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo baz</zim-tree>")
 		undomanager.undo()
-		self.assertEqual(buffer.get_parsetree().tostring(),
-			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>fooo <strong>barr</strong> baz</zim-tree>")
+		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
+			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
 
 
 class TestFind(tests.TestCase, TestCaseMixin):
@@ -1547,7 +1538,7 @@ foo
 
 		# copy partial
 		# line 33, offset 6 to 28 "try these **bold**, //italic//" in roundtrip page
-		wanted_tree = "<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>"
+		wanted_tree = "<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\"><p>try these <strong>bold</strong>, <emphasis>italic</emphasis></p></zim-tree>"
 		wanted_text = "try these bold, italic" # no newline !
 		Clipboard.clear()
 		self.assertIsNone(Clipboard.get_parsetree())
@@ -1596,14 +1587,16 @@ foo
 		tests.gtk_activate_menu_item(copy_as_menu, 'Wiki')
 		self.assertEqual(Clipboard.get_text(), 'Foo **Bar** Baz\n')
 		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
-		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree partial="True">Foo <strong>Bar</strong> Baz\n</zim-tree>')
+		self.assertEqual(tree.tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree partial="True"><p>Foo <strong>Bar</strong> Baz\n</p></zim-tree>')
 
 		page = tests.new_page_from_text('[[bar]]')
 		pageview.set_page(page)
 		click(_('Copy _Link'))
 		self.assertEqual(Clipboard.get_text(), 'Bar')
 		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
-		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="Bar">Bar</link></zim-tree>')
+		self.assertEqual(tree.tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="Bar">Bar</link></zim-tree>')
 
 		page = tests.new_page_from_text('[[~//bar.txt]]')
 			# Extra '/' is in there to verify path gets parsed as File object
@@ -1611,7 +1604,8 @@ foo
 		click(_('Copy _Link'))
 		self.assertEqual(Clipboard.get_text(), '~/bar.txt')
 		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
-		self.assertEqual(tree.tostring(), '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="~/bar.txt">~/bar.txt</link></zim-tree>')
+		self.assertEqual(tree.tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="~/bar.txt">~/bar.txt</link></zim-tree>')
 
 
 

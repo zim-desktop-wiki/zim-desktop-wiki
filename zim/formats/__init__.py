@@ -632,6 +632,8 @@ class ParseTreeBuilder(Builder):
 		can not be re-used.
 		'''
 		root = self._b.close()
+		if self.partial:
+			root.attrib['partial'] = True
 		return zim.formats.ParseTree(root)
 
 	def start(self, tag, attrib=None):

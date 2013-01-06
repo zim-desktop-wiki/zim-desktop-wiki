@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main text editor widget.
 It includes all classes needed to display and edit a single page as well
@@ -2237,6 +2237,18 @@ class TextBuffer(gtk.TextBuffer):
 		tree = ParseTree(builder.close())
 		tree.encode_urls()
 		#~ print tree.tostring()
+
+		if not raw:
+			# Reparsing the parsetree in order to find raw wiki codes
+			# and get rid of oddities in our generated parsetree.
+			#~ print ">>> Parsetree original:", tree.tostring()
+			from zim.formats import get_format
+			format = get_format("wiki") # FIXME should the format used here depend on the store ?
+			dumper = format.Dumper()
+			parser = format.Parser()
+			tree = parser.parse(dumper.dump(tree), partial=tree.ispartial)
+			#~ print ">>> Parsetree recreated:", tree.tostring()
+
 		return tree
 
 	def select_line(self):

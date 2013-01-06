@@ -85,20 +85,6 @@ class ExportDialog(Assistant):
 					return False
 
 			page = self.ui.notebook.get_page(self.uistate['selected_page'])
-
-			# FIXME - HACK - dump and parse as wiki first to work
-			# around glitches in pageview parsetree dumper
-			# main visibility when copy pasting bullet lists
-			# Same hack in gui clipboard code
-			from zim.notebook import Path, Page
-			from zim.formats import get_format
-			parsetree = page.get_parsetree()
-			dumper = get_format('wiki').Dumper()
-			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
-			parser = get_format('wiki').Parser()
-			parsetree = parser.parse(text)
-			page = Page(Path(page.name), parsetree=parsetree)
-
 			exporter.export_page(file.dir, page, filename=file.basename)
 
 		return True

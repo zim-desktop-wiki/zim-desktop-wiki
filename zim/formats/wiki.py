@@ -333,7 +333,7 @@ class Parser(ParserClass):
 			# reverse extension done by prepare_text()
 			input = input[:-1]
 
-		builder = ParseTreeBuilder()
+		builder = ParseTreeBuilder(partial=partial)
 		wikiparser.backward = self.backward # HACK
 		wikiparser(builder, input)
 		return builder.get_parsetree()
