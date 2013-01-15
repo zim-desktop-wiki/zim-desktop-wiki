@@ -335,9 +335,21 @@ This is a core plugin shipping with zim.
 		@param parsetree: a L{zim.formats.ParseTree} object
 		@param defaultdate: default due date for the whole page (e.g. for calendar pages) as string
 		@returns: nested list of tasks, each task is given as a 2-tuple, 1st item is a tuple
-		with following properties: C{(open, actionable, prio, due, description)}, 2nd item
+		with following properties: C{(open, actionable, prio, due, tags, description)}, 2nd item
 		is a list of child tasks (if any).
 		'''
+		# Stack tuple indexes
+		LEVEL = 0
+		TASK = 1
+		CHILDREN = 2
+
+		# Task tuple indexes
+		OPEN = 0
+		ACT = 1
+		PRIO = 2
+		DATE = 3
+		TAGS = 4
+
 		tasks = []
 
 		for node in parsetree.findall('p'):
@@ -345,34 +357,27 @@ This is a core plugin shipping with zim.
 			# Check first line for task list header
 			istasklist = False
 			globaltags = []
+			globalactionable = True
+			globalprio = None
+			globaldate = defaultdate
 			if len(lines) >= 2 \
 			and isinstance(lines[0], basestring) \
 			and isinstance(lines[1], tuple) \
 			and self.task_labels and self.task_label_re.match(lines[0]):
-				for word in lines[0].strip(':').split()[1:]:
-					if word.startswith('@'):
-						globaltags.append(word)
-					else:
-						# not a header after all
-						globaltags = []
-						break
-				else:
-					# no break occurred - all OK
-					lines.pop(0)
-					istasklist = True
-
-			# Check line by line
-			LEVEL = 0
-			TASK = 1
-			CHILDREN = 2
+				# Parse the task list header as if it was a task and use it's
+				# attributes as defaults for the rest of the tasks in this block.
+				defaults = self._parse_task(lines[0])
+				defaults[TAGS] = defaults[TAGS].split(',')
+				globalactionable = defaults[ACT]
+				globalprio = defaults[PRIO]
+				globaltags.extend(defaults[TAGS])
+				globaldate = defaults[DATE]
+				lines.pop(0)
+				istasklist = True
 
 			stack = [] # stack of 3-tuples, (LEVEL, TASK, CHILDREN)
 
-			OPEN = 0
-			ACT = 1
-			PRIO = 2
-			DATE = 3
-
+			# Check line by line
 			for item in lines:
 				if isinstance(item, tuple):
 					# checkbox or bullet
@@ -393,10 +398,12 @@ This is a core plugin shipping with zim.
 								mydefaultdate = defaultdate
 							mydefaultprio = stack[-1][TASK][PRIO]
 							mydefaultactionable = stack[-1][TASK][ACT]
+							inherited_tags = stack[-1][TASK][TAGS].split(',')
 						else:
-							mydefaultdate = defaultdate
-							mydefaultprio = None
-							mydefaultactionable = True
+							mydefaultdate = globaldate
+							mydefaultprio = globalprio
+							mydefaultactionable = globalactionable
+							inherited_tags = globaltags
 
 						open = (bullet not in (CHECKED_BOX, XCHECKED_BOX))
 						if stack:
@@ -404,7 +411,7 @@ This is a core plugin shipping with zim.
 						else:
 							mytasks = tasks
 						task = self._parse_task(text, open=open,
-								tags=globaltags,
+								tags=inherited_tags,
 								actionable=mydefaultactionable,
 								defaultdate=mydefaultdate,
 								defaultprio=mydefaultprio,
@@ -489,6 +496,9 @@ This is a core plugin shipping with zim.
 
 		if not tags:
 			tags = []
+		else:
+			# ensure we don't mutate the parent's tags list
+			tags = list(tags)
 		tags += _tag_re.findall(text)
 
 		datematch = _date_re.search(text) # first match
@@ -505,7 +515,7 @@ This is a core plugin shipping with zim.
 			date = defaultdate
 
 		if actionable:
-			if any(t.lower() in self.nonactionble_tags for t in tags):
+			if any(t.lower().strip('@') in self.nonactionble_tags for t in tags):
 				actionable = False
 			elif self.next_label_re.match(text):
 				if tasks and tasks[-1][0][0]: # previous task still open
