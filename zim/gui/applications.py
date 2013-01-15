@@ -866,7 +866,8 @@ class CustomToolManager(object):
 		@returns: a L{CustomTool} object
 		'''
 		if not name in self.tools:
-			file = config_file('customtools/%s.desktop' % name)
+			dir = XDG_CONFIG_HOME.subdir('zim/customtools')
+			file = dir.file("%s.desktop" % name)
 			tool = CustomTool(file)
 			self.tools[name] = tool
 
