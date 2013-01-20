@@ -646,7 +646,7 @@ class TextBuffer(gtk.TextBuffer):
 		#~ print 'INSERT AT CURSOR', tree.tostring()
 
 		# Check tree
-		root = tree.getroot()
+		root = tree._etree.getroot() # HACK - switch to new interface !
 		assert root.tag == 'zim-tree'
 		raw = root.attrib.get('raw')
 		if isinstance(raw, basestring):

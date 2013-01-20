@@ -477,7 +477,7 @@ class TestUndoStackManager(tests.TestCase):
 		tree = new_parsetree_from_text(wikitext)
 
 		with FilterNoSuchImageWarning():
-			buffer._insert_element_children(tree.getroot())
+			buffer._insert_element_children(tree._etree.getroot())
 				# Use private method to circumvent begin-insert-tree
 				# signal etc. so we get undo stack for inserting
 

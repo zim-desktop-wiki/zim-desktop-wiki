@@ -104,6 +104,7 @@ XCHECKED_BOX = 'xchecked-box'
 BULLET = '*' # FIXME make this 'bullet'
 
 FORMATTEDTEXT = 'zim-tree'
+FRAGMENT = 'zim-tree'
 
 HEADING = 'h'
 PARAGRAPH = 'p'
@@ -152,6 +153,12 @@ def increase_list_iter(listiter):
 		except IndexError: # wrap to start of list
 			return string.letters[0]
 
+def encode_xml(text):
+	'''Encode text such that it can be used in xml
+	@param text: label text as string
+	@returns: encoded text
+	'''
+	return text.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace("'", '&apos;')
 
 
 def list_formats(type):
@@ -218,38 +225,22 @@ def get_dumper(name, *arg, **kwarg):
 	return klass(*arg, **kwarg)
 
 
-from xml.etree.ElementTree import TreeBuilder as _TreeBuilder
+class ParseTree(object):
+	'''Wrapper for zim parse trees.'''
 
-class TreeBuilder(_TreeBuilder):
-	# Hack to deal with API incompatibility between versions of etree
-	# Note that cElementTree.TreeBuilder is a function, so we can not
-	# subclass it :(  therefore using the python version with the
-	# current element class as factory (which might be the c variant)
+	# No longer derives from ElementTree, internals are not private
 
-	def __init__(self):
-		_TreeBuilder.__init__(self, Element)
-
-	def start(self, tag, attrs=None):
-		if attrs is None:
-			attrs = {}
-		_TreeBuilder.start(self, tag, attrs)
-
-	def data(self, data):
-		assert isinstance(data, basestring), 'Got: %s' % data
-		_TreeBuilder.data(self, data)
-
-
-class ParseTree(ElementTreeModule.ElementTree):
-	'''Wrapper for zim parse trees, derives from ElementTree.'''
+	# TODO, also remove etree args from init
+	# TODO, rename to FormattedText
 
 	def __init__(self, *arg, **kwarg):
-		ElementTreeModule.ElementTree.__init__(self, *arg, **kwarg)
+		self._etree = ElementTreeModule.ElementTree(*arg, **kwarg)
 		self._object_cache = {}
 
 	@property
 	def hascontent(self):
 		'''Returns True if the tree contains any content at all.'''
-		root = self.getroot()
+		root = self._etree.getroot()
 		return bool(root.getchildren() or root.text)
 
 	@property
@@ -257,19 +248,19 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''Returns True when this tree is a segment of a page
 		(like a copy-paste buffer).
 		'''
-		return self.getroot().attrib.get('partial', False)
+		return self._etree.getroot().attrib.get('partial', False)
 
 	@property
 	def israw(self):
 		'''Returns True when this is a raw tree (which is representation
 		of TextBuffer, but not really valid).
 		'''
-		return self.getroot().attrib.get('raw', False)
+		return self._etree.getroot().attrib.get('raw', False)
 
 	def extend(self, tree):
 		# Do we need a deepcopy here ?
-		myroot = self.getroot()
-		otherroot = tree.getroot()
+		myroot = self._etree.getroot()
+		otherroot = tree._etree.getroot()
 		if otherroot.text:
 			children = myroot.getchildren()
 			if children:
@@ -290,21 +281,21 @@ class ParseTree(ElementTreeModule.ElementTree):
 		parser = ElementTreeModule.XMLTreeBuilder()
 		parser.feed(string)
 		root = parser.close()
-		self._setroot(root)
+		self._etree._setroot(root)
 		return self # allow ParseTree().fromstring(..)
 
 	def tostring(self):
-		'''Serialize the tree to a XML representation.'''
+		'''Serialize the tree to a XML representation'''
 		from cStringIO import StringIO
 
 		# Parent dies when we have attributes that are not a string
-		for element in self.getiterator('*'):
+		for element in self._etree.getiterator('*'):
 			for key in element.attrib.keys():
 				element.attrib[key] = str(element.attrib[key])
 
 		xml = StringIO()
 		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")
-		ElementTreeModule.ElementTree.write(self, xml, 'utf-8')
+		ElementTreeModule.ElementTree.write(self._etree, xml, 'utf-8')
 		return xml.getvalue()
 
 	def copy(self):
@@ -312,16 +303,8 @@ class ParseTree(ElementTreeModule.ElementTree):
 		xml = self.tostring()
 		return ParseTree().fromstring(xml)
 
-	def write(self, *_):
-		'''Writing to file is not implemented, use tostring() instead'''
-		raise NotImplementedError
-
-	def parse(self, *_):
-		'''Parsing from file is not implemented, use fromstring() instead'''
-		raise NotImplementedError
-
 	def _get_heading_element(self, level=1):
-		root = self.getroot()
+		root = self._etree.getroot()
 		if root.text and not root.text.isspace():
 			return None
 
@@ -349,7 +332,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 		if heading is not None:
 			heading.text = text
 		else:
-			root = self.getroot()
+			root = self._etree.getroot()
 			heading = ElementTreeModule.Element('h', {'level': level})
 			heading.text = text
 			heading.tail = root.text
@@ -362,7 +345,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 		Will modify the tree.
 		@returns: a 2-tuple of text and heading level or C{(None, None)}
 		'''
-		root = self.getroot()
+		root = self._etree.getroot()
 		children = root.getchildren()
 		if root.text and not root.text.isspace():
 			return None, None
@@ -388,7 +371,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 		and a max depth.
 		'''
 		path = []
-		for heading in self.getiterator('h'):
+		for heading in self._etree.getiterator('h'):
 			level = int(heading.attrib['level'])
 			# find parent header in path using old level
 			while path and path[-1][0] >= level:
@@ -407,11 +390,11 @@ class ParseTree(ElementTreeModule.ElementTree):
 		adds a '_src_file' attribute to the elements with the full file path.
 		'''
 		if notebook is None:
-			for element in self.getiterator('img'):
+			for element in self._etree.getiterator('img'):
 				filepath = element.attrib['src']
 				element.attrib['_src_file'] = File(filepath)
 		else:
-			for element in self.getiterator('img'):
+			for element in self._etree.getiterator('img'):
 				filepath = element.attrib['src']
 				element.attrib['_src_file'] = notebook.resolve_file(element.attrib['src'], path)
 
@@ -419,7 +402,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''Undo effect of L{resolve_images()}, mainly intended for
 		testing.
 		'''
-		for element in self.getiterator('img'):
+		for element in self._etree.getiterator('img'):
 			if '_src_file' in element.attrib:
 				element.attrib.pop('_src_file')
 
@@ -427,7 +410,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''Calls encode_url() on all links that contain urls.
 		See zim.parsing for details. Modifies the parse tree.
 		'''
-		for link in self.getiterator('link'):
+		for link in self._etree.getiterator('link'):
 			href = link.attrib['href']
 			if is_url_re.match(href):
 				link.attrib['href'] = url_encode(href, mode=mode)
@@ -438,7 +421,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 		'''Calls decode_url() on all links that contain urls.
 		See zim.parsing for details. Modifies the parse tree.
 		'''
-		for link in self.getiterator('link'):
+		for link in self._etree.getiterator('link'):
 			href = link.attrib['href']
 			if is_url_re.match(href):
 				link.attrib['href'] = url_decode(href, mode=mode)
@@ -448,7 +431,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 	def count(self, text):
 		'''Returns the number of occurences of 'text' in this tree.'''
 		count = 0
-		for element in self.getiterator():
+		for element in self._etree.getiterator():
 			if element.text:
 				count += element.text.count(text)
 			if element.tail:
@@ -461,7 +444,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 		in this tree.
 		'''
 		count = 0
-		for element in self.getiterator():
+		for element in self._etree.getiterator():
 			if element.text:
 				newstring, n = regex.subn('', element.text)
 				count += n
@@ -473,7 +456,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 
 	def get_ends_with_newline(self):
 		'''Checks whether this tree ends in a newline or not'''
-		return self._get_element_ends_with_newline(self.getroot())
+		return self._get_element_ends_with_newline(self._etree.getroot())
 
 	def _get_element_ends_with_newline(self, element):
 			if element.tail:
@@ -498,7 +481,7 @@ class ParseTree(ElementTreeModule.ElementTree):
 		@param visitor: a L{Visitor} or L{Builder} object
 		'''
 		try:
-			self._visit(visitor, self.getroot())
+			self._visit(visitor, self._etree.getroot())
 		except VisitorStop:
 			pass
 
@@ -518,13 +501,127 @@ class ParseTree(ElementTreeModule.ElementTree):
 		except VisitorSkip:
 			pass
 
+	def find(self, tag):
+		'''Find first occurence of C{tag} in the tree
+		@returns: a L{Node} object or C{None}
+		'''
+		for elt in self.findall(tag):
+			return elt # return first
+		else:
+			return None
+
+	def findall(self, tag):
+		'''Find all occurences of C{tag} in the tree
+		@param tag: tag name
+		@returns: yields L{Node} objects
+		'''
+		for elt in self._etree.iter(tag):
+			yield Element.new_from_etree(elt)
+
+	def replace(self, tag, func):
+		'''Modify the tree by replacing all occurences of C{tag}
+		by the return value of C{func}.
+
+		@param tag: tag name
+		@param func: function to generate replacement values.
+		Function will be called as::
+
+			func(node)
+
+		Where C{node} is a L{Node} object representing the subtree.
+		If the function returns another L{Node} object or modifies
+		C{node} and returns it, the subtree will be replaced by this
+		new node.
+		If the function raises L{VisitorSkip} the replace is skipped.
+		If the function raises L{VisitorStop} the replacement of all
+		nodes will stop.
+		'''
+		try:
+			self._replace(self._etree.getroot(), tag, func)
+		except VisitorStop:
+			pass
+
+	def _replace(self, elt, tag, func):
+		# Two-step replace in order to do items in order
+		# of appearance.
+		replacements = []
+		for i, child in enumerate(elt):
+			if child.tag == tag:
+				try:
+					replacement = func(Element.new_from_etree(child))
+				except VisitorSkip:
+					pass
+				else:
+					replacements.append((i, child, replacement))
+			elif len(child):
+				self._replace(child, tag, func) # recurs
+			else:
+				pass
+
+
+		if replacements:
+			self._do_replace(elt, replacements)
+
+	def _do_replace(self, elt, replacements):
+		offset = 0 # offset due to replacements
+		for i, child, node in replacements:
+			i += offset
+			if node is None or len(node) == 0:
+				# Remove element
+				tail = child.tail
+				elt.remove(child)
+				if tail:
+					self._insert_text(elt, i, tail)
+				offset -= 1
+			elif isinstance(node, Element):
+				# Just replace elements
+				newchild = self._node_to_etree(node)
+				newchild.tail = child.tail
+				elt[i] = newchild
+			elif isinstance(node, DocumentFragment):
+				# Insert list of elements and text
+				tail = child.tail
+				elt.remove(child)
+				offset -= 1
+				for item in node:
+					if isinstance(item, basestring):
+						self._insert_text(elt, i, item)
+					else:
+						assert isinstance(item, Element)
+						elt.insert(i, self._node_to_etree(item))
+						i += 1
+						offset += 1
+				if tail:
+					self._insert_text(elt, i, tail)
+			else:
+				raise TypeError, 'BUG: invalid replacement result'
+
+	@staticmethod
+	def _node_to_etree(node):
+		builder = ParseTreeBuilder()
+		node.visit(builder)
+		return builder._b.close()
+
+	def _insert_text(self, elt, i, text):
+		if i == 0:
+			if elt.text:
+				elt.text += text
+			else:
+				elt.text = text
+		else:
+			prev = elt[i-1]
+			if prev.tail:
+				prev.tail += text
+			else:
+				prev.tail = text
+
 	def get_objects(self, type=None):
 		'''Generator that yields all custom objects in the tree,
 		or all objects of a certain type.
 		@param type: object type to return or C{None} to get all
 		@returns: yields objects (as provided by L{ObjectManager})
 		'''
-		for elt in self.getiterator(OBJECT):
+		for elt in self._etree.getiterator(OBJECT):
 			if type and elt.attrib.get('type') != type:
 				pass
 			else:
@@ -1247,3 +1344,121 @@ class StubLinker(BaseLinker):
 
 	def link_file(self, path):
 		return path
+
+
+class Node(list):
+	'''Base class for DOM-like access to the document structure.
+	@note: This class is not optimized for keeping large structures
+	in memory.
+
+	@ivar tag: tag name
+	@ivar attrib: dict with attributes
+	'''
+
+	__slots__ = ('tag', 'attrib')
+
+	def __init__(self, tag, attrib=None, *content):
+		self.tag = tag
+		self.attrib = attrib
+		if content:
+			self.extend(content)
+
+	@classmethod
+	def new_from_etree(klass, elt):
+		obj = klass(elt.tag, dict(elt.attrib))
+		if elt.text:
+			obj.append(elt.text)
+		for child in elt:
+			subnode = klass.new_from_etree(child) # recurs
+			obj.append(subnode)
+			if child.tail:
+				obj.append(child.tail)
+		return obj
+
+	def get(self, key, default=None):
+		if self.attrib:
+			return self.attrib.get(key, default)
+		else:
+			return default
+
+	def set(self, key, value):
+		if not self.attrib:
+			self.attrib = {}
+		self.attrib[key] = value
+
+	def append(self, item):
+		if isinstance(item, DocumentFragment):
+			list.extend(self, item)
+		else:
+			list.append(self, item)
+
+	def gettext(self):
+		'''Get text as string
+		Ignores any markup and attributes and simply returns textual
+		content.
+		@note: do _not_ use as replacement for exporting to plain text
+		@returns: string
+		'''
+		strings = self._gettext()
+		return u''.join(strings)
+
+	def _gettext(self):
+		strings = []
+		for item in self:
+			if isinstance(item, basestring):
+				strings.append(item)
+			else:
+				strings.extend(item._gettext())
+		return strings
+
+	def toxml(self):
+		strings = self._toxml()
+		return u''.join(strings)
+
+	def _toxml(self):
+		strings = []
+		if self.attrib:
+			strings.append('<%s' % self.tag)
+			for key in sorted(self.attrib):
+				strings.append(' %s="%s"' % (key, encode_xml(self.attrib[key])))
+			strings.append('>')
+		else:
+			strings.append("<%s>" % self.tag)
+
+		for item in self:
+			if isinstance(item, basestring):
+				strings.append(encode_xml(item))
+			else:
+				strings.extend(item._toxml())
+
+		strings.append("</%s>" % self.tag)
+		return strings
+
+	__repr__ = toxml
+
+	def visit(self, visitor):
+		if len(self) == 1 and isinstance(self[0], basestring):
+			visitor.append(self.tag, self.attrib, self[0])
+		else:
+			visitor.start(self.tag, self.attrib)
+			for item in self:
+				if isinstance(item, basestring):
+					visitor.text(item)
+				else:
+					item.visit(visitor)
+			visitor.end(self.tag)
+
+
+class Element(Node):
+	'''Element class for DOM-like access'''
+	pass
+
+
+class DocumentFragment(Node):
+	'''Document fragment class for DOM-like access'''
+
+	def __init__(self, *content):
+		self.tag = FRAGMENT
+		self.attrib = None
+		if content:
+			self.extend(content)

@@ -13,6 +13,7 @@ import datetime
 
 from zim.plugins import PluginClass
 from zim.notebook import Path
+from zim.formats import HEADING
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
 from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
 from zim.signals import ConnectorMixin
@@ -377,8 +378,8 @@ class ToCTreeModel(gtk.TreeStore):
 	def populate(self, parsetree):
 		self.clear()
 		headings = []
-		for el in parsetree.findall('h'):
-			headings.append( (int(el.attrib['level']), el.text) )
+		for heading in parsetree.findall(HEADING):
+			headings.append( (int(heading.attrib['level']), heading.gettext()) )
 
 		stack = [(-1, None)]
 		for level, text in headings:

@@ -202,7 +202,8 @@ Option: bar
 		page = notebook.get_page(Path('Some New None existing page'))
 		template = notebook.get_template(page)
 		tree = template.process_to_parsetree(notebook, page) # No linker !
-		self.assertEqual(tree.find('h').text, u'Some New None existing page')
+		head = tree.find('h').gettext()
+		self.assertEqual(head, u'Some New None existing page')
 
 class TestTemplatePageIndexFuntion(tests.TestCase):
 

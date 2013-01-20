@@ -115,7 +115,7 @@ class TestFormatMixin(object):
 		# TODO how to handle objects ??
 		assert isinstance(text, basestring)
 		offset = 0
-		for elt in tree.iter():
+		for elt in tree._etree.iter():
 			if elt.tag == 'img':
 				elttext = (elt.tail) # img text is optional
 			else:
@@ -179,8 +179,6 @@ class TestParseTree(tests.TestCase):
 		tree = ParseTree()
 		r = tree.fromstring(self.xml)
 		self.assertEqual(id(r), id(tree)) # check return value
-		e = tree.getroot()
-		self.assertEqual(e.tag, 'zim-tree') # check content
 		text = tree.tostring()
 		self.assertEqual(text, self.xml)
 
@@ -256,7 +254,6 @@ class TestParseTree(tests.TestCase):
 		text = tree.tostring()
 		self.assertEqual(text, wanted)
 
-
 	def testGetEndsWithNewline(self):
 		for xml, newline in (
 			('<zim-tree partial="True">foo</zim-tree>', False),
@@ -276,6 +273,59 @@ class TestParseTree(tests.TestCase):
 		tree = tests.new_parsetree_from_xml(xml)
 		objects = list(tree.get_objects())
 		self.assertTrue(len(objects) >= 2)
+
+	def testFindall(self):
+		tree = ParseTree().fromstring(self.xml)
+		wanted = [
+			(1, 'Head 1'),
+			(2, 'Head 2'),
+			(3, 'Head 3'),
+			(2, 'Head 4'),
+			(5, 'Head 5'),
+			(4, 'Head 6'),
+			(5, 'Head 7'),
+			(6, 'Head 8'),
+		]
+		found = []
+		for elt in tree.findall(HEADING):
+			found.append((int(elt.get('level')), elt.gettext()))
+		self.assertEqual(found, wanted)
+
+	def testReplace(self):
+		def replace(elt):
+			# level 2 becomes 3
+			# level 3 is replaced by text
+			# level 4 is removed
+			# level 5 is skipped
+			# level 1 and 6 stay as is
+			level = int(elt.get('level'))
+			if level == 2:
+				elt.attrib['level'] = 3
+				return elt
+			elif level == 3:
+				return DocumentFragment(*elt)
+			elif level == 4:
+				return None
+			elif level == 5:
+				raise VisitorSkip
+			else:
+				return elt
+		tree = ParseTree().fromstring(self.xml)
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<h level="1">Head 1</h>
+<h level="3">Head 2</h>
+Head 3
+<h level="3">Head 4</h>
+<h level="5">Head 5</h>
+
+<h level="5">Head 7</h>
+<h level="6">Head 8</h>
+</zim-tree>'''
+		tree.replace(HEADING, replace)
+		text = tree.tostring()
+		self.assertEqual(text, wanted)
 
 
 class TestTextFormat(tests.TestCase, TestFormatMixin):
@@ -330,13 +380,15 @@ A list
 		# + check for bugs in link encoding
 		text = '[[FooBar]] [[Foo|]] [[|Foo]]'
 		tree = self.format.Parser().parse(text)
-		for i, tag in enumerate(tree.getiterator('link')):
-			self.assertTrue(tag.text)
-			self.assertTrue(tag.attrib.get('href'))
-			link = Link(self.page, **tag.attrib)
-			self.assertEqual(tag.attrib['href'], link.href)
-			done = True
-		self.assertEqual(i, 2)
+		#~ print tree.tostring()
+		found = 0
+		for elt in tree.findall(LINK):
+			self.assertTrue(elt.gettext())
+			self.assertTrue(elt.get('href'))
+			link = Link(self.page, **elt.attrib)
+			self.assertEqual(elt.attrib['href'], link.href)
+			found += 1
+		self.assertEqual(found, 3)
 
 	def testBackward(self):
 		'''Test backward compatibility for wiki format'''
