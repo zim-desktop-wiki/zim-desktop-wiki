@@ -314,6 +314,9 @@ class BoundQuickNoteDialog(Dialog):
 
 			if get_ui: ui = get_ui()
 			else: ui = self.ui
+			if ui is None:
+				return False
+
 			path = self.form['namespace'].name + ':' + self.form['basename']
 			ui.new_page_from_text(text, path,
 				attachments=self.attachments,
@@ -326,6 +329,9 @@ class BoundQuickNoteDialog(Dialog):
 
 			if get_ui: ui = get_ui()
 			else: ui = self.ui
+			if ui is None:
+				return False
+
 			path = self.form['page'].name
 			if self.attachments:
 				ui.import_attachments(path, self.attachments)
@@ -415,6 +421,9 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		def get_ui():
 			start_server_if_not_running()
 			notebook = self.notebookcombobox.get_notebook()
-			return ServerProxy().get_notebook(notebook)
+			if notebook:
+				return ServerProxy().get_notebook(notebook)
+			else:
+				return None
 
 		return BoundQuickNoteDialog.do_response_ok(self, get_ui)

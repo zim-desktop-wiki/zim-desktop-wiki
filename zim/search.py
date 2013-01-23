@@ -44,10 +44,13 @@ For content '*' can occur on both sides, but does not match whitespace
 
 
 import re
+import logging
 
 from zim.parsing import split_quoted_strings, unescape_quoted_string, Re
 from zim.notebook import Path, PageNameError
 from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD
+
+logger = logging.getLogger('zim.search')
 
 
 OPERATOR_OR = 1
@@ -489,7 +492,12 @@ class SearchSelection(PageSelection):
 
 		for page in generator:
 			#~ print '!! Search content', page
-			tree = page.get_parsetree()
+			try:
+				tree = page.get_parsetree()
+			except:
+				logger.exception('Exception while reading: %s', page)
+				continue
+
 			if tree is None:
 				continue # Assume need to have content even for negative query
 
