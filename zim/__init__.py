@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -94,10 +94,10 @@ For asynchronous actions see L{zim.async}.
 
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.58'
+__version__ = '0.59'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
-__copyright__ = 'Copyright 2008 - 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
+__copyright__ = 'Copyright 2008 - 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __license__='''\
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
