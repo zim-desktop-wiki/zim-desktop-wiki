@@ -288,14 +288,14 @@ class ParseTree(ElementTreeModule.ElementTree):
 			if first.tag == 'h' and first.attrib['level'] >= level:
 				return first
 		return None
-	
+
 	def get_heading(self, level=1):
 		heading_elem = self._get_heading_element(level)
 		if heading_elem is not None:
 			return heading_elem.text
 		else:
 			return ""
-	
+
 	def set_heading(self, text, level=1):
 		'''Set the first heading of the parse tree to 'text'. If the tree
 		already has a heading of the specified level or higher it will be
@@ -522,6 +522,7 @@ class ParseTreeBuilder(object):
 					self._last.tail = None
 			else:
 				self._last = self._stack[-1]
+				self._tail = False
 				if not self._last.text is None:
 					self._data = [self._last.text]
 					self._last.text = None
