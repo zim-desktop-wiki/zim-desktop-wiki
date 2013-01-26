@@ -454,6 +454,10 @@ class ConfigFile(object):
 		'''Write base file async, see L{File.writelines_async()}'''
 		return self.file.writelines_async(lines, callback=callback, data=data)
 
+	def remove(self):
+		'''Remove user file, leaves default files in place'''
+		if self.file.exists():
+			return self.file.remove()
 
 
 def check_class_allow_empty(value, default):

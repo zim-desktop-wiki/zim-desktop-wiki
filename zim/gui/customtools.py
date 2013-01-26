@@ -118,8 +118,8 @@ class CustomToolList(gtk.TreeView):
 			return None
 
 	def select(self, i):
-		path = (i,)
-		self.get_selection.select_path(path)
+		path = (i, )
+		self.get_selection().select_path(path)
 
 	def refresh(self):
 		from zim.gui.widgets import encode_markup_text

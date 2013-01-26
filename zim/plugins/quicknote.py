@@ -107,8 +107,8 @@ def main(*args):
 		notebook,
 		options.get('namespace'), options.get('basename'),
 		options.get('append'),
-		text, 
-		template_options, 
+		text,
+		template_options,
 		options.get('attachments')
 	)
 	dialog.run()
@@ -186,7 +186,7 @@ class BoundQuickNoteDialog(Dialog):
 			page = namespace + ':' + basename
 		else:
 			page = namespace or basename
-	
+
 		self.form.add_inputs( (
 				('page', 'page', _('Page')),
 				('namespace', 'namespace', _('Namespace')), # T: text entry field
@@ -314,6 +314,9 @@ class BoundQuickNoteDialog(Dialog):
 
 			if get_ui: ui = get_ui()
 			else: ui = self.ui
+			if ui is None:
+				return False
+
 			path = self.form['namespace'].name + ':' + self.form['basename']
 			ui.new_page_from_text(text, path,
 				attachments=self.attachments,
@@ -326,6 +329,9 @@ class BoundQuickNoteDialog(Dialog):
 
 			if get_ui: ui = get_ui()
 			else: ui = self.ui
+			if ui is None:
+				return False
+
 			path = self.form['page'].name
 			if self.attachments:
 				ui.import_attachments(path, self.attachments)
@@ -379,10 +385,11 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		self.uistate['lastnotebook'] = notebook
 		self.uistate['new_page'] = self.form['new_page']
 		self.uistate['open_page'] = self.open_page.get_active()
-		if self.uistate['new_page']:
-			self.config['Namespaces'][notebook] = self.form['namespace']
-		else:
-			self.config['Namespaces'][notebook] = self.form['page']
+		if notebook is not None:
+			if self.uistate['new_page']:
+				self.config['Namespaces'][notebook] = self.form['namespace']
+			else:
+				self.config['Namespaces'][notebook] = self.form['page']
 		self.config.write()
 
 	def on_notebook_changed(self, o):
@@ -414,6 +421,9 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		def get_ui():
 			start_server_if_not_running()
 			notebook = self.notebookcombobox.get_notebook()
-			return ServerProxy().get_notebook(notebook)
+			if notebook:
+				return ServerProxy().get_notebook(notebook)
+			else:
+				return None
 
 		return BoundQuickNoteDialog.do_response_ok(self, get_ui)

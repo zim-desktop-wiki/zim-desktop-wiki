@@ -305,16 +305,15 @@ class ParseTree(object):
 
 	def _get_heading_element(self, level=1):
 		root = self._etree.getroot()
+		children = root.getchildren()
 		if root.text and not root.text.isspace():
 			return None
 
-		children = root.getchildren()
-		if children \
-		and children[0].tag == 'h' \
-		and children[0].attrib['level'] >= level:
-				return children[0]
-		else:
-			return None
+		if children:
+			first = children[0]
+			if first.tag == 'h' and first.attrib['level'] >= level:
+				return first
+		return None
 
 	def get_heading(self, level=1):
 		heading_elem = self._get_heading_element(level)
@@ -895,6 +894,7 @@ class OldParseTreeBuilder(object):
 					self._last.tail = None
 			else:
 				self._last = self._stack[-1]
+				self._tail = False
 				if not self._last.text is None:
 					self._data = [self._last.text]
 					self._last.text = None

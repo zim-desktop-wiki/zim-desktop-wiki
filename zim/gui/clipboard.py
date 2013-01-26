@@ -141,7 +141,10 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 		# FIXME some apps drop text/uri-list as a text/plain mimetype
 		# try to catch this situation by a check here
 		text = selectiondata.get_text()
-		return get_format('plain').Parser().parse(text.decode('utf-8'), partial=True)
+		if text:
+			return get_format('plain').Parser().parse(text.decode('utf-8'), partial=True)
+		else:
+			return None
 	elif targetname in IMAGE_TARGET_NAMES:
 		# save image
 		pixbuf = selectiondata.get_pixbuf()

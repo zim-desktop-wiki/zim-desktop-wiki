@@ -184,7 +184,7 @@ This is a core plugin shipping with zim.
 		new_preferences = self._serialize_rebuild_on_preferences()
 		if new_preferences != self._current_preferences:
 			self._drop_table()
-		self._set_preferences()
+		self._set_preferences()  # Sets _current_preferences
 
 	def _set_preferences(self):
 		self._current_preferences = self._serialize_rebuild_on_preferences()
@@ -315,6 +315,7 @@ This is a core plugin shipping with zim.
 		# Helper function to insert tasks in table
 		c = self.index.db.cursor()
 		for task, grandchildren in children:
+			task[4] = ','.join(sorted(task[4])) # set to text
 			c.execute(
 				'insert into tasklist(source, parent, haschildren, open, actionable, prio, due, tags, description)'
 				'values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -418,8 +419,8 @@ class TasksParser(Visitor):
 		self.nonactionable_tags = nonactionable_tags
 		self.all_checkboxes = all_checkboxes
 
-		defaults = (True, True, 0, defaultdate or _NO_DATE, None)
-			# (open, actionable, prio, due, description)
+		defaults = (True, True, 0, defaultdate or _NO_DATE, set(), None)
+			# (open, actionable, prio, due, tags, description)
 		self._tasks = []
 		self._stack = [(-1, defaults, self._tasks)]
 			# Stack for parsed tasks with tuples like (level, task, children)
@@ -522,7 +523,7 @@ class TasksParser(Visitor):
 			words.pop(0) # label
 			if all(w.startswith('@') for w in words):
 				self._intasklist = True
-				self._tasklist_tags = words
+				self._tasklist_tags = set(w.strip('@') for w in words)
 			else:
 				self._intasklist = False
 		else:
@@ -579,10 +580,10 @@ class TasksParser(Visitor):
 			due = parent[3] # default to parent date (or default for root)
 
 		# Find tags
-		tags = []
-		tags += _tag_re.findall(text)
+		tags = set(_tag_re.findall(text))
 		if self._intasklist and self._tasklist_tags:
-			tags += self._tasklist_tags
+			tags |= self._tasklist_tags
+		tags |= parent[4] # add parent tags
 
 		# Check actionable
 		if not parent[1]: # default parent not actionable
@@ -601,7 +602,6 @@ class TasksParser(Visitor):
 				t[0] = True
 
 		# And finally add to stack
-		tags = ','.join(t.strip('@') for t in tags)
 		task = [open, actionable, prio, due, tags, text]
 		children = []
 		parent_children.append((task, children))

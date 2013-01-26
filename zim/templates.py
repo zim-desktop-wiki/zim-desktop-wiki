@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains classes for template processing.
 
@@ -367,6 +367,7 @@ class Template(GenericTemplate):
 				self.format, self.linker, self.template_options),
 			'pages': pages,
 			'strftime': StrftimeFunction(),
+			'strfcal': StrfcalFunction(),
 			'url': TemplateFunction(self.url),
 			'resource': TemplateFunction(self.resource_url),
 			'pageindex' : PageIndexFunction(notebook, page, self.format, self.linker, self.template_options),
@@ -746,6 +747,24 @@ class StrftimeFunction(TemplateFunction):
 				# decode it ...
 		except:
 			logger.exception('Error in strftime "%s"', format)
+
+
+class StrfcalFunction(TemplateFunction):
+	'''Template function wrapper for strfcal'''
+
+	def __init__(self):
+		pass
+
+	def __call__(self, dict, format, date=None):
+		format = str(format) # Needed to please datetime.strftime()
+		try:
+			if date is None:
+				date = datetime.now()
+
+			string = datetime.strfcal(format, date)
+		except:
+			logger.exception('Error in strftime "%s"', format)
+
 
 
 class PageIndexFunction(TemplateFunction):

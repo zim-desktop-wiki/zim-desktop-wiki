@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gobject
 import gtk
 
 import re
-import datetime
 
 import logging
 
 from zim.plugins import PluginClass
+import zim.datetimetz as datetime
+from zim.datetimetz import dates_for_week, weekcalendar
 from zim.gui.widgets import ui_environment, Dialog, Button, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
@@ -65,107 +66,6 @@ date_path_re = re.compile(r'^(.*:)?\d{4}:\d{1,2}:\d{2}$')
 week_path_re = re.compile(r'^(.*:)?\d{4}:Week \d{2}$')
 month_path_re = re.compile(r'^(.*:)?\d{4}:\d{1,2}$')
 year_path_re = re.compile(r'^(.*:)?\d{4}$')
-
-
-# Initialize setting for first day of the week. This is locale
-# dependent, and the gtk widget already has good code to find it out.
-# Unfortunately, the widget keeps that data private *%#*$()()*) !
-MONDAY = 0 # iso calendar starts week at Monday
-SUNDAY = 6
-FIRST_DAY_OF_WEEK = None
-def _init_first_day_of_week():
-	global FIRST_DAY_OF_WEEK
-	try:
-		import babel
-		import locale
-		mylocale = babel.Locale(locale.getdefaultlocale()[0])
-		if mylocale.first_week_day == 0:
-			FIRST_DAY_OF_WEEK = MONDAY
-		else:
-			FIRST_DAY_OF_WEEK = SUNDAY
-		logger.debug('According to babel first day of week is %i', FIRST_DAY_OF_WEEK)
-	except ImportError:
-		# Fallback gleaned from gtkcalendar.c - hence the inconsistency
-		# with weekday numbers in iso calendar...
-		t = _("calendar:week_start:0")
-		# T: Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
-		if t[-1] == '0':
-			FIRST_DAY_OF_WEEK = SUNDAY
-		elif t[-1] == '1':
-			FIRST_DAY_OF_WEEK = MONDAY
-		else:
-			logger.warn("Whoever translated 'calendar:week_start:0' did so wrongly.")
-			FIRST_DAY_OF_WEEK = SUNDAY
-
-
-def dates_for_week(year, week):
-	'''Returns the first and last day of the week for a given
-	week number of a given year.
-	@param year: year as int (e.g. 2012)
-	@param week: week number as int (0 .. 53)
-	@returns: a 2-tuple of:
-	  - a C{datetime.date} object for the start date of the week
-	  - a C{datetime.date} object for the end dateof the week
-
-	@note: first day of the week can be either C{MONDAY} or C{SUNDAY},
-	this is configured in C{FIRST_DAY_OF_WEEK} based on the locale.
-	'''
-	# Note that the weeknumber in the isocalendar does NOT depend on the
-	# first day being Sunday or Monday, but on the first Thursday in the
-	# new year. See datetime.isocalendar() for details.
-	# If the year starts with e.g. a Friday, January 1st still belongs
-	# to week 53 of the previous year.
-	# Day of week in isocalendar starts with 1 for Mon and is 7 for Sun,
-	# and week starts on Monday.
-	if FIRST_DAY_OF_WEEK is None:
-		_init_first_day_of_week()
-
-	jan1 = datetime.date(year, 1, 1)
-	_, jan1_week, jan1_weekday = jan1.isocalendar()
-
-	if FIRST_DAY_OF_WEEK == MONDAY:
-		days = jan1_weekday - 1
-		# if Jan 1 is a Monday, days is 0
-	else:
-		days = jan1_weekday
-		# if Jan 1 is a Monday, days is 1
-		# for Sunday it becomes 7 (or -1 week)
-
-	if jan1_week == 1:
-		weeks = week - 1
-	else:
-		# Jan 1st is still wk53 of the previous year
-		weeks = week
-
-	start = jan1 + datetime.timedelta(days=-days, weeks=weeks)
-	end = start + datetime.timedelta(days=6)
-	return start, end
-
-
-def week_calendar(date):
-	'''Get the year, week number and week day for a specific date.
-	Like C{datetime.date.isocalendar()} but takes into account
-	C{FIRST_DAY_OF_WEEK} correctly.
-	@param date: a C{datetime.date} or C{datetime.datetime} object
-	@returns: a year and a week number as integer
-	'''
-	# Both strftime %W and %U are not correct, they use differnt
-	# week number count than the isocalendar. See datetime
-	# module for details.
-	# In short Jan 1st can still be week 53 of the previous year
-	# So we can use isocalendar(), however this does not take
-	# into accout FIRST_DAY_OF_WEEK, see comment in dates_for_week()
-	if FIRST_DAY_OF_WEEK is None:
-		_init_first_day_of_week()
-
-	year, week, weekday = date.isocalendar()
-
-	if FIRST_DAY_OF_WEEK == SUNDAY and weekday == 7:
-		# iso calendar gives us the week ending this sunday,
-		# we want the next week
-		monday = date + datetime.timedelta(days=1)
-		year, week, weekday = monday.isocalendar()
-	return year, week
 
 
 def daterange_from_path(path):
@@ -324,7 +224,7 @@ Also adds a calendar widget to access these pages.
 		if self.preferences['granularity'] == DAY:
 			path = date.strftime('%Y:%m:%d')
 		elif self.preferences['granularity'] == WEEK:
-			year, week = week_calendar(date)
+			year, week, day = weekcalendar(date)
 			path = '%i:Week %02i' % (year, week)
 		elif self.preferences['granularity'] == MONTH:
 			path = date.strftime('%Y:%m')

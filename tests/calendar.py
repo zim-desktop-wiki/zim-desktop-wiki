@@ -7,6 +7,8 @@ import tests
 
 from datetime import date as dateclass
 
+import zim.datetimetz
+
 import zim.plugins
 from zim.notebook import Path
 from zim.config import ConfigDict
@@ -18,14 +20,14 @@ class TestCalendarFunctions(tests.TestCase):
 	def testDatesForWeeks(self):
 		from zim.plugins.calendar import dates_for_week
 
-		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
-			zim.plugins.calendar.MONDAY
+		zim.datetimetz.FIRST_DAY_OF_WEEK = \
+			zim.datetimetz.MONDAY
 		start, end = dates_for_week(2012, 17)
 		self.assertEqual(start, dateclass(2012, 4, 23)) # a monday
 		self.assertEqual(end, dateclass(2012, 4, 29)) # a sunday
 
-		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
-			zim.plugins.calendar.SUNDAY
+		zim.datetimetz.FIRST_DAY_OF_WEEK = \
+			zim.datetimetz.SUNDAY
 		start, end = dates_for_week(2012, 17)
 		self.assertEqual(start, dateclass(2012, 4 ,22)) # a sunday
 		self.assertEqual(end, dateclass(2012, 4, 28)) # a saturday
@@ -39,32 +41,32 @@ class TestCalendarFunctions(tests.TestCase):
 		self.assertEqual(end, dateclass(2010, 1, 2)) # a saturday
 
 	def testWeekCalendar(self):
-		from zim.plugins.calendar import week_calendar
+		from zim.plugins.calendar import weekcalendar
 		sunday = dateclass(2012, 4 ,22)
 		monday = dateclass(2012, 4, 23)
 		nextsunday = dateclass(2012, 4, 29)
 
-		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
-			zim.plugins.calendar.MONDAY
-		self.assertEqual(week_calendar(sunday), (2012, 16))
-		self.assertEqual(week_calendar(monday), (2012, 17))
-		self.assertEqual(week_calendar(nextsunday), (2012, 17))
+		zim.datetimetz.FIRST_DAY_OF_WEEK = \
+			zim.datetimetz.MONDAY
+		self.assertEqual(weekcalendar(sunday), (2012, 16, 7))
+		self.assertEqual(weekcalendar(monday), (2012, 17, 1))
+		self.assertEqual(weekcalendar(nextsunday), (2012, 17, 7))
 
-		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
-			zim.plugins.calendar.SUNDAY
-		self.assertEqual(week_calendar(sunday), (2012, 17))
-		self.assertEqual(week_calendar(monday), (2012, 17))
-		self.assertEqual(week_calendar(nextsunday), (2012, 18))
+		zim.datetimetz.FIRST_DAY_OF_WEEK = \
+			zim.datetimetz.SUNDAY
+		self.assertEqual(weekcalendar(sunday), (2012, 17, 1))
+		self.assertEqual(weekcalendar(monday), (2012, 17, 2))
+		self.assertEqual(weekcalendar(nextsunday), (2012, 18, 1))
 
 		dec31 = dateclass(2012, 12, 31)
 		jan1 = dateclass(2013, 1, 1)
-		self.assertEqual(week_calendar(dec31), (2013, 1))
-		self.assertEqual(week_calendar(jan1), (2013, 1))
+		self.assertEqual(weekcalendar(dec31), (2013, 1, 2))
+		self.assertEqual(weekcalendar(jan1), (2013, 1, 3))
 
 		dec31 = dateclass(2009, 12, 31)
 		jan1 = dateclass(2010, 1, 1)
-		self.assertEqual(week_calendar(dec31), (2009, 53))
-		self.assertEqual(week_calendar(jan1), (2009, 53))
+		self.assertEqual(weekcalendar(dec31), (2009, 53, 5))
+		self.assertEqual(weekcalendar(jan1), (2009, 53, 6))
 
 
 	def testDateRangeFromPath(self):
@@ -78,8 +80,8 @@ class TestCalendarFunctions(tests.TestCase):
 			self.assertEqual(end, dateclass(2012, 4, 27))
 
 		# Week
-		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
-			zim.plugins.calendar.MONDAY
+		zim.datetimetz.FIRST_DAY_OF_WEEK = \
+			zim.datetimetz.MONDAY
 		type, start, end = daterange_from_path(Path('Foo:2012:Week 17'))
 		self.assertEqual(type, 'week')
 		self.assertEqual(start, dateclass(2012, 4, 23)) # a monday
@@ -117,8 +119,8 @@ class TestCalendarPlugin(tests.TestCase):
 			self.assertEqual(date, today)
 
 		from zim.plugins.calendar import DAY, WEEK, MONTH, YEAR
-		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
-			zim.plugins.calendar.MONDAY
+		zim.datetimetz.FIRST_DAY_OF_WEEK = \
+			zim.datetimetz.MONDAY
 		plugin.preferences['namespace'] = 'Calendar'
 		date = dateclass(2012, 4, 27)
 		for setting, wanted, start in (
@@ -143,8 +145,8 @@ class TestCalendarPlugin(tests.TestCase):
 		# plugin should register with TemplateManager
 
 		template = get_template('wiki', 'Journal')
-		zim.plugins.calendar.FIRST_DAY_OF_WEEK = \
-			zim.plugins.calendar.MONDAY
+		zim.datetimetz.FIRST_DAY_OF_WEEK = \
+			zim.datetimetz.MONDAY
 		plugin.preferences['namespace'] = 'Calendar'
 
 		for path in (

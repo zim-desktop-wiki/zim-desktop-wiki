@@ -4,6 +4,12 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.59 - Wed 23 Jan 2012 ===
+* Critical bug fix in pageview serialization
+* Fix for inheritance of tags in tasklist - Epinull
+* Fix for customtools dialog - Epinull
+* Fix for week number in Journal plugin page template
+
 === 0.58 - Sat 15 Dec 2012 ===
 * Added new plugin for distraction free fullscreen mode
 * Added options to limit tasklist plugin to certain namespaces -

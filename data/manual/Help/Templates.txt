@@ -122,7 +122,14 @@ Functions available:
 		Returns an URL for a template resource (see below)
 
 	''strftime(template, date)''
-		Format a date
+		Format a date, see standard library for codes
+		
+	strfcal(template, date)
+		Format a week number, accepts:
+		
+			%w for day of week according to locale
+			%W for weeknumber according to locale
+			%Y for the year to which the week belongs
 
 	pageindex''(namespace, collapse, ignore_empty)''
 		Creates a page index of a given namespace or the whole notebook

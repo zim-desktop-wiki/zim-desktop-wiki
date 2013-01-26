@@ -745,7 +745,8 @@ This is a core plugin shipping with zim.
 			assert 'Notebook is not based on a file or folder'
 
 	def autosave(self):
-		assert self.vcs
+		if not self.vcs:
+			return
 
 		if self.ui.page and self.ui.page.modified:
 			self.ui.save_page()
