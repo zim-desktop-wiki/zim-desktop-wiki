@@ -18,6 +18,10 @@ import re
 
 from datetime import *
 
+import logging
+
+logger = logging.getLogger('zim')
+
 
 def now():
 	'''Like C{datetime.now()} but with local timezone info'''

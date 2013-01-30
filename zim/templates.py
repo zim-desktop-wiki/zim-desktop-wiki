@@ -758,8 +758,7 @@ class StrfcalFunction(TemplateFunction):
 		try:
 			if date is None:
 				date = datetime.now()
-
-			string = datetime.strfcal(format, date)
+			return datetime.strfcal(format, date)
 		except:
 			logger.exception('Error in strftime "%s"', format)
 
