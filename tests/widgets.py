@@ -57,6 +57,17 @@ class TestInputEntry(tests.TestCase):
 		entry.set_text(u'')
 		self.assertFalse(entry.get_input_valid())
 
+		# and with placeholder text
+		entry = InputEntry(allow_empty=False, placeholder_text='PLACEHOLDER')
+		self.assertEqual(entry.get_text(), u'')
+		self.assertFalse(entry.get_input_valid())
+		entry.set_text(u'foo bar')
+		self.assertEqual(entry.get_text(), u'foo bar')
+		self.assertTrue(entry.get_input_valid())
+		entry.set_text(u'')
+		self.assertEqual(entry.get_text(), u'')
+		self.assertFalse(entry.get_input_valid())
+
 
 class TestFileEntry(tests.TestCase):
 

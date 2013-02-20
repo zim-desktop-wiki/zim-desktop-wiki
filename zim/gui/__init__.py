@@ -550,13 +550,11 @@ class GtkInterface(NotebookInterface):
 		self.mainwindow.toolbar.insert(space, -1)
 
 		from zim.gui.widgets import InputEntry
-		entry = InputEntry()
+		entry = InputEntry(placeholder_text=_('Search'))
 		if gtk.gtk_version >= (2, 16):
 			entry.set_icon_from_stock(gtk.ENTRY_ICON_SECONDARY, gtk.STOCK_FIND)
 			entry.set_icon_activatable(gtk.ENTRY_ICON_SECONDARY, True)
 			entry.set_icon_tooltip_text(gtk.ENTRY_ICON_SECONDARY, _('Search Pages...'))
-		# FIXME would be nice to have function to set "Search" as grey background
-		#       switching to gtk3 "SearchEntry" would fix that
 		inline_search = lambda e, *a: self.show_search(query=e.get_text() or None)
 		entry.connect('activate', inline_search)
 		entry.connect('icon-release', inline_search)
@@ -2409,6 +2407,9 @@ class MainWindow(Window):
 
 			if wasfullscreen != self.isfullscreen:
 				self.emit('fullscreen-changed')
+				schedule_on_idle(lambda : self.pageview.scroll_cursor_on_screen())
+					# HACK to have this scroll done after all updates to
+					# the gui are done...
 
 		# Maemo UI bugfix: If ancestor method is not called the window
 		# will have borders when fullscreen

@@ -893,11 +893,14 @@ class ConfigDict(ListDict):
 		'''
 		lines = []
 		def dump_section(name, parameters):
-			lines.append('[%s]\n' % section)
-			for param, value in parameters.items():
-				if not param.startswith('_'):
-					lines.append('%s=%s\n' % (param, self._encode_value(value)))
-			lines.append('\n')
+			try:
+				lines.append('[%s]\n' % section)
+				for param, value in parameters.items():
+					if not param.startswith('_'):
+						lines.append('%s=%s\n' % (param, self._encode_value(value)))
+				lines.append('\n')
+			except:
+				logger.exception('Dumping section [%s] failed:\n%r', name, parameters)
 
 		for section, parameters in self.items():
 			if parameters and not section.startswith('_'):

@@ -4819,7 +4819,7 @@ class PageView(gtk.VBox):
 			iter = buffer.get_iter_at_offset(pos)
 
 		buffer.place_cursor(iter)
-		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
+		self.scroll_cursor_on_screen()
 
 	def get_cursor_pos(self):
 		'''Get the cursor position in the buffer
@@ -4830,6 +4830,10 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		return iter.get_offset()
+
+	def scroll_cursor_on_screen(self):
+		buffer = self.view.get_buffer()
+		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
 
 	def set_scroll_pos(self, pos):
 		pass # FIXME set scroll position

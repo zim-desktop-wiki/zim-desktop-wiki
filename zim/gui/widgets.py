@@ -1420,7 +1420,7 @@ class InputEntry(gtk.Entry):
 
 	ERROR_COLOR = '#EF7F7F' # light red (derived from Tango style guide)
 
-	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False, empty_text=None, allow_whitespace=False):
+	def __init__(self, check_func=None, allow_empty=True, show_empty_invalid=False, placeholder_text=None, allow_whitespace=False):
 		'''Constructor
 
 		@param check_func: a function to check input is valid.
@@ -1436,7 +1436,7 @@ class InputEntry(gtk.Entry):
 		option a whole input form would start in red color, which looks
 		bad.
 
-		@param empty_text: text to show in the widget when it is
+		@param placeholder_text: text to show in the widget when it is
 		empty and does not have focus, text will be shown in a
 		color different from normal text and disappear when the user
 		selects the widget. Used to set hints on the usage of the
@@ -1445,16 +1445,16 @@ class InputEntry(gtk.Entry):
 		@param allow_whitespace: if C{True} allow trailing whitespace
 		or even string containing only whitespace. If C{False} all
 		whitespace is stripped.
-
-		@todo: make color for empty_text actually grey
 		'''
+		# NOTE: when porting to Gtk3 use gtk.Entry.set_placeholder_text()
+		# and remove our own implementation
 		gtk.Entry.__init__(self)
 		self._normal_color = None
 		self.allow_empty = allow_empty
 		self.show_empty_invalid = show_empty_invalid
 		self.allow_whitespace = allow_whitespace
-		self.empty_text = empty_text
-		self._empty_text_shown = False
+		self.placeholder_text = placeholder_text
+		self._placeholder_text_shown = False
 		self.check_func = check_func
 		self._input_valid = False
 		self.do_changed() # Initialize state
@@ -1468,7 +1468,6 @@ class InputEntry(gtk.Entry):
 				self._set_base_color(self.get_input_valid())
 
 		self.connect('expose-event', _init_base_color)
-
 
 	def set_check_func(self, check_func):
 		'''Set a function to check whether input is valid or not
@@ -1538,8 +1537,9 @@ class InputEntry(gtk.Entry):
 		but with UTF-8 decoding and whitespace stripped.
 		@returns: string
 		'''
-		if self._empty_text_shown:
+		if self._placeholder_text_shown:
 			return ''
+
 		text = gtk.Entry.get_text(self)
 		if not text:
 			return ''
@@ -1552,13 +1552,13 @@ class InputEntry(gtk.Entry):
 		'''Wrapper for C{gtk.Entry.set_text()}.
 		@param text: string
 		'''
-		if not text and self.empty_text \
+		if not text \
 		and not self.get_property('has-focus'):
-			self._empty_text_shown = True
-			gtk.Entry.set_text(self, self.empty_text)
-		else:
 			gtk.Entry.set_text(self, text)
-			self._empty_text_shown = False
+			self._show_placeholder_text()
+		else:
+			self._hide_placeholder_text()
+			gtk.Entry.set_text(self, text)
 
 	def get_input_valid(self):
 		'''Get the valid state.
@@ -1596,6 +1596,41 @@ class InputEntry(gtk.Entry):
 		'''Clear the text in the entry'''
 		self.set_text('')
 
+	def do_expose_event(self, event):
+		gtk.Entry.do_expose_event(self, event)
+		if not self.get_property('has-focus'):
+			self._show_placeholder_text()
+
+	def do_focus_in_event(self, event):
+		self._hide_placeholder_text()
+		gtk.Entry.do_focus_in_event(self, event)
+
+	def do_focus_out_event(self, event):
+		gtk.Entry.do_focus_out_event(self, event)
+		self._show_placeholder_text()
+
+	def _show_placeholder_text(self):
+		if not self.get_text() \
+		and self.placeholder_text:
+			self._placeholder_text_shown = True
+			gtk.Entry.set_text(self, self.placeholder_text)
+
+			layout = self.get_layout()
+			attr = pango.AttrList()
+			end = len(self.placeholder_text)
+			attr.insert(pango.AttrStyle(pango.STYLE_ITALIC, 0, end))
+			c = 65535/16*8
+			attr.insert(pango.AttrForeground(c,c,c, 0, end))
+				# TODO make color configurable, now just solid grey
+			layout.set_attributes(attr)
+			# The layout is reset when new text is set, so
+			# no need to "unset" the style at _hide_placeholder_text()
+
+	def _hide_placeholder_text(self):
+		if self._placeholder_text_shown:
+			gtk.Entry.set_text(self, '')
+			self._placeholder_text_shown = False
+
 	def do_changed(self):
 		text = self.get_text() or ''
 		if self.check_func:
@@ -1603,17 +1638,6 @@ class InputEntry(gtk.Entry):
 		else:
 			self.set_input_valid(bool(text) or self.allow_empty)
 
-	def do_focus_in_event(self, event):
-		if self._empty_text_shown:
-			gtk.Entry.set_text(self, '')
-			self._empty_text_shown = False
-		gtk.Entry.do_focus_in_event(self, event)
-
-	def do_focus_out_event(self, event):
-		gtk.Entry.do_focus_out_event(self, event)
-		if self.empty_text and not self.get_text():
-			self._empty_text_shown = True
-			gtk.Entry.set_text(self, self.empty_text)
 
 # Need to register classes defining / overriding gobject signals
 gobject.type_register(InputEntry)
@@ -1812,11 +1836,11 @@ class PageEntry(InputEntry):
 		self._current_completion = ()
 
 		if self._allow_select_root:
-			empty_text = _('<Top>')
+			placeholder_text = _('<Top>')
 			# T: default text for empty namespace selection
 		else:
-			empty_text = None
-		InputEntry.__init__(self, allow_empty=self._allow_select_root, empty_text=empty_text)
+			placeholder_text = None
+		InputEntry.__init__(self, allow_empty=self._allow_select_root, placeholder_text=placeholder_text)
 		assert path is None or isinstance(path, Path)
 
 		completion = gtk.EntryCompletion()

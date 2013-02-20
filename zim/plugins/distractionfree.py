@@ -95,6 +95,7 @@ class DistractionFreePlugin(PluginClass):
 		elif self._normal_colors:
 			self._set_colors(self._normal_colors)
 			window.toggle_panes(show=self._show_panes)
+			window.pageview.grab_focus()
 		else:
 			pass
 
@@ -224,7 +225,7 @@ class DistractionFreePlugin(PluginClass):
 
 	def disconnect(self):
 		# show at least menubar again, set margins to zero & restore colors
-		self.ui.uistate['show_menubar_fullscreen'] = True
+		self.ui.uistate['MainWindow']['show_menubar_fullscreen'] = True
 		self._set_margins(0, 0, 0, 0)
 		if self._normal_colors:
 			self._set_colors(self._normal_colors)
