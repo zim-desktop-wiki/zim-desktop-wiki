@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright 2010 Thorsten Hackbarth <thorsten.hackbarth@gmx.de>
-#           2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+#           2011-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # License:  same as zim (gpl)
 #
 # ChangeLog
-# 2012-08-17 Added mimetype icons, statusbar toggle button, and gio monitor support
+# 2013-02-25 Added zooming icon size, made icon rendering more robust (Jaap)
+# 2012-08-17 Added mimetype icons, statusbar toggle button, and gio monitor support (Jaap)
 # 2012-07-20 Updated code for pane uistate (Jaap)
 # 2012-04-17 Allow drag&drop when folder does not exist yet + fix drag&drop on windows (Jaap)
 # 2012-02-29 Further work on making iconview look nice and support drag&drop (Jaap)
@@ -21,17 +22,16 @@
 # 2010-06-29 1st working version
 #
 # TODO:
+# [ ] Action for deleting files in context menu
+# [ ] Copy / cut files in context menu
+# [ ] Button to clean up the folder - only show when the folder is empty
 # [x] GIO watcher to detect folder update - add API to zim.fs for watcher ?
-# [ ] Allow more than 1 thread for thumbnailing
+# [ ] Allow more than 1 thread for thumbnailing ?
 # [ ] Can we cache image to thumb mapping (or image MD5) to spead up ?
 # [ ] Dont thumb small images
 # [x] Mimetype specific icons
 # [ ] Restore ImageMagick thumbnailer
 # [ ] Use thumbnailers/settings from gnome or other DEs ?
-# [ ] Action for deleting files in context menu
-# [ ] Copy / cut files in context menu
-# [ ] Button to clean up the folder - only show when the folder is empty
-
 
 '''Zim plugin to display files in attachments folder.'''
 
@@ -108,9 +108,13 @@ LOCAL_THUMB_STORAGE_FAIL = LOCAL_THUMB_STORAGE.subdir('fail/zim-%s' % zim.__vers
 THUMB_SIZE_NORMAL = 128
 THUMB_SIZE_LARGE = 256
 
-# For plugin -- TODO make configable / zoomable
-ICON_SIZE = 64
-PREVIEW_SIZE = 128
+# For plugin
+MIN_ICON_SIZE = 16
+DEFAULT_ICON_SIZE = 64
+
+
+_last_warning_missing_icon = None
+	# used to surpress redundant logging
 
 
 def get_mime_icon(file, size):
@@ -126,6 +130,8 @@ def get_mime_icon(file, size):
 		logger.exception('Failed to query info for file: %s', file)
 		return None
 
+	global _last_warning_missing_icon
+
 	if isinstance(icon, gio.ThemedIcon):
 		names = icon.get_names()
 		icon_theme = gtk.icon_theme_get_default()
@@ -134,13 +140,43 @@ def get_mime_icon(file, size):
 			if icon_info:
 				return icon_info.load_icon()
 			else:
-				logger.debug('Missing icons in icon theme: %s', names)
+				if _last_warning_missing_icon != names:
+					logger.debug('Missing icons in icon theme: %s', names)
+					_last_warning_missing_icon = names
 				return None
 		except gobject.GError:
 			logger.exception('Could not load icon for file: %s', file)
 			return None
 	else:
 		return None
+
+
+def render_file_icon(widget, size):
+	# Sizes defined in gtk source,
+	# gtkiconfactory.c for gtk+ 2.18.9
+	#
+	#	(gtk.ICON_SIZE_MENU, 16),
+	#	(gtk.ICON_SIZE_BUTTON, 20),
+	#	(gtk.ICON_SIZE_SMALL_TOOLBAR, 18),
+	#	(gtk.ICON_SIZE_LARGE_TOOLBAR, 24),
+	#	(gtk.ICON_SIZE_DND, 32),
+	#	(gtk.ICON_SIZE_DIALOG, 48),
+	#
+	# We expect sizes in list: 16, 32, 64, 128
+	# But only give back 16 or 32, bigger icons
+	# do not look good
+	assert size in (16, 32, 64, 128)
+	if size == 16:
+		pixbuf = widget.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_MENU)
+	else:
+		pixbuf = widget.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_DND)
+
+	# Not sure how much sizes depend on theming, 
+	# so we scale down if needed, do not scale up
+	if pixbuf.get_width() > size or pixbuf.get_height() > size:
+		return pixbuf.scale_simple(size, size, gtk.gdk.INTERP_BILINEAR)
+	else:
+		return pixbuf
 
 
 def is_hidden_file(file):
@@ -185,7 +221,6 @@ This plugin is still under development.
 		('pane', 'choice', _('Position in the window'), BOTTOM_PANE, PANE_POSITIONS),
 			# T: option for plugin preferences
 
-	#	('icon_size', 'int', _('Icon size [px]'), [ICON_SIZE_MIN,128,ICON_SIZE_MAX]), # T: preferences option
 	#	('preview_size', 'int', _('Tooltip preview size [px]'), (THUMB_SIZE_MIN,480,THUMB_SIZE_MAX)), # T: input label
 	#	('thumb_quality', 'int', _('Preview jpeg Quality [0..100]'), (0,50,100)), # T: input label
 	#~	('use_imagemagick', 'bool', _('Use ImageMagick for thumbnailing'), False), # T: input label
@@ -333,12 +368,35 @@ BASENAME_COL = 0
 PIXBUF_COL = 1
 
 
+class uistate_property(object):
+
+	# TODO add hook such that it will be initialized on init of owner obj
+	
+	def __init__(self, key, *default):
+		self.key = key
+		self.default = default
+		self._initialized = False
+
+	def __get__(self, obj, klass):
+		if obj:
+			if not self._initialized:
+				obj.uistate.setdefault(self.key, *self.default)
+				self._initialized = True
+			return obj.uistate[self.key]
+	
+	def __set__(self, obj, value):
+		obj.uistate[self.key] = value
+
+
 class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
+
+	icon_size = uistate_property('icon_size', DEFAULT_ICON_SIZE)
 
 	def __init__(self, plugin, preferences):
 		gtk.HBox.__init__(self)
 		self.plugin = plugin
 		self.ui = plugin.ui
+		self.uistate = plugin.uistate
 		self.preferences = preferences
 		self.dir = None
 		self._active = True
@@ -353,7 +411,6 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.fileview = gtk.IconView(self.store)
 		self.fileview.set_text_column(BASENAME_COL)
 		self.fileview.set_pixbuf_column(PIXBUF_COL)
-		self.fileview.set_item_width(ICON_SIZE * 2) # Force wrapping text
 
 		self.fileview.enable_model_drag_source(
 			gtk.gdk.BUTTON1_MASK,
@@ -378,8 +435,16 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		refresh_button.connect('clicked', lambda o: self.on_refresh_button())
 		self.buttonbox.pack_start(refresh_button, False)
 
+		zoomin = IconButton(gtk.STOCK_ZOOM_IN, relief=False)
+		zoomout = IconButton(gtk.STOCK_ZOOM_OUT, relief=False)
+		zoomin.connect('clicked', lambda o: self.zoom_in())
+		zoomout.connect('clicked', lambda o: self.zoom_out())
+		self.buttonbox.pack_end(zoomout, False)
+		self.buttonbox.pack_end(zoomin, False)
 		self.fileview.connect('button-press-event', self.on_button_press_event)
 		self.fileview.connect('item-activated', self.on_item_activated)
+		self.zoomin_button = zoomin
+		self.zoomout_button = zoomout
 
 		if gtk.gtk_version >= (2, 12):
 			# custom tooltip
@@ -437,14 +502,28 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.refresh()
 		self.plugin._refresh_statusbar(self.ui.page) # bit of a HACK to get the page here
 
+	def zoom_in(self):
+		self.icon_size = self.icon_size * 2 # 16 > 32 > 64 > 128 > ..
+		self.refresh()
+
+	def zoom_out(self):
+		self.icon_size = max((self.icon_size/2, MIN_ICON_SIZE))
+		self.refresh()
+
 	def refresh(self):
 		if not self._active:
 			return # avoid unnecessary work
 
+		# Clear data
 		self.store.clear()
 		self.thumbman.clear_async_queue()
 		self._update_state()
 
+		# Update once, re-use below
+		self._file_icon = render_file_icon(self, min((self.icon_size, THUMB_SIZE_NORMAL)))
+		self._file_icon_tooltip = render_file_icon(self, THUMB_SIZE_NORMAL)
+
+		# Add files
 		for name in self.dir.list():
 			# If dir is an attachment folder, sub-pages maybe filtered out already
 			file = self.dir.file(name)
@@ -452,6 +531,41 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 				continue # Ignore subfolders -- FIXME ?
 			else:
 				self._add_file(file)
+
+		# Update column size etc.
+		if self.icon_size < 64:
+			# Would like to switch to by-column layout here, but looks
+			# like gtk.IconView does not support that
+			self.fileview.set_orientation(gtk.ORIENTATION_HORIZONTAL)
+			size = self._get_max_width()
+			if size > 0:
+				if self.icon_size > 16:
+					size = int((size+1) / 2) # Wrap over 2 rows
+				# Else no wrap
+				size += self.icon_size
+				self.fileview.set_item_width(size)
+			self.fileview.set_row_spacing(0)
+			self.fileview.set_column_spacing(0)
+		else:
+			self.fileview.set_orientation(gtk.ORIENTATION_VERTICAL)
+			size = max((self.icon_size + 12, 96))
+			self.fileview.set_item_width(size)
+				# Set item width to force wrapping text for long items
+				# Set to icon size + some space for padding etc.
+			self.fileview.set_row_spacing(3)
+			self.fileview.set_column_spacing(3)
+
+	def _get_max_width(self):
+		import pango
+		layout = self.fileview.create_pango_layout('')
+		model = self.fileview.get_model()
+		l = 0
+		for r in model:
+			l = max((l, len(r[BASENAME_COL])))
+			#layout.set_text(r[BASENAME_COL])
+			#l = max((l, layout.get_pixel_size()[0]))
+		return l * 10 # XXX Rough estimate with 10px per char...
+
 
 	def _update_state(self):
 		# Here we set color like senstive or insensitive widget without
@@ -461,23 +575,35 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		if self.dir is None or not self.dir.exists():
 			self.fileview.modify_base(
 				gtk.STATE_NORMAL, self._insenstive_color)
-			return # Show empty view
+
+			self.zoomin_button.set_sensitive(False)
+			self.zoomout_button.set_sensitive(False)
 		else:
 			self.fileview.modify_base(
 				gtk.STATE_NORMAL, self._senstive_color)
 
+			self.zoomin_button.set_sensitive(True)
+			self.zoomout_button.set_sensitive(self.icon_size > 16)
+
+
 	def _add_file(self, file):
-		pixbuf = self.thumbman.get_thumbnail_async(file, ICON_SIZE)
+		if self.icon_size >= DEFAULT_ICON_SIZE:
+			# Only use thumbnails if icons sufficiently large to show them
+			pixbuf = self.thumbman.get_thumbnail_async(file, self.icon_size)
+		else:
+			pixbuf = None
+
 		if pixbuf is None:
 			# Set generic icon first - maybe thumbnail follows later, maybe not
-			pixbuf = get_mime_icon(file, ICON_SIZE) \
-				or self.render_icon(gtk.STOCK_FILE, ICON_SIZE)
+			# Icon size for mime icons is limitted, avoid huge icons
+			pixbuf = get_mime_icon(file, min((self.icon_size, THUMB_SIZE_NORMAL))) \
+				or self._file_icon
 
 		self.store.append((file.basename, pixbuf)) # BASENAME_COL, PIXBUF_COL
 
 	def on_thumbnail_ready(self, o, file, size, pixbuf):
 		#~ print "GOT THUMB:", file, size, pixbuf
-		if size != ICON_SIZE or file.dir != self.dir:
+		if size != self.icon_size or file.dir != self.dir:
 			return
 
 		basename = file.basename
@@ -541,11 +667,11 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 			mdate = _('Unknown') # T: unspecified value for file modification time
 		size = format_file_size(file.size())
 
-		pixbuf = self.thumbman.get_thumbnail(file, PREVIEW_SIZE)
+		pixbuf = self.thumbman.get_thumbnail(file, THUMB_SIZE_LARGE)
 		if not pixbuf:
-			pixbuf = model[iter][PIXBUF_COL]
-
-		# TODO stat file for size and m_time
+			# No thumbnail, use icon, but use it at normal size
+			pixbuf = get_mime_icon(file, THUMB_SIZE_NORMAL) \
+				or self._file_icon_tooltip
 
 		f_label = _('Name') # T: label for file name
 		s_label = _('Size') # T: label for file size
