@@ -151,6 +151,50 @@ def get_mime_icon(file, size):
 		return None
 
 
+def get_mime_description(mimetype):
+	# TODO move this to zim.fs or something
+	#
+	# Check XML file /usr/share/mime/MEDIA/SUBTYPE.xml
+	# Find element "comment" with "xml:lang" attribute for the locale
+	# Etree fills in the namespaces which obfuscates the names
+	from zim.config import XDG_DATA_DIRS
+
+	media, subtype = mimetype.split('/', 1)
+	for dir in XDG_DATA_DIRS:
+		file = dir.file(('mime', media, subtype + '.xml'))
+		if file.exists():
+			return _read_comment_from(file)
+	else:
+		return None
+
+
+def _read_comment_from(file):
+	import locale
+	from zim.formats import ElementTreeModule as et
+
+	mylang, enc = locale.getdefaultlocale()
+	xmlns = "{http://www.w3.org/XML/1998/namespace}"
+	xml = et.parse(file.path)
+	fallback = []
+	#~ print "FIND COMMENT", file, mylang
+	for elt in xml.getroot():
+		if elt.tag.endswith('comment'):
+			lang = elt.attrib.get(xmlns+'lang', '')
+			if lang == mylang:
+				return elt.text
+			elif not lang or mylang.startswith(lang+'_'):
+				fallback.append((lang, elt.text))
+			else:
+				pass
+	else:
+		#~ print "FALLBACK", fallback
+		if fallback:
+			fallback.sort()
+			return fallback[-1][1] # longest match
+		else:
+			return None
+
+
 def render_file_icon(widget, size):
 	# Sizes defined in gtk source,
 	# gtkiconfactory.c for gtk+ 2.18.9
@@ -171,7 +215,7 @@ def render_file_icon(widget, size):
 	else:
 		pixbuf = widget.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_DND)
 
-	# Not sure how much sizes depend on theming, 
+	# Not sure how much sizes depend on theming,
 	# so we scale down if needed, do not scale up
 	if pixbuf.get_width() > size or pixbuf.get_height() > size:
 		return pixbuf.scale_simple(size, size, gtk.gdk.INTERP_BILINEAR)
@@ -371,7 +415,7 @@ PIXBUF_COL = 1
 class uistate_property(object):
 
 	# TODO add hook such that it will be initialized on init of owner obj
-	
+
 	def __init__(self, key, *default):
 		self.key = key
 		self.default = default
@@ -383,7 +427,7 @@ class uistate_property(object):
 				obj.uistate.setdefault(self.key, *self.default)
 				self._initialized = True
 			return obj.uistate[self.key]
-	
+
 	def __set__(self, obj, value):
 		obj.uistate[self.key] = value
 
@@ -503,11 +547,11 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.plugin._refresh_statusbar(self.ui.page) # bit of a HACK to get the page here
 
 	def zoom_in(self):
-		self.icon_size = self.icon_size * 2 # 16 > 32 > 64 > 128 > ..
+		self.icon_size = min((self.icon_size * 2, THUMB_SIZE_LARGE)) # 16 > 32 > 64 > 128 > 256
 		self.refresh()
 
 	def zoom_out(self):
-		self.icon_size = max((self.icon_size/2, MIN_ICON_SIZE))
+		self.icon_size = max((self.icon_size/2, MIN_ICON_SIZE)) # 16 < 32 < 64 < 128 < 256
 		self.refresh()
 
 	def refresh(self):
@@ -582,8 +626,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 			self.fileview.modify_base(
 				gtk.STATE_NORMAL, self._senstive_color)
 
-			self.zoomin_button.set_sensitive(True)
-			self.zoomout_button.set_sensitive(self.icon_size > 16)
+			self.zoomin_button.set_sensitive(self.icon_size < THUMB_SIZE_LARGE)
+			self.zoomout_button.set_sensitive(self.icon_size > MIN_ICON_SIZE)
 
 
 	def _add_file(self, file):
@@ -673,12 +717,19 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 			pixbuf = get_mime_icon(file, THUMB_SIZE_NORMAL) \
 				or self._file_icon_tooltip
 
+		mtype = file.get_mimetype()
+		mtype_desc = get_mime_description(mtype)
+		if mtype_desc:
+			mtype_desc = mtype_desc + " (%s)" % mtype # E.g. "PDF document (application/pdf)"
+
 		f_label = _('Name') # T: label for file name
+		t_label = _('Type') # T: label for file type
 		s_label = _('Size') # T: label for file size
 		m_label = _('Modified') # T: label for file modification date
 		tooltip.set_markup(
-			"%s\n\n<b>%s:</b> %s\n<b>%s:</b>\n%s" % (
+			"%s\n\n<b>%s:</b> %s\n<b>%s:</b> %s\n<b>%s:</b>\n%s" % (
 				name,
+				t_label, mtype_desc or mtype,
 				s_label, size,
 				m_label, mdate,
 			))
