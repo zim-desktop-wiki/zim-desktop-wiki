@@ -2306,7 +2306,6 @@ class MainWindow(Window):
 
 		self.pathbar = None
 		self.pathbar_box = gtk.HBox()
-		self.pathbar_box.set_border_width(3)
 		self.add_widget(self.pathbar_box, (TOP_PANE, TOP))
 
 		self.pageview = PageView(ui)
@@ -2672,7 +2671,7 @@ class MainWindow(Window):
 			if not (self.pathbar and self.pathbar.__class__ == klass):
 				for child in self.pathbar_box.get_children():
 					self.pathbar_box.remove(child)
-				self.pathbar = klass(self.ui, spacing=3)
+				self.pathbar = klass(self.ui)
 				self.pathbar.set_history(self.ui.history)
 				self.pathbar_box.add(self.pathbar)
 			self.pathbar_box.show_all()
