@@ -3,7 +3,7 @@ Section: utils
 Priority: optional
 Maintainer: Jaap Karssenberg <jaap.karssenberg@gmail.com>
 Standards-Version: 3.9.3
-Build-Depends: debhelper (>= 7.4.12), cdbs, python-support (>= 0.8), xdg-utils, python (>= 2.5), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg, python-simplejson | python (>= 2.6)
+Build-Depends: debhelper (>= 7.4.12), cdbs, python-support (>= 0.8), xdg-utils, python (>= 2.6), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg
 # For testing should also include "python-unittest2 | python (>= 2.7)"
 # but this prevents building the package for Ubuntu Lucid, due to missing
 # unittest2 - but zim runs just find on Lucid
@@ -11,7 +11,7 @@ Build-Depends: debhelper (>= 7.4.12), cdbs, python-support (>= 0.8), xdg-utils, 
 Package: zim
 Architecture: all
 Homepage: http://zim-wiki.org/
-Depends: ${python:Depends}, ${misc:Depends}, python-gtk2, python-xdg, python-simplejson | python (>= 2.6)
+Depends: ${python:Depends}, ${misc:Depends}, python (>= 2.6), python-gtk2, python-xdg
 # python-gtkspell required for the spell checker plugin
 Recommends: python-gtkspell
 # graphviz required for the link map/diagram plugins

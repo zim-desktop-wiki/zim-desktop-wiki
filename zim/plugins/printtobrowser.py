@@ -1,34 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Plugin to serve as work-around for the lack of printing support'''
 
 import gtk
 
 from zim.fs import TmpFile
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, WindowExtension, DialogExtension, extends
+from zim.actions import action
 import zim.templates
 from zim.exporter import StaticLinker
 
-
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='file_menu'>
-			<placeholder name='print_actions'>
-				<menuitem action='print_to_browser'/>
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
-
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, readonly
-	('print_to_browser', 'gtk-print', _('_Print to Browser'), '<ctrl>P', 'Printto browser', True), # T: menu item
-
-)
 
 class PrintToBrowserPlugin(PluginClass):
 
@@ -46,18 +29,6 @@ This is a core plugin shipping with zim.
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Print to Browser'
 	}
-
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		if self.ui.ui_type == 'gtk':
-			self.ui.add_actions(ui_actions, self)
-			self.ui.add_ui(ui_xml, self)
-
-	def print_to_browser(self, page=None):
-		file = self.print_to_file(page)
-		self.ui.open_url('file://%s' % file)
-			# Try to force web browser here - otherwise it goes to the
-			# file browser which can have unexpected results
 
 	def print_to_file(self, page=None):
 		if not page:
@@ -84,26 +55,45 @@ This is a core plugin shipping with zim.
 		file.writelines(html)
 		return file
 
-	def do_decorate_window(self, window):
-		# Add a print button to the tasklist dialog
-		if not window.__class__.__name__ == 'TaskListDialog':
-			return
 
-		buttons = [b for b in window.action_area.get_children()
-			if not window.action_area.child_get_property(b, 'secondary')]
-		close_button = buttons[0] # HACK: not sure this order fixed
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
 
-		button = gtk.Button(stock='gtk-print')
-		window.action_area.pack_end(button, False)
-		button.connect('clicked', self.on_print_tasklist, window.task_list)
+	uimanager_xml = '''
+	<ui>
+		<menubar name='menubar'>
+			<menu action='file_menu'>
+				<placeholder name='print_actions'>
+					<menuitem action='print_to_browser'/>
+				</placeholder>
+			</menu>
+		</menubar>
+	</ui>
+	'''
 
-		window.action_area.reorder_child(close_button, -1)
-
-	def on_print_tasklist(self, o, task_list):
-		html = task_list.get_visible_data_as_html()
-
-		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
-		file.write(html)
-		self.ui.open_url('file://%s' % file)
+	@action(_('_Print to Browser'), 'gtk-print', '<ctrl>P') # T: menu item
+	def print_to_browser(self, page=None):
+		file = self.plugin.print_to_file(page)
+		self.window.ui.open_url('file://%s' % file) # FIXME window.ui.open_ -> window.open_
 			# Try to force web browser here - otherwise it goes to the
 			# file browser which can have unexpected results
+
+
+@extends('TaskListDialog')
+class TaskListDialogExtension(DialogExtension):
+
+	def __init__(self, plugin, window):
+		DialogExtension.__init__(self, plugin, window)
+
+		button = gtk.Button(stock='gtk-print')
+		button.connect('clicked', self.on_print_tasklist)
+		self.add_dialog_button(button)
+
+	def on_print_tasklist(self, o):
+		html = self.window.task_list.get_visible_data_as_html()
+		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
+		file.write(html)
+		self.window.ui.open_url('file://%s' % file) # FIXME window.ui.open_ -> window.open_
+			# Try to force web browser here - otherwise it goes to the
+			# file browser which can have unexpected results
+

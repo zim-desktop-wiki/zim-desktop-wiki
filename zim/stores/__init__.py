@@ -74,7 +74,7 @@ def get_store(name):
 	@param name: the module name of the store (e.g. "files")
 	@returns: the subclass of L{StoreClass} found in the module
 	'''
-	mod = zim.plugins.get_module('zim.stores', name)
+	mod = zim.plugins.get_module('zim.stores.' + name.lower())
 	obj = zim.plugins.lookup_subclass(mod, StoreClass)
 	return obj
 

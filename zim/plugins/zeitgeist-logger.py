@@ -7,7 +7,7 @@
 import gio
 import logging
 import sys
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, Extension, extends
 from zim.signals import SIGNAL_AFTER
 
 logger = logging.getLogger('zim.plugins.zeitgeist')
@@ -38,27 +38,16 @@ class ZeitgeistPlugin(PluginClass):
 		PluginClass.__init__(self, ui)
 		try:
 			self.zeitgeist_client = ZeitgeistClient()
+			self.zeitgeist_client.register_data_source('application://zim.desktop',
+			    'Zim', _('Zim Desktop Wiki'), []) # T: short description of zim
 		except RuntimeError, e:
 			logger.exception('Loading zeitgeist client failed, will not log events')
 			self.zeitgeist_client = None
 
-	def initialize_ui(self, ui):
-		if ui.ui_type != 'gtk':
+	def create_and_send_event(self, page, path, event_type):
+		if not self.zeitgeist_client:
 			return
 
-		if self.zeitgeist_client is not None:
-			self.zeitgeist_client.register_data_source('application://zim.desktop',
-			    'Zim', _('Zim Desktop Wiki'), []) # T: short description of zim
-
-			self.connectto_all(self.ui,
-				('open-page', 'close-page'), order=SIGNAL_AFTER)
-
-	def finalize_notebook(self, notebook):
-		if self.zeitgeist_client is not None:
-			self.connectto_all(notebook,
-				('deleted-page', 'stored-page'), order=SIGNAL_AFTER)
-
-	def create_and_send_event(self, page, path, event_type):
 		#FIXME: Assumes file store
 		store = self.ui.notebook.get_store(page.name)
 		if path is not None:
@@ -84,19 +73,36 @@ class ZeitgeistPlugin(PluginClass):
 
 		self.zeitgeist_client.insert_event(event)
 
+
+@extends('PageView')
+class PageViewExtension(Extension):
+
+	def __init__(self, plugin, pageview):
+		self.plugin = plugin
+		self.connectto_all(pageview.ui, # HACK - remove ui here, emit from pageview
+			('open-page', 'close-page'), order=SIGNAL_AFTER)
+
 	def on_open_page(self, ui, page, path):
 		logger.debug("Opened page: %s", page.name)
-		self.create_and_send_event(page, path, Interpretation.ACCESS_EVENT)
+		self.plugin.create_and_send_event(page, path, Interpretation.ACCESS_EVENT)
 
 	def on_close_page(self, ui, page, *a):
 		logger.debug("Left page: %s", page.name)
-		self.create_and_send_event(page, None, Interpretation.LEAVE_EVENT)
+		self.plugin.create_and_send_event(page, None, Interpretation.LEAVE_EVENT)
+
+
+@extends('Notebook')
+class NotebookExtension(Extension):
+
+	def __init__(self, plugin, notebook):
+		self.plugin = plugin
+		self.connectto_all(notebook,
+			('deleted-page', 'stored-page'), order=SIGNAL_AFTER)
 
 	def on_deleted_page(self, page, path):
 		logger.debug("Deleted page: %s", page.name)
-		self.create_and_send_event(page, path, Interpretation.DELETE_EVENT)
+		self.plugin.create_and_send_event(page, path, Interpretation.DELETE_EVENT)
 
 	def on_stored_page(self, page, path):
 		logger.debug("Modified page: %s", page.name)
-		self.create_and_send_event(page, path, Interpretation.MODIFY_EVENT)
-
+		self.plugin.create_and_send_event(page, path, Interpretation.MODIFY_EVENT)

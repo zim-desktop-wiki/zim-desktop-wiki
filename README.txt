@@ -85,12 +85,11 @@ dependencies check `./setup.py --requires`.
 You will at least need the following:
 
 	* gtk+ >= 2.6
-	* python >= 2.5
+	* python >= 2.6
 	* python-gtk
 	* python-gobject
 	* python-xdg (optional, but recommended)
 	* xdg-utils (optional, but recommended)
-	* python-simplejson (for python < 2.6)
 
 To verify zim is working properly on your system you can call the test suite
 using `./test.py`. Failures do not have to be critical, but in principle all
@@ -131,10 +130,10 @@ directory.
 You can run zim on mac if you have the proper dependencies installed.
 If you are using Mac Ports packages installing the following ports should work:
 
-	* python25
-	* py25-gtk
-	* py25-simplejson
-	* py25-xdg
+	* python26
+	* py26-gtk
+	* py26-simplejson
+	* py26-xdg
 
 
 ===== Install Paths =====

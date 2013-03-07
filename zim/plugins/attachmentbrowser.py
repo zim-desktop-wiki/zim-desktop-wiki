@@ -5,6 +5,7 @@
 # License:  same as zim (gpl)
 #
 # ChangeLog
+# 2013-03-03 Change to new plugin extension structure (Jaap)
 # 2013-02-25 Added zooming icon size, made icon rendering more robust (Jaap)
 # 2012-08-17 Added mimetype icons, statusbar toggle button, and gio monitor support (Jaap)
 # 2012-07-20 Updated code for pane uistate (Jaap)
@@ -54,7 +55,8 @@ except ImportError:
 import zim
 import zim.config # Asserts HOME is defined
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, WindowExtension, extends
+from zim.actions import toggle_action
 
 from zim.fs import File, Dir, format_file_size
 from zim.errors import Error
@@ -72,31 +74,6 @@ from zim.gui.clipboard import \
 
 
 logger = logging.getLogger('zim.plugins.attachmentbrowser')
-
-
-ui_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, readonly
-	('toggle_fileview', gtk.STOCK_DIRECTORY, _('AttachmentBrowser'),  '', 'Show Attachment Folder',False, True), # T: menu item
-)
-
-
-#Menubar and toolbar
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='view_menu'>
-			<placeholder name="plugin_items">
-				<menuitem action="toggle_fileview" />
-			</placeholder>
-		</menu>
-	</menubar>
-	<toolbar name='toolbar'>
-		<placeholder name='tools'>
-			<toolitem action='toggle_fileview'/>
-		</placeholder>
-	</toolbar>
-</ui>
-'''
 
 
 # freedesktop.org spec
@@ -246,8 +223,6 @@ def is_hidden_file(file):
 
 class AttachmentBrowserPlugin(PluginClass):
 
-	TAB_NAME = _('Attachments') # T: label for attachment browser pane
-
 	plugin_info = {
 		'name': _('Attachment Browser'), # T: plugin name
 		'description': _('''\
@@ -274,70 +249,99 @@ This plugin is still under development.
 	#~ def check_dependencies(klass):
 		#~ return [("ImageMagick",Application(('convert',None)).tryexec())]
 
-	def initialize_ui(self, ui):
+
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	TAB_NAME = _('Attachments') # T: label for attachment browser pane
+
+	uimanager_xml = '''
+	<ui>
+		<menubar name='menubar'>
+			<menu action='view_menu'>
+				<placeholder name="plugin_items">
+					<menuitem action="toggle_fileview" />
+				</placeholder>
+			</menu>
+		</menubar>
+		<toolbar name='toolbar'>
+			<placeholder name='tools'>
+				<toolitem action='toggle_fileview'/>
+			</placeholder>
+		</toolbar>
+	</ui>
+	'''
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+		self.preferences = plugin.preferences
+		self.uistate = plugin.uistate
 		self._monitor = None
-		self._block_toggle = False
-		if self.ui.ui_type == 'gtk':
-			self.ui.add_toggle_actions(ui_toggle_actions, self)
-			#self.ui.add_actions(ui_actions, self)
-			self.ui.add_ui(ui_xml, self)
 
-	def finalize_ui(self, ui):
-		if self.ui.ui_type == 'gtk':
-			self.widget = AttachmentBrowserPluginWidget(self, self.preferences)
+		# Init statusbar button
+		self.statusbar_frame = gtk.Frame()
+		self.statusbar_frame.set_shadow_type(gtk.SHADOW_IN)
+		self.window.statusbar.pack_end(self.statusbar_frame, False)
 
-			self.statusbar_frame = gtk.Frame()
-			self.statusbar_frame.set_shadow_type(gtk.SHADOW_IN)
-			self.ui.mainwindow.statusbar.pack_end(self.statusbar_frame, False)
+		self.statusbar_button = gtk.ToggleButton('<attachments>') # translated below
+		button_set_statusbar_style(self.statusbar_button)
 
-			self.statusbar_button = gtk.ToggleButton('<attachments>') # translated below
-			button_set_statusbar_style(self.statusbar_button)
+		self.statusbar_button.set_use_underline(True)
+		self.__class__.toggle_fileview.connect_actionable(
+			self, self.statusbar_button)
 
-			self.statusbar_button.set_use_underline(True)
-			self.statusbar_button.connect_after('toggled',
-				lambda o: self.toggle_fileview(enable=o.get_active()) )
-			self.statusbar_frame.add(self.statusbar_button)
-			self.statusbar_frame.show_all()
+		self.statusbar_frame.add(self.statusbar_button)
+		self.statusbar_frame.show_all()
 
-			self.do_preferences_changed()
+		# Init browser widget
+		self.widget = AttachmentBrowserPluginWidget(self, self.window.ui, self.preferences)
+			# FIXME FIXME FIXME - get rid of ui object here
+		self.connectto(plugin, 'preferences-changed')
+		self.on_preferences_changed()
 
-			if self.ui.page:
-				self.on_open_page(self.ui, self.ui.page, self.ui.page)
-			self.connectto(self.ui, 'open-page')
+		# XXX
+		if self.window.ui.page:
+			self.on_open_page(self.window.ui, self.window.ui.page, self.window.ui.page)
+		self.connectto(self.window.ui, 'open-page')
 
-			self.connectto(self.ui.mainwindow, 'pane-state-changed')
+		self.connectto(self.window, 'pane-state-changed')
 
+	def on_preferences_changed(self):
+		try:
+			self.window.remove(self.widget)
+		except ValueError:
+			pass
+		self.window.add_tab(self.TAB_NAME, self.widget, self.preferences['pane'])
+		self.widget.show_all()
 
-	def toggle_fileview(self, enable=None):
-		self.toggle_action('toggle_fileview', active=enable)
+	@toggle_action(
+		_('Attachment Browser'), # T: Menu item
+		gtk.STOCK_DIRECTORY,
+		tooltip=_('Show Attachment Browser') # T: Toolbar item tooltip
+	)
+	def toggle_fileview(self, active):
+		# This toggle is called to focus on our widget
+		# but also after the fact when we detect focus changed
+		# so check state explicitly and don't do more than needed
+		visible, size, tab = self.window.get_pane_state(self.preferences['pane'])
 
-	def do_toggle_fileview(self, enable=None):
-		# TODO make this a generic "do_toggle_widget" ?
-		#~ print 'do_toggle_fileview', enable
-		if enable is None:
-			action = self.actiongroup.get_action('toggle_fileview')
-			enable = action.get_active()
-
-		if self._block_toggle:
-			self.statusbar_button.set_active(enable) # sync statusbar button
-			return
-
-		if enable:
-			self.ui.mainwindow.set_pane_state(
-				self.preferences['pane'], True,
-				activetab=self.TAB_NAME,
-				grab_focus=True)
+		if active:
+			if not (visible and tab == self.TAB_NAME):
+				self.window.set_pane_state(
+					self.preferences['pane'], True,
+					activetab=self.TAB_NAME,
+					grab_focus=True)
+			# else pass
 		else:
-			self.ui.mainwindow.set_pane_state(
-				self.preferences['pane'], False)
-
-		self.statusbar_button.set_active(enable) # sync statusbar button
+			if visible and tab == self.TAB_NAME:
+				self.window.set_pane_state(
+					self.preferences['pane'], False)
+			# else pass
 
 	def on_pane_state_changed(self, window, pane, visible, active):
 		if pane != self.preferences['pane']:
 			return
 
-		self._block_toggle = True
 		if visible and active == self.TAB_NAME:
 			self.toggle_fileview(True)
 			if not self.widget.get_active():
@@ -345,7 +349,6 @@ This plugin is still under development.
 		else:
 			self.toggle_fileview(False)
 			self.widget.set_active(False)
-		self._block_toggle = False
 
 	def on_open_page(self, ui, page, path):
 		self._disconnect_monitor()
@@ -353,13 +356,19 @@ This plugin is still under development.
 		self.widget.set_page(page)
 		self._refresh_statusbar(page)
 
-		dir = self.ui.notebook.get_attachments_dir(page)
+		dir = self.window.ui.notebook.get_attachments_dir(page) # XXX -> page.get_attachemnts_dir()
 		id = dir.connect('changed', self.on_dir_changed)
 		self._monitor = (dir, id)
 
+	def _disconnect_monitor(self):
+		if self._monitor:
+			dir, id = self._monitor
+			dir.disconnect(id)
+			self._monitor = None
+
 	def on_dir_changed(self, *a):
 		logger.debug('Dir change detected: %s', a)
-		self._refresh_statusbar(self.ui.page)
+		self._refresh_statusbar(self.window.ui.page) # XXX
 		self.widget.refresh()
 
 	def _refresh_statusbar(self, page):
@@ -372,7 +381,7 @@ This plugin is still under development.
 		# Calculate independent from the widget
 		# (e.g. widget is not refreshed when hidden)
 		n = 0
-		dir = self.ui.notebook.get_attachments_dir(page)
+		dir = self.window.ui.notebook.get_attachments_dir(page) # XXX -> page.get_
 		from zim.fs import isdir
 		for name in dir.list():
 			# If dir is an attachment folder, sub-pages maybe filtered out already
@@ -383,33 +392,14 @@ This plugin is still under development.
 				n += 1
 		return n
 
-	def disconnect(self):
+	def destroy(self):
 		self._disconnect_monitor()
-		if self.ui.ui_type == 'gtk':
-			self.do_toggle_fileview(enable=False)
-			if self.statusbar_frame:
-				self.ui.mainwindow.statusbar.remove(self.statusbar_frame)
-		PluginClass.disconnect(self)
+		self.toggle_fileview(False)
+		if self.statusbar_frame:
+			self.window.statusbar.remove(self.statusbar_frame)
 
-	def _disconnect_monitor(self):
-		if self._monitor:
-			dir, id = self._monitor
-			dir.disconnect(id)
-			self._monitor = None
+		WindowExtension.destroy(self)
 
-	def do_preferences_changed(self):
-		if self.ui.ui_type == 'gtk':
-			try:
-				self.ui.mainwindow.remove(self.widget)
-			except ValueError:
-				pass
-			self.ui.mainwindow.add_tab(self.TAB_NAME, self.widget, self.preferences['pane'])
-			self.widget.show_all()
-
-
-
-BASENAME_COL = 0
-PIXBUF_COL = 1
 
 
 class uistate_property(object):
@@ -432,15 +422,18 @@ class uistate_property(object):
 		obj.uistate[self.key] = value
 
 
+BASENAME_COL = 0
+PIXBUF_COL = 1
+
 class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	icon_size = uistate_property('icon_size', DEFAULT_ICON_SIZE)
 
-	def __init__(self, plugin, preferences):
+	def __init__(self, extension, ui, preferences):
 		gtk.HBox.__init__(self)
-		self.plugin = plugin
-		self.ui = plugin.ui
-		self.uistate = plugin.uistate
+		self.extension = extension
+		self.ui = ui
+		self.uistate = extension.uistate
 		self.preferences = preferences
 		self.dir = None
 		self._active = True
@@ -544,7 +537,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def on_refresh_button(self):
 		self.refresh()
-		self.plugin._refresh_statusbar(self.ui.page) # bit of a HACK to get the page here
+		self.extension._refresh_statusbar(self.ui.page) # bit of a HACK to get the page here
+			# FIXME communicate to extension by signal
 
 	def zoom_in(self):
 		self.icon_size = min((self.icon_size * 2, THUMB_SIZE_LARGE)) # 16 > 32 > 64 > 128 > 256

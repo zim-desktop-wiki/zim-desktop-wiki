@@ -24,13 +24,16 @@ import gobject
 import types
 import os
 import sys
+import weakref
 import logging
+import inspect
 
 import zim.fs
 from zim.fs import Dir
 from zim.config import ListDict, get_environ
 
 from zim.signals import ConnectorMixin, SIGNAL_AFTER
+from zim.actions import action, toggle_action, get_actiongroup
 
 
 logger = logging.getLogger('zim.plugins')
@@ -103,12 +106,10 @@ def set_plugin_search_path():
 set_plugin_search_path()
 
 
-def get_module(prefix, name):
-	'''Import a module for C{prefix + '.' + name}
+def get_module(name):
+	'''Import a module
 
-	@param prefix: the module path to search (e.g. "zim.plugins")
-	@param name: the module name (e.g. "calendar") - case insensitive
-
+	@param name: the module name
 	@returns: module object
 	@raises ImportError: if the given name does not exist
 
@@ -116,9 +117,8 @@ def get_module(prefix, name):
 	L{get_plugin_module()} instead.
 	'''
 	# __import__ has some quirks, see the reference manual
-	modname = prefix + '.' + name.lower()
-	mod = __import__(modname)
-	for part in modname.split('.')[1:]:
+	mod = __import__(name)
+	for part in name.split('.')[1:]:
 		mod = getattr(mod, part)
 	return mod
 
@@ -137,12 +137,28 @@ def lookup_subclass(module, klass):
 	@note: don't actually use this method to get plugin classes, see
 	L{get_plugin()} instead.
 	'''
-	for name in dir(module):
-		obj = getattr(module, name)
-		if ( isinstance(obj, (type, types.ClassType)) # is a class
-		and issubclass(obj, klass) # is derived from e.g. PluginClass
-		and not obj == klass ): # but is not e.g. PluginClass itself (which is imported)
-			return obj
+	subclasses = lookup_subclasses(module, klass)
+	if len(subclasses) > 1:
+		raise AssertionError, 'BUG: Multiple subclasses found of type: %s' % klass
+	elif subclasses:
+		return subclasses[0]
+	else:
+		return None
+
+
+def lookup_subclasses(module, klass):
+	'''Look for all subclasses of klass in the module
+
+	@param module: module object
+	@param klass: base class
+	'''
+	subclasses = []
+	for name, obj in inspect.getmembers(module, inspect.isclass):
+		if issubclass(obj, klass) \
+		and obj.__module__.startswith(module.__name__):
+			subclasses.append(obj)
+
+	return subclasses
 
 
 def get_plugin_module(name):
@@ -151,7 +167,7 @@ def get_plugin_module(name):
 	@param name: the plugin module name (e.g. "calendar")
 	@returns: the plugin module object
 	'''
-	return get_module('zim.plugins', name)
+	return get_module('zim.plugins.' + name.lower())
 
 
 def get_plugin(name):
@@ -384,6 +400,18 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 		else:
 			self.uistate = ListDict()
 
+		# Find related extension classes in same module
+		# any class with the "__extends__" field will be added
+		# (Being subclass of Extension is optional)
+		self.extension_classes = {}
+		self._extensions = []
+		module = get_module(self.__class__.__module__)
+		for name, klass in inspect.getmembers(module, inspect.isclass):
+			if hasattr(klass, '__extends__') and klass.__extends__:
+				assert klass.__extends__ not in self.extension_classes, \
+					'Extension point %s used multiple times in %s' % (klass.__extends__, module.__name__)
+				self.extension_classes[klass.__extends__] = klass
+
 	def _merge_uistate(self):
 		# As a convenience we provide a uistate dict directly after
 		# initialization of the plugin. However, in reality this
@@ -396,6 +424,23 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 			self.uistate = self.ui.uistate[section]
 			for key, value in defaults.items():
 				self.uistate.setdefault(key, value)
+
+	def _extension_point(self, obj):
+		# TODO also check parent classes
+		name = obj.__class__.__name__
+		if name in self.extension_classes:
+			ext = self.extension_classes[name](self, obj)
+			ref = weakref.ref(obj, self._del_extension)
+			self._extensions.append(ref)
+
+	def _del_extension(self, ref):
+		if ref in self._extensions:
+			self._extensions.remove(ref)
+
+	@property
+	def extensions(self):
+		extensions = [ref() for ref in self._extensions]
+		return [e for e in extensions if e] # Filter out None values
 
 	def initialize_ui(self, ui):
 		'''Callback called during construction of the ui.
@@ -446,8 +491,7 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 
 		@implementation: optional, may be implemented by subclasses.
 		'''
-		# NOTE: this method is decorated by the meta class
-		pass
+		self._extension_point(notebook)
 
 	def finalize_ui(self, ui):
 		'''Callback called just before entering the main loop
@@ -465,6 +509,7 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 
 		@implementation: optional, may be implemented by subclasses.
 		'''
+		# NOTE: this method is decorated by the meta class
 		pass
 
 	def do_decorate_window(self, window):
@@ -472,7 +517,11 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 		opens in zim.
 		May be overloaded by sub classes
 		'''
-		pass
+		self._extension_point(window)
+
+		# HACK
+		if hasattr(window, 'pageview'):
+			self._extension_point(window.pageview)
 
 	def do_preferences_changed(self):
 		'''Handler called when preferences are changed by the user
@@ -508,10 +557,18 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 				except:
 					logger.exception('Exception while disconnecting %s', self)
 
+		while self._extensions:
+			ref = self._extensions.pop()
+			obj = ref()
+			if obj:
+				obj.destroy()
+
 		try:
 			self.disconnect_all()
 		except:
 			logger.exception('Exception while disconnecting %s', self)
+
+	destroy = disconnect # TODO rename "disconnect" -> "destroy"
 
 	def toggle_action(self, action, active=None):
 		'''Trigger a toggle action.
@@ -581,3 +638,99 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 
 # Need to register classes defining gobject signals
 gobject.type_register(PluginClass)
+
+
+def extends(klass):
+	'''Decorator for extension classes
+	Use this decorator to add extensions to the plugin.
+	Takes either a class or a class name for the class to be
+	extended. When the plugin gets an object of this class a new
+	extension object will be constructed.
+	'''
+	if isinstance(klass, basestring):
+		name = klass
+	else:
+		name = klass.__name__
+
+	def inner(myklass):
+		myklass.__extends__ = name
+		return myklass
+
+	return inner
+
+
+class Extension(ConnectorMixin):
+
+	# TODO, maybe add try .. except wrapper for destroy in meta class ?
+	# have except always call super.destroy
+
+	def __init__(self, plugin, obj):
+		self.plugin = plugin
+		self.obj = obj
+
+	def destroy(self):
+		try:
+			self.disconnect_all()
+		except:
+			logger.exception('Exception while disconnecting %s', self)
+
+
+class WindowExtension(Extension):
+
+	def __init__(self, plugin, window):
+		self.plugin = plugin
+		self.window = window
+
+		if hasattr(self, 'uimanager_xml'):
+			# TODO move uimanager to window
+			actiongroup = get_actiongroup(self)
+			self.window.ui.uimanager.insert_action_group(actiongroup, 0)
+			self._uimanager_id = self.window.ui.uimanager.add_ui_from_string(self.uimanager_xml)
+
+		window.connect_object('destroy', self.__class__.destroy, self)
+
+	def destroy(self):
+		try:
+			# TODO move uimanager to window
+			if hasattr(self, '_uimanager_id') \
+			and self._uimanager_id is not None:
+				self.window.ui.uimanager.remove_ui(self._uimanager_id)
+				self._uimanager_id = None
+
+			if hasattr(self, 'actiongroup'):
+				self.window.ui.uimanager.remove_action_group(self.actiongroup)
+		except:
+			logger.exception('Exception while removing UI %s', self)
+
+		Extension.destroy(self)
+
+
+class DialogExtension(WindowExtension):
+
+	def __init__(self, plugin, window):
+		assert hasattr(window, 'action_area'), 'Not a dialog: %s' % window
+		WindowExtension.__init__(self, plugin, window)
+		self._dialog_buttons = []
+
+	def add_dialog_button(self, button):
+		# This logic adds the button to the action area and places
+		# it left of the left most primary button by reshuffling all
+		# other buttons after adding the new one
+		#
+		# TODO: check if this works correctly in RTL configuration
+		self.window.action_area.pack_end(button, False) # puts button in right most position
+		self._dialog_buttons.append(button)
+		buttons = [b for b in self.window.action_area.get_children()
+			if not self.window.action_area.child_get_property(b, 'secondary')]
+		for b in buttons:
+			if b is not button:
+				self.window.action_area.reorder_child(b, -1) # reshuffle to the right
+
+	def destroy(self):
+		try:
+			for b in self._dialog_buttons:
+				self.window.action_area.remove(b)
+		except:
+			logger.exception('Could not remove buttons')
+
+		WindowExtension.destroy(self)

@@ -157,7 +157,7 @@ def get_format_module(name):
 	@param name: the format name
 	@returns: a module object
 	'''
-	return zim.plugins.get_module('zim.formats', canonical_name(name))
+	return zim.plugins.get_module('zim.formats.' + canonical_name(name))
 
 
 def get_parser(name, *arg, **kwarg):
