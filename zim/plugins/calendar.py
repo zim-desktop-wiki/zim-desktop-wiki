@@ -149,10 +149,9 @@ Also adds a calendar widget to access these pages.
 
 	def finalize_notebook(self, notebook):
 		self.do_preferences_changed()
-		notebook.register_hook('suggest_link', self.suggest_link)
+		self.connectto(notebook, 'suggest_link', self.suggest_link)
 
 	def disconnect(self):
-		self.ui.notebook.unregister_hook('suggest_link', self.suggest_link)
 		if self._set_template:
 			ns = self._set_template
 			try:

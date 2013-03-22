@@ -8,7 +8,7 @@ import gobject
 import gtk
 import pango
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, extends, WindowExtension
 from zim.notebook import Path
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
 from zim.index import LINK_DIR_BACKWARD
@@ -35,39 +35,41 @@ This is a core plugin shipping with zim.
 	)
 
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
 		self.sidepane_widget = None
+		self.on_preferences_changed(plugin)
+		self.connectto(plugin, 'preferences-changed')
 
-	def finalize_notebook(self, ui):
-		self.do_preferences_changed()
-
-	def disconnect(self):
-		if self.sidepane_widget:
-			self.ui.mainwindow.remove(self.sidepane_widget)
-			self.sidepane_widget.destroy()
-			self.sidepane_widget = None
-
-		PluginClass.disconnect(self)
-
-	def do_preferences_changed(self):
-		if self.ui.ui_type != 'gtk':
-			return
-
+	def on_preferences_changed(self, plugin):
 		if not self.sidepane_widget:
-			self.sidepane_widget = BackLinksWidget(self.ui)
-			self.connectto(self.ui, 'open-page')
-
+			opener = self.window.get_resource_opener()
+			self.sidepane_widget = BackLinksWidget(opener)
+			if self.window.ui.page: # XXX
+				self.sidepane_widget.set_page(
+					self.window.ui.notebook, self.window.ui.page) # XXX
+			self.connectto(self.window.ui, 'open-page') # XXX
 		else:
-			self.ui.mainwindow.remove(self.sidepane_widget)
+			self.window.remove(self.sidepane_widget)
 
-		self.ui.mainwindow.add_tab(
-			_('BackLinks'), self.sidepane_widget, self.preferences['pane'])
+		self.window.add_tab(
+			_('BackLinks'), self.sidepane_widget, self.plugin.preferences['pane'])
 			# T: widget label
 		self.sidepane_widget.show_all()
 
 	def on_open_page(self, ui, page, path):
-		self.sidepane_widget.set_page(page)
+		self.sidepane_widget.set_page(self.window.ui.notebook, page) # XXX
+
+	def disconnect(self):
+		if self.sidepane_widget:
+			self.window.remove(self.sidepane_widget)
+			self.sidepane_widget.destroy()
+			self.sidepane_widget = None
+
+		PluginClass.disconnect(self)
 
 
 PAGE_COL = 0
@@ -75,28 +77,26 @@ TEXT_COL = 1
 
 class BackLinksWidget(gtk.ScrolledWindow):
 
-	def __init__(self, ui):
+	def __init__(self, opener):
 		gtk.ScrolledWindow.__init__(self)
 		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		self.set_shadow_type(gtk.SHADOW_IN)
 
-		self.ui = ui
+		self.opener = opener
 
 		self.treeview = LinksTreeView()
 		self.add(self.treeview)
 		self.treeview.connect('row-activated', self.on_link_activated)
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 
-		if self.ui.page:
-			self.set_page(self.ui.page)
-
-	def set_page(self, page):
+	def set_page(self, notebook, page):
 		model = self.treeview.get_model()
 		model.clear()
 
-		backlinks = self.ui.notebook.index.list_links(page, LINK_DIR_BACKWARD)
+		backlinks = notebook.index.list_links(page, LINK_DIR_BACKWARD)
+			# XXX allow access through page object
 		for link in backlinks:
-			href = self.ui.notebook.relative_link(link.href, link.source)
+			href = notebook.relative_link(link.href, link.source) # XXX
 				# relative link from href *back* to source
 			href = href.lstrip(':')
 			#~ model.append(None, (link.source, href))
@@ -109,17 +109,14 @@ class BackLinksWidget(gtk.ScrolledWindow):
 	def on_link_activated(self, treeview, path, column):
 		model = treeview.get_model()
 		path = model[path][PAGE_COL]
-		self.ui.open_page(path)
+		self.opener.open_page(path)
 
 	def on_populate_popup(self, treeview, menu):
 		populate_popup_add_separator(menu)
 
-		if gtk.gtk_version >= (2, 16, 0):
-			action = self.ui.actiongroup.get_action('open_new_window')
-			label = action.get_label()
-			item = gtk.MenuItem(label)
-			item.connect('activate', self.on_open_new_window, treeview)
-			menu.append(item)
+		item = gtk.MenuItem(_('Open in New _Window'))
+		item.connect('activate', self.on_open_new_window, treeview)
+		menu.append(item)
 
 		# Other per page menu items do not really apply here...
 
@@ -127,7 +124,7 @@ class BackLinksWidget(gtk.ScrolledWindow):
 		model, iter = treeview.get_selection().get_selected()
 		if model and iter:
 			path = model[iter][PAGE_COL]
-			self.ui.open_new_window(path)
+			self.opener.open_page(path, new_window=True)
 
 
 class LinksTreeView(BrowserTreeView):

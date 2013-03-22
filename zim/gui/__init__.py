@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the Gtk user interface for zim.
 The main widgets and dialogs are separated out in sub-modules.
@@ -1791,6 +1791,24 @@ class GtkInterface(NotebookInterface):
 		from zim.gui.cleannotebookdialog import CleanNotebookDialog
 		CleanNotebookDialog(self).run()
 
+	def open_dir(self, dir):
+		'''Open a L{Dir} object and prompt to create it if it doesn't
+		exist yet.
+		@param dir: a L{Dir} object
+		'''
+		if dir.exists():
+			self.open_file(dir)
+		else:
+			question = (
+				_('Create folder?'),
+					# T: Heading in a question dialog for creating a folder
+				_('The folder "%s" does not yet exist.\nDo you want to create it now?') % dir.basename)
+					# T: Text in a question dialog for creating a folder, %s will be the folder base name
+			create = QuestionDialog(self, question).run()
+			if create:
+				dir.touch()
+				self.open_file(dir)
+
 	def open_file(self, file, mimetype=None, callback=None):
 		'''Open a L{File} or L{Dir} in the system file browser.
 
@@ -1921,18 +1939,8 @@ class GtkInterface(NotebookInterface):
 			error = _('This page does not have an attachments folder')
 				# T: Error message
 			ErrorDialog(self, error).run()
-		elif dir.exists():
-			self.open_file(dir)
 		else:
-			question = (
-				_('Create folder?'),
-					# T: Heading in a question dialog for creating a folder
-				_('The attachments folder for this page does not yet exist.\nDo you want to create it now?'))
-					# T: Text in a question dialog for creating a folder
-			create = QuestionDialog(self, question).run()
-			if create:
-				dir.touch()
-				self.open_file(dir)
+			self.open_dir(dir)
 
 	def open_notebook_folder(self):
 		'''Menu action to open the notebook folder'''
@@ -1946,8 +1954,8 @@ class GtkInterface(NotebookInterface):
 	def open_document_root(self):
 		'''Menu action to open the document root folder'''
 		dir = self.notebook.document_root
-		if dir and dir.exists():
-			self.open_file(dir)
+		if dir:
+			self.open_dir(dir)
 
 	def open_document_folder(self):
 		'''Menu action to open a sub-foldel of the document root folder
@@ -1959,19 +1967,7 @@ class GtkInterface(NotebookInterface):
 
 		dirpath = encode_filename(self.page.name)
 		dir = Dir([dir, dirpath])
-
-		if dir.exists():
-			self.open_file(dir)
-		else:
-			question = (
-				_('Create folder?'),
-					# T: Heading in a question dialog for creating a folder
-				_('The document folder for this page does not yet exist.\nDo you want to create it now?'))
-					# T: Text in a question dialog for creating a folder
-			create = QuestionDialog(self, question).run()
-			if create:
-				dir.touch()
-				self.open_file(dir)
+		self.open_dir(dir)
 
 	def edit_page_source(self, page=None):
 		'''Menu action to edit the page source in an external editor.
@@ -2241,6 +2237,27 @@ class GtkInterface(NotebookInterface):
 
 # Need to register classes defining gobject signals
 gobject.type_register(GtkInterface)
+
+
+class ResourceOpener(object):
+
+	def __init__(self, window):
+		self.window = window
+
+	def open_page(self, path, new_window=False):
+		if new_window:
+			self.window.ui.open_new_window(path) # XXX
+		else:
+			self.window.ui.open_page(path) # XXX
+
+	def open_dir(self, dir):
+		self.window.ui.open_dir(dir)
+
+	def open_file(self, url):
+		self.window.ui.open_file(url)
+
+	def open_url(self, url):
+		self.window.ui.open_url(url)
 
 
 class MainWindow(Window):
@@ -2862,6 +2879,9 @@ class MainWindow(Window):
 			self.uistate['windowsize'] = self.get_size()
 
 		Window.save_uistate(self) # takes care of sidepane positions etc.
+
+	def get_resource_opener(self):
+		return ResourceOpener(self)
 
 	def on_notebook_properties_changed(self, notebook):
 		self.set_title(notebook.name + ' - Zim')

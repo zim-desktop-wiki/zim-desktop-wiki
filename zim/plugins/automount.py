@@ -29,6 +29,10 @@ This is a core plugin shipping with zim.
 	# this plugin is profile independent
 	is_profile_independent = True
 
+	def __init__(self, ui):
+		PluginClass.__init__(self, ui)
+		self.connectto(ui, 'initialize-notebook')
+
 	def get_config(self, uri):
 		'''Return the automount config for a specific notebook uri or C{None}
 		@param uri: a notebook uri
@@ -44,7 +48,7 @@ This is a core plugin shipping with zim.
 		else:
 			return None
 
-	def initialize_notebook(self, uri):
+	def on_initialize_notebook(self, uri):
 		# check if the notebook exists
 		if not uri.startswith('file:') \
 		or Dir(uri).file('notebook.zim').exists():

@@ -79,7 +79,7 @@ class PageViewExtension(Extension):
 
 	def __init__(self, plugin, pageview):
 		self.plugin = plugin
-		self.connectto_all(pageview.ui, # HACK - remove ui here, emit from pageview
+		self.connectto_all(pageview.ui, # XXX - remove ui here, emit from pageview
 			('open-page', 'close-page'), order=SIGNAL_AFTER)
 
 	def on_open_page(self, ui, page, path):

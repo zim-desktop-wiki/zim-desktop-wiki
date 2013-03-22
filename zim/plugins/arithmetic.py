@@ -46,7 +46,7 @@ class MainWindowExtension(WindowExtension):
 		"""Perform arithmetic operations"""
 
 		# get the buffer
-		buf = self.window.pageview.view.get_buffer()
+		buf = self.window.pageview.view.get_buffer() # XXX
 
 		# parse and return modified text
 		parser = ParserGTK()

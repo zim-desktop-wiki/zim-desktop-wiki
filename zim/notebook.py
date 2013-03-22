@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
 This module contains the main Notebook class and related classes.
@@ -80,6 +80,9 @@ import weakref
 import logging
 
 import gobject
+
+
+from .base import Object
 
 import zim.fs
 from zim.fs import File, Dir
@@ -649,7 +652,7 @@ class PageReadOnlyError(Error):
 _first_char_re = re.compile(r'^\W', re.UNICODE)
 
 
-class Notebook(gobject.GObject):
+class Notebook(Object):
 	'''Main class to access a notebook
 
 	This class defines an API that proxies between backend L{zim.stores}
@@ -667,6 +670,8 @@ class Notebook(gobject.GObject):
 	@signal: C{profile-changed ()}: emitted when the profile is changed,
 	means that the preferences need to be loaded again as well
 	@signal: C{properties-changed ()}: emitted when properties changed
+	@signal: C{suggest-link (path, text)}: hook that is called when trying
+	to resolve links
 
 	@note: For store_async() the 'page-stored' signal is emitted
 	after scheduling the store, but potentially before it was really
@@ -712,7 +717,9 @@ class Notebook(gobject.GObject):
 		'deleted-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'profile-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 		'properties-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
+		'suggest-link': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 	}
+	__hooks__ = ('suggest-link',)
 
 	properties = (
 		('name', 'string', _('Name')), # T: label for properties dialog
@@ -727,7 +734,6 @@ class Notebook(gobject.GObject):
 
 	def __init__(self, dir=None, file=None, config=None, index=None):
 		assert not (dir and file), 'BUG: can not provide both dir and file '
-		gobject.GObject.__init__(self)
 		self._namespaces = []	# list used to resolve stores
 		self._stores = {}		# dict mapping namespaces to stores
 		self.namespace_properties = HierarchicDict({
@@ -1107,40 +1113,13 @@ class Notebook(gobject.GObject):
 			else:
 				return parent.basename + ':' + href.relname(parent)
 
-	def register_hook(self, name, handler):
-		'''Register a handler method for a specific hook
-
-		@todo: move this method to a more generic signal module
-		'''
-		register = '_register_%s' % name
-		if not hasattr(self, register):
-			setattr(self, register, [])
-		getattr(self, register).append(handler)
-
-	def unregister_hook(self, name, handler):
-		'''Remove a handler method for a specific hook
-
-		@todo: move this method to a more generic signal module
-		'''
-		register = '_register_%s' % name
-		if hasattr(self, register):
-			getattr(self, register).remove(handler)
-
 	def suggest_link(self, source, word):
 		'''Suggest a link Path for 'word' or return None if no suggestion is
 		found. By default we do not do any suggestion but plugins can
-		register handlers to add suggestions. See 'register_hook()' to
-		register a handler. The hook name is "suggest_link".
+		register handlers to add suggestions using the 'C{suggest-link}'
+		signal.
 		'''
-		if not  hasattr(self, '_register_suggest_link'):
-			return None
-
-		for handler in self._register_suggest_link:
-			link = handler(source, word)
-			if not link is None:
-				return link
-		else:
-			return None
+		return self.emit('suggest-link', source, word)
 
 	@staticmethod
 	def cleanup_pathname(name, purge=False):
@@ -2065,9 +2044,6 @@ class Notebook(gobject.GObject):
 		self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
 		self.config.write()
 		logger.info('Notebook update done')
-
-# Need to register classes defining gobject signals
-gobject.type_register(Notebook)
 
 
 class Path(object):

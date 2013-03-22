@@ -30,10 +30,7 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Print to Browser'
 	}
 
-	def print_to_file(self, page=None):
-		if not page:
-			page = self.ui.page
-
+	def print_to_file(self, page):
 		# FIXME - HACK - dump and parse as wiki first to work
 		# around glitches in pageview parsetree dumper
 		# main visibility when copy pasting bullet lists
@@ -73,8 +70,10 @@ class MainWindowExtension(WindowExtension):
 
 	@action(_('_Print to Browser'), 'gtk-print', '<ctrl>P') # T: menu item
 	def print_to_browser(self, page=None):
+		if page is None:
+			page = self.window.ui.page # XXX
 		file = self.plugin.print_to_file(page)
-		self.window.ui.open_url('file://%s' % file) # FIXME window.ui.open_ -> window.open_
+		self.window.ui.open_url('file://%s' % file) # XXX
 			# Try to force web browser here - otherwise it goes to the
 			# file browser which can have unexpected results
 
@@ -93,7 +92,7 @@ class TaskListDialogExtension(DialogExtension):
 		html = self.window.task_list.get_visible_data_as_html()
 		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
 		file.write(html)
-		self.window.ui.open_url('file://%s' % file) # FIXME window.ui.open_ -> window.open_
+		self.window.ui.open_url('file://%s' % file) # XXX
 			# Try to force web browser here - otherwise it goes to the
 			# file browser which can have unexpected results
 

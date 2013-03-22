@@ -17,7 +17,7 @@ class TestPrintToBrowser(tests.TestCase):
 		ui = StubUI()
 		pluginklass = zim.plugins.get_plugin('printtobrowser')
 		plugin = pluginklass(ui)
-		file = plugin.print_to_file()
+		file = plugin.print_to_file(ui.page)
 		self.assertTrue(file.exists())
 		content = file.read()
 		self.assertTrue('<h1>Foo</h1>' in content)

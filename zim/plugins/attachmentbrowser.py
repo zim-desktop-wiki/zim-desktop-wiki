@@ -294,7 +294,8 @@ class MainWindowExtension(WindowExtension):
 		self.statusbar_frame.show_all()
 
 		# Init browser widget
-		self.widget = AttachmentBrowserPluginWidget(self, self.window.ui, self.preferences)
+		opener = self.window.get_resource_opener()
+		self.widget = AttachmentBrowserPluginWidget(self, opener, self.preferences)
 			# FIXME FIXME FIXME - get rid of ui object here
 		self.connectto(plugin, 'preferences-changed')
 		self.on_preferences_changed()
@@ -353,7 +354,7 @@ class MainWindowExtension(WindowExtension):
 	def on_open_page(self, ui, page, path):
 		self._disconnect_monitor()
 
-		self.widget.set_page(page)
+		self.widget.set_page(ui.notebook, page) # XXX
 		self._refresh_statusbar(page)
 
 		dir = self.window.ui.notebook.get_attachments_dir(page) # XXX -> page.get_attachemnts_dir()
@@ -429,10 +430,11 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	icon_size = uistate_property('icon_size', DEFAULT_ICON_SIZE)
 
-	def __init__(self, extension, ui, preferences):
+	def __init__(self, extension, opener, preferences):
 		gtk.HBox.__init__(self)
-		self.extension = extension
-		self.ui = ui
+		self.page = None # XXX
+		self.extension = extension # XXX
+		self.opener = opener
 		self.uistate = extension.uistate
 		self.preferences = preferences
 		self.dir = None
@@ -513,8 +515,9 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 					self.buttonbox.remove(widget)
 		return True
 
-	def set_page(self, page):
-		dir = self.ui.notebook.get_attachments_dir(page)
+	def set_page(self, notebook, page):
+		self.page = page # XXX
+		dir = notebook.get_attachments_dir(page) # XXX page.get_attachments_dir
 		self.set_folder(dir)
 
 	def set_folder(self, dir):
@@ -532,13 +535,13 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def on_open_folder(self, o):
 		# Callback for the "open folder" button
-		self.ui.open_attachments_folder()
+		self.opener.open_dir(self.dir)
 		self._update_state()
 
 	def on_refresh_button(self):
 		self.refresh()
-		self.extension._refresh_statusbar(self.ui.page) # bit of a HACK to get the page here
-			# FIXME communicate to extension by signal
+		self.extension._refresh_statusbar(self.page)
+			# XXX FIXME communicate to extension by signal
 
 	def zoom_in(self):
 		self.icon_size = min((self.icon_size * 2, THUMB_SIZE_LARGE)) # 16 > 32 > 64 > 128 > 256
@@ -654,7 +657,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 	def on_item_activated(self, iconview, path):
 		iter = self.store.get_iter(path)
 		file = self.dir.file(self.store[iter][BASENAME_COL])
-		self.ui.open_file(file)
+		self.opener.open_file(file)
 
 	def on_button_press_event(self, iconview, event):
 		# print 'on_button_press_event'
@@ -680,11 +683,11 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		item = gtk.MenuItem(_('Open With...')) # T: menu item
 		menu.prepend(item)
 
-		submenu = OpenWithMenu(self.ui, file)
+		submenu = OpenWithMenu(self.extension.window, file) # XXX any widget should do to find window
 		item.set_submenu(submenu)
 
 		item = gtk.MenuItem(_('_Open')) # T: menu item to open file or folder
-		item.connect('activate', lambda o: self.ui.open_file(file))
+		item.connect('activate', lambda o: self.opener.open_file(file))
 		menu.prepend(item)
 
 		menu.show_all()

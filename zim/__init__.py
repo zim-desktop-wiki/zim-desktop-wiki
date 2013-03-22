@@ -526,7 +526,10 @@ class NotebookInterface(gobject.GObject):
 	__gsignals__ = {
 		'open-notebook': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'initialize-notebook': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
+		# Consider making initialize-notebook a hook where handlers
+		# return a resolved notebook
 
 	ui_type = None
 
@@ -731,13 +734,7 @@ class NotebookInterface(gobject.GObject):
 				nb, path = notebook, None
 
 			if not nb is None:
-				uri = nb.uri
-				for plugin in self.plugins:
-					try:
-						plugin.initialize_notebook(uri)
-					except Exception, error:
-						from zim.gui.widgets import ErrorDialog # HACK
-						ErrorDialog(None, error).run()
+				self.emit('initialize-notebook', nb.uri)
 				nb = get_notebook(nb)
 
 			if nb is None:
