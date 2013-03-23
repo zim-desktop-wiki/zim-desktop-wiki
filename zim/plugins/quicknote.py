@@ -12,7 +12,7 @@ from zim.config import get_config, data_file
 from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
 from zim.ipc import start_server_if_not_running, ServerProxy
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
-	InputForm, gtk_window_set_default_icon
+	InputForm, gtk_window_set_default_icon, QuestionDialog
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
 from zim.templates import GenericTemplate, StrftimeFunction
@@ -256,6 +256,27 @@ class BoundQuickNoteDialog(Dialog):
 		buffer.set_text(''.join(output))
 		begin, end = buffer.get_bounds()
 		buffer.place_cursor(begin)
+
+		buffer.set_modified(False)
+
+		self.connect('delete-event', self.do_delete_event)
+
+	def do_response(self, id):
+		if id == gtk.RESPONSE_DELETE_EVENT:
+			if self.textview.get_buffer().get_modified():
+				ok = QuestionDialog(self, _('Discard note?')).run()
+					# T: confirm closing quick note dialog
+				if ok:
+					Dialog.do_response(self, id)
+				# else pass
+			else:
+				Dialog.do_response(self, id)
+		else:
+			Dialog.do_response(self, id)
+
+	def do_delete_event(self, *a):
+		# Block deletion if do_response did not yet destroy the dialog
+		return True
 
 	def run(self):
 		self.textview.grab_focus()
