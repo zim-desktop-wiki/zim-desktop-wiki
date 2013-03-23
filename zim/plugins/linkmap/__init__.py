@@ -38,9 +38,6 @@ This is a core plugin shipping with zim.
 		has_graphviz = Application(('fdp',)).tryexec()
 		return has_graphviz, [('GraphViz', has_graphviz, True)]
 
-	def disconnect(self):
-		pass
-
 
 class LinkMap(object):
 

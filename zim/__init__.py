@@ -646,7 +646,7 @@ class NotebookInterface(gobject.GObject):
 			assert plugin in self.plugins
 			name = plugin.plugin_key
 
-		plugin.disconnect()
+		plugin.destroy()
 		self.plugins.remove(plugin)
 		logger.debug('Unloaded plugin %s', name)
 

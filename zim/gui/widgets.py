@@ -2700,7 +2700,12 @@ class Window(gtkwindowclass):
 		self.show_all()
 
 	def show_all(self):
+		# First register, than init uistate - this ensures plugins
+		# are enabled before we finalize the presentation of the window.
+		# This is important for state of e.g. panes to work correctly
 		register_window(self)
+		if hasattr(self, 'uistate') and self.uistate:
+			self.init_uistate()
 		gtkwindowclass.show_all(self)
 
 # Need to register classes defining gobject signals

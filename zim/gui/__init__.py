@@ -2676,7 +2676,6 @@ class MainWindow(Window):
 			- C{PATHBAR_HISTORY} to show the history
 			- C{PATHBAR_PATH} to show the namespace path
 		'''
-		assert type in ('none', 'recent', 'history', 'path')
 		self.actiongroup.get_action('set_pathbar_'+type).activate()
 
 	def do_set_pathbar(self, name):
@@ -2805,11 +2804,13 @@ class MainWindow(Window):
 		self.uistate['readonly'] = readonly
 
 	def show(self):
-		self.init_uistate()
+		self.uistate = self.ui.uistate['MainWindow']
+			# HACK - else we wont initialize in show()
 		Window.show(self)
 
 	def show_all(self):
-		self.init_uistate()
+		self.uistate = self.ui.uistate['MainWindow']
+			# HACK - else we wont initialize in show()
 		Window.show_all(self)
 
 	def init_uistate(self):

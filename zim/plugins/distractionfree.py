@@ -223,11 +223,11 @@ class DistractionFreePlugin(PluginClass):
 		self.ui.mainwindow.pageview.view.set_border_window_size(gtk.TEXT_WINDOW_TOP, top)
 		self.ui.mainwindow.pageview.view.set_border_window_size(gtk.TEXT_WINDOW_BOTTOM, bottom)
 
-	def disconnect(self):
+	def destroy(self):
 		# show at least menubar again, set margins to zero & restore colors
 		self.ui.uistate['MainWindow']['show_menubar_fullscreen'] = True
 		self._set_margins(0, 0, 0, 0)
 		if self._normal_colors:
 			self._set_colors(self._normal_colors)
-		PluginClass.disconnect(self)
+		PluginClass.destroy(self)
 

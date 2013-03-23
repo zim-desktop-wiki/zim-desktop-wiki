@@ -91,10 +91,10 @@ This is a core plugin shipping with zim.
 	def finalize_notebook(self, ui):
 		self.do_preferences_changed()
 
-	def disconnect(self):
+	def destroy(self):
 		self.disconnect_sidepane()
 		self.disconnect_floating()
-		PluginClass.disconnect(self)
+		PluginClass.destroy(self)
 
 	def do_preferences_changed(self):
 		if self.ui.ui_type != 'gtk':

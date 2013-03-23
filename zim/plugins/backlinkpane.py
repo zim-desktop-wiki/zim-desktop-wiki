@@ -63,13 +63,13 @@ class MainWindowExtension(WindowExtension):
 	def on_open_page(self, ui, page, path):
 		self.sidepane_widget.set_page(self.window.ui.notebook, page) # XXX
 
-	def disconnect(self):
+	def destroy(self):
 		if self.sidepane_widget:
 			self.window.remove(self.sidepane_widget)
 			self.sidepane_widget.destroy()
 			self.sidepane_widget = None
 
-		PluginClass.disconnect(self)
+		WindowExtension.destroy(self)
 
 
 PAGE_COL = 0

@@ -97,9 +97,10 @@ This is a core plugin shipping with zim.
 		else:
 			return StandAloneTrayIcon
 
-	def disconnect(self):
+	def destroy(self):
 		self.disconnect_trayicon()
 		self.ui.hideonclose = False
+		PluginClass.destroy(self)
 
 	def disconnect_trayicon(self):
 		if self.icon:

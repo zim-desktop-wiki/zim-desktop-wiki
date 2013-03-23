@@ -926,9 +926,9 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 		if self.ui.ui_type == 'gtk' and self.sidepane_widget:
 			self.sidepane_widget.finalize_notebook(notebook)
 
-	def disconnect(self):
+	def destroy(self):
 		self.disconnect_embedded_widget()
-		PluginClass.disconnect(self)
+		PluginClass.destroy(self)
 
 	def do_preferences_changed(self):
 		if self.ui.ui_type == 'gtk':

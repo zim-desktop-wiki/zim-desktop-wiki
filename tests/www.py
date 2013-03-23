@@ -118,21 +118,21 @@ class TestWWWInterface(tests.TestCase):
 			self.assertEqual(header[0], 'HTTP/1.0 200 OK')
 
 
-class TestWWWInterfaceTemplate(TestWWWInterface):
-
-	def assertResponseOK(self, response, expectbody=True):
-		header, body = TestWWWInterface.assertResponseOK(self, response, expectbody)
-		if expectbody:
-			self.assertTrue('<!-- Wiki content -->' in body, 'Template is used')
-
-	def setUp(self):
-		TestWWWInterface.setUp(self)
-		self.template = 'Default'
-		self.file_not_found_paths.append('/+resources/foo/bar.png')
-
-	def runTest(self):
-		'Test WWW interface with a template.'
-		TestWWWInterface.runTest(self)
+#~ class TestWWWInterfaceTemplate(TestWWWInterface):
+#~
+	#~ def assertResponseOK(self, response, expectbody=True):
+		#~ header, body = TestWWWInterface.assertResponseOK(self, response, expectbody)
+		#~ if expectbody:
+			#~ self.assertTrue('<!-- Wiki content -->' in body, 'Template is used')
+#~
+	#~ def setUp(self):
+		#~ TestWWWInterface.setUp(self)
+		#~ self.template = 'Default'
+		#~ self.file_not_found_paths.append('/+resources/foo/bar.png')
+#~
+	#~ def runTest(self):
+		#~ 'Test WWW interface with a template.'
+		#~ TestWWWInterface.runTest(self)
 
 
 class TestWWWInterfaceTemplateResources(TestWWWInterface):
@@ -140,6 +140,7 @@ class TestWWWInterfaceTemplateResources(TestWWWInterface):
 	def assertResponseOK(self, response, expectbody=True):
 		header, body = TestWWWInterface.assertResponseOK(self, response, expectbody)
 		if expectbody:
+			self.assertTrue('<!-- Wiki content -->' in body, 'Template is used')
 			self.assertTrue('src="/%2Bresrouces/foo/bar.png"' ''.join(body), 'Template is used')
 
 	def setUp(self):

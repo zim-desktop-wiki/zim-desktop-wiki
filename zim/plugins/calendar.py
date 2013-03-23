@@ -151,15 +151,15 @@ Also adds a calendar widget to access these pages.
 		self.do_preferences_changed()
 		self.connectto(notebook, 'suggest_link', self.suggest_link)
 
-	def disconnect(self):
+	def destroy(self):
 		if self._set_template:
 			ns = self._set_template
 			try:
 				self.ui.notebook.namespace_properties[ns].remove('template')
 			except KeyError:
 				pass
-		self.disconnect_embedded_widget()
-		PluginClass.disconnect(self)
+		self.destroy_embedded_widget()
+		PluginClass.destroy(self)
 
 	def on_open_page(self, ui, page, path):
 		if self.sidepane_widget:
@@ -175,7 +175,7 @@ Also adds a calendar widget to access these pages.
 		self.ui.mainwindow.add_widget(self.sidepane_widget, self.preferences['pane'])
 		self.sidepane_widget.show_all()
 
-	def disconnect_embedded_widget(self):
+	def destroy_embedded_widget(self):
 		if self.sidepane_widget:
 			self.ui.mainwindow.remove(self.sidepane_widget)
 			self.sidepane_widget.destroy()
@@ -212,7 +212,7 @@ Also adds a calendar widget to access these pages.
 
 				self.connect_embedded_widget()
 			else:
-				self.disconnect_embedded_widget()
+				self.destroy_embedded_widget()
 
 				if not self.ui_id_show_dialog:
 					self.ui_id_show_dialog = \

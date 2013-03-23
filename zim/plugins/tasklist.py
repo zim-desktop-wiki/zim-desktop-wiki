@@ -237,9 +237,9 @@ This is a core plugin shipping with zim.
 			string += str(self.preferences[pref])
 		return string
 
-	def disconnect(self):
+	def destroy(self):
 		self._drop_table()
-		PluginClass.disconnect(self)
+		PluginClass.destroy(self)
 
 	def _drop_table(self):
 		self.index.properties['plugin_tasklist_format'] = 0

@@ -270,7 +270,7 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 	attribute L{is_profile_independent}.
 
 	This class inherits from L{ConnectorMixin} and calls
-	L{ConnectorMixin.disconnect_all()} when the plugin is disconnected.
+	L{ConnectorMixin.disconnect_all()} when the plugin is destroyed.
 	Therefore it is highly recommended to use the L{ConnectorMixin}
 	methods in sub-classes.
 
@@ -531,19 +531,16 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 		'''
 		pass
 
-	def disconnect(self):
-		'''Disconnect the plugin object from the ui.
+	def destroy(self):
+		'''Destroy the plugin object and all extensions
+		It is only called when a user actually disables the plugin,
+		not when the application exits.
 
+		Destroys all active extensions and disconnects all signals.
 		This should revert any changes the plugin made to the
 		application (although preferences etc. can be left in place).
-		It is only called when a user actually disables the plugin,
-		not when the application exits. See the relevant sigals on
-		L{zim.gui.GtkInterface} for that.
-
-		@implementation: must be implemented by sub-classes that do
-		more than just adding a menu item. The default implementation
-		just removes any menu items that were defined by this plugin.
 		'''
+		### TODO clean up this section when all plugins are ported
 		if self.ui.ui_type == 'gtk':
 			try:
 				self.ui.remove_ui(self)
@@ -556,6 +553,7 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 					self.ui.mainpage.pageview.unregister_image_generator_plugin(self)
 				except:
 					logger.exception('Exception while disconnecting %s', self)
+		###
 
 		while self._extensions:
 			ref = self._extensions.pop()
@@ -567,8 +565,6 @@ class PluginClass(ConnectorMixin, gobject.GObject):
 			self.disconnect_all()
 		except:
 			logger.exception('Exception while disconnecting %s', self)
-
-	destroy = disconnect # TODO rename "disconnect" -> "destroy"
 
 	def toggle_action(self, action, active=None):
 		'''Trigger a toggle action.
