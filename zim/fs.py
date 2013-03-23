@@ -1495,7 +1495,8 @@ class UnixFile(FilePath):
 			file = self.open('r')
 			content = file.read()
 			self._checkoverwrite(content)
-			return content.replace('\r', '').replace('\x00', '')
+			return content.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '')
+				# Strip unicode byte order mark
 				# Internally we use Unix line ends - so strip out \r
 				# And remove any NULL byte since they screw up parsing
 		except IOError:
@@ -1536,7 +1537,8 @@ class UnixFile(FilePath):
 			file = self.open('r')
 			lines = file.readlines()
 			self._checkoverwrite(lines)
-			return [line.replace('\r', '').replace('\x00', '') for line in lines]
+			return [line.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '') for line in lines]
+				# Strip unicode byte order mark
 				# Internally we use Unix line ends - so strip out \r
 				# And remove any NULL byte since they screw up parsing
 		except IOError:

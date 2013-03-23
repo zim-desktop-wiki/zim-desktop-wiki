@@ -228,6 +228,12 @@ class TestFS(tests.TestCase):
 		non_utf8_file = File('tests/data/non-utf8.txt')
 		self.assertRaises(FileUnicodeError, non_utf8_file.read)
 
+		# test byte order mark
+		file = File('tests/data/byteordermark.txt')
+		self.assertEqual(file.raw(), '\xef\xbb\xbffoobar\n')
+		self.assertEqual(file.read(), 'foobar\n')
+		self.assertEqual(file.readlines(), ['foobar\n'])
+
 		# test compare & copyto
 		file1 = File(tmpdir + '/foo.txt')
 		file2 = File(tmpdir + '/bar.txt')
