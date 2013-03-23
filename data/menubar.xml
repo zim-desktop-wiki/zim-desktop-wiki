@@ -58,6 +58,7 @@
 			<menu action='pathbar_menu'>
 				<menuitem action='set_pathbar_none'/>
 				<menuitem action='set_pathbar_recent'/>
+				<menuitem action='set_pathbar_recent_changed'/>
 				<menuitem action='set_pathbar_history'/>
 				<menuitem action='set_pathbar_path'/>
 			</menu>
@@ -125,6 +126,7 @@
 			<separator/>
 			<menuitem action='show_search'/>
 			<menuitem action='show_search_backlinks'/>
+			<menuitem action='show_recent_changes'/>
 		</menu>
 		<menu action='tools_menu'>
 			<menuitem action='show_word_count'/>

@@ -504,6 +504,24 @@ class RecentPathBar(PathBar):
 		return paths
 
 
+class RecentChangesPathBar(PathBar):
+
+	def __init__(self, *arg, **kwarg):
+		PathBar.__init__(self, *arg, **kwarg)
+		self.ui.notebook.connect_after('stored-page', self.on_stored_page)
+
+	def on_stored_page(self, *a):
+		self._update()
+		current = self.history.get_current()
+		if current:
+			self._select(current)
+
+	def get_paths(self):
+		index = self.ui.notebook.index
+		return reversed(list(
+			index.list_recent_pages(offset=0, limit=10)))
+
+
 class NamespacePathBar(PathBar):
 
 	# Add buttons for namespace up to and including current page

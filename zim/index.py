@@ -1578,6 +1578,20 @@ class Index(gobject.GObject):
 		row = cursor.fetchone()
 		return int(row[0]) - 1 # subtract 1 for the ROOT_ID row
 
+	def list_recent_pages(self, offset=None, limit=None):
+		'''List pages in order of modification time, newest first'''
+		# HACK using contentkey rather than actual mtime field !
+		query = 'select * from pages where hascontent = 1 order by contentkey desc'
+		cursor = self.db.cursor()
+		if offset is None and limit is None:
+			cursor.execute(query)
+		else:
+			assert limit is not None and offset is not None
+			cursor.execute(query + ' limit ? offset ?', (limit, offset))
+
+		for row in cursor:
+			yield self.lookup_id(row['id'])
+
 	def list_links(self, path, direction=LINK_DIR_FORWARD):
 		'''Generator listing links between pages
 

@@ -1370,9 +1370,22 @@ class Notebook(Object):
 		# This assumption may change in the future.
 		assert page.valid, 'BUG: page object no longer valid'
 		self.emit('store-page', page)
+
+		# FIXME can signal framework help to make this code bit more compact ?
+		def mycallback(ok, error, exc_info, data):
+			if callback:
+				try:
+					if data:
+						callback(ok, error, exc_info, data)
+					else:
+						callback(ok, error, exc_info)
+				except:
+					logger.exception('Exception in callback after store-async:')
+			if ok:
+				self.emit('stored-page', page)
+
 		store = self.get_store(page)
-		store.store_page_async(page, self.lock, callback, data)
-		self.emit('stored-page', page)
+		store.store_page_async(page, self.lock, mycallback, data)
 
 	def revert_page(self, page):
 		'''Reload the page from the storage backend, discarding all

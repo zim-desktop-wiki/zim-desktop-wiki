@@ -144,7 +144,7 @@ class TestWWWInterfaceTemplateResources(TestWWWInterface):
 
 	def setUp(self):
 		TestWWWInterface.setUp(self)
-		self.file = File('tests/data/templates/Default.html')
+		self.file = File('tests/data/templates/html/Default.html')
 		self.template = self.file.path
 		self.file_found_paths.append('/+resources/foo/bar.png')
 

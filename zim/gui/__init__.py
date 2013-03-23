@@ -32,7 +32,7 @@ from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coo
 from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
-from zim.gui.pathbar import NamespacePathBar, RecentPathBar, HistoryPathBar
+from zim.gui.pathbar import NamespacePathBar, RecentPathBar, RecentChangesPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
 from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
@@ -78,6 +78,7 @@ ui_actions = (
 	('quit',  'gtk-quit', _('_Quit'), '<ctrl>Q', '', True), # T: Menu item
 	('show_search',  'gtk-find', _('_Search...'), '<shift><ctrl>F', '', True), # T: Menu item
 	('show_search_backlinks', None, _('Search _Backlinks...'), '', '', True), # T: Menu item
+	('show_recent_changes', None, _('Recent Changes...'), '', '', True), # T: Menu item
 	('copy_location', None, _('Copy _Location'), '<shift><ctrl>L', '', True), # T: Menu item
 	('show_templateeditor',  None, _('_Templates'), '', '', True), # T: Menu item
 	('show_preferences',  'gtk-preferences', _('Pr_eferences'), '', '', True), # T: Menu item
@@ -138,12 +139,14 @@ ui_pathbar_radio_actions = (
 	# name, stock id, label, accelerator, tooltip
 	('set_pathbar_none', None, _('_None'),  None, None, 0), # T: Menu item
 	('set_pathbar_recent', None, _('_Recent pages'), None, None, 1), # T: Menu item
+	('set_pathbar_recent_changed', None, _('Recently _Changed pages'), None, None, 1), # T: Menu item
 	('set_pathbar_history', None, _('_History'),  None, None, 2), # T: Menu item
 	('set_pathbar_path', None, _('N_amespace'), None, None, 3), # T: Menu item
 )
 
 PATHBAR_NONE = 'none' #: Constant for no pathbar
 PATHBAR_RECENT = 'recent' #: Constant for the recent pages pathbar
+PATHBAR_RECENT_CHANGED = 'recent_changed' #: Constant for the recent pages pathbar
 PATHBAR_HISTORY = 'history' #: Constant for the history pathbar
 PATHBAR_PATH = 'path' #: Constant for the namespace pathbar
 
@@ -1728,6 +1731,12 @@ class GtkInterface(NotebookInterface):
 		query = 'LinksTo: "%s"' % self.page.name
 		self.show_search(query)
 
+	def show_recent_changes(self):
+		'''Menu action to show the L{RecentChangesDialog}'''
+		from .recentchangesdialog import RecentChangesDialog
+		dialog = RecentChangesDialog.unique(self, self)
+		dialog.present()
+
 	def copy_location(self):
 		'''Menu action to copy the current page name to the clipboard'''
 		Clipboard.set_pagelink(self.notebook, self.page)
@@ -2663,6 +2672,7 @@ class MainWindow(Window):
 		@param type: the type of pathbar, one of:
 			- C{PATHBAR_NONE} to hide the pathbar
 			- C{PATHBAR_RECENT} to show recent pages
+			- C{PATHBAR_RECENT_CHANGED} to show recently changed pagesF
 			- C{PATHBAR_HISTORY} to show the history
 			- C{PATHBAR_PATH} to show the namespace path
 		'''
@@ -2679,6 +2689,8 @@ class MainWindow(Window):
 			klass = HistoryPathBar
 		elif style == PATHBAR_RECENT:
 			klass = RecentPathBar
+		elif style == PATHBAR_RECENT_CHANGED:
+			klass = RecentChangesPathBar
 		elif style == PATHBAR_PATH:
 			klass = NamespacePathBar
 		else:

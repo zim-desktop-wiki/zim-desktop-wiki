@@ -22,7 +22,9 @@ class SearchDialog(Dialog):
 
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Search'), # T: Dialog title
-			buttons=gtk.BUTTONS_CLOSE, help='Help:Searching')
+			buttons=gtk.BUTTONS_CLOSE, help='Help:Searching',
+			defaultwindowsize=(400, 300)
+		)
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
