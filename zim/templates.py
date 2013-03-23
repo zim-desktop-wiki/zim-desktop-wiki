@@ -110,8 +110,9 @@ def list_templates(category):
 	path.reverse()
 	for dir in path:
 		for basename in dir.list():
-			name = basename.rsplit('.', 1)[0] # robust if no '.' in basename
-			templates.add((name, basename))
+			if dir.file(basename).exists(): # is a file
+				name = basename.rsplit('.', 1)[0] # robust if no '.' in basename
+				templates.add((name, basename))
 	return sorted(templates)
 
 
@@ -130,7 +131,8 @@ def get_template(format, template):
 					name = basename.rsplit('.')[0] # robust if no '.' in basename
 					if name == template:
 						file = dir.file(basename)
-						break
+						if file.exists(): # is a file
+							break
 
 			if not file:
 				file = File(template)

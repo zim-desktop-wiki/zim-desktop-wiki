@@ -89,12 +89,17 @@ class TestExport(tests.TestCase):
 @tests.slowTest
 class TestExportTemplateResources(TestExport):
 
+	data = './tests/data/templates/'
+
 	options = {
 		'format': 'html',
-		'template': './tests/data/templates/Default.html'
+		'template': './tests/data/templates/html/Default.html'
 	}
 
 	def runTest(self):
+		pass # should not run, block just in case
+
+	def testExportResources(self):
 		'''Test export notebook to html with template resources'''
 		self.export()
 
@@ -111,6 +116,27 @@ class TestExportTemplateResources(TestExport):
 				md5(self.dir.file('_resources/%s.png' % icon)),
 				md5(data_file('pixmaps/%s.png' % icon))
 			)
+
+	def testListTemplates(self):
+		'''Assert list templates still works with resource folders present'''
+		import shutil
+		from zim.config import XDG_DATA_HOME
+		from zim.templates import list_templates, get_template
+
+		# Make sure our template with resources is first in line
+		datahome = XDG_DATA_HOME.subdir('zim/templates/')
+		assert not datahome.exists()
+		shutil.copytree(self.data, datahome.path)
+
+		for name, basename in list_templates('html'):
+			if name == 'Default':
+				self.assertEqual(basename, 'Default.html')
+
+		template = get_template('html', 'Default')
+		self.assertEqual(template.file, datahome.file('html/Default.html').path)
+		self.assertEqual(template.resources_dir, datahome.subdir('html/Default'))
+		self.assertTrue(template.resources_dir.exists())
+
 
 
 class TestExportFullOptions(TestExport):
