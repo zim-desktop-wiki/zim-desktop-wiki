@@ -1277,6 +1277,9 @@ class GtkInterface(NotebookInterface):
 		if page is None:
 			page = self.page
 		self.emit('close-page', page, final)
+		self.notebook.flush_page_cache(page)
+			# XXX HACK to avoid caching parsetree - can be removed
+			# once the pageview takes care of saving the page
 		return not page.modified
 
 	def do_close_page(self, page, final):
