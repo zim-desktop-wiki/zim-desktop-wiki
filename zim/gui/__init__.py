@@ -478,9 +478,19 @@ class GtkInterface(NotebookInterface):
 		return plugin
 
 	def spawn(self, *args):
+		# TODO: if not standalone, call IPC directly rather than
+		#       first spawning a process
 		import zim.ipc
 		if not zim.ipc.in_child_process():
 			args = args + ('--standalone',)
+
+		# more detailed logging has lower number, so WARN > INFO > DEBUG
+		loglevel = logging.getLogger().getEffectiveLevel()
+		if loglevel <= logging.DEBUG:
+			args = args + ('-D',)
+		elif loglevel <= logging.INFO:
+			args = args + ('-V',)
+
 		NotebookInterface.spawn(self, *args)
 
 	def main(self):

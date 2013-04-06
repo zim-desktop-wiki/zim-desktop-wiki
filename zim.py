@@ -7,13 +7,14 @@ import os
 # Check if we run the correct python version
 try:
 	version_info = sys.version_info
-	assert version_info >= (2, 5)
+	assert version_info >= (2, 6)
 	assert version_info < (3, 0)
 except:
-	print >> sys.stderr, 'ERROR: zim needs python >= 2.5   (but < 3.0)'
+	print >> sys.stderr, 'ERROR: zim needs python >= 2.6   (but < 3.0)'
 	sys.exit(1)
 
 # Win32: must setup log file or it tries to write to $PROGRAMFILES
+# See http://www.py2exe.org/index.cgi/StderrLog
 if os.name == "nt" and sys.argv[0].endswith('.exe'):
 	import tempfile
 	dir = tempfile.gettempdir()

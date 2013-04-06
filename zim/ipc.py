@@ -71,6 +71,7 @@ import os
 import re
 
 import logging
+import traceback
 
 import multiprocessing
 from multiprocessing import Process, Pipe
@@ -105,6 +106,8 @@ def handle_argv():
 	bootstrap of subprocesses.
 	'''
 	multiprocessing.freeze_support()
+		# also does not return if arguments are handled
+
 	if len(sys.argv) > 1 and sys.argv[1] == '--ipc-server-main':
 		if len(sys.argv) > 2:
 			global SERVER_ADDRESS
@@ -205,7 +208,6 @@ class RemoteMethodCall(object):
 			if self.async:
 				logger.exception('Exception in remote call to %i:', os.getpid())
 			else:
-				import traceback
 				trace = traceback.format_exc()
 				logger.debug('Exception in remote call to %i:\n%s', os.getpid(), trace)
 					# Not using logger.exception here, since we do not know
@@ -264,7 +266,6 @@ def start_server_if_not_running():
 			s.ping()
 		except:
 			if i == 9: # last
-				import traceback
 				trace = traceback.format_exc()
 				logger.debug('Cannot connect to server %i:\n%s', os.getpid(), trace)
 			else:
@@ -292,19 +293,51 @@ def servermain():
 	# and redirect standard file descriptors
 	os.chdir("/")
 
-	si = file(os.devnull, 'r')
-	os.dup2(si.fileno(), sys.stdin.fileno())
+	try:
+		si = file(os.devnull, 'r')
+		os.dup2(si.fileno(), sys.stdin.fileno())
+	except:
+		pass
 
 	loglevel = logging.getLogger().getEffectiveLevel()
-	if loglevel > logging.INFO:
+	if loglevel <= logging.INFO and sys.stdout.isatty() and sys.stderr.isatty():
 		# more detailed logging has lower number, so WARN > INFO > DEBUG
-		# close output for levels > than INFO (so hide warnings by default)
+		# log to file unless output is a terminal and logging <= INFO
+		pass
+	else:
+		# Redirect output to file
+		import tempfile
+		dir = tempfile.gettempdir()
+		if not os.path.isdir(dir):
+			os.makedirs(dir)
+		err_stream = open(os.path.join(dir, "zim-deamon.log"), "w")
+
+		# First try to dup handles for anyone who still has a reference
+		# if that fails, just set them
 		sys.stdout.flush()
 		sys.stderr.flush()
-		so = file(os.devnull, 'a+')
-		se = file(os.devnull, 'a+', 0)
-		os.dup2(so.fileno(), sys.stdout.fileno())
-		os.dup2(se.fileno(), sys.stderr.fileno())
+		try:
+			os.dup2(err_stream.fileno(), sys.stdout.fileno())
+			os.dup2(err_stream.fileno(), sys.stderr.fileno())
+		except:
+			# Maybe stdout / stderr were not real files
+			# in the first place..
+			sys.stdout = err_stream
+			sys.stderr = err_stream
+			err_stream.write('WARNIGN: Could not dup stdout / stderr\n')
+
+		# Re-initialize logging handler, in case it keeps reference
+		# to the old stderr object
+		try:
+			rootlogger = logging.getLogger()
+			for handler in rootlogger.handlers:
+				rootlogger.removeHandler(handler)
+
+			handler = logging.StreamHandler()
+			handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+			rootlogger.addHandler(handler)
+		except:
+			err_stream.write('ERROR: Failed to set up logging')
 
 	# Run actual server object
 	server = Server()
@@ -338,6 +371,8 @@ class Server(object):
 		self.listener = None
 		self.remoteobjects = {}
 		self._running = False
+		self.logqueue = multiprocessing.Queue()
+		self.logqueue_reader = None
 
 	def start(self):
 		# setup listener
@@ -420,8 +455,16 @@ class Server(object):
 		@param args: list arguments to pass on to the constructor
 		@param kwargs: keyword arguments to pass on to the constructor
 		'''
+		loglevel = logging.getLogger().getEffectiveLevel()
+		if not (self.logqueue_reader and self.logqueue_reader.is_alive()):
+			self.logqueue_reader = LogQueueReader(self.logqueue)
+			self.logqueue_reader.start()
+
 		conn1, conn2 = Pipe()
-		p = Process(target=childmain, args=(conn2, remoteobject, args, kwargs))
+		p = Process(
+			target=childmain,
+			args=(conn2, remoteobject, loglevel, self.logqueue, args, kwargs)
+		)
 		p.daemon = True # child process exit with parent
 		p.start()
 		obj = conn1.recv()
@@ -548,12 +591,14 @@ class ConnectionWorker(threading.Thread):
 		logger.debug('Server thread for process %i quit', self.process.pid)
 
 
-def childmain(conn, remoteobject, arg, kwarg):
+def childmain(conn, remoteobject, loglevel, logqueue, arg, kwarg):
 	'''Main function for child processes'''
 	#~ print '>>> START CHILD MAIN'
 	global SERVER_CONTEXT
 	global _recursive_conn_lock
 	_recursive_conn_lock = True
+
+	setup_child_logging(loglevel, logqueue)
 
 	try:
 		klassname, id = remoteobject.klassname, remoteobject.id
@@ -785,3 +830,93 @@ def ServerProxy():
 		return SERVER_CONTEXT
 	else:
 		return ServerProxyClass()
+
+
+
+## Logging classes based on
+## http://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python
+##
+## Need to redirect logging of child classes when we are running without terminal output
+## and also in case we are running with terminal output, but child process may not inherit
+## terminal (e.g. win32)
+
+
+class QueueHandler(logging.Handler):
+
+	def __init__(self, queue):
+		logging.Handler.__init__(self)
+		self.queue = queue
+
+	def emit(self, record):
+		if record.exc_info:
+			# can't pass exc_info across processes so just format now
+			record.exc_text = self.formatException(record.exc_info)
+			record.exc_info = None
+		record.args = tuple(map(self._format, record.args))
+			# Make sure all arguments can be pickled..
+		self.queue.put(record)
+
+	@staticmethod
+	def _format(a):
+		if isinstance(a, (basestring, int, float)):
+			return a
+		else:
+			return "%r" % a
+
+	def formatException(self, ei):
+		s = ''.join(traceback.format_exception(ei[0], ei[1], ei[2]))
+		if s[-1] == "\n":
+			s = s[:-1]
+		return s
+
+
+class LogQueueReader(threading.Thread):
+	"""thread to write subprocesses log records to main process log
+
+	This thread reads the records written by subprocesses and writes them to
+	the handlers defined in the main process's handlers.
+
+	"""
+
+	def __init__(self, queue):
+		threading.Thread.__init__(self)
+		self.queue = queue
+		self.daemon = True
+
+	def run(self):
+		"""read from the queue and write to the log handlers
+
+		The logging documentation says logging is thread safe, so there
+		shouldn't be contention between normal logging (from the main
+		process) and this thread.
+
+		Note that we're using the name of the original logger.
+
+		"""
+		# Thanks Mike for the error checking code.
+		while True:
+			try:
+				record = self.queue.get()
+				# get the logger for this record
+				logger = logging.getLogger(record.name)
+				logger.callHandlers(record)
+			except (KeyboardInterrupt, SystemExit):
+				raise
+			except EOFError:
+				break
+			except:
+				traceback.print_exc(file=sys.stderr)
+
+
+def setup_child_logging(loglevel, logqueue):
+	logger = logging.getLogger()
+
+	# The only handler desired is the QueueHandler.  If any others
+	# exist, remove them. In this case, on Unix and Linux the StreamHandler
+	# will be inherited.
+	for handler in logger.handlers:
+		logger.removeHandler(handler)
+
+	handler = QueueHandler(logqueue)
+	logger.addHandler(handler)
+	logger.setLevel(int(loglevel))
