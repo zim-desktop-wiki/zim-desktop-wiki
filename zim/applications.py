@@ -94,23 +94,34 @@ class Application(object):
 	@staticmethod
 	def _lookup(cmd):
 		'''Lookup cmd in PATH'''
-		if os.name == 'nt' and not '.' in cmd:
-			cmd = cmd + '.exe'
-			# Automagically convert command names on windows
-
 		if zim.fs.isabs(cmd):
 			if zim.fs.isfile(cmd):
 				return cmd
 			else:
 				return None
 		else:
-			# lookup in PATH
+			if os.name == 'nt' and not '.' in cmd:
+				exe = cmd + '.exe'
+			else:
+				exe = cmd
+
 			for dir in get_environ_list('PATH'):
-				file = os.sep.join((dir, cmd))
+				# The fast way - find "name" or "name.exe"
+				file = os.sep.join((dir, exe))
 				if zim.fs.isfile(file):
 					return file
-			else:
-				return None
+
+			for dir in get_environ_list('PATH'):
+				# The slow way - find "name.sh", "name.bat", ...
+				for name in zim.fs.Dir(dir).list():
+					if name.startswith(cmd + '.'):
+						file = os.sep.join((dir, name))
+						if os.access(file, os.X_OK):
+							return file
+
+			return None
+
+
 
 	def _cmd(self, args):
 		# substitute args in the command - to be overloaded by child classes

@@ -861,7 +861,7 @@ class QueueHandler(logging.Handler):
 		if isinstance(a, (basestring, int, float)):
 			return a
 		else:
-			return "%r" % a
+			return repr(a)
 
 	def formatException(self, ei):
 		s = ''.join(traceback.format_exception(ei[0], ei[1], ei[2]))

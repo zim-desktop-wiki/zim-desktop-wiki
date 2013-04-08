@@ -860,7 +860,9 @@ class UnixPath(SignalEmitter):
 			try:
 				ok = f.trash()
 			except gobject.GError, error:
-				if error.code == gio.ERROR_CANCELLED:
+				if error.code == gio.ERROR_CANCELLED \
+				or (os.name == 'nt' and error.code == 0):
+					# code 0 observed on windows for cancel
 					logger.info('Trash operation cancelled')
 					raise TrashCancelledError, 'Trashing cancelled'
 				elif error.code == gio.ERROR_NOT_SUPPORTED:
