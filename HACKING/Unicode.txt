@@ -1,0 +1,29 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2013-04-08T20:55:50+02:00
+
+====== Unicode ======
+
+Zim uses unicode everywhere internally. 
+
+===== Encoding =====
+
+Main interfaces where we need to encode / decode are:
+* File paths — platform and locale dependent — handled by ''zim/fs.py''
+* File contents — default to utf-8 — handled by ''zim/fs.py''
+* Gtk widgets — utf-8 — handle by ''zim/gui/widgets.py'' for standard widgets
+
+===== Collation (sorting) =====
+
+See ''zim/utils.py'' for unicode / locale aware sorting
+
+===== Comparison =====
+
+Some characters can be encoded either as a single character or as a combination of a base character with symbols above or below it. For example the Ü can be either the "U with umlaut" character, or a "U" followed by a "umlaut above previous character". While visually the same for the user these are different unicode strings that do not compare equally.
+
+There is a standard function to "normalize" unicode strings in the standard library "''unicodedata''" module. If we could standardize all strings after decoding, there would be less risk of comparisons failing. However strings identifying external resources, like file names, need to be in the same normalization as they are known to the outside world. Therefore we have to deal with normalization in specific places when comparing strings or looking up strings.
+
+Notable places to do this is:
+* When matching user input from a widget with a set of options
+* When looking up files from use input
+* ... ?

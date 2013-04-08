@@ -32,6 +32,7 @@ import sys
 import os
 import re
 import weakref
+import unicodedata
 
 try:
 	import gtksourceview2
@@ -1783,10 +1784,16 @@ def gtk_entry_completion_match_func(completion, key, iter, column):
 	if key is None:
 		return False
 
+	key = key.decode('utf-8').lower()
+	key = unicodedata.normalize('NFKD', key)
+		# decode utf-8 because we are called by gtk function
+		# normalization could be done elsewhere, but keep together
+
 	model = completion.get_model()
-	text  = model.get_value(iter, column)
+	text = model.get_value(iter, column)
 	if text is not None:
-		return key.lower() in text.lower()
+		text = unicodedata.normalize('NFKD', text.decode('utf-8'))
+		return key in text.lower()
 	else:
 		return False
 
@@ -1795,12 +1802,19 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 	if key is None:
 		return False
 
+	key = key.decode('utf-8').lower()
+	key = unicodedata.normalize('NFKD', key)
+		# decode utf-8 because we are called by gtk function
+		# normalization could be done elsewhere, but keep together
+
 	model = completion.get_model()
 	text  = model.get_value(iter, column)
 	if text is not None:
-		return text.lower().startswith(key.lower())
+		text = unicodedata.normalize('NFKD', text.decode('utf-8'))
+		return text.lower().startswith(key)
 	else:
 		return False
+
 
 
 class PageEntry(InputEntry):

@@ -87,6 +87,7 @@ from __future__ import with_statement
 
 import sqlite3
 import gobject
+import unicodedata
 import logging
 
 import zim
@@ -1412,7 +1413,15 @@ class Index(gobject.GObject):
 					return None
 			elif name in rows: # exact match
 				row = rows[name]
-			else: # take first insensitive match based on sorting
+			elif unicodedata.normalize('NFC', name) in rows:
+				name = unicodedata.normalize('NFC', name)
+				row = rows[name]
+			elif unicodedata.normalize('NFD', name) in rows:
+				name = unicodedata.normalize('NFD', name)
+				row = rows[name]
+			else:
+				# take first match based on sorting
+				# case insensitive or unicode compatibility (NFKD / NFKC)
 				n = rows.keys()
 				n.sort()
 				row = rows[n[0]]

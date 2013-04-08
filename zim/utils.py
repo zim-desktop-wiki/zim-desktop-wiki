@@ -4,6 +4,7 @@
 
 import locale
 import re
+import unicodedata
 
 
 _num_re = re.compile(r'\d+')
@@ -53,5 +54,8 @@ def natural_sort_key(string, numeric_padding=5):
 	'''
 	templ = '%0' + str(numeric_padding) + 'i'
 	string = _num_re.sub(lambda m: templ % int(m.group()), string)
+	if isinstance(string, unicode):
+		string = unicodedata.normalize('NFKC', string)
+		# may be done by strxfrm as well, but want to be sure
 	string = locale.strxfrm(string.lower())
 	return string.decode('utf-8') # not really utf-8, but 8bit bytes
