@@ -448,7 +448,8 @@ This is a core plugin shipping with zim.
 		text = para.text or ''
 		for child in para.getchildren():
 			if child.tag == 'strike':
-				continue # Ignore strike out text
+				# ignore content of child element
+				text += child.tail or ''
 			elif child.tag in ('ul', 'ol'):
 				if text:
 					items += text.splitlines()
@@ -482,9 +483,10 @@ This is a core plugin shipping with zim.
 		text = node.text or ''
 		for child in node.getchildren():
 			if child.tag == 'strike':
-				continue # skip
-			text += self._flatten(child) # recurs
-			text += child.tail or ''
+				text += child.tail or ''
+			else:
+				text += self._flatten(child) # recurs
+				text += child.tail or ''
 		return text
 
 	def _parse_task(self, text, open=True, tags=None, actionable=True, defaultdate=None, defaultprio=None, tasks=None):
@@ -553,7 +555,8 @@ This is a core plugin shipping with zim.
 
 		if self.db_initialized:
 			cursor = self.index.db.cursor()
-			cursor.execute('select * from tasklist where parent=?', (parentid,))
+			cursor.execute('select * from tasklist where parent=? order by prio, due, description', (parentid,))
+				# Want order by prio & due - add desc to keep sorting more or less stable
 			for row in cursor:
 				yield row
 
@@ -956,26 +959,18 @@ class TaskListTreeView(BrowserTreeView):
 		self._labels = {}
 
 	def _append_tasks(self, task, iter, path_cache):
-		rows = list(self.plugin.list_tasks(task))
-
-		# First cache + sort tasks to ensure stability of the list
-		for i, row in enumerate(rows):
-			if not row['source'] in path_cache:
+		for row in self.plugin.list_tasks(task):
+			if not row['open']:
+				continue # Only include open items for now
+			
+			if row['source'] not in path_cache:
 				path = self.plugin.get_path(row)
 				if path is None:
 					# Be robust for glitches - filter these out
-					rows[i] = None
+					continue
 				else:
 					path_cache[row['source']] = path
 
-		rows = [r for r in rows if r is not None] # filter out missing paths
-
-		rows.sort(key=lambda r: path_cache[r['source']].name)
-
-		# Then format them and add them to the model
-		for row in rows:
-			if not row['open']:
-				continue # Only include open items for now
 			path = path_cache[row['source']]
 
 			# Update labels
