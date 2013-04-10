@@ -60,11 +60,11 @@ This is a core plugin shipping with zim.
 
 	def insert_diagram(self):
 		dialog = InsertDiagramDialog.unique(self, self.ui)
-		dialog.show_all()
+		dialog.run()
 
 	def edit_object(self, buffer, iter, image):
 		dialog = InsertDiagramDialog(self.ui, image=image)
-		dialog.show_all()
+		dialog.run()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
 		populate_popup_add_separator(menu, prepend=True)

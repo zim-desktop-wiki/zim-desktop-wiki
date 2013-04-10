@@ -72,11 +72,11 @@ This plugin provides a plot editor for zim based on GNU R.
 
 	def insert_gnu_r_plot(self):
 		dialog = InsertGNURPlotDialog.unique(self, self.ui)
-		dialog.show_all()
+		dialog.run()
 
 	def edit_object(self, buffer, iter, image):
 		dialog = InsertGNURPlotDialog(self.ui, image=image)
-		dialog.show_all()
+		dialog.run()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
 		populate_popup_add_separator(menu, prepend=True)

@@ -89,11 +89,11 @@ This is a core plugin shipping with zim.
 
 	def insert_score(self):
 		dialog = InsertScoreDialog.unique(self, self.ui, preferences=self.preferences)
-		dialog.show_all()
+		dialog.run()
 
 	def edit_object(self, buffer, iter, image):
 		dialog = InsertScoreDialog(self.ui, image=image, preferences=self.preferences)
-		dialog.show_all()
+		dialog.run()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
 		populate_popup_add_separator(menu, prepend=True)
@@ -144,7 +144,7 @@ class ScoreGenerator(ImageGeneratorClass):
 		if not version_present:
 			text = '\\version "{0}"\n\n'.format(self.cur_lilypond_version) + text
 		return text
-	
+
 	def extract_version(self, text):
 		outtext = []
 		version = None
