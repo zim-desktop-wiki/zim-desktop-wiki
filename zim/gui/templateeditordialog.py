@@ -55,6 +55,10 @@ class TemplateEditorDialog(Dialog):
 			b.set_alignment(0.0, 0.5)
 			vbbox.add(b)
 
+		browse_button = Button(_('Browse'))
+		browse_button.connect('clicked', self.on_browse)
+		self.add_extra_button(browse_button)
+
 		self._buttonbox = vbbox
 		self._delete_button = delete_button
 		self.on_selection_changed()
@@ -131,6 +135,10 @@ class TemplateEditorDialog(Dialog):
 			custom.remove()
 
 		self.view.refresh()
+
+	def on_browse(self, *a):
+		dir = XDG_DATA_HOME.subdir(('zim', 'templates'))
+		self.ui.open_dir(dir)
 
 
 class PromptNameDialog(Dialog):
