@@ -299,6 +299,8 @@ class WebBrowser(Application):
 			raise NotImplementedError, 'WebBrowser can not handle callback'
 
 		for url in args:
+			if isinstance(url, (zim.fs.File, zim.fs.Dir)):
+				url = url.uri
 			logger.info('Opening in webbrowser: %s', url)
 			self.controller.open(url)
 
