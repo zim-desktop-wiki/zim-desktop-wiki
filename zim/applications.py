@@ -99,29 +99,24 @@ class Application(object):
 				return cmd
 			else:
 				return None
+		elif os.name == 'nt':
+			# Check executable extensions from windows environment
+			extensions = get_environ_list('PATHEXT', '.com;.exe;.bat;.cmd')
+			for dir in get_environ_list('PATH'):
+				for ext in extensions:
+					file = os.sep.join((dir, cmd + ext))
+					if zim.fs.isfile(file) and os.access(file, os.X_OK):
+						return file
+				else:
+					return None
 		else:
-			if os.name == 'nt' and not '.' in cmd:
-				exe = cmd + '.exe'
-			else:
-				exe = cmd
-
+			# On POSIX no extension is needed to make scripts executable
 			for dir in get_environ_list('PATH'):
-				# The fast way - find "name" or "name.exe"
-				file = os.sep.join((dir, exe))
-				if zim.fs.isfile(file):
+				file = os.sep.join((dir, cmd))
+				if zim.fs.isfile(file) and os.access(file, os.X_OK):
 					return file
-
-			for dir in get_environ_list('PATH'):
-				# The slow way - find "name.sh", "name.bat", ...
-				for name in zim.fs.Dir(dir).list():
-					if name.startswith(cmd + '.'):
-						file = os.sep.join((dir, name))
-						if os.access(file, os.X_OK):
-							return file
-
-			return None
-
-
+				else:
+					return None
 
 	def _cmd(self, args):
 		# substitute args in the command - to be overloaded by child classes
