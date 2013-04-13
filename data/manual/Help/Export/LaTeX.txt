@@ -27,7 +27,7 @@ This templates is based (and depends) on the KOMA-Script Report Class ''scrartcl
 
 **"Part"**
 
-The result from this template can not be compiled on its own, it is designed to be one part of a larger document and be ''\include{}''ded in a master document.
+The result from this template can not be compiled on its own, it is designed to be one part of a larger document and be included (''\include{}'') in a master document.
 
 ===== Template Options =====
 

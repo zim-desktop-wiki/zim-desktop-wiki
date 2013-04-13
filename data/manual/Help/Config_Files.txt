@@ -61,7 +61,7 @@ The file ''XDG_DATA/zim/dates.list'' gives a list of strftime formats, one on ea
 See [[http://docs.python.org/library/time.html%23time.strftime|this link]] for documentation of the strftime formatting.
 
 ==== GUI style config file ====
-Zim has certain defaults on how to display styles. For example it displays links as blue text without underline.  To change this style copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit it. Each style has it's own section which starts with the style name between square brackets and contains key value pairs for the various display properties.
+Zim has certain defaults on how to display styles. For example it displays links as blue text without underline. To change this style copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit it. Each style has it's own section which starts with the style name between square brackets and contains key value pairs for the various display properties.
 
 **NOTE: **The display styles for the GUI are not used when exporting to HTML. If you want your HTML to show certain custom styles you should write a HTML [[Templates|template]] with a CSS stylesheet.
 

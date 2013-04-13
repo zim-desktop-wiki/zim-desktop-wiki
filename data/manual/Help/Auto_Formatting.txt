@@ -6,7 +6,7 @@ Creation-Date: Unknown
 
 Auto-formatting means that zim parses text while you type. Be aware that the syntax for auto-formatting isn't the same as the [[Wiki Syntax|wiki syntax]] for the source formatting (the wiki format as it is saved to the files). If you typed in source syntax and you want to have it rendered you should reload the page (press ^R).
 
-If autoformatting does something you didn't intend you can reverse it by pressing ''<ctrl>Z''.
+If auto-formatting does something you didn't intend you can reverse it by pressing ''<ctrl>Z''.
 
 ===== Headings =====
 Typing:
@@ -30,7 +30,7 @@ gives you a heading 2. But in the corresponding text file these headings are mar
 
 
 ===== Links =====
-When you type a word in "CamelCase" it will be considered a link. Once again this autoformatting is done by the editor, your source format does not have to support CamelCase.
+When you type a word in "CamelCase" it will be considered a link. Once again this auto-formatting is done by the editor, your source format does not have to support CamelCase.
 
 This feature can be turned off in the [[Preferences]].
 

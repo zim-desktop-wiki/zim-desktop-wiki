@@ -36,7 +36,7 @@ The [[Plugins:Journal|Journal plugin]] can also be used for an organizer. It is 
 See also [[+Getting Things Done|Getting Things Done]]
 
 ==== Document Editor ====
-Notebooks can also be used to edit full size documents. You could either publish directly from zim, e.g. as HTML or use zim to draft a document and then go to a word processor to finish the formatting etc. The advantage of using zim is that you can break down a document in small pieces and edit each of these on a seperate page. Re-ordering and organizing content is convenient this way. Ones the order and sequence is more finalized other tools could be used to take over the editing process.
+Notebooks can also be used to edit full size documents. You could either publish directly from zim, e.g. as HTML or use zim to draft a document and then go to a word processor to finish the formatting etc. The advantage of using zim is that you can break down a document in small pieces and edit each of these on a separate page. Re-ordering and organizing content is convenient this way. Ones the order and sequence is more finalized other tools could be used to take over the editing process.
 
 For this use the [[Plugins:Task List|Task List plugin]] can be used to flag places in the document that are not yet finished or need more attention. Typically one would configure the Task List to use labels, with that usages one can have inline comments in the document using the tags "TODO" and "FIXME". The Task List dialog then gives a list of places where one needs to come back later.
 

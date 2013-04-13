@@ -5,7 +5,7 @@ Wiki-Format: zim 0.4
 
 You can either link pages or urls. Urls are recognized because they start with e.g. "''html://''" or "''mailto:''". Page names can contain ':' characters to separate namespaces.
 
-* Links containing a '/' are considerd links to external files
+* Links containing a '/' are considered links to external files
 * Links that start with a ':' are resolved from the root namespace
 * Links that start with a '+' are resolved in the namespace below the current page
 * Links that contain a '?' are interwiki links, see below.
@@ -23,7 +23,7 @@ To create relative links to sub-page of the current page start the link with an 
 ==== File Links ====
 You can link to files from zim. File names always need to contain a "''/''" character (even if your operations system uses another path separator). You can link relative to your home directory using "~/foo"  or relative to the page using "./foo". When you want to "attach" a file to a page you can use "//Tools//->//Open folder//" to open the file browser in the appropriate directory. Once you have copied or moved the file to this directory you can drag and drop from your file browser to the zim page, this will create a link.
 
-File links starting with "''/''", like "''/foo''" will be relative to the filesystem root, or to the Document Root, if you have one set in the [[Properties.]] If a Document Root is set, the only way to link to files outside this root is to use "''file:///''" URIs.
+File links starting with "''/''", like "''/foo''" will be relative to the filesystem root, or to the Document Root, if you have one set in the [[Properties]]. If a Document Root is set, the only way to link to files outside this root is to use "''file:///''" URIs.
 
 Proper file URIs for files on the local filesystem should always start with either "''file:///''" or "''file://localhost/''".  URIs starting with "''file:/''" are technically invalid but will be interpreted as a local file. URIs starting with "''file://''" suggest a remote file following the "''file://host/share/''" syntax, these will be interpreted as a link to a "windows" share drive.
 
@@ -49,6 +49,6 @@ To add your own urls use "''~/.local/share/zim/urls.list''". All types of urls w
 The zim notebooks you added in the "Open notebook" dialog are automatically recognized as interwiki names. So you can link to notebooks using either their name or their interwiki keyword (both case insensitive). The interwiki keyword is for a specific notebook can be set in the [[Properties]] dialog.
 
 ===== Back links =====
-"Back links" are the reverse of normal links. For example when page //A// links to page //B// then page //B// will have "back link" to page //A//. The list with back links is the answer the the question "What links here".
+"Back links" are the reverse of normal links. For example when page //A// links to page //B// then page //B// will have "back link" to page //A//. The list with back links is the answer the question "What links here".
 
 In the status bar at the bottom of the window you can see how many back links there are for the current page. To view which pages link here you can open the "Search Back links" menu item (//Search//->//Search Back links//) or click the area in the status bar that gives info about back links. 

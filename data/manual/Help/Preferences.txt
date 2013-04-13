@@ -10,7 +10,7 @@ The preferences dialog  can be accessed with the menu item "//Edit//" -> "//Pref
 
 **Use <Ctrl><Space> to switch to the side pane** toggles the key binding for <Ctrl><Space>. Reason to toggle this binding off is usually that this binding is also used for input methods for non-western scripts.
 
-**Remove links when deleting pages** toggles whether links to a page are removed when the the page is deleted (the text of the link will remain, but it will no longer be a link). This is a preference because deletion does not use a dialog since we have support for the system trash.
+**Remove links when deleting pages** toggles whether links to a page are removed when the page is deleted (the text of the link will remain, but it will no longer be a link). This is a preference because deletion does not use a dialog since we have support for the system trash.
 
 **Always use last cursor position when opening a page** toggles whether pages are always opened on their last cursor position or not. When this is disabled pages only open with a cursor position when they are opened be a history reference (e.g. the "Back" button or a link from the pathbar).
 

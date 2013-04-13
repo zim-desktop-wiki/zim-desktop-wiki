@@ -80,7 +80,7 @@ As a special case labels can be used to flag a whole list being a task list. In 
 Now both items will get the tag "@home" appended.
 
 ==== Non-actionable tasks ====
-Non-actionable tasks are tasks that you can not (yet) act on. For example tasks that can only start after a previous tasks has finished, or tasks that you are waiting for someone else. The tasklist dialog by default shows such tasks grayed out, but you can also hide all non-actionalbe tasks.
+Non-actionable tasks are tasks that you can not (yet) act on. For example tasks that can only start after a previous tasks has finished, or tasks that you are waiting for someone else. The tasklist dialog by default shows such tasks grayed out, but you can also hide all non-actionable tasks.
 
 There are two configuration to help flagging non-actionable tasks. The first option is the "Next" label. This flags that a task depends on the previous task being completed. This is useful when you write down an action plan, but don't want to see all at once in the task list. The "Next" label can be used at the start of a line like this:
 
@@ -92,6 +92,6 @@ There are two configuration to help flagging non-actionable tasks. The first opt
 
 etc. Assuming each of these tasks will end up being done on different days, it helps to write them down step by step. But the tasklist will only show the next one coming up
 
-Another way to flag non-actionalbe tasks is using special tags. E.g. a generic tag @waiting could be used to flag when you wait for someone else, or @review for plans that are not agreed yet. You can define your own depending on your own work flow.
+Another way to flag non-actionable tasks is using special tags. E.g. a generic tag @waiting could be used to flag when you wait for someone else, or @review for plans that are not agreed yet. You can define your own depending on your own work flow.
 
 

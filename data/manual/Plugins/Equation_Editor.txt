@@ -3,7 +3,7 @@ Wiki-Format: zim 0.4
 
 ====== Equation Editor ======
 
-The equation editor is a simpel dialog that allows you to insert equations into a page using **latex**.
+The equation editor is a simple dialog that allows you to insert equations into a page using **latex**.
 
 In order to be able to use this plugin you must have latex installed and the following two commands must be available on your system: "''latex"'' and "''dvipng"''. You can control the look of the equations using the special template "''_Equation.tex"''. The only variable that can be used in this template is "''equation''", which will be replaced with the content from the dialog.
 

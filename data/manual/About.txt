@@ -29,9 +29,9 @@ Related features include:
 * The wiki can navigated completely using [[Help:Key Bindings|key bindings]].
 
 ==== The editor allows you to organize your notes ====
-The ability to hyperlink pages is a powerful way of organizing content. This goes further than hyperlinks in ordinary web pages. One example of this is that zim keeps track of all links and for each page shows which pages link to it, making links bi-directional. You can also link webpages or external files, when clicked zim will open these with the appropriate applications.
+The ability to hyperlink pages is a powerful way of organizing content. This goes further than hyperlinks in ordinary web pages. One example of this is that zim keeps track of all links and for each page shows which pages link to it, making links bidirectional. You can also link webpages or external files, when clicked zim will open these with the appropriate applications.
 
-Since zim has the GUI layout resembling a note-taking application you can organize your pages hierarchically, allowing for example to group pages by topic. But because you also have wiki-style back-tracking of links you could also have a category system by using backlinks so a page can link to multiple categories.
+Since zim has the GUI layout resembling a note-taking application you can organize your pages hierarchically, allowing for example to group pages by topic. But because you also have wiki-style backtracking of links you could also have a category system by using backlinks so a page can link to multiple categories.
 
 ==== And more.. ====
 A few other things I would like to mention:

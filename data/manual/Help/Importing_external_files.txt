@@ -15,7 +15,7 @@ Some word processors allow checking the encoding, e.g. with the small editor Mou
 The filename should be encoded in the proper encoding for your file system. You can easily check this by making sure your operating system default file browser shows the file names correctly. There are a number of characters that are forbidden in page names, these are: "?", "#", "/", "\\", "*", '"', "<", ">", "|" and "%". These are forbidden because they have a special meaning in the zim wiki syntax or because they can not be encoded on common file systems.
 
 **Moving pages into an existing notebook: **
-If you have just a few pages then use the import function, see the menu item //Files// -> //Import page...// .
+If you have just a few pages then use the import function, see the menu item //Files// -> //Import page...//
 
 If you have a larger number of pages that conform with the page description above, then close  Zim, move these pages either into an existing subfolder to the other pages of the existing Zim Notebook folder or create a new subfolder inside the Zim Notebook folder. Reopen the Notebook and the pages and the new subfolder should appear. Rebuilding the index may take quite some time, if you have added many pages.
 
@@ -24,6 +24,6 @@ It may be advisable to click Tools / Re-build Index
 **Creating a new Notebook**
 If you wish to create a new notebook, e.g. from data from another application that allows to export its content as text files, you can create a new notebook folder and move the files in as described above.
 
-Now open zim and go to the menu item //File// -> //Open Another Notebook...// . In the dialog that appears you can add a new notebook and specify the folder you just created. You will get a warning that the folder is not empty, but this can be ignored in this case. Now you can open the newly added notebook from the dialog.
+Now open zim and go to the menu item //File// -> //Open Another Notebook...// In the dialog that appears you can add a new notebook and specify the folder you just created. You will get a warning that the folder is not empty, but this can be ignored in this case. Now you can open the newly added notebook from the dialog.
 
 The notebook that opens should show pages corresponding to the file structure you created in the folder.
