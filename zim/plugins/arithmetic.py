@@ -41,7 +41,7 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('_Arithmetic'), accelerator='F5')
+	@action(_('_Arithmetic'), accelerator='F5') # T: menu item
 	def calculate(self):
 		"""Perform arithmetic operations"""
 

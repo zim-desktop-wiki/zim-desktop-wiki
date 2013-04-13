@@ -568,6 +568,7 @@ class GtkInterface(NotebookInterface):
 			entry.set_icon_from_stock(gtk.ENTRY_ICON_SECONDARY, gtk.STOCK_FIND)
 			entry.set_icon_activatable(gtk.ENTRY_ICON_SECONDARY, True)
 			entry.set_icon_tooltip_text(gtk.ENTRY_ICON_SECONDARY, _('Search Pages...'))
+				# T: label in search entry
 		inline_search = lambda e, *a: self.show_search(query=e.get_text() or None)
 		entry.connect('activate', inline_search)
 		entry.connect('icon-release', inline_search)

@@ -55,7 +55,7 @@ class TemplateEditorDialog(Dialog):
 			b.set_alignment(0.0, 0.5)
 			vbbox.add(b)
 
-		browse_button = Button(_('Browse'))
+		browse_button = Button(_('Browse')) # T: button label
 		browse_button.connect('clicked', self.on_browse)
 		self.add_extra_button(browse_button)
 
