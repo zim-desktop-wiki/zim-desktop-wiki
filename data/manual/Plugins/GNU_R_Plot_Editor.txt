@@ -56,5 +56,5 @@ Aside from this, most of R's advanced plotting power should be available to you.
 * [2] http://www.r-project.org/index.html
 * [3] http://rwiki.sciviews.org/
 * [4] http://cran.r-project.org/banner.shtml
-* [5] http://addictedtor.free.fr/graphiques/RGraphGallery.php%3Fgraph%3D22
+* [5] http://gallery.r-enthusiasts.com/
 
