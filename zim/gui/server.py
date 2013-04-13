@@ -1,116 +1,112 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008,2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module stands apart from the rest of the gui modules as it is not
 part from the main Gtk interface. It defines a Gtk interface that can be
 used to start/stop the WWW server.
 '''
 
+# TODO: allow setting a password for public access to private server..
+
+# TODO: expander or button to open the server log
+
+# TODO: have url button show public hostname
+#       commented out because while testing I got stuff like
+#       "localhost6.localdomain6" which could not be resolved
+#       by the browser :(
+
+
 import gtk
-import webbrowser # FIXME replace with XDG aware method
+import glib
+import webbrowser
+
+import logging
+
+from zim.www import make_server
 
 from zim.config import data_file
-from zim.gui.widgets import IconButton, gtk_window_set_default_icon, ErrorDialog
+from zim.gui.widgets import IconButton, gtk_window_set_default_icon, ErrorDialog, input_table_factory
 from zim.gui.notebookdialog import NotebookComboBox, NotebookDialog
 
-stock_started = ('gtk-yes', gtk.ICON_SIZE_DIALOG)
-stock_stopped = ('gtk-no', gtk.ICON_SIZE_DIALOG)
+
+logger = logging.getLogger('zim.gui.server')
+
 
 class ServerWindow(gtk.Window):
 
-	def __init__(self, server):
-		'''Constructor needs a Server object to control'''
+	def __init__(self, notebook=None, port=8080, public=True, **opts):
+		'''Constructor
+		@param notebook: the notebook location
+		@param port: the http port to serve on
+		@param public: allow connections to the server from other
+		computers - if C{False} can only connect from localhost
+		@param opts: options for L{WWWInterface.__init__()}
+		'''
 		gtk.Window.__init__(self)
-		gtk_window_set_default_icon() # FIXME - should go in main
+		self.set_title('Zim - ' + _('Web Server')) # T: Window title
 		self.set_border_width(10)
 		self.connect('destroy', lambda a: gtk.main_quit())
+		self.interface_opts = opts
+		self.httpd = None
+		self._source_id = None
 
-		self.server = server
-		self.server.connect_after('started', self.do_server_started)
-		self.server.connect_after('stopped', self.do_server_stopped)
+		# Widgets
+		self.status_label = gtk.Label()
+		self.status_label.set_markup('<i>'+_('Server not started')+'</i>')
+			# T: Status in web server gui
+		self.start_button = IconButton('gtk-media-play')
+		self.start_button.connect('clicked', lambda o: self.start())
+		self.stop_button = IconButton('gtk-media-stop')
+		self.stop_button.connect('clicked', lambda o: self.stop())
+		self.stop_button.set_sensitive(False)
 
-		def _start(*a):
-			try:
-				self.server.set_notebook(
-					self.notebookcombobox.get_notebook() )
-				self.server.start()
-			except Exception, error:
-				ErrorDialog(self, error).run()
+		if gtk.gtk_version >= (2, 10):
+			self.link_button = gtk.LinkButton('')
+			self.link_button.set_sensitive(False)
+			gtk.link_button_set_uri_hook(lambda o, url: webbrowser.open(url))
+		else:
+			self.link_button = None
 
-		def _stop(*a):
-			try:
-				self.server.stop()
-			except Exception, error:
-				ErrorDialog(self, error).run()
+		self.notebookcombobox = NotebookComboBox(current=notebook)
+		self.open_button = IconButton('gtk-index')
+		self.open_button.connect('clicked', lambda *a: NotebookDialog(self).run())
+
+		self.portentry = gtk.SpinButton()
+		self.portentry.set_numeric(True)
+		self.portentry.set_range(80, 10000)
+		self.portentry.set_increments(1, 80)
+		self.portentry.set_value(port)
+
+		self.public_checkbox = gtk.CheckButton(label=_('Allow public access'))
+			# T: Checkbox in web server gui
+		self.public_checkbox.set_active(public)
+
 
 		# Build the interface
 		vbox = gtk.VBox()
 		self.add(vbox)
 
-		# first some art work
-		#~ path = data_file('globe_banner_small.png').path
-		#~ image = gtk.Image()
-		#~ image.set_from_file(path) # new_from_file not in 2.6
-		#~ align = gtk.Alignment(0,0.5, 0,0)
-		#~ align.add(image)
-		#~ vbox.add(align)
+		hbox = gtk.HBox(spacing=12)
+		hbox.pack_start(self.start_button, False)
+		hbox.pack_start(self.stop_button, False)
+		hbox.pack_start(self.status_label, False)
+		vbox.add(hbox)
 
-		# Table with status
-		table = gtk.Table(4, 2, False)
-		table.set_col_spacings(12)
-		table.set_row_spacings(5)
-		hbox = gtk.HBox()
-		hbox.pack_start(table, False)
-		vbox.pack_start(hbox, False)
-
-		self.status_icon = gtk.image_new_from_stock(*stock_stopped)
-		table.attach(self.status_icon, 0,2, 0,2)
-		self.status_label = gtk.Label()
-		self.status_label.set_markup('<i>'+_('Server not started')+'</i>')
-			# T: Status in web server gui
-		table.attach(self.status_label, 4,5, 0,1)
-		self.link_button = gtk.LinkButton('') # FIXME since 2.10
-		self.link_button.set_sensitive(False)
-		gtk.link_button_set_uri_hook(lambda o, url: webbrowser.open(url))
-		table.attach(self.link_button, 4,5, 1,2)
-
-		start_button = IconButton('gtk-media-play')
-		start_button.connect('clicked', _start)
-		table.attach(start_button, 2,3, 0,1)
-		stop_button = IconButton('gtk-media-stop')
-		stop_button.connect('clicked', _stop)
-		table.attach(stop_button, 3,4, 0,1)
-
-		# Table with server properties
-		table = gtk.Table(3, 3, False)
-		table.set_col_spacings(12)
-		table.set_row_spacings(5)
+		table = input_table_factory((
+			(_('Notebook'), self.notebookcombobox, self.open_button),
+				# T: Field in web server gui
+			(_('Port'), self.portentry),
+				# T: Field in web server gui for HTTP port (e.g. port 80)
+			self.public_checkbox
+		))
 		vbox.add(table)
 
-		table.attach(gtk.Label(_('Notebook')+': '), 0,1, 0,1)
-			# T: Field in web server gui
-		self.notebookcombobox = NotebookComboBox(current=server.interface.notebook)
-		self.notebookcombobox.connect('changed', _stop)
-		table.attach(self.notebookcombobox, 1,2, 0,1)
+		if self.link_button:
+			hbox = gtk.HBox()
+			hbox.pack_end(self.link_button, False)
+			vbox.add(hbox)
 
-		open_button = IconButton('gtk-index')
-		open_button.connect('clicked', lambda *a: NotebookDialog(self).run())
-		table.attach(open_button, 2,3, 0,1)
-
-		table.attach(gtk.Label(_('Port')+': '), 0,1, 1,2)
-			# T: Field in web server gui for HTTP port (e.g. port 80)
-		self.portentry = gtk.SpinButton()
-		self.portentry.set_numeric(True)
-		self.portentry.set_range(80, 10000)
-		self.portentry.set_increments(1, 80)
-		self.portentry.set_value(self.server.port)
-		self.portentry.connect('value-changed', _stop)
-		self.portentry.connect('value-changed',
-			lambda o: self.server.set_port(self.portentry.get_value_as_int()))
-		table.attach(self.portentry, 1,2, 1,2)
-
-		# TODO: expander or button to open the server log
 
 	def open_notebook(self, notebook):
 		'''Sets the notebook in the combobox
@@ -119,17 +115,90 @@ class ServerWindow(gtk.Window):
 		'''
 		self.notebookcombobox.set_notebook(notebook)
 
-	def do_server_started(self, server):
-		self.status_icon.set_from_stock(*stock_started)
+	def start(self):
+		# Start server
+		try:
+			notebook = self.notebookcombobox.get_notebook()
+			if not notebook:
+				return
+			port = int(self.portentry.get_value())
+			public = self.public_checkbox.get_active()
+			self.httpd = make_server(notebook, port, public, **self.interface_opts)
+			self.httpd.timeout = 5 # if no response after 5 sec, drop it
+			self._source_id = glib.io_add_watch(
+				self.httpd.fileno(),
+				glib.IO_IN | glib.IO_OUT | glib.IO_ERR | glib.IO_HUP | glib.IO_PRI, # any event..
+				self.do_serve
+			)
+			logger.info("Serving HTTP on %s port %i...", self.httpd.server_name, self.httpd.server_port)
+		except Exception, error:
+			ErrorDialog(self, error).run()
+			return
+
+		# Update UI
+		self.notebookcombobox.set_sensitive(False)
+		self.portentry.set_sensitive(False)
+		self.public_checkbox.set_sensitive(False)
+		self.open_button.set_sensitive(False)
+		self.start_button.set_sensitive(False)
+		self.stop_button.set_sensitive(True)
+
 		self.status_label.set_markup('<i>'+_('Server started')+'</i>')
 			# T: Status in web server gui
-		url = 'http://localhost:%i' % server.port
-		self.link_button.set_uri(url)
-		self.link_button.set_label(url)
-		self.link_button.set_sensitive(True)
+		#if self.public_checkbox.get_active():
+		#	url = 'http://%s:%i' % (self.httpd.server_name, self.httpd.server_port)
+		#else:
+		#	url = 'http://localhost:%i' % self.httpd.server_port
+		url = 'http://localhost:%i' % self.httpd.server_port
+		if self.link_button:
+			self.link_button.set_uri(url)
+			self.link_button.set_label(url)
+			self.link_button.set_sensitive(True)
 
-	def do_server_stopped(self, server):
-		self.status_icon.set_from_stock(*stock_stopped)
+	def do_serve(self, fd, event):
+		try:
+			if event & glib.IO_HUP:
+				self.stop()
+				raise Exception, 'Socket disconnected'
+			else:
+				self.httpd.handle_request()
+		except:
+			logger.exception('Exception while handling IO request:')
+
+		return True # keep event running
+
+	def stop(self):
+		# Stop server
+		logger.debug('Stop server')
+		if self._source_id is not None:
+			glib.source_remove(self._source_id)
+			self._source_id = None
+
+		if self.httpd:
+			self.httpd.socket.close()
+				# There is also a httpd.server_close(), but undocumented (!?)
+			self.httpd = None
+
+		# Update UI
 		self.status_label.set_markup('<i>'+_('Server stopped')+'</i>')
 			# T: Status in web server gui
-		self.link_button.set_sensitive(False)
+		if self.link_button:
+			self.link_button.set_sensitive(False)
+		self.notebookcombobox.set_sensitive(True)
+		self.portentry.set_sensitive(True)
+		self.public_checkbox.set_sensitive(True)
+		self.open_button.set_sensitive(True)
+		self.stop_button.set_sensitive(False)
+		self.start_button.set_sensitive(True)
+
+
+def main(notebook=None, port=8080, public=True, **opts):
+	import zim.notebook
+	if notebook:
+		notebook, path = zim.notebook.resolve_notebook(notebook)
+
+	gtk_window_set_default_icon()
+
+	window = ServerWindow(notebook, port, public, **opts)
+	window.show_all()
+	gtk.main()

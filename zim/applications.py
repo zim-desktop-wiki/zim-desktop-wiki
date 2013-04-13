@@ -107,16 +107,16 @@ class Application(object):
 					file = os.sep.join((dir, cmd + ext))
 					if zim.fs.isfile(file) and os.access(file, os.X_OK):
 						return file
-				else:
-					return None
+			else:
+				return None
 		else:
 			# On POSIX no extension is needed to make scripts executable
 			for dir in get_environ_list('PATH'):
 				file = os.sep.join((dir, cmd))
 				if zim.fs.isfile(file) and os.access(file, os.X_OK):
 					return file
-				else:
-					return None
+			else:
+				return None
 
 	def _cmd(self, args):
 		# substitute args in the command - to be overloaded by child classes

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a web interface for zim. This is an alternative
 to the GUI application.
@@ -14,9 +14,9 @@ The main classes here are L{WWWInterface} which implements the interface
 the standalone server.
 '''
 
-# TODO check client host for security
 # TODO setting for doc_root_url when running in CGI mode
 # TODO support "etg" and "if-none-match' headers at least for icons
+# TODO: redirect server logging to logging module + set default level to -V in server process
 
 
 import sys
@@ -289,165 +289,6 @@ class WWWInterface(NotebookInterface):
 			return page.dump(format='html', linker=self.linker)
 
 
-class Server(gobject.GObject):
-	'''Stand-alone webserver based on glib
-
-	@signal: C{started ()}: emitted when the server starts serving
-	@signal: C{stopped ()}: emitted when the server stops serving
-	'''
-
-	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'started': (gobject.SIGNAL_RUN_LAST, None, ()),
-		'stopped': (gobject.SIGNAL_RUN_LAST, None, ())
-	}
-
-	def __init__(self, notebook=None, port=8080, gui=False, public=True, **opts):
-		'''Constructor
-		@param notebook: the notebook location
-		@param port: the http port to serve on
-		@param gui: whether to show the graphical interface for the
-		server - see L{zim.gui.server}
-		@param public: allow connections to the server from other
-		computers - if C{False} can only connect from localhost
-		@param opts: options for L{WWWInterface.__init__()}
-		'''
-		gobject.GObject.__init__(self)
-		self.socket = None
-		self.running = False
-		self.set_port(port)
-		self.public = public
-		self._io_event = None
-
-		import wsgiref.handlers
-		self.handlerclass = wsgiref.handlers.SimpleHandler
-		self.interface = WWWInterface(notebook, **opts)
-
-		if gui:
-			import zim.gui.server
-			self.window = zim.gui.server.ServerWindow(self)
-			self.use_gtk = True
-		else:
-			self.use_gtk = False
-
-	def set_notebook(self, notebook):
-		'''Set the notebook location
-		@param notebook: the notebook location
-		'''
-		self.stop()
-		self.interface = WWWInterface(notebook)
-
-	def set_port(self, port):
-		'''Set the http port
-		@param port: the http port to serve on
-		'''
-		assert not self.running
-		assert isinstance(port, int), port
-		self.port = port
-
-	def main(self):
-		'''Main loop, runs the server and returns only when the server
-		us stopped.
-		'''
-		if self.use_gtk:
-			import gtk
-			self.window.show_all()
-			gtk.main()
-		else:
-			if not self.running:
-				self.start()
-			gobject.MainLoop().run()
-		self.stop()
-
-	def start(self):
-		'''Open a socket and start listening. If we are running already,
-		first calls stop() to close the old socket, causing a restart.
-		@emits: started
-		'''
-		if self.running:
-			self.stop()
-
-		logger.info('Server starting at port %i', self.port)
-
-		# open sockets for connections
-		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		hostname = '' # means all interfaces
-		if not self.public:
-			hostname = 'localhost'
-		self.socket.bind((hostname, self.port))
-		self.socket.listen(5)
-
-		self._io_event = gobject.io_add_watch(
-			self.socket, gobject.IO_IN,
-			lambda *a: self.do_accept_request())
-
-		self.running = True
-		self.emit('started')
-
-	def stop(self):
-		'''Close the socket and stop listening
-		@emits: stopped
-		'''
-		if not self.running:
-			return # ignore silently
-
-		if self._io_event:
-			gobject.source_remove(self._io_event)
-			self._io_event = None
-
-		try:
-			self.socket.close()
-		except Exception, error:
-			logger.error(error)
-		self.socket = None
-
-		logger.info('Server stopped')
-		self.running = False
-		self.emit('stopped')
-
-	def do_accept_request(self):
-		# set up handler for new connection
-		clientsocket, clientaddress = self.socket.accept() # TODO timeout ?
-
-		# read data
-		rfile = clientsocket.makefile('rb')
-		requestline = rfile.readline()
-		command, path, version = requestline.split()
-		if version[5:] != 0.9: # HTTP/0.9 does not do headers
-			headerlines = []
-			while True:
-				line = rfile.readline()
-				if not line or line.isspace():
-					break
-				else:
-					headerlines.append(line)
-			#~ headers = HeadersDict(''.join(headerlines))
-		#~ else:
-			#~ headers = {}
-		logger.info('%s %s %s', clientaddress[0], command, path)
-
-		wfile = clientsocket.makefile('wb')
-		environ = {
-			'REQUEST_METHOD': command,
-			'SCRIPT_NAME': '',
-			'PATH_INFO': path,
-			'QUERY_STRING': '',
-			'SERVER_NAME': 'localhost',
-			'SERVER_PORT': str(self.port),
-			'SERVER_PROTOCOL': version
-		}
-		handler = self.handlerclass(rfile, wfile, sys.stderr, environ)
-		handler.run(self.interface)
-		rfile.close()
-		wfile.flush()
-		wfile.close()
-		clientsocket.close()
-		return True # else io watch gets deleted
-
-# Need to register classes defining gobject signals
-gobject.type_register(Server)
-
-
 class WWWLinker(BaseLinker):
 	'''Implements a L{linker<BaseLinker>} that returns the correct
 	links for the way the server handles URLs.
@@ -513,3 +354,26 @@ class WWWLinker(BaseLinker):
 			except:
 				# typical error is a non-local file:// uri
 				return link
+
+
+def main(notebook, port=8080, public=True, **opts):
+	httpd = make_server(notebook, port, public, **opts)
+	logger.info("Serving HTTP on %s port %i...", httpd.server_name, httpd.server_port)
+	httpd.serve_forever()
+
+def make_server(notebook, port=8080, public=True, **opts):
+	'''Create a simple http server
+	@param notebook: the notebook location
+	@param port: the http port to serve on
+	@param public: allow connections to the server from other
+	computers - if C{False} can only connect from localhost
+	@param opts: options for L{WWWInterface.__init__()}
+	@returns: a C{WSGIServer} object
+	'''
+	import wsgiref.simple_server
+	app = WWWInterface(notebook, **opts) # FIXME make opts explicit
+	if public:
+		httpd = wsgiref.simple_server.make_server('', port, app)
+	else:
+		httpd = wsgiref.simple_server.make_server('localhost', port, app)
+	return httpd

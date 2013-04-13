@@ -48,7 +48,7 @@ This is a core plugin shipping with zim.
 		else:
 			return None
 
-	def on_initialize_notebook(self, uri):
+	def on_initialize_notebook(self, ui, uri):
 		# check if the notebook exists
 		if not uri.startswith('file:') \
 		or Dir(uri).file('notebook.zim').exists():

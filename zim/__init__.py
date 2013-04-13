@@ -454,14 +454,16 @@ NOTE FOR BUG REPORTS:
 	zim trayicon (if any), and try again.
 ''')
 	elif cmd == 'server':
-		if 'standalone' in optsdict:
-			del optsdict['standalone']
-			# No daemon support for server, so no option doesn;t
+		standalone = optsdict.pop('standalone', False)
+			# No daemon support for server, so no option doesn't
 			# do anything for now
-
-		import zim.www
-		handler = zim.www.Server(*args, **optsdict)
-		handler.main()
+		gui = optsdict.pop('gui', False)
+		if gui:
+			import zim.gui.server
+			zim.gui.server.main(*args, **optsdict)
+		else:
+			import zim.www
+			zim.www.main(*args, **optsdict)
 	elif cmd == 'plugin':
 		import zim.plugins
 		try:
