@@ -474,21 +474,41 @@ NOTE FOR BUG REPORTS:
 		module.main(*args)
 
 
-def ZimCmd():
+def ZimCmd(args=None):
 	'''Constructor to get a L{Application} object for zim itself
 	Use this object to spawn new instances of zim.
+	When C{args} is given the options "--standalone" and "-V" or "-D"
+	will be added automatically.
+	@param args: arguments to give to zim
 	@returns: a L{Application} object for zim itself
 	'''
-	# Note that Application takes care of using sys.executable when
-	# needed
 	from zim.applications import Application
 	if ZIM_EXECUTABLE.endswith('.exe'):
-		return Application((ZIM_EXECUTABLE,))
+		cmd = (ZIM_EXECUTABLE,)
 	elif sys.executable:
 		# If not an compiled executable, we assume it is python
-		# (Application class does this automatically for python scripts
+		# (Application class only does this automatically for scripts
 		# ending in .py)
-		return Application((sys.executable, ZIM_EXECUTABLE))
+		cmd = (sys.executable, ZIM_EXECUTABLE)
+
+	if not args:
+		return Application(cmd)
+
+	# TODO: if not standalone, call IPC directly rather than
+	#       first spawning a process
+	import zim.ipc
+	if not zim.ipc.in_child_process():
+		args = args + ('--standalone',)
+
+	# more detailed logging has lower number, so WARN > INFO > DEBUG
+	loglevel = logging.getLogger().getEffectiveLevel()
+	if loglevel <= logging.DEBUG:
+		args = args + ('-D',)
+	elif loglevel <= logging.INFO:
+		args = args + ('-V',)
+
+	return Application(cmd + args)
+
 
 
 class NotebookInterface(gobject.GObject):
@@ -875,17 +895,6 @@ class NotebookInterface(gobject.GObject):
 			return True
 		index.update(callback=on_callback)
 
-	def spawn(self, *args):
-		'''Spawn a new instance of zim
-
-		Run a new zim process with commandline ares
-
-		@param args: any commandline args to pass to the new process
-
-		@todo: take this method outside this class
-		'''
-		zim = ZimCmd()
-		zim.spawn(args=args)
 
 # Need to register classes defining gobject signals
 gobject.type_register(NotebookInterface)

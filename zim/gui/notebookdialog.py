@@ -375,6 +375,16 @@ class NotebookDialog(Dialog):
 		model.remove(iter)
 		# explicitly _no_ model.write()
 
+	def show_help(self, page=None):
+		# Overloaded because self.ui may be None
+		if self.ui:
+			Dialog.show_help(self, page)
+		else:
+			from zim import ZimCmd
+			if page is None:
+				page = self.help_page
+			ZimCmd(('--manual', page)).spawn()
+
 
 class AddNotebookDialog(Dialog):
 

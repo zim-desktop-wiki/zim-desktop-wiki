@@ -21,7 +21,7 @@ import gobject
 import gtk
 
 import zim
-from zim import NotebookInterface, NotebookLookupError
+from zim import NotebookInterface, NotebookLookupError, ZimCmd
 from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.signals import DelayedCallback
@@ -476,22 +476,6 @@ class GtkInterface(NotebookInterface):
 		if plugin and self._finalize_ui:
 			plugin.finalize_ui(self)
 		return plugin
-
-	def spawn(self, *args):
-		# TODO: if not standalone, call IPC directly rather than
-		#       first spawning a process
-		import zim.ipc
-		if not zim.ipc.in_child_process():
-			args = args + ('--standalone',)
-
-		# more detailed logging has lower number, so WARN > INFO > DEBUG
-		loglevel = logging.getLogger().getEffectiveLevel()
-		if loglevel <= logging.DEBUG:
-			args = args + ('-D',)
-		elif loglevel <= logging.INFO:
-			args = args + ('-V',)
-
-		NotebookInterface.spawn(self, *args)
 
 	def main(self):
 		'''Wrapper for C{gtk.main()}, runs main loop of the application.
@@ -1131,7 +1115,7 @@ class GtkInterface(NotebookInterface):
 				notebook = zim.ipc.ServerProxy().get_notebook(notebook)
 				notebook.present(page=pagename)
 			else:
-				self.spawn(notebook)
+				ZimCmd(('--gui', notebook)).spawn()
 
 	def do_open_notebook(self, notebook):
 
@@ -2088,7 +2072,7 @@ class GtkInterface(NotebookInterface):
 		L{zim.gui.server}. Spawns a new zim instance for the server.
 		'''
 		# TODO instead of spawn, include in this process
-		self.spawn('--server', '--gui', self.notebook.uri)
+		ZimCmd(('--server', '--gui', self.notebook.uri)).spawn()
 
 	def reload_index(self, flush=False):
 		'''Check the notebook for changes and update the index.
@@ -2218,9 +2202,9 @@ class GtkInterface(NotebookInterface):
 		@param page: manual page to show (string)
 		'''
 		if page:
-			self.spawn('--manual', page)
+			ZimCmd(('--manual', page)).spawn()
 		else:
-			self.spawn('--manual')
+			ZimCmd(('--manual',)).spawn()
 
 	def show_help_faq(self):
 		'''Menu action to show the 'FAQ' page in the user manual'''

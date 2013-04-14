@@ -34,5 +34,6 @@ Configuration
 * [[+Default Applications|Default Applications]]
 
 Other topics
+* [[+Commandline Options|Commandline Options]]
 * [[+Wiki Syntax|Wiki Syntax]]
 * [[+Importing external files|Importing external files]]
