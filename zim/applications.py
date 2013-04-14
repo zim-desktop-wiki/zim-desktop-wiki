@@ -201,7 +201,7 @@ class Application(object):
 		'''
 		cwd, argv = self._checkargs(cwd, args)
 		logger.info('Running: %s (cwd: %s)', argv, cwd)
-		p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE)
+		p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		stdout, stderr = p.communicate(input)
 		# TODO: handle ApplicationERror here as well ?
 
@@ -210,6 +210,7 @@ class Application(object):
 		#~ elif stderr:
 		if stderr:
 			logger.warn(stderr)
+			# TODO: allow user to get this error as well - e.g. for logging image generator cmd
 
 		return map(unicode, [line + '\n' for line in stdout.splitlines()])
 			# Explicit newline conversion, e.g. on windows \r\n -> \n

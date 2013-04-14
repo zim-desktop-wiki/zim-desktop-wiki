@@ -149,6 +149,7 @@ PATHBAR_RECENT = 'recent' #: Constant for the recent pages pathbar
 PATHBAR_RECENT_CHANGED = 'recent_changed' #: Constant for the recent pages pathbar
 PATHBAR_HISTORY = 'history' #: Constant for the history pathbar
 PATHBAR_PATH = 'path' #: Constant for the namespace pathbar
+PATHBAR_TYPES = (PATHBAR_NONE, PATHBAR_RECENT, PATHBAR_RECENT_CHANGED, PATHBAR_HISTORY, PATHBAR_PATH)
 
 #: Menu items for the context menu of the toolbar
 ui_toolbar_style_radio_actions = (
@@ -2839,8 +2840,8 @@ class MainWindow(Window):
 			self.uistate.setdefault('show_toolbar_fullscreen', False)
 		self.uistate.setdefault('show_statusbar', True)
 		self.uistate.setdefault('show_statusbar_fullscreen', False)
-		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT)
-		self.uistate.setdefault('pathbar_type_fullscreen', PATHBAR_NONE)
+		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT, PATHBAR_TYPES)
+		self.uistate.setdefault('pathbar_type_fullscreen', PATHBAR_NONE, PATHBAR_TYPES)
 		self.uistate.setdefault('toolbar_style', None, check=basestring)
 		self.uistate.setdefault('toolbar_size', None, check=basestring)
 

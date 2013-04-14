@@ -490,6 +490,9 @@ class SearchSelection(PageSelection):
 		else:
 			generator = self.notebook.walk()
 
+		if results is None:
+			results = SearchSelection(None)
+
 		for page in generator:
 			#~ print '!! Search content', page
 			try:
