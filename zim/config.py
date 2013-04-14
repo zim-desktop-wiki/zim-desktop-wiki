@@ -134,14 +134,21 @@ def _set_basedirs():
 	global XDG_CACHE_HOME
 
 	# Detect if we are running from the source dir
-	if isfile('./zim.py'):
-		scriptdir = '.' # maybe running module in test / debug
-	else:
-		scriptdir = os.path.dirname(os.path.abspath(sys.argv[0]))
-	zim_data_dir = Dir(scriptdir + '/data')
-	if zim_data_dir.exists():
-		ZIM_DATA_DIR = zim_data_dir
-	else:
+	try:
+		if isfile('./zim.py'):
+			scriptdir = Dir('.') # maybe running module in test / debug
+		else:
+			encoding = sys.getfilesystemencoding() # not 100% sure this is correct
+			path = sys.argv[0].decode(encoding)
+			scriptdir = File(path).dir
+		zim_data_dir = scriptdir.subdir('data')
+		if zim_data_dir.exists():
+			ZIM_DATA_DIR = zim_data_dir
+		else:
+			ZIM_DATA_DIR = None
+	except:
+		# Catch encoding errors in argv
+		logger.exception('Exception locating application data')
 		ZIM_DATA_DIR = None
 
 	if os.name == 'nt':
