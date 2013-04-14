@@ -757,7 +757,19 @@ class Notebook(Object):
 		if dir:
 			assert isinstance(dir, Dir)
 			self.dir = dir
-			self.readonly = not dir.iswritable()
+			#~ self.readonly = not dir.iswritable()
+
+			# Test access - (iswritable turns out to be unreliable
+			# for folders on windows..)
+			f = dir.file('.zim/tmp')
+			try:
+				f.write('Test')
+				f.remove()
+			except:
+				logger.info('Notebook readonly')
+				self.readonly = True
+			else:
+				self.readonly = False
 
 			if self.config is None:
 				self.config = ConfigDictFile(dir.file('notebook.zim'))
