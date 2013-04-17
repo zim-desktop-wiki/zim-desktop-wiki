@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012,2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''IPC infrastructure parts for the zim GUI.
 
@@ -80,6 +80,7 @@ from multiprocessing.connection import Listener, Client
 import threading
 from Queue import Queue
 
+import zim
 from zim.fs import get_tmpdir
 
 
@@ -463,7 +464,7 @@ class Server(object):
 		conn1, conn2 = Pipe()
 		p = Process(
 			target=childmain,
-			args=(conn2, remoteobject, loglevel, self.logqueue, args, kwargs)
+			args=(conn2, remoteobject, zim.ZIM_EXECUTABLE, loglevel, self.logqueue, args, kwargs)
 		)
 		p.daemon = True # child process exit with parent
 		p.start()
@@ -591,12 +592,14 @@ class ConnectionWorker(threading.Thread):
 		logger.debug('Server thread for process %i quit', self.process.pid)
 
 
-def childmain(conn, remoteobject, loglevel, logqueue, arg, kwarg):
+def childmain(conn, remoteobject, zim_exe, loglevel, logqueue, arg, kwarg):
 	'''Main function for child processes'''
 	#~ print '>>> START CHILD MAIN'
 	global SERVER_CONTEXT
 	global _recursive_conn_lock
 	_recursive_conn_lock = True
+
+	zim.ZIM_EXECUTABLE = zim_exe
 
 	setup_child_logging(loglevel, logqueue)
 

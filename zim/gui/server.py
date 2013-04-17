@@ -20,6 +20,7 @@ used to start/stop the WWW server.
 import gtk
 import glib
 import webbrowser
+import sys
 
 import logging
 
@@ -124,12 +125,19 @@ class ServerWindow(gtk.Window):
 			port = int(self.portentry.get_value())
 			public = self.public_checkbox.get_active()
 			self.httpd = make_server(notebook, port, public, **self.interface_opts)
-			self.httpd.timeout = 5 # if no response after 5 sec, drop it
-			self._source_id = glib.io_add_watch(
-				self.httpd.fileno(),
-				glib.IO_IN | glib.IO_OUT | glib.IO_ERR | glib.IO_HUP | glib.IO_PRI, # any event..
-				self.do_serve
-			)
+			if sys.platform == 'win32':
+				# glib io watch conflicts with socket use on windows..
+				# idle handler uses a bit to much CPU for my taste,
+				# timeout every 0.5 sec is better
+				self.httpd.timeout = 0.1 # 100 ms
+				self._source_id = glib.timeout_add(500, self.do_serve_on_poll)
+			else:
+				self.httpd.timeout = 3 # if no response after 3 sec, drop it
+				self._source_id = glib.io_add_watch(
+					self.httpd.fileno(),
+					glib.IO_IN | glib.IO_OUT | glib.IO_ERR | glib.IO_HUP | glib.IO_PRI, # any event..
+					self.do_serve_on_io
+				)
 			logger.info("Serving HTTP on %s port %i...", self.httpd.server_name, self.httpd.server_port)
 		except Exception, error:
 			ErrorDialog(self, error).run()
@@ -155,7 +163,7 @@ class ServerWindow(gtk.Window):
 			self.link_button.set_label(url)
 			self.link_button.set_sensitive(True)
 
-	def do_serve(self, fd, event):
+	def do_serve_on_io(self, fd, event):
 		try:
 			if event & glib.IO_HUP:
 				self.stop()
@@ -165,6 +173,10 @@ class ServerWindow(gtk.Window):
 		except:
 			logger.exception('Exception while handling IO request:')
 
+		return True # keep event running
+
+	def do_serve_on_poll(self):
+		self.httpd.handle_request()
 		return True # keep event running
 
 	def stop(self):
