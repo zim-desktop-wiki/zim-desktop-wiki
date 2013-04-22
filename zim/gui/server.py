@@ -26,6 +26,7 @@ import logging
 
 from zim.www import make_server
 
+from zim.notebook import resolve_notebook, get_notebook
 from zim.config import data_file
 from zim.gui.widgets import IconButton, gtk_window_set_default_icon, ErrorDialog, input_table_factory
 from zim.gui.notebookdialog import NotebookComboBox, NotebookDialog
@@ -119,9 +120,12 @@ class ServerWindow(gtk.Window):
 	def start(self):
 		# Start server
 		try:
-			notebook = self.notebookcombobox.get_notebook()
-			if not notebook:
+			uri = self.notebookcombobox.get_notebook()
+			if uri:
+				notebook = get_notebook(uri)
+			if not uri:
 				return
+
 			port = int(self.portentry.get_value())
 			public = self.public_checkbox.get_active()
 			self.httpd = make_server(notebook, port, public, **self.interface_opts)
@@ -205,9 +209,8 @@ class ServerWindow(gtk.Window):
 
 
 def main(notebook=None, port=8080, public=True, **opts):
-	import zim.notebook
-	if notebook:
-		notebook, path = zim.notebook.resolve_notebook(notebook)
+	if notebook and isinstance(notebook, basestring):
+		notebook, path = resolve_notebook(notebook)
 
 	gtk_window_set_default_icon()
 

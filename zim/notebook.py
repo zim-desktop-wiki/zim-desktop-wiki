@@ -470,8 +470,6 @@ def resolve_notebook(string):
 	else:
 		return Dir(file.path), page
 
-	return notebook, path
-
 
 def _get_path_object(path):
 	if isinstance(path, basestring):

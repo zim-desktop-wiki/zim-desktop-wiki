@@ -47,7 +47,9 @@ if os.name == "nt" and not os.environ.get('LANG'):
 # Try importing our modules
 try:
 	import zim
+	import zim.__main__
 	import zim.config
+	import zim.ipc
 except ImportError:
 	sys.excepthook(*sys.exc_info())
 	print >>sys.stderr, 'ERROR: Could not find python module files in path:'
@@ -69,9 +71,11 @@ except:
 
 # Run the application and handle some exceptions
 try:
+	zim.ipc.handle_argv()
 	encoding = sys.getfilesystemencoding() # not 100% sure this is correct
 	argv = [arg.decode(encoding) for arg in sys.argv]
-	zim.main(argv)
+	#~ zim.set_executable(argv[0])
+	zim.__main__.main(*argv[1:])
 except zim.GetoptError, err:
 	print >>sys.stderr, sys.argv[0]+':', err
 	sys.exit(1)

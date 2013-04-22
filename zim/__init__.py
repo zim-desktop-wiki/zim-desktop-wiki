@@ -144,111 +144,14 @@ PLATFORM = None
 ZIM_EXECUTABLE = 'zim'
 
 
-# All commandline options in various groups
-longopts = ('verbose', 'debug')
-commands = (
-	'help', 'version', 'gui', 'server', 'export', 'search',
-	'index', 'manual', 'plugin', 'ipc-server',
-)
-commandopts = {
-	'gui': ('list', 'geometry=', 'fullscreen', 'standalone'),
-	'server': ('port=', 'template=', 'gui', 'standalone'),
-	'export': ('format=', 'template=', 'output=', 'root-url=', 'index-page='),
-	'search': (),
-	'index': ('output=',),
-	'plugin': (),
-}
-shortopts = {
-	'v': 'version', 'h': 'help',
-	'V': 'verbose', 'D': 'debug',
-	'o': 'output='
-}
-maxargs = {
-	'gui': 2, 'server': 1, 'manual': 1,
-	'export': 2, 'index': 1, 'search': 2,
-}
 
-# Inline help - do not use __doc__ for this !
-usagehelp = '''\
-usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
-   or: zim --server [OPTIONS] [NOTEBOOK]
-   or: zim --export [OPTIONS] NOTEBOOK [PAGE]
-   or: zim --search NOTEBOOK QUERY
-   or: zim --index  [OPTIONS] NOTEBOOK
-   or: zim --plugin PLUGIN [ARGUMENTS]
-   or: zim --manual [OPTIONS] [PAGE]
-   or: zim --help
-'''
-optionhelp = '''\
-General Options:
-  --gui           run the editor (this is the default)
-  --server        run the web server
-  --export        export to a different format
-  --search        run a search query on a notebook
-  --index         build an index for a notebook
-  --plugin        call a specific plugin function
-  --manual        open the user manual
-  -V, --verbose   print information to terminal
-  -D, --debug     print debug messages
-  -v, --version   print version and exit
-  -h, --help      print this text
-
-GUI Options:
-  --list          show the list with notebooks instead of
-                  opening the default notebook
-  --geometry      window size and position as WxH+X+Y
-  --fullscreen    start in fullscreen mode
-  --standalone     start a single instance, no background process
-
-Server Options:
-  --port          port to use (defaults to 8080)
-  --template      name of the template to use
-  --gui           run the gui wrapper for the server
-
-Export Options:
-  --format        format to use (defaults to 'html')
-  --template      name of the template to use
-  -o, --output    output directory
-  --root-url      url to use for the document root
-  --index-page    index page name
-
-  You can use the export option to print a single page to stdout.
-  When exporting a whole notebook you need to provide a directory.
-
-Search Options:
-  None
-
-Index Options:
-  -o, --output    output file
-
-Try 'zim --manual' for more help.
-'''
-
-
-class UsageError(Error):
-	'''Error when commandline usage is not correct'''
-
-	def __init__(self):
-		self.msg = usagehelp.replace('zim', ZIM_EXECUTABLE)
-
-
+# FIXME remove the class
 class NotebookLookupError(Error):
 	'''Error when failing to locate a notebook'''
 
 	description = _('Could not find the file or folder for this notebook')
 		# T: Error verbose description
 
-
-def _get_default_or_only_notebook():
-	# Helper used below to decide a good default to open
-	from zim.notebook import get_notebook_list
-	notebooks = get_notebook_list()
-	if notebooks.default:
-		return notebooks.default.uri
-	elif len(notebooks) == 1:
-		return notebooks[0].uri
-	else:
-		return None
 
 
 def get_zim_revision():
@@ -267,18 +170,7 @@ Zim revision is:
 		return 'No bzr version-info found'
 
 
-def main(argv):
-	'''Run the main program
-
-	Depending on the commandline given and whether or not there is
-	an instance of zim running already, this method may return
-	immediatly, or go into the mainloop untill the program is exitted.
-
-	@param argv: commandline arguments, e.g. from C{sys.argv}
-
-	@raises UsageError: when number of arguments is not correct
-	@raises GetOptError: when invalid options are found
-	'''
+def set_executable(self, path):
 	global ZIM_EXECUTABLE
 
 	# FIXME - this returns python.exe on my windows test
@@ -287,191 +179,6 @@ def main(argv):
 	if zim_exec_file.exists():
 		# We were given an absolute path, e.g. "python ./zim.py"
 		ZIM_EXECUTABLE = zim_exec_file.path
-
-	# Check for special commandline args for ipc, does not return
-	# if handled
-	import zim.ipc
-	zim.ipc.handle_argv()
-
-	# Let getopt parse the option list
-	short = ''.join(shortopts.keys())
-	for s, l in shortopts.items():
-		if l.endswith('='): short = short.replace(s, s+':')
-	long = list(longopts) + list(commands)
-	for opts in commandopts.values():
-		long.extend(opts)
-
-	opts, args = gnu_getopt(argv[1:], short, long)
-
-	# First figure out which command to execute
-	cmd = 'gui' # default
-	if opts:
-		o = opts[0][0].lstrip('-')
-		if o in shortopts:
-			o = shortopts[o].rstrip('=')
-		if o in commands:
-			opts.pop(0)
-			cmd = o
-
-	# If it is a simple command execute it and return
-	if cmd == 'version':
-		print 'zim %s\n' % __version__
-		print __copyright__, '\n'
-		print __license__
-		return
-	elif cmd == 'help':
-		print usagehelp.replace('zim', argv[0])
-		print optionhelp
-		return
-
-	# Otherwise check the number of arguments
-	if cmd in maxargs and len(args) > maxargs[cmd]:
-		raise UsageError
-
-	# --manual is an alias for --gui /usr/share/zim/manual
-	if cmd == 'manual':
-		cmd = 'gui'
-		args.insert(0, data_dir('manual').path)
-
-	# Now figure out which options are allowed for this command
-	allowedopts = list(longopts)
-	allowedopts.extend(commandopts[cmd])
-
-	# Convert options into a proper dict
-	optsdict = {}
-	for o, a in opts:
-		o = str(o.lstrip('-')) # str() -> no unicode for keys
-		if o in shortopts:
-			o = shortopts[o].rstrip('=')
-
-		if o+'=' in allowedopts:
-			o = o.replace('-', '_')
-			optsdict[o] = a
-		elif o in allowedopts:
-			o = o.replace('-', '_')
-			optsdict[o] = True
-		else:
-			raise GetoptError, ("--%s is not allowed in combination with --%s" % (o, cmd), o)
-
-	# --port is the only option that is not of type string
-	if 'port' in optsdict and not optsdict['port'] is None:
-		try:
-			optsdict['port'] = int(optsdict['port'])
-		except ValueError:
-			raise GetoptError, ("--port takes an integer argument", 'port')
-
-	# set logging output level for logging root (format has been set in zim.py)
-	if not ZIM_EXECUTABLE[-4:].lower() == '.exe':
-		# for most platforms
-		level = logging.WARN
-	else:
-		# if running from Windows compiled .exe
-		level = logging.ERROR
-	if optsdict.pop('verbose', False): level = logging.INFO
-	if optsdict.pop('debug', False): level = logging.DEBUG # no "elif" !
-	logging.getLogger().setLevel(level)
-
-	logger.info('This is zim %s', __version__)
-	if level == logging.DEBUG:
-		logger.debug('Python version is %s', str(sys.version_info))
-		logger.debug('Platform is %s', os.name)
-		logger.debug(get_zim_revision())
-		log_basedirs()
-
-	# Now we determine the class to handle this command
-	# and start the application ...
-	logger.debug('Running command: %s', cmd)
-	if cmd in ('export', 'index', 'search'):
-		if not len(args) >= 1:
-			default = _get_default_or_only_notebook()
-			if not default:
-				raise UsageError
-			handler = NotebookInterface(notebook=default)
-		else:
-			handler = NotebookInterface(notebook=args[0])
-
-		handler.load_plugins() # should this go somewhere else ?
-
-		if cmd == 'search':
-			if not len(args) == 2: raise UsageError
-			optsdict['query'] = args[1]
-		elif len(args) == 2:
-			optsdict['page'] = args[1]
-
-		method = getattr(handler, 'cmd_' + cmd)
-		method(**optsdict)
-	elif cmd == 'gui':
-		notebook = None
-		page = None
-		if args:
-			from zim.notebook import resolve_notebook
-			notebook, page = resolve_notebook(args[0])
-			if not notebook:
-				notebook = File(args[0]).uri
-				# make sure daemon approves of this uri and proper
-				# error dialog is shown as a result by GtkInterface
-			if len(args) == 2:
-				page = args[1]
-
-		if 'list' in optsdict:
-			del optsdict['list'] # do not use default
-		elif not notebook:
-			import zim.notebook
-			default = _get_default_or_only_notebook()
-			if default:
-				notebook = default
-				logger.info('Opening default notebook')
-
-		if 'standalone' in optsdict:
-			import zim.gui
-			del optsdict['standalone']
-			if not notebook:
-				import zim.gui.notebookdialog
-				notebook = zim.gui.notebookdialog.prompt_notebook()
-				if not notebook:
-					return # User canceled notebook dialog
-			handler = zim.gui.GtkInterface(notebook, page, **optsdict)
-			handler.main()
-		else:
-			from zim.ipc import start_server_if_not_running, ServerProxy
-			if not notebook:
-				import zim.gui.notebookdialog
-				notebook = zim.gui.notebookdialog.prompt_notebook()
-				if not notebook:
-					return # User canceled notebook dialog
-
-			start_server_if_not_running()
-			server = ServerProxy()
-			gui = server.get_notebook(notebook)
-			gui.present(page, **optsdict)
-
-			logger.debug('''
-NOTE FOR BUG REPORTS:
-	At this point zim has send the command to open a notebook to a
-	background process and the current process will now quit.
-	If this is the end of your debug output it is probably not useful
-	for bug reports. Please close all zim windows, quit the
-	zim trayicon (if any), and try again.
-''')
-	elif cmd == 'server':
-		standalone = optsdict.pop('standalone', False)
-			# No daemon support for server, so no option doesn't
-			# do anything for now
-		gui = optsdict.pop('gui', False)
-		if gui:
-			import zim.gui.server
-			zim.gui.server.main(*args, **optsdict)
-		else:
-			import zim.www
-			zim.www.main(*args, **optsdict)
-	elif cmd == 'plugin':
-		import zim.plugins
-		try:
-			pluginname = args.pop(0)
-		except IndexError:
-			raise UsageError
-		module = zim.plugins.get_plugin_module(pluginname)
-		module.main(*args)
 
 
 def ZimCmd(args=None):
@@ -744,31 +451,13 @@ class NotebookInterface(gobject.GObject):
 
 		@returns: a L{Path} if any was specified in the notebook spec
 		'''
-		from zim.notebook import resolve_notebook, get_notebook, Notebook
+		from zim.notebook import Notebook
 		assert self.notebook is None, 'BUG: other notebook opened already'
 		assert not notebook is None, 'BUG: no notebook specified'
-
 		logger.debug('Opening notebook: %s', notebook)
-		if isinstance(notebook, (basestring, File, Dir)):
-			if isinstance(notebook, basestring):
-				nb, path = resolve_notebook(notebook)
-			else:
-				nb, path = notebook, None
-
-			if not nb is None:
-				self.emit('initialize-notebook', nb.uri)
-				nb = get_notebook(nb)
-
-			if nb is None:
-				raise NotebookLookupError, _('Could not find notebook: %s') % notebook
-					# T: Error when looking up a notebook
-
-			self.emit('open-notebook', nb)
-			return path
-		else:
-			assert isinstance(notebook, Notebook)
-			self.emit('open-notebook', notebook)
-			return None
+		assert isinstance(notebook, Notebook)
+		self.emit('open-notebook', notebook)
+		return None
 
 	def do_open_notebook(self, notebook):
 		assert self.notebook is None, 'BUG: other notebook opened already'
@@ -836,65 +525,6 @@ class NotebookInterface(gobject.GObject):
 
 		# load new plugins
 		self.load_plugins()
-
-	def cmd_export(self, format='html', template=None, page=None, output=None, root_url=None, index_page=None):
-		'''Convenience method hat wraps L{zim.exporter.Exporter} for
-		commandline export
-
-		@keyword format: the format name
-		@keyword template: the template path or name
-		@keyword page: the page name or C{None} to export the full notebook
-		@keyword output: the output folder or C{None} to print to stdout
-		@keyword root_url: the url to map the document root if any
-		@keyword index_page: the index page name if any
-		'''
-		import zim.exporter
-		exporter = zim.exporter.Exporter(self.notebook, format, template, document_root_url=root_url, index_page=index_page)
-
-		if page:
-			path = self.notebook.resolve_path(page)
-			page = self.notebook.get_page(path)
-
-		if page and output is None:
-			exporter.export_page_to_fh(sys.stdout, page)
-		elif not output:
-			logger.error('Need output directory to export notebook')
-		else:
-			dir = Dir(output)
-			if page:
-				exporter.export_page(dir, page)
-			else:
-				self.notebook.index.update()
-				exporter.export_all(dir)
-
-	def cmd_search(self, query):
-		from zim.search import SearchSelection, Query
-		query = query.strip()
-		if not query: raise AssertionError, 'Empty query'
-		logger.info('Searching for: %s', query)
-		selection = SearchSelection(self.notebook)
-		query = Query(query)
-		selection.search(query)
-		for path in sorted(selection, key=lambda p: p.name):
-			print path.name
-
-	def cmd_index(self, output=None):
-		'''Convenience method for the commandline 'index' command
-
-		@keyword output: the index file to update, defaults to the
-		default index s used by the notebook
-		'''
-		if not output is None:
-			import zim.index
-			index = zim.index.Index(self.notebook, output)
-		else:
-			index = self.notebook.index
-		index.flush()
-		def on_callback(path):
-			logger.info('Indexed %s', path.name)
-			return True
-		index.update(callback=on_callback)
-
 
 # Need to register classes defining gobject signals
 gobject.type_register(NotebookInterface)
