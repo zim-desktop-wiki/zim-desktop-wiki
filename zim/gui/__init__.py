@@ -1990,13 +1990,18 @@ class GtkInterface(NotebookInterface):
 		# define a custom tool for other editors.
 		if not page:
 			page = self.page
-		if hasattr(self.page, 'source'):
-			file = self.page.source
-		else:
-			ErrorDialog('This page does not have a source file').run()
-			return
 
-		self.edit_file(file, istextfile=True)
+		if not hasattr(self.page, 'source'):
+			ErrorDialog(self, 'This page does not have a source file').run()
+			return
+		
+		if page.modified:
+			ok = self.save_page(page)
+			if not ok:
+				ErrorDialog(self, 'Page has unsaved changes')
+				return	
+
+		self.edit_file(self.page.source, istextfile=True)
 		if page == self.page:
 			self.reload_page()
 

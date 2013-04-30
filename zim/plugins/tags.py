@@ -638,7 +638,7 @@ class TagCloudItem(gtk.ToggleButton):
 	'''Button item used on the tag cloud widget'''
 
 	def __init__(self, indextag):
-		gtk.ToggleButton.__init__(self, indextag.name)
+		gtk.ToggleButton.__init__(self, indextag.name, use_underline=False)
 		self.set_relief(gtk.RELIEF_NONE)
 		self.indextag = indextag
 
