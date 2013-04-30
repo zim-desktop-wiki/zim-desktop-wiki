@@ -126,7 +126,7 @@ class Query(object):
 
 	def _parse_query(self, string):
 		# First do a raw tokenizer
-		words = split_quoted_strings(string, unescape=False)
+		words = split_quoted_strings(string, unescape=False, strict=False)
 		tokens = []
 		while words:
 			if operators_re.match(words[0]):

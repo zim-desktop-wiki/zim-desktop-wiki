@@ -23,6 +23,12 @@ class TestParsing(TestCase):
 		result = split_quoted_strings(string)
 		self.assertEquals(result, list)
 
+		self.assertRaises(ValueError, split_quoted_strings, "If you don't mind me asking")
+		string = "If you don't mind me asking"
+		list = ["If", "you", "don", "'t", "mind", "me", "asking"]
+		result = split_quoted_strings(string, strict=False)
+		self.assertEquals(result, list)
+
 	def testParseDate(self):
 		'''Test parsing dates'''
 		from datetime import date
