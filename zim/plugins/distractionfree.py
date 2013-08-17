@@ -5,7 +5,7 @@
 import gtk
 import logging
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, WindowExtension, extends
 
 from zim.gui import PATHBAR_NONE, PATHBAR_RECENT
 
@@ -43,45 +43,49 @@ class DistractionFreePlugin(PluginClass):
 		#('fgcolor', 'color', _('Screen foreground color'), '#eeeeec'),
 	)
 
-	def __init__(self, *a):
+
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
 		self._normal_colors = None
 		self._show_panes = True
-		PluginClass.__init__(self, *a)
+		self.preferences = plugin.preferences
+		self.on_preferences_changed()
+		self.connectto(plugin, 'preferences-changed')
+		self.connectto(window, 'fullscreen-changed')
+		self.connectto(window.pageview.view, 'size-allocate')
 
-	def finalize_ui(self, ui):
-		self.connectto(self.ui.mainwindow.pageview.view, 'size-allocate')
-		self.connectto(self.ui.mainwindow, 'fullscreen-changed')
-		self.do_preferences_changed()
-
-	def do_preferences_changed(self):
+	def on_preferences_changed(self):
 		# Set show menubar & Update margins
 		show_menubar = not self.preferences['hide_menubar']
 		show_toolbar = not self.preferences['hide_toolbar']
 		show_pathbar = not self.preferences['hide_pathbar']
 		show_statusbar = not self.preferences['hide_statusbar']
-		if self.ui.mainwindow.isfullscreen:
-			self.ui.mainwindow.toggle_menubar(show_menubar)
-			self.ui.mainwindow.toggle_toolbar(show_toolbar)
-			self.ui.mainwindow.toggle_statusbar(show_statusbar)
+		if self.window.isfullscreen:
+			self.window.toggle_menubar(show_menubar)
+			self.window.toggle_toolbar(show_toolbar)
+			self.window.toggle_statusbar(show_statusbar)
 
 			if show_pathbar \
-			and self.ui.uistate['MainWindow']['pathbar_type_fullscreen'] == PATHBAR_NONE:
-				self.ui.mainwindow.set_pathbar(PATHBAR_RECENT)
+			and self.window.uistate['pathbar_type_fullscreen'] == PATHBAR_NONE:
+				self.window.set_pathbar(PATHBAR_RECENT)
 			elif not show_pathbar:
-				self.ui.mainwindow.set_pathbar(PATHBAR_NONE)
+				self.window.set_pathbar(PATHBAR_NONE)
 
-			textview = self.ui.mainwindow.pageview.view
+			textview = self.window.pageview.view
 			self.on_size_allocate(textview, textview.get_allocation())
 		else:
-			self.ui.uistate['MainWindow']['show_menubar_fullscreen'] = show_menubar
-			self.ui.uistate['MainWindow']['show_toolbar_fullscreen'] = show_toolbar
-			self.ui.uistate['MainWindow']['show_statusbar_fullscreen'] = show_statusbar
+			self.window.uistate['show_menubar_fullscreen'] = show_menubar
+			self.window.uistate['show_toolbar_fullscreen'] = show_toolbar
+			self.window.uistate['show_statusbar_fullscreen'] = show_statusbar
 
 			if show_pathbar \
-			and self.ui.uistate['MainWindow']['pathbar_type_fullscreen'] == PATHBAR_NONE:
-				self.ui.uistate['MainWindow']['pathbar_type_fullscreen'] = PATHBAR_RECENT
+			and self.window.uistate['pathbar_type_fullscreen'] == PATHBAR_NONE:
+				self.window.uistate['pathbar_type_fullscreen'] = PATHBAR_RECENT
 			elif not show_pathbar:
-				self.ui.uistate['MainWindow']['pathbar_type_fullscreen'] = PATHBAR_NONE
+				self.window.uistate['pathbar_type_fullscreen'] = PATHBAR_NONE
 
 		# TODO - would be nice to be able to toggle hide/show for pathbar without need to set type
 		#        allow hiding container or seperate widget from "model"
@@ -89,7 +93,7 @@ class DistractionFreePlugin(PluginClass):
 	def on_fullscreen_changed(self, window):
 		if window.isfullscreen:
 			self._show_panes = bool(window.get_visible_panes())
-			self._save_colors()
+			self._save_colors(window)
 			self._set_colors(self._custom_colors)
 			window.toggle_panes(show=False)
 		elif self._normal_colors:
@@ -104,8 +108,8 @@ class DistractionFreePlugin(PluginClass):
 	#       we can not set just the few colors in RcStyle, would need to
 	#       switch the whole theme
 
-	def _save_colors(self):
-		style = self.ui.mainwindow.pageview.view.rc_get_style()
+	def _save_colors(self, window):
+		style = window.pageview.view.rc_get_style()
 		self._normal_colors = []
 		for state in (
 			gtk.STATE_NORMAL,
@@ -139,7 +143,6 @@ class DistractionFreePlugin(PluginClass):
 		#return [normal, normal, normal, selected, normal]
 		return (normal,)
 
-
 	def _set_colors(self, colors):
 		# See gtk.RcStyle docs for all values in RC file
 		rc = 'style "zim-colors"\n{\n'
@@ -167,7 +170,7 @@ class DistractionFreePlugin(PluginClass):
 	def on_size_allocate(self, textview, allocation):
 		# Here we play with textview margin windows to position text
 		# in center of screen with a maximum size
-		if not self.ui.mainwindow.isfullscreen:
+		if not self.window.isfullscreen:
 			self._set_margins(0, 0, 0, 0)
 			return
 
@@ -218,16 +221,16 @@ class DistractionFreePlugin(PluginClass):
 		self._set_margins(left, right, top, bottom)
 
 	def _set_margins(self, left, right, top, bottom):
-		self.ui.mainwindow.pageview.view.set_border_window_size(gtk.TEXT_WINDOW_LEFT, left)
-		self.ui.mainwindow.pageview.view.set_border_window_size(gtk.TEXT_WINDOW_RIGHT, right)
-		self.ui.mainwindow.pageview.view.set_border_window_size(gtk.TEXT_WINDOW_TOP, top)
-		self.ui.mainwindow.pageview.view.set_border_window_size(gtk.TEXT_WINDOW_BOTTOM, bottom)
+		textview = self.window.pageview.view
+		textview.set_border_window_size(gtk.TEXT_WINDOW_LEFT, left)
+		textview.set_border_window_size(gtk.TEXT_WINDOW_RIGHT, right)
+		textview.set_border_window_size(gtk.TEXT_WINDOW_TOP, top)
+		textview.set_border_window_size(gtk.TEXT_WINDOW_BOTTOM, bottom)
 
-	def destroy(self):
+	def teardown(self):
 		# show at least menubar again, set margins to zero & restore colors
-		self.ui.uistate['MainWindow']['show_menubar_fullscreen'] = True
+		self.window.uistate['show_menubar_fullscreen'] = True
 		self._set_margins(0, 0, 0, 0)
 		if self._normal_colors:
 			self._set_colors(self._normal_colors)
-		PluginClass.destroy(self)
 

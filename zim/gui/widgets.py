@@ -2127,8 +2127,7 @@ def register_window(window):
 	so already.
 	'''
 	if  hasattr(window, 'ui') \
-	and hasattr(window.ui, 'register_new_window') \
-	and not window in window.ui.windows:
+	and hasattr(window.ui, 'register_new_window'):
 		window.ui.register_new_window(window)
 
 
@@ -2392,6 +2391,7 @@ class Window(gtkwindowclass):
 
 	def __init__(self):
 		gtkwindowclass.__init__(self)
+		self._registered = False
 		self._last_sidepane_focus = None
 
 		self._zim_window_main = gtk.VBox()
@@ -2717,7 +2717,9 @@ class Window(gtkwindowclass):
 		# First register, than init uistate - this ensures plugins
 		# are enabled before we finalize the presentation of the window.
 		# This is important for state of e.g. panes to work correctly
-		register_window(self)
+		if not self._registered:
+			register_window(self)
+			self._registered = True
 		if hasattr(self, 'uistate') and self.uistate:
 			self.init_uistate()
 		gtkwindowclass.show_all(self)
@@ -2814,13 +2816,14 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		@note: some sub-classes expect C{self.ui} to always be a
 		L{GtkInterface}
 		'''
-		self.ui = ui
-		self.result = None
 		gtk.Dialog.__init__(
-			self, parent=get_window(self.ui),
+			self, parent=get_window(ui),
 			title=format_title(title),
 			flags=gtk.DIALOG_NO_SEPARATOR|gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
+		self.ui = ui
+		self.result = None
+		self._registered = False
 		if not ui_environment['smallscreen']:
 			self.set_border_width(10)
 			self.vbox.set_spacing(5)
@@ -2978,7 +2981,9 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 
 	def show_all(self):
 		logger.debug('Opening dialog "%s"', self.title)
-		register_window(self)
+		if not self._registered:
+			register_window(self)
+			self._registered = True
 		if not TEST_MODE:
 			gtk.Dialog.show_all(self)
 

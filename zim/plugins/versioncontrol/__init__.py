@@ -11,7 +11,9 @@ import os
 import logging
 
 from zim.fs import FS, File
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, extends, WindowExtension, ObjectExtension
+from zim.actions import action
+from zim.signals import ConnectorMixin
 from zim.errors import Error
 from zim.applications import Application
 from zim.async import AsyncOperation
@@ -38,25 +40,86 @@ else:
 logger = logging.getLogger('zim.plugins.versioncontrol')
 
 
-ui_xml = '''
-<ui>
-<menubar name='menubar'>
-	<menu action='file_menu'>
-		<placeholder name='versioning_actions'>
-			<menuitem action='save_version'/>
-			<menuitem action='show_versions'/>
-		</placeholder>
-	</menu>
-</menubar>
-</ui>
-'''
+class VersionControlPlugin(PluginClass):
+
+	plugin_info = {
+		'name': _('Version Control'), # T: plugin name
+		'description': _('''\
+This plugin adds version control for notebooks.
+
+This plugin supports the Bazaar, Git and Mercurial version control systems.
+
+This is a core plugin shipping with zim.
+'''), # T: plugin description
+		'author': 'Jaap Karssenberg & John Drinkwater & Damien Accorsi',
+		'help': 'Plugins:Version Control',
+	}
+
+	plugin_preferences = (
+		('autosave', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
+	)
+
+	@classmethod
+	def check_dependencies(klass):
+		has_bzr = VCS.check_dependencies(VCS.BZR)
+		has_git  = VCS.check_dependencies(VCS.GIT)
+		has_hg  = VCS.check_dependencies(VCS.HG)
+		#TODO parameterize the return, so that a new backend will be automatically available
+		return has_bzr|has_hg|has_git, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False)]
+
+	def extend(self, obj):
+		name = obj.__class__.__name__
+		if name == 'MainWindow':
+			nb = obj.ui.notebook # XXX
+			nb_ext = self.get_extension(NotebookExtension, notebook=nb)
+			assert nb_ext, 'No notebook extension found for: %s' % nb
+			mw_ext = MainWindowExtension(self, obj, nb_ext)
+			self.extensions.add(mw_ext)
+		else:
+			PluginClass.extend(self, obj)
 
 
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, readonly
-	('save_version', 'gtk-save-as', _('S_ave Version...'), '<ctrl><shift>S', '', False), # T: menu item
-	('show_versions', None, _('_Versions...'), '', '', True), # T: menu item
-)
+@extends('Notebook')
+class NotebookExtension(ObjectExtension):
+
+	def __init__(self, plugin, notebook):
+		ObjectExtension.__init__(self, plugin, notebook)
+		self.plugin = plugin
+		self.notebook = notebook
+		self.detect_vcs()
+
+	def _get_notebook_dir(self):
+		if self.notebook.dir:
+			return self.notebook.dir
+		elif self.notebook.file:
+			return self.notebook.file.dir
+		else:
+			assert False, 'Notebook is not based on a file or folder'
+
+	def detect_vcs(self):
+		dir = self._get_notebook_dir()
+		self.vcs = VCS.detect_in_folder(dir)
+		if self.vcs:
+			# HACK - FIXME use proper FS signals here
+			# git requires changes to be added to staging, bzr does not
+			# so add a hook for when page is written, to update staging.
+			#
+			# For a more generic behavior, the update_staging is implemented
+			# for all version control systems. If not required - eg. bzr, hg,
+			# then nothing is done
+			self.notebook.connect_after('stored-page', lambda o, n: self.vcs.update_staging() )
+
+	def init_vcs(self, vcs):
+		dir = self._get_notebook_dir()
+		self.vcs = VCS.create(vcs, dir)
+
+		if self.vcs:
+			with self.notebook.lock:
+				self.vcs.init()
+
+	def teardown(self):
+		if self.vcs:
+			self.vcs.disconnect_all()
 
 
 def async_commit_with_error(ui, vcs, msg, skip_no_changes=False):
@@ -71,6 +134,82 @@ def async_commit_with_error(ui, vcs, msg, skip_no_changes=False):
 	vcs.commit_async(msg, callback=callback)
 
 
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	uimanager_xml = '''
+	<ui>
+	<menubar name='menubar'>
+		<menu action='file_menu'>
+			<placeholder name='versioning_actions'>
+				<menuitem action='save_version'/>
+				<menuitem action='show_versions'/>
+			</placeholder>
+		</menu>
+	</menubar>
+	</ui>
+	'''
+
+	def __init__(self, plugin, window, notebook_ext):
+		WindowExtension.__init__(self, plugin, window)
+		self.notebook_ext = notebook_ext
+
+		if self.notebook_ext.vcs is None:
+			gaction = self.actiongroup.get_action('show_versions')
+			gaction.set_sensitive(False)
+		else:
+			if self.plugin.preferences['autosave']:
+				self.autosave()
+
+		def on_quit(o):
+			if self.plugin.preferences['autosave']:
+				self.autosave()
+
+		self.window.ui.connect('quit', on_quit) # XXX
+
+	def autosave(self):
+		if not self.notebook_ext.vcs \
+		or not self.window.ui.save_page_if_modified(): # XXX
+			return
+
+		logger.info('Automatically saving version')
+		with self.notebook_ext.notebook.lock:
+			async_commit_with_error(self.window, self.notebook_ext.vcs,
+				_('Automatically saved version from zim'),
+				skip_no_changes=True )
+				# T: default version comment for auto-saved versions
+
+	@action(_('S_ave Version...'), 'gtk-save-as', '<ctrl><shift>S', readonly=False) # T: menu item
+	def save_version(self):
+		if not self.window.ui.save_page_if_modified(): # XXX
+			return
+
+		if not self.notebook_ext.vcs:
+			vcs = VersionControlInitDialog().run()
+			if vcs is None:
+				return # Canceled
+
+			self.notebook_ext.init_vcs(vcs)
+			if self.notebook_ext.vcs:
+				gaction = self.actiongroup.get_action('show_versions')
+				gaction.set_sensitive(True)
+
+		with self.notebook_ext.notebook.lock:
+			SaveVersionDialog(self.window, self.notebook_ext.vcs).run()
+
+	@action(_('_Versions...')) # T: menu item
+	def show_versions(self):
+		if not self.window.ui.save_page_if_modified(): # XXX
+			return
+
+		dialog = VersionsDialog.unique(self, self.window,
+			self.notebook_ext.vcs,
+			self.notebook_ext.notebook,
+			self.window.ui.page # XXX
+		)
+		dialog.present()
+
+
 class NoChangesError(Error):
 
 	description = _('There are no changes in this notebook since the last version that was saved') # T: verbose error description
@@ -78,6 +217,7 @@ class NoChangesError(Error):
 	def __init__(self, root):
 		self.msg = _('No changes since last version')
 		# T: Short error descriotion
+
 
 class VCS(object):
 	"""
@@ -193,7 +333,7 @@ class VCS(object):
 
 
 
-class VCSBackend(object):
+class VCSBackend(ConnectorMixin):
 	"""Parent class for all VCS backend implementations.
 	It implements the required API.
 	"""
@@ -215,11 +355,11 @@ class VCSBackend(object):
 		if not TEST_MODE:
 			# Avoid touching the bazaar repository with zim sources
 			# when we write to tests/tmp etc.
-			FS.connect('path-created', self.on_path_created)
-			FS.connect('path-moved', self.on_path_moved)
-			FS.connect('path-deleted', self.on_path_deleted)
-
-	# TODO: disconnect method - callbacks keep object alive even when plugin is disabled !
+			self.connectto_all(FS, (
+				'path-created',
+				'path-moved',
+				'path-deleted'
+			) )
 
 	@property
 	def vcs(self):
@@ -673,118 +813,6 @@ class VCSApplicationBase(object):
 		raise NotImplementedError
 
 
-class VersionControlPlugin(PluginClass):
-
-	plugin_info = {
-		'name': _('Version Control'), # T: plugin name
-		'description': _('''\
-This plugin adds version control for notebooks.
-
-This plugin supports the Bazaar, Git and Mercurial version control systems.
-
-This is a core plugin shipping with zim.
-'''), # T: plugin description
-		'author': 'Jaap Karssenberg & John Drinkwater & Damien Accorsi',
-		'help': 'Plugins:Version Control',
-	}
-
-	plugin_preferences = (
-		('autosave', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
-	)
-
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		self.vcs = None
-		if self.ui.ui_type == 'gtk':
-			self.ui.add_actions(ui_actions, self)
-			self.ui.add_ui(ui_xml, self)
-			self.actiongroup.get_action('show_versions').set_sensitive(False)
-			if self.ui.notebook:
-				self.detect_vcs()
-			else:
-				self.ui.connect_after('open-notebook',
-					lambda o, n: self.detect_vcs() )
-
-			def on_quit(o):
-				if self.preferences['autosave']:
-					self.autosave()
-			self.ui.connect('quit', on_quit)
-
-	@classmethod
-	def check_dependencies(klass):
-		has_bzr = VCS.check_dependencies(VCS.BZR)
-		has_git  = VCS.check_dependencies(VCS.GIT)
-		has_hg  = VCS.check_dependencies(VCS.HG)
-		#TODO parameterize the return, so that a new backend will be automatically available
-		return has_bzr|has_hg|has_git, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False)]
-
-	def detect_vcs(self):
-		dir = self._get_notebook_dir()
-		self.vcs = VCS.detect_in_folder(dir)
-		if self.vcs:
-			# HACK - FIXME use proper FS signals here
-			# git requires changes to be added to staging, bzr does not
-			# so add a hook for when page is written, to update staging.
-			#
-			# For a more generic behavior, the update_staging is implemented
-			# for all version control systems. If not required - eg. bzr, hg,
-			# then nothing is done
-			self.ui.notebook.connect_after('stored-page', lambda o, n: self.vcs.update_staging() )
-
-			self.actiongroup.get_action('show_versions').set_sensitive(True)
-			if self.preferences['autosave']:
-				self.autosave()
-
-	def _get_notebook_dir(self):
-		notebook  = self.ui.notebook
-		if notebook.dir:
-			return notebook.dir
-		elif notebook.file:
-			return notebook.file.dir
-		else:
-			assert 'Notebook is not based on a file or folder'
-
-	def autosave(self):
-		if not self.vcs:
-			return
-
-		if self.ui.page and self.ui.page.modified:
-			self.ui.save_page()
-
-		logger.info('Automatically saving version')
-		with self.ui.notebook.lock:
-			async_commit_with_error(self.ui, self.vcs,
-				_('Automatically saved version from zim'),
-				skip_no_changes=True )
-				# T: default version comment for auto-saved versions
-
-	def save_version(self):
-		if not self.vcs:
-			vcs = VersionControlInitDialog().run()
-			if vcs is None:
-				return # Cancelled
-			self.init_vcs(vcs)
-
-		if self.ui.page.modified:
-			self.ui.save_page()
-
-		with self.ui.notebook.lock:
-			SaveVersionDialog(self.ui, self.vcs).run()
-
-	def init_vcs(self, vcs):
-		dir = self._get_notebook_dir()
-		self.vcs = VCS.create(vcs, dir)
-
-		if self.vcs:
-			with self.ui.notebook.lock:
-				self.vcs.init()
-			self.actiongroup.get_action('show_versions').set_sensitive(True)
-
-	def show_versions(self):
-		dialog = VersionsDialog.unique(self, self.ui, self.vcs)
-		dialog.present()
-
-
 class VersionControlInitDialog(QuestionDialog):
 
 	def __init__(self):
@@ -845,7 +873,6 @@ class SaveVersionDialog(Dialog):
 		window, textview = ScrolledTextView(text=''.join(status), monospace=True)
 		vbox.add(window)
 
-
 	def do_response_ok(self):
 		# notebook.lock already set by plugin.save_version()
 		buffer = self.textview.get_buffer()
@@ -860,11 +887,10 @@ class SaveVersionDialog(Dialog):
 
 class VersionsDialog(Dialog):
 
-	# TODO put state in uistate ..
-
-	def __init__(self, ui, vcs):
+	def __init__(self, ui, vcs, notebook, page=None):
 		Dialog.__init__(self, ui, _('Versions'), # T: dialog title
 			buttons=gtk.BUTTONS_CLOSE, help='Plugins:Version Control')
+		self.notebook = notebook
 		self.vcs = vcs
 
 		self.uistate.setdefault('windowsize', (600, 500), check=value_is_coord)
@@ -894,8 +920,9 @@ class VersionsDialog(Dialog):
 		hbox = gtk.HBox(spacing=5)
 		vbox.pack_start(hbox, False)
 		hbox.pack_start(self.page_radio, False)
-		self.page_entry = PageEntry(self.ui.notebook)
-		self.page_entry.set_path(ui.page)
+		self.page_entry = PageEntry(self.notebook)
+		if page:
+			self.page_entry.set_path(page)
 		hbox.pack_start(self.page_entry, False)
 
 		# View annotated button
@@ -1012,16 +1039,11 @@ state. Or select multiple versions to see changes between those versions.
 
 	def _get_file(self):
 		if self.notebook_radio.get_active():
-			if self.ui.page.modified:
-				self.ui.save_page()
-
 			return None
 		else:
 			path = self.page_entry.get_path()
 			if path:
-				page = self.ui.notebook.get_page(path)
-				if page == self.ui.page and page.modified:
-					self.ui.save_page()
+				page = self.notebook.get_page(path)
 			else:
 				return None # TODO error message valid page name?
 
@@ -1055,7 +1077,7 @@ state. Or select multiple versions to see changes between those versions.
 			  # T: Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
 		) ).run():
 			self.vcs.revert(file=file, version=version)
-			self.ui.reload_page()
+			self.ui.reload_page() # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 			# TODO trigger vcs autosave here?
 
 	def show_changes(self):

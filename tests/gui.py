@@ -194,7 +194,7 @@ class TestDialogs(tests.TestCase):
 		tree.set_heading("different")
 		dialog = zim.gui.RenamePageDialog(self.ui, path=Path("Test:foo:bar"))
 		self.assertFalse(dialog.form['head'])
-	
+
 	def testDeletePageDialog(self):
 		'''Test DeletePageDialog'''
 		# just check inputs are OK - skip output

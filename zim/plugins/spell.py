@@ -1,43 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008,2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Spell check plugin based on gtkspell'''
 
-import os
 import gobject
 
-from zim.config import get_environ
-from zim.plugins import PluginClass
-from zim.gui.widgets import ErrorDialog
+from zim.plugins import PluginClass, WindowExtension, extends
 from zim.signals import SIGNAL_AFTER
+from zim.actions import toggle_action
+from zim.gui.widgets import ErrorDialog
 
 try:
 	import gtkspell
-except:
+except ImportError:
 	gtkspell = None
 
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='tools_menu'>
-			<placeholder name='page_tools'>
-				<menuitem action='toggle_spellcheck'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	<toolbar name='toolbar'>
-		<placeholder name='tools'>
-			<toolitem action='toggle_spellcheck'/>
-		</placeholder>
-	</toolbar>
-</ui>
-'''
-
-ui_toggle_actions = (
-	# name, stock id, label, accelerator, tooltip, initial state, readonly
-	('toggle_spellcheck', 'gtk-spell-check', _('Check _spelling'), 'F7', 'Spell check', False, True), # T: menu item
-)
 
 class SpellPlugin(PluginClass):
 
@@ -56,63 +34,48 @@ This is a core plugin shipping with zim.
 		('language', 'string', 'Default Language', ''),
 	)
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		self.spell = None
-		self.uistate.setdefault('active', False)
-		if self.ui.ui_type == 'gtk':
-			self.ui.add_toggle_actions(ui_toggle_actions, self)
-			self.ui.add_ui(ui_xml, self)
-			self.connectto(self.ui, 'open-page', order=SIGNAL_AFTER)
-
 	@classmethod
 	def check_dependencies(klass):
 		return (not gtkspell is None), [('gtkspell', not gtkspell is None, True)]
 
-	def toggle_spellcheck(self, enable=None):
-		action = self.actiongroup.get_action('toggle_spellcheck')
-		if enable is None or enable != action.get_active():
-			action.activate()
-		else:
-			self.do_toggle_spellcheck(enable=enable)
 
-	def do_toggle_spellcheck(self, enable=None):
-		#~ print 'do_toggle_spellcheck', enable
-		if enable is None:
-			action = self.actiongroup.get_action('toggle_spellcheck')
-			enable = action.get_active()
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
 
-		textview = self.ui.mainwindow.pageview.view
-		if enable:
-			if self.spell is None:
-				lang = self.preferences['language'] or None
-				try:
-					self.spell = gtkspell.Spell(textview, lang)
-				except:
-					lang = lang or get_environ('LANG') or get_environ('LANGUAGE')
-					ErrorDialog(self.ui, (
-						_('Could not load spell checking for language: "%s"') % lang,
-							# T: error message - %s is replaced with language codes like "en", "en_US"m or "nl_NL"
-						_('This could mean you don\'t have the proper\ndictionaries installed')
-							# T: error message explanation
-					) ).run()
-					return
-				else:
-					textview.gtkspell = self.spell # HACK used by hardcoded hook in pageview
-			else:
-				pass
-		else:
-			if self.spell is None:
-				pass
-			else:
-				if textview.gtkspell \
-				and textview.gtkspell == self.spell:
-					textview.gtkspell.detach()
-					textview.gtkspell = None
-				self.spell = None
+	uimanager_xml = '''
+	<ui>
+		<menubar name='menubar'>
+			<menu action='tools_menu'>
+				<placeholder name='page_tools'>
+					<menuitem action='toggle_spellcheck'/>
+				</placeholder>
+			</menu>
+		</menubar>
+		<toolbar name='toolbar'>
+			<placeholder name='tools'>
+				<toolitem action='toggle_spellcheck'/>
+			</placeholder>
+		</toolbar>
+	</ui>
+	'''
 
-		self.uistate['active'] = enable
-		return False # we can be called from idle event
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+		self.spell = None
+		self.uistate.setdefault('active', False)
+		self.toggle_spellcheck(self.uistate['active'])
+		self.connectto(self.window.ui, 'open-page', order=SIGNAL_AFTER) # XXX
+
+	@toggle_action(
+		_('Check _spelling'), # T: menu item
+		stock='gtk-spell-check', accelerator='F7'
+	)
+	def toggle_spellcheck(self, active):
+		if active and not self.spell:
+			self.setup()
+		elif not active and self.spell:
+			self.teardown()
+		self.uistate['active'] = active
 
 	def on_open_page(self, ui, page, record):
 		# Assume the old object is detached by hard coded
@@ -120,7 +83,29 @@ This is a core plugin shipping with zim.
 		# Use idle timer to avoid lag in page loading.
 		# This hook also synchronizes the state of the toggle with
 		# the uistate when loading the first page
-		self.spell = None
 		if self.uistate['active']:
-			gobject.idle_add(self.toggle_spellcheck, True)
+			gobject.idle_add(self.setup)
+
+	def setup(self):
+		textview = self.window.pageview.view
+		lang = self.plugin.preferences['language'] or None
+		try:
+			self.spell = gtkspell.Spell(textview, lang)
+		except:
+			ErrorDialog(self.ui, (
+				_('Could not load spell checking'),
+					# T: error message
+				_('This could mean you don\'t have the proper\ndictionaries installed')
+					# T: error message explanation
+			) ).run()
+			self.spell = None
+		else:
+			textview.gtkspell = self.spell # HACK used by hardcoded hook in pageview
+
+	def teardown(self):
+		textview = self.window.pageview.view
+		if textview.gtkspell:
+			textview.gtkspell.detach()
+			textview.gtkspell = None
+		self.spell = None
 

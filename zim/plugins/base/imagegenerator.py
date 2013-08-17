@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the base classes used by all plugins that
 create an image from text based input. Like the equation editor, the
@@ -14,12 +14,127 @@ text to an image.
 import gtk
 import logging
 
+from zim.plugins import PluginClass, WindowExtension, extends
+from zim.actions import Action
 from zim.fs import File, Dir
 from zim.gui.widgets import ui_environment, \
 	Dialog, ImageView, Button, QuestionDialog, \
-	ScrolledTextView, ScrolledSourceView, VPaned
+	ScrolledTextView, ScrolledSourceView, VPaned, \
+	populate_popup_add_separator
 
-logger = logging.getLogger('zim.gui')
+
+logger = logging.getLogger('zim.plugins')
+
+uimanager_xml_template = '''
+<ui>
+	<menubar name='menubar'>
+		<menu action='insert_menu'>
+			<placeholder name='plugin_items'>
+				<menuitem action='insert_%s'/>
+			</placeholder>
+		</menu>
+	</menubar>
+</ui>
+'''
+
+class ImageGeneratorPlugin(PluginClass):
+	'''Base class for image generator plugins
+
+	It assumes a subclass of L{ImageGeneratorClass} for the same object
+	type is located in the same module.
+
+	Sub-classes should define at the following attributes:
+
+	@ivar object_type: the object type, e.g. "equation"
+	@ivar syntax: optional syntax for syntax highlighting in the gtksourceview, e.g. "latex"
+	@ivar short_label: e.g. "_('E_quation')" (Used in insert menu)
+	@ivar insert_label: e.g. "_('Insert Equation')" (Used as dialog title and tooltip)
+	@ivar edit_label: e.g. "_('_Edit Equation')" (Used in popup menu and dialog title)
+	'''
+
+	object_type = None
+	short_label = None
+	insert_label = None
+	edit_label = None
+	syntax = None
+
+	def __init__(self, config):
+		PluginClass.__init__(self, config)
+
+		# Construct a new class on run time
+		klassname = self.object_type.title() + 'MainWindowExtension'
+		insert_action = Action(
+			'insert_%s' % self.object_type,
+			MainWindowExtensionBase.insert_object,
+			self.short_label + '...', readonly=False
+		)
+		generatorklass = self.lookup_subclass(ImageGeneratorClass)
+		assert generatorklass.object_type == self.object_type, \
+			'Object type of ImageGenerator (%s) does not match object type of plugin (%s)' \
+			% (generatorklass.object_type, self.object_type)
+
+		klass = type(klassname, (MainWindowExtensionBase,), {
+			'object_type': self.object_type,
+			'syntax': self.syntax,
+			'uimanager_xml': uimanager_xml_template % self.object_type,
+			'generator_class': generatorklass,
+			'short_label': self.short_label,
+			'insert_label': self.insert_label,
+			'edit_label': self.edit_label,
+			'insert_%s' % self.object_type: insert_action,
+		})
+
+		self.set_extension_class('MainWindow', klass)
+
+
+@extends('MainWindow', autoload=False)
+class MainWindowExtensionBase(WindowExtension):
+
+	object_type = None
+	syntax = None
+	uimanager_xml = None
+	short_label = None
+	insert_label = None
+	edit_label = None
+	generator_class = None
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+
+		pageview = self.window.pageview
+		pageview.register_image_generator_plugin(self, self.object_type)
+
+	def teardown(self):
+		pageview = self.window.pageview
+		pageview.unregister_image_generator_plugin(self)
+
+	def insert_object(self):
+		title = self.insert_label.replace('_', '')
+		generator = self.generator_class(self.plugin)
+		dialog = ImageGeneratorDialog(
+			self.window.ui, title,
+			generator, syntax=self.syntax,
+			help=self.plugin.plugin_info['help']
+		) # XXX ui
+		dialog.run()
+
+	def edit_object(self, buffer, iter, image):
+		title = self.edit_label.replace('_', '')
+		generator = self.generator_class(self.plugin)
+		dialog = ImageGeneratorDialog(
+			self.window.ui, title,
+			generator, syntax=self.syntax, image=image,
+			help=self.plugin.plugin_info['help']
+		) # XXX ui
+		dialog.run()
+
+	def do_populate_popup(self, menu, buffer, iter, image):
+		populate_popup_add_separator(menu, prepend=True)
+
+		item = gtk.MenuItem(self.edit_label)
+		item.connect('activate',
+			lambda o: self.edit_object(buffer, iter, image))
+		menu.prepend(item)
 
 
 class ImageGeneratorClass(object):
@@ -29,9 +144,12 @@ class ImageGeneratorClass(object):
 
 	uses_log_file = True #: set to C{False} for subclasses that do not generate a log
 
-	type = None #: generator type, e.g. "equation"
+	object_type = None #: generator type, e.g. "equation"
 	scriptname = None #: basename of the source files, e.g. "equation.tex"
 	imagename = None #: basename of the resulting image files, e.g. "equation.png"
+
+	def __init__(self, plugin):
+		self.plugin = plugin
 
 	def generate_image(self, text):
 		'''Generate an image for a user input
@@ -260,7 +378,7 @@ class ImageGeneratorDialog(Dialog):
 			self.ui.reload_page()
 		else:
 			pageview = self.ui.mainwindow.pageview
-			pageview.insert_image(imgfile, type=self.generator.type, interactive=False, force=True)
+			pageview.insert_image(imgfile, type=self.generator.object_type, interactive=False, force=True)
 
 		if self.logfile and self.logfile.exists():
 			self.logfile.remove()

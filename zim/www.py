@@ -117,8 +117,6 @@ class WWWInterface(NotebookInterface):
 	in the standard library for python.
 	'''
 
-	ui_type = 'html'
-
 	def __init__(self, notebook=None, template='Default', **opts):
 		'''Constructor
 		@param notebook: notebook location
@@ -132,7 +130,6 @@ class WWWInterface(NotebookInterface):
 			template = get_template('html', template)
 		self.template = template
 		self.linker = None
-		self.load_plugins()
 		if not notebook is None:
 			self.open_notebook(notebook)
 

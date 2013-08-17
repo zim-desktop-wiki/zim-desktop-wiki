@@ -31,7 +31,7 @@ This is a core plugin shipping with zim.
 
 	def __init__(self, ui):
 		PluginClass.__init__(self, ui)
-		self.connectto(ui, 'initialize-notebook')
+		#~ self.connectto(ui, 'initialize-notebook')
 
 	def get_config(self, uri):
 		'''Return the automount config for a specific notebook uri or C{None}

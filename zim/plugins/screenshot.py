@@ -5,28 +5,12 @@
 import gtk
 import time
 
+from zim.plugins import PluginClass, WindowExtension, extends
+from zim.actions import action
 from zim.fs import TmpFile
-from zim.plugins import PluginClass
-from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
 from zim.applications import Application
+from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
 
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='insert_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='insert_screenshot'/>
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
-
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, read only
-	('insert_screenshot', None, _('_Screenshot...'), '', '', False),
-		# T: menu item for insert screenshot plugin
-)
 
 if ui_environment['platform'] == 'maemo':
 	COMMAND = 'screenshot-tool'
@@ -49,19 +33,33 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Insert Screenshot',
 	}
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		if self.ui.ui_type == 'gtk':
-			self.ui.add_actions(ui_actions, self)
-			self.ui.add_ui(ui_xml, self)
-
 	@classmethod
 	def check_dependencies(klass):
 		has_tool = Application((COMMAND,)).tryexec()
 		return has_tool, [(COMMAND, has_tool, True)]
 
+
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	uimanager_xml = '''
+	<ui>
+		<menubar name='menubar'>
+			<menu action='insert_menu'>
+				<placeholder name='plugin_items'>
+					<menuitem action='insert_screenshot'/>
+				</placeholder>
+			</menu>
+		</menubar>
+	</ui>
+	'''
+
+	@action(_('_Screenshot...')) # T: menu item for insert screenshot plugin
 	def insert_screenshot(self):
-		dialog = InsertScreenshotDialog.unique(self, self.ui)
+		notebook = self.window.ui.notebook # XXX
+		page = self.window.ui.page # XXX
+		dialog = InsertScreenshotDialog.unique(self, self.window, notebook, page)
+			# XXX would like Dialog(pageview, page)
 		dialog.show_all()
 
 
@@ -69,13 +67,16 @@ class InsertScreenshotDialog(Dialog):
 
 	# TODO use uistate to save previous setting
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Insert Screenshot')) # T: dialog title
+	def __init__(self, window, notebook, page):
+		Dialog.__init__(self, window, _('Insert Screenshot')) # T: dialog title
 		if COMMAND == 'scrot':
 			self.screen_radio = gtk.RadioButton(None, _('Capture whole screen')) # T: option in 'insert screenshot' dialog
 			self.select_radio = gtk.RadioButton(self.screen_radio, _('Select window or region')) # T: option in 'insert screenshot' dialog
 			self.vbox.add(self.screen_radio)
 			self.vbox.add(self.select_radio)
+
+		self.notebook = notebook
+		self.page = page
 
 		hbox = gtk.HBox()
 		self.vbox.add(hbox)
@@ -109,11 +110,10 @@ class InsertScreenshotDialog(Dialog):
 		def callback(status, tmpfile):
 			if status == helper.STATUS_OK:
 				name = time.strftime('screenshot_%Y-%m-%d-%H%M%S.png')
-				page = self.ui.page
-				dir = self.ui.notebook.get_attachments_dir(page)
+				dir = self.notebook.get_attachments_dir(self.page)
 				file = dir.new_file(name)
 				tmpfile.rename(file)
-				self.ui.mainwindow.pageview.insert_image(file, interactive=False)
+				self.ui.pageview.insert_image(file, interactive=False) # XXX ui == window
 			else:
 				ErrorDialog(self.ui,
 					_('Some error occurred while running "%s"') % COMMAND).run()

@@ -7,8 +7,9 @@
 import gio
 import logging
 import sys
-from zim.plugins import PluginClass, Extension, extends
+from zim.plugins import PluginClass, ObjectExtension, extends
 from zim.signals import SIGNAL_AFTER
+from zim.fs import File
 
 logger = logging.getLogger('zim.plugins.zeitgeist')
 
@@ -44,18 +45,15 @@ class ZeitgeistPlugin(PluginClass):
 			logger.exception('Loading zeitgeist client failed, will not log events')
 			self.zeitgeist_client = None
 
-	def create_and_send_event(self, page, path, event_type):
+	def create_and_send_event(self, page, event_type):
 		if not self.zeitgeist_client:
 			return
 
-		#FIXME: Assumes file store
-		store = self.ui.notebook.get_store(page.name)
-		if path is not None:
-			fileobj  = store._get_file(path)
-		else:
-			fileobj = store._get_file(page)
+		if not hasattr(page, 'source') \
+		or not isinstance(page.source, File):
+			return
 
-		uri = fileobj.uri
+		uri = page.source.uri
 		origin = gio.File(uri).get_parent().get_uri()
 		text = _('Wiki page: %s') % page.name
 			# T: label for how zim pages show up in the recent files menu, %s is the page name
@@ -75,7 +73,7 @@ class ZeitgeistPlugin(PluginClass):
 
 
 @extends('PageView')
-class PageViewExtension(Extension):
+class PageViewExtension(ObjectExtension):
 
 	def __init__(self, plugin, pageview):
 		self.plugin = plugin
@@ -84,15 +82,15 @@ class PageViewExtension(Extension):
 
 	def on_open_page(self, ui, page, path):
 		logger.debug("Opened page: %s", page.name)
-		self.plugin.create_and_send_event(page, path, Interpretation.ACCESS_EVENT)
+		self.plugin.create_and_send_event(page, Interpretation.ACCESS_EVENT)
 
 	def on_close_page(self, ui, page, *a):
 		logger.debug("Left page: %s", page.name)
-		self.plugin.create_and_send_event(page, None, Interpretation.LEAVE_EVENT)
+		self.plugin.create_and_send_event(page, Interpretation.LEAVE_EVENT)
 
 
 @extends('Notebook')
-class NotebookExtension(Extension):
+class NotebookExtension(ObjectExtension):
 
 	def __init__(self, plugin, notebook):
 		self.plugin = plugin
@@ -101,8 +99,8 @@ class NotebookExtension(Extension):
 
 	def on_deleted_page(self, page, path):
 		logger.debug("Deleted page: %s", page.name)
-		self.plugin.create_and_send_event(page, path, Interpretation.DELETE_EVENT)
+		self.plugin.create_and_send_event(page, Interpretation.DELETE_EVENT)
 
 	def on_stored_page(self, page, path):
 		logger.debug("Modified page: %s", page.name)
-		self.plugin.create_and_send_event(page, path, Interpretation.MODIFY_EVENT)
+		self.plugin.create_and_send_event(page, Interpretation.MODIFY_EVENT)

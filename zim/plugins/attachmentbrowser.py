@@ -275,7 +275,6 @@ class MainWindowExtension(WindowExtension):
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 		self.preferences = plugin.preferences
-		self.uistate = plugin.uistate
 		self._monitor = None
 
 		# Init statusbar button
@@ -393,13 +392,12 @@ class MainWindowExtension(WindowExtension):
 				n += 1
 		return n
 
-	def destroy(self):
+	def teardown(self):
 		self._disconnect_monitor()
 		self.toggle_fileview(False)
+		self.window.remove(self.widget)
 		if self.statusbar_frame:
 			self.window.statusbar.remove(self.statusbar_frame)
-
-		WindowExtension.destroy(self)
 
 
 

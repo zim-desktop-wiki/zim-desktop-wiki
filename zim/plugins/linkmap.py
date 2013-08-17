@@ -4,10 +4,18 @@
 
 '''Plugin showing a map of links between pages based on GraphViz'''
 
-from zim.plugins import PluginClass
+import gtk
+
+from zim.plugins import PluginClass, extends, WindowExtension
+from zim.actions import action
+from zim.notebook import Path
 from zim.index import LINK_DIR_BOTH
 from zim.applications import Application
 from zim.fs import Dir
+from zim.gui.widgets import ui_environment, Dialog, IconButton
+from zim.inc import xdot
+
+
 
 class LinkMapPlugin(PluginClass):
 
@@ -24,14 +32,6 @@ This is a core plugin shipping with zim.
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Link Map',
 	}
-
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		if self.ui.ui_type == 'gtk':
-			import gui
-			self.gui = gui.GtkLinkMap(self.ui)
-		else:
-			self.gui = False
 
 	@classmethod
 	def check_dependencies(klass):
@@ -97,6 +97,61 @@ class LinkMap(object):
 		return '\n'.join(dotcode)+'\n'
 
 
+
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	uimanager_xml = '''
+	<ui>
+		<menubar name='menubar'>
+			<menu action='view_menu'>
+				<placeholder name='plugin_items'>
+					<menuitem action='show_linkmap'/>
+				</placeholder>
+			</menu>
+		</menubar>
+	</ui>
+	'''
+
+	@action(_('Show Link Map'), stock='zim-linkmap')
+	def show_linkmap(self):
+		linkmap = LinkMap(self.window.ui.notebook, self.window.ui.page) # XXX
+		dialog = LinkMapDialog(self.window, linkmap, self.window.get_resource_opener())
+		dialog.show_all()
+
+
+class LinkMapDialog(Dialog):
+
+	def __init__(self, ui, linkmap, opener):
+		Dialog.__init__(self, ui, 'LinkMap',
+			defaultwindowsize=(400, 400), buttons=gtk.BUTTONS_CLOSE)
+		self.linkmap = linkmap
+		self.opener = opener
+
+		hbox = gtk.HBox(spacing=5)
+		self.vbox.add(hbox)
+
+		self.xdotview = xdot.DotWidget()
+		self.xdotview.set_filter('fdp')
+		self.xdotview.set_dotcode(linkmap.get_dotcode())
+		self.xdotview.connect('clicked', self.on_node_clicked)
+		hbox.add(self.xdotview)
+
+		vbox = gtk.VBox()
+		hbox.pack_start(vbox, False)
+		for stock, method in (
+			(gtk.STOCK_ZOOM_IN,  self.xdotview.on_zoom_in ),
+			(gtk.STOCK_ZOOM_OUT, self.xdotview.on_zoom_out),
+			(gtk.STOCK_ZOOM_FIT, self.xdotview.on_zoom_fit),
+			(gtk.STOCK_ZOOM_100, self.xdotview.on_zoom_100),
+		):
+			button = IconButton(stock)
+			button.connect('clicked', method)
+			vbox.pack_start(button, False)
+
+	def on_node_clicked(self, widget, name, event):
+		self.opener.open_page(Path(name))
+
 # And a bit of debug code...
 
 if __name__ == '__main__':
@@ -106,8 +161,7 @@ if __name__ == '__main__':
 	import gui
 	notebook = zim.notebook.get_notebook(Dir(sys.argv[1]))
 	path = notebook.resolve_path(sys.argv[2])
-	ui = zim.NotebookInterface(notebook)
 	linkmap = LinkMap(notebook, path)
-	dialog = gui.LinkMapDialog(ui, linkmap)
+	dialog = LinkMapDialog(None, linkmap, None)
 	dialog.show_all()
 	dialog.run()

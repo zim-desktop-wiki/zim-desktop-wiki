@@ -294,6 +294,18 @@ class RLock(object):
 		self.count -= 1
 
 
+class WindowManager(object):
+
+	def __iter__(self):
+		for window in gtk.window_list_toplevels():
+			if isinstance(window, Window): # implies a zim object
+				yield Window
+
+	def present(self):
+		assert False, 'TODO pick window to present'
+
+
+
 class GtkInterface(NotebookInterface):
 	'''Main class for the zim Gtk interface. This object wraps a single
 	notebook and provides actions to manipulate and access this notebook.
@@ -346,8 +358,6 @@ class GtkInterface(NotebookInterface):
 	final page closure before quiting the application. This it is only
 	a hint, so do not destroy any ui components when 'C{final}' is set,
 	but it can be used to decide to do some actions async or not.
-	@signal: C{new-window (C{Window})}: Emitted when a new window is
-	created, can be used as a hook by plugins
 	@signal: C{read-only-changed ()}: Emitted when the ui changed from
 	read-write to read-only or back
 	@signal: C{quit ()}: Emitted when the application is about to quit
@@ -361,14 +371,11 @@ class GtkInterface(NotebookInterface):
 	__gsignals__ = {
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object, bool)),
-		'new-window': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'quit': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'start-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'end-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
-
-	ui_type = 'gtk' #: UI type - typically checked by plugins instead of class
 
 	def __init__(self, notebook=None, page=None,
 		fullscreen=False, geometry=None):
@@ -380,8 +387,6 @@ class GtkInterface(NotebookInterface):
 		@param geometry: window geometry as string in format "C{WxH+X+Y}"
 		'''
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
-		self._finalize_ui = False
-			# initalize this one early, before any call to load_plugin can happen
 
 		NotebookInterface.__init__(self)
 		self.preferences_register = ListDict()
@@ -394,7 +399,6 @@ class GtkInterface(NotebookInterface):
 			# saving.
 		self.readonly = False
 		self.hideonclose = False
-		self.windows = set()
 		self.url_handlers = {}
 
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
@@ -472,12 +476,6 @@ class GtkInterface(NotebookInterface):
 		else:
 			pass # Will check default in main()
 
-	def load_plugin(self, name):
-		plugin = NotebookInterface.load_plugin(self, name)
-		if plugin and self._finalize_ui:
-			plugin.finalize_ui(self)
-		return plugin
-
 	def main(self):
 		'''Wrapper for C{gtk.main()}, runs main loop of the application.
 		Does not return until program has ended. Also takes care of
@@ -524,14 +522,7 @@ class GtkInterface(NotebookInterface):
 		self._autosave_timer = gobject.timeout_add(timeout, schedule_autosave)
 			# FIXME make this more intelligent
 
-		# Finalize plugin ui
-		self._finalize_ui = True
-		for plugin in self.plugins:
-			plugin.finalize_ui(self)
-			# Must happens before window.show_all()
-			# so side panes are initialized when we set uistate
-
-		# Check notebook (after loading plugins)
+		# Check notebook
 		self.check_notebook_needs_upgrade()
 
 		# Update menus etc.
@@ -1039,14 +1030,13 @@ class GtkInterface(NotebookInterface):
 		'''Register a new window for the application.
 		Called by windows and dialogs to register themselves. Used e.g.
 		by plugins that want to add some widget to specific windows.
-		@emits: new-window
 		'''
 		#~ print 'WINDOW:', window
-		self.emit('new-window', window)
+		self.plugins.extend(window)
 
-	def do_new_window(self, window):
-		self.windows.add(window)
-		window.connect('destroy', lambda w: self.windows.discard(w))
+		# HACK
+		if hasattr(window, 'pageview'):
+			self.plugins.extend(window.pageview)
 
 	def register_url_handler(self, scheme, function):
 		'''Register a handler for a particular URL scheme
@@ -1483,6 +1473,16 @@ class GtkInterface(NotebookInterface):
 		if page is None:
 			page = self._get_path_context()
 		PageWindow(self, page).show_all()
+
+	def save_page_if_modified(self, page=None):
+		if page is None:
+			page = self.mainwindow.pageview.get_page()
+			assert page is not None
+
+		if page.modified:
+			return self.save_page(page)
+		else:
+			return True
 
 	def save_page(self, page=None):
 		'''Menu action to save a page.
@@ -2257,6 +2257,8 @@ class ResourceOpener(object):
 			self.window.ui.open_new_window(path) # XXX
 		else:
 			self.window.ui.open_page(path) # XXX
+
+		return self.window.pageview # XXX
 
 	def open_dir(self, dir):
 		self.window.ui.open_dir(dir)

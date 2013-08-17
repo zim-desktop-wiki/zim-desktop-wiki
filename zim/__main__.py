@@ -8,9 +8,8 @@ import logging
 
 logger = logging.getLogger('zim')
 
-
 from zim import __version__, __copyright__, __license__
-from zim.command import Command, UsageError
+from zim.command import Command, UsageError, GetoptError
 from zim.notebook import get_notebook_list, resolve_notebook, get_notebook, Path
 from zim.fs import File, Dir
 from zim.errors import Error
@@ -126,6 +125,8 @@ class NotebookCommand(Command):
 			else:
 				return None, None
 
+		# XXX - hook for plugins like automount !!
+
 		# FIXME - do this before or after "resolve_notebook" ?
 		#         resolve already checks existance of the path :S
 		#~ self.emit('initialize-notebook', nb.uri)
@@ -163,6 +164,7 @@ class GuiCommand(NotebookCommand):
 		def prompt():
 			import zim.gui.notebookdialog
 			notebook = zim.gui.notebookdialog.prompt_notebook()
+			# XXX - hook for plugins like automount !!
 			return notebook, None
 
 		if self.opts.get('list'):
@@ -345,11 +347,12 @@ def main(*argv):
 		# XXX - port to command objects as well
 		import zim.plugins
 		try:
-			pluginname = args.pop(0)
+			pluginname = argv[1]
 		except IndexError:
 			raise UsageError, 'Missing plugin name'
-		module = zim.plugins.get_plugin_module(pluginname)
-		module.main(*args)
+		module = zim.plugins.get_module('zim.plugins.' + pluginname)
+		module.main(*argv[2:])
+		return
 	else:
 		cmd = 'gui' # default
 

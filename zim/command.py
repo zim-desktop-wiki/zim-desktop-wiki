@@ -3,7 +3,8 @@
 # Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-import getopt
+from getopt import gnu_getopt, GetoptError
+
 import logging
 
 import zim
@@ -55,7 +56,7 @@ class Command(object):
 				options += s
 				options_map[s] = l
 
-		optlist, args = getopt.gnu_getopt(args, options, long_options)
+		optlist, args = gnu_getopt(args, options, long_options)
 		self.args += args
 
 		for o, a in optlist:

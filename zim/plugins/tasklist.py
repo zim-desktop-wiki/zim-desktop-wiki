@@ -4,7 +4,6 @@
 
 from __future__ import with_statement
 
-import gobject
 import gtk
 import pango
 import logging
@@ -13,7 +12,8 @@ import re
 import zim.datetimetz as datetime
 from zim.utils import natural_sorted
 from zim.parsing import parse_date
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, extends, ObjectExtension, WindowExtension
+from zim.actions import action
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, \
 	Dialog, MessageDialog, \
@@ -29,28 +29,6 @@ from zim.plugins.calendar import daterange_from_path
 
 logger = logging.getLogger('zim.plugins.tasklist')
 
-
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, read only
-	('show_task_list', 'zim-task-list', _('Task List'), '', _('Task List'), True), # T: menu item
-)
-
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='view_menu'>
-			<placeholder name="plugin_items">
-				<menuitem action="show_task_list" />
-			</placeholder>
-		</menu>
-	</menubar>
-	<toolbar name='toolbar'>
-		<placeholder name='tools'>
-			<toolitem action='show_task_list'/>
-		</placeholder>
-	</toolbar>
-</ui>
-'''
 
 SQL_FORMAT_VERSION = (0, 6)
 
@@ -88,12 +66,14 @@ _NO_TAGS = '__no_tags__' # Constant that serves as the "no tags" tag - _must_ be
 #       - no @waiting ?? -> use defer date for this use case
 
 
-class TaskListPlugin(PluginClass):
+# TODO
+# commandline option
+# - open dialog
+# - output to stdout with configurable format
+# - force update, intialization
 
-	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'tasklist-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-	}
+
+class TaskListPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Task List'), # T: plugin name
@@ -134,8 +114,32 @@ This is a core plugin shipping with zim.
 		# Rebuild database table if any of these preferences changed.
 		# But leave it alone if others change.
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
+	def extend(self, obj):
+		name = obj.__class__.__name__
+		if name == 'MainWindow':
+			index = obj.ui.notebook.index # XXX
+			i_ext = self.get_extension(IndexExtension, index=index)
+			mw_ext = MainWindowExtension(self, obj, i_ext)
+			self.extensions.add(mw_ext)
+		else:
+			PluginClass.extend(self, obj)
+
+
+@extends('Index')
+class IndexExtension(ObjectExtension):
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__signals__ = {
+		'tasklist-changed': (None, None, ()),
+	}
+
+	def __init__(self, plugin, index):
+		ObjectExtension.__init__(self, plugin, index)
+		self.plugin = plugin
+		self.index = index
+
+		self.preferences = plugin.preferences
+
 		self.task_labels = None
 		self.task_label_re = None
 		self.next_label = None
@@ -146,14 +150,13 @@ This is a core plugin shipping with zim.
 		self.db_initialized = False
 		self._current_preferences = None
 
-	def initialize_ui(self, ui):
-		if ui.ui_type == 'gtk':
-			ui.add_actions(ui_actions, self)
-			ui.add_ui(ui_xml, self)
+		db_version = self.index.properties['plugin_tasklist_format']
+		if db_version == '%i.%i' % SQL_FORMAT_VERSION:
+			self.db_initialized = True
 
-	def finalize_notebook(self, notebook):
-		# This is done regardsless of the ui type of the application
-		self.index = notebook.index
+		self._set_preferences()
+
+		self.connectto(plugin, 'preferences-changed')
 		self.connectto_all(self.index, (
 			('initialize-db', self.initialize_db, None, SIGNAL_AFTER),
 			('page-indexed', self.index_page),
@@ -161,19 +164,7 @@ This is a core plugin shipping with zim.
 		))
 		# We don't care about pages that are moved
 
-		db_version = self.index.properties['plugin_tasklist_format']
-		if db_version == '%i.%i' % SQL_FORMAT_VERSION:
-			self.db_initialized = True
-
-		self._set_preferences()
-
-	def initialize_db(self, index):
-		with index.db_commit:
-			index.db.executescript(SQL_CREATE_TABLES)
-		self.index.properties['plugin_tasklist_format'] = '%i.%i' % SQL_FORMAT_VERSION
-		self.db_initialized = True
-
-	def do_preferences_changed(self):
+	def on_preferences_changed(self):
 		if self._current_preferences is None \
 		or not self.db_initialized:
 			return
@@ -229,32 +220,32 @@ This is a core plugin shipping with zim.
 		else:
 			self.excluded_re = None
 
-
 	def _serialize_rebuild_on_preferences(self):
 		# string mapping settings that influence building the table
 		string = ''
-		for pref in self._rebuild_on_preferences:
+		for pref in self.plugin._rebuild_on_preferences:
 			string += str(self.preferences[pref])
 		return string
 
-	def destroy(self):
+	def initialize_db(self, index):
+		with index.db_commit:
+			index.db.executescript(SQL_CREATE_TABLES)
+		self.index.properties['plugin_tasklist_format'] = '%i.%i' % SQL_FORMAT_VERSION
+		self.db_initialized = True
+
+	def teardown(self):
 		self._drop_table()
-		PluginClass.destroy(self)
 
 	def _drop_table(self):
 		self.index.properties['plugin_tasklist_format'] = 0
-		if self.db_initialized:
-			try:
-				self.index.db.execute('DROP TABLE "tasklist"')
-			except:
+
+		try:
+			self.index.db.execute('DROP TABLE "tasklist"')
+		except:
+			if self.db_initialized:
 				logger.exception('Could not drop table:')
-			else:
-				self.db_initialized = False
-		else:
-			try:
-				self.index.db.execute('DROP TABLE "tasklist"')
-			except:
-				pass
+
+		self.db_initialized = False
 
 	def _excluded(self, path):
 		if self.included_re and self.excluded_re:
@@ -572,9 +563,35 @@ This is a core plugin shipping with zim.
 		'''
 		return self.index.lookup_id(task['source'])
 
+
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	uimanager_xml = '''
+		<ui>
+			<menubar name='menubar'>
+				<menu action='view_menu'>
+					<placeholder name="plugin_items">
+						<menuitem action="show_task_list" />
+					</placeholder>
+				</menu>
+			</menubar>
+			<toolbar name='toolbar'>
+				<placeholder name='tools'>
+					<toolitem action='show_task_list'/>
+				</placeholder>
+			</toolbar>
+		</ui>
+	'''
+
+	def __init__(self, plugin, window, index_ext):
+		WindowExtension.__init__(self, plugin, window)
+		self.index_ext = index_ext
+
+	@action(_('Task List'), stock='zim-task-list', readonly=True) # T: menu item
 	def show_task_list(self):
-		if not self.db_initialized:
-			MessageDialog(self.ui, (
+		if not self.index_ext.db_initialized:
+			MessageDialog(self.window, (
 				_('Need to index the notebook'),
 				# T: Short message text on first time use of task list plugin
 				_('This is the first time the task list is opened.\n'
@@ -585,35 +602,25 @@ This is a core plugin shipping with zim.
 				# T: Long message text on first time use of task list plugin
 			) ).run()
 			logger.info('Tasklist not initialized, need to rebuild index')
-			finished = self.ui.reload_index(flush=True)
+			finished = self.window.ui.reload_index(flush=True) # XXX
 			# Flush + Reload will also initialize task list
 			if not finished:
-				self.db_initialized = False
+				self.index_ext.db_initialized = False
 				return
 
-		dialog = TaskListDialog.unique(self, plugin=self)
+		dialog = TaskListDialog.unique(self, self.window, self.index_ext, self.plugin.preferences)
 		dialog.present()
-
-# Need to register classes defining gobject signals
-gobject.type_register(TaskListPlugin)
 
 
 class TaskListDialog(Dialog):
 
-	def __init__(self, plugin):
-		if ui_environment['platform'] == 'maemo':
-			defaultsize = (800, 480)
-		else:
-			defaultsize = (550, 400)
-
-		Dialog.__init__(self, plugin.ui, _('Task List'), # T: dialog title
+	def __init__(self, window, index_ext, preferences):
+		Dialog.__init__(self, window, _('Task List'), # T: dialog title
 			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
-			defaultwindowsize=defaultsize )
-		self.plugin = plugin
-		if ui_environment['platform'] == 'maemo':
-			self.resize(800,480)
-			# Force maximum dialog size under maemo, otherwise
-			# we'll end with a too small dialog and no way to resize it
+			defaultwindowsize=(550, 400) )
+		self.preferences = preferences
+		self.index_ext = index_ext
+
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 		self.hpane = HPaned()
@@ -623,12 +630,18 @@ class TaskListDialog(Dialog):
 
 		# Task list
 		self.uistate.setdefault('only_show_act', False)
-		self.task_list = TaskListTreeView(self.ui, plugin, filter_actionable=self.uistate['only_show_act'])
+		opener = window.get_resource_opener()
+		self.task_list = TaskListTreeView(
+			self.index_ext, opener,
+			filter_actionable=self.uistate['only_show_act'],
+			tag_by_page=preferences['tag_by_page'],
+			use_workweek=preferences['use_workweek']
+		)
 		self.task_list.set_headers_visible(True) # Fix for maemo
 		self.hpane.add2(ScrolledWindow(self.task_list))
 
 		# Tag list
-		self.tag_list = TagListTreeView(self.task_list)
+		self.tag_list = TagListTreeView(self.index_ext, self.task_list)
 		self.hpane.add1(ScrolledWindow(self.tag_list))
 
 		# Filter input
@@ -681,7 +694,7 @@ class TaskListDialog(Dialog):
 			# Don't really care about the delay, but want to
 			# make it less blocking - should be async preferably
 			# now it is at least on idle
-		self.connectto(plugin, 'tasklist-changed', callback)
+		self.connectto(index_ext, 'tasklist-changed', callback)
 
 		# Async solution fall because sqlite not multi-threading
 		# (see also todo item for async in DelayedSignal class)
@@ -709,10 +722,11 @@ class TagListTreeView(SingleClickTreeView):
 	_type_tag = 2
 	_type_untagged = 3
 
-	def __init__(self, task_list):
+	def __init__(self, index_ext, task_list):
 		model = gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
 		SingleClickTreeView.__init__(self, model)
 		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+		self.index_ext = index_ext
 		self.task_list = task_list
 
 		column = gtk.TreeViewColumn(_('Tags'))
@@ -776,11 +790,11 @@ class TagListTreeView(SingleClickTreeView):
 		n_all = self.task_list.get_n_tasks()
 		model.append((_('All Tasks'), n_all, self._type_label, pango.WEIGHT_BOLD)) # T: "tag" for showing all tasks
 
-		labels = self.task_list.get_labels()
-		plugin = self.task_list.plugin
-		for label in plugin.task_labels: # explicitly keep sorting from preferences
-			if label in labels and label != plugin.next_label:
-				model.append((label, labels[label], self._type_label, pango.WEIGHT_BOLD))
+		used_labels = self.task_list.get_labels()
+		for label in self.index_ext.task_labels: # explicitly keep sorting from preferences
+			if label in used_labels \
+			and label != self.index_ext.next_label:
+				model.append((label, used_labels[label], self._type_label, pango.WEIGHT_BOLD))
 
 		tags = self.task_list.get_tags()
 		if _NO_TAGS in tags:
@@ -829,7 +843,7 @@ class TaskListTreeView(BrowserTreeView):
 	TASKID_COL = 7
 	TAGS_COL = 8
 
-	def __init__(self, ui, plugin, filter_actionable):
+	def __init__(self, index_ext, opener, filter_actionable, tag_by_page=False, use_workweek=False):
 		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool, int, object)
 			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL, TAGS_COL
 		model = self.real_model.filter_new()
@@ -837,12 +851,14 @@ class TaskListTreeView(BrowserTreeView):
 		model = gtk.TreeModelSort(model)
 		model.set_sort_column_id(self.PRIO_COL, gtk.SORT_DESCENDING)
 		BrowserTreeView.__init__(self, model)
-		self.ui = ui
-		self.plugin = plugin
+
+		self.index_ext = index_ext
+		self.opener = opener
 		self.filter = None
 		self.tag_filter = None
 		self.label_filter = None
 		self.filter_actionable = filter_actionable
+		self.tag_by_page = tag_by_page
 		self._tags = {}
 		self._labels = {}
 
@@ -883,7 +899,6 @@ class TaskListTreeView(BrowserTreeView):
 			self.set_tooltip_column(self.TASK_COL)
 
 		# Rendering of the Date column
-		use_workweek = plugin.preferences['use_workweek']
 		day_of_week = datetime.date.today().isoweekday()
 		if use_workweek and day_of_week == 4:
 			# Today is Thursday - 2nd day ahead is after the weekend
@@ -959,12 +974,12 @@ class TaskListTreeView(BrowserTreeView):
 		self._labels = {}
 
 	def _append_tasks(self, task, iter, path_cache):
-		for row in self.plugin.list_tasks(task):
+		for row in self.index_ext.list_tasks(task):
 			if not row['open']:
 				continue # Only include open items for now
-			
+
 			if row['source'] not in path_cache:
-				path = self.plugin.get_path(row)
+				path = self.index_ext.get_path(row)
 				if path is None:
 					# Be robust for glitches - filter these out
 					continue
@@ -974,12 +989,12 @@ class TaskListTreeView(BrowserTreeView):
 			path = path_cache[row['source']]
 
 			# Update labels
-			for label in self.plugin.task_label_re.findall(row['description']):
+			for label in self.index_ext.task_label_re.findall(row['description']):
 				self._labels[label] = self._labels.get(label, 0) + 1
 
 			# Update tag count
 			tags = row['tags'].split(',')
-			if self.plugin.preferences['tag_by_page']:
+			if self.tag_by_page:
 				tags = tags + path.parts
 
 			if tags:
@@ -993,10 +1008,10 @@ class TaskListTreeView(BrowserTreeView):
 			task = _date_re.sub('', row['description'], count=1)
 			task = encode_markup_text(task)
 			task = re.sub('\s*!+\s*', ' ', task) # get rid of exclamation marks
-			task = self.plugin.next_label_re.sub('', task) # get rid of "next" label in description
+			task = self.index_ext.next_label_re.sub('', task) # get rid of "next" label in description
 			if row['actionable']:
 				task = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', task) # highlight tags - same color as used in pageview
-				task = self.plugin.task_label_re.sub(r'<b>\1</b>', task) # highlight labels
+				task = self.index_ext.task_label_re.sub(r'<b>\1</b>', task) # highlight labels
 			else:
 				task = r'<span color="darkgrey">%s</span>' % task
 
@@ -1148,12 +1163,13 @@ class TaskListTreeView(BrowserTreeView):
 		model = self.get_model()
 		page = Path( model[path][self.PAGE_COL] )
 		text = self._get_raw_text(model[path])
-		self.ui.open_page(page)
-		self.ui.mainwindow.pageview.find(text)
+
+		pageview = self.opener.open_page(page)
+		pageview.find(text)
 
 	def _get_raw_text(self, task):
 		id = task[self.TASKID_COL]
-		row = self.plugin.get_task(id)
+		row = self.index_ext.get_task(id)
 		return row['description']
 
 	def do_initialize_popup(self, menu):

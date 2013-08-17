@@ -4884,7 +4884,7 @@ class PageView(gtk.VBox):
 		@param plugin: the plugin object
 		@param type: the object type handled by this plugin, e.g. "equation"
 		'''
-		assert not 'type' in self.image_generator_plugins, \
+		assert not type in self.image_generator_plugins, \
 			'Already have plugin for image type "%s"' % type
 		self.image_generator_plugins[type] = plugin
 		logger.debug('Registered plugin %s for image type "%s"', plugin, type)

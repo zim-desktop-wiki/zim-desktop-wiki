@@ -2120,6 +2120,13 @@ class Path(object):
 		except UnicodeDecodeError:
 			raise Error, 'BUG: invalid input, page names should be in ascii, or given as unicode'
 
+	@classmethod
+	def new_from_zim_config(klass, string):
+		'''Returns a new object based on the string representation for
+		that path
+		'''
+		return klass(string)
+
 	def serialize_zim_config(self):
 		'''Returns the name for serializing this path'''
 		return self.name

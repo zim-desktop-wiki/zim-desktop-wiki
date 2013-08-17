@@ -6,21 +6,18 @@ import tests
 
 import os
 
-import zim.plugins
-import zim
-import zim.config
-
+from zim.plugins import *
 from zim.fs import File
+
 
 assert len(zim.plugins.__path__) > 1 # test __path__ magic
 zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
 
 
-class testPlugins(tests.TestCase):
+class TestPlugins(tests.TestCase):
 
-	def testListAll(self):
-		'''Test loading plugins and meta data'''
-		plugins = zim.plugins.list_plugins()
+	def runTest(self):
+		plugins = list_plugins()
 		self.assertTrue(len(plugins) > 10)
 		self.assertTrue('spell' in plugins)
 		self.assertTrue('linkmap' in plugins)
@@ -37,18 +34,18 @@ class testPlugins(tests.TestCase):
 		}
 		for name in plugins:
 			#~ print '>>', name
-			plugin = zim.plugins.get_plugin(name)
+			klass = get_plugin_klass(name)
 
 			# test plugin info
 			for key in ('name', 'description', 'author'):
 				self.assertTrue(
-					plugin.plugin_info.get(key),
+					klass.plugin_info.get(key),
 					'Plugin %s misses info field \'%s\'' % (name, key)
 				)
 
 			for key in ('name', 'description', 'help'):
-				self.assertIn(key, plugin.plugin_info, 'Plugin %s missing "%s"' % (name, key))
-				value = plugin.plugin_info[key]
+				self.assertIn(key, klass.plugin_info, 'Plugin %s missing "%s"' % (name, key))
+				value = klass.plugin_info[key]
 				self.assertFalse(
 					value in seen[key],
 					'Value for \'%s\' in %s seen before - copy-paste error ?' % (key, name)
@@ -56,7 +53,7 @@ class testPlugins(tests.TestCase):
 				seen[key].add(value)
 
 			# test manual page present and at least documents preferences
-			page = plugin.plugin_info['help']
+			page = klass.plugin_info['help']
 			self.assertTrue(page.startswith('Plugins:'), 'Help page for %s not valid' % name)
 
 			rellink = "+%s" % page[8:]
@@ -66,7 +63,7 @@ class testPlugins(tests.TestCase):
 			self.assertTrue(file.exists(), 'Missing file: %s' % file)
 
 			manual = file.read()
-			for pref in plugin.plugin_preferences:
+			for pref in klass.plugin_preferences:
 				label = pref[2]
 				if '\n' in label:
 					label, x = label.split('\n', 1)
@@ -74,7 +71,7 @@ class testPlugins(tests.TestCase):
 				self.assertIn(label, manual, 'Preference "%s" for %s plugin not documented in manual page' % (label, name))
 
 			# test dependencies data
-			dep = plugin.check_dependencies()
+			dep = klass.check_dependencies()
 			self.assertTrue(isinstance(dep,tuple))
 			check, dep = dep
 			self.assertTrue(isinstance(check,bool))
@@ -86,21 +83,34 @@ class testPlugins(tests.TestCase):
 				self.assertTrue(isinstance(dep[i][2],bool))
 
 			# test is_profile_independent
-			self.assertTrue(isinstance(plugin.is_profile_independent,bool))
+			self.assertTrue(isinstance(klass.is_profile_independent,bool))
 			if name in profile_independent:
-				self.assertTrue(plugin.is_profile_independent)
+				self.assertTrue(klass.is_profile_independent)
 			else:
-				self.assertFalse(plugin.is_profile_independent)
+				self.assertFalse(klass.is_profile_independent)
 
-	def testDefaulPlugins(self):
-		'''Test loading default plugins'''
-		# Note that we use parent interface class here, so plugins
-		# will not really attach - just testing loading and prereq
-		# checks are OK.
-		notebook = tests.new_notebook()
-		interface = zim.NotebookInterface(notebook)
-		interface.uistate = zim.config.ConfigDict()
-		interface.load_plugins()
-		self.assertTrue(len(interface.plugins) > 3)
 
-	# TODO: create a full GtkUI object and load & unload each plugin in turn
+class TestPluginManager(tests.TestCase):
+
+	def runTest(self):
+		manager = PluginManager()
+		for name in list_plugins():
+			klass = get_plugin_klass(name)
+			if klass.check_dependencies_ok():
+				manager.load_plugin(name)
+				self.assertIn(name, manager)
+
+		self.assertTrue(len(manager) > 3)
+
+		for name in manager:
+			manager[name].emit('preferences-changed')
+				# just checking for exceptions
+
+		for name in manager:
+			self.assertIsInstance(manager[name], PluginClass)
+			manager.remove_plugin(name)
+			self.assertNotIn(name, manager)
+
+		self.assertTrue(len(manager) == 0)
+
+		# TODO test extending some objects

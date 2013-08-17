@@ -5,30 +5,13 @@
 import gtk
 import logging
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, extends, WindowExtension
+from zim.actions import action
 from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow
 from zim.config import config_file
 
 
 logger = logging.getLogger('zim.plugins.insertsymbol')
-
-
-ui_xml = '''
-<ui>
-<menubar name='menubar'>
-	<menu action='insert_menu'>
-		<placeholder name='plugin_items'>
-			<menuitem action='insert_symbol'/>
-		</placeholder>
-	</menu>
-</menubar>
-</ui>
-'''
-
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, readonly
-	('insert_symbol', None, _('Sy_mbol...'), None, '', False), # T: menu item
-)
 
 
 VERBATIM = 'code'
@@ -49,20 +32,10 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Insert Symbol',
 	}
 
-	#~ plugin_preferences = (
-		# key, type, label, default
-	#~ )
-
-	def initialize_ui(self, ui):
-		if self.ui.ui_type == 'gtk':
-			self.ui.add_actions(ui_actions, self)
-			self.ui.add_ui(ui_xml, self)
-
-	def finalize_ui(self, ui):
-		if self.ui.ui_type == 'gtk':
-			self.pageview = self.ui.mainwindow.pageview
-			self.connectto(self.pageview.view, 'end-of-word')
-			self.load_file()
+	def __init__(self, config):
+		PluginClass.__init__(self, config)
+		self.symbols = {}
+		self.symbol_order = []
 
 	def load_file(self):
 		self.symbols = {}
@@ -90,9 +63,32 @@ This is a core plugin shipping with zim.
 			symbol = self.symbols[shortcut]
 			yield symbol, shortcut
 
+
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	uimanager_xml = '''
+	<ui>
+	<menubar name='menubar'>
+		<menu action='insert_menu'>
+			<placeholder name='plugin_items'>
+				<menuitem action='insert_symbol'/>
+			</placeholder>
+		</menu>
+	</menubar>
+	</ui>
+	'''
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+		self.connectto(window.pageview.view, 'end-of-word')
+		if not plugin.symbols:
+			plugin.load_file()
+
+	@action(_('Sy_mbol...'))
 	def insert_symbol(self):
 		'''Run the InsertSymbolDialog'''
-		InsertSymbolDialog(self.ui, self).run()
+		InsertSymbolDialog(self.window, self.plugin, self.window.pageview).run()
 
 	def on_end_of_word(self, textview, start, end, word, char, editmode):
 		'''Handler for the end-of-word signal from the textview'''
@@ -106,13 +102,13 @@ This is a core plugin shipping with zim.
 		or not (char.isspace() or char == ';'):
 			return
 
-		symbol = self.symbols.get(word)
+		symbol = self.plugin.symbols.get(word)
 		if not symbol and word.count('\\') == 1:
 			# do this after testing the whole word, we have e.g. "=\="
 			# also avoid replacing end of e.g. "C:\foo\bar\left",
 			# so match exactly one "\"
 			prefix, key = word.split('\\', 1)
-			symbol = self.symbols.get('\\' + key)
+			symbol = self.plugin.symbols.get('\\' + key)
 			if symbol:
 				start.forward_chars(len(prefix))
 
@@ -138,11 +134,14 @@ This is a core plugin shipping with zim.
 
 class InsertSymbolDialog(Dialog):
 
-	def __init__(self, ui, plugin):
+	def __init__(self, ui, plugin, pageview):
 		Dialog.__init__(self, ui, _('Insert Symbol'), # T: Dialog title
 			button=(_('_Insert'), 'gtk-ok'),  # T: Button label
 			defaultwindowsize=(350, 400) )
 		self.plugin = plugin
+		self.pageview = pageview
+		if not plugin.symbols:
+			plugin.load_file()
 
 		self.textentry = InputEntry()
 		self.vbox.pack_start(self.textentry, False)
@@ -209,7 +208,7 @@ class InsertSymbolDialog(Dialog):
 
 	def do_response_ok(self):
 		text = self.textentry.get_text()
-		textview = self.plugin.pageview.view
+		textview = self.pageview.view
 		buffer = textview.get_buffer()
 		buffer.insert_at_cursor(text)
 		return True

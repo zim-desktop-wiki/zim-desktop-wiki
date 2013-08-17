@@ -11,7 +11,7 @@ import pango
 import re
 import datetime
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, WindowExtension, extends
 from zim.notebook import Path
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
 from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
@@ -83,59 +83,51 @@ This is a core plugin shipping with zim.
 	)
 	# TODO disable pane setting if not embedded
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		self.floating_widget = None
-		self.sidepane_widget = None
-
-	def finalize_notebook(self, ui):
-		self.do_preferences_changed()
-
-	def destroy(self):
-		self.disconnect_sidepane()
-		self.disconnect_floating()
-		PluginClass.destroy(self)
-
 	def do_preferences_changed(self):
-		if self.ui.ui_type != 'gtk':
-			return
-
 		if self.preferences['floating']:
-			self.disconnect_sidepane()
-			self.connect_floating()
+			self.set_extension_class('MainWindow', MainWindowExtensionFloating)
 		else:
-			self.disconnect_floating()
-			self.connect_sidepane()
+			self.set_extension_class('MainWindow', MainWindowExtensionEmbedded)
 
-	def connect_sidepane(self):
-		if not self.sidepane_widget:
-			self.sidepane_widget = ToCWidget(self.ui)
-		else:
-			self.ui.mainwindow.remove(self.sidepane_widget)
 
-		self.ui.mainwindow.add_tab(
-			_('ToC'), self.sidepane_widget, self.preferences['pane'])
+@extends('MainWindow', autoload=False)
+class MainWindowExtensionEmbedded(WindowExtension):
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+		self.widget = ToCWidget(self.window.ui, self.window.pageview) # XXX
+		self.on_preferences_changed(plugin)
+		self.connectto(plugin, 'preferences-changed')
+
+	def on_preferences_changed(self, plugin):
+		try:
+			self.window.remove(self.widget)
+		except ValueError:
+			pass
+
+		self.window.add_tab(
+			_('ToC'), self.widget, self.plugin.preferences['pane'])
 			# T: widget label
-		self.sidepane_widget.show_all()
+		self.widget.show_all()
 
-	def disconnect_sidepane(self):
-		if self.sidepane_widget:
-			self.ui.mainwindow.remove(self.sidepane_widget)
-			self.sidepane_widget.disconnect_all()
-			self.sidepane_widget.destroy()
-			self.sidepane_widget = None
+	def teardown(self):
+		self.window.remove(self.widget)
+		self.widget.disconnect_all()
 
-	def connect_floating(self):
-		if not self.floating_widget:
-			textview = self.ui.mainwindow.pageview.view
-			self.floating_widget = FloatingToC(self.ui)
-			self.floating_widget.attach(textview)
 
-	def disconnect_floating(self):
-		if self.floating_widget:
-			self.floating_widget.widget.disconnect_all()
-			self.floating_widget.destroy()
-			self.floating_widget = None
+@extends('MainWindow', autoload=False)
+class MainWindowExtensionFloating(WindowExtension):
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+
+		self.frame = FloatingToC(self.window.ui, self.window.pageview) # XXX
+		self.widget = self.frame.widget
+
+	def teardown(self):
+		self.widget.disconnect_all()
+		self.frame.destroy()
+
 
 TEXT_COL = 0
 
@@ -144,17 +136,19 @@ class FloatingToC(gtk.Frame):
 	# TODO make dragble - see gtk tutorial
 	# TODO connect to window resize and line-out at fixed distance from right edge
 
-	def __init__(self, ui):
+	def __init__(self, ui, pageview):
 		gtk.Frame.__init__(self)
 		self.set_shadow_type(gtk.SHADOW_OUT)
 		self.set_size_request(250, -1) # Fixed width
 
-		self.widget = ToCWidget(ui)
+		self.widget = ToCWidget(ui, pageview)
 
 		exp = gtk.Expander(_('ToC'))
 		# TODO add mnemonic
 		self.add(exp)
 		exp.add(self.widget)
+
+		self.attach(pageview.view)
 
 	def attach(self, textview):
 		# Need to wrap in event box to make widget visible - not sure why
@@ -174,35 +168,33 @@ class FloatingToC(gtk.Frame):
 
 class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 
-	def __init__(self, ui):
+	def __init__(self, ui, pageview):
 		gtk.ScrolledWindow.__init__(self)
 		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		self.set_shadow_type(gtk.SHADOW_IN)
 		self.set_size_request(-1, 200) # Fixed Height
 
-		self.ui = ui
-		self.page = None
-
 		self.treeview = ToCTreeView()
-		self.add(self.treeview)
-
 		self.treeview.connect('row-activated', self.on_heading_activated)
 		self.treeview.connect('populate-popup', self.on_populate_popup)
+		self.add(self.treeview)
 
+		# XXX remove ui - use signals from pageview for this
 		self.connectto(ui, 'open-page')
 		self.connectto(ui.notebook, 'stored-page')
-		if ui.page:
-			self.on_open_page(ui, ui.page, Path(ui.page.name))
+
+		self.pageview = pageview
+		if self.pageview.page:
+			self.load_page(self.pageview.page)
 
 	def on_open_page(self, ui, page, path):
-		self.page = page
-		self._load_page(page)
+		self.load_page(page)
 
 	def on_stored_page(self, notebook, page):
-		if page == self.page:
-			self._load_page(page)
+		if page == self.pageview.page:
+			self.load_page(page)
 
-	def _load_page(self, page):
+	def load_page(self, page):
 		model = self.treeview.get_model()
 		tree = page.get_parsetree()
 		if tree is None:
@@ -221,7 +213,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 		model = self.treeview.get_model()
 		text = model[path][TEXT_COL].decode('utf-8')
 
-		textview = self.ui.mainwindow.pageview.view # FIXME nicer interface for this
+		textview = self.pageview.view
 		buffer = textview.get_buffer()
 		if select_heading(buffer, text):
 			textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
@@ -243,7 +235,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 		else:
 			endtext = None
 
-		textview = self.ui.mainwindow.pageview.view # FIXME nicer interface for this
+		textview = self.pageview.view
 		buffer = textview.get_buffer()
 		start = find_heading(buffer, starttext)
 		if endtext:
@@ -296,7 +288,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 					self._format(p, newlevel)
 				seen.add(p)
 
-		self._load_page(self.page)
+		self.load_page(self.page)
 		return True
 
 	def can_demote(self, paths):
@@ -335,7 +327,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 					self._format(p, newlevel)
 				seen.add(p)
 
-		self._load_page(self.page)
+		self.load_page(self.page)
 		return True
 
 
@@ -351,7 +343,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 	def _format(self, path, level):
 		assert level > 0 and level < 7
 		if self.select_heading(path):
-			self.ui.mainwindow.pageview.toggle_format('h' + str(level))
+			self.pageview.toggle_format('h' + str(level))
 
 
 class ToCTreeView(BrowserTreeView):

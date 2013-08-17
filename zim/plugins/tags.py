@@ -10,7 +10,7 @@ import pango
 
 import logging
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, extends, WindowExtension
 from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
 	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL
 from zim.notebook import Path
@@ -21,6 +21,160 @@ from zim.signals import ConnectorMixin
 
 
 logger = logging.getLogger('zim.plugins.tags')
+
+
+
+class TagsPlugin(PluginClass):
+
+	plugin_info = {
+		'name': _('Tags'), # T: plugin name
+		'description': _('''\
+This plugin provides a page index filtered by means of selecting tags in a cloud.
+'''), # T: plugin description
+		'author': 'Fabian Moser',
+		'help': 'Plugins:Tags',
+	}
+
+	plugin_preferences = (
+		# key, type, label, default
+		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
+			# T: option for plugin preferences
+	)
+
+
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+
+		self.widget = TagsPluginWidget(self.window.ui.notebook.index, self.uistate, self.window.ui) # XXX
+		self.on_preferences_changed()
+		self.connectto(plugin, 'preferences-changed')
+
+		self.uistate.setdefault('vpane_pos', 150)
+		self.widget.set_position(self.uistate['vpane_pos'])
+		def update_uistate(*a):
+			self.uistate['vpane_pos'] = self.widget.get_position()
+		self.widget.connect('notify::position', update_uistate)
+
+	def on_preferences_changed(self):
+		pane = self.plugin.preferences['pane']
+		try:
+			self.window.remove(self.widget)
+		except ValueError:
+			pass
+		self.window.add_tab(_('Tags'), self.widget, pane)
+		self.widget.show_all()
+
+	def teardown(self):
+		self.window.remove(self.widget)
+		self.widget.disconnect_all()
+
+
+class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
+	'''Widget combining a tag cloud and a tag based page treeview'''
+
+	def __init__(self, index, uistate, ui): # XXX
+		gtk.VPaned.__init__(self)
+		self.index = index
+		self.uistate = uistate
+
+		self.uistate.setdefault('treeview', 'tagged', set(['tagged', 'tags']))
+		self.uistate.setdefault('tagcloud_sorting', 'score', set(['alpha', 'score']))
+
+		self.tagcloud = TagCloudWidget(self.index, sorting=self.uistate['tagcloud_sorting'])
+		self.pack1(ScrolledWindow(self.tagcloud), shrink=False)
+
+		self.treeview = TagsPageTreeView(ui) # XXX
+		self._treeview_mode = (None, None)
+		self.pack2(ScrolledWindow(self.treeview), shrink=False)
+
+		self.treeview.connect('populate-popup', self.on_populate_popup)
+		self.tagcloud.connect('selection-changed', self.on_cloud_selection_changed)
+		self.tagcloud.connect('sorting-changed', self.on_cloud_sortin_changed)
+
+		self.connectto_all(ui, ( # XXX
+			'open-page',
+			('start-index-update', lambda o: self.disconnect_model()),
+			('end-index-update', lambda o: self.reload_model()),
+		))
+
+		self.reload_model()
+
+	def on_open_page(self, ui, page, path):
+		self.treeview.select_page(path)
+
+	def toggle_treeview(self):
+		'''Toggle the treeview type in the widget'''
+		if self.uistate['treeview'] == 'tagged':
+			self.uistate['treeview'] = 'tags'
+		else:
+			self.uistate['treeview'] = 'tagged'
+
+		self.reload_model()
+
+	def on_populate_popup(self, treeview, menu):
+		# Add a popup menu item to switch the treeview mode
+		populate_popup_add_separator(menu, prepend=True)
+
+		item = gtk.CheckMenuItem(_('Sort pages by tags')) # T: menu option
+		item.set_active(self.uistate['treeview'] == 'tags')
+		item.connect_object('toggled', self.__class__.toggle_treeview, self)
+		menu.prepend(item)
+
+		menu.show_all()
+
+	def on_cloud_selection_changed(self, cloud):
+		filter = cloud.get_tag_filter()
+		type, was_filtered = self._treeview_mode
+		is_filtered = (filter is not None)
+		if type == 'tagged' and was_filtered != is_filtered:
+			# Switch between tag view and normal index or vice versa
+			self._reload_model(type, filter)
+		else:
+			self.treeview.set_tag_filter(filter)
+
+	def on_cloud_sortin_changed(self, cloud, sorting):
+		self.uistate['tagcloud_sorting'] = sorting
+
+	def disconnect_model(self):
+		'''Stop the model from listening to the index. Used to
+		unhook the model before reloading the index. Typically
+		should be followed by reload_model().
+		'''
+		self.treeview.disconnect_index()
+		self.tagcloud.disconnect_index()
+
+	def reload_model(self):
+		'''Re-initialize the treeview model. This is called when
+		reloading the index to get rid of out-of-sync model errors
+		without need to close the app first.
+		'''
+		assert self.uistate['treeview'] in ('tagged', 'tags')
+
+		if self.tagcloud.index is None:
+			self.tagcloud.set_index(self.index)
+
+		type = self.uistate['treeview']
+		filter = self.tagcloud.get_tag_filter()
+		self._reload_model(type, filter)
+
+	def _reload_model(self, type, filter):
+		if type == 'tagged':
+			if filter is None:
+				model = DuplicatePageTreeStore(self.index)
+					# show the normal index in this case
+			else:
+				model = TaggedPageTreeStore(self.index)
+		elif type == 'tags':
+			model = TagsPageTreeStore(self.index)
+		else:
+			assert False
+
+		is_filtered = (filter is not None)
+		self._treeview_mode = (type, is_filtered)
+		self.treeview.set_model(model, filter)
 
 
 class PageTreeTagIter(object):
@@ -668,7 +822,7 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 		'sorting-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
-	def __init__(self, index=None, sorting='score'):
+	def __init__(self, index, sorting='score'):
 		gtk.TextView.__init__(self, None) # Create TextBuffer implicitly
 		self.set_name('zim-tags-tagcloud')
 		self.index = None
@@ -678,9 +832,7 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 		self.set_wrap_mode(gtk.WRAP_CHAR)
 
 		self.set_sorting(sorting)
-
-		if index:
-			self.set_index(index)
+		self.set_index(index)
 
 	def set_index(self, index):
 		'''Connect to an Index object'''
@@ -779,172 +931,4 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 gobject.type_register(TagCloudWidget)
 
 
-class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
-	'''Widget combining a tag cloud and a tag based page treeview'''
 
-	def __init__(self, plugin):
-		gtk.VPaned.__init__(self)
-		self.plugin = plugin
-
-		self.plugin.uistate.setdefault('vpane_pos', 150)
-		self.plugin.uistate.setdefault('treeview', 'tagged', set(['tagged', 'tags']))
-		self.plugin.uistate.setdefault('tagcloud_sorting', 'score', set(['alpha', 'score']))
-
-		self.tagcloud = TagCloudWidget(sorting=self.plugin.uistate['tagcloud_sorting'])
-		self.pack1(ScrolledWindow(self.tagcloud), shrink=False)
-
-		self.treeview = TagsPageTreeView(self.plugin.ui)
-		self._treeview_mode = (None, None)
-		self.pack2(ScrolledWindow(self.treeview), shrink=False)
-
-		self.treeview.connect('populate-popup', self.on_populate_popup)
-		self.tagcloud.connect('selection-changed', self.on_cloud_selection_changed)
-		self.tagcloud.connect('sorting-changed', self.on_cloud_sortin_changed)
-
-		self.connectto_all(self.plugin.ui, (
-			'open-page',
-			('start-index-update', lambda o: self.disconnect_model()),
-			('end-index-update', lambda o: self.reload_model()),
-		))
-
-	def finalize_notebook(self, notebook):
-		self.tagcloud.set_sorting(self.plugin.uistate['tagcloud_sorting'])
-
-		self.set_position(self.plugin.uistate['vpane_pos'])
-		def update_uistate(*a):
-			self.plugin.uistate['vpane_pos'] = self.get_position()
-		self.connect('notify::position', update_uistate)
-
-		self.reload_model()
-
-	def on_open_page(self, ui, page, path):
-		self.treeview.select_page(path)
-
-	def toggle_treeview(self):
-		'''Toggle the treeview type in the widget'''
-		if self.plugin.uistate['treeview'] == 'tagged':
-			self.plugin.uistate['treeview'] = 'tags'
-		else:
-			self.plugin.uistate['treeview'] = 'tagged'
-
-		self.reload_model()
-
-	def on_populate_popup(self, treeview, menu):
-		# Add a popup menu item to switch the treeview mode
-		populate_popup_add_separator(menu, prepend=True)
-
-		item = gtk.CheckMenuItem(_('Sort pages by tags')) # T: menu option
-		item.set_active(self.plugin.uistate['treeview'] == 'tags')
-		item.connect_object('toggled', self.__class__.toggle_treeview, self)
-		menu.prepend(item)
-
-		menu.show_all()
-
-	def on_cloud_selection_changed(self, cloud):
-		filter = cloud.get_tag_filter()
-		type, was_filtered = self._treeview_mode
-		is_filtered = (filter is not None)
-		if type == 'tagged' and was_filtered != is_filtered:
-			# Switch between tag view and normal index or vice versa
-			self._reload_model(type, filter)
-		else:
-			self.treeview.set_tag_filter(filter)
-
-	def on_cloud_sortin_changed(self, cloud, sorting):
-		self.plugin.uistate['tagcloud_sorting'] = sorting
-
-	def disconnect_model(self):
-		'''Stop the model from listening to the index. Used to
-		unhook the model before reloading the index. Typically
-		should be followed by reload_model().
-		'''
-		self.treeview.disconnect_index()
-		self.tagcloud.disconnect_index()
-
-	def reload_model(self):
-		'''Re-initialize the treeview model. This is called when
-		reloading the index to get rid of out-of-sync model errors
-		without need to close the app first.
-		'''
-		assert self.plugin.uistate['treeview'] in ('tagged', 'tags')
-
-		if self.tagcloud.index is None:
-			self.tagcloud.set_index(self.plugin.ui.notebook.index)
-
-		type = self.plugin.uistate['treeview']
-		filter = self.tagcloud.get_tag_filter()
-		self._reload_model(type, filter)
-
-
-	def _reload_model(self, type, filter):
-		index = self.plugin.ui.notebook.index # FIXME clean up law of D
-		if type == 'tagged':
-			if filter is None:
-				model = DuplicatePageTreeStore(index)
-					# show the normal index in this case
-			else:
-				model = TaggedPageTreeStore(index)
-		elif type == 'tags':
-			model = TagsPageTreeStore(index)
-		else:
-			assert False
-
-		is_filtered = (filter is not None)
-		self._treeview_mode = (type, is_filtered)
-		self.treeview.set_model(model, filter)
-
-		if self.plugin.ui.page:
-			model.select_page(self.plugin.ui.page)
-
-
-class TagsPlugin(PluginClass):
-
-	plugin_info = {
-		'name': _('Tags'), # T: plugin name
-		'description': _('''\
-This plugin provides a page index filtered by means of selecting tags in a cloud.
-'''), # T: plugin description
-		'author': 'Fabian Moser',
-		'help': 'Plugins:Tags',
-	}
-
-	plugin_preferences = (
-		# key, type, label, default
-		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
-			# T: option for plugin preferences
-	)
-
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		self.sidepane_widget = None
-
-	def initialize_ui(self, ui):
-		if self.ui.ui_type == 'gtk':
-			self.connect_embedded_widget()
-
-	def finalize_notebook(self, notebook):
-		if self.ui.ui_type == 'gtk' and self.sidepane_widget:
-			self.sidepane_widget.finalize_notebook(notebook)
-
-	def destroy(self):
-		self.disconnect_embedded_widget()
-		PluginClass.destroy(self)
-
-	def do_preferences_changed(self):
-		if self.ui.ui_type == 'gtk':
-			self.connect_embedded_widget() # refresh pane position
-
-	def connect_embedded_widget(self):
-		if self.sidepane_widget is None:
-			self.sidepane_widget = TagsPluginWidget(self)
-		else:
-			self.ui.mainwindow.remove(self.sidepane_widget)
-
-		self.ui.mainwindow.add_tab(_('Tags'), self.sidepane_widget, self.preferences['pane'])
-		self.sidepane_widget.show_all()
-
-	def disconnect_embedded_widget(self):
-		if not self.sidepane_widget is None:
-			self.ui.mainwindow.remove(self.sidepane_widget)
-			self.sidepane_widget.disconnect_all()
-			self.sidepane_widget = None

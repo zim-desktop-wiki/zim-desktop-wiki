@@ -135,7 +135,9 @@ def call_default(obj, signal, args):
 	name = 'do_' + signal.replace('-', '_')
 	if hasattr(obj, name):
 		method = getattr(obj, name)
-		method(*args)
+		return method(*args)
+	else:
+		return None
 
 
 def call_handlers(obj, signal, handlers, args):
@@ -264,7 +266,7 @@ class SignalEmitter(object):
 
 		if not hasattr(self, '_signal_handlers') \
 		or not signal in self._signal_handlers:
-			call_default(self, signal, args)
+			return call_default(self, signal, args)
 		else:
 			before = [h for h in self._signal_handlers[signal] if h[0] & SIGNAL_NORMAL]
 			for r in call_handlers(self, signal, before, args):
@@ -274,6 +276,9 @@ class SignalEmitter(object):
 			r = call_default(self, signal, args)
 			if return_first and r is not None:
 					return r
+
+			if not signal in self._signal_handlers:
+				return None # Yes I have seen a case where default resulted in all handlers disconnected here ...
 
 			after = [h for h in self._signal_handlers[signal] if h[0] & SIGNAL_AFTER]
 			for r in call_handlers(self, signal, after, args):

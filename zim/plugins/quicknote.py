@@ -7,7 +7,8 @@ import gtk
 import re
 from datetime import date as dateclass
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, WindowExtension, extends
+from zim.actions import action
 from zim.config import get_config, data_file
 from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
 from zim.ipc import start_server_if_not_running, ServerProxy
@@ -114,24 +115,6 @@ def main(*args):
 	dialog.run()
 
 
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, read only
-	('show_quick_note', 'gtk-new', _('Quick Note...'), '', '', False), # T: menu item
-)
-
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='file_menu'>
-			<placeholder name="open_items">
-				<menuitem action="show_quick_note" />
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
-
-
 class QuickNotePlugin(PluginClass):
 
 	plugin_info = {
@@ -150,21 +133,39 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 	#~ )
 
-	def initialize_ui(self, ui):
-		if ui.ui_type == 'gtk':
-			ui.add_actions(ui_actions, self)
-			ui.add_ui(ui_xml, self)
 
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	uimanager_xml = '''
+	<ui>
+		<menubar name='menubar'>
+			<menu action='file_menu'>
+				<placeholder name="open_items">
+					<menuitem action="show_quick_note" />
+				</placeholder>
+			</menu>
+		</menubar>
+	</ui>
+	'''
+
+	@action(_('Quick Note...'), stock='gtk-new')
 	def show_quick_note(self):
-		dialog = BoundQuickNoteDialog.unique(self, self.ui, {})
+		ui = self.window.ui # XXX
+		notebook = self.window.ui.notebook # XXX
+		dialog = BoundQuickNoteDialog.unique(self, self.window, notebook, ui)
 		dialog.show()
 
 
 class BoundQuickNoteDialog(Dialog):
 	'''Dialog bound to a specific notebook'''
 
-	def __init__(self, ui, page=None, namespace=None, basename=None, append=None, text=None, template_options=None, attachments=None):
-		Dialog.__init__(self, ui, _('Quick Note'))
+	def __init__(self, window, notebook, ui,
+		page=None, namespace=None, basename=None,
+		append=None, text=None, template_options=None, attachments=None
+	):
+		Dialog.__init__(self, window, _('Quick Note'))
+		self._ui = ui
 		self._updating_title = False
 		self._title_set_manually = not basename is None
 		self.attachments = attachments
@@ -172,7 +173,7 @@ class BoundQuickNoteDialog(Dialog):
 		self.uistate.setdefault('namespace', None, basestring)
 		namespace = namespace or self.uistate['namespace']
 
-		self.form = InputForm(notebook=self.ui.notebook)
+		self.form = InputForm(notebook=notebook)
 		self.vbox.pack_start(self.form, False)
 		self._init_inputs(namespace, basename, append, text, template_options)
 
@@ -316,7 +317,10 @@ class BoundQuickNoteDialog(Dialog):
 				pass
 			self._updating_title = False
 
-	def do_response_ok(self, get_ui=None):
+	def _get_ui(self):
+		return self._ui
+
+	def do_response_ok(self):
 		# NOTE: Keep in mind that this method should also work using
 		# a proxy object for the ui. This is why we have the get_ui()
 		# argument to construct a proxy.
@@ -325,17 +329,16 @@ class BoundQuickNoteDialog(Dialog):
 		bounds = buffer.get_bounds()
 		text = buffer.get_text(*bounds)
 
+		ui = self._get_ui()
+		if ui is None:
+			return False
+
 		if self.form['new_page']:
 			if not self.form.widgets['namespace'].get_input_valid() \
 			or not self.form['basename']:
 				if not self.form['basename']:
 					entry = self.form.widgets['basename']
 					entry.set_input_valid(False, show_empty_invalid=True)
-				return False
-
-			if get_ui: ui = get_ui()
-			else: ui = self.ui
-			if ui is None:
 				return False
 
 			path = self.form['namespace'].name + ':' + self.form['basename']
@@ -346,11 +349,6 @@ class BoundQuickNoteDialog(Dialog):
 		else:
 			if not self.form.widgets['page'].get_input_valid() \
 			or not self.form['page']:
-				return False
-
-			if get_ui: ui = get_ui()
-			else: ui = self.ui
-			if ui is None:
 				return False
 
 			path = self.form['page'].name
@@ -366,11 +364,15 @@ class BoundQuickNoteDialog(Dialog):
 class QuickNoteDialog(BoundQuickNoteDialog):
 	'''Dialog which includes a notebook chooser'''
 
-	def __init__(self, ui, notebook=None, namespace=None, basename=None, append=None, text=None, template_options=None, attachments=None):
+	def __init__(self, window, notebook=None,
+		page=None, namespace=None, basename=None,
+		append=None, text=None, template_options=None, attachments=None
+	):
+		assert page is None, 'TODO'
 		self.config = get_config('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
-		Dialog.__init__(self, ui, _('Quick Note'))
+		Dialog.__init__(self, window, _('Quick Note'))
 		self._updating_title = False
 		self._title_set_manually = not basename is None
 		self.attachments = attachments
@@ -438,13 +440,10 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 			self.form.widgets['page'].notebook = None
 			logger.debug('Notebook for autocomplete unset')
 
-	def do_response_ok(self):
-		def get_ui():
-			start_server_if_not_running()
-			notebook = self.notebookcombobox.get_notebook()
-			if notebook:
-				return ServerProxy().get_notebook(notebook)
-			else:
-				return None
-
-		return BoundQuickNoteDialog.do_response_ok(self, get_ui)
+	def _get_ui(self):
+		start_server_if_not_running()
+		notebook = self.notebookcombobox.get_notebook()
+		if notebook:
+			return ServerProxy().get_notebook(notebook)
+		else:
+			return None

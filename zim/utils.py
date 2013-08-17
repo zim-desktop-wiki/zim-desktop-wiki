@@ -1,7 +1,76 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+
+class classproperty(object):
+    def __init__(self, func):
+        self.func = func
+
+    def __get__(self, obj, owner):
+        return self.func(owner)
+
+
+## Functions for dynamic loading of modules and klasses
+import inspect
+
+
+def get_module(name):
+	'''Import a module
+
+	@param name: the module name
+	@returns: module object
+	@raises ImportError: if the given name does not exist
+
+	@note: don't actually use this method to get plugin modules, see
+	L{get_plugin_module()} instead.
+	'''
+	# __import__ has some quirks, see the reference manual
+	mod = __import__(name)
+	for part in name.split('.')[1:]:
+		mod = getattr(mod, part)
+	return mod
+
+
+def lookup_subclass(module, klass):
+	'''Look for a subclass of klass in the module
+
+	This function is used in several places in zim to get extension
+	classes. Typically L{get_module()} is used first to get the module
+	object, then this lookup function is used to locate a class that
+	derives of a base class (e.g. PluginClass).
+
+	@param module: module object
+	@param klass: base class
+
+	@note: don't actually use this method to get plugin classes, see
+	L{get_plugin()} instead.
+	'''
+	subclasses = lookup_subclasses(module, klass)
+	if len(subclasses) > 1:
+		raise AssertionError, 'BUG: Multiple subclasses found of type: %s' % klass
+	elif subclasses:
+		return subclasses[0]
+	else:
+		return None
+
+
+def lookup_subclasses(module, klass):
+	'''Look for all subclasses of klass in the module
+
+	@param module: module object
+	@param klass: base class
+	'''
+	subclasses = []
+	for name, obj in inspect.getmembers(module, inspect.isclass):
+		if issubclass(obj, klass) \
+		and obj.__module__.startswith(module.__name__):
+			subclasses.append(obj)
+
+	return subclasses
+
+
+#### sorting functions
 import locale
 import re
 import unicodedata
@@ -59,3 +128,36 @@ def natural_sort_key(string, numeric_padding=5):
 		# may be done by strxfrm as well, but want to be sure
 	string = locale.strxfrm(string.lower())
 	return string.decode('utf-8') # not really utf-8, but 8bit bytes
+
+
+####
+
+# Python 2.7 has a weakref.WeakSet, but using this one for compatibility with 2.6 ..
+
+import weakref
+class WeakSet(object):
+
+	def __init__(self):
+		self._refs = []
+
+	def __iter__(self):
+		return (
+			obj for obj in
+					[ref() for ref in self._refs]
+							if obj is not None
+		)
+
+	def add(self, obj):
+		ref = weakref.ref(obj, self._del)
+		self._refs.append(ref)
+
+	def _del(self, ref):
+		try:
+			self._refs.remove(ref)
+		except ValueError:
+			pass
+
+	def discard(self, obj):
+		for ref in self._refs:
+			if ref() == obj:
+				self._refs.remove(ref)

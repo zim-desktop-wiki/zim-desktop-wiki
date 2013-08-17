@@ -31,12 +31,12 @@ except ImportError:
 class Action(object):
 	'''Action, used by the L{action} decorator'''
 
-	def __init__(self, func, label, stock=None, accelerator='', tooltip='', readonly=True):
+	def __init__(self, name, func, label, stock=None, accelerator='', tooltip='', readonly=True):
 		assert self._assert_args(func), '%s() has incompatible argspec' % func.__name__
 		if not tooltip:
 			tooltip = label.replace('_', '')
 
-		self.name = func.__name__
+		self.name = name
 		self.readonly = readonly
 		self.func = func
 		self._attr = (self.name, label, tooltip, stock)
@@ -87,10 +87,10 @@ class Action(object):
 class ToggleAction(Action):
 	'''Toggle action, used by the L{toggle_action} decorator'''
 
-	def __init__(self, func, label, stock=None, accelerator='', tooltip='', readonly=True, default=False):
+	def __init__(self, name, func, label, stock=None, accelerator='', tooltip='', readonly=True, default=False):
 		# Default is a class attribute
 		# Using weakkeydict to store instance attributes
-		Action.__init__(self, func, label, stock, accelerator, tooltip, readonly)
+		Action.__init__(self, name, func, label, stock, accelerator, tooltip, readonly)
 		self._default = default
 		self._state = weakref.WeakKeyDictionary()
 		self._proxies = weakref.WeakKeyDictionary()
@@ -166,7 +166,7 @@ def action(label, stock=None, accelerator='', tooltip='', readonly=True):
 	'''
 	# TODO see where "readonly" should go
 	def _action(function):
-		return Action(function, label, stock, accelerator, tooltip, readonly)
+		return Action(function.__name__, function, label, stock, accelerator, tooltip, readonly)
 
 	return _action
 
@@ -184,7 +184,7 @@ def toggle_action(label, stock=None, accelerator='', tooltip='', readonly=True):
 	'''
 	# TODO see where "readonly" should go
 	def _toggle_action(function):
-		return ToggleAction(function, label, stock, accelerator, tooltip, readonly)
+		return ToggleAction(function.__name__, function, label, stock, accelerator, tooltip, readonly)
 
 	return _toggle_action
 

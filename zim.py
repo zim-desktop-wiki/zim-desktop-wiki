@@ -76,10 +76,10 @@ try:
 	argv = [arg.decode(encoding) for arg in sys.argv]
 	#~ zim.set_executable(argv[0])
 	zim.__main__.main(*argv[1:])
-except zim.GetoptError, err:
+except zim.__main__.GetoptError, err:
 	print >>sys.stderr, sys.argv[0]+':', err
 	sys.exit(1)
-except zim.UsageError, err:
+except zim.__main__.UsageError, err:
 	print >>sys.stderr, err.msg
 	sys.exit(1)
 except KeyboardInterrupt: # e.g. <Ctrl>C while --server
