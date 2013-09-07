@@ -13,9 +13,8 @@ class TestPrintToBrowser(tests.TestCase):
 
 	def runTest(self):
 		'Test InlineCalculator plugin'
-		ui = StubUI()
-		pluginklass = zim.plugins.get_plugin('inlinecalculator')
-		plugin = pluginklass(ui)
+		pluginklass = zim.plugins.get_plugin_class('inlinecalculator')
+		plugin = pluginklass()
 
 		for text, wanted in (
 			('3 + 4 =', '3 + 4 = 7'),
@@ -81,16 +80,3 @@ oct(8) == '010'
 		self.assertRaises(Exception, plugin.process_text, 'open("/etc/passwd")') # global
 		self.assertRaises(Exception, plugin.process_text, 'self') # local
 
-
-class StubUI(object):
-
-	ui_type = 'stub'
-
-	def __init__(self):
-		self.notebook = tests.new_notebook()
-		self.preferences = ConfigDict()
-		self.uistate = ConfigDict()
-
-	def connect(*a): pass
-
-	def connect_after(*a): pass

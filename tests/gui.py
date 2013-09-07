@@ -43,10 +43,6 @@ def setupGtkInterface(test, klass=None):
 	path = Path('Test:foo:bar')
 	ui = klass(notebook=notebook, page=path)
 
-	# finalize plugins
-	for plugin in ui.plugins:
-		plugin.finalize_ui(ui)
-
 	ui.mainwindow.init_uistate()
 
 	return ui
@@ -336,9 +332,6 @@ class TestDialogs(tests.TestCase):
 		gui = zim.gui.GtkInterface()
 		gui.register_preferences('GtkInterface', zim.gui.ui_preferences)
 		gui.register_preferences('PageView', zim.gui.pageview.ui_preferences)
-		with FilterFailedToLoadPlugin():
-			# may miss dependencies for e.g. versioncontrol
-			gui.load_plugins()
 		self.ui.preferences_register = gui.preferences_register
 		self.ui.preferences = gui.preferences
 		self.ui.plugins = gui.plugins
@@ -372,10 +365,10 @@ class TestDialogs(tests.TestCase):
 		self.assertFalse(any(['use_custom_font' in d for d in self.ui.preferences.values()]))
 
 		## Plugin Config dialog
-		from zim.plugins import get_plugin
-		klass = get_plugin('calendar')
+		from zim.plugins.calendar import CalendarPlugin
+		plugin = CalendarPlugin()
 		pref_dialog = PreferencesDialog(self.ui)
-		dialog = PluginConfigureDialog(pref_dialog, klass)
+		dialog = PluginConfigureDialog(pref_dialog, plugin)
 		dialog.assert_response_ok()
 
 	def testTemplateEditorDialog(self):
@@ -395,19 +388,11 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 	message = 'No such image:'
 
 
-class FilterFailedToLoadPlugin(tests.LoggingFilter):
-
-	logger = 'zim'
-	message = 'Failed to load plugin'
-
-
 @tests.slowTest
 class TestGtkInterface(tests.TestCase):
 
 	def setUp(self):
-		with FilterFailedToLoadPlugin():
-			# may miss dependencies for e.g. versioncontrol
-			self.ui = setupGtkInterface(self)
+		self.ui = setupGtkInterface(self)
 
 	def tearDown(self):
 		self.ui.close()
@@ -415,50 +400,30 @@ class TestGtkInterface(tests.TestCase):
 	def testInitialization(self):
 		'''Test Gtk interface initialization'''
 
-		# start without notebook should not complain
-		ui = zim.gui.GtkInterface()
-
-		# now take ui with notebook
-		ui = self.ui
-
 		# test read only (starts readonly because notebook has no dir or file)
-		self.assertTrue(ui.readonly)
-		ui.set_readonly(False)
-		self.assertFalse(ui.readonly)
-		ui.set_readonly(True)
-		self.assertTrue(ui.readonly)
+		self.assertTrue(self.ui.readonly)
+		self.ui.set_readonly(False)
+		self.assertFalse(self.ui.readonly)
+		self.ui.set_readonly(True)
+		self.assertTrue(self.ui.readonly)
 
 		# TODO more tests for readonly pages etc.
 
 		# test populating menus
 		menu = gtk.Menu()
-		ui.populate_popup('page_popup', menu)
+		self.ui.populate_popup('page_popup', menu)
 		items = menu.get_children()
 		self.assertGreater(len(items), 3)
 
-		# open notebook (so the default plugins are loaded)
-		nb = ui.notebook
-		ui.notebook = None
-		ui.open_notebook(nb)
-
-		# remove plugins
-		self.assertGreaterEqual(len(ui.plugins), 3) # default plugins without dependencies
-		plugins = [p.plugin_key for p in ui.plugins]
-		for name in plugins:
-			ui.unload_plugin(name)
-		self.assertEqual(len(ui.plugins), 0)
-
-		# and add them again
-		for name in plugins:
-			ui.load_plugin(name)
-		self.assertGreaterEqual(len(ui.plugins), 3) # default plugins without dependencies
-
 		# check registering an URL handler
 		func = tests.Counter(True)
-		ui.register_url_handler('foo', func)
-		ui.open_url('foo://bar')
+		self.ui.register_url_handler('foo', func)
+		self.ui.open_url('foo://bar')
 		self.assertTrue(func.count == 1)
-		ui.unregister_url_handler(func)
+		self.ui.unregister_url_handler(func)
+
+		# check default plugins are loaded
+		self.assertGreaterEqual(len(self.ui.plugins), 3)
 
 	def testMainWindow(self):
 		'''Test main window'''
@@ -645,9 +610,7 @@ class TestClickLink(tests.TestCase):
 				):
 					self.mock_method(method, None)
 
-		with FilterFailedToLoadPlugin():
-			# may miss dependencies for e.g. versioncontrol
-			self.ui = setupGtkInterface(self, klass=MyMock)
+		self.ui = setupGtkInterface(self, klass=MyMock)
 
 	def tearDown(self):
 		self.ui.close()

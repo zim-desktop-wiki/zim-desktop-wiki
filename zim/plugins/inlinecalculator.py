@@ -262,7 +262,7 @@ This is a core plugin shipping with zim.
 	def _process_multiline(self, text):
 		lines = text.splitlines()
 		for i, line in enumerate(lines):
-			if self._multiline_re.match(line):
+			if _multiline_re.match(line):
 				operator = line.strip()[-1]
 				break
 		else:

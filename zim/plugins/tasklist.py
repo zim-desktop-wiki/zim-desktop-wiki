@@ -164,7 +164,7 @@ class IndexExtension(ObjectExtension):
 		))
 		# We don't care about pages that are moved
 
-	def on_preferences_changed(self):
+	def on_preferences_changed(self, plugin):
 		if self._current_preferences is None \
 		or not self.db_initialized:
 			return
@@ -843,7 +843,7 @@ class TaskListTreeView(BrowserTreeView):
 	TASKID_COL = 7
 	TAGS_COL = 8
 
-	def __init__(self, index_ext, opener, filter_actionable, tag_by_page=False, use_workweek=False):
+	def __init__(self, index_ext, opener, filter_actionable=False, tag_by_page=False, use_workweek=False):
 		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool, int, object)
 			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL, TAGS_COL
 		model = self.real_model.filter_new()

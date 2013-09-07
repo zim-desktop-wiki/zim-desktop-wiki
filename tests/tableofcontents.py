@@ -17,7 +17,9 @@ class TestTableOfContents(tests.TestCase):
 	def runTest(self):
 		'''Test Tabel Of Contents plugin'''
 
-		widget = ToCWidget(self.ui)
+		pageview = tests.MockObject()
+		pageview.page = None
+		widget = ToCWidget(self.ui, pageview)
 
 		def count():
 			# Count number of rows in TreeModel

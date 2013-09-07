@@ -9,6 +9,7 @@ import os
 from zim.plugins import *
 from zim.fs import File
 
+from tests.gui import setupGtkInterface
 
 assert len(zim.plugins.__path__) > 1 # test __path__ magic
 zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
@@ -34,7 +35,7 @@ class TestPlugins(tests.TestCase):
 		}
 		for name in plugins:
 			#~ print '>>', name
-			klass = get_plugin_klass(name)
+			klass = get_plugin_class(name)
 
 			# test plugin info
 			for key in ('name', 'description', 'author'):
@@ -95,7 +96,7 @@ class TestPluginManager(tests.TestCase):
 	def runTest(self):
 		manager = PluginManager()
 		for name in list_plugins():
-			klass = get_plugin_klass(name)
+			klass = get_plugin_class(name)
 			if klass.check_dependencies_ok():
 				manager.load_plugin(name)
 				self.assertIn(name, manager)
@@ -114,3 +115,22 @@ class TestPluginManager(tests.TestCase):
 		self.assertTrue(len(manager) == 0)
 
 		# TODO test extending some objects
+
+
+#~ class TestExtensions(tests.TestCase):
+#~
+	#~ def runTest(self):
+		#~ ui = setupGtkInterface()
+		#~ manager = ui.plugins
+#~
+		#~ # TODO load all plugins
+#~
+		#~ # remove plugins
+		#~ for name in manager:
+			#~ manager.unload_plugin(name)
+		#~ self.assertEqual(len(manager), 0)
+#~
+		#~ # and add them again
+		#~ for name in plugins:
+			#~ manager.load_plugin(name)
+		#~ self.assertGreaterEqual(len(manager), 3) # default plugins without dependencies

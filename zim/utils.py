@@ -4,11 +4,11 @@
 
 
 class classproperty(object):
-    def __init__(self, func):
-        self.func = func
+	def __init__(self, func):
+		self.func = func
 
-    def __get__(self, obj, owner):
-        return self.func(owner)
+	def __get__(self, obj, owner):
+		return self.func(owner)
 
 
 ## Functions for dynamic loading of modules and klasses
@@ -44,7 +44,7 @@ def lookup_subclass(module, klass):
 	@param klass: base class
 
 	@note: don't actually use this method to get plugin classes, see
-	L{get_plugin()} instead.
+	L{get_plugin_class()} instead.
 	'''
 	subclasses = lookup_subclasses(module, klass)
 	if len(subclasses) > 1:

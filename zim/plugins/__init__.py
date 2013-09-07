@@ -106,7 +106,7 @@ def set_plugin_search_path():
 set_plugin_search_path()
 
 
-def get_plugin_klass(name):
+def get_plugin_class(name):
 	'''Get the plugin class for a given name
 
 	@param name: the plugin module name (e.g. "calendar")
@@ -120,7 +120,7 @@ def list_plugins():
 	'''List available plugin module names
 
 	@returns: a set of available plugin names that can be loaded
-	using L{get_plugin()}.
+	using L{get_plugin_class()}.
 	'''
 	# Only listing folders in __path__ because this parameter determines
 	# what folders will considered when importing sub-modules of the
@@ -160,6 +160,9 @@ class PluginManager(ConnectorMixin, object):
 		self._plugins = {}
 		self._extendables = WeakSet()
 
+	def __len__(self):
+		return len(self._plugins)
+
 	def __iter__(self):
 		return iter(sorted(self._plugins.keys()))
 			# sort to make operation predictable - easier debugging
@@ -183,7 +186,7 @@ class PluginManager(ConnectorMixin, object):
 			return self._plugins[name]
 
 		logger.debug('Loading plugin: %s', name)
-		klass = get_plugin_klass(name)
+		klass = get_plugin_class(name)
 		if not klass.check_dependencies_ok():
 			raise AssertionError, 'Dependencies failed for plugin %s' % name
 
@@ -358,7 +361,8 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		if self.plugin_preferences:
 			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tuples'
 
-		self.preferences = config
+		self.preferences = config or ConfigDict()
+
 		for pref in self.plugin_preferences:
 				if len(pref) == 4:
 					key, type, label, default = pref
@@ -378,7 +382,8 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 	def lookup_subclass(pluginklass, klass):
 		'''Returns first subclass of C{klass} found in the module of
 		this plugin. (Similar to L{zim.utils.lookup_subclass})
-		@param klass: base class
+		@param pluginklass: plugin class
+		@param klass: base class of the wanted class
 		'''
 		module = get_module(pluginklass.__module__)
 		return lookup_subclass(module, klass)
@@ -415,9 +420,10 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		for obj in self.get_extensions(klass):
 			obj.destroy()
 
-	def extend(self, obj):
+	def extend(self, obj, name=None):
 		# TODO also check parent classes
-		name = obj.__class__.__name__
+		# name should only be used for testing
+		name = name or obj.__class__.__name__
 		if name in self.extension_classes:
 			ext = self.extension_classes[name](self, obj)
 			self.extensions.add(ext)

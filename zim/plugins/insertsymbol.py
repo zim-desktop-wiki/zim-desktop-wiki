@@ -32,7 +32,7 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Insert Symbol',
 	}
 
-	def __init__(self, config):
+	def __init__(self, config=None):
 		PluginClass.__init__(self, config)
 		self.symbols = {}
 		self.symbol_order = []

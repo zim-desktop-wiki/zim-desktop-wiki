@@ -128,7 +128,7 @@ class PreferencesDialog(Dialog):
 		# in this dialog session
 		for name in zim.plugins.list_plugins():
 			try:
-				klass = zim.plugins.get_plugin(name)
+				klass = zim.plugins.get_plugin_class(name)
 			except:
 				continue
 
@@ -229,7 +229,7 @@ class PluginsTab(gtk.HBox):
 		self.plugin_help_button.set_sensitive('help' in klass.plugin_info)
 
 	def on_help_button_clicked(self, button):
-		klass = zim.plugins.get_plugin_klass(self._current_plugin)
+		klass = zim.plugins.get_plugin_class(self._current_plugin)
 		self.dialog.ui.show_help(klass.plugin_info['help']) # XXX
 
 	def on_configure_button_clicked(self, button):
@@ -247,7 +247,7 @@ class PluginsTreeModel(gtk.ListStore):
 		allplugins = []
 		for key in zim.plugins.list_plugins():
 			try:
-				klass = zim.plugins.get_plugin_klass(key)
+				klass = zim.plugins.get_plugin_class(key)
 				name = klass.plugin_info['name']
 				allplugins.append((name, key, klass))
 			except:

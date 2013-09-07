@@ -6,7 +6,11 @@ from __future__ import with_statement
 
 import tests
 
+import gtk
+
 from zim.fs import Dir
+
+from zim.plugins.base.imagegenerator import ImageGeneratorDialog
 
 from zim.plugins.equationeditor import *
 from zim.plugins.diagrameditor import *
@@ -17,14 +21,18 @@ from zim.plugins.gnuplot_ploteditor import *
 @tests.slowTest
 class TestGenerator(tests.TestCase):
 
+	dialogklass = ImageGeneratorDialog
+
 	def _test_generator(self):
+		plugin = tests.MockObject()
+
 		# Check properties
-		self.assertIsNotNone(self.generatorklass.type)
+		self.assertIsNotNone(self.generatorklass.object_type)
 		self.assertIsNotNone(self.generatorklass.scriptname)
 		self.assertIsNotNone(self.generatorklass.imagename)
 
 		# Input OK
-		generator = self.generatorklass()
+		generator = self.generatorklass(plugin)
 		generator.cleanup() # ensure files did not yet exist
 		imagefile, logfile = generator.generate_image(self.validinput)
 		self.assertTrue(imagefile.exists())
@@ -40,7 +48,7 @@ class TestGenerator(tests.TestCase):
 			self.assertFalse(logfile.exists())
 
 		# Input NOK
-		generator = self.generatorklass()
+		generator = self.generatorklass(plugin)
 		imagefile, logfile = generator.generate_image(self.invalidinput)
 		self.assertIsNone(imagefile)
 		if generator.uses_log_file:
@@ -50,7 +58,7 @@ class TestGenerator(tests.TestCase):
 
 		# Dialog OK
 		attachment_dir = Dir(self.create_tmp_dir())
-		dialog = self.dialogklass(MockUI(attachment_dir))
+		dialog = self.dialogklass(MockUI(attachment_dir), '<title>', generator)
 		dialog.set_text(self.validinput)
 		dialog.assert_response_ok()
 
@@ -60,7 +68,7 @@ class TestGenerator(tests.TestCase):
 			dialog.do_response(gtk.RESPONSE_YES)
 
 		with tests.DialogContext(ok_store):
-			dialog = self.dialogklass(MockUI(attachment_dir))
+			dialog = self.dialogklass(MockUI(attachment_dir), '<title>', generator)
 			dialog.set_text(self.invalidinput)
 			dialog.assert_response_ok()
 
@@ -75,7 +83,6 @@ class TestEquationEditor(TestGenerator):
 
 	def setUp(self):
 		self.generatorklass = EquationGenerator
-		self.dialogklass = InsertEquationDialog
 		self.validinput = r'''
 c = \sqrt{ a^2 + b^2 }
 
@@ -99,7 +106,6 @@ class TestDiagramEditor(TestGenerator):
 
 	def setUp(self):
 		self.generatorklass = DiagramGenerator
-		self.dialogklass = InsertDiagramDialog
 		self.validinput = r'''
 digraph G {
 	foo -> bar
@@ -119,7 +125,6 @@ class TestGNURPlotEditor(TestGenerator):
 
 	def setUp(self):
 		self.generatorklass = GNURPlotGenerator
-		self.dialogklass = InsertGNURPlotDialog
 		self.validinput = r'''
 x = seq(-4,4,by=0.01)
 y = sin(x) + 1
@@ -137,7 +142,6 @@ class TestGnuplotEditor(TestGenerator):
 
 	def setUp(self):
 		self.generatorklass = GnuplotGenerator
-		self.dialogklass = InsertGnuplotDialog
 		self.validinput = r'plot sin(x), cos(x)'
 		self.invalidinput = r'sdf sdfsdf sdf'
 

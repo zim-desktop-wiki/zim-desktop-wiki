@@ -246,12 +246,8 @@ class TestTagPluginWidget(tests.TestCase):
 	def runTest(self):
 		ui = MockUI()
 		ui.notebook = tests.new_notebook()
-
-		plugin = tests.MockObject()
-		plugin.ui = ui
-		plugin.uistate = ListDict()
-
-		widget = TagsPluginWidget(plugin)
+		uistate = ListDict()
+		widget = TagsPluginWidget(ui.notebook.index, uistate, ui)
 
 		# Excersize all model switches and check we still have a sane state
 		widget.toggle_treeview()
@@ -310,7 +306,7 @@ class TestTagPluginWidget(tests.TestCase):
 				yield iter
 				iter = model.iter_next(iter)
 
-		self.assertEqual(plugin.uistate['treeview'], 'tagged')
+		self.assertEqual(uistate['treeview'], 'tagged')
 		filteredmodel = widget.treeview.get_model()
 		for iter in toplevel(filteredmodel):
 			path = filteredmodel.get_indexpath(iter)
@@ -323,7 +319,7 @@ class TestTagPluginWidget(tests.TestCase):
 			self.assertTrue(filteredmodel.get_path(iter) in treepaths)
 
 		widget.toggle_treeview()
-		self.assertEqual(plugin.uistate['treeview'], 'tags')
+		self.assertEqual(uistate['treeview'], 'tags')
 		filteredmodel = widget.treeview.get_model()
 		for iter in toplevel(filteredmodel):
 			self.assertEqual(filteredmodel.get_indexpath(iter), None)
