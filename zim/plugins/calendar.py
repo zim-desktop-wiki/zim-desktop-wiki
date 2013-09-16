@@ -420,7 +420,7 @@ class CalendarPluginWidget(gtk.VBox, WindowSidePaneWidget):
 		dates = daterange_from_path(page)
 		if dates:
 			self.calendar.select_date(dates[1])
-                else:
+		else:
 			self.calendar.select_day(0)
 
 	def select_date(self, date):
