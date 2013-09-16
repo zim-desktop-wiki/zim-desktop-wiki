@@ -418,9 +418,10 @@ class CalendarPluginWidget(gtk.VBox, WindowSidePaneWidget):
 
 	def set_page(self, page):
 		dates = daterange_from_path(page)
-		if dates and dates[0] != 'year':
-			# Calendar is per month, so do not switch view for year page
-			self.calendar.select_month(dates[1].month-1, dates[1].year)
+		if dates:
+			self.calendar.select_date(dates[1])
+                else:
+			self.calendar.select_day(0)
 
 	def select_date(self, date):
 		self.calendar.select_date(date)
