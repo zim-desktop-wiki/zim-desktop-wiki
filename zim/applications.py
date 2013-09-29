@@ -19,7 +19,7 @@ import zim.fs
 import zim.errors
 
 from zim.parsing import split_quoted_strings, is_uri_re, is_win32_path_re
-from zim.config import get_environ_list
+from zim.environ import environ
 
 
 logger = logging.getLogger('zim.applications')
@@ -101,8 +101,8 @@ class Application(object):
 				return None
 		elif os.name == 'nt':
 			# Check executable extensions from windows environment
-			extensions = get_environ_list('PATHEXT', '.com;.exe;.bat;.cmd')
-			for dir in get_environ_list('PATH'):
+			extensions = environ.get_list('PATHEXT', '.com;.exe;.bat;.cmd')
+			for dir in environ.get_list('PATH'):
 				for ext in extensions:
 					file = os.sep.join((dir, cmd + ext))
 					if zim.fs.isfile(file) and os.access(file, os.X_OK):
@@ -111,7 +111,7 @@ class Application(object):
 				return None
 		else:
 			# On POSIX no extension is needed to make scripts executable
-			for dir in get_environ_list('PATH'):
+			for dir in environ.get_list('PATH'):
 				file = os.sep.join((dir, cmd))
 				if zim.fs.isfile(file) and os.access(file, os.X_OK):
 					return file

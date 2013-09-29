@@ -88,7 +88,7 @@ import zim.fs
 from zim.fs import File, Dir
 from zim.errors import Error, TrashNotSupportedError
 from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
-	config_file, data_dir, user_dirs, config_dirs, list_profiles
+	data_dir, config_dirs, ConfigManager, XDGDefaultFileIter #list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode, url_decode
 from zim.async import AsyncLock
@@ -412,8 +412,8 @@ def get_notebook_list():
 
 	This will load the list from the default X{notebooks.list} file
 	'''
-	# TODO use weakref here
-	file = config_file('notebooks.list')
+	config = ConfigManager() # XXX should be passed in
+	file = config.get_config_file('notebooks.list')
 	return NotebookInfoList(file)
 
 
@@ -541,30 +541,22 @@ def interwiki_link(link):
 	if info:
 		url = 'zim+' + info.uri + '?{NAME}'
 
-
 	# Then search all "urls.list" in config and data dirs
-	def check_dir(dir):
-		file = dir.file('urls.list')
-		if not file.exists():
-			return None
-
-		for line in file.readlines():
-			if line.startswith('#') or line.isspace():
-				continue
-			try:
-				mykey, myurl = line.split(None, 1)
-			except ValueError:
-				continue
-			if mykey.lower() == lkey:
-				return myurl.strip()
-		else:
-			return None
-
- 	if not url:
-		for dir in config_dirs():
-			url = check_dir(dir)
-			if url:
-				break
+	if not url:
+		files = XDGDefaultFileIter('urls.list') # FIXME, shouldn't this be passed in ?
+		for file in files:
+			for line in file.readlines():
+				if line.startswith('#') or line.isspace():
+					continue
+				try:
+					mykey, myurl = line.split(None, 1)
+				except ValueError:
+					continue
+				if mykey.lower() == lkey:
+					url = myurl.strip()
+					break
+			else:
+				url = None
 
 	# Format URL
 	if url and is_url_re.match(url):
@@ -665,7 +657,6 @@ class Notebook(Object):
 	moving the page
 	@signal: C{delete-page (path)}: emitted before deleting a page
 	@signal: C{deleted-page (path)}: emitted after deleting a page
-	@signal: C{profile-changed ()}: emitted when the profile is changed,
 	means that the preferences need to be loaded again as well
 	@signal: C{properties-changed ()}: emitted when properties changed
 	@signal: C{suggest-link (path, text)}: hook that is called when trying
@@ -713,7 +704,6 @@ class Notebook(Object):
 		'moved-page': (gobject.SIGNAL_RUN_LAST, None, (object, object, bool)),
 		'delete-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'deleted-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'profile-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 		'properties-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 		'suggest-link': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 	}
@@ -904,16 +894,11 @@ class Notebook(Object):
 		if 'home' in properties and isinstance(properties['home'], Path):
 			properties['home'] = properties['home'].name
 
-		# Check for a new profile
-		profile_changed = properties.get('profile') != self.profile
-
 		# Actual update and signals
 		# ( write is the last action - in case update triggers a crash
 		#   we don't want to get stuck with a bad config )
 		self.config['Notebook'].update(properties)
 		self.emit('properties-changed')
-		if profile_changed:
-			self.emit('profile-changed')
 
 		if hasattr(self.config, 'write'): # Check needed for tests
 			self.config.write()

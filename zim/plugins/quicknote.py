@@ -9,7 +9,7 @@ from datetime import date as dateclass
 
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import action
-from zim.config import get_config, data_file
+from zim.config import data_file, ConfigManager
 from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
 from zim.ipc import start_server_if_not_running, ServerProxy
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
@@ -105,12 +105,13 @@ def main(*args):
 	gtk_window_set_default_icon()
 
 	dialog = QuickNoteDialog(None,
-		notebook,
-		options.get('namespace'), options.get('basename'),
-		options.get('append'),
-		text,
-		template_options,
-		options.get('attachments')
+		notebook=notebook,
+		namespace=options.get('namespace'),
+		basename=options.get('basename'),
+		append=options.get('append'),
+		text=text,
+		template_options=template_options,
+		attachments=options.get('attachments')
 	)
 	dialog.run()
 
@@ -369,7 +370,8 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		append=None, text=None, template_options=None, attachments=None
 	):
 		assert page is None, 'TODO'
-		self.config = get_config('quicknote.conf')
+		manager = ConfigManager() # FIXME should be passed in
+		self.config = manager.get_config_dict('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
 		Dialog.__init__(self, window, _('Quick Note'))

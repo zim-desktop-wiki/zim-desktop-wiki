@@ -10,10 +10,10 @@ import os
 import gtk
 
 from zim.errors import Error
+from zim.config import ConfigManager, VirtualConfigManager
 from zim.notebook import get_notebook_list, Path, Page, NotebookInfo
 from zim.formats import ParseTree
 from zim.fs import File, Dir
-from zim.config import config_file
 from zim.gui.clipboard import Clipboard
 
 import zim.gui
@@ -33,15 +33,14 @@ def setupGtkInterface(test, klass=None):
 	filter = FilterNoSuchImageWarning()
 	filter.wrap_test(test)
 
-	# flush preferences
-	preferences = config_file('preferences.conf')
-	preferences.file.remove()
 
 	# create interface object with new notebook
 	dirpath = test.get_tmp_name()
 	notebook = tests.new_notebook(fakedir=dirpath)
 	path = Path('Test:foo:bar')
-	ui = klass(notebook=notebook, page=path)
+
+	config = VirtualConfigManager()
+	ui = klass(config=config, notebook=notebook, page=path)
 
 	ui.mainwindow.init_uistate()
 
@@ -327,14 +326,16 @@ class TestDialogs(tests.TestCase):
 	def testPreferencesDialog(self):
 		'''Test PreferencesDialog'''
 		from zim.gui.preferencesdialog import PreferencesDialog, PluginConfigureDialog
-		import zim.gui.pageview
 
-		gui = zim.gui.GtkInterface()
+		self.clear_tmp_dir()
+
+		gui = setupGtkInterface(self)
 		gui.register_preferences('GtkInterface', zim.gui.ui_preferences)
 		gui.register_preferences('PageView', zim.gui.pageview.ui_preferences)
 		self.ui.preferences_register = gui.preferences_register
 		self.ui.preferences = gui.preferences
 		self.ui.plugins = gui.plugins
+		self.ui.config = gui.config
 
 		## Test get/set simple value
 		self.assertEquals(self.ui.preferences['GtkInterface']['toggle_on_ctrlspace'], False)
@@ -349,19 +350,20 @@ class TestDialogs(tests.TestCase):
 		self.assertEquals(self.ui.preferences['GtkInterface']['toggle_on_ctrlspace'], True)
 
 		## Test font button
-		zim.gui.pageview.PageView.style['TextView']['font'] = 'Sans 12'
+		text_style = gui.config.get_config_dict('<profile>/style.conf')
+		text_style['TextView']['font'] = 'Sans 12'
 		dialog = PreferencesDialog(self.ui)
 		self.assertEquals(dialog.forms['Interface']['use_custom_font'], True)
 		dialog.assert_response_ok()
-		self.assertEqual(zim.gui.pageview.PageView.style['TextView']['font'], 'Sans 12')
+		self.assertEqual(text_style['TextView']['font'], 'Sans 12')
 		self.assertFalse(any(['use_custom_font' in d for d in self.ui.preferences.values()]))
 
-		zim.gui.pageview.PageView.style['TextView']['font'] = 'Sans 12'
+		text_style['TextView']['font'] = 'Sans 12'
 		dialog = PreferencesDialog(self.ui)
 		self.assertEquals(dialog.forms['Interface']['use_custom_font'], True)
 		dialog.forms['Interface']['use_custom_font'] = False
 		dialog.assert_response_ok()
-		self.assertEqual(zim.gui.pageview.PageView.style['TextView']['font'], None)
+		self.assertEqual(text_style['TextView']['font'], None)
 		self.assertFalse(any(['use_custom_font' in d for d in self.ui.preferences.values()]))
 
 		## Plugin Config dialog
@@ -684,7 +686,8 @@ class TestClickLink(tests.TestCase):
 class TestNotebookDialog(tests.TestCase):
 
 	def setUp(self):
-		list = config_file('notebooks.list')
+		config = ConfigManager()
+		list = config.get_config_file('notebooks.list')
 		file = list.file
 		if file.exists():
 			file.remove()

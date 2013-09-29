@@ -349,8 +349,8 @@ def servermain():
 
 if sys.platform == 'win32':
 	# Windows named pipe
-	from zim.config import get_environ
-	SERVER_ADDRESS = '\\\\.\\pipe\\zimServer-%s' % get_environ('USER')
+	from zim.environ import environ
+	SERVER_ADDRESS = '\\\\.\\pipe\\zimServer-%s' % environ['USER']
 	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
 else:
 	# Unix domain socket

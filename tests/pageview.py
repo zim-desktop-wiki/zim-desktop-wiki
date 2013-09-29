@@ -11,7 +11,7 @@ from zim.fs import File, Dir
 from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
-from zim.config import ConfigDict, ConfigDictFile, XDG_CONFIG_HOME
+from zim.config import ConfigDict, VirtualConfigManager, ConfigManager
 from zim.gui.clipboard import Clipboard
 
 
@@ -45,6 +45,7 @@ def setUpPageView(fakedir=None, notebook=None):
 		notebook = tests.new_notebook(fakedir)
 
 	ui = MockUI()
+	ui.config = VirtualConfigManager()
 	ui.notebook = notebook
 	ui.page = None
 	ui.uimanager = tests.MockObject()
@@ -1701,51 +1702,6 @@ Baz
 		text = buffer.get_text(*buffer.get_bounds())
 		self.assertEqual(text, wantedtext)
 
-	def testProfile(self):
-		'''Test that style for a specific profile is applied.'''
-		default_file = XDG_CONFIG_HOME.file('zim/style.conf')
-		profile_file = XDG_CONFIG_HOME.file('zim/styles/testProfile.conf')
-
-		# first test without profile
-		pageview = setUpPageView()
-		notebook = pageview.ui.notebook
-		self.assertIsNone(notebook.profile)
-		self.assertIsNone(pageview.style.profile)
-		self.assertEqual(pageview.style.file.file, default_file)
-
-		# create a new style based on the default one, changing some properties
-		profile_file.remove()
-		new_style = ConfigDictFile(profile_file)
-		new_style['TextView']['indent'] = 50
-		new_style['TextView']['font'] = 'Sans 8'
-		new_style['TextView']['linespacing'] = 10
-		new_style.write()
-
-		# test the pageview with the profile
-		notebook.save_properties(profile='testProfile')
-		self.assertEqual(notebook.profile, 'testProfile')
-		self.assertEqual(pageview.style.profile, 'testProfile')
-		self.assertEqual(pageview.style.file.file, profile_file)
-		self.assertEqual(pageview.style['TextView']['indent'], 50)
-		self.assertEqual(pageview.style['TextView']['font'], 'Sans 8')
-		self.assertEqual(pageview.style['TextView']['linespacing'], 10)
-
-		# if we don't have a notebook, we shouldn't fail!
-		pageview.ui.notebook = None
-		pageview.on_preferences_changed(pageview.ui)
-
-		# Now init a notebook with a profile from the start
-		PageView.style = None # reset class attribute
-
-		notebook = tests.new_notebook()
-		self.assertIsNone(notebook.profile)
-		notebook.save_properties(profile='testProfile')
-		self.assertEqual(notebook.profile, 'testProfile')
-
-		pageview = setUpPageView(notebook=notebook)
-		self.assertEqual(pageview.style.profile, 'testProfile')
-		self.assertEqual(pageview.style.file.file, profile_file)
-
 
 class TestPageviewDialogs(tests.TestCase):
 
@@ -1755,6 +1711,7 @@ class TestPageviewDialogs(tests.TestCase):
 		ui = MockUI()
 		buffer = MockBuffer()
 		ui.notebook.mock_method('suggest_link', Path(':suggested_link'))
+		ui.config = ConfigManager() # need dates.list
 
 		dialog = InsertDateDialog(ui, buffer)
 		dialog.linkbutton.set_active(False)

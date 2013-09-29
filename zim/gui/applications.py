@@ -27,7 +27,7 @@ import gobject
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
 from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
-	config_file, data_dirs, ConfigDict, ConfigFileMixin, json
+	data_dirs, ConfigDict, ConfigFileMixin, json, ConfigManager
 from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
@@ -837,12 +837,13 @@ class CustomToolManager(object):
 	'''
 
 	def __init__(self):
+		self.config = ConfigManager() # XXX should be passed in
 		self.names = []
 		self.tools = {}
 		self._read_list()
 
 	def _read_list(self):
-		file = config_file('customtools/customtools.list')
+		file = self.config.get_config_file('customtools/customtools.list')
 		seen = set()
 		for line in file.readlines():
 			name = line.strip()
@@ -851,7 +852,7 @@ class CustomToolManager(object):
 				self.names.append(name)
 
 	def _write_list(self):
-		file = config_file('customtools/customtools.list')
+		file = self.config.get_config_file('customtools/customtools.list')
 		file.writelines([name + '\n' for name in self.names])
 
 	def __iter__(self):
@@ -866,7 +867,7 @@ class CustomToolManager(object):
 		@returns: a L{CustomTool} object
 		'''
 		if not name in self.tools:
-			file = config_file('customtools/%s.desktop' % name)
+			file = self.config.get_config_file('customtools/%s.desktop' % name)
 			tool = CustomTool(file)
 			self.tools[name] = tool
 

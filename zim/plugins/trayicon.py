@@ -8,7 +8,7 @@ import gtk
 import logging
 
 from zim.plugins import PluginClass, WindowExtension
-from zim.config import data_file, get_config
+from zim.config import data_file, ConfigManager
 from zim.ipc import start_server_if_not_running, ServerProxy, RemoteObject
 from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 from zim.gui.widgets import gtk_window_set_default_icon
@@ -24,7 +24,8 @@ except ImportError:
 def main(*args):
 	start_server_if_not_running()
 
-	preferences = get_config('preferences.conf')['TrayIconPlugin']
+	config = ConfigManager()
+	preferences = config.get_config_dict('preferences.conf')['TrayIconPlugin']
 	preferences.setdefault('classic', False)
 
 	if appindicator and not preferences['classic']:

@@ -9,7 +9,7 @@ import tests
 import os
 
 from zim.fs import File, Dir
-from zim.config import config_file
+from zim.config import ConfigManager
 from zim.notebook import *
 from zim.index import *
 import zim.errors
@@ -24,7 +24,8 @@ from zim.formats import ParseTree
 class TestGetNotebook(tests.TestCase):
 
 	def setUp(self):
-		list = config_file('notebooks.list')
+		config = ConfigManager()
+		list = config.get_config_file('notebooks.list')
 		file = list.file
 		if file.exists():
 			file.remove()

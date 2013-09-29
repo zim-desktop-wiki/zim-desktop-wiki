@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2012-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
 
 import tests
 

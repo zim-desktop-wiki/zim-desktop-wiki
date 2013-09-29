@@ -26,14 +26,16 @@ import os
 import sys
 import logging
 import inspect
+import collections
 
 import zim.fs
 from zim.fs import Dir
-from zim.config import ConfigDict, ListDict, get_environ
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER
 from zim.actions import action, toggle_action, get_actiongroup
 from zim.utils import classproperty, get_module, lookup_subclass, WeakSet
+
+from zim.config import ConfigManager
 
 
 logger = logging.getLogger('zim.plugins')
@@ -51,8 +53,9 @@ def user_site_packages_directory():
 	This directoy is part of the search path for plugin modules, so users
 	can install plugins in locally.
 	'''
+	from zim.environ import environ
 	if os.name == 'nt':
-		appdata = get_environ('APPDATA')
+		appdata = environ.get('APPDATA')
 		if appdata:
 			dir = Dir((appdata, 'Python/Python25/site-packages'))
 			return dir.path
@@ -146,7 +149,7 @@ def list_plugins():
 	return sorted(plugins)
 
 
-class PluginManager(ConnectorMixin, object):
+class PluginManager(ConnectorMixin, collections.Mapping):
 	'''Manager that maintains a set of active plugins
 	Handles loading and destroying plugins and is the entry point
 	for extending application components.
@@ -156,19 +159,23 @@ class PluginManager(ConnectorMixin, object):
 	'''
 
 	def __init__(self, config=None):
-		self.config = config or ConfigDict()
+		self.config = config or ConfigManager() # FIXME: Is this a smart fallback ?
+
 		self._plugins = {}
 		self._extendables = WeakSet()
 
-	def __len__(self):
-		return len(self._plugins)
+		#~ self.preferences.connectto(self.preferences, 'changed',
+			#~ lambda o: self.reload_plugins())
+
+	def __getitem__(self, name):
+		return self._plugins[name]
 
 	def __iter__(self):
 		return iter(sorted(self._plugins.keys()))
 			# sort to make operation predictable - easier debugging
 
-	def __getitem__(self, name):
-		return self._plugins[name]
+	def __len__(self):
+		return len(self._plugins)
 
 	def load_plugin(self, name):
 		'''Load a single plugin by name
@@ -190,7 +197,7 @@ class PluginManager(ConnectorMixin, object):
 		if not klass.check_dependencies_ok():
 			raise AssertionError, 'Dependencies failed for plugin %s' % name
 
-		plugin = klass(self.config[klass.config_key])
+		plugin = klass(self.config)
 		self.connectto(plugin, 'extension-point-changed')
 		self._plugins[name] = plugin
 
@@ -361,7 +368,8 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		if self.plugin_preferences:
 			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tuples'
 
-		self.preferences = config or ConfigDict()
+		self.config = config or ConfigManager() # FIXME: Is this a smart fallback ?
+		self.preferences = self.config.get_config_dict('<profile>/preferences.conf')[self.config_key]
 
 		for pref in self.plugin_preferences:
 				if len(pref) == 4:

@@ -7,7 +7,6 @@
 from zim.plugins import PluginClass
 
 from zim.fs import Dir
-from zim.config import get_config
 from zim.applications import Application
 
 
@@ -38,7 +37,7 @@ This is a core plugin shipping with zim.
 		@param uri: a notebook uri
 		@returns: a config dict
 		'''
-		config = get_config('automount.conf')
+		config = self.config.get_config_dict('automount.conf')
 		groups = [k for k in config.keys() if k.startswith('Path')]
 		for group in groups:
 			path = group[4:].strip() # len('Path') = 4

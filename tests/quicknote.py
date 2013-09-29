@@ -25,7 +25,6 @@ class TestQuickNotePlugin(tests.TestCase):
 				self.assertIsInstance(dialog, QuickNoteDialog)
 				buffer = dialog.textview.get_buffer()
 				result = buffer.get_text(*buffer.get_bounds())
-				#~ print result
 				self.assertTrue(text in result)
 
 			return my_has_text

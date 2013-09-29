@@ -5,7 +5,6 @@
 from __future__ import with_statement
 
 import tests
-from tests import TestCase, LoggingFilter
 
 import os
 
@@ -35,18 +34,18 @@ def marshal_path_lookup(function):
 
 zim.config.data_file = marshal_path_lookup(zim.config.data_file)
 zim.config.data_dir = marshal_path_lookup(zim.config.data_dir)
-zim.config.config_file = marshal_path_lookup(zim.config.config_file)
+#~ zim.config.config_file = marshal_path_lookup(zim.config.config_file)
 
 ##
 
 
-class FilterInvalidConfigWarning(LoggingFilter):
+class FilterInvalidConfigWarning(tests.LoggingFilter):
 
 	logger = 'zim.config'
 	message = 'Invalid config value'
 
 
-class TestDirsTestSetup(TestCase):
+class TestDirsTestSetup(tests.TestCase):
 
 	def runTest(self):
 		'''Test config environment setup of test'''
@@ -69,7 +68,7 @@ class TestDirsTestSetup(TestCase):
 		)
 
 
-class TestDirsDefault(TestCase):
+class TestDirsDefault(tests.TestCase):
 
 	def setUp(self):
 		old_environ = {}
@@ -84,11 +83,11 @@ class TestDirsDefault(TestCase):
 		def restore_environ():
 			for k, v in old_environ.items():
 				os.environ[k] = v
-			zim.config._set_basedirs() # refresh
+			zim.config.set_basedirs() # refresh
 
 		self.addCleanup(restore_environ)
 
-		zim.config._set_basedirs() # refresh
+		zim.config.set_basedirs() # refresh
 
 	def testValid(self):
 		'''Test config environment is valid'''
@@ -111,7 +110,7 @@ class TestDirsDefault(TestCase):
 		self.assertEqual(
 				list(data_dirs(('foo', 'bar'))),
 				[d.subdir(['foo', 'bar']) for d in data_dirs()])
-	
+
 	@tests.skipIf(os.name == 'nt', 'No standard defaults for windows')
 	def testCorrect(self):
 		'''Test default basedir paths'''
@@ -119,12 +118,12 @@ class TestDirsDefault(TestCase):
 			('XDG_DATA_HOME', '~/.local/share'),
 			('XDG_CONFIG_HOME', '~/.config'),
 			('XDG_CACHE_HOME', '~/.cache')
-		): self.assertEqual(getattr(zim.config, k), Dir(v))
+		): self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
 
 		for k, v in (
 			('XDG_DATA_DIRS', '/usr/share:/usr/local/share'),
 			('XDG_CONFIG_DIRS', '/etc/xdg'),
-		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(':')))
+		): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
 
 
 class TestDirsEnvironment(TestDirsDefault):
@@ -147,12 +146,12 @@ class TestDirsEnvironment(TestDirsDefault):
 			for k, v in old_environ.items():
 				if v:
 					os.environ[k] = v
-			zim.config._set_basedirs() # refresh
+			zim.config.set_basedirs() # refresh
 
 		self.addCleanup(restore_environ)
 
 		os.environ.update(my_environ)
-		zim.config._set_basedirs() # refresh
+		zim.config.set_basedirs() # refresh
 
 	def testCorrect(self):
 		'''Test config environemnt with non-default basedir paths'''
@@ -160,15 +159,15 @@ class TestDirsEnvironment(TestDirsDefault):
 			('XDG_DATA_HOME', '/foo/data/home'),
 			('XDG_CONFIG_HOME', '/foo/config/home'),
 			('XDG_CACHE_HOME', '/foo/cache')
-		): self.assertEqual(getattr(zim.config, k), Dir(v))
+		): self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
 
 		for k, v in (
 			('XDG_DATA_DIRS', '/foo/data/dir1:/foo/data/dir2'),
 			('XDG_CONFIG_DIRS', '/foo/config/dir1:/foo/config/dir2'),
-		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(':')))
+		): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
 
 
-class TestConfigFile(TestCase):
+class TestConfigDictFile(tests.TestCase):
 
 	def testParsing(self):
 		'''Test config file format'''
@@ -277,39 +276,6 @@ none=None
 		self.assertTrue(conf.modified)
 
 
-	def testLookup(self):
-		'''Test lookup of config files'''
-		home = XDG_CONFIG_HOME.file('zim/preferences.conf')
-		default =  XDG_CONFIG_DIRS[0].file('zim/preferences.conf')
-		self.assertFalse(home.exists())
-		self.assertFalse(default.exists())
-
-		default.write('[TestData]\nfile=default\n')
-		self.assertTrue(default.exists())
-
-		file = config_file('preferences.conf')
-		defaults = list(file.default_files())
-		self.assertTrue(isinstance(file, ConfigFile))
-		self.assertEqual(file.file, home)
-		self.assertEqual(defaults[0], default)
-
-		dict = get_config('preferences.conf')
-		self.assertTrue(isinstance(dict, ConfigDictFile))
-		self.assertEqual(dict.file, file)
-		self.assertEqual(dict['TestData']['file'], 'default')
-
-		home.write('[TestData]\nfile=home\n')
-		self.assertTrue(home.exists())
-
-		dict = get_config('preferences.conf')
-		self.assertTrue(isinstance(dict, ConfigDictFile))
-		self.assertEqual(dict['TestData']['file'], 'home')
-
-		file = config_file('notebooks.list')
-		self.assertTrue(isinstance(file, ConfigFile))
-		file = config_file('accelarators')
-		self.assertTrue(isinstance(file, ConfigFile))
-
 	def testListDict(self):
 		'''Test ListDict class'''
 		keys = ['foo', 'bar', 'baz']
@@ -413,7 +379,7 @@ empty=
 		del conf
 		file_new.remove()
 
-class TestHeaders(TestCase):
+class TestHeaders(tests.TestCase):
 
 	def runTest(self):
 		'''Test HeadersDict class'''
@@ -468,7 +434,7 @@ test
 		self.assertEqual(headers.dump(), ['Foo-Bar: test\n'])
 
 
-class TestUserDirs(TestCase):
+class TestUserDirs(tests.TestCase):
 
 	def setUp(self):
 		XDG_CONFIG_HOME.file('user-dirs.dirs').write('''\
@@ -495,7 +461,7 @@ XDG_VIDEOS_DIR="$HOME/Videos"
 		self.assertEqual(dirs['XDG_DOCUMENTS_DIR'], Dir('~/Documents'))
 
 
-class TestHierarchicDict(TestCase):
+class TestHierarchicDict(tests.TestCase):
 
 	def runTest(self):
 		'''Test HierarchicDict class'''
@@ -512,3 +478,201 @@ class TestHierarchicDict(TestCase):
 		self.assertEqual(dict[Path('foo:bar:baz')]['key1'], 'foo')
 		dict['']['key2'] = 'FOO'
 		self.assertEqual(dict[Path('foo:bar:baz')]['key2'], 'FOO')
+
+
+
+class TestVirtualConfigBackend(tests.TestCase):
+
+	def runTest(self):
+		dir = VirtualConfigBackend()
+		file = dir.file('foo.conf')
+
+		self.assertEqual(file.path, '<virtual>/foo.conf')
+		self.assertEqual(file.basename, 'foo.conf')
+		self.assertFalse(file.exists())
+		self.assertRaises(FileNotFoundError, file.read)
+		self.assertRaises(FileNotFoundError, file.readlines)
+
+		file.touch()
+		self.assertTrue(file.exists())
+		self.assertEqual(file.read(), '')
+		self.assertEqual(file.readlines(), [])
+
+		file.remove()
+		self.assertFalse(file.exists())
+		self.assertRaises(FileNotFoundError, file.read)
+		self.assertRaises(FileNotFoundError, file.readlines)
+
+		file.write('foo\nbar\n')
+		self.assertTrue(file.exists())
+		self.assertEqual(file.read(), 'foo\nbar\n')
+		self.assertEqual(file.readlines(), ['foo\n', 'bar\n'])
+
+		file.writelines(['bar\n', 'baz\n'])
+		self.assertTrue(file.exists())
+		self.assertEqual(file.read(), 'bar\nbaz\n')
+		self.assertEqual(file.readlines(), ['bar\n', 'baz\n'])
+
+		file.write_async('foo\nbar\n')
+		file = dir.file('foo.conf') # test persistence
+		self.assertTrue(file.exists())
+		self.assertEqual(file.read(), 'foo\nbar\n')
+		self.assertEqual(file.readlines(), ['foo\n', 'bar\n'])
+
+		file.writelines_async(['bar\n', 'baz\n'])
+		file = dir.file('foo.conf') # test persistence
+		self.assertTrue(file.exists())
+		self.assertEqual(file.read(), 'bar\nbaz\n')
+		self.assertEqual(file.readlines(), ['bar\n', 'baz\n'])
+
+
+class TestXDGDefaultFileIter(tests.TestCase):
+
+	def setUp(self):
+		dir = zim.config.XDG_CONFIG_DIRS[0]
+		dir.file('zim/foo.conf').touch()
+
+	def tearDown(self):
+		dir = zim.config.XDG_CONFIG_DIRS[0]
+		dir.file('zim/foo.conf').remove()
+
+	def runTest(self):
+		defaults = XDGDefaultFileIter('foo.conf')
+		files = list(defaults)
+
+		self.assertTrue(len(files) > 0)
+		self.assertIsInstance(files[0], File)
+		self.assertEqual(files[0].basename, 'foo.conf')
+
+
+class TestConfigFile(tests.TestCase):
+
+	def testExistingFile(self):
+		file = ConfigFile(VirtualConfigBackendFile({}, 'foo.conf'))
+		self.assertEqual(file.basename, 'foo.conf')
+
+		other = ConfigFile(file.file)
+		self.assertTrue(other == file)
+
+		self.assertEqual(file.read(), '')
+		self.assertEqual(file.readlines(), [])
+		self.assertRaises(FileNotFoundError, file.read, fail=True)
+		self.assertRaises(FileNotFoundError, file.readlines, fail=True)
+
+		file.touch()
+		self.assertEqual(file.read(), '')
+		self.assertEqual(file.readlines(), [])
+		self.assertEqual(file.read(fail=True), '')
+		self.assertEqual(file.readlines(fail=True), [])
+
+		file.write('foo!\n')
+		self.assertEqual(file.read(), 'foo!\n')
+		self.assertEqual(file.readlines(), ['foo!\n'])
+
+		file.remove()
+		self.assertEqual(file.read(), '')
+		self.assertEqual(file.readlines(), [])
+		self.assertRaises(FileNotFoundError, file.read, fail=True)
+		self.assertRaises(FileNotFoundError, file.readlines, fail=True)
+
+
+	def testWithDefaults(self):
+		data = {'default.conf': 'default!\n'}
+		file = ConfigFile(
+			VirtualConfigBackendFile(data, 'foo.conf'),
+			[VirtualConfigBackendFile(data, 'default.conf')]
+		)
+
+		self.assertEqual(file.read(), 'default!\n')
+		self.assertEqual(file.readlines(), ['default!\n'])
+
+		file.touch()
+		self.assertEqual(file.read(), 'default!\n')
+		self.assertEqual(file.readlines(), ['default!\n'])
+
+		file.write('foo!\n')
+		self.assertEqual(file.read(), 'foo!\n')
+		self.assertEqual(file.readlines(), ['foo!\n'])
+
+		file.remove()
+		self.assertEqual(file.read(), 'default!\n')
+		self.assertEqual(file.readlines(), ['default!\n'])
+
+
+
+class ConfigManagerTests(object):
+
+	FILES = {
+		'foo.conf': 'FOO!\n',
+		'dict.conf': '''\
+[FOO]
+foo=test
+bar=test123
+'''
+	}
+
+	def runTest(self):
+		manager = self.manager
+
+		file = manager.get_config_file('foo.conf')
+		self.assertIsInstance(file, ConfigFile)
+		self.assertEquals(file.read(), 'FOO!\n')
+
+		newfile = manager.get_config_file('foo.conf')
+		self.assertEqual(id(file), id(newfile))
+
+		dict = manager.get_config_dict('dict.conf')
+		self.assertIsInstance(dict, ConfigDictFile)
+		self.assertEqual(dict['FOO']['foo'], 'test')
+
+		newdict = manager.get_config_dict('dict.conf')
+		self.assertEqual(id(dict), id(newdict))
+
+
+class TestVirtualConfigManager(tests.TestCase, ConfigManagerTests):
+
+	def setUp(self):
+		self.manager = VirtualConfigManager(**self.FILES)
+
+
+#~ @tests.slowTest
+#~ class TestConfigManager(tests.TestCase, ConfigManagerTests):
+
+	#~ def setUp(self):
+		#~ self.manager = ...
+
+		#~ def testLookup(self):
+		#~ '''Test lookup of config files'''
+		#~ home = XDG_CONFIG_HOME.file('zim/preferences.conf')
+		#~ default =  XDG_CONFIG_DIRS[0].file('zim/preferences.conf')
+		#~ self.assertFalse(home.exists())
+		#~ self.assertFalse(default.exists())
+#~
+		#~ default.write('[TestData]\nfile=default\n')
+		#~ self.assertTrue(default.exists())
+#~
+		#~ file = config_file('preferences.conf')
+		#~ defaults = list(file.default_files())
+		#~ self.assertTrue(isinstance(file, ConfigFile))
+		#~ self.assertEqual(file.file, home)
+		#~ self.assertEqual(defaults[0], default)
+#~
+		#~ dict = get_config('preferences.conf')
+		#~ self.assertTrue(isinstance(dict, ConfigDictFile))
+		#~ self.assertEqual(dict.file, file)
+		#~ self.assertEqual(dict['TestData']['file'], 'default')
+#~
+		#~ home.write('[TestData]\nfile=home\n')
+		#~ self.assertTrue(home.exists())
+#~
+		#~ dict = get_config('preferences.conf')
+		#~ self.assertTrue(isinstance(dict, ConfigDictFile))
+		#~ self.assertEqual(dict['TestData']['file'], 'home')
+#~
+		#~ file = config_file('notebooks.list')
+		#~ self.assertTrue(isinstance(file, ConfigFile))
+		#~ file = config_file('accelarators')
+		#~ self.assertTrue(isinstance(file, ConfigFile))
+
+
+

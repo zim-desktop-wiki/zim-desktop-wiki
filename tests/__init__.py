@@ -38,7 +38,7 @@ FAST_TEST = False #: determines whether we skip slow tests or not
 # This list also determines the order in which tests will executed
 __all__ = [
 	'package', 'translations',
-	'utils', 'errors', 'signals',
+	'utils', 'errors', 'signals', 'environ',
 	'fs', 'config', 'applications', 'async',
 	'parsing', 'formats', 'templates',
 	'stores', 'index', 'notebook', 'history',
@@ -182,10 +182,8 @@ class TestCase(unittest.TestCase):
 		The dir is removed and recreated empty every time this function
 		is called with the same name from the same class.
 		'''
+		self.clear_tmp_dir(name)
 		path = self._get_tmp_name(name)
-		if os.path.exists(path):
-			shutil.rmtree(path)
-		assert not os.path.exists(path) # make real sure
 		os.makedirs(path)
 		assert os.path.exists(path) # make real sure
 		return path
@@ -198,6 +196,13 @@ class TestCase(unittest.TestCase):
 		path = self._get_tmp_name(name)
 		assert not os.path.exists(path), 'This path should not exist: %s' % path
 		return path
+
+	def clear_tmp_dir(self, name=None):
+		'''Clears the tmp dir for this test'''
+		path = self._get_tmp_name(name)
+		if os.path.exists(path):
+			shutil.rmtree(path)
+		assert not os.path.exists(path) # make real sure
 
 	def _get_tmp_name(self, name):
 		if name:

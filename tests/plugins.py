@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
@@ -15,7 +15,9 @@ assert len(zim.plugins.__path__) > 1 # test __path__ magic
 zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
 
 
-class TestPlugins(tests.TestCase):
+class TestPluginClasses(tests.TestCase):
+
+	'''Test case to check coding and documentation of plugin classes'''
 
 	def runTest(self):
 		plugins = list_plugins()
@@ -93,6 +95,41 @@ class TestPlugins(tests.TestCase):
 
 class TestPluginManager(tests.TestCase):
 
+	'''Test case for TestManager infrastructure'''
+
+	def testLoadAndRemovePlugin(self):
+		manager = PluginManager()
+		self.assertEqual(len(manager), 0)
+		self.assertEqual(list(manager), [])
+
+		obj = manager.load_plugin('automount')
+		self.assertEqual(len(manager), 1)
+		self.assertEqual(list(manager), ['automount'])
+		self.assertEqual(manager['automount'], obj)
+
+		obj1 = manager.load_plugin('automount') # redundant call
+		self.assertEqual(obj1, obj)
+		self.assertEqual(len(manager), 1)
+
+		manager.remove_plugin('automount')
+		self.assertEqual(len(manager), 0)
+		self.assertEqual(list(manager), [])
+		self.assertRaises(KeyError, manager.__getitem__, 'automount')
+
+		manager.remove_plugin('automount') # redundant call
+
+	def testLoadNonExistingPlugin(self):
+		manager = PluginManager()
+		self.assertRaises(ImportError, manager.load_plugin, 'nonexistingplugin')
+
+	#~ def testReloadPlugins(self):
+		#~ manager.reload_plugins() # TODO
+
+
+class TestPluginExtensions(tests.TestCase):
+
+	'''Test case to initiate all (loadable) plugins and load some extensions'''
+
 	def runTest(self):
 		manager = PluginManager()
 		for name in list_plugins():
@@ -102,6 +139,8 @@ class TestPluginManager(tests.TestCase):
 				self.assertIn(name, manager)
 
 		self.assertTrue(len(manager) > 3)
+
+		# TODO test extending some objects
 
 		for name in manager:
 			manager[name].emit('preferences-changed')
@@ -114,23 +153,4 @@ class TestPluginManager(tests.TestCase):
 
 		self.assertTrue(len(manager) == 0)
 
-		# TODO test extending some objects
 
-
-#~ class TestExtensions(tests.TestCase):
-#~
-	#~ def runTest(self):
-		#~ ui = setupGtkInterface()
-		#~ manager = ui.plugins
-#~
-		#~ # TODO load all plugins
-#~
-		#~ # remove plugins
-		#~ for name in manager:
-			#~ manager.unload_plugin(name)
-		#~ self.assertEqual(len(manager), 0)
-#~
-		#~ # and add them again
-		#~ for name in plugins:
-			#~ manager.load_plugin(name)
-		#~ self.assertGreaterEqual(len(manager), 3) # default plugins without dependencies

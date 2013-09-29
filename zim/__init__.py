@@ -119,8 +119,7 @@ from getopt import gnu_getopt, GetoptError
 
 from zim.fs import File, Dir
 from zim.errors import Error
-from zim.config import data_dir, config_file, get_config, log_basedirs, \
-	ZIM_DATA_DIR, ConfigDictFile
+from zim.config import ZIM_DATA_DIR, ConfigDictFile, ConfigManager
 from zim.plugins import PluginManager
 
 
@@ -256,27 +255,30 @@ class NotebookInterface(gobject.GObject):
 		# Consider making initialize-notebook a hook where handlers
 		# return a resolved notebook
 
-	def __init__(self, notebook=None):
+	def __init__(self, config=None, notebook=None):
 		'''Constructor
 
-		@keyword notebook: the L{Notebook} object to open in this
+		@param config: a C{ConfigManager} object
+		@param notebook: the L{Notebook} object to open in this
 		interface. If not specified here you can call L{open_notebook()}
 		to open one later.
 		'''
 		gobject.GObject.__init__(self)
 		self.notebook = None
 
-		self.preferences = get_config('preferences.conf')
+		self.config = config or ConfigManager()
+		self.preferences = self.config.get_config_dict('<profile>/preferences.conf') ### preferences attrib should just be one section
 		self.preferences['General'].setdefault('plugins',
 			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
 
-		self.plugins = PluginManager(self.preferences)
+		self.plugins = PluginManager(config)
 		plugins = self.preferences['General']['plugins']
 		for name in sorted(plugins):
 			try:
 				self.plugins.load_plugin(name)
 			except:
 				logger.exception('Exception while loading plugin: %s', name)
+				plugins.remove(name)
 
 		self.uistate = None
 
@@ -359,70 +361,17 @@ class NotebookInterface(gobject.GObject):
 			from zim.config import ConfigDict
 			self.uistate = ConfigDict()
 
-		if notebook.profile:
-			self.on_profile_changed(notebook)
+		#~ def on_properties_changed(notebook):
+			#~ self.preferences.set_profile(notebook.profile)
+			#~ self.text_styles.set_profile(notebook.profile)
 
-		notebook.connect('profile-changed', self.on_profile_changed)
+		#~ if notebook.profile:
+			#~ on_properties_changed(notebook)
+
+		#~ notebook.connect('properties-changed', on_properties_changed)
 
 		self.plugins.extend(notebook)
 		self.plugins.extend(notebook.index)
-
-	def on_profile_changed(self, notebook):
-		# Switch config
-		if self.notebook.profile:
-			# Load the preferences for the profile
-			# In case new profile does not exist or is incomplete
-			# we cary over any settings from the current one
-			logger.debug('Profile changed to: %s', notebook.profile)
-			basename = self.notebook.profile.lower() + '.conf'
-			file = config_file(('profiles', basename))
-			self.preferences.change_file(file)
-			self.preferences.write()
-		else:
-			# Load default preferences
-			# We do a full flush to reset to default
-			logger.debug('Profile reset to default')
-			preferences = get_config('preferences.conf')
-			file = preferences.file
-			self.preferences.change_file(file)
-			for section in self.preferences.values():
-				section.clear()
-			self.preferences.read() # HACK Forces reading default as well
-
-		# Copy config for profile independent plugins
-		independent = [
-			p for p in self.plugins
-				if self.plugins[p].is_profile_independent
-		]
-		for name in independent:
-			plugin = self.plugins[name]
-			self.preferences[plugin.config_key] = \
-					plugin.preferences.copy()
-			if not name in self.preferences['General']['plugins']:
-				self.preferences['General']['plugins'].append(name)
-
-		# Notify ui objects
-		self.emit('preferences-changed')
-
-		# notify plugins of possible new preferences
-		# and remove old plugins
-		for name in self.plugins:
-			try:
-				if name in self.preferences['General']['plugins']:
-					self.plugins[name].emit('preferences-changed')
-				else:
-					self.plugins.remove_plugin(name)
-			except:
-				logger.exception('Exception in plugin: %s', name)
-
-		# load new plugins
-		plugins = self.preferences['General']['plugins']
-		for name in sorted(plugins):
-			try:
-				self.plugins.load_plugin(name)
-			except:
-				logger.exception('Exception while loading plugin: %s', name)
-
 
 # Need to register classes defining gobject signals
 gobject.type_register(NotebookInterface)

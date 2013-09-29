@@ -306,9 +306,9 @@ def get_tmpdir():
 	@returns: a L{Dir} object for the zim specific tmp folder
 	'''
 	import tempfile
-	from zim.config import get_environ
+	from zim.environ import environ
 	root = tempfile.gettempdir()
-	dir = Dir((root, 'zim-%s' % get_environ('USER')))
+	dir = Dir((root, 'zim-%s' % environ['USER']))
 	dir.touch(mode=0700) # Limit to single user
 	os.chmod(dir.path, 0700) # Limit to single user when dir already existed
 	return dir

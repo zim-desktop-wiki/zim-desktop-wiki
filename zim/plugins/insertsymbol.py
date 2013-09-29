@@ -8,7 +8,6 @@ import logging
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.actions import action
 from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow
-from zim.config import config_file
 
 
 logger = logging.getLogger('zim.plugins.insertsymbol')
@@ -40,7 +39,7 @@ This is a core plugin shipping with zim.
 	def load_file(self):
 		self.symbols = {}
 		self.symbol_order = []
-		file = config_file('symbols.list')
+		file = self.config.get_config_file('symbols.list')
 		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'): continue
@@ -197,7 +196,7 @@ class InsertSymbolDialog(Dialog):
 		self.textentry.set_position(pos + len(text))
 
 	def on_edit(self, button):
-		file = config_file('symbols.list')
+		file = self.confg.get_config_file('symbols.list')
 		if self.ui.edit_config_file(file):
 			self.plugin.load_file()
 			self.load_symbols()

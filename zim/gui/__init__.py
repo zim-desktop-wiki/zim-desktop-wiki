@@ -24,11 +24,12 @@ import zim
 from zim import NotebookInterface, NotebookLookupError, ZimCmd
 from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
+from zim.environ import environ
 from zim.signals import DelayedCallback
 from zim.notebook import Path, Page
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
-from zim.config import data_file, config_file, data_dirs, ListDict, value_is_coord, set_environ
+from zim.config import data_file, data_dirs, ListDict, value_is_coord
 from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
@@ -377,10 +378,11 @@ class GtkInterface(NotebookInterface):
 		'end-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	def __init__(self, notebook=None, page=None,
+	def __init__(self, config=None, notebook=None, page=None,
 		fullscreen=False, geometry=None):
 		'''Constructor
 
+		@param config: a C{ConfigManager} object
 		@param notebook: a L{Notebook} object
 		@param page: a L{Path} object
 		@param fullscreen: if C{True} open fullscreen
@@ -388,7 +390,7 @@ class GtkInterface(NotebookInterface):
 		'''
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
 
-		NotebookInterface.__init__(self)
+		NotebookInterface.__init__(self, config)
 		self.preferences_register = ListDict()
 		self.page = None
 		self._path_context = None
@@ -427,7 +429,7 @@ class GtkInterface(NotebookInterface):
 			gtk.rc_parse_string('gtk-error-bell = 0')
 
 		# Init UI
-		self.mainwindow = MainWindow(self, fullscreen, geometry)
+		self.mainwindow = MainWindow(self, self.preferences, fullscreen, geometry)
 
 		self.add_actions(ui_actions, self)
 		self.add_actions(ui_actions_window, self.mainwindow)
@@ -493,7 +495,7 @@ class GtkInterface(NotebookInterface):
 
 		if self.notebook.dir:
 			os.chdir(self.notebook.dir.path)
-			set_environ('PWD', self.notebook.dir.path)
+			environ['PWD'] = self.notebook.dir.path
 
 		if self.page is None:
 			path = self.history.get_current()
@@ -574,7 +576,7 @@ class GtkInterface(NotebookInterface):
 						self.fsbutton.tap_and_hold_setup(menu) # attach app menu to fullscreen button for N900
 						break
 
-		accelmap = config_file('accelmap').file
+		accelmap = self.config.get_config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
 		if accelmap.exists():
 			gtk.accel_map_load(accelmap.path)
@@ -2287,9 +2289,10 @@ class MainWindow(Window):
 		'fullscreen-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	def __init__(self, ui, fullscreen=False, geometry=None):
+	def __init__(self, ui, preferences=None, fullscreen=False, geometry=None):
 		'''Constructor
 		@param ui: the L{GtkInterFace}
+		@param preferences: a C{ListDict} with preferences
 		@param fullscreen: if C{True} the window is shown fullscreen,
 		if C{None} the previous state is restored
 		@param geometry: the window geometry as string in format
@@ -2298,6 +2301,8 @@ class MainWindow(Window):
 		Window.__init__(self)
 		self.isfullscreen = False
 		self.ui = ui
+
+		self.preferences = preferences
 
 		ui.connect('open-page', self.on_open_page)
 		ui.connect('close-page', self.on_close_page)
@@ -2393,8 +2398,8 @@ class MainWindow(Window):
 			self._set_fullscreen = True
 
 		# Init mouse settings
-		self.ui.preferences['GtkInterface'].setdefault('mouse_nav_button_back', 8)
-		self.ui.preferences['GtkInterface'].setdefault('mouse_nav_button_forw', 9)
+		self.preferences['GtkInterface'].setdefault('mouse_nav_button_back', 8)
+		self.preferences['GtkInterface'].setdefault('mouse_nav_button_forw', 9)
 
 	def do_update_statusbar(self, *a):
 		page = self.pageview.get_page()
@@ -2452,8 +2457,8 @@ class MainWindow(Window):
 		space = gtk.gdk.unicode_to_keyval(ord(' '))
 		group = gtk.AccelGroup()
 
-		self.ui.preferences['GtkInterface'].setdefault('toggle_on_altspace', False)
-		if self.ui.preferences['GtkInterface']['toggle_on_altspace']:
+		self.preferences['GtkInterface'].setdefault('toggle_on_altspace', False)
+		if self.preferences['GtkInterface']['toggle_on_altspace']:
 			# Hidden param, disabled because it causes problems with
 			# several international layouts (space mistaken for alt-space,
 			# see bug lp:620315)
@@ -2463,7 +2468,7 @@ class MainWindow(Window):
 
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Ctrl-Space
-		if self.ui.preferences['GtkInterface']['toggle_on_ctrlspace']:
+		if self.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Ctrl><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
@@ -2910,7 +2915,7 @@ class MainWindow(Window):
 
 		if path and isinstance(path, HistoryPath) and not path.cursor is None:
 			cursor = path.cursor
-		elif self.ui.preferences['GtkInterface']['always_use_last_cursor_pos']:
+		elif self.preferences['GtkInterface']['always_use_last_cursor_pos']:
 			cursor, _ = self.ui.history.get_state(page)
 		else:
 			cursor = None
@@ -2943,9 +2948,9 @@ class MainWindow(Window):
 	def do_button_press_event(self, event):
 		## Try to capture buttons for navigation
 		if event.button > 3:
-			if event.button == self.ui.preferences['GtkInterface']['mouse_nav_button_back']:
+			if event.button == self.preferences['GtkInterface']['mouse_nav_button_back']:
 				self.ui.open_page_back()
-			elif event.button == self.ui.preferences['GtkInterface']['mouse_nav_button_forw']:
+			elif event.button == self.preferences['GtkInterface']['mouse_nav_button_forw']:
 				self.ui.open_page_forward()
 			else:
 				logger.debug("Unused mouse button %i", event.button)

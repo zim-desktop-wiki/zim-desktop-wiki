@@ -9,7 +9,6 @@ import logging
 import zim.plugins
 from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
 	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
-from zim.gui.pageview import PageView
 
 
 logger = logging.getLogger('zim.gui.preferencesdialog')
@@ -83,8 +82,9 @@ class PreferencesDialog(Dialog):
 		self.fontbutton = gtk.FontButton()
 		self.fontbutton.set_use_font(True) # preview in button
 		self.fontbutton.set_sensitive(False)
+		text_style = self.ui.config.get_config_dict('<profile>/style.conf')
 		try:
-			font = PageView.style['TextView']['font']
+			font = text_style['TextView']['font']
 			if font:
 				self.fontbutton.set_font_name(font)
 				self.fontbutton.set_sensitive(True)
@@ -111,8 +111,10 @@ class PreferencesDialog(Dialog):
 			font = self.fontbutton.get_font_name()
 		else:
 			font = None
-		PageView.style['TextView']['font'] = font
-		PageView.style.write()
+
+		text_style = self.ui.config.get_config_dict('<profile>/style.conf')
+		text_style['TextView']['font'] = font
+		text_style.write() # XXX - trigger on changed
 
 		# Save all
 		self.ui.save_preferences()

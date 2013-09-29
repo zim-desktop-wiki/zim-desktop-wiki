@@ -31,7 +31,6 @@ from zim.fs import File, Dir, normalize_file_uris
 from zim.errors import Error
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
-from zim.config import config_file, get_config
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, TreeBuilder, ParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
@@ -4398,8 +4397,6 @@ class PageView(gtk.VBox):
 		'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	style = None # set below when constructing first instance
-
 	def __init__(self, ui, secondary=False):
 		'''Constructor
 
@@ -4409,6 +4406,10 @@ class PageView(gtk.VBox):
 		'''
 		gtk.VBox.__init__(self)
 		self.ui = ui
+
+		self.text_style = self.ui.config.get_config_dict('<profile>/style.conf')
+		#~ self.text_style.connect('changed', lambda o: self._reload_style())
+
 		self._buffer_signals = ()
 		self.page = None
 		self.readonly = True
@@ -4467,11 +4468,6 @@ class PageView(gtk.VBox):
 			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
 
-		if self.style is None:
-			# Initialize class attribute - first object instance only
-			PageView.style = get_config('style.conf')
-			PageView.style.profile = None
-			# this can be reset later when the profile changes
 		self.on_preferences_changed(self.ui) # also initializes the style
 		self.ui.connect('preferences-changed', self.on_preferences_changed)
 		self.ui.connect_object('readonly-changed', PageView.set_readonly, self)
@@ -4493,49 +4489,49 @@ class PageView(gtk.VBox):
 		'''(Re-)intializes properties for TextView, TextBuffer and
 		TextTags based on the properties in the style config.
 		'''
-		self.style['TextView'].setdefault('indent', TextBuffer.pixels_indent)
-		self.style['TextView'].setdefault('tabs', None, int)
+		self.text_style['TextView'].setdefault('indent', TextBuffer.pixels_indent)
+		self.text_style['TextView'].setdefault('tabs', None, int)
 			# Don't set a default for 'tabs' as not to break pages that
 			# were created before this setting was introduced.
-		self.style['TextView'].setdefault('linespacing', 3)
-		self.style['TextView'].setdefault('font', None, basestring)
-		self.style['TextView'].setdefault('justify', None, basestring)
-		#~ print self.style['TextView']
+		self.text_style['TextView'].setdefault('linespacing', 3)
+		self.text_style['TextView'].setdefault('font', None, basestring)
+		self.text_style['TextView'].setdefault('justify', None, basestring)
+		#~ print self.text_style['TextView']
 
 		# Set properties for TextVIew
-		if self.style['TextView']['tabs']:
+		if self.text_style['TextView']['tabs']:
 			tabarray = pango.TabArray(1, True) # Initial size, position in pixels
-			tabarray.set_tab(0, pango.TAB_LEFT, self.style['TextView']['tabs'])
+			tabarray.set_tab(0, pango.TAB_LEFT, self.text_style['TextView']['tabs'])
 				# We just set the size for one tab, apparently this gets
 				# copied automaticlly when a new tab is created by the textbuffer
 			self.view.set_tabs(tabarray)
 
-		if self.style['TextView']['linespacing']:
-			self.view.set_pixels_below_lines(self.style['TextView']['linespacing'])
+		if self.text_style['TextView']['linespacing']:
+			self.view.set_pixels_below_lines(self.text_style['TextView']['linespacing'])
 
-		if self.style['TextView']['font']:
-			font = pango.FontDescription(self.style['TextView']['font'])
+		if self.text_style['TextView']['font']:
+			font = pango.FontDescription(self.text_style['TextView']['font'])
 			self.view.modify_font(font)
 		else:
 			self.view.modify_font(None)
 
-		if self.style['TextView']['justify']:
+		if self.text_style['TextView']['justify']:
 			try:
-				const = self.style['TextView']['justify']
+				const = self.text_style['TextView']['justify']
 				assert hasattr(gtk, const), 'No such constant: gtk.%s' % const
 				self.view.set_justification(getattr(gtk, const))
 			except:
 				logger.exception('Exception while setting justification:')
 
 		# Set properties for TextBuffer
-		TextBuffer.pixels_indent = self.style['TextView']['indent']
+		TextBuffer.pixels_indent = self.text_style['TextView']['indent']
 
 		# Load TextTags
 		testbuffer = gtk.TextBuffer()
-		for tag in [k[4:] for k in self.style.keys() if k.startswith('Tag ')]:
+		for tag in [k[4:] for k in self.text_style.keys() if k.startswith('Tag ')]:
 			try:
 				assert tag in TextBuffer.tag_styles, 'No such tag: %s' % tag
-				attrib = self.style['Tag '+tag].copy()
+				attrib = self.text_style['Tag '+tag].copy()
 				for a in attrib.keys():
 					assert a in TextBuffer.tag_attributes, 'No such tag attribute: %s' % a
 					if isinstance(attrib[a], basestring):
@@ -4579,24 +4575,6 @@ class PageView(gtk.VBox):
 
 		for s in ('stored-page', 'deleted-page', 'moved-page'):
 			notebook.connect(s, assert_not_modified)
-
-		self.on_profile_changed(notebook)
-		notebook.connect('profile-changed', self.on_profile_changed)
-
-	def on_profile_changed(self, notebook):
-		# Keep in mind that style is a class attribute - maybe multiple
-		# pageview objects in existence when this signal fires
-		if self.style.profile != notebook.profile:
-			if notebook.profile is None:
-				PageView.style = get_config('style.conf')
-				PageView.style.profile = None
-			else:
-				# FIXME should we also check default file here ?
-				file = config_file(('styles', notebook.profile + '.conf'))
-				PageView.style.change_file(file)
-				PageView.style.profile = notebook.profile
-
-			self._reload_style()
 
 	def set_page(self, page, cursor=None):
 		'''Set the current page to be displayed in the pageview
@@ -5633,13 +5611,13 @@ class PageView(gtk.VBox):
 		self._zoom_increase_decrease_font_size( -1 )
 
 	def _zoom_increase_decrease_font_size(self,plus_or_minus):
-		style = self.style
-		if self.style['TextView']['font']:
-			font = pango.FontDescription(self.style['TextView']['font'])
+		style = self.text_style
+		if self.text_style['TextView']['font']:
+			font = pango.FontDescription(self.text_style['TextView']['font'])
 		else:
 			logger.debug( 'Switching to custom font implicitly because of zoom action' )
 			font = self.view.style.font_desc
-			self.style['TextView']['font'] = font.to_string()
+			self.text_style['TextView']['font'] = font.to_string()
 
 		font_size = font.get_size()
 		if font_size <= 1*1024 and plus_or_minus < 0:
@@ -5647,30 +5625,30 @@ class PageView(gtk.VBox):
 		else:
 			font_size_new = font_size + plus_or_minus * 1024
 			font.set_size( font_size_new )
-		self.style['TextView']['font'] = font.to_string()
+		self.text_style['TextView']['font'] = font.to_string()
 		self.view.modify_font(font)
 
-		self.style.write()
+		self.text_style.write()
 
 	def zoom_reset(self):
 		'''Menu action to reset the font size'''
-		if not self.style['TextView']['font']:
+		if not self.text_style['TextView']['font']:
 			return
 
 		widget = TextView({}) # Get new widget
 		default_font = widget.style.font_desc
 
-		font = pango.FontDescription(self.style['TextView']['font'])
+		font = pango.FontDescription(self.text_style['TextView']['font'])
 		font.set_size( default_font.get_size() )
 
 		if font.to_string() == default_font.to_string():
-			self.style['TextView']['font'] = None
+			self.text_style['TextView']['font'] = None
 			self.view.modify_font(None)
 		else:
-			self.style['TextView']['font'] = font.to_string()
+			self.text_style['TextView']['font'] = font.to_string()
 			self.view.modify_font(font)
 
-		self.style.write()
+		self.text_style.write()
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
@@ -5744,7 +5722,7 @@ class InsertDateDialog(Dialog):
 		lastused = None
 		model = self.view.get_model()
 		model.clear()
-		file = config_file('dates.list')
+		file = self.ui.config.get_config_file('<profile>/dates.list') # XXX
 		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'):
@@ -5792,7 +5770,7 @@ class InsertDateDialog(Dialog):
 		self.uistate['calendar_expanded'] = self.calendar_expander.get_expanded()
 
 	def on_edit(self, button):
-		file = config_file('dates.list')
+		file = self.ui.config.get_config_file('<profile>/dates.list') # XXX
 		if self.ui.edit_config_file(file):
 			self.load_file()
 
