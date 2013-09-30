@@ -163,6 +163,21 @@ def call_handlers(obj, signal, handlers, args):
 			yield r
 
 
+class BlockSignalsContextManager(object):
+
+	def __init__(self, obj, signals):
+		self.obj = obj
+		self.signals = signals
+
+	def __enter__(self):
+		for signal in self.signals:
+			self.obj.block_signal(signal)
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		for signal in self.signals:
+			self.obj.unblock_signal(signal)
+
+
 class SignalEmitter(object):
 	'''Replacement for C{GObject} to make objects emit signals.
 	API should be backward compatible with API offered by GObject.
@@ -264,6 +279,10 @@ class SignalEmitter(object):
 
 		return_first = signal in self.__hooks__ # XXX
 
+		if hasattr(self, '_blocked_signals') \
+		and self._blocked_signals.get(signal):
+			return # ignore emit
+
 		if not hasattr(self, '_signal_handlers') \
 		or not signal in self._signal_handlers:
 			return call_default(self, signal, args)
@@ -284,6 +303,32 @@ class SignalEmitter(object):
 			for r in call_handlers(self, signal, after, args):
 				if return_first and r is not None:
 					return r
+
+	def blocked_signals(self, *signals):
+		'''Returns a context manager for blocking one or more signals'''
+		return BlockSignalsContextManager(self, signals)
+
+	def block_signal(self, signal):
+		'''Block signal emition by signal name'''
+		assert signal not in self.__hooks__, 'Cannot block a hook'
+		#if self._get_signal(signal) is None:
+		#	raise ValueError, 'No such signal: %s' % signal
+
+		if not hasattr(self, '_blocked_signals'):
+			self._blocked_signals = {}
+
+		self._blocked_signals.setdefault(signal, 0)
+		self._blocked_signals[signal] += 1
+
+	def unblock_signal(self, signal):
+		'''Unblock signal emition by signal name'''
+		#if self._get_signal(signal) is None:
+		#	raise ValueError, 'No such signal: %s' % signal
+
+		if hasattr(self, '_blocked_signals') \
+		and signal in self._blocked_signals \
+		and self._blocked_signals[signal] > 0:
+			self._blocked_signals[signal] -= 1
 
 
 class DelayedCallback(object):

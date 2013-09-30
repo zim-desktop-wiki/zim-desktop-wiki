@@ -11,7 +11,7 @@ from zim.fs import File, Dir
 from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
-from zim.config import ConfigDict, VirtualConfigManager, ConfigManager
+from zim.config import SectionedConfigDict, VirtualConfigManager, ConfigManager
 from zim.gui.clipboard import Clipboard
 
 
@@ -1822,7 +1822,7 @@ class MockUI(tests.MockObject):
 		tests.MockObject.__init__(self)
 		self.mainwindow = None
 		self.notebook = tests.MockObject()
-		self.preferences = ConfigDict()
+		self.preferences = SectionedConfigDict()
 		self.page = Path('Test')
 
 	def register_preferences(self, section, list):

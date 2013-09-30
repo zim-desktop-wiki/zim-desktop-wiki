@@ -8,7 +8,7 @@ import tests
 
 from tests.pageview import setUpPageView, press, UndoStackManager
 
-from zim.config import ConfigDict
+from zim.config import SectionedConfigDict, ConfigManager
 
 from zim.plugins.insertsymbol import *
 
@@ -22,7 +22,7 @@ EGRAVE = unichr(200)
 class TestInsertSymbolPlugin(tests.TestCase):
 
 	def runTest(self):
-		plugin = InsertSymbolPlugin()
+		plugin = InsertSymbolPlugin(ConfigManager())
 
 		pageview = setUpPageView()
 		textview = pageview.view
@@ -33,7 +33,7 @@ class TestInsertSymbolPlugin(tests.TestCase):
 		mainwindow.pageview = pageview
 		mainwindow.ui = tests.MockObject() # XXX
 		mainwindow.ui.uimanager = tests.MockObject() # XXX
-		mainwindow.ui.uistate = ConfigDict()
+		mainwindow.ui.uistate = SectionedConfigDict()
 
 		plugin.extend(mainwindow, 'MainWindow')
 

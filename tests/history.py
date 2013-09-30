@@ -9,7 +9,7 @@ import copy
 import zim.history
 from zim.history import History, HistoryPath, RecentPath
 from zim.notebook import Path
-from zim.config import ConfigDict
+from zim.config import SectionedConfigDict
 
 
 class TestHistory(tests.TestCase):
@@ -243,7 +243,7 @@ class TestHistory(tests.TestCase):
 
 	def testSerialize(self):
 		'''Test parsing the history from the state file'''
-		uistate = ConfigDict()
+		uistate = SectionedConfigDict()
 		history = History(self.notebook, uistate)
 
 		for page in self.pages:
@@ -265,7 +265,7 @@ class TestHistory(tests.TestCase):
 
 		# clone uistate by text
 		lines = uistate.dump()
-		newuistate = ConfigDict()
+		newuistate = SectionedConfigDict()
 		newuistate.parse(lines)
 
 		# check new state
@@ -280,7 +280,7 @@ class TestHistory(tests.TestCase):
 		self.assertEqual(newhistory.get_current(), history.get_current())
 
 		# Check recent is initialized if needed
-		newuistate = ConfigDict()
+		newuistate = SectionedConfigDict()
 		newuistate.parse(lines)
 		newuistate['History'].pop('recent')
 		newhistory = History(self.notebook, newuistate)
@@ -292,10 +292,10 @@ class TestHistory(tests.TestCase):
 
 	def testRobustness(self):
 		'''Test history can deal with garbage data'''
-		uistate = ConfigDict()
-		uistate['list'] = 'FOOOO'
-		uistate['recent'] = [["BARRRR", 0]]
-		uistate['cursor'] = 'Not an integer'
+		uistate = SectionedConfigDict()
+		uistate['History']['list'] = 'FOOOO'
+		uistate['History']['recent'] = [["BARRRR", 0]]
+		uistate['History']['cursor'] = 'Not an integer'
 		history = History(self.notebook, uistate)
 		self.assertEqual(list(history.get_history()), [])
 		self.assertEqual(list(history.get_recent()), [])

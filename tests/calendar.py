@@ -11,7 +11,6 @@ import zim.datetimetz
 
 import zim.plugins
 from zim.notebook import Path
-from zim.config import ConfigDict
 from zim.templates import get_template
 
 

@@ -7,7 +7,7 @@ from weakref import WeakValueDictionary
 
 
 from . import basedirs
-from .dicts import ConfigDictFile
+from .dicts import INIConfigFile
 
 from zim.fs import FileNotFoundError
 
@@ -78,15 +78,21 @@ class ConfigManager(object):
 			return config_file
 
 	def get_config_dict(self, filename):
-		'''Returns a C{ConfigDict} object for C{filename}'''
+		'''Returns a C{SectionedConfigDict} object for C{filename}'''
 		path = self._expand_path(filename)
 		if path in self._config_dicts:
 			return self._config_dicts[path]
 		else:
 			file = self.get_config_file(path)
-			config_dict = ConfigDictFile(file)
+			config_dict = INIConfigFile(file)
+			config_dict.connect_after('changed', self.on_dict_changed)
+				# autosave on changing the dict, connect after
+				# regular handlers to avoid getting stuck with a set
 			self._config_dicts[path] = config_dict
 			return config_dict
+
+	def on_dict_changed(self, dict):
+		dict.write()
 
 	#def get_all_config_files(filename)  - iterate multiple values ?
 	#def get_config_section(filename, section): - return section

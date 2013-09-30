@@ -2748,7 +2748,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 	@ivar ui: parent C{gtk.Window} or C{GtkInterface}
 	@ivar vbox: C{gtk.VBox} for main widgets of the dialog
 	@ivar form: L{InputForm} added by C{add_form()}
-	@ivar uistate: L{ListDict} to store state of the dialog, persistent
+	@ivar uistate: L{ConfigDict} to store state of the dialog, persistent
 	per notebook. The size and position of the dialog are stored as
 	automatically in this dict already.
 	@ivar result: result to be returned by L{run()}
@@ -2821,6 +2821,9 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			title=format_title(title),
 			flags=gtk.DIALOG_NO_SEPARATOR|gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
+		if hasattr(ui, 'ui') and hasattr(ui.ui, 'uistate'):
+				ui = ui.ui # HACK - we get other window instead.. - avoid triggering Mock objects in test ...
+
 		self.ui = ui
 		self.result = None
 		self._registered = False
@@ -2829,13 +2832,13 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			self.vbox.set_spacing(5)
 
 		if hasattr(self, 'uistate'):
-			assert isinstance(self.uistate, zim.config.ListDict) # just to be sure
+			assert isinstance(self.uistate, zim.config.ConfigDict) # just to be sure
 		elif hasattr(ui, 'uistate') \
-		and isinstance(ui.uistate, zim.config.ConfigDict):
+		and isinstance(ui.uistate, zim.config.SectionedConfigDict):
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
 		else:
-			self.uistate = zim.config.ListDict()
+			self.uistate = zim.config.ConfigDict()
 
 		# note: _windowpos is defined with a leading "_" so it is not
 		# persistent across instances, this is intentional to avoid

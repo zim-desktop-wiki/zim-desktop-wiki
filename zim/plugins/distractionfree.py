@@ -52,17 +52,19 @@ class MainWindowExtension(WindowExtension):
 		self._normal_colors = None
 		self._show_panes = True
 		self.preferences = plugin.preferences
-		self.on_preferences_changed()
-		self.connectto(plugin, 'preferences-changed')
+
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
 		self.connectto(window, 'fullscreen-changed')
 		self.connectto(window.pageview.view, 'size-allocate')
 
-	def on_preferences_changed(self):
+	def on_preferences_changed(self, preferences):
 		# Set show menubar & Update margins
-		show_menubar = not self.preferences['hide_menubar']
-		show_toolbar = not self.preferences['hide_toolbar']
-		show_pathbar = not self.preferences['hide_pathbar']
-		show_statusbar = not self.preferences['hide_statusbar']
+		show_menubar = not preferences['hide_menubar']
+		show_toolbar = not preferences['hide_toolbar']
+		show_pathbar = not preferences['hide_pathbar']
+		show_statusbar = not preferences['hide_statusbar']
 		if self.window.isfullscreen:
 			self.window.toggle_menubar(show_menubar)
 			self.window.toggle_toolbar(show_toolbar)

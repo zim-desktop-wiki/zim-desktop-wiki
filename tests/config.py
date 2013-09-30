@@ -167,7 +167,68 @@ class TestDirsEnvironment(TestDirsDefault):
 		): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
 
 
-class TestConfigDictFile(tests.TestCase):
+class TestControlledDict(tests.TestCase):
+
+	def runTest(self):
+		mydict = ControlledDict({'foo': 'bar'})
+		self.assertFalse(mydict.modified)
+
+		mydict['bar'] = 'dus'
+		self.assertTrue(mydict.modified)
+		mydict.set_modified(False)
+
+		mydict['section'] = ControlledDict()
+		mydict['section']['dus'] = 'ja'
+		self.assertTrue(mydict['section'].modified)
+		self.assertTrue(mydict.modified)
+
+		mydict.set_modified(False)
+		self.assertFalse(mydict.modified)
+
+		mydict['section'].set_modified(False)
+		self.assertFalse(mydict['section'].modified)
+		self.assertFalse(mydict.modified)
+
+		mydict['section'] = ControlledDict() # nested dict
+		mydict['section']['dus'] = 'FOO!'
+		self.assertTrue(mydict['section'].modified)
+		self.assertTrue(mydict.modified)
+
+		mydict.set_modified(False)
+		self.assertFalse(mydict['section'].modified)
+		self.assertFalse(mydict.modified)
+
+		mydict.update({'nu': 'ja'})
+		self.assertTrue(mydict.modified)
+		mydict.set_modified(False)
+
+		mydict.setdefault('nu', 'XXX')
+		self.assertFalse(mydict.modified)
+		mydict.setdefault('new', 'XXX')
+		self.assertTrue(mydict.modified)
+
+		counter = [0]
+		def handler(o):
+			counter[0] += 1
+
+		mydict.connect('changed', handler)
+		mydict['nu'] = 'YYY'
+		self.assertEqual(counter, [1])
+
+		mydict.update({'a': 'b', 'c': 'd', 'e': 'f'})
+		self.assertEqual(counter, [2]) # signal only emitted once
+
+		mydict['section']['foo'] = 'zzz'
+		self.assertEqual(counter, [3]) # recursive signal
+		mydict.set_modified(False)
+
+		v = mydict.pop('nu')
+		self.assertEqual(v, 'YYY')
+		self.assertTrue(mydict.modified)
+		self.assertRaises(KeyError, mydict.__getitem__, v)
+
+
+class TestINIConfigFile(tests.TestCase):
 
 	def testParsing(self):
 		'''Test config file format'''
@@ -175,7 +236,7 @@ class TestConfigDictFile(tests.TestCase):
 		if file.exists():
 			file.remove()
 		assert not file.exists()
-		conf = ConfigDictFile(file)
+		conf = INIConfigFile(file)
 		conf['Foo']['xyz'] = 'foooooo'
 		conf['Foo']['foobar'] = 0
 		conf['Foo']['test'] = True
@@ -202,7 +263,7 @@ none=None
 		self.assertEqual(file.read(), text)
 
 		del conf
-		conf = ConfigDictFile(file)
+		conf = INIConfigFile(file)
 		self.assertFalse(conf.modified)
 		self.assertEqual(conf, {
 			'Foo': {
@@ -275,109 +336,24 @@ none=None
 			self.assertEqual(conf['Bar'].setdefault('string', 'foo', check_class_allow_empty), 'foo')
 		self.assertTrue(conf.modified)
 
-
-	def testListDict(self):
-		'''Test ListDict class'''
+	def testConfigDict(self):
+		'''Test ConfigDict class'''
 		keys = ['foo', 'bar', 'baz']
-		mydict = ListDict()
-		self.assertFalse(mydict.modified)
+		mydict = ConfigDict()
 		for k in keys:
 			mydict[k] = 'dusss'
-		self.assertTrue(mydict.modified)
-
-		val = mydict.get('newkey')
-		self.assertEqual(val, None)
-		# get() does _not_ set the key if it doesn't exist
 
 		val = mydict.setdefault('dus', 'ja')
 		self.assertEqual(val, 'ja')
 		val = mydict.setdefault('dus', 'hmm')
 		self.assertEqual(val, 'ja')
 		keys.append('dus')
-
-		self.assertEquals(mydict.keys(), keys)
-		self.assertEquals([k for k in mydict], keys)
-
-		mykeys = [k for k, v in mydict.items()]
-		self.assertEquals(mykeys, keys)
-		myval = [v for k, v in mydict.items()]
-		self.assertEquals(myval, ['dusss', 'dusss', 'dusss', 'ja'])
-
-		val = mydict.pop('bar')
-		self.assertEqual(val, 'dusss')
-		self.assertEqual(mydict.keys(), ['foo', 'baz', 'dus'])
-
-		mydict.update({'bar': 'barrr'}, tja='ja ja')
-		self.assertEquals(mydict.items(), (
-			('foo', 'dusss'),
-			('baz', 'dusss'),
-			('dus', 'ja'),
-			('bar', 'barrr'),
-			('tja', 'ja ja'),
-		))
-
-		del mydict['tja']
-		self.assertEquals(mydict.items(), (
-			('foo', 'dusss'),
-			('baz', 'dusss'),
-			('dus', 'ja'),
-			('bar', 'barrr'),
-		))
-
-		mydict.update((('tja', 'ja ja'), ('baz', 'bazzz')))
-		self.assertEquals(mydict.items(), (
-			('foo', 'dusss'),
-			('baz', 'bazzz'),
-			('dus', 'ja'),
-			('bar', 'barrr'),
-			('tja', 'ja ja'),
-		))
+		# TODO much more validation of the setdefault logic !
 
 		newdict = mydict.copy()
-		self.assertTrue(isinstance(newdict, ListDict))
+		self.assertTrue(isinstance(newdict, ConfigDict))
 		self.assertEquals(newdict.items(), mydict.items())
 
-		mydict.set_order(('baz', 'bar', 'foo', 'boooo', 'dus'))
-		self.assertEquals(mydict.items(), (
-			('baz', 'bazzz'),
-			('bar', 'barrr'),
-			('foo', 'dusss'),
-			('dus', 'ja'),
-			('tja', 'ja ja'),
-		))
-		self.assertTrue(isinstance(mydict.order, list))
-
-	def testChangeFile(self):
-		'''Test changing the file used as datastore'''
-		file = XDG_CONFIG_HOME.file('zim/config_TestConfigFile.conf')
-		if file.exists():
-			file.remove()
-		assert not file.exists()
-		conf = ConfigDictFile(file)
-		conf['Foo']['xyz'] = 'foooooo'
-		conf['Bar']['empty'] = ''
-		conf.write()
-		text = u'''\
-[Foo]
-xyz=foooooo
-
-[Bar]
-empty=
-
-'''
-		self.assertEqual(file.read(), text)
-		file_new = XDG_CONFIG_HOME.file('zim/config_TestConfigFile2.conf')
-		if file_new.exists():
-			file_new.remove()
-		assert not file_new.exists()
-		conf.change_file(file_new)
-		file.remove()
-		conf.write()
-		assert not file.exists()
-		self.assertEqual(file_new.read(), text)
-
-		del conf
-		file_new.remove()
 
 class TestHeaders(tests.TestCase):
 
@@ -622,11 +598,23 @@ bar=test123
 		self.assertEqual(id(file), id(newfile))
 
 		dict = manager.get_config_dict('dict.conf')
-		self.assertIsInstance(dict, ConfigDictFile)
+		self.assertIsInstance(dict, INIConfigFile)
 		self.assertEqual(dict['FOO']['foo'], 'test')
 
 		newdict = manager.get_config_dict('dict.conf')
 		self.assertEqual(id(dict), id(newdict))
+
+		dict['FOO']['foo'] = 'dus'
+		dict['FOO']['newkey'] = 'ja'
+		text = manager.get_config_file('dict.conf').read()
+			# We implicitly test that updates are stored already automatically
+		self.assertEquals(text, '''\
+[FOO]
+foo=dus
+bar=test123
+newkey=ja
+
+''')
 
 
 class TestVirtualConfigManager(tests.TestCase, ConfigManagerTests):
@@ -658,7 +646,7 @@ class TestVirtualConfigManager(tests.TestCase, ConfigManagerTests):
 		#~ self.assertEqual(defaults[0], default)
 #~
 		#~ dict = get_config('preferences.conf')
-		#~ self.assertTrue(isinstance(dict, ConfigDictFile))
+		#~ self.assertTrue(isinstance(dict, INIConfigFile))
 		#~ self.assertEqual(dict.file, file)
 		#~ self.assertEqual(dict['TestData']['file'], 'default')
 #~
@@ -666,7 +654,7 @@ class TestVirtualConfigManager(tests.TestCase, ConfigManagerTests):
 		#~ self.assertTrue(home.exists())
 #~
 		#~ dict = get_config('preferences.conf')
-		#~ self.assertTrue(isinstance(dict, ConfigDictFile))
+		#~ self.assertTrue(isinstance(dict, INIConfigFile))
 		#~ self.assertEqual(dict['TestData']['file'], 'home')
 #~
 		#~ file = config_file('notebooks.list')

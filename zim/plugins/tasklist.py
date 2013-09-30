@@ -155,8 +155,8 @@ class IndexExtension(ObjectExtension):
 			self.db_initialized = True
 
 		self._set_preferences()
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
-		self.connectto(plugin, 'preferences-changed')
 		self.connectto_all(self.index, (
 			('initialize-db', self.initialize_db, None, SIGNAL_AFTER),
 			('page-indexed', self.index_page),
@@ -164,7 +164,7 @@ class IndexExtension(ObjectExtension):
 		))
 		# We don't care about pages that are moved
 
-	def on_preferences_changed(self, plugin):
+	def on_preferences_changed(self, preferences):
 		if self._current_preferences is None \
 		or not self.db_initialized:
 			return

@@ -2,6 +2,8 @@
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from __future__ import with_statement
+
 import pango
 import gtk
 import logging
@@ -100,24 +102,32 @@ class PreferencesDialog(Dialog):
 
 	def do_response_ok(self):
 		# Get dynamic tabs
+		newpreferences = {}
 		for form in self.forms.values():
 			for key, value in form.items():
 				section = form.preferences_sections[key]
-				self.ui.preferences[section][key] = value
+				if not section in newpreferences:
+					newpreferences[section] = {}
+				newpreferences[section][key] = value
 
 		# Set font - special case, consider it a HACK
-		custom = self.ui.preferences['GtkInterface'].pop('use_custom_font')
-		if custom:
+		customfont = newpreferences['GtkInterface'].pop('use_custom_font')
+		if customfont:
 			font = self.fontbutton.get_font_name()
 		else:
 			font = None
 
 		text_style = self.ui.config.get_config_dict('<profile>/style.conf')
 		text_style['TextView']['font'] = font
-		text_style.write() # XXX - trigger on changed
+		#
 
-		# Save all
-		self.ui.save_preferences()
+		with self.ui.preferences.blocked_signals('changed'):
+			# note we do not block signal on section dicts
+			for section in newpreferences:
+				self.ui.preferences[section].update(newpreferences[section])
+
+		self.ui.preferences.emit('changed') # delayed emission
+
 		return True
 
 	def do_response_cancel(self):
@@ -128,21 +138,24 @@ class PreferencesDialog(Dialog):
 
 		# Restore previous situation if the user changed something
 		# in this dialog session
-		for name in zim.plugins.list_plugins():
-			try:
-				klass = zim.plugins.get_plugin_class(name)
-			except:
-				continue
+		with self.ui.preferences.blocked_signals('changed'):
+			for name in zim.plugins.list_plugins():
+				try:
+					klass = zim.plugins.get_plugin_class(name)
+				except:
+					continue
 
-			activatable = klass.check_dependencies_ok()
+				activatable = klass.check_dependencies_ok()
 
-			if klass in self.p_save_loaded and activatable and klass not in now_loaded:
-				self.ui.load_plugin(klass.plugin_key)
-			elif klass not in self.p_save_loaded and klass in now_loaded:
-				self.ui.unload_plugin(klass.plugin_key)
+				if klass in self.p_save_loaded and activatable and klass not in now_loaded:
+					self.ui.load_plugin(klass.plugin_key)
+				elif klass not in self.p_save_loaded and klass in now_loaded:
+					self.ui.unload_plugin(klass.plugin_key)
 
-		self.ui.save_preferences()
+		self.ui.preferences.emit('changed') # delayed emission
+
 		return True
+
 
 class PluginsTab(gtk.HBox):
 
@@ -334,7 +347,6 @@ class PluginConfigureDialog(Dialog):
 		# First let the plugin receive the changes, then save them.
 		# The plugin could do some conversion on the fly (e.g. Path to string)
 		self.plugin.preferences.update(self.form)
-		self.plugin.emit('preferences-changed')
 		return True
 
 

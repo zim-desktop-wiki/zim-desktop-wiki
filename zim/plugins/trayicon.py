@@ -64,7 +64,12 @@ This is a core plugin shipping with zim.
 		version_ok = (gtk.gtk_version >= (2, 10, 0))
 		return (version_ok, [('GTK >= 2.10', version_ok, True)])
 
-	def do_preferences_changed(self):
+	def __init__(self, config=None):
+		PluginClass.__init__(self, config)
+		self.preferences.connect('changed', self.on_preferences_changed)
+		self.on_preferences_changed(self.preferences)
+
+	def on_preferences_changed(self, preferences):
 		klass = self.get_extension_class()
 		self.set_extension_class('MainWindow', klass)
 

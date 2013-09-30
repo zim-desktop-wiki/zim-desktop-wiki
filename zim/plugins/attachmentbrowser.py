@@ -296,8 +296,9 @@ class MainWindowExtension(WindowExtension):
 		opener = self.window.get_resource_opener()
 		self.widget = AttachmentBrowserPluginWidget(self, opener, self.preferences)
 			# FIXME FIXME FIXME - get rid of ui object here
-		self.connectto(plugin, 'preferences-changed')
-		self.on_preferences_changed()
+
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 		# XXX
 		if self.window.ui.page:
@@ -306,12 +307,12 @@ class MainWindowExtension(WindowExtension):
 
 		self.connectto(self.window, 'pane-state-changed')
 
-	def on_preferences_changed(self):
+	def on_preferences_changed(self, preferences):
 		try:
 			self.window.remove(self.widget)
 		except ValueError:
 			pass
-		self.window.add_tab(self.TAB_NAME, self.widget, self.preferences['pane'])
+		self.window.add_tab(self.TAB_NAME, self.widget, preferences['pane'])
 		self.widget.show_all()
 
 	@toggle_action(

@@ -142,9 +142,11 @@ class TestPluginExtensions(tests.TestCase):
 
 		# TODO test extending some objects
 
-		for name in manager:
-			manager[name].emit('preferences-changed')
-				# just checking for exceptions
+		for i, name in enumerate(manager):
+			manager[name].preferences.emit('changed')
+				# Checking for exceptions and infinite recursion
+
+		self.assertTrue(i > 0)
 
 		for name in manager:
 			self.assertIsInstance(manager[name], PluginClass)

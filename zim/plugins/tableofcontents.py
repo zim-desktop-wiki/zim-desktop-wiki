@@ -83,8 +83,13 @@ This is a core plugin shipping with zim.
 	)
 	# TODO disable pane setting if not embedded
 
-	def do_preferences_changed(self):
-		if self.preferences['floating']:
+	def __init__(self, config=None):
+		PluginClass.__init__(self, config)
+		self.preferences.connect('changed', self.on_preferences_changed)
+		self.on_preferences_changed(self.preferences)
+
+	def on_preferences_changed(self, preferences):
+		if preferences['floating']:
 			self.set_extension_class('MainWindow', MainWindowExtensionFloating)
 		else:
 			self.set_extension_class('MainWindow', MainWindowExtensionEmbedded)
@@ -96,17 +101,18 @@ class MainWindowExtensionEmbedded(WindowExtension):
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 		self.widget = ToCWidget(self.window.ui, self.window.pageview) # XXX
-		self.on_preferences_changed(plugin)
-		self.connectto(plugin, 'preferences-changed')
 
-	def on_preferences_changed(self, plugin):
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
+	def on_preferences_changed(self, preferences):
 		try:
 			self.window.remove(self.widget)
 		except ValueError:
 			pass
 
 		self.window.add_tab(
-			_('ToC'), self.widget, self.plugin.preferences['pane'])
+			_('ToC'), self.widget, preferences['pane'])
 			# T: widget label
 		self.widget.show_all()
 

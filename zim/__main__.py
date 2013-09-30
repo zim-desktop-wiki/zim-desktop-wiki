@@ -184,7 +184,7 @@ class GuiCommand(NotebookCommand):
 
 		if self.opts.get('standalone'):
 			import zim.gui
-			handler = zim.gui.GtkInterface(notebook, page, **self.get_options('geometry', 'fullscreen'))
+			handler = zim.gui.GtkInterface(notebook=notebook, page=page, **self.get_options('geometry', 'fullscreen'))
 			handler.main()
 		else:
 			import zim.ipc

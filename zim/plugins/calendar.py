@@ -104,8 +104,11 @@ Also adds a calendar widget to access these pages.
 		PluginClass.__init__(self, config)
 		self.connectto(TemplateManager, 'process-page', self.on_process_page_template)
 
-	def do_preferences_changed(self):
-		if self.preferences['embedded']:
+		self.preferences.connect('changed', self.on_preferences_changed)
+		self.on_preferences_changed(self.preferences)
+
+	def on_preferences_changed(self, preferences):
+		if preferences['embedded']:
 			self.set_extension_class('MainWindow', MainWindowExtensionEmbedded)
 		else:
 			self.set_extension_class('MainWindow', MainWindowExtensionDialog)
@@ -180,8 +183,10 @@ class NotebookExtension(ObjectExtension):
 		self.plugin = plugin
 		self.notebook = notebook
 		self._set_template = None
-		self.on_preferences_changed(plugin)
-		self.connectto(self.plugin, 'preferences-changed')
+
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
 		self.connectto(notebook, 'suggest_link')
 
 	def on_suggest_link(self, source, text):
@@ -196,9 +201,9 @@ class NotebookExtension(ObjectExtension):
 		else:
 			return None
 
-	def on_preferences_changed(self, plugin):
+	def on_preferences_changed(self, preferences):
 		self.teardown()
-		ns = self.plugin.preferences['namespace'].name
+		ns = preferences['namespace'].name
 		self.notebook.namespace_properties[ns]['template'] = 'Journal'
 		self._set_template = ns
 
@@ -282,17 +287,18 @@ class MainWindowExtensionEmbedded(MainWindowExtension):
 		model = CalendarWidgetModel(self.plugin, notebook)
 		self.widget = CalendarWidget(model)
 
-		self.on_preferences_changed(plugin)
-		self.connectto(self.plugin, 'preferences-changed')
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
 		self.connectto(self.widget, 'date-activated')
 		self.connectto(self.window.ui, 'open-page') # XXX
 
-	def on_preferences_changed(self, plugin):
+	def on_preferences_changed(self, preferences):
 		try:
 			self.window.remove(self.widget)
 		except ValueError:
 			pass
-		self.window.add_widget(self.widget, self.plugin.preferences['pane'])
+		self.window.add_widget(self.widget, preferences['pane'])
 		self.widget.show_all()
 
 	def on_open_page(self, ui, page, path):

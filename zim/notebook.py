@@ -87,7 +87,7 @@ from .base import Object
 import zim.fs
 from zim.fs import File, Dir
 from zim.errors import Error, TrashNotSupportedError
-from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
+from zim.config import SectionedConfigDict, INIConfigFile, HierarchicDict, \
 	data_dir, config_dirs, ConfigManager, XDGDefaultFileIter #list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode, url_decode
@@ -165,7 +165,7 @@ class NotebookInfo(object):
 		dir = Dir(self.uri)
 		file = dir.file('notebook.zim')
 		if file.exists() and file.mtime() != self.mtime:
-			config = ConfigDictFile(file)
+			config = INIConfigFile(file)
 
 			self.name = config['Notebook'].get('name') or dir.basename
 			self.interwiki = config['Notebook'].get('interwiki')
@@ -260,7 +260,7 @@ class NotebookInfoList(list):
 
 		# Parse rest of the file with cache
 		cache = {}
-		config = ConfigDict()
+		config = SectionedConfigDict()
 		config['Notebook'] = []
 		config.parse(text[i+1:])
 		for section in config['Notebook']:
@@ -518,7 +518,7 @@ def init_notebook(path, name=None):
 	'''Initialize a new notebook in a directory'''
 	assert isinstance(path, Dir)
 	path.touch()
-	config = ConfigDictFile(path.file('notebook.zim'))
+	config = INIConfigFile(path.file('notebook.zim'))
 	config['Notebook']['name'] = name or path.basename
 	config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
 	if os.name == 'nt': endofline = 'dos'
@@ -674,7 +674,7 @@ class Notebook(Object):
 	@ivar dir: Optional L{Dir} object for the X{notebook folder}
 	@ivar file: Optional L{File} object for the X{notebook file}
 	@ivar cache_dir: A L{Dir} object for the folder used to cache notebook state
-	@ivar config: A L{ConfigDict} for the notebook config
+	@ivar config: A L{SectionedConfigDict} for the notebook config
 	(the C{X{notebook.zim}} config file in the notebook folder)
 	@ivar lock: An L{AsyncLock} for async notebook operations
 	@ivar profile: The name of the profile used by the notebook or C{None}
@@ -760,7 +760,7 @@ class Notebook(Object):
 				self.readonly = False
 
 			if self.config is None:
-				self.config = ConfigDictFile(dir.file('notebook.zim'))
+				self.config = INIConfigFile(dir.file('notebook.zim'))
 
 			self.cache_dir = dir.subdir('.zim')
 			if self.readonly or self.config['Notebook'].get('shared') \
@@ -796,7 +796,7 @@ class Notebook(Object):
 		self.index.connect('page-updated', on_page_updated)
 
 		if self.config is None:
-			self.config = ConfigDict()
+			self.config = SectionedConfigDict()
 			self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
 		else:
 			if self.needs_upgrade:

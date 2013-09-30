@@ -12,7 +12,7 @@ from zim.notebook import Path
 from zim.gui.pageindex import FGCOLOR_COL, \
 	EMPTY_COL, NAME_COL, PATH_COL, STYLE_COL
 	# Explicitly don't import * from pageindex, make clear what we re-use
-from zim.config import ListDict
+from zim.config import ConfigDict
 from zim.plugins.tags import *
 
 
@@ -246,7 +246,7 @@ class TestTagPluginWidget(tests.TestCase):
 	def runTest(self):
 		ui = MockUI()
 		ui.notebook = tests.new_notebook()
-		uistate = ListDict()
+		uistate = ConfigDict()
 		widget = TagsPluginWidget(ui.notebook.index, uistate, ui)
 
 		# Excersize all model switches and check we still have a sane state

@@ -35,7 +35,7 @@ from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER
 from zim.actions import action, toggle_action, get_actiongroup
 from zim.utils import classproperty, get_module, lookup_subclass, WeakSet
 
-from zim.config import ConfigManager
+from zim.config import VirtualConfigManager
 
 
 logger = logging.getLogger('zim.plugins')
@@ -159,13 +159,18 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 	'''
 
 	def __init__(self, config=None):
-		self.config = config or ConfigManager() # FIXME: Is this a smart fallback ?
+		self.config = config or VirtualConfigManager()
+		self.general_preferences = \
+			self.config.get_config_dict('<profile>/preferences.conf')['General']
+		self.general_preferences.setdefault('plugins', [])
 
 		self._plugins = {}
 		self._extendables = WeakSet()
 
 		#~ self.preferences.connectto(self.preferences, 'changed',
 			#~ lambda o: self.reload_plugins())
+
+		self._load_plugins()
 
 	def __getitem__(self, name):
 		return self._plugins[name]
@@ -176,6 +181,16 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 
 	def __len__(self):
 		return len(self._plugins)
+
+	def _load_plugins(self):
+		'''Load plugins based on config'''
+		plugins = self.general_preferences['plugins']
+		for name in sorted(plugins):
+			try:
+				self.load_plugin(name)
+			except:
+				logger.exception('Exception while loading plugin: %s', name)
+				plugins.remove(name)
 
 	def load_plugin(self, name):
 		'''Load a single plugin by name
@@ -207,6 +222,9 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 			except:
 				logger.exception('Exception in plugin: %s', name)
 
+		if not name in self.general_preferences['plugins']:
+			self.general_preferences['plugins'].append(name)
+
 		return plugin
 
 	def remove_plugin(self, name):
@@ -219,6 +237,9 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 			self.disconnect_from(plugin)
 		except KeyError:
 			return
+
+		if name in self.general_preferences['plugins']:
+			self.general_preferences['plugins'].remove(name)
 
 		logger.debug('Unloading plugin %s', name)
 		plugin.destroy()
@@ -300,27 +321,24 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 
 	@ivar ui: the main application object, e.g. an instance of
 	L{zim.gui.GtkInterface} or L{zim.www.WWWInterface}
-	@ivar preferences: a C{ListDict()} with plugin preferences
+	@ivar preferences: a C{ConfigDict()} with plugin preferences
 
 	Preferences are the global configuration of the plugin, they are
 	stored in the X{preferences.conf} config file.
 
-	@ivar uistate: a C{ListDict()} with plugin ui state
+	@ivar uistate: a C{ConfigDict()} with plugin ui state
 
 	The "uistate" is the per notebook state of the interface, it is
 	intended for stuff like the last folder opened by the user or the
 	size of a dialog after resizing. It is stored in the X{state.conf}
 	file in the notebook cache folder.
 
-	@signal: C{preferences-changed ()}: emitted after the preferences
-	were changed, triggers the L{do_preferences_changed} handler
 	@signal: C{extension-point-changed (name)}: emitted when extension
 	point C{name} changes
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__signals__ = {
-		'preferences-changed': (None, None, ()),
 		'extension-point-changed': (None, None, (basestring,))
 	}
 
@@ -368,7 +386,7 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		if self.plugin_preferences:
 			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tuples'
 
-		self.config = config or ConfigManager() # FIXME: Is this a smart fallback ?
+		self.config = config or VirtualConfigManager()
 		self.preferences = self.config.get_config_dict('<profile>/preferences.conf')[self.config_key]
 
 		for pref in self.plugin_preferences:
@@ -382,9 +400,6 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 					#~ print ">>>>", key, default, check, '--', self.preferences[key]
 
 		self.load_extensions_classes()
-
-		self.emit('preferences-changed')
-			# initial call to do_preferences_changed()
 
 	@classmethod
 	def lookup_subclass(pluginklass, klass):

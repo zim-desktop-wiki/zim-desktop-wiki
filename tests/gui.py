@@ -276,10 +276,10 @@ class TestDialogs(tests.TestCase):
 		dialog = PropertiesDialog(self.ui)
 		dialog.assert_response_ok()
 
-		from zim.config import ConfigDictFile
+		from zim.config import INIConfigFile
 		notebook = self.ui.notebook
 		file = notebook.dir.file('notebook.zim')
-		notebook.config = ConfigDictFile(file)
+		notebook.config = INIConfigFile(file)
 		self.ui.readonly = False
 
 		config1 = {

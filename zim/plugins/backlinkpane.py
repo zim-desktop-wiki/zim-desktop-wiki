@@ -41,10 +41,11 @@ class MainWindowExtension(WindowExtension):
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 		self.sidepane_widget = None
-		self.on_preferences_changed(plugin)
-		self.connectto(plugin, 'preferences-changed')
 
-	def on_preferences_changed(self, plugin):
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
+	def on_preferences_changed(self, preferences):
 		if not self.sidepane_widget:
 			opener = self.window.get_resource_opener()
 			self.sidepane_widget = BackLinksWidget(opener)
@@ -56,7 +57,7 @@ class MainWindowExtension(WindowExtension):
 			self.window.remove(self.sidepane_widget)
 
 		self.window.add_tab(
-			_('BackLinks'), self.sidepane_widget, self.plugin.preferences['pane'])
+			_('BackLinks'), self.sidepane_widget, preferences['pane'])
 			# T: widget label
 		self.sidepane_widget.show_all()
 

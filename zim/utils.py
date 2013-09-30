@@ -133,6 +133,8 @@ def natural_sort_key(string, numeric_padding=5):
 ####
 
 # Python 2.7 has a weakref.WeakSet, but using this one for compatibility with 2.6 ..
+# Did not switch implementations per version to make sure we test
+# all modules with this implementation
 
 import weakref
 class WeakSet(object):
@@ -161,3 +163,55 @@ class WeakSet(object):
 		for ref in self._refs:
 			if ref() == obj:
 				self._refs.remove(ref)
+
+
+# Python 2.7 has a collections.OrderedDict, but using this one for compatibility
+# Did not switch implementations per version to make sure we test
+# all modules with this implementation
+
+import collections
+
+class OrderedDict(collections.MutableMapping):
+	'''Class that behaves like a dict but keeps items in same order.
+	Updating an items keeps it at the current position, removing and
+	re-inserting an item puts it at the end of the sequence.
+	'''
+
+	# By using collections.MutableMapping we ensure all dict API calls
+	# are proxied by the methods below. When inheriting from dict
+	# directly e.g. "pop()" does not use "__delitem__()" but is
+	# optimized on it's own
+
+	def __init__(self, E=None, **F):
+		self._keys = []
+		self._values = {}
+		self.__getitem__ = self._values.__getitem__ # optimization
+		if E or F:
+			self.update(E or (), **F)
+
+	def __repr__(self):
+		return '<%s: %s>' % (
+			self.__class__.__name__,
+			', '.join('%r: %r' % (k, v) for k, v in self.items())
+		)
+
+	def __getitem__(self, k):
+		return self._values[k]
+		# Overloaded in __init__ for optimization
+
+	def __setitem__(self, k, v):
+		self._values[k] = v
+		if not k in self._keys:
+			self._keys.append(k)
+
+	def __delitem__(self, k):
+		del self._values[k]
+		self._keys.remove(k)
+
+	def __iter__(self):
+		return iter(self._keys)
+
+	def __len__(self):
+		return len(self._keys)
+
+

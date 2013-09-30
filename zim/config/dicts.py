@@ -4,10 +4,19 @@
 
 '''This module contains base classes to map config files.
 
-Main classes for storing config items are L{ConfigDictFile} which maps
-"ini-style" config files, and L{ListDict} which maintains a dict of
-config keys while preserving their order.
+Main class for storing config items is the L{SectionedConfigDict}, which
+stores configuration that is organized in sub-dicts. The
+L{INIConfigFile} is an implementation that stores these dicts in
+"INI-file" file format. This is used for most configuration files in zim.
+The L{ConfigDict} class stores the actual configuration items and
+represents a single section in the L{INIConfigFile}. The L{ConfigDict}
+also takes care of ensuring that the config items are valid and marshals
+the object type if needed.
+The L{ControlledDict} is a base class used by both to track changes.
 '''
+
+from __future__ import with_statement
+
 
 import sys
 import re
@@ -20,6 +29,8 @@ else:
 	import simplejson as json # extra dependency
 
 
+from zim.signals import SignalEmitter, ConnectorMixin
+from zim.utils import OrderedDict
 from zim.fs import File, FileNotFoundError
 from zim.errors import Error
 
@@ -30,7 +41,7 @@ logger = logging.getLogger('zim.config')
 
 
 def check_class_allow_empty(value, default):
-	'''Check function for L{ListDict.setdefault()} which ensures the
+	'''Check function for L{ConfigDict.setdefault()} which ensures the
 	value is of the same class as the default if it is set, but also
 	allows it to be empty (empty string or C{None}). This is
 	the same as the default behavior when "C{allow_empty}" is C{True}.
@@ -61,7 +72,7 @@ def check_class_allow_empty(value, default):
 
 
 def value_is_coord(value, default):
-	'''Check function for L{ListDict.setdefault()} which will check
+	'''Check function for L{ConfigDict.setdefault()} which will check
 	whether the value is a coordinate (a tuple of two integers). This
 	is e.g. used to store for window coordinates. If the value is a
 	list of two integers, it will automatically be converted to a tuple.
@@ -86,35 +97,40 @@ def value_is_coord(value, default):
 		raise AssertionError, 'should be coordinate (tuple of int)'
 
 
-class ListDict(dict):
-	'''Class that behaves like a dict but keeps items in same order.
-	This is the base class for all dicts holding config items in zim.
-	Most importantly it is used for each section in the L{ConfigDict}.
-	Because it remembers the order of the items in the dict, the order
-	in which they will be written to a config file is predictable.
-	Another important function is to check the config values have
-	proper values, this is enforced by L{setdefault()}.
+class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
+	'''Sub-class of C{OrderedDict} that also tracks modified state.
+	This modified state is recursive for nested C{ControlledDict}s.
 
-	@ivar modified: C{True} when the values were modified, used to e.g.
-	track when a config needs to be written back to file
+	@signal: C{changed ()}: emitted when content of this dict changed,
+	or a nested C{OrderedDict} changed
 	'''
 
-	def __init__(self, mapping=None):
-		self.order = []
-		if mapping:
-			self.update(mapping)
+	def __init__(self, E=None, **F):
+		OrderedDict.__init__(self, E, **F)
 		self._modified = False
 
-	def __repr__(self):
-		return '<%s: %s>' % (self.__class__.__name__, dict.__repr__(self))
+	def __setitem__(self, k, v):
+		OrderedDict.__setitem__(self, k, v)
+		if isinstance(v, OrderedDict):
+			self.connectto(v, 'changed', self.on_child_changed)
+		self._modified = True
+		self.emit('changed')
 
-	def copy(self):
-		'''Shallow copy of the items
-		@returns: a new object of the same class with the same items
-		'''
-		new = self.__class__()
-		new.update(self)
-		return new
+	def __delitem__(self, k):
+		v = OrderedDict.__delitem__(self, k)
+		if isinstance(v, OrderedDict):
+			self.disconnect_from(v)
+		self._modified = True
+		self.emit('changed')
+
+	def on_child_changed(self, v):
+		self.emit('changed')
+
+	def update(self, E=(), **F):
+		# Only emit changed once here
+		with self.blocked_signals('changed'):
+			OrderedDict.update(self, E, **F)
+		self.emit('changed')
 
 	@property
 	def modified(self):
@@ -122,7 +138,7 @@ class ListDict(dict):
 			return True
 		else:
 			return any(v.modified for v in self.values()
-									if isinstance(v, ListDict))
+						if isinstance(v, ControlledDict))
 
 	def set_modified(self, modified):
 		'''Set the modified state. Used to reset modified to C{False}
@@ -134,35 +150,30 @@ class ListDict(dict):
 		else:
 			self._modified = False
 			for v in self.values():
-				if isinstance(v, ListDict):
+				if isinstance(v, ControlledDict):
 					v.set_modified(False)
 
-	def update(D, E=None, **F):
-		'''Like C{dict.update()}'''
-		if E and hasattr(E, 'keys'):
-			for k in E: D[k] = E[k]
-		elif E:
-			for (k, v) in E: D[k] = v
-		for k in F: D[k] = F[k]
 
-	def __setitem__(self, k, v):
-		dict.__setitem__(self, k, v)
-		self._modified = True
-		if not k in self.order:
-			self.order.append(k)
+class ConfigDict(ControlledDict):
+	'''Class that behaves like a dict but keeps items in same order.
+	This is the base class for all dicts holding config items in zim.
+	Most importantly it is used for each section in the L{INIConfigFile}.
+	Because it remembers the order of the items in the dict, the order
+	in which they will be written to a config file is predictable.
+	Another important function is to check the config values have
+	proper values, this is enforced by L{setdefault()}.
 
-	def __delitem__(self, k):
-		dict.__delitem__(self, k)
-		self.order.remove(k)
+	@ivar modified: C{True} when the values were modified, used to e.g.
+	track when a config needs to be written back to file
+	'''
 
-	def __iter__(self):
-		return iter(self.order)
-
-	def pop(self, k):
-		'''Like C{dict.pop()}'''
-		v = dict.pop(self, k)
-		self.order.remove(k)
-		return v
+	def copy(self):
+		'''Shallow copy of the items
+		@returns: a new object of the same class with the same items
+		'''
+		new = self.__class__()
+		new.update(self)
+		return new
 
 	def setdefault(self, key, default, check=None, allow_empty=False):
 		'''Set the default value for a configuration item.
@@ -227,6 +238,10 @@ class ListDict(dict):
 		not set to overwrite an empty value, but only for a mal-formed
 		value or for a value that doesn't exist yet in the dict.
 		'''
+		with self.blocked_signals('changed'):
+			return self._setdefault(key, default, check, allow_empty)
+
+	def _setdefault(self, key, default, check=None, allow_empty=False):
 		assert not (default is None and check is None), \
 			'Bad practice to set default to None without check'
 
@@ -334,38 +349,13 @@ class ListDict(dict):
 
 		return self[key]
 
-	def keys(self):
-		'''Like C{dict.keys()}'''
-		return self.order[:]
-
-	def items(self):
-		'''Like C{dict.items()}'''
-		return tuple(map(lambda k: (k, self[k]), self.order))
-
-	def set_order(self, order):
-		'''Change the order in which items are listed.
-
-		@param order: a list of keys in a specific order. Items in the
-		dict that do not appear in the list will be moved to the end.
-		Items in the list that are not in the dict are ignored.
-		'''
-		order = list(order[:]) # copy and convert
-		oldorder = set(self.order)
-		neworder = set(order)
-		for k in neworder - oldorder: # keys not in the dict
-			order.remove(k)
-		for k in oldorder - neworder: # keys not in the list
-			order.append(k)
-		neworder = set(order)
-		assert neworder == oldorder
-		self.order = order
 
 
-class ConfigDict(ListDict):
+class SectionedConfigDict(ControlledDict):
 	'''Dict to represent a configuration file in "ini-style". Since the
 	ini-file is devided in section this is represented as a dict of
 	dicts. This class represents the top-level with a key for each
-	section. The values are in turn L{ListDict}s which contain the
+	section. The values are in turn L{ConfigDict}s which contain the
 	key value pairs in that section.
 
 	A typical file might look like::
@@ -396,10 +386,17 @@ class ConfigDict(ListDict):
 	instances.
 	'''
 
+	def __setitem__(self, k, v):
+		assert isinstance(v, (ControlledDict, list)) # FIXME shouldn't we get rid of the list option here ?
+		ControlledDict.__setitem__(self, k, v)
+
 	def __getitem__(self, k):
-		if not k in self:
-			self[k] = ListDict()
-		return dict.__getitem__(self, k)
+		try:
+			return ControlledDict.__getitem__(self, k)
+		except KeyError:
+			with self.blocked_signals('changed'):
+				ControlledDict.__setitem__(self, k, ConfigDict())
+			return ControlledDict.__getitem__(self, k)
 
 	def parse(self, text):
 		'''Parse an "ini-style" configuration. Fills the dictionary
@@ -421,7 +418,7 @@ class ConfigDict(ListDict):
 				name = line[1:-1].strip()
 				section = self[name]
 				if isinstance(section, list):
-					section.append(ListDict())
+					section.append(ConfigDict())
 					section = section[-1]
 			elif '=' in line:
 				parameter, rawvalue = line.split('=', 1)
@@ -496,30 +493,31 @@ class ConfigDict(ListDict):
 				# specify separators for compact encoding
 
 
-class ConfigFileMixin(ListDict):
+class ConfigFileMixin(object):
 	'''Mixin class for reading and writing config to file, can be used
 	with any parent class that has a C{parse()}, a C{dump()}, and a
-	C{set_modified()} method. See L{ConfigDict} for the documentation
-	of these methods.
+	C{set_modified()} method.
 	'''
 
-	def __init__(self, file):
+	def __init__(self, file, *args, **kwargs):
 		'''Constructor
 		@param file: a L{File} or L{ConfigFile} object for reading and
 		writing the config.
+		@param args: passed on to super class
+		@param kwargs: passed on to super class
 		'''
-		ListDict.__init__(self)
+		super(ConfigFileMixin, self).__init__(self, *args, **kwargs)
 		self.file = file
 		try:
-			self.read()
+			with self.blocked_signals('changed'):
+				self.read()
 			self.set_modified(False)
 		except FileNotFoundError:
 			pass
 
 	def read(self):
 		'''Read data from file'''
-		# No flush here - this is used by change_file()
-		# but may change in the future - so do not depend on it
+		assert not self.modified, 'dict has unsaved changes'
 		logger.debug('Loading config from: %s', self.file)
 		self.parse(self.file.readlines())
 		# Will fail with FileNotFoundError if file does not exist
@@ -538,25 +536,13 @@ class ConfigFileMixin(ListDict):
 		self.set_modified(False)
 		return operation
 
-	def change_file(self, file, merge=True):
-		'''Change the underlaying file used to read/write data
-		Used to switch to a new config file without breaking existing
-		references to config sections.
-		@param file: a L{File} or L{ConfigFile} object for the new config
-		@param merge: if C{True} the new file will be read (if it exists)
-		and values in this dict will be updated.
-		'''
-		self.file = file
-		try:
-			self.read()
-			self.set_modified(True)
-				# This is the correct state because after reading we are
-				# merged state, so does not matching file content
-		except FileNotFoundError:
-			pass
 
+class INIConfigFile(ConfigFileMixin, SectionedConfigDict):
 
-class ConfigDictFile(ConfigFileMixin, ConfigDict):
+	# TODO: we could argue that the parse / dump methods in the
+	#       SectionedConfigDict belong in this class, since they
+	#       relate to the file representation and not the dict content.
+
 	pass
 
 
@@ -572,7 +558,7 @@ and can not be read correctly.'''
 		self.msg = 'Invalid header >>%s<<' % line.strip('\n')
 
 
-class HeadersDict(ListDict):
+class HeadersDict(ControlledDict):
 	'''This class maps a set of headers in the rfc822 format.
 	Can e.g. look like::
 
@@ -592,15 +578,15 @@ class HeadersDict(ListDict):
 
 		@param text: the header text, passed on to L{parse()}
 		'''
-		ListDict.__init__(self)
+		OrderedDict.__init__(self)
 		if not text is None:
 			self.parse(text)
 
 	def __getitem__(self, k):
-		return ListDict.__getitem__(self, k.title())
+		return OrderedDict.__getitem__(self, k.title())
 
 	def __setitem__(self, k, v):
-		return ListDict.__setitem__(self, k.title(), v)
+		return OrderedDict.__setitem__(self, k.title(), v)
 
 	def read(self, lines):
 		'''Checks for headers at the start of the list of lines and

@@ -29,7 +29,7 @@ from zim.signals import DelayedCallback
 from zim.notebook import Path, Page
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
-from zim.config import data_file, data_dirs, ListDict, value_is_coord
+from zim.config import data_file, data_dirs, ConfigDict, value_is_coord
 from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
@@ -329,9 +329,9 @@ class GtkInterface(NotebookInterface):
 	B{NOTE:} the L{plugin<zim.plugins>} base class has it's own wrappers
 	for these things. Plugin writers should look there first.
 
-	@ivar preferences: L{ConfigDict} for global preferences, maps to
+	@ivar preferences: L{ConfigSectionsDict} for global preferences, maps to
 	the X{preferences.conf} config file.
-	@ivar uistate: L{ConfigDict} for current state of the user interface,
+	@ivar uistate: L{ConfigSectionsDict} for current state of the user interface,
 	maps to the X{state.conf} config file per notebook.
 	@ivar notebook: The L{Notebook} object
 	@ivar page: The L{Page} object for the current page in the
@@ -345,7 +345,7 @@ class GtkInterface(NotebookInterface):
 	@ivar history: the L{History} object
 	@ivar uimanager: the C{gtk.UIManager} (see the methods
 	L{add_actions()} and L{add_ui()} for wrappers)
-	@ivar preferences_register: a L{ListDict} with preferences to show
+	@ivar preferences_register: a L{ConfigDict} with preferences to show
 	in the preferences dialog, see L{register_preferences()} to add
 	to more preferences
 
@@ -391,7 +391,7 @@ class GtkInterface(NotebookInterface):
 		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
 
 		NotebookInterface.__init__(self, config)
-		self.preferences_register = ListDict()
+		self.preferences_register = ConfigDict()
 		self.page = None
 		self._path_context = None
 		self.history = None
@@ -459,6 +459,7 @@ class GtkInterface(NotebookInterface):
 		self._custom_tool_iconfactory = None
 		self.load_custom_tools()
 
+		self.preferences.connect('changed', self.do_preferences_changed)
 		self.do_preferences_changed()
 
 		# Deal with commandline arguments for notebook and page
@@ -586,10 +587,6 @@ class GtkInterface(NotebookInterface):
 			gtk.accel_map_save(accelmap.path)
 
 		gtk.accel_map_get().connect('changed', on_accel_map_changed)
-
-		# if prefs are modified during init we should save them
-		if self.preferences.modified:
-			self.save_preferences()
 
 		# And here we go!
 		self.mainwindow.show_all()
@@ -1005,7 +1002,7 @@ class GtkInterface(NotebookInterface):
 		See L{zim.gui.widgets.InputForm.add_inputs()} for valid values of
 		the option type.
 
- 		See L{zim.config.ListDict.setdefault())} for usage of the
+ 		See L{zim.config.ConfigDict.setdefault())} for usage of the
  		optional check value.
 
 		@todo: unify the check for setdefault() and the option type to
@@ -1752,7 +1749,7 @@ class GtkInterface(NotebookInterface):
 		from zim.gui.preferencesdialog import PreferencesDialog
 		PreferencesDialog(self).run()
 
-	def do_preferences_changed(self):
+	def do_preferences_changed(self, *a):
 		self.uimanager.set_add_tearoffs(
 			self.preferences['GtkInterface']['tearoff_menus'] )
 
@@ -2292,7 +2289,7 @@ class MainWindow(Window):
 	def __init__(self, ui, preferences=None, fullscreen=False, geometry=None):
 		'''Constructor
 		@param ui: the L{GtkInterFace}
-		@param preferences: a C{ListDict} with preferences
+		@param preferences: a C{ConfigDict} with preferences
 		@param fullscreen: if C{True} the window is shown fullscreen,
 		if C{None} the previous state is restored
 		@param geometry: the window geometry as string in format
@@ -2303,10 +2300,10 @@ class MainWindow(Window):
 		self.ui = ui
 
 		self.preferences = preferences
+		self.preferences.connect('changed', self.do_preferences_changed)
 
 		ui.connect('open-page', self.on_open_page)
 		ui.connect('close-page', self.on_close_page)
-		ui.connect('preferences-changed', self.do_preferences_changed)
 
 		self._block_toggle_panes = False
 		self._sidepane_autoclose = False

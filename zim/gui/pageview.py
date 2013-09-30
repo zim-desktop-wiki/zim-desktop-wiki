@@ -4362,7 +4362,7 @@ class PageView(gtk.VBox):
 	a L{FindBar}. Also adds menu items and in general integrates
 	the TextView with the rest of the application.
 
-	@cvar style: a L{ListDict} with style properties. Although this
+	@ivar text_style: a L{ConfigSectionsDict} with style properties. Although this
 	is a class attribute loading the data from the config file is
 	delayed till the first object is constructed
 
@@ -4380,7 +4380,7 @@ class PageView(gtk.VBox):
 	C{do_populate_popup(menu, buffer, iter, image_data)}.
 	@ivar view: the L{TextView} child object
 	@ivar find_bar: the L{FindBar} child widget
-	@ivar preferences: a L{ListDict} with preferences
+	@ivar preferences: a L{ConfigDict} with preferences
 
 	@signal: C{modified-changed ()}: emitted when the page is edited
 
@@ -4406,9 +4406,6 @@ class PageView(gtk.VBox):
 		'''
 		gtk.VBox.__init__(self)
 		self.ui = ui
-
-		self.text_style = self.ui.config.get_config_dict('<profile>/style.conf')
-		#~ self.text_style.connect('changed', lambda o: self._reload_style())
 
 		self._buffer_signals = ()
 		self.page = None
@@ -4468,8 +4465,13 @@ class PageView(gtk.VBox):
 			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
 
-		self.on_preferences_changed(self.ui) # also initializes the style
-		self.ui.connect('preferences-changed', self.on_preferences_changed)
+		self.preferences.connect('changed', self.on_preferences_changed)
+		self.on_preferences_changed()
+
+		self.text_style = self.ui.config.get_config_dict('<profile>/style.conf')
+		self.text_style.connect('changed', lambda o: self.on_text_style_changed())
+		self.on_text_style_changed()
+
 		self.ui.connect_object('readonly-changed', PageView.set_readonly, self)
 
 		if self.ui.notebook:
@@ -4480,12 +4482,11 @@ class PageView(gtk.VBox):
 	def grab_focus(self):
 		self.view.grab_focus()
 
-	def on_preferences_changed(self, ui):
-		self._reload_style() # Needed because font is taken from preferences
+	def on_preferences_changed(self, *a):
 		self.view.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
 
-	def _reload_style(self):
+	def on_text_style_changed(self, *a):
 		'''(Re-)intializes properties for TextView, TextBuffer and
 		TextTags based on the properties in the style config.
 		'''

@@ -5,7 +5,6 @@
 import tests
 
 import zim.plugins
-from zim.config import ConfigDict
 
 
 @tests.slowTest

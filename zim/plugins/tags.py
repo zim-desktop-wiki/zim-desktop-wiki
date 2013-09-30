@@ -49,8 +49,9 @@ class MainWindowExtension(WindowExtension):
 		WindowExtension.__init__(self, plugin, window)
 
 		self.widget = TagsPluginWidget(self.window.ui.notebook.index, self.uistate, self.window.ui) # XXX
-		self.on_preferences_changed()
-		self.connectto(plugin, 'preferences-changed')
+
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 		self.uistate.setdefault('vpane_pos', 150)
 		self.widget.set_position(self.uistate['vpane_pos'])
@@ -58,8 +59,8 @@ class MainWindowExtension(WindowExtension):
 			self.uistate['vpane_pos'] = self.widget.get_position()
 		self.widget.connect('notify::position', update_uistate)
 
-	def on_preferences_changed(self):
-		pane = self.plugin.preferences['pane']
+	def on_preferences_changed(self, preferences):
+		pane = preferences['pane']
 		try:
 			self.window.remove(self.widget)
 		except ValueError:

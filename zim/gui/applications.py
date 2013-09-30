@@ -27,7 +27,7 @@ import gobject
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
 from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
-	data_dirs, ConfigDict, ConfigFileMixin, json, ConfigManager
+	data_dirs, SectionedConfigDict, ConfigFileMixin, json, ConfigManager
 from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
@@ -348,7 +348,7 @@ class ApplicationManager(object):
 		return entries
 
 
-class DesktopEntryDict(ConfigDict, Application):
+class DesktopEntryDict(SectionedConfigDict, Application):
 	'''Base class for L{DesktopEntryFile}, defines most of the logic.
 
 	The following keys are supported:
@@ -516,7 +516,7 @@ class DesktopEntryDict(ConfigDict, Application):
 
 	_cmd = parse_exec # To hook into Application.spawn and Application.run
 
-	def update(self, E=None, **F):
+	def update(self, E=(), **F):
 		'''Same as C{dict.update()}'''
 		self['Desktop Entry'].update(E, **F)
 
@@ -1069,7 +1069,7 @@ class CustomToolDict(DesktopEntryDict):
 			page.parse('wiki', self._tmpfile.readlines())
 			self._tmpfile = None
 
-	def update(self, E=None, **F):
+	def update(self, E=(), **F):
 		self['Desktop Entry'].update(E, **F)
 
 		# Set sane default for X-Zim-ShowInContextMenus

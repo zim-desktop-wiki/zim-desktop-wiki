@@ -119,7 +119,7 @@ from getopt import gnu_getopt, GetoptError
 
 from zim.fs import File, Dir
 from zim.errors import Error
-from zim.config import ZIM_DATA_DIR, ConfigDictFile, ConfigManager
+from zim.config import ZIM_DATA_DIR, ConfigManager
 from zim.plugins import PluginManager
 
 
@@ -235,21 +235,17 @@ class NotebookInterface(gobject.GObject):
 	@signal: C{open-notebook (notebook)}:
 	Emitted to open a notebook in this interface
 
-	@signal: C{preferences-changed ()}:
-	Emitted when preferences have changed
-
 	@ivar notebook: the L{Notebook} that is open in this interface
 	@ivar plugins: a L{PluginManager} object
-	@ivar preferences: a L{ConfigDict} for the user preferences
+	@ivar preferences: a L{SectionedConfigDict} for the user preferences
 	(the C{X{preferences.conf}} config file)
-	@ivar uistate:  L{ConfigDict} with notebook specific interface state
+	@ivar uistate:  L{SectionedConfigDict} with notebook specific interface state
 	(the C{X{state.conf}} file in the notebook cache folder)
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-notebook': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'preferences-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'initialize-notebook': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 		# Consider making initialize-notebook a hook where handlers
@@ -271,51 +267,11 @@ class NotebookInterface(gobject.GObject):
 		self.preferences['General'].setdefault('plugins',
 			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
 
-		self.plugins = PluginManager(config)
-		plugins = self.preferences['General']['plugins']
-		for name in sorted(plugins):
-			try:
-				self.plugins.load_plugin(name)
-			except:
-				logger.exception('Exception while loading plugin: %s', name)
-				plugins.remove(name)
-
+		self.plugins = PluginManager(self.config)
 		self.uistate = None
 
 		if not notebook is None:
 			self.open_notebook(notebook)
-
-	def save_preferences(self):
-		'''Save the preferences config file if modified
-		@emits: preferences-changed
-		'''
-		plugins = sorted(self.plugins)
-		if set(plugins) != set(self.preferences['General']['plugins']):
-			self.preferences['General']['plugins'] = plugins
-			self.preferences.set_modified(True)
-
-			# For profile independent plugins, sync back to default
-			# preferences -- XXX put this somewhere else
-			if self.notebook and self.notebook.profile:
-				independent = [
-					p for p in plugins
-						if self.plugins[p].is_profile_independent
-				]
-
-				if independent:
-					default = get_config('preferences.conf')
-					for name in independent:
-						if name not in default['General']['plugins']:
-							default['General']['plugins'].append(name)
-						plugin = self.plugins[name]
-						default[plugin.config_key].update(plugin.preferences)
-					default.write()
-
-		# First emit, than write - avoid getting stuck with a set
-		# that crashes the application
-		if self.preferences.modified:
-			self.emit('preferences-changed')
-			self.preferences.write()
 
 	def open_notebook(self, notebook):
 		'''Open the notebook object
@@ -354,12 +310,12 @@ class NotebookInterface(gobject.GObject):
 		self.notebook = notebook
 		if notebook.cache_dir:
 			# may not exist during tests
-			from zim.config import ConfigDictFile
-			self.uistate = ConfigDictFile(
+			from zim.config import INIConfigFile
+			self.uistate = INIConfigFile(
 				notebook.cache_dir.file('state.conf') )
 		else:
-			from zim.config import ConfigDict
-			self.uistate = ConfigDict()
+			from zim.config import SectionedConfigDict
+			self.uistate = SectionedConfigDict()
 
 		#~ def on_properties_changed(notebook):
 			#~ self.preferences.set_profile(notebook.profile)

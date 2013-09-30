@@ -7,7 +7,7 @@ import tests
 import os
 
 from zim.fs import _md5, File, Dir
-from zim.config import data_file, ConfigDict
+from zim.config import data_file, SectionedConfigDict
 from zim.notebook import Path, Notebook, init_notebook, \
 	interwiki_link, get_notebook_list, NotebookInfo
 from zim.exporter import Exporter, StaticLinker
@@ -191,7 +191,7 @@ class TestExportDialog(tests.TestCase):
 		ui.notebook = notebook
 		ui.page = Path('foo')
 		ui.mainwindow = None
-		ui.uistate = ConfigDict()
+		ui.uistate = SectionedConfigDict()
 
 		## Test export all pages
 		dialog = ExportDialog(ui)
