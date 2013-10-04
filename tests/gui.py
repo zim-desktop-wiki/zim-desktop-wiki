@@ -19,7 +19,7 @@ from zim.gui.clipboard import Clipboard
 import zim.gui
 
 
-def setupGtkInterface(test, klass=None):
+def setupGtkInterface(test, klass=None, notebook=None):
 	'''Setup a new GtkInterface object for testing.
 	Will have test notebook, and default preferences.
 	@param test: the test that wants to use this ui object
@@ -35,8 +35,9 @@ def setupGtkInterface(test, klass=None):
 
 
 	# create interface object with new notebook
-	dirpath = test.get_tmp_name()
-	notebook = tests.new_notebook(fakedir=dirpath)
+	if notebook is None:
+		dirpath = test.get_tmp_name()
+		notebook = tests.new_notebook(fakedir=dirpath)
 	path = Path('Test:foo:bar')
 
 	config = VirtualConfigManager()

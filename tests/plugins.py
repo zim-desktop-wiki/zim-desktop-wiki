@@ -9,7 +9,9 @@ import os
 from zim.plugins import *
 from zim.fs import File
 
+from zim.gui.propertiesdialog import PropertiesDialog
 from tests.gui import setupGtkInterface
+
 
 assert len(zim.plugins.__path__) > 1 # test __path__ magic
 zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
@@ -126,17 +128,22 @@ class TestPluginManager(tests.TestCase):
 		#~ manager.reload_plugins() # TODO
 
 
-class TestPluginExtensions(tests.TestCase):
+class TestPlugins(tests.TestCase):
 
 	'''Test case to initiate all (loadable) plugins and load some extensions'''
 
 	def runTest(self):
 		manager = PluginManager()
+		preferences = manager.config.get_config_dict('<profile>/preferences.conf')
+		self.assertFalse(preferences.modified)
 		for name in list_plugins():
 			klass = get_plugin_class(name)
 			if klass.check_dependencies_ok():
 				manager.load_plugin(name)
 				self.assertIn(name, manager)
+
+				self.assertFalse(preferences.modified,
+					'Plugin "%s" modified the preferences while loading' % name)
 
 		self.assertTrue(len(manager) > 3)
 
@@ -147,6 +154,22 @@ class TestPluginExtensions(tests.TestCase):
 				# Checking for exceptions and infinite recursion
 
 		self.assertTrue(i > 0)
+		#~ self.assertTrue(preferences.modified)
+			# If "False" the check while loading the plugins is not valid
+			# FIXME this detection is broken due to autosave in ConfigManager ...
+
+		notebook = tests.new_notebook(self.get_tmp_name())
+		ui = setupGtkInterface(self, notebook=notebook)
+		dialog = PropertiesDialog(ui) # random dialog
+		for obj in (
+			notebook,
+			notebook.index,
+			ui.mainwindow,
+			ui.mainwindow.pageview,
+			dialog,
+		):
+			manager.extend(obj)
+
 
 		for name in manager:
 			self.assertIsInstance(manager[name], PluginClass)

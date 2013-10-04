@@ -113,17 +113,12 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 		OrderedDict.__setitem__(self, k, v)
 		if isinstance(v, OrderedDict):
 			self.connectto(v, 'changed', self.on_child_changed)
-		self._modified = True
 		self.emit('changed')
 
 	def __delitem__(self, k):
 		v = OrderedDict.__delitem__(self, k)
 		if isinstance(v, OrderedDict):
 			self.disconnect_from(v)
-		self._modified = True
-		self.emit('changed')
-
-	def on_child_changed(self, v):
 		self.emit('changed')
 
 	def update(self, E=(), **F):
@@ -132,13 +127,15 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 			OrderedDict.update(self, E, **F)
 		self.emit('changed')
 
+	def on_child_changed(self, v):
+		self.emit('changed')
+
+	def do_changed(self):
+		self._modified = True
+
 	@property
 	def modified(self):
-		if self._modified:
-			return True
-		else:
-			return any(v.modified for v in self.values()
-						if isinstance(v, ControlledDict))
+		return self._modified
 
 	def set_modified(self, modified):
 		'''Set the modified state. Used to reset modified to C{False}

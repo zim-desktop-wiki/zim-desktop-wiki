@@ -88,7 +88,7 @@ import zim.fs
 from zim.fs import File, Dir
 from zim.errors import Error, TrashNotSupportedError
 from zim.config import SectionedConfigDict, INIConfigFile, HierarchicDict, \
-	data_dir, config_dirs, ConfigManager, XDGDefaultFileIter #list_profiles
+	data_dir, ConfigManager, XDGDefaultFileIter #list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode, url_decode
 from zim.async import AsyncLock

@@ -228,9 +228,30 @@ class TestControlledDict(tests.TestCase):
 		self.assertRaises(KeyError, mydict.__getitem__, v)
 
 
+class TestConfigDict(tests.TestCase):
+
+	def runTest(self):
+		'''Test ConfigDict class'''
+		keys = ['foo', 'bar', 'baz']
+		mydict = ConfigDict()
+		for k in keys:
+			mydict[k] = 'dusss'
+
+		val = mydict.setdefault('dus', 'ja')
+		self.assertEqual(val, 'ja')
+		val = mydict.setdefault('dus', 'hmm')
+		self.assertEqual(val, 'ja')
+		keys.append('dus')
+		# TODO much more validation of the setdefault logic !
+
+		newdict = mydict.copy()
+		self.assertTrue(isinstance(newdict, ConfigDict))
+		self.assertEquals(newdict.items(), mydict.items())
+
+
 class TestINIConfigFile(tests.TestCase):
 
-	def testParsing(self):
+	def runTest(self):
 		'''Test config file format'''
 		file = XDG_CONFIG_HOME.file('zim/config_TestConfigFile.conf')
 		if file.exists():
@@ -302,23 +323,21 @@ none=None
 		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), allow_empty=True), (33,44))
 		self.assertFalse(conf.modified)
 
-		conf.set_modified(False)
 		with FilterInvalidConfigWarning():
 			self.assertEqual(
 			conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'bar'))),
 			'foo')
-		self.assertTrue(conf.modified)
+		self.assertFalse(conf.modified)
 
-		conf.set_modified(False)
 		with FilterInvalidConfigWarning():
 			self.assertEqual(conf['Bar'].setdefault('check', 10, int), 10)
-		self.assertTrue(conf.modified)
+		self.assertFalse(conf.modified)
 
 		conf['Bar']['string'] = ''
 		conf.set_modified(False)
 		with FilterInvalidConfigWarning():
 			self.assertEqual(conf['Bar'].setdefault('string', 'foo'), 'foo')
-		self.assertTrue(conf.modified)
+		self.assertFalse(conf.modified)
 
 		conf['Bar']['string'] = ''
 		conf.set_modified(False)
@@ -334,25 +353,7 @@ none=None
 		conf.set_modified(False)
 		with FilterInvalidConfigWarning():
 			self.assertEqual(conf['Bar'].setdefault('string', 'foo', check_class_allow_empty), 'foo')
-		self.assertTrue(conf.modified)
-
-	def testConfigDict(self):
-		'''Test ConfigDict class'''
-		keys = ['foo', 'bar', 'baz']
-		mydict = ConfigDict()
-		for k in keys:
-			mydict[k] = 'dusss'
-
-		val = mydict.setdefault('dus', 'ja')
-		self.assertEqual(val, 'ja')
-		val = mydict.setdefault('dus', 'hmm')
-		self.assertEqual(val, 'ja')
-		keys.append('dus')
-		# TODO much more validation of the setdefault logic !
-
-		newdict = mydict.copy()
-		self.assertTrue(isinstance(newdict, ConfigDict))
-		self.assertEquals(newdict.items(), mydict.items())
+		self.assertFalse(conf.modified)
 
 
 class TestHeaders(tests.TestCase):

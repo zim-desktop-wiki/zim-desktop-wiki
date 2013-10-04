@@ -75,41 +75,6 @@ def data_file(path):
 		return None
 
 
-def config_dirs():
-	'''Generator listing paths for zim config files. These will be the
-	equivalent of e.g. "~/.config/zim", "/etc/xdg/zim" etc.
-
-	Zim is not strictly XDG conformant by installing default config
-	files in "/usr/share/zim" instead of in "/etc/xdg/zim". Therefore
-	this function yields both.
-
-	@returns: yields L{Dir} objects for all config and data dirs
-	'''
-	yield XDG_CONFIG_HOME.subdir(('zim'))
-	for dir in XDG_CONFIG_DIRS:
-		yield dir.subdir(('zim'))
-	for dir in data_dirs():
-		yield dir
-
-
-#~ def config_file(path):
-	#~ '''Alias for constructing a L{ConfigFile} object
-	#~ @param path: either basename as string or tuple with relative path
-	#~ @returns: a L{ConfigFile}
-	#~ '''
-	#~ return ConfigFile(path)
-
-
-#~ def get_config(path):
-	#~ '''Convenience method to construct a L{ConfigDictFile} based on a
-	#~ C{ConfigFile}.
-	#~ @param path: either basename as string or tuple with relative path
-	#~ @returns: a L{ConfigDictFile}
-	#~ '''
-	#~ file = ConfigFile(path)
-	#~ return ConfigDictFile(file)
-
-
 def user_dirs():
 	'''Get the XDG user dirs.
 	@returns: a dict with directories for the XDG user dirs. These are
