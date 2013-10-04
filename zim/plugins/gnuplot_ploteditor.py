@@ -13,7 +13,8 @@
 
 import glob
 
-from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
+from zim.plugins.base.imagegenerator import \
+	ImageGeneratorPlugin, ImageGeneratorClass, MainWindowExtensionBase
 from zim.fs import File, TmpFile
 from zim.config import data_file
 from zim.templates import GenericTemplate
@@ -47,6 +48,16 @@ This plugin provides a plot editor for zim based on Gnuplot.
 		return has_gnuplot, [('Gnuplot', has_gnuplot, True)]
 
 
+class MainWindowExtension(MainWindowExtensionBase):
+
+	def build_generator(self):
+		page = self.window.ui.page # XXX
+		notebook = self.window.ui.notebook # XXX
+		attachment_folder = notebook.get_attachments_dir(page)
+		#~ print ">>>", notebook, page, attachment_folder
+		return GnuplotGenerator(self.plugin, attachment_folder)
+
+
 class GnuplotGenerator(ImageGeneratorClass):
 
 	uses_log_file = False
@@ -57,7 +68,6 @@ class GnuplotGenerator(ImageGeneratorClass):
 
 	def __init__(self, plugin, attachment_folder=None):
 		ImageGeneratorClass.__init__(self, plugin)
-		# FIXME 		attachment_folder = ui.notebook.get_attachments_dir(ui.page)
 		file = data_file('templates/plugins/gnuploteditor.gnu')
 		assert file, 'BUG: could not find templates/plugins/gnuploteditor.gnu'
 		self.template = GenericTemplate(file.readlines(), name=file)
@@ -84,7 +94,7 @@ class GnuplotGenerator(ImageGeneratorClass):
 		plotscriptfile.writelines(
 			self.template.process(template_vars)
 		)
-		#print '>>>%s<<<' % plotscriptfile.read()
+		#~ print '>>>\n%s<<<' % plotscriptfile.read()
 
 		# Call Gnuplot
 		try:

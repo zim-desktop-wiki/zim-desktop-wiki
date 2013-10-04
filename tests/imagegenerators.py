@@ -12,10 +12,12 @@ from zim.fs import Dir
 
 from zim.plugins.base.imagegenerator import ImageGeneratorDialog
 
-from zim.plugins.equationeditor import *
-from zim.plugins.diagrameditor import *
-from zim.plugins.gnu_r_ploteditor import *
-from zim.plugins.gnuplot_ploteditor import *
+from zim.plugins.equationeditor import InsertEquationPlugin, EquationGenerator
+from zim.plugins.diagrameditor import InsertDiagramPlugin, DiagramGenerator
+from zim.plugins.gnu_r_ploteditor import InsertGNURPlotPlugin, GNURPlotGenerator
+from zim.plugins.gnuplot_ploteditor import InsertGnuplotPlugin, GnuplotGenerator
+
+from zim.plugins.gnuplot_ploteditor import MainWindowExtension as GnuplotMainWindowExtension
 
 
 @tests.slowTest
@@ -27,9 +29,10 @@ class TestGenerator(tests.TestCase):
 		plugin = tests.MockObject()
 
 		# Check properties
-		self.assertIsNotNone(self.generatorklass.object_type)
-		self.assertIsNotNone(self.generatorklass.scriptname)
-		self.assertIsNotNone(self.generatorklass.imagename)
+		generator = self.generatorklass(plugin)
+		self.assertIsNotNone(generator.object_type)
+		self.assertIsNotNone(generator.scriptname)
+		self.assertIsNotNone(generator.imagename)
 
 		# Input OK
 		generator = self.generatorklass(plugin)
@@ -137,23 +140,52 @@ plot(x,y,type='l')
 		TestGenerator._test_generator(self)
 
 
-@tests.skipUnless(InsertGNURPlotPlugin.check_dependencies_ok(), 'Missing dependencies')
+@tests.skipUnless(InsertGnuplotPlugin.check_dependencies_ok(), 'Missing dependencies')
 class TestGnuplotEditor(TestGenerator):
 
 	def setUp(self):
-		self.generatorklass = GnuplotGenerator
+		attachment_dir = Dir(self.create_tmp_dir())
+		self.generatorklass = lambda p: GnuplotGenerator(p, attachment_dir)
 		self.validinput = r'plot sin(x), cos(x)'
 		self.invalidinput = r'sdf sdfsdf sdf'
 
-	def runTest(self):
+	def testGenerator(self):
 		'Test Gnuplot Plot Editor plugin'
 		TestGenerator._test_generator(self)
+
+	def testExtensionClass(self):
+		'Test magic created MainWindowExtension inherits from our base class'
+		plugin = InsertGnuplotPlugin()
+		extensionclass = plugin.extension_classes['MainWindow']
+		self.assertTrue(issubclass(extensionclass, GnuplotMainWindowExtension))
+
+		plugin = tests.MockObject()
+		attachment_dir = Dir(self.create_tmp_dir())
+		mockwindow = MockWindow(attachment_dir)
+
+		extension = extensionclass(plugin, mockwindow)
+		generator = extension.build_generator()
+		self.assertEqual(generator.attachment_folder, attachment_dir)
+
+
+class MockWindow(tests.MockObject):
+
+	def __init__(self, dir):
+		tests.MockObject.__init__(self)
+		self.ui = MockUI(dir)
+		self.ui.uistate = None
+		self.ui.uimanager = tests.MockObject()
+		self.pageview = tests.MockObject()
+		self.mock_method('connect', None)
 
 
 class MockUI(tests.MockObject):
 
 	def __init__(self, dir):
+		tests.MockObject.__init__(self)
 		self.notebook = tests.MockObject()
 		self.notebook.mock_method('get_attachments_dir', dir)
 		self.mainwindow = tests.MockObject()
 		self.mainwindow.pageview = tests.MockObject()
+
+

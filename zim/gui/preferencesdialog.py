@@ -165,6 +165,8 @@ class PluginsTab(gtk.HBox):
 		self.dialog = dialog
 		self.plugins = plugins
 
+		#~ logger.debug('Plugins that are loaded: %s' % list(plugins))
+
 		treeview = PluginsTreeView(self.plugins)
 		treeview.connect('row-activated', self.do_row_activated)
 		swindow = ScrolledWindow(treeview, hpolicy=gtk.POLICY_NEVER)

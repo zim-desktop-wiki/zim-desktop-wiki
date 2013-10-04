@@ -58,7 +58,7 @@ class ImageGeneratorPlugin(PluginClass):
 	edit_label = None
 	syntax = None
 
-	def __init__(self, config):
+	def __init__(self, config=None):
 		PluginClass.__init__(self, config)
 
 		# Construct a new class on run time
@@ -73,7 +73,12 @@ class ImageGeneratorPlugin(PluginClass):
 			'Object type of ImageGenerator (%s) does not match object type of plugin (%s)' \
 			% (generatorklass.object_type, self.object_type)
 
-		klass = type(klassname, (MainWindowExtensionBase,), {
+
+		mainwindow_extension_base = \
+			self.lookup_subclass(MainWindowExtensionBase) \
+			or MainWindowExtensionBase
+
+		klass = type(klassname, (mainwindow_extension_base,), {
 			'object_type': self.object_type,
 			'syntax': self.syntax,
 			'uimanager_xml': uimanager_xml_template % self.object_type,
@@ -108,9 +113,12 @@ class MainWindowExtensionBase(WindowExtension):
 		pageview = self.window.pageview
 		pageview.unregister_image_generator_plugin(self)
 
+	def build_generator(self):
+		return self.generator_class(self.plugin)
+
 	def insert_object(self):
 		title = self.insert_label.replace('_', '')
-		generator = self.generator_class(self.plugin)
+		generator = self.build_generator()
 		dialog = ImageGeneratorDialog(
 			self.window.ui, title,
 			generator, syntax=self.syntax,
@@ -120,7 +128,7 @@ class MainWindowExtensionBase(WindowExtension):
 
 	def edit_object(self, buffer, iter, image):
 		title = self.edit_label.replace('_', '')
-		generator = self.generator_class(self.plugin)
+		generator = self.build_generator()
 		dialog = ImageGeneratorDialog(
 			self.window.ui, title,
 			generator, syntax=self.syntax, image=image,

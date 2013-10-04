@@ -15,6 +15,7 @@ import wsgiref.handlers
 
 from zim.fs import File
 from zim.www import WWWInterface
+from zim.config import VirtualConfigManager
 
 # TODO how to test fetching from a socket while mainloop is running ?
 
@@ -59,9 +60,10 @@ class TestWWWInterface(tests.TestCase):
 
 	def runTest(self):
 		'Test WWW interface'
-		notebook = tests.new_notebook()
+		config = VirtualConfigManager()
+		notebook = tests.new_notebook(fakedir=self.get_tmp_name())
 		notebook.index.update()
-		interface = WWWInterface(notebook, template=self.template)
+		interface = WWWInterface(config, notebook, template=self.template)
 		validator = wsgiref.validate.validator(interface)
 
 		def call(command, path):

@@ -560,8 +560,10 @@ class WindowExtension(ObjectExtension):
 		self.plugin = plugin
 		self.window = window
 
-		if hasattr(window, 'ui') and hasattr(window.ui, 'uistate'): # XXX
+		if hasattr(window, 'ui') and hasattr(window.ui, 'uistate') and window.ui.uistate: # XXX
 			self.uistate = window.ui.uistate[plugin.config_key]
+		else:
+			self.uistate = None
 
 		if hasattr(self, 'uimanager_xml'):
 			# XXX TODO move uimanager to window

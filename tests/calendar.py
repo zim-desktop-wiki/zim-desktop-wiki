@@ -108,7 +108,7 @@ class TestCalendarPlugin(tests.TestCase):
 		plugin = pluginklass()
 		today = dateclass.today()
 		for namespace in (Path('Calendar'), Path(':')):
-			plugin.preferences['namespace'] = namespace.name
+			plugin.preferences['namespace'] = namespace
 			path = plugin.path_from_date(today)
 			self.assertTrue(isinstance(path, Path))
 			self.assertTrue(path.ischild(namespace))
@@ -119,7 +119,7 @@ class TestCalendarPlugin(tests.TestCase):
 		from zim.plugins.calendar import DAY, WEEK, MONTH, YEAR
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.MONDAY
-		plugin.preferences['namespace'] = 'Calendar'
+		plugin.preferences['namespace'] = Path('Calendar')
 		date = dateclass(2012, 4, 27)
 		for setting, wanted, start in (
 			(DAY, 'Calendar:2012:04:27', dateclass(2012, 4, 27)),
@@ -144,7 +144,7 @@ class TestCalendarPlugin(tests.TestCase):
 		template = get_template('wiki', 'Journal')
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.MONDAY
-		plugin.preferences['namespace'] = 'Calendar'
+		plugin.preferences['namespace'] = Path('Calendar')
 
 		for path in (
 			'Calendar:2012',

@@ -117,13 +117,14 @@ class WWWInterface(NotebookInterface):
 	in the standard library for python.
 	'''
 
-	def __init__(self, notebook=None, template='Default', **opts):
+	def __init__(self, config=None, notebook=None, template='Default', **opts):
 		'''Constructor
+		@param config: a C{ConfigManager} object
 		@param notebook: notebook location
 		@param template: html template for zim pages
 		@param opts: options for L{NotebookInterface.__init__()}
 		'''
-		NotebookInterface.__init__(self, **opts)
+		NotebookInterface.__init__(self, config=config, **opts)
 		self.output = None
 		if isinstance(template, basestring):
 			from zim.templates import get_template
