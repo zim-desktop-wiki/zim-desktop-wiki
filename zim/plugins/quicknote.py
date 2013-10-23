@@ -10,7 +10,8 @@ from datetime import date as dateclass
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import action
 from zim.config import data_file, ConfigManager
-from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
+from zim.notebook import Notebook, PageNameError, NotebookInfo, \
+	resolve_notebook, build_notebook
 from zim.ipc import start_server_if_not_running, ServerProxy
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
 	InputForm, gtk_window_set_default_icon, QuestionDialog
@@ -432,10 +433,11 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 
 	def _set_autocomplete(self, notebook):
 		if notebook:
-			obj = get_notebook(notebook)
+			if isinstance(notebook, basestring):
+				notebook = NotebookInfo(notebook)
+			obj, x = build_notebook(notebook)
 			self.form.widgets['namespace'].notebook = obj
 			self.form.widgets['page'].notebook = obj
-			# Could still be None, e.g. if the notebook folder is not mounted
 			logger.debug('Notebook for autocomplete: %s (%s)', obj, notebook)
 		else:
 			self.form.widgets['namespace'].notebook = None

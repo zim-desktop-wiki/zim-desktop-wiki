@@ -21,7 +21,8 @@ import gobject
 import gtk
 
 import zim
-from zim import NotebookInterface, NotebookLookupError, ZimCmd
+from zim import NotebookInterface, NotebookLookupError
+from zim.main import get_zim_application
 from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
@@ -378,7 +379,7 @@ class GtkInterface(NotebookInterface):
 		'end-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	def __init__(self, config=None, notebook=None, page=None,
+	def __init__(self, notebook, page=None, config=None,
 		fullscreen=False, geometry=None):
 		'''Constructor
 
@@ -463,21 +464,18 @@ class GtkInterface(NotebookInterface):
 		self.do_preferences_changed()
 
 		# Deal with commandline arguments for notebook and page
-		if notebook:
-			self.open_notebook(notebook)
+		self.open_notebook(notebook)
 			# If it fails here an error dialog is shown and main()
 			# will prompt the notebook list
 
-			if self.notebook and page:
-				if isinstance(page, basestring):
-					page = self.notebook.resolve_path(page)
-					if not page is None:
-						self.open_page(page)
-				else:
-					assert isinstance(page, Path)
+		if self.notebook and page:
+			if isinstance(page, basestring):
+				page = self.notebook.resolve_path(page)
+				if not page is None:
 					self.open_page(page)
-		else:
-			pass # Will check default in main()
+			else:
+				assert isinstance(page, Path)
+				self.open_page(page)
 
 	def main(self):
 		'''Wrapper for C{gtk.main()}, runs main loop of the application.
@@ -485,14 +483,7 @@ class GtkInterface(NotebookInterface):
 		a number of initialization actions, like prompting the
 		L{NotebookDialog} if needed and will show the main window.
 		'''
-		if self.notebook is None:
-			import zim.gui.notebookdialog
-			notebook = zim.gui.notebookdialog.prompt_notebook()
-			if notebook:
-				self.open_notebook(notebook)
-			else:
-				# User canceled notebook dialog
-				return
+		assert self.notebook is not None
 
 		if self.notebook.dir:
 			os.chdir(self.notebook.dir.path)
@@ -1078,13 +1069,7 @@ class GtkInterface(NotebookInterface):
 		'''
 		if not self.notebook:
 			assert not notebook is None, 'BUG: first initialize notebook'
-			try:
-				page = NotebookInterface.open_notebook(self, notebook)
-			except NotebookLookupError, error:
-				ErrorDialog(self, error).run()
-			else:
-				if page:
-					self.open_page(page)
+			NotebookInterface.open_notebook(self, notebook)
 		elif notebook is None:
 			# Handle menu item for 'open another notebook'
 			from zim.gui.notebookdialog import NotebookDialog
@@ -1105,7 +1090,7 @@ class GtkInterface(NotebookInterface):
 				notebook = zim.ipc.ServerProxy().get_notebook(notebook)
 				notebook.present(page=pagename)
 			else:
-				ZimCmd(('--gui', notebook)).spawn()
+				get_zim_application('--gui', notebook).spawn()
 
 	def do_open_notebook(self, notebook):
 
@@ -2072,7 +2057,7 @@ class GtkInterface(NotebookInterface):
 		L{zim.gui.server}. Spawns a new zim instance for the server.
 		'''
 		# TODO instead of spawn, include in this process
-		ZimCmd(('--server', '--gui', self.notebook.uri)).spawn()
+		get_zim_application('--server', '--gui', self.notebook.uri).spawn()
 
 	def reload_index(self, flush=False):
 		'''Check the notebook for changes and update the index.
@@ -2202,9 +2187,9 @@ class GtkInterface(NotebookInterface):
 		@param page: manual page to show (string)
 		'''
 		if page:
-			ZimCmd(('--manual', page)).spawn()
+			get_zim_application('--manual', page).spawn()
 		else:
-			ZimCmd(('--manual',)).spawn()
+			get_zim_application('--manual').spawn()
 
 	def show_help_faq(self):
 		'''Menu action to show the 'FAQ' page in the user manual'''

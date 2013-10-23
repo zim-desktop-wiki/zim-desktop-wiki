@@ -13,6 +13,7 @@ except:
 	print >> sys.stderr, 'ERROR: zim needs python >= 2.6   (but < 3.0)'
 	sys.exit(1)
 
+
 # Win32: must setup log file or it tries to write to $PROGRAMFILES
 # See http://www.py2exe.org/index.cgi/StderrLog
 if os.name == "nt" and sys.argv[0].endswith('.exe'):
@@ -27,28 +28,10 @@ if os.name == "nt" and sys.argv[0].endswith('.exe'):
 # Preliminary initialization of logging because modules can throw warnings at import
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
-# Init locale for windows (before loading gettext library)
-if os.name == "nt" and not os.environ.get('LANG'):
-        import locale
-        lang, enc = locale.getdefaultlocale()
-        os.environ['LANG'] = lang + '.' + enc
-        logging.info('Locale set to: %s', os.environ['LANG'])
-
-# Coverage support - triggered by the test suite
-#~ if True:
-	#~ print 'Start coverage !'
-	#~ import atexit
-	#~ import coverage
-	#~ cov = coverage.coverage(data_suffix=True, auto_data=True)
-	#~ cov.start()
-	#~ atexit.register(cov.stop)
-
-
 # Try importing our modules
 try:
 	import zim
-	import zim.__main__
-	import zim.config
+	import zim.main
 	import zim.ipc
 except ImportError:
 	sys.excepthook(*sys.exc_info())
@@ -58,28 +41,17 @@ except ImportError:
 	sys.exit(1)
 
 
-# Check if we can find our data files
-try:
-	icon = zim.config.data_file('zim.png')
-	assert not icon is None
-except:
-	print >>sys.stderr, 'ERROR: Could not find data files in path:'
-	print >>sys.stderr, ' '.join(map(str, zim.config.data_dirs()))
-	print >>sys.stderr, '\nTry setting XDG_DATA_DIRS'
-	sys.exit(1)
-
-
 # Run the application and handle some exceptions
 try:
 	zim.ipc.handle_argv()
 	encoding = sys.getfilesystemencoding() # not 100% sure this is correct
 	argv = [arg.decode(encoding) for arg in sys.argv]
-	#~ zim.set_executable(argv[0])
-	zim.__main__.main(*argv[1:])
-except zim.__main__.GetoptError, err:
+	exitcode = zim.main.main(*argv)
+	sys.exit(exitcode)
+except zim.main.GetoptError, err:
 	print >>sys.stderr, sys.argv[0]+':', err
 	sys.exit(1)
-except zim.__main__.UsageError, err:
+except zim.main.UsageError, err:
 	print >>sys.stderr, err.msg
 	sys.exit(1)
 except KeyboardInterrupt: # e.g. <Ctrl>C while --server

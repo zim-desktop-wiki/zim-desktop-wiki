@@ -51,6 +51,8 @@ def set_basedirs():
 		if isfile('./zim.py'):
 			scriptdir = Dir('.') # maybe running module in test / debug
 		else:
+			# XXX - don't do this here !!!
+			import sys
 			encoding = sys.getfilesystemencoding() # not 100% sure this is correct
 			path = sys.argv[0].decode(encoding)
 			scriptdir = File(path).dir

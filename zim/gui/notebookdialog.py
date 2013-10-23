@@ -17,6 +17,7 @@ import gtk
 import pango
 import logging
 
+import zim.main
 from zim.fs import File, Dir
 from zim.notebook import get_notebook_list, get_notebook_info, init_notebook, NotebookInfo
 from zim.config import data_file
@@ -36,6 +37,7 @@ def prompt_notebook():
 	'''Prompts the NotebookDialog and returns the result or None.
 	As a special case for first time usage it immediately prompts for
 	the notebook location without showing the notebook list.
+	@returns: a L{NotebookInfo} object or C{None}
 	'''
 	list = get_notebook_list()
 	if len(list) == 0:
@@ -46,7 +48,7 @@ def prompt_notebook():
 			init_notebook(dir, name=fields['name'])
 			list.append(NotebookInfo(dir.uri, name=fields['name']))
 			list.write()
-			return dir.uri
+			return NotebookInfo(dir.uri, name=fields['name'])
 		else:
 			return None # User canceled the dialog ?
 	else:
@@ -343,7 +345,7 @@ class NotebookDialog(Dialog):
 		if iter is None:
 			return False
 		else:
-			self.result = model[iter][INFO_COL].uri
+			self.result = model[iter][INFO_COL]
 			if self.callback:
 				self.callback(self.result)
 			return True
@@ -380,10 +382,9 @@ class NotebookDialog(Dialog):
 		if self.ui:
 			Dialog.show_help(self, page)
 		else:
-			from zim import ZimCmd
 			if page is None:
 				page = self.help_page
-			ZimCmd(('--manual', page)).spawn()
+			zim.main.get_zim_application('--manual', page).spawn()
 
 
 class AddNotebookDialog(Dialog):

@@ -114,8 +114,6 @@ moved or deleted. This is stored in L{zim.fs.FS}.
 
 from __future__ import with_statement
 
-import gobject
-
 import os
 import re
 import sys
@@ -127,14 +125,16 @@ import logging
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.parsing import url_encode, url_decode
 from zim.async import AsyncOperation, AsyncLock
-from zim.signals import SignalEmitter
+from zim.signals import SignalEmitter, SIGNAL_AFTER
 
 
 logger = logging.getLogger('zim.fs')
 
-#: 'gio' library is imported for optional features, like trash
+#: gobject and gio libraries are imported for optional features, like trash
+gobject = None
 gio = None
 try:
+	import gobject
 	import gio
 	if not gio.File.trash:
 		gio = None
@@ -463,7 +463,7 @@ class FileUnicodeError(Error):
 
 # TODO actually hook the signal for deleting files and folders
 
-class FSSingletonClass(gobject.GObject):
+class FSSingletonClass(SignalEmitter):
 	'''Class used for the singleton 'zim.fs.FS' instance
 
 	@signal: C{path-created (L{FilePath})}: Emitted when a new file or
@@ -472,19 +472,21 @@ class FSSingletonClass(gobject.GObject):
 	a file or folder has been moved
 	@signal: C{path-deleted (L{FilePath})}: Emitted when a file or
 	folder has been deleted
+	@signal: C{mount (L{FilePath})}: Emitted when a path needs to be
+	mounted
 
 	@todo: fix the FS signals for folders as well
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'path-created': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'path-moved': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-		'path-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'path-created': (SIGNAL_AFTER, None, (object,)),
+		'path-moved': (SIGNAL_AFTER, None, (object, object)),
+		'path-deleted': (SIGNAL_AFTER, None, (object,)),
+		'mount': (SIGNAL_AFTER, None, (object,)),
 	}
 
 	def __init__(self):
-		gobject.GObject.__init__(self)
 		self._lock = AsyncLock()
 
 	def get_async_lock(self, path):
@@ -503,9 +505,9 @@ class FSSingletonClass(gobject.GObject):
 		assert isinstance(path, FilePath)
 		return self._lock
 
-# Need to register classes defining gobject signals
-gobject.type_register(FSSingletonClass)
-
+	def mount(self, path):
+		assert isinstance(path, FilePath)
+		self.emit('mount', path)
 
 #: Singleton object for the system filesystem - see L{FSSingletonClass}
 FS = FSSingletonClass()
@@ -687,9 +689,10 @@ class UnixPath(SignalEmitter):
 	def exists(self):
 		'''Check if a file or folder exists.
 		@returns: C{True} if the file or folder exists
-		@implementation: must be implemented by sub classes
+		@implementation: must be implemented by sub classes in order
+		that they enforce the type of the resource as well
 		'''
-		raise NotImplementedError
+		return os.path.exists(self.encodedpath)
 
 	def iswritable(self):
 		'''Check if a file or folder is writable. Uses permissions of

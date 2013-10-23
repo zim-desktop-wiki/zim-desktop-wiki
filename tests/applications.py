@@ -85,14 +85,6 @@ class TestApplications(tests.TestCase):
 		self.assertEqual(exe, sys.executable)
 		self.assertEqual(cmd, 'foo.py')
 
-		from zim import ZimCmd, ZIM_EXECUTABLE
-		app = ZimCmd()
-		self.assertIsInstance(app, Application)
-		cwd, argv = app._checkargs(None, ())
-		exe = argv[0].decode(zim.fs.ENCODING)
-		cmd = argv[1].decode(zim.fs.ENCODING)
-		self.assertEqual(exe, sys.executable)
-		self.assertEqual(cmd, ZIM_EXECUTABLE)
 
 	# TODO fully test _decode_value
 	# test e.g. values with '"' or '\t' in a string

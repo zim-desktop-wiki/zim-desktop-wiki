@@ -709,7 +709,9 @@ class TestNotebookDialog(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(doAddNotebook):
-			self.assertEqual(prompt_notebook(), dir1.uri)
+			info = prompt_notebook()
+			self.assertIsNotNone(info)
+			self.assertEqual(info.uri, dir1.uri)
 
 		# Second time we get the list
 		def testNotebookDialog(dialog):
@@ -719,7 +721,9 @@ class TestNotebookDialog(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(testNotebookDialog):
-			self.assertEqual(prompt_notebook(), dir1.uri)
+			info = prompt_notebook()
+			self.assertIsNotNone(info)
+			self.assertEqual(info.uri, dir1.uri)
 
 		# Third time we add a notebook and set the default
 		def doAddNotebook(dialog):
@@ -741,7 +745,9 @@ class TestNotebookDialog(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(testAddNotebook):
-			self.assertEqual(prompt_notebook(), dir2.uri)
+			info = prompt_notebook()
+			self.assertIsNotNone(info)
+			self.assertEqual(info.uri, dir2.uri)
 
 		# Check the notebook exists and the notebook list looks like it should
 		for dir in (dir1, dir2):
@@ -763,7 +769,9 @@ class TestNotebookDialog(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(unsetDefault):
-			self.assertEqual(prompt_notebook(), dir2.uri)
+			info = prompt_notebook()
+			self.assertIsNotNone(info)
+			self.assertEqual(info.uri, dir2.uri)
 
 		list = get_notebook_list()
 		self.assertTrue(len(list) == 2)

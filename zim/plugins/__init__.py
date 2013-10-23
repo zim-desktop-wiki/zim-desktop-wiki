@@ -277,8 +277,7 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 	will be initialized when the plugin is loaded.
 
 	Plugin classes should define two class attributes: L{plugin_info} and
-	L{plugin_preferences}. Optionally, they can also define the class
-	attribute L{is_profile_independent}.
+	L{plugin_preferences}.
 
 	This class inherits from L{ConnectorMixin} and calls
 	L{ConnectorMixin.disconnect_all()} when the plugin is destroyed.
@@ -312,13 +311,6 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 	Changes to these preferences will be stored in a config file so
 	they are persistent.
 
-	@cvar is_profile_independent: A boolean indicating that the plugin
-	configuration is global and not meant to change between notebooks.
-	The default value (if undefined) is False. Plugins that set
-	L{is_profile_independent} to True will be initialized before
-	opening the notebook. All other plugins will only be loaded after
-	the notebook is initialized.
-
 	@ivar ui: the main application object, e.g. an instance of
 	L{zim.gui.GtkInterface} or L{zim.www.WWWInterface}
 	@ivar preferences: a C{ConfigDict()} with plugin preferences
@@ -345,8 +337,6 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 	plugin_info = {}
 
 	plugin_preferences = ()
-
-	is_profile_independent = False
 
 	@classproperty
 	def config_key(klass):

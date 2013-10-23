@@ -13,6 +13,8 @@ from zim.notebook import Path, Notebook, init_notebook, \
 from zim.exporter import Exporter, StaticLinker
 from zim.applications import Application
 
+import zim.main
+
 # TODO add check that attachments are copied correctly
 
 
@@ -166,8 +168,12 @@ class TestExportCommandLine(TestExportFullOptions):
 		file = dir.file('Test/foo.txt')
 		self.assertTrue(file.exists())
 
-		zim = Application(('./zim.py', '--export', '--template=Default', dir.path, '--output', self.dir.path, '--index-page', 'index'))
-		zim.run()
+		argv = ('./zim.py', '--export', '--template=Default', dir.path, '--output', self.dir.path, '--index-page', 'index')
+		#~ zim = Application(argv)
+		#~ zim.run()
+
+		cmd = zim.main.build_command(argv[1:])
+		cmd.run()
 
 	def runTest(self):
 		'''Test export notebook to html from commandline'''

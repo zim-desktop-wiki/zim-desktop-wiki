@@ -18,7 +18,6 @@ zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default sea
 
 
 class TestPluginClasses(tests.TestCase):
-
 	'''Test case to check coding and documentation of plugin classes'''
 
 	def runTest(self):
@@ -26,9 +25,6 @@ class TestPluginClasses(tests.TestCase):
 		self.assertTrue(len(plugins) > 10)
 		self.assertTrue('spell' in plugins)
 		self.assertTrue('linkmap' in plugins)
-
-		# plugins listed here will be tested for is_profile_independent == True
-		profile_independent = ['automount',]
 
 		pluginindex = File('data/manual/Plugins.txt').read()
 
@@ -87,16 +83,8 @@ class TestPluginClasses(tests.TestCase):
 				self.assertTrue(isinstance(dep[i][1],bool))
 				self.assertTrue(isinstance(dep[i][2],bool))
 
-			# test is_profile_independent
-			self.assertTrue(isinstance(klass.is_profile_independent,bool))
-			if name in profile_independent:
-				self.assertTrue(klass.is_profile_independent)
-			else:
-				self.assertFalse(klass.is_profile_independent)
-
 
 class TestPluginManager(tests.TestCase):
-
 	'''Test case for TestManager infrastructure'''
 
 	def testLoadAndRemovePlugin(self):
@@ -104,21 +92,21 @@ class TestPluginManager(tests.TestCase):
 		self.assertEqual(len(manager), 0)
 		self.assertEqual(list(manager), [])
 
-		obj = manager.load_plugin('automount')
+		obj = manager.load_plugin('calendar')
 		self.assertEqual(len(manager), 1)
-		self.assertEqual(list(manager), ['automount'])
-		self.assertEqual(manager['automount'], obj)
+		self.assertEqual(list(manager), ['calendar'])
+		self.assertEqual(manager['calendar'], obj)
 
-		obj1 = manager.load_plugin('automount') # redundant call
+		obj1 = manager.load_plugin('calendar') # redundant call
 		self.assertEqual(obj1, obj)
 		self.assertEqual(len(manager), 1)
 
-		manager.remove_plugin('automount')
+		manager.remove_plugin('calendar')
 		self.assertEqual(len(manager), 0)
 		self.assertEqual(list(manager), [])
-		self.assertRaises(KeyError, manager.__getitem__, 'automount')
+		self.assertRaises(KeyError, manager.__getitem__, 'calendar')
 
-		manager.remove_plugin('automount') # redundant call
+		manager.remove_plugin('calendar') # redundant call
 
 	def testLoadNonExistingPlugin(self):
 		manager = PluginManager()
@@ -129,7 +117,6 @@ class TestPluginManager(tests.TestCase):
 
 
 class TestPlugins(tests.TestCase):
-
 	'''Test case to initiate all (loadable) plugins and load some extensions'''
 
 	def runTest(self):

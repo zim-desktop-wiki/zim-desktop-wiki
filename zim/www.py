@@ -117,7 +117,7 @@ class WWWInterface(NotebookInterface):
 	in the standard library for python.
 	'''
 
-	def __init__(self, config=None, notebook=None, template='Default', **opts):
+	def __init__(self, notebook, config=None, template='Default', **opts):
 		'''Constructor
 		@param config: a C{ConfigManager} object
 		@param notebook: notebook location
@@ -131,8 +131,8 @@ class WWWInterface(NotebookInterface):
 			template = get_template('html', template)
 		self.template = template
 		self.linker = None
-		if not notebook is None:
-			self.open_notebook(notebook)
+
+		self.open_notebook(notebook)
 
 	def open_notebook(self, notebook):
 		NotebookInterface.open_notebook(self, notebook)

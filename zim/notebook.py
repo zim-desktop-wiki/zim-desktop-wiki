@@ -85,10 +85,10 @@ import gobject
 from .base import Object
 
 import zim.fs
-from zim.fs import File, Dir
+from zim.fs import File, Dir, FS, FilePath, FileNotFoundError
 from zim.errors import Error, TrashNotSupportedError
 from zim.config import SectionedConfigDict, INIConfigFile, HierarchicDict, \
-	data_dir, ConfigManager, XDGDefaultFileIter #list_profiles
+	data_dir, ConfigManager, XDGConfigFileIter #list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode, url_decode
 from zim.async import AsyncLock
@@ -420,55 +420,21 @@ def get_notebook_list():
 def resolve_notebook(string):
 	'''Takes either a notebook name or a file or dir path. For a name
 	it resolves the path by looking for a notebook of that name in the
-	notebook list. For a path it checks if this path points to a
-	notebook or to a file in a notebook.
-
-	It returns two values, a path to the notebook directory and an
-	optional page path for a file inside a notebook. If the notebook
-	was not found both values are None.
+	notebook list.
+	Note that the L{NotebookInfo} for an file path is not using any
+	actual info from the notebook, it just passes on the uri. Use
+	L{build_notebook()} to split the URI in a notebook location and
+	an optional page path.
+	@returns: a L{NotebookInfo} or C{None}
 	'''
 	assert isinstance(string, basestring)
 
-	page = None
-	if is_url_re.match(string):
-		if string.startswith('zim+'): string = string[4:]
-		assert string.startswith('file://')
-		if '?' in string:
-			filepath, page = string.split('?', 1)
-			page = url_decode(page)
-			page = Path(page)
-		else:
-			filepath = string
-	elif os.path.sep in string:
-		filepath = string
+	if '/' in string or os.path.sep in string:
+		# FIXME do we need a isfilepath() function in fs.py ?
+		return NotebookInfo(string)
 	else:
 		nblist = get_notebook_list()
-		info = nblist.get_by_name(string)
-		if info is None:
-			if os.path.exists(string):
-				filepath = string # fall back to file path
-			else:
-				return None, None # not found
-		else:
-			filepath = info.uri
-
-	file = File(filepath) # FIXME need generic FS Path object here
-	if filepath.endswith('notebook.zim'):
-		return file.dir, page
-	elif not page and file.exists(): # file exists and really is a file
-		parents = list(file)
-		parents.reverse()
-		for parent in parents:
-			if File((parent, 'notebook.zim')).exists():
-				page = file.relpath(parent)
-				if '.' in page:
-					page, _ = page.rsplit('.', 1) # remove extension
-				page = Path(page.replace('/', ':'))
-				return Dir(parent), page
-		else:
-			return None, None
-	else:
-		return Dir(file.path), page
+		return nblist.get_by_name(string)
 
 
 def _get_path_object(path):
@@ -481,6 +447,7 @@ def _get_path_object(path):
 	else:
 		assert isinstance(path, (File, Dir))
 	return path
+
 
 def get_notebook_info(path):
 	'''Look up the notebook info for either a uri,
@@ -496,22 +463,66 @@ def get_notebook_info(path):
 	else:
 		return None
 
-def get_notebook(path):
-	'''Convenience method that constructs a notebook from either a
-	uri, or a File or a Dir object.
-	@param path: path as string, L{File} or L{Dir} object
-	@returns: a L{Notebook} object, or C{None} if the path does not
-	exist
-	'''
-	path = _get_path_object(path)
 
-	if path.exists():
-		if isinstance(path, File):
-			return Notebook(file=path)
-		else:
-			return Notebook(dir=path)
+def build_notebook(location, notebookclass=None):
+	'''Create a L{Notebook} object for a file location
+	Tries to automount file locations first if needed
+	@param location: a L{FilePath} or a L{NotebookInfo}
+	@param notebookclass: class to instantiate, used for testing
+	@returns: a L{Notebook} object and a L{Path} object or C{None}
+	@raises FileNotFoundError: if file location does not exist and could not be mounted
+	'''
+	uri = location.uri
+	page = None
+
+	# Decipher zim+file:// uris
+	#~ if uri.startswith('zim+'):
+		#~ uri = uri[4:]
+		#~ assert uri.startswith('file://')
+		#~ if '?' in uri:
+			#~ uri, page = uri.split('?', 1)
+			#~ page = url_decode(page)
+			#~ page = Path(page)
+
+	# Automount if needed
+	filepath = FilePath(uri)
+	if not filepath.exists():
+		FS.mount(filepath)
+		if not filepath.exists():
+			raise FileNotFoundError(filepath)
+
+	# Figure out the notebook dir
+	if filepath.isdir():
+		dir = Dir(uri)
+		file = None
 	else:
-		return None
+		file = File(uri)
+		dir = file.dir
+
+	if file and file.basename == 'notebook.zim':
+		file = None
+	else:
+		parents = list(dir)
+		parents.reverse()
+		for parent in parents:
+			if parent.file('notebook.zim').exists():
+				dir = parent
+				break
+
+	# Resolve the page for a file
+	if file:
+		path = file.relpath(dir)
+		if '.' in path:
+			path, _ = path.rsplit('.', 1) # remove extension
+		path = path.replace('/', ':')
+		page = Path(path)
+
+	# And finally create the notebook
+	if notebookclass is None:
+		notebookclass = Notebook
+	notebook = notebookclass(dir=dir)
+
+	return notebook, page
 
 
 def init_notebook(path, name=None):
@@ -543,7 +554,7 @@ def interwiki_link(link):
 
 	# Then search all "urls.list" in config and data dirs
 	if not url:
-		files = XDGDefaultFileIter('urls.list') # FIXME, shouldn't this be passed in ?
+		files = XDGConfigFileIter('urls.list') # FIXME, shouldn't this be passed in ?
 		for file in files:
 			for line in file.readlines():
 				if line.startswith('#') or line.isspace():

@@ -80,7 +80,8 @@ from multiprocessing.connection import Listener, Client
 import threading
 from Queue import Queue
 
-import zim
+
+import zim.main
 from zim.fs import get_tmpdir
 
 
@@ -254,10 +255,10 @@ def start_server_if_not_running():
 
 	# Call new process that has not loaded gtk to do the work for us
 	logger.debug('Starting server by spawning new process')
-	from zim import ZimCmd
-	app = ZimCmd()
 	loglevel = logging.getLogger().getEffectiveLevel()
-	app.spawn(('--ipc-server-main', SERVER_ADDRESS, loglevel))
+	zim.main.get_zim_application(
+		'--ipc-server-main', SERVER_ADDRESS, str(loglevel),
+	).spawn()
 
 	# Ensure server is running, but allow bit of timeout since
 	# process has to start
@@ -464,7 +465,7 @@ class Server(object):
 		conn1, conn2 = Pipe()
 		p = Process(
 			target=childmain,
-			args=(conn2, remoteobject, zim.ZIM_EXECUTABLE, loglevel, self.logqueue, args, kwargs)
+			args=(conn2, remoteobject, zim.main.ZIM_EXECUTABLE, loglevel, self.logqueue, args, kwargs)
 		)
 		p.daemon = True # child process exit with parent
 		p.start()
@@ -594,12 +595,13 @@ class ConnectionWorker(threading.Thread):
 
 def childmain(conn, remoteobject, zim_exe, loglevel, logqueue, arg, kwarg):
 	'''Main function for child processes'''
-	#~ print '>>> START CHILD MAIN'
 	global SERVER_CONTEXT
 	global _recursive_conn_lock
 	_recursive_conn_lock = True
 
-	zim.ZIM_EXECUTABLE = zim_exe
+	if not zim.main.ZIM_EXECUTABLE:
+		# apparently we are new process, not fork - so init zim properly
+		zim.main.init_zim_application(zim_exe)
 
 	setup_child_logging(loglevel, logqueue)
 

@@ -7,8 +7,7 @@ from getopt import gnu_getopt, GetoptError
 
 import logging
 
-import zim
-
+from zim import __version__
 from zim.errors import Error
 
 
@@ -95,9 +94,11 @@ class Command(object):
 		else:
 			level = logging.WARN
 
-		logger = logging.getLogger() # root
-		logger.setLevel(level)
-		#~ logger.info('This is zim %s', zim.__version__)
+		root = logging.getLogger() # root
+		root.setLevel(level)
+
+		logger = logging.getLogger('zim')
+		logger.info('This is zim %s', __version__)
 		if level == logging.DEBUG:
 			import sys
 			import os

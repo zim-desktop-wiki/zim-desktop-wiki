@@ -110,14 +110,11 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 '''
 
 import os
-import sys
 import gettext
-import gobject
+import gobject # remove this import !
 import logging
 
-from getopt import gnu_getopt, GetoptError
 
-from zim.fs import File, Dir
 from zim.errors import Error
 from zim.config import ZIM_DATA_DIR, ConfigManager
 from zim.plugins import PluginManager
@@ -125,33 +122,33 @@ from zim.plugins import PluginManager
 
 logger = logging.getLogger('zim')
 
+def init_gettext(language=None):
+	if language:
+		# Using LANGUAGE because it is highest prio parameter
+		os.environ['LANGUAGE'] = language
+	elif os.name == "nt" and not os.environ.get('LANG'):
+		# Using LANG because it is lowest prio - do not override other params
+		import locale
+		lang, enc = locale.getdefaultlocale()
+		os.environ['LANG'] = lang + '.' + enc
+		logging.info('Locale set to: %s', os.environ['LANG'])
+	# else assume configuration by environment parameters
 
-if ZIM_DATA_DIR:
-	# We are running from a source dir - use the locale data included there
-	localedir = ZIM_DATA_DIR.dir.subdir('locale').path
-	#~ print "Set localdir to: %s" % localedir
-else:
-	# Hope the system knows where to find the data
-	localedir = None
+	if ZIM_DATA_DIR:
+		# We are running from a source dir - use the locale data included there
+		localedir = ZIM_DATA_DIR.dir.subdir('locale').path
+		#~ print "Set localdir to: %s" % localedir
+	else:
+		# Hope the system knows where to find the data
+		localedir = None
 
-gettext.install('zim', localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
+	gettext.install('zim', localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
+
+init_gettext()
 
 
 #: This parameter can be set by ./setup.py, can be e.g. "maemo"
 PLATFORM = None
-
-#: Executable for starting new zim instances, set by main()
-ZIM_EXECUTABLE = 'zim'
-
-
-
-# FIXME remove the class
-class NotebookLookupError(Error):
-	'''Error when failing to locate a notebook'''
-
-	description = _('Could not find the file or folder for this notebook')
-		# T: Error verbose description
-
 
 
 def get_zim_revision():
@@ -170,54 +167,16 @@ Zim revision is:
 		return 'No bzr version-info found'
 
 
-def set_executable(self, path):
-	global ZIM_EXECUTABLE
 
-	# FIXME - this returns python.exe on my windows test
-	ZIM_EXECUTABLE = argv[0]
-	zim_exec_file = File(ZIM_EXECUTABLE)
-	if zim_exec_file.exists():
-		# We were given an absolute path, e.g. "python ./zim.py"
-		ZIM_EXECUTABLE = zim_exec_file.path
+# TODO remove this class
+class NotebookLookupError(Error):
+	'''Error when failing to locate a notebook'''
+
+	description = _('Could not find the file or folder for this notebook')
+		# T: Error verbose description
 
 
-def ZimCmd(args=None):
-	'''Constructor to get a L{Application} object for zim itself
-	Use this object to spawn new instances of zim.
-	When C{args} is given the options "--standalone" and "-V" or "-D"
-	will be added automatically.
-	@param args: arguments to give to zim
-	@returns: a L{Application} object for zim itself
-	'''
-	from zim.applications import Application
-	if ZIM_EXECUTABLE.endswith('.exe'):
-		cmd = (ZIM_EXECUTABLE,)
-	elif sys.executable:
-		# If not an compiled executable, we assume it is python
-		# (Application class only does this automatically for scripts
-		# ending in .py)
-		cmd = (sys.executable, ZIM_EXECUTABLE)
-
-	if not args:
-		return Application(cmd)
-
-	# TODO: if not standalone, call IPC directly rather than
-	#       first spawning a process
-	import zim.ipc
-	if not zim.ipc.in_child_process():
-		args = args + ('--standalone',)
-
-	# more detailed logging has lower number, so WARN > INFO > DEBUG
-	loglevel = logging.getLogger().getEffectiveLevel()
-	if loglevel <= logging.DEBUG:
-		args = args + ('-D',)
-	elif loglevel <= logging.INFO:
-		args = args + ('-V',)
-
-	return Application(cmd + args)
-
-
-
+# TODO remove this class
 class NotebookInterface(gobject.GObject):
 	'''Base class for the application object
 
@@ -251,13 +210,10 @@ class NotebookInterface(gobject.GObject):
 		# Consider making initialize-notebook a hook where handlers
 		# return a resolved notebook
 
-	def __init__(self, config=None, notebook=None):
+	def __init__(self, config=None):
 		'''Constructor
 
 		@param config: a C{ConfigManager} object
-		@param notebook: the L{Notebook} object to open in this
-		interface. If not specified here you can call L{open_notebook()}
-		to open one later.
 		'''
 		gobject.GObject.__init__(self)
 		self.notebook = None
@@ -270,40 +226,24 @@ class NotebookInterface(gobject.GObject):
 		self.plugins = PluginManager(self.config)
 		self.uistate = None
 
-		if not notebook is None:
-			self.open_notebook(notebook)
-
 	def open_notebook(self, notebook):
-		'''Open the notebook object
-
-		Open the notebook object for this interface if no notebook was
-		set already.
-
-		@param notebook: either a string, a L{File} or L{Dir} object,
-		or a L{Notebook} object.
-
-		When the notebook is not given as a Notebook object,
-		L{zim.notebook.resolve_notebook()} is used to resolve it.
-		If this method returns a page as well it is returned here
-		so it can be handled in a sub-class.
-
-		The reason that we call C{resolve_notebook()} from here (instead
-		of resolving it first and than calling this method only with a
-		notebook object) is that we want to allow active plugins to
-		handle the notebook uri before loading the Notebook object
-		(e.g. to auto-mount the notebook folder).
-
+		'''Open the notebook object for this interface if no notebook
+		was set already.
+		@param notebook: a L{Notebook} object.
 		@emits: open-notebook
-
-		@returns: a L{Path} if any was specified in the notebook spec
 		'''
-		from zim.notebook import Notebook
+		from zim.notebook import Notebook, NotebookInfo, build_notebook
 		assert self.notebook is None, 'BUG: other notebook opened already'
 		assert not notebook is None, 'BUG: no notebook specified'
+
+		if isinstance(notebook, basestring): # deal with IPC call
+			info = NotebookInfo(notebook)
+			notebook, x = build_notebook(info)
+		elif not isinstance(notebook, Notebook):
+			notebook, x = build_notebook(notebook)
+
 		logger.debug('Opening notebook: %s', notebook)
-		assert isinstance(notebook, Notebook)
 		self.emit('open-notebook', notebook)
-		return None
 
 	def do_open_notebook(self, notebook):
 		assert self.notebook is None, 'BUG: other notebook opened already'

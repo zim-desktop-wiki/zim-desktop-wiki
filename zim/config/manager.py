@@ -61,7 +61,7 @@ class ConfigManager(object):
 				defaults = None
 		else:
 			file = basedirs.XDG_CONFIG_HOME.file(path)
-			defaults = XDGDefaultFileIter(path)
+			defaults = XDGConfigFileIter(path)
 
 		## TODO: special case backward compat preferences & styles -- insert in defaults
 		return file, defaults
@@ -115,13 +115,9 @@ class DefaultFileIter(object):
 				yield file
 
 
-class XDGDefaultFileIter(DefaultFileIter):
+class XDGConfigDirsIter(object):
 
-	def __init__(self, path):
-		self.path = path
-
-	@property
-	def dirs(self):
+	def __iter__(self):
 		from . import data_dirs # XXX
 		yield basedirs.XDG_CONFIG_HOME.subdir(('zim'))
 		for dir in basedirs.XDG_CONFIG_DIRS:
@@ -129,6 +125,12 @@ class XDGDefaultFileIter(DefaultFileIter):
 		for dir in data_dirs():
 			yield dir
 
+
+class XDGConfigFileIter(DefaultFileIter):
+
+	def __init__(self, path):
+		self.path = path
+		self.dirs = XDGConfigDirsIter()
 
 
 class ConfigFile(object):

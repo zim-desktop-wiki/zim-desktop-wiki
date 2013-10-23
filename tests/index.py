@@ -10,7 +10,7 @@ import pango
 import os
 
 from zim.fs import Dir
-from zim.notebook import init_notebook, get_notebook, Notebook, Path, Link
+from zim.notebook import init_notebook, Notebook, Path, Link
 from zim.index import *
 from zim.formats import ParseTree
 from zim.gui.clipboard import Clipboard
@@ -436,7 +436,7 @@ class TestSynchronization(tests.TestCase):
 		dir = Dir(self.create_tmp_dir())
 
 		init_notebook(dir, name='foo')
-		notebook = get_notebook(dir)
+		notebook = Notebook(dir=dir)
 		index = notebook.index
 		index.update()
 

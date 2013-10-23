@@ -9,8 +9,8 @@ import os
 from time import strftime
 
 from zim import __version__, __url__, \
-	__author__, __copyright__, __license__, \
-	usagehelp, optionhelp
+	__author__, __copyright__, __license__
+from zim.__main__ import HelpCommand
 
 
 def get_about():
@@ -41,13 +41,13 @@ def make():
 	try:
 		os.mkdir('man')
 	except OSError:
-		pass # dir already exists 
+		pass # dir already exists
 	manpage = open('man/zim.1', 'w')
 	manpage.write('.TH ZIM "1" "%s" "zim %s" "User Commands"\n' % (strftime('%B %Y'), __version__))
 	manpage.write('.SH NAME\nzim \\- %s\n\n' % tagline)
-	manpage.write('.SH SYNOPSIS\n%s\n' % usagehelp.replace('-', r'\-'))
+	manpage.write('.SH SYNOPSIS\n%s\n' % HelpCommand.usagehelp.replace('-', r'\-'))
 	manpage.write('.SH DESCRIPTION\n%s\n' % about)
-	manpage.write('.SH OPTIONS\n%s\n' % optionhelp.replace('-', r'\-'))
+	manpage.write('.SH OPTIONS\n%s\n' % HelpCommand.optionhelp.replace('-', r'\-'))
 	manpage.write('.SH AUTHOR\n%s\n\n' % __author__)
 	manpage.write( '''\
 .SH "SEE ALSO"

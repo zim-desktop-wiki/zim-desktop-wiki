@@ -63,7 +63,7 @@ class TestWWWInterface(tests.TestCase):
 		config = VirtualConfigManager()
 		notebook = tests.new_notebook(fakedir=self.get_tmp_name())
 		notebook.index.update()
-		interface = WWWInterface(config, notebook, template=self.template)
+		interface = WWWInterface(notebook, config=config, template=self.template)
 		validator = wsgiref.validate.validator(interface)
 
 		def call(command, path):

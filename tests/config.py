@@ -6,11 +6,15 @@ from __future__ import with_statement
 
 import tests
 
+from tests.environ import EnvironmentContext
+
 import os
 
 from zim.fs import File, Dir
 from zim.config import *
 from zim.notebook import Path
+
+import zim.environ
 import zim.config
 
 
@@ -45,6 +49,21 @@ class FilterInvalidConfigWarning(tests.LoggingFilter):
 	message = 'Invalid config value'
 
 
+class EnvironmentConfigContext(EnvironmentContext):
+	# Here we use zim.environ rather than os.environ
+	# to make sure encoding etc. is correct
+
+	environ = zim.environ.environ
+
+	def __enter__(self):
+		EnvironmentContext.__enter__(self)
+		zim.config.set_basedirs() # refresh
+
+	def __exit__(self, *exc_info):
+		EnvironmentContext.__exit__(self, *exc_info)
+		zim.config.set_basedirs() # refresh
+
+
 class TestDirsTestSetup(tests.TestCase):
 
 	def runTest(self):
@@ -68,26 +87,7 @@ class TestDirsTestSetup(tests.TestCase):
 		)
 
 
-class TestDirsDefault(tests.TestCase):
-
-	def setUp(self):
-		old_environ = {}
-		for k in (
-			'XDG_DATA_HOME', 'XDG_DATA_DIRS',
-			'XDG_CONFIG_HOME', 'XDG_CONFIG_DIRS', 'XDG_CACHE_HOME'
-		):
-			if k in os.environ:
-				old_environ[k] = os.environ[k]
-				del os.environ[k]
-
-		def restore_environ():
-			for k, v in old_environ.items():
-				os.environ[k] = v
-			zim.config.set_basedirs() # refresh
-
-		self.addCleanup(restore_environ)
-
-		zim.config.set_basedirs() # refresh
+class TestXDGDirs(tests.TestCase):
 
 	def testValid(self):
 		'''Test config environment is valid'''
@@ -114,21 +114,26 @@ class TestDirsDefault(tests.TestCase):
 	@tests.skipIf(os.name == 'nt', 'No standard defaults for windows')
 	def testCorrect(self):
 		'''Test default basedir paths'''
-		for k, v in (
-			('XDG_DATA_HOME', '~/.local/share'),
-			('XDG_CONFIG_HOME', '~/.config'),
-			('XDG_CACHE_HOME', '~/.cache')
-		): self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
+		with EnvironmentConfigContext({
+			'XDG_DATA_HOME': None,
+			'XDG_DATA_DIRS': None,
+			'XDG_CONFIG_HOME': None,
+			'XDG_CONFIG_DIRS': None,
+			'XDG_CACHE_HOME': None,
+		}):
+			for k, v in (
+				('XDG_DATA_HOME', '~/.local/share'),
+				('XDG_CONFIG_HOME', '~/.config'),
+				('XDG_CACHE_HOME', '~/.cache')
+			): self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
 
-		for k, v in (
-			('XDG_DATA_DIRS', '/usr/share:/usr/local/share'),
-			('XDG_CONFIG_DIRS', '/etc/xdg'),
-		): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
+			for k, v in (
+				('XDG_DATA_DIRS', '/usr/share:/usr/local/share'),
+				('XDG_CONFIG_DIRS', '/etc/xdg'),
+			): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
 
-
-class TestDirsEnvironment(TestDirsDefault):
-
-	def setUp(self):
+	def testCorrect(self):
+		'''Test config environemnt with non-default basedir paths'''
 		my_environ = {
 			'XDG_DATA_HOME': '/foo/data/home',
 			'XDG_DATA_DIRS': '/foo/data/dir1:/foo/data/dir2',
@@ -140,31 +145,17 @@ class TestDirsEnvironment(TestDirsDefault):
 			my_environ['XDG_DATA_DIRS'] = '/foo/data/dir1;/foo/data/dir2'
 			my_environ['XDG_CONFIG_DIRS'] = '/foo/config/dir1;/foo/config/dir2'
 
-		old_environ = dict((name, os.environ.get(name)) for name in my_environ)
+		with EnvironmentConfigContext(my_environ):
+			for k, v in (
+				('XDG_DATA_HOME', '/foo/data/home'),
+				('XDG_CONFIG_HOME', '/foo/config/home'),
+				('XDG_CACHE_HOME', '/foo/cache')
+			): self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
 
-		def restore_environ():
-			for k, v in old_environ.items():
-				if v:
-					os.environ[k] = v
-			zim.config.set_basedirs() # refresh
-
-		self.addCleanup(restore_environ)
-
-		os.environ.update(my_environ)
-		zim.config.set_basedirs() # refresh
-
-	def testCorrect(self):
-		'''Test config environemnt with non-default basedir paths'''
-		for k, v in (
-			('XDG_DATA_HOME', '/foo/data/home'),
-			('XDG_CONFIG_HOME', '/foo/config/home'),
-			('XDG_CACHE_HOME', '/foo/cache')
-		): self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
-
-		for k, v in (
-			('XDG_DATA_DIRS', '/foo/data/dir1:/foo/data/dir2'),
-			('XDG_CONFIG_DIRS', '/foo/config/dir1:/foo/config/dir2'),
-		): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
+			for k, v in (
+				('XDG_DATA_DIRS', '/foo/data/dir1:/foo/data/dir2'),
+				('XDG_CONFIG_DIRS', '/foo/config/dir1:/foo/config/dir2'),
+			): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
 
 
 class TestControlledDict(tests.TestCase):
@@ -503,7 +494,25 @@ class TestVirtualConfigBackend(tests.TestCase):
 		self.assertEqual(file.readlines(), ['bar\n', 'baz\n'])
 
 
-class TestXDGDefaultFileIter(tests.TestCase):
+class TestXDGConfigDirsIter(tests.TestCase):
+
+	def runTest(self):
+		# During application init it is important that changes in
+		# environment take effect immediately
+		iter = XDGConfigDirsIter()
+
+		path = self.get_tmp_name()
+		zimdir = Dir(path).subdir('zim')
+		self.assertNotIn(zimdir, list(iter))
+
+		with EnvironmentConfigContext({
+			'XDG_CONFIG_HOME': path
+		}):
+			zim.config.set_basedirs() # refresh
+			self.assertIn(zimdir, list(iter))
+
+
+class TestXDGConfigFileIter(tests.TestCase):
 
 	def setUp(self):
 		dir = zim.config.XDG_CONFIG_DIRS[0]
@@ -514,7 +523,7 @@ class TestXDGDefaultFileIter(tests.TestCase):
 		dir.file('zim/foo.conf').remove()
 
 	def runTest(self):
-		defaults = XDGDefaultFileIter('foo.conf')
+		defaults = XDGConfigFileIter('foo.conf')
 		files = list(defaults)
 
 		self.assertTrue(len(files) > 0)

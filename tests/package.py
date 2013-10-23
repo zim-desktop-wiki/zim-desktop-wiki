@@ -56,9 +56,9 @@ class TestNotebookUpgrade(tests.TestCase):
 	def runTest(self):
 		'''Test if included notebooks are up to date'''
 		from zim.fs import Dir
-		from zim.notebook import get_notebook
+		from zim.notebook import Notebook
 		for path in ('data/manual', 'HACKING'):
-			notebook = get_notebook(Dir(path))
+			notebook = Notebook(dir=Dir(path))
 			self.assertTrue(not notebook.needs_upgrade)
 
 

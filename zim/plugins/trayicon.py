@@ -26,12 +26,13 @@ def main(*args):
 
 	config = ConfigManager()
 	preferences = config.get_config_dict('preferences.conf')['TrayIconPlugin']
+	print ">>>", preferences
 	preferences.setdefault('classic', False)
 
-	if appindicator and not preferences['classic']:
-		obj = RemoteObject('zim.plugins.trayicon.AppIndicatorTrayIcon')
-	else:
-		obj = RemoteObject('zim.plugins.trayicon.DaemonTrayIcon')
+	#~ if appindicator and not preferences['classic']:
+		#~ obj = RemoteObject('zim.plugins.trayicon.AppIndicatorTrayIcon')
+	#~ else:
+	obj = RemoteObject('zim.plugins.trayicon.DaemonTrayIcon')
 
 	server = ServerProxy()
 	if not server.has_object(obj):
