@@ -9,7 +9,11 @@ import logging
 
 logger = logging.getLogger('zim')
 
-from zim import __version__, __copyright__, __license__
+import zim
+import zim.errors
+import zim.config
+import zim.config.basedirs
+
 from zim.fs import FS, File, Dir
 from zim.errors import Error
 from zim.environ import environ
@@ -17,9 +21,6 @@ from zim.command import Command, UsageError, GetoptError
 from zim.config import ConfigManager, XDGConfigDirsIter
 from zim.notebook import Notebook, Path, NotebookInfo, \
 	get_notebook_list, resolve_notebook, build_notebook
-
-import zim.config
-import zim.config.basedirs
 
 
 class HelpCommand(Command):
@@ -87,9 +88,9 @@ Try 'zim --manual' for more help.
 class VersionCommand(Command):
 
 	def run(self):
-		print 'zim %s\n' % __version__
-		print __copyright__, '\n'
-		print __license__
+		print 'zim %s\n' % zim.__version__
+		print zim.__copyright__, '\n'
+		print zim.__license__
 
 
 class NotebookLookupError(Error):
@@ -173,6 +174,8 @@ class GuiCommand(NotebookCommand):
 		('standalone', '', 'start a single instance, no background process'),
 	)
 
+	use_gtk = True
+
 	def get_notebook_argument(self):
 		def prompt():
 			import zim.gui.notebookdialog
@@ -189,36 +192,28 @@ class GuiCommand(NotebookCommand):
 				return notebookinfo, page
 
 	def run(self):
-		try:
-			notebook, page = self.build_notebook()
-			if not notebook:
-				return # Cancelled notebook dialog
+		notebook, page = self.build_notebook()
+		if not notebook:
+			return # Cancelled notebook dialog
 
-			if self.opts.get('standalone'):
-				import zim.gui
-				handler = zim.gui.GtkInterface(notebook=notebook, page=page, **self.get_options('geometry', 'fullscreen'))
-				handler.main()
-			else:
-				import zim.ipc
-				zim.ipc.start_server_if_not_running()
-				server = zim.ipc.ServerProxy()
-				gui = server.get_notebook(notebook)
-				gui.present(page=page, **self.get_options('geometry', 'fullscreen'))
-				logger.debug(
-					'NOTE FOR BUG REPORTS:\n'
-					'	At this point zim has send the command to open a notebook to a\n'
-					'	background process and the current process will now quit.\n'
-					'	If this is the end of your debug output it is probably not useful\n'
-					'	for bug reports. Please close all zim windows, quit the\n'
-					'	zim trayicon (if any), and try again.\n'
-				)
-		except Exception, error:
-			from zim.gui.widgets import ErrorDialog
-			ErrorDialog(None, error).run()
-				# error dialog also does logging automatically
-			return 1
+		if self.opts.get('standalone'):
+			import zim.gui
+			handler = zim.gui.GtkInterface(notebook=notebook, page=page, **self.get_options('geometry', 'fullscreen'))
+			handler.main()
 		else:
-			return 0
+			import zim.ipc
+			zim.ipc.start_server_if_not_running()
+			server = zim.ipc.ServerProxy()
+			gui = server.get_notebook(notebook)
+			gui.present(page=page, **self.get_options('geometry', 'fullscreen'))
+			logger.debug(
+				'NOTE FOR BUG REPORTS:\n'
+				'	At this point zim has send the command to open a notebook to a\n'
+				'	background process and the current process will now quit.\n'
+				'	If this is the end of your debug output it is probably not useful\n'
+				'	for bug reports. Please close all zim windows, quit the\n'
+				'	zim trayicon (if any), and try again.\n'
+			)
 
 
 class ManualCommand(GuiCommand):
@@ -264,6 +259,8 @@ class ServerGuiCommand(NotebookCommand):
 		('standalone', '', 'start a single instance, no background process'),
 	)
 	# For now "--standalone" is ignored - server does not use ipc
+
+	use_gtk = True
 
 	def run(self):
 		import zim.gui.server
@@ -383,7 +380,7 @@ def main(*argv):
 		root = logging.getLogger()
 		root.setLevel(level)
 
-		logger.info('This is zim %s', __version__)
+		logger.info('This is zim %s', zim.__version__)
 
 		import zim.plugins
 		try:
@@ -397,13 +394,20 @@ def main(*argv):
 		return
 
 	obj = build_command(argv)
+	import zim.errors # !???
+	zim.errors.set_use_gtk(obj.use_gtk)
 
 	if not isinstance(obj, (VersionCommand, HelpCommand)):
 		init_zim_application(exe)
 
 	obj.set_logging()
-	exitcode = obj.run()
-	return exitcode or 0
+	try:
+		obj.run()
+	except:
+		zim.errors.exception_handler('Exception in main()')
+		return 1
+	else:
+		return 0
 
 
 def build_command(argv):
@@ -421,7 +425,9 @@ def build_command(argv):
 	elif argv and argv[0] == '-h':
 		argv.pop(0)
 		cmd = 'help'
-	# elif --plugin TODO
+	# elif --plugin
+	# TODO call a "build_command" in plugin module
+	#      allow plugins to define multiple commands
 	else:
 		cmd = 'gui' # default
 

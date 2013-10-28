@@ -10,7 +10,7 @@ from time import strftime
 
 from zim import __version__, __url__, \
 	__author__, __copyright__, __license__
-from zim.__main__ import HelpCommand
+from zim.main import HelpCommand
 
 
 def get_about():

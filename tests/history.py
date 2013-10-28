@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+from __future__ import with_statement
+
 
 import tests
 
@@ -296,7 +299,16 @@ class TestHistory(tests.TestCase):
 		uistate['History']['list'] = 'FOOOO'
 		uistate['History']['recent'] = [["BARRRR", 0]]
 		uistate['History']['cursor'] = 'Not an integer'
-		history = History(self.notebook, uistate)
+
+		with tests.LoggingFilter(
+			logger='zim.config',
+			message='Invalid config'
+		):
+			with tests.LoggingFilter(
+				logger='zim.history',
+				message='Could not parse'
+			):
+				history = History(self.notebook, uistate)
 		self.assertEqual(list(history.get_history()), [])
 		self.assertEqual(list(history.get_recent()), [])
 		self.assertIsNone(history.get_current())

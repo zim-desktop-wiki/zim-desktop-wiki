@@ -167,8 +167,9 @@ Zim revision is:
 		return 'No bzr version-info found'
 
 
+##################################
+# TODO remove these classes
 
-# TODO remove this class
 class NotebookLookupError(Error):
 	'''Error when failing to locate a notebook'''
 

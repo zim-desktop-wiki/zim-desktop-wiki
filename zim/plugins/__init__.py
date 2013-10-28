@@ -32,7 +32,7 @@ import zim.fs
 from zim.fs import Dir
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER
-from zim.actions import action, toggle_action, get_actiongroup
+from zim.actions import action, toggle_action, get_gtk_actiongroup
 from zim.utils import classproperty, get_module, lookup_subclass, WeakSet
 
 from zim.config import VirtualConfigManager
@@ -557,7 +557,7 @@ class WindowExtension(ObjectExtension):
 
 		if hasattr(self, 'uimanager_xml'):
 			# XXX TODO move uimanager to window
-			actiongroup = get_actiongroup(self)
+			actiongroup = get_gtk_actiongroup(self)
 			self.window.ui.uimanager.insert_action_group(actiongroup, 0)
 			self._uimanager_id = self.window.ui.uimanager.add_ui_from_string(self.uimanager_xml)
 

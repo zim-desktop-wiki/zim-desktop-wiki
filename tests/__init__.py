@@ -224,16 +224,23 @@ class LoggingFilter(object):
 	using the "with" keyword. To subclass it you only need to set the
 	logger to be used and (the begin of) the message to filter.
 
+	The message can be a string, or a list or tuple of strings. Any
+	messages that start with this string or any of these strings are
+	surpressed.
+
 	Alternatively you can call L{wrap_test()} from test C{setUp}.
-	This will start the filter and make sure it is cleanep up again.
+	This will start the filter and make sure it is cleaned up again.
 	'''
 
-	logger = None
+	logger = 'zim'
 	message = None
 
 	def __init__(self, logger=None, message=None):
-		if logger: self.logger = logger
-		if message: self.message = message
+		if logger:
+			self.logger = logger
+
+		if message:
+			self.message = message
 
 		self.loggerobj = logging.getLogger(self.logger)
 
@@ -245,6 +252,7 @@ class LoggingFilter(object):
 
 	def filter(self, record):
 		msg = record.getMessage()
+
 		if isinstance(self.message, tuple):
 			return not any(msg.startswith(m) for m in self.message)
 		else:

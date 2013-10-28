@@ -19,14 +19,9 @@ import inspect
 import weakref
 import logging
 
+import zim.errors
+
 logger = logging.getLogger('zim')
-
-
-try:
-	import gtk
-except ImportError:
-	gtk = None
-
 
 class Action(object):
 	'''Action, used by the L{action} decorator'''
@@ -58,15 +53,9 @@ class Action(object):
 			logger.debug('Action: %s', self.name)
 			try:
 				self.func(instance, *arg, **kwarg)
-			except Exception, error:
-				if gtk is not None:
-					# TODO better way to do this --> global error handler ?
-					# also now we pop dialog without parent window ..
-					from zim.gui.widgets import ErrorDialog
-					ErrorDialog(None, error).run()
-					# error dialog also does logging automatically
-				else:
-					logger.exception('Exception during action: %s', self.name)
+			except:
+				zim.errors.exception_handler(
+					'Exception during action: %s' % self.name)
 
 		return func
 
@@ -117,14 +106,8 @@ class ToggleAction(Action):
 			try:
 				self.func(instance, active)
 			except Exception, error:
-				if gtk is not None:
-					# TODO better way to do this --> global error handler ?
-					# also now we pop dialog without parent window ..
-					from zim.gui.widgets import ErrorDialog
-					ErrorDialog(None, error).run()
-					# error dialog also does logging automatically
-				else:
-					logger.exception('Exception during action: %s(%s)', self.name, active)
+				zim.errors.exception_handler(
+					'Exception during toggle action: %s(%s)' % (self.name, active))
 			else:
 				# Update state and notify actionables
 				self._state[instance] = active
@@ -189,7 +172,7 @@ def toggle_action(label, stock=None, accelerator='', tooltip='', readonly=True):
 	return _toggle_action
 
 
-def get_actiongroup(obj):
+def get_gtk_actiongroup(obj):
 	'''Return a C{gtk.ActionGroup} for an object using L{Action}
 	objects as attributes.
 
@@ -197,7 +180,7 @@ def get_actiongroup(obj):
 
 	This method can only be used when gtk is available
 	'''
-	assert gtk is not None
+	import gtk
 
 	if hasattr(obj, 'actiongroup') \
 	and obj.actiongroup is not None:

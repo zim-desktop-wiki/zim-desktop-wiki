@@ -3117,7 +3117,7 @@ class ErrorDialog(gtk.MessageDialog):
 	care of that.
 	'''
 
-	def __init__(self, ui, error, exc_info=None):
+	def __init__(self, ui, error, exc_info=None, do_logging=True):
 		'''Constructor
 
 		@param ui: either a parent window or dialog or the main
@@ -3134,46 +3134,48 @@ class ErrorDialog(gtk.MessageDialog):
 		most cases where the dialog is run while the exception is still
 		in scope. One reason to pass it on explicitly is the handling
 		of errors from an async operation in the main tread.
+
+		@param do_logging: if C{True} also log the error, if C{False}
+		assume someone else already did
 		'''
+		if not isinstance(error, Exception):
+			if isinstance(error, tuple):
+				msg, description = error
+				error = zim.errors.Error(msg, description)
+			else:
+				msg = unicode(error)
+				error = zim.errors.Error(msg)
+
 		self.error = error
-		show_trace = False
-		if isinstance(error, zim.errors.Error):
-			msg = error.msg
-			description = error.description
-		elif isinstance(error, EnvironmentError): # e.g. OSError or IOError
-			msg = error.strerror
-			if hasattr(error, 'filename') and error.filename:
-				msg += ': ' + error.filename
-			description = None
-		elif isinstance(error, Exception):
-			msg = _('Looks like you found a bug') # T: generic error dialog
-			# TODO point to bug tracker
-			description = error.__class__.__name__ + ': ' + unicode(error)
-			description += '\n\n' + _('When reporting this bug please include\nthe information from the text box below') # T: generic error dialog text
-			show_trace = True
-		elif isinstance(error, tuple):
-			msg, description = error
-		else:
-			# other object or string
-			msg = unicode(error)
-			description = None
+		self.do_logging = do_logging
+		msg, show_trace = zim.errors.get_error_msg(error)
 
 		gtk.MessageDialog.__init__(
 			self, parent=get_window(ui),
 			type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_CLOSE,
 			message_format=msg
 		)
-		if description:
-			self.format_secondary_text(description)
 
-		# Add widget with debug info
-		if show_trace:
+		if isinstance(error, zim.errors.Error):
+			self.showing_trace = False # used in test
+			self.format_secondary_text(error.description)
+		elif show_trace:
+			self.showing_trace = True # used in test
+			self.format_secondary_text(
+				_('When reporting this bug please include\n'
+				  'the information from the text box below')
+				) # T: generic error dialog text
+				# TODO add link to bug tracker
+
+			# Add widget with debug info
 			text = self.get_debug_text(exc_info)
 			window, textview = ScrolledTextView(text, monospace=True)
 			window.set_size_request(350, 200)
 			self.vbox.add(window)
 			self.vbox.show_all()
 			# TODO use an expander here ?
+		else:
+			pass
 
 
 	def get_debug_text(self, exc_info=None):
@@ -3214,19 +3216,23 @@ class ErrorDialog(gtk.MessageDialog):
 
 		text += self.error.__class__.__name__ + ': ' + unicode(self.error)
 
+		del exc_info # recommended by manual
+
 		return text
 
 	def run(self):
 		'''Runs the dialog and destroys it directly.'''
 		logger.debug('Running %s', self.__class__.__name__)
 
-		exc_info = sys.exc_info() # Check if we are in an exception handler
-		if exc_info[0] is None:
-			exc_info = None
-		logger.error(self.error, exc_info=exc_info)
-		del exc_info # Recommended in pydoc sys
-		sys.exc_clear() # Avoid showing same message again later
+		if self.do_logging:
+			zim.errors.log_error(error)
 
+		if TEST_MODE and TEST_MODE_RUN_CB:
+			TEST_MODE_RUN_CB(self)
+		else:
+			self._run()
+
+	def _run(self):
 		while True:
 			response = gtk.MessageDialog.run(self)
 			if response == gtk.RESPONSE_OK and not self.do_response_ok():

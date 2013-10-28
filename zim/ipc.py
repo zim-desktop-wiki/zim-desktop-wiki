@@ -82,7 +82,8 @@ from Queue import Queue
 
 
 import zim.main
-from zim.fs import get_tmpdir
+import zim.errors
+import zim.fs
 
 
 logger = logging.getLogger('zim.ipc')
@@ -290,7 +291,12 @@ def stop_server_if_running():
 
 
 def servermain():
-	'''Main function for the servr process'''
+	'''Main function for the server process'''
+	# Make absolutely sure no gtk loaded in server, will cause all kind
+	# of vague issues in child processes when it is loaded already..
+	if 'gtk' in sys.modules:
+		raise AssertionError, 'Cannot start server after importing gtk in same process'
+
 	# Decouple from parent environment
 	# and redirect standard file descriptors
 	os.chdir("/")
@@ -355,12 +361,12 @@ if sys.platform == 'win32':
 	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
 else:
 	# Unix domain socket
-	SERVER_ADDRESS = str(get_tmpdir().file('zim-server-socket').path)
+	SERVER_ADDRESS = str(zim.fs.get_tmpdir().file('zim-server-socket').path)
 		# BUG in multiprocess, name must be str instead of basestring
 	SERVER_ADDRESS_FAMILY = 'AF_UNIX'
 
 
-AUTHKEY_FILE = get_tmpdir().file('zim-server-authkey')
+AUTHKEY_FILE = zim.fs.get_tmpdir().file('zim-server-authkey')
 	# Zim always initializes the tmpdir with mode 700, so should be private
 
 
@@ -604,6 +610,8 @@ def childmain(conn, remoteobject, zim_exe, loglevel, logqueue, arg, kwarg):
 		zim.main.init_zim_application(zim_exe)
 
 	setup_child_logging(loglevel, logqueue)
+	zim.errors.set_use_gtk(True)
+		# Assume any child process to be a gui process
 
 	try:
 		klassname, id = remoteobject.klassname, remoteobject.id

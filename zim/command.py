@@ -31,6 +31,8 @@ class Command(object):
 		('debug', 'D', 'Debug output'),
 	)
 
+	use_gtk = False
+
 	def __init__(self, command, *args, **opts):
 		self.command = command
 		self.args = list(args)
