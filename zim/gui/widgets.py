@@ -3175,6 +3175,7 @@ class ErrorDialog(gtk.MessageDialog):
 			self.vbox.show_all()
 			# TODO use an expander here ?
 		else:
+			self.showing_trace = False # used in test
 			pass
 
 
@@ -3225,7 +3226,7 @@ class ErrorDialog(gtk.MessageDialog):
 		logger.debug('Running %s', self.__class__.__name__)
 
 		if self.do_logging:
-			zim.errors.log_error(error)
+			zim.errors.log_error(self.error)
 
 		if TEST_MODE and TEST_MODE_RUN_CB:
 			TEST_MODE_RUN_CB(self)

@@ -403,7 +403,11 @@ def main(*argv):
 	obj.set_logging()
 	try:
 		obj.run()
-	except:
+	except KeyboardInterrupt:
+		# Don't show error dialog for this error..
+		logger.error('KeyboardInterrupt')
+		return 1
+	except Exception:
 		zim.errors.exception_handler('Exception in main()')
 		return 1
 	else:
@@ -479,6 +483,13 @@ def _set_zim_executable(exe):
 	if exefile.exists():
 		# Make e.g. "./zim.py" absolute
 		ZIM_EXECUTABLE = exefile.path
+
+	datadir = exefile.dir.subdir('data')
+	if datadir.exists():
+		zim.config.basedirs.ZIM_DATA_DIR = datadir
+	else:
+		zim.config.basedirs.ZIM_DATA_DIR = None
+
 	return exefile
 
 
@@ -581,15 +592,16 @@ def get_zim_application(command, *args):
 		cmd = (ZIM_EXECUTABLE,)
 
 	args = [command] + list(args)
-	if not in_child_process():
-		args.append('--standalone',)
+	if not command.startswith('--ipc'):
+		if not in_child_process():
+			args.append('--standalone',)
 
-	# more detailed logging has lower number, so WARN > INFO > DEBUG
-	loglevel = logging.getLogger().getEffectiveLevel()
-	if loglevel <= logging.DEBUG:
-		args.append('-D',)
-	elif loglevel <= logging.INFO:
-		args.append('-V',)
+		# more detailed logging has lower number, so WARN > INFO > DEBUG
+		loglevel = logging.getLogger().getEffectiveLevel()
+		if loglevel <= logging.DEBUG:
+			args.append('-D',)
+		elif loglevel <= logging.INFO:
+			args.append('-V',)
 
 	return Application(cmd + tuple(args))
 

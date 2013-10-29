@@ -112,16 +112,23 @@ def handle_argv():
 		# also does not return if arguments are handled
 
 	if len(sys.argv) > 1 and sys.argv[1] == '--ipc-server-main':
-		if len(sys.argv) > 2:
-			global SERVER_ADDRESS
-			SERVER_ADDRESS = sys.argv[2] # for testing
+		assert len(sys.argv) == 5, 'Invalid ipc args: %s' % sys.argv
 
-		if len(sys.argv) > 3:
-			loglevel = sys.argv[3]
-			logging.getLogger().setLevel(int(loglevel))
+		global SERVER_ADDRESS
+		SERVER_ADDRESS = sys.argv[2] # for testing
 
-		servermain()
+		zim_exe = sys.argv[3]
+			# Do NOT run init_application here - that is for the child process
+			# just set executable, so it can be passed on
+
+		loglevel = sys.argv[4]
+		logging.getLogger().setLevel(int(loglevel))
+
+		servermain(zim_exe)
 		sys.exit()
+
+	else:
+		pass
 
 
 class RemoteObject(object):
@@ -258,7 +265,7 @@ def start_server_if_not_running():
 	logger.debug('Starting server by spawning new process')
 	loglevel = logging.getLogger().getEffectiveLevel()
 	zim.main.get_zim_application(
-		'--ipc-server-main', SERVER_ADDRESS, str(loglevel),
+		'--ipc-server-main', SERVER_ADDRESS, zim.main.ZIM_EXECUTABLE, str(loglevel),
 	).spawn()
 
 	# Ensure server is running, but allow bit of timeout since
@@ -290,8 +297,10 @@ def stop_server_if_running():
 		pass # not running
 
 
-def servermain():
+def servermain(zim_exe):
 	'''Main function for the server process'''
+	# Do NOT run init_application here - that is for the child process
+
 	# Make absolutely sure no gtk loaded in server, will cause all kind
 	# of vague issues in child processes when it is loaded already..
 	if 'gtk' in sys.modules:
@@ -348,7 +357,7 @@ def servermain():
 			err_stream.write('ERROR: Failed to set up logging')
 
 	# Run actual server object
-	server = Server()
+	server = Server(zim_exe)
 	server.start()
 	server.main()
 	logger.debug('Server process %i quit', os.getpid())
@@ -375,7 +384,8 @@ class Server(object):
 
 	_signals = ('notebook-list-changed')
 
-	def __init__(self):
+	def __init__(self, zim_exe):
+		self.zim_exe = zim_exe
 		self.listener = None
 		self.remoteobjects = {}
 		self._running = False
@@ -471,7 +481,7 @@ class Server(object):
 		conn1, conn2 = Pipe()
 		p = Process(
 			target=childmain,
-			args=(conn2, remoteobject, zim.main.ZIM_EXECUTABLE, loglevel, self.logqueue, args, kwargs)
+			args=(conn2, remoteobject, self.zim_exe, loglevel, self.logqueue, args, kwargs)
 		)
 		p.daemon = True # child process exit with parent
 		p.start()
@@ -605,9 +615,9 @@ def childmain(conn, remoteobject, zim_exe, loglevel, logqueue, arg, kwarg):
 	global _recursive_conn_lock
 	_recursive_conn_lock = True
 
-	if not zim.main.ZIM_EXECUTABLE:
-		# apparently we are new process, not fork - so init zim properly
-		zim.main.init_zim_application(zim_exe)
+	zim.main.init_zim_application(zim_exe)
+		# Assume server process did not init, so we are still fresh here
+		# load init.conf, translations etc. in child process
 
 	setup_child_logging(loglevel, logqueue)
 	zim.errors.set_use_gtk(True)

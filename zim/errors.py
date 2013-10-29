@@ -145,7 +145,7 @@ class Error(Exception):
 		return msg
 
 	def __repr__(self):
-		return '<%s>' % self.__class__.__name__
+		return '<%s: %s>' % (self.__class__.__name__, self.msg)
 
 
 # Defined here because these errors are not specific to files, but can

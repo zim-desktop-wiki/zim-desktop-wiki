@@ -27,6 +27,8 @@ logger = logging.getLogger('zim.config')
 ## Initialize config paths
 
 ZIM_DATA_DIR = None #: 'data' dir relative to script file (when running from source), L{Dir} or C{None}
+	# Not initialized here, instead it is initialized by main.py
+
 XDG_DATA_HOME = None #: L{Dir} for XDG data home
 XDG_DATA_DIRS = None #: list of L{Dir} objects for XDG data dirs path
 XDG_CONFIG_HOME = None #: L{Dir} for XDG config home
@@ -39,32 +41,11 @@ def set_basedirs():
 	Called automatically when module is first loaded, should be
 	called explicitly only when environment has changed.
 	'''
-	global ZIM_DATA_DIR
 	global XDG_DATA_HOME
 	global XDG_DATA_DIRS
 	global XDG_CONFIG_HOME
 	global XDG_CONFIG_DIRS
 	global XDG_CACHE_HOME
-
-	# Detect if we are running from the source dir
-	try:
-		if isfile('./zim.py'):
-			scriptdir = Dir('.') # maybe running module in test / debug
-		else:
-			# XXX - don't do this here !!!
-			import sys
-			encoding = sys.getfilesystemencoding() # not 100% sure this is correct
-			path = sys.argv[0].decode(encoding)
-			scriptdir = File(path).dir
-		zim_data_dir = scriptdir.subdir('data')
-		if zim_data_dir.exists():
-			ZIM_DATA_DIR = zim_data_dir
-		else:
-			ZIM_DATA_DIR = None
-	except:
-		# Catch encoding errors in argv
-		logger.exception('Exception locating application data')
-		ZIM_DATA_DIR = None
 
 	if os.name == 'nt':
 		APPDATA = environ['APPDATA']
