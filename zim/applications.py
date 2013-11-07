@@ -25,6 +25,11 @@ from zim.environ import environ
 logger = logging.getLogger('zim.applications')
 
 
+def _main_is_frozen():
+	# Detect whether we are running py2exe compiled version
+	return hasattr(sys, 'frozen') and sys.frozen
+
+
 class ApplicationError(zim.errors.Error):
 	'''Error raises for error in sub process errors'''
 
@@ -140,9 +145,10 @@ class Application(object):
 		argv = self._cmd(args)
 
 		# if it is a python script, insert interpreter as the executable
-		if argv[0].endswith('.py') and sys.executable:
+		if argv[0].endswith('.py') and not _main_is_frozen():
 			argv = list(argv)
 			argv.insert(0, sys.executable)
+		# TODO: consider an additional commandline arg to re-use compiled python interpreter
 
 		argv = [a.encode(zim.fs.ENCODING) for a in argv]
 		if cwd:

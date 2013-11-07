@@ -12,7 +12,7 @@ import gobject
 import zim.ipc
 from zim.ipc import *
 
-import zim.main
+import zim
 
 from zim.fs import File, get_tmpdir
 from zim.notebook import NotebookInfo, Path, Page
@@ -27,13 +27,13 @@ class TestIPC(tests.TestCase):
 		self.OLD_AUTHKEY_FILE = zim.ipc.AUTHKEY_FILE
 		zim.ipc.SERVER_ADDRESS += '-test-%i' % os.getpid()
 		zim.ipc.AUTHKEY_FILE = get_tmpdir().file('zim-server-authkey-test-%i' % os.getpid())
-		zim.main.ZIM_EXECUTABLE = './zim.py'
+		zim.ZIM_EXECUTABLE = './zim.py'
 
 	def tearDown(self):
 		stop_server_if_running()
 		zim.ipc.SERVER_ADDRESS = self.OLD_SERVER_ADDRESS
 		zim.ipc.AUTHKEY_FILE = self.OLD_AUTHKEY_FILE
-		zim.main.ZIM_EXECUTABLE = None
+		zim.ZIM_EXECUTABLE = None
 
 	def runTest(self):
 		# Test setting up the server

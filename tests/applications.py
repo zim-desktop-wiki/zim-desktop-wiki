@@ -85,6 +85,15 @@ class TestApplications(tests.TestCase):
 		self.assertEqual(exe, sys.executable)
 		self.assertEqual(cmd, 'foo.py')
 
+		sys.frozen = True
+		try:
+			cwd, argv = app._checkargs(None, ())
+			self.assertEqual(argv, ['foo.py'])
+		except:
+			del sys.frozen
+			raise
+		else:
+			del sys.frozen
 
 	# TODO fully test _decode_value
 	# test e.g. values with '"' or '\t' in a string

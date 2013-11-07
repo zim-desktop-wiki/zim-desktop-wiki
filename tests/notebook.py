@@ -9,7 +9,7 @@ import tests
 import os
 
 from zim.fs import File, Dir
-from zim.config import ConfigManager
+from zim.config import ConfigManager, XDG_CONFIG_HOME
 from zim.notebook import *
 from zim.index import *
 import zim.errors
@@ -153,41 +153,56 @@ class TestResolveNotebook(tests.TestCase):
 
 @tests.slowTest
 class TestBuildNotebook(tests.TestCase):
+	# Test including automount !
 
 	def setUp(self):
-		tmpdir = Dir(self.get_tmp_name())
+		self.tmpdir = Dir(self.get_tmp_name())
+		self.notebookdir = self.tmpdir.subdir('notebook')
 
-		def mounthandler(fs, fpath):
-			#~ print "MOUNT", fpath
-			self.assertFalse(fpath.exists())
-			self.assertTrue(fpath.path == tmpdir.path or fpath.ischild(tmpdir))
-			tmpdir.file('notebook.zim').touch()
-			tmpdir.file('foo/bar.txt').touch()
+		script = self.tmpdir.file('mount.py')
+		script.write('''\
+import os
+import sys
+notebook = sys.argv[1]
+os.mkdir(notebook)
+os.mkdir(notebook + '/foo')
+for path in (
+	notebook + "/notebook.zim",
+	notebook + "/foo/bar.txt"
+):
+	fh = open(path, 'w')
+	fh.write("")
+	fh.close()
+''')
 
-		self.handlerid = FS.connect('mount', mounthandler)
+		automount = XDG_CONFIG_HOME.file('zim/automount.conf')
+		assert not automount.exists()
+		automount.write('''\
+[Path %s]
+mount=%s %s
+''' % (self.notebookdir.path, script.path, self.notebookdir.path))
 
-	def tearDown(self):
-		FS.disconnect(self.handlerid)
+	#~ def tearDown(self):
+		#~ automount = XDG_CONFIG_HOME.file('zim/automount.conf')
+		#~ automount.remove()
 
 	def runTest(self):
-		tmpdir = Dir(self.get_tmp_name())
-
 		def mockconstructor(dir):
 			return dir
 
 		for uri, path in (
-			(tmpdir.uri, None),
-			(tmpdir.file('notebook.zim').uri, None),
-			(tmpdir.file('foo/bar.txt').uri, Path('foo:bar')),
+			(self.notebookdir.uri, None),
+			(self.notebookdir.file('notebook.zim').uri, None),
+			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
 			#~ ('zim+' + tmpdir.uri + '?aaa:bbb:ccc', Path('aaa:bbb:ccc')),
 		):
 			#~ print ">>", uri
 			info = NotebookInfo(uri)
 			nb, p = build_notebook(info, notebookclass=mockconstructor)
-			self.assertEqual(nb, tmpdir)
+			self.assertEqual(nb, self.notebookdir)
 			self.assertEqual(p, path)
 
-		info = NotebookInfo(tmpdir.file('nonexistingfile.txt'))
+		info = NotebookInfo(self.notebookdir.file('nonexistingfile.txt'))
 		self.assertRaises(FileNotFoundError, build_notebook, info)
 
 

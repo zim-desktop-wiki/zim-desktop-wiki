@@ -110,45 +110,83 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 '''
 
 import os
+import sys
 import gettext
-import gobject # remove this import !
 import logging
 
-
-from zim.errors import Error
-from zim.config import ZIM_DATA_DIR, ConfigManager
-from zim.plugins import PluginManager
-
-
 logger = logging.getLogger('zim')
-
-def init_gettext(language=None):
-	if language:
-		# Using LANGUAGE because it is highest prio parameter
-		os.environ['LANGUAGE'] = language
-	elif os.name == "nt" and not os.environ.get('LANG'):
-		# Using LANG because it is lowest prio - do not override other params
-		import locale
-		lang, enc = locale.getdefaultlocale()
-		os.environ['LANG'] = lang + '.' + enc
-		logging.info('Locale set to: %s', os.environ['LANG'])
-	# else assume configuration by environment parameters
-
-	if ZIM_DATA_DIR:
-		# We are running from a source dir - use the locale data included there
-		localedir = ZIM_DATA_DIR.dir.subdir('locale').path
-		#~ print "Set localdir to: %s" % localedir
-	else:
-		# Hope the system knows where to find the data
-		localedir = None
-
-	gettext.install('zim', localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
-
-init_gettext()
 
 
 #: This parameter can be set by ./setup.py, can be e.g. "maemo"
 PLATFORM = None
+
+
+########################################################################
+
+## Note: all init here must happen before importing any other zim
+##       modules, so can not use zim.fs utilities etc.
+##       therefore ZIM_EXECUTABLE is a string, not an object
+
+
+## Check executable and relative data dir
+## (sys.argv[0] should always be correct, even for compiled exe)
+
+if os.name == "nt":
+	# See notes in zim/fs.py about encoding expected by abspath
+	ZIM_EXECUTABLE = os.path.abspath(
+		unicode(sys.argv[0], sys.getfilesystemencoding())
+	)
+else:
+	ZIM_EXECUTABLE = unicode(
+		os.path.abspath(sys.argv[0]),
+		sys.getfilesystemencoding()
+	)
+
+
+
+## Initialize gettext  (maybe make this optional later for module use ?)
+
+if os.name == "nt" and not os.environ.get('LANG'):
+	# Set locale config for gettext (other platforms have this by default)
+	# Using LANG because it is lowest prio - do not override other params
+	import locale
+	lang, enc = locale.getdefaultlocale()
+	os.environ['LANG'] = lang + '.' + enc
+	logging.info('Locale set to: %s', os.environ['LANG'])
+
+
+_localedir = os.path.join(os.path.dirname(ZIM_EXECUTABLE), 'locale')
+if not os.name == "nt":
+	_localedir = _localedir.encode(sys.getfilesystemencoding())
+
+if os.path.isdir(_localedir):
+	# We are running from a source dir - use the locale data included there
+	gettext.install('zim', _localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
+else:
+	# Hope the system knows where to find the data
+	gettext.install('zim', None, unicode=True, names=('_', 'gettext', 'ngettext'))
+
+
+
+
+########################################################################
+
+## Now we are allowed to import sub modules
+
+
+import zim.environ # initializes environment parameters
+import zim.config
+
+# Check if we can find our own data files
+_file = zim.config.data_file('zim.png')
+if not (_file and _file.exists()): #pragma: no cover
+	raise AssertionError(
+		'ERROR: Could not find data files in path: \n'
+		'%s\n'
+		'Try setting XDG_DATA_DIRS'
+			% map(str, zim.config.data_dirs())
+	)
+
 
 
 def get_zim_revision():
@@ -167,8 +205,16 @@ Zim revision is:
 		return 'No bzr version-info found'
 
 
+
+
 ##################################
 # TODO remove these classes
+
+from zim.errors import Error
+from zim.config import ConfigManager
+from zim.plugins import PluginManager
+
+import gobject
 
 class NotebookLookupError(Error):
 	'''Error when failing to locate a notebook'''

@@ -472,8 +472,6 @@ class FSSingletonClass(SignalEmitter):
 	a file or folder has been moved
 	@signal: C{path-deleted (L{FilePath})}: Emitted when a file or
 	folder has been deleted
-	@signal: C{mount (L{FilePath})}: Emitted when a path needs to be
-	mounted
 
 	@todo: fix the FS signals for folders as well
 	'''
@@ -483,7 +481,6 @@ class FSSingletonClass(SignalEmitter):
 		'path-created': (SIGNAL_AFTER, None, (object,)),
 		'path-moved': (SIGNAL_AFTER, None, (object, object)),
 		'path-deleted': (SIGNAL_AFTER, None, (object,)),
-		'mount': (SIGNAL_AFTER, None, (object,)),
 	}
 
 	def __init__(self):
@@ -504,10 +501,6 @@ class FSSingletonClass(SignalEmitter):
 		# But for now we keep things simple.
 		assert isinstance(path, FilePath)
 		return self._lock
-
-	def mount(self, path):
-		assert isinstance(path, FilePath)
-		self.emit('mount', path)
 
 #: Singleton object for the system filesystem - see L{FSSingletonClass}
 FS = FSSingletonClass()

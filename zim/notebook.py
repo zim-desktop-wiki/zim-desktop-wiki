@@ -487,7 +487,7 @@ def build_notebook(location, notebookclass=None):
 	# Automount if needed
 	filepath = FilePath(uri)
 	if not filepath.exists():
-		FS.mount(filepath)
+		mount_notebook(filepath)
 		if not filepath.exists():
 			raise FileNotFoundError(filepath)
 
@@ -523,6 +523,42 @@ def build_notebook(location, notebookclass=None):
 	notebook = notebookclass(dir=dir)
 
 	return notebook, page
+
+
+def mount_notebook(filepath):
+	config = ConfigManager() # XXX should be passed in
+	for dir, handler in _load_mountpoints(config.get_config_dict('automount.conf')):
+		if filepath.path == dir.path or filepath.ischild(dir):
+			if handler(filepath):
+				break
+
+def _load_mountpoints(configdict):
+	groups = [k for k in configdict.keys() if k.startswith('Path')]
+	groups.sort() # make order predictable for nested paths
+	for group in groups:
+		path = group[4:].strip() # len('Path') = 4
+		dir = Dir(path)
+		handler = ApplicationMountPointHandler(dir, **configdict[group])
+		yield dir, handler
+
+
+class ApplicationMountPointHandler(object):
+
+	def __init__(self, dir, **opts):
+		self.dir = dir
+		self.opts = opts
+
+	def __call__(self, path):
+		if path.path == self.dir.path or path.ischild(self.dir) \
+		and not self.dir.exists() \
+		and 'mount' in self.opts:
+			from zim.applications import Application
+			#~ if 'passwd' in config:
+				#~ passwd = self.prompt
+			Application(self.opts['mount']).run()
+			return path.exists()
+		else:
+			return False
 
 
 def init_notebook(path, name=None):

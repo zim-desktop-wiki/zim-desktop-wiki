@@ -389,16 +389,12 @@ def main(*argv):
 			raise UsageError, 'Missing plugin name'
 		module = zim.plugins.get_module('zim.plugins.' + pluginname)
 
-		init_zim_application(exe)
 		module.main(*argv[2:])
 		return
 
 	obj = build_command(argv)
 	import zim.errors # !???
 	zim.errors.set_use_gtk(obj.use_gtk)
-
-	if not isinstance(obj, (VersionCommand, HelpCommand)):
-		init_zim_application(exe)
 
 	obj.set_logging()
 	try:
@@ -446,117 +442,7 @@ def build_command(argv):
 	return obj
 
 
-#: Executable for starting new zim instances, set by main()
-ZIM_EXECUTABLE = None
-
-def init_zim_application(exe, config=None):
-	'''Initializes the zim application environment.
-	This means setting C{ZIM_EXECUTABLE}, loading X{init.conf} and
-	X{automount.conf} if present and verify zim can access it's
-	data files.
-	@param exe: the executable or script that we are running, usually
-	C{sys.argv[0]}
-	@param config: config manager for lookign up config files,
-	defaults to L{ConfigManager}
-	'''
-	global ZIM_EXECUTABLE
-	assert not ZIM_EXECUTABLE, 'init_application already called, can not initialize twice'
-	exefile = _set_zim_executable(exe)
-	exedir = exefile.dir
-
-	if not config:
-		config = ConfigManager(dir=exedir, dirs=XDGConfigDirsIter())
-		# Do not use this config for rest of application!
-
-	_load_init_conf(config, exedir)
-	_check_data_files()
-
-	# For backward compatibility
-	automount = config.get_config_dict('automount.conf')
-	_load_mountpoints(automount)
-
-
-def _set_zim_executable(exe):
-	global ZIM_EXECUTABLE
-	ZIM_EXECUTABLE = exe
-	exefile = File(ZIM_EXECUTABLE)
-	if exefile.exists():
-		# Make e.g. "./zim.py" absolute
-		ZIM_EXECUTABLE = exefile.path
-
-	datadir = exefile.dir.subdir('data')
-	if datadir.exists():
-		zim.config.basedirs.ZIM_DATA_DIR = datadir
-	else:
-		zim.config.basedirs.ZIM_DATA_DIR = None
-
-	return exefile
-
-
-def _load_init_conf(config, exedir):
-	init = config.get_config_dict('init.conf')
-
-	# Environment
-	for k, v in init['Environment'].items():
-		try:
-			if v.startswith('~/'):
-				v = File(v).path
-			elif v.startswith('./') or v.startswith('../'):
-				v = exedir.resolve_file(v).path
-			else:
-				pass
-		except:
-			logger.exception('Could not parse environment parameter %s = "%s"', k, v)
-		else:
-			logger.debug('Init environment: %s = %s', k, v)
-			environ[k] = v
-
-	zim.config.basedirs.set_basedirs() # Re-initialize constants
-	zim.init_gettext()
-
-	# Mountpoints
-	_load_mountpoints(init)
-
-	# TODO add keyword to load python script to bootstrap more advanced stuff ?
-
-
-def _load_mountpoints(configdict):
-	groups = [k for k in configdict.keys() if k.startswith('Path')]
-	groups.sort() # make order predictable for nested paths
-	for group in groups:
-		path = group[4:].strip() # len('Path') = 4
-		dir = Dir(path)
-		handler = ApplicationMountPointHandler(dir, **configdict[group])
-		FS.connect('mount', handler)
-
-
-def _check_data_files():
-	# Check if we can find our own data files
-	icon = zim.config.data_file('zim.png')
-	if not (icon and icon.exists()): #pragma: no cover
-		raise AssertionError(
-			'ERROR: Could not find data files in path: \n'
-			'%s\n'
-			'Try setting XDG_DATA_DIRS'
-				% map(str, zim.config.data_dirs())
-		)
-
-
-class ApplicationMountPointHandler(object):
-
-	def __init__(self, dir, **opts):
-		self.dir = dir
-		self.opts = opts
-
-	def __call__(self, fs, path):
-		if path.ischild(self.dir) and not path.exists() \
-		and 'mount' in self.opts:
-			from zim.applications import Application
-			#~ if 'passwd' in config:
-				#~ passwd = self.prompt
-			Application(self.opts['mount']).run()
-			return True # cancel other handlers
-
+########################################################################
 
 def get_zim_application(command, *args):
 	'''Constructor to get a L{Application} object for zim itself
@@ -572,24 +458,9 @@ def get_zim_application(command, *args):
 	#       first spawning a process
 	assert command is not None
 
+	from zim import ZIM_EXECUTABLE
 	from zim.applications import Application
 	from zim.ipc import in_child_process
-
-	if not ZIM_EXECUTABLE:
-		raise AssertionError(
-			'ZIM_EXECUTABLE is not set -'
-			' function called from outside zim'
-			' or zim is not properly initialized'
-		)
-
-	if not ZIM_EXECUTABLE.endswith('.exe') and sys.executable:
-		# If not an compiled executable, we assume it is python
-		# (Application class only does this automatically for scripts
-		# ending in .py)
-		cmd = (sys.executable, ZIM_EXECUTABLE)
-	else:
-		# Else should be executable on it's own
-		cmd = (ZIM_EXECUTABLE,)
 
 	args = [command] + list(args)
 	if not command.startswith('--ipc'):
@@ -603,5 +474,5 @@ def get_zim_application(command, *args):
 		elif loglevel <= logging.INFO:
 			args.append('-V',)
 
-	return Application(cmd + tuple(args))
+	return Application([ZIM_EXECUTABLE] + args)
 
