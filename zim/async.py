@@ -60,7 +60,6 @@ def call_in_main_thread(cb_func, args=()):
 	# however idle_add() does this for us
 
 	def callback():
-		logger.debug('Callback from async thread to main thread..')
 		cb_func(*args)
 		return False # cause the timeout to be destroyed
 

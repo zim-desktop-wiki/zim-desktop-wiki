@@ -274,13 +274,32 @@ tag_re = Re(r'^(@\w+)$', re.U)
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
 _classes = {
-	'upper': string.uppercase,
-	'lower': string.lowercase,
 	'letters': string.letters
 }
-camelcase_re = Re(r'[%(upper)s]+[%(lower)s]+[%(upper)s]+\w*$' % _classes)
 twoletter_re = re.compile(r'[%(letters)s]{2}' % _classes)
 del _classes
+
+def camelcase(word):
+	# To be CamelCase, a word needs to start uppercase, followed
+	# by at least one lower case, followed by at least one uppercase.
+	# As a result:
+	# - CamelCase needs at least 3 characters
+	# - first char needs to be upper case
+	# - remainder of the text needs to be mixed case
+	if len(word) < 3 \
+	or not unicode.isalpha(word) \
+	or unicode.islower(word[1:]) \
+	or unicode.islower(word[0]) \
+	or unicode.isupper(word[1:]):
+		return False
+
+	# Now do detailed check to exclude e.g. "AAbb"
+	# Remainder needs to split in at least two mixed case parts
+	i = 2
+	while unicode.isupper(word[:i]):
+		i += 1
+
+	return not unicode.islower(word[i:])
 
 
 def increase_list_bullet(bullet):
@@ -3868,8 +3887,8 @@ class TextView(gtk.TextView):
 			apply_link(interwiki_re[0])
 		elif self.preferences['autolink_files'] and file_re.match(word):
 			apply_link(file_re[0])
-		elif self.preferences['autolink_camelcase'] and camelcase_re.match(word):
-			apply_link(camelcase_re[0])
+		elif self.preferences['autolink_camelcase'] and camelcase(word):
+			apply_link(word)
 		elif self.preferences['auto_reformat']:
 			handled = False
 			linestart = buffer.get_iter_at_line(end.get_line())

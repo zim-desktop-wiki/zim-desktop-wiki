@@ -238,6 +238,8 @@
 	<popup name='text_popup'>
 		<placeholder name='tools'/>
 	</popup>
+	<accelerator action='open_page_back_alt1'/>
+	<accelerator action='open_page_forward_alt1'/>
 	<accelerator action='zoom_in_alt1'/>
 	<accelerator action='show_find_alt1'/>
 	<accelerator action='find_next_alt1'/>

@@ -96,7 +96,9 @@ ui_actions = (
 	('reload_index', None, _('Update Index'), '', '', False), # T: Menu item
 	('manage_custom_tools', 'gtk-preferences', _('Custom _Tools'), '', '', True), # T: Menu item
 	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back'), True), # T: Menu item
+	('open_page_back_alt1', None, '', 'XF86Back', '', True),
 	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward'), True), # T: Menu item
+	('open_page_forward_alt1', None, '', 'XF86Forward', '', True),
 	('open_page_parent', 'gtk-go-up', _('_Parent'), '<alt>Up', _('Go to parent page'), True), # T: Menu item
 	('open_page_child', 'gtk-go-down', _('_Child'), '<alt>Down', _('Go to child page'), True), # T: Menu item
 	('open_page_previous', None, _('_Previous in index'), '<alt>Page_Up', _('Go to previous page'), True), # T: Menu item
@@ -1974,13 +1976,18 @@ class GtkInterface(NotebookInterface):
 		# define a custom tool for other editors.
 		if not page:
 			page = self.page
-		if hasattr(self.page, 'source'):
-			file = self.page.source
-		else:
-			ErrorDialog('This page does not have a source file').run()
+
+		if not hasattr(self.page, 'source'):
+			ErrorDialog(self, 'This page does not have a source file').run()
 			return
 
-		self.edit_file(file, istextfile=True)
+		if page.modified:
+			ok = self.save_page(page)
+			if not ok:
+				ErrorDialog(self, 'Page has unsaved changes')
+				return
+
+		self.edit_file(self.page.source, istextfile=True)
 		if page == self.page:
 			self.reload_page()
 

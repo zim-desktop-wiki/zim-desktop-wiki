@@ -1834,3 +1834,26 @@ class MockUI(tests.MockObject):
 
 class MockBuffer(tests.MockObject):
 	pass
+
+
+class TestCamelCase(tests.TestCase):
+
+	def runTest(self):
+		for text in (
+			'CamelCase', 'AbbA',
+			u'ĚěščřžýáíéúůŮěščřžýáíéúů'
+		):
+			self.assertTrue(
+				camelcase(unicode(text)),
+				msg='"%s" should be CamelCase' % text
+			)
+
+		for text in (
+			'A', 'AAAA', 'aaaa', 'Aaaaa', 'AAAAaaa', 'aAAAAA', 'aaaAAA',
+			'123', 'A123A123',
+			u'ĚŠČŘŽÝÁÍÉÚŮ', u'ěščřžýáíéúů',
+		):
+			self.assertFalse(
+				camelcase(unicode(text)),
+				msg='"%s" should NOT be CamelCase' % text
+			)

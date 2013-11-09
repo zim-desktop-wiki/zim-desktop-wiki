@@ -7,7 +7,7 @@
 import re
 
 
-def split_quoted_strings(string, unescape=True):
+def split_quoted_strings(string, unescape=True, strict=True):
 	'''Split a word list respecting quotes
 
 	This function always expect full words to be quoted, even if quotes
@@ -24,6 +24,8 @@ def split_quoted_strings(string, unescape=True):
 	@param string: string to split in words
 	@param unescape: if C{True} quotes are removed, else they are
 	left in place
+	@param strict: if C{True} unmatched quotes will cause a C{ValueError}
+	to be raised, if C{False} unmatched quotes are ignored.
 	@returns: list of strings
 	'''
 	word_re = Re(r'''
@@ -38,7 +40,12 @@ def split_quoted_strings(string, unescape=True):
 		words.append(word_re[0])
 		i = word_re.m.end()
 		string = string[i:].lstrip()
-	assert not string
+
+	if string and strict:
+		raise ValueError, 'Unmatched quote'
+	elif string:
+		words += string.split()
+
 	if unescape:
 		words = [unescape_quoted_string(w) for w in words]
 	return words
@@ -51,7 +58,8 @@ def unescape_quoted_string(string):
 	escape_re = re.compile(r'(\\(\\)|\\([\'\"]))')
 	def replace(m):
 		return m.group(2) or m.group(3)
-	if string.startswith('"') or string.startswith("'"):
+	if (string.startswith('"') or string.startswith("'")) \
+	and string[-1] == string[0]:
 		string = string[1:-1]
 		string = escape_re.sub(replace, string)
 	return string
