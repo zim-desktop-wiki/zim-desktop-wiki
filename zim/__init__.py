@@ -313,8 +313,8 @@ class NotebookInterface(gobject.GObject):
 
 		#~ notebook.connect('properties-changed', on_properties_changed)
 
-		self.plugins.extend(notebook)
 		self.plugins.extend(notebook.index)
+		self.plugins.extend(notebook)
 
 # Need to register classes defining gobject signals
 gobject.type_register(NotebookInterface)

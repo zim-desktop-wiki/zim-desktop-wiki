@@ -27,12 +27,12 @@ import gobject
 from wsgiref.headers import Headers
 import urllib
 
-from zim import NotebookInterface
 from zim.errors import Error
-from zim.notebook import Path, Page, IndexPage, PageNameError
+from zim.notebook import Notebook, Path, Page, IndexPage, PageNameError
 from zim.fs import File, Dir, FileNotFoundError
 from zim.formats import ParseTree, TreeBuilder, BaseLinker
-from zim.config import data_file
+from zim.config import data_file, ConfigManager
+from zim.plugins import PluginManager
 from zim.stores import encode_filename
 from zim.parsing import url_encode
 
@@ -68,20 +68,6 @@ class WWWError(Error):
 			self.msg += ' - ' + msg
 
 
-class NoConfigError(WWWError):
-	'''Error when configuration is missing what notebook to serve.
-	E.g. for cgi-bin script that was copied without modifiction.
-	'''
-
-	description = '''\
-There was no notebook configured for this zim instance.
-This is likely a configuration issue.
-'''
-
-	def __init__(self):
-		WWWError.__init__(self, 'Notebook not found', status='500')
-
-
 class PageNotFoundError(WWWError):
 	'''Error whan a page is not found (404)'''
 
@@ -106,7 +92,7 @@ The requested path is not valid
 		WWWError.__init__(self, 'Invalid path', status='403')
 
 
-class WWWInterface(NotebookInterface):
+class WWWInterface(object):
 	'''Class to handle the WWW interface for zim notebooks.
 
 	Objects of this class are callable, so they can be used as application
@@ -117,29 +103,34 @@ class WWWInterface(NotebookInterface):
 	in the standard library for python.
 	'''
 
-	def __init__(self, notebook, config=None, template='Default', **opts):
+	def __init__(self, notebook, config=None, template='Default'):
 		'''Constructor
-		@param config: a C{ConfigManager} object
-		@param notebook: notebook location
+		@param notebook: a L{Notebook} object
+		@param config: optional C{ConfigManager} object
 		@param template: html template for zim pages
-		@param opts: options for L{NotebookInterface.__init__()}
 		'''
-		NotebookInterface.__init__(self, config=config, **opts)
+		assert isinstance(notebook, Notebook)
+		self.notebook = notebook
+		self.config = config or ConfigManager()
+
 		self.output = None
 		if isinstance(template, basestring):
 			from zim.templates import get_template
-			template = get_template('html', template)
-		self.template = template
-		self.linker = None
+			self.template = get_template('html', template)
+			if not self.template:
+				raise AssertionError, 'Could not find html template: %s' % template
+		else:
+			self.template = template
 
-		self.open_notebook(notebook)
-
-	def open_notebook(self, notebook):
-		NotebookInterface.open_notebook(self, notebook)
-		#~ self.notebook.index.update()
 		self.linker = WWWLinker(self.notebook)
-		if self.template:
-			self.template.set_linker(self.linker)
+		self.template.set_linker(self.linker)
+
+		self.plugins = PluginManager(self.config)
+		self.plugins.extend(notebook.index)
+		self.plugins.extend(notebook)
+		self.plugins.extend(self)
+
+		#~ self.notebook.index.update()
 
 	def __call__(self, environ, start_response):
 		'''Main function for handling a single request. Follows the
@@ -183,9 +174,7 @@ class WWWInterface(NotebookInterface):
 			else:
 				path = urllib.unquote(path)
 
-			if self.notebook is None:
-				raise NoConfigError
-			elif path == '/':
+			if path == '/':
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
 				content = self.render_index()
 			elif path.startswith('/+docs/'):
@@ -203,7 +192,7 @@ class WWWInterface(NotebookInterface):
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.get_mimetype()
  			elif path.startswith('/+resources/'):
-				if self.template and self.template.resources_dir:
+				if self.template.resources_dir:
 					file = self.template.resources_dir.file(path[12:])
 					if not file.exists():
 						file = data_file('pixmaps/%s' % path[12:])
@@ -281,10 +270,7 @@ class WWWInterface(NotebookInterface):
 		@param page: a L{Page} object
 		@returns: html as a list of lines
 		'''
-		if self.template:
-			return self.template.process(self.notebook, page)
-		else:
-			return page.dump(format='html', linker=self.linker)
+		return self.template.process(self.notebook, page)
 
 
 class WWWLinker(BaseLinker):
@@ -358,6 +344,7 @@ def main(notebook, port=8080, public=True, **opts):
 	httpd = make_server(notebook, port, public, **opts)
 	logger.info("Serving HTTP on %s port %i...", httpd.server_name, httpd.server_port)
 	httpd.serve_forever()
+
 
 def make_server(notebook, port=8080, public=True, **opts):
 	'''Create a simple http server

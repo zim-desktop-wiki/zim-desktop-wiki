@@ -245,6 +245,7 @@ class ServerCommand(NotebookCommand):
 	def run(self):
 		import zim.www
 		self.opts['port'] = int(self.opts.get('port', 8080))
+		self.opts.setdefault('template', 'Default')
 		notebook, page = self.build_notebook()
 		zim.www.main(notebook, **self.get_options('template', 'port'))
 
