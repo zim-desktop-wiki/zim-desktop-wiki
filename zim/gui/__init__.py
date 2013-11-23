@@ -20,17 +20,16 @@ import logging
 import gobject
 import gtk
 
-import zim
-from zim import NotebookInterface, NotebookLookupError
 from zim.main import get_zim_application
 from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
 from zim.signals import DelayedCallback
-from zim.notebook import Path, Page
+from zim.notebook import Notebook, NotebookInfo, Path, Page, build_notebook
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
-from zim.config import data_file, data_dirs, ConfigDict, value_is_coord
+from zim.config import data_file, data_dirs, ConfigDict, value_is_coord, ConfigManager
+from zim.plugins import PluginManager
 from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
@@ -310,7 +309,7 @@ class WindowManager(object):
 
 
 
-class GtkInterface(NotebookInterface):
+class GtkInterface(gobject.GObject):
 	'''Main class for the zim Gtk interface. This object wraps a single
 	notebook and provides actions to manipulate and access this notebook.
 
@@ -391,9 +390,26 @@ class GtkInterface(NotebookInterface):
 		@param fullscreen: if C{True} open fullscreen
 		@param geometry: window geometry as string in format "C{WxH+X+Y}"
 		'''
-		assert not (page and notebook is None), 'BUG: can not give page while notebook is None'
+		gobject.GObject.__init__(self)
 
-		NotebookInterface.__init__(self, config)
+		if isinstance(notebook, basestring): # deal with IPC call
+			info = NotebookInfo(notebook)
+			notebook, x = build_notebook(info)
+		elif not isinstance(notebook, Notebook):
+			notebook, x = build_notebook(notebook)
+
+		logger.debug('Opening notebook: %s', notebook)
+		self.notebook = notebook
+
+		self.config = config or ConfigManager()
+		self.preferences = self.config.get_config_dict('<profile>/preferences.conf') ### preferences attrib should just be one section
+		self.preferences['General'].setdefault('plugins',
+			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
+
+		self.plugins = PluginManager(self.config)
+		self.plugins.extend(notebook.index)
+		self.plugins.extend(notebook)
+
 		self.preferences_register = ConfigDict()
 		self.page = None
 		self._path_context = None
@@ -465,19 +481,65 @@ class GtkInterface(NotebookInterface):
 		self.preferences.connect('changed', self.do_preferences_changed)
 		self.do_preferences_changed()
 
-		# Deal with commandline arguments for notebook and page
-		self.open_notebook(notebook)
-			# If it fails here an error dialog is shown and main()
-			# will prompt the notebook list
-
-		if self.notebook and page:
-			if isinstance(page, basestring):
+		self._init_notebook(self.notebook)
+		if page:
+			if isinstance(page, basestring): # IPC call
 				page = self.notebook.resolve_path(page)
 				if not page is None:
 					self.open_page(page)
 			else:
 				assert isinstance(page, Path)
 				self.open_page(page)
+
+	def _init_notebook(self, notebook):
+		if notebook.cache_dir:
+			# may not exist during tests
+			from zim.config import INIConfigFile
+			self.uistate = INIConfigFile(
+				notebook.cache_dir.file('state.conf') )
+		else:
+			from zim.config import SectionedConfigDict
+			self.uistate = SectionedConfigDict()
+
+		def move_away(o, path):
+			if path == self.page or self.page.ischild(path):
+				self.open_page_back() \
+				or self.open_page_parent \
+				or self.open_page_home
+
+		def follow(o, path, newpath, update_links):
+			if self.page == path:
+				self.open_page(newpath)
+			elif self.page.ischild(path):
+				newpath = newpath + self.page.relname(path)
+				newpath = Path(newpath.name) # IndexPath -> Path
+				self.open_page(newpath)
+
+		def autosave(o, p, *a):
+			# Here we explicitly do not save async
+			# and also explicitly no need for _autosave_lock
+			page = self.mainwindow.pageview.get_page()
+			if p == page and page.modified:
+				self.save_page(page)
+
+		self.history = History(notebook, self.uistate)
+		self.on_notebook_properties_changed(notebook)
+		notebook.connect('properties-changed', self.on_notebook_properties_changed)
+		notebook.connect('delete-page', autosave) # before action
+		notebook.connect('move-page', autosave) # before action
+		notebook.connect('deleted-page', move_away)
+		notebook.connect('moved-page', follow)
+
+		# Start a lightweight background check of the index
+		self.notebook.index.update_async()
+
+		self.set_readonly(notebook.readonly)
+
+	def on_notebook_properties_changed(self, notebook):
+		has_doc_root = not notebook.document_root is None
+		for action in ('open_document_root', 'open_document_folder'):
+			action = self.actiongroup.get_action(action)
+			action.set_sensitive(has_doc_root)
 
 	def main(self):
 		'''Wrapper for C{gtk.main()}, runs main loop of the application.
@@ -585,6 +647,35 @@ class GtkInterface(NotebookInterface):
 		self.mainwindow.show_all()
 		self.mainwindow.pageview.grab_focus()
 		gtk.main()
+
+	def check_notebook_needs_upgrade(self):
+		'''Check whether the notebook needs to be upgraded and prompt
+		the user to do so if this is the case.
+
+		Interactive wrapper for
+		L{Notebook.upgrade_notebook()<zim.notebook.Notebook.upgrade_notebook()>}.
+		'''
+		if not self.notebook.needs_upgrade:
+			return
+
+		ok = QuestionDialog(None, (
+			_('Upgrade Notebook?'), # T: Short question for question prompt
+			_('This notebook was created by an older of version of zim.\n'
+			  'Do you want to upgrade it to the latest version now?\n\n'
+			  'Upgrading will take some time and may make various changes\n'
+			  'to the notebook. In general it is a good idea to make a\n'
+			  'backup before doing this.\n\n'
+			  'If you choose not to upgrade now, some features\n'
+			  'may not work as expected') # T: Explanation for question to upgrade notebook
+		) ).run()
+
+		if not ok:
+			return
+
+		with ProgressBarDialog(self, _('Upgrading notebook')) as dialog: # T: Title of progressbar dialog
+			self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
+			dialog.set_total(self.notebook.index.n_list_all_pages())
+			self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
 
 	def present(self, page=None, fullscreen=None, geometry=None):
 		'''Present the mainwindow. Typically used to bring back a
@@ -1069,16 +1160,12 @@ class GtkInterface(NotebookInterface):
 		the user with the L{NotebookDialog}
 		@emits: open-notebook
 		'''
-		if not self.notebook:
-			assert not notebook is None, 'BUG: first initialize notebook'
-			NotebookInterface.open_notebook(self, notebook)
-		elif notebook is None:
+		if notebook is None:
 			# Handle menu item for 'open another notebook'
 			from zim.gui.notebookdialog import NotebookDialog
 			NotebookDialog.unique(self, self, callback=self.open_notebook).show() # implicit recurs
 		else:
-			# Could be call back from open notebook dialog
-			# We are already initialized, so let another process handle it
+			# Could be call back from open notebook dialog - XXX
 			import zim.ipc
 			if zim.ipc.in_child_process():
 				if isinstance(notebook, basestring) \
@@ -1093,78 +1180,6 @@ class GtkInterface(NotebookInterface):
 				notebook.present(page=pagename)
 			else:
 				get_zim_application('--gui', notebook).spawn()
-
-	def do_open_notebook(self, notebook):
-
-		def move_away(o, path):
-			if path == self.page or self.page.ischild(path):
-				self.open_page_back() \
-				or self.open_page_parent \
-				or self.open_page_home
-
-		def follow(o, path, newpath, update_links):
-			if self.page == path:
-				self.open_page(newpath)
-			elif self.page.ischild(path):
-				newpath = newpath + self.page.relname(path)
-				newpath = Path(newpath.name) # IndexPath -> Path
-				self.open_page(newpath)
-
-		def autosave(o, p, *a):
-			# Here we explicitly do not save async
-			# and also explicitly no need for _autosave_lock
-			page = self.mainwindow.pageview.get_page()
-			if p == page and page.modified:
-				self.save_page(page)
-
-		NotebookInterface.do_open_notebook(self, notebook)
-		self.history = History(notebook, self.uistate)
-		self.on_notebook_properties_changed(notebook)
-		notebook.connect('properties-changed', self.on_notebook_properties_changed)
-		notebook.connect('delete-page', autosave) # before action
-		notebook.connect('move-page', autosave) # before action
-		notebook.connect('deleted-page', move_away)
-		notebook.connect('moved-page', follow)
-
-		# Start a lightweight background check of the index
-		self.notebook.index.update_async()
-
-		self.set_readonly(notebook.readonly)
-
-	def check_notebook_needs_upgrade(self):
-		'''Check whether the notebook needs to be upgraded and prompt
-		the user to do so if this is the case.
-
-		Interactive wrapper for
-		L{Notebook.upgrade_notebook()<zim.notebook.Notebook.upgrade_notebook()>}.
-		'''
-		if not self.notebook.needs_upgrade:
-			return
-
-		ok = QuestionDialog(None, (
-			_('Upgrade Notebook?'), # T: Short question for question prompt
-			_('This notebook was created by an older of version of zim.\n'
-			  'Do you want to upgrade it to the latest version now?\n\n'
-			  'Upgrading will take some time and may make various changes\n'
-			  'to the notebook. In general it is a good idea to make a\n'
-			  'backup before doing this.\n\n'
-			  'If you choose not to upgrade now, some features\n'
-			  'may not work as expected') # T: Explanation for question to upgrade notebook
-		) ).run()
-
-		if not ok:
-			return
-
-		with ProgressBarDialog(self, _('Upgrading notebook')) as dialog: # T: Title of progressbar dialog
-			self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
-			dialog.set_total(self.notebook.index.n_list_all_pages())
-			self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
-
-	def on_notebook_properties_changed(self, notebook):
-		has_doc_root = not notebook.document_root is None
-		for action in ('open_document_root', 'open_document_folder'):
-			action = self.actiongroup.get_action(action)
-			action.set_sensitive(has_doc_root)
 
 	def open_page(self, path=None):
 		'''Method to open a page in the mainwindow, and menu action for
@@ -1886,8 +1901,9 @@ class GtkInterface(NotebookInterface):
 			# Special case for outlook folder paths on windows
 			os.startfile(url)
 		else:
+			from zim.gui.applications import get_mimetype
 			manager = ApplicationManager()
-			type = zim.gui.applications.get_mimetype(url)
+			type = get_mimetype(url)
 			logger.debug('Got type "%s" for "%s"', type, url)
 			entry = manager.get_default_application(type)
 			if entry:
@@ -2219,6 +2235,8 @@ class GtkInterface(NotebookInterface):
 			dialog.set_program_name('Zim')
 		except AttributeError:
 			pass
+
+		import zim
 		dialog.set_version(zim.__version__)
 		dialog.set_comments(_('A desktop wiki'))
 			# T: General description of zim itself
@@ -2911,7 +2929,7 @@ class MainWindow(Window):
 
 		self.pageview.set_page(page, cursor)
 
-		n = ui.notebook.index.n_list_links(page, zim.index.LINK_DIR_BACKWARD)
+		n = ui.notebook.index.n_list_links(page, LINK_DIR_BACKWARD)
 		label = self.statusbar_backlinks_button.label
 		label.set_text_with_mnemonic(
 			ngettext('%i _Backlink...', '%i _Backlinks...', n) % n)
@@ -3254,7 +3272,7 @@ class MovePageDialog(Dialog):
 		indexpath = self.ui.notebook.index.lookup_path(self.path)
 		if indexpath:
 			i = self.ui.notebook.index.n_list_links_to_tree(
-					indexpath, zim.index.LINK_DIR_BACKWARD )
+					indexpath, LINK_DIR_BACKWARD )
 		else:
 			i = 0
 
@@ -3303,7 +3321,7 @@ class RenamePageDialog(Dialog):
 		indexpath = self.ui.notebook.index.lookup_path(self.path)
 		if indexpath:
 			i = self.ui.notebook.index.n_list_links_to_tree(
-					indexpath, zim.index.LINK_DIR_BACKWARD )
+					indexpath, LINK_DIR_BACKWARD )
 		else:
 			i = 0
 
@@ -3374,7 +3392,7 @@ class DeletePageDialog(Dialog):
 		indexpath = self.ui.notebook.index.lookup_path(self.path)
 		if indexpath:
 			i = self.ui.notebook.index.n_list_links_to_tree(
-					indexpath, zim.index.LINK_DIR_BACKWARD )
+					indexpath, LINK_DIR_BACKWARD )
 		else:
 			i = 0
 
