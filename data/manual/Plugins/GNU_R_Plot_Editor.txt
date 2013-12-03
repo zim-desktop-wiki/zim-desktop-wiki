@@ -39,6 +39,17 @@ box()
 title(main="Maunga Whau Volcano", sub = "col=terrain.colors(100)", font.main=4)
 '''
 
+===== Plot size =====
+
+This plugin will generate an image which is exactly 480x480 pixels. You can tweak the produced image size by incerting a comment in your script:
+
+'''
+# WIDTH = 960
+# HEIGHT = 480
+plot(c(0,1),c(100,328))
+'''
+
+You can define only one of the two variable and the other will be set to the default value of 480 pixels. The line should start with the comment sign '#'. Spaces between words are not important.
 
 ===== Features Available =====
 

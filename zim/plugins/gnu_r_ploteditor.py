@@ -15,6 +15,7 @@
 #
 
 import glob
+import re
 
 from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
 from zim.fs import File, TmpFile
@@ -72,9 +73,22 @@ class GNURPlotGenerator(ImageGeneratorClass):
 		pngfile = File(plotscriptfile.path[:-2] + '.png')
 
 		plot_script = "".join(text)
+		
+		plot_width = 480 # default image width (px)
+		plot_height = 480 # default image height (px)
+
+		# LOOK for image size in comments of the script
+		r=re.search(r"^#\s*WIDTH\s*=\s*([0-9]+)$",plot_script,re.M)
+		if r:
+			plot_width=int(r.group(1))
+		r=re.search(r"^#\s*HEIGHT\s*=\s*([0-9]+)$",plot_script,re.M)
+		if r:
+			plot_height=int(r.group(1))
 
 		template_vars = {
 			'gnu_r_plot_script': plot_script,
+			'r_width': plot_width,
+			'r_height': plot_height,
 			'png_fname': pngfile.path.replace('\\', '/'),
 				# Even on windows, GNU R expects unix path seperator
 		}
