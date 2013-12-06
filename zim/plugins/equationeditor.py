@@ -56,8 +56,6 @@ class EquationGenerator(ImageGeneratorClass):
 		self.texfile = TmpFile(self.scriptname)
 
 	def generate_image(self, text):
-		if isinstance(text, basestring):
-			text = text.splitlines(True)
 
 		# Filter out empty lines, not allowed in latex equation blocks
 		text = (line for line in text if line and not line.isspace())

@@ -62,8 +62,6 @@ class DitaaGenerator(ImageGeneratorClass):
 		self.pngfile = File(self.dotfile.path[:-4] + '.png') # len('.dot') == 4
 
 	def generate_image(self, text):
-		if isinstance(text, basestring):
-			text = text.splitlines(True)
 
 		# Write to tmp file
 		self.dotfile.writelines(text)

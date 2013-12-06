@@ -65,8 +65,6 @@ class GNURPlotGenerator(ImageGeneratorClass):
 		self.plotscriptfile = TmpFile(self.scriptname)
 
 	def generate_image(self, text):
-		if isinstance(text, basestring):
-			text = text.splitlines(True)
 
 		plotscriptfile = self.plotscriptfile
 		pngfile = File(plotscriptfile.path[:-2] + '.png')

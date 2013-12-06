@@ -108,8 +108,6 @@ class ScoreGenerator(ImageGeneratorClass):
 		return (version, outtext)
 
 	def generate_image(self, text):
-		if isinstance(text, basestring):
-			text = text.splitlines(True)
 
 		(version, text) = self.extract_version(text)
 		text = ''.join(text)
